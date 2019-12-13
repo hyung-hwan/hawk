@@ -1,0 +1,71 @@
+Programs
+
+	pattern { action }
+	function name (parameter-list) { statement }
+
+Patterns
+	BEGIN
+	END
+	expresion
+	/regular expression/
+	pattern && pattern
+	pattern || pattern
+	!pattern
+	(pattern)
+	pattern, pattern   -> range pattern
+
+Actions
+	break
+	continue
+	delete array-element
+	do statement while (expression)
+	exit [expression]
+	expression
+	if (expression) statement [else statement]
+	input-output statement
+	for (expression; expression; expression) statement
+	for (variable in array) statement
+	next
+	return [expression]
+	while (expression) statement
+	{ statements }
+
+Variables
+
+global variables (enabled when awk->opt & HAWK_AWK_OPT_VARDCL)
+
+	global x;
+	global x, y;
+
+local variables  (enabled when awk->opt & HAWK_AWK_OPT_VARDCL)
+
+	local x;
+	local x, y;
+
+function arguments (enabled always) 
+
+	function funca (x, y)
+
+
+local variables in function declaration  (enabled when awk->opt & HAWK_AWK_OPT_FUNCLOCAL)
+
+	function funca (x, y,		v1, v2)
+
+
+variables without any declarations (enabled when awk->opt & HAWK_AWK_OPT_NAMEDVAR)
+
+	x = 10; // x is put into the global hash table.
+
+
+Optimization
+
+constant folding
+	2 * 10  => 20
+
+loop 
+	remove while (0) { ... } 
+	
+if
+	remove if (0) {}
+	use else_part only
+
