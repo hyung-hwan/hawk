@@ -608,7 +608,7 @@ static hawk_sio_t* open_sio (hawk_t* awk, const hawk_ooch_t* file, int flags)
 static hawk_sio_t* open_sio_rtx (hawk_rtx_t* rtx, const hawk_ooch_t* file, int flags)
 {
 	hawk_sio_t* sio;
-	sio = hawk_sio_open(hawk_rtx_getawk(rtx), 0, file, flags);
+	sio = hawk_sio_open(hawk_rtx_gethawk(rtx), 0, file, flags);
 	if (sio == HAWK_NULL)
 	{
 		hawk_oocs_t errarg;
@@ -638,7 +638,7 @@ static hawk_sio_t* open_sio_std_rtx (hawk_rtx_t* rtx, hawk_sio_std_t std, int fl
 {
 	hawk_sio_t* sio;
 
-	sio = hawk_sio_openstd(hawk_rtx_getawk(rtx), 0, std, flags);
+	sio = hawk_sio_openstd(hawk_rtx_gethawk(rtx), 0, std, flags);
 	if (sio == HAWK_NULL) hawk_rtx_seterrnum (rtx, HAWK_EOPEN, &sio_std_names[std]);
 	return sio;
 }
@@ -1479,7 +1479,7 @@ static hawk_ooi_t pio_handler_open (hawk_rtx_t* rtx, hawk_rio_arg_t* riod)
 	}
 
 	handle = hawk_pio_open (
-		hawk_rtx_getawk(rtx),
+		hawk_rtx_gethawk(rtx),
 		0, 
 		riod->name, 
 		flags | HAWK_PIO_SHELL | HAWK_PIO_TEXT | HAWK_PIO_IGNOREECERR
@@ -1628,7 +1628,7 @@ static hawk_ooi_t awk_rio_file (hawk_rtx_t* rtx, hawk_rio_cmd_t cmd, hawk_rio_ar
 					return -1; 
 			}
 
-			handle = hawk_sio_open(hawk_rtx_getawk(rtx), 0, riod->name, flags);
+			handle = hawk_sio_open(hawk_rtx_gethawk(rtx), 0, riod->name, flags);
 			if (handle == HAWK_NULL) 
 			{
 				hawk_oocs_t errarg;
@@ -1686,7 +1686,7 @@ static int open_rio_console (hawk_rtx_t* rtx, hawk_rio_arg_t* riod)
 		{
 			/* if no input files is specified, 
 			 * open the standard input */
-			HAWK_ASSERT (hawk_rtx_getawk(rtx), rxtn->c.in.index == 0);
+			HAWK_ASSERT (hawk_rtx_gethawk(rtx), rxtn->c.in.index == 0);
 
 			if (rxtn->c.in.count == 0)
 			{
@@ -1758,19 +1758,19 @@ static int open_rio_console (hawk_rtx_t* rtx, hawk_rio_arg_t* riod)
 			 *        { print $0; }' file1 file2
 			 */
 			argv = hawk_rtx_getgbl(rtx, xtn->gbl_argv);
-			HAWK_ASSERT (hawk_rtx_getawk(rtx), argv != HAWK_NULL);
-			HAWK_ASSERT (hawk_rtx_getawk(rtx), HAWK_RTX_GETVALTYPE (rtx, argv) == HAWK_VAL_MAP);
+			HAWK_ASSERT (hawk_rtx_gethawk(rtx), argv != HAWK_NULL);
+			HAWK_ASSERT (hawk_rtx_gethawk(rtx), HAWK_RTX_GETVALTYPE (rtx, argv) == HAWK_VAL_MAP);
 
 			map = ((hawk_val_map_t*)argv)->map;
-			HAWK_ASSERT (hawk_rtx_getawk(rtx), map != HAWK_NULL);
+			HAWK_ASSERT (hawk_rtx_gethawk(rtx), map != HAWK_NULL);
 			
 			ibuflen = hawk_int_to_oocstr (rxtn->c.in.index + 1, 10, HAWK_NULL, ibuf, HAWK_COUNTOF(ibuf));
 
 			pair = hawk_htb_search(map, ibuf, ibuflen);
-			HAWK_ASSERT (hawk_rtx_getawk(rtx), pair != HAWK_NULL);
+			HAWK_ASSERT (hawk_rtx_gethawk(rtx), pair != HAWK_NULL);
 
 			v = HAWK_HTB_VPTR(pair);
-			HAWK_ASSERT (hawk_rtx_getawk(rtx), v != HAWK_NULL);
+			HAWK_ASSERT (hawk_rtx_gethawk(rtx), v != HAWK_NULL);
 
 			as.ptr = hawk_rtx_getvaloocstr(rtx, v, &as.len);
 			if (as.ptr == HAWK_NULL) return -1;
@@ -1836,7 +1836,7 @@ static int open_rio_console (hawk_rtx_t* rtx, hawk_rio_arg_t* riod)
 	{
 		if (rxtn->c.out.files == HAWK_NULL)
 		{
-			HAWK_ASSERT (hawk_rtx_getawk(rtx), rxtn->c.out.index == 0);
+			HAWK_ASSERT (hawk_rtx_gethawk(rtx), rxtn->c.out.index == 0);
 
 			if (rxtn->c.out.count == 0)
 			{
@@ -2041,7 +2041,7 @@ static int build_argcv (
 			}
 
 			key_len = hawk_int_to_oocstr (argc, 10, HAWK_NULL, key, HAWK_COUNTOF(key));
-			HAWK_ASSERT (hawk_rtx_getawk(rtx), key_len != (hawk_oow_t)-1);
+			HAWK_ASSERT (hawk_rtx_gethawk(rtx), key_len != (hawk_oow_t)-1);
 
 			hawk_rtx_refupval (rtx, v_tmp);
 
@@ -2128,8 +2128,8 @@ static int build_environ (hawk_rtx_t* rtx, int gbl_id, env_char_t* envarr[])
 			 * variaables are not under control, call mbstowcsalldup() instead 
 			 * to go on despite encoding failure */
 
-			kptr = hawk_dupbtoucstr(hawk_rtx_getawk(rtx), envarr[count], &klen, 1); 
-			vptr = hawk_dupbtoucstr(hawk_rtx_getawk(rtx), eq + 1, HAWK_NULL, 1);
+			kptr = hawk_dupbtoucstr(hawk_rtx_gethawk(rtx), envarr[count], &klen, 1); 
+			vptr = hawk_dupbtoucstr(hawk_rtx_gethawk(rtx), eq + 1, HAWK_NULL, 1);
 			if (kptr == HAWK_NULL || vptr == HAWK_NULL)
 			{
 				if (kptr) hawk_rtx_freemem (rtx, kptr);
@@ -2147,8 +2147,8 @@ static int build_environ (hawk_rtx_t* rtx, int gbl_id, env_char_t* envarr[])
 
 			*eq = HAWK_UT('\0');
 
-			kptr = hawk_duputobcstr(hawk_rtx_getawk(rtx), envarr[count], &klen);
-			vptr = hawk_duputobcstr(hawk_rtx_getawk(rtx), eq + 1, HAWK_NULL);
+			kptr = hawk_duputobcstr(hawk_rtx_gethawk(rtx), envarr[count], &klen);
+			vptr = hawk_duputobcstr(hawk_rtx_gethawk(rtx), eq + 1, HAWK_NULL);
 			if (kptr == HAWK_NULL || vptr == HAWK_NULL)
 			{
 				if (kptr) hawk_rtx_freemem (rtx, kptr);
@@ -2511,7 +2511,7 @@ static int fnc_setioattr (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	int tmout;
 
 	rxtn = GET_RXTN(rtx);
-	HAWK_ASSERT (hawk_rtx_getawk(rtx), rxtn->cmgrtab_inited == 1);
+	HAWK_ASSERT (hawk_rtx_gethawk(rtx), rxtn->cmgrtab_inited == 1);
 
 	for (i = 0; i < 3; i++)
 	{
@@ -2633,7 +2633,7 @@ static int fnc_getioattr (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	ioattr_t ioattr_buf;
 
 	rxtn = GET_RXTN(rtx);
-	HAWK_ASSERT (hawk_rtx_getawk(rtx), rxtn->cmgrtab_inited == 1);
+	HAWK_ASSERT (hawk_rtx_gethawk(rtx), rxtn->cmgrtab_inited == 1);
 
 	for (i = 0; i < 2; i++)
 	{
@@ -2717,7 +2717,7 @@ hawk_cmgr_t* hawk_rtx_getiocmgrstd (hawk_rtx_t* rtx, const hawk_ooch_t* ioname)
 	rxtn_t* rxtn = GET_RXTN(rtx);
 	ioattr_t* ioattr;
 
-	HAWK_ASSERT (hawk_rtx_getawk(rtx), rxtn->cmgrtab_inited == 1);
+	HAWK_ASSERT (hawk_rtx_gethawk(rtx), rxtn->cmgrtab_inited == 1);
 
 	ioattr = get_ioattr(&rxtn->cmgrtab, ioname, hawk_count_oocstr(ioname));
 	if (ioattr) return ioattr->cmgr;

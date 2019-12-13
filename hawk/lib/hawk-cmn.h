@@ -908,12 +908,24 @@ enum hawk_errnum_t
 };
 typedef enum hawk_errnum_t hawk_errnum_t;
 
+/**
+ * The hawk_loc_t type defines a structure to hold location.
+ */
+struct hawk_loc_t
+{
+	hawk_oow_t line; /**< line */
+	hawk_oow_t colm; /**< column */
+	const hawk_ooch_t* file; /**< file specified in @include */
+};
+typedef struct hawk_loc_t hawk_loc_t;
+
 struct hawk_gem_t
 {
 	hawk_mmgr_t*  mmgr;
 	hawk_cmgr_t*  cmgr;
 	hawk_errnum_t errnum;
 	hawk_ooch_t   errmsg[HAWK_ERRMSG_CAPA];
+	hawk_loc_t    errloc;
 };
 
 /* =========================================================================

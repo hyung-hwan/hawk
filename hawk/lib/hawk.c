@@ -151,9 +151,9 @@ int hawk_init (hawk_t* awk, hawk_mmgr_t* mmgr, hawk_cmgr_t* cmgr, const hawk_prm
 	/* initialize error handling fields */
 	awk->_gem.errnum = HAWK_ENOERR;
 	awk->_gem.errmsg[0] = '\0';
-	awk->errloc.line = 0;
-	awk->errloc.colm = 0;
-	awk->errloc.file = HAWK_NULL;
+	awk->_gem.errloc.line = 0;
+	awk->_gem.errloc.colm = 0;
+	awk->_gem.errloc.file = HAWK_NULL;
 	awk->errstr = hawk_dflerrstr;
 	awk->haltall = 0;
 
@@ -534,149 +534,6 @@ void hawk_pushecb (hawk_t* awk, hawk_ecb_t* ecb)
 {
 	ecb->next = awk->ecb;
 	awk->ecb = ecb;
-}
-
-
-/* ------------------------------------------------------------------------ */
-
-void* hawk_allocmem (hawk_t* awk, hawk_oow_t size)
-{
-	void* ptr = HAWK_MMGR_ALLOC(hawk_getmmgr(awk), size);
-	if (!ptr) hawk_seterrnum (awk, HAWK_ENOMEM, HAWK_NULL);
-	return ptr;
-}
-
-void* hawk_callocmem (hawk_t* awk, hawk_oow_t size)
-{
-	void* ptr = HAWK_MMGR_ALLOC(hawk_getmmgr(awk), size);
-	if (ptr) HAWK_MEMSET (ptr, 0, size);
-	else hawk_seterrnum (awk, HAWK_ENOMEM, HAWK_NULL);
-	return ptr;
-}
-
-void* hawk_reallocmem (hawk_t* awk, void* ptr, hawk_oow_t size)
-{
-	void* nptr = HAWK_MMGR_REALLOC(hawk_getmmgr(awk), ptr, size);
-	if (!nptr) hawk_seterrnum (awk, HAWK_ENOMEM, HAWK_NULL);
-	return nptr;
-}
-
-/* ----------------------------------------------------------------------- */
-
-hawk_uch_t* hawk_dupucstr (hawk_t* hawk, const hawk_uch_t* ucs, hawk_oow_t* _ucslen)
-{
-	hawk_uch_t* ptr;
-	hawk_oow_t ucslen;
-
-	ucslen = hawk_count_ucstr(ucs);
-	ptr = (hawk_uch_t*)hawk_allocmem(hawk, (ucslen + 1) * HAWK_SIZEOF(hawk_uch_t));
-	if (!ptr) return HAWK_NULL;
-
-	hawk_copy_uchars (ptr, ucs, ucslen);
-	ptr[ucslen] = '\0';
-
-	if (_ucslen) *_ucslen = ucslen;
-	return ptr;
-}
-
-hawk_bch_t* hawk_dupbcstr (hawk_t* hawk, const hawk_bch_t* bcs, hawk_oow_t* _bcslen)
-{
-	hawk_bch_t* ptr;
-	hawk_oow_t bcslen;
-
-	bcslen = hawk_count_bcstr(bcs);
-	ptr = (hawk_bch_t*)hawk_allocmem(hawk, (bcslen + 1) * HAWK_SIZEOF(hawk_bch_t));
-	if (!ptr) return HAWK_NULL;
-
-	hawk_copy_bchars (ptr, bcs, bcslen);
-	ptr[bcslen] = '\0';
-
-	if (_bcslen) *_bcslen = bcslen;
-	return ptr;
-}
-
-hawk_uch_t* hawk_dupuchars (hawk_t* hawk, const hawk_uch_t* ucs, hawk_oow_t ucslen)
-{
-	hawk_uch_t* ptr;
-
-	ptr = (hawk_uch_t*)hawk_allocmem(hawk, (ucslen + 1) * HAWK_SIZEOF(hawk_uch_t));
-	if (!ptr) return HAWK_NULL;
-
-	hawk_copy_uchars (ptr, ucs, ucslen);
-	ptr[ucslen] = '\0';
-	return ptr;
-}
-
-hawk_bch_t* hawk_dupbchars (hawk_t* hawk, const hawk_bch_t* bcs, hawk_oow_t bcslen)
-{
-	hawk_bch_t* ptr;
-
-	ptr = (hawk_bch_t*)hawk_allocmem(hawk, (bcslen + 1) * HAWK_SIZEOF(hawk_bch_t));
-	if (!ptr) return HAWK_NULL;
-
-	hawk_copy_bchars (ptr, bcs, bcslen);
-	ptr[bcslen] = '\0';
-	return ptr;
-}
-
-hawk_uch_t* hawk_dupucs (hawk_t* hawk, const hawk_ucs_t* ucs)
-{
-	hawk_uch_t* ptr;
-
-	ptr = (hawk_uch_t*)hawk_allocmem(hawk, (ucs->len + 1) * HAWK_SIZEOF(hawk_uch_t));
-	if (!ptr) return HAWK_NULL;
-
-	hawk_copy_uchars (ptr, ucs->ptr, ucs->len);
-	ptr[ucs->len] = '\0';
-	return ptr;
-}
-
-hawk_bch_t* hawk_dupbcs (hawk_t* hawk, const hawk_bcs_t* bcs)
-{
-	hawk_bch_t* ptr;
-
-	ptr = (hawk_bch_t*)hawk_allocmem(hawk, (bcs->len + 1) * HAWK_SIZEOF(hawk_bch_t));
-	if (!ptr) return HAWK_NULL;
-
-	hawk_copy_bchars (ptr, bcs->ptr, bcs->len);
-	ptr[bcs->len] = '\0';
-	return ptr;
-}
-
-hawk_uch_t* hawk_dupucstrarr (hawk_t* hawk, const hawk_uch_t* str[], hawk_oow_t* len)
-{
-	hawk_uch_t* buf, * ptr;
-	hawk_oow_t i;
-	hawk_oow_t capa = 0;
-
-	for (i = 0; str[i]; i++) capa += hawk_count_ucstr(str[i]);
-
-	buf = (hawk_uch_t*)hawk_allocmem(hawk, (capa + 1) * HAWK_SIZEOF(*buf));
-	if (!buf) return HAWK_NULL;
-
-	ptr = buf;
-	for (i = 0; str[i]; i++) ptr += hawk_copy_ucstr_unlimited(ptr, str[i]);
-
-	if (len) *len = capa;
-	return buf;	
-}
-
-hawk_bch_t* hawk_dupbcstrarr (hawk_t* hawk, const hawk_bch_t* str[], hawk_oow_t* len)
-{
-	hawk_bch_t* buf, * ptr;
-	hawk_oow_t i;
-	hawk_oow_t capa = 0;
-
-	for (i = 0; str[i]; i++) capa += hawk_count_bcstr(str[i]);
-
-	buf = (hawk_bch_t*)hawk_allocmem(hawk, (capa + 1) * HAWK_SIZEOF(*buf));
-	if (!buf) return HAWK_NULL;
-
-	ptr = buf;
-	for (i = 0; str[i]; i++) ptr += hawk_copy_bcstr_unlimited(ptr, str[i]);
-
-	if (len) *len = capa;
-	return buf;	
 }
 
 /* ----------------------------------------------------------------------- */

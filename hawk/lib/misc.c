@@ -336,7 +336,7 @@ hawk_ooch_t* hawk_rtx_strxntokbyrex (
 			return HAWK_NULL; 
 		}
 
-		HAWK_ASSERT (hawk_rtx_getawk(rtx), n == 1);
+		HAWK_ASSERT (hawk_rtx_gethawk(rtx), n == 1);
 
 		if (match.len == 0)
 		{

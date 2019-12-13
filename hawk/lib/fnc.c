@@ -350,11 +350,11 @@ static int fnc_close (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_oow_t len, optlen = 0;
        
 	nargs = hawk_rtx_getnargs(rtx);
-	HAWK_ASSERT (hawk_rtx_getawk(rtx), nargs == 1 || nargs == 2);
+	HAWK_ASSERT (hawk_rtx_gethawk(rtx), nargs == 1 || nargs == 2);
 
 	a0 = hawk_rtx_getarg (rtx, 0);
 	if (nargs >= 2) a1 = hawk_rtx_getarg(rtx, 1);
-	HAWK_ASSERT (hawk_rtx_getawk(rtx), a0 != HAWK_NULL);
+	HAWK_ASSERT (hawk_rtx_gethawk(rtx), a0 != HAWK_NULL);
 
 	name = hawk_rtx_getvaloocstr(rtx, a0, &len);
 	if (name == HAWK_NULL) return -1;
@@ -462,7 +462,7 @@ static int fnc_fflush (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	int n;
 
 	nargs = hawk_rtx_getnargs (rtx);
-	HAWK_ASSERT (hawk_rtx_getawk(rtx), nargs == 0 || nargs == 1);
+	HAWK_ASSERT (hawk_rtx_gethawk(rtx), nargs == 0 || nargs == 1);
 
 	if (nargs == 0)
 	{
@@ -692,7 +692,7 @@ int hawk_fnc_length (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_oow_t len;
 
 	nargs = hawk_rtx_getnargs (rtx);
-	HAWK_ASSERT (hawk_rtx_getawk(rtx), nargs >= 0 && nargs <= 1);
+	HAWK_ASSERT (hawk_rtx_gethawk(rtx), nargs >= 0 && nargs <= 1);
 	
 	if (nargs == 0)
 	{
@@ -743,7 +743,7 @@ int hawk_fnc_substr (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	int n;
 
 	nargs = hawk_rtx_getnargs(rtx);
-	HAWK_ASSERT (hawk_rtx_getawk(rtx), nargs >= 2 && nargs <= 3);
+	HAWK_ASSERT (hawk_rtx_gethawk(rtx), nargs >= 2 && nargs <= 3);
 
 	a0 = hawk_rtx_getarg(rtx, 0);
 	a1 = hawk_rtx_getarg(rtx, 1);
@@ -821,14 +821,14 @@ int hawk_fnc_split (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	str.len = 0;
 
 	nargs = hawk_rtx_getnargs(rtx);
-	HAWK_ASSERT (hawk_rtx_getawk(rtx), nargs >= 2 && nargs <= 3);
+	HAWK_ASSERT (hawk_rtx_gethawk(rtx), nargs >= 2 && nargs <= 3);
 
 	a0 = hawk_rtx_getarg(rtx, 0);
 	a1 = hawk_rtx_getarg(rtx, 1);
 	a2 = (nargs >= 3)? hawk_rtx_getarg (rtx, 2): HAWK_NULL;
 
 	a1_vtype = HAWK_RTX_GETVALTYPE (rtx, a1);
-	HAWK_ASSERT (hawk_rtx_getawk(rtx), a1_vtype == HAWK_VAL_REF);
+	HAWK_ASSERT (hawk_rtx_gethawk(rtx), a1_vtype == HAWK_VAL_REF);
 
 	str.ptr = hawk_rtx_getvaloocstr(rtx, a0, &str.len);
 	if (str.ptr == HAWK_NULL) goto oops;
@@ -890,9 +890,9 @@ int hawk_fnc_split (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 				int x;
 
 				if (rtx->gbl.ignorecase)
-					x = hawk_buildrex(hawk_rtx_getawk(rtx), fs.ptr, fs.len, &errnum, HAWK_NULL, &fs_rex);
+					x = hawk_buildrex(hawk_rtx_gethawk(rtx), fs.ptr, fs.len, &errnum, HAWK_NULL, &fs_rex);
 				else
-					x = hawk_buildrex(hawk_rtx_getawk(rtx), fs.ptr, fs.len, &errnum, &fs_rex, HAWK_NULL);
+					x = hawk_buildrex(hawk_rtx_gethawk(rtx), fs.ptr, fs.len, &errnum, &fs_rex, HAWK_NULL);
 
 				if (x <= -1)
 				{
@@ -942,7 +942,7 @@ int hawk_fnc_split (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			break; 
 		}
 
-		HAWK_ASSERT (hawk_rtx_getawk(rtx), (tok.ptr != HAWK_NULL && tok.len > 0) || tok.len == 0);
+		HAWK_ASSERT (hawk_rtx_gethawk(rtx), (tok.ptr != HAWK_NULL && tok.len > 0) || tok.len == 0);
 
 		/* create the field string - however, the split function must
 		 * create a numeric string if the string is a number */
@@ -952,7 +952,7 @@ int hawk_fnc_split (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 		/* put it into the map */
 		key_len = hawk_int_to_oocstr(++nflds, 10, HAWK_NULL, key_buf, HAWK_COUNTOF(key_buf));
-		HAWK_ASSERT (hawk_rtx_getawk(rtx), key_len != (hawk_oow_t)-1);
+		HAWK_ASSERT (hawk_rtx_gethawk(rtx), key_len != (hawk_oow_t)-1);
 
 		if (hawk_rtx_setmapvalfld(rtx, t1, key_buf, key_len, t2) == HAWK_NULL)
 		{
@@ -972,9 +972,9 @@ int hawk_fnc_split (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	if (fs_rex_free) 
 	{
 		if (rtx->gbl.ignorecase)
-			hawk_freerex (hawk_rtx_getawk(rtx), HAWK_NULL, fs_rex_free);
+			hawk_freerex (hawk_rtx_gethawk(rtx), HAWK_NULL, fs_rex_free);
 		else
-			hawk_freerex (hawk_rtx_getawk(rtx), fs_rex_free, HAWK_NULL);
+			hawk_freerex (hawk_rtx_gethawk(rtx), fs_rex_free, HAWK_NULL);
 	}
 
 	/*nflds--;*/
@@ -994,9 +994,9 @@ oops:
 	if (fs_rex_free) 
 	{
 		if (rtx->gbl.ignorecase)
-			hawk_freerex (hawk_rtx_getawk(rtx), HAWK_NULL, fs_rex_free);
+			hawk_freerex (hawk_rtx_gethawk(rtx), HAWK_NULL, fs_rex_free);
 		else
-			hawk_freerex (hawk_rtx_getawk(rtx), fs_rex_free, HAWK_NULL);
+			hawk_freerex (hawk_rtx_gethawk(rtx), fs_rex_free, HAWK_NULL);
 	}
 	return -1;
 }
@@ -1008,7 +1008,7 @@ int hawk_fnc_tolower (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_val_t* a0, * r;
 
 	nargs = hawk_rtx_getnargs(rtx);
-	HAWK_ASSERT (hawk_rtx_getawk(rtx), nargs == 1);
+	HAWK_ASSERT (hawk_rtx_gethawk(rtx), nargs == 1);
 
 	a0 = hawk_rtx_getarg (rtx, 0);
 	if (HAWK_RTX_GETVALTYPE(rtx, a0) == HAWK_VAL_MBS)
@@ -1046,7 +1046,7 @@ int hawk_fnc_toupper (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_val_t* a0, * r;
 
 	nargs = hawk_rtx_getnargs(rtx);
-	HAWK_ASSERT (hawk_rtx_getawk(rtx), nargs == 1);
+	HAWK_ASSERT (hawk_rtx_gethawk(rtx), nargs == 1);
 
 	a0 = hawk_rtx_getarg (rtx, 0);
 	if (HAWK_RTX_GETVALTYPE(rtx, a0) == HAWK_VAL_MBS)
@@ -1104,14 +1104,14 @@ static int __substitute (hawk_rtx_t* rtx, hawk_int_t max_count)
 	s1.len = 0;
 
 	nargs = hawk_rtx_getnargs (rtx);
-	HAWK_ASSERT (hawk_rtx_getawk(rtx), nargs >= 2 && nargs <= 3);
+	HAWK_ASSERT (hawk_rtx_gethawk(rtx), nargs >= 2 && nargs <= 3);
 
 	a0 = hawk_rtx_getarg(rtx, 0);
 	a1 = hawk_rtx_getarg(rtx, 1);
 	a2 = (nargs >= 3)? hawk_rtx_getarg(rtx, 2): HAWK_NULL;
 
 	a0_vtype = HAWK_RTX_GETVALTYPE (rtx, a0);
-	HAWK_ASSERT (hawk_rtx_getawk(rtx), a2 == HAWK_NULL || HAWK_RTX_GETVALTYPE(rtx, a2) == HAWK_VAL_REF);
+	HAWK_ASSERT (hawk_rtx_gethawk(rtx), a2 == HAWK_NULL || HAWK_RTX_GETVALTYPE(rtx, a2) == HAWK_VAL_REF);
 
 	if (a0_vtype == HAWK_VAL_REX)
 	{
@@ -1145,7 +1145,7 @@ static int __substitute (hawk_rtx_t* rtx, hawk_int_t max_count)
 		s2_free = (hawk_ooch_t*)s2.ptr;
 	}
 
-	if (hawk_ooecs_init (&new, hawk_rtx_getawk(rtx), s2.len) <= -1)
+	if (hawk_ooecs_init (&new, hawk_rtx_gethawk(rtx), s2.len) <= -1)
 	{
 		hawk_rtx_seterrnum (rtx, HAWK_ENOMEM, HAWK_NULL);
 		goto oops;
@@ -1158,9 +1158,9 @@ static int __substitute (hawk_rtx_t* rtx, hawk_int_t max_count)
 		int x;
 
 		if (rtx->gbl.ignorecase)
-			x = hawk_buildrex (hawk_rtx_getawk(rtx), s0.ptr, s0.len, &errnum, HAWK_NULL, &rex);
+			x = hawk_buildrex (hawk_rtx_gethawk(rtx), s0.ptr, s0.len, &errnum, HAWK_NULL, &rex);
 		else
-			x = hawk_buildrex (hawk_rtx_getawk(rtx), s0.ptr, s0.len, &errnum, &rex, HAWK_NULL);
+			x = hawk_buildrex (hawk_rtx_gethawk(rtx), s0.ptr, s0.len, &errnum, &rex, HAWK_NULL);
 
 		if (x <= -1)
 		{
@@ -1190,7 +1190,7 @@ static int __substitute (hawk_rtx_t* rtx, hawk_int_t max_count)
 		if (max_count == 0 || sub_count < max_count)
 		{
 			n = hawk_matchrex (
-				hawk_rtx_getawk(rtx), rex, rtx->gbl.ignorecase, 
+				hawk_rtx_gethawk(rtx), rex, rtx->gbl.ignorecase, 
 				&s2, &cur, &mat, HAWK_NULL, &errnum
 			);
 		}
@@ -1275,9 +1275,9 @@ static int __substitute (hawk_rtx_t* rtx, hawk_int_t max_count)
 	if (rex_free)
 	{
 		if (rtx->gbl.ignorecase)
-			hawk_freerex (hawk_rtx_getawk(rtx), HAWK_NULL, rex_free); 
+			hawk_freerex (hawk_rtx_gethawk(rtx), HAWK_NULL, rex_free); 
 		else
-			hawk_freerex (hawk_rtx_getawk(rtx), rex_free, HAWK_NULL); 
+			hawk_freerex (hawk_rtx_gethawk(rtx), rex_free, HAWK_NULL); 
 		rex_free = HAWK_NULL;
 	}
 
@@ -1320,9 +1320,9 @@ oops:
 	if (rex_free) 
 	{
 		if (rtx->gbl.ignorecase)
-			hawk_freerex (hawk_rtx_getawk(rtx), HAWK_NULL, rex_free);
+			hawk_freerex (hawk_rtx_gethawk(rtx), HAWK_NULL, rex_free);
 		else	
-			hawk_freerex (hawk_rtx_getawk(rtx), rex_free, HAWK_NULL); 
+			hawk_freerex (hawk_rtx_gethawk(rtx), rex_free, HAWK_NULL); 
 	}
 	if (new_inited) hawk_ooecs_fini (&new);
 	if (s2_free) hawk_rtx_freemem (rtx, s2_free);
@@ -1354,7 +1354,7 @@ int hawk_fnc_match (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_ooecs_t* tmpbuf = HAWK_NULL;
 
 	nargs = hawk_rtx_getnargs(rtx);
-	HAWK_ASSERT (hawk_rtx_getawk(rtx), nargs >= 2 && nargs <= 4);
+	HAWK_ASSERT (hawk_rtx_gethawk(rtx), nargs >= 2 && nargs <= 4);
 	
 	a0 = hawk_rtx_getarg(rtx, 0);
 	a1 = hawk_rtx_getarg(rtx, 1);
@@ -1421,7 +1421,7 @@ int hawk_fnc_match (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		hawk_oow_t i, xlen;
 		hawk_val_t* tv;
 
-		tmpbuf = hawk_ooecs_open(hawk_rtx_getawk(rtx), 0, 64);
+		tmpbuf = hawk_ooecs_open(hawk_rtx_gethawk(rtx), 0, 64);
 		if (!tmpbuf) goto oops;
 
 		x2 = hawk_rtx_makemapval(rtx);
@@ -1496,7 +1496,7 @@ int hawk_fnc_sprintf (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_val_t* a0;
 
 	nargs = hawk_rtx_getnargs (rtx);
-	HAWK_ASSERT (hawk_rtx_getawk(rtx), nargs > 0);
+	HAWK_ASSERT (hawk_rtx_gethawk(rtx), nargs > 0);
 
 	a0 = hawk_rtx_getarg(rtx, 0);
 	if (HAWK_RTX_GETVALTYPE(rtx, a0) == HAWK_VAL_MBS)
@@ -1506,14 +1506,14 @@ int hawk_fnc_sprintf (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		hawk_bcs_t cs0;
 		hawk_bcs_t x;
 
-		if (hawk_becs_init(&out, hawk_rtx_getawk(rtx), 256) <= -1)
+		if (hawk_becs_init(&out, hawk_rtx_gethawk(rtx), 256) <= -1)
 		{
 			hawk_rtx_seterrnum (rtx, HAWK_ENOMEM, HAWK_NULL);
 			goto oops_mbs;
 		}
 		out_inited = 1;
 
-		if (hawk_becs_init(&fbu, hawk_rtx_getawk(rtx), 256) <= -1)
+		if (hawk_becs_init(&fbu, hawk_rtx_gethawk(rtx), 256) <= -1)
 		{
 			hawk_rtx_seterrnum (rtx, HAWK_ENOMEM, HAWK_NULL);
 			goto oops_mbs;
@@ -1547,14 +1547,14 @@ int hawk_fnc_sprintf (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		hawk_oocs_t cs0;
 		hawk_oocs_t x;
 
-		if (hawk_ooecs_init(&out, hawk_rtx_getawk(rtx), 256) <= -1)
+		if (hawk_ooecs_init(&out, hawk_rtx_gethawk(rtx), 256) <= -1)
 		{
 			hawk_rtx_seterrnum (rtx, HAWK_ENOMEM, HAWK_NULL);
 			goto oops;
 		}
 		out_inited = 1;
 
-		if (hawk_ooecs_init(&fbu, hawk_rtx_getawk(rtx), 256) <= -1)
+		if (hawk_ooecs_init(&fbu, hawk_rtx_gethawk(rtx), 256) <= -1)
 		{
 			hawk_rtx_seterrnum (rtx, HAWK_ENOMEM, HAWK_NULL);
 			goto oops;
@@ -1592,7 +1592,7 @@ static int fnc_int (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	int n;
 
 	nargs = hawk_rtx_getnargs(rtx);
-	HAWK_ASSERT (hawk_rtx_getawk(rtx), nargs == 1);
+	HAWK_ASSERT (hawk_rtx_gethawk(rtx), nargs == 1);
 
 	a0 = hawk_rtx_getarg(rtx, 0);
 
@@ -1696,7 +1696,7 @@ static HAWK_INLINE int __fnc_asort (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, 
 
 	a0 = hawk_rtx_getarg(rtx, 0);
 	a0_type = HAWK_RTX_GETVALTYPE(rtx, a0);
-	HAWK_ASSERT (hawk_rtx_getawk(rtx), a0_type == HAWK_VAL_REF);
+	HAWK_ASSERT (hawk_rtx_gethawk(rtx), a0_type == HAWK_VAL_REF);
 
 	v_type = hawk_rtx_getrefvaltype(rtx, (hawk_val_ref_t*)a0);
 	if (v_type != HAWK_VAL_MAP)
@@ -1712,7 +1712,7 @@ static HAWK_INLINE int __fnc_asort (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, 
 	}
 
 	a0_val = hawk_rtx_getrefval(rtx, (hawk_val_ref_t*)a0);
-	HAWK_ASSERT (hawk_rtx_getawk(rtx), HAWK_RTX_GETVALTYPE(rtx, a0_val) == HAWK_VAL_MAP);
+	HAWK_ASSERT (hawk_rtx_gethawk(rtx), HAWK_RTX_GETVALTYPE(rtx, a0_val) == HAWK_VAL_MAP);
 
 	if (nargs >= 2)
 	{
@@ -1744,7 +1744,7 @@ static HAWK_INLINE int __fnc_asort (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, 
 	if (!hawk_rtx_getfirstmapvalitr(rtx, a0_val, &itr)) goto done; /* map empty */
 
 	msz = hawk_htb_getsize(((hawk_val_map_t*)a0_val)->map);
-	HAWK_ASSERT (hawk_rtx_getawk(rtx), msz > 0);
+	HAWK_ASSERT (hawk_rtx_gethawk(rtx), msz > 0);
 
 	va = (hawk_val_t**)hawk_rtx_allocmem(rtx, msz * HAWK_SIZEOF(*va));
 	if (!va) return -1;

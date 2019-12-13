@@ -1,0 +1,122 @@
+/*
+ * $Id$
+ *
+    Copyright (c) 2006-2019 Chung, Hyung-Hwan. All rights reserved.
+
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in the
+       documentation and/or other materials provided with the distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE AUTHOR "AS IS" AND ANY EXPRESS OR
+    IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+    OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+    IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+    NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+    THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+#ifndef _HAWK_GEM_H_
+#define _HAWK_GEM_H_
+
+#include <hawk-cmn.h>
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
+void* hawk_gem_allocmem (
+	hawk_gem_t*       gem,
+	hawk_oow_t        size
+);
+
+void* hawk_gem_callocmem (
+	hawk_gem_t*       gem,
+	hawk_oow_t        size
+);
+
+void* hawk_gem_reallocmem (
+	hawk_gem_t*       gem,
+	void*             ptr,
+	hawk_oow_t        size
+);
+
+#if defined(HAWK_HAVE_INLINE)
+static HAWK_INLINE void hawk_gem_freemem (hawk_gem_t* gem, void* ptr) { HAWK_MMGR_FREE (gem->mmgr, ptr); }
+#else
+#define hawk_gem_freemem(gem, ptr) HAWK_MMGR_FREE((gem)->mmgr, ptr);
+#endif
+
+/* ----------------------------------------------------------------------- */
+
+HAWK_EXPORT hawk_uch_t* hawk_gem_dupucstr (
+	hawk_gem_t*       gem,
+	const hawk_uch_t* ucs,
+	hawk_oow_t*       _ucslen
+);
+
+HAWK_EXPORT hawk_bch_t* hawk_gem_dupbcstr (
+	hawk_gem_t*       gem,
+	const hawk_bch_t* bcs,
+	hawk_oow_t*       _bcslen
+);
+
+HAWK_EXPORT hawk_uch_t* hawk_gem_dupuchars (
+	hawk_gem_t*       gem,
+	const hawk_uch_t* ucs,
+	hawk_oow_t        ucslen
+);
+
+HAWK_EXPORT hawk_bch_t* hawk_gem_dupbchars (
+	hawk_gem_t*       gem,
+	const hawk_bch_t* bcs,
+	hawk_oow_t        bcslen
+);
+
+HAWK_EXPORT hawk_uch_t* hawk_gem_dupucs (
+	hawk_gem_t*       gem,
+	const hawk_ucs_t* ucs
+);
+
+HAWK_EXPORT hawk_bch_t* hawk_gem_dupbcs (
+	hawk_gem_t*       gem,
+	const hawk_bcs_t* bcs
+);
+
+HAWK_EXPORT hawk_uch_t* hawk_gem_dupucstrarr (
+	hawk_gem_t*       gem,
+	const hawk_uch_t* str[],
+	hawk_oow_t*       len
+);
+
+HAWK_EXPORT hawk_bch_t* hawk_gem_dupbcstrarr (
+	hawk_gem_t*       gem,
+	const hawk_bch_t* str[],
+	hawk_oow_t* len
+);
+
+#if defined(HAWK_OOCH_IS_UCH)
+#	define hawk_gem_dupoocstr    hawk_gem_dupucstr
+#	define hawk_gem_dupoochars   hawk_gem_dupuchars
+#	define hawk_gem_dupoocs      hawk_gem_dupucs
+#	define hawk_gem_dupoocstrarr hawk_gem_dupucstrarr
+#else
+#	define hawk_gem_dupoocstr    hawk_gem_dupbcstr
+#	define hawk_gem_dupoochars   hawk_gem_dupbchars
+#	define hawk_gem_dupoocs      hawk_gem_dupbcs
+#	define hawk_gem_dupoocstrarr hawk_gem_dupbcstrarr
+#endif
+
+#if defined(__cplusplus)
+}
+#endif
+
+#endif

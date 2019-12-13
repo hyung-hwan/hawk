@@ -76,14 +76,14 @@ static int fnc_math_1 (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, hawk_math1_t 
 	int n;
 
 	nargs = hawk_rtx_getnargs (rtx);
-	HAWK_ASSERT (hawk_rtx_getawk(rtx), nargs == 1);
+	HAWK_ASSERT (hawk_rtx_gethawk(rtx), nargs == 1);
 
 	a0 = hawk_rtx_getarg(rtx, 0);
 
 	n = hawk_rtx_valtoflt(rtx, a0, &rv);
 	if (n <= -1) return -1;
 
-	r = hawk_rtx_makefltval (rtx, f (hawk_rtx_getawk(rtx), rv));
+	r = hawk_rtx_makefltval (rtx, f (hawk_rtx_gethawk(rtx), rv));
 	if (r == HAWK_NULL) return -1;
 
 	hawk_rtx_setretval (rtx, r);
@@ -99,7 +99,7 @@ static int fnc_math_2 (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, hawk_math2_t 
 	int n;
 
 	nargs = hawk_rtx_getnargs (rtx);
-	HAWK_ASSERT (hawk_rtx_getawk(rtx), nargs == 2);
+	HAWK_ASSERT (hawk_rtx_gethawk(rtx), nargs == 2);
 
 	a0 = hawk_rtx_getarg(rtx, 0);
 	a1 = hawk_rtx_getarg(rtx, 1);
@@ -110,7 +110,7 @@ static int fnc_math_2 (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, hawk_math2_t 
 	n = hawk_rtx_valtoflt (rtx, a1, &rv1);
 	if (n <= -1) return -1;
 
-	r = hawk_rtx_makefltval (rtx, f (hawk_rtx_getawk(rtx), rv0, rv1));
+	r = hawk_rtx_makefltval (rtx, f (hawk_rtx_gethawk(rtx), rv0, rv1));
 	if (r == HAWK_NULL) return -1;
 
 	hawk_rtx_setretval (rtx, r);
@@ -556,7 +556,7 @@ static int fnc_srand (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 	modctx = (modctx_t*)fi->mod->ctx;
 	nargs = hawk_rtx_getnargs(rtx);
-	HAWK_ASSERT (hawk_rtx_getawk(rtx), nargs == 0 || nargs == 1);
+	HAWK_ASSERT (hawk_rtx_gethawk(rtx), nargs == 0 || nargs == 1);
 
 	prev = modctx->seed;
 

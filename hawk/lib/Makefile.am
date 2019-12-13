@@ -53,6 +53,7 @@ pkginclude_HEADERS = \
 	hawk-cmn.h \
 	hawk-ecs.h \
 	hawk-fmt.h \
+	hawk-gem.h \
 	hawk-htb.h \
 	hawk-rbt.h \
 	hawk-pack1.h \
@@ -82,6 +83,7 @@ libhawk_la_SOURCES =  \
 	fnc-prv.h \
 	fnc.c \
 	htb.c \
+	gem.c \
 	hawk-prv.h \
 	hawk.c \
 	mb8.c \
