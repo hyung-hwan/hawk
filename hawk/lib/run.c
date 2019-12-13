@@ -8760,223 +8760,26 @@ void hawk_rtx_getnrflt (hawk_rtx_t* rtx, hawk_nrflt_t* nrflt)
 	*nrflt = rtx->nrflt;
 }
 
-/* ------------------------------------------------------------------------- */
 
-int hawk_rtx_convbtouchars (hawk_rtx_t* rtx, const hawk_bch_t* bcs, hawk_oow_t* bcslen, hawk_uch_t* ucs, hawk_oow_t* ucslen, int all)
+
+/* ------------------------------------------------------------------------ */
+
+hawk_oow_t hawk_rtx_fmttoucstr_ (hawk_rtx_t* rtx, hawk_uch_t* buf, hawk_oow_t bufsz, const hawk_uch_t* fmt, ...) 
 {
-	/* length bound */
-	int n;
-	n = hawk_conv_bchars_to_uchars_with_cmgr(bcs, bcslen, ucs, ucslen, hawk_rtx_getcmgr(rtx), all);
-	/* -1: illegal character, -2: buffer too small, -3: incomplete sequence */
-	if (n <= -1) hawk_rtx_seterrnum (rtx, (n == -2)? HAWK_EBUFFULL: HAWK_EECERR, HAWK_NULL);
+	va_list ap;
+	hawk_oow_t n;
+	va_start(ap, fmt);
+	n = hawk_gem_vfmttoucstr(hawk_rtx_getgem(rtx), buf, bufsz, fmt, ap);
+	va_end(ap);
+	return n; 
+}
+
+hawk_oow_t hawk_rtx_fmttobcstr_ (hawk_rtx_t* rtx, hawk_bch_t* buf, hawk_oow_t bufsz, const hawk_bch_t* fmt, ...) 
+{
+	va_list ap;
+	hawk_oow_t n;
+	va_start(ap, fmt);
+	n = hawk_gem_vfmttobcstr(hawk_rtx_getgem(rtx), buf, bufsz, fmt, ap);
+	va_end(ap);
 	return n;
-}
-
-int hawk_rtx_convutobchars (hawk_rtx_t* rtx, const hawk_uch_t* ucs, hawk_oow_t* ucslen, hawk_bch_t* bcs, hawk_oow_t* bcslen)
-{
-	/* length bound */
-	int n;
-	n = hawk_conv_uchars_to_bchars_with_cmgr(ucs, ucslen, bcs, bcslen, hawk_rtx_getcmgr(rtx));
-	if (n <= -1) hawk_rtx_seterrnum (rtx, (n == -2)? HAWK_EBUFFULL: HAWK_EECERR, HAWK_NULL);
-	return n;
-}
-
-int hawk_rtx_convbtoucstr (hawk_rtx_t* rtx, const hawk_bch_t* bcs, hawk_oow_t* bcslen, hawk_uch_t* ucs, hawk_oow_t* ucslen, int all)
-{
-	/* null-terminated. */
-	int n;
-	n = hawk_conv_bcstr_to_ucstr_with_cmgr(bcs, bcslen, ucs, ucslen, hawk_rtx_getcmgr(rtx), all);
-	if (n <= -1) hawk_rtx_seterrnum (rtx, (n == -2)? HAWK_EBUFFULL: HAWK_EECERR, HAWK_NULL);
-	return n;
-}
-
-int hawk_rtx_convutobcstr (hawk_rtx_t* rtx, const hawk_uch_t* ucs, hawk_oow_t* ucslen, hawk_bch_t* bcs, hawk_oow_t* bcslen)
-{
-	/* null-terminated */
-	int n;
-	n = hawk_conv_ucstr_to_bcstr_with_cmgr(ucs, ucslen, bcs, bcslen, hawk_rtx_getcmgr(rtx));
-	if (n <= -1) hawk_rtx_seterrnum (rtx, (n == -2)? HAWK_EBUFFULL: HAWK_EECERR, HAWK_NULL);
-	return n;
-}
-
-/* ------------------------------------------------------------------------- */
-
-hawk_uch_t* hawk_rtx_dupbtouchars (hawk_rtx_t* rtx, const hawk_bch_t* bcs, hawk_oow_t _bcslen, hawk_oow_t* _ucslen, int all)
-{
-	hawk_oow_t bcslen, ucslen;
-	hawk_uch_t* ucs;
-
-	bcslen = _bcslen;
-	if (hawk_rtx_convbtouchars(rtx, bcs, &bcslen, HAWK_NULL, &ucslen, all) <= -1) return HAWK_NULL;
-
-	ucs = hawk_rtx_allocmem(rtx, HAWK_SIZEOF(*ucs) * (ucslen + 1));
-	if (!ucs) return HAWK_NULL;
-
-	bcslen= _bcslen;
-	hawk_rtx_convbtouchars (rtx, bcs, &bcslen, ucs, &ucslen, all);
-	ucs[ucslen] = '\0';
-
-	if (_ucslen) *_ucslen = ucslen;
-	return ucs;
-}
-
-hawk_bch_t* hawk_rtx_duputobchars (hawk_rtx_t* rtx, const hawk_uch_t* ucs, hawk_oow_t _ucslen, hawk_oow_t* _bcslen)
-{
-	hawk_oow_t bcslen, ucslen;
-	hawk_bch_t* bcs;
-
-	ucslen = _ucslen;
-	if (hawk_rtx_convutobchars(rtx, ucs, &ucslen, HAWK_NULL, &bcslen) <= -1) return HAWK_NULL;
-
-	bcs = hawk_rtx_allocmem(rtx, HAWK_SIZEOF(*bcs) * (bcslen + 1));
-	if (!bcs) return HAWK_NULL;
-
-	ucslen = _ucslen;
-	hawk_rtx_convutobchars (rtx, ucs, &ucslen, bcs, &bcslen);
-	bcs[bcslen] = '\0';
-
-	if (_bcslen) *_bcslen = bcslen;
-	return bcs;
-}
-
-hawk_uch_t* hawk_rtx_dupb2touchars (hawk_rtx_t* rtx, const hawk_bch_t* bcs1, hawk_oow_t bcslen1, const hawk_bch_t* bcs2, hawk_oow_t bcslen2, hawk_oow_t* ucslen, int all)
-{
-	hawk_oow_t inlen, outlen1, outlen2;
-	hawk_uch_t* ptr;
-
-	inlen = bcslen1;
-	if (hawk_rtx_convbtouchars(rtx, bcs1, &inlen, HAWK_NULL, &outlen1, all) <= -1) return HAWK_NULL;
-
-	inlen = bcslen2;
-	if (hawk_rtx_convbtouchars(rtx, bcs2, &inlen, HAWK_NULL, &outlen2, all) <= -1) return HAWK_NULL;
-
-	ptr = (hawk_uch_t*)hawk_rtx_allocmem(rtx, (outlen1 + outlen2 + 1) * HAWK_SIZEOF(*ptr));
-	if (!ptr) return HAWK_NULL;
-
-	inlen = bcslen1;
-	hawk_rtx_convbtouchars (rtx, bcs1, &inlen, &ptr[0], &outlen1, all);
-
-	inlen = bcslen2;
-	hawk_rtx_convbtouchars (rtx, bcs2, &inlen, &ptr[outlen1], &outlen2, all);
-
-	/* hawk_convbtouchars() doesn't null-terminate the target. 
-	 * but in hawk_dupbtouchars(), i allocate space. so i don't mind
-	 * null-terminating it with 1 extra character overhead */
-	ptr[outlen1 + outlen2] = '\0'; 
-	if (ucslen) *ucslen = outlen1 + outlen2;
-	return ptr;
-}
-
-hawk_bch_t* hawk_rtx_dupu2tobchars (hawk_rtx_t* rtx, const hawk_uch_t* ucs1, hawk_oow_t ucslen1, const hawk_uch_t* ucs2, hawk_oow_t ucslen2, hawk_oow_t* bcslen)
-{
-	hawk_oow_t inlen, outlen1, outlen2;
-	hawk_bch_t* ptr;
-
-	inlen = ucslen1;
-	if (hawk_rtx_convutobchars(rtx, ucs1, &inlen, HAWK_NULL, &outlen1) <= -1) return HAWK_NULL;
-
-	inlen = ucslen2;
-	if (hawk_rtx_convutobchars(rtx, ucs2, &inlen, HAWK_NULL, &outlen2) <= -1) return HAWK_NULL;
-
-	ptr = (hawk_bch_t*)hawk_rtx_allocmem(rtx, (outlen1 + outlen2 + 1) * HAWK_SIZEOF(*ptr));
-	if (!ptr) return HAWK_NULL;
-
-	inlen = ucslen1;
-	hawk_rtx_convutobchars (rtx, ucs1, &inlen, &ptr[0], &outlen1);
-
-	inlen = ucslen2;
-	hawk_rtx_convutobchars (rtx, ucs2, &inlen, &ptr[outlen1], &outlen2);
-
-	ptr[outlen1 + outlen2] = '\0';
-	if (bcslen) *bcslen = outlen1 + outlen2;
-
-	return ptr;
-}
-
-
-
-hawk_uch_t* hawk_rtx_dupbtoucstr (hawk_rtx_t* rtx, const hawk_bch_t* bcs, hawk_oow_t* _ucslen, int all)
-{
-	hawk_oow_t bcslen, ucslen;
-	hawk_uch_t* ucs;
-
-	if (hawk_rtx_convbtoucstr(rtx, bcs, &bcslen, HAWK_NULL, &ucslen, all) <= -1) return HAWK_NULL;
-	ucslen = ucslen + 1; /* for terminating null */
-
-	ucs = hawk_rtx_allocmem(rtx, HAWK_SIZEOF(*ucs) * ucslen);
-	if (!ucs) return HAWK_NULL;
-
-	hawk_rtx_convbtoucstr (rtx, bcs, &bcslen, ucs, &ucslen, all);
-	if (_ucslen) *_ucslen = ucslen;
-	return ucs;
-}
-
-hawk_bch_t* hawk_rtx_duputobcstr (hawk_rtx_t* rtx, const hawk_uch_t* ucs, hawk_oow_t* _bcslen)
-{
-	hawk_oow_t bcslen, ucslen;
-	hawk_bch_t* bcs;
-
-	if (hawk_rtx_convutobcstr(rtx, ucs, &ucslen, HAWK_NULL, &bcslen) <= -1) return HAWK_NULL;
-	bcslen = bcslen + 1; /* for terminating null */
-
-	bcs = hawk_rtx_allocmem(rtx, HAWK_SIZEOF(*bcs) * bcslen);
-	if (!bcs) return HAWK_NULL;
-
-	hawk_rtx_convutobcstr (rtx, ucs, &ucslen, bcs, &bcslen);
-	if (_bcslen) *_bcslen = bcslen;
-	return bcs;
-}
-
-/* ------------------------------------------------------------------------- */
-
-hawk_uch_t* hawk_rtx_dupbtoucharswithcmgr (hawk_rtx_t* rtx, const hawk_bch_t* bcs, hawk_oow_t _bcslen, hawk_oow_t* _ucslen, hawk_cmgr_t* cmgr, int all)
-{
-	hawk_oow_t bcslen, ucslen;
-	hawk_uch_t* ucs;
-	int n;
-
-	bcslen = _bcslen; 
-	n = hawk_conv_bchars_to_uchars_with_cmgr(bcs, &bcslen, HAWK_NULL, &ucslen, cmgr, all);
-	if (n <= -1) 
-	{
-		/* -1: illegal character, -2: buffer too small, -3: incomplete sequence */
-		hawk_rtx_seterrnum (rtx, (n == -2)? HAWK_EBUFFULL: HAWK_EECERR, HAWK_NULL);
-		return HAWK_NULL;
-	}
-
-	ucs = hawk_rtx_allocmem(rtx, HAWK_SIZEOF(*ucs) * (ucslen + 1));
-	if (!ucs) return HAWK_NULL;
-
-	bcslen= _bcslen;
-	hawk_conv_bchars_to_uchars_with_cmgr(bcs, &bcslen, ucs, &ucslen, cmgr, all);
-	ucs[ucslen] = '\0';
-
-	if (_ucslen) *_ucslen = ucslen;
-	return ucs;
-}
-
-hawk_bch_t* hawk_rtx_duputobcharswithcmgr (hawk_rtx_t* rtx, const hawk_uch_t* ucs, hawk_oow_t _ucslen, hawk_oow_t* _bcslen, hawk_cmgr_t* cmgr)
-{
-	hawk_oow_t bcslen, ucslen;
-	hawk_bch_t* bcs;
-	int n;
-
-	ucslen = _ucslen;
-	n = hawk_conv_uchars_to_bchars_with_cmgr(ucs, &ucslen, HAWK_NULL, &bcslen, cmgr);
-	if (n <= -1) 
-	{
-		/* -1: illegal character, -2: buffer too small, -3: incomplete sequence */
-		hawk_rtx_seterrnum (rtx, (n == -2)? HAWK_EBUFFULL: HAWK_EECERR, HAWK_NULL);
-		return HAWK_NULL;
-	}
-
-	bcs = hawk_rtx_allocmem(rtx, HAWK_SIZEOF(*bcs) * (bcslen + 1));
-	if (!bcs) return HAWK_NULL;
-
-	ucslen = _ucslen;
-	hawk_conv_uchars_to_bchars_with_cmgr (ucs, &ucslen, bcs, &bcslen, cmgr);
-	bcs[bcslen] = '\0';
-
-	if (_bcslen) *_bcslen = bcslen;
-	return bcs;
 }
