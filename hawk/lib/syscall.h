@@ -123,21 +123,21 @@
 #	define HAWK_LLSEEK(handle,hoffset,loffset,out,whence) _llseek(handle,hoffset,loffset,out,whence)
 #endif
 
-#if !defined(_LP64) && (HAWK_SIZEOF_VOID_P<8) && defined(SYS_lseek64) && defined(HAWK_USE_SYSCALL)
+#if !defined(_LP64) && (HAWK_SIZEOF_VOID_P<8) && defined(SYS_lseek64) && defined(HAWK_USE_SYSCALL) && defined(__THIS_LINE_IS_DISABLED__)
 #	define HAWK_LSEEK(handle,offset,whence) syscall(SYS_lseek64,handle,offset,whence)
 #elif defined(SYS_lseek) && defined(HAWK_USE_SYSCALL)
 #	define HAWK_LSEEK(handle,offset,whence) syscall(SYS_lseek,handle,offset,whence)
-#elif !defined(_LP64) && (HAWK_SIZEOF_VOID_P<8) && defined(HAVE_LSEEK64)
+#elif !defined(_LP64) && (HAWK_SIZEOF_VOID_P<8) && defined(HAVE_LSEEK64) && defined(__THIS_LINE_IS_DISABLED__)
 #	define HAWK_LSEEK(handle,offset,whence) lseek64(handle,offset,whence)
 #else
 #	define HAWK_LSEEK(handle,offset,whence) lseek(handle,offset,whence)
 #endif
 
-#if !defined(_LP64) && (HAWK_SIZEOF_VOID_P<8) && defined(SYS_ftruncate64) && defined(HAWK_USE_SYSCALL)
+#if !defined(_LP64) && (HAWK_SIZEOF_VOID_P<8) && defined(SYS_ftruncate64) && defined(HAWK_USE_SYSCALL) && defined(__THIS_LINE_IS_DISABLED__)
 #	define HAWK_FTRUNCATE(handle,size) syscall(SYS_ftruncate64,handle,size)
 #elif defined(SYS_ftruncate) && defined(HAWK_USE_SYSCALL)
 #	define HAWK_FTRUNCATE(handle,size) syscall(SYS_ftruncate,handle,size)
-#elif !defined(_LP64) && (HAWK_SIZEOF_VOID_P<8) && defined(HAVE_FTRUNCATE64)
+#elif !defined(_LP64) && (HAWK_SIZEOF_VOID_P<8) && defined(HAVE_FTRUNCATE64) && defined(__THIS_LINE_IS_DISABLED__)
 #	define HAWK_FTRUNCATE(handle,size) ftruncate64(handle,size)
 #else
 #	define HAWK_FTRUNCATE(handle,size) ftruncate(handle,size)
@@ -354,13 +354,13 @@
 #endif
 
 
-#if !defined(_LP64) && (HAWK_SIZEOF_VOID_P<8) && defined(SYS_fstat64) && defined(HAWK_USE_SYSCALL)
+#if !defined(_LP64) && (HAWK_SIZEOF_VOID_P<8) && defined(SYS_fstat64) && defined(HAWK_USE_SYSCALL) && defined(__THIS_LINE_IS_DISABLED__)
 #	define HAWK_FSTAT(handle,stbuf) syscall(SYS_fstat64,handle,stbuf)
 	typedef struct stat64 hawk_fstat_t;
 #elif defined(SYS_fstat) && defined(HAWK_USE_SYSCALL)
 #	define HAWK_FSTAT(handle,stbuf) syscall(SYS_fstat,handle,stbuf)
 	typedef struct stat hawk_fstat_t;
-#elif !defined(_LP64) && (HAWK_SIZEOF_VOID_P<8) && defined(HAVE_FSTAT64)
+#elif !defined(_LP64) && (HAWK_SIZEOF_VOID_P<8) && defined(HAVE_FSTAT64) && defined(__THIS_LINE_IS_DISABLED__)
 #	define HAWK_FSTAT(handle,stbuf) fstat64(handle,stbuf)
 	typedef struct stat64 hawk_fstat_t;
 #else
@@ -368,13 +368,13 @@
 	typedef struct stat hawk_fstat_t;
 #endif
 
-#if !defined(_LP64) && (HAWK_SIZEOF_VOID_P<8) && defined(SYS_stat64) && defined(HAWK_USE_SYSCALL)
+#if !defined(_LP64) && (HAWK_SIZEOF_VOID_P<8) && defined(SYS_stat64) && defined(HAWK_USE_SYSCALL) && defined(__THIS_LINE_IS_DISABLED__)
 #	define HAWK_STAT(path,stbuf) syscall(SYS_stat64,path,stbuf)
 	typedef struct stat64 hawk_stat_t;
 #elif defined(SYS_stat) && defined(HAWK_USE_SYSCALL)
 #	define HAWK_STAT(path,stbuf) syscall(SYS_stat,path,stbuf)
 	typedef struct stat hawk_stat_t;
-#elif !defined(_LP64) && (HAWK_SIZEOF_VOID_P<8) && defined(HAVE_STAT64)
+#elif !defined(_LP64) && (HAWK_SIZEOF_VOID_P<8) && defined(HAVE_STAT64) && defined(__THIS_LINE_IS_DISABLED__)
 #	define HAWK_STAT(path,stbuf) stat64(path,stbuf)
 	typedef struct stat64 hawk_stat_t;
 #else
@@ -382,13 +382,13 @@
 	typedef struct stat hawk_stat_t;
 #endif
 
-#if !defined(_LP64) && (HAWK_SIZEOF_VOID_P<8) && defined(SYS_lstat64) && defined(HAWK_USE_SYSCALL)
+#if !defined(_LP64) && (HAWK_SIZEOF_VOID_P<8) && defined(SYS_lstat64) && defined(HAWK_USE_SYSCALL) && defined(__THIS_LINE_IS_DISABLED__)
 #	define HAWK_LSTAT(path,stbuf) syscall(SYS_lstat,path,stbuf)
 	typedef struct stat64 hawk_lstat_t;
 #elif defined(SYS_lstat) && defined(HAWK_USE_SYSCALL)
 #	define HAWK_LSTAT(path,stbuf) syscall(SYS_lstat,path,stbuf)
 	typedef struct stat hawk_lstat_t;
-#elif !defined(_LP64) && (HAWK_SIZEOF_VOID_P<8) && defined(HAVE_LSTAT64)
+#elif !defined(_LP64) && (HAWK_SIZEOF_VOID_P<8) && defined(HAVE_LSTAT64) && defined(__THIS_LINE_IS_DISABLED__)
 #	define HAWK_LSTAT(path,stbuf) lstat64(path,stbuf)
 	typedef struct stat64 hawk_lstat_t;
 #else
@@ -397,13 +397,13 @@
 #endif
 
 
-#if !defined(_LP64) && (HAWK_SIZEOF_VOID_P<8) && defined(SYS_fstatat64) && defined(HAWK_USE_SYSCALL)
+#if !defined(_LP64) && (HAWK_SIZEOF_VOID_P<8) && defined(SYS_fstatat64) && defined(HAWK_USE_SYSCALL) && defined(__THIS_LINE_IS_DISABLED__)
 #	define HAWK_FSTATAT(dirfd,path,stbuf,flags) syscall(SYS_fstatat,dirfd,path,stbuf,flags)
 	typedef struct stat64 hawk_fstatat_t;
 #elif defined(SYS_fstatat) && defined(HAWK_USE_SYSCALL)
 #	define HAWK_FSTATAT(dirfd,path,stbuf,flags) syscall(SYS_fstatat,dirfd,path,stbuf,flags)
 	typedef struct stat hawk_fstatat_t;
-#elif !defined(_LP64) && (HAWK_SIZEOF_VOID_P<8) && defined(HAVE_FSTATAT64)
+#elif !defined(_LP64) && (HAWK_SIZEOF_VOID_P<8) && defined(HAVE_FSTATAT64) && defined(__THIS_LINE_IS_DISABLED__)
 #	define HAWK_FSTATAT(dirfd,path,stbuf,flags) fstatat64(dirfd,path,stbuf,flags)
 	typedef struct stat64 hawk_fstatat_t;
 #else
@@ -544,7 +544,7 @@ so it's not practical to define HAWK_GETCWD().
 #endif
 #define HAWK_DIR DIR
 
-#if !defined(_LP64) && (HAWK_SIZEOF_VOID_P<8) && defined(HAVE_READDIR64)
+#if !defined(_LP64) && (HAWK_SIZEOF_VOID_P<8) && defined(HAVE_READDIR64) && defined(__THIS_LINE_IS_DIABLED__)
 	typedef struct dirent64 hawk_dirent_t;
 #	define HAWK_READDIR(x) readdir64(x)
 #else
