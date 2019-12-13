@@ -115,6 +115,149 @@ HAWK_EXPORT hawk_bch_t* hawk_gem_dupbcstrarr (
 #	define hawk_gem_dupoocstrarr hawk_gem_dupbcstrarr
 #endif
 
+/* ----------------------------------------------------------------------- */
+
+HAWK_EXPORT int hawk_gem_convbtouchars (
+	hawk_gem_t*       gem,
+	const hawk_bch_t* bcs,
+	hawk_oow_t*       bcslen,
+	hawk_uch_t*       ucs,
+	hawk_oow_t*       ucslen,
+	int               all
+);
+
+HAWK_EXPORT int hawk_gem_convutobchars (
+	hawk_gem_t*       gem,
+	const hawk_uch_t* ucs,
+	hawk_oow_t*       ucslen,
+	hawk_bch_t*       bcs,
+	hawk_oow_t*       bcslen
+);
+
+HAWK_EXPORT int hawk_gem_convbtoucstr (
+	hawk_gem_t*       gem,
+	const hawk_bch_t* bcs,
+	hawk_oow_t*       bcslen,
+	hawk_uch_t*       ucs,
+	hawk_oow_t*       ucslen,
+	int               all
+);
+
+HAWK_EXPORT int hawk_gem_convutobcstr (
+	hawk_gem_t*       gem,
+	const hawk_uch_t* ucs,
+	hawk_oow_t*       ucslen,
+	hawk_bch_t*       bcs,
+	hawk_oow_t*       bcslen
+);
+
+/* ----------------------------------------------------------------------- */
+
+
+HAWK_EXPORT hawk_uch_t* hawk_gem_dupbtouchars (
+	hawk_gem_t*        gem,
+	const hawk_bch_t*  bcs,
+	hawk_oow_t         bcslen,
+	hawk_oow_t*        ucslen,
+	int                all
+);
+
+HAWK_EXPORT hawk_bch_t* hawk_gem_duputobchars (
+	hawk_gem_t*        gem,
+	const hawk_uch_t*  ucs,
+	hawk_oow_t         ucslen,
+	hawk_oow_t*        bcslen
+);
+
+HAWK_EXPORT hawk_uch_t* hawk_gem_dupb2touchars (
+	hawk_gem_t*        gem,
+	const hawk_bch_t*  bcs1,
+	hawk_oow_t         bcslen1,
+	const hawk_bch_t*  bcs2,
+	hawk_oow_t         bcslen2,
+	hawk_oow_t*        ucslen,
+	int                all
+);
+
+HAWK_EXPORT hawk_bch_t* hawk_gem_dupu2tobchars (
+	hawk_gem_t*        gem,
+	const hawk_uch_t*  ucs1,
+	hawk_oow_t         ucslen1,
+	const hawk_uch_t*  ucs2,
+	hawk_oow_t         ucslen2,
+	hawk_oow_t*        bcslen
+);
+
+HAWK_EXPORT hawk_uch_t* hawk_gem_dupbtoucstr (
+	hawk_gem_t*        gem,
+	const hawk_bch_t*  bcs,
+	hawk_oow_t*        ucslen,
+	int                all
+);
+
+HAWK_EXPORT hawk_bch_t* hawk_gem_duputobcstr (
+	hawk_gem_t*        gem,
+	const hawk_uch_t*  ucs,
+	hawk_oow_t*        bcslen
+);
+
+HAWK_EXPORT hawk_uch_t* hawk_gem_dupbtoucharswithcmgr (
+	hawk_gem_t*        gem,
+	const hawk_bch_t*  bcs,
+	hawk_oow_t         _bcslen,
+	hawk_oow_t*        _ucslen,
+	hawk_cmgr_t*       cmgr,
+	int                all
+);
+
+HAWK_EXPORT hawk_bch_t* hawk_gem_duputobcharswithcmgr (
+	hawk_gem_t*        gem,
+	const hawk_uch_t*  ucs,
+	hawk_oow_t         _ucslen,
+	hawk_oow_t*        _bcslen,
+	hawk_cmgr_t*       cmgr
+);
+
+HAWK_EXPORT hawk_bch_t* hawk_gem_dupucstrarrtobcstr (
+	hawk_gem_t*        gem,
+	const hawk_uch_t*  ucs[],
+	hawk_oow_t*        bcslen
+);
+
+/* ----------------------------------------------------------------------- */
+
+hawk_oow_t hawk_gem_vfmttoucstr (
+	hawk_gem_t*       gem,
+	hawk_uch_t*       buf,
+	hawk_oow_t        bufsz,
+	const hawk_uch_t* fmt,
+	va_list           ap
+);
+
+hawk_oow_t hawk_gem_fmttoucstr (
+	hawk_gem_t*       gem,
+	hawk_uch_t*       buf,
+	hawk_oow_t        bufsz,
+	const hawk_uch_t* fmt,
+	...
+);
+
+hawk_oow_t hawk_gem_vfmttobcstr (
+	hawk_gem_t*       gem,
+	hawk_bch_t*       buf,
+	hawk_oow_t        bufsz,
+	const hawk_bch_t* fmt,
+	va_list           ap
+);
+
+hawk_oow_t hawk_gem_fmttobcstr (
+	hawk_gem_t*       gem,
+	hawk_bch_t*       buf,
+	hawk_oow_t        bufsz,
+	const hawk_bch_t* fmt,
+	...
+);
+
 #if defined(__cplusplus)
 }
 #endif
