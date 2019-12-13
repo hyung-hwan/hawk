@@ -35,13 +35,13 @@ int awk_rtx_strtonum (hawk_rtx_t* rtx, int option, const char_t* ptr, hawk_oow_t
 	int base = HAWK_RTX_STRTONUN_GET_OPTION_BASE(option);
 
 	end = ptr + len;
-	*l = awk_strxtoint(rtx->awk, ptr, len, base, &endptr);
+	*l = awk_strxtoint(hawk_rtx_gethawk(rtx), ptr, len, base, &endptr);
 	if (endptr < end)
 	{
 		if (*endptr == _T('.') || *endptr == _T('E') || *endptr == _T('e'))
 		{
 		handle_float:
-			*r = awk_strxtoflt(rtx->awk, ptr, len, &endptr);
+			*r = awk_strxtoflt(hawk_rtx_gethawk(rtx), ptr, len, &endptr);
 			if (strict && endptr < end) return -1;
 			return 1; /* flt */
 		}

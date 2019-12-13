@@ -160,15 +160,15 @@ am__DEPENDENCIES_1 =
 am__DEPENDENCIES_4 = $(am__DEPENDENCIES_1) $(am__DEPENDENCIES_2) \
 	$(am__DEPENDENCIES_3)
 am__libhawk_la_SOURCES_DIST = hawk.h hawk-chr.h hawk-cmn.h hawk-ecs.h \
-	hawk-fmt.h hawk-htb.h hawk-rbt.h hawk-pack1.h hawk-pma.h \
-	hawk-utl.h hawk-std.h hawk-tre.h hawk-unpack.h arr.c chr.c \
-	ecs-imp.h ecs.c err-prv.h err.c fmt-imp.h fmt.c fnc-prv.h \
-	fnc.c htb.c hawk-prv.h hawk.c mb8.c misc-imp.h misc-prv.h \
-	misc.c parse-prv.h parse.c pma.c rbt.c rec.c rio-prv.h rio.c \
-	run-prv.h run.c tre-prv.h tre-ast.c tre-ast.h tre-compile.c \
-	tre-compile.h tre-match-bt.c tre-match-pa.c tre-match-ut.h \
-	tre-parse.c tre-parse.h tre-stack.c tre-stack.h tre.c \
-	tree-prv.h tree.c utf16.c utf8.c utl-sort.c utl-str.c \
+	hawk-fmt.h hawk-gem.h hawk-htb.h hawk-rbt.h hawk-pack1.h \
+	hawk-pma.h hawk-utl.h hawk-std.h hawk-tre.h hawk-unpack.h \
+	arr.c chr.c ecs-imp.h ecs.c err-prv.h err.c fmt-imp.h fmt.c \
+	fnc-prv.h fnc.c htb.c gem.c hawk-prv.h hawk.c mb8.c misc-imp.h \
+	misc-prv.h misc.c parse-prv.h parse.c pma.c rbt.c rec.c \
+	rio-prv.h rio.c run-prv.h run.c tre-prv.h tre-ast.c tre-ast.h \
+	tre-compile.c tre-compile.h tre-match-bt.c tre-match-pa.c \
+	tre-match-ut.h tre-parse.c tre-parse.h tre-stack.c tre-stack.h \
+	tre.c tree-prv.h tree.c utf16.c utf8.c utl-sort.c utl-str.c \
 	utl-sys.c utl.c val-imp.h val-prv.h val.c hawk-cli.h \
 	hawk-fio.h hawk-mtx.h hawk-pio.h hawk-sio.h hawk-tio.h cli.c \
 	fio.c mtx.c pio.c sio.c syscall.h syserr.h tio.c std-prv.h \
@@ -179,14 +179,14 @@ am__objects_1 =
 am_libhawk_la_OBJECTS = $(am__objects_1) libhawk_la-arr.lo \
 	libhawk_la-chr.lo libhawk_la-ecs.lo libhawk_la-err.lo \
 	libhawk_la-fmt.lo libhawk_la-fnc.lo libhawk_la-htb.lo \
-	libhawk_la-hawk.lo libhawk_la-mb8.lo libhawk_la-misc.lo \
-	libhawk_la-parse.lo libhawk_la-pma.lo libhawk_la-rbt.lo \
-	libhawk_la-rec.lo libhawk_la-rio.lo libhawk_la-run.lo \
-	libhawk_la-tre-ast.lo libhawk_la-tre-compile.lo \
-	libhawk_la-tre-match-bt.lo libhawk_la-tre-match-pa.lo \
-	libhawk_la-tre-parse.lo libhawk_la-tre-stack.lo \
-	libhawk_la-tre.lo libhawk_la-tree.lo libhawk_la-utf16.lo \
-	libhawk_la-utf8.lo libhawk_la-utl-sort.lo \
+	libhawk_la-gem.lo libhawk_la-hawk.lo libhawk_la-mb8.lo \
+	libhawk_la-misc.lo libhawk_la-parse.lo libhawk_la-pma.lo \
+	libhawk_la-rbt.lo libhawk_la-rec.lo libhawk_la-rio.lo \
+	libhawk_la-run.lo libhawk_la-tre-ast.lo \
+	libhawk_la-tre-compile.lo libhawk_la-tre-match-bt.lo \
+	libhawk_la-tre-match-pa.lo libhawk_la-tre-parse.lo \
+	libhawk_la-tre-stack.lo libhawk_la-tre.lo libhawk_la-tree.lo \
+	libhawk_la-utf16.lo libhawk_la-utf8.lo libhawk_la-utl-sort.lo \
 	libhawk_la-utl-str.lo libhawk_la-utl-sys.lo libhawk_la-utl.lo \
 	libhawk_la-val.lo libhawk_la-cli.lo libhawk_la-fio.lo \
 	libhawk_la-mtx.lo libhawk_la-pio.lo libhawk_la-sio.lo \
@@ -226,9 +226,9 @@ am__depfiles_remade = ./$(DEPDIR)/libhawk_la-arr.Plo \
 	./$(DEPDIR)/libhawk_la-chr.Plo ./$(DEPDIR)/libhawk_la-cli.Plo \
 	./$(DEPDIR)/libhawk_la-ecs.Plo ./$(DEPDIR)/libhawk_la-err.Plo \
 	./$(DEPDIR)/libhawk_la-fio.Plo ./$(DEPDIR)/libhawk_la-fmt.Plo \
-	./$(DEPDIR)/libhawk_la-fnc.Plo ./$(DEPDIR)/libhawk_la-hawk.Plo \
-	./$(DEPDIR)/libhawk_la-htb.Plo ./$(DEPDIR)/libhawk_la-mb8.Plo \
-	./$(DEPDIR)/libhawk_la-misc.Plo \
+	./$(DEPDIR)/libhawk_la-fnc.Plo ./$(DEPDIR)/libhawk_la-gem.Plo \
+	./$(DEPDIR)/libhawk_la-hawk.Plo ./$(DEPDIR)/libhawk_la-htb.Plo \
+	./$(DEPDIR)/libhawk_la-mb8.Plo ./$(DEPDIR)/libhawk_la-misc.Plo \
 	./$(DEPDIR)/libhawk_la-mod-math.Plo \
 	./$(DEPDIR)/libhawk_la-mod-str.Plo \
 	./$(DEPDIR)/libhawk_la-mtx.Plo \
@@ -516,6 +516,7 @@ pkginclude_HEADERS = \
 	hawk-cmn.h \
 	hawk-ecs.h \
 	hawk-fmt.h \
+	hawk-gem.h \
 	hawk-htb.h \
 	hawk-rbt.h \
 	hawk-pack1.h \
@@ -527,7 +528,7 @@ pkginclude_HEADERS = \
 
 pkglib_LTLIBRARIES = libhawk.la $(am__append_5)
 libhawk_la_SOURCES = $(pkginclude_HEADERS) arr.c chr.c ecs-imp.h ecs.c \
-	err-prv.h err.c fmt-imp.h fmt.c fnc-prv.h fnc.c htb.c \
+	err-prv.h err.c fmt-imp.h fmt.c fnc-prv.h fnc.c htb.c gem.c \
 	hawk-prv.h hawk.c mb8.c misc-imp.h misc-prv.h misc.c \
 	parse-prv.h parse.c pma.c rbt.c rec.c rio-prv.h rio.c \
 	run-prv.h run.c tre-prv.h tre-ast.c tre-ast.h tre-compile.c \
@@ -662,6 +663,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libhawk_la-fio.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libhawk_la-fmt.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libhawk_la-fnc.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libhawk_la-gem.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libhawk_la-hawk.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libhawk_la-htb.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libhawk_la-mb8.Plo@am__quote@ # am--include-marker
@@ -775,6 +777,13 @@ libhawk_la-htb.lo: htb.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='htb.c' object='libhawk_la-htb.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libhawk_la-htb.lo `test -f 'htb.c' || echo '$(srcdir)/'`htb.c
+
+libhawk_la-gem.lo: gem.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libhawk_la-gem.lo -MD -MP -MF $(DEPDIR)/libhawk_la-gem.Tpo -c -o libhawk_la-gem.lo `test -f 'gem.c' || echo '$(srcdir)/'`gem.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libhawk_la-gem.Tpo $(DEPDIR)/libhawk_la-gem.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='gem.c' object='libhawk_la-gem.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libhawk_la-gem.lo `test -f 'gem.c' || echo '$(srcdir)/'`gem.c
 
 libhawk_la-hawk.lo: hawk.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libhawk_la-hawk.lo -MD -MP -MF $(DEPDIR)/libhawk_la-hawk.Tpo -c -o libhawk_la-hawk.lo `test -f 'hawk.c' || echo '$(srcdir)/'`hawk.c
@@ -1208,6 +1217,7 @@ distclean: distclean-am
 	-rm -f ./$(DEPDIR)/libhawk_la-fio.Plo
 	-rm -f ./$(DEPDIR)/libhawk_la-fmt.Plo
 	-rm -f ./$(DEPDIR)/libhawk_la-fnc.Plo
+	-rm -f ./$(DEPDIR)/libhawk_la-gem.Plo
 	-rm -f ./$(DEPDIR)/libhawk_la-hawk.Plo
 	-rm -f ./$(DEPDIR)/libhawk_la-htb.Plo
 	-rm -f ./$(DEPDIR)/libhawk_la-mb8.Plo
@@ -1295,6 +1305,7 @@ maintainer-clean: maintainer-clean-am
 	-rm -f ./$(DEPDIR)/libhawk_la-fio.Plo
 	-rm -f ./$(DEPDIR)/libhawk_la-fmt.Plo
 	-rm -f ./$(DEPDIR)/libhawk_la-fnc.Plo
+	-rm -f ./$(DEPDIR)/libhawk_la-gem.Plo
 	-rm -f ./$(DEPDIR)/libhawk_la-hawk.Plo
 	-rm -f ./$(DEPDIR)/libhawk_la-htb.Plo
 	-rm -f ./$(DEPDIR)/libhawk_la-mb8.Plo

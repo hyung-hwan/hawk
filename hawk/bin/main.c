@@ -408,7 +408,7 @@ static void dprint_return (hawk_rtx_t* rtx, hawk_val_t* ret)
 		else
 		{
 			dprint (HAWK_T("[RETURN] - [%.*s]\n"), (int)len, str);
-			hawk_freemem (hawk_rtx_getawk(rtx), str);
+			hawk_freemem (hawk_rtx_gethawk(rtx), str);
 		}
 	}
 
@@ -944,7 +944,7 @@ static void print_hawk_rtx_error (hawk_rtx_t* rtx)
 /* TODO: proper logging mask */
 printf ("print_hawk_rtx_error... TODO: \n");
 /*
-	hawk_logfmt (hawk_rtx_getawk(rtx), 0,
+	hawk_logfmt (hawk_rtx_gethawk(rtx), 0,
 		HAWK_T("ERROR: CODE %d LINE %zu COLUMN %zu %s%s%s- %s\n"),
 		hawk_rtx_geterrnum(rtx),
 		(hawk_oow_t)loc->line,

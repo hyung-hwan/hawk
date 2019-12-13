@@ -29,6 +29,7 @@
 
 #include <hawk-cmn.h>
 #include <hawk-ecs.h>
+#include <hawk-gem.h>
 #include <hawk-htb.h>
 #include <hawk-utl.h>
 #include <stdarg.h>
@@ -124,17 +125,6 @@ struct hawk_rtx_alt_t
 	/* ensure that hawk_rtx_alt_t matches the beginning part of hawk_rtx_t */
 	HAWK_RTX_HDR;
 };
-
-/**
- * The hawk_loc_t type defines a structure to hold location.
- */
-struct hawk_loc_t
-{
-	hawk_oow_t line; /**< line */
-	hawk_oow_t colm; /**< column */
-	const hawk_ooch_t* file; /**< file specified in @include */
-};
-typedef struct hawk_loc_t hawk_loc_t;
 
 /**
  * The #HAWK_VAL_HDR defines the common header for a value.
@@ -1439,23 +1429,17 @@ HAWK_EXPORT void hawk_close (
 );
 
 #if defined(HAWK_HAVE_INLINE)
-/**
- * The hawk_getxtn() function returns the pointer to the extension area
- * placed behind the actual awk object.
- */
-static HAWK_INLINE void* hawk_getxtn (hawk_t* awk) { return (void*)((hawk_uint8_t*)awk + ((hawk_alt_t*)awk)->_instsize); }
-/**
- * The hawk_getmmgr() function gets the memory manager used in
- * hawk_open().
- */
-static HAWK_INLINE hawk_mmgr_t* hawk_getmmgr (hawk_t* awk) { return ((hawk_alt_t*)awk)->_gem.mmgr; }
-static HAWK_INLINE hawk_cmgr_t* hawk_getcmgr (hawk_t* awk) { return ((hawk_alt_t*)awk)->_gem.cmgr; }
-static HAWK_INLINE void hawk_setcmgr (hawk_t* awk, hawk_cmgr_t* cmgr) { ((hawk_alt_t*)awk)->_gem.cmgr = cmgr; }
+static HAWK_INLINE void* hawk_getxtn (hawk_t* hawk) { return (void*)((hawk_uint8_t*)hawk + ((hawk_alt_t*)hawk)->_instsize); }
+static HAWK_INLINE hawk_gem_t* hawk_getgem (hawk_t* hawk) { return &((hawk_alt_t*)hawk)->_gem; }
+static HAWK_INLINE hawk_mmgr_t* hawk_getmmgr (hawk_t* hawk) { return ((hawk_alt_t*)hawk)->_gem.mmgr; }
+static HAWK_INLINE hawk_cmgr_t* hawk_getcmgr (hawk_t* hawk) { return ((hawk_alt_t*)hawk)->_gem.cmgr; }
+static HAWK_INLINE void hawk_setcmgr (hawk_t* hawk, hawk_cmgr_t* cmgr) { ((hawk_alt_t*)hawk)->_gem.cmgr = cmgr; }
 #else
-#	define hawk_getxtn(awk) ((void*)((hawk_uint8_t*)awk + ((hawk_alt_t*)awk)->_instsize))
-#	define hawk_getmmgr(awk) (((hawk_alt_t*)(awk))->_gem.mmgr)
-#	define hawk_getcmgr(awk) (((hawk_alt_t*)(awk))->_gem.cmgr)
-#	define hawk_setcmgr(awk,_cmgr) (((hawk_alt_t*)(awk))->_gem.cmgr = (_cmgr))
+#define hawk_getxtn(awk) ((void*)((hawk_uint8_t*)hawk + ((hawk_alt_t*)hawk)->_instsize))
+#define hawk_getgem(awk) (&((hawk_alt_t*)(hawk))->_gem)
+#define hawk_getmmgr(awk) (((hawk_alt_t*)(hawk))->_gem.mmgr)
+#define hawk_getcmgr(awk) (((hawk_alt_t*)(hawk))->_gem.cmgr)
+#define hawk_setcmgr(awk,_cmgr) (((hawk_alt_t*)(hawk))->_gem.cmgr = (_cmgr))
 #endif /* HAWK_HAVE_INLINE */
 
 /**
@@ -1856,94 +1840,39 @@ HAWK_EXPORT int hawk_parse (
 	hawk_sio_cbs_t* sio  /**< source script I/O handler */
 );
 
-/**
- * The hawk_allocmem() function allocates dynamic memory.
- * \return a pointer to a memory block on success, #HAWK_NULL on failure
- */
-HAWK_EXPORT void* hawk_allocmem (
-	hawk_t*    awk,  /**< awk */
-	hawk_oow_t size  /**< size of memory to allocate in bytes */
-);
-
-/**
- * The hawk_reallocmem() function resizes a dynamic memory block.
- * \return a pointer to a memory block on success, #HAWK_NULL on failure
- */
-HAWK_EXPORT void* hawk_reallocmem (
-	hawk_t* awk,  /**< awk */
-	void*      ptr,  /**< memory block */
-	hawk_oow_t size  /**< new block size in bytes */
-);
-
-/**
- * The hawk_callocmem() function allocates a memory block of 
- * the size of \a size bytes and initializes it with 0.
- * \return a pointer to a memory block on success, #HAWK_NULL on failure
- */
-HAWK_EXPORT void* hawk_callocmem (
-	hawk_t* awk,  /**< awk */
-	hawk_oow_t size  /**< size of memory to allocate in bytes */
-);
-
-/**
- * The hawk_freemem() function frees dynamic memory allocated.
- */
 #if defined(HAWK_HAVE_INLINE)
-static HAWK_INLINE void hawk_freemem (hawk_t* awk, void* ptr)
-{
-	HAWK_MMGR_FREE (hawk_getmmgr(awk), ptr);
-}
+static HAWK_INLINE void* hawk_allocmem (hawk_t* hawk, hawk_oow_t size) { return hawk_gem_allocmem(hawk_getgem(hawk), size); }
+static HAWK_INLINE void* hawk_reallocmem (hawk_t* hawk, void* ptr, hawk_oow_t size) { return hawk_gem_reallocmem(hawk_getgem(hawk), ptr, size); }
+static HAWK_INLINE void* hawk_callocmem (hawk_t* hawk, hawk_oow_t size) { return hawk_gem_callocmem(hawk_getgem(hawk), size); }
+static HAWK_INLINE void hawk_freemem (hawk_t* hawk, void* ptr) { hawk_gem_freemem (hawk_getgem(hawk), ptr); }
 #else
-#	define hawk_freemem(awk, ptr) HAWK_MMGR_FREE(hawk_getmmgr(awk), ptr);
+#define hawk_allocmem(hawk, size) hawk_gem_allocmem(hawk_getgem(hawk), size)
+#define hawk_reallocmem(hawk, ptr, size) hawk_gem_reallocmem(hawk_getgem(hawk), ptr, size)
+#define hawk_callocmem(hawk, size) hawk_gem_callocmem(hawk_getgem(hawk), size)
+#define hawk_freemem(hawk, ptr) hawk_gem_freemem(hawk_getgem(hawk), ptr)
 #endif
 
 /* ----------------------------------------------------------------------- */
 
-HAWK_EXPORT hawk_uch_t* hawk_dupucstr (
-	hawk_t*           hawk,
-	const hawk_uch_t* ucs,
-	hawk_oow_t*       _ucslen
-);
-
-HAWK_EXPORT hawk_bch_t* hawk_dupbcstr (
-	hawk_t*           hawk,
-	const hawk_bch_t* bcs,
-	hawk_oow_t*       _bcslen
-);
-
-HAWK_EXPORT hawk_uch_t* hawk_dupuchars (
-	hawk_t*           hawk,
-	const hawk_uch_t* ucs,
-	hawk_oow_t        ucslen
-);
-
-HAWK_EXPORT hawk_bch_t* hawk_dupbchars (
-	hawk_t*           hawk,
-	const hawk_bch_t* bcs,
-	hawk_oow_t        bcslen
-);
-
-HAWK_EXPORT hawk_uch_t* hawk_dupucs (
-	hawk_t*           hawk,
-	const hawk_ucs_t* ucs
-);
-
-HAWK_EXPORT hawk_bch_t* hawk_dupbcs (
-	hawk_t*           hawk,
-	const hawk_bcs_t* bcs
-);
-
-HAWK_EXPORT hawk_uch_t* hawk_dupucstrarr (
-	hawk_t*            hawk,
-	const hawk_uch_t*  str[],
-	hawk_oow_t*        len
-);
-
-hawk_bch_t* hawk_dupbcstrarr (
-	hawk_t*            hawk,
-	const hawk_bch_t*  str[],
-	hawk_oow_t*        len
-);
+#if defined(HAWK_HAVE_INLINE)
+static HAWK_INLINE hawk_uch_t* hawk_dupucstr (hawk_t* hawk, const hawk_uch_t* ucs, hawk_oow_t* ucslen) { return hawk_gem_dupucstr(hawk_getgem(hawk), ucs, ucslen); }
+static HAWK_INLINE hawk_bch_t* hawk_dupbcstr (hawk_t* hawk, const hawk_bch_t* bcs, hawk_oow_t* bcslen) { return hawk_gem_dupbcstr(hawk_getgem(hawk), bcs, bcslen); }
+static HAWK_INLINE hawk_uch_t* hawk_dupuchars (hawk_t* hawk, const hawk_uch_t* ucs, hawk_oow_t ucslen) { return hawk_gem_dupuchars(hawk_getgem(hawk), ucs, ucslen); }
+static HAWK_INLINE hawk_bch_t* hawk_dupbchars (hawk_t* hawk, const hawk_bch_t* bcs, hawk_oow_t bcslen) { return hawk_gem_dupbchars(hawk_getgem(hawk), bcs, bcslen); }
+static HAWK_INLINE hawk_uch_t* hawk_dupucs (hawk_t* hawk, const hawk_ucs_t* ucs) { return hawk_gem_dupucs(hawk_getgem(hawk), ucs); }
+static HAWK_INLINE hawk_bch_t* hawk_dupbcs (hawk_t* hawk, const hawk_bcs_t* bcs) { return hawk_gem_dupbcs(hawk_getgem(hawk), bcs); }
+static HAWK_INLINE hawk_uch_t* hawk_dupucstrarr (hawk_t* hawk, const hawk_uch_t* strs[], hawk_oow_t* len) { return hawk_gem_dupucstrarr(hawk_getgem(hawk), strs, len); }
+static HAWK_INLINE hawk_bch_t* hawk_dupbcstrarr (hawk_t* hawk, const hawk_bch_t* strs[], hawk_oow_t* len) { return hawk_gem_dupbcstrarr(hawk_getgem(hawk), strs, len); }
+#else
+#define hawk_dupucstr(hawk, ucs, ucslen) hawk_gem_dupucstr(hawk_getgem(hawk), ucs, ucslen)
+#define hawk_dupbcstr(hawk, bcs, bcslen) hawk_gem_dupbcstr(hawk_getgem(hawk), bcs, bcslen)
+#define hawk_dupuchars(hawk, ucs, ucslen) hawk_gem_dupuchars(hawk_getgem(hawk), ucs, ucslen)
+#define hawk_dupbchars(hawk, bcs, bcslen) hawk_gem_dupbchars(hawk_getgem(hawk), bcs, bcslen)
+#define hawk_dupucs(hawk, ucs) hawk_gem_dupucs(hawk_getgem(hawk), ucs)
+#define hawk_dupbcs(hawk, bcs) hawk_gem_dupbcs(hawk_getgem(hawk), bcs)
+#define hawk_dupucstrarr(hawk, strs, len) hawk_gem_dupucstrarr(hawk_getgem(hawk), strs, len)
+#define hawk_dupbcstrarr(hawk, strs, len) hawk_gem_dupbcstrarr(hawk_getgem(hawk), strs, len)
+#endif
 
 #if defined(HAWK_OOCH_IS_UCH)
 #	define hawk_dupoocstr     hawk_dupucstr
@@ -2203,6 +2132,22 @@ HAWK_EXPORT hawk_rtx_t* hawk_rtx_open (
 HAWK_EXPORT void hawk_rtx_close (
 	hawk_rtx_t* rtx /**< runtime context */
 );
+
+#if defined(HAWK_HAVE_INLINE)
+static HAWK_INLINE hawk_t* hawk_rtx_gethawk (hawk_rtx_t* rtx) { return ((hawk_rtx_alt_t*)rtx)->awk; }
+static HAWK_INLINE void* hawk_rtx_getxtn (hawk_rtx_t* rtx) { return (void*)((hawk_uint8_t*)rtx + ((hawk_rtx_alt_t*)rtx)->_instsize); }
+static HAWK_INLINE hawk_gem_t* hawk_rtx_getgem (hawk_rtx_t* rtx) { return &((hawk_rtx_alt_t*)rtx)->_gem; }
+static HAWK_INLINE hawk_mmgr_t* hawk_rtx_getmmgr (hawk_rtx_t* rtx) { return ((hawk_rtx_alt_t*)rtx)->_gem.mmgr; }
+static HAWK_INLINE hawk_cmgr_t* hawk_rtx_getcmgr (hawk_rtx_t* rtx) { return ((hawk_rtx_alt_t*)rtx)->_gem.cmgr; }
+static HAWK_INLINE void hawk_rtx_setcmgr (hawk_rtx_t* rtx, hawk_cmgr_t* cmgr) { ((hawk_rtx_alt_t*)rtx)->_gem.cmgr = cmgr; }
+#else
+#define hawk_rtx_gethawk(rtx) (((hawk_rtx_alt_t*)(rtx))->awk)
+#define hawk_rtx_getxtn(rtx) ((void*)((hawk_uint8_t*)rtx + ((hawk_rtx_alt_t*)rtx)->_instsize))
+#define hawk_rtx_getgem(rtx) (&((hawk_rtx_alt_t*)(rtx))->_gem)
+#define hawk_rtx_getmmgr(rtx) (((hawk_rtx_alt_t*)(rtx))->_gem.mmgr)
+#define hawk_rtx_getcmgr(rtx) (((hawk_rtx_alt_t*)(rtx))->_gem.cmgr)
+#define hawk_rtx_setcmgr(rtx,_cmgr) (((hawk_rtx_alt_t*)(rtx))->_gem.cmgr = (_cmgr))
+#endif /* HAWK_HAVE_INLINE */
 
 /**
  * The hawk_rtx_loop() function executes the BEGIN block, pattern-action
@@ -2484,53 +2429,10 @@ HAWK_EXPORT int hawk_rtx_setfilename (
  * The hawk_rtx_setofilename() function sets OFILENAME.
  */
 HAWK_EXPORT int hawk_rtx_setofilename (
-	hawk_rtx_t*    rtx, /**< runtime context */
+	hawk_rtx_t*        rtx, /**< runtime context */
 	const hawk_ooch_t* str, /**< name pointer */
-	hawk_oow_t        len  /**< name length */
+	hawk_oow_t         len  /**< name length */
 );
-
-
-#if defined(HAWK_HAVE_INLINE)
-
-/**
- * The hawk_rtx_getxtn() function gets the pointer to the extension area
- * created with hawk_rtx_open().
- */
-static HAWK_INLINE void* hawk_rtx_getxtn (hawk_rtx_t* rtx) 
-{
-	return (void*)((hawk_uint8_t*)rtx + ((hawk_rtx_alt_t*)rtx)->_instsize); 
-}
-
-/**
- * The hawk_rtx_getawk() function gets the owner of a runtime context \a rtx.
- * \return owner of a runtime context \a rtx.
- */
-static HAWK_INLINE hawk_t* hawk_rtx_getawk (hawk_rtx_t* rtx) 
-{
-	return ((hawk_rtx_alt_t*)rtx)->awk; 
-}
-
-/**
- * The hawk_rtx_getmmgr() function gets the memory manager of a runtime
- * context.
- */
-static HAWK_INLINE hawk_mmgr_t* hawk_rtx_getmmgr (hawk_rtx_t* rtx) 
-{
-	return hawk_getmmgr(hawk_rtx_getawk(rtx)); 
-}
-
-static HAWK_INLINE hawk_cmgr_t* hawk_rtx_getcmgr (hawk_rtx_t* rtx) 
-{ 
-	return hawk_getcmgr(hawk_rtx_getawk(rtx)); 
-}
-
-#else
-#	define hawk_rtx_getxtn(rtx) ((void*)((hawk_uint8_t*)rtx + ((hawk_rtx_alt_t*)rtx)->_instsize))
-#	define hawk_rtx_getawk(rtx) (((hawk_rtx_alt_t*)(rtx))->awk)
-#	define hawk_rtx_getmmgr(rtx) (hawk_getmmgr(hawk_rtx_getawk(rtx)))
-#	define hawk_rtx_getcmgr(rtx) (hawk_getcmgr(hawk_rtx_getawk(rtx)))
-
-#endif /* HAWK_HAVE_INLINE */
 
 /**
  * The hawk_rtx_getnvmap() gets the map of named variables 
@@ -3330,95 +3232,51 @@ HAWK_EXPORT void hawk_rtx_getnrflt (
 	hawk_nrflt_t*       nrflt
 );
 
-/**
- * The hawk_rtx_allocmem() function allocats a memory block of \a size bytes
- * using the memory manager associated with a runtime context \a rtx. 
- * \return the pointer to a memory block on success, #HAWK_NULL on failure.
- */
-HAWK_EXPORT void* hawk_rtx_allocmem (
-	hawk_rtx_t*    rtx, /**< runtime context */
-	hawk_oow_t     size /**< block size in bytes */
-);
 
-/**
- * The hawk_rtx_reallocmem() function resizes a memory block pointed to
- * by \a ptr to \a size bytes using the memory manager associated with 
- * a runtime context \a rtx. 
- * \return the pointer to a memory block on success, #HAWK_NULL on failure.
- */
-HAWK_EXPORT void* hawk_rtx_reallocmem (
-	hawk_rtx_t*    rtx, /**< runtime context */
-	void*          ptr, /**< memory block */
-	hawk_oow_t     size /**< block size in bytes */
-);
-
-/**
- * The hawk_rtx_callocmem() function allocates a memory block of 
- * the size of \a size bytes and initializes it with 0.
- * \return a pointer to a memory block on success, #HAWK_NULL on failure
- */
-HAWK_EXPORT void* hawk_rtx_callocmem (
-	hawk_rtx_t*    rtx, /**< runtime context */
-	hawk_oow_t     size /**< block size in bytes */
-);
-
-/**
- * The hawk_rtx_freemem() function frees a memory block pointed to by \a ptr
- * using the memory manager of a runtime ocntext \a rtx.
- */
 #if defined(HAWK_HAVE_INLINE)
-static HAWK_INLINE void hawk_rtx_freemem (hawk_rtx_t* rtx, void* ptr)
-{
-	hawk_freemem (((hawk_rtx_alt_t*)rtx)->awk, ptr);
-}
+static HAWK_INLINE void* hawk_rtx_allocmem (hawk_rtx_t* rtx, hawk_oow_t size) { return hawk_gem_allocmem(hawk_rtx_getgem(rtx), size); }
+static HAWK_INLINE void* hawk_rtx_reallocmem (hawk_rtx_t* rtx, void* ptr, hawk_oow_t size) { return hawk_gem_reallocmem(hawk_rtx_getgem(rtx), ptr, size); }
+static HAWK_INLINE void* hawk_rtx_callocmem (hawk_rtx_t* rtx, hawk_oow_t size) { return hawk_gem_callocmem(hawk_rtx_getgem(rtx), size); }
+static HAWK_INLINE void hawk_rtx_freemem (hawk_rtx_t* rtx, void* ptr) { hawk_gem_freemem (hawk_rtx_getgem(rtx), ptr); }
 #else
-#	define hawk_rtx_freemem(rtx,ptr) hawk_freemem(((hawk_rtx_alt_t*)rtx)->awk, ptr)
+#define hawk_rtx_allocmem(rtx, size) hawk_gem_allocmem(hawk_rtx_getgem(rtx), size)
+#define hawk_rtx_reallocmem(rtx, ptr, size) hawk_gem_reallocmem(hawk_rtx_getgem(rtx), ptr, size)
+#define hawk_rtx_callocmem(rtx, size) hawk_gem_callocmem(hawk_rtx_getgem(rtx), size)
+#define hawk_rtx_freemem(rtx, ptr) hawk_gem_freemem(hawk_rtx_getgem(rtx), ptr)
 #endif
 
 /* ----------------------------------------------------------------------- */
 
-HAWK_EXPORT hawk_uch_t* hawk_rtx_dupucstr (
-	hawk_rtx_t*       hawk,
-	const hawk_uch_t* ucs,
-	hawk_oow_t*       _ucslen
-);
-
-HAWK_EXPORT hawk_bch_t* hawk_rtx_dupbcstr (
-	hawk_rtx_t*       hawk,
-	const hawk_bch_t* bcs,
-	hawk_oow_t*       _bcslen
-);
-
-HAWK_EXPORT hawk_uch_t* hawk_rtx_dupuchars (
-	hawk_rtx_t*       hawk,
-	const hawk_uch_t* ucs,
-	hawk_oow_t        ucslen
-);
-
-HAWK_EXPORT hawk_bch_t* hawk_rtx_dupbchars (
-	hawk_rtx_t*       rtx,
-	const hawk_bch_t* bcs,
-	hawk_oow_t        bcslen
-);
-
-HAWK_EXPORT hawk_uch_t* hawk_rtx_dupucs (
-	hawk_rtx_t*       rtx,
-	const hawk_ucs_t* ucs
-);
-
-HAWK_EXPORT hawk_bch_t* hawk_rtx_dupbcs (
-	hawk_rtx_t*       rtx,
-	const hawk_bcs_t* bcs
-);
+#if defined(HAWK_HAVE_INLINE)
+static HAWK_INLINE hawk_uch_t* hawk_rtx_dupucstr (hawk_rtx_t* rtx, const hawk_uch_t* ucs, hawk_oow_t* ucslen) { return hawk_gem_dupucstr(hawk_rtx_getgem(rtx), ucs, ucslen); }
+static HAWK_INLINE hawk_bch_t* hawk_rtx_dupbcstr (hawk_rtx_t* rtx, const hawk_bch_t* bcs, hawk_oow_t* bcslen) { return hawk_gem_dupbcstr(hawk_rtx_getgem(rtx), bcs, bcslen); }
+static HAWK_INLINE hawk_uch_t* hawk_rtx_dupuchars (hawk_rtx_t* rtx, const hawk_uch_t* ucs, hawk_oow_t ucslen) { return hawk_gem_dupuchars(hawk_rtx_getgem(rtx), ucs, ucslen); }
+static HAWK_INLINE hawk_bch_t* hawk_rtx_dupbchars (hawk_rtx_t* rtx, const hawk_bch_t* bcs, hawk_oow_t bcslen) { return hawk_gem_dupbchars(hawk_rtx_getgem(rtx), bcs, bcslen); }
+static HAWK_INLINE hawk_uch_t* hawk_rtx_dupucs (hawk_rtx_t* rtx, const hawk_ucs_t* ucs) { return hawk_gem_dupucs(hawk_rtx_getgem(rtx), ucs); }
+static HAWK_INLINE hawk_bch_t* hawk_rtx_dupbcs (hawk_rtx_t* rtx, const hawk_bcs_t* bcs) { return hawk_gem_dupbcs(hawk_rtx_getgem(rtx), bcs); }
+static HAWK_INLINE hawk_uch_t* hawk_rtx_dupucstrarr (hawk_rtx_t* rtx, const hawk_uch_t* strs[], hawk_oow_t* len) { return hawk_gem_dupucstrarr(hawk_rtx_getgem(rtx), strs, len); }
+static HAWK_INLINE hawk_bch_t* hawk_rtx_dupbcstrarr (hawk_rtx_t* rtx, const hawk_bch_t* strs[], hawk_oow_t* len) { return hawk_gem_dupbcstrarr(hawk_rtx_getgem(rtx), strs, len); }
+#else
+#define hawk_rtx_dupucstr(rtx, ucs, ucslen) hawk_gem_dupucstr(hawk_rtx_getgem(rtx), ucs, ucslen)
+#define hawk_rtx_dupbcstr(rtx, bcs, bcslen) hawk_gem_dupbcstr(hawk_rtx_getgem(rtx), bcs, bcslen)
+#define hawk_rtx_dupuchars(rtx, ucs, ucslen) hawk_gem_dupuchars(hawk_rtx_getgem(rtx), ucs, ucslen)
+#define hawk_rtx_dupbchars(rtx, bcs, bcslen) hawk_gem_dupbchars(hawk_rtx_getgem(rtx), bcs, bcslen)
+#define hawk_rtx_dupucs(rtx, ucs) hawk_gem_dupucs(hawk_rtx_getgem(rtx), ucs)
+#define hawk_rtx_dupbcs(rtx, bcs) hawk_gem_dupbcs(hawk_rtx_getgem(rtx), bcs)
+#define hawk_rtx_dupucstrarr(rtx, strs, len) hawk_gem_dupucstrarr(hawk_rtx_getgem(rtx), strs, len)
+#define hawk_rtx_dupbcstrarr(rtx, strs, len) hawk_gem_dupbcstrarr(hawk_rtx_getgem(rtx), strs, len)
+#endif
 
 #if defined(HAWK_OOCH_IS_UCH)
-#	define hawk_rtx_dupoocstr  hawk_rtx_dupucstr
-#	define hawk_rtx_dupoochars hawk_rtx_dupuchars
-#	define hawk_rtx_dupoocs    hawk_rtx_dupucs
+#	define hawk_rtx_dupoocstr     hawk_rtx_dupucstr
+#	define hawk_rtx_dupoochars    hawk_rtx_dupuchars
+#	define hawk_rtx_dupoocs       hawk_rtx_dupucs
+#	define hawk_rtx_dupoocstrarr  hawk_rtx_dupucstrarr
 #else
-#	define hawk_rtx_dupoocstr  hawk_rtx_dupbcstr
-#	define hawk_rtx_dupoochars hawk_rtx_dupbchars
-#	define hawk_rtx_dupoocs    hawk_rtx_dupbcs
+#	define hawk_rtx_dupoocstr     hawk_rtx_dupbcstr
+#	define hawk_rtx_dupoochars    hawk_rtx_dupbchars
+#	define hawk_rtx_dupoocs       hawk_rtx_dupbcs
+#	define hawk_rtx_dupoocstrarr  hawk_rtx_dupbcstrarr
 #endif
 
 /* ----------------------------------------------------------------------- */

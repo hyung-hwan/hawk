@@ -435,7 +435,7 @@ static global_t gtab[] =
 
 #define SETERR_ARG(awk,code,ep,el) SETERR_ARG_LOC(awk,code,ep,el,HAWK_NULL)
 
-#define ADJERR_LOC(rtx,l) do { (awk)->errloc = *(l); } while (0)
+#define ADJERR_LOC(rtx,l) do { (awk)->_gem.errloc = *(l); } while (0)
 
 static HAWK_INLINE int is_plain_var (hawk_nde_t* nde)
 {
@@ -829,7 +829,7 @@ static int begin_include (hawk_t* awk, int once)
 	if (awk->sio.inf(awk, HAWK_SIO_CMD_OPEN, arg, HAWK_NULL, 0) <= -1)
 	{
 		if (ISNOERR(awk)) SETERR_TOK (awk, HAWK_EOPEN);
-		else awk->errloc = awk->tok.loc; /* adjust error location */
+		else awk->_gem.errloc = awk->tok.loc; /* adjust error location */
 		goto oops;
 	}
 

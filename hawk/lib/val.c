@@ -103,7 +103,7 @@ hawk_val_t* hawk_rtx_makeintval (hawk_rtx_t* rtx, hawk_int_t v)
 	val->nde = HAWK_NULL;
 
 #if defined(DEBUG_VAL)
-	hawk_logfmt (hawk_rtx_getawk(rtx), HAWK_T("makeintval => %jd [%p] - [%O]\n"), (hawk_intmax_t)v, val, val);
+	hawk_logfmt (hawk_rtx_gethawk(rtx), HAWK_T("makeintval => %jd [%p] - [%O]\n"), (hawk_intmax_t)v, val, val);
 #endif
 	return (hawk_val_t*)val;
 }
@@ -154,7 +154,7 @@ hawk_val_t* hawk_rtx_makefltval (hawk_rtx_t* rtx, hawk_flt_t v)
 	val->nde = HAWK_NULL;
 
 #if defined(DEBUG_VAL)
-	hawk_logfmt (hawk_rtx_getawk(rtx), HAWK_T("makefltval => %Lf [%p] - [%O]\n"), (double)v, val, val);
+	hawk_logfmt (hawk_rtx_gethawk(rtx), HAWK_T("makefltval => %Lf [%p] - [%O]\n"), (double)v, val, val);
 #endif
 	return (hawk_val_t*)val;
 }
@@ -200,7 +200,7 @@ init:
 	val->val.ptr[val->val.len] = '\0';
 
 #if defined(DEBUG_VAL)
-	hawk_logfmt (hawk_rtx_getawk(rtx), HAWK_T("make_str_val => %p - [%O]\n"), val, val);
+	hawk_logfmt (hawk_rtx_gethawk(rtx), HAWK_T("make_str_val => %p - [%O]\n"), val, val);
 #endif
 	return (hawk_val_t*)val;
 }
@@ -316,7 +316,7 @@ hawk_val_t* hawk_rtx_makenstrvalwithuchars (hawk_rtx_t* rtx, const hawk_uch_t* p
 	{
 		/* set the numeric string flag if a string
 		 * can be converted to a number */
-		HAWK_ASSERT (hawk_rtx_getawk(rtx), x == 0 || x == 1);
+		HAWK_ASSERT (hawk_rtx_gethawk(rtx), x == 0 || x == 1);
 		v->nstr = x + 1; /* long -> 1, real -> 2 */
 	}
 
@@ -340,7 +340,7 @@ hawk_val_t* hawk_rtx_makenstrvalwithbchars (hawk_rtx_t* rtx, const hawk_bch_t* p
 	{
 		/* set the numeric string flag if a string
 		 * can be converted to a number */
-		HAWK_ASSERT (hawk_rtx_getawk(rtx), x == 0 || x == 1);
+		HAWK_ASSERT (hawk_rtx_gethawk(rtx), x == 0 || x == 1);
 		v->nstr = x + 1; /* long -> 1, real -> 2 */
 	}
 
@@ -433,7 +433,7 @@ static void free_mapval (hawk_htb_t* map, void* dptr, hawk_oow_t dlen)
 	hawk_rtx_t* rtx = *(hawk_rtx_t**)hawk_htb_getxtn(map);
 
 #if defined(DEBUG_VAL)
-	hawk_logfmt (hawk_rtx_getawk(rtx), HAWK_T("refdown in map free - [%O]\n"), dptr);
+	hawk_logfmt (hawk_rtx_gethawk(rtx), HAWK_T("refdown in map free - [%O]\n"), dptr);
 #endif
 
 	hawk_rtx_refdownval (rtx, dptr);
@@ -443,7 +443,7 @@ static void same_mapval (hawk_htb_t* map, void* dptr, hawk_oow_t dlen)
 {
 	hawk_rtx_t* run = *(hawk_rtx_t**)hawk_htb_getxtn(map);
 #if defined(DEBUG_VAL)
-	hawk_logfmt (hawk_rtx_getawk(rtx), HAWK_T("refdown nofree in map free - [%O]\n"), dptr);
+	hawk_logfmt (hawk_rtx_gethawk(rtx), HAWK_T("refdown nofree in map free - [%O]\n"), dptr);
 #endif
 	hawk_rtx_refdownval_nofree (run, dptr);
 }
@@ -500,7 +500,7 @@ hawk_val_t* hawk_rtx_makemapval (hawk_rtx_t* rtx)
 	val->fcb = 0;
 	val->map = (hawk_htb_t*)(val + 1);
 
-	if (hawk_htb_init(val->map, hawk_rtx_getawk(rtx), 256, 70, HAWK_SIZEOF(hawk_ooch_t), 1) <= -1)
+	if (hawk_htb_init(val->map, hawk_rtx_gethawk(rtx), 256, 70, HAWK_SIZEOF(hawk_ooch_t), 1) <= -1)
 	{
 		hawk_rtx_freemem (rtx, val);
 		hawk_rtx_seterrnum (rtx, HAWK_ENOMEM, HAWK_NULL);
@@ -581,7 +581,7 @@ hawk_val_t* hawk_rtx_setmapvalfld (
 	hawk_rtx_t* rtx, hawk_val_t* map, 
 	const hawk_ooch_t* kptr, hawk_oow_t klen, hawk_val_t* v)
 {
-	HAWK_ASSERT (hawk_rtx_getawk(rtx), HAWK_RTX_GETVALTYPE (rtx, map) == HAWK_VAL_MAP);
+	HAWK_ASSERT (hawk_rtx_gethawk(rtx), HAWK_RTX_GETVALTYPE (rtx, map) == HAWK_VAL_MAP);
 
 	if (hawk_htb_upsert (
 		((hawk_val_map_t*)map)->map,
@@ -606,7 +606,7 @@ hawk_val_t* hawk_rtx_getmapvalfld (
 {
 	hawk_htb_pair_t* pair;
 
-	HAWK_ASSERT (hawk_rtx_getawk(rtx), HAWK_RTX_GETVALTYPE (rtx, map) == HAWK_VAL_MAP);
+	HAWK_ASSERT (hawk_rtx_gethawk(rtx), HAWK_RTX_GETVALTYPE (rtx, map) == HAWK_VAL_MAP);
 
 	pair = hawk_htb_search(((hawk_val_map_t*)map)->map, kptr, klen);
 	if (pair == HAWK_NULL)
@@ -627,7 +627,7 @@ hawk_val_t* hawk_rtx_getmapvalfld (
 hawk_val_map_itr_t* hawk_rtx_getfirstmapvalitr (
 	hawk_rtx_t* rtx, hawk_val_t* map, hawk_val_map_itr_t* itr)
 {
-	HAWK_ASSERT (hawk_rtx_getawk(rtx), HAWK_RTX_GETVALTYPE (rtx, map) == HAWK_VAL_MAP);
+	HAWK_ASSERT (hawk_rtx_gethawk(rtx), HAWK_RTX_GETVALTYPE (rtx, map) == HAWK_VAL_MAP);
 	itr->pair = hawk_htb_getfirstpair (((hawk_val_map_t*)map)->map, &itr->buckno);
 	return itr->pair? itr: HAWK_NULL;
 }
@@ -635,7 +635,7 @@ hawk_val_map_itr_t* hawk_rtx_getfirstmapvalitr (
 hawk_val_map_itr_t* hawk_rtx_getnextmapvalitr (
 	hawk_rtx_t* rtx, hawk_val_t* map, hawk_val_map_itr_t* itr)
 {
-	HAWK_ASSERT (hawk_rtx_getawk(rtx), HAWK_RTX_GETVALTYPE (rtx, map) == HAWK_VAL_MAP);
+	HAWK_ASSERT (hawk_rtx_gethawk(rtx), HAWK_RTX_GETVALTYPE (rtx, map) == HAWK_VAL_MAP);
 	itr->pair = hawk_htb_getnextpair (((hawk_val_map_t*)map)->map, itr->pair, &itr->buckno);
 	return itr->pair? itr: HAWK_NULL;
 }
@@ -719,7 +719,7 @@ void hawk_rtx_freeval (hawk_rtx_t* rtx, hawk_val_t* val, int cache)
 		if (IS_STATICVAL(val)) return;
 
 	#if defined(DEBUG_VAL)
-		hawk_logfmt (hawk_rtx_getawk(rtx), HAWK_T("freeing [cache=%d] - [%O]\n"), cache, val);
+		hawk_logfmt (hawk_rtx_gethawk(rtx), HAWK_T("freeing [cache=%d] - [%O]\n"), cache, val);
 	#endif
 
 		vtype = HAWK_RTX_GETVALTYPE (rtx, val);
@@ -820,7 +820,7 @@ void hawk_rtx_refupval (hawk_rtx_t* rtx, hawk_val_t* val)
 		if (IS_STATICVAL(val)) return;
 
 	#if defined(DEBUG_VAL)
-		hawk_logfmt (hawk_rtx_getawk(rtx), HAWK_T("ref up [ptr=%p] [count=%d] - [%O]\n"), val, (int)val->ref, val);
+		hawk_logfmt (hawk_rtx_gethawk(rtx), HAWK_T("ref up [ptr=%p] [count=%d] - [%O]\n"), val, (int)val->ref, val);
 	#endif
 		val->ref++;
 	}
@@ -833,11 +833,11 @@ void hawk_rtx_refdownval (hawk_rtx_t* rtx, hawk_val_t* val)
 		if (IS_STATICVAL(val)) return;
 
 	#if defined(DEBUG_VAL)
-		hawk_logfmt (hawk_rtx_getawk(rtx), HAWK_T("ref down [ptr=%p] [count=%d] - [%O]\n"), val, (int)val->ref, val);
+		hawk_logfmt (hawk_rtx_gethawk(rtx), HAWK_T("ref down [ptr=%p] [count=%d] - [%O]\n"), val, (int)val->ref, val);
 	#endif
 
 		/* the reference count of a value should be greater than zero for it to be decremented. check the source code for any bugs */
-		HAWK_ASSERT (hawk_rtx_getawk(rtx), val->ref > 0);
+		HAWK_ASSERT (hawk_rtx_gethawk(rtx), val->ref > 0);
 			
 
 		val->ref--;
@@ -855,7 +855,7 @@ void hawk_rtx_refdownval_nofree (hawk_rtx_t* rtx, hawk_val_t* val)
 		if (IS_STATICVAL(val)) return;
 	
 		/* the reference count of a value should be greater than zero for it to be decremented. check the source code for any bugs */
-		HAWK_ASSERT (hawk_rtx_getawk(rtx), val->ref > 0);
+		HAWK_ASSERT (hawk_rtx_gethawk(rtx), val->ref > 0);
 
 		val->ref--;
 	}
@@ -909,7 +909,7 @@ static int val_ref_to_bool (hawk_rtx_t* rtx, const hawk_val_ref_t* ref)
 			/* A reference value is not able to point to another 
 			 * refernce value for the way values are represented
 			 * in HAWKAWK */
-			HAWK_ASSERT (hawk_rtx_getawk(rtx), HAWK_RTX_GETVALTYPE (rtx, *xref)!= HAWK_VAL_REF); 
+			HAWK_ASSERT (hawk_rtx_gethawk(rtx), HAWK_RTX_GETVALTYPE (rtx, *xref)!= HAWK_VAL_REF); 
 
 			/* make a recursive call back to the caller */
 			return hawk_rtx_valtobool(rtx, *xref);
@@ -949,7 +949,7 @@ int hawk_rtx_valtobool (hawk_rtx_t* rtx, const hawk_val_t* val)
 	}
 
 	/* the type of a value should be one of HAWK_VAL_XXX enumerators defined in hawk-prv.h */
-	HAWK_ASSERT (hawk_rtx_getawk(rtx), !"should never happen - invalid value type");
+	HAWK_ASSERT (hawk_rtx_gethawk(rtx), !"should never happen - invalid value type");
 		
 	return 0;
 }
@@ -1119,7 +1119,7 @@ static int val_int_to_str (hawk_rtx_t* rtx, const hawk_val_int_t* v, hawk_rtx_va
 			 * and cpl are the same type. the following
 			 * assertion at least ensure that they have
 			 * the same size. */ 
-			HAWK_ASSERT (hawk_rtx_getawk(rtx), HAWK_SIZEOF(out->u.cpl) == HAWK_SIZEOF(out->u.cplcpy));
+			HAWK_ASSERT (hawk_rtx_gethawk(rtx), HAWK_SIZEOF(out->u.cpl) == HAWK_SIZEOF(out->u.cplcpy));
 
 		case HAWK_RTX_VALTOSTR_CPLCPY:
 			if (rlen >= out->u.cplcpy.len)
@@ -1149,7 +1149,7 @@ static int val_int_to_str (hawk_rtx_t* rtx, const hawk_val_int_t* v, hawk_rtx_va
 			hawk_oow_t n;
 
 			hawk_ooecs_clear (out->u.strp);
-			HAWK_ASSERT (hawk_rtx_getawk(rtx), HAWK_OOECS_LEN(out->u.strp) == 0);
+			HAWK_ASSERT (hawk_rtx_gethawk(rtx), HAWK_OOECS_LEN(out->u.strp) == 0);
 
 			/* point to the beginning of the buffer */
 			tmp = HAWK_OOECS_PTR(out->u.strp);
@@ -1226,14 +1226,14 @@ static int val_flt_to_str (hawk_rtx_t* rtx, const hawk_val_flt_t* v, hawk_rtx_va
 		tmp_len = rtx->gbl.convfmt.len;
 	}
 
-	if (hawk_ooecs_init(&buf, hawk_rtx_getawk(rtx), 256) <= -1)
+	if (hawk_ooecs_init(&buf, hawk_rtx_gethawk(rtx), 256) <= -1)
 	{
 		hawk_rtx_seterrnum (rtx, HAWK_ENOMEM, HAWK_NULL);
 		return -1;
 	}
 	buf_inited = 1;
 
-	if (hawk_ooecs_init(&fbu, hawk_rtx_getawk(rtx), 256) <= -1)
+	if (hawk_ooecs_init(&fbu, hawk_rtx_gethawk(rtx), 256) <= -1)
 	{
 		hawk_ooecs_fini (&buf);
 		hawk_rtx_seterrnum (rtx, HAWK_ENOMEM, HAWK_NULL);
@@ -1252,7 +1252,7 @@ static int val_flt_to_str (hawk_rtx_t* rtx, const hawk_val_flt_t* v, hawk_rtx_va
 			 * and cpl are the same type. the following
 			 * assertion at least ensure that they have
 			 * the same size. */ 
-			HAWK_ASSERT (hawk_rtx_getawk(rtx), HAWK_SIZEOF(out->u.cpl) == HAWK_SIZEOF(out->u.cplcpy));
+			HAWK_ASSERT (hawk_rtx_gethawk(rtx), HAWK_SIZEOF(out->u.cpl) == HAWK_SIZEOF(out->u.cplcpy));
 
 		case HAWK_RTX_VALTOSTR_CPLCPY:
 			if (out->u.cplcpy.len <= tmp_len)
@@ -1369,7 +1369,7 @@ static int val_ref_to_str (hawk_rtx_t* rtx, const hawk_val_ref_t* ref, hawk_rtx_
 			/* A reference value is not able to point to another 
 			 * refernce value for the way values are represented
 			 * in HAWKAWK */
-			HAWK_ASSERT (hawk_rtx_getawk(rtx), HAWK_RTX_GETVALTYPE (rtx, *xref) != HAWK_VAL_REF); 
+			HAWK_ASSERT (hawk_rtx_gethawk(rtx), HAWK_RTX_GETVALTYPE (rtx, *xref) != HAWK_VAL_REF); 
 
 			/* make a recursive call back to the caller */
 			return hawk_rtx_valtostr (rtx, *xref, out);
@@ -1436,7 +1436,7 @@ int hawk_rtx_valtostr (hawk_rtx_t* rtx, const hawk_val_t* v, hawk_rtx_valtostr_o
 
 
 #if defined(DEBUG_VAL)
-	hawk_logfmt (hawk_rtx_getawk(rtx), HAWK_T(">>WRONG VALUE TYPE [%d] in hawk_rtx_valtostr\n"), v->type);
+	hawk_logfmt (hawk_rtx_gethawk(rtx), HAWK_T(">>WRONG VALUE TYPE [%d] in hawk_rtx_valtostr\n"), v->type);
 #endif
 	hawk_rtx_seterrnum (rtx, HAWK_EVALTOSTR, HAWK_NULL);
 	return -1;
@@ -1662,7 +1662,7 @@ static int val_ref_to_num (hawk_rtx_t* rtx, const hawk_val_ref_t* ref, hawk_int_
 			/* A reference value is not able to point to another 
 			 * refernce value for the way values are represented
 			 * in HAWKAWK */
-			HAWK_ASSERT (hawk_rtx_getawk(rtx), HAWK_RTX_GETVALTYPE(rtx, *xref) != HAWK_VAL_REF); 
+			HAWK_ASSERT (hawk_rtx_gethawk(rtx), HAWK_RTX_GETVALTYPE(rtx, *xref) != HAWK_VAL_REF); 
 
 			/* make a recursive call back to the caller */
 			return hawk_rtx_valtonum(rtx, *xref, l, r);
@@ -1740,7 +1740,7 @@ int hawk_rtx_valtonum (hawk_rtx_t* rtx, const hawk_val_t* v, hawk_int_t* l, hawk
 	}
 
 #if defined(DEBUG_VAL)
-	hawk_logfmt (hawk_rtx_getawk(rtx), HAWK_T(">>WRONG VALUE TYPE [%d] in hawk_rtx_valtonum()\n"), v->type);
+	hawk_logfmt (hawk_rtx_gethawk(rtx), HAWK_T(">>WRONG VALUE TYPE [%d] in hawk_rtx_valtonum()\n"), v->type);
 #endif
 
 	hawk_rtx_seterrnum (rtx, HAWK_EVALTONUM, HAWK_NULL);
@@ -1865,7 +1865,7 @@ hawk_int_t hawk_rtx_hashval (hawk_rtx_t* rtx, hawk_val_t* v)
 		default:
 
 #if defined(DEBUG_VAL)
-			hawk_logfmt (hawk_rtx_getawk(rtx), HAWK_T(">>WRONG VALUE TYPE [%d] in hawk_rtx_hashval()\n"), v->type);
+			hawk_logfmt (hawk_rtx_gethawk(rtx), HAWK_T(">>WRONG VALUE TYPE [%d] in hawk_rtx_hashval()\n"), v->type);
 #endif
 			hawk_rtx_seterrnum (rtx, HAWK_EHASHVAL, HAWK_NULL);
 			return -1;
@@ -1902,7 +1902,7 @@ hawk_val_type_t hawk_rtx_getrefvaltype (hawk_rtx_t* rtx, hawk_val_ref_t* ref)
 			 * refernce value for the way values are represented
 			 * in HAWKAWK */
 			v = *xref;
-			HAWK_ASSERT (hawk_rtx_getawk(rtx), HAWK_RTX_GETVALTYPE(rtx, v) != HAWK_VAL_REF); 
+			HAWK_ASSERT (hawk_rtx_gethawk(rtx), HAWK_RTX_GETVALTYPE(rtx, v) != HAWK_VAL_REF); 
 			return HAWK_RTX_GETVALTYPE(rtx, v);
 		}
 	}
@@ -1932,7 +1932,7 @@ hawk_val_t* hawk_rtx_getrefval (hawk_rtx_t* rtx, hawk_val_ref_t* ref)
 			/* A reference value is not able to point to another 
 			 * refernce value for the way values are represented
 			 * in HAWKAWK */
-			HAWK_ASSERT (hawk_rtx_getawk(rtx), HAWK_RTX_GETVALTYPE (rtx, *xref)!= HAWK_VAL_REF); 
+			HAWK_ASSERT (hawk_rtx_gethawk(rtx), HAWK_RTX_GETVALTYPE (rtx, *xref)!= HAWK_VAL_REF); 
 			return *xref;
 		}
 	}
@@ -2076,7 +2076,7 @@ static hawk_htb_walk_t print_pair (hawk_htb_t* map, hawk_htb_pair_t* pair, void*
 {
 	hawk_rtx_t* run = (hawk_rtx_t*)arg;
 
-	HAWK_ASSERT (hawk_rtx_getawk(rtx), run == *(hawk_rtx_t**)hawk_htb_getxtn(map));
+	HAWK_ASSERT (hawk_rtx_gethawk(rtx), run == *(hawk_rtx_t**)hawk_htb_getxtn(map));
 
 	hawk_errputstrf (HAWK_T(" %.*s=>"),
 		(int)HAWK_HTB_KLEN(pair), HAWK_HTB_KPTR(pair));

@@ -221,7 +221,7 @@ static HAWK_INLINE dir_list_t* rtx_to_list (hawk_rtx_t* rtx, const hawk_fnc_info
 {
 	hawk_rbt_pair_t* pair;
 	pair = hawk_rbt_search((hawk_rbt_t*)fi->mod->ctx, &rtx, HAWK_SIZEOF(rtx));
-	HAWK_ASSERT (hawk_rtx_getawk(rtx), pair != HAWK_NULL);
+	HAWK_ASSERT (hawk_rtx_gethawk(rtx), pair != HAWK_NULL);
 	return (dir_list_t*)HAWK_RBT_VPTR(pair);
 }
 

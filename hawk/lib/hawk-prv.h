@@ -309,7 +309,6 @@ struct hawk_t
 
 	/* housekeeping */
 	hawk_errstr_t errstr;
-	hawk_loc_t    errloc;
 	hawk_oow_t    errmsg_len; /* used by errbfmt() and errufmt(). don't rely on this. some other funtions don't set this properly */
 	hawk_ooch_t   errmsg_backup[HAWK_ERRMSG_CAPA];
 #if defined(HAWK_OOCH_IS_BCH)
@@ -451,7 +450,6 @@ struct hawk_rtx_t
 		hawk_oow_t expr; /* expression */
 	} depth;
 
-	hawk_loc_t  errloc;
 	hawk_oow_t  errmsg_len; /* used by errbfmt() and errufmt(). don't rely on this. some other funtions don't set this properly */
 	hawk_ooch_t errmsg_backup[HAWK_ERRMSG_CAPA];
 #if defined(HAWK_OOCH_IS_BCH)
@@ -487,6 +485,10 @@ extern "C" {
 
 int hawk_init (hawk_t* awk, hawk_mmgr_t* mmgr, hawk_cmgr_t* cmgr, const hawk_prm_t* prm);
 void hawk_fini (hawk_t* awk);
+
+
+/* TODO: should i make this public? */
+void hawk_gem_seterrnum (hawk_gem_t* gem, const hawk_loc_t* errloc, hawk_errnum_t errnum);
 
 #if defined(__cplusplus)
 }
