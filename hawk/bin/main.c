@@ -314,9 +314,7 @@ static hawk_htb_walk_t print_awk_value (hawk_htb_t* map, hawk_htb_pair_t* pair, 
 	{
 		if (hawk_rtx_geterrnum(rtx) == HAWK_EVALTOSTR)
 		{
-			dprint (HAWK_T("%.*s = [not printable]\n"), 
-				(int)HAWK_HTB_KLEN(pair), HAWK_HTB_KPTR(pair));
-
+			dprint (HAWK_T("%.*s = [not printable]\n"), HAWK_HTB_KLEN(pair), HAWK_HTB_KPTR(pair));
 			hawk_rtx_seterrinf (rtx, &oerrinf);
 		}
 		else
@@ -326,9 +324,7 @@ static hawk_htb_walk_t print_awk_value (hawk_htb_t* map, hawk_htb_pair_t* pair, 
 	}
 	else
 	{
-		dprint (HAWK_T("%.*s = %.*s\n"), 
-			(int)HAWK_HTB_KLEN(pair), HAWK_HTB_KPTR(pair), 
-			(int)len, str);
+		dprint (HAWK_T("%.*s = %.*s\n"), HAWK_HTB_KLEN(pair), HAWK_HTB_KPTR(pair), len, str);
 		hawk_rtx_freemem (rtx, str);
 	}
 

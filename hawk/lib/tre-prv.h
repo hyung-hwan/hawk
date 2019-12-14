@@ -100,8 +100,7 @@ int main (int argc, char* argv[])
      for (i = 0; i < 10; i++)
      {
           if (mat[i].rm_so == -1) break;
-          printf ("SUBMATCH[%u] = [%.*s]\n", i,
-               (int)(mat[i].rm_eo - mat[i].rm_so), &argv[2][mat[i].rm_so]);
+          printf ("SUBMATCH[%u] = [%.*s]\n", i,(mat[i].rm_eo - mat[i].rm_so), &argv[2][mat[i].rm_so]);
      }
      regfree (&tre);
      return 0;

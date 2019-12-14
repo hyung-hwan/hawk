@@ -2023,8 +2023,7 @@ static hawk_htb_walk_t print_pair (hawk_htb_t* map, hawk_htb_pair_t* pair, void*
 
 	HAWK_ASSERT (hawk_rtx_gethawk(rtx), run == *(hawk_rtx_t**)hawk_htb_getxtn(map));
 
-	hawk_errputstrf (HAWK_T(" %.*s=>"),
-		(int)HAWK_HTB_KLEN(pair), HAWK_HTB_KPTR(pair));
+	hawk_errputstrf (HAWK_T(" %.*s=>"), HAWK_HTB_KLEN(pair), HAWK_HTB_KPTR(pair));
 	hawk_dprintval ((hawk_rtx_t*)arg, HAWK_HTB_VPTR(pair));
 	hawk_errputstrf (HAWK_T(" "));
 
@@ -2064,7 +2063,7 @@ void hawk_dprintval (hawk_rtx_t* run, hawk_val_t* val)
 			break;
 
 		case HAWK_VAL_FUN:
-			hawk_errputstrf (HAWK_T("%.*s"), (int)((hawk_val_fun_t*)val)->fun->name.len, ((hawk_val_fun_t*)val)->fun->name.ptr);
+			hawk_errputstrf (HAWK_T("%.*s"), ((hawk_val_fun_t*)val)->fun->name.len, ((hawk_val_fun_t*)val)->fun->name.ptr);
 			break;
 
 		case HAWK_VAL_MAP:

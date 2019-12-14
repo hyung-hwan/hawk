@@ -438,8 +438,8 @@ HAWK_EXPORT hawk_rbt_pair_t* hawk_rbt_update (
  * hawk_rbt_walk_t print_map_pair (hawk_rbt_t* map, hawk_rbt_pair_t* pair, void* ctx)
  * {
  *   hawk_printf (HAWK_T("%.*s[%d] => %.*s[%d]\n"),
- *     (int)HAWK_RBT_KLEN(pair), HAWK_RBT_KPTR(pair), (int)HAWK_RBT_KLEN(pair),
- *     (int)HAWK_RBT_VLEN(pair), HAWK_RBT_VPTR(pair), (int)HAWK_RBT_VLEN(pair));
+ *     HAWK_RBT_KLEN(pair), HAWK_RBT_KPTR(pair), (int)HAWK_RBT_KLEN(pair),
+ *     HAWK_RBT_VLEN(pair), HAWK_RBT_VPTR(pair), (int)HAWK_RBT_VLEN(pair));
  *   return HAWK_RBT_WALK_FORWARD;
  * }
  * 
