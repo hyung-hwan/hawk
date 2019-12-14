@@ -356,32 +356,32 @@ static int fnc_dir_reset (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	
 	list = rtx_to_list(rtx, fi);
 
-	ret = hawk_rtx_valtoint (rtx, hawk_rtx_getarg (rtx, 0), &id);
+	ret = hawk_rtx_valtoint(rtx, hawk_rtx_getarg (rtx, 0), &id);
 	if (ret <= -1)
 	{
-		list->errnum = awk_err_to_errnum (hawk_rtx_geterrnum (rtx));
+		list->errnum = awk_err_to_errnum(hawk_rtx_geterrnum (rtx));
 	}
 	else
 	{
 		hawk_val_t* a1;
 
-		a1 = hawk_rtx_getarg (rtx, 1);
-		path = hawk_rtx_getvaloocstr (rtx, a1, HAWK_NULL);
+		a1 = hawk_rtx_getarg(rtx, 1);
+		path = hawk_rtx_getvaloocstr(rtx, a1, HAWK_NULL);
 		if (path)
 		{
-			ret = reset_byid (rtx, list, id, path);
+			ret = reset_byid(rtx, list, id, path);
 			hawk_rtx_freevaloocstr (rtx, a1, path);
 		}
 		else
 		{
-			list->errnum = awk_err_to_errnum (hawk_rtx_geterrnum (rtx));
+			list->errnum = awk_err_to_errnum(hawk_rtx_geterrnum(rtx));
 			ret = -1;
 		}
 	}
 
 	/* no error check for hawk_rtx_makeintval() here since ret 
 	 * is 0 or -1. it will never fail for those numbers */
-	hawk_rtx_setretval (rtx, hawk_rtx_makeintval (rtx, ret));
+	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, ret));
 	return 0;
 }
 

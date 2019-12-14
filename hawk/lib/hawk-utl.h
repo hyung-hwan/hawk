@@ -840,6 +840,97 @@ HAWK_EXPORT hawk_oow_t hawk_int_to_oocstr (
 	hawk_oow_t         size
 );
 
+/**
+ * The hawk_uchars_to_int() function converts a wide character string to an integer.
+ */
+HAWK_EXPORT hawk_int_t hawk_uchars_to_int (
+	const hawk_uch_t*   str,
+	hawk_oow_t          len,
+	int                 base,
+	const hawk_uch_t**  endptr,
+	int                 stripspc
+);
+
+/**
+ * The hawk_bchars_to_int() function converts a multi-byte string to an integer.
+ */
+HAWK_EXPORT hawk_int_t hawk_bchars_to_int (
+	const hawk_bch_t*    str,
+	hawk_oow_t           len,
+	int                  base,
+	const hawk_bch_t**   endptr,
+	int                  stripspc
+);
+
+/**
+ * The hawk_uchars_to_flt() function converts a wide character string to a floating-point
+ * number.
+ */
+HAWK_EXPORT hawk_flt_t hawk_uchars_to_flt (
+	const hawk_uch_t*   str,
+	hawk_oow_t          len, 
+	const hawk_uch_t**  endptr,
+	int                 stripspc
+);
+
+/**
+ * The hawk_bchars_to_flt() function converts a multi-byte string to a floating-point
+ * number.
+ */
+HAWK_EXPORT hawk_flt_t hawk_bchars_to_flt (
+	const hawk_bch_t*   str,
+	hawk_oow_t          len, 
+	const hawk_bch_t**  endptr,
+	int                 stripspc
+);
+
+/**
+ * The hawk_oochars_to_num() function converts a string to a number.
+ * A numeric string in the valid decimal, hexadecimal(0x), binary(0b), 
+ * octal(0) notation is converted to an integer and it is stored into
+ * memory pointed to by \a l; A string containng '.', 'E', or 'e' is 
+ * converted to a floating-pointer number and it is stored into memory
+ * pointed to by \a r. If \a strict is 0, the function takes up to the last
+ * valid character and never fails. If \a strict is 1, an invalid 
+ * character causes the function to return an error.
+ *
+ * \return 0 if converted to an integer,
+ *         1 if converted to a floating-point number
+ *         -1 on error.
+ */
+#define HAWK_OOCHARS_TO_NUM_MAKE_OPTION(strict,stripspc,base) (((!!(strict)) << 0) | ((!!(stripspc)) << 1) | ((base) << 8))
+#define HAWK_OOCHARS_TO_NUM_GET_OPTION_STRICT(option) ((option) & 1)
+#define HAWK_OOCHARS_TO_NUM_GET_OPTION_STRIPSPC(option) ((option) & 2)
+#define HAWK_OOCHARS_TO_NUM_GET_OPTION_BASE(option) ((option) >> 8)
+
+HAWK_EXPORT int hawk_bchars_to_num (
+	int                option,
+	const hawk_bch_t*  ptr, /**< points to a string to convert */
+	hawk_oow_t         len, /**< number of characters in a string */
+	hawk_int_t*        l,   /**< stores a converted integer */
+	hawk_flt_t*        r    /**< stores a converted floating-poing number */
+);
+
+HAWK_EXPORT int hawk_uchars_to_num (
+	int                option,
+	const hawk_uch_t*  ptr, /**< points to a string to convert */
+	hawk_oow_t         len, /**< number of characters in a string */
+	hawk_int_t*        l,   /**< stores a converted integer */
+	hawk_flt_t*        r    /**< stores a converted floating-poing number */
+);
+
+#if defined(HAWK_OOCH_IS_UCH)
+#	define hawk_oochars_to_int hawk_uchars_to_int
+#	define hawk_oocstr_to_flt hawk_ucstr_to_flt
+#	define hawk_oochars_to_flt hawk_uchars_to_flt
+#	define hawk_oochars_to_num hawk_uchars_to_num
+#else
+#	define hawk_oochars_to_int hawk_bchars_to_int
+#	define hawk_oocstr_to_flt hawk_bcstr_to_flt
+#	define hawk_oochars_to_flt hawk_bchars_to_flt
+#	define hawk_oochars_to_num hawk_bchars_to_num
+#endif
+
 /* ------------------------------------------------------------------------- */
 
 HAWK_EXPORT hawk_cmgr_t* hawk_get_cmgr_by_id (

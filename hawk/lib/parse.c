@@ -988,7 +988,7 @@ static int parse_progunit (hawk_t* awk)
 				return -1;
 			}
 
-			sl = hawk_strxtoint(awk, HAWK_OOECS_PTR(awk->tok.name), HAWK_OOECS_LEN(awk->tok.name), 0, HAWK_NULL);
+			sl = hawk_oochars_to_int(HAWK_OOECS_PTR(awk->tok.name), HAWK_OOECS_LEN(awk->tok.name), 0, HAWK_NULL, (awk->opt.trait & HAWK_STRIPSTRSPC));
 			if (sl < HAWK_MIN_RTX_STACK_LIMIT) sl = HAWK_MIN_RTX_STACK_LIMIT;
 			else if (sl > HAWK_MAX_RTX_STACK_LIMIT) sl = HAWK_MAX_RTX_STACK_LIMIT;
 			/* take the specified value if it's greater than the existing value */
@@ -4511,71 +4511,61 @@ static HAWK_INLINE int isfnname (hawk_t* awk, const hawk_oocs_t* name)
 	return isfunname(awk, name, HAWK_NULL);
 }
 
-static hawk_nde_t* parse_primary_int  (hawk_t* awk, const hawk_loc_t* xloc)
+static hawk_nde_t* parse_primary_int  (hawk_t* hawk, const hawk_loc_t* xloc)
 {
 	hawk_nde_int_t* nde;
 
 	/* create the node for the literal */
 	nde = (hawk_nde_int_t*)new_int_node (
-		awk, 
-		hawk_strxtoint (awk, 
-			HAWK_OOECS_PTR(awk->tok.name),
-			HAWK_OOECS_LEN(awk->tok.name), 
-			0, HAWK_NULL
-		),
+		hawk, 
+		hawk_oochars_to_int (HAWK_OOECS_PTR(hawk->tok.name), HAWK_OOECS_LEN(hawk->tok.name),  0, HAWK_NULL, (hawk->opt.trait & HAWK_STRIPSTRSPC)),
 		xloc
 	);
 	if (nde == HAWK_NULL) return HAWK_NULL;
 
-	HAWK_ASSERT (awk, 
-		HAWK_OOECS_LEN(awk->tok.name) ==
-		hawk_count_oocstr(HAWK_OOECS_PTR(awk->tok.name)));
+	HAWK_ASSERT (hawk, HAWK_OOECS_LEN(hawk->tok.name) == hawk_count_oocstr(HAWK_OOECS_PTR(hawk->tok.name)));
 
 	/* remember the literal in the original form */
-	nde->len = HAWK_OOECS_LEN(awk->tok.name);
-	nde->str = hawk_dupoocs(awk, HAWK_OOECS_OOCS(awk->tok.name));
-	if (nde->str == HAWK_NULL || get_token(awk) <= -1) goto oops;
+	nde->len = HAWK_OOECS_LEN(hawk->tok.name);
+	nde->str = hawk_dupoocs(hawk, HAWK_OOECS_OOCS(hawk->tok.name));
+	if (nde->str == HAWK_NULL || get_token(hawk) <= -1) goto oops;
 
 	return (hawk_nde_t*)nde;
 
 oops:
-	HAWK_ASSERT (awk, nde != HAWK_NULL);
-	if (nde->str) hawk_freemem (awk, nde->str);
-	hawk_freemem (awk, nde);
+	HAWK_ASSERT (hawk, nde != HAWK_NULL);
+	if (nde->str) hawk_freemem (hawk, nde->str);
+	hawk_freemem (hawk, nde);
 	return HAWK_NULL;
 }
 
-static hawk_nde_t* parse_primary_flt  (hawk_t* awk, const hawk_loc_t* xloc)
+static hawk_nde_t* parse_primary_flt  (hawk_t* hawk, const hawk_loc_t* xloc)
 {
 	hawk_nde_flt_t* nde;
 
 	/* create the node for the literal */
-	nde = (hawk_nde_flt_t*) new_flt_node (
-		awk, 
-		hawk_strxtoflt (awk, 
-			HAWK_OOECS_PTR(awk->tok.name), 
-			HAWK_OOECS_LEN(awk->tok.name),
-			HAWK_NULL
-		),
+	nde = (hawk_nde_flt_t*)new_flt_node(
+		hawk, 
+		hawk_oochars_to_flt(HAWK_OOECS_PTR(hawk->tok.name), HAWK_OOECS_LEN(hawk->tok.name), HAWK_NULL, (hawk->opt.trait & HAWK_STRIPSTRSPC)),
 		xloc
 	);
 	if (nde == HAWK_NULL) return HAWK_NULL;
 
-	HAWK_ASSERT (awk, 
-		HAWK_OOECS_LEN(awk->tok.name) ==
-		hawk_count_oocstr(HAWK_OOECS_PTR(awk->tok.name)));
+	HAWK_ASSERT (hawk, 
+		HAWK_OOECS_LEN(hawk->tok.name) ==
+		hawk_count_oocstr(HAWK_OOECS_PTR(hawk->tok.name)));
 
 	/* remember the literal in the original form */
-	nde->len = HAWK_OOECS_LEN(awk->tok.name);
-	nde->str = hawk_dupoocs(awk, HAWK_OOECS_OOCS(awk->tok.name));
-	if (nde->str == HAWK_NULL || get_token(awk) <= -1) goto oops;
+	nde->len = HAWK_OOECS_LEN(hawk->tok.name);
+	nde->str = hawk_dupoocs(hawk, HAWK_OOECS_OOCS(hawk->tok.name));
+	if (nde->str == HAWK_NULL || get_token(hawk) <= -1) goto oops;
 
 	return (hawk_nde_t*)nde;
 
 oops:
-	HAWK_ASSERT (awk, nde != HAWK_NULL);
-	if (nde->str) hawk_freemem (awk, nde->str);
-	hawk_freemem (awk, nde);
+	HAWK_ASSERT (hawk, nde != HAWK_NULL);
+	if (nde->str) hawk_freemem (hawk, nde->str);
+	hawk_freemem (hawk, nde);
 	return HAWK_NULL;
 }
 

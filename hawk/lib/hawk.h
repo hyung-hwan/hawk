@@ -1964,65 +1964,6 @@ static HAWK_INLINE hawk_oow_t hawk_fmttobcstr (hawk_t* hawk, hawk_bch_t* buf, ha
 
 /* ----------------------------------------------------------------------- */
 
-
-/**
- * The hawk_bcharstoint() function converts a multi-byte string to an integer.
- */
-HAWK_EXPORT hawk_int_t hawk_bcharstoint (
-	hawk_t*              awk,
-	const hawk_bch_t*    str,
-	hawk_oow_t           len,
-	int                  base,
-	const hawk_bch_t**   endptr
-);
-
-/**
- * The hawk_ucharstoint() function converts a wide character string to an integer.
- */
-HAWK_EXPORT hawk_int_t hawk_ucharstoint (
-	hawk_t*             awk,
-	const hawk_uch_t*   str,
-	hawk_oow_t          len,
-	int                 base,
-	const hawk_uch_t**  endptr
-);
-
-#if defined(HAWK_OOCH_IS_BCH)
-#	define hawk_strxtoint(awk,str,len,base,endptr) hawk_bcharstoint(awk,str,len,base,endptr)
-#else
-#	define hawk_strxtoint(awk,str,len,base,endptr) hawk_ucharstoint(awk,str,len,base,endptr)
-#endif
-
-/**
- * The hawk_bcharstoflt() function converts a multi-byte string to a floating-point
- * number.
- */
-HAWK_EXPORT hawk_flt_t hawk_bcharstoflt (
-	hawk_t*             awk,
-	const hawk_bch_t*   str,
-	hawk_oow_t          len, 
-	const hawk_bch_t**  endptr
-);
-
-/**
- * The hawk_ucharstoflt() function converts a wide character string to a floating-point
- * number.
- */
-HAWK_EXPORT hawk_flt_t hawk_ucharstoflt (
-	hawk_t*             awk,
-	const hawk_uch_t*   str,
-	hawk_oow_t          len, 
-	const hawk_uch_t**  endptr
-);
-
-#if defined(HAWK_OOCH_IS_BCH)
-#	define hawk_strxtoflt(awk,str,len,endptr) hawk_bcharstoflt(awk,str,len,endptr)
-#else
-#	define hawk_strxtoflt(awk,str,len,endptr) hawk_ucharstoflt(awk,str,len,endptr)
-#endif
-
-/* ----------------------------------------------------------------------- */
-
 HAWK_EXPORT hawk_ooi_t hawk_logufmtv (
 	hawk_t*           hawk,
 	hawk_bitmask_t    mask,
@@ -3099,47 +3040,6 @@ HAWK_EXPORT int hawk_rtx_valtoflt (
 );
 
 /**
- * The hawk_rtx_oocharstonum() function converts a string to a number.
- * A numeric string in the valid decimal, hexadecimal(0x), binary(0b), 
- * octal(0) notation is converted to an integer and it is stored into
- * memory pointed to by \a l; A string containng '.', 'E', or 'e' is 
- * converted to a floating-pointer number and it is stored into memory
- * pointed to by \a r. If \a strict is 0, the function takes up to the last
- * valid character and never fails. If \a strict is 1, an invalid 
- * character causes the function to return an error.
- *
- * \return 0 if converted to an integer,
- *         1 if converted to a floating-point number
- *         -1 on error.
- */
-#define HAWK_RTX_OOCSTRTONUM_MAKE_OPTION(strict,base) (((strict) & 1) | ((base) << 8))
-#define HAWK_RTX_OOCSTRTONUM_GET_OPTION_STRICT(option) ((option) & 1)
-#define HAWK_RTX_STRTONUN_GET_OPTION_BASE(option) ((option) >> 8)
-
-HAWK_EXPORT int hawk_rtx_bcharstonum (
-	hawk_rtx_t*        rtx, /**< runtime context */
-	int                strict, /**< determines to perform strict check */
-	const hawk_bch_t*  ptr, /**< points to a string to convert */
-	hawk_oow_t         len, /**< number of characters in a string */
-	hawk_int_t*        l,   /**< stores a converted integer */
-	hawk_flt_t*        r    /**< stores a converted floating-poing number */
-);
-
-HAWK_EXPORT int hawk_rtx_ucharstonum (
-	hawk_rtx_t*        rtx, /**< runtime context */
-	int                strict, /**< determines to perform strict check */
-	const hawk_uch_t*  ptr, /**< points to a string to convert */
-	hawk_oow_t         len, /**< number of characters in a string */
-	hawk_int_t*        l,   /**< stores a converted integer */
-	hawk_flt_t*        r    /**< stores a converted floating-poing number */
-);
-
-#if defined(HAWK_OOCH_IS_BCH)
-#	define hawk_rtx_oocharstonum(rtx,strict,ptr,len,l,r) hawk_rtx_bcharstonum(rtx,strict,ptr,len,l,r)
-#else
-#	define hawk_rtx_oocharstonum(rtx,strict,ptr,len,l,r) hawk_rtx_ucharstonum(rtx,strict,ptr,len,l,r)
-#endif
-/**
  * The hawk_rtx_hashval() function hashes a simple value
  * to a positive integer. It returns -1 for a inhashable value.
  */
@@ -3147,7 +3047,6 @@ HAWK_EXPORT hawk_int_t hawk_rtx_hashval (
 	hawk_rtx_t* rtx,
 	hawk_val_t* v
 );
-
 
 /**
  * The hawk_rtx_getrefvaltype() function returns the type of the value

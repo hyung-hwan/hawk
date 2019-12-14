@@ -280,7 +280,7 @@ int hawk_comp_bchars_ucstr (const hawk_bch_t* str1, hawk_oow_t len, const hawk_u
 	return (str1 < end)? 1: (*str2 == '\0'? 0: -1);
 }
 
-/* ----------------------------------------------------------------------- */
+/* ------------------------------------------------------------------------ */
 
 void hawk_copy_uchars (hawk_uch_t* dst, const hawk_uch_t* src, hawk_oow_t len)
 {
@@ -395,7 +395,7 @@ hawk_oow_t hawk_copy_bcstr_unlimited (hawk_bch_t* dst, const hawk_bch_t* src)
 	return dst - org - 1;
 }
 
-/* ----------------------------------------------------------------------- */
+/* ------------------------------------------------------------------------ */
 
 hawk_oow_t hawk_count_ucstr (const hawk_uch_t* str)
 {
@@ -431,7 +431,7 @@ hawk_oow_t hawk_count_bcstr_limited (const hawk_bch_t* str, hawk_oow_t maxlen)
 	return i;
 }
 
-/* ----------------------------------------------------------------------- */
+/* ------------------------------------------------------------------------ */
 
 void hawk_fill_uchars (hawk_uch_t* dst, hawk_uch_t ch, hawk_oow_t len)
 {
@@ -446,7 +446,7 @@ void hawk_fill_bchars (hawk_bch_t* dst, hawk_bch_t ch, hawk_oow_t len)
 }
 
 
-/* ----------------------------------------------------------------------- */
+/* ------------------------------------------------------------------------ */
 
 hawk_uch_t* hawk_find_uchar (const hawk_uch_t* ptr, hawk_oow_t len, hawk_uch_t c)
 {
@@ -525,7 +525,7 @@ hawk_bch_t* hawk_find_bchar_in_bcstr (const hawk_bch_t* ptr, hawk_bch_t c)
 
 	return HAWK_NULL;
 }
-/* ----------------------------------------------------------------------- */
+/* ------------------------------------------------------------------------ */
 
 hawk_uch_t* hawk_find_uchars_in_uchars (const hawk_uch_t* str, hawk_oow_t strsz, const hawk_uch_t* sub, hawk_oow_t subsz, int ignorecase)
 {
@@ -719,7 +719,7 @@ hawk_bch_t* hawk_rfind_bchars_in_bchars (const hawk_bch_t* str, hawk_oow_t strsz
 	return HAWK_NULL;
 }
 
-/* ----------------------------------------------------------------------- */
+/* ------------------------------------------------------------------------ */
 
 hawk_oow_t hawk_compact_uchars (hawk_uch_t* str, hawk_oow_t len)
 {
@@ -799,7 +799,7 @@ hawk_oow_t hawk_compact_bchars (hawk_bch_t* str, hawk_oow_t len)
 	return (followed_by_space) ? (q - str -1): (q - str);
 }
 
-/* ----------------------------------------------------------------------- */
+/* ------------------------------------------------------------------------ */
 
 hawk_oow_t hawk_rotate_uchars (hawk_uch_t* str, hawk_oow_t len, int dir, hawk_oow_t n)
 {
@@ -869,7 +869,7 @@ hawk_oow_t hawk_rotate_bchars (hawk_bch_t* str, hawk_oow_t len, int dir, hawk_oo
 	return len;
 }
 
-/* ----------------------------------------------------------------------- */
+/* ------------------------------------------------------------------------ */
 
 hawk_uch_t* hawk_trim_uchars (hawk_uch_t* str, hawk_oow_t* len, int flags)
 {
@@ -954,7 +954,7 @@ hawk_bch_t* hawk_trim_bchars (hawk_bch_t* str, hawk_oow_t* len, int flags)
 
 	return str;
 }
-/* ----------------------------------------------------------------------- */
+/* ------------------------------------------------------------------------ */
 
 int hawk_split_ucstr (hawk_uch_t* s, const hawk_uch_t* delim, hawk_uch_t lquote, hawk_uch_t rquote, hawk_uch_t escape)
 {
@@ -1432,7 +1432,7 @@ exit_point:
 	return cnt;
 }
 
-/* ----------------------------------------------------------------------- */
+/* ------------------------------------------------------------------------ */
 
 hawk_oow_t hawk_int_to_oocstr (hawk_int_t value, int radix, const hawk_ooch_t* prefix, hawk_ooch_t* buf, hawk_oow_t size)
 {
@@ -1461,7 +1461,7 @@ hawk_oow_t hawk_int_to_oocstr (hawk_int_t value, int radix, const hawk_ooch_t* p
 
 		for (i = 0; i < prefix_len; i++) buf[i] = prefix[i];
 		buf[prefix_len] = HAWK_T('0');
-		if (size > prefix_len+1) buf[prefix_len+1] = HAWK_T('\0');
+		if (size > prefix_len+1) buf[prefix_len+1] = '\0';
 		return prefix_len+1;
 	}
 
@@ -1477,7 +1477,7 @@ hawk_oow_t hawk_int_to_oocstr (hawk_int_t value, int radix, const hawk_ooch_t* p
 	}
 
 	if (size < len) return (hawk_oow_t)-1; /* buffer too small */
-	if (size > len) buf[len] = HAWK_T('\0');
+	if (size > len) buf[len] = '\0';
 	ret = len;
 
 	t = value;
@@ -1487,9 +1487,9 @@ hawk_oow_t hawk_int_to_oocstr (hawk_int_t value, int radix, const hawk_ooch_t* p
 	{
 		rem = t % radix;
 		if (rem >= 10)
-			buf[--len] = (hawk_ooch_t)rem + HAWK_T('a') - 10;
+			buf[--len] = (hawk_ooch_t)rem + 'a' - 10;
 		else
-			buf[--len] = (hawk_ooch_t)rem + HAWK_T('0');
+			buf[--len] = (hawk_ooch_t)rem + '0';
 		t /= radix;
 	}
 
@@ -1500,7 +1500,7 @@ hawk_oow_t hawk_int_to_oocstr (hawk_int_t value, int radix, const hawk_ooch_t* p
 			buf[i] = prefix[i-1];
 			len--;
 		}
-		buf[--len] = HAWK_T('-');
+		buf[--len] = '-';
 	}
 	else
 	{
@@ -1510,7 +1510,708 @@ hawk_oow_t hawk_int_to_oocstr (hawk_int_t value, int radix, const hawk_ooch_t* p
 	return ret;
 }
 
-/* ----------------------------------------------------------------------- */
+/* ------------------------------------------------------------------------ */
+
+hawk_int_t hawk_uchars_to_int (const hawk_uch_t* str, hawk_oow_t len, int base, const hawk_uch_t** endptr, int stripspc)
+{
+	hawk_int_t n = 0;
+	const hawk_uch_t* p;
+	const hawk_uch_t* end;
+	hawk_oow_t rem;
+	int digit, negative = 0;
+
+	p = str; 
+	end = str + len;
+	
+	if (stripspc)
+	{
+		/* strip off leading spaces */
+		while (p < end && hawk_is_uch_space(*p)) p++;
+	}
+
+	/* check for a sign */
+	while (p < end)
+	{
+		if (*p == '-') 
+		{
+			negative = ~negative;
+			p++;
+		}
+		else if (*p == '+') p++;
+		else break;
+	}
+
+	/* check for a binary/octal/hexadecimal notation */
+	rem = end - p;
+	if (base == 0) 
+	{
+		if (rem >= 1 && *p == '0') 
+		{
+			p++;
+
+			if (rem == 1) base = 8;
+			else if (*p == 'x' || *p == 'X')
+			{
+				p++; base = 16;
+			} 
+			else if (*p == 'b' || *p == 'B')
+			{
+				p++; base = 2;
+			}
+			else base = 8;
+		}
+		else base = 10;
+	} 
+	else if (rem >= 2 && base == 16)
+	{
+		if (*p == '0' && 
+		    (*(p + 1) == 'x' || *(p + 1) == 'X')) p += 2; 
+	}
+	else if (rem >= 2 && base == 2)
+	{
+		if (*p == '0' && 
+		    (*(p + 1) == 'b' || *(p + 1) == 'B')) p += 2; 
+	}
+
+	/* process the digits */
+	while (p < end)
+	{
+		if (*p >= '0' && *p <= '9')
+			digit = *p - '0';
+		else if (*p >= 'A' && *p <= 'Z')
+			digit = *p - 'A' + 10;
+		else if (*p >= 'a' && *p <= 'z')
+			digit = *p - 'a' + 10;
+		else break;
+
+		if (digit >= base) break;
+		n = n * base + digit;
+
+		p++;
+	}
+
+	if (endptr) *endptr = p;
+	return (negative)? -n: n;
+}
+
+hawk_int_t hawk_bchars_to_int (const hawk_bch_t* str, hawk_oow_t len, int base, const hawk_bch_t** endptr, int stripspc)
+{
+	hawk_int_t n = 0;
+	const hawk_bch_t* p;
+	const hawk_bch_t* end;
+	hawk_oow_t rem;
+	int digit, negative = 0;
+
+	p = str; 
+	end = str + len;
+	
+	if (stripspc)
+	{
+		/* strip off leading spaces */
+		while (p < end && hawk_is_bch_space(*p)) p++;
+	}
+
+	/* check for a sign */
+	while (p < end)
+	{
+		if (*p == '-') 
+		{
+			negative = ~negative;
+			p++;
+		}
+		else if (*p == '+') p++;
+		else break;
+	}
+
+	/* check for a binary/octal/hexadecimal notation */
+	rem = end - p;
+	if (base == 0) 
+	{
+		if (rem >= 1 && *p == '0') 
+		{
+			p++;
+
+			if (rem == 1) base = 8;
+			else if (*p == 'x' || *p == 'X')
+			{
+				p++; base = 16;
+			} 
+			else if (*p == 'b' || *p == 'B')
+			{
+				p++; base = 2;
+			}
+			else base = 8;
+		}
+		else base = 10;
+	} 
+	else if (rem >= 2 && base == 16)
+	{
+		if (*p == '0' && 
+		    (*(p + 1) == 'x' || *(p + 1) == 'X')) p += 2; 
+	}
+	else if (rem >= 2 && base == 2)
+	{
+		if (*p == '0' && 
+		    (*(p + 1) == 'b' || *(p + 1) == 'B')) p += 2; 
+	}
+
+	/* process the digits */
+	while (p < end)
+	{
+		if (*p >= '0' && *p <= '9')
+			digit = *p - '0';
+		else if (*p >= 'A' && *p <= 'Z')
+			digit = *p - 'A' + 10;
+		else if (*p >= 'a' && *p <= 'z')
+			digit = *p - 'a' + 10;
+		else break;
+
+		if (digit >= base) break;
+		n = n * base + digit;
+
+		p++;
+	}
+
+	if (endptr) *endptr = p;
+	return (negative)? -n: n;
+}
+
+/*
+ * hawk_uchars_to_flt/hawk_bchars_to_flt is almost a replica of strtod.
+ *
+ * strtod.c --
+ *
+ *      Source code for the "strtod" library procedure.
+ *
+ * Copyright (c) 1988-1993 The Regents of the University of California.
+ * Copyright (c) 1994 Sun Microsystems, Inc.
+ *
+ * Permission to use, copy, modify, and distribute this
+ * software and its documentation for any purpose and without
+ * fee is hereby granted, provided that the above copyright
+ * notice appear in all copies.  The University of California
+ * makes no representations about the suitability of this
+ * software for any purpose.  It is provided "as is" without
+ * express or implied warranty.
+ */
+
+/*
+ *                double(64bits)    extended(80-bits)    quadruple(128-bits)
+ *  exponent      11 bits           15 bits              15 bits
+ *  fraction      52 bits           63 bits              112 bits
+ *  sign          1 bit             1 bit                1 bit
+ *  integer                         1 bit
+ */         
+#define FLT_MAX_EXPONENT 511
+
+hawk_flt_t hawk_uchars_to_flt (const hawk_uch_t* str, hawk_oow_t len, const hawk_uch_t** endptr, int stripspc)
+{
+	/* 
+	 * Table giving binary powers of 10. Entry is 10^2^i.  
+	 * Used to convert decimal exponents into floating-point numbers.
+	 */ 
+	static hawk_flt_t powers_of_10[] = 
+	{
+		10.,    100.,   1.0e4,   1.0e8,   1.0e16,
+		1.0e32, 1.0e64, 1.0e128, 1.0e256
+	};
+
+	hawk_flt_t fraction, dbl_exp, * d;
+	const hawk_uch_t* p, * end;
+	hawk_uci_t c;
+	int exp = 0; /* Exponent read from "EX" field */
+
+	/* 
+	 * Exponent that derives from the fractional part.  Under normal 
+	 * circumstatnces, it is the negative of the number of digits in F.
+	 * However, if I is very long, the last digits of I get dropped 
+	 * (otherwise a long I with a large negative exponent could cause an
+	 * unnecessary overflow on I alone).  In this case, frac_exp is 
+	 * incremented one for each dropped digit. 
+	 */
+
+	int frac_exp;
+	int mant_size; /* Number of digits in mantissa. */
+	int dec_pt;    /* Number of mantissa digits BEFORE decimal point */
+	const hawk_uch_t *pexp;  /* Temporarily holds location of exponent in string */
+	int negative = 0, exp_negative = 0;
+
+	p = str;
+	end = str + len;
+
+	/* Strip off leading blanks and check for a sign */
+	/*while (AWK_IS_SPACE(*p)) p++;*/
+	if (stripspc)
+	{
+		/* strip off leading spaces */ 
+		while (p < end && hawk_is_uch_space(*p)) p++;
+	}
+
+	/*while (*p != _T('\0')) */
+	while (p < end)
+	{
+		if (*p == '-') 
+		{
+			negative = ~negative;
+			p++;
+		}
+		else if (*p == '+') p++;
+		else break;
+	}
+
+	/* Count the number of digits in the mantissa (including the decimal
+	 * point), and also locate the decimal point. */
+	dec_pt = -1;
+	/*for (mant_size = 0; ; mant_size++) */
+	for (mant_size = 0; p < end; mant_size++) 
+	{
+		c = *p;
+		if (!hawk_is_uch_digit(c)) 
+		{
+			if (c != '.' || dec_pt >= 0) break;
+			dec_pt = mant_size;
+		}
+		p++;
+	}
+
+	/*
+	 * Now suck up the digits in the mantissa.  Use two integers to
+	 * collect 9 digits each (this is faster than using floating-point).
+	 * If the mantissa has more than 18 digits, ignore the extras, since
+	 * they can't affect the value anyway.
+	 */
+	pexp = p;
+	p -= mant_size;
+	if (dec_pt < 0) 
+	{
+		dec_pt = mant_size;
+	} 
+	else 
+	{
+		mant_size--;	/* One of the digits was the point */
+	}
+
+	if (mant_size > 18)  /* TODO: is 18 correct for hawk_flt_t??? */
+	{
+		frac_exp = dec_pt - 18;
+		mant_size = 18;
+	} 
+	else 
+	{
+		frac_exp = dec_pt - mant_size;
+	}
+
+	if (mant_size == 0) 
+	{
+		fraction = 0.0;
+		/*p = str;*/
+		p = pexp;
+		goto done;
+	} 
+	else 
+	{
+		int frac1, frac2;
+
+		frac1 = 0;
+		for ( ; mant_size > 9; mant_size--) 
+		{
+			c = *p;
+			p++;
+			if (c == '.') 
+			{
+				c = *p;
+				p++;
+			}
+			frac1 = 10 * frac1 + (c - '0');
+		}
+
+		frac2 = 0;
+		for (; mant_size > 0; mant_size--) 
+		{
+			c = *p++;
+			if (c == '.') 
+			{
+				c = *p;
+				p++;
+			}
+			frac2 = 10 * frac2 + (c - '0');
+		}
+		fraction = (1.0e9 * frac1) + frac2;
+	}
+
+	/* Skim off the exponent */
+	p = pexp;
+	if (p < end && (*p == 'E' || *p == 'e')) 
+	{
+		p++;
+
+		if (p < end) 
+		{
+			if (*p == '-') 
+			{
+				exp_negative = 1;
+				p++;
+			} 
+			else 
+			{
+				if (*p == '+') p++;
+				exp_negative = 0;
+			}
+		}
+		else exp_negative = 0;
+
+		if (!(p < end && hawk_is_uch_digit(*p))) 
+		{
+			/*p = pexp;*/
+			/*goto done;*/
+			goto no_exp;
+		}
+
+		while (p < end && hawk_is_uch_digit(*p)) 
+		{
+			exp = exp * 10 + (*p - '0');
+			p++;
+		}
+	}
+
+no_exp:
+	if (exp_negative) exp = frac_exp - exp;
+	else exp = frac_exp + exp;
+
+	/*
+	 * Generate a floating-point number that represents the exponent.
+	 * Do this by processing the exponent one bit at a time to combine
+	 * many powers of 2 of 10. Then combine the exponent with the
+	 * fraction.
+	 */
+	if (exp < 0) 
+	{
+		exp_negative = 1;
+		exp = -exp;
+	} 
+	else exp_negative = 0;
+
+	if (exp > FLT_MAX_EXPONENT) exp = FLT_MAX_EXPONENT;
+
+	dbl_exp = 1.0;
+
+	for (d = powers_of_10; exp != 0; exp >>= 1, d++) 
+	{
+		if (exp & 01) dbl_exp *= *d;
+	}
+
+	if (exp_negative) fraction /= dbl_exp;
+	else fraction *= dbl_exp;
+
+done:
+	if (endptr != HAWK_NULL) *endptr = p;
+	return (negative)? -fraction: fraction;
+}
+
+hawk_flt_t hawk_bchars_to_flt (const hawk_bch_t* str, hawk_oow_t len, const hawk_bch_t** endptr, int stripspc)
+{
+	/* 
+	 * Table giving binary powers of 10. Entry is 10^2^i.  
+	 * Used to convert decimal exponents into floating-point numbers.
+	 */ 
+	static hawk_flt_t powers_of_10[] = 
+	{
+		10.,    100.,   1.0e4,   1.0e8,   1.0e16,
+		1.0e32, 1.0e64, 1.0e128, 1.0e256
+	};
+
+	hawk_flt_t fraction, dbl_exp, * d;
+	const hawk_bch_t* p, * end;
+	hawk_bci_t c;
+	int exp = 0; /* Exponent read from "EX" field */
+
+	/* 
+	 * Exponent that derives from the fractional part.  Under normal 
+	 * circumstatnces, it is the negative of the number of digits in F.
+	 * However, if I is very long, the last digits of I get dropped 
+	 * (otherwise a long I with a large negative exponent could cause an
+	 * unnecessary overflow on I alone).  In this case, frac_exp is 
+	 * incremented one for each dropped digit. 
+	 */
+
+	int frac_exp;
+	int mant_size; /* Number of digits in mantissa. */
+	int dec_pt;    /* Number of mantissa digits BEFORE decimal point */
+	const hawk_bch_t *pexp;  /* Temporarily holds location of exponent in string */
+	int negative = 0, exp_negative = 0;
+
+	p = str;
+	end = str + len;
+
+	/* Strip off leading blanks and check for a sign */
+	/*while (AWK_IS_SPACE(*p)) p++;*/
+	if (stripspc)
+	{
+		/* strip off leading spaces */ 
+		while (p < end && hawk_is_bch_space(*p)) p++;
+	}
+
+	/*while (*p != _T('\0')) */
+	while (p < end)
+	{
+		if (*p == '-') 
+		{
+			negative = ~negative;
+			p++;
+		}
+		else if (*p == '+') p++;
+		else break;
+	}
+
+	/* Count the number of digits in the mantissa (including the decimal
+	 * point), and also locate the decimal point. */
+	dec_pt = -1;
+	/*for (mant_size = 0; ; mant_size++) */
+	for (mant_size = 0; p < end; mant_size++) 
+	{
+		c = *p;
+		if (!hawk_is_bch_digit(c)) 
+		{
+			if (c != '.' || dec_pt >= 0) break;
+			dec_pt = mant_size;
+		}
+		p++;
+	}
+
+	/*
+	 * Now suck up the digits in the mantissa.  Use two integers to
+	 * collect 9 digits each (this is faster than using floating-point).
+	 * If the mantissa has more than 18 digits, ignore the extras, since
+	 * they can't affect the value anyway.
+	 */
+	pexp = p;
+	p -= mant_size;
+	if (dec_pt < 0) 
+	{
+		dec_pt = mant_size;
+	} 
+	else 
+	{
+		mant_size--;	/* One of the digits was the point */
+	}
+
+	if (mant_size > 18)  /* TODO: is 18 correct for hawk_flt_t??? */
+	{
+		frac_exp = dec_pt - 18;
+		mant_size = 18;
+	} 
+	else 
+	{
+		frac_exp = dec_pt - mant_size;
+	}
+
+	if (mant_size == 0) 
+	{
+		fraction = 0.0;
+		/*p = str;*/
+		p = pexp;
+		goto done;
+	} 
+	else 
+	{
+		int frac1, frac2;
+
+		frac1 = 0;
+		for ( ; mant_size > 9; mant_size--) 
+		{
+			c = *p;
+			p++;
+			if (c == '.') 
+			{
+				c = *p;
+				p++;
+			}
+			frac1 = 10 * frac1 + (c - '0');
+		}
+
+		frac2 = 0;
+		for (; mant_size > 0; mant_size--) 
+		{
+			c = *p++;
+			if (c == '.') 
+			{
+				c = *p;
+				p++;
+			}
+			frac2 = 10 * frac2 + (c - '0');
+		}
+		fraction = (1.0e9 * frac1) + frac2;
+	}
+
+	/* Skim off the exponent */
+	p = pexp;
+	if (p < end && (*p == 'E' || *p == 'e')) 
+	{
+		p++;
+
+		if (p < end) 
+		{
+			if (*p == '-') 
+			{
+				exp_negative = 1;
+				p++;
+			} 
+			else 
+			{
+				if (*p == '+') p++;
+				exp_negative = 0;
+			}
+		}
+		else exp_negative = 0;
+
+		if (!(p < end && hawk_is_bch_digit(*p))) 
+		{
+			/*p = pexp;*/
+			/*goto done;*/
+			goto no_exp;
+		}
+
+		while (p < end && hawk_is_bch_digit(*p)) 
+		{
+			exp = exp * 10 + (*p - '0');
+			p++;
+		}
+	}
+
+no_exp:
+	if (exp_negative) exp = frac_exp - exp;
+	else exp = frac_exp + exp;
+
+	/*
+	 * Generate a floating-point number that represents the exponent.
+	 * Do this by processing the exponent one bit at a time to combine
+	 * many powers of 2 of 10. Then combine the exponent with the
+	 * fraction.
+	 */
+	if (exp < 0) 
+	{
+		exp_negative = 1;
+		exp = -exp;
+	} 
+	else exp_negative = 0;
+
+	if (exp > FLT_MAX_EXPONENT) exp = FLT_MAX_EXPONENT;
+
+	dbl_exp = 1.0;
+
+	for (d = powers_of_10; exp != 0; exp >>= 1, d++) 
+	{
+		if (exp & 01) dbl_exp *= *d;
+	}
+
+	if (exp_negative) fraction /= dbl_exp;
+	else fraction *= dbl_exp;
+
+done:
+	if (endptr != HAWK_NULL) *endptr = p;
+	return (negative)? -fraction: fraction;
+}
+
+int hawk_uchars_to_num (int option, const hawk_uch_t* ptr, hawk_oow_t len, hawk_int_t* l, hawk_flt_t* r)
+{
+	const hawk_uch_t* endptr;
+	const hawk_uch_t* end;
+
+	int strict = HAWK_OOCHARS_TO_NUM_GET_OPTION_STRICT(option);
+	int stripspc = HAWK_OOCHARS_TO_NUM_GET_OPTION_STRIPSPC(option);
+	int base = HAWK_OOCHARS_TO_NUM_GET_OPTION_BASE(option);
+
+	end = ptr + len;
+	*l = hawk_uchars_to_int(ptr, len, base, &endptr, stripspc);
+	if (endptr < end)
+	{
+		if (*endptr == '.' || *endptr == 'E' || *endptr == 'e')
+		{
+		handle_float:
+			*r = hawk_uchars_to_flt(ptr, len, &endptr, stripspc);
+			if (strict && endptr < end) return -1;
+			return 1; /* flt */
+		}
+		else if (hawk_is_uch_digit(*endptr))
+		{
+			const hawk_uch_t* p = endptr;
+			do { p++; } while (p < end && hawk_is_uch_digit(*p));
+			if (p < end && (*p == '.' || *p == 'E' || *p == 'e')) 
+			{
+				/* it's probably an floating-point number. 
+				 * 
+ 				 *  BEGIN { b=99; printf "%f\n", (0 b 1.112); }
+				 *
+				 * for the above code, this function gets '0991.112'.
+				 * and endptr points to '9' after hawk_strxtoint() as
+				 * the numeric string beginning with 0 is treated 
+				 * as an octal number. 
+				 * 
+				 * getting side-tracked, 
+				 *   BEGIN { b=99; printf "%f\n", (0 b 1.000); }
+				 * the above code cause this function to get 0991, not 0991.000
+				 * because of the default CONVFMT '%.6g' which doesn't produce '.000'.
+				 * so such a number is not treated as a floating-point number.
+				 */
+				goto handle_float;
+			}
+		}
+	}
+
+	if (strict && endptr < end) return -1;
+	return 0; /* int */
+}
+
+int hawk_bchars_to_num (int option, const hawk_bch_t* ptr, hawk_oow_t len, hawk_int_t* l, hawk_flt_t* r)
+{
+	const hawk_bch_t* endptr;
+	const hawk_bch_t* end;
+
+	int strict = HAWK_OOCHARS_TO_NUM_GET_OPTION_STRICT(option);
+	int stripspc = HAWK_OOCHARS_TO_NUM_GET_OPTION_STRIPSPC(option);
+	int base = HAWK_OOCHARS_TO_NUM_GET_OPTION_BASE(option);
+
+	end = ptr + len;
+	*l = hawk_bchars_to_int(ptr, len, base, &endptr, stripspc);
+	if (endptr < end)
+	{
+		if (*endptr == '.' || *endptr == 'E' || *endptr == 'e')
+		{
+		handle_float:
+			*r = hawk_bchars_to_flt(ptr, len, &endptr, stripspc);
+			if (strict && endptr < end) return -1;
+			return 1; /* flt */
+		}
+		else if (hawk_is_uch_digit(*endptr))
+		{
+			const hawk_bch_t* p = endptr;
+			do { p++; } while (p < end && hawk_is_bch_digit(*p));
+			if (p < end && (*p == '.' || *p == 'E' || *p == 'e')) 
+			{
+				/* it's probably an floating-point number. 
+				 * 
+ 				 *  BEGIN { b=99; printf "%f\n", (0 b 1.112); }
+				 *
+				 * for the above code, this function gets '0991.112'.
+				 * and endptr points to '9' after hawk_strxtoint() as
+				 * the numeric string beginning with 0 is treated 
+				 * as an octal number. 
+				 * 
+				 * getting side-tracked, 
+				 *   BEGIN { b=99; printf "%f\n", (0 b 1.000); }
+				 * the above code cause this function to get 0991, not 0991.000
+				 * because of the default CONVFMT '%.6g' which doesn't produce '.000'.
+				 * so such a number is not treated as a floating-point number.
+				 */
+				goto handle_float;
+			}
+		}
+	}
+
+	if (strict && endptr < end) return -1;
+	return 0; /* int */
+}
+/* ------------------------------------------------------------------------ */
 
 int hawk_conv_bchars_to_uchars_with_cmgr (
 	const hawk_bch_t* bcs, hawk_oow_t* bcslen,
@@ -1864,7 +2565,7 @@ int hawk_conv_bchars_to_uchars_upto_stopper_with_cmgr (
 	return ret;
 }
 
-/* ----------------------------------------------------------------------- */
+/* ------------------------------------------------------------------------ */
 
 static hawk_cmgr_t builtin_cmgr[] =
 {
@@ -1927,7 +2628,7 @@ hawk_cmgr_t* hawk_get_cmgr_by_ucstr (const hawk_uch_t* name)
 	return HAWK_NULL;
 }
 
-/* ----------------------------------------------------------------------- */
+/* ------------------------------------------------------------------------ */
 
 int hawk_conv_utf8_to_uchars (const hawk_bch_t* bcs, hawk_oow_t* bcslen, hawk_uch_t* ucs, hawk_oow_t* ucslen)
 {
@@ -1953,7 +2654,7 @@ int hawk_conv_ucstr_to_utf8 (const hawk_uch_t* ucs, hawk_oow_t* ucslen, hawk_bch
 	return hawk_conv_ucstr_to_bcstr_with_cmgr(ucs, ucslen, bcs, bcslen, &builtin_cmgr[HAWK_CMGR_UTF8]);
 }
 
-/* ----------------------------------------------------------------------- */
+/* ------------------------------------------------------------------------ */
 
 int hawk_conv_utf16_to_uchars (const hawk_bch_t* bcs, hawk_oow_t* bcslen, hawk_uch_t* ucs, hawk_oow_t* ucslen)
 {
@@ -1979,7 +2680,7 @@ int hawk_conv_ucstr_to_utf16 (const hawk_uch_t* ucs, hawk_oow_t* ucslen, hawk_bc
 	return hawk_conv_ucstr_to_bcstr_with_cmgr(ucs, ucslen, bcs, bcslen, &builtin_cmgr[HAWK_CMGR_UTF16]);
 }
 
-/* ----------------------------------------------------------------------- */
+/* ------------------------------------------------------------------------ */
 
 int hawk_conv_mb8_to_uchars (const hawk_bch_t* bcs, hawk_oow_t* bcslen, hawk_uch_t* ucs, hawk_oow_t* ucslen)
 {
@@ -2005,4 +2706,4 @@ int hawk_conv_ucstr_to_mb8 (const hawk_uch_t* ucs, hawk_oow_t* ucslen, hawk_bch_
 	return hawk_conv_ucstr_to_bcstr_with_cmgr(ucs, ucslen, bcs, bcslen, &builtin_cmgr[HAWK_CMGR_MB8]);
 }
 
-/* ----------------------------------------------------------------------- */
+/* ------------------------------------------------------------------------ */

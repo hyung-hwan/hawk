@@ -101,7 +101,7 @@ typedef hawk_oow_t (*hawk_uecs_sizer_t) (
  */
 struct hawk_becs_t
 {
-	hawk_t*           hawk;
+	hawk_gem_t*       gem;
 	hawk_becs_sizer_t sizer; /**< buffer resizer function */
 	hawk_bcs_t        val;   /**< buffer/string pointer and lengh */
 	hawk_oow_t        capa;  /**< buffer capacity */
@@ -112,7 +112,7 @@ struct hawk_becs_t
  */
 struct hawk_uecs_t
 {
-	hawk_t*           hawk;
+	hawk_gem_t*       gem;
 	hawk_uecs_sizer_t sizer; /**< buffer resizer function */
 	hawk_ucs_t        val;   /**< buffer/string pointer and lengh */
 	hawk_oow_t        capa;  /**< buffer capacity */
@@ -127,7 +127,7 @@ extern "C" {
  * The hawk_becs_open() function creates a dynamically resizable multibyte string.
  */
 HAWK_EXPORT hawk_becs_t* hawk_becs_open (
-	hawk_t*     hawk,
+	hawk_gem_t* gem,
 	hawk_oow_t  xtnsize,
 	hawk_oow_t  capa
 );
@@ -144,7 +144,7 @@ HAWK_EXPORT void hawk_becs_close (
  */
 HAWK_EXPORT int hawk_becs_init (
 	hawk_becs_t*  becs,
-	hawk_t*       hawk,
+	hawk_gem_t*   gem,
 	hawk_oow_t    capa
 );
 
@@ -341,7 +341,7 @@ HAWK_EXPORT hawk_oow_t hawk_becs_fmt (
  * The hawk_uecs_open() function creates a dynamically resizable multibyte string.
  */
 HAWK_EXPORT hawk_uecs_t* hawk_uecs_open (
-	hawk_t*     hawk,
+	hawk_gem_t* gem,
 	hawk_oow_t  xtnsize,
 	hawk_oow_t  capa
 );
@@ -358,7 +358,7 @@ HAWK_EXPORT void hawk_uecs_close (
  */
 HAWK_EXPORT int hawk_uecs_init (
 	hawk_uecs_t*  uecs,
-	hawk_t*       hawk,
+	hawk_gem_t*   gem,
 	hawk_oow_t    capa
 );
 

@@ -46,9 +46,9 @@ static void free_fnc (hawk_htb_t* map, void* vptr, hawk_oow_t vlen)
 	hawk_freemem (awk, f);
 }
 
-static int init_token (hawk_t* awk, hawk_tok_t* tok)
+static int init_token (hawk_t* hawk, hawk_tok_t* tok)
 {
-	tok->name = hawk_ooecs_open(awk, 0, 128);
+	tok->name = hawk_ooecs_open(hawk_getgem(hawk), 0, 128);
 	if (!tok->name) return -1;
 	
 	tok->type = 0;

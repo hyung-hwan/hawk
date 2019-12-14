@@ -118,7 +118,7 @@ static int get_highest_fd (hawk_pio_t* pio)
 
 			if (de->d_name[0] == HAWK_BT('.')) continue;
 
-			l = hawk_bcharstoint(pio->hawk, de->d_name, hawk_count_bcstr(de->d_name), 10, &endptr);
+			l = hawk_bchars_to_int(de->d_name, hawk_count_bcstr(de->d_name), 10, &endptr, 0);
 			if (*endptr == HAWK_BT('\0'))
 			{
 				fd = (int)l;
@@ -190,8 +190,7 @@ static int close_open_fds_using_proc (hawk_pio_t* pio, int* excepts, hawk_oow_t 
 
 			if (de->d_name[0] == HAWK_BT('.')) continue;
 
-			/*HAWK_MBSTONUM (l, de->d_name, &endptr, 10);*/
-			l = hawk_bcharstoint(pio->hawk, de->d_name, hawk_count_bcstr(de->d_name), 10, &endptr);
+			l = hawk_bchars_to_int(de->d_name, hawk_count_bcstr(de->d_name), 10, &endptr, 0);
 			if (*endptr == HAWK_BT('\0'))
 			{
 				int fd = (int)l;
