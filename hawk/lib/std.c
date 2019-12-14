@@ -2260,10 +2260,9 @@ static hawk_rtx_t* open_rtx_std (
 
 	if (rtx->awk->opt.trait & HAWK_RIO)
 	{
-		if (hawk_htb_init(&rxtn->cmgrtab, awk, 256, 70, HAWK_SIZEOF(hawk_ooch_t), 1) <= -1)
+		if (hawk_htb_init(&rxtn->cmgrtab, hawk_getgem(awk), 256, 70, HAWK_SIZEOF(hawk_ooch_t), 1) <= -1)
 		{
 			hawk_rtx_close (rtx);
-			hawk_seterrnum (awk, HAWK_ENOMEM, HAWK_NULL);
 			return HAWK_NULL;
 		}
 		hawk_htb_setstyle (&rxtn->cmgrtab, hawk_get_htb_style(HAWK_HTB_STYLE_INLINE_COPIERS));

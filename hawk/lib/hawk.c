@@ -195,16 +195,16 @@ int hawk_init (hawk_t* awk, hawk_mmgr_t* mmgr, hawk_cmgr_t* cmgr, const hawk_prm
 	awk->tree.chain_size = 0;
 
 	/* TODO: initial map size?? */
-	awk->tree.funs = hawk_htb_open(awk, HAWK_SIZEOF(awk), 512, 70, HAWK_SIZEOF(hawk_ooch_t), 1);
-	awk->parse.funs = hawk_htb_open(awk, HAWK_SIZEOF(awk), 256, 70, HAWK_SIZEOF(hawk_ooch_t), 1);
-	awk->parse.named = hawk_htb_open(awk, HAWK_SIZEOF(awk), 256, 70, HAWK_SIZEOF(hawk_ooch_t), 1);
+	awk->tree.funs = hawk_htb_open(hawk_getgem(awk), HAWK_SIZEOF(awk), 512, 70, HAWK_SIZEOF(hawk_ooch_t), 1);
+	awk->parse.funs = hawk_htb_open(hawk_getgem(awk), HAWK_SIZEOF(awk), 256, 70, HAWK_SIZEOF(hawk_ooch_t), 1);
+	awk->parse.named = hawk_htb_open(hawk_getgem(awk), HAWK_SIZEOF(awk), 256, 70, HAWK_SIZEOF(hawk_ooch_t), 1);
 
 	awk->parse.gbls = hawk_arr_open(awk, HAWK_SIZEOF(awk), 128);
 	awk->parse.lcls = hawk_arr_open(awk, HAWK_SIZEOF(awk), 64);
 	awk->parse.params = hawk_arr_open(awk, HAWK_SIZEOF(awk), 32);
 
 	awk->fnc.sys = HAWK_NULL;
-	awk->fnc.user = hawk_htb_open(awk, HAWK_SIZEOF(awk), 512, 70, HAWK_SIZEOF(hawk_ooch_t), 1);
+	awk->fnc.user = hawk_htb_open(hawk_getgem(awk), HAWK_SIZEOF(awk), 512, 70, HAWK_SIZEOF(hawk_ooch_t), 1);
 	awk->modtab = hawk_rbt_open(awk, 0, HAWK_SIZEOF(hawk_ooch_t), 1);
 
 	if (awk->tree.funs == HAWK_NULL ||
@@ -246,12 +246,7 @@ int hawk_init (hawk_t* awk, hawk_mmgr_t* mmgr, hawk_cmgr_t* cmgr, const hawk_prm
 
 	hawk_rbt_setstyle (awk->modtab, hawk_get_rbt_style(HAWK_RBT_STYLE_INLINE_COPIERS));
 
-	if (hawk_initgbls(awk) <= -1) 
-	{
-		hawk_seterrnum (awk, HAWK_ENOMEM, HAWK_NULL);
-		goto oops;
-	}
-
+	if (hawk_initgbls(awk) <= -1) goto oops;
 	return 0;
 
 oops:

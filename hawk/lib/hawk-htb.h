@@ -242,12 +242,12 @@ typedef enum hawk_htb_style_kind_t  hawk_htb_style_kind_t;
  */
 struct hawk_htb_t
 {
-	hawk_t* hawk;
+	hawk_gem_t* gem;
 
 	const hawk_htb_style_t* style;
 
-	hawk_uint8_t       scale[2]; /**< length scale */
-	hawk_uint8_t       factor;   /**< load factor in percentage */
+	hawk_uint8_t     scale[2]; /**< length scale */
+	hawk_uint8_t     factor;   /**< load factor in percentage */
 
 	hawk_oow_t       size;
 	hawk_oow_t       capa;
@@ -325,7 +325,7 @@ HAWK_EXPORT const hawk_htb_style_t* hawk_get_htb_style (
  * @return #hawk_htb_t pointer on success, #HAWK_NULL on failure.
  */
 HAWK_EXPORT hawk_htb_t* hawk_htb_open (
-	hawk_t*     hawk,    /**< awk object */
+	hawk_gem_t* gem,
 	hawk_oow_t  xtnsize, /**< extension size in bytes */
 	hawk_oow_t  capa,    /**< initial capacity */
 	int         factor,  /**< load factor */
@@ -345,8 +345,8 @@ HAWK_EXPORT void hawk_htb_close (
  * The hawk_htb_init() function initializes a hash table
  */
 HAWK_EXPORT int hawk_htb_init (
-	hawk_htb_t*  htb,    /**< hash table */
-	hawk_t*     hawk,    /**< awk object */
+	hawk_htb_t* htb,    /**< hash table */
+	hawk_gem_t* gem,
 	hawk_oow_t  capa,    /**< initial capacity */
 	int         factor,  /**< load factor */
 	int         kscale,  /**< key scale */
@@ -563,10 +563,10 @@ HAWK_EXPORT hawk_htb_pair_t* hawk_htb_update (
  */
 HAWK_EXPORT hawk_htb_pair_t* hawk_htb_cbsert (
 	hawk_htb_t*         htb,      /**< hash table */
-	void*              kptr,     /**< key pointer */
-	hawk_oow_t         klen,     /**< key length */
+	void*               kptr,     /**< key pointer */
+	hawk_oow_t          klen,     /**< key length */
 	hawk_htb_cbserter_t cbserter, /**< callback function */
-	void*              ctx       /**< callback context */
+	void*               ctx       /**< callback context */
 );
 
 /**
