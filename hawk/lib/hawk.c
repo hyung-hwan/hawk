@@ -183,6 +183,8 @@ int hawk_init (hawk_t* awk, hawk_mmgr_t* mmgr, hawk_cmgr_t* cmgr, const hawk_prm
 	awk->opt.trait |= HAWK_CRLF;
 #endif
 	awk->opt.rtx_stack_limit = HAWK_DFL_RTX_STACK_LIMIT;
+	awk->opt.log_mask = HAWK_LOG_ALL_LEVELS  | HAWK_LOG_ALL_TYPES;
+	awk->opt.log_maxcapa = HAWK_DFL_LOG_MAXCAPA;
 
 	awk->tree.ngbls = 0;
 	awk->tree.ngbls_base = 0;
@@ -423,12 +425,12 @@ static int dup_str_opt (hawk_t* awk, const void* value, hawk_oocs_t* tmp)
 	return 0;
 }
 
-int hawk_setopt (hawk_t* awk, hawk_opt_t id, const void* value)
+int hawk_setopt (hawk_t* hawk, hawk_opt_t id, const void* value)
 {
 	switch (id)
 	{
 		case HAWK_TRAIT:
-			awk->opt.trait = *(const int*)value;
+			hawk->opt.trait = *(const int*)value;
 			return 0;
 
 		case HAWK_MODPREFIX:
@@ -437,21 +439,21 @@ int hawk_setopt (hawk_t* awk, hawk_opt_t id, const void* value)
 			hawk_oocs_t tmp;
 			int idx;
 
-			if (dup_str_opt (awk, value, &tmp) <= -1) return -1;
+			if (dup_str_opt(hawk, value, &tmp) <= -1) return -1;
 
 			idx = id - HAWK_MODPREFIX;
-			if (awk->opt.mod[idx].ptr) hawk_freemem (awk, awk->opt.mod[idx].ptr);
+			if (hawk->opt.mod[idx].ptr) hawk_freemem (hawk, hawk->opt.mod[idx].ptr);
 
-			awk->opt.mod[idx] = tmp;
+			hawk->opt.mod[idx] = tmp;
 			return 0;
 		}
 
 		case HAWK_INCLUDEDIRS:
 		{
 			hawk_oocs_t tmp;
-			if (dup_str_opt (awk, value, &tmp) <= -1) return -1;
-			if (awk->opt.incldirs.ptr) hawk_freemem (awk, awk->opt.incldirs.ptr);
-			awk->opt.incldirs = tmp;
+			if (dup_str_opt(hawk, value, &tmp) <= -1) return -1;
+			if (hawk->opt.incldirs.ptr) hawk_freemem (hawk, hawk->opt.incldirs.ptr);
+			hawk->opt.incldirs = tmp;
 			return 0;
 		}
 
@@ -462,35 +464,45 @@ int hawk_setopt (hawk_t* awk, hawk_opt_t id, const void* value)
 		case HAWK_DEPTH_EXPR_RUN:
 		case HAWK_DEPTH_REX_BUILD:
 		case HAWK_DEPTH_REX_MATCH:
-			awk->opt.depth.a[id - HAWK_DEPTH_INCLUDE] = *(const hawk_oow_t*)value;
+			hawk->opt.depth.a[id - HAWK_DEPTH_INCLUDE] = *(const hawk_oow_t*)value;
 			return 0;
 
 		case HAWK_RTX_STACK_LIMIT:
-			awk->opt.rtx_stack_limit = *(const hawk_oow_t*)value;
-			if (awk->opt.rtx_stack_limit < HAWK_MIN_RTX_STACK_LIMIT) awk->opt.rtx_stack_limit = HAWK_MIN_RTX_STACK_LIMIT;
-			else if (awk->opt.rtx_stack_limit > HAWK_MAX_RTX_STACK_LIMIT) awk->opt.rtx_stack_limit = HAWK_MAX_RTX_STACK_LIMIT;
+			hawk->opt.rtx_stack_limit = *(const hawk_oow_t*)value;
+			if (hawk->opt.rtx_stack_limit < HAWK_MIN_RTX_STACK_LIMIT) hawk->opt.rtx_stack_limit = HAWK_MIN_RTX_STACK_LIMIT;
+			else if (hawk->opt.rtx_stack_limit > HAWK_MAX_RTX_STACK_LIMIT) hawk->opt.rtx_stack_limit = HAWK_MAX_RTX_STACK_LIMIT;
 			return 0;
+
+
+		case HAWK_LOG_MASK:
+			hawk->opt.log_mask = *(hawk_bitmask_t*)value;
+			return 0;
+
+		case HAWK_LOG_MAXCAPA:
+			hawk->opt.log_maxcapa = *(hawk_oow_t*)value;
+			return 0;
+
 	}
 
-	hawk_seterrnum (awk, HAWK_EINVAL, HAWK_NULL);
+	hawk_seterrnum (hawk, HAWK_EINVAL, HAWK_NULL);
 	return -1;
 }
 
-int hawk_getopt (hawk_t* awk, hawk_opt_t id, void* value)
+int hawk_getopt (hawk_t* hawk, hawk_opt_t id, void* value)
 {
 	switch  (id)
 	{
 		case HAWK_TRAIT:
-			*(int*)value = awk->opt.trait;
+			*(int*)value = hawk->opt.trait;
 			return 0;
 
 		case HAWK_MODPREFIX:
 		case HAWK_MODPOSTFIX:
-			*(const hawk_ooch_t**)value = awk->opt.mod[id - HAWK_MODPREFIX].ptr;
+			*(const hawk_ooch_t**)value = hawk->opt.mod[id - HAWK_MODPREFIX].ptr;
 			return 0;
 
 		case HAWK_INCLUDEDIRS:
-			*(const hawk_ooch_t**)value = awk->opt.incldirs.ptr;
+			*(const hawk_ooch_t**)value = hawk->opt.incldirs.ptr;
 			return 0;
 
 		case HAWK_DEPTH_INCLUDE:
@@ -500,15 +512,24 @@ int hawk_getopt (hawk_t* awk, hawk_opt_t id, void* value)
 		case HAWK_DEPTH_EXPR_RUN:
 		case HAWK_DEPTH_REX_BUILD:
 		case HAWK_DEPTH_REX_MATCH:
-			*(hawk_oow_t*)value = awk->opt.depth.a[id - HAWK_DEPTH_INCLUDE];
+			*(hawk_oow_t*)value = hawk->opt.depth.a[id - HAWK_DEPTH_INCLUDE];
 			return 0;
 
 		case HAWK_RTX_STACK_LIMIT:
-			*(hawk_oow_t*)value = awk->opt.rtx_stack_limit;
+			*(hawk_oow_t*)value = hawk->opt.rtx_stack_limit;
 			return 0;
+
+		case HAWK_LOG_MASK:
+			*(hawk_bitmask_t*)value = hawk->opt.log_mask;
+			return 0;
+
+		case HAWK_LOG_MAXCAPA:
+			*(hawk_oow_t*)value = hawk->opt.log_maxcapa;
+			return 0;
+
 	};
 
-	hawk_seterrnum (awk, HAWK_EINVAL, HAWK_NULL);
+	hawk_seterrnum (hawk, HAWK_EINVAL, HAWK_NULL);
 	return -1;
 }
 

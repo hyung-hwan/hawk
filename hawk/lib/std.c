@@ -71,6 +71,12 @@
 #	endif
 #endif
 
+enum logfd_flag_t
+{
+	LOGFD_TTY = (1 << 0),
+	LOGFD_OPENED_HERE = (1 << 1)
+};
+
 typedef struct xtn_t
 {
 	struct
@@ -133,6 +139,18 @@ typedef struct xtn_t
 
 	hawk_ecb_t ecb;
 	int stdmod_up;
+
+	struct
+	{
+		int fd;
+		int fd_flag; /* bitwise OR'ed fo logfd_flag_t bits */
+
+		struct
+		{
+			hawk_bch_t buf[4096];
+ 			hawk_oow_t len;
+		} out;
+	} log;
 } xtn_t;
 
 typedef struct rxtn_t
@@ -202,9 +220,8 @@ static hawk_mmgr_t sys_mmgr =
 	HAWK_NULL
 };
 
-/* ========================================================================= */
+/* ----------------------------------------------------------------------- */
 
-static ioattr_t* get_ioattr (hawk_htb_t* tab, const hawk_ooch_t* ptr, hawk_oow_t len);
 
 hawk_flt_t hawk_stdmathpow (hawk_t* awk, hawk_flt_t x, hawk_flt_t y)
 {
@@ -428,16 +445,12 @@ void* hawk_stdmodopen (hawk_t* awk, const hawk_mod_spec_t* spec)
 	#else
 	modpath = hawk_dupucstrarrtobcstr(awk, tmp, HAWK_NULL);
 	#endif
-	if (!modpath)
-	{
-		hawk_seterrnum (awk, HAWK_ENOMEM, HAWK_NULL);
-		return HAWK_NULL;
-	}
+	if (!modpath) return HAWK_NULL;
 
 	h = dlopen(modpath, RTLD_NOW);
 	if (!h)
 	{
-		hawk_seterrfmt (awk, HAWK_ESYSERR, HAWK_NULL, HAWK_T("%hs"), dlerror());
+		hawk_seterrfmt (awk, HAWK_NULL, HAWK_ESYSERR, HAWK_T("%hs"), dlerror());
 	}
 
 	hawk_freemem (awk, modpath);
@@ -507,6 +520,292 @@ void* hawk_stdmodgetsym (hawk_t* awk, void* handle, const hawk_ooch_t* name)
 	return s;
 }
 
+/* ----------------------------------------------------------------------- */
+
+static HAWK_INLINE void reset_log_to_default (xtn_t* xtn)
+{
+#if defined(ENABLE_LOG_INITIALLY)
+	xtn->log.fd = 2;
+	xtn->log.fd_flag = 0;
+	#if defined(HAVE_ISATTY)
+	if (isatty(xtn->log.fd)) xtn->log.fd_flag |= LOGFD_TTY;
+	#endif
+#else
+	xtn->log.fd = -1;
+	xtn->log.fd_flag = 0;
+#endif
+}
+
+#if defined(EMSCRIPTEN)
+EM_JS(int, write_all, (int, const hawk_bch_t* ptr, hawk_oow_t len), {
+	// UTF8ToString() doesn't handle a null byte in the middle of an array.
+	// Use the heap memory and pass the right portion to UTF8Decoder.
+	//console.log ("%s", UTF8ToString(ptr, len));
+	console.log ("%s", UTF8Decoder.decode(HEAPU8.subarray(ptr, ptr + len)));
+	return 0;	
+});
+
+#else
+
+static int write_all (int fd, const hawk_bch_t* ptr, hawk_oow_t len)
+{
+#if defined(EMSCRIPTEN)
+	EM_ASM_ ({
+		// UTF8ToString() doesn't handle a null byte in the middle of an array.
+		// Use the heap memory and pass the right portion to UTF8Decoder.
+		//console.log ("%s", UTF8ToString($0, $1));
+		console.log ("%s", UTF8Decoder.decode(HEAPU8.subarray($0, $0 + $1)));
+	}, ptr, len);
+#else
+	while (len > 0)
+	{
+		hawk_ooi_t wr;
+
+		wr = write(fd, ptr, len);
+
+		if (wr <= -1)
+		{
+		#if defined(EAGAIN) && defined(EWOULDBLOCK) && (EAGAIN == EWOULDBLOCK)
+			if (errno == EAGAIN) continue;
+		#else
+			#if defined(EAGAIN)
+			if (errno == EAGAIN) continue;
+			#elif defined(EWOULDBLOCK)
+			if (errno == EWOULDBLOCK) continue;
+			#endif
+		#endif
+
+		#if defined(EINTR)
+			/* TODO: would this interfere with non-blocking nature of this VM? */
+			if (errno == EINTR) continue;
+		#endif
+			return -1;
+		}
+
+		ptr += wr;
+		len -= wr;
+	}
+#endif
+
+	return 0;
+}
+#endif
+
+static int write_log (hawk_t* hawk, int fd, const hawk_bch_t* ptr, hawk_oow_t len)
+{
+	xtn_t* xtn = GET_XTN(hawk);
+
+	while (len > 0)
+	{
+		if (xtn->log.out.len > 0)
+		{
+			hawk_oow_t rcapa, cplen;
+
+			rcapa = HAWK_COUNTOF(xtn->log.out.buf) - xtn->log.out.len;
+			cplen = (len >= rcapa)? rcapa: len;
+
+			HAWK_MEMCPY (&xtn->log.out.buf[xtn->log.out.len], ptr, cplen);
+			xtn->log.out.len += cplen;
+			ptr += cplen;
+			len -= cplen;
+
+			if (xtn->log.out.len >= HAWK_COUNTOF(xtn->log.out.buf))
+			{
+				int n;
+				n = write_all(fd, xtn->log.out.buf, xtn->log.out.len);
+				xtn->log.out.len = 0;
+				if (n <= -1) return -1;
+			}
+		}
+		else
+		{
+			hawk_oow_t rcapa;
+
+			rcapa = HAWK_COUNTOF(xtn->log.out.buf);
+			if (len >= rcapa)
+			{
+				if (write_all(fd, ptr, rcapa) <= -1) return -1;
+				ptr += rcapa;
+				len -= rcapa;
+			}
+			else
+			{
+				HAWK_MEMCPY (xtn->log.out.buf, ptr, len);
+				xtn->log.out.len += len;
+				ptr += len;
+				len -= len;
+			}
+		}
+	}
+
+	return 0;
+}
+
+static void flush_log (hawk_t* hawk, int fd)
+{
+	xtn_t* xtn = GET_XTN(hawk);
+	if (xtn->log.out.len > 0)
+	{
+		write_all (fd, xtn->log.out.buf, xtn->log.out.len);
+		xtn->log.out.len = 0;
+	}
+}
+
+static void log_write (hawk_t* hawk, hawk_bitmask_t mask, const hawk_ooch_t* msg, hawk_oow_t len)
+{
+	xtn_t* xtn = GET_XTN(hawk);
+	hawk_bch_t buf[256];
+	hawk_oow_t ucslen, bcslen, msgidx;
+	int n, logfd;
+
+	if (mask & HAWK_LOG_STDERR) logfd = 2;
+	else if (mask & HAWK_LOG_STDOUT) logfd = 1;
+	else
+	{
+		logfd = xtn->log.fd;
+#if !defined(EMSCRIPTEN)
+		if (logfd <= -1) return;
+#endif
+	}
+
+/* TODO: beautify the log message.
+ *       do classification based on mask. */
+	if (!(mask & (HAWK_LOG_STDOUT | HAWK_LOG_STDERR)))
+	{
+	#if defined(_WIN32)
+		TIME_ZONE_INFORMATION tzi;
+		SYSTEMTIME now;
+	#else
+		time_t now;
+		struct tm tm, *tmp;
+	#endif
+	#if defined(HAWK_OOCH_IS_UCH)
+		char ts[32 * HAWK_BCSIZE_MAX];
+	#else
+		char ts[32];
+	#endif
+		hawk_oow_t tslen;
+
+	#if defined(_WIN32)
+		/* %z for strftime() in win32 seems to produce a long non-numeric timezone name.
+		 * i don't use strftime() for time formatting. */
+		GetLocalTime (&now);
+		if (GetTimeZoneInformation(&tzi) != TIME_ZONE_ID_INVALID) 
+		{
+			tzi.Bias = -tzi.Bias;
+			tslen = sprintf(ts, "%04d-%02d-%02d %02d:%02d:%02d %+02.2d%02.2d ", 
+				(int)now.wYear, (int)now.wMonth, (int)now.wDay, 
+				(int)now.wHour, (int)now.wMinute, (int)now.wSecond,
+				(int)(tzi.Bias / 60), (int)(tzi.Bias % 60));
+		}
+		else
+		{
+			tslen = sprintf(ts, "%04d-%02d-%02d %02d:%02d:%02d ",
+				(int)now.wYear, (int)now.wMonth, (int)now.wDay, 
+				(int)now.wHour, (int)now.wMinute, (int)now.wSecond);
+		}
+	#elif defined(__OS2__)
+		now = time(HAWK_NULL);
+
+		#if defined(__WATCOMC__)
+		tmp = _localtime(&now, &tm);
+		#else
+		tmp = localtime(&now);
+		#endif
+
+		#if defined(__BORLANDC__)
+		/* the borland compiler doesn't handle %z properly - it showed 00 all the time */
+		tslen = strftime(ts, sizeof(ts), "%Y-%m-%d %H:%M:%S %Z ", tmp);
+		#else
+		tslen = strftime(ts, sizeof(ts), "%Y-%m-%d %H:%M:%S %z ", tmp);
+		#endif
+		if (tslen == 0) 
+		{
+			tslen = sprintf(ts, "%04d-%02d-%02d %02d:%02d:%02d ", tmp->tm_year + 1900, tmp->tm_mon + 1, tmp->tm_mday, tmp->tm_hour, tmp->tm_min, tmp->tm_sec);
+		}
+
+	#elif defined(__DOS__)
+		now = time(HAWK_NULL);
+		tmp = localtime(&now);
+		/* since i know that %z/%Z is not available in strftime, i switch to sprintf immediately */
+		tslen = sprintf(ts, "%04d-%02d-%02d %02d:%02d:%02d ", tmp->tm_year + 1900, tmp->tm_mon + 1, tmp->tm_mday, tmp->tm_hour, tmp->tm_min, tmp->tm_sec);
+	#else
+		now = time(HAWK_NULL);
+		#if defined(HAVE_LOCALTIME_R)
+		tmp = localtime_r(&now, &tm);
+		#else
+		tmp = localtime(&now);
+		#endif
+
+		#if defined(HAVE_STRFTIME_SMALL_Z)
+		tslen = strftime(ts, sizeof(ts), "%Y-%m-%d %H:%M:%S %z ", tmp);
+		#else
+		tslen = strftime(ts, sizeof(ts), "%Y-%m-%d %H:%M:%S %Z ", tmp); 
+		#endif
+		if (tslen == 0) 
+		{
+			tslen = sprintf(ts, "%04d-%02d-%02d %02d:%02d:%02d ", tmp->tm_year + 1900, tmp->tm_mon + 1, tmp->tm_mday, tmp->tm_hour, tmp->tm_min, tmp->tm_sec);
+		}
+	#endif
+
+		write_log (hawk, logfd, ts, tslen);
+	}
+
+	if (logfd == xtn->log.fd && (xtn->log.fd_flag & LOGFD_TTY))
+	{
+		if (mask & HAWK_LOG_FATAL) write_log (hawk, logfd, "\x1B[1;31m", 7);
+		else if (mask & HAWK_LOG_ERROR) write_log (hawk, logfd, "\x1B[1;32m", 7);
+		else if (mask & HAWK_LOG_WARN) write_log (hawk, logfd, "\x1B[1;33m", 7);
+	}
+
+#if defined(HAWK_OOCH_IS_UCH)
+	msgidx = 0;
+	while (len > 0)
+	{
+		ucslen = len;
+		bcslen = HAWK_COUNTOF(buf);
+
+		/*n = hawk_convootobchars(hawk, &msg[msgidx], &ucslen, buf, &bcslen);*/
+		n = hawk_conv_uchars_to_bchars_with_cmgr(&msg[msgidx], &ucslen, buf, &bcslen, hawk_getcmgr(hawk));
+		if (n == 0 || n == -2)
+		{
+			/* n = 0: 
+			 *   converted all successfully 
+			 * n == -2: 
+			 *    buffer not sufficient. not all got converted yet.
+			 *    write what have been converted this round. */
+
+			HAWK_ASSERT (hawk, ucslen > 0); /* if this fails, the buffer size must be increased */
+
+			/* attempt to write all converted characters */
+			if (write_log(hawk, logfd, buf, bcslen) <= -1) break;
+
+			if (n == 0) break;
+			else
+			{
+				msgidx += ucslen;
+				len -= ucslen;
+			}
+		}
+		else if (n <= -1)
+		{
+			/* conversion error but i just stop here but don't treat it as a hard error. */
+			break;
+		}
+	}
+#else
+	write_log (hawk, logfd, msg, len);
+#endif
+
+	if (logfd == xtn->log.fd && (xtn->log.fd_flag & LOGFD_TTY))
+	{
+		if (mask & (HAWK_LOG_FATAL | HAWK_LOG_ERROR | HAWK_LOG_WARN)) write_log (hawk, logfd, "\x1B[0m", 4);
+	}
+
+	flush_log (hawk, logfd);
+}
+/* ----------------------------------------------------------------------- */
+
 static int add_globals (hawk_t* awk);
 static int add_functions (hawk_t* awk);
 
@@ -523,6 +822,9 @@ static void fini_xtn (hawk_t* awk)
 		hawk_stdmodshutdown (awk);
 		xtn->stdmod_up = 0;
 	}
+
+	if ((xtn->log.fd_flag & LOGFD_OPENED_HERE) && xtn->log.fd >= 0) close (xtn->log.fd);
+	reset_log_to_default (xtn);
 }
 
 static void clear_xtn (hawk_t* awk)
@@ -543,12 +845,15 @@ hawk_t* hawk_openstdwithmmgr (hawk_mmgr_t* mmgr, hawk_oow_t xtnsize, hawk_cmgr_t
 	prm.modclose = hawk_stdmodclose;
 	prm.modgetsym = hawk_stdmodgetsym;
 
+	prm.logwrite = log_write;
+
 	/* create an object */
 	awk = hawk_open(mmgr, HAWK_SIZEOF(xtn_t) + xtnsize, cmgr, &prm, errnum);
 	if (!awk) return HAWK_NULL;
 
 	/* adjust the object size by the sizeof xtn_t so that hawk_getxtn() returns the right pointer. */
 	awk->_instsize += HAWK_SIZEOF(xtn_t);
+
 
 #if defined(USE_DLFCN)
 	if (hawk_setopt(awk, HAWK_MODPOSTFIX, HAWK_T(".so")) <= -1) 
@@ -560,8 +865,8 @@ hawk_t* hawk_openstdwithmmgr (hawk_mmgr_t* mmgr, hawk_oow_t xtnsize, hawk_cmgr_t
 
 	/* initialize extension */
 	xtn = GET_XTN(awk);
-	/* the extension area has been cleared in hawk_open().
-	 * HAWK_MEMSET (xtn, 0, HAWK_SIZEOF(*xtn));*/
+
+	reset_log_to_default (xtn);
 
 	/* add intrinsic global variables and functions */
 	if (add_globals(awk) <= -1 || add_functions(awk) <= -1) 
@@ -1364,6 +1669,8 @@ int hawk_parsestd (hawk_t* awk, hawk_parsestd_t in[], hawk_parsestd_t* out)
 
 /*** RTX_OPENSTD ***/
 
+static ioattr_t* get_ioattr (hawk_htb_t* tab, const hawk_ooch_t* ptr, hawk_oow_t len);
+
 #if defined(ENABLE_NWIO)
 static hawk_ooi_t nwio_handler_open (hawk_rtx_t* rtx, hawk_rio_arg_t* riod, int flags, hawk_nwad_t* nwad, hawk_nwio_tmout_t* tmout)
 {
@@ -2010,9 +2317,7 @@ static int build_argcv (
 	hawk_rtx_refupval (rtx, v_tmp);
 
 	key_len = hawk_copy_oocstr(key, HAWK_COUNTOF(key), HAWK_T("0"));
-	if (hawk_htb_upsert (
-		((hawk_val_map_t*)v_argv)->map,
-		key, key_len, v_tmp, 0) == HAWK_NULL)
+	if (hawk_htb_upsert (((hawk_val_map_t*)v_argv)->map, key, key_len, v_tmp, 0) == HAWK_NULL)
 	{
 		/* if the assignment operation fails, decrements
 		 * the reference of v_tmp to free it */
@@ -2022,7 +2327,6 @@ static int build_argcv (
 		 * map will be freeed when v_argv is freed */
 		hawk_rtx_refdownval (rtx, v_argv);
 
-		hawk_rtx_seterrnum (rtx, HAWK_ENOMEM, HAWK_NULL); 
 		return -1;
 	}
 
@@ -2045,13 +2349,10 @@ static int build_argcv (
 
 			hawk_rtx_refupval (rtx, v_tmp);
 
-			if (hawk_htb_upsert (
-				((hawk_val_map_t*)v_argv)->map,
-				key, key_len, v_tmp, 0) == HAWK_NULL)
+			if (hawk_htb_upsert (((hawk_val_map_t*)v_argv)->map, key, key_len, v_tmp, 0) == HAWK_NULL)
 			{
 				hawk_rtx_refdownval (rtx, v_tmp);
 				hawk_rtx_refdownval (rtx, v_argv);
-				hawk_rtx_seterrnum (rtx, HAWK_ENOMEM, HAWK_NULL); 
 				return -1;
 			}
 		}
@@ -2201,7 +2502,6 @@ static int build_environ (hawk_rtx_t* rtx, int gbl_id, env_char_t* envarr[])
 				 * map will be freeed when v_env is freed */
 				hawk_rtx_refdownval (rtx, v_env);
 
-				hawk_rtx_seterrnum (rtx, HAWK_ENOMEM, HAWK_NULL);
 				return -1;
 			}
 
@@ -2467,34 +2767,29 @@ static HAWK_INLINE void init_ioattr (ioattr_t* ioattr)
 	}
 }
 
-static ioattr_t* get_ioattr (
-	hawk_htb_t* tab, const hawk_ooch_t* ptr, hawk_oow_t len)
+static ioattr_t* get_ioattr (hawk_htb_t* tab, const hawk_ooch_t* ptr, hawk_oow_t len)
 {
 	hawk_htb_pair_t* pair;
 
-	pair = hawk_htb_search (tab, ptr, len);
+	pair = hawk_htb_search(tab, ptr, len);
 	if (pair) return HAWK_HTB_VPTR(pair);
 
 	return HAWK_NULL;
 }
 
-static ioattr_t* find_or_make_ioattr (
-	hawk_rtx_t* rtx, hawk_htb_t* tab, const hawk_ooch_t* ptr, hawk_oow_t len)
+static ioattr_t* find_or_make_ioattr (hawk_rtx_t* rtx, hawk_htb_t* tab, const hawk_ooch_t* ptr, hawk_oow_t len)
 {
 	hawk_htb_pair_t* pair;
 
-	pair = hawk_htb_search (tab, ptr, len);
+	pair = hawk_htb_search(tab, ptr, len);
 	if (pair == HAWK_NULL)
 	{
 		ioattr_t ioattr;
 
 		init_ioattr (&ioattr);
 
-		pair = hawk_htb_insert (tab, (void*)ptr, len, (void*)&ioattr, HAWK_SIZEOF(ioattr));
-		if (pair == HAWK_NULL)
-		{
-			hawk_rtx_seterrnum (rtx, HAWK_ENOMEM, HAWK_NULL);
-		}
+		pair = hawk_htb_insert(tab, (void*)ptr, len, (void*)&ioattr, HAWK_SIZEOF(ioattr));
+		if (pair == HAWK_NULL) return HAWK_NULL;
 	}
 
 	return (ioattr_t*)HAWK_HTB_VPTR(pair);
@@ -2648,7 +2943,7 @@ static int fnc_getioattr (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		if (hawk_find_oochar(ptr[i], len[i], HAWK_T('\0'))) goto done;
 	}
 
-	ioattr = get_ioattr (&rxtn->cmgrtab, ptr[0], len[0]);
+	ioattr = get_ioattr(&rxtn->cmgrtab, ptr[0], len[0]);
 	if (ioattr == HAWK_NULL) 
 	{
 		init_ioattr (&ioattr_buf);

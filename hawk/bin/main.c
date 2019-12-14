@@ -407,7 +407,7 @@ static void dprint_return (hawk_rtx_t* rtx, hawk_val_t* ret)
 		}
 		else
 		{
-			dprint (HAWK_T("[RETURN] - [%.*s]\n"), (int)len, str);
+			dprint (HAWK_T("[RETURN] - [%.*js]\n"), len, str);
 			hawk_freemem (hawk_rtx_gethawk(rtx), str);
 		}
 	}
@@ -923,18 +923,16 @@ static void print_hawk_error (hawk_t* awk)
 {
 	const hawk_loc_t* loc = hawk_geterrloc(awk);
 
-/* TODO: proper logging mask */
-printf ("print_hawk_error... TODO: \n");
-/*	hawk_logfmt (awk, 0,
-		HAWK_T("ERROR: CODE %d LINE %zu COLUMN %zu %s%s%s- %s\n"), 
-		hawk_geterrnum(awk),
+	hawk_logfmt (awk, HAWK_LOG_STDERR,
+		HAWK_T("ERROR: CODE %d LINE %zu COLUMN %zu %js%js%js- %js\n"), 
+		(int)hawk_geterrnum(awk),
 		(hawk_oow_t)loc->line,
 		(hawk_oow_t)loc->colm,
 		((loc->file == HAWK_NULL)? HAWK_T(""): HAWK_T("FILE ")),
 		((loc->file == HAWK_NULL)? HAWK_T(""): loc->file),
 		((loc->file == HAWK_NULL)? HAWK_T(""): HAWK_T(" ")),
 		hawk_geterrmsg(awk)
-	);*/
+	);
 }
 
 static void print_hawk_rtx_error (hawk_rtx_t* rtx)
@@ -1281,6 +1279,8 @@ oops:
 	return ret;
 }
 
+
+/* ---------------------------------------------------------------------- */
 
 #if defined(FAKE_SOCKET)
 socket () {}

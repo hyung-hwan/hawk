@@ -1355,7 +1355,7 @@ int Hawk::open ()
 
 #if defined(HAWK_USE_HTB_FOR_FUNCTION_MAP)
 	this->functionMap = hawk_htb_open(
-		hawk_getmmgr(this->awk), HAWK_SIZEOF(this), 512, 70,
+		hawk_getgem(this->awk), HAWK_SIZEOF(this), 512, 70,
 		HAWK_SIZEOF(hawk_ooch_t), 1
 	);
 	if (this->functionMap == HAWK_NULL)

@@ -209,6 +209,8 @@ struct hawk_t
 		} depth;
 
 		hawk_oow_t rtx_stack_limit;
+		hawk_oow_t log_mask;
+		hawk_oow_t log_maxcapa;
 	} opt;
 
 	/* parse tree */
@@ -316,6 +318,16 @@ struct hawk_t
 #else
 	hawk_bch_t    berrmsg[HAWK_ERRMSG_CAPA * 2];
 #endif
+
+	struct
+	{
+		hawk_ooch_t* ptr;
+		hawk_oow_t len;
+		hawk_oow_t capa;
+		hawk_bitmask_t last_mask;
+		hawk_bitmask_t default_type_mask;
+	} log;
+	int shuterr;
 
 	int haltall;
 	hawk_ecb_t* ecb;
