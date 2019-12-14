@@ -1509,7 +1509,15 @@ int hawk_ufmt_out (hawk_fmtout_t* fmtout, const hawk_uch_t* fmt, ...)
  * FORMATTED LOG OUTPUT
  * -------------------------------------------------------------------------- */
 
-#if 0
+/* i don't want an error raised inside the callback to override 
+ * the existing error number and message. */
+#define log_write(hawk,mask,ptr,len) do { \
+	 int shuterr = (hawk)->shuterr; \
+	 (hawk)->shuterr = 1; \
+	 (hawk)->prm.logwrite (hawk, mask, ptr, len); \
+	 (hawk)->shuterr = shuterr; \
+} while(0)
+
 static int log_oocs (hawk_fmtout_t* fmtout, const hawk_ooch_t* ptr, hawk_oow_t len)
 {
 	hawk_t* hawk = (hawk_t*)fmtout->ctx;
@@ -1527,7 +1535,7 @@ static int log_oocs (hawk_fmtout_t* fmtout, const hawk_ooch_t* ptr, hawk_oow_t l
 			hawk->log.ptr[hawk->log.len++] = '\n';
 		}
 
-		vmprim_log_write (hawk, hawk->log.last_mask, hawk->log.ptr, hawk->log.len);
+		log_write (hawk, hawk->log.last_mask, hawk->log.ptr, hawk->log.len);
 		hawk->log.len = 0;
 	}
 
@@ -1546,8 +1554,8 @@ redo:
 			len = max;
 		}
 
-		newcapa = HAWK_ALIGN_POW2(hawk->log.len + len, 512); /* TODO: adjust this capacity */
-		if (newcapa > hawk->option.log_maxcapa)
+		newcapa = HAWK_ALIGN_POW2(hawk->log.len + len, HAWK_LOG_CAPA_ALIGN);
+		if (newcapa > hawk->opt.log_maxcapa)
 		{
 			/* [NOTE]
 			 * it doesn't adjust newcapa to hawk->option.log_maxcapa.
@@ -1571,7 +1579,7 @@ redo:
 					/* no line ending - append a line terminator */
 					hawk->log.ptr[hawk->log.len++] = '\n';
 				}
-				vmprim_log_write (hawk, hawk->log.last_mask, hawk->log.ptr, hawk->log.len);
+				log_write (hawk, hawk->log.last_mask, hawk->log.ptr, hawk->log.len);
 				hawk->log.len = 0;
 			}
 
@@ -1684,7 +1692,7 @@ hawk_ooi_t hawk_logbfmtv (hawk_t* hawk, hawk_bitmask_t mask, const hawk_bch_t* f
 
 	if (hawk->log.len > 0 && hawk->log.ptr[hawk->log.len - 1] == '\n')
 	{
-		vmprim_log_write (hawk, hawk->log.last_mask, hawk->log.ptr, hawk->log.len);
+		log_write (hawk, hawk->log.last_mask, hawk->log.ptr, hawk->log.len);
 		hawk->log.len = 0;
 	}
 
@@ -1737,7 +1745,7 @@ hawk_ooi_t hawk_logufmtv (hawk_t* hawk, hawk_bitmask_t mask, const hawk_uch_t* f
 
 	if (hawk->log.len > 0 && hawk->log.ptr[hawk->log.len - 1] == '\n')
 	{
-		vmprim_log_write (hawk, hawk->log.last_mask, hawk->log.ptr, hawk->log.len);
+		log_write (hawk, hawk->log.last_mask, hawk->log.ptr, hawk->log.len);
 		hawk->log.len = 0;
 	}
 	return (x <= -1)? -1: fo.count;
@@ -1754,7 +1762,6 @@ hawk_ooi_t hawk_logufmt (hawk_t* hawk, hawk_bitmask_t mask, const hawk_uch_t* fm
 
 	return x;
 }
-#endif
 
 /* --------------------------------------------------------------------------
  * STRING FORMATTING

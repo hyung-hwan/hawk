@@ -481,6 +481,15 @@ typedef void (*hawk_mod_close_t) (
 
 /* ------------------------------------------------------------------------ */
 
+typedef void (*hawk_log_write_t) (
+	hawk_t*             hawk,
+	hawk_bitmask_t      mask,
+	const hawk_ooch_t*  msg,
+	hawk_oow_t          len
+);
+
+/* ------------------------------------------------------------------------ */
+
 #if 0
 typedef void* (*hawk_buildrex_t) (
 	hawk_t*        awk,
@@ -711,6 +720,7 @@ struct hawk_prm_t
 	hawk_mod_close_t modclose;
 	hawk_mod_getsym_t modgetsym;
 
+	hawk_log_write_t logwrite;
 #if 0
 	struct 
 	{
@@ -1112,9 +1122,14 @@ enum hawk_opt_t
 	HAWK_DEPTH_REX_BUILD,
 	HAWK_DEPTH_REX_MATCH,
 
-	HAWK_RTX_STACK_LIMIT
+	HAWK_RTX_STACK_LIMIT,
+	HAWK_LOG_MASK,
+	HAWK_LOG_MAXCAPA
 };
 typedef enum hawk_opt_t hawk_opt_t;
+
+#define HAWK_LOG_CAPA_ALIGN (512)
+#define HAWK_DFL_LOG_MAXCAPA (HAWK_LOG_CAPA_ALIGN * 16)
 
 /* ------------------------------------------------------------------------ */
 
@@ -1585,16 +1600,16 @@ HAWK_EXPORT void hawk_seterrnum (
 
 HAWK_EXPORT void hawk_seterrbfmt (
 	hawk_t*             awk,
+	const hawk_loc_t*   errloc,
 	hawk_errnum_t       errnum,
-	hawk_loc_t*         errloc,
 	const hawk_bch_t*   errfmt,
 	...
 );
 
 HAWK_EXPORT void hawk_seterrufmt (
 	hawk_t*             awk,
+	const hawk_loc_t*   errloc,
 	hawk_errnum_t       errnum,
-	hawk_loc_t*         errloc,
 	const hawk_uch_t*   errfmt,
 	...
 );
@@ -2424,16 +2439,16 @@ HAWK_EXPORT void hawk_rtx_seterrinf (
 
 HAWK_EXPORT void hawk_rtx_seterrbfmt (
 	hawk_rtx_t*       rtx,
-	hawk_errnum_t     errnum,
 	const hawk_loc_t* errloc,
+	hawk_errnum_t     errnum,
 	const hawk_bch_t* errfmt,
 	...
 );
 
 HAWK_EXPORT void hawk_rtx_seterrufmt (
 	hawk_rtx_t*       rtx,
-	hawk_errnum_t     errnum,
 	const hawk_loc_t* errloc,
+	hawk_errnum_t     errnum,
 	const hawk_uch_t* errfmt,
 	...
 );

@@ -304,7 +304,7 @@ static int err_uchars (hawk_fmtout_t* fmtout, const hawk_uch_t* ptr, hawk_oow_t 
 }
 
 
-void hawk_seterrbfmt (hawk_t* hawk, hawk_errnum_t errnum, hawk_loc_t* errloc, const hawk_bch_t* errfmt, ...)
+void hawk_seterrbfmt (hawk_t* hawk, const hawk_loc_t* errloc, hawk_errnum_t errnum, const hawk_bch_t* errfmt, ...)
 {
 	va_list ap;
 	hawk_fmtout_t fo;
@@ -327,7 +327,7 @@ void hawk_seterrbfmt (hawk_t* hawk, hawk_errnum_t errnum, hawk_loc_t* errloc, co
 	hawk->_gem.errloc = (errloc? *errloc: _nullloc);
 }
 
-void hawk_seterrufmt (hawk_t* hawk, hawk_errnum_t errnum, hawk_loc_t* errloc, const hawk_uch_t* errfmt, ...)
+void hawk_seterrufmt (hawk_t* hawk, const hawk_loc_t* errloc, hawk_errnum_t errnum, const hawk_uch_t* errfmt, ...)
 {
 	va_list ap;
 	hawk_fmtout_t fo;
@@ -485,7 +485,7 @@ static int rtx_err_uchars (hawk_fmtout_t* fmtout, const hawk_uch_t* ptr, hawk_oo
 	return 1; /* success */
 }
 
-void hawk_rtx_seterrbfmt (hawk_rtx_t* rtx, hawk_errnum_t errnum, const hawk_loc_t* errloc, const hawk_bch_t* errfmt, ...)
+void hawk_rtx_seterrbfmt (hawk_rtx_t* rtx, const hawk_loc_t* errloc, hawk_errnum_t errnum, const hawk_bch_t* errfmt, ...)
 {
 	va_list ap;
 	hawk_fmtout_t fo;
@@ -508,7 +508,7 @@ void hawk_rtx_seterrbfmt (hawk_rtx_t* rtx, hawk_errnum_t errnum, const hawk_loc_
 	rtx->_gem.errloc = (errloc? *errloc: _nullloc);
 }
 
-void hawk_rtx_seterrufmt (hawk_rtx_t* rtx, hawk_errnum_t errnum, const hawk_loc_t* errloc, const hawk_uch_t* errfmt, ...)
+void hawk_rtx_seterrufmt (hawk_rtx_t* rtx, const hawk_loc_t* errloc, hawk_errnum_t errnum, const hawk_uch_t* errfmt, ...)
 {
 	va_list ap;
 	hawk_fmtout_t fo;

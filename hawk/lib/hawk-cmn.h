@@ -928,6 +928,27 @@ struct hawk_gem_t
 	hawk_loc_t    errloc;
 };
 
+enum hawk_log_mask_t
+{
+	HAWK_LOG_DEBUG      = (1u << 0),
+	HAWK_LOG_INFO       = (1u << 1),
+	HAWK_LOG_WARN       = (1u << 2),
+	HAWK_LOG_ERROR      = (1u << 3),
+	HAWK_LOG_FATAL      = (1u << 4),
+
+	HAWK_LOG_UNTYPED    = (1u << 6), /* only to be used by HAWK_DEBUGx() and HAWK_INFOx() */
+	HAWK_LOG_PARSER     = (1u << 7),
+	HAWK_LOG_RTX        = (1u << 8),
+	HAWK_LOG_APP        = (1u << 9),
+
+	HAWK_LOG_ALL_LEVELS = (HAWK_LOG_DEBUG  | HAWK_LOG_INFO | HAWK_LOG_WARN | HAWK_LOG_ERROR | HAWK_LOG_FATAL),
+	HAWK_LOG_ALL_TYPES  = (HAWK_LOG_UNTYPED | HAWK_LOG_PARSER | HAWK_LOG_RTX | HAWK_LOG_APP),
+
+	HAWK_LOG_STDOUT     = (1u << 14), /* write log messages to stdout without timestamp. HAWK_LOG_STDOUT wins over HAWK_LOG_STDERR. */
+	HAWK_LOG_STDERR     = (1u << 15)  /* write log messages to stderr without timestamp. */
+};
+typedef enum hawk_log_mask_t hawk_log_mask_t;
+
 /* =========================================================================
  * MACROS THAT CHANGES THE BEHAVIORS OF THE C COMPILER/LINKER
  * =========================================================================*/

@@ -483,7 +483,7 @@ hawk_val_t* hawk_rtx_makemapval (hawk_rtx_t* rtx)
 	val->stat = 0;
 	val->nstr = 0;
 	val->fcb = 0;
-	val->map = hawk_htb_open(run, 256, 70, free_mapval, same_mapval, hawk_rtx_getmmgr(run));
+	val->map = hawk_htb_open(hawk_rtx_getgem(rtx), 256, 70, free_mapval, same_mapval);
 	if (val->map == HAWK_NULL)
 	{
 		hawk_rtx_freemem (rtx, val);
@@ -502,10 +502,9 @@ hawk_val_t* hawk_rtx_makemapval (hawk_rtx_t* rtx)
 	val->fcb = 0;
 	val->map = (hawk_htb_t*)(val + 1);
 
-	if (hawk_htb_init(val->map, hawk_rtx_gethawk(rtx), 256, 70, HAWK_SIZEOF(hawk_ooch_t), 1) <= -1)
+	if (hawk_htb_init(val->map, hawk_rtx_getgem(rtx), 256, 70, HAWK_SIZEOF(hawk_ooch_t), 1) <= -1)
 	{
 		hawk_rtx_freemem (rtx, val);
-		hawk_rtx_seterrnum (rtx, HAWK_ENOMEM, HAWK_NULL);
 		return HAWK_NULL;
 	}
 	*(hawk_rtx_t**)hawk_htb_getxtn(val->map) = rtx;
@@ -585,13 +584,7 @@ hawk_val_t* hawk_rtx_setmapvalfld (
 {
 	HAWK_ASSERT (hawk_rtx_gethawk(rtx), HAWK_RTX_GETVALTYPE (rtx, map) == HAWK_VAL_MAP);
 
-	if (hawk_htb_upsert (
-		((hawk_val_map_t*)map)->map,
-		(hawk_ooch_t*)kptr, klen, v, 0) == HAWK_NULL)
-	{
-		hawk_rtx_seterrnum (rtx, HAWK_ENOMEM, HAWK_NULL);
-		return HAWK_NULL;
-	}
+	if (hawk_htb_upsert (((hawk_val_map_t*)map)->map, (hawk_ooch_t*)kptr, klen, v, 0) == HAWK_NULL) return HAWK_NULL;
 
 	/* the value is passed in by an external party. we can't refup()
 	 * and refdown() the value if htb_upsert() fails. that way, the value
@@ -602,13 +595,11 @@ hawk_val_t* hawk_rtx_setmapvalfld (
 	return v;
 }
 
-hawk_val_t* hawk_rtx_getmapvalfld (
-	hawk_rtx_t* rtx, hawk_val_t* map, 
-	const hawk_ooch_t* kptr, hawk_oow_t klen)
+hawk_val_t* hawk_rtx_getmapvalfld (hawk_rtx_t* rtx, hawk_val_t* map, const hawk_ooch_t* kptr, hawk_oow_t klen)
 {
 	hawk_htb_pair_t* pair;
 
-	HAWK_ASSERT (hawk_rtx_gethawk(rtx), HAWK_RTX_GETVALTYPE (rtx, map) == HAWK_VAL_MAP);
+	HAWK_ASSERT (hawk_rtx_gethawk(rtx), HAWK_RTX_GETVALTYPE(rtx, map) == HAWK_VAL_MAP);
 
 	pair = hawk_htb_search(((hawk_val_map_t*)map)->map, kptr, klen);
 	if (pair == HAWK_NULL)
@@ -619,7 +610,6 @@ hawk_val_t* hawk_rtx_getmapvalfld (
 		 * so you can easily determine if the key is found by
 		 * checking the error number.
 		 */
-		hawk_rtx_seterrnum (rtx, HAWK_EINVAL, HAWK_NULL);
 		return HAWK_NULL;
 	}
 
@@ -805,7 +795,7 @@ void hawk_rtx_freeval (hawk_rtx_t* rtx, hawk_val_t* val, int cache)
 			{
 				if (cache && rtx->rcache_count < HAWK_COUNTOF(rtx->rcache))
 				{
-					rtx->rcache[rtx->rcache_count++] = (hawk_val_ref_t*)val;	
+					rtx->rcache[rtx->rcache_count++] = (hawk_val_ref_t*)val;
 				}
 				else hawk_rtx_freemem (rtx, val);
 				break;

@@ -80,10 +80,10 @@ HAWK_INLINE pair_t* hawk_htb_allocpair (hawk_htb_t* htb, void* kptr, hawk_oow_t 
 	}
 	else 
 	{
-		KPTR(n) = kcop (htb, kptr, klen);
+		KPTR(n) = kcop(htb, kptr, klen);
 		if (KPTR(n) == HAWK_NULL)
 		{
-			hawk_gem_freemem (htb->gem, n);		
+			hawk_gem_freemem (htb->gem, n);
 			return HAWK_NULL;
 		}
 	}
@@ -109,7 +109,7 @@ HAWK_INLINE pair_t* hawk_htb_allocpair (hawk_htb_t* htb, void* kptr, hawk_oow_t 
 		{
 			if (htb->style->freeer[HAWK_HTB_KEY] != HAWK_NULL)
 				htb->style->freeer[HAWK_HTB_KEY] (htb, KPTR(n), KLEN(n));
-			hawk_gem_freemem (htb->gem, n);		
+			hawk_gem_freemem (htb->gem, n);
 			return HAWK_NULL;
 		}
 	}
@@ -123,11 +123,10 @@ HAWK_INLINE void hawk_htb_freepair (hawk_htb_t* htb, pair_t* pair)
 		htb->style->freeer[HAWK_HTB_KEY] (htb, KPTR(pair), KLEN(pair));
 	if (htb->style->freeer[HAWK_HTB_VAL] != HAWK_NULL)
 		htb->style->freeer[HAWK_HTB_VAL] (htb, VPTR(pair), VLEN(pair));
-	hawk_gem_freemem (htb->gem, pair);		
+	hawk_gem_freemem (htb->gem, pair);	
 }
 
-static HAWK_INLINE pair_t* change_pair_val (
-	hawk_htb_t* htb, pair_t* pair, void* vptr, hawk_oow_t vlen)
+static HAWK_INLINE pair_t* change_pair_val (hawk_htb_t* htb, pair_t* pair, void* vptr, hawk_oow_t vlen)
 {
 	if (VPTR(pair) == vptr && VLEN(pair) == vlen) 
 	{
@@ -160,9 +159,7 @@ static HAWK_INLINE pair_t* change_pair_val (
 			else
 			{
 				/* need to reconstruct the pair */
-				pair_t* p = hawk_htb_allocpair (htb, 
-					KPTR(pair), KLEN(pair),
-					vptr, vlen);
+				pair_t* p = hawk_htb_allocpair(htb, KPTR(pair), KLEN(pair), vptr, vlen);
 				if (p == HAWK_NULL) return HAWK_NULL;
 				hawk_htb_freepair (htb, pair);
 				return p;
@@ -170,7 +167,7 @@ static HAWK_INLINE pair_t* change_pair_val (
 		}
 		else 
 		{
-			void* nvptr = vcop (htb, vptr, vlen);
+			void* nvptr = vcop(htb, vptr, vlen);
 			if (nvptr == HAWK_NULL) return HAWK_NULL;
 			VPTR(pair) = nvptr;
 			VLEN(pair) = vlen;
@@ -182,7 +179,6 @@ static HAWK_INLINE pair_t* change_pair_val (
 			htb->style->freeer[HAWK_HTB_VAL] (htb, ovptr, ovlen);
 		}
 	}
-
 
 	return pair;
 }
@@ -359,7 +355,7 @@ pair_t* hawk_htb_search (const hawk_htb_t* htb, const void* kptr, hawk_oow_t kle
 
 	while (pair != HAWK_NULL) 
 	{
-		if (htb->style->comper (htb, KPTR(pair), KLEN(pair), kptr, klen) == 0)
+		if (htb->style->comper(htb, KPTR(pair), KLEN(pair), kptr, klen) == 0)
 		{
 			return pair;
 		}
@@ -367,6 +363,7 @@ pair_t* hawk_htb_search (const hawk_htb_t* htb, const void* kptr, hawk_oow_t kle
 		pair = NEXT(pair);
 	}
 
+	hawk_gem_seterrnum (htb->gem, HAWK_NULL, HAWK_ENOENT);
 	return HAWK_NULL;
 }
 
@@ -466,8 +463,7 @@ static HAWK_INLINE pair_t* insert (hawk_htb_t* htb, void* kptr, hawk_oow_t klen,
 						/* old pair destroyed. new pair reallocated.
 						 * relink to include the new pair but to drop
 						 * the old pair. */
-						if (prev == HAWK_NULL) 
-							htb->bucket[hc] = p;
+						if (prev == HAWK_NULL) htb->bucket[hc] = p;
 						else NEXT(prev) = p;
 						NEXT(p) = next; 
 					}
@@ -479,6 +475,7 @@ static HAWK_INLINE pair_t* insert (hawk_htb_t* htb, void* kptr, hawk_oow_t klen,
 
 				case INSERT:
 					/* return failure */
+					hawk_gem_seterrnum (htb->gem, HAWK_NULL, HAWK_EEXIST);
 					return HAWK_NULL;
 			}
 		}
@@ -487,7 +484,11 @@ static HAWK_INLINE pair_t* insert (hawk_htb_t* htb, void* kptr, hawk_oow_t klen,
 		pair = next;
 	}
 
-	if (opt == UPDATE) return HAWK_NULL;
+	if (opt == UPDATE) 
+	{
+		hawk_gem_seterrnum (htb->gem, HAWK_NULL, HAWK_ENOENT);
+		return HAWK_NULL;
+	}
 
 	if (htb->threshold > 0 && htb->size >= htb->threshold)
 	{
@@ -545,10 +546,10 @@ pair_t* hawk_htb_cbsert (hawk_htb_t* htb, void* kptr, hawk_oow_t klen, cbserter_
 	{
 		next = NEXT(pair);
 
-		if (htb->style->comper (htb, KPTR(pair), KLEN(pair), kptr, klen) == 0) 
+		if (htb->style->comper(htb, KPTR(pair), KLEN(pair), kptr, klen) == 0) 
 		{
 			/* found a pair with a matching key */
-			p = cbserter (htb, pair, kptr, klen, ctx);
+			p = cbserter(htb, pair, kptr, klen, ctx);
 			if (p == HAWK_NULL) 
 			{
 				/* error returned by the callback function */
@@ -559,8 +560,7 @@ pair_t* hawk_htb_cbsert (hawk_htb_t* htb, void* kptr, hawk_oow_t klen, cbserter_
 				/* old pair destroyed. new pair reallocated.
 				 * relink to include the new pair but to drop
 				 * the old pair. */
-				if (prev == HAWK_NULL) 
-					htb->bucket[hc] = p;
+				if (prev == HAWK_NULL) htb->bucket[hc] = p;
 				else NEXT(prev) = p;
 				NEXT(p) = next; 
 			}
@@ -583,7 +583,7 @@ pair_t* hawk_htb_cbsert (hawk_htb_t* htb, void* kptr, hawk_oow_t klen, cbserter_
 
 	HAWK_ASSERT (htb->gem, pair == HAWK_NULL);
 
-	pair = cbserter (htb, HAWK_NULL, kptr, klen, ctx);
+	pair = cbserter(htb, HAWK_NULL, kptr, klen, ctx);
 	if (pair == HAWK_NULL) return HAWK_NULL; /* error */
 
 	NEXT(pair) = htb->bucket[hc];
@@ -620,6 +620,7 @@ int hawk_htb_delete (hawk_htb_t* htb, const void* kptr, hawk_oow_t klen)
 		pair = NEXT(pair);
 	}
 
+	hawk_gem_seterrnum (htb->gem, HAWK_NULL, HAWK_ENOENT);
 	return -1;
 }
 
