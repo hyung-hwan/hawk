@@ -2863,7 +2863,7 @@ HAWK_EXPORT int hawk_rtx_valtobool (
  * out.u.cplcpy.ptr = buf;
  * out.u.cplcpy.len = HAWK_COUNTOF(buf);
  * if (hawk_rtx_valtostr (rtx, v, &out) <= -1) goto oops;
- * hawk_printf (HAWK_T("%.*s\n"), (int)out.u.cplcpy.len, out.u.cplcpy.ptr);
+ * hawk_printf (HAWK_T("%.*s\n"), out.u.cplcpy.len, out.u.cplcpy.ptr);
  * \endcode
  *
  * #HAWK_RTX_VALTOSTR_CPL is different from #HAWK_RTX_VALTOSTR_CPLCPY
@@ -2877,7 +2877,7 @@ HAWK_EXPORT int hawk_rtx_valtobool (
  * out.u.cpl.ptr = buf;
  * out.u.cpl.len = HAWK_COUNTOF(buf);
  * if (hawk_rtx_valtostr (rtx, v, &out) <= -1) goto oops;
- * hawk_printf (HAWK_T("%.*s\n"), (int)out.u.cpl.len, out.u.cpl.ptr);
+ * hawk_printf (HAWK_T("%.*s\n"), ut.u.cpl.len, out.u.cpl.ptr);
  * \endcode
  * 
  * When unsure of the size of the string after conversion, you can use
@@ -2887,7 +2887,7 @@ HAWK_EXPORT int hawk_rtx_valtobool (
  * hawk_rtx_valtostr_out_t out;
  * out.type = HAWK_RTX_VALTOSTR_CPLDUP;
  * if (hawk_rtx_valtostr (rtx, v, &out) <= -1) goto oops;
- * hawk_printf (HAWK_T("%.*s\n"), (int)out.u.cpldup.len, out.u.cpldup.ptr);
+ * hawk_printf (HAWK_T("%.*s\n"), out.u.cpldup.len, out.u.cpldup.ptr);
  * hawk_rtx_free (rtx, out.u.cpldup.ptr);
  * \endcode
  *
@@ -2900,8 +2900,7 @@ HAWK_EXPORT int hawk_rtx_valtobool (
  * out.type = HAWK_RTX_VALTOSTR_STRP;
  * out.u.strp = str;
  * if (hawk_rtx_valtostr (rtx, v, &out) <= -1) goto oops;
- * hawk_printf (HAWK_T("%.*s\n"), 
- *     (int)HAWK_STR_LEN(out.u.strp), HAWK_STR_PTR(out.u.strp));
+ * hawk_printf (HAWK_T("%.*s\n"), HAWK_STR_LEN(out.u.strp), HAWK_STR_PTR(out.u.strp));
  * hawk_str_fini (&str);
  * \endcode
  * 
