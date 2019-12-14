@@ -1571,7 +1571,7 @@ hawk_val_t* hawk_rtx_callfun (hawk_rtx_t* rtx, hawk_fun_t* fun, hawk_val_t* args
 	{
 		/* this function contains pass-by-reference parameters.
 		 * i don't support the call here as it requires variables */
-		hawk_rtx_seterrfmt (rtx, HAWK_EPERM, HAWK_NULL, HAWK_T("not allowed to call '%.*js' with pass-by-reference parameters"), (int)fun->name.len, fun->name.ptr);
+		hawk_rtx_seterrfmt (rtx, HAWK_EPERM, HAWK_NULL, HAWK_T("not allowed to call '%.*js' with pass-by-reference parameters"), fun->name.len, fun->name.ptr);
 		return HAWK_NULL;
 	}
 #endif
