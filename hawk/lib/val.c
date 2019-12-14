@@ -302,12 +302,13 @@ hawk_val_t* hawk_rtx_makestrvalwithbchars2 (hawk_rtx_t* rtx, const hawk_bch_t* b
 
 hawk_val_t* hawk_rtx_makenstrvalwithuchars (hawk_rtx_t* rtx, const hawk_uch_t* ptr, hawk_oow_t len)
 {
+	hawk_t* hawk = hawk_rtx_gethawk(rtx);
 	int x;
 	hawk_val_t* v;
 	hawk_int_t l;
 	hawk_flt_t r;
 
-	x = hawk_rtx_ucharstonum(rtx, HAWK_RTX_OOCSTRTONUM_MAKE_OPTION(1, 0), ptr, len, &l, &r);
+	x = hawk_uchars_to_num(HAWK_OOCHARS_TO_NUM_MAKE_OPTION(1, (hawk->opt.trait & HAWK_STRIPSTRSPC), 0), ptr, len, &l, &r);
 	v = hawk_rtx_makestrvalwithuchars(rtx, ptr, len);
 
 	if (!v) return HAWK_NULL;
@@ -316,7 +317,7 @@ hawk_val_t* hawk_rtx_makenstrvalwithuchars (hawk_rtx_t* rtx, const hawk_uch_t* p
 	{
 		/* set the numeric string flag if a string
 		 * can be converted to a number */
-		HAWK_ASSERT (hawk_rtx_gethawk(rtx), x == 0 || x == 1);
+		HAWK_ASSERT (hawk, x == 0 || x == 1);
 		v->nstr = x + 1; /* long -> 1, real -> 2 */
 	}
 
@@ -326,12 +327,13 @@ hawk_val_t* hawk_rtx_makenstrvalwithuchars (hawk_rtx_t* rtx, const hawk_uch_t* p
 
 hawk_val_t* hawk_rtx_makenstrvalwithbchars (hawk_rtx_t* rtx, const hawk_bch_t* ptr, hawk_oow_t len)
 {
+	hawk_t* hawk = hawk_rtx_gethawk(rtx);
 	int x;
 	hawk_val_t* v;
 	hawk_int_t l;
 	hawk_flt_t r;
 
-	x = hawk_rtx_bcharstonum(rtx, HAWK_RTX_OOCSTRTONUM_MAKE_OPTION(1, 0), ptr, len, &l, &r);
+	x = hawk_bchars_to_num(HAWK_OOCHARS_TO_NUM_MAKE_OPTION(1, (hawk->opt.trait & HAWK_STRIPSTRSPC), 0), ptr, len, &l, &r);
 	v = hawk_rtx_makestrvalwithbchars(rtx, ptr, len);
 
 	if (!v) return HAWK_NULL;
@@ -340,7 +342,7 @@ hawk_val_t* hawk_rtx_makenstrvalwithbchars (hawk_rtx_t* rtx, const hawk_bch_t* p
 	{
 		/* set the numeric string flag if a string
 		 * can be converted to a number */
-		HAWK_ASSERT (hawk_rtx_gethawk(rtx), x == 0 || x == 1);
+		HAWK_ASSERT (hawk, x == 0 || x == 1);
 		v->nstr = x + 1; /* long -> 1, real -> 2 */
 	}
 
@@ -1226,17 +1228,12 @@ static int val_flt_to_str (hawk_rtx_t* rtx, const hawk_val_flt_t* v, hawk_rtx_va
 		tmp_len = rtx->gbl.convfmt.len;
 	}
 
-	if (hawk_ooecs_init(&buf, hawk_rtx_gethawk(rtx), 256) <= -1)
-	{
-		hawk_rtx_seterrnum (rtx, HAWK_ENOMEM, HAWK_NULL);
-		return -1;
-	}
+	if (hawk_ooecs_init(&buf, hawk_rtx_getgem(rtx), 256) <= -1) return -1;
 	buf_inited = 1;
 
-	if (hawk_ooecs_init(&fbu, hawk_rtx_gethawk(rtx), 256) <= -1)
+	if (hawk_ooecs_init(&fbu, hawk_rtx_getgem(rtx), 256) <= -1)
 	{
 		hawk_ooecs_fini (&buf);
-		hawk_rtx_seterrnum (rtx, HAWK_ENOMEM, HAWK_NULL);
 		return -1;
 	}
 	fbu_inited = 1;
@@ -1614,6 +1611,8 @@ void hawk_rtx_freevalbcstr (hawk_rtx_t* rtx, const hawk_val_t* v, hawk_bch_t* st
 
 static int val_ref_to_num (hawk_rtx_t* rtx, const hawk_val_ref_t* ref, hawk_int_t* l, hawk_flt_t* r)
 {
+	hawk_t* hawk = hawk_rtx_gethawk(rtx);
+
 	switch (ref->id)
 	{
 		case HAWK_VAL_REF_POS:
@@ -1623,9 +1622,8 @@ static int val_ref_to_num (hawk_rtx_t* rtx, const hawk_val_ref_t* ref, hawk_int_
 			idx = (hawk_oow_t)ref->adr;
 			if (idx == 0)
 			{
-				return hawk_rtx_oocharstonum(
-					rtx, 
-					HAWK_RTX_OOCSTRTONUM_MAKE_OPTION(0, 0),
+				return hawk_oochars_to_num(
+					HAWK_OOCHARS_TO_NUM_MAKE_OPTION(0, (hawk->opt.trait & HAWK_STRIPSTRSPC), 0),
 					HAWK_OOECS_PTR(&rtx->inrec.line),
 					HAWK_OOECS_LEN(&rtx->inrec.line),
 					l, r
@@ -1633,9 +1631,8 @@ static int val_ref_to_num (hawk_rtx_t* rtx, const hawk_val_ref_t* ref, hawk_int_
 			}
 			else if (idx <= rtx->inrec.nflds)
 			{
-				return hawk_rtx_oocharstonum(
-					rtx,
-					HAWK_RTX_OOCSTRTONUM_MAKE_OPTION(0, 0),
+				return hawk_oochars_to_num(
+					HAWK_OOCHARS_TO_NUM_MAKE_OPTION(0, (hawk->opt.trait & HAWK_STRIPSTRSPC), 0),
 					rtx->inrec.flds[idx-1].ptr,
 					rtx->inrec.flds[idx-1].len,
 					l, r
@@ -1643,16 +1640,14 @@ static int val_ref_to_num (hawk_rtx_t* rtx, const hawk_val_ref_t* ref, hawk_int_
 			}
 			else
 			{
-				return hawk_rtx_oocharstonum(
-					rtx, HAWK_RTX_OOCSTRTONUM_MAKE_OPTION(0, 0), HAWK_T(""), 0, l, r
-				);
+				return hawk_oochars_to_num(HAWK_OOCHARS_TO_NUM_MAKE_OPTION(0, (hawk->opt.trait & HAWK_STRIPSTRSPC), 0), HAWK_T(""), 0, l, r);
 			}
 		}
 
 		case HAWK_VAL_REF_GBL:
 		{
 			hawk_oow_t idx = (hawk_oow_t)ref->adr;
-			return hawk_rtx_valtonum (rtx, RTX_STACK_GBL (rtx, idx), l, r);
+			return hawk_rtx_valtonum(rtx, RTX_STACK_GBL (rtx, idx), l, r);
 		}
 
 		default:
@@ -1662,7 +1657,7 @@ static int val_ref_to_num (hawk_rtx_t* rtx, const hawk_val_ref_t* ref, hawk_int_
 			/* A reference value is not able to point to another 
 			 * refernce value for the way values are represented
 			 * in HAWKAWK */
-			HAWK_ASSERT (hawk_rtx_gethawk(rtx), HAWK_RTX_GETVALTYPE(rtx, *xref) != HAWK_VAL_REF); 
+			HAWK_ASSERT (hawk, HAWK_RTX_GETVALTYPE(rtx, *xref) != HAWK_VAL_REF); 
 
 			/* make a recursive call back to the caller */
 			return hawk_rtx_valtonum(rtx, *xref, l, r);
@@ -1674,6 +1669,7 @@ static int val_ref_to_num (hawk_rtx_t* rtx, const hawk_val_ref_t* ref, hawk_int_
 int hawk_rtx_valtonum (hawk_rtx_t* rtx, const hawk_val_t* v, hawk_int_t* l, hawk_flt_t* r)
 {
 	hawk_val_type_t vtype = HAWK_RTX_GETVALTYPE(rtx, v);
+	hawk_t* hawk = hawk_rtx_gethawk(rtx);
 
 	switch (vtype)
 	{
@@ -1685,7 +1681,7 @@ int hawk_rtx_valtonum (hawk_rtx_t* rtx, const hawk_val_t* v, hawk_int_t* l, hawk
 
 		case HAWK_VAL_INT:
 		{
-			*l = HAWK_RTX_GETINTFROMVAL (rtx, v);
+			*l = HAWK_RTX_GETINTFROMVAL(rtx, v);
 			return 0; /* long */
 		}
 
@@ -1697,9 +1693,8 @@ int hawk_rtx_valtonum (hawk_rtx_t* rtx, const hawk_val_t* v, hawk_int_t* l, hawk
 
 		case HAWK_VAL_STR:
 		{
-			return hawk_rtx_oocharstonum(
-				rtx, 
-				HAWK_RTX_OOCSTRTONUM_MAKE_OPTION(0, 0),
+			return hawk_oochars_to_num(
+				HAWK_OOCHARS_TO_NUM_MAKE_OPTION(0, (hawk->opt.trait & HAWK_STRIPSTRSPC), 0),
 				((hawk_val_str_t*)v)->val.ptr,
 				((hawk_val_str_t*)v)->val.len,
 				l, r
@@ -1708,9 +1703,8 @@ int hawk_rtx_valtonum (hawk_rtx_t* rtx, const hawk_val_t* v, hawk_int_t* l, hawk
 
 		case HAWK_VAL_MBS:
 		{
-			return hawk_rtx_bcharstonum(
-				rtx, 
-				HAWK_RTX_OOCSTRTONUM_MAKE_OPTION(0, 0),
+			return hawk_bchars_to_num(
+				HAWK_OOCHARS_TO_NUM_MAKE_OPTION(0, (hawk->opt.trait & HAWK_STRIPSTRSPC), 0),
 				((hawk_val_mbs_t*)v)->val.ptr,
 				((hawk_val_mbs_t*)v)->val.len,
 				l, r
@@ -1740,7 +1734,7 @@ int hawk_rtx_valtonum (hawk_rtx_t* rtx, const hawk_val_t* v, hawk_int_t* l, hawk
 	}
 
 #if defined(DEBUG_VAL)
-	hawk_logfmt (hawk_rtx_gethawk(rtx), HAWK_T(">>WRONG VALUE TYPE [%d] in hawk_rtx_valtonum()\n"), v->type);
+	hawk_logfmt (hawk, HAWK_T(">>WRONG VALUE TYPE [%d] in hawk_rtx_valtonum()\n"), v->type);
 #endif
 
 	hawk_rtx_seterrnum (rtx, HAWK_EVALTONUM, HAWK_NULL);
@@ -1774,45 +1768,6 @@ int hawk_rtx_valtoflt (hawk_rtx_t* rtx, const hawk_val_t* v, hawk_flt_t* r)
 	return n;
 }
 
-/* ========================================================================== */
-#undef awk_rtx_strtonum
-#undef awk_strxtoint
-#undef awk_strxtoflt
-#undef char_t
-#undef AWK_ISDIGIT
-#undef _T
-
-#define awk_rtx_strtonum hawk_rtx_bcharstonum
-#define awk_strxtoint hawk_bcharstoint
-#define awk_strxtoflt hawk_bcharstoflt
-#define char_t hawk_bch_t
-#define AWK_ISDIGIT hawk_is_bch_digit
-#define _T HAWK_BT
-#include "val-imp.h"
-
-/* ------------------------------------------------------------------------- */
-#undef awk_rtx_strtonum
-#undef awk_strxtoint
-#undef awk_strxtoflt
-#undef char_t
-#undef AWK_ISDIGIT
-#undef _T
-/* ------------------------------------------------------------------------- */
-
-#define awk_rtx_strtonum hawk_rtx_ucharstonum
-#define awk_strxtoint hawk_ucharstoint
-#define awk_strxtoflt hawk_ucharstoflt
-#define char_t hawk_uch_t
-#define AWK_ISDIGIT hawk_is_uch_digit
-#define _T HAWK_UT
-#include "val-imp.h"
-
-#undef awk_rtx_strtonum
-#undef awk_strxtoint
-#undef awk_strxtoflt
-#undef char_t
-#undef AWK_ISDIGIT
-#undef _T
 /* ========================================================================== */
 
 static HAWK_INLINE hawk_uint_t hash (hawk_uint8_t* ptr, hawk_oow_t len)

@@ -34,57 +34,6 @@
 #	include <hawk-tre.h>
 #endif
 
-/* ========================================================================= */
-#undef awk_strxtoint
-#undef awk_strtoflt
-#undef awk_strxtoflt
-#undef char_t
-#undef cint_t
-#undef AWK_IS_SPACE
-#undef AWK_IS_DIGIT
-#undef _T
-
-#define awk_strxtoint hawk_bcharstoint
-#define awk_strtoflt hawk_mbstoflt
-#define awk_strxtoflt hawk_bcharstoflt
-#define char_t hawk_bch_t
-#define cint_t hawk_bci_t
-#define AWK_IS_SPACE hawk_is_bch_space
-#define AWK_IS_DIGIT hawk_is_bch_digit
-#define _T HAWK_BT
-#include "misc-imp.h"
-
-/* ------------------------------------------------------------------------- */
-#undef awk_strxtoint
-#undef awk_strtoflt
-#undef awk_strxtoflt
-#undef char_t
-#undef cint_t
-#undef AWK_IS_SPACE
-#undef AWK_IS_DIGIT
-#undef _T
-/* ------------------------------------------------------------------------- */
-
-#define awk_strxtoint hawk_ucharstoint
-#define awk_strtoflt hawk_wcstoflt
-#define awk_strxtoflt hawk_ucharstoflt
-#define char_t hawk_uch_t
-#define cint_t hawk_uci_t
-#define AWK_IS_SPACE hawk_is_uch_space
-#define AWK_IS_DIGIT hawk_is_uch_digit
-#define _T HAWK_UT
-#include "misc-imp.h"
-
-#undef awk_strxtoint
-#undef awk_strtoflt
-#undef awk_strxtoflt
-#undef char_t
-#undef cint_t
-#undef AWK_ISSPACE
-#undef AWK_ISDIGIT
-#undef _T
-/* ========================================================================= */
-
 
 hawk_ooch_t* hawk_rtx_strtok (
 	hawk_rtx_t* rtx, const hawk_ooch_t* s, 

@@ -930,14 +930,14 @@ static int init_rtx (hawk_rtx_t* rtx, hawk_t* awk, hawk_rio_cbs_t* rio)
 	rtx->inrec.maxflds = 0;
 	rtx->inrec.d0 = hawk_val_nil;
 
-	if (hawk_ooecs_init(&rtx->inrec.line, hawk_rtx_gethawk(rtx), DEF_BUF_CAPA) <= -1) goto oops_1;
-	if (hawk_ooecs_init(&rtx->inrec.linew, hawk_rtx_gethawk(rtx), DEF_BUF_CAPA) <= -1) goto oops_2;
-	if (hawk_ooecs_init(&rtx->inrec.lineg, hawk_rtx_gethawk(rtx), DEF_BUF_CAPA) <= -1) goto oops_3;
-	if (hawk_ooecs_init(&rtx->format.out, hawk_rtx_gethawk(rtx), 256) <= -1) goto oops_4;
-	if (hawk_ooecs_init(&rtx->format.fmt, hawk_rtx_gethawk(rtx), 256) <= -1) goto oops_5;
+	if (hawk_ooecs_init(&rtx->inrec.line, hawk_rtx_getgem(rtx), DEF_BUF_CAPA) <= -1) goto oops_1;
+	if (hawk_ooecs_init(&rtx->inrec.linew, hawk_rtx_getgem(rtx), DEF_BUF_CAPA) <= -1) goto oops_2;
+	if (hawk_ooecs_init(&rtx->inrec.lineg, hawk_rtx_getgem(rtx), DEF_BUF_CAPA) <= -1) goto oops_3;
+	if (hawk_ooecs_init(&rtx->format.out, hawk_rtx_getgem(rtx), 256) <= -1) goto oops_4;
+	if (hawk_ooecs_init(&rtx->format.fmt, hawk_rtx_getgem(rtx), 256) <= -1) goto oops_5;
 
-	if (hawk_becs_init(&rtx->formatmbs.out, hawk_rtx_gethawk(rtx), 256) <= -1) goto oops_6;
-	if (hawk_becs_init(&rtx->formatmbs.fmt, hawk_rtx_gethawk(rtx), 256) <= -1) goto oops_7;
+	if (hawk_becs_init(&rtx->formatmbs.out, hawk_rtx_getgem(rtx), 256) <= -1) goto oops_6;
+	if (hawk_becs_init(&rtx->formatmbs.fmt, hawk_rtx_getgem(rtx), 256) <= -1) goto oops_7;
 
 	rtx->named = hawk_htb_open(hawk_rtx_gethawk(rtx), HAWK_SIZEOF(rtx), 1024, 70, HAWK_SIZEOF(hawk_ooch_t), 1);
 	if (!rtx->named) goto oops_8;
@@ -1002,7 +1002,6 @@ oops_2:
 oops_1:
 	hawk_rtx_freemem (rtx, rtx->stack);
 oops_0:
-	hawk_seterrnum (awk, HAWK_ENOMEM, HAWK_NULL);
 	return -1;
 }
 
@@ -4263,19 +4262,19 @@ static HAWK_INLINE int __cmp_int_flt (
 
 static HAWK_INLINE int __cmp_int_str (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t* right, cmp_op_t op_hint)
 {
+	hawk_t* hawk = hawk_rtx_gethawk(rtx);
 	hawk_ooch_t* str0;
 	hawk_oow_t len0;
 	int n;
 
 	/* SCO CC doesn't seem to handle right->nstr > 0 properly */
-	if ((rtx->awk->opt.trait & HAWK_NCMPONSTR) || right->nstr /*> 0*/)
+	if ((hawk->opt.trait & HAWK_NCMPONSTR) || right->nstr /*> 0*/)
 	{
 		hawk_int_t ll, v1;
 		hawk_flt_t rr;
 
-		n = hawk_rtx_oocharstonum(
-			rtx,
-			HAWK_RTX_OOCSTRTONUM_MAKE_OPTION(1, 0),
+		n = hawk_oochars_to_num(
+			HAWK_OOCHARS_TO_NUM_MAKE_OPTION(1, (hawk->opt.trait & HAWK_STRIPSTRSPC), 0),
 			((hawk_val_str_t*)right)->val.ptr,
 			((hawk_val_str_t*)right)->val.len, 
 			&ll, &rr
@@ -4304,18 +4303,18 @@ static HAWK_INLINE int __cmp_int_str (hawk_rtx_t* rtx, hawk_val_t* left, hawk_va
 
 static HAWK_INLINE int __cmp_int_mbs (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t* right, cmp_op_t op_hint)
 {
+	hawk_t* hawk = hawk_rtx_gethawk(rtx);
 	hawk_bch_t* str0;
 	hawk_oow_t len0;
 	int n;
 
-	if ((rtx->awk->opt.trait & HAWK_NCMPONSTR) || right->nstr /*> 0*/)
+	if ((hawk->opt.trait & HAWK_NCMPONSTR) || right->nstr /*> 0*/)
 	{
 		hawk_int_t ll, v1;
 		hawk_flt_t rr;
 
-		n = hawk_rtx_bcharstonum (
-			rtx,
-			HAWK_RTX_OOCSTRTONUM_MAKE_OPTION(1, 0),
+		n = hawk_bchars_to_num (
+			HAWK_OOCHARS_TO_NUM_MAKE_OPTION(1, (hawk->opt.trait & HAWK_STRIPSTRSPC), 0),
 			((hawk_val_mbs_t*)right)->val.ptr,
 			((hawk_val_mbs_t*)right)->val.len, 
 			&ll, &rr
@@ -4385,17 +4384,18 @@ static HAWK_INLINE int __cmp_flt_flt (hawk_rtx_t* rtx, hawk_val_t* left, hawk_va
 
 static HAWK_INLINE int __cmp_flt_str (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t* right, cmp_op_t op_hint)
 {
+	hawk_t* hawk = hawk_rtx_gethawk(rtx);
 	hawk_ooch_t* str0;
 	hawk_oow_t len0;
 	int n;
 
 	/* SCO CC doesn't seem to handle right->nstr > 0 properly */
-	if (rtx->awk->opt.trait & HAWK_NCMPONSTR || right->nstr /*> 0*/)
+	if (hawk->opt.trait & HAWK_NCMPONSTR || right->nstr /*> 0*/)
 	{
 		const hawk_ooch_t* end;
 		hawk_flt_t rr;
 
-		rr = hawk_strxtoflt(hawk_rtx_gethawk(rtx), ((hawk_val_str_t*)right)->val.ptr, ((hawk_val_str_t*)right)->val.len, &end);
+		rr = hawk_oochars_to_flt(((hawk_val_str_t*)right)->val.ptr, ((hawk_val_str_t*)right)->val.len, &end, (hawk->opt.trait & HAWK_STRIPSTRSPC));
 		if (end == ((hawk_val_str_t*)right)->val.ptr + ((hawk_val_str_t*)right)->val.len)
 		{
 			return (((hawk_val_flt_t*)left)->val > rr)? 1:
@@ -4413,16 +4413,17 @@ static HAWK_INLINE int __cmp_flt_str (hawk_rtx_t* rtx, hawk_val_t* left, hawk_va
 
 static HAWK_INLINE int __cmp_flt_mbs (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t* right, cmp_op_t op_hint)
 {
+	hawk_t* hawk = hawk_rtx_gethawk(rtx);
 	hawk_bch_t* str0;
 	hawk_oow_t len0;
 	int n;
 
-	if (rtx->awk->opt.trait & HAWK_NCMPONSTR || right->nstr /*> 0*/)
+	if (hawk->opt.trait & HAWK_NCMPONSTR || right->nstr /*> 0*/)
 	{
 		const hawk_bch_t* end;
 		hawk_flt_t rr;
 
-		rr = hawk_bcharstoflt(hawk_rtx_gethawk(rtx), ((hawk_val_mbs_t*)right)->val.ptr, ((hawk_val_mbs_t*)right)->val.len, &end);
+		rr = hawk_bchars_to_flt(((hawk_val_mbs_t*)right)->val.ptr, ((hawk_val_mbs_t*)right)->val.len, &end, (hawk->opt.trait & HAWK_STRIPSTRSPC));
 		if (end == ((hawk_val_mbs_t*)right)->val.ptr + ((hawk_val_mbs_t*)right)->val.len)
 		{
 			return (((hawk_val_flt_t*)left)->val > rr)? 1:
@@ -4477,7 +4478,9 @@ static HAWK_INLINE int __cmp_str_flt (hawk_rtx_t* rtx, hawk_val_t* left, hawk_va
 
 static HAWK_INLINE int __cmp_str_str (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t* right, cmp_op_t op_hint)
 {
+	hawk_t* hawk = hawk_rtx_gethawk(rtx);
 	hawk_val_str_t* ls, * rs;
+	
 
 	ls = (hawk_val_str_t*)left;
 	rs = (hawk_val_str_t*)right;
@@ -4492,13 +4495,13 @@ static HAWK_INLINE int __cmp_str_str (hawk_rtx_t* rtx, hawk_val_t* left, hawk_va
 	{
 		hawk_int_t ll;
 
-		ll = hawk_strxtoint(hawk_rtx_gethawk(rtx), ls->val.ptr, ls->val.len, 0, HAWK_NULL);
+		ll = hawk_oochars_to_int(ls->val.ptr, ls->val.len, 0, HAWK_NULL, (hawk->opt.trait & HAWK_STRIPSTRSPC));
 
 		if (rs->nstr == 1)
 		{
 			hawk_int_t rr;
 			
-			rr = hawk_strxtoint(hawk_rtx_gethawk(rtx), rs->val.ptr, rs->val.len, 0, HAWK_NULL);
+			rr = hawk_oochars_to_int(rs->val.ptr, rs->val.len, 0, HAWK_NULL, (hawk->opt.trait & HAWK_STRIPSTRSPC));
 
 			return (ll > rr)? 1:
 			       (ll < rr)? -1: 0;
@@ -4507,9 +4510,9 @@ static HAWK_INLINE int __cmp_str_str (hawk_rtx_t* rtx, hawk_val_t* left, hawk_va
 		{
 			hawk_flt_t rr;
 
-			HAWK_ASSERT (hawk_rtx_gethawk(rtx), rs->nstr == 2);
+			HAWK_ASSERT (hawk, rs->nstr == 2);
 
-			rr = hawk_strxtoflt(hawk_rtx_gethawk(rtx), rs->val.ptr, rs->val.len, HAWK_NULL);
+			rr = hawk_oochars_to_flt(rs->val.ptr, rs->val.len, HAWK_NULL, (hawk->opt.trait & HAWK_STRIPSTRSPC));
 
 			return (ll > rr)? 1:
 			       (ll < rr)? -1: 0;
@@ -4519,15 +4522,15 @@ static HAWK_INLINE int __cmp_str_str (hawk_rtx_t* rtx, hawk_val_t* left, hawk_va
 	{
 		hawk_flt_t ll;
 
-		HAWK_ASSERT (hawk_rtx_gethawk(rtx), ls->nstr == 2);
+		HAWK_ASSERT (hawk, ls->nstr == 2);
 
-		ll = hawk_strxtoflt(hawk_rtx_gethawk(rtx), ls->val.ptr, ls->val.len, HAWK_NULL);
+		ll = hawk_oochars_to_flt(ls->val.ptr, ls->val.len, HAWK_NULL, (hawk->opt.trait & HAWK_STRIPSTRSPC));
 		
 		if (rs->nstr == 1)
 		{
 			hawk_int_t rr;
 			
-			rr = hawk_strxtoint(hawk_rtx_gethawk(rtx), rs->val.ptr, rs->val.len, 0, HAWK_NULL);
+			rr = hawk_oochars_to_int(rs->val.ptr, rs->val.len, 0, HAWK_NULL, (hawk->opt.trait & HAWK_STRIPSTRSPC));
 
 			return (ll > rr)? 1:
 			       (ll < rr)? -1: 0;
@@ -4536,9 +4539,9 @@ static HAWK_INLINE int __cmp_str_str (hawk_rtx_t* rtx, hawk_val_t* left, hawk_va
 		{
 			hawk_flt_t rr;
 
-			HAWK_ASSERT (hawk_rtx_gethawk(rtx), rs->nstr == 2);
+			HAWK_ASSERT (hawk, rs->nstr == 2);
 
-			rr = hawk_strxtoflt(hawk_rtx_gethawk(rtx), rs->val.ptr, rs->val.len, HAWK_NULL);
+			rr = hawk_oochars_to_flt(rs->val.ptr, rs->val.len, HAWK_NULL, (hawk->opt.trait & HAWK_STRIPSTRSPC));
 
 			return (ll > rr)? 1:
 			       (ll < rr)? -1: 0;
@@ -6892,11 +6895,10 @@ static int shorten_record (hawk_rtx_t* rtx, hawk_oow_t nflds)
 		}
 	}
 
-	if (hawk_ooecs_init(&tmp, hawk_rtx_gethawk(rtx), HAWK_OOECS_LEN(&rtx->inrec.line)) <= -1)
+	if (hawk_ooecs_init(&tmp, hawk_rtx_getgem(rtx), HAWK_OOECS_LEN(&rtx->inrec.line)) <= -1)
 	{
 		if (ofs_free) hawk_rtx_freemem (rtx, ofs_free);
 		if (nflds > 1) hawk_rtx_refdownval (rtx, v);
-		SETERR_COD (rtx, HAWK_ENOMEM);
 		return -1;
 	}
 
@@ -6907,16 +6909,14 @@ static int shorten_record (hawk_rtx_t* rtx, hawk_oow_t nflds)
 			hawk_ooecs_fini (&tmp);
 			if (ofs_free) hawk_rtx_freemem (rtx, ofs_free);
 			if (nflds > 1) hawk_rtx_refdownval (rtx, v);
-			SETERR_COD (rtx, HAWK_ENOMEM);
 			return -1;
 		}
 
-		if (hawk_ooecs_ncat (&tmp, rtx->inrec.flds[i].ptr, rtx->inrec.flds[i].len) == (hawk_oow_t)-1)
+		if (hawk_ooecs_ncat(&tmp, rtx->inrec.flds[i].ptr, rtx->inrec.flds[i].len) == (hawk_oow_t)-1)
 		{
 			hawk_ooecs_fini (&tmp);
 			if (ofs_free) hawk_rtx_freemem (rtx, ofs_free);
 			if (nflds > 1) hawk_rtx_refdownval (rtx, v);
-			SETERR_COD (rtx, HAWK_ENOMEM);
 			return -1;
 		}
 	}
@@ -7009,9 +7009,9 @@ static hawk_ooch_t* idxnde_to_str (hawk_rtx_t* rtx, hawk_nde_t* nde, hawk_ooch_t
 		out.type = HAWK_RTX_VALTOSTR_STRPCAT;
 		out.u.strpcat = &idxstr;
 
-		if (hawk_ooecs_init(&idxstr, hawk_rtx_gethawk(rtx), DEF_BUF_CAPA) <= -1) 
+		if (hawk_ooecs_init(&idxstr, hawk_rtx_getgem(rtx), DEF_BUF_CAPA) <= -1) 
 		{
-			SETERR_LOC (rtx, HAWK_ENOMEM, &nde->loc);
+			ADJERR_LOC (rtx, &nde->loc);
 			return HAWK_NULL;
 		}
 
@@ -7030,7 +7030,7 @@ static hawk_ooch_t* idxnde_to_str (hawk_rtx_t* rtx, hawk_nde_t* nde, hawk_ooch_t
 			{
 				hawk_rtx_refdownval (rtx, idx);
 				hawk_ooecs_fini (&idxstr);
-				SETERR_LOC (rtx, HAWK_ENOMEM, &nde->loc);
+				ADJERR_LOC (rtx, &nde->loc);
 				return HAWK_NULL;
 			}
 
@@ -7066,37 +7066,13 @@ hawk_ooch_t* hawk_rtx_format (
 	hawk_oow_t stack_arg_idx = 1;
 	hawk_val_t* val;
 
-#define OUT_CHAR(c) do { \
-	if (hawk_ooecs_ccat(out, (c)) == (hawk_oow_t)-1) \
-	{ \
-		SETERR_COD (rtx, HAWK_ENOMEM); \
-		return HAWK_NULL; \
-	} \
-} while(0)
+#define OUT_CHAR(c) do { if (hawk_ooecs_ccat(out, (c)) == (hawk_oow_t)-1) return HAWK_NULL; } while(0)
 
-#define OUT_STR(ptr,len) do { \
-	if (hawk_ooecs_ncat(out, (ptr), (len)) == (hawk_oow_t)-1) \
-	{ \
-		SETERR_COD (rtx, HAWK_ENOMEM); \
-		return HAWK_NULL; \
-	} \
-} while(0)
+#define OUT_STR(ptr,len) do { if (hawk_ooecs_ncat(out, (ptr), (len)) == (hawk_oow_t)-1) return HAWK_NULL; } while(0)
 
-#define FMT_CHAR(c) do { \
-	if (hawk_ooecs_ccat(fbu, (c)) == (hawk_oow_t)-1) \
-	{ \
-		SETERR_COD (rtx, HAWK_ENOMEM); \
-		return HAWK_NULL; \
-	} \
-} while(0)
+#define FMT_CHAR(c) do { if (hawk_ooecs_ccat(fbu, (c)) == (hawk_oow_t)-1) return HAWK_NULL; } while(0)
 
-#define FMT_STR(ptr,len) do { \
-	if (hawk_ooecs_ncat(fbu, (ptr), (len)) == (hawk_oow_t)-1) \
-	{ \
-		SETERR_COD (rtx, HAWK_ENOMEM); \
-		return HAWK_NULL; \
-	} \
-} while(0)
+#define FMT_STR(ptr,len) do { if (hawk_ooecs_ncat(fbu, (ptr), (len)) == (hawk_oow_t)-1) return HAWK_NULL; } while(0)
 
 #define GROW(buf) do { \
 	if ((buf)->ptr) \
@@ -7561,15 +7537,11 @@ wp_mod_main:
 			}
 
 			hawk_rtx_refupval (rtx, v);
-			n = hawk_rtx_valtoflt (rtx, v, &r);
+			n = hawk_rtx_valtoflt(rtx, v, &r);
 			hawk_rtx_refdownval (rtx, v);
 			if (n <= -1) return HAWK_NULL;
 
-			if (hawk_ooecs_fcat(out, HAWK_OOECS_PTR(fbu), r) == (hawk_oow_t)-1)
-			{
-				SETERR_COD (rtx, HAWK_ENOMEM);
-				return HAWK_NULL;
-			}
+			if (hawk_ooecs_fcat(out, HAWK_OOECS_PTR(fbu), r) == (hawk_oow_t)-1) return HAWK_NULL;
 		}
 		else if (fmt[i] == HAWK_T('c')) 
 		{
@@ -7665,7 +7637,6 @@ wp_mod_main:
 					if (hawk_ooecs_ccat(out, HAWK_T(' ')) == (hawk_oow_t)-1) 
 					{ 
 						hawk_rtx_refdownval (rtx, v);
-						SETERR_COD (rtx, HAWK_ENOMEM);
 						return HAWK_NULL; 
 					} 
 					wp[WP_WIDTH]--;
@@ -7677,7 +7648,6 @@ wp_mod_main:
 				if (hawk_ooecs_ccat(out, ch) == (hawk_oow_t)-1) 
 				{ 
 					hawk_rtx_refdownval (rtx, v);
-					SETERR_COD (rtx, HAWK_ENOMEM);
 					return HAWK_NULL; 
 				} 
 			}
@@ -7690,7 +7660,6 @@ wp_mod_main:
 					if (hawk_ooecs_ccat (out, HAWK_T(' ')) == (hawk_oow_t)-1) 
 					{ 
 						hawk_rtx_refdownval (rtx, v);
-						SETERR_COD (rtx, HAWK_ENOMEM);
 						return HAWK_NULL; 
 					} 
 					wp[WP_WIDTH]--;
@@ -7797,7 +7766,6 @@ wp_mod_main:
 					{ 
 						if (str_free) hawk_rtx_freemem (rtx, str_free);
 						hawk_rtx_refdownval (rtx, v);
-						SETERR_COD (rtx, HAWK_ENOMEM);
 						return HAWK_NULL; 
 					} 
 					wp[WP_WIDTH]--;
@@ -7857,7 +7825,6 @@ wp_mod_main:
 					s_fail:
 						if (str_free) hawk_rtx_freemem (rtx, str_free);
 						hawk_rtx_refdownval (rtx, v);
-						SETERR_COD (rtx, HAWK_ENOMEM);
 						return HAWK_NULL; 
 					}
 				}
@@ -7873,7 +7840,6 @@ wp_mod_main:
 					if (hawk_ooecs_ccat(out, HAWK_T(' ')) == (hawk_oow_t)-1) 
 					{ 
 						hawk_rtx_refdownval (rtx, v);
-						SETERR_COD (rtx, HAWK_ENOMEM);
 						return HAWK_NULL; 
 					} 
 					wp[WP_WIDTH]--;
@@ -7913,37 +7879,13 @@ hawk_bch_t* hawk_rtx_formatmbs (
 	hawk_oow_t stack_arg_idx = 1;
 	hawk_val_t* val;
 
-#define OUT_MCHAR(c) do { \
-	if (hawk_becs_ccat(out, (c)) == (hawk_oow_t)-1) \
-	{ \
-		SETERR_COD (rtx, HAWK_ENOMEM); \
-		return HAWK_NULL; \
-	} \
-} while(0)
+#define OUT_MCHAR(c) do { if (hawk_becs_ccat(out, (c)) == (hawk_oow_t)-1) return HAWK_NULL; } while(0)
 
-#define OUT_MBS(ptr,len) do { \
-	if (hawk_becs_ncat(out, (ptr), (len)) == (hawk_oow_t)-1) \
-	{ \
-		SETERR_COD (rtx, HAWK_ENOMEM); \
-		return HAWK_NULL; \
-	} \
-} while(0)
+#define OUT_MBS(ptr,len) do { if (hawk_becs_ncat(out, (ptr), (len)) == (hawk_oow_t)-1) return HAWK_NULL; } while(0)
 
-#define FMT_MCHAR(c) do { \
-	if (hawk_becs_ccat(fbu, (c)) == (hawk_oow_t)-1) \
-	{ \
-		SETERR_COD (rtx, HAWK_ENOMEM); \
-		return HAWK_NULL; \
-	} \
-} while(0)
+#define FMT_MCHAR(c) do {  if (hawk_becs_ccat(fbu, (c)) == (hawk_oow_t)-1) return HAWK_NULL; } while(0)
 
-#define FMT_MBS(ptr,len) do { \
-	if (hawk_becs_ncat(fbu, (ptr), (len)) == (hawk_oow_t)-1) \
-	{ \
-		SETERR_COD (rtx, HAWK_ENOMEM); \
-		return HAWK_NULL; \
-	} \
-} while(0)
+#define FMT_MBS(ptr,len) do { if (hawk_becs_ncat(fbu, (ptr), (len)) == (hawk_oow_t)-1) return HAWK_NULL; } while(0)
 
 #define GROW_MBSBUF(buf) do { \
 	if ((buf)->ptr) \
@@ -8414,11 +8356,7 @@ wp_mod_main:
 			hawk_rtx_refdownval (rtx, v);
 			if (n <= -1) return HAWK_NULL;
 
-			if (hawk_becs_fcat(out, HAWK_BECS_PTR(fbu), r) == (hawk_oow_t)-1)
-			{
-				SETERR_COD (rtx, HAWK_ENOMEM);
-				return HAWK_NULL;
-			}
+			if (hawk_becs_fcat(out, HAWK_BECS_PTR(fbu), r) == (hawk_oow_t)-1) return HAWK_NULL;
 		}
 		else if (fmt[i] == HAWK_BT('c')) 
 		{
@@ -8515,7 +8453,6 @@ wp_mod_main:
 					if (hawk_becs_ccat(out, HAWK_BT(' ')) == (hawk_oow_t)-1) 
 					{ 
 						hawk_rtx_refdownval (rtx, v);
-						SETERR_COD (rtx, HAWK_ENOMEM);
 						return HAWK_NULL; 
 					} 
 					wp[WP_WIDTH]--;
@@ -8527,7 +8464,6 @@ wp_mod_main:
 				if (hawk_becs_ccat(out, ch) == (hawk_oow_t)-1) 
 				{ 
 					hawk_rtx_refdownval (rtx, v);
-					SETERR_COD (rtx, HAWK_ENOMEM);
 					return HAWK_NULL; 
 				} 
 			}
@@ -8540,7 +8476,6 @@ wp_mod_main:
 					if (hawk_becs_ccat (out, HAWK_BT(' ')) == (hawk_oow_t)-1) 
 					{ 
 						hawk_rtx_refdownval (rtx, v);
-						SETERR_COD (rtx, HAWK_ENOMEM);
 						return HAWK_NULL; 
 					} 
 					wp[WP_WIDTH]--;
@@ -8649,7 +8584,6 @@ wp_mod_main:
 					{ 
 						if (str_free) hawk_rtx_freemem (rtx, str_free);
 						hawk_rtx_refdownval (rtx, v);
-						SETERR_COD (rtx, HAWK_ENOMEM);
 						return HAWK_NULL; 
 					} 
 					wp[WP_WIDTH]--;
@@ -8703,7 +8637,6 @@ wp_mod_main:
 					s_fail:
 						if (str_free) hawk_rtx_freemem (rtx, str_free);
 						hawk_rtx_refdownval (rtx, v);
-						SETERR_COD (rtx, HAWK_ENOMEM);
 						return HAWK_NULL; 
 					}
 				}
@@ -8719,7 +8652,6 @@ wp_mod_main:
 					if (hawk_becs_ccat(out, HAWK_BT(' ')) == (hawk_oow_t)-1) 
 					{ 
 						hawk_rtx_refdownval (rtx, v);
-						SETERR_COD (rtx, HAWK_ENOMEM);
 						return HAWK_NULL; 
 					} 
 					wp[WP_WIDTH]--;

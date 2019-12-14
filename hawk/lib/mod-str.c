@@ -469,6 +469,7 @@ static int fnc_tonum (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	/* str::tonum(value) */
 	/* str::tonum(string, base) */
 
+	hawk_t* hawk = hawk_rtx_gethawk(rtx);
 	hawk_val_t* retv;
 	hawk_val_t* a0;
 	hawk_int_t lv;
@@ -485,9 +486,8 @@ static int fnc_tonum (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		hawk_int_t base;
 
 		if (hawk_rtx_valtoint(rtx, a1, &base) <= -1) return -1;
-		rx = hawk_rtx_bcharstonum(
-			rtx,
-			HAWK_RTX_OOCSTRTONUM_MAKE_OPTION(0, base),
+		rx = hawk_bchars_to_num(
+			HAWK_OOCHARS_TO_NUM_MAKE_OPTION(0, (hawk->opt.trait & HAWK_STRIPSTRSPC), base),
 			((hawk_val_mbs_t*)a0)->val.ptr,
 			((hawk_val_mbs_t*)a0)->val.len,
 			&lv, &rv
@@ -501,9 +501,8 @@ static int fnc_tonum (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		hawk_int_t base;
 
 		if (hawk_rtx_valtoint(rtx, a1, &base) <= -1) return -1;
-		rx = hawk_rtx_oocharstonum(
-			rtx,
-			HAWK_RTX_OOCSTRTONUM_MAKE_OPTION(0, base),
+		rx = hawk_oochars_to_num(
+			HAWK_OOCHARS_TO_NUM_MAKE_OPTION(0, (hawk->opt.trait & HAWK_STRIPSTRSPC), base),
 			((hawk_val_str_t*)a0)->val.ptr,
 			((hawk_val_str_t*)a0)->val.len,
 			&lv, &rv

@@ -1146,17 +1146,17 @@ static hawk_ooi_t sf_out (hawk_t* awk, hawk_sio_cmd_t cmd, hawk_sio_arg_t* arg, 
 					return 1;
 
 				case HAWK_PARSESTD_OOCS:
-					xtn->s.out.u.oocs.buf = hawk_ooecs_open(awk, 0, 512);
+					xtn->s.out.u.oocs.buf = hawk_ooecs_open(hawk_getgem(awk), 0, 512);
 					if (xtn->s.out.u.oocs.buf == HAWK_NULL) return -1;
 					return 1;
 
 				case HAWK_PARSESTD_BCS:
-					xtn->s.out.u.bcs.buf = hawk_becs_open(awk, 0, 512);
+					xtn->s.out.u.bcs.buf = hawk_becs_open(hawk_getgem(awk), 0, 512);
 					if (xtn->s.out.u.bcs.buf == HAWK_NULL) return -1;
 					return 1;
 
 				case HAWK_PARSESTD_UCS:
-					xtn->s.out.u.ucs.buf = hawk_uecs_open(awk, 0, 512);
+					xtn->s.out.u.ucs.buf = hawk_uecs_open(hawk_getgem(awk), 0, 512);
 					if (xtn->s.out.u.ucs.buf == HAWK_NULL) return -1;
 					return 1;
 			}
@@ -2503,6 +2503,7 @@ static ioattr_t* find_or_make_ioattr (
 
 static int fnc_setioattr (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
+	hawk_t* hawk = hawk_rtx_gethawk(rtx);
 	rxtn_t* rxtn;
 	hawk_val_t* v[3];
 	hawk_ooch_t* ptr[3];
@@ -2511,12 +2512,12 @@ static int fnc_setioattr (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	int tmout;
 
 	rxtn = GET_RXTN(rtx);
-	HAWK_ASSERT (hawk_rtx_gethawk(rtx), rxtn->cmgrtab_inited == 1);
+	HAWK_ASSERT (hawk, rxtn->cmgrtab_inited == 1);
 
 	for (i = 0; i < 3; i++)
 	{
-		v[i] = hawk_rtx_getarg (rtx, i);
-		ptr[i] = hawk_rtx_getvaloocstr (rtx, v[i], &len[i]);
+		v[i] = hawk_rtx_getarg(rtx, i);
+		ptr[i] = hawk_rtx_getvaloocstr(rtx, v[i], &len[i]);
 		if (ptr[i] == HAWK_NULL) 
 		{
 			ret = -1;
@@ -2530,7 +2531,7 @@ static int fnc_setioattr (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		}
 	}
 
-	if ((tmout = timeout_code (ptr[1])) >= 0)
+	if ((tmout = timeout_code(ptr[1])) >= 0)
 	{
 		ioattr_t* ioattr;
 
@@ -2540,7 +2541,7 @@ static int fnc_setioattr (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 		/* no error is returned by hawk_rtx_strnum() if the strict option 
 		 * of the second parameter is 0. so i don't check for an error */
-		x = hawk_rtx_oocharstonum(rtx, HAWK_RTX_OOCSTRTONUM_MAKE_OPTION(0, 0), ptr[2], len[2], &l, &r);
+		x = hawk_oochars_to_num(HAWK_OOCHARS_TO_NUM_MAKE_OPTION(0, (hawk->opt.trait & HAWK_STRIPSTRSPC), 0), ptr[2], len[2], &l, &r);
 		if (x == 0) r = (hawk_flt_t)l;
 
 		ioattr = find_or_make_ioattr(rtx, &rxtn->cmgrtab, ptr[0], len[0]);

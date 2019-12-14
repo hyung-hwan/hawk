@@ -25,16 +25,16 @@
  */
 
 
-str_t* FN(open) (hawk_t* hawk, hawk_oow_t xtnsize, hawk_oow_t capa)
+str_t* FN(open) (hawk_gem_t* gem, hawk_oow_t xtnsize, hawk_oow_t capa)
 {
 	str_t* str;
 
-	str = (str_t*)hawk_allocmem(hawk, HAWK_SIZEOF(str_t) + xtnsize);
+	str = (str_t*)hawk_gem_allocmem(gem, HAWK_SIZEOF(str_t) + xtnsize);
 	if (str)
 	{
-		if (FN(init)(str, hawk, capa) <= -1)
+		if (FN(init)(str, gem, capa) <= -1)
 		{
-			hawk_freemem (hawk, str);
+			hawk_gem_freemem (gem, str);
 			str = HAWK_NULL;
 		}
 		else
@@ -48,20 +48,20 @@ str_t* FN(open) (hawk_t* hawk, hawk_oow_t xtnsize, hawk_oow_t capa)
 void FN(close) (str_t* str)
 {
 	FN(fini) (str);
-	hawk_freemem (str->hawk, str);
+	hawk_gem_freemem (str->gem, str);
 }
 
-int FN(init) (str_t* str, hawk_t* hawk, hawk_oow_t capa)
+int FN(init) (str_t* str, hawk_gem_t* gem, hawk_oow_t capa)
 {
 	HAWK_MEMSET (str, 0, HAWK_SIZEOF(str_t));
 
-	str->hawk = hawk;
+	str->gem = gem;
 	str->sizer = HAWK_NULL;
 
 	if (capa == 0) str->val.ptr = HAWK_NULL;
 	else
 	{
-		str->val.ptr = (char_t*)hawk_allocmem(hawk, HAWK_SIZEOF(char_t) * (capa + 1));
+		str->val.ptr = (char_t*)hawk_gem_allocmem(gem, HAWK_SIZEOF(char_t) * (capa + 1));
 		if (!str->val.ptr) return -1;
 		str->val.ptr[0] = '\0';
 	}
@@ -74,7 +74,7 @@ int FN(init) (str_t* str, hawk_t* hawk, hawk_oow_t capa)
 
 void FN(fini) (str_t* str)
 {
-	if (str->val.ptr) hawk_freemem (str->hawk, str->val.ptr);
+	if (str->val.ptr) hawk_gem_freemem (str->gem, str->val.ptr);
 }
 
 int FN(yield) (str_t* str, cstr_t* buf, hawk_oow_t newcapa)
@@ -84,7 +84,7 @@ int FN(yield) (str_t* str, cstr_t* buf, hawk_oow_t newcapa)
 	if (newcapa == 0) tmp = HAWK_NULL;
 	else
 	{
-		tmp = (char_t*)hawk_allocmem(str->hawk, HAWK_SIZEOF(char_t) * (newcapa + 1));
+		tmp = (char_t*)hawk_gem_allocmem(str->gem, HAWK_SIZEOF(char_t) * (newcapa + 1));
 		if (!tmp) return -1;
 		tmp[0] = '\0';
 	}
@@ -112,7 +112,7 @@ hawk_oow_t FN(setcapa) (str_t* str, hawk_oow_t capa)
 
 	if (capa == str->capa) return capa;
 
-	tmp = (char_t*)hawk_reallocmem(str->hawk, str->val.ptr, HAWK_SIZEOF(char_t) * (capa+1));
+	tmp = (char_t*)hawk_gem_reallocmem(str->gem, str->val.ptr, HAWK_SIZEOF(char_t) * (capa+1));
 	if (!tmp) return (hawk_oow_t)-1;
 
 	if (capa < str->val.len)
@@ -152,7 +152,7 @@ void FN(clear) (str_t* str)
 	str->val.len = 0;
 	if (str->val.ptr)
 	{
-		HAWK_ASSERT (str->hawk, str->capa >= 1);
+		HAWK_ASSERT (str->gem, str->capa >= 1);
 		str->val.ptr[0] = '\0';
 	}
 }
@@ -164,17 +164,17 @@ void FN(swap) (str_t* str, str_t* str1)
 	tmp.val.ptr = str->val.ptr;
 	tmp.val.len = str->val.len;
 	tmp.capa = str->capa;
-	tmp.hawk = str->hawk;
+	tmp.gem = str->gem;
 
 	str->val.ptr = str1->val.ptr;
 	str->val.len = str1->val.len;
 	str->capa = str1->capa;
-	str->hawk = str1->hawk;
+	str->gem = str1->gem;
 
 	str1->val.ptr = tmp.val.ptr;
 	str1->val.len = tmp.val.len;
 	str1->capa = tmp.capa;
-	str1->hawk = tmp.hawk;
+	str1->gem = tmp.gem;
 }
 
 
@@ -251,8 +251,8 @@ static int FN(resize_for_ncat) (str_t* str, hawk_oow_t len)
 	}
 	else if (str->capa <= 0 && len <= 0)
 	{
-		HAWK_ASSERT (str->hawk, str->val.ptr == HAWK_NULL);
-		HAWK_ASSERT (str->hawk, str->val.len <= 0);
+		HAWK_ASSERT (str->gem, str->val.ptr == HAWK_NULL);
+		HAWK_ASSERT (str->gem, str->val.len <= 0);
 		if (FN(setcapa)(str, 1) == (hawk_oow_t)-1) return -1;
 	}
 
@@ -366,14 +366,9 @@ hawk_oow_t FN(amend) (str_t* str, hawk_oow_t pos, hawk_oow_t len, const char_t* 
 
 static int FN(put_bchars) (hawk_fmtout_t* fmtout, const hawk_bch_t* ptr, hawk_oow_t len)
 {
-	/* hawk_rtx_getcmgr(rtx) is equal to hawk_getcmgr(rtx->awk) as of this writing.
-	 * this elastic character string object doesn't get affected whether it is
-	 * instantiated under the main awk object or a runtime context object.
-	 * however, if they are to have different cmgrs configured in the future, this
-	 * can be problematic potentially */
 #if defined(BUILD_UECS)
 	hawk_uecs_t* uecs = (hawk_uecs_t*)fmtout->ctx;
-	if (hawk_uecs_ncatbchars(uecs, ptr, len, hawk_getcmgr(uecs->hawk), 1) == (hawk_oow_t)-1) return -1;
+	if (hawk_uecs_ncatbchars(uecs, ptr, len, uecs->gem->cmgr, 1) == (hawk_oow_t)-1) return -1;
 #else
 	hawk_becs_t* becs = (hawk_becs_t*)fmtout->ctx;
 	if (hawk_becs_ncat(becs, ptr, len) == (hawk_oow_t)-1) return -1;
@@ -388,7 +383,7 @@ static int FN(put_uchars) (hawk_fmtout_t* fmtout, const hawk_uch_t* ptr, hawk_oo
 	if (hawk_uecs_ncat(uecs, ptr, len) == (hawk_oow_t)-1) return -1;
 #else
 	hawk_becs_t* becs = (hawk_becs_t*)fmtout->ctx;
-	if (hawk_becs_ncatuchars(becs, ptr, len, hawk_getcmgr(becs->hawk)) == (hawk_oow_t)-1) return -1;
+	if (hawk_becs_ncatuchars(becs, ptr, len, becs->gem->cmgr) == (hawk_oow_t)-1) return -1;
 #endif
 	return 1; /* success. carry on */
 }
@@ -398,7 +393,7 @@ hawk_oow_t FN(vfcat) (str_t* str, const char_t* fmt, va_list ap)
 	hawk_fmtout_t fo;
 
 	HAWK_MEMSET (&fo, 0, HAWK_SIZEOF(fo));
-	fo.mmgr = hawk_getmmgr(str->hawk);
+	fo.mmgr = str->gem->mmgr;
 	fo.putbchars = FN(put_bchars);
 	fo.putuchars = FN(put_uchars);
 	fo.ctx = str;
@@ -428,7 +423,7 @@ hawk_oow_t FN(vfmt) (str_t* str, const char_t* fmt, va_list ap)
 	hawk_fmtout_t fo;
 
 	HAWK_MEMSET (&fo, 0, HAWK_SIZEOF(fo));
-	fo.mmgr = hawk_getmmgr(str->hawk);
+	fo.mmgr = str->gem->mmgr;
 	fo.putbchars = FN(put_bchars);
 	fo.putuchars = FN(put_uchars);
 	fo.ctx = str;

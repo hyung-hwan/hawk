@@ -87,7 +87,6 @@ libhawk_la_SOURCES =  \
 	hawk-prv.h \
 	hawk.c \
 	mb8.c \
-	misc-imp.h \
 	misc-prv.h \
 	misc.c \
 	parse-prv.h \
@@ -120,7 +119,6 @@ libhawk_la_SOURCES =  \
 	utl-str.c \
 	utl-sys.c \
 	utl.c \
-	val-imp.h \
 	val-prv.h \
 	val.c
 
