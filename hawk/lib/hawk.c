@@ -201,9 +201,9 @@ int hawk_init (hawk_t* awk, hawk_mmgr_t* mmgr, hawk_cmgr_t* cmgr, const hawk_prm
 	awk->parse.funs = hawk_htb_open(hawk_getgem(awk), HAWK_SIZEOF(awk), 256, 70, HAWK_SIZEOF(hawk_ooch_t), 1);
 	awk->parse.named = hawk_htb_open(hawk_getgem(awk), HAWK_SIZEOF(awk), 256, 70, HAWK_SIZEOF(hawk_ooch_t), 1);
 
-	awk->parse.gbls = hawk_arr_open(awk, HAWK_SIZEOF(awk), 128);
-	awk->parse.lcls = hawk_arr_open(awk, HAWK_SIZEOF(awk), 64);
-	awk->parse.params = hawk_arr_open(awk, HAWK_SIZEOF(awk), 32);
+	awk->parse.gbls = hawk_arr_open(hawk_getgem(awk), HAWK_SIZEOF(awk), 128);
+	awk->parse.lcls = hawk_arr_open(hawk_getgem(awk), HAWK_SIZEOF(awk), 64);
+	awk->parse.params = hawk_arr_open(hawk_getgem(awk), HAWK_SIZEOF(awk), 32);
 
 	awk->fnc.sys = HAWK_NULL;
 	awk->fnc.user = hawk_htb_open(hawk_getgem(awk), HAWK_SIZEOF(awk), 512, 70, HAWK_SIZEOF(hawk_ooch_t), 1);

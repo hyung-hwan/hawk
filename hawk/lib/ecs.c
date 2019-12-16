@@ -70,14 +70,12 @@ hawk_oow_t hawk_becs_ncatuchars (hawk_becs_t* str, const hawk_uch_t* s, hawk_oow
 	hawk_oow_t bcslen, ucslen;
 
 	ucslen = len;
-	//if (qse_wcsntombsnwithcmgr(s, &ucslen, QSE_NULL, &bcslen, cmgr) <= -1) return (hawk_oow_t)-1;
 	if (hawk_conv_uchars_to_bchars_with_cmgr(s, &ucslen, HAWK_NULL, &bcslen, cmgr) <= -1) return (hawk_oow_t)-1;
 
 	if (hawk_becs_resize_for_ncat(str, bcslen) <= 0) return -1;
 
 	ucslen = len;
 	bcslen = str->capa - str->val.len;
-	//qse_wcsntombsnwithcmgr(s, &ucslen, &str->val.ptr[str->val.len], &bcslen, cmgr);
 	hawk_conv_uchars_to_bchars_with_cmgr (s, &ucslen, &str->val.ptr[str->val.len], &bcslen, cmgr);
 	str->val.len += bcslen;
 	str->val.ptr[str->val.len] = '\0';
@@ -90,14 +88,12 @@ hawk_oow_t hawk_uecs_ncatbchars (hawk_uecs_t* str, const hawk_bch_t* s, hawk_oow
 	hawk_oow_t bcslen, ucslen;
 
 	bcslen = len;
-	//if (qse_mbsntowcsnallwithcmgr(s, &bcslen, QSE_NULL, &ucslen, cmgr) <= -1) return (hawk_oow_t)-1;
 	if (hawk_conv_bchars_to_uchars_with_cmgr(s, &bcslen, HAWK_NULL, &ucslen, cmgr, all) <= -1) return (hawk_oow_t)-1;
 
 	if (hawk_uecs_resize_for_ncat(str, ucslen) <= 0) return -1;
 
 	bcslen = len;
 	ucslen = str->capa - str->val.len;
-	//qse_mbsntowcsnallwithcmgr(s, &bcslen, &str->val.ptr[str->val.len], &ucslen, cmgr);
 	hawk_conv_bchars_to_uchars_with_cmgr (s, &bcslen, &str->val.ptr[str->val.len], &ucslen, cmgr, all);
 	str->val.len += ucslen;
 	str->val.ptr[str->val.len] = '\0';

@@ -34,7 +34,7 @@
 /// Standard AWK Interpreter
 
 /////////////////////////////////
-HAWK_BEGIN_NAMESPACE(QSE)
+HAWK_BEGIN_NAMESPACE(HAWK)
 ////////////////////////////////
 
 ///
@@ -219,7 +219,7 @@ private:
 };
 
 /////////////////////////////////
-HAWK_END_NAMESPACE(QSE)
+HAWK_END_NAMESPACE(HAWK)
 /////////////////////////////////
 
 #endif
