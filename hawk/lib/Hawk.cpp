@@ -28,7 +28,7 @@
 #include "hawk-prv.h"
 
 /////////////////////////////////
-HAWK_BEGIN_NAMESPACE(QSE)
+HAWK_BEGIN_NAMESPACE(HAWK)
 /////////////////////////////////
 
 //////////////////////////////////////////////////////////////////
@@ -1702,7 +1702,7 @@ int Hawk::dispatch_function (Run* run, const fnc_info_t* fi)
 			// call the default constructor on the space allocated above.
 			// no exception handling is implemented here as i know 
 			// that Value::Value() doesn't throw an exception
-			new((QSE::Mmgr*)HAWK_NULL, (void*)&args[i]) Value ();
+			new((HAWK::Mmgr*)HAWK_NULL, (void*)&args[i]) Value ();
 		}
 	#endif
 	}
@@ -2449,5 +2449,5 @@ void* Hawk::modsym (awk_t* awk, void* handle, const char_t* name)
 	return xtn->awk->modsym (handle, name);
 }
 /////////////////////////////////
-HAWK_END_NAMESPACE(QSE)
+HAWK_END_NAMESPACE(HAWK)
 /////////////////////////////////

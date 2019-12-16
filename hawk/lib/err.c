@@ -92,7 +92,7 @@ const hawk_ooch_t* hawk_dflerrstr (hawk_t* awk, hawk_errnum_t errnum)
 		HAWK_T("variable '${0}' redefined"),
 		HAWK_T("duplicate parameter name '${0}'"),
 		HAWK_T("duplicate global variable '${0}'"),
-		HAWK_T("duplicate local variable '${0}'"),
+		HAWK_T("duplicate local variable"),
 		HAWK_T("'${0}' not a valid parameter name"),
 		HAWK_T("'${0}' not a valid variable name"),
 		HAWK_T("variable name missing"),

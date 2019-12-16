@@ -1327,7 +1327,7 @@ static hawk_nde_t* parse_function (hawk_t* awk)
 
 			if (hawk_arr_insert(awk->parse.params, HAWK_ARR_SIZE(awk->parse.params), pa, pal) == HAWK_ARR_NIL)
 			{
-				SETERR_LOC (awk, HAWK_ENOMEM, &awk->tok.loc);
+				ADJERR_LOC (awk, &awk->tok.loc);
 				goto oops;
 			}
 
@@ -1977,7 +1977,7 @@ int hawk_addgblwithucstr (hawk_t* awk, const hawk_uch_t* name)
 #define HAWK_NUM_STATIC_GBLS \
 	(HAWK_MAX_GBL_ID-HAWK_MIN_GBL_ID+1)
 
-int hawk_delgblwithbcstr (hawk_t* awk, const hawk_bch_t* name)
+int hawk_delgblwithbcstr (hawk_t* hawk, const hawk_bch_t* name)
 {
 	hawk_oow_t n;
 	hawk_bcs_t ncs;
@@ -1986,31 +1986,31 @@ int hawk_delgblwithbcstr (hawk_t* awk, const hawk_bch_t* name)
 	ncs.ptr = (hawk_bch_t*)name;
 	ncs.len = hawk_count_bcstr(name);
 
-	if (awk->tree.ngbls > awk->tree.ngbls_base) 
+	if (hawk->tree.ngbls > hawk->tree.ngbls_base) 
 	{
 		/* this function is not allow after hawk_parse is called */
-		hawk_seterrnum (awk, HAWK_EPERM, HAWK_NULL);
+		hawk_seterrnum (hawk, HAWK_EPERM, HAWK_NULL);
 		return -1;
 	}
 
 #if defined(HAWK_OOCH_IS_BCH)
-	n = hawk_arr_search(awk->parse.gbls, HAWK_NUM_STATIC_GBLS, ncs.ptr, ncs.len);
+	n = hawk_arr_search(hawk->parse.gbls, HAWK_NUM_STATIC_GBLS, ncs.ptr, ncs.len);
 	if (n == HAWK_ARR_NIL)
 	{
-		hawk_seterrnum (awk, HAWK_ENOENT, &ncs);
+		hawk_seterrbfmt (hawk, HAWK_NULL, HAWK_ENOENT "no such global variable - %.*hs", ncs.len, ncs.ptr);
 		return -1;
 	}
 #else
-	wcs.ptr = hawk_dupbtoucstr(awk, ncs.ptr, &wcs.len, 0);
+	wcs.ptr = hawk_dupbtoucstr(hawk, ncs.ptr, &wcs.len, 0);
 	if (!wcs.ptr) return -1;
-	n = hawk_arr_search(awk->parse.gbls, HAWK_NUM_STATIC_GBLS, wcs.ptr, wcs.len);
+	n = hawk_arr_search(hawk->parse.gbls, HAWK_NUM_STATIC_GBLS, wcs.ptr, wcs.len);
 	if (n == HAWK_ARR_NIL)
 	{
-		hawk_seterrnum (awk, HAWK_ENOENT, &wcs);
-		hawk_freemem (awk, wcs.ptr);
+		hawk_seterrbfmt (hawk, HAWK_NULL, HAWK_ENOENT, "no such global variable - %.*ls", wcs.len, wcs.ptr);
+		hawk_freemem (hawk, wcs.ptr);
 		return -1;
 	}
-	hawk_freemem (awk, wcs.ptr);
+	hawk_freemem (hawk, wcs.ptr);
 #endif
 
 	/* invalidate the name if deletion is requested.
@@ -2019,16 +2019,16 @@ int hawk_delgblwithbcstr (hawk_t* awk, const hawk_bch_t* name)
 	 * again, the entry will be appended again. 
 	 * never call this funciton unless it is really required. */
 	/*
-	awk->parse.gbls.buf[n].name.ptr[0] = HAWK_T('\0');
-	awk->parse.gbls.buf[n].name.len = 0;
+	hawk->parse.gbls.buf[n].name.ptr[0] = HAWK_T('\0');
+	hawk->parse.gbls.buf[n].name.len = 0;
 	*/
-	n = hawk_arr_uplete(awk->parse.gbls, n, 1);
-	HAWK_ASSERT (awk, n == 1);
+	n = hawk_arr_uplete(hawk->parse.gbls, n, 1);
+	HAWK_ASSERT (hawk, n == 1);
 
 	return 0;
 }
 
-int hawk_delgblwithucstr (hawk_t* awk, const hawk_uch_t* name)
+int hawk_delgblwithucstr (hawk_t* hawk, const hawk_uch_t* name)
 {
 	hawk_oow_t n;
 	hawk_ucs_t ncs;
@@ -2037,29 +2037,29 @@ int hawk_delgblwithucstr (hawk_t* awk, const hawk_uch_t* name)
 	ncs.ptr = (hawk_uch_t*)name;
 	ncs.len = hawk_count_ucstr(name);
 
-	if (awk->tree.ngbls > awk->tree.ngbls_base) 
+	if (hawk->tree.ngbls > hawk->tree.ngbls_base) 
 	{
 		/* this function is not allow after hawk_parse is called */
-		hawk_seterrnum (awk, HAWK_EPERM, HAWK_NULL);
+		hawk_seterrnum (hawk, HAWK_EPERM, HAWK_NULL);
 		return -1;
 	}
 
 #if defined(HAWK_OOCH_IS_BCH)
-	mbs.ptr = hawk_duputobcstr(awk, ncs.ptr, &mbs.len);
+	mbs.ptr = hawk_duputobcstr(hawk, ncs.ptr, &mbs.len);
 	if (!mbs.ptr) return -1;
-	n = hawk_arr_search(awk->parse.gbls, HAWK_NUM_STATIC_GBLS, mbs.ptr, mbs.len);
+	n = hawk_arr_search(hawk->parse.gbls, HAWK_NUM_STATIC_GBLS, mbs.ptr, mbs.len);
 	if (n == HAWK_ARR_NIL)
 	{
-		hawk_seterrnum (awk, HAWK_ENOENT, &mbs);
-		hawk_freemem (awk, mbs.ptr);
+		hawk_seterrbfmt (hawk, HAWK_NULL, HAWK_ENOENT, "no such global variable - %.*hs", mbs.len, mbs.ptr);
+		hawk_freemem (hawk, mbs.ptr);
 		return -1;
 	}
-	hawk_freemem (awk, mbs.ptr);
+	hawk_freemem (hawk, mbs.ptr);
 #else
-	n = hawk_arr_search(awk->parse.gbls, HAWK_NUM_STATIC_GBLS, ncs.ptr, ncs.len);
+	n = hawk_arr_search(hawk->parse.gbls, HAWK_NUM_STATIC_GBLS, ncs.ptr, ncs.len);
 	if (n == HAWK_ARR_NIL)
 	{
-		hawk_seterrnum (awk, HAWK_ENOENT, &ncs);
+		hawk_seterrbfmt (hawk, HAWK_NULL, HAWK_ENOENT, "no such global variable - %.*ls", ncs.len, ncs.ptr);
 		return -1;
 	}
 #endif
@@ -2070,16 +2070,16 @@ int hawk_delgblwithucstr (hawk_t* awk, const hawk_uch_t* name)
 	 * again, the entry will be appended again. 
 	 * never call this funciton unless it is really required. */
 	/*
-	awk->parse.gbls.buf[n].name.ptr[0] = HAWK_T('\0');
-	awk->parse.gbls.buf[n].name.len = 0;
+	hawk->parse.gbls.buf[n].name.ptr[0] = HAWK_T('\0');
+	hawk->parse.gbls.buf[n].name.len = 0;
 	*/
-	n = hawk_arr_uplete(awk->parse.gbls, n, 1);
+	n = hawk_arr_uplete(hawk->parse.gbls, n, 1);
 	HAWK_ASSERT (awk, n == 1);
 
 	return 0;
 }
 
-int hawk_findgblwithbcstr (hawk_t* awk, const hawk_bch_t* name)
+int hawk_findgblwithbcstr (hawk_t* hawk, const hawk_bch_t* name)
 {
 	hawk_oow_t n;
 	hawk_bcs_t ncs;
@@ -2089,29 +2089,29 @@ int hawk_findgblwithbcstr (hawk_t* awk, const hawk_bch_t* name)
 	ncs.len = hawk_count_bcstr(name);
 
 #if defined(HAWK_OOCH_IS_BCH)
-	n = hawk_arr_search(awk->parse.gbls, HAWK_NUM_STATIC_GBLS, ncs.ptr, ncs.len);
+	n = hawk_arr_search(hawk->parse.gbls, HAWK_NUM_STATIC_GBLS, ncs.ptr, ncs.len);
 	if (n == HAWK_ARR_NIL)
 	{
-		hawk_seterrnum (awk, HAWK_ENOENT, &ncs);
+		hawk_seterrbfmt (hawk, HAWK_NULL, HAWK_ENOENT, "no such global variable - %.*hs", ncs.len, ncs.ptr);
 		return -1;
 	}
 #else
-	wcs.ptr = hawk_dupbtoucstr(awk, ncs.ptr, &wcs.len, 0);
+	wcs.ptr = hawk_dupbtoucstr(hawk, ncs.ptr, &wcs.len, 0);
 	if (!wcs.ptr) return -1;
-	n = hawk_arr_search(awk->parse.gbls, HAWK_NUM_STATIC_GBLS, wcs.ptr, wcs.len);
+	n = hawk_arr_search(hawk->parse.gbls, HAWK_NUM_STATIC_GBLS, wcs.ptr, wcs.len);
 	if (n == HAWK_ARR_NIL)
 	{
-		hawk_seterrnum (awk, HAWK_ENOENT, &wcs);
-		hawk_freemem (awk, wcs.ptr);
+		hawk_seterrbfmt (hawk, HAWK_NULL, HAWK_ENOENT, "no such global variable - %.*ls", wcs.len, wcs.ptr);
+		hawk_freemem (hawk, wcs.ptr);
 		return -1;
 	}
-	hawk_freemem (awk, wcs.ptr);
+	hawk_freemem (hawk, wcs.ptr);
 #endif
 
 	return (int)n;
 }
 
-int hawk_findgblwithucstr (hawk_t* awk, const hawk_uch_t* name)
+int hawk_findgblwithucstr (hawk_t* hawk, const hawk_uch_t* name)
 {
 	hawk_oow_t n;
 	hawk_ucs_t ncs;
@@ -2121,21 +2121,21 @@ int hawk_findgblwithucstr (hawk_t* awk, const hawk_uch_t* name)
 	ncs.len = hawk_count_ucstr(name);
 
 #if defined(HAWK_OOCH_IS_BCH)
-	mbs.ptr = hawk_duputobcstr(awk, ncs.ptr, &mbs.len);
+	mbs.ptr = hawk_duputobcstr(hawk, ncs.ptr, &mbs.len);
 	if (!mbs.ptr) return -1;
-	n = hawk_arr_search(awk->parse.gbls, HAWK_NUM_STATIC_GBLS, mbs.ptr, mbs.len);
+	n = hawk_arr_search(hawk->parse.gbls, HAWK_NUM_STATIC_GBLS, mbs.ptr, mbs.len);
 	if (n == HAWK_ARR_NIL)
 	{
-		hawk_seterrnum (awk, HAWK_ENOENT, &mbs);
-		hawk_freemem (awk, mbs.ptr);
+		hawk_seterrbfmt (hawk, HAWK_NULL, HAWK_ENOENT, "no such global variable - %.*hs", mbs.len, mbs.ptr);
+		hawk_freemem (hawk, mbs.ptr);
 		return -1;
 	}
-	hawk_freemem (awk, mbs.ptr);
+	hawk_freemem (hawk, mbs.ptr);
 #else
-	n = hawk_arr_search(awk->parse.gbls, HAWK_NUM_STATIC_GBLS, ncs.ptr, ncs.len);
+	n = hawk_arr_search(hawk->parse.gbls, HAWK_NUM_STATIC_GBLS, ncs.ptr, ncs.len);
 	if (n == HAWK_ARR_NIL)
 	{
-		hawk_seterrnum (awk, HAWK_ENOENT, &ncs);
+		hawk_seterrbfmt (hawk, HAWK_NULL, HAWK_ENOENT, "no such global variable - %.*ls", ncs.len, ncs.ptr);
 		return -1;
 	}
 #endif
@@ -2257,32 +2257,32 @@ static hawk_t* collect_locals (hawk_t* awk, hawk_oow_t nlcls, int istop)
 		n = hawk_arr_search(awk->parse.lcls, nlcls, lcl.ptr, lcl.len);
 		if (n != HAWK_ARR_NIL)
 		{
-			SETERR_ARG_LOC (awk, HAWK_EDUPLCL, lcl.ptr, lcl.len, &awk->tok.loc);
+			hawk_seterrbfmt (awk, &awk->tok.loc, HAWK_EDUPLCL, "duplicate local variable - %.*js", lcl.len, lcl.ptr);
 			return HAWK_NULL;
 		}
 
 		/* check if it conflicts with global variable names */
-		n = find_global (awk, &lcl);
+		n = find_global(awk, &lcl);
 		if (n != HAWK_ARR_NIL)
 		{
 			if (n < awk->tree.ngbls_base)
 			{
 				/* it is a conflict only if it is one of a 
 				 * static global variable */
-				SETERR_ARG_LOC (awk, HAWK_EDUPLCL, lcl.ptr, lcl.len, &awk->tok.loc);
+				hawk_seterrbfmt (awk, &awk->tok.loc, HAWK_EDUPLCL, "duplicate local variable - %.*js", lcl.len, lcl.ptr);
 				return HAWK_NULL;
 			}
 		}
 
 		if (HAWK_ARR_SIZE(awk->parse.lcls) >= HAWK_MAX_LCLS)
 		{
-			SETERR_LOC (awk, HAWK_ELCLTM, &awk->tok.loc);
+			hawk_seterrbfmt (awk, &awk->tok.loc, HAWK_ELCLTM, "too many local variables defined - %.*js", lcl.len, lcl.ptr);
 			return HAWK_NULL;
 		}
 
-		if (hawk_arr_insert (awk->parse.lcls, HAWK_ARR_SIZE(awk->parse.lcls), lcl.ptr, lcl.len) == HAWK_ARR_NIL)
+		if (hawk_arr_insert(awk->parse.lcls, HAWK_ARR_SIZE(awk->parse.lcls), lcl.ptr, lcl.len) == HAWK_ARR_NIL)
 		{
-			SETERR_LOC (awk, HAWK_ENOMEM, &awk->tok.loc);
+			ADJERR_LOC (awk, &awk->tok.loc);
 			return HAWK_NULL;
 		}
 

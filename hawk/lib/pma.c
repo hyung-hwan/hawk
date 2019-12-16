@@ -25,7 +25,7 @@
  */
 
 /*
- * This is the TRE memory allocator modified for QSE.
+ * This is the TRE memory allocator modified for Hawk.
  * See the original license notice below.
  */
 

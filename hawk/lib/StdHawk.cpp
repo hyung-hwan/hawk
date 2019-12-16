@@ -47,7 +47,7 @@
 
 
 /////////////////////////////////
-HAWK_BEGIN_NAMESPACE(QSE)
+HAWK_BEGIN_NAMESPACE(HAWK)
 /////////////////////////////////
 
 StdHawk::ioattr_t StdHawk::default_ioattr;
@@ -1371,6 +1371,6 @@ StdHawk::ssize_t StdHawk::SourceString::write (Data& io, const char_t* buf, size
 }
 
 /////////////////////////////////
-HAWK_END_NAMESPACE(QSE)
+HAWK_END_NAMESPACE(HAWK)
 /////////////////////////////////
 

@@ -141,7 +141,7 @@ typedef hawk_arr_walk_t (*hawk_arr_walker_t) (
  */
 struct hawk_arr_t
 {
-	hawk_t*           hawk;
+	hawk_gem_t*       gem;
 	hawk_arr_copier_t copier; /* data copier */
 	hawk_arr_freeer_t freeer; /* data freeer */
 	hawk_arr_comper_t comper; /* data comparator */
@@ -171,7 +171,7 @@ extern "C" {
  * The hawk_arr_open() function creates a linear dynamic array.
  */
 HAWK_EXPORT hawk_arr_t* hawk_arr_open (
-	hawk_t*     awk, /**< memory manager */
+	hawk_gem_t* gem, 
 	hawk_oow_t  ext,  /**< extension size in bytes */
 	hawk_oow_t  capa  /**< initial array capacity */
 );
@@ -188,7 +188,7 @@ HAWK_EXPORT void hawk_arr_close (
  */
 HAWK_EXPORT int hawk_arr_init (
 	hawk_arr_t*  arr,
-	hawk_t*      awk,
+	hawk_gem_t*  gem,
 	hawk_oow_t   capa
 );
 
