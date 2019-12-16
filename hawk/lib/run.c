@@ -720,7 +720,7 @@ static hawk_rbt_walk_t init_module (hawk_rbt_t* rbt, hawk_rbt_pair_t* pair, void
 	mic = (struct module_init_ctx_t*)ctx;
 
 	md = (hawk_mod_data_t*)HAWK_RBT_VPTR(pair);
-	if (md->mod.init && md->mod.init (&md->mod, mic->rtx) <= -1)
+	if (md->mod.init && md->mod.init(&md->mod, mic->rtx) <= -1)
 		return HAWK_RBT_WALK_STOP;
 
 	mic->count++;
@@ -793,8 +793,6 @@ hawk_rtx_t* hawk_rtx_open (hawk_t* awk, hawk_oow_t xtnsize, hawk_rio_cbs_t* rio)
 	hawk_rbt_walk (rtx->awk->modtab, init_module, &mic);
 	if (mic.count != HAWK_RBT_SIZE(rtx->awk->modtab))
 	{
-		hawk_rtx_errortohawk (rtx, awk);
-
 		if (mic.count > 0)
 		{
 			struct module_fini_ctx_t mfc;

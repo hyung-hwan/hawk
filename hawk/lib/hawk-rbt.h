@@ -107,7 +107,7 @@ typedef void* (*hawk_rbt_copier_t) (
  */
 typedef void (*hawk_rbt_freeer_t) (
 	hawk_rbt_t* rbt,  /**< red-black tree */
-	void*      dptr, /**< pointer to a key or a value */
+	void*       dptr, /**< pointer to a key or a value */
 	hawk_oow_t  dlen  /**< length of a key or a value */
 );
 
@@ -120,9 +120,9 @@ typedef void (*hawk_rbt_freeer_t) (
  */
 typedef int (*hawk_rbt_comper_t) (
 	const hawk_rbt_t* rbt,    /**< red-black tree */ 
-	const void*      kptr1,  /**< key pointer */
+	const void*       kptr1,  /**< key pointer */
 	hawk_oow_t        klen1,  /**< key length */ 
-	const void*      kptr2,  /**< key pointer */
+	const void*       kptr2,  /**< key pointer */
 	hawk_oow_t        klen2   /**< key length */
 );
 
@@ -135,7 +135,7 @@ typedef int (*hawk_rbt_comper_t) (
 typedef void (*hawk_rbt_keeper_t) (
 	hawk_rbt_t* rbt,    /**< red-black tree */
 	void*       vptr,   /**< value pointer */
-	hawk_oow_t vlen    /**< value length */
+	hawk_oow_t  vlen    /**< value length */
 );
 
 /**
@@ -160,9 +160,9 @@ typedef hawk_rbt_walk_t (*hawk_rbt_walker_t) (
 typedef hawk_rbt_pair_t* (*hawk_rbt_cbserter_t) (
 	hawk_rbt_t*      rbt,    /**< red-black tree */
 	hawk_rbt_pair_t* pair,   /**< pair pointer */
-	void*           kptr,   /**< key pointer */
+	void*            kptr,   /**< key pointer */
 	hawk_oow_t       klen,   /**< key length */
-	void*           ctx     /**< callback context */
+	void*            ctx     /**< callback context */
 );
 
 enum hawk_rbt_pair_color_t
@@ -235,7 +235,7 @@ typedef enum hawk_rbt_style_kind_t  hawk_rbt_style_kind_t;
  */
 struct hawk_rbt_t
 {
-	hawk_t*                 hawk;
+	hawk_gem_t*             gem;
 	const hawk_rbt_style_t* style;
 	hawk_oob_t              scale[2];  /**< length scale */
 	hawk_rbt_pair_t         xnil;      /**< internal nil node */
@@ -294,7 +294,7 @@ HAWK_EXPORT const hawk_rbt_style_t* hawk_get_rbt_style (
  * \return hawk_rbt_t pointer on success, HAWK_NULL on failure.
  */
 HAWK_EXPORT hawk_rbt_t* hawk_rbt_open (
-	hawk_t*      hawk,
+	hawk_gem_t*  gem,
 	hawk_oow_t   xtnsize, /**< extension size in bytes */
 	int          kscale,  /**< key scale */
 	int          vscale   /**< value scale */
@@ -312,7 +312,7 @@ HAWK_EXPORT void hawk_rbt_close (
  */
 HAWK_EXPORT int hawk_rbt_init (
 	hawk_rbt_t*  rbt,    /**< red-black tree */
-	hawk_t*      hawk,
+	hawk_gem_t*  gem,
 	int          kscale, /**< key scale */
 	int          vscale  /**< value scale */
 );
@@ -420,9 +420,9 @@ HAWK_EXPORT hawk_rbt_pair_t* hawk_rbt_insert (
  */
 HAWK_EXPORT hawk_rbt_pair_t* hawk_rbt_update (
 	hawk_rbt_t* rbt,   /**< red-black tree */
-	void*      kptr,  /**< key pointer */
+	void*       kptr,  /**< key pointer */
 	hawk_oow_t  klen,  /**< key length */
-	void*      vptr,  /**< value pointer */
+	void*       vptr,  /**< value pointer */
 	hawk_oow_t  vlen   /**< value length */
 );
 
@@ -515,10 +515,10 @@ HAWK_EXPORT hawk_rbt_pair_t* hawk_rbt_update (
  */
 HAWK_EXPORT hawk_rbt_pair_t* hawk_rbt_cbsert (
 	hawk_rbt_t*         rbt,      /**< red-black tree */
-	void*              kptr,     /**< key pointer */
+	void*               kptr,     /**< key pointer */
 	hawk_oow_t          klen,     /**< key length */
 	hawk_rbt_cbserter_t cbserter, /**< callback function */
-	void*              ctx       /**< callback context */
+	void*               ctx       /**< callback context */
 );
 
 /**
@@ -545,7 +545,7 @@ HAWK_EXPORT void hawk_rbt_clear (
 HAWK_EXPORT void hawk_rbt_walk (
 	hawk_rbt_t*       rbt,    /**< red-black tree */
 	hawk_rbt_walker_t walker, /**< callback function for each pair */
-	void*            ctx     /**< pointer to user-specific data */
+	void*             ctx     /**< pointer to user-specific data */
 );
 
 /**
@@ -555,7 +555,7 @@ HAWK_EXPORT void hawk_rbt_walk (
 HAWK_EXPORT void hawk_rbt_rwalk (
 	hawk_rbt_t*       rbt,    /**< red-black tree */
 	hawk_rbt_walker_t walker, /**< callback function for each pair */
-	void*            ctx     /**< pointer to user-specific data */
+	void*             ctx     /**< pointer to user-specific data */
 );
 
 /**
@@ -572,9 +572,9 @@ HAWK_EXPORT void hawk_rbt_rwalk (
  */
 HAWK_EXPORT hawk_rbt_pair_t* hawk_rbt_allocpair (
 	hawk_rbt_t*  rbt,
-	void*       kptr, 
+	void*        kptr, 
 	hawk_oow_t   klen,
-	void*       vptr,
+	void*        vptr,
 	hawk_oow_t   vlen
 );
 
@@ -593,9 +593,9 @@ HAWK_EXPORT void hawk_rbt_freepair (
  */
 HAWK_EXPORT int hawk_rbt_dflcomp (
 	const hawk_rbt_t* rbt,
-	const void*      kptr1,
+	const void*       kptr1,
 	hawk_oow_t        klen1,
-	const void*      kptr2,
+	const void*       kptr2,
 	hawk_oow_t        klen2 
 );
 

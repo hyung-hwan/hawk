@@ -30,6 +30,7 @@
 #include <hawk-pio.h>
 #include <hawk-sio.h>
 
+#include <stdio.h>
 #include <stdarg.h>
 #include <stdlib.h>
 #include <math.h>
@@ -2429,15 +2430,13 @@ static int build_environ (hawk_rtx_t* rtx, int gbl_id, env_char_t* envarr[])
 			 * variaables are not under control, call mbstowcsalldup() instead 
 			 * to go on despite encoding failure */
 
-			kptr = hawk_dupbtoucstr(hawk_rtx_gethawk(rtx), envarr[count], &klen, 1); 
-			vptr = hawk_dupbtoucstr(hawk_rtx_gethawk(rtx), eq + 1, HAWK_NULL, 1);
+			kptr = hawk_rtx_dupbtoucstr(rtx, envarr[count], &klen, 1); 
+			vptr = hawk_rtx_dupbtoucstr(rtx, eq + 1, HAWK_NULL, 1);
 			if (kptr == HAWK_NULL || vptr == HAWK_NULL)
 			{
 				if (kptr) hawk_rtx_freemem (rtx, kptr);
 				if (vptr) hawk_rtx_freemem (rtx, vptr);
 				hawk_rtx_refdownval (rtx, v_env);
-
-				hawk_rtx_seterrnum (rtx, HAWK_ENOMEM, HAWK_NULL); 
 				return -1;
 			}
 
@@ -2448,15 +2447,13 @@ static int build_environ (hawk_rtx_t* rtx, int gbl_id, env_char_t* envarr[])
 
 			*eq = HAWK_UT('\0');
 
-			kptr = hawk_duputobcstr(hawk_rtx_gethawk(rtx), envarr[count], &klen);
-			vptr = hawk_duputobcstr(hawk_rtx_gethawk(rtx), eq + 1, HAWK_NULL);
+			kptr = hawk_rtx_duputobcstr(rtx, envarr[count], &klen);
+			vptr = hawk_rtx_duputobcstr(rtx, eq + 1, HAWK_NULL);
 			if (kptr == HAWK_NULL || vptr == HAWK_NULL)
 			{
 				if (kptr) hawk_rtx_freemem (rtx, kptr);
 				if (vptr) hawk_rtx_freeme (rtx, vptr):
 				hawk_rtx_refdownval (rtx, v_env);
-
-				hawk_rtx_seterrnum (rtx, HAWK_ENOMEM, HAWK_NULL);
 				return -1;
 			}
 

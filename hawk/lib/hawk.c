@@ -207,7 +207,7 @@ int hawk_init (hawk_t* awk, hawk_mmgr_t* mmgr, hawk_cmgr_t* cmgr, const hawk_prm
 
 	awk->fnc.sys = HAWK_NULL;
 	awk->fnc.user = hawk_htb_open(hawk_getgem(awk), HAWK_SIZEOF(awk), 512, 70, HAWK_SIZEOF(hawk_ooch_t), 1);
-	awk->modtab = hawk_rbt_open(awk, 0, HAWK_SIZEOF(hawk_ooch_t), 1);
+	awk->modtab = hawk_rbt_open(hawk_getgem(awk), 0, HAWK_SIZEOF(hawk_ooch_t), 1);
 
 	if (awk->tree.funs == HAWK_NULL ||
 	    awk->parse.funs == HAWK_NULL ||
