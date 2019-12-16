@@ -162,11 +162,11 @@ if ENABLE_STATIC_MODULE
 libhawk_la_SOURCES += \
 	imap-imp.h \
 	mod-math.c mod-math.h \
-	mod-str.c mod-str.h
-##libhawk_la_LIBADD +=
+	mod-str.c mod-str.h 
+libhawk_la_LIBADD +=
 
+## mod-sys.c mod-sys.h
 ### mod-dir.c mod-dir.h 
-### mod-sys.c mod-sys.h
 
 if ENABLE_MOD_MYSQL
 libhawk_la_LIBADD += -lhawk-mysql

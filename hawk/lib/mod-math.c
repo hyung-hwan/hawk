@@ -83,7 +83,7 @@ static int fnc_math_1 (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, hawk_math1_t 
 	n = hawk_rtx_valtoflt(rtx, a0, &rv);
 	if (n <= -1) return -1;
 
-	r = hawk_rtx_makefltval (rtx, f (hawk_rtx_gethawk(rtx), rv));
+	r = hawk_rtx_makefltval (rtx, f(hawk_rtx_gethawk(rtx), rv));
 	if (r == HAWK_NULL) return -1;
 
 	hawk_rtx_setretval (rtx, r);
@@ -110,7 +110,7 @@ static int fnc_math_2 (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, hawk_math2_t 
 	n = hawk_rtx_valtoflt (rtx, a1, &rv1);
 	if (n <= -1) return -1;
 
-	r = hawk_rtx_makefltval (rtx, f (hawk_rtx_gethawk(rtx), rv0, rv1));
+	r = hawk_rtx_makefltval (rtx, f(hawk_rtx_gethawk(rtx), rv0, rv1));
 	if (r == HAWK_NULL) return -1;
 
 	hawk_rtx_setretval (rtx, r);

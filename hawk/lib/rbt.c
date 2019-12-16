@@ -67,7 +67,7 @@ HAWK_INLINE hawk_rbt_pair_t* hawk_rbt_allocpair (
 	if (kcop == HAWK_RBT_COPIER_INLINE) as += HAWK_ALIGN_POW2(KTOB(rbt,klen), HAWK_SIZEOF_VOID_P);
 	if (vcop == HAWK_RBT_COPIER_INLINE) as += VTOB(rbt,vlen);
 
-	pair = (hawk_rbt_pair_t*)hawk_allocmem(rbt->hawk, as);
+	pair = (hawk_rbt_pair_t*)hawk_gem_allocmem(rbt->gem, as);
 	if (!pair) return HAWK_NULL;
 
 	pair->color = HAWK_RBT_RED;
@@ -90,7 +90,7 @@ HAWK_INLINE hawk_rbt_pair_t* hawk_rbt_allocpair (
 		KPTR(pair) = kcop(rbt, kptr, klen);
 		if (KPTR(pair) == HAWK_NULL)
 		{
-			hawk_freemem (rbt->hawk, pair);
+			hawk_gem_freemem (rbt->gem, pair);
 			return HAWK_NULL;
 		}
 	}
@@ -114,7 +114,7 @@ HAWK_INLINE hawk_rbt_pair_t* hawk_rbt_allocpair (
 		{
 			if (rbt->style->freeer[HAWK_RBT_KEY] != HAWK_NULL)
 				rbt->style->freeer[HAWK_RBT_KEY] (rbt, KPTR(pair), KLEN(pair));
-			hawk_freemem (rbt->hawk, pair);
+			hawk_gem_freemem (rbt->gem, pair);
 			return HAWK_NULL;
 		}
 	}
@@ -128,7 +128,7 @@ HAWK_INLINE void hawk_rbt_freepair (hawk_rbt_t* rbt, hawk_rbt_pair_t* pair)
 		rbt->style->freeer[HAWK_RBT_KEY] (rbt, KPTR(pair), KLEN(pair));
 	if (rbt->style->freeer[HAWK_RBT_VAL] != HAWK_NULL)
 		rbt->style->freeer[HAWK_RBT_VAL] (rbt, VPTR(pair), VLEN(pair));
-	hawk_freemem (rbt->hawk, pair);
+	hawk_gem_freemem (rbt->gem, pair);
 }
 
 static hawk_rbt_style_t style[] =
@@ -191,16 +191,16 @@ const hawk_rbt_style_t* hawk_get_rbt_style (hawk_rbt_style_kind_t kind)
 	return &style[kind];
 }
 
-hawk_rbt_t* hawk_rbt_open (hawk_t* hawk, hawk_oow_t xtnsize, int kscale, int vscale)
+hawk_rbt_t* hawk_rbt_open (hawk_gem_t* gem, hawk_oow_t xtnsize, int kscale, int vscale)
 {
 	hawk_rbt_t* rbt;
 
-	rbt = (hawk_rbt_t*)hawk_allocmem(hawk, HAWK_SIZEOF(hawk_rbt_t) + xtnsize);
+	rbt = (hawk_rbt_t*)hawk_gem_allocmem(gem, HAWK_SIZEOF(hawk_rbt_t) + xtnsize);
 	if (!rbt) return HAWK_NULL;
 
-	if (hawk_rbt_init(rbt, hawk, kscale, vscale) <= -1)
+	if (hawk_rbt_init(rbt, gem, kscale, vscale) <= -1)
 	{
-		hawk_freemem (hawk, rbt);
+		hawk_gem_freemem (gem, rbt);
 		return HAWK_NULL;
 	}
 
@@ -211,14 +211,14 @@ hawk_rbt_t* hawk_rbt_open (hawk_t* hawk, hawk_oow_t xtnsize, int kscale, int vsc
 void hawk_rbt_close (hawk_rbt_t* rbt)
 {
 	hawk_rbt_fini (rbt);
-	hawk_freemem (rbt->hawk, rbt);
+	hawk_gem_freemem (rbt->gem, rbt);
 }
 
-int hawk_rbt_init (hawk_rbt_t* rbt, hawk_t* hawk, int kscale, int vscale)
+int hawk_rbt_init (hawk_rbt_t* rbt, hawk_gem_t* gem, int kscale, int vscale)
 {
 	/* do not zero out the extension */
 	HAWK_MEMSET (rbt, 0, HAWK_SIZEOF(*rbt));
-	rbt->hawk = hawk;
+	rbt->gem = gem;
 
 	rbt->scale[HAWK_RBT_KEY] = (kscale < 1)? 1: kscale;
 	rbt->scale[HAWK_RBT_VAL] = (vscale < 1)? 1: vscale;
@@ -265,13 +265,14 @@ hawk_rbt_pair_t* hawk_rbt_search (const hawk_rbt_t* rbt, const void* kptr, hawk_
 
 	while (!IS_NIL(rbt,pair))
 	{
-		int n = rbt->style->comper (rbt, kptr, klen, KPTR(pair), KLEN(pair));
+		int n = rbt->style->comper(rbt, kptr, klen, KPTR(pair), KLEN(pair));
 		if (n == 0) return pair;
 
 		if (n > 0) pair = pair->right;
 		else /* if (n < 0) */ pair = pair->left;
 	}
 
+	hawk_gem_seterrnum (rbt->gem, HAWK_NULL, HAWK_ENOENT);
 	return HAWK_NULL;
 }
 
@@ -441,9 +442,7 @@ static hawk_rbt_pair_t* change_pair_val (
 			else
 			{
 				/* need to reconstruct the pair */
-				hawk_rbt_pair_t* p = hawk_rbt_allocpair (rbt,
-					KPTR(pair), KLEN(pair),
-					vptr, vlen);
+				hawk_rbt_pair_t* p = hawk_rbt_allocpair(rbt, KPTR(pair), KLEN(pair), vptr, vlen);
 				if (p == HAWK_NULL) return HAWK_NULL;
 
 				p->color = pair->color;
@@ -474,7 +473,7 @@ static hawk_rbt_pair_t* change_pair_val (
 		}
 		else
 		{
-			void* nvptr = vcop (rbt, vptr, vlen);
+			void* nvptr = vcop(rbt, vptr, vlen);
 			if (nvptr == HAWK_NULL) return HAWK_NULL;
 			VPTR(pair) = nvptr;
 			VLEN(pair) = vlen;
@@ -490,8 +489,7 @@ static hawk_rbt_pair_t* change_pair_val (
 	return pair;
 }
 
-static hawk_rbt_pair_t* insert (
-	hawk_rbt_t* rbt, void* kptr, hawk_oow_t klen, void* vptr, hawk_oow_t vlen, int opt)
+static hawk_rbt_pair_t* insert (hawk_rbt_t* rbt, void* kptr, hawk_oow_t klen, void* vptr, hawk_oow_t vlen, int opt)
 {
 	hawk_rbt_pair_t* x_cur = rbt->root;
 	hawk_rbt_pair_t* x_par = HAWK_NULL;
@@ -499,14 +497,14 @@ static hawk_rbt_pair_t* insert (
 
 	while (!IS_NIL(rbt,x_cur))
 	{
-		int n = rbt->style->comper (rbt, kptr, klen, KPTR(x_cur), KLEN(x_cur));
+		int n = rbt->style->comper(rbt, kptr, klen, KPTR(x_cur), KLEN(x_cur));
 		if (n == 0)
 		{
 			switch (opt)
 			{
 				case UPSERT:
 				case UPDATE:
-					return change_pair_val (rbt, x_cur, vptr, vlen);
+					return change_pair_val(rbt, x_cur, vptr, vlen);
 
 				case ENSERT:
 					/* return existing pair */
@@ -514,6 +512,7 @@ static hawk_rbt_pair_t* insert (
 
 				case INSERT:
 					/* return failure */
+					hawk_gem_seterrnum (rbt->gem, HAWK_NULL, HAWK_EEXIST);
 					return HAWK_NULL;
 			}
 		}
@@ -524,9 +523,13 @@ static hawk_rbt_pair_t* insert (
 		else /* if (n < 0) */ x_cur = x_cur->left;
 	}
 
-	if (opt == UPDATE) return HAWK_NULL;
+	if (opt == UPDATE) 
+	{
+		hawk_gem_seterrnum (rbt->gem, HAWK_NULL, HAWK_ENOENT);
+		return HAWK_NULL;
+	}
 
-	x_new = hawk_rbt_allocpair (rbt, kptr, klen, vptr, vlen);
+	x_new = hawk_rbt_allocpair(rbt, kptr, klen, vptr, vlen);
 	if (x_new == HAWK_NULL) return HAWK_NULL;
 
 	if (x_par == HAWK_NULL)
@@ -538,7 +541,7 @@ static hawk_rbt_pair_t* insert (
 	else
 	{
 		/* perform normal binary insert */
-		int n = rbt->style->comper (rbt, kptr, klen, KPTR(x_par), KLEN(x_par));
+		int n = rbt->style->comper(rbt, kptr, klen, KPTR(x_par), KLEN(x_par));
 		if (n > 0)
 		{
 			HAWK_ASSERT (rbt->hawk, x_par->right == &rbt->xnil);
@@ -559,33 +562,28 @@ static hawk_rbt_pair_t* insert (
 	return x_new;
 }
 
-hawk_rbt_pair_t* hawk_rbt_upsert (
-	hawk_rbt_t* rbt, void* kptr, hawk_oow_t klen, void* vptr, hawk_oow_t vlen)
+hawk_rbt_pair_t* hawk_rbt_upsert (hawk_rbt_t* rbt, void* kptr, hawk_oow_t klen, void* vptr, hawk_oow_t vlen)
 {
 	return insert (rbt, kptr, klen, vptr, vlen, UPSERT);
 }
 
-hawk_rbt_pair_t* hawk_rbt_ensert (
-	hawk_rbt_t* rbt, void* kptr, hawk_oow_t klen, void* vptr, hawk_oow_t vlen)
+hawk_rbt_pair_t* hawk_rbt_ensert (hawk_rbt_t* rbt, void* kptr, hawk_oow_t klen, void* vptr, hawk_oow_t vlen)
 {
 	return insert (rbt, kptr, klen, vptr, vlen, ENSERT);
 }
 
-hawk_rbt_pair_t* hawk_rbt_insert (
-	hawk_rbt_t* rbt, void* kptr, hawk_oow_t klen, void* vptr, hawk_oow_t vlen)
+hawk_rbt_pair_t* hawk_rbt_insert (hawk_rbt_t* rbt, void* kptr, hawk_oow_t klen, void* vptr, hawk_oow_t vlen)
 {
 	return insert (rbt, kptr, klen, vptr, vlen, INSERT);
 }
 
 
-hawk_rbt_pair_t* hawk_rbt_update (
-	hawk_rbt_t* rbt, void* kptr, hawk_oow_t klen, void* vptr, hawk_oow_t vlen)
+hawk_rbt_pair_t* hawk_rbt_update (hawk_rbt_t* rbt, void* kptr, hawk_oow_t klen, void* vptr, hawk_oow_t vlen)
 {
 	return insert (rbt, kptr, klen, vptr, vlen, UPDATE);
 }
 
-hawk_rbt_pair_t* hawk_rbt_cbsert (
-	hawk_rbt_t* rbt, void* kptr, hawk_oow_t klen, cbserter_t cbserter, void* ctx)
+hawk_rbt_pair_t* hawk_rbt_cbsert (hawk_rbt_t* rbt, void* kptr, hawk_oow_t klen, cbserter_t cbserter, void* ctx)
 {
 	hawk_rbt_pair_t* x_cur = rbt->root;
 	hawk_rbt_pair_t* x_par = HAWK_NULL;
@@ -593,7 +591,7 @@ hawk_rbt_pair_t* hawk_rbt_cbsert (
 
 	while (!IS_NIL(rbt,x_cur))
 	{
-		int n = rbt->style->comper (rbt, kptr, klen, KPTR(x_cur), KLEN(x_cur));
+		int n = rbt->style->comper(rbt, kptr, klen, KPTR(x_cur), KLEN(x_cur));
 		if (n == 0)
 		{
 			/* back up the contents of the current pair
@@ -603,7 +601,7 @@ hawk_rbt_pair_t* hawk_rbt_cbsert (
 			tmp = *x_cur;
 
 			/* call the callback function to manipulate the pair */
-			x_new = cbserter (rbt, x_cur, kptr, klen, ctx);
+			x_new = cbserter(rbt, x_cur, kptr, klen, ctx);
 			if (x_new == HAWK_NULL)
 			{
 				/* error returned by the callback function */
@@ -648,7 +646,7 @@ hawk_rbt_pair_t* hawk_rbt_cbsert (
 		else /* if (n < 0) */ x_cur = x_cur->left;
 	}
 
-	x_new = cbserter (rbt, HAWK_NULL, kptr, klen, ctx);
+	x_new = cbserter(rbt, HAWK_NULL, kptr, klen, ctx);
 	if (x_new == HAWK_NULL) return HAWK_NULL;
 
 	if (x_par == HAWK_NULL)
@@ -660,7 +658,7 @@ hawk_rbt_pair_t* hawk_rbt_cbsert (
 	else
 	{
 		/* perform normal binary insert */
-		int n = rbt->style->comper (rbt, kptr, klen, KPTR(x_par), KLEN(x_par));
+		int n = rbt->style->comper(rbt, kptr, klen, KPTR(x_par), KLEN(x_par));
 		if (n > 0)
 		{
 			HAWK_ASSERT (rbt->hawk, x_par->right == &rbt->xnil);

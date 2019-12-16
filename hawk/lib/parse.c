@@ -6994,7 +6994,7 @@ int hawk_putsroocsn (
 //#include "mod-dir.h"
 #include "mod-math.h"
 #include "mod-str.h"
-//#include "mod-sys.h"
+#include "mod-sys.h"
 
 #if defined(HAWK_ENABLE_MOD_MPI)
 #include "../awkmod/mod-mpi.h"

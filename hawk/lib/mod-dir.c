@@ -497,11 +497,7 @@ static int init (hawk_mod_t* mod, hawk_rtx_t* rtx)
 	rbt = (hawk_rbt_t*)mod->ctx;
 
 	HAWK_MEMSET (&list, 0, HAWK_SIZEOF(list));
-	if (hawk_rbt_insert (rbt, &rtx, HAWK_SIZEOF(rtx), &list, HAWK_SIZEOF(list)) == HAWK_NULL) 
-	{
-		hawk_rtx_seterrnum (rtx, HAWK_ENOMEM, HAWK_NULL);
-		return -1;
-	}
+	if (hawk_rbt_insert (rbt, &rtx, HAWK_SIZEOF(rtx), &list, HAWK_SIZEOF(list)) == HAWK_NULL) return -1;
 
 	return 0;
 }
@@ -553,12 +549,9 @@ int hawk_mod_dir (hawk_mod_t* mod, hawk_t* awk)
 	mod->init = init;
 	mod->fini = fini;
 
-	rbt = hawk_rbt_open(hawk_getmmgr(awk), 0, 1, 1);
-	if (rbt == HAWK_NULL) 
-	{
-		hawk_seterrnum (awk, HAWK_ENOMEM, HAWK_NULL);
-		return -1;
-	}
+	rbt = hawk_rbt_open(hawk_getgem(awk), 0, 1, 1);
+	if (rbt == HAWK_NULL) return -1;
+
 	hawk_rbt_setstyle (rbt, hawk_get_rbt_style(HAWK_RBT_STYLE_INLINE_COPIERS));
 
 	mod->ctx = rbt;
