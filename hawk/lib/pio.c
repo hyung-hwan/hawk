@@ -54,7 +54,7 @@ static hawk_ooi_t pio_output (
 	hawk_tio_t* tio, hawk_tio_cmd_t cmd, void* buf, hawk_oow_t size);
 
 #include "syserr.h"
-IMPLEMENT_SYSERR_TO_ERRNUM (pio, PIO)
+IMPLEMENT_SYSERR_TO_ERRNUM (hawk, HAWK)
 
 static hawk_pio_errnum_t tio_errnum_to_pio_errnum (hawk_tio_t* tio)
 {

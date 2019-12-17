@@ -39,8 +39,10 @@
 #	define __SYSERRTYPE__(obj) obj
 #	define __SYSERRNUM__(obj,num) (obj E_ ## num)
 #else
-#	define __SYSERRTYPE__(obj) hawk_ ## obj ## _errnum_t
-#	define __SYSERRNUM__(obj,num) (HAWK_ ## obj ## _ ## num)
+/*#	define __SYSERRTYPE__(obj) hawk_ ## obj ## _errnum_t
+#	define __SYSERRNUM__(obj,num) (HAWK_ ## obj ## _ ## num)*/
+#	define __SYSERRTYPE__(obj) obj ## _errnum_t
+#	define __SYSERRNUM__(obj,num) (obj ## _ ## num)
 #endif
 
 #if defined(_WIN32)

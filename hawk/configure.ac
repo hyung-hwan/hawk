@@ -60,6 +60,9 @@ dnl indicate the existence of config.h
 CFLAGS="$CFLAGS -DHAWK_HAVE_CFG_H"
 CXXFLAGS="$CXXFLAGS -DHAWK_HAVE_CFG_H"
 
+HAWK_TRY_CFLAGS([-fshort-wchar])
+dnl HAWK_TRY_CFLAGS([-fno-short-wchar])
+
 dnl make visible the 64-bit interface to the file system
 AC_SYS_LARGEFILE()
 
@@ -734,7 +737,7 @@ then
 		[CFLAGS="$CFLAGS -DUNICODE -D_UNICODE"]
 		[CXXFLAGS="$CXXFLAGS -DUNICODE -D_UNICODE"]
 	fi 
-elif test "${enable_unicode}" = "yes:2"
+elif test "${enable_unicode}" = "yes:2" -o "{enable_unicode}" = "yes"
 then
 	AC_DEFINE([HAWK_UNICODE_SIZE],[2],[Unicode character type size])
 	AC_DEFINE([HAWK_ENABLE_UNICODE],[1],[Use the unicode character type as the default character type])
@@ -743,23 +746,23 @@ then
 		[CFLAGS="$CFLAGS -DUNICODE -D_UNICODE"]
 		[CXXFLAGS="$CXXFLAGS -DUNICODE -D_UNICODE"]
 	fi
-elif test "${enable_unicode}" = "yes"
-then
-	AC_DEFINE([HAWK_UNICODE_SIZE],[1],[Unicode character type size])
-	AC_DEFINE([HAWK_ENABLE_UNICODE],[1],[Use the unicode character type as the default character type])
-	if test "${platform_win32}" = "yes"
+	if test "${ac_cv_cflags__fshort_wchar}" = "yes"
 	then
-		[CFLAGS="$CFLAGS -DUNICODE -D_UNICODE"]
-		[CXXFLAGS="$CXXFLAGS -DUNICODE -D_UNICODE"]
+		[CFLAGS="$CFLAGS -fshort-wchar"]
+		[CXXFLAGS="$CXXFLAGS -fshort-wchar"]
 	fi
 elif test "${enable_unicode}" = "no:4"
 then
 	AC_DEFINE([HAWK_UNICODE_SIZE],[4],[Unicode character type size])
-elif test "${enable_unicode}" = "no:2"
-then
-	AC_DEFINE([HAWK_UNICODE_SIZE],[2],[Unicode character type size])
 else
-	AC_DEFINE([HAWK_UNICODE_SIZE],[1],[Unicode character type size])
+	dnl no:2, no, or anything else
+	AC_DEFINE([HAWK_UNICODE_SIZE],[2],[Unicode character type size])
+
+	if test "${ac_cv_cflags__fshort_wchar}" = "yes"
+	then
+		[CFLAGS="$CFLAGS -fshort-wchar"]
+		[CXXFLAGS="$CXXFLAGS -fshort-wchar"]
+	fi
 fi
 
 dnl ===== enable-full-liw =====
