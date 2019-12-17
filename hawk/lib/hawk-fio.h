@@ -73,28 +73,6 @@ enum hawk_fio_flag_t
 	HAWK_FIO_SEQUENTIAL    = (1 << 28)  /* hint that access is sequential */
 };
 
-enum hawk_fio_errnum_t
-{
-	HAWK_FIO_ENOERR = 0, /**< no error */
-	HAWK_FIO_EOTHER,     /**< other error */
-	HAWK_FIO_ENOIMPL,    /**< not implemented */
-	HAWK_FIO_ESYSERR,    /**< subsystem(system call) error */
-	HAWK_FIO_EINTERN,    /**< internal error */
-
-	HAWK_FIO_ENOMEM,     /**< out of memory */
-	HAWK_FIO_EINVAL,     /**< invalid parameter */
-	HAWK_FIO_EACCES,     /**< access denied */
-	HAWK_FIO_EPERM,      /**< operation not permitted */
-	HAWK_FIO_ENOENT,     /**< no such file */
-	HAWK_FIO_EEXIST,     /**< already exist */
-	HAWK_FIO_ENOTDIR,    /**< not a directory */
-	HAWK_FIO_EINTR,      /**< interrupted */
-	HAWK_FIO_EPIPE,      /**< broken pipe */
-	HAWK_FIO_EINPROG,    /**< in progress */
-	HAWK_FIO_EAGAIN      /**< resource not available temporarily */
-};
-typedef enum hawk_fio_errnum_t hawk_fio_errnum_t;
-
 enum hawk_fio_std_t
 {
 	HAWK_FIO_STDIN  = 0,
@@ -152,8 +130,7 @@ typedef struct hawk_fio_lck_t hawk_fio_lck_t;
 
 struct hawk_fio_t
 {
-	hawk_t*           hawk;
-	hawk_fio_errnum_t errnum;
+	hawk_gem_t*       gem;
 	hawk_fio_hnd_t    handle;
 	int               status; 
 };
@@ -188,7 +165,7 @@ extern "C" {
  * parameter when #HAWK_FIO_TEMPORARY is set.
  */
 HAWK_EXPORT hawk_fio_t* hawk_fio_open (
-	hawk_t*            hawk,
+	hawk_gem_t*        gem,
 	hawk_oow_t         xtnsize,
 	const hawk_ooch_t* path,
 	int                flags,
@@ -207,7 +184,7 @@ HAWK_EXPORT void hawk_fio_close (
  */
 HAWK_EXPORT int hawk_fio_init (
 	hawk_fio_t*        fio,
-	hawk_t*            hawk,
+	hawk_gem_t*        gem,
 	const hawk_ooch_t* path,
 	int                flags,
 	int                mode
@@ -226,10 +203,6 @@ static HAWK_INLINE void* hawk_fio_getxtn (hawk_fio_t* fio) { return (void*)(fio 
 #else
 #define hawk_fio_getxtn(awk) ((void*)((hawk_fio_t*)(fio) + 1))
 #endif
-
-HAWK_EXPORT hawk_fio_errnum_t hawk_fio_geterrnum (
-	const hawk_fio_t* fio
-);
 
 /**
  * The hawk_fio_gethnd() function returns the native file handle.

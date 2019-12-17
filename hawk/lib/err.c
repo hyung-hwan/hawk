@@ -48,6 +48,11 @@ const hawk_ooch_t* hawk_dflerrstr (hawk_t* awk, hawk_errnum_t errnum)
 		HAWK_T("I/O error"),
 		HAWK_T("buffer full"),
 		HAWK_T("encoding conversion error"),
+		HAWK_T("not directory"),
+		HAWK_T("resource temporarily unavailable"),
+		HAWK_T("interrupted"),
+		HAWK_T("broken pipe"),
+		HAWK_T("in progress"),
 
 		HAWK_T("cannot open '${0}'"),
 		HAWK_T("cannot read '${0}'"),

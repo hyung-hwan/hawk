@@ -1624,8 +1624,8 @@ static int log_ucs (hawk_fmtout_t* fmtout, const hawk_uch_t* ptr, hawk_oow_t len
 	{
 		len = rem;
 		bcslen = HAWK_COUNTOF(bcs);
-		hawk_conv_uchars_to_bchars_with_cmgr(ptr, &len, bcs, &bcslen, hawk_getcmgr(hawk));
-		log_bcs(fmtout, bcs, bcslen);
+		hawk_conv_uchars_to_bchars_with_cmgr (ptr, &len, bcs, &bcslen, hawk_getcmgr(hawk));
+		log_bcs (fmtout, bcs, bcslen);
 		rem -= len;
 		ptr += len;
 	}
@@ -1648,8 +1648,8 @@ static int log_bcs (hawk_fmtout_t* fmtout, const hawk_bch_t* ptr, hawk_oow_t len
 	{
 		len = rem;
 		ucslen = HAWK_COUNTOF(ucs);
-		hawk_conv_bchars_to_uchars_with_cmgr(ptr, &len, ucs, &ucslen, hawk_getcmgr(hawk), 1);
-		log_ucs(fmtout, ucs, ucslen);
+		hawk_conv_bchars_to_uchars_with_cmgr (ptr, &len, ucs, &ucslen, hawk_getcmgr(hawk), 1);
+		log_ucs (fmtout, ucs, ucslen);
 		rem -= len;
 		ptr += len;
 	}
