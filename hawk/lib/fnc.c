@@ -808,8 +808,8 @@ int hawk_fnc_split (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_ooch_t* fs_free = HAWK_NULL;
 	const hawk_ooch_t* p;
 	hawk_oow_t str_left, org_len;
-	void* fs_rex = HAWK_NULL; 
-	void* fs_rex_free = HAWK_NULL;
+	hawk_tre_t* fs_rex = HAWK_NULL; 
+	hawk_tre_t* fs_rex_free = HAWK_NULL;
 
 	hawk_oocs_t tok;
 	hawk_int_t nflds;
@@ -1082,8 +1082,8 @@ static int __substitute (hawk_rtx_t* rtx, hawk_int_t max_count)
 	hawk_ooch_t* s0_free = HAWK_NULL;
 	hawk_ooch_t* s2_free = HAWK_NULL;
 
-	void* rex = HAWK_NULL;
-	void* rex_free = HAWK_NULL;
+	hawk_tre_t* rex = HAWK_NULL;
+	hawk_tre_t* rex_free = HAWK_NULL;
 
 	hawk_ooecs_t new;
 	int new_inited = 0;

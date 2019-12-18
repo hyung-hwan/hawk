@@ -219,22 +219,22 @@ static HAWK_INLINE int resolve_rs (hawk_rtx_t* rtx, hawk_val_t* rs, hawk_oocs_t*
 	return ret;
 }
 
-static HAWK_INLINE int match_long_rs (hawk_rtx_t* run, hawk_ooecs_t* buf, hawk_rio_arg_t* p)
+static HAWK_INLINE int match_long_rs (hawk_rtx_t* rtx, hawk_ooecs_t* buf, hawk_rio_arg_t* p)
 {
 	hawk_oocs_t match;
 	hawk_errnum_t errnum;
 	int ret;
 
-	HAWK_ASSERT (hawk_rtx_gethawk(rtx), run->gbl.rs[0] != HAWK_NULL);
-	HAWK_ASSERT (hawk_rtx_gethawk(rtx), run->gbl.rs[1] != HAWK_NULL);
+	HAWK_ASSERT (hawk_rtx_gethawk(rtx), rtx->gbl.rs[0] != HAWK_NULL);
+	HAWK_ASSERT (hawk_rtx_gethawk(rtx), rtx->gbl.rs[1] != HAWK_NULL);
 
-	ret = hawk_matchrex (
-		run->awk, run->gbl.rs[run->gbl.ignorecase], 
-		run->gbl.ignorecase, HAWK_OOECS_OOCS(buf), HAWK_OOECS_OOCS(buf),
+	ret = hawk_matchrex(
+		rtx->awk, rtx->gbl.rs[rtx->gbl.ignorecase], 
+		rtx->gbl.ignorecase, HAWK_OOECS_OOCS(buf), HAWK_OOECS_OOCS(buf),
 		&match, HAWK_NULL, &errnum);
 	if (ret <= -1)
 	{
-		hawk_rtx_seterrnum (run, errnum, HAWK_NULL);
+		hawk_rtx_seterrnum (rtx, errnum, HAWK_NULL);
 	}
 	else if (ret >= 1)
 	{
@@ -246,10 +246,7 @@ static HAWK_INLINE int match_long_rs (hawk_rtx_t* run, hawk_ooecs_t* buf, hawk_r
 			 * as the previous call to this function.
 			 * A match in this case must end at the end of
 			 * the current record buffer */
-			HAWK_ASSERT (hawk_rtx_gethawk(rtx), 
-				HAWK_OOECS_PTR(buf) + HAWK_OOECS_LEN(buf) == 
-				match.ptr + match.len
-			);
+			HAWK_ASSERT (hawk_rtx_gethawk(rtx), HAWK_OOECS_PTR(buf) + HAWK_OOECS_LEN(buf) == match.ptr + match.len);
 
 			/* drop the RS part. no extra character after RS to drop
 			 * because we're at EOF and the EOF condition didn't

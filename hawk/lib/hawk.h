@@ -31,6 +31,7 @@
 #include <hawk-ecs.h>
 #include <hawk-gem.h>
 #include <hawk-htb.h>
+#include <hawk-tre.h>
 #include <hawk-utl.h>
 #include <stdarg.h>
 
@@ -224,7 +225,7 @@ struct hawk_val_rex_t
 {
 	HAWK_VAL_HDR;
 	hawk_oocs_t str;
-	void*       code[2];
+	hawk_tre_t* code[2];
 };
 typedef struct hawk_val_rex_t  hawk_val_rex_t;
 
@@ -1245,7 +1246,7 @@ enum hawk_trait_t
 		HAWK_STRIPSTRSPC | HAWK_STRICTNAMING,
 
 	HAWK_MODERN =
-		HAWK_CLASSIC | HAWK_FLEXMAP |
+		HAWK_CLASSIC | HAWK_FLEXMAP | HAWK_REXBOUND |
 		HAWK_RWPIPE | HAWK_TOLERANT | HAWK_NEXTOFILE  /*| HAWK_NCMPONSTR*/
 };
 typedef enum hawk_trait_t hawk_trait_t;
@@ -2684,7 +2685,7 @@ hawk_val_t* hawk_rtx_makembsvalwithbcs (
 HAWK_EXPORT hawk_val_t* hawk_rtx_makerexval (
 	hawk_rtx_t*        rtx,
 	const hawk_oocs_t* str,
-	void*              code[2]
+	hawk_tre_t*        code[2]
 );
 
 /**

@@ -161,10 +161,10 @@ HAWK_EXPORT void hawk_tio_setcmgr (
  * @return 0 on success, -1 on failure
  */
 HAWK_EXPORT int hawk_tio_attachin (
-	hawk_tio_t*       tio,
+	hawk_tio_t*        tio,
 	hawk_tio_io_impl_t input,
-	hawk_bch_t*     bufptr,
-	hawk_oow_t       bufcapa
+	hawk_bch_t*        bufptr,
+	hawk_oow_t         bufcapa
 );
 
 /**

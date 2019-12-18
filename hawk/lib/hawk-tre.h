@@ -29,41 +29,13 @@
 
 #include <hawk-cmn.h>
 
-enum hawk_tre_errnum_t
-{
-	HAWK_TRE_ENOERR,
-	HAWK_TRE_EOTHER,
-	HAWK_TRE_ENOIMPL,
-	HAWK_TRE_ESYSERR,
-	HAWK_TRE_EINTERN,
-
-	HAWK_TRE_ENOMEM,   /* Out of memory */
-	HAWK_TRE_ENOMATCH, /* No match */
-	HAWK_TRE_EBADPAT,  /* Invalid regular expression */
-	HAWK_TRE_ECOLLATE, /* Unknown collating element */
-	HAWK_TRE_ECTYPE,   /* Unknown character class name */
-	HAWK_TRE_EESCAPE,  /* Traling backslash */
-	HAWK_TRE_ESUBREG,  /* Invalid backreference */
-	HAWK_TRE_EBRACK,   /* "[]" imbalance */
-	HAWK_TRE_EPAREN,   /* "\(\)" or "()" imbalance */
-	HAWK_TRE_EBRACE,   /* "\{\}" or "{}" imbalance */
-	HAWK_TRE_EBADBR,   /* Invalid content of {} */
-	HAWK_TRE_ERANGE,   /* Invalid use of range operator */
-	HAWK_TRE_EBADRPT   /* Invalid use of repetition operators */
-};
-typedef enum hawk_tre_errnum_t hawk_tre_errnum_t;
-
 typedef struct hawk_tre_t hawk_tre_t;
 struct hawk_tre_t
 {
 	hawk_gem_t*       gem;
-	hawk_tre_errnum_t errnum; 
-
 	hawk_oow_t        re_nsub;  /* Number of parenthesized subexpressions. */
 	void*             value;	 /* For internal use only. */
 };
-
-#define HAWK_TRE_ERRNUM(tre) ((const hawk_tre_errnum_t)((tre)->errnum))
 
 typedef int hawk_tre_off_t;
 
@@ -131,15 +103,6 @@ static HAWK_INLINE void* hawk_tre_getxtn (hawk_tre_t* tre) { return (void*)(tre 
 #else
 #define hawk_tre_getxtn(awk) ((void*)((hawk_tre_t*)(tre) + 1))
 #endif
-
-
-HAWK_EXPORT hawk_tre_errnum_t hawk_tre_geterrnum (
-	hawk_tre_t* tre
-);
-
-HAWK_EXPORT const hawk_ooch_t* hawk_tre_geterrmsg (
-	hawk_tre_t* tre
-);
 
 HAWK_EXPORT int hawk_tre_compx (
 	hawk_tre_t*        tre,
