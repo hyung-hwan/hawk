@@ -82,7 +82,7 @@ typedef struct hawk_mtx_t hawk_mtx_t;
 
 struct hawk_mtx_t
 {
-	hawk_t* hawk;
+	hawk_gem_t* gem;
 	hawk_mtx_hnd_t hnd;
 };
 
@@ -91,7 +91,7 @@ extern "C" {
 #endif
 
 HAWK_EXPORT hawk_mtx_t* hawk_mtx_open (
-	hawk_t*      hawk,
+	hawk_gem_t*  gem,
 	hawk_oow_t   xtnsize
 );
 
@@ -101,7 +101,7 @@ HAWK_EXPORT void hawk_mtx_close (
 
 HAWK_EXPORT int hawk_mtx_init (
 	hawk_mtx_t*  mtx,
-	hawk_t*      hawk
+	hawk_gem_t*  gem
 );
 
 HAWK_EXPORT void hawk_mtx_fini (

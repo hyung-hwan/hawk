@@ -29,29 +29,6 @@
 
 #include <hawk-cmn.h>
 
-enum hawk_tio_errnum_t
-{
-	HAWK_TIO_ENOERR = 0, /**< no error */
-	HAWK_TIO_EOTHER, /**< other error */
-	HAWK_TIO_ENOIMPL, /**< not implmeneted */
-	HAWK_TIO_ESYSERR, /**< subsystem error */
-	HAWK_TIO_EINTERN, /**< internal error */
-
-	HAWK_TIO_ENOMEM, /**< out of memory */
-	HAWK_TIO_EINVAL, /**< invalid parameter */
-	HAWK_TIO_EACCES, /**< access denied */
-	HAWK_TIO_EPERM,  /**< operation not permitted */
-	HAWK_TIO_ENOENT, /**< no such file */
-	HAWK_TIO_ENOSPC, /**< no more space */
-	HAWK_TIO_EILSEQ, /**< illegal sequence */
-	HAWK_TIO_EICSEQ, /**< incomplete sequence */
-	HAWK_TIO_EILCHR, /**< illegal character */
-	HAWK_TIO_ENINPF, /**< no input function attached */
-	HAWK_TIO_ENOUTF  /**< no output function attached */
-};
-
-typedef enum hawk_tio_errnum_t hawk_tio_errnum_t;
-
 enum hawk_tio_cmd_t
 {
 	HAWK_TIO_OPEN,
@@ -75,8 +52,6 @@ enum hawk_tio_misc_t
 	HAWK_TIO_MININBUFCAPA  = 32,
 	HAWK_TIO_MINOUTBUFCAPA = 32
 };
-
-#define HAWK_TIO_ERRNUM(tio) ((const hawk_tio_errnum_t)(tio)->errnum)
 
 typedef struct hawk_tio_t hawk_tio_t;
 
@@ -109,8 +84,7 @@ typedef struct hawk_tio_io_t hawk_tio_io_t;
  */
 struct hawk_tio_t
 {
-	hawk_t*           hawk;
-	hawk_tio_errnum_t errnum;
+	hawk_gem_t*       gem;
 	int               flags;
 	hawk_cmgr_t*      cmgr;
 
@@ -132,7 +106,7 @@ extern "C" {
  * The hawk_tio_open() function creates an text stream processoor.
  */
 HAWK_EXPORT hawk_tio_t* hawk_tio_open (
-	hawk_t*     hawk,    /**< hawk */
+	hawk_gem_t* gem,
 	hawk_oow_t  xtnsize, /**< extension size in bytes */
 	int         flags    /**< ORed of hawk_tio_flag_t enumerators */
 );
@@ -150,7 +124,7 @@ HAWK_EXPORT int hawk_tio_close (
  */
 HAWK_EXPORT int hawk_tio_init (
 	hawk_tio_t*  tio,
-	hawk_t*      hawk,
+	hawk_gem_t*  gem,
 	int          flags
 );
 
@@ -166,22 +140,6 @@ static HAWK_INLINE void* hawk_tio_getxtn (hawk_tio_t* tio) { return (void*)(tio 
 #else
 #define hawk_tio_getxtn(awk) ((void*)((hawk_tio_t*)(tio) + 1))
 #endif
-
-/**
- * The hawk_tio_geterrnum() function returns the current error code.
- */
-HAWK_EXPORT hawk_tio_errnum_t hawk_tio_geterrnum (
-	const hawk_tio_t* tio
-);
-
-/**
- * The hawk_tio_geterrnum() function changes the current error code.
- * typically from within the I/O handler attached.
- */
-HAWK_EXPORT void hawk_tio_seterrnum (
-	hawk_tio_t*       tio,
-	hawk_tio_errnum_t errnum
-);
 
 /**
  * The hawk_tio_getcmgr() function returns the character manager.
@@ -222,10 +180,10 @@ HAWK_EXPORT int hawk_tio_detachin (
  * @return 0 on success, -1 on failure
  */
 HAWK_EXPORT int hawk_tio_attachout (
-	hawk_tio_t*       tio,
+	hawk_tio_t*        tio,
 	hawk_tio_io_impl_t output,
-	hawk_bch_t*     bufptr,
-	hawk_oow_t       bufcapa
+	hawk_bch_t*        bufptr,
+	hawk_oow_t         bufcapa
 );
 
 /**

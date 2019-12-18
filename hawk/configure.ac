@@ -91,6 +91,52 @@ AC_SUBST(LIBM, $LIBM)
 
 AX_PTHREAD()
 
+dnl ===== enable-unicode =====
+dnl this enable option is placed way above other options
+dnl as -fshort-wchar affects the size of wchar_t.
+AC_ARG_ENABLE([unicode], 
+	[AS_HELP_STRING([--enable-unicode],[Use the unicode character type as the default character type. one of yes, no, yes:2, yes:4, no:2, no:4 (default. yes)])],
+	enable_unicode=$enableval,
+	enable_unicode=yes
+)
+if test "${enable_unicode}" = "yes:4"
+then
+	AC_DEFINE([HAWK_UNICODE_SIZE],[4],[Unicode character type size])
+	AC_DEFINE([HAWK_ENABLE_UNICODE],[1],[Use the unicode character type as the default character type])
+	if test "${platform_win32}" = "yes"
+	then
+		[CFLAGS="$CFLAGS -DUNICODE -D_UNICODE"]
+		[CXXFLAGS="$CXXFLAGS -DUNICODE -D_UNICODE"]
+	fi 
+elif test "${enable_unicode}" = "yes:2" -o "${enable_unicode}" = "yes"
+then
+	AC_DEFINE([HAWK_UNICODE_SIZE],[2],[Unicode character type size])
+	AC_DEFINE([HAWK_ENABLE_UNICODE],[1],[Use the unicode character type as the default character type])
+	if test "${platform_win32}" = "yes"
+	then
+		[CFLAGS="$CFLAGS -DUNICODE -D_UNICODE"]
+		[CXXFLAGS="$CXXFLAGS -DUNICODE -D_UNICODE"]
+	fi
+	if test "${ac_cv_cflags__fshort_wchar}" = "yes"
+	then
+		[CFLAGS="$CFLAGS -fshort-wchar"]
+		[CXXFLAGS="$CXXFLAGS -fshort-wchar"]
+	fi
+elif test "${enable_unicode}" = "no:4"
+then
+	AC_DEFINE([HAWK_UNICODE_SIZE],[4],[Unicode character type size])
+else
+	dnl no:2, no, or anything else
+	AC_DEFINE([HAWK_UNICODE_SIZE],[2],[Unicode character type size])
+
+	if test "${ac_cv_cflags__fshort_wchar}" = "yes"
+	then
+		[CFLAGS="$CFLAGS -fshort-wchar"]
+		[CXXFLAGS="$CXXFLAGS -fshort-wchar"]
+	fi
+fi
+
+
 dnl check some compiler builtins
 AC_MSG_CHECKING([for __builtin_memset])
 AC_LINK_IFELSE(
@@ -720,49 +766,6 @@ else
 	[CXXFLAGS="$CXXFLAGS -DNDEBUG -U_DEBUG -U_FORTIFY_SOURCE"]
 	AC_DEFINE([HAWK_BUILD_RELEASE],[1],[build release/debug])
 	AC_SUBST(BUILD_MODE, "release")
-fi
-
-dnl ===== enable-unicode =====
-AC_ARG_ENABLE([unicode], 
-	[AS_HELP_STRING([--enable-unicode],[Use the unicode character type as the default character type. one of yes, no, yes:2, yes:4, no:2, no:4 (default. yes)])],
-	enable_unicode=$enableval,
-	enable_unicode=yes
-)
-if test "${enable_unicode}" = "yes:4"
-then
-	AC_DEFINE([HAWK_UNICODE_SIZE],[4],[Unicode character type size])
-	AC_DEFINE([HAWK_ENABLE_UNICODE],[1],[Use the unicode character type as the default character type])
-	if test "${platform_win32}" = "yes"
-	then
-		[CFLAGS="$CFLAGS -DUNICODE -D_UNICODE"]
-		[CXXFLAGS="$CXXFLAGS -DUNICODE -D_UNICODE"]
-	fi 
-elif test "${enable_unicode}" = "yes:2" -o "{enable_unicode}" = "yes"
-then
-	AC_DEFINE([HAWK_UNICODE_SIZE],[2],[Unicode character type size])
-	AC_DEFINE([HAWK_ENABLE_UNICODE],[1],[Use the unicode character type as the default character type])
-	if test "${platform_win32}" = "yes"
-	then
-		[CFLAGS="$CFLAGS -DUNICODE -D_UNICODE"]
-		[CXXFLAGS="$CXXFLAGS -DUNICODE -D_UNICODE"]
-	fi
-	if test "${ac_cv_cflags__fshort_wchar}" = "yes"
-	then
-		[CFLAGS="$CFLAGS -fshort-wchar"]
-		[CXXFLAGS="$CXXFLAGS -fshort-wchar"]
-	fi
-elif test "${enable_unicode}" = "no:4"
-then
-	AC_DEFINE([HAWK_UNICODE_SIZE],[4],[Unicode character type size])
-else
-	dnl no:2, no, or anything else
-	AC_DEFINE([HAWK_UNICODE_SIZE],[2],[Unicode character type size])
-
-	if test "${ac_cv_cflags__fshort_wchar}" = "yes"
-	then
-		[CFLAGS="$CFLAGS -fshort-wchar"]
-		[CXXFLAGS="$CXXFLAGS -fshort-wchar"]
-	fi
 fi
 
 dnl ===== enable-full-liw =====

@@ -37,6 +37,8 @@
 #	include "syscall.h"
 #endif
 
+#include "syserr.h"
+IMPLEMENT_SYSERR_TO_ERRNUM (hawk, HAWK)
 
 #define LOCK_OUTPUT(sio) do { if ((sio)->mtx) hawk_mtx_lock ((sio)->mtx, HAWK_NULL); } while(0)
 #define UNLOCK_OUTPUT(sio) do { if ((sio)->mtx) hawk_mtx_unlock ((sio)->mtx); } while(0)
@@ -56,68 +58,16 @@ enum
 static hawk_ooi_t file_input (hawk_tio_t* tio, hawk_tio_cmd_t cmd, void* buf, hawk_oow_t size);
 static hawk_ooi_t file_output (hawk_tio_t* tio, hawk_tio_cmd_t cmd, void* buf, hawk_oow_t size);
 
-static hawk_sio_errnum_t fio_errnum_to_sio_errnum (hawk_fio_t* fio)
-{
-	switch (fio->errnum)
-	{
-		case HAWK_FIO_ENOMEM:
-			return HAWK_SIO_ENOMEM;
-		case HAWK_FIO_EINVAL:
-			return HAWK_SIO_EINVAL;
-		case HAWK_FIO_EACCES:
-			return HAWK_SIO_EACCES;
-		case HAWK_FIO_ENOENT:
-			return HAWK_SIO_ENOENT;
-		case HAWK_FIO_EEXIST:
-			return HAWK_SIO_EEXIST;
-		case HAWK_FIO_EINTR:
-			return HAWK_SIO_EINTR;
-		case HAWK_FIO_EPIPE:
-			return HAWK_SIO_EPIPE;
-		case HAWK_FIO_EAGAIN:
-			return HAWK_SIO_EAGAIN;
-		case HAWK_FIO_ESYSERR:
-			return HAWK_SIO_ESYSERR;
-		case HAWK_FIO_ENOIMPL:
-			return HAWK_SIO_ENOIMPL;
-		default:
-			return HAWK_SIO_EOTHER;
-	}
-}
-
-static hawk_sio_errnum_t tio_errnum_to_sio_errnum (hawk_tio_t* tio)
-{
-	switch (tio->errnum)
-	{
-		case HAWK_TIO_ENOMEM:
-			return HAWK_SIO_ENOMEM;
-		case HAWK_TIO_EINVAL:
-			return HAWK_SIO_EINVAL;
-		case HAWK_TIO_EACCES:
-			return HAWK_SIO_EACCES;
-		case HAWK_TIO_ENOENT:
-			return HAWK_SIO_ENOENT;
-		case HAWK_TIO_EILSEQ:
-			return HAWK_SIO_EILSEQ;
-		case HAWK_TIO_EICSEQ:
-			return HAWK_SIO_EICSEQ;
-		case HAWK_TIO_EILCHR:
-			return HAWK_SIO_EILCHR;
-		default:
-			return HAWK_SIO_EOTHER;
-	}
-}
-
-hawk_sio_t* hawk_sio_open (hawk_t* hawk, hawk_oow_t xtnsize, const hawk_ooch_t* file, int flags)
+hawk_sio_t* hawk_sio_open (hawk_gem_t* gem, hawk_oow_t xtnsize, const hawk_ooch_t* file, int flags)
 {
 	hawk_sio_t* sio;
 
-	sio = (hawk_sio_t*)hawk_allocmem(hawk, HAWK_SIZEOF(hawk_sio_t) + xtnsize);
+	sio = (hawk_sio_t*)hawk_gem_allocmem(gem, HAWK_SIZEOF(hawk_sio_t) + xtnsize);
 	if (sio)
 	{
-		if (hawk_sio_init(sio, hawk, file, flags) <= -1)
+		if (hawk_sio_init(sio, gem, file, flags) <= -1)
 		{
-			hawk_freemem (hawk, sio);
+			hawk_gem_freemem (gem, sio);
 			return HAWK_NULL;
 		}
 		else HAWK_MEMSET (sio + 1, 0, xtnsize);
@@ -125,7 +75,7 @@ hawk_sio_t* hawk_sio_open (hawk_t* hawk, hawk_oow_t xtnsize, const hawk_ooch_t* 
 	return sio;
 }
 
-hawk_sio_t* hawk_sio_openstd (hawk_t* hawk, hawk_oow_t xtnsize, hawk_sio_std_t std, int flags)
+hawk_sio_t* hawk_sio_openstd (hawk_gem_t* gem, hawk_oow_t xtnsize, hawk_sio_std_t std, int flags)
 {
 	hawk_sio_t* sio;
 	hawk_fio_hnd_t hnd;
@@ -133,21 +83,20 @@ hawk_sio_t* hawk_sio_openstd (hawk_t* hawk, hawk_oow_t xtnsize, hawk_sio_std_t s
 	/* Is this necessary?
 	if (flags & HAWK_SIO_KEEPATH)
 	{
-		sio->errnum = HAWK_SIO_EINVAL;
+		hawk_gem_seterrnum (gem, HAWK_NULL, HAWK_EINVAL);
 		return HAWK_NULL;
 	}
 	*/
 
 	if (hawk_get_std_fio_handle(std, &hnd) <= -1) return HAWK_NULL;
 
-	sio = hawk_sio_open(hawk, xtnsize, (const hawk_ooch_t*)&hnd, flags | HAWK_SIO_HANDLE | HAWK_SIO_NOCLOSE);
+	sio = hawk_sio_open(gem, xtnsize, (const hawk_ooch_t*)&hnd, flags | HAWK_SIO_HANDLE | HAWK_SIO_NOCLOSE);
 
 #if defined(_WIN32)
 	if (sio) 
 	{
 		DWORD mode;
-		if (GetConsoleMode (sio->file.handle, &mode) == TRUE &&
-		    GetConsoleOutputCP() == CP_UTF8)
+		if (GetConsoleMode(sio->file.handle, &mode) == TRUE && GetConsoleOutputCP() == CP_UTF8)
 		{
 			sio->status |= STATUS_UTF8_CONSOLE;
 		}
@@ -160,62 +109,48 @@ hawk_sio_t* hawk_sio_openstd (hawk_t* hawk, hawk_oow_t xtnsize, hawk_sio_std_t s
 void hawk_sio_close (hawk_sio_t* sio)
 {
 	hawk_sio_fini (sio);
-	hawk_freemem (sio->hawk, sio);
+	hawk_gem_freemem (sio->gem, sio);
 }
 
-int hawk_sio_init (hawk_sio_t* sio, hawk_t* hawk, const hawk_ooch_t* path, int flags)
+int hawk_sio_init (hawk_sio_t* sio, hawk_gem_t* gem, const hawk_ooch_t* path, int flags)
 {
 	int mode;
 	int topt = 0;
 
 	HAWK_MEMSET (sio, 0, HAWK_SIZEOF(*sio));
-	sio->hawk = hawk;
+	sio->gem = gem;
 
 	mode = HAWK_FIO_RUSR | HAWK_FIO_WUSR | HAWK_FIO_RGRP | HAWK_FIO_ROTH;
 
 	if (flags & HAWK_SIO_REENTRANT)
 	{
-		sio->mtx = hawk_mtx_open(hawk, 0);
+		sio->mtx = hawk_mtx_open(gem, 0);
 		if (!sio->mtx) goto oops00;
 	}
 	/* sio flag enumerators redefines most fio flag enumerators and 
 	 * compose a superset of fio flag enumerators. when a user calls 
 	 * this function, a user can specify a sio flag enumerator not 
 	 * present in the fio flag enumerator. mask off such an enumerator. */
-	if (hawk_fio_init(&sio->file, hawk, path, (flags & ~HAWK_FIO_RESERVED), mode) <= -1) 
-	{
-		sio->errnum = fio_errnum_to_sio_errnum (&sio->file);
-		goto oops01;
-	}
+	if (hawk_fio_init(&sio->file, gem, path, (flags & ~HAWK_FIO_RESERVED), mode) <= -1) goto oops01;
 
 	if (flags & HAWK_SIO_IGNOREECERR) topt |= HAWK_TIO_IGNOREECERR;
 	if (flags & HAWK_SIO_NOAUTOFLUSH) topt |= HAWK_TIO_NOAUTOFLUSH;
 
 	if ((flags & HAWK_SIO_KEEPPATH) && !(flags & HAWK_SIO_HANDLE))
 	{
-		sio->path = hawk_dupoocstr(hawk, path, HAWK_NULL);
-		if (sio->path == HAWK_NULL)
-		{
-			sio->errnum = HAWK_SIO_ENOMEM;
-			goto oops02;
-		}
+		sio->path = hawk_gem_dupoocstr(gem, path, HAWK_NULL);
+		if (sio->path == HAWK_NULL) goto oops02;
 	}
 
-	if (hawk_tio_init(&sio->tio.io, hawk, topt) <= -1)
-	{
-		sio->errnum = tio_errnum_to_sio_errnum (&sio->tio.io);
-		goto oops03;
-	}
+	if (hawk_tio_init(&sio->tio.io, gem, topt) <= -1) goto oops03;
 
 	/* store the back-reference to sio in the extension area.*/
-	HAWK_ASSERT (hawk, (&sio->tio.io + 1) == &sio->tio.xtn);
+	/*HAWK_ASSERT (hawk, (&sio->tio.io + 1) == &sio->tio.xtn);*/
 	*(hawk_sio_t**)(&sio->tio.io + 1) = sio;
 
 	if (hawk_tio_attachin(&sio->tio.io, file_input, sio->inbuf, HAWK_COUNTOF(sio->inbuf)) <= -1 ||
 	    hawk_tio_attachout(&sio->tio.io, file_output, sio->outbuf, HAWK_COUNTOF(sio->outbuf)) <= -1)
 	{
-		if (sio->errnum == HAWK_SIO_ENOERR) 
-			sio->errnum = tio_errnum_to_sio_errnum (&sio->tio.io);
 		goto oops04;
 	}
 
@@ -227,7 +162,7 @@ int hawk_sio_init (hawk_sio_t* sio, hawk_t* hawk, const hawk_ooch_t* path, int f
 oops04:
 	hawk_tio_fini (&sio->tio.io);
 oops03:
-	if (sio->path) hawk_freemem (sio->hawk, sio->path);
+	if (sio->path) hawk_gem_freemem (sio->gem, sio->path);
 oops02:
 	hawk_fio_fini (&sio->file);
 oops01:
@@ -236,21 +171,20 @@ oops00:
 	return -1;
 }
 
-int hawk_sio_initstd (hawk_sio_t* sio, hawk_t* hawk, hawk_sio_std_t std, int flags)
+int hawk_sio_initstd (hawk_sio_t* sio, hawk_gem_t* gem, hawk_sio_std_t std, int flags)
 {
 	int n;
 	hawk_fio_hnd_t hnd;
 
 	if (hawk_get_std_fio_handle (std, &hnd) <= -1) return -1;
 
-	n = hawk_sio_init(sio, hawk, (const hawk_ooch_t*)&hnd, flags | HAWK_SIO_HANDLE | HAWK_SIO_NOCLOSE);
+	n = hawk_sio_init(sio, gem, (const hawk_ooch_t*)&hnd, flags | HAWK_SIO_HANDLE | HAWK_SIO_NOCLOSE);
 
 #if defined(_WIN32)
 	if (n >= 0) 
 	{
 		DWORD mode;
-		if (GetConsoleMode (sio->file.handle, &mode) == TRUE &&
-		    GetConsoleOutputCP() == CP_UTF8)
+		if (GetConsoleMode (sio->file.handle, &mode) == TRUE && GetConsoleOutputCP() == CP_UTF8)
 		{
 			sio->status |= STATUS_UTF8_CONSOLE;
 		}
@@ -266,17 +200,13 @@ void hawk_sio_fini (hawk_sio_t* sio)
 	hawk_sio_flush (sio);
 	hawk_tio_fini (&sio->tio.io);
 	hawk_fio_fini (&sio->file);
-	if (sio->path) hawk_freemem (sio->hawk, sio->path);
+	if (sio->path) hawk_gem_freemem (sio->gem, sio->path);
 	if (sio->mtx) hawk_mtx_close (sio->mtx);
-}
-hawk_sio_errnum_t hawk_sio_geterrnum (const hawk_sio_t* sio)
-{
-	return sio->errnum;
 }
 
 hawk_cmgr_t* hawk_sio_getcmgr (hawk_sio_t* sio)
 {
-	return hawk_tio_getcmgr (&sio->tio.io);
+	return hawk_tio_getcmgr(&sio->tio.io);
 }
 
 void hawk_sio_setcmgr (hawk_sio_t* sio, hawk_cmgr_t* cmgr)
@@ -286,7 +216,7 @@ void hawk_sio_setcmgr (hawk_sio_t* sio, hawk_cmgr_t* cmgr)
 
 hawk_sio_hnd_t hawk_sio_gethnd (const hawk_sio_t* sio)
 {
-	/*return hawk_fio_gethnd (&sio->file);*/
+	/*return hawk_fio_gethnd(&sio->file);*/
 	return HAWK_FIO_HANDLE(&sio->file);
 }
 
@@ -299,12 +229,8 @@ const hawk_ooch_t* hawk_sio_getpath (hawk_sio_t* sio)
 hawk_ooi_t hawk_sio_flush (hawk_sio_t* sio)
 {
 	hawk_ooi_t n;
-
 	LOCK_OUTPUT (sio);
-	sio->errnum = HAWK_SIO_ENOERR;
 	n = hawk_tio_flush(&sio->tio.io);
-	if (n <= -1 && sio->errnum == HAWK_SIO_ENOERR) 
-		sio->errnum = tio_errnum_to_sio_errnum (&sio->tio.io);
 	UNLOCK_OUTPUT (sio);
 	return n;
 }
@@ -319,28 +245,18 @@ void hawk_sio_drain (hawk_sio_t* sio)
 hawk_ooi_t hawk_sio_getbchar (hawk_sio_t* sio, hawk_bch_t* c)
 {
 	hawk_ooi_t n;
-
 	LOCK_INPUT (sio);
-	sio->errnum = HAWK_SIO_ENOERR;
 	n = hawk_tio_readbchars(&sio->tio.io, c, 1);
-	if (n <= -1 && sio->errnum == HAWK_SIO_ENOERR) 
-		sio->errnum = tio_errnum_to_sio_errnum (&sio->tio.io);
 	UNLOCK_INPUT (sio);
-
 	return n;
 }
 
 hawk_ooi_t hawk_sio_getuchar (hawk_sio_t* sio, hawk_uch_t* c)
 {
 	hawk_ooi_t n;
-
 	LOCK_INPUT (sio);
-	sio->errnum = HAWK_SIO_ENOERR;
 	n = hawk_tio_readuchars(&sio->tio.io, c, 1);
-	if (n <= -1 && sio->errnum == HAWK_SIO_ENOERR) 
-		sio->errnum = tio_errnum_to_sio_errnum (&sio->tio.io);
 	UNLOCK_INPUT (sio);
-
 	return n;
 }
 
@@ -356,17 +272,11 @@ hawk_ooi_t hawk_sio_getbcstr (hawk_sio_t* sio, hawk_bch_t* buf, hawk_oow_t size)
 #endif
 
 	LOCK_INPUT (sio);
-	sio->errnum = HAWK_SIO_ENOERR;
 	n = hawk_tio_readbchars(&sio->tio.io, buf, size - 1);
-	if (n <= -1) 
-	{
-		if (sio->errnum == HAWK_SIO_ENOERR)
-			sio->errnum = tio_errnum_to_sio_errnum (&sio->tio.io);
-		return -1;
-	}
+	if (n <= -1) return -1;
 	UNLOCK_INPUT (sio);
 
-	buf[n] = HAWK_BT('\0');
+	buf[n] = '\0';
 	return n;
 }
 
@@ -379,10 +289,7 @@ hawk_ooi_t hawk_sio_getbchars (hawk_sio_t* sio, hawk_bch_t* buf, hawk_oow_t size
 #endif
 
 	LOCK_INPUT (sio);
-	sio->errnum = HAWK_SIO_ENOERR;
 	n = hawk_tio_readbchars(&sio->tio.io, buf, size);
-	if (n <= -1 && sio->errnum == HAWK_SIO_ENOERR) 
-		sio->errnum = tio_errnum_to_sio_errnum (&sio->tio.io);
 	UNLOCK_INPUT (sio);
 
 	return n;
@@ -400,17 +307,10 @@ hawk_ooi_t hawk_sio_getucstr (hawk_sio_t* sio, hawk_uch_t* buf, hawk_oow_t size)
 #endif
 
 	LOCK_INPUT (sio);
-	sio->errnum = HAWK_SIO_ENOERR;
 	n = hawk_tio_readuchars(&sio->tio.io, buf, size - 1);
-	if (n <= -1) 
-	{
-		if (sio->errnum == HAWK_SIO_ENOERR)
-			sio->errnum = tio_errnum_to_sio_errnum (&sio->tio.io);
-		return -1;
-	}
 	UNLOCK_INPUT (sio);
 
-	buf[n] = HAWK_UT('\0');
+	buf[n] = '\0';
 	return n;
 }
 
@@ -424,10 +324,7 @@ hawk_ooi_t hawk_sio_getuchars(hawk_sio_t* sio, hawk_uch_t* buf, hawk_oow_t size)
 #endif
 
 	LOCK_INPUT (sio);
-	sio->errnum = HAWK_SIO_ENOERR;
 	n = hawk_tio_readuchars (&sio->tio.io, buf, size);
-	if (n <= -1 && sio->errnum == HAWK_SIO_ENOERR) 
-		sio->errnum = tio_errnum_to_sio_errnum (&sio->tio.io);
 	UNLOCK_INPUT (sio);
 
 	return n;
@@ -437,19 +334,14 @@ static hawk_ooi_t putbc_no_mutex (hawk_sio_t* sio, hawk_bch_t c)
 {
 	hawk_ooi_t n;
 
-	sio->errnum = HAWK_SIO_ENOERR;
-
 #if defined(__OS2__)
-	if (c == HAWK_BT('\n') && (sio->status & STATUS_LINE_BREAK))
-		n = hawk_tio_writebchars (&sio->tio.io, HAWK_BT("\r\n"), 2);
+	if (c == '\n' && (sio->status & STATUS_LINE_BREAK))
+		n = hawk_tio_writebchars(&sio->tio.io, "\r\n", 2);
 	else
-		n = hawk_tio_writebchars (&sio->tio.io, &c, 1);
+		n = hawk_tio_writebchars(&sio->tio.io, &c, 1);
 #else
-	n = hawk_tio_writebchars (&sio->tio.io, &c, 1);
+	n = hawk_tio_writebchars(&sio->tio.io, &c, 1);
 #endif
-
-	if (n <= -1 && sio->errnum == HAWK_SIO_ENOERR) 
-		sio->errnum = tio_errnum_to_sio_errnum (&sio->tio.io);
 
 	return n;
 }
@@ -467,17 +359,17 @@ static hawk_ooi_t put_uchar_no_mutex (hawk_sio_t* sio, hawk_uch_t c)
 {
 	hawk_ooi_t n;
 
-	sio->errnum = HAWK_SIO_ENOERR;
 #if defined(__OS2__)
-	if (c == HAWK_UT('\n') && (sio->status & STATUS_LINE_BREAK))
-		n = hawk_tio_writeuchars(&sio->tio.io, HAWK_UT("\r\n"), 2);
+	if (c == '\n' && (sio->status & STATUS_LINE_BREAK))
+	{
+		static hawk_uch_t crnl[2] = { '\r', '\n' };
+		n = hawk_tio_writeuchars(&sio->tio.io, crnl, 2);
+	}
 	else
 		n = hawk_tio_writeuchars(&sio->tio.io, &c, 1);
 #else
 	n = hawk_tio_writeuchars(&sio->tio.io, &c, 1);
 #endif
-	if (n <= -1 && sio->errnum == HAWK_SIO_ENOERR) 
-		sio->errnum = tio_errnum_to_sio_errnum (&sio->tio.io);
 
 	return n;
 }
@@ -502,9 +394,13 @@ hawk_ooi_t hawk_sio_putbcstr (hawk_sio_t* sio, const hawk_bch_t* str)
 	if (sio->status & STATUS_LINE_BREAK)
 	{
 		LOCK_OUTPUT (sio);
-		for (n = 0; n < HAWK_TYPE_MAX(hawk_ooi_t) && str[n] != HAWK_BT('\0'); n++)
+		for (n = 0; n < HAWK_TYPE_MAX(hawk_ooi_t) && str[n] != '\0'; n++)
 		{
-			if ((n = putbc_no_mutex(sio, str[n])) <= -1) return n;
+			if ((n = putbc_no_mutex(sio, str[n])) <= -1) 
+			{
+				n = -1;
+				break;
+			}
 		}
 		UNLOCK_OUTPUT (sio);
 		return n;
@@ -512,12 +408,7 @@ hawk_ooi_t hawk_sio_putbcstr (hawk_sio_t* sio, const hawk_bch_t* str)
 #endif
 
 	LOCK_OUTPUT (sio);
-
-	sio->errnum = HAWK_SIO_ENOERR;
 	n = hawk_tio_writebchars(&sio->tio.io, str, (hawk_oow_t)-1);
-	if (n <= -1 && sio->errnum == HAWK_SIO_ENOERR) 
-		sio->errnum = tio_errnum_to_sio_errnum(&sio->tio.io);
-
 	UNLOCK_OUTPUT (sio);
 	return n;
 }
@@ -536,7 +427,11 @@ hawk_ooi_t hawk_sio_putbchars (hawk_sio_t* sio, const hawk_bch_t* str, hawk_oow_
 		LOCK_OUTPUT (sio);
 		for (n = 0; n < size; n++)
 		{
-			if (putbc_no_mutex(sio, str[n]) <= -1) return -1;
+			if (putbc_no_mutex(sio, str[n]) <= -1)
+			{
+				n = -1;
+				break;
+			}
 		}
 		UNLOCK_OUTPUT (sio);
 		return n;
@@ -544,14 +439,8 @@ hawk_ooi_t hawk_sio_putbchars (hawk_sio_t* sio, const hawk_bch_t* str, hawk_oow_
 #endif
 
 	LOCK_OUTPUT (sio);
-
-	sio->errnum = HAWK_SIO_ENOERR;
 	n = hawk_tio_writebchars (&sio->tio.io, str, size);
-	if (n <= -1 && sio->errnum == HAWK_SIO_ENOERR) 
-		sio->errnum = tio_errnum_to_sio_errnum (&sio->tio.io);
-
 	UNLOCK_OUTPUT (sio);
-
 	return n;
 }
 
@@ -572,14 +461,14 @@ hawk_ooi_t hawk_sio_putucstr (hawk_sio_t* sio, const hawk_uch_t* str)
 		{
 			if (WriteConsoleW(sio->file.handle, cur, left, &count, HAWK_NULL) == FALSE) 
 			{
-				sio->errnum = HAWK_SIO_ESYSERR;
+				hawk_gem_seterrnum (sio->gem, HAWK_NULL, syserr_to_errnum(GetLastError()));
 				return -1;
 			}
 			if (count == 0) break;
 
 			if (count > left) 
 			{
-				sio->errnum = HAWK_SIO_ESYSERR;
+				hawk_gem_seterrnum (sio->gem, HAWK_NULL, HAWK_ESYSERR);
 				return -1;
 			}
 		}
@@ -589,9 +478,13 @@ hawk_ooi_t hawk_sio_putucstr (hawk_sio_t* sio, const hawk_uch_t* str)
 	if (sio->status & STATUS_LINE_BREAK)
 	{
 		LOCK_OUTPUT (sio);
-		for (n = 0; n < HAWK_TYPE_MAX(hawk_ooi_t) && str[n] != HAWK_UT('\0'); n++)
+		for (n = 0; n < HAWK_TYPE_MAX(hawk_ooi_t) && str[n] != '\0'; n++)
 		{
-			if (put_uchar_no_mutex(sio, str[n]) <= -1) return -1;
+			if (put_uchar_no_mutex(sio, str[n]) <= -1)
+			{
+				n = -1;
+				break;
+			}
 		}
 		UNLOCK_OUTPUT (sio);
 		return n;
@@ -599,12 +492,7 @@ hawk_ooi_t hawk_sio_putucstr (hawk_sio_t* sio, const hawk_uch_t* str)
 #endif
 
 	LOCK_OUTPUT (sio);
-
-	sio->errnum = HAWK_SIO_ENOERR;
 	n = hawk_tio_writeuchars(&sio->tio.io, str, (hawk_oow_t)-1);
-	if (n <= -1 && sio->errnum == HAWK_SIO_ENOERR) 
-		sio->errnum = tio_errnum_to_sio_errnum (&sio->tio.io);
-
 	UNLOCK_OUTPUT (sio);
 	return n;
 }
@@ -637,7 +525,7 @@ hawk_ooi_t hawk_sio_putuchars (hawk_sio_t* sio, const hawk_uch_t* str, hawk_oow_
 		{
 			if (WriteConsoleW(sio->file.handle, cur, left, &count, HAWK_NULL) == FALSE) 
 			{
-				sio->errnum = HAWK_SIO_ESYSERR;
+				hawk_gem_seterrnum (sio->gem, HAWK_NULL, syserr_to_errnum(GetLastError()));
 				return -1;
 			}
 			if (count == 0) break;
@@ -652,7 +540,7 @@ hawk_ooi_t hawk_sio_putuchars (hawk_sio_t* sio, const hawk_uch_t* str, hawk_oow_
 			 */
 			if (count > left) 
 			{
-				sio->errnum = HAWK_SIO_ESYSERR;
+				hawk_gem_seterrnum (sio->gem, HAWK_NULL, HAWK_ESYSERR);
 				return -1;
 			}
 		}
@@ -666,7 +554,11 @@ hawk_ooi_t hawk_sio_putuchars (hawk_sio_t* sio, const hawk_uch_t* str, hawk_oow_
 		LOCK_OUTPUT (sio);
 		for (n = 0; n < size; n++)
 		{
-			if (put_uchar_no_mutex(sio, str[n]) <= -1) return -1;
+			if (put_uchar_no_mutex(sio, str[n]) <= -1) 
+			{
+				n = -1;
+				break;
+			}
 		}
 		UNLOCK_OUTPUT (sio);
 		return n;
@@ -674,12 +566,7 @@ hawk_ooi_t hawk_sio_putuchars (hawk_sio_t* sio, const hawk_uch_t* str, hawk_oow_
 #endif
 
 	LOCK_OUTPUT (sio);
-
-	sio->errnum = HAWK_SIO_ENOERR;
 	n = hawk_tio_writeuchars(&sio->tio.io, str, size);
-	if (n <= -1 && sio->errnum == HAWK_SIO_ENOERR) 
-		sio->errnum = tio_errnum_to_sio_errnum (&sio->tio.io);
-
 	UNLOCK_OUTPUT (sio);
 	return n;
 }
@@ -691,11 +578,7 @@ int hawk_sio_getpos (hawk_sio_t* sio, hawk_sio_pos_t* pos)
 	if (hawk_sio_flush(sio) <= -1) return -1;
 
 	off = hawk_fio_seek(&sio->file, 0, HAWK_FIO_CURRENT);
-	if (off == (hawk_fio_off_t)-1) 
-	{
-		sio->errnum = fio_errnum_to_sio_errnum(&sio->file);
-		return -1;
-	}
+	if (off == (hawk_fio_off_t)-1) return -1;
 
 	*pos = off;
 	return 0;
@@ -708,11 +591,7 @@ int hawk_sio_setpos (hawk_sio_t* sio, hawk_sio_pos_t pos)
 	if (hawk_sio_flush(sio) <= -1) return -1;
 
 	off = hawk_fio_seek(&sio->file, pos, HAWK_FIO_BEGIN);
-	if (off == (hawk_fio_off_t)-1)
-	{
-		sio->errnum = fio_errnum_to_sio_errnum(&sio->file);
-		return -1;
-	}
+	if (off == (hawk_fio_off_t)-1) return -1;
 
 	return 0;
 }
@@ -739,16 +618,13 @@ static hawk_ooi_t file_input (hawk_tio_t* tio, hawk_tio_cmd_t cmd, void* buf, ha
 {
 	if (cmd == HAWK_TIO_DATA) 
 	{
-		hawk_ooi_t n;
 		hawk_sio_t* sio;
 
 		sio = *(hawk_sio_t**)(tio + 1);
-		HAWK_ASSERT (tio->hawk, sio != HAWK_NULL);
-		HAWK_ASSERT (tio->hawk, tio->hawk == sio->hawk);
+		/*HAWK_ASSERT (tio->hawk, sio != HAWK_NULL);
+		HAWK_ASSERT (tio->hawk, tio->hawk == sio->hawk);*/
 
-		n = hawk_fio_read(&sio->file, buf, size);
-		if (n <= -1) sio->errnum = fio_errnum_to_sio_errnum (&sio->file);
-		return n;
+		return hawk_fio_read(&sio->file, buf, size);
 	}
 
 	return 0;
@@ -758,16 +634,13 @@ static hawk_ooi_t file_output (hawk_tio_t* tio, hawk_tio_cmd_t cmd, void* buf, h
 {
 	if (cmd == HAWK_TIO_DATA) 
 	{
-		hawk_ooi_t n;
 		hawk_sio_t* sio;
 
 		sio = *(hawk_sio_t**)(tio + 1);
-		HAWK_ASSERT (tio->hawk, sio != HAWK_NULL);
-		HAWK_ASSERT (tio->hawk, tio->hawk == sio->hawk);
+		/*HAWK_ASSERT (tio->hawk, sio != HAWK_NULL);
+		HAWK_ASSERT (tio->hawk, tio->hawk == sio->hawk);*/
 
-		n = hawk_fio_write(&sio->file, buf, size);
-		if (n <= -1) sio->errnum = fio_errnum_to_sio_errnum(&sio->file);
-		return n;
+		return hawk_fio_write(&sio->file, buf, size);
 	}
 
 	return 0;

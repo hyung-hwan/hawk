@@ -2372,7 +2372,7 @@ static int fnc_writelog (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			if (!mctx->log.dmsgbuf) mctx->log.dmsgbuf = hawk_becs_open(hawk_rtx_getmmgr(rtx), 0, 0);
 			if (!mctx->log.dmsgbuf) goto done;
 
-			if (hawk_gettime(&now) || hawk_localtime(&now, &cnow) <= -1) goto done;
+			if (hawk_get_time(&now) || hawk_localtime(&now, &cnow) <= -1) goto done;
 
 			if (hawk_becs_fmt (
 				mctx->log.dmsgbuf, HAWK_BT("<%d>%s %02d %02d:%02d:%02d "), 

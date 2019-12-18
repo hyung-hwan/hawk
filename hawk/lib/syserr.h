@@ -143,20 +143,22 @@
 	{ \
 		switch (e) \
 		{ \
-			case ENOMEM: return __SYSERRNUM__ (obj2, ENOMEM); \
-			case EINVAL: return __SYSERRNUM__ (obj2, EINVAL); \
+			case ENOMEM: return __SYSERRNUM__(obj2, ENOMEM); \
+			case EINVAL: return __SYSERRNUM__(obj2, EINVAL); \
 			case EBUSY: \
-			case EACCES: return __SYSERRNUM__ (obj2, EACCES); \
-			case EPERM: return __SYSERRNUM__ (obj2, EPERM); \
-			case ENOTDIR: return __SYSERRNUM__ (obj2, ENOTDIR); \
-			case ENOENT: return __SYSERRNUM__ (obj2, ENOENT); \
-			case EEXIST: return __SYSERRNUM__ (obj2, EEXIST); \
-			case EINTR:  return __SYSERRNUM__ (obj2, EINTR); \
-			case EPIPE:  return __SYSERRNUM__ (obj2, EPIPE); \
-			case EINPROGRESS: return __SYSERRNUM__ (obj2, EINPROG); \
+			case EACCES: return __SYSERRNUM__(obj2, EACCES); \
+			case EPERM: return __SYSERRNUM__(obj2, EPERM); \
+			case ENOTDIR: return __SYSERRNUM__(obj2, ENOTDIR); \
+			case ENOENT: return __SYSERRNUM__(obj2, ENOENT); \
+			case EEXIST: return __SYSERRNUM__(obj2, EEXIST); \
+			case EINTR:  return __SYSERRNUM__(obj2, EINTR); \
+			case EPIPE:  return __SYSERRNUM__(obj2, EPIPE); \
+			case ECHILD:  return __SYSERRNUM__(obj2, ECHILD); \
+			case ETIMEDOUT: return __SYSERRNUM__(obj2, ETMOUT); \
+			case EINPROGRESS: return __SYSERRNUM__(obj2, EINPROG); \
 			case EWOULDBLOCK: \
-			case EAGAIN: return __SYSERRNUM__ (obj2, EAGAIN); \
-			default:     return __SYSERRNUM__ (obj2, ESYSERR); \
+			case EAGAIN: return __SYSERRNUM__(obj2, EAGAIN); \
+			default:     return __SYSERRNUM__(obj2, ESYSERR); \
 		} \
 	}
 
@@ -167,19 +169,21 @@
 	{ \
 		switch (e) \
 		{ \
-			case ENOMEM: return __SYSERRNUM__ (obj2, ENOMEM); \
-			case EINVAL: return __SYSERRNUM__ (obj2, EINVAL); \
+			case ENOMEM: return __SYSERRNUM__(obj2, ENOMEM); \
+			case EINVAL: return __SYSERRNUM__(obj2, EINVAL); \
 			case EBUSY: \
-			case EACCES: return __SYSERRNUM__ (obj2, EACCES); \
-			case EPERM: return __SYSERRNUM__ (obj2, EPERM); \
-			case ENOTDIR: return __SYSERRNUM__ (obj2, ENOTDIR); \
-			case ENOENT: return __SYSERRNUM__ (obj2, ENOENT); \
-			case EEXIST: return __SYSERRNUM__ (obj2, EEXIST); \
-			case EINTR:  return __SYSERRNUM__ (obj2, EINTR); \
-			case EPIPE:  return __SYSERRNUM__ (obj2, EPIPE); \
-			case EINPROGRESS: return __SYSERRNUM__ (obj2, EINPROG); \
-			case EAGAIN: return __SYSERRNUM__ (obj2, EAGAIN); \
-			default:     return __SYSERRNUM__ (obj2, ESYSERR); \
+			case EACCES: return __SYSERRNUM__(obj2, EACCES); \
+			case EPERM: return __SYSERRNUM__(obj2, EPERM); \
+			case ENOTDIR: return __SYSERRNUM__(obj2, ENOTDIR); \
+			case ENOENT: return __SYSERRNUM__(obj2, ENOENT); \
+			case EEXIST: return __SYSERRNUM__(obj2, EEXIST); \
+			case EINTR:  return __SYSERRNUM__(obj2, EINTR); \
+			case EPIPE:  return __SYSERRNUM__(obj2, EPIPE); \
+			case ECHILD:  return __SYSERRNUM__(obj2, ECHILD); \
+			case ETIMEDOUT: return __SYSERRNUM__(obj2, ETMOUT); \
+			case EINPROGRESS: return __SYSERRNUM__(obj2, EINPROG); \
+			case EAGAIN: return __SYSERRNUM__(obj2, EAGAIN); \
+			default:     return __SYSERRNUM__(obj2, ESYSERR); \
 		} \
 	}
 
@@ -190,19 +194,21 @@
 	{ \
 		switch (e) \
 		{ \
-			case ENOMEM: return __SYSERRNUM__ (obj2, ENOMEM); \
-			case EINVAL: return __SYSERRNUM__ (obj2, EINVAL); \
+			case ENOMEM: return __SYSERRNUM__(obj2, ENOMEM); \
+			case EINVAL: return __SYSERRNUM__(obj2, EINVAL); \
 			case EBUSY: \
-			case EACCES: return __SYSERRNUM__ (obj2, EACCES); \
-			case EPERM: return __SYSERRNUM__ (obj2, EPERM); \
-			case ENOTDIR: return __SYSERRNUM__ (obj2, ENOTDIR); \
-			case ENOENT: return __SYSERRNUM__ (obj2, ENOENT); \
-			case EEXIST: return __SYSERRNUM__ (obj2, EEXIST); \
-			case EINTR:  return __SYSERRNUM__ (obj2, EINTR); \
-			case EPIPE:  return __SYSERRNUM__ (obj2, EPIPE); \
-			case EINPROGRESS: return __SYSERRNUM__ (obj2, EINPROG); \
-			case EWOULDBLOCK: return __SYSERRNUM__ (obj2, EAGAIN); \
-			default:     return __SYSERRNUM__ (obj2, ESYSERR); \
+			case EACCES: return __SYSERRNUM__(obj2, EACCES); \
+			case EPERM: return __SYSERRNUM__(obj2, EPERM); \
+			case ENOTDIR: return __SYSERRNUM__(obj2, ENOTDIR); \
+			case ENOENT: return __SYSERRNUM__(obj2, ENOENT); \
+			case EEXIST: return __SYSERRNUM__(obj2, EEXIST); \
+			case EINTR:  return __SYSERRNUM__(obj2, EINTR); \
+			case EPIPE:  return __SYSERRNUM__(obj2, EPIPE); \
+			case ECHILD: return __SYSERRNUM__(obj2, ECHILD); \
+			case ETIMEDOUT: return __SYSERRNUM__(obj2, ETMOUT); \
+			case EINPROGRESS: return __SYSERRNUM__(obj2, EINPROG); \
+			case EWOULDBLOCK: return __SYSERRNUM__(obj2, EAGAIN); \
+			default:     return __SYSERRNUM__(obj2, ESYSERR); \
 		} \
 	}
 
@@ -213,18 +219,20 @@
 	{ \
 		switch (e) \
 		{ \
-			case ENOMEM: return __SYSERRNUM__ (obj2, ENOMEM); \
-			case EINVAL: return __SYSERRNUM__ (obj2, EINVAL); \
+			case ENOMEM: return __SYSERRNUM__(obj2, ENOMEM); \
+			case EINVAL: return __SYSERRNUM__(obj2, EINVAL); \
 			case EBUSY: \
-			case EACCES: return __SYSERRNUM__ (obj2, EACCES); \
-			case EPERM: return __SYSERRNUM__ (obj2, EPERM); \
-			case ENOTDIR: return __SYSERRNUM__ (obj2, ENOTDIR); \
-			case ENOENT: return __SYSERRNUM__ (obj2, ENOENT); \
-			case EEXIST: return __SYSERRNUM__ (obj2, EEXIST); \
-			case EINTR:  return __SYSERRNUM__ (obj2, EINTR); \
-			case EPIPE:  return __SYSERRNUM__ (obj2, EPIPE); \
-			case EINPROGRESS: return __SYSERRNUM__ (obj2, EINPROG); \
-			default:     return __SYSERRNUM__ (obj2, ESYSERR); \
+			case EACCES: return __SYSERRNUM__(obj2, EACCES); \
+			case EPERM: return __SYSERRNUM__(obj2, EPERM); \
+			case ENOTDIR: return __SYSERRNUM__(obj2, ENOTDIR); \
+			case ENOENT: return __SYSERRNUM__(obj2, ENOENT); \
+			case EEXIST: return __SYSERRNUM__(obj2, EEXIST); \
+			case EINTR:  return __SYSERRNUM__(obj2, EINTR); \
+			case EPIPE:  return __SYSERRNUM__(obj2, EPIPE); \
+			case ECHILD: return __SYSERRNUM__(obj2, ECHILD); \
+			case ETIMEDOUT: return __SYSERRNUM__(obj2, ETMOUT); \
+			case EINPROGRESS: return __SYSERRNUM__(obj2, EINPROG); \
+			default:     return __SYSERRNUM__(obj2, ESYSERR); \
 		} \
 	}
 

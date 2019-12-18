@@ -822,9 +822,9 @@ with_gnu_ld
 with_sysroot
 enable_libtool_lock
 enable_largefile
+enable_unicode
 enable_experimental
 enable_debug
-enable_unicode
 enable_full_liw
 enable_intmax
 enable_fltmax
@@ -1480,11 +1480,11 @@ Optional Features:
                           optimize for fast installation [default=yes]
   --disable-libtool-lock  avoid locking (might break parallel builds)
   --disable-largefile     omit support for large files
-  --enable-experimental   enable experimental feature(default. no)
-  --enable-debug          compile the code in the debug mode (default. no)
   --enable-unicode        Use the unicode character type as the default
                           character type. one of yes, no, yes:2, yes:4, no:2,
                           no:4 (default. yes)
+  --enable-experimental   enable experimental feature(default. no)
+  --enable-debug          compile the code in the debug mode (default. no)
   --enable-full-liw       Use a full word as a large integer word (default.
                           no)
   --enable-intmax         use hawk_intmax_t for integers (default. no)
@@ -18266,6 +18266,63 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
 
+# Check whether --enable-unicode was given.
+if test "${enable_unicode+set}" = set; then :
+  enableval=$enable_unicode; enable_unicode=$enableval
+else
+  enable_unicode=yes
+
+fi
+
+if test "${enable_unicode}" = "yes:4"
+then
+
+$as_echo "#define HAWK_UNICODE_SIZE 4" >>confdefs.h
+
+
+$as_echo "#define HAWK_ENABLE_UNICODE 1" >>confdefs.h
+
+	if test "${platform_win32}" = "yes"
+	then
+		CFLAGS="$CFLAGS -DUNICODE -D_UNICODE"
+		CXXFLAGS="$CXXFLAGS -DUNICODE -D_UNICODE"
+	fi
+elif test "${enable_unicode}" = "yes:2" -o "${enable_unicode}" = "yes"
+then
+
+$as_echo "#define HAWK_UNICODE_SIZE 2" >>confdefs.h
+
+
+$as_echo "#define HAWK_ENABLE_UNICODE 1" >>confdefs.h
+
+	if test "${platform_win32}" = "yes"
+	then
+		CFLAGS="$CFLAGS -DUNICODE -D_UNICODE"
+		CXXFLAGS="$CXXFLAGS -DUNICODE -D_UNICODE"
+	fi
+	if test "${ac_cv_cflags__fshort_wchar}" = "yes"
+	then
+		CFLAGS="$CFLAGS -fshort-wchar"
+		CXXFLAGS="$CXXFLAGS -fshort-wchar"
+	fi
+elif test "${enable_unicode}" = "no:4"
+then
+
+$as_echo "#define HAWK_UNICODE_SIZE 4" >>confdefs.h
+
+else
+
+$as_echo "#define HAWK_UNICODE_SIZE 2" >>confdefs.h
+
+
+	if test "${ac_cv_cflags__fshort_wchar}" = "yes"
+	then
+		CFLAGS="$CFLAGS -fshort-wchar"
+		CXXFLAGS="$CXXFLAGS -fshort-wchar"
+	fi
+fi
+
+
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for __builtin_memset" >&5
 $as_echo_n "checking for __builtin_memset... " >&6; }
 cat confdefs.h - <<_ACEOF >conftest.$ac_ext
@@ -22343,62 +22400,6 @@ $as_echo "#define HAWK_BUILD_RELEASE 1" >>confdefs.h
 
 	BUILD_MODE="release"
 
-fi
-
-# Check whether --enable-unicode was given.
-if test "${enable_unicode+set}" = set; then :
-  enableval=$enable_unicode; enable_unicode=$enableval
-else
-  enable_unicode=yes
-
-fi
-
-if test "${enable_unicode}" = "yes:4"
-then
-
-$as_echo "#define HAWK_UNICODE_SIZE 4" >>confdefs.h
-
-
-$as_echo "#define HAWK_ENABLE_UNICODE 1" >>confdefs.h
-
-	if test "${platform_win32}" = "yes"
-	then
-		CFLAGS="$CFLAGS -DUNICODE -D_UNICODE"
-		CXXFLAGS="$CXXFLAGS -DUNICODE -D_UNICODE"
-	fi
-elif test "${enable_unicode}" = "yes:2" -o "{enable_unicode}" = "yes"
-then
-
-$as_echo "#define HAWK_UNICODE_SIZE 2" >>confdefs.h
-
-
-$as_echo "#define HAWK_ENABLE_UNICODE 1" >>confdefs.h
-
-	if test "${platform_win32}" = "yes"
-	then
-		CFLAGS="$CFLAGS -DUNICODE -D_UNICODE"
-		CXXFLAGS="$CXXFLAGS -DUNICODE -D_UNICODE"
-	fi
-	if test "${ac_cv_cflags__fshort_wchar}" = "yes"
-	then
-		CFLAGS="$CFLAGS -fshort-wchar"
-		CXXFLAGS="$CXXFLAGS -fshort-wchar"
-	fi
-elif test "${enable_unicode}" = "no:4"
-then
-
-$as_echo "#define HAWK_UNICODE_SIZE 4" >>confdefs.h
-
-else
-
-$as_echo "#define HAWK_UNICODE_SIZE 2" >>confdefs.h
-
-
-	if test "${ac_cv_cflags__fshort_wchar}" = "yes"
-	then
-		CFLAGS="$CFLAGS -fshort-wchar"
-		CXXFLAGS="$CXXFLAGS -fshort-wchar"
-	fi
 fi
 
 # Check whether --enable-full-liw was given.

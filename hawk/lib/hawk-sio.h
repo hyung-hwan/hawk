@@ -64,31 +64,6 @@ enum hawk_sio_flag_t
 	HAWK_SIO_SEQUENTIAL    = HAWK_FIO_SEQUENTIAL
 };
 
-enum hawk_sio_errnum_t
-{
-	HAWK_SIO_ENOERR = 0, /**< no error */
-	HAWK_SIO_EOTHER,     /**< other error */
-	HAWK_SIO_ENOIMPL,    /**< not implemented */
-	HAWK_SIO_ESYSERR,    /**< subsystem(system call) error */
-	HAWK_SIO_EINTERN,    /**< internal error */
-
-	HAWK_SIO_ENOMEM,     /**< out of memory */
-	HAWK_SIO_EINVAL,     /**< invalid parameter */
-	HAWK_SIO_EACCES,     /**< access denied */
-	HAWK_SIO_EPERM,      /**< operation not permitted */
-	HAWK_SIO_ENOENT,     /**< no such file */
-	HAWK_SIO_EEXIST,     /**< already exist */
-	HAWK_SIO_ENOTDIR,    /**< not a directory */
-	HAWK_SIO_EINTR,      /**< interrupted */
-	HAWK_SIO_EPIPE,      /**< broken pipe */
-	HAWK_SIO_EAGAIN,     /**< resource not available temporarily */
-
-	HAWK_SIO_EILSEQ,     /**< illegal sequence */
-	HAWK_SIO_EICSEQ,     /**< incomplete sequence */
-	HAWK_SIO_EILCHR      /**< illegal character */
-};
-typedef enum hawk_sio_errnum_t hawk_sio_errnum_t;
-
 typedef hawk_fio_off_t hawk_sio_pos_t;
 typedef hawk_fio_hnd_t hawk_sio_hnd_t;
 typedef hawk_fio_std_t hawk_sio_std_t;
@@ -110,8 +85,7 @@ typedef struct hawk_sio_t hawk_sio_t;
 
 struct hawk_sio_t
 {
-	hawk_t*           hawk;
-	hawk_sio_errnum_t errnum;
+	hawk_gem_t* gem;
 
 	hawk_fio_t file;
 
@@ -143,14 +117,14 @@ extern "C" {
  * The hawk_sio_open() fucntion creates a stream object.
  */
 HAWK_EXPORT hawk_sio_t* hawk_sio_open (
-	hawk_t*            hawk,    /**< memory manager */
+	hawk_gem_t*        gem,
 	hawk_oow_t         xtnsize, /**< extension size in bytes */
 	const hawk_ooch_t* file,    /**< file name */
 	int                flags    /**< number OR'ed of #hawk_sio_flag_t */
 );
 
 HAWK_EXPORT hawk_sio_t* hawk_sio_openstd (
-	hawk_t*            hawk,    /**< memory manager */
+	hawk_gem_t*        gem,
 	hawk_oow_t         xtnsize, /**< extension size in bytes */
 	hawk_sio_std_t     std,     /**< standard I/O identifier */
 	int                flags    /**< number OR'ed of #hawk_sio_flag_t */
@@ -165,14 +139,14 @@ HAWK_EXPORT void hawk_sio_close (
 
 HAWK_EXPORT int hawk_sio_init (
 	hawk_sio_t*        sio,
-	hawk_t*            hawk,
+	hawk_gem_t*        gem,
 	const hawk_ooch_t* file,
 	int                flags
 );
 
 HAWK_EXPORT int hawk_sio_initstd (
 	hawk_sio_t*        sio,
-	hawk_t*            hawk,
+	hawk_gem_t*        gem,
 	hawk_sio_std_t     std,
 	int                flags
 );
@@ -186,10 +160,6 @@ static HAWK_INLINE void* hawk_sio_getxtn (hawk_sio_t* sio) { return (void*)(sio 
 #else
 #define hawk_sio_getxtn(awk) ((void*)((hawk_sio_t*)(sio) + 1))
 #endif
-
-HAWK_EXPORT hawk_sio_errnum_t hawk_sio_geterrnum (
-	const hawk_sio_t* sio
-);
 
 HAWK_EXPORT hawk_cmgr_t* hawk_sio_getcmgr (
 	hawk_sio_t* sio

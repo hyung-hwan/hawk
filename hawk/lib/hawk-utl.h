@@ -30,6 +30,16 @@
 #include "hawk-cmn.h"
 #include <stdarg.h>
 
+#define HAWK_EPOCH_YEAR  (1970)
+#define HAWK_EPOCH_MON   (1)
+#define HAWK_EPOCH_DAY   (1)
+#define HAWK_EPOCH_WDAY  (4)
+
+/* windows specific epoch time */
+#define HAWK_EPOCH_YEAR_WIN   (1601)
+#define HAWK_EPOCH_MON_WIN    (1)
+#define HAWK_EPOCH_DAY_WIN    (1)
+
 /* =========================================================================
  * DOUBLY LINKED LIST
  * ========================================================================= */
