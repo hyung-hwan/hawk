@@ -1258,9 +1258,6 @@ typedef enum hawk_log_mask_t hawk_log_mask_t;
  */
 #if (HAWK_SIZEOF_UCH_T == HAWK_SIZEOF_BCH_T)
 #       define HAWK_UT(txt)    (txt)
-#elif defined(HAWK_UCH_IS_CHAR16_T) && (HAWK_SIZEOF_WCHAR_T == 2)
-	/* prefer L to u as u is not supported by some compiers despite char16_t support */
-#       define HAWK_UT(txt)    (L ## txt)
 #elif defined(HAWK_UCH_IS_CHAR16_T)
 #       define HAWK_UT(txt)    (u ## txt)
 #else

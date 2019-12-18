@@ -1926,6 +1926,7 @@ static HAWK_INLINE hawk_uch_t* hawk_dupbtoucstr (hawk_t* hawk, const hawk_bch_t*
 static HAWK_INLINE hawk_bch_t* hawk_duputobcstr (hawk_t* hawk, const hawk_uch_t* ucs, hawk_oow_t* _bcslen) { return hawk_gem_duputobcstr(hawk_getgem(hawk), ucs, _bcslen); }
 static HAWK_INLINE hawk_uch_t* hawk_dupbtoucharswithcmgr (hawk_t* hawk, const hawk_bch_t* bcs, hawk_oow_t _bcslen, hawk_oow_t* _ucslen, hawk_cmgr_t* cmgr, int all) { return hawk_gem_dupbtoucharswithcmgr(hawk_getgem(hawk), bcs, _bcslen, _ucslen, cmgr, all); }
 static HAWK_INLINE hawk_bch_t* hawk_duputobcharswithcmgr (hawk_t* hawk, const hawk_uch_t* ucs, hawk_oow_t _ucslen, hawk_oow_t* _bcslen, hawk_cmgr_t* cmgr) { return hawk_gem_duputobcharswithcmgr(hawk_getgem(hawk), ucs, _ucslen, _bcslen, cmgr); }
+static HAWK_INLINE hawk_uch_t* hawk_dupbcstrarrtoucstr (hawk_t* hawk, const hawk_bch_t* bcsarr[], hawk_oow_t* ucslen, int all) { return hawk_gem_dupbcstrarrtoucstr(hawk_getgem(hawk), bcsarr, ucslen, all); }
 static HAWK_INLINE hawk_bch_t* hawk_dupucstrarrtobcstr (hawk_t* hawk, const hawk_uch_t* ucsarr[], hawk_oow_t* bcslen) { return hawk_gem_dupucstrarrtobcstr(hawk_getgem(hawk), ucsarr, bcslen); }
 #else
 #define hawk_dupbtouchars(hawk, bcs, _bcslen, _ucslen, all) hawk_gem_dupbtouchars(hawk_getgem(hawk), bcs, _bcslen, _ucslen, all)
@@ -1936,6 +1937,7 @@ static HAWK_INLINE hawk_bch_t* hawk_dupucstrarrtobcstr (hawk_t* hawk, const hawk
 #define hawk_duputobcstr(hawk, ucs, _bcslen) hawk_gem_duputobcstr(hawk_getgem(hawk), ucs, _bcslen)
 #define hawk_dupbtoucharswithcmgr(hawk, bcs, _bcslen, _ucslen, cmgr, all) hawk_gem_dupbtoucharswithcmgr(hawk_getgem(hawk), bcs, _bcslen, _ucslen, cmgr, all)
 #define hawk_duputobcharswithcmgr(hawk, ucs, _ucslen, _bcslen, cmgr) hawk_gem_duputobcharswithcmgr(hawk_getgem(hawk), ucs, _ucslen, _bcslen, cmgr)
+#define hawk_dupbcstrarrtoucstr(hawk, bcsarr, ucslen, all) hawk_gem_dupbcstrarrtoucstr(hawk_getgem(hawk), bcsarr, ucslen, all)
 #define hawk_dupucstrarrtobcstr(hawk, ucsarr, bcslen) hawk_gem_dupucstrarrtobcstr(hawk_getgem(hawk), ucsarr, bcslen)
 #endif
 
@@ -3169,6 +3171,7 @@ static HAWK_INLINE hawk_uch_t* hawk_rtx_dupbtoucstr (hawk_rtx_t* rtx, const hawk
 static HAWK_INLINE hawk_bch_t* hawk_rtx_duputobcstr (hawk_rtx_t* rtx, const hawk_uch_t* ucs, hawk_oow_t* _bcslen) { return hawk_gem_duputobcstr(hawk_rtx_getgem(rtx), ucs, _bcslen); }
 static HAWK_INLINE hawk_uch_t* hawk_rtx_dupbtoucharswithcmgr (hawk_rtx_t* rtx, const hawk_bch_t* bcs, hawk_oow_t _bcslen, hawk_oow_t* _ucslen, hawk_cmgr_t* cmgr, int all) { return hawk_gem_dupbtoucharswithcmgr(hawk_rtx_getgem(rtx), bcs, _bcslen, _ucslen, cmgr, all); }
 static HAWK_INLINE hawk_bch_t* hawk_rtx_duputobcharswithcmgr (hawk_rtx_t* rtx, const hawk_uch_t* ucs, hawk_oow_t _ucslen, hawk_oow_t* _bcslen, hawk_cmgr_t* cmgr) { return hawk_gem_duputobcharswithcmgr(hawk_rtx_getgem(rtx), ucs, _ucslen, _bcslen, cmgr); }
+static HAWK_INLINE hawk_uch_t* hawk_rtx_dupbcstrarrtoucstr (hawk_rtx_t* rtx, const hawk_bch_t* bcsarr[], hawk_oow_t* ucslen, int all) { return hawk_gem_dupbcstrarrtoucstr(hawk_rtx_getgem(rtx), bcsarr, ucslen, all); }
 static HAWK_INLINE hawk_bch_t* hawk_rtx_dupucstrarrtobcstr (hawk_rtx_t* rtx, const hawk_uch_t* ucsarr[], hawk_oow_t* bcslen) { return hawk_gem_dupucstrarrtobcstr(hawk_rtx_getgem(rtx), ucsarr, bcslen); }
 #else
 #define hawk_rtx_dupbtouchars(rtx, bcs, _bcslen, _ucslen, all) hawk_gem_dupbtouchars(hawk_rtx_getgem(rtx), bcs, _bcslen, _ucslen, all)
@@ -3179,6 +3182,7 @@ static HAWK_INLINE hawk_bch_t* hawk_rtx_dupucstrarrtobcstr (hawk_rtx_t* rtx, con
 #define hawk_rtx_duputobcstr(rtx, ucs, _bcslen) hawk_gem_duputobcstr(hawk_rtx_getgem(rtx), ucs, _bcslen)
 #define hawk_rtx_dupbtoucharswithcmgr(rtx, bcs, _bcslen, _ucslen, cmgr, all) hawk_gem_dupbtoucharswithcmgr(hawk_rtx_getgem(rtx), bcs, _bcslen, _ucslen, cmgr, all)
 #define hawk_rtx_duputobcharswithcmgr(rtx, ucs, _ucslen, _bcslen, cmgr) hawk_gem_duputobcharswithcmgr(hawk_rtx_getgem(rtx), ucs, _ucslen, _bcslen, cmgr)
+#define hawk_rtx_dupbcstrarrtoucstr(rtx, bcsarr, ucslen, all) hawk_gem_dupbcstrarrtoucstr(hawk_rtx_getgem(hawk), bcsarr, ucslen, all)
 #define hawk_rtx_dupucstrarrtobcstr(rtx, ucsarr, bcslen) hawk_gem_dupucstrarrtobcstr(hawk_rtx_getgem(rtx), ucsarr, bcslen)
 #endif
 

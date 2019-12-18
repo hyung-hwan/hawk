@@ -26,6 +26,7 @@
 
 #include <hawk-std.h>
 #include <hawk-utl.h>
+#include <hawk-fmt.h>
 #include <hawk-cli.h>
 
 #include <stdio.h>
@@ -134,48 +135,55 @@ static void dprint (const hawk_ooch_t* fmt, ...)
 
 /* ---------------------------------------------------------------------- */
 
-#if defined(HAVE_SIGACTION)
-
 typedef struct sig_state_t sig_state_t;
 struct sig_state_t
 {
-	hawk_oow_t handler;
-	hawk_oow_t old_handler;
+	hawk_uintptr_t handler;
+	hawk_uintptr_t old_handler;
+#if defined(HAVE_SIGACTION)
 	sigset_t  old_sa_mask;
 	int       old_sa_flags;
+#endif
 };
 
 typedef void (*sig_handler_t) (int sig);
 
 static sig_state_t g_sig_state[HAWK_NSIG];
 
+static int is_signal_handler_set (int sig)
+{
+	return !!g_sig_state[sig].handler;
+}
+
+#if defined(HAVE_SIGACTION)
 static void dispatch_siginfo (int sig, siginfo_t* si, void* ctx)
 {
-	if (g_sig_state[sig].handler != (hawk_oow_t)SIG_IGN &&
-	    g_sig_state[sig].handler != (hawk_oow_t)SIG_DFL)
+	if (g_sig_state[sig].handler != (hawk_uintptr_t)SIG_IGN &&
+	    g_sig_state[sig].handler != (hawk_uintptr_t)SIG_DFL)
 	{
 		((sig_handler_t)g_sig_state[sig].handler) (sig);
 	}
 
 	if (g_sig_state[sig].old_handler && 
-	    g_sig_state[sig].old_handler != (hawk_oow_t)SIG_IGN &&
-	    g_sig_state[sig].old_handler != (hawk_oow_t)SIG_DFL)
+	    g_sig_state[sig].old_handler != (hawk_uintptr_t)SIG_IGN &&
+	    g_sig_state[sig].old_handler != (hawk_uintptr_t)SIG_DFL)
 	{
 		((void(*)(int, siginfo_t*, void*))g_sig_state[sig].old_handler) (sig, si, ctx);
 	}
 }
+#endif
 
 static void dispatch_signal (int sig)
 {
-	if (g_sig_state[sig].handler != (hawk_oow_t)SIG_IGN &&
-	    g_sig_state[sig].handler != (hawk_oow_t)SIG_DFL)
+	if (g_sig_state[sig].handler != (hawk_uintptr_t)SIG_IGN &&
+	    g_sig_state[sig].handler != (hawk_uintptr_t)SIG_DFL)
 	{
 		((sig_handler_t)g_sig_state[sig].handler) (sig);
 	}
 
 	if (g_sig_state[sig].old_handler && 
-	    g_sig_state[sig].old_handler != (hawk_oow_t)SIG_IGN &&
-	    g_sig_state[sig].old_handler != (hawk_oow_t)SIG_DFL)
+	    g_sig_state[sig].old_handler != (hawk_uintptr_t)SIG_IGN &&
+	    g_sig_state[sig].old_handler != (hawk_uintptr_t)SIG_DFL)
 	{
 		((sig_handler_t)g_sig_state[sig].old_handler) (sig);
 	}
@@ -186,11 +194,12 @@ static int set_signal_handler (int sig, sig_handler_t handler, int extra_flags)
 	if (g_sig_state[sig].handler)
 	{
 		/* already set - allow handler change. ignore extra_flags. */
-		if (g_sig_state[sig].handler == (hawk_oow_t)handler) return -1;
-		g_sig_state[sig].handler = (hawk_oow_t)handler;
+		if (g_sig_state[sig].handler == (hawk_uintptr_t)handler) return -1;
+		g_sig_state[sig].handler = (hawk_uintptr_t)handler;
 	}
 	else
 	{
+	#if defined(HAVE_SIGACTION)
 		struct sigaction sa, oldsa;
 
 		if (sigaction(sig, HAWK_NULL, &oldsa) == -1) return -1;
@@ -213,14 +222,18 @@ static int set_signal_handler (int sig, sig_handler_t handler, int extra_flags)
 
 		if (sigaction(sig, &sa, HAWK_NULL) == -1) return -1;
 
-		g_sig_state[sig].handler = (hawk_oow_t)handler;
+		g_sig_state[sig].handler = (hawk_uintptr_t)handler;
 		if (oldsa.sa_flags & SA_SIGINFO)
-			g_sig_state[sig].old_handler = (hawk_oow_t)oldsa.sa_sigaction;
+			g_sig_state[sig].old_handler = (hawk_uintptr_t)oldsa.sa_sigaction;
 		else
-			g_sig_state[sig].old_handler = (hawk_oow_t)oldsa.sa_handler;
+			g_sig_state[sig].old_handler = (hawk_uintptr_t)oldsa.sa_handler;
 
 		g_sig_state[sig].old_sa_mask = oldsa.sa_mask;
 		g_sig_state[sig].old_sa_flags = oldsa.sa_flags;
+	#else
+		g_sig_state[sig].old_handler = (hawk_uintptr_t)signal(sig, handler);
+		g_sig_state[sig].handler = (hawk_uintptr_t)dispatch_signal;
+	#endif
 	}
 
 	return 0;
@@ -228,10 +241,13 @@ static int set_signal_handler (int sig, sig_handler_t handler, int extra_flags)
 
 static int unset_signal_handler (int sig)
 {
+#if defined(HAVE_SIGACTION)
 	struct sigaction sa;
+#endif
 
 	if (!g_sig_state[sig].handler) return -1; /* not set */
 
+#if defined(HAVE_SIGACTION)
 	HAWK_MEMSET (&sa, 0, HAWK_SIZEOF(sa));
 	sa.sa_mask = g_sig_state[sig].old_sa_mask;
 	sa.sa_flags = g_sig_state[sig].old_sa_flags;
@@ -246,20 +262,15 @@ static int unset_signal_handler (int sig)
 	}
 
 	if (sigaction(sig, &sa, HAWK_NULL) == -1) return -1;
+#else
+	signal (sig, (sig_handler_t)g_sig_state[sig].old_handler);
+#endif
 
 	g_sig_state[sig].handler = 0;
 	/* keep other fields untouched */
 
 	return 0;
 }
-
-static int is_signal_handler_set (int sig)
-{
-	return !!g_sig_state[sig].handler;
-}
-
-#endif
-
 
 /* ---------------------------------------------------------------------- */
 
@@ -282,9 +293,15 @@ static void do_nothing (int unused)
 
 static void set_intr_run (void)
 {
+#if defined(SIGTERM)
 	set_signal_handler (SIGTERM, stop_run, 0);
+#endif
+#if defined(SIGHUP)
 	set_signal_handler (SIGHUP, stop_run, 0);
+#endif
+#if defined(SIGINT)
 	set_signal_handler (SIGINT, stop_run, 0);
+#endif
 #if !defined(_WIN32) && !defined(__OS2__) && !defined(__DOS__) && defined(SIGPIPE)
 	set_signal_handler (SIGPIPE, do_nothing, 0);
 #endif
@@ -292,9 +309,15 @@ static void set_intr_run (void)
 
 static void unset_intr_run (void)
 {
+#if defined(SIGTERM)
 	unset_signal_handler (SIGTERM);
+#endif
+#if defined(SIGHUP)
 	unset_signal_handler (SIGHUP);
+#endif
+#if defined(SIGINT)
 	unset_signal_handler (SIGINT);
+#endif
 #if !defined(_WIN32) && !defined(__OS2__) && !defined(__DOS__) && defined(SIGPIPE)
 	unset_signal_handler (SIGPIPE);
 #endif
@@ -915,39 +938,36 @@ static void freearg (struct arg_t* arg)
 	if (arg->gvm.ptr) free (arg->gvm.ptr);
 }
 
-static void print_hawk_error (hawk_t* awk)
+static void print_hawk_error (hawk_t* hawk)
 {
-	const hawk_loc_t* loc = hawk_geterrloc(awk);
+	const hawk_loc_t* loc = hawk_geterrloc(hawk);
 
-	hawk_logfmt (awk, HAWK_LOG_STDERR,
+	hawk_logfmt (hawk, HAWK_LOG_STDERR,
 		HAWK_T("ERROR: CODE %d LINE %zu COLUMN %zu %js%js%js- %js\n"), 
-		(int)hawk_geterrnum(awk),
+		(int)hawk_geterrnum(hawk),
 		(hawk_oow_t)loc->line,
 		(hawk_oow_t)loc->colm,
 		((loc->file == HAWK_NULL)? HAWK_T(""): HAWK_T("FILE ")),
 		((loc->file == HAWK_NULL)? HAWK_T(""): loc->file),
 		((loc->file == HAWK_NULL)? HAWK_T(""): HAWK_T(" ")),
-		hawk_geterrmsg(awk)
+		hawk_geterrmsg(hawk)
 	);
 }
 
 static void print_hawk_rtx_error (hawk_rtx_t* rtx)
 {
-	const hawk_loc_t* loc = hawk_rtx_geterrloc (rtx);
+	const hawk_loc_t* loc = hawk_rtx_geterrloc(rtx);
 
-/* TODO: proper logging mask */
-printf ("print_hawk_rtx_error... TODO: \n");
-/*
-	hawk_logfmt (hawk_rtx_gethawk(rtx), 0,
-		HAWK_T("ERROR: CODE %d LINE %zu COLUMN %zu %s%s%s- %s\n"),
-		hawk_rtx_geterrnum(rtx),
+	hawk_logfmt (hawk_rtx_gethawk(rtx), HAWK_LOG_STDERR,
+		HAWK_T("ERROR: CODE %d LINE %zu COLUMN %zu %js%js%js- %js\n"), 
+		(int)hawk_rtx_geterrnum(rtx),
 		(hawk_oow_t)loc->line,
 		(hawk_oow_t)loc->colm,
 		((loc->file == HAWK_NULL)? HAWK_T(""): HAWK_T("FILE ")),
 		((loc->file == HAWK_NULL)? HAWK_T(""): loc->file),
 		((loc->file == HAWK_NULL)? HAWK_T(""): HAWK_T(" ")),
 		hawk_rtx_geterrmsg(rtx)
-	);*/
+	);
 }
 
 hawk_htb_walk_t add_global (hawk_htb_t* map, hawk_htb_pair_t* pair, void* arg)
@@ -1092,7 +1112,7 @@ static HAWK_INLINE int execute_hawk (int argc, hawk_bch_t* argv[])
 		xma_mmgr.ctx = hawk_xma_open(HAWK_MMGR_GETDFL(), 0, arg.memlimit);
 		if (xma_mmgr.ctx == HAWK_NULL)
 		{
-			hawk_printf (HAWK_T("ERROR: cannot open memory heap\n"));
+			print_error ("cannot open memory heap\n");
 			goto oops;
 		}
 		mmgr = &xma_mmgr;
@@ -1195,6 +1215,7 @@ oops:
 	freearg (&arg);
 
 #if defined(HAWK_BUILD_DEBUG)
+	/*
 	if (arg.failmalloc > 0)
 	{
 		hawk_fprintf (HAWK_STDERR, HAWK_T("\n"));
@@ -1204,7 +1225,7 @@ oops:
 			(unsigned long)debug_mmgr_free_count,
 			(unsigned long)debug_mmgr_realloc_count);
 		hawk_fprintf (HAWK_STDERR, HAWK_T("-------------------------------------------------------\n"));
-	}
+	}*/
 #endif
 
 	return ret;
@@ -1232,12 +1253,12 @@ int main (int argc, hawk_bch_t* argv[])
 	if (codepage == CP_UTF8)
 	{
 		/*SetConsoleOUtputCP (CP_UTF8);*/
-		hawk_setdflcmgrbyid (HAWK_CMGR_UTF8);
+		/*hawk_setdflcmgrbyid (HAWK_CMGR_UTF8);*/
 	}
 	else
 	{
 		/* .codepage */
-		hawk_fmt_uintmax_to_bcstr (locale, HAWK_COUNTOF(locale), codepage, 10, -1, HAWK_MT('\0'), HAWK_MT("."));
+		hawk_fmt_uintmax_to_bcstr (locale, HAWK_COUNTOF(locale), codepage, 10, -1, '\0', ".");
 		setlocale (LC_ALL, locale);
 		/* hawk_setdflcmgrbyid (HAWK_CMGR_SLMB); */
 	}
@@ -1250,7 +1271,7 @@ int main (int argc, hawk_bch_t* argv[])
 #if defined(_WIN32)
 	if (WSAStartup (MAKEWORD(2,0), &wsadata) != 0)
 	{
-		print_error (HAWK_T("Failed to start up winsock\n"));
+		print_error ("Failed to start up winsock\n");
 		ret = -1;
 		goto oops;
 	}
@@ -1258,7 +1279,7 @@ int main (int argc, hawk_bch_t* argv[])
 /* TODO: add an option to skip watt-32 */
 	_watt_do_exit = 0; /* prevent sock_init from exiting upon failure */
 	if (sock_init() != 0)
-		print_warning (HAWK_T("Failed to initialize watt-32\n"));
+		print_warning ("Failed to initialize watt-32\n");
 	else sock_inited = 1;
 #endif
 

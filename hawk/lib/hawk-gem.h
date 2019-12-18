@@ -218,11 +218,19 @@ HAWK_EXPORT hawk_bch_t* hawk_gem_duputobcharswithcmgr (
 	hawk_cmgr_t*       cmgr
 );
 
+HAWK_EXPORT hawk_uch_t* hawk_gem_dupbcstrarrtoucstr (
+	hawk_gem_t*        gem,
+	const hawk_bch_t*  bcs[],
+	hawk_oow_t*        ucslen,
+	int                all
+);
+
 HAWK_EXPORT hawk_bch_t* hawk_gem_dupucstrarrtobcstr (
 	hawk_gem_t*        gem,
 	const hawk_uch_t*  ucs[],
 	hawk_oow_t*        bcslen
 );
+
 
 /* ----------------------------------------------------------------------- */
 

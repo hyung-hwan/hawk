@@ -384,15 +384,40 @@ hawk_bch_t* hawk_gem_duputobcharswithcmgr (hawk_gem_t* gem, const hawk_uch_t* uc
 	return bcs;
 }
 
+hawk_uch_t* hawk_gem_dupbcstrarrtoucstr (hawk_gem_t* gem, const hawk_bch_t* bcs[], hawk_oow_t* ucslen, int all)
+{
+	hawk_oow_t bl, ul, capa, pos, i;
+	hawk_uch_t* ucs;
+
+	for (capa = 0, i = 0; bcs[i]; i++)
+	{
+		if (hawk_gem_convbtoucstr(gem, bcs[i], &bl, HAWK_NULL, &ul, all) <= -1)  return HAWK_NULL;
+		capa += ul;
+	}
+
+	ucs = (hawk_uch_t*)hawk_gem_allocmem(gem, (capa + 1) * HAWK_SIZEOF(*ucs));
+	if (!ucs) return HAWK_NULL;
+
+	for (pos = 0, i = 0; bcs[i]; i++)
+	{
+		ul = capa - pos + 1;
+		hawk_gem_convbtoucstr (gem, bcs[i], &bl, &ucs[pos], &ul, all);
+		pos += ul;
+	}
+
+	if (ucslen) *ucslen = capa;
+	return ucs;
+}
+
 hawk_bch_t* hawk_gem_dupucstrarrtobcstr (hawk_gem_t* gem, const hawk_uch_t* ucs[], hawk_oow_t* bcslen)
 {
-	hawk_oow_t wl, ml, capa, pos, i;
+	hawk_oow_t ul, bl, capa, pos, i;
 	hawk_bch_t* bcs;
 
 	for (capa = 0, i = 0; ucs[i]; i++)
 	{
-		if (hawk_gem_convutobcstr(gem, ucs[i], &wl, HAWK_NULL, &ml) <= -1)  return HAWK_NULL;
-		capa += ml;
+		if (hawk_gem_convutobcstr(gem, ucs[i], &ul, HAWK_NULL, &bl) <= -1)  return HAWK_NULL;
+		capa += bl;
 	}
 
 	bcs = (hawk_bch_t*)hawk_gem_allocmem(gem, (capa + 1) * HAWK_SIZEOF(*bcs));
@@ -400,9 +425,9 @@ hawk_bch_t* hawk_gem_dupucstrarrtobcstr (hawk_gem_t* gem, const hawk_uch_t* ucs[
 
 	for (pos = 0, i = 0; ucs[i]; i++)
 	{
-		ml = capa - pos + 1;
-		hawk_gem_convutobcstr (gem, ucs[i], &wl, &bcs[pos], &ml);
-		pos += ml;
+		bl = capa - pos + 1;
+		hawk_gem_convutobcstr (gem, ucs[i], &ul, &bcs[pos], &bl);
+		pos += bl;
 	}
 
 	if (bcslen) *bcslen = capa;

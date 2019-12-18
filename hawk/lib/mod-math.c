@@ -36,7 +36,7 @@
 #	error QUADMATH.H NOT AVAILABLE or NOT COMPILABLE
 #endif
 
-#if !defined(HAWK_HAVE_CONFIG_H)
+#if !defined(HAWK_HAVE_CFG_H)
 #	if defined(_WIN32) || defined(__OS2__) || defined(__DOS__)
 #		define HAVE_CEIL
 #		define HAVE_FLOOR
@@ -64,7 +64,9 @@
 typedef struct modctx_t
 {
 	unsigned int seed;
+#if defined(HAVE_RANDOM_R)
 	struct random_data prand;
+#endif
 } modctx_t;
 
 static int fnc_math_1 (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, hawk_math1_t f)
@@ -534,7 +536,13 @@ static int fnc_rand (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	modctx_t* modctx;
 
 	modctx = (modctx_t*)fi->mod->ctx;
+#if defined(HAVE_RANDOM_R)
 	random_r (&modctx->prand, &randv);
+#elif defined(HAVE_RANDOM)
+	randv = random();
+#else
+	randv = rand();
+#endif
 
 	r = hawk_rtx_makefltval(rtx, (hawk_flt_t)randv / RANDV_MAX);
 	if (r == HAWK_NULL) return -1;
@@ -562,17 +570,29 @@ static int fnc_srand (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 	if (nargs <= 0)
 	{
-		struct timeval tv;
-		gettimeofday (&tv, HAWK_NULL);
-		modctx->seed = tv.tv_sec * tv.tv_usec;
+		hawk_ntime_t tv;
+		hawk_get_time (&tv);
+		modctx->seed = tv.sec + tv.nsec;
+	#if defined(HAVE_RANDOM_R)
 		srandom_r (modctx->seed, &modctx->prand);
+	#elif defined(HAVE_RANDOM)
+		srandom (modctx->seed);
+	#else
+		srand (modctx->seed);
+	#endif
 	}
 	else
 	{
 		a0 = hawk_rtx_getarg(rtx, 0);
 		n = hawk_rtx_valtoint(rtx, a0, &lv);
 		if (n <= -1) return -1;
+	#if defined(HAVE_RANDOM_R)
 		srandom_r (lv, &modctx->prand);
+	#elif defined(HAVE_RANDOM)
+		srandom (lv);
+	#else
+		srand (lv);
+	#endif
 	}
 	
 	r = hawk_rtx_makeintval (rtx, prev);
@@ -685,16 +705,22 @@ static void unload (hawk_mod_t* mod, hawk_t* awk)
 int hawk_mod_math (hawk_mod_t* mod, hawk_t* awk)
 {
 	modctx_t* modctx;
-	struct timeval tv;
+	hawk_ntime_t tv;
 
 	modctx = hawk_allocmem(awk, HAWK_SIZEOF(*modctx));
 	if (modctx == HAWK_NULL) return -1;
 
 	HAWK_MEMSET (modctx, 0, HAWK_SIZEOF(*modctx));
 
-	gettimeofday (&tv, HAWK_NULL);
-	modctx->seed = tv.tv_sec * tv.tv_usec;
+	hawk_get_time (&tv);
+	modctx->seed = tv.sec + tv.nsec;
+#if defined(HAVE_RANDOM_R)
 	srandom_r (modctx->seed, &modctx->prand);
+#elif defined(HAVE_RANDOM)
+	srandom (modctx->seed);
+#else
+	srand (modctx->seed);
+#endif
 
 	mod->query = query;
 	mod->unload = unload;

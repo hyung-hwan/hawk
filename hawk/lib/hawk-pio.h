@@ -52,7 +52,7 @@ enum hawk_pio_flag_t
 
 	/** indicate that the command to hawk_pio_open() is a multi-byte string.
 	 *  it is useful if #HAWK_OOCH_IS_UCH is defined. */
-	HAWK_PIO_MBSCMD        = (1 << 4),
+	HAWK_PIO_BCSTRCMD        = (1 << 4),
 
 	/** don't attempt to close open file descriptors unknown to pio.
 	 *  it is useful only on a unix-like systems where file descriptors
@@ -202,7 +202,7 @@ extern "C" {
  * On *nix systems, a full path to the command is needed if it is not specified.
  * If \a env is #HAWK_NULL, the environment of \a cmd inherits that of the 
  * calling process. If you want to pass an empty environment, you can pass
- * an empty \a env object with no items inserted. If #HAWK_PIO_MBSCMD is 
+ * an empty \a env object with no items inserted. If #HAWK_PIO_BCSTRCMD is 
  * specified in \a flags, \a cmd is treated as a multi-byte string whose 
  * character type is #hawk_bch_t.
  * \return #hawk_pio_t object on success, #HAWK_NULL on failure
