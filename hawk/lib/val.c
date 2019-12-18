@@ -400,7 +400,7 @@ hawk_val_t* hawk_rtx_makembsvalwithbcs (hawk_rtx_t* rtx, const hawk_bcs_t* mxstr
 	return hawk_rtx_makembsval(rtx, mxstr->ptr, mxstr->len);
 }
 
-hawk_val_t* hawk_rtx_makerexval (hawk_rtx_t* rtx, const hawk_oocs_t* str, void* code[2])
+hawk_val_t* hawk_rtx_makerexval (hawk_rtx_t* rtx, const hawk_oocs_t* str, hawk_tre_t* code[2])
 {
 	hawk_val_rex_t* val;
 	hawk_oow_t totsz;
@@ -1371,19 +1371,13 @@ int hawk_rtx_valtostr (hawk_rtx_t* rtx, const hawk_val_t* v, hawk_rtx_valtostr_o
 	switch (vtype)
 	{
 		case HAWK_VAL_NIL:
-		{
 			return str_to_str(rtx, HAWK_T(""), 0, out);
-		}
 
 		case HAWK_VAL_INT:
-		{
 			return val_int_to_str(rtx, (hawk_val_int_t*)v, out);
-		}
 
 		case HAWK_VAL_FLT:
-		{
 			return val_flt_to_str(rtx, (hawk_val_flt_t*)v, out);
-		}
 
 		case HAWK_VAL_STR:
 		{
@@ -1402,31 +1396,27 @@ int hawk_rtx_valtostr (hawk_rtx_t* rtx, const hawk_val_t* v, hawk_rtx_valtostr_o
 		}
 
 		case HAWK_VAL_FUN:
-		{
 			return str_to_str(rtx, ((hawk_val_fun_t*)v)->fun->name.ptr, ((hawk_val_fun_t*)v)->fun->name.len, out);
-		}
 
 		case HAWK_VAL_MAP:
-		{
 			if (rtx->awk->opt.trait & HAWK_FLEXMAP)
 			{
 				return str_to_str(rtx, HAWK_T("#MAP"), 4, out);
 			}
-			break;
-		}
+			goto invalid;
 
 		case HAWK_VAL_REF:
-		{
 			return val_ref_to_str(rtx, (hawk_val_ref_t*)v, out);
-		}
+
+		case HAWK_VAL_REX:
+		default:
+		invalid:
+		#if defined(DEBUG_VAL)
+			hawk_logfmt (hawk_rtx_gethawk(rtx), HAWK_T(">>WRONG VALUE TYPE [%d] in hawk_rtx_valtostr\n"), v->type);
+		#endif
+			hawk_rtx_seterrnum (rtx, HAWK_EVALTOSTR, HAWK_NULL);
+			return -1;
 	}
-
-
-#if defined(DEBUG_VAL)
-	hawk_logfmt (hawk_rtx_gethawk(rtx), HAWK_T(">>WRONG VALUE TYPE [%d] in hawk_rtx_valtostr\n"), v->type);
-#endif
-	hawk_rtx_seterrnum (rtx, HAWK_EVALTOSTR, HAWK_NULL);
-	return -1;
 }
 
 hawk_bch_t* hawk_rtx_valtobcstrdupwithcmgr (hawk_rtx_t* rtx, const hawk_val_t* v, hawk_oow_t* len, hawk_cmgr_t* cmgr)
@@ -1664,71 +1654,57 @@ int hawk_rtx_valtonum (hawk_rtx_t* rtx, const hawk_val_t* v, hawk_int_t* l, hawk
 	switch (vtype)
 	{
 		case HAWK_VAL_NIL:
-		{
 			*l = 0;
 			return 0;
-		}
 
 		case HAWK_VAL_INT:
-		{
 			*l = HAWK_RTX_GETINTFROMVAL(rtx, v);
 			return 0; /* long */
-		}
 
 		case HAWK_VAL_FLT:
-		{
 			*r = ((hawk_val_flt_t*)v)->val;
 			return 1; /* real */
-		}
 
 		case HAWK_VAL_STR:
-		{
 			return hawk_oochars_to_num(
 				HAWK_OOCHARS_TO_NUM_MAKE_OPTION(0, (hawk->opt.trait & HAWK_STRIPSTRSPC), 0),
 				((hawk_val_str_t*)v)->val.ptr,
 				((hawk_val_str_t*)v)->val.len,
 				l, r
 			);
-		}
 
 		case HAWK_VAL_MBS:
-		{
 			return hawk_bchars_to_num(
 				HAWK_OOCHARS_TO_NUM_MAKE_OPTION(0, (hawk->opt.trait & HAWK_STRIPSTRSPC), 0),
 				((hawk_val_mbs_t*)v)->val.ptr,
 				((hawk_val_mbs_t*)v)->val.len,
 				l, r
 			);
-		}
 
 		case HAWK_VAL_FUN:
-		{
 			/* unable to convert a function to a number */
-			break;
-		}
+			goto invalid;
 
 		case HAWK_VAL_MAP:
-		{
 			if (rtx->awk->opt.trait & HAWK_FLEXMAP)
 			{
 				*l = HAWK_HTB_SIZE(((hawk_val_map_t*)v)->map);
 				return 0; /* long */
 			}
-			break;
-		}
+			goto invalid;
 
 		case HAWK_VAL_REF:
-		{
 			return val_ref_to_num(rtx, (hawk_val_ref_t*)v, l, r);
-		}
+
+		case HAWK_VAL_REX:
+		default:
+		invalid:
+		#if defined(DEBUG_VAL)
+			hawk_logfmt (hawk, HAWK_T(">>WRONG VALUE TYPE [%d] in hawk_rtx_valtonum()\n"), v->type);
+		#endif
+			hawk_rtx_seterrnum (rtx, HAWK_EVALTONUM, HAWK_NULL);
+			return -1; /* error */
 	}
-
-#if defined(DEBUG_VAL)
-	hawk_logfmt (hawk, HAWK_T(">>WRONG VALUE TYPE [%d] in hawk_rtx_valtonum()\n"), v->type);
-#endif
-
-	hawk_rtx_seterrnum (rtx, HAWK_EVALTONUM, HAWK_NULL);
-	return -1; /* error */
 }
 
 int hawk_rtx_valtoint (hawk_rtx_t* rtx, const hawk_val_t* v, hawk_int_t* l)

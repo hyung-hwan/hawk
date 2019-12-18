@@ -27,6 +27,8 @@
 #ifndef _HAWK_MISC_PRV_H_
 #define _HAWK_MISC_PRV_H_
 
+#include <hawk-tre.h>
+
 #if defined(__cplusplus)
 extern "C" {
 #endif
@@ -74,17 +76,17 @@ int hawk_buildrex (
 	const hawk_ooch_t* ptn,
 	hawk_oow_t len,
 	hawk_errnum_t* errnum,
-	void** code, 
-	void** icode
+	hawk_tre_t** code, 
+	hawk_tre_t** icode
 );
 
 int hawk_matchrex (
-	hawk_t* awk, void* code, int icase,
+	hawk_t* awk, hawk_tre_t* code, int icase,
 	const hawk_oocs_t* str, const hawk_oocs_t* substr,
 	hawk_oocs_t* match, hawk_oocs_t submat[9], hawk_errnum_t* errnum
 );
 
-void hawk_freerex (hawk_t* awk, void* code, void* icode);
+void hawk_freerex (hawk_t* awk, hawk_tre_t* code, hawk_tre_t* icode);
 
 int hawk_rtx_matchrex (
 	hawk_rtx_t* rtx, hawk_val_t* val,

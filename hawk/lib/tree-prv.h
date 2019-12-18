@@ -171,7 +171,7 @@ struct hawk_nde_rex_t
 {
 	HAWK_NDE_HDR;
 	hawk_oocs_t  str;
-	void*       code[2]; /* [0]: case sensitive, [1]: case insensitive */
+	hawk_tre_t*  code[2]; /* [0]: case sensitive, [1]: case insensitive */
 };
 
 /* HAWK_NDE_FUN - function as a value */

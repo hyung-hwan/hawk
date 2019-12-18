@@ -80,7 +80,7 @@ int hawk_tre_compx (hawk_tre_t* tre, const hawk_ooch_t* regex, hawk_oow_t n, uns
 	if (ret > 0) 
 	{
 		tre->TRE_REGEX_T_FIELD = HAWK_NULL; /* just to make sure */
-		tre->errnum = ret;
+		hawk_gem_seterrnum (tre->gem, HAWK_NULL, ret);
 		return -1;
 	}
 	
@@ -220,7 +220,7 @@ int hawk_tre_execx (
 	if (tre->TRE_REGEX_T_FIELD == HAWK_NULL)
 	{
 		/* regular expression is bad as none is compiled yet */
-		tre->errnum = HAWK_TRE_EBADPAT; 
+		hawk_gem_seterrnum (tre->gem, HAWK_NULL, HAWK_EREXBADPAT);
 		return -1;
 	}
 #if defined(HAWK_OOCH_IS_UCH)
@@ -230,7 +230,7 @@ int hawk_tre_execx (
 #endif
 	if (ret > 0) 
 	{
-		tre->errnum = ret;
+		hawk_gem_seterrnum (tre->gem, HAWK_NULL, ret);
 		return -1;
 	}
 	
@@ -243,33 +243,3 @@ int hawk_tre_exec (
 {
 	return hawk_tre_execx (tre, str, (hawk_oow_t)-1, pmatch, nmatch, eflags);
 }
-
-hawk_tre_errnum_t hawk_tre_geterrnum (hawk_tre_t* tre)
-{
-	return tre->errnum;
-}
-
-const hawk_ooch_t* hawk_tre_geterrmsg (hawk_tre_t* tre)
-{
-	static const hawk_ooch_t* errstr[] = 
-	{
-		HAWK_T("no error"),
-		HAWK_T("no sufficient memory available"),
-		HAWK_T("no match"),
-		HAWK_T("invalid regular expression"),
-		HAWK_T("unknown collating element"),
-		HAWK_T("unknown character class name"),
-		HAWK_T("trailing backslash"),
-		HAWK_T("invalid backreference"),
-		HAWK_T("bracket imbalance"),
-		HAWK_T("parenthesis imbalance"),
-		HAWK_T("brace imbalance"),
-		HAWK_T("invalid bracket content"),
-		HAWK_T("invalid use of range operator"),
-		HAWK_T("invalid use of repetition operators")
-	};
-	
-	return (tre->errnum >= 0 && tre->errnum < HAWK_COUNTOF(errstr))?
-		errstr[tre->errnum]: HAWK_T("unknown error");
-}
-

@@ -25,7 +25,6 @@
  */
 
 #include "hawk-prv.h"
-#include <hawk-tre.h>
 
 hawk_ooch_t* hawk_rtx_strtok (
 	hawk_rtx_t* rtx, const hawk_ooch_t* s, 
@@ -338,15 +337,13 @@ exit_loop:
 	{
 		/* if the match reached the last character in the input string,
 		 * it returns HAWK_NULL to terminate tokenization. */
-		return (match.ptr+match.len >= substr+sublen)? 
-			HAWK_NULL: ((hawk_ooch_t*)match.ptr+match.len);
+		return (match.ptr+match.len >= substr+sublen)? HAWK_NULL: ((hawk_ooch_t*)match.ptr+match.len);
 	}
 	else
 	{
 		/* if the match went beyond the the last character in the input 
 		 * string, it returns HAWK_NULL to terminate tokenization. */
-		return (match.ptr+match.len > substr+sublen)? 
-			HAWK_NULL: ((hawk_ooch_t*)match.ptr+match.len);
+		return (match.ptr+match.len > substr+sublen)? HAWK_NULL: ((hawk_ooch_t*)match.ptr+match.len);
 	}
 }
 
@@ -439,9 +436,7 @@ hawk_ooch_t* hawk_rtx_strxnfld (
 	return HAWK_NULL;
 }
 
-int hawk_buildrex (
-	hawk_t* awk, const hawk_ooch_t* ptn, hawk_oow_t len, 
-	hawk_errnum_t* errnum, void** code, void** icode)
+int hawk_buildrex (hawk_t* awk, const hawk_ooch_t* ptn, hawk_oow_t len, hawk_errnum_t* errnum, hawk_tre_t** code, hawk_tre_t** icode)
 {
 	hawk_tre_t* tre = HAWK_NULL; 
 	hawk_tre_t* itre = HAWK_NULL;
@@ -452,7 +447,7 @@ int hawk_buildrex (
 		tre = hawk_tre_open(hawk_getgem(awk), 0);
 		if (tre == HAWK_NULL)
 		{
-			*errnum = HAWK_ENOMEM;
+			*errnum = hawk_geterrnum(awk);
 			return -1;
 		}
 
@@ -460,14 +455,7 @@ int hawk_buildrex (
 
 		if (hawk_tre_compx(tre, ptn, len, HAWK_NULL, opt) <= -1)
 		{
-#if 0 /* TODO */
-
-			if (HAWK_TRE_ERRNUM(tre) == HAWK_TRE_ENOMEM) *errnum = HAWK_ENOMEM;
-			else
-				SETERR1 (awk, HAWK_EREXBL, str->ptr, str->len, loc);
-#endif
-			*errnum = (HAWK_TRE_ERRNUM(tre) == HAWK_TRE_ENOMEM)? 
-				HAWK_ENOMEM: HAWK_EREXBL;
+			*errnum = hawk_gem_geterrnum(tre->gem);
 			hawk_tre_close (tre);
 			return -1;
 		}
@@ -478,22 +466,15 @@ int hawk_buildrex (
 		itre = hawk_tre_open(hawk_getgem(awk), 0);
 		if (itre == HAWK_NULL)
 		{
+			*errnum = hawk_geterrnum(awk);
 			if (tre) hawk_tre_close (tre);
-			*errnum = HAWK_ENOMEM;
 			return -1;
 		}
 
 		/* ignorecase is a compile option for TRE */
 		if (hawk_tre_compx(itre, ptn, len, HAWK_NULL, opt | HAWK_TRE_IGNORECASE) <= -1)
 		{
-#if 0 /* TODO */
-
-			if (HAWK_TRE_ERRNUM(tre) == HAWK_TRE_ENOMEM) *errnum = HAWK_ENOMEM;
-			else
-				SETERR1 (awk, HAWK_EREXBL, str->ptr, str->len, loc);
-#endif
-			*errnum = (HAWK_TRE_ERRNUM(tre) == HAWK_TRE_ENOMEM)? 
-				HAWK_ENOMEM: HAWK_EREXBL;
+			*errnum = hawk_gem_geterrnum(itre->gem);
 			hawk_tre_close (itre);
 			if (tre) hawk_tre_close (tre);
 			return -1;
@@ -506,7 +487,7 @@ int hawk_buildrex (
 }
 
 static int matchtre (
-	hawk_t* awk, hawk_tre_t* tre, int opt, 
+	hawk_tre_t* tre, int opt, 
 	const hawk_oocs_t* str, hawk_oocs_t* mat, 
 	hawk_oocs_t submat[9], hawk_errnum_t* errnum)
 {
@@ -518,19 +499,12 @@ static int matchtre (
 	n = hawk_tre_execx(tre, str->ptr, str->len, match, HAWK_COUNTOF(match), opt);
 	if (n <= -1)
 	{
-		if (HAWK_TRE_ERRNUM(tre) == HAWK_TRE_ENOMATCH) return 0;
-
-#if 0 /* TODO: */
-		*errnum = (HAWK_TRE_ERRNUM(tre) == HAWK_TRE_ENOMEM)? 
-			HAWK_ENOMEM: HAWK_EREXMA;
-		SETERR0 (sed, errnum, loc);
-#endif
-		*errnum = (HAWK_TRE_ERRNUM(tre) == HAWK_TRE_ENOMEM)? 
-			HAWK_ENOMEM: HAWK_EREXMA;
+		if (hawk_gem_geterrnum(tre->gem) == HAWK_EREXNOMAT) return 0;
+		*errnum = hawk_gem_geterrnum(tre->gem);
 		return -1;
 	}
 
-	HAWK_ASSERT (awk, match[0].rm_so != -1);
+	/* HAWK_ASSERT (awk, match[0].rm_so != -1); <--- add back with gem*/
 	if (mat)
 	{
 		mat->ptr = &str->ptr[match[0].rm_so];
@@ -556,7 +530,7 @@ static int matchtre (
 }
 
 int hawk_matchrex (
-	hawk_t* awk, void* code, int icase,
+	hawk_t* awk, hawk_tre_t* code, int ignorecase,
 	const hawk_oocs_t* str, const hawk_oocs_t* substr,
 	hawk_oocs_t* match, hawk_oocs_t submat[9], hawk_errnum_t* errnum)
 {
@@ -564,39 +538,32 @@ int hawk_matchrex (
 	int opt = HAWK_TRE_BACKTRACKING; /* TODO: option... HAWK_TRE_BACKTRACKING ??? */
 
 	x = matchtre (
-		awk, code,
-		((str->ptr == substr->ptr)? opt: (opt | HAWK_TRE_NOTBOL)),
+		code, ((str->ptr == substr->ptr)? opt: (opt | HAWK_TRE_NOTBOL)),
 		substr, match, submat, errnum
 	);
+
 	return x;
 }
 
-void hawk_freerex (hawk_t* awk, void* code, void* icode)
+void hawk_freerex (hawk_t* awk, hawk_tre_t* code, hawk_tre_t* icode)
 {
-	if (code)
-	{
-		hawk_tre_close (code);
-	}
-
-	if (icode && icode != code)
-	{
-		hawk_tre_close (icode);
-	}
+	if (icode && icode != code) hawk_tre_close (icode);
+	if (code) hawk_tre_close (code);
 }
 
 int hawk_rtx_matchrex (
 	hawk_rtx_t* rtx, hawk_val_t* val,
 	const hawk_oocs_t* str, const hawk_oocs_t* substr, hawk_oocs_t* match, hawk_oocs_t submat[9])
 {
-	void* code;
-	int icase, x;
+	hawk_tre_t* code;
+	int ignorecase, x;
 	hawk_errnum_t awkerr;
 
-	icase = rtx->gbl.ignorecase;
+	ignorecase = rtx->gbl.ignorecase;
 
 	if (HAWK_RTX_GETVALTYPE (rtx, val) == HAWK_VAL_REX)
 	{
-		code = ((hawk_val_rex_t*)val)->code[icase];
+		code = ((hawk_val_rex_t*)val)->code[ignorecase];
 	}
 	else 
 	{
@@ -606,8 +573,8 @@ int hawk_rtx_matchrex (
 		tmp.ptr = hawk_rtx_getvaloocstr (rtx, val, &tmp.len);
 		if (tmp.ptr == HAWK_NULL) return -1;
 
-		x = icase? hawk_buildrex(rtx->awk, tmp.ptr, tmp.len, &awkerr, HAWK_NULL, &code):
-		           hawk_buildrex(rtx->awk, tmp.ptr, tmp.len, &awkerr, &code, HAWK_NULL);
+		x = ignorecase? hawk_buildrex(rtx->awk, tmp.ptr, tmp.len, &awkerr, HAWK_NULL, &code):
+		                hawk_buildrex(rtx->awk, tmp.ptr, tmp.len, &awkerr, &code, HAWK_NULL);
 		hawk_rtx_freevaloocstr (rtx, val, tmp.ptr);
 		if (x <= -1)
 		{
@@ -617,8 +584,7 @@ int hawk_rtx_matchrex (
 	}
 	
 	x = matchtre (
-		rtx->awk, code,
-		((str->ptr == substr->ptr)? HAWK_TRE_BACKTRACKING: (HAWK_TRE_BACKTRACKING | HAWK_TRE_NOTBOL)),
+		code, ((str->ptr == substr->ptr)? HAWK_TRE_BACKTRACKING: (HAWK_TRE_BACKTRACKING | HAWK_TRE_NOTBOL)),
 		substr, match, submat, &awkerr
 	);
 	if (x <= -1) hawk_rtx_seterrnum (rtx, awkerr, HAWK_NULL);
@@ -629,7 +595,7 @@ int hawk_rtx_matchrex (
 	}
 	else
 	{
-		if (icase) 
+		if (ignorecase) 
 			hawk_freerex (rtx->awk, HAWK_NULL, code);
 		else
 			hawk_freerex (rtx->awk, code, HAWK_NULL);

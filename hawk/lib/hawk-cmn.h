@@ -898,19 +898,19 @@ enum hawk_errnum_t
 	HAWK_EOFMTCHR,      /**< invalid character in OFMT */
 
 	/* regular expression error */
-	HAWK_EREXBL,        /**< failed to build regular expression */
-	HAWK_EREXMA,        /**< failed to match regular expression */
-	HAWK_EREXRECUR,     /**< recursion too deep */
-	HAWK_EREXRPAREN,    /**< a right parenthesis is expected */
-	HAWK_EREXRBRACK,    /**< a right bracket is expected */
-	HAWK_EREXRBRACE,    /**< a right brace is expected */
-	HAWK_EREXCOLON,     /**< a colon is expected */
-	HAWK_EREXCRANGE,    /**< invalid character range */
-	HAWK_EREXCCLASS,    /**< invalid character class */
-	HAWK_EREXBOUND,     /**< invalid occurrence bound */
-	HAWK_EREXSPCAWP,    /**< special character at wrong position */
-	HAWK_EREXPREEND,    /**< premature end of regular expression */
-
+	HAWK_EREXNOMAT,     /**< failed to match regular expression */
+	HAWK_EREXBADPAT,    /**< invalid regular expression */
+	HAWK_EREXCOLLATE,   /**< unknown collating element */
+	HAWK_EREXCTYPE,     /**< unknown character clas name */
+	HAWK_EREXESCAPE,    /**< trailing backslash */
+	HAWK_EREXSUBREG,    /**< invalid backreference */
+	HAWK_EREXBRACK,     /**< imbalanced bracket */
+	HAWK_EREXPAREN,     /**< imbalanced parenthesis */
+	HAWK_EREXBRACE,     /**< imbalanced brace */
+	HAWK_EREXBADBR,     /**< invalid content inside braces */
+	HAWK_EREXRANGE,     /**< invalid use of range operator */
+	HAWK_EREXBADRPT,    /**< invalid use of repetition operator */
+	
 	/* the number of error numbers, internal use only */
 	HAWK_NUMERRNUM 
 };

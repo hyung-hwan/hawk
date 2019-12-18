@@ -91,7 +91,7 @@ void hawk_pma_fini (hawk_pma_t* pma)
 
 void hawk_pma_clear (hawk_pma_t* pma)
 {
-	hawk_t* gem = pma->gem;
+	hawk_gem_t* gem = pma->gem;
 	hawk_pma_blk_t* tmp, * l = pma->blocks;
 
 	while (l != HAWK_NULL)

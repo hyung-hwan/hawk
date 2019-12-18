@@ -142,7 +142,7 @@ extern hawk_val_t* hawk_val_zls;
 void hawk_rtx_freeval (
         hawk_rtx_t* rtx,
         hawk_val_t* val,
-        int            cache
+        int         cache
 );
 
 void hawk_rtx_freevalchunk (

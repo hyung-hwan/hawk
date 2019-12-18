@@ -180,23 +180,22 @@ typedef hawk_ooci_t tre_cint_t;
 #define size_t hawk_oow_t
 #define regex_t hawk_tre_t
 #define regmatch_t hawk_tre_match_t
-#define reg_errcode_t hawk_tre_errnum_t
+#define reg_errcode_t hawk_errnum_t
 
-
-#define REG_OK       HAWK_TRE_ENOERR
-#define REG_ESPACE   HAWK_TRE_ENOMEM
-#define REG_NOMATCH  HAWK_TRE_ENOMATCH
-#define REG_BADPAT   HAWK_TRE_EBADPAT
-#define REG_ECOLLATE HAWK_TRE_ECOLLATE
-#define REG_ECTYPE   HAWK_TRE_ECTYPE
-#define REG_EESCAPE  HAWK_TRE_EESCAPE
-#define REG_ESUBREG  HAWK_TRE_ESUBREG
-#define REG_EBRACK   HAWK_TRE_EBRACK
-#define REG_EPAREN   HAWK_TRE_EPAREN
-#define REG_EBRACE   HAWK_TRE_EBRACE
-#define REG_BADBR    HAWK_TRE_EBADBR
-#define REG_ERANGE   HAWK_TRE_ERANGE
-#define REG_BADRPT   HAWK_TRE_EBADRPT
+#define REG_OK       HAWK_ENOERR
+#define REG_ESPACE   HAWK_ENOMEM
+#define REG_NOMATCH  HAWK_EREXNOMAT
+#define REG_BADPAT   HAWK_EREXBADPAT
+#define REG_ECOLLATE HAWK_EREXCOLLATE
+#define REG_ECTYPE   HAWK_EREXCTYPE
+#define REG_EESCAPE  HAWK_EREXESCAPE
+#define REG_ESUBREG  HAWK_EREXSUBREG
+#define REG_EBRACK   HAWK_EREXBRACK
+#define REG_EPAREN   HAWK_EREXPAREN
+#define REG_EBRACE   HAWK_EREXBRACE
+#define REG_BADBR    HAWK_EREXBADBR
+#define REG_ERANGE   HAWK_EREXRANGE
+#define REG_BADRPT   HAWK_EREXBADRPT
 
 /* The maximum number of iterations in a bound expression. */
 #undef RE_DUP_MAX

@@ -167,18 +167,18 @@ const hawk_ooch_t* hawk_dflerrstr (hawk_t* awk, hawk_errnum_t errnum)
 		HAWK_T("invalid character in CONVFMT"),
 		HAWK_T("invalid character in OFMT"),
 
-		HAWK_T("failed to build regular expression"),
 		HAWK_T("failed to match regular expression"),
-		HAWK_T("recursion too deep in regular expression"),
-		HAWK_T("right parenthesis expected in regular expression"),
-		HAWK_T("right bracket expected in regular expression"),
-		HAWK_T("right brace expected in regular expression"),
-		HAWK_T("colon expected in regular expression"),
-		HAWK_T("invalid character range in regular expression"),
-		HAWK_T("invalid character class in regular expression"),
-		HAWK_T("invalid occurrence bound in regular expression"),
-		HAWK_T("special character at wrong position"),
-		HAWK_T("premature end of regular expression")
+		HAWK_T("invalid regular expression in regular expression"),
+		HAWK_T("unknown collating element in regular expression"),
+		HAWK_T("unknown character clas name in regular expression"),
+		HAWK_T("trailing backslash in regular expression"),
+		HAWK_T("invalid backreference in regular expression"),
+		HAWK_T("imbalanced bracket in regular expression"),
+		HAWK_T("imbalanced parenthesis in regular expression"),
+		HAWK_T("imbalanced brace in regular expression"),
+		HAWK_T("invalid content inside braces in regular expression"),
+		HAWK_T("invalid use of range operator in regular expression"),
+		HAWK_T("invalid use of repetition operator in regular expression")
 	};
 
 	return (errnum >= 0 && errnum < HAWK_COUNTOF(errstr))? errstr[errnum]: HAWK_T("unknown error");

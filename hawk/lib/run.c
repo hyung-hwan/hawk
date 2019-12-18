@@ -429,14 +429,13 @@ static int set_global (hawk_rtx_t* rtx, int idx, hawk_nde_var_t* var, hawk_val_t
 				/* it's a regular expression if FS contains multiple characters.
 				 * however, it's not a regular expression if it's 5 character
 				 * string beginning with a question mark. */
-				void* rex, * irex;
+				hawk_tre_t* rex, * irex;
 				hawk_errnum_t errnum;
 
-				if (hawk_buildrex (hawk_rtx_gethawk(rtx), fs_ptr, fs_len, &errnum, &rex, &irex) <= -1)
+				if (hawk_buildrex(hawk_rtx_gethawk(rtx), fs_ptr, fs_len, &errnum, &rex, &irex) <= -1)
 				{
 					SETERR_COD (rtx, errnum);
-					if (vtype != HAWK_VAL_STR) 
-						hawk_rtx_freemem (rtx, fs_ptr);
+					if (vtype != HAWK_VAL_STR) hawk_rtx_freemem (rtx, fs_ptr);
 					return -1;
 				}
 
@@ -583,7 +582,7 @@ static int set_global (hawk_rtx_t* rtx, int idx, hawk_nde_var_t* var, hawk_val_t
 
 			if (rss.len > 1)
 			{
-				void* rex, * irex;
+				hawk_tre_t* rex, * irex;
 				hawk_errnum_t errnum;
 				
 				/* compile the regular expression */
