@@ -56,31 +56,7 @@ static hawk_ooi_t pio_output (
 #include "syserr.h"
 IMPLEMENT_SYSERR_TO_ERRNUM (hawk, HAWK)
 
-static hawk_pio_errnum_t tio_errnum_to_pio_errnum (hawk_tio_t* tio)
-{
-	/* i only translate error codes that's relevant
-	 * to pio. all other errors becom HAWK_PIO_EOTHER */
-	switch (tio->errnum)
-	{
-		case HAWK_TIO_ENOMEM:
-			return HAWK_PIO_ENOMEM;
-		case HAWK_TIO_EINVAL:
-			return HAWK_PIO_EINVAL;
-		case HAWK_TIO_ENOENT:
-			return HAWK_PIO_ENOENT;
-		case HAWK_TIO_EACCES:
-			return HAWK_PIO_EACCES;
-		case HAWK_TIO_EILSEQ:
-			return HAWK_PIO_EILSEQ;
-		case HAWK_TIO_EICSEQ:
-			return HAWK_PIO_EICSEQ;
-		case HAWK_TIO_EILCHR:
-			return HAWK_PIO_EILCHR;
-		default:
-			return HAWK_PIO_EOTHER;
-	}
-}
-
+#if !defined(_WIN32) && !defined(__OS2__) && !defined(__DOS__)
 static int get_highest_fd (hawk_pio_t* pio)
 {
 #if defined(HAVE_GETRLIMIT)
@@ -102,7 +78,7 @@ static int get_highest_fd (hawk_pio_t* pio)
 	if (!d)
 	{
 		hawk_bch_t buf[64];
-		hawk_fmttobcstr (pio->hawk, buf, HAWK_COUNTOF(buf), HAWK_BT("/proc/%d/fd"), HAWK_GETPID());
+		hawk_gem_fmttobcstr (pio->gem, buf, HAWK_COUNTOF(buf), HAWK_BT("/proc/%d/fd"), HAWK_GETPID());
 		d = HAWK_OPENDIR (buf);
 		if (!d) d = HAWK_OPENDIR(HAWK_BT("/dev/fd")); /* Darwin, FreeBSD */
 	}
@@ -169,7 +145,7 @@ static int close_open_fds_using_proc (hawk_pio_t* pio, int* excepts, hawk_oow_t 
 	if (!d)
 	{
 		hawk_bch_t buf[64];
-		hawk_fmttobcstr (pio->hawk, buf, HAWK_COUNTOF(buf), HAWK_BT("/proc/%d/fd"), HAWK_GETPID());
+		hawk_gem_fmttobcstr (pio->gem, buf, HAWK_COUNTOF(buf), HAWK_BT("/proc/%d/fd"), HAWK_GETPID());
 		d = HAWK_OPENDIR(buf);
 	#if !defined(_SCO_DS)
 		/* on SCO OpenServer, a range of file descriptors starting from 0 are
@@ -217,17 +193,18 @@ static int close_open_fds_using_proc (hawk_pio_t* pio, int* excepts, hawk_oow_t 
 
 	return -1;
 }
+#endif
 
-hawk_pio_t* hawk_pio_open (hawk_t* hawk, hawk_oow_t xtnsize, const hawk_ooch_t* cmd, int flags)
+hawk_pio_t* hawk_pio_open (hawk_gem_t* gem, hawk_oow_t xtnsize, const hawk_ooch_t* cmd, int flags)
 {
 	hawk_pio_t* pio;
 
-	pio = (hawk_pio_t*)hawk_allocmem(hawk, HAWK_SIZEOF(hawk_pio_t) + xtnsize);
+	pio = (hawk_pio_t*)hawk_gem_allocmem(gem, HAWK_SIZEOF(hawk_pio_t) + xtnsize);
 	if (pio)
 	{
-		if (hawk_pio_init(pio, hawk, cmd, flags) <= -1)
+		if (hawk_pio_init(pio, gem, cmd, flags) <= -1)
 		{
-			hawk_freemem (hawk, pio);
+			hawk_gem_freemem (gem, pio);
 			pio = HAWK_NULL;
 		}
 		else HAWK_MEMSET (pio + 1, 0, xtnsize);
@@ -239,7 +216,7 @@ hawk_pio_t* hawk_pio_open (hawk_t* hawk, hawk_oow_t xtnsize, const hawk_ooch_t* 
 void hawk_pio_close (hawk_pio_t* pio)
 {
 	hawk_pio_fini (pio);
-	hawk_freemem (pio->hawk, pio);
+	hawk_gem_freemem (pio->gem, pio);
 }
 
 #if !defined(_WIN32) && !defined(__OS2__) && !defined(__DOS__)
@@ -260,8 +237,8 @@ typedef struct param_t param_t;
 static void free_param (hawk_pio_t* pio, param_t* param)
 {
 	if (param->argv && param->argv != param->fixed_argv) 
-		hawk_freemem (pio->hawk, param->argv);
-	if (param->mcmd) hawk_freemem (pio->hawk, param->mcmd);
+		hawk_gem_freemem (pio->gem, param->argv);
+	if (param->mcmd) hawk_gem_freemem (pio->gem, param->mcmd);
 }
 
 static int make_param (hawk_pio_t* pio, const hawk_ooch_t* cmd, int flags, param_t* param)
@@ -304,18 +281,14 @@ static int make_param (hawk_pio_t* pio, const hawk_ooch_t* cmd, int flags, param
 		if (flags & HAWK_PIO_SHELL) mcmd = (hawk_bch_t*)cmd;
 		else
 		{
-			mcmd = hawk_dupbcstr(pio->hawk, (const hawk_bch_t*)cmd, HAWK_NULL);
-			if (mcmd == HAWK_NULL) 
-			{
-				pio->errnum = HAWK_PIO_ENOMEM;
-				goto oops;
-			}
+			mcmd = hawk_gem_dupbcstr(pio->gem, (const hawk_bch_t*)cmd, HAWK_NULL);
+			if (mcmd == HAWK_NULL) goto oops;
 
-			fcnt = hawk_split_bcstr(mcmd, HAWK_BT(""), HAWK_BT('\"'), HAWK_BT('\"'), HAWK_BT('\\')); 
+			fcnt = hawk_split_bcstr(mcmd, "", '\"', '\"', '\\'); 
 			if (fcnt <= 0) 
 			{
 				/* no field or an error */
-				pio->errnum = HAWK_PIO_EINVAL;
+				hawk_gem_seterrnum (pio->gem, HAWK_NULL, HAWK_EINVAL);
 				goto oops; 
 			}
 		}
@@ -326,27 +299,24 @@ static int make_param (hawk_pio_t* pio, const hawk_ooch_t* cmd, int flags, param
 
 		if (flags & HAWK_PIO_SHELL)
 		{
-			if (hawk_conv_ucstr_to_bcstr_with_cmgr(cmd, &wl, HAWK_NULL, &mn, hawk_getcmgr(pio->hawk)) <= -1)
+			/* use the cmgr of the gem, not pio->cmgr */
+			if (hawk_conv_ucstr_to_bcstr_with_cmgr(cmd, &wl, HAWK_NULL, &mn, pio->gem->cmgr) <= -1)
 			{
 				/* cmd has illegal sequence */
-				pio->errnum = HAWK_PIO_EINVAL;
+				hawk_gem_seterrnum (pio->gem, HAWK_NULL, HAWK_EINVAL);
 				goto oops;
 			}
 		}
 		else
 		{
-			wcmd = hawk_dupoocstr(pio->hawk, cmd, HAWK_NULL);
-			if (wcmd == HAWK_NULL) 
-			{
-				pio->errnum = HAWK_PIO_ENOMEM;
-				goto oops;
-			}
+			wcmd = hawk_gem_dupoocstr(pio->gem, cmd, HAWK_NULL);
+			if (wcmd == HAWK_NULL) goto oops;
 
 			fcnt = hawk_split_oocstr(wcmd, HAWK_T(""), HAWK_T('\"'), HAWK_T('\"'), HAWK_T('\\')); 
 			if (fcnt <= 0)
 			{
 				/* no field or an error */
-				pio->errnum = HAWK_PIO_EINVAL;
+				hawk_gem_seterrnum (pio->gem, HAWK_NULL, HAWK_EINVAL);
 				goto oops;
 			}
 			
@@ -356,9 +326,9 @@ static int make_param (hawk_pio_t* pio, const hawk_ooch_t* cmd, int flags, param
 				if (wcmd[wl++] == HAWK_T('\0')) n--;
 			}
 
-			if (hawk_conv_uchars_to_bchars_with_cmgr(wcmd, &wl, HAWK_NULL, &mn, hawk_getcmgr(pio->hawk)) <= -1) 
+			if (hawk_conv_uchars_to_bchars_with_cmgr(wcmd, &wl, HAWK_NULL, &mn, pio->gem->cmgr) <= -1) 
 			{
-				pio->errnum = HAWK_PIO_EINVAL;
+				hawk_gem_seterrnum (pio->gem, HAWK_NULL, HAWK_EINVAL);
 				goto oops;
 			}
 		}
@@ -374,20 +344,16 @@ static int make_param (hawk_pio_t* pio, const hawk_ooch_t* cmd, int flags, param
 		}
 		else
 		{
-			mcmd = hawk_allocmem(pio->hawk, mn * HAWK_SIZEOF(*mcmd));
-			if (mcmd == HAWK_NULL) 
-			{
-				pio->errnum = HAWK_PIO_ENOMEM;
-				goto oops;
-			}
+			mcmd = hawk_gem_allocmem(pio->gem, mn * HAWK_SIZEOF(*mcmd));
+			if (mcmd == HAWK_NULL) goto oops;
 		}
 
 		if (flags & HAWK_PIO_SHELL)
 		{
-			HAWK_ASSERT (pio->hawk, wcmd == HAWK_NULL);
+			/*HAWK_ASSERT (pio->hawk, wcmd == HAWK_NULL);*/
 			/* hawk_wcstombs() should succeed as 
 			 * it was successful above */
-			hawk_conv_ucstr_to_bcstr_with_cmgr (cmd, &wl, mcmd, &mn, hawk_getcmgr(pio->hawk));
+			hawk_conv_ucstr_to_bcstr_with_cmgr (cmd, &wl, mcmd, &mn, pio->gem->cmgr);
 			/* hawk_wcstombs() null-terminate mcmd */
 		}
 		else
@@ -395,11 +361,11 @@ static int make_param (hawk_pio_t* pio, const hawk_ooch_t* cmd, int flags, param
 			HAWK_ASSERT (pio->hawk, wcmd != HAWK_NULL);
 			/* hawk_wcsntombsn() should succeed as 
 			 * it was was successful above */
-			hawk_conv_uchars_to_bchars_with_cmgr (wcmd, &wl, mcmd, &mn, hawk_getcmgr(pio->hawk));
+			hawk_conv_uchars_to_bchars_with_cmgr (wcmd, &wl, mcmd, &mn, pio->gem->cmgr);
 			/* hawk_wcsntombsn() doesn't null-terminate mcmd */
-			mcmd[mn] = HAWK_BT('\0');
+			mcmd[mn] = '\0';
 
-			hawk_freemem (pio->hawk, wcmd);
+			hawk_gem_freemem (pio->gem, wcmd);
 			wcmd = HAWK_NULL;
 		}
 	}
@@ -425,12 +391,8 @@ static int make_param (hawk_pio_t* pio, const hawk_ooch_t* cmd, int flags, param
 		}
 		else
 		{
-			param->argv = hawk_allocmem(pio->hawk, (fcnt + 1) * HAWK_SIZEOF(argv[0]));
-			if (param->argv == HAWK_NULL) 
-			{
-				pio->errnum = HAWK_PIO_ENOMEM;
-				goto oops;
-			}
+			param->argv = hawk_gem_allocmem(pio->gem, (fcnt + 1) * HAWK_SIZEOF(argv[0]));
+			if (param->argv == HAWK_NULL) goto oops;
 		}
 
 		mcmdptr = mcmd;
@@ -453,11 +415,11 @@ static int make_param (hawk_pio_t* pio, const hawk_ooch_t* cmd, int flags, param
 
 oops:
 #if defined(HAWK_OOCH_IS_BCH)
-	if (mcmd && mcmd != cmd) hawk_freemem (pio->hawk, mcmd);
+	if (mcmd && mcmd != cmd) hawk_gem_freemem (pio->gem, mcmd);
 #else
 	if (mcmd && mcmd != (hawk_bch_t*)cmd && 
-	    mcmd != param->fixed_mbuf) hawk_freemem (pio->hawk, mcmd);
-	if (wcmd) hawk_freemem (pio->hawk, wcmd);
+	    mcmd != param->fixed_mbuf) hawk_gem_freemem (pio->gem, mcmd);
+	if (wcmd) hawk_gem_freemem (pio->gem, wcmd);
 #endif
 	return -1;
 }
@@ -468,20 +430,20 @@ static int assert_executable (hawk_pio_t* pio, const hawk_bch_t* path)
 
 	if (HAWK_ACCESS(path, X_OK) <= -1) 
 	{
-		pio->errnum = syserr_to_errnum (errno);
+		hawk_gem_seterrnum (pio->gem, HAWK_NULL, syserr_to_errnum(errno));
 		return -1;
 	}
 
 	/*if (HAWK_LSTAT(path, &st) <= -1)*/
 	if (HAWK_STAT(path, &st) <= -1)
 	{
-		pio->errnum = syserr_to_errnum (errno);
+		hawk_gem_seterrnum (pio->gem, HAWK_NULL, syserr_to_errnum(errno));
 		return -1;
 	}
 
 	if (!S_ISREG(st.st_mode)) 
 	{
-		pio->errnum = HAWK_PIO_EACCES;
+		hawk_gem_seterrnum (pio->gem, HAWK_NULL, HAWK_EACCES);
 		return -1;
 	}
 
@@ -517,7 +479,7 @@ static hawk_pio_pid_t standard_fork_and_exec (hawk_pio_t* pio, int pipes[], para
 	pid = HAWK_FORK();
 	if (pid <= -1) 
 	{
-		pio->errnum = HAWK_PIO_EINVAL;
+		hawk_gem_seterrnum (pio->gem, HAWK_NULL, syserr_to_errnum(errno));
 		return -1;
 	}
 
@@ -657,17 +619,17 @@ static int set_pipe_nonblock (hawk_pio_t* pio, hawk_pio_hnd_t fd, int enabled)
 
 	int flag = HAWK_FCNTL (fd, F_GETFL, 0);
 	if (flag >= 0) flag = HAWK_FCNTL (fd, F_SETFL, (enabled? (flag | O_NONBLOCK): (flag & ~O_NONBLOCK)));
-	if (flag <= -1) pio->errnum = syserr_to_errnum (errno);
+	if (flag <= -1) hawk_gem_seterrnum (pio->gem, HAWK_NULL, syserr_to_errnum(errno));
 	return flag;
 
 #else
-	pio->errnum = HAWK_PIO_ENOIMPL;
+	hawk_gem_seterrnum (pio->gem, HAWK_NULL, HAWK_ENOIMPL);
 	return -1;
 #endif
 }
 
 
-int hawk_pio_init (hawk_pio_t* pio, hawk_t* hawk, const hawk_ooch_t* cmd, int flags)
+int hawk_pio_init (hawk_pio_t* pio, hawk_gem_t* gem, const hawk_ooch_t* cmd, int flags)
 {
 	hawk_pio_hnd_t handle[6] /*= 
 	{ 
@@ -747,7 +709,7 @@ int hawk_pio_init (hawk_pio_t* pio, hawk_t* hawk, const hawk_ooch_t* cmd, int fl
 #endif
 
 	HAWK_MEMSET (pio, 0, HAWK_SIZEOF(*pio));
-	pio->hawk = hawk;
+	pio->gem = gem;
 	pio->flags = flags;
 
 	handle[0] = HAWK_PIO_HND_NIL;
@@ -771,21 +733,21 @@ int hawk_pio_init (hawk_pio_t* pio, hawk_t* hawk, const hawk_ooch_t* cmd, int fl
 	if (flags & HAWK_PIO_WRITEIN)
 	{
 		/* child reads, parent writes */
-		if (CreatePipe (&handle[0], &handle[1], &secattr, 0) == FALSE) 
+		if (CreatePipe(&handle[0], &handle[1], &secattr, 0) == FALSE) 
 		{
-			pio->errnum = syserr_to_errnum (GetLastError());
+			hawk_gem_seterrnum (pio->gem, HAWK_NULL, syserr_to_errnum(GetLastError()));
 			goto oops;
 		}
 
 		/* don't inherit write handle */
-		if (SetHandleInformation (handle[1], HANDLE_FLAG_INHERIT, 0) == FALSE) 
+		if (SetHandleInformation(handle[1], HANDLE_FLAG_INHERIT, 0) == FALSE) 
 		{
 			DWORD e = GetLastError();
 			if (e != ERROR_CALL_NOT_IMPLEMENTED)
 			{
 				/* SetHandleInformation() is not implemented on win9x.
 				 * so let's care only if it is implemented */
-				pio->errnum = syserr_to_errnum (e);
+				hawk_gem_seterrnum (pio->gem, HAWK_NULL, syserr_to_errnum(e));
 				goto oops;
 			}
 		}
@@ -796,21 +758,21 @@ int hawk_pio_init (hawk_pio_t* pio, hawk_t* hawk, const hawk_ooch_t* cmd, int fl
 	if (flags & HAWK_PIO_READOUT)
 	{
 		/* child writes, parent reads */
-		if (CreatePipe (&handle[2], &handle[3], &secattr, 0) == FALSE) 
+		if (CreatePipe(&handle[2], &handle[3], &secattr, 0) == FALSE) 
 		{
-			pio->errnum = syserr_to_errnum (GetLastError());
+			hawk_gem_seterrnum (pio->gem, HAWK_NULL, syserr_to_errnum(GetLastError()));
 			goto oops;
 		}
 
 		/* don't inherit read handle */
-		if (SetHandleInformation (handle[2], HANDLE_FLAG_INHERIT, 0) == FALSE) 
+		if (SetHandleInformation(handle[2], HANDLE_FLAG_INHERIT, 0) == FALSE) 
 		{
 			DWORD e = GetLastError();
 			if (e != ERROR_CALL_NOT_IMPLEMENTED)
 			{
 				/* SetHandleInformation() is not implemented on win9x.
 				 * so let's care only if it is implemented */
-				pio->errnum = syserr_to_errnum (e);
+				hawk_gem_seterrnum (pio->gem, HAWK_NULL, syserr_to_errnum(e));
 				goto oops;
 			}
 		}
@@ -822,21 +784,21 @@ int hawk_pio_init (hawk_pio_t* pio, hawk_t* hawk, const hawk_ooch_t* cmd, int fl
 	if (flags & HAWK_PIO_READERR)
 	{
 		/* child writes, parent reads */
-		if (CreatePipe (&handle[4], &handle[5], &secattr, 0) == FALSE)
+		if (CreatePipe(&handle[4], &handle[5], &secattr, 0) == FALSE)
 		{
-			pio->errnum = syserr_to_errnum (GetLastError());
+			hawk_gem_seterrnum (pio->gem, HAWK_NULL, syserr_to_errnum(GetLastError()));
 			goto oops;
 		}
 
 		/* don't inherit read handle */
-		if (SetHandleInformation (handle[4], HANDLE_FLAG_INHERIT, 0) == FALSE)
+		if (SetHandleInformation(handle[4], HANDLE_FLAG_INHERIT, 0) == FALSE)
 		{
 			DWORD e = GetLastError();
 			if (e != ERROR_CALL_NOT_IMPLEMENTED)
 			{
 				/* SetHandleInformation() is not implemented on win9x.
 				 * so let's care only if it is implemented */
-				pio->errnum = syserr_to_errnum (e);
+				hawk_gem_seterrnum (pio->gem, HAWK_NULL, syserr_to_errnum(e));
 				goto oops;
 			}
 		}
@@ -847,7 +809,7 @@ int hawk_pio_init (hawk_pio_t* pio, hawk_t* hawk, const hawk_ooch_t* cmd, int fl
 
 	if (maxidx == -1) 
 	{
-		pio->errnum = HAWK_PIO_EINVAL;
+		hawk_gem_seterrnum (pio->gem, HAWK_NULL, HAWK_EINVAL);
 		goto oops;
 	}
 
@@ -862,7 +824,7 @@ int hawk_pio_init (hawk_pio_t* pio, hawk_t* hawk, const hawk_ooch_t* cmd, int fl
 		);
 		if (windevnul == INVALID_HANDLE_VALUE) 
 		{
-			pio->errnum = syserr_to_errnum (GetLastError());
+			hawk_gem_seterrnum (pio->gem, HAWK_NULL, syserr_to_errnum(GetLastError()));
 			goto oops;
 		}
 	}
@@ -878,14 +840,14 @@ int hawk_pio_init (hawk_pio_t* pio, hawk_t* hawk, const hawk_ooch_t* cmd, int fl
 	startup.hStdOutput = INVALID_HANDLE_VALUE;
 	*/
 
-	startup.hStdInput = GetStdHandle (STD_INPUT_HANDLE);
-	startup.hStdOutput = GetStdHandle (STD_OUTPUT_HANDLE);
-	startup.hStdOutput = GetStdHandle (STD_ERROR_HANDLE);
+	startup.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
+	startup.hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE);
+	startup.hStdOutput = GetStdHandle(STD_ERROR_HANDLE);
 	if (startup.hStdInput == INVALID_HANDLE_VALUE ||
 	    startup.hStdOutput == INVALID_HANDLE_VALUE ||
 	    startup.hStdError == INVALID_HANDLE_VALUE) 
 	{
-		pio->errnum = syserr_to_errnum (GetLastError());
+		hawk_gem_seterrnum (pio->gem, HAWK_NULL, syserr_to_errnum(GetLastError()));
 		goto oops;
 	}
 
@@ -921,7 +883,7 @@ int hawk_pio_init (hawk_pio_t* pio, hawk_t* hawk, const hawk_ooch_t* cmd, int fl
 
 	create_retried = 0;
 
-create_process:	
+create_process:
 	if (flags & HAWK_PIO_SHELL) 
 	{
 		static const hawk_ooch_t* cmdname[] =
@@ -957,23 +919,19 @@ create_process:
 	#if defined(HAWK_OOCH_IS_UCH)
 		if (flags & HAWK_PIO_MBSCMD)
 		{
-			dupcmd = hawk_mbstowcsdup((const hawk_bch_t*)cmd, HAWK_NULL, mmgr);
+			dupcmd = hawk_dupbtoucstr (pio->gem, (const hawk_bch_t*)cmd, HAWK_NULL, 0);
 		}
 		else
 		{
 	#endif
 			/* CreateProcess requires command buffer to be read-write. */
-			dupcmd = hawk_strdup(cmd, mmgr);
+			dupcmd = hawk_gem_dupoocstr(pio->gem, cmd, HAWK_NULL);
 	#if defined(HAWK_OOCH_IS_UCH)
 		}
 	#endif
 	}
 
-	if (dupcmd == HAWK_NULL)
-	{
-		pio->errnum = HAWK_PIO_ENOMEM;
-		goto oops;
-	}
+	if (dupcmd == HAWK_NULL) goto oops;
 
 	apiret = CreateProcess (
 		HAWK_NULL,  /* LPCTSTR lpApplicationName */
@@ -992,7 +950,7 @@ create_process:
 		&procinfo /* LPPROCESS_INFORMATION lpProcessInformation */
 	);
 
-	hawk_freemem (hawk, dupcmd); 
+	hawk_gem_freemem (pio->gem, dupcmd); 
 	if (apiret == FALSE) 
 	{
 		DWORD e = GetLastError();
@@ -1006,7 +964,7 @@ create_process:
 			goto create_process;
 		}
 
-		pio->errnum = syserr_to_errnum (e);
+		hawk_gem_seterrnum (pio->gem, HAWK_NULL, syserr_to_errnum(e));
 		goto oops;
 	}
 
@@ -1041,7 +999,7 @@ create_process:
 		rc = DosDupHandle(x,y); \
 		if (rc != NO_ERROR) \
 		{ \
-			pio->errnum = syserr_to_errnum (rc); \
+			hawk_gem_seterrnum (pio->gem, HAWK_NULL, syserr_to_errnum(rc)); \
 			goto oops; \
 		} \
 	)
@@ -1052,7 +1010,7 @@ create_process:
 		rc = DosCreatePipe (&handle[0], &handle[1], pipe_size);
 		if (rc != NO_ERROR) 
 		{
-			pio->errnum = syserr_to_errnum (rc);
+			hawk_gem_seterrnum (pio->gem, HAWK_NULL, syserr_to_errnum(rc));
 			goto oops;
 		}
 
@@ -1061,7 +1019,7 @@ create_process:
 		rc = DosSetFHState (handle[1], OPEN_FLAGS_NOINHERIT);
 		if (rc != NO_ERROR) 
 		{
-			pio->errnum = syserr_to_errnum (rc);
+			hawk_gem_seterrnum (pio->gem, HAWK_NULL, syserr_to_errnum(rc));
 			goto oops;
 		}
 
@@ -1079,16 +1037,16 @@ create_process:
 		rc = DosCreatePipe (&handle[2], &handle[3], pipe_size);
 		if (rc != NO_ERROR) 
 		{
-			pio->errnum = syserr_to_errnum (rc);
+			hawk_gem_seterrnum (pio->gem, HAWK_NULL, syserr_to_errnum(rc));
 			goto oops;
 		}
 
 		/* the parent reads from handle[2] and the child writes to 
 		 * handle[3] inherited. set the flag not to inherit handle[2] */
-		rc = DosSetFHState (handle[2], OPEN_FLAGS_NOINHERIT);
+		rc = DosSetFHState(handle[2], OPEN_FLAGS_NOINHERIT);
 		if (rc != NO_ERROR) 
 		{
-			pio->errnum = syserr_to_errnum (rc);
+			hawk_gem_seterrnum (pio->gem, HAWK_NULL, syserr_to_errnum(rc));
 			goto oops;
 		}
 
@@ -1099,10 +1057,10 @@ create_process:
 	if (flags & HAWK_PIO_READERR)
 	{
 		/* child writes, parent reads */
-		rc = DosCreatePipe (&handle[4], &handle[5], pipe_size);
+		rc = DosCreatePipe(&handle[4], &handle[5], pipe_size);
 		if (rc != NO_ERROR) 
 		{
-			pio->errnum = syserr_to_errnum (rc);
+			hawk_gem_seterrnum (pio->gem, HAWK_NULL, syserr_to_errnum(rc));
 			goto oops;
 		}
 
@@ -1111,7 +1069,7 @@ create_process:
 		rc = DosSetFHState (handle[4], OPEN_FLAGS_NOINHERIT);
 		if (rc != NO_ERROR) 
 		{
-			pio->errnum = syserr_to_errnum (rc);
+			hawk_gem_seterrnum (pio->gem, HAWK_NULL, syserr_to_errnum(rc));
 			goto oops;
 		}
 
@@ -1150,7 +1108,7 @@ create_process:
 		);
 		if (rc != NO_ERROR) 
 		{
-			pio->errnum = syserr_to_errnum (rc);
+			hawk_gem_seterrnum (pio->gem, HAWK_NULL, syserr_to_errnum(rc));
 			goto oops;
 		}
 	}
@@ -1160,20 +1118,20 @@ create_process:
 	rc = DosDupHandle (std_in, &old_in);
 	if (rc != NO_ERROR) 
 	{
-		pio->errnum = syserr_to_errnum (rc);
+		hawk_gem_seterrnum (pio->gem, HAWK_NULL, syserr_to_errnum(rc));
 		goto oops;
 	}
 	rc = DosDupHandle (std_out, &old_out);
 	if (rc != NO_ERROR) 
 	{
-		pio->errnum = syserr_to_errnum (rc);
+		hawk_gem_seterrnum (pio->gem, HAWK_NULL, syserr_to_errnum(rc));
 		DosClose (old_in); old_in = HAWK_PIO_HND_NIL;
 		goto oops;
 	}
 	rc = DosDupHandle (std_err, &old_err);
 	if (rc != NO_ERROR) 
 	{
-		pio->errnum = syserr_to_errnum (rc);
+		hawk_gem_seterrnum (pio->gem, HAWK_NULL, syserr_to_errnum(rc));
 		DosClose (old_out); old_out = HAWK_PIO_HND_NIL;
 		DosClose (old_in); old_in = HAWK_PIO_HND_NIL;
 		goto oops;
@@ -1284,7 +1242,7 @@ create_process:
 		hawk_oow_t mn;
 
 	#if defined(HAWK_OOCH_IS_BCH)
-		mn = hawk_strlen(cmd);
+		mn = hawk_count_oocstr(cmd);
 		cmd_line = hawk_strdup2 (cmd, HAWK_T(" "), pio->mmgr);
 		if (cmd_line == HAWK_NULL) 
 		{
@@ -1294,7 +1252,7 @@ create_process:
 	#else   
 		if (flags & HAWK_PIO_MBSCMD)
 		{
-			mn = hawk_mbslen((const hawk_bch_t*)cmd);
+			mn = hawk_count_bcstr((const hawk_bch_t*)cmd);
 			cmd_line = hawk_mbsdup2 ((const hawk_bch_t*)cmd, HAWK_BT(" "), pio->mmgr);
 			if (cmd_line == HAWK_NULL) 
 			{
@@ -1304,23 +1262,8 @@ create_process:
 		}
 		else
 		{
-			hawk_oow_t n;
-
-			if (hawk_wcstombs (cmd, &n, HAWK_NULL, &mn) <= -1)
-			{
-				pio->errnum = HAWK_PIO_EINVAL;
-				goto oops; /* illegal sequence in cmd */
-			}
-	
-			mn = mn + 1;
-			cmd_line = hawk_allocmem(pio->hawk, mn * HAWK_SIZEOF(hawk_ooch_t));
-			if (cmd_line == HAWK_NULL) 
-			{
-				pio->errnum = HAWK_PIO_ENOMEM;
-				goto oops;
-			}
-  
-			hawk_wcstombs (cmd, &n, cmd_line, &mn);
+			cmd_line = hawk_gem_duputobcstr(gem, cmd, &mn);
+			if (!cmd_line) goto oops; /* illegal sequence in cmd or out of memory */
 		}
 	#endif
 
@@ -1333,9 +1276,9 @@ create_process:
 		/* NOTE: you must separate the command name and the parameters 
 		 *       with a space. "pstat.exe /c" is ok while "pstat.exe/c"
 		 *       is not. */
-		mptr = hawk_mbspbrk (cmd_line, HAWK_BT(" \t"));
-		if (mptr) *mptr = HAWK_BT('\0');
-		cmd_line[mn+1] = HAWK_BT('\0'); /* the second '\0' at the end */
+		mptr = hawk_mbspbrk(cmd_line, HAWK_BT(" \t"));
+		if (mptr) *mptr = '\0';
+		cmd_line[mn+1] = '\0'; /* the second '\0' at the end */
 		cmd_file = cmd_line;
 	}
 
@@ -1350,7 +1293,7 @@ create_process:
 		cmd_file
 	);
 
-	hawk_freemem (hawk, cmd_line);
+	hawk_gem_freemem (pio->gem, cmd_line);
 	cmd_line = HAWK_NULL;
 
 	/* Once execution is completed regardless of success or failure,
@@ -1364,7 +1307,7 @@ create_process:
 
 	if (rc != NO_ERROR) 
 	{
-		pio->errnum = syserr_to_errnum (rc);
+		hawk_gem_seterrnum (pio->gem, HAWK_NULL, syserr_to_errnum(rc));
 		goto oops;
 	}
 	pio->child = child_rc.codeTerminate;
@@ -1381,7 +1324,7 @@ create_process:
 	{
 		if (HAWK_PIPE(&handle[0]) <= -1) 
 		{
-			pio->errnum = syserr_to_errnum (errno);
+			hawk_gem_seterrnum (pio->gem, HAWK_NULL, syserr_to_errnum(errno));
 			goto oops;
 		}
 		minidx = 0; maxidx = 1;
@@ -1391,7 +1334,7 @@ create_process:
 	{
 		if (HAWK_PIPE(&handle[2]) <= -1) 
 		{
-			pio->errnum = syserr_to_errnum (errno);
+			hawk_gem_seterrnum (pio->gem, HAWK_NULL, syserr_to_errnum(errno));
 			goto oops;
 		}
 		if (minidx == -1) minidx = 2;
@@ -1402,7 +1345,7 @@ create_process:
 	{
 		if (HAWK_PIPE(&handle[4]) <= -1) 
 		{
-			pio->errnum = syserr_to_errnum (errno);
+			hawk_gem_seterrnum (pio->gem, HAWK_NULL, syserr_to_errnum(errno));
 			goto oops;
 		}
 		if (minidx == -1) minidx = 4;
@@ -1411,7 +1354,7 @@ create_process:
 
 	if (maxidx == -1) 
 	{
-		pio->errnum = HAWK_PIO_EINVAL;
+		hawk_gem_seterrnum (pio->gem, HAWK_NULL, HAWK_EINVAL);
 		goto oops;
 	}
 
@@ -1429,7 +1372,7 @@ create_process:
 
 		if ((pserr = posix_spawn_file_actions_init(&fa)) != 0) 
 		{
-			pio->errnum = syserr_to_errnum(pserr);
+			hawk_gem_seterrnum (pio->gem, HAWK_NULL, syserr_to_errnum(pserr));
 			goto oops;
 		}
 		fa_inited = 1;
@@ -1439,17 +1382,17 @@ create_process:
 			/* child should read */
 			if ((pserr = posix_spawn_file_actions_addclose(&fa, handle[1])) != 0) 
 			{
-				pio->errnum = syserr_to_errnum(pserr);
+				hawk_gem_seterrnum (pio->gem, HAWK_NULL, syserr_to_errnum(pserr));
 				goto oops;
 			}
 			if ((pserr = posix_spawn_file_actions_adddup2(&fa, handle[0], 0)) != 0)
 			{
-				pio->errnum = syserr_to_errnum(pserr);
+				hawk_gem_seterrnum (pio->gem, HAWK_NULL, syserr_to_errnum(pserr));
 				goto oops;
 			}
 			if ((pserr = posix_spawn_file_actions_addclose(&fa, handle[0])) != 0) 
 			{
-				pio->errnum = syserr_to_errnum(pserr);
+				hawk_gem_seterrnum (pio->gem, HAWK_NULL, syserr_to_errnum(pserr));
 				goto oops;
 			}
 		}
@@ -1459,23 +1402,23 @@ create_process:
 			/* child should write */
 			if ((pserr = posix_spawn_file_actions_addclose(&fa, handle[2])) != 0)
 			{
-				pio->errnum = syserr_to_errnum(pserr);
+				hawk_gem_seterrnum (pio->gem, HAWK_NULL, syserr_to_errnum(pserr));
 				goto oops;
 			}
 			if ((pserr = posix_spawn_file_actions_adddup2(&fa, handle[3], 1)) != 0)
 			{
-				pio->errnum = syserr_to_errnum(pserr);
+				hawk_gem_seterrnum (pio->gem, HAWK_NULL, syserr_to_errnum(pserr));
 				goto oops;
 			}
 			if ((flags & HAWK_PIO_ERRTOOUT) &&
 				(pserr = posix_spawn_file_actions_adddup2 (&fa, handle[3], 2)) != 0)
 			{
-				pio->errnum = syserr_to_errnum(pserr);
+				hawk_gem_seterrnum (pio->gem, HAWK_NULL, syserr_to_errnum(pserr));
 				goto oops;
 			}
 			if ((pserr = posix_spawn_file_actions_addclose(&fa, handle[3])) != 0)
 			{
-				pio->errnum = syserr_to_errnum (pserr);
+				hawk_gem_seterrnum (pio->gem, HAWK_NULL, syserr_to_errnum(pserr));
 				goto oops;
 			}
 		}
@@ -1485,23 +1428,23 @@ create_process:
 			/* child should write */
 			if ((pserr = posix_spawn_file_actions_addclose (&fa, handle[4])) != 0)
 			{
-				pio->errnum = syserr_to_errnum (pserr);
+				hawk_gem_seterrnum (pio->gem, HAWK_NULL, syserr_to_errnum(pserr));
 				goto oops;
 			}
 			if ((pserr = posix_spawn_file_actions_adddup2 (&fa, handle[5], 2)) != 0)
 			{
-				pio->errnum = syserr_to_errnum (pserr);
+				hawk_gem_seterrnum (pio->gem, HAWK_NULL, syserr_to_errnum(pserr));
 				goto oops;
 			}
 			if ((flags & HAWK_PIO_OUTTOERR) &&
 				(pserr = posix_spawn_file_actions_adddup2 (&fa, handle[5], 1)) != 0)
 			{
-				pio->errnum = syserr_to_errnum (pserr);
+				hawk_gem_seterrnum (pio->gem, HAWK_NULL, syserr_to_errnum(pserr));
 				goto oops;
 			}
 			if ((pserr = posix_spawn_file_actions_addclose (&fa, handle[5])) != 0) 
 			{
-				pio->errnum = syserr_to_errnum (pserr);
+				hawk_gem_seterrnum (pio->gem, HAWK_NULL, syserr_to_errnum(pserr));
 				goto oops;
 			}
 		}
@@ -1515,19 +1458,19 @@ create_process:
 			if ((flags & HAWK_PIO_INTONUL) &&
 			    (pserr = posix_spawn_file_actions_addopen (&fa, 0, HAWK_BT("/dev/null"), oflags, 0)) != 0)
 			{
-				pio->errnum = syserr_to_errnum (pserr);
+				hawk_gem_seterrnum (pio->gem, HAWK_NULL, syserr_to_errnum(pserr));
 				goto oops;
 			}
 			if ((flags & HAWK_PIO_OUTTONUL) &&
 			    (pserr = posix_spawn_file_actions_addopen (&fa, 1, HAWK_BT("/dev/null"), oflags, 0)) != 0)
 			{
-				pio->errnum = syserr_to_errnum (pserr);
+				hawk_gem_seterrnum (pio->gem, HAWK_NULL, syserr_to_errnum(pserr));
 				goto oops;
 			}
 			if ((flags & HAWK_PIO_ERRTONUL) &&
 			    (pserr = posix_spawn_file_actions_addopen (&fa, 2, HAWK_BT("/dev/null"), oflags, 0)) != 0)
 			{
-				pio->errnum = syserr_to_errnum (pserr);
+				hawk_gem_seterrnum (pio->gem, HAWK_NULL, syserr_to_errnum(pserr));
 				goto oops;
 			}
 		}
@@ -1540,19 +1483,19 @@ create_process:
 		if ((flags & HAWK_PIO_DROPIN) && is_fd_valid(0) &&
 		    (pserr = posix_spawn_file_actions_addclose (&fa, 0)) != 0) 
 		{
-			pio->errnum = syserr_to_errnum (pserr);
+			hawk_gem_seterrnum (pio->gem, HAWK_NULL, syserr_to_errnum(pserr));
 			goto oops;
 		}
 		if ((flags & HAWK_PIO_DROPOUT) && is_fd_valid(1) &&
 		    (pserr = posix_spawn_file_actions_addclose (&fa, 1)) != 0) 
 		{
-			pio->errnum = syserr_to_errnum (pserr);
+			hawk_gem_seterrnum (pio->gem, HAWK_NULL, syserr_to_errnum(pserr));
 			goto oops;
 		}
 		if ((flags & HAWK_PIO_DROPERR) && is_fd_valid(2) &&
 		    (pserr = posix_spawn_file_actions_addclose (&fa, 2)) != 0)
 		{
-			pio->errnum = syserr_to_errnum (pserr);
+			hawk_gem_seterrnum (pio->gem, HAWK_NULL, syserr_to_errnum(pserr));
 			goto oops;
 		}
 
@@ -1572,7 +1515,7 @@ create_process:
 					if (is_fd_valid_and_nocloexec(fd) && 
 					    (pserr = posix_spawn_file_actions_addclose (&fa, fd)) != 0) 
 					{
-						pio->errnum = syserr_to_errnum (pserr);
+						hawk_gem_seterrnum (pio->gem, HAWK_NULL, syserr_to_errnum(pserr));
 						goto oops;
 					}
 				}
@@ -1614,7 +1557,7 @@ create_process:
 		}
 		if (pserr != 0) 
 		{
-			pio->errnum = syserr_to_errnum (pserr);
+			hawk_gem_seterrnum (pio->gem, HAWK_NULL, syserr_to_errnum(pserr));
 			goto oops;
 		}
 
@@ -1627,7 +1570,7 @@ create_process:
 		/* check if the command(the command requested or /bin/sh) is 
 		 * exectuable to return an error without trying to execute it
 		 * though this check alone isn't sufficient */
-		if (assert_executable (pio, param.argv[0]) <= -1)
+		if (assert_executable(pio, param.argv[0]) <= -1)
 		{
 			free_param (pio, &param); 
 			goto oops;
@@ -1641,7 +1584,7 @@ create_process:
 		HAWK_SYSCALL0 (pid, SYS_vfork);
 		if (pid <= -1) 
 		{
-			pio->errnum = HAWK_PIO_EINVAL;
+			hawk_gem_seterrnum (pio->gem, HAWK_NULL, HAWK_EINVAL);
 			free_param (pio, &param);
 			goto oops;
 		}
@@ -1858,25 +1801,15 @@ create_process:
 		{
 			int r;
 
-			tio[i] = hawk_tio_open (pio->hawk, HAWK_SIZEOF(&pio->pin[i]), topt);
-			if (tio[i] == HAWK_NULL) 
-			{
-				pio->errnum = HAWK_PIO_ENOMEM;
-				goto oops;
-			}
-			
-			/**(hawk_pio_pin_t**)hawk_tio_getxtn(tio[i]) = &pio->pin[i]; */
+			tio[i] = hawk_tio_open(pio->gem, HAWK_SIZEOF(&pio->pin[i]), topt);
+			if (tio[i] == HAWK_NULL) goto oops;
+
 			*(hawk_pio_pin_t**)hawk_tio_getxtn(tio[i]) = &pio->pin[i];
 
 			r = (i == HAWK_PIO_IN)?
-				hawk_tio_attachout (tio[i], pio_output, HAWK_NULL, 4096):
-				hawk_tio_attachin (tio[i], pio_input, HAWK_NULL, 4096);
-			if (r <= -1) 
-			{
-				if (pio->errnum == HAWK_PIO_ENOERR) 
-					pio->errnum = tio_errnum_to_pio_errnum (tio[i]);
-				goto oops;
-			}
+				hawk_tio_attachout(tio[i], pio_output, HAWK_NULL, 4096):
+				hawk_tio_attachin(tio[i], pio_input, HAWK_NULL, 4096);
+			if (r <= -1) goto oops;
 
 			pio->pin[i].tio = tio[i];
 		}
@@ -1885,13 +1818,11 @@ create_process:
 	return 0;
 
 oops:
-	if (pio->errnum == HAWK_PIO_ENOERR) pio->errnum = HAWK_PIO_ESYSERR;
-
 #if defined(_WIN32)
 	if (windevnul != INVALID_HANDLE_VALUE) CloseHandle (windevnul);
 
 #elif defined(__OS2__)
-	if (cmd_line) hawk_freemem (hawk, cmd_line);
+	if (cmd_line) hawk_gem_freemem (pio->gem, cmd_line);
 	if (old_in != HAWK_PIO_HND_NIL)
 	{
 		DosDupHandle (old_in, &std_in);
@@ -1962,15 +1893,9 @@ void hawk_pio_fini (hawk_pio_t* pio)
 	hawk_pio_wait (pio);
 }
 
-hawk_pio_errnum_t hawk_pio_geterrnum (const hawk_pio_t* pio)
-{
-	return pio->errnum;
-}
-
 hawk_cmgr_t* hawk_pio_getcmgr (hawk_pio_t* pio, hawk_pio_hid_t hid)
 {
-	return pio->pin[hid].tio? 
-		hawk_tio_getcmgr(pio->pin[hid].tio): HAWK_NULL;
+	return pio->pin[hid].tio? hawk_tio_getcmgr(pio->pin[hid].tio): HAWK_NULL;
 }
 
 void hawk_pio_setcmgr (hawk_pio_t* pio, hawk_pio_hid_t hid, hawk_cmgr_t* cmgr)
@@ -2004,7 +1929,7 @@ static hawk_ooi_t pio_read (hawk_pio_t* pio, void* buf, hawk_oow_t size, hawk_pi
 	if (hnd == HAWK_PIO_HND_NIL) 
 	{
 		/* the stream is already closed */
-		pio->errnum = HAWK_PIO_ENOHND;
+		hawk_gem_seterrnum (pio->gem, HAWK_NULL, HAWK_ENOHND);
 		return (hawk_ooi_t)-1;
 	}
 
@@ -2018,7 +1943,7 @@ static hawk_ooi_t pio_read (hawk_pio_t* pio, void* buf, hawk_oow_t size, hawk_pi
 		/* ReadFile receives ERROR_BROKEN_PIPE when the write end
 		 * is closed in the child process */
 		if (GetLastError() == ERROR_BROKEN_PIPE) return 0;
-		pio->errnum = syserr_to_errnum(GetLastError());
+		hawk_gem_seterrnum (pio->gem, HAWK_NULL, syserr_to_errnum(GetLastError()));
 		return -1;
 	}
 	return (hawk_ooi_t)count;
@@ -2032,7 +1957,7 @@ static hawk_ooi_t pio_read (hawk_pio_t* pio, void* buf, hawk_oow_t size, hawk_pi
 	if (rc != NO_ERROR)
 	{
     		if (rc == ERROR_BROKEN_PIPE) return 0; /* TODO: check this */
-		pio->errnum = syserr_to_errnum(rc);
+		hawk_gem_seterrnum (pio->gem, HAWK_NULL, syserr_to_errnum(rc));
     		return -1;
     	}
 	return (hawk_ooi_t)count;
@@ -2044,7 +1969,7 @@ static hawk_ooi_t pio_read (hawk_pio_t* pio, void* buf, hawk_oow_t size, hawk_pi
 		size = HAWK_TYPE_MAX(hawk_ooi_t) & HAWK_TYPE_MAX(unsigned int);
 
 	n = read (hnd, buf, size);
-	if (n <= -1) pio->errnum = syserr_to_errnum(errno);
+	if (n <= -1) hawk_gem_seterrnum (pio->gem, HAWK_NULL, syserr_to_errnum(errno));
 	return n;
 
 #else
@@ -2059,12 +1984,12 @@ reread:
 		if (errno == EINTR)
 		{
 			if (pio->flags & HAWK_PIO_READNORETRY) 
-				pio->errnum = HAWK_PIO_EINTR;
+				hawk_gem_seterrnum (pio->gem, HAWK_NULL, HAWK_EINTR);
 			else goto reread;
 		}
 		else
 		{
-			pio->errnum = syserr_to_errnum (errno);
+			hawk_gem_seterrnum (pio->gem, HAWK_NULL, syserr_to_errnum(errno));
 		}
 	}
 
@@ -2074,19 +1999,9 @@ reread:
 
 hawk_ooi_t hawk_pio_read (hawk_pio_t* pio, hawk_pio_hid_t hid, void* buf, hawk_oow_t size)
 {
-	if (pio->pin[hid].tio == HAWK_NULL) 
-		return pio_read(pio, buf, size, pio->pin[hid].handle);
-	else
-	{
-		hawk_ooi_t n;
-
-		pio->errnum = HAWK_PIO_ENOERR;
-		n = hawk_tio_read(pio->pin[hid].tio, buf, size);
-		if (n <= -1 && pio->errnum == HAWK_PIO_ENOERR) 
-			pio->errnum = tio_errnum_to_pio_errnum (pio->pin[hid].tio);
-
-		return n;
-	}
+	return (pio->pin[hid].tio == HAWK_NULL)?
+		pio_read(pio, buf, size, pio->pin[hid].handle):
+		hawk_tio_read(pio->pin[hid].tio, buf, size);
 }
 
 static hawk_ooi_t pio_write (hawk_pio_t* pio, const void* data, hawk_oow_t size, hawk_pio_hnd_t hnd)
@@ -2105,7 +2020,7 @@ static hawk_ooi_t pio_write (hawk_pio_t* pio, const void* data, hawk_oow_t size,
 	if (hnd == HAWK_PIO_HND_NIL) 
 	{
 		/* the stream is already closed */
-		pio->errnum = HAWK_PIO_ENOHND;
+		hawk_gem_seterrnum (pio->gem, HAWK_NULL, HAWK_ENOHND);
 		return (hawk_ooi_t)-1;
 	}
 
@@ -2116,7 +2031,7 @@ static hawk_ooi_t pio_write (hawk_pio_t* pio, const void* data, hawk_oow_t size,
 
 	if (WriteFile (hnd, data, (DWORD)size, &count, HAWK_NULL) == FALSE)
 	{
-		pio->errnum = syserr_to_errnum(GetLastError());
+		hawk_gem_seterrnum (pio->gem, HAWK_NULL, syserr_to_errnum(GetLastError()));
 		return -1;
 	}
 	return (hawk_ooi_t)count;
@@ -2129,7 +2044,7 @@ static hawk_ooi_t pio_write (hawk_pio_t* pio, const void* data, hawk_oow_t size,
 	rc = DosWrite (hnd, (PVOID)data, (ULONG)size, &count);
 	if (rc != NO_ERROR)
 	{
-		pio->errnum = syserr_to_errnum(rc);
+		hawk_gem_seterrnum (pio->gem, HAWK_NULL, syserr_to_errnum(rc));
     		return -1;
 	}
 	return (hawk_ooi_t)count;
@@ -2140,7 +2055,7 @@ static hawk_ooi_t pio_write (hawk_pio_t* pio, const void* data, hawk_oow_t size,
 		size = HAWK_TYPE_MAX(hawk_ooi_t) & HAWK_TYPE_MAX(unsigned int);
 
 	n = write (hnd, data, size);
-	if (n <= -1) pio->errnum = syserr_to_errnum (errno);
+	if (n <= -1) hawk_gem_seterrnum (pio->gem, HAWK_NULL, syserr_to_errnum(errno));
 	return n;
 
 #else
@@ -2155,12 +2070,12 @@ rewrite:
 		if (errno == EINTR)
 		{
 			if (pio->flags & HAWK_PIO_WRITENORETRY)
-				pio->errnum = HAWK_PIO_EINTR;
+				hawk_gem_seterrnum (pio->gem, HAWK_NULL, HAWK_EINTR);
 			else goto rewrite;
 		}
 		else
 		{
-			pio->errnum = syserr_to_errnum (errno);
+			hawk_gem_seterrnum (pio->gem, HAWK_NULL, syserr_to_errnum(errno));
 		}
 	}
 	return n;
@@ -2170,41 +2085,22 @@ rewrite:
 
 hawk_ooi_t hawk_pio_write (hawk_pio_t* pio, hawk_pio_hid_t hid, const void* data, hawk_oow_t size)
 {
-	if (pio->pin[hid].tio == HAWK_NULL)
-		return pio_write(pio, data, size, pio->pin[hid].handle);
-	else
-	{
-		hawk_ooi_t n;
-
-		pio->errnum = HAWK_PIO_ENOERR;
-		n = hawk_tio_write(pio->pin[hid].tio, data, size);
-		if (n <= -1 && pio->errnum == HAWK_PIO_ENOERR) 
-			pio->errnum = tio_errnum_to_pio_errnum (pio->pin[hid].tio);
-
-		return n;
-	}
+	return (pio->pin[hid].tio == HAWK_NULL)?
+		pio_write(pio, data, size, pio->pin[hid].handle):
+		hawk_tio_write(pio->pin[hid].tio, data, size);
 }
 
 hawk_ooi_t hawk_pio_writebytes (hawk_pio_t* pio, hawk_pio_hid_t hid, const void* data, hawk_oow_t size)
 {
-	if (pio->pin[hid].tio == HAWK_NULL)
-		return pio_write(pio, data, size, pio->pin[hid].handle);
-	else
-		return hawk_tio_writebchars(pio->pin[hid].tio, data, size);
+	return (pio->pin[hid].tio == HAWK_NULL)?
+		pio_write(pio, data, size, pio->pin[hid].handle):
+		hawk_tio_writebchars(pio->pin[hid].tio, data, size);
 }
 
 hawk_ooi_t hawk_pio_flush (hawk_pio_t* pio, hawk_pio_hid_t hid)
 {
-	hawk_ooi_t n;
-
 	if (pio->pin[hid].tio == HAWK_NULL) return 0;
-
-	pio->errnum = HAWK_PIO_ENOERR;
-	n = hawk_tio_flush(pio->pin[hid].tio);
-	if (n <= -1 && pio->errnum == HAWK_PIO_ENOERR) 
-		pio->errnum = tio_errnum_to_pio_errnum(pio->pin[hid].tio);
-
-	return n;
+	return hawk_tio_flush(pio->pin[hid].tio);
 }
 
 void hawk_pio_drain (hawk_pio_t* pio, hawk_pio_hid_t hid)
@@ -2242,8 +2138,8 @@ int hawk_pio_wait (hawk_pio_t* pio)
 	DWORD ecode, w;
 
 	if (pio->child == HAWK_PIO_PID_NIL) 
-	{		
-		pio->errnum = HAWK_PIO_ECHILD;
+	{
+		hawk_gem_seterrnum (pio->gem, HAWK_NULL, HAWK_ECHILD);
 		return -1;
 	}
 
@@ -2258,7 +2154,7 @@ int hawk_pio_wait (hawk_pio_t* pio)
 	if (w != WAIT_OBJECT_0)
 	{
 		/* WAIT_FAILED, WAIT_ABANDONED */
-		pio->errnum = HAWK_PIO_ESYSERR;
+		hawk_gem_seterrnum (pio->gem, HAWK_NULL, syserr_to_errnum(GetLastError()));
 		return -1;
 	}
 
@@ -2268,10 +2164,9 @@ int hawk_pio_wait (hawk_pio_t* pio)
 	{
 		/* close the handle anyway to prevent further 
 		 * errors when this function is called again */
+		hawk_gem_seterrnum (pio->gem, HAWK_NULL, syserr_to_errnum(GetLastError()));
 		CloseHandle (pio->child); 
 		pio->child = HAWK_PIO_PID_NIL;
-
-		pio->errnum = HAWK_PIO_ESYSERR;
 		return -1;
 	}
 
@@ -2284,7 +2179,7 @@ int hawk_pio_wait (hawk_pio_t* pio)
 		/* this should not happen as the control reaches here
 		 * only when WaitforSingleObject() is successful.
 		 * if it happends,  close the handle and return an error */
-		pio->errnum = HAWK_PIO_ESYSERR;
+		hawk_gem_seterrnum (pio->gem, HAWK_NULL, HAWK_ESYSERR);
 		return -1;
 	}
 
@@ -2297,8 +2192,8 @@ int hawk_pio_wait (hawk_pio_t* pio)
 	PID ppid;
 
 	if (pio->child == HAWK_PIO_PID_NIL) 
-	{		
-		pio->errnum = HAWK_PIO_ECHILD;
+	{
+		hawk_gem_seterrnum (pio->gem, HAWK_NULL, HAWK_ECHILD);
 		return -1;
 	}
 
@@ -2317,7 +2212,7 @@ int hawk_pio_wait (hawk_pio_t* pio)
 	if (rc != NO_ERROR)
 	{
 		/* WAIT_FAILED, WAIT_ABANDONED */
-		pio->errnum = HAWK_PIO_ESYSERR;
+		hawk_gem_seterrnum (pio->gem, HAWK_NULL, syserr_to_errnum(rc));
 		return -1;
 	}
 
@@ -2330,7 +2225,7 @@ int hawk_pio_wait (hawk_pio_t* pio)
 
 #elif defined(__DOS__)
 
-	pio->errnum = HAWK_PIO_ENOIMPL;
+	hawk_gem_seterrnum (pio->gem, HAWK_NULL, HAWK_ENOIMPL);
 	return -1;
 
 #else
@@ -2340,7 +2235,7 @@ int hawk_pio_wait (hawk_pio_t* pio)
 
 	if (pio->child == HAWK_PIO_PID_NIL) 
 	{
-		pio->errnum = HAWK_PIO_ECHILD;
+		hawk_gem_seterrnum (pio->gem, HAWK_NULL, HAWK_ECHILD);
 		return -1;
 	}
 
@@ -2358,23 +2253,20 @@ int hawk_pio_wait (hawk_pio_t* pio)
 				/* most likely, the process has already been 
 				 * waitpid()ed on. */
 				pio->child = HAWK_PIO_PID_NIL;
-				pio->errnum = HAWK_PIO_ECHILD;
 			}
 			else if (errno == EINTR)
 			{
-				if (pio->flags & HAWK_PIO_WAITNORETRY) 
-					pio->errnum = HAWK_PIO_EINTR;
-				else continue;
+				if (!(pio->flags & HAWK_PIO_WAITNORETRY)) continue;
 			}
-			else pio->errnum = syserr_to_errnum (errno);
 
+			hawk_gem_seterrnum (pio->gem, HAWK_NULL, syserr_to_errnum(errno));
 			break;
 		}
 
 		if (n == 0) 
 		{
 			/* when WNOHANG is not specified, 0 can't be returned */
-			HAWK_ASSERT (pio->hawk, pio->flags & HAWK_PIO_WAITNOBLOCK);
+			/*HAWK_ASSERT (pio->hawk, pio->flags & HAWK_PIO_WAITNOBLOCK);*/
 
 			ret = 255 + 1;
 			/* the child process is still alive */
@@ -2425,7 +2317,7 @@ int hawk_pio_kill (hawk_pio_t* pio)
 
 	if (pio->child == HAWK_PIO_PID_NIL) 
 	{
-		pio->errnum = HAWK_PIO_ECHILD;
+		hawk_gem_seterrnum (pio->gem, HAWK_NULL, HAWK_ECHILD);
 		return -1;
 	}
 
@@ -2434,7 +2326,7 @@ int hawk_pio_kill (hawk_pio_t* pio)
 	n = TerminateProcess(pio->child, 255 + 1 + 9);
 	if (n == FALSE) 
 	{
-		pio->errnum = HAWK_PIO_ESYSERR;
+		hawk_gem_seterrnum (pio->gem, HAWK_NULL, syserr_to_errnum(GetLastError()));
 		return -1;
 	}
 	return 0;
@@ -2444,19 +2336,19 @@ int hawk_pio_kill (hawk_pio_t* pio)
 	rc = DosKillProcess(pio->child, DKP_PROCESSTREE);
 	if (rc != NO_ERROR)
 	{
-		pio->errnum = HAWK_PIO_ESYSERR;
+		hawk_gem_seterrnum (pio->gem, HAWK_NULL, syserr_to_errnum(rc));
 		return -1;
 	}
 	return 0;	
 
 #elif defined(__DOS__)
 
-	pio->errnum = HAWK_PIO_ENOIMPL;
+	hawk_gem_seterrnum (pio->gem, HAWK_NULL, HAWK_ENOIMPL);
 	return -1;
 
 #else
-	n = HAWK_KILL (pio->child, SIGKILL);
-	if (n <= -1) pio->errnum = HAWK_PIO_ESYSERR;
+	n = HAWK_KILL(pio->child, SIGKILL);
+	if (n <= -1) hawk_gem_seterrnum (pio->gem, HAWK_NULL, syserr_to_errnum(errno));
 	return n;
 #endif
 }
@@ -2465,9 +2357,9 @@ static hawk_ooi_t pio_input (hawk_tio_t* tio, hawk_tio_cmd_t cmd, void* buf, haw
 {
 	if (cmd == HAWK_TIO_DATA) 
 	{
-		hawk_pio_pin_t* pin = (hawk_pio_pin_t*)hawk_tio_getxtn(tio);
-		HAWK_ASSERT (pio->hawk, pin != HAWK_NULL);
-		HAWK_ASSERT (pio->hawk, pin->self != HAWK_NULL);
+		hawk_pio_pin_t* pin = *(hawk_pio_pin_t**)hawk_tio_getxtn(tio);
+		/*HAWK_ASSERT (pio->hawk, pin != HAWK_NULL);
+		HAWK_ASSERT (pio->hawk, pin->self != HAWK_NULL);*/
 		return pio_read(pin->self, buf, size, pin->handle);
 	}
 
@@ -2480,9 +2372,9 @@ static hawk_ooi_t pio_output (hawk_tio_t* tio, hawk_tio_cmd_t cmd, void* buf, ha
 {
 	if (cmd == HAWK_TIO_DATA) 
 	{
-		hawk_pio_pin_t* pin = (hawk_pio_pin_t*)hawk_tio_getxtn(tio);
-		HAWK_ASSERT (pio->hawk, pin != HAWK_NULL);
-		HAWK_ASSERT (pio->hawk, pin->self != HAWK_NULL);
+		hawk_pio_pin_t* pin = *(hawk_pio_pin_t**)hawk_tio_getxtn(tio);
+		/*HAWK_ASSERT (pio->hawk, pin != HAWK_NULL);
+		HAWK_ASSERT (pio->hawk, pin->self != HAWK_NULL);*/
 		return pio_write(pin->self, buf, size, pin->handle);
 	}
 

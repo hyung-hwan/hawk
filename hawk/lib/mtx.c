@@ -41,10 +41,8 @@
 #elif defined(__DOS__)
 	/* implement this */
 
-#elif defined(__BEOS__)
-#	include <be/kernel/OS.h>
-
 #else
+#	include "syscall.h"
 #	if defined(AIX) && defined(__GNUC__)
 		typedef int crid_t;
 		typedef unsigned int class_id_t;
@@ -52,16 +50,19 @@
 #	include <pthread.h>
 #endif
 
-hawk_mtx_t* hawk_mtx_open (hawk_t* hawk, hawk_oow_t xtnsize)
+#include "syserr.h"
+IMPLEMENT_SYSERR_TO_ERRNUM (hawk, HAWK)
+
+hawk_mtx_t* hawk_mtx_open (hawk_gem_t* gem, hawk_oow_t xtnsize)
 {
 	hawk_mtx_t* mtx;
 
-	mtx = (hawk_mtx_t*)hawk_allocmem(hawk, HAWK_SIZEOF(hawk_mtx_t) + xtnsize);
+	mtx = (hawk_mtx_t*)hawk_gem_allocmem(gem, HAWK_SIZEOF(hawk_mtx_t) + xtnsize);
 	if (mtx)
 	{
-		if (hawk_mtx_init(mtx, hawk) <= -1)
+		if (hawk_mtx_init(mtx, gem) <= -1)
 		{
-			hawk_freemem (hawk, mtx);
+			hawk_gem_freemem (gem, mtx);
 			return HAWK_NULL;
 		}
 		else HAWK_MEMSET (mtx + 1, 0, xtnsize);
@@ -73,17 +74,21 @@ hawk_mtx_t* hawk_mtx_open (hawk_t* hawk, hawk_oow_t xtnsize)
 void hawk_mtx_close (hawk_mtx_t* mtx)
 {
 	hawk_mtx_fini (mtx);
-	hawk_freemem (mtx->hawk, mtx);
+	hawk_gem_freemem (mtx->gem, mtx);
 }
 
-int hawk_mtx_init (hawk_mtx_t* mtx, hawk_t* hawk)
+int hawk_mtx_init (hawk_mtx_t* mtx, hawk_gem_t* gem)
 {
 	HAWK_MEMSET (mtx, 0, HAWK_SIZEOF(*mtx));
-	mtx->hawk = hawk;
+	mtx->gem = gem;
 
 #if defined(_WIN32)
 	mtx->hnd = CreateMutex(HAWK_NULL, FALSE, HAWK_NULL);
-	if (mtx->hnd == HAWK_NULL) return -1;
+	if (mtx->hnd == HAWK_NULL) 
+	{
+		hawk_gem_seterrnum (mtx->gem, HAWK_NULL, syserr_to_errnum(GetLastError()));
+		return -1;
+	}
 
 #elif defined(__OS2__)
 
@@ -92,17 +97,17 @@ int hawk_mtx_init (hawk_mtx_t* mtx, hawk_t* hawk)
 		HMTX m;
 
 		rc = DosCreateMutexSem(HAWK_NULL, &m, DC_SEM_SHARED, FALSE);
-		if (rc != NO_ERROR) return -1;
+		if (rc != NO_ERROR) 
+		{
+			hawk_gem_seterrnum (mtx->gem, HAWK_NULL, syserr_to_errnum(rc));
+			return -1;
+		}
 
 		mtx->hnd = m;
 	}
 
 #elif defined(__DOS__)
 #	error not implemented
-
-#elif defined(__BEOS__)
-	mtx->hnd = create_sem(1, HAWK_NULL);
-	if (mtx->hnd < B_OK)  return -1;
 
 #else
 	/*
@@ -118,7 +123,15 @@ int hawk_mtx_init (hawk_mtx_t* mtx, hawk_t* hawk)
 	hawk_ensure (pthread_mutex_init (&mtx->hnd, &attr) == 0);
 	hawk_ensure (pthread_mutexattr_destroy (&attr) == 0);
 	*/
-	if (pthread_mutex_init((pthread_mutex_t*)&mtx->hnd, HAWK_NULL) != 0) return -1;
+	{
+		int n;
+		n = pthread_mutex_init((pthread_mutex_t*)&mtx->hnd, HAWK_NULL);
+		if (n != 0)
+		{
+			hawk_gem_seterrnum (mtx->gem, HAWK_NULL, syserr_to_errnum(n));
+			return -1;
+		}
+	}
 #endif
 
 	return 0;
@@ -134,10 +147,6 @@ void hawk_mtx_fini (hawk_mtx_t* mtx)
 
 #elif defined(__DOS__)
 #	error not implemented
-
-#elif defined(__BEOS__)
-	/*if (delete_sem(mtx->hnd) != B_NO_ERROR) return -1;*/
-	delete_sem(mtx->hnd);
 
 #else
 	pthread_mutex_destroy ((pthread_mutex_t*)&mtx->hnd);
@@ -161,44 +170,61 @@ int hawk_mtx_lock (hawk_mtx_t* mtx, const hawk_ntime_t* waiting_time)
 	 */
 	if (waiting_time)
 	{
-		DWORD msec;
+		DWORD msec, ret;
 		msec = HAWK_SECNSEC_TO_MSEC(waiting_time->sec, waiting_time->nsec);
-		if (WaitForSingleObject(mtx->hnd, msec) != WAIT_OBJECT_0)  return -1;
+		ret = WaitForSingleObject(mtx->hnd, msec);
+		if (ret == WAIT_TIMEOUT)
+		{
+			hawk_gem_seterrnum (mtx->gem, HAWK_NULL, HAWK_ETMOUT);
+			return -1;
+		}
+		else if (ret == WAIT_ABANDONED)
+		{
+			hawk_gem_seterrnum (mtx->gem, HAWK_NULL, HAWK_ESYSERR);
+			return -1;
+		}
+		else if (ret != WAIT_OBJECT_0)
+		{
+			hawk_gem_seterrnum (mtx->gem, HAWK_NULL, syserr_to_errnum(GetLastError()));
+			return -1;
+		}
 	}
 	else
 	{
-		if (WaitForSingleObject(mtx->hnd, INFINITE) == WAIT_FAILED) return -1;
+		if (WaitForSingleObject(mtx->hnd, INFINITE) == WAIT_FAILED) 
+		{
+			hawk_gem_seterrnum (mtx->gem, HAWK_NULL, syserr_to_errnum(GetLastError()));
+			return -1;
+		}
 	}
 
 #elif defined(__OS2__)
 	if (waiting_time)
 	{
 		ULONG msec;
+		APIRET rc;
 		msec = HAWK_SECNSEC_TO_MSEC(waiting_time->sec, waiting_time->nsec);
-		if (DosRequestMutexSem(mtx->hnd, msec) != NO_ERROR) return -1;
+		rc = DosRequestMutexSem(mtx->hnd, msec);
+		if (rc != NO_ERROR)
+		{
+			hawk_gem_seterrnum (mtx->gem, HAWK_NULL, syserr_to_errnum(rc));
+			return -1;
+		}
 	}
 	else
 	{
-		if (DosRequestMutexSem(mtx->hnd, SEM_INDEFINITE_WAIT) != NO_ERROR) return -1;
+		APIRET rc;
+		rc = DosRequestMutexSem(mtx->hnd, SEM_INDEFINITE_WAIT);
+		if (rc != NO_ERROR) 
+		{
+			hawk_gem_seterrnum (mtx->gem, HAWK_NULL, syserr_to_errnum(rc));
+			return -1;
+		}
 	}
 
 #elif defined(__DOS__)
 
 	/* nothing to do */
-
-#elif defined(__BEOS__)
-	if (waiting_time)
-	{
-		/* TODO: check for B_WOULD_BLOCK */
-		/*if (acquire_sem_etc(mtx->hnd, 1, B_ABSOLUTE_TIMEOUT, 0) != B_NO_ERROR) return -1;*/
-		bigtime_t usec;
-		usec = HAWK_SECNSEC_TO_USEC(waiting_time->sec, waiting_time->nsec);
-		if (acquire_sem_etc(mtx->hnd, 1, B_TIMEOUT, usec) != B_NO_ERROR) return -1;
-	}
-	else
-	{
-		if (acquire_sem(mtx->hnd) != B_NO_ERROR) return -1;
-	}
 
 #else
 
@@ -208,19 +234,30 @@ int hawk_mtx_lock (hawk_mtx_t* mtx, const hawk_ntime_t* waiting_time)
 	{
 		hawk_ntime_t t;
 		struct timespec ts;
+		int n;
 
 		hawk_get_time (&t);
 		hawk_add_time (&t, waiting_time, &t);
 
 		ts.tv_sec = t.sec;
 		ts.tv_nsec = t.nsec;
-		if (pthread_mutex_timedlock((pthread_mutex_t*)&mtx->hnd, &ts) != 0) return -1;
+		n = pthread_mutex_timedlock((pthread_mutex_t*)&mtx->hnd, &ts);
+		if (n != 0)
+		{
+			hawk_gem_seterrnum (mtx->gem, HAWK_NULL, syserr_to_errnum(n));
+			return -1;
+		}
 	}
 	else
 	{
 	#endif
-		if (pthread_mutex_lock((pthread_mutex_t*)&mtx->hnd) != 0) return -1;
-
+		int n;
+		n = pthread_mutex_lock((pthread_mutex_t*)&mtx->hnd);
+		if (n != 0)
+		{
+			hawk_gem_seterrnum (mtx->gem, HAWK_NULL, syserr_to_errnum(n));
+			return -1;
+		}
 	#if defined(HAVE_PTHREAD_MUTEX_TIMEDLOCK)
 	}
 	#endif
@@ -232,20 +269,33 @@ int hawk_mtx_lock (hawk_mtx_t* mtx, const hawk_ntime_t* waiting_time)
 int hawk_mtx_unlock (hawk_mtx_t* mtx)
 {
 #if defined(_WIN32)
-	if (ReleaseMutex (mtx->hnd) == FALSE) return -1;
+	if (ReleaseMutex(mtx->hnd) == FALSE) 
+	{
+		hawk_gem_seterrnum (mtx->gem, HAWK_NULL, syserr_to_errnum(GetLastError()));
+		return -1;
+	}
 
 #elif defined(__OS2__)
-	if (DosReleaseMutexSem (mtx->hnd) != NO_ERROR) return -1;
+	APIRET rc;
+	rc = DosReleaseMutexSem(mtx->hnd);
+	if (rc != NO_ERROR) 
+	{
+		hawk_gem_seterrnum (mtx->gem, HAWK_NULL, syserr_to_errnum(rc));
+		return -1;
+	}
 
 #elif defined(__DOS__)
 
 	/* nothing to do */
 
-#elif defined(__BEOS__)
-	if (release_sem(mtx->hnd) != B_NO_ERROR) return -1;
-
 #else
-	if (pthread_mutex_unlock ((pthread_mutex_t*)&mtx->hnd) != 0) return -1;
+	int n;
+	n = pthread_mutex_unlock((pthread_mutex_t*)&mtx->hnd);
+	if (n != 0) 
+	{
+		hawk_gem_seterrnum (mtx->gem, HAWK_NULL, syserr_to_errnum(n));
+		return -1;
+	}
 #endif
 	return 0;
 }
@@ -253,28 +303,47 @@ int hawk_mtx_unlock (hawk_mtx_t* mtx)
 int hawk_mtx_trylock (hawk_mtx_t* mtx)
 {
 #if defined(_WIN32)
-	if (WaitForSingleObject(mtx->hnd, 0) != WAIT_OBJECT_0) return -1;
+	if (WaitForSingleObject(mtx->hnd, 0) != WAIT_OBJECT_0) 
+	{
+		hawk_gem_seterrnum (mtx->gem, HAWK_NULL, syserr_to_errnum(GetLastError()));
+		return -1;
+	}
 #elif defined(__OS2__)
-	if (DosRequestMutexSem(mtx->hnd, 0) != NO_ERROR) return -1;
+	APIRET rc;
+	rc = DosRequestMutexSem(mtx->hnd, 0);
+	if (rc != NO_ERROR) 
+	{
+		hawk_gem_seterrnum (mtx->gem, HAWK_NULL, syserr_to_errnum(rc));
+		return -1;
+	}
+
 #elif defined(__DOS__)
 	/* nothing to do */
-#elif defined(__BEOS__)
-	if (acquire_sem_etc(mtx->hnd, 1, B_TIMEOUT, 0) != B_NO_ERROR) return -1;
-#else
-	#if defined(HAVE_PTHREAD_MUTEX_TRYLOCK)
-		if (pthread_mutex_trylock((pthread_mutex_t*)&mtx->hnd) != 0) return -1;
-	#elif defined(HAVE_PTHREAD_MUTEX_TIMEDLOCK)
-		hawk_ntime_t t;
-		struct timespec ts;
 
-		hawk_gettime (&t);
-		ts.tv_sec = t.sec;
-		ts.tv_nsec = t.nsec;
-		if (pthread_mutex_timedlock((pthread_mutex_t*)&mtx->hnd, &ts) != 0) return -1;
+#else
+
+	/* -------------------------------------------------- */
+	int n;
+	#if defined(HAVE_PTHREAD_MUTEX_TRYLOCK)
+	n = pthread_mutex_trylock((pthread_mutex_t*)&mtx->hnd);
+	#elif defined(HAVE_PTHREAD_MUTEX_TIMEDLOCK)
+	hawk_ntime_t t;
+	struct timespec ts;
+	hawk_get_time (&t);
+	ts.tv_sec = t.sec;
+	ts.tv_nsec = t.nsec;
+	n = pthread_mutex_timedlock((pthread_mutex_t*)&mtx->hnd, &ts);
 	#else
-		/* not supported. fallback to normal pthread_mutex_lock(). <--- is this really desirable? */
-		if (pthread_mutex_lock((pthread_mutex_t*)&mtx->hnd) != 0) return -1; 
+	/* not supported. fallback to normal pthread_mutex_lock(). <--- is this really desirable? */
+	n = pthread_mutex_lock((pthread_mutex_t*)&mtx->hnd);
 	#endif
+	if (n != 0)
+	{
+		hawk_gem_seterrnum (mtx->gem, HAWK_NULL, syserr_to_errnum(n));
+		return -1;
+	}
+	/* -------------------------------------------------- */
+
 #endif
 	return 0;
 }

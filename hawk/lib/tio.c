@@ -35,16 +35,16 @@
 static int detach_in (hawk_tio_t* tio, int fini);
 static int detach_out (hawk_tio_t* tio, int fini);
 
-hawk_tio_t* hawk_tio_open (hawk_t* hawk, hawk_oow_t xtnsize, int flags)
+hawk_tio_t* hawk_tio_open (hawk_gem_t* gem, hawk_oow_t xtnsize, int flags)
 {
 	hawk_tio_t* tio;
 
-	tio = (hawk_tio_t*)hawk_allocmem(hawk, HAWK_SIZEOF(hawk_tio_t) + xtnsize);
+	tio = (hawk_tio_t*)hawk_gem_allocmem(gem, HAWK_SIZEOF(hawk_tio_t) + xtnsize);
 	if (tio)
 	{
-		if (hawk_tio_init(tio, hawk, flags) <= -1)
+		if (hawk_tio_init(tio, gem, flags) <= -1)
 		{
-			hawk_freemem (hawk, tio);
+			hawk_gem_freemem (gem, tio);
 			return HAWK_NULL;
 		}
 		else HAWK_MEMSET (tio + 1, 0, xtnsize);
@@ -55,16 +55,16 @@ hawk_tio_t* hawk_tio_open (hawk_t* hawk, hawk_oow_t xtnsize, int flags)
 int hawk_tio_close (hawk_tio_t* tio)
 {
 	int n = hawk_tio_fini(tio);
-	hawk_freemem (tio->hawk, tio);
+	hawk_gem_freemem (tio->gem, tio);
 	return n;
 }
 
-int hawk_tio_init (hawk_tio_t* tio, hawk_t* hawk, int flags)
+int hawk_tio_init (hawk_tio_t* tio, hawk_gem_t* gem, int flags)
 {
 	HAWK_MEMSET (tio, 0, HAWK_SIZEOF(*tio));
 
-	tio->hawk = hawk;
-	tio->cmgr = hawk_getcmgr(hawk);
+	tio->gem = gem;
+	tio->cmgr = gem->cmgr;
 
 	tio->flags = flags;
 
@@ -79,8 +79,6 @@ int hawk_tio_init (hawk_tio_t* tio, hawk_t* hawk, int flags)
 	tio->inbuf_len = 0;
 	tio->outbuf_len = 0;
 	*/
-
-	tio->errnum = HAWK_TIO_ENOERR;
 	return 0;
 }
 
@@ -93,17 +91,6 @@ int hawk_tio_fini (hawk_tio_t* tio)
 	if (detach_out (tio, 1) <= -1) ret = -1;
 
 	return ret;
-}
-
-
-hawk_tio_errnum_t hawk_tio_geterrnum (const hawk_tio_t* tio)
-{
-	return tio->errnum;
-}
-
-void hawk_tio_seterrnum (hawk_tio_t* tio, hawk_tio_errnum_t errnum)
-{
-	tio->errnum = errnum;
 }
 
 hawk_cmgr_t* hawk_tio_getcmgr (hawk_tio_t* tio)
@@ -124,7 +111,7 @@ int hawk_tio_attachin (
 
 	if (input == HAWK_NULL || bufcapa < HAWK_TIO_MININBUFCAPA) 
 	{
-		tio->errnum = HAWK_TIO_EINVAL;
+		hawk_gem_seterrnum (tio->gem, HAWK_NULL, HAWK_EINVAL);
 		return -1;
 	}
 
@@ -135,19 +122,13 @@ int hawk_tio_attachin (
 	xbufptr = bufptr;
 	if (xbufptr == HAWK_NULL)
 	{
-		xbufptr = hawk_allocmem(tio->hawk, HAWK_SIZEOF(hawk_bch_t) * bufcapa);
-		if (xbufptr == HAWK_NULL)
-		{
-			tio->errnum = HAWK_TIO_ENOMEM;
-			return -1;
-		}
+		xbufptr = hawk_gem_allocmem(tio->gem, HAWK_SIZEOF(hawk_bch_t) * bufcapa);
+		if (xbufptr == HAWK_NULL) return -1;
 	}
 
-	tio->errnum = HAWK_TIO_ENOERR;
 	if (input(tio, HAWK_TIO_OPEN, HAWK_NULL, 0) <= -1) 
 	{
-		if (tio->errnum == HAWK_TIO_ENOERR) tio->errnum = HAWK_TIO_EOTHER;
-		if (xbufptr != bufptr) hawk_freemem (tio->hawk, xbufptr);
+		if (xbufptr != bufptr) hawk_gem_freemem (tio->gem, xbufptr);
 		return -1;
 	}
 
@@ -176,11 +157,8 @@ static int detach_in (hawk_tio_t* tio, int fini)
 
 	if (tio->in.fun)
 	{
-		tio->errnum = HAWK_TIO_ENOERR;
 		if (tio->in.fun(tio, HAWK_TIO_CLOSE, HAWK_NULL, 0) <= -1) 
 		{
-			if (tio->errnum == HAWK_TIO_ENOERR) tio->errnum = HAWK_TIO_EOTHER;
-
 			/* returning with an error here allows you to retry detaching */
 			if (!fini) return -1; 
 
@@ -191,7 +169,7 @@ static int detach_in (hawk_tio_t* tio, int fini)
 
 		if (tio->status & STATUS_INPUT_DYNBUF) 
 		{
-			hawk_freemem(tio->hawk, tio->in.buf.ptr);
+			hawk_gem_freemem(tio->gem, tio->in.buf.ptr);
 			tio->status &= ~STATUS_INPUT_DYNBUF;
 		}
 
@@ -216,30 +194,24 @@ int hawk_tio_attachout (
 
 	if (output == HAWK_NULL || bufcapa < HAWK_TIO_MINOUTBUFCAPA)  
 	{
-		tio->errnum = HAWK_TIO_EINVAL;
+		hawk_gem_seterrnum (tio->gem, HAWK_NULL, HAWK_EINVAL);
 		return -1;
 	}
 
 	if (hawk_tio_detachout(tio) == -1) return -1;
 
-	HAWK_ASSERT (tio->hawk, tio->out.fun == HAWK_NULL);
+	/*HAWK_ASSERT (tio->hawk, tio->out.fun == HAWK_NULL);*/
 
 	xbufptr = bufptr;
 	if (xbufptr == HAWK_NULL)
 	{
-		xbufptr = hawk_allocmem(tio->hawk, HAWK_SIZEOF(hawk_bch_t) * bufcapa);
-		if (xbufptr == HAWK_NULL)
-		{
-			tio->errnum = HAWK_TIO_ENOMEM;
-			return -1;
-		}
+		xbufptr = hawk_gem_allocmem(tio->gem, HAWK_SIZEOF(hawk_bch_t) * bufcapa);
+		if (xbufptr == HAWK_NULL) return -1;
 	}
 
-	tio->errnum = HAWK_TIO_ENOERR;
 	if (output(tio, HAWK_TIO_OPEN, HAWK_NULL, 0) <= -1) 
 	{
-		if (tio->errnum == HAWK_TIO_ENOERR) tio->errnum = HAWK_TIO_EOTHER;
-		if (xbufptr != bufptr) hawk_freemem (tio->hawk, xbufptr);
+		if (xbufptr != bufptr) hawk_gem_freemem (tio->gem, xbufptr);
 		return -1;
 	}
 
@@ -261,10 +233,8 @@ static int detach_out (hawk_tio_t* tio, int fini)
 	{
 		hawk_tio_flush (tio); /* don't care about the result */
 
-		tio->errnum = HAWK_TIO_ENOERR;
 		if (tio->out.fun (tio, HAWK_TIO_CLOSE, HAWK_NULL, 0) <= -1) 
 		{
-			if (tio->errnum == HAWK_TIO_ENOERR) tio->errnum = HAWK_TIO_EOTHER;
 			/* returning with an error here allows you to retry detaching */
 			if (!fini) return -1;
 
@@ -275,7 +245,7 @@ static int detach_out (hawk_tio_t* tio, int fini)
 	
 		if (tio->status & STATUS_OUTPUT_DYNBUF) 
 		{
-			hawk_freemem (tio->hawk, tio->out.buf.ptr);
+			hawk_gem_freemem (tio->gem, tio->out.buf.ptr);
 			tio->status &= ~STATUS_OUTPUT_DYNBUF;
 		}
 
@@ -283,13 +253,13 @@ static int detach_out (hawk_tio_t* tio, int fini)
 		tio->out.buf.ptr = HAWK_NULL;
 		tio->out.buf.capa = 0;
 	}
-		
+
 	return ret;
 }
 
 int hawk_tio_detachout (hawk_tio_t* tio)
 {
-	return detach_out (tio, 0);
+	return detach_out(tio, 0);
 }
 
 hawk_ooi_t hawk_tio_flush (hawk_tio_t* tio)
@@ -300,7 +270,8 @@ hawk_ooi_t hawk_tio_flush (hawk_tio_t* tio)
 
 	if (tio->out.fun == HAWK_NULL)
 	{
-		tio->errnum = HAWK_TIO_ENOUTF;
+		/* no output function */
+		hawk_gem_seterrnum (tio->gem, HAWK_NULL, HAWK_EINVAL);
 		return (hawk_ooi_t)-1;
 	}
 
@@ -308,11 +279,9 @@ hawk_ooi_t hawk_tio_flush (hawk_tio_t* tio)
 	cur = tio->out.buf.ptr;
 	while (left > 0) 
 	{
-		tio->errnum = HAWK_TIO_ENOERR;
-		n = tio->out.fun (tio, HAWK_TIO_DATA, cur, left);
+		n = tio->out.fun(tio, HAWK_TIO_DATA, cur, left);
 		if (n <= -1) 
 		{
-			if (tio->errnum == HAWK_TIO_ENOERR) tio->errnum = HAWK_TIO_EOTHER;
 			if (cur != tio->out.buf.ptr)
 			{
 				HAWK_MEMCPY (tio->out.buf.ptr, cur, left);
@@ -343,7 +312,6 @@ void hawk_tio_drain (hawk_tio_t* tio)
 	tio->inbuf_cur = 0;
 	tio->inbuf_len = 0;
 	tio->outbuf_len = 0;
-	tio->errnum = HAWK_TIO_ENOERR;
 }
 
 /* ------------------------------------------------------------- */
@@ -357,7 +325,8 @@ hawk_ooi_t hawk_tio_readbchars (hawk_tio_t* tio, hawk_bch_t* buf, hawk_oow_t siz
 	/*HAWK_ASSERT (tio->hawk, tio->in.fun != HAWK_NULL);*/
 	if (tio->in.fun == HAWK_NULL) 
 	{
-		tio->errnum = HAWK_TIO_ENINPF;
+		/* no input function */
+		hawk_gem_seterrnum (tio->gem, HAWK_NULL, HAWK_EINVAL);
 		return -1;
 	}
 
@@ -373,16 +342,9 @@ hawk_ooi_t hawk_tio_readbchars (hawk_tio_t* tio, hawk_bch_t* buf, hawk_oow_t siz
 	{
 		if (tio->inbuf_cur >= tio->inbuf_len) 
 		{
-			tio->errnum = HAWK_TIO_ENOERR;
-			n = tio->in.fun (
-				tio, HAWK_TIO_DATA, 
-				tio->in.buf.ptr, tio->in.buf.capa);
+			n = tio->in.fun(tio, HAWK_TIO_DATA, tio->in.buf.ptr, tio->in.buf.capa);
 			if (n == 0) break;
-			if (n <= -1) 
-			{
-				if (tio->errnum == HAWK_TIO_ENOERR) tio->errnum = HAWK_TIO_EOTHER;
-				return -1;
-			}
+			if (n <= -1) return -1;
 
 			tio->inbuf_cur = 0;
 			tio->inbuf_len = (hawk_oow_t)n;
@@ -401,7 +363,7 @@ done:
 	return nread;
 }
 
-static HAWK_INLINE hawk_ooi_t tio_read_widechars (
+static HAWK_INLINE hawk_ooi_t tio_read_uchars (
 	hawk_tio_t* tio, hawk_uch_t* buf, hawk_oow_t bufsize)
 {
 	hawk_oow_t mlen, wlen;
@@ -417,11 +379,7 @@ static HAWK_INLINE hawk_ooi_t tio_read_widechars (
 		if (tio->status & STATUS_INPUT_EOF) n = 0;
 		else
 		{
-			tio->errnum = HAWK_TIO_ENOERR;
-			n = tio->in.fun (
-				tio, HAWK_TIO_DATA,
-				&tio->in.buf.ptr[tio->inbuf_len], 
-				tio->in.buf.capa - tio->inbuf_len);
+			n = tio->in.fun(tio, HAWK_TIO_DATA, &tio->in.buf.ptr[tio->inbuf_len], tio->in.buf.capa - tio->inbuf_len);
 		}
 		if (n == 0) 
 		{
@@ -433,23 +391,19 @@ static HAWK_INLINE hawk_ooi_t tio_read_widechars (
 				 * but some incomplete bytes in the buffer. */
 				if (tio->flags & HAWK_TIO_IGNOREECERR) 
 				{
-					/* tread them as illegal sequence */
 					goto ignore_illseq;
 				}
 				else
 				{
-					tio->errnum = HAWK_TIO_EICSEQ;
+					/* treat them as illegal sequence */
+					hawk_gem_seterrnum (tio->gem, HAWK_NULL, HAWK_EECERR);
 					return -1;
 				}
 			}
 
 			return 0;
 		}
-		if (n <= -1) 
-		{
-			if (tio->errnum == HAWK_TIO_ENOERR) tio->errnum = HAWK_TIO_EOTHER;
-			return -1;
-		}
+		if (n <= -1) return -1;
 
 		tio->inbuf_len += n;
 	}
@@ -501,7 +455,8 @@ static HAWK_INLINE hawk_ooi_t tio_read_widechars (
 		}
 		else if (wlen <= 0)
 		{
-			tio->errnum = HAWK_TIO_EILSEQ;
+			/* really illegal sequence */
+			hawk_gem_seterrnum (tio->gem, HAWK_NULL, HAWK_EECERR);
 			return -1;
 		}
 		else
@@ -524,7 +479,8 @@ hawk_ooi_t hawk_tio_readuchars (hawk_tio_t* tio, hawk_uch_t* buf, hawk_oow_t siz
 	/*HAWK_ASSERT (tio->hawk, tio->in.fun != HAWK_NULL);*/
 	if (tio->in.fun == HAWK_NULL) 
 	{
-		tio->errnum = HAWK_TIO_ENINPF;
+		/* no input handler function */
+		hawk_gem_seterrnum (tio->gem, HAWK_NULL, HAWK_EINVAL);
 		return -1;
 	}
 
@@ -535,11 +491,11 @@ hawk_ooi_t hawk_tio_readuchars (hawk_tio_t* tio, hawk_uch_t* buf, hawk_oow_t siz
 		if (tio->status & STATUS_INPUT_ILLSEQ) 
 		{
 			tio->status &= ~STATUS_INPUT_ILLSEQ;
-			tio->errnum = HAWK_TIO_EILSEQ;
+			hawk_gem_seterrnum (tio->gem, HAWK_NULL, HAWK_EECERR);
 			return -1;
 		}
 		
-		n = tio_read_widechars (tio, &buf[nread], size - nread);
+		n = tio_read_uchars(tio, &buf[nread], size - nread);
 		if (n == 0) break;
 		if (n <= -1) return -1;
 
@@ -559,7 +515,7 @@ hawk_ooi_t hawk_tio_writebchars (hawk_tio_t* tio, const hawk_bch_t* mptr, hawk_o
 		/* maybe, previous flush operation has failed a few 
 		 * times previously. so the buffer is full.
 		 */
-		tio->errnum = HAWK_TIO_ENOSPC;
+		hawk_gem_seterrnum (tio->gem, HAWK_NULL, HAWK_EBUFFULL);
 		return -1;
 	}
 
@@ -660,7 +616,7 @@ hawk_ooi_t hawk_tio_writeuchars (hawk_tio_t* tio, const hawk_uch_t* wptr, hawk_o
 	{
 		/* maybe, previous flush operation has failed a few 
 		 * times previously. so the buffer is full. */
-		tio->errnum = HAWK_TIO_ENOSPC;
+		hawk_gem_seterrnum (tio->gem, HAWK_NULL, HAWK_EBUFFULL);
 		return -1;
 	}
 
@@ -710,7 +666,8 @@ hawk_ooi_t hawk_tio_writeuchars (hawk_tio_t* tio, const hawk_uch_t* wptr, hawk_o
 				}
 				else
 				{
-					tio->errnum = HAWK_TIO_EILCHR;
+					/* illegal character */
+					hawk_gem_seterrnum (tio->gem, HAWK_NULL, HAWK_EECERR);
 					return -1;
 				}
 			}

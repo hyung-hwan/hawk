@@ -137,6 +137,8 @@ typedef struct xtn_t
 	int gbl_argc;
 	int gbl_argv;
 	int gbl_environ;
+	int gbl_errno;
+	int gbl_errstr;
 
 	hawk_ecb_t ecb;
 	int stdmod_up;
@@ -900,7 +902,7 @@ oops:
 static hawk_sio_t* open_sio (hawk_t* awk, const hawk_ooch_t* file, int flags)
 {
 	hawk_sio_t* sio;
-	sio = hawk_sio_open(awk, 0, file, flags);
+	sio = hawk_sio_open(hawk_getgem(awk), 0, file, flags);
 	if (sio == HAWK_NULL)
 	{
 		hawk_oocs_t errarg;
@@ -914,7 +916,7 @@ static hawk_sio_t* open_sio (hawk_t* awk, const hawk_ooch_t* file, int flags)
 static hawk_sio_t* open_sio_rtx (hawk_rtx_t* rtx, const hawk_ooch_t* file, int flags)
 {
 	hawk_sio_t* sio;
-	sio = hawk_sio_open(hawk_rtx_gethawk(rtx), 0, file, flags);
+	sio = hawk_sio_open(hawk_rtx_getgem(rtx), 0, file, flags);
 	if (sio == HAWK_NULL)
 	{
 		hawk_oocs_t errarg;
@@ -935,8 +937,12 @@ static hawk_oocs_t sio_std_names[] =
 static hawk_sio_t* open_sio_std (hawk_t* awk, hawk_sio_std_t std, int flags)
 {
 	hawk_sio_t* sio;
-	sio = hawk_sio_openstd(awk, 0, std, flags);
-	if (sio == HAWK_NULL) hawk_seterrnum (awk, HAWK_EOPEN, &sio_std_names[std]);
+	sio = hawk_sio_openstd(hawk_getgem(awk), 0, std, flags);
+	if (sio == HAWK_NULL) 
+	{
+		const hawk_ooch_t* bem = hawk_backuperrmsg(awk);
+		hawk_seterrbfmt (awk, HAWK_NULL, HAWK_EOPEN, "unable to open %js - %js", &sio_std_names[std], bem);
+	}
 	return sio;
 }
 
@@ -944,8 +950,12 @@ static hawk_sio_t* open_sio_std_rtx (hawk_rtx_t* rtx, hawk_sio_std_t std, int fl
 {
 	hawk_sio_t* sio;
 
-	sio = hawk_sio_openstd(hawk_rtx_gethawk(rtx), 0, std, flags);
-	if (sio == HAWK_NULL) hawk_rtx_seterrnum (rtx, HAWK_EOPEN, &sio_std_names[std]);
+	sio = hawk_sio_openstd(hawk_rtx_getgem(rtx), 0, std, flags);
+	if (sio == HAWK_NULL) 
+	{
+		const hawk_ooch_t* bem = hawk_rtx_backuperrmsg(rtx);
+		hawk_rtx_seterrbfmt (rtx, HAWK_NULL, HAWK_EOPEN, "unable to open %js - %js", &sio_std_names[std], bem);
+	}
 	return sio;
 }
 
@@ -1166,15 +1176,13 @@ static hawk_ooi_t sf_in_open (hawk_t* awk, hawk_sio_arg_t* arg, xtn_t* xtn)
 			}
 		}
 
-		arg->handle = hawk_sio_open(awk, 0, path, HAWK_SIO_READ | HAWK_SIO_IGNOREECERR | HAWK_SIO_KEEPPATH);
+		arg->handle = hawk_sio_open(hawk_getgem(awk), 0, path, HAWK_SIO_READ | HAWK_SIO_IGNOREECERR | HAWK_SIO_KEEPPATH);
 
 		if (dbuf) hawk_freemem (awk, dbuf);
 		if (!arg->handle)
 		{
-			hawk_oocs_t ea;
-			ea.ptr = (hawk_ooch_t*)arg->name;
-			ea.len = hawk_count_oocstr(ea.ptr);
-			hawk_seterrnum (awk, HAWK_EOPEN, &ea);
+			const hawk_ooch_t* bem = hawk_backuperrmsg(awk);
+			hawk_seterrbfmt (awk, HAWK_NULL, HAWK_EOPEN, "unable to open %js - %js", arg->name, bem);
 			return -1;
 		}
 
@@ -1786,8 +1794,8 @@ static hawk_ooi_t pio_handler_open (hawk_rtx_t* rtx, hawk_rio_arg_t* riod)
 		return -1;
 	}
 
-	handle = hawk_pio_open (
-		hawk_rtx_gethawk(rtx),
+	handle = hawk_pio_open(
+		hawk_rtx_getgem(rtx),
 		0, 
 		riod->name, 
 		flags | HAWK_PIO_SHELL | HAWK_PIO_TEXT | HAWK_PIO_IGNOREECERR
@@ -1936,13 +1944,11 @@ static hawk_ooi_t awk_rio_file (hawk_rtx_t* rtx, hawk_rio_cmd_t cmd, hawk_rio_ar
 					return -1; 
 			}
 
-			handle = hawk_sio_open(hawk_rtx_gethawk(rtx), 0, riod->name, flags);
+			handle = hawk_sio_open(hawk_rtx_getgem(rtx), 0, riod->name, flags);
 			if (handle == HAWK_NULL) 
 			{
-				hawk_oocs_t errarg;
-				errarg.ptr = riod->name;
-				errarg.len = hawk_count_oocstr(riod->name);
-				hawk_rtx_seterrnum (rtx, HAWK_EOPEN, &errarg);
+				const hawk_ooch_t* bem = hawk_rtx_backuperrmsg(rtx);
+				hawk_rtx_seterrbfmt (rtx, HAWK_NULL, HAWK_EOPEN, "unable to open %js - %js", riod->name, bem);
 				return -1;
 			}
 
@@ -2524,8 +2530,8 @@ static int build_environ (hawk_rtx_t* rtx, int gbl_id, env_char_t* envarr[])
 
 static int make_additional_globals (hawk_rtx_t* rtx, xtn_t* xtn, const hawk_ooch_t* id, const hawk_ooch_t*const icf[])
 {
-	if (build_argcv (rtx, xtn->gbl_argc, xtn->gbl_argv, id, icf) <= -1 ||
-	    build_environ (rtx, xtn->gbl_environ, environ) <= -1) return -1;
+	if (build_argcv(rtx, xtn->gbl_argc, xtn->gbl_argv, id, icf) <= -1 ||
+	    build_environ(rtx, xtn->gbl_environ, environ) <= -1) return -1;
 	return 0;
 }
 
@@ -3023,11 +3029,15 @@ static int add_globals (hawk_t* awk)
 
 	xtn->gbl_argc = hawk_addgbl(awk, HAWK_T("ARGC"));
 	xtn->gbl_argv = hawk_addgbl(awk, HAWK_T("ARGV"));
-	xtn->gbl_environ = hawk_addgbl(awk,  HAWK_T("ENVIRON"));
+	xtn->gbl_environ = hawk_addgbl(awk, HAWK_T("ENVIRON"));
+	xtn->gbl_errno = hawk_addgbl(awk, HAWK_T("ERRNO"));
+	xtn->gbl_errstr = hawk_addgbl(awk, HAWK_T("ERRSTR"));
 
 	return (xtn->gbl_argc <= -1 || 
 	        xtn->gbl_argv <= -1 ||
-	        xtn->gbl_environ <= -1)? -1: 0;
+	        xtn->gbl_environ <= -1 || 
+	        xtn->gbl_errno <= -1 ||
+	        xtn->gbl_errstr <= -1)? -1: 0;
 }
 
 struct fnctab_t 

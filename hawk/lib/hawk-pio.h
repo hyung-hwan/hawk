@@ -136,37 +136,6 @@ struct hawk_pio_fnc_t
 	void* ctx;
 };
 
-/**
- * The hawk_pio_errnum_t type defines error numbers.
- */
-enum hawk_pio_errnum_t
-{
-	HAWK_PIO_ENOERR = 0, /**< no error */
-	HAWK_PIO_EOTHER,     /**< unknown error */
-	HAWK_PIO_ENOIMPL,    /**< not implemented */
-	HAWK_PIO_ESYSERR,    /**< subsystem error */
-	HAWK_PIO_EINTERN,    /**< internal error */
-
-	HAWK_PIO_ENOMEM,     /**< out of memory */
-	HAWK_PIO_EINVAL,     /**< invalid parameter */
-	HAWK_PIO_EACCES,     /**< access denied */
-	HAWK_PIO_EPERM,      /**< operation not permitted */
-	HAWK_PIO_ENOENT,     /**< no such file */
-	HAWK_PIO_EEXIST,     /**< already exist */
-	HAWK_PIO_ENOTDIR,    /**< not a directory */
-	HAWK_PIO_EINTR,      /**< interrupted */
-	HAWK_PIO_EPIPE,      /**< broken pipe */
-	HAWK_PIO_EINPROG,    /**< in progress */
-	HAWK_PIO_EAGAIN,     /**< resource not available temporarily */
-
-	HAWK_PIO_ENOHND,     /**< no handle available */
-	HAWK_PIO_ECHILD,     /**< the child is not valid */
-	HAWK_PIO_EILSEQ,     /**< illegal sequence */
-	HAWK_PIO_EICSEQ,     /**< incomplete sequence */
-	HAWK_PIO_EILCHR      /**< illegal character */
-};
-typedef enum hawk_pio_errnum_t hawk_pio_errnum_t;
-
 #if defined(_WIN32)
 	/* <winnt.h> => typedef PVOID HANDLE; */
 	typedef void* hawk_pio_hnd_t; /**< defines a pipe handle type */
@@ -211,15 +180,12 @@ struct hawk_pio_pin_t
  */
 struct hawk_pio_t
 {
-	hawk_t*           hawk;
+	hawk_gem_t*       gem;
 	int               flags;  /**< options */
-	hawk_pio_errnum_t errnum;  /**< error number */
 	hawk_pio_pid_t    child;   /**< handle to a child process */
 	hawk_pio_pin_t    pin[3];
 };
 
-/** access the \a errnum field of the #hawk_pio_t structure */
-#define HAWK_PIO_ERRNUM(pio)    ((pio)->errnum)
 /** access the \a child field of the #hawk_pio_t structure */
 #define HAWK_PIO_CHILD(pio)     ((pio)->child)
 /** get the native handle from the #hawk_pio_t structure */
@@ -242,7 +208,7 @@ extern "C" {
  * \return #hawk_pio_t object on success, #HAWK_NULL on failure
  */
 HAWK_EXPORT hawk_pio_t* hawk_pio_open (
-	hawk_t*            hawk,   /**< hawk */
+	hawk_gem_t*        gem,   /**< hawk */
 	hawk_oow_t         ext,    /**< extension size */
 	const hawk_ooch_t* cmd,    /**< command to execute */
 	int                flags   /**< 0 or a number OR'ed of the
@@ -265,7 +231,7 @@ HAWK_EXPORT void hawk_pio_close (
  */
 HAWK_EXPORT int hawk_pio_init (
 	hawk_pio_t*        pio,    /**< pio object */
-	hawk_t*            hawk,   /**< hawk */
+	hawk_gem_t*        gem,   /**< hawk */
 	const hawk_ooch_t* cmd,    /**< command to execute */
 	int                flags   /**< 0 or a number OR'ed of the
 	                               #hawk_pio_flag_t enumerators*/
@@ -284,15 +250,6 @@ static HAWK_INLINE void* hawk_pio_getxtn (hawk_pio_t* pio) { return (void*)(pio 
 #else
 #define hawk_pio_getxtn(awk) ((void*)((hawk_pio_t*)(pio) + 1))
 #endif
-
-/**
- * The hawk_pio_geterrnum() function returns the number of the last error 
- * occurred. 
- * \return error number
- */
-HAWK_EXPORT hawk_pio_errnum_t hawk_pio_geterrnum (
-	const hawk_pio_t* pio /**< pio object */
-);
 
 /**
  * The hawk_pio_getcmgr() function returns the current character manager.
@@ -355,15 +312,15 @@ HAWK_EXPORT hawk_ooi_t hawk_pio_read (
 HAWK_EXPORT hawk_ooi_t hawk_pio_write (
 	hawk_pio_t*    pio,   /**< pio object */
 	hawk_pio_hid_t hid,   /**< handle ID */
-	const void*   data,  /**< data to write */
-	hawk_oow_t    size   /**< data size */
+	const void*    data,  /**< data to write */
+	hawk_oow_t     size   /**< data size */
 );
 
 HAWK_EXPORT hawk_ooi_t hawk_pio_writebytes (
 	hawk_pio_t*    pio,   /**< pio object */
 	hawk_pio_hid_t hid,   /**< handle ID */
-	const void*   data,  /**< data to write */
-	hawk_oow_t    size   /**< data size */
+	const void*    data,  /**< data to write */
+	hawk_oow_t     size   /**< data size */
 );
 
 /**

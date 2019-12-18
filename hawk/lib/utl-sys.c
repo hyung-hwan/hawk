@@ -29,9 +29,9 @@
 #if defined(_WIN32)
 #	include <windows.h>
 #	include <time.h>
-#	define EPOCH_DIFF_YEARS (HAWK_EPOCH_YEAR-HAWK_EPOCH_YEAR_WIN)
-#	define EPOCH_DIFF_DAYS  ((hawk_intptr_t)EPOCH_DIFF_YEARS*365+EPOCH_DIFF_YEARS/4-3)
-#	define EPOCH_DIFF_SECS  ((hawk_intptr_t)EPOCH_DIFF_DAYS*24*60*60)
+#	define EPOCH_DIFF_YEARS (HAWK_EPOCH_YEAR - HAWK_EPOCH_YEAR_WIN)
+#	define EPOCH_DIFF_DAYS  ((hawk_intptr_t)EPOCH_DIFF_YEARS * 365 + EPOCH_DIFF_YEARS / 4 - 3)
+#	define EPOCH_DIFF_SECS  ((hawk_intptr_t)EPOCH_DIFF_DAYS * 24 * 60 * 60)
 #elif defined(__OS2__)
 #	define INCL_DOSDATETIME
 #	define INCL_DOSERRORS
