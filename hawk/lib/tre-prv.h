@@ -229,9 +229,9 @@ typedef hawk_pma_t* tre_mem_t;
 #define tre_mem_alloc(mem,size) hawk_pma_alloc(mem,size)
 #define tre_mem_calloc(mem,size) hawk_pma_calloc(mem,size)
 
-#define xmalloc(hawk,size) hawk_allocmem(hawk,size)
-#define xfree(hawk,ptr) hawk_freemem(hawk,ptr)
-#define xrealloc(hawk,ptr,new_size) hawk_reallocmem(hawk, ptr, new_size)
+#define xmalloc(gem,size) hawk_gem_allocmem(gem,size)
+#define xfree(gem,ptr) hawk_gem_freemem(gem,ptr)
+#define xrealloc(gem,ptr,new_size) hawk_gem_reallocmem(gem, ptr, new_size)
 
 
 /* tre-ast.h */
@@ -428,13 +428,13 @@ void tre_fill_pmatch(
 	const tre_tnfa_t *tnfa, int *tags, int match_eo);
 
 reg_errcode_t tre_tnfa_run_backtrack(
-	hawk_t* hawk, const tre_tnfa_t *tnfa, const void *string,
+	hawk_gem_t* gem, const tre_tnfa_t *tnfa, const void *string,
 	int len, tre_str_type_t type, int *match_tags,
 	int eflags, int *match_end_ofs);
 
 
 reg_errcode_t tre_tnfa_run_parallel(
-	hawk_t* hawk, const tre_tnfa_t *tnfa, const void *string, int len,
+	hawk_gem_t* gem, const tre_tnfa_t *tnfa, const void *string, int len,
 	tre_str_type_t type, int *match_tags, int eflags,
 	int *match_end_ofs);
 

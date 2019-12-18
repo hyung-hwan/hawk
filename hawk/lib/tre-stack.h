@@ -71,7 +71,7 @@ typedef struct tre_stack_rec tre_stack_t;
    allocated with realloc() if all space gets used up.	Returns the stack
    object or NULL if out of memory. */
 tre_stack_t *
-tre_stack_new(hawk_t* hawk, int size, int max_size, int increment);
+tre_stack_new(hawk_gem_t* gem, int size, int max_size, int increment);
 
 /* Frees the stack object. */
 void

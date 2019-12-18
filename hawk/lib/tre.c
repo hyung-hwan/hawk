@@ -27,16 +27,16 @@
 #include "tre-prv.h"
 #include "tre-compile.h"
 
-hawk_tre_t* hawk_tre_open (hawk_t* hawk, hawk_oow_t xtnsize)
+hawk_tre_t* hawk_tre_open (hawk_gem_t* gem, hawk_oow_t xtnsize)
 {
 	hawk_tre_t* tre;
 
-	tre = (hawk_tre_t*)hawk_allocmem(hawk, HAWK_SIZEOF(hawk_tre_t) + xtnsize);
+	tre = (hawk_tre_t*)hawk_gem_allocmem(gem, HAWK_SIZEOF(hawk_tre_t) + xtnsize);
 	if (!tre) return HAWK_NULL;
 
-	if (hawk_tre_init(tre, hawk) <= -1)
+	if (hawk_tre_init(tre, gem) <= -1)
 	{
-		hawk_freemem (hawk, tre);
+		hawk_gem_freemem (gem, tre);
 		return HAWK_NULL;
 	}
 
@@ -47,13 +47,13 @@ hawk_tre_t* hawk_tre_open (hawk_t* hawk, hawk_oow_t xtnsize)
 void hawk_tre_close (hawk_tre_t* tre)
 {
 	hawk_tre_fini (tre);
-	hawk_freemem (tre->hawk, tre);
+	hawk_gem_freemem (tre->gem, tre);
 }
 
-int hawk_tre_init (hawk_tre_t* tre, hawk_t* hawk)
+int hawk_tre_init (hawk_tre_t* tre, hawk_gem_t* gem)
 {
 	HAWK_MEMSET (tre, 0, HAWK_SIZEOF(*tre));
-	tre->hawk = hawk;
+	tre->gem = gem;
 	return 0;
 }
 
@@ -184,7 +184,7 @@ static int tre_match(
 	int *tags = HAWK_NULL, eo;
 	if (tnfa->num_tags > 0 && nmatch > 0)
 	{
-		tags = xmalloc (preg->hawk, sizeof(*tags) * tnfa->num_tags);
+		tags = xmalloc (preg->gem, sizeof(*tags) * tnfa->num_tags);
 		if (tags == HAWK_NULL) return REG_ESPACE;
 	}
 
@@ -193,21 +193,21 @@ static int tre_match(
 	{
 		/* The regex has back references, use the backtracking matcher. */
 		status = tre_tnfa_run_backtrack (
-			preg->hawk, tnfa, string, (int)len, type,
+			preg->gem, tnfa, string, (int)len, type,
 			tags, eflags, &eo);
 	}
 	else
 	{
 		/* Exact matching, no back references, use the parallel matcher. */
 		status = tre_tnfa_run_parallel (
-			preg->hawk, tnfa, string, (int)len, type,
+			preg->gem, tnfa, string, (int)len, type,
 			tags, eflags, &eo);
 	}
 
 	if (status == REG_OK)
 		/* A match was found, so fill the submatch registers. */
 		tre_fill_pmatch(nmatch, pmatch, tnfa->cflags, tnfa, tags, eo);
-	if (tags) xfree (preg->hawk, tags);
+	if (tags) xfree (preg->gem, tags);
 	return status;
 }
 
@@ -231,7 +231,7 @@ int hawk_tre_execx (
 	if (ret > 0) 
 	{
 		tre->errnum = ret;
-		return -1;	
+		return -1;
 	}
 	
 	return 0;

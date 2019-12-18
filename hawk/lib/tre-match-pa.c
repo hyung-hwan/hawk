@@ -117,7 +117,7 @@ tre_print_reach(const tre_tnfa_t *tnfa, tre_tnfa_reach_t *reach, int num_tags)
 #endif /* TRE_DEBUG */
 
 reg_errcode_t
-tre_tnfa_run_parallel(hawk_t* hawk, const tre_tnfa_t *tnfa, const void *string, int len,
+tre_tnfa_run_parallel(hawk_gem_t* gem, const tre_tnfa_t *tnfa, const void *string, int len,
                       tre_str_type_t type, int *match_tags, int eflags,
                       int *match_end_ofs)
 {
@@ -177,7 +177,7 @@ tre_tnfa_run_parallel(hawk_t* hawk, const tre_tnfa_t *tnfa, const void *string, 
 		    + (rbytes + xbytes * tnfa->num_states) * 2 + tbytes + pbytes;
 
 		/* Allocate the memory. */
-		buf = xmalloc(hawk, (unsigned)total_bytes);
+		buf = xmalloc(gem, (unsigned)total_bytes);
 		if (buf == NULL) return REG_ESPACE;
 		HAWK_MEMSET(buf, 0, (size_t)total_bytes);
 
@@ -218,7 +218,7 @@ tre_tnfa_run_parallel(hawk_t* hawk, const tre_tnfa_t *tnfa, const void *string, 
 			str_byte = hawk_find_bchar_in_bcstr(orig_str, first);
 		if (str_byte == NULL)
 		{
-			if (buf) xfree(hawk, buf);
+			if (buf) xfree(gem, buf);
 			return REG_NOMATCH;
 		}
 		DPRINT(("skipped %lu chars\n", (unsigned long)(str_byte - orig_str)));
@@ -485,7 +485,7 @@ tre_tnfa_run_parallel(hawk_t* hawk, const tre_tnfa_t *tnfa, const void *string, 
 
 	DPRINT(("match end offset = %d\n", match_eo));
 
-	if (buf) xfree(hawk, buf);
+	if (buf) xfree(gem, buf);
 
 	*match_end_ofs = match_eo;
 	return match_eo >= 0 ? REG_OK : REG_NOMATCH;

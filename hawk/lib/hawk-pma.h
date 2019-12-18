@@ -61,7 +61,7 @@ typedef struct hawk_pma_t hawk_pma_t;
 
 struct hawk_pma_t
 {
-	hawk_t* hawk;
+	hawk_gem_t* gem;
 
 	hawk_pma_blk_t* blocks;
 	hawk_pma_blk_t* current;
@@ -79,8 +79,8 @@ extern "C" {
  * The hawk_pma_open() function creates a pool-based memory allocator.
  */
 HAWK_EXPORT hawk_pma_t* hawk_pma_open (
-	hawk_t*     hawk,    /**< hawk */
-	hawk_oow_t  xtnsize  /**< extension size in bytes */
+	hawk_gem_t* gem,    /**< gem */
+	hawk_oow_t  xtnsize /**< extension size in bytes */
 );
 
 /**
@@ -92,7 +92,7 @@ HAWK_EXPORT void hawk_pma_close (
 
 HAWK_EXPORT int hawk_pma_init (
 	hawk_pma_t*  pma, /**< memory allocator */
-	hawk_t*      hawk /**< hawk */
+	hawk_gem_t*  gem  /**< gem */
 );
 
 HAWK_EXPORT void hawk_pma_fini (
@@ -120,7 +120,7 @@ HAWK_EXPORT void hawk_pma_clear (
 HAWK_EXPORT void* hawk_pma_alloc (
 	hawk_pma_t* pma, /**< memory allocator */
 	hawk_oow_t size /**< block size */
-);	
+);
 
 /**
  * The hawk_pma_alloc() function allocates a memory block of the @a size bytes
@@ -139,7 +139,7 @@ HAWK_EXPORT void* hawk_pma_calloc (
 HAWK_EXPORT void* hawk_pma_realloc (
 	hawk_pma_t* pma,  /**< memory allocator */
 	void*       blk,  /**< memory block */
-	hawk_oow_t size  /**< new size in bytes */
+	hawk_oow_t  size  /**< new size in bytes */
 );
 
 /**
