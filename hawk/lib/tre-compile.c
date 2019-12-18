@@ -75,11 +75,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   Algorithms to setup tags so that submatch addressing can be done.
 */
 
-static HAWK_INLINE void* xcalloc (hawk_t* hawk, hawk_oow_t nmemb, hawk_oow_t size)
+static HAWK_INLINE void* xcalloc (hawk_gem_t* gem, hawk_oow_t nmemb, hawk_oow_t size)
 {
-	void* ptr = hawk_allocmem(hawk, nmemb * size);
-	if (ptr) HAWK_MEMSET (ptr, 0, nmemb * size);
-	return ptr;
+	return hawk_gem_callocmem(gem, nmemb * size);
 }
 
 /* Inserts a catenation node to the root of the tree given in `node'.
@@ -213,25 +211,25 @@ tre_add_tags(tre_mem_t mem, tre_stack_t *stack, tre_ast_node_t *tree,
 		tnfa->minimal_tags[0] = -1;
 	}
 
-	regset = xmalloc(mem->hawk, sizeof(*regset) * ((tnfa->num_submatches + 1) * 2));
+	regset = xmalloc(mem->gem, sizeof(*regset) * ((tnfa->num_submatches + 1) * 2));
 	if (regset == NULL)
 		return REG_ESPACE;
 	regset[0] = -1;
 	orig_regset = regset;
 
-	parents = xmalloc(mem->hawk, sizeof(*parents) * (tnfa->num_submatches + 1));
+	parents = xmalloc(mem->gem, sizeof(*parents) * (tnfa->num_submatches + 1));
 	if (parents == NULL)
 	{
-		xfree(mem->hawk, regset);
+		xfree(mem->gem, regset);
 		return REG_ESPACE;
 	}
 	parents[0] = -1;
 
-	saved_states = xmalloc(mem->hawk, sizeof(*saved_states) * (tnfa->num_submatches + 1));
+	saved_states = xmalloc(mem->gem, sizeof(*saved_states) * (tnfa->num_submatches + 1));
 	if (saved_states == NULL)
 	{
-		xfree(mem->hawk,regset);
-		xfree(mem->hawk,parents);
+		xfree(mem->gem,regset);
+		xfree(mem->gem,parents);
 		return REG_ESPACE;
 	}
 	else
@@ -289,7 +287,7 @@ tre_add_tags(tre_mem_t mem, tre_stack_t *stack, tre_ast_node_t *tree,
 						tnfa->submatch_data[id].parents = NULL;
 						if (i > 0)
 						{
-							int *p = xmalloc(mem->hawk, sizeof(*p) * (i + 1));
+							int *p = xmalloc(mem->gem, sizeof(*p) * (i + 1));
 							if (p == NULL)
 							{
 								status = REG_ESPACE;
@@ -683,9 +681,9 @@ tre_add_tags(tre_mem_t mem, tre_stack_t *stack, tre_ast_node_t *tree,
 	tnfa->end_tag = num_tags;
 	tnfa->num_tags = num_tags;
 	tnfa->num_minimals = num_minimals;
-	xfree(mem->hawk,orig_regset);
-	xfree(mem->hawk,parents);
-	xfree(mem->hawk,saved_states);
+	xfree(mem->gem,orig_regset);
+	xfree(mem->gem,parents);
+	xfree(mem->gem,saved_states);
 	return status;
 }
 
@@ -1504,7 +1502,7 @@ tre_compute_nfl(tre_mem_t mem, tre_stack_t *stack, tre_ast_node_t *tree)
 				if (status != REG_OK)
 					return status;
 				/* Allocate arrays for the tags and parameters. */
-				tags = xmalloc(mem->hawk, sizeof(*tags) * (num_tags + 1));
+				tags = xmalloc(mem->gem, sizeof(*tags) * (num_tags + 1));
 				if (!tags)
 					return REG_ESPACE;
 				tags[0] = -1;
@@ -1516,7 +1514,7 @@ tre_compute_nfl(tre_mem_t mem, tre_stack_t *stack, tre_ast_node_t *tree)
 					                       * TRE_PARAM_LAST);
 					if (!params)
 					{
-						xfree(mem->hawk,tags);
+						xfree(mem->gem,tags);
 						return REG_ESPACE;
 					}
 				}
@@ -1526,13 +1524,13 @@ tre_compute_nfl(tre_mem_t mem, tre_stack_t *stack, tre_ast_node_t *tree)
 				                         &assertions, params, NULL, NULL);
 				if (status != REG_OK)
 				{
-					xfree(mem->hawk,tags);
+					xfree(mem->gem,tags);
 					return status;
 				}
 				node->firstpos =
 				    tre_set_union(mem, cat->right->firstpos, cat->left->firstpos,
 				                  tags, assertions, params);
-				xfree(mem->hawk,tags);
+				xfree(mem->gem,tags);
 				if (!node->firstpos)
 					return REG_ESPACE;
 			}
@@ -1553,7 +1551,7 @@ tre_compute_nfl(tre_mem_t mem, tre_stack_t *stack, tre_ast_node_t *tree)
 				if (status != REG_OK)
 					return status;
 				/* Allocate arrays for the tags and parameters. */
-				tags = xmalloc(mem->hawk,sizeof(int) * (num_tags + 1));
+				tags = xmalloc(mem->gem,sizeof(int) * (num_tags + 1));
 				if (!tags)
 					return REG_ESPACE;
 				tags[0] = -1;
@@ -1565,7 +1563,7 @@ tre_compute_nfl(tre_mem_t mem, tre_stack_t *stack, tre_ast_node_t *tree)
 					                       * TRE_PARAM_LAST);
 					if (!params)
 					{
-						xfree(mem->hawk,tags);
+						xfree(mem->gem,tags);
 						return REG_ESPACE;
 					}
 				}
@@ -1575,13 +1573,13 @@ tre_compute_nfl(tre_mem_t mem, tre_stack_t *stack, tre_ast_node_t *tree)
 				                         &assertions, params, NULL, NULL);
 				if (status != REG_OK)
 				{
-					xfree(mem->hawk,tags);
+					xfree(mem->gem,tags);
 					return status;
 				}
 				node->lastpos =
 				    tre_set_union(mem, cat->left->lastpos, cat->right->lastpos,
 				                  tags, assertions, params);
-				xfree(mem->hawk,tags);
+				xfree(mem->gem,tags);
 				if (!node->lastpos)
 					return REG_ESPACE;
 			}
@@ -1604,7 +1602,7 @@ tre_compute_nfl(tre_mem_t mem, tre_stack_t *stack, tre_ast_node_t *tree)
 
 /* Adds a transition from each position in `p1' to each position in `p2'. */
 static reg_errcode_t
-tre_make_trans(hawk_t* hawk, tre_pos_and_tags_t *p1, tre_pos_and_tags_t *p2,
+tre_make_trans(hawk_gem_t* gem, tre_pos_and_tags_t *p1, tre_pos_and_tags_t *p2,
                tre_tnfa_transition_t *transitions,
                int *counts, int *offs)
 {
@@ -1676,7 +1674,7 @@ tre_make_trans(hawk_t* hawk, tre_pos_and_tags_t *p1, tre_pos_and_tags_t *p2,
 				if (p1->neg_classes != NULL)
 				{
 					for (i = 0; p1->neg_classes[i] != (tre_ctype_t)0; i++);
-					trans->neg_classes = xmalloc(hawk,sizeof(*trans->neg_classes) * (i + 1));
+					trans->neg_classes = xmalloc(gem,sizeof(*trans->neg_classes) * (i + 1));
 					if (trans->neg_classes == NULL) return REG_ESPACE;
 					for (i = 0; p1->neg_classes[i] != (tre_ctype_t)0; i++)
 						trans->neg_classes[i] = p1->neg_classes[i];
@@ -1696,13 +1694,13 @@ tre_make_trans(hawk_t* hawk, tre_pos_and_tags_t *p1, tre_pos_and_tags_t *p2,
 						j++;
 
 				/* If we are overwriting a transition, free the old tag array. */
-				if (trans->tags != NULL) xfree(hawk,trans->tags);
+				if (trans->tags != NULL) xfree(gem,trans->tags);
 				trans->tags = NULL;
 
 				/* If there were any tags, allocate an array and fill it. */
 				if (i + j > 0)
 				{
-					trans->tags = xmalloc(hawk,sizeof(*trans->tags) * (i + j + 1));
+					trans->tags = xmalloc(gem,sizeof(*trans->tags) * (i + j + 1));
 					if (!trans->tags)
 						return REG_ESPACE;
 					i = 0;
@@ -1737,8 +1735,7 @@ tre_make_trans(hawk_t* hawk, tre_pos_and_tags_t *p1, tre_pos_and_tags_t *p2,
 				if (p1->params || p2->params)
 				{
 					if (!trans->params)
-						trans->params = xmalloc(hawk,sizeof(*trans->params)
-						                        * TRE_PARAM_LAST);
+						trans->params = xmalloc(gem,sizeof(*trans->params) * TRE_PARAM_LAST);
 					if (!trans->params)
 						return REG_ESPACE;
 					for (i = 0; i < TRE_PARAM_LAST; i++)
@@ -1752,8 +1749,7 @@ tre_make_trans(hawk_t* hawk, tre_pos_and_tags_t *p1, tre_pos_and_tags_t *p2,
 				}
 				else
 				{
-					if (trans->params)
-						xfree(hawk,trans->params);
+					if (trans->params) xfree(gem,trans->params);
 					trans->params = NULL;
 				}
 
@@ -1823,7 +1819,7 @@ tre_make_trans(hawk_t* hawk, tre_pos_and_tags_t *p1, tre_pos_and_tags_t *p2,
    strings).  The TNFA takes O(n^2) space in the worst case, `n' is size of
    the regexp. */
 static reg_errcode_t
-tre_ast_to_tnfa(hawk_t* hawk, tre_ast_node_t *node, tre_tnfa_transition_t *transitions,
+tre_ast_to_tnfa(hawk_gem_t* gem, tre_ast_node_t *node, tre_tnfa_transition_t *transitions,
                 int *counts, int *offs)
 {
 	tre_union_t *uni;
@@ -1838,24 +1834,24 @@ tre_ast_to_tnfa(hawk_t* hawk, tre_ast_node_t *node, tre_tnfa_transition_t *trans
 		break;
 	case UNION:
 		uni = (tre_union_t *)node->obj;
-		errcode = tre_ast_to_tnfa(hawk, uni->left, transitions, counts, offs);
+		errcode = tre_ast_to_tnfa(gem, uni->left, transitions, counts, offs);
 		if (errcode != REG_OK)
 			return errcode;
-		errcode = tre_ast_to_tnfa(hawk, uni->right, transitions, counts, offs);
+		errcode = tre_ast_to_tnfa(gem, uni->right, transitions, counts, offs);
 		break;
 
 	case CATENATION:
 		cat = (tre_catenation_t *)node->obj;
 		/* Add a transition from each position in cat->left->lastpos
 			 to each position in cat->right->firstpos. */
-		errcode = tre_make_trans(hawk, cat->left->lastpos, cat->right->firstpos,
+		errcode = tre_make_trans(gem, cat->left->lastpos, cat->right->firstpos,
 		                         transitions, counts, offs);
 		if (errcode != REG_OK)
 			return errcode;
-		errcode = tre_ast_to_tnfa(hawk, cat->left, transitions, counts, offs);
+		errcode = tre_ast_to_tnfa(gem, cat->left, transitions, counts, offs);
 		if (errcode != REG_OK)
 			return errcode;
-		errcode = tre_ast_to_tnfa(hawk, cat->right, transitions, counts, offs);
+		errcode = tre_ast_to_tnfa(gem, cat->right, transitions, counts, offs);
 		break;
 
 	case ITERATION:
@@ -1867,12 +1863,12 @@ tre_ast_to_tnfa(hawk_t* hawk, tre_ast_node_t *node, tre_tnfa_transition_t *trans
 			assert(iter->min == 0 || iter->min == 1);
 			/* Add a transition from each last position in the iterated
 			   expression to each first position. */
-			errcode = tre_make_trans(hawk, iter->arg->lastpos, iter->arg->firstpos,
+			errcode = tre_make_trans(gem, iter->arg->lastpos, iter->arg->firstpos,
 			                         transitions, counts, offs);
 			if (errcode != REG_OK)
 				return errcode;
 		}
-		errcode = tre_ast_to_tnfa(hawk, iter->arg, transitions, counts, offs);
+		errcode = tre_ast_to_tnfa(gem, iter->arg, transitions, counts, offs);
 		break;
 	}
 	return errcode;
@@ -1909,12 +1905,12 @@ int tre_compile (regex_t *preg, const tre_char_t *regex, size_t n, int cflags)
 	/* Allocate a stack used throughout the compilation process for various
 	   purposes. */
 /* HAWK: deleted limit on the stack size 
-	stack = tre_stack_new(preg->hawk, 512, 10240, 128); */
-	stack = tre_stack_new(preg->hawk, 512, -1, 128); 
+	stack = tre_stack_new(preg->gem, 512, 10240, 128); */
+	stack = tre_stack_new(preg->gem, 512, -1, 128); 
 	if (!stack)
 		return REG_ESPACE;
 	/* Allocate a fast memory allocator. */
-	mem = tre_mem_new(preg->hawk);
+	mem = tre_mem_new(preg->gem);
 	if (!mem)
 	{
 		tre_stack_destroy(stack);
@@ -1950,7 +1946,7 @@ int tre_compile (regex_t *preg, const tre_char_t *regex, size_t n, int cflags)
 		ERROR_EXIT(REG_ESUBREG);
 
 	/* Allocate the TNFA struct. */
-	tnfa = xcalloc(preg->hawk, 1, sizeof(tre_tnfa_t));
+	tnfa = xcalloc(preg->gem, 1, sizeof(tre_tnfa_t));
 	if (tnfa == NULL)
 		ERROR_EXIT(REG_ESPACE);
 	tnfa->have_backrefs = parse_ctx.max_backref >= 0;
@@ -1974,7 +1970,7 @@ int tre_compile (regex_t *preg, const tre_char_t *regex, size_t n, int cflags)
 
 		if (tnfa->num_tags > 0)
 		{
-			tag_directions = xmalloc(preg->hawk,sizeof(*tag_directions)
+			tag_directions = xmalloc(preg->gem,sizeof(*tag_directions)
 			                         * (tnfa->num_tags + 1));
 			if (tag_directions == NULL)
 				ERROR_EXIT(REG_ESPACE);
@@ -1982,12 +1978,12 @@ int tre_compile (regex_t *preg, const tre_char_t *regex, size_t n, int cflags)
 			HAWK_MEMSET(tag_directions, -1,
 			           sizeof(*tag_directions) * (tnfa->num_tags + 1));
 		}
-		tnfa->minimal_tags = xcalloc(preg->hawk, (unsigned)tnfa->num_tags * 2 + 1,
+		tnfa->minimal_tags = xcalloc(preg->gem, (unsigned)tnfa->num_tags * 2 + 1,
 		                             sizeof(tnfa->minimal_tags));
 		if (tnfa->minimal_tags == NULL)
 			ERROR_EXIT(REG_ESPACE);
 
-		submatch_data = xcalloc(preg->hawk,(unsigned)parse_ctx.submatch_id,
+		submatch_data = xcalloc(preg->gem,(unsigned)parse_ctx.submatch_id,
 		                        sizeof(*submatch_data));
 		if (submatch_data == NULL)
 			ERROR_EXIT(REG_ESPACE);
@@ -2036,17 +2032,17 @@ int tre_compile (regex_t *preg, const tre_char_t *regex, size_t n, int cflags)
 	if (errcode != REG_OK)
 		ERROR_EXIT(errcode);
 
-	counts = xmalloc(preg->hawk,sizeof(int) * parse_ctx.position);
+	counts = xmalloc(preg->gem,sizeof(int) * parse_ctx.position);
 	if (counts == NULL)
 		ERROR_EXIT(REG_ESPACE);
 
-	offs = xmalloc(preg->hawk,sizeof(int) * parse_ctx.position);
+	offs = xmalloc(preg->gem,sizeof(int) * parse_ctx.position);
 	if (offs == NULL)
 		ERROR_EXIT(REG_ESPACE);
 
 	for (i = 0; i < parse_ctx.position; i++)
 		counts[i] = 0;
-	tre_ast_to_tnfa(preg->hawk, tree, NULL, counts, NULL);
+	tre_ast_to_tnfa(preg->gem, tree, NULL, counts, NULL);
 
 	add = 0;
 	for (i = 0; i < parse_ctx.position; i++)
@@ -2055,14 +2051,14 @@ int tre_compile (regex_t *preg, const tre_char_t *regex, size_t n, int cflags)
 		add += counts[i] + 1;
 		counts[i] = 0;
 	}
-	transitions = xcalloc(preg->hawk, (unsigned)add + 1, sizeof(*transitions));
+	transitions = xcalloc(preg->gem, (unsigned)add + 1, sizeof(*transitions));
 	if (transitions == NULL)
 		ERROR_EXIT(REG_ESPACE);
 	tnfa->transitions = transitions;
 	tnfa->num_transitions = add;
 
 	DPRINT(("Converting to TNFA:\n"));
-	errcode = tre_ast_to_tnfa(preg->hawk, tree, transitions, counts, offs);
+	errcode = tre_ast_to_tnfa(preg->gem, tree, transitions, counts, offs);
 	if (errcode != REG_OK)
 		ERROR_EXIT(errcode);
 
@@ -2077,7 +2073,7 @@ int tre_compile (regex_t *preg, const tre_char_t *regex, size_t n, int cflags)
 		int count = 0;
 		tre_cint_t k;
 		DPRINT(("Characters that can start a match:"));
-		tnfa->firstpos_chars = xcalloc(preg->hawk, 256, sizeof(char));
+		tnfa->firstpos_chars = xcalloc(preg->gem, 256, sizeof(char));
 		if (tnfa->firstpos_chars == NULL)
 			ERROR_EXIT(REG_ESPACE);
 		for (p = tree->firstpos; p->position >= 0; p++)
@@ -2104,7 +2100,7 @@ int tre_compile (regex_t *preg, const tre_char_t *regex, size_t n, int cflags)
 				{
 					DPRINT(("first char must be %d\n", k));
 					tnfa->first_char = k;
-					xfree(preg->hawk,tnfa->firstpos_chars);
+					xfree(preg->gem,tnfa->firstpos_chars);
 					tnfa->firstpos_chars = NULL;
 					break;
 				}
@@ -2154,7 +2150,7 @@ int tre_compile (regex_t *preg, const tre_char_t *regex, size_t n, int cflags)
 		p++;
 	}
 
-	initial = xcalloc(preg->hawk, (unsigned)i + 1, sizeof(tre_tnfa_transition_t));
+	initial = xcalloc(preg->gem, (unsigned)i + 1, sizeof(tre_tnfa_transition_t));
 	if (initial == NULL)
 		ERROR_EXIT(REG_ESPACE);
 	tnfa->initial = initial;
@@ -2171,7 +2167,7 @@ int tre_compile (regex_t *preg, const tre_char_t *regex, size_t n, int cflags)
 		{
 			int j;
 			for (j = 0; p->tags[j] >= 0; j++);
-			initial[i].tags = xmalloc(preg->hawk,sizeof(*p->tags) * (j + 1));
+			initial[i].tags = xmalloc(preg->gem,sizeof(*p->tags) * (j + 1));
 			if (!initial[i].tags)
 				ERROR_EXIT(REG_ESPACE);
 			HAWK_MEMCPY (initial[i].tags, p->tags, sizeof(*p->tags) * (j + 1));
@@ -2179,7 +2175,7 @@ int tre_compile (regex_t *preg, const tre_char_t *regex, size_t n, int cflags)
 		initial[i].params = NULL;
 		if (p->params)
 		{
-			initial[i].params = xmalloc(preg->hawk,sizeof(*p->params) * TRE_PARAM_LAST);
+			initial[i].params = xmalloc(preg->gem,sizeof(*p->params) * TRE_PARAM_LAST);
 			if (!initial[i].params)
 				ERROR_EXIT(REG_ESPACE);
 			HAWK_MEMCPY (initial[i].params, p->params,
@@ -2199,8 +2195,8 @@ int tre_compile (regex_t *preg, const tre_char_t *regex, size_t n, int cflags)
 
 	tre_mem_destroy(mem);
 	tre_stack_destroy(stack);
-	xfree(preg->hawk,counts);
-	xfree(preg->hawk,offs);
+	xfree(preg->gem,counts);
+	xfree(preg->gem,offs);
 
 	preg->TRE_REGEX_T_FIELD = (void *)tnfa;
 	return REG_OK;
@@ -2211,9 +2207,9 @@ error_exit:
 	if (stack != NULL)
 		tre_stack_destroy(stack);
 	if (counts != NULL)
-		xfree(preg->hawk,counts);
+		xfree(preg->gem,counts);
 	if (offs != NULL)
-		xfree(preg->hawk,offs);
+		xfree(preg->gem,offs);
 	preg->TRE_REGEX_T_FIELD = (void *)tnfa;
 	tre_free(preg);
 	return errcode;
@@ -2233,46 +2229,46 @@ void tre_free (regex_t *preg)
 		if (tnfa->transitions[i].state)
 		{
 			if (tnfa->transitions[i].tags)
-				xfree(preg->hawk,tnfa->transitions[i].tags);
+				xfree(preg->gem,tnfa->transitions[i].tags);
 			if (tnfa->transitions[i].neg_classes)
-				xfree(preg->hawk,tnfa->transitions[i].neg_classes);
+				xfree(preg->gem,tnfa->transitions[i].neg_classes);
 			if (tnfa->transitions[i].params)
-				xfree(preg->hawk,tnfa->transitions[i].params);
+				xfree(preg->gem,tnfa->transitions[i].params);
 		}
 	if (tnfa->transitions)
-		xfree(preg->hawk,tnfa->transitions);
+		xfree(preg->gem,tnfa->transitions);
 
 	if (tnfa->initial)
 	{
 		for (trans = tnfa->initial; trans->state; trans++)
 		{
 			if (trans->tags)
-				xfree(preg->hawk,trans->tags);
+				xfree(preg->gem,trans->tags);
 			if (trans->params)
-				xfree(preg->hawk,trans->params);
+				xfree(preg->gem,trans->params);
 		}
-		xfree(preg->hawk,tnfa->initial);
+		xfree(preg->gem,tnfa->initial);
 	}
 
 	if (tnfa->submatch_data)
 	{
 		for (i = 0; i < tnfa->num_submatches; i++)
 			if (tnfa->submatch_data[i].parents)
-				xfree(preg->hawk,tnfa->submatch_data[i].parents);
-		xfree(preg->hawk,tnfa->submatch_data);
+				xfree(preg->gem,tnfa->submatch_data[i].parents);
+		xfree(preg->gem,tnfa->submatch_data);
 	}
 
 	if (tnfa->tag_directions)
-		xfree(preg->hawk,tnfa->tag_directions);
+		xfree(preg->gem,tnfa->tag_directions);
 /* HAWK: deleted */
 /*
 	if (tnfa->firstpos_chars)
-		xfree(preg->hawk,tnfa->firstpos_chars);
+		xfree(preg->gem,tnfa->firstpos_chars);
 */
 /* END HAWK */
 	if (tnfa->minimal_tags)
-		xfree(preg->hawk,tnfa->minimal_tags);
-	xfree(preg->hawk,tnfa);
+		xfree(preg->gem,tnfa->minimal_tags);
+	xfree(preg->gem,tnfa);
 }
 
 /* EOF */

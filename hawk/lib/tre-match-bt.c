@@ -191,7 +191,7 @@ typedef struct tre_backtrack_struct
 #define MIN(a, b) ((a) <= (b) ? (a) : (b))
 
 reg_errcode_t
-tre_tnfa_run_backtrack(hawk_t* hawk, const tre_tnfa_t *tnfa, const void *string,
+tre_tnfa_run_backtrack(hawk_gem_t* gem, const tre_tnfa_t *tnfa, const void *string,
                        int len, tre_str_type_t type, int *match_tags,
                        int eflags, int *match_end_ofs)
 {
@@ -232,7 +232,7 @@ tre_tnfa_run_backtrack(hawk_t* hawk, const tre_tnfa_t *tnfa, const void *string,
 	int *states_seen = NULL;
 
 	/* Memory allocator to for allocating the backtracking stack. */
-	tre_mem_t mem = tre_bt_mem_new(hawk);
+	tre_mem_t mem = tre_bt_mem_new(gem);
 
 	/* The backtracking stack. */
 	tre_backtrack_t stack;
@@ -261,7 +261,7 @@ tre_tnfa_run_backtrack(hawk_t* hawk, const tre_tnfa_t *tnfa, const void *string,
 
 	if (tnfa->num_tags)
 	{
-		tags = xmalloc(hawk, sizeof(*tags) * tnfa->num_tags);
+		tags = xmalloc(gem, sizeof(*tags) * tnfa->num_tags);
 		if (!tags)
 		{
 			ret = REG_ESPACE;
@@ -270,7 +270,7 @@ tre_tnfa_run_backtrack(hawk_t* hawk, const tre_tnfa_t *tnfa, const void *string,
 	}
 	if (tnfa->num_submatches)
 	{
-		pmatch = xmalloc(hawk, sizeof(*pmatch) * tnfa->num_submatches);
+		pmatch = xmalloc(gem, sizeof(*pmatch) * tnfa->num_submatches);
 		if (!pmatch)
 		{
 			ret = REG_ESPACE;
@@ -279,7 +279,7 @@ tre_tnfa_run_backtrack(hawk_t* hawk, const tre_tnfa_t *tnfa, const void *string,
 	}
 	if (tnfa->num_states)
 	{
-		states_seen = xmalloc(hawk, sizeof(*states_seen) * tnfa->num_states);
+		states_seen = xmalloc(gem, sizeof(*states_seen) * tnfa->num_states);
 		if (!states_seen)
 		{
 			ret = REG_ESPACE;
@@ -333,7 +333,7 @@ retry:
 		{
 			/* Backtrack to this state. */
 			DPRINT(("saving state %d for backtracking\n", trans_i->state_id));
-			BT_STACK_PUSH(hawk, pos, str_byte, str_wide, trans_i->state,
+			BT_STACK_PUSH(gem, pos, str_byte, str_wide, trans_i->state,
 			              trans_i->state_id, next_c, tags, mbstate);
 			{
 				int *tmp = trans_i->tags;
@@ -548,7 +548,7 @@ retry:
 					   jump back here if needed. */
 					DPRINT(("  saving state %d for backtracking\n",
 					        trans_i->state_id));
-					BT_STACK_PUSH(hawk, pos, str_byte, str_wide, trans_i->state,
+					BT_STACK_PUSH(gem, pos, str_byte, str_wide, trans_i->state,
 					              trans_i->state_id, next_c, tags, mbstate);
 					{
 						int *tmp;
@@ -632,9 +632,9 @@ backtrack:
 
 error_exit:
 	tre_bt_mem_destroy(mem);
-	if (tags) xfree(hawk, tags);
-	if (pmatch) xfree(hawk, pmatch);
-	if (states_seen) xfree(hawk, states_seen);
+	if (tags) xfree(gem, tags);
+	if (pmatch) xfree(gem, pmatch);
+	if (states_seen) xfree(gem, states_seen);
 
 	return ret;
 }

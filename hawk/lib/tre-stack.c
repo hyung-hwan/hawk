@@ -69,7 +69,7 @@ union tre_stack_item
 
 struct tre_stack_rec
 {
-	hawk_t* hawk;
+	hawk_gem_t* gem;
 	int size;
 	int max_size;
 	int increment;
@@ -78,24 +78,24 @@ struct tre_stack_rec
 };
 
 
-tre_stack_t* tre_stack_new(hawk_t* hawk, int size, int max_size, int increment)
+tre_stack_t* tre_stack_new(hawk_gem_t* gem, int size, int max_size, int increment)
 {
 	tre_stack_t *s;
 
-	s = xmalloc(hawk, sizeof(*s));
+	s = xmalloc(gem, sizeof(*s));
 	if (s != NULL)
 	{
-		s->stack = xmalloc(hawk, sizeof(*s->stack) * size);
+		s->stack = xmalloc(gem, sizeof(*s->stack) * size);
 		if (s->stack == NULL)
 		{
-			xfree(hawk, s);
+			xfree(gem, s);
 			return NULL;
 		}
 		s->size = size;
 		s->max_size = max_size;
 		s->increment = increment;
 		s->ptr = 0;
-		s->hawk = hawk;
+		s->gem = gem;
 	}
 	return s;
 }
@@ -103,8 +103,8 @@ tre_stack_t* tre_stack_new(hawk_t* hawk, int size, int max_size, int increment)
 void
 tre_stack_destroy(tre_stack_t *s)
 {
-	xfree(s->hawk,s->stack);
-	xfree(s->hawk,s);
+	xfree(s->gem,s->stack);
+	xfree(s->gem,s);
 }
 
 int
@@ -140,7 +140,7 @@ tre_stack_push(tre_stack_t *s, union tre_stack_item value)
 			if (new_size > s->max_size) */
 			if (s->max_size > 0 && new_size > s->max_size) 
 				new_size = s->max_size;
-			new_buffer = xrealloc(s->hawk, s->stack, sizeof(*new_buffer) * new_size);
+			new_buffer = xrealloc(s->gem, s->stack, sizeof(*new_buffer) * new_size);
 			if (new_buffer == NULL)
 			{
 				DPRINT(("tre_stack_push: realloc failed.\n"));

@@ -503,7 +503,7 @@ int hawk_buildrex (
 
 	if (code)
 	{
-		tre = hawk_tre_open(awk, 0);
+		tre = hawk_tre_open(hawk_getgem(awk), 0);
 		if (tre == HAWK_NULL)
 		{
 			*errnum = HAWK_ENOMEM;
@@ -529,7 +529,7 @@ int hawk_buildrex (
 
 	if (icode) 
 	{
-		itre = hawk_tre_open(awk, 0);
+		itre = hawk_tre_open(hawk_getgem(awk), 0);
 		if (itre == HAWK_NULL)
 		{
 			if (tre) hawk_tre_close (tre);

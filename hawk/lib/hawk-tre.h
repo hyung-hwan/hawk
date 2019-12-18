@@ -56,7 +56,7 @@ typedef enum hawk_tre_errnum_t hawk_tre_errnum_t;
 typedef struct hawk_tre_t hawk_tre_t;
 struct hawk_tre_t
 {
-	hawk_t*           hawk;
+	hawk_gem_t*       gem;
 	hawk_tre_errnum_t errnum; 
 
 	hawk_oow_t        re_nsub;  /* Number of parenthesized subexpressions. */
@@ -109,17 +109,17 @@ extern "C" {
 #endif
 
 HAWK_EXPORT hawk_tre_t* hawk_tre_open (
-	hawk_t*     hawk,
+	hawk_gem_t* gem,
 	hawk_oow_t  xtnsize
 );
-	
+
 HAWK_EXPORT void hawk_tre_close (
 	hawk_tre_t*  tre
 );
 
 HAWK_EXPORT int hawk_tre_init (
 	hawk_tre_t*  tre,
-	hawk_t*      hawk
+	hawk_gem_t*  gem
 );
 
 HAWK_EXPORT void hawk_tre_fini (

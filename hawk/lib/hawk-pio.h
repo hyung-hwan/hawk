@@ -208,11 +208,10 @@ extern "C" {
  * \return #hawk_pio_t object on success, #HAWK_NULL on failure
  */
 HAWK_EXPORT hawk_pio_t* hawk_pio_open (
-	hawk_gem_t*        gem,   /**< hawk */
+	hawk_gem_t*        gem,    /**< gem */
 	hawk_oow_t         ext,    /**< extension size */
 	const hawk_ooch_t* cmd,    /**< command to execute */
-	int                flags   /**< 0 or a number OR'ed of the
-	                               #hawk_pio_flag_t enumerators*/
+	int                flags   /**< 0 or a number OR'ed of the #hawk_pio_flag_t enumerators*/
 );
 
 /**
@@ -231,10 +230,9 @@ HAWK_EXPORT void hawk_pio_close (
  */
 HAWK_EXPORT int hawk_pio_init (
 	hawk_pio_t*        pio,    /**< pio object */
-	hawk_gem_t*        gem,   /**< hawk */
+	hawk_gem_t*        gem,    /**< gem */
 	const hawk_ooch_t* cmd,    /**< command to execute */
-	int                flags   /**< 0 or a number OR'ed of the
-	                               #hawk_pio_flag_t enumerators*/
+	int                flags   /**< 0 or a number OR'ed of the #hawk_pio_flag_t enumerators*/
 );
 
 /**

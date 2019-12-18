@@ -53,16 +53,16 @@
 		(HAWK_SIZEOF(type) - (((hawk_uintptr_t)ptr) % HAWK_SIZEOF(type))) : 0)
 
 
-hawk_pma_t* hawk_pma_open (hawk_t* hawk, hawk_oow_t xtnsize) 
+hawk_pma_t* hawk_pma_open (hawk_gem_t* gem, hawk_oow_t xtnsize) 
 {
 	hawk_pma_t* pma;
 
-	pma = (hawk_pma_t*)hawk_allocmem(hawk, HAWK_SIZEOF(*pma) + xtnsize);
+	pma = (hawk_pma_t*)hawk_gem_allocmem(gem, HAWK_SIZEOF(*pma) + xtnsize);
 	if (!pma) return HAWK_NULL;
 
-	if (hawk_pma_init(pma, hawk) <= -1)
+	if (hawk_pma_init(pma, gem) <= -1)
 	{
-		hawk_freemem (hawk, pma);
+		hawk_gem_freemem (gem, pma);
 		return HAWK_NULL;
 	}
 
@@ -73,13 +73,13 @@ hawk_pma_t* hawk_pma_open (hawk_t* hawk, hawk_oow_t xtnsize)
 void hawk_pma_close (hawk_pma_t* pma)
 {
 	hawk_pma_fini (pma);
-	hawk_freemem (pma->hawk, pma);
+	hawk_gem_freemem (pma->gem, pma);
 }
 
-int hawk_pma_init (hawk_pma_t* pma, hawk_t* hawk)
+int hawk_pma_init (hawk_pma_t* pma, hawk_gem_t* gem)
 {
 	HAWK_MEMSET (pma, 0, HAWK_SIZEOF(*pma));
-	pma->hawk = hawk;
+	pma->gem = gem;
 	return 0;
 }
 
@@ -91,18 +91,18 @@ void hawk_pma_fini (hawk_pma_t* pma)
 
 void hawk_pma_clear (hawk_pma_t* pma)
 {
-	hawk_t* hawk = pma->hawk;
+	hawk_t* gem = pma->gem;
 	hawk_pma_blk_t* tmp, * l = pma->blocks;
 
 	while (l != HAWK_NULL)
 	{
 		tmp = l->next;
-		hawk_freemem (hawk, l);
+		hawk_gem_freemem (gem, l);
 		l = tmp;
 	}
 	
 	HAWK_MEMSET (pma, 0, HAWK_SIZEOF(*pma));
-	pma->hawk = hawk;
+	pma->gem = gem;
 }
 /* Returns a new memory allocator or NULL if out of memory. */
 
@@ -126,7 +126,7 @@ void* hawk_pma_alloc (hawk_pma_t* pma, hawk_oow_t size)
 		else
 			block_size = HAWK_PMA_BLOCK_SIZE;
 
-		l = hawk_allocmem(pma->hawk, HAWK_SIZEOF(*l) + block_size);
+		l = hawk_gem_allocmem(pma->gem, HAWK_SIZEOF(*l) + block_size);
 		if (l == HAWK_NULL)
 		{
 			pma->failed = 1;
@@ -155,7 +155,7 @@ void* hawk_pma_alloc (hawk_pma_t* pma, hawk_oow_t size)
 
 void* hawk_pma_calloc (hawk_pma_t* pma, hawk_oow_t size)
 {
-	void* ptr = hawk_pma_alloc (pma, size);
+	void* ptr = hawk_pma_alloc(pma, size);
 	if (ptr) HAWK_MEMSET (ptr, 0, size);
 	return ptr;
 }
