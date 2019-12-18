@@ -25,15 +25,7 @@
  */
 
 #include "hawk-prv.h"
-
-/*#define USE_REX */
-
-#if defined(USE_REX)
-#	include <hawk-rex.h>
-#else
-#	include <hawk-tre.h>
-#endif
-
+#include <hawk-tre.h>
 
 hawk_ooch_t* hawk_rtx_strtok (
 	hawk_rtx_t* rtx, const hawk_ooch_t* s, 
@@ -447,56 +439,10 @@ hawk_ooch_t* hawk_rtx_strxnfld (
 	return HAWK_NULL;
 }
 
-#if defined(USE_REX)
-static HAWK_INLINE int rexerr_to_errnum (int err)
-{
-	switch (err)
-	{
-		case HAWK_REX_ENOERR:   return HAWK_ENOERR;
-		case HAWK_REX_ENOMEM:   return HAWK_ENOMEM;
-	 	case HAWK_REX_ENOCOMP:  return HAWK_EREXBL;
-	 	case HAWK_REX_ERECUR:   return HAWK_EREXRECUR;
-	 	case HAWK_REX_ERPAREN:  return HAWK_EREXRPAREN;
-	 	case HAWK_REX_ERBRACK:  return HAWK_EREXRBRACK;
-	 	case HAWK_REX_ERBRACE:  return HAWK_EREXRBRACE;
-	 	case HAWK_REX_ECOLON:   return HAWK_EREXCOLON;
-	 	case HAWK_REX_ECRANGE:  return HAWK_EREXCRANGE;
-	 	case HAWK_REX_ECCLASS:  return HAWK_EREXCCLASS;
-	 	case HAWK_REX_EBOUND:   return HAWK_EREXBOUND;
-	 	case HAWK_REX_ESPCAWP:  return HAWK_EREXSPCAWP;
-	 	case HAWK_REX_EPREEND:  return HAWK_EREXPREEND;
-		default:                return HAWK_EINTERN;
-	}
-}
-#endif
-
 int hawk_buildrex (
 	hawk_t* awk, const hawk_ooch_t* ptn, hawk_oow_t len, 
 	hawk_errnum_t* errnum, void** code, void** icode)
 {
-#if defined(USE_REX)
-	hawk_rex_errnum_t err;
-	void* p;
-
-	if (code || icode)
-	{
-		p = hawk_buildrex (
-			hawk_getmmgr(awk), awk->opt.depth.s.rex_build,
-			((awk->opt.trait & HAWK_REXBOUND)? 0: HAWK_REX_NOBOUND),
-			ptn, len, &err
-		);
-		if (p == HAWK_NULL) 
-		{
-			*errnum = rexerr_to_errnum(err);
-			return -1;
-		}
-	
-		if (code) *code = p;
-		if (icode) *icode = p;
-	}
-
-	return 0;
-#else
 	hawk_tre_t* tre = HAWK_NULL; 
 	hawk_tre_t* itre = HAWK_NULL;
 	int opt = HAWK_TRE_EXTENDED;
@@ -512,7 +458,7 @@ int hawk_buildrex (
 
 		if (!(awk->opt.trait & HAWK_REXBOUND)) opt |= HAWK_TRE_NOBOUND;
 
-		if (hawk_tre_compx (tre, ptn, len, HAWK_NULL, opt) <= -1)
+		if (hawk_tre_compx(tre, ptn, len, HAWK_NULL, opt) <= -1)
 		{
 #if 0 /* TODO */
 
@@ -538,7 +484,7 @@ int hawk_buildrex (
 		}
 
 		/* ignorecase is a compile option for TRE */
-		if (hawk_tre_compx (itre, ptn, len, HAWK_NULL, opt | HAWK_TRE_IGNORECASE) <= -1)
+		if (hawk_tre_compx(itre, ptn, len, HAWK_NULL, opt | HAWK_TRE_IGNORECASE) <= -1)
 		{
 #if 0 /* TODO */
 
@@ -557,10 +503,8 @@ int hawk_buildrex (
 	if (code) *code = tre;
 	if (icode) *icode = itre;
 	return 0;
-#endif
 }
 
-#if !defined(USE_REX)
 static int matchtre (
 	hawk_t* awk, hawk_tre_t* tre, int opt, 
 	const hawk_oocs_t* str, hawk_oocs_t* mat, 
@@ -610,24 +554,12 @@ static int matchtre (
 	}
 	return 1;
 }
-#endif
 
 int hawk_matchrex (
 	hawk_t* awk, void* code, int icase,
 	const hawk_oocs_t* str, const hawk_oocs_t* substr,
 	hawk_oocs_t* match, hawk_oocs_t submat[9], hawk_errnum_t* errnum)
 {
-#if defined(USE_REX)
-	int x;
-	hawk_rex_errnum_t err;
-
-	/* submatch is not supported */
-	x = hawk_matchrex (
-		hawk_getmmgr(awk), awk->opt.depth.s.rex_match, code, 
-		(icase? HAWK_REX_IGNORECASE: 0), str, substr, match, &err);
-	if (x <= -1) *errnum = rexerr_to_errnum(err);
-	return x;
-#else
 	int x;
 	int opt = HAWK_TRE_BACKTRACKING; /* TODO: option... HAWK_TRE_BACKTRACKING ??? */
 
@@ -637,27 +569,18 @@ int hawk_matchrex (
 		substr, match, submat, errnum
 	);
 	return x;
-#endif
 }
 
 void hawk_freerex (hawk_t* awk, void* code, void* icode)
 {
 	if (code)
 	{
-#if defined(USE_REX)
-		hawk_freerex ((awk)->mmgr, code);
-#else
 		hawk_tre_close (code);
-#endif
 	}
 
 	if (icode && icode != code)
 	{
-#if defined(USE_REX)
-		hawk_freerex ((awk)->mmgr, icode);
-#else
 		hawk_tre_close (icode);
-#endif
 	}
 }
 
@@ -668,9 +591,6 @@ int hawk_rtx_matchrex (
 	void* code;
 	int icase, x;
 	hawk_errnum_t awkerr;
-#if defined(USE_REX)
-	hawk_rex_errnum_t rexerr;
-#endif
 
 	icase = rtx->gbl.ignorecase;
 
@@ -696,21 +616,12 @@ int hawk_rtx_matchrex (
 		}
 	}
 	
-#if defined(USE_REX)
-	/* submatch not supported */
-	x = hawk_matchrex (
-		hawk_rtx_getmmgr(rtx), rtx->awk->opt.depth.s.rex_match,
-		code, (icase? HAWK_REX_IGNORECASE: 0),
-		str, substr, match, &rexerr);
-	if (x <= -1) hawk_rtx_seterrnum (rtx, rexerr_to_errnum(rexerr), HAWK_NULL);
-#else
 	x = matchtre (
 		rtx->awk, code,
 		((str->ptr == substr->ptr)? HAWK_TRE_BACKTRACKING: (HAWK_TRE_BACKTRACKING | HAWK_TRE_NOTBOL)),
 		substr, match, submat, &awkerr
 	);
 	if (x <= -1) hawk_rtx_seterrnum (rtx, awkerr, HAWK_NULL);
-#endif
 
 	if (HAWK_RTX_GETVALTYPE(rtx, val) == HAWK_VAL_REX) 
 	{
