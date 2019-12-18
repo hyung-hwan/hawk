@@ -457,7 +457,7 @@ hawk_ooi_t hawk_sio_putucstr (hawk_sio_t* sio, const hawk_uch_t* str)
 
 		if (hawk_sio_flush (sio) <= -1) return -1; /* can't do buffering */
 
-		for (cur = str, left = hawk_wcslen(str); left > 0; cur += count, left -= count)
+		for (cur = str, left = hawk_count_ucstr(str); left > 0; cur += count, left -= count)
 		{
 			if (WriteConsoleW(sio->file.handle, cur, left, &count, HAWK_NULL) == FALSE) 
 			{

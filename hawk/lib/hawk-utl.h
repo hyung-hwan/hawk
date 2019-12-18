@@ -463,13 +463,15 @@ HAWK_EXPORT int hawk_comp_bcstr (
 HAWK_EXPORT int hawk_comp_ucstr_limited (
 	const hawk_uch_t* str1,
 	const hawk_uch_t* str2,
-	hawk_oow_t        maxlen
+	hawk_oow_t        maxlen,
+	int               ignorecase
 );
 
 HAWK_EXPORT int hawk_comp_bcstr_limited (
 	const hawk_bch_t* str1,
 	const hawk_bch_t* str2,
-	hawk_oow_t        maxlen
+	hawk_oow_t        maxlen,
+	int               ignorecase
 );
 
 HAWK_EXPORT int hawk_comp_ucstr_bcstr (
@@ -729,12 +731,13 @@ HAWK_EXPORT int hawk_split_bcstr (
 #	define hawk_comp_oochars_ucstr hawk_comp_uchars_ucstr
 #	define hawk_comp_oochars_oocstr hawk_comp_uchars_ucstr
 #	define hawk_comp_oocstr hawk_comp_ucstr
+#	define hawk_comp_oocstr_limited hawk_comp_ucstr_limited
 
-#	define hawk_copy_oochars(dst,src,len) hawk_copy_uchars(dst,src,len)
-#	define hawk_copy_bchars_to_oochars(dst,src,len) hawk_copy_bchars_to_uchars(dst,src,len)
-#	define hawk_copy_oochars_to_bchars(dst,src,len) hawk_copy_uchars_to_bchars(dst,src,len)
-#	define hawk_copy_uchars_to_oochars(dst,src,len) hawk_copy_uchars(dst,src,len)
-#	define hawk_copy_oochars_to_uchars(dst,src,len) hawk_copy_uchars(dst,src,len)
+#	define hawk_copy_oochars hawk_copy_uchars
+#	define hawk_copy_bchars_to_oochars hawk_copy_bchars_to_uchars
+#	define hawk_copy_oochars_to_bchars hawk_copy_uchars_to_bchars
+#	define hawk_copy_uchars_to_oochars hawk_copy_uchars
+#	define hawk_copy_oochars_to_uchars hawk_copy_uchars
 
 #	define hawk_copy_oochars_to_oocstr(dst,dlen,src,slen) hawk_copy_uchars_to_ucstr(dst,dlen,src,slen)
 #	define hawk_copy_oochars_to_oocstr_unlimited(dst,src,len) hawk_copy_uchars_to_ucstr_unlimited(dst,src,len)
@@ -765,12 +768,13 @@ HAWK_EXPORT int hawk_split_bcstr (
 #	define hawk_comp_oochars_ucstr hawk_comp_bchars_ucstr
 #	define hawk_comp_oochars_oocstr hawk_comp_bchars_bcstr
 #	define hawk_comp_oocstr hawk_comp_bcstr
+#	define hawk_comp_oocstr_limited hawk_comp_bcstr_limited
 
-#	define hawk_copy_oochars(dst,src,len) hawk_copy_bchars(dst,src,len)
-#	define hawk_copy_bchars_to_oochars(dst,src,len) hawk_copy_bchars(dst,src,len)
-#	define hawk_copy_oochars_to_bchars(dst,src,len) hawk_copy_bchars(dst,src,len)
-#	define hawk_copy_uchars_to_oochars(dst,src,len) hawk_copy_uchars_to_bchars(dst,src,len)
-#	define hawk_copy_oochars_to_uchars(dst,src,len) hawk_copy_bchars_to_uchars(dst,src,len)
+#	define hawk_copy_oochars hawk_copy_bchars
+#	define hawk_copy_bchars_to_oochars hawk_copy_bchars
+#	define hawk_copy_oochars_to_bchars hawk_copy_bchars
+#	define hawk_copy_uchars_to_oochars hawk_copy_uchars_to_bchars
+#	define hawk_copy_oochars_to_uchars hawk_copy_bchars_to_uchars
 
 #	define hawk_copy_oochars_to_oocstr(dst,dlen,src,slen) hawk_copy_bchars_to_bcstr(dst,dlen,src,slen)
 #	define hawk_copy_oochars_to_oocstr_unlimited(dst,src,len) hawk_copy_bchars_to_bcstr_unlimited(dst,src,len)

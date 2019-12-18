@@ -343,6 +343,12 @@
 /* Define to 1 if you have the `quadmath_snprintf' function. */
 #undef HAVE_QUADMATH_SNPRINTF
 
+/* Define to 1 if you have the `random' function. */
+#undef HAVE_RANDOM
+
+/* Define to 1 if you have the `random_r' function. */
+#undef HAVE_RANDOM_R
+
 /* Define to 1 if you have the `readdir64' function. */
 #undef HAVE_READDIR64
 

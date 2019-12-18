@@ -257,23 +257,19 @@ static int make_param (hawk_pio_t* pio, const hawk_ooch_t* cmd, int flags, param
 	if (flags & HAWK_PIO_SHELL) mcmd = (hawk_ooch_t*)cmd;
 	else
 	{
-		mcmd = hawk_strdup (cmd, pio->mmgr);
-		if (mcmd == HAWK_NULL) 
-		{
-			pio->errnum = HAWK_PIO_ENOMEM;
-			goto oops;
-		}
+		mcmd = hawk_gem_dupoocstr(pio->gem, cmd, HAWK_NULL);
+		if (mcmd == HAWK_NULL) goto oops;
 
 		fcnt = hawk_split_oocstr(mcmd, HAWK_T(""), HAWK_T('\"'), HAWK_T('\"'), HAWK_T('\\')); 
 		if (fcnt <= 0) 
 		{
 			/* no field or an error */
-			pio->errnum = HAWK_PIO_EINVAL;
+			hawk_gem_seterrnum (pio->gem, HAWK_NULL, HAWK_EINVAL);
 			goto oops; 
 		}
 	}
 #else
-	if (flags & HAWK_PIO_MBSCMD) 
+	if (flags & HAWK_PIO_BCSTRCMD) 
 	{
 		/* the cmd is flagged to be of hawk_bch_t 
 		 * while the default character type is hawk_uch_t. */
@@ -898,28 +894,30 @@ create_process:
 		};
 
 	#if defined(HAWK_OOCH_IS_UCH)
-		if (flags & HAWK_PIO_MBSCMD)
+		if (flags & HAWK_PIO_BCSTRCMD)
 		{
 			const hawk_bch_t* x[3];
 			x[0] = mcmdname[create_retried];
 			x[1] = (const hawk_bch_t*)cmd;
 			x[2] = HAWK_NULL;
-			dupcmd = hawk_mbsatowcsdup(x, HAWK_NULL, mmgr);
+			dupcmd = hawk_gem_dupbcstrarrtoucstr(pio->gem, x, HAWK_NULL, 0);
 		}
 		else
+	#endif
 		{
-	#endif
-			dupcmd = hawk_strdup2(cmdname[create_retried], cmd, mmgr);
-	#if defined(HAWK_OOCH_IS_UCH)
+			const hawk_ooch_t* x[3];
+			x[0] = cmdname[create_retried];
+			x[1] = cmd;
+			x[2] = HAWK_NULL;
+			dupcmd = hawk_gem_dupoocstrarr(pio->gem, x, HAWK_NULL);
 		}
-	#endif
 	}
 	else 
 	{
 	#if defined(HAWK_OOCH_IS_UCH)
-		if (flags & HAWK_PIO_MBSCMD)
+		if (flags & HAWK_PIO_BCSTRCMD)
 		{
-			dupcmd = hawk_dupbtoucstr (pio->gem, (const hawk_bch_t*)cmd, HAWK_NULL, 0);
+			dupcmd = hawk_gem_dupbtoucstr(pio->gem, (const hawk_bch_t*)cmd, HAWK_NULL, 0);
 		}
 		else
 		{
@@ -1079,7 +1077,7 @@ create_process:
 
 	if (maxidx == -1) 
 	{
-		pio->errnum = HAWK_PIO_EINVAL;
+		hawk_gem_seterrnum (pio->gem, HAWK_NULL, HAWK_EINVAL);
 		goto oops;
 	}
 
@@ -1195,46 +1193,38 @@ create_process:
 		hawk_oow_t n, mn;
 
 	#if defined(HAWK_OOCH_IS_BCH)
-		mn = hawk_strlen(cmd);
+		mn = hawk_count_oocstr(cmd);
 	#else
-		if (flags & HAWK_PIO_MBSCMD)
+		if (flags & HAWK_PIO_BCSTRCMD)
 		{
-			mn = hawk_mbslen((const hawk_bch_t*)cmd);
+			mn = hawk_count_bcstr((const hawk_bch_t*)cmd);
 		}
 		else
 		{
-			if (hawk_wcstombs (cmd, &n, HAWK_NULL, &mn) <= -1)
-			{
-				pio->errnum = HAWK_PIO_EINVAL;
-				goto oops; /* illegal sequence found */
-			}
+			if (hawk_gem_convutobcstr(pio->gem, cmd, &n, HAWK_NULL, &mn) <= -1) goto oops; /* illegal sequence found */
 		}
 	#endif
-		cmd_line = hawk_allocmem(hawk, ((11+mn+1+1) * HAWK_SIZEOF(*cmd_line)));
-		if (cmd_line == HAWK_NULL) 
-		{		
-			pio->errnum = HAWK_PIO_ENOMEM;
-			goto oops;
-		}
+		cmd_line = hawk_gem_allocmem(pio->gem, ((11+mn+1+1) * HAWK_SIZEOF(*cmd_line)));
+		if (cmd_line == HAWK_NULL) goto oops;
 
-		hawk_mbscpy (cmd_line, HAWK_BT("cmd.exe")); /* cmd.exe\0/c */ 
-		hawk_mbscpy (&cmd_line[8], HAWK_BT("/c "));
+		hawk_copy_bcstr_unlimited (cmd_line, "cmd.exe"); /* cmd.exe\0/c */ 
+		hawk_copy_bcstr_unlimited (&cmd_line[8], "/c ");
 	#if defined(HAWK_OOCH_IS_BCH)
-		hawk_mbscpy (&cmd_line[11], cmd);
+		hawk_copy_bcstr_unlimited (&cmd_line[11], cmd);
 	#else
-		if (flags & HAWK_PIO_MBSCMD)
+		if (flags & HAWK_PIO_BCSTRCMD)
 		{
-			hawk_mbscpy (&cmd_line[11], (const hawk_bch_t*)cmd);
+			hawk_copy_bcstr_unlimited (&cmd_line[11], (const hawk_bch_t*)cmd);
 		}
 		else
 		{
 			mn = mn + 1; /* update the buffer size */
-			hawk_wcstombs (cmd, &n, &cmd_line[11], &mn);
+			hawk_gem_convutobcstr (pio->gem, cmd, &n, &cmd_line[11], &mn);
 		}
 	#endif
-		cmd_line[11+mn+1] = HAWK_BT('\0'); /* additional \0 after \0 */    
+		cmd_line[11+mn+1] = '\0'; /* additional \0 after \0 */    
 		
-		cmd_file = HAWK_BT("cmd.exe");
+		cmd_file = "cmd.exe";
 	}
 	else
 	{
@@ -1242,23 +1232,27 @@ create_process:
 		hawk_oow_t mn;
 
 	#if defined(HAWK_OOCH_IS_BCH)
+		const hawk_ooch_t* strarr[3];
+
+		strarr[0] = cmd;
+		strarr[1] = HAWK_T(" ");
+		strarr[2] = HAWK_NULL;
+
 		mn = hawk_count_oocstr(cmd);
-		cmd_line = hawk_strdup2 (cmd, HAWK_T(" "), pio->mmgr);
-		if (cmd_line == HAWK_NULL) 
+		cmd_line = hawk_dupucstrarr(pio->gem, strarr HAWK_NULL);
+		if (cmd_line == HAWK_NULL) goto oops;
+	#else
+		if (flags & HAWK_PIO_BCSTRCMD)
 		{
-			pio->errnum = HAWK_PIO_ENOMEM;
-			goto oops;
-		}
-	#else   
-		if (flags & HAWK_PIO_MBSCMD)
-		{
+			const hawk_bch_t* mbsarr[3];
+
+			mbsarr[0] = (const hawk_bch_t*)cmd;
+			mbsarr[1] = " ";
+			mbsarr[2] = HAWK_NULL;
+
 			mn = hawk_count_bcstr((const hawk_bch_t*)cmd);
-			cmd_line = hawk_mbsdup2 ((const hawk_bch_t*)cmd, HAWK_BT(" "), pio->mmgr);
-			if (cmd_line == HAWK_NULL) 
-			{
-				pio->errnum = HAWK_PIO_ENOMEM;
-				goto oops;
-			}
+			cmd_line = hawk_dupbcstrarr(pio->gem, mbsarr, HAWK_NULL);
+			if (cmd_line == HAWK_NULL) goto oops;
 		}
 		else
 		{
@@ -1315,7 +1309,7 @@ create_process:
 #elif defined(__DOS__)
 
 	/* DOS not multi-processed. can't support pio */
-	pio->errnum = HAWK_PIO_ENOIMPL;
+	hawk_gem_seterrnum (pio->gem, HAWK_NULL, HAWK_ENOIMPL);
 	return -1;
 
 #else

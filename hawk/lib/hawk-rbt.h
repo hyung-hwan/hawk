@@ -500,9 +500,9 @@ HAWK_EXPORT hawk_rbt_pair_t* hawk_rbt_update (
  *   for (i = 0; i < HAWK_COUNTOF(vals); i++)
  *   {
  *     hawk_cstr_t ctx;
- *     ctx.ptr = vals[i]; ctx.len = hawk_strlen(vals[i]);
+ *     ctx.ptr = vals[i]; ctx.len = hawk_count_oocstr(vals[i]);
  *     hawk_rbt_cbsert (s1,
- *       keys[i%HAWK_COUNTOF(keys)], hawk_strlen(keys[i%HAWK_COUNTOF(keys)]),
+ *       keys[i%HAWK_COUNTOF(keys)], hawk_count_oocstr(keys[i%HAWK_COUNTOF(keys)]),
  *       cbserter, &ctx
  *     ); // note error check is skipped
  *   }

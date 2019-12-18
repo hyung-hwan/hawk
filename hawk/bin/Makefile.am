@@ -21,6 +21,6 @@ bin_PROGRAMS = hawk
 hawk_SOURCES = main.c 
 hawk_CPPFLAGS = $(CPPFLAGS_ALL_COMMON)
 hawk_LDFLAGS = $(LDFLAGS_ALL_COMMON)
-hawk_LDADD = $(LIBADD_BIN_COMMON) -lhawk
+hawk_LDADD = $(LIBADD_BIN_COMMON) $(SOCKET_LIBS) -lhawk
 hawk_DEPENDENCIES = ../lib/libhawk.la
 

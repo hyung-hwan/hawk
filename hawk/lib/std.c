@@ -41,10 +41,11 @@
 #if defined(_WIN32)
 #	include <windows.h>
 #	include <tchar.h>
-#	if defined(HAWK_HAVE_CONFIG_H) && defined(HAWK_ENABLE_LIBLTDL)
+#	if defined(HAWK_HAVE_CFG_H) && defined(HAWK_ENABLE_LIBLTDL)
 #		include <ltdl.h>
 #		define USE_LTDL
 #	endif
+#	include <io.h>
 #elif defined(__OS2__)
 #	define INCL_DOSMODULEMGR
 #	define INCL_DOSPROCESS
@@ -65,7 +66,7 @@
 #	endif
 #endif
 
-#if !defined(HAWK_HAVE_CONFIG_H)
+#if !defined(HAWK_HAVE_CFG_H)
 #	if defined(_WIN32) || defined(__OS2__) || defined(__DOS__)
 #		define HAVE_POW
 #		define HAVE_FMOD
@@ -137,8 +138,6 @@ typedef struct xtn_t
 	int gbl_argc;
 	int gbl_argv;
 	int gbl_environ;
-	int gbl_errno;
-	int gbl_errstr;
 
 	hawk_ecb_t ecb;
 	int stdmod_up;
@@ -355,12 +354,8 @@ void* hawk_stdmodopen (hawk_t* awk, const hawk_mod_spec_t* spec)
 	if (spec->postfix) tmp[count++] = spec->postfix;
 	tmp[count] = HAWK_NULL;
 
-	modpath = hawk_stradup (tmp, HAWK_NULL, hawk_getmmgr(awk));
-	if (!modpath)
-	{
-		hawk_seterrnum (awk, HAWK_ENOMEM, HAWK_NULL);
-		return HAWK_NULL;
-	}
+	modpath = hawk_dupoocstrarr(awk, tmp, HAWK_NULL);
+	if (!modpath) return HAWK_NULL;
 
 	h = LoadLibrary (modpath);
 
@@ -3030,14 +3025,10 @@ static int add_globals (hawk_t* awk)
 	xtn->gbl_argc = hawk_addgbl(awk, HAWK_T("ARGC"));
 	xtn->gbl_argv = hawk_addgbl(awk, HAWK_T("ARGV"));
 	xtn->gbl_environ = hawk_addgbl(awk, HAWK_T("ENVIRON"));
-	xtn->gbl_errno = hawk_addgbl(awk, HAWK_T("ERRNO"));
-	xtn->gbl_errstr = hawk_addgbl(awk, HAWK_T("ERRSTR"));
 
 	return (xtn->gbl_argc <= -1 || 
 	        xtn->gbl_argv <= -1 ||
-	        xtn->gbl_environ <= -1 || 
-	        xtn->gbl_errno <= -1 ||
-	        xtn->gbl_errstr <= -1)? -1: 0;
+	        xtn->gbl_environ <= -1)? -1: 0;
 }
 
 struct fnctab_t 

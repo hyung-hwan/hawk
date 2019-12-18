@@ -156,7 +156,7 @@ HAWK_EXPORT hawk_t* hawk_openstdwithmmgr (
  *
  * in[0].type = HAWK_PARSESTD_OOCS;
  * in[0].u.str.ptr = HAWK_T("BEGIN { print 10; }");
- * in[0].u.str.len = hawk_strlen(in.u.str.ptr);
+ * in[0].u.str.len = hawk_count_oocstr(in.u.str.ptr);
  * in[1].type = HAWK_PARSESTD_NULL;
  * out.type = HAWK_PARSESTD_OOCS;
  * n = hawk_parsestd (awk, in, &out);

@@ -1278,28 +1278,27 @@ static int get_devname_from_handle (
 	return 0;
 }
 
-static int get_volname_from_handle (
-	hawk_fio_t* fio, hawk_ooch_t* buf, hawk_oow_t len) 
+static int get_volname_from_handle (hawk_fio_t* fio, hawk_ooch_t* buf, hawk_oow_t len) 
 {
 	if (get_devname_from_handle (fio, buf, len) == -1) return -1;
 
-	if (hawk_strcasebeg (buf, HAWK_T("\\Device\\LanmanRedirector\\")))
+	if (hawk_comp_oocstr_limited(buf, HAWK_T("\\Device\\LanmanRedirector\\"), 25, 1) == 0)
 	{
 		/*buf[0] = HAWK_T('\\');*/
-		hawk_strcpy (&buf[1], &buf[24]);
+		hawk_copy_oocstr_unlimited (&buf[1], &buf[24]);
 	}
 	else
 	{
 		DWORD n;
 		hawk_ooch_t drives[128];
 
-		n = GetLogicalDriveStrings (HAWK_COUNTOF(drives), drives);
+		n = GetLogicalDriveStrings(HAWK_COUNTOF(drives), drives);
 
 		if (n == 0 /* error */ || 
 		    n > HAWK_COUNTOF(drives) /* buffer small */) 
 		{
 			hawk_gem_seterrnum (fio->gem, HAWK_NULL, syserr_to_errnum(GetLastError()));
-			return -1;	
+			return -1;
 		}
 
 		while (n > 0)
@@ -1312,14 +1311,14 @@ static int get_volname_from_handle (
 			drv[2] = HAWK_T('\0');
 			if (QueryDosDevice (drv, path, HAWK_COUNTOF(path)))
 			{
-				hawk_oow_t pl = hawk_strlen(path);
-				hawk_oow_t bl = hawk_strlen(buf);
+				hawk_oow_t pl = hawk_count_oocstr(path);
+				hawk_oow_t bl = hawk_count_oocstr(buf);
 				if (bl > pl && buf[pl] == HAWK_T('\\') &&
-				    hawk_strxncasecmp(buf, pl, path, pl) == 0)
+				    hawk_comp_oochars(buf, pl, path, pl, 1) == 0)
 				{
 					buf[0] = drv[0];
 					buf[1] = HAWK_T(':');
-					hawk_strcpy (&buf[2], &buf[pl]);
+					hawk_copy_oocstr_unlimited (&buf[2], &buf[pl]);
 					break;
 				}
 			}

@@ -446,10 +446,10 @@ retry:
 			{
 #ifdef TRE_WCHAR
 				if (type == STR_WIDE)
-					result = hawk_comp_ucstr_limited((const hawk_uch_t*)string + so, str_wide - 1, (size_t)bt_len);
+					result = hawk_comp_ucstr_limited((const hawk_uch_t*)string + so, str_wide - 1, (size_t)bt_len, 0);
 				else
 #endif /* TRE_WCHAR */
-					result = hawk_comp_bcstr_limited((const char*)string + so, str_byte - 1, (size_t)bt_len);
+					result = hawk_comp_bcstr_limited((const char*)string + so, str_byte - 1, (size_t)bt_len, 0);
 			}
 			else if (len - pos < bt_len)
 				result = 1;
