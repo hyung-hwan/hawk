@@ -928,10 +928,9 @@ int hawk_fnc_split (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		}
 		else
 		{
-			p = hawk_rtx_strxntokbyrex(rtx, str.ptr, org_len, p, str.len, fs_rex, &tok, &errnum); 
-			if (p == HAWK_NULL && errnum != HAWK_ENOERR)
+			p = hawk_rtx_strxntokbyrex(rtx, str.ptr, org_len, p, str.len, fs_rex, &tok);
+			if (p == HAWK_NULL && hawk_rtx_geterrnum(rtx) != HAWK_ENOERR)
 			{
-				hawk_rtx_seterrnum (rtx, errnum, HAWK_NULL);
 				goto oops;
 			}
 		}
@@ -1170,24 +1169,15 @@ static int __substitute (hawk_rtx_t* rtx, hawk_int_t max_count)
 	 * end of string($) needs to be tested */
 	while (cur.ptr <= s2_end)
 	{
-		hawk_errnum_t errnum;
 		int n;
 		hawk_oow_t m, i;
 
 		if (max_count == 0 || sub_count < max_count)
 		{
-			n = hawk_matchrex (
-				hawk_rtx_gethawk(rtx), rex, rtx->gbl.ignorecase, 
-				&s2, &cur, &mat, HAWK_NULL, &errnum
-			);
+			n = hawk_rtx_matchrex(rtx, rex, &s2, &cur, &mat, HAWK_NULL);
+			if (n <= -1) goto oops;
 		}
 		else n = 0;
-
-		if (n <= -1)
-		{
-			hawk_rtx_seterrnum (rtx, errnum, HAWK_NULL);
-			goto oops;
-		}
 
 		if (n == 0) 
 		{ 
@@ -1366,7 +1356,7 @@ int hawk_fnc_match (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		tmp.ptr = str0 + start - 1;
 		tmp.len = len0 - start + 1;
 
-		n = hawk_rtx_matchrex(rtx, a1, &tmp, &tmp, &mat, (nargs >= 4? submat: HAWK_NULL));
+		n = hawk_rtx_matchval(rtx, a1, &tmp, &tmp, &mat, (nargs >= 4? submat: HAWK_NULL));
 		if (n <= -1) return -1;
 	}
 

@@ -125,7 +125,8 @@ HAWK_EXPORT int hawk_tre_execx (
 	hawk_oow_t         len,
 	hawk_tre_match_t*  pmatch,
 	hawk_oow_t         nmatch,
-	int                eflags
+	int                eflags,
+	hawk_gem_t*        errgem
 );
 
 HAWK_EXPORT int hawk_tre_exec (
@@ -133,7 +134,8 @@ HAWK_EXPORT int hawk_tre_exec (
 	const hawk_ooch_t* str,
 	hawk_tre_match_t*  pmatch,
 	hawk_oow_t         nmatch,
-	int                eflags
+	int                eflags,
+	hawk_gem_t*        errgem
 );
 
 #if defined(__cplusplus)

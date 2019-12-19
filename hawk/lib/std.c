@@ -160,14 +160,14 @@ typedef struct rxtn_t
 	struct
 	{
 		struct {
-			const hawk_ooch_t*const* files;
+			const hawk_ooch_t** files;
 			hawk_oow_t index;
 			hawk_oow_t count;
 		} in; 
 
 		struct 
 		{
-			const hawk_ooch_t*const* files;
+			const hawk_ooch_t** files;
 			hawk_oow_t index;
 			hawk_oow_t count;
 		} out;
@@ -894,16 +894,14 @@ oops:
 	return HAWK_NULL;
 }
 
-static hawk_sio_t* open_sio (hawk_t* awk, const hawk_ooch_t* file, int flags)
+static hawk_sio_t* open_sio (hawk_t* hawk, const hawk_ooch_t* file, int flags)
 {
 	hawk_sio_t* sio;
-	sio = hawk_sio_open(hawk_getgem(awk), 0, file, flags);
+	sio = hawk_sio_open(hawk_getgem(hawk), 0, file, flags);
 	if (sio == HAWK_NULL)
 	{
-		hawk_oocs_t errarg;
-		errarg.ptr = (hawk_ooch_t*)file;
-		errarg.len = hawk_count_oocstr(file);
-		hawk_seterrnum (awk, HAWK_EOPEN, &errarg);
+		const hawk_ooch_t* bem = hawk_backuperrmsg(hawk);
+		hawk_seterrbfmt (hawk, HAWK_NULL, HAWK_EOPEN, "unable to open %js - %js", file, bem);
 	}
 	return sio;
 }
@@ -912,12 +910,10 @@ static hawk_sio_t* open_sio_rtx (hawk_rtx_t* rtx, const hawk_ooch_t* file, int f
 {
 	hawk_sio_t* sio;
 	sio = hawk_sio_open(hawk_rtx_getgem(rtx), 0, file, flags);
-	if (sio == HAWK_NULL)
+	if (sio == HAWK_NULL) 
 	{
-		hawk_oocs_t errarg;
-		errarg.ptr = (hawk_ooch_t*)file;
-		errarg.len = hawk_count_oocstr(file);
-		hawk_rtx_seterrnum (rtx, HAWK_EOPEN, &errarg);
+		const hawk_ooch_t* bem = hawk_rtx_backuperrmsg(rtx);
+		hawk_rtx_seterrbfmt (rtx, HAWK_NULL, HAWK_EOPEN, "unable to open %js - %js", file, bem);
 	}
 	return sio;
 }
@@ -1234,20 +1230,42 @@ static hawk_ooi_t sf_in_read (hawk_t* awk, hawk_sio_arg_t* arg, hawk_ooch_t* dat
 	again:
 		switch (xtn->s.in.x[xtn->s.in.xindex].type)
 		{
+		#if defined(HAWK_OOCH_IS_UCH)
 			case HAWK_PARSESTD_FILE:
-			case HAWK_PARSESTD_FILEB:
+		#endif
 			case HAWK_PARSESTD_FILEU:
 				HAWK_ASSERT (awk, arg->handle != HAWK_NULL);
-				n = hawk_sio_getoochars (arg->handle, data, size);
+				n = hawk_sio_getoochars(arg->handle, data, size);
 				if (n <= -1)
 				{
-					hawk_oocs_t ea;
-					ea.ptr = (hawk_ooch_t*)xtn->s.in.x[xtn->s.in.xindex].u.file.path;
-					if (ea.ptr == HAWK_NULL) ea.ptr = sio_std_names[HAWK_SIO_STDIN].ptr;
-					ea.len = hawk_count_oocstr(ea.ptr);
-					hawk_seterrnum (awk, HAWK_EREAD, &ea);
+					const hawk_ooch_t* bem = hawk_backuperrmsg(awk);
+					const hawk_uch_t* path;
+					path = xtn->s.in.x[xtn->s.in.xindex].u.fileu.path;
+					if (path) 
+						hawk_seterrbfmt (awk, HAWK_NULL, HAWK_EREAD, "unable to read %ls - %js", path, bem);
+					else
+						hawk_seterrbfmt (awk, HAWK_NULL, HAWK_EREAD, "unable to read %js - %js", sio_std_names[HAWK_SIO_STDIN].ptr, bem);
 				}
 				break;
+
+		#if defined(HAWK_OOCH_IS_BCH)
+			case HAWK_PARSESTD_FILE:
+		#endif
+			case HAWK_PARSESTD_FILEB:
+				HAWK_ASSERT (awk, arg->handle != HAWK_NULL);
+				n = hawk_sio_getoochars(arg->handle, data, size);
+				if (n <= -1)
+				{
+					const hawk_ooch_t* bem = hawk_backuperrmsg(awk);
+					const hawk_bch_t* path;
+					path = xtn->s.in.x[xtn->s.in.xindex].u.fileb.path;
+					if (path) 
+						hawk_seterrbfmt (awk, HAWK_NULL, HAWK_EREAD, "unable to read %hs - %js", path, bem);
+					else
+						hawk_seterrbfmt (awk, HAWK_NULL, HAWK_EREAD, "unable to read %js - %js", sio_std_names[HAWK_SIO_STDIN].ptr, bem);
+				}
+				break;
+
 
 			case HAWK_PARSESTD_OOCS:
 			parsestd_str:
@@ -1999,10 +2017,7 @@ static int open_rio_console (hawk_rtx_t* rtx, hawk_rio_arg_t* riod)
 
 			if (rxtn->c.in.count == 0)
 			{
-				sio = open_sio_std_rtx (
-					rtx, HAWK_SIO_STDIN,
-					HAWK_SIO_READ | HAWK_SIO_IGNOREECERR
-				);
+				sio = open_sio_std_rtx (rtx, HAWK_SIO_STDIN, HAWK_SIO_READ | HAWK_SIO_IGNOREECERR);
 				if (sio == HAWK_NULL) return -1;
 
 				if (rxtn->c.cmgr) hawk_sio_setcmgr (sio, rxtn->c.cmgr);	
@@ -2111,10 +2126,8 @@ static int open_rio_console (hawk_rtx_t* rtx, hawk_rio_arg_t* riod)
 			file = as.ptr;
 
 			sio = (file[0] == HAWK_T('-') && file[1] == HAWK_T('\0'))?
-				open_sio_std_rtx (rtx, HAWK_SIO_STDIN, 
-					HAWK_SIO_READ | HAWK_SIO_IGNOREECERR):
-				open_sio_rtx (rtx, file,
-					HAWK_SIO_READ | HAWK_SIO_IGNOREECERR);
+				open_sio_std_rtx (rtx, HAWK_SIO_STDIN, HAWK_SIO_READ | HAWK_SIO_IGNOREECERR):
+				open_sio_rtx (rtx, file, HAWK_SIO_READ | HAWK_SIO_IGNOREECERR);
 			if (sio == HAWK_NULL)
 			{
 				hawk_rtx_freevaloocstr (rtx, v, as.ptr);
@@ -2180,13 +2193,8 @@ static int open_rio_console (hawk_rtx_t* rtx, hawk_rio_arg_t* riod)
 			}
 
 			sio = (file[0] == HAWK_T('-') && file[1] == HAWK_T('\0'))?
-				open_sio_std_rtx (
-					rtx, HAWK_SIO_STDOUT,
-					HAWK_SIO_WRITE | HAWK_SIO_IGNOREECERR | HAWK_SIO_LINEBREAK):
-				open_sio_rtx (
-					rtx, file, 
-					HAWK_SIO_WRITE | HAWK_SIO_CREATE | 
-					HAWK_SIO_TRUNCATE | HAWK_SIO_IGNOREECERR);
+				open_sio_std_rtx (rtx, HAWK_SIO_STDOUT, HAWK_SIO_WRITE | HAWK_SIO_IGNOREECERR | HAWK_SIO_LINEBREAK):
+				open_sio_rtx (rtx, file, HAWK_SIO_WRITE | HAWK_SIO_CREATE | HAWK_SIO_TRUNCATE | HAWK_SIO_IGNOREECERR);
 			if (sio == HAWK_NULL) return -1;
 
 			if (rxtn->c.cmgr) hawk_sio_setcmgr (sio, rxtn->c.cmgr);	
@@ -2214,7 +2222,7 @@ static hawk_ooi_t awk_rio_console (hawk_rtx_t* rtx, hawk_rio_cmd_t cmd, hawk_rio
 	switch (cmd)
 	{
 		case HAWK_RIO_CMD_OPEN:
-			return open_rio_console (rtx, riod);
+			return open_rio_console(rtx, riod);
 
 		case HAWK_RIO_CMD_CLOSE:
 			if (riod->handle) hawk_sio_close ((hawk_sio_t*)riod->handle);
@@ -2307,7 +2315,7 @@ static int build_argcv (
 	hawk_rtx_refupval (rtx, v_argv);
 
 	/* make ARGV[0] */
-	v_tmp = hawk_rtx_makestrvalwithoocstr (rtx, id);
+	v_tmp = hawk_rtx_makestrvalwithoocstr(rtx, id);
 	if (v_tmp == HAWK_NULL) 
 	{
 		hawk_rtx_refdownval (rtx, v_argv);
@@ -2661,15 +2669,18 @@ hawk_rtx_t* hawk_rtx_openstdwithbcstr (
 	rtx = open_rtx_std(awk, xtnsize, wid, (const hawk_uch_t**)wicf, (const hawk_uch_t**)wocf, cmgr);
 
 done:
-	if (wocf)
+	if (!rtx)
 	{
-		for (i = 0; wocf[i]; i++) hawk_freemem (awk, wocf[i]);
-		hawk_freemem (awk, wocf);
-	}
-	if (wicf)
-	{
-		for (i = 0; wicf[i]; i++) hawk_freemem (awk, wicf[i]);
-		hawk_freemem (awk, wicf);
+		if (wocf)
+		{
+			for (i = 0; wocf[i]; i++) hawk_freemem (awk, wocf[i]);
+			hawk_freemem (awk, wocf);
+		}
+		if (wicf)
+		{
+			for (i = 0; wicf[i]; i++) hawk_freemem (awk, wicf[i]);
+			hawk_freemem (awk, wicf);
+		}
 	}
 	if (wid) hawk_freemem (awk, wid);
 
@@ -2726,15 +2737,18 @@ hawk_rtx_t* hawk_rtx_openstdwithucstr (
 	rtx = open_rtx_std(awk, xtnsize, mid, (const hawk_bch_t**)micf, (const hawk_bch_t**)mocf, cmgr);
 
 done:
-	if (mocf)
+	if (!rtx)
 	{
-		for (i = 0; mocf[i]; i++) hawk_freemem (awk, mocf[i]);
-		hawk_freemem (awk, mocf);
-	}
-	if (micf)
-	{
-		for (i = 0; micf[i]; i++) hawk_freemem (awk, micf[i]);
-		hawk_freemem (awk, micf);
+		if (mocf)
+		{
+			for (i = 0; mocf[i]; i++) hawk_freemem (awk, mocf[i]);
+			hawk_freemem (awk, mocf);
+		}
+		if (micf)
+		{
+			for (i = 0; micf[i]; i++) hawk_freemem (awk, micf[i]);
+			hawk_freemem (awk, micf);
+		}
 	}
 	if (mid) hawk_freemem (awk, mid);
 

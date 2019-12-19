@@ -1158,8 +1158,8 @@ static HAWK_INLINE int execute_hawk (int argc, hawk_bch_t* argv[])
 		goto oops;
 	}
 
-	rtx = hawk_rtx_openstd (
-		awk, 0, HAWK_T("hawk"),
+	rtx = hawk_rtx_openstdwithbcstr(
+		awk, 0, "hawk",
 		(arg.call? HAWK_NULL: (const hawk_ooch_t**)arg.icf.ptr), /* console input */
 		HAWK_NULL,  /* console output */
 		arg.console_cmgr

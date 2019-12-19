@@ -55,9 +55,8 @@ hawk_ooch_t* hawk_rtx_strxntokbyrex (
 	hawk_oow_t         len,
 	const hawk_ooch_t* substr,
 	hawk_oow_t         sublen,
-	void*              rex,
-	hawk_oocs_t*       tok,
-	hawk_errnum_t*     errnum
+	hawk_tre_t*        rex,
+	hawk_oocs_t*       tok
 );
 
 hawk_ooch_t* hawk_rtx_strxnfld (
@@ -80,19 +79,21 @@ int hawk_buildrex (
 	hawk_tre_t** icode
 );
 
-int hawk_matchrex (
-	hawk_t* awk, hawk_tre_t* code, int icase,
-	const hawk_oocs_t* str, const hawk_oocs_t* substr,
-	hawk_oocs_t* match, hawk_oocs_t submat[9], hawk_errnum_t* errnum
-);
-
 void hawk_freerex (hawk_t* awk, hawk_tre_t* code, hawk_tre_t* icode);
 
-int hawk_rtx_matchrex (
+int hawk_rtx_matchval (
 	hawk_rtx_t* rtx, hawk_val_t* val,
 	const hawk_oocs_t* str, const hawk_oocs_t* substr,
 	hawk_oocs_t* match, hawk_oocs_t submat[9]
 );
+
+
+int hawk_rtx_matchrex (
+	hawk_rtx_t* rtx, hawk_tre_t* code, 
+	const hawk_oocs_t* str, const hawk_oocs_t* substr,
+	hawk_oocs_t* match, hawk_oocs_t submat[9]
+);
+
 
 #if defined(__cplusplus)
 }

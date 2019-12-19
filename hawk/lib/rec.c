@@ -166,26 +166,23 @@ static int split_record (hawk_rtx_t* rtx)
 		switch (how)
 		{
 			case 0:
-				p = hawk_rtx_strxntok (rtx,
-					p, len, fs_ptr, fs_len, &tok);
+				p = hawk_rtx_strxntok (rtx, p, len, fs_ptr, fs_len, &tok);
 				break;
 
 			case 1:
 				break;
 
 			default:
-				p = hawk_rtx_strxntokbyrex (
+				p = hawk_rtx_strxntokbyrex(
 					rtx, 
 					HAWK_OOECS_PTR(&rtx->inrec.line),
 					HAWK_OOECS_LEN(&rtx->inrec.line),
 					p, len, 
-					rtx->gbl.fs[rtx->gbl.ignorecase], &tok, &errnum
+					rtx->gbl.fs[rtx->gbl.ignorecase], &tok
 				); 
-				if (p == HAWK_NULL && errnum != HAWK_ENOERR)
+				if (p == HAWK_NULL && hawk_rtx_geterrnum(rtx) != HAWK_ENOERR)
 				{
-					if (fs_free != HAWK_NULL) 
-						hawk_rtx_freemem (rtx, fs_free);
-					hawk_rtx_seterrnum (rtx, errnum, HAWK_NULL);
+					if (fs_free) hawk_rtx_freemem (rtx, fs_free);
 					return -1;
 				}
 		}
@@ -262,22 +259,19 @@ static int split_record (hawk_rtx_t* rtx)
 
 			default:
 				/* all other cases */
-				p = hawk_rtx_strxntokbyrex (
+				p = hawk_rtx_strxntokbyrex(
 					rtx, 
 					HAWK_OOECS_PTR(&rtx->inrec.line),
 					HAWK_OOECS_LEN(&rtx->inrec.line),
 					p, len,
-					rtx->gbl.fs[rtx->gbl.ignorecase], &tok, &errnum
+					rtx->gbl.fs[rtx->gbl.ignorecase], &tok
 				); 
-				if (p == HAWK_NULL && errnum != HAWK_ENOERR)
+				if (p == HAWK_NULL && hawk_rtx_geterrnum(rtx) != HAWK_ENOERR)
 				{
-					if (fs_free != HAWK_NULL) 
-						hawk_rtx_freemem (rtx, fs_free);
-					hawk_rtx_seterrnum (rtx, errnum, HAWK_NULL);
+					if (fs_free) hawk_rtx_freemem (rtx, fs_free);
 					return -1;
 				}
 		}
-
 #if 1
 		if (rtx->inrec.nflds == 0 && p == HAWK_NULL && tok.len == 0)
 		{

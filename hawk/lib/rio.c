@@ -228,15 +228,11 @@ static HAWK_INLINE int match_long_rs (hawk_rtx_t* rtx, hawk_ooecs_t* buf, hawk_r
 	HAWK_ASSERT (hawk_rtx_gethawk(rtx), rtx->gbl.rs[0] != HAWK_NULL);
 	HAWK_ASSERT (hawk_rtx_gethawk(rtx), rtx->gbl.rs[1] != HAWK_NULL);
 
-	ret = hawk_matchrex(
-		rtx->awk, rtx->gbl.rs[rtx->gbl.ignorecase], 
-		rtx->gbl.ignorecase, HAWK_OOECS_OOCS(buf), HAWK_OOECS_OOCS(buf),
-		&match, HAWK_NULL, &errnum);
-	if (ret <= -1)
-	{
-		hawk_rtx_seterrnum (rtx, errnum, HAWK_NULL);
-	}
-	else if (ret >= 1)
+	ret = hawk_rtx_matchrex(
+		rtx, rtx->gbl.rs[rtx->gbl.ignorecase], 
+		HAWK_OOECS_OOCS(buf), HAWK_OOECS_OOCS(buf),
+		&match, HAWK_NULL);
+	if (ret >= 1)
 	{
 		if (p->in.eof)
 		{
