@@ -244,8 +244,7 @@ hawk_ooch_t* hawk_rtx_strxntokbyrex (
 	hawk_rtx_t* rtx, 
 	const hawk_ooch_t* str, hawk_oow_t len,
 	const hawk_ooch_t* substr, hawk_oow_t sublen,
-	void* rex, hawk_oocs_t* tok,
-	hawk_errnum_t* errnum)
+	hawk_tre_t* rex, hawk_oocs_t* tok)
 {
 	int n;
 	hawk_oow_t i;
@@ -262,17 +261,15 @@ hawk_ooch_t* hawk_rtx_strxntokbyrex (
 
 	while (cursub.len > 0)
 	{
-		n = hawk_matchrex (
-			rtx->awk, rex, rtx->gbl.ignorecase,
-			&s, &cursub, &match, HAWK_NULL, errnum);
-		if (n == -1) return HAWK_NULL;
+		n = hawk_rtx_matchrex(rtx, rex, &s, &cursub, &match, HAWK_NULL);
+		if (n <= -1) return HAWK_NULL;
+
 		if (n == 0)
 		{
-			/* no match has been found. 
-			 * return the entire string as a token */
+			/* no match has been found. return the entire string as a token */
+			hawk_rtx_seterrnum (rtx, HAWK_ENOERR, HAWK_NULL); /* reset HAWK_EREXNOMAT to no error */
 			tok->ptr = realsub.ptr;
 			tok->len = realsub.len;
-			*errnum = HAWK_ENOERR;
 			return HAWK_NULL; 
 		}
 
@@ -310,11 +307,12 @@ hawk_ooch_t* hawk_rtx_strxntokbyrex (
 	}
 
 exit_loop:
+	hawk_rtx_seterrnum (rtx, HAWK_ENOERR, HAWK_NULL);
+
 	if (cursub.len <= 0)
 	{
 		tok->ptr = realsub.ptr;
 		tok->len = realsub.len;
-		*errnum = HAWK_ENOERR;
 		return HAWK_NULL; 
 	}
 
@@ -326,13 +324,11 @@ exit_loop:
 		if (!hawk_is_ooch_space(match.ptr[i]))
 		{
 			/* the match contains a non-space character. */
-			*errnum = HAWK_ENOERR;
 			return (hawk_ooch_t*)match.ptr+match.len;
 		}
 	}
 
 	/* the match is all spaces */
-	*errnum = HAWK_ENOERR;
 	if (rtx->gbl.striprecspc > 0 || (rtx->gbl.striprecspc < 0 && (rtx->awk->opt.trait & HAWK_STRIPRECSPC)))
 	{
 		/* if the match reached the last character in the input string,
@@ -486,21 +482,17 @@ int hawk_buildrex (hawk_t* awk, const hawk_ooch_t* ptn, hawk_oow_t len, hawk_err
 	return 0;
 }
 
-static int matchtre (
-	hawk_tre_t* tre, int opt, 
-	const hawk_oocs_t* str, hawk_oocs_t* mat, 
-	hawk_oocs_t submat[9], hawk_errnum_t* errnum)
+static int matchtre (hawk_tre_t* tre, int opt, const hawk_oocs_t* str, hawk_oocs_t* mat, hawk_oocs_t submat[9], hawk_gem_t* errgem)
 {
 	int n;
 	/*hawk_tre_match_t match[10] = { { 0, 0 }, };*/
 	hawk_tre_match_t match[10];
 
 	HAWK_MEMSET (match, 0, HAWK_SIZEOF(match));
-	n = hawk_tre_execx(tre, str->ptr, str->len, match, HAWK_COUNTOF(match), opt);
+	n = hawk_tre_execx(tre, str->ptr, str->len, match, HAWK_COUNTOF(match), opt, errgem);
 	if (n <= -1)
 	{
-		if (hawk_gem_geterrnum(tre->gem) == HAWK_EREXNOMAT) return 0;
-		*errnum = hawk_gem_geterrnum(tre->gem);
+		if (hawk_gem_geterrnum(errgem) == HAWK_EREXNOMAT) return 0;
 		return -1;
 	}
 
@@ -529,39 +521,22 @@ static int matchtre (
 	return 1;
 }
 
-int hawk_matchrex (
-	hawk_t* awk, hawk_tre_t* code, int ignorecase,
-	const hawk_oocs_t* str, const hawk_oocs_t* substr,
-	hawk_oocs_t* match, hawk_oocs_t submat[9], hawk_errnum_t* errnum)
-{
-	int x;
-	int opt = HAWK_TRE_BACKTRACKING; /* TODO: option... HAWK_TRE_BACKTRACKING ??? */
-
-	x = matchtre (
-		code, ((str->ptr == substr->ptr)? opt: (opt | HAWK_TRE_NOTBOL)),
-		substr, match, submat, errnum
-	);
-
-	return x;
-}
-
 void hawk_freerex (hawk_t* awk, hawk_tre_t* code, hawk_tre_t* icode)
 {
 	if (icode && icode != code) hawk_tre_close (icode);
 	if (code) hawk_tre_close (code);
 }
 
-int hawk_rtx_matchrex (
-	hawk_rtx_t* rtx, hawk_val_t* val,
-	const hawk_oocs_t* str, const hawk_oocs_t* substr, hawk_oocs_t* match, hawk_oocs_t submat[9])
+int hawk_rtx_matchval (hawk_rtx_t* rtx, hawk_val_t* val, const hawk_oocs_t* str, const hawk_oocs_t* substr, hawk_oocs_t* match, hawk_oocs_t submat[9])
 {
-	hawk_tre_t* code;
 	int ignorecase, x;
-	hawk_errnum_t awkerr;
+	int opt = HAWK_TRE_BACKTRACKING; /* TODO: option... HAWK_TRE_BACKTRACKING ??? */
+	hawk_tre_t* code;
+	hawk_errnum_t awkerr; /*TODO: get rid of this */
 
 	ignorecase = rtx->gbl.ignorecase;
 
-	if (HAWK_RTX_GETVALTYPE (rtx, val) == HAWK_VAL_REX)
+	if (HAWK_RTX_GETVALTYPE(rtx, val) == HAWK_VAL_REX)
 	{
 		code = ((hawk_val_rex_t*)val)->code[ignorecase];
 	}
@@ -570,7 +545,7 @@ int hawk_rtx_matchrex (
 		/* convert to a string and build a regular expression */
 		hawk_oocs_t tmp;
 
-		tmp.ptr = hawk_rtx_getvaloocstr (rtx, val, &tmp.len);
+		tmp.ptr = hawk_rtx_getvaloocstr(rtx, val, &tmp.len);
 		if (tmp.ptr == HAWK_NULL) return -1;
 
 		x = ignorecase? hawk_buildrex(rtx->awk, tmp.ptr, tmp.len, &awkerr, HAWK_NULL, &code):
@@ -583,11 +558,10 @@ int hawk_rtx_matchrex (
 		}
 	}
 	
-	x = matchtre (
-		code, ((str->ptr == substr->ptr)? HAWK_TRE_BACKTRACKING: (HAWK_TRE_BACKTRACKING | HAWK_TRE_NOTBOL)),
-		substr, match, submat, &awkerr
+	x = matchtre(
+		code, ((str->ptr == substr->ptr)? opt: (opt | HAWK_TRE_NOTBOL)),
+		substr, match, submat, hawk_rtx_getgem(rtx)
 	);
-	if (x <= -1) hawk_rtx_seterrnum (rtx, awkerr, HAWK_NULL);
 
 	if (HAWK_RTX_GETVALTYPE(rtx, val) == HAWK_VAL_REX) 
 	{
@@ -595,11 +569,17 @@ int hawk_rtx_matchrex (
 	}
 	else
 	{
-		if (ignorecase) 
-			hawk_freerex (rtx->awk, HAWK_NULL, code);
-		else
-			hawk_freerex (rtx->awk, code, HAWK_NULL);
+		hawk_tre_close (code);
 	}
 
 	return x;
+}
+
+int hawk_rtx_matchrex (hawk_rtx_t* rtx, hawk_tre_t* code, const hawk_oocs_t* str, const hawk_oocs_t* substr, hawk_oocs_t* match, hawk_oocs_t submat[9])
+{
+	int opt = HAWK_TRE_BACKTRACKING; /* TODO: option... HAWK_TRE_BACKTRACKING ??? */
+	return matchtre(
+		code, ((str->ptr == substr->ptr)? opt: (opt | HAWK_TRE_NOTBOL)),
+		substr, match, submat, hawk_rtx_getgem(rtx)
+	);
 }

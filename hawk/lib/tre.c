@@ -98,8 +98,8 @@ int hawk_tre_comp (hawk_tre_t* tre, const hawk_ooch_t* regex, unsigned int* nsub
 
 /* Fills the POSIX.2 regmatch_t array according to the TNFA tag and match
    endpoint values. */
-void tre_fill_pmatch(size_t nmatch, regmatch_t pmatch[], int cflags,
-                const tre_tnfa_t *tnfa, int *tags, int match_eo)
+void tre_fill_pmatch (size_t nmatch, regmatch_t pmatch[], int cflags,
+                      const tre_tnfa_t *tnfa, int *tags, int match_eo)
 {
 	tre_submatch_data_t *submatch_data;
 	unsigned int i, j;
@@ -168,13 +168,13 @@ void tre_fill_pmatch(size_t nmatch, regmatch_t pmatch[], int cflags,
   Wrapper functions for POSIX compatible regexp matching.
 */
 
-int tre_have_backrefs(const regex_t *preg)
+int tre_have_backrefs (const regex_t *preg)
 {
 	tre_tnfa_t *tnfa = (void *)preg->TRE_REGEX_T_FIELD;
 	return tnfa->have_backrefs;
 }
 
-static int tre_match(
+static int tre_match (
 	const regex_t* preg, const void *string, hawk_oow_t len,
 	tre_str_type_t type, hawk_oow_t nmatch, regmatch_t pmatch[],
 	int eflags)
@@ -184,7 +184,7 @@ static int tre_match(
 	int *tags = HAWK_NULL, eo;
 	if (tnfa->num_tags > 0 && nmatch > 0)
 	{
-		tags = xmalloc (preg->gem, sizeof(*tags) * tnfa->num_tags);
+		tags = xmalloc(preg->gem, sizeof(*tags) * tnfa->num_tags);
 		if (tags == HAWK_NULL) return REG_ESPACE;
 	}
 
@@ -213,14 +213,14 @@ static int tre_match(
 
 int hawk_tre_execx (
 	hawk_tre_t* tre, const hawk_ooch_t *str, hawk_oow_t len,
-	regmatch_t* pmatch, hawk_oow_t nmatch, int eflags)
+	regmatch_t* pmatch, hawk_oow_t nmatch, int eflags, hawk_gem_t* errgem)
 {
 	int ret;
 
 	if (tre->TRE_REGEX_T_FIELD == HAWK_NULL)
 	{
 		/* regular expression is bad as none is compiled yet */
-		hawk_gem_seterrnum (tre->gem, HAWK_NULL, HAWK_EREXBADPAT);
+		hawk_gem_seterrnum ((errgem? errgem: tre->gem), HAWK_NULL, HAWK_EREXBADPAT);
 		return -1;
 	}
 #if defined(HAWK_OOCH_IS_UCH)
@@ -230,7 +230,7 @@ int hawk_tre_execx (
 #endif
 	if (ret > 0) 
 	{
-		hawk_gem_seterrnum (tre->gem, HAWK_NULL, ret);
+		hawk_gem_seterrnum ((errgem? errgem: tre->gem), HAWK_NULL, ret);
 		return -1;
 	}
 	
@@ -239,7 +239,7 @@ int hawk_tre_execx (
 
 int hawk_tre_exec (
 	hawk_tre_t* tre, const hawk_ooch_t* str,
-	regmatch_t* pmatch, hawk_oow_t nmatch, int eflags)
+	regmatch_t* pmatch, hawk_oow_t nmatch, int eflags, hawk_gem_t* errgem)
 {
-	return hawk_tre_execx (tre, str, (hawk_oow_t)-1, pmatch, nmatch, eflags);
+	return hawk_tre_execx(tre, str, (hawk_oow_t)-1, pmatch, nmatch, eflags, errgem);
 }

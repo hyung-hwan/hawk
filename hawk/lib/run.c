@@ -3238,7 +3238,7 @@ static hawk_val_t* eval_expression (hawk_rtx_t* rtx, hawk_nde_t* nde)
 			vs.len = ((hawk_val_str_t*)rtx->inrec.d0)->val.len;
 		}
 
-		n = hawk_rtx_matchrex(rtx, v, &vs, &vs, HAWK_NULL, HAWK_NULL);
+		n = hawk_rtx_matchval(rtx, v, &vs, &vs, HAWK_NULL, HAWK_NULL);
 		if (n <= -1)
 		{
 			ADJERR_LOC (rtx, &nde->loc);
@@ -5261,7 +5261,7 @@ static hawk_val_t* eval_binop_match0 (
 	out.ptr = hawk_rtx_getvaloocstr (rtx, left, &out.len);
 	if (out.ptr == HAWK_NULL) return HAWK_NULL;
 
-	n = hawk_rtx_matchrex (rtx, right, &out, &out, HAWK_NULL, HAWK_NULL);
+	n = hawk_rtx_matchval(rtx, right, &out, &out, HAWK_NULL, HAWK_NULL);
 	hawk_rtx_freevaloocstr (rtx, left, out.ptr);
 
 	if (n <= -1) 
