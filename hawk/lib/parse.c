@@ -7036,7 +7036,7 @@ static struct
 	{ HAWK_T("sed"),    hawk_mod_sed },
 #endif
 	{ HAWK_T("str"),    hawk_mod_str },
-//	{ HAWK_T("sys"),    hawk_mod_sys },
+	{ HAWK_T("sys"),    hawk_mod_sys },
 #if defined(HAWK_ENABLE_MOD_UCI)
 	{ HAWK_T("uci"),    hawk_mod_uci }
 #endif
