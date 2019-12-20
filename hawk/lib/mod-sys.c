@@ -26,6 +26,7 @@
 
 #include "mod-sys.h"
 #include "hawk-prv.h"
+#include <hawk-dir.h>
 
 #if defined(_WIN32)
 #	include <windows.h>
@@ -119,7 +120,7 @@ struct sys_node_data_t
 	union
 	{
 		int fd;
-		//hawk_dir_t* dir;
+		hawk_dir_t* dir;
 	} u;
 };
 typedef struct sys_node_data_t sys_node_data_t;
@@ -164,50 +165,33 @@ static HAWK_INLINE sys_rc_t syserr_to_rc (int syserr)
 
 		case EBADF: return RC_EBADF;
 		case ECHILD: return RC_ECHILD;
-		case EINTR:  return RC_EINTR;
+		case EEXIST: return RC_EEXIST;
+		case EINTR: return RC_EINTR;
 		case EINVAL: return RC_EINVAL;
-		case ENOMEM:  return RC_ENOMEM;
-		case ENOSYS:  return RC_ENOSYS;
-		case EPERM:  return RC_EPERM;
-
+		case ENOENT: return RC_ENOENT;
+		case ENOMEM: return RC_ENOMEM;
+		case ENOSYS: return RC_ENOSYS;
+		case EPERM: return RC_EPERM;
 		default: return RC_ERROR;
 	}
 }
 
-#if 0
-static HAWK_INLINE sys_rc_t direrr_to_rc (hawk_dir_errnum_t direrr)
+static HAWK_INLINE sys_rc_t hawkerr_to_rc (hawk_errnum_t hawkerr)
 {
-	switch (direrr)
+	switch (hawkerr)
 	{
-		case HAWK_DIR_ENOIMPL: return RC_ENOIMPL;
-		case HAWK_DIR_ENOMEM: return RC_ENOMEM;
-		case HAWK_DIR_EINVAL: return RC_EINVAL;
-		case HAWK_DIR_EPERM: return RC_EPERM;
-		case HAWK_DIR_ENOENT: return RC_ENOENT;
-		case HAWK_DIR_EEXIST: return RC_EEXIST;
-		case HAWK_DIR_ENOTDIR: return RC_ENOTDIR;
-		case HAWK_DIR_EINTR: return RC_EINTR;
-		case HAWK_DIR_EAGAIN: return RC_EAGAIN;
-
-		default: return RC_ERROR;
-	}
-}
-
-static HAWK_INLINE sys_rc_t awkerr_to_rc (hawk_dir_errnum_t awkerr)
-{
-	switch (awkerr)
-	{
+		case HAWK_EAGAIN: return RC_EAGAIN;
+		case HAWK_ECHILD: return RC_ECHILD;
+		case HAWK_EEXIST: return RC_EEXIST;
+		case HAWK_EINTR: return RC_EINTR;
+		case HAWK_EINVAL: return RC_EINVAL;
+		case HAWK_ENOENT: return RC_ENOENT;
 		case HAWK_ENOIMPL: return RC_ENOIMPL;
 		case HAWK_ENOMEM: return RC_ENOMEM;
-		case HAWK_EINVAL: return RC_EINVAL;
 		case HAWK_EPERM: return RC_EPERM;
-		case HAWK_ENOENT: return RC_ENOENT;
-		case HAWK_EEXIST: return RC_EEXIST;
-
 		default: return RC_ERROR;
 	}
 }
-#endif
 
 static const hawk_ooch_t* rc_to_errstr (sys_rc_t rc)
 {
@@ -236,7 +220,7 @@ static void set_errmsg_on_sys_list (hawk_rtx_t* rtx, sys_list_t* sys_list, const
 	{
 		va_list ap;
 		va_start (ap, errfmt);
-		hawk_strxvfmt (sys_list->ctx.errmsg, HAWK_COUNTOF(sys_list->ctx.errmsg), errfmt, ap);
+		hawk_rtx_vfmttooocstr (rtx, sys_list->ctx.errmsg, HAWK_COUNTOF(sys_list->ctx.errmsg), errfmt, ap);
 		va_end (ap);
 	}
 	else
@@ -392,7 +376,7 @@ static int fnc_close (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 /*
   BEGIN {
-     f = sys::open ("/tmp/test.txt", sys::O_RDONLY);
+     f = sys::open("/tmp/test.txt", sys::O_RDONLY);
      while (sys::read(f, x, 10) > 0) printf (B"%s", x);
      sys::close (f);
   }
@@ -436,7 +420,7 @@ static int fnc_open (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		{
 			close (fd);
 		fail:
-			rx = awkerr_to_rc(hawk_rtx_geterrnum(rtx));
+			rx = hawkerr_to_rc(hawk_rtx_geterrnum(rtx));
 			set_errmsg_on_sys_list (rtx, sys_list, HAWK_NULL);
 		}
 	}
@@ -446,7 +430,7 @@ static int fnc_open (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		set_errmsg_on_sys_list_with_syserr (rtx, sys_list);
 	}
 
-	HAWK_ASSERT (HAWK_IN_QUICKINT_RANGE(rx));
+	/*HAWK_ASSERT (HAWK_IN_QUICKINT_RANGE(rx));*/
 	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
@@ -471,7 +455,7 @@ static int fnc_openfd (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 	if (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 0), &fd) <= -1)
 	{
-		rx = awkerr_to_rc(hawk_rtx_geterrnum(rtx));
+		rx = hawkerr_to_rc(hawk_rtx_geterrnum(rtx));
 		set_errmsg_on_sys_list (rtx, sys_list, HAWK_NULL);
 	}
 	else if (fd >= 0 && fd <= HAWK_TYPE_MAX(int))
@@ -485,7 +469,7 @@ static int fnc_openfd (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		}
 		else 
 		{
-			rx = awkerr_to_rc(hawk_rtx_geterrnum(rtx));
+			rx = hawkerr_to_rc(hawk_rtx_geterrnum(rtx));
 			set_errmsg_on_sys_list (rtx, sys_list, HAWK_NULL);
 		}
 	}
@@ -495,7 +479,7 @@ static int fnc_openfd (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		set_errmsg_on_sys_list (rtx, sys_list, rc_to_errstr(rx));
 	}
 
-	HAWK_ASSERT (HAWK_IN_QUICKINT_RANGE(rx));
+	/*HAWK_ASSERT (HAWK_IN_QUICKINT_RANGE(rx));*/
 	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
@@ -695,7 +679,7 @@ static int fnc_dup (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 				else 
 				{
 					close (fd);
-					rx = awkerr_to_rc(hawk_rtx_geterrnum(rtx));
+					rx = hawkerr_to_rc(hawk_rtx_geterrnum(rtx));
 					set_errmsg_on_sys_list (rtx, sys_list, HAWK_NULL);
 				}
 			}
@@ -855,7 +839,6 @@ static int fnc_pipe (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 /* ------------------------------------------------------------------------ */
 
-#if 0
 /*
         d = sys::opendir("/etc", sys::DIR_SORT);
         if (d >= 0)
@@ -874,7 +857,6 @@ static int fnc_opendir (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_oow_t plen;
 	hawk_val_t* a0;
 	hawk_dir_t* dir;
-	hawk_dir_errnum_t oe;
 
 	sys_list = rtx_to_sys_list(rtx, fi);
 
@@ -883,7 +865,7 @@ static int fnc_opendir (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	a0 = hawk_rtx_getarg(rtx, 0);
 	pstr = hawk_rtx_getvaloocstr(rtx, a0, &plen);
 	if (!pstr) goto fail;
-	dir = hawk_dir_open(hawk_rtx_getmmgr(rtx), 0, pstr, flags, &oe);
+	dir = hawk_dir_open(hawk_rtx_getgem(rtx), 0, pstr, flags);
 	hawk_rtx_freevaloocstr (rtx, a0, pstr);
 
 	if (dir)
@@ -902,11 +884,11 @@ static int fnc_opendir (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	}
 	else
 	{
-		rx = direrr_to_rc(oe);
+		rx = hawkerr_to_rc(hawk_rtx_geterrnum(rtx));
 		set_errmsg_on_sys_list (rtx, sys_list, rc_to_errstr(rx));
 	}
 
-	HAWK_ASSERT (HAWK_IN_QUICKINT_RANGE(rx));
+	/*HAWK_ASSERT (HAWK_IN_QUICKINT_RANGE(rx));*/
 	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
@@ -953,7 +935,7 @@ static int fnc_readdir (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		y = hawk_dir_read(sys_node->ctx.u.dir, &ent);
 		if (y <= -1) 
 		{
-			rx = direrr_to_rc(hawk_dir_geterrnum(sys_node->ctx.u.dir));
+			rx = hawkerr_to_rc(hawk_rtx_geterrnum(rtx));
 			set_errmsg_on_sys_list (rtx, sys_list, rc_to_errstr(rx));
 		}
 		else if (y == 0) 
@@ -965,7 +947,7 @@ static int fnc_readdir (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			tmp = hawk_rtx_makestrvalwithoocstr(rtx, ent.name);
 			if (!tmp)
 			{
-				rx = awkerr_to_rc(hawk_rtx_geterrnum(rtx));
+				rx = hawkerr_to_rc(hawk_rtx_geterrnum(rtx));
 				set_errmsg_on_sys_list (rtx, sys_list, rc_to_errstr(rx));
 			}
 			else
@@ -991,7 +973,7 @@ static int fnc_readdir (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
-#endif
+
 /* ------------------------------------------------------------------------ */
 
 static int fnc_fork (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
@@ -1559,7 +1541,7 @@ static int fnc_mktime (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		hawk_ooch_t* str, * p, * end;
 		hawk_oow_t len;
 		hawk_val_t* a0;
-		hawk_btime_t bt;
+		struct tm tm;
 
 		a0 = hawk_rtx_getarg(rtx, 0);
 		str = hawk_rtx_getvaloocstr(rtx, a0, &len);
@@ -1568,54 +1550,58 @@ static int fnc_mktime (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		/* the string must be of the format  YYYY MM DD HH MM SS[ DST] */
 		p = str;
 		end = str + len;
-		HAWK_MEMSET (&bt, 0, HAWK_SIZEOF(bt));
+		HAWK_MEMSET (&tm, 0, HAWK_SIZEOF(tm));
 
 		sign = 1;
-		if (p < end && *p == HAWK_T('-')) { sign = -1; p++; }
-		while (p < end && hawk_is_ooch_digit(*p)) bt.year = bt.year * 10 + (*p++ - HAWK_T('0'));
-		bt.year *= sign;
-		bt.year -= 1900;
-		while (p < end && (hawk_is_ooch_space(*p) || *p == HAWK_T('\0'))) p++;
+		if (p < end && *p == '-') { sign = -1; p++; }
+		while (p < end && hawk_is_ooch_digit(*p)) tm.tm_year = tm.tm_year * 10 + (*p++ - '0');
+		tm.tm_year *= sign;
+		tm.tm_year -= 1900;
+		while (p < end && (hawk_is_ooch_space(*p) || *p == '\0')) p++;
 
 		sign = 1;
-		if (p < end && *p == HAWK_T('-')) { sign = -1; p++; }
-		while (p < end && hawk_is_ooch_digit(*p)) bt.mon = bt.mon * 10 + (*p++ - HAWK_T('0'));
-		bt.mon *= sign;
-		bt.mon -= 1;
-		while (p < end && (hawk_is_ooch_space(*p) || *p == HAWK_T('\0'))) p++;
+		if (p < end && *p == '-') { sign = -1; p++; }
+		while (p < end && hawk_is_ooch_digit(*p)) tm.tm_mon = tm.tm_mon * 10 + (*p++ - '0');
+		tm.tm_mon *= sign;
+		tm.tm_mon -= 1;
+		while (p < end && (hawk_is_ooch_space(*p) || *p == '\0')) p++;
 
 		sign = 1;
-		if (p < end && *p == HAWK_T('-')) { sign = -1; p++; }
-		while (p < end && hawk_is_ooch_digit(*p)) bt.mday = bt.mday * 10 + (*p++ - HAWK_T('0'));
-		bt.mday *= sign;
-		while (p < end && (hawk_is_ooch_space(*p) || *p == HAWK_T('\0'))) p++;
+		if (p < end && *p == '-') { sign = -1; p++; }
+		while (p < end && hawk_is_ooch_digit(*p)) tm.tm_mday = tm.tm_mday * 10 + (*p++ - '0');
+		tm.tm_mday *= sign;
+		while (p < end && (hawk_is_ooch_space(*p) || *p == '\0')) p++;
 
 		sign = 1;
-		if (p < end && *p == HAWK_T('-')) { sign = -1; p++; }
-		while (p < end && hawk_is_ooch_digit(*p)) bt.hour = bt.hour * 10 + (*p++ - HAWK_T('0'));
-		bt.hour *= sign;
-		while (p < end && (hawk_is_ooch_space(*p) || *p == HAWK_T('\0'))) p++;
+		if (p < end && *p == '-') { sign = -1; p++; }
+		while (p < end && hawk_is_ooch_digit(*p)) tm.tm_hour = tm.tm_hour * 10 + (*p++ - '0');
+		tm.tm_hour *= sign;
+		while (p < end && (hawk_is_ooch_space(*p) || *p == '\0')) p++;
 
 		sign = 1;
-		if (p < end && *p == HAWK_T('-')) { sign = -1; p++; }
-		while (p < end && hawk_is_ooch_digit(*p)) bt.min = bt.min * 10 + (*p++ - HAWK_T('0'));
-		bt.min *= sign;
-		while (p < end && (hawk_is_ooch_space(*p) || *p == HAWK_T('\0'))) p++;
+		if (p < end && *p == '-') { sign = -1; p++; }
+		while (p < end && hawk_is_ooch_digit(*p)) tm.tm_min = tm.tm_min * 10 + (*p++ - '0');
+		tm.tm_min *= sign;
+		while (p < end && (hawk_is_ooch_space(*p) || *p == '\0')) p++;
 
 		sign = 1;
-		if (p < end && *p == HAWK_T('-')) { sign = -1; p++; }
-		while (p < end && hawk_is_ooch_digit(*p)) bt.sec = bt.sec * 10 + (*p++ - HAWK_T('0'));
-		bt.sec *= sign;
-		while (p < end && (hawk_is_ooch_space(*p) || *p == HAWK_T('\0'))) p++;
+		if (p < end && *p == '-') { sign = -1; p++; }
+		while (p < end && hawk_is_ooch_digit(*p)) tm.tm_sec = tm.tm_sec * 10 + (*p++ - '0');
+		tm.tm_sec *= sign;
+		while (p < end && (hawk_is_ooch_space(*p) || *p == '\0')) p++;
 
 		sign = 1;
-		if (p < end && *p == HAWK_T('-')) { sign = -1; p++; }
-		while (p < end && hawk_is_ooch_digit(*p)) bt.isdst = bt.isdst * 10 + (*p++ - HAWK_T('0'));
-		bt.isdst *= sign;
-		while (p < end && (hawk_is_ooch_space(*p) || *p == HAWK_T('\0'))) p++;
+		if (p < end && *p == '-') { sign = -1; p++; }
+		while (p < end && hawk_is_ooch_digit(*p)) tm.tm_isdst = tm.tm_isdst * 10 + (*p++ - '0');
+		tm.tm_isdst *= sign;
+		while (p < end && (hawk_is_ooch_space(*p) || *p == '\0')) p++;
 
 		hawk_rtx_freevaloocstr (rtx, a0, str);
-		hawk_timelocal (&bt, &nt);
+	#if defined(HAVE_TIMELOCAL)
+		nt.sec = timelocal(&tm);
+	#else
+		nt.sec = mktime(&tm);
+	#endif
 	}
 	else
 	{
@@ -1649,7 +1635,7 @@ static int fnc_strftime (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	if (fmt) 
 	{
 		hawk_ntime_t nt;
-		hawk_btime_t bt;
+		struct tm tm, * tmx;
 		hawk_int_t tmpsec, flags = 0;
 
 		nt.nsec = 0;
@@ -1662,15 +1648,33 @@ static int fnc_strftime (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			nt.sec = tmpsec;
 		}
 
-		
 		if (hawk_rtx_getnargs(rtx) >= 3 && (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 2), &flags) <= -1 || flags < 0)) flags = 0;
 
-		if (((flags & STRFTIME_UTC)? hawk_gmtime(&nt, &bt): hawk_localtime(&nt, &bt)) >= 0)
+		if (flags & STRFTIME_UTC)
+		{
+			time_t t = nt.sec;
+		#if defined(HAVE_GMTIME_R)
+			tmx = gmtime_r(&t, &tm);
+		#else
+			tmx = gmtime(&t.sec);
+		#endif
+		}
+		else
+		{
+			time_t t = nt.sec;
+		#if defined(HAVE_LOCALTIME_R)
+			tmx = localtime_r(&t, &tm);
+		#else
+			tmx = localtime(&t.sec);
+		#endif
+		}
+
+		if (tmx)
 		{
 			hawk_bch_t tmpbuf[64], * tmpptr;
-			struct tm tm;
 			hawk_oow_t sl;
 
+#if 0
 			HAWK_MEMSET (&tm, 0, HAWK_SIZEOF(tm));
 			tm.tm_year = bt.year;
 			tm.tm_mon = bt.mon;
@@ -1692,8 +1696,9 @@ static int fnc_strftime (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 				tm.__tm_zone = "GMT";
 			#endif
 			}
+#endif
 
-			sl = strftime(tmpbuf, HAWK_COUNTOF(tmpbuf), fmt, &tm);
+			sl = strftime(tmpbuf, HAWK_COUNTOF(tmpbuf), fmt, tmx);
 			if (sl <= 0 || sl >= HAWK_COUNTOF(tmpbuf))
 			{
 				/* buffer too small */
@@ -1774,6 +1779,7 @@ I use 'count' to limit the maximum number of retries when 0 is returned.
 			hawk_rtx_freemem (rtx, fmt);
 		}
 	}
+
 	return 0;
 }
 
@@ -1783,7 +1789,7 @@ static int fnc_getenv (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_oow_t len;
 	hawk_val_t* retv;
 
-	var = hawk_rtx_valtobcstrdup(rtx, hawk_rtx_getarg (rtx, 0), &len);
+	var = hawk_rtx_valtobcstrdup(rtx, hawk_rtx_getarg(rtx, 0), &len);
 	if (var)
 	{
 		hawk_bch_t* val;
@@ -1805,6 +1811,8 @@ static int fnc_getenv (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 static int fnc_getnwifcfg (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
+#if 0
+// TODO: put this back
 	hawk_nwifcfg_t cfg;
 	hawk_rtx_valtostr_out_t out;
 	int ret = -1;
@@ -1889,6 +1897,7 @@ static int fnc_getnwifcfg (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 	/* no error check for hawk_rtx_makeintval() since ret is 0 or -1 */
 	hawk_rtx_setretval (rtx, hawk_rtx_makeintval (rtx, ret));
+#endif
 	return 0;
 }
 /* ------------------------------------------------------------ */
@@ -1906,7 +1915,7 @@ static int fnc_system (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 	/* the target name contains a null character.
 	 * make system return -1 */
-	if (hawk_strxchr (str, len, HAWK_T('\0')))
+	if (hawk_find_oochar(str, len, '\0'))
 	{
 		n = -1;
 		goto skip_system;
@@ -1920,7 +1929,7 @@ static int fnc_system (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 	{
 		hawk_bch_t* mbs;
-		mbs = hawk_wcstombsdupwithcmgr(str, HAWK_NULL, hawk_rtx_getmmgr(rtx), hawk_rtx_getcmgr(rtx));
+		mbs = hawk_rtx_duputobcstr(rtx, str, HAWK_NULL);
 		if (mbs == HAWK_NULL) 
 		{
 			n = -1;
@@ -1951,13 +1960,13 @@ static int fnc_chmod (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	int n = 0;
 	hawk_int_t mode;
 
-	a0 = hawk_rtx_getarg (rtx, 0);
-	str = hawk_rtx_getvaloocstr (rtx, a0, &len);
+	a0 = hawk_rtx_getarg(rtx, 0);
+	str = hawk_rtx_getvaloocstr(rtx, a0, &len);
 	if (!str) return -1;
 
 	/* the target name contains a null character.
 	 * make system return -1 */
-	if (hawk_strxchr(str, len, HAWK_T('\0')))
+	if (hawk_find_oochar(str, len, '\0'))
 	{
 		n = -1;
 		goto skip_mkdir;
@@ -1970,10 +1979,9 @@ static int fnc_chmod (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 #elif defined(HAWK_OOCH_IS_BCH)
 	n = chmod(str, mode);
 #else
-
 	{
 		hawk_bch_t* mbs;
-		mbs = hawk_wcstombsdupwithcmgr(str, HAWK_NULL, hawk_rtx_getmmgr(rtx), hawk_rtx_getcmgr(rtx));
+		mbs = hawk_rtx_duputobcstr(rtx, str, HAWK_NULL);
 		if (mbs == HAWK_NULL) 
 		{
 			n = -1;
@@ -1982,7 +1990,6 @@ static int fnc_chmod (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		n = chmod(mbs, mode);
 		hawk_rtx_freemem (rtx, mbs);
 	}
-
 #endif
 
 skip_mkdir:
@@ -2003,13 +2010,13 @@ static int fnc_mkdir (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	int n = 0;
 	hawk_int_t mode;
 
-	a0 = hawk_rtx_getarg (rtx, 0);
-	str = hawk_rtx_getvaloocstr (rtx, a0, &len);
+	a0 = hawk_rtx_getarg(rtx, 0);
+	str = hawk_rtx_getvaloocstr(rtx, a0, &len);
 	if (!str) return -1;
 
 	/* the target name contains a null character.
 	 * make system return -1 */
-	if (hawk_strxchr(str, len, HAWK_T('\0')))
+	if (hawk_find_oochar(str, len, '\0'))
 	{
 		n = -1;
 		goto skip_mkdir;
@@ -2025,7 +2032,7 @@ static int fnc_mkdir (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 	{
 		hawk_bch_t* mbs;
-		mbs = hawk_wcstombsdupwithcmgr(str, HAWK_NULL, hawk_rtx_getmmgr(rtx), hawk_rtx_getcmgr(rtx));
+		mbs = hawk_rtx_duputobcstr(rtx, str, HAWK_NULL);
 		if (mbs == HAWK_NULL) 
 		{
 			n = -1;
@@ -2060,7 +2067,7 @@ static int fnc_unlink (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 	/* the target name contains a null character.
 	 * make system return -1 */
-	if (hawk_strxchr(str, len, HAWK_T('\0')))
+	if (hawk_find_oochar(str, len, '\0'))
 	{
 		n = -1;
 		goto skip_unlink;
@@ -2074,7 +2081,7 @@ static int fnc_unlink (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 	{
 		hawk_bch_t* mbs;
-		mbs = hawk_wcstombsdupwithcmgr(str, HAWK_NULL, hawk_rtx_getmmgr(rtx), hawk_rtx_getcmgr(rtx));
+		mbs = hawk_rtx_duputobcstr(rtx, str, HAWK_NULL);
 		if (mbs == HAWK_NULL) 
 		{
 			n = -1;
@@ -2098,6 +2105,7 @@ skip_unlink:
 
 /* ------------------------------------------------------------ */
 #if 0
+// TODO: add back the syslog support 
 static void open_remote_log_socket (hawk_rtx_t* rtx, mod_ctx_t* mctx)
 {
 #if defined(_WIN32)
@@ -2168,19 +2176,19 @@ static int fnc_openlog (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 	/* the target name contains a null character.
 	 * make system return -1 */
-	if (hawk_strxchr(ident, ident_len, HAWK_T('\0'))) goto done;
+	if (hawk_find_oochar(ident, ident_len, '\0')) goto done;
 
 	if (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 1), &opt) <= -1) goto done;
 	if (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 2), &fac) <= -1) goto done;
 
-	if (hawk_strbeg(ident, HAWK_T("remote://")))
+	if (hawk_comp_bcstr_limited(ident, HAWK_T("remote://"), 9))
 	{
 		hawk_ooch_t* slash;
 		/* "udp://remote-addr:remote-port/syslog-identifier" */
 
 		log_type = SYSLOG_REMOTE;
 		actual_ident = ident + 9;
-		slash = hawk_strchr(actual_ident, HAWK_T('/'));
+		slash = hawk_find_oochar_in_oocstr(actual_ident, '/');
 		if (!slash) goto done;
 		if (hawk_strntonwad(actual_ident, slash - actual_ident, &nwad) <= -1) goto done;
 		actual_ident = slash + 1;
@@ -2196,9 +2204,9 @@ static int fnc_openlog (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	}
 
 #if defined(HAWK_OOCH_IS_BCH)
-	mbs_ident = hawk_becsdup(actual_ident, hawk_rtx_getmmgr(rtx));
+	mbs_ident = hawk_rtx_dupbcstr(rtx, actual_ident);
 #else
-	mbs_ident = hawk_wcstombsdupwithcmgr(actual_ident, HAWK_NULL, hawk_rtx_getmmgr(rtx), hawk_rtx_getcmgr(rtx));
+	mbs_ident = hawk_rtx_duputobcstr(actual_ident, str, HAWK_NULL);
 #endif
 	if (!mbs_ident) goto done;
 
@@ -2323,7 +2331,7 @@ static int fnc_writelog (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	msg = hawk_rtx_getvaloocstr(rtx, hawk_rtx_getarg(rtx, 1), &msglen);
 	if (!msg) goto done;
 
-	if (hawk_strxchr(msg, msglen, HAWK_T('\0'))) goto done;
+	if (hawk_find_oochar(msg, msglen, '\0')) goto done;
 
 	if (mctx->log.type == SYSLOG_LOCAL)
 	{
@@ -2333,7 +2341,7 @@ static int fnc_writelog (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		#else
 		{
 			hawk_bch_t* mbs;
-			mbs = hawk_wcstombsdupwithcmgr(msg, HAWK_NULL, hawk_rtx_getmmgr(rtx), hawk_rtx_getcmgr(rtx));
+			mbs = hawk_rtx_duputobcstr(rtx, msg, HAWK_NULL);
 			if (!mbs) goto done;
 			syslog(pri, "%s", mbs);
 			hawk_rtx_freemem (rtx, mbs);
@@ -2449,7 +2457,7 @@ static fnctab_t fnctab[] =
 	{ HAWK_T("chmod"),       { { 2, 2, HAWK_NULL     }, fnc_chmod,       0  } },
 	{ HAWK_T("close"),       { { 1, 2, HAWK_NULL     }, fnc_close,       0  } },
 	{ HAWK_T("closedir"),    { { 1, 1, HAWK_NULL     }, fnc_closedir,    0  } },
-	{ HAWK_T("closelog"),    { { 0, 0, HAWK_NULL     }, fnc_closelog,    0  } },
+	//{ HAWK_T("closelog"),    { { 0, 0, HAWK_NULL     }, fnc_closelog,    0  } },
 	{ HAWK_T("dup"),         { { 1, 3, HAWK_NULL     }, fnc_dup,         0  } },
 	{ HAWK_T("errmsg"),      { { 0, 0, HAWK_NULL     }, fnc_errmsg,      0  } },
 	{ HAWK_T("fork"),        { { 0, 0, HAWK_NULL     }, fnc_fork,        0  } },
@@ -2470,7 +2478,7 @@ static fnctab_t fnctab[] =
 	{ HAWK_T("open"),        { { 2, 3, HAWK_NULL     }, fnc_open,        0  } },
 	{ HAWK_T("opendir"),     { { 1, 2, HAWK_NULL     }, fnc_opendir,     0  } },
 	{ HAWK_T("openfd"),      { { 1, 1, HAWK_NULL     }, fnc_openfd,      0  } },
-	{ HAWK_T("openlog"),     { { 3, 3, HAWK_NULL     }, fnc_openlog,     0  } },
+	//{ HAWK_T("openlog"),     { { 3, 3, HAWK_NULL     }, fnc_openlog,     0  } },
 	{ HAWK_T("pipe"),        { { 2, 3, HAWK_T("rrv") }, fnc_pipe,        0  } },
 	{ HAWK_T("read"),        { { 2, 3, HAWK_T("vrv") }, fnc_read,        0  } },
 	{ HAWK_T("readdir"),     { { 2, 2, HAWK_T("vr")  }, fnc_readdir,     0  } },
@@ -2482,7 +2490,7 @@ static fnctab_t fnctab[] =
 	{ HAWK_T("unlink"),      { { 1, 1, HAWK_NULL     }, fnc_unlink,      0  } },
 	{ HAWK_T("wait"),        { { 1, 3, HAWK_T("vrv") }, fnc_wait,        0  } },
 	{ HAWK_T("write"),       { { 2, 2, HAWK_NULL     }, fnc_write,       0  } },
-	{ HAWK_T("writelog"),    { { 2, 2, HAWK_NULL     }, fnc_writelog,    0  } }
+	//{ HAWK_T("writelog"),    { { 2, 2, HAWK_NULL     }, fnc_writelog,    0  } }
 };
 
 #if !defined(SIGHUP)
@@ -2554,8 +2562,11 @@ static inttab_t inttab[] =
 	{ HAWK_T("LOG_PRI_WARNING"),    { LOG_WARNING } },
 #endif
 
+#if 0
+// PUT THESE BACK
 	{ HAWK_T("NWIFCFG_IN4"), { HAWK_NWIFCFG_IN4 } },
 	{ HAWK_T("NWIFCFG_IN6"), { HAWK_NWIFCFG_IN6 } },
+#endif
 
 #if defined(O_APPEND)
 	{ HAWK_T("O_APPEND"),    { O_APPEND } },

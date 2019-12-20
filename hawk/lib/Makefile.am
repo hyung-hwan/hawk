@@ -51,6 +51,7 @@ pkginclude_HEADERS = \
 	hawk.h \
 	hawk-chr.h \
 	hawk-cmn.h \
+	hawk-dir.h \
 	hawk-ecs.h \
 	hawk-fmt.h \
 	hawk-gem.h \
@@ -73,6 +74,7 @@ libhawk_la_SOURCES =  \
 	$(pkginclude_HEADERS) \
 	arr.c \
 	chr.c \
+	dir.c \
 	ecs-imp.h \
 	ecs.c \
 	err-prv.h \
@@ -162,10 +164,10 @@ if ENABLE_STATIC_MODULE
 libhawk_la_SOURCES += \
 	imap-imp.h \
 	mod-math.c mod-math.h \
-	mod-str.c mod-str.h 
+	mod-str.c mod-str.h \
+	mod-sys.c mod-sys.h
 libhawk_la_LIBADD +=
 
-## mod-sys.c mod-sys.h
 ### mod-dir.c mod-dir.h 
 
 if ENABLE_MOD_MYSQL

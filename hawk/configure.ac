@@ -197,10 +197,10 @@ dnl	[#include <stddef.h>])
 
 dnl check functions
 AC_CHECK_FUNCS([gettimeofday settimeofday clock_gettime clock_settime getitimer setitimer])
+AC_CHECK_FUNCS([timelocal timegm localtime_r gmtime_r])
 AC_CHECK_FUNCS([backtrace backtrace_symbols])
 AC_CHECK_FUNCS([makecontext swapcontext getcontext setcontext])
 AC_CHECK_FUNCS([clock_nanosleep nanosleep usleep])
-AC_CHECK_FUNCS([localtime_r gmtime_r])
 AC_CHECK_FUNCS([sigaction signal])
 AC_CHECK_FUNCS([snprintf _vsnprintf _vsnwprintf strerror_r random_r random])
 AC_CHECK_FUNCS([accept4 pipe2 epoll_create epoll_create1 kqueue kqueue1])
@@ -381,6 +381,16 @@ AC_TRY_RUN(
 dnl check struct members
 AC_STRUCT_DIRENT_D_TYPE
 AC_CHECK_MEMBERS([DIR.d_fd, DIR.dd_fd],,,[[#include <dirent.h>]])
+AC_CHECK_MEMBERS([struct stat.st_birthtime])
+AC_CHECK_MEMBERS([struct stat.st_mtim.tv_nsec])
+AC_CHECK_MEMBERS([struct stat.st_birthtim.tv_nsec])
+AC_CHECK_MEMBERS([struct stat.st_mtimespec.tv_nsec])
+AC_CHECK_MEMBERS([struct stat.st_birthtimespec.tv_nsec])
+AC_CHECK_MEMBERS([struct tm.tm_gmtoff],,,[[#include <time.h>]])
+AC_CHECK_MEMBERS([struct tm.__tm_gmtoff],,,[[#include <time.h>]])
+AC_CHECK_MEMBERS([struct tm.tm_zone],,,[[#include <time.h>]])
+AC_CHECK_MEMBERS([struct tm.__tm_zone],,,[[#include <time.h>]])
+
 
 dnl check the size of primitive data types
 AC_CHECK_SIZEOF(char,,[[]])
