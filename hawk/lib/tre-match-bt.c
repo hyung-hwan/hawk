@@ -83,6 +83,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "tre-prv.h"
 #include "tre-match-ut.h"
+#include "tre-mem.h"
 
 typedef struct
 {

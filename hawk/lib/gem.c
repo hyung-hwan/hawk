@@ -48,6 +48,13 @@ void* hawk_gem_reallocmem (hawk_gem_t* gem, void* ptr, hawk_oow_t size)
 	return nptr;
 }
 
+void* hawk_gem_callocmem_noerr (hawk_gem_t* gem, hawk_oow_t size)
+{
+	void* ptr = HAWK_MMGR_ALLOC(gem->mmgr, size);
+	if (ptr) HAWK_MEMSET (ptr, 0, size);
+	return ptr;
+}
+
 /* ------------------------------------------------------------------------ */
 
 hawk_uch_t* hawk_gem_dupucstr (hawk_gem_t* gem, const hawk_uch_t* ucs, hawk_oow_t* _ucslen)

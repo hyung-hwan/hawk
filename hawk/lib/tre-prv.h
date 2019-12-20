@@ -80,7 +80,7 @@ SUBMATCH[5] = [3~3]
 SUBMATCH[6] = [;0123456789;9876543210]
 SUBMATCH[7] = [012]
 SUBMATCH[8] = [2]
-SUBMATCH[9] = [3456789;9876543210
+SUBMATCH[9] = [3456789;9876543210]
 
 ------------------------------------------------------
 
@@ -138,7 +138,6 @@ SUBMATCH[4] = [defg]
 
 #include <hawk-tre.h>
 #include <hawk-chr.h>
-#include <hawk-pma.h>
 #include "hawk-prv.h"
 
 #if defined(HAWK_OOCH_IS_UCH)
@@ -221,17 +220,16 @@ typedef hawk_ooci_t tre_cint_t;
 
 #define tre_strlen(c) hawk_count_oocstr(c)
 
-typedef hawk_pma_t* tre_mem_t;
 
-#define tre_mem_new(hawk) hawk_pma_open(hawk,0)
-#define tre_mem_destroy(mem) hawk_pma_close(mem)
-#define tre_mem_alloc(mem,size) hawk_pma_alloc(mem,size)
-#define tre_mem_calloc(mem,size) hawk_pma_calloc(mem,size)
 
-#define xmalloc(gem,size) hawk_gem_allocmem(gem,size)
+/* use the noerr version becuase various tre functions return 
+ * REG_ESPACE upon memory shortage and the wrapper functions
+ * uses the returned code to set the error number on the 
+ * hawk_tre_t wrapper object */
+#define xmalloc(gem,size) hawk_gem_allocmem_noerr(gem,size)
+#define xrealloc(gem,ptr,new_size) hawk_gem_reallocmem_noerr(gem, ptr, new_size)
+#define xcalloc(gem,nmemb,size) hawk_gem_callocmem_noerr(gem, (nmemb) * (size))
 #define xfree(gem,ptr) hawk_gem_freemem(gem,ptr)
-#define xrealloc(gem,ptr,new_size) hawk_gem_reallocmem(gem, ptr, new_size)
-
 
 /* tre-ast.h */
 #define tre_ast_new_node hawk_tre_astnewnode
@@ -239,6 +237,13 @@ typedef hawk_pma_t* tre_mem_t;
 #define tre_ast_new_iter hawk_tre_astnewiter
 #define tre_ast_new_union hawk_tre_astnewunion
 #define tre_ast_new_catenation hawk_tre_astnewcatenation
+
+/* tre-mem.h */
+#define tre_mem_t hawk_tre_mem_t
+#define tre_mem_new hawk_tre_mem_new
+#define tre_mem_alloc hawk_tre_mem_alloc
+#define tre_mem_calloc hawk_tre_mem_calloc
+#define tre_mem_destroy hawk_tre_mem_destroy
 
 /* tre-parse.h */
 #define tre_parse hawk_tre_parse

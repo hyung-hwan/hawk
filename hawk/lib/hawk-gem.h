@@ -33,6 +33,14 @@
 extern "C" {
 #endif
 
+#if defined(HAWK_HAVE_INLINE)
+static HAWK_INLINE void* hawk_gem_allocmem_noerr (hawk_gem_t* gem, hawk_oow_t size) { return HAWK_MMGR_ALLOC(gem->mmgr, size); }
+static HAWK_INLINE void* hawk_gem_reallocmem_noerr (hawk_gem_t* gem, void* ptr, hawk_oow_t size) { return HAWK_MMGR_REALLOC(gem->mmgr, ptr, size); }
+#else
+#define hawk_gem_allocmem_noerr(gem, size) (HAWK_MMGR_ALLOC((gem)->mmgr, size))
+#define hawk_gem_reallocmem_noerr(gem, ptr, size) (HAWK_MMGR_REALLOC((gem)->mmgr, ptr, size))
+#endif
+
 void* hawk_gem_allocmem (
 	hawk_gem_t*       gem,
 	hawk_oow_t        size
@@ -54,6 +62,12 @@ static HAWK_INLINE void hawk_gem_freemem (hawk_gem_t* gem, void* ptr) { HAWK_MMG
 #else
 #define hawk_gem_freemem(gem, ptr) HAWK_MMGR_FREE((gem)->mmgr, ptr);
 #endif
+
+
+void* hawk_gem_callocmem_noerr (
+	hawk_gem_t*       gem,
+	hawk_oow_t        size
+);
 
 /* ----------------------------------------------------------------------- */
 
