@@ -57,7 +57,6 @@ pkginclude_HEADERS = \
 	hawk-htb.h \
 	hawk-rbt.h \
 	hawk-pack1.h \
-	hawk-pma.h \
 	hawk-utl.h \
 	hawk-std.h \
 	hawk-tre.h \
@@ -91,7 +90,6 @@ libhawk_la_SOURCES =  \
 	misc.c \
 	parse-prv.h \
 	parse.c \
-	pma.c \
 	rbt.c \
 	rec.c \
 	rio-prv.h \
@@ -106,6 +104,8 @@ libhawk_la_SOURCES =  \
 	tre-match-bt.c \
 	tre-match-pa.c \
 	tre-match-ut.h \
+	tre-mem.c \
+	tre-mem.h \
 	tre-parse.c \
 	tre-parse.h \
 	tre-stack.c \

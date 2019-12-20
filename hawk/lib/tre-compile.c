@@ -74,12 +74,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /*
   Algorithms to setup tags so that submatch addressing can be done.
 */
-
-static HAWK_INLINE void* xcalloc (hawk_gem_t* gem, hawk_oow_t nmemb, hawk_oow_t size)
-{
-	return hawk_gem_callocmem(gem, nmemb * size);
-}
-
 /* Inserts a catenation node to the root of the tree given in `node'.
    As the left child a new tag with number `tag_id' to `node' is added,
    and the right child is the old root. */

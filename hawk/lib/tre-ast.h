@@ -63,6 +63,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define _HAWK_LIB_CMN_TRE_AST_H_
 
 #include "tre-prv.h"
+#include "tre-mem.h"
 #include "tre-compile.h"
 
 /* The different AST node types. */
