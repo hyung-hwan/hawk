@@ -927,6 +927,13 @@ struct hawk_loc_t
 };
 typedef struct hawk_loc_t hawk_loc_t;
 
+typedef void (*hawk_assertfail_t) (
+	hawk_gem_t*        gem,
+	const hawk_bch_t*   expr,
+	const hawk_bch_t*   file,
+	hawk_oow_t          line
+);
+
 struct hawk_gem_t
 {
 	hawk_mmgr_t*  mmgr;
@@ -934,6 +941,9 @@ struct hawk_gem_t
 	hawk_errnum_t errnum;
 	hawk_ooch_t   errmsg[HAWK_ERRMSG_CAPA];
 	hawk_loc_t    errloc;
+#if defined(HAWK_BUILD_DEBUG)
+	hawk_assertfail_t assertfail;
+#endif
 };
 
 enum hawk_log_mask_t
@@ -1233,6 +1243,16 @@ typedef enum hawk_log_mask_t hawk_log_mask_t;
 
 #define HAWK_STATIC_ASSERT_EXPR(expr) ((void)HAWK_SIZEOF(char[(expr)? 1: -1]))
 
+/* =========================================================================
+ * ASSERTION
+ * =========================================================================*/
+
+#if defined(HAWK_BUILD_RELEASE)
+#	define HAWK_ASSERT(expr) ((void)0)
+#else
+#	define HAWK_ASSERT(expr) ((void)((expr) || (hawk_assert_fail(#expr, __FILE__, __LINE__), 0)))
+#endif
+
 
 /* =========================================================================
  * CHARACTER/STRING LITERALS
@@ -1301,9 +1321,5 @@ typedef enum hawk_log_mask_t hawk_log_mask_t;
 	typedef hawk_int32_t hawk_foff_t; /* this line is for doxygen */
 #       error Unsupported platform
 #endif
-
-
-/**** TODO ****/
-#define HAWK_ASSERT(hawk, x)
 
 #endif

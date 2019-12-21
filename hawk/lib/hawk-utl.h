@@ -1541,6 +1541,16 @@ HAWK_EXPORT void hawk_sub_time (
 	hawk_ntime_t*       z
 );
 
+
+/* =========================================================================
+ * ASSERTION
+ * ========================================================================= */
+HAWK_EXPORT void hawk_assert_fail (
+	const hawk_bch_t* expr,
+	const hawk_bch_t* file,
+	hawk_oow_t line
+);
+
 #if defined(__cplusplus)
 }
 #endif

@@ -95,7 +95,7 @@ static __IMAP_NODE_T* __MAKE_IMAP_NODE (hawk_rtx_t* rtx, __IMAP_LIST_T* list)
 		list->map.high++;
 	}
 
-	HAWK_ASSERT (hawk_rtx_gethawk(rtx), list->map.tab[node->id] == HAWK_NULL);
+	HAWK_ASSERT (list->map.tab[node->id] == HAWK_NULL);
 	list->map.tab[node->id] = node;
 
 	/* append it to the tail */

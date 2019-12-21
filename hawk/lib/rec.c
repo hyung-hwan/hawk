@@ -59,7 +59,7 @@ int hawk_rtx_setrec (hawk_rtx_t* rtx, hawk_oow_t idx, const hawk_oocs_t* str)
 			return -1;
 		}
 
-		HAWK_ASSERT (hawk_rtx_gethawk(rtx), HAWK_RTX_GETVALTYPE (rtx, rtx->inrec.d0) == HAWK_VAL_NIL);
+		HAWK_ASSERT (HAWK_RTX_GETVALTYPE (rtx, rtx->inrec.d0) == HAWK_VAL_NIL);
 		/* d0 should be cleared before the next line is reached
 		 * as it doesn't call hawk_rtx_refdownval on rtx->inrec.d0 */
 		rtx->inrec.d0 = v;
@@ -109,7 +109,7 @@ static int split_record (hawk_rtx_t* rtx)
 	
 
 	/* inrec should be cleared before split_record is called */
-	HAWK_ASSERT (hawk_rtx_gethawk(rtx), rtx->inrec.nflds == 0);
+	HAWK_ASSERT (rtx->inrec.nflds == 0);
 
 	/* get FS */
 	fs = hawk_rtx_getgbl (rtx, HAWK_GBL_FS);
@@ -195,7 +195,7 @@ static int split_record (hawk_rtx_t* rtx)
 			return 0;
 		}
 
-		HAWK_ASSERT (hawk_rtx_gethawk(rtx), (tok.ptr != HAWK_NULL && tok.len > 0) || tok.len == 0);
+		HAWK_ASSERT ((tok.ptr != HAWK_NULL && tok.len > 0) || tok.len == 0);
 
 		nflds++;
 		len = HAWK_OOECS_LEN(&rtx->inrec.line) - (p - HAWK_OOECS_PTR(&rtx->inrec.line));
@@ -282,7 +282,7 @@ static int split_record (hawk_rtx_t* rtx)
 		}
 #endif
 
-		HAWK_ASSERT (hawk_rtx_gethawk(rtx), (tok.ptr != HAWK_NULL && tok.len > 0) || tok.len == 0);
+		HAWK_ASSERT ((tok.ptr != HAWK_NULL && tok.len > 0) || tok.len == 0);
 
 #if 1
 		if (rtx->inrec.nflds >= rtx->inrec.maxflds)
@@ -355,11 +355,11 @@ int hawk_rtx_clrrec (hawk_rtx_t* run, int skip_inrec_line)
 
 	if (run->inrec.nflds > 0)
 	{
-		HAWK_ASSERT (hawk_rtx_gethawk(rtx), run->inrec.flds != HAWK_NULL);
+		HAWK_ASSERT (run->inrec.flds != HAWK_NULL);
 
 		for (i = 0; i < run->inrec.nflds; i++) 
 		{
-			HAWK_ASSERT (hawk_rtx_gethawk(rtx), run->inrec.flds[i].val != HAWK_NULL);
+			HAWK_ASSERT (run->inrec.flds[i].val != HAWK_NULL);
 			hawk_rtx_refdownval (run, run->inrec.flds[i].val);
 		}
 		run->inrec.nflds = 0;
@@ -374,7 +374,7 @@ int hawk_rtx_clrrec (hawk_rtx_t* run, int skip_inrec_line)
 		}
 	}
 
-	HAWK_ASSERT (hawk_rtx_gethawk(rtx), run->inrec.nflds == 0);
+	HAWK_ASSERT (run->inrec.nflds == 0);
 	if (!skip_inrec_line) hawk_ooecs_clear (&run->inrec.line);
 
 	return n;
@@ -388,7 +388,7 @@ static int recomp_record_fields (hawk_rtx_t* rtx, hawk_oow_t lv, const hawk_oocs
 	/* recomposes the record and the fields when $N has been assigned 
 	 * a new value and recomputes NF accordingly */
 
-	HAWK_ASSERT (hawk_rtx_gethawk(rtx), lv > 0);
+	HAWK_ASSERT (lv > 0);
 	max = (lv > rtx->inrec.nflds)? lv: rtx->inrec.nflds;
 
 	nflds = rtx->inrec.nflds;
@@ -482,7 +482,7 @@ static int recomp_record_fields (hawk_rtx_t* rtx, hawk_oow_t lv, const hawk_oocs
 	}
 
 	v = hawk_rtx_getgbl (rtx, HAWK_GBL_NF);
-	HAWK_ASSERT (hawk_rtx_gethawk(rtx), HAWK_RTX_GETVALTYPE (rtx, v) == HAWK_VAL_INT);
+	HAWK_ASSERT (HAWK_RTX_GETVALTYPE (rtx, v) == HAWK_VAL_INT);
 
 	if (HAWK_RTX_GETINTFROMVAL (rtx, v)!= max)
 	{

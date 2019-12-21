@@ -344,7 +344,7 @@ static int make_param (hawk_pio_t* pio, const hawk_ooch_t* cmd, int flags, param
 
 		if (flags & HAWK_PIO_SHELL)
 		{
-			/*HAWK_ASSERT (pio->hawk, wcmd == HAWK_NULL);*/
+			/*HAWK_ASSERT (wcmd == HAWK_NULL);*/
 			/* hawk_wcstombs() should succeed as 
 			 * it was successful above */
 			hawk_conv_ucstr_to_bcstr_with_cmgr (cmd, &wl, mcmd, &mn, pio->gem->cmgr);
@@ -352,7 +352,7 @@ static int make_param (hawk_pio_t* pio, const hawk_ooch_t* cmd, int flags, param
 		}
 		else
 		{
-			HAWK_ASSERT (pio->hawk, wcmd != HAWK_NULL);
+			HAWK_ASSERT (wcmd != HAWK_NULL);
 			/* hawk_wcsntombsn() should succeed as 
 			 * it was was successful above */
 			hawk_conv_uchars_to_bchars_with_cmgr (wcmd, &wl, mcmd, &mn, pio->gem->cmgr);
@@ -1788,7 +1788,7 @@ create_process:
 		if (flags & HAWK_PIO_IGNOREECERR) topt |= HAWK_TIO_IGNOREECERR;
 		if (flags & HAWK_PIO_NOAUTOFLUSH) topt |= HAWK_TIO_NOAUTOFLUSH;
 
-		HAWK_ASSERT (pio->hawk, HAWK_COUNTOF(tio) == HAWK_COUNTOF(pio->pin));
+		HAWK_ASSERT (HAWK_COUNTOF(tio) == HAWK_COUNTOF(pio->pin));
 		for (i = 0; i < HAWK_COUNTOF(tio); i++)
 		{
 			int r;
@@ -2150,7 +2150,7 @@ int hawk_pio_wait (hawk_pio_t* pio)
 		return -1;
 	}
 
-	HAWK_ASSERT (pio->hawk, w == WAIT_OBJECT_0);
+	HAWK_ASSERT (w == WAIT_OBJECT_0);
 	
 	if (GetExitCodeProcess(pio->child, &ecode) == FALSE) 
 	{
@@ -2258,7 +2258,7 @@ int hawk_pio_wait (hawk_pio_t* pio)
 		if (n == 0) 
 		{
 			/* when WNOHANG is not specified, 0 can't be returned */
-			/*HAWK_ASSERT (pio->hawk, pio->flags & HAWK_PIO_WAITNOBLOCK);*/
+			/*HAWK_ASSERT (pio->flags & HAWK_PIO_WAITNOBLOCK);*/
 
 			ret = 255 + 1;
 			/* the child process is still alive */
@@ -2350,8 +2350,8 @@ static hawk_ooi_t pio_input (hawk_tio_t* tio, hawk_tio_cmd_t cmd, void* buf, haw
 	if (cmd == HAWK_TIO_DATA) 
 	{
 		hawk_pio_pin_t* pin = *(hawk_pio_pin_t**)hawk_tio_getxtn(tio);
-		/*HAWK_ASSERT (pio->hawk, pin != HAWK_NULL);
-		HAWK_ASSERT (pio->hawk, pin->self != HAWK_NULL);*/
+		HAWK_ASSERT (pin != HAWK_NULL);
+		HAWK_ASSERT (pin->self != HAWK_NULL);
 		return pio_read(pin->self, buf, size, pin->handle);
 	}
 
@@ -2365,8 +2365,8 @@ static hawk_ooi_t pio_output (hawk_tio_t* tio, hawk_tio_cmd_t cmd, void* buf, ha
 	if (cmd == HAWK_TIO_DATA) 
 	{
 		hawk_pio_pin_t* pin = *(hawk_pio_pin_t**)hawk_tio_getxtn(tio);
-		/*HAWK_ASSERT (pio->hawk, pin != HAWK_NULL);
-		HAWK_ASSERT (pio->hawk, pin->self != HAWK_NULL);*/
+		HAWK_ASSERT (pin != HAWK_NULL);
+		HAWK_ASSERT (pin->self != HAWK_NULL);
 		return pio_write(pin->self, buf, size, pin->handle);
 	}
 

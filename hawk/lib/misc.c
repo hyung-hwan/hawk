@@ -273,7 +273,7 @@ hawk_ooch_t* hawk_rtx_strxntokbyrex (
 			return HAWK_NULL; 
 		}
 
-		HAWK_ASSERT (hawk_rtx_gethawk(rtx), n == 1);
+		HAWK_ASSERT (n == 1);
 
 		if (match.len == 0)
 		{
@@ -496,7 +496,7 @@ static int matchtre (hawk_tre_t* tre, int opt, const hawk_oocs_t* str, hawk_oocs
 		return -1;
 	}
 
-	/* HAWK_ASSERT (awk, match[0].rm_so != -1); <--- add back with gem*/
+	HAWK_ASSERT (match[0].rm_so != -1);
 	if (mat)
 	{
 		mat->ptr = &str->ptr[match[0].rm_so];

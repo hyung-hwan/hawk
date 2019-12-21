@@ -117,6 +117,7 @@ libhawk_la_SOURCES =  \
 	tree.c \
 	utf16.c \
 	utf8.c \
+	utl-ass.c \
 	utl-sort.c \
 	utl-str.c \
 	utl-sys.c \

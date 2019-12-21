@@ -160,7 +160,7 @@ void hawk_arr_setscale (hawk_arr_t* arr, int scale)
 {
 	/* The scale should be larger than 0 and less than or equal to the 
 	 * maximum value that the hawk_uint8_t type can hold */
-	/*HAWK_ASSERT (arr->gem, scale > 0 && scale <= HAWK_TYPE_MAX(hawk_uint8_t));*/
+	HAWK_ASSERT (scale > 0 && scale <= HAWK_TYPE_MAX(hawk_uint8_t));
 
 	if (scale <= 0) scale = 1;
 	if (scale > HAWK_TYPE_MAX(hawk_uint8_t)) scale = HAWK_TYPE_MAX(hawk_uint8_t);
@@ -240,7 +240,7 @@ hawk_arr_t* hawk_arr_setcapa (hawk_arr_t* arr, hawk_oow_t capa)
 	{
 		/* to trigger freeers on the items truncated */
 		hawk_arr_delete (arr, capa, arr->size - capa);
-		/*HAWK_ASSERT (arr->gem, arr->size <= capa);*/
+		HAWK_ASSERT (arr->size <= capa);
 	}
 
 	if (capa > 0) 
@@ -331,7 +331,7 @@ hawk_oow_t hawk_arr_insert (hawk_arr_t* arr, hawk_oow_t pos, void* dptr, hawk_oo
 		{
 			if (arr->capa <= 0) 
 			{
-				/*HAWK_ASSERT (arr->gem, arr->size <= 0);*/
+				HAWK_ASSERT (arr->size <= 0);
 				capa = HAWK_ALIGN_POW2(pos + 1, 64);
 			}
 			else 
@@ -567,7 +567,7 @@ hawk_oow_t hawk_arr_pushstack (hawk_arr_t* arr, void* dptr, hawk_oow_t dlen)
 
 void hawk_arr_popstack (hawk_arr_t* arr)
 {
-	/*HAWK_ASSERT (arr->gem, arr->size > 0);*/
+	HAWK_ASSERT (arr->size > 0);
 	hawk_arr_delete (arr, arr->size - 1, 1);
 }
 
@@ -681,7 +681,7 @@ hawk_oow_t hawk_arr_pushheap (hawk_arr_t* arr, void* dptr, hawk_oow_t dlen)
 	if (hawk_arr_insert(arr, index, dptr, dlen) == HAWK_ARR_NIL) return HAWK_ARR_NIL;
 	HEAP_UPDATE_POS (arr, index);
 
-	/*HAWK_ASSERT (arr->gem, arr->size == index + 1);*/
+	HAWK_ASSERT (arr->size == index + 1);
 
 	/* move the item upto the top if it's greater than the parent items */
 	sift_up (arr, index);
@@ -690,7 +690,7 @@ hawk_oow_t hawk_arr_pushheap (hawk_arr_t* arr, void* dptr, hawk_oow_t dlen)
 
 void hawk_arr_popheap (hawk_arr_t* arr)
 {
-	/*HAWK_ASSERT (arr->gem, arr->size > 0);*/
+	HAWK_ASSERT (arr->size > 0);
 	hawk_arr_deleteheap (arr, 0);
 }
 
@@ -698,8 +698,8 @@ void hawk_arr_deleteheap (hawk_arr_t* arr, hawk_oow_t index)
 {
 	slot_t* tmp;
 
-	/*HAWK_ASSERT (arr->gem, arr->size > 0);
-	HAWK_ASSERT (arr->gem, index < arr->size);*/
+	HAWK_ASSERT (arr->size > 0);
+	HAWK_ASSERT (index < arr->size);
 
 	/* remember the item to destroy */
 	tmp = arr->slot[index];
@@ -736,7 +736,7 @@ hawk_oow_t hawk_arr_updateheap (hawk_arr_t* arr, hawk_oow_t index, void* dptr, h
 	int n;
 
 	tmp = arr->slot[index];
-	/*HAWK_ASSERT (arr->gem, tmp != HAWK_NULL);*/
+	HAWK_ASSERT (tmp != HAWK_NULL);
 
 	n = arr->comper(arr, dptr, dlen, DPTR(tmp), DLEN(tmp));
 	if (n)

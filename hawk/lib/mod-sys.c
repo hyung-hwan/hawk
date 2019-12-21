@@ -89,19 +89,17 @@ struct mod_ctx_t
 {
 	hawk_rbt_t* rtxtab;
 
-/*
 	struct
 	{
 		syslog_type_t type;
 		char* ident;
-		hawk_skad_t skad;
+//		hawk_skad_t skad;
 		int syslog_opened; // has openlog() been called?
 		int opt;
 		int fac;
 		int sck;
 		hawk_becs_t* dmsgbuf;
 	} log;
-*/
 };
 typedef struct mod_ctx_t mod_ctx_t;
 
@@ -292,7 +290,7 @@ static HAWK_INLINE sys_list_t* rtx_to_sys_list (hawk_rtx_t* rtx, const hawk_fnc_
 	hawk_rbt_pair_t* pair;
 
 	pair = hawk_rbt_search(mctx->rtxtab, &rtx, HAWK_SIZEOF(rtx));
-	HAWK_ASSERT (hawk_rtx_getawk(rtx), pair != HAWK_NULL);
+	HAWK_ASSERT (pair != HAWK_NULL);
 	return (sys_list_t*)HAWK_RBT_VPTR(pair);
 }
 
@@ -430,7 +428,7 @@ static int fnc_open (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		set_errmsg_on_sys_list_with_syserr (rtx, sys_list);
 	}
 
-	/*HAWK_ASSERT (HAWK_IN_QUICKINT_RANGE(rx));*/
+	HAWK_ASSERT (HAWK_IN_QUICKINT_RANGE(rx));
 	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
@@ -1675,19 +1673,6 @@ static int fnc_strftime (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			hawk_oow_t sl;
 
 #if 0
-			HAWK_MEMSET (&tm, 0, HAWK_SIZEOF(tm));
-			tm.tm_year = bt.year;
-			tm.tm_mon = bt.mon;
-			tm.tm_mday = bt.mday;
-			tm.tm_hour = bt.hour;
-			tm.tm_min = bt.min;
-			tm.tm_sec = bt.sec;
-			tm.tm_isdst = bt.isdst;
-		#if defined(HAVE_STRUCT_TM_TM_GMTOFF)
-			tm.tm_gmtoff = bt.gmtoff;
-		#elif defined(HAVE_STRUCT_TM___TM_GMTOFF)
-			tm.__tm_gmtoff = bt.gmtoff;
-		#endif
 			if (flags & STRFTIME_UTC)
 			{
 			#if defined(HAVE_STRUCT_TM_TM_ZONE)
@@ -1881,7 +1866,7 @@ static int fnc_getnwifcfg (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 					md[5].vptr = (cfg.flags & HAWK_NWIFCFG_LINKUP)? HAWK_T("up"): HAWK_T("down");
 				}
 
-				tmp = hawk_rtx_makemapvalwithdata (rtx, md);
+				tmp = hawk_rtx_makemapvalwithdata(rtx, md);
 				if (tmp)
 				{
 					int x;
@@ -2115,8 +2100,7 @@ static void open_remote_log_socket (hawk_rtx_t* rtx, mod_ctx_t* mctx)
 	int domain = hawk_skadfamily(&mctx->log.skad);
 	int type = SOCK_DGRAM;
 
-	HAWK_ASSERT (mctx->log.sck <= -1);
-
+	//HAWK_ASSERT (mctx->log.sck <= -1);
 
 #if defined(SOCK_NONBLOCK) && defined(SOCK_CLOEXEC)
 	type |= SOCK_NONBLOCK;
@@ -2170,7 +2154,6 @@ static int fnc_openlog (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_nwad_t nwad;
 	syslog_type_t log_type = SYSLOG_LOCAL;
 
-
 	ident = hawk_rtx_getvaloocstr(rtx, hawk_rtx_getarg(rtx, 0), &ident_len);
 	if (!ident) goto done;
 
@@ -2181,7 +2164,7 @@ static int fnc_openlog (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	if (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 1), &opt) <= -1) goto done;
 	if (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 2), &fac) <= -1) goto done;
 
-	if (hawk_comp_bcstr_limited(ident, HAWK_T("remote://"), 9))
+	if (hawk_comp_oocstr_limited(ident, HAWK_T("remote://"), 9, 0))
 	{
 		hawk_ooch_t* slash;
 		/* "udp://remote-addr:remote-port/syslog-identifier" */
@@ -2193,7 +2176,7 @@ static int fnc_openlog (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		if (hawk_strntonwad(actual_ident, slash - actual_ident, &nwad) <= -1) goto done;
 		actual_ident = slash + 1;
 	}
-	else if (hawk_strbeg(ident, HAWK_T("local://")))
+	else if (hawk_comp_oocstr_limited(ident, HAWK_T("local://"), 8, 0))
 	{
 		/* "local://syslog-identifier" */
 		actual_ident = ident + 8;
@@ -2359,18 +2342,8 @@ static int fnc_writelog (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 		static const hawk_bch_t* __syslog_month_names[] =
 		{
-			HAWK_BT("Jan"),
-			HAWK_BT("Feb"),
-			HAWK_BT("Mar"),
-			HAWK_BT("Apr"),
-			HAWK_BT("May"),
-			HAWK_BT("Jun"),
-			HAWK_BT("Jul"),
-			HAWK_BT("Aug"),
-			HAWK_BT("Sep"),
-			HAWK_BT("Oct"),
-			HAWK_BT("Nov"),
-			HAWK_BT("Dec"),
+			"Jan", "Feb", "Mar", "Apr", "May", "Jun",
+			"Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
 		};
 
 		if (mctx->log.sck <= -1) open_remote_log_socket (rtx, mctx);
@@ -2382,7 +2355,7 @@ static int fnc_writelog (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 			if (hawk_get_time(&now) || hawk_localtime(&now, &cnow) <= -1) goto done;
 
-			if (hawk_becs_fmt (
+			if (hawk_becs_fmt(
 				mctx->log.dmsgbuf, HAWK_BT("<%d>%s %02d %02d:%02d:%02d "), 
 				(int)(mctx->log.fac | pri),
 				__syslog_month_names[cnow.mon], cnow.mday, 
@@ -2427,7 +2400,6 @@ done:
 	hawk_rtx_setretval (rtx, retv);
 	return 0;
 }
-
 #endif
 /* ------------------------------------------------------------ */
 
@@ -2787,7 +2759,7 @@ static void unload (hawk_mod_t* mod, hawk_t* awk)
 {
 	mod_ctx_t* mctx = (mod_ctx_t*)mod->ctx;
 
-	HAWK_ASSERT (awk, HAWK_RBT_SIZE(mctx->rtxtab) == 0);
+	HAWK_ASSERT (HAWK_RBT_SIZE(mctx->rtxtab) == 0);
 	hawk_rbt_close (mctx->rtxtab);
 
 	hawk_freemem (awk, mctx);

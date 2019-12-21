@@ -361,7 +361,7 @@ void* hawk_stdmodopen (hawk_t* awk, const hawk_mod_spec_t* spec)
 
 	hawk_freemem (awk, modpath);
 
-	HAWK_ASSERT (awk, HAWK_SIZEOF(h) <= HAWK_SIZEOF(void*));
+	HAWK_ASSERT (HAWK_SIZEOF(h) <= HAWK_SIZEOF(void*));
 	return h;
 
 #elif defined(__OS2__)
@@ -393,7 +393,7 @@ void* hawk_stdmodopen (hawk_t* awk, const hawk_mod_spec_t* spec)
 
 	hawk_freemem (awk, modpath);
 
-	HAWK_ASSERT (awk, HAWK_SIZEOF(h) <= HAWK_SIZEOF(void*));
+	HAWK_ASSERT (HAWK_SIZEOF(h) <= HAWK_SIZEOF(void*));
 	return h;
 
 #elif defined(__DOS__) && defined(HAWK_ENABLE_DOS_DYNAMIC_MODULE)
@@ -423,7 +423,7 @@ void* hawk_stdmodopen (hawk_t* awk, const hawk_mod_spec_t* spec)
 
 	hawk_freemem (awk, modpath);
 	
-	HAWK_ASSERT (awk, HAWK_SIZEOF(h) <= HAWK_SIZEOF(void*));
+	HAWK_ASSERT (HAWK_SIZEOF(h) <= HAWK_SIZEOF(void*));
 	return h;
 
 #elif defined(USE_DLFCN)
@@ -773,7 +773,7 @@ static void log_write (hawk_t* hawk, hawk_bitmask_t mask, const hawk_ooch_t* msg
 			 *    buffer not sufficient. not all got converted yet.
 			 *    write what have been converted this round. */
 
-			HAWK_ASSERT (hawk, ucslen > 0); /* if this fails, the buffer size must be increased */
+			HAWK_ASSERT (ucslen > 0); /* if this fails, the buffer size must be increased */
 
 			/* attempt to write all converted characters */
 			if (write_log(hawk, logfd, buf, bcslen) <= -1) break;
@@ -968,8 +968,8 @@ static int open_parsestd (hawk_t* awk, hawk_sio_arg_t* arg, xtn_t* xtn, hawk_oow
 		/* normal source files */
 	#if defined(HAWK_OOCH_IS_BCH)
 		case HAWK_PARSESTD_FILE:
-			HAWK_ASSERT (moo, &psin->u.fileb.path == &psin->u.file.path);
-			HAWK_ASSERT (moo, &psin->u.fileb.cmgr == &psin->u.file.cmgr);
+			HAWK_ASSERT (&psin->u.fileb.path == &psin->u.file.path);
+			HAWK_ASSERT (&psin->u.fileb.cmgr == &psin->u.file.cmgr);
 	#endif
 		case HAWK_PARSESTD_FILEB:
 		{
@@ -1002,8 +1002,8 @@ static int open_parsestd (hawk_t* awk, hawk_sio_arg_t* arg, xtn_t* xtn, hawk_oow
 
 	#if defined(HAWK_OOCH_IS_UCH)
 		case HAWK_PARSESTD_FILE:
-			HAWK_ASSERT (moo, &psin->u.fileu.path == &psin->u.file.path);
-			HAWK_ASSERT (moo, &psin->u.fileu.cmgr == &psin->u.file.cmgr);
+			HAWK_ASSERT (&psin->u.fileu.path == &psin->u.file.path);
+			HAWK_ASSERT (&psin->u.fileu.cmgr == &psin->u.file.cmgr);
 	#endif
 		case HAWK_PARSESTD_FILEU:
 		{
@@ -1110,7 +1110,7 @@ static hawk_ooi_t sf_in_open (hawk_t* awk, hawk_sio_arg_t* arg, xtn_t* xtn)
 
 		hawk_ooi_t x;
 
-		HAWK_ASSERT (awk, arg == &awk->sio.arg);
+		HAWK_ASSERT (arg == &awk->sio.arg);
 
 		x = open_parsestd(awk, arg, xtn, 0);
 		if (x >= 0) 
@@ -1134,7 +1134,7 @@ static hawk_ooi_t sf_in_open (hawk_t* awk, hawk_sio_arg_t* arg, xtn_t* xtn)
 		hawk_ooch_t fbuf[64];
 		hawk_ooch_t* dbuf = HAWK_NULL;
 
-		HAWK_ASSERT (awk, arg->name != HAWK_NULL);
+		HAWK_ASSERT (arg->name != HAWK_NULL);
 
 		path = arg->name;
 		if (arg->prev->handle)
@@ -1194,7 +1194,7 @@ static hawk_ooi_t sf_in_close (hawk_t* awk, hawk_sio_arg_t* arg, xtn_t* xtn)
 			case HAWK_PARSESTD_FILE:
 			case HAWK_PARSESTD_FILEB:
 			case HAWK_PARSESTD_FILEU:
-				HAWK_ASSERT (awk, arg->handle != HAWK_NULL);
+				HAWK_ASSERT (arg->handle != HAWK_NULL);
 				hawk_sio_close (arg->handle);
 				break;
 
@@ -1212,7 +1212,7 @@ static hawk_ooi_t sf_in_close (hawk_t* awk, hawk_sio_arg_t* arg, xtn_t* xtn)
 	else
 	{
 		/* handle the included source file - @include */
-		HAWK_ASSERT (awk, arg->handle != HAWK_NULL);
+		HAWK_ASSERT (arg->handle != HAWK_NULL);
 		hawk_sio_close (arg->handle);
 	}
 
@@ -1225,7 +1225,7 @@ static hawk_ooi_t sf_in_read (hawk_t* awk, hawk_sio_arg_t* arg, hawk_ooch_t* dat
 	{
 		hawk_ooi_t n;
 
-		HAWK_ASSERT (awk, arg == &awk->sio.arg);
+		HAWK_ASSERT (arg == &awk->sio.arg);
 
 	again:
 		switch (xtn->s.in.x[xtn->s.in.xindex].type)
@@ -1234,7 +1234,7 @@ static hawk_ooi_t sf_in_read (hawk_t* awk, hawk_sio_arg_t* arg, hawk_ooch_t* dat
 			case HAWK_PARSESTD_FILE:
 		#endif
 			case HAWK_PARSESTD_FILEU:
-				HAWK_ASSERT (awk, arg->handle != HAWK_NULL);
+				HAWK_ASSERT (arg->handle != HAWK_NULL);
 				n = hawk_sio_getoochars(arg->handle, data, size);
 				if (n <= -1)
 				{
@@ -1252,7 +1252,7 @@ static hawk_ooi_t sf_in_read (hawk_t* awk, hawk_sio_arg_t* arg, hawk_ooch_t* dat
 			case HAWK_PARSESTD_FILE:
 		#endif
 			case HAWK_PARSESTD_FILEB:
-				HAWK_ASSERT (awk, arg->handle != HAWK_NULL);
+				HAWK_ASSERT (arg->handle != HAWK_NULL);
 				n = hawk_sio_getoochars(arg->handle, data, size);
 				if (n <= -1)
 				{
@@ -1368,8 +1368,8 @@ static hawk_ooi_t sf_in_read (hawk_t* awk, hawk_sio_arg_t* arg, hawk_ooch_t* dat
 		/* handle the included source file - @include */
 		hawk_ooi_t n;
 
-		HAWK_ASSERT (awk, arg->name != HAWK_NULL);
-		HAWK_ASSERT (awk, arg->handle != HAWK_NULL);
+		HAWK_ASSERT (arg->name != HAWK_NULL);
+		HAWK_ASSERT (arg->handle != HAWK_NULL);
 
 		n = hawk_sio_getoochars(arg->handle, data, size);
 		if (n <= -1)
@@ -1416,8 +1416,8 @@ static hawk_ooi_t sf_out (hawk_t* awk, hawk_sio_cmd_t cmd, hawk_sio_arg_t* arg, 
 			{
 			#if defined(HAWK_OOCH_IS_BCH)
 				case HAWK_PARSESTD_FILE:
-					HAWK_ASSERT (moo, &xtn->s.out.x->u.fileb.path == &xtn->s.out.x->u.file.path);
-					HAWK_ASSERT (moo, &xtn->s.out.x->u.fileb.cmgr == &xtn->s.out.x->u.file.cmgr);
+					HAWK_ASSERT (&xtn->s.out.x->u.fileb.path == &xtn->s.out.x->u.file.path);
+					HAWK_ASSERT (&xtn->s.out.x->u.fileb.cmgr == &xtn->s.out.x->u.file.cmgr);
 			#endif
 				case HAWK_PARSESTD_FILEB:
 					if (xtn->s.out.x->u.fileb.path == HAWK_NULL || (xtn->s.out.x->u.fileb.path[0] == '-' && xtn->s.out.x->u.fileb.path[1] == '\0'))
@@ -1445,8 +1445,8 @@ static hawk_ooi_t sf_out (hawk_t* awk, hawk_sio_cmd_t cmd, hawk_sio_arg_t* arg, 
 
 			#if defined(HAWK_OOCH_IS_UCH)
 				case HAWK_PARSESTD_FILE:
-					HAWK_ASSERT (moo, &xtn->s.out.x->u.fileu.path == &xtn->s.out.x->u.file.path);
-					HAWK_ASSERT (moo, &xtn->s.out.x->u.fileu.cmgr == &xtn->s.out.x->u.file.cmgr);
+					HAWK_ASSERT (&xtn->s.out.x->u.fileu.path == &xtn->s.out.x->u.file.path);
+					HAWK_ASSERT (&xtn->s.out.x->u.fileu.cmgr == &xtn->s.out.x->u.file.cmgr);
 			#endif
 				case HAWK_PARSESTD_FILEU:
 					if (xtn->s.out.x->u.fileu.path == HAWK_NULL || (xtn->s.out.x->u.fileu.path[0] == '-' && xtn->s.out.x->u.fileu.path[1] == '\0'))
@@ -1522,7 +1522,7 @@ static hawk_ooi_t sf_out (hawk_t* awk, hawk_sio_cmd_t cmd, hawk_sio_arg_t* arg, 
 				case HAWK_PARSESTD_FILEU:
 				{
 					hawk_ooi_t n;
-					HAWK_ASSERT (awk, xtn->s.out.u.file.sio != HAWK_NULL);
+					HAWK_ASSERT (xtn->s.out.u.file.sio != HAWK_NULL);
 					n = hawk_sio_putoochars(xtn->s.out.u.file.sio, data, size);
 					if (n <= -1)
 					{
@@ -1660,7 +1660,7 @@ int hawk_parsestd (hawk_t* awk, hawk_parsestd_t in[], hawk_parsestd_t* out)
 			case HAWK_PARSESTD_OOCS:
 				if (n >= 0)
 				{
-					HAWK_ASSERT (awk, xtn->s.out.u.oocs.buf != HAWK_NULL);
+					HAWK_ASSERT (xtn->s.out.u.oocs.buf != HAWK_NULL);
 					hawk_ooecs_yield (xtn->s.out.u.oocs.buf, &out->u.oocs, 0);
 				}
 				if (xtn->s.out.u.oocs.buf) hawk_ooecs_close (xtn->s.out.u.oocs.buf);
@@ -1669,7 +1669,7 @@ int hawk_parsestd (hawk_t* awk, hawk_parsestd_t in[], hawk_parsestd_t* out)
 			case HAWK_PARSESTD_BCS:
 				if (n >= 0)
 				{
-					HAWK_ASSERT (awk, xtn->s.out.u.bcs.buf != HAWK_NULL);
+					HAWK_ASSERT (xtn->s.out.u.bcs.buf != HAWK_NULL);
 					hawk_becs_yield (xtn->s.out.u.bcs.buf, &out->u.bcs, 0);
 				}
 				if (xtn->s.out.u.bcs.buf) hawk_becs_close (xtn->s.out.u.bcs.buf);
@@ -1678,7 +1678,7 @@ int hawk_parsestd (hawk_t* awk, hawk_parsestd_t in[], hawk_parsestd_t* out)
 			case HAWK_PARSESTD_UCS:
 				if (n >= 0)
 				{
-					HAWK_ASSERT (awk, xtn->s.out.u.ucs.buf != HAWK_NULL);
+					HAWK_ASSERT (xtn->s.out.u.ucs.buf != HAWK_NULL);
 					hawk_uecs_yield (xtn->s.out.u.ucs.buf, &out->u.ucs, 0);
 				}
 				if (xtn->s.out.u.ucs.buf) hawk_uecs_close (xtn->s.out.u.ucs.buf);
@@ -2013,7 +2013,7 @@ static int open_rio_console (hawk_rtx_t* rtx, hawk_rio_arg_t* riod)
 		{
 			/* if no input files is specified, 
 			 * open the standard input */
-			HAWK_ASSERT (hawk_rtx_gethawk(rtx), rxtn->c.in.index == 0);
+			HAWK_ASSERT (rxtn->c.in.index == 0);
 
 			if (rxtn->c.in.count == 0)
 			{
@@ -2082,19 +2082,19 @@ static int open_rio_console (hawk_rtx_t* rtx, hawk_rio_arg_t* riod)
 			 *        { print $0; }' file1 file2
 			 */
 			argv = hawk_rtx_getgbl(rtx, xtn->gbl_argv);
-			HAWK_ASSERT (hawk_rtx_gethawk(rtx), argv != HAWK_NULL);
-			HAWK_ASSERT (hawk_rtx_gethawk(rtx), HAWK_RTX_GETVALTYPE (rtx, argv) == HAWK_VAL_MAP);
+			HAWK_ASSERT (argv != HAWK_NULL);
+			HAWK_ASSERT (HAWK_RTX_GETVALTYPE (rtx, argv) == HAWK_VAL_MAP);
 
 			map = ((hawk_val_map_t*)argv)->map;
-			HAWK_ASSERT (hawk_rtx_gethawk(rtx), map != HAWK_NULL);
+			HAWK_ASSERT (map != HAWK_NULL);
 			
 			ibuflen = hawk_int_to_oocstr (rxtn->c.in.index + 1, 10, HAWK_NULL, ibuf, HAWK_COUNTOF(ibuf));
 
 			pair = hawk_htb_search(map, ibuf, ibuflen);
-			HAWK_ASSERT (hawk_rtx_gethawk(rtx), pair != HAWK_NULL);
+			HAWK_ASSERT (pair != HAWK_NULL);
 
 			v = HAWK_HTB_VPTR(pair);
-			HAWK_ASSERT (hawk_rtx_gethawk(rtx), v != HAWK_NULL);
+			HAWK_ASSERT (v != HAWK_NULL);
 
 			as.ptr = hawk_rtx_getvaloocstr(rtx, v, &as.len);
 			if (as.ptr == HAWK_NULL) return -1;
@@ -2158,7 +2158,7 @@ static int open_rio_console (hawk_rtx_t* rtx, hawk_rio_arg_t* riod)
 	{
 		if (rxtn->c.out.files == HAWK_NULL)
 		{
-			HAWK_ASSERT (hawk_rtx_gethawk(rtx), rxtn->c.out.index == 0);
+			HAWK_ASSERT (rxtn->c.out.index == 0);
 
 			if (rxtn->c.out.count == 0)
 			{
@@ -2355,7 +2355,7 @@ static int build_argcv (
 			}
 
 			key_len = hawk_int_to_oocstr (argc, 10, HAWK_NULL, key, HAWK_COUNTOF(key));
-			HAWK_ASSERT (hawk_rtx_gethawk(rtx), key_len != (hawk_oow_t)-1);
+			HAWK_ASSERT (key_len != (hawk_oow_t)-1);
 
 			hawk_rtx_refupval (rtx, v_tmp);
 
@@ -2818,7 +2818,7 @@ static int fnc_setioattr (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	int tmout;
 
 	rxtn = GET_RXTN(rtx);
-	HAWK_ASSERT (hawk, rxtn->cmgrtab_inited == 1);
+	HAWK_ASSERT (rxtn->cmgrtab_inited == 1);
 
 	for (i = 0; i < 3; i++)
 	{
@@ -2940,7 +2940,7 @@ static int fnc_getioattr (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	ioattr_t ioattr_buf;
 
 	rxtn = GET_RXTN(rtx);
-	HAWK_ASSERT (hawk_rtx_gethawk(rtx), rxtn->cmgrtab_inited == 1);
+	HAWK_ASSERT (rxtn->cmgrtab_inited == 1);
 
 	for (i = 0; i < 2; i++)
 	{
@@ -3024,7 +3024,7 @@ hawk_cmgr_t* hawk_rtx_getiocmgrstd (hawk_rtx_t* rtx, const hawk_ooch_t* ioname)
 	rxtn_t* rxtn = GET_RXTN(rtx);
 	ioattr_t* ioattr;
 
-	HAWK_ASSERT (hawk_rtx_gethawk(rtx), rxtn->cmgrtab_inited == 1);
+	HAWK_ASSERT (rxtn->cmgrtab_inited == 1);
 
 	ioattr = get_ioattr(&rxtn->cmgrtab, ioname, hawk_count_oocstr(ioname));
 	if (ioattr) return ioattr->cmgr;
