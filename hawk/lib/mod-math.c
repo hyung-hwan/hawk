@@ -78,7 +78,7 @@ static int fnc_math_1 (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, hawk_math1_t 
 	int n;
 
 	nargs = hawk_rtx_getnargs (rtx);
-	HAWK_ASSERT (hawk_rtx_gethawk(rtx), nargs == 1);
+	HAWK_ASSERT (nargs == 1);
 
 	a0 = hawk_rtx_getarg(rtx, 0);
 
@@ -101,7 +101,7 @@ static int fnc_math_2 (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, hawk_math2_t 
 	int n;
 
 	nargs = hawk_rtx_getnargs (rtx);
-	HAWK_ASSERT (hawk_rtx_gethawk(rtx), nargs == 2);
+	HAWK_ASSERT (nargs == 2);
 
 	a0 = hawk_rtx_getarg(rtx, 0);
 	a1 = hawk_rtx_getarg(rtx, 1);
@@ -564,7 +564,7 @@ static int fnc_srand (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 	modctx = (modctx_t*)fi->mod->ctx;
 	nargs = hawk_rtx_getnargs(rtx);
-	HAWK_ASSERT (hawk_rtx_gethawk(rtx), nargs == 0 || nargs == 1);
+	HAWK_ASSERT (nargs == 0 || nargs == 1);
 
 	prev = modctx->seed;
 

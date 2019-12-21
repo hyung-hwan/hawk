@@ -158,9 +158,9 @@ int hawk_init (hawk_t* awk, hawk_mmgr_t* mmgr, hawk_cmgr_t* cmgr, const hawk_prm
 	awk->haltall = 0;
 
 	/* progagate the primitive functions */
-	HAWK_ASSERT (awk, prm           != HAWK_NULL);
-	HAWK_ASSERT (awk, prm->math.pow != HAWK_NULL);
-	HAWK_ASSERT (awk, prm->math.mod != HAWK_NULL);
+	HAWK_ASSERT (prm           != HAWK_NULL);
+	HAWK_ASSERT (prm->math.pow != HAWK_NULL);
+	HAWK_ASSERT (prm->math.mod != HAWK_NULL);
 	if (prm           == HAWK_NULL || 
 	    prm->math.pow == HAWK_NULL ||
 	    prm->math.mod == HAWK_NULL)
@@ -363,7 +363,7 @@ void hawk_clear (hawk_t* awk)
 	hawk_rbt_walk (awk->modtab, unload_module, awk);
 	hawk_rbt_clear (awk->modtab);
 
-	HAWK_ASSERT (awk, HAWK_ARR_SIZE(awk->parse.gbls) == awk->tree.ngbls);
+	HAWK_ASSERT (HAWK_ARR_SIZE(awk->parse.gbls) == awk->tree.ngbls);
 	/* delete all non-builtin global variables */
 	hawk_arr_delete (
 		awk->parse.gbls, awk->tree.ngbls_base, 
@@ -395,7 +395,6 @@ void hawk_clear (hawk_t* awk)
 
 	if (awk->tree.begin) 
 	{
-		/*HAWK_ASSERT (awk, awk->tree.begin->next == HAWK_NULL);*/
 		hawk_clrpt (awk, awk->tree.begin);
 		awk->tree.begin = HAWK_NULL;
 		awk->tree.begin_tail = HAWK_NULL;
@@ -403,7 +402,6 @@ void hawk_clear (hawk_t* awk)
 
 	if (awk->tree.end) 
 	{
-		/*HAWK_ASSERT (awk, awk->tree.end->next == HAWK_NULL);*/
 		hawk_clrpt (awk, awk->tree.end);
 		awk->tree.end = HAWK_NULL;
 		awk->tree.end_tail = HAWK_NULL;

@@ -350,11 +350,11 @@ static int fnc_close (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_oow_t len, optlen = 0;
        
 	nargs = hawk_rtx_getnargs(rtx);
-	HAWK_ASSERT (hawk_rtx_gethawk(rtx), nargs == 1 || nargs == 2);
+	HAWK_ASSERT (nargs == 1 || nargs == 2);
 
 	a0 = hawk_rtx_getarg (rtx, 0);
 	if (nargs >= 2) a1 = hawk_rtx_getarg(rtx, 1);
-	HAWK_ASSERT (hawk_rtx_gethawk(rtx), a0 != HAWK_NULL);
+	HAWK_ASSERT (a0 != HAWK_NULL);
 
 	name = hawk_rtx_getvaloocstr(rtx, a0, &len);
 	if (name == HAWK_NULL) return -1;
@@ -462,7 +462,7 @@ static int fnc_fflush (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	int n;
 
 	nargs = hawk_rtx_getnargs (rtx);
-	HAWK_ASSERT (hawk_rtx_gethawk(rtx), nargs == 0 || nargs == 1);
+	HAWK_ASSERT (nargs == 0 || nargs == 1);
 
 	if (nargs == 0)
 	{
@@ -692,7 +692,7 @@ int hawk_fnc_length (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_oow_t len;
 
 	nargs = hawk_rtx_getnargs (rtx);
-	HAWK_ASSERT (hawk_rtx_gethawk(rtx), nargs >= 0 && nargs <= 1);
+	HAWK_ASSERT (nargs >= 0 && nargs <= 1);
 	
 	if (nargs == 0)
 	{
@@ -743,7 +743,7 @@ int hawk_fnc_substr (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	int n;
 
 	nargs = hawk_rtx_getnargs(rtx);
-	HAWK_ASSERT (hawk_rtx_gethawk(rtx), nargs >= 2 && nargs <= 3);
+	HAWK_ASSERT (nargs >= 2 && nargs <= 3);
 
 	a0 = hawk_rtx_getarg(rtx, 0);
 	a1 = hawk_rtx_getarg(rtx, 1);
@@ -821,14 +821,14 @@ int hawk_fnc_split (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	str.len = 0;
 
 	nargs = hawk_rtx_getnargs(rtx);
-	HAWK_ASSERT (hawk_rtx_gethawk(rtx), nargs >= 2 && nargs <= 3);
+	HAWK_ASSERT (nargs >= 2 && nargs <= 3);
 
 	a0 = hawk_rtx_getarg(rtx, 0);
 	a1 = hawk_rtx_getarg(rtx, 1);
 	a2 = (nargs >= 3)? hawk_rtx_getarg (rtx, 2): HAWK_NULL;
 
 	a1_vtype = HAWK_RTX_GETVALTYPE (rtx, a1);
-	HAWK_ASSERT (hawk_rtx_gethawk(rtx), a1_vtype == HAWK_VAL_REF);
+	HAWK_ASSERT (a1_vtype == HAWK_VAL_REF);
 
 	str.ptr = hawk_rtx_getvaloocstr(rtx, a0, &str.len);
 	if (str.ptr == HAWK_NULL) goto oops;
@@ -941,7 +941,7 @@ int hawk_fnc_split (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			break; 
 		}
 
-		HAWK_ASSERT (hawk_rtx_gethawk(rtx), (tok.ptr != HAWK_NULL && tok.len > 0) || tok.len == 0);
+		HAWK_ASSERT ((tok.ptr != HAWK_NULL && tok.len > 0) || tok.len == 0);
 
 		/* create the field string - however, the split function must
 		 * create a numeric string if the string is a number */
@@ -951,7 +951,7 @@ int hawk_fnc_split (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 		/* put it into the map */
 		key_len = hawk_int_to_oocstr(++nflds, 10, HAWK_NULL, key_buf, HAWK_COUNTOF(key_buf));
-		HAWK_ASSERT (hawk_rtx_gethawk(rtx), key_len != (hawk_oow_t)-1);
+		HAWK_ASSERT (key_len != (hawk_oow_t)-1);
 
 		if (hawk_rtx_setmapvalfld(rtx, t1, key_buf, key_len, t2) == HAWK_NULL)
 		{
@@ -1094,14 +1094,14 @@ static int __substitute (hawk_rtx_t* rtx, hawk_int_t max_count)
 	s1.len = 0;
 
 	nargs = hawk_rtx_getnargs(rtx);
-	HAWK_ASSERT (hawk_rtx_gethawk(rtx), nargs >= 2 && nargs <= 3);
+	HAWK_ASSERT (nargs >= 2 && nargs <= 3);
 
 	a0 = hawk_rtx_getarg(rtx, 0);
 	a1 = hawk_rtx_getarg(rtx, 1);
 	a2 = (nargs >= 3)? hawk_rtx_getarg(rtx, 2): HAWK_NULL;
 
 	a0_vtype = HAWK_RTX_GETVALTYPE (rtx, a0);
-	HAWK_ASSERT (hawk_rtx_gethawk(rtx), a2 == HAWK_NULL || HAWK_RTX_GETVALTYPE(rtx, a2) == HAWK_VAL_REF);
+	HAWK_ASSERT (a2 == HAWK_NULL || HAWK_RTX_GETVALTYPE(rtx, a2) == HAWK_VAL_REF);
 
 	if (a0_vtype == HAWK_VAL_REX)
 	{
@@ -1314,7 +1314,7 @@ int hawk_fnc_match (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_ooecs_t* tmpbuf = HAWK_NULL;
 
 	nargs = hawk_rtx_getnargs(rtx);
-	HAWK_ASSERT (hawk_rtx_gethawk(rtx), nargs >= 2 && nargs <= 4);
+	HAWK_ASSERT (nargs >= 2 && nargs <= 4);
 	
 	a0 = hawk_rtx_getarg(rtx, 0);
 	a1 = hawk_rtx_getarg(rtx, 1);
@@ -1456,7 +1456,7 @@ int hawk_fnc_sprintf (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_val_t* a0;
 
 	nargs = hawk_rtx_getnargs(rtx);
-	HAWK_ASSERT (hawk_rtx_gethawk(rtx), nargs > 0);
+	HAWK_ASSERT (nargs > 0);
 
 	a0 = hawk_rtx_getarg(rtx, 0);
 	if (HAWK_RTX_GETVALTYPE(rtx, a0) == HAWK_VAL_MBS)
@@ -1636,7 +1636,7 @@ static HAWK_INLINE int __fnc_asort (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, 
 
 	a0 = hawk_rtx_getarg(rtx, 0);
 	a0_type = HAWK_RTX_GETVALTYPE(rtx, a0);
-	HAWK_ASSERT (hawk_rtx_gethawk(rtx), a0_type == HAWK_VAL_REF);
+	HAWK_ASSERT (a0_type == HAWK_VAL_REF);
 
 	v_type = hawk_rtx_getrefvaltype(rtx, (hawk_val_ref_t*)a0);
 	if (v_type != HAWK_VAL_MAP)
@@ -1652,7 +1652,7 @@ static HAWK_INLINE int __fnc_asort (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, 
 	}
 
 	a0_val = hawk_rtx_getrefval(rtx, (hawk_val_ref_t*)a0);
-	HAWK_ASSERT (hawk_rtx_gethawk(rtx), HAWK_RTX_GETVALTYPE(rtx, a0_val) == HAWK_VAL_MAP);
+	HAWK_ASSERT (HAWK_RTX_GETVALTYPE(rtx, a0_val) == HAWK_VAL_MAP);
 
 	if (nargs >= 2)
 	{
@@ -1684,7 +1684,7 @@ static HAWK_INLINE int __fnc_asort (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, 
 	if (!hawk_rtx_getfirstmapvalitr(rtx, a0_val, &itr)) goto done; /* map empty */
 
 	msz = hawk_htb_getsize(((hawk_val_map_t*)a0_val)->map);
-	HAWK_ASSERT (hawk_rtx_gethawk(rtx), msz > 0);
+	HAWK_ASSERT (msz > 0);
 
 	va = (hawk_val_t**)hawk_rtx_allocmem(rtx, msz * HAWK_SIZEOF(*va));
 	if (!va) return -1;

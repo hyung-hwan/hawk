@@ -221,7 +221,7 @@ static int print_expr (hawk_t* awk, hawk_nde_t* nde)
 			PUT_SRCSTR (awk, HAWK_T(" "));
 			PRINT_EXPR (awk, px->right);
 
-			HAWK_ASSERT (awk, px->right->next == HAWK_NULL);
+			HAWK_ASSERT (px->right->next == HAWK_NULL);
 			break;
 		}
 
@@ -231,7 +231,7 @@ static int print_expr (hawk_t* awk, hawk_nde_t* nde)
 
 			PUT_SRCSTR (awk, HAWK_T("("));
 			PRINT_EXPR (awk, px->left);
-			HAWK_ASSERT (awk, px->left->next == HAWK_NULL);
+			HAWK_ASSERT (px->left->next == HAWK_NULL);
 
 			PUT_SRCSTR (awk, HAWK_T(" "));
 			PUT_SRCSTR (awk, binop_str[px->opcode][(awk->opt.trait & HAWK_BLANKCONCAT)? 0: 1]);
@@ -242,7 +242,7 @@ static int print_expr (hawk_t* awk, hawk_nde_t* nde)
 			PRINT_EXPR (awk, px->right);
 			if (px->right->type == HAWK_NDE_ASS) 
 				PUT_SRCSTR (awk, HAWK_T(")"));
-			HAWK_ASSERT (awk, px->right->next == HAWK_NULL); 
+			HAWK_ASSERT (px->right->next == HAWK_NULL); 
 			PUT_SRCSTR (awk, HAWK_T(")"));
 			break;
 		}
@@ -250,7 +250,7 @@ static int print_expr (hawk_t* awk, hawk_nde_t* nde)
 		case HAWK_NDE_EXP_UNR:
 		{
 			hawk_nde_exp_t* px = (hawk_nde_exp_t*)nde;
-			HAWK_ASSERT (awk, px->right == HAWK_NULL);
+			HAWK_ASSERT (px->right == HAWK_NULL);
 
 			PUT_SRCSTR (awk, HAWK_T("("));
 			PUT_SRCSTR (awk, unrop_str[px->opcode]);
@@ -264,7 +264,7 @@ static int print_expr (hawk_t* awk, hawk_nde_t* nde)
 		case HAWK_NDE_EXP_INCPRE:
 		{
 			hawk_nde_exp_t* px = (hawk_nde_exp_t*)nde;
-			HAWK_ASSERT (awk, px->right == HAWK_NULL);
+			HAWK_ASSERT (px->right == HAWK_NULL);
 
 			PUT_SRCSTR (awk, incop_str[px->opcode]);
 			PUT_SRCSTR (awk, HAWK_T("("));
@@ -276,7 +276,7 @@ static int print_expr (hawk_t* awk, hawk_nde_t* nde)
 		case HAWK_NDE_EXP_INCPST:
 		{
 			hawk_nde_exp_t* px = (hawk_nde_exp_t*)nde;
-			HAWK_ASSERT (awk, px->right == HAWK_NULL);
+			HAWK_ASSERT (px->right == HAWK_NULL);
 
 			PUT_SRCSTR (awk, HAWK_T("("));
 			PRINT_EXPR (awk, px->left);
@@ -507,14 +507,14 @@ static int print_expr (hawk_t* awk, hawk_nde_t* nde)
 			hawk_ooch_t tmp[HAWK_SIZEOF(hawk_int_t)*8+2]; 
 			hawk_oow_t n;
 			hawk_nde_var_t* px = (hawk_nde_var_t*)nde;
-			HAWK_ASSERT (awk, px->id.idxa != (hawk_oow_t)-1);
+			HAWK_ASSERT (px->id.idxa != (hawk_oow_t)-1);
 
 			n = hawk_int_to_oocstr(px->id.idxa, 10, HAWK_NULL, tmp, HAWK_COUNTOF(tmp));
 
 			PUT_SRCSTR (awk, HAWK_T("__p"));
 			PUT_SRCSTRN (awk, tmp, n);
 
-			HAWK_ASSERT (awk, px->idx == HAWK_NULL);
+			HAWK_ASSERT (px->idx == HAWK_NULL);
 			break;
 		}
 
@@ -522,8 +522,8 @@ static int print_expr (hawk_t* awk, hawk_nde_t* nde)
 		{
 			hawk_oow_t n;
 			hawk_nde_var_t* px = (hawk_nde_var_t*)nde;
-			HAWK_ASSERT (awk, px->id.idxa != (hawk_oow_t)-1);
-			HAWK_ASSERT (awk, px->idx != HAWK_NULL);
+			HAWK_ASSERT (px->id.idxa != (hawk_oow_t)-1);
+			HAWK_ASSERT (px->idx != HAWK_NULL);
 
 			PUT_SRCSTR (awk, HAWK_T("__p"));
 			n = hawk_int_to_oocstr(px->id.idxa, 10, HAWK_NULL, awk->tmp.fmt, HAWK_COUNTOF(awk->tmp.fmt));
@@ -537,8 +537,8 @@ static int print_expr (hawk_t* awk, hawk_nde_t* nde)
 		case HAWK_NDE_NAMED:
 		{
 			hawk_nde_var_t* px = (hawk_nde_var_t*)nde;
-			HAWK_ASSERT (awk, px->id.idxa == (hawk_oow_t)-1);
-			HAWK_ASSERT (awk, px->idx == HAWK_NULL);
+			HAWK_ASSERT (px->id.idxa == (hawk_oow_t)-1);
+			HAWK_ASSERT (px->idx == HAWK_NULL);
 
 			PUT_SRCSTRN (awk, px->id.name.ptr, px->id.name.len);
 			break;
@@ -547,8 +547,8 @@ static int print_expr (hawk_t* awk, hawk_nde_t* nde)
 		case HAWK_NDE_NAMEDIDX:
 		{
 			hawk_nde_var_t* px = (hawk_nde_var_t*)nde;
-			HAWK_ASSERT (awk, px->id.idxa == (hawk_oow_t)-1);
-			HAWK_ASSERT (awk, px->idx != HAWK_NULL);
+			HAWK_ASSERT (px->id.idxa == (hawk_oow_t)-1);
+			HAWK_ASSERT (px->idx != HAWK_NULL);
 
 			PUT_SRCSTRN (awk, px->id.name.ptr, px->id.name.len);
 			PUT_SRCSTR (awk, HAWK_T("["));
@@ -590,7 +590,7 @@ static int print_expr (hawk_t* awk, hawk_nde_t* nde)
 			{
 				PUT_SRCSTRN (awk, px->id.name.ptr, px->id.name.len);
 			}
-			HAWK_ASSERT (awk, px->idx == HAWK_NULL);
+			HAWK_ASSERT (px->idx == HAWK_NULL);
 			break;
 		}
 
@@ -629,7 +629,7 @@ static int print_expr (hawk_t* awk, hawk_nde_t* nde)
 				PUT_SRCSTRN (awk, px->id.name.ptr, px->id.name.len);
 				PUT_SRCSTR (awk, HAWK_T("["));
 			}
-			HAWK_ASSERT (awk, px->idx != HAWK_NULL);
+			HAWK_ASSERT (px->idx != HAWK_NULL);
 			PRINT_EXPR_LIST (awk, px->idx);
 			PUT_SRCSTR (awk, HAWK_T("]"));
 			break;
@@ -650,7 +650,7 @@ static int print_expr (hawk_t* awk, hawk_nde_t* nde)
 			{
 				PUT_SRCSTRN (awk, px->id.name.ptr, px->id.name.len);
 			}
-			HAWK_ASSERT (awk, px->idx == HAWK_NULL);
+			HAWK_ASSERT (px->idx == HAWK_NULL);
 			break;
 		}
 
@@ -671,7 +671,7 @@ static int print_expr (hawk_t* awk, hawk_nde_t* nde)
 				PUT_SRCSTRN (awk, px->id.name.ptr, px->id.name.len);
 				PUT_SRCSTR (awk, HAWK_T("["));
 			}
-			HAWK_ASSERT (awk, px->idx != HAWK_NULL);
+			HAWK_ASSERT (px->idx != HAWK_NULL);
 			PRINT_EXPR_LIST (awk, px->idx);
 			PUT_SRCSTR (awk, HAWK_T("]"));
 			break;
@@ -850,7 +850,7 @@ static int print_stmt (hawk_t* awk, hawk_nde_t* p, int depth)
 			PUT_SRCSTR (awk, HAWK_T(")"));
 			PUT_NL (awk);
 
-			HAWK_ASSERT (awk, px->then_part != HAWK_NULL);
+			HAWK_ASSERT (px->then_part != HAWK_NULL);
 			if (px->then_part->type == HAWK_NDE_BLK)
 				PRINT_STMTS (awk, px->then_part, depth);
 			else
@@ -1011,7 +1011,7 @@ static int print_stmt (hawk_t* awk, hawk_nde_t* p, int depth)
 				hawk_getkwname (awk, HAWK_KWID_RETURN, &kw);
 				PUT_SRCSTRN (awk, kw.ptr, kw.len);
 				PUT_SRCSTR (awk, HAWK_T(" "));
-				HAWK_ASSERT (awk, ((hawk_nde_return_t*)p)->val->next == HAWK_NULL);
+				HAWK_ASSERT (((hawk_nde_return_t*)p)->val->next == HAWK_NULL);
 
 				PRINT_EXPR (awk, ((hawk_nde_return_t*)p)->val);
 				PUT_SRCSTR (awk, HAWK_T(";"));
@@ -1037,7 +1037,7 @@ static int print_stmt (hawk_t* awk, hawk_nde_t* p, int depth)
 				hawk_getkwname (awk, (px->abort? HAWK_KWID_XABORT: HAWK_KWID_EXIT), &kw);
 				PUT_SRCSTRN (awk, kw.ptr, kw.len);
 				PUT_SRCSTR (awk, HAWK_T(" "));
-				HAWK_ASSERT (awk, px->val->next == HAWK_NULL);
+				HAWK_ASSERT (px->val->next == HAWK_NULL);
 				PRINT_EXPR (awk, px->val);
 				PUT_SRCSTR (awk, HAWK_T(";"));
 				PUT_NL (awk);
@@ -1294,8 +1294,8 @@ void hawk_clrpt (hawk_t* awk, hawk_nde_t* tree)
 			case HAWK_NDE_EXP_BIN:
 			{
 				hawk_nde_exp_t* px = (hawk_nde_exp_t*)p;
-				HAWK_ASSERT (awk, px->left->next == HAWK_NULL);
-				HAWK_ASSERT (awk, px->right->next == HAWK_NULL);
+				HAWK_ASSERT (px->left->next == HAWK_NULL);
+				HAWK_ASSERT (px->right->next == HAWK_NULL);
 
 				hawk_clrpt (awk, px->left);
 				hawk_clrpt (awk, px->right);
@@ -1308,7 +1308,7 @@ void hawk_clrpt (hawk_t* awk, hawk_nde_t* tree)
 			case HAWK_NDE_EXP_INCPST:
 			{
 				hawk_nde_exp_t* px = (hawk_nde_exp_t*)p;
-				HAWK_ASSERT (awk, px->right == HAWK_NULL);
+				HAWK_ASSERT (px->right == HAWK_NULL);
 				hawk_clrpt (awk, px->left);
 				hawk_freemem (awk, p);
 				break;
@@ -1375,7 +1375,7 @@ void hawk_clrpt (hawk_t* awk, hawk_nde_t* tree)
 			case HAWK_NDE_ARG:
 			{
 				hawk_nde_var_t* px = (hawk_nde_var_t*)p;
-				HAWK_ASSERT (awk, px->idx == HAWK_NULL);
+				HAWK_ASSERT (px->idx == HAWK_NULL);
 				if (px->id.name.ptr) hawk_freemem (awk, px->id.name.ptr);
 				hawk_freemem (awk, p);
 				break;
@@ -1387,7 +1387,7 @@ void hawk_clrpt (hawk_t* awk, hawk_nde_t* tree)
 			case HAWK_NDE_ARGIDX:
 			{
 				hawk_nde_var_t* px = (hawk_nde_var_t*)p;
-				HAWK_ASSERT (awk, px->idx != HAWK_NULL);
+				HAWK_ASSERT (px->idx != HAWK_NULL);
 				hawk_clrpt (awk, px->idx);
 				if (px->id.name.ptr) hawk_freemem (awk, px->id.name.ptr);
 				hawk_freemem (awk, p);
@@ -1440,7 +1440,7 @@ void hawk_clrpt (hawk_t* awk, hawk_nde_t* tree)
 
 			default:
 			{
-				HAWK_ASSERT (awk, !"should never happen - invalid node type");
+				HAWK_ASSERT (!"should never happen - invalid node type");
 				hawk_freemem (awk, p);
 				break;
 			}

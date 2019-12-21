@@ -152,7 +152,7 @@ void FN(clear) (str_t* str)
 	str->val.len = 0;
 	if (str->val.ptr)
 	{
-		HAWK_ASSERT (str->gem, str->capa >= 1);
+		HAWK_ASSERT (str->capa >= 1);
 		str->val.ptr[0] = '\0';
 	}
 }
@@ -251,8 +251,8 @@ static int FN(resize_for_ncat) (str_t* str, hawk_oow_t len)
 	}
 	else if (str->capa <= 0 && len <= 0)
 	{
-		HAWK_ASSERT (str->gem, str->val.ptr == HAWK_NULL);
-		HAWK_ASSERT (str->gem, str->val.len <= 0);
+		HAWK_ASSERT (str->val.ptr == HAWK_NULL);
+		HAWK_ASSERT (str->val.len <= 0);
 		if (FN(setcapa)(str, 1) == (hawk_oow_t)-1) return -1;
 	}
 

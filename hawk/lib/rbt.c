@@ -250,7 +250,7 @@ const hawk_rbt_style_t* hawk_rbt_getstyle (const hawk_rbt_t* rbt)
 
 void hawk_rbt_setstyle (hawk_rbt_t* rbt, const hawk_rbt_style_t* style)
 {
-	HAWK_ASSERT (rbt->hawk, style != HAWK_NULL);
+	HAWK_ASSERT (style != HAWK_NULL);
 	rbt->style = style;
 }
 
@@ -315,7 +315,7 @@ static void rotate (hawk_rbt_t* rbt, hawk_rbt_pair_t* pivot, int leftwise)
 	hawk_rbt_pair_t* parent, * z, * c;
 	int cid1, cid2;
 
-	HAWK_ASSERT (rbt->hawk, pivot != HAWK_NULL);
+	HAWK_ASSERT (pivot != HAWK_NULL);
 
 	if (leftwise)
 	{
@@ -343,13 +343,13 @@ static void rotate (hawk_rbt_t* rbt, hawk_rbt_pair_t* pivot, int leftwise)
 		}
 		else
 		{
-			HAWK_ASSERT (rbt->hawk, parent->right == pivot);
+			HAWK_ASSERT (parent->right == pivot);
 			parent->right = z;
 		}
 	}
 	else
 	{
-		HAWK_ASSERT (rbt->hawk, rbt->root == pivot);
+		HAWK_ASSERT (rbt->root == pivot);
 		rbt->root = z;
 	}
 
@@ -370,7 +370,7 @@ static void adjust (hawk_rbt_t* rbt, hawk_rbt_pair_t* pair)
 		x_par = pair->parent;
 		if (x_par->color == HAWK_RBT_BLACK) break;
 
-		HAWK_ASSERT (rbt->hawk, x_par->parent != HAWK_NULL);
+		HAWK_ASSERT (x_par->parent != HAWK_NULL);
 
 		if (x_par == x_par->parent->child[LEFT])
 		{
@@ -458,7 +458,7 @@ static hawk_rbt_pair_t* change_pair_val (
 					}
 					else
 					{
-						HAWK_ASSERT (rbt->hawk, pair->parent->right == pair);
+						HAWK_ASSERT (pair->parent->right == pair);
 						pair->parent->right = p;
 					}
 				}
@@ -535,7 +535,7 @@ static hawk_rbt_pair_t* insert (hawk_rbt_t* rbt, void* kptr, hawk_oow_t klen, vo
 	if (x_par == HAWK_NULL)
 	{
 		/* the tree contains no pair */
-		HAWK_ASSERT (rbt->hawk, rbt->root == &rbt->xnil);
+		HAWK_ASSERT (rbt->root == &rbt->xnil);
 		rbt->root = x_new;
 	}
 	else
@@ -544,12 +544,12 @@ static hawk_rbt_pair_t* insert (hawk_rbt_t* rbt, void* kptr, hawk_oow_t klen, vo
 		int n = rbt->style->comper(rbt, kptr, klen, KPTR(x_par), KLEN(x_par));
 		if (n > 0)
 		{
-			HAWK_ASSERT (rbt->hawk, x_par->right == &rbt->xnil);
+			HAWK_ASSERT (x_par->right == &rbt->xnil);
 			x_par->right = x_new;
 		}
 		else
 		{
-			HAWK_ASSERT (rbt->hawk, x_par->left == &rbt->xnil);
+			HAWK_ASSERT (x_par->left == &rbt->xnil);
 			x_par->left = x_new;
 		}
 
@@ -627,7 +627,7 @@ hawk_rbt_pair_t* hawk_rbt_cbsert (hawk_rbt_t* rbt, void* kptr, hawk_oow_t klen, 
 					}
 					else
 					{
-						HAWK_ASSERT (rbt->hawk, tmp.parent->right == x_cur);
+						HAWK_ASSERT (tmp.parent->right == x_cur);
 						tmp.parent->right = x_new;
 					}
 				}
@@ -652,7 +652,7 @@ hawk_rbt_pair_t* hawk_rbt_cbsert (hawk_rbt_t* rbt, void* kptr, hawk_oow_t klen, 
 	if (x_par == HAWK_NULL)
 	{
 		/* the tree contains no pair */
-		HAWK_ASSERT (rbt->hawk, rbt->root == &rbt->xnil);
+		HAWK_ASSERT (rbt->root == &rbt->xnil);
 		rbt->root = x_new;
 	}
 	else
@@ -661,12 +661,12 @@ hawk_rbt_pair_t* hawk_rbt_cbsert (hawk_rbt_t* rbt, void* kptr, hawk_oow_t klen, 
 		int n = rbt->style->comper(rbt, kptr, klen, KPTR(x_par), KLEN(x_par));
 		if (n > 0)
 		{
-			HAWK_ASSERT (rbt->hawk, x_par->right == &rbt->xnil);
+			HAWK_ASSERT (x_par->right == &rbt->xnil);
 			x_par->right = x_new;
 		}
 		else
 		{
-			HAWK_ASSERT (rbt->hawk, x_par->left == &rbt->xnil);
+			HAWK_ASSERT (x_par->left == &rbt->xnil);
 			x_par->left = x_new;
 		}
 
@@ -726,7 +726,7 @@ static void adjust_for_delete (hawk_rbt_t* rbt, hawk_rbt_pair_t* pair, hawk_rbt_
 		}
 		else
 		{
-			HAWK_ASSERT (rbt->hawk, pair == par->right);
+			HAWK_ASSERT (pair == par->right);
 			tmp = par->left;
 			if (tmp->color == HAWK_RBT_RED)
 			{
@@ -771,7 +771,7 @@ static void delete_pair (hawk_rbt_t* rbt, hawk_rbt_pair_t* pair)
 {
 	hawk_rbt_pair_t* x, * y, * par;
 
-	HAWK_ASSERT (rbt->hawk, pair && !IS_NIL(rbt,pair));
+	HAWK_ASSERT (pair && !IS_NIL(rbt,pair));
 
 	if (IS_NIL(rbt,pair->left) || IS_NIL(rbt,pair->right))
 	{
@@ -949,7 +949,7 @@ static HAWK_INLINE void walk (hawk_rbt_t* rbt, walker_t walker, void* ctx, int l
 		else
 		{
 			/* both the left child and the right child have been traversed */
-			HAWK_ASSERT (rbt->hawk, prev == x_cur->child[r]);
+			HAWK_ASSERT (prev == x_cur->child[r]);
 			/* just move up to the parent */
 			prev = x_cur;
 			x_cur = x_cur->parent;
