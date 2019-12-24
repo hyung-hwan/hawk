@@ -934,6 +934,7 @@ struct hawk_gem_t
 	hawk_errnum_t errnum;
 	hawk_ooch_t   errmsg[HAWK_ERRMSG_CAPA];
 	hawk_loc_t    errloc;
+	hawk_oow_t    errmsg_len; /* it's not the actual length of errmsg. it's kept here for error formatting */
 };
 
 enum hawk_log_mask_t

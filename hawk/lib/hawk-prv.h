@@ -314,9 +314,9 @@ struct hawk_t
 	hawk_oow_t    errmsg_len; /* used by errbfmt() and errufmt(). don't rely on this. some other funtions don't set this properly */
 	hawk_ooch_t   errmsg_backup[HAWK_ERRMSG_CAPA];
 #if defined(HAWK_OOCH_IS_BCH)
-	hawk_uch_t    uerrmsg[HAWK_ERRMSG_CAPA];
+	hawk_uch_t    xerrmsg[HAWK_ERRMSG_CAPA];
 #else
-	hawk_bch_t    berrmsg[HAWK_ERRMSG_CAPA * 2];
+	hawk_bch_t    xerrmsg[HAWK_ERRMSG_CAPA * 2];
 #endif
 
 	struct
@@ -465,9 +465,9 @@ struct hawk_rtx_t
 	hawk_oow_t  errmsg_len; /* used by errbfmt() and errufmt(). don't rely on this. some other funtions don't set this properly */
 	hawk_ooch_t errmsg_backup[HAWK_ERRMSG_CAPA];
 #if defined(HAWK_OOCH_IS_BCH)
-	hawk_uch_t  uerrmsg[HAWK_ERRMSG_CAPA];
+	hawk_uch_t  xerrmsg[HAWK_ERRMSG_CAPA];
 #else
-	hawk_bch_t  berrmsg[HAWK_ERRMSG_CAPA * 2];
+	hawk_bch_t  xerrmsg[HAWK_ERRMSG_CAPA * 2];
 #endif
 
 	hawk_rtx_ecb_t* ecb;
@@ -508,6 +508,24 @@ static HAWK_INLINE hawk_errnum_t hawk_gem_geterrnum (hawk_gem_t* gem) { return g
 #endif
 
 void hawk_gem_seterrnum (hawk_gem_t* gem, const hawk_loc_t* errloc, hawk_errnum_t errnum);
+
+void hawk_gem_seterrbfmt (
+	hawk_gem_t*         gem,
+	const hawk_loc_t*   errloc,
+	hawk_errnum_t       errnum,
+	const hawk_bch_t*   errfmt,
+	...
+);
+
+void hawk_gem_seterrufmt (
+	hawk_gem_t*         gem,
+	const hawk_loc_t*   errloc,
+	hawk_errnum_t       errnum,
+	const hawk_uch_t*   errfmt,
+	...
+);
+
+
 
 #if defined(__cplusplus)
 }

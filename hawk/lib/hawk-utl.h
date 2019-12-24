@@ -816,8 +816,8 @@ HAWK_EXPORT int hawk_split_bcstr (
 #	define hawk_rfind_oochar(ptr,len,c) hawk_rfind_bchar(ptr,len,c)
 #	define hawk_find_oochar_in_oocstr(ptr,c) hawk_find_bchar_in_bcstr(ptr,c)
 
-#	define hawk_find_oochars_in_oochars hawk_find_uchars_in_bchars
-#	define hawk_rfind_oochars_in_oochars hawk_rfind_uchars_in_bchars
+#	define hawk_find_oochars_in_oochars hawk_find_bchars_in_bchars
+#	define hawk_rfind_oochars_in_oochars hawk_rfind_bchars_in_bchars
 
 #	define hawk_compact_oochars hawk_compact_bchars
 #	define hawk_rotate_oochars hawk_rotate_bchars

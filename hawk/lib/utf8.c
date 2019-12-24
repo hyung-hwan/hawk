@@ -45,7 +45,7 @@ struct __utf8_t
 	hawk_uint8_t   fbyte;  /* mask to the first utf8 byte */
 	hawk_uint8_t   mask;
 	hawk_uint8_t   fmask;
-	int           length; /* number of bytes */
+	int            length; /* number of bytes */
 };
 
 typedef struct __utf8_t __utf8_t;
