@@ -1020,9 +1020,9 @@ static int open_parsestd (hawk_t* awk, hawk_sio_arg_t* arg, xtn_t* xtn, hawk_oow
 			#else
 				hawk_bch_t* bpath;
 				bpath = hawk_duputobcstr(awk, psin->u.fileu.path, HAWK_NULL);
-				if (!upath) return -1;
+				if (!bpath) return -1;
 				tmp = open_sio(awk, bpath, HAWK_SIO_READ | HAWK_SIO_IGNOREECERR | HAWK_SIO_KEEPPATH);
-				hawk_freemem (hawk, bpath);
+				hawk_freemem (awk, bpath);
 			#endif
 			}
 			if (tmp == HAWK_NULL) return -1;
@@ -1579,7 +1579,7 @@ static hawk_ooi_t sf_out (hawk_t* awk, hawk_sio_cmd_t cmd, hawk_sio_arg_t* arg, 
 					hawk_oow_t orglen;
 
 					mbslen = size;
-					if (hawk_convbtouchars(awk, data, &mbslen, HAWK_NULL, &wcslen) <= -1) return -1;
+					if (hawk_convbtouchars(awk, data, &mbslen, HAWK_NULL, &wcslen, 0) <= -1) return -1;
 					if (wcslen > HAWK_TYPE_MAX(hawk_ooi_t)) wcslen = HAWK_TYPE_MAX(hawk_ooi_t);
 
 					orglen = hawk_becs_getlen(xtn->s.out.u.ucs.buf);
@@ -1590,7 +1590,7 @@ static hawk_ooi_t sf_out (hawk_t* awk, hawk_sio_cmd_t cmd, hawk_sio_arg_t* arg, 
 					}
 
 					mbslen = size;
-					hawk_convbtouchars (awk, data, &mbslen, HAWK_UECS_CPTR(xtn->s.out.u.ucs.buf, orglen), &wcslen);
+					hawk_convbtouchars (awk, data, &mbslen, HAWK_UECS_CPTR(xtn->s.out.u.ucs.buf, orglen), &wcslen, 0);
 					size = mbslen;
 
 					return size;
@@ -2728,7 +2728,7 @@ hawk_rtx_t* hawk_rtx_openstdwithucstr (
 
 		for (i = 0; ocf[i]; i++)
 		{
-			mocf[i] = hawk_dupbtoucstr(awk, ocf[i], &mbslen);
+			mocf[i] = hawk_dupbtoucstr(awk, ocf[i], &mbslen, 0);
 			if (!mocf[i]) goto done;
 		}
 		mocf[i] = HAWK_NULL;

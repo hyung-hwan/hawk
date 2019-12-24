@@ -1525,7 +1525,7 @@ hawk_uch_t* hawk_rtx_valtoucstrdupwithcmgr (hawk_rtx_t* rtx, const hawk_val_t* v
 			out.type = HAWK_RTX_VALTOSTR_CPLDUP;
 			if (hawk_rtx_valtostr(rtx, v, &out) <= -1) return HAWK_NULL;
 
-			wcs = hawk_rtx_dupbtoucharswithcmgr (rtx, out.u.cpldup.ptr, &out.u.cpldup.len, &wcslen, cmgr, 1);
+			wcs = hawk_rtx_dupbtoucharswithcmgr(rtx, out.u.cpldup.ptr, out.u.cpldup.len, &wcslen, cmgr, 1);
 			hawk_rtx_freemem (rtx, out.u.cpldup.ptr);
 			if (!wcs) return HAWK_NULL;
 

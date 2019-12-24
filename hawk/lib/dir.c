@@ -835,7 +835,7 @@ int hawk_dir_read (hawk_dir_t* dir, hawk_dir_ent_t* ent)
 		x = read_dir_to_buf(dir, &name);
 		if (x >= 1)
 		{
-			HAWK_MEMSET (ent, 0, HAWK_SIZEOF(ent));
+			HAWK_MEMSET (ent, 0, HAWK_SIZEOF(*ent));
 			ent->name = name;
 		}
 

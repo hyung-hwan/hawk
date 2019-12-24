@@ -203,7 +203,7 @@ const hawk_loc_t* hawk_geterrloc (hawk_t* hawk)
 
 const hawk_bch_t* hawk_geterrbmsg (hawk_t* hawk)
 {
-#if defined(MOO_OOCH_IS_BCH)
+#if defined(HAWK_OOCH_IS_BCH)
 	return (hawk->_gem.errmsg[0] == '\0')? hawk_geterrstr(hawk)(hawk, hawk->_gem.errnum): hawk->_gem.errmsg;
 #else
 	const hawk_ooch_t* msg;
@@ -211,25 +211,25 @@ const hawk_bch_t* hawk_geterrbmsg (hawk_t* hawk)
 
 	msg = (hawk->_gem.errmsg[0] == '\0')? hawk_geterrstr(hawk)(hawk, hawk->_gem.errnum): hawk->_gem.errmsg;
 
-	mbslen = HAWK_COUNTOF(hawk->berrmsg);
-	hawk_conv_ucstr_to_bcstr_with_cmgr (msg, &wcslen, hawk->berrmsg, &mbslen, hawk_getcmgr(hawk));
+	mbslen = HAWK_COUNTOF(hawk->xerrmsg);
+	hawk_conv_ucstr_to_bcstr_with_cmgr (msg, &wcslen, hawk->xerrmsg, &mbslen, hawk_getcmgr(hawk));
 
-	return hawk->berrmsg;
+	return hawk->xerrmsg;
 #endif
 }
 
 const hawk_uch_t* hawk_geterrumsg (hawk_t* hawk)
 {
-#if defined(MOO_OOCH_IS_BCH)
+#if defined(HAWK_OOCH_IS_BCH)
 	const hawk_ooch_t* msg;
 	hawk_oow_t wcslen, mbslen;
 
 	msg = (hawk->_gem.errmsg[0] == '\0')? hawk_geterrstr(hawk)(hawk, hawk->_gem.errnum): hawk->_gem.errmsg;
 
-	wcslen = HAWK_COUNTOF(hawk->uerrmsg);
-	hawk_conv_bcstr_to_ucstr_with_cmgr (msg, &mbslen, hawk->uerrmsg, &wcslen, hawk_getcmgr(hawk), 1);
+	wcslen = HAWK_COUNTOF(hawk->xerrmsg);
+	hawk_conv_bcstr_to_ucstr_with_cmgr (msg, &mbslen, hawk->xerrmsg, &wcslen, hawk_getcmgr(hawk), 1);
 
-	return hawk->uerrmsg;
+	return hawk->xerrmsg;
 #else
 	return (hawk->_gem.errmsg[0] == '\0')? hawk_geterrstr(hawk)(hawk, hawk->_gem.errnum): hawk->_gem.errmsg;
 #endif
@@ -384,33 +384,33 @@ const hawk_loc_t* hawk_rtx_geterrloc (hawk_rtx_t* rtx)
 
 const hawk_bch_t* hawk_rtx_geterrbmsg (hawk_rtx_t* rtx)
 {
-#if defined(MOO_OOCH_IS_BCH)
-	return (rtx->_gem.errmsg[0] == '\0')? hawk_geterrstr(awk)(hawk_rtx_gethawk(rtx), rtx->_gem.errnum): rtx->_gem.errmsg;
+#if defined(HAWK_OOCH_IS_BCH)
+	return (rtx->_gem.errmsg[0] == '\0')? hawk_geterrstr(hawk_rtx_gethawk(rtx))(hawk_rtx_gethawk(rtx), rtx->_gem.errnum): rtx->_gem.errmsg;
 #else
 	const hawk_ooch_t* msg;
 	hawk_oow_t wcslen, mbslen;
 
 	msg = (rtx->_gem.errmsg[0] == '\0')? hawk_geterrstr(hawk_rtx_gethawk(rtx))(hawk_rtx_gethawk(rtx), rtx->_gem.errnum): rtx->_gem.errmsg;
 
-	mbslen = HAWK_COUNTOF(rtx->berrmsg);
-	hawk_conv_ucstr_to_bcstr_with_cmgr (msg, &wcslen, rtx->berrmsg, &mbslen, hawk_rtx_getcmgr(rtx));
+	mbslen = HAWK_COUNTOF(rtx->xerrmsg);
+	hawk_conv_ucstr_to_bcstr_with_cmgr (msg, &wcslen, rtx->xerrmsg, &mbslen, hawk_rtx_getcmgr(rtx));
 
-	return rtx->berrmsg;
+	return rtx->xerrmsg;
 #endif
 }
 
 const hawk_uch_t* hawk_rtx_geterrumsg (hawk_rtx_t* rtx)
 {
-#if defined(MOO_OOCH_IS_BCH)
+#if defined(HAWK_OOCH_IS_BCH)
 	const hawk_ooch_t* msg;
 	hawk_oow_t wcslen, mbslen;
 
 	msg = (rtx->_gem.errmsg[0] == '\0')? hawk_geterrstr(hawk_rtx_gethawk(rtx))(hawk_rtx_gethawk(rtx), rtx->_gem.errnum): rtx->_gem.errmsg;
 
-	wcslen = HAWK_COUNTOF(rtx->uerrmsg);
-	hawk_conv_bcstr_to_ucstr_with_cmgr (msg, &mbslen, rtx->uerrmsg, &wcslen, hawk_rtx_getcmgr(rtx), 1);
+	wcslen = HAWK_COUNTOF(rtx->xerrmsg);
+	hawk_conv_bcstr_to_ucstr_with_cmgr (msg, &mbslen, rtx->xerrmsg, &wcslen, hawk_rtx_getcmgr(rtx), 1);
 
-	return rtx->uerrmsg;
+	return rtx->xerrmsg;
 #else
 	return (rtx->_gem.errmsg[0] == '\0')? hawk_geterrstr(hawk_rtx_gethawk(rtx))(hawk_rtx_gethawk(rtx), rtx->_gem.errnum): rtx->_gem.errmsg;
 #endif
@@ -463,7 +463,7 @@ static int rtx_err_bchars (hawk_fmtout_t* fmtout, const hawk_bch_t* ptr, hawk_oo
 #else
 	if (len > max) len = max;
 	if (len <= 0) return 1;
-	HAWK_MEMCPY (&rtx->errinf.msg[rtx->errmsg_len], ptr, len * HAWK_SIZEOF(*ptr));
+	HAWK_MEMCPY (&rtx->_gem.errmsg[rtx->errmsg_len], ptr, len * HAWK_SIZEOF(*ptr));
 	rtx->errmsg_len += len;
 #endif
 
@@ -628,7 +628,7 @@ void hawk_gem_seterrbfmt (hawk_gem_t* gem, const hawk_loc_t* errloc, hawk_errnum
 	gem->errmsg[0] = '\0';
 
 	HAWK_MEMSET (&fo, 0, HAWK_SIZEOF(fo));
-	fo.mmgr = hawk_gem_getmmgr(gem);
+	fo.mmgr = gem->mmgr;
 	fo.putbchars = gem_err_bchars;
 	fo.putuchars = gem_err_uchars;
 	fo.ctx = gem;
@@ -651,7 +651,7 @@ void hawk_gem_seterrufmt (hawk_gem_t* gem, const hawk_loc_t* errloc, hawk_errnum
 	gem->errmsg[0] = '\0';
 
 	HAWK_MEMSET (&fo, 0, HAWK_SIZEOF(fo));
-	fo.mmgr = hawk_gem_getmmgr(gem);
+	fo.mmgr = gem->mmgr;
 	fo.putbchars = gem_err_bchars;
 	fo.putuchars = gem_err_uchars;
 	fo.ctx = gem;
@@ -661,5 +661,5 @@ void hawk_gem_seterrufmt (hawk_gem_t* gem, const hawk_loc_t* errloc, hawk_errnum
 	va_end (ap);
 
 	gem->errnum = errnum;
-	gem->errloc =  (errloc? *errloc: _nullloc);
+	gem->errloc = (errloc? *errloc: _nullloc);
 }

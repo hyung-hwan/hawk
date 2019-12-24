@@ -1997,7 +1997,7 @@ int hawk_delgblwithbcstr (hawk_t* hawk, const hawk_bch_t* name)
 	n = hawk_arr_search(hawk->parse.gbls, HAWK_NUM_STATIC_GBLS, ncs.ptr, ncs.len);
 	if (n == HAWK_ARR_NIL)
 	{
-		hawk_seterrbfmt (hawk, HAWK_NULL, HAWK_ENOENT "no such global variable - %.*hs", ncs.len, ncs.ptr);
+		hawk_seterrbfmt (hawk, HAWK_NULL, HAWK_ENOENT, "no such global variable - %.*hs", ncs.len, ncs.ptr);
 		return -1;
 	}
 #else

@@ -280,6 +280,8 @@ hawk_oow_t hawk_gem_fmttobcstr (
 	...
 );
 
+/* ----------------------------------------------------------------------- */
+
 #if defined(__cplusplus)
 }
 #endif
