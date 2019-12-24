@@ -354,6 +354,33 @@ typedef int (*hawk_sort_comperx_t) (
 );
 
 
+/* =========================================================================
+ * SOCKET ADDRESS
+ * ========================================================================= */
+#define HAWK_SIZEOF_SKAD_T 1
+#if (HAWK_SIZEOF_STRUCT_SOCKADDR_IN > HAWK_SIZEOF_SKAD_T)
+#	undef HAWK_SIZEOF_SKAD_T
+#	define HAWK_SIZEOF_SKAD_T HAWK_SIZEOF_STRUCT_SOCKADDR_IN
+#endif
+#if (HAWK_SIZEOF_STRUCT_SOCKADDR_IN6 > 0)
+#	undef HAWK_SIZEOF_SKAD_T
+#	define HAWK_SIZEOF_SKAD_T HAWK_SIZEOF_STRUCT_SOCKADDR_IN6
+#endif
+#if (HAWK_SIZEOF_STRUCT_SOCKADDR_LL > 0)
+#	undef HAWK_SIZEOF_SKAD_T
+#	define HAWK_SIZEOF_SKAD_T HAWK_SIZEOF_STRUCT_SOCKADDR_LL
+#endif
+#if (HAWK_SIZEOF_STRUCT_SOCKADDR_UN > 0)
+#	undef HAWK_SIZEOF_SKAD_T
+#	define HAWK_SIZEOF_SKAD_T HAWK_SIZEOF_STRUCT_SOCKADDR_UN
+#endif
+
+struct hawk_skad_t
+{
+	hawk_uint8_t data[HAWK_SIZEOF_SKAD_T];
+};
+typedef struct hawk_skad_t hawk_skad_t;
+
 #if defined(__cplusplus)
 extern "C" {
 #endif
@@ -1541,6 +1568,16 @@ HAWK_EXPORT void hawk_sub_time (
 	hawk_ntime_t*       z
 );
 
+
+/* =========================================================================
+ * SOCKET ADDRESS
+ * ========================================================================= */
+HAWK_EXPORT int hawk_oochars_to_skad (
+	hawk_t*            hawk,
+	const hawk_ooch_t* str,
+	hawk_oow_t         len,
+	hawk_skad_t*       skad
+);
 
 /* =========================================================================
  * ASSERTION

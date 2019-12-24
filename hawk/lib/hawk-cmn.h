@@ -927,13 +927,6 @@ struct hawk_loc_t
 };
 typedef struct hawk_loc_t hawk_loc_t;
 
-typedef void (*hawk_assertfail_t) (
-	hawk_gem_t*        gem,
-	const hawk_bch_t*   expr,
-	const hawk_bch_t*   file,
-	hawk_oow_t          line
-);
-
 struct hawk_gem_t
 {
 	hawk_mmgr_t*  mmgr;
@@ -941,9 +934,6 @@ struct hawk_gem_t
 	hawk_errnum_t errnum;
 	hawk_ooch_t   errmsg[HAWK_ERRMSG_CAPA];
 	hawk_loc_t    errloc;
-#if defined(HAWK_BUILD_DEBUG)
-	hawk_assertfail_t assertfail;
-#endif
 };
 
 enum hawk_log_mask_t
