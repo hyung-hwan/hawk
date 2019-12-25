@@ -93,7 +93,7 @@ struct mod_ctx_t
 	{
 		syslog_type_t type;
 		char* ident;
-//		hawk_skad_t skad;
+		hawk_skad_t skad;
 		int syslog_opened; // has openlog() been called?
 		int opt;
 		int fac;
@@ -2089,18 +2089,22 @@ skip_unlink:
 }
 
 /* ------------------------------------------------------------ */
-#if 0
-// TODO: add back the syslog support 
+
+/*
+ * sys::openlog("remote://192.168.1.23:1234/test", sys::LOG_OPT_PID | sys::LOG_OPT_NDELAY, sys::LOG_FAC_LOCAL0);
+ * for (i = 0; i < 10; i++) sys::writelog(sys::LOG_PRI_DEBUG, "hello world " i);
+ * sys::closelog(); 
+ */
 static void open_remote_log_socket (hawk_rtx_t* rtx, mod_ctx_t* mctx)
 {
 #if defined(_WIN32)
 	/* TODO: implement this */
 #else
 	int sck, flags;
-	int domain = hawk_skadfamily(&mctx->log.skad);
+	int domain = hawk_skad_family(&mctx->log.skad);
 	int type = SOCK_DGRAM;
 
-	//HAWK_ASSERT (mctx->log.sck <= -1);
+	HAWK_ASSERT (mctx->log.sck <= -1);
 
 #if defined(SOCK_NONBLOCK) && defined(SOCK_CLOEXEC)
 	type |= SOCK_NONBLOCK;
@@ -2151,7 +2155,7 @@ static int fnc_openlog (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_oow_t ident_len;
 	hawk_bch_t* mbs_ident;
 	mod_ctx_t* mctx = (mod_ctx_t*)fi->mod->ctx;
-	hawk_nwad_t nwad;
+	hawk_skad_t skad;
 	syslog_type_t log_type = SYSLOG_LOCAL;
 
 	ident = hawk_rtx_getvaloocstr(rtx, hawk_rtx_getarg(rtx, 0), &ident_len);
@@ -2164,19 +2168,19 @@ static int fnc_openlog (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	if (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 1), &opt) <= -1) goto done;
 	if (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 2), &fac) <= -1) goto done;
 
-	if (hawk_comp_oocstr_limited(ident, HAWK_T("remote://"), 9, 0))
+	if (hawk_comp_oocstr_limited(ident, HAWK_T("remote://"), 9, 0) == 0)
 	{
 		hawk_ooch_t* slash;
-		/* "udp://remote-addr:remote-port/syslog-identifier" */
+		/* "remote://remote-addr:remote-port/syslog-identifier" */
 
 		log_type = SYSLOG_REMOTE;
 		actual_ident = ident + 9;
 		slash = hawk_find_oochar_in_oocstr(actual_ident, '/');
 		if (!slash) goto done;
-		if (hawk_strntonwad(actual_ident, slash - actual_ident, &nwad) <= -1) goto done;
+		if (hawk_gem_oocharstoskad (hawk_rtx_getgem(rtx), actual_ident, slash - actual_ident, &skad) <= -1) goto done;
 		actual_ident = slash + 1;
 	}
-	else if (hawk_comp_oocstr_limited(ident, HAWK_T("local://"), 8, 0))
+	else if (hawk_comp_oocstr_limited(ident, HAWK_T("local://"), 8, 0) == 0)
 	{
 		/* "local://syslog-identifier" */
 		actual_ident = ident + 8;
@@ -2187,9 +2191,9 @@ static int fnc_openlog (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	}
 
 #if defined(HAWK_OOCH_IS_BCH)
-	mbs_ident = hawk_rtx_dupbcstr(rtx, actual_ident);
+	mbs_ident = hawk_rtx_dupbcstr(rtx, actual_ident, HAWK_NULL);
 #else
-	mbs_ident = hawk_rtx_duputobcstr(actual_ident, str, HAWK_NULL);
+	mbs_ident = hawk_rtx_duputobcstr(rtx, actual_ident, HAWK_NULL);
 #endif
 	if (!mbs_ident) goto done;
 
@@ -2225,7 +2229,7 @@ static int fnc_openlog (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	}
 	else if (mctx->log.type == SYSLOG_REMOTE)
 	{
-		hawk_nwadtoskad (&nwad, &mctx->log.skad);
+		mctx->log.skad = skad;
 		if ((opt & LOG_NDELAY) && mctx->log.sck <= -1) open_remote_log_socket (rtx, mctx);
 	}
 
@@ -2337,8 +2341,6 @@ static int fnc_writelog (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	#if defined(_WIN32)
 		/* TODO: implement this */
 	#else
-		hawk_ntime_t now;
-		hawk_btime_t cnow;
 
 		static const hawk_bch_t* __syslog_month_names[] =
 		{
@@ -2350,16 +2352,28 @@ static int fnc_writelog (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 		if (mctx->log.sck >= 0)
 		{
-			if (!mctx->log.dmsgbuf) mctx->log.dmsgbuf = hawk_becs_open(hawk_rtx_getmmgr(rtx), 0, 0);
+			hawk_ntime_t now;
+			struct tm tm, * tmx;
+			time_t t;
+
+			if (!mctx->log.dmsgbuf) mctx->log.dmsgbuf = hawk_becs_open(hawk_rtx_getgem(rtx), 0, 0);
 			if (!mctx->log.dmsgbuf) goto done;
 
-			if (hawk_get_time(&now) || hawk_localtime(&now, &cnow) <= -1) goto done;
+			if (hawk_get_time(&now) <= -1) goto done;
+
+			t = now.sec;
+		#if defined(HAVE_LOCALTIME_R)
+			tmx = localtime_r(&t, &tm);
+		#else
+			tmx = localtime(&t);
+		#endif
+			if (!tmx) goto done;
 
 			if (hawk_becs_fmt(
 				mctx->log.dmsgbuf, HAWK_BT("<%d>%s %02d %02d:%02d:%02d "), 
 				(int)(mctx->log.fac | pri),
-				__syslog_month_names[cnow.mon], cnow.mday, 
-				cnow.hour, cnow.min, cnow.sec) == (hawk_oow_t)-1) goto done;
+				__syslog_month_names[tmx->tm_mon], tmx->tm_mday, 
+				tmx->tm_hour, tmx->tm_min, tmx->tm_sec) == (hawk_oow_t)-1) goto done;
 
 			if (mctx->log.ident || (mctx->log.opt & LOG_PID))
 			{
@@ -2383,8 +2397,8 @@ static int fnc_writelog (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		#endif
 
 			/* don't care about output failure */
-			sendto (mctx->log.sck, HAWK_MBS_PTR(mctx->log.dmsgbuf), HAWK_MBS_LEN(mctx->log.dmsgbuf),
-			        0, (struct sockaddr*)&mctx->log.skad, hawk_skadsize(&mctx->log.skad));
+			sendto (mctx->log.sck, HAWK_BECS_PTR(mctx->log.dmsgbuf), HAWK_BECS_LEN(mctx->log.dmsgbuf),
+			        0, (struct sockaddr*)&mctx->log.skad, hawk_skad_size(&mctx->log.skad));
 		}
 	#endif
 	}
@@ -2400,7 +2414,7 @@ done:
 	hawk_rtx_setretval (rtx, retv);
 	return 0;
 }
-#endif
+
 /* ------------------------------------------------------------ */
 
 typedef struct fnctab_t fnctab_t;
@@ -2429,7 +2443,7 @@ static fnctab_t fnctab[] =
 	{ HAWK_T("chmod"),       { { 2, 2, HAWK_NULL     }, fnc_chmod,       0  } },
 	{ HAWK_T("close"),       { { 1, 2, HAWK_NULL     }, fnc_close,       0  } },
 	{ HAWK_T("closedir"),    { { 1, 1, HAWK_NULL     }, fnc_closedir,    0  } },
-	//{ HAWK_T("closelog"),    { { 0, 0, HAWK_NULL     }, fnc_closelog,    0  } },
+	{ HAWK_T("closelog"),    { { 0, 0, HAWK_NULL     }, fnc_closelog,    0  } },
 	{ HAWK_T("dup"),         { { 1, 3, HAWK_NULL     }, fnc_dup,         0  } },
 	{ HAWK_T("errmsg"),      { { 0, 0, HAWK_NULL     }, fnc_errmsg,      0  } },
 	{ HAWK_T("fork"),        { { 0, 0, HAWK_NULL     }, fnc_fork,        0  } },
@@ -2450,7 +2464,7 @@ static fnctab_t fnctab[] =
 	{ HAWK_T("open"),        { { 2, 3, HAWK_NULL     }, fnc_open,        0  } },
 	{ HAWK_T("opendir"),     { { 1, 2, HAWK_NULL     }, fnc_opendir,     0  } },
 	{ HAWK_T("openfd"),      { { 1, 1, HAWK_NULL     }, fnc_openfd,      0  } },
-	//{ HAWK_T("openlog"),     { { 3, 3, HAWK_NULL     }, fnc_openlog,     0  } },
+	{ HAWK_T("openlog"),     { { 3, 3, HAWK_NULL     }, fnc_openlog,     0  } },
 	{ HAWK_T("pipe"),        { { 2, 3, HAWK_T("rrv") }, fnc_pipe,        0  } },
 	{ HAWK_T("read"),        { { 2, 3, HAWK_T("vrv") }, fnc_read,        0  } },
 	{ HAWK_T("readdir"),     { { 2, 2, HAWK_T("vr")  }, fnc_readdir,     0  } },
@@ -2462,7 +2476,7 @@ static fnctab_t fnctab[] =
 	{ HAWK_T("unlink"),      { { 1, 1, HAWK_NULL     }, fnc_unlink,      0  } },
 	{ HAWK_T("wait"),        { { 1, 3, HAWK_T("vrv") }, fnc_wait,        0  } },
 	{ HAWK_T("write"),       { { 2, 2, HAWK_NULL     }, fnc_write,       0  } },
-	//{ HAWK_T("writelog"),    { { 2, 2, HAWK_NULL     }, fnc_writelog,    0  } }
+	{ HAWK_T("writelog"),    { { 2, 2, HAWK_NULL     }, fnc_writelog,    0  } }
 };
 
 #if !defined(SIGHUP)
@@ -2668,11 +2682,9 @@ static int init (hawk_mod_t* mod, hawk_rtx_t* rtx)
 	mod_ctx_t* mctx = (mod_ctx_t*)mod->ctx;
 	rtx_data_t data;
 
-#if 0
 	mctx->log.type = SYSLOG_LOCAL;
 	mctx->log.syslog_opened = 0;
-	mctx->log.sck = -1;
-#endif
+	mctx->log.sck = -1; 
 
 	HAWK_MEMSET (&data, 0, HAWK_SIZEOF(data));
 	if (hawk_rbt_insert(mctx->rtxtab, &rtx, HAWK_SIZEOF(rtx), &data, HAWK_SIZEOF(data)) == HAWK_NULL) return -1;
@@ -2717,7 +2729,6 @@ static void fini (hawk_mod_t* mod, hawk_rtx_t* rtx)
 	}
 
 
-#if 0
 #if defined(ENABLE_SYSLOG)
 	if (mctx->log.syslog_opened) 
 	{
@@ -2752,7 +2763,6 @@ static void fini (hawk_mod_t* mod, hawk_rtx_t* rtx)
 		hawk_rtx_freemem (rtx, mctx->log.ident);
 		mctx->log.ident = HAWK_NULL;
 	}
-#endif
 }
 
 static void unload (hawk_mod_t* mod, hawk_t* awk)

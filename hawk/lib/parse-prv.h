@@ -65,35 +65,53 @@ typedef enum hawk_kwid_t hawk_kwid_t;
 extern "C" {
 #endif
 
-int hawk_putsroocs (
-	hawk_t*        awk,
+int hawk_putsrcoocstr (
+	hawk_t*            hawk,
 	const hawk_ooch_t* str
 );
 
-int hawk_putsroocsn (
-	hawk_t*        awk,
+int hawk_putsrcoochars (
+	hawk_t*            hawk,
 	const hawk_ooch_t* str,
-	hawk_oow_t        len
+	hawk_oow_t         len
 );
 
 const hawk_ooch_t* hawk_getgblname (
-	hawk_t*  awk,
+	hawk_t*     hawk,
 	hawk_oow_t  idx,
 	hawk_oow_t* len
 );
 
 void hawk_getkwname (
-	hawk_t*     awk,
-	hawk_kwid_t id, 
-	hawk_oocs_t*    s
+	hawk_t*       hawk,
+	hawk_kwid_t   id, 
+	hawk_oocs_t*  s
 );
 
 int hawk_initgbls (
-	hawk_t* awk
+	hawk_t* hawk
 );
 
+hawk_ooch_t* hawk_addsionamewithuchars (
+	hawk_t*            hawk,
+	const hawk_uch_t* ptr,
+	hawk_oow_t         len
+);
+
+hawk_ooch_t* hawk_addsionamewithbchars (
+	hawk_t*            hawk,
+	const hawk_bch_t* ptr,
+	hawk_oow_t         len
+);
+
+#if defined(HAWK_OOCH_IS_UCH)
+#	define hawk_addsionamewithoochars hawk_addsionamewithuchars
+#else
+#	define hawk_addsionamewithoochars hawk_addsionamewithbchars
+#endif
+
 void hawk_clearsionames (
-	hawk_t* awk
+	hawk_t* hawk
 );
 
 #if defined(__cplusplus)

@@ -183,8 +183,8 @@ HAWK_EXPORT hawk_rtx_t* hawk_rtx_openstdwithbcstr (
 	hawk_t*           awk,
 	hawk_oow_t        xtnsize,
 	const hawk_bch_t* id,
-	const hawk_bch_t* icf[],
-	const hawk_bch_t* ocf[],
+	hawk_bch_t*       icf[],
+	hawk_bch_t*       ocf[],
 	hawk_cmgr_t*      cmgr
 );
 
@@ -198,8 +198,8 @@ HAWK_EXPORT hawk_rtx_t* hawk_rtx_openstdwithucstr (
 	hawk_t*           awk,
 	hawk_oow_t        xtnsize,
 	const hawk_uch_t* id,
-	const hawk_uch_t* icf[],
-	const hawk_uch_t* ocf[],
+	hawk_uch_t*       icf[],
+	hawk_uch_t*       ocf[],
 	hawk_cmgr_t*      cmgr
 );
 

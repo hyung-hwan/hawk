@@ -1313,4 +1313,34 @@ typedef enum hawk_log_mask_t hawk_log_mask_t;
 #       error Unsupported platform
 #endif
 
+
+
+/* =========================================================================
+ * SOCKET ADDRESS
+ * ========================================================================= */
+
+#define HAWK_SIZEOF_SKAD_T 1
+#if (HAWK_SIZEOF_STRUCT_SOCKADDR_IN > HAWK_SIZEOF_SKAD_T)
+#	undef HAWK_SIZEOF_SKAD_T
+#	define HAWK_SIZEOF_SKAD_T HAWK_SIZEOF_STRUCT_SOCKADDR_IN
+#endif
+#if (HAWK_SIZEOF_STRUCT_SOCKADDR_IN6 > 0)
+#	undef HAWK_SIZEOF_SKAD_T
+#	define HAWK_SIZEOF_SKAD_T HAWK_SIZEOF_STRUCT_SOCKADDR_IN6
+#endif
+#if (HAWK_SIZEOF_STRUCT_SOCKADDR_LL > 0)
+#	undef HAWK_SIZEOF_SKAD_T
+#	define HAWK_SIZEOF_SKAD_T HAWK_SIZEOF_STRUCT_SOCKADDR_LL
+#endif
+#if (HAWK_SIZEOF_STRUCT_SOCKADDR_UN > 0)
+#	undef HAWK_SIZEOF_SKAD_T
+#	define HAWK_SIZEOF_SKAD_T HAWK_SIZEOF_STRUCT_SOCKADDR_UN
+#endif
+
+struct hawk_skad_t
+{
+	hawk_uint8_t data[HAWK_SIZEOF_SKAD_T];
+};
+typedef struct hawk_skad_t hawk_skad_t;
+
 #endif

@@ -85,6 +85,7 @@ libhawk_la_SOURCES =  \
 	fnc.c \
 	htb.c \
 	gem.c \
+	gem-skad.c \
 	hawk-prv.h \
 	hawk.c \
 	mb8.c \
@@ -119,6 +120,7 @@ libhawk_la_SOURCES =  \
 	utf8.c \
 	utl-ass.c \
 	utl-skad.c \
+	utl-skad.h \
 	utl-sort.c \
 	utl-str.c \
 	utl-sys.c \

@@ -282,6 +282,13 @@ hawk_oow_t hawk_gem_fmttobcstr (
 
 /* ----------------------------------------------------------------------- */
 
+int hawk_gem_oocharstoskad (
+	hawk_gem_t*        gem,
+	const hawk_ooch_t* str,
+	hawk_oow_t         len,
+	hawk_skad_t*       skad
+);
+
 #if defined(__cplusplus)
 }
 #endif
