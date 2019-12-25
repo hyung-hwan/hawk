@@ -114,7 +114,7 @@ static const hawk_ooch_t* print_outop_str[] =
 	HAWK_T("")
 };
 
-#define PUT_SRCSTR(awk,str) do { if (hawk_putsroocs (awk, str) == -1) return -1; } while(0)
+#define PUT_SRCSTR(awk,str) do { if (hawk_putsrcoocstr (awk, str) == -1) return -1; } while(0)
 
 #define PUT_NL(awk) do { \
 	if (awk->opt.trait & HAWK_CRLF) PUT_SRCSTR (awk, HAWK_T("\r")); \
@@ -122,7 +122,7 @@ static const hawk_ooch_t* print_outop_str[] =
 } while(0)
 
 #define PUT_SRCSTRN(awk,str,len) do { \
-	if (hawk_putsroocsn (awk, str, len) == -1) return -1; \
+	if (hawk_putsrcoochars (awk, str, len) == -1) return -1; \
 } while(0)
 
 #define PRINT_TABS(awk,depth) do { \

@@ -553,9 +553,9 @@ typedef struct hawk_sio_arg_t hawk_sio_arg_t;
 struct hawk_sio_arg_t 
 {
 	/** 
-	 * [IN/OUT] name of I/O object. 
+	 * [IN] name of I/O object. 
 	 * It is #HAWK_NULL for the top-level stream. It points to a stream name
-	 * for an included stream. This can be changed by an I/O handler.
+	 * for an included stream.
 	 */
 	const hawk_ooch_t* name;   
 
@@ -566,6 +566,12 @@ struct hawk_sio_arg_t
 	 * during opening.
 	 */
 	void* handle;
+
+	/**
+	 * [OUT] path name resolved of the name above. the handler must set this
+	 *       to a proper path if the name is not #HAWK_NULL.
+	 */
+	hawk_ooch_t* path;
 
 	/**
 	 * [OUT] unique id set by an input handler. it is used for a single time inclusion check.

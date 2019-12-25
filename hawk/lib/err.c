@@ -588,7 +588,7 @@ static int gem_err_bchars (hawk_fmtout_t* fmtout, const hawk_bch_t* ptr, hawk_oo
 #else
 	if (len > max) len = max;
 	if (len <= 0) return 1;
-	HAWK_MEMCPY (&gem->errinf.msg[gem->errmsg_len], ptr, len * HAWK_SIZEOF(*ptr));
+	HAWK_MEMCPY (&gem->errmsg[gem->errmsg_len], ptr, len * HAWK_SIZEOF(*ptr));
 	gem->errmsg_len += len;
 #endif
 

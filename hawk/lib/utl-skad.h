@@ -24,36 +24,41 @@
     THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <hawk-utl.h>
-#include "utl-skad.h"
+#ifndef _HAWK_UTL_SKAD_H_
+#define _HAWK_UTL_SKAD_H_
 
-int hawk_skad_family (const hawk_skad_t* _skad)
+#include <sys/types.h>
+#include <sys/socket.h>
+#if defined(HAVE_NETINET_IN_H)
+#	include <netinet/in.h>
+#endif
+#if defined(HAVE_SYS_UN_H)
+#	include <sys/un.h>
+#endif
+#if defined(HAVE_NETPACKET_PACKET_H)
+#	include <netpacket/packet.h>
+#endif
+#if defined(HAVE_NET_IF_DL_H)
+#	include <net/if_dl.h>
+#endif
+
+union hawk_skad_alt_t
 {
-	const hawk_skad_alt_t* skad = (const hawk_skad_alt_t*)_skad;
-	HAWK_ASSERT (HAWK_SIZEOF(*_skad) >= HAWK_SIZEOF(*skad));
-	return skad->sa.sa_family;
-}
+	struct sockaddr    sa;
+#if (HAWK_SIZEOF_STRUCT_SOCKADDR_IN > 0)
+	struct sockaddr_in in4;
+#endif
+#if (HAWK_SIZEOF_STRUCT_SOCKADDR_IN6 > 0)
+	struct sockaddr_in6 in6;
+#endif
+#if (HAWK_SIZEOF_STRUCT_SOCKADDR_LL > 0)
+	struct sockaddr_ll ll;
+#endif
+#if (HAWK_SIZEOF_STRUCT_SOCKADDR_UN > 0)
+	struct sockaddr_un un;
+#endif
+};
+typedef union hawk_skad_alt_t hawk_skad_alt_t;
 
-int hawk_skad_size (const hawk_skad_t* _skad)
-{
-	const hawk_skad_alt_t* skad = (const hawk_skad_alt_t*)_skad;
-	HAWK_ASSERT (HAWK_SIZEOF(*_skad) >= HAWK_SIZEOF(*skad));
 
-	switch (skad->sa.sa_family)
-	{
-	#if defined(AF_INET) && (HAWK_SIZEOF_STRUCT_SOCKADDR_IN > 0)
-		case AF_INET: return HAWK_SIZEOF(struct sockaddr_in);
-	#endif
-	#if defined(AF_INET6) && (HAWK_SIZEOF_STRUCT_SOCKADDR_IN6 > 0)
-		case AF_INET6: return HAWK_SIZEOF(struct sockaddr_in6);
-	#endif
-	#if defined(AF_PACKET) && (HAWK_SIZEOF_STRUCT_SOCKADDR_LL > 0)
-		case AF_PACKET: return HAWK_SIZEOF(struct sockaddr_ll);
-	#endif
-	#if defined(AF_UNIX) && (HAWK_SIZEOF_STRUCT_SOCKADDR_UN > 0)
-		case AF_UNIX: return HAWK_SIZEOF(struct sockaddr_un);
-	#endif
-	}
-
-	return 0;
-}
+#endif

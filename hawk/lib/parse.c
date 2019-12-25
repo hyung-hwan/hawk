@@ -471,7 +471,7 @@ static int get_char (hawk_t* awk)
 	if (awk->sio.inp->b.pos >= awk->sio.inp->b.len)
 	{
 		CLRERR (awk);
-		n = awk->sio.inf (
+		n = awk->sio.inf(
 			awk, HAWK_SIO_CMD_READ, awk->sio.inp,
 			awk->sio.inp->b.buf, HAWK_COUNTOF(awk->sio.inp->b.buf)
 		);
@@ -487,7 +487,7 @@ static int get_char (hawk_t* awk)
 			awk->sio.inp->last.c = HAWK_OOCI_EOF;
 			awk->sio.inp->last.line = awk->sio.inp->line;
 			awk->sio.inp->last.colm = awk->sio.inp->colm;
-			awk->sio.inp->last.file = awk->sio.inp->name;
+			awk->sio.inp->last.file = awk->sio.inp->path;
 			awk->sio.last = awk->sio.inp->last;
 			return 0;
 		}
@@ -510,7 +510,7 @@ static int get_char (hawk_t* awk)
 	awk->sio.inp->last.c = awk->sio.inp->b.buf[awk->sio.inp->b.pos++];
 	awk->sio.inp->last.line = awk->sio.inp->line;
 	awk->sio.inp->last.colm = awk->sio.inp->colm++;
-	awk->sio.inp->last.file = awk->sio.inp->name;
+	awk->sio.inp->last.file = awk->sio.inp->path;
 	awk->sio.last = awk->sio.inp->last;
 	return 0;
 }
@@ -587,9 +587,7 @@ static int parse (hawk_t* awk)
 				/* see parse_fncall() for what is
 				 * stored into awk->tree.funs */
 				nde = (hawk_nde_t*)HAWK_HTB_VPTR(p);
-
 				SETERR_ARG_LOC (awk, HAWK_EFUNNF, HAWK_HTB_KPTR(p), HAWK_HTB_KLEN(p), &nde->loc);
-
 				goto oops;
 			}
 
@@ -611,9 +609,7 @@ oops:
 			hawk_sio_arg_t* prev;
 
 			/* nothing much to do about a close error */
-			awk->sio.inf (
-				awk, HAWK_SIO_CMD_CLOSE, 
-				awk->sio.inp, HAWK_NULL, 0);
+			awk->sio.inf (awk, HAWK_SIO_CMD_CLOSE, awk->sio.inp, HAWK_NULL, 0);
 
 			prev = awk->sio.inp->prev;
 
@@ -651,14 +647,79 @@ oops:
 	return ret;
 }
 
-void hawk_clearsionames (hawk_t* awk)
+hawk_ooch_t* hawk_addsionamewithuchars (hawk_t* hawk, const hawk_uch_t* ptr, hawk_oow_t len)
+{
+	hawk_link_t* link;
+
+	/* TODO: duplication check? */
+
+#if defined(HAWK_OOCH_IS_UCH)
+	link = (hawk_link_t*)hawk_callocmem(hawk, HAWK_SIZEOF(*link) + HAWK_SIZEOF(hawk_uch_t) * (len + 1));
+	if (!link) return HAWK_NULL;
+
+	hawk_copy_uchars_to_ucstr_unlimited ((hawk_uch_t*)(link + 1), ptr, len);
+#else
+	hawk_oow_t bcslen, ucslen;
+
+	ucslen = len;
+	if (hawk_convutobchars(hawk, ptr, &ucslen, HAWK_NULL, &bcslen) <= -1) return HAWK_NULL;
+
+	link = (hawk_link_t*)hawk_callocmem(hawk, HAWK_SIZEOF(*link) + HAWK_SIZEOF(hawk_bch_t) * (bcslen + 1));
+	if (!link) return HAWK_NULL;
+
+	ucslen = len;
+	bcslen = bcslen + 1;
+	hawk_convutobchars (hawk, ptr, &ucslen, (hawk_bch_t*)(link + 1), &bcslen);
+	((hawk_bch_t*)(link + 1))[bcslen] = '\0';
+#endif
+
+	link->link = hawk->sio_names;
+	hawk->sio_names = link;
+
+	return (hawk_ooch_t*)(link + 1);
+}
+
+hawk_ooch_t* hawk_addsionamewithbchars (hawk_t* hawk, const hawk_bch_t* ptr, hawk_oow_t len)
+{
+	hawk_link_t* link;
+
+	/* TODO: duplication check? */
+
+#if defined(HAWK_OOCH_IS_UCH)
+	hawk_oow_t bcslen, ucslen;
+
+	bcslen = len;
+	if (hawk_convbtouchars (hawk, ptr, &bcslen, HAWK_NULL, &ucslen, 0) <= -1) return HAWK_NULL;
+
+	link = (hawk_link_t*)hawk_callocmem(hawk, HAWK_SIZEOF(*link) + HAWK_SIZEOF(hawk_uch_t) * (ucslen + 1));
+	if (!link) return HAWK_NULL;
+
+	bcslen = len;
+	ucslen = ucslen + 1;
+	hawk_convbtouchars (hawk, ptr, &bcslen, (hawk_uch_t*)(link + 1), &ucslen, 0);
+	((hawk_uch_t*)(link + 1))[ucslen] = '\0';
+
+#else
+	link = (hawk_link_t*)hawk_callocmem(hawk, HAWK_SIZEOF(*link) + HAWK_SIZEOF(hawk_bch_t) * (len + 1));
+	if (!link) return HAWK_NULL;
+
+	hawk_copy_bchars_to_bcstr_unlimited ((hawk_bch_t*)(link + 1), ptr, len);
+#endif
+
+	link->link = hawk->sio_names;
+	hawk->sio_names = link;
+
+	return (hawk_ooch_t*)(link + 1);
+}
+
+void hawk_clearsionames (hawk_t* hawk)
 {
 	hawk_link_t* cur;
-	while (awk->sio_names)
+	while (hawk->sio_names)
 	{
-		cur = awk->sio_names;
-		awk->sio_names = cur->link;
-		hawk_freemem (awk, cur);
+		cur = hawk->sio_names;
+		hawk->sio_names = cur->link;
+		hawk_freemem (hawk, cur);
 	}
 }
 
@@ -688,6 +749,9 @@ int hawk_parse (hawk_t* awk, hawk_sio_cbs_t* sio)
 	awk->sio.inf = sio->in;
 	awk->sio.outf = sio->out;
 	awk->sio.last.c = HAWK_OOCI_EOF;
+	/*awk->sio.arg.name = HAWK_NULL;
+	awk->sio.arg.handle = HAWK_NULL;
+	awk->sio.arg.path = HAWK_NULL;*/
 	awk->sio.arg.line = 1;
 	awk->sio.arg.colm = 1;
 	awk->sio.arg.pragma_trait = 0;
@@ -775,6 +839,7 @@ static int begin_include (hawk_t* awk, int once)
 {
 	hawk_sio_arg_t* arg = HAWK_NULL;
 	hawk_link_t* link;
+	hawk_ooch_t* sio_name;
 
 	if (hawk_count_oocstr(HAWK_OOECS_PTR(awk->tok.name)) != HAWK_OOECS_LEN(awk->tok.name))
 	{
@@ -798,27 +863,22 @@ static int begin_include (hawk_t* awk, int once)
 
 	/* store the include-file name into a list
 	 * and this list is not deleted after hawk_parse.
-	 * the errinfo.loc.file can point to a include_oncestring here. */
-	link = (hawk_link_t*)hawk_callocmem(awk, HAWK_SIZEOF(*link) + 
-		HAWK_SIZEOF(*arg) + HAWK_SIZEOF(hawk_ooch_t) * (HAWK_OOECS_LEN(awk->tok.name) + 1));
-	if (!link)
+	 * the errinfo.loc.file can point to the file name here. */
+	sio_name = hawk_addsionamewithoochars(awk, HAWK_OOECS_PTR(awk->tok.name), HAWK_OOECS_LEN(awk->tok.name));
+	if (!sio_name)
 	{
 		ADJERR_LOC (awk, &awk->ptok.loc);
 		goto oops;
 	}
 
-	hawk_copy_oochars_to_oocstr_unlimited ((hawk_ooch_t*)(link + 1), HAWK_OOECS_PTR(awk->tok.name), HAWK_OOECS_LEN(awk->tok.name));
-	link->link = awk->sio_names;
-	awk->sio_names = link;
-
-	arg = (hawk_sio_arg_t*)hawk_callocmem(awk, HAWK_SIZEOF(*awk));
+	arg = (hawk_sio_arg_t*)hawk_callocmem(awk, HAWK_SIZEOF(*arg));
 	if (!arg)
 	{
 		ADJERR_LOC (awk, &awk->ptok.loc);
 		goto oops;
 	}
 
-	arg->name = (const hawk_ooch_t*)(link + 1);
+	arg->name = sio_name;
 	arg->line = 1;
 	arg->colm = 1;
 
@@ -6227,7 +6287,7 @@ static int skip_comment (hawk_t* awk)
 				hawk_loc_t loc;
 				loc.line = awk->sio.inp->line;
 				loc.colm = awk->sio.inp->colm;
-				loc.file = awk->sio.inp->name;
+				loc.file = awk->sio.inp->path;
 				SETERR_LOC (awk, HAWK_ECMTNC, &loc);
 				return -1;
 			}
@@ -6240,7 +6300,7 @@ static int skip_comment (hawk_t* awk)
 					hawk_loc_t loc;
 					loc.line = awk->sio.inp->line;
 					loc.colm = awk->sio.inp->colm;
-					loc.file = awk->sio.inp->name;
+					loc.file = awk->sio.inp->path;
 					SETERR_LOC (awk, HAWK_ECMTNC, &loc);
 					return -1;
 				}
@@ -6713,9 +6773,9 @@ static int deparse (hawk_t* awk)
 		hawk_oow_t len;
 
 		len = hawk_int_to_oocstr((hawk_int_t)awk->parse.pragma.rtx_stack_limit, 10, HAWK_NULL, tmp, HAWK_COUNTOF(tmp));
-		if (hawk_putsroocs(awk, HAWK_T("@pragma stack_limit ")) <= -1 ||
-		    hawk_putsroocsn (awk, tmp, len) <= -1 ||
-		    hawk_putsroocs(awk, HAWK_T(";\n")) <= -1) EXIT_DEPARSE ();
+		if (hawk_putsrcoocstr(awk, HAWK_T("@pragma stack_limit ")) <= -1 ||
+		    hawk_putsrcoochars (awk, tmp, len) <= -1 ||
+		    hawk_putsrcoocstr(awk, HAWK_T(";\n")) <= -1) EXIT_DEPARSE ();
 	}
 
 	if (awk->tree.ngbls > awk->tree.ngbls_base) 
@@ -6725,44 +6785,44 @@ static int deparse (hawk_t* awk)
 		HAWK_ASSERT (awk->tree.ngbls > 0);
 
 		hawk_getkwname (awk, HAWK_KWID_XGLOBAL, &kw);
-		if (hawk_putsroocsn(awk, kw.ptr, kw.len) <= -1 || hawk_putsroocs (awk, HAWK_T(" ")) <= -1) EXIT_DEPARSE ();
+		if (hawk_putsrcoochars(awk, kw.ptr, kw.len) <= -1 || hawk_putsrcoocstr (awk, HAWK_T(" ")) <= -1) EXIT_DEPARSE ();
 
 		for (i = awk->tree.ngbls_base; i < awk->tree.ngbls - 1; i++) 
 		{
 			if (!(awk->opt.trait & HAWK_IMPLICIT))
 			{
 				/* use the actual name if no named variable is allowed */
-				if (hawk_putsroocsn (awk, HAWK_ARR_DPTR(awk->parse.gbls, i), HAWK_ARR_DLEN(awk->parse.gbls, i)) <= -1) EXIT_DEPARSE ();
+				if (hawk_putsrcoochars (awk, HAWK_ARR_DPTR(awk->parse.gbls, i), HAWK_ARR_DLEN(awk->parse.gbls, i)) <= -1) EXIT_DEPARSE ();
 			}
 			else
 			{
 				len = hawk_int_to_oocstr((hawk_int_t)i, 10, HAWK_T("__g"), tmp, HAWK_COUNTOF(tmp));
 				HAWK_ASSERT (len != (hawk_oow_t)-1);
-				if (hawk_putsroocsn (awk, tmp, len) <= -1) EXIT_DEPARSE ();
+				if (hawk_putsrcoochars (awk, tmp, len) <= -1) EXIT_DEPARSE ();
 			}
 
-			if (hawk_putsroocs (awk, HAWK_T(", ")) <= -1) EXIT_DEPARSE ();
+			if (hawk_putsrcoocstr (awk, HAWK_T(", ")) <= -1) EXIT_DEPARSE ();
 		}
 
 		if (!(awk->opt.trait & HAWK_IMPLICIT))
 		{
 			/* use the actual name if no named variable is allowed */
-			if (hawk_putsroocsn(awk, HAWK_ARR_DPTR(awk->parse.gbls,i), HAWK_ARR_DLEN(awk->parse.gbls,i)) <= -1) EXIT_DEPARSE ();
+			if (hawk_putsrcoochars(awk, HAWK_ARR_DPTR(awk->parse.gbls,i), HAWK_ARR_DLEN(awk->parse.gbls,i)) <= -1) EXIT_DEPARSE ();
 		}
 		else
 		{
 			len = hawk_int_to_oocstr((hawk_int_t)i, 10, HAWK_T("__g"), tmp, HAWK_COUNTOF(tmp));
 			HAWK_ASSERT (len != (hawk_oow_t)-1);
-			if (hawk_putsroocsn (awk, tmp, len) <= -1) EXIT_DEPARSE ();
+			if (hawk_putsrcoochars (awk, tmp, len) <= -1) EXIT_DEPARSE ();
 		}
 
 		if (awk->opt.trait & HAWK_CRLF)
 		{
-			if (hawk_putsroocs(awk, HAWK_T(";\r\n\r\n")) <= -1) EXIT_DEPARSE ();
+			if (hawk_putsrcoocstr(awk, HAWK_T(";\r\n\r\n")) <= -1) EXIT_DEPARSE ();
 		}
 		else
 		{
-			if (hawk_putsroocs(awk, HAWK_T(";\n\n")) <= -1) EXIT_DEPARSE ();
+			if (hawk_putsrcoocstr(awk, HAWK_T(";\n\n")) <= -1) EXIT_DEPARSE ();
 		}
 	}
 
@@ -6780,8 +6840,8 @@ static int deparse (hawk_t* awk)
 
 		hawk_getkwname (awk, HAWK_KWID_BEGIN, &kw);
 
-		if (hawk_putsroocsn (awk, kw.ptr, kw.len) <= -1) EXIT_DEPARSE ();
-		if (hawk_putsroocs (awk, HAWK_T(" ")) <= -1) EXIT_DEPARSE ();
+		if (hawk_putsrcoochars (awk, kw.ptr, kw.len) <= -1) EXIT_DEPARSE ();
+		if (hawk_putsrcoocstr (awk, HAWK_T(" ")) <= -1) EXIT_DEPARSE ();
 		if (hawk_prnnde (awk, nde) <= -1) EXIT_DEPARSE ();
 
 		if (awk->opt.trait & HAWK_CRLF)
@@ -6835,8 +6895,8 @@ static int deparse (hawk_t* awk)
 
 		hawk_getkwname (awk, HAWK_KWID_END, &kw);
 
-		if (hawk_putsroocsn(awk, kw.ptr, kw.len) <= -1) EXIT_DEPARSE ();
-		if (hawk_putsroocs(awk, HAWK_T(" ")) <= -1) EXIT_DEPARSE ();
+		if (hawk_putsrcoochars(awk, kw.ptr, kw.len) <= -1) EXIT_DEPARSE ();
+		if (hawk_putsrcoocstr(awk, HAWK_T(" ")) <= -1) EXIT_DEPARSE ();
 		if (hawk_prnnde(awk, nde) <= -1) EXIT_DEPARSE ();
 		
 		/*
@@ -6880,12 +6940,12 @@ static hawk_htb_walk_t deparse_func (hawk_htb_t* map, hawk_htb_pair_t* pair, voi
 	}
 
 #define PUT_S(x,str) \
-	if (hawk_putsroocs(x->awk,str) <= -1) { \
+	if (hawk_putsrcoocstr(x->awk,str) <= -1) { \
 		x->ret = -1; return HAWK_HTB_WALK_STOP; \
 	}
 
 #define PUT_SX(x,str,len) \
-	if (hawk_putsroocsn (x->awk, str, len) <= -1) { \
+	if (hawk_putsrcoochars (x->awk, str, len) <= -1) { \
 		x->ret = -1; return HAWK_HTB_WALK_STOP; \
 	}
 
@@ -6963,25 +7023,24 @@ static int flush_out (hawk_t* awk)
 	return 0;
 }
 
-int hawk_putsroocs (hawk_t* awk, const hawk_ooch_t* str)
+int hawk_putsrcoocstr (hawk_t* hawk, const hawk_ooch_t* str)
 {
 	while (*str != HAWK_T('\0'))
 	{
-		if (put_char (awk, *str) <= -1) return -1;
+		if (put_char(hawk, *str) <= -1) return -1;
 		str++;
 	}
 
 	return 0;
 }
 
-int hawk_putsroocsn (
-	hawk_t* awk, const hawk_ooch_t* str, hawk_oow_t len)
+int hawk_putsrcoochars (hawk_t* hawk, const hawk_ooch_t* str, hawk_oow_t len)
 {
 	const hawk_ooch_t* end = str + len;
 
 	while (str < end)
 	{
-		if (put_char (awk, *str) <= -1) return -1;
+		if (put_char(hawk, *str) <= -1) return -1;
 		str++;
 	}
 
