@@ -463,6 +463,21 @@
 /* Define to 1 if `d_type' is a member of `struct dirent'. */
 #undef HAVE_STRUCT_DIRENT_D_TYPE
 
+/* Define to 1 if `ifr_ifindex' is a member of `struct ifreq'. */
+#undef HAVE_STRUCT_IFREQ_IFR_IFINDEX
+
+/* Define to 1 if `ifr_mtu' is a member of `struct ifreq'. */
+#undef HAVE_STRUCT_IFREQ_IFR_MTU
+
+/* Define to 1 if the system has the type `struct if_laddrreq'. */
+#undef HAVE_STRUCT_IF_LADDRREQ
+
+/* Define to 1 if the system has the type `struct lifconf'. */
+#undef HAVE_STRUCT_LIFCONF
+
+/* Define to 1 if the system has the type `struct lifreq'. */
+#undef HAVE_STRUCT_LIFREQ
+
 /* Define to 1 if `st_birthtime' is a member of `struct stat'. */
 #undef HAVE_STRUCT_STAT_ST_BIRTHTIME
 
