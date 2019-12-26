@@ -18634,7 +18634,23 @@ fi
 
 done
 
-for ac_header in netinet/in.h sys/un.h netpacket/packet.h net/if_dl.h
+for ac_header in netinet/in.h sys/un.h netpacket/packet.h net/if.h net/if_dl.h
+do :
+  as_ac_Header=`$as_echo "ac_cv_header_$ac_header" | $as_tr_sh`
+ac_fn_c_check_header_compile "$LINENO" "$ac_header" "$as_ac_Header" "
+	#include <sys/types.h>
+	#include <sys/socket.h>
+"
+if eval test \"x\$"$as_ac_Header"\" = x"yes"; then :
+  cat >>confdefs.h <<_ACEOF
+#define `$as_echo "HAVE_$ac_header" | $as_tr_cpp` 1
+_ACEOF
+
+fi
+
+done
+
+for ac_header in sys/stropts.h sys/macstat.h linux/ethtool.h linux/sockios.h
 do :
   as_ac_Header=`$as_echo "ac_cv_header_$ac_header" | $as_tr_sh`
 ac_fn_c_check_header_mongrel "$LINENO" "$ac_header" "$as_ac_Header" "$ac_includes_default"

@@ -28,13 +28,13 @@
 
 #if !defined(HAWK_DEFAULT_MODPREFIX)
 #	if defined(_WIN32)
-#		define HAWK_DEFAULT_MODPREFIX "hawkawk-"
+#		define HAWK_DEFAULT_MODPREFIX "hawk-"
 #	elif defined(__OS2__)
-#		define HAWK_DEFAULT_MODPREFIX "awk-"
+#		define HAWK_DEFAULT_MODPREFIX "hawk"
 #	elif defined(__DOS__)
-#		define HAWK_DEFAULT_MODPREFIX "awk-"
+#		define HAWK_DEFAULT_MODPREFIX "hawk"
 #	else
-#		define HAWK_DEFAULT_MODPREFIX "libhawkawk-"
+#		define HAWK_DEFAULT_MODPREFIX "libhawk-"
 #	endif
 #endif
 
