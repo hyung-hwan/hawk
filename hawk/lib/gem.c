@@ -622,4 +622,3 @@ hawk_oow_t hawk_gem_fmttobcstr (hawk_gem_t* gem, hawk_bch_t* buf, hawk_oow_t buf
 
 	return x;
 }
-

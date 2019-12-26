@@ -394,6 +394,19 @@ AC_CHECK_MEMBERS([struct tm.__tm_gmtoff],,,[[#include <time.h>]])
 AC_CHECK_MEMBERS([struct tm.tm_zone],,,[[#include <time.h>]])
 AC_CHECK_MEMBERS([struct tm.__tm_zone],,,[[#include <time.h>]])
 
+AC_CHECK_MEMBERS([struct ifreq.ifr_ifindex, struct ifreq.ifr_mtu], [], [],
+	[#include <sys/types.h>
+	 #include <sys/socket.h>
+	 #ifdef HAVE_NET_IF_H
+	 #include <net/if.h>
+	 #endif])
+
+AC_CHECK_TYPES([struct lifconf, struct lifreq, struct if_laddrreq], [], [],
+	[#include <sys/types.h>
+	 #include <sys/socket.h>
+	 #ifdef HAVE_NET_IF_H
+	 #include <net/if.h>
+	 #endif])
 
 dnl check the size of primitive data types
 AC_CHECK_SIZEOF(char,,[[]])
