@@ -340,7 +340,7 @@ TODO
 					const hawk_ooch_t* stmp = p;
 					unsigned int index;
 					do p++; while (p < end);
-					if (hawk_nwifwcsntoindex (stmp, p - stmp, &index) <= -1) return -1;
+					if (hawk_nwifwcsntoindex(stmp, p - stmp, &index) <= -1) return -1;
 					skad->in6.sin6_scope_id = index;
 #endif
 				}
