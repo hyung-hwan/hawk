@@ -258,15 +258,12 @@ int hawk_gem_oocharstoskad (hawk_gem_t* gem, const hawk_ooch_t* str, hawk_oow_t 
 			}
 			else
 			{
-#if 0
-TODO:
 				/* interface name as a scope id? */
 				const hawk_ooch_t* stmp = p;
 				unsigned int index;
 				do p++; while (p < end && *p != ']');
-				if (hawk_nwifwcsntoindex(stmp, p - stmp, &index) <= -1) return -1;
-				tmpad.u.in6.scope = index;
-#endif
+				if (hawk_gem_ucharstoifindex(gem, stmp, p - stmp, &index) <= -1) return -1;
+				skad->in6.sin6_scope_id = index;
 			}
 
 			if (p >= end || *p != ']') goto no_rbrack;
@@ -334,15 +331,12 @@ TODO:
 				}
 				else
 				{
-#if 0
-TODO
 					/* interface name as a scope id? */
 					const hawk_ooch_t* stmp = p;
 					unsigned int index;
 					do p++; while (p < end);
-					if (hawk_nwifwcsntoindex(stmp, p - stmp, &index) <= -1) return -1;
+					if (hawk_gem_ucharstoifindex(gem, stmp, p - stmp, &index) <= -1) return -1;
 					skad->in6.sin6_scope_id = index;
-#endif
 				}
 			}
 

@@ -41,6 +41,7 @@ const hawk_ooch_t* hawk_dflerrstr (hawk_t* awk, hawk_errnum_t errnum)
 		HAWK_T("insufficient memory"),
 		HAWK_T("invalid parameter or data"),
 		HAWK_T("access denied"),
+		HAWK_T("system busy"),
 		HAWK_T("operation not allowed"),
 		HAWK_T("not supported"),
 		HAWK_T("'${0}' not found"),

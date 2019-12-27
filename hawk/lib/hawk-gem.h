@@ -289,6 +289,58 @@ int hawk_gem_oocharstoskad (
 	hawk_skad_t*       skad
 );
 
+/* ----------------------------------------------------------------------- */
+
+int hawk_gem_bcstrtoifindex (
+	hawk_gem_t*        gem,
+	const hawk_bch_t*  ptr,
+	unsigned int*      index
+);
+
+int hawk_gem_bcharstoifindex (
+	hawk_gem_t*        gem,
+	const hawk_bch_t*  ptr,
+	hawk_oow_t         len,
+	unsigned int*      index
+);
+
+int hawk_gem_ucstrtoifindex (
+	hawk_gem_t*        gem,
+	const hawk_uch_t*  ptr,
+	unsigned int*      index
+);
+
+int hawk_gem_ucharstoifindex (
+	hawk_gem_t*        gem,
+	const hawk_uch_t*  ptr,
+	hawk_oow_t         len,
+	unsigned int*      index
+);
+
+int hawk_gem_ifindextobcstr (
+	hawk_gem_t*        gem,
+	unsigned int       index,
+	hawk_bch_t*        buf,
+	hawk_oow_t         len
+);
+
+int hawk_gem_ifindextoucstr (
+	hawk_gem_t*        gem,
+	unsigned int       index,
+	hawk_uch_t*        buf,
+	hawk_oow_t         len
+);
+
+#if defined(HAWK_OOCH_IS_UCH)
+#	define hawk_gem_oocstrtoifindex hawk_gem_ucstrtoifindex
+#	define hawk_gem_oocharstoifindex hawk_gem_ucharstoifindex
+#	define hawk_gem_ifindextooocstr hawk_gem_ifindextoucstr
+#else
+#	define hawk_gem_oocstrtoifindex hawk_gem_bcstrtoifindex
+#	define hawk_gem_oocharstoifindex hawk_gem_bcharstoifindex
+#	define hawk_gem_ifindextooocstr hawk_gem_ifindextobcstr
+#endif
+
 #if defined(__cplusplus)
 }
 #endif

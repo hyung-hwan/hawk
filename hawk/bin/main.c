@@ -1158,13 +1158,19 @@ static HAWK_INLINE int execute_hawk (int argc, hawk_bch_t* argv[])
 		goto oops;
 	}
 
-	/*const char* ocf[] = { "/dev/stdout", "/dev/stderr", NULL };*/
+#if 1
 	rtx = hawk_rtx_openstdwithbcstr(
 		awk, 0, "hawk",
 		(arg.call? HAWK_NULL: arg.icf.ptr), /* console input */
 		HAWK_NULL,  /* ocf */ /* console output */
 		arg.console_cmgr
 	);
+#else
+	/* this part is for testing only. don't use it for production */
+	const hawk_uch_t* icf[] = { HAWK_UT("/dev/stdin"), NULL };
+	const hawk_uch_t* ocf[] = { HAWK_UT("/dev/stdout"), NULL };
+	rtx = hawk_rtx_openstdwithucstr(awk, 0, HAWK_UT("hawk"), icf, ocf, arg.console_cmgr);
+#endif
 	if (rtx == HAWK_NULL) 
 	{
 		print_hawk_error (awk);

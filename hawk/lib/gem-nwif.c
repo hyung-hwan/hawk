@@ -49,6 +49,9 @@
 #	endif
 #endif
 
+#include "syserr.h"
+IMPLEMENT_SYSERR_TO_ERRNUM (hawk, HAWK)
+
 #if defined(SIOCGIFCONF) && (defined(SIOCGIFANUM) || defined(SIOCGIFNUM))
 static int get_sco_ifconf (hawk_gem_t* gem, struct ifconf* ifc)
 {
@@ -58,15 +61,27 @@ static int get_sco_ifconf (hawk_gem_t* gem, struct ifconf* ifc)
 	struct ifreq* ifr;
 
 	h = socket(AF_INET, SOCK_DGRAM, 0); 
-	if (h <= -1) return -1;
+	if (h <= -1) 
+	{
+		hawk_gem_seterrnum (gem, HAWK_NULL, syserr_to_errnum(errno));
+		return -1;
+	}
 
 	ifc->ifc_len = 0;
 	ifc->ifc_buf = HAWK_NULL;
 
 	#if defined(SIOCGIFANUM)
-	if (ioctl(h, SIOCGIFANUM, &num) <= -1) goto oops;
+	if (ioctl(h, SIOCGIFANUM, &num) <= -1)
+	{
+		hawk_gem_seterrnum (gem, HAWK_NULL, syserr_to_errnum(errno));
+		goto oops;
+	}
 	#else
-	if (ioctl(h, SIOCGIFNUM, &num) <= -1) goto oops;
+	if (ioctl(h, SIOCGIFNUM, &num) <= -1)
+	{
+		hawk_gem_seterrnum (gem, HAWK_NULL, syserr_to_errnum(errno));
+		goto oops;
+	}
 	#endif
 
 	/* sco needs reboot when you add an network interface.
@@ -80,7 +95,11 @@ static int get_sco_ifconf (hawk_gem_t* gem, struct ifconf* ifc)
 	ifc->ifc_buf = hawk_gem_allocmem(gem, ifc->ifc_len);
 	if (ifc->ifc_buf == HAWK_NULL) goto oops;
 
-	if (ioctl(h, SIOCGIFCONF, ifc) <= -1) goto oops;
+	if (ioctl(h, SIOCGIFCONF, ifc) <= -1) 
+	{
+		hawk_gem_seterrnum (gem, HAWK_NULL, syserr_to_errnum(errno));
+		goto oops;
+	}
 	HAWK_CLOSE (h); h = -1;
 
 	return 0;
@@ -102,12 +121,15 @@ int hawk_gem_bcstrtoifindex (hawk_gem_t* gem, const hawk_bch_t* ptr, unsigned in
 {
 #if defined(_WIN32)
 	/* TODO: */
+	hawk_gem_seterrnum (gem, HAWK_NULL, HAWK_ENOIMPL);
 	return -1;
 #elif defined(__OS2__)
 	/* TODO: */
+	hawk_gem_seterrnum (gem, HAWK_NULL, HAWK_ENOIMPL);
 	return -1;
 #elif defined(__DOS__)
 	/* TODO: */
+	hawk_gem_seterrnum (gem, HAWK_NULL, HAWK_ENOIMPL);
 	return -1;
 
 #elif defined(SIOCGIFINDEX)
@@ -116,7 +138,11 @@ int hawk_gem_bcstrtoifindex (hawk_gem_t* gem, const hawk_bch_t* ptr, unsigned in
 	struct ifreq ifr;
 
 	h = socket(AF_INET, SOCK_DGRAM, 0); 
-	if (h <= -1) return -1;
+	if (h <= -1)
+	{
+		hawk_gem_seterrnum (gem, HAWK_NULL, syserr_to_errnum(errno));
+		return -1;
+	}
 
 	HAWK_MEMSET (&ifr, 0, HAWK_SIZEOF(ifr));
 	len = hawk_copy_bcstr(ifr.ifr_name, HAWK_COUNTOF(ifr.ifr_name), ptr);
@@ -145,7 +171,11 @@ int hawk_gem_bcstrtoifindex (hawk_gem_t* gem, const hawk_bch_t* ptr, unsigned in
 	if (ptr[len] != '\0') return -1; /* name too long */
 
 	tmpidx = if_nametoindex(tmp);
-	if (tmpidx == 0) return -1;
+	if (tmpidx == 0)
+	{
+		hawk_gem_seterrnum (gem, HAWK_NULL, syserr_to_errnum(errno));
+		return -1;
+	}
 	*index = tmpidx;
 	return 0;
 
@@ -179,12 +209,15 @@ int hawk_gem_bcharstoifindex (hawk_gem_t* gem, const hawk_bch_t* ptr, hawk_oow_t
 {
 #if defined(_WIN32)
 	/* TODO: */
+	hawk_gem_seterrnum (gem, HAWK_NULL, HAWK_ENOIMPL);
 	return -1;
 #elif defined(__OS2__)
 	/* TODO: */
+	hawk_gem_seterrnum (gem, HAWK_NULL, HAWK_ENOIMPL);
 	return -1;
 #elif defined(__DOS__)
 	/* TODO: */
+	hawk_gem_seterrnum (gem, HAWK_NULL, HAWK_ENOIMPL);
 	return -1;
 
 #elif defined(SIOCGIFINDEX)
@@ -192,7 +225,11 @@ int hawk_gem_bcharstoifindex (hawk_gem_t* gem, const hawk_bch_t* ptr, hawk_oow_t
 	struct ifreq ifr;
 
 	h = socket(AF_INET, SOCK_DGRAM, 0); 
-	if (h <= -1) return -1;
+	if (h <= -1) 
+	{
+		hawk_gem_seterrnum (gem, HAWK_NULL, syserr_to_errnum(errno));
+		return -1;
+	}
 
 	HAWK_MEMSET (&ifr, 0, HAWK_SIZEOF(ifr));
 	if (hawk_copy_bchars_to_bcstr(ifr.ifr_name, HAWK_COUNTOF(ifr.ifr_name), ptr, len) < len) return -1; /* name too long */
@@ -217,8 +254,12 @@ int hawk_gem_bcharstoifindex (hawk_gem_t* gem, const hawk_bch_t* ptr, hawk_oow_t
 
 	if (hawk_copy_bchars_to_bcstr(tmp, HAWK_COUNTOF(tmp), ptr, len) < len) return -1;
 
-	tmpidx = if_nametoindex (tmp);
-	if (tmpidx == 0) return -1;
+	tmpidx = if_nametoindex(tmp);
+	if (tmpidx == 0)
+	{
+		hawk_gem_seterrnum (gem, HAWK_NULL, syserr_to_errnum(errno));
+		return -1;
+	}
 	*index = tmpidx;
 	return 0;
 
@@ -251,12 +292,15 @@ int hawk_gem_ucstrtoifindex (hawk_gem_t* gem, const hawk_uch_t* ptr, unsigned in
 {
 #if defined(_WIN32)
 	/* TODO: */
+	hawk_gem_seterrnum (gem, HAWK_NULL, HAWK_ENOIMPL);
 	return -1;
 #elif defined(__OS2__)
 	/* TODO: */
+	hawk_gem_seterrnum (gem, HAWK_NULL, HAWK_ENOIMPL);
 	return -1;
 #elif defined(__DOS__)
 	/* TODO: */
+	hawk_gem_seterrnum (gem, HAWK_NULL, HAWK_ENOIMPL);
 	return -1;
 
 #elif defined(SIOCGIFINDEX)
@@ -265,7 +309,11 @@ int hawk_gem_ucstrtoifindex (hawk_gem_t* gem, const hawk_uch_t* ptr, unsigned in
 	hawk_oow_t wl, ml;
 
 	h = socket(AF_INET, SOCK_DGRAM, 0); 
-	if (h <= -1) return -1;
+	if (h <= -1) 
+	{
+		hawk_gem_seterrnum (gem, HAWK_NULL, syserr_to_errnum(errno));
+		return -1;
+	}
 
 	ml = HAWK_COUNTOF(ifr.ifr_name);
 	if (hawk_gem_convutobcstr(gem, ptr, &wl, ifr.ifr_name, &ml) <= -1) return -1;
@@ -293,7 +341,11 @@ int hawk_gem_ucstrtoifindex (hawk_gem_t* gem, const hawk_uch_t* ptr, unsigned in
 	if (hawk_gem_convutobcstr(gem, ptr, &wl, tmp, &ml) <= -1) return -1;
 
 	tmpidx = if_nametoindex(tmp);
-	if (tmpidx == 0) return -1;
+	if (tmpidx == 0) 
+	{
+		hawk_gem_seterrnum (gem, HAWK_NULL, syserr_to_errnum(errno));
+		return -1;
+	}
 	*index = tmpidx;
 	return 0;
 
@@ -332,12 +384,15 @@ int hawk_gem_ucharstoifindex (hawk_gem_t* gem, const hawk_uch_t* ptr, hawk_oow_t
 {
 #if defined(_WIN32)
 	/* TODO: */
+	hawk_gem_seterrnum (gem, HAWK_NULL, HAWK_ENOIMPL);
 	return -1;
 #elif defined(__OS2__)
 	/* TODO: */
+	hawk_gem_seterrnum (gem, HAWK_NULL, HAWK_ENOIMPL);
 	return -1;
 #elif defined(__DOS__)
 	/* TODO: */
+	hawk_gem_seterrnum (gem, HAWK_NULL, HAWK_ENOIMPL);
 	return -1;
 
 #elif defined(SIOCGIFINDEX)
@@ -346,7 +401,11 @@ int hawk_gem_ucharstoifindex (hawk_gem_t* gem, const hawk_uch_t* ptr, hawk_oow_t
 	hawk_oow_t wl, ml;
 
 	h = socket(AF_INET, SOCK_DGRAM, 0); 
-	if (h <= -1) return -1;
+	if (h <= -1) 
+	{
+		hawk_gem_seterrnum (gem, HAWK_NULL, syserr_to_errnum(errno));
+		return -1;
+	}
 
 	wl = len; ml = HAWK_COUNTOF(ifr.ifr_name) - 1;
 	if (hawk_gem_convutobchars(gem, ptr, &wl, ifr.ifr_name, &ml) <= -1) return -1;
@@ -376,7 +435,11 @@ int hawk_gem_ucharstoifindex (hawk_gem_t* gem, const hawk_uch_t* ptr, hawk_oow_t
 	tmp[ml] = '\0';
 
 	tmpidx = if_nametoindex(tmp);
-	if (tmpidx == 0) return -1;
+	if (tmpidx == 0) 
+	{
+		hawk_gem_seterrnum (gem, HAWK_NULL, syserr_to_errnum(errno));
+		return -1;
+	}
 	*index = tmpidx;
 	return 0;
 
@@ -412,16 +475,19 @@ int hawk_gem_ucharstoifindex (hawk_gem_t* gem, const hawk_uch_t* ptr, hawk_oow_t
 
 /* ---------------------------------------------------------- */
 
-int hawk_gem_ifindextobcstr (unsigned int index, hawk_bch_t* buf, hawk_oow_t len)
+int hawk_gem_ifindextobcstr (hawk_gem_t* gem, unsigned int index, hawk_bch_t* buf, hawk_oow_t len)
 {
 #if defined(_WIN32)
 	/* TODO: */
+	hawk_gem_seterrnum (gem, HAWK_NULL, HAWK_ENOIMPL);
 	return -1;
 #elif defined(__OS2__)
 	/* TODO: */
+	hawk_gem_seterrnum (gem, HAWK_NULL, HAWK_ENOIMPL);
 	return -1;
 #elif defined(__DOS__)
 	/* TODO: */
+	hawk_gem_seterrnum (gem, HAWK_NULL, HAWK_ENOIMPL);
 	return -1;
 
 #elif defined(SIOCGIFNAME)
@@ -430,7 +496,11 @@ int hawk_gem_ifindextobcstr (unsigned int index, hawk_bch_t* buf, hawk_oow_t len
 	struct ifreq ifr;
 
 	h = socket(AF_INET, SOCK_DGRAM, 0); 
-	if (h <= -1) return -1;
+	if (h <= -1) 
+	{
+		hawk_gem_seterrnum (gem, HAWK_NULL, syserr_to_errnum(errno));
+		return -1;
+	}
 
 	HAWK_MEMSET (&ifr, 0, HAWK_SIZEOF(ifr));
 	#if defined(HAVE_STRUCT_IFREQ_IFR_IFINDEX)
@@ -442,11 +512,21 @@ int hawk_gem_ifindextobcstr (unsigned int index, hawk_bch_t* buf, hawk_oow_t len
 	x = ioctl(h, SIOCGIFNAME, &ifr);
 	HAWK_CLOSE (h);
 
-	return (x <= -1)? -1: hawk_copy_bcstr(buf, len, ifr.ifr_name);
+	if (x <= -1)
+	{
+		hawk_gem_seterrnum (gem, HAWK_NULL, syserr_to_errnum(errno));
+		return -1;
+	}
+
+	return hawk_copy_bcstr(buf, len, ifr.ifr_name);
 
 #elif defined(HAVE_IF_INDEXTONAME)
 	hawk_bch_t tmp[IF_NAMESIZE + 1];
-	if (if_indextoname (index, tmp) == HAWK_NULL) return -1;
+	if (if_indextoname (index, tmp) == HAWK_NULL) 
+	{
+		hawk_gem_seterrnum (gem, HAWK_NULL, syserr_to_errnum(errno));
+		return -1;
+	}
 	return hawk_copy_bcstr(buf, len, tmp);
 
 #elif defined(SIOCGIFCONF) && (defined(SIOCGIFANUM) || defined(SIOCGIFNUM))
@@ -461,6 +541,7 @@ int hawk_gem_ifindextobcstr (unsigned int index, hawk_bch_t* buf, hawk_oow_t len
 	num = ifc.ifc_len / HAWK_SIZEOF(struct ifreq);
 	if (index > num) 
 	{
+		hawk_gem_seterrnum (gem, HAWK_NULL, HAWK_ENOENT);
 		free_sco_ifconf (gem, &ifc);
 		return -1;
 	}
@@ -478,12 +559,15 @@ int hawk_gem_ifindextoucstr (hawk_gem_t* gem, unsigned int index, hawk_uch_t* bu
 {
 #if defined(_WIN32)
 	/* TODO: */
+	hawk_gem_seterrnum (gem, HAWK_NULL, HAWK_ENOIMPL);
 	return -1;
 #elif defined(__OS2__)
 	/* TODO: */
+	hawk_gem_seterrnum (gem, HAWK_NULL, HAWK_ENOIMPL);
 	return -1;
 #elif defined(__DOS__)
 	/* TODO: */
+	hawk_gem_seterrnum (gem, HAWK_NULL, HAWK_ENOIMPL);
 	return -1;
 
 #elif defined(SIOCGIFNAME)
@@ -493,7 +577,11 @@ int hawk_gem_ifindextoucstr (hawk_gem_t* gem, unsigned int index, hawk_uch_t* bu
 	hawk_oow_t wl, ml;
 
 	h = socket(AF_INET, SOCK_DGRAM, 0); 
-	if (h <= -1) return -1;
+	if (h <= -1)
+	{
+		hawk_gem_seterrnum (gem, HAWK_NULL, syserr_to_errnum(errno));
+		return -1;
+	}
 
 	HAWK_MEMSET (&ifr, 0, HAWK_SIZEOF(ifr));
 	#if defined(HAVE_STRUCT_IFREQ_IFR_IFINDEX)
@@ -501,11 +589,15 @@ int hawk_gem_ifindextoucstr (hawk_gem_t* gem, unsigned int index, hawk_uch_t* bu
 	#else
 	ifr.ifr_index = index;
 	#endif
-	
+
 	x = ioctl(h, SIOCGIFNAME, &ifr);
 	HAWK_CLOSE (h);
 
-	if (x <= -1) return -1;
+	if (x <= -1)
+	{
+		hawk_gem_seterrnum (gem, HAWK_NULL, syserr_to_errnum(errno));
+		return -1;
+	}
 
 	wl = len;
 	x = hawk_gem_convbtoucstr(gem, ifr.ifr_name, &ml, buf, &wl, 0);
@@ -518,7 +610,11 @@ int hawk_gem_ifindextoucstr (hawk_gem_t* gem, unsigned int index, hawk_uch_t* bu
 	hawk_oow_t ml, wl;
 	int x;
 
-	if (if_indextoname(index, tmp) == HAWK_NULL) return -1;
+	if (if_indextoname(index, tmp) == HAWK_NULL) 
+	{
+		hawk_gem_seterrnum (gem, HAWK_NULL, syserr_to_errnum(errno));
+		return -1;
+	}
 	wl = len;
 	x = hawk_gem_convbtoucstr(gem, tmp, &ml, buf, &wl, 0);
 	if (x == -2 && wl > 1) buf[wl - 1] = '\0';
@@ -553,3 +649,4 @@ int hawk_gem_ifindextoucstr (hawk_gem_t* gem, unsigned int index, hawk_uch_t* bu
 	return -1;
 #endif
 }
+
