@@ -769,6 +769,7 @@ enum hawk_errnum_t
 	HAWK_ENOMEM,  /**< insufficient memory */
 	HAWK_EINVAL,  /**< invalid parameter or data */
 	HAWK_EACCES,  /**< access denied */
+	HAWK_EBUSY,   /**< system busy */
 	HAWK_EPERM,   /**< operation not permitted */
 	HAWK_ENOSUP,  /**< not supported */
 	HAWK_ENOENT,  /**< '${0}' not found */

@@ -145,7 +145,7 @@
 		{ \
 			case ENOMEM: return __SYSERRNUM__(obj2, ENOMEM); \
 			case EINVAL: return __SYSERRNUM__(obj2, EINVAL); \
-			case EBUSY: \
+			case EBUSY: return _SYSERRNUM__(obj2, EBUSY); \
 			case EACCES: return __SYSERRNUM__(obj2, EACCES); \
 			case EPERM: return __SYSERRNUM__(obj2, EPERM); \
 			case ENOTDIR: return __SYSERRNUM__(obj2, ENOTDIR); \
@@ -171,7 +171,7 @@
 		{ \
 			case ENOMEM: return __SYSERRNUM__(obj2, ENOMEM); \
 			case EINVAL: return __SYSERRNUM__(obj2, EINVAL); \
-			case EBUSY: \
+			case EBUSY: return __SYSERRNUM__(obj2, EBUSY); \
 			case EACCES: return __SYSERRNUM__(obj2, EACCES); \
 			case EPERM: return __SYSERRNUM__(obj2, EPERM); \
 			case ENOTDIR: return __SYSERRNUM__(obj2, ENOTDIR); \
@@ -196,7 +196,7 @@
 		{ \
 			case ENOMEM: return __SYSERRNUM__(obj2, ENOMEM); \
 			case EINVAL: return __SYSERRNUM__(obj2, EINVAL); \
-			case EBUSY: \
+			case EBUSY: return __SYSERRNUM__(obj2, EBUSY); \
 			case EACCES: return __SYSERRNUM__(obj2, EACCES); \
 			case EPERM: return __SYSERRNUM__(obj2, EPERM); \
 			case ENOTDIR: return __SYSERRNUM__(obj2, ENOTDIR); \
@@ -221,7 +221,7 @@
 		{ \
 			case ENOMEM: return __SYSERRNUM__(obj2, ENOMEM); \
 			case EINVAL: return __SYSERRNUM__(obj2, EINVAL); \
-			case EBUSY: \
+			case EBUSY: return __SYSERRNUM__(obj2, EBUSY); \
 			case EACCES: return __SYSERRNUM__(obj2, EACCES); \
 			case EPERM: return __SYSERRNUM__(obj2, EPERM); \
 			case ENOTDIR: return __SYSERRNUM__(obj2, ENOTDIR); \
