@@ -639,6 +639,21 @@
 /* __va_copy is available */
 #undef HAVE___VA_COPY
 
+/* AF_INET */
+#undef HAWK_AF_INET
+
+/* AF_INET6 */
+#undef HAWK_AF_INET6
+
+/* AF_PACKET */
+#undef HAWK_AF_PACKET
+
+/* AF_UNIX */
+#undef HAWK_AF_UNIX
+
+/* AF_UNSPEC */
+#undef HAWK_AF_UNSPEC
+
 /* build release/debug */
 #undef HAWK_BUILD_DEBUG
 
@@ -827,6 +842,21 @@
 
 /* Define to the sub-directory where libtool stores uninstalled libraries. */
 #undef LT_OBJDIR
+
+/* The size of `AF_INET', as computed by valueof. */
+#undef NUMVALOF_AF_INET
+
+/* The size of `AF_INET6', as computed by valueof. */
+#undef NUMVALOF_AF_INET6
+
+/* The size of `AF_PACKET', as computed by valueof. */
+#undef NUMVALOF_AF_PACKET
+
+/* The size of `AF_UNIX', as computed by valueof. */
+#undef NUMVALOF_AF_UNIX
+
+/* The size of `AF_UNSPEC', as computed by valueof. */
+#undef NUMVALOF_AF_UNSPEC
 
 /* The size of `MB_LEN_MAX', as computed by valueof. */
 #undef NUMVALOF_MB_LEN_MAX

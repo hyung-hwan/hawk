@@ -239,8 +239,8 @@ HAWK_EXPORT hawk_ooi_t hawk_tio_readuchars (
  * @return number of characters written on success, -1 on failure.
  */
 HAWK_EXPORT hawk_ooi_t hawk_tio_writebchars (
-	hawk_tio_t*         tio,
-	const hawk_bch_t* str,
+	hawk_tio_t*        tio,
+	const hawk_bch_t*  str,
 	hawk_oow_t         size
 );
 
@@ -252,8 +252,8 @@ HAWK_EXPORT hawk_ooi_t hawk_tio_writebchars (
  * @return number of characters written on success, -1 on failure.
  */
 HAWK_EXPORT hawk_ooi_t hawk_tio_writeuchars (
-	hawk_tio_t*         tio,
-	const hawk_uch_t* str,
+	hawk_tio_t*        tio,
+	const hawk_uch_t*  str,
 	hawk_oow_t         size
 );
 

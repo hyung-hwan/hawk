@@ -87,6 +87,7 @@ libhawk_la_SOURCES =  \
 	gem.c \
 	gem-skad.c \
 	gem-nwif.c \
+	gem-nwif2.c \
 	hawk-prv.h \
 	hawk.c \
 	mb8.c \

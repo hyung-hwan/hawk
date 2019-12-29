@@ -1459,6 +1459,382 @@ exit_point:
 }
 
 /* ------------------------------------------------------------------------ */
+hawk_uch_t* hawk_tokenize_uchars (const hawk_uch_t* s, hawk_oow_t len, const hawk_uch_t* delim, hawk_oow_t delim_len, hawk_ucs_t* tok, int ignorecase)
+{
+	const hawk_uch_t* p = s, *d;
+	const hawk_uch_t* end = s + len;
+	const hawk_uch_t* sp = HAWK_NULL, * ep = HAWK_NULL;
+	const hawk_uch_t* delim_end = delim + delim_len;
+	hawk_uch_t c; 
+	int delim_mode;
+
+#define __DELIM_NULL      0
+#define __DELIM_EMPTY     1
+#define __DELIM_SPACES    2
+#define __DELIM_NOSPACES  3
+#define __DELIM_COMPOSITE 4
+	if (delim == HAWK_NULL) delim_mode = __DELIM_NULL;
+	else 
+	{
+		delim_mode = __DELIM_EMPTY;
+
+		for (d = delim; d < delim_end; d++) 
+		{
+			if (hawk_is_uch_space(*d)) 
+			{
+				if (delim_mode == __DELIM_EMPTY)
+					delim_mode = __DELIM_SPACES;
+				else if (delim_mode == __DELIM_NOSPACES)
+				{
+					delim_mode = __DELIM_COMPOSITE;
+					break;
+				}
+			}
+			else
+			{
+				if (delim_mode == __DELIM_EMPTY)
+					delim_mode = __DELIM_NOSPACES;
+				else if (delim_mode == __DELIM_SPACES)
+				{
+					delim_mode = __DELIM_COMPOSITE;
+					break;
+				}
+			}
+		}
+
+		/* TODO: verify the following statement... */
+		if (delim_mode == __DELIM_SPACES && delim_len == 1 && delim[0] != ' ') delim_mode = __DELIM_NOSPACES;
+	}		
+	
+	if (delim_mode == __DELIM_NULL) 
+	{ 
+		/* when HAWK_NULL is given as "delim", it trims off the 
+		 * leading and trailing spaces characters off the source
+		 * string "s" eventually. */
+
+		while (p < end && hawk_is_uch_space(*p)) p++;
+		while (p < end) 
+		{
+			c = *p;
+
+			if (!hawk_is_uch_space(c)) 
+			{
+				if (sp == HAWK_NULL) sp = p;
+				ep = p;
+			}
+			p++;
+		}
+	}
+	else if (delim_mode == __DELIM_EMPTY)
+	{
+		/* each character in the source string "s" becomes a token. */
+		if (p < end)
+		{
+			c = *p;
+			sp = p;
+			ep = p++;
+		}
+	}
+	else if (delim_mode == __DELIM_SPACES) 
+	{
+		/* each token is delimited by space characters. all leading
+		 * and trailing spaces are removed. */
+
+		while (p < end && hawk_is_uch_space(*p)) p++;
+		while (p < end) 
+		{
+			c = *p;
+			if (hawk_is_uch_space(c)) break;
+			if (sp == HAWK_NULL) sp = p;
+			ep = p++;
+		}
+		while (p < end && hawk_is_uch_space(*p)) p++;
+	}
+	else if (delim_mode == __DELIM_NOSPACES)
+	{
+		/* each token is delimited by one of charaters 
+		 * in the delimeter set "delim". */
+		if (ignorecase)
+		{
+			while (p < end) 
+			{
+				c = hawk_to_uch_lower(*p);
+				for (d = delim; d < delim_end; d++) 
+				{
+					if (c == hawk_to_uch_lower(*d)) goto exit_loop;
+				}
+
+				if (sp == HAWK_NULL) sp = p;
+				ep = p++;
+			}
+		}
+		else
+		{
+			while (p < end) 
+			{
+				c = *p;
+				for (d = delim; d < delim_end; d++) 
+				{
+					if (c == *d) goto exit_loop;
+				}
+
+				if (sp == HAWK_NULL) sp = p;
+				ep = p++;
+			}
+		}
+	}
+	else /* if (delim_mode == __DELIM_COMPOSITE) */ 
+	{
+		/* each token is delimited by one of non-space charaters
+		 * in the delimeter set "delim". however, all space characters
+		 * surrounding the token are removed */
+		while (p < end && hawk_is_uch_space(*p)) p++;
+		if (ignorecase)
+		{
+			while (p < end) 
+			{
+				c = hawk_to_uch_lower(*p);
+				if (hawk_is_uch_space(c)) 
+				{
+					p++;
+					continue;
+				}
+				for (d = delim; d < delim_end; d++) 
+				{
+					if (c == hawk_to_uch_lower(*d)) goto exit_loop;
+				}
+				if (sp == HAWK_NULL) sp = p;
+				ep = p++;
+			}
+		}
+		else
+		{
+			while (p < end) 
+			{
+				c = *p;
+				if (hawk_is_uch_space(c)) 
+				{
+					p++;
+					continue;
+				}
+				for (d = delim; d < delim_end; d++) 
+				{
+					if (c == *d) goto exit_loop;
+				}
+				if (sp == HAWK_NULL) sp = p;
+				ep = p++;
+			}
+		}
+	}
+
+exit_loop:
+	if (sp == HAWK_NULL) 
+	{
+		tok->ptr = HAWK_NULL;
+		tok->len = (hawk_oow_t)0;
+	}
+	else 
+	{
+		tok->ptr = (hawk_uch_t*)sp;
+		tok->len = ep - sp + 1;
+	}
+
+	/* if HAWK_NULL is returned, this function should not be called again */
+	if (p >= end) return HAWK_NULL;
+	if (delim_mode == __DELIM_EMPTY || 
+	    delim_mode == __DELIM_SPACES) return (hawk_uch_t*)p;
+	return (hawk_uch_t*)++p;
+}
+
+
+hawk_bch_t* hawk_tokenize_bchars (const hawk_bch_t* s, hawk_oow_t len, const hawk_bch_t* delim, hawk_oow_t delim_len, hawk_bcs_t* tok, int ignorecase)
+{
+	const hawk_bch_t* p = s, *d;
+	const hawk_bch_t* end = s + len;
+	const hawk_bch_t* sp = HAWK_NULL, * ep = HAWK_NULL;
+	const hawk_bch_t* delim_end = delim + delim_len;
+	hawk_bch_t c; 
+	int delim_mode;
+
+#define __DELIM_NULL      0
+#define __DELIM_EMPTY     1
+#define __DELIM_SPACES    2
+#define __DELIM_NOSPACES  3
+#define __DELIM_COMPOSITE 4
+	if (delim == HAWK_NULL) delim_mode = __DELIM_NULL;
+	else 
+	{
+		delim_mode = __DELIM_EMPTY;
+
+		for (d = delim; d < delim_end; d++) 
+		{
+			if (hawk_is_bch_space(*d)) 
+			{
+				if (delim_mode == __DELIM_EMPTY)
+					delim_mode = __DELIM_SPACES;
+				else if (delim_mode == __DELIM_NOSPACES)
+				{
+					delim_mode = __DELIM_COMPOSITE;
+					break;
+				}
+			}
+			else
+			{
+				if (delim_mode == __DELIM_EMPTY)
+					delim_mode = __DELIM_NOSPACES;
+				else if (delim_mode == __DELIM_SPACES)
+				{
+					delim_mode = __DELIM_COMPOSITE;
+					break;
+				}
+			}
+		}
+
+		/* TODO: verify the following statement... */
+		if (delim_mode == __DELIM_SPACES && delim_len == 1 && delim[0] != ' ') delim_mode = __DELIM_NOSPACES;
+	}		
+	
+	if (delim_mode == __DELIM_NULL) 
+	{ 
+		/* when HAWK_NULL is given as "delim", it trims off the 
+		 * leading and trailing spaces characters off the source
+		 * string "s" eventually. */
+
+		while (p < end && hawk_is_bch_space(*p)) p++;
+		while (p < end) 
+		{
+			c = *p;
+
+			if (!hawk_is_bch_space(c)) 
+			{
+				if (sp == HAWK_NULL) sp = p;
+				ep = p;
+			}
+			p++;
+		}
+	}
+	else if (delim_mode == __DELIM_EMPTY)
+	{
+		/* each character in the source string "s" becomes a token. */
+		if (p < end)
+		{
+			c = *p;
+			sp = p;
+			ep = p++;
+		}
+	}
+	else if (delim_mode == __DELIM_SPACES) 
+	{
+		/* each token is delimited by space characters. all leading
+		 * and trailing spaces are removed. */
+
+		while (p < end && hawk_is_bch_space(*p)) p++;
+		while (p < end) 
+		{
+			c = *p;
+			if (hawk_is_bch_space(c)) break;
+			if (sp == HAWK_NULL) sp = p;
+			ep = p++;
+		}
+		while (p < end && hawk_is_bch_space(*p)) p++;
+	}
+	else if (delim_mode == __DELIM_NOSPACES)
+	{
+		/* each token is delimited by one of charaters 
+		 * in the delimeter set "delim". */
+		if (ignorecase)
+		{
+			while (p < end) 
+			{
+				c = hawk_to_bch_lower(*p);
+				for (d = delim; d < delim_end; d++) 
+				{
+					if (c == hawk_to_bch_lower(*d)) goto exit_loop;
+				}
+
+				if (sp == HAWK_NULL) sp = p;
+				ep = p++;
+			}
+		}
+		else
+		{
+			while (p < end) 
+			{
+				c = *p;
+				for (d = delim; d < delim_end; d++) 
+				{
+					if (c == *d) goto exit_loop;
+				}
+
+				if (sp == HAWK_NULL) sp = p;
+				ep = p++;
+			}
+		}
+	}
+	else /* if (delim_mode == __DELIM_COMPOSITE) */ 
+	{
+		/* each token is delimited by one of non-space charaters
+		 * in the delimeter set "delim". however, all space characters
+		 * surrounding the token are removed */
+		while (p < end && hawk_is_bch_space(*p)) p++;
+		if (ignorecase)
+		{
+			while (p < end) 
+			{
+				c = hawk_to_bch_lower(*p);
+				if (hawk_is_bch_space(c)) 
+				{
+					p++;
+					continue;
+				}
+				for (d = delim; d < delim_end; d++) 
+				{
+					if (c == hawk_to_bch_lower(*d)) goto exit_loop;
+				}
+				if (sp == HAWK_NULL) sp = p;
+				ep = p++;
+			}
+		}
+		else
+		{
+			while (p < end) 
+			{
+				c = *p;
+				if (hawk_is_bch_space(c)) 
+				{
+					p++;
+					continue;
+				}
+				for (d = delim; d < delim_end; d++) 
+				{
+					if (c == *d) goto exit_loop;
+				}
+				if (sp == HAWK_NULL) sp = p;
+				ep = p++;
+			}
+		}
+	}
+
+exit_loop:
+	if (sp == HAWK_NULL) 
+	{
+		tok->ptr = HAWK_NULL;
+		tok->len = (hawk_oow_t)0;
+	}
+	else 
+	{
+		tok->ptr = (hawk_bch_t*)sp;
+		tok->len = ep - sp + 1;
+	}
+
+	/* if HAWK_NULL is returned, this function should not be called again */
+	if (p >= end) return HAWK_NULL;
+	if (delim_mode == __DELIM_EMPTY || 
+	    delim_mode == __DELIM_SPACES) return (hawk_bch_t*)p;
+	return (hawk_bch_t*)++p;
+}
+
+/* ------------------------------------------------------------------------ */
 
 hawk_oow_t hawk_int_to_oocstr (hawk_int_t value, int radix, const hawk_ooch_t* prefix, hawk_ooch_t* buf, hawk_oow_t size)
 {
