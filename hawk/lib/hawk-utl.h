@@ -722,6 +722,24 @@ HAWK_EXPORT int hawk_split_bcstr (
 	hawk_bch_t        escape
 );
 
+HAWK_EXPORT hawk_uch_t* hawk_tokenize_uchars (
+	const hawk_uch_t* s,
+	hawk_oow_t        len,
+	const hawk_uch_t* delim,
+	hawk_oow_t        delim_len,
+	hawk_ucs_t*       tok,
+	int               ignorecase
+);
+
+HAWK_EXPORT hawk_bch_t* hawk_tokenize_bchars (
+	const hawk_bch_t* s,
+	hawk_oow_t        len,
+	const hawk_bch_t* delim,
+	hawk_oow_t        delim_len,
+	hawk_bcs_t*       tok,
+	int               ignorecase
+);
+
 #if defined(HAWK_OOCH_IS_UCH)
 #	define hawk_equal_oochars hawk_equal_uchars
 #	define hawk_comp_oochars hawk_comp_uchars
@@ -738,18 +756,18 @@ HAWK_EXPORT int hawk_split_bcstr (
 #	define hawk_copy_uchars_to_oochars hawk_copy_uchars
 #	define hawk_copy_oochars_to_uchars hawk_copy_uchars
 
-#	define hawk_copy_oochars_to_oocstr(dst,dlen,src,slen) hawk_copy_uchars_to_ucstr(dst,dlen,src,slen)
-#	define hawk_copy_oochars_to_oocstr_unlimited(dst,src,len) hawk_copy_uchars_to_ucstr_unlimited(dst,src,len)
-#	define hawk_copy_oocstr(dst,len,src) hawk_copy_ucstr(dst,len,src)
-#	define hawk_copy_oocstr_unlimited(dst,src) hawk_copy_ucstr_unlimited(dst,src)
+#	define hawk_copy_oochars_to_oocstr hawk_copy_uchars_to_ucstr
+#	define hawk_copy_oochars_to_oocstr_unlimited hawk_copy_uchars_to_ucstr_unlimited
+#	define hawk_copy_oocstr hawk_copy_ucstr
+#	define hawk_copy_oocstr_unlimited hawk_copy_ucstr_unlimited
 
 #	define hawk_count_oocstr hawk_count_ucstr
 #	define hawk_count_oocstr_limited hawk_count_ucstr_limited
 
-#	define hawk_fill_oochars(dst,ch,len) hawk_fill_uchars(dst,ch,len)
-#	define hawk_find_oochar(ptr,len,c) hawk_find_uchar(ptr,len,c)
-#	define hawk_rfind_oochar(ptr,len,c) hawk_rfind_uchar(ptr,len,c)
-#	define hawk_find_oochar_in_oocstr(ptr,c) hawk_find_uchar_in_ucstr(ptr,c)
+#	define hawk_fill_oochars hawk_fill_uchars
+#	define hawk_find_oochar hawk_find_uchar
+#	define hawk_rfind_oochar hawk_rfind_uchar
+#	define hawk_find_oochar_in_oocstr hawk_find_uchar_in_ucstr
 
 #	define hawk_find_oochars_in_oochars hawk_find_uchars_in_uchars
 #	define hawk_rfind_oochars_in_oochars hawk_rfind_uchars_in_uchars
@@ -759,6 +777,7 @@ HAWK_EXPORT int hawk_split_bcstr (
 #	define hawk_trim_oochars hawk_trim_uchars
 
 #	define hawk_split_oocstr hawk_split_ucstr
+#	define hawk_tokenize_oochars hawk_tokenize_uchars
 #else
 #	define hawk_equal_oochars hawk_equal_bchars
 #	define hawk_comp_oochars hawk_comp_bchars
@@ -775,18 +794,18 @@ HAWK_EXPORT int hawk_split_bcstr (
 #	define hawk_copy_uchars_to_oochars hawk_copy_uchars_to_bchars
 #	define hawk_copy_oochars_to_uchars hawk_copy_bchars_to_uchars
 
-#	define hawk_copy_oochars_to_oocstr(dst,dlen,src,slen) hawk_copy_bchars_to_bcstr(dst,dlen,src,slen)
-#	define hawk_copy_oochars_to_oocstr_unlimited(dst,src,len) hawk_copy_bchars_to_bcstr_unlimited(dst,src,len)
-#	define hawk_copy_oocstr(dst,len,src) hawk_copy_bcstr(dst,len,src)
-#	define hawk_copy_oocstr_unlimited(dst,src) hawk_copy_bcstr_unlimited(dst,src)
+#	define hawk_copy_oochars_to_oocstr hawk_copy_bchars_to_bcstr
+#	define hawk_copy_oochars_to_oocstr_unlimited hawk_copy_bchars_to_bcstr_unlimited
+#	define hawk_copy_oocstr hawk_copy_bcstr
+#	define hawk_copy_oocstr_unlimited hawk_copy_bcstr_unlimited
 
 #	define hawk_count_oocstr hawk_count_bcstr
 #	define hawk_count_oocstr_limited hawk_count_bcstr_limited
 
-#	define hawk_fill_oochars(dst,ch,len) hawk_fill_bchars(dst,ch,len)
-#	define hawk_find_oochar(ptr,len,c) hawk_find_bchar(ptr,len,c)
-#	define hawk_rfind_oochar(ptr,len,c) hawk_rfind_bchar(ptr,len,c)
-#	define hawk_find_oochar_in_oocstr(ptr,c) hawk_find_bchar_in_bcstr(ptr,c)
+#	define hawk_fill_oochars hawk_fill_bchars
+#	define hawk_find_oochar hawk_find_bchar
+#	define hawk_rfind_oochar hawk_rfind_bchar
+#	define hawk_find_oochar_in_oocstr hawk_find_bchar_in_bcstr
 
 #	define hawk_find_oochars_in_oochars hawk_find_bchars_in_bchars
 #	define hawk_rfind_oochars_in_oochars hawk_rfind_bchars_in_bchars
@@ -796,6 +815,7 @@ HAWK_EXPORT int hawk_split_bcstr (
 #	define hawk_trim_oochars hawk_trim_bchars
 
 #	define hawk_split_oocstr hawk_split_bcstr
+#	define hawk_tokenize_oochars hawk_tokenize_bchars
 #endif
 
 /* ------------------------------------------------------------------------- */
@@ -934,12 +954,10 @@ HAWK_EXPORT int hawk_uchars_to_num (
 
 #if defined(HAWK_OOCH_IS_UCH)
 #	define hawk_oochars_to_int hawk_uchars_to_int
-#	define hawk_oocstr_to_flt hawk_ucstr_to_flt
 #	define hawk_oochars_to_flt hawk_uchars_to_flt
 #	define hawk_oochars_to_num hawk_uchars_to_num
 #else
 #	define hawk_oochars_to_int hawk_bchars_to_int
-#	define hawk_oocstr_to_flt hawk_bcstr_to_flt
 #	define hawk_oochars_to_flt hawk_bchars_to_flt
 #	define hawk_oochars_to_num hawk_bchars_to_num
 #endif
@@ -1551,6 +1569,10 @@ HAWK_EXPORT int hawk_skad_family (
 
 HAWK_EXPORT int hawk_skad_size (
 	const hawk_skad_t* skad
+);
+
+HAWK_EXPORT void hawk_clear_skad (
+	hawk_skad_t* skad
 );
 
 /* =========================================================================

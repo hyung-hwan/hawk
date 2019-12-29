@@ -245,16 +245,12 @@ static int split_record (hawk_rtx_t* rtx)
 		{
 			case 0:
 				/* 1 character FS */
-				p = hawk_rtx_strxntok (
-					rtx, p, len, fs_ptr, fs_len, &tok);
+				p = hawk_rtx_strxntok(rtx, p, len, fs_ptr, fs_len, &tok);
 				break;
 
 			case 1:
 				/* 5 character FS beginning with ? */
-				p = hawk_rtx_strxnfld (
-					rtx, p, len, 
-					fs_ptr[1], fs_ptr[2],
-					fs_ptr[3], fs_ptr[4], &tok);
+				p = hawk_rtx_strxnfld(rtx, p, len, fs_ptr[1], fs_ptr[2], fs_ptr[3], fs_ptr[4], &tok);
 				break;
 
 			default:

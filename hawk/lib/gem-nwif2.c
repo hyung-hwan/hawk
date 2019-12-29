@@ -26,6 +26,7 @@
 
 #if 0
 #include "hawk-prv.h"
+#include <hawk-sio.h>
 
 #if defined(_WIN32)
 #	include <winsock2.h>
@@ -254,18 +255,18 @@ int hawk_gem_getifcfg (hawk_gem_t* gem, hawk_ifcfg_t* cfg)
 
 		hawk_copy_bcstr (ifrbuf.lifr_name, HAWK_SIZEOF(ifrbuf.lifr_name), ifr->lifr_name);
 		if (ioctl (s, SIOCGLIFFLAGS, &ifrbuf) <= -1) goto oops;
-		if (ifrbuf.lifr_flags & IFF_UP) head->flags |= HAWK_NWIFCFG_UP;
+		if (ifrbuf.lifr_flags & IFF_UP) head->flags |= HAWK_IFCFG_UP;
 		if (ifrbuf.lifr_flags & IFF_BROADCAST) 
 		{
 			if (ioctl (s, SIOCGLIFBRDADDR, &ifrbuf) <= -1) goto oops;
 			hawk_skadtonwad (&ifrbuf.lifr_addr, &head->bcast);
-			head->flags |= HAWK_NWIFCFG_BCAST;
+			head->flags |= HAWK_IFCFG_BCAST;
 		}
 		if (ifrbuf.lifr_flags & IFF_POINTOPOINT) 
 		{
 			if (ioctl (s, SIOCGLIFDSTADDR, &ifrbuf) <= -1) goto oops;
 			hawk_skadtonwad (&ifrbuf.lifr_addr, &head->ptop);
-			head->flags |= HAWK_NWIFCFG_PTOP;
+			head->flags |= HAWK_IFCFG_PTOP;
 		}
 
 		if (ioctl (s, SIOCGLIFINDEX, &ifrbuf) <= -1) goto oops;
@@ -304,7 +305,7 @@ void hawk_freenwifcfg (hawk_ifcfg_t* cfg)
 #endif
 
 #if defined(__linux)
-static void read_proc_net_if_inet6 (hawk_ifcfg_t* cfg, struct ifreq* ifr)
+static void read_proc_net_if_inet6 (hawk_gem_t* gem, hawk_ifcfg_t* cfg, struct ifreq* ifr)
 {
 	/*
      *
@@ -323,22 +324,21 @@ static void read_proc_net_if_inet6 (hawk_ifcfg_t* cfg, struct ifreq* ifr)
 	 */
 
 	hawk_sio_t* sio;
-	hawk_mchar_t line[128];
-	hawk_mchar_t* ptr, * ptr2;
-	hawk_ssize_t len;
-	hawk_mcstr_t tok[6];
+	hawk_bch_t line[128];
+	hawk_bch_t* ptr, * ptr2;
+	hawk_ooi_t len;
+	hawk_bcs_t tok[6];
 	int count, index;
 
 	/* TODO */
 
-	sio = hawk_sio_open (HAWK_MMGR_GETDFL(), 0, 
-		HAWK_T("/proc/net/if_inet6"), HAWK_SIO_IGNOREMBWCERR | HAWK_SIO_READ); 
+	sio = hawk_sio_open(gem, 0, HAWK_T("/proc/net/if_inet6"), HAWK_SIO_IGNOREECERR | HAWK_SIO_READ); 
 	if (sio)
 	{
 		
 		while (1)
 		{
-			len = hawk_sio_getmbs (sio, line, HAWK_COUNTOF(line));
+			len = hawk_sio_getbcstr(sio, line, HAWK_COUNTOF(line));
 			if (len <= 0) break;
 
 			count = 0;
@@ -346,7 +346,7 @@ static void read_proc_net_if_inet6 (hawk_ifcfg_t* cfg, struct ifreq* ifr)
 
 			while (ptr && count < 6)
 			{
-				ptr2 = hawk_mbsxtok (ptr, len, HAWK_MT(" \t"), &tok[count]);
+				ptr2 = hawk_tokenize_bchars(ptr, len, " \t", 2, &tok[count], 0);
 
 				len -= ptr2 - ptr;
 				ptr = ptr2;
@@ -355,21 +355,20 @@ static void read_proc_net_if_inet6 (hawk_ifcfg_t* cfg, struct ifreq* ifr)
 
 			if (count >= 6)
 			{
-				index = hawk_mbsxtoi (tok[1].ptr, tok[1].len, 16, HAWK_NULL);
+				index = hawk_bchars_to_int(tok[1].ptr, tok[1].len, 16, HAWK_NULL, 1);
 				if (index == cfg->index)
 				{
 					int ti;
 
-					if (hawk_mbshextobin (tok[0].ptr, tok[0].len, cfg->addr.u.in6.addr.value, HAWK_COUNTOF(cfg->addr.u.in6.addr.value)) <= -1) break;
+					if (hawk_mbshextobin(tok[0].ptr, tok[0].len, cfg->addr.u.in6.addr.value, HAWK_COUNTOF(cfg->addr.u.in6.addr.value)) <= -1) break;
 
 					/* tok[3] is the scope type, not the actual scope. 
 					 * i leave this code for reference only.
-					cfg->addr.u.in6.scope = hawk_mbsxtoi (tok[3].ptr, tok[3].len, 16); */
-			
+					cfg->addr.u.in6.scope = hawk_bchars_to_int(tok[3].ptr, tok[3].len, 16, HAWK_NULL, 1); */
 
 					cfg->addr.type = HAWK_NWAD_IN6;
 
-					ti = hawk_mbsxtoi (tok[2].ptr, tok[0].len, 16, HAWK_NULL);
+					ti = hawk_bchars_to_int(tok[2].ptr, tok[0].len, 16, HAWK_NULL, 1);
 					hawk_prefixtoip6ad (ti, &cfg->mask.u.in6.addr);
 
 					cfg->mask.type = HAWK_NWAD_IN6;
@@ -384,7 +383,7 @@ static void read_proc_net_if_inet6 (hawk_ifcfg_t* cfg, struct ifreq* ifr)
 }
 #endif
 
-static int get_ifcfg (int s, hawk_ifcfg_t* cfg, struct ifreq* ifr)
+static int get_ifcfg (hawk_gem_t* gem, int s, hawk_ifcfg_t* cfg, struct ifreq* ifr)
 {
 #if defined(_WIN32)
 	return -1;
@@ -408,15 +407,15 @@ static int get_ifcfg (int s, hawk_ifcfg_t* cfg, struct ifreq* ifr)
 
 	hawk_copy_bcstr (lifrbuf.lifr_name, HAWK_SIZEOF(lifrbuf.lifr_name), ifr->ifr_name);
 
-	if (ioctl (s, SIOCGLIFINDEX, &lifrbuf) <= -1) return -1;		
+	if (ioctl(s, SIOCGLIFINDEX, &lifrbuf) <= -1) return -1;
 	cfg->index = lifrbuf.lifr_index;
 
 	if (ioctl (s, SIOCGLIFFLAGS, &lifrbuf) <= -1) return -1;
 	cfg->flags = 0;
-	if (lifrbuf.lifr_flags & IFF_UP) cfg->flags |= HAWK_NWIFCFG_UP;
-	if (lifrbuf.lifr_flags & IFF_RUNNING) cfg->flags |= HAWK_NWIFCFG_RUNNING;
-	if (lifrbuf.lifr_flags & IFF_BROADCAST) cfg->flags |= HAWK_NWIFCFG_BCAST;
-	if (lifrbuf.lifr_flags & IFF_POINTOPOINT) cfg->flags |= HAWK_NWIFCFG_PTOP;
+	if (lifrbuf.lifr_flags & IFF_UP) cfg->flags |= HAWK_IFCFG_UP;
+	if (lifrbuf.lifr_flags & IFF_RUNNING) cfg->flags |= HAWK_IFCFG_RUNNING;
+	if (lifrbuf.lifr_flags & IFF_BROADCAST) cfg->flags |= HAWK_IFCFG_BCAST;
+	if (lifrbuf.lifr_flags & IFF_POINTOPOINT) cfg->flags |= HAWK_IFCFG_PTOP;
 
 	if (ioctl (s, SIOCGLIFMTU, &lifrbuf) <= -1) return -1;
 	cfg->mtu = lifrbuf.lifr_mtu;
@@ -433,12 +432,12 @@ static int get_ifcfg (int s, hawk_ifcfg_t* cfg, struct ifreq* ifr)
 	if (ioctl (s, SIOCGLIFNETMASK, &lifrbuf) >= 0) 
 		hawk_skadtonwad (&lifrbuf.lifr_addr, &cfg->mask);
 
-	if ((cfg->flags & HAWK_NWIFCFG_BCAST) &&
+	if ((cfg->flags & HAWK_IFCFG_BCAST) &&
 	    ioctl (s, SIOCGLIFBRDADDR, &lifrbuf) >= 0)
 	{
 		hawk_skadtonwad (&lifrbuf.lifr_broadaddr, &cfg->bcast);
 	}
-	if ((cfg->flags & HAWK_NWIFCFG_PTOP) &&
+	if ((cfg->flags & HAWK_IFCFG_PTOP) &&
 	    ioctl (s, SIOCGLIFDSTADDR, &lifrbuf) >= 0)
 	{
 		hawk_skadtonwad (&lifrbuf.lifr_dstaddr, &cfg->ptop);
@@ -474,10 +473,10 @@ static int get_ifcfg (int s, hawk_ifcfg_t* cfg, struct ifreq* ifr)
 
 	if (ioctl (s, SIOCGIFFLAGS, ifr) <= -1) return -1;
 	cfg->flags = 0;
-	if (ifr->ifr_flags & IFF_UP) cfg->flags |= HAWK_NWIFCFG_UP;
-	if (ifr->ifr_flags & IFF_RUNNING) cfg->flags |= HAWK_NWIFCFG_RUNNING;
-	if (ifr->ifr_flags & IFF_BROADCAST) cfg->flags |= HAWK_NWIFCFG_BCAST;
-	if (ifr->ifr_flags & IFF_POINTOPOINT) cfg->flags |= HAWK_NWIFCFG_PTOP;
+	if (ifr->ifr_flags & IFF_UP) cfg->flags |= HAWK_IFCFG_UP;
+	if (ifr->ifr_flags & IFF_RUNNING) cfg->flags |= HAWK_IFCFG_RUNNING;
+	if (ifr->ifr_flags & IFF_BROADCAST) cfg->flags |= HAWK_IFCFG_BCAST;
+	if (ifr->ifr_flags & IFF_POINTOPOINT) cfg->flags |= HAWK_IFCFG_PTOP;
 
 	if (ioctl (s, SIOCGIFMTU, ifr) <= -1) return -1;
 	#if defined(HAVE_STRUCT_IFREQ_IFR_MTU)
@@ -495,7 +494,7 @@ static int get_ifcfg (int s, hawk_ifcfg_t* cfg, struct ifreq* ifr)
 	hawk_clearnwad (&cfg->ptop, HAWK_NWAD_NX);
 	HAWK_MEMSET (cfg->ethw, 0, HAWK_SIZEOF(cfg->ethw));
 
-	if (cfg->type == HAWK_NWIFCFG_IN6)
+	if (cfg->type == HAWK_IFCFG_IN6)
 	{
 		struct if_laddrreq iflrbuf;
 		HAWK_MEMSET (&iflrbuf, 0, HAWK_SIZEOF(iflrbuf));
@@ -508,7 +507,7 @@ static int get_ifcfg (int s, hawk_ifcfg_t* cfg, struct ifreq* ifr)
 			cfg->mask.type = HAWK_NWAD_IN6;
 			hawk_prefixtoip6ad (iflrbuf.prefixlen, &cfg->mask.u.in6.addr);
 
-			if (cfg->flags & HAWK_NWIFCFG_PTOP)
+			if (cfg->flags & HAWK_IFCFG_PTOP)
 				hawk_skadtonwad (&iflrbuf.dstaddr, &cfg->ptop);
 		}
 	}
@@ -520,13 +519,13 @@ static int get_ifcfg (int s, hawk_ifcfg_t* cfg, struct ifreq* ifr)
 		if (ioctl (s, SIOCGIFNETMASK, ifr) >= 0)
 			hawk_skadtonwad (&ifr->ifr_addr, &cfg->mask);
 
-		if ((cfg->flags & HAWK_NWIFCFG_BCAST) &&
+		if ((cfg->flags & HAWK_IFCFG_BCAST) &&
 		    ioctl (s, SIOCGIFBRDADDR, ifr) >= 0) 
 		{
 			hawk_skadtonwad (&ifr->ifr_broadaddr, &cfg->bcast);
 		}
 
-		if ((cfg->flags & HAWK_NWIFCFG_PTOP) &&
+		if ((cfg->flags & HAWK_IFCFG_PTOP) &&
 		    ioctl (s, SIOCGIFDSTADDR, ifr) >= 0) 
 		{
 			hawk_skadtonwad (&ifr->ifr_dstaddr, &cfg->ptop);
@@ -588,10 +587,10 @@ static int get_ifcfg (int s, hawk_ifcfg_t* cfg, struct ifreq* ifr)
 
 	if (ioctl (s, SIOCGIFFLAGS, ifr) <= -1) return -1;
 	cfg->flags = 0;
-	if (ifr->ifr_flags & IFF_UP) cfg->flags |= HAWK_NWIFCFG_UP;
-	if (ifr->ifr_flags & IFF_RUNNING) cfg->flags |= HAWK_NWIFCFG_RUNNING;
-	if (ifr->ifr_flags & IFF_BROADCAST) cfg->flags |= HAWK_NWIFCFG_BCAST;
-	if (ifr->ifr_flags & IFF_POINTOPOINT) cfg->flags |= HAWK_NWIFCFG_PTOP;
+	if (ifr->ifr_flags & IFF_UP) cfg->flags |= HAWK_IFCFG_UP;
+	if (ifr->ifr_flags & IFF_RUNNING) cfg->flags |= HAWK_IFCFG_RUNNING;
+	if (ifr->ifr_flags & IFF_BROADCAST) cfg->flags |= HAWK_IFCFG_BCAST;
+	if (ifr->ifr_flags & IFF_POINTOPOINT) cfg->flags |= HAWK_IFCFG_PTOP;
 
 	if (ioctl (s, SIOCGIFMTU, ifr) <= -1) return -1;
 	#if defined(HAVE_STRUCT_IFREQ_IFR_MTU)
@@ -603,33 +602,33 @@ static int get_ifcfg (int s, hawk_ifcfg_t* cfg, struct ifreq* ifr)
 	cfg->mtu = ifr->ifr_metric; 
 	#endif
 
-	hawk_clearnwad (&cfg->addr, HAWK_NWAD_NX);
-	hawk_clearnwad (&cfg->mask, HAWK_NWAD_NX);
-	hawk_clearnwad (&cfg->bcast, HAWK_NWAD_NX);
-	hawk_clearnwad (&cfg->ptop, HAWK_NWAD_NX);
+	hawk_clear_skad (&cfg->addr);
+	hawk_clear_skad (&cfg->mask);
+	hawk_clear_skad (&cfg->bcast);
+	hawk_clear_skad (&cfg->ptop);
 	HAWK_MEMSET (cfg->ethw, 0, HAWK_SIZEOF(cfg->ethw));
 	
-	if (ioctl (s, SIOCGIFADDR, ifr) >= 0)
+	if (ioctl(s, SIOCGIFADDR, ifr) >= 0)
 		hawk_skadtonwad (&ifr->ifr_addr, &cfg->addr);
 
 	if (ioctl (s, SIOCGIFNETMASK, ifr) >= 0)
 		hawk_skadtonwad (&ifr->ifr_addr, &cfg->mask);
 
 	#if defined(__linux)
-	if (cfg->addr.type == HAWK_NWAD_NX && cfg->mask.type == HAWK_NWAD_NX && cfg->type == HAWK_NWIFCFG_IN6)
+	if (cfg->addr.type == HAWK_NWAD_NX && cfg->mask.type == HAWK_NWAD_NX && cfg->type == HAWK_IFCFG_IN6)
 	{
 		/* access /proc/net/if_inet6 */
-		read_proc_net_if_inet6 (cfg, ifr);
+		read_proc_net_if_inet6 (gem, cfg, ifr);
 	}
 	#endif
 
-	if ((cfg->flags & HAWK_NWIFCFG_BCAST) &&
+	if ((cfg->flags & HAWK_IFCFG_BCAST) &&
 	    ioctl (s, SIOCGIFBRDADDR, ifr) >= 0)
 	{
 		hawk_skadtonwad (&ifr->ifr_broadaddr, &cfg->bcast);
 	}
 
-	if ((cfg->flags & HAWK_NWIFCFG_PTOP) &&
+	if ((cfg->flags & HAWK_IFCFG_PTOP) &&
 	    ioctl (s, SIOCGIFDSTADDR, ifr) >= 0)
 	{
 		hawk_skadtonwad (&ifr->ifr_dstaddr, &cfg->ptop);
@@ -646,8 +645,8 @@ static int get_ifcfg (int s, hawk_ifcfg_t* cfg, struct ifreq* ifr)
 		 * use the streams interface to get the hardware address. 
 		 */
 		int strfd;
-		/*hawk_mchar_t devname[HAWK_COUNTOF(ifr->ifr_name) + 5 + 1] = HAWK_MT("/dev/");*/
-		hawk_mchar_t devname[HAWK_COUNTOF(ifr->ifr_name) + 5 + 1];
+		/*hawk_bch_t devname[HAWK_COUNTOF(ifr->ifr_name) + 5 + 1] = HAWK_MT("/dev/");*/
+		hawk_bch_t devname[HAWK_COUNTOF(ifr->ifr_name) + 5 + 1];
 
 		hawk_mbscpy (devname, HAWK_MT("/dev/"));
 		hawk_mbscpy (&devname[5], ifr->ifr_name);
@@ -687,7 +686,7 @@ static void get_moreinfo (int s, hawk_ifcfg_t* cfg, struct ifreq* ifr)
 		ev.cmd= ETHTOOL_GLINK;
 		ifr->ifr_data = &ev;
 		if (ioctl (s, SIOCETHTOOL,ifr) >= 0)
-			cfg->flags |= ev.data? HAWK_NWIFCFG_LINKUP: HAWK_NWIFCFG_LINKDOWN;
+			cfg->flags |= ev.data? HAWK_IFCFG_LINKUP: HAWK_IFCFG_LINKDOWN;
 	}
 #endif
 
@@ -745,13 +744,13 @@ int hawk_gem_getifcfg (hawk_gem_t* gem, hawk_ifcfg_t* cfg)
 	struct ifreq ifr;
 	hawk_oow_t ml, wl;
 
-	if (cfg->type == HAWK_NWIFCFG_IN4)
+	if (cfg->type == HAWK_IFCFG_IN4)
 	{
 	#if defined(AF_INET)
 		s = socket (AF_INET, SOCK_DGRAM, 0);
 	#endif
 	}
-	else if (cfg->type == HAWK_NWIFCFG_IN6)
+	else if (cfg->type == HAWK_IFCFG_IN6)
 	{
 	#if defined(AF_INET6)
 		s = socket(AF_INET6, SOCK_DGRAM, 0);
@@ -769,10 +768,10 @@ int hawk_gem_getifcfg (hawk_gem_t* gem, hawk_ifcfg_t* cfg)
 	hawk_copy_bcstr (ifr.ifr_name, HAWK_SIZEOF(ifr.ifr_name), cfg->name);
 	#else
 	ml = HAWK_COUNTOF(ifr.ifr_name);
-	if (hawk_wcstombs (cfg->name, &wl, ifr.ifr_name, &ml) <= -1)  goto oops;
+	if (hawk_gem_convutobcstr(gem, cfg->name, &wl, ifr.ifr_name, &ml) <= -1)  goto oops;
 	#endif
 
-	x = get_ifcfg(s, cfg, &ifr);
+	x = get_ifcfg(gem, s, cfg, &ifr);
 
 	if (x >= 0) get_moreinfo (s, cfg, &ifr);
 

@@ -29,6 +29,47 @@
 
 #include <hawk-cmn.h>
 
+typedef struct hawk_ifcfg_t hawk_ifcfg_t;
+
+enum hawk_ifcfg_flag_t
+{
+	HAWK_IFCFG_UP       = (1 << 0),
+	HAWK_IFCFG_RUNNING  = (1 << 1),
+	HAWK_IFCFG_BCAST    = (1 << 2),
+	HAWK_IFCFG_PTOP     = (1 << 3),
+	HAWK_IFCFG_LINKUP   = (1 << 4),
+	HAWK_IFCFG_LINKDOWN = (1 << 5)
+};
+
+enum hawk_ifcfg_type_t
+{
+	HAWK_IFCFG_IN4 = HAWK_AF_INET,
+	HAWK_IFCFG_IN6 = HAWK_AF_INET6
+};
+
+typedef enum hawk_ifcfg_type_t hawk_ifcfg_type_t;
+struct hawk_ifcfg_t
+{
+	hawk_ifcfg_type_t type;     /* in */
+	hawk_ooch_t       name[64]; /* in/out */
+	unsigned int      index;    /* in/out */
+
+	/* ---------------- */
+	int               flags;    /* out */
+	int               mtu;      /* out */
+
+	hawk_skad_t       addr;     /* out */
+	hawk_skad_t       mask;     /* out */
+	hawk_skad_t       ptop;     /* out */
+	hawk_skad_t       bcast;    /* out */
+
+	/* ---------------- */
+
+	/* TODO: add hwaddr?? */	
+	/* i support ethernet only currently */
+	hawk_uint8_t      ethw[6];  /* out */
+};
+
 #if defined(__cplusplus)
 extern "C" {
 #endif
