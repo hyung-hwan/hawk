@@ -1794,11 +1794,9 @@ static int fnc_getenv (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	return 0;
 }
 
-static int fnc_getnwifcfg (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+static int fnc_getifcfg (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
-#if 0
-// TODO: put this back
-	hawk_nwifcfg_t cfg;
+	hawk_ifcfg_t cfg;
 	hawk_rtx_valtostr_out_t out;
 	int ret = -1;
 
@@ -1815,7 +1813,7 @@ static int fnc_getnwifcfg (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		{
 			cfg.type = type;
 
-			if (hawk_getnwifcfg(&cfg) >= 0)
+			if (hawk_gem_getifcfg(hawk_rtx_getgem(rtx), &cfg) >= 0)
 			{
 				/* make a map value containg configuration */
 				hawk_int_t index, mtu;
@@ -1838,32 +1836,34 @@ static int fnc_getnwifcfg (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 				md[1].type = HAWK_VAL_MAP_DATA_INT;
 				mtu = cfg.mtu;
 				md[1].vptr = &mtu;
-		
+
 				md[2].key.ptr = HAWK_T("addr");
 				md[2].key.len = 4;
 				md[2].type = HAWK_VAL_MAP_DATA_STR;
-				hawk_nwadtostr (&cfg.addr, addr, HAWK_COUNTOF(addr), HAWK_NWADTOSTR_ADDR);
+	//			hawk_nwadtostr (&cfg.addr, addr, HAWK_COUNTOF(addr), HAWK_NWADTOSTR_ADDR);
+addr[0] = '\0';
 				md[2].vptr = addr;
 
 				md[3].key.ptr = HAWK_T("mask");
 				md[3].key.len = 4;
 				md[3].type = HAWK_VAL_MAP_DATA_STR;
-				hawk_nwadtostr (&cfg.mask, mask, HAWK_COUNTOF(mask), HAWK_NWADTOSTR_ADDR);
+	//			hawk_nwadtostr (&cfg.mask, mask, HAWK_COUNTOF(mask), HAWK_NWADTOSTR_ADDR);
+mask[0] = '\0';
 				md[3].vptr = mask;
 
 				md[4].key.ptr = HAWK_T("ethw");
 				md[4].key.len = 4;
 				md[4].type = HAWK_VAL_MAP_DATA_STR;
-				hawk_strxfmt (ethw, HAWK_COUNTOF(ethw), HAWK_T("%02X:%02X:%02X:%02X:%02X:%02X"), 
+				hawk_rtx_fmttooocstr (rtx, ethw, HAWK_COUNTOF(ethw), HAWK_T("%02X:%02X:%02X:%02X:%02X:%02X"), 
 					cfg.ethw[0], cfg.ethw[1], cfg.ethw[2], cfg.ethw[3], cfg.ethw[4], cfg.ethw[5]);
 				md[4].vptr = ethw;
 
-				if (cfg.flags & (HAWK_NWIFCFG_LINKUP | HAWK_NWIFCFG_LINKDOWN))
+				if (cfg.flags & (HAWK_IFCFG_LINKUP | HAWK_IFCFG_LINKDOWN))
 				{
 					md[5].key.ptr = HAWK_T("link");
 					md[5].key.len = 4;
 					md[5].type = HAWK_VAL_MAP_DATA_STR;
-					md[5].vptr = (cfg.flags & HAWK_NWIFCFG_LINKUP)? HAWK_T("up"): HAWK_T("down");
+					md[5].vptr = (cfg.flags & HAWK_IFCFG_LINKUP)? HAWK_T("up"): HAWK_T("down");
 				}
 
 				tmp = hawk_rtx_makemapvalwithdata(rtx, md);
@@ -1871,7 +1871,7 @@ static int fnc_getnwifcfg (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 				{
 					int x;
 					hawk_rtx_refupval (rtx, tmp);
-					x = hawk_rtx_setrefval (rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, 2), tmp);
+					x = hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, 2), tmp);
 					hawk_rtx_refdownval (rtx, tmp);
 					if (x <= -1) return -1;
 					ret = 0;
@@ -1882,7 +1882,6 @@ static int fnc_getnwifcfg (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 	/* no error check for hawk_rtx_makeintval() since ret is 0 or -1 */
 	hawk_rtx_setretval (rtx, hawk_rtx_makeintval (rtx, ret));
-#endif
 	return 0;
 }
 /* ------------------------------------------------------------ */
@@ -2451,7 +2450,7 @@ static fnctab_t fnctab[] =
 	{ HAWK_T("getenv"),      { { 1, 1, HAWK_NULL     }, fnc_getenv,      0  } },
 	{ HAWK_T("geteuid"),     { { 0, 0, HAWK_NULL     }, fnc_geteuid,     0  } },
 	{ HAWK_T("getgid"),      { { 0, 0, HAWK_NULL     }, fnc_getgid,      0  } },
-	{ HAWK_T("getnwifcfg"),  { { 3, 3, HAWK_T("vvr") }, fnc_getnwifcfg,  0  } },
+	{ HAWK_T("getifcfg"),    { { 3, 3, HAWK_T("vvr") }, fnc_getifcfg,    0  } },
 	{ HAWK_T("getpgid"),     { { 0, 0, HAWK_NULL     }, fnc_getpgid,     0  } },
 	{ HAWK_T("getpid"),      { { 0, 0, HAWK_NULL     }, fnc_getpid,      0  } },
 	{ HAWK_T("getppid"),     { { 0, 0, HAWK_NULL     }, fnc_getppid,     0  } },
@@ -2511,6 +2510,9 @@ static inttab_t inttab[] =
 
 	{ HAWK_T("DIR_SORT"),           { HAWK_DIR_SORT } },
 
+	{ HAWK_T("IFCFG_IN4"), { HAWK_IFCFG_IN4 } },
+	{ HAWK_T("IFCFG_IN6"), { HAWK_IFCFG_IN6 } },
+
 #if defined(ENABLE_SYSLOG)
 	{ HAWK_T("LOG_FAC_AUTH"),       { LOG_AUTH } },
 	{ HAWK_T("LOG_FAC_AUTHPRIV"),   { LOG_AUTHPRIV } },
@@ -2546,12 +2548,6 @@ static inttab_t inttab[] =
 	{ HAWK_T("LOG_PRI_INFO"),       { LOG_INFO } },
 	{ HAWK_T("LOG_PRI_NOTICE"),     { LOG_NOTICE } },
 	{ HAWK_T("LOG_PRI_WARNING"),    { LOG_WARNING } },
-#endif
-
-#if 0
-// PUT THESE BACK
-	{ HAWK_T("NWIFCFG_IN4"), { HAWK_NWIFCFG_IN4 } },
-	{ HAWK_T("NWIFCFG_IN6"), { HAWK_NWIFCFG_IN6 } },
 #endif
 
 #if defined(O_APPEND)

@@ -36,7 +36,7 @@ enum hawk_ifcfg_flag_t
 	HAWK_IFCFG_UP       = (1 << 0),
 	HAWK_IFCFG_RUNNING  = (1 << 1),
 	HAWK_IFCFG_BCAST    = (1 << 2),
-	HAWK_IFCFG_PTOP     = (1 << 3),
+	HAWK_IFCFG_PTOP     = (1 << 3), /* peer to peer */
 	HAWK_IFCFG_LINKUP   = (1 << 4),
 	HAWK_IFCFG_LINKDOWN = (1 << 5)
 };
@@ -381,6 +381,11 @@ int hawk_gem_ifindextoucstr (
 #	define hawk_gem_oocharstoifindex hawk_gem_bcharstoifindex
 #	define hawk_gem_ifindextooocstr hawk_gem_ifindextobcstr
 #endif
+
+int hawk_gem_getifcfg (
+	hawk_gem_t*     gem,
+	hawk_ifcfg_t*   cfg
+);
 
 #if defined(__cplusplus)
 }
