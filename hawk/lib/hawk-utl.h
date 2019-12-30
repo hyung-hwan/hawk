@@ -964,6 +964,28 @@ HAWK_EXPORT int hawk_uchars_to_num (
 
 /* ------------------------------------------------------------------------- */
 
+HAWK_EXPORT int hawk_uchars_to_bin (
+	const hawk_uch_t* hex,
+	hawk_oow_t        hexlen,
+	hawk_uint8_t*     buf,
+	hawk_oow_t        buflen
+);
+
+HAWK_EXPORT int hawk_bchars_to_bin (
+	const hawk_bch_t* hex,
+	hawk_oow_t        hexlen,
+	hawk_uint8_t*     buf,
+	hawk_oow_t        buflen
+);
+
+#if defined(HAWK_OOCH_IS_UCH)
+#	define hawk_oochars_to_bin hawk_uchars_to_bin
+#else
+#	define hawk_oochars_to_bin hawk_bchars_to_bin
+#endif
+
+/* ------------------------------------------------------------------------- */
+
 HAWK_EXPORT hawk_cmgr_t* hawk_get_cmgr_by_id (
 	hawk_cmgr_id_t id
 );

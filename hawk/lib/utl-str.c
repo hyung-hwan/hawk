@@ -2613,6 +2613,69 @@ int hawk_bchars_to_num (int option, const hawk_bch_t* ptr, hawk_oow_t len, hawk_
 	if (strict && endptr < end) return -1;
 	return 0; /* int */
 }
+
+/* ------------------------------------------------------------------------ */
+
+#define XDIGIT_TO_NUM(c) \
+	(((c) >= '0' && (c) <= '9')? ((c) - '0'): \
+	 ((c) >= 'A' && (c) <= 'F')? ((c) - 'A' + 10): \
+	 ((c) >= 'a' && (c) <= 'f')? ((c) - 'a' + 10): -1)
+
+int hawk_uchars_to_bin (const hawk_uch_t* hex, hawk_oow_t hexlen, hawk_uint8_t* buf, hawk_oow_t buflen)
+{
+	const hawk_uch_t* end = hex + hexlen;
+	hawk_oow_t bi = 0;
+
+	while (hex < end && bi < buflen)
+	{
+		int v;
+
+		v = XDIGIT_TO_NUM(*hex);
+		if (v <= -1) return -1;
+		buf[bi] = buf[bi] * 16 + v;
+
+		hex++;
+		if (hex >= end) return -1;
+
+		v = XDIGIT_TO_NUM(*hex);
+		if (v <= -1) return -1;
+		buf[bi] = buf[bi] * 16 + v;
+
+		hex++;
+		bi++;
+	}
+
+	return 0;
+}
+
+int hawk_bchars_to_bin (const hawk_bch_t* hex, hawk_oow_t hexlen, hawk_uint8_t* buf, hawk_oow_t buflen)
+{
+	const hawk_bch_t* end = hex + hexlen;
+	hawk_oow_t bi = 0;
+
+	while (hex < end && bi < buflen)
+	{
+		int v;
+
+		v = XDIGIT_TO_NUM(*hex);
+		if (v <= -1) return -1;
+		buf[bi] = buf[bi] * 16 + v;
+
+		hex++;
+		if (hex >= end) return -1;
+
+		v = XDIGIT_TO_NUM(*hex);
+		if (v <= -1) return -1;
+		buf[bi] = buf[bi] * 16 + v;
+
+		hex++;
+		bi++;
+	}
+
+	return 0;
+}
+
+
 /* ------------------------------------------------------------------------ */
 
 int hawk_conv_bchars_to_uchars_with_cmgr (
