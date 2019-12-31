@@ -1794,11 +1794,26 @@ static int fnc_getenv (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	return 0;
 }
 
+/*
+	if (sys::getnwifcfg("eth0", sys::NWIFCFG_IN6, x) >= 0) 
+	{ 
+	    for (i in x) print i, x[i]; 
+	}
+	else 
+	{
+	    print "Error:", sys::errmsg();
+	}
+*/
 static int fnc_getifcfg (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
+	sys_list_t* sys_list;
 	hawk_ifcfg_t cfg;
 	hawk_rtx_valtostr_out_t out;
 	int ret = -1;
+
+	sys_list = rtx_to_sys_list(rtx, fi);
+
+	HAWK_MEMSET (&cfg, 0, HAWK_SIZEOF(cfg));
 
 	out.type = HAWK_RTX_VALTOSTR_CPLCPY;
 	out.u.cplcpy.ptr = cfg.name;
@@ -1840,15 +1855,13 @@ static int fnc_getifcfg (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 				md[2].key.ptr = HAWK_T("addr");
 				md[2].key.len = 4;
 				md[2].type = HAWK_VAL_MAP_DATA_STR;
-	//			hawk_nwadtostr (&cfg.addr, addr, HAWK_COUNTOF(addr), HAWK_NWADTOSTR_ADDR);
-addr[0] = '\0';
+				hawk_gem_skadtooocstr (hawk_rtx_getgem(rtx), &cfg.addr, addr, HAWK_COUNTOF(addr), HAWK_SKAD_TO_OOCSTR_ADDR);
 				md[2].vptr = addr;
 
 				md[3].key.ptr = HAWK_T("mask");
 				md[3].key.len = 4;
 				md[3].type = HAWK_VAL_MAP_DATA_STR;
-	//			hawk_nwadtostr (&cfg.mask, mask, HAWK_COUNTOF(mask), HAWK_NWADTOSTR_ADDR);
-mask[0] = '\0';
+				hawk_gem_skadtooocstr (hawk_rtx_getgem(rtx), &cfg.mask, mask, HAWK_COUNTOF(mask), HAWK_SKAD_TO_OOCSTR_ADDR);
 				md[3].vptr = mask;
 
 				md[4].key.ptr = HAWK_T("ethw");
@@ -1879,9 +1892,11 @@ mask[0] = '\0';
 			}
 		}
 	}
+	
+	if (ret <= -1)	set_errmsg_on_sys_list (rtx, sys_list, HAWK_NULL);
 
 	/* no error check for hawk_rtx_makeintval() since ret is 0 or -1 */
-	hawk_rtx_setretval (rtx, hawk_rtx_makeintval (rtx, ret));
+	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, ret));
 	return 0;
 }
 /* ------------------------------------------------------------ */
@@ -2451,6 +2466,7 @@ static fnctab_t fnctab[] =
 	{ HAWK_T("geteuid"),     { { 0, 0, HAWK_NULL     }, fnc_geteuid,     0  } },
 	{ HAWK_T("getgid"),      { { 0, 0, HAWK_NULL     }, fnc_getgid,      0  } },
 	{ HAWK_T("getifcfg"),    { { 3, 3, HAWK_T("vvr") }, fnc_getifcfg,    0  } },
+	{ HAWK_T("getnwifcfg"),  { { 3, 3, HAWK_T("vvr") }, fnc_getifcfg,    0  } }, /* backward compatibility */
 	{ HAWK_T("getpgid"),     { { 0, 0, HAWK_NULL     }, fnc_getpgid,     0  } },
 	{ HAWK_T("getpid"),      { { 0, 0, HAWK_NULL     }, fnc_getpid,      0  } },
 	{ HAWK_T("getppid"),     { { 0, 0, HAWK_NULL     }, fnc_getppid,     0  } },
@@ -2549,6 +2565,9 @@ static inttab_t inttab[] =
 	{ HAWK_T("LOG_PRI_NOTICE"),     { LOG_NOTICE } },
 	{ HAWK_T("LOG_PRI_WARNING"),    { LOG_WARNING } },
 #endif
+
+	{ HAWK_T("NWIFCFG_IN4"), { HAWK_IFCFG_IN4 } }, /* for backward compatibility */
+	{ HAWK_T("NWIFCFG_IN6"), { HAWK_IFCFG_IN6 } }, /* for backward compatibility */
 
 #if defined(O_APPEND)
 	{ HAWK_T("O_APPEND"),    { O_APPEND } },

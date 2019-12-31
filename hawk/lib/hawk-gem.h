@@ -29,6 +29,13 @@
 
 #include <hawk-cmn.h>
 
+#define HAWK_SKAD_TO_OOCSTR_ADDR (1 << 0)
+#define HAWK_SKAD_TO_OOCSTR_PORT (1 << 0)
+#define HAWK_SKAD_TO_UCSTR_ADDR HAWK_SKAD_TO_OOCSTR_ADDR
+#define HAWK_SKAD_TO_UCSTR_PORT HAWK_SKAD_TO_OOCSTR_PORT
+#define HAWK_SKAD_TO_BCSTR_ADDR HAWK_SKAD_TO_OOCSTR_ADDR
+#define HAWK_SKAD_TO_BCSTR_PORT HAWK_SKAD_TO_OOCSTR_PORT
+
 typedef struct hawk_ifcfg_t hawk_ifcfg_t;
 
 enum hawk_ifcfg_flag_t
@@ -82,17 +89,17 @@ static HAWK_INLINE void* hawk_gem_reallocmem_noerr (hawk_gem_t* gem, void* ptr, 
 #define hawk_gem_reallocmem_noerr(gem, ptr, size) (HAWK_MMGR_REALLOC((gem)->mmgr, ptr, size))
 #endif
 
-void* hawk_gem_allocmem (
+HAWK_EXPORT void* hawk_gem_allocmem (
 	hawk_gem_t*       gem,
 	hawk_oow_t        size
 );
 
-void* hawk_gem_callocmem (
+HAWK_EXPORT void* hawk_gem_callocmem (
 	hawk_gem_t*       gem,
 	hawk_oow_t        size
 );
 
-void* hawk_gem_reallocmem (
+HAWK_EXPORT void* hawk_gem_reallocmem (
 	hawk_gem_t*       gem,
 	void*             ptr,
 	hawk_oow_t        size
@@ -289,7 +296,7 @@ HAWK_EXPORT hawk_bch_t* hawk_gem_dupucstrarrtobcstr (
 
 /* ----------------------------------------------------------------------- */
 
-hawk_oow_t hawk_gem_vfmttoucstr (
+HAWK_EXPORT hawk_oow_t hawk_gem_vfmttoucstr (
 	hawk_gem_t*       gem,
 	hawk_uch_t*       buf,
 	hawk_oow_t        bufsz,
@@ -297,7 +304,7 @@ hawk_oow_t hawk_gem_vfmttoucstr (
 	va_list           ap
 );
 
-hawk_oow_t hawk_gem_fmttoucstr (
+HAWK_EXPORT hawk_oow_t hawk_gem_fmttoucstr (
 	hawk_gem_t*       gem,
 	hawk_uch_t*       buf,
 	hawk_oow_t        bufsz,
@@ -305,7 +312,7 @@ hawk_oow_t hawk_gem_fmttoucstr (
 	...
 );
 
-hawk_oow_t hawk_gem_vfmttobcstr (
+HAWK_EXPORT hawk_oow_t hawk_gem_vfmttobcstr (
 	hawk_gem_t*       gem,
 	hawk_bch_t*       buf,
 	hawk_oow_t        bufsz,
@@ -313,7 +320,7 @@ hawk_oow_t hawk_gem_vfmttobcstr (
 	va_list           ap
 );
 
-hawk_oow_t hawk_gem_fmttobcstr (
+HAWK_EXPORT hawk_oow_t hawk_gem_fmttobcstr (
 	hawk_gem_t*       gem,
 	hawk_bch_t*       buf,
 	hawk_oow_t        bufsz,
@@ -323,49 +330,71 @@ hawk_oow_t hawk_gem_fmttobcstr (
 
 /* ----------------------------------------------------------------------- */
 
-int hawk_gem_oocharstoskad (
+HAWK_EXPORT int hawk_gem_oocharstoskad (
 	hawk_gem_t*        gem,
 	const hawk_ooch_t* str,
 	hawk_oow_t         len,
 	hawk_skad_t*       skad
 );
 
+
+HAWK_EXPORT hawk_oow_t hawk_gem_skadtoucstr (
+	hawk_gem_t*        gem,
+	const hawk_skad_t* skad,
+	hawk_uch_t*        buf,
+	hawk_oow_t         len,
+	int                flags
+);
+
+HAWK_EXPORT hawk_oow_t hawk_gem_skadtobcstr (
+	hawk_gem_t*        gem,
+	const hawk_skad_t* skad,
+	hawk_bch_t*        buf,
+	hawk_oow_t         len,
+	int                flags
+);
+
+#if defined(HAWK_OOCH_IS_UCH)
+#	define hawk_gem_skadtooocstr hawk_gem_skadtoucstr
+#else
+#	define hawk_gem_skadtooocstr hawk_gem_skadtobcstr
+#endif
 /* ----------------------------------------------------------------------- */
 
-int hawk_gem_bcstrtoifindex (
+HAWK_EXPORT int hawk_gem_bcstrtoifindex (
 	hawk_gem_t*        gem,
 	const hawk_bch_t*  ptr,
 	unsigned int*      index
 );
 
-int hawk_gem_bcharstoifindex (
+HAWK_EXPORT int hawk_gem_bcharstoifindex (
 	hawk_gem_t*        gem,
 	const hawk_bch_t*  ptr,
 	hawk_oow_t         len,
 	unsigned int*      index
 );
 
-int hawk_gem_ucstrtoifindex (
+HAWK_EXPORT int hawk_gem_ucstrtoifindex (
 	hawk_gem_t*        gem,
 	const hawk_uch_t*  ptr,
 	unsigned int*      index
 );
 
-int hawk_gem_ucharstoifindex (
+HAWK_EXPORT int hawk_gem_ucharstoifindex (
 	hawk_gem_t*        gem,
 	const hawk_uch_t*  ptr,
 	hawk_oow_t         len,
 	unsigned int*      index
 );
 
-int hawk_gem_ifindextobcstr (
+HAWK_EXPORT int hawk_gem_ifindextobcstr (
 	hawk_gem_t*        gem,
 	unsigned int       index,
 	hawk_bch_t*        buf,
 	hawk_oow_t         len
 );
 
-int hawk_gem_ifindextoucstr (
+HAWK_EXPORT int hawk_gem_ifindextoucstr (
 	hawk_gem_t*        gem,
 	unsigned int       index,
 	hawk_uch_t*        buf,
@@ -382,7 +411,7 @@ int hawk_gem_ifindextoucstr (
 #	define hawk_gem_ifindextooocstr hawk_gem_ifindextobcstr
 #endif
 
-int hawk_gem_getifcfg (
+HAWK_EXPORT int hawk_gem_getifcfg (
 	hawk_gem_t*     gem,
 	hawk_ifcfg_t*   cfg
 );

@@ -54,6 +54,7 @@ const hawk_ooch_t* hawk_dflerrstr (hawk_t* awk, hawk_errnum_t errnum)
 		HAWK_T("interrupted"),
 		HAWK_T("broken pipe"),
 		HAWK_T("in progress"),
+		HAWK_T("no such device"),
 		HAWK_T("no handle"),
 		HAWK_T("no child process"),
 		HAWK_T("timed out"),

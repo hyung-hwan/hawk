@@ -772,7 +772,7 @@ enum hawk_errnum_t
 	HAWK_EBUSY,   /**< system busy */
 	HAWK_EPERM,   /**< operation not permitted */
 	HAWK_ENOSUP,  /**< not supported */
-	HAWK_ENOENT,  /**< '${0}' not found */
+	HAWK_ENOENT,  /**< '${0} not found */
 	HAWK_EEXIST,  /**< '${0}' already exists */
 	HAWK_EIOERR,  /**< I/O error */
 	HAWK_EBUFFULL, /**< buffer full  */
@@ -782,6 +782,7 @@ enum hawk_errnum_t
 	HAWK_EINTR,  /**< interrupted */
 	HAWK_EPIPE,  /**< broken pipe */
 	HAWK_EINPROG,  /**< in progress */
+	HAWK_ENODEV,  /**< no such device */
 	HAWK_ENOHND,  /**< no handle */
 	HAWK_ECHILD, /**< no child process */
 	HAWK_ETMOUT, /**< timed out */
