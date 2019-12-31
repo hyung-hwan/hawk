@@ -2428,15 +2428,11 @@ HAWK_EXPORT void hawk_rtx_geterror (
 	hawk_loc_t*       errloc  /**< error location */
 );
 
-/** 
- * The hawk_rtx_seterrnum() function sets the error information omitting
- * the error location.
- */
-HAWK_EXPORT void hawk_rtx_seterrnum (
-	hawk_rtx_t*    rtx,    /**< runtime context */
-	hawk_errnum_t  errnum, /**< error number */
-	const hawk_oocs_t* errarg  /**< arguments to format error message */
-);
+#if defined(HAWK_HAVE_INLINE)
+static HAWK_INLINE void hawk_rtx_seterrnum (hawk_rtx_t* rtx, hawk_loc_t* errloc, hawk_errnum_t errnum) { hawk_gem_seterrnum (hawk_rtx_getgem(rtx), errloc, errnum); }
+#else
+#define hawk_rtx_seterrnum(rtx, errloc, errnum) hawk_gem_seterrnum(hawk_rtx_getgem(rtx), errloc, errnum)
+#endif
 
 /** 
  * The hawk_rtx_seterrinf() function sets error information.

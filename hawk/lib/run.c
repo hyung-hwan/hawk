@@ -3310,7 +3310,7 @@ static hawk_val_t* eval_expression0 (hawk_rtx_t* rtx, hawk_nde_t* nde)
 		 * clears the error number. run_main will 
 		 * detect this condition and treat it as a 
 		 * non-error condition.*/
-		hawk_rtx_seterrnum (rtx, HAWK_ENOERR, HAWK_NULL);
+		hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_ENOERR);
 		return HAWK_NULL;
 	}
 
@@ -5986,7 +5986,7 @@ static hawk_val_t* __eval_call (
 
 		if (call->u.fnc.spec.impl)
 		{
-			hawk_rtx_seterrnum (rtx, HAWK_ENOERR, HAWK_NULL);
+			hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_ENOERR);
 
 			n = call->u.fnc.spec.impl(rtx, &call->u.fnc.info);
 

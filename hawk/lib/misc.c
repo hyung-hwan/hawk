@@ -267,7 +267,7 @@ hawk_ooch_t* hawk_rtx_strxntokbyrex (
 		if (n == 0)
 		{
 			/* no match has been found. return the entire string as a token */
-			hawk_rtx_seterrnum (rtx, HAWK_ENOERR, HAWK_NULL); /* reset HAWK_EREXNOMAT to no error */
+			hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_ENOERR); /* reset HAWK_EREXNOMAT to no error */
 			tok->ptr = realsub.ptr;
 			tok->len = realsub.len;
 			return HAWK_NULL; 
@@ -307,7 +307,7 @@ hawk_ooch_t* hawk_rtx_strxntokbyrex (
 	}
 
 exit_loop:
-	hawk_rtx_seterrnum (rtx, HAWK_ENOERR, HAWK_NULL);
+	hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_ENOERR);
 
 	if (cursub.len <= 0)
 	{
@@ -548,12 +548,13 @@ int hawk_rtx_matchval (hawk_rtx_t* rtx, hawk_val_t* val, const hawk_oocs_t* str,
 		tmp.ptr = hawk_rtx_getvaloocstr(rtx, val, &tmp.len);
 		if (tmp.ptr == HAWK_NULL) return -1;
 
+// TODO: create hawk_rtx_buildrex....
 		x = ignorecase? hawk_buildrex(rtx->awk, tmp.ptr, tmp.len, &awkerr, HAWK_NULL, &code):
 		                hawk_buildrex(rtx->awk, tmp.ptr, tmp.len, &awkerr, &code, HAWK_NULL);
 		hawk_rtx_freevaloocstr (rtx, val, tmp.ptr);
 		if (x <= -1)
 		{
-			hawk_rtx_seterrnum (rtx, awkerr, HAWK_NULL);
+			hawk_rtx_seterrnum (rtx, HAWK_NULL, awkerr);
 			return -1;
 		}
 	}

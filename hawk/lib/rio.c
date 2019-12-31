@@ -115,7 +115,7 @@ static int find_rio_in (
 	if (handler == HAWK_NULL)
 	{
 		/* no I/O handler provided */
-		hawk_rtx_seterrnum (rtx, HAWK_EIOUSER, HAWK_NULL);
+		hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EIOUSER);
 		return -1;
 	}
 
@@ -160,7 +160,7 @@ static int find_rio_in (
 		p->in.eos = 0;
 		*/
 
-		hawk_rtx_seterrnum (rtx, HAWK_ENOERR, HAWK_NULL);
+		hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_ENOERR);
 
 		/* request to open the stream */
 		x = handler(rtx, HAWK_RIO_CMD_OPEN, p, HAWK_NULL, 0);
@@ -173,7 +173,7 @@ static int find_rio_in (
 			{
 				/* if the error number has not been
 				 * set by the user handler */
-				hawk_rtx_seterrnum (rtx, HAWK_EIOIMPL, HAWK_NULL);
+				hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EIOIMPL);
 			}
 
 			return -1;
@@ -331,7 +331,7 @@ int hawk_rtx_readio (hawk_rtx_t* rtx, int in_type, const hawk_ooch_t* name, hawk
 				break;
 			}
 
-			hawk_rtx_seterrnum (rtx, HAWK_ENOERR, HAWK_NULL);
+			hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_ENOERR);
 			x = handler(rtx, HAWK_RIO_CMD_READ, p, p->in.buf, HAWK_COUNTOF(p->in.buf));
 			if (x <= -1)
 			{
@@ -340,7 +340,7 @@ int hawk_rtx_readio (hawk_rtx_t* rtx, int in_type, const hawk_ooch_t* name, hawk
 					/* if the error number has not been 
 				 	 * set by the user handler, we set
 				 	 * it here to HAWK_EIOIMPL. */
-					hawk_rtx_seterrnum (rtx, HAWK_EIOIMPL, HAWK_NULL);
+					hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EIOIMPL);
 				}
 
 				ret = -1;
@@ -442,7 +442,6 @@ int hawk_rtx_readio (hawk_rtx_t* rtx, int in_type, const hawk_ooch_t* name, hawk
 			tmp = hawk_ooecs_ncat(buf, &p->in.buf[start_pos], end_pos - start_pos);
 			if (tmp == (hawk_oow_t)-1)
 			{
-				hawk_rtx_seterrnum (rtx, HAWK_ENOMEM, HAWK_NULL);
 				ret = -1;
 				break;
 			}
@@ -527,7 +526,7 @@ int hawk_rtx_readio (hawk_rtx_t* rtx, int in_type, const hawk_ooch_t* name, hawk
 
 				if (hawk_ooecs_ccat(buf, c) == (hawk_oow_t)-1)
 				{
-					hawk_rtx_seterrnum (rtx, HAWK_ENOMEM, HAWK_NULL);
+
 					ret = -1;
 					done = 1;
 					break;
@@ -557,7 +556,6 @@ int hawk_rtx_readio (hawk_rtx_t* rtx, int in_type, const hawk_ooch_t* name, hawk
 			tmp = hawk_ooecs_ncat(buf, &p->in.buf[start_pos], end_pos - start_pos);
 			if (tmp == (hawk_oow_t)-1)
 			{
-				hawk_rtx_seterrnum (rtx, HAWK_ENOMEM, HAWK_NULL);
 				ret = -1;
 				break;
 			}
@@ -580,7 +578,6 @@ int hawk_rtx_readio (hawk_rtx_t* rtx, int in_type, const hawk_ooch_t* name, hawk
 			tmp = hawk_ooecs_ncat(buf, &p->in.buf[p->in.pos], p->in.len - p->in.pos);
 			if (tmp == (hawk_oow_t)-1)
 			{
-				hawk_rtx_seterrnum (rtx, HAWK_ENOMEM, HAWK_NULL);
 				ret = -1;
 				break;
 			}
@@ -655,7 +652,7 @@ static int prepare_for_write_io_data (hawk_rtx_t* rtx, int out_type, const hawk_
 	if (handler == HAWK_NULL)
 	{
 		/* no I/O handler provided */
-		hawk_rtx_seterrnum (rtx, HAWK_EIOUSER, HAWK_NULL);
+		hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EIOUSER);
 		return -1;
 	}
 
@@ -703,7 +700,7 @@ static int prepare_for_write_io_data (hawk_rtx_t* rtx, int out_type, const hawk_
 		p->out.eos = 0;
 		*/
 
-		hawk_rtx_seterrnum (rtx, HAWK_ENOERR, HAWK_NULL);
+		hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_ENOERR);
 		n = handler(rtx, HAWK_RIO_CMD_OPEN, p, HAWK_NULL, 0);
 		if (n <= -1)
 		{
@@ -711,7 +708,7 @@ static int prepare_for_write_io_data (hawk_rtx_t* rtx, int out_type, const hawk_
 			hawk_rtx_freemem (rtx, p);
 
 			if (hawk_rtx_geterrnum(rtx) == HAWK_ENOERR)
-				hawk_rtx_seterrnum (rtx, HAWK_EIOIMPL, HAWK_NULL);
+				hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EIOIMPL);
 
 			return -1;
 		}
@@ -740,12 +737,12 @@ int hawk_rtx_writeiostr (hawk_rtx_t* rtx, int out_type, const hawk_ooch_t* name,
 	{
 		hawk_ooi_t n;
 
-		hawk_rtx_seterrnum (rtx, HAWK_ENOERR, HAWK_NULL);
+		hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_ENOERR);
 		n = wid.handler(rtx, HAWK_RIO_CMD_WRITE, wid.p, str, len);
 		if (n <= -1) 
 		{
 			if (hawk_rtx_geterrnum(rtx) == HAWK_ENOERR)
-				hawk_rtx_seterrnum (rtx, HAWK_EIOIMPL, HAWK_NULL);
+				hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EIOIMPL);
 			return -1;
 		}
 
@@ -773,12 +770,12 @@ int hawk_rtx_writeiobytes (hawk_rtx_t* rtx, int out_type, const hawk_ooch_t* nam
 	{
 		hawk_ooi_t n;
 
-		hawk_rtx_seterrnum (rtx, HAWK_ENOERR, HAWK_NULL);
+		hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_ENOERR);
 		n = wid.handler(rtx, HAWK_RIO_CMD_WRITE_BYTES, wid.p, str, len);
 		if (n <= -1) 
 		{
 			if (hawk_rtx_geterrnum(rtx) == HAWK_ENOERR)
-				hawk_rtx_seterrnum (rtx, HAWK_EIOIMPL, HAWK_NULL);
+				hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EIOIMPL);
 			return -1;
 		}
 
@@ -816,7 +813,7 @@ int hawk_rtx_flushio (hawk_rtx_t* rtx, int out_type, const hawk_ooch_t* name)
 	if (!handler)
 	{
 		/* no I/O handler provided */
-		hawk_rtx_seterrnum (rtx, HAWK_EIOUSER, HAWK_NULL);
+		hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EIOUSER);
 		return -1;
 	}
 
@@ -830,12 +827,12 @@ int hawk_rtx_flushio (hawk_rtx_t* rtx, int out_type, const hawk_ooch_t* name)
 		if (p->type == (io_type | io_mask) && p->mode == io_mode &&
 		    (name == HAWK_NULL || hawk_comp_oocstr(p->name, name, 0) == 0)) 
 		{
-			hawk_rtx_seterrnum (rtx, HAWK_ENOERR, HAWK_NULL);
+			hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_ENOERR);
 			n = handler(rtx, HAWK_RIO_CMD_FLUSH, p, HAWK_NULL, 0);
 			if (n <= -1) 
 			{
 				if (hawk_rtx_geterrnum(rtx) == HAWK_ENOERR)
-					hawk_rtx_seterrnum (rtx, HAWK_EIOIMPL, HAWK_NULL);
+					hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EIOIMPL);
 				return -1;
 			}
 
@@ -848,7 +845,7 @@ int hawk_rtx_flushio (hawk_rtx_t* rtx, int out_type, const hawk_ooch_t* name)
 	if (ok) return 0;
 
 	/* there is no corresponding rio for name */
-	hawk_rtx_seterrnum (rtx, HAWK_EIONMNF, HAWK_NULL);
+	hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EIONMNF);
 	return -1;
 }
 
@@ -872,7 +869,7 @@ int hawk_rtx_nextio_read (hawk_rtx_t* rtx, int in_type, const hawk_ooch_t* name)
 	if (!handler)
 	{
 		/* no I/O handler provided */
-		hawk_rtx_seterrnum (rtx, HAWK_EIOUSER, HAWK_NULL);
+		hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EIOUSER);
 		return -1;
 	}
 
@@ -886,7 +883,7 @@ int hawk_rtx_nextio_read (hawk_rtx_t* rtx, int in_type, const hawk_ooch_t* name)
 	{
 		/* something is totally wrong */
 		HAWK_ASSERT (!"should never happen - cannot find the relevant rio entry");
-		hawk_rtx_seterrnum (rtx, HAWK_EINTERN, HAWK_NULL);
+		hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EINTERN);
 		return -1;
 	}
 
@@ -896,12 +893,12 @@ int hawk_rtx_nextio_read (hawk_rtx_t* rtx, int in_type, const hawk_ooch_t* name)
 		return 0;
 	}
 
-	hawk_rtx_seterrnum (rtx, HAWK_ENOERR, HAWK_NULL);
+	hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_ENOERR);
 	n = handler(rtx, HAWK_RIO_CMD_NEXT, p, HAWK_NULL, 0);
 	if (n <= -1)
 	{
 		if (hawk_rtx_geterrnum(rtx) == HAWK_ENOERR)
-			hawk_rtx_seterrnum (rtx, HAWK_EIOIMPL, HAWK_NULL);
+			hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EIOIMPL);
 		return -1;
 	}
 
@@ -947,7 +944,7 @@ int hawk_rtx_nextio_write (hawk_rtx_t* rtx, int out_type, const hawk_ooch_t* nam
 	if (!handler)
 	{
 		/* no I/O handler provided */
-		hawk_rtx_seterrnum (rtx, HAWK_EIOUSER, HAWK_NULL);
+		hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EIOUSER);
 		return -1;
 	}
 
@@ -962,7 +959,7 @@ int hawk_rtx_nextio_write (hawk_rtx_t* rtx, int out_type, const hawk_ooch_t* nam
 		/* something is totally wrong */
 		HAWK_ASSERT (!"should never happen - cannot find the relevant rio entry");
 
-		hawk_rtx_seterrnum (rtx, HAWK_EINTERN, HAWK_NULL);
+		hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EINTERN);
 		return -1;
 	}
 
@@ -972,12 +969,12 @@ int hawk_rtx_nextio_write (hawk_rtx_t* rtx, int out_type, const hawk_ooch_t* nam
 		return 0;
 	}
 
-	hawk_rtx_seterrnum (rtx, HAWK_ENOERR, HAWK_NULL);
+	hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_ENOERR);
 	n = handler(rtx, HAWK_RIO_CMD_NEXT, p, HAWK_NULL, 0);
 	if (n <= -1)
 	{
 		if (hawk_rtx_geterrnum(rtx) == HAWK_ENOERR)
-			hawk_rtx_seterrnum (rtx, HAWK_EIOIMPL, HAWK_NULL);
+			hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EIOIMPL);
 		return -1;
 	}
 
@@ -1017,7 +1014,7 @@ int hawk_rtx_closio_read (hawk_rtx_t* rtx, int in_type, const hawk_ooch_t* name)
 	if (!handler)
 	{
 		/* no I/O handler provided */
-		hawk_rtx_seterrnum (rtx, HAWK_EIOUSER, HAWK_NULL);
+		hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EIOUSER);
 		return -1;
 	}
 
@@ -1033,7 +1030,7 @@ int hawk_rtx_closio_read (hawk_rtx_t* rtx, int in_type, const hawk_ooch_t* name)
 				if (handler (rtx, HAWK_RIO_CMD_CLOSE, p, HAWK_NULL, 0) <= -1)
 				{
 					/* this is not a rtx-time error.*/
-					hawk_rtx_seterrnum (rtx, HAWK_EIOIMPL, HAWK_NULL);
+					hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EIOIMPL);
 					return -1;
 				}
 			}
@@ -1051,7 +1048,7 @@ int hawk_rtx_closio_read (hawk_rtx_t* rtx, int in_type, const hawk_ooch_t* name)
 	}
 
 	/* the name given is not found */
-	hawk_rtx_seterrnum (rtx, HAWK_EIONMNF, HAWK_NULL);
+	hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EIONMNF);
 	return -1;
 }
 
@@ -1074,7 +1071,7 @@ int hawk_rtx_closio_write (hawk_rtx_t* rtx, int out_type, const hawk_ooch_t* nam
 	if (!handler)
 	{
 		/* no io handler provided */
-		hawk_rtx_seterrnum (rtx, HAWK_EIOUSER, HAWK_NULL);
+		hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EIOUSER);
 		return -1;
 	}
 
@@ -1087,11 +1084,11 @@ int hawk_rtx_closio_write (hawk_rtx_t* rtx, int out_type, const hawk_ooch_t* nam
 			handler = rtx->rio.handler[p->type & IO_MASK_CLEAR];
 			if (handler)
 			{
-				hawk_rtx_seterrnum (rtx, HAWK_ENOERR, HAWK_NULL);
+				hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_ENOERR);
 				if (handler (rtx, HAWK_RIO_CMD_CLOSE, p, HAWK_NULL, 0) <= -1)
 				{
 					if (hawk_rtx_geterrnum(rtx) == HAWK_ENOERR)
-						hawk_rtx_seterrnum (rtx, HAWK_EIOIMPL, HAWK_NULL);
+						hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EIOIMPL);
 					return -1;
 				}
 			}
@@ -1108,7 +1105,7 @@ int hawk_rtx_closio_write (hawk_rtx_t* rtx, int out_type, const hawk_ooch_t* nam
 		p = p->next;
 	}
 
-	hawk_rtx_seterrnum (rtx, HAWK_EIONMNF, HAWK_NULL);
+	hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EIONMNF);
 	return -1;
 }
 
@@ -1161,13 +1158,13 @@ int hawk_rtx_closeio (hawk_rtx_t* rtx, const hawk_ooch_t* name, const hawk_ooch_
 			handler = rtx->rio.handler[p->type & IO_MASK_CLEAR];
 			if (handler)
 			{
-				hawk_rtx_seterrnum (rtx, HAWK_ENOERR, HAWK_NULL);
+				hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_ENOERR);
 				p->rwcmode = rwcmode;
 				if (handler(rtx, HAWK_RIO_CMD_CLOSE, p, HAWK_NULL, 0) <= -1)
 				{
 					/* this is not a run-time error.*/
 					if (hawk_rtx_geterrnum(rtx) == HAWK_ENOERR)
-						hawk_rtx_seterrnum (rtx, HAWK_EIOIMPL, HAWK_NULL);
+						hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EIOIMPL);
 					return -1;
 				}
 			}
@@ -1200,7 +1197,7 @@ int hawk_rtx_closeio (hawk_rtx_t* rtx, const hawk_ooch_t* name, const hawk_ooch_
 		p = p->next;
 	}
 
-	hawk_rtx_seterrnum (rtx, HAWK_EIONMNF, HAWK_NULL);
+	hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EIONMNF);
 	return -1;
 }
 
@@ -1217,13 +1214,13 @@ void hawk_rtx_cleario (hawk_rtx_t* rtx)
 
 		if (handler)
 		{
-			hawk_rtx_seterrnum (rtx, HAWK_ENOERR, HAWK_NULL);
+			hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_ENOERR);
 			rtx->rio.chain->rwcmode = 0;
 			n = handler(rtx, HAWK_RIO_CMD_CLOSE, rtx->rio.chain, HAWK_NULL, 0);
 			if (n <= -1)
 			{
 				if (hawk_rtx_geterrnum(rtx) == HAWK_ENOERR)
-					hawk_rtx_seterrnum (rtx, HAWK_EIOIMPL, HAWK_NULL);
+					hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EIOIMPL);
 				/* TODO: some warnings need to be shown??? */
 			}
 		}

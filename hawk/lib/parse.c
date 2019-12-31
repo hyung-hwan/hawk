@@ -414,8 +414,7 @@ static global_t gtab[] =
 
 #define ISNOERR(awk) ((awk)->_gem.errnum == HAWK_ENOERR)
 
-#define CLRERR(awk) \
-	hawk_seterror (awk, HAWK_ENOERR, HAWK_NULL, HAWK_NULL)
+#define CLRERR(awk) hawk_seterror (awk, HAWK_ENOERR, HAWK_NULL, HAWK_NULL)
 
 #define SETERR_TOK(awk,code) \
 	hawk_seterror (awk, code, HAWK_OOECS_OOCS((awk)->tok.name), &(awk)->tok.loc)
