@@ -396,3 +396,529 @@ no_rbrack:
 	hawk_gem_seterrbfmt (gem, HAWK_NULL, HAWK_EINVAL, "missing right bracket");
 	return -1;
 }
+
+
+/* ---------------------------------------------------------- */
+
+
+#define __BTOA(type_t,b,p,end) \
+	do { \
+		type_t* sp = p; \
+		do {  \
+			if (p >= end) { \
+				if (p == sp) break; \
+				if (p - sp > 1) p[-2] = p[-1]; \
+				p[-1] = (b % 10) + '0'; \
+			} \
+			else *p++ = (b % 10) + '0'; \
+			b /= 10; \
+		} while (b > 0); \
+		if (p - sp > 1) { \
+			type_t t = sp[0]; \
+			sp[0] = p[-1]; \
+			p[-1] = t; \
+		} \
+	} while (0);
+
+#define __ADDDOT(p, end) \
+	do { \
+		if (p >= end) break; \
+		*p++ = '.'; \
+	} while (0)
+
+/* ---------------------------------------------------------- */
+
+static hawk_oow_t ip4addr_to_ucstr (const struct in_addr* ipad, hawk_uch_t* buf, hawk_oow_t size)
+{
+	hawk_uint8_t b;
+	hawk_uch_t* p, * end;
+	hawk_uint32_t ip;
+
+	if (size <= 0) return 0;
+
+	ip = ipad->s_addr;
+
+	p = buf;
+	end = buf + size - 1;
+
+#if defined(HAWK_ENDIAN_BIG)
+	b = (ip >> 24) & 0xFF; __BTOA (hawk_uch_t, b, p, end); __ADDDOT (p, end);
+	b = (ip >> 16) & 0xFF; __BTOA (hawk_uch_t, b, p, end); __ADDDOT (p, end);
+	b = (ip >>  8) & 0xFF; __BTOA (hawk_uch_t, b, p, end); __ADDDOT (p, end);
+	b = (ip >>  0) & 0xFF; __BTOA (hawk_uch_t, b, p, end);
+#elif defined(HAWK_ENDIAN_LITTLE)
+	b = (ip >>  0) & 0xFF; __BTOA (hawk_uch_t, b, p, end); __ADDDOT (p, end);
+	b = (ip >>  8) & 0xFF; __BTOA (hawk_uch_t, b, p, end); __ADDDOT (p, end);
+	b = (ip >> 16) & 0xFF; __BTOA (hawk_uch_t, b, p, end); __ADDDOT (p, end);
+	b = (ip >> 24) & 0xFF; __BTOA (hawk_uch_t, b, p, end);
+#else
+#	error Unknown Endian
+#endif
+
+	*p = '\0';
+	return p - buf;
+}
+
+
+static hawk_oow_t ip6addr_to_ucstr (const struct in6_addr* ipad, hawk_uch_t* buf, hawk_oow_t size)
+{
+	/*
+	 * Note that int32_t and int16_t need only be "at least" large enough
+	 * to contain a value of the specified size.  On some systems, like
+	 * Crays, there is no such thing as an integer variable with 16 bits.
+	 * Keep this in mind if you think this function should have been coded
+	 * to use pointer overlays.  All the world's not a VAX.
+	 */
+
+#define IP6ADDR_NWORDS (HAWK_SIZEOF(ipad->s6_addr) / HAWK_SIZEOF(hawk_uint16_t))
+
+	hawk_uch_t tmp[HAWK_COUNTOF("ffff:ffff:ffff:ffff:ffff:ffff:255.255.255.255")], *tp;
+	struct { int base, len; } best, cur;
+	hawk_uint16_t words[IP6ADDR_NWORDS];
+	int i;
+
+	if (size <= 0) return 0;
+
+	/*
+	 * Preprocess:
+	 *	Copy the input (bytewise) array into a wordwise array.
+	 *	Find the longest run of 0x00's in src[] for :: shorthanding.
+	 */
+	HAWK_MEMSET (words, 0, HAWK_SIZEOF(words));
+	for (i = 0; i < HAWK_SIZEOF(ipad->s6_addr); i++)
+		words[i / 2] |= (ipad->s6_addr[i] << ((1 - (i % 2)) << 3));
+	best.base = -1;
+	best.len = 0;
+	cur.base = -1;
+	cur.len = 0;
+
+	for (i = 0; i < IP6ADDR_NWORDS; i++) 
+	{
+		if (words[i] == 0) 
+		{
+			if (cur.base == -1)
+			{
+				cur.base = i;
+				cur.len = 1;
+			}
+			else
+			{
+				cur.len++;
+			}
+		}
+		else 
+		{
+			if (cur.base != -1) 
+			{
+				if (best.base == -1 || cur.len > best.len) best = cur;
+				cur.base = -1;
+			}
+		}
+	}
+	if (cur.base != -1) 
+	{
+		if (best.base == -1 || cur.len > best.len) best = cur;
+	}
+	if (best.base != -1 && best.len < 2) best.base = -1;
+
+	/*
+	 * Format the result.
+	 */
+	tp = tmp;
+	for (i = 0; i < IP6ADDR_NWORDS; i++) 
+	{
+		/* Are we inside the best run of 0x00's? */
+		if (best.base != -1 && i >= best.base &&
+		    i < (best.base + best.len)) 
+		{
+			if (i == best.base) *tp++ = ':';
+			continue;
+		}
+
+		/* Are we following an initial run of 0x00s or any real hex? */
+		if (i != 0) *tp++ = ':';
+
+		/* Is this address an encapsulated IPv4? ipv4-compatible or ipv4-mapped */
+		if (i == 6 && best.base == 0 && (best.len == 6 || (best.len == 5 && words[5] == 0xffff))) 
+		{
+			struct in_addr ip4ad;
+			HAWK_MEMCPY (&ip4ad.s_addr, ipad->s6_addr + 12, HAWK_SIZEOF(ip4ad.s_addr));
+			tp += ip4addr_to_ucstr(&ip4ad, tp, HAWK_COUNTOF(tmp) - (tp - tmp));
+			break;
+		}
+
+		tp += hawk_fmt_uintmax_to_ucstr(tp, HAWK_COUNTOF(tmp) - (tp - tmp), words[i], 16, 0, '\0', HAWK_NULL);
+	}
+
+	/* Was it a trailing run of 0x00's? */
+	if (best.base != -1 && (best.base + best.len) == IP6ADDR_NWORDS) *tp++ = ':';
+	*tp++ = '\0';
+
+	return hawk_copy_ucstr(buf, size, tmp);
+
+#undef IP6ADDR_NWORDS
+}
+
+
+hawk_oow_t hawk_gem_skadtoucstr (hawk_gem_t* gem, const hawk_skad_t* _skad, hawk_uch_t* buf, hawk_oow_t len, int flags)
+{
+	const hawk_skad_alt_t* skad = (const hawk_skad_alt_t*)_skad;
+	hawk_oow_t xlen = 0;
+
+	/* unsupported types will result in an empty string */
+
+	switch (hawk_skad_family(_skad))
+	{
+		case HAWK_AF_INET:
+			if (flags & HAWK_SKAD_TO_BCSTR_ADDR)
+			{
+				if (xlen + 1 >= len) goto done;
+				xlen += ip4addr_to_ucstr(&skad->in4.sin_addr, buf, len);
+			}
+
+			if (flags & HAWK_SKAD_TO_BCSTR_PORT)
+			{
+				if (!(flags & HAWK_SKAD_TO_BCSTR_ADDR) || skad->in4.sin_port != 0)
+				{
+					if (flags & HAWK_SKAD_TO_BCSTR_ADDR)
+					{
+						if (xlen + 1 >= len) goto done;
+						buf[xlen++] = ':';
+					}
+
+					if (xlen + 1 >= len) goto done;
+					xlen += hawk_fmt_uintmax_to_ucstr(&buf[xlen], len - xlen, hawk_ntoh16(skad->in4.sin_port), 10, 0, '\0', HAWK_NULL);
+				}
+			}
+			break;
+
+		case HAWK_AF_INET6:
+			if (flags & HAWK_SKAD_TO_BCSTR_PORT)
+			{
+				if (!(flags & HAWK_SKAD_TO_BCSTR_ADDR) || skad->in6.sin6_port != 0)
+				{
+					if (flags & HAWK_SKAD_TO_BCSTR_ADDR)
+					{
+						if (xlen + 1 >= len) goto done;
+						buf[xlen++] = '[';
+					}
+				}
+			}
+
+			if (flags & HAWK_SKAD_TO_BCSTR_ADDR)
+			{
+				if (xlen + 1 >= len) goto done;
+				xlen += ip6addr_to_ucstr(&skad->in6.sin6_addr, &buf[xlen], len - xlen);
+
+				if (skad->in6.sin6_scope_id != 0)
+				{
+					int tmp;
+
+					if (xlen + 1 >= len) goto done;
+					buf[xlen++] = '%';
+
+					if (xlen + 1 >= len) goto done;
+
+					tmp = hawk_gem_ifindextoucstr(gem, skad->in6.sin6_scope_id, &buf[xlen], len - xlen);
+					if (tmp <= -1)
+					{
+						xlen += hawk_fmt_uintmax_to_ucstr(&buf[xlen], len - xlen, skad->in6.sin6_scope_id, 10, 0, '\0', HAWK_NULL);
+					}
+					else xlen += tmp;
+				}
+			}
+
+			if (flags & HAWK_SKAD_TO_BCSTR_PORT)
+			{
+				if (!(flags & HAWK_SKAD_TO_BCSTR_ADDR) || skad->in6.sin6_port != 0) 
+				{
+					if (flags & HAWK_SKAD_TO_BCSTR_ADDR)
+					{
+						if (xlen + 1 >= len) goto done;
+						buf[xlen++] = ']';
+
+						if (xlen + 1 >= len) goto done;
+						buf[xlen++] = ':';
+					}
+
+					if (xlen + 1 >= len) goto done;
+					xlen += hawk_fmt_uintmax_to_ucstr(&buf[xlen], len - xlen, hawk_ntoh16(skad->in6.sin6_port), 10, 0, '\0', HAWK_NULL);
+				}
+			}
+
+			break;
+
+		case HAWK_AF_UNIX:
+			if (flags & HAWK_SKAD_TO_BCSTR_ADDR)
+			{
+				if (xlen + 1 >= len) goto done;
+				buf[xlen++] = '@';
+
+				if (xlen + 1 >= len) goto done;
+				else
+				{
+					hawk_oow_t mbslen, wcslen = len - xlen;
+					hawk_gem_convbtoucstr (gem, skad->un.sun_path, &mbslen, &buf[xlen], &wcslen, 1);
+					/* i don't care about conversion errors */
+					xlen += wcslen;
+				}
+			}
+
+			break;
+	}
+
+done:
+	if (xlen < len) buf[xlen] = '\0';
+	return xlen;
+}
+
+/* ---------------------------------------------------------- */
+
+static hawk_oow_t ip4addr_to_bcstr (const struct in_addr* ipad, hawk_bch_t* buf, hawk_oow_t size)
+{
+	hawk_uint8_t b;
+	hawk_bch_t* p, * end;
+	hawk_uint32_t ip;
+
+	if (size <= 0) return 0;
+
+	ip = ipad->s_addr;
+
+	p = buf;
+	end = buf + size - 1;
+
+#if defined(HAWK_ENDIAN_BIG)
+	b = (ip >> 24) & 0xFF; __BTOA (hawk_bch_t, b, p, end); __ADDDOT (p, end);
+	b = (ip >> 16) & 0xFF; __BTOA (hawk_bch_t, b, p, end); __ADDDOT (p, end);
+	b = (ip >>  8) & 0xFF; __BTOA (hawk_bch_t, b, p, end); __ADDDOT (p, end);
+	b = (ip >>  0) & 0xFF; __BTOA (hawk_bch_t, b, p, end);
+#elif defined(HAWK_ENDIAN_LITTLE)
+	b = (ip >>  0) & 0xFF; __BTOA (hawk_bch_t, b, p, end); __ADDDOT (p, end);
+	b = (ip >>  8) & 0xFF; __BTOA (hawk_bch_t, b, p, end); __ADDDOT (p, end);
+	b = (ip >> 16) & 0xFF; __BTOA (hawk_bch_t, b, p, end); __ADDDOT (p, end);
+	b = (ip >> 24) & 0xFF; __BTOA (hawk_bch_t, b, p, end);
+#else
+#	error Unknown Endian
+#endif
+
+	*p = '\0';
+	return p - buf;
+}
+
+
+static hawk_oow_t ip6addr_to_bcstr (const struct in6_addr* ipad, hawk_bch_t* buf, hawk_oow_t size)
+{
+	/*
+	 * Note that int32_t and int16_t need only be "at least" large enough
+	 * to contain a value of the specified size.  On some systems, like
+	 * Crays, there is no such thing as an integer variable with 16 bits.
+	 * Keep this in mind if you think this function should have been coded
+	 * to use pointer overlays.  All the world's not a VAX.
+	 */
+
+#define IP6ADDR_NWORDS (HAWK_SIZEOF(ipad->s6_addr) / HAWK_SIZEOF(hawk_uint16_t))
+
+	hawk_bch_t tmp[HAWK_COUNTOF("ffff:ffff:ffff:ffff:ffff:ffff:255.255.255.255")], *tp;
+	struct { int base, len; } best, cur;
+	hawk_uint16_t words[IP6ADDR_NWORDS];
+	int i;
+
+	if (size <= 0) return 0;
+
+	/*
+	 * Preprocess:
+	 *	Copy the input (bytewise) array into a wordwise array.
+	 *	Find the longest run of 0x00's in src[] for :: shorthanding.
+	 */
+	HAWK_MEMSET (words, 0, HAWK_SIZEOF(words));
+	for (i = 0; i < HAWK_SIZEOF(ipad->s6_addr); i++)
+		words[i / 2] |= (ipad->s6_addr[i] << ((1 - (i % 2)) << 3));
+	best.base = -1;
+	best.len = 0;
+	cur.base = -1;
+	cur.len = 0;
+
+	for (i = 0; i < IP6ADDR_NWORDS; i++) 
+	{
+		if (words[i] == 0) 
+		{
+			if (cur.base == -1)
+			{
+				cur.base = i;
+				cur.len = 1;
+			}
+			else
+			{
+				cur.len++;
+			}
+		}
+		else 
+		{
+			if (cur.base != -1) 
+			{
+				if (best.base == -1 || cur.len > best.len) best = cur;
+				cur.base = -1;
+			}
+		}
+	}
+	if (cur.base != -1) 
+	{
+		if (best.base == -1 || cur.len > best.len) best = cur;
+	}
+	if (best.base != -1 && best.len < 2) best.base = -1;
+
+	/*
+	 * Format the result.
+	 */
+	tp = tmp;
+	for (i = 0; i < IP6ADDR_NWORDS; i++) 
+	{
+		/* Are we inside the best run of 0x00's? */
+		if (best.base != -1 && i >= best.base &&
+		    i < (best.base + best.len)) 
+		{
+			if (i == best.base) *tp++ = ':';
+			continue;
+		}
+
+		/* Are we following an initial run of 0x00s or any real hex? */
+		if (i != 0) *tp++ = ':';
+
+		/* Is this address an encapsulated IPv4? ipv4-compatible or ipv4-mapped */
+		if (i == 6 && best.base == 0 && (best.len == 6 || (best.len == 5 && words[5] == 0xffff))) 
+		{
+			struct in_addr ip4ad;
+			HAWK_MEMCPY (&ip4ad.s_addr, ipad->s6_addr + 12, HAWK_SIZEOF(ip4ad.s_addr));
+			tp += ip4addr_to_bcstr(&ip4ad, tp, HAWK_COUNTOF(tmp) - (tp - tmp));
+			break;
+		}
+
+		tp += hawk_fmt_uintmax_to_bcstr(tp, HAWK_COUNTOF(tmp) - (tp - tmp), words[i], 16, 0, '\0', HAWK_NULL);
+	}
+
+	/* Was it a trailing run of 0x00's? */
+	if (best.base != -1 && (best.base + best.len) == IP6ADDR_NWORDS) *tp++ = ':';
+	*tp++ = '\0';
+
+	return hawk_copy_bcstr(buf, size, tmp);
+
+#undef IP6ADDR_NWORDS
+}
+
+
+hawk_oow_t hawk_gem_skadtobcstr (hawk_gem_t* gem, const hawk_skad_t* _skad, hawk_bch_t* buf, hawk_oow_t len, int flags)
+{
+	const hawk_skad_alt_t* skad = (const hawk_skad_alt_t*)_skad;
+	hawk_oow_t xlen = 0;
+
+	/* unsupported types will result in an empty string */
+
+	switch (hawk_skad_family(_skad))
+	{
+		case HAWK_AF_INET:
+			if (flags & HAWK_SKAD_TO_BCSTR_ADDR)
+			{
+				if (xlen + 1 >= len) goto done;
+				xlen += ip4addr_to_bcstr(&skad->in4.sin_addr, buf, len);
+			}
+
+			if (flags & HAWK_SKAD_TO_BCSTR_PORT)
+			{
+				if (!(flags & HAWK_SKAD_TO_BCSTR_ADDR) || skad->in4.sin_port != 0)
+				{
+					if (flags & HAWK_SKAD_TO_BCSTR_ADDR)
+					{
+						if (xlen + 1 >= len) goto done;
+						buf[xlen++] = ':';
+					}
+
+					if (xlen + 1 >= len) goto done;
+					xlen += hawk_fmt_uintmax_to_bcstr(&buf[xlen], len - xlen, hawk_ntoh16(skad->in4.sin_port), 10, 0, '\0', HAWK_NULL);
+				}
+			}
+			break;
+
+		case HAWK_AF_INET6:
+			if (flags & HAWK_SKAD_TO_BCSTR_PORT)
+			{
+				if (!(flags & HAWK_SKAD_TO_BCSTR_ADDR) || skad->in6.sin6_port != 0)
+				{
+					if (flags & HAWK_SKAD_TO_BCSTR_ADDR)
+					{
+						if (xlen + 1 >= len) goto done;
+						buf[xlen++] = '[';
+					}
+				}
+			}
+
+			if (flags & HAWK_SKAD_TO_BCSTR_ADDR)
+			{
+
+				if (xlen + 1 >= len) goto done;
+				xlen += ip6addr_to_bcstr(&skad->in6.sin6_addr, &buf[xlen], len - xlen);
+
+				if (skad->in6.sin6_scope_id != 0)
+				{
+					int tmp;
+
+					if (xlen + 1 >= len) goto done;
+					buf[xlen++] = '%';
+
+					if (xlen + 1 >= len) goto done;
+
+					tmp = hawk_gem_ifindextobcstr(gem, skad->in6.sin6_scope_id, &buf[xlen], len - xlen);
+					if (tmp <= -1)
+					{
+						xlen += hawk_fmt_uintmax_to_bcstr(&buf[xlen], len - xlen, skad->in6.sin6_scope_id, 10, 0, '\0', HAWK_NULL);
+					}
+					else xlen += tmp;
+				}
+			}
+
+			if (flags & HAWK_SKAD_TO_BCSTR_PORT)
+			{
+				if (!(flags & HAWK_SKAD_TO_BCSTR_ADDR) || skad->in6.sin6_port != 0) 
+				{
+					if (flags & HAWK_SKAD_TO_BCSTR_ADDR)
+					{
+						if (xlen + 1 >= len) goto done;
+						buf[xlen++] = ']';
+
+						if (xlen + 1 >= len) goto done;
+						buf[xlen++] = ':';
+					}
+
+					if (xlen + 1 >= len) goto done;
+					xlen += hawk_fmt_uintmax_to_bcstr(&buf[xlen], len - xlen, hawk_ntoh16(skad->in6.sin6_port), 10, 0, '\0', HAWK_NULL);
+				}
+			}
+
+			break;
+
+		case HAWK_AF_UNIX:
+			if (flags & HAWK_SKAD_TO_BCSTR_ADDR)
+			{
+				if (xlen + 1 >= len) goto done;
+				buf[xlen++] = '@';
+
+				if (xlen + 1 >= len) goto done;
+				xlen += hawk_copy_bcstr(&buf[xlen], len - xlen, skad->un.sun_path);
+#if 0
+				if (xlen + 1 >= len) goto done;
+				else
+				{
+					hawk_oow_t wcslen, mbslen = len - xlen;
+					hawk_gem_convutobcstr (gem, skad->un.sun_path, &wcslen, &buf[xlen], &mbslen);
+					/* i don't care about conversion errors */
+					xlen += mbslen;
+				}
+#endif
+			}
+
+			break;
+	}
+
+done:
+	if (xlen < len) buf[xlen] = '\0';
+	return xlen;
+}
