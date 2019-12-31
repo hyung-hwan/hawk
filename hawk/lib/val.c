@@ -487,7 +487,6 @@ hawk_val_t* hawk_rtx_makemapval (hawk_rtx_t* rtx)
 	if (val->map == HAWK_NULL)
 	{
 		hawk_rtx_freemem (rtx, val);
-		hawk_rtx_seterrnum (run, HAWK_ENOMEM, HAWK_NULL);
 		return HAWK_NULL;
 	}
 	*/
@@ -563,7 +562,7 @@ hawk_val_t* hawk_rtx_makemapvalwithdata (hawk_rtx_t* rtx, hawk_val_map_data_t da
 
 			default:
 				tmp = HAWK_NULL;
-				hawk_rtx_seterrnum (rtx, HAWK_EINVAL, HAWK_NULL);
+				hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EINVAL);
 				break;
 		}
 
@@ -963,7 +962,7 @@ static int str_to_str (hawk_rtx_t* rtx, const hawk_ooch_t* str, hawk_oow_t str_l
 		{
 			if (str_len >= out->u.cplcpy.len)
 			{
-				hawk_rtx_seterrnum (rtx, HAWK_EINVAL, HAWK_NULL);
+				hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EINVAL);
 				/*out->u.cplcpy.len = str_len + 1;*/ /* set the required length */
 				return -1;
 			}
@@ -987,32 +986,22 @@ static int str_to_str (hawk_rtx_t* rtx, const hawk_ooch_t* str, hawk_oow_t str_l
 		case HAWK_RTX_VALTOSTR_STRP:
 		{
 			hawk_oow_t n;
-
 			hawk_ooecs_clear (out->u.strp);
 			n = hawk_ooecs_ncat(out->u.strp, str, str_len);
-			if (n == (hawk_oow_t)-1)
-			{
-				hawk_rtx_seterrnum (rtx, HAWK_ENOMEM, HAWK_NULL);
-				return -1;
-			}
+			if (n == (hawk_oow_t)-1) return -1;
 			return 0;
 		}
 
 		case HAWK_RTX_VALTOSTR_STRPCAT:
 		{
 			hawk_oow_t n;
-
 			n = hawk_ooecs_ncat(out->u.strpcat, str, str_len);
-			if (n == (hawk_oow_t)-1)
-			{
-				hawk_rtx_seterrnum (rtx, HAWK_ENOMEM, HAWK_NULL);
-				return -1;
-			}
+			if (n == (hawk_oow_t)-1) return -1;
 			return 0;
 		}
 	}
 
-	hawk_rtx_seterrnum (rtx, HAWK_EINVAL, HAWK_NULL);
+	hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EINVAL);
 	return -1;
 }
 
@@ -1033,7 +1022,7 @@ static int mbs_to_str (hawk_rtx_t* rtx, const hawk_bch_t* str, hawk_oow_t str_le
 			hawk_oow_t ucslen;
 			if (HAWK_UNLIKELY(out->u.cplcpy.len <= 0))
 			{
-				hawk_rtx_seterrnum (rtx, HAWK_EBUFFULL, HAWK_NULL);
+				hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EBUFFULL);
 				return -1;
 			}
 			/* hawk_rtx_convbtouchars() doesn't null terminate the result. -1 to secure space for '\0' */
@@ -1061,23 +1050,15 @@ static int mbs_to_str (hawk_rtx_t* rtx, const hawk_bch_t* str, hawk_oow_t str_le
 
 		case HAWK_RTX_VALTOSTR_STRP:
 			hawk_ooecs_clear (out->u.strp);
-			if (hawk_uecs_ncatbchars(out->u.strp, str, str_len, hawk_rtx_getcmgr(rtx), 1) == (hawk_oow_t)-1)
-			{
-				hawk_rtx_seterrnum (rtx, HAWK_ENOMEM, HAWK_NULL);
-				return -1;
-			}
+			if (hawk_uecs_ncatbchars(out->u.strp, str, str_len, hawk_rtx_getcmgr(rtx), 1) == (hawk_oow_t)-1) return -1;
 			return 0;
 
 		case HAWK_RTX_VALTOSTR_STRPCAT:
-			if (hawk_uecs_ncatbchars(out->u.strpcat, str, str_len, hawk_rtx_getcmgr(rtx), 1) == (hawk_oow_t)-1)
-			{
-				hawk_rtx_seterrnum (rtx, HAWK_ENOMEM, HAWK_NULL);
-				return -1;
-			}
+			if (hawk_uecs_ncatbchars(out->u.strpcat, str, str_len, hawk_rtx_getcmgr(rtx), 1) == (hawk_oow_t)-1) return -1;
 			return 0;
 	}
 
-	hawk_rtx_seterrnum (rtx, HAWK_EINVAL, HAWK_NULL);
+	hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EINVAL);
 	return -1;
 }
 #endif
@@ -1116,7 +1097,7 @@ static int val_int_to_str (hawk_rtx_t* rtx, const hawk_val_int_t* v, hawk_rtx_va
 		case HAWK_RTX_VALTOSTR_CPLCPY:
 			if (rlen >= out->u.cplcpy.len)
 			{
-				hawk_rtx_seterrnum (rtx, HAWK_EINVAL, HAWK_NULL);
+				hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EINVAL);
 				/* store the buffer size needed */
 				out->u.cplcpy.len = rlen + 1; 
 				return -1;
@@ -1148,11 +1129,7 @@ static int val_int_to_str (hawk_rtx_t* rtx, const hawk_val_int_t* v, hawk_rtx_va
 
 			/* extend the buffer */
 			n = hawk_ooecs_nccat(out->u.strp, HAWK_T(' '), rlen);
-			if (n == (hawk_oow_t)-1)
-			{
-				hawk_rtx_seterrnum (rtx, HAWK_ENOMEM, HAWK_NULL);
-				return -1;
-			}
+			if (n == (hawk_oow_t)-1) return -1;
 			break;
 		}
 
@@ -1165,17 +1142,13 @@ static int val_int_to_str (hawk_rtx_t* rtx, const hawk_val_int_t* v, hawk_rtx_va
 
 			/* extend the buffer */
 			n = hawk_ooecs_nccat(out->u.strpcat, HAWK_T(' '), rlen);
-			if (n == (hawk_oow_t)-1)
-			{
-				hawk_rtx_seterrnum (rtx, HAWK_ENOMEM, HAWK_NULL);
-				return -1;
-			}
+			if (n == (hawk_oow_t)-1) return -1;
 			break;
 		}
 
 		default:
 		{
-			hawk_rtx_seterrnum (rtx, HAWK_EINVAL, HAWK_NULL);
+			hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EINVAL);
 			return -1;
 		}
 	}
@@ -1244,7 +1217,7 @@ static int val_flt_to_str (hawk_rtx_t* rtx, const hawk_val_flt_t* v, hawk_rtx_va
 		case HAWK_RTX_VALTOSTR_CPLCPY:
 			if (out->u.cplcpy.len <= tmp_len)
 			{
-				hawk_rtx_seterrnum (rtx, HAWK_EINVAL, HAWK_NULL);
+				hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EINVAL);
 				/* store the buffer size required */
 				out->u.cplcpy.len = tmp_len + 1; 
 				goto oops;
@@ -1265,34 +1238,23 @@ static int val_flt_to_str (hawk_rtx_t* rtx, const hawk_val_flt_t* v, hawk_rtx_va
 		case HAWK_RTX_VALTOSTR_STRP:
 		{
 			hawk_oow_t n;
-
 			hawk_ooecs_clear (out->u.strp);
-
 			n = hawk_ooecs_ncat(out->u.strp, tmp, tmp_len);
-			if (n == (hawk_oow_t)-1)
-			{
-				hawk_rtx_seterrnum (rtx, HAWK_ENOMEM, HAWK_NULL);
-				goto oops;
-			}
+			if (n == (hawk_oow_t)-1) goto oops;
 			break;
 		}
 
 		case HAWK_RTX_VALTOSTR_STRPCAT:
 		{
 			hawk_oow_t n;
-	
 			n = hawk_ooecs_ncat(out->u.strpcat, tmp, tmp_len);
-			if (n == (hawk_oow_t)-1)
-			{
-				hawk_rtx_seterrnum (rtx, HAWK_ENOMEM, HAWK_NULL);
-				goto oops;
-			}
+			if (n == (hawk_oow_t)-1) goto oops;
 			break;
 		}
 
 		default:
 		{
-			hawk_rtx_seterrnum (rtx, HAWK_EINVAL, HAWK_NULL);
+			hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EINVAL);
 			goto oops;
 		}
 	}
@@ -1414,7 +1376,7 @@ int hawk_rtx_valtostr (hawk_rtx_t* rtx, const hawk_val_t* v, hawk_rtx_valtostr_o
 		#if defined(DEBUG_VAL)
 			hawk_logfmt (hawk_rtx_gethawk(rtx), HAWK_T(">>WRONG VALUE TYPE [%d] in hawk_rtx_valtostr\n"), v->type);
 		#endif
-			hawk_rtx_seterrnum (rtx, HAWK_EVALTOSTR, HAWK_NULL);
+			hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EVALTOSTR);
 			return -1;
 	}
 }
@@ -1702,7 +1664,7 @@ int hawk_rtx_valtonum (hawk_rtx_t* rtx, const hawk_val_t* v, hawk_int_t* l, hawk
 		#if defined(DEBUG_VAL)
 			hawk_logfmt (hawk, HAWK_T(">>WRONG VALUE TYPE [%d] in hawk_rtx_valtonum()\n"), v->type);
 		#endif
-			hawk_rtx_seterrnum (rtx, HAWK_EVALTONUM, HAWK_NULL);
+			hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EVALTONUM);
 			return -1; /* error */
 	}
 }
@@ -1788,7 +1750,7 @@ hawk_int_t hawk_rtx_hashval (hawk_rtx_t* rtx, hawk_val_t* v)
 #if defined(DEBUG_VAL)
 			hawk_logfmt (hawk_rtx_gethawk(rtx), HAWK_T(">>WRONG VALUE TYPE [%d] in hawk_rtx_hashval()\n"), v->type);
 #endif
-			hawk_rtx_seterrnum (rtx, HAWK_EHASHVAL, HAWK_NULL);
+			hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EHASHVAL);
 			return -1;
 	}
 
@@ -1872,7 +1834,7 @@ int hawk_rtx_setrefval (hawk_rtx_t* rtx, hawk_val_ref_t* ref, hawk_val_t* val)
 		 * avoid potential chaos. the nature of performing '/rex/ ~ $0' 
 		 * for a regular expression without the match operator
 		 * makes it difficult to be implemented. */
-		hawk_rtx_seterrnum (rtx, HAWK_EINVAL, HAWK_NULL);
+		hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EINVAL);
 		return -1;
 	}
 
@@ -1884,7 +1846,7 @@ int hawk_rtx_setrefval (hawk_rtx_t* rtx, hawk_val_ref_t* ref, hawk_val_t* val)
 			{
 				case HAWK_VAL_MAP:
 					/* a map is assigned to a positional. this is disallowed. */
-					hawk_rtx_seterrnum (rtx, HAWK_EMAPTOPOS, HAWK_NULL);
+					hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EMAPTOPOS);
 					return -1;
 
 				case HAWK_VAL_STR:
@@ -1939,7 +1901,7 @@ int hawk_rtx_setrefval (hawk_rtx_t* rtx, hawk_val_ref_t* ref, hawk_val_t* val)
 			{
 				/* an indexed variable cannot be assigned a map. 
 				 * in other cases, it falls down to the default case. */
-				hawk_rtx_seterrnum (rtx, HAWK_EMAPTOIDX, HAWK_NULL);
+				hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EMAPTOIDX);
 				return -1;
 			}
 			/* fall through */
@@ -1959,7 +1921,7 @@ int hawk_rtx_setrefval (hawk_rtx_t* rtx, hawk_val_ref_t* ref, hawk_val_t* val)
 					if (!(rtx->awk->opt.trait & HAWK_FLEXMAP))
 					{
 						/* cannot change a scalar value to a map */
-						hawk_rtx_seterrnum (rtx, HAWK_ESCALARTOMAP, HAWK_NULL);
+						hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_ESCALARTOMAP);
 						return -1;
 					}
 				}
@@ -1971,7 +1933,7 @@ int hawk_rtx_setrefval (hawk_rtx_t* rtx, hawk_val_ref_t* ref, hawk_val_t* val)
 				{
 					if (!(rtx->awk->opt.trait & HAWK_FLEXMAP))
 					{
-						hawk_rtx_seterrnum (rtx, HAWK_EMAPTOSCALAR, HAWK_NULL);
+						hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EMAPTOSCALAR);
 						return -1;
 					}
 				}

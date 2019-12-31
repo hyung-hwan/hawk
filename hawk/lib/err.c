@@ -437,11 +437,6 @@ const hawk_ooch_t* hawk_rtx_backuperrmsg (hawk_rtx_t* rtx)
 	return rtx->errmsg_backup;
 }
 
-void hawk_rtx_seterrnum (hawk_rtx_t* rtx, hawk_errnum_t errnum, const hawk_oocs_t* errarg)
-{
-	hawk_rtx_seterror (rtx, errnum, errarg, HAWK_NULL);
-}
-
 void hawk_rtx_seterrinf (hawk_rtx_t* rtx, const hawk_errinf_t* errinf)
 {
 	rtx->_gem.errnum = errinf->num;

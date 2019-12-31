@@ -889,6 +889,7 @@ int hawk_fnc_split (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			{
 				int x;
 
+// TODO: hawk_rtx_buildrex
 				if (rtx->gbl.ignorecase)
 					x = hawk_buildrex(hawk_rtx_gethawk(rtx), fs.ptr, fs.len, &errnum, HAWK_NULL, &fs_rex);
 				else
@@ -896,7 +897,7 @@ int hawk_fnc_split (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 				if (x <= -1)
 				{
-					hawk_rtx_seterrnum (rtx, errnum, HAWK_NULL);
+					hawk_rtx_seterrnum (rtx, HAWK_NULL, errnum);
 					goto oops;
 				}
 
@@ -1143,6 +1144,7 @@ static int __substitute (hawk_rtx_t* rtx, hawk_int_t max_count)
 		hawk_errnum_t errnum;
 		int x;
 
+// TODO: hawk_rtx_buildrex...
 		if (rtx->gbl.ignorecase)
 			x = hawk_buildrex(hawk_rtx_gethawk(rtx), s0.ptr, s0.len, &errnum, HAWK_NULL, &rex);
 		else
@@ -1150,7 +1152,7 @@ static int __substitute (hawk_rtx_t* rtx, hawk_int_t max_count)
 
 		if (x <= -1)
 		{
-			hawk_rtx_seterrnum (rtx, errnum, HAWK_NULL);
+			hawk_rtx_seterrnum (rtx, HAWK_NULL, errnum);
 			goto oops;
 		}
 

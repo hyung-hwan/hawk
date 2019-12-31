@@ -416,6 +416,37 @@ HAWK_EXPORT int hawk_gem_getifcfg (
 	hawk_ifcfg_t*   cfg
 );
 
+/* ----------------------------------------------------------------------- */
+
+#if defined(HAWK_HAVE_INLINE)
+static HAWK_INLINE hawk_errnum_t hawk_gem_geterrnum (hawk_gem_t* gem) { return gem->errnum; }
+#else
+#define hawk_gem_geterrnum(gem) (((hawk_gem_t*)(gem))->errnum) 
+#endif
+
+HAWK_EXPORT void hawk_gem_seterrnum (
+	hawk_gem_t*       gem,
+	const hawk_loc_t* errloc,
+	hawk_errnum_t     errnum
+);
+
+HAWK_EXPORT void hawk_gem_seterrbfmt (
+	hawk_gem_t*         gem,
+	const hawk_loc_t*   errloc,
+	hawk_errnum_t       errnum,
+	const hawk_bch_t*   errfmt,
+	...
+);
+
+HAWK_EXPORT void hawk_gem_seterrufmt (
+	hawk_gem_t*         gem,
+	const hawk_loc_t*   errloc,
+	hawk_errnum_t       errnum,
+	const hawk_uch_t*   errfmt,
+	...
+);
+
+
 #if defined(__cplusplus)
 }
 #endif

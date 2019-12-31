@@ -1706,7 +1706,7 @@ static hawk_ooi_t nwio_handler_rest (hawk_rtx_t* rtx, hawk_rio_cmd_t cmd, hawk_r
 	switch (cmd)
 	{
 		case HAWK_RIO_CMD_OPEN:
-			hawk_rtx_seterrnum (rtx, HAWK_EINTERN, HAWK_NULL);
+			hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EINTERN);
 			return -1;
 
 		case HAWK_RIO_CMD_CLOSE:
@@ -1730,7 +1730,7 @@ static hawk_ooi_t nwio_handler_rest (hawk_rtx_t* rtx, hawk_rio_cmd_t cmd, hawk_r
 			break;
 	}
 
-	hawk_rtx_seterrnum (rtx, HAWK_EINTERN, HAWK_NULL);
+	hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EINTERN);
 	return -1;
 }
 
@@ -1786,7 +1786,7 @@ static hawk_ooi_t pio_handler_open (hawk_rtx_t* rtx, hawk_rio_arg_t* riod)
 	else 
 	{
 		/* this must not happen */
-		hawk_rtx_seterrnum (rtx, HAWK_EINTERN, HAWK_NULL);
+		hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EINTERN);
 		return -1;
 	}
 
@@ -1820,7 +1820,7 @@ static hawk_ooi_t pio_handler_rest (hawk_rtx_t* rtx, hawk_rio_cmd_t cmd, hawk_ri
 	switch (cmd)
 	{
 		case HAWK_RIO_CMD_OPEN:
-			hawk_rtx_seterrnum (rtx, HAWK_EINTERN, HAWK_NULL);
+			hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EINTERN);
 			return -1;
 
 		case HAWK_RIO_CMD_CLOSE:
@@ -1864,7 +1864,7 @@ static hawk_ooi_t pio_handler_rest (hawk_rtx_t* rtx, hawk_rio_cmd_t cmd, hawk_ri
 			break;
 	}
 
-	hawk_rtx_seterrnum (rtx, HAWK_EINTERN, HAWK_NULL);
+	hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EINTERN);
 	return -1;
 }
 
@@ -1936,7 +1936,7 @@ static hawk_ooi_t awk_rio_file (hawk_rtx_t* rtx, hawk_rio_cmd_t cmd, hawk_rio_ar
 					break;
 				default:
 					/* this must not happen */
-					hawk_rtx_seterrnum (rtx, HAWK_EINTERN, HAWK_NULL);
+					hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EINTERN);
 					return -1; 
 			}
 
@@ -2093,15 +2093,7 @@ static int open_rio_console (hawk_rtx_t* rtx, hawk_rio_arg_t* riod)
 			if (hawk_count_oocstr(as.ptr) < as.len)
 			{
 				/* the name contains one or more '\0' */
-				hawk_oocs_t errarg;
-
-				errarg.ptr = as.ptr;
-				/* use this length not to contains '\0'
-				 * in an error message */
-				errarg.len = hawk_count_oocstr(as.ptr);
-
-				hawk_rtx_seterrnum (rtx, HAWK_EIONMNL, &errarg);
-
+				hawk_rtx_seterrfmt (rtx, HAWK_NULL, HAWK_EIONMNL, HAWK_T("I/O name beginning with '%js' of length %zu containing '\\0'"), as.ptr, as.len);
 				hawk_rtx_freevaloocstr (rtx, v, as.ptr);
 				return -1;
 			}
@@ -2117,7 +2109,7 @@ static int open_rio_console (hawk_rtx_t* rtx, hawk_rio_arg_t* riod)
 				return -1;
 			}
 
-			if (rxtn->c.cmgr) hawk_sio_setcmgr (sio, rxtn->c.cmgr);	
+			if (rxtn->c.cmgr) hawk_sio_setcmgr (sio, rxtn->c.cmgr);
 
 			if (hawk_rtx_setfilename (
 				rtx, file, hawk_count_oocstr(file)) <= -1)
@@ -2263,7 +2255,7 @@ static hawk_ooi_t awk_rio_console (hawk_rtx_t* rtx, hawk_rio_cmd_t cmd, hawk_rio
 
 	}
 
-	hawk_rtx_seterrnum (rtx, HAWK_EINTERN, HAWK_NULL);
+	hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EINTERN);
 	return -1;
 }
 

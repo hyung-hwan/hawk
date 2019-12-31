@@ -47,7 +47,6 @@ int hawk_rtx_setrec (hawk_rtx_t* rtx, hawk_oow_t idx, const hawk_oocs_t* str)
 			if (hawk_ooecs_ncpy(&rtx->inrec.line, str->ptr, str->len) == (hawk_oow_t)-1)
 			{
 				hawk_rtx_clrrec (rtx, 0);
-				hawk_rtx_seterrnum (rtx, HAWK_ENOMEM, HAWK_NULL);
 				return -1;
 			}
 		}
@@ -136,14 +135,9 @@ static int split_record (hawk_rtx_t* rtx)
 	/* scan the input record to count the fields */
 	if (fs_len == 5 && fs_ptr[0] ==  HAWK_T('?'))
 	{
-		if (hawk_ooecs_ncpy (
-			&rtx->inrec.linew, 
-			HAWK_OOECS_PTR(&rtx->inrec.line),
-			HAWK_OOECS_LEN(&rtx->inrec.line)) == (hawk_oow_t)-1)
+		if (hawk_ooecs_ncpy(&rtx->inrec.linew, HAWK_OOECS_PTR(&rtx->inrec.line), HAWK_OOECS_LEN(&rtx->inrec.line)) == (hawk_oow_t)-1)
 		{
-			if (fs_free != HAWK_NULL) 
-				hawk_rtx_freemem (rtx, fs_free);
-			hawk_rtx_seterrnum (rtx, HAWK_ENOMEM, HAWK_NULL);
+			if (fs_free) hawk_rtx_freemem (rtx, fs_free);
 			return -1;
 		}
 
@@ -219,13 +213,9 @@ static int split_record (hawk_rtx_t* rtx)
 	/* scan again and split it */
 	if (how == 1)
 	{
-		if (hawk_ooecs_ncpy (
-			&rtx->inrec.linew, 
-			HAWK_OOECS_PTR(&rtx->inrec.line),
-			HAWK_OOECS_LEN(&rtx->inrec.line)) == (hawk_oow_t)-1)
+		if (hawk_ooecs_ncpy(&rtx->inrec.linew, HAWK_OOECS_PTR(&rtx->inrec.line), HAWK_OOECS_LEN(&rtx->inrec.line)) == (hawk_oow_t)-1)
 		{
 			if (fs_free) hawk_rtx_freemem (rtx, fs_free);
-			hawk_rtx_seterrnum (rtx, HAWK_ENOMEM, HAWK_NULL);
 			return -1;
 		}
 		px = HAWK_OOECS_PTR(&rtx->inrec.linew):
@@ -411,11 +401,7 @@ static int recomp_record_fields (hawk_rtx_t* rtx, hawk_oow_t lv, const hawk_oocs
 	{
 		if (i > 0)
 		{
-			if (hawk_ooecs_ncat(&rtx->inrec.line, rtx->gbl.ofs.ptr, rtx->gbl.ofs.len) == (hawk_oow_t)-1) 
-			{
-				hawk_rtx_seterrnum (rtx, HAWK_ENOMEM, HAWK_NULL);
-				return -1;
-			}
+			if (hawk_ooecs_ncat(&rtx->inrec.line, rtx->gbl.ofs.ptr, rtx->gbl.ofs.len) == (hawk_oow_t)-1) return -1;
 		}
 
 		if (i == lv)
@@ -425,11 +411,7 @@ static int recomp_record_fields (hawk_rtx_t* rtx, hawk_oow_t lv, const hawk_oocs
 			rtx->inrec.flds[i].ptr = HAWK_OOECS_PTR(&rtx->inrec.line) + HAWK_OOECS_LEN(&rtx->inrec.line);
 			rtx->inrec.flds[i].len = str->len;
 
-			if (hawk_ooecs_ncat(&rtx->inrec.line, str->ptr, str->len) == (hawk_oow_t)-1)
-			{
-				hawk_rtx_seterrnum (rtx, HAWK_ENOMEM, HAWK_NULL);
-				return -1;
-			}
+			if (hawk_ooecs_ncat(&rtx->inrec.line, str->ptr, str->len) == (hawk_oow_t)-1) return -1;
 
 			tmp = hawk_rtx_makestrvalwithoocs (rtx, str);
 			if (tmp == HAWK_NULL) return -1;
@@ -446,11 +428,7 @@ static int recomp_record_fields (hawk_rtx_t* rtx, hawk_oow_t lv, const hawk_oocs
 			rtx->inrec.flds[i].ptr = HAWK_OOECS_PTR(&rtx->inrec.line) + HAWK_OOECS_LEN(&rtx->inrec.line);
 			rtx->inrec.flds[i].len = 0;
 
-			if (hawk_ooecs_cat(&rtx->inrec.line, HAWK_T("")) == (hawk_oow_t)-1)
-			{
-				hawk_rtx_seterrnum (rtx, HAWK_ENOMEM, HAWK_NULL);
-				return -1;
-			}
+			if (hawk_ooecs_cat(&rtx->inrec.line, HAWK_T("")) == (hawk_oow_t)-1) return -1;
 
 			/* hawk_rtx_refdownval should not be called over 
 			 * rtx->inrec.flds[i].val as it is not initialized
@@ -469,11 +447,7 @@ static int recomp_record_fields (hawk_rtx_t* rtx, hawk_oow_t lv, const hawk_oocs
 			rtx->inrec.flds[i].ptr = HAWK_OOECS_PTR(&rtx->inrec.line) + HAWK_OOECS_LEN(&rtx->inrec.line);
 			rtx->inrec.flds[i].len = tmp->val.len;
 
-			if (hawk_ooecs_ncat(&rtx->inrec.line, tmp->val.ptr, tmp->val.len) == (hawk_oow_t)-1)
-			{
-				hawk_rtx_seterrnum (rtx, HAWK_ENOMEM, HAWK_NULL);
-				return -1;
-			}
+			if (hawk_ooecs_ncat(&rtx->inrec.line, tmp->val.ptr, tmp->val.len) == (hawk_oow_t)-1) return -1;
 		}
 	}
 
