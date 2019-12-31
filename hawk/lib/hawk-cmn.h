@@ -782,7 +782,6 @@ enum hawk_errnum_t
 	HAWK_EINTR,  /**< interrupted */
 	HAWK_EPIPE,  /**< broken pipe */
 	HAWK_EINPROG,  /**< in progress */
-	HAWK_ENODEV,  /**< no such device */
 	HAWK_ENOHND,  /**< no handle */
 	HAWK_ECHILD, /**< no child process */
 	HAWK_ETMOUT, /**< timed out */
