@@ -119,7 +119,7 @@ static int prefix_to_in6 (int prefix, struct in6_addr* in6)
 
 static HAWK_INLINE void copy_to_skad (struct sockaddr* sa, hawk_skad_t* skad)
 {
-	HAWK_MEMCPY (skad, sa, (HAWK_SIZEOF(*sa) > HAWK_SIZEOF(*skad)? HAWK_SIZEOF(*skad): HAWK_SIZEOF(*sa)));
+	HAWK_MEMCPY (skad, sa, HAWK_SIZEOF(*skad));
 }
 /*
 
@@ -284,7 +284,7 @@ int hawk_gem_getifcfg (hawk_gem_t* gem, hawk_ifcfg_t* cfg)
 #endif
 		if (head->name == HAWK_NULL) goto oops;
 
-		copy_to_skad (&ifr->lifr_addr, &head->addr);
+		copy_to_skad ((struct sockaddr*)&ifr->lifr_addr, &head->addr);
 
 		hawk_copy_bcstr (ifrbuf.lifr_name, HAWK_COUNTOF(ifrbuf.lifr_name), ifr->lifr_name);
 		if (ioctl(s, SIOCGLIFFLAGS, &ifrbuf) <= -1) goto sys_oops;
@@ -292,13 +292,13 @@ int hawk_gem_getifcfg (hawk_gem_t* gem, hawk_ifcfg_t* cfg)
 		if (ifrbuf.lifr_flags & IFF_BROADCAST) 
 		{
 			if (ioctl(s, SIOCGLIFBRDADDR, &ifrbuf) <= -1) goto sys_oops;
-			copy_to_skad (&ifrbuf.lifr_addr, &head->bcast);
+			copy_to_skad ((struct sockaddr*)&ifrbuf.lifr_addr, &head->bcast);
 			head->flags |= HAWK_IFCFG_BCAST;
 		}
 		if (ifrbuf.lifr_flags & IFF_POINTOPOINT) 
 		{
 			if (ioctl(s, SIOCGLIFDSTADDR, &ifrbuf) <= -1) goto sys_oops;
-			copy_to_skad (&ifrbuf.lifr_addr, &head->ptop);
+			copy_to_skad ((struct sockaddr*)&ifrbuf.lifr_addr, &head->ptop);
 			head->flags |= HAWK_IFCFG_PTOP;
 		}
 
@@ -306,7 +306,7 @@ int hawk_gem_getifcfg (hawk_gem_t* gem, hawk_ifcfg_t* cfg)
 		head->index = ifrbuf.lifr_index;
 
 		if (ioctl(s, SIOCGLIFNETMASK, &ifrbuf) <= -1) goto sys_oops;
-		copy_to_skad (&ifrbuf.lifr_addr, &head->mask);
+		copy_to_skad ((struct sockaddr*)&ifrbuf.lifr_addr, &head->mask);
 	}
 
 	hawk_gem_freemem (gem, nwifs.ptr);
@@ -464,20 +464,20 @@ static int get_ifcfg (hawk_gem_t* gem, int s, hawk_ifcfg_t* cfg, struct ifreq* i
 	HAWK_MEMSET (cfg->ethw, 0, HAWK_SIZEOF(cfg->ethw));
 
 	if (ioctl (s, SIOCGLIFADDR, &lifrbuf) >= 0) 
-		copy_to_skad (&lifrbuf.lifr_addr, &cfg->addr);
+		copy_to_skad ((struct sockaddr*)&lifrbuf.lifr_addr, &cfg->addr);
 
 	if (ioctl (s, SIOCGLIFNETMASK, &lifrbuf) >= 0) 
-		copy_to_skad (&lifrbuf.lifr_addr, &cfg->mask);
+		copy_to_skad ((struct sockaddr*)&lifrbuf.lifr_addr, &cfg->mask);
 
 	if ((cfg->flags & HAWK_IFCFG_BCAST) &&
 	    ioctl (s, SIOCGLIFBRDADDR, &lifrbuf) >= 0)
 	{
-		copy_to_skad (&lifrbuf.lifr_broadaddr, &cfg->bcast);
+		copy_to_skad ((struct sockaddr*)&lifrbuf.lifr_broadaddr, &cfg->bcast);
 	}
 	if ((cfg->flags & HAWK_IFCFG_PTOP) &&
 	    ioctl (s, SIOCGLIFDSTADDR, &lifrbuf) >= 0)
 	{
-		copy_to_skad (&lifrbuf.lifr_dstaddr, &cfg->ptop);
+		copy_to_skad ((struct sockaddr*)&lifrbuf.lifr_dstaddr, &cfg->ptop);
 	}
 
 	#if defined(SIOCGENADDR)
@@ -551,31 +551,33 @@ static int get_ifcfg (hawk_gem_t* gem, int s, hawk_ifcfg_t* cfg, struct ifreq* i
 
 		if (ioctl(s, SIOCGLIFADDR, &iflrbuf) >= 0) 
 		{
-			copy_to_skad (&iflrbuf.addr, &cfg->addr);
+			hawk_skad_alt_t* skad;
+			copy_to_skad ((struct sockaddr*)&iflrbuf.addr, &cfg->addr);
 
-			cfg->mask.type = HAWK_NWAD_IN6;
-			prefix_to_in6 (iflrbuf.prefixlen, &cfg->mask.u.in6.addr);
+			skad = (hawk_skad_alt_t*)&cfg->mask;
+			skad->in6.sin6_family = HAWK_AF_INET6;
+			prefix_to_in6 (iflrbuf.prefixlen, &skad->in6.sin6_addr);
 
 			if (cfg->flags & HAWK_IFCFG_PTOP)
-				copy_to_skad (&iflrbuf.dstaddr, &cfg->ptop);
+				copy_to_skad ((struct sockaddr*)&iflrbuf.dstaddr, &cfg->ptop);
 		}
 	}
 	else
 	{
 		if (ioctl(s, SIOCGIFADDR, ifr) >= 0)
-			copy_to_skad (&ifr->ifr_addr, &cfg->addr);
+			copy_to_skad ((struct sockaddr*)&ifr->ifr_addr, &cfg->addr);
 
 		if (ioctl(s, SIOCGIFNETMASK, ifr) >= 0)
-			copy_to_skad (&ifr->ifr_addr, &cfg->mask);
+			copy_to_skad ((struct sockaddr*)&ifr->ifr_addr, &cfg->mask);
 
 		if ((cfg->flags & HAWK_IFCFG_BCAST) && ioctl(s, SIOCGIFBRDADDR, ifr) >= 0) 
 		{
-			copy_to_skad (&ifr->ifr_broadaddr, &cfg->bcast);
+			copy_to_skad ((struct sockaddr*)&ifr->ifr_broadaddr, &cfg->bcast);
 		}
 
 		if ((cfg->flags & HAWK_IFCFG_PTOP) && ioctl(s, SIOCGIFDSTADDR, ifr) >= 0) 
 		{
-			copy_to_skad (&ifr->ifr_dstaddr, &cfg->ptop);
+			copy_to_skad ((struct sockaddr*)&ifr->ifr_dstaddr, &cfg->ptop);
 		}
 	}
 
@@ -667,8 +669,8 @@ static int get_ifcfg (hawk_gem_t* gem, int s, hawk_ifcfg_t* cfg, struct ifreq* i
 	hawk_clear_skad (&cfg->ptop);
 	HAWK_MEMSET (cfg->ethw, 0, HAWK_SIZEOF(cfg->ethw));
 
-	if (ioctl(s, SIOCGIFADDR, ifr) >= 0) copy_to_skad (&ifr->ifr_addr, &cfg->addr);
-	if (ioctl(s, SIOCGIFNETMASK, ifr) >= 0) copy_to_skad (&ifr->ifr_addr, &cfg->mask);
+	if (ioctl(s, SIOCGIFADDR, ifr) >= 0) copy_to_skad ((struct sockaddr*)&ifr->ifr_addr, &cfg->addr);
+	if (ioctl(s, SIOCGIFNETMASK, ifr) >= 0) copy_to_skad ((struct sockaddr*)&ifr->ifr_addr, &cfg->mask);
 
 	#if defined(__linux)
 	if (hawk_skad_family(&cfg->addr) == HAWK_AF_UNSPEC && hawk_skad_family(&cfg->mask) == HAWK_AF_UNSPEC && cfg->type == HAWK_IFCFG_IN6)
@@ -680,12 +682,12 @@ static int get_ifcfg (hawk_gem_t* gem, int s, hawk_ifcfg_t* cfg, struct ifreq* i
 
 	if ((cfg->flags & HAWK_IFCFG_BCAST) && ioctl(s, SIOCGIFBRDADDR, ifr) >= 0)
 	{
-		copy_to_skad (&ifr->ifr_broadaddr, &cfg->bcast);
+		copy_to_skad ((struct sockaddr*)&ifr->ifr_broadaddr, &cfg->bcast);
 	}
 
 	if ((cfg->flags & HAWK_IFCFG_PTOP) && ioctl(s, SIOCGIFDSTADDR, ifr) >= 0)
 	{
-		copy_to_skad (&ifr->ifr_dstaddr, &cfg->ptop);
+		copy_to_skad ((struct sockaddr*)&ifr->ifr_dstaddr, &cfg->ptop);
 	}
 
 	#if defined(SIOCGIFHWADDR)

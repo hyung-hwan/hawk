@@ -149,11 +149,12 @@
 			case EACCES: return __SYSERRNUM__(obj2, EACCES); \
 			case EPERM: return __SYSERRNUM__(obj2, EPERM); \
 			case ENOTDIR: return __SYSERRNUM__(obj2, ENOTDIR); \
+			case ENXIO: \
+			case ENODEV: \
 			case ENOENT: return __SYSERRNUM__(obj2, ENOENT); \
 			case EEXIST: return __SYSERRNUM__(obj2, EEXIST); \
 			case EINTR:  return __SYSERRNUM__(obj2, EINTR); \
 			case EPIPE:  return __SYSERRNUM__(obj2, EPIPE); \
-			case ENODEV:  return __SYSERRNUM__(obj2, ENODEV); \
 			case ECHILD:  return __SYSERRNUM__(obj2, ECHILD); \
 			case ETIMEDOUT: return __SYSERRNUM__(obj2, ETMOUT); \
 			case EINPROGRESS: return __SYSERRNUM__(obj2, EINPROG); \
@@ -176,11 +177,12 @@
 			case EACCES: return __SYSERRNUM__(obj2, EACCES); \
 			case EPERM: return __SYSERRNUM__(obj2, EPERM); \
 			case ENOTDIR: return __SYSERRNUM__(obj2, ENOTDIR); \
+			case ENXIO: \
+			case ENODEV: \
 			case ENOENT: return __SYSERRNUM__(obj2, ENOENT); \
 			case EEXIST: return __SYSERRNUM__(obj2, EEXIST); \
 			case EINTR:  return __SYSERRNUM__(obj2, EINTR); \
 			case EPIPE:  return __SYSERRNUM__(obj2, EPIPE); \
-			case ENODEV:  return __SYSERRNUM__(obj2, ENODEV); \
 			case ECHILD:  return __SYSERRNUM__(obj2, ECHILD); \
 			case ETIMEDOUT: return __SYSERRNUM__(obj2, ETMOUT); \
 			case EINPROGRESS: return __SYSERRNUM__(obj2, EINPROG); \
@@ -202,11 +204,12 @@
 			case EACCES: return __SYSERRNUM__(obj2, EACCES); \
 			case EPERM: return __SYSERRNUM__(obj2, EPERM); \
 			case ENOTDIR: return __SYSERRNUM__(obj2, ENOTDIR); \
+			case ENXIO: \
+			case ENODEV: \
 			case ENOENT: return __SYSERRNUM__(obj2, ENOENT); \
 			case EEXIST: return __SYSERRNUM__(obj2, EEXIST); \
 			case EINTR:  return __SYSERRNUM__(obj2, EINTR); \
 			case EPIPE:  return __SYSERRNUM__(obj2, EPIPE); \
-			case ENODEV:  return __SYSERRNUM__(obj2, ENODEV); \
 			case ECHILD: return __SYSERRNUM__(obj2, ECHILD); \
 			case ETIMEDOUT: return __SYSERRNUM__(obj2, ETMOUT); \
 			case EINPROGRESS: return __SYSERRNUM__(obj2, EINPROG); \
@@ -228,11 +231,12 @@
 			case EACCES: return __SYSERRNUM__(obj2, EACCES); \
 			case EPERM: return __SYSERRNUM__(obj2, EPERM); \
 			case ENOTDIR: return __SYSERRNUM__(obj2, ENOTDIR); \
+			case ENXIO: \
+			case ENODEV: \
 			case ENOENT: return __SYSERRNUM__(obj2, ENOENT); \
 			case EEXIST: return __SYSERRNUM__(obj2, EEXIST); \
 			case EINTR:  return __SYSERRNUM__(obj2, EINTR); \
 			case EPIPE:  return __SYSERRNUM__(obj2, EPIPE); \
-			case ENODEV:  return __SYSERRNUM__(obj2, ENODEV); \
 			case ECHILD: return __SYSERRNUM__(obj2, ECHILD); \
 			case ETIMEDOUT: return __SYSERRNUM__(obj2, ETMOUT); \
 			case EINPROGRESS: return __SYSERRNUM__(obj2, EINPROG); \
