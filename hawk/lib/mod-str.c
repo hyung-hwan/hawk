@@ -88,7 +88,7 @@ static int trim (hawk_rtx_t* rtx, int flags)
 		hawk_ooch_t* npath;
 		path.ptr = hawk_rtx_getvaloocstr(rtx, a0, &path.len);
 		if (!path.ptr) return -1;
-		/* because qse_strxtrmx() returns the pointer and the length without 
+		/* because hawk_strxtrmx() returns the pointer and the length without 
 		 * affecting the string given, it's safe to pass the original value.
 		 * hawk_rtx_getvaloocstr() doesn't duplicate the value if it's of 
 		 * the string type. */
@@ -371,7 +371,7 @@ static int fnc_frommbs (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		a1 = hawk_rtx_getarg(rtx, 1);
 		enc.ptr = hawk_rtx_getvaloocstr(rtx, a1, &enc.len);
 		if (!enc.ptr) return -1;
-		/* if encoding name is an empty string, qse_Findcmgr() returns the default cmgr. 
+		/* if encoding name is an empty string, hawk_findcmgr() returns the default cmgr. 
 		 * i don't want that behavior. */
 		cmgr = (enc.len > 0 && enc.len == hawk_count_oocstr(enc.ptr))? hawk_get_cmgr_by_name(enc.ptr): HAWK_NULL;
 		hawk_rtx_freevaloocstr (rtx, a1, enc.ptr);
@@ -427,7 +427,7 @@ static int fnc_tombs (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		a1 = hawk_rtx_getarg(rtx, 1);
 		enc.ptr = hawk_rtx_getvaloocstr(rtx, a1, &enc.len);
 		if (!enc.ptr) return -1;
-		/* if encoding name is an empty string, qse_Findcmgr() returns the default cmgr. 
+		/* if encoding name is an empty string, hawk_findcmgr() returns the default cmgr. 
 		 * i don't want that behavior. */
 		cmgr = (enc.len > 0 && enc.len == hawk_count_oocstr(enc.ptr))? hawk_get_cmgr_by_name(enc.ptr): HAWK_NULL;
 		hawk_rtx_freevaloocstr (rtx, a1, enc.ptr);
