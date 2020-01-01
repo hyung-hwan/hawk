@@ -33,6 +33,9 @@ extern "C" {
 
 const hawk_ooch_t* hawk_dflerrstr (hawk_t* awk, hawk_errnum_t errnum);
 
+hawk_errnum_t hawk_syserr_to_errnum (hawk_intptr_t e);
+
+
 #if defined(__cplusplus)
 }
 #endif

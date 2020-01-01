@@ -224,9 +224,9 @@ int hawk_tre_execx (
 		return -1;
 	}
 #if defined(HAWK_OOCH_IS_UCH)
-	ret = tre_match (tre, str, len, STR_WIDE, nmatch, pmatch, eflags);
+	ret = tre_match(tre, str, len, STR_WIDE, nmatch, pmatch, eflags);
 #else
-	ret = tre_match (tre, str, len, STR_BYTE, nmatch, pmatch, eflags);
+	ret = tre_match(tre, str, len, STR_BYTE, nmatch, pmatch, eflags);
 #endif
 	if (ret > 0) 
 	{

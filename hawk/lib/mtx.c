@@ -50,9 +50,6 @@
 #	include <pthread.h>
 #endif
 
-#include "syserr.h"
-IMPLEMENT_SYSERR_TO_ERRNUM (hawk, HAWK)
-
 hawk_mtx_t* hawk_mtx_open (hawk_gem_t* gem, hawk_oow_t xtnsize)
 {
 	hawk_mtx_t* mtx;
@@ -86,7 +83,7 @@ int hawk_mtx_init (hawk_mtx_t* mtx, hawk_gem_t* gem)
 	mtx->hnd = CreateMutex(HAWK_NULL, FALSE, HAWK_NULL);
 	if (mtx->hnd == HAWK_NULL) 
 	{
-		hawk_gem_seterrnum (mtx->gem, HAWK_NULL, syserr_to_errnum(GetLastError()));
+		hawk_gem_seterrnum (mtx->gem, HAWK_NULL, hawk_syserr_to_errnum(GetLastError()));
 		return -1;
 	}
 
@@ -99,7 +96,7 @@ int hawk_mtx_init (hawk_mtx_t* mtx, hawk_gem_t* gem)
 		rc = DosCreateMutexSem(HAWK_NULL, &m, DC_SEM_SHARED, FALSE);
 		if (rc != NO_ERROR) 
 		{
-			hawk_gem_seterrnum (mtx->gem, HAWK_NULL, syserr_to_errnum(rc));
+			hawk_gem_seterrnum (mtx->gem, HAWK_NULL, hawk_syserr_to_errnum(rc));
 			return -1;
 		}
 
@@ -128,7 +125,7 @@ int hawk_mtx_init (hawk_mtx_t* mtx, hawk_gem_t* gem)
 		n = pthread_mutex_init((pthread_mutex_t*)&mtx->hnd, HAWK_NULL);
 		if (n != 0)
 		{
-			hawk_gem_seterrnum (mtx->gem, HAWK_NULL, syserr_to_errnum(n));
+			hawk_gem_seterrnum (mtx->gem, HAWK_NULL, hawk_syserr_to_errnum(n));
 			return -1;
 		}
 	}
@@ -185,7 +182,7 @@ int hawk_mtx_lock (hawk_mtx_t* mtx, const hawk_ntime_t* waiting_time)
 		}
 		else if (ret != WAIT_OBJECT_0)
 		{
-			hawk_gem_seterrnum (mtx->gem, HAWK_NULL, syserr_to_errnum(GetLastError()));
+			hawk_gem_seterrnum (mtx->gem, HAWK_NULL, hawk_syserr_to_errnum(GetLastError()));
 			return -1;
 		}
 	}
@@ -193,7 +190,7 @@ int hawk_mtx_lock (hawk_mtx_t* mtx, const hawk_ntime_t* waiting_time)
 	{
 		if (WaitForSingleObject(mtx->hnd, INFINITE) == WAIT_FAILED) 
 		{
-			hawk_gem_seterrnum (mtx->gem, HAWK_NULL, syserr_to_errnum(GetLastError()));
+			hawk_gem_seterrnum (mtx->gem, HAWK_NULL, hawk_syserr_to_errnum(GetLastError()));
 			return -1;
 		}
 	}
@@ -207,7 +204,7 @@ int hawk_mtx_lock (hawk_mtx_t* mtx, const hawk_ntime_t* waiting_time)
 		rc = DosRequestMutexSem(mtx->hnd, msec);
 		if (rc != NO_ERROR)
 		{
-			hawk_gem_seterrnum (mtx->gem, HAWK_NULL, syserr_to_errnum(rc));
+			hawk_gem_seterrnum (mtx->gem, HAWK_NULL, hawk_syserr_to_errnum(rc));
 			return -1;
 		}
 	}
@@ -217,7 +214,7 @@ int hawk_mtx_lock (hawk_mtx_t* mtx, const hawk_ntime_t* waiting_time)
 		rc = DosRequestMutexSem(mtx->hnd, SEM_INDEFINITE_WAIT);
 		if (rc != NO_ERROR) 
 		{
-			hawk_gem_seterrnum (mtx->gem, HAWK_NULL, syserr_to_errnum(rc));
+			hawk_gem_seterrnum (mtx->gem, HAWK_NULL, hawk_syserr_to_errnum(rc));
 			return -1;
 		}
 	}
@@ -244,7 +241,7 @@ int hawk_mtx_lock (hawk_mtx_t* mtx, const hawk_ntime_t* waiting_time)
 		n = pthread_mutex_timedlock((pthread_mutex_t*)&mtx->hnd, &ts);
 		if (n != 0)
 		{
-			hawk_gem_seterrnum (mtx->gem, HAWK_NULL, syserr_to_errnum(n));
+			hawk_gem_seterrnum (mtx->gem, HAWK_NULL, hawk_syserr_to_errnum(n));
 			return -1;
 		}
 	}
@@ -255,7 +252,7 @@ int hawk_mtx_lock (hawk_mtx_t* mtx, const hawk_ntime_t* waiting_time)
 		n = pthread_mutex_lock((pthread_mutex_t*)&mtx->hnd);
 		if (n != 0)
 		{
-			hawk_gem_seterrnum (mtx->gem, HAWK_NULL, syserr_to_errnum(n));
+			hawk_gem_seterrnum (mtx->gem, HAWK_NULL, hawk_syserr_to_errnum(n));
 			return -1;
 		}
 	#if defined(HAVE_PTHREAD_MUTEX_TIMEDLOCK)
@@ -271,7 +268,7 @@ int hawk_mtx_unlock (hawk_mtx_t* mtx)
 #if defined(_WIN32)
 	if (ReleaseMutex(mtx->hnd) == FALSE) 
 	{
-		hawk_gem_seterrnum (mtx->gem, HAWK_NULL, syserr_to_errnum(GetLastError()));
+		hawk_gem_seterrnum (mtx->gem, HAWK_NULL, hawk_syserr_to_errnum(GetLastError()));
 		return -1;
 	}
 
@@ -280,7 +277,7 @@ int hawk_mtx_unlock (hawk_mtx_t* mtx)
 	rc = DosReleaseMutexSem(mtx->hnd);
 	if (rc != NO_ERROR) 
 	{
-		hawk_gem_seterrnum (mtx->gem, HAWK_NULL, syserr_to_errnum(rc));
+		hawk_gem_seterrnum (mtx->gem, HAWK_NULL, hawk_syserr_to_errnum(rc));
 		return -1;
 	}
 
@@ -293,7 +290,7 @@ int hawk_mtx_unlock (hawk_mtx_t* mtx)
 	n = pthread_mutex_unlock((pthread_mutex_t*)&mtx->hnd);
 	if (n != 0) 
 	{
-		hawk_gem_seterrnum (mtx->gem, HAWK_NULL, syserr_to_errnum(n));
+		hawk_gem_seterrnum (mtx->gem, HAWK_NULL, hawk_syserr_to_errnum(n));
 		return -1;
 	}
 #endif
@@ -305,7 +302,7 @@ int hawk_mtx_trylock (hawk_mtx_t* mtx)
 #if defined(_WIN32)
 	if (WaitForSingleObject(mtx->hnd, 0) != WAIT_OBJECT_0) 
 	{
-		hawk_gem_seterrnum (mtx->gem, HAWK_NULL, syserr_to_errnum(GetLastError()));
+		hawk_gem_seterrnum (mtx->gem, HAWK_NULL, hawk_syserr_to_errnum(GetLastError()));
 		return -1;
 	}
 #elif defined(__OS2__)
@@ -313,7 +310,7 @@ int hawk_mtx_trylock (hawk_mtx_t* mtx)
 	rc = DosRequestMutexSem(mtx->hnd, 0);
 	if (rc != NO_ERROR) 
 	{
-		hawk_gem_seterrnum (mtx->gem, HAWK_NULL, syserr_to_errnum(rc));
+		hawk_gem_seterrnum (mtx->gem, HAWK_NULL, hawk_syserr_to_errnum(rc));
 		return -1;
 	}
 
@@ -339,7 +336,7 @@ int hawk_mtx_trylock (hawk_mtx_t* mtx)
 	#endif
 	if (n != 0)
 	{
-		hawk_gem_seterrnum (mtx->gem, HAWK_NULL, syserr_to_errnum(n));
+		hawk_gem_seterrnum (mtx->gem, HAWK_NULL, hawk_syserr_to_errnum(n));
 		return -1;
 	}
 	/* -------------------------------------------------- */

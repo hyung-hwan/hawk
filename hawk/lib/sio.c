@@ -37,9 +37,6 @@
 #	include "syscall.h"
 #endif
 
-#include "syserr.h"
-IMPLEMENT_SYSERR_TO_ERRNUM (hawk, HAWK)
-
 #define LOCK_OUTPUT(sio) do { if ((sio)->mtx) hawk_mtx_lock ((sio)->mtx, HAWK_NULL); } while(0)
 #define UNLOCK_OUTPUT(sio) do { if ((sio)->mtx) hawk_mtx_unlock ((sio)->mtx); } while(0)
 
@@ -461,7 +458,7 @@ hawk_ooi_t hawk_sio_putucstr (hawk_sio_t* sio, const hawk_uch_t* str)
 		{
 			if (WriteConsoleW(sio->file.handle, cur, left, &count, HAWK_NULL) == FALSE) 
 			{
-				hawk_gem_seterrnum (sio->gem, HAWK_NULL, syserr_to_errnum(GetLastError()));
+				hawk_gem_seterrnum (sio->gem, HAWK_NULL, hawk_syserr_to_errnum(GetLastError()));
 				return -1;
 			}
 			if (count == 0) break;
@@ -525,7 +522,7 @@ hawk_ooi_t hawk_sio_putuchars (hawk_sio_t* sio, const hawk_uch_t* str, hawk_oow_
 		{
 			if (WriteConsoleW(sio->file.handle, cur, left, &count, HAWK_NULL) == FALSE) 
 			{
-				hawk_gem_seterrnum (sio->gem, HAWK_NULL, syserr_to_errnum(GetLastError()));
+				hawk_gem_seterrnum (sio->gem, HAWK_NULL, hawk_syserr_to_errnum(GetLastError()));
 				return -1;
 			}
 			if (count == 0) break;

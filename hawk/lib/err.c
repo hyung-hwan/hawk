@@ -655,3 +655,4 @@ void hawk_gem_seterrufmt (hawk_gem_t* gem, const hawk_loc_t* errloc, hawk_errnum
 	gem->errnum = errnum;
 	gem->errloc = (errloc? *errloc: _nullloc);
 }
+

@@ -87,9 +87,6 @@ static void close_dir_safely (hawk_dir_t* dir);
 static int reset_to_path (hawk_dir_t* dir, const hawk_ooch_t* path);
 static int read_ahead_and_sort (hawk_dir_t* dir, const hawk_ooch_t* path);
 
-#include "syserr.h"
-IMPLEMENT_SYSERR_TO_ERRNUM (hawk, HAWK)
-
 hawk_dir_t* hawk_dir_open (hawk_gem_t* gem, hawk_oow_t xtnsize, const hawk_ooch_t* path, int flags)
 {
 	hawk_dir_t* dir;
@@ -420,7 +417,7 @@ static int reset_to_path (hawk_dir_t* dir, const hawk_ooch_t* path)
 	dir->h = FindFirstFile(tptr, &dir->wfd);
 	if (dir->h == INVALID_HANDLE_VALUE) 
 	{
-		hawk_gem_seterrnum (dir->gem, HAWK_NULL, syserr_to_errnum(GetLastError()));
+		hawk_gem_seterrnum (dir->gem, HAWK_NULL, hawk_syserr_to_errnum(GetLastError()));
 		return -1;
 	}
 
@@ -467,7 +464,7 @@ static int reset_to_path (hawk_dir_t* dir, const hawk_ooch_t* path)
 
 	if (rc != NO_ERROR)
 	{
-		hawk_gem_seterrnum (dir->gem, HAWK_NULL, syserr_to_errnum(rc));
+		hawk_gem_seterrnum (dir->gem, HAWK_NULL, hawk_syserr_to_errnum(rc));
 		return -1;
 	}
 
@@ -503,7 +500,7 @@ static int reset_to_path (hawk_dir_t* dir, const hawk_ooch_t* path)
 	rc = _dos_findfirst(mptr, _A_NORMAL | _A_SUBDIR, &dir->f);
 	if (rc != 0) 
 	{
-		hawk_gem_seterrnum (dir->gem, HAWK_NULL,syserr_to_errnum(errno));
+		hawk_gem_seterrnum (dir->gem, HAWK_NULL,hawk_syserr_to_errnum(errno));
 		return -1;
 	}
 
@@ -542,7 +539,7 @@ static int reset_to_path (hawk_dir_t* dir, const hawk_ooch_t* path)
 
 	if (dp == HAWK_NULL) 
 	{
-		hawk_gem_seterrnum (dir->gem, HAWK_NULL, syserr_to_errnum(errno));
+		hawk_gem_seterrnum (dir->gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
 		return -1;
 	}
 
@@ -595,7 +592,7 @@ static int read_dir_to_buf (hawk_dir_t* dir, void** name)
 				}
 				else
 				{
-					hawk_gem_seterrnum (dir->gem, HAWK_NULL, syserr_to_errnum(x));
+					hawk_gem_seterrnum (dir->gem, HAWK_NULL, hawk_syserr_to_errnum(x));
 					dir->status |= STATUS_DONE;
 					dir->status |= STATUS_DONE_ERR;
 					return -1;
@@ -630,7 +627,7 @@ static int read_dir_to_buf (hawk_dir_t* dir, void** name)
 		if (x == ERROR_NO_MORE_FILES) dir->status |= STATUS_DONE;
 		else
 		{
-			hawk_gem_seterrnum (dir->gem, HAWK_NULL, syserr_to_errnum (x));
+			hawk_gem_seterrnum (dir->gem, HAWK_NULL, hawk_syserr_to_errnum(x));
 			dir->status |= STATUS_DONE;
 			dir->status |= STATUS_DONE_ERR;
 		}
@@ -659,7 +656,7 @@ static int read_dir_to_buf (hawk_dir_t* dir, void** name)
 			}
 			else if (rc != NO_ERROR)
 			{
-				hawk_gem_seterrnum (dir->gem, HAWK_NULL, syserr_to_errnum (rc));
+				hawk_gem_seterrnum (dir->gem, HAWK_NULL, hawk_syserr_to_errnum(rc));
 				return -1;
 			}
 		}
@@ -682,7 +679,7 @@ static int read_dir_to_buf (hawk_dir_t* dir, void** name)
 	if (rc == ERROR_NO_MORE_FILES) dir->count = 0;
 	else if (rc != NO_ERROR)
 	{
-		hawk_gem_seterrnum (dir->gem, HAWK_NULL, syserr_to_errnum (rc));
+		hawk_gem_seterrnum (dir->gem, HAWK_NULL, hawk_syserr_to_errnum(rc));
 		return -1;
 	}
 
@@ -709,7 +706,7 @@ static int read_dir_to_buf (hawk_dir_t* dir, void** name)
 				}
 				else
 				{
-					hawk_gem_seterrnum (dir->gem, HAWK_NULL, syserr_to_errnum (errno));
+					hawk_gem_seterrnum (dir->gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
 					dir->status |= STATUS_DONE;
 					dir->status |= STATUS_DONE_ERR;
 					return -1;
@@ -736,7 +733,7 @@ static int read_dir_to_buf (hawk_dir_t* dir, void** name)
 		if (errno == ENOENT) dir->status |= STATUS_DONE;
 		else
 		{
-			hawk_gem_seterrnum (dir->gem, HAWK_NULL, syserr_to_errnum (errno));
+			hawk_gem_seterrnum (dir->gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
 			dir->status |= STATUS_DONE;
 			dir->status |= STATUS_DONE_ERR;
 		}
@@ -756,7 +753,7 @@ read:
 	if (de == NULL) 
 	{
 		if (errno == 0) return 0;
-		hawk_gem_seterrnum (dir->gem, HAWK_NULL, syserr_to_errnum (errno));
+		hawk_gem_seterrnum (dir->gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
 		return -1;
 	}
 

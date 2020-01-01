@@ -50,7 +50,7 @@ static int init_token (hawk_t* hawk, hawk_tok_t* tok)
 {
 	tok->name = hawk_ooecs_open(hawk_getgem(hawk), 0, 128);
 	if (!tok->name) return -1;
-	
+
 	tok->type = 0;
 	tok->loc.file = HAWK_NULL;
 	tok->loc.line = 0;
