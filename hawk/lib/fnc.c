@@ -105,7 +105,7 @@ static hawk_fnc_t* add_fnc (hawk_t* hawk, const hawk_ooch_t* name, const hawk_fn
 	ncs.len = hawk_count_oocstr(name);
 	if (ncs.len <= 0)
 	{
-		hawk_seterrnum (hawk, HAWK_EINVAL, HAWK_NULL);
+		hawk_seterrnum (hawk, HAWK_NULL, HAWK_EINVAL);
 		return HAWK_NULL;
 	}
 
@@ -115,7 +115,7 @@ static hawk_fnc_t* add_fnc (hawk_t* hawk, const hawk_ooch_t* name, const hawk_fn
 
 	if (hawk_findfncwithoocs(hawk, &ncs) != HAWK_NULL)
 	{
-		hawk_seterrbfmt (hawk, HAWK_NULL, HAWK_EEXIST, "unable to add existing function - %js", name);
+		hawk_seterrfmt (hawk, HAWK_NULL, HAWK_EEXIST, HAWK_T("unable to add existing function - %js"), name);
 		return HAWK_NULL;
 	}
 
@@ -142,7 +142,7 @@ static hawk_fnc_t* add_fnc (hawk_t* hawk, const hawk_ooch_t* name, const hawk_fn
 		if (hawk_htb_insert(hawk->fnc.user, (hawk_ooch_t*)ncs.ptr, ncs.len, fnc, 0) == HAWK_NULL)
 		{
 			const hawk_ooch_t* bem = hawk_backuperrmsg(hawk);
-			hawk_seterrbfmt (hawk, HAWK_NULL, hawk_geterrnum(hawk), "unable to add function - %js - %js", name, bem);
+			hawk_seterrfmt (hawk, HAWK_NULL, hawk_geterrnum(hawk), HAWK_T("unable to add function - %js - %js"), name, bem);
 			hawk_freemem (hawk, fnc);
 			fnc = HAWK_NULL;
 		}
@@ -228,7 +228,7 @@ int hawk_delfncwithbcstr (hawk_t* hawk, const hawk_bch_t* name)
 #if defined(HAWK_OOCH_IS_BCH)
 	if (hawk_htb_delete(hawk->fnc.user, ncs.ptr, ncs.len) <= -1)
 	{
-		hawk_seterrbfmt (hawk, HAWK_NULL, HAWK_ENOENT, "no such function - %hs", name);
+		hawk_seterrfmt (hawk, HAWK_NULL, HAWK_ENOENT, HAWK_T("no such function - %hs"), name);
 		return -1;
 	}
 #else
@@ -236,7 +236,7 @@ int hawk_delfncwithbcstr (hawk_t* hawk, const hawk_bch_t* name)
 	if (!wcs.ptr) return -1;
 	if (hawk_htb_delete(hawk->fnc.user, wcs.ptr, wcs.len) <= -1)
 	{
-		hawk_seterrbfmt (hawk, HAWK_NULL, HAWK_ENOENT, "no such function - %hs", name);
+		hawk_seterrfmt (hawk, HAWK_NULL, HAWK_ENOENT, HAWK_T("no such function - %hs"), name);
 		hawk_freemem (hawk, wcs.ptr);
 		return -1;
 	}
@@ -259,7 +259,7 @@ int hawk_delfncwithucstr (hawk_t* hawk, const hawk_uch_t* name)
 	if (!mbs.ptr) return -1;
 	if (hawk_htb_delete(hawk->fnc.user, mbs.ptr, mbs.len) <= -1)
 	{
-		hawk_seterrbfmt (hawk, HAWK_NULL, HAWK_ENOENT, "no such function - %ls", name);
+		hawk_seterrfmt (hawk, HAWK_NULL, HAWK_ENOENT, HAWK_T("no such function - %ls"), name);
 		hawk_freemem (hawk, mbs.ptr);
 		return -1;
 	}
@@ -267,7 +267,7 @@ int hawk_delfncwithucstr (hawk_t* hawk, const hawk_uch_t* name)
 #else
 	if (hawk_htb_delete(hawk->fnc.user, ncs.ptr, ncs.len) <= -1)
 	{
-		hawk_seterrbfmt (hawk, HAWK_NULL, HAWK_ENOENT, "no such function - %ls", name);
+		hawk_seterrfmt (hawk, HAWK_NULL, HAWK_ENOENT, HAWK_T("no such function - %ls"), name);
 		return -1;
 	}
 #endif
@@ -304,7 +304,7 @@ static hawk_fnc_t* find_fnc (hawk_t* awk, const hawk_oocs_t* name)
 		if ((awk->opt.trait & fnc->spec.trait) == fnc->spec.trait) return fnc;
 	}
 
-	hawk_seterrbfmt (awk, HAWK_NULL, HAWK_ENOENT, "no such function - %js", name);
+	hawk_seterrfmt (awk, HAWK_NULL, HAWK_ENOENT, HAWK_T("no such function - %js"), name);
 	return HAWK_NULL;
 }
 

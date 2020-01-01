@@ -49,7 +49,8 @@ const hawk_ooch_t* hawk_dflerrstr (hawk_t* awk, hawk_errnum_t errnum)
 		HAWK_T("I/O error"),
 		HAWK_T("buffer full"),
 		HAWK_T("encoding conversion error"),
-		HAWK_T("not directory"),
+		HAWK_T("is a directory"),
+		HAWK_T("not a directory"),
 		HAWK_T("resource temporarily unavailable"),
 		HAWK_T("interrupted"),
 		HAWK_T("broken pipe"),
@@ -254,11 +255,6 @@ const hawk_ooch_t* hawk_backuperrmsg (hawk_t* hawk)
 {
 	hawk_copy_oocstr (hawk->errmsg_backup, HAWK_COUNTOF(hawk->errmsg_backup), hawk_geterrmsg(hawk));
 	return hawk->errmsg_backup;
-}
-
-void hawk_seterrnum (hawk_t* hawk, hawk_errnum_t errnum, const hawk_oocs_t* errarg)
-{
-	hawk_seterror (hawk, errnum, errarg, HAWK_NULL);
 }
 
 void hawk_seterrinf (hawk_t* hawk, const hawk_errinf_t* errinf)

@@ -762,7 +762,7 @@ static int print_expr (hawk_t* awk, hawk_nde_t* nde)
 
 		default:
 		{
-			hawk_seterrnum (awk, HAWK_EINTERN, HAWK_NULL);
+			hawk_seterrnum (awk, HAWK_NULL, HAWK_EINTERN);
 			return -1;
 		}
 	}

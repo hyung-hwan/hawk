@@ -222,7 +222,6 @@ static HAWK_INLINE int resolve_rs (hawk_rtx_t* rtx, hawk_val_t* rs, hawk_oocs_t*
 static HAWK_INLINE int match_long_rs (hawk_rtx_t* rtx, hawk_ooecs_t* buf, hawk_rio_arg_t* p)
 {
 	hawk_oocs_t match;
-	hawk_errnum_t errnum;
 	int ret;
 
 	HAWK_ASSERT (rtx->gbl.rs[0] != HAWK_NULL);

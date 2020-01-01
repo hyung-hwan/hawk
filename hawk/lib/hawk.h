@@ -1598,12 +1598,11 @@ HAWK_EXPORT void hawk_geterrinf (
  * error number \a errnum requires one or more arguments to format an
  * error message.
  */
-HAWK_EXPORT void hawk_seterrnum (
-	hawk_t*            awk,    /**< awk */
-	hawk_errnum_t      errnum, /**< error number */
-	const hawk_oocs_t* errarg  /**< argument array for formatting 
-	                           *   an error message */
-);
+#if defined(HAWK_HAVE_INLINE)
+static HAWK_INLINE void hawk_seterrnum (hawk_t* hawk, hawk_loc_t* errloc, hawk_errnum_t errnum) { hawk_gem_seterrnum (hawk_getgem(hawk), errloc, errnum); }
+#else
+#define hawk_seterrnum(hawk, errloc, errnum) hawk_gem_seterrnum(hawk_getgem(hawk), errloc, errnum)
+#endif
 
 HAWK_EXPORT void hawk_seterrbfmt (
 	hawk_t*             awk,

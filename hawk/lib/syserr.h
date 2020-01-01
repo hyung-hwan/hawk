@@ -148,6 +148,7 @@
 			case EBUSY: return _SYSERRNUM__(obj2, EBUSY); \
 			case EACCES: return __SYSERRNUM__(obj2, EACCES); \
 			case EPERM: return __SYSERRNUM__(obj2, EPERM); \
+			case EISDIR: return __SYSERRNUM__(obj2, EISDIR); \
 			case ENOTDIR: return __SYSERRNUM__(obj2, ENOTDIR); \
 			case ENXIO: \
 			case ENODEV: \
@@ -176,6 +177,7 @@
 			case EBUSY: return __SYSERRNUM__(obj2, EBUSY); \
 			case EACCES: return __SYSERRNUM__(obj2, EACCES); \
 			case EPERM: return __SYSERRNUM__(obj2, EPERM); \
+			case EISDIR: return __SYSERRNUM__(obj2, EISDIR); \
 			case ENOTDIR: return __SYSERRNUM__(obj2, ENOTDIR); \
 			case ENXIO: \
 			case ENODEV: \
@@ -203,6 +205,7 @@
 			case EBUSY: return __SYSERRNUM__(obj2, EBUSY); \
 			case EACCES: return __SYSERRNUM__(obj2, EACCES); \
 			case EPERM: return __SYSERRNUM__(obj2, EPERM); \
+			case EISDIR: return __SYSERRNUM__(obj2, EISDIR); \
 			case ENOTDIR: return __SYSERRNUM__(obj2, ENOTDIR); \
 			case ENXIO: \
 			case ENODEV: \
@@ -230,6 +233,7 @@
 			case EBUSY: return __SYSERRNUM__(obj2, EBUSY); \
 			case EACCES: return __SYSERRNUM__(obj2, EACCES); \
 			case EPERM: return __SYSERRNUM__(obj2, EPERM); \
+			case EISDIR: return __SYSERRNUM__(obj2, EISDIR); \
 			case ENOTDIR: return __SYSERRNUM__(obj2, ENOTDIR); \
 			case ENXIO: \
 			case ENODEV: \

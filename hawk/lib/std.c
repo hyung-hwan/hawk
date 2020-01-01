@@ -294,7 +294,7 @@ static void* std_mod_open_checked (hawk_t* awk, const hawk_mod_spec_t* spec)
 	{
 		/* hawk_stdmodstartup() must have failed upon start-up.
 		 * return failure immediately */
-		hawk_seterrnum (awk, HAWK_ENOIMPL, HAWK_NULL);
+		hawk_seterrnum (awk, HAWK_NULL, HAWK_ENOIMPL);
 		return HAWK_NULL;
 	}
 
@@ -327,7 +327,7 @@ void* hawk_stdmodopen (hawk_t* awk, const hawk_mod_spec_t* spec)
 	{
 		/* the only failure of lt_dladvise_init() seems to be caused
 		 * by memory allocation failured */
-		hawk_seterrnum (awk, HAWK_ENOMEM, HAWK_NULL);
+		hawk_seterrnum (awk, HAWK_NULL, HAWK_ENOMEM);
 		return HAWK_NULL;
 	}
 
@@ -457,7 +457,7 @@ void* hawk_stdmodopen (hawk_t* awk, const hawk_mod_spec_t* spec)
 	return h;
 
 #else
-	hawk_seterrnum (awk, HAWK_ENOIMPL, HAWK_NULL);
+	hawk_seterrnum (awk, HAWK_NULL, HAWK_ENOIMPL);
 	return HAWK_NULL;
 #endif
 }
@@ -902,7 +902,7 @@ static hawk_sio_t* open_sio (hawk_t* hawk, const hawk_ooch_t* file, int flags)
 	if (sio == HAWK_NULL)
 	{
 		const hawk_ooch_t* bem = hawk_backuperrmsg(hawk);
-		hawk_seterrbfmt (hawk, HAWK_NULL, HAWK_EOPEN, "unable to open %js - %js", file, bem);
+		hawk_seterrfmt (hawk, HAWK_NULL, HAWK_EOPEN, HAWK_T("unable to open %js - %js"), file, bem);
 	}
 	return sio;
 }
@@ -914,7 +914,7 @@ static hawk_sio_t* open_sio_rtx (hawk_rtx_t* rtx, const hawk_ooch_t* file, int f
 	if (sio == HAWK_NULL) 
 	{
 		const hawk_ooch_t* bem = hawk_rtx_backuperrmsg(rtx);
-		hawk_rtx_seterrbfmt (rtx, HAWK_NULL, HAWK_EOPEN, "unable to open %js - %js", file, bem);
+		hawk_rtx_seterrfmt (rtx, HAWK_NULL, HAWK_EOPEN, HAWK_T("unable to open %js - %js"), file, bem);
 	}
 	return sio;
 }
@@ -933,7 +933,7 @@ static hawk_sio_t* open_sio_std (hawk_t* awk, hawk_sio_std_t std, int flags)
 	if (sio == HAWK_NULL) 
 	{
 		const hawk_ooch_t* bem = hawk_backuperrmsg(awk);
-		hawk_seterrbfmt (awk, HAWK_NULL, HAWK_EOPEN, "unable to open %js - %js", &sio_std_names[std], bem);
+		hawk_seterrfmt (awk, HAWK_NULL, HAWK_EOPEN, HAWK_T("unable to open %js - %js"), &sio_std_names[std], bem);
 	}
 	return sio;
 }
@@ -946,7 +946,7 @@ static hawk_sio_t* open_sio_std_rtx (hawk_rtx_t* rtx, hawk_sio_std_t std, int fl
 	if (sio == HAWK_NULL) 
 	{
 		const hawk_ooch_t* bem = hawk_rtx_backuperrmsg(rtx);
-		hawk_rtx_seterrbfmt (rtx, HAWK_NULL, HAWK_EOPEN, "unable to open %js - %js", &sio_std_names[std], bem);
+		hawk_rtx_seterrfmt (rtx, HAWK_NULL, HAWK_EOPEN, HAWK_T("unable to open %js - %js"), &sio_std_names[std], bem);
 	}
 	return sio;
 }
@@ -1050,7 +1050,7 @@ static int open_parsestd (hawk_t* awk, hawk_sio_arg_t* arg, xtn_t* xtn, hawk_oow
 			return 0;
 
 		default:
-			hawk_seterrnum (awk, HAWK_EINTERN, HAWK_NULL);
+			hawk_seterrnum (awk, HAWK_NULL, HAWK_EINTERN);
 			return -1;
 	}
 }
@@ -1167,7 +1167,7 @@ static hawk_ooi_t sf_in_open (hawk_t* awk, hawk_sio_arg_t* arg, xtn_t* xtn)
 			const hawk_ooch_t* bem;
 		fail:
 			bem = hawk_backuperrmsg(awk);
-			hawk_seterrbfmt (awk, HAWK_NULL, HAWK_EOPEN, "unable to open %js - %js", arg->name, bem);
+			hawk_seterrfmt (awk, HAWK_NULL, HAWK_EOPEN, HAWK_T("unable to open %js - %js"), arg->name, bem);
 			return -1;
 		}
 
@@ -1237,9 +1237,9 @@ static hawk_ooi_t sf_in_read (hawk_t* awk, hawk_sio_arg_t* arg, hawk_ooch_t* dat
 					const hawk_uch_t* path;
 					path = xtn->s.in.x[xtn->s.in.xindex].u.fileu.path;
 					if (path) 
-						hawk_seterrbfmt (awk, HAWK_NULL, HAWK_EREAD, "unable to read %ls - %js", path, bem);
+						hawk_seterrfmt (awk, HAWK_NULL, HAWK_EREAD, HAWK_T("unable to read %ls - %js"), path, bem);
 					else
-						hawk_seterrbfmt (awk, HAWK_NULL, HAWK_EREAD, "unable to read %js - %js", sio_std_names[HAWK_SIO_STDIN].ptr, bem);
+						hawk_seterrfmt (awk, HAWK_NULL, HAWK_EREAD, HAWK_T("unable to read %js - %js"), sio_std_names[HAWK_SIO_STDIN].ptr, bem);
 				}
 				break;
 
@@ -1255,9 +1255,9 @@ static hawk_ooi_t sf_in_read (hawk_t* awk, hawk_sio_arg_t* arg, hawk_ooch_t* dat
 					const hawk_bch_t* path;
 					path = xtn->s.in.x[xtn->s.in.xindex].u.fileb.path;
 					if (path) 
-						hawk_seterrbfmt (awk, HAWK_NULL, HAWK_EREAD, "unable to read %hs - %js", path, bem);
+						hawk_seterrfmt (awk, HAWK_NULL, HAWK_EREAD, HAWK_T("unable to read %hs - %js"), path, bem);
 					else
-						hawk_seterrbfmt (awk, HAWK_NULL, HAWK_EREAD, "unable to read %js - %js", sio_std_names[HAWK_SIO_STDIN].ptr, bem);
+						hawk_seterrfmt (awk, HAWK_NULL, HAWK_EREAD, HAWK_T("unable to read %js - %js"), sio_std_names[HAWK_SIO_STDIN].ptr, bem);
 				}
 				break;
 
@@ -1283,7 +1283,7 @@ static hawk_ooi_t sf_in_read (hawk_t* awk, hawk_sio_arg_t* arg, hawk_ooch_t* dat
 				wcslen = size;
 				if ((m = hawk_conv_bchars_to_uchars_with_cmgr(xtn->s.in.u.bcs.ptr, &mbslen, data, &wcslen, hawk_getcmgr(awk), 0)) <= -1 && m != -2)
 				{
-					hawk_seterrnum (awk, HAWK_EINVAL, HAWK_NULL);
+					hawk_seterrnum (awk, HAWK_NULL, HAWK_EINVAL);
 					n = -1;
 				}
 				else
@@ -1305,7 +1305,7 @@ static hawk_ooi_t sf_in_read (hawk_t* awk, hawk_sio_arg_t* arg, hawk_ooch_t* dat
 				mbslen = size;
 				if ((m = hawk_conv_uchars_to_bchars_with_cmgr(xtn->s.in.u.ucs.ptr, &wcslen, data, &mbslen, hawk_getcmgr(awk))) <= -1 && m != -2)
 				{
-					hawk_seterrnum (awk, HAWK_EINVAL, HAWK_NULL);
+					hawk_seterrnum (awk, HAWK_NULL, HAWK_EINVAL);
 					n = -1;
 				}
 				else
@@ -1321,7 +1321,7 @@ static hawk_ooi_t sf_in_read (hawk_t* awk, hawk_sio_arg_t* arg, hawk_ooch_t* dat
 
 			default:
 				/* this should never happen */
-				hawk_seterrnum (awk, HAWK_EINTERN, HAWK_NULL);
+				hawk_seterrnum (awk, HAWK_NULL, HAWK_EINTERN);
 				n = -1;
 				break;
 		}
@@ -1355,12 +1355,11 @@ static hawk_ooi_t sf_in_read (hawk_t* awk, hawk_sio_arg_t* arg, hawk_ooch_t* dat
 		HAWK_ASSERT (arg->handle != HAWK_NULL);
 
 		n = hawk_sio_getoochars(arg->handle, data, size);
+
 		if (n <= -1)
 		{
-			hawk_oocs_t ea;
-			ea.ptr = (hawk_ooch_t*)arg->name;
-			ea.len = hawk_count_oocstr(ea.ptr);
-			hawk_seterrnum (awk, HAWK_EREAD, &ea);
+			const hawk_ooch_t* bem = hawk_backuperrmsg(awk);
+			hawk_seterrfmt (awk, HAWK_NULL, HAWK_EREAD, HAWK_T("unable to read %js - %js"), arg->name, bem); 
 		}
 		return n;
 	}
@@ -1382,7 +1381,7 @@ static hawk_ooi_t sf_in (hawk_t* awk, hawk_sio_cmd_t cmd, hawk_sio_arg_t* arg, h
 			return sf_in_read(awk, arg, data, size, xtn);
 
 		default:
-			hawk_seterrnum (awk, HAWK_EINTERN, HAWK_NULL);
+			hawk_seterrnum (awk, HAWK_NULL, HAWK_EINTERN);
 			return -1;
 	}
 }
@@ -1509,11 +1508,11 @@ static hawk_ooi_t sf_out (hawk_t* awk, hawk_sio_cmd_t cmd, hawk_sio_arg_t* arg, 
 					n = hawk_sio_putoochars(xtn->s.out.u.file.sio, data, size);
 					if (n <= -1)
 					{
-						hawk_oocs_t ea;
-						ea.ptr = (hawk_ooch_t*)xtn->s.out.x->u.file.path;
-						if (ea.ptr == HAWK_NULL) ea.ptr = sio_std_names[HAWK_SIO_STDOUT].ptr;
-						ea.len = hawk_count_oocstr(ea.ptr);
-						hawk_seterrnum (awk, HAWK_EWRITE, &ea);
+						const hawk_ooch_t* ioname;
+						const hawk_ooch_t* bem = hawk_backuperrmsg(awk);
+						ioname = xtn->s.out.x->u.file.path;
+						if (!ioname) ioname = sio_std_names[HAWK_SIO_STDOUT].ptr;
+						hawk_seterrfmt (awk, HAWK_NULL, HAWK_EREAD, HAWK_T("unable to write to %js - %js"), ioname, bem); 
 					}
 					return n;
 				}
@@ -1523,7 +1522,7 @@ static hawk_ooi_t sf_out (hawk_t* awk, hawk_sio_cmd_t cmd, hawk_sio_arg_t* arg, 
 					if (size > HAWK_TYPE_MAX(hawk_ooi_t)) size = HAWK_TYPE_MAX(hawk_ooi_t);
 					if (hawk_ooecs_ncat(xtn->s.out.u.oocs.buf, data, size) == (hawk_oow_t)-1)
 					{
-						hawk_seterrnum (awk, HAWK_ENOMEM, HAWK_NULL);
+						hawk_seterrnum (awk, HAWK_NULL, HAWK_ENOMEM);
 						return -1;
 					}
 					return size;
@@ -1543,7 +1542,7 @@ static hawk_ooi_t sf_out (hawk_t* awk, hawk_sio_cmd_t cmd, hawk_sio_arg_t* arg, 
 					orglen = hawk_becs_getlen(xtn->s.out.u.bcs.buf);
 					if (hawk_becs_setlen(xtn->s.out.u.bcs.buf, orglen + mbslen) == (hawk_oow_t)-1)
 					{
-						hawk_seterrnum (awk, HAWK_ENOMEM, HAWK_NULL);
+						hawk_seterrnum (awk, HAWK_NULL, HAWK_ENOMEM);
 						return -1;
 					}
 
@@ -1568,7 +1567,7 @@ static hawk_ooi_t sf_out (hawk_t* awk, hawk_sio_cmd_t cmd, hawk_sio_arg_t* arg, 
 					orglen = hawk_becs_getlen(xtn->s.out.u.ucs.buf);
 					if (hawk_uecs_setlen(xtn->s.out.u.ucs.buf, orglen + wcslen) == (hawk_oow_t)-1)
 					{
-						hawk_seterrnum (awk, HAWK_ENOMEM, HAWK_NULL);
+						hawk_seterrnum (awk, HAWK_NULL, HAWK_ENOMEM);
 						return -1;
 					}
 
@@ -1591,7 +1590,7 @@ static hawk_ooi_t sf_out (hawk_t* awk, hawk_sio_cmd_t cmd, hawk_sio_arg_t* arg, 
 			break;
 	}
 
-	hawk_seterrnum (awk, HAWK_EINTERN, HAWK_NULL);
+	hawk_seterrnum (awk, HAWK_NULL, HAWK_EINTERN);
 	return -1;
 }
 
@@ -1610,7 +1609,7 @@ int hawk_parsestd (hawk_t* awk, hawk_parsestd_t in[], hawk_parsestd_t* out)
 	{
 		/* the input is a must. at least 1 file or 1 string 
 		 * must be specified */
-		hawk_seterrnum (awk, HAWK_EINVAL, HAWK_NULL);
+		hawk_seterrnum (awk, HAWK_NULL, HAWK_EINVAL);
 		return -1;
 	}
 
@@ -1627,7 +1626,7 @@ int hawk_parsestd (hawk_t* awk, hawk_parsestd_t in[], hawk_parsestd_t* out)
 		    out->type != HAWK_PARSESTD_BCS &&
 		    out->type != HAWK_PARSESTD_UCS)
 		{
-			hawk_seterrnum (awk, HAWK_EINVAL, HAWK_NULL);
+			hawk_seterrnum (awk, HAWK_NULL, HAWK_EINVAL);
 			return -1;
 		}
 		sio.out = sf_out;
@@ -1944,7 +1943,7 @@ static hawk_ooi_t awk_rio_file (hawk_rtx_t* rtx, hawk_rio_cmd_t cmd, hawk_rio_ar
 			if (handle == HAWK_NULL) 
 			{
 				const hawk_ooch_t* bem = hawk_rtx_backuperrmsg(rtx);
-				hawk_rtx_seterrbfmt (rtx, HAWK_NULL, HAWK_EOPEN, "unable to open %js - %js", riod->name, bem);
+				hawk_rtx_seterrfmt (rtx, HAWK_NULL, HAWK_EOPEN, HAWK_T("unable to open %js - %js"), riod->name, bem);
 				return -1;
 			}
 
@@ -2093,7 +2092,7 @@ static int open_rio_console (hawk_rtx_t* rtx, hawk_rio_arg_t* riod)
 			if (hawk_count_oocstr(as.ptr) < as.len)
 			{
 				/* the name contains one or more '\0' */
-				hawk_rtx_seterrfmt (rtx, HAWK_NULL, HAWK_EIONMNL, HAWK_T("I/O name beginning with '%js' of length %zu containing '\\0'"), as.ptr, as.len);
+				hawk_rtx_seterrfmt (rtx, HAWK_NULL, HAWK_EIONMNL, HAWK_T("invalid I/O name beginning with '%js' of length %zu containing '\\0'"), as.ptr, as.len);
 				hawk_rtx_freevaloocstr (rtx, v, as.ptr);
 				return -1;
 			}
