@@ -165,7 +165,7 @@ int hawk_init (hawk_t* awk, hawk_mmgr_t* mmgr, hawk_cmgr_t* cmgr, const hawk_prm
 	    prm->math.pow == HAWK_NULL ||
 	    prm->math.mod == HAWK_NULL)
 	{
-		hawk_seterrnum (awk, HAWK_EINVAL, HAWK_NULL);
+		hawk_seterrnum (awk, HAWK_NULL, HAWK_EINVAL);
 		goto oops;
 	}
 	awk->prm = *prm;
@@ -218,7 +218,7 @@ int hawk_init (hawk_t* awk, hawk_mmgr_t* mmgr, hawk_cmgr_t* cmgr, const hawk_prm
 	    awk->fnc.user == HAWK_NULL ||
 	    awk->modtab == HAWK_NULL) 
 	{
-		hawk_seterrnum (awk, HAWK_ENOMEM, HAWK_NULL);
+		hawk_seterrnum (awk, HAWK_NULL, HAWK_ENOMEM);
 		goto oops;
 	}
 
@@ -511,7 +511,7 @@ int hawk_setopt (hawk_t* hawk, hawk_opt_t id, const void* value)
 
 	}
 
-	hawk_seterrnum (hawk, HAWK_EINVAL, HAWK_NULL);
+	hawk_seterrnum (hawk, HAWK_NULL, HAWK_EINVAL);
 	return -1;
 }
 
@@ -556,14 +556,13 @@ int hawk_getopt (hawk_t* hawk, hawk_opt_t id, void* value)
 
 	};
 
-	hawk_seterrnum (hawk, HAWK_EINVAL, HAWK_NULL);
+	hawk_seterrnum (hawk, HAWK_NULL, HAWK_EINVAL);
 	return -1;
 }
 
 void hawk_haltall (hawk_t* awk)
 {
 	awk->haltall = 1;
-	hawk_seterrnum (awk, HAWK_EINVAL, HAWK_NULL);
 }
 
 hawk_ecb_t* hawk_popecb (hawk_t* awk)

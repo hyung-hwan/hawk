@@ -749,7 +749,7 @@ hawk_rtx_t* hawk_rtx_open (hawk_t* awk, hawk_oow_t xtnsize, hawk_rio_cbs_t* rio)
 	struct module_init_ctx_t mic;
 
 	/* clear the awk error code */
-	hawk_seterrnum (awk, HAWK_ENOERR, HAWK_NULL);
+	hawk_seterrnum (awk, HAWK_NULL, HAWK_ENOERR);
 
 	/* check if the code has ever been parsed */
 	if (awk->tree.ngbls == 0 && 
@@ -758,7 +758,7 @@ hawk_rtx_t* hawk_rtx_open (hawk_t* awk, hawk_oow_t xtnsize, hawk_rio_cbs_t* rio)
 	    awk->tree.chain_size == 0 &&
 	    hawk_htb_getsize(awk->tree.funs) == 0)
 	{
-		hawk_seterrnum (awk, HAWK_EPERM, HAWK_NULL);
+		hawk_seterrnum (awk, HAWK_NULL, HAWK_EPERM);
 		return HAWK_NULL;
 	}
 	

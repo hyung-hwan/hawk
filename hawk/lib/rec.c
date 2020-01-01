@@ -103,9 +103,7 @@ static int split_record (hawk_rtx_t* rtx)
 	hawk_val_type_t fsvtype;
 	hawk_ooch_t* fs_ptr, * fs_free;
 	hawk_oow_t fs_len;
-	hawk_errnum_t errnum;
 	int how;
-	
 
 	/* inrec should be cleared before split_record is called */
 	HAWK_ASSERT (rtx->inrec.nflds == 0);

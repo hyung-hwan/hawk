@@ -777,6 +777,7 @@ enum hawk_errnum_t
 	HAWK_EIOERR,  /**< I/O error */
 	HAWK_EBUFFULL, /**< buffer full  */
 	HAWK_EECERR,  /**< encoding conversion error */
+	HAWK_EISDIR, /**< is directory */
 	HAWK_ENOTDIR, /**< not directory */
 	HAWK_EAGAIN,  /**< resource temporarily unavailable */
 	HAWK_EINTR,  /**< interrupted */

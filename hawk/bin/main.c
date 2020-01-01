@@ -280,6 +280,7 @@ static void stop_run (int signo)
 	int e = errno;
 #endif
 
+	/*hawk_haltall(hawk_rtx_gethawk(app_rtx));*/
 	hawk_rtx_halt (app_rtx);
 
 #if !defined(_WIN32) && !defined(__OS2__) && !defined(__DOS__)
