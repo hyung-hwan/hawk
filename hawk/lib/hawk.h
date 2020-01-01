@@ -1987,6 +1987,22 @@ static HAWK_INLINE hawk_oow_t hawk_fmttobcstr (hawk_t* hawk, hawk_bch_t* buf, ha
 
 /* ----------------------------------------------------------------------- */
 
+HAWK_EXPORT int hawk_buildrex (
+	hawk_t*            hawk, 
+	const hawk_ooch_t* ptn,
+	hawk_oow_t         len,
+	hawk_tre_t**       code, 
+	hawk_tre_t**       icode
+);
+
+#if defined(HAWK_HAVE_INLINE)
+static HAWK_INLINE void hawk_freerex (hawk_t* hawk, hawk_tre_t* code, hawk_tre_t* icode) { hawk_gem_freerex (hawk_getgem(hawk), code, icode); }
+#else
+#define hawk_freerex(hawk, code, icode) hawk_gem_freerex(hawk_getgem(hawk), code, icode)
+#endif
+
+/* ----------------------------------------------------------------------- */
+
 HAWK_EXPORT hawk_ooi_t hawk_logufmtv (
 	hawk_t*           hawk,
 	hawk_bitmask_t    mask,
@@ -3225,6 +3241,24 @@ static HAWK_INLINE hawk_oow_t hawk_rtx_fmttobcstr (hawk_rtx_t* rtx, hawk_bch_t* 
 #	define hawk_rtx_vfmttooocstr hawk_rtx_vfmttobcstr
 #	define hawk_rtx_fmttooocstr hawk_rtx_fmttobcstr
 #endif
+
+/* ----------------------------------------------------------------------- */
+
+
+HAWK_EXPORT int hawk_rtx_buildrex (
+	hawk_rtx_t*        rtx, 
+	const hawk_ooch_t* ptn,
+	hawk_oow_t         len,
+	hawk_tre_t**       code, 
+	hawk_tre_t**       icode
+);
+
+#if defined(HAWK_HAVE_INLINE)
+static HAWK_INLINE void hawk_rtx_freerex (hawk_rtx_t* rtx, hawk_tre_t* code, hawk_tre_t* icode) { hawk_gem_freerex (hawk_rtx_getgem(rtx), code, icode); }
+#else
+#define hawk_rtx_freerex(rtx, code, icode) hawk_gem_freerex(hawk_rtx_getgem(rtx), code, icode)
+#endif
+
 
 /* ----------------------------------------------------------------------- */
 

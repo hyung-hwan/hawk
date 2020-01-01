@@ -430,16 +430,14 @@ static int set_global (hawk_rtx_t* rtx, int idx, hawk_nde_var_t* var, hawk_val_t
 				 * however, it's not a regular expression if it's 5 character
 				 * string beginning with a question mark. */
 				hawk_tre_t* rex, * irex;
-				hawk_errnum_t errnum;
 
-				if (hawk_buildrex(hawk_rtx_gethawk(rtx), fs_ptr, fs_len, &errnum, &rex, &irex) <= -1)
+				if (hawk_rtx_buildrex(rtx, fs_ptr, fs_len, &rex, &irex) <= -1)
 				{
-					SETERR_COD (rtx, errnum);
 					if (vtype != HAWK_VAL_STR) hawk_rtx_freemem (rtx, fs_ptr);
 					return -1;
 				}
 
-				if (rtx->gbl.fs[0]) hawk_freerex (hawk_rtx_gethawk(rtx), rtx->gbl.fs[0], rtx->gbl.fs[1]);
+				if (rtx->gbl.fs[0]) hawk_rtx_freerex (rtx, rtx->gbl.fs[0], rtx->gbl.fs[1]);
 
 				rtx->gbl.fs[0] = rex;
 				rtx->gbl.fs[1] = irex;
@@ -575,7 +573,7 @@ static int set_global (hawk_rtx_t* rtx, int idx, hawk_nde_var_t* var, hawk_val_t
 
 			if (rtx->gbl.rs[0])
 			{
-				hawk_freerex (hawk_rtx_gethawk(rtx), rtx->gbl.rs[0], rtx->gbl.rs[1]);
+				hawk_rtx_freerex (rtx, rtx->gbl.rs[0], rtx->gbl.rs[1]);
 				rtx->gbl.rs[0] = HAWK_NULL;
 				rtx->gbl.rs[1] = HAWK_NULL;
 			}
@@ -583,12 +581,10 @@ static int set_global (hawk_rtx_t* rtx, int idx, hawk_nde_var_t* var, hawk_val_t
 			if (rss.len > 1)
 			{
 				hawk_tre_t* rex, * irex;
-				hawk_errnum_t errnum;
-				
+
 				/* compile the regular expression */
-				if (hawk_buildrex(hawk_rtx_gethawk(rtx), rss.ptr, rss.len, &errnum, &rex, &irex) <= -1)
+				if (hawk_rtx_buildrex(rtx, rss.ptr, rss.len, &rex, &irex) <= -1)
 				{
-					SETERR_COD (rtx, errnum);
 					if (vtype != HAWK_VAL_STR) hawk_rtx_freemem (rtx, rss.ptr);
 					return -1;
 				}
@@ -1014,13 +1010,13 @@ static void fini_rtx (hawk_rtx_t* rtx, int fini_globals)
 
 	if (rtx->gbl.rs[0])
 	{
-		hawk_freerex (hawk_rtx_gethawk(rtx), rtx->gbl.rs[0], rtx->gbl.rs[1]);
+		hawk_rtx_freerex (rtx, rtx->gbl.rs[0], rtx->gbl.rs[1]);
 		rtx->gbl.rs[0] = HAWK_NULL;
 		rtx->gbl.rs[1] = HAWK_NULL;
 	}
 	if (rtx->gbl.fs[0])
 	{
-		hawk_freerex (hawk_rtx_gethawk(rtx), rtx->gbl.fs[0], rtx->gbl.fs[1]);
+		hawk_rtx_freerex (rtx, rtx->gbl.fs[0], rtx->gbl.fs[1]);
 		rtx->gbl.fs[0] = HAWK_NULL;
 		rtx->gbl.fs[1] = HAWK_NULL;
 	}
@@ -6150,7 +6146,7 @@ static hawk_oow_t push_arg_from_vals (hawk_rtx_t* rtx, hawk_nde_fncall_t* call, 
 			if (!v)
 			{
 				UNWIND_RTX_STACK_ARG (rtx, nargs);
-				SETERR_LOC (rtx, HAWK_ENOMEM, &call->loc);
+				ADJERR_LOC (rtx, &call->loc);
 				return (hawk_oow_t)-1;
 			}
 
@@ -7885,7 +7881,6 @@ hawk_bch_t* hawk_rtx_formatmbs (
 	(buf)->ptr = (hawk_bch_t*)hawk_rtx_allocmem(rtx, (buf)->len * HAWK_SIZEOF(hawk_bch_t)); \
 	if ((buf)->ptr == HAWK_NULL) \
 	{ \
-		SETERR_COD (rtx, HAWK_ENOMEM); \
 		(buf)->len = 0; \
 		return HAWK_NULL; \
 	} \
@@ -7901,7 +7896,6 @@ hawk_bch_t* hawk_rtx_formatmbs (
 	(buf)->ptr = (hawk_bch_t*)hawk_rtx_allocmem(rtx, (buf)->len * HAWK_SIZEOF(hawk_bch_t)); \
 	if ((buf)->ptr == HAWK_NULL) \
 	{ \
-		SETERR_COD (rtx, HAWK_ENOMEM); \
 		(buf)->len = 0; \
 		return HAWK_NULL; \
 	} \
@@ -8702,4 +8696,11 @@ hawk_oow_t hawk_rtx_fmttobcstr_ (hawk_rtx_t* rtx, hawk_bch_t* buf, hawk_oow_t bu
 	n = hawk_gem_vfmttobcstr(hawk_rtx_getgem(rtx), buf, bufsz, fmt, ap);
 	va_end(ap);
 	return n;
+}
+
+/* ------------------------------------------------------------------------ */
+
+int hawk_rtx_buildrex (hawk_rtx_t* rtx, const hawk_ooch_t* ptn, hawk_oow_t len, hawk_tre_t** code, hawk_tre_t** icode)
+{
+	return hawk_gem_buildrex(hawk_rtx_getgem(rtx), ptn, len, !(hawk_rtx_gethawk(rtx)->opt.trait & HAWK_REXBOUND), code, icode);
 }

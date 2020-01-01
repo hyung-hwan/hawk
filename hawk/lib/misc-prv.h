@@ -70,17 +70,6 @@ hawk_ooch_t* hawk_rtx_strxnfld (
 	hawk_oocs_t*    tok
 );
 
-int hawk_buildrex (
-	hawk_t* awk, 
-	const hawk_ooch_t* ptn,
-	hawk_oow_t len,
-	hawk_errnum_t* errnum,
-	hawk_tre_t** code, 
-	hawk_tre_t** icode
-);
-
-void hawk_freerex (hawk_t* awk, hawk_tre_t* code, hawk_tre_t* icode);
-
 int hawk_rtx_matchval (
 	hawk_rtx_t* rtx, hawk_val_t* val,
 	const hawk_oocs_t* str, const hawk_oocs_t* substr,

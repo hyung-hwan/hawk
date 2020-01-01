@@ -369,7 +369,7 @@ static global_t gtab[] =
 	do { \
 		if (hawk_ooecs_ccat((tok)->name,(c)) == (hawk_oow_t)-1) \
 		{ \
-			hawk_seterror (awk, HAWK_ENOMEM, HAWK_NULL, &(tok)->loc); \
+			ADJERR_LOC (awk, &(tok)->loc); \
 			return -1; \
 		} \
 	} while (0)
@@ -378,7 +378,7 @@ static global_t gtab[] =
 	do { \
 		if (hawk_ooecs_ncat((tok)->name,(s),(l)) == (hawk_oow_t)-1) \
 		{ \
-			hawk_seterror (awk, HAWK_ENOMEM, HAWK_NULL, &(tok)->loc); \
+			ADJERR_LOC (awk, &(tok)->loc); \
 			return -1; \
 		} \
 	} while (0)
@@ -4294,11 +4294,11 @@ static hawk_nde_t* parse_unary (hawk_t* awk, const hawk_loc_t* xloc)
 		{
 			hawk_nde_exp_t* nde; 
 
-			nde = (hawk_nde_exp_t*) hawk_callocmem (awk, HAWK_SIZEOF(*nde));
+			nde = (hawk_nde_exp_t*)hawk_callocmem(awk, HAWK_SIZEOF(*nde));
 			if (nde == HAWK_NULL)
 			{
 				hawk_clrpt (awk, left);
-				SETERR_LOC (awk, HAWK_ENOMEM, xloc);
+				ADJERR_LOC (awk, xloc);
 				return HAWK_NULL;
 			}
 
@@ -4633,7 +4633,11 @@ static hawk_nde_t* parse_primary_mbs (hawk_t* awk, const hawk_loc_t* xloc)
 #if defined(HAWK_OOCH_IS_BCH)
 	nde->len = HAWK_OOECS_LEN(awk->tok.name);
 	nde->ptr = hawk_dupoocs(awk, HAWK_OOECS_OOCS(awk->tok.name));
-	if (!nde->ptr) goto oops;
+	if (!nde->ptr) 
+	{
+		ADJERR_LOC (awk, xloc);
+		goto oops;
+	}
 #else
 	{
 		/* the MBS token doesn't include a character greater than 0xFF in awk->tok.name 
@@ -4642,7 +4646,7 @@ static hawk_nde_t* parse_primary_mbs (hawk_t* awk, const hawk_loc_t* xloc)
 		nde->ptr = hawk_allocmem(awk, (nde->len + 1) * HAWK_SIZEOF(*nde->ptr));
 		if (!nde->ptr)
 		{
-			hawk_seterror (awk, HAWK_ENOMEM, HAWK_NULL, xloc);
+			ADJERR_LOC (awk, xloc);
 			goto oops;
 		}
 
@@ -4665,7 +4669,6 @@ oops:
 static hawk_nde_t* parse_primary_rex (hawk_t* awk, const hawk_loc_t* xloc)
 {
 	hawk_nde_rex_t* nde;
-	hawk_errnum_t errnum;
 
 	/* the regular expression is tokenized here because 
 	 * of the context-sensitivity of the slash symbol.
@@ -4673,10 +4676,9 @@ static hawk_nde_t* parse_primary_rex (hawk_t* awk, const hawk_loc_t* xloc)
 	 * it as a regular expression */
 	hawk_ooecs_clear (awk->tok.name);
 
-	if (MATCH(awk,TOK_DIV_ASSN) && 
-	    hawk_ooecs_ccat (awk->tok.name, HAWK_T('=')) == (hawk_oow_t)-1)
+	if (MATCH(awk,TOK_DIV_ASSN) && hawk_ooecs_ccat(awk->tok.name, HAWK_T('=')) == (hawk_oow_t)-1)
 	{
-		SETERR_LOC (awk, HAWK_ENOMEM, xloc);
+		ADJERR_LOC (awk, xloc);
 		return HAWK_NULL;
 	}
 
@@ -4685,7 +4687,7 @@ static hawk_nde_t* parse_primary_rex (hawk_t* awk, const hawk_loc_t* xloc)
 
 	HAWK_ASSERT (MATCH(awk,TOK_REX));
 
-	nde = (hawk_nde_rex_t*) hawk_callocmem (awk, HAWK_SIZEOF(*nde));
+	nde = (hawk_nde_rex_t*)hawk_callocmem(awk, HAWK_SIZEOF(*nde));
 	if (nde == HAWK_NULL) 
 	{
 		ADJERR_LOC (awk, xloc);
@@ -4698,9 +4700,9 @@ static hawk_nde_t* parse_primary_rex (hawk_t* awk, const hawk_loc_t* xloc)
 	nde->str.ptr = hawk_dupoocs(awk, HAWK_OOECS_OOCS(awk->tok.name));
 	if (nde->str.ptr == HAWK_NULL) goto oops;
 
-	if (hawk_buildrex (awk, HAWK_OOECS_PTR(awk->tok.name), HAWK_OOECS_LEN(awk->tok.name), &errnum, &nde->code[0], &nde->code[1]) <= -1)
+	if (hawk_buildrex(awk, HAWK_OOECS_PTR(awk->tok.name), HAWK_OOECS_LEN(awk->tok.name), &nde->code[0], &nde->code[1]) <= -1)
 	{
-		SETERR_LOC (awk, errnum, xloc);
+		ADJERR_LOC (awk, xloc);
 		goto oops;
 	}
 
@@ -7116,11 +7118,7 @@ static hawk_mod_t* query_module (hawk_t* awk, const hawk_oocs_t segs[], int nseg
 			/* i copy-insert 'md' into the table before calling 'load'.
 			 * to pass the same address to load(), query(), etc */
 			pair = hawk_rbt_insert(awk->modtab, segs[0].ptr, segs[0].len, &md, HAWK_SIZEOF(md));
-			if (pair == HAWK_NULL)
-			{
-				hawk_seterrnum (awk, HAWK_NULL, HAWK_ENOMEM);
-				return HAWK_NULL;
-			}
+			if (pair == HAWK_NULL) return HAWK_NULL;
 
 			mdp = (hawk_mod_data_t*)HAWK_RBT_VPTR(pair);
 			if (load (&mdp->mod, awk) <= -1)
@@ -7200,10 +7198,9 @@ static hawk_mod_t* query_module (hawk_t* awk, const hawk_oocs_t segs[], int nseg
 
 		/* i copy-insert 'md' into the table before calling 'load'.
 		 * to pass the same address to load(), query(), etc */
-		pair = hawk_rbt_insert (awk->modtab, segs[0].ptr, segs[0].len, &md, HAWK_SIZEOF(md));
+		pair = hawk_rbt_insert(awk->modtab, segs[0].ptr, segs[0].len, &md, HAWK_SIZEOF(md));
 		if (pair == HAWK_NULL)
 		{
-			hawk_seterrnum (awk, HAWK_NULL, HAWK_ENOMEM);
 			awk->prm.modclose (awk, md.handle);
 			return HAWK_NULL;
 		}

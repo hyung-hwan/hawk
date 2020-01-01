@@ -622,3 +622,53 @@ hawk_oow_t hawk_gem_fmttobcstr (hawk_gem_t* gem, hawk_bch_t* buf, hawk_oow_t buf
 
 	return x;
 }
+
+/* ------------------------------------------------------------------------ */
+int hawk_gem_buildrex (hawk_gem_t* gem, const hawk_ooch_t* ptn, hawk_oow_t len, int nobound, hawk_tre_t** code, hawk_tre_t** icode)
+{
+	hawk_tre_t* tre = HAWK_NULL; 
+	hawk_tre_t* itre = HAWK_NULL;
+	int opt = HAWK_TRE_EXTENDED;
+
+	if (nobound) opt |= HAWK_TRE_NOBOUND;
+
+	if (code)
+	{
+		tre = hawk_tre_open(gem, 0);
+		if (!tre) return  -1;
+
+		if (hawk_tre_compx(tre, ptn, len, HAWK_NULL, opt) <= -1)
+		{
+			hawk_tre_close (tre);
+			return -1;
+		}
+	}
+
+	if (icode) 
+	{
+		itre = hawk_tre_open(gem, 0);
+		if (itre == HAWK_NULL)
+		{
+			if (tre) hawk_tre_close (tre);
+			return -1;
+		}
+
+		/* ignorecase is a compile option for TRE */
+		if (hawk_tre_compx(itre, ptn, len, HAWK_NULL, opt | HAWK_TRE_IGNORECASE) <= -1)
+		{
+			hawk_tre_close (itre);
+			if (tre) hawk_tre_close (tre);
+			return -1;
+		}
+	}
+
+	if (code) *code = tre;
+	if (icode) *icode = itre;
+	return 0;
+}
+
+void hawk_gem_freerex (hawk_gem_t* gem, hawk_tre_t* code, hawk_tre_t* icode)
+{
+	if (icode && icode != code) hawk_tre_close (icode);
+	if (code) hawk_tre_close (code);
+}

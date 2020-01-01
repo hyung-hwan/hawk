@@ -29,7 +29,6 @@
 
 #include <hawk-cmn.h>
 
-typedef struct hawk_tre_t hawk_tre_t;
 struct hawk_tre_t
 {
 	hawk_gem_t*       gem;
