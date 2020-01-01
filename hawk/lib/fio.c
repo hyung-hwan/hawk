@@ -60,9 +60,6 @@ enum
 	STATUS_WIN32_STDIN = (1 << 2)
 };
 
-#include "syserr.h"
-IMPLEMENT_SYSERR_TO_ERRNUM (hawk, HAWK)
-
 #if defined(_WIN32)
 
 typedef DWORD WINAPI (*getmappedfilename_t) (
@@ -312,13 +309,13 @@ int hawk_fio_init (hawk_fio_t* fio, hawk_gem_t* gem, const hawk_ooch_t* path, in
 				}
 				if (handle == INVALID_HANDLE_VALUE) 
 				{
-					hawk_gem_seterrnum (fio->gem, HAWK_NULL, syserr_to_errnum(GetLastError()));
+					hawk_gem_seterrnum (fio->gem, HAWK_NULL, hawk_syserr_to_errnum(GetLastError()));
 					return -1;
 				}
 			}
 			else
 			{
-				hawk_gem_seterrnum (fio->gem, HAWK_NULL, syserr_to_errnum(e));
+				hawk_gem_seterrnum (fio->gem, HAWK_NULL, hawk_syserr_to_errnum(e));
 				return -1;
 			}
 		}
@@ -328,7 +325,7 @@ int hawk_fio_init (hawk_fio_t* fio, hawk_gem_t* gem, const hawk_ooch_t* path, in
 #if 0
 	if (GetFileType(handle) == FILE_TYPE_UNKNOWN)
 	{
-		hawk_gem_seterrnum (fio->gem, HAWK_NULL, syserr_to_errnum(GetLastError()));
+		hawk_gem_seterrnum (fio->gem, HAWK_NULL, hawk_syserr_to_errnum(GetLastError()));
 		CloseHandle (handle);
 		return -1;
 	}
@@ -463,7 +460,7 @@ int hawk_fio_init (hawk_fio_t* fio, hawk_gem_t* gem, const hawk_ooch_t* path, in
 
 		if (ret != NO_ERROR) 
 		{
-			hawk_gem_seterrnum (fio->gem, HAWK_NULL, syserr_to_errnum(ret));
+			hawk_gem_seterrnum (fio->gem, HAWK_NULL, hawk_syserr_to_errnum(ret));
 			return -1;
 		}
 	}
@@ -549,7 +546,7 @@ int hawk_fio_init (hawk_fio_t* fio, hawk_gem_t* gem, const hawk_ooch_t* path, in
 
 		if (handle <= -1) 
 		{
-			hawk_gem_seterrnum (fio->gem, HAWK_NULL, syserr_to_errnum(errno));
+			hawk_gem_seterrnum (fio->gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
 			return -1;
 		}
 	}
@@ -652,7 +649,7 @@ int hawk_fio_init (hawk_fio_t* fio, hawk_gem_t* gem, const hawk_ooch_t* path, in
 	#else
 			if (path_mb != path_mb_buf) hawk_gem_freemem (fio->gem, path_mb);
 	#endif
-			hawk_gem_seterrnum (fio->gem, HAWK_NULL, syserr_to_errnum(r0));
+			hawk_gem_seterrnum (fio->gem, HAWK_NULL, hawk_syserr_to_errnum(r0));
 			return -1;
 		}
 
@@ -665,7 +662,7 @@ int hawk_fio_init (hawk_fio_t* fio, hawk_gem_t* gem, const hawk_ooch_t* path, in
 	#else
 			if (path_mb != path_mb_buf) hawk_gem_freemem (fio->gem, path_mb);
 	#endif
-			hawk_gem_seterrnum (fio->gem, HAWK_NULL, syserr_to_errnum(r0));
+			hawk_gem_seterrnum (fio->gem, HAWK_NULL, hawk_syserr_to_errnum(r0));
 			return -1;
 		}
 
@@ -771,7 +768,7 @@ int hawk_fio_init (hawk_fio_t* fio, hawk_gem_t* gem, const hawk_ooch_t* path, in
 	#endif
 		if (handle == -1) 
 		{
-			hawk_gem_seterrnum (fio->gem, HAWK_NULL, syserr_to_errnum(errno));
+			hawk_gem_seterrnum (fio->gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
 			return -1;
 		}
 		else
@@ -859,7 +856,7 @@ hawk_fio_off_t hawk_fio_seek (hawk_fio_t* fio, hawk_fio_off_t offset, hawk_fio_o
 		fio->handle, x.LowPart, &x.HighPart, seek_map[origin]);
 	if (x.LowPart == INVALID_SET_FILE_POINTER && GetLastError() != NO_ERROR)
 	{
-		hawk_gem_seterrnum (fio->gem, HAWK_NULL, syserr_to_errnum(GetLastError()));
+		hawk_gem_seterrnum (fio->gem, HAWK_NULL, hawk_syserr_to_errnum(GetLastError()));
 		return (hawk_fio_off_t)-1;
 	}
 	return (hawk_fio_off_t)x.QuadPart;
@@ -887,7 +884,7 @@ hawk_fio_off_t hawk_fio_seek (hawk_fio_t* fio, hawk_fio_off_t offset, hawk_fio_o
 		ret = dos_set_file_ptr_l (fio->handle, pos, seek_map[origin], &newpos);
 		if (ret != NO_ERROR) 
 		{
-			hawk_gem_seterrnum (fio->gem, HAWK_NULL, syserr_to_errnum(ret));
+			hawk_gem_seterrnum (fio->gem, HAWK_NULL, hawk_syserr_to_errnum(ret));
 			return (hawk_fio_off_t)-1;
 		}
 
@@ -902,7 +899,7 @@ hawk_fio_off_t hawk_fio_seek (hawk_fio_t* fio, hawk_fio_off_t offset, hawk_fio_o
 		ret = DosSetFilePtr (fio->handle, offset, seek_map[origin], &newpos);
 		if (ret != NO_ERROR) 
 		{
-			hawk_gem_seterrnum (fio->gem, HAWK_NULL, syserr_to_errnum(ret));
+			hawk_gem_seterrnum (fio->gem, HAWK_NULL, hawk_syserr_to_errnum(ret));
 			return (hawk_fio_off_t)-1;
 		}
 
@@ -942,7 +939,7 @@ hawk_fio_off_t hawk_fio_seek (hawk_fio_t* fio, hawk_fio_off_t offset, hawk_fio_o
 		&tmp,
 		seek_map[origin]) == -1)
 	{
-		hawk_gem_seterrnum (fio->gem, HAWK_NULL, syserr_to_errnum(errno));
+		hawk_gem_seterrnum (fio->gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
 		return (hawk_fio_off_t)-1;
 	}
 
@@ -960,7 +957,7 @@ int hawk_fio_truncate (hawk_fio_t* fio, hawk_fio_off_t size)
 	if (hawk_fio_seek (fio, size, HAWK_FIO_BEGIN) == (hawk_fio_off_t)-1) return -1;
 	if (SetEndOfFile(fio->handle) == FALSE) 
 	{
-		hawk_gem_seterrnum (fio->gem, HAWK_NULL, syserr_to_errnum(GetLastError()));
+		hawk_gem_seterrnum (fio->gem, HAWK_NULL, hawk_syserr_to_errnum(GetLastError()));
 		return -1;
 	}
 	return 0;
@@ -989,7 +986,7 @@ int hawk_fio_truncate (hawk_fio_t* fio, hawk_fio_off_t size)
 
 	if (ret != NO_ERROR)
 	{
-		hawk_gem_seterrnum (fio->gem, HAWK_NULL, syserr_to_errnum(ret));
+		hawk_gem_seterrnum (fio->gem, HAWK_NULL, hawk_syserr_to_errnum(ret));
 		return -1;
 	}
 	return 0;
@@ -998,7 +995,7 @@ int hawk_fio_truncate (hawk_fio_t* fio, hawk_fio_off_t size)
 
 	int n;
 	n = chsize (fio->handle, size);
-	if (n <= -1) hawk_gem_seterrnum (fio->gem, HAWK_NULL, syserr_to_errnum(errno));
+	if (n <= -1) hawk_gem_seterrnum (fio->gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
 	return n;
 
 #elif defined(vms) || defined(__vms)
@@ -1009,7 +1006,7 @@ int hawk_fio_truncate (hawk_fio_t* fio, hawk_fio_off_t size)
 	if ((r0 = sys$rewind (rab, 0, 0)) != RMS$_NORMAL ||
 	    (r0 = sys$truncate (rab, 0, 0)) != RMS$_NORMAL)
 	{
-		hawk_gem_seterrnum (fio->gem, HAWK_NULL, syserr_to_errnum(r0));
+		hawk_gem_seterrnum (fio->gem, HAWK_NULL, hawk_syserr_to_errnum(r0));
 		return -1;
 	}
 
@@ -1019,7 +1016,7 @@ int hawk_fio_truncate (hawk_fio_t* fio, hawk_fio_off_t size)
 
 	int n;
 	n = HAWK_FTRUNCATE (fio->handle, size);
-	if (n <= -1) hawk_gem_seterrnum (fio->gem, HAWK_NULL, syserr_to_errnum(errno));
+	if (n <= -1) hawk_gem_seterrnum (fio->gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
 	return n;
 
 #else
@@ -1044,7 +1041,7 @@ hawk_ooi_t hawk_fio_read (hawk_fio_t* fio, void* buf, hawk_oow_t size)
 		 * assuming that ERROR_BROKEN_PIPE doesn't occur with normal 
 		 * input streams, i treat the condition as a normal EOF indicator. */
 		if ((fio->status & STATUS_WIN32_STDIN) && e == ERROR_BROKEN_PIPE) return 0;
-		hawk_gem_seterrnum (fio->gem, HAWK_NULL, syserr_to_errnum(e));
+		hawk_gem_seterrnum (fio->gem, HAWK_NULL, hawk_syserr_to_errnum(e));
 		return -1;
 	}
 	return (hawk_ooi_t)count;
@@ -1058,7 +1055,7 @@ hawk_ooi_t hawk_fio_read (hawk_fio_t* fio, void* buf, hawk_oow_t size)
 	ret = DosRead (fio->handle, buf, (ULONG)size, &count);
 	if (ret != NO_ERROR) 
 	{
-		hawk_gem_seterrnum (fio->gem, HAWK_NULL, syserr_to_errnum(ret));
+		hawk_gem_seterrnum (fio->gem, HAWK_NULL, hawk_syserr_to_errnum(ret));
 		return -1;
 	}
 	return (hawk_ooi_t)count;
@@ -1069,7 +1066,7 @@ hawk_ooi_t hawk_fio_read (hawk_fio_t* fio, void* buf, hawk_oow_t size)
 	if (size > (HAWK_TYPE_MAX(hawk_ooi_t) & HAWK_TYPE_MAX(unsigned int))) 
 		size = HAWK_TYPE_MAX(hawk_ooi_t) & HAWK_TYPE_MAX(unsigned int);
 	n = read (fio->handle, buf, size);
-	if (n <= -1) hawk_gem_seterrnum (fio->gem, HAWK_NULL, syserr_to_errnum(errno));
+	if (n <= -1) hawk_gem_seterrnum (fio->gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
 	return n;
 
 #elif defined(vms) || defined(__vms)
@@ -1085,7 +1082,7 @@ hawk_ooi_t hawk_fio_read (hawk_fio_t* fio, void* buf, hawk_oow_t size)
 	r0 = sys$get (rab, 0, 0);
 	if (r0 != RMS$_NORMAL)
 	{
-		hawk_gem_seterrnum (fio->gem, HAWK_NULL, syserr_to_errnum(r0));
+		hawk_gem_seterrnum (fio->gem, HAWK_NULL, hawk_syserr_to_errnum(r0));
 		return -1;
 	}
 
@@ -1095,7 +1092,7 @@ hawk_ooi_t hawk_fio_read (hawk_fio_t* fio, void* buf, hawk_oow_t size)
 	hawk_ooi_t n;
 	if (size > HAWK_TYPE_MAX(hawk_ooi_t)) size = HAWK_TYPE_MAX(hawk_ooi_t);
 	n = HAWK_READ (fio->handle, buf, size);
-	if (n <= -1) hawk_gem_seterrnum (fio->gem, HAWK_NULL, syserr_to_errnum(errno));
+	if (n <= -1) hawk_gem_seterrnum (fio->gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
 	return n;
 #endif
 }
@@ -1124,7 +1121,7 @@ hawk_ooi_t hawk_fio_write (hawk_fio_t* fio, const void* data, hawk_oow_t size)
 	if (WriteFile (fio->handle,
 		data, (DWORD)size, &count, HAWK_NULL) == FALSE) 
 	{
-		hawk_gem_seterrnum (fio->gem, HAWK_NULL, syserr_to_errnum(GetLastError()));
+		hawk_gem_seterrnum (fio->gem, HAWK_NULL, hawk_syserr_to_errnum(GetLastError()));
 		return -1;
 	}
 	return (hawk_ooi_t)count;
@@ -1161,7 +1158,7 @@ hawk_ooi_t hawk_fio_write (hawk_fio_t* fio, const void* data, hawk_oow_t size)
 		(PVOID)data, (ULONG)size, &count);
 	if (ret != NO_ERROR) 
 	{
-		hawk_gem_seterrnum (fio->gem, HAWK_NULL, syserr_to_errnum(ret));
+		hawk_gem_seterrnum (fio->gem, HAWK_NULL, hawk_syserr_to_errnum(ret));
 		return -1;
 	}
 	return (hawk_ooi_t)count;
@@ -1172,7 +1169,7 @@ hawk_ooi_t hawk_fio_write (hawk_fio_t* fio, const void* data, hawk_oow_t size)
 	if (size > (HAWK_TYPE_MAX(hawk_ooi_t) & HAWK_TYPE_MAX(unsigned int))) 
 		size = HAWK_TYPE_MAX(hawk_ooi_t) & HAWK_TYPE_MAX(unsigned int);
 	n = write (fio->handle, data, size);
-	if (n <= -1) hawk_gem_seterrnum (fio->gem, HAWK_NULL, syserr_to_errnum(errno));
+	if (n <= -1) hawk_gem_seterrnum (fio->gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
 	return n;
 
 #elif defined(vms) || defined(__vms)
@@ -1188,7 +1185,7 @@ hawk_ooi_t hawk_fio_write (hawk_fio_t* fio, const void* data, hawk_oow_t size)
 	r0 = sys$put (rab, 0, 0);
 	if (r0 != RMS$_NORMAL)
 	{
-		hawk_gem_seterrnum (fio->gem, HAWK_NULL, syserr_to_errnum(r0));
+		hawk_gem_seterrnum (fio->gem, HAWK_NULL, hawk_syserr_to_errnum(r0));
 		return -1;
 	}
 
@@ -1199,7 +1196,7 @@ hawk_ooi_t hawk_fio_write (hawk_fio_t* fio, const void* data, hawk_oow_t size)
 	hawk_ooi_t n;
 	if (size > HAWK_TYPE_MAX(hawk_ooi_t)) size = HAWK_TYPE_MAX(hawk_ooi_t);
 	n = HAWK_WRITE (fio->handle, data, size);
-	if (n <= -1) hawk_gem_seterrnum (fio->gem, HAWK_NULL, syserr_to_errnum(errno));
+	if (n <= -1) hawk_gem_seterrnum (fio->gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
 	return n;
 #endif
 }
@@ -1223,7 +1220,7 @@ static int get_devname_from_handle (
 	psapi = LoadLibrary (HAWK_T("PSAPI.DLL"));
 	if (!psapi)
 	{
-		hawk_gem_seterrnum (fio->gem, HAWK_NULL, syserr_to_errnum(GetLastError()));
+		hawk_gem_seterrnum (fio->gem, HAWK_NULL, hawk_syserr_to_errnum(GetLastError()));
 		return -1;
 	}
 
@@ -1231,7 +1228,7 @@ static int get_devname_from_handle (
 		GetProcAddress (psapi, HAWK_BT("GetMappedFileName"));
 	if (!getmappedfilename)
 	{
-		hawk_gem_seterrnum (fio->gem, HAWK_NULL, syserr_to_errnum(GetLastError()));
+		hawk_gem_seterrnum (fio->gem, HAWK_NULL, hawk_syserr_to_errnum(GetLastError()));
 		FreeLibrary (psapi);
 		return -1;
 	}
@@ -1247,7 +1244,7 @@ static int get_devname_from_handle (
 	);
 	if (map == NULL) 
 	{
-		hawk_gem_seterrnum (fio->gem, HAWK_NULL, syserr_to_errnum(GetLastError()));
+		hawk_gem_seterrnum (fio->gem, HAWK_NULL, hawk_syserr_to_errnum(GetLastError()));
 		FreeLibrary (psapi);
 		return -1;
 	}	
@@ -1256,7 +1253,7 @@ static int get_devname_from_handle (
 	mem = MapViewOfFile (map, FILE_MAP_READ, 0, 0, 1);
 	if (mem == NULL)
 	{
-		hawk_gem_seterrnum (fio->gem, HAWK_NULL, syserr_to_errnum(GetLastError()));
+		hawk_gem_seterrnum (fio->gem, HAWK_NULL, hawk_syserr_to_errnum(GetLastError()));
 		CloseHandle (map);
 		FreeLibrary (psapi);
 		return -1;
@@ -1265,7 +1262,7 @@ static int get_devname_from_handle (
 	olen = getmappedfilename (GetCurrentProcess(), mem, buf, len); 
 	if (olen == 0)
 	{
-		hawk_gem_seterrnum (fio->gem, HAWK_NULL, syserr_to_errnum(GetLastError()));
+		hawk_gem_seterrnum (fio->gem, HAWK_NULL, hawk_syserr_to_errnum(GetLastError()));
 		UnmapViewOfFile (mem);
 		CloseHandle (map);
 		FreeLibrary (psapi);
@@ -1297,7 +1294,7 @@ static int get_volname_from_handle (hawk_fio_t* fio, hawk_ooch_t* buf, hawk_oow_
 		if (n == 0 /* error */ || 
 		    n > HAWK_COUNTOF(drives) /* buffer small */) 
 		{
-			hawk_gem_seterrnum (fio->gem, HAWK_NULL, syserr_to_errnum(GetLastError()));
+			hawk_gem_seterrnum (fio->gem, HAWK_NULL, hawk_syserr_to_errnum(GetLastError()));
 			return -1;
 		}
 
@@ -1348,7 +1345,7 @@ int hawk_fio_chmod (hawk_fio_t* fio, int mode)
 	if (!(mode & HAWK_FIO_WUSR)) flags = FILE_ATTRIBUTE_READONLY;
 	if (SetFileAttributes (name, flags) == FALSE)
 	{
-		hawk_gem_seterrnum (fio->gem, HAWK_NULL, syserr_to_errnum(GetLastError()));
+		hawk_gem_seterrnum (fio->gem, HAWK_NULL, hawk_syserr_to_errnum(GetLastError()));
 		return -1;
 	}
 	return 0;
@@ -1371,7 +1368,7 @@ int hawk_fio_chmod (hawk_fio_t* fio, int mode)
 	#endif
 	if (n != NO_ERROR)
 	{
-		hawk_gem_seterrnum (fio->gem, HAWK_NULL, syserr_to_errnum(n));
+		hawk_gem_seterrnum (fio->gem, HAWK_NULL, hawk_syserr_to_errnum(n));
 		return -1;
 	}
 
@@ -1385,7 +1382,7 @@ int hawk_fio_chmod (hawk_fio_t* fio, int mode)
 	#endif
 	if (n != NO_ERROR)
 	{
-		hawk_gem_seterrnum (fio->gem, HAWK_NULL, syserr_to_errnum(n));
+		hawk_gem_seterrnum (fio->gem, HAWK_NULL, hawk_syserr_to_errnum(n));
 		return -1;
 	}
 
@@ -1413,7 +1410,7 @@ int hawk_fio_chmod (hawk_fio_t* fio, int mode)
 #elif defined(HAVE_FCHMOD)
 	int n;
 	n = HAWK_FCHMOD (fio->handle, mode);
-	if (n <= -1) hawk_gem_seterrnum (fio->gem, HAWK_NULL, syserr_to_errnum(errno));
+	if (n <= -1) hawk_gem_seterrnum (fio->gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
 	return n;
 
 #else
@@ -1429,7 +1426,7 @@ int hawk_fio_sync (hawk_fio_t* fio)
 
 	if (FlushFileBuffers (fio->handle) == FALSE)
 	{
-		hawk_gem_seterrnum (fio->gem, HAWK_NULL, syserr_to_errnum(GetLastError()));
+		hawk_gem_seterrnum (fio->gem, HAWK_NULL, hawk_syserr_to_errnum(GetLastError()));
 		return -1;
 	}
 	return 0;
@@ -1440,7 +1437,7 @@ int hawk_fio_sync (hawk_fio_t* fio)
 	n = DosResetBuffer (fio->handle); 
 	if (n != NO_ERROR)
 	{
-		hawk_gem_seterrnum (fio->gem, HAWK_NULL, syserr_to_errnum(n));
+		hawk_gem_seterrnum (fio->gem, HAWK_NULL, hawk_syserr_to_errnum(n));
 		return -1;
 	}
 	return 0;
@@ -1449,7 +1446,7 @@ int hawk_fio_sync (hawk_fio_t* fio)
 
 	int n;
 	n = fsync (fio->handle);
-	if (n <= -1) hawk_gem_seterrnum (fio->gem, HAWK_NULL, syserr_to_errnum(errno));
+	if (n <= -1) hawk_gem_seterrnum (fio->gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
 	return n;
 
 #elif defined(vms) || defined(__vms)
@@ -1462,7 +1459,7 @@ int hawk_fio_sync (hawk_fio_t* fio)
 
 	int n;
 	n = HAWK_FSYNC(fio->handle);
-	if (n <= -1) hawk_gem_seterrnum (fio->gem, HAWK_NULL, syserr_to_errnum(errno));
+	if (n <= -1) hawk_gem_seterrnum (fio->gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
 	return n;
 #else
 	hawk_gem_seterrnum (fio->gem, HAWK_NULL, HAWK_ENOIMPL);

@@ -79,6 +79,7 @@ libhawk_la_SOURCES =  \
 	ecs.c \
 	err-prv.h \
 	err.c \
+	err-sys.c \
 	fmt-imp.h \
 	fmt.c \
 	fnc-prv.h \
@@ -143,7 +144,6 @@ libhawk_la_SOURCES += \
 	pio.c \
 	sio.c \
 	syscall.h \
-	syserr.h \
 	tio.c \
 	std-prv.h \
 	std.c 

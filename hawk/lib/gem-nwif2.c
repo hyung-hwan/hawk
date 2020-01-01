@@ -87,9 +87,6 @@
 #	endif
 #endif
 
-#include "syserr.h"
-IMPLEMENT_SYSERR_TO_ERRNUM (hawk, HAWK)
-
 #if defined(AF_INET6)
 static int prefix_to_in6 (int prefix, struct in6_addr* in6)
 {
@@ -165,7 +162,7 @@ static int get_nwifs (hawk_gem_t* gem, int s, int f, hawk_xptl_t* nwifs)
 		ifn.lifn_flags  = 0;
 		if (ioctl(s, SIOCGLIFNUM, &ifn) <= -1) 
 		{
-			hawk_gem_seterrnum (gem, HAWK_NULL, syserr_to_errnum(errno));
+			hawk_gem_seterrnum (gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
 			goto oops;
 		}
 
@@ -182,7 +179,7 @@ static int get_nwifs (hawk_gem_t* gem, int s, int f, hawk_xptl_t* nwifs)
 		b.ptr = hawk_gem_allocmem(gem, b.len);
 		if (b.ptr == HAWK_NULL)
 		{
-			hawk_gem_seterrnum (gem, HAWK_NULL, syserr_to_errnum(errno));
+			hawk_gem_seterrnum (gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
 			goto oops;
 		}
 
@@ -193,7 +190,7 @@ static int get_nwifs (hawk_gem_t* gem, int s, int f, hawk_xptl_t* nwifs)
 
 		if (ioctl(s, SIOCGLIFCONF, &ifc) <= -1) 
 		{
-			hawk_gem_seterrnum (gem, HAWK_NULL, syserr_to_errnum(errno));
+			hawk_gem_seterrnum (gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
 			goto oops;
 		}
 
@@ -317,7 +314,7 @@ int hawk_gem_getifcfg (hawk_gem_t* gem, hawk_ifcfg_t* cfg)
 	return 0;
 
 sys_oops:
-	hawk_gem_seterrnum (gem, HAWK_NULL, syserr_to_errnum(errno));
+	hawk_gem_seterrnum (gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
 oops:
 	if (head) free_nwifcfg (cfg->mmgr, head);
 	if (nwifs.ptr) hawk_gem_freemem (gem, nwifs.ptr);
@@ -500,7 +497,7 @@ static int get_ifcfg (hawk_gem_t* gem, int s, hawk_ifcfg_t* cfg, struct ifreq* i
 	#if defined(SIOCGIFINDEX)
 	if (ioctl(s, SIOCGIFINDEX, ifr) <= -1) 
 	{
-		hawk_gem_seterrnum (gem, HAWK_NULL, syserr_to_errnum(errno));
+		hawk_gem_seterrnum (gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
 		return -1;
 	}
 	#if defined(HAVE_STRUCT_IFREQ_IFR_IFINDEX)
@@ -514,7 +511,7 @@ static int get_ifcfg (hawk_gem_t* gem, int s, hawk_ifcfg_t* cfg, struct ifreq* i
 
 	if (ioctl(s, SIOCGIFFLAGS, ifr) <= -1) 
 	{
-		hawk_gem_seterrnum (gem, HAWK_NULL, syserr_to_errnum(errno));
+		hawk_gem_seterrnum (gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
 		return -1;
 	}
 	cfg->flags = 0;
@@ -525,7 +522,7 @@ static int get_ifcfg (hawk_gem_t* gem, int s, hawk_ifcfg_t* cfg, struct ifreq* i
 
 	if (ioctl(s, SIOCGIFMTU, ifr) <= -1) 
 	{
-		hawk_gem_seterrnum (gem, HAWK_NULL, syserr_to_errnum(errno));
+		hawk_gem_seterrnum (gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
 		return -1;
 	}
 	#if defined(HAVE_STRUCT_IFREQ_IFR_MTU)
@@ -624,7 +621,7 @@ static int get_ifcfg (hawk_gem_t* gem, int s, hawk_ifcfg_t* cfg, struct ifreq* i
 	#if defined(SIOCGIFINDEX)
 	if (ioctl(s, SIOCGIFINDEX, ifr) <= -1)
 	{
-		hawk_gem_seterrnum (gem, HAWK_NULL, syserr_to_errnum(errno));
+		hawk_gem_seterrnum (gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
 		return -1;
 	}
 
@@ -640,7 +637,7 @@ static int get_ifcfg (hawk_gem_t* gem, int s, hawk_ifcfg_t* cfg, struct ifreq* i
 
 	if (ioctl (s, SIOCGIFFLAGS, ifr) <= -1)
 	{
-		hawk_gem_seterrnum (gem, HAWK_NULL, syserr_to_errnum(errno));
+		hawk_gem_seterrnum (gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
 		return -1;
 	}
 	cfg->flags = 0;
@@ -651,7 +648,7 @@ static int get_ifcfg (hawk_gem_t* gem, int s, hawk_ifcfg_t* cfg, struct ifreq* i
 
 	if (ioctl(s, SIOCGIFMTU, ifr) <= -1)
 	{
-		hawk_gem_seterrnum (gem, HAWK_NULL, syserr_to_errnum(errno));
+		hawk_gem_seterrnum (gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
 		return -1;
 	}
 	#if defined(HAVE_STRUCT_IFREQ_IFR_MTU)
