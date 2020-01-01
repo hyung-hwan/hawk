@@ -365,7 +365,7 @@ void hawk_seterror (hawk_t* hawk, hawk_errnum_t errnum, const hawk_oocs_t* errar
 	errfmt = hawk_geterrstr(hawk)(hawk, errnum);
 	HAWK_ASSERT (errfmt != HAWK_NULL);
 /* TODO: this change is buggy... copying won't process arguments...
-	qse_strxfncpy (hawk->_gem.errmsg, HAWK_COUNTOF(hawk->_gem.errmsg), errfmt, errarg);
+	hawk_strxfncpy (hawk->_gem.errmsg, HAWK_COUNTOF(hawk->_gem.errmsg), errfmt, errarg);
 */
 	hawk_copy_oocstr(hawk->_gem.errmsg, HAWK_COUNTOF(hawk->_gem.errmsg), errfmt);
 /* TODO: remove awk_rtx_seterror() and substitute hawk_rtx_seterrfmt()/seterrbfmt()/seterrufmt() */
@@ -542,7 +542,7 @@ void hawk_rtx_seterror (hawk_rtx_t* rtx, hawk_errnum_t errnum, const hawk_oocs_t
 	errfmt = hawk_geterrstr(hawk_rtx_gethawk(rtx))(hawk_rtx_gethawk(rtx), errnum);
 	HAWK_ASSERT (errfmt != HAWK_NULL);
 /* TODO: this change is buggy... copying won't process arguments...
-	qse_strxfncpy (rtx->_gem.errmsg, HAWK_COUNTOF(rtx->_gem.errmsg), errfmt, errarg);
+	hawk_strxfncpy (rtx->_gem.errmsg, HAWK_COUNTOF(rtx->_gem.errmsg), errfmt, errarg);
 */
 	hawk_copy_oocstr(rtx->_gem.errmsg, HAWK_COUNTOF(rtx->_gem.errmsg), errfmt);
 /* TODO: remove awk_rtx_seterror() and substitute hawk_rtx_seterrfmt()/seterrbfmt()/seterrufmt() */

@@ -56,7 +56,7 @@ enum
 	DIR_EMAPTOSCALAR
 };
 
-static int dir_err_to_errnum (qse_dir_errnum_t num)
+static int dir_err_to_errnum (hawk_dir_errnum_t num)
 {
 	switch (num)
 	{
@@ -100,7 +100,7 @@ static int awk_err_to_errnum (hawk_errnum_t num)
 	}
 }
 
-#define __IMAP_NODE_T_DATA qse_dir_t* ctx;
+#define __IMAP_NODE_T_DATA hawk_dir_t* ctx;
 #define __IMAP_LIST_T_DATA int errnum;
 #define __IMAP_LIST_T dir_list_t
 #define __IMAP_NODE_T dir_node_t
@@ -111,7 +111,7 @@ static int awk_err_to_errnum (hawk_errnum_t num)
 static dir_node_t* new_dir_node (hawk_rtx_t* rtx, dir_list_t* list, const hawk_ooch_t* path, hawk_int_t flags)
 {
 	dir_node_t* node;
-	qse_dir_errnum_t oe;
+	hawk_dir_errnum_t oe;
 
 	node = __new_dir_node(rtx, list);
 	if (!node) 
@@ -120,7 +120,7 @@ static dir_node_t* new_dir_node (hawk_rtx_t* rtx, dir_list_t* list, const hawk_o
 		return HAWK_NULL;
 	}
 
-	node->ctx = qse_dir_open(hawk_rtx_getmmgr(rtx), 0, path, flags, &oe);
+	node->ctx = hawk_dir_open(hawk_rtx_getmmgr(rtx), 0, path, flags, &oe);
 	if (!node->ctx) 
 	{
 		list->errnum = dir_err_to_errnum(oe);
@@ -135,7 +135,7 @@ static void free_dir_node (hawk_rtx_t* rtx, dir_list_t* list, dir_node_t* node)
 {
 	if (node->ctx) 
 	{
-		qse_dir_close(node->ctx);
+		hawk_dir_close(node->ctx);
 		node->ctx = HAWK_NULL;
 	}
 	__free_dir_node (rtx, list, node);
@@ -160,9 +160,9 @@ static int reset_byid (hawk_rtx_t* rtx, dir_list_t* list, hawk_int_t id, const h
 {
 	if (id >= 0 && id < list->map.high && list->map.tab[id]) 
 	{
-		if (qse_dir_reset(list->map.tab[id]->ctx, path) <= -1)
+		if (hawk_dir_reset(list->map.tab[id]->ctx, path) <= -1)
 		{
-			list->errnum = dir_err_to_errnum (qse_dir_geterrnum (list->map.tab[id]->ctx));
+			list->errnum = dir_err_to_errnum (hawk_dir_geterrnum (list->map.tab[id]->ctx));
 			return -1;
 		}
 		return 0;
@@ -179,13 +179,13 @@ static int read_byid (hawk_rtx_t* rtx, dir_list_t* list, hawk_int_t id, hawk_val
 	if (id >= 0 && id < list->map.high && list->map.tab[id]) 
 	{
 		int y;
-		qse_dir_ent_t ent;	
+		hawk_dir_ent_t ent;	
 		hawk_val_t* tmp;
 
-		y = qse_dir_read(list->map.tab[id]->ctx, &ent);
+		y = hawk_dir_read(list->map.tab[id]->ctx, &ent);
 		if (y <= -1) 
 		{
-			list->errnum = dir_err_to_errnum(qse_dir_geterrnum (list->map.tab[id]->ctx));
+			list->errnum = dir_err_to_errnum(hawk_dir_geterrnum (list->map.tab[id]->ctx));
 			return -1;
 		}
 
@@ -456,7 +456,7 @@ static int query (hawk_mod_t* mod, hawk_t* awk, const hawk_ooch_t* name, hawk_mo
 	{
 		mid = left + (right - left) / 2;
 
-		n = qse_strcmp (fnctab[mid].name, name);
+		n = hawk_strcmp (fnctab[mid].name, name);
 		if (n > 0) right = mid - 1; 
 		else if (n < 0) left = mid + 1;
 		else
@@ -472,7 +472,7 @@ static int query (hawk_mod_t* mod, hawk_t* awk, const hawk_ooch_t* name, hawk_mo
 	{
 		mid = left + (right - left) / 2;
 
-		n = qse_strcmp (inttab[mid].name, name);
+		n = hawk_strcmp (inttab[mid].name, name);
 		if (n > 0) right = mid - 1;
 		else if (n < 0) left = mid + 1;
 		else
