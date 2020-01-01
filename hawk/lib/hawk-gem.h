@@ -446,6 +446,20 @@ HAWK_EXPORT void hawk_gem_seterrufmt (
 	...
 );
 
+HAWK_EXPORT int hawk_gem_buildrex (
+	hawk_gem_t*         gem,
+	const hawk_ooch_t*  ptn,
+	hawk_oow_t          len,
+	int                 nobound,
+	hawk_tre_t**        code,
+	hawk_tre_t**        icode
+);
+
+HAWK_EXPORT void hawk_gem_freerex (
+	hawk_gem_t*         gem,
+	hawk_tre_t*         code,
+	hawk_tre_t*         icode
+);
 
 #if defined(__cplusplus)
 }

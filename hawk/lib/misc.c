@@ -432,56 +432,6 @@ hawk_ooch_t* hawk_rtx_strxnfld (
 	return HAWK_NULL;
 }
 
-int hawk_buildrex (hawk_t* awk, const hawk_ooch_t* ptn, hawk_oow_t len, hawk_errnum_t* errnum, hawk_tre_t** code, hawk_tre_t** icode)
-{
-	hawk_tre_t* tre = HAWK_NULL; 
-	hawk_tre_t* itre = HAWK_NULL;
-	int opt = HAWK_TRE_EXTENDED;
-
-	if (code)
-	{
-		tre = hawk_tre_open(hawk_getgem(awk), 0);
-		if (tre == HAWK_NULL)
-		{
-			*errnum = hawk_geterrnum(awk);
-			return -1;
-		}
-
-		if (!(awk->opt.trait & HAWK_REXBOUND)) opt |= HAWK_TRE_NOBOUND;
-
-		if (hawk_tre_compx(tre, ptn, len, HAWK_NULL, opt) <= -1)
-		{
-			*errnum = hawk_gem_geterrnum(tre->gem);
-			hawk_tre_close (tre);
-			return -1;
-		}
-	}
-
-	if (icode) 
-	{
-		itre = hawk_tre_open(hawk_getgem(awk), 0);
-		if (itre == HAWK_NULL)
-		{
-			*errnum = hawk_geterrnum(awk);
-			if (tre) hawk_tre_close (tre);
-			return -1;
-		}
-
-		/* ignorecase is a compile option for TRE */
-		if (hawk_tre_compx(itre, ptn, len, HAWK_NULL, opt | HAWK_TRE_IGNORECASE) <= -1)
-		{
-			*errnum = hawk_gem_geterrnum(itre->gem);
-			hawk_tre_close (itre);
-			if (tre) hawk_tre_close (tre);
-			return -1;
-		}
-	}
-
-	if (code) *code = tre;
-	if (icode) *icode = itre;
-	return 0;
-}
-
 static int matchtre (hawk_tre_t* tre, int opt, const hawk_oocs_t* str, hawk_oocs_t* mat, hawk_oocs_t submat[9], hawk_gem_t* errgem)
 {
 	int n;
@@ -521,18 +471,11 @@ static int matchtre (hawk_tre_t* tre, int opt, const hawk_oocs_t* str, hawk_oocs
 	return 1;
 }
 
-void hawk_freerex (hawk_t* awk, hawk_tre_t* code, hawk_tre_t* icode)
-{
-	if (icode && icode != code) hawk_tre_close (icode);
-	if (code) hawk_tre_close (code);
-}
-
 int hawk_rtx_matchval (hawk_rtx_t* rtx, hawk_val_t* val, const hawk_oocs_t* str, const hawk_oocs_t* substr, hawk_oocs_t* match, hawk_oocs_t submat[9])
 {
 	int ignorecase, x;
 	int opt = HAWK_TRE_BACKTRACKING; /* TODO: option... HAWK_TRE_BACKTRACKING ??? */
 	hawk_tre_t* code;
-	hawk_errnum_t awkerr; /*TODO: get rid of this */
 
 	ignorecase = rtx->gbl.ignorecase;
 
@@ -548,15 +491,10 @@ int hawk_rtx_matchval (hawk_rtx_t* rtx, hawk_val_t* val, const hawk_oocs_t* str,
 		tmp.ptr = hawk_rtx_getvaloocstr(rtx, val, &tmp.len);
 		if (tmp.ptr == HAWK_NULL) return -1;
 
-// TODO: create hawk_rtx_buildrex....
-		x = ignorecase? hawk_buildrex(rtx->awk, tmp.ptr, tmp.len, &awkerr, HAWK_NULL, &code):
-		                hawk_buildrex(rtx->awk, tmp.ptr, tmp.len, &awkerr, &code, HAWK_NULL);
+		x = ignorecase? hawk_rtx_buildrex(rtx, tmp.ptr, tmp.len, HAWK_NULL, &code):
+		                hawk_rtx_buildrex(rtx, tmp.ptr, tmp.len, &code, HAWK_NULL);
 		hawk_rtx_freevaloocstr (rtx, val, tmp.ptr);
-		if (x <= -1)
-		{
-			hawk_rtx_seterrnum (rtx, HAWK_NULL, awkerr);
-			return -1;
-		}
+		if (x <= -1) return -1;
 	}
 	
 	x = matchtre(
@@ -578,7 +516,7 @@ int hawk_rtx_matchval (hawk_rtx_t* rtx, hawk_val_t* val, const hawk_oocs_t* str,
 
 int hawk_rtx_matchrex (hawk_rtx_t* rtx, hawk_tre_t* code, const hawk_oocs_t* str, const hawk_oocs_t* substr, hawk_oocs_t* match, hawk_oocs_t submat[9])
 {
-	int opt = HAWK_TRE_BACKTRACKING; /* TODO: option... HAWK_TRE_BACKTRACKING ??? */
+	int opt = HAWK_TRE_BACKTRACKING; /* TODO: option... HAWK_TRE_BACKTRACKING or others??? */
 	return matchtre(
 		code, ((str->ptr == substr->ptr)? opt: (opt | HAWK_TRE_NOTBOL)),
 		substr, match, submat, hawk_rtx_getgem(rtx)

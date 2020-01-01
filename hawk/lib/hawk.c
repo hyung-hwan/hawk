@@ -599,3 +599,9 @@ hawk_oow_t hawk_fmttobcstr_ (hawk_t* hawk, hawk_bch_t* buf, hawk_oow_t bufsz, co
 	va_end(ap);
 	return n;
 }
+
+
+int hawk_buildrex (hawk_t* hawk, const hawk_ooch_t* ptn, hawk_oow_t len, hawk_tre_t** code, hawk_tre_t** icode)
+{
+	return hawk_gem_buildrex(hawk_getgem(hawk), ptn, len, !(hawk->opt.trait & HAWK_REXBOUND), code, icode);
+}

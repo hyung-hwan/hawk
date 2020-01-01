@@ -1520,11 +1520,7 @@ static hawk_ooi_t sf_out (hawk_t* awk, hawk_sio_cmd_t cmd, hawk_sio_arg_t* arg, 
 				case HAWK_PARSESTD_OOCS:
 				parsestd_str:
 					if (size > HAWK_TYPE_MAX(hawk_ooi_t)) size = HAWK_TYPE_MAX(hawk_ooi_t);
-					if (hawk_ooecs_ncat(xtn->s.out.u.oocs.buf, data, size) == (hawk_oow_t)-1)
-					{
-						hawk_seterrnum (awk, HAWK_NULL, HAWK_ENOMEM);
-						return -1;
-					}
+					if (hawk_ooecs_ncat(xtn->s.out.u.oocs.buf, data, size) == (hawk_oow_t)-1) return -1;
 					return size;
 
 				case HAWK_PARSESTD_BCS:
@@ -1540,11 +1536,7 @@ static hawk_ooi_t sf_out (hawk_t* awk, hawk_sio_cmd_t cmd, hawk_sio_arg_t* arg, 
 					if (mbslen > HAWK_TYPE_MAX(hawk_ooi_t)) mbslen = HAWK_TYPE_MAX(hawk_ooi_t);
 
 					orglen = hawk_becs_getlen(xtn->s.out.u.bcs.buf);
-					if (hawk_becs_setlen(xtn->s.out.u.bcs.buf, orglen + mbslen) == (hawk_oow_t)-1)
-					{
-						hawk_seterrnum (awk, HAWK_NULL, HAWK_ENOMEM);
-						return -1;
-					}
+					if (hawk_becs_setlen(xtn->s.out.u.bcs.buf, orglen + mbslen) == (hawk_oow_t)-1) return -1;
 
 					wcslen = size;
 					hawk_convutobchars (awk, data, &wcslen, HAWK_BECS_CPTR(xtn->s.out.u.bcs.buf, orglen), &mbslen);  
@@ -1565,11 +1557,7 @@ static hawk_ooi_t sf_out (hawk_t* awk, hawk_sio_cmd_t cmd, hawk_sio_arg_t* arg, 
 					if (wcslen > HAWK_TYPE_MAX(hawk_ooi_t)) wcslen = HAWK_TYPE_MAX(hawk_ooi_t);
 
 					orglen = hawk_becs_getlen(xtn->s.out.u.ucs.buf);
-					if (hawk_uecs_setlen(xtn->s.out.u.ucs.buf, orglen + wcslen) == (hawk_oow_t)-1)
-					{
-						hawk_seterrnum (awk, HAWK_NULL, HAWK_ENOMEM);
-						return -1;
-					}
+					if (hawk_uecs_setlen(xtn->s.out.u.ucs.buf, orglen + wcslen) == (hawk_oow_t)-1) return -1;
 
 					mbslen = size;
 					hawk_convbtouchars (awk, data, &mbslen, HAWK_UECS_CPTR(xtn->s.out.u.ucs.buf, orglen), &wcslen, 0);

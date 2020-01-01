@@ -751,6 +751,7 @@ struct hawk_cmgr_t
 typedef struct hawk_t hawk_t;
 typedef struct hawk_val_t hawk_val_t;
 typedef struct hawk_gem_t hawk_gem_t;
+typedef struct hawk_tre_t hawk_tre_t;
 
 #define HAWK_ERRMSG_CAPA 2048
 

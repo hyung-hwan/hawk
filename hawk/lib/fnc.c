@@ -889,17 +889,10 @@ int hawk_fnc_split (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			{
 				int x;
 
-// TODO: hawk_rtx_buildrex
-				if (rtx->gbl.ignorecase)
-					x = hawk_buildrex(hawk_rtx_gethawk(rtx), fs.ptr, fs.len, &errnum, HAWK_NULL, &fs_rex);
-				else
-					x = hawk_buildrex(hawk_rtx_gethawk(rtx), fs.ptr, fs.len, &errnum, &fs_rex, HAWK_NULL);
-
-				if (x <= -1)
-				{
-					hawk_rtx_seterrnum (rtx, HAWK_NULL, errnum);
-					goto oops;
-				}
+				x = rtx->gbl.ignorecase?
+					hawk_rtx_buildrex(rtx, fs.ptr, fs.len, HAWK_NULL, &fs_rex):
+					hawk_rtx_buildrex(rtx, fs.ptr, fs.len, &fs_rex, HAWK_NULL);
+				if (x <= -1) goto oops;
 
 				fs_rex_free = fs_rex;
 			}
@@ -972,9 +965,9 @@ int hawk_fnc_split (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	if (fs_rex_free) 
 	{
 		if (rtx->gbl.ignorecase)
-			hawk_freerex (hawk_rtx_gethawk(rtx), HAWK_NULL, fs_rex_free);
+			hawk_rtx_freerex (rtx, HAWK_NULL, fs_rex_free);
 		else
-			hawk_freerex (hawk_rtx_gethawk(rtx), fs_rex_free, HAWK_NULL);
+			hawk_rtx_freerex (rtx, fs_rex_free, HAWK_NULL);
 	}
 
 	/*nflds--;*/
@@ -994,9 +987,9 @@ oops:
 	if (fs_rex_free) 
 	{
 		if (rtx->gbl.ignorecase)
-			hawk_freerex (hawk_rtx_gethawk(rtx), HAWK_NULL, fs_rex_free);
+			hawk_rtx_freerex (rtx, HAWK_NULL, fs_rex_free);
 		else
-			hawk_freerex (hawk_rtx_gethawk(rtx), fs_rex_free, HAWK_NULL);
+			hawk_rtx_freerex (rtx, fs_rex_free, HAWK_NULL);
 	}
 	return -1;
 }
@@ -1141,20 +1134,12 @@ static int __substitute (hawk_rtx_t* rtx, hawk_int_t max_count)
 
 	if (a0_vtype != HAWK_VAL_REX)
 	{
-		hawk_errnum_t errnum;
 		int x;
 
-// TODO: hawk_rtx_buildrex...
-		if (rtx->gbl.ignorecase)
-			x = hawk_buildrex(hawk_rtx_gethawk(rtx), s0.ptr, s0.len, &errnum, HAWK_NULL, &rex);
-		else
-			x = hawk_buildrex(hawk_rtx_gethawk(rtx), s0.ptr, s0.len, &errnum, &rex, HAWK_NULL);
-
-		if (x <= -1)
-		{
-			hawk_rtx_seterrnum (rtx, HAWK_NULL, errnum);
-			goto oops;
-		}
+		x = rtx->gbl.ignorecase?
+			hawk_rtx_buildrex(rtx, s0.ptr, s0.len, HAWK_NULL, &rex):
+			hawk_rtx_buildrex(rtx, s0.ptr, s0.len, &rex, HAWK_NULL);
+		if (x <= -1) goto oops;
 
 		rex_free = rex;
 	}
@@ -1237,9 +1222,9 @@ static int __substitute (hawk_rtx_t* rtx, hawk_int_t max_count)
 	if (rex_free)
 	{
 		if (rtx->gbl.ignorecase)
-			hawk_freerex (hawk_rtx_gethawk(rtx), HAWK_NULL, rex_free); 
+			hawk_rtx_freerex (rtx, HAWK_NULL, rex_free); 
 		else
-			hawk_freerex (hawk_rtx_gethawk(rtx), rex_free, HAWK_NULL); 
+			hawk_rtx_freerex (rtx, rex_free, HAWK_NULL); 
 		rex_free = HAWK_NULL;
 	}
 
@@ -1282,9 +1267,9 @@ oops:
 	if (rex_free) 
 	{
 		if (rtx->gbl.ignorecase)
-			hawk_freerex (hawk_rtx_gethawk(rtx), HAWK_NULL, rex_free);
+			hawk_rtx_freerex (rtx, HAWK_NULL, rex_free);
 		else	
-			hawk_freerex (hawk_rtx_gethawk(rtx), rex_free, HAWK_NULL); 
+			hawk_rtx_freerex (rtx, rex_free, HAWK_NULL); 
 	}
 	if (new_inited) hawk_ooecs_fini (&new);
 	if (s2_free) hawk_rtx_freemem (rtx, s2_free);
