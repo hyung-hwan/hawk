@@ -170,14 +170,20 @@ hawk_errnum_t hawk_syserr_to_errnum (hawk_intptr_t e)
 	#if defined(EPIPE)
 		case EPIPE:  return HAWK_EPIPE; 
 	#endif
+	#if defined(EINPROGRESS)
+		case EINPROGRESS: return HAWK_EINPROG; 
+	#endif
 	#if defined(ECHILD)
 		case ECHILD:  return HAWK_ECHILD; 
 	#endif
 	#if defined(ETIMEDOUT)
 		case ETIMEDOUT: return HAWK_ETMOUT; 
 	#endif
-	#if defined(EINPROGRESS)
-		case EINPROGRESS: return HAWK_EINPROG; 
+	#if defined(EBADFD)
+		case EBADFD: return HAWK_ESTATE;
+	#endif
+	#if defined(ENOTRECOVERABLE)
+		case ENOTRECOVERABLE: return HAWK_ESTATE;
 	#endif
 
 	#if defined(EWOULDBLOCK) && defined(EAGAIN) && (EWOULDBLOCK == EAGAIN)

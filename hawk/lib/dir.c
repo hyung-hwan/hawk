@@ -222,50 +222,17 @@ void hawk_dir_fini (hawk_dir_t* dir)
 
 static hawk_bch_t* wcs_to_mbuf (hawk_dir_t* dir, const hawk_uch_t* wcs, hawk_becs_t* mbuf)
 {
-#if 0
-	hawk_oow_t ml, wl;
-
-	if (hawk_gem_convutobcstr(gem, wcs, &wl, HAWK_NULL, &ml) <= -1) return HAWK_NULL;
-
-	if (hawk_becs_setlen(mbuf, ml) == (hawk_oow_t)-1) 
-	{
-		dir->errnum = HAWK_DIR_ENOMEM;
-		return HAWK_NULL;
-	}
-
-	hawk_wcstombs (wcs, &wl, HAWK_BECS_PTR(mbuf), &ml);
-	return HAWK_BECS_PTR(mbuf);
-
-#else
-
+	hawk_becs_clear (mbuf);
 	if (hawk_becs_ncatuchars(mbuf, wcs, hawk_count_ucstr(wcs), dir->gem->cmgr) == (hawk_oow_t)-1) return HAWK_NULL;
 	return HAWK_BECS_PTR(mbuf);
-#endif
 }
 
 static hawk_uch_t* mbs_to_wbuf (hawk_dir_t* dir, const hawk_bch_t* mbs, hawk_uecs_t* wbuf)
 {
-#if 0
-	hawk_oow_t ml, wl;
-
-	if (hawk_mbstowcs (mbs, &ml, HAWK_NULL, &wl) <= -1)
-	{
-		dir->errnum = HAWK_DIR_EINVAL;
-		return HAWK_NULL;
-	}
-	if (hawk_uecs_setlen (wbuf, wl) == (hawk_oow_t)-1) 
-	{
-		dir->errnum = HAWK_DIR_ENOMEM;
-		return HAWK_NULL;
-	}
-
-	hawk_mbstowcs (mbs, &ml, HAWK_UECS_PTR(wbuf), &wl);
-	return HAWK_UECS_PTR(wbuf);
-#else
 	/* convert all regardless of encoding failure */
+	hawk_uecs_clear (wbuf);
 	if (hawk_uecs_ncatbchars(wbuf, mbs, hawk_count_bcstr(mbs), dir->gem->cmgr, 1) == (hawk_oow_t)-1) return HAWK_NULL;
 	return HAWK_UECS_PTR(wbuf);
-#endif
 }
 
 static hawk_uch_t* wcs_to_wbuf (hawk_dir_t* dir, const hawk_uch_t* wcs, hawk_uecs_t* wbuf)
@@ -381,6 +348,7 @@ static int reset_to_path (hawk_dir_t* dir, const hawk_ooch_t* path)
 #if defined(_WIN32)
 	/* ------------------------------------------------------------------- */
 	const hawk_ooch_t* tptr;
+	HANDLE dh;
 
 	dir->status &= ~STATUS_DONE;
 	dir->status &= ~STATUS_DONE_ERR;
@@ -389,7 +357,7 @@ static int reset_to_path (hawk_dir_t* dir, const hawk_ooch_t* path)
 	{
 		hawk_bch_t* mptr;
 
-		mptr = make_mbsdos_path (dir, (const hawk_bch_t*)path);
+		mptr = make_mbsdos_path(dir, (const hawk_bch_t*)path);
 		if (mptr == HAWK_NULL) return -1;
 
 	#if defined(HAWK_OOCH_IS_BCH)
@@ -414,13 +382,16 @@ static int reset_to_path (hawk_dir_t* dir, const hawk_ooch_t* path)
 	}
 	if (tptr == HAWK_NULL) return -1;
 
-	dir->h = FindFirstFile(tptr, &dir->wfd);
-	if (dir->h == INVALID_HANDLE_VALUE) 
+	dh = FindFirstFile(tptr, &dir->wfd);
+	if (dh == INVALID_HANDLE_VALUE) 
 	{
 		hawk_gem_seterrnum (dir->gem, HAWK_NULL, hawk_syserr_to_errnum(GetLastError()));
 		return -1;
 	}
 
+	close_dir_safely (dir);
+
+	dir->h = dh;
 	return 0;
 	/* ------------------------------------------------------------------- */
 
@@ -429,9 +400,13 @@ static int reset_to_path (hawk_dir_t* dir, const hawk_ooch_t* path)
 	/* ------------------------------------------------------------------- */
 	APIRET rc;
 	const hawk_bch_t* mptr;
-
-	dir->h = HDIR_CREATE;
-	dir->count = 1;
+	HDIR h = HDIR_CREATE;
+	#if defined(FIL_STANDARDL) 
+	FILEFINDBUF3L ffb = { 0 };
+	#else
+	FILEFINDBUF3 ffb = { 0 };
+	#endif
+	ULONG count = 1;
 
 	if (dir->flags & HAWK_DIR_MBSPATH)
 	{
@@ -450,11 +425,11 @@ static int reset_to_path (hawk_dir_t* dir, const hawk_ooch_t* path)
 
 	rc = DosFindFirst (
 		mptr,
-		&dir->h, 
+		&h, 
 		FILE_DIRECTORY | FILE_READONLY,
-		&dir->ffb,
+		&ffb,
 		HAWK_SIZEOF(dir->ffb),
-		&dir->count,
+		&count,
 	#if defined(FIL_STANDARDL) 
 		FIL_STANDARDL
 	#else
@@ -468,6 +443,11 @@ static int reset_to_path (hawk_dir_t* dir, const hawk_ooch_t* path)
 		return -1;
 	}
 
+	close_dir_safely (dir);
+
+	dir->h = h;
+	dir->ffb = ffb;
+	dir->count = count;
 	dir->status |= STATUS_OPENED;
 	return 0;
 	/* ------------------------------------------------------------------- */
@@ -477,6 +457,7 @@ static int reset_to_path (hawk_dir_t* dir, const hawk_ooch_t* path)
 	/* ------------------------------------------------------------------- */
 	unsigned int rc;
 	const hawk_bch_t* mptr;
+	struct find_t f;
 
 	dir->status &= ~STATUS_DONE;
 	dir->status &= ~STATUS_DONE_ERR;
@@ -497,13 +478,16 @@ static int reset_to_path (hawk_dir_t* dir, const hawk_ooch_t* path)
 	}
 	if (mptr == HAWK_NULL) return -1;
 
-	rc = _dos_findfirst(mptr, _A_NORMAL | _A_SUBDIR, &dir->f);
+	rc = _dos_findfirst(mptr, _A_NORMAL | _A_SUBDIR, &f);
 	if (rc != 0) 
 	{
 		hawk_gem_seterrnum (dir->gem, HAWK_NULL,hawk_syserr_to_errnum(errno));
 		return -1;
 	}
 
+	reset_dir_safely (dir);
+
+	dir->f = f;
 	dir->status |= STATUS_OPENED;
 	return 0;
 	/* ------------------------------------------------------------------- */
@@ -543,6 +527,8 @@ static int reset_to_path (hawk_dir_t* dir, const hawk_ooch_t* path)
 		return -1;
 	}
 
+	close_dir_safely (dir);
+
 	dir->dp = dp;
 	return 0;
 #endif 
@@ -550,13 +536,12 @@ static int reset_to_path (hawk_dir_t* dir, const hawk_ooch_t* path)
 
 int hawk_dir_reset (hawk_dir_t* dir, const hawk_ooch_t* path)
 {
-	close_dir_safely (dir);
-	if (reset_to_path (dir, path) <= -1) return -1;
+	if (reset_to_path(dir, path) <= -1) return -1;
 
 	if (dir->flags & HAWK_DIR_SORT)
 	{
 		hawk_arr_clear (dir->stab);
-		if (read_ahead_and_sort (dir, path) <= -1) 
+		if (read_ahead_and_sort(dir, path) <= -1) 
 		{
 			dir->status |= STATUS_SORT_ERR;
 			return -1;
@@ -749,7 +734,7 @@ static int read_dir_to_buf (hawk_dir_t* dir, void** name)
 
 read:
 	errno = 0;
-	de = HAWK_READDIR (dir->dp);
+	de = HAWK_READDIR(dir->dp);
 	if (de == NULL) 
 	{
 		if (errno == 0) return 0;
@@ -766,13 +751,13 @@ read:
 
 	if (dir->flags & HAWK_DIR_MBSPATH)
 	{
-		if (mbs_to_mbuf (dir, de->d_name, &dir->mbuf) == HAWK_NULL) return -1;
+		if (mbs_to_mbuf(dir, de->d_name, &dir->mbuf) == HAWK_NULL) return -1;
 		*name = HAWK_BECS_PTR(&dir->mbuf);
 	}
 	else
 	{
 		/*HAWK_ASSERT (dir->flags & HAWK_DIR_WCSPATH);*/
-		if (mbs_to_wbuf (dir, de->d_name, &dir->wbuf) == HAWK_NULL) return -1;
+		if (mbs_to_wbuf(dir, de->d_name, &dir->wbuf) == HAWK_NULL) return -1;
 		*name = HAWK_UECS_PTR(&dir->wbuf);
 	}
 
@@ -814,7 +799,11 @@ int hawk_dir_read (hawk_dir_t* dir, hawk_dir_ent_t* ent)
 {
 	if (dir->flags & HAWK_DIR_SORT)
 	{
-		if (dir->status & STATUS_SORT_ERR) return -1;
+		if (dir->status & STATUS_SORT_ERR) 
+		{
+			hawk_gem_seterrnum (dir->gem, HAWK_NULL, HAWK_ESTATE);
+			return -1;
+		}
 
 		if (dir->status & STATUS_POPHEAP) hawk_arr_popheap (dir->stab);
 		else dir->status |= STATUS_POPHEAP;

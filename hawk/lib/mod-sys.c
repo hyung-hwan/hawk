@@ -147,6 +147,8 @@ typedef struct rtx_data_t rtx_data_t;
 
 /* ------------------------------------------------------------------------ */
 
+#define ERRNUM_TO_RC(errnum) (-((hawk_int_t)errnum))
+
 static HAWK_INLINE sys_rc_t syserr_to_rc (int syserr)
 {
 	switch (syserr)
@@ -196,7 +198,9 @@ static const hawk_ooch_t* rc_to_errstr (sys_rc_t rc)
 	switch (rc)
 	{
 		case RC_EAGAIN:  return HAWK_T("resource temporarily unavailable");
+
 		case RC_EBADF:   return HAWK_T("bad file descriptor");
+
 		case RC_ECHILD:  return HAWK_T("no child processes");
 		case RC_EEXIST:  return HAWK_T("file exists");
 		case RC_EINTR:   return HAWK_T("interrupted");
@@ -210,6 +214,12 @@ static const hawk_ooch_t* rc_to_errstr (sys_rc_t rc)
 		case RC_ERROR:   return HAWK_T("error");
 		default:         return HAWK_T("unknown error");
 	};
+}
+
+static void copy_error_to_sys_list (hawk_rtx_t* rtx, sys_list_t* sys_list)
+{
+	/*TODO: error number */
+	hawk_copy_oocstr (sys_list->ctx.errmsg, HAWK_COUNTOF(sys_list->ctx.errmsg), hawk_rtx_geterrmsg(rtx));
 }
 
 static void set_errmsg_on_sys_list (hawk_rtx_t* rtx, sys_list_t* sys_list, const hawk_ooch_t* errfmt, ...)
@@ -231,7 +241,6 @@ static HAWK_INLINE void set_errmsg_on_sys_list_with_syserr (hawk_rtx_t* rtx, sys
 {
 	set_errmsg_on_sys_list (rtx, sys_list, HAWK_T("%hs"), strerror(errno));
 }
-
 
 /* ------------------------------------------------------------------------ */
 
@@ -850,11 +859,12 @@ static int fnc_opendir (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	sys_list_t* sys_list;
 	sys_node_t* sys_node = HAWK_NULL;
-	hawk_int_t rx = RC_ERROR, flags = 0;
+	hawk_int_t flags = 0;
 	hawk_ooch_t* pstr;
 	hawk_oow_t plen;
 	hawk_val_t* a0;
 	hawk_dir_t* dir;
+	hawk_int_t rx = ERRNUM_TO_RC(HAWK_EOTHER);
 
 	sys_list = rtx_to_sys_list(rtx, fi);
 
@@ -876,14 +886,14 @@ static int fnc_opendir (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		else 
 		{
 			hawk_dir_close(dir);
-		fail:
-			set_errmsg_on_sys_list (rtx, sys_list, HAWK_NULL);
+			goto fail;
 		}
 	}
 	else
 	{
-		rx = hawkerr_to_rc(hawk_rtx_geterrnum(rtx));
-		set_errmsg_on_sys_list (rtx, sys_list, rc_to_errstr(rx));
+	fail:
+		rx = ERRNUM_TO_RC(hawk_rtx_geterrnum(rtx));
+		copy_error_to_sys_list (rtx, sys_list);
 	}
 
 	/*HAWK_ASSERT (HAWK_IN_QUICKINT_RANGE(rx));*/
@@ -895,7 +905,7 @@ static int fnc_closedir (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	sys_list_t* sys_list;
 	sys_node_t* sys_node;
-	int rx = RC_ERROR;
+	hawk_int_t rx = ERRNUM_TO_RC(HAWK_EOTHER);
 
 	sys_list = rtx_to_sys_list(rtx, fi);
 	sys_node = get_sys_list_node_with_arg(rtx, sys_list, hawk_rtx_getarg(rtx, 0));
@@ -904,12 +914,12 @@ static int fnc_closedir (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		/* although free_sys_node() can handle other types, sys::closedir() is allowed to
 		 * close nodes of the SYS_NODE_DATA_DIR type only */
 		free_sys_node (rtx, sys_list, sys_node);
-		rx = 0;
+		rx = ERRNUM_TO_RC(HAWK_ENOERR);
 	}
 	else
 	{
-		rx = RC_EINVAL;
-		set_errmsg_on_sys_list (rtx, sys_list, rc_to_errstr(rx));
+		rx = ERRNUM_TO_RC(HAWK_EINVAL);
+		/* error information set in get_sys_lsit_node_with_arg() */
 	}
 
 	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
@@ -920,7 +930,7 @@ static int fnc_readdir (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	sys_list_t* sys_list;
 	sys_node_t* sys_node;
-	hawk_int_t rx = RC_ERROR;
+	hawk_int_t rx = ERRNUM_TO_RC(HAWK_EOTHER);
 
 	sys_list = rtx_to_sys_list(rtx, fi);
 	sys_node = get_sys_list_node_with_arg(rtx, sys_list, hawk_rtx_getarg(rtx, 0));
@@ -931,10 +941,9 @@ static int fnc_readdir (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		hawk_val_t* tmp;
 
 		y = hawk_dir_read(sys_node->ctx.u.dir, &ent);
-		if (y <= -1) 
+		if (y <= -1)
 		{
-			rx = hawkerr_to_rc(hawk_rtx_geterrnum(rtx));
-			set_errmsg_on_sys_list (rtx, sys_list, rc_to_errstr(rx));
+			goto fail;
 		}
 		else if (y == 0) 
 		{
@@ -945,8 +954,9 @@ static int fnc_readdir (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			tmp = hawk_rtx_makestrvalwithoocstr(rtx, ent.name);
 			if (!tmp)
 			{
-				rx = hawkerr_to_rc(hawk_rtx_geterrnum(rtx));
-				set_errmsg_on_sys_list (rtx, sys_list, rc_to_errstr(rx));
+			fail:
+				rx = ERRNUM_TO_RC(hawk_rtx_geterrnum(rtx));
+				copy_error_to_sys_list (rtx, sys_list);
 			}
 			else
 			{
@@ -962,12 +972,53 @@ static int fnc_readdir (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	}
 	else 
 	{
-		rx = RC_EINVAL;
-		set_errmsg_on_sys_list (rtx, sys_list, rc_to_errstr(rx));
+		rx = ERRNUM_TO_RC(HAWK_EINVAL);
+		/* error information set in get_sys_lsit_node_with_arg() */
 	}
 
 	/* the value in 'rx' never exceeds HAWK_QUICKINT_MAX as 'reqsize' has been limited to
 	 * it before the call to 'read'. so it's safe not to check the result of hawk_rtx_makeintval() */
+	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
+	return 0;
+}
+
+static int fnc_resetdir (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+{
+	sys_list_t* sys_list;
+	sys_node_t* sys_node;
+	hawk_int_t rx = ERRNUM_TO_RC(HAWK_EOTHER);
+
+	sys_list = rtx_to_sys_list(rtx, fi);
+	sys_node = get_sys_list_node_with_arg(rtx, sys_list, hawk_rtx_getarg(rtx, 0));
+
+	if (sys_node)
+	{
+		hawk_ooch_t* path;
+		hawk_val_t* a1;
+
+		a1 = hawk_rtx_getarg(rtx, 1);
+		path = hawk_rtx_getvaloocstr(rtx, a1, HAWK_NULL);
+		if (path)
+		{
+			if (hawk_dir_reset(sys_node->ctx.u.dir, path) <= -1) goto fail;
+			rx = ERRNUM_TO_RC(HAWK_ENOERR); /* success */
+			hawk_rtx_freevaloocstr (rtx, a1, path);
+		}
+		else
+		{
+		fail:
+			rx = ERRNUM_TO_RC(hawk_rtx_geterrnum(rtx));
+			copy_error_to_sys_list (rtx, sys_list);
+		}
+	}
+	else
+	{
+		rx = ERRNUM_TO_RC(HAWK_EINVAL);
+		/* error information set in get_sys_lsit_node_with_arg() */
+	}
+
+	/* no error check for hawk_rtx_makeintval() here since ret 
+	 * is 0 or -1. it will never fail for those numbers */
 	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
@@ -2483,6 +2534,7 @@ static fnctab_t fnctab[] =
 	{ HAWK_T("pipe"),        { { 2, 3, HAWK_T("rrv") }, fnc_pipe,        0  } },
 	{ HAWK_T("read"),        { { 2, 3, HAWK_T("vrv") }, fnc_read,        0  } },
 	{ HAWK_T("readdir"),     { { 2, 2, HAWK_T("vr")  }, fnc_readdir,     0  } },
+	{ HAWK_T("resetdir"),    { { 2, 2, HAWK_NULL     }, fnc_resetdir,    0  } },
 	{ HAWK_T("settime"),     { { 1, 1, HAWK_NULL     }, fnc_settime,     0  } },
 	{ HAWK_T("sleep"),       { { 1, 1, HAWK_NULL     }, fnc_sleep,       0  } },
 	{ HAWK_T("strftime"),    { { 2, 3, HAWK_NULL     }, fnc_strftime,    0  } },

@@ -58,6 +58,7 @@ const hawk_ooch_t* hawk_dflerrstr (hawk_t* awk, hawk_errnum_t errnum)
 		HAWK_T("no handle"),
 		HAWK_T("no child process"),
 		HAWK_T("timed out"),
+		HAWK_T("in bad state"),
 
 		HAWK_T("cannot open '${0}'"),
 		HAWK_T("cannot read '${0}'"),
