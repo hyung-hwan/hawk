@@ -776,17 +776,18 @@ enum hawk_errnum_t
 	HAWK_ENOENT,  /**< '${0} not found */
 	HAWK_EEXIST,  /**< '${0}' already exists */
 	HAWK_EIOERR,  /**< I/O error */
-	HAWK_EBUFFULL, /**< buffer full  */
+	HAWK_EBUFFULL,/**< buffer full  */
 	HAWK_EECERR,  /**< encoding conversion error */
-	HAWK_EISDIR, /**< is directory */
+	HAWK_EISDIR,  /**< is directory */
 	HAWK_ENOTDIR, /**< not directory */
 	HAWK_EAGAIN,  /**< resource temporarily unavailable */
-	HAWK_EINTR,  /**< interrupted */
-	HAWK_EPIPE,  /**< broken pipe */
-	HAWK_EINPROG,  /**< in progress */
+	HAWK_EINTR,   /**< interrupted */
+	HAWK_EPIPE,   /**< broken pipe */
+	HAWK_EINPROG, /**< in progress */
 	HAWK_ENOHND,  /**< no handle */
-	HAWK_ECHILD, /**< no child process */
-	HAWK_ETMOUT, /**< timed out */
+	HAWK_ECHILD,  /**< no child process */
+	HAWK_ETMOUT,  /**< timed out */
+	HAWK_ESTATE,  /**< in bad state */
 
 	/* mostly parse errors */
 	HAWK_EOPEN,   /**< cannot open '${0}' */

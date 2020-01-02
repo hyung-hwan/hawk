@@ -1,6 +1,6 @@
 AUTOMAKE_OPTIONS = nostdinc
 
-##AM_CFLAGS = $(PTHREAD_CFLAGS)
+AM_CFLAGS = $(PTHREAD_CFLAGS)
 
 CPPFLAGS_ALL_COMMON = \
 	-I$(abs_builddir) \
@@ -8,25 +8,19 @@ CPPFLAGS_ALL_COMMON = \
 	-I$(includedir)
 
 if ENABLE_STATIC_MODULE
-LDFLAGS_ALL_COMMON = -L../mod 
+LDFLAGS_ALL_COMMON = -L$(abs_builddir)/../mod -L$(abs_builddir) -L$(libdir)
 else
-LDFLAGS_ALL_COMMON = -L. 
+LDFLAGS_ALL_COMMON = -L$(abs_builddir) -L$(libdir)
 endif
 
 ##################################################
 # MAIN LIBRARY 
 ##################################################
 
-CPPFLAGS_LIB_COMMON = $(CPPFLAGS_ALL_COMMON) $(LTDLINCL)
+CPPFLAGS_LIB_COMMON = $(CPPFLAGS_ALL_COMMON)
 LDFLAGS_LIB_COMMON = $(LDFLAGS_ALL_COMMON) -version-info 1:0:0 -no-undefined
 LIBADD_LIB_COMMON = $(LIBM)
 DEPENDENCIES_LIB_COMMON =
-
-if ENABLE_LIBLTDL
-LIBADD_LIB_COMMON += $(LTDL_LIBS)
-else
-LIBADD_LIB_COMMON += $(DL_LIBS)
-endif
 
 if WIN32
 # you must adjust the value of DEFAULT_MODPOSTFIX according
@@ -153,6 +147,16 @@ libhawk_la_LDFLAGS = $(LDFLAGS_LIB_COMMON)
 libhawk_la_LIBADD = $(LIBADD_LIB_COMMON)
 libhawk_la_DEPENDENCIES = $(DEPENDENCIES_LIB_COMMON)
 
+if ENABLE_LIBLTDL
+libhawk_la_CPPFLAGS += $(LTDLINCL)
+libhawk_la_LIBADD += $(LTDL_LIBS)
+else
+libhawk_la_LIBADD += $(DL_LIBS)
+endif
+if ENABLE_LIBUNWIND
+libhawk_la_LIBADD += $(UNWIND_LIBS)
+endif
+
 if ENABLE_CXX
 pkglib_LTLIBRARIES += libhawkxx.la
 libhawkxx_la_SOURCES = Hawk.cpp StdHawk.cpp
@@ -174,8 +178,6 @@ libhawk_la_SOURCES += \
 	mod-sys.c mod-sys.h
 libhawk_la_LIBADD +=
 
-### mod-dir.c mod-dir.h 
-
 if ENABLE_MOD_MYSQL
 libhawk_la_LIBADD += -lhawk-mysql
 libhawk_la_DEPENDENCIES += ../mod/libhawk-mysql.la
@@ -196,34 +198,28 @@ LDFLAGS_MOD_COMMON = $(LDFLAGS_ALL_COMMON)
 LIBADD_MOD_COMMON = -lhawk
 DEPENDENCIES_MOD_COMMON = libhawk.la
 
-#modexecdir = $(libdir)
-#
-#modexec_LTLIBRARIES = libhawk-dir.la
-#libhawk_dir_la_SOURCES = mod-dir.c mod-dir.h
-#libhawk_dir_la_CPPFLAGS = $(CPPFLAGS_MOD_COMMON)
-#libhawk_dir_la_LDFLAGS = $(LDFLAGS_MOD_COMMON) -L../si
-#libhawk_dir_la_LIBADD = $(LIBADD_MOD_COMMON) -lqsesi
-#libhawk_dir_la_DEPENDENCIES = $(DEPENDENCIES_MOD_COMMON) ../../lib/si/libqsesi.la
-#
-#modexec_LTLIBRARIES += libhawk-math.la
-#libhawk_math_la_SOURCES = mod-math.c mod-math.h
-#libhawk_math_la_CPPFLAGS = $(CPPFLAGS_MOD_COMMON)
-#libhawk_math_la_LDFLAGS = $(LDFLAGS_MOD_COMMON)
-#libhawk_math_la_LIBADD = $(LIBADD_MOD_COMMON)
-#libhawk_math_la_DEPENDENCIES = $(DEPENDENCIES_MOD_COMMON)
-#
-#modexec_LTLIBRARIES += libhawk-str.la
-#libhawk_str_la_SOURCES = mod-str.c mod-str.h
-#libhawk_str_la_CPPFLAGS = $(CPPFLAGS_MOD_COMMON)
-#libhawk_str_la_LDFLAGS = $(LDFLAGS_MOD_COMMON)
-#libhawk_str_la_LIBADD = $(LIBADD_MOD_COMMON)
-#libhawk_str_la_DEPENDENCIES = $(DEPENDENCIES_MOD_COMMON)
-#
-#modexec_LTLIBRARIES += libhawk-sys.la
-#libhawk_sys_la_SOURCES = mod-sys.c mod-sys.h
-#libhawk_sys_la_CPPFLAGS = $(CPPFLAGS_MOD_COMMON)
-#libhawk_sys_la_LDFLAGS = $(LDFLAGS_MOD_COMMON) -L../si
-#libhawk_sys_la_LIBADD = $(LIBADD_MOD_COMMON) -lqsesi
-#libhawk_sys_la_DEPENDENCIES = $(DEPENDENCIES_MOD_COMMON) ../../lib/si/libqsesi.la
+#pkglibdir = $(libdir)
+#pkglib_LTLIBRARIES = 
+
+pkglib_LTLIBRARIES += libhawk-math.la
+libhawk_math_la_SOURCES = mod-math.c mod-math.h
+libhawk_math_la_CPPFLAGS = $(CPPFLAGS_MOD_COMMON)
+libhawk_math_la_LDFLAGS = $(LDFLAGS_MOD_COMMON)
+libhawk_math_la_LIBADD = $(LIBADD_MOD_COMMON)
+libhawk_math_la_DEPENDENCIES = $(DEPENDENCIES_MOD_COMMON)
+
+pkglib_LTLIBRARIES += libhawk-str.la
+libhawk_str_la_SOURCES = mod-str.c mod-str.h
+libhawk_str_la_CPPFLAGS = $(CPPFLAGS_MOD_COMMON)
+libhawk_str_la_LDFLAGS = $(LDFLAGS_MOD_COMMON)
+libhawk_str_la_LIBADD = $(LIBADD_MOD_COMMON)
+libhawk_str_la_DEPENDENCIES = $(DEPENDENCIES_MOD_COMMON)
+
+pkglib_LTLIBRARIES += libhawk-sys.la
+libhawk_sys_la_SOURCES = mod-sys.c mod-sys.h
+libhawk_sys_la_CPPFLAGS = $(CPPFLAGS_MOD_COMMON)
+libhawk_sys_la_LDFLAGS = $(LDFLAGS_MOD_COMMON)
+libhawk_sys_la_LIBADD = $(LIBADD_MOD_COMMON)
+libhawk_sys_la_DEPENDENCIES = $(DEPENDENCIES_MOD_COMMON)
 
 endif

@@ -241,9 +241,7 @@ static hawk_htb_walk_t deparse_func (hawk_htb_t* map, hawk_htb_pair_t* pair, voi
 static int put_char (hawk_t* awk, hawk_ooch_t c);
 static int flush_out (hawk_t* awk);
 
-static hawk_mod_t* query_module (
-	hawk_t* awk, const hawk_oocs_t segs[], int nsegs,
-	hawk_mod_sym_t* sym);
+static hawk_mod_t* query_module (hawk_t* awk, const hawk_oocs_t segs[], int nsegs, hawk_mod_sym_t* sym);
 
 typedef struct kwent_t kwent_t;
 
@@ -6993,21 +6991,12 @@ int hawk_putsrcoochars (hawk_t* hawk, const hawk_ooch_t* str, hawk_oow_t len)
 #if defined(HAWK_ENABLE_STATIC_MODULE)
 
 /* let's hardcode module information */
-//#include "mod-dir.h"
 #include "mod-math.h"
 #include "mod-str.h"
 #include "mod-sys.h"
 
-#if defined(HAWK_ENABLE_MOD_MPI)
-#include "../awkmod/mod-mpi.h"
-#endif
-
 #if defined(HAWK_ENABLE_MOD_MYSQL)
 #include "../awkmod/mod-mysql.h"
-#endif
-
-#if defined(HAWK_ENABLE_MOD_SED)
-#include "../awkmod/mod-sed.h"
 #endif
 
 #if defined(HAWK_ENABLE_MOD_UCI)
@@ -7026,16 +7015,9 @@ static struct
 	int (*modload) (hawk_mod_t* mod, hawk_t* awk);
 } static_modtab[] = 
 {
-//	{ HAWK_T("dir"),    hawk_mod_dir },
 	{ HAWK_T("math"),   hawk_mod_math },
-#if defined(HAWK_ENABLE_MOD_MPI)
-	{ HAWK_T("mpi"),    hawk_mod_mpi },
-#endif
 #if defined(HAWK_ENABLE_MOD_MYSQL)
 	{ HAWK_T("mysql"),  hawk_mod_mysql },
-#endif
-#if defined(HAWK_ENABLE_MOD_SED)
-	{ HAWK_T("sed"),    hawk_mod_sed },
 #endif
 	{ HAWK_T("str"),    hawk_mod_str },
 	{ HAWK_T("sys"),    hawk_mod_sys },
@@ -7047,7 +7029,6 @@ static struct
 
 static hawk_mod_t* query_module (hawk_t* awk, const hawk_oocs_t segs[], int nsegs, hawk_mod_sym_t* sym)
 {
-
 	hawk_rbt_pair_t* pair;
 	hawk_mod_data_t* mdp;
 	hawk_oocs_t ea;
@@ -7143,28 +7124,26 @@ static hawk_mod_t* query_module (hawk_t* awk, const hawk_oocs_t segs[], int nseg
 		else spec.postfix = HAWK_T(HAWK_DEFAULT_MODPOSTFIX);
 
 		HAWK_MEMSET (&md, 0, HAWK_SIZEOF(md));
+		spec.name = segs[0].ptr;
+		md.handle = HAWK_NULL;
 		if (awk->prm.modopen && awk->prm.modgetsym && awk->prm.modclose)
 		{
-			spec.name = segs[0].ptr;
-			md.handle = awk->prm.modopen (awk, &spec);
+			md.handle = awk->prm.modopen(awk, &spec);
 		}
-		else md.handle = HAWK_NULL;
+		else 
+		{
+			hawk_seterrfmt (awk, HAWK_NULL, HAWK_EINVAL, HAWK_T("module callbacks not set properly"));
+		}
 
 		if (md.handle == HAWK_NULL) 
 		{
-			if (hawk_geterrnum(awk) == HAWK_ENOERR)
-			{
-				hawk_seterrfmt (awk, HAWK_NULL, HAWK_ENOENT, HAWK_T("module '%.*js' not found"), segs[0].len, segs[0].ptr);
-			}
-			else
-			{
-				const hawk_ooch_t* olderrmsg = hawk_backuperrmsg(awk);
-				hawk_seterrfmt (awk, HAWK_NULL, HAWK_ENOENT, HAWK_T("module '%.*js' not found - %js"), segs[0].len, segs[0].ptr, olderrmsg);
-			}
+			const hawk_ooch_t* bem = hawk_backuperrmsg(awk);
+			hawk_seterrfmt (awk, HAWK_NULL, HAWK_ENOENT, HAWK_T("'%js%js%js' for module '%js' not found - %js"), 
+				(spec.prefix? spec.prefix: HAWK_T("")), spec.name, (spec.postfix? spec.postfix: HAWK_T("")), spec.name, bem);
 			return HAWK_NULL;
 		}
 
-		buflen = hawk_copy_oocstr_unlimited(&buf[13], segs[0].ptr);
+		buflen = hawk_copy_oocstr_unlimited(&buf[10], segs[0].ptr);
 		/* attempt hawk_mod_xxx */
 		load = awk->prm.modgetsym(awk, md.handle, &buf[1]);
 		if (!load) 
@@ -7176,20 +7155,14 @@ static hawk_mod_t* query_module (hawk_t* awk, const hawk_oocs_t segs[], int nseg
 				hawk_seterrnum (awk, HAWK_NULL, HAWK_ENOERR);
 
 				/* attempt hawk_mod_xxx_ */
-				buf[13 + buflen] = HAWK_T('_');
-				buf[13 + buflen + 1] = HAWK_T('\0');
+				buf[10 + buflen] = HAWK_T('_');
+				buf[10 + buflen + 1] = HAWK_T('\0');
 				load = awk->prm.modgetsym(awk, md.handle, &buf[1]);
 				if (!load)
 				{
-					if (hawk_geterrnum(awk) == HAWK_ENOERR)
-					{
-						hawk_seterrfmt (awk, HAWK_NULL, HAWK_ENOENT, HAWK_T("module '%.*js' not found"), (12 + buflen), &buf[1]);
-					}
-					else
-					{
-						const hawk_ooch_t* bem = hawk_backuperrmsg(awk);
-						hawk_seterrfmt (awk, HAWK_NULL, HAWK_ENOENT, HAWK_T("module '%.*js' not found - %js"), (12 + buflen), &buf[1], bem);
-					}
+					const hawk_ooch_t* bem = hawk_backuperrmsg(awk);
+					hawk_seterrfmt (awk, HAWK_NULL, HAWK_ENOENT, HAWK_T("module symbol '%.*js' not found - %js"), (10 + buflen), &buf[1], bem);
+
 					awk->prm.modclose (awk, md.handle);
 					return HAWK_NULL;
 				}
@@ -7219,15 +7192,8 @@ done:
 	n = mdp->mod.query(&mdp->mod, awk, segs[1].ptr, sym);
 	if (n <= -1)
 	{
-		if (hawk_geterrnum(awk) == HAWK_ENOERR)
-		{
-			hawk_seterrfmt (awk, HAWK_NULL, HAWK_ENOENT, HAWK_T("unable to find '%.*js' in module '%.*js'"), segs[1].len, segs[1].ptr, segs[0].len, segs[0].ptr);
-		}
-		else
-		{
-			const hawk_ooch_t* olderrmsg = hawk_backuperrmsg(awk);
-			hawk_seterrfmt (awk, HAWK_NULL, HAWK_ENOENT, HAWK_T("unable to find '%.*js' in module '%.*js' - %js"), segs[1].len, segs[1].ptr, segs[0].len, segs[0].ptr, olderrmsg);
-		}
+		const hawk_ooch_t* olderrmsg = hawk_backuperrmsg(awk);
+		hawk_seterrfmt (awk, HAWK_NULL, HAWK_ENOENT, HAWK_T("unable to find '%.*js' in module '%.*js' - %js"), segs[1].len, segs[1].ptr, segs[0].len, segs[0].ptr, olderrmsg);
 		return HAWK_NULL;
 	}
 	return &mdp->mod;

@@ -325,9 +325,7 @@ void* hawk_stdmodopen (hawk_t* awk, const hawk_mod_spec_t* spec)
 
 	if (lt_dladvise_init(&adv) != 0)
 	{
-		/* the only failure of lt_dladvise_init() seems to be caused
-		 * by memory allocation failured */
-		hawk_seterrnum (awk, HAWK_NULL, HAWK_ENOMEM);
+		hawk_seterrfmt (awk, HAWK_NULL, HAWK_ESYSERR, HAWK_T("%hs"), lt_dlerror());
 		return HAWK_NULL;
 	}
 
@@ -359,6 +357,7 @@ void* hawk_stdmodopen (hawk_t* awk, const hawk_mod_spec_t* spec)
 	if (!modpath) return HAWK_NULL;
 
 	h = LoadLibrary (modpath);
+	if (!h) hawk_seterrnum (awk, HAWK_NULL, hawk_syserr_to_errnum(GetLastError());
 
 	hawk_freemem (awk, modpath);
 
@@ -390,7 +389,11 @@ void* hawk_stdmodopen (hawk_t* awk, const hawk_mod_spec_t* spec)
 	/* DosLoadModule() seems to have severe limitation on 
 	 * the file name it can load (max-8-letters.xxx) */
 	rc = DosLoadModule (errbuf, HAWK_COUNTOF(errbuf) - 1, modpath, &h);
-	if (rc != NO_ERROR) h = HAWK_NULL;
+	if (rc != NO_ERROR) 
+	{
+		h = HAWK_NULL;
+		hawk_seterrnum (awk, HAWK_NULL, hawk_syserr_to_errnum(rc));
+	}
 
 	hawk_freemem (awk, modpath);
 
@@ -420,7 +423,8 @@ void* hawk_stdmodopen (hawk_t* awk, const hawk_mod_spec_t* spec)
 	#endif
 	if (!modpath) return HAWK_NULL;
 
-	h = LoadModule (modpath);
+	h = LoadModule(modpath);
+	if (!h) hawk_seterrnum (awk, HAWK_NULL, HAWK_ESYSERR);
 
 	hawk_freemem (awk, modpath);
 	
@@ -447,10 +451,7 @@ void* hawk_stdmodopen (hawk_t* awk, const hawk_mod_spec_t* spec)
 	if (!modpath) return HAWK_NULL;
 
 	h = dlopen(modpath, RTLD_NOW);
-	if (!h)
-	{
-		hawk_seterrfmt (awk, HAWK_NULL, HAWK_ESYSERR, HAWK_T("%hs"), dlerror());
-	}
+	if (!h) hawk_seterrfmt (awk, HAWK_NULL, HAWK_ESYSERR, HAWK_T("%hs"), dlerror());
 
 	hawk_freemem (awk, modpath);
 
@@ -492,19 +493,31 @@ void* hawk_stdmodgetsym (hawk_t* awk, void* handle, const hawk_ooch_t* name)
 #endif
 
 #if defined(USE_LTDL)
-	s = lt_dlsym (handle, mname);
-
+	s = lt_dlsym(handle, mname);
+	if (!s) hawk_seterrfmt (awk, HAWK_NULL, HAWK_ESYSERR, HAWK_T("%hs"), lt_dlerror());
+	
 #elif defined(_WIN32)
-	s = GetProcAddress ((HMODULE)handle, mname);
+	s = GetProcAddress((HMODULE)handle, mname);
+	if (!s) hawk_seterrnum (awk, HAWK_NULL, hawk_syserr_to_errnum(GetLastError());
 
 #elif defined(__OS2__)
-	if (DosQueryProcAddr ((HMODULE)handle, 0, mname, (PFN*)&s) != NO_ERROR) s = HAWK_NULL;
+	{
+		APIRET rc;
+		rc = DosQueryProcAddr((HMODULE)handle, 0, mname, (PFN*)&s);
+		if (rc != NO_ERROR) 
+		{
+			s = HAWK_NULL;
+			hawk_seterrnum (awk, HAWK_NULL, hawk_syserr_to_errnum(rc));
+		}
+	}
 
 #elif defined(__DOS__) && defined(HAWK_ENABLE_DOS_DYNAMIC_MODULE)
-	s = GetProcAddress (handle, mname);
+	s = GetProcAddress(handle, mname);
+	if (!s) hawk_seterrnum (awk, HAWK_NULL, HAWK_ESYSERR);
 
 #elif defined(USE_DLFCN)
-	s = dlsym (handle, mname);
+	s = dlsym(handle, mname);
+	if (!s) hawk_seterrfmt (awk, HAWK_NULL, HAWK_ESYSERR, HAWK_T("%hs"), dlerror());
 
 #else
 	s = HAWK_NULL;
@@ -513,7 +526,7 @@ void* hawk_stdmodgetsym (hawk_t* awk, void* handle, const hawk_ooch_t* name)
 #if defined(HAWK_OOCH_IS_BCH)
 	/* nothing to do */
 #else
-	HAWK_MMGR_FREE (hawk_getmmgr(awk), mname);
+	hawk_freemem (awk, mname);
 #endif
 
 	return s;
