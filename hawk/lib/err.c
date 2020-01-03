@@ -529,24 +529,6 @@ void hawk_rtx_seterrufmt (hawk_rtx_t* rtx, const hawk_loc_t* errloc, hawk_errnum
 	rtx->_gem.errloc =  (errloc? *errloc: _nullloc);
 }
 
-
-void hawk_rtx_seterror (hawk_rtx_t* rtx, hawk_errnum_t errnum, const hawk_oocs_t* errarg, const hawk_loc_t* errloc)
-{
-	/* TODO: remove awk_rtx_seterror() and substitute hawk_rtx_seterrfmt()/seterrbfmt()/seterrufmt() */
-	const hawk_ooch_t* errfmt;
-
-	rtx->_gem.errnum = errnum;
-
-	errfmt = hawk_geterrstr(hawk_rtx_gethawk(rtx))(hawk_rtx_gethawk(rtx), errnum);
-	HAWK_ASSERT (errfmt != HAWK_NULL);
-/* TODO: this change is buggy... copying won't process arguments...
-	hawk_strxfncpy (rtx->_gem.errmsg, HAWK_COUNTOF(rtx->_gem.errmsg), errfmt, errarg);
-*/
-	hawk_copy_oocstr(rtx->_gem.errmsg, HAWK_COUNTOF(rtx->_gem.errmsg), errfmt);
-/* TODO: remove awk_rtx_seterror() and substitute hawk_rtx_seterrfmt()/seterrbfmt()/seterrufmt() */
-	rtx->_gem.errloc = (errloc? *errloc: _nullloc);
-}
-
 void hawk_rtx_errortohawk (hawk_rtx_t* rtx, hawk_t* hawk)
 {
 	/* copy error information in 'rtx' to the 'hawk' object */

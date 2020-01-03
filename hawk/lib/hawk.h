@@ -2437,10 +2437,10 @@ HAWK_EXPORT void hawk_rtx_geterrinf (
  * \a errmsg; the error line into memory pointed to by \a errlin.
  */
 HAWK_EXPORT void hawk_rtx_geterror (
-	hawk_rtx_t*       rtx,    /**< runtime context */
-	hawk_errnum_t*    errnum, /**< error number */
-	const hawk_ooch_t**   errmsg, /**< error message */
-	hawk_loc_t*       errloc  /**< error location */
+	hawk_rtx_t*         rtx,    /**< runtime context */
+	hawk_errnum_t*      errnum, /**< error number */
+	const hawk_ooch_t** errmsg, /**< error message */
+	hawk_loc_t*         errloc  /**< error location */
 );
 
 #if defined(HAWK_HAVE_INLINE)
@@ -2480,15 +2480,9 @@ HAWK_EXPORT void hawk_rtx_seterrufmt (
 #endif
 
 /**
- * The hawk_rtx_seterror() function sets error information.
+ * The hawk_rtx_errortohawk() function copies the error information stored
+ * in the \a rtx object to the \a hawk object.
  */
-HAWK_EXPORT void hawk_rtx_seterror (
-	hawk_rtx_t*        rtx,    /**< runtime context */
-	hawk_errnum_t      errnum, /**< error number */
-	const hawk_oocs_t* errarg, /**< argument array for formatting an error message */
-	const hawk_loc_t*  errloc  /**< error line */
-);
-
 HAWK_EXPORT void hawk_rtx_errortohawk (
 	hawk_rtx_t* rtx,
 	hawk_t*     hawk
