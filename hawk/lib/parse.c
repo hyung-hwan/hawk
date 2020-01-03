@@ -571,7 +571,7 @@ static int parse (hawk_t* awk)
 				/* see parse_fncall() for what is
 				 * stored into awk->tree.funs */
 				nde = (hawk_nde_t*)HAWK_HTB_VPTR(p);
-				SETERR_ARG_LOC (awk, HAWK_EFUNNF, HAWK_HTB_KPTR(p), HAWK_HTB_KLEN(p), &nde->loc);
+				hawk_seterrfmt (awk, &nde->loc, HAWK_EFUNNF, HAWK_T("function '%.*js' not defined"), HAWK_HTB_KLEN(p), HAWK_HTB_KPTR(p));
 				goto oops;
 			}
 

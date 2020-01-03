@@ -83,23 +83,9 @@ struct pafv_t
 	 (idx) <= HAWK_TYPE_MAX(hawk_int_t) && \
 	 (idx) <= HAWK_TYPE_MAX(hawk_oow_t))
 
-#define SETERR_ARGX_LOC(rtx,code,ea,loc) \
-	hawk_rtx_seterror ((rtx), (code), (ea), (loc))
+#define SETERR_ARGX_LOC(rtx,code,ea,loc) hawk_rtx_seterror ((rtx), (code), (ea), (loc))
 
-#define CLRERR(rtx) SETERR_ARGX_LOC(rtx,HAWK_ENOERR,HAWK_NULL,HAWK_NULL)
-
-#define SETERR_ARG_LOC(rtx,code,ep,el,loc) \
-	do { \
-		hawk_oocs_t __ea; \
-		__ea.len = (el); __ea.ptr = (ep); \
-		hawk_rtx_seterror ((rtx), (code), &__ea, (loc)); \
-	} while (0)
-
-#define SETERR_ARGX(rtx,code,ea) SETERR_ARGX_LOC(rtx,code,ea,HAWK_NULL)
-#define SETERR_ARG(rtx,code,ep,el) SETERR_ARG_LOC(rtx,code,ep,el,HAWK_NULL)
-#define SETERR_LOC(rtx,code,loc) SETERR_ARGX_LOC(rtx,code,HAWK_NULL,loc)
-#define SETERR_COD(rtx,code) SETERR_ARGX_LOC(rtx,code,HAWK_NULL,HAWK_NULL)
-
+#define CLRERR(rtx) hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_ENOERR)
 #define ADJERR_LOC(rtx,l) do { (rtx)->_gem.errloc = *(l); } while (0)
 
 static hawk_oow_t push_arg_from_vals (hawk_rtx_t* rtx, hawk_nde_fncall_t* call, void* data);
@@ -274,6 +260,7 @@ static int set_global (hawk_rtx_t* rtx, int idx, hawk_nde_var_t* var, hawk_val_t
 	if (!(rtx->awk->opt.trait & HAWK_FLEXMAP))
 	{
 		hawk_errnum_t errnum = HAWK_ENOERR;
+		const hawk_ooch_t* errfmt;
 
 		if (vtype == HAWK_VAL_MAP)
 		{
@@ -302,12 +289,17 @@ static int set_global (hawk_rtx_t* rtx, int idx, hawk_nde_var_t* var, hawk_val_t
 			}
 			else
 			{
-				errnum = HAWK_ENSCALARTOMAP;
+				errnum = HAWK_ESCALARTOMAP;
+				errfmt = HAWK_T("not allowed to change a scalar '%.*js' to a map");
 			}
 		}
 		else
 		{
-			if (old_vtype == HAWK_VAL_MAP) errnum = HAWK_ENMAPTOSCALAR;
+			if (old_vtype == HAWK_VAL_MAP) 
+			{
+				errnum = HAWK_EMAPTOSCALAR;
+				errfmt = HAWK_T("not allowed to change a map '%.*js' to a scalar");
+			}
 		}
 	
 		if (errnum != HAWK_ENOERR)
@@ -318,14 +310,14 @@ static int set_global (hawk_rtx_t* rtx, int idx, hawk_nde_var_t* var, hawk_val_t
 			if (var)
 			{
 				/* global variable */
-				SETERR_ARGX_LOC (rtx, errnum, &var->id.name, &var->loc);
+				hawk_rtx_seterrfmt (rtx, &var->loc, errnum, errfmt, var->id.name.len, var->id.name.ptr);
 			}
 			else
 			{
 				/* hawk_rtx_setgbl() has been called */
 				hawk_oocs_t ea;
 				ea.ptr = (hawk_ooch_t*)hawk_getgblname(hawk_rtx_gethawk(rtx), idx, &ea.len);
-				SETERR_ARGX (rtx, errnum, &ea);
+				hawk_rtx_seterrfmt (rtx, HAWK_NULL, errnum, errfmt, ea.len, ea.ptr);
 			}
 
 			return -1;
@@ -345,7 +337,7 @@ static int set_global (hawk_rtx_t* rtx, int idx, hawk_nde_var_t* var, hawk_val_t
 
 			hawk_oocs_t ea;
 			ea.ptr = (hawk_ooch_t*)hawk_getgblname(hawk_rtx_gethawk(rtx), idx, &ea.len);
-			SETERR_ARGX (rtx, HAWK_ENSCALARTOMAP, &ea);
+			hawk_rtx_seterrfmt (rtx, HAWK_NULL, HAWK_ESCALARTOMAP, HAWK_T("not allowed to change a scalar '%.*js' to a map"), ea.len, ea.ptr);
 			return -1;
 		}
 	}
@@ -377,7 +369,7 @@ static int set_global (hawk_rtx_t* rtx, int idx, hawk_nde_var_t* var, hawk_val_t
 				{
 					/* '\0' is included in the value */
 					hawk_rtx_freemem (rtx, out.u.cpldup.ptr);
-					SETERR_COD (rtx, HAWK_ECONVFMTCHR);
+					hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_ECONVFMTCHR);
 					return -1;
 				}
 			}
@@ -510,7 +502,7 @@ static int set_global (hawk_rtx_t* rtx, int idx, hawk_nde_var_t* var, hawk_val_t
 				if (out.u.cpldup.ptr[i] == HAWK_T('\0'))
 				{
 					hawk_rtx_freemem (rtx, out.u.cpldup.ptr);
-					SETERR_COD (rtx, HAWK_EOFMTCHR);
+					hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EOFMTCHR);
 					return -1;
 				}
 			}
@@ -1191,7 +1183,7 @@ static int prepare_globals (hawk_rtx_t* rtx)
 		--ngbls;
 		if (__raw_push(rtx,hawk_val_nil) <= -1)
 		{
-			SETERR_COD (rtx, HAWK_ENOMEM);
+			hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_ENOMEM);
 			goto oops;
 		}
 	}	
@@ -1345,7 +1337,7 @@ oops:
 	 * it is ok to do so as the values pushed are
 	 * nils and binary numbers. */
 	rtx->stack_top = saved_stack_top;
-	SETERR_COD (rtx, HAWK_ENOMEM);
+	hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_ENOMEM);
 	return -1;
 }
 
@@ -1491,15 +1483,9 @@ static hawk_fun_t* find_fun (hawk_rtx_t* rtx, const hawk_ooch_t* name)
 	hawk_htb_pair_t* pair;
 
 	pair = hawk_htb_search(rtx->awk->tree.funs, name, hawk_count_oocstr(name));
-
 	if (!pair)
 	{
-		hawk_oocs_t nm;
-
-		nm.ptr = (hawk_ooch_t*)name;
-		nm.len = hawk_count_oocstr(name);
-
-		SETERR_ARGX (rtx, HAWK_EFUNNF, &nm);
+		hawk_rtx_seterrfmt (rtx, HAWK_NULL, HAWK_EFUNNF, HAWK_T("unable to find function '%js'"), name);
 		return HAWK_NULL;
 	}
 
@@ -1554,7 +1540,7 @@ hawk_val_t* hawk_rtx_callfun (hawk_rtx_t* rtx, hawk_fun_t* fun, hawk_val_t* args
 	{
 		/* cannot call the function again when exit() is called
 		 * in an AWK program or hawk_rtx_halt() is invoked */
-		SETERR_COD (rtx, HAWK_EPERM);
+		hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EPERM);
 		return HAWK_NULL;
 	}
 	/*rtx->exit_level = EXIT_NONE;*/
@@ -1581,7 +1567,7 @@ hawk_val_t* hawk_rtx_callfun (hawk_rtx_t* rtx, hawk_fun_t* fun, hawk_val_t* args
 	{
 		/* TODO: is this correct? what if i want to 
 		 *       allow arbitrary numbers of arguments? */
-		SETERR_COD (rtx, HAWK_EARGTM);
+		hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EARGTM);
 		return HAWK_NULL;
 	}
 
@@ -1947,7 +1933,7 @@ static int run_block (hawk_rtx_t* rtx, hawk_nde_blk_t* nde)
 	if (rtx->awk->opt.depth.s.block_run > 0 &&
 	    rtx->depth.block >= rtx->awk->opt.depth.s.block_run)
 	{
-		SETERR_LOC (rtx, HAWK_EBLKNST, &nde->loc);
+		hawk_rtx_seterrnum (rtx, &nde->loc, HAWK_EBLKNST);
 		return -1;;
 	}
 
@@ -2339,7 +2325,7 @@ static int run_foreach (hawk_rtx_t* rtx, hawk_nde_foreach_t* nde)
 	else if (rvtype != HAWK_VAL_MAP)
 	{
 		hawk_rtx_refdownval (rtx, rv);
-		SETERR_LOC (rtx, HAWK_ENOTMAPIN, &test->right->loc);
+		hawk_rtx_seterrnum (rtx, &test->right->loc, HAWK_ENOTMAPIN);
 		return -1;
 	}
 	map = ((hawk_val_map_t*)rv)->map;
@@ -2386,7 +2372,7 @@ static int run_return (hawk_rtx_t* rtx, hawk_nde_return_t* nde)
 				/* cannot return a map */
 				hawk_rtx_refupval (rtx, val);
 				hawk_rtx_refdownval (rtx, val);
-				SETERR_LOC (rtx, HAWK_EMAPRET, &nde->loc);
+				hawk_rtx_seterrnum (rtx, &nde->loc, HAWK_EMAPRET);
 				return -1;
 			}
 		}
@@ -2425,23 +2411,23 @@ static int run_exit (hawk_rtx_t* rtx, hawk_nde_exit_t* nde)
 	return 0;
 }
 
-static int run_next (hawk_rtx_t* run, hawk_nde_next_t* nde)
+static int run_next (hawk_rtx_t* rtx, hawk_nde_next_t* nde)
 {
 	/* the parser checks if next has been called in the begin/end
-	 * block or whereever inappropriate. so the runtime doesn't 
+	 * block or whereever inappropriate. so the rtxtime doesn't 
 	 * check that explicitly */
-	if  (run->active_block == (hawk_nde_blk_t*)run->awk->tree.begin)
+	if  (rtx->active_block == (hawk_nde_blk_t*)rtx->awk->tree.begin)
 	{
-		SETERR_LOC (run, HAWK_ERNEXTBEG, &nde->loc);
+		hawk_rtx_seterrnum (rtx, &nde->loc, HAWK_ERNEXTBEG);
 		return -1;
 	}
-	else if (run->active_block == (hawk_nde_blk_t*)run->awk->tree.end)
+	else if (rtx->active_block == (hawk_nde_blk_t*)rtx->awk->tree.end)
 	{
-		SETERR_LOC (run, HAWK_ERNEXTEND, &nde->loc);
+		hawk_rtx_seterrnum (rtx, &nde->loc, HAWK_ERNEXTEND);
 		return -1;
 	}
 
-	run->exit_level = EXIT_NEXT;
+	rtx->exit_level = EXIT_NEXT;
 	return 0;
 }
 
@@ -2452,12 +2438,12 @@ static int run_nextinfile (hawk_rtx_t* rtx, hawk_nde_nextfile_t* nde)
 	/* normal nextfile statement */
 	if  (rtx->active_block == (hawk_nde_blk_t*)rtx->awk->tree.begin)
 	{
-		SETERR_LOC (rtx, HAWK_ERNEXTFBEG, &nde->loc);
+		hawk_rtx_seterrnum (rtx, &nde->loc, HAWK_ERNEXTFBEG);
 		return -1;
 	}
 	else if (rtx->active_block == (hawk_nde_blk_t*)rtx->awk->tree.end)
 	{
-		SETERR_LOC (rtx, HAWK_ERNEXTFEND, &nde->loc);
+		hawk_rtx_seterrnum (rtx, &nde->loc, HAWK_ERNEXTFEND);
 		return -1;
 	}
 
@@ -2627,7 +2613,7 @@ static int run_delete_named (hawk_rtx_t* rtx, hawk_nde_var_t* var)
 
 		if (HAWK_RTX_GETVALTYPE (rtx, val) != HAWK_VAL_MAP)
 		{
-			SETERR_ARGX_LOC (rtx, HAWK_ENOTDEL, &var->id.name, &var->loc);
+			hawk_rtx_seterrfmt (rtx, &var->loc, HAWK_ENOTDEL, HAWK_T("'%.*js' not deletable"), var->id.name.len, var->id.name.ptr);
 			return -1;
 		}
 
@@ -2723,7 +2709,7 @@ static int run_delete_unnamed (hawk_rtx_t* rtx, hawk_nde_var_t* var)
 
 		if (vtype != HAWK_VAL_MAP)
 		{
-			SETERR_ARGX_LOC (rtx, HAWK_ENOTDEL, &var->id.name, &var->loc);
+			hawk_rtx_seterrfmt (rtx, &var->loc, HAWK_ENOTDEL, HAWK_T("'%.*js' not deletable"), var->id.name.len, var->id.name.ptr);
 			return -1;
 		}
 
@@ -2767,7 +2753,7 @@ static int run_delete (hawk_rtx_t* rtx, hawk_nde_delete_t* nde)
 			/* the delete statement cannot be called with other nodes than
 			 * the variables such as a named variable, a named indexed variable, etc */
 			HAWK_ASSERT (!"should never happen - wrong target for delete");
-			SETERR_LOC (rtx, HAWK_EBADARG, &var->loc);
+			hawk_rtx_seterrnum (rtx, &var->loc, HAWK_EBADARG);
 			return -1;
 	}
 
@@ -2833,7 +2819,7 @@ static int reset_variable (hawk_rtx_t* rtx, hawk_nde_var_t* var)
 		default:
 			/* the reset statement can only be called with plain variables */
 			HAWK_ASSERT (!"should never happen - wrong target for reset");
-			SETERR_LOC (rtx, HAWK_EBADARG, &var->loc);
+			hawk_rtx_seterrnum (rtx, &var->loc, HAWK_EBADARG);
 			return -1;
 	}
 }
@@ -3309,7 +3295,7 @@ static hawk_val_t* eval_group (hawk_rtx_t* rtx, hawk_nde_t* nde)
 	/* eval_binop_in evaluates the HAWK_NDE_GRP specially.
 	 * so this function should never be reached. */
 	HAWK_ASSERT (!"should never happen - NDE_GRP only for in");
-	SETERR_LOC (rtx, HAWK_EINTERN, &nde->loc);
+	hawk_rtx_seterrnum (rtx, &nde->loc, HAWK_EINTERN);
 	return HAWK_NULL;
 #endif
 
@@ -3464,11 +3450,11 @@ static hawk_val_t* do_assignment (hawk_rtx_t* rtx, hawk_nde_t* var, hawk_val_t* 
 	return ret;
 
 exit_on_error:
-	SETERR_LOC (rtx, errnum, &var->loc);
+	hawk_rtx_seterrnum (rtx, &var->loc, errnum);
 	return HAWK_NULL;
 }
 
-static hawk_val_t* do_assignment_nonidx (hawk_rtx_t* run, hawk_nde_var_t* var, hawk_val_t* val)
+static hawk_val_t* do_assignment_nonidx (hawk_rtx_t* rtx, hawk_nde_var_t* var, hawk_val_t* val)
 {
 	hawk_val_type_t vtype;
 
@@ -3488,42 +3474,43 @@ static hawk_val_t* do_assignment_nonidx (hawk_rtx_t* run, hawk_nde_var_t* var, h
 		{
 			hawk_htb_pair_t* pair;
 
-			pair = hawk_htb_search (run->named, var->id.name.ptr, var->id.name.len);
+			pair = hawk_htb_search(rtx->named, var->id.name.ptr, var->id.name.len);
 
-			if (!(run->awk->opt.trait & HAWK_FLEXMAP))
+			if (!(rtx->awk->opt.trait & HAWK_FLEXMAP))
 			{
-				if (pair && HAWK_RTX_GETVALTYPE (rtx, (hawk_val_t*)HAWK_HTB_VPTR(pair)) == HAWK_VAL_MAP)
+				if (pair && HAWK_RTX_GETVALTYPE(rtx, (hawk_val_t*)HAWK_HTB_VPTR(pair)) == HAWK_VAL_MAP)
 				{
 					/* old value is a map - it can only be accessed through indexing. */
-					hawk_errnum_t errnum;
-					errnum = (vtype == HAWK_VAL_MAP)? HAWK_ENMAPTOMAP: HAWK_ENMAPTOSCALAR;
-					SETERR_ARGX_LOC (run, errnum, &var->id.name, &var->loc);
+					if (vtype == HAWK_VAL_MAP)
+						hawk_rtx_seterrfmt (rtx, &var->loc, HAWK_EMAPTOMAP, HAWK_T("not allowed to change a map '%.*js' to another map"), var->id.name.len, var->id.name.ptr);
+					else
+						hawk_rtx_seterrfmt (rtx, &var->loc, HAWK_EMAPTOSCALAR, HAWK_T("not allowed to change a map '%.*js' to a scalar"), var->id.name.len, var->id.name.ptr);
 					return HAWK_NULL;
 				}
 				else if (vtype == HAWK_VAL_MAP)
 				{
 					/* old value is not a map but a new value is a map.
 					 * a map cannot be assigned to a variable if FLEXMAP is off. */
-					SETERR_ARGX_LOC (run, HAWK_EMAPTONVAR, &var->id.name, &var->loc);
+					hawk_rtx_seterrfmt (rtx, &var->loc, HAWK_EMAPTOVAR, HAWK_T("not allowed to assign a map to a variable '%.*js'"), var->id.name.len, var->id.name.ptr);
 					return HAWK_NULL;
 				}
 			}
 
-			if (hawk_htb_upsert (run->named, var->id.name.ptr, var->id.name.len, val, 0) == HAWK_NULL)
+			if (hawk_htb_upsert(rtx->named, var->id.name.ptr, var->id.name.len, val, 0) == HAWK_NULL)
 			{
-				ADJERR_LOC (run, &var->loc);
+				ADJERR_LOC (rtx, &var->loc);
 				return HAWK_NULL;
 			}
 
-			hawk_rtx_refupval (run, val);
+			hawk_rtx_refupval (rtx, val);
 			break;
 		}
 
 		case HAWK_NDE_GBL:
 		{
-			if (set_global(run, var->id.idxa, var, val, 1) == -1) 
+			if (set_global(rtx, var->id.idxa, var, val, 1) == -1) 
 			{
-				ADJERR_LOC (run, &var->loc);
+				ADJERR_LOC (rtx, &var->loc);
 				return HAWK_NULL;
 			}
 			break;
@@ -3531,59 +3518,61 @@ static hawk_val_t* do_assignment_nonidx (hawk_rtx_t* run, hawk_nde_var_t* var, h
 
 		case HAWK_NDE_LCL:
 		{
-			hawk_val_t* old = RTX_STACK_LCL(run,var->id.idxa);
+			hawk_val_t* old = RTX_STACK_LCL(rtx,var->id.idxa);
 
-			if (!(run->awk->opt.trait & HAWK_FLEXMAP))
+			if (!(rtx->awk->opt.trait & HAWK_FLEXMAP))
 			{
-				if (HAWK_RTX_GETVALTYPE (rtx, old) == HAWK_VAL_MAP)
+				if (HAWK_RTX_GETVALTYPE(rtx, old) == HAWK_VAL_MAP)
 				{
 					/* old value is a map - it can only be accessed through indexing. */
-					hawk_errnum_t errnum;
-					errnum = (vtype == HAWK_VAL_MAP)? HAWK_ENMAPTOMAP: HAWK_ENMAPTOSCALAR;
-					SETERR_ARGX_LOC (run, errnum, &var->id.name, &var->loc);
+					if (vtype == HAWK_VAL_MAP)
+						hawk_rtx_seterrfmt (rtx, &var->loc, HAWK_EMAPTOMAP, HAWK_T("not allowed to change a map '%.*js' to another map"), var->id.name.len, var->id.name.ptr);
+					else
+						hawk_rtx_seterrfmt (rtx, &var->loc, HAWK_EMAPTOSCALAR, HAWK_T("not allowed to change a map '%.*js' to a scalar"), var->id.name.len, var->id.name.ptr);
 					return HAWK_NULL;
 				}
 				else if (vtype == HAWK_VAL_MAP)
 				{
 					/* old value is not a map but a new value is a map.
 					 * a map cannot be assigned to a variable if FLEXMAP is off. */
-					SETERR_ARGX_LOC (run, HAWK_EMAPTONVAR, &var->id.name, &var->loc);
+					hawk_rtx_seterrfmt (rtx, &var->loc, HAWK_EMAPTOVAR, HAWK_T("not allowed to assign a map to a variable '%.*js'"), var->id.name.len, var->id.name.ptr);
 					return HAWK_NULL;
 				}
 			}
 
-			hawk_rtx_refdownval (run, old);
-			RTX_STACK_LCL(run,var->id.idxa) = val;
-			hawk_rtx_refupval (run, val);
+			hawk_rtx_refdownval (rtx, old);
+			RTX_STACK_LCL(rtx,var->id.idxa) = val;
+			hawk_rtx_refupval (rtx, val);
 			break;
 		}
 
 		case HAWK_NDE_ARG:
 		{
-			hawk_val_t* old = RTX_STACK_ARG(run,var->id.idxa);
+			hawk_val_t* old = RTX_STACK_ARG(rtx,var->id.idxa);
 
-			if (!(run->awk->opt.trait & HAWK_FLEXMAP))
+			if (!(rtx->awk->opt.trait & HAWK_FLEXMAP))
 			{
 				if (HAWK_RTX_GETVALTYPE(rtx, old) == HAWK_VAL_MAP)
 				{
 					/* old value is a map - it can only be accessed through indexing. */
-					hawk_errnum_t errnum;
-					errnum = (vtype == HAWK_VAL_MAP)? HAWK_ENMAPTOMAP: HAWK_ENMAPTOSCALAR;
-					SETERR_ARGX_LOC (run, errnum, &var->id.name, &var->loc);
+					if (vtype == HAWK_VAL_MAP)
+						hawk_rtx_seterrfmt (rtx, &var->loc, HAWK_EMAPTOMAP, HAWK_T("not allowed to change a map '%.*js' to another map"), var->id.name.len, var->id.name.ptr);
+					else
+						hawk_rtx_seterrfmt (rtx, &var->loc, HAWK_EMAPTOSCALAR, HAWK_T("not allowed to change a map '%.*js' to a scalar"), var->id.name.len, var->id.name.ptr);
 					return HAWK_NULL;
 				}
 				else if (vtype == HAWK_VAL_MAP)
 				{
 					/* old value is not a map but a new value is a map.
 					 * a map cannot be assigned to a variable if FLEXMAP is off. */
-					SETERR_ARGX_LOC (run, HAWK_EMAPTONVAR, &var->id.name, &var->loc);
+					hawk_rtx_seterrfmt (rtx, &var->loc, HAWK_EMAPTOVAR, HAWK_T("not allowed to assign a map to a variable '%.*js'"), var->id.name.len, var->id.name.ptr);
 					return HAWK_NULL;
 				}
 			}
 
-			hawk_rtx_refdownval (run, old);
-			RTX_STACK_ARG(run,var->id.idxa) = val;
-			hawk_rtx_refupval (run, val);
+			hawk_rtx_refdownval (rtx, old);
+			RTX_STACK_ARG(rtx,var->id.idxa) = val;
+			hawk_rtx_refupval (rtx, val);
 			break;
 		}
 
@@ -3631,13 +3620,13 @@ retry:
 			break;
 	} 
 
-	mvtype = HAWK_RTX_GETVALTYPE (rtx, map);
+	mvtype = HAWK_RTX_GETVALTYPE(rtx, map);
 	if (mvtype == HAWK_VAL_NIL)
 	{
 		hawk_val_t* tmp;
 
 		/* the map is not initialized yet */
-		tmp = hawk_rtx_makemapval (rtx);
+		tmp = hawk_rtx_makemapval(rtx);
 		if (tmp == HAWK_NULL) 
 		{
 			ADJERR_LOC (rtx, &var->loc);
@@ -3667,7 +3656,7 @@ retry:
 				int x;
 
 				hawk_rtx_refupval (rtx, tmp);
-				x = hawk_rtx_setgbl (rtx, (int)var->id.idxa, tmp);
+				x = hawk_rtx_setgbl(rtx, (int)var->id.idxa, tmp);
 				hawk_rtx_refdownval (rtx, tmp);
 				if (x <= -1)
 				{
@@ -3714,7 +3703,7 @@ retry:
 		{
 			/* you can't manipulate a variable pointing to
 			 * a scalar value with an index if FLEXMAP is off. */
-			SETERR_LOC (rtx, HAWK_ESCALARTOMAP, &var->loc);
+			hawk_rtx_seterrfmt (rtx, &var->loc, HAWK_ESCALARTOMAP, HAWK_T("not allowed to change a scalar '%.*js' to a map"), var->id.name.len, var->id.name.ptr);
 			return HAWK_NULL;
 		}
 	}
@@ -3724,8 +3713,7 @@ retry:
 	if (str == HAWK_NULL) return HAWK_NULL;
 
 #if defined(DEBUG_RUN)
-	hawk_logfmt (hawk_rtx_gethawk(rtx), HAWK_T("**** index str=>%s, map->ref=%d, map->type=%d\n"), 
-		str, (int)map->ref, (int)map->type);
+	hawk_logfmt (hawk_rtx_gethawk(rtx), HAWK_T("**** index str=>%s, map->ref=%d, map->type=%d\n"), str, (int)map->ref, (int)map->type);
 #endif
 
 	if (hawk_htb_upsert(map->map, str, len, val, 0) == HAWK_NULL)
@@ -3757,13 +3745,13 @@ static hawk_val_t* do_assignment_pos (hawk_rtx_t* rtx, hawk_nde_pos_t* pos, hawk
 
 	if (n <= -1) 
 	{
-		SETERR_LOC (rtx, HAWK_EPOSIDX, &pos->loc);
+		hawk_rtx_seterrnum (rtx, &pos->loc, HAWK_EPOSIDX);
 		return HAWK_NULL;
 	}
 
 	if (!IS_VALID_POSIDX(lv)) 
 	{
-		SETERR_LOC (rtx, HAWK_EPOSIDX, &pos->loc);
+		hawk_rtx_seterrnum (rtx, &pos->loc, HAWK_EPOSIDX);
 		return HAWK_NULL;
 	}
 
@@ -3777,7 +3765,7 @@ static hawk_val_t* do_assignment_pos (hawk_rtx_t* rtx, hawk_nde_pos_t* pos, hawk
 		hawk_rtx_valtostr_out_t out;
 
 		out.type = HAWK_RTX_VALTOSTR_CPLDUP;
-		if (hawk_rtx_valtostr (rtx, val, &out) <= -1)
+		if (hawk_rtx_valtostr(rtx, val, &out) <= -1)
 		{
 			ADJERR_LOC (rtx, &pos->loc);
 			return HAWK_NULL;
@@ -3786,7 +3774,7 @@ static hawk_val_t* do_assignment_pos (hawk_rtx_t* rtx, hawk_nde_pos_t* pos, hawk
 		str = out.u.cpldup;
 	}
 	
-	n = hawk_rtx_setrec (rtx, (hawk_oow_t)lv, &str);
+	n = hawk_rtx_setrec(rtx, (hawk_oow_t)lv, &str);
 
 	if (vtype == HAWK_VAL_STR) 
 	{
@@ -4018,7 +4006,7 @@ static hawk_val_t* eval_binop_in (hawk_rtx_t* rtx, hawk_nde_t* left, hawk_nde_t*
 	{
 		/* the compiler should have handled this case */
 		HAWK_ASSERT (!"should never happen - it needs a plain variable");
-		SETERR_LOC (rtx, HAWK_EINTERN, &right->loc);
+		hawk_rtx_seterrnum (rtx, &right->loc, HAWK_EINTERN);
 		return HAWK_NULL;
 	}
 
@@ -4064,7 +4052,7 @@ static hawk_val_t* eval_binop_in (hawk_rtx_t* rtx, hawk_nde_t* left, hawk_nde_t*
 	if (str != idxbuf) hawk_rtx_freemem (rtx, str);
 	hawk_rtx_refdownval (rtx, rv);
 
-	SETERR_LOC (rtx, HAWK_ENOTMAPNILIN, &right->loc);
+	hawk_rtx_seterrnum (rtx, &right->loc, HAWK_ENOTMAPNILIN);
 	return HAWK_NULL;
 }
 
@@ -4076,7 +4064,7 @@ static hawk_val_t* eval_binop_bor (
 	if (hawk_rtx_valtoint (rtx, left, &l1) <= -1 ||
 	    hawk_rtx_valtoint (rtx, right, &l2) <= -1)
 	{
-		SETERR_COD (rtx, HAWK_EOPERAND);
+		hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EOPERAND);
 		return HAWK_NULL;
 	}
 
@@ -4091,7 +4079,7 @@ static hawk_val_t* eval_binop_bxor (
 	if (hawk_rtx_valtoint (rtx, left, &l1) <= -1 ||
 	    hawk_rtx_valtoint (rtx, right, &l2) <= -1)
 	{
-		SETERR_COD (rtx, HAWK_EOPERAND);
+		hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EOPERAND);
 		return HAWK_NULL;
 	}
 
@@ -4106,7 +4094,7 @@ static hawk_val_t* eval_binop_band (
 	if (hawk_rtx_valtoint (rtx, left, &l1) <= -1 ||
 	    hawk_rtx_valtoint (rtx, right, &l2) <= -1)
 	{
-		SETERR_COD (rtx, HAWK_EOPERAND);
+		hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EOPERAND);
 		return HAWK_NULL;
 	}
 
@@ -4165,7 +4153,7 @@ static HAWK_INLINE int __cmp_ensure_not_equal (hawk_rtx_t* rtx, cmp_op_t op_hint
 			return 1;  /* make LE false by claiming greater */
 
 		default:
-			SETERR_COD (rtx, HAWK_EOPERAND);
+			hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EOPERAND);
 			return -1;
 	}
 }
@@ -4690,7 +4678,7 @@ static HAWK_INLINE int __cmp_map_fun (hawk_rtx_t* rtx, hawk_val_t* left, hawk_va
 static HAWK_INLINE int __cmp_map_map (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t* right, cmp_op_t op_hint)
 {
 	/* can't compare a map with a map */
-	SETERR_COD (rtx, HAWK_EOPERAND);
+	hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EOPERAND);
 	return CMP_ERROR; 
 }
 /* -------------------------------------------------------------------- */
@@ -4721,7 +4709,7 @@ static HAWK_INLINE int __cmp_val (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t*
 	    (lvtype == HAWK_VAL_MAP || rvtype == HAWK_VAL_MAP))
 	{
 		/* a map can't be compared againt other values */
-		SETERR_COD (rtx, HAWK_EOPERAND);
+		hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EOPERAND);
 		return -1;
 	}
 
@@ -4877,7 +4865,7 @@ static hawk_val_t* eval_binop_lshift (hawk_rtx_t* rtx, hawk_val_t* left, hawk_va
 	if (hawk_rtx_valtoint(rtx, left, &l1) <= -1 ||
 	    hawk_rtx_valtoint(rtx, right, &l2) <= -1)
 	{
-		SETERR_COD (rtx, HAWK_EOPERAND);
+		hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EOPERAND);
 		return HAWK_NULL;
 	}
 
@@ -4891,7 +4879,7 @@ static hawk_val_t* eval_binop_rshift (hawk_rtx_t* rtx, hawk_val_t* left, hawk_va
 	if (hawk_rtx_valtoint(rtx, left, &l1) <= -1 ||
 	    hawk_rtx_valtoint(rtx, right, &l2) <= -1)
 	{
-		SETERR_COD (rtx, HAWK_EOPERAND);
+		hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EOPERAND);
 		return HAWK_NULL;
 	}
 
@@ -4909,7 +4897,7 @@ static hawk_val_t* eval_binop_plus (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_
 
 	if (n1 <= -1 || n2 <= -1)
 	{
-		SETERR_COD (rtx, HAWK_EOPERAND);
+		hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EOPERAND);
 		return HAWK_NULL;
 	}
 	/*
@@ -4939,7 +4927,7 @@ static hawk_val_t* eval_binop_minus (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val
 
 	if (n1 <= -1 || n2 <= -1)
 	{
-		SETERR_COD (rtx, HAWK_EOPERAND);
+		hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EOPERAND);
 		return HAWK_NULL;
 	}
 
@@ -4962,7 +4950,7 @@ static hawk_val_t* eval_binop_mul (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t
 
 	if (n1 <= -1 || n2 <= -1)
 	{
-		SETERR_COD (rtx, HAWK_EOPERAND);
+		hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EOPERAND);
 		return HAWK_NULL;
 	}
 
@@ -4986,7 +4974,7 @@ static hawk_val_t* eval_binop_div (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t
 
 	if (n1 <= -1 || n2 <= -1) 
 	{
-		SETERR_COD (rtx, HAWK_EOPERAND);
+		hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EOPERAND);
 		return HAWK_NULL;
 	}
 
@@ -4996,7 +4984,7 @@ static hawk_val_t* eval_binop_div (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t
 		case 0:
 			if  (l2 == 0) 
 			{
-				SETERR_COD (rtx, HAWK_EDIVBY0);
+				hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EDIVBY0);
 				return HAWK_NULL;
 			}
 
@@ -5043,7 +5031,7 @@ static hawk_val_t* eval_binop_idiv (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_
 
 	if (n1 <= -1 || n2 <= -1) 
 	{
-		SETERR_COD (rtx, HAWK_EOPERAND);
+		hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EOPERAND);
 		return HAWK_NULL;
 	}
 
@@ -5053,7 +5041,7 @@ static hawk_val_t* eval_binop_idiv (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_
 		case 0:
 			if (l2 == 0) 
 			{
-				SETERR_COD (rtx, HAWK_EDIVBY0);
+				hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EDIVBY0);
 				return HAWK_NULL;
 			}
 			res = hawk_rtx_makeintval (
@@ -5094,7 +5082,7 @@ static hawk_val_t* eval_binop_mod (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t
 
 	if (n1 <= -1 || n2 <= -1)
 	{
-		SETERR_COD (rtx, HAWK_EOPERAND);
+		hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EOPERAND);
 		return HAWK_NULL;
 	}
 
@@ -5104,7 +5092,7 @@ static hawk_val_t* eval_binop_mod (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t
 		case 0:
 			if  (l2 == 0) 
 			{
-				SETERR_COD (rtx, HAWK_EDIVBY0);
+				hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EDIVBY0);
 				return HAWK_NULL;
 			}
 			res = hawk_rtx_makeintval(rtx, (hawk_int_t)l1 % (hawk_int_t)l2);
@@ -5138,7 +5126,7 @@ static hawk_val_t* eval_binop_exp (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t
 
 	if (n1 <= -1 || n2 <= -1) 
 	{
-		SETERR_COD (rtx, HAWK_EOPERAND);
+		hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EOPERAND);
 		return HAWK_NULL;
 	}
 
@@ -5155,7 +5143,7 @@ static hawk_val_t* eval_binop_exp (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t
 			}
 			else if (l1 == 0)
 			{
-				SETERR_COD (rtx, HAWK_EDIVBY0);
+				hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EDIVBY0);
 				return HAWK_NULL;
 			}
 			else
@@ -5177,7 +5165,7 @@ static hawk_val_t* eval_binop_exp (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t
 			}
 			else if (r1 == 0.0)
 			{
-				SETERR_COD (rtx, HAWK_EDIVBY0);
+				hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EDIVBY0);
 				return HAWK_NULL;
 			}
 			else
@@ -5416,7 +5404,7 @@ static hawk_val_t* eval_incpre (hawk_rtx_t* rtx, hawk_nde_t* nde)
 	    /*exp->left->type > HAWK_NDE_ARGIDX) XXX */
 	    exp->left->type > HAWK_NDE_POS)
 	{
-		SETERR_LOC (rtx, HAWK_EOPERAND, &nde->loc);
+		hawk_rtx_seterrnum (rtx, &nde->loc, HAWK_EOPERAND);
 		return HAWK_NULL;
 	}
 
@@ -5433,7 +5421,7 @@ static hawk_val_t* eval_incpre (hawk_rtx_t* rtx, hawk_nde_t* nde)
 	else
 	{
 		HAWK_ASSERT (!"should never happen - invalid opcode");
-		SETERR_LOC (rtx, HAWK_EINTERN, &nde->loc);
+		hawk_rtx_seterrnum (rtx, &nde->loc, HAWK_EINTERN);
 		return HAWK_NULL;
 	}
 
@@ -5535,7 +5523,7 @@ static hawk_val_t* eval_incpst (hawk_rtx_t* rtx, hawk_nde_t* nde)
 	    /*exp->left->type > HAWK_NDE_ARGIDX) XXX */
 	    exp->left->type > HAWK_NDE_POS)
 	{
-		SETERR_LOC (rtx, HAWK_EOPERAND, &nde->loc);
+		hawk_rtx_seterrnum (rtx, &nde->loc, HAWK_EOPERAND);
 		return HAWK_NULL;
 	}
 
@@ -5552,7 +5540,7 @@ static hawk_val_t* eval_incpst (hawk_rtx_t* rtx, hawk_nde_t* nde)
 	else
 	{
 		HAWK_ASSERT (!"should never happen - invalid opcode");
-		SETERR_LOC (rtx, HAWK_EINTERN, &nde->loc);
+		hawk_rtx_seterrnum (rtx, &nde->loc, HAWK_EINTERN);
 		return HAWK_NULL;
 	}
 
@@ -5725,7 +5713,7 @@ static HAWK_INLINE hawk_val_t* eval_fncall_fun_ex (hawk_rtx_t* rtx, hawk_nde_t* 
 		pair = hawk_htb_search(rtx->awk->tree.funs, call->u.fun.name.ptr, call->u.fun.name.len);
 		if (!pair) 
 		{
-			SETERR_ARGX_LOC (rtx, HAWK_EFUNNF, &call->u.fun.name, &nde->loc);
+			hawk_rtx_seterrfmt (rtx, &nde->loc, HAWK_EFUNNF, HAWK_T("function '%.*js' not found"), call->u.fun.name.len, call->u.fun.name.ptr);
 			return HAWK_NULL;
 		}
 
@@ -5745,7 +5733,7 @@ static HAWK_INLINE hawk_val_t* eval_fncall_fun_ex (hawk_rtx_t* rtx, hawk_nde_t* 
 	{
 		/* TODO: is this correct? what if i want to 
 		 *       allow arbitarary numbers of arguments? */
-		SETERR_LOC (rtx, HAWK_EARGTM, &nde->loc);
+		hawk_rtx_seterrnum (rtx, &nde->loc, HAWK_EARGTM);
 		return HAWK_NULL;
 	}
 
@@ -5768,7 +5756,7 @@ static hawk_val_t* eval_fncall_var (hawk_rtx_t* rtx, hawk_nde_t* nde)
 	hawk_rtx_refupval (rtx, fv);
 	if (HAWK_RTX_GETVALTYPE(rtx, fv) != HAWK_VAL_FUN)
 	{
-		SETERR_ARGX_LOC (rtx, HAWK_ENOTFUN, &call->u.var.var->id.name, &nde->loc);
+		hawk_rtx_seterrfmt (rtx, &nde->loc, HAWK_ENOTFUN, HAWK_T("non-function value in %.*js"), call->u.var.var->id.name.len, call->u.var.var->id.name.ptr);
 		rv = HAWK_NULL;
 	}
 	else
@@ -5870,14 +5858,14 @@ static hawk_val_t* __eval_call (
 
 	if (__raw_push(rtx,(void*)rtx->stack_base) <= -1) 
 	{
-		SETERR_LOC (rtx, HAWK_ENOMEM, &nde->loc);
+		hawk_rtx_seterrnum (rtx, &nde->loc, HAWK_ENOMEM);
 		return HAWK_NULL;
 	}
 
 	if (__raw_push(rtx,(void*)saved_stack_top) <= -1) 
 	{
 		__raw_pop (rtx);
-		SETERR_LOC (rtx, HAWK_ENOMEM, &nde->loc);
+		hawk_rtx_seterrnum (rtx, &nde->loc, HAWK_ENOMEM);
 		return HAWK_NULL;
 	}
 
@@ -5886,7 +5874,7 @@ static hawk_val_t* __eval_call (
 	{
 		__raw_pop (rtx);
 		__raw_pop (rtx);
-		SETERR_LOC (rtx, HAWK_ENOMEM, &nde->loc);
+		hawk_rtx_seterrnum (rtx, &nde->loc, HAWK_ENOMEM);
 		return HAWK_NULL;
 	}
 
@@ -5896,7 +5884,7 @@ static hawk_val_t* __eval_call (
 		__raw_pop (rtx);
 		__raw_pop (rtx);
 		__raw_pop (rtx);
-		SETERR_LOC (rtx, HAWK_ENOMEM, &nde->loc);
+		hawk_rtx_seterrnum (rtx, &nde->loc, HAWK_ENOMEM);
 		return HAWK_NULL;
 	}
 
@@ -5942,7 +5930,7 @@ static hawk_val_t* __eval_call (
 			if (__raw_push(rtx, hawk_val_nil) <= -1)
 			{
 				UNWIND_RTX_STACK (rtx, nargs);
-				SETERR_LOC (rtx, HAWK_ENOMEM, &nde->loc);
+				hawk_rtx_seterrnum (rtx, &nde->loc, HAWK_ENOMEM);
 				return HAWK_NULL;
 			}
 
@@ -5972,26 +5960,10 @@ static hawk_val_t* __eval_call (
 
 		if (call->u.fnc.spec.impl)
 		{
-			hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_ENOERR);
-
 			n = call->u.fnc.spec.impl(rtx, &call->u.fnc.info);
-
 			if (n <= -1)
 			{
-				if (hawk_rtx_geterrnum(rtx) == HAWK_ENOERR)
-				{
-					/* the handler has not set the error.
-					 * fix it */ 
-					SETERR_ARGX_LOC (
-						rtx, HAWK_EFNCIMPL, 
-						&call->u.fnc.info.name, &nde->loc
-					);
-				}
-				else
-				{
-					ADJERR_LOC (rtx, &nde->loc);
-				}
-
+				ADJERR_LOC (rtx, &nde->loc);
 				/* correct the return code just in case */
 				if (n < -1) n = -1;
 			}
@@ -6146,7 +6118,7 @@ static hawk_oow_t push_arg_from_vals (hawk_rtx_t* rtx, hawk_nde_fncall_t* call, 
 				hawk_rtx_refdownval (rtx, v);
 
 				UNWIND_RTX_STACK_ARG (rtx, nargs);
-				SETERR_LOC (rtx, HAWK_ENOMEM, &call->loc);
+				hawk_rtx_seterrnum (rtx, &call->loc, HAWK_ENOMEM);
 				return (hawk_oow_t)-1;
 			}
 
@@ -6165,7 +6137,7 @@ static hawk_oow_t push_arg_from_vals (hawk_rtx_t* rtx, hawk_nde_fncall_t* call, 
 				hawk_rtx_refdownval (rtx, pafv->args[nargs]);
 
 				UNWIND_RTX_STACK_ARG (rtx, nargs);
-				SETERR_LOC (rtx, HAWK_ENOMEM, &call->loc);
+				hawk_rtx_seterrnum (rtx, &call->loc, HAWK_ENOMEM);
 				return (hawk_oow_t)-1;
 			}
 
@@ -6228,7 +6200,7 @@ static hawk_oow_t push_arg_from_nde (hawk_rtx_t* rtx, hawk_nde_fncall_t* call, v
 			hawk_rtx_refdownval (rtx, v);
 
 			UNWIND_RTX_STACK_ARG (rtx, nargs);
-			SETERR_LOC (rtx, HAWK_ENOMEM, &call->loc);
+			hawk_rtx_seterrnum (rtx, &call->loc, HAWK_ENOMEM);
 			return (hawk_oow_t)-1;
 		}
 
@@ -6338,13 +6310,13 @@ static int get_reference (hawk_rtx_t* rtx, hawk_nde_t* nde, hawk_val_t*** ref)
 
 			if (n <= -1) 
 			{
-				SETERR_LOC (rtx, HAWK_EPOSIDX, &nde->loc);
+				hawk_rtx_seterrnum (rtx, &nde->loc, HAWK_EPOSIDX);
 				return -1;
 			}
 
 			if (!IS_VALID_POSIDX(lv)) 
 			{
-				SETERR_LOC (rtx, HAWK_EPOSIDX, &nde->loc);
+				hawk_rtx_seterrnum (rtx, &nde->loc, HAWK_EPOSIDX);
 				return -1;
 			}
 
@@ -6353,7 +6325,7 @@ static int get_reference (hawk_rtx_t* rtx, hawk_nde_t* nde, hawk_val_t*** ref)
 		}
 
 		default:
-			SETERR_LOC (rtx, HAWK_ENOTREF, &nde->loc);
+			hawk_rtx_seterrnum (rtx, &nde->loc, HAWK_ENOTREF);
 			return -1;
 	}
 }
@@ -6386,7 +6358,7 @@ static hawk_val_t** get_reference_indexed (hawk_rtx_t* rtx, hawk_nde_var_t* nde,
 	}
 	else if (vtype != HAWK_VAL_MAP) 
 	{
-		SETERR_LOC (rtx, HAWK_ENOTMAP, &nde->loc);
+		hawk_rtx_seterrnum (rtx, &nde->loc, HAWK_ENOTMAP);
 		return HAWK_NULL;
 	}
 
@@ -6465,12 +6437,17 @@ static hawk_val_t* eval_fun (hawk_rtx_t* rtx, hawk_nde_t* nde)
 	if (!fun)
 	{
 		hawk_htb_pair_t* pair;
+		/* for a program like this,
+			BEGIN { @local x; abc(); x = abc; x(); } function abc() { print "abc"; }
+		 * abc is defined after BEGIN but is know to be a function inside BEGIN.
+		 * the funptr field in the node can be HAWK_NULL */
 
-		/* TODO: support bultin functions?, support module functions? */
+		/* TODO: support builtin functions?, support module functions? */
 		pair = hawk_htb_search(rtx->awk->tree.funs, ((hawk_nde_fun_t*)nde)->name.ptr, ((hawk_nde_fun_t*)nde)->name.len);
 		if (!pair)
 		{
-			SETERR_ARGX_LOC (rtx, HAWK_EFUNNF, &((hawk_nde_fun_t*)nde)->name, &nde->loc);
+			/* it's unlikely to be not found in the function table for the parser structure. but keep this code in case */
+			hawk_rtx_seterrfmt (rtx, &nde->loc, HAWK_EFUNNF, HAWK_T("function '%.*js' not found"), ((hawk_nde_fun_t*)nde)->name.len, ((hawk_nde_fun_t*)nde)->name.ptr);
 			return HAWK_NULL;
 		}
 
@@ -6533,7 +6510,7 @@ static hawk_val_t* eval_indexed (hawk_rtx_t* rtx, hawk_nde_var_t* nde, hawk_val_
 	}
 	else if (vtype != HAWK_VAL_MAP) 
 	{
-		SETERR_LOC (rtx, HAWK_ENOTMAP, &nde->loc);
+		hawk_rtx_seterrnum (rtx, &nde->loc, HAWK_ENOTMAP);
 		return HAWK_NULL;
 	}
 
@@ -6585,33 +6562,33 @@ static hawk_val_t* eval_argidx (hawk_rtx_t* rtx, hawk_nde_t* nde)
 	return eval_indexed(rtx, (hawk_nde_var_t*)nde, (hawk_val_t**)&RTX_STACK_ARG(rtx,((hawk_nde_var_t*)nde)->id.idxa));
 }
 
-static hawk_val_t* eval_pos (hawk_rtx_t* run, hawk_nde_t* nde)
+static hawk_val_t* eval_pos (hawk_rtx_t* rtx, hawk_nde_t* nde)
 {
 	hawk_nde_pos_t* pos = (hawk_nde_pos_t*)nde;
 	hawk_val_t* v;
 	hawk_int_t lv;
 	int n;
 
-	v = eval_expression (run, pos->val);
+	v = eval_expression (rtx, pos->val);
 	if (v == HAWK_NULL) return HAWK_NULL;
 
-	hawk_rtx_refupval (run, v);
-	n = hawk_rtx_valtoint (run, v, &lv);
-	hawk_rtx_refdownval (run, v);
+	hawk_rtx_refupval (rtx, v);
+	n = hawk_rtx_valtoint (rtx, v, &lv);
+	hawk_rtx_refdownval (rtx, v);
 	if (n <= -1) 
 	{
-		SETERR_LOC (run, HAWK_EPOSIDX, &nde->loc);
+		hawk_rtx_seterrnum (rtx, &nde->loc, HAWK_EPOSIDX);
 		return HAWK_NULL;
 	}
 
 	if (lv < 0)
 	{
-		SETERR_LOC (run, HAWK_EPOSIDX, &nde->loc);
+		hawk_rtx_seterrnum (rtx, &nde->loc, HAWK_EPOSIDX);
 		return HAWK_NULL;
 	}
-	if (lv == 0) v = run->inrec.d0;
-	else if (lv > 0 && lv <= (hawk_int_t)run->inrec.nflds) 
-		v = run->inrec.flds[lv-1].val;
+	if (lv == 0) v = rtx->inrec.d0;
+	else if (lv > 0 && lv <= (hawk_int_t)rtx->inrec.nflds) 
+		v = rtx->inrec.flds[lv-1].val;
 	else v = hawk_val_zls; /*hawk_val_nil;*/
 
 	return v;
@@ -7173,7 +7150,7 @@ wp_mod_main:
 			{
 				if (stack_arg_idx >= nargs_on_stack)
 				{
-					SETERR_COD (rtx, HAWK_EFMTARG);
+					hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EFMTARG);
 					return HAWK_NULL;
 				}
 				v = hawk_rtx_getarg (rtx, stack_arg_idx);
@@ -7184,7 +7161,7 @@ wp_mod_main:
 				{
 					if (stack_arg_idx >= nargs_on_stack)
 					{
-						SETERR_COD (rtx, HAWK_EFMTARG);
+						hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EFMTARG);
 						return HAWK_NULL;
 					}
 					v = val;
@@ -7275,7 +7252,7 @@ wp_mod_main:
 			{
 				if (stack_arg_idx >= nargs_on_stack)
 				{
-					SETERR_COD (rtx, HAWK_EFMTARG);
+					hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EFMTARG);
 					return HAWK_NULL;
 				}
 				v = hawk_rtx_getarg (rtx, stack_arg_idx);
@@ -7286,7 +7263,7 @@ wp_mod_main:
 				{
 					if (stack_arg_idx >= nargs_on_stack)
 					{
-						SETERR_COD (rtx, HAWK_EFMTARG);
+						hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EFMTARG);
 						return HAWK_NULL;
 					}
 					v = val;
@@ -7487,7 +7464,7 @@ wp_mod_main:
 			{
 				if (stack_arg_idx >= nargs_on_stack)
 				{
-					SETERR_COD (rtx, HAWK_EFMTARG);
+					hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EFMTARG);
 					return HAWK_NULL;
 				}
 				v = hawk_rtx_getarg(rtx, stack_arg_idx);
@@ -7498,7 +7475,7 @@ wp_mod_main:
 				{
 					if (stack_arg_idx >= nargs_on_stack)
 					{
-						SETERR_COD (rtx, HAWK_EFMTARG);
+						hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EFMTARG);
 						return HAWK_NULL;
 					}
 					v = val;
@@ -7528,7 +7505,7 @@ wp_mod_main:
 			{
 				if (stack_arg_idx >= nargs_on_stack)
 				{
-					SETERR_COD (rtx, HAWK_EFMTARG);
+					hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EFMTARG);
 					return HAWK_NULL;
 				}
 				v = hawk_rtx_getarg (rtx, stack_arg_idx);
@@ -7539,7 +7516,7 @@ wp_mod_main:
 				{
 					if (stack_arg_idx >= nargs_on_stack)
 					{
-						SETERR_COD (rtx, HAWK_EFMTARG);
+						hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EFMTARG);
 						return HAWK_NULL;
 					}
 					v = val;
@@ -7592,7 +7569,7 @@ wp_mod_main:
 
 				default:
 					hawk_rtx_refdownval (rtx, v);
-					SETERR_COD (rtx, HAWK_EVALTOCHR);
+					hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EVALTOCHR);
 					return HAWK_NULL;
 			}
 
@@ -7655,7 +7632,7 @@ wp_mod_main:
 			{
 				if (stack_arg_idx >= nargs_on_stack)
 				{
-					SETERR_COD (rtx, HAWK_EFMTARG);
+					hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EFMTARG);
 					return HAWK_NULL;
 				}
 				v = hawk_rtx_getarg (rtx, stack_arg_idx);
@@ -7666,7 +7643,7 @@ wp_mod_main:
 				{
 					if (stack_arg_idx >= nargs_on_stack)
 					{
-						SETERR_COD (rtx, HAWK_EFMTARG);
+						hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EFMTARG);
 						return HAWK_NULL;
 					}
 					v = val;
@@ -7712,7 +7689,7 @@ wp_mod_main:
 					if (v == val)
 					{
 						hawk_rtx_refdownval (rtx, v);
-						SETERR_COD (rtx, HAWK_EFMTCNV);
+						hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EFMTCNV);
 						return HAWK_NULL;
 					}
 
@@ -7986,7 +7963,7 @@ wp_mod_main:
 			{
 				if (stack_arg_idx >= nargs_on_stack)
 				{
-					SETERR_COD (rtx, HAWK_EFMTARG);
+					hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EFMTARG);
 					return HAWK_NULL;
 				}
 				v = hawk_rtx_getarg(rtx, stack_arg_idx);
@@ -7997,7 +7974,7 @@ wp_mod_main:
 				{
 					if (stack_arg_idx >= nargs_on_stack)
 					{
-						SETERR_COD (rtx, HAWK_EFMTARG);
+						hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EFMTARG);
 						return HAWK_NULL;
 					}
 					v = val;
@@ -8088,7 +8065,7 @@ wp_mod_main:
 			{
 				if (stack_arg_idx >= nargs_on_stack)
 				{
-					SETERR_COD (rtx, HAWK_EFMTARG);
+					hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EFMTARG);
 					return HAWK_NULL;
 				}
 				v = hawk_rtx_getarg (rtx, stack_arg_idx);
@@ -8099,7 +8076,7 @@ wp_mod_main:
 				{
 					if (stack_arg_idx >= nargs_on_stack)
 					{
-						SETERR_COD (rtx, HAWK_EFMTARG);
+						hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EFMTARG);
 						return HAWK_NULL;
 					}
 					v = val;
@@ -8300,7 +8277,7 @@ wp_mod_main:
 			{
 				if (stack_arg_idx >= nargs_on_stack)
 				{
-					SETERR_COD (rtx, HAWK_EFMTARG);
+					hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EFMTARG);
 					return HAWK_NULL;
 				}
 				v = hawk_rtx_getarg(rtx, stack_arg_idx);
@@ -8311,7 +8288,7 @@ wp_mod_main:
 				{
 					if (stack_arg_idx >= nargs_on_stack)
 					{
-						SETERR_COD (rtx, HAWK_EFMTARG);
+						hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EFMTARG);
 						return HAWK_NULL;
 					}
 					v = val;
@@ -8341,7 +8318,7 @@ wp_mod_main:
 			{
 				if (stack_arg_idx >= nargs_on_stack)
 				{
-					SETERR_COD (rtx, HAWK_EFMTARG);
+					hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EFMTARG);
 					return HAWK_NULL;
 				}
 				v = hawk_rtx_getarg(rtx, stack_arg_idx);
@@ -8352,7 +8329,7 @@ wp_mod_main:
 				{
 					if (stack_arg_idx >= nargs_on_stack)
 					{
-						SETERR_COD (rtx, HAWK_EFMTARG);
+						hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EFMTARG);
 						return HAWK_NULL;
 					}
 					v = val;
@@ -8406,7 +8383,7 @@ wp_mod_main:
 
 				default:
 					hawk_rtx_refdownval (rtx, v);
-					SETERR_COD (rtx, HAWK_EVALTOCHR);
+					hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EVALTOCHR);
 					return HAWK_NULL;
 			}
 
@@ -8469,7 +8446,7 @@ wp_mod_main:
 			{
 				if (stack_arg_idx >= nargs_on_stack)
 				{
-					SETERR_COD (rtx, HAWK_EFMTARG);
+					hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EFMTARG);
 					return HAWK_NULL;
 				}
 				v = hawk_rtx_getarg (rtx, stack_arg_idx);
@@ -8480,7 +8457,7 @@ wp_mod_main:
 				{
 					if (stack_arg_idx >= nargs_on_stack)
 					{
-						SETERR_COD (rtx, HAWK_EFMTARG);
+						hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EFMTARG);
 						return HAWK_NULL;
 					}
 					v = val;
@@ -8528,7 +8505,7 @@ wp_mod_main:
 					if (v == val)
 					{
 						hawk_rtx_refdownval (rtx, v);
-						SETERR_COD (rtx, HAWK_EFMTCNV);
+						hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EFMTCNV);
 						return HAWK_NULL;
 					}
 
