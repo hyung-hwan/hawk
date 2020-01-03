@@ -226,6 +226,9 @@
 /* Define to 1 if you have the `gmtime_r' function. */
 #undef HAVE_GMTIME_R
 
+/* Define to 1 if you have the `initstate_r' function. */
+#undef HAVE_INITSTATE_R
+
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
 
@@ -441,6 +444,9 @@
 
 /* Define to 1 if you have the `sqrtq' function. */
 #undef HAVE_SQRTQ
+
+/* Define to 1 if you have the `srandom_r' function. */
+#undef HAVE_SRANDOM_R
 
 /* Define to 1 if you have the `stat64' function. */
 #undef HAVE_STAT64

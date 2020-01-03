@@ -796,20 +796,13 @@ static int record_ever_included (hawk_t* awk, hawk_sio_arg_t* arg)
 static int begin_include (hawk_t* awk, int once)
 {
 	hawk_sio_arg_t* arg = HAWK_NULL;
-	hawk_link_t* link;
 	hawk_ooch_t* sio_name;
 
 	if (hawk_count_oocstr(HAWK_OOECS_PTR(awk->tok.name)) != HAWK_OOECS_LEN(awk->tok.name))
 	{
 		/* a '\0' character included in the include file name.
 		 * we don't support such a file name */
-		SETERR_ARG_LOC (
-			awk, 
-			HAWK_EIONMNL,
-			HAWK_OOECS_PTR(awk->tok.name),
-			hawk_count_oocstr(HAWK_OOECS_PTR(awk->tok.name)),
-			&awk->tok.loc
-		);
+		hawk_seterrfmt (awk, &awk->tok.loc, HAWK_EIONMNL, HAWK_T("invalid I/O name of length %zu containing '\\0'"), HAWK_OOECS_LEN(awk->tok.name));
 		return -1;
 	}
 
@@ -1000,7 +993,7 @@ static int parse_progunit (hawk_t* awk)
 			if (get_token(awk) <= -1) return -1;
 			if (!MATCH(awk, TOK_INT))
 			{
-				SETERR_TOK (awk, HAWK_EINTLIT);
+				hawk_seterrfmt (awk, &awk->tok.loc, HAWK_EINTLIT, HAWK_T("integer literal expected in place of '%.*js'"), HAWK_OOECS_LEN(awk->tok.name), HAWK_OOECS_PTR(awk->tok.name));
 				return -1;
 			}
 
@@ -1027,9 +1020,9 @@ static int parse_progunit (hawk_t* awk)
 	}
 	else if (MATCH(awk, TOK_BEGIN)) 
 	{
-		if ((awk->opt.trait & HAWK_PABLOCK) == 0)
+		if (!(awk->opt.trait & HAWK_PABLOCK)) /* pattern action block not allowed */
 		{
-			SETERR_TOK (awk, HAWK_EKWFNC);
+			hawk_seterrfmt (awk, &awk->tok.loc, HAWK_EKWFNC, HAWK_T("keyword 'function' expected in place of '%.*js'"), HAWK_OOECS_LEN(awk->tok.name), HAWK_OOECS_PTR(awk->tok.name));
 			return -1;
 		}
 
@@ -1058,9 +1051,9 @@ static int parse_progunit (hawk_t* awk)
 	}
 	else if (MATCH(awk, TOK_END)) 
 	{
-		if ((awk->opt.trait & HAWK_PABLOCK) == 0)
+		if (!(awk->opt.trait & HAWK_PABLOCK))
 		{
-			SETERR_TOK (awk, HAWK_EKWFNC);
+			hawk_seterrfmt (awk, &awk->tok.loc, HAWK_EKWFNC, HAWK_T("keyword 'function' expected in place of '%.*js'"), HAWK_OOECS_LEN(awk->tok.name), HAWK_OOECS_PTR(awk->tok.name));
 			return -1;
 		}
 
@@ -1090,9 +1083,9 @@ static int parse_progunit (hawk_t* awk)
 	else if (MATCH(awk, TOK_LBRACE))
 	{
 		/* patternless block */
-		if ((awk->opt.trait & HAWK_PABLOCK) == 0)
+		if (!(awk->opt.trait & HAWK_PABLOCK))
 		{
-			SETERR_TOK (awk, HAWK_EKWFNC);
+			hawk_seterrfmt (awk, &awk->tok.loc, HAWK_EKWFNC, HAWK_T("keyword 'function' expected in place of '%.*js'"), HAWK_OOECS_LEN(awk->tok.name), HAWK_OOECS_PTR(awk->tok.name));
 			return -1;
 		}
 
@@ -1116,9 +1109,9 @@ static int parse_progunit (hawk_t* awk)
 		hawk_nde_t* ptn;
 		hawk_loc_t eloc;
 
-		if ((awk->opt.trait & HAWK_PABLOCK) == 0)
+		if (!(awk->opt.trait & HAWK_PABLOCK))
 		{
-			SETERR_TOK (awk, HAWK_EKWFNC);
+			hawk_seterrfmt (awk, &awk->tok.loc, HAWK_EKWFNC, HAWK_T("keyword 'function' expected in place of '%.*js'"), HAWK_OOECS_LEN(awk->tok.name), HAWK_OOECS_PTR(awk->tok.name));
 			return -1;
 		}
 
@@ -1222,6 +1215,7 @@ static hawk_nde_t* parse_function (hawk_t* awk)
 	hawk_htb_pair_t* pair;
 	hawk_loc_t xloc;
 	int rederr;
+	const hawk_ooch_t* redobj;
 
 	/* eat up the keyword 'function' and get the next token */
 	HAWK_ASSERT (MATCH(awk,TOK_FUNCTION));
@@ -1241,15 +1235,15 @@ static hawk_nde_t* parse_function (hawk_t* awk)
 	/* note that i'm assigning to rederr in the 'if' conditions below.
  	 * i'm not checking equality */
 	    /* check if it is a builtin function */
-	if ((hawk_findfncwithoocs(awk, &name) != HAWK_NULL && (rederr = HAWK_EFNCRED)) ||
+	if ((hawk_findfncwithoocs(awk, &name) != HAWK_NULL && (rederr = HAWK_EFNCRED, redobj = HAWK_T("intrinsic function"))) ||
 	    /* check if it has already been defined as a function */
-	    (hawk_htb_search(awk->tree.funs, name.ptr, name.len) != HAWK_NULL && (rederr = HAWK_EFUNRED)) ||
+	    (hawk_htb_search(awk->tree.funs, name.ptr, name.len) != HAWK_NULL && (rederr = HAWK_EFUNRED, redobj = HAWK_T("function"))) ||
 	    /* check if it conflicts with a named variable */
-	    (hawk_htb_search(awk->parse.named, name.ptr, name.len) != HAWK_NULL && (rederr = HAWK_EVARRED)) ||
+	    (hawk_htb_search(awk->parse.named, name.ptr, name.len) != HAWK_NULL && (rederr = HAWK_EVARRED, redobj = HAWK_T("variable"))) ||
 	    /* check if it coincides to be a global variable name */
-	    (((g = find_global (awk, &name)) != HAWK_ARR_NIL) && (rederr = HAWK_EGBLRED)))
+	    (((g = find_global (awk, &name)) != HAWK_ARR_NIL) && (rederr = HAWK_EGBLRED, redobj = HAWK_T("global variable"))))
 	{
-		hawk_seterror (awk, rederr, &name, &awk->tok.loc);
+		hawk_seterrfmt (awk, &awk->tok.loc, rederr, HAWK_T("%js '%.*js' redefined"), redobj, HAWK_OOECS_LEN(awk->tok.name), HAWK_OOECS_PTR(awk->tok.name));
 		return HAWK_NULL;
 	}
 
@@ -1839,29 +1833,23 @@ static int add_global (hawk_t* awk, const hawk_oocs_t* name, hawk_loc_t* xloc, i
 	/* check if it is a keyword */
 	if (classify_ident(awk, name) != TOK_IDENT)
 	{
-		SETERR_ARG_LOC (awk, HAWK_EKWRED, name->ptr, name->len, xloc);
+		hawk_seterrfmt (awk, xloc, HAWK_EKWRED, HAWK_T("keyword '%.*js' redefined"), name->len, name->ptr);
 		return -1;
 	}
 
 	/* check if it conflicts with a builtin function name */
 	if (hawk_findfncwithoocs(awk, name) != HAWK_NULL)
 	{
-		SETERR_ARG_LOC (awk, HAWK_EFNCRED, name->ptr, name->len, xloc);
+		hawk_seterrfmt (awk, xloc, HAWK_EFNCRED, HAWK_T("intrinsic function '%.*js' redefined"), name->len, name->ptr);
 		return -1;
 	}
 
 	/* check if it conflicts with a function name */
-	if (hawk_htb_search(awk->tree.funs, name->ptr, name->len) != HAWK_NULL) 
+	if (hawk_htb_search(awk->tree.funs, name->ptr, name->len) != HAWK_NULL || 
+	/* check if it conflicts with a function name caught in the function call table */
+         hawk_htb_search(awk->parse.funs, name->ptr, name->len) != HAWK_NULL) 
 	{
-		SETERR_ARG_LOC (awk, HAWK_EFUNRED, name->ptr, name->len, xloc);
-		return -1;
-	}
-
-	/* check if it conflicts with a function name 
-	 * caught in the function call table */
-	if (hawk_htb_search(awk->parse.funs, name->ptr, name->len) != HAWK_NULL)
-	{
-		SETERR_ARG_LOC (awk, HAWK_EFUNRED, name->ptr, name->len, xloc);
+		hawk_seterrfmt (awk, xloc, HAWK_EFUNRED, HAWK_T("function '%.*js' redefined"), name->len, name->ptr);
 		return -1;
 	}
 
@@ -1876,12 +1864,12 @@ static int add_global (hawk_t* awk, const hawk_oocs_t* name, hawk_loc_t* xloc, i
 	/* TODO: need to check if it conflicts with a named variable to 
 	 * disallow such a program shown below (IMPLICIT & EXPLICIT on)
 	 *  BEGIN {X=20; x(); x(); x(); print X}
-	 *  global X;
+	 *  @global X;
 	 *  function x() { print X++; }
 	 */
 	if (hawk_htb_search(awk->parse.named, name, len) != HAWK_NULL)
 	{
-		SETERR_ARG_LOC (awk, HAWK_EVARRED, name, len, xloc);
+		hawk_seterrfmt (awk, xloc, HAWK_EVARRED, HAWK_T("variable '%.*js' redefined"), len, name);
 		return -1;
 	}
 #endif
@@ -2239,7 +2227,7 @@ static hawk_t* collect_locals (hawk_t* awk, hawk_oow_t nlcls, int istop)
 		 * function f() { local length; } */
 		if (hawk_findfncwithoocs(awk, &lcl) != HAWK_NULL)
 		{
-			SETERR_ARG_LOC (awk, HAWK_EFNCRED, lcl.ptr, lcl.len, &awk->tok.loc);
+			hawk_seterrfmt (awk, &awk->tok.loc, HAWK_EFNCRED, HAWK_T("intrinsic function '%.*js' redefined"), lcl.len, lcl.ptr);
 			return HAWK_NULL;
 		}
 
@@ -2251,7 +2239,7 @@ static hawk_t* collect_locals (hawk_t* awk, hawk_oow_t nlcls, int istop)
 			n = hawk_arr_search(awk->parse.params, 0, lcl.ptr, lcl.len);
 			if (n != HAWK_ARR_NIL)
 			{
-				SETERR_ARG_LOC (awk, HAWK_EPARRED, lcl.ptr, lcl.len, &awk->tok.loc);
+				hawk_seterrfmt (awk, &awk->tok.loc, HAWK_EPARRED, HAWK_T("parameter '%.*js' redefined"), lcl.len, lcl.ptr);
 				return HAWK_NULL;
 			}
 		}
@@ -2263,7 +2251,7 @@ static hawk_t* collect_locals (hawk_t* awk, hawk_oow_t nlcls, int istop)
 			{
 				if (hawk_comp_oochars(lcl.ptr, lcl.len, awk->tree.cur_fun.ptr, awk->tree.cur_fun.len, 0) == 0)
 				{
-					SETERR_ARG_LOC (awk, HAWK_EFUNRED, lcl.ptr, lcl.len, &awk->tok.loc);
+					hawk_seterrfmt (awk, &awk->tok.loc, HAWK_EFUNRED, HAWK_T("function '%.*js' redefined"), lcl.len, lcl.ptr);
 					return HAWK_NULL;
 				}
 			}
@@ -2283,8 +2271,7 @@ static hawk_t* collect_locals (hawk_t* awk, hawk_oow_t nlcls, int istop)
 		{
 			if (n < awk->tree.ngbls_base)
 			{
-				/* it is a conflict only if it is one of a 
-				 * static global variable */
+				/* it is a conflict only if it is one of a static global variable */
 				hawk_seterrfmt (awk, &awk->tok.loc, HAWK_EDUPLCL, HAWK_T("duplicate local variable - %.*js"), lcl.len, lcl.ptr);
 				return HAWK_NULL;
 			}
@@ -5295,11 +5282,11 @@ static hawk_nde_t* parse_primary_ident_noseg (hawk_t* awk, const hawk_loc_t* xlo
 			}
 			else
 			{
-				/* function name appeared without () */
+				/* function name appeared without (). used as a value without invocation */
 			#if defined(ENABLE_FEATURE_FUN_AS_VALUE)
 				nde = parse_fun_as_value(awk, name, xloc, funptr);
 			#else
-				SETERR_ARG_LOC (awk, HAWK_EFUNRED, name->ptr, name->len, xloc);
+				hawk_seterrfmt (awk, xloc, HAWK_EFUNRED, HAWK_T("function '%.*js' redefined"), name->len, name->ptr);
 			#endif
 			}
 		}
@@ -5329,7 +5316,7 @@ static hawk_nde_t* parse_primary_ident_noseg (hawk_t* awk, const hawk_loc_t* xlo
 					is_fncall_var = 1;
 					goto named_var;
 			#else
-					SETERR_ARG_LOC (awk, HAWK_EVARRED, name->ptr, name->len, xloc);
+					hawk_seterrfmt (awk, xloc, HAWK_EVARRED, HAWK_T("variable '%.*js' redefined"), name->len, name->ptr);
 			#endif
 				}
 				else
@@ -5630,11 +5617,11 @@ static hawk_nde_t* parse_hashidx (hawk_t* awk, const hawk_oocs_t* name, const ha
 		switch (fnname)
 		{
 			case FNTYPE_FNC:
-				SETERR_ARG_LOC (awk, HAWK_EFNCRED, name->ptr, name->len, xloc);
+				hawk_seterrfmt (awk, xloc, HAWK_EFNCRED, HAWK_T("intrinsic function '%.*js' redefined"), name->len, name->ptr);
 				goto exit_func;
 
 			case FNTYPE_FUN:
-				SETERR_ARG_LOC (awk, HAWK_EFUNRED, name->ptr, name->len, xloc);
+				hawk_seterrfmt (awk, xloc, HAWK_EFUNRED, HAWK_T("function '%.*js' redefined"), name->len, name->ptr);
 				goto exit_func;
 		}
 
