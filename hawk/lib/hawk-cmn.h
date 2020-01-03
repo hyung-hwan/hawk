@@ -773,8 +773,8 @@ enum hawk_errnum_t
 	HAWK_EBUSY,   /**< system busy */
 	HAWK_EPERM,   /**< operation not permitted */
 	HAWK_ENOSUP,  /**< not supported */
-	HAWK_ENOENT,  /**< '${0} not found */
-	HAWK_EEXIST,  /**< '${0}' already exists */
+	HAWK_ENOENT,  /**< not found */
+	HAWK_EEXIST,  /**< already exists */
 	HAWK_EIOERR,  /**< I/O error */
 	HAWK_EBUFFULL,/**< buffer full  */
 	HAWK_EECERR,  /**< encoding conversion error */
@@ -866,9 +866,9 @@ enum hawk_errnum_t
 	HAWK_EPOSIDX,       /**< wrong position index */
 	HAWK_EARGTF,        /**< too few arguments */
 	HAWK_EARGTM,        /**< too many arguments */
-	HAWK_EFUNNF,        /**< function '${0}' not found */
-	HAWK_ENOTFUN,       /**< non-function value in '%{0}' */
-	HAWK_ENOTDEL,       /**< '${0}' not deletable */
+	HAWK_EFUNNF,        /**< function not found */
+	HAWK_ENOTFUN,       /**< non-function value  */
+	HAWK_ENOTDEL,       /**< not deletable */
 	HAWK_ENOTMAP,       /**< value not a map */
 	HAWK_ENOTMAPIN,     /**< right-hand side of 'in' not a map */
 	HAWK_ENOTMAPNILIN,  /**< right-hand side of 'in' not a map nor nil */
@@ -876,12 +876,10 @@ enum hawk_errnum_t
 	HAWK_EMAPRET,       /**< map cannot be returned */
 	HAWK_EMAPTOPOS,     /**< map cannot be assigned to a positional */
 	HAWK_EMAPTOIDX,     /**< map cannot be assigned to an indexed variable */
-	HAWK_EMAPTONVAR,    /**< map cannot be assigned to an variable '${0}' */
+	HAWK_EMAPTOVAR,     /**< map cannot be assigned to a variable */
 	HAWK_EMAPTOSCALAR,  /**< cannot change a map to a scalar value */
+	HAWK_EMAPTOMAP,     /**< cannot change a map to another map */
 	HAWK_ESCALARTOMAP,  /**< cannot change a scalar to a map */
-	HAWK_ENMAPTOMAP,    /**< cannot change a map '${0}' to another map */
-	HAWK_ENMAPTOSCALAR, /**< cannot change a map '${0}' to a scalar */
-	HAWK_ENSCALARTOMAP, /**< cannot change a scalar '${0}' to a map */
 	HAWK_EVALTOSTR,     /**< invalid value to convert to a string */
 	HAWK_EVALTONUM,     /**< invalid value to convert to a number */
 	HAWK_EVALTOCHR,     /**< invalid value to convert to a character */
@@ -890,12 +888,11 @@ enum hawk_errnum_t
 	HAWK_ERNEXTEND,     /**< 'next' called from END block */
 	HAWK_ERNEXTFBEG,    /**< 'nextfile' called from BEGIN block */
 	HAWK_ERNEXTFEND,    /**< 'nextfile' called from END block */
-	HAWK_EFNCIMPL,      /**< intrinsic function handler for '${0}' failed */
 	HAWK_EIOUSER,       /**< wrong user io handler implementation */
 	HAWK_EIOIMPL,       /**< I/O callback returned an error */
 	HAWK_EIONMNF,       /**< no such I/O name found */
 	HAWK_EIONMEM,       /**< I/O name empty */
-	HAWK_EIONMNL,       /**< I/O name '${0}' containing '\\0' */
+	HAWK_EIONMNL,       /**< I/O name containing '\\0' */
 	HAWK_EFMTARG,       /**< not sufficient arguments to formatting sequence */
 	HAWK_EFMTCNV,       /**< recursion detected in format conversion */
 	HAWK_ECONVFMTCHR,   /**< invalid character in CONVFMT */

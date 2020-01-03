@@ -135,22 +135,20 @@ const hawk_ooch_t* hawk_dflerrstr (hawk_t* awk, hawk_errnum_t errnum)
 		HAWK_T("wrong position index"),
 		HAWK_T("too few arguments"),
 		HAWK_T("too many arguments"),
-		HAWK_T("function '${0}' not found"),
-		HAWK_T("non-function value in '${0}'"),
-		HAWK_T("'${0}' not deletable"),
+		HAWK_T("function not found"),
+		HAWK_T("non-function value"),
+		HAWK_T("not deletable"),
 		HAWK_T("value not a map"),
 		HAWK_T("right-hand side of the 'in' operator not a map"),
 		HAWK_T("right-hand side of the 'in' operator not a map nor nil"),
 		HAWK_T("value not referenceable"),
-		HAWK_T("cannot return a map"),                      /* EMAPRET */
-		HAWK_T("cannot assign a map to a positional"),      /* EMAPTOPOS */
+		HAWK_T("cannot return a map"),                       /* EMAPRET */
+		HAWK_T("cannot assign a map to a positional"),       /* EMAPTOPOS */
 		HAWK_T("cannot assign a map to an indexed variable"),/* EMAPTOIDX */
-		HAWK_T("cannot assign a map to a variable '${0}'"), /* EMAPTONVAR */
-		HAWK_T("cannot change a map to a scalar"),          /* EMAPTOSCALAR */
-		HAWK_T("cannot change a scalar to a map"),          /* ESCALARTOMAP */
-		HAWK_T("cannot change a map '${0}' to another map"),/* ENMAPTOMAP */
-		HAWK_T("cannot change a map '${0}' to a scalar"),   /* ENMAPTOSCALAR */
-		HAWK_T("cannot change a scalar '${0}' to a map"),   /* ENSCALARTOMAP */
+		HAWK_T("cannot assign a map to a variable"),         /* EMAPTOVAR */
+		HAWK_T("cannot change a map to a scalar"),           /* EMAPTOSCALAR */
+		HAWK_T("cannot change a map to another map"),        /* EMAPTOMAP */
+		HAWK_T("cannot change a scalar to a map"),           /* ESCALARTOMAP */
 		HAWK_T("invalid value to convert to a string"),
 		HAWK_T("invalid value to convert to a number"),
 		HAWK_T("invalid value to a character"),
@@ -159,12 +157,11 @@ const hawk_ooch_t* hawk_dflerrstr (hawk_t* awk, hawk_errnum_t errnum)
 		HAWK_T("'next' called from END block"),
 		HAWK_T("'nextfile' called from BEGIN block"),
 		HAWK_T("'nextfile' called from END block"),
-		HAWK_T("intrinsic function handler for '${0}' failed"),
 		HAWK_T("wrong implementation of user-defined I/O handler"),
 		HAWK_T("I/O handler returned an error"),
 		HAWK_T("no such I/O name found"),
 		HAWK_T("I/O name empty"),
-		HAWK_T("I/O name '${0}' containing '\\0'"),
+		HAWK_T("I/O name containing '\\0'"),
 		HAWK_T("not sufficient arguments to formatting sequence"),
 		HAWK_T("recursion detected in format conversion"),
 		HAWK_T("invalid character in CONVFMT"),
@@ -552,6 +549,7 @@ void hawk_rtx_seterror (hawk_rtx_t* rtx, hawk_errnum_t errnum, const hawk_oocs_t
 
 void hawk_rtx_errortohawk (hawk_rtx_t* rtx, hawk_t* hawk)
 {
+	/* copy error information in 'rtx' to the 'hawk' object */
 	hawk->_gem.errnum = rtx->_gem.errnum;
 	hawk->_gem.errloc = rtx->_gem.errloc;
 	hawk_copy_oocstr (hawk->_gem.errmsg, HAWK_COUNTOF(hawk->_gem.errmsg), rtx->_gem.errmsg);
