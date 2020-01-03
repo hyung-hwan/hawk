@@ -155,9 +155,10 @@ static hawk_int_t set_error_on_sys_list (hawk_rtx_t* rtx, sys_list_t* sys_list, 
 	return ERRNUM_TO_RC(errnum);
 }
 
-static hawk_int_t set_error_on_sys_list_with_syserr (hawk_rtx_t* rtx, sys_list_t* sys_list, const hawk_ooch_t* title)
+static hawk_int_t set_error_on_sys_list_with_errno (hawk_rtx_t* rtx, sys_list_t* sys_list, const hawk_ooch_t* title)
 {
 	int err = errno;
+
 	if (title)
 		hawk_rtx_fmttooocstr (rtx, sys_list->ctx.errmsg, HAWK_COUNTOF(sys_list->ctx.errmsg), HAWK_T("%js - %hs"), title, strerror(err));
 	else
@@ -368,7 +369,7 @@ static int fnc_open (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		}
 		else
 		{
-			rx = set_error_on_sys_list_with_syserr(rtx, sys_list, HAWK_T("unable to open"));
+			rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_T("unable to open"));
 		}
 	}
 	else
@@ -455,7 +456,7 @@ static int fnc_read (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		rx = read(sys_node->ctx.u.fd, sys_list->ctx.readbuf, reqsize);
 		if (rx <= 0) 
 		{
-			if (rx <= -1) rx = set_error_on_sys_list_with_syserr(rtx, sys_list, HAWK_T("unable to read"));
+			if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_T("unable to read"));
 			goto done;
 		}
 		else
@@ -504,7 +505,7 @@ static int fnc_write (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		if (dptr)
 		{
 			rx = write(sys_node->ctx.u.fd, dptr, dlen);
-			if (rx <= -1) rx = set_error_on_sys_list_with_syserr(rtx, sys_list, HAWK_T("unable to write"));
+			if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_T("unable to write"));
 			hawk_rtx_freevalbcstr (rtx, a1, dptr);
 		}
 		else
@@ -593,7 +594,7 @@ static int fnc_dup (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			}
 			else
 			{
-				rx = set_error_on_sys_list_with_syserr(rtx, sys_list, HAWK_NULL);
+				rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
 			}
 		}
 		else
@@ -616,7 +617,7 @@ static int fnc_dup (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			}
 			else
 			{
-				rx = set_error_on_sys_list_with_syserr(rtx, sys_list, HAWK_NULL);
+				rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
 			}
 		}
 	}
@@ -798,7 +799,7 @@ static int fnc_pipe (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	}
 	else
 	{
-		rx = set_error_on_sys_list_with_syserr(rtx, sys_list, HAWK_NULL);
+		rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
 	}
 
 	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
@@ -1001,7 +1002,7 @@ static int fnc_fork (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	rx = set_error_on_sys_list(rtx, sys_list, HAWK_ENOIMPL, HAWK_NULL);
 #else
 	rx = fork();
-	if (rx <= -1) rx = set_error_on_sys_list_with_syserr(rtx, sys_list, HAWK_NULL);
+	if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
 #endif
 
 	retv = hawk_rtx_makeintval(rtx, rx);
@@ -1045,7 +1046,7 @@ static int fnc_wait (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	status = 0;
 #else
 	rx = waitpid(pid, &status, opts);
-	if (rx <= -1) rx = set_error_on_sys_list_with_syserr(rtx, sys_list, HAWK_NULL);
+	if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
 #endif
 
 done:
@@ -1154,7 +1155,7 @@ static int fnc_kill (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		rx = set_error_on_sys_list(rtx, sys_list, HAWK_ENOIMPL, HAWK_NULL);
 #else
 		rx = kill(pid, sig);
-		if (rx <= -1) rx = set_error_on_sys_list_with_syserr(rtx, sys_list, HAWK_NULL);
+		if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
 #endif
 	}
 
@@ -1184,10 +1185,10 @@ static int fnc_getpgid (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	/* TODO: support specifing calling process id other than 0 */
 	#if defined(HAVE_GETPGID)
 	rx = getpgid(0);
-	if (rx <= -1) rx = set_error_on_sys_list_with_syserr(rtx, sys_list, HAWK_NULL);
+	if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
 	#elif defined(HAVE_GETPGRP)
 	rx = getpgrp();
-	if (rx <= -1) rx = set_error_on_sys_list_with_syserr(rtx, sys_list, HAWK_NULL);
+	if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
 	#else
 	rx = set_error_on_sys_list(rtx, sys_list, HAWK_ENOIMPL, HAWK_NULL);
 	#endif
@@ -1243,35 +1244,44 @@ static int fnc_getpid (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 static int fnc_gettid (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
-	hawk_intptr_t pid;
+	hawk_intptr_t rx;
 	hawk_val_t* retv;
 	sys_list_t* sys_list = rtx_to_sys_list(rtx, fi);
 
 #if defined(_WIN32)
-	pid = GetCurrentThreadId();
-	
+	rx = GetCurrentThreadId();
+	/* never fails */
 #elif defined(__OS2__)
 	PTIB tib;
 	PPIB pib;
+	APIRET rc;
 
-	pid = (DosGetInfoBlocks (&tib, &pib) == NO_ERROR && tib->tib_ptib2)?
-		 tib->tib_ptib2->tib2_ultid: -1;
-	
+	rc = DosGetInfoBlocks(&tib, &pib);
+	if (rc == NO_ERROR)
+	{
+		if (tib->tib_ptib2) rx = tib->tib_ptib2->tib2_ultid;
+		else rx = set_error_on_sys_list(rtx, sys_list, HAWK_ESYSERR, HAWK_NULL);
+	}
+	else
+	{
+		rx = set_error_on_sys_list(rtx, sys_list, hawk_syserr_to_errnum(rc), HAWK_NULL);
+	}
+
 #elif defined(__DOS__)
 	/* TOOD: implement this*/
 	rx = set_error_on_sys_list(rtx, sys_list, HAWK_ENOIMPL, HAWK_NULL);
 
 #else
 	#if defined(SYS_gettid) && defined(HAWK_SYSCALL0)
-	HAWK_SYSCALL0 (pid, SYS_gettid);
+	HAWK_SYSCALL0 (rx, SYS_gettid);
 	#elif defined(SYS_gettid)
-	pid = syscall(SYS_gettid);
+	rx = syscall(SYS_gettid);
 	#else
 	rx = set_error_on_sys_list(rtx, sys_list, HAWK_ENOIMPL, HAWK_NULL);
 	#endif
 #endif
 
-	retv = hawk_rtx_makeintval(rtx, (hawk_int_t)pid);
+	retv = hawk_rtx_makeintval(rtx, rx);
 	if (retv == HAWK_NULL) return -1;
 
 	hawk_rtx_setretval (rtx, retv);
@@ -1285,9 +1295,37 @@ static int fnc_getppid (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	sys_list_t* sys_list = rtx_to_sys_list(rtx, fi);
 
 #if defined(_WIN32)
-	/* TOOD: implement this*/
-	rx = set_error_on_sys_list(rtx, sys_list, HAWK_ENOIMPL, HAWK_NULL);
-	
+	DWORD pid;
+	HANDLE ps;
+	PROCESSENTRY32 p;
+
+	pid = GetCurrentPorcessId();
+	ps = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+	if (ps == INVALID_HANDLE_VALUE)
+	{
+		rx = set_error_on_sys_list(rtx, sys_list, hawk_syserr_to_errnum(GetLastError()), HAWK_NULL);
+	}
+	else
+	{
+		rx = set_error_on_sys_list(rtx, sys_list, HAWK_ENOENT, HAWK_NULL);
+
+		p.dwSize = HAWK_SZIEOF(p);
+		if (Process32First(ps, &p))
+		{
+			do
+			{
+				if (p.th32ProcessID == pid)
+				{
+					rx = p.th32ParentProcessID; /* got it */
+					break;
+				}
+			}
+			while (Process32Next(ps, &p));
+		}
+
+		CloseHandle (ps);
+	}
+
 #elif defined(__OS2__)
 	/* TOOD: implement this*/
 	rx = set_error_on_sys_list(rtx, sys_list, HAWK_ENOIMPL, HAWK_NULL);
@@ -2416,7 +2454,7 @@ static int fnc_writelog (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		#endif
 			if (!tmx) 
 			{
-				rx = set_error_on_sys_list_with_syserr(rtx, sys_list, HAWK_T("unable to get local time"));
+				rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_T("unable to get local time"));
 				goto done;
 			}
 
