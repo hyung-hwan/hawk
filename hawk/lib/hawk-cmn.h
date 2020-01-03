@@ -790,16 +790,16 @@ enum hawk_errnum_t
 	HAWK_ESTATE,  /**< in bad state */
 
 	/* mostly parse errors */
-	HAWK_EOPEN,   /**< cannot open '${0}' */
-	HAWK_EREAD,   /**< cannot read '${0}' */
-	HAWK_EWRITE,  /**< cannot write '${0}' */
-	HAWK_ECLOSE,  /**< cannot close '${0}' */
+	HAWK_EOPEN,   /**< cannot open */
+	HAWK_EREAD,   /**< cannot read */
+	HAWK_EWRITE,  /**< cannot write */
+	HAWK_ECLOSE,  /**< cannot close */
 
 	HAWK_EBLKNST, /**< block nested too deeply */
 	HAWK_EEXPRNST,/**< expression nested too deeply */
 
-	HAWK_ELXCHR,  /**< invalid character '${0}' */
-	HAWK_ELXDIG,  /**< invalid digit '${0}' */
+	HAWK_ELXCHR,  /**< invalid character */
+	HAWK_ELXDIG,  /**< invalid digit */
 
 	HAWK_EEOF,    /**< unexpected end of source */
 	HAWK_ECMTNC,  /**< comment not closed properly */
@@ -816,7 +816,7 @@ enum hawk_errnum_t
 	HAWK_ESTMEND, /**< statement not ending with a semicolon */
 	HAWK_EKWIN,   /**< keyword 'in' expected in place of '${0}' */
 	HAWK_ENOTVAR, /**< right-hand side of 'in' not a variable */
-	HAWK_EEXPRNR, /**< expression not recognized around '${0}' */
+	HAWK_EEXPRNR, /**< expression not recognized */
 
 	HAWK_EKWFNC,    /**< keyword 'function' expected in place of '${0}' */
 	HAWK_EKWWHL,    /**< keyword 'while' expected in place of '${0}' */

@@ -1,0 +1,80 @@
+#### TODO: create test cases using the following data
+
+
+BEGIN { @local abc; abc(); }'
+HAWK_ENOTFUN -> ERROR: CODE 97 LINE 1 COLUMN 21 - non-function value in abc 
+
+
+BEGIN { @local x; abc(); } 
+HAWK_EFUNNF -> ERROR: CODE 96 LINE 1 COLUMN 19 - function 'abc' not found
+
+hawk --implicit=off 'BEGIN { @local x; abc(); }'
+HAWK_EFUNNF -> ERROR: CODE 96 LINE 1 COLUMN 19 - function 'abc' not defined    ===> same as the above. but it's a parse-time error.
+
+
+BEGIN { @local x; x=sys::getpid(); delete x;}
+HAWK_ENOTDEL -> ERROR: CODE 98 LINE 1 COLUMN 43 - 'x' not deletable
+
+
+hawk --flexmap=off 'BEGIN {  ARGV = 30; }'
+HAWK_ENMAPTOSCALAR -> ERROR: CODE 110 LINE 1 COLUMN 10 - not allowed to change a map 'ARGV' to a scalar
+
+hawk --flexmap=off 'BEGIN {  @local x; x = 10; x[1] = "hello"; }'
+HAWK_ESCALARTOMAP -> ERROR: CODE 108 LINE 1 COLUMN 28 - not allowed to change a scalar 'x' to a map
+
+hawk --flexmap=off 'BEGIN {  @local x, y; x[1]=20; ARGC = x; }'
+HAWK_ESCALARTOMAP -> ERROR: CODE 108 LINE 1 COLUMN 32 - not allowed to achange a scalar 'ARGC' to a map
+
+hawk --flexmap=off 'BEGIN {  ARGC[1] = "hello"; }'
+HAWK_ESCALARTOMAP -> ERROR: CODE 108 LINE 1 COLUMN 10 - not allowed to change a scalar 'ARGC' to a map
+
+
+ hawk --flexmap=off 'BEGIN {  @local x, y; x[1]=20; CONVFMT = x; }'
+HAWK_ESCALARTOMAP -> ERROR: CODE 108 LINE 1 COLUMN 32 - not allowed to change a scalar 'CONVFMT' to a map
+
+hawk --flexmap=on 'BEGIN {  @local x, y; x[1]=20; CONVFMT = x; }'
+HAWK_ESCALARTOMAP -> ERROR: CODE 108 LINE 1 COLUMN 32 - not allowed to change a scalar 'CONVFMT' to a map
+
+
+$ hawk --flexmap=off 'BEGIN {  @local x, y; x[1] = 10; y[1] = 20; x = y; }'
+HAWK_EMAPTOMAP -> ERROR: CODE 108 LINE 1 COLUMN 45 - not allowed to change a map 'x' to another map    => x is a local variable
+
+$ hawk --flexmap=off 'BEGIN {  @local y; x[1] = 10; y[1] = 20; x = y; }'
+HAWK_EMAPTOMAP -> ERROR: CODE 108 LINE 1 COLUMN 42 - jnot allowed to change a map 'x' to another map    => x is a global variable
+
+
+$ hawk --flexmap=off 'function abc(x) { @local j; j[1] = 20; x = j; } BEGIN {  @local q; q[1]=20; abc(q); }'
+HAWK_EMAPTOMAP -> ERROR: CODE 108 LINE 1 COLUMN 40 - not allowed to change a map 'x' to another map  => x is an argument
+
+
+$ hawk --flexmap=off 'function abc(x) { x = 20; } BEGIN {  @local q; q[1]=20; abc(q); }'
+HAWK_EMAPTOSCALAR -> ERROR: CODE 107 LINE 1 COLUMN 19 - not allowed to change a map 'x' to a scalar
+
+
+$ hawk --flexmap=off 'BEGIN {  @local y; x[1] = 10;  x = 20; }'
+HAWK_EMAPTOSCALAR -> ERROR: CODE 107 LINE 1 COLUMN 32 - not allowed to change a map 'x' to a scalar
+
+
+$ hawk --flexmap=off 'BEGIN {  x[1] = 10;  x = 20; }'
+HAWK_EMAPTOSCALAR -> ERROR: CODE 107 LINE 1 COLUMN 22 - not allowed to change a map 'x' to a scalar
+
+
+$ hawk --flexmap=off 'BEGIN {  x[1] = 10;  jx=x; }'
+HAWK_EMAPTOMAP -> ERROR: CODE 106 LINE 1 COLUMN 22 - not allowed to assign a map to a variable 'jx'
+
+$ hawk --flexmap=off 'BEGIN {  @local x, jx; x[1] = 10;  jx=x; }'
+HAWK_EMAPTOMAP -> ERROR: CODE 106 LINE 1 COLUMN 36 - not allowed to assign a map to a variable 'jx'
+
+
+$ hawk --flexmap=off 'function abc(jx) { @local x; x[1]= 20; jx = x; } BEGIN {  abc(10); }'
+HAWK_EMAPTOMAP -> ERROR: CODE 106 LINE 1 COLUMN 40 - not allowed to assign a map to a variable 'jx'
+
+
+
+$ hawk 'BEGIN { print 0192; }'
+HAWK_ELXDIG -> ERROR: CODE 32 LINE 1 COLUMN 15 - invalid digit '9'
+
+
+$ hawk 'BEGIN { +
+> }'
+HAWK_EEXPRNR -> ERROR: CODE 49 LINE 1 COLUMN 9 - expression not recognized around '+'
