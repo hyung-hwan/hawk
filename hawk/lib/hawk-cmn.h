@@ -812,9 +812,9 @@ enum hawk_errnum_t
 	HAWK_ECOMMA,  /**< comma expected in place of '${0}' */
 	HAWK_ESCOLON, /**< semicolon expected in place of '${0}' */
 	HAWK_ECOLON,  /**< colon expected in place of '${0}' */
-	HAWK_EINTLIT, /**< integer literal expected in place of '${0}' */
+	HAWK_EINTLIT, /**< integer literal expected */
 	HAWK_ESTMEND, /**< statement not ending with a semicolon */
-	HAWK_EKWIN,   /**< keyword 'in' expected in place of '${0}' */
+	HAWK_EKWIN,   /**< keyword 'in' expected */
 	HAWK_ENOTVAR, /**< right-hand side of 'in' not a variable */
 	HAWK_EEXPRNR, /**< expression not recognized */
 
@@ -825,12 +825,12 @@ enum hawk_errnum_t
 	HAWK_EFUNNAM,   /**< '${0}' not a valid function name */
 	HAWK_EBLKBEG,   /**< BEGIN not followed by left bracket on the same line */
 	HAWK_EBLKEND,   /**< END not followed by left bracket on the same line */
-	HAWK_EKWRED,    /**< keyword '${0}' redefined */
-	HAWK_EFNCRED,   /**< intrinsic function '${0}' redefined */
-	HAWK_EFUNRED,   /**< function '${0}' redefined */
-	HAWK_EGBLRED,   /**< global variable '${0}' redefined */
-	HAWK_EPARRED,   /**< parameter '${0}' redefined */
-	HAWK_EVARRED,   /**< variable '${0}' redefined */
+	HAWK_EKWRED,    /**< keyword redefined */
+	HAWK_EFNCRED,   /**< intrinsic function redefined */
+	HAWK_EFUNRED,   /**< function redefined */
+	HAWK_EGBLRED,   /**< global variable redefined */
+	HAWK_EPARRED,   /**< parameter redefined */
+	HAWK_EVARRED,   /**< variable redefined */
 	HAWK_EDUPPAR,   /**< duplicate parameter name '${0}' */
 	HAWK_EDUPGBL,   /**< duplicate global variable name '${0}' */
 	HAWK_EDUPLCL,   /**< duplicate local variable name '${0}' */

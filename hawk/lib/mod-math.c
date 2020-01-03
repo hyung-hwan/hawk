@@ -60,12 +60,12 @@
 #		define HAVE_SQRT
 #	endif
 #endif
-
 typedef struct modctx_t
 {
 	unsigned int seed;
-#if defined(HAVE_RANDOM_R)
+#if defined(HAVE_INITSTATE_R) && defined(HAVE_SRANDOM_R) && defined(HAVE_RANDOM_R)
 	struct random_data prand;
+	hawk_uint8_t prand_bin[256];
 #endif
 } modctx_t;
 
@@ -536,7 +536,7 @@ static int fnc_rand (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	modctx_t* modctx;
 
 	modctx = (modctx_t*)fi->mod->ctx;
-#if defined(HAVE_RANDOM_R)
+#if defined(HAVE_INITSTATE_R) && defined(HAVE_SRANDOM_R) && defined(HAVE_RANDOM_R)
 	random_r (&modctx->prand, &randv);
 #elif defined(HAVE_RANDOM)
 	randv = random();
@@ -573,7 +573,7 @@ static int fnc_srand (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		hawk_ntime_t tv;
 		hawk_get_time (&tv);
 		modctx->seed = tv.sec + tv.nsec;
-	#if defined(HAVE_RANDOM_R)
+	#if defined(HAVE_INITSTATE_R) && defined(HAVE_SRANDOM_R) && defined(HAVE_RANDOM_R)
 		srandom_r (modctx->seed, &modctx->prand);
 	#elif defined(HAVE_RANDOM)
 		srandom (modctx->seed);
@@ -586,7 +586,7 @@ static int fnc_srand (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		a0 = hawk_rtx_getarg(rtx, 0);
 		n = hawk_rtx_valtoint(rtx, a0, &lv);
 		if (n <= -1) return -1;
-	#if defined(HAVE_RANDOM_R)
+	#if defined(HAVE_INITSTATE_R) && defined(HAVE_SRANDOM_R) && defined(HAVE_RANDOM_R)
 		srandom_r (lv, &modctx->prand);
 	#elif defined(HAVE_RANDOM)
 		srandom (lv);
@@ -714,7 +714,8 @@ int hawk_mod_math (hawk_mod_t* mod, hawk_t* awk)
 
 	hawk_get_time (&tv);
 	modctx->seed = tv.sec + tv.nsec;
-#if defined(HAVE_RANDOM_R)
+#if defined(HAVE_INITSTATE_R) && defined(HAVE_SRANDOM_R) && defined(HAVE_RANDOM_R)
+	initstate_r (0, &modctx->prand_bin, HAWK_SIZEOF(&modctx->prand_bin), &modctx->prand);
 	srandom_r (modctx->seed, &modctx->prand);
 #elif defined(HAVE_RANDOM)
 	srandom (modctx->seed);
