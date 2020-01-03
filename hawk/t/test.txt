@@ -112,4 +112,19 @@ $ ~/xxx/bin/hawk 'function test(ax) { @local ax; }'
 HAWK_EPARRED -> ERROR: CODE 61 LINE 1 COLUMN 28 - parameter 'ax' redefined
 
 
+$ ~/xxx/bin/hawk 'function test(ax, bx, ax) { return ax * bx; }'
+HAWK_EDUPPAR -> ERROR: CODE 63 LINE 1 COLUMN 23 - duplicate parameter name 'ax'
+
+
+$ ~/xxx/bin/hawk '@global x, y, x; '
+HAWK_EDUPGBL -> ERROR: CODE 64 LINE 1 COLUMN 15 - duplicate global variable name 'x'
+
+
+
+$ ~/xxx/bin/hawk 'function test(ax, bx) { @local x, y, x; }'
+HAWK_EDUPLCL -> ERROR: CODE 65 LINE 1 COLUMN 38 - duplicate local variable name - x
+
+$ ~/xxx/bin/hawk 'function test(ax, bx) { @local ARGC; }'
+ERROR: CODE 65 LINE 1 COLUMN 32 - duplicate local variable name - ARGC
+
 

@@ -530,7 +530,8 @@ static int fnc_sqrt (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 static int fnc_rand (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
-#define RANDV_MAX HAWK_TYPE_MAX(hawk_int_t)
+/*#define RANDV_MAX HAWK_TYPE_MAX(hawk_int_t)*/
+#define RANDV_MAX RAND_MAX
 	hawk_val_t* r;
 	hawk_int32_t randv;
 	modctx_t* modctx;

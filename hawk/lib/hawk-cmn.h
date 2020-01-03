@@ -831,9 +831,9 @@ enum hawk_errnum_t
 	HAWK_EGBLRED,   /**< global variable redefined */
 	HAWK_EPARRED,   /**< parameter redefined */
 	HAWK_EVARRED,   /**< variable redefined */
-	HAWK_EDUPPAR,   /**< duplicate parameter name '${0}' */
-	HAWK_EDUPGBL,   /**< duplicate global variable name '${0}' */
-	HAWK_EDUPLCL,   /**< duplicate local variable name '${0}' */
+	HAWK_EDUPPAR,   /**< duplicate parameter name */
+	HAWK_EDUPGBL,   /**< duplicate global variable name */
+	HAWK_EDUPLCL,   /**< duplicate local variable name' */
 	HAWK_EBADPAR,   /**< '${0}' not a valid parameter name */
 	HAWK_EBADVAR,   /**< '${0}' not a valid variable name */
 	HAWK_EVARMS,    /**< variable name missing */
