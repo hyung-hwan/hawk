@@ -1525,7 +1525,7 @@ static hawk_ooi_t sf_out (hawk_t* awk, hawk_sio_cmd_t cmd, hawk_sio_arg_t* arg, 
 						const hawk_ooch_t* bem = hawk_backuperrmsg(awk);
 						ioname = xtn->s.out.x->u.file.path;
 						if (!ioname) ioname = sio_std_names[HAWK_SIO_STDOUT].ptr;
-						hawk_seterrfmt (awk, HAWK_NULL, HAWK_EREAD, HAWK_T("unable to write to %js - %js"), ioname, bem); 
+						hawk_seterrfmt (awk, HAWK_NULL, HAWK_EWRITE, HAWK_T("unable to write to %js - %js"), ioname, bem); 
 					}
 					return n;
 				}

@@ -413,12 +413,6 @@ static global_t gtab[] =
 #define SETERR_TOK(awk,code) \
 	hawk_seterror (awk, code, HAWK_OOECS_OOCS((awk)->tok.name), &(awk)->tok.loc)
 
-#define SETERR_COD(awk,code) \
-	hawk_seterror (awk, code, HAWK_NULL, HAWK_NULL)
-
-#define SETERR_LOC(awk,code,loc) \
-	hawk_seterror (awk, code, HAWK_NULL, loc)
-
 #define SETERR_ARG_LOC(awk,code,ep,el,loc) \
 	do { \
 		hawk_oocs_t __ea; \
@@ -701,7 +695,7 @@ int hawk_parse (hawk_t* awk, hawk_sio_cbs_t* sio)
 
 	if (!sio || !sio->in)
 	{
-		SETERR_COD (awk, HAWK_EINVAL);
+		hawk_seterrnum (awk, HAWK_NULL, HAWK_EINVAL);
 		return -1;
 	}
 
@@ -937,7 +931,7 @@ static int parse_progunit (hawk_t* awk)
 		if (awk->opt.depth.s.incl > 0 &&
 		    awk->parse.depth.incl >=  awk->opt.depth.s.incl)
 		{
-			SETERR_LOC (awk, HAWK_EINCLTD, &awk->ptok.loc);
+			hawk_seterrnum (awk, &awk->ptok.loc, HAWK_EINCLTD);
 			return -1;
 		}
 
@@ -946,7 +940,7 @@ static int parse_progunit (hawk_t* awk)
 
 		if (!MATCH(awk, TOK_STR))
 		{
-			SETERR_LOC (awk, HAWK_EINCLSTR, &awk->ptok.loc);
+			hawk_seterrnum (awk, &awk->ptok.loc, HAWK_EINCLSTR);
 			return -1;
 		}
 
@@ -1046,7 +1040,7 @@ static int parse_progunit (hawk_t* awk)
 		{
 			/* when HAWK_NEWLINE is set,
 	   		 * BEGIN and { should be located on the same line */
-			SETERR_LOC (awk, HAWK_EBLKBEG, &awk->ptok.loc);
+			hawk_seterrnum (awk, &awk->ptok.loc, HAWK_EBLKBEG);
 			return -1;
 		}
 
@@ -1077,7 +1071,7 @@ static int parse_progunit (hawk_t* awk)
 		{
 			/* when HAWK_NEWLINE is set,
 	   		 * END and { should be located on the same line */
-			SETERR_LOC (awk, HAWK_EBLKEND, &awk->ptok.loc);
+			hawk_seterrnum (awk, &awk->ptok.loc, HAWK_EBLKEND);
 			return -1;
 		}
 
@@ -1188,7 +1182,7 @@ static int parse_progunit (hawk_t* awk)
 				/* blockless pattern requires HAWK_RIO
 				 * to be ON because the implicit block is
 				 * "print $0" */
-				SETERR_LOC (awk, HAWK_ENOSUP, &ploc);
+				hawk_seterrnum (awk, &ploc, HAWK_ENOSUP);
 				return -1;
 			}
 		}
@@ -1343,7 +1337,7 @@ static hawk_nde_t* parse_function (hawk_t* awk)
 			/* push the parameter to the parameter list */
 			if (HAWK_ARR_SIZE(awk->parse.params) >= HAWK_MAX_PARAMS)
 			{
-				SETERR_LOC (awk, HAWK_EPARTM, &awk->tok.loc);
+				hawk_seterrnum (awk, &awk->tok.loc, HAWK_EPARTM);
 				goto oops;
 			}
 
@@ -1575,7 +1569,7 @@ static hawk_nde_t* parse_block (hawk_t* awk, const hawk_loc_t* xloc, int istop)
 			if (awk->opt.depth.s.incl > 0 &&
 			    awk->parse.depth.incl >=  awk->opt.depth.s.incl)
 			{
-				SETERR_LOC (awk, HAWK_EINCLTD, &awk->ptok.loc);
+				hawk_seterrnum (awk, &awk->ptok.loc, HAWK_EINCLTD);
 				return HAWK_NULL;
 			}
 
@@ -1584,7 +1578,7 @@ static hawk_nde_t* parse_block (hawk_t* awk, const hawk_loc_t* xloc, int istop)
 	
 			if (!MATCH(awk,TOK_STR))
 			{
-				SETERR_LOC (awk, HAWK_EINCLSTR, &awk->ptok.loc);
+				hawk_seterrnum (awk, &awk->ptok.loc, HAWK_EINCLSTR);
 				return HAWK_NULL;
 			}
 
@@ -1626,7 +1620,7 @@ static hawk_nde_t* parse_block (hawk_t* awk, const hawk_loc_t* xloc, int istop)
 				awk->parse.lcls, nlcls, 
 				HAWK_ARR_SIZE(awk->parse.lcls) - nlcls);
 			if (head != HAWK_NULL) hawk_clrpt (awk, head);
-			SETERR_LOC (awk, HAWK_EEOF, &awk->tok.loc);
+			hawk_seterrnum (awk, &awk->tok.loc, HAWK_EEOF);
 			return HAWK_NULL;
 		}
 
@@ -1652,7 +1646,7 @@ static hawk_nde_t* parse_block (hawk_t* awk, const hawk_loc_t* xloc, int istop)
 			if (awk->opt.depth.s.incl > 0 &&
 			    awk->parse.depth.incl >=  awk->opt.depth.s.incl)
 			{
-				SETERR_LOC (awk, HAWK_EINCLTD, &awk->ptok.loc);
+				hawk_seterrnum (awk, &awk->ptok.loc, HAWK_EINCLTD);
 				return HAWK_NULL;
 			}
 
@@ -1661,7 +1655,7 @@ static hawk_nde_t* parse_block (hawk_t* awk, const hawk_loc_t* xloc, int istop)
 
 			if (!MATCH(awk,TOK_STR))
 			{
-				SETERR_LOC (awk, HAWK_EINCLSTR, &awk->ptok.loc);
+				hawk_seterrnum (awk, &awk->ptok.loc, HAWK_EINCLSTR);
 				return HAWK_NULL;
 			}
 
@@ -1753,7 +1747,7 @@ static hawk_nde_t* parse_block_dc (hawk_t* awk, const hawk_loc_t* xloc, int isto
 	if (awk->opt.depth.s.block_parse > 0 &&
 	    awk->parse.depth.block >= awk->opt.depth.s.block_parse)
 	{
-		SETERR_LOC (awk, HAWK_EBLKNST, xloc);
+		hawk_seterrnum (awk, xloc, HAWK_EBLKNST);
 		return HAWK_NULL;
 	}
 
@@ -1895,7 +1889,7 @@ static int add_global (hawk_t* awk, const hawk_oocs_t* name, hawk_loc_t* xloc, i
 	ngbls = HAWK_ARR_SIZE(awk->parse.gbls);
 	if (ngbls >= HAWK_MAX_GBLS)
 	{
-		SETERR_LOC (awk, HAWK_EGBLTM, xloc);
+		hawk_seterrnum (awk, xloc, HAWK_EGBLTM);
 		return -1;
 	}
 
@@ -1926,7 +1920,7 @@ int hawk_addgblwithbcstr (hawk_t* awk, const hawk_bch_t* name)
 	if (awk->tree.ngbls > awk->tree.ngbls_base) 
 	{
 		/* this function is not allowed after hawk_parse is called */
-		SETERR_COD (awk, HAWK_EPERM);
+		hawk_seterrnum (awk, HAWK_NULL, HAWK_EPERM);
 		return -1;
 	}
 
@@ -1934,7 +1928,7 @@ int hawk_addgblwithbcstr (hawk_t* awk, const hawk_bch_t* name)
 	ncs.len = hawk_count_bcstr(name);;
 	if (ncs.len <= 0)
 	{
-		SETERR_COD (awk, HAWK_EINVAL);
+		hawk_seterrnum (awk, HAWK_NULL, HAWK_EINVAL);
 		return -1;
 	}
 
@@ -1965,7 +1959,7 @@ int hawk_addgblwithucstr (hawk_t* awk, const hawk_uch_t* name)
 	if (awk->tree.ngbls > awk->tree.ngbls_base) 
 	{
 		/* this function is not allowed after hawk_parse is called */
-		SETERR_COD (awk, HAWK_EPERM);
+		hawk_seterrnum (awk, HAWK_NULL, HAWK_EPERM);
 		return -1;
 	}
 
@@ -1973,7 +1967,7 @@ int hawk_addgblwithucstr (hawk_t* awk, const hawk_uch_t* name)
 	ncs.len = hawk_count_ucstr(name);;
 	if (ncs.len <= 0)
 	{
-		SETERR_COD (awk, HAWK_EINVAL);
+		hawk_seterrnum (awk, HAWK_NULL, HAWK_EINVAL);
 		return -1;
 	}
 
@@ -2172,7 +2166,7 @@ static hawk_t* collect_globals (hawk_t* awk)
 	{
 		/* special check if the first name is on the 
 		 * same line when HAWK_NEWLINE is on */
-		SETERR_COD (awk, HAWK_EVARMS);
+		hawk_seterrnum (awk, HAWK_NULL, HAWK_EVARMS);
 		return HAWK_NULL;
 	}
 
@@ -2224,7 +2218,7 @@ static hawk_t* collect_locals (hawk_t* awk, hawk_oow_t nlcls, int istop)
 	{
 		/* special check if the first name is on the 
 		 * same line when HAWK_NEWLINE is on */
-		SETERR_COD (awk, HAWK_EVARMS);
+		hawk_seterrnum (awk, HAWK_NULL, HAWK_EVARMS);
 		return HAWK_NULL;
 	}
 
@@ -2679,7 +2673,7 @@ static hawk_nde_t* parse_break (hawk_t* awk, const hawk_loc_t* xloc)
 	HAWK_ASSERT (awk->ptok.type == TOK_BREAK);
 	if (awk->parse.depth.loop <= 0) 
 	{
-		SETERR_LOC (awk, HAWK_EBREAK, xloc);
+		hawk_seterrnum (awk, xloc, HAWK_EBREAK);
 		return HAWK_NULL;
 	}
 
@@ -2703,7 +2697,7 @@ static hawk_nde_t* parse_continue (hawk_t* awk, const hawk_loc_t* xloc)
 	HAWK_ASSERT (awk->ptok.type == TOK_CONTINUE);
 	if (awk->parse.depth.loop <= 0) 
 	{
-		SETERR_LOC (awk, HAWK_ECONTINUE, xloc);
+		hawk_seterrnum (awk, xloc, HAWK_ECONTINUE);
 		return HAWK_NULL;
 	}
 
@@ -2807,12 +2801,12 @@ static hawk_nde_t* parse_next (hawk_t* awk, const hawk_loc_t* xloc)
 
 	if (awk->parse.id.block == PARSE_BEGIN_BLOCK)
 	{
-		SETERR_LOC (awk, HAWK_ENEXTBEG, xloc);
+		hawk_seterrnum (awk, xloc, HAWK_ENEXTBEG);
 		return HAWK_NULL;
 	}
 	if (awk->parse.id.block == PARSE_END_BLOCK)
 	{
-		SETERR_LOC (awk, HAWK_ENEXTEND, xloc);
+		hawk_seterrnum (awk, xloc, HAWK_ENEXTEND);
 		return HAWK_NULL;
 	}
 
@@ -2835,12 +2829,12 @@ static hawk_nde_t* parse_nextfile (
 
 	if (!out && awk->parse.id.block == PARSE_BEGIN_BLOCK)
 	{
-		SETERR_LOC (awk, HAWK_ENEXTFBEG, xloc);
+		hawk_seterrnum (awk, xloc, HAWK_ENEXTFBEG);
 		return HAWK_NULL;
 	}
 	if (!out && awk->parse.id.block == PARSE_END_BLOCK)
 	{
-		SETERR_LOC (awk, HAWK_ENEXTFEND, xloc);
+		hawk_seterrnum (awk, xloc, HAWK_ENEXTFEND);
 		return HAWK_NULL;
 	}
 
@@ -2891,7 +2885,7 @@ static hawk_nde_t* parse_delete (hawk_t* awk, const hawk_loc_t* xloc)
 	if ((type == HAWK_NDE_DELETE && !is_var (var)) ||
 	    (type == HAWK_NDE_RESET && !is_plain_var (var)))
 	{
-		SETERR_LOC (awk, HAWK_EBADARG, &dloc);
+		hawk_seterrnum (awk, &dloc, HAWK_EBADARG);
 		goto oops;
 	}
 
@@ -3123,7 +3117,7 @@ static hawk_nde_t* parse_print (hawk_t* awk, const hawk_loc_t* xloc)
 
 	if (type == HAWK_NDE_PRINTF && !args)
 	{
-		SETERR_LOC (awk, HAWK_ENOARG, xloc);
+		hawk_seterrnum (awk, xloc, HAWK_ENOARG);
 		goto oops;
 	}
 
@@ -3267,7 +3261,7 @@ static hawk_nde_t* parse_statement_nb (
 	else
 	{
 		if (nde != HAWK_NULL) hawk_clrpt (awk, nde);
-		SETERR_LOC (awk, HAWK_ESTMEND, &awk->ptok.loc);
+		hawk_seterrnum (awk, &awk->ptok.loc, HAWK_ESTMEND);
 		return HAWK_NULL;
 	}
 
@@ -3463,7 +3457,7 @@ static hawk_nde_t* parse_expr (hawk_t* awk, const hawk_loc_t* xloc)
 	if (!is_var(x) && x->type != HAWK_NDE_POS) 
 	{
 		hawk_clrpt (awk, x);
-		SETERR_LOC (awk, HAWK_EASSIGN, xloc);
+		hawk_seterrnum (awk, xloc, HAWK_EASSIGN);
 		return HAWK_NULL;
 	}
 
@@ -3512,7 +3506,7 @@ static hawk_nde_t* parse_expr_withdc (hawk_t* awk, const hawk_loc_t* xloc)
 	if (awk->opt.depth.s.expr_parse > 0 &&
 	    awk->parse.depth.expr >= awk->opt.depth.s.expr_parse)
 	{
-		SETERR_LOC (awk, HAWK_EEXPRNST, xloc);
+		hawk_seterrnum (awk, xloc, HAWK_EEXPRNST);
 		return HAWK_NULL;
 	}
 
@@ -3987,7 +3981,7 @@ static hawk_nde_t* parse_in (hawk_t* awk, const hawk_loc_t* xloc)
 
 		if (!is_plain_var(right))
 		{
-			SETERR_LOC (awk, HAWK_ENOTVAR, &rloc);
+			hawk_seterrnum (awk, &rloc, HAWK_ENOTVAR);
 			goto oops;
 		}
 
@@ -4193,7 +4187,7 @@ static hawk_nde_t* parse_unary (hawk_t* awk, const hawk_loc_t* xloc)
 	if (awk->opt.depth.s.expr_parse > 0 &&
 	    awk->parse.depth.expr >= awk->opt.depth.s.expr_parse)
 	{
-		SETERR_LOC (awk, HAWK_EEXPRNST, xloc);
+		hawk_seterrnum (awk, xloc, HAWK_EEXPRNST);
 		return HAWK_NULL;
 	}
 
@@ -4339,7 +4333,7 @@ static hawk_nde_t* parse_unary_exp (hawk_t* awk, const hawk_loc_t* xloc)
 	if (awk->opt.depth.s.expr_parse > 0 &&
 	    awk->parse.depth.expr >= awk->opt.depth.s.expr_parse)
 	{
-		SETERR_LOC (awk, HAWK_EEXPRNST, xloc);
+		hawk_seterrnum (awk, xloc, HAWK_EEXPRNST);
 		return HAWK_NULL;
 	}
 
@@ -4400,7 +4394,7 @@ static hawk_nde_t* parse_increment (hawk_t* awk, const hawk_loc_t* xloc)
 			/* both prefix and postfix increment operator. 
 			 * not allowed */
 			hawk_clrpt (awk, left);
-			SETERR_LOC (awk, HAWK_EPREPST, xloc);
+			hawk_seterrnum (awk, xloc, HAWK_EPREPST);
 			return HAWK_NULL;
 		}
 	}
@@ -4446,7 +4440,7 @@ static hawk_nde_t* parse_increment (hawk_t* awk, const hawk_loc_t* xloc)
 		else
 		{
 			hawk_clrpt (awk, left);
-			SETERR_LOC (awk, HAWK_EINCDECOPR, xloc);
+			hawk_seterrnum (awk, xloc, HAWK_EINCDECOPR);
 			return HAWK_NULL;
 		}
 	}
@@ -4897,7 +4891,7 @@ static hawk_nde_t* parse_primary_getline  (hawk_t* awk, const hawk_loc_t* xloc)
 			 *    getline a() 
 			 *    getline sys::WNOHANG
 			 */
-			SETERR_LOC (awk, HAWK_EBADARG, &ploc);
+			hawk_seterrnum (awk, &ploc, HAWK_EBADARG);
 			goto oops;
 		}
 	}
@@ -4962,6 +4956,9 @@ static hawk_nde_t* parse_primary_nopipe (hawk_t* awk, const hawk_loc_t* xloc)
 			return parse_primary_getline(awk, xloc);
 
 		default:
+		{
+			hawk_tok_t* xtok;
+
 			/* in the tolerant mode, we treat print and printf 
 			 * as a function like getline */
 			if ((awk->opt.trait & HAWK_TOLERANT) &&
@@ -4972,22 +4969,11 @@ static hawk_nde_t* parse_primary_nopipe (hawk_t* awk, const hawk_loc_t* xloc)
 			}
 
 			/* valid expression introducer is expected */
-			if (MATCH(awk,TOK_NEWLINE))
-			{
-				SETERR_ARG_LOC (
-					awk, HAWK_EEXPRNR, 
-					HAWK_OOECS_PTR(awk->ptok.name), 
-					HAWK_OOECS_LEN(awk->ptok.name),
-					&awk->ptok.loc
-				);
-			}
-			else 
-			{
-				SETERR_TOK (awk, HAWK_EEXPRNR);
-			}
+			xtok = MATCH(awk,TOK_NEWLINE)? &awk->ptok: &awk->tok;
+			hawk_seterrfmt (awk, &xtok->loc, HAWK_EEXPRNR, HAWK_T("expression not recognized around '%.*js'"), HAWK_OOECS_LEN(xtok->name),  HAWK_OOECS_PTR(xtok->name));
 			return HAWK_NULL;
+		}
 	}
-
 }
 
 static hawk_nde_t* parse_primary (hawk_t* awk, const hawk_loc_t* xloc)
@@ -5064,7 +5050,7 @@ static hawk_nde_t* parse_primary (hawk_t* awk, const hawk_loc_t* xloc)
 			{
 				/* fucntion a() {}
 				 * print ("ls -laF" | getline a()) */
-				SETERR_LOC (awk, HAWK_EBADARG, &ploc);
+				hawk_seterrnum (awk, &ploc, HAWK_EBADARG);
 				goto oops;
 			}
 		}
@@ -5193,7 +5179,7 @@ static int dup_ident_and_get_next (hawk_t* awk, const hawk_loc_t* xloc, hawk_ooc
 
 		if (nsegs >= max)
 		{
-			SETERR_LOC (awk, HAWK_ESEGTM, xloc);
+			hawk_seterrnum (awk, xloc, HAWK_ESEGTM);
 			goto oops;
 		}
 	}
@@ -5760,12 +5746,12 @@ make_node:
 
 		if (nargs > call->u.fnc.spec.arg.max)
 		{
-			SETERR_LOC (awk, HAWK_EARGTM, xloc);
+			hawk_seterrnum (awk, xloc, HAWK_EARGTM);
 			goto oops;
 		}
 		else if (nargs < call->u.fnc.spec.arg.min)
 		{
-			SETERR_LOC (awk, HAWK_EARGTF, xloc);
+			hawk_seterrnum (awk, xloc, HAWK_EARGTF);
 			goto oops;
 		}
 	}
@@ -5843,8 +5829,7 @@ static int get_number (hawk_t* awk, hawk_tok_t* tok)
 
 			if (c == HAWK_T('8') || c == HAWK_T('9'))
 			{
-				hawk_ooch_t cc = (hawk_ooch_t)c;
-				SETERR_ARG_LOC (awk, HAWK_ELXDIG, &cc, 1, &awk->tok.loc);
+				hawk_seterrfmt (awk, &awk->tok.loc, HAWK_ELXCHR, HAWK_T("invalid digit '%jc'"), (hawk_ooch_t)c);
 				return -1;
 			}
 
@@ -5918,7 +5903,7 @@ static int get_string (
 
 		if (c == HAWK_OOCI_EOF)
 		{
-			SETERR_LOC (awk, HAWK_ESTRNC, &awk->tok.loc);
+			hawk_seterrnum (awk, &awk->tok.loc, HAWK_ESTRNC);
 			return -1;
 		}
 
@@ -6134,7 +6119,7 @@ static int get_single_quoted_string (hawk_t* awk, int byte_only, hawk_tok_t* tok
 
 		if (c == HAWK_OOCI_EOF)
 		{
-			SETERR_LOC (awk, HAWK_ESTRNC, &awk->tok.loc);
+			hawk_seterrnum (awk, &awk->tok.loc, HAWK_ESTRNC);
 			return -1;
 		}
 
@@ -6250,7 +6235,7 @@ static int skip_comment (hawk_t* awk)
 				loc.line = awk->sio.inp->line;
 				loc.colm = awk->sio.inp->colm;
 				loc.file = awk->sio.inp->path;
-				SETERR_LOC (awk, HAWK_ECMTNC, &loc);
+				hawk_seterrnum (awk, &loc, HAWK_ECMTNC);
 				return -1;
 			}
 
@@ -6263,7 +6248,7 @@ static int skip_comment (hawk_t* awk)
 					loc.line = awk->sio.inp->line;
 					loc.colm = awk->sio.inp->colm;
 					loc.file = awk->sio.inp->path;
-					SETERR_LOC (awk, HAWK_ECMTNC, &loc);
+					hawk_seterrnum (awk, &loc, HAWK_ECMTNC);
 					return -1;
 				}
 
@@ -6481,7 +6466,7 @@ retry:
 		{
 			/* this extended keyword is empty, 
 			 * not followed by a valid word */
-			SETERR_LOC (awk, HAWK_EXKWEM, &(awk)->tok.loc);
+			hawk_seterrnum (awk, &(awk)->tok.loc, HAWK_EXKWEM);
 			return -1;
 		}
 		else
@@ -6561,14 +6546,11 @@ retry:
 			/* not handled yet */
 			if (c == HAWK_T('\0'))
 			{
-				SETERR_ARG_LOC (
-					awk, HAWK_ELXCHR,
-					HAWK_T("<NUL>"), 5, &tok->loc);
+				hawk_seterrfmt (awk, &tok->loc, HAWK_ELXCHR, HAWK_T("invalid character '\\0'"));
 			}
 			else
 			{
-				hawk_ooch_t cc = (hawk_ooch_t)c;
-				SETERR_ARG_LOC (awk, HAWK_ELXCHR, &cc, 1, &tok->loc);
+				hawk_seterrfmt (awk, &tok->loc, HAWK_ELXCHR, HAWK_T("invalid character '%jc'"), (hawk_ooch_t)c);
 			}
 			return -1;
 		}

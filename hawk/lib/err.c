@@ -60,16 +60,16 @@ const hawk_ooch_t* hawk_dflerrstr (hawk_t* awk, hawk_errnum_t errnum)
 		HAWK_T("timed out"),
 		HAWK_T("in bad state"),
 
-		HAWK_T("cannot open '${0}'"),
-		HAWK_T("cannot read '${0}'"),
-		HAWK_T("cannot write '${0}'"),
-		HAWK_T("cannot close '${0}'"),
+		HAWK_T("cannot open"),
+		HAWK_T("cannot read"),
+		HAWK_T("cannot write"),
+		HAWK_T("cannot close"),
 		
 		HAWK_T("block nested too deeply"),
 		HAWK_T("expression nested too deeply"),
 
-		HAWK_T("invalid character '${0}'"),
-		HAWK_T("invalid digit '${0}'"),
+		HAWK_T("invalid character"),
+		HAWK_T("invalid digit"),
 
 		HAWK_T("unexpected end of input"),
 		HAWK_T("comment not closed properly"),
@@ -86,7 +86,7 @@ const hawk_ooch_t* hawk_dflerrstr (hawk_t* awk, hawk_errnum_t errnum)
 		HAWK_T("statement not ending with a semicolon"),
 		HAWK_T("keyword 'in' expected in place of '${0}'"),
 		HAWK_T("right-hand side of 'in' not a variable"),
-		HAWK_T("expression not recognized around '${0}'"),
+		HAWK_T("expression not recognized around"),
 
 		HAWK_T("keyword 'function' expected in place of '${0}'"),
 		HAWK_T("keyword 'while' expected in place of '${0}'"),

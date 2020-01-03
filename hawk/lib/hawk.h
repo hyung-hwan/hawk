@@ -1599,7 +1599,7 @@ HAWK_EXPORT void hawk_geterrinf (
  * error message.
  */
 #if defined(HAWK_HAVE_INLINE)
-static HAWK_INLINE void hawk_seterrnum (hawk_t* hawk, hawk_loc_t* errloc, hawk_errnum_t errnum) { hawk_gem_seterrnum (hawk_getgem(hawk), errloc, errnum); }
+static HAWK_INLINE void hawk_seterrnum (hawk_t* hawk, const hawk_loc_t* errloc, hawk_errnum_t errnum) { hawk_gem_seterrnum (hawk_getgem(hawk), errloc, errnum); }
 #else
 #define hawk_seterrnum(hawk, errloc, errnum) hawk_gem_seterrnum(hawk_getgem(hawk), errloc, errnum)
 #endif
@@ -2444,7 +2444,7 @@ HAWK_EXPORT void hawk_rtx_geterror (
 );
 
 #if defined(HAWK_HAVE_INLINE)
-static HAWK_INLINE void hawk_rtx_seterrnum (hawk_rtx_t* rtx, hawk_loc_t* errloc, hawk_errnum_t errnum) { hawk_gem_seterrnum (hawk_rtx_getgem(rtx), errloc, errnum); }
+static HAWK_INLINE void hawk_rtx_seterrnum (hawk_rtx_t* rtx, const hawk_loc_t* errloc, hawk_errnum_t errnum) { hawk_gem_seterrnum (hawk_rtx_getgem(rtx), errloc, errnum); }
 #else
 #define hawk_rtx_seterrnum(rtx, errloc, errnum) hawk_gem_seterrnum(hawk_rtx_getgem(rtx), errloc, errnum)
 #endif
