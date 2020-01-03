@@ -83,8 +83,6 @@ struct pafv_t
 	 (idx) <= HAWK_TYPE_MAX(hawk_int_t) && \
 	 (idx) <= HAWK_TYPE_MAX(hawk_oow_t))
 
-#define SETERR_ARGX_LOC(rtx,code,ea,loc) hawk_rtx_seterror ((rtx), (code), (ea), (loc))
-
 #define CLRERR(rtx) hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_ENOERR)
 #define ADJERR_LOC(rtx,l) do { (rtx)->_gem.errloc = *(l); } while (0)
 

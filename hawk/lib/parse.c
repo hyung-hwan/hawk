@@ -1324,7 +1324,7 @@ static hawk_nde_t* parse_function (hawk_t* awk)
 			     hawk_comp_oochars(pa, pal, name.ptr, name.len, 0) == 0) ||
 			    hawk_arr_search(awk->parse.params, 0, pa, pal) != HAWK_ARR_NIL)
 			{
-				SETERR_ARG_LOC (awk, HAWK_EDUPPAR, pa, pal, &awk->tok.loc);
+				hawk_seterrfmt (awk, &awk->tok.loc, HAWK_EDUPPAR, HAWK_T("duplicate parameter name '%.*js'"), pal, pa);
 				goto oops;
 			}
 
@@ -1856,7 +1856,7 @@ static int add_global (hawk_t* awk, const hawk_oocs_t* name, hawk_loc_t* xloc, i
 	/* check if it conflicts with other global variable names */
 	if (find_global(awk, name) != HAWK_ARR_NIL)
 	{ 
-		SETERR_ARG_LOC (awk, HAWK_EDUPGBL, name->ptr, name->len, xloc);
+		hawk_seterrfmt (awk, xloc, HAWK_EDUPGBL, HAWK_T("duplicate global variable name '%.*js'"), name->len, name->ptr);
 		return -1;
 	}
 
@@ -2261,7 +2261,7 @@ static hawk_t* collect_locals (hawk_t* awk, hawk_oow_t nlcls, int istop)
 		n = hawk_arr_search(awk->parse.lcls, nlcls, lcl.ptr, lcl.len);
 		if (n != HAWK_ARR_NIL)
 		{
-			hawk_seterrfmt (awk, &awk->tok.loc, HAWK_EDUPLCL, HAWK_T("duplicate local variable - %.*js"), lcl.len, lcl.ptr);
+			hawk_seterrfmt (awk, &awk->tok.loc, HAWK_EDUPLCL, HAWK_T("duplicate local variable name - %.*js"), lcl.len, lcl.ptr);
 			return HAWK_NULL;
 		}
 
@@ -2272,7 +2272,7 @@ static hawk_t* collect_locals (hawk_t* awk, hawk_oow_t nlcls, int istop)
 			if (n < awk->tree.ngbls_base)
 			{
 				/* it is a conflict only if it is one of a static global variable */
-				hawk_seterrfmt (awk, &awk->tok.loc, HAWK_EDUPLCL, HAWK_T("duplicate local variable - %.*js"), lcl.len, lcl.ptr);
+				hawk_seterrfmt (awk, &awk->tok.loc, HAWK_EDUPLCL, HAWK_T("duplicate local variable name - %.*js"), lcl.len, lcl.ptr);
 				return HAWK_NULL;
 			}
 		}
