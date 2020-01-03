@@ -2860,7 +2860,7 @@ static int run_print (hawk_rtx_t* rtx, hawk_nde_print_t* nde)
 	/* check if destination has been specified. */
 	if (nde->out)
 	{
-		hawk_oow_t len;
+		hawk_oow_t len, i;
 
 		/* if so, resolve the destination name */
 		out_v = eval_expression(rtx, nde->out);
@@ -2874,24 +2874,17 @@ static int run_print (hawk_rtx_t* rtx, hawk_nde_print_t* nde)
 		if (len <= 0) 
 		{
 			/* the destination name is empty */
-			SETERR_LOC (rtx, HAWK_EIONMEM, &nde->loc);
+			hawk_rtx_seterrfmt (rtx, &nde->loc, HAWK_EIONMEM, HAWK_T("empty I/O name"));
 			goto oops;
 		}
 
 		/* it needs to check if the destination name contains
 		 * any invalid characters to the underlying system */
-		while (len > 0)
+		for (i = 0; i < len; i++)
 		{
-			if (out[--len] == HAWK_T('\0'))
+			if (out[i] == HAWK_T('\0'))
 			{
-				/* provide length up to one character before 
-				 * the first null not to contains a null
-				 * in an error message */
-				SETERR_ARG_LOC (
-					rtx, HAWK_EIONMNL, 
-					out, hawk_count_oocstr(out), &nde->loc);
-
-				/* if so, it skips writing */
+				hawk_rtx_seterrfmt (rtx, &nde->loc, HAWK_EIONMNL, HAWK_T("invalid I/O name of length %zu containing '\\0'"), len); 
 				goto oops_1;
 			}
 		}
@@ -3028,7 +3021,7 @@ static int run_printf (hawk_rtx_t* rtx, hawk_nde_print_t* nde)
 
 	if (nde->out)
 	{
-		hawk_oow_t len;
+		hawk_oow_t len, i;
 
 		out_v = eval_expression(rtx, nde->out);
 		if (!out_v) return -1;
@@ -3041,18 +3034,15 @@ static int run_printf (hawk_rtx_t* rtx, hawk_nde_print_t* nde)
 		if (len <= 0) 
 		{
 			/* the output destination name is empty. */
-			SETERR_LOC (rtx, HAWK_EIONMEM, &nde->loc);
+			hawk_rtx_seterrfmt (rtx, &nde->loc, HAWK_EIONMEM, HAWK_T("empty I/O name"));
 			goto oops_1;
 		}
 
-		while (len > 0)
+		for (i = 0; i < len; i++)
 		{
-			if (out[--len] == HAWK_T('\0'))
+			if (out[i] == HAWK_T('\0'))
 			{
-				/* provide length up to one character before 
-				 * the first null not to contains a null
-				 * in an error message */
-				SETERR_ARG_LOC (rtx, HAWK_EIONMNL, out, hawk_count_oocstr(out), &nde->loc);
+				hawk_rtx_seterrfmt (rtx, &nde->loc, HAWK_EIONMNL, HAWK_T("invalid I/O name of length %zu containing '\\0'"), len); 
 
 				/* the output destination name contains a null 
 				 * character. */

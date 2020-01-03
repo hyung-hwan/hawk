@@ -2093,7 +2093,7 @@ static int open_rio_console (hawk_rtx_t* rtx, hawk_rio_arg_t* riod)
 			if (hawk_count_oocstr(as.ptr) < as.len)
 			{
 				/* the name contains one or more '\0' */
-				hawk_rtx_seterrfmt (rtx, HAWK_NULL, HAWK_EIONMNL, HAWK_T("invalid I/O name beginning with '%js' of length %zu containing '\\0'"), as.ptr, as.len);
+				hawk_rtx_seterrfmt (rtx, HAWK_NULL, HAWK_EIONMNL, HAWK_T("invalid I/O name of length %zu containing '\\0'"), as.len);
 				hawk_rtx_freevaloocstr (rtx, v, as.ptr);
 				return -1;
 			}
