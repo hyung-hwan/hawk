@@ -804,7 +804,7 @@ enum hawk_errnum_t
 	HAWK_EEOF,    /**< unexpected end of source */
 	HAWK_ECMTNC,  /**< comment not closed properly */
 	HAWK_ESTRNC,  /**< string or regular expression not closed */
-	HAWK_EMBSCHR, /**< invalid mbs character '%{0}' */
+	HAWK_EMBSCHR, /**< invalid mbs character */
 	HAWK_ELBRACE, /**< left brace expected in place of '${0}' */
 	HAWK_ELPAREN, /**< left parenthesis expected in place of '${0}' */
 	HAWK_ERPAREN, /**< right parenthesis expected in place of '${0}' */
@@ -822,7 +822,7 @@ enum hawk_errnum_t
 	HAWK_EKWWHL,    /**< keyword 'while' expected in place of '${0}' */
 	HAWK_EASSIGN,   /**< assignment statement expected */
 	HAWK_EIDENT,    /**< identifier expected in place of '${0}' */
-	HAWK_EFUNNAM,   /**< '${0}' not a valid function name */
+	HAWK_EFUNNAM,   /**< not a valid function name */
 	HAWK_EBLKBEG,   /**< BEGIN not followed by left bracket on the same line */
 	HAWK_EBLKEND,   /**< END not followed by left bracket on the same line */
 	HAWK_EKWRED,    /**< keyword redefined */
@@ -833,11 +833,11 @@ enum hawk_errnum_t
 	HAWK_EVARRED,   /**< variable redefined */
 	HAWK_EDUPPAR,   /**< duplicate parameter name */
 	HAWK_EDUPGBL,   /**< duplicate global variable name */
-	HAWK_EDUPLCL,   /**< duplicate local variable name' */
-	HAWK_EBADPAR,   /**< '${0}' not a valid parameter name */
-	HAWK_EBADVAR,   /**< '${0}' not a valid variable name */
+	HAWK_EDUPLCL,   /**< duplicate local variable name */
+	HAWK_EBADPAR,   /**< not a valid parameter name */
+	HAWK_EBADVAR,   /**< not a valid variable name */
 	HAWK_EVARMS,    /**< variable name missing */
-	HAWK_EUNDEF,    /**< undefined identifier '${0}' */
+	HAWK_EUNDEF,    /**< undefined identifier */
 	HAWK_ELVALUE,   /**< l-value required */
 	HAWK_EGBLTM,    /**< too many global variables */
 	HAWK_ELCLTM,    /**< too many local variables */
