@@ -413,15 +413,6 @@ static global_t gtab[] =
 #define SETERR_TOK(awk,code) \
 	hawk_seterror (awk, code, HAWK_OOECS_OOCS((awk)->tok.name), &(awk)->tok.loc)
 
-#define SETERR_ARG_LOC(awk,code,ep,el,loc) \
-	do { \
-		hawk_oocs_t __ea; \
-		__ea.len = (el); __ea.ptr = (ep); \
-		hawk_seterror ((awk), (code), &__ea, (loc)); \
-	} while (0)
-
-#define SETERR_ARG(awk,code,ep,el) SETERR_ARG_LOC(awk,code,ep,el,HAWK_NULL)
-
 #define ADJERR_LOC(hawk,l) do { (hawk)->_gem.errloc = *(l); } while (0)
 
 static HAWK_INLINE int is_plain_var (hawk_nde_t* nde)
@@ -1225,7 +1216,7 @@ static hawk_nde_t* parse_function (hawk_t* awk)
 	if (!MATCH(awk,TOK_IDENT)) 
 	{
 		/* cannot find a valid identifier for a function name */
-		SETERR_TOK (awk, HAWK_EFUNNAM);
+		hawk_seterrfmt (awk, &awk->tok.loc, HAWK_EFUNNAM, HAWK_T("'%.*js' not a valid function name"), HAWK_OOECS_LEN(awk->tok.name), HAWK_OOECS_PTR(awk->tok.name));
 		return HAWK_NULL;
 	}
 
@@ -1303,7 +1294,7 @@ static hawk_nde_t* parse_function (hawk_t* awk)
 
 			if (!MATCH(awk,TOK_IDENT)) 
 			{
-				SETERR_TOK (awk, HAWK_EBADPAR);
+				hawk_seterrfmt (awk, &awk->tok.loc, HAWK_EBADPAR, HAWK_T("'%.*js' not a valid parameter name"), HAWK_OOECS_LEN(awk->tok.name), HAWK_OOECS_PTR(awk->tok.name));
 				goto oops;
 			}
 
@@ -2162,7 +2153,7 @@ static hawk_t* collect_globals (hawk_t* awk)
 	{
 		if (!MATCH(awk,TOK_IDENT)) 
 		{
-			SETERR_TOK (awk, HAWK_EBADVAR);
+			hawk_seterrfmt (awk, &awk->tok.loc, HAWK_EBADVAR, HAWK_T("'%.*js' not a valid variable name"), HAWK_OOECS_LEN(awk->tok.name), HAWK_OOECS_PTR(awk->tok.name));
 			return HAWK_NULL;
 		}
 
@@ -2217,7 +2208,7 @@ static hawk_t* collect_locals (hawk_t* awk, hawk_oow_t nlcls, int istop)
 
 		if (!MATCH(awk,TOK_IDENT)) 
 		{
-			SETERR_TOK (awk, HAWK_EBADVAR);
+			hawk_seterrfmt (awk, &awk->tok.loc, HAWK_EBADVAR, HAWK_T("'%.*js' not a valid variable name"), HAWK_OOECS_LEN(awk->tok.name), HAWK_OOECS_PTR(awk->tok.name));
 			return HAWK_NULL;
 		}
 
@@ -5098,7 +5089,7 @@ static hawk_nde_t* parse_variable (hawk_t* awk, const hawk_loc_t* xloc, hawk_nde
 			 * the value of var_xxx and 1.
 			 */
 			/* a variable is not a function */
-			SETERR_ARG_LOC (awk, HAWK_EFUNNAM, name->ptr, name->len, xloc);
+			hawk_seterrfmt (awk, xloc, HAWK_EFUNNAM, HAWK_T("'%.*js' not a valid function name"), name->len, name->ptr);
 			return HAWK_NULL;
 		}
 	}
@@ -5376,7 +5367,7 @@ static hawk_nde_t* parse_primary_ident_noseg (hawk_t* awk, const hawk_loc_t* xlo
 			else
 			{
 				/* undefined variable */
-				SETERR_ARG_LOC (awk, HAWK_EUNDEF, name->ptr, name->len, xloc);
+				hawk_seterrfmt (awk, xloc, HAWK_EUNDEF, HAWK_T("undefined identifier '%.*js'"), name->len, name->ptr);
 			}
 		}
 	}
@@ -5405,7 +5396,7 @@ static hawk_nde_t* parse_primary_ident_segs (hawk_t* awk, const hawk_loc_t* xloc
 			case HAWK_MOD_FNC:
 				if ((awk->opt.trait & sym.u.fnc.trait) != sym.u.fnc.trait)
 				{
-					SETERR_ARG_LOC (awk, HAWK_EUNDEF, full->ptr, full->len, xloc);
+					hawk_seterrfmt (awk, xloc, HAWK_EUNDEF, HAWK_T("undefined identifier '%.*js'"), full->len, full->ptr);
 					break;
 				}
 
@@ -5436,7 +5427,7 @@ static hawk_nde_t* parse_primary_ident_segs (hawk_t* awk, const hawk_loc_t* xloc
 
 			default:
 				/* TODO: support MOD_VAR */
-				SETERR_ARG_LOC (awk, HAWK_EUNDEF, full->ptr, full->len, xloc);
+				hawk_seterrfmt (awk, xloc, HAWK_EUNDEF, HAWK_T("undefined identifier '%.*js'"), full->len, full->ptr);
 				break;
 		}
 	}
@@ -5521,7 +5512,7 @@ static hawk_nde_t* parse_hashidx (hawk_t* awk, const hawk_oocs_t* name, const ha
 			hawk_loc_t eloc;
 
 			eloc = awk->tok.loc;
-			tmp = parse_expr_withdc (awk, &eloc);
+			tmp = parse_expr_withdc(awk, &eloc);
 		}
 		if (tmp == HAWK_NULL) 
 		{
@@ -5596,7 +5587,7 @@ static hawk_nde_t* parse_hashidx (hawk_t* awk, const hawk_oocs_t* name, const ha
 	}
 
 	/* gets the global variable index */
-	idxa = get_global (awk, name);
+	idxa = get_global(awk, name);
 	if (idxa != HAWK_ARR_NIL)
 	{
 		nde->type = HAWK_NDE_GBLIDX;
@@ -5638,7 +5629,7 @@ static hawk_nde_t* parse_hashidx (hawk_t* awk, const hawk_oocs_t* name, const ha
 	}
 
 	/* undefined variable */
-	SETERR_ARG_LOC (awk, HAWK_EUNDEF, name->ptr, name->len, xloc);
+	hawk_seterrfmt (awk, xloc, HAWK_EUNDEF, HAWK_T("undefined identifier '%.*js'"), name->len, name->ptr);
 
 exit_func:
 	hawk_clrpt (awk, idx);
@@ -5899,8 +5890,7 @@ static int get_string (
 	#else
 		if (byte_only && c != HAWK_T('\\') && !HAWK_BYTE_PRINTABLE(c))
 		{
-			hawk_ooch_t wc = c;
-			SETERR_ARG_LOC (awk, HAWK_EMBSCHR, &wc, 1, &awk->tok.loc);
+			hawk_seterrfmt (awk, &awk->tok.loc, HAWK_EMBSCHR, HAWK_T("invalid mbs character '%jc'"), (hawk_ooch_t)c);
 			return -1;
 		}
 	#endif
@@ -6115,8 +6105,7 @@ static int get_single_quoted_string (hawk_t* awk, int byte_only, hawk_tok_t* tok
 	#else
 		if (byte_only && c != HAWK_T('\\') && !HAWK_BYTE_PRINTABLE(c))
 		{
-			hawk_ooch_t wc = c;
-			SETERR_ARG_LOC (awk, HAWK_EMBSCHR, &wc, 1, &awk->tok.loc);
+			hawk_seterrfmt (awk, &awk->tok.loc, HAWK_EMBSCHR, HAWK_T("invalid mbs character '%jc'"), (hawk_ooch_t)c);
 			return -1;
 		}
 	#endif
