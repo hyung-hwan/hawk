@@ -101,6 +101,7 @@ struct arg_t
 	hawk_parsestd_t* psin; /* input source streams */
 	hawk_bch_t*   osf;  /* output source file */
 	xarg_t        icf; /* input console files */
+	xarg_t        ocf; /* output console files */
 	gvm_t         gvm; /* global variable map */
 	hawk_bch_t*   fs;   /* field separator */
 	hawk_bch_t*   call; /* function to call */
@@ -507,8 +508,10 @@ static void print_usage (FILE* out, const hawk_bch_t* argv0)
 	fprintf (out, " -c/--call            name         call a function instead of entering\n");
 	fprintf (out, "                                   the pattern-action loop. [datafile]* is\n");
 	fprintf (out, "                                   passed to the function as parameters\n");
-	fprintf (out, " -f/--file            sourcefile   set the source script file\n");
-	fprintf (out, " -d/--deparsed-file   deparsedfile set the deparsing output file\n");
+	fprintf (out, " -f/--file            file         set the source script file\n");
+	fprintf (out, " -d/--deparsed-file   file         set the deparsed script file to produce\n");
+	fprintf (out, " -t/--console-output  file         set the console output file\n");
+	fprintf (out, "                                   multiple -t options are allowed\n");
 	fprintf (out, " -F/--field-separator string       set a field separator(FS)\n");
 	fprintf (out, " -v/--assign          var=value    add a global variable with a value\n");
 	fprintf (out, " -m/--memory-limit    number       limit the memory usage (bytes)\n");
@@ -633,6 +636,7 @@ static int process_argv (int argc, hawk_bch_t* argv[], struct arg_t* arg)
 		{ ":call",             'c' },
 		{ ":file",             'f' },
 		{ ":deparsed-file",    'd' },
+		{ ":console-output",   't' },
 		{ ":field-separator",  'F' },
 		{ ":assign",           'v' },
 		{ ":memory-limit",     'm' },
@@ -651,9 +655,9 @@ static int process_argv (int argc, hawk_bch_t* argv[], struct arg_t* arg)
 	static hawk_bcli_t opt = 
 	{
 #if defined(HAWK_BUILD_DEBUG)
-		"hDc:f:d:F:v:m:wX:",
+		"hDc:f:d:t:F:v:m:wX:",
 #else
-		"hDc:f:d:F:v:m:w",
+		"hDc:f:d:t:F:v:m:w",
 #endif
 		lng
 	};
@@ -719,6 +723,20 @@ static int process_argv (int argc, hawk_bch_t* argv[], struct arg_t* arg)
 			case 'd':
 			{
 				arg->osf = opt.arg; /* output source file */
+				break;
+			}
+
+			case 't':
+			{
+				hawk_bcs_t tmp;
+				tmp.ptr = opt.arg;
+				tmp.len = hawk_count_bcstr(opt.arg);
+				if (collect_into_xarg(&tmp, &arg->ocf) <= -1) 
+				{
+						print_error ("out of memory\n");
+						goto oops;
+				}
+				arg->ocf.ptr[arg->ocf.size] = HAWK_NULL;
 				break;
 			}
 
@@ -918,6 +936,7 @@ static int process_argv (int argc, hawk_bch_t* argv[], struct arg_t* arg)
 oops:
 	if (arg->gvm.ptr) free (arg->gvm.ptr);
 	purge_xarg (&arg->icf);
+	purge_xarg (&arg->ocf);
 	if (isf) 
 	{
 		if (arg->incl_conv) free (isf[0].u.bcs.ptr);
@@ -936,6 +955,7 @@ static void freearg (struct arg_t* arg)
 
 	/*if (arg->osf != HAWK_NULL) free (arg->osf);*/
 	purge_xarg (&arg->icf);
+	purge_xarg (&arg->ocf);
 	if (arg->gvm.ptr) free (arg->gvm.ptr);
 }
 
@@ -1163,7 +1183,7 @@ static HAWK_INLINE int execute_hawk (int argc, hawk_bch_t* argv[])
 	rtx = hawk_rtx_openstdwithbcstr(
 		awk, 0, "hawk",
 		(arg.call? HAWK_NULL: arg.icf.ptr), /* console input */
-		HAWK_NULL,  /* ocf */ /* console output */
+		arg.ocf.ptr, /* console output */
 		arg.console_cmgr
 	);
 #else
