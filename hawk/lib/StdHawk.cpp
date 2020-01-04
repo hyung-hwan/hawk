@@ -61,8 +61,8 @@ static hawk_sio_t* open_sio (Hawk* awk, StdHawk::Run* run, const hawk_ooch_t* fi
 	if (sio == HAWK_NULL)
 	{
 		hawk_oocs_t ea;
-		ea.ptr = (StdHawk::char_t*)file;
-		ea.len = hawk_strlen (file);
+		ea.ptr = (hawk_ooch_t*)file;
+		ea.len = hawk_count_oocstr (file);
 		if (run) run->setError (HAWK_EOPEN, &ea);
 		else awk->setError (HAWK_EOPEN, &ea);
 	}
@@ -72,7 +72,7 @@ static hawk_sio_t* open_sio (Hawk* awk, StdHawk::Run* run, const hawk_ooch_t* fi
 static hawk_sio_t* open_sio_std (Hawk* awk, StdHawk::Run* run, hawk_sio_std_t std, int flags)
 {
 	hawk_sio_t* sio;
-	static const StdHawk::char_t* std_names[] =
+	static const hawk_ooch_t* std_names[] =
 	{
 		HAWK_T("stdin"),
 		HAWK_T("stdout"),
@@ -84,8 +84,8 @@ static hawk_sio_t* open_sio_std (Hawk* awk, StdHawk::Run* run, hawk_sio_std_t st
 	if (sio == HAWK_NULL)
 	{
 		hawk_oocs_t ea;
-		ea.ptr = (StdHawk::char_t*)std_names[std];
-		ea.len = hawk_strlen (std_names[std]);
+		ea.ptr = (hawk_ooch_t*)std_names[std];
+		ea.len = hawk_count_oocstr (std_names[std]);
 		if (run) run->setError (HAWK_EOPEN, &ea);
 		else awk->setError (HAWK_EOPEN, &ea);
 	}
@@ -211,7 +211,7 @@ int StdHawk::build_argcv (Run* run)
 {
 	Value argv (run);
 
-	for (size_t i = 0; i < this->runarg.len; i++)
+	for (hawk_oow_t i = 0; i < this->runarg.len; i++)
 	{
 		if (argv.setIndexedStr (
 			Value::IntIndex(i), 
@@ -226,12 +226,12 @@ int StdHawk::build_argcv (Run* run)
 
 int StdHawk::__build_environ (Run* run, void* envptr)
 {
-	hawk_env_char_t** envarr = (hawk_env_char_t**)envptr;
+	hawk_env_hawk_ooch_t** envarr = (hawk_env_hawk_ooch_t**)envptr;
 	Value v_env (run);
 
 	if (envarr)
 	{
-		hawk_env_char_t* eq;
+		hawk_env_hawk_ooch_t* eq;
 		hawk_ooch_t* kptr, * vptr;
 		hawk_oow_t klen, count;
 		hawk_mmgr_t* mmgr = ((Hawk*)*run)->getMmgr();
@@ -332,18 +332,18 @@ int StdHawk::make_additional_globals (Run* run)
 	return 0;
 }
 
-hawk_cmgr_t* StdHawk::getiocmgr (const char_t* ioname)
+hawk_cmgr_t* StdHawk::getiocmgr (const hawk_ooch_t* ioname)
 {
 	HAWK_ASSERT (this->cmgrtab_inited == true);
 
 #if defined(HAWK_OOCH_IS_UCH)
-	ioattr_t* ioattr = get_ioattr(ioname, hawk_strlen(ioname));
+	ioattr_t* ioattr = get_ioattr(ioname, hawk_count_oocstr(ioname));
 	if (ioattr) return ioattr->cmgr;
 #endif
 	return HAWK_NULL;
 }
 
-StdHawk::ioattr_t* StdHawk::get_ioattr (const char_t* ptr, size_t len)
+StdHawk::ioattr_t* StdHawk::get_ioattr (const hawk_ooch_t* ptr, hawk_oow_t len)
 {
 	hawk_htb_pair_t* pair;
 
@@ -353,7 +353,7 @@ StdHawk::ioattr_t* StdHawk::get_ioattr (const char_t* ptr, size_t len)
 	return (ioattr_t*)HAWK_HTB_VPTR(pair);
 }
 
-StdHawk::ioattr_t* StdHawk::find_or_make_ioattr (const char_t* ptr, size_t len)
+StdHawk::ioattr_t* StdHawk::find_or_make_ioattr (const hawk_ooch_t* ptr, hawk_oow_t len)
 {
 	hawk_htb_pair_t* pair;
 
@@ -384,12 +384,12 @@ static int timeout_code (const hawk_ooch_t* name)
 }
 
 int StdHawk::setioattr (
-	Run& run, Value& ret, Value* args, size_t nargs,
-	const char_t* name, size_t len)
+	Run& run, Value& ret, Value* args, hawk_oow_t nargs,
+	const hawk_ooch_t* name, hawk_oow_t len)
 {
 	HAWK_ASSERT (this->cmgrtab_inited == true);
-	size_t l[3];
-	const char_t* ptr[3];
+	hawk_oow_t l[3];
+	const hawk_ooch_t* ptr[3];
 
 	ptr[0] = args[0].toStr(&l[0]);
 	ptr[1] = args[1].toStr(&l[1]);
@@ -459,12 +459,12 @@ int StdHawk::setioattr (
 }
 
 int StdHawk::getioattr (
-	Run& run, Value& ret, Value* args, size_t nargs,
-	const char_t* name, size_t len)
+	Run& run, Value& ret, Value* args, hawk_oow_t nargs,
+	const hawk_ooch_t* name, hawk_oow_t len)
 {
 	HAWK_ASSERT (this->cmgrtab_inited == true);
-	size_t l[2];
-	const char_t* ptr[2];
+	hawk_oow_t l[2];
+	const hawk_ooch_t* ptr[2];
 
 	ptr[0] = args[0].toStr(&l[0]);
 	ptr[1] = args[1].toStr(&l[1]);
@@ -505,7 +505,7 @@ int StdHawk::open_nwio (Pipe& io, int flags, void* nwad)
 	hawk_nwio_tmout_t* tmout = HAWK_NULL;
 
 	const hawk_ooch_t* name = io.getName();
-	ioattr_t* ioattr = get_ioattr (name, hawk_strlen(name));
+	ioattr_t* ioattr = get_ioattr (name, hawk_count_oocstr(name));
 	if (ioattr)
 	{
 		tmout = &tmout_buf;
@@ -596,7 +596,7 @@ static int parse_rwpipe_uri (const hawk_ooch_t* uri, int* flags, hawk_nwad_t* nw
 		{ HAWK_T("tcpd://"), 7, HAWK_NWIO_TCP | HAWK_NWIO_PASSIVE },
 		{ HAWK_T("udpd://"), 7, HAWK_NWIO_UDP | HAWK_NWIO_PASSIVE }
 	};
-	StdHawk::size_t i;
+	hawk_oow_t i;
 
 	for (i = 0; i < HAWK_COUNTOF(x); i++)
 	{
@@ -657,21 +657,21 @@ int StdHawk::closePipe (Pipe& io)
 	return 0; 
 }
 
-StdHawk::ssize_t StdHawk::readPipe (Pipe& io, char_t* buf, size_t len) 
+hawk_ooi_t StdHawk::readPipe (Pipe& io, hawk_ooch_t* buf, hawk_oow_t len) 
 { 
 	return (io.getUflags() > 0)?
 		hawk_nwio_read ((hawk_nwio_t*)io.getHandle(), buf, len):
 		hawk_pio_read ((hawk_pio_t*)io.getHandle(), HAWK_PIO_OUT, buf, len);
 }
 
-StdHawk::ssize_t StdHawk::writePipe (Pipe& io, const char_t* buf, size_t len) 
+hawk_ooi_t StdHawk::writePipe (Pipe& io, const hawk_ooch_t* buf, hawk_oow_t len) 
 { 
 	return (io.getUflags() > 0)?
 		hawk_nwio_write((hawk_nwio_t*)io.getHandle(), buf, len):
 		hawk_pio_write((hawk_pio_t*)io.getHandle(), HAWK_PIO_IN, buf, len);
 }
 
-StdHawk::ssize_t StdHawk::writePipeBytes (Pipe& io, const hawk_bch_t* buf, size_t len) 
+hawk_ooi_t StdHawk::writePipeBytes (Pipe& io, const hawk_bch_t* buf, hawk_oow_t len) 
 { 
 	return (io.getUflags() > 0)?
 		hawk_nwio_writebytes((hawk_nwio_t*)io.getHandle(), buf, len):
@@ -724,17 +724,17 @@ int StdHawk::closeFile (File& io)
 	return 0; 
 }
 
-StdHawk::ssize_t StdHawk::readFile (File& io, char_t* buf, size_t len) 
+hawk_ooi_t StdHawk::readFile (File& io, hawk_ooch_t* buf, hawk_oow_t len) 
 {
 	return hawk_sio_getoochars((hawk_sio_t*)io.getHandle(), buf, len);
 }
 
-StdHawk::ssize_t StdHawk::writeFile (File& io, const char_t* buf, size_t len)
+hawk_ooi_t StdHawk::writeFile (File& io, const hawk_ooch_t* buf, hawk_oow_t len)
 {
 	return hawk_sio_putoochars((hawk_sio_t*)io.getHandle(), buf, len);
 }
 
-StdHawk::ssize_t StdHawk::writeFileBytes (File& io, const hawk_bch_t* buf, size_t len)
+hawk_ooi_t StdHawk::writeFileBytes (File& io, const hawk_bch_t* buf, hawk_oow_t len)
 {
 	return hawk_sio_putbchars((hawk_sio_t*)io.getHandle(), buf, len);
 }
@@ -755,7 +755,7 @@ const hawk_cmgr_t* StdHawk::getConsoleCmgr () const
 	return this->console_cmgr;
 }
 
-int StdHawk::addConsoleOutput (const char_t* arg, size_t len) 
+int StdHawk::addConsoleOutput (const hawk_ooch_t* arg, hawk_oow_t len) 
 {
 	HAWK_ASSERT (awk != HAWK_NULL);
 	int n = this->ofile.add (awk, arg, len);
@@ -763,9 +763,9 @@ int StdHawk::addConsoleOutput (const char_t* arg, size_t len)
 	return n;
 }
 
-int StdHawk::addConsoleOutput (const char_t* arg) 
+int StdHawk::addConsoleOutput (const hawk_ooch_t* arg) 
 {
-	return addConsoleOutput (arg, hawk_strlen(arg));
+	return addConsoleOutput (arg, hawk_count_oocstr(arg));
 }
 
 void StdHawk::clearConsoleOutputs () 
@@ -844,11 +844,11 @@ int StdHawk::open_console_in (Console& io)
 			return 0;
 		}
 
-		if (hawk_strlen(file) != this->runarg.ptr[this->runarg_index].len)
+		if (hawk_count_oocstr(file) != this->runarg.ptr[this->runarg_index].len)
 		{
-			oocs_t arg;
-			arg.ptr = (char_t*)file;
-			arg.len = hawk_strlen (arg.ptr);
+			hawk_oocs_t arg;
+			arg.ptr = (hawk_ooch_t*)file;
+			arg.len = hawk_count_oocstr (arg.ptr);
 			((Run*)io)->setError (HAWK_EIONMNL, &arg);
 			return -1;
 		}
@@ -888,12 +888,12 @@ int StdHawk::open_console_in (Console& io)
 			goto nextfile;
 		}
 
-		if (hawk_strlen(as.ptr) < as.len)
+		if (hawk_count_oocstr(as.ptr) < as.len)
 		{
 			/* the name contains one or more '\0' */
-			oocs_t arg;
+			hawk_oocs_t arg;
 			arg.ptr = as.ptr;
-			arg.len = hawk_strlen (as.ptr);
+			arg.len = hawk_count_oocstr (as.ptr);
 			((Run*)io)->setError (HAWK_EIONMNL, &arg);
 			hawk_rtx_freevaloocstr (rtx, v, as.ptr);
 			return -1;
@@ -911,7 +911,7 @@ int StdHawk::open_console_in (Console& io)
 			return -1;
 		}
 		
-		if (hawk_rtx_setfilename (rtx, file, hawk_strlen(file)) <= -1)
+		if (hawk_rtx_setfilename (rtx, file, hawk_count_oocstr(file)) <= -1)
 		{
 			hawk_sio_close (sio);
 			hawk_rtx_freevaloocstr (rtx, v, as.ptr);
@@ -973,11 +973,11 @@ int StdHawk::open_console_out (Console& io)
 			return 0;
 		}
 
-		if (hawk_strlen(file) != this->ofile.ptr[this->ofile_index].len)
+		if (hawk_count_oocstr(file) != this->ofile.ptr[this->ofile_index].len)
 		{	
-			oocs_t arg;
-			arg.ptr = (char_t*)file;
-			arg.len = hawk_strlen (arg.ptr);
+			hawk_oocs_t arg;
+			arg.ptr = (hawk_ooch_t*)file;
+			arg.len = hawk_count_oocstr (arg.ptr);
 			((Run*)io)->setError (HAWK_EIONMNL, &arg);
 			return -1;
 		}
@@ -989,7 +989,7 @@ int StdHawk::open_console_out (Console& io)
 		if (sio == HAWK_NULL) return -1;
 		
 		if (hawk_rtx_setofilename (
-			rtx, file, hawk_strlen(file)) == -1)
+			rtx, file, hawk_count_oocstr(file)) == -1)
 		{
 			hawk_sio_close (sio);
 			return -1;
@@ -1036,9 +1036,9 @@ int StdHawk::closeConsole (Console& io)
 	return 0;
 }
 
-StdHawk::ssize_t StdHawk::readConsole (Console& io, char_t* data, size_t size) 
+hawk_ooi_t StdHawk::readConsole (Console& io, hawk_ooch_t* data, hawk_oow_t size) 
 {
-	hawk_ssize_t nn;
+	hawk_ooi_t nn;
 
 	while ((nn = hawk_sio_getoochars((hawk_sio_t*)io.getHandle(),data,size)) == 0)
 	{
@@ -1060,12 +1060,12 @@ StdHawk::ssize_t StdHawk::readConsole (Console& io, char_t* data, size_t size)
 	return nn;
 }
 
-StdHawk::ssize_t StdHawk::writeConsole (Console& io, const char_t* data, size_t size) 
+hawk_ooi_t StdHawk::writeConsole (Console& io, const hawk_ooch_t* data, hawk_oow_t size) 
 {
 	return hawk_sio_putoochars((hawk_sio_t*)io.getHandle(), data, size);
 }
 
-StdHawk::ssize_t StdHawk::writeConsoleBytes (Console& io, const hawk_bch_t* data, size_t size) 
+hawk_ooi_t StdHawk::writeConsoleBytes (Console& io, const hawk_bch_t* data, hawk_oow_t size) 
 {
 	return hawk_sio_putbchars((hawk_sio_t*)io.getHandle(), data, size);
 }
@@ -1095,12 +1095,12 @@ int StdHawk::nextConsole (Console& io)
 }
 
 // memory allocation primitives
-void* StdHawk::allocMem (size_t n) 
+void* StdHawk::allocMem (hawk_oow_t n) 
 { 
 	return ::malloc (n); 
 }
 
-void* StdHawk::reallocMem (void* ptr, size_t n) 
+void* StdHawk::reallocMem (void* ptr, hawk_oow_t n) 
 { 
 	return ::realloc (ptr, n); 
 }
@@ -1135,10 +1135,10 @@ void StdHawk::modclose (void* handle)
 	hawk_stdmodclose (this->awk, handle);
 }
 
-void* StdHawk::modsym (void* handle, const hawk_ooch_t* name)
+void* StdHawk::modgetsym (void* handle, const hawk_ooch_t* name)
 {
 	void* s;
-	s = hawk_stdmodsym (this->awk, handle, name);
+	s = hawk_stdmodgetsym (this->awk, handle, name);
 	if (!s) this->retrieveError ();
 	return s;
 }
@@ -1181,9 +1181,9 @@ int StdHawk::SourceFile::open (Data& io)
 	else
 	{
 		// open an included file
-		const char_t* ioname, * file;
-		char_t fbuf[64];
-		char_t* dbuf = HAWK_NULL;
+		const hawk_ooch_t* ioname, * file;
+		hawk_ooch_t fbuf[64];
+		hawk_ooch_t* dbuf = HAWK_NULL;
 	
 		ioname = io.getName();
 		HAWK_ASSERT (ioname != HAWK_NULL);
@@ -1201,10 +1201,10 @@ int StdHawk::SourceFile::open (Data& io)
 				base = hawk_basename(outer);
 				if (base != outer && ioname[0] != HAWK_T('/'))
 				{
-					size_t tmplen, totlen, dirlen;
+					hawk_oow_t tmplen, totlen, dirlen;
 				
 					dirlen = base - outer;
-					totlen = hawk_strlen(ioname) + dirlen;
+					totlen = hawk_count_oocstr(ioname) + dirlen;
 					if (totlen >= HAWK_COUNTOF(fbuf))
 					{
 						dbuf = (hawk_ooch_t*) HAWK_MMGR_ALLOC (
@@ -1221,8 +1221,8 @@ int StdHawk::SourceFile::open (Data& io)
 					}
 					else file = fbuf;
 
-					tmplen = hawk_copy_oochars_to_oocstr_unlimited ((char_t*)file, outer, dirlen);
-					hawk_copy_oocstr_unlimited ((char_t*)file + tmplen, ioname);
+					tmplen = hawk_copy_oochars_to_oocstr_unlimited ((hawk_ooch_t*)file, outer, dirlen);
+					hawk_copy_oocstr_unlimited ((hawk_ooch_t*)file + tmplen, ioname);
 				}
 			}
 		}
@@ -1250,12 +1250,12 @@ int StdHawk::SourceFile::close (Data& io)
 	return 0;
 }
 
-StdHawk::ssize_t StdHawk::SourceFile::read (Data& io, char_t* buf, size_t len)
+hawk_ooi_t StdHawk::SourceFile::read (Data& io, hawk_ooch_t* buf, hawk_oow_t len)
 {
 	return hawk_sio_getoochars ((hawk_sio_t*)io.getHandle(), buf, len);
 }
 
-StdHawk::ssize_t StdHawk::SourceFile::write (Data& io, const char_t* buf, size_t len)
+hawk_ooi_t StdHawk::SourceFile::write (Data& io, const hawk_ooch_t* buf, hawk_oow_t len)
 {
 	return hawk_sio_putoochars ((hawk_sio_t*)io.getHandle(), buf, len);
 }
@@ -1275,9 +1275,9 @@ int StdHawk::SourceString::open (Data& io)
 	{
 		// open an included file 
 
-		const char_t* ioname, * file;
-		char_t fbuf[64];
-		char_t* dbuf = HAWK_NULL;
+		const hawk_ooch_t* ioname, * file;
+		hawk_ooch_t fbuf[64];
+		hawk_ooch_t* dbuf = HAWK_NULL;
 		
 		ioname = io.getName();
 		HAWK_ASSERT (ioname != HAWK_NULL);
@@ -1295,10 +1295,10 @@ int StdHawk::SourceString::open (Data& io)
 				base = hawk_basename(outer);
 				if (base != outer && ioname[0] != HAWK_T('/'))
 				{
-					size_t tmplen, totlen, dirlen;
+					hawk_oow_t tmplen, totlen, dirlen;
 				
 					dirlen = base - outer;
-					totlen = hawk_strlen(ioname) + dirlen;
+					totlen = hawk_count_oocstr(ioname) + dirlen;
 					if (totlen >= HAWK_COUNTOF(fbuf))
 					{
 						dbuf = (hawk_ooch_t*)HAWK_MMGR_ALLOC(
@@ -1315,8 +1315,8 @@ int StdHawk::SourceString::open (Data& io)
 					}
 					else file = fbuf;
 	
-					tmplen = hawk_copy_oochars_to_oocstr_unlimited ((char_t*)file, outer, dirlen);
-					hawk_copy_oocstr_unlimited ((char_t*)file + tmplen, ioname);
+					tmplen = hawk_copy_oochars_to_oocstr_unlimited ((hawk_ooch_t*)file, outer, dirlen);
+					hawk_copy_oocstr_unlimited ((hawk_ooch_t*)file + tmplen, ioname);
 				}
 			}
 		}
@@ -1342,7 +1342,7 @@ int StdHawk::SourceString::close (Data& io)
 	return 0;
 }
 
-StdHawk::ssize_t StdHawk::SourceString::read (Data& io, char_t* buf, size_t len)
+hawk_ooi_t StdHawk::SourceString::read (Data& io, hawk_ooch_t* buf, hawk_oow_t len)
 {
 	if (io.isMaster())
 	{
@@ -1356,7 +1356,7 @@ StdHawk::ssize_t StdHawk::SourceString::read (Data& io, char_t* buf, size_t len)
 	}
 }
 
-StdHawk::ssize_t StdHawk::SourceString::write (Data& io, const char_t* buf, size_t len)
+hawk_ooi_t StdHawk::SourceString::write (Data& io, const hawk_ooch_t* buf, hawk_oow_t len)
 {
 	if (io.isMaster())
 	{
