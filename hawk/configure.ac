@@ -325,6 +325,15 @@ AC_SUBST(UNICOWS_LIBS)
 
 AC_CHECK_LIB([rt], [clock_gettime], [LIBS="$LIBS -lrt"])
 
+
+dnl libuci (optional)
+AC_CHECK_LIB([uci], [uci_alloc_context], [UCI_LIBS="-luci"])
+AC_SUBST(UCI_LIBS)
+AM_CONDITIONAL(HAVE_LIBUCI, test "x${ac_cv_lib_uci_uci_alloc_context}" = "xyes" -a "x${ac_cv_header_uci_h}" = "xyes")
+
+dnl libmysqlclient
+AX_LIB_MYSQL()
+
 AC_MSG_CHECKING([for va_copy])
 AC_TRY_LINK(
 	[#include <stdarg.h>],

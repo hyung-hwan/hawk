@@ -6974,11 +6974,11 @@ int hawk_putsrcoochars (hawk_t* hawk, const hawk_ooch_t* str, hawk_oow_t len)
 #include "mod-sys.h"
 
 #if defined(HAWK_ENABLE_MOD_MYSQL)
-#include "../awkmod/mod-mysql.h"
+#include "../mod/mod-mysql.h"
 #endif
 
 #if defined(HAWK_ENABLE_MOD_UCI)
-#include "../awkmod/mod-uci.h"
+#include "../mod/mod-uci.h"
 #endif
 
 /* 

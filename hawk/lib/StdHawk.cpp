@@ -447,7 +447,7 @@ int StdHawk::setioattr (
 		if (ioattr == HAWK_NULL) return -1;
 
 		ioattr->cmgr = cmgr;
-		hawk_strxcpy (ioattr->cmgr_name, HAWK_COUNTOF(ioattr->cmgr_name), ptr[2]);
+		hawk_copy_oocstr (ioattr->cmgr_name, HAWK_COUNTOF(ioattr->cmgr_name), ptr[2]);
 		return 0;
 	}
 #endif

@@ -1143,7 +1143,7 @@ void Hawk::Run::setErrorWithMessage (
 	HAWK_MEMSET (&errinf, 0, HAWK_SIZEOF(errinf));
 	errinf.num = code;
 	if (loc == HAWK_NULL) errinf.loc = *loc;
-	hawk_strxcpy (errinf.msg, HAWK_COUNTOF(errinf.msg), msg);
+	hawk_copy_oocstr (errinf.msg, HAWK_COUNTOF(errinf.msg), msg);
 
 	hawk_rtx_seterrinf (this->rtx, &errinf);
 }
@@ -1265,7 +1265,7 @@ void Hawk::setError (errnum_t code, const oocs_t* args, const loc_t* loc)
 		HAWK_MEMSET (&errinf, 0, HAWK_SIZEOF(errinf));
 		errinf.num = code;
 		if (loc != HAWK_NULL) errinf.loc = *loc;
-		hawk_strxcpy (errinf.msg, HAWK_COUNTOF(errinf.msg), 
+		hawk_copy_oocstr (errinf.msg, HAWK_COUNTOF(errinf.msg), 
 			HAWK_T("not ready to set an error message"));
 	}
 }
@@ -1276,7 +1276,7 @@ void Hawk::setErrorWithMessage (errnum_t code, const char_t* msg, const loc_t* l
 
 	errinf.num = code;
 	if (loc != HAWK_NULL) errinf.loc = *loc;
-	hawk_strxcpy (errinf.msg, HAWK_COUNTOF(errinf.msg), msg);
+	hawk_copy_oocstr (errinf.msg, HAWK_COUNTOF(errinf.msg), msg);
 
 	if (awk != HAWK_NULL) hawk_seterrinf (awk, &errinf);
 }
