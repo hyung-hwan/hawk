@@ -30,10 +30,14 @@
 #include <hawk.h>
 #include <stdarg.h>
 
-//#define HAWK_AWK_USE_HTB_FOR_FUNCTION_MAP 1
-//#define HAWK_AWK_VALUE_USE_IN_CLASS_PLACEMENT_NEW 1
+#define HAWK_USE_HTB_FOR_FUNCTION_MAP 1
+//#define HAWK_VALUE_USE_IN_CLASS_PLACEMENT_NEW 1
 
-#if defined(HAWK_AWK_USE_HTB_FOR_FUNCTION_MAP)
+// TOOD: redefine these NAMESPACE stuffs or move them somewhere else
+#define HAWK_BEGIN_NAMESPACE(x) namespace x {
+#define HAWK_END_NAMESPACE(x) }
+
+#if defined(HAWK_USE_HTB_FOR_FUNCTION_MAP)
 #	include <hawk-htb.h>
 #else
 #	include <hawk/HashTable.hpp>
@@ -71,13 +75,13 @@ public:
 
 	enum depth_t
 	{
-		DEPTH_INCLUDE     = HAWK_AWK_DEPTH_INCLUDE,
-		DEPTH_BLOCK_PARSE = HAWK_AWK_DEPTH_BLOCK_PARSE,
-		DEPTH_BLOCK_RUN   = HAWK_AWK_DEPTH_BLOCK_RUN,
-		DEPTH_EXPR_PARSE  = HAWK_AWK_DEPTH_EXPR_PARSE,
-		DEPTH_EXPR_RUN    = HAWK_AWK_DEPTH_EXPR_RUN,
-		DEPTH_REX_BUILD   = HAWK_AWK_DEPTH_REX_BUILD,
-		DEPTH_REX_MATCH   = HAWK_AWK_DEPTH_REX_MATCH
+		DEPTH_INCLUDE     = HAWK_DEPTH_INCLUDE,
+		DEPTH_BLOCK_PARSE = HAWK_DEPTH_BLOCK_PARSE,
+		DEPTH_BLOCK_RUN   = HAWK_DEPTH_BLOCK_RUN,
+		DEPTH_EXPR_PARSE  = HAWK_DEPTH_EXPR_PARSE,
+		DEPTH_EXPR_RUN    = HAWK_DEPTH_EXPR_RUN,
+		DEPTH_REX_BUILD   = HAWK_DEPTH_REX_BUILD,
+		DEPTH_REX_MATCH   = HAWK_DEPTH_REX_MATCH
 	};
 
 	/// The gbl_id_t type redefines #hawk_gbl_id_t.
@@ -120,16 +124,16 @@ protected:
 	/// to customize an error message. You must include the same numbers
 	/// of ${X}'s as the orginal formatting string. Their order may be
 	/// different. The example below changes the formatting string for
-	/// #HAWK_AWK_ENOENT.
+	/// #HAWK_ENOENT.
 	/// \code
-	/// const MyHawk::char_t* MyHawk::getErrorString (errnum_t num) const 
+	/// const hawk_ooch_t* MyHawk::getErrorString (hawk_errnum_t num) const 
 	/// {
-	///    if (num == HAWK_AWK_ENOENT) return HAWK_T("cannot find '${0}'");
+	///    if (num == HAWK_ENOENT) return HAWK_T("cannot find '${0}'");
 	///    return Hawk::getErrorString (num);
 	/// }
 	/// \endcode
 	///
-	virtual const char_t* getErrorString (
+	virtual const hawk_ooch_t* getErrorString (
 		errnum_t num
 	) const;
 
@@ -150,14 +154,14 @@ public:
 	/// The Hawk::getErrorMessage() function returns a message describing
 	/// the last error occurred.
 	///
-	const char_t* getErrorMessage () const;
+	const hawk_ooch_t* getErrorMessage () const;
 
 	///
 	/// The setError() function sets error information.
 	///
 	void setError (
 		errnum_t      code, ///< error code
-		const oocs_t* args  = HAWK_NULL, ///< message formatting 
+		const hawk_oocs_t* args  = HAWK_NULL, ///< message formatting 
 		                                ///  argument array
 		const loc_t*  loc   = HAWK_NULL  ///< error location
 	);
@@ -168,7 +172,7 @@ public:
 	///
 	void setErrorWithMessage (
 		errnum_t      code, ///< error code
-		const char_t* msg,  ///< error message
+		const hawk_ooch_t* msg,  ///< error message
 		const loc_t*  loc   ///< error location
 	);
 
@@ -229,19 +233,19 @@ public:
 				return this->arg->prev == HAWK_NULL;
 			}
 
-			const char_t* getName() const
+			const hawk_ooch_t* getName() const
 			{
 				return this->arg->name;
 			}
 
 			// since it doesn't copy the contents,
 			// it should point to something that outlives this object.
-			void setName (const char_t* name)
+			void setName (const hawk_ooch_t* name)
 			{
 				this->arg->name = name;
 			}
 
-			const char_t* getPrevName() const
+			const hawk_ooch_t* getPrevName() const
 			{
 				return this->arg->prev->name;
 			}
@@ -282,8 +286,8 @@ public:
 
 		virtual int open (Data& io) = 0;
 		virtual int close (Data& io) = 0;
-		virtual ssize_t read (Data& io, char_t* buf, size_t len) = 0;
-		virtual ssize_t write (Data& io, const char_t* buf, size_t len) = 0;
+		virtual hawk_ooi_t read (Data& io, hawk_ooch_t* buf, hawk_oow_t len) = 0;
+		virtual hawk_ooi_t write (Data& io, const hawk_ooch_t* buf, hawk_oow_t len) = 0;
 
 		///
 		/// The NONE object indicates no source.
@@ -301,8 +305,8 @@ protected:
 	public:
 		int open (Data& io) { return -1; }
 		int close (Data& io) { return 0; }
-		ssize_t read (Data& io, char_t* buf, size_t len) { return 0; }
-		ssize_t write (Data& io, const char_t* buf, size_t len) { return 0; }
+		hawk_ooi_t read (Data& io, hawk_ooch_t* buf, hawk_oow_t len) { return 0; }
+		hawk_ooi_t write (Data& io, const hawk_ooch_t* buf, hawk_oow_t len) { return 0; }
 	};
 
 public:
@@ -317,7 +321,7 @@ public:
 		RIOBase (Run* run, rio_arg_t* riod);
 
 	public:
-		const char_t* getName() const;
+		const hawk_ooch_t* getName() const;
 
 		const void* getHandle () const;
 		void setHandle (void* handle);
@@ -353,11 +357,11 @@ public:
 		enum Mode
 		{
 			/// open for read-only access
-			READ = HAWK_AWK_RIO_PIPE_READ,
+			READ = HAWK_RIO_PIPE_READ,
 			/// open for write-only access
-			WRITE = HAWK_AWK_RIO_PIPE_WRITE,
+			WRITE = HAWK_RIO_PIPE_WRITE,
 			/// open for read and write
-			RW = HAWK_AWK_RIO_PIPE_RW
+			RW = HAWK_RIO_PIPE_RW
 		};
 
 		/// The CloseMode type defines the closing mode for a pipe
@@ -365,11 +369,11 @@ public:
 		enum CloseMode
 		{
 			/// close both read and write ends
-			CLOSE_FULL = HAWK_AWK_RIO_CLOSE_FULL, 
+			CLOSE_FULL = HAWK_RIO_CMD_CLOSE_FULL, 
 			/// close the read end only
-			CLOSE_READ = HAWK_AWK_RIO_CLOSE_READ,
+			CLOSE_READ = HAWK_RIO_CMD_CLOSE_READ,
 			/// close the write end only
-			CLOSE_WRITE = HAWK_AWK_RIO_CLOSE_WRITE
+			CLOSE_WRITE = HAWK_RIO_CMD_CLOSE_WRITE
 		};
 
 		class HAWK_EXPORT Handler 
@@ -379,9 +383,9 @@ public:
 
 			virtual int     open  (Pipe& io) = 0;
 			virtual int     close (Pipe& io) = 0;
-			virtual ssize_t read  (Pipe& io, char_t* buf, size_t len) = 0;
-			virtual ssize_t write (Pipe& io, const char_t* buf, size_t len) = 0;
-			virtual ssize_t writeBytes (Pipe& io, const hawk_bch_t* buf, size_t len) = 0;
+			virtual hawk_ooi_t read  (Pipe& io, hawk_ooch_t* buf, hawk_oow_t len) = 0;
+			virtual hawk_ooi_t write (Pipe& io, const hawk_ooch_t* buf, hawk_oow_t len) = 0;
+			virtual hawk_ooi_t writeBytes (Pipe& io, const hawk_bch_t* buf, hawk_oow_t len) = 0;
 			virtual int     flush (Pipe& io) = 0;
 		};
 
@@ -412,9 +416,9 @@ public:
 
 		enum Mode
 		{
-			READ = HAWK_AWK_RIO_FILE_READ,
-			WRITE = HAWK_AWK_RIO_FILE_WRITE,
-			APPEND = HAWK_AWK_RIO_FILE_APPEND
+			READ = HAWK_RIO_FILE_READ,
+			WRITE = HAWK_RIO_FILE_WRITE,
+			APPEND = HAWK_RIO_FILE_APPEND
 		};
 
 		class HAWK_EXPORT Handler 
@@ -424,9 +428,9 @@ public:
 
 			virtual int     open  (File& io) = 0;
 			virtual int     close (File& io) = 0;
-			virtual ssize_t read  (File& io, char_t* buf, size_t len) = 0;
-			virtual ssize_t write (File& io, const char_t* buf, size_t len) = 0;
-			virtual ssize_t writeBytes (File& io, const hawk_bch_t* buf, size_t len) = 0;
+			virtual hawk_ooi_t read  (File& io, hawk_ooch_t* buf, hawk_oow_t len) = 0;
+			virtual hawk_ooi_t write (File& io, const hawk_ooch_t* buf, hawk_oow_t len) = 0;
+			virtual hawk_ooi_t writeBytes (File& io, const hawk_bch_t* buf, hawk_oow_t len) = 0;
 			virtual int     flush (File& io) = 0;
 		};
 
@@ -449,8 +453,8 @@ public:
 		/// Console mode enumerators
 		enum Mode
 		{
-			READ = HAWK_AWK_RIO_CONSOLE_READ,  ///< open for input
-			WRITE = HAWK_AWK_RIO_CONSOLE_WRITE ///< open for output
+			READ = HAWK_RIO_CONSOLE_READ,  ///< open for input
+			WRITE = HAWK_RIO_CONSOLE_WRITE ///< open for output
 		};
 
 		/// 
@@ -481,16 +485,16 @@ public:
 			/// data not more than \a len characters and return the
 			/// number of characters filled into the buufer. It can
 			/// return 0 to indicate EOF and -1 for failure.
-			virtual ssize_t read  (Console& io, char_t* buf, size_t len) = 0;
+			virtual hawk_ooi_t read  (Console& io, hawk_ooch_t* buf, hawk_oow_t len) = 0;
 
 			/// The write() function is called when the console
 			/// is written for output. It can write upto \a len characters
 			/// available in the buffer \a buf and return the number of
 			/// characters written. It can return 0 to indicate EOF and -1 
 			/// for failure.
-			virtual ssize_t write (Console& io, const char_t* buf, size_t len) = 0;
+			virtual hawk_ooi_t write (Console& io, const hawk_ooch_t* buf, hawk_oow_t len) = 0;
 
-			virtual ssize_t writeBytes (Console& io, const hawk_bch_t* buf, size_t len) = 0;
+			virtual hawk_ooi_t writeBytes (Console& io, const hawk_bch_t* buf, hawk_oow_t len) = 0;
 
 			/// You may choose to buffer the data passed to the write() 
 			/// function and perform actual writing when flush() is called. 
@@ -512,11 +516,11 @@ public:
 		/// opened for reading or writing.
 		Mode getMode () const;
 
-		int setFileName (const char_t* name);
+		int setFileName (const hawk_ooch_t* name);
 		int setFNR (int_t fnr);
 
 	protected:
-		char_t* filename;
+		hawk_ooch_t* filename;
 	};
 
 
@@ -529,10 +533,10 @@ public:
 	public:
 		friend class Hawk;
 
-	#if defined(HAWK_AWK_VALUE_USE_IN_CLASS_PLACEMENT_NEW)
+	#if defined(HAWK_VALUE_USE_IN_CLASS_PLACEMENT_NEW)
 		// initialization
-		void* operator new (size_t n, Run* run) throw ();
-		void* operator new[] (size_t n, Run* run) throw ();
+		void* operator new (hawk_oow_t n, Run* run) throw ();
+		void* operator new[] (hawk_oow_t n, Run* run) throw ();
 
 	#if !defined(__BORLANDC__) && !defined(__WATCOMC__)
 		// deletion when initialization fails
@@ -556,14 +560,14 @@ public:
 			/// The Index() function creates an empty array index.
 			Index ()
 			{
-				this->ptr = (char_t*)Value::getEmptyStr();
+				this->ptr = (hawk_ooch_t*)Value::getEmptyStr();
 				this->len = 0;
 			}
 
 			/// The Index() function creates a string array index.
-			Index (const char_t* ptr, size_t len)
+			Index (const hawk_ooch_t* ptr, hawk_oow_t len)
 			{
-				this->ptr = (char_t*)ptr;
+				this->ptr = (hawk_ooch_t*)ptr;
 				this->len = len;
 			}
 
@@ -579,12 +583,12 @@ public:
 				return *this;
 			}
 
-			const char_t* pointer () const
+			const hawk_ooch_t* pointer () const
 			{
 				return this->ptr;
 			}
 
-			size_t length () const
+			hawk_oow_t length () const
 			{
 				return this->len;
 			}
@@ -609,11 +613,11 @@ public:
 		#	error SIZEOF(int_t) TOO LARGE. 
 		#	error INCREASE THE BUFFER SIZE TO SUPPORT IT.
 		#elif HAWK_SIZEOF_LONG_T == 16
-			char_t buf[41];
+			hawk_ooch_t buf[41];
 		#elif HAWK_SIZEOF_LONG_T == 8
-			char_t buf[21];
+			hawk_ooch_t buf[21];
 		#else
-			char_t buf[12];
+			hawk_ooch_t buf[12];
 		#endif
 		};
 
@@ -643,7 +647,7 @@ public:
 			}
 
 		protected:
-			IndexIterator (hawk_htb_pair_t* pair, size_t buckno)
+			IndexIterator (hawk_htb_pair_t* pair, hawk_oow_t buckno)
 			{
 				this->pair = pair;
 				this->buckno = buckno;
@@ -691,7 +695,7 @@ public:
 		operator val_t* () const { return val; }
 		operator int_t () const;
 		operator flt_t () const;
-		operator const char_t* () const;
+		operator const hawk_ooch_t* () const;
 	#if defined(HAWK_OOCH_IS_UCH)
 		operator const hawk_bch_t* () const;
 	#endif
@@ -711,10 +715,10 @@ public:
 			return operator flt_t ();
 		}
 
-		const char_t* toStr (size_t* len) const
+		const hawk_ooch_t* toStr (hawk_oow_t* len) const
 		{
-			const char_t* p;
-			size_t l;
+			const hawk_ooch_t* p;
+			hawk_oow_t l;
 
 			if (this->getStr(&p, &l) <= -1) 
 			{
@@ -726,10 +730,10 @@ public:
 			return p;
 		}
 
-		const hawk_bch_t* toMbs (size_t* len) const
+		const hawk_bch_t* toMbs (hawk_oow_t* len) const
 		{
 			const hawk_bch_t* p;
-			size_t l;
+			hawk_oow_t l;
 
 			if (this->getMbs(&p, &l) <= -1) 
 			{
@@ -744,8 +748,8 @@ public:
 		int getInt (int_t* v) const;
 		int getFlt (flt_t* v) const;
 		int getNum (int_t* lv, flt_t* fv) const;
-		int getStr (const char_t** str, size_t* len) const;
-		int getMbs (const hawk_bch_t** str, size_t* len) const;
+		int getStr (const hawk_ooch_t** str, hawk_oow_t* len) const;
+		int getMbs (const hawk_bch_t** str, hawk_oow_t* len) const;
 
 		int setVal (val_t* v);
 		int setVal (Run* r, val_t* v);
@@ -755,13 +759,13 @@ public:
 		int setFlt (flt_t v);
 		int setFlt (Run* r, flt_t v);
 
-		int setStr (const char_t* str, size_t len, bool numeric = false);
-		int setStr (Run* r, const char_t* str, size_t len, bool numeric = false);
-		int setStr (const char_t* str, bool numeric = false);
-		int setStr (Run* r, const char_t* str, bool numeric = false);
+		int setStr (const hawk_ooch_t* str, hawk_oow_t len, bool numeric = false);
+		int setStr (Run* r, const hawk_ooch_t* str, hawk_oow_t len, bool numeric = false);
+		int setStr (const hawk_ooch_t* str, bool numeric = false);
+		int setStr (Run* r, const hawk_ooch_t* str, bool numeric = false);
 
-		int setMbs (const hawk_bch_t* str, size_t len);
-		int setMbs (Run* r, const hawk_bch_t* str, size_t len);
+		int setMbs (const hawk_bch_t* str, hawk_oow_t len);
+		int setMbs (Run* r, const hawk_bch_t* str, hawk_oow_t len);
 		int setMbs (const hawk_bch_t* str);
 		int setMbs (Run* r, const hawk_bch_t* str);
 
@@ -772,13 +776,13 @@ public:
 		int setIndexedFlt (const Index& idx, flt_t v);
 		int setIndexedFlt (Run* r, const Index&  idx, flt_t v);
 
-		int setIndexedStr (const Index& idx, const char_t* str, size_t len, bool numeric = false);
-		int setIndexedStr (Run* r, const Index& idx, const char_t* str, size_t len, bool numeric = false);
-		int setIndexedStr (const Index& idx, const char_t* str, bool  numeric = false);
-		int setIndexedStr (Run* r, const Index&  idx, const char_t* str, bool  numeric = false);
+		int setIndexedStr (const Index& idx, const hawk_ooch_t* str, hawk_oow_t len, bool numeric = false);
+		int setIndexedStr (Run* r, const Index& idx, const hawk_ooch_t* str, hawk_oow_t len, bool numeric = false);
+		int setIndexedStr (const Index& idx, const hawk_ooch_t* str, bool  numeric = false);
+		int setIndexedStr (Run* r, const Index&  idx, const hawk_ooch_t* str, bool  numeric = false);
 
-		int setIndexedMbs (const Index& idx, const hawk_bch_t* str, size_t len);
-		int setIndexedMbs (Run* r, const Index& idx, const hawk_bch_t* str, size_t len);
+		int setIndexedMbs (const Index& idx, const hawk_bch_t* str, hawk_oow_t len);
+		int setIndexedMbs (Run* r, const Index& idx, const hawk_bch_t* str, hawk_oow_t len);
 		int setIndexedMbs (const Index& idx, const hawk_bch_t* str);
 		int setIndexedMbs (Run* r, const Index&  idx, const hawk_bch_t* str);
 
@@ -831,7 +835,7 @@ public:
 		} cached;
 
 	public:
-		static const char_t* getEmptyStr();
+		static const hawk_ooch_t* getEmptyStr();
 		static const hawk_bch_t* getEmptyMbs();
 	};
 
@@ -861,17 +865,17 @@ public:
 
 		errnum_t getErrorNumber () const;
 		loc_t getErrorLocation () const;
-		const char_t* getErrorMessage () const;
+		const hawk_ooch_t* getErrorMessage () const;
 
 		void setError (
 			errnum_t      code, 
-			const oocs_t* args = HAWK_NULL,
+			const hawk_oocs_t* args = HAWK_NULL,
 			const loc_t*  loc  = HAWK_NULL
 		);
 
 		void setErrorWithMessage (
 			errnum_t      code, 
-			const char_t* msg,
+			const hawk_ooch_t* msg,
 			const loc_t*  loc
 		);
 
@@ -898,7 +902,7 @@ public:
 		/// \a ptr.
 		/// \return 0 on success, -1 on failure
 		///
-		int setGlobal (int id, const char_t* ptr, size_t len);
+		int setGlobal (int id, const hawk_ooch_t* ptr, hawk_oow_t len);
 
 		/// 
 		/// The setGlobal() function sets a global variable 
@@ -1028,7 +1032,7 @@ public:
 		const hawk_bch_t* name,  ///< function name
 		Value*             ret,   ///< return value holder
 		const Value*       args,  ///< argument array
-		size_t             nargs  ///< number of arguments
+		hawk_oow_t             nargs  ///< number of arguments
 	);
 
 	///
@@ -1038,7 +1042,7 @@ public:
 		const hawk_uch_t* name,  ///< function name
 		Value*             ret,   ///< return value holder
 		const Value*       args,  ///< argument array
-		size_t             nargs  ///< number of arguments
+		hawk_oow_t             nargs  ///< number of arguments
 	);
 
 	///
@@ -1071,14 +1075,14 @@ public:
 	///
 	void setMaxDepth (
 		depth_t id,  ///< depth identifier
-		size_t depth ///< new depth
+		hawk_oow_t depth ///< new depth
 	);
 
 	///
 	/// The getMaxDepth() function gets the maximum depth for an operation
 	/// type identified by \a id.
 	///
-	size_t getMaxDepth (
+	hawk_oow_t getMaxDepth (
 		depth_t id   ///< depth identifier
 	) const;
 
@@ -1090,8 +1094,8 @@ public:
 	/// \return 0 on success, -1 on failure
 	///
 	int addArgument (
-		const char_t* arg,  ///< string pointer
-		size_t        len   ///< string length
+		const hawk_ooch_t* arg,  ///< string pointer
+		hawk_oow_t        len   ///< string length
 	);
 
 	///
@@ -1101,7 +1105,7 @@ public:
 	/// \return 0 on success, -1 on failure
 	///
 	int addArgument (
-		const char_t* arg ///< string pointer
+		const hawk_ooch_t* arg ///< string pointer
 	);
 
 	///
@@ -1177,7 +1181,7 @@ public:
 		Run&              run,
 		Value&            ret,
 		Value*            args,
-		size_t            nargs, 
+		hawk_oow_t            nargs, 
 		const fnc_info_t* fi
 	);
 
@@ -1187,8 +1191,8 @@ public:
 	///
 	int addFunction (
 		const hawk_bch_t* name,      ///< function name
-		size_t minArgs,               ///< minimum numbers of arguments
-		size_t maxArgs,               ///< maximum numbers of arguments
+		hawk_oow_t minArgs,               ///< minimum numbers of arguments
+		hawk_oow_t maxArgs,               ///< maximum numbers of arguments
 		const hawk_bch_t* argSpec,   ///< argument specification
 		FunctionHandler handler,      ///< function handler
 		int    validOpts = 0          ///< valid if these options are set
@@ -1196,8 +1200,8 @@ public:
 
 	int addFunction (
 		const hawk_uch_t* name,      ///< function name
-		size_t minArgs,               ///< minimum numbers of arguments
-		size_t maxArgs,               ///< maximum numbers of arguments
+		hawk_oow_t minArgs,               ///< minimum numbers of arguments
+		hawk_oow_t maxArgs,               ///< maximum numbers of arguments
 		const hawk_uch_t* argSpec,   ///< argument specification
 		FunctionHandler handler,      ///< function handler
 		int    validOpts = 0          ///< valid if these options are set
@@ -1208,7 +1212,7 @@ public:
 	/// function by name.
 	///
 	int deleteFunction (
-		const char_t* name ///< function name
+		const hawk_ooch_t* name ///< function name
 	);
 	/// \}
 
@@ -1295,9 +1299,9 @@ protected:
 	/// on success and -1 on failure.
 	virtual int     closePipe (Pipe& io);
 
-	virtual ssize_t readPipe  (Pipe& io, char_t* buf, size_t len);
-	virtual ssize_t writePipe (Pipe& io, const char_t* buf, size_t len);
-	virtual ssize_t writePipeBytes (Pipe& io, const hawk_bch_t* buf, size_t len);
+	virtual hawk_ooi_t readPipe  (Pipe& io, hawk_ooch_t* buf, hawk_oow_t len);
+	virtual hawk_ooi_t writePipe (Pipe& io, const hawk_ooch_t* buf, hawk_oow_t len);
+	virtual hawk_ooi_t writePipeBytes (Pipe& io, const hawk_bch_t* buf, hawk_oow_t len);
 	virtual int     flushPipe (Pipe& io);
 	/// \}
 
@@ -1309,9 +1313,9 @@ protected:
 	///
 	virtual int     openFile  (File& io);
 	virtual int     closeFile (File& io);
-	virtual ssize_t readFile  (File& io, char_t* buf, size_t len);
-	virtual ssize_t writeFile (File& io, const char_t* buf, size_t len);
-	virtual ssize_t writeFileBytes (File& io, const hawk_bch_t* buf, size_t len);
+	virtual hawk_ooi_t readFile  (File& io, hawk_ooch_t* buf, hawk_oow_t len);
+	virtual hawk_ooi_t writeFile (File& io, const hawk_ooch_t* buf, hawk_oow_t len);
+	virtual hawk_ooi_t writeFileBytes (File& io, const hawk_bch_t* buf, hawk_oow_t len);
 	virtual int     flushFile (File& io);
 	/// \}
 
@@ -1323,9 +1327,9 @@ protected:
 	///
 	virtual int     openConsole  (Console& io);
 	virtual int     closeConsole (Console& io);
-	virtual ssize_t readConsole  (Console& io, char_t* buf, size_t len);
-	virtual ssize_t writeConsole (Console& io, const char_t* buf, size_t len);
-	virtual ssize_t writeConsoleBytes (Console& io, const hawk_bch_t* buf, size_t len);
+	virtual hawk_ooi_t readConsole  (Console& io, hawk_ooch_t* buf, hawk_oow_t len);
+	virtual hawk_ooi_t writeConsole (Console& io, const hawk_ooch_t* buf, hawk_oow_t len);
+	virtual hawk_ooi_t writeConsoleBytes (Console& io, const hawk_bch_t* buf, hawk_oow_t len);
 	virtual int     flushConsole (Console& io);
 	virtual int     nextConsole  (Console& io);
 	/// \}
@@ -1336,25 +1340,25 @@ protected:
 
 	virtual void* modopen (const mod_spec_t* spec) = 0;
 	virtual void  modclose (void* handle) = 0;
-	virtual void* modsym (void* handle, const char_t* name) = 0;
+	virtual void* modgetsym (void* handle, const hawk_ooch_t* name) = 0;
 
 	// static glue members for various handlers
-	static ssize_t readSource (
+	static hawk_ooi_t readSource (
 		awk_t* awk, sio_cmd_t cmd, sio_arg_t* arg,
-		char_t* data, size_t count);
-	static ssize_t writeSource (
+		hawk_ooch_t* data, hawk_oow_t count);
+	static hawk_ooi_t writeSource (
 		awk_t* awk, sio_cmd_t cmd, sio_arg_t* arg,
-		char_t* data, size_t count);
+		hawk_ooch_t* data, hawk_oow_t count);
 
-	static ssize_t pipeHandler (
+	static hawk_ooi_t pipeHandler (
 		rtx_t* rtx, rio_cmd_t cmd, rio_arg_t* riod,
-		void* data, size_t count);
-	static ssize_t fileHandler (
+		void* data, hawk_oow_t count);
+	static hawk_ooi_t fileHandler (
 		rtx_t* rtx, rio_cmd_t cmd, rio_arg_t* riod,
-		void* data, size_t count);
-	static ssize_t consoleHandler (
+		void* data, hawk_oow_t count);
+	static hawk_ooi_t consoleHandler (
 		rtx_t* rtx, rio_cmd_t cmd, rio_arg_t* riod,
-		void* data, size_t count);
+		void* data, hawk_oow_t count);
 
 	static int functionHandler (rtx_t* rtx, const fnc_info_t* fi);
 
@@ -1364,7 +1368,7 @@ protected:
 
 	static void* modopen  (awk_t* awk, const mod_spec_t* spec);
 	static void  modclose (awk_t* awk, void* handle);
-	static void* modsym   (awk_t* awk, void* handle, const char_t* name);
+	static void* modsym   (awk_t* awk, void* handle, const hawk_ooch_t* name);
 
 public:
 	// use this with care
@@ -1376,7 +1380,7 @@ protected:
 	errstr_t dflerrstr;
 	errinf_t errinf;
 
-#if defined(HAWK_AWK_USE_HTB_FOR_FUNCTION_MAP)
+#if defined(HAWK_USE_HTB_FOR_FUNCTION_MAP)
 	hawk_htb_t* functionMap;
 #else
 	
@@ -1403,12 +1407,12 @@ protected:
 	{
 		xstrs_t (): ptr (HAWK_NULL), len (0), capa (0) {}
 
-		int add (awk_t* awk, const char_t* arg, size_t len);
+		int add (awk_t* awk, const hawk_ooch_t* arg, hawk_oow_t len);
 		void clear (awk_t* awk);
 
 		hawk_oocs_t* ptr;
-		size_t      len;
-		size_t      capa;
+		hawk_oow_t      len;
+		hawk_oow_t      capa;
 	};
 
 	xstrs_t runarg;
@@ -1420,7 +1424,7 @@ private:
 	void fini_runctx ();
 	int dispatch_function (Run* run, const fnc_info_t* fi);
 
-	static const char_t* xerrstr (awk_t* a, errnum_t num);
+	static const hawk_ooch_t* xerrstr (awk_t* a, errnum_t num);
 };
 
 /////////////////////////////////
