@@ -3,8 +3,10 @@ AUTOMAKE_OPTIONS = nostdinc
 ##AM_CFLAGS = $(PTHREAD_CFLAGS)
 
 CPPFLAGS_COMMON = \
-	-I$(top_builddir)/include \
-	-I$(top_srcdir)/include \
+	-I$(abs_builddir) \
+	-I$(abs_builddir)/../lib \
+	-I$(abs_srcdir) \
+	-I$(abs_srcdir)/../lib \
 	-I$(includedir)
 
 ##################################################
@@ -34,7 +36,7 @@ else
 #-------------------------------------------------
 # DYNAMIC MODULES
 #-------------------------------------------------
-LDFLAGS_COMMON = -L../awk -L$(libdir) -version-info 1:0:0 -no-undefined
+LDFLAGS_COMMON = -L../lib -L$(libdir) -version-info 1:0:0 -no-undefined
 LIBADD_COMMON = -lhawk
 
 pkgmodexecdir = $(libdir)

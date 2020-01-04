@@ -670,6 +670,13 @@ PACKAGE_VERSION_PATCH
 PACKAGE_VERSION_MINOR
 PACKAGE_VERSION_MAJOR
 QUADMATH_LIBS
+MYSQL_LDFLAGS
+MYSQL_CFLAGS
+MYSQL_VERSION
+MYSQL_CONFIG
+HAVE_LIBUCI_FALSE
+HAVE_LIBUCI_TRUE
+UCI_LIBS
 UNICOWS_LIBS
 SOCKET_LIBS
 UNWIND_LIBS
@@ -824,6 +831,7 @@ with_sysroot
 enable_libtool_lock
 enable_largefile
 enable_unicode
+with_mysql
 enable_experimental
 enable_debug
 enable_full_liw
@@ -850,7 +858,8 @@ CXXFLAGS
 CCC
 LT_SYS_LIBRARY_PATH
 CPP
-CXXCPP'
+CXXCPP
+MYSQL_CONFIG'
 
 
 # Initialize some variables set by options.
@@ -1523,6 +1532,8 @@ Optional Packages:
   --with-gnu-ld           assume the C compiler uses GNU ld [default=no]
   --with-sysroot[=DIR]    Search for dependent libraries within DIR (or the
                           compiler's sysroot if not specified).
+  --with-mysql=[ARG]      use MySQL client library [default=yes], optionally
+                          specify path to mysql_config
 
 Some influential environment variables:
   CC          C compiler command
@@ -1538,6 +1549,8 @@ Some influential environment variables:
               User-defined run-time library search path.
   CPP         C preprocessor
   CXXCPP      C++ preprocessor
+  MYSQL_CONFIG
+              Full path to mysql_config program
 
 Use these variables to override the choices made by `configure' or to help
 it to find libraries and programs with nonstandard names/locations.
@@ -19562,6 +19575,198 @@ if test "x$ac_cv_lib_rt_clock_gettime" = xyes; then :
 fi
 
 
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for uci_alloc_context in -luci" >&5
+$as_echo_n "checking for uci_alloc_context in -luci... " >&6; }
+if ${ac_cv_lib_uci_uci_alloc_context+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-luci  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char uci_alloc_context ();
+int
+main ()
+{
+return uci_alloc_context ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_uci_uci_alloc_context=yes
+else
+  ac_cv_lib_uci_uci_alloc_context=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_uci_uci_alloc_context" >&5
+$as_echo "$ac_cv_lib_uci_uci_alloc_context" >&6; }
+if test "x$ac_cv_lib_uci_uci_alloc_context" = xyes; then :
+  UCI_LIBS="-luci"
+fi
+
+
+ if test "x${ac_cv_lib_uci_uci_alloc_context}" = "xyes" -a "x${ac_cv_header_uci_h}" = "xyes"; then
+  HAVE_LIBUCI_TRUE=
+  HAVE_LIBUCI_FALSE='#'
+else
+  HAVE_LIBUCI_TRUE='#'
+  HAVE_LIBUCI_FALSE=
+fi
+
+
+
+
+# Check whether --with-mysql was given.
+if test "${with_mysql+set}" = set; then :
+  withval=$with_mysql;
+        if test "$withval" = "no"; then
+            want_mysql="no"
+        elif test "$withval" = "yes"; then
+            want_mysql="yes"
+        else
+            want_mysql="yes"
+            MYSQL_CONFIG="$withval"
+        fi
+
+else
+  want_mysql="yes"
+
+fi
+
+
+
+    MYSQL_CFLAGS=""
+    MYSQL_LDFLAGS=""
+    MYSQL_VERSION=""
+
+
+    if test "$want_mysql" = "yes"; then
+
+        if test -z "$MYSQL_CONFIG" ; then
+            for ac_prog in mysql_config mysql_config5
+do
+  # Extract the first word of "$ac_prog", so it can be a program name with args.
+set dummy $ac_prog; ac_word=$2
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if ${ac_cv_path_MYSQL_CONFIG+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  case $MYSQL_CONFIG in
+  [\\/]* | ?:[\\/]*)
+  ac_cv_path_MYSQL_CONFIG="$MYSQL_CONFIG" # Let the user override the test with a path.
+  ;;
+  *)
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
+    ac_cv_path_MYSQL_CONFIG="$as_dir/$ac_word$ac_exec_ext"
+    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+  ;;
+esac
+fi
+MYSQL_CONFIG=$ac_cv_path_MYSQL_CONFIG
+if test -n "$MYSQL_CONFIG"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $MYSQL_CONFIG" >&5
+$as_echo "$MYSQL_CONFIG" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+
+  test -n "$MYSQL_CONFIG" && break
+done
+test -n "$MYSQL_CONFIG" || MYSQL_CONFIG="no"
+
+        fi
+
+        if test "$MYSQL_CONFIG" != "no"; then
+            MYSQL_CFLAGS="`$MYSQL_CONFIG --cflags`"
+            MYSQL_LDFLAGS="`$MYSQL_CONFIG --libs`"
+
+            MYSQL_VERSION=`$MYSQL_CONFIG --version`
+
+            found_mysql="yes"
+        else
+            found_mysql="no"
+        fi
+    fi
+
+
+
+    mysql_version_req=
+
+    if test "$found_mysql" = "yes" -a -n "$mysql_version_req"; then
+
+        { $as_echo "$as_me:${as_lineno-$LINENO}: checking if MySQL version is >= $mysql_version_req" >&5
+$as_echo_n "checking if MySQL version is >= $mysql_version_req... " >&6; }
+
+                        mysql_version_req_major=`expr $mysql_version_req : '\([0-9]*\)'`
+        mysql_version_req_minor=`expr $mysql_version_req : '[0-9]*\.\([0-9]*\)'`
+        mysql_version_req_micro=`expr $mysql_version_req : '[0-9]*\.[0-9]*\.\([0-9]*\)'`
+        if test "x$mysql_version_req_micro" = "x"; then
+            mysql_version_req_micro="0"
+        fi
+
+        mysql_version_req_number=`expr $mysql_version_req_major \* 1000000 \
+                                   \+ $mysql_version_req_minor \* 1000 \
+                                   \+ $mysql_version_req_micro`
+
+                        mysql_version_major=`expr $MYSQL_VERSION : '\([0-9]*\)'`
+        mysql_version_minor=`expr $MYSQL_VERSION : '[0-9]*\.\([0-9]*\)'`
+        mysql_version_micro=`expr $MYSQL_VERSION : '[0-9]*\.[0-9]*\.\([0-9]*\)'`
+        if test "x$mysql_version_micro" = "x"; then
+            mysql_version_micro="0"
+        fi
+
+        mysql_version_number=`expr $mysql_version_major \* 1000000 \
+                                   \+ $mysql_version_minor \* 1000 \
+                                   \+ $mysql_version_micro`
+
+        mysql_version_check=`expr $mysql_version_number \>\= $mysql_version_req_number`
+        if test "$mysql_version_check" = "1"; then
+            { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+        else
+            { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+        fi
+    fi
+
+    if test "$found_mysql" = "yes" ; then
+
+$as_echo "#define HAVE_MYSQL 1" >>confdefs.h
+
+    fi
+
+
+
+
+
+
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for va_copy" >&5
 $as_echo_n "checking for va_copy... " >&6; }
 cat confdefs.h - <<_ACEOF >conftest.$ac_ext
@@ -23254,6 +23459,10 @@ Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${MACOSX_TRUE}" && test -z "${MACOSX_FALSE}"; then
   as_fn_error $? "conditional \"MACOSX\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${HAVE_LIBUCI_TRUE}" && test -z "${HAVE_LIBUCI_FALSE}"; then
+  as_fn_error $? "conditional \"HAVE_LIBUCI\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 

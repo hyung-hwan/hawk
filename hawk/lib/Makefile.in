@@ -118,7 +118,8 @@ subdir = lib
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/ax_check_sign.m4 \
 	$(top_srcdir)/m4/ax_cxx_namespace.m4 \
-	$(top_srcdir)/m4/ax_numval.m4 $(top_srcdir)/m4/ax_pthread.m4 \
+	$(top_srcdir)/m4/ax_lib_mysql.m4 $(top_srcdir)/m4/ax_numval.m4 \
+	$(top_srcdir)/m4/ax_pthread.m4 \
 	$(top_srcdir)/m4/hawk_try_cflags.m4 \
 	$(top_srcdir)/m4/libtool.m4 $(top_srcdir)/m4/ltoptions.m4 \
 	$(top_srcdir)/m4/ltsugar.m4 $(top_srcdir)/m4/ltversion.m4 \
@@ -418,6 +419,10 @@ LT_SYS_LIBRARY_PATH = @LT_SYS_LIBRARY_PATH@
 MAKEINFO = @MAKEINFO@
 MANIFEST_TOOL = @MANIFEST_TOOL@
 MKDIR_P = @MKDIR_P@
+MYSQL_CFLAGS = @MYSQL_CFLAGS@
+MYSQL_CONFIG = @MYSQL_CONFIG@
+MYSQL_LDFLAGS = @MYSQL_LDFLAGS@
+MYSQL_VERSION = @MYSQL_VERSION@
 NM = @NM@
 NMEDIT = @NMEDIT@
 OBJDUMP = @OBJDUMP@
@@ -445,6 +450,7 @@ SET_MAKE = @SET_MAKE@
 SHELL = @SHELL@
 SOCKET_LIBS = @SOCKET_LIBS@
 STRIP = @STRIP@
+UCI_LIBS = @UCI_LIBS@
 UNICOWS_LIBS = @UNICOWS_LIBS@
 UNWIND_LIBS = @UNWIND_LIBS@
 VERSION = @VERSION@
@@ -1350,7 +1356,8 @@ info: info-am
 info-am:
 
 install-data-am: install-pkgincludeHEADERS
-
+	@$(NORMAL_INSTALL)
+	$(MAKE) $(AM_MAKEFLAGS) install-data-hook
 install-dvi: install-dvi-am
 
 install-dvi-am:
@@ -1396,27 +1403,43 @@ ps: ps-am
 ps-am:
 
 uninstall-am: uninstall-pkgincludeHEADERS uninstall-pkglibLTLIBRARIES
-
-.MAKE: all install-am install-strip
+	@$(NORMAL_INSTALL)
+	$(MAKE) $(AM_MAKEFLAGS) uninstall-hook
+.MAKE: all install-am install-data-am install-strip uninstall-am
 
 .PHONY: CTAGS GTAGS TAGS all all-am check check-am clean clean-generic \
 	clean-libtool clean-pkglibLTLIBRARIES cscopelist-am ctags \
 	ctags-am distclean distclean-compile distclean-generic \
 	distclean-hdr distclean-libtool distclean-tags distdir dvi \
 	dvi-am html html-am info info-am install install-am \
-	install-data install-data-am install-dvi install-dvi-am \
-	install-exec install-exec-am install-html install-html-am \
-	install-info install-info-am install-man install-pdf \
-	install-pdf-am install-pkgincludeHEADERS \
+	install-data install-data-am install-data-hook install-dvi \
+	install-dvi-am install-exec install-exec-am install-html \
+	install-html-am install-info install-info-am install-man \
+	install-pdf install-pdf-am install-pkgincludeHEADERS \
 	install-pkglibLTLIBRARIES install-ps install-ps-am \
 	install-strip installcheck installcheck-am installdirs \
 	maintainer-clean maintainer-clean-generic mostlyclean \
 	mostlyclean-compile mostlyclean-generic mostlyclean-libtool \
 	pdf pdf-am ps ps-am tags tags-am uninstall uninstall-am \
-	uninstall-pkgincludeHEADERS uninstall-pkglibLTLIBRARIES
+	uninstall-hook uninstall-pkgincludeHEADERS \
+	uninstall-pkglibLTLIBRARIES
 
 .PRECIOUS: Makefile
 
+
+##############################################################
+# installation
+##############################################################
+install-data-hook:
+	@echo "#ifndef _HAWK_CFG_H_" > "$(DESTDIR)$(pkgincludedir)/hawk-cfg.h"
+	@echo "#define _HAWK_CFG_H_" >> "$(DESTDIR)$(pkgincludedir)/hawk-cfg.h"
+	@$(EGREP) "#define[ ]+HAWK_" "$(abs_builddir)/hawk-cfg.h" >> "$(DESTDIR)$(pkgincludedir)/hawk-cfg.h" 
+	@echo "#endif" >> "$(DESTDIR)$(pkgincludedir)/hawk-cfg.h"
+	@rm -f "$(DESTDIR)$(pkgincludedir)/hawk-cfg.h.in"
+	@$(SED) 's|/\*#define HAWK_HAVE_CFG_H\*/|#define HAWK_HAVE_CFG_H|' "$(srcdir)/hawk-cmn.h" > "$(DESTDIR)$(pkgincludedir)/hawk-cmn.h"
+
+uninstall-hook:
+	@rm -f "$(DESTDIR)$(pkgincludedir)/hawk-cfg.h"
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

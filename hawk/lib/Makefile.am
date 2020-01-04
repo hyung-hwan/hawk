@@ -223,3 +223,18 @@ libhawk_sys_la_LIBADD = $(LIBADD_MOD_COMMON)
 libhawk_sys_la_DEPENDENCIES = $(DEPENDENCIES_MOD_COMMON)
 
 endif
+
+
+##############################################################
+# installation
+##############################################################
+install-data-hook:
+	@echo "#ifndef _HAWK_CFG_H_" > "$(DESTDIR)$(pkgincludedir)/hawk-cfg.h"
+	@echo "#define _HAWK_CFG_H_" >> "$(DESTDIR)$(pkgincludedir)/hawk-cfg.h"
+	@$(EGREP) "#define[ ]+HAWK_" "$(abs_builddir)/hawk-cfg.h" >> "$(DESTDIR)$(pkgincludedir)/hawk-cfg.h" 
+	@echo "#endif" >> "$(DESTDIR)$(pkgincludedir)/hawk-cfg.h"
+	@rm -f "$(DESTDIR)$(pkgincludedir)/hawk-cfg.h.in"
+	@$(SED) 's|/\*#define HAWK_HAVE_CFG_H\*/|#define HAWK_HAVE_CFG_H|' "$(srcdir)/hawk-cmn.h" > "$(DESTDIR)$(pkgincludedir)/hawk-cmn.h"
+
+uninstall-hook:
+	@rm -f "$(DESTDIR)$(pkgincludedir)/hawk-cfg.h"
