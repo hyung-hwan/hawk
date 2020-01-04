@@ -55,10 +55,26 @@
 #define __FREE_IMAP_NODE __free_res_node
 #include "../lib/imap-imp.h"
 
+#undef __IMAP_NODE_T_DATA
+#undef __IMAP_LIST_T_DATA
+#undef __IMAP_LIST_T
+#undef __IMAP_NODE_T
+#undef __MAKE_IMAP_NODE
+#undef __FREE_IMAP_NODE
+
+#define __IMAP_NODE_T_DATA  MYSQL_STMT* stmt;
+#define __IMAP_LIST_T_DATA  /* int errnum; */
+#define __IMAP_LIST_T stmt_list_t
+#define __IMAP_NODE_T stmt_node_t
+#define __MAKE_IMAP_NODE __new_stmt_node
+#define __FREE_IMAP_NODE __free_stmt_node
+#include "../lib/imap-imp.h"
+
 struct rtx_data_t
 {
 	sql_list_t sql_list;
 	res_list_t res_list;
+	stmt_list_t stmt_list;
 };
 typedef struct rtx_data_t rtx_data_t;
 
@@ -86,7 +102,6 @@ static void free_sql_node (hawk_rtx_t* rtx, sql_list_t* sql_list, sql_node_t* sq
 	__free_sql_node (rtx, sql_list, sql_node);
 }
 
-
 static res_node_t* new_res_node (hawk_rtx_t* rtx, res_list_t* res_list, MYSQL_RES* res)
 {
 	res_node_t* res_node;
@@ -107,6 +122,24 @@ static void free_res_node (hawk_rtx_t* rtx, res_list_t* res_list, res_node_t* re
 	__free_res_node (rtx, res_list, res_node);
 }
 
+static stmt_node_t* new_stmt_node (hawk_rtx_t* rtx, stmt_list_t* stmt_list, MYSQL_STMT* stmt)
+{
+	stmt_node_t* stmt_node;
+
+	stmt_node = __new_stmt_node(rtx, stmt_list);
+	if (!stmt_node) return HAWK_NULL;
+
+	stmt_node->stmt = stmt;
+
+	return stmt_node;
+}
+
+static void free_stmt_node (hawk_rtx_t* rtx, stmt_list_t* stmt_list, stmt_node_t* stmt_node)
+{
+	mysql_stmt_close (stmt_node->stmt);
+	stmt_node->stmt = HAWK_NULL;
+	__free_stmt_node (rtx, stmt_list, stmt_node);
+}
 /* ------------------------------------------------------------------------ */
 
 static HAWK_INLINE sql_list_t* rtx_to_sql_list (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
@@ -141,6 +174,22 @@ static HAWK_INLINE res_node_t* get_res_list_node (res_list_t* res_list, hawk_int
 	return res_list->map.tab[id];
 }
 
+
+static HAWK_INLINE stmt_list_t* rtx_to_stmt_list (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+{
+	hawk_rbt_pair_t* pair;
+	rtx_data_t* data;
+	pair = hawk_rbt_search((hawk_rbt_t*)fi->mod->ctx, &rtx, HAWK_SIZEOF(rtx));
+	HAWK_ASSERT (pair != HAWK_NULL);
+	data = (rtx_data_t*)HAWK_RBT_VPTR(pair);
+	return &data->stmt_list;
+}
+
+static HAWK_INLINE stmt_node_t* get_stmt_list_node (stmt_list_t* stmt_list, hawk_int_t id)
+{
+	if (id < 0 || id >= stmt_list->map.high || !stmt_list->map.tab[id]) return HAWK_NULL;
+	return stmt_list->map.tab[id];
+}
 /* ------------------------------------------------------------------------ */
 
 static void set_error_on_sql_list (hawk_rtx_t* rtx, sql_list_t* sql_list, const hawk_ooch_t* errfmt, ...)
@@ -211,7 +260,58 @@ static res_node_t* get_res_list_node_with_arg (hawk_rtx_t* rtx, sql_list_t* sql_
 	return res_node;
 }
 
+static stmt_node_t* get_stmt_list_node_with_arg (hawk_rtx_t* rtx, sql_list_t* sql_list, stmt_list_t* stmt_list, hawk_val_t* arg)
+{
+	hawk_int_t id;
+	stmt_node_t* stmt_node;
+
+	if (hawk_rtx_valtoint(rtx, arg, &id) <= -1)
+	{
+		set_error_on_sql_list (rtx, sql_list, HAWK_T("illegal statement id"));
+		return HAWK_NULL;
+	}
+	else if (!(stmt_node = get_stmt_list_node(stmt_list, id)))
+	{
+		set_error_on_sql_list (rtx, sql_list, HAWK_T("invalid statement id - %zd"), (hawk_oow_t)id);
+		return HAWK_NULL;
+	}
+
+	return stmt_node;
+}
+
 /* ------------------------------------------------------------------------ */
+/*
+	mysql = mysql::open();
+
+	if (mysql::connect(mysql, "localhost", "username", "password", "database") <= -1)
+	{
+		print "connect error -", mysql::errmsg();
+	}
+
+
+	if (mysql::query(mysql, "select * from mytable") <= -1)
+	{
+		print "query error -", mysql::errmsg();
+	}
+
+	result = mysql::store_result(mysql);
+	if (result <= -1)
+	{
+		print "store result error - ", mysql::errmsg();
+	}
+
+	while (mysql::fetch_row(result, row) > 0)
+	{
+		ncols = length(row);
+		for (i = 0; i < ncols; i++) print row[i];
+		print "----";
+	}
+
+	mysql::free_result(result);
+
+	mysql::close(mysql);
+*/
+
 static int fnc_open (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	sql_list_t* sql_list;
@@ -613,10 +713,6 @@ done:
 	if (take_rtx_err) set_error_on_sql_list (rtx, sql_list, HAWK_NULL);
 	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, ret));
 	return 0;
-
-oops:
-	if (take_rtx_err) set_error_on_sql_list (rtx, sql_list, HAWK_NULL);
-	return -1;
 }
 
 static int fnc_commit (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
@@ -629,10 +725,6 @@ static int fnc_commit (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	sql_node = get_sql_list_node_with_arg(rtx, sql_list, hawk_rtx_getarg(rtx, 0));
 	if (sql_node)
 	{
-		int v;
-
-		v = hawk_rtx_valtobool(rtx, hawk_rtx_getarg(rtx, 1));
-
 		ENSURE_CONNECT_EVER_ATTEMPTED(rtx, sql_list, sql_node);
 
 		if (mysql_commit(sql_node->mysql) != 0)
@@ -648,10 +740,6 @@ done:
 	if (take_rtx_err) set_error_on_sql_list (rtx, sql_list, HAWK_NULL);
 	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, ret));
 	return 0;
-
-oops:
-	if (take_rtx_err) set_error_on_sql_list (rtx, sql_list, HAWK_NULL);
-	return -1;
 }
 
 static int fnc_rollback (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
@@ -664,10 +752,6 @@ static int fnc_rollback (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	sql_node = get_sql_list_node_with_arg(rtx, sql_list, hawk_rtx_getarg(rtx, 0));
 	if (sql_node)
 	{
-		int v;
-
-		v = hawk_rtx_valtobool(rtx, hawk_rtx_getarg(rtx, 1));
-
 		ENSURE_CONNECT_EVER_ATTEMPTED(rtx, sql_list, sql_node);
 
 		if (mysql_rollback(sql_node->mysql) != 0)
@@ -683,10 +767,6 @@ done:
 	if (take_rtx_err) set_error_on_sql_list (rtx, sql_list, HAWK_NULL);
 	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, ret));
 	return 0;
-
-oops:
-	if (take_rtx_err) set_error_on_sql_list (rtx, sql_list, HAWK_NULL);
-	return -1;
 }
 
 static int fnc_affected_rows (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
@@ -773,7 +853,6 @@ static int fnc_escape_string (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			goto oops;
 		}
 
-
 		if (hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, 2), retv) <= -1)
 		{
 			hawk_rtx_refupval (rtx, retv);
@@ -787,13 +866,13 @@ static int fnc_escape_string (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 done:
 	if (take_rtx_err) set_error_on_sql_list (rtx, sql_list, HAWK_NULL);
-	if (take_rtx_err) set_error_on_sql_list (rtx, sql_list, HAWK_NULL);
 	if (ebuf) hawk_rtx_freemem (rtx, ebuf);
 	if (qstr) hawk_rtx_freevalbcstr (rtx, a1, qstr);
 	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, ret));
 	return 0;
 
 oops:
+	if (take_rtx_err) set_error_on_sql_list (rtx, sql_list, HAWK_NULL);
 	if (ebuf) hawk_rtx_freemem (rtx, ebuf);
 	if (qstr) hawk_rtx_freevalbcstr (rtx, a1, qstr);
 	return -1;
@@ -987,6 +1066,154 @@ oops:
 	return -1;
 }
 
+/* -------------------------------------------------------------------------- */
+static int fnc_stmt_init (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+{
+	sql_list_t* sql_list;
+	sql_node_t* sql_node;
+
+	int ret = -1;
+	int take_rtx_err = 0;
+
+	sql_list = rtx_to_sql_list(rtx, fi);
+	sql_node = get_sql_list_node_with_arg(rtx, sql_list, hawk_rtx_getarg(rtx, 0));
+
+	if (sql_list)
+	{
+		stmt_list_t* stmt_list;
+		stmt_node_t* stmt_node;
+		MYSQL_STMT* stmt;
+
+		stmt_list = rtx_to_stmt_list(rtx, fi);
+
+		ENSURE_CONNECT_EVER_ATTEMPTED(rtx, sql_list, sql_node);
+
+		stmt = mysql_stmt_init(sql_node->mysql);
+		if (!stmt)
+		{
+			set_error_on_sql_list (rtx, sql_list, HAWK_T("%hs"), mysql_error(sql_node->mysql));
+			goto done;
+		}
+
+		stmt_node = new_stmt_node(rtx, stmt_list, stmt);
+		if (!stmt_node)
+		{
+			mysql_stmt_close (stmt);
+			take_rtx_err = 1;
+			goto done;
+		}
+
+		ret = stmt_node->id;
+	}
+
+done:
+	if (take_rtx_err) set_error_on_sql_list (rtx, sql_list, HAWK_NULL);
+	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, ret));
+	return 0;
+}
+
+static int fnc_stmt_close (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+{
+	sql_list_t* sql_list;
+	stmt_list_t* stmt_list;
+	stmt_node_t* stmt_node;
+	int ret = -1;
+
+	sql_list = rtx_to_sql_list(rtx, fi);
+	stmt_list = rtx_to_stmt_list(rtx, fi);
+	stmt_node = get_stmt_list_node_with_arg(rtx, sql_list, stmt_list, hawk_rtx_getarg(rtx, 0));
+	if (stmt_node)
+	{
+		free_stmt_node (rtx, stmt_list, stmt_node);
+		ret = 0;
+	}
+
+	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, ret));
+	return 0;
+}
+
+static int fnc_stmt_prepare (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+{
+	sql_list_t* sql_list;
+	sql_node_t* sql_node;
+	stmt_list_t* stmt_list;
+	stmt_node_t* stmt_node;
+	int ret = -1;
+	int take_rtx_err = 0;
+	hawk_val_t* a1;
+	hawk_bch_t* qstr = HAWK_NULL;
+
+	sql_list = rtx_to_sql_list(rtx, fi);
+	stmt_list = rtx_to_stmt_list(rtx, fi);
+	sql_node = get_sql_list_node_with_arg(rtx, sql_list, hawk_rtx_getarg(rtx, 0));
+	stmt_node = get_stmt_list_node_with_arg(rtx, sql_list, stmt_list, hawk_rtx_getarg(rtx, 0));
+	if (stmt_node)
+	{
+		hawk_oow_t qlen;
+
+		a1 = hawk_rtx_getarg(rtx, 1);
+
+		qstr = hawk_rtx_getvalbcstr(rtx, a1, &qlen);
+		if (!qstr) { take_rtx_err = 1; goto oops; }
+
+		ENSURE_CONNECT_EVER_ATTEMPTED(rtx, sql_list, sql_node);
+
+		if (mysql_stmt_prepare(stmt_node->stmt, qstr, qlen) != 0)
+		{
+			set_error_on_sql_list (rtx, sql_list, HAWK_T("%hs"), mysql_stmt_error(stmt_node->stmt));
+			goto done;
+		}
+
+		ret = 0;
+	}
+
+done:
+	if (take_rtx_err) set_error_on_sql_list (rtx, sql_list, HAWK_NULL);
+	if (qstr) hawk_rtx_freevalbcstr (rtx, a1, qstr);
+	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, ret));
+	return 0;
+
+oops:
+	if (take_rtx_err) set_error_on_sql_list (rtx, sql_list, HAWK_NULL);
+	if (qstr) hawk_rtx_freevalbcstr (rtx, a1, qstr);
+	return -1;
+}
+
+static int fnc_stmt_bind_param (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+{
+	/* TODO: */
+	return -1;
+}
+
+static int fnc_stmt_execute (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+{
+	sql_list_t* sql_list;
+	sql_node_t* sql_node;
+	stmt_list_t* stmt_list;
+	stmt_node_t* stmt_node;
+	int ret = -1;
+
+	sql_list = rtx_to_sql_list(rtx, fi);
+	stmt_list = rtx_to_stmt_list(rtx, fi);
+	sql_node = get_sql_list_node_with_arg(rtx, sql_list, hawk_rtx_getarg(rtx, 0));
+	stmt_node = get_stmt_list_node_with_arg(rtx, sql_list, stmt_list, hawk_rtx_getarg(rtx, 0));
+	if (stmt_node)
+	{
+		ENSURE_CONNECT_EVER_ATTEMPTED(rtx, sql_list, sql_node);
+
+		if (mysql_stmt_execute(stmt_node->stmt) != 0)
+		{
+			set_error_on_sql_list (rtx, sql_list, HAWK_T("%hs"), mysql_stmt_error(stmt_node->stmt));
+			goto done;
+		}
+		ret = 0;
+	}
+
+done:
+	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, ret));
+	return 0;
+}
+
 typedef struct fnctab_t fnctab_t;
 struct fnctab_t
 {
@@ -1007,23 +1234,30 @@ struct inttab_t
 static fnctab_t fnctab[] =
 {
 	/* keep this table sorted for binary search in query(). */
-	{ HAWK_T("affected_rows"),     { { 2, 2, HAWK_T("vr") },  fnc_affected_rows,  0 } },
-	{ HAWK_T("autocommit"),        { { 2, 2, HAWK_NULL },     fnc_autocommit,     0 } },
-	{ HAWK_T("close"),             { { 1, 1, HAWK_NULL },     fnc_close,          0 } },
-	{ HAWK_T("commit"),            { { 1, 1, HAWK_NULL },     fnc_commit,         0 } },
-	{ HAWK_T("connect"),           { { 4, 7, HAWK_NULL },     fnc_connect,        0 } },
-	{ HAWK_T("errmsg"),            { { 0, 0, HAWK_NULL },     fnc_errmsg,         0 } },
-	{ HAWK_T("escape_string"),     { { 3, 3, HAWK_T("vvr") }, fnc_escape_string,  0 } },
-	{ HAWK_T("fetch_row"),         { { 2, 2, HAWK_T("vr") },  fnc_fetch_row,      0 } },
-	{ HAWK_T("free_result"),       { { 1, 1, HAWK_NULL },     fnc_free_result,    0 } },
-	/*{ HAWK_T("get_option"),       { { 3, 3, HAWK_T("vr") },  fnc_get_option,     0 } },*/
-	{ HAWK_T("open"),              { { 0, 0, HAWK_NULL },     fnc_open,           0 } },
-	{ HAWK_T("ping"),              { { 1, 1, HAWK_NULL },     fnc_ping,           0 } },
-	{ HAWK_T("query"),             { { 2, 2, HAWK_NULL },     fnc_query,          0 } },
-	{ HAWK_T("rollback"),          { { 1, 1, HAWK_NULL },     fnc_rollback,       0 } },
-	{ HAWK_T("select_db"),         { { 2, 2, HAWK_NULL },     fnc_select_db,     0 } },
-	{ HAWK_T("set_option"),        { { 3, 3, HAWK_NULL },     fnc_set_option,     0 } },
-	{ HAWK_T("store_result"),      { { 1, 1, HAWK_NULL },     fnc_store_result,   0 } }
+	{ HAWK_T("affected_rows"),     { { 2, 2, HAWK_T("vr") },  fnc_affected_rows,   0 } },
+	{ HAWK_T("autocommit"),        { { 2, 2, HAWK_NULL },     fnc_autocommit,      0 } },
+	{ HAWK_T("close"),             { { 1, 1, HAWK_NULL },     fnc_close,           0 } },
+	{ HAWK_T("commit"),            { { 1, 1, HAWK_NULL },     fnc_commit,          0 } },
+	{ HAWK_T("connect"),           { { 4, 7, HAWK_NULL },     fnc_connect,         0 } },
+	{ HAWK_T("errmsg"),            { { 0, 0, HAWK_NULL },     fnc_errmsg,          0 } },
+	{ HAWK_T("escape_string"),     { { 3, 3, HAWK_T("vvr") }, fnc_escape_string,   0 } },
+	{ HAWK_T("fetch_row"),         { { 2, 2, HAWK_T("vr") },  fnc_fetch_row,       0 } },
+	{ HAWK_T("free_result"),       { { 1, 1, HAWK_NULL },     fnc_free_result,     0 } },
+	/*{ HAWK_T("get_option"),       { { 3, 3, HAWK_T("vr") },  fnc_get_option,      0 } },*/
+	{ HAWK_T("open"),              { { 0, 0, HAWK_NULL },     fnc_open,            0 } },
+	{ HAWK_T("ping"),              { { 1, 1, HAWK_NULL },     fnc_ping,            0 } },
+	{ HAWK_T("query"),             { { 2, 2, HAWK_NULL },     fnc_query,           0 } },
+	{ HAWK_T("rollback"),          { { 1, 1, HAWK_NULL },     fnc_rollback,        0 } },
+	{ HAWK_T("select_db"),         { { 2, 2, HAWK_NULL },     fnc_select_db,       0 } },
+	{ HAWK_T("set_option"),        { { 3, 3, HAWK_NULL },     fnc_set_option,      0 } },
+
+	{ HAWK_T("stmt_bind_param"),   { { 1, 1, HAWK_NULL },     fnc_stmt_bind_param, 0 } },
+	{ HAWK_T("stmt_close"),        { { 1, 1, HAWK_NULL },     fnc_stmt_close,      0 } },
+	{ HAWK_T("stmt_execute"),      { { 1, 1, HAWK_NULL },     fnc_stmt_execute,    0 } },
+	{ HAWK_T("stmt_init"),         { { 1, 1, HAWK_NULL },     fnc_stmt_init,       0 } },
+	{ HAWK_T("stmt_prepare"),      { { 2, 2, HAWK_NULL },     fnc_stmt_prepare,    0 } },
+
+	{ HAWK_T("store_result"),      { { 1, 1, HAWK_NULL },     fnc_store_result,    0 } }
 };
 
 static inttab_t inttab[] =
