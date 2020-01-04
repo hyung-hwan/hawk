@@ -1502,35 +1502,6 @@ HAWK_EXPORT hawk_errstr_t hawk_geterrstr (
 );
 
 /**
- * The hawk_seterrstr() sets an error string getter that is called to
- * compose an error message when its retrieval is requested.
- *
- * Here is an example of changing the formatting string for the #HAWK_SED_ECMDNR 
- * error.
- * \code
- * hawk_errstr_t orgerrstr;
- *
- * const hawk_ooch_t* myerrstr (hawk_t* awk, hawk_errnum_t num)
- * {
- *   if (num == HAWK_SED_ECMDNR) return HAWK_T("unrecognized command ${0}");
- *   return orgerrstr (awk, num);
- * }
- * int main ()
- * {
- *    hawk_t* awk;
- *    ...
- *    orgerrstr = hawk_geterrstr (awk);
- *    hawk_seterrstr (awk, myerrstr);
- *    ...
- * }
- * \endcode
- */
-HAWK_EXPORT void hawk_seterrstr (
-	hawk_t*       awk,   /**< awk */
-	hawk_errstr_t errstr /**< error string getter */
-);
-
-/**
  * The hawk_geterrnum() function returns the number of the last error 
  * occurred.
  * \return error number
@@ -1645,16 +1616,6 @@ HAWK_EXPORT void hawk_geterror (
 	hawk_errnum_t*      errnum, /**< error number */
 	const hawk_ooch_t** errmsg, /**< error message */
 	hawk_loc_t*         errloc  /**< error location */
-);
-
-/**
- * The hawk_seterror() function sets error information.
- */
-HAWK_EXPORT void hawk_seterror (
-	hawk_t*             awk,    /**< awk */
-	hawk_errnum_t       errnum, /**< error number */
-	const hawk_oocs_t*  errarg, /**< argument array for formatting an error message */
-	const hawk_loc_t*   errloc  /**< error location */
 );
 
 /**

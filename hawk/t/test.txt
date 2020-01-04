@@ -148,8 +148,46 @@ $ ~/xxx/bin/hawk --implicit=off 'BEGIN {  print kcx[10]; }'
 HAWK_EUNDEF -> ERROR: CODE 69 LINE 1 COLUMN 16 - undefined identifier 'kcx'
 
 $ ~/xxx/bin/hawk --implicit=off 'BEGIN {  print ax; }'
-ERROR: CODE 69 LINE 1 COLUMN 16 - undefined identifier 'ax'
+HAWK_EUNDEF -> ERROR: CODE 69 LINE 1 COLUMN 16 - undefined identifier 'ax'
 
 $ ~/xxx/bin/hawk  'function 1.2(a) {}'
-ERROR: CODE 54 LINE 1 COLUMN 10 - '1.2' not a valid function name
+HAWK_EFUNNAM -> ERROR: CODE 54 LINE 1 COLUMN 10 - '1.2' not a valid function name
+
+
+$ ~/xxx/bin/hawk 'function abc(x) print t; }'
+HAWK_ELBRACE -> ERROR: CODE 38 LINE 1 COLUMN 17 - left brace expected in place of 'print'
+
+
+$ ~/xxx/bin/hawk 'function abc(x) { print a[10; }'
+HAWK_ERBRACK -> ERROR: CODE 41 LINE 1 COLUMN 29 - right bracket expected in place of ';'
+
+
+$ ~/xxx/bin/hawk 'function abc x) { print 10; }'
+HAWK_ELPAREN -> ERROR: CODE 39 LINE 1 COLUMN 14 - left parenthesis expected in place of 'x'
+
+$ ~/xxx/bin/hawk 'function abc (x) { print (x; }'
+HAWK_EPAREN -> ERROR: CODE 40 LINE 1 COLUMN 28 - right parenthesis expected in place of ';'
+
+$ ~/xxx/bin/hawk 'function abc (x { print 10; }'
+HAWK_ECOMMA -> ERROR: CODE 42 LINE 1 COLUMN 17 - comma expected in place of '{'
+
+$ ~/xxx/bin/hawk 'function abc (x) { for (i = 10) print i; }'
+HAWK_ESCOLON -> ERROR: CODE 43 LINE 1 COLUMN 31 - semicolon expected in place of ')'
+
+$ ~/xxx/bin/hawk 'function abc (x) { print (i? 20, 30); }'
+HAWK_ECOLON -> ERROR: CODE 44 LINE 1 COLUMN 32 - colon expected in place of ','
+
+
+$ ~/xxx/bin/hawk '@includ "xxx.inc"; BEGIN {}'
+HAWK_EXKWNR -> ERROR: CODE 88 LINE 1 COLUMN 1 - '@includ' not recognized
+
+$ ~/xxx/bin/hawk 'function abc (x) { do { print x }; }'
+HAWK_EKWWHL -> ERROR: CODE 51 LINE 1 COLUMN 34 - keyword 'while' expected in place of ';'
+
+$ ~/xxx/bin/hawk 'function abc (x) { do { print sysxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxtt::xx }; }'
+HAWK_ESEGTL -> ERROR: CODE 75 LINE 1 COLUMN 31 - segment 'sysxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxtt' too long
+
+$ ~/xxx/bin/hawk --tolerant=off 'function abc (x) { (1, 2, 3) }'
+HAWK_EKWIN -> ERROR: CODE 47 LINE 1 COLUMN 30 - keyword 'in' expected in place of '}'
+
 

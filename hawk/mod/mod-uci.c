@@ -25,10 +25,10 @@
  */
 
 #include "mod-uci.h"
-#include <qse/cmn/str.h>
-#include <qse/cmn/rbt.h>
-#include <qse/cmn/mbwc.h>
-#include <qse/cmn/fmt.h>
+#include <hawk/cmn/str.h>
+#include <hawk/cmn/rbt.h>
+#include <hawk/cmn/mbwc.h>
+#include <hawk/cmn/fmt.h>
 #include "../cmn/mem-prv.h"
 
 #if defined(HAVE_UCI_H)
@@ -65,17 +65,17 @@ struct uctx_list_t
 	int errnum;
 };
 
-static uctx_node_t* new_uctx_node (qse_awk_rtx_t* rtx, uctx_list_t* list)
+static uctx_node_t* new_uctx_node (hawk_rtx_t* rtx, uctx_list_t* list)
 {
 	/* create a new context node and append it to the list tail */
 	uctx_node_t* node;
 
-	node = QSE_NULL;
+	node = HAWK_NULL;
 
 	if (list->free) node = list->free;
 	else
 	{
-		node = qse_awk_rtx_callocmem (rtx, QSE_SIZEOF(*node));
+		node = hawk_rtx_callocmem (rtx, HAWK_SIZEOF(*node));
 		if (!node) goto oops;
 	}
 
@@ -93,25 +93,25 @@ static uctx_node_t* new_uctx_node (qse_awk_rtx_t* rtx, uctx_list_t* list)
 			newcapa = list->map.capa + 64;
 			if (newcapa < list->map.capa) goto oops; /* overflow */
 
-			tmp = (uctx_node_t**) qse_awk_rtx_reallocmem (
-				rtx, list->map.tab, QSE_SIZEOF(*tmp) * newcapa);
+			tmp = (uctx_node_t**) hawk_rtx_reallocmem (
+				rtx, list->map.tab, HAWK_SIZEOF(*tmp) * newcapa);
 			if (!tmp) goto oops;
 
-			QSE_MEMSET (&tmp[list->map.capa], 0, 
-				QSE_SIZEOF(*tmp) * (newcapa - list->map.capa));
+			HAWK_MEMSET (&tmp[list->map.capa], 0, 
+				HAWK_SIZEOF(*tmp) * (newcapa - list->map.capa));
 
 			list->map.tab = tmp;
 			list->map.capa = newcapa;
 		}
 
 		node->id = list->map.high;
-		QSE_ASSERT (list->map.tab[node->id] == QSE_NULL);
+		HAWK_ASSERT (list->map.tab[node->id] == HAWK_NULL);
 		list->map.tab[node->id] = node;
 		list->map.high++;
 	}
 
 	/* append it to the tail */
-	node->next = QSE_NULL;
+	node->next = HAWK_NULL;
 	node->prev = list->tail;
 	if (list->tail) list->tail->next = node;
 	else list->head = node;
@@ -120,19 +120,19 @@ static uctx_node_t* new_uctx_node (qse_awk_rtx_t* rtx, uctx_list_t* list)
 	return node;
 
 oops:
-	if (node) qse_awk_rtx_freemem (rtx, node);
-	qse_awk_rtx_seterrnum (rtx, QSE_AWK_ENOMEM, QSE_NULL);
-	return QSE_NULL;
+	if (node) hawk_rtx_freemem (rtx, node);
+	hawk_rtx_seterrnum (rtx, HAWK_ENOMEM, HAWK_NULL);
+	return HAWK_NULL;
 }
 
-static void free_uctx_node (qse_awk_rtx_t* rtx, uctx_list_t* list, uctx_node_t* node)
+static void free_uctx_node (hawk_rtx_t* rtx, uctx_list_t* list, uctx_node_t* node)
 {
 	if (node->prev) node->prev->next = node->next;
 	if (node->next) node->next->prev = node->prev;
 	if (list->head == node) list->head = node->next;
 	if (list->tail == node) list->tail = node->prev;
 
-	list->map.tab[node->id] = QSE_NULL;
+	list->map.tab[node->id] = HAWK_NULL;
 
 	if (node->ctx) 
 	{
@@ -143,44 +143,44 @@ static void free_uctx_node (qse_awk_rtx_t* rtx, uctx_list_t* list, uctx_node_t* 
 	{
 		/* destroy the actual node if the node to be freed has the
 		 * highest id */
-		QSE_MMGR_FREE (qse_awk_rtx_getmmgr(rtx), node);
+		HAWK_MMGR_FREE (hawk_rtx_getmmgr(rtx), node);
 		list->map.high--;
 	}
 	else
 	{
 		/* otherwise, chain the node to the free list */
-		node->ctx = QSE_NULL;
+		node->ctx = HAWK_NULL;
 		node->next = list->free;
 		list->free = node;
 	}
 
 	/* however, i destroy the whole free list when all the nodes are
 	 * chanined to the free list */
-	if (list->head == QSE_NULL) 
+	if (list->head == HAWK_NULL) 
 	{
-		qse_mmgr_t* mmgr;
+		hawk_mmgr_t* mmgr;
 		uctx_node_t* curnode;
 
-		mmgr = qse_awk_rtx_getmmgr(rtx);
+		mmgr = hawk_rtx_getmmgr(rtx);
 
 		while (list->free)
 		{
 			curnode = list->free;
 			list->free = list->free->next;
-			QSE_ASSERT (curnode->ctx == QSE_NULL);
-			QSE_MMGR_FREE (mmgr, curnode);
+			HAWK_ASSERT (curnode->ctx == HAWK_NULL);
+			HAWK_MMGR_FREE (mmgr, curnode);
 		}
 
-		QSE_MMGR_FREE (mmgr, list->map.tab);
+		HAWK_MMGR_FREE (mmgr, list->map.tab);
 		list->map.high = 0;
 		list->map.capa = 0;
-		list->map.tab = QSE_NULL;
+		list->map.tab = HAWK_NULL;
 	}
 }
 
 /* ------------------------------------------------------------------------ */
 
-static int close_byid (qse_awk_rtx_t* rtx, uctx_list_t* list, qse_awk_int_t id)
+static int close_byid (hawk_rtx_t* rtx, uctx_list_t* list, hawk_int_t id)
 {
 	int x = UCI_ERR_INVAL;
 
@@ -194,32 +194,32 @@ static int close_byid (qse_awk_rtx_t* rtx, uctx_list_t* list, qse_awk_int_t id)
 }
 
 static int load_byid (
-	qse_awk_rtx_t* rtx, uctx_list_t* list, qse_awk_int_t id, qse_mchar_t* path)
+	hawk_rtx_t* rtx, uctx_list_t* list, hawk_int_t id, hawk_mchar_t* path)
 {
 	int x = UCI_ERR_INVAL;
 
 	if (id >= 0 && id < list->map.high && list->map.tab[id]) 
 	{
-		x = uci_load (list->map.tab[id]->ctx, path, QSE_NULL);
+		x = uci_load (list->map.tab[id]->ctx, path, HAWK_NULL);
 	}
 	
 	return -x;
 }
 
-static int unload_byid (qse_awk_rtx_t* rtx, uctx_list_t* list, qse_awk_int_t id)
+static int unload_byid (hawk_rtx_t* rtx, uctx_list_t* list, hawk_int_t id)
 {
 	int x = UCI_ERR_INVAL;
 
 	if (id >= 0 && id < list->map.high && list->map.tab[id]) 
 	{
-		x = uci_unload (list->map.tab[id]->ctx, QSE_NULL);
+		x = uci_unload (list->map.tab[id]->ctx, HAWK_NULL);
 		return 0;
 	}
 	
 	return -x;
 }
 
-static int save_byid (qse_awk_rtx_t* rtx, uctx_list_t* list, qse_awk_int_t id, qse_mchar_t* item)
+static int save_byid (hawk_rtx_t* rtx, uctx_list_t* list, hawk_int_t id, hawk_mchar_t* item)
 {
 	int x = UCI_ERR_INVAL;
 
@@ -242,7 +242,7 @@ static int save_byid (qse_awk_rtx_t* rtx, uctx_list_t* list, qse_awk_int_t id, q
 	return -x;
 }
 
-static int commit_byid (qse_awk_rtx_t* rtx, uctx_list_t* list, qse_awk_int_t id, qse_mchar_t* item)
+static int commit_byid (hawk_rtx_t* rtx, uctx_list_t* list, hawk_int_t id, hawk_mchar_t* item)
 {
 	int x = UCI_ERR_INVAL;
 
@@ -264,7 +264,7 @@ static int commit_byid (qse_awk_rtx_t* rtx, uctx_list_t* list, qse_awk_int_t id,
 	return -x;
 }
 
-static int revert_byid (qse_awk_rtx_t* rtx, uctx_list_t* list, qse_awk_int_t id, qse_mchar_t* item)
+static int revert_byid (hawk_rtx_t* rtx, uctx_list_t* list, hawk_int_t id, hawk_mchar_t* item)
 {
 	int x = UCI_ERR_INVAL;
 
@@ -286,7 +286,7 @@ static int revert_byid (qse_awk_rtx_t* rtx, uctx_list_t* list, qse_awk_int_t id,
 	return -x;
 }
 
-static int delete_byid (qse_awk_rtx_t* rtx, uctx_list_t* list, qse_awk_int_t id, qse_mchar_t* item)
+static int delete_byid (hawk_rtx_t* rtx, uctx_list_t* list, hawk_int_t id, hawk_mchar_t* item)
 {
 	int x = UCI_ERR_INVAL;
 
@@ -308,7 +308,7 @@ static int delete_byid (qse_awk_rtx_t* rtx, uctx_list_t* list, qse_awk_int_t id,
 	return -x;
 }
 
-static int rename_byid (qse_awk_rtx_t* rtx, uctx_list_t* list, qse_awk_int_t id, qse_mchar_t* item)
+static int rename_byid (hawk_rtx_t* rtx, uctx_list_t* list, hawk_int_t id, hawk_mchar_t* item)
 {
 	int x = UCI_ERR_INVAL;
 
@@ -330,7 +330,7 @@ static int rename_byid (qse_awk_rtx_t* rtx, uctx_list_t* list, qse_awk_int_t id,
 	return -x;
 }
 
-static int set_byid (qse_awk_rtx_t* rtx, uctx_list_t* list, qse_awk_int_t id, qse_mchar_t* item)
+static int set_byid (hawk_rtx_t* rtx, uctx_list_t* list, hawk_int_t id, hawk_mchar_t* item)
 {
 	int x = UCI_ERR_INVAL;
 
@@ -349,7 +349,7 @@ static int set_byid (qse_awk_rtx_t* rtx, uctx_list_t* list, qse_awk_int_t id, qs
 	return -x;
 }
 
-static int addsection_byid (qse_awk_rtx_t* rtx, uctx_list_t* list, qse_awk_int_t id, qse_mchar_t* item, qse_mchar_t* type)
+static int addsection_byid (hawk_rtx_t* rtx, uctx_list_t* list, hawk_int_t id, hawk_mchar_t* item, hawk_mchar_t* type)
 {
 	int x = UCI_ERR_INVAL;
 
@@ -362,7 +362,7 @@ static int addsection_byid (qse_awk_rtx_t* rtx, uctx_list_t* list, qse_awk_int_t
 		if (x == UCI_OK) 
 		{
 			/* add an unnamed section. use set to add a named section */
-			struct uci_section* s = QSE_NULL;
+			struct uci_section* s = HAWK_NULL;
 			if (!ptr.value && (ptr.flags & UCI_LOOKUP_COMPLETE) && (ptr.last->type == UCI_TYPE_PACKAGE))
 				x = uci_add_section (list->map.tab[id]->ctx, ptr.p, type, &s);
 			else x = UCI_ERR_INVAL;
@@ -372,7 +372,7 @@ static int addsection_byid (qse_awk_rtx_t* rtx, uctx_list_t* list, qse_awk_int_t
 	return -x;
 }
 
-static int addlist_byid (qse_awk_rtx_t* rtx, uctx_list_t* list, qse_awk_int_t id, qse_mchar_t* item)
+static int addlist_byid (hawk_rtx_t* rtx, uctx_list_t* list, hawk_int_t id, hawk_mchar_t* item)
 {
 	int x = UCI_ERR_INVAL;
 
@@ -392,7 +392,7 @@ static int addlist_byid (qse_awk_rtx_t* rtx, uctx_list_t* list, qse_awk_int_t id
 }
 
 static int setconfdir_byid (
-	qse_awk_rtx_t* rtx, uctx_list_t* list, qse_awk_int_t id, qse_mchar_t* path)
+	hawk_rtx_t* rtx, uctx_list_t* list, hawk_int_t id, hawk_mchar_t* path)
 {
 	int x = UCI_ERR_INVAL;
 
@@ -405,7 +405,7 @@ static int setconfdir_byid (
 }
 
 static int setsavedir_byid (
-	qse_awk_rtx_t* rtx, uctx_list_t* list, qse_awk_int_t id, qse_mchar_t* path)
+	hawk_rtx_t* rtx, uctx_list_t* list, hawk_int_t id, hawk_mchar_t* path)
 {
 	int x = UCI_ERR_INVAL;
 
@@ -418,7 +418,7 @@ static int setsavedir_byid (
 }
 
 static int adddeltapath_byid (
-	qse_awk_rtx_t* rtx, uctx_list_t* list, qse_awk_int_t id, qse_mchar_t* path)
+	hawk_rtx_t* rtx, uctx_list_t* list, hawk_int_t id, hawk_mchar_t* path)
 {
 	int x = UCI_ERR_INVAL;
 
@@ -431,8 +431,8 @@ static int adddeltapath_byid (
 }
 
 static int getsection_byid (
-	qse_awk_rtx_t* rtx, uctx_list_t* list, qse_awk_int_t id,
-	qse_mchar_t* tuple, qse_awk_val_ref_t* ref)
+	hawk_rtx_t* rtx, uctx_list_t* list, hawk_int_t id,
+	hawk_mchar_t* tuple, hawk_val_ref_t* ref)
 {
 	int x = UCI_ERR_INVAL;
 
@@ -452,35 +452,35 @@ static int getsection_byid (
 				e = ptr.last;	
 				if (e->type == UCI_TYPE_SECTION)
 				{
-					qse_awk_val_map_data_t md[4];
-					qse_awk_int_t lv;
-					qse_awk_val_t* tmp;
+					hawk_val_map_data_t md[4];
+					hawk_int_t lv;
+					hawk_val_t* tmp;
 
-					QSE_MEMSET (md, 0, QSE_SIZEOF(md));
+					HAWK_MEMSET (md, 0, HAWK_SIZEOF(md));
 		
-					md[0].key.ptr = QSE_T("type");
+					md[0].key.ptr = HAWK_T("type");
 					md[0].key.len = 4;
-					md[0].type = QSE_AWK_VAL_MAP_DATA_MBS;
+					md[0].type = HAWK_VAL_MAP_DATA_MBS;
 					md[0].vptr = ptr.s->type;
 
-					md[1].key.ptr = QSE_T("name");
+					md[1].key.ptr = HAWK_T("name");
 					md[1].key.len = 4;
-					md[1].type = QSE_AWK_VAL_MAP_DATA_MBS;
+					md[1].type = HAWK_VAL_MAP_DATA_MBS;
 					md[1].vptr = ptr.s->e.name; /* e->name == ptr.s->e.name */
 
-					md[2].key.ptr = QSE_T("anon");
+					md[2].key.ptr = HAWK_T("anon");
 					md[2].key.len = 4;
-					md[2].vptr = QSE_AWK_VAL_MAP_DATA_INT;
+					md[2].vptr = HAWK_VAL_MAP_DATA_INT;
 					lv = ptr.s->anonymous;
 					md[2].vptr = &lv;
 
-					tmp = qse_awk_rtx_makemapvalwithdata (rtx, md);
+					tmp = hawk_rtx_makemapvalwithdata (rtx, md);
 					if (tmp) 
 					{
 						int n;
-						qse_awk_rtx_refupval (rtx, tmp);
-						n = qse_awk_rtx_setrefval (rtx, ref, tmp);
-						qse_awk_rtx_refdownval (rtx, tmp);
+						hawk_rtx_refupval (rtx, tmp);
+						n = hawk_rtx_setrefval (rtx, ref, tmp);
+						hawk_rtx_refdownval (rtx, tmp);
 						if (n <= -1) return -9999;
 					}
 					else x = UCI_ERR_MEM;
@@ -496,8 +496,8 @@ static int getsection_byid (
 }
 
 static int getoption_byid (
-	qse_awk_rtx_t* rtx, uctx_list_t* list, qse_awk_int_t id,
-	qse_mchar_t* tuple, qse_awk_val_ref_t* ref)
+	hawk_rtx_t* rtx, uctx_list_t* list, hawk_int_t id,
+	hawk_mchar_t* tuple, hawk_val_ref_t* ref)
 {
 	int x = UCI_ERR_INVAL;
 
@@ -521,31 +521,31 @@ static int getoption_byid (
 
 					if (uo->type == UCI_TYPE_STRING)
 					{
-						qse_awk_val_t* map;
-						qse_awk_val_map_data_t md[3];
+						hawk_val_t* map;
+						hawk_val_map_data_t md[3];
 
-						QSE_MEMSET (md, 0, QSE_SIZEOF(md));
+						HAWK_MEMSET (md, 0, HAWK_SIZEOF(md));
 
-						md[0].key.ptr = QSE_T("type");
+						md[0].key.ptr = HAWK_T("type");
 						md[0].key.len = 4;
-						md[0].type = QSE_AWK_VAL_MAP_DATA_STR;
-						md[0].vptr = QSE_T("string");
+						md[0].type = HAWK_VAL_MAP_DATA_STR;
+						md[0].vptr = HAWK_T("string");
 
-						md[1].key.ptr = QSE_T("value");
+						md[1].key.ptr = HAWK_T("value");
 						md[1].key.len = 5;
-						md[1].type = QSE_AWK_VAL_MAP_DATA_MBS;
+						md[1].type = HAWK_VAL_MAP_DATA_MBS;
 						md[1].vptr = uo->v.string;
 
-						map = qse_awk_rtx_makemapvalwithdata (rtx, md);
+						map = hawk_rtx_makemapvalwithdata (rtx, md);
 						if (map) 
 						{
 							int n;
-							qse_awk_rtx_refupval (rtx, map);
-							n = qse_awk_rtx_setrefval (rtx, ref, map);
-							qse_awk_rtx_refdownval (rtx, map);
+							hawk_rtx_refupval (rtx, map);
+							n = hawk_rtx_setrefval (rtx, ref, map);
+							hawk_rtx_refdownval (rtx, map);
 							if (n <= -1)
 							{
-								map = QSE_NULL;
+								map = HAWK_NULL;
 								return -9999;
 							}
 						}
@@ -553,83 +553,83 @@ static int getoption_byid (
 					}
 					else if (uo->type == UCI_TYPE_LIST)
 					{
-						qse_awk_val_t* map, * fld;
-						qse_awk_val_map_data_t md[3];
+						hawk_val_t* map, * fld;
+						hawk_val_map_data_t md[3];
 						struct uci_element* tmp;
-						qse_awk_int_t count;
+						hawk_int_t count;
 
 						count = 0;
 						uci_foreach_element(&uo->v.list, tmp) { count++; }
 
-						QSE_MEMSET (md, 0, QSE_SIZEOF(md));
+						HAWK_MEMSET (md, 0, HAWK_SIZEOF(md));
 
-						md[0].key.ptr = QSE_T("type");
+						md[0].key.ptr = HAWK_T("type");
 						md[0].key.len = 4;
-						md[0].type = QSE_AWK_VAL_MAP_DATA_STR;
-						md[0].vptr = QSE_T("list");
+						md[0].type = HAWK_VAL_MAP_DATA_STR;
+						md[0].vptr = HAWK_T("list");
 
-						md[1].key.ptr = QSE_T("count");
+						md[1].key.ptr = HAWK_T("count");
 						md[1].key.len = 5;
-						md[1].type = QSE_AWK_VAL_MAP_DATA_INT;
+						md[1].type = HAWK_VAL_MAP_DATA_INT;
 						md[1].vptr = &count;
 
-						map = qse_awk_rtx_makemapvalwithdata (rtx, md);
+						map = hawk_rtx_makemapvalwithdata (rtx, md);
 						if (map)	
 						{
 							count = 1;
 							uci_foreach_element(&uo->v.list, tmp) 
 							{
-								const qse_cstr_t* subsep;
-								qse_cstr_t k[4];
-								qse_char_t idxbuf[64];
-								qse_char_t* kp;
-								qse_size_t kl;
+								const hawk_cstr_t* subsep;
+								hawk_cstr_t k[4];
+								hawk_char_t idxbuf[64];
+								hawk_char_t* kp;
+								hawk_size_t kl;
 
-								fld = qse_awk_rtx_makestrvalwithmbs (rtx, tmp->name);
+								fld = hawk_rtx_makestrvalwithmbs (rtx, tmp->name);
 								if (!fld)
 								{
-									qse_awk_rtx_refupval (rtx, map);
-									qse_awk_rtx_refdownval (rtx, map);
-									map = QSE_NULL;
+									hawk_rtx_refupval (rtx, map);
+									hawk_rtx_refdownval (rtx, map);
+									map = HAWK_NULL;
 									x = UCI_ERR_MEM;
 									break;
 								}
 
-								subsep = qse_awk_rtx_getsubsep (rtx);
+								subsep = hawk_rtx_getsubsep (rtx);
 
-								k[0].ptr = QSE_T("value");
+								k[0].ptr = HAWK_T("value");
 								k[0].len = 5;
 								k[1].ptr = subsep->ptr;
 								k[1].len = subsep->len;
 								k[2].ptr = idxbuf;
-								k[2].len = qse_fmtuintmax (idxbuf, QSE_COUNTOF(idxbuf), count, 10, -1, QSE_T('\0'), QSE_NULL);
-								k[3].ptr = QSE_NULL;
+								k[2].len = hawk_fmtuintmax (idxbuf, HAWK_COUNTOF(idxbuf), count, 10, -1, HAWK_T('\0'), HAWK_NULL);
+								k[3].ptr = HAWK_NULL;
 								k[3].len = 0;
 							
-								kp = qse_wcstradup (k, &kl, qse_awk_rtx_getmmgr(rtx));
-								if (kp == QSE_NULL || qse_awk_rtx_setmapvalfld (rtx, map, kp, kl, fld) == QSE_NULL)
+								kp = hawk_wcstradup (k, &kl, hawk_rtx_getmmgr(rtx));
+								if (kp == HAWK_NULL || hawk_rtx_setmapvalfld (rtx, map, kp, kl, fld) == HAWK_NULL)
 								{
-									if (kp) QSE_MMGR_FREE (qse_awk_rtx_getmmgr(rtx), kp);
-									qse_awk_rtx_refupval (rtx, fld);
-									qse_awk_rtx_refdownval (rtx, fld);
-									qse_awk_rtx_refupval (rtx, map);
-									qse_awk_rtx_refdownval (rtx, map);
-									map = QSE_NULL;
+									if (kp) HAWK_MMGR_FREE (hawk_rtx_getmmgr(rtx), kp);
+									hawk_rtx_refupval (rtx, fld);
+									hawk_rtx_refdownval (rtx, fld);
+									hawk_rtx_refupval (rtx, map);
+									hawk_rtx_refdownval (rtx, map);
+									map = HAWK_NULL;
 									x = UCI_ERR_MEM;
 									break;
 								}
 
-								QSE_MMGR_FREE (qse_awk_rtx_getmmgr(rtx), kp);
+								HAWK_MMGR_FREE (hawk_rtx_getmmgr(rtx), kp);
 								count++;
 							}
 							
 							if (map) 
 							{
-								if (qse_awk_rtx_setrefval (rtx, ref, map) <= -1)
+								if (hawk_rtx_setrefval (rtx, ref, map) <= -1)
 								{
-									qse_awk_rtx_refupval (rtx, map);
-									qse_awk_rtx_refdownval (rtx, map);
-									map = QSE_NULL;
+									hawk_rtx_refupval (rtx, map);
+									hawk_rtx_refdownval (rtx, map);
+									map = HAWK_NULL;
 									return -9999;
 								}
 							}
@@ -648,69 +648,69 @@ static int getoption_byid (
 }
 /* ------------------------------------------------------------------------ */
 
-static QSE_INLINE uctx_list_t* rtx_to_list (qse_awk_rtx_t* rtx, const qse_awk_fnc_info_t* fi)
+static HAWK_INLINE uctx_list_t* rtx_to_list (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
-	qse_rbt_pair_t* pair;
-	pair = qse_rbt_search ((qse_rbt_t*)fi->mod->ctx, &rtx, QSE_SIZEOF(rtx));
-	QSE_ASSERT (pair != QSE_NULL);
-	return (uctx_list_t*)QSE_RBT_VPTR(pair);
+	hawk_rbt_pair_t* pair;
+	pair = hawk_rbt_search ((hawk_rbt_t*)fi->mod->ctx, &rtx, HAWK_SIZEOF(rtx));
+	HAWK_ASSERT (pair != HAWK_NULL);
+	return (uctx_list_t*)HAWK_RBT_VPTR(pair);
 }
 
-static int fnc_uci_errno (qse_awk_rtx_t* rtx, const qse_awk_fnc_info_t* fi)
+static int fnc_uci_errno (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	uctx_list_t* list;
-	qse_awk_val_t* retv;
+	hawk_val_t* retv;
 
 	list = rtx_to_list (rtx, fi);
 
-	retv = qse_awk_rtx_makeintval (rtx, list->errnum);
-	if (retv == QSE_NULL) return -1;
+	retv = hawk_rtx_makeintval (rtx, list->errnum);
+	if (retv == HAWK_NULL) return -1;
 
-	qse_awk_rtx_setretval (rtx, retv);
+	hawk_rtx_setretval (rtx, retv);
 	return 0;
 }
 
-static qse_char_t* errmsg[] =
+static hawk_char_t* errmsg[] =
 {
-	QSE_T("no error"),
-	QSE_T("out of memory"),
-	QSE_T("invalid data"),
-	QSE_T("not found"),
-	QSE_T("I/O error"),
-	QSE_T("parse error"),
-	QSE_T("duplicate data"),
-	QSE_T("unknown error")
+	HAWK_T("no error"),
+	HAWK_T("out of memory"),
+	HAWK_T("invalid data"),
+	HAWK_T("not found"),
+	HAWK_T("I/O error"),
+	HAWK_T("parse error"),
+	HAWK_T("duplicate data"),
+	HAWK_T("unknown error")
 };
 
-static int fnc_uci_errstr (qse_awk_rtx_t* rtx, const qse_awk_fnc_info_t* fi)
+static int fnc_uci_errstr (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	uctx_list_t* list;
-	qse_awk_val_t* retv;
-	qse_awk_int_t errnum;
+	hawk_val_t* retv;
+	hawk_int_t errnum;
 
 	list = rtx_to_list (rtx, fi);
 
-	if (qse_awk_rtx_getnargs (rtx) <= 0 ||
-	    qse_awk_rtx_valtoint (rtx, qse_awk_rtx_getarg (rtx, 0), &errnum) <= -1)
+	if (hawk_rtx_getnargs (rtx) <= 0 ||
+	    hawk_rtx_valtoint (rtx, hawk_rtx_getarg (rtx, 0), &errnum) <= -1)
 	{
 		errnum = list->errnum;
 	}
 
-	if (errnum < 0 || errnum >= QSE_COUNTOF(errmsg)) errnum = QSE_COUNTOF(errmsg) - 1;
+	if (errnum < 0 || errnum >= HAWK_COUNTOF(errmsg)) errnum = HAWK_COUNTOF(errmsg) - 1;
 
-	retv = qse_awk_rtx_makestrvalwithstr (rtx, errmsg[errnum]);
-	if (retv == QSE_NULL) return -1;
+	retv = hawk_rtx_makestrvalwithstr (rtx, errmsg[errnum]);
+	if (retv == HAWK_NULL) return -1;
 
-	qse_awk_rtx_setretval (rtx, retv);
+	hawk_rtx_setretval (rtx, retv);
 	return 0;
 }
 
-static int fnc_uci_open (qse_awk_rtx_t* rtx, const qse_awk_fnc_info_t* fi)
+static int fnc_uci_open (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	uctx_list_t* list;
 	uctx_node_t* node;
-	qse_awk_int_t ret;
-	qse_awk_val_t* retv;
+	hawk_int_t ret;
+	hawk_val_t* retv;
 
 	list = rtx_to_list (rtx, fi);
 	node = new_uctx_node (rtx, list);
@@ -722,23 +722,23 @@ static int fnc_uci_open (qse_awk_rtx_t* rtx, const qse_awk_fnc_info_t* fi)
 		ret = -1;
 	}
 
-	retv = qse_awk_rtx_makeintval (rtx, ret);
-	if (retv == QSE_NULL) return -1;
+	retv = hawk_rtx_makeintval (rtx, ret);
+	if (retv == HAWK_NULL) return -1;
 
-	qse_awk_rtx_setretval (rtx, retv);
+	hawk_rtx_setretval (rtx, retv);
 	return 0;
 }
 
-static int fnc_uci_close (qse_awk_rtx_t* rtx, const qse_awk_fnc_info_t* fi)
+static int fnc_uci_close (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	uctx_list_t* list;
-	qse_awk_val_t* retv;
-	qse_awk_int_t id;
+	hawk_val_t* retv;
+	hawk_int_t id;
 	int ret;
 	
 	list = rtx_to_list (rtx, fi);
 
-	ret = qse_awk_rtx_valtoint (rtx, qse_awk_rtx_getarg (rtx, 0), &id);
+	ret = hawk_rtx_valtoint (rtx, hawk_rtx_getarg (rtx, 0), &id);
 	if (ret <= -1) ret = -UCI_ERR_INVAL;
 	else ret = close_byid (rtx, list, id);
 
@@ -748,33 +748,33 @@ static int fnc_uci_close (qse_awk_rtx_t* rtx, const qse_awk_fnc_info_t* fi)
 		ret = -1;
 	}
 
-	retv = qse_awk_rtx_makeintval (rtx, ret);
-	if (retv == QSE_NULL) return -1;
+	retv = hawk_rtx_makeintval (rtx, ret);
+	if (retv == HAWK_NULL) return -1;
 
-	qse_awk_rtx_setretval (rtx, retv);
+	hawk_rtx_setretval (rtx, retv);
 	return 0;
 }
 
-static int fnc_uci_load  (qse_awk_rtx_t* rtx, const qse_awk_fnc_info_t* fi)
+static int fnc_uci_load  (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	uctx_list_t* list;
-	qse_awk_val_t* retv;
-	qse_awk_int_t id;
+	hawk_val_t* retv;
+	hawk_int_t id;
 	int ret;
 	
 	list = rtx_to_list (rtx, fi);
 
-	ret = qse_awk_rtx_valtoint (rtx, qse_awk_rtx_getarg (rtx, 0), &id);
+	ret = hawk_rtx_valtoint (rtx, hawk_rtx_getarg (rtx, 0), &id);
 	if (ret <= -1) ret = -UCI_ERR_INVAL;
 	else
 	{
-		qse_mchar_t* item;
+		hawk_mchar_t* item;
 
-		item = qse_awk_rtx_valtombsdup(rtx, qse_awk_rtx_getarg(rtx, 1), QSE_NULL);
+		item = hawk_rtx_valtombsdup(rtx, hawk_rtx_getarg(rtx, 1), HAWK_NULL);
 		if (item)
 		{
 			ret = load_byid (rtx, list, id, item);
-			qse_awk_rtx_freemem (rtx, item);
+			hawk_rtx_freemem (rtx, item);
 		}
 		else ret = -UCI_ERR_MEM;
 	}
@@ -785,23 +785,23 @@ static int fnc_uci_load  (qse_awk_rtx_t* rtx, const qse_awk_fnc_info_t* fi)
 		ret = -1;
 	}
 
-	retv = qse_awk_rtx_makeintval (rtx, ret);
-	if (retv == QSE_NULL) return -1;
+	retv = hawk_rtx_makeintval (rtx, ret);
+	if (retv == HAWK_NULL) return -1;
 
-	qse_awk_rtx_setretval (rtx, retv);
+	hawk_rtx_setretval (rtx, retv);
 	return 0;
 }
 
-static int fnc_uci_unload  (qse_awk_rtx_t* rtx, const qse_awk_fnc_info_t* fi)
+static int fnc_uci_unload  (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	uctx_list_t* list;
-	qse_awk_val_t* retv;
-	qse_awk_int_t id;
+	hawk_val_t* retv;
+	hawk_int_t id;
 	int ret;
 	
 	list = rtx_to_list (rtx, fi);
 
-	ret = qse_awk_rtx_valtoint (rtx, qse_awk_rtx_getarg (rtx, 0), &id);
+	ret = hawk_rtx_valtoint (rtx, hawk_rtx_getarg (rtx, 0), &id);
 	if (ret <= -1) ret = -UCI_ERR_INVAL;
 	else ret = unload_byid (rtx, list, id);
 
@@ -811,33 +811,33 @@ static int fnc_uci_unload  (qse_awk_rtx_t* rtx, const qse_awk_fnc_info_t* fi)
 		ret = -1;
 	}
 
-	retv = qse_awk_rtx_makeintval (rtx, ret);
-	if (retv == QSE_NULL) return -1;
+	retv = hawk_rtx_makeintval (rtx, ret);
+	if (retv == HAWK_NULL) return -1;
 
-	qse_awk_rtx_setretval (rtx, retv);
+	hawk_rtx_setretval (rtx, retv);
 	return 0;
 }
 
-static int fnc_uci_save  (qse_awk_rtx_t* rtx, const qse_awk_fnc_info_t* fi)
+static int fnc_uci_save  (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	uctx_list_t* list;
-	qse_awk_val_t* retv;
-	qse_awk_int_t id;
+	hawk_val_t* retv;
+	hawk_int_t id;
 	int ret;
 	
 	list = rtx_to_list (rtx, fi);
 
-	ret = qse_awk_rtx_valtoint (rtx, qse_awk_rtx_getarg (rtx, 0), &id);
+	ret = hawk_rtx_valtoint (rtx, hawk_rtx_getarg (rtx, 0), &id);
 	if (ret <= -1) ret = -UCI_ERR_INVAL;
 	else
 	{
-		qse_mchar_t* item;
+		hawk_mchar_t* item;
 
-		item = qse_awk_rtx_valtombsdup(rtx, qse_awk_rtx_getarg(rtx, 1), QSE_NULL);
+		item = hawk_rtx_valtombsdup(rtx, hawk_rtx_getarg(rtx, 1), HAWK_NULL);
 		if (item)
 		{
 			ret = save_byid (rtx, list, id, item);
-			qse_awk_rtx_freemem (rtx, item);
+			hawk_rtx_freemem (rtx, item);
 		}
 		else ret = -UCI_ERR_MEM;
 	}
@@ -848,33 +848,33 @@ static int fnc_uci_save  (qse_awk_rtx_t* rtx, const qse_awk_fnc_info_t* fi)
 		ret = -1;
 	}
 
-	retv = qse_awk_rtx_makeintval (rtx, ret);
-	if (retv == QSE_NULL) return -1;
+	retv = hawk_rtx_makeintval (rtx, ret);
+	if (retv == HAWK_NULL) return -1;
 
-	qse_awk_rtx_setretval (rtx, retv);
+	hawk_rtx_setretval (rtx, retv);
 	return 0;
 }
 
-static int fnc_uci_commit (qse_awk_rtx_t* rtx, const qse_awk_fnc_info_t* fi)
+static int fnc_uci_commit (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	uctx_list_t* list;
-	qse_awk_val_t* retv;
-	qse_awk_int_t id;
+	hawk_val_t* retv;
+	hawk_int_t id;
 	int ret;
 	
 	list = rtx_to_list (rtx, fi);
 
-	ret = qse_awk_rtx_valtoint (rtx, qse_awk_rtx_getarg (rtx, 0), &id);
+	ret = hawk_rtx_valtoint (rtx, hawk_rtx_getarg (rtx, 0), &id);
 	if (ret <= -1) ret = -UCI_ERR_INVAL;
 	else
 	{
-		qse_mchar_t* item;
+		hawk_mchar_t* item;
 
-		item = qse_awk_rtx_valtombsdup(rtx, qse_awk_rtx_getarg(rtx, 1), QSE_NULL);
+		item = hawk_rtx_valtombsdup(rtx, hawk_rtx_getarg(rtx, 1), HAWK_NULL);
 		if (item)
 		{
 			ret = commit_byid (rtx, list, id, item);
-			qse_awk_rtx_freemem (rtx, item);
+			hawk_rtx_freemem (rtx, item);
 		}
 		else ret = -UCI_ERR_MEM;
 	}
@@ -885,33 +885,33 @@ static int fnc_uci_commit (qse_awk_rtx_t* rtx, const qse_awk_fnc_info_t* fi)
 		ret = -1;
 	}
 
-	retv = qse_awk_rtx_makeintval (rtx, ret);
-	if (retv == QSE_NULL) return -1;
+	retv = hawk_rtx_makeintval (rtx, ret);
+	if (retv == HAWK_NULL) return -1;
 
-	qse_awk_rtx_setretval (rtx, retv);
+	hawk_rtx_setretval (rtx, retv);
 	return 0;
 }
 
-static int fnc_uci_revert (qse_awk_rtx_t* rtx, const qse_awk_fnc_info_t* fi)
+static int fnc_uci_revert (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	uctx_list_t* list;
-	qse_awk_val_t* retv;
-	qse_awk_int_t id;
+	hawk_val_t* retv;
+	hawk_int_t id;
 	int ret;
 	
 	list = rtx_to_list (rtx, fi);
 
-	ret = qse_awk_rtx_valtoint (rtx, qse_awk_rtx_getarg (rtx, 0), &id);
+	ret = hawk_rtx_valtoint (rtx, hawk_rtx_getarg (rtx, 0), &id);
 	if (ret <= -1) ret = -UCI_ERR_INVAL;
 	else
 	{
-		qse_mchar_t* item;
+		hawk_mchar_t* item;
 
-		item = qse_awk_rtx_valtombsdup(rtx, qse_awk_rtx_getarg(rtx, 1), QSE_NULL);
+		item = hawk_rtx_valtombsdup(rtx, hawk_rtx_getarg(rtx, 1), HAWK_NULL);
 		if (item)
 		{
 			ret = revert_byid (rtx, list, id, item);
-			qse_awk_rtx_freemem (rtx, item);
+			hawk_rtx_freemem (rtx, item);
 		}
 		else ret = -UCI_ERR_MEM;
 	}
@@ -922,33 +922,33 @@ static int fnc_uci_revert (qse_awk_rtx_t* rtx, const qse_awk_fnc_info_t* fi)
 		ret = -1;
 	}
 
-	retv = qse_awk_rtx_makeintval (rtx, ret);
-	if (retv == QSE_NULL) return -1;
+	retv = hawk_rtx_makeintval (rtx, ret);
+	if (retv == HAWK_NULL) return -1;
 
-	qse_awk_rtx_setretval (rtx, retv);
+	hawk_rtx_setretval (rtx, retv);
 	return 0;
 }
 
-static int fnc_uci_delete (qse_awk_rtx_t* rtx, const qse_awk_fnc_info_t* fi)
+static int fnc_uci_delete (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	uctx_list_t* list;
-	qse_awk_val_t* retv;
-	qse_awk_int_t id;
+	hawk_val_t* retv;
+	hawk_int_t id;
 	int ret;
 	
 	list = rtx_to_list (rtx, fi);
 
-	ret = qse_awk_rtx_valtoint (rtx, qse_awk_rtx_getarg (rtx, 0), &id);
+	ret = hawk_rtx_valtoint (rtx, hawk_rtx_getarg (rtx, 0), &id);
 	if (ret <= -1) ret = -UCI_ERR_INVAL;
 	else
 	{
-		qse_mchar_t* item;
+		hawk_mchar_t* item;
 
-		item = qse_awk_rtx_valtombsdup(rtx, qse_awk_rtx_getarg(rtx, 1), QSE_NULL);
+		item = hawk_rtx_valtombsdup(rtx, hawk_rtx_getarg(rtx, 1), HAWK_NULL);
 		if (item)
 		{
 			ret = delete_byid (rtx, list, id, item);
-			qse_awk_rtx_freemem (rtx, item);
+			hawk_rtx_freemem (rtx, item);
 		}
 		else ret = -UCI_ERR_MEM;
 	}
@@ -959,33 +959,33 @@ static int fnc_uci_delete (qse_awk_rtx_t* rtx, const qse_awk_fnc_info_t* fi)
 		ret = -1;
 	}
 
-	retv = qse_awk_rtx_makeintval (rtx, ret);
-	if (retv == QSE_NULL) return -1;
+	retv = hawk_rtx_makeintval (rtx, ret);
+	if (retv == HAWK_NULL) return -1;
 
-	qse_awk_rtx_setretval (rtx, retv);
+	hawk_rtx_setretval (rtx, retv);
 	return 0;
 }
 
-static int fnc_uci_rename (qse_awk_rtx_t* rtx, const qse_awk_fnc_info_t* fi)
+static int fnc_uci_rename (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	uctx_list_t* list;
-	qse_awk_val_t* retv;
-	qse_awk_int_t id;
+	hawk_val_t* retv;
+	hawk_int_t id;
 	int ret;
 	
 	list = rtx_to_list (rtx, fi);
 
-	ret = qse_awk_rtx_valtoint (rtx, qse_awk_rtx_getarg (rtx, 0), &id);
+	ret = hawk_rtx_valtoint (rtx, hawk_rtx_getarg (rtx, 0), &id);
 	if (ret <= -1) ret = -UCI_ERR_INVAL;
 	else
 	{
-		qse_mchar_t* item;
+		hawk_mchar_t* item;
 
-		item = qse_awk_rtx_valtombsdup(rtx, qse_awk_rtx_getarg(rtx, 1), QSE_NULL);
+		item = hawk_rtx_valtombsdup(rtx, hawk_rtx_getarg(rtx, 1), HAWK_NULL);
 		if (item)
 		{
 			ret = rename_byid (rtx, list, id, item);
-			qse_awk_rtx_freemem (rtx, item);
+			hawk_rtx_freemem (rtx, item);
 		}
 		else ret = -UCI_ERR_MEM;
 	}
@@ -996,33 +996,33 @@ static int fnc_uci_rename (qse_awk_rtx_t* rtx, const qse_awk_fnc_info_t* fi)
 		ret = -1;
 	}
 
-	retv = qse_awk_rtx_makeintval (rtx, ret);
-	if (retv == QSE_NULL) return -1;
+	retv = hawk_rtx_makeintval (rtx, ret);
+	if (retv == HAWK_NULL) return -1;
 
-	qse_awk_rtx_setretval (rtx, retv);
+	hawk_rtx_setretval (rtx, retv);
 	return 0;
 }
 
-static int fnc_uci_set (qse_awk_rtx_t* rtx, const qse_awk_fnc_info_t* fi)
+static int fnc_uci_set (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	uctx_list_t* list;
-	qse_awk_val_t* retv;
-	qse_awk_int_t id;
+	hawk_val_t* retv;
+	hawk_int_t id;
 	int ret;
 	
 	list = rtx_to_list (rtx, fi);
 
-	ret = qse_awk_rtx_valtoint (rtx, qse_awk_rtx_getarg (rtx, 0), &id);
+	ret = hawk_rtx_valtoint (rtx, hawk_rtx_getarg (rtx, 0), &id);
 	if (ret <= -1) ret = -UCI_ERR_INVAL;
 	else
 	{
-		qse_mchar_t* item;
+		hawk_mchar_t* item;
 
-		item = qse_awk_rtx_valtombsdup(rtx, qse_awk_rtx_getarg(rtx, 1), QSE_NULL);
+		item = hawk_rtx_valtombsdup(rtx, hawk_rtx_getarg(rtx, 1), HAWK_NULL);
 		if (item)
 		{
 			ret = set_byid (rtx, list, id, item);
-			qse_awk_rtx_freemem (rtx, item);
+			hawk_rtx_freemem (rtx, item);
 		}
 		else ret = -UCI_ERR_MEM;
 	}
@@ -1033,38 +1033,38 @@ static int fnc_uci_set (qse_awk_rtx_t* rtx, const qse_awk_fnc_info_t* fi)
 		ret = -1;
 	}
 
-	retv = qse_awk_rtx_makeintval (rtx, ret);
-	if (retv == QSE_NULL) return -1;
+	retv = hawk_rtx_makeintval (rtx, ret);
+	if (retv == HAWK_NULL) return -1;
 
-	qse_awk_rtx_setretval (rtx, retv);
+	hawk_rtx_setretval (rtx, retv);
 	return 0;
 }
 
-static int fnc_uci_addsection (qse_awk_rtx_t* rtx, const qse_awk_fnc_info_t* fi)
+static int fnc_uci_addsection (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	uctx_list_t* list;
-	qse_awk_val_t* retv;
-	qse_awk_int_t id;
+	hawk_val_t* retv;
+	hawk_int_t id;
 	int ret;
 	
 	list = rtx_to_list (rtx, fi);
 
-	ret = qse_awk_rtx_valtoint (rtx, qse_awk_rtx_getarg (rtx, 0), &id);
+	ret = hawk_rtx_valtoint (rtx, hawk_rtx_getarg (rtx, 0), &id);
 	if (ret <= -1) ret = -UCI_ERR_INVAL;
 	else
 	{
-		qse_mchar_t* item, * type;
+		hawk_mchar_t* item, * type;
 
-		item = qse_awk_rtx_valtombsdup(rtx, qse_awk_rtx_getarg(rtx, 1), QSE_NULL);
-		type = qse_awk_rtx_valtombsdup(rtx, qse_awk_rtx_getarg(rtx, 2), QSE_NULL);
+		item = hawk_rtx_valtombsdup(rtx, hawk_rtx_getarg(rtx, 1), HAWK_NULL);
+		type = hawk_rtx_valtombsdup(rtx, hawk_rtx_getarg(rtx, 2), HAWK_NULL);
 		if (item && type)
 		{
 			ret = addsection_byid (rtx, list, id, item, type);
 		}
 		else ret = -UCI_ERR_MEM;
 
-		if (type) qse_awk_rtx_freemem (rtx, type);
-		if (item) qse_awk_rtx_freemem (rtx, item);
+		if (type) hawk_rtx_freemem (rtx, type);
+		if (item) hawk_rtx_freemem (rtx, item);
 	}
 
 	if (ret <= -1) 
@@ -1073,33 +1073,33 @@ static int fnc_uci_addsection (qse_awk_rtx_t* rtx, const qse_awk_fnc_info_t* fi)
 		ret = -1;
 	}
 
-	retv = qse_awk_rtx_makeintval (rtx, ret);
-	if (retv == QSE_NULL) return -1;
+	retv = hawk_rtx_makeintval (rtx, ret);
+	if (retv == HAWK_NULL) return -1;
 
-	qse_awk_rtx_setretval (rtx, retv);
+	hawk_rtx_setretval (rtx, retv);
 	return 0;
 }
 
-static int fnc_uci_addlist (qse_awk_rtx_t* rtx, const qse_awk_fnc_info_t* fi)
+static int fnc_uci_addlist (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	uctx_list_t* list;
-	qse_awk_val_t* retv;
-	qse_awk_int_t id;
+	hawk_val_t* retv;
+	hawk_int_t id;
 	int ret;
 	
 	list = rtx_to_list (rtx, fi);
 
-	ret = qse_awk_rtx_valtoint (rtx, qse_awk_rtx_getarg (rtx, 0), &id);
+	ret = hawk_rtx_valtoint (rtx, hawk_rtx_getarg (rtx, 0), &id);
 	if (ret <= -1) ret = -UCI_ERR_INVAL;
 	else
 	{
-		qse_mchar_t* item;
+		hawk_mchar_t* item;
 
-		item = qse_awk_rtx_valtombsdup(rtx, qse_awk_rtx_getarg(rtx, 1), QSE_NULL);
+		item = hawk_rtx_valtombsdup(rtx, hawk_rtx_getarg(rtx, 1), HAWK_NULL);
 		if (item)
 		{
 			ret = addlist_byid (rtx, list, id, item);
-			qse_awk_rtx_freemem (rtx, item);
+			hawk_rtx_freemem (rtx, item);
 		}
 		else ret = -UCI_ERR_MEM;
 	}
@@ -1110,33 +1110,33 @@ static int fnc_uci_addlist (qse_awk_rtx_t* rtx, const qse_awk_fnc_info_t* fi)
 		ret = -1;
 	}
 
-	retv = qse_awk_rtx_makeintval (rtx, ret);
-	if (retv == QSE_NULL) return -1;
+	retv = hawk_rtx_makeintval (rtx, ret);
+	if (retv == HAWK_NULL) return -1;
 
-	qse_awk_rtx_setretval (rtx, retv);
+	hawk_rtx_setretval (rtx, retv);
 	return 0;
 }
 
-static int fnc_uci_setconfdir  (qse_awk_rtx_t* rtx, const qse_awk_fnc_info_t* fi)
+static int fnc_uci_setconfdir  (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	uctx_list_t* list;
-	qse_awk_val_t* retv;
-	qse_awk_int_t id;
+	hawk_val_t* retv;
+	hawk_int_t id;
 	int ret;
 	
 	list = rtx_to_list (rtx, fi);
 
-	ret = qse_awk_rtx_valtoint (rtx, qse_awk_rtx_getarg (rtx, 0), &id);
+	ret = hawk_rtx_valtoint (rtx, hawk_rtx_getarg (rtx, 0), &id);
 	if (ret <= -1) ret = -UCI_ERR_INVAL;
 	else
 	{
-		qse_mchar_t* item;
+		hawk_mchar_t* item;
 
-		item = qse_awk_rtx_valtombsdup(rtx, qse_awk_rtx_getarg(rtx, 1), QSE_NULL);
+		item = hawk_rtx_valtombsdup(rtx, hawk_rtx_getarg(rtx, 1), HAWK_NULL);
 		if (item)
 		{
 			ret = setconfdir_byid (rtx, list, id, item);
-			qse_awk_rtx_freemem (rtx, item);
+			hawk_rtx_freemem (rtx, item);
 		}
 		else ret = -UCI_ERR_MEM;
 	}
@@ -1147,34 +1147,34 @@ static int fnc_uci_setconfdir  (qse_awk_rtx_t* rtx, const qse_awk_fnc_info_t* fi
 		ret = -1;
 	}
 
-	retv = qse_awk_rtx_makeintval (rtx, ret);
-	if (retv == QSE_NULL) return -1;
+	retv = hawk_rtx_makeintval (rtx, ret);
+	if (retv == HAWK_NULL) return -1;
 
-	qse_awk_rtx_setretval (rtx, retv);
+	hawk_rtx_setretval (rtx, retv);
 	return 0;
 }
 
 
-static int fnc_uci_setsavedir  (qse_awk_rtx_t* rtx, const qse_awk_fnc_info_t* fi)
+static int fnc_uci_setsavedir  (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	uctx_list_t* list;
-	qse_awk_val_t* retv;
-	qse_awk_int_t id;
+	hawk_val_t* retv;
+	hawk_int_t id;
 	int ret;
 	
 	list = rtx_to_list (rtx, fi);
 
-	ret = qse_awk_rtx_valtoint (rtx, qse_awk_rtx_getarg (rtx, 0), &id);
+	ret = hawk_rtx_valtoint (rtx, hawk_rtx_getarg (rtx, 0), &id);
 	if (ret <= -1) ret = -UCI_ERR_INVAL;
 	else
 	{
-		qse_mchar_t* item;
+		hawk_mchar_t* item;
 
-		item = qse_awk_rtx_valtombsdup(rtx, qse_awk_rtx_getarg(rtx, 1), QSE_NULL);
+		item = hawk_rtx_valtombsdup(rtx, hawk_rtx_getarg(rtx, 1), HAWK_NULL);
 		if (item)
 		{
 			ret = setsavedir_byid (rtx, list, id, item);
-			qse_awk_rtx_freemem (rtx, item);
+			hawk_rtx_freemem (rtx, item);
 		}
 		else ret = -UCI_ERR_MEM;
 	}
@@ -1185,33 +1185,33 @@ static int fnc_uci_setsavedir  (qse_awk_rtx_t* rtx, const qse_awk_fnc_info_t* fi
 		ret = -1;
 	}
 
-	retv = qse_awk_rtx_makeintval (rtx, ret);
-	if (retv == QSE_NULL) return -1;
+	retv = hawk_rtx_makeintval (rtx, ret);
+	if (retv == HAWK_NULL) return -1;
 
-	qse_awk_rtx_setretval (rtx, retv);
+	hawk_rtx_setretval (rtx, retv);
 	return 0;
 }
 
-static int fnc_uci_adddeltapath  (qse_awk_rtx_t* rtx, const qse_awk_fnc_info_t* fi)
+static int fnc_uci_adddeltapath  (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	uctx_list_t* list;
-	qse_awk_val_t* retv;
-	qse_awk_int_t id;
+	hawk_val_t* retv;
+	hawk_int_t id;
 	int ret;
 	
 	list = rtx_to_list (rtx, fi);
 
-	ret = qse_awk_rtx_valtoint (rtx, qse_awk_rtx_getarg (rtx, 0), &id);
+	ret = hawk_rtx_valtoint (rtx, hawk_rtx_getarg (rtx, 0), &id);
 	if (ret <= -1) ret = -UCI_ERR_INVAL;
 	else
 	{
-		qse_mchar_t* item;
+		hawk_mchar_t* item;
 
-		item = qse_awk_rtx_valtombsdup(rtx, qse_awk_rtx_getarg(rtx, 1), QSE_NULL);
+		item = hawk_rtx_valtombsdup(rtx, hawk_rtx_getarg(rtx, 1), HAWK_NULL);
 		if (item)
 		{
 			ret = adddeltapath_byid (rtx, list, id, item);
-			qse_awk_rtx_freemem (rtx, item);
+			hawk_rtx_freemem (rtx, item);
 		}
 		else ret = -UCI_ERR_MEM;
 	}
@@ -1222,32 +1222,32 @@ static int fnc_uci_adddeltapath  (qse_awk_rtx_t* rtx, const qse_awk_fnc_info_t* 
 		ret = -1;
 	}
 
-	retv = qse_awk_rtx_makeintval (rtx, ret);
-	if (retv == QSE_NULL) return -1;
+	retv = hawk_rtx_makeintval (rtx, ret);
+	if (retv == HAWK_NULL) return -1;
 
-	qse_awk_rtx_setretval (rtx, retv);
+	hawk_rtx_setretval (rtx, retv);
 	return 0;
 }
 
-static int fnc_uci_getoption (qse_awk_rtx_t* rtx, const qse_awk_fnc_info_t* fi)
+static int fnc_uci_getoption (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	uctx_list_t* list;
-	qse_awk_int_t id;
+	hawk_int_t id;
 	int ret;
 	
 	list = rtx_to_list (rtx, fi);
 
-	ret = qse_awk_rtx_valtoint (rtx, qse_awk_rtx_getarg (rtx, 0), &id);
+	ret = hawk_rtx_valtoint (rtx, hawk_rtx_getarg (rtx, 0), &id);
 	if (ret <= -1) ret = -UCI_ERR_INVAL;
 	else
 	{
-		qse_mchar_t* item;
+		hawk_mchar_t* item;
 
-		item = qse_awk_rtx_valtombsdup(rtx, qse_awk_rtx_getarg(rtx, 1), QSE_NULL);
+		item = hawk_rtx_valtombsdup(rtx, hawk_rtx_getarg(rtx, 1), HAWK_NULL);
 		if (item)
 		{
-			ret = getoption_byid (rtx, list, id, item, qse_awk_rtx_getarg (rtx, 2));
-			qse_awk_rtx_freemem (rtx, item);
+			ret = getoption_byid (rtx, list, id, item, hawk_rtx_getarg (rtx, 2));
+			hawk_rtx_freemem (rtx, item);
 			if (ret == -9999) return -1;
 		}
 		else ret = -UCI_ERR_MEM;
@@ -1260,29 +1260,29 @@ static int fnc_uci_getoption (qse_awk_rtx_t* rtx, const qse_awk_fnc_info_t* fi)
 	}
 	else ret = 0;
 
-	qse_awk_rtx_setretval (rtx, qse_awk_rtx_makeintval (rtx, ret));
+	hawk_rtx_setretval (rtx, hawk_rtx_makeintval (rtx, ret));
 	return 0;
 }
 
-static int fnc_uci_getsection (qse_awk_rtx_t* rtx, const qse_awk_fnc_info_t* fi)
+static int fnc_uci_getsection (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	uctx_list_t* list;
-	qse_awk_int_t id;
+	hawk_int_t id;
 	int ret;
 	
 	list = rtx_to_list (rtx, fi);
 
-	ret = qse_awk_rtx_valtoint(rtx, qse_awk_rtx_getarg (rtx, 0), &id);
+	ret = hawk_rtx_valtoint(rtx, hawk_rtx_getarg (rtx, 0), &id);
 	if (ret <= -1) ret = -UCI_ERR_INVAL;
 	else
 	{
-		qse_mchar_t* item;
+		hawk_mchar_t* item;
 
-		item = qse_awk_rtx_valtombsdup(rtx, qse_awk_rtx_getarg (rtx, 1), QSE_NULL);
+		item = hawk_rtx_valtombsdup(rtx, hawk_rtx_getarg (rtx, 1), HAWK_NULL);
 		if (item)
 		{
-			ret = getsection_byid(rtx, list, id, item, qse_awk_rtx_getarg (rtx, 2));
-			qse_awk_rtx_freemem (rtx, item);
+			ret = getsection_byid(rtx, list, id, item, hawk_rtx_getarg (rtx, 2));
+			hawk_rtx_freemem (rtx, item);
 			if (ret == -9999) return -1;
 		}
 		else ret = -UCI_ERR_MEM;
@@ -1295,7 +1295,7 @@ static int fnc_uci_getsection (qse_awk_rtx_t* rtx, const qse_awk_fnc_info_t* fi)
 	}
 	else ret = 0;
 
-	qse_awk_rtx_setretval (rtx, qse_awk_rtx_makeintval (rtx, ret));
+	hawk_rtx_setretval (rtx, hawk_rtx_makeintval (rtx, ret));
 	return 0;
 }
 
@@ -1304,95 +1304,92 @@ static int fnc_uci_getsection (qse_awk_rtx_t* rtx, const qse_awk_fnc_info_t* fi)
 typedef struct fnctab_t fnctab_t;
 struct fnctab_t
 {
-	const qse_char_t* name;
-	qse_awk_mod_sym_fnc_t info;
+	const hawk_char_t* name;
+	hawk_mod_sym_fnc_t info;
 };
 
 static fnctab_t fnctab[] =
 {
-	{ QSE_T("adddeltapath"), { { 2, 2, QSE_NULL    }, fnc_uci_adddeltapath, 0 } },
-	{ QSE_T("addlist"),      { { 2, 2, QSE_NULL    }, fnc_uci_addlist,      0 } },
-	{ QSE_T("addsection"),   { { 3, 3, QSE_NULL    }, fnc_uci_addsection,   0 } },
-	{ QSE_T("close"),        { { 1, 1, QSE_NULL    }, fnc_uci_close,        0 } },
-	{ QSE_T("commit"),       { { 2, 2, QSE_NULL    }, fnc_uci_commit,       0 } },
-	{ QSE_T("delete"),       { { 2, 2, QSE_NULL    }, fnc_uci_delete,       0 } },
-	{ QSE_T("errno"),        { { 0, 0, QSE_NULL    }, fnc_uci_errno,        0 } },
-	{ QSE_T("errstr"),       { { 0, 1, QSE_NULL    }, fnc_uci_errstr,       0 } },
-	{ QSE_T("getoption"),    { { 3, 3, QSE_T("vvr")}, fnc_uci_getoption,    0 } },
-	{ QSE_T("getsection"),   { { 3, 3, QSE_T("vvr")}, fnc_uci_getsection,   0 } },
-	{ QSE_T("load"),         { { 2, 2, QSE_NULL    }, fnc_uci_load,         0 } },
-	{ QSE_T("open"),         { { 0, 0, QSE_NULL    }, fnc_uci_open,         0 } },
-	{ QSE_T("rename"),       { { 2, 2, QSE_NULL    }, fnc_uci_rename,       0 } },
-	{ QSE_T("revert"),       { { 2, 2, QSE_NULL    }, fnc_uci_revert,       0 } },
-	{ QSE_T("save"),         { { 2, 2, QSE_NULL    }, fnc_uci_save,         0 } },
-	{ QSE_T("set"),          { { 2, 2, QSE_NULL    }, fnc_uci_set,          0 } }, 
-	{ QSE_T("setconfdir"),   { { 2, 2, QSE_NULL    }, fnc_uci_setconfdir,   0 } }, 
-	{ QSE_T("setsavedir"),   { { 2, 2, QSE_NULL    }, fnc_uci_setsavedir,   0 } }, 
-	{ QSE_T("unload"),       { { 1, 1, QSE_NULL    }, fnc_uci_unload,       0 } }
+	{ HAWK_T("adddeltapath"), { { 2, 2, HAWK_NULL    }, fnc_uci_adddeltapath, 0 } },
+	{ HAWK_T("addlist"),      { { 2, 2, HAWK_NULL    }, fnc_uci_addlist,      0 } },
+	{ HAWK_T("addsection"),   { { 3, 3, HAWK_NULL    }, fnc_uci_addsection,   0 } },
+	{ HAWK_T("close"),        { { 1, 1, HAWK_NULL    }, fnc_uci_close,        0 } },
+	{ HAWK_T("commit"),       { { 2, 2, HAWK_NULL    }, fnc_uci_commit,       0 } },
+	{ HAWK_T("delete"),       { { 2, 2, HAWK_NULL    }, fnc_uci_delete,       0 } },
+	{ HAWK_T("errno"),        { { 0, 0, HAWK_NULL    }, fnc_uci_errno,        0 } },
+	{ HAWK_T("errstr"),       { { 0, 1, HAWK_NULL    }, fnc_uci_errstr,       0 } },
+	{ HAWK_T("getoption"),    { { 3, 3, HAWK_T("vvr")}, fnc_uci_getoption,    0 } },
+	{ HAWK_T("getsection"),   { { 3, 3, HAWK_T("vvr")}, fnc_uci_getsection,   0 } },
+	{ HAWK_T("load"),         { { 2, 2, HAWK_NULL    }, fnc_uci_load,         0 } },
+	{ HAWK_T("open"),         { { 0, 0, HAWK_NULL    }, fnc_uci_open,         0 } },
+	{ HAWK_T("rename"),       { { 2, 2, HAWK_NULL    }, fnc_uci_rename,       0 } },
+	{ HAWK_T("revert"),       { { 2, 2, HAWK_NULL    }, fnc_uci_revert,       0 } },
+	{ HAWK_T("save"),         { { 2, 2, HAWK_NULL    }, fnc_uci_save,         0 } },
+	{ HAWK_T("set"),          { { 2, 2, HAWK_NULL    }, fnc_uci_set,          0 } }, 
+	{ HAWK_T("setconfdir"),   { { 2, 2, HAWK_NULL    }, fnc_uci_setconfdir,   0 } }, 
+	{ HAWK_T("setsavedir"),   { { 2, 2, HAWK_NULL    }, fnc_uci_setsavedir,   0 } }, 
+	{ HAWK_T("unload"),       { { 1, 1, HAWK_NULL    }, fnc_uci_unload,       0 } }
 };
 
 /* ------------------------------------------------------------------------ */
 
-static int query (qse_awk_mod_t* mod, qse_awk_t* awk, const qse_char_t* name, qse_awk_mod_sym_t* sym)
+static int query (hawk_mod_t* mod, hawk_t* awk, const hawk_char_t* name, hawk_mod_sym_t* sym)
 {
-	qse_cstr_t ea;
 	int left, right, mid, n;
 
-	left = 0; right = QSE_COUNTOF(fnctab) - 1;
+	left = 0; right = HAWK_COUNTOF(fnctab) - 1;
 
 	while (left <= right)
 	{
 		mid = left + (right - left) / 2;
 
-		n = qse_strcmp (fnctab[mid].name, name);
+		n = hawk_strcmp (fnctab[mid].name, name);
 		if (n > 0) right = mid - 1; 
 		else if (n < 0) left = mid + 1;
 		else
 		{
-			sym->type = QSE_AWK_MOD_FNC;
+			sym->type = HAWK_MOD_FNC;
 			sym->u.fnc = fnctab[mid].info;
 			return 0;
 		}
 	}
 
-	ea.ptr = name;
-	ea.len = qse_strlen(name);
-	qse_awk_seterror (awk, QSE_AWK_ENOENT, &ea, QSE_NULL);
+	hawk_seterrfmt (awk, HAWK_NULL, HAWK_ENOENT, HAWK_T("'%js' not found"), name);
 	return -1;
 }
 
-static int init (qse_awk_mod_t* mod, qse_awk_rtx_t* rtx)
+static int init (hawk_mod_t* mod, hawk_rtx_t* rtx)
 {
-	qse_rbt_t* rbt;
+	hawk_rbt_t* rbt;
 	uctx_list_t list;
 
-	rbt = (qse_rbt_t*)mod->ctx;
+	rbt = (hawk_rbt_t*)mod->ctx;
 
-	QSE_MEMSET (&list, 0, QSE_SIZEOF(list));
-	if (qse_rbt_insert (rbt, &rtx, QSE_SIZEOF(rtx), &list, QSE_SIZEOF(list)) == QSE_NULL) 
+	HAWK_MEMSET (&list, 0, HAWK_SIZEOF(list));
+	if (hawk_rbt_insert (rbt, &rtx, HAWK_SIZEOF(rtx), &list, HAWK_SIZEOF(list)) == HAWK_NULL) 
 	{
-		qse_awk_rtx_seterrnum (rtx, QSE_AWK_ENOMEM, QSE_NULL);
+		hawk_rtx_seterrnum (rtx, HAWK_ENOMEM, HAWK_NULL);
 		return -1;
 	}
 
 	return 0;
 }
 
-static void fini (qse_awk_mod_t* mod, qse_awk_rtx_t* rtx)
+static void fini (hawk_mod_t* mod, hawk_rtx_t* rtx)
 {
-	qse_rbt_t* rbt;
-	qse_rbt_pair_t* pair;
+	hawk_rbt_t* rbt;
+	hawk_rbt_pair_t* pair;
 	
-	rbt = (qse_rbt_t*)mod->ctx;
+	rbt = (hawk_rbt_t*)mod->ctx;
 
 	/* garbage clean-up */
-	pair = qse_rbt_search  (rbt, &rtx, QSE_SIZEOF(rtx));
+	pair = hawk_rbt_search  (rbt, &rtx, HAWK_SIZEOF(rtx));
 	if (pair)
 	{
 		uctx_list_t* list;
 		uctx_node_t* node, * next;
 
-		list = QSE_RBT_VPTR(pair);
+		list = HAWK_RBT_VPTR(pair);
 		node = list->head;
 		while (node)
 		{
@@ -1401,23 +1398,23 @@ static void fini (qse_awk_mod_t* mod, qse_awk_rtx_t* rtx)
 			node = next;
 		}
 
-		qse_rbt_delete (rbt, &rtx, QSE_SIZEOF(rtx));
+		hawk_rbt_delete (rbt, &rtx, HAWK_SIZEOF(rtx));
 	}
 }
 
-static void unload (qse_awk_mod_t* mod, qse_awk_t* awk)
+static void unload (hawk_mod_t* mod, hawk_t* hawk)
 {
-	qse_rbt_t* rbt;
+	hawk_rbt_t* rbt;
 
-	rbt = (qse_rbt_t*)mod->ctx;
+	rbt = (hawk_rbt_t*)mod->ctx;
 
-	QSE_ASSERT (QSE_RBT_SIZE(rbt) == 0);
-	qse_rbt_close (rbt);
+	HAWK_ASSERT (HAWK_RBT_SIZE(rbt) == 0);
+	hawk_rbt_close (rbt);
 }
 
-int qse_awk_mod_uci (qse_awk_mod_t* mod, qse_awk_t* awk)
+int hawk_mod_uci (hawk_mod_t* mod, hawk_t* hawk)
 {
-	qse_rbt_t* rbt;
+	hawk_rbt_t* rbt;
 
 	mod->query = query;
 	mod->unload = unload;
@@ -1425,13 +1422,10 @@ int qse_awk_mod_uci (qse_awk_mod_t* mod, qse_awk_t* awk)
 	mod->init = init;
 	mod->fini = fini;
 
-	rbt = qse_rbt_open (qse_awk_getmmgr(awk), 0, 1, 1);
-	if (rbt == QSE_NULL) 
-	{
-		qse_awk_seterrnum (awk, QSE_AWK_ENOMEM, QSE_NULL);
-		return -1;
-	}
-	qse_rbt_setstyle (rbt, qse_getrbtstyle(QSE_RBT_STYLE_INLINE_COPIERS));
+	rbt = hawk_rbt_open (hawk_getgem(hawk), 0, 1, 1);
+	if (rbt == HAWK_NULL) return -1;
+
+	hawk_rbt_setstyle (rbt, hawk_getrbtstyle(HAWK_RBT_STYLE_INLINE_COPIERS));
 
 	mod->ctx = rbt;
 	return 0;

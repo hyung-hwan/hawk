@@ -44,8 +44,8 @@ const hawk_ooch_t* hawk_dflerrstr (hawk_t* awk, hawk_errnum_t errnum)
 		HAWK_T("system busy"),
 		HAWK_T("operation not allowed"),
 		HAWK_T("not supported"),
-		HAWK_T("'${0}' not found"),
-		HAWK_T("'${0}' already exists"),
+		HAWK_T("not found"),
+		HAWK_T("already exists"),
 		HAWK_T("I/O error"),
 		HAWK_T("buffer full"),
 		HAWK_T("encoding conversion error"),
@@ -75,23 +75,23 @@ const hawk_ooch_t* hawk_dflerrstr (hawk_t* awk, hawk_errnum_t errnum)
 		HAWK_T("comment not closed properly"),
 		HAWK_T("string or regular expression not closed"),
 		HAWK_T("invalid mbs character"),
-		HAWK_T("left brace expected in place of '${0}'"),
-		HAWK_T("left parenthesis expected in place of '${0}'"),
-		HAWK_T("right parenthesis expected in place of '${0}'"),
-		HAWK_T("right bracket expected in place of '${0}'"),
-		HAWK_T("comma expected in place of '${0}'"),
-		HAWK_T("semicolon expected in place of '${0}'"),
-		HAWK_T("colon expected in place of '${0}'"),
+		HAWK_T("left brace expected"),
+		HAWK_T("left parenthesis expected"),
+		HAWK_T("right parenthesis expected"),
+		HAWK_T("right bracket expected"),
+		HAWK_T("comma expected"),
+		HAWK_T("semicolon expected"),
+		HAWK_T("colon expected"),
 		HAWK_T("integer literal expected"),
 		HAWK_T("statement not ending with a semicolon"),
-		HAWK_T("keyword 'in' expected in place of '${0}'"),
+		HAWK_T("keyword 'in' expected"),
 		HAWK_T("right-hand side of 'in' not a variable"),
 		HAWK_T("expression not recognized"),
 
 		HAWK_T("keyword 'function' expected"),
-		HAWK_T("keyword 'while' expected in place of '${0}'"),
+		HAWK_T("keyword 'while' expected"),
 		HAWK_T("invalid assignment statement"),
-		HAWK_T("identifier expected in place of '${0}'"),
+		HAWK_T("identifier expected"),
 		HAWK_T("not a valid function name"),
 		HAWK_T("BEGIN not followed by left bracket on the same line"),
 		HAWK_T("END not followed by left bracket on the same line"),
@@ -113,7 +113,7 @@ const hawk_ooch_t* hawk_dflerrstr (hawk_t* awk, hawk_errnum_t errnum)
 		HAWK_T("too many local variables"),
 		HAWK_T("too many parameters"),
 		HAWK_T("too many segments"),
-		HAWK_T("segment '${0}' too long"),
+		HAWK_T("segment too long"),
 		HAWK_T("bad argument"),
 		HAWK_T("no argument provided"),
 		HAWK_T("'break' outside a loop"),
@@ -126,7 +126,7 @@ const hawk_ooch_t* hawk_dflerrstr (hawk_t* awk, hawk_errnum_t errnum)
 		HAWK_T("illegal operand for increment/decrement operator"),
 		HAWK_T("'@include' not followed by a string"),
 		HAWK_T("include level too deep"),
-		HAWK_T("'${0}' not recognized"),
+		HAWK_T("word after @ not recognized"),
 		HAWK_T("@ not followed by a valid word"),
 
 		HAWK_T("stack error"),
@@ -187,11 +187,6 @@ const hawk_ooch_t* hawk_dflerrstr (hawk_t* awk, hawk_errnum_t errnum)
 hawk_errstr_t hawk_geterrstr (hawk_t* hawk)
 {
 	return hawk->errstr;
-}
-
-void hawk_seterrstr (hawk_t* hawk, hawk_errstr_t errstr)
-{
-	hawk->errstr = errstr;
 }
 
 /* ------------------------------------------------------------------------- */
@@ -351,23 +346,6 @@ void hawk_seterrufmt (hawk_t* hawk, const hawk_loc_t* errloc, hawk_errnum_t errn
 
 	hawk->_gem.errnum = errnum;
 	hawk->_gem.errloc = (errloc? *errloc: _nullloc);
-}
-
-void hawk_seterror (hawk_t* hawk, hawk_errnum_t errnum, const hawk_oocs_t* errarg, const hawk_loc_t* errloc)
-{
-/* TODO: remove awk_rtx_seterror() and substitute hawk_rtx_seterrfmt()/seterrbfmt()/seterrufmt() */
-	const hawk_ooch_t* errfmt;
-
-	hawk->_gem.errnum = errnum;
-
-	errfmt = hawk_geterrstr(hawk)(hawk, errnum);
-	HAWK_ASSERT (errfmt != HAWK_NULL);
-/* TODO: this change is buggy... copying won't process arguments...
-	hawk_strxfncpy (hawk->_gem.errmsg, HAWK_COUNTOF(hawk->_gem.errmsg), errfmt, errarg);
-*/
-	hawk_copy_oocstr(hawk->_gem.errmsg, HAWK_COUNTOF(hawk->_gem.errmsg), errfmt);
-/* TODO: remove awk_rtx_seterror() and substitute hawk_rtx_seterrfmt()/seterrbfmt()/seterrufmt() */
-	hawk->_gem.errloc =  (errloc? *errloc: _nullloc);
 }
 
 /* ------------------------------------------------------------------------- */

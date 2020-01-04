@@ -24,16 +24,16 @@
     THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _QSE_LIB_AWKMOD_UCI_H_
-#define _QSE_LIB_AWKMOD_UCI_H_
+#ifndef _HAWK_MOD_UCI_H_
+#define _HAWK_MOD_UCI_H_
 
-#include <qse/awk/awk.h>
+#include <hawk.h>
 
 #if defined(__cplusplus)
 extern "C" {
 #endif
 
-QSE_EXPORT int qse_awk_mod_uci (qse_awk_mod_t* mod, qse_awk_t* awk);
+HAWK_EXPORT int hawk_mod_uci (hawk_mod_t* mod, hawk_t* hawk);
 
 #if defined(__cplusplus)
 }

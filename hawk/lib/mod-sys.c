@@ -2727,7 +2727,6 @@ static inttab_t inttab[] =
 
 static int query (hawk_mod_t* mod, hawk_t* awk, const hawk_ooch_t* name, hawk_mod_sym_t* sym)
 {
-	hawk_oocs_t ea;
 	int left, right, mid, n;
 
 	left = 0; right = HAWK_COUNTOF(fnctab) - 1;
@@ -2763,9 +2762,7 @@ static int query (hawk_mod_t* mod, hawk_t* awk, const hawk_ooch_t* name, hawk_mo
 		}
 	}
 
-	ea.ptr = (hawk_ooch_t*)name;
-	ea.len = hawk_count_oocstr(name);
-	hawk_seterror (awk, HAWK_ENOENT, &ea, HAWK_NULL);
+	hawk_seterrfmt (awk, HAWK_NULL, HAWK_ENOENT, HAWK_T("'%js' not found"), name);
 	return -1;
 }
 
