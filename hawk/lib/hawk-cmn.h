@@ -805,23 +805,23 @@ enum hawk_errnum_t
 	HAWK_ECMTNC,  /**< comment not closed properly */
 	HAWK_ESTRNC,  /**< string or regular expression not closed */
 	HAWK_EMBSCHR, /**< invalid mbs character */
-	HAWK_ELBRACE, /**< left brace expected in place of '${0}' */
-	HAWK_ELPAREN, /**< left parenthesis expected in place of '${0}' */
-	HAWK_ERPAREN, /**< right parenthesis expected in place of '${0}' */
-	HAWK_ERBRACK, /**< right bracket expected in place of '${0}' */
-	HAWK_ECOMMA,  /**< comma expected in place of '${0}' */
-	HAWK_ESCOLON, /**< semicolon expected in place of '${0}' */
-	HAWK_ECOLON,  /**< colon expected in place of '${0}' */
+	HAWK_ELBRACE, /**< left brace expected */
+	HAWK_ELPAREN, /**< left parenthesis expected */
+	HAWK_ERPAREN, /**< right parenthesis expected */
+	HAWK_ERBRACK, /**< right bracket expected */
+	HAWK_ECOMMA,  /**< comma expected */
+	HAWK_ESCOLON, /**< semicolon expected */
+	HAWK_ECOLON,  /**< colon expected */
 	HAWK_EINTLIT, /**< integer literal expected */
 	HAWK_ESTMEND, /**< statement not ending with a semicolon */
 	HAWK_EKWIN,   /**< keyword 'in' expected */
 	HAWK_ENOTVAR, /**< right-hand side of 'in' not a variable */
 	HAWK_EEXPRNR, /**< expression not recognized */
 
-	HAWK_EKWFNC,    /**< keyword 'function' expected in place of '${0}' */
-	HAWK_EKWWHL,    /**< keyword 'while' expected in place of '${0}' */
+	HAWK_EKWFNC,    /**< keyword 'function' expected */
+	HAWK_EKWWHL,    /**< keyword 'while' expected */
 	HAWK_EASSIGN,   /**< assignment statement expected */
-	HAWK_EIDENT,    /**< identifier expected in place of '${0}' */
+	HAWK_EIDENT,    /**< identifier expected */
 	HAWK_EFUNNAM,   /**< not a valid function name */
 	HAWK_EBLKBEG,   /**< BEGIN not followed by left bracket on the same line */
 	HAWK_EBLKEND,   /**< END not followed by left bracket on the same line */
@@ -843,7 +843,7 @@ enum hawk_errnum_t
 	HAWK_ELCLTM,    /**< too many local variables */
 	HAWK_EPARTM,    /**< too many parameters */
 	HAWK_ESEGTM,    /**< too many segments */
-	HAWK_ESEGTL,    /**< segment '${0}' too long */
+	HAWK_ESEGTL,    /**< segment too long */
 	HAWK_EBADARG,   /**< bad argument */
 	HAWK_ENOARG,    /**< no argument */
 	HAWK_EBREAK,    /**< 'break' outside a loop */
@@ -856,7 +856,7 @@ enum hawk_errnum_t
 	HAWK_EINCDECOPR,/**< illegal operand for incr/decr operator */
 	HAWK_EINCLSTR,  /**< 'include' not followed by a string */
 	HAWK_EINCLTD,   /**< include level too deep */
-	HAWK_EXKWNR,    /**< @word '${0}' not recognized */
+	HAWK_EXKWNR,    /**< word after @ not recognized */
 	HAWK_EXKWEM,    /**< @ not followed by a valid word  */
 
 	/* run time error */

@@ -42,6 +42,30 @@
 #	define HAWK_DEFAULT_MODPOSTFIX ""
 #endif
 
+
+#define FMT_EBADVAR       HAWK_T("'%.*js' not a valid variable name")
+#define FMT_ECOMMA        HAWK_T("comma expected in place of '%.*js'")
+#define FMT_ECOLON        HAWK_T("colon expected in place of '%.*js'")
+#define FMT_EDUPLCL       HAWK_T("duplicate local variable name - %.*js")
+#define FMT_EFUNNF        HAWK_T("function '%.*js' not defined")
+#define FMT_EIDENT        HAWK_T("identifier expected in place of '%.*js'")
+#define FMT_EINTLIT       HAWK_T("integer literal expected in place of '%.*js'")
+#define FMT_EIONMNL       HAWK_T("invalid I/O name of length %zu containing '\\0'")
+#define FMT_EKWFNC        HAWK_T("keyword 'function' expected in place of '%.*js'")
+#define FMT_EKWIN         HAWK_T("keyword 'in' expected in place of '%.*js'")
+#define FMT_EKWWHL        HAWK_T("keyword 'while' expected in place of '%.*js'")
+#define FMT_ELBRACE       HAWK_T("left brace expected in place of '%.*js'")
+#define FMT_ELPAREN       HAWK_T("left parenthesis expected in place of '%.*js'")
+#define FMT_ENOENT_GBL_HS HAWK_T("no such global variable - %.*hs")
+#define FMT_ENOENT_GBL_LS HAWK_T("no such global variable - %.*ls")
+#define FMT_ERBRACK       HAWK_T("right bracket expected in place of '%.*js'")
+#define FMT_ERPAREN       HAWK_T("right parenthesis expected in place of '%.*js'")
+#define FMT_ESCOLON       HAWK_T("semicolon expected in place of '%.*js'")
+#define FMT_ESEGTL        HAWK_T("segment '%.*js' too long")
+#define FMT_EUNDEF        HAWK_T("undefined identifier '%.*js'")
+#define FMT_EXKWNR        HAWK_T("'%.*js' not recognized")
+
+
 enum tok_t
 {
 	TOK_EOF,
@@ -410,9 +434,6 @@ static global_t gtab[] =
 #define MATCH_TERMINATOR(awk) \
 	(MATCH_TERMINATOR_NORMAL(awk) || MATCH_TERMINATOR_RBRACE(awk))
 
-#define SETERR_TOK(awk,code) \
-	hawk_seterror (awk, code, HAWK_OOECS_OOCS((awk)->tok.name), &(awk)->tok.loc)
-
 #define ADJERR_LOC(hawk,l) do { (hawk)->_gem.errloc = *(l); } while (0)
 
 static HAWK_INLINE int is_plain_var (hawk_nde_t* nde)
@@ -556,7 +577,7 @@ static int parse (hawk_t* awk)
 				/* see parse_fncall() for what is
 				 * stored into awk->tree.funs */
 				nde = (hawk_nde_t*)HAWK_HTB_VPTR(p);
-				hawk_seterrfmt (awk, &nde->loc, HAWK_EFUNNF, HAWK_T("function '%.*js' not defined"), HAWK_HTB_KLEN(p), HAWK_HTB_KPTR(p));
+				hawk_seterrfmt (awk, &nde->loc, HAWK_EFUNNF, FMT_EFUNNF, HAWK_HTB_KLEN(p), HAWK_HTB_KPTR(p));
 				goto oops;
 			}
 
@@ -793,7 +814,7 @@ static int begin_include (hawk_t* awk, int once)
 	{
 		/* a '\0' character included in the include file name.
 		 * we don't support such a file name */
-		hawk_seterrfmt (awk, &awk->tok.loc, HAWK_EIONMNL, HAWK_T("invalid I/O name of length %zu containing '\\0'"), HAWK_OOECS_LEN(awk->tok.name));
+		hawk_seterrfmt (awk, &awk->tok.loc, HAWK_EIONMNL, FMT_EIONMNL, HAWK_OOECS_LEN(awk->tok.name));
 		return -1;
 	}
 
@@ -984,7 +1005,7 @@ static int parse_progunit (hawk_t* awk)
 			if (get_token(awk) <= -1) return -1;
 			if (!MATCH(awk, TOK_INT))
 			{
-				hawk_seterrfmt (awk, &awk->tok.loc, HAWK_EINTLIT, HAWK_T("integer literal expected in place of '%.*js'"), HAWK_OOECS_LEN(awk->tok.name), HAWK_OOECS_PTR(awk->tok.name));
+				hawk_seterrfmt (awk, &awk->tok.loc, HAWK_EINTLIT, FMT_EINTLIT, HAWK_OOECS_LEN(awk->tok.name), HAWK_OOECS_PTR(awk->tok.name));
 				return -1;
 			}
 
@@ -1013,7 +1034,7 @@ static int parse_progunit (hawk_t* awk)
 	{
 		if (!(awk->opt.trait & HAWK_PABLOCK)) /* pattern action block not allowed */
 		{
-			hawk_seterrfmt (awk, &awk->tok.loc, HAWK_EKWFNC, HAWK_T("keyword 'function' expected in place of '%.*js'"), HAWK_OOECS_LEN(awk->tok.name), HAWK_OOECS_PTR(awk->tok.name));
+			hawk_seterrfmt (awk, &awk->tok.loc, HAWK_EKWFNC, FMT_EKWFNC, HAWK_OOECS_LEN(awk->tok.name), HAWK_OOECS_PTR(awk->tok.name));
 			return -1;
 		}
 
@@ -1030,7 +1051,7 @@ static int parse_progunit (hawk_t* awk)
 
 		if (!MATCH(awk, TOK_LBRACE)) 
 		{
-			SETERR_TOK (awk, HAWK_ELBRACE);
+			hawk_seterrfmt (awk,  &awk->tok.loc, HAWK_ELBRACE, FMT_ELBRACE, HAWK_OOECS_LEN(awk->tok.name), HAWK_OOECS_PTR(awk->tok.name));
 			return -1;
 		}
 
@@ -1044,7 +1065,7 @@ static int parse_progunit (hawk_t* awk)
 	{
 		if (!(awk->opt.trait & HAWK_PABLOCK))
 		{
-			hawk_seterrfmt (awk, &awk->tok.loc, HAWK_EKWFNC, HAWK_T("keyword 'function' expected in place of '%.*js'"), HAWK_OOECS_LEN(awk->tok.name), HAWK_OOECS_PTR(awk->tok.name));
+			hawk_seterrfmt (awk, &awk->tok.loc, HAWK_EKWFNC, FMT_EKWFNC, HAWK_OOECS_LEN(awk->tok.name), HAWK_OOECS_PTR(awk->tok.name));
 			return -1;
 		}
 
@@ -1061,7 +1082,7 @@ static int parse_progunit (hawk_t* awk)
 
 		if (!MATCH(awk, TOK_LBRACE)) 
 		{
-			SETERR_TOK (awk, HAWK_ELBRACE);
+			hawk_seterrfmt (awk,  &awk->tok.loc, HAWK_ELBRACE, FMT_ELBRACE, HAWK_OOECS_LEN(awk->tok.name), HAWK_OOECS_PTR(awk->tok.name));
 			return -1;
 		}
 
@@ -1076,7 +1097,7 @@ static int parse_progunit (hawk_t* awk)
 		/* patternless block */
 		if (!(awk->opt.trait & HAWK_PABLOCK))
 		{
-			hawk_seterrfmt (awk, &awk->tok.loc, HAWK_EKWFNC, HAWK_T("keyword 'function' expected in place of '%.*js'"), HAWK_OOECS_LEN(awk->tok.name), HAWK_OOECS_PTR(awk->tok.name));
+			hawk_seterrfmt (awk, &awk->tok.loc, HAWK_EKWFNC, FMT_EKWFNC, HAWK_OOECS_LEN(awk->tok.name), HAWK_OOECS_PTR(awk->tok.name));
 			return -1;
 		}
 
@@ -1102,7 +1123,7 @@ static int parse_progunit (hawk_t* awk)
 
 		if (!(awk->opt.trait & HAWK_PABLOCK))
 		{
-			hawk_seterrfmt (awk, &awk->tok.loc, HAWK_EKWFNC, HAWK_T("keyword 'function' expected in place of '%.*js'"), HAWK_OOECS_LEN(awk->tok.name), HAWK_OOECS_PTR(awk->tok.name));
+			hawk_seterrfmt (awk, &awk->tok.loc, HAWK_EKWFNC, FMT_EKWFNC, HAWK_OOECS_LEN(awk->tok.name), HAWK_OOECS_PTR(awk->tok.name));
 			return -1;
 		}
 
@@ -1176,7 +1197,7 @@ static int parse_progunit (hawk_t* awk)
 			if (!MATCH(awk,TOK_LBRACE))
 			{
 				hawk_clrpt (awk, ptn);
-				SETERR_TOK (awk, HAWK_ELBRACE);
+				hawk_seterrfmt (awk,  &awk->tok.loc, HAWK_ELBRACE, FMT_ELBRACE, HAWK_OOECS_LEN(awk->tok.name), HAWK_OOECS_PTR(awk->tok.name));
 				return -1;
 			}
 
@@ -1253,7 +1274,7 @@ static hawk_nde_t* parse_function (hawk_t* awk)
 	if (!MATCH(awk,TOK_LPAREN)) 
 	{
 		/* a function name is not followed by a left parenthesis */
-		SETERR_TOK (awk, HAWK_ELPAREN);
+		hawk_seterrfmt (awk,  &awk->tok.loc, HAWK_ELPAREN, FMT_ELPAREN, HAWK_OOECS_LEN(awk->tok.name), HAWK_OOECS_PTR(awk->tok.name));
 		goto oops;
 	}
 
@@ -1338,7 +1359,7 @@ static hawk_nde_t* parse_function (hawk_t* awk)
 
 			if (!MATCH(awk,TOK_COMMA)) 
 			{
-				SETERR_TOK (awk, HAWK_ECOMMA);
+				hawk_seterrfmt (awk,  &awk->tok.loc, HAWK_ECOMMA, FMT_ECOMMA, HAWK_OOECS_LEN(awk->tok.name), HAWK_OOECS_PTR(awk->tok.name));
 				goto oops;
 			}
 
@@ -1364,7 +1385,7 @@ static hawk_nde_t* parse_function (hawk_t* awk)
 	/* check if the function body starts with a left brace */
 	if (!MATCH(awk,TOK_LBRACE)) 
 	{
-		SETERR_TOK (awk, HAWK_ELBRACE);
+		hawk_seterrfmt (awk,  &awk->tok.loc, HAWK_ELBRACE, FMT_ELBRACE, HAWK_OOECS_LEN(awk->tok.name), HAWK_OOECS_PTR(awk->tok.name));
 		goto oops;
 	}
 	if (get_token(awk) <= -1) goto oops;
@@ -1992,7 +2013,7 @@ int hawk_delgblwithbcstr (hawk_t* hawk, const hawk_bch_t* name)
 	n = hawk_arr_search(hawk->parse.gbls, HAWK_NUM_STATIC_GBLS, ncs.ptr, ncs.len);
 	if (n == HAWK_ARR_NIL)
 	{
-		hawk_seterrfmt (hawk, HAWK_NULL, HAWK_ENOENT, HAWK_T("no such global variable - %.*hs"), ncs.len, ncs.ptr);
+		hawk_seterrfmt (hawk, HAWK_NULL, HAWK_ENOENT, FMT_ENOENT_GBL_HS, ncs.len, ncs.ptr);
 		return -1;
 	}
 #else
@@ -2001,7 +2022,7 @@ int hawk_delgblwithbcstr (hawk_t* hawk, const hawk_bch_t* name)
 	n = hawk_arr_search(hawk->parse.gbls, HAWK_NUM_STATIC_GBLS, wcs.ptr, wcs.len);
 	if (n == HAWK_ARR_NIL)
 	{
-		hawk_seterrfmt (hawk, HAWK_NULL, HAWK_ENOENT, HAWK_T("no such global variable - %.*ls"), wcs.len, wcs.ptr);
+		hawk_seterrfmt (hawk, HAWK_NULL, HAWK_ENOENT, FMT_ENOENT_GBL_LS, wcs.len, wcs.ptr);
 		hawk_freemem (hawk, wcs.ptr);
 		return -1;
 	}
@@ -2045,7 +2066,7 @@ int hawk_delgblwithucstr (hawk_t* hawk, const hawk_uch_t* name)
 	n = hawk_arr_search(hawk->parse.gbls, HAWK_NUM_STATIC_GBLS, mbs.ptr, mbs.len);
 	if (n == HAWK_ARR_NIL)
 	{
-		hawk_seterrfmt (hawk, HAWK_NULL, HAWK_ENOENT, HAWK_T("no such global variable - %.*hs"), mbs.len, mbs.ptr);
+		hawk_seterrfmt (hawk, HAWK_NULL, HAWK_ENOENT, FMT_ENOENT_GBL_HS, mbs.len, mbs.ptr);
 		hawk_freemem (hawk, mbs.ptr);
 		return -1;
 	}
@@ -2054,7 +2075,7 @@ int hawk_delgblwithucstr (hawk_t* hawk, const hawk_uch_t* name)
 	n = hawk_arr_search(hawk->parse.gbls, HAWK_NUM_STATIC_GBLS, ncs.ptr, ncs.len);
 	if (n == HAWK_ARR_NIL)
 	{
-		hawk_seterrfmt (hawk, HAWK_NULL, HAWK_ENOENT, HAWK_T("no such global variable - %.*ls"), ncs.len, ncs.ptr);
+		hawk_seterrfmt (hawk, HAWK_NULL, HAWK_ENOENT, FMT_ENOENT_GBL_LS, ncs.len, ncs.ptr);
 		return -1;
 	}
 #endif
@@ -2087,7 +2108,7 @@ int hawk_findgblwithbcstr (hawk_t* hawk, const hawk_bch_t* name)
 	n = hawk_arr_search(hawk->parse.gbls, HAWK_NUM_STATIC_GBLS, ncs.ptr, ncs.len);
 	if (n == HAWK_ARR_NIL)
 	{
-		hawk_seterrfmt (hawk, HAWK_NULL, HAWK_ENOENT, HAWK_T("no such global variable - %.*hs"), ncs.len, ncs.ptr);
+		hawk_seterrfmt (hawk, HAWK_NULL, HAWK_ENOENT, FMT_ENOENT_GBL_HS, ncs.len, ncs.ptr);
 		return -1;
 	}
 #else
@@ -2096,7 +2117,7 @@ int hawk_findgblwithbcstr (hawk_t* hawk, const hawk_bch_t* name)
 	n = hawk_arr_search(hawk->parse.gbls, HAWK_NUM_STATIC_GBLS, wcs.ptr, wcs.len);
 	if (n == HAWK_ARR_NIL)
 	{
-		hawk_seterrfmt (hawk, HAWK_NULL, HAWK_ENOENT, HAWK_T("no such global variable - %.*ls"), wcs.len, wcs.ptr);
+		hawk_seterrfmt (hawk, HAWK_NULL, HAWK_ENOENT, FMT_ENOENT_GBL_LS, wcs.len, wcs.ptr);
 		hawk_freemem (hawk, wcs.ptr);
 		return -1;
 	}
@@ -2121,7 +2142,7 @@ int hawk_findgblwithucstr (hawk_t* hawk, const hawk_uch_t* name)
 	n = hawk_arr_search(hawk->parse.gbls, HAWK_NUM_STATIC_GBLS, mbs.ptr, mbs.len);
 	if (n == HAWK_ARR_NIL)
 	{
-		hawk_seterrfmt (hawk, HAWK_NULL, HAWK_ENOENT, HAWK_T("no such global variable - %.*hs"), mbs.len, mbs.ptr);
+		hawk_seterrfmt (hawk, HAWK_NULL, HAWK_ENOENT, FMT_ENOENT_GBL_HS, mbs.len, mbs.ptr);
 		hawk_freemem (hawk, mbs.ptr);
 		return -1;
 	}
@@ -2130,7 +2151,7 @@ int hawk_findgblwithucstr (hawk_t* hawk, const hawk_uch_t* name)
 	n = hawk_arr_search(hawk->parse.gbls, HAWK_NUM_STATIC_GBLS, ncs.ptr, ncs.len);
 	if (n == HAWK_ARR_NIL)
 	{
-		hawk_seterrfmt (hawk, HAWK_NULL, HAWK_ENOENT, HAWK_T("no such global variable - %.*ls"), ncs.len, ncs.ptr);
+		hawk_seterrfmt (hawk, HAWK_NULL, HAWK_ENOENT, FMT_ENOENT_GBL_LS, ncs.len, ncs.ptr);
 		return -1;
 	}
 #endif
@@ -2153,7 +2174,7 @@ static hawk_t* collect_globals (hawk_t* awk)
 	{
 		if (!MATCH(awk,TOK_IDENT)) 
 		{
-			hawk_seterrfmt (awk, &awk->tok.loc, HAWK_EBADVAR, HAWK_T("'%.*js' not a valid variable name"), HAWK_OOECS_LEN(awk->tok.name), HAWK_OOECS_PTR(awk->tok.name));
+			hawk_seterrfmt (awk, &awk->tok.loc, HAWK_EBADVAR, FMT_EBADVAR, HAWK_OOECS_LEN(awk->tok.name), HAWK_OOECS_PTR(awk->tok.name));
 			return HAWK_NULL;
 		}
 
@@ -2177,7 +2198,7 @@ static hawk_t* collect_globals (hawk_t* awk)
 
 		if (!MATCH(awk,TOK_COMMA)) 
 		{
-			SETERR_TOK (awk, HAWK_ECOMMA);
+			hawk_seterrfmt (awk,  &awk->tok.loc, HAWK_ECOMMA, FMT_ECOMMA, HAWK_OOECS_LEN(awk->tok.name), HAWK_OOECS_PTR(awk->tok.name));
 			return HAWK_NULL;
 		}
 
@@ -2208,7 +2229,7 @@ static hawk_t* collect_locals (hawk_t* awk, hawk_oow_t nlcls, int istop)
 
 		if (!MATCH(awk,TOK_IDENT)) 
 		{
-			hawk_seterrfmt (awk, &awk->tok.loc, HAWK_EBADVAR, HAWK_T("'%.*js' not a valid variable name"), HAWK_OOECS_LEN(awk->tok.name), HAWK_OOECS_PTR(awk->tok.name));
+			hawk_seterrfmt (awk, &awk->tok.loc, HAWK_EBADVAR, FMT_EBADVAR, HAWK_OOECS_LEN(awk->tok.name), HAWK_OOECS_PTR(awk->tok.name));
 			return HAWK_NULL;
 		}
 
@@ -2252,7 +2273,7 @@ static hawk_t* collect_locals (hawk_t* awk, hawk_oow_t nlcls, int istop)
 		n = hawk_arr_search(awk->parse.lcls, nlcls, lcl.ptr, lcl.len);
 		if (n != HAWK_ARR_NIL)
 		{
-			hawk_seterrfmt (awk, &awk->tok.loc, HAWK_EDUPLCL, HAWK_T("duplicate local variable name - %.*js"), lcl.len, lcl.ptr);
+			hawk_seterrfmt (awk, &awk->tok.loc, HAWK_EDUPLCL, FMT_EDUPLCL, lcl.len, lcl.ptr);
 			return HAWK_NULL;
 		}
 
@@ -2263,7 +2284,7 @@ static hawk_t* collect_locals (hawk_t* awk, hawk_oow_t nlcls, int istop)
 			if (n < awk->tree.ngbls_base)
 			{
 				/* it is a conflict only if it is one of a static global variable */
-				hawk_seterrfmt (awk, &awk->tok.loc, HAWK_EDUPLCL, HAWK_T("duplicate local variable name - %.*js"), lcl.len, lcl.ptr);
+				hawk_seterrfmt (awk, &awk->tok.loc, HAWK_EDUPLCL, FMT_EDUPLCL, lcl.len, lcl.ptr);
 				return HAWK_NULL;
 			}
 		}
@@ -2297,7 +2318,7 @@ static hawk_t* collect_locals (hawk_t* awk, hawk_oow_t nlcls, int istop)
 
 		if (!MATCH(awk,TOK_COMMA))
 		{
-			SETERR_TOK (awk, HAWK_ECOMMA);
+			hawk_seterrfmt (awk,  &awk->tok.loc, HAWK_ECOMMA, FMT_ECOMMA, HAWK_OOECS_LEN(awk->tok.name), HAWK_OOECS_PTR(awk->tok.name));
 			return HAWK_NULL;
 		}
 
@@ -2321,7 +2342,7 @@ static hawk_nde_t* parse_if (hawk_t* awk, const hawk_loc_t* xloc)
 
 	if (!MATCH(awk,TOK_LPAREN)) 
 	{
-		SETERR_TOK (awk, HAWK_ELPAREN);
+		hawk_seterrfmt (awk,  &awk->tok.loc, HAWK_ELPAREN, FMT_ELPAREN, HAWK_OOECS_LEN(awk->tok.name), HAWK_OOECS_PTR(awk->tok.name));
 		return HAWK_NULL;
 	}
 	if (get_token(awk) <= -1) return HAWK_NULL;
@@ -2332,7 +2353,7 @@ static hawk_nde_t* parse_if (hawk_t* awk, const hawk_loc_t* xloc)
 
 	if (!MATCH(awk,TOK_RPAREN)) 
 	{
-		SETERR_TOK (awk, HAWK_ERPAREN);
+		hawk_seterrfmt (awk,  &awk->tok.loc, HAWK_ERPAREN, FMT_ERPAREN, HAWK_OOECS_LEN(awk->tok.name), HAWK_OOECS_PTR(awk->tok.name));
 		goto oops;
 	}
 
@@ -2395,7 +2416,7 @@ static hawk_nde_t* parse_while (hawk_t* awk, const hawk_loc_t* xloc)
 
 	if (!MATCH(awk,TOK_LPAREN)) 
 	{
-		SETERR_TOK (awk, HAWK_ELPAREN);
+		hawk_seterrfmt (awk,  &awk->tok.loc, HAWK_ELPAREN, FMT_ELPAREN, HAWK_OOECS_LEN(awk->tok.name), HAWK_OOECS_PTR(awk->tok.name));
 		goto oops;
 	}
 	if (get_token(awk) <= -1) goto oops;
@@ -2406,7 +2427,7 @@ static hawk_nde_t* parse_while (hawk_t* awk, const hawk_loc_t* xloc)
 
 	if (!MATCH(awk,TOK_RPAREN)) 
 	{
-		SETERR_TOK (awk, HAWK_ERPAREN);
+		hawk_seterrfmt (awk,  &awk->tok.loc, HAWK_ERPAREN, FMT_ERPAREN, HAWK_OOECS_LEN(awk->tok.name), HAWK_OOECS_PTR(awk->tok.name));
 		goto oops;
 	}
 
@@ -2446,7 +2467,7 @@ static hawk_nde_t* parse_for (hawk_t* awk, const hawk_loc_t* xloc)
 
 	if (!MATCH(awk,TOK_LPAREN))
 	{
-		SETERR_TOK (awk, HAWK_ELPAREN);
+		hawk_seterrfmt (awk,  &awk->tok.loc, HAWK_ELPAREN, FMT_ELPAREN, HAWK_OOECS_LEN(awk->tok.name), HAWK_OOECS_PTR(awk->tok.name));
 		return HAWK_NULL;
 	}
 	if (get_token(awk) <= -1) return HAWK_NULL;
@@ -2470,7 +2491,7 @@ static hawk_nde_t* parse_for (hawk_t* awk, const hawk_loc_t* xloc)
 			
 			if (!MATCH(awk,TOK_RPAREN))
 			{
-				SETERR_TOK (awk, HAWK_ERPAREN);
+				hawk_seterrfmt (awk,  &awk->tok.loc, HAWK_ERPAREN, FMT_ERPAREN, HAWK_OOECS_LEN(awk->tok.name), HAWK_OOECS_PTR(awk->tok.name));
 				goto oops;
 			}
 
@@ -2498,7 +2519,7 @@ static hawk_nde_t* parse_for (hawk_t* awk, const hawk_loc_t* xloc)
 
 		if (!MATCH(awk,TOK_SEMICOLON)) 
 		{
-			SETERR_TOK (awk, HAWK_ESCOLON);
+			hawk_seterrfmt (awk,  &awk->tok.loc, HAWK_ESCOLON, FMT_ESCOLON, HAWK_OOECS_LEN(awk->tok.name), HAWK_OOECS_PTR(awk->tok.name));
 			goto oops;
 		}
 	}
@@ -2518,7 +2539,7 @@ static hawk_nde_t* parse_for (hawk_t* awk, const hawk_loc_t* xloc)
 
 		if (!MATCH(awk,TOK_SEMICOLON)) 
 		{
-			SETERR_TOK (awk, HAWK_ESCOLON);
+			hawk_seterrfmt (awk,  &awk->tok.loc, HAWK_ESCOLON, FMT_ESCOLON, HAWK_OOECS_LEN(awk->tok.name), HAWK_OOECS_PTR(awk->tok.name));
 			goto oops;
 		}
 	}
@@ -2542,7 +2563,7 @@ static hawk_nde_t* parse_for (hawk_t* awk, const hawk_loc_t* xloc)
 
 		if (!MATCH(awk,TOK_RPAREN)) 
 		{
-			SETERR_TOK (awk, HAWK_ERPAREN);
+			hawk_seterrfmt (awk,  &awk->tok.loc, HAWK_ERPAREN, FMT_ERPAREN, HAWK_OOECS_LEN(awk->tok.name), HAWK_OOECS_PTR(awk->tok.name));
 			goto oops;
 		}
 	}
@@ -2597,7 +2618,7 @@ static hawk_nde_t* parse_dowhile (hawk_t* awk, const hawk_loc_t* xloc)
 
 	if (!MATCH(awk,TOK_WHILE)) 
 	{
-		SETERR_TOK (awk, HAWK_EKWWHL);
+		hawk_seterrfmt (awk,  &awk->tok.loc, HAWK_EKWWHL, FMT_EKWWHL, HAWK_OOECS_LEN(awk->tok.name), HAWK_OOECS_PTR(awk->tok.name));
 		goto oops;
 	}
 
@@ -2605,7 +2626,7 @@ static hawk_nde_t* parse_dowhile (hawk_t* awk, const hawk_loc_t* xloc)
 
 	if (!MATCH(awk,TOK_LPAREN)) 
 	{
-		SETERR_TOK (awk, HAWK_ELPAREN);
+		hawk_seterrfmt (awk,  &awk->tok.loc, HAWK_ELPAREN, FMT_ELPAREN, HAWK_OOECS_LEN(awk->tok.name), HAWK_OOECS_PTR(awk->tok.name));
 		goto oops;
 	}
 
@@ -2617,7 +2638,7 @@ static hawk_nde_t* parse_dowhile (hawk_t* awk, const hawk_loc_t* xloc)
 
 	if (!MATCH(awk,TOK_RPAREN)) 
 	{
-		SETERR_TOK (awk, HAWK_ERPAREN);
+		hawk_seterrfmt (awk,  &awk->tok.loc, HAWK_ERPAREN, FMT_ERPAREN, HAWK_OOECS_LEN(awk->tok.name), HAWK_OOECS_PTR(awk->tok.name));
 		goto oops;
 	}
 
@@ -2852,7 +2873,7 @@ static hawk_nde_t* parse_delete (hawk_t* awk, const hawk_loc_t* xloc)
 
 	if (!MATCH(awk,TOK_IDENT)) 
 	{
-		SETERR_TOK (awk, HAWK_EIDENT);
+		hawk_seterrfmt (awk,  &awk->tok.loc, HAWK_EIDENT, FMT_EIDENT, HAWK_OOECS_LEN(awk->tok.name), HAWK_OOECS_PTR(awk->tok.name));
 		goto oops;
 	}
 
@@ -2871,7 +2892,7 @@ static hawk_nde_t* parse_delete (hawk_t* awk, const hawk_loc_t* xloc)
 	{
 		if (!MATCH(awk,TOK_RPAREN))
 		{
-			SETERR_TOK (awk, HAWK_ERPAREN);
+			hawk_seterrfmt (awk,  &awk->tok.loc, HAWK_ERPAREN, FMT_ERPAREN, HAWK_OOECS_LEN(awk->tok.name), HAWK_OOECS_PTR(awk->tok.name));
 			goto oops;
 		}
 
@@ -3362,7 +3383,7 @@ static hawk_nde_t* parse_expr_basic (hawk_t* awk, const hawk_loc_t* xloc)
 		}
 
 		eloc = awk->tok.loc;
-		n1 = parse_expr_withdc (awk, &eloc);
+		n1 = parse_expr_withdc(awk, &eloc);
 		if (n1 == HAWK_NULL) 
 		{
 			hawk_clrpt (awk, nde);
@@ -3373,7 +3394,7 @@ static hawk_nde_t* parse_expr_basic (hawk_t* awk, const hawk_loc_t* xloc)
 		{
 			hawk_clrpt (awk, nde);
 			hawk_clrpt (awk, n1);
-			SETERR_TOK (awk, HAWK_ECOLON);
+			hawk_seterrfmt (awk,  &awk->tok.loc, HAWK_ECOLON, FMT_ECOLON, HAWK_OOECS_LEN(awk->tok.name), HAWK_OOECS_PTR(awk->tok.name));
 			return HAWK_NULL;
 		}
 		if (get_token(awk) <= -1) 
@@ -3384,7 +3405,7 @@ static hawk_nde_t* parse_expr_basic (hawk_t* awk, const hawk_loc_t* xloc)
 		}
 
 		eloc = awk->tok.loc;
-		n2 = parse_expr_withdc (awk, &eloc);
+		n2 = parse_expr_withdc(awk, &eloc);
 		if (n2 == HAWK_NULL)
 		{
 			hawk_clrpt (awk, nde);
@@ -4764,7 +4785,7 @@ static hawk_nde_t* parse_primary_lparen (hawk_t* awk, const hawk_loc_t* xloc)
 	/* check for the closing parenthesis */
 	if (!MATCH(awk,TOK_RPAREN)) 
 	{
-		SETERR_TOK (awk, HAWK_ERPAREN);
+		hawk_seterrfmt (awk,  &awk->tok.loc, HAWK_ERPAREN, FMT_ERPAREN, HAWK_OOECS_LEN(awk->tok.name), HAWK_OOECS_PTR(awk->tok.name));
 		goto oops;
 	}
 
@@ -4786,7 +4807,7 @@ static hawk_nde_t* parse_primary_lparen (hawk_t* awk, const hawk_loc_t* xloc)
 		{
 			if (!(awk->opt.trait & HAWK_TOLERANT) && !MATCH(awk,TOK_IN))
 			{
-				SETERR_TOK (awk, HAWK_EKWIN);
+				hawk_seterrfmt (awk,  &awk->tok.loc, HAWK_EKWIN, FMT_EKWIN, HAWK_OOECS_LEN(awk->tok.name), HAWK_OOECS_PTR(awk->tok.name));
 				goto oops;
 			}
 		}
@@ -5151,7 +5172,7 @@ static int dup_ident_and_get_next (hawk_t* awk, const hawk_loc_t* xloc, hawk_ooc
 		 * TOK_XGLOBAL to TOK_XRESET are excuded from the check for that reason. */
 		if (!MATCH(awk, TOK_IDENT) && !(MATCH_RANGE(awk, TOK_BEGIN, TOK_GETLINE)))
 		{
-			SETERR_TOK (awk, HAWK_EIDENT);
+			hawk_seterrfmt (awk,  &awk->tok.loc, HAWK_EIDENT, FMT_EIDENT, HAWK_OOECS_LEN(awk->tok.name), HAWK_OOECS_PTR(awk->tok.name));
 			goto oops;
 		}
 
@@ -5231,7 +5252,7 @@ static hawk_nde_t* parse_primary_ident_noseg (hawk_t* awk, const hawk_loc_t* xlo
 		else
 		{
 			/* an intrinsic function should be in the form of the function call */
-			SETERR_TOK (awk, HAWK_ELPAREN);
+			hawk_seterrfmt (awk,  &awk->tok.loc, HAWK_ELPAREN, FMT_ELPAREN, HAWK_OOECS_LEN(awk->tok.name), HAWK_OOECS_PTR(awk->tok.name));
 		}
 	}
 	/* now we know that name is a normal identifier. */
@@ -5367,7 +5388,7 @@ static hawk_nde_t* parse_primary_ident_noseg (hawk_t* awk, const hawk_loc_t* xlo
 			else
 			{
 				/* undefined variable */
-				hawk_seterrfmt (awk, xloc, HAWK_EUNDEF, HAWK_T("undefined identifier '%.*js'"), name->len, name->ptr);
+				hawk_seterrfmt (awk, xloc, HAWK_EUNDEF, FMT_EUNDEF, name->len, name->ptr);
 			}
 		}
 	}
@@ -5396,7 +5417,7 @@ static hawk_nde_t* parse_primary_ident_segs (hawk_t* awk, const hawk_loc_t* xloc
 			case HAWK_MOD_FNC:
 				if ((awk->opt.trait & sym.u.fnc.trait) != sym.u.fnc.trait)
 				{
-					hawk_seterrfmt (awk, xloc, HAWK_EUNDEF, HAWK_T("undefined identifier '%.*js'"), full->len, full->ptr);
+					hawk_seterrfmt (awk, xloc, HAWK_EUNDEF, FMT_EUNDEF, full->len, full->ptr);
 					break;
 				}
 
@@ -5411,7 +5432,7 @@ static hawk_nde_t* parse_primary_ident_segs (hawk_t* awk, const hawk_loc_t* xloc
 				}
 				else
 				{
-					SETERR_TOK (awk, HAWK_ELPAREN);
+					hawk_seterrfmt (awk,  &awk->tok.loc, HAWK_ELPAREN, FMT_ELPAREN, HAWK_OOECS_LEN(awk->tok.name), HAWK_OOECS_PTR(awk->tok.name));
 				}
 				break;
 
@@ -5427,7 +5448,7 @@ static hawk_nde_t* parse_primary_ident_segs (hawk_t* awk, const hawk_loc_t* xloc
 
 			default:
 				/* TODO: support MOD_VAR */
-				hawk_seterrfmt (awk, xloc, HAWK_EUNDEF, HAWK_T("undefined identifier '%.*js'"), full->len, full->ptr);
+				hawk_seterrfmt (awk, xloc, HAWK_EUNDEF, FMT_EUNDEF, full->len, full->ptr);
 				break;
 		}
 	}
@@ -5538,7 +5559,7 @@ static hawk_nde_t* parse_hashidx (hawk_t* awk, const hawk_oocs_t* name, const ha
 	if (!MATCH(awk,TOK_RBRACK)) 
 	{
 		hawk_clrpt (awk, idx);
-		SETERR_TOK (awk, HAWK_ERBRACK);
+		hawk_seterrfmt (awk,  &awk->tok.loc, HAWK_ERBRACK, FMT_ERBRACK, HAWK_OOECS_LEN(awk->tok.name), HAWK_OOECS_PTR(awk->tok.name));
 		return HAWK_NULL;
 	}
 
@@ -5629,7 +5650,7 @@ static hawk_nde_t* parse_hashidx (hawk_t* awk, const hawk_oocs_t* name, const ha
 	}
 
 	/* undefined variable */
-	hawk_seterrfmt (awk, xloc, HAWK_EUNDEF, HAWK_T("undefined identifier '%.*js'"), name->len, name->ptr);
+	hawk_seterrfmt (awk, xloc, HAWK_EUNDEF, FMT_EUNDEF, name->len, name->ptr);
 
 exit_func:
 	hawk_clrpt (awk, idx);
@@ -5680,7 +5701,7 @@ static hawk_nde_t* parse_fncall (hawk_t* awk, const hawk_oocs_t* name, hawk_fnc_
 
 			if (!MATCH(awk,TOK_COMMA)) 
 			{
-				SETERR_TOK (awk, HAWK_ECOMMA);
+				hawk_seterrfmt (awk,  &awk->tok.loc, HAWK_ECOMMA, FMT_ECOMMA, HAWK_OOECS_LEN(awk->tok.name), HAWK_OOECS_PTR(awk->tok.name));
 				goto oops;
 			}
 
@@ -6458,7 +6479,7 @@ retry:
 			type = classify_ident(awk, HAWK_OOECS_OOCS(tok->name));
 			if (type == TOK_IDENT)
 			{
-				SETERR_TOK (awk, HAWK_EXKWNR);
+				hawk_seterrfmt (awk,  &awk->tok.loc, HAWK_EXKWNR, FMT_EXKWNR, HAWK_OOECS_LEN(awk->tok.name), HAWK_OOECS_PTR(awk->tok.name));
 				return -1;
 			}
 			SET_TOKEN_TYPE (awk, tok, type);
@@ -6542,9 +6563,8 @@ retry:
 
 	if (skip_semicolon_after_include && !(awk->opt.trait & HAWK_NEWLINE))
 	{
-		/* semiclon has not been skipped yet and the 
-		 * newline option is not set. */
-		hawk_seterror (awk, HAWK_ESCOLON, HAWK_OOECS_OOCS(tok->name), &tok->loc);
+		/* semiclon has not been skipped yet and the newline option is not set. */
+		hawk_seterrfmt (awk, &tok->loc, HAWK_ESCOLON, FMT_ESCOLON, HAWK_OOECS_LEN(tok->name), HAWK_OOECS_PTR(tok->name));
 		return -1;
 	}
 
@@ -6989,7 +7009,6 @@ static hawk_mod_t* query_module (hawk_t* awk, const hawk_oocs_t segs[], int nseg
 {
 	hawk_rbt_pair_t* pair;
 	hawk_mod_data_t* mdp;
-	hawk_oocs_t ea;
 	int n;
 
 	HAWK_ASSERT (nsegs == 2);
@@ -7019,9 +7038,7 @@ static hawk_mod_t* query_module (hawk_t* awk, const hawk_oocs_t segs[], int nseg
 		if (segs[0].len > HAWK_COUNTOF(buf) - 15)
 		{
 			/* module name too long  */
-			ea.ptr = segs[0].ptr;
-			ea.len = segs[0].len;
-			hawk_seterror (awk, HAWK_ESEGTL, &ea, HAWK_NULL);
+			hawk_seterrfmt (awk, HAWK_NULL, HAWK_ESEGTL, FMT_ESEGTL, segs[0].len, segs[0].ptr);
 			return HAWK_NULL;
 		}
 
@@ -7040,10 +7057,7 @@ static hawk_mod_t* query_module (hawk_t* awk, const hawk_oocs_t segs[], int nseg
 
 		/*if (n >= HAWK_COUNTOF(static_modtab))
 		{
-
-			ea.ptr = segs[0].ptr;
-			ea.len = segs[0].len;
-			hawk_seterror (awk, HAWK_ENOENT, &ea, HAWK_NULL);
+			hawk_seterrfmt (awk, HAWK_NULL, HAWK_ENOENT, HAWK_T("'%.*js' not found"), segs[0].len, segs[0].ptr);
 			return HAWK_NULL;
 		}*/
 

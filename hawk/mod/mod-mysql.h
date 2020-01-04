@@ -24,16 +24,16 @@
     THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _QSE_LIB_AWKMOD_MYSQL_H_
-#define _QSE_LIB_AWKMOD_MYSQL_H_
+#ifndef _HAWK_MOD_MYSQL_H_
+#define _HAWK_MOD_MYSQL_H_
 
-#include <qse/awk/awk.h>
+#include <hawk.h>
 
 #if defined(__cplusplus)
 extern "C" {
 #endif
 
-QSE_EXPORT int qse_awk_mod_mysql (qse_awk_mod_t* mod, qse_awk_t* awk);
+HAWK_EXPORT int hawk_mod_mysql (hawk_mod_t* mod, hawk_t* hawk);
 
 #if defined(__cplusplus)
 }
