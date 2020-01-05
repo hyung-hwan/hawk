@@ -220,6 +220,46 @@ HAWK_EXPORT hawk_cmgr_t* hawk_rtx_getiocmgrstd (
 	const hawk_ooch_t* ioname
 );
 
+
+/* ------------------------------------------------------------------------- */
+
+
+HAWK_EXPORT hawk_flt_t hawk_stdmathpow (
+	hawk_t*    hawk,
+	hawk_flt_t x,
+	hawk_flt_t y
+);
+
+HAWK_EXPORT hawk_flt_t hawk_stdmathmod (
+	hawk_t*    hawk,
+	hawk_flt_t x,
+	hawk_flt_t y
+);
+
+HAWK_EXPORT int hawk_stdmodstartup (
+	hawk_t* hawk
+);
+
+HAWK_EXPORT void hawk_stdmodshutdown (
+	hawk_t* hawk
+);
+
+HAWK_EXPORT void* hawk_stdmodopen (
+	hawk_t*                hawk,
+	const hawk_mod_spec_t* spec
+);
+
+HAWK_EXPORT void hawk_stdmodclose (
+	hawk_t*                hawk,
+	void*                  handle
+);
+
+HAWK_EXPORT void* hawk_stdmodsym (
+	hawk_t*                hawk,
+	void*                  handle,
+	const hawk_ooch_t*     name
+);
+
 #if defined(__cplusplus)
 }
 #endif
