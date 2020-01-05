@@ -371,23 +371,17 @@ private:
 
 /// 
 /// The Hawk class implements an AWK interpreter by wrapping around 
-/// #hawk_t and #hawk_rtx_t.
+/// #hhawk_t and #hawk_rtx_t.
 ///
 class HAWK_EXPORT Hawk: public Uncopyable, public Mmged
 {
 public:
-
-	// define a primitive handle 
-	typedef hawk_t awk_t;
-
 	// redefine flt_t. To access Types::flt_t, use the fully qualified 
 	// name as it's overriding Types::flt_t. 
 	typedef hawk_flt_t  flt_t; 
 	typedef hawk_int_t  int_t; 
 	typedef hawk_uint_t uint_t; 
 
-	typedef hawk_loc_t loc_t;
-	typedef hawk_errnum_t errnum_t;
 	typedef hawk_errstr_t errstr_t;
 	typedef hawk_errinf_t errinf_t;
 
@@ -405,14 +399,7 @@ public:
 	/// The gbl_id_t type redefines #hawk_gbl_id_t.
 	typedef hawk_gbl_id_t gbl_id_t;
 
-	/** Represents an internal awk value */
-	typedef hawk_val_t val_t;
-
-	/** Represents a runtime context */
-	typedef hawk_rtx_t rtx_t;
-
 	/** Represents an runtime I/O data */
-	typedef hawk_rio_arg_t rio_arg_t;
 
 	typedef hawk_rio_cmd_t rio_cmd_t;
 
@@ -444,7 +431,7 @@ protected:
 	/// different. The example below changes the formatting string for
 	/// #HAWK_ENOENT.
 	/// \code
-	/// const hawk_ooch_t* MyHawk::getErrorString (hawk_errnum_t num) const 
+	/// const hawk_ooch_t* MyHawk::getErrorString (hawk_hawk_errnum_t num) const 
 	/// {
 	///    if (num == HAWK_ENOENT) return HAWK_T("cannot find '${0}'");
 	///    return Hawk::getErrorString (num);
@@ -452,7 +439,7 @@ protected:
 	/// \endcode
 	///
 	virtual const hawk_ooch_t* getErrorString (
-		errnum_t num
+		hawk_errnum_t num
 	) const;
 
 public:
@@ -460,13 +447,13 @@ public:
 	/// The getErrorNumber() function returns the number of the last
 	/// error occurred.
 	///
-	errnum_t getErrorNumber () const;
+	hawk_errnum_t getErrorNumber () const;
 
 	///
 	/// The getErrorLocation() function returns the location of the 
 	/// last error occurred.
 	///
-	loc_t getErrorLocation () const;
+	hawk_loc_t getErrorLocation () const;
 
 	///
 	/// The Hawk::getErrorMessage() function returns a message describing
@@ -474,24 +461,23 @@ public:
 	///
 	const hawk_ooch_t* getErrorMessage () const;
 
-	///
-	/// The setError() function sets error information.
-	///
 	void setError (
-		errnum_t      code, ///< error code
-		const hawk_oocs_t* args  = HAWK_NULL, ///< message formatting 
-		                                ///  argument array
-		const loc_t*  loc   = HAWK_NULL  ///< error location
+		hawk_errnum_t       code, ///< error code
+		const hawk_loc_t*   loc   = HAWK_NULL  ///< error location
 	);
 
-	///
-	/// The setErrorWithMessage() functions sets error information
-	/// with a customized error message.
-	///
-	void setErrorWithMessage (
-		errnum_t      code, ///< error code
-		const hawk_ooch_t* msg,  ///< error message
-		const loc_t*  loc   ///< error location
+	void formatError (
+		hawk_errnum_t       code,
+		const hawk_loc_t*   loc,
+		const hawk_bch_t*   fmt,
+		...
+	);
+
+	void formatError (
+		hawk_errnum_t       code,
+		const hawk_loc_t*   loc,
+		const hawk_uch_t*   fmt,
+		...
 	);
 
 	///
@@ -588,7 +574,7 @@ public:
 				return this->awk;
 			}
 
-			operator awk_t* () const
+			operator hawk_t* () const
 			{
 				return this->awk->getHandle();
 			}
@@ -636,7 +622,7 @@ public:
 	class HAWK_EXPORT RIOBase
 	{
 	protected:
-		RIOBase (Run* run, rio_arg_t* riod);
+		RIOBase (Run* run, hawk_rio_arg_t* riod);
 
 	public:
 		const hawk_ooch_t* getName() const;
@@ -648,14 +634,14 @@ public:
 		void setUflags (int uflags);
 
 		operator Hawk* () const;
-		operator awk_t* () const;
-		operator rio_arg_t* () const;
+		operator hawk_t* () const;
+		operator hawk_rio_arg_t* () const;
 		operator Run* () const;
-		operator rtx_t* () const;
+		operator hawk_rtx_t* () const;
 
 	protected:
 		Run* run;
-		rio_arg_t* riod;
+		hawk_rio_arg_t* riod;
 
 	private:
 		RIOBase (const RIOBase&);
@@ -708,7 +694,7 @@ public:
 		};
 
 	protected:
-		Pipe (Run* run, rio_arg_t* riod);
+		Pipe (Run* run, hawk_rio_arg_t* riod);
 
 	public:
 		/// The getMode() function returns the opening mode requested.
@@ -753,7 +739,7 @@ public:
 		};
 
 	protected:
-		File (Run* run, rio_arg_t* riod);
+		File (Run* run, hawk_rio_arg_t* riod);
 
 	public:
 		Mode getMode () const;
@@ -826,7 +812,7 @@ public:
 		};
 
 	protected:
-		Console (Run* run, rio_arg_t* riod);
+		Console (Run* run, hawk_rio_arg_t* riod);
 		~Console ();
 
 	public:
@@ -1010,7 +996,7 @@ public:
 
 		void clear ();
 
-		operator val_t* () const { return val; }
+		operator hawk_val_t* () const { return val; }
 		operator int_t () const;
 		operator flt_t () const;
 		operator const hawk_ooch_t* () const;
@@ -1018,9 +1004,9 @@ public:
 		operator const hawk_bch_t* () const;
 	#endif
 
-		val_t* toVal () const
+		hawk_val_t* toVal () const
 		{
-			return operator val_t* ();
+			return operator hawk_val_t* ();
 		}
 
 		int_t toInt () const
@@ -1069,8 +1055,8 @@ public:
 		int getStr (const hawk_ooch_t** str, hawk_oow_t* len) const;
 		int getMbs (const hawk_bch_t** str, hawk_oow_t* len) const;
 
-		int setVal (val_t* v);
-		int setVal (Run* r, val_t* v);
+		int setVal (hawk_val_t* v);
+		int setVal (Run* r, hawk_val_t* v);
 
 		int setInt (int_t v);
 		int setInt (Run* r, int_t v);
@@ -1087,8 +1073,8 @@ public:
 		int setMbs (const hawk_bch_t* str);
 		int setMbs (Run* r, const hawk_bch_t* str);
 
-		int setIndexedVal (const Index& idx, val_t* v);
-		int setIndexedVal (Run* r, const Index& idx, val_t* v);
+		int setIndexedVal (const Index& idx, hawk_val_t* v);
+		int setIndexedVal (Run* r, const Index& idx, hawk_val_t* v);
 		int setIndexedInt (const Index& idx, int_t v);
 		int setIndexedInt (Run* r, const Index& idx, int_t v);
 		int setIndexedFlt (const Index& idx, flt_t v);
@@ -1144,7 +1130,7 @@ public:
 
 	protected:
 		Run* run;
-		val_t* val;
+		hawk_val_t* val;
 
 		mutable struct
 		{
@@ -1171,30 +1157,52 @@ public:
 		friend class Console;
 
 		Run (Hawk* awk);
-		Run (Hawk* awk, rtx_t* run);
+		Run (Hawk* awk, hawk_rtx_t* run);
 		~Run ();
 
 	public:
-		operator Hawk* () const;
-		operator rtx_t* () const;
+		operator Hawk* () const
+		{
+			return this->awk;
+		}
+
+		operator hawk_rtx_t* () const
+		{
+			return this->rtx;
+		}
+
+		operator hawk_gem_t* () const
+		{
+			return this->rtx? hawk_rtx_getgem(this->rtx): HAWK_NULL;
+		}
 
 		void halt () const;
 		bool isHalt () const;
 
-		errnum_t getErrorNumber () const;
-		loc_t getErrorLocation () const;
+		hawk_errnum_t getErrorNumber () const;
+		hawk_loc_t getErrorLocation () const;
 		const hawk_ooch_t* getErrorMessage () const;
 
+		///
+		/// The setError() function sets error information.
+		///
 		void setError (
-			errnum_t      code, 
-			const hawk_oocs_t* args = HAWK_NULL,
-			const loc_t*  loc  = HAWK_NULL
+			hawk_errnum_t      code, ///< error code
+			const hawk_loc_t*  loc   = HAWK_NULL  ///< error location
 		);
 
-		void setErrorWithMessage (
-			errnum_t      code, 
-			const hawk_ooch_t* msg,
-			const loc_t*  loc
+		void formatError (
+			hawk_errnum_t       code,
+			const hawk_loc_t*   loc,
+			const hawk_bch_t*   fmt,
+			...
+		);
+
+		void formatError (
+			hawk_errnum_t       code,
+			const hawk_loc_t*   loc,
+			const hawk_uch_t*   fmt,
+			...
 		);
 
 		/// 
@@ -1237,14 +1245,22 @@ public:
 		int getGlobal (int id, Value& v) const;
 
 	protected:
-		Hawk*   awk;
-		rtx_t* rtx;
+		Hawk*  awk;
+		hawk_rtx_t* rtx;
 	};
 
 	///
 	/// Returns the primitive handle 
 	///
-	operator awk_t* () const;
+	operator hawk_t* () const
+	{
+		return this->awk;
+	}
+
+	operator hawk_gem_t* () const
+	{
+		return this->awk? hawk_getgem(this->awk): HAWK_NULL;
+	}
 
 	///
 	/// \name Basic Functions
@@ -1499,7 +1515,7 @@ public:
 		Run&              run,
 		Value&            ret,
 		Value*            args,
-		hawk_oow_t            nargs, 
+		hawk_oow_t        nargs, 
 		const fnc_info_t* fi
 	);
 
@@ -1662,38 +1678,38 @@ protected:
 
 	// static glue members for various handlers
 	static hawk_ooi_t readSource (
-		awk_t* awk, sio_cmd_t cmd, sio_arg_t* arg,
+		hawk_t* awk, sio_cmd_t cmd, sio_arg_t* arg,
 		hawk_ooch_t* data, hawk_oow_t count);
 	static hawk_ooi_t writeSource (
-		awk_t* awk, sio_cmd_t cmd, sio_arg_t* arg,
+		hawk_t* awk, sio_cmd_t cmd, sio_arg_t* arg,
 		hawk_ooch_t* data, hawk_oow_t count);
 
 	static hawk_ooi_t pipeHandler (
-		rtx_t* rtx, rio_cmd_t cmd, rio_arg_t* riod,
+		hawk_rtx_t* rtx, rio_cmd_t cmd, hawk_rio_arg_t* riod,
 		void* data, hawk_oow_t count);
 	static hawk_ooi_t fileHandler (
-		rtx_t* rtx, rio_cmd_t cmd, rio_arg_t* riod,
+		hawk_rtx_t* rtx, rio_cmd_t cmd, hawk_rio_arg_t* riod,
 		void* data, hawk_oow_t count);
 	static hawk_ooi_t consoleHandler (
-		rtx_t* rtx, rio_cmd_t cmd, rio_arg_t* riod,
+		hawk_rtx_t* rtx, rio_cmd_t cmd, hawk_rio_arg_t* riod,
 		void* data, hawk_oow_t count);
 
-	static int functionHandler (rtx_t* rtx, const fnc_info_t* fi);
+	static int functionHandler (hawk_rtx_t* rtx, const fnc_info_t* fi);
 
 
-	static flt_t pow (awk_t* awk, flt_t x, flt_t y);
-	static flt_t mod (awk_t* awk, flt_t x, flt_t y);
+	static flt_t pow (hawk_t* awk, flt_t x, flt_t y);
+	static flt_t mod (hawk_t* awk, flt_t x, flt_t y);
 
-	static void* modopen (awk_t* awk, const mod_spec_t* spec);
-	static void  modclose (awk_t* awk, void* handle);
-	static void* modgetsym (awk_t* awk, void* handle, const hawk_ooch_t* name);
+	static void* modopen (hawk_t* awk, const mod_spec_t* spec);
+	static void  modclose (hawk_t* awk, void* handle);
+	static void* modgetsym (hawk_t* awk, void* handle, const hawk_ooch_t* name);
 
 public:
 	// use this with care
-	awk_t* getHandle() const { return this->awk; }
+	hawk_t* getHandle() const { return this->awk; }
 
 protected:
-	awk_t* awk;
+	hawk_t* awk;
 
 	errstr_t dflerrstr;
 	errinf_t errinf;
@@ -1725,12 +1741,12 @@ protected:
 	{
 		xstrs_t (): ptr (HAWK_NULL), len (0), capa (0) {}
 
-		int add (awk_t* awk, const hawk_ooch_t* arg, hawk_oow_t len);
-		void clear (awk_t* awk);
+		int add (hawk_t* awk, const hawk_ooch_t* arg, hawk_oow_t len);
+		void clear (hawk_t* awk);
 
 		hawk_oocs_t* ptr;
-		hawk_oow_t      len;
-		hawk_oow_t      capa;
+		hawk_oow_t   len;
+		hawk_oow_t   capa;
 	};
 
 	xstrs_t runarg;
@@ -1742,7 +1758,7 @@ private:
 	void fini_runctx ();
 	int dispatch_function (Run* run, const fnc_info_t* fi);
 
-	static const hawk_ooch_t* xerrstr (awk_t* a, errnum_t num);
+	static const hawk_ooch_t* xerrstr (hawk_t* a, hawk_errnum_t num);
 };
 
 /////////////////////////////////
