@@ -25,11 +25,89 @@
  */
 
 #include <Hawk.hpp>
+#include <HawkStd.hpp> // for MmgrStd only. i don't like this being mutually dependent
 #include "hawk-prv.h"
 
 /////////////////////////////////
 HAWK_BEGIN_NAMESPACE(HAWK)
 /////////////////////////////////
+
+
+//////////////////////////////////////////////////////////////////
+// Mmged
+//////////////////////////////////////////////////////////////////
+
+Mmged::Mmged (Mmgr* mmgr)
+{
+	if (!mmgr) mmgr = Mmgr::getDFL();
+	this->_mmgr = mmgr;
+}
+
+void Mmged::setMmgr (Mmgr* mmgr)
+{
+	if (!mmgr) mmgr = Mmgr::getDFL();
+	this->_mmgr = mmgr;
+}
+
+//////////////////////////////////////////////////////////////////
+// Mmgr
+//////////////////////////////////////////////////////////////////
+
+
+void* Mmgr::alloc_mem (mmgr_t* mmgr, hawk_oow_t n) HAWK_CPP_NOEXCEPT
+{
+	return ((Mmgr*)mmgr->ctx)->allocMem (n);
+}
+
+void* Mmgr::realloc_mem (mmgr_t* mmgr, void* ptr, hawk_oow_t n) HAWK_CPP_NOEXCEPT
+{
+	return ((Mmgr*)mmgr->ctx)->reallocMem (ptr, n);
+}
+
+void Mmgr::free_mem (mmgr_t* mmgr, void* ptr) HAWK_CPP_NOEXCEPT
+{
+	((Mmgr*)mmgr->ctx)->freeMem (ptr);
+}
+
+void* Mmgr::callocate (hawk_oow_t n, bool raise_exception) /*HAWK_CPP_THREXCEPT1(MemoryError)*/
+{
+	void* ptr = this->allocate(n, raise_exception);
+	HAWK_MEMSET (ptr, 0, n);
+	return ptr;
+}
+
+#if 0
+#if defined(__GNUC__)
+static MmgrStd __attribute__((init_priority(101))) std_dfl_mmgr; //<- this solved the problem
+#else
+static MmgrStd std_dfl_mmgr; //<-- has an issue for undefined initialization order
+#endif
+Mmgr* Mmgr::dfl_mmgr = &std_dfl_mmgr; 
+//Mmgr* Mmgr::dfl_mmgr = MmgrStd::getInstance();  //<--- has an issue as well
+Mmgr* Mmgr::getDFL () HAWK_CPP_NOEXCEPT
+{
+	return Mmgr::dfl_mmgr;
+}
+#else
+// C++ initialization order across translation units are not defined.
+// so it's tricky to work around this... the init_priority attribute
+// can solve this problem. but it's compiler dependent. 
+// Mmgr::getDFL() resets dfl_mmgr to &std_dfl_mmgr if it's NULL.
+Mmgr* Mmgr::dfl_mmgr = HAWK_NULL;
+
+Mmgr* Mmgr::getDFL () HAWK_CPP_NOEXCEPT
+{
+	static MmgrStd std_dfl_mmgr;
+	Mmgr* mmgr = Mmgr::dfl_mmgr;
+	return mmgr? mmgr: &std_dfl_mmgr;
+}
+#endif
+
+void Mmgr::setDFL (Mmgr* mmgr) HAWK_CPP_NOEXCEPT
+{
+	Mmgr::dfl_mmgr = mmgr;
+}
+
 
 //////////////////////////////////////////////////////////////////
 // Hawk::Source
@@ -1326,14 +1404,14 @@ int Hawk::open ()
 	hawk_prm_t prm;
 
 	HAWK_MEMSET (&prm, 0, HAWK_SIZEOF(prm));
-	prm.math.pow  = pow;
-	prm.math.mod  = mod;
-	prm.modopen   = modopen;
-	prm.modclose  = modclose;
-	prm.modgetsym = modgetsym;
+	prm.math.pow  = Hawk::pow;
+	prm.math.mod  = Hawk::mod;
+	prm.modopen   = Hawk::modopen;
+	prm.modclose  = Hawk::modclose;
+	prm.modgetsym = Hawk::modgetsym;
 
 	hawk_errnum_t errnum;
-	this->awk = hawk_open(this->getMmgr(), HAWK_SIZEOF(xtn_t), &prm, &errnum);
+	this->awk = hawk_open(this->getMmgr(), HAWK_SIZEOF(xtn_t), hawk_get_cmgr_by_id(HAWK_CMGR_UTF8), &prm, &errnum);
 	if (!this->awk)
 	{
 		this->setError (errnum);
@@ -1348,7 +1426,7 @@ int Hawk::open ()
 	xtn->ecb.close = fini_xtn;
 	xtn->ecb.clear = clear_xtn;
 
-	dflerrstr = hawk_geterrstr (this->awk);
+	dflerrstr = hawk_geterrstr(this->awk);
 	hawk_seterrstr (this->awk, xerrstr);
 
 #if defined(HAWK_USE_HTB_FOR_FUNCTION_MAP)
@@ -2447,3 +2525,38 @@ void* Hawk::modgetsym (awk_t* awk, void* handle, const hawk_ooch_t* name)
 /////////////////////////////////
 HAWK_END_NAMESPACE(HAWK)
 /////////////////////////////////
+
+
+
+void* operator new (hawk_oow_t size, HAWK::Mmgr* mmgr) /*HAWK_CPP_THREXCEPT1(HAWK::Mmgr::MemoryError)*/
+{
+	return mmgr->allocate (size);
+}
+
+#if defined(HAWK_CPP_NO_OPERATOR_DELETE_OVERLOADING)
+void hawk_operator_delete (void* ptr, HAWK::Mmgr* mmgr)
+#else
+void operator delete (void* ptr, HAWK::Mmgr* mmgr)
+#endif
+{
+	mmgr->dispose (ptr);
+}
+
+void* operator new (hawk_oow_t size, HAWK::Mmgr* mmgr, void* existing_ptr) /*HAWK_CPP_THREXCEPT1(HAWK::Mmgr::MemoryError)*/
+{
+	// mmgr unused. i put it in the parameter list to make this function
+	// less conflicting with the stock ::operator new() that doesn't allocate.
+	return existing_ptr;
+}
+
+#if 0
+void* operator new[] (hawk_oow_t size, HAWK::Mmgr* mmgr)
+{
+	return mmgr->allocate (size);
+}
+
+void operator delete[] (void* ptr, HAWK::Mmgr* mmgr)
+{
+	mmgr->dispose (ptr);
+}
+#endif

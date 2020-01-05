@@ -420,11 +420,20 @@ typedef unsigned char           hawk_bchu_t; /* unsigned version of hawk_bch_t f
 	typedef hawk_uint32_t      hawk_uchu_t; /* same as hawk_uch_t as it is already unsigned */
 #	define HAWK_SIZEOF_UCH_T 4
 
-#elif defined(__GNUC__) && defined(__CHAR16_TYPE__)
-	typedef __CHAR16_TYPE__    hawk_uch_t; 
-	typedef hawk_uint16_t      hawk_uchu_t; /* same as hawk_uch_t as it is already unsigned */
+#elif (defined(__cplusplus) && (defined(HAWK_USE_CPP_CHAR16_T) || (__cplusplus >= 201103L) || (defined(_MSC_VER) && _MSC_VER >= 1900))) /* user chosen or C++11 or later */
+	/* you can define HAWK_USE_CPP_CHAR16_T if you know the C++ compiler supports char16_t and 
+	 * it treats the u"XXX" or u'x' literals incompatibly with __CHAR16_TYPE__ */
+	typedef char16_t           hawk_uch_t;  /* char16_t is an unsigned integer type used for 16-bit wide characters */
+	typedef char16_t           hawk_uchu_t; /* same as hawk_uch_t as it is already unsigned */
 #	define HAWK_SIZEOF_UCH_T 2
 #	define HAWK_UCH_IS_CHAR16_T
+
+#elif defined(__GNUC__) && defined(__CHAR16_TYPE__)
+	typedef __CHAR16_TYPE__    hawk_uch_t;  /* this part isn't fully compatible with c++. try 'const __CHAR16_TYPE__* x = u"abc";' with g++ */
+	typedef hawk_uint16_t      hawk_uchu_t;
+#	define HAWK_SIZEOF_UCH_T 2
+#	define HAWK_UCH_IS_CHAR16_T
+
 #else
 	typedef hawk_uint16_t      hawk_uch_t;
 	typedef hawk_uint16_t      hawk_uchu_t; /* same as hawk_uch_t as it is already unsigned */
@@ -1249,19 +1258,19 @@ typedef enum hawk_log_mask_t hawk_log_mask_t;
 /* =========================================================================
  * CHARACTER/STRING LITERALS
  * =========================================================================*/
-#define HAWK_MQ_I(val) #val
-#define HAWK_MQ(val)   HAWK_MQ_I(val)
+#define HAWK_BQ_I(val) #val
+#define HAWK_BQ(val)   HAWK_BQ_I(val)
 /**
  * The #HAWK_BT macro maps a multi-byte literal string literal as it is.
  */
 #define HAWK_BT(txt)   (txt)
 
 #if defined(HAWK_UCH_IS_CHAR16_T)
-#       define HAWK_WQ_I(val)  (u ## #val)
-#       define HAWK_WQ(val)    HAWK_WQ_I(val)
+#       define HAWK_UQ_I(val)  (u ## #val)
+#       define HAWK_UQ(val)    HAWK_UQ_I(val)
 #else
-#       define HAWK_WQ_I(val)  (L ## #val)
-#       define HAWK_WQ(val)    HAWK_WQ_I(val)
+#       define HAWK_UQ_I(val)  (L ## #val)
+#       define HAWK_UQ(val)    HAWK_UQ_I(val)
 #endif
 
 /**
@@ -1281,10 +1290,10 @@ typedef enum hawk_log_mask_t hawk_log_mask_t;
  * #HAWK_UT if #HAWK_OOCH_IS_UCH is defined.
  */
 #if defined(HAWK_OOCH_IS_BCH)
-#       define HAWK_Q(val) HAWK_MQ(val)
+#       define HAWK_Q(val) HAWK_BQ(val)
 #       define HAWK_T(txt) HAWK_BT(txt)
 #else
-#       define HAWK_Q(val) HAWK_WQ(val)
+#       define HAWK_Q(val) HAWK_UQ(val)
 #       define HAWK_T(txt) HAWK_UT(txt)
 #endif
 
