@@ -24,11 +24,10 @@
     THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _HAWK_STDAWK_HPP_
-#define _HAWK_STDAWK_HPP_
+#ifndef _HAWK_HAWK_STD_HPP_
+#define _HAWK_HAWK_STD_HPP_
 
 #include <Hawk.hpp>
-#include <StdMmgr.hpp>
 
 /// \file
 /// Standard AWK Interpreter
@@ -37,12 +36,27 @@
 HAWK_BEGIN_NAMESPACE(HAWK)
 ////////////////////////////////
 
+class HAWK_EXPORT MmgrStd: public Mmgr
+{
+public:
+	MmgrStd () HAWK_CPP_NOEXCEPT: Mmgr () {}
+
+	void* allocMem (hawk_oow_t n) HAWK_CPP_NOEXCEPT;
+	void* reallocMem (void* ptr, hawk_oow_t n) HAWK_CPP_NOEXCEPT;
+	void freeMem (void* ptr) HAWK_CPP_NOEXCEPT;
+
+#if 0
+	/// The getInstance() function returns the stock instance of the MmgrStd class.
+	static MmgrStd* getInstance () HAWK_CPP_NOEXCEPT;
+#endif
+};
+
 ///
-/// The StdHawk class provides an easier-to-use interface by overriding 
+/// The HawkStd class provides an easier-to-use interface by overriding 
 /// primitive methods, and implementing the file handler, the pipe handler, 
 /// and common intrinsic functions.
 ///
-class HAWK_EXPORT StdHawk: public Hawk
+class HAWK_EXPORT HawkStd: public Hawk
 {
 public:
 	///
@@ -87,7 +101,7 @@ public:
 		const hawk_ooch_t* ptr;
 	};
 
-	StdHawk (Mmgr* mmgr = HAWK_NULL): Hawk(mmgr), stdmod_up(false), console_cmgr(HAWK_NULL) 
+	HawkStd (Mmgr* mmgr = HAWK_NULL): Hawk(mmgr), stdmod_up(false), console_cmgr(HAWK_NULL) 
 	{
 	}
 

@@ -1,7 +1,7 @@
 #
 # generrcode.awk
 #
-# qseawk -f generrcode.awk awk.h
+# hawk -f generrcode.awk hawk-cmn.h
 #
 
 BEGIN { 

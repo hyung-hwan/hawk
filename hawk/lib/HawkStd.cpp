@@ -24,7 +24,7 @@
     THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <StdHawk.hpp>
+#include <HawkStd.hpp>
 #include "hawk-prv.h"
 #include <stdlib.h>
 
@@ -45,14 +45,35 @@
 #	error UNSUPPORTED DYNAMIC LINKER
 #endif
 
-
 /////////////////////////////////
 HAWK_BEGIN_NAMESPACE(HAWK)
 /////////////////////////////////
 
-StdHawk::ioattr_t StdHawk::default_ioattr;
+//////////////////////////////////////////////////////////////////////////////
+// MmgrStd
+//////////////////////////////////////////////////////////////////////////////
+void* MmgrStd::allocMem (hawk_oow_t n) HAWK_CPP_NOEXCEPT
+{
+	return ::malloc(n);
+}
 
-static hawk_sio_t* open_sio (Hawk* awk, StdHawk::Run* run, const hawk_ooch_t* file, int flags)
+void* MmgrStd::reallocMem (void* ptr, hawk_oow_t n) HAWK_CPP_NOEXCEPT
+{
+	return ::realloc(ptr, n);
+}
+
+void MmgrStd::freeMem (void* ptr) HAWK_CPP_NOEXCEPT
+{
+	::free (ptr);
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// HawkStd
+//////////////////////////////////////////////////////////////////////////////
+
+HawkStd::ioattr_t HawkStd::default_ioattr;
+
+static hawk_sio_t* open_sio (Hawk* awk, HawkStd::Run* run, const hawk_ooch_t* file, int flags)
 {
 	hawk_sio_t* sio;
 
@@ -69,7 +90,7 @@ static hawk_sio_t* open_sio (Hawk* awk, StdHawk::Run* run, const hawk_ooch_t* fi
 	return sio;
 }
 
-static hawk_sio_t* open_sio_std (Hawk* awk, StdHawk::Run* run, hawk_sio_std_t std, int flags)
+static hawk_sio_t* open_sio_std (Hawk* awk, HawkStd::Run* run, hawk_sio_std_t std, int flags)
 {
 	hawk_sio_t* sio;
 	static const hawk_ooch_t* std_names[] =
@@ -92,7 +113,7 @@ static hawk_sio_t* open_sio_std (Hawk* awk, StdHawk::Run* run, hawk_sio_std_t st
 	return sio;
 }
 
-int StdHawk::open () 
+int HawkStd::open () 
 {
 	int n = Hawk::open ();
 	if (n == -1) return n;
@@ -110,8 +131,8 @@ int StdHawk::open ()
 	if (addFunction (HAWK_T("rand"),       1, 0, HAWK_T("math"),   HAWK_NULL,                            0) <= -1 ||
 	    addFunction (HAWK_T("srand"),      1, 0, HAWK_T("math"),   HAWK_NULL,                            0) <= -1 ||
 	    addFunction (HAWK_T("system"),     1, 0, HAWK_T("sys"),    HAWK_NULL,                            0) <= -1 ||
-	    addFunction (HAWK_T("setioattr"),  3, 3, HAWK_NULL,        (FunctionHandler)&StdHawk::setioattr, HAWK_RIO) <= -1 ||
-	    addFunction (HAWK_T("getioattr"),  3, 3, HAWK_T("vvr"),    (FunctionHandler)&StdHawk::getioattr, HAWK_RIO) <= -1)
+	    addFunction (HAWK_T("setioattr"),  3, 3, HAWK_NULL,        (FunctionHandler)&HawkStd::setioattr, HAWK_RIO) <= -1 ||
+	    addFunction (HAWK_T("getioattr"),  3, 3, HAWK_T("vvr"),    (FunctionHandler)&HawkStd::getioattr, HAWK_RIO) <= -1)
 	{
 		goto oops;
 	}
@@ -134,7 +155,7 @@ oops:
 	return -1;
 }
 
-void StdHawk::close () 
+void HawkStd::close () 
 {
 	if (this->cmgrtab_inited) 
 	{
@@ -145,14 +166,14 @@ void StdHawk::close ()
 	clearConsoleOutputs ();
 
 	//
-	// StdHawk called hawk_stdmodstartup() after Hawk::open().
+	// HawkStd called hawk_stdmodstartup() after Hawk::open().
 	// It's logical to call hawk_stdmodshutdown() Hawk::close().
 	// but Hawk::close() still needs to call some module's fini and
-	// unload functions. So it must be done in StdHawk::uponClosing()
+	// unload functions. So it must be done in HawkStd::uponClosing()
 	// which is called after modules have been unloaded but while
 	// the underlying awk object is still alive. 
 	//
-	// See StdHawk::uponClosing() below.
+	// See HawkStd::uponClosing() below.
 	//
 	//if (this->stdmod_up)
 	//{
@@ -164,7 +185,7 @@ void StdHawk::close ()
 	Hawk::close ();
 }
 
-void StdHawk::uponClosing ()
+void HawkStd::uponClosing ()
 {
 	if (this->stdmod_up)
 	{
@@ -176,7 +197,7 @@ void StdHawk::uponClosing ()
 	Hawk::uponClosing ();
 }
 
-StdHawk::Run* StdHawk::parse (Source& in, Source& out)
+HawkStd::Run* HawkStd::parse (Source& in, Source& out)
 {
 	Run* run = Hawk::parse(in, out);
 
@@ -207,7 +228,7 @@ StdHawk::Run* StdHawk::parse (Source& in, Source& out)
 	return run;
 }
 
-int StdHawk::build_argcv (Run* run)
+int HawkStd::build_argcv (Run* run)
 {
 	Value argv (run);
 
@@ -224,7 +245,7 @@ int StdHawk::build_argcv (Run* run)
 	return 0;
 }
 
-int StdHawk::__build_environ (Run* run, void* envptr)
+int HawkStd::__build_environ (Run* run, void* envptr)
 {
 	hawk_env_hawk_ooch_t** envarr = (hawk_env_hawk_ooch_t**)envptr;
 	Value v_env (run);
@@ -307,7 +328,7 @@ int StdHawk::__build_environ (Run* run, void* envptr)
 	return run->setGlobal (this->gbl_environ, v_env);
 }
 
-int StdHawk::build_environ (Run* run)
+int HawkStd::build_environ (Run* run)
 {
 	hawk_env_t env;
 	int xret;
@@ -324,7 +345,7 @@ int StdHawk::build_environ (Run* run)
 	return xret;
 }
 
-int StdHawk::make_additional_globals (Run* run)
+int HawkStd::make_additional_globals (Run* run)
 {
 	if (build_argcv (run) <= -1 ||
 	    build_environ (run) <= -1) return -1;
@@ -332,7 +353,7 @@ int StdHawk::make_additional_globals (Run* run)
 	return 0;
 }
 
-hawk_cmgr_t* StdHawk::getiocmgr (const hawk_ooch_t* ioname)
+hawk_cmgr_t* HawkStd::getiocmgr (const hawk_ooch_t* ioname)
 {
 	HAWK_ASSERT (this->cmgrtab_inited == true);
 
@@ -343,7 +364,7 @@ hawk_cmgr_t* StdHawk::getiocmgr (const hawk_ooch_t* ioname)
 	return HAWK_NULL;
 }
 
-StdHawk::ioattr_t* StdHawk::get_ioattr (const hawk_ooch_t* ptr, hawk_oow_t len)
+HawkStd::ioattr_t* HawkStd::get_ioattr (const hawk_ooch_t* ptr, hawk_oow_t len)
 {
 	hawk_htb_pair_t* pair;
 
@@ -353,7 +374,7 @@ StdHawk::ioattr_t* StdHawk::get_ioattr (const hawk_ooch_t* ptr, hawk_oow_t len)
 	return (ioattr_t*)HAWK_HTB_VPTR(pair);
 }
 
-StdHawk::ioattr_t* StdHawk::find_or_make_ioattr (const hawk_ooch_t* ptr, hawk_oow_t len)
+HawkStd::ioattr_t* HawkStd::find_or_make_ioattr (const hawk_ooch_t* ptr, hawk_oow_t len)
 {
 	hawk_htb_pair_t* pair;
 
@@ -362,8 +383,8 @@ StdHawk::ioattr_t* StdHawk::find_or_make_ioattr (const hawk_ooch_t* ptr, hawk_oo
 	{
 		pair = hawk_htb_insert (
 			&this->cmgrtab, (void*)ptr, len, 
-			(void*)&StdHawk::default_ioattr, 
-			HAWK_SIZEOF(StdHawk::default_ioattr));
+			(void*)&HawkStd::default_ioattr, 
+			HAWK_SIZEOF(HawkStd::default_ioattr));
 		if (pair == HAWK_NULL) 
 		{
 			this->setError (HAWK_ENOMEM);
@@ -383,7 +404,7 @@ static int timeout_code (const hawk_ooch_t* name)
 	return -1;
 }
 
-int StdHawk::setioattr (
+int HawkStd::setioattr (
 	Run& run, Value& ret, Value* args, hawk_oow_t nargs,
 	const hawk_ooch_t* name, hawk_oow_t len)
 {
@@ -458,7 +479,7 @@ int StdHawk::setioattr (
 	}
 }
 
-int StdHawk::getioattr (
+int HawkStd::getioattr (
 	Run& run, Value& ret, Value* args, hawk_oow_t nargs,
 	const hawk_ooch_t* name, hawk_oow_t len)
 {
@@ -476,7 +497,7 @@ int StdHawk::getioattr (
 	    hawk_strxchr (ptr[1], l[1], HAWK_T('\0')) == HAWK_NULL)
 	{
 		ioattr_t* ioattr = get_ioattr (ptr[0], l[0]);
-		if (ioattr == HAWK_NULL) ioattr = &StdHawk::default_ioattr;
+		if (ioattr == HAWK_NULL) ioattr = &HawkStd::default_ioattr;
 
 		int tmout;
 		if ((tmout = timeout_code(ptr[1])) >= 0)
@@ -499,7 +520,7 @@ int StdHawk::getioattr (
 	return ret.setInt ((int_t)xx);
 }
 
-int StdHawk::open_nwio (Pipe& io, int flags, void* nwad)
+int HawkStd::open_nwio (Pipe& io, int flags, void* nwad)
 {
 	hawk_nwio_tmout_t tmout_buf;
 	hawk_nwio_tmout_t* tmout = HAWK_NULL;
@@ -534,7 +555,7 @@ int StdHawk::open_nwio (Pipe& io, int flags, void* nwad)
 	return 1;
 }
 
-int StdHawk::open_pio (Pipe& io) 
+int HawkStd::open_pio (Pipe& io) 
 { 
 	Hawk::Pipe::Mode mode = io.getMode();
 	hawk_pio_t* pio = HAWK_NULL;
@@ -611,7 +632,7 @@ static int parse_rwpipe_uri (const hawk_ooch_t* uri, int* flags, hawk_nwad_t* nw
 	return -1;
 }
 
-int StdHawk::openPipe (Pipe& io) 
+int HawkStd::openPipe (Pipe& io) 
 { 
 	int flags;
 	hawk_nwad_t nwad;
@@ -627,7 +648,7 @@ int StdHawk::openPipe (Pipe& io)
 	}
 }
 
-int StdHawk::closePipe (Pipe& io) 
+int HawkStd::closePipe (Pipe& io) 
 {
 	if (io.getUflags() > 0)
 	{
@@ -657,35 +678,35 @@ int StdHawk::closePipe (Pipe& io)
 	return 0; 
 }
 
-hawk_ooi_t StdHawk::readPipe (Pipe& io, hawk_ooch_t* buf, hawk_oow_t len) 
+hawk_ooi_t HawkStd::readPipe (Pipe& io, hawk_ooch_t* buf, hawk_oow_t len) 
 { 
 	return (io.getUflags() > 0)?
 		hawk_nwio_read ((hawk_nwio_t*)io.getHandle(), buf, len):
 		hawk_pio_read ((hawk_pio_t*)io.getHandle(), HAWK_PIO_OUT, buf, len);
 }
 
-hawk_ooi_t StdHawk::writePipe (Pipe& io, const hawk_ooch_t* buf, hawk_oow_t len) 
+hawk_ooi_t HawkStd::writePipe (Pipe& io, const hawk_ooch_t* buf, hawk_oow_t len) 
 { 
 	return (io.getUflags() > 0)?
 		hawk_nwio_write((hawk_nwio_t*)io.getHandle(), buf, len):
 		hawk_pio_write((hawk_pio_t*)io.getHandle(), HAWK_PIO_IN, buf, len);
 }
 
-hawk_ooi_t StdHawk::writePipeBytes (Pipe& io, const hawk_bch_t* buf, hawk_oow_t len) 
+hawk_ooi_t HawkStd::writePipeBytes (Pipe& io, const hawk_bch_t* buf, hawk_oow_t len) 
 { 
 	return (io.getUflags() > 0)?
 		hawk_nwio_writebytes((hawk_nwio_t*)io.getHandle(), buf, len):
 		hawk_pio_writebytes((hawk_pio_t*)io.getHandle(), HAWK_PIO_IN, buf, len);
 }
 
-int StdHawk::flushPipe (Pipe& io) 
+int HawkStd::flushPipe (Pipe& io) 
 { 
 	return (io.getUflags() > 0)?
 		hawk_nwio_flush ((hawk_nwio_t*)io.getHandle()):
 		hawk_pio_flush ((hawk_pio_t*)io.getHandle(), HAWK_PIO_IN);
 }
 
-int StdHawk::openFile (File& io) 
+int HawkStd::openFile (File& io) 
 { 
 	Hawk::File::Mode mode = io.getMode();
 	hawk_sio_t* sio = HAWK_NULL;
@@ -718,44 +739,44 @@ int StdHawk::openFile (File& io)
 	return 1;
 }
 
-int StdHawk::closeFile (File& io) 
+int HawkStd::closeFile (File& io) 
 { 
 	hawk_sio_close ((hawk_sio_t*)io.getHandle());
 	return 0; 
 }
 
-hawk_ooi_t StdHawk::readFile (File& io, hawk_ooch_t* buf, hawk_oow_t len) 
+hawk_ooi_t HawkStd::readFile (File& io, hawk_ooch_t* buf, hawk_oow_t len) 
 {
 	return hawk_sio_getoochars((hawk_sio_t*)io.getHandle(), buf, len);
 }
 
-hawk_ooi_t StdHawk::writeFile (File& io, const hawk_ooch_t* buf, hawk_oow_t len)
+hawk_ooi_t HawkStd::writeFile (File& io, const hawk_ooch_t* buf, hawk_oow_t len)
 {
 	return hawk_sio_putoochars((hawk_sio_t*)io.getHandle(), buf, len);
 }
 
-hawk_ooi_t StdHawk::writeFileBytes (File& io, const hawk_bch_t* buf, hawk_oow_t len)
+hawk_ooi_t HawkStd::writeFileBytes (File& io, const hawk_bch_t* buf, hawk_oow_t len)
 {
 	return hawk_sio_putbchars((hawk_sio_t*)io.getHandle(), buf, len);
 }
 
 
-int StdHawk::flushFile (File& io) 
+int HawkStd::flushFile (File& io) 
 { 
 	return hawk_sio_flush((hawk_sio_t*)io.getHandle());
 }
 
-void StdHawk::setConsoleCmgr (const hawk_cmgr_t* cmgr)
+void HawkStd::setConsoleCmgr (const hawk_cmgr_t* cmgr)
 {
 	this->console_cmgr = (hawk_cmgr_t*)cmgr;	
 }
 
-const hawk_cmgr_t* StdHawk::getConsoleCmgr () const
+const hawk_cmgr_t* HawkStd::getConsoleCmgr () const
 {
 	return this->console_cmgr;
 }
 
-int StdHawk::addConsoleOutput (const hawk_ooch_t* arg, hawk_oow_t len) 
+int HawkStd::addConsoleOutput (const hawk_ooch_t* arg, hawk_oow_t len) 
 {
 	HAWK_ASSERT (awk != HAWK_NULL);
 	int n = this->ofile.add (awk, arg, len);
@@ -763,17 +784,17 @@ int StdHawk::addConsoleOutput (const hawk_ooch_t* arg, hawk_oow_t len)
 	return n;
 }
 
-int StdHawk::addConsoleOutput (const hawk_ooch_t* arg) 
+int HawkStd::addConsoleOutput (const hawk_ooch_t* arg) 
 {
 	return addConsoleOutput (arg, hawk_count_oocstr(arg));
 }
 
-void StdHawk::clearConsoleOutputs () 
+void HawkStd::clearConsoleOutputs () 
 {
 	this->ofile.clear (awk);
 }
 
-int StdHawk::open_console_in (Console& io) 
+int HawkStd::open_console_in (Console& io) 
 { 
 	hawk_rtx_t* rtx = (rtx_t*)io;
 
@@ -932,7 +953,7 @@ int StdHawk::open_console_in (Console& io)
 
 }
 
-int StdHawk::open_console_out (Console& io) 
+int HawkStd::open_console_out (Console& io) 
 {
 	hawk_rtx_t* rtx = (rtx_t*)io;
 
@@ -1005,7 +1026,7 @@ int StdHawk::open_console_out (Console& io)
 	}
 }
 
-int StdHawk::openConsole (Console& io) 
+int HawkStd::openConsole (Console& io) 
 {
 	Console::Mode mode = io.getMode();
 
@@ -1030,13 +1051,13 @@ int StdHawk::openConsole (Console& io)
 	}
 }
 
-int StdHawk::closeConsole (Console& io) 
+int HawkStd::closeConsole (Console& io) 
 { 
 	hawk_sio_close ((hawk_sio_t*)io.getHandle());
 	return 0;
 }
 
-hawk_ooi_t StdHawk::readConsole (Console& io, hawk_ooch_t* data, hawk_oow_t size) 
+hawk_ooi_t HawkStd::readConsole (Console& io, hawk_ooch_t* data, hawk_oow_t size) 
 {
 	hawk_ooi_t nn;
 
@@ -1060,22 +1081,22 @@ hawk_ooi_t StdHawk::readConsole (Console& io, hawk_ooch_t* data, hawk_oow_t size
 	return nn;
 }
 
-hawk_ooi_t StdHawk::writeConsole (Console& io, const hawk_ooch_t* data, hawk_oow_t size) 
+hawk_ooi_t HawkStd::writeConsole (Console& io, const hawk_ooch_t* data, hawk_oow_t size) 
 {
 	return hawk_sio_putoochars((hawk_sio_t*)io.getHandle(), data, size);
 }
 
-hawk_ooi_t StdHawk::writeConsoleBytes (Console& io, const hawk_bch_t* data, hawk_oow_t size) 
+hawk_ooi_t HawkStd::writeConsoleBytes (Console& io, const hawk_bch_t* data, hawk_oow_t size) 
 {
 	return hawk_sio_putbchars((hawk_sio_t*)io.getHandle(), data, size);
 }
 
-int StdHawk::flushConsole (Console& io) 
+int HawkStd::flushConsole (Console& io) 
 { 
 	return hawk_sio_flush ((hawk_sio_t*)io.getHandle());
 }
 
-int StdHawk::nextConsole (Console& io) 
+int HawkStd::nextConsole (Console& io) 
 { 
 	int n;
 	hawk_sio_t* sio = (hawk_sio_t*)io.getHandle();
@@ -1095,34 +1116,34 @@ int StdHawk::nextConsole (Console& io)
 }
 
 // memory allocation primitives
-void* StdHawk::allocMem (hawk_oow_t n) 
+void* HawkStd::allocMem (hawk_oow_t n) 
 { 
 	return ::malloc (n); 
 }
 
-void* StdHawk::reallocMem (void* ptr, hawk_oow_t n) 
+void* HawkStd::reallocMem (void* ptr, hawk_oow_t n) 
 { 
 	return ::realloc (ptr, n); 
 }
 
-void  StdHawk::freeMem (void* ptr) 
+void  HawkStd::freeMem (void* ptr) 
 { 
 	::free (ptr); 
 }
 
 // miscellaneous primitive
 
-StdHawk::flt_t StdHawk::pow (flt_t x, flt_t y) 
+HawkStd::flt_t HawkStd::pow (flt_t x, flt_t y) 
 { 
 	return hawk_stdmathpow (this->awk, x, y);
 }
 
-StdHawk::flt_t StdHawk::mod (flt_t x, flt_t y) 
+HawkStd::flt_t HawkStd::mod (flt_t x, flt_t y) 
 { 
 	return hawk_stdmathmod (this->awk, x, y);
 }
 
-void* StdHawk::modopen (const mod_spec_t* spec)
+void* HawkStd::modopen (const mod_spec_t* spec)
 {
 	void* h;
 	h = hawk_stdmodopen (this->awk, spec);
@@ -1130,12 +1151,12 @@ void* StdHawk::modopen (const mod_spec_t* spec)
 	return h;
 }
 
-void StdHawk::modclose (void* handle)
+void HawkStd::modclose (void* handle)
 {
 	hawk_stdmodclose (this->awk, handle);
 }
 
-void* StdHawk::modgetsym (void* handle, const hawk_ooch_t* name)
+void* HawkStd::modgetsym (void* handle, const hawk_ooch_t* name)
 {
 	void* s;
 	s = hawk_stdmodgetsym (this->awk, handle, name);
@@ -1143,7 +1164,7 @@ void* StdHawk::modgetsym (void* handle, const hawk_ooch_t* name)
 	return s;
 }
 
-int StdHawk::SourceFile::open (Data& io)
+int HawkStd::SourceFile::open (Data& io)
 {
 	hawk_sio_t* sio;
 
@@ -1242,7 +1263,7 @@ int StdHawk::SourceFile::open (Data& io)
 	return 1;
 }
 
-int StdHawk::SourceFile::close (Data& io)
+int HawkStd::SourceFile::close (Data& io)
 {
 	hawk_sio_t* sio = (hawk_sio_t*)io.getHandle();
 	hawk_sio_flush (sio);
@@ -1250,17 +1271,17 @@ int StdHawk::SourceFile::close (Data& io)
 	return 0;
 }
 
-hawk_ooi_t StdHawk::SourceFile::read (Data& io, hawk_ooch_t* buf, hawk_oow_t len)
+hawk_ooi_t HawkStd::SourceFile::read (Data& io, hawk_ooch_t* buf, hawk_oow_t len)
 {
 	return hawk_sio_getoochars ((hawk_sio_t*)io.getHandle(), buf, len);
 }
 
-hawk_ooi_t StdHawk::SourceFile::write (Data& io, const hawk_ooch_t* buf, hawk_oow_t len)
+hawk_ooi_t HawkStd::SourceFile::write (Data& io, const hawk_ooch_t* buf, hawk_oow_t len)
 {
 	return hawk_sio_putoochars ((hawk_sio_t*)io.getHandle(), buf, len);
 }
 
-int StdHawk::SourceString::open (Data& io)
+int HawkStd::SourceString::open (Data& io)
 {
 	hawk_sio_t* sio;
 
@@ -1336,13 +1357,13 @@ int StdHawk::SourceString::open (Data& io)
 	return 1;
 }
 
-int StdHawk::SourceString::close (Data& io)
+int HawkStd::SourceString::close (Data& io)
 {
 	if (!io.isMaster()) hawk_sio_close ((hawk_sio_t*)io.getHandle());
 	return 0;
 }
 
-hawk_ooi_t StdHawk::SourceString::read (Data& io, hawk_ooch_t* buf, hawk_oow_t len)
+hawk_ooi_t HawkStd::SourceString::read (Data& io, hawk_ooch_t* buf, hawk_oow_t len)
 {
 	if (io.isMaster())
 	{
@@ -1356,7 +1377,7 @@ hawk_ooi_t StdHawk::SourceString::read (Data& io, hawk_ooch_t* buf, hawk_oow_t l
 	}
 }
 
-hawk_ooi_t StdHawk::SourceString::write (Data& io, const hawk_ooch_t* buf, hawk_oow_t len)
+hawk_ooi_t HawkStd::SourceString::write (Data& io, const hawk_ooch_t* buf, hawk_oow_t len)
 {
 	if (io.isMaster())
 	{

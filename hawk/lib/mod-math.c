@@ -65,7 +65,7 @@ typedef struct modctx_t
 	unsigned int seed;
 #if defined(HAVE_INITSTATE_R) && defined(HAVE_SRANDOM_R) && defined(HAVE_RANDOM_R)
 	struct random_data prand;
-	hawk_uint8_t prand_bin[256];
+	char prand_bin[256]; /* or hawk_uint8_t? */
 #endif
 } modctx_t;
 

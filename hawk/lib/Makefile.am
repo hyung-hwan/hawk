@@ -158,8 +158,9 @@ libhawk_la_LIBADD += $(UNWIND_LIBS)
 endif
 
 if ENABLE_CXX
+pkginclude_HEADERS += Hawk.hpp HawkStd.hpp
 pkglib_LTLIBRARIES += libhawkxx.la
-libhawkxx_la_SOURCES = Hawk.cpp StdHawk.cpp
+libhawkxx_la_SOURCES = Hawk.cpp HawkStd.cpp
 libhawkxx_la_CPPFLAGS = $(CPPFLAGS_LIB_COMMON)
 libhawkxx_la_LDFLAGS = $(LDFLAGS_LIB_COMMON)
 libhawkxx_la_LIBADD = -lhawk $(LIBADD_LIB_COMMON) 

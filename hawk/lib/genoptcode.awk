@@ -1,7 +1,7 @@
 #
 # genoptcode.awk
 #
-# qseawk -f generror.awk awk.h
+# hawk -f generror.awk hawk.h
 #
 
 BEGIN { 

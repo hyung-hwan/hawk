@@ -28,10 +28,10 @@
 #define _HAWK_HAWK_HPP_
 
 #include <hawk.h>
-#include <stdarg.h>
 
 #define HAWK_USE_HTB_FOR_FUNCTION_MAP 1
 //#define HAWK_VALUE_USE_IN_CLASS_PLACEMENT_NEW 1
+//#define HAWK_NO_LOCATION_IN_EXCEPTION 1
 
 // TOOD: redefine these NAMESPACE stuffs or move them somewhere else
 #define HAWK_BEGIN_NAMESPACE(x) namespace x {
@@ -51,11 +51,329 @@
 HAWK_BEGIN_NAMESPACE(HAWK)
 /////////////////////////////////
 
+#if (__cplusplus >= 201103L) || (defined(_MSC_VER) && _MSC_VER >= 1900) // C++11 or later
+	#define HAWK_LANG_CPP11 1
+	#define HAWK_CPP_NOEXCEPT noexcept(true)
+
+	/// The HAWK_CPP_ENABLE_CPP11_MOVE macro enables C++11 move semantics in various classes.
+	#define HAWK_CPP_ENABLE_CPP11_MOVE 1
+
+	// The HAWK_CPP_CALL_DESTRUCTOR() macro calls a destructor explicitly.
+	#define HAWK_CPP_CALL_DESTRUCTOR(ptr, class_name) ((ptr)->~class_name())
+
+	// The HAWK_CPP_CALL_PLACEMENT_DELETE1() macro calls the global operator delete
+	// with 1 extra argument given.
+	#define HAWK_CPP_CALL_PLACEMENT_DELETE1(ptr, arg1) (::operator delete((ptr), (arg1)))
+
+#elif (__cplusplus >= 199711L) // C++98
+	#undef HAWK_LANG_CPP11 
+	#define HAWK_CPP_NOEXCEPT throw()
+
+	#define HAWK_CPP_CALL_DESTRUCTOR(ptr, class_name) ((ptr)->~class_name())
+	#define HAWK_CPP_CALL_PLACEMENT_DELETE1(ptr, arg1) (::operator delete((ptr), (arg1)))
+#else
+	#undef HAWK_LANG_CPP11 
+	#define HAWK_CPP_NOEXCEPT 
+
+	#if defined(__BORLANDC__)
+
+		// Explicit destructor call requires a class name depending on the
+		// C++ standard/compiler.  
+		// 
+		//   Node* x;
+		//   x->~Node (); 
+		//
+		// While x->~Node() is ok with modern compilers, some old compilers
+		// like BCC55 required the class name in the call as shown below.
+		//
+		//   x->Node::~Node ();
+
+		#define HAWK_CPP_CALL_DESTRUCTOR(ptr, class_name) ((ptr)->class_name::~class_name())
+		#define HAWK_CPP_CALL_PLACEMENT_DELETE1(ptr, arg1) (::operator delete((ptr), (arg1)))
+
+
+	#elif defined(__WATCOMC__)
+		// WATCOM has a problem with this syntax.
+		//    Node* x; x->Node::~Node(). 
+		// But it doesn't support operator delete overloading.
+
+		#define HAWK_CPP_CALL_DESTRUCTOR(ptr, class_name) ((ptr)->~class_name())
+		#define HAWK_CPP_CALL_PLACEMENT_DELETE1(ptr, arg1) (::hawk_operator_delete((ptr), (arg1)))
+
+		// When  the name of a member template specialization appears after .  or
+		// -> in a postfix-expression, or after :: in a qualified-id that explic-
+		// itly  depends on a template-argument (_temp.dep_), the member template
+		// name must be prefixed by the keyword template.  Otherwise the name  is
+		// assumed to name a non-template.  [Example:
+		// 		class X {
+		// 		public:
+		// 			   template<size_t> X* alloc();
+		// 		};
+		// 		void f(X* p)
+		// 		{
+		// 			   X* p1 = p->alloc<200>();
+		// 					 // ill-formed: < means less than
+		// 			   X* p2 = p->template alloc<200>();
+		// 					 // fine: < starts explicit qualification
+		// 		}
+		// --end example]
+		//
+		// WATCOM doesn't support this qualifier.
+
+		#define HAWK_CPP_NO_OPERATOR_DELETE_OVERLOADING 1
+	#else
+
+		#define HAWK_CPP_CALL_DESTRUCTOR(ptr, class_name) ((ptr)->~class_name())
+		#define HAWK_CPP_CALL_PLACEMENT_DELETE1(ptr, arg1) (::operator delete((ptr), (arg1)))
+
+	#endif
+
+#endif
+
+#if defined(HAWK_CPP_ENABLE_CPP11_MOVE)
+
+	template<typename T> struct HAWK_CPP_RMREF      { typedef T Type; };
+	template<typename T> struct HAWK_CPP_RMREF<T&>  { typedef T Type; };
+	template<typename T> struct HAWK_CPP_RMREF<T&&> { typedef T Type; };
+
+	template<typename T> inline
+	typename HAWK_CPP_RMREF<T>::Type&& HAWK_CPP_RVREF(T&& v)
+	{
+		return (typename HAWK_CPP_RMREF<T>::Type&&)v;
+	}
+#else
+
+	/*
+	template<typename T> inline
+	T& HAWK_CPP_RVREF(T& v) { return (T&)v; }
+
+	template<typename T> inline
+	const T& HAWK_CPP_RVREF(const T& v) { return (const T&)v; }
+	*/
+	#define HAWK_CPP_RVREF(x) x
+#endif
+
+/// The Exception class implements the exception object.
+class HAWK_EXPORT Exception
+{
+public:
+	Exception (
+		const hawk_ooch_t* name, const hawk_ooch_t* msg, 
+		const hawk_ooch_t* file, hawk_oow_t line) HAWK_CPP_NOEXCEPT: 
+		name(name), msg(msg)
+#if !defined(HAWK_NO_LOCATION_IN_EXCEPTION)
+		, file(file), line(line) 
+#endif
+	{
+	}
+
+	const hawk_ooch_t* name;
+	const hawk_ooch_t* msg;
+#if !defined(HAWK_NO_LOCATION_IN_EXCEPTION)
+	const hawk_ooch_t* file;
+	hawk_oow_t        line;
+#endif
+};
+
+#define HAWK_THROW(ex_name) \
+	throw ex_name(HAWK_Q(ex_name),HAWK_Q(ex_name), HAWK_T(__FILE__), (hawk_oow_t)__LINE__)
+#define HAWK_THROW_WITH_MSG(ex_name,msg) \
+	throw ex_name(HAWK_Q(ex_name),msg, HAWK_T(__FILE__), (hawk_oow_t)__LINE__)
+
+#define HAWK_EXCEPTION(ex_name) \
+	class ex_name: public HAWK::Exception \
+	{ \
+	public: \
+		ex_name (const hawk_ooch_t* name, const hawk_ooch_t* msg, \
+		         const hawk_ooch_t* file, hawk_oow_t line) HAWK_CPP_NOEXCEPT: \
+			HAWK::Exception (name, msg, file, line) {} \
+	}
+
+#define HAWK_EXCEPTION_NAME(exception_object) ((exception_object).name)
+#define HAWK_EXCEPTION_MSG(exception_object)  ((exception_object).msg)
+
+#if !defined(HAWK_NO_LOCATION_IN_EXCEPTION)
+#	define HAWK_EXCEPTION_FILE(exception_object) ((exception_object).file)
+#	define HAWK_EXCEPTION_LINE(exception_object) ((exception_object).line)
+#else
+#	define HAWK_EXCEPTION_FILE(exception_object) (HAWK_T(""))
+#	define HAWK_EXCEPTION_LINE(exception_object) (0)
+#endif
+
+class HAWK_EXPORT Uncopyable
+{
+public:
+	Uncopyable () HAWK_CPP_NOEXCEPT {}
+	//virtual ~Uncopyable () {}
+
+private:
+	Uncopyable (const Uncopyable&);
+	const Uncopyable& operator= (const Uncopyable&);
+};
+
+///
+/// The Mmgr class defines a memory manager interface that can be inherited
+/// by a class in need of a memory manager as defined in the primitive 
+/// #hawk_mmgr_t type. Using the class over the primitive type enables you to
+/// write code in more object-oriented fashion. An inheriting class should 
+/// implement three pure virtual functions.
+///
+/// You are free to call allocMem(), reallocMem(), and freeMem() in C++ context
+/// where no exception raising is desired. If you want an exception to be 
+/// raised upon memory allocation errors, you can call allocate(), reallocate(),
+/// dispose() instead.
+/// 
+/// 
+class HAWK_EXPORT Mmgr: public hawk_mmgr_t
+{
+public:
+	/// defines an alias type to #hawk_mmgr_t 
+	typedef hawk_mmgr_t mmgr_t;
+
+	HAWK_EXCEPTION (MemoryError);
+
+public:
+	///
+	/// The Mmgr() function builds a memory manager composed of bridge
+	/// functions connecting itself with it.
+	///
+	Mmgr () HAWK_CPP_NOEXCEPT
+	{
+		// NOTE:
+		//  the #hawk_mmgr_t interface is not affected by raise_exception
+		//  because direct calls to the virtual functions that don't raise
+		//  exceptions are made via bridge functions below.
+		this->alloc = alloc_mem;
+		this->realloc = realloc_mem;
+		this->free = free_mem;
+		this->ctx = this;
+	}
+
+	///
+	/// The ~Mmgr() function finalizes a memory manager.
+	///
+	virtual ~Mmgr () HAWK_CPP_NOEXCEPT {}
+
+	///
+	/// The allocate() function calls allocMem() for memory
+	/// allocation. if it fails, it raise an exception if it's
+	/// configured to do so.
+	///
+	void* allocate (hawk_oow_t n, bool raise_exception = true)
+	{
+		void* xptr = this->allocMem (n);
+		if (!xptr && raise_exception) HAWK_THROW (MemoryError);
+		return xptr;
+	}
+
+	///
+	/// The callocate() function allocates memory like allocate() and 
+	/// clears the memory before returning.
+	///
+	void* callocate (hawk_oow_t n, bool raise_exception = true);
+
+	///
+	/// The reallocate() function calls reallocMem() for memory
+	/// reallocation. if it fails, it raise an exception if it's
+	/// configured to do so.
+	///
+	void* reallocate (void* ptr, hawk_oow_t n, bool raise_exception = true)
+	{
+		void* xptr = this->reallocMem (ptr, n);
+		if (!xptr && raise_exception) HAWK_THROW (MemoryError);
+		return xptr;
+	}
+
+	///
+	/// The dispose() function calls freeMem() for memory disposal.
+	///
+	void dispose (void* ptr) HAWK_CPP_NOEXCEPT
+	{
+		this->freeMem (ptr);
+	}
+
+//protected:
+	/// 
+	/// The allocMem() function allocates a chunk of memory of the 
+	/// size \a n and return the pointer to the beginning of the chunk.
+	/// If it fails to allocate memory, it should return #HAWK_NULL.
+	///
+	virtual void* allocMem (
+		hawk_oow_t n ///< size of memory chunk to allocate in bytes 
+	) HAWK_CPP_NOEXCEPT = 0;
+
+	///
+	/// The reallocMem() function resizes a chunk of memory previously
+	/// allocated with the allocMem() function. When resized, the contents
+	/// of the surviving part of a memory chunk is preserved. If it fails to
+	/// resize memory, it should return HAWK_NULL.
+	///
+	virtual void* reallocMem (
+		void* ptr, ///< pointer to memory chunk to resize
+		hawk_oow_t n   ///< new size in bytes
+	) HAWK_CPP_NOEXCEPT = 0;
+
+	///
+	/// The freeMem() function frees a chunk of memory allocated with
+	/// the allocMem() function or resized with the reallocMem() function.
+	///
+	virtual void freeMem (
+		void* ptr ///< pointer to memory chunk to free 
+	) HAWK_CPP_NOEXCEPT = 0;
+
+protected:
+	///
+	/// bridge function from the #hawk_mmgr_t type the allocMem() function.
+	///
+	static void* alloc_mem (mmgr_t* mmgr, hawk_oow_t n) HAWK_CPP_NOEXCEPT;
+
+	///
+	/// bridge function from the #hawk_mmgr_t type the reallocMem() function.
+	///
+	static void* realloc_mem (mmgr_t* mmgr, void* ptr, hawk_oow_t n) HAWK_CPP_NOEXCEPT;
+
+	///
+	/// bridge function from the #hawk_mmgr_t type the freeMem() function.
+	///
+	static void  free_mem (mmgr_t* mmgr, void* ptr) HAWK_CPP_NOEXCEPT;
+
+public:
+	static Mmgr* getDFL () HAWK_CPP_NOEXCEPT;
+	static void setDFL (Mmgr* mmgr) HAWK_CPP_NOEXCEPT;
+
+protected:
+	static Mmgr* dfl_mmgr;
+};
+
+
+class HAWK_EXPORT Mmged
+{
+public:
+	Mmged (Mmgr* mmgr = HAWK_NULL);
+
+	///
+	/// The getMmgr() function returns the memory manager associated.
+	///
+	Mmgr* getMmgr () const { return this->_mmgr; }
+
+protected:
+	/// 
+	/// The setMmgr() function changes the memory manager.
+	/// Changing memory manager requires extra care to be taken 
+	/// especially when you have some data allocated with the previous 
+	/// manager. for this reason, i put this as a protected function.
+	///
+	void setMmgr(Mmgr* mmgr);
+
+private:
+	Mmgr* _mmgr;
+};
+
 /// 
 /// The Hawk class implements an AWK interpreter by wrapping around 
 /// #hawk_t and #hawk_rtx_t.
 ///
-class HAWK_EXPORT Hawk: public Uncopyable, public Types, public Mmged
+class HAWK_EXPORT Hawk: public Uncopyable, public Mmged
 {
 public:
 
@@ -1363,12 +1681,12 @@ protected:
 	static int functionHandler (rtx_t* rtx, const fnc_info_t* fi);
 
 
-	static flt_t pow     (awk_t* awk, flt_t x, flt_t y);
-	static flt_t mod     (awk_t* awk, flt_t x, flt_t y);
+	static flt_t pow (awk_t* awk, flt_t x, flt_t y);
+	static flt_t mod (awk_t* awk, flt_t x, flt_t y);
 
-	static void* modopen  (awk_t* awk, const mod_spec_t* spec);
+	static void* modopen (awk_t* awk, const mod_spec_t* spec);
 	static void  modclose (awk_t* awk, void* handle);
-	static void* modsym   (awk_t* awk, void* handle, const hawk_ooch_t* name);
+	static void* modgetsym (awk_t* awk, void* handle, const hawk_ooch_t* name);
 
 public:
 	// use this with care
@@ -1430,5 +1748,34 @@ private:
 /////////////////////////////////
 HAWK_END_NAMESPACE(HAWK)
 /////////////////////////////////
+
+
+HAWK_EXPORT void* operator new (hawk_oow_t size, HAWK::Mmgr* mmgr);
+
+#if defined(HAWK_CPP_NO_OPERATOR_DELETE_OVERLOADING)
+HAWK_EXPORT void hawk_operator_delete (void* ptr, HAWK::Mmgr* mmgr);
+#else
+HAWK_EXPORT void operator delete (void* ptr, HAWK::Mmgr* mmgr);
+#endif
+
+HAWK_EXPORT void* operator new (hawk_oow_t size, HAWK::Mmgr* mmgr, void* existing_ptr);
+
+#if 0
+// i found no way to delete an array allocated with
+// the placement new operator. if the array element is an instance
+// of a class, the pointer returned by the new operator call
+// may not be the actual pointer allocated. some compilers
+// seem to put some information about the array at the 
+// beginning of the allocated memory and return the pointer
+// off a few bytes from the beginning.
+void* operator new[] (hawk_oow_t size, HAWK::Mmgr* mmgr);
+void operator delete[] (void* ptr, HAWK::Mmgr* mmgr);
+#endif
+
+#define HAWK_CPP_DELETE_WITH_MMGR(ptr, class_name, mmgr) \
+	do { \
+		HAWK_CPP_CALL_DESTRUCTOR (ptr, class_name); \
+		HAWK_CPP_CALL_PLACEMENT_DELETE1(ptr, mmgr); \
+	} while(0); 
 
 #endif
