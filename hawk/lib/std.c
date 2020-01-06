@@ -2400,7 +2400,7 @@ static int build_environ (hawk_rtx_t* rtx, int gbl_id, env_char_t* envarr[])
 	hawk_val_t* v_env;
 	hawk_val_t* v_tmp;
 
-	v_env = hawk_rtx_makemapval (rtx);
+	v_env = hawk_rtx_makemapval(rtx);
 	if (v_env == HAWK_NULL) return -1;
 
 	hawk_rtx_refupval (rtx, v_env);
@@ -2513,7 +2513,7 @@ static int build_environ (hawk_rtx_t* rtx, int gbl_id, env_char_t* envarr[])
 		}
 	}
 
-	if (hawk_rtx_setgbl (rtx, gbl_id, v_env) == -1)
+	if (hawk_rtx_setgbl(rtx, gbl_id, v_env) == -1)
 	{
 		hawk_rtx_refdownval (rtx, v_env);
 		return -1;

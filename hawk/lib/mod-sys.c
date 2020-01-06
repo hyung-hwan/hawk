@@ -250,19 +250,26 @@ static HAWK_INLINE sys_node_t* get_sys_list_node (sys_list_t* sys_list, hawk_int
 
 /* ------------------------------------------------------------------------ */
 
-static sys_node_t* get_sys_list_node_with_arg (hawk_rtx_t* rtx, sys_list_t* sys_list, hawk_val_t* arg)
+static sys_node_t* get_sys_list_node_with_arg (hawk_rtx_t* rtx, sys_list_t* sys_list, hawk_val_t* arg, int node_type)
 {
 	hawk_int_t id;
 	sys_node_t* sys_node;
 
 	if (hawk_rtx_valtoint(rtx, arg, &id) <= -1)
 	{
-		set_errmsg_on_sys_list (rtx, sys_list, HAWK_T("illegal instance id"));
+		set_errmsg_on_sys_list (rtx, sys_list, HAWK_T("illegal handle value"));
 		return HAWK_NULL;
 	}
 	else if (!(sys_node = get_sys_list_node(sys_list, id)))
 	{
-		set_errmsg_on_sys_list (rtx, sys_list, HAWK_T("invalid instance id - %zd"), (hawk_oow_t)id);
+		set_errmsg_on_sys_list (rtx, sys_list, HAWK_T("invalid handle - %zd"), (hawk_oow_t)id);
+		return HAWK_NULL;
+	}
+
+	if (sys_node->ctx.type != node_type)
+	{
+		/* the handle is found but is not of the desired type */
+		set_errmsg_on_sys_list (rtx, sys_list, HAWK_T("wrong handle type"));
 		return HAWK_NULL;
 	}
 
@@ -294,11 +301,11 @@ static int fnc_close (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_int_t cflags;
 
 	sys_list = rtx_to_sys_list(rtx, fi);
-	sys_node = get_sys_list_node_with_arg(rtx, sys_list, hawk_rtx_getarg(rtx, 0));
+	sys_node = get_sys_list_node_with_arg(rtx, sys_list, hawk_rtx_getarg(rtx, 0), SYS_NODE_DATA_FD);
 
 	if (hawk_rtx_getnargs(rtx) >= 2 && (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 1), &cflags) <= -1 || cflags < 0)) cflags = 0;
 
-	if (sys_node && sys_node->ctx.type == SYS_NODE_DATA_FD)
+	if (sys_node)
 	{
 		/* although free_sys_node can handle other types, sys::close() is allowed to
 		 * close nodes of the SYS_NODE_DATA_FD type only */
@@ -438,8 +445,8 @@ static int fnc_read (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	if (reqsize > HAWK_QUICKINT_MAX) reqsize = HAWK_QUICKINT_MAX;
 
 	sys_list = rtx_to_sys_list(rtx, fi);
-	sys_node = get_sys_list_node_with_arg(rtx, sys_list, hawk_rtx_getarg(rtx, 0));
-	if (sys_node && sys_node->ctx.type == SYS_NODE_DATA_FD)
+	sys_node = get_sys_list_node_with_arg(rtx, sys_list, hawk_rtx_getarg(rtx, 0), SYS_NODE_DATA_FD);
+	if (sys_node)
 	{
 		if (reqsize > sys_list->ctx.readbuf_capa)
 		{
@@ -493,8 +500,8 @@ static int fnc_write (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_int_t rx = ERRNUM_TO_RC(HAWK_EOTHER);
 
 	sys_list = rtx_to_sys_list(rtx, fi);
-	sys_node = get_sys_list_node_with_arg(rtx, sys_list, hawk_rtx_getarg(rtx, 0));
-	if (sys_node && sys_node->ctx.type == SYS_NODE_DATA_FD)
+	sys_node = get_sys_list_node_with_arg(rtx, sys_list, hawk_rtx_getarg(rtx, 0), SYS_NODE_DATA_FD);
+	if (sys_node)
 	{
 		hawk_bch_t* dptr;
 		hawk_oow_t dlen;
@@ -552,15 +559,15 @@ static int fnc_dup (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_int_t oflags = 0;
 
 	sys_list = rtx_to_sys_list(rtx, fi);
-	sys_node = get_sys_list_node_with_arg(rtx, sys_list, hawk_rtx_getarg(rtx, 0));
+	sys_node = get_sys_list_node_with_arg(rtx, sys_list, hawk_rtx_getarg(rtx, 0), SYS_NODE_DATA_FD);
 	if (hawk_rtx_getnargs(rtx) >= 2)
 	{
-		sys_node2 = get_sys_list_node_with_arg(rtx, sys_list, hawk_rtx_getarg(rtx, 1));
-		if (!sys_node2 || sys_node2->ctx.type != SYS_NODE_DATA_FD) goto fail_einval;
+		sys_node2 = get_sys_list_node_with_arg(rtx, sys_list, hawk_rtx_getarg(rtx, 1), SYS_NODE_DATA_FD);
+		if (!sys_node2) goto fail_einval;
 		if (hawk_rtx_getnargs(rtx) >= 3 && (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 2), &oflags) <= -1 || oflags < 0)) oflags = 0;
 	}
 
-	if (sys_node && sys_node->ctx.type == SYS_NODE_DATA_FD)
+	if (sys_node)
 	{
 		int fd;
 
@@ -816,6 +823,23 @@ static int fnc_pipe (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
                 while (sys::readdir(d,a) > 0) print a;
                 sys::closedir(d);
         }
+
+	################################################# 
+
+	d = sys::opendir("/tmp");
+	if (d <= -1) print "opendir error", sys::errmsg();
+	for (i = 0; i < 10; i++) 
+	{
+		sys::readdir(d, a);
+	       	print "[" a "]";
+	}
+	print "---";
+	if (sys::resetdir(d, "/dev/mapper/fedora-root") <= -1) 
+	{ 
+		print "reset failure:", sys::errmsg();
+	} 
+	while (sys::readdir(d, a) > 0) print "[" a "]"; 
+	sys::closedir(d);
 */
 
 static int fnc_opendir (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
@@ -870,8 +894,8 @@ static int fnc_closedir (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_int_t rx = ERRNUM_TO_RC(HAWK_EOTHER);
 
 	sys_list = rtx_to_sys_list(rtx, fi);
-	sys_node = get_sys_list_node_with_arg(rtx, sys_list, hawk_rtx_getarg(rtx, 0));
-	if (sys_node && sys_node->ctx.type == SYS_NODE_DATA_DIR)
+	sys_node = get_sys_list_node_with_arg(rtx, sys_list, hawk_rtx_getarg(rtx, 0), SYS_NODE_DATA_DIR);
+	if (sys_node)
 	{
 		/* although free_sys_node() can handle other types, sys::closedir() is allowed to
 		 * close nodes of the SYS_NODE_DATA_DIR type only */
@@ -895,8 +919,8 @@ static int fnc_readdir (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_int_t rx = ERRNUM_TO_RC(HAWK_EOTHER);
 
 	sys_list = rtx_to_sys_list(rtx, fi);
-	sys_node = get_sys_list_node_with_arg(rtx, sys_list, hawk_rtx_getarg(rtx, 0));
-	if (sys_node && sys_node->ctx.type == SYS_NODE_DATA_DIR)
+	sys_node = get_sys_list_node_with_arg(rtx, sys_list, hawk_rtx_getarg(rtx, 0), SYS_NODE_DATA_DIR);
+	if (sys_node)
 	{
 		int y;
 		hawk_dir_ent_t ent;
@@ -950,7 +974,7 @@ static int fnc_resetdir (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_int_t rx = ERRNUM_TO_RC(HAWK_EOTHER);
 
 	sys_list = rtx_to_sys_list(rtx, fi);
-	sys_node = get_sys_list_node_with_arg(rtx, sys_list, hawk_rtx_getarg(rtx, 0));
+	sys_node = get_sys_list_node_with_arg(rtx, sys_list, hawk_rtx_getarg(rtx, 0), SYS_NODE_DATA_DIR);
 
 	if (sys_node)
 	{
