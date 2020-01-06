@@ -578,10 +578,9 @@ int HawkStd::open_pio (Pipe& io)
 	}
 
 	pio = hawk_pio_open (
-		this->getMmgr(),
+		*this,
 		0, 
 		io.getName(), 
-		HAWK_NULL,
 		flags
 	);
 	if (pio == HAWK_NULL) return -1;
@@ -751,7 +750,7 @@ int HawkStd::openFile (File& io)
 			break;
 	}
 
-	sio = hawk_sio_open(this->getMmgr(), 0, io.getName(), flags);
+	sio = hawk_sio_open(*this, 0, io.getName(), flags);
 	if (!sio) return -1;
 #if defined(HAWK_OOCH_IS_UCH)
 	hawk_cmgr_t* cmgr = this->getiocmgr(io.getName());
@@ -890,10 +889,7 @@ int HawkStd::open_console_in (Console& io)
 
 		if (hawk_count_oocstr(file) != this->runarg.ptr[this->runarg_index].len)
 		{
-			hawk_oocs_t arg;
-			arg.ptr = (hawk_ooch_t*)file;
-			arg.len = hawk_count_oocstr (arg.ptr);
-			((Run*)io)->setError (HAWK_EIONMNL, &arg);
+			((Run*)io)->formatError (HAWK_EIONMNL, HAWK_NULL, HAWK_T("invalid I/O name of length %zu containing '\\0'"), this->runarg.ptr[this->runarg_index].len);
 			return -1;
 		}
 
@@ -921,7 +917,7 @@ int HawkStd::open_console_in (Console& io)
 		v = (hawk_val_t*)HAWK_HTB_VPTR(pair);
 		HAWK_ASSERT (v != HAWK_NULL);
 
-		as.ptr = hawk_rtx_getvaloocstr (rtx, v, &as.len);
+		as.ptr = hawk_rtx_getvaloocstr(rtx, v, &as.len);
 		if (as.ptr == HAWK_NULL) return -1;
 
 		if (as.len == 0)
@@ -935,10 +931,7 @@ int HawkStd::open_console_in (Console& io)
 		if (hawk_count_oocstr(as.ptr) < as.len)
 		{
 			/* the name contains one or more '\0' */
-			hawk_oocs_t arg;
-			arg.ptr = as.ptr;
-			arg.len = hawk_count_oocstr (as.ptr);
-			((Run*)io)->setError (HAWK_EIONMNL, &arg);
+			((Run*)io)->formatError (HAWK_EIONMNL, HAWK_NULL, HAWK_T("invalid I/O name of length %zu containing '\\0'"), as.len);
 			hawk_rtx_freevaloocstr (rtx, v, as.ptr);
 			return -1;
 		}
@@ -955,7 +948,7 @@ int HawkStd::open_console_in (Console& io)
 			return -1;
 		}
 		
-		if (hawk_rtx_setfilename (rtx, file, hawk_count_oocstr(file)) <= -1)
+		if (hawk_rtx_setfilename(rtx, file, hawk_count_oocstr(file)) <= -1)
 		{
 			hawk_sio_close (sio);
 			hawk_rtx_freevaloocstr (rtx, v, as.ptr);
@@ -1018,10 +1011,7 @@ int HawkStd::open_console_out (Console& io)
 
 		if (hawk_count_oocstr(file) != this->ofile.ptr[this->ofile_index].len)
 		{	
-			hawk_oocs_t arg;
-			arg.ptr = (hawk_ooch_t*)file;
-			arg.len = hawk_count_oocstr(arg.ptr);
-			((Run*)io)->setError (HAWK_EIONMNL, &arg);
+			((Run*)io)->formatError (HAWK_EIONMNL, HAWK_NULL, HAWK_T("invalid I/O name of length %zu containing '\\0'"), this->ofile.ptr[this->ofile_index].len);
 			return -1;
 		}
 
@@ -1179,7 +1169,7 @@ void HawkStd::modclose (void* handle)
 void* HawkStd::modgetsym (void* handle, const hawk_ooch_t* name)
 {
 	void* s;
-	s = hawk_stdmodgetsym (this->awk, handle, name);
+	s = hawk_stdmodgetsym(this->awk, handle, name);
 	if (!s) this->retrieveError ();
 	return s;
 }
@@ -1234,12 +1224,12 @@ int HawkStd::SourceFile::open (Data& io)
 		{
 			const hawk_ooch_t* outer;
 
-			outer = hawk_sio_getpath ((hawk_sio_t*)io.getPrevHandle());
+			outer = hawk_sio_getpath((hawk_sio_t*)io.getPrevHandle());
 			if (outer)
 			{
 				const hawk_ooch_t* base;
 
-				base = hawk_basename(outer);
+				base = hawk_get_base_name_oocstr(outer);
 				if (base != outer && ioname[0] != HAWK_T('/'))
 				{
 					hawk_oow_t tmplen, totlen, dirlen;
@@ -1333,7 +1323,7 @@ int HawkStd::SourceString::open (Data& io)
 			{
 				const hawk_ooch_t* base;
 	
-				base = hawk_basename(outer);
+				base = hawk_get_base_name_oocstr(outer);
 				if (base != outer && ioname[0] != HAWK_T('/'))
 				{
 					hawk_oow_t tmplen, totlen, dirlen;

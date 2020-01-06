@@ -167,32 +167,6 @@ void Hawk::RIOBase::setUflags (int uflags)
 	this->riod->uflags = uflags;
 }
 
-Hawk::RIOBase::operator Hawk* () const 
-{
-	return this->run->awk;
-}
-
-Hawk::RIOBase::operator hawk_t* () const 
-{
-	HAWK_ASSERT (hawk_rtx_getawk(this->run->rtx) == this->run->awk->getHandle());
-	return this->run->awk->getHandle();
-}
-
-Hawk::RIOBase::operator hawk_rio_arg_t* () const
-{
-	return this->riod;
-}
-
-Hawk::RIOBase::operator Hawk::Run* () const
-{
-	return this->run;
-}
-
-Hawk::RIOBase::operator hawk_rtx_t* () const
-{
-	return this->run->rtx;
-}
-
 //////////////////////////////////////////////////////////////////
 // Hawk::Pipe
 //////////////////////////////////////////////////////////////////
