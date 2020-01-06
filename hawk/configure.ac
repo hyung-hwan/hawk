@@ -955,9 +955,9 @@ AM_CONDITIONAL(ENABLE_MOD_MYSQL, test "${enable_mod_mysql_is}" = "yes")
 
 dnl ===== enable-mod-uci =====
 AC_ARG_ENABLE([mod-uci],
-	[AS_HELP_STRING([--enable-mod-uci],[enable mod/uci (default. yes)])],
+	[AS_HELP_STRING([--enable-mod-uci],[enable mod/uci (default. no)])],
 	enable_mod_uci_is=$enableval,
-	enable_mod_uci_is=yes
+	enable_mod_uci_is=no
 )
 if test "${enable_mod_uci_is}" = "yes"
 then

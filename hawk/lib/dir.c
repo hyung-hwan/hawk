@@ -349,6 +349,7 @@ static int reset_to_path (hawk_dir_t* dir, const hawk_ooch_t* path)
 	/* ------------------------------------------------------------------- */
 	const hawk_ooch_t* tptr;
 	HANDLE dh;
+	WIN32_FIND_DATA wfd;
 
 	dir->status &= ~STATUS_DONE;
 	dir->status &= ~STATUS_DONE_ERR;
@@ -382,7 +383,7 @@ static int reset_to_path (hawk_dir_t* dir, const hawk_ooch_t* path)
 	}
 	if (tptr == HAWK_NULL) return -1;
 
-	dh = FindFirstFile(tptr, &dir->wfd);
+	dh = FindFirstFile(tptr, &wfd);
 	if (dh == INVALID_HANDLE_VALUE) 
 	{
 		hawk_gem_seterrnum (dir->gem, HAWK_NULL, hawk_syserr_to_errnum(GetLastError()));
@@ -392,6 +393,7 @@ static int reset_to_path (hawk_dir_t* dir, const hawk_ooch_t* path)
 	close_dir_safely (dir);
 
 	dir->h = dh;
+	dir->wfd = wfd;
 	return 0;
 	/* ------------------------------------------------------------------- */
 
@@ -485,7 +487,7 @@ static int reset_to_path (hawk_dir_t* dir, const hawk_ooch_t* path)
 		return -1;
 	}
 
-	reset_dir_safely (dir);
+	close_dir_safely (dir);
 
 	dir->f = f;
 	dir->status |= STATUS_OPENED;

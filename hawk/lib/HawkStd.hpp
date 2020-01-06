@@ -130,10 +130,12 @@ public:
 	void clearConsoleOutputs ();
 
 protected:
+	#define HAWK_STD_ENV_CHAR_IS_BCH
+	typedef hawk_bch_t env_char_t;
+
 	int make_additional_globals (Run* run);
 	int build_argcv (Run* run);
-	int build_environ (Run* run);
-	int __build_environ (Run* run, void* envptr);
+	int build_environ (Run* run, env_char_t* envarr[]);
 
 	// intrinsic functions 
 	hawk_cmgr_t* getiocmgr (const hawk_ooch_t* ioname);
