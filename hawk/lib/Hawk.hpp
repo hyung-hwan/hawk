@@ -633,11 +633,16 @@ public:
 		int getUflags () const;
 		void setUflags (int uflags);
 
-		operator Hawk* () const;
-		operator hawk_t* () const;
-		operator hawk_rio_arg_t* () const;
-		operator Run* () const;
-		operator hawk_rtx_t* () const;
+		operator Hawk* () const { return this->run->awk; }
+		operator hawk_t* () const 
+		{
+			HAWK_ASSERT (hawk_rtx_getawk(this->run->rtx) == this->run->awk->getHandle());
+			return this->run->awk->getHandle(); 
+		}
+		operator hawk_rio_arg_t* () const { return this->riod; }
+		operator Run* () const { return this->run; }
+		operator hawk_rtx_t* () const { return this->run->rtx; }
+		operator hawk_gem_t* () const { return hawk_rtx_getgem(this->run->rtx); }
 
 	protected:
 		Run* run;

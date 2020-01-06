@@ -254,7 +254,7 @@ HAWK_EXPORT void hawk_stdmodclose (
 	void*                  handle
 );
 
-HAWK_EXPORT void* hawk_stdmodsym (
+HAWK_EXPORT void* hawk_stdmodgetsym (
 	hawk_t*                hawk,
 	void*                  handle,
 	const hawk_ooch_t*     name

@@ -178,7 +178,7 @@ protected:
 
 	void* modopen (const mod_spec_t* spec);
 	void  modclose (void* handle);
-	void* modsym (void* handle, const hawk_ooch_t* name);
+	void* modgetsym (void* handle, const hawk_ooch_t* name);
 
 protected:
 	hawk_htb_t cmgrtab;
