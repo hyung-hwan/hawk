@@ -2111,8 +2111,7 @@ static int open_rio_console (hawk_rtx_t* rtx, hawk_rio_arg_t* riod)
 
 			if (rxtn->c.cmgr) hawk_sio_setcmgr (sio, rxtn->c.cmgr);
 
-			if (hawk_rtx_setfilename (
-				rtx, file, hawk_count_oocstr(file)) <= -1)
+			if (hawk_rtx_setfilename(rtx, file, hawk_count_oocstr(file)) <= -1)
 			{
 				hawk_sio_close (sio);
 				hawk_rtx_freevaloocstr (rtx, v, as.ptr);

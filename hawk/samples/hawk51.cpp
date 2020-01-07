@@ -182,15 +182,31 @@ static void print_error (const hawk_bch_t* fmt, ...)
 
 static void print_error (MyHawk& hawk)
 {
+	hawk_errnum_t code = hawk.getErrorNumber();
 	hawk_loc_t loc = hawk.getErrorLocation();
 
+#if defined(HAWK_OOCH_IS_UCH)
+	hawk_bch_t msg[256]; // don't care about truncation for now
+	hawk_oow_t ucslen, bcslen = HAWK_COUNTOF(msg);
+	hawk_conv_ucstr_to_bcstr_with_cmgr (hawk.getErrorMessage(), &ucslen, msg, &bcslen, hawk_getcmgr((hawk_t*)hawk));
+#else
+	const hawk_bch_t* msg = hawk.getErrorMessage();
+
+#endif
 	if (loc.file)
 	{
-		print_error ("line %lu at %s - %s\n", (unsigned long int)loc.line, loc.file, hawk.getErrorMessage());
+	#if defined(HAWK_OOCH_IS_UCH)
+		hawk_bch_t file[128]; // don't care about truncation for now
+		bcslen = HAWK_COUNTOF(file);
+		hawk_conv_ucstr_to_bcstr_with_cmgr (loc.file, &ucslen, file, &bcslen, hawk_getcmgr((hawk_t*)hawk));
+	#else
+		const hawk_bch_t* file = loc.file;
+	#endif
+		print_error ("code %d line %lu at %s - %s\n", (int)code, (unsigned long int)loc.line, file, msg);
 	}
 	else
 	{
-		print_error ("line %lu - %s\n", (unsigned long int)loc.line, hawk.getErrorMessage());
+		print_error ("code %d line %lu - %s\n", (int)code, (unsigned long int)loc.line, msg);
 	}
 }
 
@@ -405,7 +421,7 @@ static int hawk_main (MyHawk& awk, int argc, hawk_bch_t* argv[])
 	}
 
 	MyHawk::Value ret;
-	if (awk.loop (&ret) <= -1) 
+	if (awk.loop(&ret) <= -1) 
 	{ 
 		print_error (awk); 
 		return -1; 

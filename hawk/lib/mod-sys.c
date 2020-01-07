@@ -298,7 +298,7 @@ static int fnc_close (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	sys_list_t* sys_list;
 	sys_node_t* sys_node;
 	hawk_int_t rx = ERRNUM_TO_RC(HAWK_EOTHER);
-	hawk_int_t cflags;
+	hawk_int_t cflags = 0;
 
 	sys_list = rtx_to_sys_list(rtx, fi);
 	sys_node = get_sys_list_node_with_arg(rtx, sys_list, hawk_rtx_getarg(rtx, 0), SYS_NODE_DATA_FD);
@@ -2072,7 +2072,7 @@ static int fnc_mkdir (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_ooch_t* str;
 	hawk_oow_t len;
 	int n = 0;
-	hawk_int_t mode;
+	hawk_int_t mode = DEFAULT_MODE;
 
 	a0 = hawk_rtx_getarg(rtx, 0);
 	str = hawk_rtx_getvaloocstr(rtx, a0, &len);

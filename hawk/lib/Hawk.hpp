@@ -622,16 +622,16 @@ public:
 	class HAWK_EXPORT RIOBase
 	{
 	protected:
-		RIOBase (Run* run, hawk_rio_arg_t* riod);
+		RIOBase (Run* run, hawk_rio_arg_t* riod): run(run), riod(riod) {}
 
 	public:
-		const hawk_ooch_t* getName() const;
+		const hawk_ooch_t* getName() const { return this->riod->name; }
 
-		const void* getHandle () const;
-		void setHandle (void* handle);
+		const void* getHandle () const { return this->riod->handle; }
+		void setHandle (void* handle) { this->riod->handle = handle; }
 
-		int getUflags () const;
-		void setUflags (int uflags);
+		int getUflags () const { return this->riod->uflags; }
+		void setUflags (int uflags) { this->riod->uflags = uflags; }
 
 		operator Hawk* () const { return this->run->awk; }
 		operator hawk_t* () const 
