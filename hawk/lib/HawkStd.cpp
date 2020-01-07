@@ -798,18 +798,32 @@ const hawk_cmgr_t* HawkStd::getConsoleCmgr () const
 	return this->console_cmgr;
 }
 
-int HawkStd::addConsoleOutput (const hawk_ooch_t* arg, hawk_oow_t len) 
+int HawkStd::addConsoleOutput (const hawk_uch_t* arg, hawk_oow_t len) 
 {
 	HAWK_ASSERT (awk != HAWK_NULL);
-	int n = this->ofile.add (awk, arg, len);
-	if (n <= -1) setError (HAWK_ENOMEM);
+	int n = this->ofile.add(awk, arg, len);
+	if (n <= -1) this->setError (HAWK_ENOMEM);
 	return n;
 }
 
-int HawkStd::addConsoleOutput (const hawk_ooch_t* arg) 
+int HawkStd::addConsoleOutput (const hawk_uch_t* arg) 
 {
-	return addConsoleOutput (arg, hawk_count_oocstr(arg));
+	return this->addConsoleOutput(arg, hawk_count_ucstr(arg));
 }
+
+int HawkStd::addConsoleOutput (const hawk_bch_t* arg, hawk_oow_t len) 
+{
+	HAWK_ASSERT (awk != HAWK_NULL);
+	int n = this->ofile.add(awk, arg, len);
+	if (n <= -1) this->setError (HAWK_ENOMEM);
+	return n;
+}
+
+int HawkStd::addConsoleOutput (const hawk_bch_t* arg) 
+{
+	return this->addConsoleOutput(arg, hawk_count_bcstr(arg));
+}
+
 
 void HawkStd::clearConsoleOutputs () 
 {
@@ -1283,12 +1297,21 @@ int HawkStd::SourceFile::close (Data& io)
 
 hawk_ooi_t HawkStd::SourceFile::read (Data& io, hawk_ooch_t* buf, hawk_oow_t len)
 {
-	return hawk_sio_getoochars ((hawk_sio_t*)io.getHandle(), buf, len);
+	return hawk_sio_getoochars((hawk_sio_t*)io.getHandle(), buf, len);
 }
 
 hawk_ooi_t HawkStd::SourceFile::write (Data& io, const hawk_ooch_t* buf, hawk_oow_t len)
 {
-	return hawk_sio_putoochars ((hawk_sio_t*)io.getHandle(), buf, len);
+	return hawk_sio_putoochars((hawk_sio_t*)io.getHandle(), buf, len);
+}
+
+HawkStd::SourceString::~SourceString ()
+{
+	if (this->_hawk) 
+	{
+		HAWK_ASSERT (this->str != HAWK_NULL);
+		hawk_freemem (this->_hawk, this->str);
+	}
 }
 
 int HawkStd::SourceString::open (Data& io)
@@ -1298,9 +1321,40 @@ int HawkStd::SourceString::open (Data& io)
 	if (io.getName() == HAWK_NULL)
 	{
 		// open the main source file.
-		// SourceString does not support writing.
-		if (io.getMode() == WRITE) return -1;
-		ptr = str;
+		if (io.getMode() == WRITE) 
+		{
+			// SourceString does not support writing.
+			((Hawk*)io)->setError (HAWK_ENOIMPL);
+			return -1;
+		}
+
+		if (!this->str)
+		{
+			this->_hawk = (hawk_t*)io;
+			if (this->_type == STR_UCH)
+			{
+			#if defined(HAWK_OOCH_IS_UCH)
+				this->str = hawk_dupucstr(this->_hawk, (hawk_uch_t*)this->_str, HAWK_NULL);
+			#else
+				this->str = hawk_duputobcstr(this->_hawk, (hawk_uch_t*)this->_str, HAWK_NULL);
+			#endif
+			}
+			else
+			{
+			#if defined(HAWK_OOCH_IS_UCH)
+				this->str = hawk_dupbtoucstr(this->_hawk, (hawk_bch_t*)this->_str, HAWK_NULL, 0);
+			#else
+				this->str = hawk_dupbcstr(this->_hawk, (hawk_bch_t*)this->_str, HAWK_NULL);
+			#endif
+			}
+			if (!this->str) 
+			{
+				// TODO: check if retrieveError is needed 
+				return -1;
+			}
+		}
+
+		this->ptr = this->str;
 	}
 	else
 	{
@@ -1322,7 +1376,7 @@ int HawkStd::SourceString::open (Data& io)
 			if (outer)
 			{
 				const hawk_ooch_t* base;
-	
+
 				base = hawk_get_base_name_oocstr(outer);
 				if (base != outer && ioname[0] != HAWK_T('/'))
 				{
@@ -1332,20 +1386,17 @@ int HawkStd::SourceString::open (Data& io)
 					totlen = hawk_count_oocstr(ioname) + dirlen;
 					if (totlen >= HAWK_COUNTOF(fbuf))
 					{
-						dbuf = (hawk_ooch_t*)HAWK_MMGR_ALLOC(
-							((Hawk*)io)->getMmgr(),
-							HAWK_SIZEOF(hawk_ooch_t) * (totlen + 1)
-						);
+						dbuf = (hawk_ooch_t*)hawk_allocmem((hawk_t*)io, HAWK_SIZEOF(hawk_ooch_t) * (totlen + 1));
 						if (dbuf == HAWK_NULL)
 						{
-							((Hawk*)io)->setError (HAWK_ENOMEM);
+							// TODO: check if retrieveError is needed 
 							return -1;
 						}
-	
+
 						file = dbuf;
 					}
 					else file = fbuf;
-	
+
 					tmplen = hawk_copy_oochars_to_oocstr_unlimited((hawk_ooch_t*)file, outer, dirlen);
 					hawk_copy_oocstr_unlimited ((hawk_ooch_t*)file + tmplen, ioname);
 				}
@@ -1358,7 +1409,7 @@ int HawkStd::SourceString::open (Data& io)
 				(HAWK_SIO_READ | HAWK_SIO_IGNOREECERR | HAWK_SIO_KEEPPATH): 
 				(HAWK_SIO_WRITE | HAWK_SIO_CREATE | HAWK_SIO_TRUNCATE | HAWK_SIO_IGNOREECERR))
 		);
-		if (dbuf) HAWK_MMGR_FREE (((Hawk*)io)->getMmgr(), dbuf);
+		if (dbuf) hawk_freemem ((hawk_t*)io, dbuf);
 		if (sio == HAWK_NULL) return -1;
 
 		io.setHandle (sio);

@@ -1068,10 +1068,14 @@ public:
 		int setFlt (flt_t v);
 		int setFlt (Run* r, flt_t v);
 
-		int setStr (const hawk_ooch_t* str, hawk_oow_t len, bool numeric = false);
-		int setStr (Run* r, const hawk_ooch_t* str, hawk_oow_t len, bool numeric = false);
-		int setStr (const hawk_ooch_t* str, bool numeric = false);
-		int setStr (Run* r, const hawk_ooch_t* str, bool numeric = false);
+		int setStr (const hawk_uch_t* str, hawk_oow_t len, bool numeric = false);
+		int setStr (Run* r, const hawk_uch_t* str, hawk_oow_t len, bool numeric = false);
+		int setStr (const hawk_uch_t* str, bool numeric = false);
+		int setStr (Run* r, const hawk_uch_t* str, bool numeric = false);
+		int setStr (const hawk_bch_t* str, hawk_oow_t len, bool numeric = false);
+		int setStr (Run* r, const hawk_bch_t* str, hawk_oow_t len, bool numeric = false);
+		int setStr (const hawk_bch_t* str, bool numeric = false);
+		int setStr (Run* r, const hawk_bch_t* str, bool numeric = false);
 
 		int setMbs (const hawk_bch_t* str, hawk_oow_t len);
 		int setMbs (Run* r, const hawk_bch_t* str, hawk_oow_t len);
@@ -1433,7 +1437,12 @@ public:
 	/// \return 0 on success, -1 on failure
 	///
 	int addArgument (
-		const hawk_ooch_t* arg,  ///< string pointer
+		const hawk_uch_t* arg,  ///< string pointer
+		hawk_oow_t        len   ///< string length
+	);
+
+	int addArgument (
+		const hawk_bch_t* arg,  ///< string pointer
 		hawk_oow_t        len   ///< string length
 	);
 
@@ -1444,7 +1453,11 @@ public:
 	/// \return 0 on success, -1 on failure
 	///
 	int addArgument (
-		const hawk_ooch_t* arg ///< string pointer
+		const hawk_uch_t* arg ///< string pointer
+	);
+
+	int addArgument (
+		const hawk_bch_t* arg ///< string pointer
 	);
 
 	///
@@ -1746,7 +1759,9 @@ protected:
 	{
 		xstrs_t (): ptr (HAWK_NULL), len (0), capa (0) {}
 
-		int add (hawk_t* awk, const hawk_ooch_t* arg, hawk_oow_t len);
+		int add (hawk_t* awk, const hawk_uch_t* arg, hawk_oow_t len);
+		int add (hawk_t* awk, const hawk_bch_t* arg, hawk_oow_t len);
+
 		void clear (hawk_t* awk);
 
 		hawk_oocs_t* ptr;

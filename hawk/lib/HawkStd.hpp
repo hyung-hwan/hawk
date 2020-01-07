@@ -89,7 +89,9 @@ public:
 	class HAWK_EXPORT SourceString: public Source
 	{
 	public:
-		SourceString (const hawk_ooch_t* str): str (str) {}
+		SourceString (const hawk_uch_t* str): _type(STR_UCH), _str(str), _hawk(HAWK_NULL), str(HAWK_NULL), ptr(HAWK_NULL) {}
+		SourceString (const hawk_bch_t* str): _type(STR_BCH), _str(str), _hawk(HAWK_NULL), str(HAWK_NULL), ptr(HAWK_NULL) {}
+		~SourceString ();
 
 		int open (Data& io);
 		int close (Data& io);
@@ -97,7 +99,15 @@ public:
 		hawk_ooi_t write (Data& io, const hawk_ooch_t* buf, hawk_oow_t len);
 
 	protected:
-		const hawk_ooch_t* str;
+		enum
+		{
+			STR_UCH,
+			STR_BCH
+		} _type;
+		const void* _str;
+		hawk_t* _hawk;
+
+		hawk_ooch_t* str;
 		const hawk_ooch_t* ptr;
 	};
 
@@ -124,8 +134,10 @@ public:
 
 	/// The addConsoleOutput() function adds a file to form an
 	/// output console stream.
-	int addConsoleOutput (const hawk_ooch_t* arg, hawk_oow_t len);
-	int addConsoleOutput (const hawk_ooch_t* arg);
+	int addConsoleOutput (const hawk_uch_t* arg, hawk_oow_t len);
+	int addConsoleOutput (const hawk_uch_t* arg);
+	int addConsoleOutput (const hawk_bch_t* arg, hawk_oow_t len);
+	int addConsoleOutput (const hawk_bch_t* arg);
 
 	void clearConsoleOutputs ();
 
