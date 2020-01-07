@@ -988,6 +988,7 @@ AC_CONFIG_FILES([
 	lib/Makefile 
 	mod/Makefile 
 	bin/Makefile
+	samples/Makefile
 	t/Makefile
 ])
 AC_OUTPUT

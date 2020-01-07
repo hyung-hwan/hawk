@@ -726,7 +726,9 @@ int Hawk::Value::setFlt (Run* r, flt_t v)
 	return n;
 }
 
-int Hawk::Value::setStr (const hawk_ooch_t* str, hawk_oow_t len, bool numeric)
+//////////////////////////////////////////////////////////////////
+
+int Hawk::Value::setStr (const hawk_uch_t* str, hawk_oow_t len, bool numeric)
 {
 	if (this->run == HAWK_NULL) 
 	{
@@ -737,16 +739,12 @@ int Hawk::Value::setStr (const hawk_ooch_t* str, hawk_oow_t len, bool numeric)
 	return this->setStr(this->run, str, len, numeric);
 }
 
-int Hawk::Value::setStr (Run* r, const hawk_ooch_t* str, hawk_oow_t len, bool numeric)
+int Hawk::Value::setStr (Run* r, const hawk_uch_t* str, hawk_oow_t len, bool numeric)
 {
 	hawk_val_t* tmp;
 
-	hawk_oocs_t oocs;
-	oocs.ptr = (hawk_ooch_t*)str;
-	oocs.len = len;
-
-	tmp = numeric? hawk_rtx_makenstrvalwithoocs(r->rtx, &oocs):
-	               hawk_rtx_makestrvalwithoocs(r->rtx, &oocs);
+	tmp = numeric? hawk_rtx_makenstrvalwithuchars(r->rtx, str, len):
+	               hawk_rtx_makestrvalwithuchars(r->rtx, str, len);
 	if (tmp == HAWK_NULL)
 	{
 		r->awk->retrieveError (r);
@@ -758,17 +756,17 @@ int Hawk::Value::setStr (Run* r, const hawk_ooch_t* str, hawk_oow_t len, bool nu
 	return n;
 }
 
-int Hawk::Value::setStr (const hawk_ooch_t* str, bool numeric)
+int Hawk::Value::setStr (const hawk_uch_t* str, bool numeric)
 {
 	if (this->run == HAWK_NULL) return -1;
 	return this->setStr(this->run, str, numeric);
 }
 
-int Hawk::Value::setStr (Run* r, const hawk_ooch_t* str, bool numeric)
+int Hawk::Value::setStr (Run* r, const hawk_uch_t* str, bool numeric)
 {
 	hawk_val_t* tmp;
-	tmp = numeric? hawk_rtx_makenstrvalwithoocstr(r->rtx, str):
-	               hawk_rtx_makestrvalwithoocstr(r->rtx, str);
+	tmp = numeric? hawk_rtx_makenstrvalwithucstr(r->rtx, str):
+	               hawk_rtx_makestrvalwithucstr(r->rtx, str);
 	if (tmp == HAWK_NULL) 
 	{
 		r->awk->retrieveError (r);
@@ -780,7 +778,59 @@ int Hawk::Value::setStr (Run* r, const hawk_ooch_t* str, bool numeric)
 	return n;
 }
 
+//////////////////////////////////////////////////////////////////
 
+int Hawk::Value::setStr (const hawk_bch_t* str, hawk_oow_t len, bool numeric)
+{
+	if (this->run == HAWK_NULL) 
+	{
+		/* no runtime context assoicated. unfortunately, i can't 
+		 * set an error number for the same reason */
+		return -1; 
+	}
+	return this->setStr(this->run, str, len, numeric);
+}
+
+int Hawk::Value::setStr (Run* r, const hawk_bch_t* str, hawk_oow_t len, bool numeric)
+{
+	hawk_val_t* tmp;
+
+	tmp = numeric? hawk_rtx_makenstrvalwithbchars(r->rtx, str, len):
+	               hawk_rtx_makestrvalwithbchars(r->rtx, str, len);
+	if (tmp == HAWK_NULL)
+	{
+		r->awk->retrieveError (r);
+		return -1;
+	}
+
+	int n = this->setVal(r, tmp);
+	HAWK_ASSERT (n == 0);
+	return n;
+}
+
+int Hawk::Value::setStr (const hawk_bch_t* str, bool numeric)
+{
+	if (this->run == HAWK_NULL) return -1;
+	return this->setStr(this->run, str, numeric);
+}
+
+int Hawk::Value::setStr (Run* r, const hawk_bch_t* str, bool numeric)
+{
+	hawk_val_t* tmp;
+	tmp = numeric? hawk_rtx_makenstrvalwithbcstr(r->rtx, str):
+	               hawk_rtx_makestrvalwithbcstr(r->rtx, str);
+	if (tmp == HAWK_NULL) 
+	{
+		r->awk->retrieveError (r);
+		return -1;
+	}
+
+	int n = this->setVal(r, tmp);
+	HAWK_ASSERT (n == 0);
+	return n;
+}
+
+//////////////////////////////////////////////////////////////////
 int Hawk::Value::setMbs (const hawk_bch_t* str, hawk_oow_t len)
 {
 	if (this->run == HAWK_NULL) 
@@ -1883,7 +1933,7 @@ int Hawk::dispatch_function (Run* run, const fnc_info_t* fi)
 	return 0;
 }
 
-int Hawk::xstrs_t::add (hawk_t* awk, const hawk_ooch_t* arg, hawk_oow_t len) 
+int Hawk::xstrs_t::add (hawk_t* hawk, const hawk_uch_t* arg, hawk_oow_t len) 
 {
 	if (this->len >= this->capa)
 	{
@@ -1891,15 +1941,50 @@ int Hawk::xstrs_t::add (hawk_t* awk, const hawk_ooch_t* arg, hawk_oow_t len)
 		hawk_oow_t capa = this->capa;
 
 		capa += 64;
-		ptr = (hawk_oocs_t*)hawk_reallocmem(awk, this->ptr, HAWK_SIZEOF(hawk_oocs_t)*(capa+1));
+		ptr = (hawk_oocs_t*)hawk_reallocmem(hawk, this->ptr, HAWK_SIZEOF(hawk_oocs_t)*(capa + 1));
 		if (ptr == HAWK_NULL) return -1;
 
 		this->ptr = ptr;
 		this->capa = capa;
 	}
 
+
+#if defined(HAWK_OOCH_IS_UCH)
 	this->ptr[this->len].len = len;
-	this->ptr[this->len].ptr = hawk_dupoochars(awk, arg, len);
+	this->ptr[this->len].ptr = hawk_dupuchars(hawk, arg, len);
+#else
+	this->ptr[this->len].ptr = hawk_duputobchars(hawk, arg, len, &this->ptr[this->len].len);
+#endif
+	if (this->ptr[this->len].ptr == HAWK_NULL) return -1;
+
+	this->len++;
+	this->ptr[this->len].len = 0;
+	this->ptr[this->len].ptr = HAWK_NULL;
+
+	return 0;
+}
+
+int Hawk::xstrs_t::add (hawk_t* hawk, const hawk_bch_t* arg, hawk_oow_t len)
+{
+	if (this->len >= this->capa)
+	{
+		hawk_oocs_t* ptr;
+		hawk_oow_t capa = this->capa;
+
+		capa += 64;
+		ptr = (hawk_oocs_t*)hawk_reallocmem(hawk, this->ptr, HAWK_SIZEOF(hawk_oocs_t)*(capa + 1));
+		if (ptr == HAWK_NULL) return -1;
+
+		this->ptr = ptr;
+		this->capa = capa;
+	}
+
+#if defined(HAWK_OOCH_IS_UCH)
+	this->ptr[this->len].ptr = hawk_dupbtouchars(hawk, arg, len, &this->ptr[this->len].len, 0);
+#else
+	this->ptr[this->len].len = len;
+	this->ptr[this->len].ptr = hawk_dupbchars(hawk, arg, len);
+#endif
 	if (this->ptr[this->len].ptr == HAWK_NULL) return -1;
 
 	this->len++;
@@ -1922,18 +2007,32 @@ void Hawk::xstrs_t::clear (hawk_t* awk)
 	}
 }
 
-int Hawk::addArgument (const hawk_ooch_t* arg, hawk_oow_t len) 
+int Hawk::addArgument (const hawk_uch_t* arg, hawk_oow_t len) 
 {
 	HAWK_ASSERT (awk != HAWK_NULL);
-	int n = runarg.add(awk, arg, len);
+	int n = this->runarg.add(awk, arg, len);
 	if (n <= -1) this->setError (HAWK_ENOMEM);
 	return n;
 }
 
-int Hawk::addArgument (const hawk_ooch_t* arg) 
+int Hawk::addArgument (const hawk_uch_t* arg) 
 {
-	return addArgument(arg, hawk_count_oocstr(arg));
+	return addArgument(arg, hawk_count_ucstr(arg));
 }
+
+int Hawk::addArgument (const hawk_bch_t* arg, hawk_oow_t len) 
+{
+	HAWK_ASSERT (awk != HAWK_NULL);
+	int n = this->runarg.add(awk, arg, len);
+	if (n <= -1) this->setError (HAWK_ENOMEM);
+	return n;
+}
+
+int Hawk::addArgument (const hawk_bch_t* arg) 
+{
+	return this->addArgument(arg, hawk_count_bcstr(arg));
+}
+
 
 void Hawk::clearArguments () 
 {
