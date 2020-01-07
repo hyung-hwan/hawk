@@ -670,12 +670,12 @@ struct hawk_rio_arg_t
 {
 	/* read-only. a user handler shouldn't change any of these fields */
 	hawk_rio_mode_t    mode;      /**< opening mode */
-	hawk_ooch_t*           name;      /**< name of I/O object */
+	hawk_ooch_t*       name;      /**< name of I/O object */
 	hawk_rio_rwcmode_t rwcmode;   /**< closing mode for rwpipe */
 
 	/* read-write. a user handler can do whatever it likes to do with these. */
-	void*                 handle;    /**< I/O handle set by a handler */
-	int                   uflags;    /**< user-flags set by a handler */
+	void*              handle;    /**< I/O handle set by a handler */
+	int                uflags;    /**< user-flags set by a handler */
 
 	/*--  from here down, internal use only --*/
 	int type; 
@@ -707,8 +707,8 @@ typedef hawk_ooi_t (*hawk_rio_impl_t) (
 	hawk_rtx_t*      rtx,
 	hawk_rio_cmd_t   cmd,
 	hawk_rio_arg_t*  arg,
-	void*               data,
-	hawk_oow_t          count
+	void*            data,
+	hawk_oow_t       count
 );
 
 /**
@@ -1591,10 +1591,28 @@ HAWK_EXPORT void hawk_seterrufmt (
 	...
 );
 
+HAWK_EXPORT void hawk_seterrbvfmt (
+	hawk_t*             awk,
+	const hawk_loc_t*   errloc,
+	hawk_errnum_t       errnum,
+	const hawk_bch_t*   errfmt,
+	va_list             ap
+);
+
+HAWK_EXPORT void hawk_seterruvfmt (
+	hawk_t*             awk,
+	const hawk_loc_t*   errloc,
+	hawk_errnum_t       errnum,
+	const hawk_uch_t*   errfmt,
+	va_list             ap
+);
+
 #if defined(HAWK_OOCH_IS_UCH)
 #	define hawk_seterrfmt hawk_seterrufmt
+#	define hawk_seterrvfmt hawk_seterruvfmt
 #else
 #	define hawk_seterrfmt hawk_seterrbfmt
+#	define hawk_seterrvfmt hawk_seterrbvfmt
 #endif
 
 /**
@@ -2434,10 +2452,28 @@ HAWK_EXPORT void hawk_rtx_seterrufmt (
 	...
 );
 
+HAWK_EXPORT void hawk_rtx_seterrbvfmt (
+	hawk_rtx_t*       rtx,
+	const hawk_loc_t* errloc,
+	hawk_errnum_t     errnum,
+	const hawk_bch_t* errfmt,
+	va_list           ap
+);
+
+HAWK_EXPORT void hawk_rtx_seterruvfmt (
+	hawk_rtx_t*       rtx,
+	const hawk_loc_t* errloc,
+	hawk_errnum_t     errnum,
+	const hawk_uch_t* errfmt,
+	va_list           ap
+);
+
 #if defined(HAWK_OOCH_IS_UCH)
 #	define hawk_rtx_seterrfmt hawk_rtx_seterrufmt
+#	define hawk_rtx_seterrvfmt hawk_rtx_seterruvfmt
 #else
 #	define hawk_rtx_seterrfmt hawk_rtx_seterrbfmt
+#	define hawk_rtx_seterrvfmt hawk_rtx_seterrbvfmt
 #endif
 
 /**

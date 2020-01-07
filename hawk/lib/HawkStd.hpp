@@ -65,11 +65,17 @@ public:
 	class HAWK_EXPORT SourceFile: public Source 
 	{
 	public:
-		SourceFile (const hawk_ooch_t* name, hawk_cmgr_t* cmgr = HAWK_NULL): 
-			name (name), cmgr (cmgr)
+		SourceFile (const hawk_uch_t* name, hawk_cmgr_t* cmgr = HAWK_NULL): _type(NAME_UCH), _name(name), _hawk(HAWK_NULL), name(HAWK_NULL), cmgr (cmgr)
 		{
 			dir.ptr = HAWK_NULL; dir.len = 0; 
 		}
+
+		SourceFile (const hawk_bch_t* name, hawk_cmgr_t* cmgr = HAWK_NULL): _type(NAME_BCH), _name(name), _hawk(HAWK_NULL), name(HAWK_NULL), cmgr (cmgr)
+		{
+			dir.ptr = HAWK_NULL; dir.len = 0; 
+		}
+
+		~SourceFile ();
 
 		int open (Data& io);
 		int close (Data& io);
@@ -77,7 +83,15 @@ public:
 		hawk_ooi_t write (Data& io, const hawk_ooch_t* buf, hawk_oow_t len);
 
 	protected:
-		const hawk_ooch_t* name;
+		enum
+		{
+			NAME_UCH,
+			NAME_BCH
+		} _type;
+		const void* _name;
+		hawk_t* _hawk;
+
+		hawk_ooch_t* name;
 		hawk_oocs_t dir;
 		hawk_cmgr_t* cmgr;
 	};

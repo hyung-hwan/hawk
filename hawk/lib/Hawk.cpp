@@ -115,7 +115,7 @@ void Mmgr::setDFL (Mmgr* mmgr) HAWK_CPP_NOEXCEPT
 
 struct xtn_t
 {
-	Hawk* awk;
+	Hawk* hawk;
 	hawk_ecb_t ecb;
 };
 
@@ -133,39 +133,6 @@ static HAWK_INLINE rxtn_t* GET_RXTN(hawk_rtx_t* rtx) { return (rxtn_t*)((hawk_ui
 #define GET_XTN(awk) ((xtn_t*)((hawk_uint8_t*)hawk_getxtn(awk) - HAWK_SIZEOF(xtn_t)))
 #define GET_RXTN(rtx) ((rxtn_t*)((hawk_uint8_t*)hawk_rtx_getxtn(rtx) - HAWK_SIZEOF(rxtn_t)))
 #endif
-
-//////////////////////////////////////////////////////////////////
-// Hawk::RIO
-//////////////////////////////////////////////////////////////////
-
-Hawk::RIOBase::RIOBase (Run* run, hawk_rio_arg_t* riod): run (run), riod (riod)
-{
-}
-
-const hawk_ooch_t* Hawk::RIOBase::getName () const
-{
-	return this->riod->name;
-}
-
-const void* Hawk::RIOBase::getHandle () const
-{
-	return this->riod->handle;
-}
-
-void Hawk::RIOBase::setHandle (void* handle)
-{
-	this->riod->handle = handle;
-}
-
-int Hawk::RIOBase::getUflags () const
-{
-	return this->riod->uflags;
-}
-
-void Hawk::RIOBase::setUflags (int uflags)
-{
-	this->riod->uflags = uflags;
-}
 
 //////////////////////////////////////////////////////////////////
 // Hawk::Pipe
@@ -1228,7 +1195,7 @@ void Hawk::Run::formatError (hawk_errnum_t code, const hawk_loc_t* loc, const ha
 	HAWK_ASSERT (this->rtx != HAWK_NULL);
 	va_list ap;
 	va_start (ap, fmt);
-	hawk_rtx_seterrbfmt (this->rtx, loc, code, fmt, ap);
+	hawk_rtx_seterrbvfmt (this->rtx, loc, code, fmt, ap);
 	va_end (ap);
 }
 
@@ -1237,7 +1204,7 @@ void Hawk::Run::formatError (hawk_errnum_t code, const hawk_loc_t* loc, const ha
 	HAWK_ASSERT (this->rtx != HAWK_NULL);
 	va_list ap;
 	va_start (ap, fmt);
-	hawk_rtx_seterrufmt (this->rtx, loc, code, fmt, ap);
+	hawk_rtx_seterruvfmt (this->rtx, loc, code, fmt, ap);
 	va_end (ap);
 }
 
@@ -1362,8 +1329,9 @@ void Hawk::formatError (hawk_errnum_t code, const hawk_loc_t* loc, const hawk_bc
 	{
 		va_list ap;
 		va_start (ap, fmt);
-		hawk_seterrbfmt (this->awk, loc, code, fmt, ap);
+		hawk_seterrbvfmt (this->awk, loc, code, fmt, ap);
 		va_end (ap);
+		this->retrieveError ();
 	}
 	else
 	{
@@ -1380,8 +1348,9 @@ void Hawk::formatError (hawk_errnum_t code, const hawk_loc_t* loc, const hawk_uc
 	{
 		va_list ap;
 		va_start (ap, fmt);
-		hawk_seterrufmt (this->awk, loc, code, fmt, ap);
+		hawk_seterruvfmt (this->awk, loc, code, fmt, ap);
 		va_end (ap);
+		this->retrieveError ();
 	}
 	else
 	{
@@ -1420,13 +1389,13 @@ void Hawk::retrieveError (Run* run)
 static void fini_xtn (hawk_t* awk)
 {
 	xtn_t* xtn = GET_XTN(awk);
-	xtn->awk->uponClosing ();
+	xtn->hawk->uponClosing ();
 }
 
 static void clear_xtn (hawk_t* awk)
 {
 	xtn_t* xtn = GET_XTN(awk);
-	xtn->awk->uponClearing ();
+	xtn->hawk->uponClearing ();
 }
 
 int Hawk::open () 
@@ -1457,7 +1426,7 @@ int Hawk::open ()
 
 	// associate this Hawk object with the underlying awk object
 	xtn_t* xtn = (xtn_t*)GET_XTN(this->awk);
-	xtn->awk = this;
+	xtn->hawk = this;
 	xtn->ecb.close = fini_xtn;
 	xtn->ecb.clear = clear_xtn;
 
@@ -2224,42 +2193,40 @@ int Hawk::deleteFunction (const hawk_ooch_t* name)
 	return n;
 }
 
-hawk_ooi_t Hawk::readSource (
-	hawk_t* awk, sio_cmd_t cmd, sio_arg_t* arg,
-	hawk_ooch_t* data, hawk_oow_t count)
+hawk_ooi_t Hawk::readSource (hawk_t* hawk, sio_cmd_t cmd, sio_arg_t* arg, hawk_ooch_t* data, hawk_oow_t count)
 {
-	xtn_t* xtn = GET_XTN(awk);
-	Source::Data sdat (xtn->awk, Source::READ, arg);
+	xtn_t* xtn = GET_XTN(hawk);
+	Source::Data sdat(xtn->hawk, Source::READ, arg);
 
 	switch (cmd)
 	{
 		case HAWK_SIO_CMD_OPEN:
-			return xtn->awk->source_reader->open (sdat);
+			return xtn->hawk->source_reader->open(sdat);
 		case HAWK_SIO_CMD_CLOSE:
-			return xtn->awk->source_reader->close (sdat);
+			return xtn->hawk->source_reader->close(sdat);
 		case HAWK_SIO_CMD_READ:
-			return xtn->awk->source_reader->read (sdat, data, count);
+			return xtn->hawk->source_reader->read(sdat, data, count);
 		default:
+			hawk_seterrnum (hawk, HAWK_NULL, HAWK_EINTERN);
 			return -1;
 	}
 }
 
-hawk_ooi_t Hawk::writeSource (
-	hawk_t* awk, hawk_sio_cmd_t cmd, sio_arg_t* arg,
-	hawk_ooch_t* data, hawk_oow_t count)
+hawk_ooi_t Hawk::writeSource (hawk_t* hawk, hawk_sio_cmd_t cmd, sio_arg_t* arg, hawk_ooch_t* data, hawk_oow_t count)
 {
-	xtn_t* xtn = GET_XTN(awk);
-	Source::Data sdat (xtn->awk, Source::WRITE, arg);
+	xtn_t* xtn = GET_XTN(hawk);
+	Source::Data sdat (xtn->hawk, Source::WRITE, arg);
 
 	switch (cmd)
 	{
 		case HAWK_SIO_CMD_OPEN:
-			return xtn->awk->source_writer->open (sdat);
+			return xtn->hawk->source_writer->open (sdat);
 		case HAWK_SIO_CMD_CLOSE:
-			return xtn->awk->source_writer->close (sdat);
+			return xtn->hawk->source_writer->close (sdat);
 		case HAWK_SIO_CMD_WRITE:
-			return xtn->awk->source_writer->write (sdat, data, count);
+			return xtn->hawk->source_writer->write (sdat, data, count);
 		default:
+			hawk_seterrnum (hawk, HAWK_NULL, HAWK_EINTERN);
 			return -1;
 	}
 }
@@ -2295,6 +2262,7 @@ hawk_ooi_t Hawk::pipeHandler (hawk_rtx_t* rtx, rio_cmd_t cmd, hawk_rio_arg_t* ri
 					return awk->pipe_handler->flush(pipe);
 	
 				default:
+					hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EINTERN);
 					return -1;
 			}
 		}
@@ -2318,6 +2286,7 @@ hawk_ooi_t Hawk::pipeHandler (hawk_rtx_t* rtx, rio_cmd_t cmd, hawk_rio_arg_t* ri
 					return awk->flushPipe(pipe);
 	
 				default:
+					hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EINTERN);
 					return -1;
 			}
 		}
@@ -2359,6 +2328,7 @@ hawk_ooi_t Hawk::fileHandler (hawk_rtx_t* rtx, rio_cmd_t cmd, hawk_rio_arg_t* ri
 					return awk->file_handler->flush(file);
 	
 				default:
+					hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EINTERN);
 					return -1;
 			}
 		}
@@ -2382,6 +2352,7 @@ hawk_ooi_t Hawk::fileHandler (hawk_rtx_t* rtx, rio_cmd_t cmd, hawk_rio_arg_t* ri
 					return awk->flushFile(file);
 
 				default:
+					hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EINTERN);
 					return -1;
 			}
 		}
@@ -2425,6 +2396,7 @@ hawk_ooi_t Hawk::consoleHandler (hawk_rtx_t* rtx, rio_cmd_t cmd, hawk_rio_arg_t*
 					return awk->console_handler->next(console);
 
 				default:
+					hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EINTERN);
 					return -1;
 			}
 		}
@@ -2450,6 +2422,7 @@ hawk_ooi_t Hawk::consoleHandler (hawk_rtx_t* rtx, rio_cmd_t cmd, hawk_rio_arg_t*
 					return awk->nextConsole(console);
 
 				default:
+					hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EINTERN);
 					return -1;
 			}
 		}
@@ -2577,37 +2550,37 @@ int Hawk::nextConsole (Console& io)
 int Hawk::functionHandler (hawk_rtx_t* rtx, const fnc_info_t* fi)
 {
 	rxtn_t* rxtn = GET_RXTN(rtx);
-	return rxtn->run->awk->dispatch_function (rxtn->run, fi);
-}	
-	
+	return rxtn->run->awk->dispatch_function(rxtn->run, fi);
+}
+
 Hawk::flt_t Hawk::pow (hawk_t* awk, flt_t x, flt_t y)
 {
 	xtn_t* xtn = GET_XTN(awk);
-	return xtn->awk->pow (x, y);
+	return xtn->hawk->pow(x, y);
 }
 
 Hawk::flt_t Hawk::mod (hawk_t* awk, flt_t x, flt_t y)
 {
 	xtn_t* xtn = GET_XTN(awk);
-	return xtn->awk->mod (x, y);
+	return xtn->hawk->mod(x, y);
 }
 
 void* Hawk::modopen (hawk_t* awk, const mod_spec_t* spec)
 {
 	xtn_t* xtn = GET_XTN(awk);
-	return xtn->awk->modopen (spec);
+	return xtn->hawk->modopen(spec);
 }
 
 void Hawk::modclose (hawk_t* awk, void* handle)
 {
 	xtn_t* xtn = GET_XTN(awk);
-	xtn->awk->modclose (handle);
+	xtn->hawk->modclose (handle);
 }
 
 void* Hawk::modgetsym (hawk_t* awk, void* handle, const hawk_ooch_t* name)
 {
 	xtn_t* xtn = GET_XTN(awk);
-	return xtn->awk->modgetsym (handle, name);
+	return xtn->hawk->modgetsym(handle, name);
 }
 /////////////////////////////////
 HAWK_END_NAMESPACE(HAWK)
@@ -2617,7 +2590,7 @@ HAWK_END_NAMESPACE(HAWK)
 
 void* operator new (hawk_oow_t size, HAWK::Mmgr* mmgr) /*HAWK_CPP_THREXCEPT1(HAWK::Mmgr::MemoryError)*/
 {
-	return mmgr->allocate (size);
+	return mmgr->allocate(size);
 }
 
 #if defined(HAWK_CPP_NO_OPERATOR_DELETE_OVERLOADING)
@@ -2639,7 +2612,7 @@ void* operator new (hawk_oow_t size, HAWK::Mmgr* mmgr, void* existing_ptr) /*HAW
 #if 0
 void* operator new[] (hawk_oow_t size, HAWK::Mmgr* mmgr)
 {
-	return mmgr->allocate (size);
+	return mmgr->allocate(size);
 }
 
 void operator delete[] (void* ptr, HAWK::Mmgr* mmgr)

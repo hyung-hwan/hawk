@@ -348,6 +348,46 @@ void hawk_seterrufmt (hawk_t* hawk, const hawk_loc_t* errloc, hawk_errnum_t errn
 	hawk->_gem.errloc = (errloc? *errloc: _nullloc);
 }
 
+void hawk_seterrbvfmt (hawk_t* hawk, const hawk_loc_t* errloc, hawk_errnum_t errnum, const hawk_bch_t* errfmt, va_list ap)
+{
+	hawk_fmtout_t fo;
+
+	/*if (hawk->shuterr) return;*/
+	hawk->errmsg_len = 0;
+	hawk->_gem.errmsg[0] = '\0';
+
+	HAWK_MEMSET (&fo, 0, HAWK_SIZEOF(fo));
+	fo.mmgr = hawk_getmmgr(hawk);
+	fo.putbchars = err_bchars;
+	fo.putuchars = err_uchars;
+	fo.ctx = hawk;
+
+	hawk_bfmt_outv (&fo, errfmt, ap);
+
+	hawk->_gem.errnum = errnum;
+	hawk->_gem.errloc = (errloc? *errloc: _nullloc);
+}
+
+void hawk_seterruvfmt (hawk_t* hawk, const hawk_loc_t* errloc, hawk_errnum_t errnum, const hawk_uch_t* errfmt, va_list ap)
+{
+	hawk_fmtout_t fo;
+
+	/*if (hawk->shuterr) return;*/
+	hawk->errmsg_len = 0;
+	hawk->_gem.errmsg[0] = '\0';
+
+	HAWK_MEMSET (&fo, 0, HAWK_SIZEOF(fo));
+	fo.mmgr = hawk_getmmgr(hawk);
+	fo.putbchars = err_bchars;
+	fo.putuchars = err_uchars;
+	fo.ctx = hawk;
+
+	hawk_ufmt_outv (&fo, errfmt, ap);
+
+	hawk->_gem.errnum = errnum;
+	hawk->_gem.errloc = (errloc? *errloc: _nullloc);
+}
+
 /* ------------------------------------------------------------------------- */
 
 const hawk_loc_t* hawk_rtx_geterrloc (hawk_rtx_t* rtx)
@@ -502,6 +542,46 @@ void hawk_rtx_seterrufmt (hawk_rtx_t* rtx, const hawk_loc_t* errloc, hawk_errnum
 	va_start (ap, errfmt);
 	hawk_ufmt_outv (&fo, errfmt, ap);
 	va_end (ap);
+
+	rtx->_gem.errnum = errnum;
+	rtx->_gem.errloc =  (errloc? *errloc: _nullloc);
+}
+
+void hawk_rtx_seterrbvfmt (hawk_rtx_t* rtx, const hawk_loc_t* errloc, hawk_errnum_t errnum, const hawk_bch_t* errfmt, va_list ap)
+{
+	hawk_fmtout_t fo;
+
+	/*if (hawk->shuterr) return;*/
+	rtx->errmsg_len = 0;
+	rtx->_gem.errmsg[0] = '\0';
+
+	HAWK_MEMSET (&fo, 0, HAWK_SIZEOF(fo));
+	fo.mmgr = hawk_rtx_getmmgr(rtx);
+	fo.putbchars = rtx_err_bchars;
+	fo.putuchars = rtx_err_uchars;
+	fo.ctx = rtx;
+
+	hawk_bfmt_outv (&fo, errfmt, ap);
+
+	rtx->_gem.errnum = errnum;
+	rtx->_gem.errloc = (errloc? *errloc: _nullloc);
+}
+
+void hawk_rtx_seterruvfmt (hawk_rtx_t* rtx, const hawk_loc_t* errloc, hawk_errnum_t errnum, const hawk_uch_t* errfmt, va_list ap)
+{
+	hawk_fmtout_t fo;
+
+	/*if (hawk->shuterr) return;*/
+	rtx->errmsg_len = 0;
+	rtx->_gem.errmsg[0] = '\0';
+
+	HAWK_MEMSET (&fo, 0, HAWK_SIZEOF(fo));
+	fo.mmgr = hawk_rtx_getmmgr(rtx);
+	fo.putbchars = rtx_err_bchars;
+	fo.putuchars = rtx_err_uchars;
+	fo.ctx = rtx;
+
+	hawk_ufmt_outv (&fo, errfmt, ap);
 
 	rtx->_gem.errnum = errnum;
 	rtx->_gem.errloc =  (errloc? *errloc: _nullloc);

@@ -48,6 +48,8 @@
 #	error UNSUPPORTED DYNAMIC LINKER
 #endif
 
+extern char **environ;
+
 /////////////////////////////////
 HAWK_BEGIN_NAMESPACE(HAWK)
 /////////////////////////////////
@@ -76,29 +78,31 @@ void MmgrStd::freeMem (void* ptr) HAWK_CPP_NOEXCEPT
 
 HawkStd::ioattr_t HawkStd::default_ioattr;
 
-static hawk_sio_t* open_sio (Hawk* awk, HawkStd::Run* run, const hawk_ooch_t* file, int flags)
+static hawk_sio_t* open_sio (Hawk* hawk, HawkStd::Run* run, const hawk_ooch_t* file, int flags)
 {
 	hawk_sio_t* sio;
 
 	//sio = hawk_sio_open ((run? ((Hawk::awk_t*)*(Hawk*)*run)->mmgr: awk->getMmgr()), 0, file, flags);
-	sio = hawk_sio_open((run? (hawk_gem_t*)*run: (hawk_gem_t*)*awk), 0, file, flags);
+	sio = hawk_sio_open((run? (hawk_gem_t*)*run: (hawk_gem_t*)*hawk), 0, file, flags);
 	if (sio == HAWK_NULL)
 	{
 		if (run)
 		{
-			const hawk_ooch_t* bem = hawk_rtx_backuperrmsg(*run);
-			run->formatError (HAWK_EOPEN, HAWK_NULL, HAWK_T("unable to open %js - %js"), file, bem);
+			const hawk_ooch_t* bem = hawk_rtx_backuperrmsg((hawk_rtx_t*)*run);
+			//run->formatError (HAWK_EOPEN, HAWK_NULL, HAWK_T("unable to open %js - %js"), file, bem);
+			hawk_rtx_seterrfmt ((hawk_rtx_t*)*run, HAWK_NULL, HAWK_EOPEN, HAWK_T("unable to open %js - %js"), file, bem);
 		}
 		else
 		{
-			const hawk_ooch_t* bem = hawk_backuperrmsg(*awk);
-			awk->formatError (HAWK_EOPEN, HAWK_NULL, HAWK_T("unable to open %js - %js"), file, bem);
+			const hawk_ooch_t* bem = hawk_backuperrmsg((hawk_t*)*hawk);
+			//hawk->formatError (HAWK_EOPEN, HAWK_NULL, HAWK_T("unable to open %js - %js"), file, bem);
+			hawk_seterrfmt ((hawk_t*)*hawk, HAWK_NULL, HAWK_EOPEN, HAWK_T("unable to open %js - %js"), file, bem);
 		}
 	}
 	return sio;
 }
 
-static hawk_sio_t* open_sio_std (Hawk* awk, HawkStd::Run* run, hawk_sio_std_t std, int flags)
+static hawk_sio_t* open_sio_std (Hawk* hawk, HawkStd::Run* run, hawk_sio_std_t std, int flags)
 {
 	hawk_sio_t* sio;
 	static const hawk_ooch_t* std_names[] =
@@ -109,18 +113,20 @@ static hawk_sio_t* open_sio_std (Hawk* awk, HawkStd::Run* run, hawk_sio_std_t st
 	};
 
 	//sio = hawk_sio_openstd ((run? ((Hawk::awk_t*)*(Hawk*)*run)->mmgr: awk->getMmgr()), 0, std, flags);
-	sio = hawk_sio_openstd((run? (hawk_gem_t*)*run: (hawk_gem_t*)*awk), 0, std, flags);
+	sio = hawk_sio_openstd((run? (hawk_gem_t*)*run: (hawk_gem_t*)*hawk), 0, std, flags);
 	if (sio == HAWK_NULL)
 	{
 		if (run)
 		{
-			const hawk_ooch_t* bem = hawk_rtx_backuperrmsg(*run);
-			run->formatError (HAWK_EOPEN, HAWK_NULL, HAWK_T("unable to open %js - %js"), std_names[std], bem);
+			const hawk_ooch_t* bem = hawk_rtx_backuperrmsg((hawk_rtx_t*)*run);
+			//run->formatError (HAWK_EOPEN, HAWK_NULL, HAWK_T("unable to open %js - %js"), std_names[std], bem);
+			hawk_rtx_seterrfmt ((hawk_rtx_t*)*run, HAWK_NULL, HAWK_EOPEN, HAWK_T("unable to open %js - %js"), std_names[std], bem);
 		}
 		else
 		{
-			const hawk_ooch_t* bem = hawk_backuperrmsg(*awk);
-			awk->formatError (HAWK_EOPEN, HAWK_NULL, HAWK_T("unable to open %js - %js"), std_names[std], bem);
+			const hawk_ooch_t* bem = hawk_backuperrmsg((hawk_t*)*hawk);
+			//awk->formatError (HAWK_EOPEN, HAWK_NULL, HAWK_T("unable to open %js - %js"), std_names[std], bem);
+			hawk_seterrfmt ((hawk_t*)*hawk, HAWK_NULL, HAWK_EOPEN, HAWK_T("unable to open %js - %js"), std_names[std], bem);
 		}
 	}
 	return sio;
@@ -340,10 +346,9 @@ int HawkStd::build_environ (Run* run, env_char_t* envarr[])
 int HawkStd::make_additional_globals (Run* run)
 {
 	/* TODO: use wenviron where it's available */
-	extern char **environ;
 
 	if (build_argcv(run) <= -1 ||
-	    build_environ(run, environ) <= -1) return -1;
+	    build_environ(run, ::environ) <= -1) return -1;
 	    
 	return 0;
 }
@@ -562,8 +567,7 @@ int HawkStd::open_pio (Pipe& io)
 	{
 		case Hawk::Pipe::READ:
 			/* TODO: should we specify ERRTOOUT? */
-			flags |= HAWK_PIO_READOUT |
-			         HAWK_PIO_ERRTOOUT;
+			flags |= HAWK_PIO_READOUT | HAWK_PIO_ERRTOOUT;
 			break;
 
 		case Hawk::Pipe::WRITE:
@@ -571,19 +575,12 @@ int HawkStd::open_pio (Pipe& io)
 			break;
 
 		case Hawk::Pipe::RW:
-			flags |= HAWK_PIO_READOUT |
-			         HAWK_PIO_ERRTOOUT |
-			         HAWK_PIO_WRITEIN;
+			flags |= HAWK_PIO_READOUT | HAWK_PIO_ERRTOOUT | HAWK_PIO_WRITEIN;
 			break;
 	}
 
-	pio = hawk_pio_open (
-		*this,
-		0, 
-		io.getName(), 
-		flags
-	);
-	if (pio == HAWK_NULL) return -1;
+	pio = hawk_pio_open((hawk_gem_t*)*this, 0, io.getName(), flags);
+	if (!pio) return -1;
 
 #if defined(HAWK_OOCH_IS_UCH)
 	hawk_cmgr_t* cmgr = this->getiocmgr(io.getName());
@@ -740,17 +737,14 @@ int HawkStd::openFile (File& io)
 			flags |= HAWK_SIO_READ;
 			break;
 		case Hawk::File::WRITE:
-			flags |= HAWK_SIO_WRITE | 
-			         HAWK_SIO_CREATE | 
-			         HAWK_SIO_TRUNCATE;
+			flags |= HAWK_SIO_WRITE | HAWK_SIO_CREATE | HAWK_SIO_TRUNCATE;
 			break;
 		case Hawk::File::APPEND:
-			flags |= HAWK_SIO_APPEND |
-			         HAWK_SIO_CREATE;
+			flags |= HAWK_SIO_APPEND | HAWK_SIO_CREATE;
 			break;
 	}
 
-	sio = hawk_sio_open(*this, 0, io.getName(), flags);
+	sio = hawk_sio_open((hawk_gem_t*)*this, 0, io.getName(), flags);
 	if (!sio) return -1;
 #if defined(HAWK_OOCH_IS_UCH)
 	hawk_cmgr_t* cmgr = this->getiocmgr(io.getName());
@@ -842,13 +836,10 @@ int HawkStd::open_console_in (Console& io)
 		{
 			hawk_sio_t* sio;
 
-			sio = open_sio_std(
-				HAWK_NULL, io, HAWK_SIO_STDIN,
-				HAWK_SIO_READ | HAWK_SIO_IGNOREECERR);
+			sio = open_sio_std(HAWK_NULL, io, HAWK_SIO_STDIN, HAWK_SIO_READ | HAWK_SIO_IGNOREECERR);
 			if (sio == HAWK_NULL) return -1;
 
-			if (this->console_cmgr) 
-				hawk_sio_setcmgr (sio, this->console_cmgr);
+			if (this->console_cmgr) hawk_sio_setcmgr (sio, this->console_cmgr);
 
 			io.setHandle (sio);
 			this->runarg_count++;
@@ -885,13 +876,10 @@ int HawkStd::open_console_in (Console& io)
 				 * 'BEGIN { ARGV[1]=""; ARGV[2]=""; }
 				 *        { print $0; }' file1 file2
 				 */
-				sio = open_sio_std(
-					HAWK_NULL, io, HAWK_SIO_STDIN,
-					HAWK_SIO_READ | HAWK_SIO_IGNOREECERR);
+				sio = open_sio_std(HAWK_NULL, io, HAWK_SIO_STDIN, HAWK_SIO_READ | HAWK_SIO_IGNOREECERR);
 				if (sio == HAWK_NULL) return -1;
 
-				if (this->console_cmgr)
-					hawk_sio_setcmgr (sio, this->console_cmgr);
+				if (this->console_cmgr) hawk_sio_setcmgr (sio, this->console_cmgr);
 
 				io.setHandle (sio);
 				this->runarg_count++;
@@ -1188,6 +1176,16 @@ void* HawkStd::modgetsym (void* handle, const hawk_ooch_t* name)
 	return s;
 }
 
+HawkStd::SourceFile::~SourceFile ()
+{
+	if (this->_hawk) 
+	{
+		HAWK_ASSERT (this->str != HAWK_NULL);
+		hawk_freemem (this->_hawk, this->name);
+	}
+}
+
+
 int HawkStd::SourceFile::open (Data& io)
 {
 	hawk_sio_t* sio;
@@ -1195,6 +1193,32 @@ int HawkStd::SourceFile::open (Data& io)
 	if (io.isMaster())
 	{
 		// open the main source file.
+		if (!this->name)
+		{
+			this->_hawk = (hawk_t*)io;
+			if (this->_type == NAME_UCH)
+			{
+			#if defined(HAWK_OOCH_IS_UCH)
+				this->name = hawk_dupucstr(this->_hawk, (hawk_uch_t*)this->_name, HAWK_NULL);
+			#else
+				this->name = hawk_duputobcstr(this->_hawk, (hawk_uch_t*)this->_name, HAWK_NULL);
+			#endif
+			}
+			else
+			{
+				HAWK_ASSERT (this->_type == NAME_BCH);
+			#if defined(HAWK_OOCH_IS_UCH)
+				this->name = hawk_dupbtoucstr(this->_hawk, (hawk_bch_t*)this->_name, HAWK_NULL, 0);
+			#else
+				this->name = hawk_dupbcstr(this->_hawk, (hawk_bch_t*)this->_name, HAWK_NULL);
+			#endif
+			}
+			if (!this->name) 
+			{
+				// TODO: check if retrieveError is needed //((Hawk*)io)->retrieveError();
+				return -1;
+			}
+		}
 
 		if (this->name[0] == HAWK_T('-') && this->name[1] == HAWK_T('\0'))
 		{
@@ -1341,6 +1365,7 @@ int HawkStd::SourceString::open (Data& io)
 			}
 			else
 			{
+				HAWK_ASSERT (this->_type == STR_BCH);
 			#if defined(HAWK_OOCH_IS_UCH)
 				this->str = hawk_dupbtoucstr(this->_hawk, (hawk_bch_t*)this->_str, HAWK_NULL, 0);
 			#else
