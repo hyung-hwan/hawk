@@ -30,7 +30,6 @@
 #include <hawk-std.h> // for hawk_stdmodXXX() functions
 #include "hawk-prv.h"
 #include <stdlib.h>
-#include <stdio.h>
 
 // TODO: remove the following definitions and find a way to share the similar definitions in std.c 
 #if defined(HAWK_ENABLE_LIBLTDL)
@@ -252,7 +251,7 @@ int HawkStd::build_argcv (Run* run)
 			this->runarg.ptr[i].len, true) <= -1) return -1;
 	}
 
-	run->setGlobal (this->gbl_argc, (int_t)this->runarg.len);
+	run->setGlobal (this->gbl_argc, (hawk_int_t)this->runarg.len);
 	run->setGlobal (this->gbl_argv, argv);
 	return 0;
 }
@@ -418,14 +417,14 @@ int HawkStd::setioattr (
 	    hawk_find_oochar(ptr[1], l[1], HAWK_T('\0')) ||
 	    hawk_find_oochar(ptr[2], l[2], HAWK_T('\0')))
 	{
-		return ret.setInt ((int_t)-1);
+		return ret.setInt ((hawk_int_t)-1);
 	}
 	
 	int tmout;
 	if ((tmout = timeout_code (ptr[1])) >= 0)
 	{
-		int_t lv;
-		flt_t fv;
+		hawk_int_t lv;
+		hawk_flt_t fv;
 		int n;
 
 		n = args[2].getNum(&lv, &fv);
@@ -446,7 +445,7 @@ int HawkStd::setioattr (
 			nsec = fv - ioattr->tmout[tmout].sec;
 			ioattr->tmout[tmout].nsec = HAWK_SEC_TO_NSEC(nsec);
 		}
-		return ret.setInt ((int_t)0);
+		return ret.setInt ((hawk_int_t)0);
 	}
 #if defined(HAWK_OOCH_IS_UCH)
 	else if (hawk_comp_oocstr(ptr[1], HAWK_T("codepage"), 1) == 0 ||
@@ -459,7 +458,7 @@ int HawkStd::setioattr (
 		else
 		{
 			cmgr = hawk_get_cmgr_by_name(ptr[2]);
-			if (cmgr == HAWK_NULL) return ret.setInt ((int_t)-1);
+			if (cmgr == HAWK_NULL) return ret.setInt ((hawk_int_t)-1);
 		}
 		
 		ioattr = find_or_make_ioattr(ptr[0], l[0]);
@@ -473,7 +472,7 @@ int HawkStd::setioattr (
 	else
 	{
 		// unknown attribute name
-		return ret.setInt ((int_t)-1);
+		return ret.setInt ((hawk_int_t)-1);
 	}
 }
 
@@ -501,7 +500,7 @@ int HawkStd::getioattr (
 		if ((tmout = timeout_code(ptr[1])) >= 0)
 		{
 			if (ioattr->tmout[tmout].nsec == 0)
-				xx = args[2].setInt ((int_t)ioattr->tmout[tmout].sec);
+				xx = args[2].setInt ((hawk_int_t)ioattr->tmout[tmout].sec);
 			else
 				xx = args[2].setFlt ((hawk_flt_t)ioattr->tmout[tmout].sec + HAWK_NSEC_TO_SEC((hawk_flt_t)ioattr->tmout[tmout].nsec));
 		}
@@ -515,7 +514,7 @@ int HawkStd::getioattr (
 	}
 
 	// unknown attribute name or errors
-	return ret.setInt ((int_t)xx);
+	return ret.setInt ((hawk_int_t)xx);
 }
 
 #if defined(ENABLE_NWIO)
@@ -909,7 +908,7 @@ int HawkStd::open_console_in (Console& io)
 		
 		// ok to find ARGV[this->runarg_index] as ARGV[0]
 		// has been skipped.
-		ibuflen = hawk_int_to_oocstr (this->runarg_index, 10, HAWK_NULL, ibuf, HAWK_COUNTOF(ibuf));
+		ibuflen = hawk_int_to_oocstr(this->runarg_index, 10, HAWK_NULL, ibuf, HAWK_COUNTOF(ibuf));
 
 		pair = hawk_htb_search (map, ibuf, ibuflen);
 		HAWK_ASSERT (pair != HAWK_NULL);
@@ -1143,12 +1142,12 @@ void  HawkStd::freeMem (void* ptr)
 
 // miscellaneous primitive
 
-HawkStd::flt_t HawkStd::pow (flt_t x, flt_t y) 
+hawk_flt_t HawkStd::pow (hawk_flt_t x, hawk_flt_t y) 
 { 
 	return hawk_stdmathpow (this->awk, x, y);
 }
 
-HawkStd::flt_t HawkStd::mod (flt_t x, flt_t y) 
+hawk_flt_t HawkStd::mod (hawk_flt_t x, hawk_flt_t y) 
 { 
 	return hawk_stdmathmod (this->awk, x, y);
 }
