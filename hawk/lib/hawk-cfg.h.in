@@ -108,6 +108,9 @@
 /* Define to 1 if you have the `cosq' function. */
 #undef HAVE_COSQ
 
+/* Define to 1 if you have the <crt_externs.h> header file. */
+#undef HAVE_CRT_EXTERNS_H
+
 /* Define if c++ supports namespace std. */
 #undef HAVE_CXX_NAMESPACE_STD
 

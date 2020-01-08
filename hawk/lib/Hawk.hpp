@@ -396,23 +396,6 @@ public:
 		DEPTH_REX_MATCH   = HAWK_DEPTH_REX_MATCH
 	};
 
-	/// The gbl_id_t type redefines #hawk_gbl_id_t.
-	typedef hawk_gbl_id_t gbl_id_t;
-
-	/** Represents an runtime I/O data */
-
-	typedef hawk_rio_cmd_t rio_cmd_t;
-
-	typedef hawk_sio_arg_t sio_arg_t;
-
-	typedef hawk_sio_cmd_t sio_cmd_t;
-
-	typedef hawk_fnc_spec_t fnc_spec_t;
-
-	typedef hawk_fnc_info_t fnc_info_t;
-
-	typedef hawk_mod_spec_t mod_spec_t;
-
 	class Run;
 	friend class Run;
 
@@ -431,7 +414,7 @@ protected:
 	/// different. The example below changes the formatting string for
 	/// #HAWK_ENOENT.
 	/// \code
-	/// const hawk_ooch_t* MyHawk::getErrorString (hawk_hawk_errnum_t num) const 
+	/// const hawk_ooch_t* MyHawk::getErrorString (hawk_errnum_t num) const 
 	/// {
 	///    if (num == HAWK_ENOENT) return HAWK_T("cannot find '${0}'");
 	///    return Hawk::getErrorString (num);
@@ -506,7 +489,7 @@ public:
 		/// The Mode type defines opening mode.
 		///
 		enum Mode
-		{	
+		{
 			READ,   ///< open for read
 			WRITE   ///< open for write
 		};
@@ -521,7 +504,7 @@ public:
 			friend class Hawk;
 
 		protected:
-			Data (Hawk* awk, Mode mode, sio_arg_t* arg): 
+			Data (Hawk* awk, Mode mode, hawk_sio_arg_t* arg): 
 				awk (awk), mode (mode), arg (arg)
 			{
 			}
@@ -547,6 +530,16 @@ public:
 			void setName (const hawk_ooch_t* name)
 			{
 				this->arg->name = name;
+			}
+
+			const hawk_ooch_t* getPath() const
+			{
+				return this->arg->path;
+			}
+
+			void setPath (const hawk_ooch_t* path)
+			{
+				this->arg->path = (hawk_ooch_t*)path;
 			}
 
 			const hawk_ooch_t* getPrevName() const
@@ -582,7 +575,7 @@ public:
 		protected:
 			Hawk* awk;
 			Mode  mode;
-			sio_arg_t* arg;
+			hawk_sio_arg_t* arg;
 		};
 
 		Source () {}
@@ -1372,20 +1365,20 @@ public:
 	/// The call() function invokes a function named \a name.
 	///
 	int call (
-		const hawk_bch_t* name,  ///< function name
+		const hawk_bch_t*  name,  ///< function name
 		Value*             ret,   ///< return value holder
 		const Value*       args,  ///< argument array
-		hawk_oow_t             nargs  ///< number of arguments
+		hawk_oow_t         nargs  ///< number of arguments
 	);
 
 	///
 	/// The call() function invokes a function named \a name.
 	///
 	int call (
-		const hawk_uch_t* name,  ///< function name
+		const hawk_uch_t*  name,  ///< function name
 		Value*             ret,   ///< return value holder
 		const Value*       args,  ///< argument array
-		hawk_oow_t             nargs  ///< number of arguments
+		hawk_oow_t         nargs  ///< number of arguments
 	);
 
 	///
@@ -1505,7 +1498,7 @@ public:
 	///
 	/// The setGlobal() function sets the value of a global variable 
 	/// identified by \a id. The \a id is either a value returned by 
-	/// addGlobal() or one of the #gbl_id_t enumerators. It is not allowed
+	/// addGlobal() or one of the #hawk_gbl_id_t enumerators. It is not allowed
 	/// to call this function prior to parse().
 	/// \return 0 on success, -1 on failure
 	///
@@ -1517,7 +1510,7 @@ public:
 	///
 	/// The getGlobal() function gets the value of a global variable 
 	/// identified by \a id. The \a id is either a value returned by 
-	/// addGlobal() or one of the #gbl_id_t enumerators. It is not allowed
+	/// addGlobal() or one of the #hawk_gbl_id_t enumerators. It is not allowed
 	/// to call this function before parse().
 	/// \return 0 on success, -1 on failure
 	///
@@ -1534,7 +1527,7 @@ public:
 		Value&            ret,
 		Value*            args,
 		hawk_oow_t        nargs, 
-		const fnc_info_t* fi
+		const hawk_fnc_info_t* fi
 	);
 
 	/// 
@@ -1690,35 +1683,35 @@ protected:
 	virtual flt_t pow (flt_t x, flt_t y) = 0;
 	virtual flt_t mod (flt_t x, flt_t y) = 0;
 
-	virtual void* modopen (const mod_spec_t* spec) = 0;
+	virtual void* modopen (const hawk_mod_spec_t* spec) = 0;
 	virtual void  modclose (void* handle) = 0;
 	virtual void* modgetsym (void* handle, const hawk_ooch_t* name) = 0;
 
 	// static glue members for various handlers
 	static hawk_ooi_t readSource (
-		hawk_t* awk, sio_cmd_t cmd, sio_arg_t* arg,
+		hawk_t* awk, hawk_sio_cmd_t cmd, hawk_sio_arg_t* arg,
 		hawk_ooch_t* data, hawk_oow_t count);
 	static hawk_ooi_t writeSource (
-		hawk_t* awk, sio_cmd_t cmd, sio_arg_t* arg,
+		hawk_t* awk, hawk_sio_cmd_t cmd, hawk_sio_arg_t* arg,
 		hawk_ooch_t* data, hawk_oow_t count);
 
 	static hawk_ooi_t pipeHandler (
-		hawk_rtx_t* rtx, rio_cmd_t cmd, hawk_rio_arg_t* riod,
+		hawk_rtx_t* rtx, hawk_rio_cmd_t cmd, hawk_rio_arg_t* riod,
 		void* data, hawk_oow_t count);
 	static hawk_ooi_t fileHandler (
-		hawk_rtx_t* rtx, rio_cmd_t cmd, hawk_rio_arg_t* riod,
+		hawk_rtx_t* rtx, hawk_rio_cmd_t cmd, hawk_rio_arg_t* riod,
 		void* data, hawk_oow_t count);
 	static hawk_ooi_t consoleHandler (
-		hawk_rtx_t* rtx, rio_cmd_t cmd, hawk_rio_arg_t* riod,
+		hawk_rtx_t* rtx, hawk_rio_cmd_t cmd, hawk_rio_arg_t* riod,
 		void* data, hawk_oow_t count);
 
-	static int functionHandler (hawk_rtx_t* rtx, const fnc_info_t* fi);
+	static int functionHandler (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi);
 
 
 	static flt_t pow (hawk_t* awk, flt_t x, flt_t y);
 	static flt_t mod (hawk_t* awk, flt_t x, flt_t y);
 
-	static void* modopen (hawk_t* awk, const mod_spec_t* spec);
+	static void* modopen (hawk_t* awk, const hawk_mod_spec_t* spec);
 	static void  modclose (hawk_t* awk, void* handle);
 	static void* modgetsym (hawk_t* awk, void* handle, const hawk_ooch_t* name);
 
@@ -1776,7 +1769,7 @@ private:
 
 	int init_runctx ();
 	void fini_runctx ();
-	int dispatch_function (Run* run, const fnc_info_t* fi);
+	int dispatch_function (Run* run, const hawk_fnc_info_t* fi);
 
 	static const hawk_ooch_t* xerrstr (hawk_t* a, hawk_errnum_t num);
 };

@@ -189,7 +189,7 @@ AC_CHECK_HEADERS([netinet/in.h sys/un.h netpacket/packet.h net/if.h net/if_dl.h]
 	#include <sys/types.h>
 	#include <sys/socket.h>])
 AC_CHECK_HEADERS([sys/stropts.h sys/macstat.h linux/ethtool.h linux/sockios.h])
-AC_CHECK_HEADERS([ffi.h dyncall.h libunwind.h quadmath.h])
+AC_CHECK_HEADERS([ffi.h dyncall.h libunwind.h quadmath.h crt_externs.h])
 
 dnl check data types
 dnl AC_CHECK_TYPE([wchar_t], 

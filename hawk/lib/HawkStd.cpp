@@ -30,14 +30,7 @@
 #include <hawk-std.h> // for hawk_stdmodXXX() functions
 #include "hawk-prv.h"
 #include <stdlib.h>
-
-#if !defined(HAWK_HAVE_CONFIG_H)
-#	if defined(_WIN32) || defined(__OS2__) || defined(__DOS__)
-#		define HAVE_POW
-#		define HAVE_FMOD
-#	endif
-#endif
-
+#include <stdio.h>
 
 // TODO: remove the following definitions and find a way to share the similar definitions in std.c 
 #if defined(HAWK_ENABLE_LIBLTDL)
@@ -48,7 +41,12 @@
 #	error UNSUPPORTED DYNAMIC LINKER
 #endif
 
-extern char **environ;
+#if defined(HAVE_CRT_EXTERNS_H)
+#	include <crt_externs.h> /* MacOSX/darwin. _NSGetEnviron() */
+#	define environ (*(_NSGetEnviron()))
+#else
+	extern char** environ;
+#endif
 
 /////////////////////////////////
 HAWK_BEGIN_NAMESPACE(HAWK)
@@ -1155,7 +1153,7 @@ HawkStd::flt_t HawkStd::mod (flt_t x, flt_t y)
 	return hawk_stdmathmod (this->awk, x, y);
 }
 
-void* HawkStd::modopen (const mod_spec_t* spec)
+void* HawkStd::modopen (const hawk_mod_spec_t* spec)
 {
 	void* h;
 	h = hawk_stdmodopen (this->awk, spec);
@@ -1185,7 +1183,6 @@ HawkStd::SourceFile::~SourceFile ()
 	}
 }
 
-
 int HawkStd::SourceFile::open (Data& io)
 {
 	hawk_sio_t* sio;
@@ -1213,11 +1210,7 @@ int HawkStd::SourceFile::open (Data& io)
 				this->name = hawk_dupbcstr(this->_hawk, (hawk_bch_t*)this->_name, HAWK_NULL);
 			#endif
 			}
-			if (!this->name) 
-			{
-				// TODO: check if retrieveError is needed //((Hawk*)io)->retrieveError();
-				return -1;
-			}
+			if (!this->name) return -1;
 		}
 
 		if (this->name[0] == HAWK_T('-') && this->name[1] == HAWK_T('\0'))
@@ -1246,22 +1239,24 @@ int HawkStd::SourceFile::open (Data& io)
 
 		if (this->cmgr) hawk_sio_setcmgr (sio, this->cmgr);
 		io.setName (this->name);
+		io.setPath (this->name);
 	}
 	else
 	{
-		// open an included file
-		const hawk_ooch_t* ioname, * file;
-		hawk_ooch_t fbuf[64];
-		hawk_ooch_t* dbuf = HAWK_NULL;
-	
+		// open an included file 
+		const hawk_ooch_t* ioname;
+		hawk_ooch_t* xpath;
+
 		ioname = io.getName();
 		HAWK_ASSERT (ioname != HAWK_NULL);
 
-		file = ioname;
 		if (io.getPrevHandle())
 		{
-			const hawk_ooch_t* outer;
+			const hawk_ooch_t* outer, * path;
+			hawk_ooch_t fbuf[64];
+			hawk_ooch_t* dbuf = HAWK_NULL;
 
+			path = ioname;
 			outer = hawk_sio_getpath((hawk_sio_t*)io.getPrevHandle());
 			if (outer)
 			{
@@ -1271,39 +1266,40 @@ int HawkStd::SourceFile::open (Data& io)
 				if (base != outer && ioname[0] != HAWK_T('/'))
 				{
 					hawk_oow_t tmplen, totlen, dirlen;
-				
+
 					dirlen = base - outer;
 					totlen = hawk_count_oocstr(ioname) + dirlen;
 					if (totlen >= HAWK_COUNTOF(fbuf))
 					{
-						dbuf = (hawk_ooch_t*)HAWK_MMGR_ALLOC(
-							((Hawk*)io)->getMmgr(),
-							HAWK_SIZEOF(hawk_ooch_t) * (totlen + 1)
-						);
-						if (dbuf == HAWK_NULL)
-						{
-							((Hawk*)io)->setError (HAWK_ENOMEM);
-							return -1;
-						}
-
-						file = dbuf;
+						dbuf = (hawk_ooch_t*)hawk_allocmem((hawk_t*)io, HAWK_SIZEOF(hawk_ooch_t) * (totlen + 1));
+						if (!dbuf) return -1;
+						path = dbuf;
 					}
-					else file = fbuf;
+					else path = fbuf;
 
-					tmplen = hawk_copy_oochars_to_oocstr_unlimited ((hawk_ooch_t*)file, outer, dirlen);
-					hawk_copy_oocstr_unlimited ((hawk_ooch_t*)file + tmplen, ioname);
+					tmplen = hawk_copy_oochars_to_oocstr_unlimited((hawk_ooch_t*)path, outer, dirlen);
+					hawk_copy_oocstr_unlimited ((hawk_ooch_t*)path + tmplen, ioname);
 				}
 			}
+			xpath = hawk_addsionamewithoochars((hawk_t*)io, path, hawk_count_oocstr(path));
+			if (dbuf) hawk_freemem ((hawk_t*)io, dbuf);
 		}
+		else
+		{
+			xpath = hawk_addsionamewithoochars((hawk_t*)io, ioname, hawk_count_oocstr(ioname));
+		}
+		if (!xpath) return -1;
 
 		sio = open_sio(
-			io, HAWK_NULL, file,
+			io, HAWK_NULL, xpath,
 			(io.getMode() == READ? 
 				(HAWK_SIO_READ | HAWK_SIO_IGNOREECERR | HAWK_SIO_KEEPPATH): 
 				(HAWK_SIO_WRITE | HAWK_SIO_CREATE | HAWK_SIO_TRUNCATE | HAWK_SIO_IGNOREECERR))
 		);
-		if (dbuf) HAWK_MMGR_FREE (((Hawk*)io)->getMmgr(), dbuf);
-		if (sio == HAWK_NULL) return -1;
+		if (!sio) return -1;
+
+		io.setPath (xpath);
+		io.setHandle (sio);
 		if (this->cmgr) hawk_sio_setcmgr (sio, this->cmgr);
 	}
 
@@ -1372,11 +1368,7 @@ int HawkStd::SourceString::open (Data& io)
 				this->str = hawk_dupbcstr(this->_hawk, (hawk_bch_t*)this->_str, HAWK_NULL);
 			#endif
 			}
-			if (!this->str) 
-			{
-				// TODO: check if retrieveError is needed 
-				return -1;
-			}
+			if (!this->str) return -1;
 		}
 
 		this->ptr = this->str;
@@ -1384,19 +1376,19 @@ int HawkStd::SourceString::open (Data& io)
 	else
 	{
 		// open an included file 
+		const hawk_ooch_t* ioname;
+		hawk_ooch_t* xpath;
 
-		const hawk_ooch_t* ioname, * file;
-		hawk_ooch_t fbuf[64];
-		hawk_ooch_t* dbuf = HAWK_NULL;
-		
 		ioname = io.getName();
 		HAWK_ASSERT (ioname != HAWK_NULL);
 
-		file = ioname;
 		if (io.getPrevHandle())
 		{
-			const hawk_ooch_t* outer;
+			const hawk_ooch_t* outer, * path;
+			hawk_ooch_t fbuf[64];
+			hawk_ooch_t* dbuf = HAWK_NULL;
 
+			path = ioname;
 			outer = hawk_sio_getpath((hawk_sio_t*)io.getPrevHandle());
 			if (outer)
 			{
@@ -1406,38 +1398,41 @@ int HawkStd::SourceString::open (Data& io)
 				if (base != outer && ioname[0] != HAWK_T('/'))
 				{
 					hawk_oow_t tmplen, totlen, dirlen;
-				
+
 					dirlen = base - outer;
 					totlen = hawk_count_oocstr(ioname) + dirlen;
 					if (totlen >= HAWK_COUNTOF(fbuf))
 					{
 						dbuf = (hawk_ooch_t*)hawk_allocmem((hawk_t*)io, HAWK_SIZEOF(hawk_ooch_t) * (totlen + 1));
-						if (dbuf == HAWK_NULL)
-						{
-							// TODO: check if retrieveError is needed 
-							return -1;
-						}
-
-						file = dbuf;
+						if (!dbuf) return -1;
+						path = dbuf;
 					}
-					else file = fbuf;
+					else path = fbuf;
 
-					tmplen = hawk_copy_oochars_to_oocstr_unlimited((hawk_ooch_t*)file, outer, dirlen);
-					hawk_copy_oocstr_unlimited ((hawk_ooch_t*)file + tmplen, ioname);
+					tmplen = hawk_copy_oochars_to_oocstr_unlimited((hawk_ooch_t*)path, outer, dirlen);
+					hawk_copy_oocstr_unlimited ((hawk_ooch_t*)path + tmplen, ioname);
 				}
 			}
+			xpath = hawk_addsionamewithoochars((hawk_t*)io, path, hawk_count_oocstr(path));
+			if (dbuf) hawk_freemem ((hawk_t*)io, dbuf);
 		}
+		else
+		{
+			xpath = hawk_addsionamewithoochars((hawk_t*)io, ioname, hawk_count_oocstr(ioname));
+		}
+		if (!xpath) return -1;
 
 		sio = open_sio(
-			io, HAWK_NULL, file,
+			io, HAWK_NULL, xpath,
 			(io.getMode() == READ? 
 				(HAWK_SIO_READ | HAWK_SIO_IGNOREECERR | HAWK_SIO_KEEPPATH): 
 				(HAWK_SIO_WRITE | HAWK_SIO_CREATE | HAWK_SIO_TRUNCATE | HAWK_SIO_IGNOREECERR))
 		);
-		if (dbuf) hawk_freemem ((hawk_t*)io, dbuf);
-		if (sio == HAWK_NULL) return -1;
+		if (!sio) return -1;
 
+		io.setPath (xpath);
 		io.setHandle (sio);
+		//if (this->cmgr) hawk_sio_setcmgr (sio, this->cmgr);
 	}
 
 	return 1;
