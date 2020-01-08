@@ -411,28 +411,48 @@ typedef unsigned char           hawk_bchu_t; /* unsigned version of hawk_bch_t f
 #define HAWK_SIZEOF_BCH_T HAWK_SIZEOF_CHAR
 #define HAWK_SIZEOF_BCI_T HAWK_SIZEOF_INT
 
-#if defined(HAWK_UNICODE_SIZE) && (HAWK_UNICODE_SIZE >= 4)
-#	if defined(__GNUC__) && defined(__CHAR32_TYPE__)
-	typedef __CHAR32_TYPE__    hawk_uch_t;
+#if (defined(__cplusplus) && (defined(HAWK_USE_CPP_CHAR16_T) || (__cplusplus >= 201103L) || (defined(_MSC_VER) && _MSC_VER >= 1900))) /* user chosen or C++11 or later */
+#	if defined(HAWK_UNICODE_SIZE) && (HAWK_UNICODE_SIZE >= 4)
+		typedef char32_t           hawk_uch_t;  /* char32_t is an unsigned integer type used for 16-bit wide characters */
+		typedef char32_t           hawk_uchu_t; /* same as hawk_uch_t as it is already unsigned */
+#		define HAWK_SIZEOF_UCH_T 4
+#		define HAWK_USE_PREFIX_BIG_U
 #	else
-	typedef hawk_uint32_t      hawk_uch_t;
+		typedef char16_t           hawk_uch_t;  /* char16_t is an unsigned integer type used for 16-bit wide characters */
+		typedef char16_t           hawk_uchu_t; /* same as hawk_uch_t as it is already unsigned */
+#		define HAWK_SIZEOF_UCH_T 2
+#		define HAWK_USE_PREFIX_SMALL_U
 #	endif
-	typedef hawk_uint32_t      hawk_uchu_t; /* same as hawk_uch_t as it is already unsigned */
+#elif defined(__cplusplus) && defined(HAWK_UNICODE_SIZE) && (HAWK_UNICODE_SIZE >= 4) && (HAWK_SIZEOF_WCHAR_T >= 4)
+	typedef wchar_t           hawk_uch_t;
+	typedef hawk_uint32_t     hawk_uchu_t;
 #	define HAWK_SIZEOF_UCH_T 4
 
-#elif (defined(__cplusplus) && (defined(HAWK_USE_CPP_CHAR16_T) || (__cplusplus >= 201103L) || (defined(_MSC_VER) && _MSC_VER >= 1900))) /* user chosen or C++11 or later */
-	/* you can define HAWK_USE_CPP_CHAR16_T if you know the C++ compiler supports char16_t and 
-	 * it treats the u"XXX" or u'x' literals incompatibly with __CHAR16_TYPE__ */
-	typedef char16_t           hawk_uch_t;  /* char16_t is an unsigned integer type used for 16-bit wide characters */
-	typedef char16_t           hawk_uchu_t; /* same as hawk_uch_t as it is already unsigned */
+#elif defined(__cplusplus) && defined(HAWK_UNICODE_SIZE) && (HAWK_UNICODE_SIZE == 2) && (HAWK_SIZEOF_WCHAR_T == 2)
+	typedef wchar_t           hawk_uch_t;
+	typedef hawk_uint16_t     hawk_uchu_t;
 #	define HAWK_SIZEOF_UCH_T 2
-#	define HAWK_UCH_IS_CHAR16_T
+
+#elif defined(HAWK_UNICODE_SIZE) && (HAWK_UNICODE_SIZE >= 4) && defined(__GNUC__) && defined(__CHAR32_TYPE__)
+	typedef __CHAR32_TYPE__    hawk_uch_t;
+	typedef hawk_uint32_t      hawk_uchu_t;
+#	define HAWK_SIZEOF_UCH_T 4
+#	if !defined(HAWK_PREFER_PREFIX_L)
+#	define HAWK_USE_PREFIX_BIG_U
+#	endif
+
+#elif defined(HAWK_UNICODE_SIZE) && (HAWK_UNICODE_SIZE >= 4)
+	typedef hawk_uint32_t      hawk_uch_t;
+	typedef hawk_uint32_t      hawk_uchu_t;
+#	define HAWK_SIZEOF_UCH_T 4
 
 #elif defined(__GNUC__) && defined(__CHAR16_TYPE__)
-	typedef __CHAR16_TYPE__    hawk_uch_t;  /* this part isn't fully compatible with c++. try 'const __CHAR16_TYPE__* x = u"abc";' with g++ */
+	typedef __CHAR16_TYPE__    hawk_uch_t;
 	typedef hawk_uint16_t      hawk_uchu_t;
 #	define HAWK_SIZEOF_UCH_T 2
-#	define HAWK_UCH_IS_CHAR16_T
+#	if !defined(HAWK_PREFER_PREFIX_L)
+#	define HAWK_USE_PREFIX_SMALL_U
+#	endif
 
 #else
 	typedef hawk_uint16_t      hawk_uch_t;
@@ -1265,7 +1285,13 @@ typedef enum hawk_log_mask_t hawk_log_mask_t;
  */
 #define HAWK_BT(txt)   (txt)
 
-#if defined(HAWK_UCH_IS_CHAR16_T)
+#if (HAWK_SIZEOF_UCH_T == HAWK_SIZEOF_BCH_T)
+#       define HAWK_UQ_I(val)  (#val)
+#       define HAWK_UQ(val)    HAWK_UQ_I(val)
+#elif defined(HAWK_USE_PREFIX_BIG_U)
+#       define HAWK_UQ_I(val)  (U ## #val)
+#       define HAWK_UQ(val)    HAWK_UQ_I(val)
+#elif defined(HAWK_USE_PREFIX_SMALL_U)
 #       define HAWK_UQ_I(val)  (u ## #val)
 #       define HAWK_UQ(val)    HAWK_UQ_I(val)
 #else
@@ -1274,12 +1300,14 @@ typedef enum hawk_log_mask_t hawk_log_mask_t;
 #endif
 
 /**
- * The #HAWK_UT macro maps a multi-byte literal string to a wide character
- * string by prefixing it with \b L.
+ * The #HAWK_UT macro maps a literal string to a wide character
+ * string by prefixing it with a supported prefix.
  */
 #if (HAWK_SIZEOF_UCH_T == HAWK_SIZEOF_BCH_T)
 #       define HAWK_UT(txt)    (txt)
-#elif defined(HAWK_UCH_IS_CHAR16_T)
+#elif defined(HAWK_USE_PREFIX_BIG_U)
+#       define HAWK_UT(txt)    (U ## txt)
+#elif defined(HAWK_USE_PREFIX_SMALL_U)
 #       define HAWK_UT(txt)    (u ## txt)
 #else
 #       define HAWK_UT(txt)    (L ## txt)
