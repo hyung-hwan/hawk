@@ -376,12 +376,6 @@ private:
 class HAWK_EXPORT Hawk: public Uncopyable, public Mmged
 {
 public:
-	// redefine flt_t. To access Types::flt_t, use the fully qualified 
-	// name as it's overriding Types::flt_t. 
-	typedef hawk_flt_t  flt_t; 
-	typedef hawk_int_t  int_t; 
-	typedef hawk_uint_t uint_t; 
-
 	typedef hawk_errstr_t errstr_t;
 	typedef hawk_errinf_t errinf_t;
 
@@ -819,7 +813,7 @@ public:
 		Mode getMode () const;
 
 		int setFileName (const hawk_ooch_t* name);
-		int setFNR (int_t fnr);
+		int setFNR (hawk_int_t fnr);
 
 	protected:
 		hawk_ooch_t* filename;
@@ -902,7 +896,7 @@ public:
 		class HAWK_EXPORT IntIndex: public Index
 		{
 		public:
-			IntIndex (int_t num);
+			IntIndex (hawk_int_t num);
 
 		protected:
 			// 2^32: 4294967296
@@ -912,7 +906,7 @@ public:
 			// -(2^64/2): -9223372036854775808
 			// -(2^128/2): -170141183460469231731687303715884105728
 		#if HAWK_SIZEOF_LONG_T > 16
-		#	error SIZEOF(int_t) TOO LARGE. 
+		#	error SIZEOF(hawk_int_t) TOO LARGE. 
 		#	error INCREASE THE BUFFER SIZE TO SUPPORT IT.
 		#elif HAWK_SIZEOF_LONG_T == 16
 			hawk_ooch_t buf[41];
@@ -995,8 +989,8 @@ public:
 		void clear ();
 
 		operator hawk_val_t* () const { return val; }
-		operator int_t () const;
-		operator flt_t () const;
+		operator hawk_int_t () const;
+		operator hawk_flt_t () const;
 		operator const hawk_ooch_t* () const;
 	#if defined(HAWK_OOCH_IS_UCH)
 		operator const hawk_bch_t* () const;
@@ -1007,14 +1001,14 @@ public:
 			return operator hawk_val_t* ();
 		}
 
-		int_t toInt () const
+		hawk_int_t toInt () const
 		{
-			return operator int_t ();
+			return operator hawk_int_t ();
 		}
 
-		flt_t toFlt () const
+		hawk_flt_t toFlt () const
 		{
-			return operator flt_t ();
+			return operator hawk_flt_t ();
 		}
 
 		const hawk_ooch_t* toStr (hawk_oow_t* len) const
@@ -1047,19 +1041,19 @@ public:
 			return p;
 		}
 
-		int getInt (int_t* v) const;
-		int getFlt (flt_t* v) const;
-		int getNum (int_t* lv, flt_t* fv) const;
+		int getInt (hawk_int_t* v) const;
+		int getFlt (hawk_flt_t* v) const;
+		int getNum (hawk_int_t* lv, hawk_flt_t* fv) const;
 		int getStr (const hawk_ooch_t** str, hawk_oow_t* len) const;
 		int getMbs (const hawk_bch_t** str, hawk_oow_t* len) const;
 
 		int setVal (hawk_val_t* v);
 		int setVal (Run* r, hawk_val_t* v);
 
-		int setInt (int_t v);
-		int setInt (Run* r, int_t v);
-		int setFlt (flt_t v);
-		int setFlt (Run* r, flt_t v);
+		int setInt (hawk_int_t v);
+		int setInt (Run* r, hawk_int_t v);
+		int setFlt (hawk_flt_t v);
+		int setFlt (Run* r, hawk_flt_t v);
 
 		int setStr (const hawk_uch_t* str, hawk_oow_t len, bool numeric = false);
 		int setStr (Run* r, const hawk_uch_t* str, hawk_oow_t len, bool numeric = false);
@@ -1077,10 +1071,10 @@ public:
 
 		int setIndexedVal (const Index& idx, hawk_val_t* v);
 		int setIndexedVal (Run* r, const Index& idx, hawk_val_t* v);
-		int setIndexedInt (const Index& idx, int_t v);
-		int setIndexedInt (Run* r, const Index& idx, int_t v);
-		int setIndexedFlt (const Index& idx, flt_t v);
-		int setIndexedFlt (Run* r, const Index&  idx, flt_t v);
+		int setIndexedInt (const Index& idx, hawk_int_t v);
+		int setIndexedInt (Run* r, const Index& idx, hawk_int_t v);
+		int setIndexedFlt (const Index& idx, hawk_flt_t v);
+		int setIndexedFlt (Run* r, const Index&  idx, hawk_flt_t v);
 
 		int setIndexedStr (const Index& idx, const hawk_ooch_t* str, hawk_oow_t len, bool numeric = false);
 		int setIndexedStr (Run* r, const Index& idx, const hawk_ooch_t* str, hawk_oow_t len, bool numeric = false);
@@ -1213,7 +1207,7 @@ public:
 		/// to \a v.
 		/// \return 0 on success, -1 on failure
 		///
-		int setGlobal (int id, int_t v);
+		int setGlobal (int id, hawk_int_t v);
 
 		/// 
 		/// The setGlobal() function sets the value of a global 
@@ -1221,7 +1215,7 @@ public:
 		/// to \a v.
 		/// \return 0 on success, -1 on failure
 		///
-		int setGlobal (int id, flt_t v); 
+		int setGlobal (int id, hawk_flt_t v); 
 
 		/// 
 		/// The setGlobal() function sets the value of a global 
@@ -1680,8 +1674,8 @@ protected:
 	/// \}
 
 	// primitive handlers 
-	virtual flt_t pow (flt_t x, flt_t y) = 0;
-	virtual flt_t mod (flt_t x, flt_t y) = 0;
+	virtual hawk_flt_t pow (hawk_flt_t x, hawk_flt_t y) = 0;
+	virtual hawk_flt_t mod (hawk_flt_t x, hawk_flt_t y) = 0;
 
 	virtual void* modopen (const hawk_mod_spec_t* spec) = 0;
 	virtual void  modclose (void* handle) = 0;
@@ -1708,8 +1702,8 @@ protected:
 	static int functionHandler (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi);
 
 
-	static flt_t pow (hawk_t* awk, flt_t x, flt_t y);
-	static flt_t mod (hawk_t* awk, flt_t x, flt_t y);
+	static hawk_flt_t pow (hawk_t* awk, hawk_flt_t x, hawk_flt_t y);
+	static hawk_flt_t mod (hawk_t* awk, hawk_flt_t x, hawk_flt_t y);
 
 	static void* modopen (hawk_t* awk, const hawk_mod_spec_t* spec);
 	static void  modclose (hawk_t* awk, void* handle);

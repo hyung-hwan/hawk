@@ -199,8 +199,8 @@ protected:
 	void* reallocMem (void* ptr, hawk_oow_t n);
 	void  freeMem    (void* ptr);
 
-	flt_t pow (flt_t x, flt_t y);
-	flt_t mod (flt_t x, flt_t y);
+	hawk_flt_t pow (hawk_flt_t x, hawk_flt_t y);
+	hawk_flt_t mod (hawk_flt_t x, hawk_flt_t y);
 
 	void* modopen (const hawk_mod_spec_t* spec);
 	void  modclose (void* handle);

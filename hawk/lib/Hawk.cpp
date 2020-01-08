@@ -194,7 +194,7 @@ int Hawk::Console::setFileName (const hawk_ooch_t* name)
 	}
 }
 
-int Hawk::Console::setFNR (int_t fnr)
+int Hawk::Console::setFNR (hawk_int_t fnr)
 {
 	hawk_val_t* tmp;
 	int n;
@@ -231,7 +231,7 @@ const hawk_bch_t* Hawk::Value::getEmptyMbs()
 	return EMPTY_STRING;
 }
 
-Hawk::Value::IntIndex::IntIndex (int_t x)
+Hawk::Value::IntIndex::IntIndex (hawk_int_t x)
 {
 	ptr = buf;
 	len = 0;
@@ -239,8 +239,8 @@ Hawk::Value::IntIndex::IntIndex (int_t x)
 #define NTOC(n) (HAWK_T("0123456789")[n])
 
 	int base = 10;
-	int_t last = x % base;
-	int_t y = 0;
+	hawk_int_t last = x % base;
+	hawk_int_t y = 0;
 	int dig = 0;
 
 	if (x < 0) buf[len++] = HAWK_T('-');
@@ -422,16 +422,16 @@ void Hawk::Value::clear ()
 	}
 }
 
-Hawk::Value::operator Hawk::int_t () const
+Hawk::Value::operator hawk_int_t () const
 {
-	int_t v;
+	hawk_int_t v;
 	if (this->getInt(&v) <= -1) v = 0;
 	return v;
 }
 
-Hawk::Value::operator Hawk::flt_t () const
+Hawk::Value::operator hawk_flt_t () const
 {
-	flt_t v;
+	hawk_flt_t v;
 	if (this->getFlt(&v) <= -1) v = 0.0;
 	return v;
 }
@@ -454,9 +454,9 @@ Hawk::Value::operator const hawk_bch_t* () const
 }
 #endif
 
-int Hawk::Value::getInt (int_t* v) const
+int Hawk::Value::getInt (hawk_int_t* v) const
 {
-	int_t lv = 0;
+	hawk_int_t lv = 0;
 
 	HAWK_ASSERT (this->val != HAWK_NULL);
 
@@ -474,9 +474,9 @@ int Hawk::Value::getInt (int_t* v) const
 	return 0;
 }
 
-int Hawk::Value::getFlt (flt_t* v) const
+int Hawk::Value::getFlt (hawk_flt_t* v) const
 {
-	flt_t rv = 0;
+	hawk_flt_t rv = 0;
 
 	HAWK_ASSERT (this->val != HAWK_NULL);
 
@@ -494,7 +494,7 @@ int Hawk::Value::getFlt (flt_t* v) const
 	return 0;
 }
 
-int Hawk::Value::getNum (int_t* lv, flt_t* fv) const
+int Hawk::Value::getNum (hawk_int_t* lv, hawk_flt_t* fv) const
 {
 	HAWK_ASSERT (this->val != HAWK_NULL);
 
@@ -641,7 +641,7 @@ int Hawk::Value::setVal (Run* r, hawk_val_t* v)
 	return 0;
 }
 
-int Hawk::Value::setInt (int_t v)
+int Hawk::Value::setInt (hawk_int_t v)
 {
 	if (this->run == HAWK_NULL) 
 	{
@@ -652,7 +652,7 @@ int Hawk::Value::setInt (int_t v)
 	return this->setInt(this->run, v);
 }
 
-int Hawk::Value::setInt (Run* r, int_t v)
+int Hawk::Value::setInt (Run* r, hawk_int_t v)
 {
 	hawk_val_t* tmp;
 	tmp = hawk_rtx_makeintval(r->rtx, v);
@@ -667,7 +667,7 @@ int Hawk::Value::setInt (Run* r, int_t v)
 	return n;
 }
 
-int Hawk::Value::setFlt (flt_t v)
+int Hawk::Value::setFlt (hawk_flt_t v)
 {
 	if (this->run == HAWK_NULL) 
 	{
@@ -678,7 +678,7 @@ int Hawk::Value::setFlt (flt_t v)
 	return this->setFlt(this->run, v);
 }
 
-int Hawk::Value::setFlt (Run* r, flt_t v)
+int Hawk::Value::setFlt (Run* r, hawk_flt_t v)
 {
 	hawk_val_t* tmp;
 	tmp = hawk_rtx_makefltval(r->rtx, v);
@@ -917,13 +917,13 @@ int Hawk::Value::setIndexedVal (Run* r, const Index& idx, hawk_val_t* v)
 	return 0;
 }
 
-int Hawk::Value::setIndexedInt (const Index& idx, int_t v)
+int Hawk::Value::setIndexedInt (const Index& idx, hawk_int_t v)
 {
 	if (run == HAWK_NULL) return -1;
 	return this->setIndexedInt (run, idx, v);
 }
 
-int Hawk::Value::setIndexedInt (Run* r, const Index& idx, int_t v)
+int Hawk::Value::setIndexedInt (Run* r, const Index& idx, hawk_int_t v)
 {
 	hawk_val_t* tmp = hawk_rtx_makeintval (r->rtx, v);
 	if (tmp == HAWK_NULL) 
@@ -939,13 +939,13 @@ int Hawk::Value::setIndexedInt (Run* r, const Index& idx, int_t v)
 	return n;
 }
 
-int Hawk::Value::setIndexedFlt (const Index& idx, flt_t v)
+int Hawk::Value::setIndexedFlt (const Index& idx, hawk_flt_t v)
 {
 	if (run == HAWK_NULL) return -1;
 	return this->setIndexedFlt(run, idx, v);
 }
 
-int Hawk::Value::setIndexedFlt (Run* r, const Index& idx, flt_t v)
+int Hawk::Value::setIndexedFlt (Run* r, const Index& idx, hawk_flt_t v)
 {
 	hawk_val_t* tmp = hawk_rtx_makefltval(r->rtx, v);
 	if (tmp == HAWK_NULL) 
@@ -1208,7 +1208,7 @@ void Hawk::Run::formatError (hawk_errnum_t code, const hawk_loc_t* loc, const ha
 	va_end (ap);
 }
 
-int Hawk::Run::setGlobal (int id, int_t v)
+int Hawk::Run::setGlobal (int id, hawk_int_t v)
 {
 	HAWK_ASSERT (this->rtx != HAWK_NULL);
 
@@ -1221,7 +1221,7 @@ int Hawk::Run::setGlobal (int id, int_t v)
 	return n;
 }
 
-int Hawk::Run::setGlobal (int id, flt_t v)
+int Hawk::Run::setGlobal (int id, hawk_flt_t v)
 {
 	HAWK_ASSERT (this->rtx != HAWK_NULL);
 
@@ -2551,13 +2551,13 @@ int Hawk::functionHandler (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	return rxtn->run->awk->dispatch_function(rxtn->run, fi);
 }
 
-Hawk::flt_t Hawk::pow (hawk_t* awk, flt_t x, flt_t y)
+hawk_flt_t Hawk::pow (hawk_t* awk, hawk_flt_t x, hawk_flt_t y)
 {
 	xtn_t* xtn = GET_XTN(awk);
 	return xtn->hawk->pow(x, y);
 }
 
-Hawk::flt_t Hawk::mod (hawk_t* awk, flt_t x, flt_t y)
+hawk_flt_t Hawk::mod (hawk_t* awk, hawk_flt_t x, hawk_flt_t y)
 {
 	xtn_t* xtn = GET_XTN(awk);
 	return xtn->hawk->mod(x, y);
