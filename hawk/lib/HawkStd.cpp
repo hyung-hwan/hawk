@@ -151,10 +151,10 @@ int HawkStd::open ()
 	if (!this->stdmod_up)
 	{
 	#if defined(USE_DLFCN)
-		if (hawk_setopt(awk, HAWK_MODPOSTFIX, HAWK_T(".so")) <= -1) goto oops;
+		if (hawk_setopt(this->hawk, HAWK_MODPOSTFIX, HAWK_T(".so")) <= -1) goto oops;
 	#endif
 
-		if (hawk_stdmodstartup(this->awk) <= -1) goto oops;
+		if (hawk_stdmodstartup(this->hawk) <= -1) goto oops;
 		this->stdmod_up = true;
 	}
 
@@ -188,7 +188,7 @@ void HawkStd::close ()
 	//
 	//if (this->stdmod_up)
 	//{
-	//	hawk_stdmodshutdown (this->awk);
+	//	hawk_stdmodshutdown (this->hawk);
 	//	this->stdmod_up = false;
 	//}
 	//
@@ -200,7 +200,7 @@ void HawkStd::uponClosing ()
 {
 	if (this->stdmod_up)
 	{
-		hawk_stdmodshutdown (this->awk);
+		hawk_stdmodshutdown (this->hawk);
 		this->stdmod_up = false;
 	}
 
@@ -791,8 +791,8 @@ const hawk_cmgr_t* HawkStd::getConsoleCmgr () const
 
 int HawkStd::addConsoleOutput (const hawk_uch_t* arg, hawk_oow_t len) 
 {
-	HAWK_ASSERT (awk != HAWK_NULL);
-	int n = this->ofile.add(awk, arg, len);
+	HAWK_ASSERT (this->hawk != HAWK_NULL);
+	int n = this->ofile.add(this->hawk, arg, len);
 	if (n <= -1) this->setError (HAWK_ENOMEM);
 	return n;
 }
@@ -805,7 +805,7 @@ int HawkStd::addConsoleOutput (const hawk_uch_t* arg)
 int HawkStd::addConsoleOutput (const hawk_bch_t* arg, hawk_oow_t len) 
 {
 	HAWK_ASSERT (awk != HAWK_NULL);
-	int n = this->ofile.add(awk, arg, len);
+	int n = this->ofile.add(this->hawk, arg, len);
 	if (n <= -1) this->setError (HAWK_ENOMEM);
 	return n;
 }
@@ -818,7 +818,7 @@ int HawkStd::addConsoleOutput (const hawk_bch_t* arg)
 
 void HawkStd::clearConsoleOutputs () 
 {
-	this->ofile.clear (awk);
+	this->ofile.clear (this->hawk);
 }
 
 int HawkStd::open_console_in (Console& io) 
@@ -1144,31 +1144,31 @@ void  HawkStd::freeMem (void* ptr)
 
 hawk_flt_t HawkStd::pow (hawk_flt_t x, hawk_flt_t y) 
 { 
-	return hawk_stdmathpow (this->awk, x, y);
+	return hawk_stdmathpow (this->hawk, x, y);
 }
 
 hawk_flt_t HawkStd::mod (hawk_flt_t x, hawk_flt_t y) 
 { 
-	return hawk_stdmathmod (this->awk, x, y);
+	return hawk_stdmathmod (this->hawk, x, y);
 }
 
 void* HawkStd::modopen (const hawk_mod_spec_t* spec)
 {
 	void* h;
-	h = hawk_stdmodopen (this->awk, spec);
+	h = hawk_stdmodopen (this->hawk, spec);
 	if (!h) this->retrieveError ();
 	return h;
 }
 
 void HawkStd::modclose (void* handle)
 {
-	hawk_stdmodclose (this->awk, handle);
+	hawk_stdmodclose (this->hawk, handle);
 }
 
 void* HawkStd::modgetsym (void* handle, const hawk_ooch_t* name)
 {
 	void* s;
-	s = hawk_stdmodgetsym(this->awk, handle, name);
+	s = hawk_stdmodgetsym(this->hawk, handle, name);
 	if (!s) this->retrieveError ();
 	return s;
 }
