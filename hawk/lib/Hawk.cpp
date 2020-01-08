@@ -127,10 +127,10 @@ struct rxtn_t
 Hawk::NoSource Hawk::Source::NONE;
 
 #if defined(HAWK_HAVE_INLINE)
-static HAWK_INLINE xtn_t* GET_XTN(hawk_t* awk) { return (xtn_t*)((hawk_uint8_t*)hawk_getxtn(awk) - HAWK_SIZEOF(xtn_t)); }
+static HAWK_INLINE xtn_t* GET_XTN(hawk_t* hawk) { return (xtn_t*)((hawk_uint8_t*)hawk_getxtn(hawk) - HAWK_SIZEOF(xtn_t)); }
 static HAWK_INLINE rxtn_t* GET_RXTN(hawk_rtx_t* rtx) { return (rxtn_t*)((hawk_uint8_t*)hawk_rtx_getxtn(rtx) - HAWK_SIZEOF(rxtn_t)); }
 #else
-#define GET_XTN(awk) ((xtn_t*)((hawk_uint8_t*)hawk_getxtn(awk) - HAWK_SIZEOF(xtn_t)))
+#define GET_XTN(hawk) ((xtn_t*)((hawk_uint8_t*)hawk_getxtn(hawk) - HAWK_SIZEOF(xtn_t)))
 #define GET_RXTN(rtx) ((rxtn_t*)((hawk_uint8_t*)hawk_rtx_getxtn(rtx) - HAWK_SIZEOF(rxtn_t)))
 #endif
 
@@ -1175,13 +1175,25 @@ hawk_errnum_t Hawk::Run::getErrorNumber () const
 hawk_loc_t Hawk::Run::getErrorLocation () const 
 {
 	HAWK_ASSERT (this->rtx != HAWK_NULL);
-	return *hawk_rtx_geterrloc (this->rtx);
+	return *hawk_rtx_geterrloc(this->rtx);
 }
 
 const hawk_ooch_t* Hawk::Run::getErrorMessage () const  
 {
 	HAWK_ASSERT (this->rtx != HAWK_NULL);
-	return hawk_rtx_geterrmsg (this->rtx);
+	return hawk_rtx_geterrmsg(this->rtx);
+}
+
+const hawk_uch_t* Hawk::Run::getErrorMessageU () const
+{
+	HAWK_ASSERT (this->rtx != HAWK_NULL);
+	return hawk_rtx_geterrumsg(this->rtx);
+}
+
+const hawk_bch_t* Hawk::Run::getErrorMessageB () const
+{
+	HAWK_ASSERT (this->rtx != HAWK_NULL);
+	return hawk_rtx_geterrbmsg(this->rtx);
 }
 
 void Hawk::Run::setError (hawk_errnum_t code, const hawk_loc_t* loc)
@@ -1264,7 +1276,7 @@ int Hawk::Run::getGlobal (int id, Value& g) const
 //////////////////////////////////////////////////////////////////
 
 Hawk::Hawk (Mmgr* mmgr): 
-	Mmged (mmgr), awk (HAWK_NULL), 
+	Mmged (mmgr), hawk (HAWK_NULL), 
 #if defined(HAWK_USE_HTB_FOR_FUNCTION_MAP)
 	functionMap (HAWK_NULL), 
 #else
@@ -1283,7 +1295,7 @@ const hawk_ooch_t* Hawk::getErrorString (hawk_errnum_t num) const
 {
 	HAWK_ASSERT (awk != HAWK_NULL);
 	HAWK_ASSERT (this->dflerrstr != HAWK_NULL);
-	return this->dflerrstr(awk, num);
+	return this->dflerrstr(this->hawk, num);
 }
 
 const hawk_ooch_t* Hawk::xerrstr (hawk_t* a, hawk_errnum_t num) 
@@ -1302,16 +1314,71 @@ hawk_loc_t Hawk::getErrorLocation () const
 	return this->errinf.loc;
 }
 
+const hawk_ooch_t* Hawk::getErrorLocationFile () const 
+{
+	return this->errinf.loc.file;
+}
+
+const hawk_uch_t* Hawk::getErrorLocationFileU () const 
+{
+#if defined(HAWK_OOCH_IS_UCH)
+	return this->errinf.loc.file;
+#else
+	if (!this->errinf.loc.file) return HAWK_NULL;
+	hawk_oow_t wcslen, mbslen;
+	wcslen = HAWK_COUNTOF(this->xerrlocfile);
+	hawk_conv_bcstr_to_ucstr_with_cmgr (this->errinf.loc.file, &mbslen, hawk->xerrlocfile, &wcslen, hawk_getcmgr(this->hawk), 1);
+	return hawk->xerrlocfile;
+#endif
+}
+
+const hawk_bch_t* Hawk::getErrorLocationFileB () const 
+{
+#if defined(HAWK_OOCH_IS_UCH)
+	if (!this->errinf.loc.file) return HAWK_NULL;
+	hawk_oow_t wcslen, mbslen;
+	mbslen = HAWK_COUNTOF(this->xerrlocfile);
+	hawk_conv_ucstr_to_bcstr_with_cmgr (this->errinf.loc.file, &wcslen, this->xerrlocfile, &mbslen, hawk_getcmgr(this->hawk));
+	return this->xerrlocfile;
+#else
+	return this->errinf.loc.file;
+#endif
+}
+
 const hawk_ooch_t* Hawk::getErrorMessage () const 
 {
 	return this->errinf.msg;
 }
 
+const hawk_uch_t* Hawk::getErrorMessageU () const 
+{
+#if defined(HAWK_OOCH_IS_UCH)
+	return this->errinf.msg;
+#else
+	hawk_oow_t wcslen, mbslen;
+	wcslen = HAWK_COUNTOF(this->xerrmsg);
+	hawk_conv_bcstr_to_ucstr_with_cmgr (this->errinf.msg, &mbslen, this->xerrmsg, &wcslen, hawk_getcmgr(this->hawk), 1);
+	return this->xerrmsg;
+#endif
+}
+
+const hawk_bch_t* Hawk::getErrorMessageB () const 
+{
+#if defined(HAWK_OOCH_IS_UCH)
+	hawk_oow_t wcslen, mbslen;
+	mbslen = HAWK_COUNTOF(this->xerrmsg);
+	hawk_conv_ucstr_to_bcstr_with_cmgr (this->errinf.msg, &wcslen, this->xerrmsg, &mbslen, hawk_getcmgr(this->hawk));
+	return this->xerrmsg;
+#else
+	return this->errinf.msg;
+#endif
+}
+
 void Hawk::setError (hawk_errnum_t code, const hawk_loc_t* loc)
 {
-	if (this->awk)
+	if (this->hawk)
 	{
-		hawk_seterrnum (this->awk, loc, code);
+		hawk_seterrnum (this->hawk, loc, code);
 		this->retrieveError ();
 	}
 	else
@@ -1325,11 +1392,11 @@ void Hawk::setError (hawk_errnum_t code, const hawk_loc_t* loc)
 
 void Hawk::formatError (hawk_errnum_t code, const hawk_loc_t* loc, const hawk_bch_t* fmt, ...)
 {
-	if (this->awk)
+	if (this->hawk)
 	{
 		va_list ap;
 		va_start (ap, fmt);
-		hawk_seterrbvfmt (this->awk, loc, code, fmt, ap);
+		hawk_seterrbvfmt (this->hawk, loc, code, fmt, ap);
 		va_end (ap);
 		this->retrieveError ();
 	}
@@ -1344,11 +1411,11 @@ void Hawk::formatError (hawk_errnum_t code, const hawk_loc_t* loc, const hawk_bc
 
 void Hawk::formatError (hawk_errnum_t code, const hawk_loc_t* loc, const hawk_uch_t* fmt, ...)
 {
-	if  (this->awk)
+	if  (this->hawk)
 	{
 		va_list ap;
 		va_start (ap, fmt);
-		hawk_seterruvfmt (this->awk, loc, code, fmt, ap);
+		hawk_seterruvfmt (this->hawk, loc, code, fmt, ap);
 		va_end (ap);
 		this->retrieveError ();
 	}
@@ -1369,13 +1436,13 @@ void Hawk::clearError ()
 
 void Hawk::retrieveError ()
 {
-	if (this->awk == HAWK_NULL) 
+	if (this->hawk == HAWK_NULL) 
 	{
 		this->clearError ();
 	}
 	else
 	{
-		hawk_geterrinf (this->awk, &errinf);
+		hawk_geterrinf (this->hawk, &errinf);
 	}
 }
 
@@ -1400,7 +1467,7 @@ static void clear_xtn (hawk_t* awk)
 
 int Hawk::open () 
 {
-	HAWK_ASSERT (this->awk == HAWK_NULL);
+	HAWK_ASSERT (this->hawk == HAWK_NULL);
 #if defined(HAWK_USE_HTB_FOR_FUNCTION_MAP)
 	HAWK_ASSERT (this->functionMap == HAWK_NULL);
 #endif
@@ -1415,34 +1482,34 @@ int Hawk::open ()
 	prm.modgetsym = Hawk::modgetsym;
 
 	hawk_errnum_t errnum;
-	this->awk = hawk_open(this->getMmgr(), HAWK_SIZEOF(xtn_t), hawk_get_cmgr_by_id(HAWK_CMGR_UTF8), &prm, &errnum);
-	if (!this->awk)
+	this->hawk = hawk_open(this->getMmgr(), HAWK_SIZEOF(xtn_t), hawk_get_cmgr_by_id(HAWK_CMGR_UTF8), &prm, &errnum);
+	if (!this->hawk)
 	{
 		this->setError (errnum);
 		return -1;
 	}
 
-	this->awk->_instsize += HAWK_SIZEOF(xtn_t);
+	this->hawk->_instsize += HAWK_SIZEOF(xtn_t);
 
 	// associate this Hawk object with the underlying awk object
-	xtn_t* xtn = (xtn_t*)GET_XTN(this->awk);
+	xtn_t* xtn = (xtn_t*)GET_XTN(this->hawk);
 	xtn->hawk = this;
 	xtn->ecb.close = fini_xtn;
 	xtn->ecb.clear = clear_xtn;
 
-	this->dflerrstr = hawk_geterrstr(this->awk);
+	this->dflerrstr = hawk_geterrstr(this->hawk);
 // TODO: revive this too when hawk_seterrstr is revived()
-//	hawk_seterrstr (this->awk, Hawk::xerrstr);
+//	hawk_seterrstr (this->hawk, Hawk::xerrstr);
 
 #if defined(HAWK_USE_HTB_FOR_FUNCTION_MAP)
 	this->functionMap = hawk_htb_open(
-		hawk_getgem(this->awk), HAWK_SIZEOF(this), 512, 70,
+		hawk_getgem(this->hawk), HAWK_SIZEOF(this), 512, 70,
 		HAWK_SIZEOF(hawk_ooch_t), 1
 	);
 	if (this->functionMap == HAWK_NULL)
 	{
-		hawk_close (this->awk);
-		this->awk = HAWK_NULL;
+		hawk_close (this->hawk);
+		this->hawk = HAWK_NULL;
 
 		this->setError (HAWK_ENOMEM);
 		return -1;
@@ -1470,7 +1537,7 @@ int Hawk::open ()
 #endif
 
 	// push the call back after everything else is ok.
-	hawk_pushecb (this->awk, &xtn->ecb);
+	hawk_pushecb (this->hawk, &xtn->ecb);
 	return 0;
 }
 
@@ -1489,10 +1556,10 @@ void Hawk::close ()
 	this->functionMap.clear ();
 #endif
 
-	if (this->awk) 
+	if (this->hawk) 
 	{
-		hawk_close (this->awk);
-		this->awk = HAWK_NULL;
+		hawk_close (this->hawk);
+		this->hawk = HAWK_NULL;
 	}
 
 	this->clearError ();
@@ -1500,8 +1567,8 @@ void Hawk::close ()
 
 hawk_cmgr_t* Hawk::getCmgr () const
 {
-	if (!this->awk) return HAWK_NULL;
-	return hawk_getcmgr(this->awk);
+	if (!this->hawk) return HAWK_NULL;
+	return hawk_getcmgr(this->hawk);
 }
 
 void Hawk::uponClosing ()
@@ -1533,7 +1600,7 @@ Hawk::Run* Hawk::parse (Source& in, Source& out)
 	sio.in = readSource;
 	sio.out = (source_writer == HAWK_NULL)? HAWK_NULL: writeSource;
 
-	int n = hawk_parse(awk, &sio);
+	int n = hawk_parse(this->hawk, &sio);
 	if (n <= -1) 
 	{
 		this->retrieveError ();
@@ -1557,7 +1624,7 @@ Hawk::Run* Hawk::resetRunContext ()
 
 int Hawk::loop (Value* ret)
 {
-	HAWK_ASSERT (this->awk != HAWK_NULL);
+	HAWK_ASSERT (this->hawk != HAWK_NULL);
 	HAWK_ASSERT (this->runctx.rtx != HAWK_NULL);
 
 	hawk_val_t* rv = hawk_rtx_loop (this->runctx.rtx);
@@ -1575,7 +1642,7 @@ int Hawk::loop (Value* ret)
 
 int Hawk::call (const hawk_bch_t* name, Value* ret, const Value* args, hawk_oow_t nargs)
 {
-	HAWK_ASSERT (this->awk != HAWK_NULL);
+	HAWK_ASSERT (this->hawk != HAWK_NULL);
 	HAWK_ASSERT (this->runctx.rtx != HAWK_NULL);
 
 	hawk_val_t* buf[16];
@@ -1586,7 +1653,7 @@ int Hawk::call (const hawk_bch_t* name, Value* ret, const Value* args, hawk_oow_
 		if (nargs <= HAWK_COUNTOF(buf)) ptr = buf;
 		else
 		{
-			ptr = (hawk_val_t**)hawk_allocmem(awk, HAWK_SIZEOF(hawk_val_t*) * nargs);
+			ptr = (hawk_val_t**)hawk_allocmem(this->hawk, HAWK_SIZEOF(hawk_val_t*) * nargs);
 			if (ptr == HAWK_NULL)
 			{
 				this->runctx.setError (HAWK_ENOMEM);
@@ -1600,7 +1667,7 @@ int Hawk::call (const hawk_bch_t* name, Value* ret, const Value* args, hawk_oow_
 
 	hawk_val_t* rv = hawk_rtx_callwithbcstr(this->runctx.rtx, name, ptr, nargs);
 
-	if (ptr != HAWK_NULL && ptr != buf) hawk_freemem (awk, ptr);
+	if (ptr != HAWK_NULL && ptr != buf) hawk_freemem (this->hawk, ptr);
 
 	if (rv == HAWK_NULL) 
 	{
@@ -1616,7 +1683,7 @@ int Hawk::call (const hawk_bch_t* name, Value* ret, const Value* args, hawk_oow_
 
 int Hawk::call (const hawk_uch_t* name, Value* ret, const Value* args, hawk_oow_t nargs)
 {
-	HAWK_ASSERT (this->awk != HAWK_NULL);
+	HAWK_ASSERT (this->hawk != HAWK_NULL);
 	HAWK_ASSERT (this->runctx.rtx != HAWK_NULL);
 
 	hawk_val_t* buf[16];
@@ -1627,7 +1694,7 @@ int Hawk::call (const hawk_uch_t* name, Value* ret, const Value* args, hawk_oow_
 		if (nargs <= HAWK_COUNTOF(buf)) ptr = buf;
 		else
 		{
-			ptr = (hawk_val_t**)hawk_allocmem(awk, HAWK_SIZEOF(hawk_val_t*) * nargs);
+			ptr = (hawk_val_t**)hawk_allocmem(this->hawk, HAWK_SIZEOF(hawk_val_t*) * nargs);
 			if (ptr == HAWK_NULL)
 			{
 				this->runctx.setError (HAWK_ENOMEM);
@@ -1641,7 +1708,7 @@ int Hawk::call (const hawk_uch_t* name, Value* ret, const Value* args, hawk_oow_
 
 	hawk_val_t* rv = hawk_rtx_callwithucstr(this->runctx.rtx, name, ptr, nargs);
 
-	if (ptr != HAWK_NULL && ptr != buf) hawk_freemem (awk, ptr);
+	if (ptr != HAWK_NULL && ptr != buf) hawk_freemem (this->hawk, ptr);
 
 	if (rv == HAWK_NULL) 
 	{
@@ -1658,7 +1725,7 @@ int Hawk::call (const hawk_uch_t* name, Value* ret, const Value* args, hawk_oow_
 void Hawk::halt () 
 {
 	HAWK_ASSERT (awk != HAWK_NULL);
-	hawk_haltall (awk);
+	hawk_haltall (this->hawk);
 }
 
 int Hawk::init_runctx () 
@@ -1671,7 +1738,7 @@ int Hawk::init_runctx ()
 	rio.file    = fileHandler;
 	rio.console = consoleHandler;
 
-	hawk_rtx_t* rtx = hawk_rtx_open(awk, HAWK_SIZEOF(rxtn_t), &rio);
+	hawk_rtx_t* rtx = hawk_rtx_open(this->hawk, HAWK_SIZEOF(rxtn_t), &rio);
 	if (rtx == HAWK_NULL) 
 	{
 		this->retrieveError();
@@ -1698,31 +1765,31 @@ void Hawk::fini_runctx ()
 
 int Hawk::getTrait () const 
 {
-	HAWK_ASSERT (awk != HAWK_NULL);
+	HAWK_ASSERT (this->hawk != HAWK_NULL);
 	int val;
-	hawk_getopt (awk, HAWK_TRAIT, &val);
+	hawk_getopt (this->hawk, HAWK_TRAIT, &val);
 	return val;
 }
 
 void Hawk::setTrait (int trait) 
 {
-	HAWK_ASSERT (awk != HAWK_NULL);
-	hawk_setopt (awk, HAWK_TRAIT, &trait);
+	HAWK_ASSERT (this->hawk != HAWK_NULL);
+	hawk_setopt (this->hawk, HAWK_TRAIT, &trait);
 }
 
 hawk_oow_t Hawk::getMaxDepth (depth_t id) const 
 {
-	HAWK_ASSERT (awk != HAWK_NULL);
+	HAWK_ASSERT (this->hawk != HAWK_NULL);
 
 	hawk_oow_t depth;
-	hawk_getopt (awk, (hawk_opt_t)id, &depth);
+	hawk_getopt (this->hawk, (hawk_opt_t)id, &depth);
 	return depth;
 }
 
 void Hawk::setMaxDepth (depth_t id, hawk_oow_t depth) 
 {
-	HAWK_ASSERT (awk != HAWK_NULL);
-	hawk_setopt (awk, (hawk_opt_t)id, &depth);
+	HAWK_ASSERT (this->hawk != HAWK_NULL);
+	hawk_setopt (this->hawk, (hawk_opt_t)id, &depth);
 }
 
 int Hawk::dispatch_function (Run* run, const hawk_fnc_info_t* fi)
@@ -1977,20 +2044,20 @@ void Hawk::xstrs_t::clear (hawk_t* awk)
 int Hawk::addArgument (const hawk_uch_t* arg, hawk_oow_t len) 
 {
 	HAWK_ASSERT (awk != HAWK_NULL);
-	int n = this->runarg.add(awk, arg, len);
+	int n = this->runarg.add(this->hawk, arg, len);
 	if (n <= -1) this->setError (HAWK_ENOMEM);
 	return n;
 }
 
 int Hawk::addArgument (const hawk_uch_t* arg) 
 {
-	return addArgument(arg, hawk_count_ucstr(arg));
+	return this->addArgument(arg, hawk_count_ucstr(arg));
 }
 
 int Hawk::addArgument (const hawk_bch_t* arg, hawk_oow_t len) 
 {
-	HAWK_ASSERT (awk != HAWK_NULL);
-	int n = this->runarg.add(awk, arg, len);
+	HAWK_ASSERT (this->hawk != HAWK_NULL);
+	int n = this->runarg.add(this->hawk, arg, len);
 	if (n <= -1) this->setError (HAWK_ENOMEM);
 	return n;
 }
@@ -2000,16 +2067,15 @@ int Hawk::addArgument (const hawk_bch_t* arg)
 	return this->addArgument(arg, hawk_count_bcstr(arg));
 }
 
-
 void Hawk::clearArguments () 
 {
-	runarg.clear (awk);
+	this->runarg.clear (this->hawk);
 }
 
 int Hawk::addGlobal(const hawk_bch_t* name) 
 {
 	HAWK_ASSERT (awk != HAWK_NULL);
-	int n = hawk_addgblwithbcstr(awk, name);
+	int n = hawk_addgblwithbcstr(this->hawk, name);
 	if (n <= -1) this->retrieveError ();
 	return n;
 }
@@ -2017,7 +2083,7 @@ int Hawk::addGlobal(const hawk_bch_t* name)
 int Hawk::addGlobal(const hawk_uch_t* name) 
 {
 	HAWK_ASSERT (awk != HAWK_NULL);
-	int n = hawk_addgblwithucstr(awk, name);
+	int n = hawk_addgblwithucstr(this->hawk, name);
 	if (n <= -1) this->retrieveError ();
 	return n;
 }
@@ -2025,7 +2091,7 @@ int Hawk::addGlobal(const hawk_uch_t* name)
 int Hawk::deleteGlobal (const hawk_bch_t* name) 
 {
 	HAWK_ASSERT (awk != HAWK_NULL);
-	int n = hawk_delgblwithbcstr(awk, name);
+	int n = hawk_delgblwithbcstr(this->hawk, name);
 	if (n <= -1) this->retrieveError ();
 	return n;
 }
@@ -2033,7 +2099,7 @@ int Hawk::deleteGlobal (const hawk_bch_t* name)
 int Hawk::deleteGlobal (const hawk_uch_t* name) 
 {
 	HAWK_ASSERT (awk != HAWK_NULL);
-	int n = hawk_delgblwithucstr(awk, name);
+	int n = hawk_delgblwithucstr(this->hawk, name);
 	if (n <= -1) this->retrieveError ();
 	return n;
 }
@@ -2042,7 +2108,7 @@ int Hawk::deleteGlobal (const hawk_uch_t* name)
 int Hawk::findGlobal (const hawk_bch_t* name) 
 {
 	HAWK_ASSERT (awk != HAWK_NULL);
-	int n = hawk_findgblwithbcstr(awk, name);
+	int n = hawk_findgblwithbcstr(this->hawk, name);
 	if (n <= -1) this->retrieveError ();
 	return n;
 }
@@ -2050,7 +2116,7 @@ int Hawk::findGlobal (const hawk_bch_t* name)
 int Hawk::findGlobal (const hawk_uch_t* name) 
 {
 	HAWK_ASSERT (awk != HAWK_NULL);
-	int n = hawk_findgblwithucstr(awk, name);
+	int n = hawk_findgblwithucstr(this->hawk, name);
 	if (n <= -1) this->retrieveError ();
 	return n;
 }
@@ -2096,7 +2162,7 @@ int Hawk::addFunction (
 	spec.impl = this->functionHandler;
 	spec.trait = validOpts;
 
-	hawk_fnc_t* fnc = hawk_addfncwithbcstr(awk, name, &spec);
+	hawk_fnc_t* fnc = hawk_addfncwithbcstr(this->hawk, name, &spec);
 	if (fnc == HAWK_NULL) 
 	{
 		this->retrieveError ();
@@ -2111,18 +2177,23 @@ int Hawk::addFunction (
 	// the function name exists in the underlying function table.
 	// use the pointer to the name to maintain the hash table.
 	hawk_htb_pair_t* pair = hawk_htb_upsert(this->functionMap, (hawk_ooch_t*)fnc->name.ptr, fnc->name.len, &handler, HAWK_SIZEOF(handler));
+	if (!pair)
+	{
+		hawk_delfncwithbcstr (this->hawk, name);
+		this->retrieveError ();
+		return -1;
+	}
 #else
 	FunctionMap::Pair* pair;
 	try { pair = this->functionMap.upsert(Cstr(fnc->name.ptr, fnc->name.len), handler); }
 	catch (...) { pair = HAWK_NULL; }
-#endif
-
-	if (pair == HAWK_NULL)
+	if (!pair)
 	{
-		hawk_delfncwithbcstr (awk, name);
+		hawk_delfncwithbcstr (this->hawk, name);
 		this->setError (HAWK_ENOMEM);
 		return -1;
 	}
+#endif
 
 	return 0;
 }
@@ -2142,7 +2213,7 @@ int Hawk::addFunction (
 	spec.impl = this->functionHandler;
 	spec.trait = validOpts;
 
-	hawk_fnc_t* fnc = hawk_addfncwithucstr(awk, name, &spec);
+	hawk_fnc_t* fnc = hawk_addfncwithucstr(this->hawk, name, &spec);
 	if (fnc == HAWK_NULL) 
 	{
 		this->retrieveError ();
@@ -2157,18 +2228,23 @@ int Hawk::addFunction (
 	// the function name exists in the underlying function table.
 	// use the pointer to the name to maintain the hash table.
 	hawk_htb_pair_t* pair = hawk_htb_upsert(this->functionMap, (hawk_ooch_t*)fnc->name.ptr, fnc->name.len, &handler, HAWK_SIZEOF(handler));
+	if (!pair)
+	{
+		hawk_delfncwithucstr (this->hawk, name);
+		this->retrieveError ();
+		return -1;
+	}
 #else
 	FunctionMap::Pair* pair;
 	try { pair = this->functionMap.upsert(Cstr(fnc->name.ptr, fnc->name.len), handler); }
 	catch (...) { pair = HAWK_NULL; }
-#endif
-
-	if (pair == HAWK_NULL)
+	if (!pair)
 	{
-		hawk_delfncwithucstr (awk, name);
+		hawk_delfncwithucstr (this->hawk, name);
 		this->setError (HAWK_ENOMEM);
 		return -1;
 	}
+#endif
 
 	return 0;
 }
@@ -2177,7 +2253,7 @@ int Hawk::deleteFunction (const hawk_ooch_t* name)
 {
 	HAWK_ASSERT (awk != HAWK_NULL);
 
-	int n = hawk_delfnc(awk, name);
+	int n = hawk_delfnc(this->hawk, name);
 	if (n == 0) 
 	{
 #if defined(HAWK_USE_HTB_FOR_FUNCTION_MAP)

@@ -376,8 +376,6 @@ private:
 class HAWK_EXPORT Hawk: public Uncopyable, public Mmged
 {
 public:
-	typedef hawk_errstr_t errstr_t;
-	typedef hawk_errinf_t errinf_t;
 
 	enum depth_t
 	{
@@ -431,12 +429,17 @@ public:
 	/// last error occurred.
 	///
 	hawk_loc_t getErrorLocation () const;
+	const hawk_ooch_t* getErrorLocationFile () const;
+	const hawk_uch_t* getErrorLocationFileU () const;
+	const hawk_bch_t* getErrorLocationFileB () const;
 
 	///
 	/// The Hawk::getErrorMessage() function returns a message describing
 	/// the last error occurred.
 	///
 	const hawk_ooch_t* getErrorMessage () const;
+	const hawk_uch_t* getErrorMessageU () const;
+	const hawk_bch_t* getErrorMessageB () const;
 
 	void setError (
 		hawk_errnum_t       code, ///< error code
@@ -1178,6 +1181,8 @@ public:
 		hawk_errnum_t getErrorNumber () const;
 		hawk_loc_t getErrorLocation () const;
 		const hawk_ooch_t* getErrorMessage () const;
+		const hawk_uch_t* getErrorMessageU () const;
+		const hawk_bch_t* getErrorMessageB () const;
 
 		///
 		/// The setError() function sets error information.
@@ -1250,12 +1255,12 @@ public:
 	///
 	operator hawk_t* () const
 	{
-		return this->awk;
+		return this->hawk;
 	}
 
 	operator hawk_gem_t* () const
 	{
-		return this->awk? hawk_getgem(this->awk): HAWK_NULL;
+		return this->hawk? hawk_getgem(this->hawk): HAWK_NULL;
 	}
 
 	///
@@ -1711,25 +1716,32 @@ protected:
 
 public:
 	// use this with care
-	hawk_t* getHandle() const { return this->awk; }
+	hawk_t* getHandle() const { return this->hawk; }
 
 protected:
-	hawk_t* awk;
+	hawk_t* hawk;
 
-	errstr_t dflerrstr;
-	errinf_t errinf;
+	hawk_errstr_t dflerrstr;
+	hawk_errinf_t errinf;
+#if defined(HAWK_OOCH_IS_BCH)
+	mutable hawk_uch_t xerrmsg[HAWK_ERRMSG_CAPA];
+	mutable hawk_uch_t xerrlocfile[128];
+#else
+	mutable hawk_bch_t xerrmsg[HAWK_ERRMSG_CAPA * 2];
+	mutable hawk_bch_t xerrlocfile[256];
+#endif
 
 #if defined(HAWK_USE_HTB_FOR_FUNCTION_MAP)
 	hawk_htb_t* functionMap;
 #else
-	
+
 	class FunctionMap: public HashTable<Cstr,FunctionHandler>
 	{
 	public:
-		FunctionMap (Hawk* awk): awk(awk) {}
+		FunctionMap (Hawk* awk): hawk(hawk) {}
 
 	protected:
-		Hawk* awk;
+		Hawk* hawk;
 	};
 
 	FunctionMap functionMap;
