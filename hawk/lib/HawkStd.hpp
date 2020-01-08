@@ -202,7 +202,7 @@ protected:
 	flt_t pow (flt_t x, flt_t y);
 	flt_t mod (flt_t x, flt_t y);
 
-	void* modopen (const mod_spec_t* spec);
+	void* modopen (const hawk_mod_spec_t* spec);
 	void  modclose (void* handle);
 	void* modgetsym (void* handle, const hawk_ooch_t* name);
 
