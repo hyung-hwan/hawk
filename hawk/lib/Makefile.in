@@ -94,7 +94,7 @@ host_triplet = @host@
 @ENABLE_LIBLTDL_FALSE@am__append_5 = $(DL_LIBS)
 @ENABLE_LIBUNWIND_TRUE@am__append_6 = $(UNWIND_LIBS)
 @ENABLE_CXX_TRUE@am__append_7 = Hawk.hpp HawkStd.hpp
-@ENABLE_CXX_TRUE@am__append_8 = libhawkxx.la
+@ENABLE_CXX_TRUE@am__append_8 = Hawk.cpp HawkStd.cpp
 
 ##################################################
 # STATIC MODULES BUILT INTO MAIN LIBRARY
@@ -198,7 +198,7 @@ libhawk_sys_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 	$@
 @ENABLE_STATIC_MODULE_FALSE@am_libhawk_sys_la_rpath = -rpath \
 @ENABLE_STATIC_MODULE_FALSE@	$(pkglibdir)
-am__DEPENDENCIES_2 = $(am__DEPENDENCIES_1)
+am__DEPENDENCIES_2 = $(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1)
 @ENABLE_LIBLTDL_TRUE@am__DEPENDENCIES_3 = $(am__DEPENDENCIES_1)
 @ENABLE_LIBLTDL_FALSE@am__DEPENDENCIES_4 = $(am__DEPENDENCIES_1)
 @ENABLE_LIBUNWIND_TRUE@am__DEPENDENCIES_5 = $(am__DEPENDENCIES_1)
@@ -216,11 +216,14 @@ am__libhawk_la_SOURCES_DIST = hawk.h hawk-chr.h hawk-cmn.h hawk-dir.h \
 	utl-ass.c utl-skad.c utl-skad.h utl-sort.c utl-str.c utl-sys.c \
 	utl.c val-prv.h val.c hawk-cli.h hawk-fio.h hawk-mtx.h \
 	hawk-pio.h hawk-sio.h hawk-tio.h cli.c fio.c mtx.c pio.c sio.c \
-	syscall.h tio.c std-prv.h std.c imap-imp.h mod-math.c \
-	mod-math.h mod-str.c mod-str.h mod-sys.c mod-sys.h
+	syscall.h tio.c std-prv.h std.c Hawk.cpp HawkStd.cpp \
+	imap-imp.h mod-math.c mod-math.h mod-str.c mod-str.h mod-sys.c \
+	mod-sys.h
 am__objects_1 =
 am__objects_2 = $(am__objects_1)
-@ENABLE_STATIC_MODULE_TRUE@am__objects_3 = libhawk_la-mod-math.lo \
+@ENABLE_CXX_TRUE@am__objects_3 = libhawk_la-Hawk.lo \
+@ENABLE_CXX_TRUE@	libhawk_la-HawkStd.lo
+@ENABLE_STATIC_MODULE_TRUE@am__objects_4 = libhawk_la-mod-math.lo \
 @ENABLE_STATIC_MODULE_TRUE@	libhawk_la-mod-str.lo \
 @ENABLE_STATIC_MODULE_TRUE@	libhawk_la-mod-sys.lo
 am_libhawk_la_OBJECTS = $(am__objects_2) libhawk_la-arr.lo \
@@ -240,19 +243,12 @@ am_libhawk_la_OBJECTS = $(am__objects_2) libhawk_la-arr.lo \
 	libhawk_la-utl-str.lo libhawk_la-utl-sys.lo libhawk_la-utl.lo \
 	libhawk_la-val.lo libhawk_la-cli.lo libhawk_la-fio.lo \
 	libhawk_la-mtx.lo libhawk_la-pio.lo libhawk_la-sio.lo \
-	libhawk_la-tio.lo libhawk_la-std.lo $(am__objects_3)
+	libhawk_la-tio.lo libhawk_la-std.lo $(am__objects_3) \
+	$(am__objects_4)
 libhawk_la_OBJECTS = $(am_libhawk_la_OBJECTS)
-libhawk_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
-	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
-	$(libhawk_la_LDFLAGS) $(LDFLAGS) -o $@
-am__libhawkxx_la_SOURCES_DIST = Hawk.cpp HawkStd.cpp
-@ENABLE_CXX_TRUE@am_libhawkxx_la_OBJECTS = libhawkxx_la-Hawk.lo \
-@ENABLE_CXX_TRUE@	libhawkxx_la-HawkStd.lo
-libhawkxx_la_OBJECTS = $(am_libhawkxx_la_OBJECTS)
-libhawkxx_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) \
+libhawk_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CXXLD) $(AM_CXXFLAGS) \
-	$(CXXFLAGS) $(libhawkxx_la_LDFLAGS) $(LDFLAGS) -o $@
-@ENABLE_CXX_TRUE@am_libhawkxx_la_rpath = -rpath $(pkglibdir)
+	$(CXXFLAGS) $(libhawk_la_LDFLAGS) $(LDFLAGS) -o $@
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -268,9 +264,11 @@ am__v_at_1 =
 DEFAULT_INCLUDES = 
 depcomp = $(SHELL) $(top_srcdir)/ac/depcomp
 am__maybe_remake_depfiles = depfiles
-am__depfiles_remade = ./$(DEPDIR)/libhawk_la-arr.Plo \
-	./$(DEPDIR)/libhawk_la-chr.Plo ./$(DEPDIR)/libhawk_la-cli.Plo \
-	./$(DEPDIR)/libhawk_la-dir.Plo ./$(DEPDIR)/libhawk_la-ecs.Plo \
+am__depfiles_remade = ./$(DEPDIR)/libhawk_la-Hawk.Plo \
+	./$(DEPDIR)/libhawk_la-HawkStd.Plo \
+	./$(DEPDIR)/libhawk_la-arr.Plo ./$(DEPDIR)/libhawk_la-chr.Plo \
+	./$(DEPDIR)/libhawk_la-cli.Plo ./$(DEPDIR)/libhawk_la-dir.Plo \
+	./$(DEPDIR)/libhawk_la-ecs.Plo \
 	./$(DEPDIR)/libhawk_la-err-sys.Plo \
 	./$(DEPDIR)/libhawk_la-err.Plo ./$(DEPDIR)/libhawk_la-fio.Plo \
 	./$(DEPDIR)/libhawk_la-fmt.Plo ./$(DEPDIR)/libhawk_la-fnc.Plo \
@@ -307,9 +305,7 @@ am__depfiles_remade = ./$(DEPDIR)/libhawk_la-arr.Plo \
 	./$(DEPDIR)/libhawk_la-utl.Plo ./$(DEPDIR)/libhawk_la-val.Plo \
 	./$(DEPDIR)/libhawk_math_la-mod-math.Plo \
 	./$(DEPDIR)/libhawk_str_la-mod-str.Plo \
-	./$(DEPDIR)/libhawk_sys_la-mod-sys.Plo \
-	./$(DEPDIR)/libhawkxx_la-Hawk.Plo \
-	./$(DEPDIR)/libhawkxx_la-HawkStd.Plo
+	./$(DEPDIR)/libhawk_sys_la-mod-sys.Plo
 am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -348,13 +344,11 @@ am__v_CXXLD_ = $(am__v_CXXLD_@AM_DEFAULT_V@)
 am__v_CXXLD_0 = @echo "  CXXLD   " $@;
 am__v_CXXLD_1 = 
 SOURCES = $(libhawk_math_la_SOURCES) $(libhawk_str_la_SOURCES) \
-	$(libhawk_sys_la_SOURCES) $(libhawk_la_SOURCES) \
-	$(libhawkxx_la_SOURCES)
+	$(libhawk_sys_la_SOURCES) $(libhawk_la_SOURCES)
 DIST_SOURCES = $(am__libhawk_math_la_SOURCES_DIST) \
 	$(am__libhawk_str_la_SOURCES_DIST) \
 	$(am__libhawk_sys_la_SOURCES_DIST) \
-	$(am__libhawk_la_SOURCES_DIST) \
-	$(am__libhawkxx_la_SOURCES_DIST)
+	$(am__libhawk_la_SOURCES_DIST)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -558,6 +552,7 @@ top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 AUTOMAKE_OPTIONS = nostdinc
 AM_CFLAGS = $(PTHREAD_CFLAGS)
+AM_CXXFLAGS = $(PTHREAD_CFLAGS)
 CPPFLAGS_ALL_COMMON = \
 	-I$(abs_builddir) \
 	-I$(abs_srcdir) \
@@ -571,7 +566,7 @@ CPPFLAGS_ALL_COMMON = \
 ##################################################
 CPPFLAGS_LIB_COMMON = $(CPPFLAGS_ALL_COMMON)
 LDFLAGS_LIB_COMMON = $(LDFLAGS_ALL_COMMON) -version-info 1:0:0 -no-undefined
-LIBADD_LIB_COMMON = $(LIBM)
+LIBADD_LIB_COMMON = $(LIBM) $(PTHREAD_LIBS)
 DEPENDENCIES_LIB_COMMON = 
 @WIN32_FALSE@CPPFLAGS_PFMOD =  \
 @WIN32_FALSE@	-DHAWK_DEFAULT_MODPREFIX=\"$(libdir)/libhawk-\" \
@@ -586,7 +581,7 @@ pkginclude_HEADERS = hawk.h hawk-chr.h hawk-cmn.h hawk-dir.h \
 	hawk-ecs.h hawk-fmt.h hawk-gem.h hawk-htb.h hawk-rbt.h \
 	hawk-pack1.h hawk-utl.h hawk-std.h hawk-tre.h hawk-unpack.h \
 	$(am__append_7)
-pkglib_LTLIBRARIES = libhawk.la $(am__append_8) $(am__append_15)
+pkglib_LTLIBRARIES = libhawk.la $(am__append_15)
 libhawk_la_SOURCES = $(pkginclude_HEADERS) arr.c chr.c dir.c ecs-imp.h \
 	ecs.c err-prv.h err.c err-sys.c fmt-imp.h fmt.c fnc-prv.h \
 	fnc.c htb.c gem.c gem-skad.c gem-nwif.c gem-nwif2.c hawk-prv.h \
@@ -598,7 +593,8 @@ libhawk_la_SOURCES = $(pkginclude_HEADERS) arr.c chr.c dir.c ecs-imp.h \
 	utl-ass.c utl-skad.c utl-skad.h utl-sort.c utl-str.c utl-sys.c \
 	utl.c val-prv.h val.c hawk-cli.h hawk-fio.h hawk-mtx.h \
 	hawk-pio.h hawk-sio.h hawk-tio.h cli.c fio.c mtx.c pio.c sio.c \
-	syscall.h tio.c std-prv.h std.c $(am__append_9)
+	syscall.h tio.c std-prv.h std.c $(am__append_8) \
+	$(am__append_9)
 libhawk_la_CPPFLAGS = $(CPPFLAGS_LIB_COMMON) $(am__append_3)
 libhawk_la_LDFLAGS = $(LDFLAGS_LIB_COMMON)
 libhawk_la_LIBADD = $(LIBADD_LIB_COMMON) $(am__append_4) \
@@ -606,11 +602,6 @@ libhawk_la_LIBADD = $(LIBADD_LIB_COMMON) $(am__append_4) \
 	$(am__append_11) $(am__append_13)
 libhawk_la_DEPENDENCIES = $(DEPENDENCIES_LIB_COMMON) $(am__append_12) \
 	$(am__append_14)
-@ENABLE_CXX_TRUE@libhawkxx_la_SOURCES = Hawk.cpp HawkStd.cpp
-@ENABLE_CXX_TRUE@libhawkxx_la_CPPFLAGS = $(CPPFLAGS_LIB_COMMON)
-@ENABLE_CXX_TRUE@libhawkxx_la_LDFLAGS = $(LDFLAGS_LIB_COMMON)
-@ENABLE_CXX_TRUE@libhawkxx_la_LIBADD = -lhawk $(LIBADD_LIB_COMMON) 
-@ENABLE_CXX_TRUE@libhawkxx_la_DEPENDENCIES = libhawk.la
 
 ##################################################
 # DYNAMIC MODULES 
@@ -729,10 +720,7 @@ libhawk-sys.la: $(libhawk_sys_la_OBJECTS) $(libhawk_sys_la_DEPENDENCIES) $(EXTRA
 	$(AM_V_CCLD)$(libhawk_sys_la_LINK) $(am_libhawk_sys_la_rpath) $(libhawk_sys_la_OBJECTS) $(libhawk_sys_la_LIBADD) $(LIBS)
 
 libhawk.la: $(libhawk_la_OBJECTS) $(libhawk_la_DEPENDENCIES) $(EXTRA_libhawk_la_DEPENDENCIES) 
-	$(AM_V_CCLD)$(libhawk_la_LINK) -rpath $(pkglibdir) $(libhawk_la_OBJECTS) $(libhawk_la_LIBADD) $(LIBS)
-
-libhawkxx.la: $(libhawkxx_la_OBJECTS) $(libhawkxx_la_DEPENDENCIES) $(EXTRA_libhawkxx_la_DEPENDENCIES) 
-	$(AM_V_CXXLD)$(libhawkxx_la_LINK) $(am_libhawkxx_la_rpath) $(libhawkxx_la_OBJECTS) $(libhawkxx_la_LIBADD) $(LIBS)
+	$(AM_V_CXXLD)$(libhawk_la_LINK) -rpath $(pkglibdir) $(libhawk_la_OBJECTS) $(libhawk_la_LIBADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -740,6 +728,8 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libhawk_la-Hawk.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libhawk_la-HawkStd.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libhawk_la-arr.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libhawk_la-chr.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libhawk_la-cli.Plo@am__quote@ # am--include-marker
@@ -792,8 +782,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libhawk_math_la-mod-math.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libhawk_str_la-mod-str.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libhawk_sys_la-mod-sys.Plo@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libhawkxx_la-Hawk.Plo@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libhawkxx_la-HawkStd.Plo@am__quote@ # am--include-marker
 
 $(am__depfiles_remade):
 	@$(MKDIR_P) $(@D)
@@ -1213,19 +1201,19 @@ libhawk_la-mod-sys.lo: mod-sys.c
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LTCXXCOMPILE) -c -o $@ $<
 
-libhawkxx_la-Hawk.lo: Hawk.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawkxx_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT libhawkxx_la-Hawk.lo -MD -MP -MF $(DEPDIR)/libhawkxx_la-Hawk.Tpo -c -o libhawkxx_la-Hawk.lo `test -f 'Hawk.cpp' || echo '$(srcdir)/'`Hawk.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libhawkxx_la-Hawk.Tpo $(DEPDIR)/libhawkxx_la-Hawk.Plo
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Hawk.cpp' object='libhawkxx_la-Hawk.lo' libtool=yes @AMDEPBACKSLASH@
+libhawk_la-Hawk.lo: Hawk.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT libhawk_la-Hawk.lo -MD -MP -MF $(DEPDIR)/libhawk_la-Hawk.Tpo -c -o libhawk_la-Hawk.lo `test -f 'Hawk.cpp' || echo '$(srcdir)/'`Hawk.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libhawk_la-Hawk.Tpo $(DEPDIR)/libhawk_la-Hawk.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Hawk.cpp' object='libhawk_la-Hawk.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawkxx_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o libhawkxx_la-Hawk.lo `test -f 'Hawk.cpp' || echo '$(srcdir)/'`Hawk.cpp
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o libhawk_la-Hawk.lo `test -f 'Hawk.cpp' || echo '$(srcdir)/'`Hawk.cpp
 
-libhawkxx_la-HawkStd.lo: HawkStd.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawkxx_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT libhawkxx_la-HawkStd.lo -MD -MP -MF $(DEPDIR)/libhawkxx_la-HawkStd.Tpo -c -o libhawkxx_la-HawkStd.lo `test -f 'HawkStd.cpp' || echo '$(srcdir)/'`HawkStd.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libhawkxx_la-HawkStd.Tpo $(DEPDIR)/libhawkxx_la-HawkStd.Plo
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='HawkStd.cpp' object='libhawkxx_la-HawkStd.lo' libtool=yes @AMDEPBACKSLASH@
+libhawk_la-HawkStd.lo: HawkStd.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT libhawk_la-HawkStd.lo -MD -MP -MF $(DEPDIR)/libhawk_la-HawkStd.Tpo -c -o libhawk_la-HawkStd.lo `test -f 'HawkStd.cpp' || echo '$(srcdir)/'`HawkStd.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libhawk_la-HawkStd.Tpo $(DEPDIR)/libhawk_la-HawkStd.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='HawkStd.cpp' object='libhawk_la-HawkStd.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawkxx_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o libhawkxx_la-HawkStd.lo `test -f 'HawkStd.cpp' || echo '$(srcdir)/'`HawkStd.cpp
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o libhawk_la-HawkStd.lo `test -f 'HawkStd.cpp' || echo '$(srcdir)/'`HawkStd.cpp
 
 mostlyclean-libtool:
 	-rm -f *.lo
@@ -1382,7 +1370,9 @@ clean-am: clean-generic clean-libtool clean-pkglibLTLIBRARIES \
 	mostlyclean-am
 
 distclean: distclean-am
-		-rm -f ./$(DEPDIR)/libhawk_la-arr.Plo
+		-rm -f ./$(DEPDIR)/libhawk_la-Hawk.Plo
+	-rm -f ./$(DEPDIR)/libhawk_la-HawkStd.Plo
+	-rm -f ./$(DEPDIR)/libhawk_la-arr.Plo
 	-rm -f ./$(DEPDIR)/libhawk_la-chr.Plo
 	-rm -f ./$(DEPDIR)/libhawk_la-cli.Plo
 	-rm -f ./$(DEPDIR)/libhawk_la-dir.Plo
@@ -1434,8 +1424,6 @@ distclean: distclean-am
 	-rm -f ./$(DEPDIR)/libhawk_math_la-mod-math.Plo
 	-rm -f ./$(DEPDIR)/libhawk_str_la-mod-str.Plo
 	-rm -f ./$(DEPDIR)/libhawk_sys_la-mod-sys.Plo
-	-rm -f ./$(DEPDIR)/libhawkxx_la-Hawk.Plo
-	-rm -f ./$(DEPDIR)/libhawkxx_la-HawkStd.Plo
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-hdr distclean-tags
@@ -1482,7 +1470,9 @@ install-ps-am:
 installcheck-am:
 
 maintainer-clean: maintainer-clean-am
-		-rm -f ./$(DEPDIR)/libhawk_la-arr.Plo
+		-rm -f ./$(DEPDIR)/libhawk_la-Hawk.Plo
+	-rm -f ./$(DEPDIR)/libhawk_la-HawkStd.Plo
+	-rm -f ./$(DEPDIR)/libhawk_la-arr.Plo
 	-rm -f ./$(DEPDIR)/libhawk_la-chr.Plo
 	-rm -f ./$(DEPDIR)/libhawk_la-cli.Plo
 	-rm -f ./$(DEPDIR)/libhawk_la-dir.Plo
@@ -1534,8 +1524,6 @@ maintainer-clean: maintainer-clean-am
 	-rm -f ./$(DEPDIR)/libhawk_math_la-mod-math.Plo
 	-rm -f ./$(DEPDIR)/libhawk_str_la-mod-str.Plo
 	-rm -f ./$(DEPDIR)/libhawk_sys_la-mod-sys.Plo
-	-rm -f ./$(DEPDIR)/libhawkxx_la-Hawk.Plo
-	-rm -f ./$(DEPDIR)/libhawkxx_la-HawkStd.Plo
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 

@@ -1,6 +1,7 @@
 AUTOMAKE_OPTIONS = nostdinc
 
 AM_CFLAGS = $(PTHREAD_CFLAGS)
+AM_CXXFLAGS = $(PTHREAD_CFLAGS)
 
 CPPFLAGS_ALL_COMMON = \
 	-I$(abs_builddir) \
@@ -19,7 +20,7 @@ endif
 
 CPPFLAGS_LIB_COMMON = $(CPPFLAGS_ALL_COMMON)
 LDFLAGS_LIB_COMMON = $(LDFLAGS_ALL_COMMON) -version-info 1:0:0 -no-undefined
-LIBADD_LIB_COMMON = $(LIBM)
+LIBADD_LIB_COMMON = $(LIBM) $(PTHREAD_LIBS)
 DEPENDENCIES_LIB_COMMON =
 
 if WIN32
@@ -159,12 +160,7 @@ endif
 
 if ENABLE_CXX
 pkginclude_HEADERS += Hawk.hpp HawkStd.hpp
-pkglib_LTLIBRARIES += libhawkxx.la
-libhawkxx_la_SOURCES = Hawk.cpp HawkStd.cpp
-libhawkxx_la_CPPFLAGS = $(CPPFLAGS_LIB_COMMON)
-libhawkxx_la_LDFLAGS = $(LDFLAGS_LIB_COMMON)
-libhawkxx_la_LIBADD = -lhawk $(LIBADD_LIB_COMMON) 
-libhawkxx_la_DEPENDENCIES = libhawk.la
+libhawk_la_SOURCES += Hawk.cpp HawkStd.cpp
 endif
 
 if ENABLE_STATIC_MODULE

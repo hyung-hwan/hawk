@@ -581,7 +581,7 @@ void hawk_arr_popstack (hawk_arr_t* arr)
 			*(hawk_oow_t*)((hawk_uint8_t*)DPTR(arr->slot[index]) + arr->heap_pos_offset) = index; \
 	} while(0)
 
-hawk_oow_t sift_up (hawk_arr_t* arr, hawk_oow_t index)
+static hawk_oow_t sift_up (hawk_arr_t* arr, hawk_oow_t index)
 {
 	hawk_oow_t parent;
 
@@ -622,7 +622,7 @@ hawk_oow_t sift_up (hawk_arr_t* arr, hawk_oow_t index)
 	return index;
 }
 
-hawk_oow_t sift_down (hawk_arr_t* arr, hawk_oow_t index)
+static hawk_oow_t sift_down (hawk_arr_t* arr, hawk_oow_t index)
 {
 	hawk_oow_t base;
 
