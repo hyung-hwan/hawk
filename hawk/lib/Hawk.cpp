@@ -961,23 +961,20 @@ int Hawk::Value::setIndexedFlt (Run* r, const Index& idx, hawk_flt_t v)
 	return n;
 }
 
-int Hawk::Value::setIndexedStr (const Index& idx, const hawk_ooch_t* str, hawk_oow_t len, bool numeric)
+///////////////////////////////////////////////////////////////////
+
+int Hawk::Value::setIndexedStr (const Index& idx, const hawk_uch_t* str, hawk_oow_t len, bool numeric)
 {
-	if (run == HAWK_NULL) return -1;
-	return this->setIndexedStr(run, idx, str, len, numeric);
+	if (this->run == HAWK_NULL) return -1; // NOTE: this->run isn't available. neither is this->run->awk. unable to set an error code
+	return this->setIndexedStr(this->run, idx, str, len, numeric);
 }
 
-int Hawk::Value::setIndexedStr (
-	Run* r, const Index& idx, const hawk_ooch_t* str, hawk_oow_t len, bool numeric)
+int Hawk::Value::setIndexedStr (Run* r, const Index& idx, const hawk_uch_t* str, hawk_oow_t len, bool numeric)
 {
 	hawk_val_t* tmp;
 
-	hawk_oocs_t oocs;
-	oocs.ptr = (hawk_ooch_t*)str;
-	oocs.len = len;
-
-	tmp = numeric? hawk_rtx_makenstrvalwithoocs(r->rtx, &oocs):
-	               hawk_rtx_makestrvalwithoocs(r->rtx, &oocs);
+	tmp = numeric? hawk_rtx_makenstrvalwithuchars(r->rtx, str, len):
+	               hawk_rtx_makestrvalwithuchars(r->rtx, str, len);
 	if (tmp == HAWK_NULL) 
 	{
 		r->awk->retrieveError (r);
@@ -991,13 +988,13 @@ int Hawk::Value::setIndexedStr (
 	return n;
 }
 
-int Hawk::Value::setIndexedStr (const Index& idx, const hawk_ooch_t* str, bool numeric)
+int Hawk::Value::setIndexedStr (const Index& idx, const hawk_uch_t* str, bool numeric)
 {
-	if (run == HAWK_NULL) return -1;
+	if (run == HAWK_NULL) return -1; // NOTE: this->run isn't available. neither is this->run->awk. unable to set an error code
 	return this->setIndexedStr(run, idx, str, numeric);
 }
 
-int Hawk::Value::setIndexedStr (Run* r, const Index& idx, const hawk_ooch_t* str, bool numeric)
+int Hawk::Value::setIndexedStr (Run* r, const Index& idx, const hawk_uch_t* str, bool numeric)
 {
 	hawk_val_t* tmp;
 	tmp = numeric? hawk_rtx_makenstrvalwithoocstr(r->rtx, str):
@@ -1015,10 +1012,61 @@ int Hawk::Value::setIndexedStr (Run* r, const Index& idx, const hawk_ooch_t* str
 	return n;
 }
 
+int Hawk::Value::setIndexedStr (const Index& idx, const hawk_bch_t* str, hawk_oow_t len, bool numeric)
+{
+	if (this->run == HAWK_NULL) return -1; // NOTE: this->run isn't available. neither is this->run->awk. unable to set an error code
+	return this->setIndexedStr(this->run, idx, str, len, numeric);
+}
+
+int Hawk::Value::setIndexedStr (Run* r, const Index& idx, const hawk_bch_t* str, hawk_oow_t len, bool numeric)
+{
+	hawk_val_t* tmp;
+
+	tmp = numeric? hawk_rtx_makenstrvalwithbchars(r->rtx, str, len):
+	               hawk_rtx_makestrvalwithbchars(r->rtx, str, len);
+	if (tmp == HAWK_NULL) 
+	{
+		r->awk->retrieveError (r);
+		return -1;
+	}
+
+	hawk_rtx_refupval (r->rtx, tmp);
+	int n = this->setIndexedVal(r, idx, tmp);
+	hawk_rtx_refdownval (r->rtx, tmp);
+
+	return n;
+}
+
+int Hawk::Value::setIndexedStr (const Index& idx, const hawk_bch_t* str, bool numeric)
+{
+	if (run == HAWK_NULL) return -1; // NOTE: this->run isn't available. neither is this->run->awk. unable to set an error code
+	return this->setIndexedStr(run, idx, str, numeric);
+}
+
+int Hawk::Value::setIndexedStr (Run* r, const Index& idx, const hawk_bch_t* str, bool numeric)
+{
+	hawk_val_t* tmp;
+	tmp = numeric? hawk_rtx_makenstrvalwithbcstr(r->rtx, str):
+	               hawk_rtx_makestrvalwithbcstr(r->rtx, str);
+	if (tmp == HAWK_NULL)
+	{
+		r->awk->retrieveError (r);
+		return -1;
+	}
+
+	hawk_rtx_refupval (r->rtx, tmp);
+	int n = this->setIndexedVal(r, idx, tmp);
+	hawk_rtx_refdownval (r->rtx, tmp);
+
+	return n;
+}
+
+///////////////////////////////////////////////////////////////////
+
 int Hawk::Value::setIndexedMbs (const Index& idx, const hawk_bch_t* str, hawk_oow_t len)
 {
-	if (run == HAWK_NULL) return -1;
-	return this->setIndexedMbs(run, idx, str, len);
+	if (run == HAWK_NULL) return -1; // NOTE: this->run isn't available. neither is this->run->awk. unable to set an error code
+	return this->setIndexedMbs(this->run, idx, str, len);
 }
 
 int Hawk::Value::setIndexedMbs (Run* r, const Index& idx, const hawk_bch_t* str, hawk_oow_t len)
@@ -1045,7 +1093,7 @@ int Hawk::Value::setIndexedMbs (Run* r, const Index& idx, const hawk_bch_t* str,
 
 int Hawk::Value::setIndexedMbs (const Index& idx, const hawk_bch_t* str)
 {
-	if (run == HAWK_NULL) return -1;
+	if (run == HAWK_NULL) return -1; // NOTE: this->run isn't available. neither is this->run->awk. unable to set an error code
 	return this->setIndexedMbs(run, idx, str);
 }
 

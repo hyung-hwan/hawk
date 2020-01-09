@@ -1079,10 +1079,15 @@ public:
 		int setIndexedFlt (const Index& idx, hawk_flt_t v);
 		int setIndexedFlt (Run* r, const Index&  idx, hawk_flt_t v);
 
-		int setIndexedStr (const Index& idx, const hawk_ooch_t* str, hawk_oow_t len, bool numeric = false);
-		int setIndexedStr (Run* r, const Index& idx, const hawk_ooch_t* str, hawk_oow_t len, bool numeric = false);
-		int setIndexedStr (const Index& idx, const hawk_ooch_t* str, bool  numeric = false);
-		int setIndexedStr (Run* r, const Index&  idx, const hawk_ooch_t* str, bool  numeric = false);
+		int setIndexedStr (const Index& idx, const hawk_uch_t* str, hawk_oow_t len, bool numeric = false);
+		int setIndexedStr (Run* r, const Index& idx, const hawk_uch_t* str, hawk_oow_t len, bool numeric = false);
+		int setIndexedStr (const Index& idx, const hawk_uch_t* str, bool  numeric = false);
+		int setIndexedStr (Run* r, const Index&  idx, const hawk_uch_t* str, bool  numeric = false);
+
+		int setIndexedStr (const Index& idx, const hawk_bch_t* str, hawk_oow_t len, bool numeric = false);
+		int setIndexedStr (Run* r, const Index& idx, const hawk_bch_t* str, hawk_oow_t len, bool numeric = false);
+		int setIndexedStr (const Index& idx, const hawk_bch_t* str, bool  numeric = false);
+		int setIndexedStr (Run* r, const Index&  idx, const hawk_bch_t* str, bool  numeric = false);
 
 		int setIndexedMbs (const Index& idx, const hawk_bch_t* str, hawk_oow_t len);
 		int setIndexedMbs (Run* r, const Index& idx, const hawk_bch_t* str, hawk_oow_t len);
