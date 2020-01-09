@@ -17323,6 +17323,36 @@ fi
 
 
 
+
+	{ $as_echo "$as_me:${as_lineno-$LINENO}: checking whether the compiler supports -fno-short-wchar" >&5
+$as_echo_n "checking whether the compiler supports -fno-short-wchar... " >&6; }
+if ${ac_cv_cflags__fno_short_wchar+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+
+		ac_hawk_try_cflags_saved=$CFLAGS
+		CFLAGS="$CFLAGS -fno-short-wchar"
+		cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+int main(int argc, char **argv) { return 0; }
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_cflags__fno_short_wchar=yes
+else
+  ac_cv_cflags__fno_short_wchar=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+		CFLAGS=$ac_hawk_try_cflags_saved
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_cflags__fno_short_wchar" >&5
+$as_echo "$ac_cv_cflags__fno_short_wchar" >&6; }
+	if test $ac_cv_cflags__fno_short_wchar = yes; then :
+  EXTRACFLAGS="$EXTRACFLAGS -fno-short-wchar"
+fi
+
+
+
 # Check whether --enable-largefile was given.
 if test "${enable_largefile+set}" = set; then :
   enableval=$enable_largefile;
@@ -18354,6 +18384,12 @@ $as_echo "#define HAWK_ENABLE_UNICODE 1" >>confdefs.h
 		CFLAGS="$CFLAGS -DUNICODE -D_UNICODE"
 		CXXFLAGS="$CXXFLAGS -DUNICODE -D_UNICODE"
 	fi
+
+	if test "${ac_cv_cflags__fno_short_wchar}" = "yes"
+	then
+		CFLAGS="$CFLAGS -fno-short-wchar"
+		CXXFLAGS="$CXXFLAGS -fno-short-wchar"
+	fi
 elif test "${enable_unicode}" = "yes:2" -o "${enable_unicode}" = "yes"
 then
 
@@ -18377,6 +18413,12 @@ then
 
 $as_echo "#define HAWK_UNICODE_SIZE 4" >>confdefs.h
 
+
+	if test "${ac_cv_cflags__fno_short_wchar}" = "yes"
+	then
+		CFLAGS="$CFLAGS -fno-short-wchar"
+		CXXFLAGS="$CXXFLAGS -fno-short-wchar"
+	fi
 else
 
 $as_echo "#define HAWK_UNICODE_SIZE 2" >>confdefs.h

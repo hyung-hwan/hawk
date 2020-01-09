@@ -61,7 +61,7 @@ CFLAGS="$CFLAGS -DHAWK_HAVE_CFG_H"
 CXXFLAGS="$CXXFLAGS -DHAWK_HAVE_CFG_H"
 
 HAWK_TRY_CFLAGS([-fshort-wchar])
-dnl HAWK_TRY_CFLAGS([-fno-short-wchar])
+HAWK_TRY_CFLAGS([-fno-short-wchar])
 
 dnl make visible the 64-bit interface to the file system
 AC_SYS_LARGEFILE()
@@ -108,6 +108,12 @@ then
 		[CFLAGS="$CFLAGS -DUNICODE -D_UNICODE"]
 		[CXXFLAGS="$CXXFLAGS -DUNICODE -D_UNICODE"]
 	fi 
+
+	if test "${ac_cv_cflags__fno_short_wchar}" = "yes"
+	then
+		[CFLAGS="$CFLAGS -fno-short-wchar"]
+		[CXXFLAGS="$CXXFLAGS -fno-short-wchar"]
+	fi
 elif test "${enable_unicode}" = "yes:2" -o "${enable_unicode}" = "yes"
 then
 	AC_DEFINE([HAWK_UNICODE_SIZE],[2],[Unicode character type size])
@@ -125,6 +131,12 @@ then
 elif test "${enable_unicode}" = "no:4"
 then
 	AC_DEFINE([HAWK_UNICODE_SIZE],[4],[Unicode character type size])
+
+	if test "${ac_cv_cflags__fno_short_wchar}" = "yes"
+	then
+		[CFLAGS="$CFLAGS -fno-short-wchar"]
+		[CXXFLAGS="$CXXFLAGS -fno-short-wchar"]
+	fi
 else
 	dnl no:2, no, or anything else
 	AC_DEFINE([HAWK_UNICODE_SIZE],[2],[Unicode character type size])
