@@ -18371,7 +18371,7 @@ else
 
 fi
 
-if test "${enable_unicode}" = "yes:4"
+if test "${enable_unicode}" = "yes:4" -o "${enable_unicode}" = "yes:4w"
 then
 
 $as_echo "#define HAWK_UNICODE_SIZE 4" >>confdefs.h
@@ -18390,7 +18390,14 @@ $as_echo "#define HAWK_ENABLE_UNICODE 1" >>confdefs.h
 		CFLAGS="$CFLAGS -fno-short-wchar"
 		CXXFLAGS="$CXXFLAGS -fno-short-wchar"
 	fi
-elif test "${enable_unicode}" = "yes:2" -o "${enable_unicode}" = "yes"
+	if test "${enable_unicode}" = "yes:4w"
+	then
+
+$as_echo "#define HAWK_PREFER_PREFIX_L 1" >>confdefs.h
+
+	fi
+
+elif test "${enable_unicode}" = "yes:2" -o "${enable_unicode}" = "yes:2w" -o "${enable_unicode}" = "yes"
 then
 
 $as_echo "#define HAWK_UNICODE_SIZE 2" >>confdefs.h
@@ -18408,7 +18415,14 @@ $as_echo "#define HAWK_ENABLE_UNICODE 1" >>confdefs.h
 		CFLAGS="$CFLAGS -fshort-wchar"
 		CXXFLAGS="$CXXFLAGS -fshort-wchar"
 	fi
-elif test "${enable_unicode}" = "no:4"
+	if test "${enable_unicode}" = "yes:2w"
+	then
+
+$as_echo "#define HAWK_PREFER_PREFIX_L 1" >>confdefs.h
+
+	fi
+
+elif test "${enable_unicode}" = "no:4" -o test "${enable_unicode}" = "no:4w"
 then
 
 $as_echo "#define HAWK_UNICODE_SIZE 4" >>confdefs.h
@@ -18418,6 +18432,13 @@ $as_echo "#define HAWK_UNICODE_SIZE 4" >>confdefs.h
 	then
 		CFLAGS="$CFLAGS -fno-short-wchar"
 		CXXFLAGS="$CXXFLAGS -fno-short-wchar"
+	fi
+
+	if test "${enable_unicode}" = "no:4w"
+	then
+
+$as_echo "#define HAWK_PREFER_PREFIX_L 1" >>confdefs.h
+
 	fi
 else
 
@@ -18428,6 +18449,13 @@ $as_echo "#define HAWK_UNICODE_SIZE 2" >>confdefs.h
 	then
 		CFLAGS="$CFLAGS -fshort-wchar"
 		CXXFLAGS="$CXXFLAGS -fshort-wchar"
+	fi
+
+	if test "${enable_unicode}" = "no:2w"
+	then
+
+$as_echo "#define HAWK_PREFER_PREFIX_L 1" >>confdefs.h
+
 	fi
 fi
 

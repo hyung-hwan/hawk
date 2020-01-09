@@ -747,6 +747,9 @@
 /* PATH_MAX */
 #undef HAWK_PATH_MAX
 
+/* Prefix unicode literals with L */
+#undef HAWK_PREFER_PREFIX_L
+
 /* Define if pthread_cond_t is signed */
 #undef HAWK_PTHREAD_MUTEX_T_IS_SIGNED
 

@@ -99,7 +99,7 @@ AC_ARG_ENABLE([unicode],
 	enable_unicode=$enableval,
 	enable_unicode=yes
 )
-if test "${enable_unicode}" = "yes:4"
+if test "${enable_unicode}" = "yes:4" -o "${enable_unicode}" = "yes:4w"
 then
 	AC_DEFINE([HAWK_UNICODE_SIZE],[4],[Unicode character type size])
 	AC_DEFINE([HAWK_ENABLE_UNICODE],[1],[Use the unicode character type as the default character type])
@@ -114,7 +114,12 @@ then
 		[CFLAGS="$CFLAGS -fno-short-wchar"]
 		[CXXFLAGS="$CXXFLAGS -fno-short-wchar"]
 	fi
-elif test "${enable_unicode}" = "yes:2" -o "${enable_unicode}" = "yes"
+	if test "${enable_unicode}" = "yes:4w"
+	then
+		AC_DEFINE([HAWK_PREFER_PREFIX_L],[1],[Prefix unicode literals with L])
+	fi
+
+elif test "${enable_unicode}" = "yes:2" -o "${enable_unicode}" = "yes:2w" -o "${enable_unicode}" = "yes"
 then
 	AC_DEFINE([HAWK_UNICODE_SIZE],[2],[Unicode character type size])
 	AC_DEFINE([HAWK_ENABLE_UNICODE],[1],[Use the unicode character type as the default character type])
@@ -128,7 +133,12 @@ then
 		[CFLAGS="$CFLAGS -fshort-wchar"]
 		[CXXFLAGS="$CXXFLAGS -fshort-wchar"]
 	fi
-elif test "${enable_unicode}" = "no:4"
+	if test "${enable_unicode}" = "yes:2w"
+	then
+		AC_DEFINE([HAWK_PREFER_PREFIX_L],[1],[Prefix unicode literals with L])
+	fi
+
+elif test "${enable_unicode}" = "no:4" -o test "${enable_unicode}" = "no:4w"
 then
 	AC_DEFINE([HAWK_UNICODE_SIZE],[4],[Unicode character type size])
 
@@ -137,14 +147,24 @@ then
 		[CFLAGS="$CFLAGS -fno-short-wchar"]
 		[CXXFLAGS="$CXXFLAGS -fno-short-wchar"]
 	fi
+
+	if test "${enable_unicode}" = "no:4w"
+	then
+		AC_DEFINE([HAWK_PREFER_PREFIX_L],[1],[Prefix unicode literals with L])
+	fi
 else
-	dnl no:2, no, or anything else
+	dnl no:2, no:2w, no, or anything else
 	AC_DEFINE([HAWK_UNICODE_SIZE],[2],[Unicode character type size])
 
 	if test "${ac_cv_cflags__fshort_wchar}" = "yes"
 	then
 		[CFLAGS="$CFLAGS -fshort-wchar"]
 		[CXXFLAGS="$CXXFLAGS -fshort-wchar"]
+	fi
+
+	if test "${enable_unicode}" = "no:2w"
+	then
+		AC_DEFINE([HAWK_PREFER_PREFIX_L],[1],[Prefix unicode literals with L])
 	fi
 fi
 
