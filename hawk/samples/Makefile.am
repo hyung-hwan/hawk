@@ -1,5 +1,8 @@
 AUTOMAKE_OPTIONS = nostdinc
 
+AM_CFLAGS = $(PTHREAD_CFLAGS)
+AM_CXXFLAGS = $(PTHREAD_CFLAGS)
+
 CPPFLAGS_ALL_COMMON = \
 	-I$(abs_builddir) \
 	-I$(abs_builddir)/../lib  \
@@ -25,7 +28,7 @@ bin_PROGRAMS += hawk51
 hawk51_SOURCES = hawk51.cpp
 hawk51_CPPFLAGS = $(CPPFLAGS_ALL_COMMON)
 hawk51_LDFLAGS = $(LDFLAGS_ALL_COMMON)
-hawk51_LDADD = $(LIBADD_BIN_COMMON) $(SOCKET_LIBS) -lhawkxx
-hawk51_DEPENDENCIES = ../lib/libhawkxx.la
+hawk51_LDADD = $(LIBADD_BIN_COMMON) $(SOCKET_LIBS) -lhawk
+hawk51_DEPENDENCIES = ../lib/libhawk.la
 
 endif

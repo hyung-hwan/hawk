@@ -1144,12 +1144,12 @@ void  HawkStd::freeMem (void* ptr)
 
 hawk_flt_t HawkStd::pow (hawk_flt_t x, hawk_flt_t y) 
 { 
-	return hawk_stdmathpow (this->hawk, x, y);
+	return hawk_stdmathpow(this->hawk, x, y);
 }
 
 hawk_flt_t HawkStd::mod (hawk_flt_t x, hawk_flt_t y) 
 { 
-	return hawk_stdmathmod (this->hawk, x, y);
+	return hawk_stdmathmod(this->hawk, x, y);
 }
 
 void* HawkStd::modopen (const hawk_mod_spec_t* spec)
