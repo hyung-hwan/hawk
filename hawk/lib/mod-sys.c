@@ -813,6 +813,41 @@ static int fnc_pipe (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	return 0;
 }
 
+/* ------------------------------------------------------------------------ */
+
+static int fnc_fchown (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+{
+	sys_list_t* sys_list;
+	sys_node_t* sys_node;
+	hawk_int_t rx = ERRNUM_TO_RC(HAWK_EOTHER);
+
+	sys_list = rtx_to_sys_list(rtx, fi);
+	sys_node = get_sys_list_node_with_arg(rtx, sys_list, hawk_rtx_getarg(rtx, 0), SYS_NODE_DATA_FD);
+	if (sys_node)
+	{
+		hawk_int_t uid, gid;
+
+		if (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 1), &uid) <= -1 ||
+		    hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 2), &gid) <= -1)
+		{
+			rx = copy_error_to_sys_list(rtx, sys_list);
+		}
+		else
+		{
+			rx = (fchown(sys_node->ctx.u.fd, uid, gid) == -1)?
+				set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL):
+				ERRNUM_TO_RC(HAWK_ENOERR);
+		}
+	}
+	else
+	{
+		rx = ERRNUM_TO_RC(HAWK_EINVAL);
+		/* error information set in get_sys_list_node_with_arg() */
+	}
+
+	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
+	return 0;
+}
 
 /* ------------------------------------------------------------------------ */
 
@@ -1247,7 +1282,7 @@ static int fnc_getpid (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	}
 	else
 	{
-		rx = set_error_on_sys_list (rtx, sys_list, hawk_syserr_to_errnum(rc), HAWK_NULL);
+		rx = set_error_on_sys_list(rtx, sys_list, hawk_syserr_to_errnum(rc), HAWK_NULL);
 	}
 
 #elif defined(__DOS__)
@@ -2550,6 +2585,7 @@ static fnctab_t fnctab[] =
 	{ HAWK_T("closelog"),    { { 0, 0, HAWK_NULL     }, fnc_closelog,    0  } },
 	{ HAWK_T("dup"),         { { 1, 3, HAWK_NULL     }, fnc_dup,         0  } },
 	{ HAWK_T("errmsg"),      { { 0, 0, HAWK_NULL     }, fnc_errmsg,      0  } },
+	{ HAWK_T("fchown"),      { { 3, 3, HAWK_NULL     }, fnc_fchown,      0  } },
 	{ HAWK_T("fork"),        { { 0, 0, HAWK_NULL     }, fnc_fork,        0  } },
 	{ HAWK_T("getegid"),     { { 0, 0, HAWK_NULL     }, fnc_getegid,     0  } },
 	{ HAWK_T("getenv"),      { { 1, 1, HAWK_NULL     }, fnc_getenv,      0  } },
