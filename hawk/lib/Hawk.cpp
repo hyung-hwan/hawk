@@ -465,7 +465,7 @@ int Hawk::Value::getInt (hawk_int_t* v) const
 		int n = hawk_rtx_valtoint(this->run->rtx, this->val, &lv);
 		if (n <= -1) 
 		{
-			run->awk->retrieveError (this->run);
+			run->hawk->retrieveError (this->run);
 			return -1;
 		}
 	}
@@ -485,7 +485,7 @@ int Hawk::Value::getFlt (hawk_flt_t* v) const
 		int n = hawk_rtx_valtoflt(this->run->rtx, this->val, &rv);
 		if (n <= -1)
 		{
-			run->awk->retrieveError (this->run);
+			run->hawk->retrieveError (this->run);
 			return -1;
 		}
 	}
@@ -503,7 +503,7 @@ int Hawk::Value::getNum (hawk_int_t* lv, hawk_flt_t* fv) const
 		int n = hawk_rtx_valtonum(this->run->rtx, this->val, lv, fv);
 		if (n <= -1)
 		{
-			run->awk->retrieveError (this->run);
+			run->hawk->retrieveError (this->run);
 			return -1;
 		}
 		return n;
@@ -535,7 +535,7 @@ int Hawk::Value::getStr (const hawk_ooch_t** str, hawk_oow_t* len) const
 				out.type = HAWK_RTX_VALTOSTR_CPLDUP;
 				if (hawk_rtx_valtostr(this->run->rtx, this->val, &out) <= -1)
 				{
-					run->awk->retrieveError (this->run);
+					run->hawk->retrieveError (this->run);
 					return -1;
 				}
 
@@ -580,7 +580,7 @@ int Hawk::Value::getMbs (const hawk_bch_t** str, hawk_oow_t* len) const
 				p = hawk_rtx_valtobcstrdup(this->run->rtx, this->val, &l);
 				if (!p)
 				{
-					run->awk->retrieveError (this->run);
+					run->hawk->retrieveError (this->run);
 					return -1;
 				}
 
@@ -658,7 +658,7 @@ int Hawk::Value::setInt (Run* r, hawk_int_t v)
 	tmp = hawk_rtx_makeintval(r->rtx, v);
 	if (tmp == HAWK_NULL) 
 	{
-		r->awk->retrieveError (r);
+		r->hawk->retrieveError (r);
 		return -1;
 	}
 
@@ -684,7 +684,7 @@ int Hawk::Value::setFlt (Run* r, hawk_flt_t v)
 	tmp = hawk_rtx_makefltval(r->rtx, v);
 	if (tmp == HAWK_NULL)
 	{
-		r->awk->retrieveError (r);
+		r->hawk->retrieveError (r);
 		return -1;
 	}
 
@@ -714,7 +714,7 @@ int Hawk::Value::setStr (Run* r, const hawk_uch_t* str, hawk_oow_t len, bool num
 	               hawk_rtx_makestrvalwithuchars(r->rtx, str, len);
 	if (tmp == HAWK_NULL)
 	{
-		r->awk->retrieveError (r);
+		r->hawk->retrieveError (r);
 		return -1;
 	}
 
@@ -736,7 +736,7 @@ int Hawk::Value::setStr (Run* r, const hawk_uch_t* str, bool numeric)
 	               hawk_rtx_makestrvalwithucstr(r->rtx, str);
 	if (tmp == HAWK_NULL) 
 	{
-		r->awk->retrieveError (r);
+		r->hawk->retrieveError (r);
 		return -1;
 	}
 
@@ -766,7 +766,7 @@ int Hawk::Value::setStr (Run* r, const hawk_bch_t* str, hawk_oow_t len, bool num
 	               hawk_rtx_makestrvalwithbchars(r->rtx, str, len);
 	if (tmp == HAWK_NULL)
 	{
-		r->awk->retrieveError (r);
+		r->hawk->retrieveError (r);
 		return -1;
 	}
 
@@ -788,7 +788,7 @@ int Hawk::Value::setStr (Run* r, const hawk_bch_t* str, bool numeric)
 	               hawk_rtx_makestrvalwithbcstr(r->rtx, str);
 	if (tmp == HAWK_NULL) 
 	{
-		r->awk->retrieveError (r);
+		r->hawk->retrieveError (r);
 		return -1;
 	}
 
@@ -820,7 +820,7 @@ int Hawk::Value::setMbs (Run* r, const hawk_bch_t* str, hawk_oow_t len)
 	tmp = hawk_rtx_makembsvalwithbcs(r->rtx, &oocs);
 	if (!tmp)
 	{
-		r->awk->retrieveError (r);
+		r->hawk->retrieveError (r);
 		return -1;
 	}
 
@@ -841,7 +841,7 @@ int Hawk::Value::setMbs (Run* r, const hawk_bch_t* str)
 	tmp = hawk_rtx_makembsval(r->rtx, str, hawk_count_bcstr(str));
 	if (!tmp) 
 	{
-		r->awk->retrieveError (r);
+		r->hawk->retrieveError (r);
 		return -1;
 	}
 
@@ -867,7 +867,7 @@ int Hawk::Value::setIndexedVal (Run* r, const Index& idx, hawk_val_t* v)
 		hawk_val_t* map = hawk_rtx_makemapval(r->rtx);
 		if (map == HAWK_NULL) 
 		{
-			r->awk->retrieveError (r);
+			r->hawk->retrieveError (r);
 			return -1;
 		}
 
@@ -877,7 +877,7 @@ int Hawk::Value::setIndexedVal (Run* r, const Index& idx, hawk_val_t* v)
 		if (hawk_rtx_setmapvalfld(r->rtx, map, idx.ptr, idx.len, v) == HAWK_NULL)
 		{
 			hawk_rtx_refdownval (r->rtx, map);
-			r->awk->retrieveError (r);
+			r->hawk->retrieveError (r);
 			return -1;
 		}
 
@@ -902,14 +902,14 @@ int Hawk::Value::setIndexedVal (Run* r, const Index& idx, hawk_val_t* v)
 		{
 			// it can't span across multiple runtime contexts
 			this->run->setError (HAWK_EINVAL);
-			this->run->awk->retrieveError (run);
+			this->run->hawk->retrieveError (run);
 			return -1;
 		}
 
 		// update the map with a given value 
 		if (hawk_rtx_setmapvalfld(r->rtx, val, idx.ptr, idx.len, v) == HAWK_NULL)
 		{
-			r->awk->retrieveError (r);
+			r->hawk->retrieveError (r);
 			return -1;
 		}
 	}
@@ -928,7 +928,7 @@ int Hawk::Value::setIndexedInt (Run* r, const Index& idx, hawk_int_t v)
 	hawk_val_t* tmp = hawk_rtx_makeintval (r->rtx, v);
 	if (tmp == HAWK_NULL) 
 	{
-		r->awk->retrieveError (r);
+		r->hawk->retrieveError (r);
 		return -1;
 	}
 
@@ -950,7 +950,7 @@ int Hawk::Value::setIndexedFlt (Run* r, const Index& idx, hawk_flt_t v)
 	hawk_val_t* tmp = hawk_rtx_makefltval(r->rtx, v);
 	if (tmp == HAWK_NULL) 
 	{
-		r->awk->retrieveError (r);
+		r->hawk->retrieveError (r);
 		return -1;
 	}
 
@@ -965,7 +965,7 @@ int Hawk::Value::setIndexedFlt (Run* r, const Index& idx, hawk_flt_t v)
 
 int Hawk::Value::setIndexedStr (const Index& idx, const hawk_uch_t* str, hawk_oow_t len, bool numeric)
 {
-	if (this->run == HAWK_NULL) return -1; // NOTE: this->run isn't available. neither is this->run->awk. unable to set an error code
+	if (this->run == HAWK_NULL) return -1; // NOTE: this->run isn't available. neither is this->run->hawk. unable to set an error code
 	return this->setIndexedStr(this->run, idx, str, len, numeric);
 }
 
@@ -977,7 +977,7 @@ int Hawk::Value::setIndexedStr (Run* r, const Index& idx, const hawk_uch_t* str,
 	               hawk_rtx_makestrvalwithuchars(r->rtx, str, len);
 	if (tmp == HAWK_NULL) 
 	{
-		r->awk->retrieveError (r);
+		r->hawk->retrieveError (r);
 		return -1;
 	}
 
@@ -990,7 +990,7 @@ int Hawk::Value::setIndexedStr (Run* r, const Index& idx, const hawk_uch_t* str,
 
 int Hawk::Value::setIndexedStr (const Index& idx, const hawk_uch_t* str, bool numeric)
 {
-	if (run == HAWK_NULL) return -1; // NOTE: this->run isn't available. neither is this->run->awk. unable to set an error code
+	if (run == HAWK_NULL) return -1; // NOTE: this->run isn't available. neither is this->run->hawk. unable to set an error code
 	return this->setIndexedStr(run, idx, str, numeric);
 }
 
@@ -1001,7 +1001,7 @@ int Hawk::Value::setIndexedStr (Run* r, const Index& idx, const hawk_uch_t* str,
 	               hawk_rtx_makestrvalwithoocstr(r->rtx, str);
 	if (tmp == HAWK_NULL)
 	{
-		r->awk->retrieveError (r);
+		r->hawk->retrieveError (r);
 		return -1;
 	}
 
@@ -1014,7 +1014,7 @@ int Hawk::Value::setIndexedStr (Run* r, const Index& idx, const hawk_uch_t* str,
 
 int Hawk::Value::setIndexedStr (const Index& idx, const hawk_bch_t* str, hawk_oow_t len, bool numeric)
 {
-	if (this->run == HAWK_NULL) return -1; // NOTE: this->run isn't available. neither is this->run->awk. unable to set an error code
+	if (this->run == HAWK_NULL) return -1; // NOTE: this->run isn't available. neither is this->run->hawk. unable to set an error code
 	return this->setIndexedStr(this->run, idx, str, len, numeric);
 }
 
@@ -1026,7 +1026,7 @@ int Hawk::Value::setIndexedStr (Run* r, const Index& idx, const hawk_bch_t* str,
 	               hawk_rtx_makestrvalwithbchars(r->rtx, str, len);
 	if (tmp == HAWK_NULL) 
 	{
-		r->awk->retrieveError (r);
+		r->hawk->retrieveError (r);
 		return -1;
 	}
 
@@ -1039,7 +1039,7 @@ int Hawk::Value::setIndexedStr (Run* r, const Index& idx, const hawk_bch_t* str,
 
 int Hawk::Value::setIndexedStr (const Index& idx, const hawk_bch_t* str, bool numeric)
 {
-	if (run == HAWK_NULL) return -1; // NOTE: this->run isn't available. neither is this->run->awk. unable to set an error code
+	if (run == HAWK_NULL) return -1; // NOTE: this->run isn't available. neither is this->run->hawk. unable to set an error code
 	return this->setIndexedStr(run, idx, str, numeric);
 }
 
@@ -1050,7 +1050,7 @@ int Hawk::Value::setIndexedStr (Run* r, const Index& idx, const hawk_bch_t* str,
 	               hawk_rtx_makestrvalwithbcstr(r->rtx, str);
 	if (tmp == HAWK_NULL)
 	{
-		r->awk->retrieveError (r);
+		r->hawk->retrieveError (r);
 		return -1;
 	}
 
@@ -1065,7 +1065,7 @@ int Hawk::Value::setIndexedStr (Run* r, const Index& idx, const hawk_bch_t* str,
 
 int Hawk::Value::setIndexedMbs (const Index& idx, const hawk_bch_t* str, hawk_oow_t len)
 {
-	if (run == HAWK_NULL) return -1; // NOTE: this->run isn't available. neither is this->run->awk. unable to set an error code
+	if (run == HAWK_NULL) return -1; // NOTE: this->run isn't available. neither is this->run->hawk. unable to set an error code
 	return this->setIndexedMbs(this->run, idx, str, len);
 }
 
@@ -1080,7 +1080,7 @@ int Hawk::Value::setIndexedMbs (Run* r, const Index& idx, const hawk_bch_t* str,
 	tmp = hawk_rtx_makembsvalwithbcs(r->rtx, &oocs);
 	if (!tmp) 
 	{
-		r->awk->retrieveError (r);
+		r->hawk->retrieveError (r);
 		return -1;
 	}
 
@@ -1093,7 +1093,7 @@ int Hawk::Value::setIndexedMbs (Run* r, const Index& idx, const hawk_bch_t* str,
 
 int Hawk::Value::setIndexedMbs (const Index& idx, const hawk_bch_t* str)
 {
-	if (run == HAWK_NULL) return -1; // NOTE: this->run isn't available. neither is this->run->awk. unable to set an error code
+	if (run == HAWK_NULL) return -1; // NOTE: this->run isn't available. neither is this->run->hawk. unable to set an error code
 	return this->setIndexedMbs(run, idx, str);
 }
 
@@ -1103,7 +1103,7 @@ int Hawk::Value::setIndexedMbs (Run* r, const Index& idx, const hawk_bch_t* str)
 	tmp = hawk_rtx_makembsval(r->rtx, str, hawk_count_bcstr(str));
 	if (tmp == HAWK_NULL)
 	{
-		r->awk->retrieveError (r);
+		r->hawk->retrieveError (r);
 		return -1;
 	}
 
@@ -1189,11 +1189,11 @@ Hawk::Value::IndexIterator Hawk::Value::getNextIndex (
 // Hawk::Run
 //////////////////////////////////////////////////////////////////
 
-Hawk::Run::Run (Hawk* awk): awk (awk), rtx (HAWK_NULL)
+Hawk::Run::Run (Hawk* hawk): hawk(hawk), rtx (HAWK_NULL)
 {
 }
 
-Hawk::Run::Run (Hawk* awk, hawk_rtx_t* rtx): awk (awk), rtx (rtx)
+Hawk::Run::Run (Hawk* hawk, hawk_rtx_t* rtx): hawk(hawk), rtx (rtx)
 {
 	HAWK_ASSERT (this->rtx != HAWK_NULL);
 }
@@ -2356,7 +2356,7 @@ hawk_ooi_t Hawk::writeSource (hawk_t* hawk, hawk_sio_cmd_t cmd, hawk_sio_arg_t* 
 hawk_ooi_t Hawk::pipeHandler (hawk_rtx_t* rtx, hawk_rio_cmd_t cmd, hawk_rio_arg_t* riod, void* data, hawk_oow_t count)
 {
 	rxtn_t* rxtn = GET_RXTN(rtx);
-	Hawk* awk = rxtn->run->awk;
+	Hawk* awk = rxtn->run->hawk;
 
 	HAWK_ASSERT ((riod->type & 0xFF) == HAWK_RIO_PIPE);
 
@@ -2422,7 +2422,7 @@ hawk_ooi_t Hawk::pipeHandler (hawk_rtx_t* rtx, hawk_rio_cmd_t cmd, hawk_rio_arg_
 hawk_ooi_t Hawk::fileHandler (hawk_rtx_t* rtx, hawk_rio_cmd_t cmd, hawk_rio_arg_t* riod, void* data, hawk_oow_t count)
 {
 	rxtn_t* rxtn = GET_RXTN(rtx);
-	Hawk* awk = rxtn->run->awk;
+	Hawk* awk = rxtn->run->hawk;
 
 	HAWK_ASSERT ((riod->type & 0xFF) == HAWK_RIO_FILE);
 
@@ -2488,7 +2488,7 @@ hawk_ooi_t Hawk::fileHandler (hawk_rtx_t* rtx, hawk_rio_cmd_t cmd, hawk_rio_arg_
 hawk_ooi_t Hawk::consoleHandler (hawk_rtx_t* rtx, hawk_rio_cmd_t cmd, hawk_rio_arg_t* riod, void* data, hawk_oow_t count)
 {
 	rxtn_t* rxtn = GET_RXTN(rtx);
-	Hawk* awk = rxtn->run->awk;
+	Hawk* awk = rxtn->run->hawk;
 
 	HAWK_ASSERT ((riod->type & 0xFF) == HAWK_RIO_CONSOLE);
 
@@ -2672,7 +2672,7 @@ int Hawk::nextConsole (Console& io)
 int Hawk::functionHandler (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	rxtn_t* rxtn = GET_RXTN(rtx);
-	return rxtn->run->awk->dispatch_function(rxtn->run, fi);
+	return rxtn->run->hawk->dispatch_function(rxtn->run, fi);
 }
 
 hawk_flt_t Hawk::pow (hawk_t* awk, hawk_flt_t x, hawk_flt_t y)
