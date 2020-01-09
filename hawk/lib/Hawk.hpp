@@ -501,8 +501,8 @@ public:
 			friend class Hawk;
 
 		protected:
-			Data (Hawk* awk, Mode mode, hawk_sio_arg_t* arg): 
-				awk (awk), mode (mode), arg (arg)
+			Data (Hawk* hawk, Mode mode, hawk_sio_arg_t* arg): 
+				hawk(hawk), mode(mode), arg(arg)
 			{
 			}
 
@@ -561,16 +561,16 @@ public:
 
 			operator Hawk* () const
 			{
-				return this->awk;
+				return this->hawk;
 			}
 
 			operator hawk_t* () const
 			{
-				return this->awk->getHandle();
+				return this->hawk->getHandle();
 			}
 
 		protected:
-			Hawk* awk;
+			Hawk* hawk;
 			Mode  mode;
 			hawk_sio_arg_t* arg;
 		};
@@ -623,11 +623,11 @@ public:
 		int getUflags () const { return this->riod->uflags; }
 		void setUflags (int uflags) { this->riod->uflags = uflags; }
 
-		operator Hawk* () const { return this->run->awk; }
+		operator Hawk* () const { return this->run->hawk; }
 		operator hawk_t* () const 
 		{
 			HAWK_ASSERT (hawk_rtx_getawk(this->run->rtx) == this->run->awk->getHandle());
-			return this->run->awk->getHandle(); 
+			return this->run->hawk->getHandle(); 
 		}
 		operator hawk_rio_arg_t* () const { return this->riod; }
 		operator Run* () const { return this->run; }
@@ -1167,7 +1167,7 @@ public:
 	public:
 		operator Hawk* () const
 		{
-			return this->awk;
+			return this->hawk;
 		}
 
 		operator hawk_rtx_t* () const
@@ -1251,7 +1251,7 @@ public:
 		int getGlobal (int id, Value& v) const;
 
 	protected:
-		Hawk*  awk;
+		Hawk* hawk;
 		hawk_rtx_t* rtx;
 	};
 
