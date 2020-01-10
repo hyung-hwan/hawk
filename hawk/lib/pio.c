@@ -999,7 +999,7 @@ create_process:
 
 	if (flags & HAWK_PIO_WRITEIN)
 	{
-		/* child reads, parent writes */		
+		/* child reads, parent writes */
 		rc = DosCreatePipe (&handle[0], &handle[1], pipe_size);
 		if (rc != NO_ERROR) 
 		{
@@ -1089,12 +1089,12 @@ create_process:
 		*/
 
 		/* TODO: selective between DosOpenL and DosOpen */
-		rc = DosOpen /*DosOpenL*/ (
+		rc = DosOpen/*DosOpenL*/(
 			HAWK_BT("NUL"),
 			&os2devnul,
 			&action_taken,
 			0, /*zero,*/
-			FILE_NORMAL,		
+			FILE_NORMAL,
 			OPEN_ACTION_OPEN_IF_EXISTS | OPEN_ACTION_FAIL_IF_NEW,
 			OPEN_FLAGS_NOINHERIT | OPEN_SHARE_DENYNONE,
 			0L
@@ -1108,20 +1108,20 @@ create_process:
 
 	/* duplicate the current stdin/out/err to old_in/out/err as a new handle */
 	
-	rc = DosDupHandle (std_in, &old_in);
+	rc = DosDupHandle(std_in, &old_in);
 	if (rc != NO_ERROR) 
 	{
 		hawk_gem_seterrnum (pio->gem, HAWK_NULL, hawk_syserr_to_errnum(rc));
 		goto oops;
 	}
-	rc = DosDupHandle (std_out, &old_out);
+	rc = DosDupHandle(std_out, &old_out);
 	if (rc != NO_ERROR) 
 	{
 		hawk_gem_seterrnum (pio->gem, HAWK_NULL, hawk_syserr_to_errnum(rc));
 		DosClose (old_in); old_in = HAWK_PIO_HND_NIL;
 		goto oops;
 	}
-	rc = DosDupHandle (std_err, &old_err);
+	rc = DosDupHandle(std_err, &old_err);
 	if (rc != NO_ERROR) 
 	{
 		hawk_gem_seterrnum (pio->gem, HAWK_NULL, hawk_syserr_to_errnum(rc));

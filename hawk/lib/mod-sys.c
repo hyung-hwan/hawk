@@ -2283,74 +2283,38 @@ static int fnc_mkdir (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	sys_list_t* sys_list;
 	hawk_val_t* a0;
-	hawk_ooch_t* str;
-	hawk_oow_t len;
 	hawk_int_t rx;
 	hawk_int_t mode = DEFAULT_MODE;
 
 	sys_list = rtx_to_sys_list(rtx, fi);
-
 	a0 = hawk_rtx_getarg(rtx, 0);
-	str = hawk_rtx_getvaloocstr(rtx, a0, &len);
-	if (!str)
-	{
-		rx = copy_error_to_sys_list(rtx, sys_list);
-		goto done;
-	}
-
-	/* the target name contains a null character. */
-	if (hawk_find_oochar(str, len, '\0'))
-	{
-		rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_NULL);
-		goto done;
-	}
 
 	if (hawk_rtx_getnargs(rtx) >= 2 && (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 1), &mode) <= -1 || mode < 0)) mode = DEFAULT_MODE;
 
 #if defined(_WIN32)
-	rx = _tmkdir(str);
-	if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
-#elif defined(HAWK_OOCH_IS_BCH)
-	rx = HAWK_MKDIR(str, mode);
-	if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
-#else
-{
-		hawk_bch_t* mbs;
-		mbs = hawk_rtx_duputobcstr(rtx, str, HAWK_NULL);
-		if (mbs)
-		{
-			rx = HAWK_MKDIR(mbs, mode);
-			hawk_rtx_freemem (rtx, mbs);
-			if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
-		}
-		else
+	{
+		hawk_ooch_t* str;
+		hawk_oow_t len;
+
+		str = hawk_rtx_getvaloocstr(rtx, a0, &len);
+		if (!str)
 		{
 			rx = copy_error_to_sys_list(rtx, sys_list);
+			goto done;
 		}
+
+		/* the target name contains a null character. */
+		if (hawk_find_oochar(str, len, '\0'))
+		{
+			rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_NULL);
+			goto done;
+		}
+
+		rx = (CreateDirectory(str, HAWK_NULL) == FALSE)? set_error_on_sys_list(rtx, sys_list, hawk_syserr_to_errnum(GetLastError()), HAWK_NULL): 0;
+
+	done:
+		if (str) hawk_rtx_freevaloocstr (rtx, a0, str);
 	}
-#endif
-
-done:
-	if (str) hawk_rtx_freevaloocstr (rtx, a0, str);
-
-	HAWK_ASSERT (HAWK_IN_QUICKINT_RANGE(rx));
-	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
-	return 0;
-}
-
-static int fnc_unlink (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
-{
-	sys_list_t* sys_list;
-	hawk_val_t* a0;
-	hawk_int_t rx;
-
-	sys_list = rtx_to_sys_list(rtx, fi);
-	a0 = hawk_rtx_getarg(rtx, 0);
-
-#if defined(_WIN32)
-	rx = set_error_on_sys_list(rtx, sys_list, HAWK_ENOIMPL, HAWK_NULL);
-#elif defined(__OS2__)
-	rx = set_error_on_sys_list(rtx, sys_list, HAWK_ENOIMPL, HAWK_NULL);
 #else
 	{
 		hawk_bch_t* str;
@@ -2370,8 +2334,172 @@ static int fnc_unlink (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			goto done;
 		}
 
-		rx = HAWK_UNLINK(str);
+	#if defined(__OS2__)
+		{
+			APIRET rc;
+			rc = DosCreateDir(str, HAWK_NULL);
+			rx = (rc == NO_ERROR)? 0: set_error_on_sys_list(rtx, sys_list, hawk_syserr_to_errnum(rc), HAWK_NULL);
+		}
+	#elif defined(__DOS__)
+		rx = mkdir(str);
 		if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
+	#else
+		rx = HAWK_MKDIR(str, mode);
+		if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
+	#endif
+
+	done:
+		if (str) hawk_rtx_freevalbcstr (rtx, a0, str);
+	}
+#endif
+
+	HAWK_ASSERT (HAWK_IN_QUICKINT_RANGE(rx));
+	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
+	return 0;
+}
+
+static int fnc_rmdir (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+{
+	sys_list_t* sys_list;
+	hawk_val_t* a0;
+	hawk_int_t rx;
+
+	sys_list = rtx_to_sys_list(rtx, fi);
+	a0 = hawk_rtx_getarg(rtx, 0);
+
+#if defined(_WIN32)
+	{
+		hawk_ooch_t* str;
+		hawk_oow_t len;
+
+		str = hawk_rtx_getvaloocstr(rtx, a0, &len);
+		if (!str)
+		{
+			rx = copy_error_to_sys_list(rtx, sys_list);
+			goto done;
+		}
+
+		/* the target name contains a null character. */
+		if (hawk_find_oochar(str, len, '\0'))
+		{
+			rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_NULL);
+			goto done;
+		}
+
+		rx = (RemoveDirectory(str) == FALSE)? set_error_on_sys_list(rtx, sys_list, hawk_syserr_to_errnum(GetLastError()), HAWK_NULL): 0;
+
+	done:
+		if (str) hawk_rtx_freevaloocstr (rtx, a0, str);
+	}
+#else
+	{
+		hawk_bch_t* str;
+		hawk_oow_t len;
+
+		str = hawk_rtx_getvalbcstr(rtx, a0, &len);
+		if (!str)
+		{
+			rx = copy_error_to_sys_list(rtx, sys_list);
+			goto done;
+		}
+
+		/* the target name contains a null character. */
+		if (hawk_find_bchar(str, len, '\0'))
+		{
+			rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_NULL);
+			goto done;
+		}
+
+		#if defined(__OS2__)
+		{
+			APIRET rc;
+			rc = DosDeleteDir(str);
+			rx = (rc == NO_ERROR)? 0: set_error_on_sys_list(rtx, sys_list, hawk_syserr_to_errnum(rc), HAWK_NULL);
+		}
+		#elif defined(__DOS__)
+			rx = rmdir(str);
+			if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
+		#else
+			rx = HAWK_RMDIR(str);
+			if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
+		#endif
+
+	done:
+		if (str) hawk_rtx_freevalbcstr (rtx, a0, str);
+	}
+#endif
+
+	HAWK_ASSERT (HAWK_IN_QUICKINT_RANGE(rx));
+	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
+	return 0;
+}
+
+
+static int fnc_unlink (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+{
+	sys_list_t* sys_list;
+	hawk_val_t* a0;
+	hawk_int_t rx;
+
+	sys_list = rtx_to_sys_list(rtx, fi);
+	a0 = hawk_rtx_getarg(rtx, 0);
+
+#if defined(_WIN32)
+	{
+		hawk_ooch_t* str;
+		hawk_oow_t len;
+
+		str = hawk_rtx_getvaloocstr(rtx, a0, &len);
+		if (!str)
+		{
+			rx = copy_error_to_sys_list(rtx, sys_list);
+			goto done;
+		}
+
+		/* the target name contains a null character. */
+		if (hawk_find_oochar(str, len, '\0'))
+		{
+			rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_NULL);
+			goto done;
+		}
+
+		rx = (DeleteFile(str) == FALSE)? set_error_on_sys_list(rtx, sys_list, hawk_syserr_to_errnum(GetLastError()), HAWK_NULL): 0;
+
+	done:
+		if (str) hawk_rtx_freevaloocstr (rtx, a0, str);
+	}
+#else
+	{
+		hawk_bch_t* str;
+		hawk_oow_t len;
+
+		str = hawk_rtx_getvalbcstr(rtx, a0, &len);
+		if (!str)
+		{
+			rx = copy_error_to_sys_list(rtx, sys_list);
+			goto done;
+		}
+
+		/* the target name contains a null character. */
+		if (hawk_find_bchar(str, len, '\0'))
+		{
+			rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_NULL);
+			goto done;
+		}
+
+		#if defined(__OS2__)
+		{
+			APIRET rc;
+			rc = DosDelete(str, HAWK_NULL);
+			rx = (rc == NO_ERROR)? 0: set_error_on_sys_list(rtx, sys_list, hawk_syserr_to_errnum(rc), HAWK_NULL);
+		}
+		#elif defined(__DOS__)
+			rx = unlink(str);
+			if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
+		#else
+			rx = HAWK_UNLINK(str);
+			if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
+		#endif
 
 	done:
 		if (str) hawk_rtx_freevalbcstr (rtx, a0, str);
@@ -2793,6 +2921,7 @@ static fnctab_t fnctab[] =
 	{ HAWK_T("read"),        { { 2, 3, HAWK_T("vrv") }, fnc_read,        0  } },
 	{ HAWK_T("readdir"),     { { 2, 2, HAWK_T("vr")  }, fnc_readdir,     0  } },
 	{ HAWK_T("resetdir"),    { { 2, 2, HAWK_NULL     }, fnc_resetdir,    0  } },
+	{ HAWK_T("rmdir"),       { { 1, 1, HAWK_NULL     }, fnc_rmdir,       0  } },
 	{ HAWK_T("setenv"),      { { 2, 3, HAWK_NULL     }, fnc_setenv,    0  } },
 	{ HAWK_T("settime"),     { { 1, 1, HAWK_NULL     }, fnc_settime,     0  } },
 	{ HAWK_T("sleep"),       { { 1, 1, HAWK_NULL     }, fnc_sleep,       0  } },

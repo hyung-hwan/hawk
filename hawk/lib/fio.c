@@ -258,7 +258,7 @@ int hawk_fio_init (hawk_fio_t* fio, hawk_gem_t* gem, const hawk_ooch_t* path, in
 
 		if (flags & HAWK_FIO_MBSPATH)
 		{
-			handle = CreateFileA (
+			handle = CreateFileA(
 				(const hawk_bch_t*)path, desired_access, share_mode, 
 				HAWK_NULL, /* set noinherit by setting no secattr */
 				creation_disposition, flag_and_attr, 0
@@ -266,7 +266,7 @@ int hawk_fio_init (hawk_fio_t* fio, hawk_gem_t* gem, const hawk_ooch_t* path, in
 		}
 		else
 		{
-			handle = CreateFile (
+			handle = CreateFile(
 				path, desired_access, share_mode, 
 				HAWK_NULL, /* set noinherit by setting no secattr */
 				creation_disposition, flag_and_attr, 0
@@ -293,7 +293,7 @@ int hawk_fio_init (hawk_fio_t* fio, hawk_gem_t* gem, const hawk_ooch_t* path, in
 			
 				if (flags & HAWK_FIO_MBSPATH)
 				{
-					handle = CreateFileA (
+					handle = CreateFileA(
 						(const hawk_bch_t*)path, desired_access, share_mode, 
 						HAWK_NULL, /* set noinherit by setting no secattr */
 						creation_disposition, flag_and_attr, 0
@@ -301,7 +301,7 @@ int hawk_fio_init (hawk_fio_t* fio, hawk_gem_t* gem, const hawk_ooch_t* path, in
 				}
 				else
 				{
-					handle = CreateFile (
+					handle = CreateFile(
 						path, desired_access, share_mode, 
 						HAWK_NULL, /* set noinherit by setting no secattr */
 						creation_disposition, flag_and_attr, 0
@@ -1118,8 +1118,7 @@ hawk_ooi_t hawk_fio_write (hawk_fio_t* fio, const void* data, hawk_oow_t size)
 
 	if (size > (HAWK_TYPE_MAX(hawk_ooi_t) & HAWK_TYPE_MAX(DWORD))) 
 		size = HAWK_TYPE_MAX(hawk_ooi_t) & HAWK_TYPE_MAX(DWORD);
-	if (WriteFile (fio->handle,
-		data, (DWORD)size, &count, HAWK_NULL) == FALSE) 
+	if (WriteFile (fio->handle, data, (DWORD)size, &count, HAWK_NULL) == FALSE) 
 	{
 		hawk_gem_seterrnum (fio->gem, HAWK_NULL, hawk_syserr_to_errnum(GetLastError()));
 		return -1;
