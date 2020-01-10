@@ -974,7 +974,6 @@ static int fnc_readdir (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	sys_node = get_sys_list_node_with_arg(rtx, sys_list, hawk_rtx_getarg(rtx, 0), SYS_NODE_DATA_DIR, &rx);
 	if (sys_node)
 	{
-		int y;
 		hawk_dir_ent_t ent;
 
 		rx = hawk_dir_read(sys_node->ctx.u.dir, &ent); /* assume -1 on error, 0 on no more entry, 1 when an entry is available */
@@ -992,7 +991,7 @@ static int fnc_readdir (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			if (!tmp) goto fail;
 
 			hawk_rtx_refupval (rtx, tmp);
-			x = hawk_rtx_setrefval (rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, 1), tmp);
+			x = hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, 1), tmp);
 			hawk_rtx_refdownval (rtx, tmp);
 			if (x <= -1) goto fail;
 		}
@@ -1866,9 +1865,8 @@ I use 'count' to limit the maximum number of retries when 0 is returned.
 }
 
 /*
-	path = sys::getenv("PATH");
-	if (path === nil) print "error -", sys::errmsg();
-	else print path;
+	if (sys::getenv("PATH", v) <= -1) print "error -", sys::errmsg();
+	else print v;
 */
 static int fnc_getenv (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
@@ -1876,6 +1874,7 @@ static int fnc_getenv (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_val_t* a0;
 	hawk_bch_t* var;
 	hawk_oow_t len;
+	hawk_int_t rx;
 
 	sys_list = rtx_to_sys_list(rtx, fi);
 
@@ -1885,36 +1884,128 @@ static int fnc_getenv (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	{
 		hawk_bch_t* val;
 
-		val = getenv(var);
-		hawk_rtx_freevalbcstr (rtx, a0, var);
-
-		if (val) 
+		if (hawk_rfind_bchar(var, len, '\0'))
 		{
-			hawk_val_t* retv;
-
-			retv = hawk_rtx_makestrvalwithbcstr(rtx, val);
-			if (!retv) return -1; /* hard failure */
-
-			hawk_rtx_setretval (rtx, retv);
+			rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_NULL);
+			hawk_rtx_freevalbcstr (rtx, a0, var);
 		}
 		else
 		{
-			set_error_on_sys_list(rtx, sys_list, HAWK_ENOENT, HAWK_NULL);
-			/* don't set the return value. make it return nil.
-			 * since this function return a string on success, i use nil as a failure return value.
-			 * the disadvantage is that the actual error code is lost */
+			val = getenv(var);
+			hawk_rtx_freevalbcstr (rtx, a0, var);
+
+			if (val) 
+			{
+				hawk_val_t* tmp;
+				int x;
+
+				tmp = hawk_rtx_makestrvalwithbcstr(rtx, val);
+				if (!tmp) goto fail;
+
+				hawk_rtx_refupval (rtx, tmp);
+				x = hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, 1), tmp);
+				hawk_rtx_refdownval (rtx, tmp);
+				if (x <= -1) goto fail;
+
+				rx = ERRNUM_TO_RC(HAWK_ENOERR);
+			}
+			else
+			{
+				rx = set_error_on_sys_list(rtx, sys_list, HAWK_ENOENT, HAWK_NULL);
+			}
 		}
 	}
 	else
 	{
-		copy_error_to_sys_list(rtx, sys_list);
-		/* don't set the return value. make it return nil.
-		 * since this function return a string on success, i use nil as a failure return value.
-		 * the disadvantage is that the actual error code is lost */
+	fail:
+		rx = copy_error_to_sys_list(rtx, sys_list);
 	}
 
+	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
+
+static int fnc_setenv (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+{
+	sys_list_t* sys_list;
+	hawk_val_t* a0, * a1;
+	hawk_bch_t* var = HAWK_NULL, * val = HAWK_NULL;
+	hawk_oow_t var_len, val_len;
+	hawk_int_t rx;
+	hawk_int_t overwrite = 1;
+
+	sys_list = rtx_to_sys_list(rtx, fi);
+	a0 = hawk_rtx_getarg(rtx, 0);
+	a1 = hawk_rtx_getarg(rtx, 1);
+
+	var = hawk_rtx_getvalbcstr(rtx, a0, &var_len);
+	val = hawk_rtx_getvalbcstr(rtx, a1, &val_len);
+	if (!var || !val)
+	{
+		rx = copy_error_to_sys_list(rtx, sys_list);
+		goto done;
+	}
+
+	/* the target name contains a null character. */
+	if (hawk_rfind_bchar(var, var_len, '\0') ||
+	    hawk_rfind_bchar(val, val_len, '\0'))
+	{
+		rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_NULL);
+		goto done;
+	}
+
+	if (hawk_rtx_getnargs(rtx) >= 3 && (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 2), &overwrite) <= -1)) overwrite = 0;
+
+	rx = setenv(var, val, overwrite);
+	if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
+
+done:
+	if (val) hawk_rtx_freevalbcstr (rtx, a1, val);
+	if (var) hawk_rtx_freevalbcstr (rtx, a0, var);
+
+	HAWK_ASSERT (HAWK_IN_QUICKINT_RANGE(rx));
+	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
+	return 0;
+}
+
+
+static int fnc_unsetenv (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+{
+	sys_list_t* sys_list;
+	hawk_val_t* a0;
+	hawk_bch_t* str;
+	hawk_oow_t len;
+	hawk_int_t rx;
+
+	sys_list = rtx_to_sys_list(rtx, fi);
+	a0 = hawk_rtx_getarg(rtx, 0);
+
+	str = hawk_rtx_getvalbcstr(rtx, a0, &len);
+	if (!str)
+	{
+		rx = copy_error_to_sys_list(rtx, sys_list);
+		goto done;
+	}
+
+	/* the target name contains a null character. */
+	if (hawk_rfind_bchar(str, len, '\0'))
+	{
+		rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_NULL);
+		goto done;
+	}
+
+	rx = unsetenv(str);
+	if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
+
+done:
+	if (str) hawk_rtx_freevalbcstr (rtx, a0, str);
+
+	HAWK_ASSERT (HAWK_IN_QUICKINT_RANGE(rx));
+	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
+	return 0;
+}
+
+/* ------------------------------------------------------------ */
 
 /*
 	if (sys::getnwifcfg("eth0", sys::NWIFCFG_IN6, x) >= 0) 
@@ -2039,9 +2130,9 @@ static int fnc_system (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	}
 
 	/* the target name contains a null character. make system return -1 */
-	if (hawk_find_oochar(str, len, '\0'))
+	if (hawk_rfind_oochar(str, len, '\0'))
 	{
-		rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_T("invalid command of length %zu containing '\\0'"), len);
+		rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_NULL);
 		goto done;
 	}
 
@@ -2099,9 +2190,9 @@ static int fnc_chroot (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	}
 
 	/* the target name contains a null character. make system return -1 */
-	if (hawk_find_oochar(str, len, '\0'))
+	if (hawk_rfind_oochar(str, len, '\0'))
 	{
-		rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_T("invalid path of length %zu containing '\\0'"), len);
+		rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_NULL);
 		goto done;
 	}
 
@@ -2164,9 +2255,9 @@ static int fnc_chmod (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	}
 
 	/* the target name contains a null character. make system return -1 */
-	if (hawk_find_oochar(str, len, '\0'))
+	if (hawk_rfind_oochar(str, len, '\0'))
 	{
-		rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_T("invalid path of length %zu containing '\\0'"), len);
+		rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_NULL);
 		goto done;
 	}
 
@@ -2223,9 +2314,9 @@ static int fnc_mkdir (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	}
 
 	/* the target name contains a null character. */
-	if (hawk_find_oochar(str, len, '\0'))
+	if (hawk_rfind_oochar(str, len, '\0'))
 	{
-		rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_T("invalid path of length %zu containing '\\0'"), len);
+		rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_NULL);
 		goto done;
 	}
 
@@ -2281,9 +2372,9 @@ static int fnc_unlink (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	}
 
 	/* the target name contains a null character. make system return -1 */
-	if (hawk_find_oochar(str, len, '\0'))
+	if (hawk_rfind_oochar(str, len, '\0'))
 	{
-		rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_T("invalid path of length %zu containing '\\0'"), len);
+		rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_NULL);
 		goto done;
 	}
 
@@ -2297,7 +2388,7 @@ static int fnc_unlink (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	/* TOOD: implement this*/
 	rx = set_error_on_sys_list(rtx, sys_list, HAWK_ENOIMPL, HAWK_NULL);
 #elif defined(HAWK_OOCH_IS_BCH)
-	rx = HAWK_UNLINK(str, mode);
+	rx = HAWK_UNLINK(str);
 	if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
 #else
 	{
@@ -2575,7 +2666,7 @@ static int fnc_writelog (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 	if (hawk_find_oochar(msg, msglen, '\0')) 
 	{
-		rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_T("invalid message of length %zu containing '\\0'"), msglen);
+		rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_NULL);
 		goto done;
 	}
 
@@ -2712,7 +2803,7 @@ static fnctab_t fnctab[] =
 	{ HAWK_T("fchown"),      { { 3, 3, HAWK_NULL     }, fnc_fchown,      0  } },
 	{ HAWK_T("fork"),        { { 0, 0, HAWK_NULL     }, fnc_fork,        0  } },
 	{ HAWK_T("getegid"),     { { 0, 0, HAWK_NULL     }, fnc_getegid,     0  } },
-	{ HAWK_T("getenv"),      { { 1, 1, HAWK_NULL     }, fnc_getenv,      0  } },
+	{ HAWK_T("getenv"),      { { 2, 2, HAWK_T("vr")  }, fnc_getenv,      0  } },
 	{ HAWK_T("geteuid"),     { { 0, 0, HAWK_NULL     }, fnc_geteuid,     0  } },
 	{ HAWK_T("getgid"),      { { 0, 0, HAWK_NULL     }, fnc_getgid,      0  } },
 	{ HAWK_T("getifcfg"),    { { 3, 3, HAWK_T("vvr") }, fnc_getifcfg,    0  } },
@@ -2734,12 +2825,14 @@ static fnctab_t fnctab[] =
 	{ HAWK_T("read"),        { { 2, 3, HAWK_T("vrv") }, fnc_read,        0  } },
 	{ HAWK_T("readdir"),     { { 2, 2, HAWK_T("vr")  }, fnc_readdir,     0  } },
 	{ HAWK_T("resetdir"),    { { 2, 2, HAWK_NULL     }, fnc_resetdir,    0  } },
+	{ HAWK_T("setenv"),      { { 2, 3, HAWK_NULL     }, fnc_setenv,    0  } },
 	{ HAWK_T("settime"),     { { 1, 1, HAWK_NULL     }, fnc_settime,     0  } },
 	{ HAWK_T("sleep"),       { { 1, 1, HAWK_NULL     }, fnc_sleep,       0  } },
 	{ HAWK_T("strftime"),    { { 2, 3, HAWK_NULL     }, fnc_strftime,    0  } },
 	{ HAWK_T("system"),      { { 1, 1, HAWK_NULL     }, fnc_system,      0  } },
 	{ HAWK_T("systime"),     { { 0, 0, HAWK_NULL     }, fnc_gettime,     0  } }, /* alias to gettime() */
 	{ HAWK_T("unlink"),      { { 1, 1, HAWK_NULL     }, fnc_unlink,      0  } },
+	{ HAWK_T("unsetenv"),    { { 1, 1, HAWK_NULL     }, fnc_unsetenv,    0  } },
 	{ HAWK_T("wait"),        { { 1, 3, HAWK_T("vrv") }, fnc_wait,        0  } },
 	{ HAWK_T("write"),       { { 2, 2, HAWK_NULL     }, fnc_write,       0  } },
 	{ HAWK_T("writelog"),    { { 2, 2, HAWK_NULL     }, fnc_writelog,    0  } }
