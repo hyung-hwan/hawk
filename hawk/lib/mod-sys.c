@@ -1865,27 +1865,52 @@ I use 'count' to limit the maximum number of retries when 0 is returned.
 	return 0;
 }
 
+/*
+	path = sys::getenv("PATH");
+	if (path === nil) print "error -", sys::errmsg();
+	else print path;
+*/
 static int fnc_getenv (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
+	sys_list_t* sys_list;
+	hawk_val_t* a0;
 	hawk_bch_t* var;
 	hawk_oow_t len;
-	hawk_val_t* retv;
 
-	var = hawk_rtx_valtobcstrdup(rtx, hawk_rtx_getarg(rtx, 0), &len);
+	sys_list = rtx_to_sys_list(rtx, fi);
+
+	a0 = hawk_rtx_getarg(rtx, 0);
+	var = hawk_rtx_getvalbcstr(rtx, a0, &len);
 	if (var)
 	{
 		hawk_bch_t* val;
 
-		val = getenv(var);	
+		val = getenv(var);
+		hawk_rtx_freevalbcstr (rtx, a0, var);
+
 		if (val) 
 		{
+			hawk_val_t* retv;
+
 			retv = hawk_rtx_makestrvalwithbcstr(rtx, val);
-			if (retv == HAWK_NULL) return -1;
+			if (!retv) return -1; /* hard failure */
 
 			hawk_rtx_setretval (rtx, retv);
 		}
-
-		hawk_rtx_freemem (rtx, var);
+		else
+		{
+			set_error_on_sys_list(rtx, sys_list, HAWK_ENOENT, HAWK_NULL);
+			/* don't set the return value. make it return nil.
+			 * since this function return a string on success, i use nil as a failure return value.
+			 * the disadvantage is that the actual error code is lost */
+		}
+	}
+	else
+	{
+		copy_error_to_sys_list(rtx, sys_list);
+		/* don't set the return value. make it return nil.
+		 * since this function return a string on success, i use nil as a failure return value.
+		 * the disadvantage is that the actual error code is lost */
 	}
 
 	return 0;
