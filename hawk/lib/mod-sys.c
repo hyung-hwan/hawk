@@ -2224,60 +2224,52 @@ static int fnc_chmod (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	sys_list_t* sys_list;
 	hawk_val_t* a0;
-	hawk_ooch_t* str;
-	hawk_oow_t len;
 	hawk_int_t rx;
-	hawk_int_t mode;
+	hawk_int_t mode = DEFAULT_MODE;
 
 	sys_list = rtx_to_sys_list(rtx, fi);
-
 	a0 = hawk_rtx_getarg(rtx, 0);
-	str = hawk_rtx_getvaloocstr(rtx, a0, &len);
-	if (!str)
-	{
-		rx = copy_error_to_sys_list(rtx, sys_list);
-		goto done;
-	}
 
-	/* the target name contains a null character. make system return -1 */
-	if (hawk_find_oochar(str, len, '\0'))
-	{
-		rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_NULL);
-		goto done;
-	}
-
-	if (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 1), &mode) <= -1 || mode < 0) mode = DEFAULT_MODE;
+	if (hawk_rtx_getnargs(rtx) >= 2 && (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 1), &mode) <= -1 || mode < 0)) mode = DEFAULT_MODE;
 
 #if defined(_WIN32)
-	rx = _tchmod(str, mode);
-	if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
-#elif defined(HAWK_OOCH_IS_BCH)
-	rx = HAWK_CHMOD(str, mode);
-	if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
+	rx = set_error_on_sys_list(rtx, sys_list, HAWK_ENOIMPL, HAWK_NULL);
+#elif defined(__OS2__)
+	rx = set_error_on_sys_list(rtx, sys_list, HAWK_ENOIMPL, HAWK_NULL);
+#elif defined(__DOS__)
+	rx = set_error_on_sys_list(rtx, sys_list, HAWK_ENOIMPL, HAWK_NULL);
 #else
 	{
-		hawk_bch_t* mbs;
-		mbs = hawk_rtx_duputobcstr(rtx, str, HAWK_NULL);
-		if (mbs)
-		{
-			rx = HAWK_CHMOD(mbs, mode);
-			hawk_rtx_freemem (rtx, mbs);
-			if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
-		}
-		else
+		hawk_bch_t* str;
+		hawk_oow_t len;
+
+		str = hawk_rtx_getvalbcstr(rtx, a0, &len);
+		if (!str)
 		{
 			rx = copy_error_to_sys_list(rtx, sys_list);
+			goto done;
 		}
+
+		/* the target name contains a null character. */
+		if (hawk_find_bchar(str, len, '\0'))
+		{
+			rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_NULL);
+			goto done;
+		}
+
+		rx = HAWK_CHMOD(str, mode);
+		if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
+
+	done:
+		if (str) hawk_rtx_freevalbcstr (rtx, a0, str);
 	}
 #endif
-
-done:
-	if (str) hawk_rtx_freevaloocstr (rtx, a0, str);
 
 	HAWK_ASSERT (HAWK_IN_QUICKINT_RANGE(rx));
 	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
+
 
 static int fnc_mkdir (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
@@ -2434,6 +2426,7 @@ static int fnc_rmdir (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	return 0;
 }
 
+/* ------------------------------------------------------------ */
 
 static int fnc_unlink (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
@@ -2510,6 +2503,123 @@ static int fnc_unlink (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
+
+static int fnc_symlink (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+{
+	sys_list_t* sys_list;
+	hawk_val_t* a0, * a1;
+	hawk_int_t rx;
+
+	sys_list = rtx_to_sys_list(rtx, fi);
+	a0 = hawk_rtx_getarg(rtx, 0);
+	a1 = hawk_rtx_getarg(rtx, 1);
+
+#if defined(_WIN32)
+	rx = set_error_on_sys_list(rtx, sys_list, HAWK_ENOIMPL, HAWK_NULL);
+#elif defined(__OS2__)
+	rx = set_error_on_sys_list(rtx, sys_list, HAWK_ENOIMPL, HAWK_NULL);
+#elif defined(__DOS__)
+	rx = set_error_on_sys_list(rtx, sys_list, HAWK_ENOIMPL, HAWK_NULL);
+#else
+	{
+		hawk_bch_t* str1, * str2;
+		hawk_oow_t len1, len2;
+
+		str1 = hawk_rtx_getvalbcstr(rtx, a0, &len1);
+		str2 = hawk_rtx_getvalbcstr(rtx, a1, &len2);
+		if (!str1 || !str2)
+		{
+			rx = copy_error_to_sys_list(rtx, sys_list);
+			goto done;
+		}
+
+		if (hawk_find_bchar(str1, len1, '\0') || hawk_find_bchar(str2, len2, '\0'))
+		{
+			rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_NULL);
+			goto done;
+		}
+
+		rx = HAWK_SYMLINK(str1, str2);
+		if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
+	done:
+		if (str2) hawk_rtx_freevalbcstr (rtx, a0, str2);
+		if (str1) hawk_rtx_freevalbcstr (rtx, a0, str1);
+	}
+#endif
+
+	HAWK_ASSERT (HAWK_IN_QUICKINT_RANGE(rx));
+	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
+	return 0;
+}
+
+/* ------------------------------------------------------------ */
+/* TODO: fnc_stat */
+
+#if 0
+TODO: fnc_utime
+static int fnc_utime (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+{
+	sys_list_t* sys_list;
+	hawk_val_t* a0;
+	hawk_int_t rx;
+	hawk_int_t mode = DEFAULT_MODE;
+
+	sys_list = rtx_to_sys_list(rtx, fi);
+	a0 = hawk_rtx_getarg(rtx, 0);
+
+	if (hawk_rtx_getnargs(rtx) >= 2 && (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 1), &mode) <= -1 || mode < 0)) mode = DEFAULT_MODE;
+
+#if defined(_WIN32)
+	rx = set_error_on_sys_list(rtx, sys_list, HAWK_ENOIMPL, HAWK_NULL);
+#elif defined(__OS2__)
+	rx = set_error_on_sys_list(rtx, sys_list, HAWK_ENOIMPL, HAWK_NULL);
+#elif defined(__DOS__)
+	rx = set_error_on_sys_list(rtx, sys_list, HAWK_ENOIMPL, HAWK_NULL);
+#else
+	{
+		hawk_bch_t* str;
+		hawk_oow_t len;
+
+		str = hawk_rtx_getvalbcstr(rtx, a0, &len);
+		if (!str)
+		{
+			rx = copy_error_to_sys_list(rtx, sys_list);
+			goto done;
+		}
+
+		/* the target name contains a null character. */
+		if (hawk_find_bchar(str, len, '\0'))
+		{
+			rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_NULL);
+			goto done;
+		}
+
+	#if defined(HAVE_UTIMENSAT)
+		/* TODO: */
+	#else
+		{
+			struct timeval tv[2];
+
+			tv[0].tv_sec = xxx;
+			tv[1].tv_sec = xxx;
+			tv[1].tv_sec = xxx;
+			tv[1].tv_sec = xxx;
+
+			rx = utimes(str, tv);
+			if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
+		}
+	#endif
+
+	done:
+		if (str) hawk_rtx_freevalbcstr (rtx, a0, str);
+	}
+#endif
+
+	HAWK_ASSERT (HAWK_IN_QUICKINT_RANGE(rx));
+	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
+	return 0;
+}
+#endif
 
 /* ------------------------------------------------------------ */
 
@@ -2926,6 +3036,7 @@ static fnctab_t fnctab[] =
 	{ HAWK_T("settime"),     { { 1, 1, HAWK_NULL     }, fnc_settime,     0  } },
 	{ HAWK_T("sleep"),       { { 1, 1, HAWK_NULL     }, fnc_sleep,       0  } },
 	{ HAWK_T("strftime"),    { { 2, 3, HAWK_NULL     }, fnc_strftime,    0  } },
+	{ HAWK_T("symlink"),     { { 2, 2, HAWK_NULL     }, fnc_symlink,      0  } },
 	{ HAWK_T("system"),      { { 1, 1, HAWK_NULL     }, fnc_system,      0  } },
 	{ HAWK_T("systime"),     { { 0, 0, HAWK_NULL     }, fnc_gettime,     0  } }, /* alias to gettime() */
 	{ HAWK_T("unlink"),      { { 1, 1, HAWK_NULL     }, fnc_unlink,      0  } },
