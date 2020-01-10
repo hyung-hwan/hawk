@@ -1884,7 +1884,7 @@ static int fnc_getenv (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	{
 		hawk_bch_t* val;
 
-		if (hawk_rfind_bchar(var, len, '\0'))
+		if (hawk_find_bchar(var, len, '\0'))
 		{
 			rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_NULL);
 			hawk_rtx_freevalbcstr (rtx, a0, var);
@@ -1947,8 +1947,8 @@ static int fnc_setenv (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	}
 
 	/* the target name contains a null character. */
-	if (hawk_rfind_bchar(var, var_len, '\0') ||
-	    hawk_rfind_bchar(val, val_len, '\0'))
+	if (hawk_find_bchar(var, var_len, '\0') ||
+	    hawk_find_bchar(val, val_len, '\0'))
 	{
 		rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_NULL);
 		goto done;
@@ -1988,7 +1988,7 @@ static int fnc_unsetenv (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	}
 
 	/* the target name contains a null character. */
-	if (hawk_rfind_bchar(str, len, '\0'))
+	if (hawk_find_bchar(str, len, '\0'))
 	{
 		rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_NULL);
 		goto done;
@@ -2130,7 +2130,7 @@ static int fnc_system (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	}
 
 	/* the target name contains a null character. make system return -1 */
-	if (hawk_rfind_oochar(str, len, '\0'))
+	if (hawk_find_oochar(str, len, '\0'))
 	{
 		rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_NULL);
 		goto done;
@@ -2175,58 +2175,43 @@ static int fnc_chroot (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	sys_list_t* sys_list;
 	hawk_val_t* a0;
-	hawk_ooch_t* str;
-	hawk_oow_t len;
 	hawk_int_t rx;
 
 	sys_list = rtx_to_sys_list(rtx, fi);
-
 	a0 = hawk_rtx_getarg(rtx, 0);
-	str = hawk_rtx_getvaloocstr(rtx, a0, &len);
-	if (!str)
-	{
-		rx = copy_error_to_sys_list(rtx, sys_list);
-		goto done;
-	}
-
-	/* the target name contains a null character. make system return -1 */
-	if (hawk_rfind_oochar(str, len, '\0'))
-	{
-		rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_NULL);
-		goto done;
-	}
 
 #if defined(_WIN32)
-	/* TOOD: implement this*/
 	rx = set_error_on_sys_list(rtx, sys_list, HAWK_ENOIMPL, HAWK_NULL);
 #elif defined(__OS2__)
-	/* TOOD: implement this*/
 	rx = set_error_on_sys_list(rtx, sys_list, HAWK_ENOIMPL, HAWK_NULL);
 #elif defined(__DOS__)
-	/* TOOD: implement this*/
 	rx = set_error_on_sys_list(rtx, sys_list, HAWK_ENOIMPL, HAWK_NULL);
-#elif defined(HAWK_OOCH_IS_BCH)
-	rx = HAWK_CHROOT(str, mode);
-	if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
 #else
 	{
-		hawk_bch_t* mbs;
-		mbs = hawk_rtx_duputobcstr(rtx, str, HAWK_NULL);
-		if (mbs)
-		{
-			rx = HAWK_CHROOT(mbs);
-			hawk_rtx_freemem (rtx, mbs);
-			if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
-		}
-		else
+		hawk_bch_t* str;
+		hawk_oow_t len;
+
+		str = hawk_rtx_getvalbcstr(rtx, a0, &len);
+		if (!str)
 		{
 			rx = copy_error_to_sys_list(rtx, sys_list);
+			goto done;
 		}
+
+		/* the target name contains a null character. */
+		if (hawk_find_bchar(str, len, '\0'))
+		{
+			rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_NULL);
+			goto done;
+		}
+
+		rx = HAWK_CHROOT(str);
+		if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
+
+	done:
+		if (str) hawk_rtx_freevalbcstr (rtx, a0, str);
 	}
 #endif
-
-done:
-	if (str) hawk_rtx_freevaloocstr (rtx, a0, str);
 
 	HAWK_ASSERT (HAWK_IN_QUICKINT_RANGE(rx));
 	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
@@ -2255,7 +2240,7 @@ static int fnc_chmod (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	}
 
 	/* the target name contains a null character. make system return -1 */
-	if (hawk_rfind_oochar(str, len, '\0'))
+	if (hawk_find_oochar(str, len, '\0'))
 	{
 		rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_NULL);
 		goto done;
@@ -2314,7 +2299,7 @@ static int fnc_mkdir (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	}
 
 	/* the target name contains a null character. */
-	if (hawk_rfind_oochar(str, len, '\0'))
+	if (hawk_find_oochar(str, len, '\0'))
 	{
 		rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_NULL);
 		goto done;
@@ -2357,58 +2342,41 @@ static int fnc_unlink (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	sys_list_t* sys_list;
 	hawk_val_t* a0;
-	hawk_ooch_t* str;
-	hawk_oow_t len;
 	hawk_int_t rx;
 
 	sys_list = rtx_to_sys_list(rtx, fi);
-
 	a0 = hawk_rtx_getarg(rtx, 0);
-	str = hawk_rtx_getvaloocstr(rtx, a0, &len);
-	if (!str)
-	{
-		rx = copy_error_to_sys_list(rtx, sys_list);
-		goto done;
-	}
-
-	/* the target name contains a null character. make system return -1 */
-	if (hawk_rfind_oochar(str, len, '\0'))
-	{
-		rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_NULL);
-		goto done;
-	}
 
 #if defined(_WIN32)
-	/* TOOD: implement this*/
 	rx = set_error_on_sys_list(rtx, sys_list, HAWK_ENOIMPL, HAWK_NULL);
 #elif defined(__OS2__)
-	/* TOOD: implement this*/
 	rx = set_error_on_sys_list(rtx, sys_list, HAWK_ENOIMPL, HAWK_NULL);
-#elif defined(__DOS__)
-	/* TOOD: implement this*/
-	rx = set_error_on_sys_list(rtx, sys_list, HAWK_ENOIMPL, HAWK_NULL);
-#elif defined(HAWK_OOCH_IS_BCH)
-	rx = HAWK_UNLINK(str);
-	if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
 #else
 	{
-		hawk_bch_t* mbs;
-		mbs = hawk_rtx_duputobcstr(rtx, str, HAWK_NULL);
-		if (mbs)
-		{
-			rx = HAWK_UNLINK(mbs);
-			hawk_rtx_freemem (rtx, mbs);
-			if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
-		}
-		else
+		hawk_bch_t* str;
+		hawk_oow_t len;
+
+		str = hawk_rtx_getvalbcstr(rtx, a0, &len);
+		if (!str)
 		{
 			rx = copy_error_to_sys_list(rtx, sys_list);
+			goto done;
 		}
+
+		/* the target name contains a null character. */
+		if (hawk_find_bchar(str, len, '\0'))
+		{
+			rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_NULL);
+			goto done;
+		}
+
+		rx = HAWK_UNLINK(str);
+		if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
+
+	done:
+		if (str) hawk_rtx_freevalbcstr (rtx, a0, str);
 	}
 #endif
-
-done:
-	if (str) hawk_rtx_freevaloocstr (rtx, a0, str);
 
 	HAWK_ASSERT (HAWK_IN_QUICKINT_RANGE(rx));
 	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
