@@ -2090,7 +2090,7 @@ static int fnc_chroot (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	/* TOOD: implement this*/
 	rx = set_error_on_sys_list(rtx, sys_list, HAWK_ENOIMPL, HAWK_NULL);
 #elif defined(HAWK_OOCH_IS_BCH)
-	rx = chroot(str, mode);
+	rx = HAWK_CHROOT(str, mode);
 	if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
 #else
 	{
@@ -2098,7 +2098,7 @@ static int fnc_chroot (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		mbs = hawk_rtx_duputobcstr(rtx, str, HAWK_NULL);
 		if (mbs)
 		{
-			rx = chroot(mbs);
+			rx = HAWK_CHROOT(mbs);
 			hawk_rtx_freemem (rtx, mbs);
 			if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
 		}
@@ -2151,7 +2151,7 @@ static int fnc_chmod (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	rx = _tchmod(str, mode);
 	if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
 #elif defined(HAWK_OOCH_IS_BCH)
-	rx = chmod(str, mode);
+	rx = HAWK_CHMOD(str, mode);
 	if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
 #else
 	{
@@ -2159,7 +2159,7 @@ static int fnc_chmod (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		mbs = hawk_rtx_duputobcstr(rtx, str, HAWK_NULL);
 		if (mbs)
 		{
-			rx = chmod(mbs, mode);
+			rx = HAWK_CHMOD(mbs, mode);
 			hawk_rtx_freemem (rtx, mbs);
 			if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
 		}
@@ -2180,102 +2180,122 @@ done:
 
 static int fnc_mkdir (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
-	hawk_val_t* v, * a0;
+	sys_list_t* sys_list;
+	hawk_val_t* a0;
 	hawk_ooch_t* str;
 	hawk_oow_t len;
-	int n = 0;
+	hawk_int_t rx;
 	hawk_int_t mode = DEFAULT_MODE;
+
+	sys_list = rtx_to_sys_list(rtx, fi);
 
 	a0 = hawk_rtx_getarg(rtx, 0);
 	str = hawk_rtx_getvaloocstr(rtx, a0, &len);
-	if (!str) return -1;
+	if (!str)
+	{
+		rx = copy_error_to_sys_list(rtx, sys_list);
+		goto done;
+	}
 
-	/* the target name contains a null character.
-	 * make system return -1 */
+	/* the target name contains a null character. */
 	if (hawk_find_oochar(str, len, '\0'))
 	{
-		n = -1;
-		goto skip_mkdir;
+		rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_T("invalid path of length %zu containing '\\0'"), len);
+		goto done;
 	}
 
 	if (hawk_rtx_getnargs(rtx) >= 2 && (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 1), &mode) <= -1 || mode < 0)) mode = DEFAULT_MODE;
 
 #if defined(_WIN32)
-	n = _tmkdir(str);
+	rx = _tmkdir(str);
+	if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
 #elif defined(HAWK_OOCH_IS_BCH)
-	n = mkdir(str, mode);
+	rx = HAWK_MKDIR(str, mode);
+	if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
 #else
-
-	{
+{
 		hawk_bch_t* mbs;
 		mbs = hawk_rtx_duputobcstr(rtx, str, HAWK_NULL);
-		if (mbs == HAWK_NULL) 
+		if (mbs)
 		{
-			n = -1;
-			goto skip_mkdir;
+			rx = HAWK_MKDIR(mbs, mode);
+			hawk_rtx_freemem (rtx, mbs);
+			if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
 		}
-		n = mkdir(mbs, mode);
-		hawk_rtx_freemem (rtx, mbs);
+		else
+		{
+			rx = copy_error_to_sys_list(rtx, sys_list);
+		}
 	}
-
 #endif
 
-skip_mkdir:
-	hawk_rtx_freevaloocstr (rtx, a0, str);
+done:
+	if (str) hawk_rtx_freevaloocstr (rtx, a0, str);
 
-	v = hawk_rtx_makeintval(rtx, (hawk_int_t)n);
-	if (v == HAWK_NULL) return -1;
-
-	hawk_rtx_setretval (rtx, v);
+	HAWK_ASSERT (HAWK_IN_QUICKINT_RANGE(rx));
+	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
 
 static int fnc_unlink (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
-	hawk_val_t* v, * a0;
+	sys_list_t* sys_list;
+	hawk_val_t* a0;
 	hawk_ooch_t* str;
 	hawk_oow_t len;
-	int n = 0;
+	hawk_int_t rx;
 
-	a0 = hawk_rtx_getarg (rtx, 0);
+	sys_list = rtx_to_sys_list(rtx, fi);
+
+	a0 = hawk_rtx_getarg(rtx, 0);
 	str = hawk_rtx_getvaloocstr(rtx, a0, &len);
-	if (!str) return -1;
+	if (!str)
+	{
+		rx = copy_error_to_sys_list(rtx, sys_list);
+		goto done;
+	}
 
-	/* the target name contains a null character.
-	 * make system return -1 */
+	/* the target name contains a null character. make system return -1 */
 	if (hawk_find_oochar(str, len, '\0'))
 	{
-		n = -1;
-		goto skip_unlink;
+		rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_T("invalid path of length %zu containing '\\0'"), len);
+		goto done;
 	}
 
 #if defined(_WIN32)
-	n = _tunlink(str);
+	/* TOOD: implement this*/
+	rx = set_error_on_sys_list(rtx, sys_list, HAWK_ENOIMPL, HAWK_NULL);
+#elif defined(__OS2__)
+	/* TOOD: implement this*/
+	rx = set_error_on_sys_list(rtx, sys_list, HAWK_ENOIMPL, HAWK_NULL);
+#elif defined(__DOS__)
+	/* TOOD: implement this*/
+	rx = set_error_on_sys_list(rtx, sys_list, HAWK_ENOIMPL, HAWK_NULL);
 #elif defined(HAWK_OOCH_IS_BCH)
-	n = unlink(str);
+	rx = HAWK_UNLINK(str, mode);
+	if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
 #else
-
 	{
 		hawk_bch_t* mbs;
 		mbs = hawk_rtx_duputobcstr(rtx, str, HAWK_NULL);
-		if (mbs == HAWK_NULL) 
+		if (mbs)
 		{
-			n = -1;
-			goto skip_unlink;
+			rx = HAWK_UNLINK(mbs);
+			hawk_rtx_freemem (rtx, mbs);
+			if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
 		}
-		n = unlink(mbs);
-		hawk_rtx_freemem (rtx, mbs);
+		else
+		{
+			rx = copy_error_to_sys_list(rtx, sys_list);
+		}
 	}
-
 #endif
 
-skip_unlink:
-	hawk_rtx_freevaloocstr (rtx, a0, str);
+done:
+	if (str) hawk_rtx_freevaloocstr (rtx, a0, str);
 
-	v = hawk_rtx_makeintval(rtx, (hawk_int_t)n);
-	if (v == HAWK_NULL) return -1;
-
-	hawk_rtx_setretval (rtx, v);
+	HAWK_ASSERT (HAWK_IN_QUICKINT_RANGE(rx));
+	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
 
