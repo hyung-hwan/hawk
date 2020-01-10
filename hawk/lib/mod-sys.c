@@ -1998,7 +1998,7 @@ static int fnc_getifcfg (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 static int fnc_system (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	sys_list_t* sys_list;
-	hawk_val_t* v, * a0;
+	hawk_val_t* a0;
 	hawk_ooch_t* str;
 	hawk_oow_t len;
 	hawk_int_t rx;
@@ -2049,7 +2049,7 @@ done:
 	if (str) hawk_rtx_freevaloocstr (rtx, a0, str);
 
 	HAWK_ASSERT (HAWK_IN_QUICKINT_RANGE(rx));
-	hawk_rtx_setretval (rtx, v);
+	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
 
@@ -2058,7 +2058,7 @@ done:
 static int fnc_chroot (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	sys_list_t* sys_list;
-	hawk_val_t* v, * a0;
+	hawk_val_t* a0;
 	hawk_ooch_t* str;
 	hawk_oow_t len;
 	hawk_int_t rx;
@@ -2122,7 +2122,7 @@ done:
 static int fnc_chmod (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	sys_list_t* sys_list;
-	hawk_val_t* v, * a0;
+	hawk_val_t* a0;
 	hawk_ooch_t* str;
 	hawk_oow_t len;
 	hawk_int_t rx;
@@ -2657,7 +2657,7 @@ static fnctab_t fnctab[] =
 	{ HAWK_T("WIFSIGNALED"), { { 1, 1, HAWK_NULL     }, fnc_wifsignaled, 0  } },
 	{ HAWK_T("WTERMSIG"),    { { 1, 1, HAWK_NULL     }, fnc_wtermsig,    0  } },
 	{ HAWK_T("chmod"),       { { 2, 2, HAWK_NULL     }, fnc_chmod,       0  } },
-	{ HAWK_T("chroot"),      { { 2, 2, HAWK_NULL     }, fnc_chroot,      0  } },
+	{ HAWK_T("chroot"),      { { 1, 1, HAWK_NULL     }, fnc_chroot,      0  } },
 	{ HAWK_T("close"),       { { 1, 2, HAWK_NULL     }, fnc_close,       0  } },
 	{ HAWK_T("closedir"),    { { 1, 1, HAWK_NULL     }, fnc_closedir,    0  } },
 	{ HAWK_T("closelog"),    { { 0, 0, HAWK_NULL     }, fnc_closelog,    0  } },
