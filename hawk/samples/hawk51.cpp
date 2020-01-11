@@ -350,22 +350,22 @@ static int handle_cmdline (MyHawk& awk, int argc, hawk_bch_t* argv[], cmdline_t*
 }
 
 
-static int hawk_main (MyHawk& awk, int argc, hawk_bch_t* argv[])
+static int hawk_main (MyHawk& hawk, int argc, hawk_bch_t* argv[])
 {
 	MyHawk::Run* run;
 	cmdline_t cmdline;
 	int n;
 
-	awk.setTrait (awk.getTrait() | HAWK_FLEXMAP | HAWK_RWPIPE | HAWK_NEXTOFILE);
+	hawk.setTrait (hawk.getTrait() | HAWK_FLEXMAP | HAWK_RWPIPE | HAWK_NEXTOFILE);
 
 	// ARGV[0]
-	if (awk.addArgument(HAWK_T("hawk25")) <= -1)
+	if (hawk.addArgument(HAWK_T("hawk51")) <= -1)
 	{
-		print_error (awk); 
+		print_error (hawk); 
 		return -1; 
 	}
 
-	if ((n = handle_cmdline(awk, argc, argv, &cmdline)) <= 0) return n;
+	if ((n = handle_cmdline(hawk, argc, argv, &cmdline)) <= 0) return n;
 
 	MyHawk::Source* in, * out;
 	MyHawk::SourceString in_str(cmdline.ins);
@@ -374,10 +374,10 @@ static int hawk_main (MyHawk& awk, int argc, hawk_bch_t* argv[])
 
 	in = (cmdline.ins)? (MyHawk::Source*)&in_str: (MyHawk::Source*)&in_file;
 	out = (cmdline.outf)? (MyHawk::Source*)&out_file: &MyHawk::Source::NONE;
-	run = awk.parse (*in, *out);
+	run = hawk.parse (*in, *out);
 	if (run == HAWK_NULL) 
 	{
-		print_error (awk); 
+		print_error (hawk); 
 		return -1; 
 	}
 
@@ -386,29 +386,29 @@ static int hawk_main (MyHawk& awk, int argc, hawk_bch_t* argv[])
 		MyHawk::Value fs (run);
 		if (fs.setStr(cmdline.fs) <= -1) 
 		{
-			print_error (awk); 
+			print_error (hawk); 
 			return -1; 
 		}
-		if (awk.setGlobal(HAWK_GBL_FS, fs) <= -1) 
+		if (hawk.setGlobal(HAWK_GBL_FS, fs) <= -1) 
 		{
-			print_error (awk); 
+			print_error (hawk); 
 			return -1; 
 		}
 	}
 
 	if (cmdline.outc) 
 	{
-		if (awk.addConsoleOutput(cmdline.outc) <= -1)
+		if (hawk.addConsoleOutput(cmdline.outc) <= -1)
 		{
-			print_error (awk); 
+			print_error (hawk); 
 			return -1; 
 		}
 	}
 
 	MyHawk::Value ret;
-	if (awk.loop(&ret) <= -1) 
+	if (hawk.loop(&ret) <= -1) 
 	{ 
-		print_error (awk); 
+		print_error (hawk); 
 		return -1; 
 	}
 

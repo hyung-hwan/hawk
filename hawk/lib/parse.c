@@ -902,6 +902,7 @@ oops:
 static int parse_progunit (hawk_t* awk)
 {
 	/*
+	@pragma ....
 	@include "xxxx"
 	@global xxx, xxxx;
 	BEGIN { action }
@@ -1015,6 +1016,31 @@ static int parse_progunit (hawk_t* awk)
 			/* take the specified value if it's greater than the existing value */
 			if (sl > awk->parse.pragma.rtx_stack_limit) awk->parse.pragma.rtx_stack_limit = sl;
 			
+		}
+		else if (hawk_comp_oochars_oocstr(name.ptr, name.len, HAWK_T("startup")) == 0)
+		{
+			if (get_token(awk) <= -1) return -1;
+			if (!MATCH(awk, TOK_IDENT))
+			{
+				hawk_seterrfmt (awk, &awk->ptok.loc, HAWK_EIDENT, HAWK_T("function name expected for 'startup'"));
+				return -1;
+			}
+
+			if (HAWK_OOECS_LEN(awk->tok.name) >= HAWK_COUNTOF(awk->parse.pragma.startup))
+			{
+				hawk_seterrfmt (awk, &awk->tok.loc, HAWK_EFUNNAM, HAWK_T("startup function name too long"));
+				return -1;
+			}
+
+			if (awk->sio.inp == &awk->sio.arg)
+			{
+				/* only the top level source */
+				if (awk->parse.pragma.startup[0] == '\0')
+				{
+					/* honor the first encounter only */
+					hawk_copy_oochars_to_oocstr (awk->parse.pragma.startup, HAWK_COUNTOF(awk->parse.pragma.startup), HAWK_OOECS_PTR(awk->tok.name), HAWK_OOECS_LEN(awk->tok.name));
+				}
+			}
 		}
 		else
 		{

@@ -1204,9 +1204,20 @@ static HAWK_INLINE int execute_hawk (int argc, hawk_bch_t* argv[])
 
 	set_intr_run ();
 
+#if 0
 	retv = arg.call?
 		hawk_rtx_callwithbcstrarr(rtx, arg.call, (const hawk_bch_t**)arg.icf.ptr, arg.icf.size):
-		hawk_rtx_loop(rtx);
+		hawk_rtx_loop(rtx); /* this doesn't support @pragma startup ... */
+#else
+	/* note about @pragma startup ...
+	 * hawk_rtx_execwithbcstrarr() invokes the specified function is @pragma startup ... is set 
+	 * in the source code. becuase arg.icf.ptr has been passed to hawk_rtx_openstdwithbcstr() when
+	 * arg.call is HAWK_NULL, arg.icf.ptr serves as parameters to the startup function and
+	 * affects input consoles */
+	retv = arg.call?
+		hawk_rtx_callwithbcstrarr(rtx, arg.call, (const hawk_bch_t**)arg.icf.ptr, arg.icf.size):
+		hawk_rtx_execwithbcstrarr(rtx, (const hawk_bch_t**)arg.icf.ptr, arg.icf.size);
+#endif
 
 	unset_intr_run ();
 

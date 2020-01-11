@@ -2198,12 +2198,45 @@ HAWK_EXPORT hawk_val_t* hawk_rtx_callwithbcstrarr (
 	hawk_oow_t         nargs   /**< the number of arguments */
 );
 
+HAWK_EXPORT hawk_val_t* hawk_rtx_callwithooucstrarr (
+	hawk_rtx_t*        rtx,    /**< runtime context */
+	const hawk_ooch_t* name,   /**< function name */
+	const hawk_uch_t*  args[], /**< arguments to the function */
+	hawk_oow_t         nargs   /**< the number of arguments */
+);
+
+HAWK_EXPORT hawk_val_t* hawk_rtx_callwithoobcstrarr (
+	hawk_rtx_t*        rtx,    /**< runtime context */
+	const hawk_ooch_t* name,   /**< function name */
+	const hawk_bch_t*  args[], /**< arguments to the function */
+	hawk_oow_t         nargs   /**< the number of arguments */
+);
+
+/**
+ * The hawk_rtx_execwithucstrarr() function calls the starup function
+ * if the @pragma startup directive is found in a top-level source
+ * code or run hawk_rtx_loop() to enter the standard pattern loop
+ * otherwise */
+HAWK_EXPORT hawk_val_t* hawk_rtx_execwithucstrarr (
+	hawk_rtx_t*        rtx,    /**< runtime context */
+	const hawk_uch_t*  args[], /**< arguments to the function */
+	hawk_oow_t         nargs   /**< the number of arguments */
+);
+
+HAWK_EXPORT hawk_val_t* hawk_rtx_execwithbcstrarr (
+	hawk_rtx_t*        rtx,    /**< runtime context */
+	const hawk_bch_t*  args[], /**< arguments to the function */
+	hawk_oow_t         nargs   /**< the number of arguments */
+);
+
 #if defined(HAWK_OOCH_IS_UCH)
 #	define hawk_rtx_callwithoocstr hawk_rtx_callwithucstr
 #	define hawk_rtx_callwithoocstrarr hawk_rtx_callwithucstrarr
+#	define hawk_rtx_execwithoocstrarr hawk_rtx_execwithucstrarr
 #else
 #	define hawk_rtx_callwithoocstr hawk_rtx_callwithbcstr
 #	define hawk_rtx_callwithoocstrarr hawk_rtx_callwithbcstrarr
+#	define hawk_rtx_execwithoocstrarr hawk_rtx_execwithbcstrarr
 #endif
 
 /**
