@@ -1035,11 +1035,13 @@ static int parse_progunit (hawk_t* awk)
 			if (awk->sio.inp == &awk->sio.arg)
 			{
 				/* only the top level source */
-				if (awk->parse.pragma.startup[0] == '\0')
+				if (awk->parse.pragma.startup[0] != '\0')
 				{
-					/* honor the first encounter only */
-					hawk_copy_oochars_to_oocstr (awk->parse.pragma.startup, HAWK_COUNTOF(awk->parse.pragma.startup), HAWK_OOECS_PTR(awk->tok.name), HAWK_OOECS_LEN(awk->tok.name));
+					hawk_seterrfmt (awk, &awk->tok.loc, HAWK_EEXIST, HAWK_T("@pragma startup already set"));
+					return -1;
 				}
+
+				hawk_copy_oochars_to_oocstr (awk->parse.pragma.startup, HAWK_COUNTOF(awk->parse.pragma.startup), HAWK_OOECS_PTR(awk->tok.name), HAWK_OOECS_LEN(awk->tok.name));
 			}
 		}
 		else
