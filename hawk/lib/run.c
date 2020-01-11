@@ -1460,20 +1460,44 @@ static hawk_val_t* run_bpae_loop (hawk_rtx_t* rtx)
 /* start the BEGIN-pattern block-END loop */
 hawk_val_t* hawk_rtx_loop (hawk_rtx_t* rtx)
 {
-	hawk_val_t* retv = HAWK_NULL;
-
-	rtx->exit_level = EXIT_NONE;
-
-	if (enter_stack_frame (rtx) == 0)
+	if (rtx->awk->parse.pragma.startup[0] != '\0')
 	{
-		retv = run_bpae_loop (rtx);
-		exit_stack_frame (rtx);
+		/* @pragma startup xxxx specified. 
+		 * divert hawk_rtx_loop() to call the specified function */
+		return hawk_rtx_callwithoocstrarr(rtx, rtx->awk->parse.pragma.startup, HAWK_NULL, 0); /* TODO: pass argument */
 	}
+	else
+	{
+		hawk_val_t* retv = HAWK_NULL;
 
-	/* reset the exit level */
-	rtx->exit_level = EXIT_NONE;
-	return retv;
+		rtx->exit_level = EXIT_NONE;
+
+		if (enter_stack_frame(rtx) == 0)
+		{
+			retv = run_bpae_loop(rtx);
+			exit_stack_frame (rtx);
+		}
+
+		/* reset the exit level */
+		rtx->exit_level = EXIT_NONE;
+		return retv;
+	}
 }
+
+hawk_val_t* hawk_rtx_execwithucstrarr (hawk_rtx_t* rtx, const hawk_uch_t* args[], hawk_oow_t nargs)
+{
+	return (rtx->awk->parse.pragma.startup[0] != '\0')?
+		hawk_rtx_callwithooucstrarr(rtx, rtx->awk->parse.pragma.startup, args, nargs):
+		hawk_rtx_loop(rtx);
+}
+
+hawk_val_t* hawk_rtx_execwithbcstrarr (hawk_rtx_t* rtx, const hawk_bch_t* args[], hawk_oow_t nargs)
+{
+	return (rtx->awk->parse.pragma.startup[0] != '\0')?
+		hawk_rtx_callwithoobcstrarr(rtx, rtx->awk->parse.pragma.startup, args, nargs):
+		hawk_rtx_loop(rtx);
+}
+
 
 /* find an AWK function by name */
 static hawk_fun_t* find_fun (hawk_rtx_t* rtx, const hawk_ooch_t* name)
@@ -1548,7 +1572,7 @@ hawk_val_t* hawk_rtx_callfun (hawk_rtx_t* rtx, hawk_fun_t* fun, hawk_val_t* args
 	{
 		/* this function contains pass-by-reference parameters.
 		 * i don't support the call here as it requires variables */
-		hawk_rtx_seterrfmt (rtx, HAWK_EPERM, HAWK_NULL, HAWK_T("not allowed to call '%.*js' with pass-by-reference parameters"), fun->name.len, fun->name.ptr);
+		hawk_rtx_seterrfmt (rtx, HAWK_NULL, HAWK_EPERM, HAWK_T("not allowed to call '%.*js' with pass-by-reference parameters"), fun->name.len, fun->name.ptr);
 		return HAWK_NULL;
 	}
 #endif
@@ -1670,6 +1694,68 @@ hawk_val_t* hawk_rtx_callwithbcstrarr (hawk_rtx_t* rtx, const hawk_bch_t* name, 
 	}
 
 	ret = hawk_rtx_callwithbcstr(rtx, name, v, nargs);
+
+oops:
+	while (i > 0) 
+	{
+		hawk_rtx_refdownval (rtx, v[--i]);
+	}
+	hawk_rtx_freemem (rtx, v);
+	return ret;
+}
+
+hawk_val_t* hawk_rtx_callwithooucstrarr (hawk_rtx_t* rtx, const hawk_ooch_t* name, const hawk_uch_t* args[], hawk_oow_t nargs)
+{
+	hawk_oow_t i;
+	hawk_val_t** v, * ret;
+
+	v = hawk_rtx_allocmem(rtx, HAWK_SIZEOF(*v) * nargs);
+	if (!v) return HAWK_NULL;
+
+	for (i = 0; i < nargs; i++)
+	{
+		v[i] = hawk_rtx_makestrvalwithucstr(rtx, args[i]);
+		if (!v[i])
+		{
+			ret = HAWK_NULL;
+			goto oops;
+		}
+
+		hawk_rtx_refupval (rtx, v[i]);
+	}
+
+	ret = hawk_rtx_callwithoocstr(rtx, name, v, nargs);
+
+oops:
+	while (i > 0) 
+	{
+		hawk_rtx_refdownval (rtx, v[--i]);
+	}
+	hawk_rtx_freemem (rtx, v);
+	return ret;
+}
+
+hawk_val_t* hawk_rtx_callwithoobcstrarr (hawk_rtx_t* rtx, const hawk_ooch_t* name, const hawk_bch_t* args[], hawk_oow_t nargs)
+{
+	hawk_oow_t i;
+	hawk_val_t** v, * ret;
+
+	v = hawk_rtx_allocmem(rtx, HAWK_SIZEOF(*v) * nargs);
+	if (!v) return HAWK_NULL;
+
+	for (i = 0; i < nargs; i++)
+	{
+		v[i] = hawk_rtx_makestrvalwithbcstr(rtx, args[i]);
+		if (!v[i])
+		{
+			ret = HAWK_NULL;
+			goto oops;
+		}
+
+		hawk_rtx_refupval (rtx, v[i]);
+	}
+
+	ret = hawk_rtx_callwithoocstr(rtx, name, v, nargs);
 
 oops:
 	while (i > 0) 
