@@ -279,6 +279,9 @@ struct cmdline_t
 	hawk_bch_t* outf;
 	hawk_bch_t* outc;
 	hawk_bch_t* fs;
+
+	HAWK::Hawk::Value* argv;
+	int argc;
 };
 
 static int handle_cmdline (MyHawk& awk, int argc, hawk_bch_t* argv[], cmdline_t* cmdline)
@@ -331,6 +334,7 @@ static int handle_cmdline (MyHawk& awk, int argc, hawk_bch_t* argv[], cmdline_t*
 
 	if (opt.ind < argc && !cmdline->inf) cmdline->ins = argv[opt.ind++];
 
+	cmdline->argc = 0;
 	while (opt.ind < argc)
 	{
 		if (awk.addArgument(argv[opt.ind++]) <= -1) 
@@ -347,6 +351,45 @@ static int handle_cmdline (MyHawk& awk, int argc, hawk_bch_t* argv[], cmdline_t*
 	}
 
 	return 1;
+}
+
+static void free_args_for_exec (cmdline_t* cmdline)
+{
+	if (cmdline->argv)
+	{
+		delete[] cmdline->argv;
+		cmdline->argv = HAWK_NULL;
+	}
+	cmdline->argc = 0;
+}
+
+static int make_args_for_exec (cmdline_t* cmdline, MyHawk& hawk, MyHawk::Run* run)
+{
+	try
+	{
+		cmdline->argc = 0;
+		cmdline->argv = HAWK_NULL;
+		hawk_oow_t count = hawk.getArgumentCount();
+
+		cmdline->argv = new HAWK::Hawk::Value[count - 1];
+		for (hawk_oow_t i = 1; i < count; i++)
+		{
+			if (cmdline->argv[i - 1].setStr(run, hawk.getArgument(i)) <= -1) 
+			{
+				free_args_for_exec (cmdline);
+				return -1;
+			}
+			cmdline->argc++;
+		}
+	}
+	catch (...)
+	{
+		free_args_for_exec (cmdline);
+		hawk.setError (HAWK_ENOMEM);
+		return -1;
+	}
+
+	return 0;
 }
 
 
@@ -374,7 +417,7 @@ static int hawk_main (MyHawk& hawk, int argc, hawk_bch_t* argv[])
 
 	in = (cmdline.ins)? (MyHawk::Source*)&in_str: (MyHawk::Source*)&in_file;
 	out = (cmdline.outf)? (MyHawk::Source*)&out_file: &MyHawk::Source::NONE;
-	run = hawk.parse (*in, *out);
+	run = hawk.parse(*in, *out);
 	if (run == HAWK_NULL) 
 	{
 		print_error (hawk); 
@@ -406,11 +449,21 @@ static int hawk_main (MyHawk& hawk, int argc, hawk_bch_t* argv[])
 	}
 
 	MyHawk::Value ret;
-	if (hawk.loop(&ret) <= -1) 
+
+	if (make_args_for_exec(&cmdline, hawk, run) <= -1) // data made here is not uself if hawk.loop() invoked in hawk.exec().
+	{
+		print_error (hawk);
+		return -1;
+	}
+
+	//if (hawk.loop(&ret) <= -1) 
+	if (hawk.exec(&ret, cmdline.argv, cmdline.argc) <= -1) 
 	{ 
 		print_error (hawk); 
 		return -1; 
 	}
+
+	free_args_for_exec (&cmdline);
 
 	return 0;
 }

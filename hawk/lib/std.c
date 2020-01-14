@@ -1716,6 +1716,9 @@ static hawk_ooi_t nwio_handler_rest (hawk_rtx_t* rtx, hawk_rio_cmd_t cmd, hawk_r
 		case HAWK_RIO_CMD_READ:
 			return hawk_nwio_read((hawk_nwio_t*)riod->handle, data, size);
 
+		case HAWK_RIO_CMD_READBYTES:
+			return hawk_nwio_readbytes(((hawk_nwio_t*)riod->handle, data, size);
+
 		case HAWK_RIO_CMD_WRITE:
 			return hawk_nwio_write((hawk_nwio_t*)riod->handle, data, size);
 
@@ -1848,7 +1851,10 @@ static hawk_ooi_t pio_handler_rest (hawk_rtx_t* rtx, hawk_rio_cmd_t cmd, hawk_ri
 		}
 
 		case HAWK_RIO_CMD_READ:
-			return hawk_pio_read ((hawk_pio_t*)riod->handle, HAWK_PIO_OUT, data, size);
+			return hawk_pio_read((hawk_pio_t*)riod->handle, HAWK_PIO_OUT, data, size);
+
+		case HAWK_RIO_CMD_READ_BYTES:
+			return hawk_pio_readbytes((hawk_pio_t*)riod->handle, HAWK_PIO_IN, data, size);
 
 		case HAWK_RIO_CMD_WRITE:
 			return hawk_pio_write((hawk_pio_t*)riod->handle, HAWK_PIO_IN, data, size);
@@ -1966,6 +1972,9 @@ static hawk_ooi_t awk_rio_file (hawk_rtx_t* rtx, hawk_rio_cmd_t cmd, hawk_rio_ar
 
 		case HAWK_RIO_CMD_READ:
 			return hawk_sio_getoochars((hawk_sio_t*)riod->handle, data, size);
+
+		case HAWK_RIO_CMD_READ_BYTES:
+			return hawk_sio_getbchars((hawk_sio_t*)riod->handle, data, size);
 
 		case HAWK_RIO_CMD_WRITE:
 			return hawk_sio_putoochars((hawk_sio_t*)riod->handle, data, size);
@@ -2206,6 +2215,30 @@ static hawk_ooi_t awk_rio_console (hawk_rtx_t* rtx, hawk_rio_cmd_t cmd, hawk_rio
 			hawk_ooi_t nn;
 
 			while ((nn = hawk_sio_getoochars((hawk_sio_t*)riod->handle, data, size)) == 0)
+			{
+				int n;
+				hawk_sio_t* sio = (hawk_sio_t*)riod->handle;
+
+				n = open_rio_console(rtx, riod);
+				if (n <= -1) return -1;
+
+				if (n == 0) 
+				{
+					/* no more input console */
+					return 0;
+				}
+
+				if (sio) hawk_sio_close (sio);
+			}
+		
+			return nn;
+		}
+
+		case HAWK_RIO_CMD_READ_BYTES:
+		{
+			hawk_ooi_t nn;
+
+			while ((nn = hawk_sio_getbchars((hawk_sio_t*)riod->handle, data, size)) == 0)
 			{
 				int n;
 				hawk_sio_t* sio = (hawk_sio_t*)riod->handle;

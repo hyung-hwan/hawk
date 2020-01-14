@@ -1993,6 +1993,14 @@ hawk_ooi_t hawk_pio_read (hawk_pio_t* pio, hawk_pio_hid_t hid, void* buf, hawk_o
 		hawk_tio_read(pio->pin[hid].tio, buf, size);
 }
 
+hawk_ooi_t hawk_pio_readbytes (hawk_pio_t* pio, hawk_pio_hid_t hid, void* buf, hawk_oow_t size)
+{
+	return (pio->pin[hid].tio == HAWK_NULL)?
+		pio_read(pio, buf, size, pio->pin[hid].handle):
+		hawk_tio_readbchars(pio->pin[hid].tio, buf, size);
+}
+
+
 static hawk_ooi_t pio_write (hawk_pio_t* pio, const void* data, hawk_oow_t size, hawk_pio_hnd_t hnd)
 {
 #if defined(_WIN32)
@@ -2053,7 +2061,7 @@ static hawk_ooi_t pio_write (hawk_pio_t* pio, const void* data, hawk_oow_t size,
 		size = HAWK_TYPE_MAX(hawk_ooi_t) & HAWK_TYPE_MAX(size_t);
 
 rewrite:
-	n = HAWK_WRITE (hnd, data, size);
+	n = HAWK_WRITE(hnd, data, size);
 	if (n <= -1) 
 	{
 		if (errno == EINTR)

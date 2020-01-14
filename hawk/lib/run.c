@@ -916,31 +916,32 @@ static int init_rtx (hawk_rtx_t* rtx, hawk_t* awk, hawk_rio_cbs_t* rio)
 	if (hawk_ooecs_init(&rtx->inrec.line, hawk_rtx_getgem(rtx), DEF_BUF_CAPA) <= -1) goto oops_1;
 	if (hawk_ooecs_init(&rtx->inrec.linew, hawk_rtx_getgem(rtx), DEF_BUF_CAPA) <= -1) goto oops_2;
 	if (hawk_ooecs_init(&rtx->inrec.lineg, hawk_rtx_getgem(rtx), DEF_BUF_CAPA) <= -1) goto oops_3;
-	if (hawk_ooecs_init(&rtx->format.out, hawk_rtx_getgem(rtx), 256) <= -1) goto oops_4;
-	if (hawk_ooecs_init(&rtx->format.fmt, hawk_rtx_getgem(rtx), 256) <= -1) goto oops_5;
+	if (hawk_becs_init(&rtx->inrec.linegb, hawk_rtx_getgem(rtx), DEF_BUF_CAPA) <= -1) goto oops_4;
+	if (hawk_ooecs_init(&rtx->format.out, hawk_rtx_getgem(rtx), 256) <= -1) goto oops_5;
+	if (hawk_ooecs_init(&rtx->format.fmt, hawk_rtx_getgem(rtx), 256) <= -1) goto oops_6;
 
-	if (hawk_becs_init(&rtx->formatmbs.out, hawk_rtx_getgem(rtx), 256) <= -1) goto oops_6;
-	if (hawk_becs_init(&rtx->formatmbs.fmt, hawk_rtx_getgem(rtx), 256) <= -1) goto oops_7;
+	if (hawk_becs_init(&rtx->formatmbs.out, hawk_rtx_getgem(rtx), 256) <= -1) goto oops_7;
+	if (hawk_becs_init(&rtx->formatmbs.fmt, hawk_rtx_getgem(rtx), 256) <= -1) goto oops_8;
 
 	rtx->named = hawk_htb_open(hawk_rtx_getgem(rtx), HAWK_SIZEOF(rtx), 1024, 70, HAWK_SIZEOF(hawk_ooch_t), 1);
-	if (!rtx->named) goto oops_8;
+	if (!rtx->named) goto oops_9;
 	*(hawk_rtx_t**)hawk_htb_getxtn(rtx->named) = rtx;
 	hawk_htb_setstyle (rtx->named, &style_for_named);
 
 	rtx->format.tmp.ptr = (hawk_ooch_t*)hawk_rtx_allocmem(rtx, 4096 * HAWK_SIZEOF(hawk_ooch_t)); 
-	if (!rtx->format.tmp.ptr) goto oops_9; /* the error is set on the awk object after this jump is made */
+	if (!rtx->format.tmp.ptr) goto oops_10; /* the error is set on the awk object after this jump is made */
 	rtx->format.tmp.len = 4096;
 	rtx->format.tmp.inc = 4096 * 2;
 
 	rtx->formatmbs.tmp.ptr = (hawk_bch_t*)hawk_rtx_allocmem(rtx, 4096 * HAWK_SIZEOF(hawk_bch_t));
-	if (!rtx->formatmbs.tmp.ptr) goto oops_10;
+	if (!rtx->formatmbs.tmp.ptr) goto oops_11;
 	rtx->formatmbs.tmp.len = 4096;
 	rtx->formatmbs.tmp.inc = 4096 * 2;
 
 	if (rtx->awk->tree.chain_size > 0)
 	{
 		rtx->pattern_range_state = (hawk_oob_t*)hawk_rtx_allocmem(rtx, rtx->awk->tree.chain_size * HAWK_SIZEOF(hawk_oob_t));
-		if (!rtx->pattern_range_state) goto oops_11;
+		if (!rtx->pattern_range_state) goto oops_12;
 		HAWK_MEMSET (rtx->pattern_range_state, 0, rtx->awk->tree.chain_size * HAWK_SIZEOF(hawk_oob_t));
 	}
 	else rtx->pattern_range_state = HAWK_NULL;
@@ -962,20 +963,22 @@ static int init_rtx (hawk_rtx_t* rtx, hawk_t* awk, hawk_rio_cbs_t* rio)
 
 	return 0;
 
-oops_11:
+oops_12:
 	hawk_rtx_freemem (rtx, rtx->formatmbs.tmp.ptr);
-oops_10:
+oops_11:
 	hawk_rtx_freemem (rtx, rtx->format.tmp.ptr);
-oops_9:
+oops_10:
 	hawk_htb_close (rtx->named);
-oops_8:
+oops_9:
 	hawk_becs_fini (&rtx->formatmbs.fmt);
-oops_7:
+oops_8:
 	hawk_becs_fini (&rtx->formatmbs.out);
-oops_6:
+oops_7:
 	hawk_ooecs_fini (&rtx->format.fmt);
-oops_5:
+oops_6:
 	hawk_ooecs_fini (&rtx->format.out);
+oops_5:
+	hawk_becs_fini (&rtx->inrec.linegb);
 oops_4:
 	hawk_ooecs_fini (&rtx->inrec.lineg);
 oops_3:
@@ -1074,6 +1077,7 @@ static void fini_rtx (hawk_rtx_t* rtx, int fini_globals)
 		rtx->inrec.flds = HAWK_NULL;
 		rtx->inrec.maxflds = 0;
 	}
+	hawk_becs_fini (&rtx->inrec.linegb);
 	hawk_ooecs_fini (&rtx->inrec.lineg);
 	hawk_ooecs_fini (&rtx->inrec.linew);
 	hawk_ooecs_fini (&rtx->inrec.line);
@@ -1460,28 +1464,19 @@ static hawk_val_t* run_bpae_loop (hawk_rtx_t* rtx)
 /* start the BEGIN-pattern block-END loop */
 hawk_val_t* hawk_rtx_loop (hawk_rtx_t* rtx)
 {
-	if (rtx->awk->parse.pragma.startup[0] != '\0')
+	hawk_val_t* retv = HAWK_NULL;
+
+	rtx->exit_level = EXIT_NONE;
+
+	if (enter_stack_frame(rtx) == 0)
 	{
-		/* @pragma startup xxxx specified. 
-		 * divert hawk_rtx_loop() to call the specified function */
-		return hawk_rtx_callwithoocstrarr(rtx, rtx->awk->parse.pragma.startup, HAWK_NULL, 0); /* TODO: pass argument */
+		retv = run_bpae_loop(rtx);
+		exit_stack_frame (rtx);
 	}
-	else
-	{
-		hawk_val_t* retv = HAWK_NULL;
 
-		rtx->exit_level = EXIT_NONE;
-
-		if (enter_stack_frame(rtx) == 0)
-		{
-			retv = run_bpae_loop(rtx);
-			exit_stack_frame (rtx);
-		}
-
-		/* reset the exit level */
-		rtx->exit_level = EXIT_NONE;
-		return retv;
-	}
+	/* reset the exit level */
+	rtx->exit_level = EXIT_NONE;
+	return retv;
 }
 
 hawk_val_t* hawk_rtx_execwithucstrarr (hawk_rtx_t* rtx, const hawk_uch_t* args[], hawk_oow_t nargs)
@@ -6678,7 +6673,7 @@ static hawk_val_t* eval_pos (hawk_rtx_t* rtx, hawk_nde_t* nde)
 	return v;
 }
 
-static hawk_val_t* eval_getline (hawk_rtx_t* rtx, hawk_nde_t* nde)
+static hawk_val_t* __eval_getline (hawk_rtx_t* rtx, hawk_nde_t* nde, int mbs)
 {
 	hawk_nde_getline_t* p;
 	hawk_val_t* v, * tmp;
@@ -6805,9 +6800,14 @@ read_console_again:
 	}
 	
 skip_read:
-	tmp = hawk_rtx_makeintval (rtx, n);
+	tmp = hawk_rtx_makeintval(rtx, n);
 	if (!tmp) ADJERR_LOC (rtx, &nde->loc);
 	return tmp;
+}
+
+static hawk_val_t* eval_getline (hawk_rtx_t* rtx, hawk_nde_t* nde)
+{
+	return __eval_getline(rtx, nde, 0);
 }
 
 static hawk_val_t* eval_print (hawk_rtx_t* run, hawk_nde_t* nde)

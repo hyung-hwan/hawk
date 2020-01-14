@@ -32,7 +32,6 @@
 HAWK_BEGIN_NAMESPACE(HAWK)
 /////////////////////////////////
 
-
 //////////////////////////////////////////////////////////////////
 // Mmged
 //////////////////////////////////////////////////////////////////
@@ -732,6 +731,7 @@ int Hawk::Value::setStr (const hawk_uch_t* str, bool numeric)
 int Hawk::Value::setStr (Run* r, const hawk_uch_t* str, bool numeric)
 {
 	hawk_val_t* tmp;
+
 	tmp = numeric? hawk_rtx_makenstrvalwithucstr(r->rtx, str):
 	               hawk_rtx_makestrvalwithucstr(r->rtx, str);
 	if (tmp == HAWK_NULL) 
@@ -784,6 +784,7 @@ int Hawk::Value::setStr (const hawk_bch_t* str, bool numeric)
 int Hawk::Value::setStr (Run* r, const hawk_bch_t* str, bool numeric)
 {
 	hawk_val_t* tmp;
+
 	tmp = numeric? hawk_rtx_makenstrvalwithbcstr(r->rtx, str):
 	               hawk_rtx_makestrvalwithbcstr(r->rtx, str);
 	if (tmp == HAWK_NULL) 
@@ -1768,6 +1769,12 @@ int Hawk::call (const hawk_uch_t* name, Value* ret, const Value* args, hawk_oow_
 
 	hawk_rtx_refdownval (this->runctx.rtx, rv);
 	return 0;
+}
+
+int Hawk::exec (Value* ret, const Value* args, hawk_oow_t nargs)
+{
+	return (this->runctx.rtx->awk->parse.pragma.startup[0] != '\0')?
+		this->call(this->runctx.rtx->awk->parse.pragma.startup, ret, args, nargs): this->loop(ret);
 }
 
 void Hawk::halt () 
