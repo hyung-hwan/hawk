@@ -324,6 +324,8 @@ static global_t gtab[] =
 	 * this table must match the order of the hawk_gbl_id_t enumerators 
 	 */
 
+	{ HAWK_T("BRS"),          3,  0 },
+
 	/* output real-to-str conversion format for other cases than 'print' */
 	{ HAWK_T("CONVFMT"),      7,  0 },
 
@@ -360,6 +362,7 @@ static global_t gtab[] =
 	{ HAWK_T("ORS"),          3,  HAWK_RIO },
 
 	{ HAWK_T("RLENGTH"),      7,  0 },
+
 	{ HAWK_T("RS"),           2,  0 },
 
 	{ HAWK_T("RSTART"),       6,  0 },

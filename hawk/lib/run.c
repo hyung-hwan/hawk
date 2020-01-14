@@ -352,6 +352,45 @@ static int set_global (hawk_rtx_t* rtx, int idx, hawk_nde_var_t* var, hawk_val_t
 	/* perform actual assignment or assignment-like operation */
 	switch (idx)
 	{
+		case HAWK_GBL_BRS:
+		{
+			hawk_bcs_t rss;
+
+			/* due to the expression evaluation rule, the 
+			 * regular expression can not be an assigned 
+			 * value */
+			HAWK_ASSERT (vtype != HAWK_VAL_REX);
+
+			rss.ptr = hawk_rtx_getvalbcstr(rtx, val, &rss.len);
+			if (!rss.ptr) return -1;
+
+			if (rtx->gbl.brs[0])
+			{
+				hawk_rtx_freerex (rtx, rtx->gbl.brs[0], rtx->gbl.brs[1]);
+				rtx->gbl.brs[0] = HAWK_NULL;
+				rtx->gbl.brs[1] = HAWK_NULL;
+			}
+
+			if (rss.len > 1)
+			{
+				hawk_tre_t* rex, * irex;
+
+				/* compile the regular expression */
+/* TODO: mbs buildrex */
+				if (hawk_rtx_buildrex(rtx, rss.ptr, rss.len, &rex, &irex) <= -1)
+				{
+					hawk_rtx_freevalbcstr (rtx, val, rss.ptr);
+					return -1;
+				}
+
+				rtx->gbl.brs[0] = rex;
+				rtx->gbl.brs[1] = irex;
+			}
+
+			hawk_rtx_freevalbcstr (rtx, val, rss.ptr);
+			break;
+		}
+
 		case HAWK_GBL_CONVFMT:
 		{
 			hawk_oow_t i;
@@ -542,24 +581,13 @@ static int set_global (hawk_rtx_t* rtx, int idx, hawk_nde_var_t* var, hawk_val_t
 		{
 			hawk_oocs_t rss;
 
-			if (vtype == HAWK_VAL_STR)
-			{
-				rss = ((hawk_val_str_t*)val)->val;
-			}
-			else
-			{
-				hawk_rtx_valtostr_out_t out;
+			/* due to the expression evaluation rule, the 
+			 * regular expression can not be an assigned 
+			 * value */
+			HAWK_ASSERT (vtype != HAWK_VAL_REX);
 
-				/* due to the expression evaluation rule, the 
-				 * regular expression can not be an assigned 
-				 * value */
-				HAWK_ASSERT (vtype != HAWK_VAL_REX);
-
-				out.type = HAWK_RTX_VALTOSTR_CPLDUP;
-				if (hawk_rtx_valtostr(rtx, val, &out) <= -1) return -1;
-
-				rss = out.u.cpldup;
-			}
+			rss.ptr = hawk_rtx_getvaloocstr(rtx, val, &rss.len);
+			if (!rss.ptr) return -1;
 
 			if (rtx->gbl.rs[0])
 			{
@@ -575,7 +603,7 @@ static int set_global (hawk_rtx_t* rtx, int idx, hawk_nde_var_t* var, hawk_val_t
 				/* compile the regular expression */
 				if (hawk_rtx_buildrex(rtx, rss.ptr, rss.len, &rex, &irex) <= -1)
 				{
-					if (vtype != HAWK_VAL_STR) hawk_rtx_freemem (rtx, rss.ptr);
+					hawk_rtx_freevaloocstr (rtx, val, rss.ptr);
 					return -1;
 				}
 
@@ -583,8 +611,7 @@ static int set_global (hawk_rtx_t* rtx, int idx, hawk_nde_var_t* var, hawk_val_t
 				rtx->gbl.rs[1] = irex;
 			}
 
-			if (vtype != HAWK_VAL_STR) hawk_rtx_freemem (rtx, rss.ptr);
-
+			hawk_rtx_freevaloocstr (rtx, val, rss.ptr);
 			break;
 		}
 
@@ -642,7 +669,7 @@ HAWK_INLINE void hawk_rtx_setretval (hawk_rtx_t* rtx, hawk_val_t* val)
 HAWK_INLINE int hawk_rtx_setgbl (hawk_rtx_t* rtx, int id, hawk_val_t* val)
 {
 	HAWK_ASSERT (id >= 0 && id < (int)HAWK_ARR_SIZE(rtx->awk->parse.gbls));
-	return set_global (rtx, id, HAWK_NULL, val, 0);
+	return set_global(rtx, id, HAWK_NULL, val, 0);
 }
 
 int hawk_rtx_setfilename (hawk_rtx_t* rtx, const hawk_ooch_t* name, hawk_oow_t len)
@@ -954,6 +981,8 @@ static int init_rtx (hawk_rtx_t* rtx, hawk_t* awk, hawk_rio_cbs_t* rio)
 		rtx->rio.chain = HAWK_NULL;
 	}
 
+	rtx->gbl.brs[0] = HAWK_NULL;
+	rtx->gbl.brs[1] = HAWK_NULL;
 	rtx->gbl.rs[0] = HAWK_NULL;
 	rtx->gbl.rs[1] = HAWK_NULL;
 	rtx->gbl.fs[0] = HAWK_NULL;
@@ -1001,6 +1030,12 @@ static void fini_rtx (hawk_rtx_t* rtx, int fini_globals)
 	hawk_rtx_cleario (rtx);
 	HAWK_ASSERT (rtx->rio.chain == HAWK_NULL);
 
+	if (rtx->gbl.brs[0])
+	{
+		hawk_rtx_freerex (rtx, rtx->gbl.brs[0], rtx->gbl.brs[1]);
+		rtx->gbl.brs[0] = HAWK_NULL;
+		rtx->gbl.brs[1] = HAWK_NULL;
+	}
 	if (rtx->gbl.rs[0])
 	{
 		hawk_rtx_freerex (rtx, rtx->gbl.rs[0], rtx->gbl.rs[1]);
@@ -1220,8 +1255,8 @@ static int defaultify_globals (hawk_rtx_t* rtx)
 	static struct gtab_t gtab[7] =
 	{
 		{ HAWK_GBL_CONVFMT,    { DEFAULT_CONVFMT, DEFAULT_CONVFMT  } },
-		{ HAWK_GBL_FILENAME,   { HAWK_NULL,        HAWK_NULL         } },
-		{ HAWK_GBL_OFILENAME,  { HAWK_NULL,        HAWK_NULL         } },
+		{ HAWK_GBL_FILENAME,   { HAWK_NULL,       HAWK_NULL         } },
+		{ HAWK_GBL_OFILENAME,  { HAWK_NULL,       HAWK_NULL         } },
 		{ HAWK_GBL_OFMT,       { DEFAULT_OFMT,    DEFAULT_OFMT     } },
 		{ HAWK_GBL_OFS,        { DEFAULT_OFS,     DEFAULT_OFS      } },
 		{ HAWK_GBL_ORS,        { DEFAULT_ORS,     DEFAULT_ORS_CRLF } },
