@@ -196,7 +196,7 @@ static HAWK_INLINE int resolve_rs (hawk_rtx_t* rtx, hawk_val_t* rs, hawk_oocs_t*
 	hawk_val_type_t rs_vtype;
 
 
-	rs_vtype = HAWK_RTX_GETVALTYPE (rtx, rs);
+	rs_vtype = HAWK_RTX_GETVALTYPE(rtx, rs);
 
 	switch (rs_vtype)
 	{
@@ -212,6 +212,36 @@ static HAWK_INLINE int resolve_rs (hawk_rtx_t* rtx, hawk_val_t* rs, hawk_oocs_t*
 
 		default:
 			rrs->ptr = hawk_rtx_valtooocstrdup(rtx, rs, &rrs->len);
+			if (rrs->ptr == HAWK_NULL) ret = -1;
+			break;
+	}
+
+	return ret;
+}
+
+static HAWK_INLINE int resolve_brs (hawk_rtx_t* rtx, hawk_val_t* brs, hawk_bcs_t* rrs)
+{
+	/* record separator for bytes reading */
+
+	int ret = 0;
+	hawk_val_type_t brs_vtype;
+
+	brs_vtype = HAWK_RTX_GETVALTYPE(rtx, brs);
+
+	switch (brs_vtype)
+	{
+		case HAWK_VAL_NIL:
+			rrs->ptr = HAWK_NULL;
+			rrs->len = 0;
+			break;
+
+		case HAWK_VAL_MBS:
+			rrs->ptr = ((hawk_val_mbs_t*)brs)->val.ptr;
+			rrs->len = ((hawk_val_mbs_t*)brs)->val.len;
+			break;
+
+		default:
+			rrs->ptr = hawk_rtx_valtobcstrdup(rtx, brs, &rrs->len);
 			if (rrs->ptr == HAWK_NULL) ret = -1;
 			break;
 	}
@@ -276,18 +306,16 @@ static HAWK_INLINE int match_long_rs (hawk_rtx_t* rtx, hawk_ooecs_t* buf, hawk_r
 	return ret;
 }
 
-
-#if 0
-
-static HAWK_INLINE int match_long_rs_bytes (hawk_rtx_t* rtx, hawk_becs_t* buf, hawk_rio_arg_t* p)
+static HAWK_INLINE int match_long_brs(hawk_rtx_t* rtx, hawk_becs_t* buf, hawk_rio_arg_t* p)
 {
-	hawk_oocs_t match;
+	hawk_bcs_t match;
 	int ret;
 
-	HAWK_ASSERT (rtx->gbl.rs[0] != HAWK_NULL);
-	HAWK_ASSERT (rtx->gbl.rs[1] != HAWK_NULL);
+	HAWK_ASSERT (rtx->gbl.brs[0] != HAWK_NULL);
+	HAWK_ASSERT (rtx->gbl.brs[1] != HAWK_NULL);
 
-	ret = hawk_rtx_matchrex(rtx, rtx->gbl.rs[rtx->gbl.ignorecase], HAWK_BECS_OOCS(buf), HAWK_BECS_OOCS(buf), &match, HAWK_NULL);
+/*TODO: mbs match rex */
+	ret = hawk_rtx_matchrex(rtx, rtx->gbl.brs[rtx->gbl.ignorecase], HAWK_BECS_OOCS(buf), HAWK_BECS_OOCS(buf), &match, HAWK_NULL);
 	if (ret >= 1)
 	{
 		if (p->in.eof)
@@ -314,14 +342,14 @@ static HAWK_INLINE int match_long_rs_bytes (hawk_rtx_t* rtx, hawk_becs_t* buf, h
 			 * of the buffer is not indeterministic as we don't have the
 			 * full input yet.
 			 */
-			const hawk_ooch_t* be = HAWK_BECS_PTR(buf) + HAWK_BECS_LEN(buf);
-			const hawk_ooch_t* me = match.ptr + match.len;
+			const hawk_bch_t* be = HAWK_BECS_PTR(buf) + HAWK_BECS_LEN(buf);
+			const hawk_bch_t* me = match.ptr + match.len;
 
 			if (me < be)
 			{
 				/* the match ends before the ending boundary.
-				 * it must be the longest match. drop the RS part
-				 * and the characters after RS. */
+				 * it must be the longest match. drop the BRS part
+				 * and the characters after BRS. */
 				HAWK_BECS_LEN(buf) -= match.len + (be - me);
 				p->in.pos -= (be - me);
 			}
@@ -335,8 +363,6 @@ static HAWK_INLINE int match_long_rs_bytes (hawk_rtx_t* rtx, hawk_becs_t* buf, h
 
 	return ret;
 }
-
-#endif
 
 int hawk_rtx_readio (hawk_rtx_t* rtx, int in_type, const hawk_ooch_t* name, hawk_ooecs_t* buf)
 {
@@ -650,7 +676,7 @@ int hawk_rtx_readio (hawk_rtx_t* rtx, int in_type, const hawk_ooch_t* name, hawk
 		}
 	}
 
-	if (rrs.ptr && HAWK_RTX_GETVALTYPE (rtx, rs) != HAWK_VAL_STR) hawk_rtx_freemem (rtx, rrs.ptr);
+	if (rrs.ptr && HAWK_RTX_GETVALTYPE(rtx, rs) != HAWK_VAL_STR) hawk_rtx_freemem (rtx, rrs.ptr);
 	hawk_rtx_refdownval (rtx, rs);
 
 	return ret;
@@ -664,8 +690,8 @@ int hawk_rtx_readiobytes (hawk_rtx_t* rtx, int in_type, const hawk_ooch_t* name,
 	hawk_rio_impl_t handler;
 	int ret;
 
-	hawk_val_t* rs;
-	hawk_oocs_t rrs;
+	hawk_val_t* brs;
+	hawk_bcs_t rrs;
 
 	hawk_oow_t line_len = 0;
 	hawk_bch_t c = '\0', pc;
@@ -677,12 +703,12 @@ int hawk_rtx_readiobytes (hawk_rtx_t* rtx, int in_type, const hawk_ooch_t* name,
 	hawk_becs_clear (buf);
 
 	/* get the record separator */
-	rs = hawk_rtx_getgbl(rtx, HAWK_GBL_RS);
-	hawk_rtx_refupval (rtx, rs);
+	brs = hawk_rtx_getgbl(rtx, HAWK_GBL_BRS);
+	hawk_rtx_refupval (rtx, brs);
 
-	if (resolve_rs(rtx, rs, &rrs) <= -1)
+	if (resolve_brs(rtx, brs, &rrs) <= -1)
 	{
-		hawk_rtx_refdownval (rtx, rs);
+		hawk_rtx_refdownval (rtx, brs);
 		return -1;
 	}
 
@@ -740,7 +766,7 @@ int hawk_rtx_readiobytes (hawk_rtx_t* rtx, int in_type, const hawk_ooch_t* name,
 					/* TODO: handle different line terminator */
 					/* drop the line terminator from the record
 					 * if RS is a blank line and EOF is reached. */
-					if (HAWK_BECS_LASTCHAR(buf) == HAWK_T'\n')
+					if (HAWK_BECS_LASTCHAR(buf) == '\n')
 					{
 						HAWK_BECS_LEN(buf) -= 1;
 						if (rtx->awk->opt.trait & HAWK_CRLF)
@@ -760,7 +786,7 @@ int hawk_rtx_readiobytes (hawk_rtx_t* rtx, int in_type, const hawk_ooch_t* name,
 					 * At EOF, the match at the end is considered 
 					 * the longest as there are no more characters
 					 * left */
-					int n = match_long_rs_bytes(rtx, buf, p);
+					int n = match_long_brs(rtx, buf, p);
 					if (n != 0)
 					{
 						if (n <= -1) ret = -1;
@@ -970,7 +996,7 @@ int hawk_rtx_readiobytes (hawk_rtx_t* rtx, int in_type, const hawk_ooch_t* name,
 		}
 	}
 
-	if (rrs.ptr && HAWK_RTX_GETVALTYPE (rtx, rs) != HAWK_VAL_STR) hawk_rtx_freemem (rtx, rrs.ptr);
+	if (rrs.ptr && HAWK_RTX_GETVALTYPE(rtx, brs) != HAWK_VAL_MBS) hawk_rtx_freemem (rtx, rrs.ptr);
 	hawk_rtx_refdownval (rtx, rs);
 
 	return ret;

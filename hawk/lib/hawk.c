@@ -337,7 +337,7 @@ static hawk_rbt_walk_t unload_module (hawk_rbt_t* rbt, hawk_rbt_pair_t* pair, vo
 	hawk_t* awk = (hawk_t*)ctx;
 	hawk_mod_data_t* md;
 
-	md = HAWK_RBT_VPTR(pair);	
+	md = HAWK_RBT_VPTR(pair);
 	if (md->mod.unload) md->mod.unload (&md->mod, awk);
 	if (md->handle) awk->prm.modclose (awk, md->handle);
 

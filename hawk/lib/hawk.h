@@ -1288,6 +1288,7 @@ typedef const hawk_ooch_t* (*hawk_errstr_t) (
 enum hawk_gbl_id_t
 {
 	/* this table should match gtab in parse.c.
+	 *
 	 * in addition, hawk_rtx_setgbl also counts 
 	 * on the order of these values.
 	 * 
@@ -1298,6 +1299,7 @@ enum hawk_gbl_id_t
 	 * but is this check really necessary???
 	 */
 
+	HAWK_GBL_BRS,
 	HAWK_GBL_CONVFMT,
 	HAWK_GBL_FILENAME,
 	HAWK_GBL_FNR,
@@ -1318,7 +1320,7 @@ enum hawk_gbl_id_t
 	/* these are not not the actual IDs and are used internally only 
 	 * Make sure you update these values properly if you add more 
 	 * ID definitions, however */
-	HAWK_MIN_GBL_ID = HAWK_GBL_CONVFMT,
+	HAWK_MIN_GBL_ID = HAWK_GBL_BRS,
 	HAWK_MAX_GBL_ID = HAWK_GBL_SUBSEP
 };
 typedef enum hawk_gbl_id_t hawk_gbl_id_t;
