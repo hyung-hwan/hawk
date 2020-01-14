@@ -392,6 +392,7 @@ struct hawk_rtx_t
 		hawk_ooecs_t line; /* entire line */
 		hawk_ooecs_t linew; /* line for manipulation, if necessary */
 		hawk_ooecs_t lineg; /* line buffer for getline */
+		hawk_becs_t linegb; /* line buffer for getline mbs */
 
 		hawk_val_t* d0; /* $0 */
 

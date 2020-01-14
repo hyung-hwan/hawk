@@ -991,7 +991,7 @@ public:
 
 		void clear ();
 
-		operator hawk_val_t* () const { return val; }
+		operator hawk_val_t* () const { return this->val; }
 		operator hawk_int_t () const;
 		operator hawk_flt_t () const;
 		operator const hawk_ooch_t* () const;
@@ -1001,17 +1001,17 @@ public:
 
 		hawk_val_t* toVal () const
 		{
-			return operator hawk_val_t* ();
+			return this->operator hawk_val_t* ();
 		}
 
 		hawk_int_t toInt () const
 		{
-			return operator hawk_int_t ();
+			return this->operator hawk_int_t ();
 		}
 
 		hawk_flt_t toFlt () const
 		{
-			return operator hawk_flt_t ();
+			return this->operator hawk_flt_t ();
 		}
 
 		const hawk_ooch_t* toStr (hawk_oow_t* len) const
@@ -1386,6 +1386,16 @@ public:
 	);
 
 	///
+	/// The exec() function is the same as loop() if no @pragma startup
+	/// is specified. It is the same as call() if it is specifed
+	/// 
+	int exec (
+		Value*             ret,   ///< return value holder
+		const Value*       args,  ///< argument array
+		hawk_oow_t         nargs  ///< number of arguments
+	);
+
+	///
 	/// The halt() function makes request to abort execution
 	///
 	void halt ();
@@ -1461,6 +1471,17 @@ public:
 	/// The clearArguments() function deletes all ARGV strings.
 	///
 	void clearArguments ();
+
+	hawk_oow_t getArgumentCount () const
+	{	
+		return this->runarg.len;
+	}
+
+	const hawk_ooch_t* getArgument (hawk_oow_t index, hawk_oow_t* len = HAWK_NULL) const
+	{
+		if (len) *len = this->runarg.ptr[index].len;
+		return this->runarg.ptr[index].ptr;
+	}
 
 	///
 	/// The addGlobal() function registers an intrinsic global variable. 

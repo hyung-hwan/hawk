@@ -619,7 +619,7 @@ enum hawk_rio_cmd_t
 	HAWK_RIO_CMD_CLOSE       = 1, /**< close a stream */
 	HAWK_RIO_CMD_READ        = 2, /**< read a stream */
 	HAWK_RIO_CMD_WRITE       = 3, /**< write to a stream */
-	/*HAWK_RIO_CMD_READ_BYTES  = 4,*/
+	HAWK_RIO_CMD_READ_BYTES  = 4,
 	HAWK_RIO_CMD_WRITE_BYTES = 5,
 	HAWK_RIO_CMD_FLUSH       = 6, /**< flush buffered data to a stream */
 	HAWK_RIO_CMD_NEXT        = 7  /**< close the current stream and 

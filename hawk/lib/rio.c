@@ -211,7 +211,7 @@ static HAWK_INLINE int resolve_rs (hawk_rtx_t* rtx, hawk_val_t* rs, hawk_oocs_t*
 			break;
 
 		default:
-			rrs->ptr = hawk_rtx_valtooocstrdup (rtx, rs, &rrs->len);
+			rrs->ptr = hawk_rtx_valtooocstrdup(rtx, rs, &rrs->len);
 			if (rrs->ptr == HAWK_NULL) ret = -1;
 			break;
 	}
@@ -227,10 +227,7 @@ static HAWK_INLINE int match_long_rs (hawk_rtx_t* rtx, hawk_ooecs_t* buf, hawk_r
 	HAWK_ASSERT (rtx->gbl.rs[0] != HAWK_NULL);
 	HAWK_ASSERT (rtx->gbl.rs[1] != HAWK_NULL);
 
-	ret = hawk_rtx_matchrex(
-		rtx, rtx->gbl.rs[rtx->gbl.ignorecase], 
-		HAWK_OOECS_OOCS(buf), HAWK_OOECS_OOCS(buf),
-		&match, HAWK_NULL);
+	ret = hawk_rtx_matchrex(rtx, rtx->gbl.rs[rtx->gbl.ignorecase], HAWK_OOECS_OOCS(buf), HAWK_OOECS_OOCS(buf), &match, HAWK_NULL);
 	if (ret >= 1)
 	{
 		if (p->in.eof)
@@ -278,6 +275,68 @@ static HAWK_INLINE int match_long_rs (hawk_rtx_t* rtx, hawk_ooecs_t* buf, hawk_r
 
 	return ret;
 }
+
+
+#if 0
+
+static HAWK_INLINE int match_long_rs_bytes (hawk_rtx_t* rtx, hawk_becs_t* buf, hawk_rio_arg_t* p)
+{
+	hawk_oocs_t match;
+	int ret;
+
+	HAWK_ASSERT (rtx->gbl.rs[0] != HAWK_NULL);
+	HAWK_ASSERT (rtx->gbl.rs[1] != HAWK_NULL);
+
+	ret = hawk_rtx_matchrex(rtx, rtx->gbl.rs[rtx->gbl.ignorecase], HAWK_BECS_OOCS(buf), HAWK_BECS_OOCS(buf), &match, HAWK_NULL);
+	if (ret >= 1)
+	{
+		if (p->in.eof)
+		{
+			/* when EOF is reached, the record buffer
+			 * is not added with a new character. It's
+			 * just called again with the same record buffer
+			 * as the previous call to this function.
+			 * A match in this case must end at the end of
+			 * the current record buffer */
+			HAWK_ASSERT (HAWK_BECS_PTR(buf) + HAWK_BECS_LEN(buf) == match.ptr + match.len);
+
+			/* drop the RS part. no extra character after RS to drop
+			 * because we're at EOF and the EOF condition didn't
+			 * add a new character to the buffer before the call
+			 * to this function.
+			 */
+			HAWK_BECS_LEN(buf) -= match.len;
+		}
+		else
+		{
+			/* If the match is found before the end of the current buffer,
+			 * I see it as the longest match. A match ending at the end
+			 * of the buffer is not indeterministic as we don't have the
+			 * full input yet.
+			 */
+			const hawk_ooch_t* be = HAWK_BECS_PTR(buf) + HAWK_BECS_LEN(buf);
+			const hawk_ooch_t* me = match.ptr + match.len;
+
+			if (me < be)
+			{
+				/* the match ends before the ending boundary.
+				 * it must be the longest match. drop the RS part
+				 * and the characters after RS. */
+				HAWK_BECS_LEN(buf) -= match.len + (be - me);
+				p->in.pos -= (be - me);
+			}
+			else
+			{
+				/* the match is at the ending boundary. switch to no match */
+				ret = 0;
+			}
+		}
+	}
+
+	return ret;
+}
+
+#endif
 
 int hawk_rtx_readio (hawk_rtx_t* rtx, int in_type, const hawk_ooch_t* name, hawk_ooecs_t* buf)
 {
@@ -337,8 +396,8 @@ int hawk_rtx_readio (hawk_rtx_t* rtx, int in_type, const hawk_ooch_t* name, hawk
 				if (hawk_rtx_geterrnum(rtx) == HAWK_ENOERR)
 				{
 					/* if the error number has not been 
-				 	 * set by the user handler, we set
-				 	 * it here to HAWK_EIOIMPL. */
+					 * set by the user handler, we set
+					 * it here to HAWK_EIOIMPL. */
 					hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EIOIMPL);
 				}
 
@@ -353,8 +412,7 @@ int hawk_rtx_readio (hawk_rtx_t* rtx, int in_type, const hawk_ooch_t* name, hawk
 
 				if (HAWK_OOECS_LEN(buf) == 0)
 				{
-					/* We can return EOF now if the record buffer
-					 * is empty */
+					/* We can return EOF now if the record buffer is empty */
 					ret = 0;
 				}
 				else if (rrs.ptr && rrs.len == 0)
@@ -597,6 +655,331 @@ int hawk_rtx_readio (hawk_rtx_t* rtx, int in_type, const hawk_ooch_t* name, hawk
 
 	return ret;
 }
+
+
+int hawk_rtx_readiobytes (hawk_rtx_t* rtx, int in_type, const hawk_ooch_t* name, hawk_becs_t* buf)
+{
+#if 0
+	hawk_rio_arg_t* p;
+	hawk_rio_impl_t handler;
+	int ret;
+
+	hawk_val_t* rs;
+	hawk_oocs_t rrs;
+
+	hawk_oow_t line_len = 0;
+	hawk_bch_t c = '\0', pc;
+
+	if (find_rio_in(rtx, in_type, name, &p, &handler) <= -1) return -1;
+	if (p->in.eos) return 0; /* no more streams left */
+
+	/* ready to read a record(typically a line). clear the buffer. */
+	hawk_becs_clear (buf);
+
+	/* get the record separator */
+	rs = hawk_rtx_getgbl(rtx, HAWK_GBL_RS);
+	hawk_rtx_refupval (rtx, rs);
+
+	if (resolve_rs(rtx, rs, &rrs) <= -1)
+	{
+		hawk_rtx_refdownval (rtx, rs);
+		return -1;
+	}
+
+	ret = 1;
+
+	/* call the I/O handler */
+	while (1)
+	{
+		if (p->in.pos >= p->in.len)
+		{
+			hawk_ooi_t x;
+
+			/* no more data in the read buffer.
+			 * let the I/O handler read more */
+
+			if (p->in.eof)
+			{
+				/* it has reached EOF at the previous call. */
+				if (HAWK_BECS_LEN(buf) == 0)
+				{
+					/* we return EOF if the record buffer is empty */
+					ret = 0;
+				}
+				break;
+			}
+
+			hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_ENOERR);
+			x = handler(rtx, HAWK_RIO_CMD_READ_BYTES, p, p->in.buf, HAWK_COUNTOF(p->in.buf));
+			if (x <= -1)
+			{
+				if (hawk_rtx_geterrnum(rtx) == HAWK_ENOERR)
+				{
+					/* if the error number has not been 
+					 * set by the user handler, we set
+					 * it here to HAWK_EIOIMPL. */
+					hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EIOIMPL);
+				}
+
+				ret = -1;
+				break;
+			}
+
+			if (x == 0)
+			{
+				/* EOF reached */
+				p->in.eof = 1;
+
+				if (HAWK_BECS_LEN(buf) == 0)
+				{
+					/* We can return EOF now if the record buffer is empty */
+					ret = 0;
+				}
+				else if (rrs.ptr && rrs.len == 0)
+				{
+					/* TODO: handle different line terminator */
+					/* drop the line terminator from the record
+					 * if RS is a blank line and EOF is reached. */
+					if (HAWK_BECS_LASTCHAR(buf) == HAWK_T'\n')
+					{
+						HAWK_BECS_LEN(buf) -= 1;
+						if (rtx->awk->opt.trait & HAWK_CRLF)
+						{
+							/* drop preceding CR */
+							if (HAWK_BECS_LEN(buf) > 0 && HAWK_BECS_LASTCHAR(buf) == '\r') HAWK_BECS_LEN(buf) -= 1;
+						}
+					}
+				}
+				else if (rrs.len >= 2)
+				{
+					/* When RS is multiple characters, it should 
+					 * check for the match at the end of the 
+					 * input stream also because the previous 
+					 * match could fail as it didn't end at the
+					 * desired position to be the longest match.
+					 * At EOF, the match at the end is considered 
+					 * the longest as there are no more characters
+					 * left */
+					int n = match_long_rs_bytes(rtx, buf, p);
+					if (n != 0)
+					{
+						if (n <= -1) ret = -1;
+						break;
+					}
+				}
+
+				break;
+			}
+
+			p->in.len = x;
+			p->in.pos = 0;
+		}
+
+		if (rrs.ptr == HAWK_NULL)
+		{
+			hawk_oow_t start_pos = p->in.pos;
+			hawk_oow_t end_pos, tmp;
+
+			do
+			{
+				pc = c;
+				c = p->in.buf[p->in.pos++];
+				end_pos = p->in.pos;
+
+				/* TODO: handle different line terminator */
+				/* separate by a new line */
+				if (c == '\n') 
+				{
+					end_pos--;
+					if (pc == '\r')
+					{
+						if (end_pos > start_pos)
+						{
+							/* CR is the part of the read buffer.
+							 * decrementing the end_pos variable can
+							 * simply drop it */
+							end_pos--;
+						}
+						else
+						{
+							/* CR must have come from the previous
+							 * read. drop CR that must be found  at 
+							 * the end of the record buffer. */
+							HAWK_ASSERT (end_pos == start_pos);
+							HAWK_ASSERT (HAWK_BECS_LEN(buf) > 0);
+							HAWK_ASSERT (HAWK_BECS_LASTCHAR(buf) == '\r');
+							HAWK_BECS_LEN(buf)--;
+						}
+					}
+					break;
+				}
+			}
+			while (p->in.pos < p->in.len);
+
+			tmp = hawk_becs_ncat(buf, &p->in.buf[start_pos], end_pos - start_pos);
+			if (tmp == (hawk_oow_t)-1)
+			{
+				ret = -1;
+				break;
+			}
+
+			if (end_pos < p->in.len) break; /* RS found */
+		}
+		else if (rrs.len == 0)
+		{
+			int done = 0;
+
+			do
+			{
+				pc = c;
+				c = p->in.buf[p->in.pos++];
+
+				/* TODO: handle different line terminator */
+				/* separate by a blank line */
+				if (c == HAWK_T('\n'))
+				{
+					if (pc == HAWK_T('\r') && HAWK_BECS_LEN(buf) > 0)
+					{
+						/* shrink the line length and the record
+						 * by dropping of CR before NL */
+						HAWK_ASSERT (line_len > 0);
+						line_len--;
+
+						/* we don't drop CR from the record buffer 
+						 * if we're in CRLF mode. POINT-X */	
+						if (!(rtx->awk->opt.trait & HAWK_CRLF))
+							HAWK_BECS_LEN(buf) -= 1;
+					}
+
+					if (line_len == 0)
+					{
+						/* we got a blank line */
+
+						if (rtx->awk->opt.trait & HAWK_CRLF)
+						{
+							if (HAWK_BECS_LEN(buf) > 0 && HAWK_BECS_LASTCHAR(buf) == HAWK_T('\r'))
+							{
+								/* drop CR not dropped in POINT-X above */
+								HAWK_BECS_LEN(buf) -= 1;
+							}
+
+							if (HAWK_BECS_LEN(buf) <= 0)
+							{
+								/* if the record is empty when a blank
+								 * line is encountered, the line
+								 * terminator should not be added to
+								 * the record */
+								continue;
+							}
+
+							/* drop NL */
+							HAWK_BECS_LEN(buf) -= 1;
+
+							/* drop preceding CR */
+							if (HAWK_BECS_LEN(buf) > 0 && HAWK_BECS_LASTCHAR(buf) == HAWK_T('\r')) HAWK_BECS_LEN(buf) -= 1;
+						}
+						else
+						{
+							if (HAWK_BECS_LEN(buf) <= 0)
+							{
+								/* if the record is empty when a blank
+								 * line is encountered, the line
+								 * terminator should not be added to
+								 * the record */
+								continue;
+							}
+
+							/* drop NL of the previous line */
+							HAWK_BECS_LEN(buf) -= 1; /* simply drop NL */
+						}
+
+						done = 1;
+						break;
+					}
+
+					line_len = 0;
+				}
+				else line_len++;
+
+				if (hawk_becs_ccat(buf, c) == (hawk_oow_t)-1)
+				{
+
+					ret = -1;
+					done = 1;
+					break;
+				}
+			}
+			while (p->in.pos < p->in.len);
+
+			if (done) break;
+		}
+		else if (rrs.len == 1)
+		{
+			hawk_oow_t start_pos = p->in.pos;
+			hawk_oow_t end_pos, tmp;
+
+			do
+			{
+				c = p->in.buf[p->in.pos++];
+				end_pos = p->in.pos;
+				if (c == rrs.ptr[0])
+				{
+					end_pos--;
+					break;
+				}
+			}
+			while (p->in.pos < p->in.len);
+
+			tmp = hawk_becs_ncat(buf, &p->in.buf[start_pos], end_pos - start_pos);
+			if (tmp == (hawk_oow_t)-1)
+			{
+				ret = -1;
+				break;
+			}
+
+			if (end_pos < p->in.len) break; /* RS found */
+		}
+		else
+		{
+			hawk_oow_t tmp;
+			int n;
+
+			/* if RS is composed of multiple characters,
+			 * I perform the matching after having added the
+			 * current character 'c' to the record buffer 'buf'
+			 * to find the longest match. If a match found ends
+			 * one character before this character just added
+			 * to the buffer, it is the longest match.
+			 */
+
+			tmp = hawk_becs_ncat(buf, &p->in.buf[p->in.pos], p->in.len - p->in.pos);
+			if (tmp == (hawk_oow_t)-1)
+			{
+				ret = -1;
+				break;
+			}
+
+			p->in.pos = p->in.len;
+
+			n = match_long_rs(rtx, buf, p);
+			if (n != 0)
+			{
+				if (n <= -1) ret = -1;
+				break;
+			}
+		}
+	}
+
+	if (rrs.ptr && HAWK_RTX_GETVALTYPE (rtx, rs) != HAWK_VAL_STR) hawk_rtx_freemem (rtx, rrs.ptr);
+	hawk_rtx_refdownval (rtx, rs);
+
+	return ret;
+#else
+	hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_ENOIMPL);
+	return -1;
+#endif
+}
+
 
 int hawk_rtx_writeioval (hawk_rtx_t* rtx, int out_type, const hawk_ooch_t* name, hawk_val_t* v)
 {

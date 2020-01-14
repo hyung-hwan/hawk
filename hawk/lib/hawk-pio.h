@@ -293,9 +293,17 @@ HAWK_EXPORT hawk_pio_pid_t hawk_pio_getchild (
 HAWK_EXPORT hawk_ooi_t hawk_pio_read (
 	hawk_pio_t*    pio,  /**< pio object */
 	hawk_pio_hid_t hid,  /**< handle ID */
-	void*         buf,  /**< buffer to fill */
-	hawk_oow_t    size  /**< buffer size */
+	void*          buf,  /**< buffer to fill */
+	hawk_oow_t     size  /**< buffer size */
 );
+
+HAWK_EXPORT hawk_ooi_t hawk_pio_readbytes (
+	hawk_pio_t*    pio,  /**< pio object */
+	hawk_pio_hid_t hid,  /**< handle ID */
+	void*          buf,  /**< buffer to fill */
+	hawk_oow_t     size  /**< buffer size */
+);
+
 
 /**
  * The hawk_pio_write() function writes up \a size bytes/characters 
