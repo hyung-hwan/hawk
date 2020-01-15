@@ -44,6 +44,7 @@ pkgincludedir = $(includedir)
 
 pkginclude_HEADERS = \
 	hawk.h \
+	hawk-arr.h \
 	hawk-chr.h \
 	hawk-cmn.h \
 	hawk-dir.h \
@@ -65,7 +66,7 @@ pkginclude_HEADERS = \
 pkglibdir = $(libdir)
 pkglib_LTLIBRARIES = libhawk.la
 
-libhawk_la_SOURCES =  \
+libhawk_la_SOURCES = \
 	$(pkginclude_HEADERS) \
 	arr.c \
 	chr.c \
@@ -109,11 +110,13 @@ libhawk_la_SOURCES =  \
 	tre-mem.h \
 	tre-parse.c \
 	tre-parse.h \
-	tre-stack.c \
 	tre-stack.h \
+	tre-stack.c \
 	tre.c \
 	tree-prv.h \
 	tree.c \
+	uch-prop.h \
+	uch-case.h \
 	utf16.c \
 	utf8.c \
 	utl-ass.c \
@@ -133,6 +136,7 @@ libhawk_la_SOURCES += \
 	hawk-pio.h \
 	hawk-sio.h \
 	hawk-tio.h \
+	cli-imp.h \
 	cli.c \
 	fio.c \
 	mtx.c \
