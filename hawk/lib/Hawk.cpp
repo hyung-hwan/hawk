@@ -1618,8 +1618,13 @@ void Hawk::close ()
 
 hawk_cmgr_t* Hawk::getCmgr () const
 {
-	if (!this->hawk) return this->_cmgr;
-	return hawk_getcmgr(this->hawk);
+	return this->hawk? hawk_getcmgr(this->hawk): this->_cmgr;
+}
+
+void Hawk::setCmgr (hawk_cmgr_t* cmgr)
+{
+	if (this->hawk) hawk_setcmgr(this->hawk, cmgr);
+	this->_cmgr = cmgr;
 }
 
 void Hawk::uponClosing ()

@@ -1283,6 +1283,7 @@ public:
 	virtual ~Hawk () {}
 
 	hawk_cmgr_t* getCmgr () const;
+	void setCmgr (hawk_cmgr_t* cmgr);
 
 	///
 	/// The open() function initializes an interpreter. 
