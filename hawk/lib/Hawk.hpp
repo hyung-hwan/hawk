@@ -1741,7 +1741,7 @@ protected:
 	static void* modgetsym (hawk_t* awk, void* handle, const hawk_ooch_t* name);
 
 public:
-	// use this with care
+	// use these with care
 	hawk_t* getHandle() const { return this->hawk; }
 
 protected:
@@ -1797,6 +1797,7 @@ protected:
 	xstrs_t runarg;
 
 private:
+	hawk_cmgr_t* _cmgr;
 	Run runctx;
 
 	int init_runctx ();

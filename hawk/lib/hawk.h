@@ -1278,7 +1278,6 @@ typedef struct hawk_errinf_t hawk_errinf_t;
  * object with the hawk_seterrstr() function to customize an error string.
  */
 typedef const hawk_ooch_t* (*hawk_errstr_t) (
-	hawk_t*       awk,   /**< awk */
 	hawk_errnum_t num    /**< error number */
 );
 
