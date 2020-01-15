@@ -31,7 +31,7 @@
 extern "C" {
 #endif
 
-const hawk_ooch_t* hawk_dflerrstr (hawk_t* awk, hawk_errnum_t errnum);
+const hawk_ooch_t* hawk_dfl_errstr (hawk_errnum_t errnum);
 
 hawk_errnum_t hawk_syserr_to_errnum (hawk_intptr_t e);
 

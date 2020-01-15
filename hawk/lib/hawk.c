@@ -154,7 +154,7 @@ int hawk_init (hawk_t* awk, hawk_mmgr_t* mmgr, hawk_cmgr_t* cmgr, const hawk_prm
 	awk->_gem.errloc.line = 0;
 	awk->_gem.errloc.colm = 0;
 	awk->_gem.errloc.file = HAWK_NULL;
-	awk->errstr = hawk_dflerrstr;
+	awk->errstr = hawk_dfl_errstr;
 	awk->haltall = 0;
 
 	/* progagate the primitive functions */

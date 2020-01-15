@@ -125,7 +125,7 @@ public:
 		const hawk_ooch_t* ptr;
 	};
 
-	HawkStd (Mmgr* mmgr = HAWK_NULL): Hawk(mmgr), stdmod_up(false), console_cmgr(HAWK_NULL) 
+	HawkStd (Mmgr* mmgr = HAWK_NULL): Hawk(mmgr), cmgrtab_inited(false), stdmod_up(false), console_cmgr(HAWK_NULL) 
 	{
 	}
 

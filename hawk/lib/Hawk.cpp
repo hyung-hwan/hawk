@@ -1338,13 +1338,15 @@ Hawk::Hawk (Mmgr* mmgr):
 {
 	HAWK_MEMSET (&errinf, 0, HAWK_SIZEOF(errinf));
 	errinf.num = HAWK_ENOERR;
+
+	this->_cmgr = hawk_get_cmgr_by_id(HAWK_CMGR_UTF8);
 }
 
 const hawk_ooch_t* Hawk::getErrorString (hawk_errnum_t num) const 
 {
 	HAWK_ASSERT (awk != HAWK_NULL);
 	HAWK_ASSERT (this->dflerrstr != HAWK_NULL);
-	return this->dflerrstr(this->hawk, num);
+	return this->dflerrstr(num);
 }
 
 const hawk_ooch_t* Hawk::xerrstr (hawk_t* a, hawk_errnum_t num) 
@@ -1376,7 +1378,7 @@ const hawk_uch_t* Hawk::getErrorLocationFileU () const
 	if (!this->errinf.loc.file) return HAWK_NULL;
 	hawk_oow_t wcslen, mbslen;
 	wcslen = HAWK_COUNTOF(this->xerrlocfile);
-	hawk_conv_bcstr_to_ucstr_with_cmgr (this->errinf.loc.file, &mbslen, hawk->xerrlocfile, &wcslen, hawk_getcmgr(this->hawk), 1);
+	hawk_conv_bcstr_to_ucstr_with_cmgr (this->errinf.loc.file, &mbslen, hawk->xerrlocfile, &wcslen, this->getCmgr(), 1);
 	return hawk->xerrlocfile;
 #endif
 }
@@ -1387,7 +1389,7 @@ const hawk_bch_t* Hawk::getErrorLocationFileB () const
 	if (!this->errinf.loc.file) return HAWK_NULL;
 	hawk_oow_t wcslen, mbslen;
 	mbslen = HAWK_COUNTOF(this->xerrlocfile);
-	hawk_conv_ucstr_to_bcstr_with_cmgr (this->errinf.loc.file, &wcslen, this->xerrlocfile, &mbslen, hawk_getcmgr(this->hawk));
+	hawk_conv_ucstr_to_bcstr_with_cmgr (this->errinf.loc.file, &wcslen, this->xerrlocfile, &mbslen, this->getCmgr());
 	return this->xerrlocfile;
 #else
 	return this->errinf.loc.file;
@@ -1406,7 +1408,7 @@ const hawk_uch_t* Hawk::getErrorMessageU () const
 #else
 	hawk_oow_t wcslen, mbslen;
 	wcslen = HAWK_COUNTOF(this->xerrmsg);
-	hawk_conv_bcstr_to_ucstr_with_cmgr (this->errinf.msg, &mbslen, this->xerrmsg, &wcslen, hawk_getcmgr(this->hawk), 1);
+	hawk_conv_bcstr_to_ucstr_with_cmgr (this->errinf.msg, &mbslen, this->xerrmsg, &wcslen, this->getCmgr(), 1);
 	return this->xerrmsg;
 #endif
 }
@@ -1416,7 +1418,7 @@ const hawk_bch_t* Hawk::getErrorMessageB () const
 #if defined(HAWK_OOCH_IS_UCH)
 	hawk_oow_t wcslen, mbslen;
 	mbslen = HAWK_COUNTOF(this->xerrmsg);
-	hawk_conv_ucstr_to_bcstr_with_cmgr (this->errinf.msg, &wcslen, this->xerrmsg, &mbslen, hawk_getcmgr(this->hawk));
+	hawk_conv_ucstr_to_bcstr_with_cmgr (this->errinf.msg, &wcslen, this->xerrmsg, &mbslen, this->getCmgr());
 	return this->xerrmsg;
 #else
 	return this->errinf.msg;
@@ -1435,7 +1437,7 @@ void Hawk::setError (hawk_errnum_t code, const hawk_loc_t* loc)
 		HAWK_MEMSET (&this->errinf, 0, HAWK_SIZEOF(this->errinf));
 		this->errinf.num = code;
 		if (loc != HAWK_NULL) this->errinf.loc = *loc;
-		hawk_copy_oocstr (this->errinf.msg, HAWK_COUNTOF(this->errinf.msg), HAWK_T("not ready to set an error message"));
+		hawk_copy_oocstr (this->errinf.msg, HAWK_COUNTOF(this->errinf.msg), hawk_dfl_errstr(code));
 	}
 }
 
@@ -1454,7 +1456,7 @@ void Hawk::formatError (hawk_errnum_t code, const hawk_loc_t* loc, const hawk_bc
 		HAWK_MEMSET (&this->errinf, 0, HAWK_SIZEOF(this->errinf));
 		this->errinf.num = code;
 		if (loc != HAWK_NULL) this->errinf.loc = *loc;
-		hawk_copy_oocstr (this->errinf.msg, HAWK_COUNTOF(this->errinf.msg), HAWK_T("not ready to set an error message"));
+		hawk_copy_oocstr (this->errinf.msg, HAWK_COUNTOF(this->errinf.msg), hawk_dfl_errstr(code));
 	}
 }
 
@@ -1531,7 +1533,7 @@ int Hawk::open ()
 	prm.modgetsym = Hawk::modgetsym;
 
 	hawk_errnum_t errnum;
-	this->hawk = hawk_open(this->getMmgr(), HAWK_SIZEOF(xtn_t), hawk_get_cmgr_by_id(HAWK_CMGR_UTF8), &prm, &errnum);
+	this->hawk = hawk_open(this->getMmgr(), HAWK_SIZEOF(xtn_t), this->getCmgr(), &prm, &errnum);
 	if (!this->hawk)
 	{
 		this->setError (errnum);
@@ -1616,7 +1618,7 @@ void Hawk::close ()
 
 hawk_cmgr_t* Hawk::getCmgr () const
 {
-	if (!this->hawk) return HAWK_NULL;
+	if (!this->hawk) return this->_cmgr;
 	return hawk_getcmgr(this->hawk);
 }
 
