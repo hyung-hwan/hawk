@@ -1161,7 +1161,7 @@ static int __substitute (hawk_rtx_t* rtx, hawk_int_t max_count)
 
 		if (max_count == 0 || sub_count < max_count)
 		{
-			n = hawk_rtx_matchrex(rtx, rex, &s2, &cur, &mat, HAWK_NULL);
+			n = hawk_rtx_matchrexwithoocs(rtx, rex, &s2, &cur, &mat, HAWK_NULL);
 			if (n <= -1) goto oops;
 		}
 		else n = 0;

@@ -261,7 +261,7 @@ hawk_ooch_t* hawk_rtx_strxntokbyrex (
 
 	while (cursub.len > 0)
 	{
-		n = hawk_rtx_matchrex(rtx, rex, &s, &cursub, &match, HAWK_NULL);
+		n = hawk_rtx_matchrexwithoocs(rtx, rex, &s, &cursub, &match, HAWK_NULL);
 		if (n <= -1) return HAWK_NULL;
 
 		if (n == 0)
@@ -432,45 +432,6 @@ hawk_ooch_t* hawk_rtx_strxnfld (
 	return HAWK_NULL;
 }
 
-static int matchtre (hawk_tre_t* tre, int opt, const hawk_oocs_t* str, hawk_oocs_t* mat, hawk_oocs_t submat[9], hawk_gem_t* errgem)
-{
-	int n;
-	/*hawk_tre_match_t match[10] = { { 0, 0 }, };*/
-	hawk_tre_match_t match[10];
-
-	HAWK_MEMSET (match, 0, HAWK_SIZEOF(match));
-	n = hawk_tre_execx(tre, str->ptr, str->len, match, HAWK_COUNTOF(match), opt, errgem);
-	if (n <= -1)
-	{
-		if (hawk_gem_geterrnum(errgem) == HAWK_EREXNOMAT) return 0;
-		return -1;
-	}
-
-	HAWK_ASSERT (match[0].rm_so != -1);
-	if (mat)
-	{
-		mat->ptr = &str->ptr[match[0].rm_so];
-		mat->len = match[0].rm_eo - match[0].rm_so;
-	}
-
-	if (submat)
-	{
-		int i;
-
-		/* you must intialize submat before you pass into this 
-		 * function because it can abort filling */
-		for (i = 1; i < HAWK_COUNTOF(match); i++)
-		{
-			if (match[i].rm_so != -1) 
-			{
-				submat[i-1].ptr = &str->ptr[match[i].rm_so];
-				submat[i-1].len = match[i].rm_eo - match[i].rm_so;
-			}
-		}
-	}
-	return 1;
-}
-
 static int matchtre_ucs (hawk_tre_t* tre, int opt, const hawk_ucs_t* str, hawk_ucs_t* mat, hawk_ucs_t submat[9], hawk_gem_t* errgem)
 {
 	int n;
@@ -478,7 +439,7 @@ static int matchtre_ucs (hawk_tre_t* tre, int opt, const hawk_ucs_t* str, hawk_u
 	hawk_tre_match_t match[10];
 
 	HAWK_MEMSET (match, 0, HAWK_SIZEOF(match));
-	n = hawk_tre_execbchars(tre, str->ptr, str->len, match, HAWK_COUNTOF(match), opt, errgem);
+	n = hawk_tre_execuchars(tre, str->ptr, str->len, match, HAWK_COUNTOF(match), opt, errgem);
 	if (n <= -1)
 	{
 		if (hawk_gem_geterrnum(errgem) == HAWK_EREXNOMAT) return 0;
@@ -574,8 +535,12 @@ int hawk_rtx_matchval (hawk_rtx_t* rtx, hawk_val_t* val, const hawk_oocs_t* str,
 		hawk_rtx_freevaloocstr (rtx, val, tmp.ptr);
 		if (x <= -1) return -1;
 	}
-	
-	x = matchtre(
+
+#if defined(HAWK_OOCH_IS_UCH)
+	x = matchtre_ucs(
+#else
+	x = matchtre_bcs(
+#endif
 		code, ((str->ptr == substr->ptr)? opt: (opt | HAWK_TRE_NOTBOL)),
 		substr, match, submat, hawk_rtx_getgem(rtx)
 	);
@@ -590,15 +555,6 @@ int hawk_rtx_matchval (hawk_rtx_t* rtx, hawk_val_t* val, const hawk_oocs_t* str,
 	}
 
 	return x;
-}
-
-int hawk_rtx_matchrex (hawk_rtx_t* rtx, hawk_tre_t* code, const hawk_oocs_t* str, const hawk_oocs_t* substr, hawk_oocs_t* match, hawk_oocs_t submat[9])
-{
-	int opt = HAWK_TRE_BACKTRACKING; /* TODO: option... HAWK_TRE_BACKTRACKING or others??? */
-	return matchtre(
-		code, ((str->ptr == substr->ptr)? opt: (opt | HAWK_TRE_NOTBOL)),
-		substr, match, submat, hawk_rtx_getgem(rtx)
-	);
 }
 
 int hawk_rtx_matchrexwithucs (hawk_rtx_t* rtx, hawk_tre_t* code, const hawk_ucs_t* str, const hawk_ucs_t* substr, hawk_ucs_t* match, hawk_ucs_t submat[9])

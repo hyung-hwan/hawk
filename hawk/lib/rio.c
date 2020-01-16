@@ -247,7 +247,7 @@ static HAWK_INLINE int match_long_rs (hawk_rtx_t* rtx, hawk_ooecs_t* buf, hawk_r
 	HAWK_ASSERT (rtx->gbl.rs[0] != HAWK_NULL);
 	HAWK_ASSERT (rtx->gbl.rs[1] != HAWK_NULL);
 
-	ret = hawk_rtx_matchrex(rtx, rtx->gbl.rs[rtx->gbl.ignorecase], HAWK_OOECS_OOCS(buf), HAWK_OOECS_OOCS(buf), &match, HAWK_NULL);
+	ret = hawk_rtx_matchrexwithoocs(rtx, rtx->gbl.rs[rtx->gbl.ignorecase], HAWK_OOECS_OOCS(buf), HAWK_OOECS_OOCS(buf), &match, HAWK_NULL);
 	if (ret >= 1)
 	{
 		if (p->in.eof)
