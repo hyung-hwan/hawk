@@ -166,6 +166,7 @@ enum tok_t
 
 	TOK_PRINT,
 	TOK_PRINTF,
+	TOK_GETBLINE,
 	TOK_GETLINE,
 	/* ==  end reserved words == */
 
@@ -297,6 +298,7 @@ static kwent_t kwtab[] =
 	{ { HAWK_T("exit"),           4 }, TOK_EXIT,          0 },
 	{ { HAWK_T("for"),            3 }, TOK_FOR,           0 },
 	{ { HAWK_T("function"),       8 }, TOK_FUNCTION,      0 },
+	{ { HAWK_T("getbline"),       8 }, TOK_GETBLINE,      HAWK_RIO },
 	{ { HAWK_T("getline"),        7 }, TOK_GETLINE,       HAWK_RIO },
 	{ { HAWK_T("if"),             2 }, TOK_IF,            0 },
 	{ { HAWK_T("in"),             2 }, TOK_IN,            0 },
@@ -323,8 +325,6 @@ static global_t gtab[] =
 	/* 
 	 * this table must match the order of the hawk_gbl_id_t enumerators 
 	 */
-
-	{ HAWK_T("BRS"),          3,  0 },
 
 	/* output real-to-str conversion format for other cases than 'print' */
 	{ HAWK_T("CONVFMT"),      7,  0 },
@@ -4865,7 +4865,7 @@ oops:
 	return HAWK_NULL;
 }
 
-static hawk_nde_t* parse_primary_getline  (hawk_t* awk, const hawk_loc_t* xloc)
+static hawk_nde_t* parse_primary_getline (hawk_t* awk, const hawk_loc_t* xloc, int mbs)
 {
 	/* parse the statement-level getline.
 	 * getline after the pipe symbols(|,||) is parsed
@@ -4875,10 +4875,11 @@ static hawk_nde_t* parse_primary_getline  (hawk_t* awk, const hawk_loc_t* xloc)
 	hawk_nde_getline_t* nde;
 	hawk_loc_t ploc;
 
-	nde = (hawk_nde_getline_t*) hawk_callocmem (awk, HAWK_SIZEOF(*nde));
+	nde = (hawk_nde_getline_t*)hawk_callocmem(awk, HAWK_SIZEOF(*nde));
 	if (nde == HAWK_NULL) goto oops;
 
 	nde->type = HAWK_NDE_GETLINE;
+	nde->mbs = mbs;
 	nde->loc = *xloc;
 	nde->in_type = HAWK_IN_CONSOLE;
 
@@ -4982,8 +4983,11 @@ static hawk_nde_t* parse_primary_nopipe (hawk_t* awk, const hawk_loc_t* xloc)
 		case TOK_LPAREN:
 			return parse_primary_lparen(awk, xloc);
 
+		case TOK_GETBLINE:
+			return parse_primary_getline(awk, xloc, 1);
+
 		case TOK_GETLINE:
-			return parse_primary_getline(awk, xloc);
+			return parse_primary_getline(awk, xloc, 0);
 
 		default:
 		{
@@ -5020,6 +5024,7 @@ static hawk_nde_t* parse_primary (hawk_t* awk, const hawk_loc_t* xloc)
 	do
 	{
 		int intype = -1;
+		int mbs;
 
 		if (awk->opt.trait & HAWK_RIO)
 		{
@@ -5036,7 +5041,9 @@ static hawk_nde_t* parse_primary (hawk_t* awk, const hawk_loc_t* xloc)
 		if (intype == -1) break;
 
 		if (preget_token(awk) <= -1) goto oops;
-		if (awk->ntok.type != TOK_GETLINE) break;
+		if (awk->ntok.type == TOK_GETBLINE) mbs = 1;
+		else if (awk->ntok.type == TOK_GETLINE) mbs = 0;
+		else break;
 
 		/* consume ntok('getline') */
 		get_token(awk); /* no error check needed as it's guaranteeded to succeed for preget_token() above */
@@ -5073,7 +5080,7 @@ static hawk_nde_t* parse_primary (hawk_t* awk, const hawk_loc_t* xloc)
 			}
 
 			ploc = awk->tok.loc;
-			var = parse_primary (awk, &ploc);
+			var = parse_primary(awk, &ploc);
 			if (var == HAWK_NULL) goto oops;
 
 			if (!is_var(var) && var->type != HAWK_NDE_POS)
@@ -5096,6 +5103,7 @@ static hawk_nde_t* parse_primary (hawk_t* awk, const hawk_loc_t* xloc)
 		nde->type = HAWK_NDE_GETLINE;
 		nde->loc = *xloc;
 		nde->var = var;
+		nde->mbs = mbs;
 		nde->in_type = intype;
 		nde->in = left;
 

@@ -231,7 +231,8 @@ struct hawk_nde_getline_t
 {
 	HAWK_NDE_HDR;
 	hawk_nde_t* var;
-	int in_type; /* HAWK_GETLINE_XXX */
+	int mbs;
+	int in_type; /* HAWK_IN_CONSOLE, HAWK_IN_FILE, etc */
 	hawk_nde_t* in;
 };
 

@@ -237,9 +237,55 @@ int hawk_tre_execx (
 	return 0;
 }
 
+
 int hawk_tre_exec (
 	hawk_tre_t* tre, const hawk_ooch_t* str,
 	regmatch_t* pmatch, hawk_oow_t nmatch, int eflags, hawk_gem_t* errgem)
 {
 	return hawk_tre_execx(tre, str, (hawk_oow_t)-1, pmatch, nmatch, eflags, errgem);
 }
+
+int hawk_tre_execuchars (
+	hawk_tre_t* tre, const hawk_uch_t* str, hawk_oow_t len,
+	regmatch_t* pmatch, hawk_oow_t nmatch, int eflags, hawk_gem_t* errgem)
+{
+	int ret;
+
+	if (tre->TRE_REGEX_T_FIELD == HAWK_NULL)
+	{
+		/* regular expression is bad as none is compiled yet */
+		hawk_gem_seterrnum ((errgem? errgem: tre->gem), HAWK_NULL, HAWK_EREXBADPAT);
+		return -1;
+	}
+	ret = tre_match(tre, str, len, STR_WIDE, nmatch, pmatch, eflags);
+	if (ret > 0) 
+	{
+		hawk_gem_seterrnum ((errgem? errgem: tre->gem), HAWK_NULL, ret);
+		return -1;
+	}
+	
+	return 0;
+}
+
+int hawk_tre_execbchars (
+	hawk_tre_t* tre, const hawk_bch_t* str, hawk_oow_t len,
+	regmatch_t* pmatch, hawk_oow_t nmatch, int eflags, hawk_gem_t* errgem)
+{
+	int ret;
+
+	if (tre->TRE_REGEX_T_FIELD == HAWK_NULL)
+	{
+		/* regular expression is bad as none is compiled yet */
+		hawk_gem_seterrnum ((errgem? errgem: tre->gem), HAWK_NULL, HAWK_EREXBADPAT);
+		return -1;
+	}
+	ret = tre_match(tre, str, len, STR_BYTE, nmatch, pmatch, eflags);
+	if (ret > 0) 
+	{
+		hawk_gem_seterrnum ((errgem? errgem: tre->gem), HAWK_NULL, ret);
+		return -1;
+	}
+	
+	return 0;
+}
+

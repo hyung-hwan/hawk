@@ -1298,7 +1298,6 @@ enum hawk_gbl_id_t
 	 * but is this check really necessary???
 	 */
 
-	HAWK_GBL_BRS,
 	HAWK_GBL_CONVFMT,
 	HAWK_GBL_FILENAME,
 	HAWK_GBL_FNR,
@@ -1319,7 +1318,7 @@ enum hawk_gbl_id_t
 	/* these are not not the actual IDs and are used internally only 
 	 * Make sure you update these values properly if you add more 
 	 * ID definitions, however */
-	HAWK_MIN_GBL_ID = HAWK_GBL_BRS,
+	HAWK_MIN_GBL_ID = HAWK_GBL_CONVFMT,
 	HAWK_MAX_GBL_ID = HAWK_GBL_SUBSEP
 };
 typedef enum hawk_gbl_id_t hawk_gbl_id_t;
