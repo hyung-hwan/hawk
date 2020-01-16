@@ -666,7 +666,6 @@ int hawk_rtx_readio (hawk_rtx_t* rtx, int in_type, const hawk_ooch_t* name, hawk
 
 int hawk_rtx_readiobytes (hawk_rtx_t* rtx, int in_type, const hawk_ooch_t* name, hawk_becs_t* buf)
 {
-#if 1
 	hawk_rio_arg_t* p;
 	hawk_rio_impl_t handler;
 	int ret;
@@ -695,6 +694,7 @@ int hawk_rtx_readiobytes (hawk_rtx_t* rtx, int in_type, const hawk_ooch_t* name,
 
 	ret = 1;
 
+
 	/* call the I/O handler */
 	while (1)
 	{
@@ -716,7 +716,7 @@ int hawk_rtx_readiobytes (hawk_rtx_t* rtx, int in_type, const hawk_ooch_t* name,
 				break;
 			}
 
-			x = handler(rtx, HAWK_RIO_CMD_READ_BYTES, p, p->in.buf, HAWK_COUNTOF(p->in.buf));
+			x = handler(rtx, HAWK_RIO_CMD_READ_BYTES, p, (hawk_bch_t*)p->in.buf, HAWK_SIZEOF(p->in.buf));
 			if (x <= -1)
 			{
 				ret = -1;
@@ -814,7 +814,7 @@ int hawk_rtx_readiobytes (hawk_rtx_t* rtx, int in_type, const hawk_ooch_t* name,
 			}
 			while (p->in.pos < p->in.len);
 
-			tmp = hawk_becs_ncat(buf, &p->in.buf[start_pos], end_pos - start_pos);
+			tmp = hawk_becs_ncat(buf, &((hawk_bch_t*)p->in.buf)[start_pos], end_pos - start_pos);
 			if (tmp == (hawk_oow_t)-1)
 			{
 				ret = -1;
@@ -928,7 +928,7 @@ int hawk_rtx_readiobytes (hawk_rtx_t* rtx, int in_type, const hawk_ooch_t* name,
 			}
 			while (p->in.pos < p->in.len);
 
-			tmp = hawk_becs_ncat(buf, &p->in.buf[start_pos], end_pos - start_pos);
+			tmp = hawk_becs_ncat(buf, &((hawk_bch_t*)p->in.buf)[start_pos], end_pos - start_pos);
 			if (tmp == (hawk_oow_t)-1)
 			{
 				ret = -1;
@@ -950,7 +950,7 @@ int hawk_rtx_readiobytes (hawk_rtx_t* rtx, int in_type, const hawk_ooch_t* name,
 			 * to the buffer, it is the longest match.
 			 */
 
-			tmp = hawk_becs_ncat(buf, &p->in.buf[p->in.pos], p->in.len - p->in.pos);
+			tmp = hawk_becs_ncat(buf, &((hawk_bch_t*)p->in.buf)[p->in.pos], p->in.len - p->in.pos);
 			if (tmp == (hawk_oow_t)-1)
 			{
 				ret = -1;
@@ -972,10 +972,6 @@ int hawk_rtx_readiobytes (hawk_rtx_t* rtx, int in_type, const hawk_ooch_t* name,
 	hawk_rtx_refdownval (rtx, brs);
 
 	return ret;
-#else
-	hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_ENOIMPL);
-	return -1;
-#endif
 }
 
 

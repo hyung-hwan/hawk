@@ -6661,7 +6661,7 @@ static hawk_val_t* eval_pos (hawk_rtx_t* rtx, hawk_nde_t* nde)
 	return v;
 }
 
-static hawk_val_t* nde_to_str(hawk_rtx_t* rtx, hawk_nde_t* nde, hawk_oocs_t* dst)
+static hawk_val_t* getline_target_nde_to_str(hawk_rtx_t* rtx, hawk_nde_t* nde, hawk_oocs_t* dst)
 {
 	hawk_oow_t len;
 	hawk_val_t* v;
@@ -6677,9 +6677,10 @@ static hawk_val_t* nde_to_str(hawk_rtx_t* rtx, hawk_nde_t* nde, hawk_oocs_t* dst
 		return HAWK_NULL;
 	}
 
-	while (dst->len > 0)
+	len = dst->len;
+	while (len > 0)
 	{
-		if (dst->ptr[--dst->len] == '\0')
+		if (dst->ptr[--len] == '\0')
 		{
 			dst->len = 0; /* indicate that the name is not valid */
 			break;
@@ -6708,7 +6709,7 @@ static hawk_val_t* __eval_getline (hawk_rtx_t* rtx, hawk_nde_t* nde)
 
 	if (p->in)
 	{
-		v = nde_to_str(rtx, p->in, &dst);
+		v = getline_target_nde_to_str(rtx, p->in, &dst);
 		if (!v) return HAWK_NULL;
 
 		if (dst.len <= 0) 
@@ -6816,7 +6817,7 @@ static hawk_val_t* __eval_getbline (hawk_rtx_t* rtx, hawk_nde_t* nde)
 
 	if (p->in)
 	{
-		v = nde_to_str(rtx, p->in, &dst);
+		v = getline_target_nde_to_str(rtx, p->in, &dst);
 		if (!v) return HAWK_NULL;
 
 		if (dst.len <= 0) 
@@ -6852,6 +6853,8 @@ read_console_again:
 	}
 	else if (n > 0)
 	{
+#if 0
+/* the implementation is not perfect yet.
 		if (p->in_type == HAWK_IN_CONSOLE)
 		{
 			HAWK_ASSERT (p->in == HAWK_NULL);
@@ -6867,7 +6870,7 @@ read_console_again:
 				}
 			}
 		}
-
+#endif
 		if (p->var == HAWK_NULL)
 		{
 			/* set $0 with the input value */
@@ -6893,12 +6896,14 @@ read_console_again:
 			if (tmp == HAWK_NULL) return HAWK_NULL;
 		}
 
+#if 0
 		/* update FNR & NR if reading from console */
 		if (p->in_type == HAWK_IN_CONSOLE &&
 		    update_fnr(rtx, rtx->gbl.fnr + 1, rtx->gbl.nr + 1) <= -1) 
 		{
 			return HAWK_NULL;
 		}
+#endif
 	}
 	
 skip_read:

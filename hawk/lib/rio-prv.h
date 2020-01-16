@@ -35,6 +35,10 @@ int hawk_rtx_readio (
 	hawk_rtx_t* run, int in_type, 
 	const hawk_ooch_t* name, hawk_ooecs_t* buf);
 
+int hawk_rtx_readiobytes (
+	hawk_rtx_t* run, int in_type, 
+	const hawk_ooch_t* name, hawk_becs_t* buf);
+
 int hawk_rtx_writeioval (
 	hawk_rtx_t* run, int out_type, 
 	const hawk_ooch_t* name, hawk_val_t* v);
