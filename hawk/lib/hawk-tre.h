@@ -137,6 +137,26 @@ HAWK_EXPORT int hawk_tre_exec (
 	hawk_gem_t*        errgem
 );
 
+HAWK_EXPORT int hawk_tre_execuchars (
+	hawk_tre_t*        tre,
+	const hawk_uch_t*  str,
+	hawk_oow_t         len,
+	hawk_tre_match_t*  pmatch,
+	hawk_oow_t         nmatch,
+	int                eflags,
+	hawk_gem_t*        errgem
+);
+
+HAWK_EXPORT int hawk_tre_execbchars (
+	hawk_tre_t*        tre,
+	const hawk_bch_t*  str,
+	hawk_oow_t         len,
+	hawk_tre_match_t*  pmatch,
+	hawk_oow_t         nmatch,
+	int                eflags,
+	hawk_gem_t*        errgem
+);
+
 #if defined(__cplusplus)
 }
 #endif

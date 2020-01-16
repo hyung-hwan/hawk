@@ -410,7 +410,6 @@ struct hawk_rtx_t
 
 	struct
 	{
-		void* brs[2];
 		void* rs[2];
 		void* fs[2]; 
 		int ignorecase;

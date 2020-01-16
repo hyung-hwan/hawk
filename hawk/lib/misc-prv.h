@@ -83,6 +83,17 @@ int hawk_rtx_matchrex (
 	hawk_oocs_t* match, hawk_oocs_t submat[9]
 );
 
+int hawk_rtx_matchrexwithucs (
+	hawk_rtx_t* rtx, hawk_tre_t* code, 
+	const hawk_ucs_t* str, const hawk_ucs_t* substr,
+	hawk_ucs_t* match, hawk_ucs_t submat[9]
+);
+
+int hawk_rtx_matchrexwithbcs (
+	hawk_rtx_t* rtx, hawk_tre_t* code, 
+	const hawk_bcs_t* str, const hawk_bcs_t* substr,
+	hawk_bcs_t* match, hawk_bcs_t submat[9]
+);
 
 #if defined(__cplusplus)
 }

@@ -730,7 +730,7 @@ static int print_expr (hawk_t* awk, hawk_nde_t* nde)
 				PUT_SRCSTR (awk, HAWK_T(" "));
 			}
 
-			hawk_getkwname (awk, HAWK_KWID_GETLINE, &kw);
+			hawk_getkwname (awk, (px->mbs? HAWK_KWID_GETBLINE: HAWK_KWID_GETLINE), &kw);
 			PUT_SRCSTRN (awk, kw.ptr, kw.len);
 			if (px->var != HAWK_NULL)
 			{

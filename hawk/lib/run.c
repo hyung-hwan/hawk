@@ -352,45 +352,6 @@ static int set_global (hawk_rtx_t* rtx, int idx, hawk_nde_var_t* var, hawk_val_t
 	/* perform actual assignment or assignment-like operation */
 	switch (idx)
 	{
-		case HAWK_GBL_BRS:
-		{
-			hawk_bcs_t rss;
-
-			/* due to the expression evaluation rule, the 
-			 * regular expression can not be an assigned 
-			 * value */
-			HAWK_ASSERT (vtype != HAWK_VAL_REX);
-
-			rss.ptr = hawk_rtx_getvalbcstr(rtx, val, &rss.len);
-			if (!rss.ptr) return -1;
-
-			if (rtx->gbl.brs[0])
-			{
-				hawk_rtx_freerex (rtx, rtx->gbl.brs[0], rtx->gbl.brs[1]);
-				rtx->gbl.brs[0] = HAWK_NULL;
-				rtx->gbl.brs[1] = HAWK_NULL;
-			}
-
-			if (rss.len > 1)
-			{
-				hawk_tre_t* rex, * irex;
-
-				/* compile the regular expression */
-/* TODO: mbs buildrex */
-				if (hawk_rtx_buildrex(rtx, rss.ptr, rss.len, &rex, &irex) <= -1)
-				{
-					hawk_rtx_freevalbcstr (rtx, val, rss.ptr);
-					return -1;
-				}
-
-				rtx->gbl.brs[0] = rex;
-				rtx->gbl.brs[1] = irex;
-			}
-
-			hawk_rtx_freevalbcstr (rtx, val, rss.ptr);
-			break;
-		}
-
 		case HAWK_GBL_CONVFMT:
 		{
 			hawk_oow_t i;
@@ -981,8 +942,6 @@ static int init_rtx (hawk_rtx_t* rtx, hawk_t* awk, hawk_rio_cbs_t* rio)
 		rtx->rio.chain = HAWK_NULL;
 	}
 
-	rtx->gbl.brs[0] = HAWK_NULL;
-	rtx->gbl.brs[1] = HAWK_NULL;
 	rtx->gbl.rs[0] = HAWK_NULL;
 	rtx->gbl.rs[1] = HAWK_NULL;
 	rtx->gbl.fs[0] = HAWK_NULL;
@@ -1030,12 +989,6 @@ static void fini_rtx (hawk_rtx_t* rtx, int fini_globals)
 	hawk_rtx_cleario (rtx);
 	HAWK_ASSERT (rtx->rio.chain == HAWK_NULL);
 
-	if (rtx->gbl.brs[0])
-	{
-		hawk_rtx_freerex (rtx, rtx->gbl.brs[0], rtx->gbl.brs[1]);
-		rtx->gbl.brs[0] = HAWK_NULL;
-		rtx->gbl.brs[1] = HAWK_NULL;
-	}
 	if (rtx->gbl.rs[0])
 	{
 		hawk_rtx_freerex (rtx, rtx->gbl.rs[0], rtx->gbl.rs[1]);
@@ -6708,11 +6661,39 @@ static hawk_val_t* eval_pos (hawk_rtx_t* rtx, hawk_nde_t* nde)
 	return v;
 }
 
-static hawk_val_t* __eval_getline (hawk_rtx_t* rtx, hawk_nde_t* nde, int mbs)
+static hawk_val_t* nde_to_str(hawk_rtx_t* rtx, hawk_nde_t* nde, hawk_oocs_t* dst)
+{
+	hawk_oow_t len;
+	hawk_val_t* v;
+
+	v = eval_expression(rtx, nde);
+	if (!v) return HAWK_NULL;
+
+	hawk_rtx_refupval (rtx, v);
+	dst->ptr = hawk_rtx_getvaloocstr(rtx, v, &dst->len);
+	if (!dst) 
+	{
+		hawk_rtx_refdownval (rtx, v);
+		return HAWK_NULL;
+	}
+
+	while (dst->len > 0)
+	{
+		if (dst->ptr[--dst->len] == '\0')
+		{
+			dst->len = 0; /* indicate that the name is not valid */
+			break;
+		}
+	}
+
+	return v;
+}
+
+static hawk_val_t* __eval_getline (hawk_rtx_t* rtx, hawk_nde_t* nde)
 {
 	hawk_nde_getline_t* p;
 	hawk_val_t* v, * tmp;
-	hawk_ooch_t* dst;
+	hawk_oocs_t dst;
 	hawk_ooecs_t* buf;
 	int n, x;
 	hawk_val_type_t vtype;
@@ -6727,56 +6708,32 @@ static hawk_val_t* __eval_getline (hawk_rtx_t* rtx, hawk_nde_t* nde, int mbs)
 
 	if (p->in)
 	{
-		hawk_oow_t len;
-		hawk_rtx_valtostr_out_t out;
-
-		v = eval_expression(rtx, p->in);
+		v = nde_to_str(rtx, p->in, &dst);
 		if (!v) return HAWK_NULL;
 
-		hawk_rtx_refupval (rtx, v);
-		dst = hawk_rtx_getvaloocstr(rtx, v, &len);
-		if (!dst) 
+		if (dst.len <= 0) 
 		{
+			hawk_rtx_freevaloocstr (rtx, v, dst.ptr);
 			hawk_rtx_refdownval (rtx, v);
-			return HAWK_NULL;
-		}
-
-		if (len <= 0)
-		{
-		
-			hawk_rtx_freevaloocstr (rtx, v, dst);
-			hawk_rtx_refdownval (rtx, v);
-
 			n = -1;
 			goto skip_read;
 		}
-
-		while (len > 0)
-		{
-			if (dst[--len] == HAWK_T('\0'))
-			{
-				/* the input source name contains a null 
-				 * character. make getline return -1.
-				 * unlike print & printf, it is not a hard
-				 * error  */
-				hawk_rtx_freevaloocstr (rtx, v, dst);
-				hawk_rtx_refdownval (rtx, v);
-				n = -1;
-				goto skip_read;
-			}
-		}
 	}
-	else dst = (hawk_ooch_t*)HAWK_T("");
+	else
+	{
+		dst.ptr = (hawk_ooch_t*)HAWK_T("");
+		dst.len = 0;
+	}
 
 	buf = &rtx->inrec.lineg;
 read_console_again:
 	hawk_ooecs_clear (&rtx->inrec.lineg);
 
-	n = hawk_rtx_readio(rtx, p->in_type, dst, buf);
+	n = hawk_rtx_readio(rtx, p->in_type, dst.ptr, buf);
 
 	if (p->in) 
 	{
-		hawk_rtx_freevaloocstr (rtx, v, dst);
+		hawk_rtx_freevaloocstr (rtx, v, dst.ptr);
 		hawk_rtx_refdownval (rtx, v);
 	}
 
@@ -6840,9 +6797,119 @@ skip_read:
 	return tmp;
 }
 
+static hawk_val_t* __eval_getbline (hawk_rtx_t* rtx, hawk_nde_t* nde)
+{
+	hawk_nde_getline_t* p;
+	hawk_val_t* v, * tmp;
+	hawk_oocs_t dst;
+	hawk_becs_t* buf;
+	int n, x;
+	hawk_val_type_t vtype;
+
+	p = (hawk_nde_getline_t*)nde;
+
+	HAWK_ASSERT (
+		(p->in_type == HAWK_IN_PIPE && p->in != HAWK_NULL) ||
+		(p->in_type == HAWK_IN_RWPIPE && p->in != HAWK_NULL) ||
+		(p->in_type == HAWK_IN_FILE && p->in != HAWK_NULL) ||
+		(p->in_type == HAWK_IN_CONSOLE && p->in == HAWK_NULL));
+
+	if (p->in)
+	{
+		v = nde_to_str(rtx, p->in, &dst);
+		if (!v) return HAWK_NULL;
+
+		if (dst.len <= 0) 
+		{
+			hawk_rtx_freevaloocstr (rtx, v, dst.ptr);
+			hawk_rtx_refdownval (rtx, v);
+			n = -1;
+			goto skip_read;
+		}
+	}
+	else
+	{
+		dst.ptr = (hawk_ooch_t*)HAWK_T("");
+		dst.len = 0;
+	}
+
+	buf = &rtx->inrec.linegb;
+read_console_again:
+	hawk_becs_clear (&rtx->inrec.linegb);
+
+	n = hawk_rtx_readiobytes(rtx, p->in_type, dst.ptr, buf);
+
+	if (p->in) 
+	{
+		hawk_rtx_freevaloocstr (rtx, v, dst.ptr);
+		hawk_rtx_refdownval (rtx, v);
+	}
+
+	if (n <= -1) 
+	{
+		/* make getline return -1 */
+		n = -1;
+	}
+	else if (n > 0)
+	{
+		if (p->in_type == HAWK_IN_CONSOLE)
+		{
+			HAWK_ASSERT (p->in == HAWK_NULL);
+			if (rtx->nrflt.limit > 0)
+			{
+				/* record filter based on record number(NR) */
+				if (((rtx->gbl.nr / rtx->nrflt.limit) % rtx->nrflt.size) != rtx->nrflt.rank)
+				{
+					if (update_fnr(rtx, rtx->gbl.fnr + 1, rtx->gbl.nr + 1) <= -1) return HAWK_NULL;
+					/* this jump is a bit dirty. the 'if' block below hawk_rtx_readio()
+					 * will never be true. but this makes code confusing */
+					goto read_console_again; 
+				}
+			}
+		}
+
+		if (p->var == HAWK_NULL)
+		{
+			/* set $0 with the input value */
+			/*x = hawk_rtx_setbrec(rtx, 0, HAWK_BECS_BCS(buf));
+			if (x <= -1) return HAWK_NULL;*/
+/* TODO: can i support this? */
+			hawk_rtx_seterrbfmt(rtx, &nde->loc, HAWK_ENOIMPL, "getbline without a variable not supported");
+		}
+		else
+		{
+			hawk_val_t* v;
+
+			v = hawk_rtx_makembsvalwithbcs(rtx, HAWK_BECS_BCS(buf));
+			if (v == HAWK_NULL)
+			{
+				ADJERR_LOC (rtx, &nde->loc);
+				return HAWK_NULL;
+			}
+
+			hawk_rtx_refupval (rtx, v);
+			tmp = do_assignment(rtx, p->var, v);
+			hawk_rtx_refdownval (rtx, v);
+			if (tmp == HAWK_NULL) return HAWK_NULL;
+		}
+
+		/* update FNR & NR if reading from console */
+		if (p->in_type == HAWK_IN_CONSOLE &&
+		    update_fnr(rtx, rtx->gbl.fnr + 1, rtx->gbl.nr + 1) <= -1) 
+		{
+			return HAWK_NULL;
+		}
+	}
+	
+skip_read:
+	tmp = hawk_rtx_makeintval(rtx, n);
+	if (!tmp) ADJERR_LOC (rtx, &nde->loc);
+	return tmp;
+}
+
 static hawk_val_t* eval_getline (hawk_rtx_t* rtx, hawk_nde_t* nde)
 {
-	return __eval_getline(rtx, nde, 0);
+	return ((hawk_nde_getline_t*)nde)->mbs? __eval_getbline(rtx, nde): __eval_getline(rtx, nde);
 }
 
 static hawk_val_t* eval_print (hawk_rtx_t* run, hawk_nde_t* nde)
@@ -6894,7 +6961,7 @@ read_again:
 	if (hawk_rtx_clrrec (rtx, 0) == -1) return -1;
 
 	buf = &rtx->inrec.line;
-	n = hawk_rtx_readio (rtx, HAWK_IN_CONSOLE, HAWK_T(""), buf);
+	n = hawk_rtx_readio(rtx, HAWK_IN_CONSOLE, HAWK_T(""), buf);
 	if (n <= -1) 
 	{
 		hawk_rtx_clrrec (rtx, 0);
