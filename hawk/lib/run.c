@@ -2896,11 +2896,50 @@ static int run_reset (hawk_rtx_t* rtx, hawk_nde_reset_t* nde)
 	return reset_variable (rtx, (hawk_nde_var_t*)nde->var);
 }
 
+
+static hawk_val_t* io_nde_to_str(hawk_rtx_t* rtx, hawk_nde_t* nde, hawk_oocs_t* dst, int seterr)
+{
+	
+	hawk_val_t* v;
+
+	v = eval_expression(rtx, nde);
+	if (!v) return HAWK_NULL;
+
+	hawk_rtx_refupval (rtx, v);
+	dst->ptr = hawk_rtx_getvaloocstr(rtx, v, &dst->len);
+	if (!dst) 
+	{
+		hawk_rtx_refdownval (rtx, v);
+		return HAWK_NULL;
+	}
+
+	if (seterr && dst->len <= 0)
+	{
+		hawk_rtx_seterrfmt (rtx, &nde->loc, HAWK_EIONMEM, HAWK_T("empty I/O name"));
+	}
+	else
+	{
+		hawk_oow_t len;
+
+		len = dst->len;
+		while (len > 0)
+		{
+			if (dst->ptr[--len] == '\0')
+			{
+				hawk_rtx_seterrfmt (rtx, &nde->loc, HAWK_EIONMNL, HAWK_T("invalid I/O name of length %zu containing '\\0'"), dst->len); 
+				dst->len = 0; /* indicate that the name is not valid */
+				break;
+			}
+		}
+	}
+
+	return v;
+}
+
 static int run_print (hawk_rtx_t* rtx, hawk_nde_print_t* nde)
 {
-	hawk_ooch_t* out = HAWK_NULL;
+	hawk_oocs_t out;
 	hawk_val_t* out_v = HAWK_NULL;
-	const hawk_ooch_t* dst;
 	int n, xret = 0;
 
 	HAWK_ASSERT (
@@ -2913,45 +2952,21 @@ static int run_print (hawk_rtx_t* rtx, hawk_nde_print_t* nde)
 	/* check if destination has been specified. */
 	if (nde->out)
 	{
-		hawk_oow_t len, i;
-
-		/* if so, resolve the destination name */
-		out_v = eval_expression(rtx, nde->out);
-		if (!out_v) return -1;
-
-		hawk_rtx_refupval (rtx, out_v);
-
-		out = hawk_rtx_getvaloocstr(rtx, out_v, &len);
-		if (!out) goto oops;
-
-		if (len <= 0) 
-		{
-			/* the destination name is empty */
-			hawk_rtx_seterrfmt (rtx, &nde->loc, HAWK_EIONMEM, HAWK_T("empty I/O name"));
-			goto oops;
-		}
-
-		/* it needs to check if the destination name contains
-		 * any invalid characters to the underlying system */
-		for (i = 0; i < len; i++)
-		{
-			if (out[i] == HAWK_T('\0'))
-			{
-				hawk_rtx_seterrfmt (rtx, &nde->loc, HAWK_EIONMNL, HAWK_T("invalid I/O name of length %zu containing '\\0'"), len); 
-				goto oops_1;
-			}
-		}
+		out_v = io_nde_to_str(rtx, nde->out, &out, 1);
+		if (!out_v || out.len <= 0) goto oops_1;
 	}
-
-	/* transforms the destination to suit the usage with io */
-	dst = (out == HAWK_NULL)? HAWK_T(""): out;
+	else
+	{
+		out.ptr = (hawk_ooch_t*)HAWK_T("");
+		out.len = 0;
+	}
 
 	/* check if print is followed by any arguments */
 	if (!nde->args)
 	{
 		/* if it doesn't have any arguments, print the entire 
 		 * input record */
-		n = hawk_rtx_writeiostr(rtx, nde->out_type, dst, HAWK_OOECS_PTR(&rtx->inrec.line), HAWK_OOECS_LEN(&rtx->inrec.line));
+		n = hawk_rtx_writeiostr(rtx, nde->out_type, out.ptr, HAWK_OOECS_PTR(&rtx->inrec.line), HAWK_OOECS_LEN(&rtx->inrec.line));
 		if (n <= -1 /*&& rtx->errinf.num != HAWK_EIOIMPL*/)
 		{
 			if (rtx->awk->opt.trait & HAWK_TOLERANT)
@@ -2983,7 +2998,7 @@ static int run_print (hawk_rtx_t* rtx, hawk_nde_print_t* nde)
 		{
 			if (np != head)
 			{
-				n = hawk_rtx_writeiostr(rtx, nde->out_type, dst, rtx->gbl.ofs.ptr, rtx->gbl.ofs.len);
+				n = hawk_rtx_writeiostr(rtx, nde->out_type, out.ptr, rtx->gbl.ofs.ptr, rtx->gbl.ofs.len);
 				if (n <= -1 /*&& rtx->errinf.num != HAWK_EIOIMPL*/) 
 				{
 					if (rtx->awk->opt.trait & HAWK_TOLERANT)
@@ -3001,7 +3016,7 @@ static int run_print (hawk_rtx_t* rtx, hawk_nde_print_t* nde)
 			if (v == HAWK_NULL) goto oops_1;
 
 			hawk_rtx_refupval (rtx, v);
-			n = hawk_rtx_writeioval(rtx, nde->out_type, dst, v);
+			n = hawk_rtx_writeioval(rtx, nde->out_type, out.ptr, v);
 			hawk_rtx_refdownval (rtx, v);
 
 			if (n <= -1 /*&& rtx->errinf.num != HAWK_EIOIMPL*/) 
@@ -3019,7 +3034,7 @@ static int run_print (hawk_rtx_t* rtx, hawk_nde_print_t* nde)
 	}
 
 	/* print the value ORS to terminate the operation */
-	n = hawk_rtx_writeiostr(rtx, nde->out_type, dst, rtx->gbl.ors.ptr, rtx->gbl.ors.len);
+	n = hawk_rtx_writeiostr(rtx, nde->out_type, out.ptr, rtx->gbl.ors.ptr, rtx->gbl.ors.len);
 	if (n <= -1 /*&& rtx->errinf.num != HAWK_EIOIMPL*/)
 	{
 		if (rtx->awk->opt.trait & HAWK_TOLERANT)
@@ -3036,7 +3051,7 @@ static int run_print (hawk_rtx_t* rtx, hawk_nde_print_t* nde)
 	 * inserts <NL> that triggers auto-flush */
 	if (out_v)
 	{
-		if (out) hawk_rtx_freevaloocstr (rtx, out_v, out);
+		hawk_rtx_freevaloocstr (rtx, out_v, out.ptr);
 		hawk_rtx_refdownval (rtx, out_v);
 	}
 
@@ -3048,7 +3063,7 @@ oops:
 oops_1:
 	if (out_v)
 	{
-		if (out) hawk_rtx_freevaloocstr (rtx, out_v, out);
+		hawk_rtx_freevaloocstr (rtx, out_v, out.ptr);
 		hawk_rtx_refdownval (rtx, out_v);
 	}
 
@@ -3057,11 +3072,10 @@ oops_1:
 
 static int run_printf (hawk_rtx_t* rtx, hawk_nde_print_t* nde)
 {
-	hawk_ooch_t* out = HAWK_NULL;
+	hawk_oocs_t out;
 	hawk_val_t* out_v = HAWK_NULL;
 	hawk_val_t* v;
 	hawk_val_type_t vtype;
-	const hawk_ooch_t* dst;
 	hawk_nde_t* head;
 	int n, xret = 0;
 
@@ -3074,37 +3088,14 @@ static int run_printf (hawk_rtx_t* rtx, hawk_nde_print_t* nde)
 
 	if (nde->out)
 	{
-		hawk_oow_t len, i;
-
-		out_v = eval_expression(rtx, nde->out);
-		if (!out_v) return -1;
-
-		hawk_rtx_refupval (rtx, out_v);
-
-		out = hawk_rtx_getvaloocstr(rtx, out_v, &len);
-		if (!out) goto oops;
-
-		if (len <= 0) 
-		{
-			/* the output destination name is empty. */
-			hawk_rtx_seterrfmt (rtx, &nde->loc, HAWK_EIONMEM, HAWK_T("empty I/O name"));
-			goto oops_1;
-		}
-
-		for (i = 0; i < len; i++)
-		{
-			if (out[i] == HAWK_T('\0'))
-			{
-				hawk_rtx_seterrfmt (rtx, &nde->loc, HAWK_EIONMNL, HAWK_T("invalid I/O name of length %zu containing '\\0'"), len); 
-
-				/* the output destination name contains a null 
-				 * character. */
-				goto oops_1;
-			}
-		}
+		out_v = io_nde_to_str(rtx, nde->out, &out, 1);
+		if (!out_v || out.len <= 0) goto oops_1;
 	}
-
-	dst = (out == HAWK_NULL)? HAWK_T(""): out;
+	else
+	{
+		out.ptr = (hawk_ooch_t*)HAWK_T("");
+		out.len = 0;
+	}
 
 	/*( valid printf statement should have at least one argument. the parser must ensure this. */
 	HAWK_ASSERT (nde->args != HAWK_NULL);
@@ -3129,7 +3120,7 @@ static int run_printf (hawk_rtx_t* rtx, hawk_nde_print_t* nde)
 	{
 		case HAWK_VAL_STR:
 			/* perform the formatted output */
-			n = output_formatted(rtx, nde->out_type, dst, ((hawk_val_str_t*)v)->val.ptr, ((hawk_val_str_t*)v)->val.len, head->next);
+			n = output_formatted(rtx, nde->out_type, out.ptr, ((hawk_val_str_t*)v)->val.ptr, ((hawk_val_str_t*)v)->val.len, head->next);
 			hawk_rtx_refdownval (rtx, v);
 			if (n <= -1)
 			{
@@ -3140,7 +3131,7 @@ static int run_printf (hawk_rtx_t* rtx, hawk_nde_print_t* nde)
 
 		case HAWK_VAL_MBS:
 			/* perform the formatted output */
-			n = output_formatted_bytes(rtx, nde->out_type, dst, ((hawk_val_mbs_t*)v)->val.ptr, ((hawk_val_mbs_t*)v)->val.len, head->next);
+			n = output_formatted_bytes(rtx, nde->out_type, out.ptr, ((hawk_val_mbs_t*)v)->val.ptr, ((hawk_val_mbs_t*)v)->val.len, head->next);
 			hawk_rtx_refdownval (rtx, v);
 			if (n <= -1)
 			{
@@ -3152,7 +3143,7 @@ static int run_printf (hawk_rtx_t* rtx, hawk_nde_print_t* nde)
 		default:
 			/* the remaining arguments are ignored as the format cannot 
 			 * contain any % characters. e.g. printf (1, "xxxx") */
-			n = hawk_rtx_writeioval(rtx, nde->out_type, dst, v);
+			n = hawk_rtx_writeioval(rtx, nde->out_type, out.ptr, v);
 			hawk_rtx_refdownval (rtx, v);
 
 			if (n <= -1 /*&& rtx->errinf.num != HAWK_EIOIMPL*/)
@@ -3163,7 +3154,7 @@ static int run_printf (hawk_rtx_t* rtx, hawk_nde_print_t* nde)
 			break;
 	}
 
-	if (hawk_rtx_flushio(rtx, nde->out_type, dst) <= -1)
+	if (hawk_rtx_flushio(rtx, nde->out_type, out.ptr) <= -1)
 	{
 		if (rtx->awk->opt.trait & HAWK_TOLERANT) xret = PRINT_IOERR;
 		else goto oops_1;
@@ -3171,7 +3162,7 @@ static int run_printf (hawk_rtx_t* rtx, hawk_nde_print_t* nde)
 
 	if (out_v)
 	{
-		if (out) hawk_rtx_freevaloocstr (rtx, out_v, out);
+		hawk_rtx_freevaloocstr (rtx, out_v, out.ptr);
 		hawk_rtx_refdownval (rtx, out_v);
 	}
 
@@ -3183,7 +3174,7 @@ oops:
 oops_1:
 	if (out_v)
 	{
-		if (out) hawk_rtx_freevaloocstr (rtx, out_v, out);
+		hawk_rtx_freevaloocstr (rtx, out_v, out.ptr);
 		hawk_rtx_refdownval (rtx, out_v);
 	}
 
@@ -6661,43 +6652,13 @@ static hawk_val_t* eval_pos (hawk_rtx_t* rtx, hawk_nde_t* nde)
 	return v;
 }
 
-static hawk_val_t* getline_target_nde_to_str(hawk_rtx_t* rtx, hawk_nde_t* nde, hawk_oocs_t* dst)
-{
-	hawk_oow_t len;
-	hawk_val_t* v;
-
-	v = eval_expression(rtx, nde);
-	if (!v) return HAWK_NULL;
-
-	hawk_rtx_refupval (rtx, v);
-	dst->ptr = hawk_rtx_getvaloocstr(rtx, v, &dst->len);
-	if (!dst) 
-	{
-		hawk_rtx_refdownval (rtx, v);
-		return HAWK_NULL;
-	}
-
-	len = dst->len;
-	while (len > 0)
-	{
-		if (dst->ptr[--len] == '\0')
-		{
-			dst->len = 0; /* indicate that the name is not valid */
-			break;
-		}
-	}
-
-	return v;
-}
-
 static hawk_val_t* __eval_getline (hawk_rtx_t* rtx, hawk_nde_t* nde)
 {
 	hawk_nde_getline_t* p;
-	hawk_val_t* v, * tmp;
+	hawk_val_t* v = HAWK_NULL, * tmp;
 	hawk_oocs_t dst;
 	hawk_ooecs_t* buf;
 	int n, x;
-	hawk_val_type_t vtype;
 
 	p = (hawk_nde_getline_t*)nde;
 
@@ -6709,10 +6670,8 @@ static hawk_val_t* __eval_getline (hawk_rtx_t* rtx, hawk_nde_t* nde)
 
 	if (p->in)
 	{
-		v = getline_target_nde_to_str(rtx, p->in, &dst);
-		if (!v) return HAWK_NULL;
-
-		if (dst.len <= 0) 
+		v = io_nde_to_str(rtx, p->in, &dst, 0);
+		if (!v || dst.len <= 0) 
 		{
 			hawk_rtx_freevaloocstr (rtx, v, dst.ptr);
 			hawk_rtx_refdownval (rtx, v);
@@ -6732,7 +6691,7 @@ read_console_again:
 
 	n = hawk_rtx_readio(rtx, p->in_type, dst.ptr, buf);
 
-	if (p->in) 
+	if (v) 
 	{
 		hawk_rtx_freevaloocstr (rtx, v, dst.ptr);
 		hawk_rtx_refdownval (rtx, v);
@@ -6801,11 +6760,10 @@ skip_read:
 static hawk_val_t* __eval_getbline (hawk_rtx_t* rtx, hawk_nde_t* nde)
 {
 	hawk_nde_getline_t* p;
-	hawk_val_t* v, * tmp;
+	hawk_val_t* v = HAWK_NULL, * tmp;
 	hawk_oocs_t dst;
 	hawk_becs_t* buf;
 	int n, x;
-	hawk_val_type_t vtype;
 
 	p = (hawk_nde_getline_t*)nde;
 
@@ -6817,10 +6775,8 @@ static hawk_val_t* __eval_getbline (hawk_rtx_t* rtx, hawk_nde_t* nde)
 
 	if (p->in)
 	{
-		v = getline_target_nde_to_str(rtx, p->in, &dst);
-		if (!v) return HAWK_NULL;
-
-		if (dst.len <= 0) 
+		v = io_nde_to_str(rtx, p->in, &dst, 0);
+		if (!v || dst.len <= 0) 
 		{
 			hawk_rtx_freevaloocstr (rtx, v, dst.ptr);
 			hawk_rtx_refdownval (rtx, v);
@@ -6840,7 +6796,7 @@ read_console_again:
 
 	n = hawk_rtx_readiobytes(rtx, p->in_type, dst.ptr, buf);
 
-	if (p->in) 
+	if (v) 
 	{
 		hawk_rtx_freevaloocstr (rtx, v, dst.ptr);
 		hawk_rtx_refdownval (rtx, v);
@@ -6854,7 +6810,7 @@ read_console_again:
 	else if (n > 0)
 	{
 #if 0
-/* the implementation is not perfect yet.
+/* the implementation is not perfect yet. */
 		if (p->in_type == HAWK_IN_CONSOLE)
 		{
 			HAWK_ASSERT (p->in == HAWK_NULL);
