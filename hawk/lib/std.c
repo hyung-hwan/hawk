@@ -1854,7 +1854,7 @@ static hawk_ooi_t pio_handler_rest (hawk_rtx_t* rtx, hawk_rio_cmd_t cmd, hawk_ri
 			return hawk_pio_read((hawk_pio_t*)riod->handle, HAWK_PIO_OUT, data, size);
 
 		case HAWK_RIO_CMD_READ_BYTES:
-			return hawk_pio_readbytes((hawk_pio_t*)riod->handle, HAWK_PIO_IN, data, size);
+			return hawk_pio_readbytes((hawk_pio_t*)riod->handle, HAWK_PIO_OUT, data, size);
 
 		case HAWK_RIO_CMD_WRITE:
 			return hawk_pio_write((hawk_pio_t*)riod->handle, HAWK_PIO_IN, data, size);
