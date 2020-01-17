@@ -2384,11 +2384,16 @@ hawk_ooi_t Hawk::pipeHandler (hawk_rtx_t* rtx, hawk_rio_cmd_t cmd, hawk_rio_arg_
 			{
 				case HAWK_RIO_CMD_OPEN:
 					return awk->pipe_handler->open(pipe);
+
 				case HAWK_RIO_CMD_CLOSE:
 					return awk->pipe_handler->close(pipe);
 
 				case HAWK_RIO_CMD_READ:
 					return awk->pipe_handler->read(pipe, (hawk_ooch_t*)data, count);
+
+				case HAWK_RIO_CMD_READ_BYTES:
+					return awk->pipe_handler->readBytes(pipe, (hawk_bch_t*)data, count);
+
 				case HAWK_RIO_CMD_WRITE:
 					return awk->pipe_handler->write(pipe, (const hawk_ooch_t*)data, count);
 				case HAWK_RIO_CMD_WRITE_BYTES:
@@ -2408,13 +2413,19 @@ hawk_ooi_t Hawk::pipeHandler (hawk_rtx_t* rtx, hawk_rio_cmd_t cmd, hawk_rio_arg_
 			{
 				case HAWK_RIO_CMD_OPEN:
 					return awk->openPipe(pipe);
+
 				case HAWK_RIO_CMD_CLOSE:
 					return awk->closePipe(pipe);
 
 				case HAWK_RIO_CMD_READ:
 					return awk->readPipe(pipe, (hawk_ooch_t*)data, count);
+
+				case HAWK_RIO_CMD_READ_BYTES:
+					return awk->readPipeBytes(pipe, (hawk_bch_t*)data, count);
+
 				case HAWK_RIO_CMD_WRITE:
 					return awk->writePipe(pipe, (const hawk_ooch_t*)data, count);
+
 				case HAWK_RIO_CMD_WRITE_BYTES:
 					return awk->writePipeBytes(pipe, (const hawk_bch_t*)data, count);
 	
@@ -2450,11 +2461,16 @@ hawk_ooi_t Hawk::fileHandler (hawk_rtx_t* rtx, hawk_rio_cmd_t cmd, hawk_rio_arg_
 			{
 				case HAWK_RIO_CMD_OPEN:
 					return awk->file_handler->open(file);
+
 				case HAWK_RIO_CMD_CLOSE:
 					return awk->file_handler->close(file);
 
 				case HAWK_RIO_CMD_READ:
 					return awk->file_handler->read(file, (hawk_ooch_t*)data, count);
+
+				case HAWK_RIO_CMD_READ_BYTES:
+					return awk->file_handler->readBytes(file, (hawk_bch_t*)data, count);
+
 				case HAWK_RIO_CMD_WRITE:
 					return awk->file_handler->write(file, (const hawk_ooch_t*)data, count);
 				case HAWK_RIO_CMD_WRITE_BYTES:
@@ -2474,13 +2490,19 @@ hawk_ooi_t Hawk::fileHandler (hawk_rtx_t* rtx, hawk_rio_cmd_t cmd, hawk_rio_arg_
 			{
 				case HAWK_RIO_CMD_OPEN:
 					return awk->openFile(file);
+
 				case HAWK_RIO_CMD_CLOSE:
 					return awk->closeFile(file);
 
 				case HAWK_RIO_CMD_READ:
 					return awk->readFile(file, (hawk_ooch_t*)data, count);
+
+				case HAWK_RIO_CMD_READ_BYTES:
+					return awk->readFileBytes(file, (hawk_bch_t*)data, count);
+
 				case HAWK_RIO_CMD_WRITE:
 					return awk->writeFile(file, (const hawk_ooch_t*)data, count);
+
 				case HAWK_RIO_CMD_WRITE_BYTES:
 					return awk->writeFileBytes(file, (const hawk_bch_t*)data, count);
 
@@ -2516,11 +2538,15 @@ hawk_ooi_t Hawk::consoleHandler (hawk_rtx_t* rtx, hawk_rio_cmd_t cmd, hawk_rio_a
 			{
 				case HAWK_RIO_CMD_OPEN:
 					return awk->console_handler->open(console);
+
 				case HAWK_RIO_CMD_CLOSE:
 					return awk->console_handler->close(console);
 
 				case HAWK_RIO_CMD_READ:
 					return awk->console_handler->read(console, (hawk_ooch_t*)data, count);
+
+				case HAWK_RIO_CMD_READ_BYTES:
+					return awk->console_handler->readBytes(console, (hawk_bch_t*)data, count);
 				case HAWK_RIO_CMD_WRITE:
 					return awk->console_handler->write(console, (const hawk_ooch_t*)data, count);
 				case HAWK_RIO_CMD_WRITE_BYTES:
@@ -2528,6 +2554,7 @@ hawk_ooi_t Hawk::consoleHandler (hawk_rtx_t* rtx, hawk_rio_cmd_t cmd, hawk_rio_a
 
 				case HAWK_RIO_CMD_FLUSH:
 					return awk->console_handler->flush(console);
+
 				case HAWK_RIO_CMD_NEXT:
 					return awk->console_handler->next(console);
 
@@ -2542,18 +2569,25 @@ hawk_ooi_t Hawk::consoleHandler (hawk_rtx_t* rtx, hawk_rio_cmd_t cmd, hawk_rio_a
 			{
 				case HAWK_RIO_CMD_OPEN:
 					return awk->openConsole(console);
+
 				case HAWK_RIO_CMD_CLOSE:
 					return awk->closeConsole(console);
 
 				case HAWK_RIO_CMD_READ:
 					return awk->readConsole(console, (hawk_ooch_t*)data, count);
+
+				case HAWK_RIO_CMD_READ_BYTES:
+					return awk->readConsoleBytes(console, (hawk_bch_t*)data, count);
+
 				case HAWK_RIO_CMD_WRITE:
 					return awk->writeConsole(console, (const hawk_ooch_t*)data, count);
+
 				case HAWK_RIO_CMD_WRITE_BYTES:
 					return awk->writeConsoleBytes(console, (const hawk_bch_t*)data, count);
 
 				case HAWK_RIO_CMD_FLUSH:
 					return awk->flushConsole(console);
+
 				case HAWK_RIO_CMD_NEXT:
 					return awk->nextConsole(console);
 
@@ -2582,6 +2616,12 @@ int Hawk::closePipe (Pipe& io)
 }
 
 hawk_ooi_t Hawk::readPipe (Pipe& io, hawk_ooch_t* buf, hawk_oow_t len)
+{
+	((Run*)io)->setError (HAWK_ENOIMPL);
+	return -1;
+}
+
+hawk_ooi_t Hawk::readPipeBytes (Pipe& io, hawk_bch_t* buf, hawk_oow_t len)
 {
 	((Run*)io)->setError (HAWK_ENOIMPL);
 	return -1;
@@ -2623,6 +2663,12 @@ hawk_ooi_t Hawk::readFile (File& io, hawk_ooch_t* buf, hawk_oow_t len)
 	return -1;
 }
 
+hawk_ooi_t Hawk::readFileBytes (File& io, hawk_bch_t* buf, hawk_oow_t len)
+{
+	((Run*)io)->setError (HAWK_ENOIMPL);
+	return -1;
+}
+
 hawk_ooi_t Hawk::writeFile (File& io, const hawk_ooch_t* buf, hawk_oow_t len)
 {
 	((Run*)io)->setError (HAWK_ENOIMPL);
@@ -2654,6 +2700,12 @@ int Hawk::closeConsole (Console& io)
 }
 
 hawk_ooi_t Hawk::readConsole (Console& io, hawk_ooch_t* buf, hawk_oow_t len)
+{
+	((Run*)io)->setError (HAWK_ENOIMPL);
+	return -1;
+}
+
+hawk_ooi_t Hawk::readConsoleBytes (Console& io, hawk_bch_t* buf, hawk_oow_t len)
 {
 	((Run*)io)->setError (HAWK_ENOIMPL);
 	return -1;

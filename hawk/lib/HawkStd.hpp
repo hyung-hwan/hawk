@@ -172,7 +172,8 @@ protected:
 	// pipe io handlers 
 	int openPipe (Pipe& io);
 	int closePipe (Pipe& io);
-	hawk_ooi_t readPipe  (Pipe& io, hawk_ooch_t* buf, hawk_oow_t len);
+	hawk_ooi_t readPipe (Pipe& io, hawk_ooch_t* buf, hawk_oow_t len);
+	hawk_ooi_t readPipeBytes (Pipe& io, hawk_bch_t* buf, hawk_oow_t len);
 	hawk_ooi_t writePipe (Pipe& io, const hawk_ooch_t* buf, hawk_oow_t len);
 	hawk_ooi_t writePipeBytes (Pipe& io, const hawk_bch_t* buf, hawk_oow_t len);
 	int flushPipe (Pipe& io);
@@ -181,6 +182,7 @@ protected:
 	int openFile (File& io);
 	int closeFile (File& io);
 	hawk_ooi_t readFile (File& io, hawk_ooch_t* buf, hawk_oow_t len);
+	hawk_ooi_t readFileBytes (File& io, hawk_bch_t* buf, hawk_oow_t len);
 	hawk_ooi_t writeFile (File& io, const hawk_ooch_t* buf, hawk_oow_t len);
 	hawk_ooi_t writeFileBytes (File& io, const hawk_bch_t* buf, hawk_oow_t len);
 	int flushFile (File& io);
@@ -189,15 +191,16 @@ protected:
 	int openConsole (Console& io);
 	int closeConsole (Console& io);
 	hawk_ooi_t readConsole (Console& io, hawk_ooch_t* buf, hawk_oow_t len);
+	hawk_ooi_t readConsoleBytes (Console& io, hawk_bch_t* buf, hawk_oow_t len);
 	hawk_ooi_t writeConsole (Console& io, const hawk_ooch_t* buf, hawk_oow_t len);
 	hawk_ooi_t writeConsoleBytes (Console& io, const hawk_bch_t* buf, hawk_oow_t len);
 	int flushConsole (Console& io);
 	int nextConsole (Console& io);
 
 	// primitive handlers 
-	void* allocMem   (hawk_oow_t n);
+	void* allocMem (hawk_oow_t n);
 	void* reallocMem (void* ptr, hawk_oow_t n);
-	void  freeMem    (void* ptr);
+	void  freeMem (void* ptr);
 
 	hawk_flt_t pow (hawk_flt_t x, hawk_flt_t y);
 	hawk_flt_t mod (hawk_flt_t x, hawk_flt_t y);
