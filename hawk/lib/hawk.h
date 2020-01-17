@@ -683,11 +683,16 @@ struct hawk_rio_arg_t
 
 	struct
 	{
-		hawk_ooch_t buf[2048];
+		struct
+		{
+			hawk_ooch_t buf[2048];
+			hawk_bch_t bbuf[2048];
+		} u;
 		hawk_oow_t pos;
 		hawk_oow_t len;
 		int        eof;
 		int        eos;
+		int        mbs;
 	} in;
 
 	struct
