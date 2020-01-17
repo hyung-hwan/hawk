@@ -95,7 +95,7 @@ static int out_mask_map[] =
 
 static int find_rio_in (
 	hawk_rtx_t* rtx, int in_type, const hawk_ooch_t* name,
-	hawk_rio_arg_t** rio, hawk_rio_impl_t* fun)
+	int mbs_if_new, hawk_rio_arg_t** rio, hawk_rio_impl_t* fun)
 {
 	hawk_rio_arg_t* p = rtx->rio.chain;
 	hawk_rio_impl_t handler;
@@ -133,10 +133,8 @@ static int find_rio_in (
 
 		/* if the name doesn't exist in the chain, create an entry
 		 * to the chain */
-		p = (hawk_rio_arg_t*)hawk_rtx_allocmem(rtx, HAWK_SIZEOF(hawk_rio_arg_t));
+		p = (hawk_rio_arg_t*)hawk_rtx_callocmem(rtx, HAWK_SIZEOF(hawk_rio_arg_t));
 		if (p == HAWK_NULL) return -1;
-
-		HAWK_MEMSET (p, 0, HAWK_SIZEOF(*p));
 
 		p->name = hawk_rtx_dupoocstr(rtx, name, HAWK_NULL);
 		if (p->name == HAWK_NULL)
@@ -159,6 +157,7 @@ static int find_rio_in (
 		p->in.eof = 0;
 		p->in.eos = 0;
 		*/
+		p->in.mbs = mbs_if_new;
 
 		/* request to open the stream */
 		x = handler(rtx, HAWK_RIO_CMD_OPEN, p, HAWK_NULL, 0);
@@ -366,8 +365,16 @@ int hawk_rtx_readio (hawk_rtx_t* rtx, int in_type, const hawk_ooch_t* name, hawk
 	hawk_oow_t line_len = 0;
 	hawk_ooch_t c = HAWK_T('\0'), pc;
 
-	if (find_rio_in(rtx, in_type, name, &p, &handler) <= -1) return -1;
+	if (find_rio_in(rtx, in_type, name, 0, &p, &handler) <= -1) return -1;
 	if (p->in.eos) return 0; /* no more streams left */
+	if (p->in.mbs) 
+	{
+		if (name[0] == '\0')
+			hawk_rtx_seterrfmt (rtx, HAWK_NULL, HAWK_EPERM, HAWK_T("disallowed mixed mode input"));
+		else
+			hawk_rtx_seterrfmt (rtx, HAWK_NULL, HAWK_EPERM, HAWK_T("disallowed mixed mode input on %js"), name);
+		return -1;
+	}
 
 	/* ready to read a record(typically a line). clear the buffer. */
 	hawk_ooecs_clear (buf);
@@ -405,7 +412,7 @@ int hawk_rtx_readio (hawk_rtx_t* rtx, int in_type, const hawk_ooch_t* name, hawk
 				break;
 			}
 
-			x = handler(rtx, HAWK_RIO_CMD_READ, p, p->in.buf, HAWK_COUNTOF(p->in.buf));
+			x = handler(rtx, HAWK_RIO_CMD_READ, p, p->in.u.buf, HAWK_COUNTOF(p->in.u.buf));
 			if (x <= -1)
 			{
 				ret = -1;
@@ -470,7 +477,7 @@ int hawk_rtx_readio (hawk_rtx_t* rtx, int in_type, const hawk_ooch_t* name, hawk
 			do
 			{
 				pc = c;
-				c = p->in.buf[p->in.pos++];
+				c = p->in.u.buf[p->in.pos++];
 				end_pos = p->in.pos;
 
 				/* TODO: handle different line terminator */
@@ -503,7 +510,7 @@ int hawk_rtx_readio (hawk_rtx_t* rtx, int in_type, const hawk_ooch_t* name, hawk
 			}
 			while (p->in.pos < p->in.len);
 
-			tmp = hawk_ooecs_ncat(buf, &p->in.buf[start_pos], end_pos - start_pos);
+			tmp = hawk_ooecs_ncat(buf, &p->in.u.buf[start_pos], end_pos - start_pos);
 			if (tmp == (hawk_oow_t)-1)
 			{
 				ret = -1;
@@ -519,7 +526,7 @@ int hawk_rtx_readio (hawk_rtx_t* rtx, int in_type, const hawk_ooch_t* name, hawk
 			do
 			{
 				pc = c;
-				c = p->in.buf[p->in.pos++];
+				c = p->in.u.buf[p->in.pos++];
 
 				/* TODO: handle different line terminator */
 				/* separate by a blank line */
@@ -607,7 +614,7 @@ int hawk_rtx_readio (hawk_rtx_t* rtx, int in_type, const hawk_ooch_t* name, hawk
 
 			do
 			{
-				c = p->in.buf[p->in.pos++];
+				c = p->in.u.buf[p->in.pos++];
 				end_pos = p->in.pos;
 				if (c == rrs.ptr[0])
 				{
@@ -617,7 +624,7 @@ int hawk_rtx_readio (hawk_rtx_t* rtx, int in_type, const hawk_ooch_t* name, hawk
 			}
 			while (p->in.pos < p->in.len);
 
-			tmp = hawk_ooecs_ncat(buf, &p->in.buf[start_pos], end_pos - start_pos);
+			tmp = hawk_ooecs_ncat(buf, &p->in.u.buf[start_pos], end_pos - start_pos);
 			if (tmp == (hawk_oow_t)-1)
 			{
 				ret = -1;
@@ -639,7 +646,7 @@ int hawk_rtx_readio (hawk_rtx_t* rtx, int in_type, const hawk_ooch_t* name, hawk
 			 * to the buffer, it is the longest match.
 			 */
 
-			tmp = hawk_ooecs_ncat(buf, &p->in.buf[p->in.pos], p->in.len - p->in.pos);
+			tmp = hawk_ooecs_ncat(buf, &p->in.u.buf[p->in.pos], p->in.len - p->in.pos);
 			if (tmp == (hawk_oow_t)-1)
 			{
 				ret = -1;
@@ -676,8 +683,16 @@ int hawk_rtx_readiobytes (hawk_rtx_t* rtx, int in_type, const hawk_ooch_t* name,
 	hawk_oow_t line_len = 0;
 	hawk_bch_t c = '\0', pc;
 
-	if (find_rio_in(rtx, in_type, name, &p, &handler) <= -1) return -1;
+	if (find_rio_in(rtx, in_type, name, 1, &p, &handler) <= -1) return -1;
 	if (p->in.eos) return 0; /* no more streams left */
+	if (!p->in.mbs)
+	{
+		if (name[0] == '\0')
+			hawk_rtx_seterrfmt (rtx, HAWK_NULL, HAWK_EPERM, HAWK_T("disallowed mixed mode input"));
+		else
+			hawk_rtx_seterrfmt (rtx, HAWK_NULL, HAWK_EPERM, HAWK_T("disallowed mixed mode input on %js"), name);
+		return -1;
+	}
 
 	/* ready to read a record(typically a line). clear the buffer. */
 	hawk_becs_clear (buf);
@@ -693,7 +708,6 @@ int hawk_rtx_readiobytes (hawk_rtx_t* rtx, int in_type, const hawk_ooch_t* name,
 	}
 
 	ret = 1;
-
 
 	/* call the I/O handler */
 	while (1)
@@ -716,7 +730,7 @@ int hawk_rtx_readiobytes (hawk_rtx_t* rtx, int in_type, const hawk_ooch_t* name,
 				break;
 			}
 
-			x = handler(rtx, HAWK_RIO_CMD_READ_BYTES, p, (hawk_bch_t*)p->in.buf, HAWK_SIZEOF(p->in.buf));
+			x = handler(rtx, HAWK_RIO_CMD_READ_BYTES, p, p->in.u.bbuf, HAWK_COUNTOF(p->in.u.bbuf));
 			if (x <= -1)
 			{
 				ret = -1;
@@ -781,7 +795,7 @@ int hawk_rtx_readiobytes (hawk_rtx_t* rtx, int in_type, const hawk_ooch_t* name,
 			do
 			{
 				pc = c;
-				c = p->in.buf[p->in.pos++];
+				c = p->in.u.bbuf[p->in.pos++];
 				end_pos = p->in.pos;
 
 				/* TODO: handle different line terminator */
@@ -814,7 +828,7 @@ int hawk_rtx_readiobytes (hawk_rtx_t* rtx, int in_type, const hawk_ooch_t* name,
 			}
 			while (p->in.pos < p->in.len);
 
-			tmp = hawk_becs_ncat(buf, &((hawk_bch_t*)p->in.buf)[start_pos], end_pos - start_pos);
+			tmp = hawk_becs_ncat(buf, &p->in.u.bbuf[start_pos], end_pos - start_pos);
 			if (tmp == (hawk_oow_t)-1)
 			{
 				ret = -1;
@@ -830,7 +844,7 @@ int hawk_rtx_readiobytes (hawk_rtx_t* rtx, int in_type, const hawk_ooch_t* name,
 			do
 			{
 				pc = c;
-				c = p->in.buf[p->in.pos++];
+				c = p->in.u.bbuf[p->in.pos++];
 
 				/* TODO: handle different line terminator */
 				/* separate by a blank line */
@@ -918,7 +932,7 @@ int hawk_rtx_readiobytes (hawk_rtx_t* rtx, int in_type, const hawk_ooch_t* name,
 
 			do
 			{
-				c = p->in.buf[p->in.pos++];
+				c = p->in.u.bbuf[p->in.pos++];
 				end_pos = p->in.pos;
 				if (c == rrs.ptr[0])
 				{
@@ -928,7 +942,7 @@ int hawk_rtx_readiobytes (hawk_rtx_t* rtx, int in_type, const hawk_ooch_t* name,
 			}
 			while (p->in.pos < p->in.len);
 
-			tmp = hawk_becs_ncat(buf, &((hawk_bch_t*)p->in.buf)[start_pos], end_pos - start_pos);
+			tmp = hawk_becs_ncat(buf, &p->in.u.bbuf[start_pos], end_pos - start_pos);
 			if (tmp == (hawk_oow_t)-1)
 			{
 				ret = -1;
@@ -950,7 +964,7 @@ int hawk_rtx_readiobytes (hawk_rtx_t* rtx, int in_type, const hawk_ooch_t* name,
 			 * to the buffer, it is the longest match.
 			 */
 
-			tmp = hawk_becs_ncat(buf, &((hawk_bch_t*)p->in.buf)[p->in.pos], p->in.len - p->in.pos);
+			tmp = hawk_becs_ncat(buf, &p->in.u.bbuf[p->in.pos], p->in.len - p->in.pos);
 			if (tmp == (hawk_oow_t)-1)
 			{
 				ret = -1;

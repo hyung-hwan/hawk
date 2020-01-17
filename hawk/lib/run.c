@@ -6809,8 +6809,6 @@ read_console_again:
 	}
 	else if (n > 0)
 	{
-#if 0
-/* the implementation is not perfect yet. */
 		if (p->in_type == HAWK_IN_CONSOLE)
 		{
 			HAWK_ASSERT (p->in == HAWK_NULL);
@@ -6826,14 +6824,15 @@ read_console_again:
 				}
 			}
 		}
-#endif
+
 		if (p->var == HAWK_NULL)
 		{
 			/* set $0 with the input value */
 			/*x = hawk_rtx_setbrec(rtx, 0, HAWK_BECS_BCS(buf));
 			if (x <= -1) return HAWK_NULL;*/
 /* TODO: can i support this? */
-			hawk_rtx_seterrbfmt(rtx, &nde->loc, HAWK_ENOIMPL, "getbline without a variable not supported");
+			hawk_rtx_seterrfmt(rtx, &nde->loc, HAWK_ENOIMPL, HAWK_T("getbline without a variable not supported"));
+			return HAWK_NULL;
 		}
 		else
 		{
@@ -6852,14 +6851,12 @@ read_console_again:
 			if (tmp == HAWK_NULL) return HAWK_NULL;
 		}
 
-#if 0
 		/* update FNR & NR if reading from console */
 		if (p->in_type == HAWK_IN_CONSOLE &&
 		    update_fnr(rtx, rtx->gbl.fnr + 1, rtx->gbl.nr + 1) <= -1) 
 		{
 			return HAWK_NULL;
 		}
-#endif
 	}
 	
 skip_read:
