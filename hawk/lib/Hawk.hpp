@@ -680,12 +680,13 @@ public:
 		public:
 			virtual ~Handler () {}
 
-			virtual int     open  (Pipe& io) = 0;
-			virtual int     close (Pipe& io) = 0;
+			virtual int open (Pipe& io) = 0;
+			virtual int close (Pipe& io) = 0;
 			virtual hawk_ooi_t read  (Pipe& io, hawk_ooch_t* buf, hawk_oow_t len) = 0;
+			virtual hawk_ooi_t readBytes (Pipe& io, hawk_bch_t* buf, hawk_oow_t len) = 0;
 			virtual hawk_ooi_t write (Pipe& io, const hawk_ooch_t* buf, hawk_oow_t len) = 0;
 			virtual hawk_ooi_t writeBytes (Pipe& io, const hawk_bch_t* buf, hawk_oow_t len) = 0;
-			virtual int     flush (Pipe& io) = 0;
+			virtual int flush (Pipe& io) = 0;
 		};
 
 	protected:
@@ -725,12 +726,13 @@ public:
 		public:
 			virtual ~Handler () {}
 
-			virtual int     open  (File& io) = 0;
-			virtual int     close (File& io) = 0;
-			virtual hawk_ooi_t read  (File& io, hawk_ooch_t* buf, hawk_oow_t len) = 0;
+			virtual int open (File& io) = 0;
+			virtual int close (File& io) = 0;
+			virtual hawk_ooi_t read (File& io, hawk_ooch_t* buf, hawk_oow_t len) = 0;
+			virtual hawk_ooi_t readBytes (File& io, hawk_bch_t* buf, hawk_oow_t len) = 0;
 			virtual hawk_ooi_t write (File& io, const hawk_ooch_t* buf, hawk_oow_t len) = 0;
 			virtual hawk_ooi_t writeBytes (File& io, const hawk_bch_t* buf, hawk_oow_t len) = 0;
-			virtual int     flush (File& io) = 0;
+			virtual int flush (File& io) = 0;
 		};
 
 	protected:
@@ -784,7 +786,9 @@ public:
 			/// data not more than \a len characters and return the
 			/// number of characters filled into the buufer. It can
 			/// return 0 to indicate EOF and -1 for failure.
-			virtual hawk_ooi_t read  (Console& io, hawk_ooch_t* buf, hawk_oow_t len) = 0;
+			virtual hawk_ooi_t read (Console& io, hawk_ooch_t* buf, hawk_oow_t len) = 0;
+
+			virtual hawk_ooi_t readBytes (Console& io, hawk_bch_t* buf, hawk_oow_t len) = 0;
 
 			/// The write() function is called when the console
 			/// is written for output. It can write upto \a len characters
@@ -1670,10 +1674,11 @@ protected:
 	/// on success and -1 on failure.
 	virtual int     closePipe (Pipe& io);
 
-	virtual hawk_ooi_t readPipe  (Pipe& io, hawk_ooch_t* buf, hawk_oow_t len);
+	virtual hawk_ooi_t readPipe (Pipe& io, hawk_ooch_t* buf, hawk_oow_t len);
+	virtual hawk_ooi_t readPipeBytes (Pipe& io, hawk_bch_t* buf, hawk_oow_t len);
 	virtual hawk_ooi_t writePipe (Pipe& io, const hawk_ooch_t* buf, hawk_oow_t len);
 	virtual hawk_ooi_t writePipeBytes (Pipe& io, const hawk_bch_t* buf, hawk_oow_t len);
-	virtual int     flushPipe (Pipe& io);
+	virtual int flushPipe (Pipe& io);
 	/// \}
 
 	/// 
@@ -1682,12 +1687,13 @@ protected:
 	/// if no external file handler is set with setFileHandler().
 	/// \{
 	///
-	virtual int     openFile  (File& io);
-	virtual int     closeFile (File& io);
-	virtual hawk_ooi_t readFile  (File& io, hawk_ooch_t* buf, hawk_oow_t len);
+	virtual int openFile (File& io);
+	virtual int closeFile (File& io);
+	virtual hawk_ooi_t readFile (File& io, hawk_ooch_t* buf, hawk_oow_t len);
+	virtual hawk_ooi_t readFileBytes (File& io, hawk_bch_t* buf, hawk_oow_t len);
 	virtual hawk_ooi_t writeFile (File& io, const hawk_ooch_t* buf, hawk_oow_t len);
 	virtual hawk_ooi_t writeFileBytes (File& io, const hawk_bch_t* buf, hawk_oow_t len);
-	virtual int     flushFile (File& io);
+	virtual int flushFile (File& io);
 	/// \}
 
 	/// 
@@ -1696,13 +1702,14 @@ protected:
 	/// if no external console handler is set with setConsoleHandler().
 	/// \{
 	///
-	virtual int     openConsole  (Console& io);
-	virtual int     closeConsole (Console& io);
-	virtual hawk_ooi_t readConsole  (Console& io, hawk_ooch_t* buf, hawk_oow_t len);
+	virtual int openConsole (Console& io);
+	virtual int closeConsole (Console& io);
+	virtual hawk_ooi_t readConsole (Console& io, hawk_ooch_t* buf, hawk_oow_t len);
+	virtual hawk_ooi_t readConsoleBytes (Console& io, hawk_bch_t* buf, hawk_oow_t len);
 	virtual hawk_ooi_t writeConsole (Console& io, const hawk_ooch_t* buf, hawk_oow_t len);
 	virtual hawk_ooi_t writeConsoleBytes (Console& io, const hawk_bch_t* buf, hawk_oow_t len);
-	virtual int     flushConsole (Console& io);
-	virtual int     nextConsole  (Console& io);
+	virtual int flushConsole (Console& io);
+	virtual int nextConsole (Console& io);
 	/// \}
 
 	// primitive handlers 

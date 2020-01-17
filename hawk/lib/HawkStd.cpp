@@ -682,10 +682,21 @@ hawk_ooi_t HawkStd::readPipe (Pipe& io, hawk_ooch_t* buf, hawk_oow_t len)
 { 
 #if defined(ENABLE_NWIO)
 	return (io.getUflags() > 0)?
-		hawk_nwio_read ((hawk_nwio_t*)io.getHandle(), buf, len):
-		hawk_pio_read ((hawk_pio_t*)io.getHandle(), HAWK_PIO_OUT, buf, len);
+		hawk_nwio_read((hawk_nwio_t*)io.getHandle(), buf, len):
+		hawk_pio_read((hawk_pio_t*)io.getHandle(), HAWK_PIO_OUT, buf, len);
 #else
-	return hawk_pio_read ((hawk_pio_t*)io.getHandle(), HAWK_PIO_OUT, buf, len);
+	return hawk_pio_read((hawk_pio_t*)io.getHandle(), HAWK_PIO_OUT, buf, len);
+#endif
+}
+
+hawk_ooi_t HawkStd::readPipeBytes (Pipe& io, hawk_bch_t* buf, hawk_oow_t len) 
+{ 
+#if defined(ENABLE_NWIO)
+	return (io.getUflags() > 0)?
+		hawk_nwio_readbytes((hawk_nwio_t*)io.getHandle(), buf, len):
+		hawk_pio_readbytes((hawk_pio_t*)io.getHandle(), HAWK_PIO_OUT, buf, len);
+#else
+	return hawk_pio_readbytes((hawk_pio_t*)io.getHandle(), HAWK_PIO_OUT, buf, len);
 #endif
 }
 
@@ -763,6 +774,11 @@ hawk_ooi_t HawkStd::readFile (File& io, hawk_ooch_t* buf, hawk_oow_t len)
 	return hawk_sio_getoochars((hawk_sio_t*)io.getHandle(), buf, len);
 }
 
+hawk_ooi_t HawkStd::readFileBytes (File& io, hawk_bch_t* buf, hawk_oow_t len) 
+{
+	return hawk_sio_getbchars((hawk_sio_t*)io.getHandle(), buf, len);
+}
+
 hawk_ooi_t HawkStd::writeFile (File& io, const hawk_ooch_t* buf, hawk_oow_t len)
 {
 	return hawk_sio_putoochars((hawk_sio_t*)io.getHandle(), buf, len);
@@ -772,7 +788,6 @@ hawk_ooi_t HawkStd::writeFileBytes (File& io, const hawk_bch_t* buf, hawk_oow_t 
 {
 	return hawk_sio_putbchars((hawk_sio_t*)io.getHandle(), buf, len);
 }
-
 
 int HawkStd::flushFile (File& io) 
 { 
@@ -1070,12 +1085,36 @@ hawk_ooi_t HawkStd::readConsole (Console& io, hawk_ooch_t* data, hawk_oow_t size
 {
 	hawk_ooi_t nn;
 
-	while ((nn = hawk_sio_getoochars((hawk_sio_t*)io.getHandle(),data,size)) == 0)
+	while ((nn = hawk_sio_getoochars((hawk_sio_t*)io.getHandle(), data, size)) == 0)
 	{
 		int n;
 		hawk_sio_t* sio = (hawk_sio_t*)io.getHandle();
 
-		n = open_console_in (io);
+		n = open_console_in(io);
+		if (n == -1) return -1;
+
+		if (n == 0) 
+		{
+			/* no more input console */
+			return 0;
+		}
+
+		if (sio) hawk_sio_close (sio);
+	}
+
+	return nn;
+}
+
+hawk_ooi_t HawkStd::readConsoleBytes (Console& io, hawk_bch_t* data, hawk_oow_t size) 
+{
+	hawk_ooi_t nn;
+
+	while ((nn = hawk_sio_getbchars((hawk_sio_t*)io.getHandle(), data, size)) == 0)
+	{
+		int n;
+		hawk_sio_t* sio = (hawk_sio_t*)io.getHandle();
+
+		n = open_console_in(io);
 		if (n == -1) return -1;
 
 		if (n == 0) 
