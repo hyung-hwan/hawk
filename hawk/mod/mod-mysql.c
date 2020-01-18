@@ -1179,6 +1179,16 @@ oops:
 	return -1;
 }
 
+struct param_data_t
+{
+	union
+	{
+		long long int llv;
+		double dv;
+	} u;
+};
+typedef struct param_data_t param_data_t;
+
 static int fnc_stmt_bind_param (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	sql_list_t* sql_list;
@@ -1186,6 +1196,8 @@ static int fnc_stmt_bind_param (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	stmt_list_t* stmt_list;
 	stmt_node_t* stmt_node;
 	int ret = -1;
+	MYSQL_BIND* binds = HAWK_NULL;
+	param_data_t* param_data = HAWK_NULL;
 
 	sql_list = rtx_to_sql_list(rtx, fi);
 	stmt_list = rtx_to_stmt_list(rtx, fi);
@@ -1194,12 +1206,13 @@ static int fnc_stmt_bind_param (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	if (stmt_node)
 	{
 		hawk_oow_t nargs, i;
-		MYSQL_BIND* binds;
+		hawk_oow_t param_count;
 
 		ENSURE_CONNECT_EVER_ATTEMPTED(rtx, sql_list, sql_node);
 
 		nargs = hawk_rtx_getnargs(rtx);
-		if (nargs - 1 != mysql_stmt_param_count(stmt_node->stmt))
+		param_count = mysql_stmt_param_count(stmt_node->stmt);
+		if (nargs - 1 != param_count * 2)
 		{
 			set_error_on_sql_list (rtx, sql_list, HAWK_T("invalid number of pramaters"));
 			goto done;
@@ -1207,45 +1220,69 @@ static int fnc_stmt_bind_param (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		binds = hawk_rtx_callocmem(rtx, HAWK_SIZEOF(MYSQL_BIND) * (nargs - 1));
 		if (!binds) goto done;
 
-int int_data[100];
-		for (i = 1; i < nargs; i++)
+		param_data = hawk_rtx_allocmem(rtx, HAWK_SIZEOF(param_data_t) * (nargs - 1));
+		if (!param_data) goto done;
+
+		for (i = 1; i < nargs; i += 2)
 		{
-			hawk_val_t* a;
+			hawk_val_t* ta, * va;
 			hawk_oow_t j;
-			int x, y;
+			hawk_int_t type;
 
-			a = hawk_rtx_getarg(rtx, i);
-			j = i - 1;
-			switch (HAWK_RTX_GETVALTYPE(rtx, a))
+			ta = hawk_rtx_getarg(rtx, i);
+			va = hawk_rtx_getarg(rtx, i + 1);
+			j = (i >> 1);
+
+			if (hawk_rtx_valtoint(rtx, ta, &type) <= -1) goto done;
+
+			switch (type)
 			{
-				case HAWK_VAL_STR:
-					break;
-				case HAWK_VAL_MBS:
-					break;
+				case MYSQL_TYPE_LONG:
+				{
+					hawk_int_t iv;
 
-				case HAWK_VAL_INT:
-					binds[j].buffer_type = MYSQL_TYPE_LONG;
-					binds[j].buffer = &int_data[j];
+					if (hawk_rtx_valtoint(rtx, va, &iv) <= -1) goto done;
+					binds[j].buffer_type = MYSQL_TYPE_LONGLONG;
+					binds[j].buffer = &param_data[j].u.llv;
 					binds[j].is_null = 0;
 					binds[j].is_unsigned = 0;
 					binds[j].length = HAWK_NULL;
+					param_data[j].u.llv = iv;
+					break;
+				}
 
-					int_data[j] = HAWK_RTX_GETINTFROMVAL(rtx, a);
+				case MYSQL_TYPE_FLOAT:
+				{
+					hawk_flt_t fv;
+
+					if (hawk_rtx_valtoflt(rtx, va, &fv) <= -1) goto done;
+					binds[j].buffer_type = MYSQL_TYPE_LONGLONG;
+					binds[j].buffer = &param_data[j].u.dv;
+					binds[j].is_null = 0;
+					binds[j].is_unsigned = 0;
+					binds[j].length = HAWK_NULL;
+					param_data[j].u.dv = fv;
+					break;
+				}
+
+				case MYSQL_TYPE_STRING:
+					binds[j].buffer_type = MYSQL_TYPE_STRING;
 					break;
 
-				case HAWK_VAL_FLT:
+				case MYSQL_TYPE_BLOB:
+					binds[j].buffer_type = MYSQL_TYPE_BLOB;
 					break;
 
 				default:
-					set_error_on_sql_list (rtx, sql_list, HAWK_T("invalid parameter"));
+					set_error_on_sql_list (rtx, sql_list, HAWK_T("invalid value type"));
 					goto done;
 			}
+
 		}
 
 		if (mysql_stmt_bind_param(stmt_node->stmt, binds) != 0)
 		{
 			set_error_on_sql_list (rtx, sql_list, HAWK_T("%hs"), mysql_stmt_error(stmt_node->stmt));
-			hawk_rtx_freemem (rtx, binds);
 			goto done;
 		}
 
@@ -1255,11 +1292,12 @@ int int_data[100];
 			goto done;
 		}
 
-		hawk_rtx_freemem (rtx, binds);
 		ret = 0;
 	}
 
 done:
+	if (param_data) hawk_rtx_freemem (rtx, param_data);
+	if (binds) hawk_rtx_freemem (rtx, binds);
 	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, ret));
 	return 0;
 }
@@ -1349,7 +1387,12 @@ static inttab_t inttab[] =
 #else
 	{ HAWK_T("OPT_RECONNECT"),       { DUMMY_OPT_RECONNECT       } },
 #endif
-	{ HAWK_T("OPT_WRITE_TIMEOUT"),   { MYSQL_OPT_WRITE_TIMEOUT   } }
+	{ HAWK_T("OPT_WRITE_TIMEOUT"),   { MYSQL_OPT_WRITE_TIMEOUT   } },
+
+	{ HAWK_T("TYPE_BIN"),            { MYSQL_TYPE_BLOB           } },
+	{ HAWK_T("TYPE_FLT"),            { MYSQL_TYPE_FLOAT          } },
+	{ HAWK_T("TYPE_INT"),            { MYSQL_TYPE_LONG           } },
+	{ HAWK_T("TYPE_STR"),            { MYSQL_TYPE_STRING         } }
 };
 
 static int query (hawk_mod_t* mod, hawk_t* awk, const hawk_ooch_t* name, hawk_mod_sym_t* sym)
