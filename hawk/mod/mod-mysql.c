@@ -1181,8 +1181,87 @@ oops:
 
 static int fnc_stmt_bind_param (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
-	/* TODO: */
-	return -1;
+	sql_list_t* sql_list;
+	sql_node_t* sql_node;
+	stmt_list_t* stmt_list;
+	stmt_node_t* stmt_node;
+	int ret = -1;
+
+	sql_list = rtx_to_sql_list(rtx, fi);
+	stmt_list = rtx_to_stmt_list(rtx, fi);
+	sql_node = get_sql_list_node_with_arg(rtx, sql_list, hawk_rtx_getarg(rtx, 0));
+	stmt_node = get_stmt_list_node_with_arg(rtx, sql_list, stmt_list, hawk_rtx_getarg(rtx, 0));
+	if (stmt_node)
+	{
+		hawk_oow_t nargs, i;
+		MYSQL_BIND* binds;
+
+		ENSURE_CONNECT_EVER_ATTEMPTED(rtx, sql_list, sql_node);
+
+		nargs = hawk_rtx_getnargs(rtx);
+		if (nargs - 1 != mysql_stmt_param_count(stmt_node->stmt))
+		{
+			set_error_on_sql_list (rtx, sql_list, HAWK_T("invalid number of pramaters"));
+			goto done;
+		}
+		binds = hawk_rtx_callocmem(rtx, HAWK_SIZEOF(MYSQL_BIND) * (nargs - 1));
+		if (!binds) goto done;
+
+int int_data[100];
+		for (i = 1; i < nargs; i++)
+		{
+			hawk_val_t* a;
+			hawk_oow_t j;
+			int x, y;
+
+			a = hawk_rtx_getarg(rtx, i);
+			j = i - 1;
+			switch (HAWK_RTX_GETVALTYPE(rtx, a))
+			{
+				case HAWK_VAL_STR:
+					break;
+				case HAWK_VAL_MBS:
+					break;
+
+				case HAWK_VAL_INT:
+					binds[j].buffer_type = MYSQL_TYPE_LONG;
+					binds[j].buffer = &int_data[j];
+					binds[j].is_null = 0;
+					binds[j].is_unsigned = 0;
+					binds[j].length = HAWK_NULL;
+
+					int_data[j] = HAWK_RTX_GETINTFROMVAL(rtx, a);
+					break;
+
+				case HAWK_VAL_FLT:
+					break;
+
+				default:
+					set_error_on_sql_list (rtx, sql_list, HAWK_T("invalid parameter"));
+					goto done;
+			}
+		}
+
+		if (mysql_stmt_bind_param(stmt_node->stmt, binds) != 0)
+		{
+			set_error_on_sql_list (rtx, sql_list, HAWK_T("%hs"), mysql_stmt_error(stmt_node->stmt));
+			hawk_rtx_freemem (rtx, binds);
+			goto done;
+		}
+
+		if (mysql_stmt_execute(stmt_node->stmt) != 0)
+		{
+			set_error_on_sql_list (rtx, sql_list, HAWK_T("%hs"), mysql_stmt_error(stmt_node->stmt));
+			goto done;
+		}
+
+		hawk_rtx_freemem (rtx, binds);
+		ret = 0;
+	}
+
+done:
+	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, ret));
+	return 0;
 }
 
 static int fnc_stmt_execute (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
@@ -1251,7 +1330,7 @@ static fnctab_t fnctab[] =
 	{ HAWK_T("select_db"),         { { 2, 2, HAWK_NULL },     fnc_select_db,       0 } },
 	{ HAWK_T("set_option"),        { { 3, 3, HAWK_NULL },     fnc_set_option,      0 } },
 
-	{ HAWK_T("stmt_bind_param"),   { { 1, 1, HAWK_NULL },     fnc_stmt_bind_param, 0 } },
+	{ HAWK_T("stmt_bind_param"),   { { 1, A_MAX, HAWK_NULL }, fnc_stmt_bind_param, 0 } },
 	{ HAWK_T("stmt_close"),        { { 1, 1, HAWK_NULL },     fnc_stmt_close,      0 } },
 	{ HAWK_T("stmt_execute"),      { { 1, 1, HAWK_NULL },     fnc_stmt_execute,    0 } },
 	{ HAWK_T("stmt_init"),         { { 1, 1, HAWK_NULL },     fnc_stmt_init,       0 } },

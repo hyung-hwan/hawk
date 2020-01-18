@@ -1013,7 +1013,7 @@ static int fmt_outv (hawk_fmtout_t* fmtout, va_list ap)
 			if (!fmtout->putobj) goto invalid_format;
 			if (fmtout->putobj(fmtout, va_arg(ap, hawk_val_t*)) <= -1) goto oops;
 			break;
-				
+
 		case 'e':
 		case 'E':
 		case 'f':
