@@ -7794,7 +7794,7 @@ wp_mod_main:
 				}
 				else 
 				{
-					v = eval_expression (rtx, args);
+					v = eval_expression(rtx, args);
 					if (v == HAWK_NULL) return HAWK_NULL;
 				}
 			}
