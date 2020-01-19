@@ -43,7 +43,7 @@ hawk_val_t* hawk_get_awk_nil_val (void)
 
 int hawk_rtx_isnilval (hawk_rtx_t* rtx, hawk_val_t* val)
 {
-	return val->v_type == HAWK_VAL_NIL;
+	return val == (hawk_val_t*)&awk_nil || (HAWK_VTR_IS_POINTER(val) && val->v_type == HAWK_VAL_NIL);
 }
 
 hawk_val_t* hawk_rtx_makenilval (hawk_rtx_t* rtx)
