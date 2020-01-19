@@ -6212,12 +6212,29 @@ static hawk_oow_t push_arg_from_nde (hawk_rtx_t* rtx, hawk_nde_fncall_t* call, v
 	hawk_val_t* v;
 	hawk_oow_t nargs;
 	const hawk_ooch_t* fnc_arg_spec = (const hawk_ooch_t*)data;
+	hawk_oow_t spec_len;
 
+	spec_len = fnc_arg_spec? hawk_count_oocstr(fnc_arg_spec): 0;
 	for (p = call->args, nargs = 0; p != HAWK_NULL; p = p->next, nargs++)
 	{
-		/* if fnc_arg_spec is to be provided, it must contain as many characters as nargs */
+		hawk_ooch_t spec;
 
-		if (fnc_arg_spec && fnc_arg_spec[nargs] == HAWK_T('r'))
+		if (spec_len > 0)
+		{
+			if (nargs >= spec_len)
+			{
+				/* not sufficient number of spec characters given.
+				 * take the last value and use it */
+				spec = fnc_arg_spec[spec_len - 1]; 
+			}
+			else
+			{
+				spec = fnc_arg_spec[nargs];
+			}
+		}
+		else spec = '\0';
+
+		if (spec == 'r')
 		{
 			hawk_val_t** ref;
 
@@ -6230,10 +6247,9 @@ static hawk_oow_t push_arg_from_nde (hawk_rtx_t* rtx, hawk_nde_fncall_t* call, v
 			/* 'p->type - HAWK_NDE_NAMED' must produce a relevant HAWK_VAL_REF_XXX value. */
 			v = hawk_rtx_makerefval(rtx, p->type - HAWK_NDE_NAMED, ref);
 		}
-		else if (fnc_arg_spec && fnc_arg_spec[nargs] == HAWK_T('x'))
+		else if (spec == 'x')
 		{
-			/* a regular expression is passed to 
-			 * the function as it is */
+			/* a regular expression is passed to the function as it is */
 			v = eval_expression0(rtx, p);
 		}
 		else
