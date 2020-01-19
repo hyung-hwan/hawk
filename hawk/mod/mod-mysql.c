@@ -1374,7 +1374,7 @@ static int fnc_stmt_execute (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 					data->u.dv = fv;
 					data->is_null = hawk_rtx_isnilval(rtx, va);
 
-					bind->buffer_type = MYSQL_TYPE_LONGLONG;
+					bind->buffer_type = MYSQL_TYPE_DOUBLE;
 					bind->buffer = &data->u.dv;
 					bind->is_null = &data->is_null;
 					break;
@@ -1468,23 +1468,29 @@ static int fnc_stmt_execute (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			HAWK_MEMSET (stmt_node->res_binds, 0, HAWK_SIZEOF(MYSQL_BIND)* stmt_node->res_capa);
 			HAWK_MEMSET (stmt_node->res_data, 0, HAWK_SIZEOF(res_data_t)* stmt_node->res_capa);
 
-			bind = &stmt_node->res_binds[i];
-			data = &stmt_node->res_data[i];
+			
 			for (i = 0; i < ncols; i++)
 			{
 /* TOOD: more types... */
+				bind = &stmt_node->res_binds[i];
+				data = &stmt_node->res_data[i];
+
 				switch(cinfo[i].type)
 				{
+					case MYSQL_TYPE_LONGLONG:
 					case MYSQL_TYPE_LONG:
 					case MYSQL_TYPE_SHORT:
-						bind->buffer_type = MYSQL_TYPE_LONG;
-						bind->buffer = &data[i].u.llv;
+					case MYSQL_TYPE_TINY:
+					case MYSQL_TYPE_BIT:
+					case MYSQL_TYPE_INT24:
+						bind->buffer_type = MYSQL_TYPE_LONGLONG;
+						bind->buffer = &data->u.llv;
 						break;
 
 					case MYSQL_TYPE_FLOAT:
 					case MYSQL_TYPE_DOUBLE:
 						bind->buffer_type = MYSQL_TYPE_DOUBLE;
-						bind->buffer = &data[i].u.dv;
+						bind->buffer = &data->u.dv;
 						break;
 
 					case MYSQL_TYPE_STRING:
@@ -1493,23 +1499,25 @@ static int fnc_stmt_execute (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 						bind->buffer_type = MYSQL_TYPE_STRING;
 
 					res_string:
-						data[i].u.sv.ptr = hawk_rtx_allocmem(rtx, cinfo[i].length + 1);
-						if (!data[i].u.sv.ptr) { take_rtx_err = 1; goto done; }
-						data[i].u.sv.len = cinfo[i].length + 1;
+						data->u.sv.ptr = hawk_rtx_allocmem(rtx, cinfo[i].length + 1);
+						if (!data->u.sv.ptr) { take_rtx_err = 1; goto done; }
+						data->u.sv.len = 0;
 
-printf ("XX %d XX\n", data[i].u.sv.len);
-
-
-						bind->buffer = data[i].u.sv.ptr;
+						bind->buffer = data->u.sv.ptr;
 						bind->buffer_length = cinfo[i].length + 1;
-						bind->length = &data[i].u.sv.len;
+						bind->length = &data->u.sv.len;
 						break;
 
 					case MYSQL_TYPE_BLOB:
+					case MYSQL_TYPE_TINY_BLOB:
+					case MYSQL_TYPE_MEDIUM_BLOB:
+					case MYSQL_TYPE_LONG_BLOB:
 					default: /* TOOD: i must not do this.... treat others properly */
 						bind->buffer_type = MYSQL_TYPE_BLOB;
 						goto res_string;
 				}
+
+				bind->is_null = &data->is_null;
 			}
 
 			if (mysql_stmt_bind_result(stmt_node->stmt, stmt_node->res_binds) != 0)
@@ -1550,9 +1558,9 @@ static int fnc_stmt_fetch (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 		n = mysql_stmt_fetch(stmt_node->stmt);
 		if (n == MYSQL_NO_DATA) ret = 0; /* no more data */
-		else if (n == 0) 
+		else if (n == 0)
 		{
-			hawk_oow_t i, nargs;
+			hawk_oow_t i, j, nargs;
 			MYSQL_BIND* bind;
 			res_data_t* data;
 			/* there is data */
@@ -1564,29 +1572,33 @@ static int fnc_stmt_fetch (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			{
 				hawk_val_t* cv;
 
-				bind = &stmt_node->res_binds[i];
-				data = &stmt_node->res_data[i];
+				j = i - 1;
+				bind = &stmt_node->res_binds[j];
+				data = &stmt_node->res_data[j];
 
-/* TODO: is_null?? */
-				switch (bind->buffer_type)
+				if (data->is_null) cv = hawk_rtx_makenilval(rtx);
+				else
 				{
-					case MYSQL_TYPE_LONG:
-						cv = hawk_rtx_makeintval(rtx, data->u.llv);
-						break;
-					case MYSQL_TYPE_DOUBLE:
-						cv = hawk_rtx_makefltval(rtx, data->u.dv);
-						break;
-					case MYSQL_TYPE_STRING:
-						cv = hawk_rtx_makestrvalwithbchars(rtx, data->u.sv.ptr, data->u.sv.len);
-						break;
-					case MYSQL_TYPE_BLOB:
-						cv = hawk_rtx_makembsval(rtx, data->u.sv.ptr, data->u.sv.len);
-						break;
+					switch (bind->buffer_type)
+					{
+						case MYSQL_TYPE_LONGLONG:
+							cv = hawk_rtx_makeintval(rtx, data->u.llv);
+							break;
+						case MYSQL_TYPE_DOUBLE:
+							cv = hawk_rtx_makefltval(rtx, data->u.dv);
+							break;
+						case MYSQL_TYPE_STRING:
+							cv = hawk_rtx_makestrvalwithbchars(rtx, data->u.sv.ptr, data->u.sv.len);
+							break;
+						case MYSQL_TYPE_BLOB:
+							cv = hawk_rtx_makembsval(rtx, data->u.sv.ptr, data->u.sv.len);
+							break;
 
-					default:
-						/* this must not happen */
-						set_error_on_sql_list (rtx, sql_list, HAWK_T("internal error"));
-						goto done;
+						default:
+							/* this must not happen */
+							set_error_on_sql_list (rtx, sql_list, HAWK_T("internal error - invalid buffer_type %d"), (int)bind->buffer_type);
+							goto done;
+					}
 				}
 
 				if (!cv || hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, i), cv) <= -1)
@@ -1596,7 +1608,7 @@ static int fnc_stmt_fetch (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 				}
 			}
 
-			ret = 1;
+			ret = 1; /* have data */
 		}
 		else if (n == MYSQL_DATA_TRUNCATED)
 		{
