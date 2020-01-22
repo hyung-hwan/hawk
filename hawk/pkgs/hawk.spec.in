@@ -1,0 +1,58 @@
+%define _prefix /usr
+%define _sysconfdir /etc
+
+Summary: HAWK Interpreter
+Name: @PACKAGE_NAME@
+Version: @PACKAGE_VERSION@
+Release: 1%{?dist}
+License: Simplified BSD License
+Vendor: Chung, Hyung-Hwan 
+URL: @PACKAGE_URL@
+Group: System Environment/Libraries
+Source0: %{name}-%{version}.tar.gz
+#Requires: 
+
+BuildRequires: mysql-devel
+BuildRoot: %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
+
+%description
+HAWK Interpreter
+
+%package devel
+Summary: Development files for HAWK
+Group: System Environment/Libraries
+Requires: @PACKAGE_NAME@ = %{version}
+
+%description devel
+The header files and libraries for developing applications with HAWK.
+
+%prep
+%setup -q
+
+%build
+RPM_OPT_FLAGS="$(echo $RPM_OPT_FLAGS | %{__sed} 's/-O2/-O3/')"
+CFLAGS="${RPM_OPT_FLAGS}" CXXFLAGS="${RPM_OPT_FLAGS} -std=c++11" ./configure --prefix=%{_prefix} --libdir=%{_libdir} --sysconfdir=%{_sysconfdir} --enable-shared=no --enable-static-module=yes --enable-unicode="yes:2w" --enable-cxx=yes --enable-mod=mysql=yes --enable-mod-uci=no ##CC=gcc44 CXX=g++44
+make
+
+%install
+make install DESTDIR=$RPM_BUILD_ROOT
+rm -f $RPM_BUILD_ROOT%{_libdir}/*.la
+rm -rf $RPM_BUILD_ROOT%{_libdir}/pkgconfig
+
+%clean
+rm -rf "$RPM_BUILD_ROOT"
+
+%post
+/sbin/ldconfig
+
+%postun
+/sbin/ldconfig
+
+%files
+%defattr(-,root,root)
+%{_bindir}/*
+
+%files devel
+%defattr(-,root,root)
+%{_includedir}/*
+%{_libdir}/*.a

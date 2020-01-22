@@ -1022,6 +1022,7 @@ AC_CONFIG_FILES([
 	bin/Makefile
 	samples/Makefile
 	t/Makefile
+	pkgs/hawk.spec
 ])
 AC_OUTPUT
 

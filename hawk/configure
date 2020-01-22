@@ -23343,7 +23343,7 @@ HAWK_PROJECT_AUTHOR="${PACKAGE_BUGREPORT}"
 HAWK_PROJECT_URL="${PACKAGE_URL}"
 
 
-ac_config_files="$ac_config_files Makefile tools/Makefile lib/Makefile mod/Makefile bin/Makefile samples/Makefile t/Makefile"
+ac_config_files="$ac_config_files Makefile tools/Makefile lib/Makefile mod/Makefile bin/Makefile samples/Makefile t/Makefile pkgs/hawk.spec"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -24515,6 +24515,7 @@ do
     "bin/Makefile") CONFIG_FILES="$CONFIG_FILES bin/Makefile" ;;
     "samples/Makefile") CONFIG_FILES="$CONFIG_FILES samples/Makefile" ;;
     "t/Makefile") CONFIG_FILES="$CONFIG_FILES t/Makefile" ;;
+    "pkgs/hawk.spec") CONFIG_FILES="$CONFIG_FILES pkgs/hawk.spec" ;;
 
   *) as_fn_error $? "invalid argument: \`$ac_config_target'" "$LINENO" 5;;
   esac
