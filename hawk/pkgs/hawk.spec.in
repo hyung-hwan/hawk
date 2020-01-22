@@ -31,13 +31,15 @@ The header files and libraries for developing applications with HAWK.
 
 %build
 RPM_OPT_FLAGS="$(echo $RPM_OPT_FLAGS | %{__sed} 's/-O2/-O3/')"
-CFLAGS="${RPM_OPT_FLAGS}" CXXFLAGS="${RPM_OPT_FLAGS} -std=c++11" ./configure --prefix=%{_prefix} --libdir=%{_libdir} --sysconfdir=%{_sysconfdir} --enable-shared=no --enable-static-module=yes --enable-unicode="yes:2w" --enable-cxx=yes --enable-mod=mysql=yes --enable-mod-uci=no ##CC=gcc44 CXX=g++44
+CFLAGS="${RPM_OPT_FLAGS} -fPIC" CXXFLAGS="${RPM_OPT_FLAGS} -fPIC -std=c++11" ./configure --prefix=%{_prefix} --libdir=%{_libdir} --sysconfdir=%{_sysconfdir} --enable-shared=no --enable-static-module=yes --enable-unicode="yes:2w" --enable-cxx=yes --enable-mod=mysql=yes --enable-mod-uci=no ##CC=gcc44 CXX=g++44
 make
 
 %install
 make install DESTDIR=$RPM_BUILD_ROOT
 rm -f $RPM_BUILD_ROOT%{_libdir}/*.la
 rm -rf $RPM_BUILD_ROOT%{_libdir}/pkgconfig
+rm -f $RPM_BUILD_ROOT%{_bindir}/uni-case
+rm -f $RPM_BUILD_ROOT%{_bindir}/uni-prop
 
 %clean
 rm -rf "$RPM_BUILD_ROOT"
