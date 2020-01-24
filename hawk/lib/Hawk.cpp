@@ -1780,8 +1780,8 @@ int Hawk::call (const hawk_uch_t* name, Value* ret, const Value* args, hawk_oow_
 
 int Hawk::exec (Value* ret, const Value* args, hawk_oow_t nargs)
 {
-	return (this->runctx.rtx->awk->parse.pragma.startup[0] != '\0')?
-		this->call(this->runctx.rtx->awk->parse.pragma.startup, ret, args, nargs): this->loop(ret);
+	return (this->runctx.rtx->awk->parse.pragma.entry[0] != '\0')?
+		this->call(this->runctx.rtx->awk->parse.pragma.entry, ret, args, nargs): this->loop(ret);
 }
 
 void Hawk::halt () 

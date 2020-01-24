@@ -239,7 +239,7 @@ struct hawk_t
 		{
 			int trait;
 			hawk_oow_t rtx_stack_limit;
-			hawk_ooch_t startup[128];
+			hawk_ooch_t entry[128];
 		} pragma;
 
 		/* function calls */
