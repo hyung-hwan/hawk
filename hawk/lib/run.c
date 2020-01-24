@@ -1469,15 +1469,15 @@ hawk_val_t* hawk_rtx_loop (hawk_rtx_t* rtx)
 
 hawk_val_t* hawk_rtx_execwithucstrarr (hawk_rtx_t* rtx, const hawk_uch_t* args[], hawk_oow_t nargs)
 {
-	return (rtx->awk->parse.pragma.startup[0] != '\0')?
-		hawk_rtx_callwithooucstrarr(rtx, rtx->awk->parse.pragma.startup, args, nargs):
+	return (rtx->awk->parse.pragma.entry[0] != '\0')?
+		hawk_rtx_callwithooucstrarr(rtx, rtx->awk->parse.pragma.entry, args, nargs):
 		hawk_rtx_loop(rtx);
 }
 
 hawk_val_t* hawk_rtx_execwithbcstrarr (hawk_rtx_t* rtx, const hawk_bch_t* args[], hawk_oow_t nargs)
 {
-	return (rtx->awk->parse.pragma.startup[0] != '\0')?
-		hawk_rtx_callwithoobcstrarr(rtx, rtx->awk->parse.pragma.startup, args, nargs):
+	return (rtx->awk->parse.pragma.entry[0] != '\0')?
+		hawk_rtx_callwithoobcstrarr(rtx, rtx->awk->parse.pragma.entry, args, nargs):
 		hawk_rtx_loop(rtx);
 }
 

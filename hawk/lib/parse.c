@@ -1029,31 +1029,31 @@ static int parse_progunit (hawk_t* awk)
 			if (sl > awk->parse.pragma.rtx_stack_limit) awk->parse.pragma.rtx_stack_limit = sl;
 			
 		}
-		else if (hawk_comp_oochars_oocstr(name.ptr, name.len, HAWK_T("startup")) == 0)
+		else if (hawk_comp_oochars_oocstr(name.ptr, name.len, HAWK_T("entry")) == 0)
 		{
 			if (get_token(awk) <= -1) return -1;
 			if (!MATCH(awk, TOK_IDENT))
 			{
-				hawk_seterrfmt (awk, &awk->ptok.loc, HAWK_EIDENT, HAWK_T("function name expected for 'startup'"));
+				hawk_seterrfmt (awk, &awk->ptok.loc, HAWK_EIDENT, HAWK_T("function name expected for 'entry'"));
 				return -1;
 			}
 
-			if (HAWK_OOECS_LEN(awk->tok.name) >= HAWK_COUNTOF(awk->parse.pragma.startup))
+			if (HAWK_OOECS_LEN(awk->tok.name) >= HAWK_COUNTOF(awk->parse.pragma.entry))
 			{
-				hawk_seterrfmt (awk, &awk->tok.loc, HAWK_EFUNNAM, HAWK_T("startup function name too long"));
+				hawk_seterrfmt (awk, &awk->tok.loc, HAWK_EFUNNAM, HAWK_T("entry function name too long"));
 				return -1;
 			}
 
 			if (awk->sio.inp == &awk->sio.arg)
 			{
 				/* only the top level source */
-				if (awk->parse.pragma.startup[0] != '\0')
+				if (awk->parse.pragma.entry[0] != '\0')
 				{
-					hawk_seterrfmt (awk, &awk->tok.loc, HAWK_EEXIST, HAWK_T("@pragma startup already set"));
+					hawk_seterrfmt (awk, &awk->tok.loc, HAWK_EEXIST, HAWK_T("@pragma entry already set"));
 					return -1;
 				}
 
-				hawk_copy_oochars_to_oocstr (awk->parse.pragma.startup, HAWK_COUNTOF(awk->parse.pragma.startup), HAWK_OOECS_PTR(awk->tok.name), HAWK_OOECS_LEN(awk->tok.name));
+				hawk_copy_oochars_to_oocstr (awk->parse.pragma.entry, HAWK_COUNTOF(awk->parse.pragma.entry), HAWK_OOECS_PTR(awk->tok.name), HAWK_OOECS_LEN(awk->tok.name));
 			}
 		}
 		else
