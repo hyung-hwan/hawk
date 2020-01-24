@@ -998,8 +998,8 @@ int Hawk::Value::setIndexedStr (const Index& idx, const hawk_uch_t* str, bool nu
 int Hawk::Value::setIndexedStr (Run* r, const Index& idx, const hawk_uch_t* str, bool numeric)
 {
 	hawk_val_t* tmp;
-	tmp = numeric? hawk_rtx_makenstrvalwithoocstr(r->rtx, str):
-	               hawk_rtx_makestrvalwithoocstr(r->rtx, str);
+	tmp = numeric? hawk_rtx_makenstrvalwithucstr(r->rtx, str):
+	               hawk_rtx_makestrvalwithucstr(r->rtx, str);
 	if (tmp == HAWK_NULL)
 	{
 		r->hawk->retrieveError (r);
@@ -1378,8 +1378,8 @@ const hawk_uch_t* Hawk::getErrorLocationFileU () const
 	if (!this->errinf.loc.file) return HAWK_NULL;
 	hawk_oow_t wcslen, mbslen;
 	wcslen = HAWK_COUNTOF(this->xerrlocfile);
-	hawk_conv_bcstr_to_ucstr_with_cmgr (this->errinf.loc.file, &mbslen, hawk->xerrlocfile, &wcslen, this->getCmgr(), 1);
-	return hawk->xerrlocfile;
+	hawk_conv_bcstr_to_ucstr_with_cmgr (this->errinf.loc.file, &mbslen, this->xerrlocfile, &wcslen, this->getCmgr(), 1);
+	return this->xerrlocfile;
 #endif
 }
 

@@ -417,7 +417,7 @@ static global_t gtab[] =
 		{ \
 			hawk_bch_t __xbuf[HAWK_MBLEN_MAX + 1]; \
 			hawk_oow_t __len, __i; \
-			__len = hawk_uctoutf8(c, __xbuf, HAWK_COUNTOF(__xbuf)); /* use utf8 all the time */ \
+			__len = uc_to_utf8(c, __xbuf, HAWK_COUNTOF(__xbuf)); /* use utf8 all the time */ \
 			for (__i = 0; __i < __len; __i++) ADD_TOKEN_CHAR(awk, tok, __xbuf[__i]); \
 		} \
 	} while (0)
@@ -438,6 +438,15 @@ static global_t gtab[] =
 	(MATCH_TERMINATOR_NORMAL(awk) || MATCH_TERMINATOR_RBRACE(awk))
 
 #define ADJERR_LOC(hawk,l) do { (hawk)->_gem.errloc = *(l); } while (0)
+
+#if defined(HAWK_OOCH_IS_BCH)
+static HAWK_INLINE hawk_oow_t uc_to_utf8 (hawk_uch_t uc, hawk_bch_t* buf, hawk_oow_t bsz)
+{
+	static hawk_cmgr_t* utf8_cmgr = HAWK_NULL;
+	if (!utf8_cmgr) utf8_cmgr = hawk_get_cmgr_by_id(HAWK_CMGR_UTF8);
+	return utf8_cmgr->uctobc(uc, buf, bsz);
+}
+#endif
 
 static HAWK_INLINE int is_plain_var (hawk_nde_t* nde)
 {
