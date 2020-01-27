@@ -363,7 +363,7 @@ HAWK_EXPORT void hawk_htb_fini (
 #if defined(HAWK_HAVE_INLINE)
 static HAWK_INLINE void* hawk_htb_getxtn (hawk_htb_t* htb) { return (void*)(htb + 1); }
 #else
-#define hawk_htb_getxtn(awk) ((void*)((hawk_htb_t*)(htb) + 1))
+#define hawk_htb_getxtn(htb) ((void*)((hawk_htb_t*)(htb) + 1))
 #endif
 
 /**

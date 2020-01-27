@@ -1526,11 +1526,11 @@ int Hawk::open ()
 	hawk_prm_t prm;
 
 	HAWK_MEMSET (&prm, 0, HAWK_SIZEOF(prm));
-	prm.math.pow  = Hawk::pow;
-	prm.math.mod  = Hawk::mod;
-	prm.modopen   = Hawk::modopen;
-	prm.modclose  = Hawk::modclose;
-	prm.modgetsym = Hawk::modgetsym;
+	prm.math.pow  = &Hawk::pow;
+	prm.math.mod  = &Hawk::mod;
+	prm.modopen   = &Hawk::modopen;
+	prm.modclose  = &Hawk::modclose;
+	prm.modgetsym = &Hawk::modgetsym;
 
 	hawk_errnum_t errnum;
 	this->hawk = hawk_open(this->getMmgr(), HAWK_SIZEOF(xtn_t), this->getCmgr(), &prm, &errnum);

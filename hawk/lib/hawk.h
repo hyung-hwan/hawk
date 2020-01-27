@@ -74,8 +74,6 @@
  *
  * \sa hawk_rtx_t hawk_open hawk_close
  */
-typedef struct hawk_t hawk_t;
-
 #define HAWK_HDR \
 	hawk_oow_t  _instsize; \
 	hawk_gem_t  _gem;
@@ -1462,11 +1460,11 @@ static HAWK_INLINE hawk_mmgr_t* hawk_getmmgr (hawk_t* hawk) { return ((hawk_alt_
 static HAWK_INLINE hawk_cmgr_t* hawk_getcmgr (hawk_t* hawk) { return ((hawk_alt_t*)hawk)->_gem.cmgr; }
 static HAWK_INLINE void hawk_setcmgr (hawk_t* hawk, hawk_cmgr_t* cmgr) { ((hawk_alt_t*)hawk)->_gem.cmgr = cmgr; }
 #else
-#define hawk_getxtn(awk) ((void*)((hawk_uint8_t*)hawk + ((hawk_alt_t*)hawk)->_instsize))
-#define hawk_getgem(awk) (&((hawk_alt_t*)(hawk))->_gem)
-#define hawk_getmmgr(awk) (((hawk_alt_t*)(hawk))->_gem.mmgr)
-#define hawk_getcmgr(awk) (((hawk_alt_t*)(hawk))->_gem.cmgr)
-#define hawk_setcmgr(awk,_cmgr) (((hawk_alt_t*)(hawk))->_gem.cmgr = (_cmgr))
+#define hawk_getxtn(hawk) ((void*)((hawk_uint8_t*)hawk + ((hawk_alt_t*)hawk)->_instsize))
+#define hawk_getgem(hawk) (&((hawk_alt_t*)(hawk))->_gem)
+#define hawk_getmmgr(hawk) (((hawk_alt_t*)(hawk))->_gem.mmgr)
+#define hawk_getcmgr(hawk) (((hawk_alt_t*)(hawk))->_gem.cmgr)
+#define hawk_setcmgr(hawk,_cmgr) (((hawk_alt_t*)(hawk))->_gem.cmgr = (_cmgr))
 #endif /* HAWK_HAVE_INLINE */
 
 /**
