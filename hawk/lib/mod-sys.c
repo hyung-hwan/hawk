@@ -2761,9 +2761,9 @@ static int fnc_closepoll (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 #endif
 }
 
-static int fnc_addtopoll (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
-{
 #if defined(USE_EPOLL)
+static HAWK_INLINE int ctl_epoll (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, int cmd)
+{
 	sys_list_t* sys_list;
 	sys_node_t* sys_node, * sys_node2;
 	hawk_int_t rx = ERRNUM_TO_RC(HAWK_ENOERR);
@@ -2777,17 +2777,21 @@ static int fnc_addtopoll (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		if (sys_node2)
 		{
 			struct epoll_event ev;
-			hawk_int_t events;
 			int evfd;
 
-			if (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 2), &events) <= -1)
+			if (cmd != EPOLL_CTL_DEL)
 			{
-				rx = copy_error_to_sys_list(rtx, sys_list);
-				goto done;
-			}
+				hawk_int_t events;
 
-			ev.events = events;
-			ev.data.ptr = sys_node2;
+				if (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 2), &events) <= -1)
+				{
+					rx = copy_error_to_sys_list(rtx, sys_list);
+					goto done;
+				}
+
+				ev.events = events;
+				ev.data.ptr = sys_node2;
+			}
 
 			switch (sys_node2->ctx.type)
 			{
@@ -2804,13 +2808,16 @@ static int fnc_addtopoll (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 					goto done;
 			}
 
-			if (epoll_ctl(sys_node->ctx.u.mux.fd, EPOLL_CTL_ADD, evfd, &ev) <= -1)
+			if (epoll_ctl(sys_node->ctx.u.mux.fd, cmd, evfd, &ev) <= -1)
 			{
 				rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
 			}
 			else
 			{
-				sys_node2->ctx.flags |= SYS_NODE_DATA_FLAG_IN_MUX;
+				if (cmd != EPOLL_CTL_DEL)
+					sys_node2->ctx.flags |= SYS_NODE_DATA_FLAG_IN_MUX;
+				else
+					sys_node2->ctx.flags &= ~SYS_NODE_DATA_FLAG_IN_MUX;
 			}
 		}
 	}
@@ -2818,7 +2825,13 @@ static int fnc_addtopoll (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 done:
 	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
+}
+#endif
 
+static int fnc_addtopoll (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+{
+#if defined(USE_EPOLL)
+	return ctl_epoll(rtx, fi, EPOLL_CTL_ADD);
 #else
 	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, ERRNUM_TO_RC(HAWK_ENOIMPL)));
 	return 0;
@@ -2827,14 +2840,33 @@ done:
 
 static int fnc_delfrompoll (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
+#if defined(USE_EPOLL)
+	return ctl_epoll(rtx, fi, EPOLL_CTL_DEL);
+#else
+	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, ERRNUM_TO_RC(HAWK_ENOIMPL)));
+	return 0;
+#endif
 }
 
 static int fnc_modinpoll (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
+#if defined(USE_EPOLL)
+	return ctl_epoll(rtx, fi, EPOLL_CTL_MOD);
+#else
+	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, ERRNUM_TO_RC(HAWK_ENOIMPL)));
+	return 0;
+#endif
 }
 
 static int fnc_waitonpoll (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
+#if defined(USE_EPOLL)
+	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, ERRNUM_TO_RC(HAWK_ENOIMPL)));
+	return 0;
+#else
+	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, ERRNUM_TO_RC(HAWK_ENOIMPL)));
+	return 0;
+#endif
 }
 
 /* ------------------------------------------------------------ */
@@ -3221,6 +3253,7 @@ static fnctab_t fnctab[] =
 	{ HAWK_T("closedir"),    { { 1, 1, HAWK_NULL     }, fnc_closedir,    0  } },
 	{ HAWK_T("closelog"),    { { 0, 0, HAWK_NULL     }, fnc_closelog,    0  } },
 	{ HAWK_T("closepoll"),   { { 1, 1, HAWK_NULL     }, fnc_closepoll,   0  } },
+	{ HAWK_T("delfrompoll"), { { 2, 2, HAWK_NULL     }, fnc_delfrompoll, 0  } },
 	{ HAWK_T("dup"),         { { 1, 3, HAWK_NULL     }, fnc_dup,         0  } },
 	{ HAWK_T("errmsg"),      { { 0, 0, HAWK_NULL     }, fnc_errmsg,      0  } },
 	{ HAWK_T("fchmod"),      { { 2, 2, HAWK_NULL     }, fnc_fchmod,      0  } },
@@ -3241,6 +3274,7 @@ static fnctab_t fnctab[] =
 	{ HAWK_T("kill"),        { { 2, 2, HAWK_NULL     }, fnc_kill,        0  } },
 	{ HAWK_T("mkdir"),       { { 1, 2, HAWK_NULL     }, fnc_mkdir,       0  } },
 	{ HAWK_T("mktime"),      { { 0, 1, HAWK_NULL     }, fnc_mktime,      0  } },
+	{ HAWK_T("modinpoll"),   { { 3, 3, HAWK_NULL     }, fnc_modinpoll,   0  } },
 	{ HAWK_T("open"),        { { 2, 3, HAWK_NULL     }, fnc_open,        0  } },
 	{ HAWK_T("opendir"),     { { 1, 2, HAWK_NULL     }, fnc_opendir,     0  } },
 	{ HAWK_T("openfd"),      { { 1, 1, HAWK_NULL     }, fnc_openfd,      0  } },
