@@ -250,7 +250,9 @@ static sys_node_t* new_sys_node_mux (hawk_rtx_t* rtx, sys_list_t* list, int fd)
 
 	node->ctx.type = SYS_NODE_DATA_TYPE_MUX;
 	node->ctx.flags = 0;
+#if defined(USE_EPOLL)
 	node->ctx.u.mux.fd = fd;
+#endif
 	return node;
 }
 
@@ -2683,6 +2685,7 @@ static int fnc_utime (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 static int fnc_openpoll (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
+#if defined(USE_EPOLL)
 	sys_list_t* sys_list;
 	sys_node_t* sys_node = HAWK_NULL;
 	hawk_int_t rx;
@@ -2732,10 +2735,15 @@ static int fnc_openpoll (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	/*HAWK_ASSERT (HAWK_IN_QUICKINT_RANGE(rx));*/
 	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
+#else
+	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, ERRNUM_TO_RC(HAWK_ENOIMPL)));
+	return 0;
+#endif
 }
 
 static int fnc_closepoll (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
+#if defined(USE_EPOLL)
 	sys_list_t* sys_list;
 	sys_node_t* sys_node;
 	hawk_int_t rx = ERRNUM_TO_RC(HAWK_ENOERR);
@@ -2747,10 +2755,15 @@ static int fnc_closepoll (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
+#else
+	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, ERRNUM_TO_RC(HAWK_ENOIMPL)));
+	return 0;
+#endif
 }
 
 static int fnc_addtopoll (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
+#if defined(USE_EPOLL)
 	sys_list_t* sys_list;
 	sys_node_t* sys_node, * sys_node2;
 	hawk_int_t rx = ERRNUM_TO_RC(HAWK_ENOERR);
@@ -2805,6 +2818,11 @@ static int fnc_addtopoll (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 done:
 	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
+
+#else
+	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, ERRNUM_TO_RC(HAWK_ENOIMPL)));
+	return 0;
+#endif
 }
 
 static int fnc_delfrompoll (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
