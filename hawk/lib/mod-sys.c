@@ -103,7 +103,7 @@ typedef struct mod_ctx_t mod_ctx_t;
 
 enum sys_node_data_type_t
 {
-	SYS_NODE_DATA_TYPE_FD   = (1 << 0),
+	SYS_NODE_DATA_TYPE_FILE   = (1 << 0),
 	SYS_NODE_DATA_TYPE_SCK  = (1 << 1),
 	SYS_NODE_DATA_TYPE_DIR  = (1 << 2),
 	SYS_NODE_DATA_TYPE_MUX  = (1 << 3)
@@ -120,9 +120,13 @@ struct sys_node_data_t
 {
 	sys_node_data_type_t type;
 	int flags;
+	void* extra; /* if SYS_NODE_DATA_FLAG_IN_MUX is set, this is set to a valid pointer. it is of the void* type since sys_node_t is not available yet. */
 	union
 	{
-		int fd;
+		struct
+		{
+			int fd;
+		} file;
 		struct
 		{
 			int fd;
@@ -222,9 +226,9 @@ static sys_node_t* new_sys_node_fd (hawk_rtx_t* rtx, sys_list_t* list, int fd)
 	node = __new_sys_node(rtx, list);
 	if (!node) return HAWK_NULL;
 
-	node->ctx.type = SYS_NODE_DATA_TYPE_FD;
+	node->ctx.type = SYS_NODE_DATA_TYPE_FILE;
 	node->ctx.flags = 0;
-	node->ctx.u.fd = fd;
+	node->ctx.u.file.fd = fd;
 	return node;
 }
 
@@ -256,21 +260,64 @@ static sys_node_t* new_sys_node_mux (hawk_rtx_t* rtx, sys_list_t* list, int fd)
 	return node;
 }
 
+static void del_from_mux (hawk_rtx_t* rtx, sys_node_t* fd_node)
+{
+	if (fd_node->ctx.flags & SYS_NODE_DATA_FLAG_IN_MUX)
+	{
+		sys_node_t* mux_node;
+	#if defined(USE_EPOLL)
+		struct epoll_event ev;
+	#endif
+		
+		mux_node = (sys_node_t*)fd_node->ctx.extra;
+		switch (fd_node->ctx.type)
+		{
+			case SYS_NODE_DATA_TYPE_FILE:
+			#if defined(USE_EPOLL)
+				epoll_ctl (mux_node->ctx.u.mux.fd, EPOLL_CTL_DEL, fd_node->ctx.u.file.fd, &ev);
+			#endif
+				break;
+			case SYS_NODE_DATA_TYPE_SCK:
+			#if defined(USE_EPOLL)
+				epoll_ctl (mux_node->ctx.u.mux.fd, EPOLL_CTL_DEL, fd_node->ctx.u.sck.fd, &ev);
+			#endif
+				break;
+
+			default:
+				/* do nothing */
+				break;
+		}
+
+		fd_node->ctx.flags &= ~SYS_NODE_DATA_FLAG_IN_MUX;
+		fd_node->ctx.extra = HAWK_NULL;
+	}
+}
+
+static void purge_mux_members (hawk_rtx_t* rtx, sys_node_t* mux_node)
+{
+	while (mux_node->ctx.extra)
+	{
+		del_from_mux (rtx, mux_node->ctx.extra);
+	}
+}
+
 static void free_sys_node (hawk_rtx_t* rtx, sys_list_t* list, sys_node_t* node)
 {
 	switch (node->ctx.type)
 	{
-		case SYS_NODE_DATA_TYPE_FD:
-			if (node->ctx.u.fd >= 0) 
+		case SYS_NODE_DATA_TYPE_FILE:
+			if (node->ctx.u.file.fd >= 0) 
 			{
-				close (node->ctx.u.fd);
-				node->ctx.u.fd = -1;
+				del_from_mux (rtx, node);
+				close (node->ctx.u.file.fd);
+				node->ctx.u.file.fd = -1;
 			}
 			break;
 
 		case SYS_NODE_DATA_TYPE_SCK:
 			if (node->ctx.u.sck.fd >= 0) 
 			{
+				del_from_mux (rtx, node);
 				close (node->ctx.u.sck.fd);
 				node->ctx.u.sck.fd = -1;
 			}
@@ -288,6 +335,8 @@ static void free_sys_node (hawk_rtx_t* rtx, sys_list_t* list, sys_node_t* node)
 		#if defined(USE_EPOLL)
 			if (node->ctx.u.mux.fd >= 0)
 			{
+				/* TODO: delete all member FILE and SCK from mux */
+				purge_mux_members (rtx, node);
 				close (node->ctx.u.mux.fd);
 				node->ctx.u.mux.fd = -1;
 			}
@@ -371,17 +420,17 @@ static int fnc_close (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_int_t cflags = 0;
 
 	sys_list = rtx_to_sys_list(rtx, fi);
-	sys_node = get_sys_list_node_with_arg(rtx, sys_list, hawk_rtx_getarg(rtx, 0), SYS_NODE_DATA_TYPE_FD, &rx);
+	sys_node = get_sys_list_node_with_arg(rtx, sys_list, hawk_rtx_getarg(rtx, 0), SYS_NODE_DATA_TYPE_FILE, &rx);
 
 	if (sys_node)
 	{
 		/* although free_sys_node can handle other types, sys::close() is allowed to
-		 * close nodes of the SYS_NODE_DATA_TYPE_FD type only */
+		 * close nodes of the SYS_NODE_DATA_TYPE_FILE type only */
 		if (hawk_rtx_getnargs(rtx) >= 2 && (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 1), &cflags) <= -1 || cflags < 0)) cflags = 0;
 
 		if (cflags & CLOSE_KEEPFD)  /* this flag applies to file descriptors only */
 		{
-			sys_node->ctx.u.fd = -1; /* you may leak the original file descriptor. */
+			sys_node->ctx.u.file.fd = -1; /* you may leak the original file descriptor. */
 		}
 
 		free_sys_node (rtx, sys_list, sys_node);
@@ -506,7 +555,7 @@ static int fnc_read (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_int_t reqsize = 8192;
 
 	sys_list = rtx_to_sys_list(rtx, fi);
-	sys_node = get_sys_list_node_with_arg(rtx, sys_list, hawk_rtx_getarg(rtx, 0), SYS_NODE_DATA_TYPE_FD, &rx);
+	sys_node = get_sys_list_node_with_arg(rtx, sys_list, hawk_rtx_getarg(rtx, 0), SYS_NODE_DATA_TYPE_FILE, &rx);
 	if (sys_node)
 	{
 		if (hawk_rtx_getnargs(rtx) >= 3 && (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 2), &reqsize) <= -1 || reqsize <= 0)) reqsize = 8192;
@@ -524,7 +573,7 @@ static int fnc_read (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			sys_list->ctx.readbuf_capa = reqsize;
 		}
 
-		rx = read(sys_node->ctx.u.fd, sys_list->ctx.readbuf, reqsize);
+		rx = read(sys_node->ctx.u.file.fd, sys_list->ctx.readbuf, reqsize);
 		if (rx <= 0) 
 		{
 			if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_T("unable to read"));
@@ -567,7 +616,7 @@ static int fnc_write (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_int_t rx;
 
 	sys_list = rtx_to_sys_list(rtx, fi);
-	sys_node = get_sys_list_node_with_arg(rtx, sys_list, hawk_rtx_getarg(rtx, 0), SYS_NODE_DATA_TYPE_FD, &rx);
+	sys_node = get_sys_list_node_with_arg(rtx, sys_list, hawk_rtx_getarg(rtx, 0), SYS_NODE_DATA_TYPE_FILE, &rx);
 	if (sys_node)
 	{
 		hawk_bch_t* dptr;
@@ -578,7 +627,7 @@ static int fnc_write (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		dptr = hawk_rtx_getvalbcstr(rtx, a1, &dlen);
 		if (dptr)
 		{
-			rx = write(sys_node->ctx.u.fd, dptr, dlen);
+			rx = write(sys_node->ctx.u.file.fd, dptr, dlen);
 			if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_T("unable to write"));
 			hawk_rtx_freevalbcstr (rtx, a1, dptr);
 		}
@@ -621,14 +670,14 @@ static int fnc_dup (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_int_t oflags = 0;
 
 	sys_list = rtx_to_sys_list(rtx, fi);
-	sys_node = get_sys_list_node_with_arg(rtx, sys_list, hawk_rtx_getarg(rtx, 0), SYS_NODE_DATA_TYPE_FD, &rx);
+	sys_node = get_sys_list_node_with_arg(rtx, sys_list, hawk_rtx_getarg(rtx, 0), SYS_NODE_DATA_TYPE_FILE, &rx);
 	if (sys_node)
 	{
 		int fd;
 
 		if (hawk_rtx_getnargs(rtx) >= 2)
 		{
-			sys_node2 = get_sys_list_node_with_arg(rtx, sys_list, hawk_rtx_getarg(rtx, 1), SYS_NODE_DATA_TYPE_FD, &rx);
+			sys_node2 = get_sys_list_node_with_arg(rtx, sys_list, hawk_rtx_getarg(rtx, 1), SYS_NODE_DATA_TYPE_FILE, &rx);
 			if (!sys_node2) goto done;
 			if (hawk_rtx_getnargs(rtx) >= 3 && (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 2), &oflags) <= -1 || oflags < 0)) oflags = 0;
 		}
@@ -636,9 +685,9 @@ static int fnc_dup (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		if (sys_node2)
 		{
 		#if defined(HAVE_DUP3)
-			fd = dup3(sys_node->ctx.u.fd, sys_node2->ctx.u.fd, oflags);
+			fd = dup3(sys_node->ctx.u.file.fd, sys_node2->ctx.u.file.fd, oflags);
 		#else
-			fd = dup2(sys_node->ctx.u.fd, sys_node2->ctx.u.fd);
+			fd = dup2(sys_node->ctx.u.file.fd, sys_node2->ctx.u.file.fd);
 		#endif
 			if (fd >= 0)
 			{
@@ -658,7 +707,7 @@ static int fnc_dup (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 				
 				}
 		#endif
-				sys_node2->ctx.u.fd = fd; /* dup2 or dup3 closes the descriptor implicitly */
+				sys_node2->ctx.u.file.fd = fd; /* dup2 or dup3 closes the descriptor implicitly */
 				rx = sys_node2->id;
 			}
 			else
@@ -668,7 +717,7 @@ static int fnc_dup (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		}
 		else
 		{
-			fd = dup(sys_node->ctx.u.fd);
+			fd = dup(sys_node->ctx.u.file.fd);
 			if (fd >= 0)
 			{
 				sys_node_t* new_node;
@@ -881,7 +930,7 @@ static int fnc_fchown (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_int_t rx;
 
 	sys_list = rtx_to_sys_list(rtx, fi);
-	sys_node = get_sys_list_node_with_arg(rtx, sys_list, hawk_rtx_getarg(rtx, 0), SYS_NODE_DATA_TYPE_FD, &rx);
+	sys_node = get_sys_list_node_with_arg(rtx, sys_list, hawk_rtx_getarg(rtx, 0), SYS_NODE_DATA_TYPE_FILE, &rx);
 	if (sys_node)
 	{
 		hawk_int_t uid, gid;
@@ -893,7 +942,7 @@ static int fnc_fchown (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		}
 		else
 		{
-			rx = fchown(sys_node->ctx.u.fd, uid, gid) <= -1?
+			rx = fchown(sys_node->ctx.u.file.fd, uid, gid) <= -1?
 				set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL):
 				ERRNUM_TO_RC(HAWK_ENOERR);
 		}
@@ -910,7 +959,7 @@ static int fnc_fchmod (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_int_t rx;
 
 	sys_list = rtx_to_sys_list(rtx, fi);
-	sys_node = get_sys_list_node_with_arg(rtx, sys_list, hawk_rtx_getarg(rtx, 0), SYS_NODE_DATA_TYPE_FD, &rx);
+	sys_node = get_sys_list_node_with_arg(rtx, sys_list, hawk_rtx_getarg(rtx, 0), SYS_NODE_DATA_TYPE_FILE, &rx);
 	if (sys_node)
 	{
 		hawk_int_t mode;
@@ -921,7 +970,7 @@ static int fnc_fchmod (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		}
 		else
 		{
-			rx = fchmod(sys_node->ctx.u.fd, mode) <= -1?
+			rx = fchmod(sys_node->ctx.u.file.fd, mode) <= -1?
 				set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL):
 				ERRNUM_TO_RC(HAWK_ENOERR);
 		}
@@ -2773,7 +2822,7 @@ static HAWK_INLINE int ctl_epoll (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, in
 
 	if (sys_node)
 	{
-		sys_node2 = get_sys_list_node_with_arg(rtx, sys_list, hawk_rtx_getarg(rtx, 1), SYS_NODE_DATA_TYPE_FD | SYS_NODE_DATA_TYPE_SCK, &rx);
+		sys_node2 = get_sys_list_node_with_arg(rtx, sys_list, hawk_rtx_getarg(rtx, 1), SYS_NODE_DATA_TYPE_FILE | SYS_NODE_DATA_TYPE_SCK, &rx);
 		if (sys_node2)
 		{
 			struct epoll_event ev;
@@ -2795,8 +2844,8 @@ static HAWK_INLINE int ctl_epoll (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, in
 
 			switch (sys_node2->ctx.type)
 			{
-				case SYS_NODE_DATA_TYPE_FD:
-					evfd = sys_node2->ctx.u.fd;
+				case SYS_NODE_DATA_TYPE_FILE:
+					evfd = sys_node2->ctx.u.file.fd;
 					break;
 				case SYS_NODE_DATA_TYPE_SCK:
 					evfd = sys_node2->ctx.u.sck.fd;
@@ -2815,9 +2864,15 @@ static HAWK_INLINE int ctl_epoll (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, in
 			else
 			{
 				if (cmd != EPOLL_CTL_DEL)
+				{
 					sys_node2->ctx.flags |= SYS_NODE_DATA_FLAG_IN_MUX;
+					sys_node2->ctx.extra = sys_node;
+				}
 				else
+				{
 					sys_node2->ctx.flags &= ~SYS_NODE_DATA_FLAG_IN_MUX;
+					sys_node2->ctx.extra = HAWK_NULL;
+				}
 			}
 		}
 	}
@@ -2861,7 +2916,41 @@ static int fnc_modinpoll (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 static int fnc_waitonpoll (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 #if defined(USE_EPOLL)
-	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, ERRNUM_TO_RC(HAWK_ENOIMPL)));
+	sys_list_t* sys_list;
+	sys_node_t* sys_node;
+	hawk_int_t rx = ERRNUM_TO_RC(HAWK_ENOERR);
+
+	sys_list = rtx_to_sys_list(rtx, fi);
+	sys_node = get_sys_list_node_with_arg(rtx, sys_list, hawk_rtx_getarg(rtx, 0), SYS_NODE_DATA_TYPE_MUX, &rx);
+
+	if (sys_node)
+	{
+		struct epoll_event events[64];
+		hawk_int_t tmout;
+
+		if (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 1), &tmout) <= -1) tmout = -1;
+
+		if (epoll_wait(sys_node->ctx.u.mux.fd, events, HAWK_COUNTOF(events), tmout) <= -1)
+		{
+			rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
+		}
+		else
+		{
+			/* TODO: */
+			/* arrange to return an array of file descriptros and.... what???  */
+			/* set ref value on argument 1 */
+			/*
+			ev["count"] = 10;
+			ev[1, "fd"] = 10;
+			ev[1, "events"] = R | W,
+			ev[2, "fd"] = 10;
+			ev[2, "events"] = R | W,
+			*/
+		}
+	}
+
+done:
+	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 #else
 	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, ERRNUM_TO_RC(HAWK_ENOIMPL)));
@@ -3295,6 +3384,7 @@ static fnctab_t fnctab[] =
 	{ HAWK_T("unlink"),      { { 1, 1, HAWK_NULL     }, fnc_unlink,      0  } },
 	{ HAWK_T("unsetenv"),    { { 1, 1, HAWK_NULL     }, fnc_unsetenv,    0  } },
 	{ HAWK_T("wait"),        { { 1, 3, HAWK_T("vrv") }, fnc_wait,        0  } },
+	{ HAWK_T("waitonpoll"),  { { 3, 3, HAWK_T("vvr") }, fnc_waitonpoll,  0  } },
 	{ HAWK_T("write"),       { { 2, 2, HAWK_NULL     }, fnc_write,       0  } },
 	{ HAWK_T("writelog"),    { { 2, 2, HAWK_NULL     }, fnc_writelog,    0  } }
 };
