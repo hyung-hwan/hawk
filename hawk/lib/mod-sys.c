@@ -126,15 +126,6 @@ struct sys_node_data_file_t
 };
 typedef struct sys_node_data_file_t sys_node_data_file_t;
 
-struct sys_node_data_sck_t
-{
-	int fd;
-	void* mux; /* if SYS_NODE_DATA_FLAG_IN_MUX is set, this is set to a valid pointer. it is of the void* type since sys_node_t is not available yet. */
-	void* x_prev;
-	void* x_next;
-};
-typedef struct sys_node_data_sck_t sys_node_data_sck_t;
-
 struct sys_node_data_mux_t
 {
 #if defined(USE_EPOLL)
@@ -152,7 +143,6 @@ struct sys_node_data_t
 	union
 	{
 		sys_node_data_file_t file;
-		sys_node_data_sck_t sck;
 		hawk_dir_t* dir;
 		sys_node_data_mux_t mux;
 	} u;
@@ -322,17 +312,10 @@ static void del_from_mux (hawk_rtx_t* rtx, sys_node_t* fd_node)
 		switch (fd_node->ctx.type)
 		{
 			case SYS_NODE_DATA_TYPE_FILE:
+			case SYS_NODE_DATA_TYPE_SCK:
 				mux_node = (sys_node_t*)fd_node->ctx.u.file.mux;
 			#if defined(USE_EPOLL)
 				epoll_ctl (mux_node->ctx.u.mux.fd, EPOLL_CTL_DEL, fd_node->ctx.u.file.fd, &ev);
-			#endif
-				unchain_sys_node_from_mux_node (mux_node, fd_node);
-				break;
-
-			case SYS_NODE_DATA_TYPE_SCK:
-				mux_node = (sys_node_t*)fd_node->ctx.u.sck.mux;
-			#if defined(USE_EPOLL)
-				epoll_ctl (mux_node->ctx.u.mux.fd, EPOLL_CTL_DEL, fd_node->ctx.u.sck.fd, &ev);
 			#endif
 				unchain_sys_node_from_mux_node (mux_node, fd_node);
 				break;
@@ -358,20 +341,12 @@ static void free_sys_node (hawk_rtx_t* rtx, sys_list_t* list, sys_node_t* node)
 	switch (node->ctx.type)
 	{
 		case SYS_NODE_DATA_TYPE_FILE:
+		case SYS_NODE_DATA_TYPE_SCK:
 			if (node->ctx.u.file.fd >= 0) 
 			{
 				del_from_mux (rtx, node);
 				close (node->ctx.u.file.fd);
 				node->ctx.u.file.fd = -1;
-			}
-			break;
-
-		case SYS_NODE_DATA_TYPE_SCK:
-			if (node->ctx.u.sck.fd >= 0) 
-			{
-				del_from_mux (rtx, node);
-				close (node->ctx.u.sck.fd);
-				node->ctx.u.sck.fd = -1;
 			}
 			break;
 
