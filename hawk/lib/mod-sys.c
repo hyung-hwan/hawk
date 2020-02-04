@@ -116,28 +116,45 @@ enum sys_node_data_flag_t
 };
 typedef enum sys_node_data_flag_t sys_node_data_flag_t;
 
+
+struct sys_node_data_file_t
+{
+	int fd;
+	void* mux; /* if SYS_NODE_DATA_FLAG_IN_MUX is set, this is set to a valid pointer. it is of the void* type since sys_node_t is not available yet. */
+	void* x_prev;
+	void* x_next;
+};
+typedef struct sys_node_data_file_t sys_node_data_file_t;
+
+struct sys_node_data_sck_t
+{
+	int fd;
+	void* mux; /* if SYS_NODE_DATA_FLAG_IN_MUX is set, this is set to a valid pointer. it is of the void* type since sys_node_t is not available yet. */
+	void* x_prev;
+	void* x_next;
+};
+typedef struct sys_node_data_sck_t sys_node_data_sck_t;
+
+struct sys_node_data_mux_t
+{
+#if defined(USE_EPOLL)
+	int fd;
+#endif
+	void* x_first;
+	void* x_last;
+};
+typedef struct sys_node_data_mux_t sys_node_data_mux_t;
+
 struct sys_node_data_t
 {
 	sys_node_data_type_t type;
 	int flags;
-	void* extra; /* if SYS_NODE_DATA_FLAG_IN_MUX is set, this is set to a valid pointer. it is of the void* type since sys_node_t is not available yet. */
 	union
 	{
-		struct
-		{
-			int fd;
-		} file;
-		struct
-		{
-			int fd;
-		} sck;
+		sys_node_data_file_t file;
+		sys_node_data_sck_t sck;
 		hawk_dir_t* dir;
-		struct
-		{
-		#if defined(USE_EPOLL)
-			int fd;
-		#endif
-		} mux;
+		sys_node_data_mux_t mux;
 	} u;
 };
 typedef struct sys_node_data_t sys_node_data_t;
@@ -260,6 +277,39 @@ static sys_node_t* new_sys_node_mux (hawk_rtx_t* rtx, sys_list_t* list, int fd)
 	return node;
 }
 
+static void chain_sys_node_to_mux_node (sys_node_t* mux_node, sys_node_t* node)
+{
+	sys_node_data_mux_t* mux_data = &mux_node->ctx.u.mux;
+	sys_node_data_file_t* file_data = &node->ctx.u.file;
+
+	HAWK_ASSERT (!(node->ctx.flags & SYS_NODE_DATA_FLAG_IN_MUX));
+	node->ctx.flags |= SYS_NODE_DATA_FLAG_IN_MUX;
+	
+	file_data->mux = mux_node;
+	file_data->x_prev = HAWK_NULL;
+	file_data->x_next = mux_data->x_first;
+	if (mux_data->x_first) ((sys_node_t*)mux_data->x_first)->ctx.u.file.x_prev = node;
+	else mux_data->x_last = node;
+	mux_data->x_first = node;
+}
+
+static void unchain_sys_node_from_mux_node (sys_node_t* mux_node, sys_node_t* node)
+{
+	sys_node_data_mux_t* mux_data = &mux_node->ctx.u.mux;
+	sys_node_data_file_t* file_data = &node->ctx.u.file;
+
+	HAWK_ASSERT (node->ctx.flags & SYS_NODE_DATA_FLAG_IN_MUX);
+	node->ctx.flags &= ~SYS_NODE_DATA_FLAG_IN_MUX;
+
+	if (file_data->x_prev) ((sys_node_t*)file_data->x_prev)->ctx.u.file.x_next = file_data->x_next;
+	else mux_data->x_first = file_data->x_next;
+	if (file_data->x_next) ((sys_node_t*)file_data->x_next)->ctx.u.file.x_prev = file_data->x_prev;
+	else mux_data->x_last = file_data->x_prev;
+
+	file_data->mux = HAWK_NULL;
+}
+
+
 static void del_from_mux (hawk_rtx_t* rtx, sys_node_t* fd_node)
 {
 	if (fd_node->ctx.flags & SYS_NODE_DATA_FLAG_IN_MUX)
@@ -268,36 +318,38 @@ static void del_from_mux (hawk_rtx_t* rtx, sys_node_t* fd_node)
 	#if defined(USE_EPOLL)
 		struct epoll_event ev;
 	#endif
-		
-		mux_node = (sys_node_t*)fd_node->ctx.extra;
+
 		switch (fd_node->ctx.type)
 		{
 			case SYS_NODE_DATA_TYPE_FILE:
+				mux_node = (sys_node_t*)fd_node->ctx.u.file.mux;
 			#if defined(USE_EPOLL)
 				epoll_ctl (mux_node->ctx.u.mux.fd, EPOLL_CTL_DEL, fd_node->ctx.u.file.fd, &ev);
 			#endif
+				unchain_sys_node_from_mux_node (mux_node, fd_node);
 				break;
+
 			case SYS_NODE_DATA_TYPE_SCK:
+				mux_node = (sys_node_t*)fd_node->ctx.u.sck.mux;
 			#if defined(USE_EPOLL)
 				epoll_ctl (mux_node->ctx.u.mux.fd, EPOLL_CTL_DEL, fd_node->ctx.u.sck.fd, &ev);
 			#endif
+				unchain_sys_node_from_mux_node (mux_node, fd_node);
 				break;
 
 			default:
 				/* do nothing */
+				fd_node->ctx.flags &= ~SYS_NODE_DATA_FLAG_IN_MUX;
 				break;
 		}
-
-		fd_node->ctx.flags &= ~SYS_NODE_DATA_FLAG_IN_MUX;
-		fd_node->ctx.extra = HAWK_NULL;
 	}
 }
 
 static void purge_mux_members (hawk_rtx_t* rtx, sys_node_t* mux_node)
 {
-	while (mux_node->ctx.extra)
+	while (mux_node->ctx.u.mux.x_first)
 	{
-		del_from_mux (rtx, mux_node->ctx.extra);
+		del_from_mux (rtx, mux_node->ctx.u.mux.x_first);
 	}
 }
 
@@ -707,7 +759,8 @@ static int fnc_dup (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 				
 				}
 		#endif
-				sys_node2->ctx.u.file.fd = fd; /* dup2 or dup3 closes the descriptor implicitly */
+				/* dup2 or dup3 closes the descriptor sys_node2_.ctx.u.file.fd implicitly */
+				sys_node2->ctx.u.file.fd = fd; 
 				rx = sys_node2->id;
 			}
 			else
@@ -2840,15 +2893,33 @@ static HAWK_INLINE int ctl_epoll (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, in
 
 				ev.events = events;
 				ev.data.ptr = sys_node2;
+
+
+				if (sys_node2->ctx.flags & SYS_NODE_DATA_FLAG_IN_MUX)
+				{
+					/* in actual operating systems, a file descriptor can
+					 * be watched under multiple I/O multiplexers. but this
+					 * implementation only allows 1 multiplexer for each
+					 * file descriptor for simplicity */
+					rx = set_error_on_sys_list(rtx, sys_list, HAWK_EPERM, HAWK_T("already in mux"));
+					goto done;
+				}
+/* TODO: cmd == MOD, check if sys_node is equal to sys_node2->ctx.u.file.mux??? */
+			}
+			else
+			{
+				if (!(sys_node2->ctx.flags & SYS_NODE_DATA_FLAG_IN_MUX))
+				{
+					rx = set_error_on_sys_list(rtx, sys_list, HAWK_EPERM, HAWK_T("not in mux"));
+					goto done;
+				}
 			}
 
 			switch (sys_node2->ctx.type)
 			{
 				case SYS_NODE_DATA_TYPE_FILE:
-					evfd = sys_node2->ctx.u.file.fd;
-					break;
 				case SYS_NODE_DATA_TYPE_SCK:
-					evfd = sys_node2->ctx.u.sck.fd;
+					evfd = sys_node2->ctx.u.file.fd;
 					break;
 
 				default:
@@ -2863,16 +2934,26 @@ static HAWK_INLINE int ctl_epoll (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, in
 			}
 			else
 			{
-				if (cmd != EPOLL_CTL_DEL)
+				switch (sys_node2->ctx.type)
 				{
-					sys_node2->ctx.flags |= SYS_NODE_DATA_FLAG_IN_MUX;
-					sys_node2->ctx.extra = sys_node;
+					case SYS_NODE_DATA_TYPE_FILE:
+					case SYS_NODE_DATA_TYPE_SCK:
+						if (cmd != EPOLL_CTL_DEL)
+						{
+							chain_sys_node_to_mux_node (sys_node, sys_node2);
+						}
+						else
+						{
+							unchain_sys_node_from_mux_node(sys_node, sys_node2);
+						}
+						break;
+
+					default:
+						/* internal error */
+						rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINTERN, HAWK_NULL);
+						goto done;
 				}
-				else
-				{
-					sys_node2->ctx.flags &= ~SYS_NODE_DATA_FLAG_IN_MUX;
-					sys_node2->ctx.extra = HAWK_NULL;
-				}
+				
 			}
 		}
 	}

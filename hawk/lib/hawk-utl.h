@@ -41,64 +41,6 @@
 #define HAWK_EPOCH_DAY_WIN    (1)
 
 /* =========================================================================
- * DOUBLY LINKED LIST
- * ========================================================================= */
-#define HAWK_APPEND_TO_LIST(list, node) do { \
-	(node)->next = HAWK_NULL; \
-	(node)->prev = (list)->last; \
-	if ((list)->first) (list)->last->next = (node); \
-	else (list)->first = (node); \
-	(list)->last = (node); \
-} while(0)
-
-#define HAWK_PREPPEND_TO_LIST(list, node) do { \
-	(node)->prev = HAWK_NULL; \
-	(node)->next = (list)->first; \
-	if ((list)->last) (list)->first->prev = (node); \
-	else (list)->last = (node); \
-	(list)->first = (node); \
-} while(0)
-
-#define HAWK_DELETE_FROM_LIST(list, node) do { \
-	if ((node)->prev) (node)->prev->next = (node)->next; \
-	else (list)->first = (node)->next; \
-	if ((node)->next) (node)->next->prev = (node)->prev; \
-	else (list)->last = (node)->prev; \
-} while(0)
-
-
-#define HAWK_APPEND_TO_OOP_LIST(hawk, list, node_type, node, _link) do { \
-	(node)->_link.next = (node_type)(hawk)->_nil; \
-	(node)->_link.prev = (list)->last; \
-	if ((hawk_oop_t)(list)->last != (hawk)->_nil) (list)->last->_link.next = (node); \
-	else (list)->first = (node); \
-	(list)->last = (node); \
-} while(0)
-
-#define HAWK_PREPPEND_TO_OOP_LIST(hawk, list, node_type, node, _link) do { \
-	(node)->_link.prev = (node_type)(hawk)->_nil; \
-	(node)->_link.next = (list)->first; \
-	if ((hawk_oop_t)(list)->first != (hawk)->_nil) (list)->first->_link.prev = (node); \
-	else (list)->last = (node); \
-	(list)->first = (node); \
-} while(0)
-
-#define HAWK_DELETE_FROM_OOP_LIST(hawk, list, node, _link) do { \
-	if ((hawk_oop_t)(node)->_link.prev != (hawk)->_nil) (node)->_link.prev->_link.next = (node)->_link.next; \
-	else (list)->first = (node)->_link.next; \
-	if ((hawk_oop_t)(node)->_link.next != (hawk)->_nil) (node)->_link.next->_link.prev = (node)->_link.prev; \
-	else (list)->last = (node)->_link.prev; \
-} while(0)
-
-/*
-#define HAWK_CLEANUP_FROM_OOP_LIST(hawk, list, node, _link) do { \
-	HAWK_DELETE_FROM_OOP_LIST (hawk, list, node, _link); \
-	(node)->_link.prev = (node_type)(hawk)->_nil; \
-	(node)->_link.next = (node_type)(hawk)->_nil; \
-} while(0);
-*/
-
-/* =========================================================================
  * ENDIAN CHANGE OF A CONSTANT
  * ========================================================================= */
 #define HAWK_CONST_BSWAP16(x) \
