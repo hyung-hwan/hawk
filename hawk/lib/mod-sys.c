@@ -188,7 +188,7 @@ typedef enum mux_ctl_cmd_t mux_ctl_cmd_t;
 enum mux_evt_code_t
 {
 #if defined(USE_EPOLL)
-	MUX_EVT_IN = EPOLLIN,
+	MUX_EVT_IN  = EPOLLIN,
 	MUX_EVT_OUT = EPOLLOUT,
 	MUX_EVT_ERR = EPOLLERR,
 	MUX_EVT_HUP = EPOLLHUP
@@ -670,6 +670,7 @@ static int fnc_write (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	sys_list_t* sys_list;
 	sys_node_t* sys_node;
 	hawk_int_t rx;
+	hawk_val_t* retv;
 
 	sys_list = rtx_to_sys_list(rtx, fi);
 	sys_node = get_sys_list_node_with_arg(rtx, sys_list, hawk_rtx_getarg(rtx, 0), SYS_NODE_DATA_TYPE_FILE | SYS_NODE_DATA_TYPE_SCK, &rx);
@@ -693,7 +694,9 @@ static int fnc_write (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		}
 	}
 
-	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
+	retv = hawk_rtx_makeintval(rtx, rx);
+	if (!retv) return -1; /* hard failure. unable to make a return value */
+	hawk_rtx_setretval (rtx, retv);
 	return 0;
 }
 
@@ -3154,6 +3157,74 @@ done:
 	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
+
+
+static int fnc_sendto (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+{
+	sys_list_t* sys_list;
+	sys_node_t* sys_node;
+	hawk_int_t rx;
+	hawk_val_t* retv;
+	
+	hawk_skad_t skad;
+	struct sockaddr* sa = HAWK_NULL;
+	hawk_oow_t salen = 0;
+
+	sys_list = rtx_to_sys_list(rtx, fi);
+	sys_node = get_sys_list_node_with_arg(rtx, sys_list, hawk_rtx_getarg(rtx, 0), SYS_NODE_DATA_TYPE_SCK, &rx);
+	if (sys_node)
+	{
+		hawk_bch_t* dptr;
+		hawk_oow_t dlen;
+		hawk_val_t* a1;
+
+		if (hawk_rtx_getnargs(rtx) >= 3)
+		{
+			hawk_val_t* a2;
+			hawk_ooch_t* addr;
+			hawk_oow_t len;
+			
+			a2 = hawk_rtx_getarg(rtx, 2);
+			addr = hawk_rtx_getvaloocstr(rtx, a2, &len);
+			if (!addr)
+			{
+				rx = copy_error_to_sys_list(rtx, sys_list);
+				goto done;
+			}
+			
+			if (hawk_gem_oocharstoskad(hawk_rtx_getgem(rtx), addr, len, &skad) <= -1) 
+			{
+				rx = copy_error_to_sys_list(rtx, sys_list);
+				hawk_rtx_freevaloocstr (rtx, a2, addr);
+				goto done;
+			}
+			hawk_rtx_freevaloocstr (rtx, a2, addr);
+				
+			sa = (struct sockaddr*)&skad;
+			salen = hawk_skad_size(&skad);
+		}
+
+		a1 = hawk_rtx_getarg(rtx, 1);
+		dptr = hawk_rtx_getvalbcstr(rtx, a1, &dlen);
+		if (dptr)
+		{			
+			rx = sendto(sys_node->ctx.u.file.fd, dptr, dlen, 0, sa, salen);
+			if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
+			hawk_rtx_freevalbcstr (rtx, a1, dptr);
+		}
+		else
+		{
+			rx = copy_error_to_sys_list(rtx, sys_list);
+		}
+	}
+
+done:
+	retv = hawk_rtx_makeintval(rtx, rx);
+	if (!retv) return -1; /* hard failure. unable to make a return value */
+	hawk_rtx_setretval (rtx, retv);
+	return 0;
+}
+
 /* ------------------------------------------------------------ */
 
 /*
@@ -3571,6 +3642,7 @@ static fnctab_t fnctab[] =
 	{ HAWK_T("readdir"),     { { 2, 2, HAWK_T("vr")  }, fnc_readdir,     0  } },
 	{ HAWK_T("resetdir"),    { { 2, 2, HAWK_NULL     }, fnc_resetdir,    0  } },
 	{ HAWK_T("rmdir"),       { { 1, 1, HAWK_NULL     }, fnc_rmdir,       0  } },
+	{ HAWK_T("sendto"),      { { 2, 3, HAWK_NULL     }, fnc_sendto,      0  } },
 	{ HAWK_T("setenv"),      { { 2, 3, HAWK_NULL     }, fnc_setenv,      0  } },
 	{ HAWK_T("settime"),     { { 1, 1, HAWK_NULL     }, fnc_settime,     0  } },
 	{ HAWK_T("sleep"),       { { 1, 1, HAWK_NULL     }, fnc_sleep,       0  } },
