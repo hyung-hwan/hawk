@@ -171,6 +171,35 @@ struct rtx_data_t
 };
 typedef struct rtx_data_t rtx_data_t;
 
+enum mux_ctl_cmd_t
+{
+#if defined(USE_EPOLL)
+	MUX_CTL_ADD = EPOLL_CTL_ADD,
+	MUX_CTL_DEL = EPOLL_CTL_DEL,
+	MUX_CTL_MOD = EPOLL_CTL_MOD
+#else
+	MUX_CTL_ADD,
+	MUX_CTL_DEL,
+	MUX_CTL_MOD
+#endif
+};
+typedef enum mux_ctl_cmd_t mux_ctl_cmd_t;
+
+enum mux_evt_code_t
+{
+#if defined(USE_EPOLL)
+	MUX_EVT_IN = EPOLLIN,
+	MUX_EVT_OUT = EPOLLOUT,
+	MUX_EVT_ERR = EPOLLERR,
+	MUX_EVT_HUP = EPOLLHUP
+#else
+	MUX_EVT_IN  = (1 << 0),
+	MUX_EVT_OUT = (1 << 1),
+	MUX_EVT_ERR = (1 << 2),
+	MUX_EVT_HUP = (1 << 3)
+#endif
+};
+
 /* ------------------------------------------------------------------------ */
 
 #define ERRNUM_TO_RC(errnum) (-((hawk_int_t)errnum))
@@ -315,7 +344,7 @@ static void del_from_mux (hawk_rtx_t* rtx, sys_node_t* fd_node)
 			case SYS_NODE_DATA_TYPE_SCK:
 				mux_node = (sys_node_t*)fd_node->ctx.u.file.mux;
 			#if defined(USE_EPOLL)
-				epoll_ctl (mux_node->ctx.u.mux.fd, EPOLL_CTL_DEL, fd_node->ctx.u.file.fd, &ev);
+				epoll_ctl (mux_node->ctx.u.mux.fd, MUX_CTL_DEL, fd_node->ctx.u.file.fd, &ev);
 			#endif
 				unchain_sys_node_from_mux_node (mux_node, fd_node);
 				break;
@@ -447,7 +476,7 @@ static int fnc_close (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_int_t cflags = 0;
 
 	sys_list = rtx_to_sys_list(rtx, fi);
-	sys_node = get_sys_list_node_with_arg(rtx, sys_list, hawk_rtx_getarg(rtx, 0), SYS_NODE_DATA_TYPE_FILE, &rx);
+	sys_node = get_sys_list_node_with_arg(rtx, sys_list, hawk_rtx_getarg(rtx, 0), SYS_NODE_DATA_TYPE_FILE | SYS_NODE_DATA_TYPE_SCK, &rx);
 
 	if (sys_node)
 	{
@@ -582,7 +611,7 @@ static int fnc_read (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_int_t reqsize = 8192;
 
 	sys_list = rtx_to_sys_list(rtx, fi);
-	sys_node = get_sys_list_node_with_arg(rtx, sys_list, hawk_rtx_getarg(rtx, 0), SYS_NODE_DATA_TYPE_FILE, &rx);
+	sys_node = get_sys_list_node_with_arg(rtx, sys_list, hawk_rtx_getarg(rtx, 0), SYS_NODE_DATA_TYPE_FILE | SYS_NODE_DATA_TYPE_SCK, &rx);
 	if (sys_node)
 	{
 		if (hawk_rtx_getnargs(rtx) >= 3 && (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 2), &reqsize) <= -1 || reqsize <= 0)) reqsize = 8192;
@@ -643,7 +672,7 @@ static int fnc_write (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_int_t rx;
 
 	sys_list = rtx_to_sys_list(rtx, fi);
-	sys_node = get_sys_list_node_with_arg(rtx, sys_list, hawk_rtx_getarg(rtx, 0), SYS_NODE_DATA_TYPE_FILE, &rx);
+	sys_node = get_sys_list_node_with_arg(rtx, sys_list, hawk_rtx_getarg(rtx, 0), SYS_NODE_DATA_TYPE_FILE | SYS_NODE_DATA_TYPE_SCK, &rx);
 	if (sys_node)
 	{
 		hawk_bch_t* dptr;
@@ -697,7 +726,7 @@ static int fnc_dup (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_int_t oflags = 0;
 
 	sys_list = rtx_to_sys_list(rtx, fi);
-	sys_node = get_sys_list_node_with_arg(rtx, sys_list, hawk_rtx_getarg(rtx, 0), SYS_NODE_DATA_TYPE_FILE, &rx);
+	sys_node = get_sys_list_node_with_arg(rtx, sys_list, hawk_rtx_getarg(rtx, 0), SYS_NODE_DATA_TYPE_FILE | SYS_NODE_DATA_TYPE_SCK, &rx);
 	if (sys_node)
 	{
 		int fd;
@@ -707,6 +736,12 @@ static int fnc_dup (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			sys_node2 = get_sys_list_node_with_arg(rtx, sys_list, hawk_rtx_getarg(rtx, 1), SYS_NODE_DATA_TYPE_FILE, &rx);
 			if (!sys_node2) goto done;
 			if (hawk_rtx_getnargs(rtx) >= 3 && (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 2), &oflags) <= -1 || oflags < 0)) oflags = 0;
+
+			if (sys_node->ctx.u.file.fd == sys_node2->ctx.u.file.fd)
+			{
+				rx = set_error_on_sys_list(rtx, sys_list, HAWK_EPERM, HAWK_T("same descriptor"));
+				goto done;
+			}
 		}
 
 		if (sys_node2)
@@ -734,8 +769,11 @@ static int fnc_dup (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 				
 				}
 		#endif
-				/* dup2 or dup3 closes the descriptor sys_node2_.ctx.u.file.fd implicitly */
+				/* dup2 or dup3 closes the descriptor sys_node2_.ctx.u.file.fd implicitly
+				 * if it's registered in muxtipler, unregister it as well */
+				del_from_mux (rtx, sys_node2);
 				sys_node2->ctx.u.file.fd = fd; 
+				sys_node2->ctx.type = sys_node->ctx.type;
 				rx = sys_node2->id;
 			}
 			else
@@ -753,6 +791,7 @@ static int fnc_dup (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 				new_node = new_sys_node_fd(rtx, sys_list, fd);
 				if (new_node) 
 				{
+					new_node->ctx.type = sys_node->ctx.type;
 					rx = new_node->id;
 				}
 				else 
@@ -2760,7 +2799,7 @@ static int fnc_utime (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 /* ------------------------------------------------------------ */
 
 
-static int fnc_openpoll (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+static int fnc_openmux (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 #if defined(USE_EPOLL)
 	sys_list_t* sys_list;
@@ -2818,7 +2857,7 @@ static int fnc_openpoll (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 #endif
 }
 
-static int fnc_closepoll (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+static int fnc_closemux (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 #if defined(USE_EPOLL)
 	sys_list_t* sys_list;
@@ -2839,7 +2878,7 @@ static int fnc_closepoll (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 }
 
 #if defined(USE_EPOLL)
-static HAWK_INLINE int ctl_epoll (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, int cmd)
+static HAWK_INLINE int ctl_epoll (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, mux_ctl_cmd_t cmd)
 {
 	sys_list_t* sys_list;
 	sys_node_t* sys_node, * sys_node2;
@@ -2856,7 +2895,15 @@ static HAWK_INLINE int ctl_epoll (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, in
 			struct epoll_event ev;
 			int evfd;
 
-			if (cmd != EPOLL_CTL_DEL)
+			if (cmd == MUX_CTL_DEL)
+			{
+				if (!(sys_node2->ctx.flags & SYS_NODE_DATA_FLAG_IN_MUX))
+				{
+					rx = set_error_on_sys_list(rtx, sys_list, HAWK_EPERM, HAWK_T("not in mux"));
+					goto done;
+				}
+			}
+			else
 			{
 				hawk_int_t events;
 
@@ -2866,27 +2913,30 @@ static HAWK_INLINE int ctl_epoll (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, in
 					goto done;
 				}
 
-				ev.events = events;
 				ev.data.ptr = sys_node2;
+				ev.events = events;
+				ev.events &= ~EPOLLET; /* disable edge trigger if set */
 
-
-				if (sys_node2->ctx.flags & SYS_NODE_DATA_FLAG_IN_MUX)
+				if (cmd == MUX_CTL_MOD)
 				{
-					/* in actual operating systems, a file descriptor can
-					 * be watched under multiple I/O multiplexers. but this
-					 * implementation only allows 1 multiplexer for each
-					 * file descriptor for simplicity */
-					rx = set_error_on_sys_list(rtx, sys_list, HAWK_EPERM, HAWK_T("already in mux"));
-					goto done;
+					if (!(sys_node2->ctx.flags & SYS_NODE_DATA_FLAG_IN_MUX) || sys_node2->ctx.u.file.mux != sys_node)
+					{
+						/* not in the multiplxer or not in the right multiplexer */
+						rx = set_error_on_sys_list(rtx, sys_list, HAWK_EPERM, HAWK_T("not in mux"));
+						goto done;
+					}
 				}
-/* TODO: cmd == MOD, check if sys_node is equal to sys_node2->ctx.u.file.mux??? */
-			}
-			else
-			{
-				if (!(sys_node2->ctx.flags & SYS_NODE_DATA_FLAG_IN_MUX))
+				else
 				{
-					rx = set_error_on_sys_list(rtx, sys_list, HAWK_EPERM, HAWK_T("not in mux"));
-					goto done;
+					if (sys_node2->ctx.flags & SYS_NODE_DATA_FLAG_IN_MUX)
+					{
+						/* in actual operating systems, a file descriptor can
+						 * be watched under multiple I/O multiplexers. but this
+						 * implementation only allows 1 multiplexer for each
+						 * file descriptor for simplicity */
+						rx = set_error_on_sys_list(rtx, sys_list, HAWK_EPERM, HAWK_T("already in mux"));
+						goto done;
+					}
 				}
 			}
 
@@ -2913,13 +2963,16 @@ static HAWK_INLINE int ctl_epoll (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, in
 				{
 					case SYS_NODE_DATA_TYPE_FILE:
 					case SYS_NODE_DATA_TYPE_SCK:
-						if (cmd != EPOLL_CTL_DEL)
+						switch (cmd)
 						{
-							chain_sys_node_to_mux_node (sys_node, sys_node2);
-						}
-						else
-						{
-							unchain_sys_node_from_mux_node(sys_node, sys_node2);
+							case MUX_CTL_ADD:
+								chain_sys_node_to_mux_node (sys_node, sys_node2);
+								break;
+							case MUX_CTL_DEL:
+								unchain_sys_node_from_mux_node(sys_node, sys_node2);
+								break;
+							case MUX_CTL_MOD:
+								break;
 						}
 						break;
 
@@ -2939,37 +2992,37 @@ done:
 }
 #endif
 
-static int fnc_addtopoll (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+static int fnc_addtomux (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 #if defined(USE_EPOLL)
-	return ctl_epoll(rtx, fi, EPOLL_CTL_ADD);
+	return ctl_epoll(rtx, fi, MUX_CTL_ADD);
 #else
 	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, ERRNUM_TO_RC(HAWK_ENOIMPL)));
 	return 0;
 #endif
 }
 
-static int fnc_delfrompoll (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+static int fnc_delfrommux (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 #if defined(USE_EPOLL)
-	return ctl_epoll(rtx, fi, EPOLL_CTL_DEL);
+	return ctl_epoll(rtx, fi, MUX_CTL_DEL);
 #else
 	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, ERRNUM_TO_RC(HAWK_ENOIMPL)));
 	return 0;
 #endif
 }
 
-static int fnc_modinpoll (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+static int fnc_modinmux (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 #if defined(USE_EPOLL)
-	return ctl_epoll(rtx, fi, EPOLL_CTL_MOD);
+	return ctl_epoll(rtx, fi, MUX_CTL_MOD);
 #else
 	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, ERRNUM_TO_RC(HAWK_ENOIMPL)));
 	return 0;
 #endif
 }
 
-static int fnc_waitonpoll (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+static int fnc_waitonmux (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 #if defined(USE_EPOLL)
 	sys_list_t* sys_list;
@@ -3014,6 +3067,93 @@ done:
 #endif
 }
 
+/* ------------------------------------------------------------ */
+
+static int fnc_socket (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+{
+	sys_list_t* sys_list;
+	hawk_int_t rx, domain = 0, type = 0, proto = 0;
+	int fd;
+
+	sys_list = rtx_to_sys_list(rtx, fi);
+
+	if (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 0), &domain) <= -1 || domain < 0) domain = 0;
+	if (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 1), &type) <= -1 || type < 0) type = 0;
+	if (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 2), &proto) <= -1 || proto < 0) proto = 0;
+
+/* TOOD: SOCK_CLOEXEC, SOCK_NONBLOCK */
+	fd = socket(domain, type, proto);
+	if (fd >= 0)
+	{
+		sys_node_t* new_node;
+
+		new_node = new_sys_node_fd(rtx, sys_list, fd);
+		if (!new_node) 
+		{
+			close (fd);
+			rx = copy_error_to_sys_list(rtx, sys_list);
+		}
+		else
+		{
+			new_node->ctx.type = SYS_NODE_DATA_TYPE_SCK; /* override the type to socket */
+			rx = new_node->id;
+			HAWK_ASSERT (rx >= 0);
+		}
+	}
+	else
+	{
+		rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
+	}
+
+	HAWK_ASSERT (HAWK_IN_QUICKINT_RANGE(rx));
+	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
+	return 0;
+}
+
+static int fnc_connect (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+{
+	sys_list_t* sys_list;
+	sys_node_t* sys_node;
+	hawk_int_t rx;
+
+	sys_list = rtx_to_sys_list(rtx, fi);
+	sys_node = get_sys_list_node_with_arg(rtx, sys_list, hawk_rtx_getarg(rtx, 0), SYS_NODE_DATA_TYPE_SCK, &rx);
+	if (sys_node)
+	{
+		hawk_val_t* a1;
+		hawk_ooch_t* addr;
+		hawk_oow_t len;
+		hawk_skad_t skad;
+		
+		a1 = hawk_rtx_getarg(rtx, 1);
+		addr = hawk_rtx_getvaloocstr(rtx, a1, &len);
+		if (addr)
+		{
+			if (hawk_gem_oocharstoskad(hawk_rtx_getgem(rtx), addr, len, &skad) <= -1) 
+			{
+				rx = copy_error_to_sys_list(rtx, sys_list);
+				hawk_rtx_freevaloocstr (rtx, a1, addr);
+				goto done;
+			}
+
+			hawk_rtx_freevaloocstr (rtx, a1, addr);
+			rx = connect(sys_node->ctx.u.file.fd, (struct sockaddr*)&skad, hawk_skad_size(&skad));
+			if (rx <= -1) 
+			{
+				rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
+				goto done;
+			}
+		}
+		else
+		{
+			rx = copy_error_to_sys_list(rtx, sys_list);
+		}
+	}
+
+done:
+	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
+	return 0;
+}
 /* ------------------------------------------------------------ */
 
 /*
@@ -3391,14 +3531,15 @@ static fnctab_t fnctab[] =
 	{ HAWK_T("WIFEXITED"),   { { 1, 1, HAWK_NULL     }, fnc_wifexited,   0  } },
 	{ HAWK_T("WIFSIGNALED"), { { 1, 1, HAWK_NULL     }, fnc_wifsignaled, 0  } },
 	{ HAWK_T("WTERMSIG"),    { { 1, 1, HAWK_NULL     }, fnc_wtermsig,    0  } },
-	{ HAWK_T("addtopoll"),   { { 3, 3, HAWK_NULL     }, fnc_addtopoll,   0  } },
+	{ HAWK_T("addtomux"),    { { 3, 3, HAWK_NULL     }, fnc_addtomux,    0  } },
 	{ HAWK_T("chmod"),       { { 2, 2, HAWK_NULL     }, fnc_chmod,       0  } },
 	{ HAWK_T("chroot"),      { { 1, 1, HAWK_NULL     }, fnc_chroot,      0  } },
 	{ HAWK_T("close"),       { { 1, 2, HAWK_NULL     }, fnc_close,       0  } },
 	{ HAWK_T("closedir"),    { { 1, 1, HAWK_NULL     }, fnc_closedir,    0  } },
 	{ HAWK_T("closelog"),    { { 0, 0, HAWK_NULL     }, fnc_closelog,    0  } },
-	{ HAWK_T("closepoll"),   { { 1, 1, HAWK_NULL     }, fnc_closepoll,   0  } },
-	{ HAWK_T("delfrompoll"), { { 2, 2, HAWK_NULL     }, fnc_delfrompoll, 0  } },
+	{ HAWK_T("closemux"),    { { 1, 1, HAWK_NULL     }, fnc_closemux,    0  } },
+	{ HAWK_T("connect"),     { { 2, 2, HAWK_NULL     }, fnc_connect,     0  } },
+	{ HAWK_T("delfrommux"),  { { 2, 2, HAWK_NULL     }, fnc_delfrommux,  0  } },
 	{ HAWK_T("dup"),         { { 1, 3, HAWK_NULL     }, fnc_dup,         0  } },
 	{ HAWK_T("errmsg"),      { { 0, 0, HAWK_NULL     }, fnc_errmsg,      0  } },
 	{ HAWK_T("fchmod"),      { { 2, 2, HAWK_NULL     }, fnc_fchmod,      0  } },
@@ -3419,12 +3560,12 @@ static fnctab_t fnctab[] =
 	{ HAWK_T("kill"),        { { 2, 2, HAWK_NULL     }, fnc_kill,        0  } },
 	{ HAWK_T("mkdir"),       { { 1, 2, HAWK_NULL     }, fnc_mkdir,       0  } },
 	{ HAWK_T("mktime"),      { { 0, 1, HAWK_NULL     }, fnc_mktime,      0  } },
-	{ HAWK_T("modinpoll"),   { { 3, 3, HAWK_NULL     }, fnc_modinpoll,   0  } },
+	{ HAWK_T("modinmux"),    { { 3, 3, HAWK_NULL     }, fnc_modinmux,   0  } },
 	{ HAWK_T("open"),        { { 2, 3, HAWK_NULL     }, fnc_open,        0  } },
 	{ HAWK_T("opendir"),     { { 1, 2, HAWK_NULL     }, fnc_opendir,     0  } },
 	{ HAWK_T("openfd"),      { { 1, 1, HAWK_NULL     }, fnc_openfd,      0  } },
 	{ HAWK_T("openlog"),     { { 3, 3, HAWK_NULL     }, fnc_openlog,     0  } },
-	{ HAWK_T("openpoll"),    { { 0, 0, HAWK_NULL     }, fnc_openpoll,    0  } },
+	{ HAWK_T("openmux"),     { { 0, 0, HAWK_NULL     }, fnc_openmux,     0  } },
 	{ HAWK_T("pipe"),        { { 2, 3, HAWK_T("rrv") }, fnc_pipe,        0  } },
 	{ HAWK_T("read"),        { { 2, 3, HAWK_T("vrv") }, fnc_read,        0  } },
 	{ HAWK_T("readdir"),     { { 2, 2, HAWK_T("vr")  }, fnc_readdir,     0  } },
@@ -3433,14 +3574,15 @@ static fnctab_t fnctab[] =
 	{ HAWK_T("setenv"),      { { 2, 3, HAWK_NULL     }, fnc_setenv,      0  } },
 	{ HAWK_T("settime"),     { { 1, 1, HAWK_NULL     }, fnc_settime,     0  } },
 	{ HAWK_T("sleep"),       { { 1, 1, HAWK_NULL     }, fnc_sleep,       0  } },
+	{ HAWK_T("socket"),      { { 3, 3, HAWK_NULL     }, fnc_socket,      0  } },
 	{ HAWK_T("strftime"),    { { 2, 3, HAWK_NULL     }, fnc_strftime,    0  } },
-	{ HAWK_T("symlink"),     { { 2, 2, HAWK_NULL     }, fnc_symlink,      0  } },
+	{ HAWK_T("symlink"),     { { 2, 2, HAWK_NULL     }, fnc_symlink,     0  } },
 	{ HAWK_T("system"),      { { 1, 1, HAWK_NULL     }, fnc_system,      0  } },
 	{ HAWK_T("systime"),     { { 0, 0, HAWK_NULL     }, fnc_gettime,     0  } }, /* alias to gettime() */
 	{ HAWK_T("unlink"),      { { 1, 1, HAWK_NULL     }, fnc_unlink,      0  } },
 	{ HAWK_T("unsetenv"),    { { 1, 1, HAWK_NULL     }, fnc_unsetenv,    0  } },
 	{ HAWK_T("wait"),        { { 1, 3, HAWK_T("vrv") }, fnc_wait,        0  } },
-	{ HAWK_T("waitonpoll"),  { { 3, 3, HAWK_T("vvr") }, fnc_waitonpoll,  0  } },
+	{ HAWK_T("waitonmux"),   { { 3, 3, HAWK_T("vvr") }, fnc_waitonmux,  0  } },
 	{ HAWK_T("write"),       { { 2, 2, HAWK_NULL     }, fnc_write,       0  } },
 	{ HAWK_T("writelog"),    { { 2, 2, HAWK_NULL     }, fnc_writelog,    0  } }
 };
@@ -3473,6 +3615,10 @@ static fnctab_t fnctab[] =
 static inttab_t inttab[] =
 {
 	/* keep this table sorted for binary search in query(). */
+
+	{ HAWK_T("AF_INET"),            { AF_INET } },
+	{ HAWK_T("AF_INET6"),           { AF_INET6 } },
+
 	{ HAWK_T("C_KEEPFD"),           { CLOSE_KEEPFD } },
 
 	{ HAWK_T("DIR_SORT"),           { HAWK_DIR_SORT } },
@@ -3517,96 +3663,104 @@ static inttab_t inttab[] =
 	{ HAWK_T("LOG_PRI_WARNING"),    { LOG_WARNING } },
 #endif
 
-	{ HAWK_T("NWIFCFG_IN4"), { HAWK_IFCFG_IN4 } }, /* for backward compatibility */
-	{ HAWK_T("NWIFCFG_IN6"), { HAWK_IFCFG_IN6 } }, /* for backward compatibility */
+	{ HAWK_T("MUX_EVT_ERR"),  { MUX_EVT_ERR } },
+	{ HAWK_T("MUX_EVT_HUP"),  { MUX_EVT_HUP } },
+	{ HAWK_T("MUX_EVT_IN"),   { MUX_EVT_IN } },
+	{ HAWK_T("MUX_EVT_OUT"),  { MUX_EVT_OUT } },
+
+	{ HAWK_T("NWIFCFG_IN4"),  { HAWK_IFCFG_IN4 } }, /* for backward compatibility */
+	{ HAWK_T("NWIFCFG_IN6"),  { HAWK_IFCFG_IN6 } }, /* for backward compatibility */
 
 #if defined(O_APPEND)
-	{ HAWK_T("O_APPEND"),    { O_APPEND } },
+	{ HAWK_T("O_APPEND"),     { O_APPEND } },
 #endif
 #if defined(O_ASYNC)
-	{ HAWK_T("O_ASYNC"),     { O_ASYNC } },
+	{ HAWK_T("O_ASYNC"),      { O_ASYNC } },
 #endif
 #if defined(O_CLOEXEC)
-	{ HAWK_T("O_CLOEXEC"),   { O_CLOEXEC } },
+	{ HAWK_T("O_CLOEXEC"),    { O_CLOEXEC } },
 #endif
 #if defined(O_CREAT)
-	{ HAWK_T("O_CREAT"),     { O_CREAT } },
+	{ HAWK_T("O_CREAT"),      { O_CREAT } },
 #endif
 #if defined(O_DIRECTORY)
-	{ HAWK_T("O_DIRECTORY"), { O_DIRECTORY } },
+	{ HAWK_T("O_DIRECTORY"),  { O_DIRECTORY } },
 #endif
 #if defined(O_DSYNC)
-	{ HAWK_T("O_DSYNC"),     { O_DSYNC } },
+	{ HAWK_T("O_DSYNC"),      { O_DSYNC } },
 #endif
 #if defined(O_EXCL)
-	{ HAWK_T("O_EXCL"),      { O_EXCL } },
+	{ HAWK_T("O_EXCL"),       { O_EXCL } },
 #endif
 #if defined(O_NOATIME)
-	{ HAWK_T("O_NOATIME"),   { O_NOATIME} },
+	{ HAWK_T("O_NOATIME"),    { O_NOATIME} },
 #endif
 #if defined(O_NOCTTY)
-	{ HAWK_T("O_NOCTTY"),    { O_NOCTTY} },
+	{ HAWK_T("O_NOCTTY"),     { O_NOCTTY} },
 #endif
 #if defined(O_NOFOLLOW)
-	{ HAWK_T("O_NOFOLLOW"),  { O_NOFOLLOW } },
+	{ HAWK_T("O_NOFOLLOW"),   { O_NOFOLLOW } },
 #endif
 #if defined(O_NONBLOCK)
-	{ HAWK_T("O_NONBLOCK"),  { O_NONBLOCK } },
+	{ HAWK_T("O_NONBLOCK"),   { O_NONBLOCK } },
 #endif
 #if defined(O_RDONLY)
-	{ HAWK_T("O_RDONLY"),    { O_RDONLY } },
+	{ HAWK_T("O_RDONLY"),     { O_RDONLY } },
 #endif
 #if defined(O_RDWR)
-	{ HAWK_T("O_RDWR"),      { O_RDWR } },
+	{ HAWK_T("O_RDWR"),       { O_RDWR } },
 #endif
 #if defined(O_SYNC)
-	{ HAWK_T("O_SYNC"),      { O_SYNC } },
+	{ HAWK_T("O_SYNC"),       { O_SYNC } },
 #endif
 #if defined(O_TRUNC)
-	{ HAWK_T("O_TRUNC"),     { O_TRUNC } },
+	{ HAWK_T("O_TRUNC"),      { O_TRUNC } },
 #endif
 #if defined(O_WRONLY)
-	{ HAWK_T("O_WRONLY"),    { O_WRONLY } },
+	{ HAWK_T("O_WRONLY"),     { O_WRONLY } },
 #endif
 
-	{ HAWK_T("RC_EACCES"),  { -HAWK_EACCES } },
-	{ HAWK_T("RC_EAGAIN"),  { -HAWK_EAGAIN } },
-	{ HAWK_T("RC_EBUFFULL"),{ -HAWK_EBUFFULL} },
-	{ HAWK_T("RC_EBUSY"),   { -HAWK_EBUSY} },
-	{ HAWK_T("RC_ECHILD"),  { -HAWK_ECHILD } },
-	{ HAWK_T("RC_EECERR"),  { -HAWK_EECERR } },
-	{ HAWK_T("RC_EEXIST"),  { -HAWK_EEXIST } },
-	{ HAWK_T("RC_EINPROG"), { -HAWK_EINPROG } },
-	{ HAWK_T("RC_EINTERN"), { -HAWK_EINTERN } },
-	{ HAWK_T("RC_EINTR"),   { -HAWK_EINTR } },
-	{ HAWK_T("RC_EINVAL"),  { -HAWK_EINVAL } },
-	{ HAWK_T("RC_EIOERR"),  { -HAWK_EIOERR } },
-	{ HAWK_T("RC_EISDIR"),  { -HAWK_EISDIR } },
-	{ HAWK_T("RC_ENOENT"),  { -HAWK_ENOENT } },
-	{ HAWK_T("RC_ENOHND"),  { -HAWK_ENOHND } },
-	{ HAWK_T("RC_ENOIMPL"), { -HAWK_ENOIMPL } },
-	{ HAWK_T("RC_ENOMEM"),  { -HAWK_ENOMEM } },
-	{ HAWK_T("RC_ENOSUP"),  { -HAWK_ENOSUP } },
-	{ HAWK_T("RC_ENOTDIR"), { -HAWK_ENOTDIR } },
-	{ HAWK_T("RC_EOTHER"),  { -HAWK_EOTHER } },
-	{ HAWK_T("RC_EPERM"),   { -HAWK_EPERM } },
-	{ HAWK_T("RC_EPIPE"),   { -HAWK_EPIPE } },
-	{ HAWK_T("RC_ESTATE"),  { -HAWK_ESTATE } },
-	{ HAWK_T("RC_ESYSERR"), { -HAWK_ESYSERR } },
-	{ HAWK_T("RC_ETMOUT"),  { -HAWK_ETMOUT } },
+	{ HAWK_T("RC_EACCES"),     { -HAWK_EACCES } },
+	{ HAWK_T("RC_EAGAIN"),     { -HAWK_EAGAIN } },
+	{ HAWK_T("RC_EBUFFULL"),   { -HAWK_EBUFFULL} },
+	{ HAWK_T("RC_EBUSY"),      { -HAWK_EBUSY} },
+	{ HAWK_T("RC_ECHILD"),     { -HAWK_ECHILD } },
+	{ HAWK_T("RC_EECERR"),     { -HAWK_EECERR } },
+	{ HAWK_T("RC_EEXIST"),     { -HAWK_EEXIST } },
+	{ HAWK_T("RC_EINPROG"),    { -HAWK_EINPROG } },
+	{ HAWK_T("RC_EINTERN"),    { -HAWK_EINTERN } },
+	{ HAWK_T("RC_EINTR"),      { -HAWK_EINTR } },
+	{ HAWK_T("RC_EINVAL"),     { -HAWK_EINVAL } },
+	{ HAWK_T("RC_EIOERR"),     { -HAWK_EIOERR } },
+	{ HAWK_T("RC_EISDIR"),     { -HAWK_EISDIR } },
+	{ HAWK_T("RC_ENOENT"),     { -HAWK_ENOENT } },
+	{ HAWK_T("RC_ENOHND"),     { -HAWK_ENOHND } },
+	{ HAWK_T("RC_ENOIMPL"),    { -HAWK_ENOIMPL } },
+	{ HAWK_T("RC_ENOMEM"),     { -HAWK_ENOMEM } },
+	{ HAWK_T("RC_ENOSUP"),     { -HAWK_ENOSUP } },
+	{ HAWK_T("RC_ENOTDIR"),    { -HAWK_ENOTDIR } },
+	{ HAWK_T("RC_EOTHER"),     { -HAWK_EOTHER } },
+	{ HAWK_T("RC_EPERM"),      { -HAWK_EPERM } },
+	{ HAWK_T("RC_EPIPE"),      { -HAWK_EPIPE } },
+	{ HAWK_T("RC_ESTATE"),     { -HAWK_ESTATE } },
+	{ HAWK_T("RC_ESYSERR"),    { -HAWK_ESYSERR } },
+	{ HAWK_T("RC_ETMOUT"),     { -HAWK_ETMOUT } },
 
-	{ HAWK_T("SIGABRT"), { SIGABRT } },
-	{ HAWK_T("SIGALRM"), { SIGALRM } },
-	{ HAWK_T("SIGHUP"),  { SIGHUP } },
-	{ HAWK_T("SIGINT"),  { SIGINT } },
-	{ HAWK_T("SIGKILL"), { SIGKILL } },
-	{ HAWK_T("SIGQUIT"), { SIGQUIT } },
-	{ HAWK_T("SIGSEGV"), { SIGSEGV } },
-	{ HAWK_T("SIGTERM"), { SIGTERM } },
+	{ HAWK_T("SIGABRT"),       { SIGABRT } },
+	{ HAWK_T("SIGALRM"),       { SIGALRM } },
+	{ HAWK_T("SIGHUP"),        { SIGHUP } },
+	{ HAWK_T("SIGINT"),        { SIGINT } },
+	{ HAWK_T("SIGKILL"),       { SIGKILL } },
+	{ HAWK_T("SIGQUIT"),       { SIGQUIT } },
+	{ HAWK_T("SIGSEGV"),       { SIGSEGV } },
+	{ HAWK_T("SIGTERM"),       { SIGTERM } },
 
-	{ HAWK_T("STRFTIME_UTC"), { STRFTIME_UTC } },
+	{ HAWK_T("SOCK_DGRAM"),    { SOCK_DGRAM } },
+	{ HAWK_T("SOCK_STREAM"),   { SOCK_STREAM } },
 
-	{ HAWK_T("WNOHANG"), { WNOHANG } }
+	{ HAWK_T("STRFTIME_UTC"),  { STRFTIME_UTC } },
+
+	{ HAWK_T("WNOHANG"),       { WNOHANG } }
 };
 
 static int query (hawk_mod_t* mod, hawk_t* awk, const hawk_ooch_t* name, hawk_mod_sym_t* sym)
