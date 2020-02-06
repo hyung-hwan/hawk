@@ -154,6 +154,7 @@ struct sys_list_data_t
 	hawk_ooch_t errmsg[256];
 	hawk_bch_t* readbuf;
 	hawk_oow_t readbuf_capa;
+	hawk_ooch_t skadbuf[2][256];
 };
 typedef struct sys_list_data_t sys_list_data_t;
 
@@ -2213,15 +2214,13 @@ static int fnc_getifcfg (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	{
 		hawk_int_t type;
 		hawk_int_t index, mtu;
-		hawk_ooch_t addr[128];
-		hawk_ooch_t mask[128];
 		hawk_ooch_t ethw[32];
 		hawk_val_map_data_t md[7];
 		hawk_val_t* tmp;
 		int x;
-		
+
 		if (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 1), &type) <= -1) goto fail;
-		
+
 		cfg.type = type;
 		if (hawk_gem_getifcfg(hawk_rtx_getgem(rtx), &cfg) <= -1) goto fail;
 		
@@ -2243,14 +2242,14 @@ static int fnc_getifcfg (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		md[2].key.ptr = HAWK_T("addr");
 		md[2].key.len = 4;
 		md[2].type = HAWK_VAL_MAP_DATA_STR;
-		hawk_gem_skadtooocstr (hawk_rtx_getgem(rtx), &cfg.addr, addr, HAWK_COUNTOF(addr), HAWK_SKAD_TO_OOCSTR_ADDR);
-		md[2].vptr = addr;
+		hawk_gem_skadtooocstr (hawk_rtx_getgem(rtx), &cfg.addr, sys_list->ctx.skadbuf[0], HAWK_COUNTOF(sys_list->ctx.skadbuf[0]), HAWK_SKAD_TO_OOCSTR_ADDR);
+		md[2].vptr = sys_list->ctx.skadbuf[0];
 
 		md[3].key.ptr = HAWK_T("mask");
 		md[3].key.len = 4;
 		md[3].type = HAWK_VAL_MAP_DATA_STR;
-		hawk_gem_skadtooocstr (hawk_rtx_getgem(rtx), &cfg.mask, mask, HAWK_COUNTOF(mask), HAWK_SKAD_TO_OOCSTR_ADDR);
-		md[3].vptr = mask;
+		hawk_gem_skadtooocstr (hawk_rtx_getgem(rtx), &cfg.mask, sys_list->ctx.skadbuf[1], HAWK_COUNTOF(sys_list->ctx.skadbuf[1]), HAWK_SKAD_TO_OOCSTR_ADDR);
+		md[3].vptr = sys_list->ctx.skadbuf[1];
 
 		md[4].key.ptr = HAWK_T("ethw");
 		md[4].key.len = 4;
@@ -3158,6 +3157,91 @@ done:
 	return 0;
 }
 
+static int fnc_recvfrom (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+{
+	sys_list_t* sys_list;
+	sys_node_t* sys_node;
+	hawk_int_t rx;
+	hawk_int_t reqsize = 8192;
+
+	sys_list = rtx_to_sys_list(rtx, fi);
+	sys_node = get_sys_list_node_with_arg(rtx, sys_list, hawk_rtx_getarg(rtx, 0), SYS_NODE_DATA_TYPE_FILE | SYS_NODE_DATA_TYPE_SCK, &rx);
+	if (sys_node)
+	{
+		hawk_skad_t skad;
+		socklen_t addrlen;
+
+		if (hawk_rtx_getnargs(rtx) >= 3 && (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 2), &reqsize) <= -1 || reqsize <= 0)) reqsize = 8192;
+		if (reqsize > HAWK_QUICKINT_MAX) reqsize = HAWK_QUICKINT_MAX;
+
+		if (reqsize > sys_list->ctx.readbuf_capa)
+		{
+			hawk_bch_t* tmp = hawk_rtx_reallocmem(rtx, sys_list->ctx.readbuf, reqsize);
+			if (!tmp)
+			{
+				rx = copy_error_to_sys_list(rtx, sys_list);
+				goto done;
+			}
+			sys_list->ctx.readbuf = tmp;
+			sys_list->ctx.readbuf_capa = reqsize;
+		}
+
+		addrlen = HAWK_SIZEOF(skad);
+		rx = recvfrom(sys_node->ctx.u.file.fd, sys_list->ctx.readbuf, reqsize, 0, (struct sockaddr*)&skad, &addrlen);
+		if (rx <= 0) 
+		{
+			if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_T("unable to read"));
+			goto done;
+		}
+		else
+		{
+			hawk_val_t* sv;
+			int x;
+
+			sv = hawk_rtx_makembsval(rtx, sys_list->ctx.readbuf, rx);
+			if (!sv) 
+			{
+				rx = copy_error_to_sys_list(rtx, sys_list);
+				goto done;
+			}
+
+			hawk_rtx_refupval (rtx, sv);
+			x = hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, 1), sv);
+			hawk_rtx_refdownval (rtx, sv);
+			if (x <= -1) 
+			{
+				rx = copy_error_to_sys_list(rtx, sys_list);
+				goto done;
+			}
+
+			if (hawk_rtx_getnargs(rtx) >= 4)
+			{
+				hawk_gem_skadtooocstr (hawk_rtx_getgem(rtx), &skad, sys_list->ctx.skadbuf[0], HAWK_COUNTOF(sys_list->ctx.skadbuf[0]), HAWK_SKAD_TO_OOCSTR_ADDR | HAWK_SKAD_TO_OOCSTR_PORT);
+				sv = hawk_rtx_makestrvalwithoocstr(rtx, sys_list->ctx.skadbuf[0]);
+				if (!sv)
+				{
+					rx = copy_error_to_sys_list(rtx, sys_list);
+					goto done;
+				}
+
+				hawk_rtx_refupval (rtx, sv);
+				x = hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, 3), sv);
+				hawk_rtx_refdownval (rtx, sv);
+				if (x <= -1) 
+				{
+					rx = copy_error_to_sys_list(rtx, sys_list);
+					goto done;
+				}
+			}
+		}
+	}
+
+done:
+	/* the value in 'rx' never exceeds HAWK_QUICKINT_MAX as 'reqsize' has been limited to
+	 * it before the call to 'read'. so it's safe not to check the result of hawk_rtx_makeintval() */
+	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
+	return 0;
+}
 
 static int fnc_sendto (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
@@ -3640,6 +3724,7 @@ static fnctab_t fnctab[] =
 	{ HAWK_T("pipe"),        { { 2, 3, HAWK_T("rrv") }, fnc_pipe,        0  } },
 	{ HAWK_T("read"),        { { 2, 3, HAWK_T("vrv") }, fnc_read,        0  } },
 	{ HAWK_T("readdir"),     { { 2, 2, HAWK_T("vr")  }, fnc_readdir,     0  } },
+	{ HAWK_T("recvfrom"),    { { 2, 4, HAWK_T("vrvr")}, fnc_recvfrom,    0  } },
 	{ HAWK_T("resetdir"),    { { 2, 2, HAWK_NULL     }, fnc_resetdir,    0  } },
 	{ HAWK_T("rmdir"),       { { 1, 1, HAWK_NULL     }, fnc_rmdir,       0  } },
 	{ HAWK_T("sendto"),      { { 2, 3, HAWK_NULL     }, fnc_sendto,      0  } },
