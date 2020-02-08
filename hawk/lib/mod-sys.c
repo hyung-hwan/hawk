@@ -130,9 +130,13 @@ struct sys_node_data_mux_t
 {
 #if defined(USE_EPOLL)
 	int fd;
+	struct epoll_event* x_evt;
 #endif
 	void* x_first;
 	void* x_last;
+	hawk_oow_t x_count;
+	hawk_oow_t x_evt_max;
+	hawk_oow_t x_evt_count;
 };
 typedef struct sys_node_data_mux_t sys_node_data_mux_t;
 
@@ -304,13 +308,14 @@ static void chain_sys_node_to_mux_node (sys_node_t* mux_node, sys_node_t* node)
 
 	HAWK_ASSERT (!(node->ctx.flags & SYS_NODE_DATA_FLAG_IN_MUX));
 	node->ctx.flags |= SYS_NODE_DATA_FLAG_IN_MUX;
-	
+
 	file_data->mux = mux_node;
 	file_data->x_prev = HAWK_NULL;
 	file_data->x_next = mux_data->x_first;
 	if (mux_data->x_first) ((sys_node_t*)mux_data->x_first)->ctx.u.file.x_prev = node;
 	else mux_data->x_last = node;
 	mux_data->x_first = node;
+	mux_data->x_count++;
 }
 
 static void unchain_sys_node_from_mux_node (sys_node_t* mux_node, sys_node_t* node)
@@ -325,10 +330,10 @@ static void unchain_sys_node_from_mux_node (sys_node_t* mux_node, sys_node_t* no
 	else mux_data->x_first = file_data->x_next;
 	if (file_data->x_next) ((sys_node_t*)file_data->x_next)->ctx.u.file.x_prev = file_data->x_prev;
 	else mux_data->x_last = file_data->x_prev;
+	mux_data->x_count--;
 
 	file_data->mux = HAWK_NULL;
 }
-
 
 static void del_from_mux (hawk_rtx_t* rtx, sys_node_t* fd_node)
 {
@@ -3036,28 +3041,85 @@ static int fnc_waitonmux (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 	if (sys_node)
 	{
-		struct epoll_event events[64];
+		sys_node_data_mux_t* mux_data = &sys_node->ctx.u.mux;
 		hawk_int_t tmout;
 
 		if (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 1), &tmout) <= -1) tmout = -1;
 
-		if (epoll_wait(sys_node->ctx.u.mux.fd, events, HAWK_COUNTOF(events), tmout) <= -1)
+		if (mux_data->x_evt_max < mux_data->x_count)
+		{
+			struct epoll_event* tmp;
+
+			tmp = hawk_rtx_reallocmem(rtx, mux_data->x_evt, HAWK_SIZEOF(*tmp) * HAWK_ALIGN(mux_data->x_count, 64));
+			if (!tmp)
+			{
+				rx = copy_error_to_sys_list(rtx, sys_list);
+				goto done;
+			}
+
+			mux_data->x_evt_max = HAWK_ALIGN(mux_data->x_count, 64);
+			mux_data->x_evt = tmp;
+		}
+		if ((rx = epoll_wait(sys_node->ctx.u.mux.fd, mux_data->x_evt, mux_data->x_evt_max, tmout)) <= -1)
 		{
 			rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
 		}
-		else
+		else 
 		{
-			/* TODO: */
-			/* arrange to return an array of file descriptros and.... what???  */
-			/* set ref value on argument 1 */
-			/*
-			ev["count"] = 10;
-			ev[1, "fd"] = 10;
-			ev[1, "events"] = R | W,
-			ev[2, "fd"] = 10;
-			ev[2, "events"] = R | W,
-			*/
+			/* 0 on timeout, >0 if a file descriptor is ready */
+			mux_data->x_evt_count = rx;
 		}
+	}
+
+done:
+	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
+	return 0;
+#else
+	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, ERRNUM_TO_RC(HAWK_ENOIMPL)));
+	return 0;
+#endif
+}
+
+static int fnc_getmuxevt (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+{
+#if defined(USE_EPOLL)
+	sys_list_t* sys_list;
+	sys_node_t* sys_node;
+	hawk_int_t rx = ERRNUM_TO_RC(HAWK_ENOERR);
+
+	sys_list = rtx_to_sys_list(rtx, fi);
+	sys_node = get_sys_list_node_with_arg(rtx, sys_list, hawk_rtx_getarg(rtx, 0), SYS_NODE_DATA_TYPE_MUX, &rx);
+
+	if (sys_node)
+	{
+		sys_node_data_mux_t* mux_data = &sys_node->ctx.u.mux;
+		sys_node_t* file_node;
+		hawk_int_t index;
+		int x;
+
+		if (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 1), &index) <= -1)
+		{
+		fail:
+			rx = copy_error_to_sys_list(rtx, sys_list);
+			goto done;
+		}
+
+		if (index < 0 || index >= mux_data->x_evt_count)
+		{
+			/* invalid index */
+			rx = set_error_on_sys_list (rtx, sys_list, HAWK_EINVAL, HAWK_NULL);
+			goto done;
+		}
+
+		file_node = mux_data->x_evt[index].data.ptr;
+
+		HAWK_ASSERT (HAWK_IN_QUICKINT_RANGE(file_node->id));
+		x = hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, 2), hawk_rtx_makeintval(rtx, file_node->id));
+		if (x <= -1) goto fail;
+
+		HAWK_ASSERT (HAWK_IN_QUICKINT_RANGE(mux_data->x_evt[index].events));
+		x = hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, 3), hawk_rtx_makeintval(rtx, mux_data->x_evt[index].events));
+		if (x <= -1) goto fail;
 	}
 
 done:
@@ -3880,6 +3942,7 @@ static fnctab_t fnctab[] =
 	{ HAWK_T("geteuid"),     { { 0, 0, HAWK_NULL     }, fnc_geteuid,     0  } },
 	{ HAWK_T("getgid"),      { { 0, 0, HAWK_NULL     }, fnc_getgid,      0  } },
 	{ HAWK_T("getifcfg"),    { { 3, 3, HAWK_T("vvr") }, fnc_getifcfg,    0  } },
+	{ HAWK_T("getmuxevt"),   { { 4, 4, HAWK_T("vvrr")}, fnc_getmuxevt, 0  } },
 	{ HAWK_T("getnwifcfg"),  { { 3, 3, HAWK_T("vvr") }, fnc_getifcfg,    0  } }, /* backward compatibility */
 	{ HAWK_T("getpgid"),     { { 0, 0, HAWK_NULL     }, fnc_getpgid,     0  } },
 	{ HAWK_T("getpid"),      { { 0, 0, HAWK_NULL     }, fnc_getpid,      0  } },
@@ -3916,7 +3979,7 @@ static fnctab_t fnctab[] =
 	{ HAWK_T("unlink"),      { { 1, 1, HAWK_NULL     }, fnc_unlink,      0  } },
 	{ HAWK_T("unsetenv"),    { { 1, 1, HAWK_NULL     }, fnc_unsetenv,    0  } },
 	{ HAWK_T("wait"),        { { 1, 3, HAWK_T("vrv") }, fnc_wait,        0  } },
-	{ HAWK_T("waitonmux"),   { { 3, 3, HAWK_T("vvr") }, fnc_waitonmux,   0  } },
+	{ HAWK_T("waitonmux"),   { { 2, 2, HAWK_T("vv")  }, fnc_waitonmux,   0  } },
 	{ HAWK_T("write"),       { { 2, 2, HAWK_NULL     }, fnc_write,       0  } },
 	{ HAWK_T("writelog"),    { { 2, 2, HAWK_NULL     }, fnc_writelog,    0  } }
 };
