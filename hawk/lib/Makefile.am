@@ -147,7 +147,7 @@ libhawk_la_SOURCES += \
 	std-prv.h \
 	std.c 
 
-libhawk_la_CPPFLAGS = $(CPPFLAGS_LIB_COMMON)
+libhawk_la_CPPFLAGS = $(CPPFLAGS_LIB_COMMON) $(CPPFLAGS_PFMOD)
 libhawk_la_LDFLAGS = $(LDFLAGS_LIB_COMMON)
 libhawk_la_LIBADD = $(LIBADD_LIB_COMMON)
 libhawk_la_DEPENDENCIES = $(DEPENDENCIES_LIB_COMMON)
