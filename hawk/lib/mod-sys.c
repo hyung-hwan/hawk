@@ -348,12 +348,29 @@ static void del_from_mux (hawk_rtx_t* rtx, sys_node_t* fd_node)
 		{
 			case SYS_NODE_DATA_TYPE_FILE:
 			case SYS_NODE_DATA_TYPE_SCK:
+			{
+				hawk_oow_t i;
+				sys_node_data_mux_t* mux_data;
+
 				mux_node = (sys_node_t*)fd_node->ctx.u.file.mux;
+				mux_data = &mux_node->ctx.u.mux;
+
+				for (i = 0; i < mux_data->x_evt_count; i++)
+				{
+				#if defined(USE_EPOLL)
+					if (mux_data->x_evt[i].data.ptr && fd_node->id == ((sys_node_t*)mux_data->x_evt[i].data.ptr)->id)
+					{
+						/* nullify the event in the event array to prevent normal access by sys::getmuxevt() */
+						mux_data->x_evt[i].data.ptr = HAWK_NULL;
+					}
+				#endif
+				}
 			#if defined(USE_EPOLL)
 				epoll_ctl (mux_node->ctx.u.mux.fd, MUX_CTL_DEL, fd_node->ctx.u.file.fd, &ev);
 			#endif
 				unchain_sys_node_from_mux_node (mux_node, fd_node);
 				break;
+			}
 
 			default:
 				/* do nothing */
@@ -401,6 +418,14 @@ static void free_sys_node (hawk_rtx_t* rtx, sys_list_t* list, sys_node_t* node)
 				purge_mux_members (rtx, node);
 				close (node->ctx.u.mux.fd);
 				node->ctx.u.mux.fd = -1;
+
+				if (node->ctx.u.mux.x_evt)
+				{
+					hawk_rtx_freemem (rtx, node->ctx.u.mux.x_evt);
+					node->ctx.u.mux.x_evt = HAWK_NULL;
+				}
+				node->ctx.u.mux.x_evt_max = 0;
+				node->ctx.u.mux.x_evt_count = 0;
 			}
 		#endif
 			break;
@@ -1697,72 +1722,73 @@ static int fnc_getegid (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	return 0;
 }
 
-static int fnc_sleep (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+static int val_to_ntime (hawk_rtx_t* rtx, hawk_val_t* val, hawk_ntime_t* nt)
 {
 	hawk_int_t lv;
 	hawk_flt_t fv;
+	int x;
+
+	x = hawk_rtx_valtonum(rtx, val, &lv, &fv);
+	if (x == 0)
+	{
+		nt->sec = lv;
+		nt->nsec = 0;
+	}
+	else if (x >= 1)
+	{
+		nt->sec = (hawk_int_t)fv;
+		nt->nsec = HAWK_SEC_TO_NSEC(fv - nt->sec);
+	}
+
+	return x;
+}
+
+static int fnc_sleep (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+{
+	hawk_ntime_t nt;
 	hawk_val_t* retv;
 	hawk_int_t rx;
+	sys_list_t* sys_list = rtx_to_sys_list(rtx, fi);
 
-	rx = hawk_rtx_valtonum(rtx, hawk_rtx_getarg (rtx, 0), &lv, &fv);
-	if (rx == 0)
+	rx = val_to_ntime(rtx, hawk_rtx_getarg(rtx, 0), &nt);
+	if (rx <= -1)
 	{
-#if defined(_WIN32)
-		Sleep ((DWORD)HAWK_SEC_TO_MSEC(lv));
-		rx = 0;
-#elif defined(__OS2__)
-		DosSleep ((ULONG)HAWK_SEC_TO_MSEC(lv));
-		rx = 0;
-#elif defined(__DOS__)
-		#if (defined(__WATCOMC__) && (__WATCOMC__ < 1200))
-			sleep (lv);
-			rx = 0;
-		#else
-			rx = sleep (lv);
-		#endif
-#elif defined(HAVE_NANOSLEEP)
-		struct timespec req;
-		req.tv_sec = lv;
-		req.tv_nsec = 0;
-		rx = nanosleep(&req, HAWK_NULL);
-#else
-		rx = sleep(lv);
-#endif
+		rx = copy_error_to_sys_list(rtx, sys_list);
+		goto done;
 	}
-	else if (rx >= 1)
-	{
+
 #if defined(_WIN32)
-		Sleep ((DWORD)HAWK_SEC_TO_MSEC(fv));
-		rx = 0;
+	Sleep (HAWK_SECNSEC_TO_MSEC(nt.sec, nt.nsec));
+	rx = 0;
 #elif defined(__OS2__)
-		DosSleep ((ULONG)HAWK_SEC_TO_MSEC(fv));
-		rx = 0;
+	DosSleep ((ULONG)HAWK_SECNSEC_TO_MSEC(nt.sec, nt.nsec)));
+	rx = 0;
 #elif defined(__DOS__)
-		/* no high-resolution sleep() is available */
-		#if (defined(__WATCOMC__) && (__WATCOMC__ < 1200))
-			sleep ((hawk_int_t)fv);
-			rx = 0;
-		#else
-			rx = sleep((hawk_int_t)fv);
-		#endif;
+	/* no high-resolution sleep() is available */
+	#if (defined(__WATCOMC__) && (__WATCOMC__ < 1200))
+	sleep (nt.sec);
+	rx = 0;
+	#else
+	rx = sleep(nt.sec);
+	#endif;
 #elif defined(HAVE_NANOSLEEP)
-		struct timespec req;
-		req.tv_sec = (hawk_int_t)fv;
-		req.tv_nsec = HAWK_SEC_TO_NSEC(fv - req.tv_sec);
-		rx = nanosleep(&req, HAWK_NULL);
+	struct timespec req;
+	req.tv_sec = nt.sec;
+	req.tv_nsec = nt.nsec;
+	rx = nanosleep(&req, HAWK_NULL);
 #elif defined(HAVE_SELECT)
-		struct timeval req;
-		req.tv_sec = (hawk_int_t)fv;
-		req.tv_usec = HAWK_SEC_TO_USEC(fv - req.tv_sec);
-		rx = select(0, HAWK_NULL, HAWK_NULL, HAWK_NULL, &req);
+	struct timeval req;
+	req.tv_sec = nt.sec;
+	req.tv_usec = HAWK_NSEC_TO_USEC(nt.nsec);
+	rx = select(0, HAWK_NULL, HAWK_NULL, HAWK_NULL, &req);
 #else
-		/* no high-resolution sleep() is available */
-		rx = sleep((hawk_int_t)fv);
+	/* no high-resolution sleep() is available */
+	rx = sleep(nt.sec);
 #endif
-	}
 
+done:
 	retv = hawk_rtx_makeintval(rtx, rx);
-	if (retv == HAWK_NULL) return -1;
+	if (!retv) return -1;
 
 	hawk_rtx_setretval (rtx, retv);
 	return 0;
@@ -1776,7 +1802,7 @@ static int fnc_gettime (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	if (hawk_get_time (&now) <= -1) now.sec = 0;
 
 	retv = hawk_rtx_makeintval(rtx, now.sec);
-	if (retv == HAWK_NULL) return -1;
+	if (!retv) return -1;
 
 	hawk_rtx_setretval (rtx, retv);
 	return 0;
@@ -1800,7 +1826,7 @@ static int fnc_settime (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	}
 
 	retv = hawk_rtx_makeintval(rtx, rx);
-	if (retv == HAWK_NULL) return -1;
+	if (!retv) return -1;
 
 	hawk_rtx_setretval (rtx, retv);
 	return 0;
@@ -3042,9 +3068,9 @@ static int fnc_waitonmux (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	if (sys_node)
 	{
 		sys_node_data_mux_t* mux_data = &sys_node->ctx.u.mux;
-		hawk_int_t tmout;
+		hawk_ntime_t tmout;
 
-		if (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 1), &tmout) <= -1) tmout = -1;
+		if (val_to_ntime(rtx, hawk_rtx_getarg(rtx, 1), &tmout) <= -1 || tmout.sec <= -1) { tmout.sec = 0; tmout.nsec = HAWK_MSEC_TO_NSEC(-1); }
 
 		if (mux_data->x_evt_max < mux_data->x_count)
 		{
@@ -3060,7 +3086,11 @@ static int fnc_waitonmux (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			mux_data->x_evt_max = HAWK_ALIGN(mux_data->x_count, 64);
 			mux_data->x_evt = tmp;
 		}
-		if ((rx = epoll_wait(sys_node->ctx.u.mux.fd, mux_data->x_evt, mux_data->x_evt_max, tmout)) <= -1)
+
+		/* once this function is called, invalid the exising event data regardless of success or failure */
+		mux_data->x_evt_count = 0; 
+
+		if ((rx = epoll_wait(sys_node->ctx.u.mux.fd, mux_data->x_evt, mux_data->x_evt_max, HAWK_SECNSEC_TO_MSEC(tmout.sec, tmout.nsec))) <= -1)
 		{
 			rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
 		}
@@ -3094,7 +3124,7 @@ static int fnc_getmuxevt (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	{
 		sys_node_data_mux_t* mux_data = &sys_node->ctx.u.mux;
 		sys_node_t* file_node;
-		hawk_int_t index;
+		hawk_int_t index, id, evts;
 		int x;
 
 		if (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 1), &index) <= -1)
@@ -3112,6 +3142,12 @@ static int fnc_getmuxevt (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		}
 
 		file_node = mux_data->x_evt[index].data.ptr;
+		if (!file_node)
+		{
+			/* has it been closed before it's retrieved with sys::getmuxevt()? */
+			rx = set_error_on_sys_list (rtx, sys_list, HAWK_ENOENT, HAWK_NULL);
+			goto done;
+		}
 
 		HAWK_ASSERT (HAWK_IN_QUICKINT_RANGE(file_node->id));
 		x = hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, 2), hawk_rtx_makeintval(rtx, file_node->id));
@@ -3544,6 +3580,77 @@ done:
 	return 0;
 }
 
+
+static int fnc_setsockopt (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+{
+	sys_list_t* sys_list;
+	sys_node_t* sys_node;
+	hawk_int_t rx;
+
+	sys_list = rtx_to_sys_list(rtx, fi);
+	sys_node = get_sys_list_node_with_arg(rtx, sys_list, hawk_rtx_getarg(rtx, 0), SYS_NODE_DATA_TYPE_SCK, &rx);
+	if (sys_node)
+	{
+		hawk_int_t level, optname;
+		int iv;
+		struct timeval tv;
+		void* vptr;
+		hawk_oow_t vlen;
+
+		if (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 1), &level) <= -1 ||
+		    hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 2), &optname) <= -1)
+		{
+		fail:
+			rx = copy_error_to_sys_list(rtx, sys_list);
+			goto done;
+		}
+
+		switch (optname)
+		{
+		/* TODO:
+			case SO_BINDTODEVICE:
+		*/
+			case SO_BROADCAST:
+			case SO_DONTROUTE:
+			case SO_KEEPALIVE:
+			case SO_RCVBUF:
+			case SO_REUSEADDR:
+			case SO_REUSEPORT:
+			case SO_SNDBUF:
+			{
+				hawk_int_t tmp;
+				if (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 3), &tmp) <= -1) goto fail;
+				iv = tmp;
+				vptr = &iv;
+				vlen = HAWK_SIZEOF(iv);
+				break;
+			}
+
+			case SO_RCVTIMEO:
+			case SO_SNDTIMEO:
+			{
+				hawk_ntime_t tmp;
+				if (val_to_ntime(rtx, hawk_rtx_getarg(rtx, 3), &tmp) <= -1) goto fail;
+				tv.tv_sec = tmp.sec;
+				tv.tv_usec = HAWK_NSEC_TO_MSEC(tmp.nsec);
+				vptr = &tv;
+				vlen = HAWK_SIZEOF(tv);
+				break;
+			}
+
+			default:
+				rx = set_error_on_sys_list(rtx, sys_list, EINVAL, HAWK_NULL);
+				goto done;
+		}
+
+		rx = setsockopt(sys_node->ctx.u.file.fd, level, optname, vptr, vlen);
+		if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
+	}
+
+done:
+	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
+	return 0;
+}
 /* ------------------------------------------------------------ */
 
 /*
@@ -3968,6 +4075,7 @@ static fnctab_t fnctab[] =
 	{ HAWK_T("rmdir"),       { { 1, 1, HAWK_NULL     }, fnc_rmdir,       0  } },
 	{ HAWK_T("sendto"),      { { 2, 3, HAWK_NULL     }, fnc_sendto,      0  } },
 	{ HAWK_T("setenv"),      { { 2, 3, HAWK_NULL     }, fnc_setenv,      0  } },
+	{ HAWK_T("setsockopt"),  { { 4, 4, HAWK_NULL     }, fnc_setsockopt,  0  } },
 	{ HAWK_T("settime"),     { { 1, 1, HAWK_NULL     }, fnc_settime,     0  } },
 	{ HAWK_T("shutdown"),    { { 2, 2, HAWK_NULL     }, fnc_shutdown,    0  } },
 	{ HAWK_T("sleep"),       { { 1, 1, HAWK_NULL     }, fnc_sleep,       0  } },
@@ -4160,6 +4268,18 @@ static inttab_t inttab[] =
 	{ HAWK_T("SOCK_DGRAM"),    { SOCK_DGRAM } },
 	{ HAWK_T("SOCK_NONBLOCK"), { SOCK_NONBLOCK } },
 	{ HAWK_T("SOCK_STREAM"),   { SOCK_STREAM } },
+
+	{ HAWK_T("SOL_SOCKET"),    { SOL_SOCKET } },
+
+	{ HAWK_T("SO_BROADCAST"),  { SO_BROADCAST } },
+	{ HAWK_T("SO_DONTROUTE"),  { SO_DONTROUTE } },
+	{ HAWK_T("SO_KEEPALIVE"),  { SO_KEEPALIVE } },
+	{ HAWK_T("SO_RCVBUF"),     { SO_RCVBUF } },
+	{ HAWK_T("SO_RCVTIMEO"),   { SO_RCVTIMEO } },
+	{ HAWK_T("SO_REUSEADDR"),  { SO_REUSEADDR } },
+	{ HAWK_T("SO_REUSEPORT"),  { SO_REUSEPORT } },
+	{ HAWK_T("SO_SNDBUF"),     { SO_SNDBUF } },
+	{ HAWK_T("SO_SNDTIMEO"),   { SO_SNDTIMEO } },
 
 	{ HAWK_T("STRFTIME_UTC"),  { STRFTIME_UTC } },
 
