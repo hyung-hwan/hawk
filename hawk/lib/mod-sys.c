@@ -847,6 +847,68 @@ done:
 	return 0;
 }
 
+
+static int fnc_fcntl (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+{
+	sys_list_t* sys_list;
+	sys_node_t* sys_node;
+	hawk_int_t rx;
+	hawk_val_t* retv;
+
+	sys_list = rtx_to_sys_list(rtx, fi);
+	sys_node = get_sys_list_node_with_arg(rtx, sys_list, hawk_rtx_getarg(rtx, 0), SYS_NODE_DATA_TYPE_FILE | SYS_NODE_DATA_TYPE_SCK, &rx);
+	if (sys_node)
+	{
+		hawk_int_t  cmd;
+
+		if (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 1), &cmd) <= -1)
+		{
+		fail:
+			rx = copy_error_to_sys_list(rtx, sys_list);
+			goto done;
+		}
+
+		switch (cmd)
+		{
+			case F_GETFD:
+			case F_GETFL:
+			{
+				rx = fcntl(sys_node->ctx.u.file.fd, cmd, 0);
+				if (rx <= -1) 
+				{
+					set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
+					goto done;
+				}
+				break;
+			}
+
+			case F_SETFD:
+			case F_SETFL:
+			{
+				hawk_int_t v = 0;
+				if (hawk_rtx_getnargs(rtx) >= 3 && hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 2), &v) <= -1) goto fail;
+				rx = fcntl(sys_node->ctx.u.file.fd, cmd, v);
+				if (rx <= -1) 
+				{
+					set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
+					goto done;
+				}
+				break;
+			}
+
+			default:
+				rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_NULL);
+				break;
+		}
+	}
+
+done:
+	retv = hawk_rtx_makeintval(rtx, rx);
+	if (!retv) return -1; /* hard failure. unable to make a return value */
+
+	hawk_rtx_setretval (rtx, retv);
+	return 0;
+}
 /* ------------------------------------------------------------------------ */
 
 /*
@@ -3493,6 +3555,7 @@ static int fnc_listen (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	return 0;
 }
 
+/* sys::accept (s, flags, from); */
 static int fnc_accept (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	sys_list_t* sys_list;
@@ -3509,7 +3572,7 @@ static int fnc_accept (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		int fd, fd_flags;
 		hawk_int_t flags = 0;
 
-		if (hawk_rtx_getnargs(rtx) >= 3 && (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 2), &flags) <= -1 || flags < 0)) flags = 0;
+		if (hawk_rtx_getnargs(rtx) >= 2 && (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 1), &flags) <= -1 || flags < 0)) flags = 0;
 
 		addrlen = HAWK_SIZEOF(skad);
 	#if defined(HAVE_ACCEPT4)
@@ -3539,7 +3602,7 @@ static int fnc_accept (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		}
 	#endif
 
-		if (hawk_rtx_getnargs(rtx) >= 2)
+		if (hawk_rtx_getnargs(rtx) >= 3)
 		{
 			hawk_val_t* sv;
 			int x;
@@ -3553,7 +3616,7 @@ static int fnc_accept (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			}
 
 			hawk_rtx_refupval (rtx, sv);
-			x = hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, 1), sv);
+			x = hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, 2), sv);
 			hawk_rtx_refdownval (rtx, sv);
 			if (x <= -1) 
 			{
@@ -4028,7 +4091,7 @@ static fnctab_t fnctab[] =
 	{ HAWK_T("WIFEXITED"),   { { 1, 1, HAWK_NULL     }, fnc_wifexited,   0  } },
 	{ HAWK_T("WIFSIGNALED"), { { 1, 1, HAWK_NULL     }, fnc_wifsignaled, 0  } },
 	{ HAWK_T("WTERMSIG"),    { { 1, 1, HAWK_NULL     }, fnc_wtermsig,    0  } },
-	{ HAWK_T("accept"),      { { 1, 3, HAWK_T("vrv") }, fnc_accept,      0  } },
+	{ HAWK_T("accept"),      { { 1, 3, HAWK_T("vvr") }, fnc_accept,      0  } },
 	{ HAWK_T("addtomux"),    { { 3, 3, HAWK_NULL     }, fnc_addtomux,    0  } },
 	{ HAWK_T("bind"),        { { 2, 2, HAWK_NULL     }, fnc_bind,        0  } },
 	{ HAWK_T("chmod"),       { { 2, 2, HAWK_NULL     }, fnc_chmod,       0  } },
@@ -4043,13 +4106,14 @@ static fnctab_t fnctab[] =
 	{ HAWK_T("errmsg"),      { { 0, 0, HAWK_NULL     }, fnc_errmsg,      0  } },
 	{ HAWK_T("fchmod"),      { { 2, 2, HAWK_NULL     }, fnc_fchmod,      0  } },
 	{ HAWK_T("fchown"),      { { 3, 3, HAWK_NULL     }, fnc_fchown,      0  } },
+	{ HAWK_T("fcntl"),       { { 2, 3, HAWK_NULL     }, fnc_fcntl,       0  } },
 	{ HAWK_T("fork"),        { { 0, 0, HAWK_NULL     }, fnc_fork,        0  } },
 	{ HAWK_T("getegid"),     { { 0, 0, HAWK_NULL     }, fnc_getegid,     0  } },
 	{ HAWK_T("getenv"),      { { 2, 2, HAWK_T("vr")  }, fnc_getenv,      0  } },
 	{ HAWK_T("geteuid"),     { { 0, 0, HAWK_NULL     }, fnc_geteuid,     0  } },
 	{ HAWK_T("getgid"),      { { 0, 0, HAWK_NULL     }, fnc_getgid,      0  } },
 	{ HAWK_T("getifcfg"),    { { 3, 3, HAWK_T("vvr") }, fnc_getifcfg,    0  } },
-	{ HAWK_T("getmuxevt"),   { { 4, 4, HAWK_T("vvrr")}, fnc_getmuxevt, 0  } },
+	{ HAWK_T("getmuxevt"),   { { 4, 4, HAWK_T("vvrr")}, fnc_getmuxevt,   0  } },
 	{ HAWK_T("getnwifcfg"),  { { 3, 3, HAWK_T("vvr") }, fnc_getifcfg,    0  } }, /* backward compatibility */
 	{ HAWK_T("getpgid"),     { { 0, 0, HAWK_NULL     }, fnc_getpgid,     0  } },
 	{ HAWK_T("getpid"),      { { 0, 0, HAWK_NULL     }, fnc_getpid,      0  } },
@@ -4128,8 +4192,15 @@ static inttab_t inttab[] =
 
 	{ HAWK_T("DIR_SORT"),           { HAWK_DIR_SORT } },
 
-	{ HAWK_T("IFCFG_IN4"), { HAWK_IFCFG_IN4 } },
-	{ HAWK_T("IFCFG_IN6"), { HAWK_IFCFG_IN6 } },
+	{ HAWK_T("FD_CLOEXEC"),         { FD_CLOEXEC } },
+
+	{ HAWK_T("F_GETFD"),            { F_GETFD } },
+	{ HAWK_T("F_GETFL"),            { F_GETFL } },
+	{ HAWK_T("F_SETFD"),            { F_SETFD } },
+	{ HAWK_T("F_SETFL"),            { F_SETFL } },
+
+	{ HAWK_T("IFCFG_IN4"),          { HAWK_IFCFG_IN4 } },
+	{ HAWK_T("IFCFG_IN6"),          { HAWK_IFCFG_IN6 } },
 
 #if defined(ENABLE_SYSLOG)
 	{ HAWK_T("LOG_FAC_AUTH"),       { LOG_AUTH } },
