@@ -65,6 +65,10 @@
 
 #define CLOSE_KEEPFD (1 << 0)
 
+/* these must not conflict with F_RDLCK, F_WRLCK, F_UNLCK */
+#define FLOCK_GET (1 << 30)
+#define FLOCK_WAIT (1 << 31)
+
 /*
  * IMPLEMENTATION NOTE:
  *   - hard failure only if it cannot make a final return value. (e.g. fnc_errmsg, fnc_fork, fnc_getpid)
@@ -909,6 +913,128 @@ done:
 	hawk_rtx_setretval (rtx, retv);
 	return 0;
 }
+
+/*
+  BEGIN {
+        f1 = sys::open("/tmp/x", sys::O_RDWR | sys::O_CREAT | sys::O_TRUNC, 0644);
+        if (sys::flock(f1, sys::FLOCK_WRITE | sys::FLOCK_GET, 0, 0, sys::SEEK_SET, pid) != sys::FLOCK_UNLOCK) print "locked by", pid;
+        sys::flock(f1, sys::FLOCK_WRITE | sys::FLOCK_WAIT, 0, 0, sys::SEEK_SET);
+        sys::sleep(ARGV[1]);
+        sys::flock(f1, sys::FLOCK_UNLOCK | sys::FLOCK_WAIT, 0, 0, sys::SEEK_SET);
+        sys::sleep(ARGV[1]);
+        sys::close (f1);
+ }
+ */
+static int fnc_flock (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+{
+	sys_list_t* sys_list;
+	sys_node_t* sys_node;
+	hawk_int_t rx;
+	hawk_val_t* retv;
+
+	HAWK_STATIC_ASSERT (FLOCK_GET != F_RDLCK);
+	HAWK_STATIC_ASSERT (FLOCK_GET != F_WRLCK);
+	HAWK_STATIC_ASSERT (FLOCK_GET != F_UNLCK);
+	HAWK_STATIC_ASSERT (FLOCK_WAIT != F_RDLCK);
+	HAWK_STATIC_ASSERT (FLOCK_WAIT != F_WRLCK);
+	HAWK_STATIC_ASSERT (FLOCK_WAIT != F_UNLCK);
+
+	sys_list = rtx_to_sys_list(rtx, fi);
+	sys_node = get_sys_list_node_with_arg(rtx, sys_list, hawk_rtx_getarg(rtx, 0), SYS_NODE_DATA_TYPE_FILE, &rx);
+	if (sys_node)
+	{
+		hawk_int_t type, start, len, whence;
+		int wait, get;
+		struct flock fl;
+
+		if (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 1), &type) <= -1 ||
+		    hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 2), &start) <= -1 ||
+		    hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 3), &len) <= -1 ||
+		    hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 4), &whence) <= -1)
+		{
+		fail:
+			rx = copy_error_to_sys_list(rtx, sys_list);
+			goto done;
+		}
+
+		wait = !!(type & FLOCK_WAIT);
+		get = !!(type & FLOCK_GET);
+		type &= ~(FLOCK_WAIT | FLOCK_GET);
+
+		HAWK_MEMSET (&fl, 0, HAWK_SIZEOF(fl));
+		fl.l_type = type;
+		fl.l_whence = whence;
+		fl.l_start = start;
+		fl.l_len = len;
+
+		rx = fcntl(sys_node->ctx.u.file.fd, (get? F_GETLK: (wait? F_SETLKW: F_SETLK)), &fl);
+		if (rx <= -1) 
+		{
+			set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
+			goto done;
+		}
+
+		if (get && hawk_rtx_getnargs(rtx) >= 6)
+		{
+			hawk_val_t* sv;
+			int x;
+
+			sv = hawk_rtx_makeintval(rtx, fl.l_pid);
+			if (!sv) goto fail;
+
+			hawk_rtx_refupval (rtx, sv);
+			x = hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, 5), sv);
+			hawk_rtx_refdownval (rtx, sv);
+			if (x <= -1) goto fail;
+
+			rx = fl.l_type; /* for get, it returns the lock type */
+		}
+	}
+
+done:
+	retv = hawk_rtx_makeintval(rtx, rx);
+	if (!retv) return -1; /* hard failure. unable to make a return value */
+
+	hawk_rtx_setretval (rtx, retv);
+	return 0;
+}
+
+static int fnc_fseek (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi) /* this is actually lseek */
+{
+	sys_list_t* sys_list;
+	sys_node_t* sys_node;
+	hawk_int_t rx;
+	hawk_val_t* retv;
+
+	sys_list = rtx_to_sys_list(rtx, fi);
+	sys_node = get_sys_list_node_with_arg(rtx, sys_list, hawk_rtx_getarg(rtx, 0), SYS_NODE_DATA_TYPE_FILE, &rx);
+	if (sys_node)
+	{
+		hawk_int_t offset, whence;
+
+		if (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 1), &offset) <= -1 ||
+		    hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 2), &whence) <= -1)
+		{
+			rx = copy_error_to_sys_list(rtx, sys_list);
+			goto done;
+		}
+
+		rx = lseek(sys_node->ctx.u.file.fd, offset, whence);
+		if (rx <= -1) 
+		{
+			set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
+			goto done;
+		}
+	}
+
+done:
+	retv = hawk_rtx_makeintval(rtx, rx);
+	if (!retv) return -1; /* hard failure. unable to make a return value */
+
+	hawk_rtx_setretval (rtx, retv);
+	return 0;
+}
+
 /* ------------------------------------------------------------------------ */
 
 /*
@@ -4086,74 +4212,76 @@ static fnctab_t fnctab[] =
 {
 	/* keep this table sorted for binary search in query(). */
 
-	{ HAWK_T("WCOREDUMP"),   { { 1, 1, HAWK_NULL     }, fnc_wcoredump,   0  } },
-	{ HAWK_T("WEXITSTATUS"), { { 1, 1, HAWK_NULL     }, fnc_wexitstatus, 0  } },
-	{ HAWK_T("WIFEXITED"),   { { 1, 1, HAWK_NULL     }, fnc_wifexited,   0  } },
-	{ HAWK_T("WIFSIGNALED"), { { 1, 1, HAWK_NULL     }, fnc_wifsignaled, 0  } },
-	{ HAWK_T("WTERMSIG"),    { { 1, 1, HAWK_NULL     }, fnc_wtermsig,    0  } },
-	{ HAWK_T("accept"),      { { 1, 3, HAWK_T("vvr") }, fnc_accept,      0  } },
-	{ HAWK_T("addtomux"),    { { 3, 3, HAWK_NULL     }, fnc_addtomux,    0  } },
-	{ HAWK_T("bind"),        { { 2, 2, HAWK_NULL     }, fnc_bind,        0  } },
-	{ HAWK_T("chmod"),       { { 2, 2, HAWK_NULL     }, fnc_chmod,       0  } },
-	{ HAWK_T("chroot"),      { { 1, 1, HAWK_NULL     }, fnc_chroot,      0  } },
-	{ HAWK_T("close"),       { { 1, 2, HAWK_NULL     }, fnc_close,       0  } },
-	{ HAWK_T("closedir"),    { { 1, 1, HAWK_NULL     }, fnc_closedir,    0  } },
-	{ HAWK_T("closelog"),    { { 0, 0, HAWK_NULL     }, fnc_closelog,    0  } },
-	{ HAWK_T("closemux"),    { { 1, 1, HAWK_NULL     }, fnc_closemux,    0  } },
-	{ HAWK_T("connect"),     { { 2, 2, HAWK_NULL     }, fnc_connect,     0  } },
-	{ HAWK_T("delfrommux"),  { { 2, 2, HAWK_NULL     }, fnc_delfrommux,  0  } },
-	{ HAWK_T("dup"),         { { 1, 3, HAWK_NULL     }, fnc_dup,         0  } },
-	{ HAWK_T("errmsg"),      { { 0, 0, HAWK_NULL     }, fnc_errmsg,      0  } },
-	{ HAWK_T("fchmod"),      { { 2, 2, HAWK_NULL     }, fnc_fchmod,      0  } },
-	{ HAWK_T("fchown"),      { { 3, 3, HAWK_NULL     }, fnc_fchown,      0  } },
-	{ HAWK_T("fcntl"),       { { 2, 3, HAWK_NULL     }, fnc_fcntl,       0  } },
-	{ HAWK_T("fork"),        { { 0, 0, HAWK_NULL     }, fnc_fork,        0  } },
-	{ HAWK_T("getegid"),     { { 0, 0, HAWK_NULL     }, fnc_getegid,     0  } },
-	{ HAWK_T("getenv"),      { { 2, 2, HAWK_T("vr")  }, fnc_getenv,      0  } },
-	{ HAWK_T("geteuid"),     { { 0, 0, HAWK_NULL     }, fnc_geteuid,     0  } },
-	{ HAWK_T("getgid"),      { { 0, 0, HAWK_NULL     }, fnc_getgid,      0  } },
-	{ HAWK_T("getifcfg"),    { { 3, 3, HAWK_T("vvr") }, fnc_getifcfg,    0  } },
-	{ HAWK_T("getmuxevt"),   { { 4, 4, HAWK_T("vvrr")}, fnc_getmuxevt,   0  } },
-	{ HAWK_T("getnwifcfg"),  { { 3, 3, HAWK_T("vvr") }, fnc_getifcfg,    0  } }, /* backward compatibility */
-	{ HAWK_T("getpgid"),     { { 0, 0, HAWK_NULL     }, fnc_getpgid,     0  } },
-	{ HAWK_T("getpid"),      { { 0, 0, HAWK_NULL     }, fnc_getpid,      0  } },
-	{ HAWK_T("getppid"),     { { 0, 0, HAWK_NULL     }, fnc_getppid,     0  } },
-	{ HAWK_T("gettid"),      { { 0, 0, HAWK_NULL     }, fnc_gettid,      0  } },
-	{ HAWK_T("gettime"),     { { 0, 0, HAWK_NULL     }, fnc_gettime,     0  } },
-	{ HAWK_T("getuid"),      { { 0, 0, HAWK_NULL     }, fnc_getuid,      0  } },
-	{ HAWK_T("kill"),        { { 2, 2, HAWK_NULL     }, fnc_kill,        0  } },
-	{ HAWK_T("listen"),      { { 2, 2, HAWK_NULL     }, fnc_listen,        0  } },
-	{ HAWK_T("mkdir"),       { { 1, 2, HAWK_NULL     }, fnc_mkdir,       0  } },
-	{ HAWK_T("mktime"),      { { 0, 1, HAWK_NULL     }, fnc_mktime,      0  } },
-	{ HAWK_T("modinmux"),    { { 3, 3, HAWK_NULL     }, fnc_modinmux,   0  } },
-	{ HAWK_T("open"),        { { 2, 3, HAWK_NULL     }, fnc_open,        0  } },
-	{ HAWK_T("opendir"),     { { 1, 2, HAWK_NULL     }, fnc_opendir,     0  } },
-	{ HAWK_T("openfd"),      { { 1, 1, HAWK_NULL     }, fnc_openfd,      0  } },
-	{ HAWK_T("openlog"),     { { 3, 3, HAWK_NULL     }, fnc_openlog,     0  } },
-	{ HAWK_T("openmux"),     { { 0, 0, HAWK_NULL     }, fnc_openmux,     0  } },
-	{ HAWK_T("pipe"),        { { 2, 3, HAWK_T("rrv") }, fnc_pipe,        0  } },
-	{ HAWK_T("read"),        { { 2, 3, HAWK_T("vrv") }, fnc_read,        0  } },
-	{ HAWK_T("readdir"),     { { 2, 2, HAWK_T("vr")  }, fnc_readdir,     0  } },
-	{ HAWK_T("recvfrom"),    { { 2, 4, HAWK_T("vrvr")}, fnc_recvfrom,    0  } },
-	{ HAWK_T("resetdir"),    { { 2, 2, HAWK_NULL     }, fnc_resetdir,    0  } },
-	{ HAWK_T("rmdir"),       { { 1, 1, HAWK_NULL     }, fnc_rmdir,       0  } },
-	{ HAWK_T("sendto"),      { { 2, 3, HAWK_NULL     }, fnc_sendto,      0  } },
-	{ HAWK_T("setenv"),      { { 2, 3, HAWK_NULL     }, fnc_setenv,      0  } },
-	{ HAWK_T("setsockopt"),  { { 4, 4, HAWK_NULL     }, fnc_setsockopt,  0  } },
-	{ HAWK_T("settime"),     { { 1, 1, HAWK_NULL     }, fnc_settime,     0  } },
-	{ HAWK_T("shutdown"),    { { 2, 2, HAWK_NULL     }, fnc_shutdown,    0  } },
-	{ HAWK_T("sleep"),       { { 1, 1, HAWK_NULL     }, fnc_sleep,       0  } },
-	{ HAWK_T("socket"),      { { 3, 3, HAWK_NULL     }, fnc_socket,      0  } },
-	{ HAWK_T("strftime"),    { { 2, 3, HAWK_NULL     }, fnc_strftime,    0  } },
-	{ HAWK_T("symlink"),     { { 2, 2, HAWK_NULL     }, fnc_symlink,     0  } },
-	{ HAWK_T("system"),      { { 1, 1, HAWK_NULL     }, fnc_system,      0  } },
-	{ HAWK_T("systime"),     { { 0, 0, HAWK_NULL     }, fnc_gettime,     0  } }, /* alias to gettime() */
-	{ HAWK_T("unlink"),      { { 1, 1, HAWK_NULL     }, fnc_unlink,      0  } },
-	{ HAWK_T("unsetenv"),    { { 1, 1, HAWK_NULL     }, fnc_unsetenv,    0  } },
-	{ HAWK_T("wait"),        { { 1, 3, HAWK_T("vrv") }, fnc_wait,        0  } },
-	{ HAWK_T("waitonmux"),   { { 2, 2, HAWK_T("vv")  }, fnc_waitonmux,   0  } },
-	{ HAWK_T("write"),       { { 2, 2, HAWK_NULL     }, fnc_write,       0  } },
-	{ HAWK_T("writelog"),    { { 2, 2, HAWK_NULL     }, fnc_writelog,    0  } }
+	{ HAWK_T("WCOREDUMP"),   { { 1, 1, HAWK_NULL       }, fnc_wcoredump,   0  } },
+	{ HAWK_T("WEXITSTATUS"), { { 1, 1, HAWK_NULL       }, fnc_wexitstatus, 0  } },
+	{ HAWK_T("WIFEXITED"),   { { 1, 1, HAWK_NULL       }, fnc_wifexited,   0  } },
+	{ HAWK_T("WIFSIGNALED"), { { 1, 1, HAWK_NULL       }, fnc_wifsignaled, 0  } },
+	{ HAWK_T("WTERMSIG"),    { { 1, 1, HAWK_NULL       }, fnc_wtermsig,    0  } },
+	{ HAWK_T("accept"),      { { 1, 3, HAWK_T("vvr")   }, fnc_accept,      0  } },
+	{ HAWK_T("addtomux"),    { { 3, 3, HAWK_NULL       }, fnc_addtomux,    0  } },
+	{ HAWK_T("bind"),        { { 2, 2, HAWK_NULL       }, fnc_bind,        0  } },
+	{ HAWK_T("chmod"),       { { 2, 2, HAWK_NULL       }, fnc_chmod,       0  } },
+	{ HAWK_T("chroot"),      { { 1, 1, HAWK_NULL       }, fnc_chroot,      0  } },
+	{ HAWK_T("close"),       { { 1, 2, HAWK_NULL       }, fnc_close,       0  } },
+	{ HAWK_T("closedir"),    { { 1, 1, HAWK_NULL       }, fnc_closedir,    0  } },
+	{ HAWK_T("closelog"),    { { 0, 0, HAWK_NULL       }, fnc_closelog,    0  } },
+	{ HAWK_T("closemux"),    { { 1, 1, HAWK_NULL       }, fnc_closemux,    0  } },
+	{ HAWK_T("connect"),     { { 2, 2, HAWK_NULL       }, fnc_connect,     0  } },
+	{ HAWK_T("delfrommux"),  { { 2, 2, HAWK_NULL       }, fnc_delfrommux,  0  } },
+	{ HAWK_T("dup"),         { { 1, 3, HAWK_NULL       }, fnc_dup,         0  } },
+	{ HAWK_T("errmsg"),      { { 0, 0, HAWK_NULL       }, fnc_errmsg,      0  } },
+	{ HAWK_T("fchmod"),      { { 2, 2, HAWK_NULL       }, fnc_fchmod,      0  } },
+	{ HAWK_T("fchown"),      { { 3, 3, HAWK_NULL       }, fnc_fchown,      0  } },
+	{ HAWK_T("fcntl"),       { { 2, 3, HAWK_NULL       }, fnc_fcntl,       0  } },
+	{ HAWK_T("flock"),       { { 5, 6, HAWK_T("vvvvvr")}, fnc_flock,       0  } },
+	{ HAWK_T("fork"),        { { 0, 0, HAWK_NULL       }, fnc_fork,        0  } },
+	{ HAWK_T("fseek"),       { { 3, 3, HAWK_NULL       }, fnc_fseek,       0  } },
+	{ HAWK_T("getegid"),     { { 0, 0, HAWK_NULL       }, fnc_getegid,     0  } },
+	{ HAWK_T("getenv"),      { { 2, 2, HAWK_T("vr")    }, fnc_getenv,      0  } },
+	{ HAWK_T("geteuid"),     { { 0, 0, HAWK_NULL       }, fnc_geteuid,     0  } },
+	{ HAWK_T("getgid"),      { { 0, 0, HAWK_NULL       }, fnc_getgid,      0  } },
+	{ HAWK_T("getifcfg"),    { { 3, 3, HAWK_T("vvr")   }, fnc_getifcfg,    0  } },
+	{ HAWK_T("getmuxevt"),   { { 4, 4, HAWK_T("vvrr")  }, fnc_getmuxevt,   0  } },
+	{ HAWK_T("getnwifcfg"),  { { 3, 3, HAWK_T("vvr")   }, fnc_getifcfg,    0  } }, /* backward compatibility */
+	{ HAWK_T("getpgid"),     { { 0, 0, HAWK_NULL       }, fnc_getpgid,     0  } },
+	{ HAWK_T("getpid"),      { { 0, 0, HAWK_NULL       }, fnc_getpid,      0  } },
+	{ HAWK_T("getppid"),     { { 0, 0, HAWK_NULL       }, fnc_getppid,     0  } },
+	{ HAWK_T("gettid"),      { { 0, 0, HAWK_NULL       }, fnc_gettid,      0  } },
+	{ HAWK_T("gettime"),     { { 0, 0, HAWK_NULL       }, fnc_gettime,     0  } },
+	{ HAWK_T("getuid"),      { { 0, 0, HAWK_NULL       }, fnc_getuid,      0  } },
+	{ HAWK_T("kill"),        { { 2, 2, HAWK_NULL       }, fnc_kill,        0  } },
+	{ HAWK_T("listen"),      { { 2, 2, HAWK_NULL       }, fnc_listen,        0  } },
+	{ HAWK_T("mkdir"),       { { 1, 2, HAWK_NULL       }, fnc_mkdir,       0  } },
+	{ HAWK_T("mktime"),      { { 0, 1, HAWK_NULL       }, fnc_mktime,      0  } },
+	{ HAWK_T("modinmux"),    { { 3, 3, HAWK_NULL       }, fnc_modinmux,   0  } },
+	{ HAWK_T("open"),        { { 2, 3, HAWK_NULL       }, fnc_open,        0  } },
+	{ HAWK_T("opendir"),     { { 1, 2, HAWK_NULL       }, fnc_opendir,     0  } },
+	{ HAWK_T("openfd"),      { { 1, 1, HAWK_NULL       }, fnc_openfd,      0  } },
+	{ HAWK_T("openlog"),     { { 3, 3, HAWK_NULL       }, fnc_openlog,     0  } },
+	{ HAWK_T("openmux"),     { { 0, 0, HAWK_NULL       }, fnc_openmux,     0  } },
+	{ HAWK_T("pipe"),        { { 2, 3, HAWK_T("rrv")   }, fnc_pipe,        0  } },
+	{ HAWK_T("read"),        { { 2, 3, HAWK_T("vrv")   }, fnc_read,        0  } },
+	{ HAWK_T("readdir"),     { { 2, 2, HAWK_T("vr")    }, fnc_readdir,     0  } },
+	{ HAWK_T("recvfrom"),    { { 2, 4, HAWK_T("vrvr")  }, fnc_recvfrom,    0  } },
+	{ HAWK_T("resetdir"),    { { 2, 2, HAWK_NULL       }, fnc_resetdir,    0  } },
+	{ HAWK_T("rmdir"),       { { 1, 1, HAWK_NULL       }, fnc_rmdir,       0  } },
+	{ HAWK_T("sendto"),      { { 2, 3, HAWK_NULL       }, fnc_sendto,      0  } },
+	{ HAWK_T("setenv"),      { { 2, 3, HAWK_NULL       }, fnc_setenv,      0  } },
+	{ HAWK_T("setsockopt"),  { { 4, 4, HAWK_NULL       }, fnc_setsockopt,  0  } },
+	{ HAWK_T("settime"),     { { 1, 1, HAWK_NULL       }, fnc_settime,     0  } },
+	{ HAWK_T("shutdown"),    { { 2, 2, HAWK_NULL       }, fnc_shutdown,    0  } },
+	{ HAWK_T("sleep"),       { { 1, 1, HAWK_NULL       }, fnc_sleep,       0  } },
+	{ HAWK_T("socket"),      { { 3, 3, HAWK_NULL       }, fnc_socket,      0  } },
+	{ HAWK_T("strftime"),    { { 2, 3, HAWK_NULL       }, fnc_strftime,    0  } },
+	{ HAWK_T("symlink"),     { { 2, 2, HAWK_NULL       }, fnc_symlink,     0  } },
+	{ HAWK_T("system"),      { { 1, 1, HAWK_NULL       }, fnc_system,      0  } },
+	{ HAWK_T("systime"),     { { 0, 0, HAWK_NULL       }, fnc_gettime,     0  } }, /* alias to gettime() */
+	{ HAWK_T("unlink"),      { { 1, 1, HAWK_NULL       }, fnc_unlink,      0  } },
+	{ HAWK_T("unsetenv"),    { { 1, 1, HAWK_NULL       }, fnc_unsetenv,    0  } },
+	{ HAWK_T("wait"),        { { 1, 3, HAWK_T("vrv")   }, fnc_wait,        0  } },
+	{ HAWK_T("waitonmux"),   { { 2, 2, HAWK_T("vv")    }, fnc_waitonmux,   0  } },
+	{ HAWK_T("write"),       { { 2, 2, HAWK_NULL       }, fnc_write,       0  } },
+	{ HAWK_T("writelog"),    { { 2, 2, HAWK_NULL       }, fnc_writelog,    0  } }
 };
 
 #if !defined(SIGHUP)
@@ -4193,6 +4321,12 @@ static inttab_t inttab[] =
 	{ HAWK_T("DIR_SORT"),           { HAWK_DIR_SORT } },
 
 	{ HAWK_T("FD_CLOEXEC"),         { FD_CLOEXEC } },
+
+	{ HAWK_T("FLOCK_GET"),          { FLOCK_GET } }, /* bitwise-OR with another FLOCK_READ/WRITE/WAIT value */
+	{ HAWK_T("FLOCK_READ"),         { F_RDLCK } },
+	{ HAWK_T("FLOCK_UNLOCK"),       { F_UNLCK } },
+	{ HAWK_T("FLOCK_WAIT"),         { FLOCK_WAIT } }, /* bitwise-OR with another FLOCK_READ/WRITE/WAIT value */
+	{ HAWK_T("FLOCK_WRITE"),        { F_WRLCK } },
 
 	{ HAWK_T("F_GETFD"),            { F_GETFD } },
 	{ HAWK_T("F_GETFL"),            { F_GETFL } },
@@ -4321,6 +4455,10 @@ static inttab_t inttab[] =
 	{ HAWK_T("RC_ESTATE"),     { -HAWK_ESTATE } },
 	{ HAWK_T("RC_ESYSERR"),    { -HAWK_ESYSERR } },
 	{ HAWK_T("RC_ETMOUT"),     { -HAWK_ETMOUT } },
+
+	{ HAWK_T("SEEK_CUR"),      { SEEK_CUR } },
+	{ HAWK_T("SEEK_END"),      { SEEK_END } },
+	{ HAWK_T("SEEK_SET"),      { SEEK_SET } },
 
 	{ HAWK_T("SHUT_RD"),       { SHUT_RD } },
 	{ HAWK_T("SHUT_RDWR"),     { SHUT_RDWR } },
