@@ -870,7 +870,7 @@ static int begin_include (hawk_t* awk, int once)
 	arg->pragma_trait = awk->parse.pragma.trait;
 	/* but don't change awk->parse.pragma.trait. it means the included file inherits
 	 * the existing progma values. 
-	awk->parse.pragma.trait = (awk->opt.trait & HAWK_IMPLICIT);
+	awk->parse.pragma.trait = (awk->opt.trait & (HAWK_IMPLICIT | HAWK_STRIPRECSPC));
 	*/
 
 	/* i update the current pointer after opening is successful */
@@ -983,7 +983,34 @@ static int parse_progunit (hawk_t* awk)
 		name.len = HAWK_OOECS_LEN(awk->tok.name);
 		name.ptr = HAWK_OOECS_PTR(awk->tok.name);
 
-		if (hawk_comp_oochars_oocstr(name.ptr, name.len, HAWK_T("implicit")) == 0)
+		if (hawk_comp_oochars_oocstr(name.ptr, name.len, HAWK_T("entry")) == 0)
+		{
+			if (get_token(awk) <= -1) return -1;
+			if (!MATCH(awk, TOK_IDENT))
+			{
+				hawk_seterrfmt (awk, &awk->ptok.loc, HAWK_EIDENT, HAWK_T("function name expected for 'entry'"));
+				return -1;
+			}
+
+			if (HAWK_OOECS_LEN(awk->tok.name) >= HAWK_COUNTOF(awk->parse.pragma.entry))
+			{
+				hawk_seterrfmt (awk, &awk->tok.loc, HAWK_EFUNNAM, HAWK_T("entry function name too long"));
+				return -1;
+			}
+
+			if (awk->sio.inp == &awk->sio.arg)
+			{
+				/* only the top level source */
+				if (awk->parse.pragma.entry[0] != '\0')
+				{
+					hawk_seterrfmt (awk, &awk->tok.loc, HAWK_EEXIST, HAWK_T("@pragma entry already set"));
+					return -1;
+				}
+
+				hawk_copy_oochars_to_oocstr (awk->parse.pragma.entry, HAWK_COUNTOF(awk->parse.pragma.entry), HAWK_OOECS_PTR(awk->tok.name), HAWK_OOECS_LEN(awk->tok.name));
+			}
+		}
+		else if (hawk_comp_oochars_oocstr(name.ptr, name.len, HAWK_T("implicit")) == 0)
 		{
 			/* @pragma implicit on
 			 * @pragma implicit off */
@@ -1029,31 +1056,46 @@ static int parse_progunit (hawk_t* awk)
 			if (sl > awk->parse.pragma.rtx_stack_limit) awk->parse.pragma.rtx_stack_limit = sl;
 			
 		}
-		else if (hawk_comp_oochars_oocstr(name.ptr, name.len, HAWK_T("entry")) == 0)
+		else if (hawk_comp_oochars_oocstr(name.ptr, name.len, HAWK_T("striprecspc")) == 0)
 		{
+			/* @pragma striprecspc on
+			 * @pragma striprecspc off 
+			 *
+			 * Take note the global STRIPRECSPC is available for context based change.
+			 * STRIPRECSPC takes precedence over this pragma.
+			 */
+			int is_on;
+
 			if (get_token(awk) <= -1) return -1;
 			if (!MATCH(awk, TOK_IDENT))
 			{
-				hawk_seterrfmt (awk, &awk->ptok.loc, HAWK_EIDENT, HAWK_T("function name expected for 'entry'"));
+			error_ident_on_off_expected_for_striprecspc:
+				hawk_seterrfmt (awk, &awk->ptok.loc, HAWK_EIDENT, HAWK_T("identifier 'on' or 'off' expected for 'striprecspc'"));
 				return -1;
 			}
 
-			if (HAWK_OOECS_LEN(awk->tok.name) >= HAWK_COUNTOF(awk->parse.pragma.entry))
+			name.len = HAWK_OOECS_LEN(awk->tok.name);
+			name.ptr = HAWK_OOECS_PTR(awk->tok.name);
+			if (hawk_comp_oochars_oocstr(name.ptr, name.len, HAWK_T("on")) == 0)
 			{
-				hawk_seterrfmt (awk, &awk->tok.loc, HAWK_EFUNNAM, HAWK_T("entry function name too long"));
-				return -1;
+				is_on = 1;
+			}
+			else if (hawk_comp_oochars_oocstr(name.ptr, name.len, HAWK_T("off")) == 0)
+			{
+				is_on = 0;
+			}
+			else
+			{
+				goto error_ident_on_off_expected_for_striprecspc;
 			}
 
 			if (awk->sio.inp == &awk->sio.arg)
 			{
-				/* only the top level source */
-				if (awk->parse.pragma.entry[0] != '\0')
-				{
-					hawk_seterrfmt (awk, &awk->tok.loc, HAWK_EEXIST, HAWK_T("@pragma entry already set"));
-					return -1;
-				}
-
-				hawk_copy_oochars_to_oocstr (awk->parse.pragma.entry, HAWK_COUNTOF(awk->parse.pragma.entry), HAWK_OOECS_PTR(awk->tok.name), HAWK_OOECS_LEN(awk->tok.name));
+				/* only the top level source. ignore striprecspc pragma in other levels */
+				if (is_on)
+					awk->parse.pragma.trait |= HAWK_STRIPRECSPC;
+				else
+					awk->parse.pragma.trait &= ~HAWK_STRIPRECSPC;
 			}
 		}
 		else
