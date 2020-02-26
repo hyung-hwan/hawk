@@ -713,13 +713,24 @@ static int fnc_write (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	{
 		hawk_bch_t* dptr;
 		hawk_oow_t dlen;
+		hawk_ooi_t startpos = 0, maxlen = HAWK_TYPE_MAX(hawk_ooi_t);
 		hawk_val_t* a1;
+
+		if (hawk_rtx_getnargs(rtx) >= 3 && hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 2), &startpos) <= -1 || startpos < 0) startpos = 0;
+		else if (startpos > 1) startpos--; /* this position is 1-based */
+
+		if (hawk_rtx_getnargs(rtx) >= 4 && hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 3), &maxlen) <= -1) maxlen = HAWK_TYPE_MAX(hawk_ooi_t);
+		else if (maxlen < 0) maxlen = 0;
 
 		a1 = hawk_rtx_getarg(rtx, 1);
 		dptr = hawk_rtx_getvalbcstr(rtx, a1, &dlen);
 		if (dptr)
 		{
-			rx = write(sys_node->ctx.u.file.fd, dptr, dlen);
+			if (dlen > maxlen) dlen = maxlen;
+			if (startpos >= dlen) startpos = dlen;
+			dlen -= startpos;
+
+			rx = write(sys_node->ctx.u.file.fd, &dptr[startpos], dlen);
 			if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_T("unable to write"));
 			hawk_rtx_freevalbcstr (rtx, a1, dptr);
 		}
@@ -4280,7 +4291,7 @@ static fnctab_t fnctab[] =
 	{ HAWK_T("unsetenv"),    { { 1, 1, HAWK_NULL       }, fnc_unsetenv,    0  } },
 	{ HAWK_T("wait"),        { { 1, 3, HAWK_T("vrv")   }, fnc_wait,        0  } },
 	{ HAWK_T("waitonmux"),   { { 2, 2, HAWK_T("vv")    }, fnc_waitonmux,   0  } },
-	{ HAWK_T("write"),       { { 2, 2, HAWK_NULL       }, fnc_write,       0  } },
+	{ HAWK_T("write"),       { { 2, 4, HAWK_NULL       }, fnc_write,       0  } },
 	{ HAWK_T("writelog"),    { { 2, 2, HAWK_NULL       }, fnc_writelog,    0  } }
 };
 
