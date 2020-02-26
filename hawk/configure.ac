@@ -832,13 +832,6 @@ AC_C_BIGENDIAN(
 	[AC_DEFINE([HAWK_ENDIAN_LITTLE],[],[Little Endian])],
 	[AC_DEFINE([HAWK_ENDIAN_UNKNOWN],[],[Unknown Endian])])
 
-dnl ===== enable-experimental =====
-AC_ARG_ENABLE([experimental], 
-	[AS_HELP_STRING([--enable-experimental],[enable experimental feature(default. no)])],
-	enable_experimental_is=$enableval,
-	enable_experimental_is=no)
-AM_CONDITIONAL(ENABLE_EXPERIMENTAL, test "${enable_experimental_is}" = "yes" )
-
 dnl ===== enable-debug =====
 AC_ARG_ENABLE([debug], 
 	[AS_HELP_STRING([--enable-debug],[compile the code in the debug mode (default. no)])],
@@ -855,17 +848,6 @@ else
 	[CXXFLAGS="$CXXFLAGS -DNDEBUG -U_DEBUG -U_FORTIFY_SOURCE"]
 	AC_DEFINE([HAWK_BUILD_RELEASE],[1],[build release/debug])
 	AC_SUBST(BUILD_MODE, "release")
-fi
-
-dnl ===== enable-full-liw =====
-AC_ARG_ENABLE([full-liw], 
-	[AS_HELP_STRING([--enable-full-liw],[Use a full word as a large integer word (default. no)])],
-	enable_full_liw=$enableval,
-	enable_full_liw=no
-)
-if test "${enable_full_liw}" = "yes"
-then
-	AC_DEFINE([HAWK_ENABLE_FULL_LIW],[1],[Use a full word as a large integer word])
 fi
 
 dnl ===== enable-intmax ======
