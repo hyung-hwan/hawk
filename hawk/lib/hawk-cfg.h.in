@@ -684,9 +684,6 @@
 /* enable dynamic module capability */
 #undef HAWK_ENABLE_DYNAMIC_MODULE
 
-/* Use a full word as a large integer word */
-#undef HAWK_ENABLE_FULL_LIW
-
 /* use libltdl when loading a dynamic module */
 #undef HAWK_ENABLE_LIBLTDL
 
