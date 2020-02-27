@@ -198,10 +198,9 @@ libhawk_sys_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 	$@
 @ENABLE_STATIC_MODULE_FALSE@am_libhawk_sys_la_rpath = -rpath \
 @ENABLE_STATIC_MODULE_FALSE@	$(pkglibdir)
-am__DEPENDENCIES_2 = $(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1)
-@ENABLE_LIBLTDL_TRUE@am__DEPENDENCIES_3 = $(am__DEPENDENCIES_1)
-@ENABLE_LIBLTDL_FALSE@am__DEPENDENCIES_4 = $(am__DEPENDENCIES_1)
-@ENABLE_LIBUNWIND_TRUE@am__DEPENDENCIES_5 = $(am__DEPENDENCIES_1)
+@ENABLE_LIBLTDL_TRUE@am__DEPENDENCIES_2 = $(am__DEPENDENCIES_1)
+@ENABLE_LIBLTDL_FALSE@am__DEPENDENCIES_3 = $(am__DEPENDENCIES_1)
+@ENABLE_LIBUNWIND_TRUE@am__DEPENDENCIES_4 = $(am__DEPENDENCIES_1)
 am__libhawk_la_SOURCES_DIST = hawk.h hawk-arr.h hawk-chr.h hawk-cmn.h \
 	hawk-dir.h hawk-ecs.h hawk-fmt.h hawk-gem.h hawk-htb.h \
 	hawk-rbt.h hawk-pack1.h hawk-utl.h hawk-std.h hawk-tre.h \
@@ -246,9 +245,6 @@ am_libhawk_la_OBJECTS = $(am__objects_2) libhawk_la-arr.lo \
 	libhawk_la-tio.lo libhawk_la-std.lo $(am__objects_3) \
 	$(am__objects_4)
 libhawk_la_OBJECTS = $(am_libhawk_la_OBJECTS)
-libhawk_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) \
-	$(LIBTOOLFLAGS) --mode=link $(CXXLD) $(AM_CXXFLAGS) \
-	$(CXXFLAGS) $(libhawk_la_LDFLAGS) $(LDFLAGS) -o $@
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -542,7 +538,6 @@ pdfdir = @pdfdir@
 prefix = @prefix@
 program_transform_name = @program_transform_name@
 psdir = @psdir@
-runstatedir = @runstatedir@
 sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
 srcdir = @srcdir@
@@ -552,25 +547,20 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 AUTOMAKE_OPTIONS = nostdinc
-AM_CPPFLAGS = $(PTHREAD_CFLAGS)
 CPPFLAGS_ALL_COMMON = \
 	-I$(abs_builddir) \
 	-I$(abs_srcdir) \
-	-I$(includedir)
+	-I$(includedir) $(PTHREAD_CFLAGS)
 
 @ENABLE_STATIC_MODULE_FALSE@LDFLAGS_ALL_COMMON = -L$(abs_builddir) -L$(libdir)
 @ENABLE_STATIC_MODULE_TRUE@LDFLAGS_ALL_COMMON = -L$(abs_builddir)/../mod -L$(abs_builddir) -L$(libdir)
+@WIN32_FALSE@CPPFLAGS_PFMOD =  \
+@WIN32_FALSE@	-DHAWK_DEFAULT_MODPREFIX=\"$(libdir)/libhawk-\" \
+@WIN32_FALSE@	$(am__append_1) $(am__append_2)
 
 ##################################################
 # MAIN LIBRARY 
 ##################################################
-CPPFLAGS_LIB_COMMON = $(CPPFLAGS_ALL_COMMON)
-LDFLAGS_LIB_COMMON = $(LDFLAGS_ALL_COMMON) -version-info 1:0:0 -no-undefined
-LIBADD_LIB_COMMON = $(LIBM) $(PTHREAD_LIBS)
-DEPENDENCIES_LIB_COMMON = 
-@WIN32_FALSE@CPPFLAGS_PFMOD =  \
-@WIN32_FALSE@	-DHAWK_DEFAULT_MODPREFIX=\"$(libdir)/libhawk-\" \
-@WIN32_FALSE@	$(am__append_1) $(am__append_2)
 
 # you must adjust the value of DEFAULT_MODPOSTFIX according
 # to the first number in -version-info above
@@ -595,14 +585,23 @@ libhawk_la_SOURCES = $(pkginclude_HEADERS) arr.c chr.c dir.c ecs-imp.h \
 	hawk-cli.h hawk-fio.h hawk-mtx.h hawk-pio.h hawk-sio.h \
 	hawk-tio.h cli-imp.h cli.c fio.c mtx.c pio.c sio.c syscall.h \
 	tio.c std-prv.h std.c $(am__append_8) $(am__append_9)
-libhawk_la_CPPFLAGS = $(CPPFLAGS_LIB_COMMON) $(CPPFLAGS_PFMOD) \
+libhawk_la_CPPFLAGS = $(CPPFLAGS_ALL_COMMON) $(CPPFLAGS_PFMOD) \
 	$(am__append_3)
-libhawk_la_LDFLAGS = $(LDFLAGS_LIB_COMMON)
-libhawk_la_LIBADD = $(LIBADD_LIB_COMMON) $(am__append_4) \
+libhawk_la_LDFLAGS = $(LDFLAGS_ALL_COMMON) -version-info 1:0:0 -no-undefined
+libhawk_la_LIBADD = $(LIBM) $(PTHREAD_LIBS) $(am__append_4) \
 	$(am__append_5) $(am__append_6) $(am__append_10) \
 	$(am__append_11) $(am__append_13)
-libhawk_la_DEPENDENCIES = $(DEPENDENCIES_LIB_COMMON) $(am__append_12) \
-	$(am__append_14)
+libhawk_la_DEPENDENCIES = $(am__append_12) $(am__append_14)
+@ENABLE_CXX_FALSE@libhawk_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
+@ENABLE_CXX_FALSE@	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) \
+@ENABLE_CXX_FALSE@	$(CFLAGS) $(libhawk_la_LDFLAGS) $(LDFLAGS) -o $@
+
+
+###libhawk_la_LINK = $(CXXLINK)
+@ENABLE_CXX_TRUE@libhawk_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) \
+@ENABLE_CXX_TRUE@	$(LIBTOOLFLAGS) --mode=link $(CXXLD) $(AM_CXXFLAGS) \
+@ENABLE_CXX_TRUE@	$(CXXFLAGS) $(libhawk_la_LDFLAGS) $(LDFLAGS) -o $@
+
 
 ##################################################
 # DYNAMIC MODULES 
@@ -721,7 +720,7 @@ libhawk-sys.la: $(libhawk_sys_la_OBJECTS) $(libhawk_sys_la_DEPENDENCIES) $(EXTRA
 	$(AM_V_CCLD)$(libhawk_sys_la_LINK) $(am_libhawk_sys_la_rpath) $(libhawk_sys_la_OBJECTS) $(libhawk_sys_la_LIBADD) $(LIBS)
 
 libhawk.la: $(libhawk_la_OBJECTS) $(libhawk_la_DEPENDENCIES) $(EXTRA_libhawk_la_DEPENDENCIES) 
-	$(AM_V_CXXLD)$(libhawk_la_LINK) -rpath $(pkglibdir) $(libhawk_la_OBJECTS) $(libhawk_la_LIBADD) $(LIBS)
+	$(AM_V_GEN)$(libhawk_la_LINK) -rpath $(pkglibdir) $(libhawk_la_OBJECTS) $(libhawk_la_LIBADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
