@@ -1,11 +1,9 @@
 AUTOMAKE_OPTIONS = nostdinc
 
-AM_CPPFLAGS = $(PTHREAD_CFLAGS)
-
 CPPFLAGS_ALL_COMMON = \
 	-I$(abs_builddir) \
 	-I$(abs_srcdir) \
-	-I$(includedir)
+	-I$(includedir) $(PTHREAD_CFLAGS)
 
 if ENABLE_STATIC_MODULE
 LDFLAGS_ALL_COMMON = -L$(abs_builddir)/../mod -L$(abs_builddir) -L$(libdir)
@@ -16,11 +14,6 @@ endif
 ##################################################
 # MAIN LIBRARY 
 ##################################################
-
-CPPFLAGS_LIB_COMMON = $(CPPFLAGS_ALL_COMMON)
-LDFLAGS_LIB_COMMON = $(LDFLAGS_ALL_COMMON) -version-info 1:0:0 -no-undefined
-LIBADD_LIB_COMMON = $(LIBM) $(PTHREAD_LIBS)
-DEPENDENCIES_LIB_COMMON =
 
 if WIN32
 # you must adjust the value of DEFAULT_MODPOSTFIX according
@@ -146,10 +139,10 @@ libhawk_la_SOURCES += \
 	std-prv.h \
 	std.c 
 
-libhawk_la_CPPFLAGS = $(CPPFLAGS_LIB_COMMON) $(CPPFLAGS_PFMOD)
-libhawk_la_LDFLAGS = $(LDFLAGS_LIB_COMMON)
-libhawk_la_LIBADD = $(LIBADD_LIB_COMMON)
-libhawk_la_DEPENDENCIES = $(DEPENDENCIES_LIB_COMMON)
+libhawk_la_CPPFLAGS = $(CPPFLAGS_ALL_COMMON) $(CPPFLAGS_PFMOD)
+libhawk_la_LDFLAGS = $(LDFLAGS_ALL_COMMON) -version-info 1:0:0 -no-undefined
+libhawk_la_LIBADD = $(LIBM) $(PTHREAD_LIBS)
+libhawk_la_DEPENDENCIES = 
 
 if ENABLE_LIBLTDL
 libhawk_la_CPPFLAGS += $(LTDLINCL)
@@ -164,6 +157,24 @@ endif
 if ENABLE_CXX
 pkginclude_HEADERS += Hawk.hpp HawkStd.hpp
 libhawk_la_SOURCES += Hawk.cpp HawkStd.cpp
+
+###libhawk_la_LINK = $(CXXLINK)
+libhawk_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=link $(CXXLD) $(AM_CXXFLAGS) \
+	$(CXXFLAGS) $(libhawk_la_LDFLAGS) $(LDFLAGS) -o $@
+else
+
+## as long as a c++ file is listed in the SOURCES list, automake chooses 
+## --tag=CXX and $(CXXLD) for the linker regardless of ENABLE_CXX.
+## i want $(CCLD) to be used when CXX is disabled because a fatal problem
+## arises when CXXLD is chosen but the system doesn't have a c++ compiler.
+##
+##libhawk_la_LINK = $(LINK)
+## $(LINK) includes $(AM_LDFLAGS) instead of $(libhawk_la_LDFLAGS) 
+## so i compose the entire libhawk specific LINK line below.
+libhawk_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) \
+	$(CFLAGS) $(libhawk_la_LDFLAGS) $(LDFLAGS) -o $@
 endif
 
 if ENABLE_STATIC_MODULE
