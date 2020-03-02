@@ -1,115 +1,215 @@
 @pragma entry main
 @pragma implicit off
 
-function break_bridge_by_local_fd (&localtab, &remotetab, fd, mx)
+function destroy_bridge (&brtab, fd, mx)
 {
-	@local r;
-	r = localtab[fd];
+	@local pfd; 
+
+	pfd = brtab[fd];
+
+	print "Info: Destroying", fd, pfd;
+
 	sys::delfrommux (mx, fd);
-	sys::delfrommux (mx, r);
+	sys::delfrommux (mx, pfd);
 	sys::close (fd);
-	sys::close (r);
-	delete localtab[fd];
-	delete localtab[fd,"pending"];
-	delete remotetab[r];
-	delete remotetab[r,"connecting"];
-	delete remotetab[r,"pending"];
+	sys::close (pfd);
+
+	delete brtab[fd];
+	delete brtab[fd,"connecting"];
+	delete brtab[fd,"pending"];
+	delete brtab[fd,"evmask"];
+	delete brtab[fd,"eof"];
+
+	delete brtab[pfd];
+	delete brtab[pfd,"connecting"];
+	delete brtab[pfd,"pending"];
+	delete brtab[pfd,"evmask"];
+	delete brtab[pfd,"eof"];
 }
 
-function break_bridge_by_remote_fd (localtab, remotetab, fd, mx)
+function prepare_bridge (&brtab, fd, pfd, mx)
 {
-	@local l;
-	l = remotetab[fd];
-	sys::delfrommux (mx, l);
-	sys::delfrommux (mx, fd);
-	sys::close (l);
-	sys::close (fd);
-	delete localtab[l];
-	delete localtab[l,"pending"];
-	delete remotetab[fd];
-	delete remotetab[fd,"connecting"];
-	delete remotetab[fd,"pending"];
+	if (sys::addtomux(mx, pfd, sys::MUX_EVT_OUT) <= -1) return -1;
+
+	print "Info: Preparing", fd, pfd;
+
+	brtab[fd] = pfd;
+	brtab[fd,"evmask"] = 0;
+
+	brtab[pfd] = fd;
+	brtab[pfd,"connecting"] = 1;
+	brtab[pfd,"evmask"] = sys::MUX_EVT_OUT;
+	
+	return 0;
 }
 
-function bridge_remote_to_local (localtab, remotetab, fd, mx)
+function establish_bridge (&brtab, fd, mx)
 {
-	@local len, buf;
+	@local pfd;
 
-	len = sys::read(fd, buf, 8096);
-	if (len <= 0)
+	pfd = brtab[fd];
+	if (sys::addtomux(mx, pfd, sys::MUX_EVT_IN) <= -1 ||
+	    sys::modinmux(mx, fd, sys::MUX_EVT_IN) <= -1) return -1;
+
+	brtab[fd,"evmask"] = sys::MUX_EVT_IN;
+	brtab[pfd,"evmask"] = sys::MUX_EVT_IN;
+
+	delete brtab[fd,"connecting"];
+	return 0;
+}
+
+function handle_bridge_eof (&brtab, fd, mx)
+{
+	@local pfd, evmask;
+
+	pfd = brtab[fd];
+
+	evmask = brtab[fd,"evmask"] & ~~sys::MUX_EVT_IN;
+	if (sys::modinmux(mx, fd, evmask) <= -1) return -1;
+	brtab[fd,"evmask"] = evmask;
+	brtab[fd,"eof"] = 1;
+
+	## EOF on fd, disable transmission on pfd if no pending
+	if (length(brtab[pfd,"pending"]) == 0) sys::shutdown (pfd, sys::SHUT_WR);
+
+	# if peer fd reached eof and there are no pending data, arrange to abort the bridge
+	if (brtab[pfd,"eof"] != 0 && length(brtab[pfd,"pending"]) == 0 && length(brtab[fd,"pending"]) == 0)	return -1;
+
+	return 0;
+}
+
+function bridge_traffic (&brtab, fd, mx)
+{
+	@local len, buf, pfd, pos, x, evmask;
+
+	pfd = brtab[fd];
+
+	len = sys::read(fd, buf, 8096); 
+	if (len <= -1)
 	{
-		print "closing read error ", fd;
-		break_bridge_by_remote_fd (localtab, remotetab, fd, mx);
+		return -1;
+	}
+	else if (len == 0)
+	{
+		return handle_bridge_eof (brtab, fd, mx);
+	}
+	
+	pos = 1;
+	while (pos <= len)
+	{
+		x = sys::write(pfd, buf, pos);
+		if (x == sys::RC_EAGAIN)
+		{
+			evmask = brtab[fd,"evmask"] & ~~sys::MUX_EVT_IN;
+			if (sys::modinmux(mx, fd, evmask) <= -1) return -1;
+			brtab[fd,"evmask"] = evmask;
+
+			evmask = brtab[pfd,"evmask"] | sys::MUX_EVT_OUT;
+			if (sys::modinmux(mx, pfd, evmask) <= -1) return -1;
+			brtab[pfd,"evmask"] = evmask;
+
+			brtab[pfd,"pending"] %%= substr(buf, pos);
+			break;
+		}
+		else if (x <= -1)
+		{
+			return -1;
+		}
+
+		pos += x;
+	}
+
+	return 0;
+}
+
+function bridge_pendind_data (&brtab, fd, mx)
+{
+	@local pending_data, pos, len, x, pfd, evmask;
+
+	pfd = brtab[fd];
+	pending_data = brtab[fd,"pending"];
+
+	len = length(pending_data);
+	pos = 1;
+	while (pos <= len)
+	{
+		x = sys::write(fd, pending_data, pos);
+		if (x == sys::RC_EAGAIN)
+		{
+			brtab[fd,"pending"] = substr(pending_data, pos);
+			return 0;
+		}
+		pos += x;
+	}
+
+	## sent all pending data. 
+	delete brtab[fd,"pending"];
+
+	evmask = brtab[fd,"evmask"] & ~~sys::MUX_EVT_OUT;
+	if (sys::modinmux(mx, fd, evmask) <= -1) return -1;
+	brtab[fd,"evmask"] = evmask;
+
+	if (brtab[pfd,"eof"] == 0)
+	{
+		evmask = brtab[pfd,"evmask"] | sys::MUX_EVT_IN;
+		if (sys::modinmux(mx, pfd, evmask) <= -1) return -1;
+		brtab[pfd,"evmask"] = evmask;
+	}
+
+	return 0;
+}
+
+function handle_bridge_event (&brtab, fd, mx, evmask)
+{
+	if (evmask & sys::MUX_EVT_ERR)
+	{
+		destroy_bridge (brtab, fd, mx);
+	}
+	else if (evmask & sys::MUX_EVT_HUP)
+	{
+		print "Info: HUP detected on", fd;
+		if (handle_bridge_eof(brtab, fd, mx) <= -1)
+		{
+			destroy_bridge (brtab, fd, mx);
+		}
 	}
 	else
 	{
-		do
+		if (evmask & sys::MUX_EVT_OUT)
 		{
-			@local x;
-
-			x = sys::write(remotetab[fd], buf);
-			if (x == sys::RC_EAGAIN)
+			if ((fd,"connecting") in brtab)
 			{
-				remotetab[fd,"pending"] = remotetab[fd,"pending"] %% buf;
-				break;
+				## remote peer connection
+				if (establish_bridge(brtab, fd, mx) <= -1) 
+				{
+					destroy_bridge (brtab, fd, mx);
+					return;
+				}
 			}
-			else if (x <= -1)
+			else if ((fd,"pending") in brtab) 
 			{
-				break_bridge_by_remote_fd (localtab, remotetab, fd, mx);
-				break;
+				if (bridge_pending_data(brtab, fd, mx) <= -1) 
+				{
+					destroy_bridge (brtab, fd, mx);
+					return;
+				}
 			}
-
-			len -= x;
-			if (len <= 0) break;
-
-			buf = substr(buf, x + 1);
 		}
-		while (1);
-	}
-}
 
-function bridge_local_to_remote (localtab, remotetab, fd, mx)
-{
-	@local len, buf;
-
-	len = sys::read(fd, buf, 8096);
-	if (len <= 0)
-	{
-		print "closing read error ", fd;
-		break_bridge_by_local_fd (localtab, remotetab, fd, mx);
-	}
-	else
-	{
-printf ("ABOUT TO WRITE TO REMOTE........\n");
-		do
+		if (evmask & sys::MUX_EVT_IN)
 		{
-			@local x;
-
-			x = sys::write(localtab[fd], buf);
-			if (x == sys::RC_EAGAIN)
+			if (bridge_traffic(brtab, fd, mx) <= -1) 
 			{
-				localtab[fd,"pending"] = localtab[fd,"pending"] %% buf;
-				## TODO: MOD mux for writing..
-				break;
+				destroy_bridge (brtab, fd, mx);
+				return;
 			}
-			else if (x <= -1)
-			{
-				break_bridge_by_local_fd (localtab, remotetab, fd, mx);
-				break;
-			}
-
-			len -= x;
-			if (len <= 0) break;
-
-			buf = substr(buf, x + 1);
 		}
-		while (1);
 	}
 }
 
 function serve_connections (mx, ss, remoteaddr)
 {
-	@local localtab, remotetab
+	@local brtab, remotetab
 
 	while (1)
 	{
@@ -142,7 +242,7 @@ function serve_connections (mx, ss, remoteaddr)
 				}
 				else
 				{
-					r = sys::socket(sys::AF_INET6, sys::SOCK_STREAM | sys::SOCK_CLOEXEC | sys::SOCK_NONBLOCK, 0);
+					r = sys::socket(sys::sockaddrdom(remoteaddr), sys::SOCK_STREAM | sys::SOCK_CLOEXEC | sys::SOCK_NONBLOCK, 0);
 					if (r <= -1)
 					{
 						print "Error: unable to create remote socket for local socket", l, "-", sys::errmsg();
@@ -150,68 +250,22 @@ function serve_connections (mx, ss, remoteaddr)
 					}
 					else 
 					{
-						@local x;
-						x = sys::connect(r, remoteaddr);
-						if ((x <= -1 && x != sys::RC_EINPROG) || sys::addtomux(mx, r, sys::MUX_EVT_OUT) <= -1)
+						@local rc;
+						rc = sys::connect(r, remoteaddr);
+						if ((rc <= -1 && rc != sys::RC_EINPROG) || prepare_bridge(brtab, l, r, mx) <= -1)
 						{
-print "Unable to conneect to remote...", sys::errmsg();
+							print "Error: unable to conneect to", remoteaddr, "-", sys::errmsg();
 							sys::close (r);
 							sys::close (l);
 						}
-						else
-						{
-							localtab[l] = r;
-							remotetab[r] = l;
-							remotetab[r,"connecting"] = 1;
-printf ("NEW SESSION %d %d\n", l, r);
-						}
 					}
 				}
 			}
-			else
+			else 
 			{
-				## event on a client socket
-				if (fd in remotetab)
-				{
-					if (evmask & (sys::MUX_EVT_HUP | sys::MUX_EVT_ERR))
-					{
-						print "closing HUP ERR", fd;
-						break_bridge_by_remote_fd (localtab, remotetab, fd, mx);
-					}
-					else
-					{
-						if (evmask & sys::MUX_EVT_OUT)
-						{
-							if ((fd,"connecting") in remotetab)
-							{
-								## remote connected
-								sys::addtomux (mx, remotetab[fd], sys::MUX_EVT_IN);
-								sys::modinmux (mx, fd, sys::MUX_EVT_IN);
-								delete remotetab[fd,"connecting"];
-							}
-						}
-
-						if (evmask & sys::MUX_EVT_IN)
-						{
-							bridge_remote_to_local (localtab, remotetab, fd, mx);
-						}
-					}
-				}
-
-				if (fd in localtab)
-				{
-					if (evmask & (sys::MUX_EVT_HUP | sys::MUX_EVT_ERR))
-					{
-						print "closing HUP ERR local", fd;
-						break_bridge_by_local_fd (localtab, remotetab, fd, mx);
-					}
-					else if (evmask & sys::MUX_EVT_IN)
-					{
-						print "event on " fd;
-						bridge_local_to_remote (localtab, remotetab, fd, mx);
-					}
-				}
+				if (fd in brtab) handle_bridge_event (brtab, fd, mx, evmask);
 			}
+			
 		}
 	}
 
@@ -235,7 +289,7 @@ function main (localaddr, remoteaddr, c)
 		return -1;
 	}
 
-	ss = sys::socket(sys::AF_INET6, sys::SOCK_STREAM | sys::SOCK_CLOEXEC | sys::SOCK_NONBLOCK, 0);
+	ss = sys::socket(sys::sockaddrdom(localaddr), sys::SOCK_STREAM | sys::SOCK_CLOEXEC | sys::SOCK_NONBLOCK, 0);
 	if (ss <= -1)
 	{
 		print "Error: unable to create socket -", sys::errmsg();
