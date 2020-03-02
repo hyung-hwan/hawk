@@ -2568,66 +2568,26 @@ static int run_nextoutfile (hawk_rtx_t* rtx, hawk_nde_nextfile_t* nde)
 
 static int run_nextfile (hawk_rtx_t* rtx, hawk_nde_nextfile_t* nde)
 {
-	return (nde->out)? 
-		run_nextoutfile (rtx, nde): 
-		run_nextinfile (rtx, nde);
+	return (nde->out)? run_nextoutfile(rtx, nde): run_nextinfile(rtx, nde);
 }
 
-static int delete_indexed (
-	hawk_rtx_t* rtx, hawk_htb_t* map, hawk_nde_var_t* var)
+static int delete_indexed (hawk_rtx_t* rtx, hawk_htb_t* map, hawk_nde_var_t* var)
 {
-	hawk_val_t* idx;
+	hawk_ooch_t* iptr;
+	hawk_oow_t ilen;
+	hawk_ooch_t idxbuf[IDXBUFSIZE];
 
 	HAWK_ASSERT (var->idx != HAWK_NULL);
 
-	idx = eval_expression (rtx, var->idx);
-	if (idx == HAWK_NULL) return -1;
+	/* delete x["abc"];
+	 * delete x[20,"abc"]; */
+	ilen = HAWK_COUNTOF(idxbuf);
+	iptr = idxnde_to_str(rtx, var->idx, idxbuf, &ilen);
+	if (!iptr) return -1;
 
-	hawk_rtx_refupval (rtx, idx);
+	hawk_htb_delete (map, iptr, ilen);
 
-	if (HAWK_RTX_GETVALTYPE(rtx, idx) == HAWK_VAL_STR)
-	{
-		/* delete x["abc"] */
-		hawk_htb_delete (map, ((hawk_val_str_t*)idx)->val.ptr, ((hawk_val_str_t*)idx)->val.len);
-		hawk_rtx_refdownval (rtx, idx);
-	}
-	else
-	{
-		/* delete x[20] */
-		hawk_ooch_t buf[IDXBUFSIZE];
-		hawk_rtx_valtostr_out_t out;
-
-		/* try with a fixed-size buffer */
-		out.type = HAWK_RTX_VALTOSTR_CPLCPY;
-		out.u.cplcpy.ptr = buf;
-		out.u.cplcpy.len = HAWK_COUNTOF(buf);
-		if (hawk_rtx_valtostr(rtx, idx, &out) <= -1)
-		{
-			int n;
-
-			/* retry it in dynamic mode */
-			out.type = HAWK_RTX_VALTOSTR_CPLDUP;
-			n = hawk_rtx_valtostr(rtx, idx, &out);
-			hawk_rtx_refdownval (rtx, idx);
-			if (n <= -1)
-			{
-				/* change the error line */
-				ADJERR_LOC (rtx, &var->loc);
-				return -1;
-			}
-			else
-			{
-				hawk_htb_delete (map, out.u.cpldup.ptr, out.u.cpldup.len);
-				hawk_rtx_freemem (rtx, out.u.cpldup.ptr);
-			}
-		}
-		else 
-		{
-			hawk_rtx_refdownval (rtx, idx);
-			hawk_htb_delete (map, out.u.cplcpy.ptr, out.u.cplcpy.len);
-		}
-	}
-
+	if (iptr != idxbuf) hawk_rtx_freemem (rtx, iptr);
 	return 0;
 }
 
@@ -2678,7 +2638,7 @@ static int run_delete_named (hawk_rtx_t* rtx, hawk_nde_var_t* var)
 		val = (hawk_val_t*)HAWK_HTB_VPTR(pair);
 		HAWK_ASSERT (val != HAWK_NULL);
 
-		if (HAWK_RTX_GETVALTYPE (rtx, val) != HAWK_VAL_MAP)
+		if (HAWK_RTX_GETVALTYPE(rtx, val) != HAWK_VAL_MAP)
 		{
 			hawk_rtx_seterrfmt (rtx, &var->loc, HAWK_ENOTDEL, HAWK_T("'%.*js' not deletable"), var->id.name.len, var->id.name.ptr);
 			return -1;
@@ -6439,7 +6399,7 @@ static hawk_val_t** get_reference_indexed (hawk_rtx_t* rtx, hawk_nde_var_t* nde,
 	HAWK_ASSERT (nde->idx != HAWK_NULL);
 
 	len = HAWK_COUNTOF(idxbuf);
-	str = idxnde_to_str (rtx, nde->idx, idxbuf, &len);
+	str = idxnde_to_str(rtx, nde->idx, idxbuf, &len);
 	if (str == HAWK_NULL) return HAWK_NULL;
 
 	pair = hawk_htb_search((*(hawk_val_map_t**)val)->map, str, len);
@@ -7084,7 +7044,7 @@ static hawk_ooch_t* idxnde_to_str (hawk_rtx_t* rtx, hawk_nde_t* nde, hawk_ooch_t
 			out.u.cplcpy.ptr = buf;
 			out.u.cplcpy.len = *len;
 
-			if (hawk_rtx_valtostr (rtx, idx, &out) >= 0)
+			if (hawk_rtx_valtostr(rtx, idx, &out) >= 0)
 			{
 				str = out.u.cplcpy.ptr;
 				*len = out.u.cplcpy.len;
