@@ -339,6 +339,22 @@ static void unchain_sys_node_from_mux_node (sys_node_t* mux_node, sys_node_t* no
 	file_data->mux = HAWK_NULL;
 }
 
+static void nullify_mux_data (sys_node_data_mux_t* mux_data, hawk_int_t node_id)
+{
+	hawk_oow_t i;
+
+	for (i = 0; i < mux_data->x_evt_count; i++)
+	{
+	#if defined(USE_EPOLL)
+		if (mux_data->x_evt[i].data.ptr && node_id == ((sys_node_t*)mux_data->x_evt[i].data.ptr)->id)
+		{
+			/* nullify the event in the event array to prevent normal access by sys::getmuxevt() */
+			mux_data->x_evt[i].data.ptr = HAWK_NULL;
+		}
+	#endif
+	}
+}
+
 static void del_from_mux (hawk_rtx_t* rtx, sys_node_t* fd_node)
 {
 	if (fd_node->ctx.flags & SYS_NODE_DATA_FLAG_IN_MUX)
@@ -352,29 +368,13 @@ static void del_from_mux (hawk_rtx_t* rtx, sys_node_t* fd_node)
 		{
 			case SYS_NODE_DATA_TYPE_FILE:
 			case SYS_NODE_DATA_TYPE_SCK:
-			{
-				hawk_oow_t i;
-				sys_node_data_mux_t* mux_data;
-
 				mux_node = (sys_node_t*)fd_node->ctx.u.file.mux;
-				mux_data = &mux_node->ctx.u.mux;
-
-				for (i = 0; i < mux_data->x_evt_count; i++)
-				{
-				#if defined(USE_EPOLL)
-					if (mux_data->x_evt[i].data.ptr && fd_node->id == ((sys_node_t*)mux_data->x_evt[i].data.ptr)->id)
-					{
-						/* nullify the event in the event array to prevent normal access by sys::getmuxevt() */
-						mux_data->x_evt[i].data.ptr = HAWK_NULL;
-					}
-				#endif
-				}
 			#if defined(USE_EPOLL)
 				epoll_ctl (mux_node->ctx.u.mux.fd, MUX_CTL_DEL, fd_node->ctx.u.file.fd, &ev);
 			#endif
+				nullify_mux_data (&mux_node->ctx.u.mux, fd_node->id);
 				unchain_sys_node_from_mux_node (mux_node, fd_node);
 				break;
-			}
 
 			default:
 				/* do nothing */
@@ -3110,7 +3110,7 @@ static int fnc_closemux (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 }
 
 #if defined(USE_EPOLL)
-static HAWK_INLINE int ctl_epoll (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, mux_ctl_cmd_t cmd)
+static HAWK_INLINE int ctl_epoll_for_fnc (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, mux_ctl_cmd_t cmd)
 {
 	sys_list_t* sys_list;
 	sys_node_t* sys_node, * sys_node2;
@@ -3201,8 +3201,10 @@ static HAWK_INLINE int ctl_epoll (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, mu
 								chain_sys_node_to_mux_node (sys_node, sys_node2);
 								break;
 							case MUX_CTL_DEL:
+								nullify_mux_data (&sys_node->ctx.u.mux, sys_node2->id);
 								unchain_sys_node_from_mux_node(sys_node, sys_node2);
 								break;
+
 							case MUX_CTL_MOD:
 								break;
 						}
@@ -3227,7 +3229,7 @@ done:
 static int fnc_addtomux (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 #if defined(USE_EPOLL)
-	return ctl_epoll(rtx, fi, MUX_CTL_ADD);
+	return ctl_epoll_for_fnc(rtx, fi, MUX_CTL_ADD);
 #else
 	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, ERRNUM_TO_RC(HAWK_ENOIMPL)));
 	return 0;
@@ -3237,7 +3239,7 @@ static int fnc_addtomux (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 static int fnc_delfrommux (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 #if defined(USE_EPOLL)
-	return ctl_epoll(rtx, fi, MUX_CTL_DEL);
+	return ctl_epoll_for_fnc(rtx, fi, MUX_CTL_DEL);
 #else
 	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, ERRNUM_TO_RC(HAWK_ENOIMPL)));
 	return 0;
@@ -3247,7 +3249,7 @@ static int fnc_delfrommux (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 static int fnc_modinmux (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 #if defined(USE_EPOLL)
-	return ctl_epoll(rtx, fi, MUX_CTL_MOD);
+	return ctl_epoll_for_fnc(rtx, fi, MUX_CTL_MOD);
 #else
 	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, ERRNUM_TO_RC(HAWK_ENOIMPL)));
 	return 0;
