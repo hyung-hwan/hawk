@@ -107,7 +107,7 @@ typedef struct mod_ctx_t mod_ctx_t;
 
 enum sys_node_data_type_t
 {
-	SYS_NODE_DATA_TYPE_FILE   = (1 << 0),
+	SYS_NODE_DATA_TYPE_FILE = (1 << 0),
 	SYS_NODE_DATA_TYPE_SCK  = (1 << 1),
 	SYS_NODE_DATA_TYPE_DIR  = (1 << 2),
 	SYS_NODE_DATA_TYPE_MUX  = (1 << 3)

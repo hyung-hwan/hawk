@@ -31,14 +31,12 @@
 int hawk_skad_family (const hawk_skad_t* _skad)
 {
 	const hawk_skad_alt_t* skad = (const hawk_skad_alt_t*)_skad;
-	HAWK_ASSERT (HAWK_SIZEOF(*_skad) >= HAWK_SIZEOF(*skad));
 	return skad->sa.sa_family;
 }
 
 int hawk_skad_size (const hawk_skad_t* _skad)
 {
 	const hawk_skad_alt_t* skad = (const hawk_skad_alt_t*)_skad;
-	HAWK_ASSERT (HAWK_SIZEOF(*_skad) >= HAWK_SIZEOF(*skad));
 
 	switch (skad->sa.sa_family)
 	{
@@ -62,7 +60,6 @@ int hawk_skad_size (const hawk_skad_t* _skad)
 void hawk_clear_skad (hawk_skad_t* _skad)
 {
 	hawk_skad_alt_t* skad = (hawk_skad_alt_t*)_skad;
-	HAWK_ASSERT (HAWK_SIZEOF(*_skad) >= HAWK_SIZEOF(*skad));
 	HAWK_MEMSET (skad, 0, HAWK_SIZEOF(*skad));
 	skad->sa.sa_family = HAWK_AF_UNSPEC;
 }
