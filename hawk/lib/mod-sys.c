@@ -3853,7 +3853,9 @@ static int fnc_setsockopt (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			case SO_KEEPALIVE:
 			case SO_RCVBUF:
 			case SO_REUSEADDR:
+		#if defined(SO_REUSEPORT)
 			case SO_REUSEPORT:
+		#endif
 			case SO_SNDBUF:
 			{
 				hawk_int_t tmp;
@@ -4536,7 +4538,9 @@ static inttab_t inttab[] =
 	{ HAWK_T("SO_RCVBUF"),     { SO_RCVBUF } },
 	{ HAWK_T("SO_RCVTIMEO"),   { SO_RCVTIMEO } },
 	{ HAWK_T("SO_REUSEADDR"),  { SO_REUSEADDR } },
+#if defined(SO_REUSEPORT)
 	{ HAWK_T("SO_REUSEPORT"),  { SO_REUSEPORT } },
+#endif
 	{ HAWK_T("SO_SNDBUF"),     { SO_SNDBUF } },
 	{ HAWK_T("SO_SNDTIMEO"),   { SO_SNDTIMEO } },
 
