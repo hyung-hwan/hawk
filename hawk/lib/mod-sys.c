@@ -675,7 +675,7 @@ static int fnc_read (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			hawk_val_t* sv;
 			int x;
 
-			sv = hawk_rtx_makembsval(rtx, sys_list->ctx.readbuf, rx);
+			sv = hawk_rtx_makembsvalwithbchars(rtx, sys_list->ctx.readbuf, rx);
 			if (!sv) 
 			{
 				rx = copy_error_to_sys_list(rtx, sys_list);
@@ -3533,7 +3533,7 @@ static int fnc_recvfrom (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			hawk_val_t* sv;
 			int x;
 
-			sv = hawk_rtx_makembsval(rtx, sys_list->ctx.readbuf, rx);
+			sv = hawk_rtx_makembsvalwithbchars(rtx, sys_list->ctx.readbuf, rx);
 			if (!sv) 
 			{
 				rx = copy_error_to_sys_list(rtx, sys_list);

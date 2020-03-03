@@ -45,7 +45,7 @@ static int fnc_normspace (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		str0 = hawk_rtx_valtobcstrdup(rtx, a0, &len0);
 		if (!str0) return -1;
 		len0 = hawk_compact_bchars(str0, len0);
-		retv = hawk_rtx_makembsval(rtx, str0, len0);
+		retv = hawk_rtx_makembsvalwithbchars(rtx, str0, len0);
 		hawk_rtx_freemem (rtx, str0);
 	}
 	else
@@ -80,7 +80,7 @@ static int trim (hawk_rtx_t* rtx, int flags)
 		path.ptr = ((hawk_val_mbs_t*)a0)->val.ptr;
 		path.len = ((hawk_val_mbs_t*)a0)->val.len;
 		npath = hawk_trim_bchars(path.ptr, &path.len, flags);
-		retv = hawk_rtx_makembsval(rtx, npath, path.len);
+		retv = hawk_rtx_makembsvalwithbchars(rtx, npath, path.len);
 	}
 	else
 	{
@@ -435,7 +435,7 @@ static int fnc_tombs (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		if (!cmgr) 
 		{
 			/* if the encoding name is not known, return a zero-length string */
-			r = hawk_rtx_makembsval(rtx, HAWK_NULL, 0); /* this never fails for length 0 */
+			r = hawk_rtx_makembsvalwithbchars(rtx, HAWK_NULL, 0); /* this never fails for length 0 */
 			goto done;
 		}
 	}

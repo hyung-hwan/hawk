@@ -1591,7 +1591,7 @@ static int fnc_stmt_fetch (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 							cv = hawk_rtx_makestrvalwithbchars(rtx, data->u.sv.ptr, data->u.sv.len);
 							break;
 						case MYSQL_TYPE_BLOB:
-							cv = hawk_rtx_makembsval(rtx, data->u.sv.ptr, data->u.sv.len);
+							cv = hawk_rtx_makembsvalwithbchars(rtx, data->u.sv.ptr, data->u.sv.len);
 							break;
 
 						default:

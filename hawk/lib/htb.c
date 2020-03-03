@@ -62,7 +62,7 @@ HAWK_INLINE pair_t* hawk_htb_allocpair (hawk_htb_t* htb, void* kptr, hawk_oow_t 
 	if (vcop == HAWK_HTB_COPIER_INLINE) as += VTOB(htb,vlen);
 
 	n = (pair_t*) hawk_gem_allocmem(htb->gem, as);
-	if (n == HAWK_NULL) return HAWK_NULL;
+	if (HAWK_UNLIKELY(!n)) return HAWK_NULL;
 
 	NEXT(n) = HAWK_NULL;
 
@@ -160,7 +160,7 @@ static HAWK_INLINE pair_t* change_pair_val (hawk_htb_t* htb, pair_t* pair, void*
 			{
 				/* need to reconstruct the pair */
 				pair_t* p = hawk_htb_allocpair(htb, KPTR(pair), KLEN(pair), vptr, vlen);
-				if (p == HAWK_NULL) return HAWK_NULL;
+				if (HAWK_UNLIKELY(!p)) return HAWK_NULL;
 				hawk_htb_freepair (htb, pair);
 				return p;
 			}
@@ -168,7 +168,7 @@ static HAWK_INLINE pair_t* change_pair_val (hawk_htb_t* htb, pair_t* pair, void*
 		else 
 		{
 			void* nvptr = vcop(htb, vptr, vlen);
-			if (nvptr == HAWK_NULL) return HAWK_NULL;
+			if (HAWK_UNLIKELY(!nvptr)) return HAWK_NULL;
 			VPTR(pair) = nvptr;
 			VLEN(pair) = vlen;
 		}
@@ -260,7 +260,7 @@ hawk_htb_t* hawk_htb_open (hawk_gem_t* gem, hawk_oow_t xtnsize, hawk_oow_t capa,
 	hawk_htb_t* htb;
 
 	htb = (hawk_htb_t*)hawk_gem_allocmem(gem, HAWK_SIZEOF(hawk_htb_t) + xtnsize);
-	if (!htb) return HAWK_NULL;
+	if (HAWK_UNLIKELY(!htb)) return HAWK_NULL;
 
 	if (hawk_htb_init(htb, gem, capa, factor, kscale, vscale) <= -1)
 	{
@@ -503,7 +503,7 @@ static HAWK_INLINE pair_t* insert (hawk_htb_t* htb, void* kptr, hawk_oow_t klen,
 	HAWK_ASSERT (pair == HAWK_NULL);
 
 	pair = hawk_htb_allocpair (htb, kptr, klen, vptr, vlen);
-	if (pair == HAWK_NULL) return HAWK_NULL; /* error */
+	if (HAWK_UNLIKELY(!pair)) return HAWK_NULL; /* error */
 
 	NEXT(pair) = htb->bucket[hc];
 	htb->bucket[hc] = pair;
@@ -584,7 +584,7 @@ pair_t* hawk_htb_cbsert (hawk_htb_t* htb, void* kptr, hawk_oow_t klen, cbserter_
 	HAWK_ASSERT (pair == HAWK_NULL);
 
 	pair = cbserter(htb, HAWK_NULL, kptr, klen, ctx);
-	if (pair == HAWK_NULL) return HAWK_NULL; /* error */
+	if (HAWK_UNLIKELY(!pair)) return HAWK_NULL; /* error */
 
 	NEXT(pair) = htb->bucket[hc];
 	htb->bucket[hc] = pair;

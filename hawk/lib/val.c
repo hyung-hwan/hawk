@@ -167,7 +167,7 @@ static HAWK_INLINE hawk_val_t* make_str_val (hawk_rtx_t* rtx, const hawk_ooch_t*
 	hawk_oow_t i;
 #endif
 
-	if (len1 <= 0 && len2 <= 0) return hawk_val_zls;
+	if (HAWK_UNLIKELY(len1 <= 0 && len2 <= 0)) return hawk_val_zls;
 	aligned_len = HAWK_ALIGN_POW2((len1 + len2 + 1), FEATURE_SCACHE_BLOCK_UNIT);
 
 #if defined(ENABLE_FEATURE_SCACHE)
@@ -183,7 +183,7 @@ static HAWK_INLINE hawk_val_t* make_str_val (hawk_rtx_t* rtx, const hawk_ooch_t*
 #endif
 
 	val = (hawk_val_str_t*)hawk_rtx_callocmem(rtx, HAWK_SIZEOF(hawk_val_str_t) + (aligned_len * HAWK_SIZEOF(hawk_ooch_t)));
-	if (!val) return HAWK_NULL;
+	if (HAWK_UNLIKELY(!val)) return HAWK_NULL;
 
 #if defined(ENABLE_FEATURE_SCACHE)
 init:
@@ -216,7 +216,7 @@ hawk_val_t* hawk_rtx_makestrvalwithuchars (hawk_rtx_t* rtx, const hawk_uch_t* uc
 	hawk_oow_t bcslen;
 
 	bcs = hawk_rtx_duputobchars(rtx, ucs, len, &bcslen);
-	if (!bcs) return HAWK_NULL;
+	if (HAWK_UNLIKELY(!bcs)) return HAWK_NULL;
 
 	v = make_str_val(rtx, bcs, bcslen, HAWK_NULL, 0);
 	hawk_rtx_freemem (rtx, bcs);
@@ -232,7 +232,7 @@ hawk_val_t* hawk_rtx_makestrvalwithbchars (hawk_rtx_t* rtx, const hawk_bch_t* bc
 	hawk_oow_t ucslen;
 
 	ucs = hawk_rtx_dupbtouchars(rtx, bcs, len, &ucslen, 1);
-	if (!ucs) return HAWK_NULL;
+	if (HAWK_UNLIKELY(!ucs)) return HAWK_NULL;
 
 	v = make_str_val(rtx, ucs, ucslen, HAWK_NULL, 0);
 	hawk_rtx_freemem (rtx, ucs);
@@ -272,7 +272,7 @@ hawk_val_t* hawk_rtx_makestrvalwithuchars2 (hawk_rtx_t* rtx, const hawk_uch_t* u
 	hawk_oow_t bcslen;
 
 	bcs = hawk_rtx_dupu2tobchars(rtx, ucs1, len1, ucs2, len2, &bcslen);
-	if (!bcs) return HAWK_NULL;
+	if (HAWK_UNLIKELY(!bcs)) return HAWK_NULL;
 
 	v = make_str_val(rtx, bcs, bcslen, HAWK_NULL, 0);
 	hawk_rtx_freemem (rtx, bcs);
@@ -288,7 +288,7 @@ hawk_val_t* hawk_rtx_makestrvalwithbchars2 (hawk_rtx_t* rtx, const hawk_bch_t* b
 	hawk_oow_t ucslen;
 
 	ucs = hawk_rtx_dupb2touchars(rtx, bcs1, len1, bcs2, len2, &ucslen, 1);
-	if (!ucs) return HAWK_NULL;
+	if (HAWK_UNLIKELY(!ucs)) return HAWK_NULL;
 
 	v = make_str_val(rtx, ucs, ucslen, HAWK_NULL, 0);
 	hawk_rtx_freemem (rtx, ucs);
@@ -297,8 +297,6 @@ hawk_val_t* hawk_rtx_makestrvalwithbchars2 (hawk_rtx_t* rtx, const hawk_bch_t* b
 	return make_str_val(rtx, bcs1, len1, bcs2, len2);
 #endif
 }
-
-
 
 hawk_val_t* hawk_rtx_makenstrvalwithuchars (hawk_rtx_t* rtx, const hawk_uch_t* ptr, hawk_oow_t len)
 {
@@ -370,17 +368,17 @@ hawk_val_t* hawk_rtx_makenstrvalwithbcs (hawk_rtx_t* rtx, const hawk_bcs_t* str)
 }
 
 
-hawk_val_t* hawk_rtx_makembsval (hawk_rtx_t* rtx, const hawk_bch_t* ptr, hawk_oow_t len)
+hawk_val_t* hawk_rtx_makembsvalwithbchars (hawk_rtx_t* rtx, const hawk_bch_t* ptr, hawk_oow_t len)
 {
 	hawk_val_mbs_t* val = HAWK_NULL;
 	hawk_oow_t xsz;
 
-	if (len <= 0) return hawk_val_zlm;
+	if (HAWK_UNLIKELY(len <= 0)) return hawk_val_zlm;
 
 	xsz = len * HAWK_SIZEOF(*ptr);
 
 	val = (hawk_val_mbs_t*)hawk_rtx_callocmem(rtx, HAWK_SIZEOF(hawk_val_mbs_t) + xsz + HAWK_SIZEOF(*ptr));
-	if (!val) return HAWK_NULL;
+	if (HAWK_UNLIKELY(!val)) return HAWK_NULL;
 
 	val->v_type = HAWK_VAL_MBS;
 	val->ref = 0;
@@ -395,9 +393,32 @@ hawk_val_t* hawk_rtx_makembsval (hawk_rtx_t* rtx, const hawk_bch_t* ptr, hawk_oo
 	return (hawk_val_t*)val;
 }
 
-hawk_val_t* hawk_rtx_makembsvalwithbcs (hawk_rtx_t* rtx, const hawk_bcs_t* mxstr)
+hawk_val_t* hawk_rtx_makembsvalwithbcs (hawk_rtx_t* rtx, const hawk_bcs_t* bcs)
 {
-	return hawk_rtx_makembsval(rtx, mxstr->ptr, mxstr->len);
+	return hawk_rtx_makembsvalwithbchars(rtx, bcs->ptr, bcs->len);
+}
+
+hawk_val_t* hawk_rtx_makembsvalwithuchars (hawk_rtx_t* rtx, const hawk_uch_t* ucs, hawk_oow_t len)
+{
+	hawk_val_t* val;
+	hawk_bch_t* bcs;
+	hawk_oow_t bcslen;
+
+	if (HAWK_UNLIKELY(len <= 0)) return hawk_val_zlm;
+
+	bcs = hawk_rtx_duputobchars(rtx, ucs, len, &bcslen);
+	if (HAWK_UNLIKELY(!bcs)) return HAWK_NULL;
+
+	val = hawk_rtx_makembsvalwithbchars(rtx, bcs, bcslen);
+	hawk_rtx_freemem (rtx, bcs);
+
+	return val;
+
+}
+
+hawk_val_t* hawk_rtx_makembsvalwithucs (hawk_rtx_t* rtx, const hawk_ucs_t* ucs)
+{
+	return hawk_rtx_makembsvalwithuchars(rtx, ucs->ptr, ucs->len);
 }
 
 hawk_val_t* hawk_rtx_makerexval (hawk_rtx_t* rtx, const hawk_oocs_t* str, hawk_tre_t* code[2])
@@ -412,7 +433,7 @@ hawk_val_t* hawk_rtx_makerexval (hawk_rtx_t* rtx, const hawk_oocs_t* str, hawk_t
 	 */
 	totsz = HAWK_SIZEOF(*val) + (HAWK_SIZEOF(*str->ptr) * (str->len + 1));
 	val = (hawk_val_rex_t*)hawk_rtx_callocmem(rtx, totsz);
-	if (!val) return HAWK_NULL;
+	if (HAWK_UNLIKELY(!val)) return HAWK_NULL;
 
 	val->v_type = HAWK_VAL_REX;
 	val->ref = 0;
@@ -519,7 +540,7 @@ hawk_val_t* hawk_rtx_makemapvalwithdata (hawk_rtx_t* rtx, hawk_val_map_data_t da
 	hawk_val_map_data_t* p;
 
 	map = hawk_rtx_makemapval(rtx);
-	if (!map) return HAWK_NULL;
+	if (HAWK_UNLIKELY(!map)) return HAWK_NULL;
 
 	for (p = data; p->key.ptr; p++)
 	{
@@ -601,7 +622,7 @@ hawk_val_t* hawk_rtx_getmapvalfld (hawk_rtx_t* rtx, hawk_val_t* map, const hawk_
 	HAWK_ASSERT (HAWK_RTX_GETVALTYPE(rtx, map) == HAWK_VAL_MAP);
 
 	pair = hawk_htb_search(((hawk_val_map_t*)map)->map, kptr, klen);
-	if (pair == HAWK_NULL)
+	if (!pair)
 	{
 		/* the given key is not found in the map.
 		 * we return NULL here as this function is called by 
@@ -615,16 +636,14 @@ hawk_val_t* hawk_rtx_getmapvalfld (hawk_rtx_t* rtx, hawk_val_t* map, const hawk_
 	return HAWK_HTB_VPTR(pair);
 }
 
-hawk_val_map_itr_t* hawk_rtx_getfirstmapvalitr (
-	hawk_rtx_t* rtx, hawk_val_t* map, hawk_val_map_itr_t* itr)
+hawk_val_map_itr_t* hawk_rtx_getfirstmapvalitr (hawk_rtx_t* rtx, hawk_val_t* map, hawk_val_map_itr_t* itr)
 {
 	HAWK_ASSERT (HAWK_RTX_GETVALTYPE (rtx, map) == HAWK_VAL_MAP);
 	itr->pair = hawk_htb_getfirstpair (((hawk_val_map_t*)map)->map, &itr->buckno);
 	return itr->pair? itr: HAWK_NULL;
 }
 
-hawk_val_map_itr_t* hawk_rtx_getnextmapvalitr (
-	hawk_rtx_t* rtx, hawk_val_t* map, hawk_val_map_itr_t* itr)
+hawk_val_map_itr_t* hawk_rtx_getnextmapvalitr (hawk_rtx_t* rtx, hawk_val_t* map, hawk_val_map_itr_t* itr)
 {
 	HAWK_ASSERT (HAWK_RTX_GETVALTYPE (rtx, map) == HAWK_VAL_MAP);
 	itr->pair = hawk_htb_getnextpair (((hawk_val_map_t*)map)->map, itr->pair, &itr->buckno);
@@ -654,7 +673,7 @@ hawk_val_t* hawk_rtx_makefunval (hawk_rtx_t* rtx, const hawk_fun_t* fun)
 	hawk_val_fun_t* val;
 
 	val = (hawk_val_fun_t*)hawk_rtx_callocmem(rtx, HAWK_SIZEOF(*val));
-	if (!val) return HAWK_NULL;
+	if (HAWK_UNLIKELY(!val)) return HAWK_NULL;
 
 	val->v_type = HAWK_VAL_FUN;
 	val->ref = 0;

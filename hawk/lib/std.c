@@ -2119,7 +2119,7 @@ static int open_rio_console (hawk_rtx_t* rtx, hawk_rio_arg_t* riod)
 
 			if (rxtn->c.cmgr) hawk_sio_setcmgr (sio, rxtn->c.cmgr);
 
-			if (hawk_rtx_setfilename(rtx, file, hawk_count_oocstr(file)) <= -1)
+			if (hawk_rtx_setfilenamewithoochars(rtx, file, hawk_count_oocstr(file)) <= -1)
 			{
 				hawk_sio_close (sio);
 				hawk_rtx_freevaloocstr (rtx, v, as.ptr);
@@ -2181,7 +2181,7 @@ static int open_rio_console (hawk_rtx_t* rtx, hawk_rio_arg_t* riod)
 
 			if (rxtn->c.cmgr) hawk_sio_setcmgr (sio, rxtn->c.cmgr);
 			
-			if (hawk_rtx_setofilename(rtx, file, hawk_count_oocstr(file)) <= -1)
+			if (hawk_rtx_setofilenamewithoochars(rtx, file, hawk_count_oocstr(file)) <= -1)
 			{
 				hawk_sio_close (sio);
 				return -1;
@@ -2623,7 +2623,7 @@ static hawk_rtx_t* open_rtx_std (
 	 */
 	if (ocf && ocf[0])
 	{
-		if (hawk_rtx_setofilename(rtx, ocf[0], hawk_count_oocstr(ocf[0])) <= -1)
+		if (hawk_rtx_setofilenamewithoochars(rtx, ocf[0], hawk_count_oocstr(ocf[0])) <= -1)
 		{
 			hawk_rtx_errortohawk (rtx, awk);
 			hawk_rtx_close (rtx);
@@ -2755,7 +2755,7 @@ hawk_rtx_t* hawk_rtx_openstdwithucstr (
 		#else
 			xicf[i] = hawk_dupucstr(awk, icf[i], HAWK_NULL);
 		#endif
-			if (!xicf[i]) goto done;
+			if (HAWK_UNLIKELY(!xicf[i])) goto done;
 		}
 		xicf[i] = HAWK_NULL;
 	}

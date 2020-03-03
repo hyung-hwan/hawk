@@ -166,12 +166,12 @@ hawk_fnc_t* hawk_addfncwithbcstr (hawk_t* awk, const hawk_bch_t* name, const haw
 	if (spec->arg.spec)
 	{
 		wcs.ptr = hawk_dupbtoucstr(awk, spec->arg.spec, &wcs.len, 0);
-		if (!wcs.ptr) return HAWK_NULL;
+		if (HAWK_UNLIKELY(!wcs.ptr)) return HAWK_NULL;
 		wspec.arg.spec = wcs.ptr;
 	}
 
 	wcs.ptr = hawk_dupbtoucstr(awk, name, &wcs.len, 0);
-	if (!wcs.ptr) 
+	if (HAWK_UNLIKELY(!wcs.ptr)) 
 	{
 		if (wspec.arg.spec) hawk_freemem (awk, (hawk_uch_t*)wspec.arg.spec);
 		return HAWK_NULL;
@@ -197,12 +197,12 @@ hawk_fnc_t* hawk_addfncwithucstr (hawk_t* awk, const hawk_uch_t* name, const haw
 	if (spec->arg.spec)
 	{
 		mbs.ptr = hawk_duputobcstr(awk, spec->arg.spec, &mbs.len);
-		if (!mbs.ptr) return HAWK_NULL;
+		if (HAWK_UNLIKELY(!mbs.ptr)) return HAWK_NULL;
 		mspec.arg.spec = mbs.ptr;
 	}
 
 	mbs.ptr = hawk_duputobcstr(awk, name, &mbs.len);
-	if (!mbs.ptr)
+	if (HAWK_UNLIKELY(!mbs.ptr))
 	{
 		if (mspec.arg.spec) hawk_freemem (awk, (hawk_bch_t*)mspec.arg.spec);
 		return HAWK_NULL;
@@ -317,7 +317,7 @@ hawk_fnc_t* hawk_findfncwithbcs (hawk_t* awk, const hawk_bcs_t* name)
 	hawk_fnc_t* fnc;
 
 	wcs.ptr = hawk_dupbtouchars(awk, name->ptr, name->len, &wcs.len, 0);
-	if (!wcs.ptr) return HAWK_NULL;
+	if (HAWK_UNLIKELY(!wcs.ptr)) return HAWK_NULL;
 	fnc = find_fnc(awk, &wcs);
 	hawk_freemem (awk, wcs.ptr);
 	return fnc;
@@ -331,7 +331,7 @@ hawk_fnc_t* hawk_findfncwithucs (hawk_t* awk, const hawk_ucs_t* name)
 	hawk_fnc_t* fnc;
 
 	mbs.ptr = hawk_duputobchars(awk, name->ptr, name->len, &mbs.len);
-	if (!mbs.ptr) return HAWK_NULL;
+	if (HAWK_UNLIKELY(!mbs.ptr)) return HAWK_NULL;
 	fnc = find_fnc(awk, &mbs);
 	hawk_freemem (awk, mbs.ptr);
 	return fnc;
@@ -774,7 +774,7 @@ int hawk_fnc_substr (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		if (lindex >= (hawk_int_t)len) lindex = (hawk_int_t)len;
 		if (lcount > (hawk_int_t)len - lindex) lcount = (hawk_int_t)len - lindex;
 
-		r = hawk_rtx_makembsval(rtx, &str[lindex], (hawk_oow_t)lcount);
+		r = hawk_rtx_makembsvalwithbchars(rtx, &str[lindex], (hawk_oow_t)lcount);
 		if (!r) return -1;
 	}
 	else
