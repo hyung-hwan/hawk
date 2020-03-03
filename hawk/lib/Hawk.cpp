@@ -1295,11 +1295,24 @@ int Hawk::Run::setGlobal (int id, hawk_flt_t v)
 	return n;
 }
 
-int Hawk::Run::setGlobal (int id, const hawk_ooch_t* ptr, hawk_oow_t len)
+int Hawk::Run::setGlobal (int id, const hawk_uch_t* ptr, hawk_oow_t len)
 {
 	HAWK_ASSERT (this->rtx != HAWK_NULL);
 
-	hawk_val_t* tmp = hawk_rtx_makestrvalwithoochars(this->rtx, ptr, len);
+	hawk_val_t* tmp = hawk_rtx_makestrvalwithuchars(this->rtx, ptr, len);
+	if (tmp == HAWK_NULL) return -1;
+
+	hawk_rtx_refupval (this->rtx, tmp);
+	int n = hawk_rtx_setgbl (this->rtx, id, tmp);
+	hawk_rtx_refdownval (this->rtx, tmp);
+	return n;
+}
+
+int Hawk::Run::setGlobal (int id, const hawk_bch_t* ptr, hawk_oow_t len)
+{
+	HAWK_ASSERT (this->rtx != HAWK_NULL);
+
+	hawk_val_t* tmp = hawk_rtx_makestrvalwithbchars(this->rtx, ptr, len);
 	if (tmp == HAWK_NULL) return -1;
 
 	hawk_rtx_refupval (this->rtx, tmp);

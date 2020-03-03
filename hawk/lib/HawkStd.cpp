@@ -235,7 +235,7 @@ HawkStd::Run* HawkStd::parse (Source& in, Source& out)
 	}
 
 	if (run && make_additional_globals(run) <= -1) return HAWK_NULL;
-	
+
 	return run;
 }
 
@@ -245,10 +245,7 @@ int HawkStd::build_argcv (Run* run)
 
 	for (hawk_oow_t i = 0; i < this->runarg.len; i++)
 	{
-		if (argv.setIndexedStr (
-			Value::IntIndex(i), 
-			this->runarg.ptr[i].ptr, 
-			this->runarg.ptr[i].len, true) <= -1) return -1;
+		if (argv.setIndexedStr(Value::IntIndex(i), this->runarg.ptr[i].ptr, this->runarg.ptr[i].len, true) <= -1) return -1;
 	}
 
 	run->setGlobal (this->gbl_argc, (hawk_int_t)this->runarg.len);
@@ -344,9 +341,8 @@ int HawkStd::make_additional_globals (Run* run)
 {
 	/* TODO: use wenviron where it's available */
 
-	if (build_argcv(run) <= -1 ||
-	    build_environ(run, ::environ) <= -1) return -1;
-	    
+	if (this->build_argcv(run) <= -1 || this->build_environ(run, ::environ) <= -1) return -1;
+
 	return 0;
 }
 

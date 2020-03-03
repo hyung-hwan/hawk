@@ -278,7 +278,8 @@ function main (localaddr, remoteaddr, c)
 
 	if (ARGC != 3)
 	{
-		printf ("Usage: %s local-address remote-address\n", ARGV[0]); ## TODO: add SCRIPTNAME to hawk interpreter
+		###printf ("Usage: %s -f %s local-address remote-address\n", ARGV[0], SCRIPTNAME);
+		printf ("Usage: %s local-address remote-address\n", SCRIPTNAME);
 		return -1;
 	}
 

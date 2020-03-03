@@ -373,6 +373,8 @@ static int add_gvs_to_awk (hawk_t* awk, arg_t* arg)
 
 static int apply_fs_and_gvs_to_rtx (hawk_rtx_t* rtx, arg_t* arg)
 {
+	hawk_oow_t i;
+
 	if (arg->fs)
 	{
 		hawk_val_t* fs;
@@ -404,6 +406,25 @@ static int apply_fs_and_gvs_to_rtx (hawk_rtx_t* rtx, arg_t* arg)
 			hawk_rtx_refupval (rtx, v);
 			hawk_rtx_setgbl (rtx, arg->gvm.ptr[i].idx, v);
 			hawk_rtx_refdownval (rtx, v);
+		}
+	}
+
+	for (i = 0; arg->psin[i].type != HAWK_PARSESTD_NULL; i++) 
+	{
+		if (arg->psin[i].type == HAWK_PARSESTD_FILE) 
+		{
+			if (hawk_rtx_setscriptnamewithoochars(rtx, arg->psin[i].u.file.path, hawk_count_oocstr(arg->psin[i].u.file.path)) <= -1) return -1;
+			break;
+		}
+		else if (arg->psin[i].type == HAWK_PARSESTD_FILEB) 
+		{
+			if (hawk_rtx_setscriptnamewithbchars(rtx, arg->psin[i].u.fileb.path, hawk_count_bcstr(arg->psin[i].u.fileb.path)) <= -1) return -1;
+			break;
+		}
+		else if (arg->psin[i].type == HAWK_PARSESTD_FILEU) 
+		{
+			if (hawk_rtx_setscriptnamewithuchars(rtx, arg->psin[i].u.fileu.path, hawk_count_ucstr(arg->psin[i].u.fileu.path)) <= -1) return -1;
+			break;
 		}
 	}
 
@@ -1180,7 +1201,7 @@ static HAWK_INLINE int execute_hawk (int argc, hawk_bch_t* argv[])
 	}
 
 	rtx = hawk_rtx_openstdwithbcstr(
-		awk, 0, "hawk",
+		awk, 0, argv[0],
 		(arg.call? HAWK_NULL: arg.icf.ptr), /* console input */
 		arg.ocf.ptr, /* console output */
 		arg.console_cmgr

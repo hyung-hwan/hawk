@@ -1238,7 +1238,8 @@ public:
 		/// \a ptr.
 		/// \return 0 on success, -1 on failure
 		///
-		int setGlobal (int id, const hawk_ooch_t* ptr, hawk_oow_t len);
+		int setGlobal (int id, const hawk_uch_t* ptr, hawk_oow_t len);
+		int setGlobal (int id, const hawk_bch_t* ptr, hawk_oow_t len);
 
 		/// 
 		/// The setGlobal() function sets a global variable 
@@ -1251,7 +1252,7 @@ public:
 		/// The getGlobal() function gets the value of a global 
 		/// variable identified by \a id and stores it in \a v.
 		/// \return 0 on success, -1 on failure
-		///	
+		///
 		int getGlobal (int id, Value& v) const;
 
 	protected:
