@@ -418,7 +418,13 @@ static int hawk_main (MyHawk& hawk, int argc, hawk_bch_t* argv[])
 	in = (cmdline.ins)? (MyHawk::Source*)&in_str: (MyHawk::Source*)&in_file;
 	out = (cmdline.outf)? (MyHawk::Source*)&out_file: &MyHawk::Source::NONE;
 	run = hawk.parse(*in, *out);
-	if (run == HAWK_NULL) 
+	if (!run) 
+	{
+		print_error (hawk); 
+		return -1; 
+	}
+
+	if (cmdline.inf && run->setGlobal(HAWK_GBL_SCRIPTNAME, cmdline.inf, hawk_count_bcstr(cmdline.inf)) <= -1)
 	{
 		print_error (hawk); 
 		return -1; 

@@ -57,12 +57,11 @@
  * hawk_sio_cbs_t sio; // need to initialize it with callback functions
  * hawk_rio_cbs_t rio; // need to initialize it with callback functions
  *
- * awk = hawk_open (mmgr, 0, prm); // create an interpreter 
+ * awk = hawk_open(mmgr, 0, prm); // create an interpreter 
  * hawk_parse (awk, &sio);          // parse a script 
  * rtx = hawk_rtx_open (awk, 0, &rio); // create a runtime context 
  * retv = hawk_rtx_loop (rtx);     // run a standard AWK loop 
- * if (retv != HAWK_NULL) 
- *    hawk_rtx_refdownval (rtx, retv); // free return value
+ * if (retv) hawk_rtx_refdownval (rtx, retv); // free return value
  * hawk_rtx_close (rtx);           // destroy the runtime context
  * hawk_close (awk);               // destroy the interpreter
  * \endcode
@@ -1315,6 +1314,7 @@ enum hawk_gbl_id_t
 	HAWK_GBL_RLENGTH,
 	HAWK_GBL_RS,
 	HAWK_GBL_RSTART,
+	HAWK_GBL_SCRIPTNAME,
 	HAWK_GBL_STRIPRECSPC,
 	HAWK_GBL_SUBSEP,
 
@@ -2072,7 +2072,7 @@ static HAWK_INLINE void hawk_rtx_setcmgr (hawk_rtx_t* rtx, hawk_cmgr_t* cmgr) { 
  *
  * The example shows typical usage of the function.
  * \code
- * rtx = hawk_rtx_open (awk, 0, rio);
+ * rtx = hawk_rtx_open(awk, 0, rio);
  * if (rtx)
  * {
  *    retv = hawk_rtx_loop (rtx);
@@ -2133,7 +2133,7 @@ HAWK_EXPORT hawk_val_t* hawk_rtx_callfun (
  *
  * The example shows typical usage of the function.
  * \code
- * rtx = hawk_rtx_open (awk, 0, rio);
+ * rtx = hawk_rtx_open(awk, 0, rio);
  * if (rtx)
  * {
  *     v = hawk_rtx_callwithucstr (rtx, HAWK_UT("init"), HAWK_NULL, 0);
@@ -2161,7 +2161,7 @@ HAWK_EXPORT hawk_val_t* hawk_rtx_callwithucstr (
  *
  * The example shows typical usage of the function.
  * \code
- * rtx = hawk_rtx_open (awk, 0, rio);
+ * rtx = hawk_rtx_open(awk, 0, rio);
  * if (rtx)
  * {
  *     v = hawk_rtx_callwithbcstr (rtx, HAWK_BT("init"), HAWK_NULL, 0);
@@ -2380,6 +2380,24 @@ HAWK_EXPORT int hawk_rtx_setofilename (
 	const hawk_ooch_t* str, /**< name pointer */
 	hawk_oow_t         len  /**< name length */
 );
+
+HAWK_EXPORT int hawk_rtx_setscriptnamewithuchars (
+	hawk_rtx_t*        rtx, /**< runtime context */
+	const hawk_uch_t*  str, /**< name pointer */
+	hawk_oow_t         len  /**< name length */
+);
+
+HAWK_EXPORT int hawk_rtx_setscriptnamewithbchars (
+	hawk_rtx_t*        rtx, /**< runtime context */
+	const hawk_bch_t*  str, /**< name pointer */
+	hawk_oow_t         len  /**< name length */
+);
+
+#if defined(HAWK_OOCH_IS_UCH)
+#	define hawk_rtx_setscriptnamewithoochars hawk_rtx_setscriptnamewithuchars
+#else
+#	define hawk_rtx_setscriptnamewithoochars hawk_rtx_setscriptnamewithbchars
+#endif
 
 /**
  * The hawk_rtx_getnvmap() gets the map of named variables 

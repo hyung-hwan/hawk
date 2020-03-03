@@ -633,6 +633,36 @@ HAWK_INLINE int hawk_rtx_setgbl (hawk_rtx_t* rtx, int id, hawk_val_t* val)
 	return set_global(rtx, id, HAWK_NULL, val, 0);
 }
 
+int hawk_rtx_setscriptnamewithuchars (hawk_rtx_t* rtx, const hawk_uch_t* name, hawk_oow_t len)
+{
+	hawk_val_t* tmp;
+	int n;
+
+	tmp = hawk_rtx_makestrvalwithuchars(rtx, name, len);
+	if (tmp == HAWK_NULL) return -1;
+
+	hawk_rtx_refupval (rtx, tmp);
+	n = hawk_rtx_setgbl (rtx, HAWK_GBL_SCRIPTNAME, tmp);
+	hawk_rtx_refdownval (rtx, tmp);
+
+	return n;
+}
+
+int hawk_rtx_setscriptnamewithbchars (hawk_rtx_t* rtx, const hawk_bch_t* name, hawk_oow_t len)
+{
+	hawk_val_t* tmp;
+	int n;
+
+	tmp = hawk_rtx_makestrvalwithbchars(rtx, name, len);
+	if (tmp == HAWK_NULL) return -1;
+
+	hawk_rtx_refupval (rtx, tmp);
+	n = hawk_rtx_setgbl (rtx, HAWK_GBL_SCRIPTNAME, tmp);
+	hawk_rtx_refdownval (rtx, tmp);
+
+	return n;
+}
+
 int hawk_rtx_setfilename (hawk_rtx_t* rtx, const hawk_ooch_t* name, hawk_oow_t len)
 {
 	hawk_val_t* tmp;
@@ -1205,7 +1235,7 @@ static int defaultify_globals (hawk_rtx_t* rtx)
 		int idx;
 		const hawk_ooch_t* str[2];
 	};
-	static struct gtab_t gtab[7] =
+	static struct gtab_t gtab[8] =
 	{
 		{ HAWK_GBL_CONVFMT,    { DEFAULT_CONVFMT, DEFAULT_CONVFMT  } },
 		{ HAWK_GBL_FILENAME,   { HAWK_NULL,       HAWK_NULL         } },
@@ -1213,7 +1243,8 @@ static int defaultify_globals (hawk_rtx_t* rtx)
 		{ HAWK_GBL_OFMT,       { DEFAULT_OFMT,    DEFAULT_OFMT     } },
 		{ HAWK_GBL_OFS,        { DEFAULT_OFS,     DEFAULT_OFS      } },
 		{ HAWK_GBL_ORS,        { DEFAULT_ORS,     DEFAULT_ORS_CRLF } },
-		{ HAWK_GBL_SUBSEP,     { DEFAULT_SUBSEP,  DEFAULT_SUBSEP   } },
+		{ HAWK_GBL_SCRIPTNAME, { HAWK_NULL,       HAWK_NULL         } },
+		{ HAWK_GBL_SUBSEP,     { DEFAULT_SUBSEP,  DEFAULT_SUBSEP   } }
 	};
 
 	hawk_val_t* tmp;

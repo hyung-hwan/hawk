@@ -2109,8 +2109,8 @@ static int open_rio_console (hawk_rtx_t* rtx, hawk_rio_arg_t* riod)
 			file = as.ptr;
 
 			sio = (file[0] == HAWK_T('-') && file[1] == HAWK_T('\0'))?
-				open_sio_std_rtx (rtx, HAWK_SIO_STDIN, HAWK_SIO_READ | HAWK_SIO_IGNOREECERR):
-				open_sio_rtx (rtx, file, HAWK_SIO_READ | HAWK_SIO_IGNOREECERR);
+				open_sio_std_rtx(rtx, HAWK_SIO_STDIN, HAWK_SIO_READ | HAWK_SIO_IGNOREECERR):
+				open_sio_rtx(rtx, file, HAWK_SIO_READ | HAWK_SIO_IGNOREECERR);
 			if (sio == HAWK_NULL)
 			{
 				hawk_rtx_freevaloocstr (rtx, v, as.ptr);
@@ -2332,7 +2332,7 @@ static int build_argcv (hawk_rtx_t* rtx, int argc_id, int argv_id, const hawk_oo
 	hawk_ooch_t key[HAWK_SIZEOF(hawk_int_t)*8+2];
 	hawk_oow_t key_len;
 
-	v_argv = hawk_rtx_makemapval (rtx);
+	v_argv = hawk_rtx_makemapval(rtx);
 	if (v_argv == HAWK_NULL) return -1;
 
 	hawk_rtx_refupval (rtx, v_argv);
@@ -2350,7 +2350,7 @@ static int build_argcv (hawk_rtx_t* rtx, int argc_id, int argv_id, const hawk_oo
 	hawk_rtx_refupval (rtx, v_tmp);
 
 	key_len = hawk_copy_oocstr(key, HAWK_COUNTOF(key), HAWK_T("0"));
-	if (hawk_htb_upsert (((hawk_val_map_t*)v_argv)->map, key, key_len, v_tmp, 0) == HAWK_NULL)
+	if (hawk_htb_upsert(((hawk_val_map_t*)v_argv)->map, key, key_len, v_tmp, 0) == HAWK_NULL)
 	{
 		/* if the assignment operation fails, decrements
 		 * the reference of v_tmp to free it */
@@ -2377,12 +2377,12 @@ static int build_argcv (hawk_rtx_t* rtx, int argc_id, int argv_id, const hawk_oo
 				return -1;
 			}
 
-			key_len = hawk_int_to_oocstr (argc, 10, HAWK_NULL, key, HAWK_COUNTOF(key));
+			key_len = hawk_int_to_oocstr(argc, 10, HAWK_NULL, key, HAWK_COUNTOF(key));
 			HAWK_ASSERT (key_len != (hawk_oow_t)-1);
 
 			hawk_rtx_refupval (rtx, v_tmp);
 
-			if (hawk_htb_upsert (((hawk_val_map_t*)v_argv)->map, key, key_len, v_tmp, 0) == HAWK_NULL)
+			if (hawk_htb_upsert(((hawk_val_map_t*)v_argv)->map, key, key_len, v_tmp, 0) == HAWK_NULL)
 			{
 				hawk_rtx_refdownval (rtx, v_tmp);
 				hawk_rtx_refdownval (rtx, v_argv);

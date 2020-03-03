@@ -367,6 +367,7 @@ static global_t gtab[] =
 
 	{ HAWK_T("RSTART"),       6,  0 },
 
+	{ HAWK_T("SCRIPTNAME"),   10, 0 },
 	/* it decides the field construction behavior when FS is a regular expression and 
 	 * the field splitter is composed of whitespaces only. e.g) FS="[ \t]*";
 	 * if set to a non-zero value, remove leading spaces and trailing spaces off a record
