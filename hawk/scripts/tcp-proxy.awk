@@ -217,6 +217,7 @@ function serve_connections (mx, ss, remoteaddr)
 
 		if ((x = sys::waitonmux(mx, 3.10)) <= -1)
 		{
+			if (x == sys::RC_EINTR) continue;
 			print "Error: problem while waiting on multiplexer -", sys::errmsg();
 			break;
 		}
