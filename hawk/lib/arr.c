@@ -71,13 +71,13 @@ static HAWK_INLINE slot_t* alloc_slot (hawk_arr_t* arr, void* dptr, hawk_oow_t d
 	if (arr->copier == HAWK_ARR_COPIER_SIMPLE)
 	{
 		n = (slot_t*)hawk_gem_allocmem(arr->gem, HAWK_SIZEOF(slot_t));
-		if (!n) return HAWK_NULL;
+		if (HAWK_UNLIKELY(!n)) return HAWK_NULL;
 		DPTR(n) = dptr;
 	}
 	else if (arr->copier == HAWK_ARR_COPIER_INLINE)
 	{
 		n = (slot_t*)hawk_gem_allocmem(arr->gem, HAWK_SIZEOF(slot_t) + TOB(arr,dlen));
-		if (!n) return HAWK_NULL;
+		if (HAWK_UNLIKELY(!n)) return HAWK_NULL;
 
 		HAWK_MEMCPY (n + 1, dptr, TOB(arr,dlen));
 		DPTR(n) = n + 1;
@@ -85,7 +85,7 @@ static HAWK_INLINE slot_t* alloc_slot (hawk_arr_t* arr, void* dptr, hawk_oow_t d
 	else
 	{
 		n = (slot_t*)hawk_gem_allocmem(arr->gem, HAWK_SIZEOF(slot_t));
-		if (!n) return HAWK_NULL;
+		if (HAWK_UNLIKELY(!n)) return HAWK_NULL;
 		DPTR(n) = arr->copier(arr, dptr, dlen);
 		if (DPTR(n) == HAWK_NULL) 
 		{
@@ -104,7 +104,7 @@ hawk_arr_t* hawk_arr_open (hawk_gem_t* gem, hawk_oow_t xtnsize, hawk_oow_t capa)
 	hawk_arr_t* arr;
 
 	arr = (hawk_arr_t*)hawk_gem_allocmem(gem, HAWK_SIZEOF(hawk_arr_t) + xtnsize);
-	if (arr == HAWK_NULL) return HAWK_NULL;
+	if (HAWK_UNLIKELY(!arr)) return HAWK_NULL;
 
 	if (hawk_arr_init(arr, gem, capa) <= -1)
 	{
@@ -246,7 +246,7 @@ hawk_arr_t* hawk_arr_setcapa (hawk_arr_t* arr, hawk_oow_t capa)
 	if (capa > 0) 
 	{
 		tmp = (slot_t**)hawk_gem_reallocmem(arr->gem, arr->slot, HAWK_SIZEOF(*arr->slot) * capa);
-		if (!tmp) return HAWK_NULL;
+		if (HAWK_UNLIKELY(!tmp)) return HAWK_NULL;
 	}
 	else 
 	{

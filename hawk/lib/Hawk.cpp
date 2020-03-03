@@ -185,11 +185,11 @@ int Hawk::Console::setFileName (const hawk_ooch_t* name)
 {
 	if (this->getMode() == READ)
 	{
-		return hawk_rtx_setfilename(this->run->rtx, name, hawk_count_oocstr(name));
+		return hawk_rtx_setfilenamewithoochars(this->run->rtx, name, hawk_count_oocstr(name));
 	}
 	else
 	{
-		return hawk_rtx_setofilename(this->run->rtx, name, hawk_count_oocstr(name));
+		return hawk_rtx_setofilenamewithoochars(this->run->rtx, name, hawk_count_oocstr(name));
 	}
 }
 
@@ -839,7 +839,7 @@ int Hawk::Value::setMbs (const hawk_bch_t* str)
 int Hawk::Value::setMbs (Run* r, const hawk_bch_t* str)
 {
 	hawk_val_t* tmp;
-	tmp = hawk_rtx_makembsval(r->rtx, str, hawk_count_bcstr(str));
+	tmp = hawk_rtx_makembsvalwithbchars(r->rtx, str, hawk_count_bcstr(str));
 	if (!tmp) 
 	{
 		r->hawk->retrieveError (r);
@@ -1101,7 +1101,7 @@ int Hawk::Value::setIndexedMbs (const Index& idx, const hawk_bch_t* str)
 int Hawk::Value::setIndexedMbs (Run* r, const Index& idx, const hawk_bch_t* str)
 {
 	hawk_val_t* tmp;
-	tmp = hawk_rtx_makembsval(r->rtx, str, hawk_count_bcstr(str));
+	tmp = hawk_rtx_makembsvalwithbchars(r->rtx, str, hawk_count_bcstr(str));
 	if (tmp == HAWK_NULL)
 	{
 		r->hawk->retrieveError (r);
@@ -1274,7 +1274,7 @@ int Hawk::Run::setGlobal (int id, hawk_int_t v)
 	HAWK_ASSERT (this->rtx != HAWK_NULL);
 
 	hawk_val_t* tmp = hawk_rtx_makeintval (this->rtx, v);
-	if (tmp == HAWK_NULL) return -1;
+	if (HAWK_UNLIKELY(!tmp)) return -1;
 
 	hawk_rtx_refupval (this->rtx, tmp);
 	int n = hawk_rtx_setgbl (this->rtx, id, tmp);
@@ -1287,7 +1287,7 @@ int Hawk::Run::setGlobal (int id, hawk_flt_t v)
 	HAWK_ASSERT (this->rtx != HAWK_NULL);
 
 	hawk_val_t* tmp = hawk_rtx_makefltval (this->rtx, v);
-	if (tmp == HAWK_NULL) return -1;
+	if (HAWK_UNLIKELY(!tmp)) return -1;
 
 	hawk_rtx_refupval (this->rtx, tmp);
 	int n = hawk_rtx_setgbl (this->rtx, id, tmp);
@@ -1295,12 +1295,13 @@ int Hawk::Run::setGlobal (int id, hawk_flt_t v)
 	return n;
 }
 
-int Hawk::Run::setGlobal (int id, const hawk_uch_t* ptr, hawk_oow_t len)
+int Hawk::Run::setGlobal (int id, const hawk_uch_t* ptr, hawk_oow_t len, bool mbs)
 {
 	HAWK_ASSERT (this->rtx != HAWK_NULL);
 
-	hawk_val_t* tmp = hawk_rtx_makestrvalwithuchars(this->rtx, ptr, len);
-	if (tmp == HAWK_NULL) return -1;
+	hawk_val_t* tmp = mbs? hawk_rtx_makembsvalwithuchars(this->rtx, ptr, len):
+	                       hawk_rtx_makestrvalwithuchars(this->rtx, ptr, len);
+	if (HAWK_UNLIKELY(!tmp)) return -1;
 
 	hawk_rtx_refupval (this->rtx, tmp);
 	int n = hawk_rtx_setgbl (this->rtx, id, tmp);
@@ -1308,12 +1309,13 @@ int Hawk::Run::setGlobal (int id, const hawk_uch_t* ptr, hawk_oow_t len)
 	return n;
 }
 
-int Hawk::Run::setGlobal (int id, const hawk_bch_t* ptr, hawk_oow_t len)
+int Hawk::Run::setGlobal (int id, const hawk_bch_t* ptr, hawk_oow_t len, bool mbs)
 {
 	HAWK_ASSERT (this->rtx != HAWK_NULL);
 
-	hawk_val_t* tmp = hawk_rtx_makestrvalwithbchars(this->rtx, ptr, len);
-	if (tmp == HAWK_NULL) return -1;
+	hawk_val_t* tmp = mbs? hawk_rtx_makembsvalwithbchars(this->rtx, ptr, len):
+	                       hawk_rtx_makestrvalwithbchars(this->rtx, ptr, len);
+	if (HAWK_UNLIKELY(!tmp)) return -1;
 
 	hawk_rtx_refupval (this->rtx, tmp);
 	int n = hawk_rtx_setgbl (this->rtx, id, tmp);

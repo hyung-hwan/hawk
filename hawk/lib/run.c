@@ -663,13 +663,13 @@ int hawk_rtx_setscriptnamewithbchars (hawk_rtx_t* rtx, const hawk_bch_t* name, h
 	return n;
 }
 
-int hawk_rtx_setfilename (hawk_rtx_t* rtx, const hawk_ooch_t* name, hawk_oow_t len)
+int hawk_rtx_setfilenamewithuchars (hawk_rtx_t* rtx, const hawk_uch_t* name, hawk_oow_t len)
 {
 	hawk_val_t* tmp;
 	int n;
 
-	tmp = hawk_rtx_makestrvalwithoochars(rtx, name, len);
-	if (tmp == HAWK_NULL) return -1;
+	tmp = hawk_rtx_makestrvalwithuchars(rtx, name, len);
+	if (HAWK_UNLIKELY(!tmp)) return -1;
 
 	hawk_rtx_refupval (rtx, tmp);
 	n = hawk_rtx_setgbl (rtx, HAWK_GBL_FILENAME, tmp);
@@ -678,15 +678,50 @@ int hawk_rtx_setfilename (hawk_rtx_t* rtx, const hawk_ooch_t* name, hawk_oow_t l
 	return n;
 }
 
-int hawk_rtx_setofilename (hawk_rtx_t* rtx, const hawk_ooch_t* name, hawk_oow_t len)
+int hawk_rtx_setfilenamewithbchars (hawk_rtx_t* rtx, const hawk_bch_t* name, hawk_oow_t len)
+{
+	hawk_val_t* tmp;
+	int n;
+
+	tmp = hawk_rtx_makestrvalwithbchars(rtx, name, len);
+	if (HAWK_UNLIKELY(!tmp)) return -1;
+
+	hawk_rtx_refupval (rtx, tmp);
+	n = hawk_rtx_setgbl (rtx, HAWK_GBL_FILENAME, tmp);
+	hawk_rtx_refdownval (rtx, tmp);
+
+	return n;
+}
+
+
+int hawk_rtx_setofilenamewithuchars (hawk_rtx_t* rtx, const hawk_uch_t* name, hawk_oow_t len)
 {
 	hawk_val_t* tmp;
 	int n;
 
 	if (rtx->awk->opt.trait & HAWK_NEXTOFILE)
 	{
-		tmp = hawk_rtx_makestrvalwithoochars(rtx, name, len);
-		if (tmp == HAWK_NULL) return -1;
+		tmp = hawk_rtx_makestrvalwithuchars(rtx, name, len);
+		if (HAWK_UNLIKELY(!tmp)) return -1;
+
+		hawk_rtx_refupval (rtx, tmp);
+		n = hawk_rtx_setgbl (rtx, HAWK_GBL_OFILENAME, tmp);
+		hawk_rtx_refdownval (rtx, tmp);
+	}
+	else n = 0;
+
+	return n;
+}
+
+int hawk_rtx_setofilenamewithbchars (hawk_rtx_t* rtx, const hawk_bch_t* name, hawk_oow_t len)
+{
+	hawk_val_t* tmp;
+	int n;
+
+	if (rtx->awk->opt.trait & HAWK_NEXTOFILE)
+	{
+		tmp = hawk_rtx_makestrvalwithbchars(rtx, name, len);
+		if (HAWK_UNLIKELY(!tmp)) return -1;
 
 		hawk_rtx_refupval (rtx, tmp);
 		n = hawk_rtx_setgbl (rtx, HAWK_GBL_OFILENAME, tmp);
@@ -6480,7 +6515,7 @@ static hawk_val_t* eval_str (hawk_rtx_t* rtx, hawk_nde_t* nde)
 static hawk_val_t* eval_mbs (hawk_rtx_t* rtx, hawk_nde_t* nde)
 {
 	hawk_val_t* val;
-	val = hawk_rtx_makembsval(rtx, ((hawk_nde_mbs_t*)nde)->ptr, ((hawk_nde_mbs_t*)nde)->len);
+	val = hawk_rtx_makembsvalwithbchars(rtx, ((hawk_nde_mbs_t*)nde)->ptr, ((hawk_nde_mbs_t*)nde)->len);
 	if (val == HAWK_NULL) ADJERR_LOC (rtx, &nde->loc);
 	return val;
 }

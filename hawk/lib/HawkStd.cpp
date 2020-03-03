@@ -958,7 +958,7 @@ int HawkStd::open_console_in (Console& io)
 			return -1;
 		}
 		
-		if (hawk_rtx_setfilename(rtx, file, hawk_count_oocstr(file)) <= -1)
+		if (hawk_rtx_setfilenamewithoochars(rtx, file, hawk_count_oocstr(file)) <= -1)
 		{
 			hawk_sio_close (sio);
 			hawk_rtx_freevaloocstr (rtx, v, as.ptr);
@@ -1031,7 +1031,7 @@ int HawkStd::open_console_out (Console& io)
 			sio = open_sio(HAWK_NULL, io, file, HAWK_SIO_WRITE | HAWK_SIO_CREATE | HAWK_SIO_TRUNCATE | HAWK_SIO_IGNOREECERR);
 		if (sio == HAWK_NULL) return -1;
 		
-		if (hawk_rtx_setofilename(rtx, file, hawk_count_oocstr(file)) == -1)
+		if (hawk_rtx_setofilenamewithoochars(rtx, file, hawk_count_oocstr(file)) == -1)
 		{
 			hawk_sio_close (sio);
 			return -1;

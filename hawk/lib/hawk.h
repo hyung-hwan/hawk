@@ -2346,7 +2346,7 @@ HAWK_EXPORT hawk_val_t* hawk_rtx_getgbl (
  */
 HAWK_EXPORT int hawk_rtx_setgbl (
 	hawk_rtx_t* rtx, 
-	int            id,
+	int         id,
 	hawk_val_t* val
 );
 
@@ -2366,20 +2366,33 @@ HAWK_EXPORT void hawk_rtx_setretval (
 /**
  * The hawk_rtx_setfilename() function sets FILENAME.
  */
-HAWK_EXPORT int hawk_rtx_setfilename (
-	hawk_rtx_t*    rtx, /**< runtime context */
-	const hawk_ooch_t* str, /**< name pointer */
-	hawk_oow_t        len  /**< name length */
+HAWK_EXPORT int hawk_rtx_setfilenamewithuchars (
+	hawk_rtx_t*        rtx, /**< runtime context */
+	const hawk_uch_t*  str, /**< name pointer */
+	hawk_oow_t         len  /**< name length */
+);
+
+HAWK_EXPORT int hawk_rtx_setfilenamewithbchars (
+	hawk_rtx_t*        rtx, /**< runtime context */
+	const hawk_bch_t*  str, /**< name pointer */
+	hawk_oow_t         len  /**< name length */
 );
 
 /**
  * The hawk_rtx_setofilename() function sets OFILENAME.
  */
-HAWK_EXPORT int hawk_rtx_setofilename (
+HAWK_EXPORT int hawk_rtx_setofilenamewithuchars (
 	hawk_rtx_t*        rtx, /**< runtime context */
-	const hawk_ooch_t* str, /**< name pointer */
+	const hawk_uch_t*  str, /**< name pointer */
 	hawk_oow_t         len  /**< name length */
 );
+
+HAWK_EXPORT int hawk_rtx_setofilenamewithbchars (
+	hawk_rtx_t*        rtx, /**< runtime context */
+	const hawk_bch_t*  str, /**< name pointer */
+	hawk_oow_t         len  /**< name length */
+);
+
 
 HAWK_EXPORT int hawk_rtx_setscriptnamewithuchars (
 	hawk_rtx_t*        rtx, /**< runtime context */
@@ -2394,8 +2407,12 @@ HAWK_EXPORT int hawk_rtx_setscriptnamewithbchars (
 );
 
 #if defined(HAWK_OOCH_IS_UCH)
+#	define hawk_rtx_setfilenamewithoochars hawk_rtx_setfilenamewithuchars
+#	define hawk_rtx_setofilenamewithoochars hawk_rtx_setofilenamewithuchars
 #	define hawk_rtx_setscriptnamewithoochars hawk_rtx_setscriptnamewithuchars
 #else
+#	define hawk_rtx_setfilenamewithoochars hawk_rtx_setfilenamewithbchars
+#	define hawk_rtx_setofilenamewithoochars hawk_rtx_setofilenamewithbchars
 #	define hawk_rtx_setscriptnamewithoochars hawk_rtx_setscriptnamewithbchars
 #endif
 
@@ -2724,10 +2741,10 @@ HAWK_EXPORT hawk_val_t* hawk_rtx_makenstrvalwithbcs (
 /* -------------------------------------------------------------------------- */
 
 /**
- * The hawk_rtx_makebytearrvaal() function create a byte array value.
+ * The hawk_rtx_makembsvalwithbchars() function create a byte array value.
  * \return value on success, #HAWK_NULL on failure
  */
-hawk_val_t* hawk_rtx_makembsval (
+hawk_val_t* hawk_rtx_makembsvalwithbchars (
 	hawk_rtx_t*        rtx,
 	const hawk_bch_t*  ptr,
 	hawk_oow_t         len
@@ -2737,6 +2754,18 @@ hawk_val_t* hawk_rtx_makembsvalwithbcs (
 	hawk_rtx_t*       rtx,
 	const hawk_bcs_t* bcs
 );
+
+hawk_val_t* hawk_rtx_makembsvalwithuchars (
+	hawk_rtx_t*        rtx,
+	const hawk_uch_t*  ptr,
+	hawk_oow_t         len
+);
+
+hawk_val_t* hawk_rtx_makembsvalwithucs (
+	hawk_rtx_t*       rtx,
+	const hawk_ucs_t* ucs
+);
+
 
 /* -------------------------------------------------------------------------- */
 

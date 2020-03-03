@@ -1238,8 +1238,8 @@ public:
 		/// \a ptr.
 		/// \return 0 on success, -1 on failure
 		///
-		int setGlobal (int id, const hawk_uch_t* ptr, hawk_oow_t len);
-		int setGlobal (int id, const hawk_bch_t* ptr, hawk_oow_t len);
+		int setGlobal (int id, const hawk_uch_t* ptr, hawk_oow_t len, bool mbs = false);
+		int setGlobal (int id, const hawk_bch_t* ptr, hawk_oow_t len, bool mbs = false);
 
 		/// 
 		/// The setGlobal() function sets a global variable 
