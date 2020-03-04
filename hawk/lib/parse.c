@@ -4174,8 +4174,8 @@ static hawk_nde_t* parse_concat (hawk_t* awk, const hawk_loc_t* xloc)
 	hawk_nde_t* right = HAWK_NULL;
 	hawk_loc_t rloc;
 
-	left = parse_additive (awk, xloc);
-	if (left == HAWK_NULL) goto oops;
+	left = parse_additive(awk, xloc);
+	if (HAWK_UNLIKELY(!left)) goto oops;
 
 	do
 	{
@@ -4187,10 +4187,17 @@ static hawk_nde_t* parse_concat (hawk_t* awk, const hawk_loc_t* xloc)
 		}
 		else if (awk->opt.trait & HAWK_BLANKCONCAT)
 		{
+			/* 
+			 * [NOTE]
+			 * TOK_TILDE has been commented out in the if condition below because
+			 * BINOP_MA has lower precedence than concatenation and it is not certain
+			 * the tilde is an unary bitwise negation operator at this phase.
+			 * You may use (~10) rather than ~10 after concatenation to avoid confusion.
+			 */
 			if (MATCH(awk,TOK_LPAREN) || MATCH(awk,TOK_DOLLAR) ||
 			   /* unary operators */
 			   MATCH(awk,TOK_PLUS) || MATCH(awk,TOK_MINUS) ||
-			   MATCH(awk,TOK_LNOT) ||/* MATCH(awk,TOK_TILDE) ||*/
+			   MATCH(awk,TOK_LNOT) ||/* MATCH(awk,TOK_TILDE) ||*/ 
 			   /* increment operators */
 			   MATCH(awk,TOK_PLUSPLUS) || MATCH(awk,TOK_MINUSMINUS) ||
 			   ((awk->opt.trait & HAWK_TOLERANT) && 
@@ -4205,11 +4212,11 @@ static hawk_nde_t* parse_concat (hawk_t* awk, const hawk_loc_t* xloc)
 		else break;
 
 		rloc = awk->tok.loc;
-		right = parse_additive (awk, &rloc);
-		if (right == HAWK_NULL) goto oops;
+		right = parse_additive(awk, &rloc);
+		if (HAWK_UNLIKELY(!right)) goto oops;
 
-		tmp = new_exp_bin_node (awk, xloc, HAWK_BINOP_CONCAT, left, right);
-		if (tmp == HAWK_NULL) goto oops;
+		tmp = new_exp_bin_node(awk, xloc, HAWK_BINOP_CONCAT, left, right);
+		if (HAWK_UNLIKELY(!tmp)) goto oops;
 		left = tmp; right = HAWK_NULL;
 	}
 	while (1);
@@ -4262,8 +4269,8 @@ static hawk_nde_t* parse_unary (hawk_t* awk, const hawk_loc_t* xloc)
 	         (MATCH(awk,TOK_LNOT))?  HAWK_UNROP_LNOT:
 	         (MATCH(awk,TOK_TILDE))? HAWK_UNROP_BNOT: -1;
 
-	/*if (opcode <= -1) return parse_increment (awk);*/
-	if (opcode <= -1) return parse_exponent (awk, xloc);
+	/*if (opcode <= -1) return parse_increment(awk);*/
+	if (opcode <= -1) return parse_exponent(awk, xloc);
 
 	if (awk->opt.depth.s.expr_parse > 0 &&
 	    awk->parse.depth.expr >= awk->opt.depth.s.expr_parse)

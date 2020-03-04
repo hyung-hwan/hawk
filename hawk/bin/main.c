@@ -356,7 +356,7 @@ static hawk_htb_walk_t print_awk_value (hawk_htb_t* map, hawk_htb_pair_t* pair, 
 	return HAWK_HTB_WALK_FORWARD;
 }
 
-static int add_gvs_to_awk (hawk_t* awk, arg_t* arg)
+static int add_gvs_to_awk (hawk_t* hawk, arg_t* arg)
 {
 	if (arg->gvm.size > 0)
 	{
@@ -364,7 +364,8 @@ static int add_gvs_to_awk (hawk_t* awk, arg_t* arg)
 
 		for (i = 0; i < arg->gvm.size; i++)
 		{
-			arg->gvm.ptr[i].idx = hawk_addgbl(awk, arg->gvm.ptr[i].name);
+			arg->gvm.ptr[i].idx = arg->gvm.ptr[i].uc? hawk_addgblwithucstr(hawk, arg->gvm.ptr[i].name):
+			                                          hawk_addgblwithbcstr(hawk, arg->gvm.ptr[i].name);
 		}
 	}
 
@@ -398,7 +399,7 @@ static int apply_fs_and_gvs_to_rtx (hawk_rtx_t* rtx, arg_t* arg)
 		for (i = 0; i < arg->gvm.size; i++)
 		{
 			hawk_val_t* v;
-	
+
 			v = (arg->gvm.ptr[i].uc)? hawk_rtx_makenstrvalwithuchars(rtx, arg->gvm.ptr[i].value.ptr, arg->gvm.ptr[i].value.len):
 			                          hawk_rtx_makenstrvalwithbchars(rtx, arg->gvm.ptr[i].value.ptr, arg->gvm.ptr[i].value.len);
 			if (!v) return -1;
@@ -1011,20 +1012,6 @@ static void print_hawk_rtx_error (hawk_rtx_t* rtx)
 		hawk_rtx_geterrmsg(rtx)
 	);
 }
-
-hawk_htb_walk_t add_global (hawk_htb_t* map, hawk_htb_pair_t* pair, void* arg)
-{
-	hawk_t* awk = (hawk_t*)arg;
-	struct gv_t* gvmv = (struct gv_t*)HAWK_HTB_VPTR(pair);
-
-	/* the key was inserted to the table with a null at the end
-	 * and the key length was even incremetned for that.
-	 * so i can pass the pointer without other adjustments. */
-	gvmv->idx = hawk_addgbl(awk, HAWK_HTB_KPTR(pair));
-	if (gvmv->idx <= -1) return HAWK_HTB_WALK_STOP;
-	return HAWK_HTB_WALK_FORWARD;
-}
-
 
 #if 0
 static void* xma_alloc (hawk_mmgr_t* mmgr, hawk_oow_t size)
