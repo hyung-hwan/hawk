@@ -85,8 +85,7 @@ static const hawk_ooch_t* unrop_str[] =
 	HAWK_T("+"),
 	HAWK_T("-"),
 	HAWK_T("!"),
-	HAWK_T("~~"),
-	HAWK_T("`")
+	HAWK_T("~")
 };
 
 static const hawk_ooch_t* incop_str[] =

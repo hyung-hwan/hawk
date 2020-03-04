@@ -1,12 +1,8 @@
 # Hawk
 
-# Table of Contents
 - [Language](#language)
+- [Basic Modules](#basic-modules)
 - [Embedding Guide](#embedding-guide)
-
-#### TODO: unary bitwise not
-#### TODO: fix -F or --field-separator to hawk.
-
 
 ## Language <a name="language"></a>
 
@@ -62,5 +58,13 @@ function q(a) {a[1]=20; a[2]=30;}
 BEGIN { x[3]=99; q(x); for (i in x) print i, x[i]; }'
 </pre>
 
+
+## Basic Modules <a name="basic-modules"></a>
+
+### sys
+
+### ffi
+
+### mysql
 
 ## Embedding Guide <a name="embedding-guide"></a>

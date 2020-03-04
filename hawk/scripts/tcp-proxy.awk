@@ -64,7 +64,7 @@ function handle_bridge_eof (&brtab, fd, mx)
 
 	pfd = brtab[fd];
 
-	evmask = brtab[fd,"evmask"] & ~~sys::MUX_EVT_IN;
+	evmask = brtab[fd,"evmask"] & ~sys::MUX_EVT_IN;
 	if (sys::modinmux(mx, fd, evmask) <= -1) return -1;
 	brtab[fd,"evmask"] = evmask;
 	brtab[fd,"eof"] = 1;
@@ -100,7 +100,7 @@ function bridge_traffic (&brtab, fd, mx)
 		x = sys::write(pfd, buf, pos);
 		if (x == sys::RC_EAGAIN)
 		{
-			evmask = brtab[fd,"evmask"] & ~~sys::MUX_EVT_IN;
+			evmask = brtab[fd,"evmask"] & ~sys::MUX_EVT_IN;
 			if (sys::modinmux(mx, fd, evmask) <= -1) return -1;
 			brtab[fd,"evmask"] = evmask;
 
@@ -145,7 +145,7 @@ function bridge_pendind_data (&brtab, fd, mx)
 	## sent all pending data. 
 	delete brtab[fd,"pending"];
 
-	evmask = brtab[fd,"evmask"] & ~~sys::MUX_EVT_OUT;
+	evmask = brtab[fd,"evmask"] & ~sys::MUX_EVT_OUT;
 	if (sys::modinmux(mx, fd, evmask) <= -1) return -1;
 	brtab[fd,"evmask"] = evmask;
 
