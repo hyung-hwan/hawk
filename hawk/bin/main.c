@@ -381,7 +381,7 @@ static int apply_fs_and_gvs_to_rtx (hawk_rtx_t* rtx, arg_t* arg)
 
 		/* compose a string value to use to set FS to */
 		fs = hawk_rtx_makestrvalwithbcstr(rtx, arg->fs);
-		if (fs) return -1;
+		if (!fs) return -1;
 
 		/* change FS according to the command line argument */
 		hawk_rtx_refupval (rtx, fs);
