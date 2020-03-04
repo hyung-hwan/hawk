@@ -97,7 +97,7 @@ enum tok_t
 	TOK_LT,
 	TOK_GE,
 	TOK_GT,
-	TOK_MA,   /* ~ - match */
+	TOK_TILDE,   /* ~ - match or bitwise negation */
 	TOK_NM,   /* !~ -  not match */
 	TOK_LNOT, /* ! - logical negation */
 	TOK_PLUS,
@@ -113,7 +113,6 @@ enum tok_t
 	TOK_BOR,
 	TOK_BXOR, /* ^^ - bitwise-xor */
 	TOK_BAND,
-	TOK_BNOT, /* ~~ - used for unary bitwise-not */
 	TOK_RS,
 	TOK_LS,
 	TOK_IN,
@@ -4058,7 +4057,7 @@ static hawk_nde_t* parse_in (hawk_t* awk, const hawk_loc_t* xloc)
 		if (get_token(awk) <= -1) goto oops;
 
 		rloc = awk->tok.loc;
-		right = parse_regex_match (awk, &rloc);
+		right = parse_regex_match(awk, &rloc);
 		if (right == HAWK_NULL)  goto oops;
 
 		if (!is_plain_var(right))
@@ -4088,7 +4087,7 @@ static hawk_nde_t* parse_regex_match (hawk_t* awk, const hawk_loc_t* xloc)
 {
 	static binmap_t map[] =
 	{
-		{ TOK_MA,  HAWK_BINOP_MA },
+		{ TOK_TILDE,  HAWK_BINOP_MA },
 		{ TOK_NM,  HAWK_BINOP_NM },
 		{ TOK_EOF, 0 },
 	};
@@ -4191,7 +4190,7 @@ static hawk_nde_t* parse_concat (hawk_t* awk, const hawk_loc_t* xloc)
 			if (MATCH(awk,TOK_LPAREN) || MATCH(awk,TOK_DOLLAR) ||
 			   /* unary operators */
 			   MATCH(awk,TOK_PLUS) || MATCH(awk,TOK_MINUS) ||
-			   MATCH(awk,TOK_LNOT) || MATCH(awk,TOK_BNOT) || 
+			   MATCH(awk,TOK_LNOT) ||/* MATCH(awk,TOK_TILDE) ||*/
 			   /* increment operators */
 			   MATCH(awk,TOK_PLUSPLUS) || MATCH(awk,TOK_MINUSMINUS) ||
 			   ((awk->opt.trait & HAWK_TOLERANT) && 
@@ -4261,7 +4260,7 @@ static hawk_nde_t* parse_unary (hawk_t* awk, const hawk_loc_t* xloc)
 	opcode = (MATCH(awk,TOK_PLUS))?  HAWK_UNROP_PLUS:
 	         (MATCH(awk,TOK_MINUS))? HAWK_UNROP_MINUS:
 	         (MATCH(awk,TOK_LNOT))?  HAWK_UNROP_LNOT:
-	         (MATCH(awk,TOK_BNOT))?  HAWK_UNROP_BNOT: -1;
+	         (MATCH(awk,TOK_TILDE))? HAWK_UNROP_BNOT: -1;
 
 	/*if (opcode <= -1) return parse_increment (awk);*/
 	if (opcode <= -1) return parse_exponent (awk, xloc);
@@ -4408,7 +4407,7 @@ static hawk_nde_t* parse_unary_exp (hawk_t* awk, const hawk_loc_t* xloc)
 	opcode = (MATCH(awk,TOK_PLUS))?  HAWK_UNROP_PLUS:
 	         (MATCH(awk,TOK_MINUS))? HAWK_UNROP_MINUS:
 	         (MATCH(awk,TOK_LNOT))?  HAWK_UNROP_LNOT:
-	         (MATCH(awk,TOK_BNOT))?  HAWK_UNROP_BNOT: -1;
+	         (MATCH(awk,TOK_TILDE))? HAWK_UNROP_BNOT: -1; /* ~ in the unary context is a bitwise-not operator */
 
 	if (opcode <= -1) return parse_increment (awk, xloc);
 
@@ -6416,8 +6415,7 @@ static int get_symbols (hawk_t* awk, hawk_ooci_t c, hawk_tok_t* tok)
 		{ HAWK_T("%%"),  2, TOK_CONCAT,       0 },
 		{ HAWK_T("%="),  2, TOK_MOD_ASSN,     0 },
 		{ HAWK_T("%"),   1, TOK_MOD,          0 },
-		{ HAWK_T("~~"),  2, TOK_BNOT,         0 },
-		{ HAWK_T("~"),   1, TOK_MA,           0 },
+		{ HAWK_T("~"),   1, TOK_TILDE,        0 },
 		{ HAWK_T("("),   1, TOK_LPAREN,       0 },
 		{ HAWK_T(")"),   1, TOK_RPAREN,       0 },
 		{ HAWK_T("{"),   1, TOK_LBRACE,       0 },
