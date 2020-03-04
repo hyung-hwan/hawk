@@ -3081,13 +3081,11 @@ static int add_globals (hawk_t* awk)
 {
 	xtn_t* xtn = GET_XTN(awk);
 
-	xtn->gbl_argc = hawk_addgbl(awk, HAWK_T("ARGC"));
-	xtn->gbl_argv = hawk_addgbl(awk, HAWK_T("ARGV"));
-	xtn->gbl_environ = hawk_addgbl(awk, HAWK_T("ENVIRON"));
+	xtn->gbl_argc = hawk_addgblwithoocstr(awk, HAWK_T("ARGC"));
+	xtn->gbl_argv = hawk_addgblwithoocstr(awk, HAWK_T("ARGV"));
+	xtn->gbl_environ = hawk_addgblwithoocstr(awk, HAWK_T("ENVIRON"));
 
-	return (xtn->gbl_argc <= -1 || 
-	        xtn->gbl_argv <= -1 ||
-	        xtn->gbl_environ <= -1)? -1: 0;
+	return (HAWK_UNLIKELY(xtn->gbl_argc <= -1 || xtn->gbl_argv <= -1 || xtn->gbl_environ <= -1))? -1: 0;
 }
 
 struct fnctab_t 

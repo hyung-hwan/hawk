@@ -1737,13 +1737,13 @@ HAWK_EXPORT int hawk_findgblwithucstr (
 );
 
 #if defined(HAWK_OOCH_IS_BCH)
-#	define hawk_addgbl hawk_addgblwithbcstr
-#	define hawk_delgbl hawk_delgblwithbcstr
-#	define hawk_findgbl hawk_findgblwithbcstr
+#	define hawk_addgblwithoocstr hawk_addgblwithbcstr
+#	define hawk_delgblwithoocstr hawk_delgblwithbcstr
+#	define hawk_findgblwithoocstr hawk_findgblwithbcstr
 #else
-#	define hawk_addgbl hawk_addgblwithucstr
-#	define hawk_delgbl hawk_delgblwithucstr
-#	define hawk_findgbl hawk_findgblwithucstr
+#	define hawk_addgblwithoocstr hawk_addgblwithucstr
+#	define hawk_delgblwithoocstr hawk_delgblwithucstr
+#	define hawk_findgblwithoocstr hawk_findgblwithucstr
 #endif
 
 /**
