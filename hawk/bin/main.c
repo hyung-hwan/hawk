@@ -382,7 +382,7 @@ static int apply_fs_and_gvs_to_rtx (hawk_rtx_t* rtx, arg_t* arg)
 
 		/* compose a string value to use to set FS to */
 		fs = hawk_rtx_makestrvalwithbcstr(rtx, arg->fs);
-		if (!fs) return -1;
+		if (HAWK_UNLIKELY(!fs)) return -1;
 
 		/* change FS according to the command line argument */
 		hawk_rtx_refupval (rtx, fs);
@@ -402,7 +402,7 @@ static int apply_fs_and_gvs_to_rtx (hawk_rtx_t* rtx, arg_t* arg)
 
 			v = (arg->gvm.ptr[i].uc)? hawk_rtx_makenstrvalwithuchars(rtx, arg->gvm.ptr[i].value.ptr, arg->gvm.ptr[i].value.len):
 			                          hawk_rtx_makenstrvalwithbchars(rtx, arg->gvm.ptr[i].value.ptr, arg->gvm.ptr[i].value.len);
-			if (!v) return -1;
+			if (HAWK_UNLIKELY(!v)) return -1;
 
 			hawk_rtx_refupval (rtx, v);
 			hawk_rtx_setgbl (rtx, arg->gvm.ptr[i].idx, v);
@@ -1217,9 +1217,9 @@ static HAWK_INLINE int execute_hawk (int argc, hawk_bch_t* argv[])
 		hawk_rtx_callwithbcstrarr(rtx, arg.call, (const hawk_bch_t**)arg.icf.ptr, arg.icf.size):
 		hawk_rtx_loop(rtx); /* this doesn't support @pragma startup ... */
 #else
-	/* note about @pragma startup ...
-	 * hawk_rtx_execwithbcstrarr() invokes the specified function is @pragma startup ... is set 
-	 * in the source code. becuase arg.icf.ptr has been passed to hawk_rtx_openstdwithbcstr() when
+	/* note about @pragma entry ...
+	 * hawk_rtx_execwithbcstrarr() invokes the specified function if '@pragma entry' is set 
+	 * in the source code. because arg.icf.ptr has been passed to hawk_rtx_openstdwithbcstr() when
 	 * arg.call is HAWK_NULL, arg.icf.ptr serves as parameters to the startup function and
 	 * affects input consoles */
 	retv = arg.call?

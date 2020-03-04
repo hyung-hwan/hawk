@@ -2049,10 +2049,7 @@ static int open_rio_console (hawk_rtx_t* rtx, hawk_rio_arg_t* riod)
 					 * 'BEGIN { ARGV[1]=""; ARGV[2]=""; }
 					 *        { print $0; }' file1 file2
 					 */
-					sio = open_sio_std_rtx (
-						rtx, HAWK_SIO_STDIN,
-						HAWK_SIO_READ | HAWK_SIO_IGNOREECERR
-					);
+					sio = open_sio_std_rtx(rtx, HAWK_SIO_STDIN, HAWK_SIO_READ | HAWK_SIO_IGNOREECERR);
 					if (sio == HAWK_NULL) return -1;
 
 					if (rxtn->c.cmgr) hawk_sio_setcmgr (sio, rxtn->c.cmgr);
@@ -2079,7 +2076,7 @@ static int open_rio_console (hawk_rtx_t* rtx, hawk_rio_arg_t* riod)
 			map = ((hawk_val_map_t*)argv)->map;
 			HAWK_ASSERT (map != HAWK_NULL);
 			
-			ibuflen = hawk_int_to_oocstr (rxtn->c.in.index + 1, 10, HAWK_NULL, ibuf, HAWK_COUNTOF(ibuf));
+			ibuflen = hawk_int_to_oocstr(rxtn->c.in.index + 1, 10, HAWK_NULL, ibuf, HAWK_COUNTOF(ibuf));
 
 			pair = hawk_htb_search(map, ibuf, ibuflen);
 			HAWK_ASSERT (pair != HAWK_NULL);
@@ -2107,6 +2104,10 @@ static int open_rio_console (hawk_rtx_t* rtx, hawk_rio_arg_t* riod)
 			}
 
 			file = as.ptr;
+
+
+/* TODO: special awk quarkyness - check if the file name is var=val format.
+ *       if so, do variable assignment */
 
 			sio = (file[0] == HAWK_T('-') && file[1] == HAWK_T('\0'))?
 				open_sio_std_rtx(rtx, HAWK_SIO_STDIN, HAWK_SIO_READ | HAWK_SIO_IGNOREECERR):
@@ -2150,7 +2151,7 @@ static int open_rio_console (hawk_rtx_t* rtx, hawk_rio_arg_t* riod)
 				);
 				if (sio == HAWK_NULL) return -1;
 
-				if (rxtn->c.cmgr) hawk_sio_setcmgr (sio, rxtn->c.cmgr);	
+				if (rxtn->c.cmgr) hawk_sio_setcmgr (sio, rxtn->c.cmgr);
 
 				riod->handle = sio;
 				rxtn->c.out.count++;
