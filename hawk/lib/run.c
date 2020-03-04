@@ -67,6 +67,7 @@ struct pafv_t
 
 #define DEFAULT_CONVFMT  HAWK_T("%.6g")
 #define DEFAULT_OFMT     HAWK_T("%.6g")
+#define DEFAULT_FS       HAWK_T(" ")
 #define DEFAULT_OFS      HAWK_T(" ")
 #define DEFAULT_ORS      HAWK_T("\n")
 #define DEFAULT_ORS_CRLF HAWK_T("\r\n")
@@ -1273,12 +1274,13 @@ static int defaultify_globals (hawk_rtx_t* rtx)
 	static struct gtab_t gtab[8] =
 	{
 		{ HAWK_GBL_CONVFMT,    { DEFAULT_CONVFMT, DEFAULT_CONVFMT  } },
-		{ HAWK_GBL_FILENAME,   { HAWK_NULL,       HAWK_NULL         } },
-		{ HAWK_GBL_OFILENAME,  { HAWK_NULL,       HAWK_NULL         } },
+		{ HAWK_GBL_FILENAME,   { HAWK_NULL,       HAWK_NULL        } },
+		{ HAWK_GBL_FS,         { DEFAULT_FS,      DEFAULT_FS       } },
+		{ HAWK_GBL_OFILENAME,  { HAWK_NULL,       HAWK_NULL        } },
 		{ HAWK_GBL_OFMT,       { DEFAULT_OFMT,    DEFAULT_OFMT     } },
 		{ HAWK_GBL_OFS,        { DEFAULT_OFS,     DEFAULT_OFS      } },
 		{ HAWK_GBL_ORS,        { DEFAULT_ORS,     DEFAULT_ORS_CRLF } },
-		{ HAWK_GBL_SCRIPTNAME, { HAWK_NULL,       HAWK_NULL         } },
+		{ HAWK_GBL_SCRIPTNAME, { HAWK_NULL,       HAWK_NULL        } },
 		{ HAWK_GBL_SUBSEP,     { DEFAULT_SUBSEP,  DEFAULT_SUBSEP   } }
 	};
 
@@ -1340,9 +1342,8 @@ static int init_globals (hawk_rtx_t* rtx)
 	HAWK_ASSERT (rtx->stack_base == 0);
 	HAWK_ASSERT (rtx->stack_top == 0); 
 
-	if (prepare_globals (rtx) == -1) return -1;
-	if (update_fnr (rtx, 0, 0) == -1) goto oops;
-	if (defaultify_globals (rtx) == -1) goto oops;
+	if (prepare_globals(rtx) <= -1) return -1;
+	if (update_fnr(rtx, 0, 0) <= -1 || defaultify_globals(rtx) <= -1) goto oops;
 	return 0;
 
 oops:
@@ -1353,7 +1354,7 @@ oops:
 struct capture_retval_data_t
 {
 	hawk_rtx_t* rtx;
-	hawk_val_t* val;	
+	hawk_val_t* val;
 };
 
 static void capture_retval_on_exit (void* arg)
