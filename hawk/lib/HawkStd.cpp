@@ -912,7 +912,14 @@ int HawkStd::open_console_in (Console& io)
 		 */
 		argv = hawk_rtx_getgbl (rtx, this->gbl_argv);
 		HAWK_ASSERT (argv != HAWK_NULL);
-		HAWK_ASSERT (HAWK_RTX_GETVALTYPE (rtx, argv) == HAWK_VAL_MAP);
+		if (HAWK_RTX_GETVALTYPE(rtx, argv) != HAWK_VAL_MAP)
+		{
+			/* with flexmap on, you can change ARGV to a scalar. 
+			 *   BEGIN { ARGV="xxx"; }
+			 * you must not do this. */
+			hawk_rtx_seterrfmt (rtx, HAWK_NULL, HAWK_EINVAL, HAWK_T("phony value in ARGV"));
+			return -1;
+		}
 
 		map = ((hawk_val_map_t*)argv)->map;
 		HAWK_ASSERT (map != HAWK_NULL);

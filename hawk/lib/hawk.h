@@ -1685,7 +1685,7 @@ HAWK_EXPORT void hawk_pushecb (
  * \return the ID of the global variable added on success, -1 on failure.
  */
 HAWK_EXPORT int hawk_addgblwithbcstr (
-	hawk_t*           awk,   /**< awk */
+	hawk_t*           hawk,  /**< hawk */
 	const hawk_bch_t* name   /**< variable name */
 );
 
@@ -1694,7 +1694,7 @@ HAWK_EXPORT int hawk_addgblwithbcstr (
  * \return the ID of the global variable added on success, -1 on failure.
  */
 HAWK_EXPORT int hawk_addgblwithucstr (
-	hawk_t*           awk,   /**< awk */
+	hawk_t*           hawk,  /**< hawk */
 	const hawk_uch_t* name   /**< variable name */
 );
 
@@ -1703,7 +1703,7 @@ HAWK_EXPORT int hawk_addgblwithucstr (
  * \return 0 on success, -1 on failure
  */
 HAWK_EXPORT int hawk_delgblwithbcstr (
-	hawk_t*           awk,  /**< awk */
+	hawk_t*           hawk, /**< hawk */
 	const hawk_bch_t* name  /**< variable name */
 );
 
@@ -1712,28 +1712,28 @@ HAWK_EXPORT int hawk_delgblwithbcstr (
  * \return 0 on success, -1 on failure
  */
 HAWK_EXPORT int hawk_delgblwithucstr (
-	hawk_t*           awk,  /**< awk */
+	hawk_t*           hawk, /**< hawk */
 	const hawk_uch_t* name  /**< variable name */
 );
 
 /**
- * The hawk_findgblwithbcstr() function returns the numeric ID of an intrinsic global
- * variable.
+ * The hawk_findgblwithbcstr() function returns the numeric ID of a global variable.
  * \return number >= 0 on success, -1 on failure
  */
 HAWK_EXPORT int hawk_findgblwithbcstr (
-	hawk_t*         awk,  /**< awk */
-	const hawk_bch_t* name  /**< variable name */
+	hawk_t*           hawk, /**< hawk */
+	const hawk_bch_t* name,  /**< variable name */
+	int               inc_builtins /**< include builtin global variables like FS */
 );
 
 /**
- * The hawk_findgblwithucstr() function returns the numeric ID of an intrinsic global
- * variable.
+ * The hawk_findgblwithucstr() function returns the numeric ID of a global variable.
  * \return number >= 0 on success, -1 on failure
  */
 HAWK_EXPORT int hawk_findgblwithucstr (
-	hawk_t*         awk,  /**< awk */
-	const hawk_uch_t* name  /**< variable name */
+	hawk_t*           hawk, /**< hawk */
+	const hawk_uch_t* name,  /**< variable name */
+	int               inc_builtins /**< include builtin globals variables like FS */
 );
 
 #if defined(HAWK_OOCH_IS_BCH)
@@ -1841,6 +1841,12 @@ HAWK_EXPORT void hawk_clrfnc (
 HAWK_EXPORT int hawk_parse (
 	hawk_t*         awk, /**< awk */
 	hawk_sio_cbs_t* sio  /**< source script I/O handler */
+);
+
+
+HAWK_EXPORT int hawk_isvalidident (
+	hawk_t*            hawk,
+	const hawk_ooch_t* str
 );
 
 #if defined(HAWK_HAVE_INLINE)
@@ -2348,6 +2354,12 @@ HAWK_EXPORT int hawk_rtx_setgbl (
 	hawk_rtx_t* rtx, 
 	int         id,
 	hawk_val_t* val
+);
+
+HAWK_EXPORT int hawk_rtx_setgblbyname (
+	hawk_rtx_t*        rtx,
+	const hawk_ooch_t* name,
+	const hawk_ooch_t* val
 );
 
 /**
@@ -3037,15 +3049,15 @@ HAWK_EXPORT int hawk_rtx_valtostr (
 HAWK_EXPORT hawk_bch_t* hawk_rtx_valtobcstrdupwithcmgr (
 	hawk_rtx_t*       rtx, /**< runtime context */
 	const hawk_val_t* val, /**< value to convert */
-	hawk_oow_t*          len, /**< result length */
-	hawk_cmgr_t*          cmgr
+	hawk_oow_t*       len, /**< result length */
+	hawk_cmgr_t*      cmgr
 );
 
 HAWK_EXPORT hawk_uch_t* hawk_rtx_valtoucstrdupwithcmgr (
 	hawk_rtx_t*       rtx, /**< runtime context */
 	const hawk_val_t* val, /**< value to convert */
-	hawk_oow_t*          len, /**< result length */
-	hawk_cmgr_t*          cmgr
+	hawk_oow_t*       len, /**< result length */
+	hawk_cmgr_t*      cmgr
 );
 
 

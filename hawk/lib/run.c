@@ -634,6 +634,42 @@ HAWK_INLINE int hawk_rtx_setgbl (hawk_rtx_t* rtx, int id, hawk_val_t* val)
 	return set_global(rtx, id, HAWK_NULL, val, 0);
 }
 
+int hawk_rtx_setgblbyname (hawk_rtx_t* rtx, const hawk_ooch_t* name, const hawk_ooch_t* val)
+{
+	int id, n;
+	hawk_val_t* v;
+
+	HAWK_ASSERT (hawk_isvalidident(hawk_rtx_gethawk(rtx), name));
+
+	id = hawk_findgblwithoocstr(hawk_rtx_gethawk(rtx), name, 1);
+	v = hawk_rtx_makestrvalwithoocstr(rtx, val);
+	if (!v) return -1;
+
+	hawk_rtx_refupval (rtx, v);
+	if (id <= -1)
+	{
+		/* not found. it's not a builtin/declared global variable */
+		hawk_nde_var_t var;
+
+		/* make a fake variable node for assignment and use it */
+		HAWK_MEMSET (&var, 0, HAWK_SIZEOF(var));
+		var.type = HAWK_NDE_NAMED;
+		var.id.name.ptr = (hawk_ooch_t*)name;
+		var.id.name.len = hawk_count_oocstr(name);
+		var.id.idxa = (hawk_oow_t)-1;
+		var.idx = HAWK_NULL;
+
+		n = do_assignment_nonidx(rtx, &var, v)? 0: -1;
+	}
+	else
+	{
+		n = set_global(rtx, id, HAWK_NULL, v, 1);
+	}
+	hawk_rtx_refdownval (rtx, v);
+
+	return n;
+}
+
 int hawk_rtx_setscriptnamewithuchars (hawk_rtx_t* rtx, const hawk_uch_t* name, hawk_oow_t len)
 {
 	hawk_val_t* tmp;
@@ -643,7 +679,7 @@ int hawk_rtx_setscriptnamewithuchars (hawk_rtx_t* rtx, const hawk_uch_t* name, h
 	if (tmp == HAWK_NULL) return -1;
 
 	hawk_rtx_refupval (rtx, tmp);
-	n = hawk_rtx_setgbl (rtx, HAWK_GBL_SCRIPTNAME, tmp);
+	n = hawk_rtx_setgbl(rtx, HAWK_GBL_SCRIPTNAME, tmp);
 	hawk_rtx_refdownval (rtx, tmp);
 
 	return n;
@@ -658,7 +694,7 @@ int hawk_rtx_setscriptnamewithbchars (hawk_rtx_t* rtx, const hawk_bch_t* name, h
 	if (tmp == HAWK_NULL) return -1;
 
 	hawk_rtx_refupval (rtx, tmp);
-	n = hawk_rtx_setgbl (rtx, HAWK_GBL_SCRIPTNAME, tmp);
+	n = hawk_rtx_setgbl(rtx, HAWK_GBL_SCRIPTNAME, tmp);
 	hawk_rtx_refdownval (rtx, tmp);
 
 	return n;
@@ -673,7 +709,7 @@ int hawk_rtx_setfilenamewithuchars (hawk_rtx_t* rtx, const hawk_uch_t* name, haw
 	if (HAWK_UNLIKELY(!tmp)) return -1;
 
 	hawk_rtx_refupval (rtx, tmp);
-	n = hawk_rtx_setgbl (rtx, HAWK_GBL_FILENAME, tmp);
+	n = hawk_rtx_setgbl(rtx, HAWK_GBL_FILENAME, tmp);
 	hawk_rtx_refdownval (rtx, tmp);
 
 	return n;
@@ -688,7 +724,7 @@ int hawk_rtx_setfilenamewithbchars (hawk_rtx_t* rtx, const hawk_bch_t* name, haw
 	if (HAWK_UNLIKELY(!tmp)) return -1;
 
 	hawk_rtx_refupval (rtx, tmp);
-	n = hawk_rtx_setgbl (rtx, HAWK_GBL_FILENAME, tmp);
+	n = hawk_rtx_setgbl(rtx, HAWK_GBL_FILENAME, tmp);
 	hawk_rtx_refdownval (rtx, tmp);
 
 	return n;
@@ -706,7 +742,7 @@ int hawk_rtx_setofilenamewithuchars (hawk_rtx_t* rtx, const hawk_uch_t* name, ha
 		if (HAWK_UNLIKELY(!tmp)) return -1;
 
 		hawk_rtx_refupval (rtx, tmp);
-		n = hawk_rtx_setgbl (rtx, HAWK_GBL_OFILENAME, tmp);
+		n = hawk_rtx_setgbl(rtx, HAWK_GBL_OFILENAME, tmp);
 		hawk_rtx_refdownval (rtx, tmp);
 	}
 	else n = 0;
@@ -725,7 +761,7 @@ int hawk_rtx_setofilenamewithbchars (hawk_rtx_t* rtx, const hawk_bch_t* name, ha
 		if (HAWK_UNLIKELY(!tmp)) return -1;
 
 		hawk_rtx_refupval (rtx, tmp);
-		n = hawk_rtx_setgbl (rtx, HAWK_GBL_OFILENAME, tmp);
+		n = hawk_rtx_setgbl(rtx, HAWK_GBL_OFILENAME, tmp);
 		hawk_rtx_refdownval (rtx, tmp);
 	}
 	else n = 0;
@@ -1183,6 +1219,7 @@ static void fini_rtx (hawk_rtx_t* rtx, int fini_globals)
 static int update_fnr (hawk_rtx_t* rtx, hawk_int_t fnr, hawk_int_t nr)
 {
 	hawk_val_t* tmp1, * tmp2;
+	int n;
 
 	tmp1 = hawk_rtx_makeintval(rtx, fnr);
 	if (!tmp1) return -1;
@@ -1193,32 +1230,18 @@ static int update_fnr (hawk_rtx_t* rtx, hawk_int_t fnr, hawk_int_t nr)
 	else
 	{
 		tmp2 = hawk_rtx_makeintval(rtx, nr);
-		if (!tmp2)
-		{
-			hawk_rtx_refdownval (rtx, tmp1);
-			return -1;
-		}
-
+		if (!tmp2) { n = -1; goto oops; }
 		hawk_rtx_refupval (rtx, tmp2);
 	}
 
-	if (hawk_rtx_setgbl (rtx, HAWK_GBL_FNR, tmp1) == -1)
-	{
-		if (nr != fnr) hawk_rtx_refdownval (rtx, tmp2);
-		hawk_rtx_refdownval (rtx, tmp1);
-		return -1;
-	}
+	n = (hawk_rtx_setgbl(rtx, HAWK_GBL_FNR, tmp1) <= -1 ||
+	     hawk_rtx_setgbl(rtx, HAWK_GBL_NR, tmp2) <= -1)? -1: 0;
 
-	if (hawk_rtx_setgbl (rtx, HAWK_GBL_NR, tmp2) == -1)
-	{
-		if (nr != fnr) hawk_rtx_refdownval (rtx, tmp2);
-		hawk_rtx_refdownval (rtx, tmp1);
-		return -1;
-	}
+	if (tmp2 != tmp1) hawk_rtx_refdownval (rtx, tmp2);
 
-	if (nr != fnr) hawk_rtx_refdownval (rtx, tmp2);
+oops:
 	hawk_rtx_refdownval (rtx, tmp1);
-	return 0;
+	return n;
 }
 
 /* 
@@ -1271,7 +1294,7 @@ static int defaultify_globals (hawk_rtx_t* rtx)
 		int idx;
 		const hawk_ooch_t* str[2];
 	};
-	static struct gtab_t gtab[8] =
+	static struct gtab_t gtab[9] =
 	{
 		{ HAWK_GBL_CONVFMT,    { DEFAULT_CONVFMT, DEFAULT_CONVFMT  } },
 		{ HAWK_GBL_FILENAME,   { HAWK_NULL,       HAWK_NULL        } },
@@ -6806,7 +6829,7 @@ static hawk_val_t* __eval_getbline (hawk_rtx_t* rtx, hawk_nde_t* nde)
 	hawk_val_t* v = HAWK_NULL, * tmp;
 	hawk_oocs_t dst;
 	hawk_becs_t* buf;
-	int n, x;
+	int n;
 
 	p = (hawk_nde_getline_t*)nde;
 

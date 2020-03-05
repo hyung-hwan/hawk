@@ -2182,18 +2182,18 @@ int Hawk::deleteGlobal (const hawk_uch_t* name)
 }
 
 
-int Hawk::findGlobal (const hawk_bch_t* name) 
+int Hawk::findGlobal (const hawk_bch_t* name, bool inc_builtins) 
 {
 	HAWK_ASSERT (awk != HAWK_NULL);
-	int n = hawk_findgblwithbcstr(this->hawk, name);
+	int n = hawk_findgblwithbcstr(this->hawk, name, inc_builtins);
 	if (n <= -1) this->retrieveError ();
 	return n;
 }
 
-int Hawk::findGlobal (const hawk_uch_t* name) 
+int Hawk::findGlobal (const hawk_uch_t* name, bool inc_builtins) 
 {
 	HAWK_ASSERT (awk != HAWK_NULL);
-	int n = hawk_findgblwithucstr(this->hawk, name);
+	int n = hawk_findgblwithucstr(this->hawk, name, inc_builtins);
 	if (n <= -1) this->retrieveError ();
 	return n;
 }
