@@ -129,7 +129,7 @@ struct hawk_nde_cnd_t
 struct hawk_nde_pos_t  
 {
 	HAWK_NDE_HDR;
-	hawk_nde_t* val;	
+	hawk_nde_t* val;
 };
 
 /* HAWK_NDE_INT */

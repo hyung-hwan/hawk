@@ -2177,7 +2177,7 @@ int hawk_delgblwithucstr (hawk_t* hawk, const hawk_uch_t* name)
 	return 0;
 }
 
-int hawk_findgblwithbcstr (hawk_t* hawk, const hawk_bch_t* name)
+int hawk_findgblwithbcstr (hawk_t* hawk, const hawk_bch_t* name, int inc_builtins)
 {
 	hawk_oow_t n;
 	hawk_bcs_t ncs;
@@ -2187,7 +2187,7 @@ int hawk_findgblwithbcstr (hawk_t* hawk, const hawk_bch_t* name)
 	ncs.len = hawk_count_bcstr(name);
 
 #if defined(HAWK_OOCH_IS_BCH)
-	n = hawk_arr_search(hawk->parse.gbls, HAWK_NUM_STATIC_GBLS, ncs.ptr, ncs.len);
+	n = hawk_arr_search(hawk->parse.gbls, (inc_builtins? 0: HAWK_NUM_STATIC_GBLS), ncs.ptr, ncs.len);
 	if (n == HAWK_ARR_NIL)
 	{
 		hawk_seterrfmt (hawk, HAWK_NULL, HAWK_ENOENT, FMT_ENOENT_GBL_HS, ncs.len, ncs.ptr);
@@ -2196,7 +2196,7 @@ int hawk_findgblwithbcstr (hawk_t* hawk, const hawk_bch_t* name)
 #else
 	wcs.ptr = hawk_dupbtoucstr(hawk, ncs.ptr, &wcs.len, 0);
 	if (!wcs.ptr) return -1;
-	n = hawk_arr_search(hawk->parse.gbls, HAWK_NUM_STATIC_GBLS, wcs.ptr, wcs.len);
+	n = hawk_arr_search(hawk->parse.gbls, (inc_builtins? 0: HAWK_NUM_STATIC_GBLS), wcs.ptr, wcs.len);
 	if (n == HAWK_ARR_NIL)
 	{
 		hawk_seterrfmt (hawk, HAWK_NULL, HAWK_ENOENT, FMT_ENOENT_GBL_LS, wcs.len, wcs.ptr);
@@ -2209,7 +2209,7 @@ int hawk_findgblwithbcstr (hawk_t* hawk, const hawk_bch_t* name)
 	return (int)n;
 }
 
-int hawk_findgblwithucstr (hawk_t* hawk, const hawk_uch_t* name)
+int hawk_findgblwithucstr (hawk_t* hawk, const hawk_uch_t* name, int inc_builtins)
 {
 	hawk_oow_t n;
 	hawk_ucs_t ncs;
@@ -2221,7 +2221,7 @@ int hawk_findgblwithucstr (hawk_t* hawk, const hawk_uch_t* name)
 #if defined(HAWK_OOCH_IS_BCH)
 	mbs.ptr = hawk_duputobcstr(hawk, ncs.ptr, &mbs.len);
 	if (!mbs.ptr) return -1;
-	n = hawk_arr_search(hawk->parse.gbls, HAWK_NUM_STATIC_GBLS, mbs.ptr, mbs.len);
+	n = hawk_arr_search(hawk->parse.gbls, (inc_builtins? 0: HAWK_NUM_STATIC_GBLS), mbs.ptr, mbs.len);
 	if (n == HAWK_ARR_NIL)
 	{
 		hawk_seterrfmt (hawk, HAWK_NULL, HAWK_ENOENT, FMT_ENOENT_GBL_HS, mbs.len, mbs.ptr);
@@ -2230,7 +2230,7 @@ int hawk_findgblwithucstr (hawk_t* hawk, const hawk_uch_t* name)
 	}
 	hawk_freemem (hawk, mbs.ptr);
 #else
-	n = hawk_arr_search(hawk->parse.gbls, HAWK_NUM_STATIC_GBLS, ncs.ptr, ncs.len);
+	n = hawk_arr_search(hawk->parse.gbls, (inc_builtins? 0: HAWK_NUM_STATIC_GBLS), ncs.ptr, ncs.len);
 	if (n == HAWK_ARR_NIL)
 	{
 		hawk_seterrfmt (hawk, HAWK_NULL, HAWK_ENOENT, FMT_ENOENT_GBL_LS, ncs.len, ncs.ptr);
@@ -6770,6 +6770,29 @@ static int classify_ident (hawk_t* awk, const hawk_oocs_t* name)
 	}
 
 	return TOK_IDENT;
+}
+
+int hawk_isvalidident (hawk_t* hawk, const hawk_ooch_t* name)
+{
+	hawk_ooch_t c;
+	hawk_oocs_t cs;
+
+	cs.ptr = (hawk_ooch_t*)name;
+
+	if ((c = *name) == '_' || hawk_is_ooch_alpha(c))
+	{
+		do 
+		{
+			c = *++name;
+		} 
+		while (c == '_' || hawk_is_ooch_alpha(c) || hawk_is_ooch_digit(c));
+		if (c != '\0') return 0;
+
+		cs.len = name - cs.ptr;
+		return classify_ident(hawk, &cs) == TOK_IDENT;
+	}
+
+	return 0;
 }
 
 struct deparse_func_t 

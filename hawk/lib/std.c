@@ -1671,6 +1671,23 @@ int hawk_parsestd (hawk_t* awk, hawk_parsestd_t in[], hawk_parsestd_t* out)
 	return n;
 }
 
+static int check_var_assign (hawk_rtx_t* rtx, hawk_ooch_t* str)
+{
+	hawk_ooch_t* eq, * var;
+	int n;
+
+	eq = hawk_find_oochar_in_oocstr(str, '=');
+	if (!eq || eq <= str) return 0; /* not assignment */
+
+	var = hawk_rtx_dupoochars(rtx, str, eq - str);
+	if (HAWK_UNLIKELY(!var)) return -1;
+
+	n = hawk_isvalidident(hawk_rtx_gethawk(rtx), var)?
+		((hawk_rtx_setgblbyname(rtx, var, eq + 1) <= -1)? -1: 1): 0;
+	hawk_rtx_freemem (rtx, var);
+	return n;
+}
+
 /*** RTX_OPENSTD ***/
 
 static ioattr_t* get_ioattr (hawk_htb_t* tab, const hawk_ooch_t* ptr, hawk_oow_t len);
@@ -2032,6 +2049,7 @@ static int open_rio_console (hawk_rtx_t* rtx, hawk_rio_arg_t* riod)
 			hawk_oow_t ibuflen;
 			hawk_val_t* v;
 			hawk_oocs_t as;
+			int x;
 
 		nextfile:
 			file = rxtn->c.in.files[rxtn->c.in.index];
@@ -2071,7 +2089,14 @@ static int open_rio_console (hawk_rtx_t* rtx, hawk_rio_arg_t* riod)
 			 */
 			argv = hawk_rtx_getgbl(rtx, xtn->gbl_argv);
 			HAWK_ASSERT (argv != HAWK_NULL);
-			HAWK_ASSERT (HAWK_RTX_GETVALTYPE (rtx, argv) == HAWK_VAL_MAP);
+			if (HAWK_RTX_GETVALTYPE(rtx, argv) != HAWK_VAL_MAP)
+			{
+				/* with flexmap on, you can change ARGV to a scalar. 
+				 *   BEGIN { ARGV="xxx"; }
+				 * you must not do this. */
+				hawk_rtx_seterrfmt (rtx, HAWK_NULL, HAWK_EINVAL, HAWK_T("phony value in ARGV"));
+				return -1;
+			}
 
 			map = ((hawk_val_map_t*)argv)->map;
 			HAWK_ASSERT (map != HAWK_NULL);
@@ -2105,9 +2130,23 @@ static int open_rio_console (hawk_rtx_t* rtx, hawk_rio_arg_t* riod)
 
 			file = as.ptr;
 
-
-/* TODO: special awk quarkyness - check if the file name is var=val format.
- *       if so, do variable assignment */
+			/*
+			 * this is different from the -v option.
+			 * if an argument has a special form of var=val, it is treated specially 
+			 * 
+			 * on the command-line
+			 *   hawk -f a.awk a=20 /etc/passwd
+			 * or via ARGV
+			 *    hawk 'BEGIN { ARGV[1] = "a=20"; }
+			 *                { print a $1; }' dummy /etc/hosts
+			 */
+			if ((x = check_var_assign(rtx, file)) != 0)
+			{
+				hawk_rtx_freevaloocstr (rtx, v, as.ptr);
+				if (HAWK_UNLIKELY(x <= -1)) return -1;
+				rxtn->c.in.index++;
+				goto nextfile;
+			}
 
 			sio = (file[0] == HAWK_T('-') && file[1] == HAWK_T('\0'))?
 				open_sio_std_rtx(rtx, HAWK_SIO_STDIN, HAWK_SIO_READ | HAWK_SIO_IGNOREECERR):

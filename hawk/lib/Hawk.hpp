@@ -1520,10 +1520,12 @@ public:
 	/// \return integer >= 0 on success, -1 on failure.
 	///
 	int findGlobal (
-		const hawk_bch_t* name ///> variable name
+		const hawk_bch_t* name, ///> variable name
+		bool inc_builtins = false
 	);
 	int findGlobal (
-		const hawk_uch_t* name ///> variable name
+		const hawk_uch_t* name, ///> variable name
+		bool inc_builtins = false
 	);
 
 	///
