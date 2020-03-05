@@ -1359,7 +1359,7 @@ Hawk::Hawk (Mmgr* mmgr):
 
 const hawk_ooch_t* Hawk::getErrorString (hawk_errnum_t num) const 
 {
-	HAWK_ASSERT (awk != HAWK_NULL);
+	HAWK_ASSERT (this->hawk != HAWK_NULL);
 	HAWK_ASSERT (this->dflerrstr != HAWK_NULL);
 	return this->dflerrstr(num);
 }
@@ -1654,7 +1654,7 @@ void Hawk::uponClearing ()
 
 Hawk::Run* Hawk::parse (Source& in, Source& out) 
 {
-	HAWK_ASSERT (awk != HAWK_NULL);
+	HAWK_ASSERT (this->hawk != HAWK_NULL);
 
 	if (&in == &Source::NONE) 
 	{
@@ -1801,7 +1801,7 @@ int Hawk::exec (Value* ret, const Value* args, hawk_oow_t nargs)
 
 void Hawk::halt () 
 {
-	HAWK_ASSERT (awk != HAWK_NULL);
+	HAWK_ASSERT (this->hawk != HAWK_NULL);
 	hawk_haltall (this->hawk);
 }
 
@@ -2120,7 +2120,7 @@ void Hawk::xstrs_t::clear (hawk_t* awk)
 
 int Hawk::addArgument (const hawk_uch_t* arg, hawk_oow_t len) 
 {
-	HAWK_ASSERT (awk != HAWK_NULL);
+	HAWK_ASSERT (this->hawk != HAWK_NULL);
 	int n = this->runarg.add(this->hawk, arg, len);
 	if (n <= -1) this->setError (HAWK_ENOMEM);
 	return n;
@@ -2151,7 +2151,7 @@ void Hawk::clearArguments ()
 
 int Hawk::addGlobal(const hawk_bch_t* name) 
 {
-	HAWK_ASSERT (awk != HAWK_NULL);
+	HAWK_ASSERT (this->hawk != HAWK_NULL);
 	int n = hawk_addgblwithbcstr(this->hawk, name);
 	if (n <= -1) this->retrieveError ();
 	return n;
@@ -2159,7 +2159,7 @@ int Hawk::addGlobal(const hawk_bch_t* name)
 
 int Hawk::addGlobal(const hawk_uch_t* name) 
 {
-	HAWK_ASSERT (awk != HAWK_NULL);
+	HAWK_ASSERT (this->hawk != HAWK_NULL);
 	int n = hawk_addgblwithucstr(this->hawk, name);
 	if (n <= -1) this->retrieveError ();
 	return n;
@@ -2167,7 +2167,7 @@ int Hawk::addGlobal(const hawk_uch_t* name)
 
 int Hawk::deleteGlobal (const hawk_bch_t* name) 
 {
-	HAWK_ASSERT (awk != HAWK_NULL);
+	HAWK_ASSERT (this->hawk != HAWK_NULL);
 	int n = hawk_delgblwithbcstr(this->hawk, name);
 	if (n <= -1) this->retrieveError ();
 	return n;
@@ -2175,7 +2175,7 @@ int Hawk::deleteGlobal (const hawk_bch_t* name)
 
 int Hawk::deleteGlobal (const hawk_uch_t* name) 
 {
-	HAWK_ASSERT (awk != HAWK_NULL);
+	HAWK_ASSERT (this->hawk != HAWK_NULL);
 	int n = hawk_delgblwithucstr(this->hawk, name);
 	if (n <= -1) this->retrieveError ();
 	return n;
@@ -2184,7 +2184,7 @@ int Hawk::deleteGlobal (const hawk_uch_t* name)
 
 int Hawk::findGlobal (const hawk_bch_t* name, bool inc_builtins) 
 {
-	HAWK_ASSERT (awk != HAWK_NULL);
+	HAWK_ASSERT (this->hawk != HAWK_NULL);
 	int n = hawk_findgblwithbcstr(this->hawk, name, inc_builtins);
 	if (n <= -1) this->retrieveError ();
 	return n;
@@ -2192,7 +2192,7 @@ int Hawk::findGlobal (const hawk_bch_t* name, bool inc_builtins)
 
 int Hawk::findGlobal (const hawk_uch_t* name, bool inc_builtins) 
 {
-	HAWK_ASSERT (awk != HAWK_NULL);
+	HAWK_ASSERT (this->hawk != HAWK_NULL);
 	int n = hawk_findgblwithucstr(this->hawk, name, inc_builtins);
 	if (n <= -1) this->retrieveError ();
 	return n;
@@ -2200,7 +2200,7 @@ int Hawk::findGlobal (const hawk_uch_t* name, bool inc_builtins)
 
 int Hawk::setGlobal (int id, const Value& v) 
 {
-	HAWK_ASSERT (awk != HAWK_NULL);
+	HAWK_ASSERT (this->hawk != HAWK_NULL);
 	HAWK_ASSERT (runctx.rtx != HAWK_NULL);
 
 	if (v.run != &runctx) 
@@ -2216,7 +2216,7 @@ int Hawk::setGlobal (int id, const Value& v)
 
 int Hawk::getGlobal (int id, Value& v) 
 {
-	HAWK_ASSERT (awk != HAWK_NULL);
+	HAWK_ASSERT (this->hawk != HAWK_NULL);
 	HAWK_ASSERT (runctx.rtx != HAWK_NULL);
 
 	int n = runctx.getGlobal (id, v);
@@ -2228,7 +2228,7 @@ int Hawk::addFunction (
 	const hawk_bch_t* name, hawk_oow_t minArgs, hawk_oow_t maxArgs, 
 	const hawk_bch_t* argSpec, FunctionHandler handler, int validOpts)
 {
-	HAWK_ASSERT (awk != HAWK_NULL);
+	HAWK_ASSERT (this->hawk != HAWK_NULL);
 
 	hawk_fnc_mspec_t spec;
 
@@ -2279,7 +2279,7 @@ int Hawk::addFunction (
 	const hawk_uch_t* name, hawk_oow_t minArgs, hawk_oow_t maxArgs, 
 	const hawk_uch_t* argSpec, FunctionHandler handler, int validOpts)
 {
-	HAWK_ASSERT (awk != HAWK_NULL);
+	HAWK_ASSERT (this->hawk != HAWK_NULL);
 
 	hawk_fnc_wspec_t spec;
 
@@ -2328,7 +2328,7 @@ int Hawk::addFunction (
 
 int Hawk::deleteFunction (const hawk_ooch_t* name) 
 {
-	HAWK_ASSERT (awk != HAWK_NULL);
+	HAWK_ASSERT (this->hawk != HAWK_NULL);
 
 	int n = hawk_delfnc(this->hawk, name);
 	if (n == 0) 

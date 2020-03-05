@@ -626,7 +626,7 @@ public:
 		operator Hawk* () const { return this->run->hawk; }
 		operator hawk_t* () const 
 		{
-			HAWK_ASSERT (hawk_rtx_getawk(this->run->rtx) == this->run->awk->getHandle());
+			HAWK_ASSERT (hawk_rtx_gethawk(this->run->rtx) == this->run->hawk->getHandle());
 			return this->run->hawk->getHandle(); 
 		}
 		operator hawk_rio_arg_t* () const { return this->riod; }
