@@ -826,7 +826,7 @@ int HawkStd::addConsoleOutput (const hawk_uch_t* arg)
 
 int HawkStd::addConsoleOutput (const hawk_bch_t* arg, hawk_oow_t len) 
 {
-	HAWK_ASSERT (awk != HAWK_NULL);
+	HAWK_ASSERT (this->hawk != HAWK_NULL);
 	int n = this->ofile.add(this->hawk, arg, len);
 	if (n <= -1) this->setError (HAWK_ENOMEM);
 	return n;
@@ -886,7 +886,7 @@ int HawkStd::open_console_in (Console& io)
 	 *        { print $0; }' file1 file2
 	 */
 	v_argv = hawk_rtx_getgbl(rtx, this->gbl_argv);
-	HAWK_ASSERT (vargv != HAWK_NULL);
+	HAWK_ASSERT (v_argv != HAWK_NULL);
 	if (HAWK_RTX_GETVALTYPE(rtx, v_argv) != HAWK_VAL_MAP)
 	{
 		/* with flexmap on, you can change ARGV to a scalar. 
@@ -1228,7 +1228,7 @@ HawkStd::SourceFile::~SourceFile ()
 {
 	if (this->_hawk) 
 	{
-		HAWK_ASSERT (this->str != HAWK_NULL);
+		HAWK_ASSERT (this->name != HAWK_NULL);
 		hawk_freemem (this->_hawk, this->name);
 	}
 }
