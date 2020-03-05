@@ -748,10 +748,21 @@ int HawkStd::openFile (File& io)
 			break;
 	}
 
-	sio = hawk_sio_open((hawk_gem_t*)*this, 0, io.getName(), flags);
+	const hawk_ooch_t* ioname = io.getName();
+	if (ioname[0] == '-' && ioname[1] == '\0')
+	{
+		if (mode == Hawk::File::READ)
+			sio = open_sio_std(HAWK_NULL, io, HAWK_SIO_STDIN, HAWK_SIO_READ | HAWK_SIO_IGNOREECERR);
+		else
+			sio = open_sio_std(HAWK_NULL, io, HAWK_SIO_STDOUT, HAWK_SIO_WRITE | HAWK_SIO_IGNOREECERR | HAWK_SIO_LINEBREAK);
+	}
+	else
+	{
+		sio = hawk_sio_open((hawk_gem_t*)*this, 0, ioname, flags);
+	}
 	if (!sio) return -1;
 #if defined(HAWK_OOCH_IS_UCH)
-	hawk_cmgr_t* cmgr = this->getiocmgr(io.getName());
+	hawk_cmgr_t* cmgr = this->getiocmgr(ioname);
 	if (cmgr) hawk_sio_setcmgr (sio, cmgr);
 #endif
 
@@ -832,18 +843,71 @@ void HawkStd::clearConsoleOutputs ()
 	this->ofile.clear (this->hawk);
 }
 
+static int check_var_assign (hawk_rtx_t* rtx, const hawk_ooch_t* str)
+{
+	hawk_ooch_t* eq, * var;
+	int n;
+
+	eq = hawk_find_oochar_in_oocstr(str, '=');
+	if (!eq || eq <= str) return 0; /* not assignment */
+
+	var = hawk_rtx_dupoochars(rtx, str, eq - str);
+	if (HAWK_UNLIKELY(!var)) return -1;
+
+	n = hawk_isvalidident(hawk_rtx_gethawk(rtx), var)?
+		((hawk_rtx_setgbltostrbyname(rtx, var, eq + 1) <= -1)? -1: 1): 0;
+	hawk_rtx_freemem (rtx, var);
+	return n;
+}
+
 int HawkStd::open_console_in (Console& io) 
 { 
 	hawk_rtx_t* rtx = (hawk_rtx_t*)io;
+	hawk_sio_t* sio;
+	hawk_val_t* v_argc, * v_argv, * v_pair;
+	hawk_int_t i_argc;
+	const hawk_ooch_t* file;
+	hawk_htb_t* map;
+	hawk_htb_pair_t* pair;
+	hawk_ooch_t ibuf[128];
+	hawk_oow_t ibuflen;
+	hawk_oocs_t as;
+	int x;
 
-	if (this->runarg.ptr == HAWK_NULL) 
+	v_argc = hawk_rtx_getgbl(rtx, this->gbl_argc);
+	HAWK_ASSERT (v_argc != HAWK_NULL);
+	if (hawk_rtx_valtoint(rtx, v_argc, &i_argc) <= -1) return -1;
+
+	/* handle special case when ARGV[x] has been altered.
+	 * so from here down, the file name gotten from 
+	 * rxtn->c.in.files is not important and is overridden 
+	 * from ARGV.
+	 * 'BEGIN { ARGV[1]="file3"; } 
+	 *        { print $0; }' file1 file2
+	 */
+	v_argv = hawk_rtx_getgbl(rtx, this->gbl_argv);
+	HAWK_ASSERT (vargv != HAWK_NULL);
+	if (HAWK_RTX_GETVALTYPE(rtx, v_argv) != HAWK_VAL_MAP)
 	{
-		HAWK_ASSERT (this->runarg.len == 0 && this->runarg.capa == 0);
+		/* with flexmap on, you can change ARGV to a scalar. 
+		 *   BEGIN { ARGV="xxx"; }
+		 * you must not do this. */
+		hawk_rtx_seterrfmt (rtx, HAWK_NULL, HAWK_EINVAL, HAWK_T("phony value in ARGV"));
+		return -1;
+	}
 
-		if (this->runarg_count == 0) 
+	map = ((hawk_val_map_t*)v_argv)->map;
+	HAWK_ASSERT (map != HAWK_NULL);
+
+nextfile:
+	if ((hawk_int_t)this->runarg_index >= (i_argc - 1))  /* ARGV is a kind of 0-based array unlike other normal arrays or substring indexing scheme */
+	{
+		/* reached the last ARGV */
+
+		if (this->runarg_count <= 0) /* but no file has been ever opened */
 		{
-			hawk_sio_t* sio;
-
+		console_open_stdin:
+			/* open stdin */
 			sio = open_sio_std(HAWK_NULL, io, HAWK_SIO_STDIN, HAWK_SIO_READ | HAWK_SIO_IGNOREECERR);
 			if (sio == HAWK_NULL) return -1;
 
@@ -854,136 +918,86 @@ int HawkStd::open_console_in (Console& io)
 			return 1;
 		}
 
+		return 0; 
+	}
+
+	ibuflen = hawk_int_to_oocstr(this->runarg_index + 1, 10, HAWK_NULL, ibuf, HAWK_COUNTOF(ibuf));
+	pair = hawk_htb_search(map, ibuf, ibuflen);
+	if (!pair) 
+	{
+		if (this->runarg_count <= 0) goto console_open_stdin;
 		return 0;
 	}
-	else
+
+	v_pair = (hawk_val_t*)HAWK_HTB_VPTR(pair);
+	HAWK_ASSERT (v_pair != HAWK_NULL);
+
+	as.ptr = hawk_rtx_getvaloocstr(rtx, v_pair, &as.len);
+	if (HAWK_UNLIKELY(!as.ptr)) return -1;
+
+	if (as.len == 0)
 	{
-		hawk_sio_t* sio;
-		const hawk_ooch_t* file;
-		hawk_val_t* argv;
-		hawk_htb_t* map;
-		hawk_htb_pair_t* pair;
-		hawk_ooch_t ibuf[128];
-		hawk_oow_t ibuflen;
-		hawk_val_t* v;
-		hawk_oocs_t as;
-
-	nextfile:
-		file = this->runarg.ptr[this->runarg_index].ptr;
-
-		if (file == HAWK_NULL)
-		{
-			/* no more input file */
-
-			if (this->runarg_count == 0)
-			{
-				/* all ARGVs are empty strings. 
-				 * so no console files were opened.
-				 * open the standard input here.
-				 *
-				 * 'BEGIN { ARGV[1]=""; ARGV[2]=""; }
-				 *        { print $0; }' file1 file2
-				 */
-				sio = open_sio_std(HAWK_NULL, io, HAWK_SIO_STDIN, HAWK_SIO_READ | HAWK_SIO_IGNOREECERR);
-				if (sio == HAWK_NULL) return -1;
-
-				if (this->console_cmgr) hawk_sio_setcmgr (sio, this->console_cmgr);
-
-				io.setHandle (sio);
-				this->runarg_count++;
-				return 1;
-			}
-
-			return 0;
-		}
-
-		if (hawk_count_oocstr(file) != this->runarg.ptr[this->runarg_index].len)
-		{
-			((Run*)io)->formatError (HAWK_EIONMNL, HAWK_NULL, HAWK_T("invalid I/O name of length %zu containing '\\0'"), this->runarg.ptr[this->runarg_index].len);
-			return -1;
-		}
-
-		/* handle special case when ARGV[x] has been altered.
-		 * so from here down, the file name gotten from 
-		 * rxtn->c.in.files is not important and is overridden 
-		 * from ARGV.
-		 * 'BEGIN { ARGV[1]="file3"; } 
-		 *        { print $0; }' file1 file2
-		 */
-		argv = hawk_rtx_getgbl (rtx, this->gbl_argv);
-		HAWK_ASSERT (argv != HAWK_NULL);
-		if (HAWK_RTX_GETVALTYPE(rtx, argv) != HAWK_VAL_MAP)
-		{
-			/* with flexmap on, you can change ARGV to a scalar. 
-			 *   BEGIN { ARGV="xxx"; }
-			 * you must not do this. */
-			hawk_rtx_seterrfmt (rtx, HAWK_NULL, HAWK_EINVAL, HAWK_T("phony value in ARGV"));
-			return -1;
-		}
-
-		map = ((hawk_val_map_t*)argv)->map;
-		HAWK_ASSERT (map != HAWK_NULL);
-		
-		// ok to find ARGV[this->runarg_index] as ARGV[0]
-		// has been skipped.
-		ibuflen = hawk_int_to_oocstr(this->runarg_index, 10, HAWK_NULL, ibuf, HAWK_COUNTOF(ibuf));
-
-		pair = hawk_htb_search (map, ibuf, ibuflen);
-		HAWK_ASSERT (pair != HAWK_NULL);
-
-		v = (hawk_val_t*)HAWK_HTB_VPTR(pair);
-		HAWK_ASSERT (v != HAWK_NULL);
-
-		as.ptr = hawk_rtx_getvaloocstr(rtx, v, &as.len);
-		if (as.ptr == HAWK_NULL) return -1;
-
-		if (as.len == 0)
-		{
-			/* the name is empty */
-			hawk_rtx_freevaloocstr (rtx, v, as.ptr);
-			this->runarg_index++;
-			goto nextfile;
-		}
-
-		if (hawk_count_oocstr(as.ptr) < as.len)
-		{
-			/* the name contains one or more '\0' */
-			((Run*)io)->formatError (HAWK_EIONMNL, HAWK_NULL, HAWK_T("invalid I/O name of length %zu containing '\\0'"), as.len);
-			hawk_rtx_freevaloocstr (rtx, v, as.ptr);
-			return -1;
-		}
-
-		file = as.ptr;
-
-		if (file[0] == HAWK_T('-') && file[1] == HAWK_T('\0'))
-			sio = open_sio_std(HAWK_NULL, io, HAWK_SIO_STDIN, HAWK_SIO_READ | HAWK_SIO_IGNOREECERR);
-		else
-			sio = open_sio(HAWK_NULL, io, file, HAWK_SIO_READ | HAWK_SIO_IGNOREECERR);
-		if (sio == HAWK_NULL) 
-		{
-			hawk_rtx_freevaloocstr (rtx, v, as.ptr);
-			return -1;
-		}
-		
-		if (hawk_rtx_setfilenamewithoochars(rtx, file, hawk_count_oocstr(file)) <= -1)
-		{
-			hawk_sio_close (sio);
-			hawk_rtx_freevaloocstr (rtx, v, as.ptr);
-			return -1;
-		}
-
-		hawk_rtx_freevaloocstr (rtx, v, as.ptr);
-
-		if (this->console_cmgr) hawk_sio_setcmgr (sio, this->console_cmgr);
-
-		io.setHandle (sio);
-
-		/* increment the counter of files successfully opened */
-		this->runarg_count++;
+		/* the name is empty */
+		hawk_rtx_freevaloocstr (rtx, v_pair, as.ptr);
 		this->runarg_index++;
-		return 1;
+		goto nextfile;
 	}
 
+	if (hawk_count_oocstr(as.ptr) < as.len)
+	{
+		/* the name contains one or more '\0' */
+		((Run*)io)->formatError (HAWK_EIONMNL, HAWK_NULL, HAWK_T("invalid I/O name of length %zu containing '\\0'"), as.len);
+		hawk_rtx_freevaloocstr (rtx, v_pair, as.ptr);
+		return -1;
+	}
+
+	file = as.ptr;
+
+	/*
+	 * this is different from the -v option.
+	 * if an argument has a special form of var=val, it is treated specially 
+	 * 
+	 * on the command-line
+	 *   hawk -f a.awk a=20 /etc/passwd
+	 * or via ARGV
+	 *    hawk 'BEGIN { ARGV[1] = "a=20"; }
+	 *                { print a $1; }' dummy /etc/hosts
+	 */
+	if ((x = check_var_assign(rtx, file)) != 0)
+	{
+		hawk_rtx_freevaloocstr (rtx, v_pair, as.ptr);
+		if (HAWK_UNLIKELY(x <= -1)) return -1;
+		this->runarg_index++;
+		goto nextfile;
+	}
+
+	if (file[0] == HAWK_T('-') && file[1] == HAWK_T('\0'))
+		sio = open_sio_std(HAWK_NULL, io, HAWK_SIO_STDIN, HAWK_SIO_READ | HAWK_SIO_IGNOREECERR);
+	else
+		sio = open_sio(HAWK_NULL, io, file, HAWK_SIO_READ | HAWK_SIO_IGNOREECERR);
+	if (sio == HAWK_NULL) 
+	{
+		hawk_rtx_freevaloocstr (rtx, v_pair, as.ptr);
+		return -1;
+	}
+	
+	if (hawk_rtx_setfilenamewithoochars(rtx, file, hawk_count_oocstr(file)) <= -1)
+	{
+		hawk_sio_close (sio);
+		hawk_rtx_freevaloocstr (rtx, v_pair, as.ptr);
+		return -1;
+	}
+
+	hawk_rtx_freevaloocstr (rtx, v_pair, as.ptr);
+
+	if (this->console_cmgr) hawk_sio_setcmgr (sio, this->console_cmgr);
+
+	io.setHandle (sio);
+
+	/* increment the counter of files successfully opened */
+	this->runarg_count++;
+	this->runarg_index++;
+	return 1;
 }
 
 int HawkStd::open_console_out (Console& io) 
@@ -1061,11 +1075,6 @@ int HawkStd::openConsole (Console& io)
 	{
 		this->runarg_count = 0;
 		this->runarg_index = 0;
-		if (this->runarg.len > 0) 
-		{
-			// skip ARGV[0]
-			this->runarg_index++;
-		}
 		return open_console_in (io);
 	}
 	else

@@ -1671,7 +1671,7 @@ int hawk_parsestd (hawk_t* awk, hawk_parsestd_t in[], hawk_parsestd_t* out)
 	return n;
 }
 
-static int check_var_assign (hawk_rtx_t* rtx, hawk_ooch_t* str)
+static int check_var_assign (hawk_rtx_t* rtx, const hawk_ooch_t* str)
 {
 	hawk_ooch_t* eq, * var;
 	int n;
@@ -1962,8 +1962,18 @@ static hawk_ooi_t awk_rio_file (hawk_rtx_t* rtx, hawk_rio_cmd_t cmd, hawk_rio_ar
 					return -1; 
 			}
 
-			handle = hawk_sio_open(hawk_rtx_getgem(rtx), 0, riod->name, flags);
-			if (handle == HAWK_NULL) 
+			if (riod->name[0] == '-' && riod->name[1] == '\0')
+			{
+				if (riod->mode == HAWK_RIO_FILE_READ)
+					handle = open_sio_std_rtx(rtx, HAWK_SIO_STDIN, HAWK_SIO_READ | HAWK_SIO_IGNOREECERR);
+				else
+					handle = open_sio_std_rtx(rtx, HAWK_SIO_STDOUT, HAWK_SIO_WRITE | HAWK_SIO_IGNOREECERR | HAWK_SIO_LINEBREAK);
+			}
+			else
+			{
+				handle = hawk_sio_open(hawk_rtx_getgem(rtx), 0, riod->name, flags);
+			}
+			if (!handle) 
 			{
 				const hawk_ooch_t* bem = hawk_rtx_backuperrmsg(rtx);
 				hawk_rtx_seterrfmt (rtx, HAWK_NULL, HAWK_EOPEN, HAWK_T("unable to open %js - %js"), riod->name, bem);
@@ -2015,7 +2025,150 @@ static int open_rio_console (hawk_rtx_t* rtx, hawk_rio_arg_t* riod)
 
 	if (riod->mode == HAWK_RIO_CONSOLE_READ)
 	{
+	#if 1
+		/* this part is more complex than the code in the else part.
+		 * it handles simple assignemnt as well as open files
+		 * via in ARGV instead of rxtn->c.in.files */
 		xtn_t* xtn = (xtn_t*)GET_XTN(rtx->awk);
+		hawk_val_t* v_argc, * v_argv, * v_pair;
+		hawk_int_t i_argc;
+		const hawk_ooch_t* file;
+		hawk_htb_t* map;
+		hawk_htb_pair_t* pair;
+		hawk_ooch_t ibuf[128];
+		hawk_oow_t ibuflen;
+		hawk_oocs_t as;
+		int x;
+
+		v_argc = hawk_rtx_getgbl(rtx, xtn->gbl_argc);
+		HAWK_ASSERT (v_argc != HAWK_NULL);
+		if (hawk_rtx_valtoint(rtx, v_argc, &i_argc) <= -1) return -1;
+
+		/* handle special case when ARGV[x] has been altered.
+		 * so from here down, the file name gotten from 
+		 * rxtn->c.in.files is not important and is overridden 
+		 * from ARGV.
+		 * 'BEGIN { ARGV[1]="file3"; } 
+		 *        { print $0; }' file1 file2
+		 */
+		v_argv = hawk_rtx_getgbl(rtx, xtn->gbl_argv);
+		HAWK_ASSERT (v_argv != HAWK_NULL);
+		if (HAWK_RTX_GETVALTYPE(rtx, v_argv) != HAWK_VAL_MAP)
+		{
+			/* with flexmap on, you can change ARGV to a scalar. 
+			 *   BEGIN { ARGV="xxx"; }
+			 * you must not do this. */
+			hawk_rtx_seterrfmt (rtx, HAWK_NULL, HAWK_EINVAL, HAWK_T("phony value in ARGV"));
+			return -1;
+		}
+
+		map = ((hawk_val_map_t*)v_argv)->map;
+		HAWK_ASSERT (map != HAWK_NULL);
+
+	nextfile:
+		if (rxtn->c.in.index >= (i_argc - 1))  /* ARGV is a kind of 0-based array unlike other normal arrays or substring indexing scheme */
+		{
+			/* reached the last ARGV */
+
+			if (rxtn->c.in.count <= 0) /* but no file has been ever opened */
+			{
+			console_open_stdin:
+				/* open stdin */
+				sio = open_sio_std_rtx (rtx, HAWK_SIO_STDIN, HAWK_SIO_READ | HAWK_SIO_IGNOREECERR);
+				if (HAWK_UNLIKELY(!sio)) return -1;
+
+				if (rxtn->c.cmgr) hawk_sio_setcmgr (sio, rxtn->c.cmgr);
+
+				riod->handle = sio;
+				rxtn->c.in.count++;
+				return 1;
+			}
+
+			return 0; 
+		}
+
+		ibuflen = hawk_int_to_oocstr(rxtn->c.in.index + 1, 10, HAWK_NULL, ibuf, HAWK_COUNTOF(ibuf));
+
+		pair = hawk_htb_search(map, ibuf, ibuflen);
+		if (!pair)
+		{
+			/* the key doesn't exist any more */
+			if (rxtn->c.in.count <= 0) goto console_open_stdin;
+			return 0; /* end of console */
+		}
+
+		v_pair = HAWK_HTB_VPTR(pair);
+		HAWK_ASSERT (v_pair != HAWK_NULL);
+
+		as.ptr = hawk_rtx_getvaloocstr(rtx, v_pair, &as.len);
+		if (HAWK_UNLIKELY(!as.ptr)) return -1;
+
+		if (as.len == 0)
+		{
+			/* the name is empty */
+			hawk_rtx_freevaloocstr (rtx, v_pair, as.ptr);
+			rxtn->c.in.index++;
+			goto nextfile;
+		}
+
+		if (hawk_count_oocstr(as.ptr) < as.len)
+		{
+			/* the name contains one or more '\0' */
+			hawk_rtx_seterrfmt (rtx, HAWK_NULL, HAWK_EIONMNL, HAWK_T("invalid I/O name of length %zu containing '\\0'"), as.len);
+			hawk_rtx_freevaloocstr (rtx, v_pair, as.ptr);
+			return -1;
+		}
+
+		file = as.ptr;
+
+		/*
+		 * this is different from the -v option.
+		 * if an argument has a special form of var=val, it is treated specially 
+		 * 
+		 * on the command-line
+		 *   hawk -f a.awk a=20 /etc/passwd
+		 * or via ARGV
+		 *    hawk 'BEGIN { ARGV[1] = "a=20"; }
+		 *                { print a $1; }' dummy /etc/hosts
+		 */
+		if ((x = check_var_assign(rtx, file)) != 0)
+		{
+			hawk_rtx_freevaloocstr (rtx, v_pair, as.ptr);
+			if (HAWK_UNLIKELY(x <= -1)) return -1;
+			rxtn->c.in.index++;
+			goto nextfile;
+		}
+
+		/* a temporary variable sio is used here not to change 
+		 * any fields of riod when the open operation fails */
+		sio = (file[0] == HAWK_T('-') && file[1] == HAWK_T('\0'))?
+			open_sio_std_rtx(rtx, HAWK_SIO_STDIN, HAWK_SIO_READ | HAWK_SIO_IGNOREECERR):
+			open_sio_rtx(rtx, file, HAWK_SIO_READ | HAWK_SIO_IGNOREECERR);
+		if (HAWK_UNLIKELY(!sio))
+		{
+			hawk_rtx_freevaloocstr (rtx, v_pair, as.ptr);
+			return -1;
+		}
+
+		if (rxtn->c.cmgr) hawk_sio_setcmgr (sio, rxtn->c.cmgr);
+
+		if (hawk_rtx_setfilenamewithoochars(rtx, file, hawk_count_oocstr(file)) <= -1)
+		{
+			hawk_sio_close (sio);
+			hawk_rtx_freevaloocstr (rtx, v_pair, as.ptr);
+			return -1;
+		}
+
+		hawk_rtx_freevaloocstr (rtx, v_pair, as.ptr);
+		riod->handle = sio;
+
+		/* increment the counter of files successfully opened */
+		rxtn->c.in.count++;
+		rxtn->c.in.index++;
+		return 1;
+	#else
+		/* simple console open implementation. 
+		 * no var=val handling. no ARGV handling */
 
 		if (!rxtn->c.in.files)
 		{
@@ -2025,7 +2178,8 @@ static int open_rio_console (hawk_rtx_t* rtx, hawk_rio_arg_t* riod)
 
 			if (rxtn->c.in.count == 0)
 			{
-				sio = open_sio_std_rtx (rtx, HAWK_SIO_STDIN, HAWK_SIO_READ | HAWK_SIO_IGNOREECERR);
+			console_open_stdin:
+				sio = open_sio_std_rtx(rtx, HAWK_SIO_STDIN, HAWK_SIO_READ | HAWK_SIO_IGNOREECERR);
 				if (sio == HAWK_NULL) return -1;
 
 				if (rxtn->c.cmgr) hawk_sio_setcmgr (sio, rxtn->c.cmgr);
@@ -2042,130 +2196,35 @@ static int open_rio_console (hawk_rtx_t* rtx, hawk_rio_arg_t* riod)
 			/* a temporary variable sio is used here not to change 
 			 * any fields of riod when the open operation fails */
 			const hawk_ooch_t* file;
-			hawk_val_t* argv;
-			hawk_htb_t* map;
-			hawk_htb_pair_t* pair;
-			hawk_ooch_t ibuf[128];
-			hawk_oow_t ibuflen;
-			hawk_val_t* v;
-			hawk_oocs_t as;
-			int x;
 
 		nextfile:
 			file = rxtn->c.in.files[rxtn->c.in.index];
 			if (!file)
 			{
 				/* no more input file */
-
-				if (rxtn->c.in.count == 0)
-				{
-					/* all ARGVs are empty strings. 
-					 * so no console files were opened.
-					 * open the standard input here.
-					 *
-					 * 'BEGIN { ARGV[1]=""; ARGV[2]=""; }
-					 *        { print $0; }' file1 file2
-					 */
-					sio = open_sio_std_rtx(rtx, HAWK_SIO_STDIN, HAWK_SIO_READ | HAWK_SIO_IGNOREECERR);
-					if (sio == HAWK_NULL) return -1;
-
-					if (rxtn->c.cmgr) hawk_sio_setcmgr (sio, rxtn->c.cmgr);
-
-					riod->handle = sio;
-					rxtn->c.in.count++;
-					return 1;
-				}
-
+				if (rxtn->c.in.count == 0) goto console_open_stdin;
 				return 0;
 			}
 
-			/* handle special case when ARGV[x] has been altered.
-			 * so from here down, the file name gotten from 
-			 * rxtn->c.in.files is not important and is overridden 
-			 * from ARGV.
-			 * 'BEGIN { ARGV[1]="file3"; } 
-			 *        { print $0; }' file1 file2
-			 */
-			argv = hawk_rtx_getgbl(rtx, xtn->gbl_argv);
-			HAWK_ASSERT (argv != HAWK_NULL);
-			if (HAWK_RTX_GETVALTYPE(rtx, argv) != HAWK_VAL_MAP)
+			if (file[0] == '\0') 
 			{
-				/* with flexmap on, you can change ARGV to a scalar. 
-				 *   BEGIN { ARGV="xxx"; }
-				 * you must not do this. */
-				hawk_rtx_seterrfmt (rtx, HAWK_NULL, HAWK_EINVAL, HAWK_T("phony value in ARGV"));
-				return -1;
-			}
-
-			map = ((hawk_val_map_t*)argv)->map;
-			HAWK_ASSERT (map != HAWK_NULL);
-
-			ibuflen = hawk_int_to_oocstr(rxtn->c.in.index + 1, 10, HAWK_NULL, ibuf, HAWK_COUNTOF(ibuf));
-
-			pair = hawk_htb_search(map, ibuf, ibuflen);
-			HAWK_ASSERT (pair != HAWK_NULL);
-
-			v = HAWK_HTB_VPTR(pair);
-			HAWK_ASSERT (v != HAWK_NULL);
-
-			as.ptr = hawk_rtx_getvaloocstr(rtx, v, &as.len);
-			if (as.ptr == HAWK_NULL) return -1;
-
-			if (as.len == 0)
-			{
-				/* the name is empty */
-				hawk_rtx_freevaloocstr (rtx, v, as.ptr);
 				rxtn->c.in.index++;
 				goto nextfile;
 			}
 
-			if (hawk_count_oocstr(as.ptr) < as.len)
-			{
-				/* the name contains one or more '\0' */
-				hawk_rtx_seterrfmt (rtx, HAWK_NULL, HAWK_EIONMNL, HAWK_T("invalid I/O name of length %zu containing '\\0'"), as.len);
-				hawk_rtx_freevaloocstr (rtx, v, as.ptr);
-				return -1;
-			}
-
-			file = as.ptr;
-
-			/*
-			 * this is different from the -v option.
-			 * if an argument has a special form of var=val, it is treated specially 
-			 * 
-			 * on the command-line
-			 *   hawk -f a.awk a=20 /etc/passwd
-			 * or via ARGV
-			 *    hawk 'BEGIN { ARGV[1] = "a=20"; }
-			 *                { print a $1; }' dummy /etc/hosts
-			 */
-			if ((x = check_var_assign(rtx, file)) != 0)
-			{
-				hawk_rtx_freevaloocstr (rtx, v, as.ptr);
-				if (HAWK_UNLIKELY(x <= -1)) return -1;
-				rxtn->c.in.index++;
-				goto nextfile;
-			}
-
-			sio = (file[0] == HAWK_T('-') && file[1] == HAWK_T('\0'))?
+			sio = (file[0] == '-' && file[1] == '\0')?
 				open_sio_std_rtx(rtx, HAWK_SIO_STDIN, HAWK_SIO_READ | HAWK_SIO_IGNOREECERR):
 				open_sio_rtx(rtx, file, HAWK_SIO_READ | HAWK_SIO_IGNOREECERR);
-			if (sio == HAWK_NULL)
-			{
-				hawk_rtx_freevaloocstr (rtx, v, as.ptr);
-				return -1;
-			}
+			if (HAWK_UNLIKELY(!sio)) return -1;
 
 			if (rxtn->c.cmgr) hawk_sio_setcmgr (sio, rxtn->c.cmgr);
 
 			if (hawk_rtx_setfilenamewithoochars(rtx, file, hawk_count_oocstr(file)) <= -1)
 			{
 				hawk_sio_close (sio);
-				hawk_rtx_freevaloocstr (rtx, v, as.ptr);
 				return -1;
 			}
 
-			hawk_rtx_freevaloocstr (rtx, v, as.ptr);
 			riod->handle = sio;
 
 			/* increment the counter of files successfully opened */
@@ -2173,7 +2232,7 @@ static int open_rio_console (hawk_rtx_t* rtx, hawk_rio_arg_t* riod)
 			rxtn->c.in.index++;
 			return 1;
 		}
-
+	#endif
 	}
 	else if (riod->mode == HAWK_RIO_CONSOLE_WRITE)
 	{
