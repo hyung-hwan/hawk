@@ -634,7 +634,7 @@ HAWK_INLINE int hawk_rtx_setgbl (hawk_rtx_t* rtx, int id, hawk_val_t* val)
 	return set_global(rtx, id, HAWK_NULL, val, 0);
 }
 
-int hawk_rtx_setgblbyname (hawk_rtx_t* rtx, const hawk_ooch_t* name, const hawk_ooch_t* val)
+int hawk_rtx_setgbltostrbyname (hawk_rtx_t* rtx, const hawk_ooch_t* name, const hawk_ooch_t* val)
 {
 	int id, n;
 	hawk_val_t* v;

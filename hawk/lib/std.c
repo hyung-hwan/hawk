@@ -163,7 +163,7 @@ typedef struct rxtn_t
 		{
 			hawk_ooch_t** files;
 			hawk_oow_t index;
-			hawk_oow_t count;
+			hawk_oow_t count; /* number of files opened so far */
 		} in; 
 
 		struct 
@@ -1683,7 +1683,7 @@ static int check_var_assign (hawk_rtx_t* rtx, hawk_ooch_t* str)
 	if (HAWK_UNLIKELY(!var)) return -1;
 
 	n = hawk_isvalidident(hawk_rtx_gethawk(rtx), var)?
-		((hawk_rtx_setgblbyname(rtx, var, eq + 1) <= -1)? -1: 1): 0;
+		((hawk_rtx_setgbltostrbyname(rtx, var, eq + 1) <= -1)? -1: 1): 0;
 	hawk_rtx_freemem (rtx, var);
 	return n;
 }
@@ -2017,7 +2017,7 @@ static int open_rio_console (hawk_rtx_t* rtx, hawk_rio_arg_t* riod)
 	{
 		xtn_t* xtn = (xtn_t*)GET_XTN(rtx->awk);
 
-		if (rxtn->c.in.files == HAWK_NULL)
+		if (!rxtn->c.in.files)
 		{
 			/* if no input files is specified, 
 			 * open the standard input */
@@ -2053,8 +2053,7 @@ static int open_rio_console (hawk_rtx_t* rtx, hawk_rio_arg_t* riod)
 
 		nextfile:
 			file = rxtn->c.in.files[rxtn->c.in.index];
-
-			if (file == HAWK_NULL)
+			if (!file)
 			{
 				/* no more input file */
 
@@ -2100,7 +2099,7 @@ static int open_rio_console (hawk_rtx_t* rtx, hawk_rio_arg_t* riod)
 
 			map = ((hawk_val_map_t*)argv)->map;
 			HAWK_ASSERT (map != HAWK_NULL);
-			
+
 			ibuflen = hawk_int_to_oocstr(rxtn->c.in.index + 1, 10, HAWK_NULL, ibuf, HAWK_COUNTOF(ibuf));
 
 			pair = hawk_htb_search(map, ibuf, ibuflen);
