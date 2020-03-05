@@ -2356,7 +2356,7 @@ HAWK_EXPORT int hawk_rtx_setgbl (
 	hawk_val_t* val
 );
 
-HAWK_EXPORT int hawk_rtx_setgblbyname (
+HAWK_EXPORT int hawk_rtx_setgbltostrbyname (
 	hawk_rtx_t*        rtx,
 	const hawk_ooch_t* name,
 	const hawk_ooch_t* val
