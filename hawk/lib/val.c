@@ -298,6 +298,39 @@ hawk_val_t* hawk_rtx_makestrvalwithbchars2 (hawk_rtx_t* rtx, const hawk_bch_t* b
 #endif
 }
 
+/* --------------------------------------------------------------------- */
+
+hawk_val_t* hawk_rtx_makenumorstrvalwithuchars (hawk_rtx_t* rtx, const hawk_uch_t* ptr, hawk_oow_t len)
+{
+	hawk_t* hawk = hawk_rtx_gethawk(rtx);
+	int x;
+	hawk_int_t l;
+	hawk_flt_t r;
+
+	x = hawk_uchars_to_num(HAWK_OOCHARS_TO_NUM_MAKE_OPTION(1, (hawk->opt.trait & HAWK_STRIPSTRSPC), 0), ptr, len, &l, &r);
+	if (x == 0) return hawk_rtx_makeintval(rtx, l);
+	else if (x >= 1) return hawk_rtx_makefltval(rtx, r);
+
+	return hawk_rtx_makestrvalwithuchars(rtx, ptr, len);
+}
+
+hawk_val_t* hawk_rtx_makenumorstrvalwithbchars (hawk_rtx_t* rtx, const hawk_bch_t* ptr, hawk_oow_t len)
+{
+	hawk_t* hawk = hawk_rtx_gethawk(rtx);
+	int x;
+	hawk_int_t l;
+	hawk_flt_t r;
+
+	x = hawk_bchars_to_num(HAWK_OOCHARS_TO_NUM_MAKE_OPTION(1, (hawk->opt.trait & HAWK_STRIPSTRSPC), 0), ptr, len, &l, &r);
+	if (x == 0) return hawk_rtx_makeintval(rtx, l);
+	else if (x >= 1) return hawk_rtx_makefltval(rtx, r);
+
+	return hawk_rtx_makestrvalwithbchars(rtx, ptr, len);
+}
+
+
+/* --------------------------------------------------------------------- */
+
 hawk_val_t* hawk_rtx_makenstrvalwithuchars (hawk_rtx_t* rtx, const hawk_uch_t* ptr, hawk_oow_t len)
 {
 	hawk_t* hawk = hawk_rtx_gethawk(rtx);
@@ -321,7 +354,6 @@ hawk_val_t* hawk_rtx_makenstrvalwithuchars (hawk_rtx_t* rtx, const hawk_uch_t* p
 
 	return v;
 }
-
 
 hawk_val_t* hawk_rtx_makenstrvalwithbchars (hawk_rtx_t* rtx, const hawk_bch_t* ptr, hawk_oow_t len)
 {
@@ -368,6 +400,8 @@ hawk_val_t* hawk_rtx_makenstrvalwithbcs (hawk_rtx_t* rtx, const hawk_bcs_t* str)
 }
 
 
+/* --------------------------------------------------------------------- */
+
 hawk_val_t* hawk_rtx_makembsvalwithbchars (hawk_rtx_t* rtx, const hawk_bch_t* ptr, hawk_oow_t len)
 {
 	hawk_val_mbs_t* val = HAWK_NULL;
@@ -393,10 +427,6 @@ hawk_val_t* hawk_rtx_makembsvalwithbchars (hawk_rtx_t* rtx, const hawk_bch_t* pt
 	return (hawk_val_t*)val;
 }
 
-hawk_val_t* hawk_rtx_makembsvalwithbcs (hawk_rtx_t* rtx, const hawk_bcs_t* bcs)
-{
-	return hawk_rtx_makembsvalwithbchars(rtx, bcs->ptr, bcs->len);
-}
 
 hawk_val_t* hawk_rtx_makembsvalwithuchars (hawk_rtx_t* rtx, const hawk_uch_t* ucs, hawk_oow_t len)
 {
@@ -416,10 +446,47 @@ hawk_val_t* hawk_rtx_makembsvalwithuchars (hawk_rtx_t* rtx, const hawk_uch_t* uc
 
 }
 
+hawk_val_t* hawk_rtx_makembsvalwithbcs (hawk_rtx_t* rtx, const hawk_bcs_t* bcs)
+{
+	return hawk_rtx_makembsvalwithbchars(rtx, bcs->ptr, bcs->len);
+}
+
 hawk_val_t* hawk_rtx_makembsvalwithucs (hawk_rtx_t* rtx, const hawk_ucs_t* ucs)
 {
 	return hawk_rtx_makembsvalwithuchars(rtx, ucs->ptr, ucs->len);
 }
+
+/* --------------------------------------------------------------------- */
+
+hawk_val_t* hawk_rtx_makenumormbsvalwithuchars (hawk_rtx_t* rtx, const hawk_uch_t* ptr, hawk_oow_t len)
+{
+	hawk_t* hawk = hawk_rtx_gethawk(rtx);
+	int x;
+	hawk_int_t l;
+	hawk_flt_t r;
+
+	x = hawk_uchars_to_num(HAWK_OOCHARS_TO_NUM_MAKE_OPTION(1, (hawk->opt.trait & HAWK_STRIPSTRSPC), 0), ptr, len, &l, &r);
+	if (x == 0) return hawk_rtx_makeintval(rtx, l);
+	else if (x >= 1) return hawk_rtx_makefltval(rtx, r);
+
+	return hawk_rtx_makembsvalwithuchars(rtx, ptr, len);
+}
+
+hawk_val_t* hawk_rtx_makenumormbsvalwithbchars (hawk_rtx_t* rtx, const hawk_bch_t* ptr, hawk_oow_t len)
+{
+	hawk_t* hawk = hawk_rtx_gethawk(rtx);
+	int x;
+	hawk_int_t l;
+	hawk_flt_t r;
+
+	x = hawk_bchars_to_num(HAWK_OOCHARS_TO_NUM_MAKE_OPTION(1, (hawk->opt.trait & HAWK_STRIPSTRSPC), 0), ptr, len, &l, &r);
+	if (x == 0) return hawk_rtx_makeintval(rtx, l);
+	else if (x >= 1) return hawk_rtx_makefltval(rtx, r);
+
+	return hawk_rtx_makembsvalwithbchars(rtx, ptr, len);
+}
+
+/* --------------------------------------------------------------------- */
 
 hawk_val_t* hawk_rtx_makerexval (hawk_rtx_t* rtx, const hawk_oocs_t* str, hawk_tre_t* code[2])
 {

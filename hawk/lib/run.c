@@ -4461,7 +4461,7 @@ static HAWK_INLINE int __cmp_flt_str (hawk_rtx_t* rtx, hawk_val_t* left, hawk_va
 	int n;
 
 	/* SCO CC doesn't seem to handle right->nstr > 0 properly */
-	if (hawk->opt.trait & HAWK_NCMPONSTR || right->nstr /*> 0*/)
+	if ((hawk->opt.trait & HAWK_NCMPONSTR) || right->nstr /*> 0*/)
 	{
 		const hawk_ooch_t* end;
 		hawk_flt_t rr;
@@ -4489,7 +4489,7 @@ static HAWK_INLINE int __cmp_flt_mbs (hawk_rtx_t* rtx, hawk_val_t* left, hawk_va
 	hawk_oow_t len0;
 	int n;
 
-	if (hawk->opt.trait & HAWK_NCMPONSTR || right->nstr /*> 0*/)
+	if ((hawk->opt.trait & HAWK_NCMPONSTR) || right->nstr /*> 0*/)
 	{
 		const hawk_bch_t* end;
 		hawk_flt_t rr;
@@ -6796,8 +6796,10 @@ read_console_again:
 		{
 			hawk_val_t* v;
 
+			/* treat external input numerically if it can compose a number. */
 			v = hawk_rtx_makestrvalwithoocs(rtx, HAWK_OOECS_OOCS(buf));
-			if (v == HAWK_NULL)
+			/*v = hawk_rtx_makenumorstrvalwithoochars(rtx, HAWK_OOECS_PTR(buf), HAWK_OOECS_LEN(buf));*/
+			if (HAWK_UNLIKELY(!v))
 			{
 				ADJERR_LOC (rtx, &nde->loc);
 				return HAWK_NULL;
@@ -6904,7 +6906,9 @@ read_console_again:
 		{
 			hawk_val_t* v;
 
+			/* treat external input numerically if it can compose a number. */
 			v = hawk_rtx_makembsvalwithbcs(rtx, HAWK_BECS_BCS(buf));
+			/*v = hawk_rtx_makenumormbsvalwithbchars(rtx, HAWK_BECS_PTR(buf), HAWK_BECS_LEN(buf));*/
 			if (v == HAWK_NULL)
 			{
 				ADJERR_LOC (rtx, &nde->loc);

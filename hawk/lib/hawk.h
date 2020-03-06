@@ -2688,6 +2688,20 @@ HAWK_EXPORT hawk_val_t* hawk_rtx_makestrvalwithbchars2 (
 
 /* -------------------------------------------------------------------------- */
 
+HAWK_EXPORT hawk_val_t* hawk_rtx_makenumorstrvalwithuchars (
+	hawk_rtx_t*       rtx,
+	const hawk_uch_t* ptr,
+	hawk_oow_t        len
+);
+
+HAWK_EXPORT hawk_val_t* hawk_rtx_makenumorstrvalwithbchars (
+	hawk_rtx_t*       rtx,
+	const hawk_bch_t* ptr,
+	hawk_oow_t        len
+);
+
+/* -------------------------------------------------------------------------- */
+
 HAWK_EXPORT hawk_val_t* hawk_rtx_makenstrvalwithuchars (
 	hawk_rtx_t*       rtx,
 	const hawk_uch_t* ptr,
@@ -2738,6 +2752,9 @@ HAWK_EXPORT hawk_val_t* hawk_rtx_makenstrvalwithbcs (
 #	define hawk_rtx_makestrvalwithoocs hawk_rtx_makestrvalwithucs
 #	define hawk_rtx_makestrvalwithoochars2 hawk_rtx_makestrvalwithuchars2
 
+#	define hawk_rtx_makenumorstrvalwithoochars hawk_rtx_makenumorstrvalwithuchars
+
+#	define hawk_rtx_makenstrvalwithoochars hawk_rtx_makenstrvalwithuchars
 #	define hawk_rtx_makenstrvalwithoocstr hawk_rtx_makenstrvalwithucstr
 #	define hawk_rtx_makenstrvalwithoocs hawk_rtx_makenstrvalwithucs
 #else
@@ -2746,6 +2763,9 @@ HAWK_EXPORT hawk_val_t* hawk_rtx_makenstrvalwithbcs (
 #	define hawk_rtx_makestrvalwithoocs hawk_rtx_makestrvalwithbcs
 #	define hawk_rtx_makestrvalwithoochars2 hawk_rtx_makestrvalwithbchars2
 
+#	define hawk_rtx_makenumorstrvalwithoochars hawk_rtx_makenumorstrvalwithbchars
+
+#	define hawk_rtx_makenstrvalwithoochars hawk_rtx_makenstrvalwithbchars
 #	define hawk_rtx_makenstrvalwithoocstr hawk_rtx_makenstrvalwithbcstr
 #	define hawk_rtx_makenstrvalwithoocs hawk_rtx_makenstrvalwithbcs
 #endif
@@ -2762,15 +2782,15 @@ hawk_val_t* hawk_rtx_makembsvalwithbchars (
 	hawk_oow_t         len
 );
 
-hawk_val_t* hawk_rtx_makembsvalwithbcs (
-	hawk_rtx_t*       rtx,
-	const hawk_bcs_t* bcs
-);
-
 hawk_val_t* hawk_rtx_makembsvalwithuchars (
 	hawk_rtx_t*        rtx,
 	const hawk_uch_t*  ptr,
 	hawk_oow_t         len
+);
+
+hawk_val_t* hawk_rtx_makembsvalwithbcs (
+	hawk_rtx_t*       rtx,
+	const hawk_bcs_t* bcs
 );
 
 hawk_val_t* hawk_rtx_makembsvalwithucs (

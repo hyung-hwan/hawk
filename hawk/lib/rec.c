@@ -52,7 +52,7 @@ int hawk_rtx_setrec (hawk_rtx_t* rtx, hawk_oow_t idx, const hawk_oocs_t* str)
 		}
 
 		v = hawk_rtx_makenstrvalwithoocs(rtx, str);
-		if (v == HAWK_NULL)
+		if (HAWK_UNLIKELY(!v))
 		{
 			hawk_rtx_clrrec (rtx, 0);
 			return -1;
@@ -77,10 +77,10 @@ int hawk_rtx_setrec (hawk_rtx_t* rtx, hawk_oow_t idx, const hawk_oocs_t* str)
 			hawk_rtx_clrrec (rtx, 0);
 			return -1;
 		}
-	
+
 		/* recompose $0 */
-		v = hawk_rtx_makestrvalwithoocs (rtx, HAWK_OOECS_OOCS(&rtx->inrec.line));
-		if (v == HAWK_NULL)
+		v = hawk_rtx_makestrvalwithoocs(rtx, HAWK_OOECS_OOCS(&rtx->inrec.line));
+		if (HAWK_UNLIKELY(!v))
 		{
 			hawk_rtx_clrrec (rtx, 0);
 			return -1;
@@ -109,7 +109,7 @@ static int split_record (hawk_rtx_t* rtx)
 	HAWK_ASSERT (rtx->inrec.nflds == 0);
 
 	/* get FS */
-	fs = hawk_rtx_getgbl (rtx, HAWK_GBL_FS);
+	fs = hawk_rtx_getgbl(rtx, HAWK_GBL_FS);
 	fsvtype = HAWK_RTX_GETVALTYPE (rtx, fs);
 	if (fsvtype == HAWK_VAL_NIL)
 	{
@@ -126,7 +126,7 @@ static int split_record (hawk_rtx_t* rtx)
 	else 
 	{
 		fs_ptr = hawk_rtx_valtooocstrdup(rtx, fs, &fs_len);
-		if (fs_ptr == HAWK_NULL) return -1;
+		if (HAWK_UNLIKELY(!fs_ptr)) return -1;
 		fs_free = fs_ptr;
 	}
 
@@ -227,7 +227,7 @@ static int split_record (hawk_rtx_t* rtx)
 	len = HAWK_OOECS_LEN(&rtx->inrec.line);
 #endif
 
-	while (p != HAWK_NULL)
+	while (p)
 	{
 		switch (how)
 		{
