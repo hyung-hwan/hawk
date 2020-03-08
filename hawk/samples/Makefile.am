@@ -19,7 +19,13 @@ bin_PROGRAMS =
 
 if ENABLE_CXX
 
-bin_PROGRAMS += hawk51
+bin_PROGRAMS += hawk02 hawk51
+
+hawk02_SOURCES = hawk02.c
+hawk02_CPPFLAGS = $(CPPFLAGS_ALL_COMMON)
+hawk02_LDFLAGS = $(LDFLAGS_ALL_COMMON)
+hawk02_LDADD = -lhawk $(LIBADD_BIN_COMMON) $(SOCKET_LIBS)
+hawk02_DEPENDENCIES = ../lib/libhawk.la
 
 hawk51_SOURCES = hawk51.cpp
 hawk51_CPPFLAGS = $(CPPFLAGS_ALL_COMMON)
