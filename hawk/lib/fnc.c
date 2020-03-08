@@ -1235,18 +1235,18 @@ static int __substitute (hawk_rtx_t* rtx, hawk_int_t max_count)
 		{
 			int n;
 			n = hawk_rtx_setrec(rtx, 0, HAWK_OOECS_OOCS(&new), 0);
-			if (n <= -1) goto oops;
+			if (HAWK_UNLIKELY(n <= -1)) goto oops;
 		}
 		else 
 		{
 			int n;
 
 			v = hawk_rtx_makestrvalwithoocs(rtx, HAWK_OOECS_OOCS(&new));
-			if (v == HAWK_NULL) goto oops;
+			if (HAWK_UNLIKELY(!v)) goto oops;
 			hawk_rtx_refupval (rtx, v);
 			n = hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)a2, v);
 			hawk_rtx_refdownval (rtx, v);
-			if (n <= -1) goto oops;
+			if (HAWK_UNLIKELY(n <= -1)) goto oops;
 		}
 	}
 
