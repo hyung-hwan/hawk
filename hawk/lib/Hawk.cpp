@@ -709,7 +709,7 @@ int Hawk::Value::setStr (Run* r, const hawk_uch_t* str, hawk_oow_t len, bool num
 {
 	hawk_val_t* tmp;
 
-	tmp = numeric? hawk_rtx_makenstrvalwithuchars(r->rtx, str, len):
+	tmp = numeric? hawk_rtx_makenumorstrvalwithuchars(r->rtx, str, len):
 	               hawk_rtx_makestrvalwithuchars(r->rtx, str, len);
 	if (tmp == HAWK_NULL)
 	{
@@ -732,7 +732,7 @@ int Hawk::Value::setStr (Run* r, const hawk_uch_t* str, bool numeric)
 {
 	hawk_val_t* tmp;
 
-	tmp = numeric? hawk_rtx_makenstrvalwithucstr(r->rtx, str):
+	tmp = numeric? hawk_rtx_makenumorstrvalwithuchars(r->rtx, str, hawk_count_ucstr(str)):
 	               hawk_rtx_makestrvalwithucstr(r->rtx, str);
 	if (tmp == HAWK_NULL) 
 	{
@@ -762,7 +762,7 @@ int Hawk::Value::setStr (Run* r, const hawk_bch_t* str, hawk_oow_t len, bool num
 {
 	hawk_val_t* tmp;
 
-	tmp = numeric? hawk_rtx_makenstrvalwithbchars(r->rtx, str, len):
+	tmp = numeric? hawk_rtx_makenumorstrvalwithbchars(r->rtx, str, len):
 	               hawk_rtx_makestrvalwithbchars(r->rtx, str, len);
 	if (tmp == HAWK_NULL)
 	{
@@ -785,7 +785,7 @@ int Hawk::Value::setStr (Run* r, const hawk_bch_t* str, bool numeric)
 {
 	hawk_val_t* tmp;
 
-	tmp = numeric? hawk_rtx_makenstrvalwithbcstr(r->rtx, str):
+	tmp = numeric? hawk_rtx_makenumorstrvalwithbchars(r->rtx, str, hawk_count_bcstr(str)):
 	               hawk_rtx_makestrvalwithbcstr(r->rtx, str);
 	if (tmp == HAWK_NULL) 
 	{
@@ -974,7 +974,7 @@ int Hawk::Value::setIndexedStr (Run* r, const Index& idx, const hawk_uch_t* str,
 {
 	hawk_val_t* tmp;
 
-	tmp = numeric? hawk_rtx_makenstrvalwithuchars(r->rtx, str, len):
+	tmp = numeric? hawk_rtx_makenumorstrvalwithuchars(r->rtx, str, len):
 	               hawk_rtx_makestrvalwithuchars(r->rtx, str, len);
 	if (tmp == HAWK_NULL) 
 	{
@@ -998,7 +998,7 @@ int Hawk::Value::setIndexedStr (const Index& idx, const hawk_uch_t* str, bool nu
 int Hawk::Value::setIndexedStr (Run* r, const Index& idx, const hawk_uch_t* str, bool numeric)
 {
 	hawk_val_t* tmp;
-	tmp = numeric? hawk_rtx_makenstrvalwithucstr(r->rtx, str):
+	tmp = numeric? hawk_rtx_makenumorstrvalwithuchars(r->rtx, str, hawk_count_ucstr(str)):
 	               hawk_rtx_makestrvalwithucstr(r->rtx, str);
 	if (tmp == HAWK_NULL)
 	{
@@ -1023,7 +1023,7 @@ int Hawk::Value::setIndexedStr (Run* r, const Index& idx, const hawk_bch_t* str,
 {
 	hawk_val_t* tmp;
 
-	tmp = numeric? hawk_rtx_makenstrvalwithbchars(r->rtx, str, len):
+	tmp = numeric? hawk_rtx_makenumorstrvalwithbchars(r->rtx, str, len):
 	               hawk_rtx_makestrvalwithbchars(r->rtx, str, len);
 	if (tmp == HAWK_NULL) 
 	{
@@ -1047,7 +1047,7 @@ int Hawk::Value::setIndexedStr (const Index& idx, const hawk_bch_t* str, bool nu
 int Hawk::Value::setIndexedStr (Run* r, const Index& idx, const hawk_bch_t* str, bool numeric)
 {
 	hawk_val_t* tmp;
-	tmp = numeric? hawk_rtx_makenstrvalwithbcstr(r->rtx, str):
+	tmp = numeric? hawk_rtx_makenumorstrvalwithbchars(r->rtx, str, hawk_count_bcstr(str)):
 	               hawk_rtx_makestrvalwithbcstr(r->rtx, str);
 	if (tmp == HAWK_NULL)
 	{

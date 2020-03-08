@@ -401,8 +401,8 @@ struct hawk_rtx_t
 		struct
 		{
 			const hawk_ooch_t* ptr;
-			hawk_oow_t        len;
-			hawk_val_t*    val; /* $1 .. $NF */
+			hawk_oow_t         len;
+			hawk_val_t*        val; /* $1 .. $NF */
 		}* flds;
 	} inrec;
 

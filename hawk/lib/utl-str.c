@@ -1914,18 +1914,19 @@ hawk_oow_t hawk_int_to_oocstr (hawk_int_t value, int radix, const hawk_ooch_t* p
 
 /* ------------------------------------------------------------------------ */
 
-hawk_int_t hawk_uchars_to_int (const hawk_uch_t* str, hawk_oow_t len, int base, const hawk_uch_t** endptr, int stripspc)
+hawk_int_t hawk_uchars_to_int (const hawk_uch_t* str, hawk_oow_t len, int option, const hawk_uch_t** endptr, int* is_sober)
 {
 	hawk_int_t n = 0;
-	const hawk_uch_t* p;
+	const hawk_uch_t* p, * pp;
 	const hawk_uch_t* end;
 	hawk_oow_t rem;
 	int digit, negative = 0;
+	int base = HAWK_OOCHARS_TO_INT_GET_OPTION_BASE(option);
 
 	p = str; 
 	end = str + len;
-	
-	if (stripspc)
+
+	if (HAWK_OOCHARS_TO_INT_GET_OPTION_LTRIM(option))
 	{
 		/* strip off leading spaces */
 		while (p < end && hawk_is_uch_space(*p)) p++;
@@ -1976,10 +1977,11 @@ hawk_int_t hawk_uchars_to_int (const hawk_uch_t* str, hawk_oow_t len, int base, 
 	}
 
 	/* process the digits */
+	pp = p;
 	while (p < end)
 	{
-		if (*p >= '0' && *p <= '9')
-			digit = *p - '0';
+		if (*p >= '0' && *p <= '9') {
+			digit = *p - '0'; }
 		else if (*p >= 'A' && *p <= 'Z')
 			digit = *p - 'A' + 10;
 		else if (*p >= 'a' && *p <= 'z')
@@ -1992,22 +1994,33 @@ hawk_int_t hawk_uchars_to_int (const hawk_uch_t* str, hawk_oow_t len, int base, 
 		p++;
 	}
 
+	/* base 8: at least a zero digit has been seen.
+	 * other case: p > pp to be able to have at least 1 meaningful digit. */
+	if (is_sober) *is_sober = (base == 8 || p > pp); 
+
+	if (HAWK_OOCHARS_TO_INT_GET_OPTION_RTRIM(option))
+	{
+		/* consume trailing spaces */
+		while (p < end && hawk_is_uch_space(*p)) p++;
+	}
+
 	if (endptr) *endptr = p;
 	return (negative)? -n: n;
 }
 
-hawk_int_t hawk_bchars_to_int (const hawk_bch_t* str, hawk_oow_t len, int base, const hawk_bch_t** endptr, int stripspc)
+hawk_int_t hawk_bchars_to_int (const hawk_bch_t* str, hawk_oow_t len, int option, const hawk_bch_t** endptr, int* is_sober)
 {
 	hawk_int_t n = 0;
-	const hawk_bch_t* p;
+	const hawk_bch_t* p, * pp;
 	const hawk_bch_t* end;
 	hawk_oow_t rem;
 	int digit, negative = 0;
+	int base = HAWK_OOCHARS_TO_INT_GET_OPTION_BASE(option);
 
 	p = str; 
 	end = str + len;
 	
-	if (stripspc)
+	if (HAWK_OOCHARS_TO_INT_GET_OPTION_LTRIM(option))
 	{
 		/* strip off leading spaces */
 		while (p < end && hawk_is_bch_space(*p)) p++;
@@ -2058,6 +2071,7 @@ hawk_int_t hawk_bchars_to_int (const hawk_bch_t* str, hawk_oow_t len, int base, 
 	}
 
 	/* process the digits */
+	pp = p;
 	while (p < end)
 	{
 		if (*p >= '0' && *p <= '9')
@@ -2072,6 +2086,16 @@ hawk_int_t hawk_bchars_to_int (const hawk_bch_t* str, hawk_oow_t len, int base, 
 		n = n * base + digit;
 
 		p++;
+	}
+
+	/* base 8: at least a zero digit has been seen.
+	 * other case: p > pp to be able to have at least 1 meaningful digit. */
+	if (is_sober) *is_sober = (base == 8 || p > pp);
+
+	if (HAWK_OOCHARS_TO_INT_GET_OPTION_RTRIM(option))
+	{
+		/* consume trailing spaces */
+		while (p < end && hawk_is_bch_space(*p)) p++;
 	}
 
 	if (endptr) *endptr = p;
@@ -2306,7 +2330,12 @@ no_exp:
 	else fraction *= dbl_exp;
 
 done:
-	if (endptr != HAWK_NULL) *endptr = p;
+	if (stripspc)
+	{
+		/* consume trailing spaces */
+		while (p < end && hawk_is_uch_space(*p)) p++;
+	}
+	if (endptr) *endptr = p;
 	return (negative)? -fraction: fraction;
 }
 
@@ -2510,7 +2539,12 @@ no_exp:
 	else fraction *= dbl_exp;
 
 done:
-	if (endptr != HAWK_NULL) *endptr = p;
+	if (stripspc)
+	{
+		/* consume trailing spaces */
+		while (p < end && hawk_is_bch_space(*p)) p++;
+	}
+	if (endptr) *endptr = p;
 	return (negative)? -fraction: fraction;
 }
 
@@ -2519,19 +2553,21 @@ int hawk_uchars_to_num (int option, const hawk_uch_t* ptr, hawk_oow_t len, hawk_
 	const hawk_uch_t* endptr;
 	const hawk_uch_t* end;
 
-	int strict = HAWK_OOCHARS_TO_NUM_GET_OPTION_STRICT(option);
+	int nopartial = HAWK_OOCHARS_TO_NUM_GET_OPTION_NOPARTIAL(option);
+	int reqsober = HAWK_OOCHARS_TO_NUM_GET_OPTION_REQSOBER(option);
 	int stripspc = HAWK_OOCHARS_TO_NUM_GET_OPTION_STRIPSPC(option);
 	int base = HAWK_OOCHARS_TO_NUM_GET_OPTION_BASE(option);
+	int is_sober;
 
 	end = ptr + len;
-	*l = hawk_uchars_to_int(ptr, len, base, &endptr, stripspc);
+	*l = hawk_uchars_to_int(ptr, len, HAWK_OOCHARS_TO_INT_MAKE_OPTION(stripspc,0,base), &endptr, &is_sober);
 	if (endptr < end)
 	{
 		if (*endptr == '.' || *endptr == 'E' || *endptr == 'e')
 		{
 		handle_float:
 			*r = hawk_uchars_to_flt(ptr, len, &endptr, stripspc);
-			if (strict && endptr < end) return -1;
+			if (nopartial && endptr < end) return -1;
 			return 1; /* flt */
 		}
 		else if (hawk_is_uch_digit(*endptr))
@@ -2545,7 +2581,7 @@ int hawk_uchars_to_num (int option, const hawk_uch_t* ptr, hawk_oow_t len, hawk_
  				 *  BEGIN { b=99; printf "%f\n", (0 b 1.112); }
 				 *
 				 * for the above code, this function gets '0991.112'.
-				 * and endptr points to '9' after hawk_strxtoint() as
+				 * and endptr points to '9' after hawk_uchars_to_int() as
 				 * the numeric string beginning with 0 is treated 
 				 * as an octal number. 
 				 * 
@@ -2558,9 +2594,15 @@ int hawk_uchars_to_num (int option, const hawk_uch_t* ptr, hawk_oow_t len, hawk_
 				goto handle_float;
 			}
 		}
+
+		if (stripspc)
+		{
+			while (endptr < end && hawk_is_uch_space(*endptr)) endptr++;
+		}
 	}
 
-	if (strict && endptr < end) return -1;
+	if (reqsober && !is_sober) return -1;
+	if (nopartial && endptr < end) return -1;
 	return 0; /* int */
 }
 
@@ -2569,19 +2611,21 @@ int hawk_bchars_to_num (int option, const hawk_bch_t* ptr, hawk_oow_t len, hawk_
 	const hawk_bch_t* endptr;
 	const hawk_bch_t* end;
 
-	int strict = HAWK_OOCHARS_TO_NUM_GET_OPTION_STRICT(option);
+	int nopartial = HAWK_OOCHARS_TO_NUM_GET_OPTION_NOPARTIAL(option);
+	int reqsober = HAWK_OOCHARS_TO_NUM_GET_OPTION_REQSOBER(option);
 	int stripspc = HAWK_OOCHARS_TO_NUM_GET_OPTION_STRIPSPC(option);
 	int base = HAWK_OOCHARS_TO_NUM_GET_OPTION_BASE(option);
+	int is_sober;
 
 	end = ptr + len;
-	*l = hawk_bchars_to_int(ptr, len, base, &endptr, stripspc);
+	*l = hawk_bchars_to_int(ptr, len, HAWK_OOCHARS_TO_INT_MAKE_OPTION(stripspc,0,base), &endptr, &is_sober);
 	if (endptr < end)
 	{
 		if (*endptr == '.' || *endptr == 'E' || *endptr == 'e')
 		{
 		handle_float:
 			*r = hawk_bchars_to_flt(ptr, len, &endptr, stripspc);
-			if (strict && endptr < end) return -1;
+			if (nopartial && endptr < end) return -1;
 			return 1; /* flt */
 		}
 		else if (hawk_is_uch_digit(*endptr))
@@ -2595,7 +2639,7 @@ int hawk_bchars_to_num (int option, const hawk_bch_t* ptr, hawk_oow_t len, hawk_
  				 *  BEGIN { b=99; printf "%f\n", (0 b 1.112); }
 				 *
 				 * for the above code, this function gets '0991.112'.
-				 * and endptr points to '9' after hawk_strxtoint() as
+				 * and endptr points to '9' after hawk_bchars_to_int() as
 				 * the numeric string beginning with 0 is treated 
 				 * as an octal number. 
 				 * 
@@ -2608,9 +2652,15 @@ int hawk_bchars_to_num (int option, const hawk_bch_t* ptr, hawk_oow_t len, hawk_
 				goto handle_float;
 			}
 		}
+
+		if (stripspc)
+		{
+			while (endptr < end && hawk_is_bch_space(*endptr)) endptr++;
+		}
 	}
 
-	if (strict && endptr < end) return -1;
+	if (reqsober && !is_sober) return -1;
+	if (nopartial && endptr < end) return -1;
 	return 0; /* int */
 }
 

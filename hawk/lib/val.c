@@ -307,7 +307,7 @@ hawk_val_t* hawk_rtx_makenumorstrvalwithuchars (hawk_rtx_t* rtx, const hawk_uch_
 	hawk_int_t l;
 	hawk_flt_t r;
 
-	x = hawk_uchars_to_num(HAWK_OOCHARS_TO_NUM_MAKE_OPTION(1, (hawk->opt.trait & HAWK_STRIPSTRSPC), 0), ptr, len, &l, &r);
+	x = hawk_uchars_to_num(HAWK_OOCHARS_TO_NUM_MAKE_OPTION(1, 1, (hawk->opt.trait & HAWK_STRIPSTRSPC), 0), ptr, len, &l, &r);
 	if (x == 0) return hawk_rtx_makeintval(rtx, l);
 	else if (x >= 1) return hawk_rtx_makefltval(rtx, r);
 
@@ -321,7 +321,7 @@ hawk_val_t* hawk_rtx_makenumorstrvalwithbchars (hawk_rtx_t* rtx, const hawk_bch_
 	hawk_int_t l;
 	hawk_flt_t r;
 
-	x = hawk_bchars_to_num(HAWK_OOCHARS_TO_NUM_MAKE_OPTION(1, (hawk->opt.trait & HAWK_STRIPSTRSPC), 0), ptr, len, &l, &r);
+	x = hawk_bchars_to_num(HAWK_OOCHARS_TO_NUM_MAKE_OPTION(1, 1, (hawk->opt.trait & HAWK_STRIPSTRSPC), 0), ptr, len, &l, &r);
 	if (x == 0) return hawk_rtx_makeintval(rtx, l);
 	else if (x >= 1) return hawk_rtx_makefltval(rtx, r);
 
@@ -339,7 +339,7 @@ hawk_val_t* hawk_rtx_makenstrvalwithuchars (hawk_rtx_t* rtx, const hawk_uch_t* p
 	hawk_int_t l;
 	hawk_flt_t r;
 
-	x = hawk_uchars_to_num(HAWK_OOCHARS_TO_NUM_MAKE_OPTION(1, (hawk->opt.trait & HAWK_STRIPSTRSPC), 0), ptr, len, &l, &r);
+	x = hawk_uchars_to_num(HAWK_OOCHARS_TO_NUM_MAKE_OPTION(1, 0, (hawk->opt.trait & HAWK_STRIPSTRSPC), 0), ptr, len, &l, &r);
 	v = hawk_rtx_makestrvalwithuchars(rtx, ptr, len);
 
 	if (!v) return HAWK_NULL;
@@ -363,7 +363,7 @@ hawk_val_t* hawk_rtx_makenstrvalwithbchars (hawk_rtx_t* rtx, const hawk_bch_t* p
 	hawk_int_t l;
 	hawk_flt_t r;
 
-	x = hawk_bchars_to_num(HAWK_OOCHARS_TO_NUM_MAKE_OPTION(1, (hawk->opt.trait & HAWK_STRIPSTRSPC), 0), ptr, len, &l, &r);
+	x = hawk_bchars_to_num(HAWK_OOCHARS_TO_NUM_MAKE_OPTION(1, 0, (hawk->opt.trait & HAWK_STRIPSTRSPC), 0), ptr, len, &l, &r);
 	v = hawk_rtx_makestrvalwithbchars(rtx, ptr, len);
 
 	if (!v) return HAWK_NULL;
@@ -465,7 +465,7 @@ hawk_val_t* hawk_rtx_makenumormbsvalwithuchars (hawk_rtx_t* rtx, const hawk_uch_
 	hawk_int_t l;
 	hawk_flt_t r;
 
-	x = hawk_uchars_to_num(HAWK_OOCHARS_TO_NUM_MAKE_OPTION(1, (hawk->opt.trait & HAWK_STRIPSTRSPC), 0), ptr, len, &l, &r);
+	x = hawk_uchars_to_num(HAWK_OOCHARS_TO_NUM_MAKE_OPTION(1, 1, (hawk->opt.trait & HAWK_STRIPSTRSPC), 0), ptr, len, &l, &r);
 	if (x == 0) return hawk_rtx_makeintval(rtx, l);
 	else if (x >= 1) return hawk_rtx_makefltval(rtx, r);
 
@@ -479,7 +479,7 @@ hawk_val_t* hawk_rtx_makenumormbsvalwithbchars (hawk_rtx_t* rtx, const hawk_bch_
 	hawk_int_t l;
 	hawk_flt_t r;
 
-	x = hawk_bchars_to_num(HAWK_OOCHARS_TO_NUM_MAKE_OPTION(1, (hawk->opt.trait & HAWK_STRIPSTRSPC), 0), ptr, len, &l, &r);
+	x = hawk_bchars_to_num(HAWK_OOCHARS_TO_NUM_MAKE_OPTION(1, 1, (hawk->opt.trait & HAWK_STRIPSTRSPC), 0), ptr, len, &l, &r);
 	if (x == 0) return hawk_rtx_makeintval(rtx, l);
 	else if (x >= 1) return hawk_rtx_makefltval(rtx, r);
 
@@ -1651,7 +1651,7 @@ static int val_ref_to_num (hawk_rtx_t* rtx, const hawk_val_ref_t* ref, hawk_int_
 			if (idx == 0)
 			{
 				return hawk_oochars_to_num(
-					HAWK_OOCHARS_TO_NUM_MAKE_OPTION(0, (hawk->opt.trait & HAWK_STRIPSTRSPC), 0),
+					HAWK_OOCHARS_TO_NUM_MAKE_OPTION(0, 0, (hawk->opt.trait & HAWK_STRIPSTRSPC), 0),
 					HAWK_OOECS_PTR(&rtx->inrec.line),
 					HAWK_OOECS_LEN(&rtx->inrec.line),
 					l, r
@@ -1660,7 +1660,7 @@ static int val_ref_to_num (hawk_rtx_t* rtx, const hawk_val_ref_t* ref, hawk_int_
 			else if (idx <= rtx->inrec.nflds)
 			{
 				return hawk_oochars_to_num(
-					HAWK_OOCHARS_TO_NUM_MAKE_OPTION(0, (hawk->opt.trait & HAWK_STRIPSTRSPC), 0),
+					HAWK_OOCHARS_TO_NUM_MAKE_OPTION(0, 0, (hawk->opt.trait & HAWK_STRIPSTRSPC), 0),
 					rtx->inrec.flds[idx-1].ptr,
 					rtx->inrec.flds[idx-1].len,
 					l, r
@@ -1668,7 +1668,7 @@ static int val_ref_to_num (hawk_rtx_t* rtx, const hawk_val_ref_t* ref, hawk_int_
 			}
 			else
 			{
-				return hawk_oochars_to_num(HAWK_OOCHARS_TO_NUM_MAKE_OPTION(0, (hawk->opt.trait & HAWK_STRIPSTRSPC), 0), HAWK_T(""), 0, l, r);
+				return hawk_oochars_to_num(HAWK_OOCHARS_TO_NUM_MAKE_OPTION(0, 0, (hawk->opt.trait & HAWK_STRIPSTRSPC), 0), HAWK_T(""), 0, l, r);
 			}
 		}
 
@@ -1715,7 +1715,7 @@ int hawk_rtx_valtonum (hawk_rtx_t* rtx, const hawk_val_t* v, hawk_int_t* l, hawk
 
 		case HAWK_VAL_STR:
 			return hawk_oochars_to_num(
-				HAWK_OOCHARS_TO_NUM_MAKE_OPTION(0, (hawk->opt.trait & HAWK_STRIPSTRSPC), 0),
+				HAWK_OOCHARS_TO_NUM_MAKE_OPTION(0, 0, (hawk->opt.trait & HAWK_STRIPSTRSPC), 0),
 				((hawk_val_str_t*)v)->val.ptr,
 				((hawk_val_str_t*)v)->val.len,
 				l, r
@@ -1723,7 +1723,7 @@ int hawk_rtx_valtonum (hawk_rtx_t* rtx, const hawk_val_t* v, hawk_int_t* l, hawk
 
 		case HAWK_VAL_MBS:
 			return hawk_bchars_to_num(
-				HAWK_OOCHARS_TO_NUM_MAKE_OPTION(0, (hawk->opt.trait & HAWK_STRIPSTRSPC), 0),
+				HAWK_OOCHARS_TO_NUM_MAKE_OPTION(0, 0, (hawk->opt.trait & HAWK_STRIPSTRSPC), 0),
 				((hawk_val_mbs_t*)v)->val.ptr,
 				((hawk_val_mbs_t*)v)->val.len,
 				l, r
@@ -1942,7 +1942,7 @@ int hawk_rtx_setrefval (hawk_rtx_t* rtx, hawk_val_ref_t* ref, hawk_val_t* val)
 					 * for no duplication. jumping to the default case
 					 * and callinghawk_rtx_valtooocstrdup() would also work, anyway. */
 					hawk_rtx_refupval (rtx, val);
-					x = hawk_rtx_setrec(rtx, (hawk_oow_t)ref->adr, &((hawk_val_str_t*)val)->val);
+					x = hawk_rtx_setrec(rtx, (hawk_oow_t)ref->adr, &((hawk_val_str_t*)val)->val, 0);
 					hawk_rtx_refdownval (rtx, val);
 					return x;
 				}
@@ -1953,7 +1953,7 @@ int hawk_rtx_setrefval (hawk_rtx_t* rtx, hawk_val_ref_t* ref, hawk_val_t* val)
 					/* same as str in the mchar mode */
 					int x;
 					hawk_rtx_refupval (rtx, val);
-					x = hawk_rtx_setrec(rtx, (hawk_oow_t)ref->adr, &((hawk_val_mbs_t*)val)->val);
+					x = hawk_rtx_setrec(rtx, (hawk_oow_t)ref->adr, &((hawk_val_mbs_t*)val)->val, 0);
 					hawk_rtx_refdownval (rtx, val);
 					return x;
 				}
@@ -1967,7 +1967,7 @@ int hawk_rtx_setrefval (hawk_rtx_t* rtx, hawk_val_ref_t* ref, hawk_val_t* val)
 
 					str.ptr = hawk_rtx_valtooocstrdup(rtx, val, &str.len);
 					hawk_rtx_refupval (rtx, val);
-					x = hawk_rtx_setrec(rtx, (hawk_oow_t)ref->adr, &str);
+					x = hawk_rtx_setrec(rtx, (hawk_oow_t)ref->adr, &str, 0);
 					hawk_rtx_refdownval (rtx, val);
 					hawk_rtx_freemem (rtx, str.ptr);
 					return x;

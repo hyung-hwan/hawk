@@ -1049,7 +1049,9 @@ static int parse_progunit (hawk_t* awk)
 				return -1;
 			}
 
-			sl = hawk_oochars_to_int(HAWK_OOECS_PTR(awk->tok.name), HAWK_OOECS_LEN(awk->tok.name), 0, HAWK_NULL, (awk->opt.trait & HAWK_STRIPSTRSPC));
+			sl = hawk_oochars_to_int(HAWK_OOECS_PTR(awk->tok.name), HAWK_OOECS_LEN(awk->tok.name), 
+				HAWK_OOCHARS_TO_INT_MAKE_OPTION((awk->opt.trait & HAWK_STRIPSTRSPC), (awk->opt.trait & HAWK_STRIPSTRSPC), 0),
+				HAWK_NULL, HAWK_NULL);
 			if (sl < HAWK_MIN_RTX_STACK_LIMIT) sl = HAWK_MIN_RTX_STACK_LIMIT;
 			else if (sl > HAWK_MAX_RTX_STACK_LIMIT) sl = HAWK_MAX_RTX_STACK_LIMIT;
 			/* take the specified value if it's greater than the existing value */
@@ -4619,7 +4621,7 @@ static hawk_nde_t* parse_primary_int  (hawk_t* hawk, const hawk_loc_t* xloc)
 	/* create the node for the literal */
 	nde = (hawk_nde_int_t*)new_int_node (
 		hawk, 
-		hawk_oochars_to_int (HAWK_OOECS_PTR(hawk->tok.name), HAWK_OOECS_LEN(hawk->tok.name),  0, HAWK_NULL, (hawk->opt.trait & HAWK_STRIPSTRSPC)),
+		hawk_oochars_to_int (HAWK_OOECS_PTR(hawk->tok.name), HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOCHARS_TO_INT_MAKE_OPTION((hawk->opt.trait & HAWK_STRIPSTRSPC), (hawk->opt.trait & HAWK_STRIPSTRSPC), 0), HAWK_NULL, HAWK_NULL),
 		xloc
 	);
 	if (nde == HAWK_NULL) return HAWK_NULL;
