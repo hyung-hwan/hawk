@@ -26,10 +26,10 @@
 
 #include "hawk-prv.h"
 
-static int split_record (hawk_rtx_t* run);
-static int recomp_record_fields (hawk_rtx_t* run, hawk_oow_t lv, const hawk_oocs_t* str);
+static int split_record (hawk_rtx_t* run, int prefer_number);
+static int recomp_record_fields (hawk_rtx_t* run, hawk_oow_t lv, const hawk_oocs_t* str, int prefer_number);
 
-int hawk_rtx_setrec (hawk_rtx_t* rtx, hawk_oow_t idx, const hawk_oocs_t* str)
+int hawk_rtx_setrec (hawk_rtx_t* rtx, hawk_oow_t idx, const hawk_oocs_t* str, int prefer_number)
 {
 	hawk_val_t* v;
 
@@ -43,58 +43,66 @@ int hawk_rtx_setrec (hawk_rtx_t* rtx, hawk_oow_t idx, const hawk_oocs_t* str)
 		else
 		{
 			if (hawk_rtx_clrrec(rtx, 0) <= -1) return -1;
-
-			if (hawk_ooecs_ncpy(&rtx->inrec.line, str->ptr, str->len) == (hawk_oow_t)-1)
-			{
-				hawk_rtx_clrrec (rtx, 0);
-				return -1;
-			}
+			if (hawk_ooecs_ncpy(&rtx->inrec.line, str->ptr, str->len) == (hawk_oow_t)-1) goto oops;
 		}
 
-		v = hawk_rtx_makenstrvalwithoocs(rtx, str);
-		if (HAWK_UNLIKELY(!v))
-		{
-			hawk_rtx_clrrec (rtx, 0);
-			return -1;
-		}
+		if (split_record(rtx, prefer_number) <= -1) goto oops;
 
-		HAWK_ASSERT (HAWK_RTX_GETVALTYPE (rtx, rtx->inrec.d0) == HAWK_VAL_NIL);
-		/* d0 should be cleared before the next line is reached
-		 * as it doesn't call hawk_rtx_refdownval on rtx->inrec.d0 */
-		rtx->inrec.d0 = v;
-		hawk_rtx_refupval (rtx, v);
-
-		if (split_record(rtx) <= -1) 
-		{
-			hawk_rtx_clrrec (rtx, 0);
-			return -1;
-		}
+		v = prefer_number? hawk_rtx_makenumorstrvalwithoochars(rtx, HAWK_OOECS_PTR(&rtx->inrec.line), HAWK_OOECS_LEN(&rtx->inrec.line)): 
+		                   hawk_rtx_makenstrvalwithoochars(rtx, HAWK_OOECS_PTR(&rtx->inrec.line), HAWK_OOECS_LEN(&rtx->inrec.line));
+		if (HAWK_UNLIKELY(!v)) goto oops;
 	}
 	else
 	{
-		if (recomp_record_fields(rtx, idx, str) <= -1)
-		{
-			hawk_rtx_clrrec (rtx, 0);
-			return -1;
-		}
+		if (recomp_record_fields(rtx, idx, str, prefer_number) <= -1) goto oops;
 
 		/* recompose $0 */
-		v = hawk_rtx_makestrvalwithoocs(rtx, HAWK_OOECS_OOCS(&rtx->inrec.line));
-		if (HAWK_UNLIKELY(!v))
-		{
-			hawk_rtx_clrrec (rtx, 0);
-			return -1;
-		}
-
-		hawk_rtx_refdownval (rtx, rtx->inrec.d0);
-		rtx->inrec.d0 = v;
-		hawk_rtx_refupval (rtx, v);
+		v = hawk_rtx_makestrvalwithoochars(rtx, HAWK_OOECS_PTR(&rtx->inrec.line), HAWK_OOECS_LEN(&rtx->inrec.line));
+		if (HAWK_UNLIKELY(!v)) goto oops;
 	}
 
+	if (HAWK_RTX_GETVALTYPE(rtx, rtx->inrec.d0) != HAWK_VAL_NIL) hawk_rtx_refdownval (rtx, rtx->inrec.d0);
+	rtx->inrec.d0 = v;
+	hawk_rtx_refupval (rtx, v);
+
 	return 0;
+
+oops:
+	hawk_rtx_clrrec (rtx, 0);
+	return -1;
 }
 
-static int split_record (hawk_rtx_t* rtx)
+#if 0
+static int merge_fields (hawk_rtx_t* rtx)
+{
+	hawk_oow_t i;
+
+	hawk_ooecs_clear (&rtx->inrec.line);
+
+	for (i = 0; i < rtx->inrec.nflds; i++)
+	{
+		hawk_ooch_t* vp;
+		hawk_oow_t vl;
+
+		if (HAWK_LIKELY(i > 0))
+		{
+			if (hawk_ooecs_ncat(&rtx->inrec.line, rtx->gbl.ofs.ptr, rtx->gbl.ofs.len) == (hawk_oow_t)-1) return -1;
+		}
+
+		vp = hawk_rtx_getvaloocstr(rtx, rtx->inrec.flds[i].val, &vl);
+		if (HAWK_UNLIKELY(!vp)) return -1;
+
+		vl = hawk_ooecs_ncat(&rtx->inrec.line, vp, vl);
+		hawk_rtx_freevaloocstr (rtx, rtx->inrec.flds[i].val, vp);
+
+		if (HAWK_UNLIKELY(vl == (hawk_oow_t)-1)) return -1;
+	}
+
+	return 1;
+}
+#endif
+
+static int split_record (hawk_rtx_t* rtx, int prefer_number)
 {
 	hawk_oocs_t tok;
 	hawk_ooch_t* p, * px;
@@ -197,7 +205,7 @@ static int split_record (hawk_rtx_t* rtx)
 	if (nflds > rtx->inrec.maxflds)
 	{
 		void* tmp = hawk_rtx_allocmem(rtx, HAWK_SIZEOF(*rtx->inrec.flds) * nflds);
-		if (!tmp) 
+		if (HAWK_UNLIKELY(!tmp))
 		{
 			if (fs_free) hawk_rtx_freemem (rtx, fs_free);
 			return -1;
@@ -296,9 +304,11 @@ static int split_record (hawk_rtx_t* rtx)
 
 		rtx->inrec.flds[rtx->inrec.nflds].ptr = tok.ptr;
 		rtx->inrec.flds[rtx->inrec.nflds].len = tok.len;
-		rtx->inrec.flds[rtx->inrec.nflds].val = hawk_rtx_makenstrvalwithoocs (rtx, &tok);
-
-		if (rtx->inrec.flds[rtx->inrec.nflds].val == HAWK_NULL)
+		/*rtx->inrec.flds[rtx->inrec.nflds].val = hawk_rtx_makenstrvalwithoocs(rtx, &tok);*/
+		rtx->inrec.flds[rtx->inrec.nflds].val = 
+			prefer_number? hawk_rtx_makenumorstrvalwithoochars(rtx, tok.ptr, tok.len):
+			               hawk_rtx_makestrvalwithoochars(rtx, tok.ptr, tok.len);
+		if (HAWK_UNLIKELY(!rtx->inrec.flds[rtx->inrec.nflds].val))
 		{
 			if (fs_free) hawk_rtx_freemem (rtx, fs_free);
 			return -1;
@@ -317,7 +327,7 @@ static int split_record (hawk_rtx_t* rtx)
 	if (v == HAWK_NULL) return -1;
 
 	hawk_rtx_refupval (rtx, v);
-	if (hawk_rtx_setgbl(rtx, HAWK_GBL_NF, v) == -1) 
+	if (hawk_rtx_setgbl(rtx, HAWK_GBL_NF, v) <= -1) 
 	{
 		hawk_rtx_refdownval (rtx, v);
 		return -1;
@@ -326,30 +336,29 @@ static int split_record (hawk_rtx_t* rtx)
 	return 0;
 }
 
-int hawk_rtx_clrrec (hawk_rtx_t* run, int skip_inrec_line)
+int hawk_rtx_clrrec (hawk_rtx_t* rtx, int skip_inrec_line)
 {
 	hawk_oow_t i;
 	int n = 0;
 
-	if (run->inrec.d0 != hawk_val_nil)
+	if (HAWK_RTX_GETVALTYPE(rtx, rtx->inrec.d0) != HAWK_VAL_NIL)
 	{
-		hawk_rtx_refdownval (run, run->inrec.d0);
-		run->inrec.d0 = hawk_val_nil;
+		hawk_rtx_refdownval (rtx, rtx->inrec.d0);
+		rtx->inrec.d0 = hawk_val_nil;
 	}
 
-	if (run->inrec.nflds > 0)
+	if (rtx->inrec.nflds > 0)
 	{
-		HAWK_ASSERT (run->inrec.flds != HAWK_NULL);
+		HAWK_ASSERT (rtx->inrec.flds != HAWK_NULL);
 
-		for (i = 0; i < run->inrec.nflds; i++) 
+		for (i = 0; i < rtx->inrec.nflds; i++) 
 		{
-			HAWK_ASSERT (run->inrec.flds[i].val != HAWK_NULL);
-			hawk_rtx_refdownval (run, run->inrec.flds[i].val);
+			HAWK_ASSERT (rtx->inrec.flds[i].val != HAWK_NULL);
+			hawk_rtx_refdownval (rtx, rtx->inrec.flds[i].val);
 		}
-		run->inrec.nflds = 0;
+		rtx->inrec.nflds = 0;
 
-		if (hawk_rtx_setgbl (
-			run, HAWK_GBL_NF, HAWK_VAL_ZERO) == -1)
+		if (hawk_rtx_setgbl(rtx, HAWK_GBL_NF, HAWK_VAL_ZERO) <= -1)
 		{
 			/* first of all, this should never happen. 
 			 * if it happened, it would return an error
@@ -358,19 +367,26 @@ int hawk_rtx_clrrec (hawk_rtx_t* run, int skip_inrec_line)
 		}
 	}
 
-	HAWK_ASSERT (run->inrec.nflds == 0);
-	if (!skip_inrec_line) hawk_ooecs_clear (&run->inrec.line);
+	HAWK_ASSERT (rtx->inrec.nflds == 0);
+	if (!skip_inrec_line) hawk_ooecs_clear (&rtx->inrec.line);
 
 	return n;
 }
 
-static int recomp_record_fields (hawk_rtx_t* rtx, hawk_oow_t lv, const hawk_oocs_t* str)
+static int recomp_record_fields (hawk_rtx_t* rtx, hawk_oow_t lv, const hawk_oocs_t* str, int prefer_number)
 {
 	hawk_val_t* v;
 	hawk_oow_t max, i, nflds;
 
 	/* recomposes the record and the fields when $N has been assigned 
-	 * a new value and recomputes NF accordingly */
+	 * a new value and recomputes NF accordingly.
+	 * 
+	 * BEGIN { OFS=":" } { $2 = "Q"; print $0; }
+	 * If input is abc def xxx, $0 becomes abc:Q:xxx.
+	 * 
+	 * We should store the value in rtx->inrec.line so that the caller
+	 * can use it to make a value for $0.
+	 */
 
 	HAWK_ASSERT (lv > 0);
 	max = (lv > rtx->inrec.nflds)? lv: rtx->inrec.nflds;
@@ -385,7 +401,7 @@ static int recomp_record_fields (hawk_rtx_t* rtx, hawk_oow_t lv, const hawk_oocs
 		 * the field spaces are resized */
 
 		tmp = hawk_rtx_reallocmem(rtx, rtx->inrec.flds, HAWK_SIZEOF(*rtx->inrec.flds) * max);
-		if (!tmp) return -1;
+		if (HAWK_UNLIKELY(!tmp)) return -1;
 
 		rtx->inrec.flds = tmp;
 		rtx->inrec.maxflds = max;
@@ -411,11 +427,11 @@ static int recomp_record_fields (hawk_rtx_t* rtx, hawk_oow_t lv, const hawk_oocs
 
 			if (hawk_ooecs_ncat(&rtx->inrec.line, str->ptr, str->len) == (hawk_oow_t)-1) return -1;
 
-			tmp = hawk_rtx_makestrvalwithoocs (rtx, str);
-			if (tmp == HAWK_NULL) return -1;
+			tmp = prefer_number? hawk_rtx_makenumorstrvalwithoochars(rtx, str->ptr, str->len):
+			                     hawk_rtx_makestrvalwithoochars(rtx, str->ptr, str->len);
+			if (HAWK_UNLIKELY(!tmp)) return -1;
 
-			if (i < nflds)
-				hawk_rtx_refdownval (rtx, rtx->inrec.flds[i].val);
+			if (i < nflds) hawk_rtx_refdownval (rtx, rtx->inrec.flds[i].val);
 			else rtx->inrec.nflds++;
 
 			rtx->inrec.flds[i].val = tmp;
@@ -438,27 +454,29 @@ static int recomp_record_fields (hawk_rtx_t* rtx, hawk_oow_t lv, const hawk_oocs
 		}
 		else
 		{
-			hawk_val_str_t* tmp;
+			hawk_ooch_t* vp;
+			hawk_oow_t vl;
 
-			tmp = (hawk_val_str_t*)rtx->inrec.flds[i].val;
+			vp = hawk_rtx_getvaloocstr(rtx, rtx->inrec.flds[i].val, &vl);
+			if (HAWK_UNLIKELY(!vp)) return -1;
 
-			rtx->inrec.flds[i].ptr = HAWK_OOECS_PTR(&rtx->inrec.line) + HAWK_OOECS_LEN(&rtx->inrec.line);
-			rtx->inrec.flds[i].len = tmp->val.len;
+			vl = hawk_ooecs_ncat(&rtx->inrec.line, vp, vl);
+			hawk_rtx_freevaloocstr (rtx, rtx->inrec.flds[i].val, vp);
 
-			if (hawk_ooecs_ncat(&rtx->inrec.line, tmp->val.ptr, tmp->val.len) == (hawk_oow_t)-1) return -1;
+			if (HAWK_UNLIKELY(vl == (hawk_oow_t)-1)) return -1;
 		}
 	}
 
-	v = hawk_rtx_getgbl (rtx, HAWK_GBL_NF);
-	HAWK_ASSERT (HAWK_RTX_GETVALTYPE (rtx, v) == HAWK_VAL_INT);
+	v = hawk_rtx_getgbl(rtx, HAWK_GBL_NF);
+	HAWK_ASSERT (HAWK_RTX_GETVALTYPE(rtx, v) == HAWK_VAL_INT);
 
-	if (HAWK_RTX_GETINTFROMVAL (rtx, v)!= max)
+	if (HAWK_RTX_GETINTFROMVAL(rtx, v) != max)
 	{
 		v = hawk_rtx_makeintval (rtx, (hawk_int_t)max);
 		if (v == HAWK_NULL) return -1;
 
 		hawk_rtx_refupval (rtx, v);
-		if (hawk_rtx_setgbl (rtx, HAWK_GBL_NF, v) == -1) 
+		if (hawk_rtx_setgbl(rtx, HAWK_GBL_NF, v) <= -1) 
 		{
 			hawk_rtx_refdownval (rtx, v);
 			return -1;
@@ -469,3 +487,94 @@ static int recomp_record_fields (hawk_rtx_t* rtx, hawk_oow_t lv, const hawk_oocs
 	return 0;
 }
 
+int hawk_rtx_truncrec (hawk_rtx_t* rtx, hawk_oow_t nflds)
+{
+	hawk_val_t* v;
+	hawk_ooch_t* ofs_free = HAWK_NULL, * ofs_ptr;
+	hawk_oow_t ofs_len, i;
+	hawk_ooecs_t tmp;
+	hawk_val_type_t vtype;
+
+	HAWK_ASSERT (nflds <= rtx->inrec.nflds);
+
+	if (nflds > 1)
+	{
+		v = RTX_STACK_GBL(rtx, HAWK_GBL_OFS);
+		hawk_rtx_refupval (rtx, v);
+		vtype = HAWK_RTX_GETVALTYPE(rtx, v);
+
+		if (vtype == HAWK_VAL_NIL)
+		{
+			/* OFS not set */
+			ofs_ptr = HAWK_T(" ");
+			ofs_len = 1;
+		}
+		else if (vtype == HAWK_VAL_STR)
+		{
+			ofs_ptr = ((hawk_val_str_t*)v)->val.ptr;
+			ofs_len = ((hawk_val_str_t*)v)->val.len;
+		}
+		else
+		{
+			hawk_rtx_valtostr_out_t out;
+
+			out.type = HAWK_RTX_VALTOSTR_CPLDUP;
+			if (hawk_rtx_valtostr(rtx, v, &out) <= -1) return -1;
+
+			ofs_ptr = out.u.cpldup.ptr;
+			ofs_len = out.u.cpldup.len;
+			ofs_free = ofs_ptr;
+		}
+	}
+
+	if (hawk_ooecs_init(&tmp, hawk_rtx_getgem(rtx), HAWK_OOECS_LEN(&rtx->inrec.line)) <= -1)
+	{
+		if (ofs_free) hawk_rtx_freemem (rtx, ofs_free);
+		if (nflds > 1) hawk_rtx_refdownval (rtx, v);
+		return -1;
+	}
+
+	for (i = 0; i < nflds; i++)
+	{
+		if (i > 0 && hawk_ooecs_ncat(&tmp,ofs_ptr,ofs_len) == (hawk_oow_t)-1)
+		{
+			hawk_ooecs_fini (&tmp);
+			if (ofs_free) hawk_rtx_freemem (rtx, ofs_free);
+			if (nflds > 1) hawk_rtx_refdownval (rtx, v);
+			return -1;
+		}
+
+		if (hawk_ooecs_ncat(&tmp, rtx->inrec.flds[i].ptr, rtx->inrec.flds[i].len) == (hawk_oow_t)-1)
+		{
+			hawk_ooecs_fini (&tmp);
+			if (ofs_free) hawk_rtx_freemem (rtx, ofs_free);
+			if (nflds > 1) hawk_rtx_refdownval (rtx, v);
+			return -1;
+		}
+	}
+
+	if (ofs_free) hawk_rtx_freemem (rtx, ofs_free);
+	if (nflds > 1) hawk_rtx_refdownval (rtx, v);
+
+	v = (hawk_val_t*)hawk_rtx_makestrvalwithoocs(rtx, HAWK_OOECS_OOCS(&tmp));
+	if (!v) 
+	{
+		hawk_ooecs_fini (&tmp);
+		return -1;
+	}
+
+	if (HAWK_RTX_GETVALTYPE(rtx, rtx->inrec.d0) != HAWK_VAL_NIL) hawk_rtx_refdownval (rtx, rtx->inrec.d0);
+	rtx->inrec.d0 = v;
+	hawk_rtx_refupval (rtx, rtx->inrec.d0);
+
+	hawk_ooecs_swap (&tmp, &rtx->inrec.line);
+	hawk_ooecs_fini (&tmp);
+
+	for (i = nflds; i < rtx->inrec.nflds; i++)
+	{
+		hawk_rtx_refdownval (rtx, rtx->inrec.flds[i].val);
+	}
+
+	rtx->inrec.nflds = nflds;
+	return 0;
+}

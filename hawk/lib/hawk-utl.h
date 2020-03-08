@@ -815,15 +815,20 @@ HAWK_EXPORT hawk_oow_t hawk_int_to_oocstr (
 	hawk_oow_t         size
 );
 
+#define HAWK_OOCHARS_TO_INT_MAKE_OPTION(ltrim,rtrim,base) (((!!(ltrim)) << 2) | ((!!(rtrim)) << 4) | ((base) << 8))
+#define HAWK_OOCHARS_TO_INT_GET_OPTION_LTRIM(option) ((option) & 4)
+#define HAWK_OOCHARS_TO_INT_GET_OPTION_RTRIM(option) ((option) & 8)
+#define HAWK_OOCHARS_TO_INT_GET_OPTION_BASE(option) ((option) >> 8)
+
 /**
  * The hawk_uchars_to_int() function converts a wide character string to an integer.
  */
 HAWK_EXPORT hawk_int_t hawk_uchars_to_int (
-	const hawk_uch_t*   str,
-	hawk_oow_t          len,
-	int                 base,
-	const hawk_uch_t**  endptr,
-	int                 stripspc
+	const hawk_uch_t*    str,
+	hawk_oow_t           len,
+	int                  option,
+	const hawk_uch_t**   endptr,
+	int*                 is_sober
 );
 
 /**
@@ -832,9 +837,9 @@ HAWK_EXPORT hawk_int_t hawk_uchars_to_int (
 HAWK_EXPORT hawk_int_t hawk_bchars_to_int (
 	const hawk_bch_t*    str,
 	hawk_oow_t           len,
-	int                  base,
+	int                  option,
 	const hawk_bch_t**   endptr,
-	int                  stripspc
+	int*                 is_sober
 );
 
 /**
@@ -873,9 +878,10 @@ HAWK_EXPORT hawk_flt_t hawk_bchars_to_flt (
  *         1 if converted to a floating-point number
  *         -1 on error.
  */
-#define HAWK_OOCHARS_TO_NUM_MAKE_OPTION(strict,stripspc,base) (((!!(strict)) << 0) | ((!!(stripspc)) << 1) | ((base) << 8))
-#define HAWK_OOCHARS_TO_NUM_GET_OPTION_STRICT(option) ((option) & 1)
-#define HAWK_OOCHARS_TO_NUM_GET_OPTION_STRIPSPC(option) ((option) & 2)
+#define HAWK_OOCHARS_TO_NUM_MAKE_OPTION(nopartial,reqsober,stripspc,base) (((!!(nopartial)) << 0) | ((!!(reqsober)) << 1) | ((!!(stripspc)) << 2) | ((base) << 8))
+#define HAWK_OOCHARS_TO_NUM_GET_OPTION_NOPARTIAL(option) ((option) & 1)
+#define HAWK_OOCHARS_TO_NUM_GET_OPTION_REQSOBER(option) ((option) & 2)
+#define HAWK_OOCHARS_TO_NUM_GET_OPTION_STRIPSPC(option) ((option) & 4)
 #define HAWK_OOCHARS_TO_NUM_GET_OPTION_BASE(option) ((option) >> 8)
 
 HAWK_EXPORT int hawk_bchars_to_num (

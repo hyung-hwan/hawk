@@ -2582,9 +2582,19 @@ HAWK_EXPORT int hawk_rtx_clrrec (
  * input fields ($1 to $N).
  */
 HAWK_EXPORT int hawk_rtx_setrec (
-	hawk_rtx_t*    rtx, /**< runtime context */
-	hawk_oow_t        idx, /**< 0 for $0, N for $N */
-	const hawk_oocs_t* str  /**< string */
+	hawk_rtx_t*        rtx, /**< runtime context */
+	hawk_oow_t         idx, /**< 0 for $0, N for $N */
+	const hawk_oocs_t* str,  /**< string */
+	int                prefer_number /* if true, a numeric string makes an int or flt value */
+);
+
+/**
+ * The hawk_rtx_truncrec() function lowered the number of fields in a record.
+ * The caller must ensure that \a nflds is less than the current number of fields
+ */
+HAWK_EXPORT int hawk_rtx_truncrec (
+	hawk_rtx_t* rtx,
+	hawk_oow_t  nflds
 );
 
 /**
@@ -2796,6 +2806,20 @@ hawk_val_t* hawk_rtx_makembsvalwithbcs (
 hawk_val_t* hawk_rtx_makembsvalwithucs (
 	hawk_rtx_t*       rtx,
 	const hawk_ucs_t* ucs
+);
+
+/* -------------------------------------------------------------------------- */
+
+HAWK_EXPORT hawk_val_t* hawk_rtx_makenumormbsvalwithuchars (
+	hawk_rtx_t*       rtx,
+	const hawk_uch_t* ptr,
+	hawk_oow_t        len
+);
+
+HAWK_EXPORT hawk_val_t* hawk_rtx_makenumormbsvalwithbchars (
+	hawk_rtx_t*       rtx,
+	const hawk_bch_t* ptr,
+	hawk_oow_t        len
 );
 
 

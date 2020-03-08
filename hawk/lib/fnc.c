@@ -938,10 +938,11 @@ int hawk_fnc_split (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		HAWK_ASSERT ((tok.ptr != HAWK_NULL && tok.len > 0) || tok.len == 0);
 
 		/* create the field string - however, the split function must
-		 * create a numeric string if the string is a number */
+		 * create a numeric value if the string is a number */
 		/*t2 = hawk_rtx_makestrvalwithoocs (rtx, &tok);*/
-		t2 = hawk_rtx_makenstrvalwithoocs (rtx, &tok);
-		if (t2 == HAWK_NULL) goto oops;
+		/*t2 = hawk_rtx_makenstrvalwithoocs(rtx, &tok); */
+		t2 = hawk_rtx_makenumorstrvalwithoochars(rtx, tok.ptr, tok.len);
+		if (HAWK_UNLIKELY(!t2)) goto oops;
 
 		/* put it into the map */
 		key_len = hawk_int_to_oocstr(++nflds, 10, HAWK_NULL, key_buf, HAWK_COUNTOF(key_buf));
@@ -1233,7 +1234,7 @@ static int __substitute (hawk_rtx_t* rtx, hawk_int_t max_count)
 		if (a2 == HAWK_NULL)
 		{
 			int n;
-			n = hawk_rtx_setrec(rtx, 0, HAWK_OOECS_OOCS(&new));
+			n = hawk_rtx_setrec(rtx, 0, HAWK_OOECS_OOCS(&new), 0);
 			if (n <= -1) goto oops;
 		}
 		else 

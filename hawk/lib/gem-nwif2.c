@@ -387,7 +387,7 @@ static void read_proc_net_if_inet6 (hawk_gem_t* gem, hawk_ifcfg_t* cfg, struct i
 
 			if (count >= 6)
 			{
-				index = hawk_bchars_to_int(tok[1].ptr, tok[1].len, 16, HAWK_NULL, 1);
+				index = hawk_bchars_to_int(tok[1].ptr, tok[1].len, HAWK_OOCHARS_TO_INT_MAKE_OPTION(1, 1, 16), HAWK_NULL, HAWK_NULL);
 				if (index == cfg->index)
 				{
 					int ti;
@@ -397,11 +397,11 @@ static void read_proc_net_if_inet6 (hawk_gem_t* gem, hawk_ifcfg_t* cfg, struct i
 					if (hawk_bchars_to_bin(tok[0].ptr, tok[0].len, (hawk_uint8_t*)&skad->in6.sin6_addr, HAWK_SIZEOF(skad->in6.sin6_addr)) <= -1) break;
 					/* tok[3] is the scope type, not the actual scope. 
 					 * i leave this code for reference only.
-					skad->in6.sin6_scope_id = hawk_bchars_to_int(tok[3].ptr, tok[3].len, 16, HAWK_NULL, 1); */
+					skad->in6.sin6_scope_id = hawk_bchars_to_int(tok[3].ptr, tok[3].len, HAWK_OOCHARS_TO_INT_MAKE_OPTION(1, 1, 16), HAWK_NULL, HAWK_NULL); */
 					skad->in6.sin6_family = HAWK_AF_INET6;
 
 					skad = (hawk_skad_alt_t*)&cfg->mask;
-					ti = hawk_bchars_to_int(tok[2].ptr, tok[0].len, 16, HAWK_NULL, 1);
+					ti = hawk_bchars_to_int(tok[2].ptr, tok[0].len, HAWK_OOCHARS_TO_INT_MAKE_OPTION(1, 1, 16), HAWK_NULL, HAWK_NULL);
 					prefix_to_in6 (ti, &skad->in6.sin6_addr);
 					skad->in6.sin6_family = HAWK_AF_INET6;
 					goto done;

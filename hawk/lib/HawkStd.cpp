@@ -334,7 +334,7 @@ int HawkStd::build_environ (Run* run, env_char_t* envarr[])
 		}
 	}
 
-	return run->setGlobal (this->gbl_environ, v_env);
+	return run->setGlobal(this->gbl_environ, v_env);
 }
 
 int HawkStd::make_additional_globals (Run* run)

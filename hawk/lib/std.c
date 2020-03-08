@@ -2465,11 +2465,10 @@ static int build_argcv (hawk_rtx_t* rtx, int argc_id, int argv_id, const hawk_oo
 	{
 		for (argc = 1, p = icf; *p; p++, argc++) 
 		{
-			/* the argument must compose a numeric string if it can be.
-			 * so call hawk_rtx_makenstrvalwithoocstr() instead of
-			 * hawk_rtx_makestrvalwithoocstr(). */
-			v_tmp = hawk_rtx_makenstrvalwithoocstr (rtx, *p);
-			if (v_tmp == HAWK_NULL)
+			/* the argument must compose a numeric value if possible */
+			/*v_tmp = hawk_rtx_makenstrvalwithoocstr(rtx, *p); */
+			v_tmp = hawk_rtx_makenumorstrvalwithoochars(rtx, *p, hawk_count_oocstr(*p)); 
+			if (HAWK_UNLIKELY(!v_tmp))
 			{
 				hawk_rtx_refdownval (rtx, v_argv);
 				return -1;
@@ -2538,31 +2537,32 @@ static int build_environ (hawk_rtx_t* rtx, int gbl_id, env_char_t* envarr[])
 	{
 		env_char_t* eq;
 		hawk_ooch_t* kptr, * vptr;
-		hawk_oow_t klen, count;
+		hawk_oow_t klen, vlen, count;
 
 		for (count = 0; envarr[count]; count++)
 		{
 		#if ((defined(ENV_CHAR_IS_BCH) && defined(HAWK_OOCH_IS_BCH)) || \
 		     (defined(ENV_CHAR_IS_UCH) && defined(HAWK_OOCH_IS_UCH)))
-			eq = hawk_find_oochar_in_oocstr(envarr[count], HAWK_T('='));
-			if (eq == HAWK_NULL || eq == envarr[count]) continue;
+			eq = hawk_find_oochar_in_oocstr(envarr[count], '=');
+			if (HAWK_UNLIKELY(!eq || eq == envarr[count])) continue;
 
 			kptr = envarr[count];
 			klen = eq - envarr[count];
 			vptr = eq + 1;
+			vlen = hawk_count_oocstr(vptr);
 		#elif defined(ENV_CHAR_IS_BCH)
-			eq = hawk_find_bchar_in_bcstr(envarr[count], HAWK_BT('='));
-			if (eq == HAWK_NULL || eq == envarr[count]) continue;
+			eq = hawk_find_bchar_in_bcstr(envarr[count], '=');
+			if (HAWK_UNLIKELY(!eq || eq == envarr[count])) continue;
 
-			*eq = HAWK_BT('\0');
+			*eq = '\0';
 
 			/* dupbtoucstr() may fail for invalid encoding. as the environment 
 			 * variaables are not under control, call mbstowcsalldup() instead 
 			 * to go on despite encoding failure */
 
 			kptr = hawk_rtx_dupbtoucstr(rtx, envarr[count], &klen, 1); 
-			vptr = hawk_rtx_dupbtoucstr(rtx, eq + 1, HAWK_NULL, 1);
-			if (kptr == HAWK_NULL || vptr == HAWK_NULL)
+			vptr = hawk_rtx_dupbtoucstr(rtx, eq + 1, &vlen, 1);
+			if (HAWK_UNLIKELY(!kptr || !vptr))
 			{
 				if (kptr) hawk_rtx_freemem (rtx, kptr);
 				if (vptr) hawk_rtx_freemem (rtx, vptr);
@@ -2570,16 +2570,16 @@ static int build_environ (hawk_rtx_t* rtx, int gbl_id, env_char_t* envarr[])
 				return -1;
 			}
 
-			*eq = HAWK_BT('=');
+			*eq = '=';
 		#else
-			eq = hawk_find_uchar_in_ucstr(envarr[count], HAWK_UT('='));
-			if (eq == HAWK_NULL || eq == envarr[count]) continue;
+			eq = hawk_find_uchar_in_ucstr(envarr[count], '=');
+			if (HAWK_UNLIKELY(!eq || eq == envarr[count])) continue;
 
-			*eq = HAWK_UT('\0');
+			*eq = '\0';
 
 			kptr = hawk_rtx_duputobcstr(rtx, envarr[count], &klen);
-			vptr = hawk_rtx_duputobcstr(rtx, eq + 1, HAWK_NULL);
-			if (kptr == HAWK_NULL || vptr == HAWK_NULL)
+			vptr = hawk_rtx_duputobcstr(rtx, eq + 1, &vlen);
+			if (HAWK_UNLIKELY(!kptr || !vptr))
 			{
 				if (kptr) hawk_rtx_freemem (rtx, kptr);
 				if (vptr) hawk_rtx_freeme (rtx, vptr):
@@ -2587,14 +2587,14 @@ static int build_environ (hawk_rtx_t* rtx, int gbl_id, env_char_t* envarr[])
 				return -1;
 			}
 
-			*eq = HAWK_UT('=');
+			*eq = '=';
 		#endif
 
-			/* the string in ENVIRON should be a numeric string if
-			 * it can be converted to a number. call makenstrval()
-			 * instead of makestrval() */
-			v_tmp = hawk_rtx_makenstrvalwithoocstr(rtx, vptr);
-			if (v_tmp == HAWK_NULL)
+			/* the string in ENVIRON should be a numeric value if
+			 * it can be converted to a number. 
+			/*v_tmp = hawk_rtx_makenstrvalwithoocstr(rtx, vptr);*/
+			v_tmp = hawk_rtx_makenumorstrvalwithoochars(rtx, vptr, vlen);
+			if (HAWK_UNLIKELY(!v_tmp))
 			{
 		#if ((defined(ENV_CHAR_IS_BCH) && defined(HAWK_OOCH_IS_BCH)) || \
 		     (defined(ENV_CHAR_IS_UCH) && defined(HAWK_OOCH_IS_UCH)))
@@ -2990,7 +2990,7 @@ static int fnc_setioattr (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 		/* no error is returned by hawk_rtx_strnum() if the strict option 
 		 * of the second parameter is 0. so i don't check for an error */
-		x = hawk_oochars_to_num(HAWK_OOCHARS_TO_NUM_MAKE_OPTION(0, (hawk->opt.trait & HAWK_STRIPSTRSPC), 0), ptr[2], len[2], &l, &r);
+		x = hawk_oochars_to_num(HAWK_OOCHARS_TO_NUM_MAKE_OPTION(0, 0, (hawk->opt.trait & HAWK_STRIPSTRSPC), 0), ptr[2], len[2], &l, &r);
 		if (x == 0) r = (hawk_flt_t)l;
 
 		ioattr = find_or_make_ioattr(rtx, &rxtn->cmgrtab, ptr[0], len[0]);
