@@ -8821,5 +8821,5 @@ hawk_oow_t hawk_rtx_fmttobcstr_ (hawk_rtx_t* rtx, hawk_bch_t* buf, hawk_oow_t bu
 
 int hawk_rtx_buildrex (hawk_rtx_t* rtx, const hawk_ooch_t* ptn, hawk_oow_t len, hawk_tre_t** code, hawk_tre_t** icode)
 {
-	return hawk_gem_buildrex(hawk_rtx_getgem(rtx), ptn, len, !(hawk_rtx_gethawk(rtx)->opt.trait & HAWK_REXBOUND), code, icode);
+	return hawk_gem_buildrex(hawk_rtx_getgem(rtx), ptn, len, !(rtx->hawk->opt.trait & HAWK_REXBOUND), code, icode);
 }
