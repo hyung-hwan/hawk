@@ -437,7 +437,7 @@ int hawk_rtx_readio (hawk_rtx_t* rtx, int in_type, const hawk_ooch_t* name, hawk
 					if (HAWK_OOECS_LASTCHAR(buf) == HAWK_T('\n'))
 					{
 						HAWK_OOECS_LEN(buf) -= 1;
-						if (rtx->awk->opt.trait & HAWK_CRLF)
+						if (rtx->hawk->opt.trait & HAWK_CRLF)
 						{
 							/* drop preceding CR */
 							if (HAWK_OOECS_LEN(buf) > 0 && HAWK_OOECS_LASTCHAR(buf) == HAWK_T('\r')) HAWK_OOECS_LEN(buf) -= 1;
@@ -541,7 +541,7 @@ int hawk_rtx_readio (hawk_rtx_t* rtx, int in_type, const hawk_ooch_t* name, hawk
 
 						/* we don't drop CR from the record buffer 
 						 * if we're in CRLF mode. POINT-X */	
-						if (!(rtx->awk->opt.trait & HAWK_CRLF))
+						if (!(rtx->hawk->opt.trait & HAWK_CRLF))
 							HAWK_OOECS_LEN(buf) -= 1;
 					}
 
@@ -549,7 +549,7 @@ int hawk_rtx_readio (hawk_rtx_t* rtx, int in_type, const hawk_ooch_t* name, hawk
 					{
 						/* we got a blank line */
 
-						if (rtx->awk->opt.trait & HAWK_CRLF)
+						if (rtx->hawk->opt.trait & HAWK_CRLF)
 						{
 							if (HAWK_OOECS_LEN(buf) > 0 && HAWK_OOECS_LASTCHAR(buf) == HAWK_T('\r'))
 							{
@@ -755,7 +755,7 @@ int hawk_rtx_readiobytes (hawk_rtx_t* rtx, int in_type, const hawk_ooch_t* name,
 					if (HAWK_BECS_LASTCHAR(buf) == '\n')
 					{
 						HAWK_BECS_LEN(buf) -= 1;
-						if (rtx->awk->opt.trait & HAWK_CRLF)
+						if (rtx->hawk->opt.trait & HAWK_CRLF)
 						{
 							/* drop preceding CR */
 							if (HAWK_BECS_LEN(buf) > 0 && HAWK_BECS_LASTCHAR(buf) == '\r') HAWK_BECS_LEN(buf) -= 1;
@@ -859,7 +859,7 @@ int hawk_rtx_readiobytes (hawk_rtx_t* rtx, int in_type, const hawk_ooch_t* name,
 
 						/* we don't drop CR from the record buffer 
 						 * if we're in CRLF mode. POINT-X */
-						if (!(rtx->awk->opt.trait & HAWK_CRLF))
+						if (!(rtx->hawk->opt.trait & HAWK_CRLF))
 							HAWK_BECS_LEN(buf) -= 1;
 					}
 
@@ -867,7 +867,7 @@ int hawk_rtx_readiobytes (hawk_rtx_t* rtx, int in_type, const hawk_ooch_t* name,
 					{
 						/* we got a blank line */
 
-						if (rtx->awk->opt.trait & HAWK_CRLF)
+						if (rtx->hawk->opt.trait & HAWK_CRLF)
 						{
 							if (HAWK_BECS_LEN(buf) > 0 && HAWK_BECS_LASTCHAR(buf) == '\r')
 							{

@@ -487,7 +487,7 @@ static int fnc_tonum (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 		if (hawk_rtx_valtoint(rtx, a1, &base) <= -1) return -1;
 		rx = hawk_bchars_to_num(
-			HAWK_OOCHARS_TO_NUM_MAKE_OPTION(0, 0, (hawk->opt.trait & HAWK_STRIPSTRSPC), base),
+			HAWK_OOCHARS_TO_NUM_MAKE_OPTION(0, 0, HAWK_RTX_IS_STRIPSTRSPC_ON(rtx), base),
 			((hawk_val_mbs_t*)a0)->val.ptr,
 			((hawk_val_mbs_t*)a0)->val.len,
 			&lv, &rv
@@ -502,7 +502,7 @@ static int fnc_tonum (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 		if (hawk_rtx_valtoint(rtx, a1, &base) <= -1) return -1;
 		rx = hawk_oochars_to_num(
-			HAWK_OOCHARS_TO_NUM_MAKE_OPTION(0, 0, (hawk->opt.trait & HAWK_STRIPSTRSPC), base),
+			HAWK_OOCHARS_TO_NUM_MAKE_OPTION(0, 0, HAWK_RTX_IS_STRIPSTRSPC_ON(rtx), base),
 			((hawk_val_str_t*)a0)->val.ptr,
 			((hawk_val_str_t*)a0)->val.len,
 			&lv, &rv

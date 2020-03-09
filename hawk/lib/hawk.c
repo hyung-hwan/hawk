@@ -379,7 +379,7 @@ void hawk_clear (hawk_t* awk)
 	awk->parse.depth.loop = 0;
 	awk->parse.depth.expr = 0;
 	awk->parse.depth.incl = 0;
-	awk->parse.pragma.trait = (awk->opt.trait & (HAWK_IMPLICIT | HAWK_STRIPRECSPC)); /* implicit on if you didn't mask it off in awk->opt.trait with hawk_setopt */
+	awk->parse.pragma.trait = (awk->opt.trait & (HAWK_IMPLICIT | HAWK_STRIPRECSPC | HAWK_STRIPSTRSPC)); /* implicit on if you didn't mask it off in awk->opt.trait with hawk_setopt */
 	awk->parse.pragma.rtx_stack_limit = 0;
 	awk->parse.pragma.entry[0] = '\0';
 
