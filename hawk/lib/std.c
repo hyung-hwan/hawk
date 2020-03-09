@@ -2029,7 +2029,7 @@ static int open_rio_console (hawk_rtx_t* rtx, hawk_rio_arg_t* riod)
 		/* this part is more complex than the code in the else part.
 		 * it handles simple assignemnt as well as open files
 		 * via in ARGV instead of rxtn->c.in.files */
-		xtn_t* xtn = (xtn_t*)GET_XTN(rtx->awk);
+		xtn_t* xtn = (xtn_t*)GET_XTN(hawk_rtx_gethawk(rtx));
 		hawk_val_t* v_argc, * v_argv, * v_pair;
 		hawk_int_t i_argc;
 		const hawk_ooch_t* file;
@@ -2391,7 +2391,7 @@ static hawk_ooi_t awk_rio_console (hawk_rtx_t* rtx, hawk_rio_cmd_t cmd, hawk_rio
 static void fini_rxtn (hawk_rtx_t* rtx)
 {
 	rxtn_t* rxtn = GET_RXTN(rtx);
-	/*xtn_t* xtn = (xtn_t*)GET_XTN(rtx->awk);*/
+	/*xtn_t* xtn = (xtn_t*)GET_XTN(hawk_rtx_gethawk(rtx));*/
 
 	if (rxtn->c.in.files)
 	{
@@ -2685,7 +2685,7 @@ static hawk_rtx_t* open_rtx_std (
 
 	rxtn = GET_RXTN(rtx);
 
-	if (rtx->awk->opt.trait & HAWK_RIO)
+	if (rtx->hawk->opt.trait & HAWK_RIO)
 	{
 		if (hawk_htb_init(&rxtn->cmgrtab, hawk_getgem(awk), 256, 70, HAWK_SIZEOF(hawk_ooch_t), 1) <= -1)
 		{
@@ -2990,7 +2990,7 @@ static int fnc_setioattr (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 		/* no error is returned by hawk_rtx_strnum() if the strict option 
 		 * of the second parameter is 0. so i don't check for an error */
-		x = hawk_oochars_to_num(HAWK_OOCHARS_TO_NUM_MAKE_OPTION(0, 0, (hawk->opt.trait & HAWK_STRIPSTRSPC), 0), ptr[2], len[2], &l, &r);
+		x = hawk_oochars_to_num(HAWK_OOCHARS_TO_NUM_MAKE_OPTION(0, 0, HAWK_RTX_IS_STRIPSTRSPC_ON(rtx), 0), ptr[2], len[2], &l, &r);
 		if (x == 0) r = (hawk_flt_t)l;
 
 		ioattr = find_or_make_ioattr(rtx, &rxtn->cmgrtab, ptr[0], len[0]);

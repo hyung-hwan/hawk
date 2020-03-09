@@ -307,7 +307,7 @@ hawk_val_t* hawk_rtx_makenumorstrvalwithuchars (hawk_rtx_t* rtx, const hawk_uch_
 	hawk_int_t l;
 	hawk_flt_t r;
 
-	x = hawk_uchars_to_num(HAWK_OOCHARS_TO_NUM_MAKE_OPTION(1, 1, (hawk->opt.trait & HAWK_STRIPSTRSPC), 0), ptr, len, &l, &r);
+	x = hawk_uchars_to_num(HAWK_OOCHARS_TO_NUM_MAKE_OPTION(1, 1, HAWK_RTX_IS_STRIPSTRSPC_ON(rtx), 0), ptr, len, &l, &r);
 	if (x == 0) return hawk_rtx_makeintval(rtx, l);
 	else if (x >= 1) return hawk_rtx_makefltval(rtx, r);
 
@@ -321,7 +321,7 @@ hawk_val_t* hawk_rtx_makenumorstrvalwithbchars (hawk_rtx_t* rtx, const hawk_bch_
 	hawk_int_t l;
 	hawk_flt_t r;
 
-	x = hawk_bchars_to_num(HAWK_OOCHARS_TO_NUM_MAKE_OPTION(1, 1, (hawk->opt.trait & HAWK_STRIPSTRSPC), 0), ptr, len, &l, &r);
+	x = hawk_bchars_to_num(HAWK_OOCHARS_TO_NUM_MAKE_OPTION(1, 1, HAWK_RTX_IS_STRIPSTRSPC_ON(rtx), 0), ptr, len, &l, &r);
 	if (x == 0) return hawk_rtx_makeintval(rtx, l);
 	else if (x >= 1) return hawk_rtx_makefltval(rtx, r);
 
@@ -339,7 +339,7 @@ hawk_val_t* hawk_rtx_makenstrvalwithuchars (hawk_rtx_t* rtx, const hawk_uch_t* p
 	hawk_int_t l;
 	hawk_flt_t r;
 
-	x = hawk_uchars_to_num(HAWK_OOCHARS_TO_NUM_MAKE_OPTION(1, 0, (hawk->opt.trait & HAWK_STRIPSTRSPC), 0), ptr, len, &l, &r);
+	x = hawk_uchars_to_num(HAWK_OOCHARS_TO_NUM_MAKE_OPTION(1, 0, HAWK_RTX_IS_STRIPSTRSPC_ON(rtx), 0), ptr, len, &l, &r);
 	v = hawk_rtx_makestrvalwithuchars(rtx, ptr, len);
 
 	if (!v) return HAWK_NULL;
@@ -363,7 +363,7 @@ hawk_val_t* hawk_rtx_makenstrvalwithbchars (hawk_rtx_t* rtx, const hawk_bch_t* p
 	hawk_int_t l;
 	hawk_flt_t r;
 
-	x = hawk_bchars_to_num(HAWK_OOCHARS_TO_NUM_MAKE_OPTION(1, 0, (hawk->opt.trait & HAWK_STRIPSTRSPC), 0), ptr, len, &l, &r);
+	x = hawk_bchars_to_num(HAWK_OOCHARS_TO_NUM_MAKE_OPTION(1, 0, HAWK_RTX_IS_STRIPSTRSPC_ON(rtx), 0), ptr, len, &l, &r);
 	v = hawk_rtx_makestrvalwithbchars(rtx, ptr, len);
 
 	if (!v) return HAWK_NULL;
@@ -465,7 +465,7 @@ hawk_val_t* hawk_rtx_makenumormbsvalwithuchars (hawk_rtx_t* rtx, const hawk_uch_
 	hawk_int_t l;
 	hawk_flt_t r;
 
-	x = hawk_uchars_to_num(HAWK_OOCHARS_TO_NUM_MAKE_OPTION(1, 1, (hawk->opt.trait & HAWK_STRIPSTRSPC), 0), ptr, len, &l, &r);
+	x = hawk_uchars_to_num(HAWK_OOCHARS_TO_NUM_MAKE_OPTION(1, 1, HAWK_RTX_IS_STRIPSTRSPC_ON(rtx), 0), ptr, len, &l, &r);
 	if (x == 0) return hawk_rtx_makeintval(rtx, l);
 	else if (x >= 1) return hawk_rtx_makefltval(rtx, r);
 
@@ -479,7 +479,7 @@ hawk_val_t* hawk_rtx_makenumormbsvalwithbchars (hawk_rtx_t* rtx, const hawk_bch_
 	hawk_int_t l;
 	hawk_flt_t r;
 
-	x = hawk_bchars_to_num(HAWK_OOCHARS_TO_NUM_MAKE_OPTION(1, 1, (hawk->opt.trait & HAWK_STRIPSTRSPC), 0), ptr, len, &l, &r);
+	x = hawk_bchars_to_num(HAWK_OOCHARS_TO_NUM_MAKE_OPTION(1, 1, HAWK_RTX_IS_STRIPSTRSPC_ON(rtx), 0), ptr, len, &l, &r);
 	if (x == 0) return hawk_rtx_makeintval(rtx, l);
 	else if (x >= 1) return hawk_rtx_makefltval(rtx, r);
 
@@ -858,7 +858,7 @@ void hawk_rtx_freeval (hawk_rtx_t* rtx, hawk_val_t* val, int cache)
 			
 				/* code is just a pointer to a regular expression stored
 				 * in parse tree nodes. so don't free it.
-				hawk_freerex (rtx->awk, ((hawk_val_rex_t*)val)->code[0], ((hawk_val_rex_t*)val)->code[1]);
+				hawk_freerex (rtx->hawk, ((hawk_val_rex_t*)val)->code[0], ((hawk_val_rex_t*)val)->code[1]);
 				 */
 
 				hawk_rtx_freemem (rtx, val);
@@ -1447,7 +1447,7 @@ int hawk_rtx_valtostr (hawk_rtx_t* rtx, const hawk_val_t* v, hawk_rtx_valtostr_o
 			return str_to_str(rtx, ((hawk_val_fun_t*)v)->fun->name.ptr, ((hawk_val_fun_t*)v)->fun->name.len, out);
 
 		case HAWK_VAL_MAP:
-			if (rtx->awk->opt.trait & HAWK_FLEXMAP)
+			if (rtx->hawk->opt.trait & HAWK_FLEXMAP)
 			{
 				return str_to_str(rtx, HAWK_T("#MAP"), 4, out);
 			}
@@ -1651,7 +1651,7 @@ static int val_ref_to_num (hawk_rtx_t* rtx, const hawk_val_ref_t* ref, hawk_int_
 			if (idx == 0)
 			{
 				return hawk_oochars_to_num(
-					HAWK_OOCHARS_TO_NUM_MAKE_OPTION(0, 0, (hawk->opt.trait & HAWK_STRIPSTRSPC), 0),
+					HAWK_OOCHARS_TO_NUM_MAKE_OPTION(0, 0, HAWK_RTX_IS_STRIPSTRSPC_ON(rtx), 0),
 					HAWK_OOECS_PTR(&rtx->inrec.line),
 					HAWK_OOECS_LEN(&rtx->inrec.line),
 					l, r
@@ -1660,7 +1660,7 @@ static int val_ref_to_num (hawk_rtx_t* rtx, const hawk_val_ref_t* ref, hawk_int_
 			else if (idx <= rtx->inrec.nflds)
 			{
 				return hawk_oochars_to_num(
-					HAWK_OOCHARS_TO_NUM_MAKE_OPTION(0, 0, (hawk->opt.trait & HAWK_STRIPSTRSPC), 0),
+					HAWK_OOCHARS_TO_NUM_MAKE_OPTION(0, 0, HAWK_RTX_IS_STRIPSTRSPC_ON(rtx), 0),
 					rtx->inrec.flds[idx-1].ptr,
 					rtx->inrec.flds[idx-1].len,
 					l, r
@@ -1668,7 +1668,7 @@ static int val_ref_to_num (hawk_rtx_t* rtx, const hawk_val_ref_t* ref, hawk_int_
 			}
 			else
 			{
-				return hawk_oochars_to_num(HAWK_OOCHARS_TO_NUM_MAKE_OPTION(0, 0, (hawk->opt.trait & HAWK_STRIPSTRSPC), 0), HAWK_T(""), 0, l, r);
+				return hawk_oochars_to_num(HAWK_OOCHARS_TO_NUM_MAKE_OPTION(0, 0, HAWK_RTX_IS_STRIPSTRSPC_ON(rtx), 0), HAWK_T(""), 0, l, r);
 			}
 		}
 
@@ -1715,7 +1715,7 @@ int hawk_rtx_valtonum (hawk_rtx_t* rtx, const hawk_val_t* v, hawk_int_t* l, hawk
 
 		case HAWK_VAL_STR:
 			return hawk_oochars_to_num(
-				HAWK_OOCHARS_TO_NUM_MAKE_OPTION(0, 0, (hawk->opt.trait & HAWK_STRIPSTRSPC), 0),
+				HAWK_OOCHARS_TO_NUM_MAKE_OPTION(0, 0, HAWK_RTX_IS_STRIPSTRSPC_ON(rtx), 0),
 				((hawk_val_str_t*)v)->val.ptr,
 				((hawk_val_str_t*)v)->val.len,
 				l, r
@@ -1723,7 +1723,7 @@ int hawk_rtx_valtonum (hawk_rtx_t* rtx, const hawk_val_t* v, hawk_int_t* l, hawk
 
 		case HAWK_VAL_MBS:
 			return hawk_bchars_to_num(
-				HAWK_OOCHARS_TO_NUM_MAKE_OPTION(0, 0, (hawk->opt.trait & HAWK_STRIPSTRSPC), 0),
+				HAWK_OOCHARS_TO_NUM_MAKE_OPTION(0, 0, HAWK_RTX_IS_STRIPSTRSPC_ON(rtx), 0),
 				((hawk_val_mbs_t*)v)->val.ptr,
 				((hawk_val_mbs_t*)v)->val.len,
 				l, r
@@ -1734,7 +1734,7 @@ int hawk_rtx_valtonum (hawk_rtx_t* rtx, const hawk_val_t* v, hawk_int_t* l, hawk
 			goto invalid;
 
 		case HAWK_VAL_MAP:
-			if (rtx->awk->opt.trait & HAWK_FLEXMAP)
+			if (rtx->hawk->opt.trait & HAWK_FLEXMAP)
 			{
 				*l = HAWK_HTB_SIZE(((hawk_val_map_t*)v)->map);
 				return 0; /* long */
@@ -2004,7 +2004,7 @@ int hawk_rtx_setrefval (hawk_rtx_t* rtx, hawk_val_ref_t* ref, hawk_val_t* val)
 				/* new value: map, old value: nil or map => ok */
 				if (rref_vtype != HAWK_VAL_NIL && rref_vtype != HAWK_VAL_MAP)
 				{
-					if (!(rtx->awk->opt.trait & HAWK_FLEXMAP))
+					if (!(rtx->hawk->opt.trait & HAWK_FLEXMAP))
 					{
 						/* cannot change a scalar value to a map */
 						hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_ESCALARTOMAP);
@@ -2017,7 +2017,7 @@ int hawk_rtx_setrefval (hawk_rtx_t* rtx, hawk_val_ref_t* ref, hawk_val_t* val)
 				/* new value: scalar, old value: nil or scalar => ok */
 				if (rref_vtype == HAWK_VAL_MAP)
 				{
-					if (!(rtx->awk->opt.trait & HAWK_FLEXMAP))
+					if (!(rtx->hawk->opt.trait & HAWK_FLEXMAP))
 					{
 						hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EMAPTOSCALAR);
 						return -1;

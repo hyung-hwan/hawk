@@ -375,6 +375,8 @@ static global_t gtab[] =
 	 * if not set, the behavior is dependent on the awk->opt.trait & HAWK_STRIPRECSPC */
 	{ HAWK_T("STRIPRECSPC"),  11, 0 }, 
 
+	{ HAWK_T("STRIPSTRSPC"),  11, 0 }, 
+
 	{ HAWK_T("SUBSEP"),       6,  0 }
 };
 
@@ -870,7 +872,7 @@ static int begin_include (hawk_t* awk, int once)
 	arg->pragma_trait = awk->parse.pragma.trait;
 	/* but don't change awk->parse.pragma.trait. it means the included file inherits
 	 * the existing progma values. 
-	awk->parse.pragma.trait = (awk->opt.trait & (HAWK_IMPLICIT | HAWK_STRIPRECSPC));
+	awk->parse.pragma.trait = (awk->opt.trait & (HAWK_IMPLICIT | HAWK_STRIPRECSPC | HAWK_STRIPSTRSPC));
 	*/
 
 	/* i update the current pointer after opening is successful */
@@ -1049,14 +1051,11 @@ static int parse_progunit (hawk_t* awk)
 				return -1;
 			}
 
-			sl = hawk_oochars_to_int(HAWK_OOECS_PTR(awk->tok.name), HAWK_OOECS_LEN(awk->tok.name), 
-				HAWK_OOCHARS_TO_INT_MAKE_OPTION((awk->opt.trait & HAWK_STRIPSTRSPC), (awk->opt.trait & HAWK_STRIPSTRSPC), 0),
-				HAWK_NULL, HAWK_NULL);
+			sl = hawk_oochars_to_int(HAWK_OOECS_PTR(awk->tok.name), HAWK_OOECS_LEN(awk->tok.name), HAWK_OOCHARS_TO_INT_MAKE_OPTION(0, 0, 0), HAWK_NULL, HAWK_NULL);
 			if (sl < HAWK_MIN_RTX_STACK_LIMIT) sl = HAWK_MIN_RTX_STACK_LIMIT;
 			else if (sl > HAWK_MAX_RTX_STACK_LIMIT) sl = HAWK_MAX_RTX_STACK_LIMIT;
 			/* take the specified value if it's greater than the existing value */
 			if (sl > awk->parse.pragma.rtx_stack_limit) awk->parse.pragma.rtx_stack_limit = sl;
-			
 		}
 		else if (hawk_comp_oochars_oocstr(name.ptr, name.len, HAWK_T("striprecspc")) == 0)
 		{
@@ -1098,6 +1097,45 @@ static int parse_progunit (hawk_t* awk)
 					awk->parse.pragma.trait |= HAWK_STRIPRECSPC;
 				else
 					awk->parse.pragma.trait &= ~HAWK_STRIPRECSPC;
+			}
+		}
+		else if (hawk_comp_oochars_oocstr(name.ptr, name.len, HAWK_T("stripstrspc")) == 0)
+		{
+			/* @pragma stripstrspc on
+			 * @pragma stripstrspc off 
+			 */
+			int is_on;
+
+			if (get_token(awk) <= -1) return -1;
+			if (!MATCH(awk, TOK_IDENT))
+			{
+			error_ident_on_off_expected_for_stripstrspc:
+				hawk_seterrfmt (awk, &awk->ptok.loc, HAWK_EIDENT, HAWK_T("identifier 'on' or 'off' expected for 'stripstrspc'"));
+				return -1;
+			}
+
+			name.len = HAWK_OOECS_LEN(awk->tok.name);
+			name.ptr = HAWK_OOECS_PTR(awk->tok.name);
+			if (hawk_comp_oochars_oocstr(name.ptr, name.len, HAWK_T("on")) == 0)
+			{
+				is_on = 1;
+			}
+			else if (hawk_comp_oochars_oocstr(name.ptr, name.len, HAWK_T("off")) == 0)
+			{
+				is_on = 0;
+			}
+			else
+			{
+				goto error_ident_on_off_expected_for_stripstrspc;
+			}
+
+			if (awk->sio.inp == &awk->sio.arg)
+			{
+				/* only the top level source. ignore stripstrspc pragma in other levels */
+				if (is_on)
+					awk->parse.pragma.trait |= HAWK_STRIPSTRSPC;
+				else
+					awk->parse.pragma.trait &= ~HAWK_STRIPSTRSPC;
 			}
 		}
 		else
@@ -4621,17 +4659,17 @@ static hawk_nde_t* parse_primary_int  (hawk_t* hawk, const hawk_loc_t* xloc)
 	/* create the node for the literal */
 	nde = (hawk_nde_int_t*)new_int_node (
 		hawk, 
-		hawk_oochars_to_int (HAWK_OOECS_PTR(hawk->tok.name), HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOCHARS_TO_INT_MAKE_OPTION((hawk->opt.trait & HAWK_STRIPSTRSPC), (hawk->opt.trait & HAWK_STRIPSTRSPC), 0), HAWK_NULL, HAWK_NULL),
+		hawk_oochars_to_int (HAWK_OOECS_PTR(hawk->tok.name), HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOCHARS_TO_INT_MAKE_OPTION(0, 0, 0), HAWK_NULL, HAWK_NULL),
 		xloc
 	);
-	if (nde == HAWK_NULL) return HAWK_NULL;
+	if (HAWK_UNLIKELY(!nde)) return HAWK_NULL;
 
 	HAWK_ASSERT (HAWK_OOECS_LEN(hawk->tok.name) == hawk_count_oocstr(HAWK_OOECS_PTR(hawk->tok.name)));
 
 	/* remember the literal in the original form */
 	nde->len = HAWK_OOECS_LEN(hawk->tok.name);
 	nde->str = hawk_dupoocs(hawk, HAWK_OOECS_OOCS(hawk->tok.name));
-	if (nde->str == HAWK_NULL || get_token(hawk) <= -1) goto oops;
+	if (!nde->str || get_token(hawk) <= -1) goto oops;
 
 	return (hawk_nde_t*)nde;
 
@@ -4649,10 +4687,10 @@ static hawk_nde_t* parse_primary_flt  (hawk_t* hawk, const hawk_loc_t* xloc)
 	/* create the node for the literal */
 	nde = (hawk_nde_flt_t*)new_flt_node(
 		hawk, 
-		hawk_oochars_to_flt(HAWK_OOECS_PTR(hawk->tok.name), HAWK_OOECS_LEN(hawk->tok.name), HAWK_NULL, (hawk->opt.trait & HAWK_STRIPSTRSPC)),
+		hawk_oochars_to_flt(HAWK_OOECS_PTR(hawk->tok.name), HAWK_OOECS_LEN(hawk->tok.name), HAWK_NULL, 0),
 		xloc
 	);
-	if (nde == HAWK_NULL) return HAWK_NULL;
+	if (HAWK_UNLIKELY(!nde)) return HAWK_NULL;
 
 	HAWK_ASSERT (
 		HAWK_OOECS_LEN(hawk->tok.name) ==
@@ -4661,7 +4699,7 @@ static hawk_nde_t* parse_primary_flt  (hawk_t* hawk, const hawk_loc_t* xloc)
 	/* remember the literal in the original form */
 	nde->len = HAWK_OOECS_LEN(hawk->tok.name);
 	nde->str = hawk_dupoocs(hawk, HAWK_OOECS_OOCS(hawk->tok.name));
-	if (nde->str == HAWK_NULL || get_token(hawk) <= -1) goto oops;
+	if (!nde->str || get_token(hawk) <= -1) goto oops;
 
 	return (hawk_nde_t*)nde;
 

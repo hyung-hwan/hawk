@@ -52,18 +52,18 @@
  * AWK script as shown below:
  * 
  * \code
- * hawk_t* awk;
+ * hawk_t* hawk;
  * hawk_rtx_t* rtx;
  * hawk_sio_cbs_t sio; // need to initialize it with callback functions
  * hawk_rio_cbs_t rio; // need to initialize it with callback functions
  *
  * awk = hawk_open(mmgr, 0, prm); // create an interpreter 
- * hawk_parse (awk, &sio);          // parse a script 
- * rtx = hawk_rtx_open (awk, 0, &rio); // create a runtime context 
- * retv = hawk_rtx_loop (rtx);     // run a standard AWK loop 
+ * hawk_parse (hawk, &sio);          // parse a script 
+ * rtx = hawk_rtx_open(hawk, 0, &rio); // create a runtime context 
+ * retv = hawk_rtx_loop(rtx);     // run a standard AWK loop 
  * if (retv) hawk_rtx_refdownval (rtx, retv); // free return value
  * hawk_rtx_close (rtx);           // destroy the runtime context
- * hawk_close (awk);               // destroy the interpreter
+ * hawk_close (hawk);               // destroy the interpreter
  * \endcode
  *
  * It provides an interface to change the conventional behavior of the 
@@ -115,7 +115,7 @@ typedef struct hawk_rtx_t hawk_rtx_t;
 	hawk_oow_t _instsize; \
 	hawk_gem_t _gem; \
 	int id; \
-	hawk_t* awk
+	hawk_t* hawk
 
 typedef struct hawk_rtx_alt_t hawk_rtx_alt_t;
 struct hawk_rtx_alt_t
@@ -1316,6 +1316,7 @@ enum hawk_gbl_id_t
 	HAWK_GBL_RSTART,
 	HAWK_GBL_SCRIPTNAME,
 	HAWK_GBL_STRIPRECSPC,
+	HAWK_GBL_STRIPSTRSPC,
 	HAWK_GBL_SUBSEP,
 
 	/* these are not not the actual IDs and are used internally only 
@@ -2054,14 +2055,14 @@ HAWK_EXPORT void hawk_rtx_close (
 );
 
 #if defined(HAWK_HAVE_INLINE)
-static HAWK_INLINE hawk_t* hawk_rtx_gethawk (hawk_rtx_t* rtx) { return ((hawk_rtx_alt_t*)rtx)->awk; }
+static HAWK_INLINE hawk_t* hawk_rtx_gethawk (hawk_rtx_t* rtx) { return ((hawk_rtx_alt_t*)rtx)->hawk; }
 static HAWK_INLINE void* hawk_rtx_getxtn (hawk_rtx_t* rtx) { return (void*)((hawk_uint8_t*)rtx + ((hawk_rtx_alt_t*)rtx)->_instsize); }
 static HAWK_INLINE hawk_gem_t* hawk_rtx_getgem (hawk_rtx_t* rtx) { return &((hawk_rtx_alt_t*)rtx)->_gem; }
 static HAWK_INLINE hawk_mmgr_t* hawk_rtx_getmmgr (hawk_rtx_t* rtx) { return ((hawk_rtx_alt_t*)rtx)->_gem.mmgr; }
 static HAWK_INLINE hawk_cmgr_t* hawk_rtx_getcmgr (hawk_rtx_t* rtx) { return ((hawk_rtx_alt_t*)rtx)->_gem.cmgr; }
 static HAWK_INLINE void hawk_rtx_setcmgr (hawk_rtx_t* rtx, hawk_cmgr_t* cmgr) { ((hawk_rtx_alt_t*)rtx)->_gem.cmgr = cmgr; }
 #else
-#define hawk_rtx_gethawk(rtx) (((hawk_rtx_alt_t*)(rtx))->awk)
+#define hawk_rtx_gethawk(rtx) (((hawk_rtx_alt_t*)(rtx))->hawk)
 #define hawk_rtx_getxtn(rtx) ((void*)((hawk_uint8_t*)rtx + ((hawk_rtx_alt_t*)rtx)->_instsize))
 #define hawk_rtx_getgem(rtx) (&((hawk_rtx_alt_t*)(rtx))->_gem)
 #define hawk_rtx_getmmgr(rtx) (((hawk_rtx_alt_t*)(rtx))->_gem.mmgr)

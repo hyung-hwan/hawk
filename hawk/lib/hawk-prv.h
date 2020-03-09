@@ -349,7 +349,7 @@ struct hawk_chain_t
 #define RTX_STACK_LCL(rtx,n) RTX_STACK_AT(rtx,3+(hawk_oow_t)RTX_STACK_NARGS(rtx)+1+(n))
 #define RTX_STACK_RETVAL(rtx) RTX_STACK_AT(rtx,2)
 #define RTX_STACK_GBL(rtx,n) ((rtx)->stack[(n)])
-#define RTX_STACK_RETVAL_GBL(rtx) ((rtx)->stack[(rtx)->awk->tree.ngbls+2])
+#define RTX_STACK_RETVAL_GBL(rtx) ((rtx)->stack[(rtx)->hawk->tree.ngbls+2])
 
 struct hawk_rtx_t
 {
@@ -414,6 +414,7 @@ struct hawk_rtx_t
 		void* fs[2]; 
 		int ignorecase;
 		int striprecspc;
+		int stripstrspc;
 
 		hawk_int_t nr;
 		hawk_int_t fnr;
@@ -492,6 +493,10 @@ struct hawk_mod_data_t
 		(refval)->id = (_id); \
 		(refval)->adr = (_adr); \
 	} while(0);
+
+
+#define HAWK_RTX_IS_STRIPRECSPC_ON(rtx) ((rtx)->gbl.striprecspc > 0 || ((rtx)->gbl.striprecspc < 0 && ((rtx)->hawk->parse.pragma.trait & HAWK_STRIPRECSPC)))
+#define HAWK_RTX_IS_STRIPSTRSPC_ON(rtx) ((rtx)->gbl.stripstrspc > 0 || ((rtx)->gbl.stripstrspc < 0 && ((rtx)->hawk->parse.pragma.trait & HAWK_STRIPSTRSPC)))
 
 #if defined(__cplusplus)
 extern "C" {

@@ -281,7 +281,7 @@ hawk_ooch_t* hawk_rtx_strxntokbyrex (
 			cursub.ptr++;
 			cursub.len--;
 		}
-		else if (rtx->gbl.striprecspc > 0 || (rtx->gbl.striprecspc < 0 && (rtx->awk->parse.pragma.trait & HAWK_STRIPRECSPC)))
+		else if (HAWK_RTX_IS_STRIPRECSPC_ON(rtx))
 		{
 			/* match at the beginning of the input string */
 			if (match.ptr == substr) 
@@ -329,7 +329,7 @@ exit_loop:
 	}
 
 	/* the match is all spaces */
-	if (rtx->gbl.striprecspc > 0 || (rtx->gbl.striprecspc < 0 && (rtx->awk->parse.pragma.trait & HAWK_STRIPRECSPC)))
+	if (HAWK_RTX_IS_STRIPRECSPC_ON(rtx))
 	{
 		/* if the match reached the last character in the input string,
 		 * it returns HAWK_NULL to terminate tokenization. */
