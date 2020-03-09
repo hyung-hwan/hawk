@@ -277,6 +277,14 @@ tre_parse_bracket_items(tre_parse_ctx_t *ctx, int negate,
 				if (min > max)
 					status = REG_ERANGE;
 			}
+		/* BACON */
+			else if (re + 1 < ctx->re_end && *re == CHAR_BACKSLASH)
+			{
+				/* escaped character inside [] */
+				min = max = *(re + 1);
+				re += 2;
+			}
+		/* END BACON */
 			else if (re + 1 < ctx->re_end
 			         && *re == CHAR_LBRACKET && *(re + 1) == CHAR_PERIOD)
 				status = REG_ECOLLATE;
@@ -308,7 +316,7 @@ tre_parse_bracket_items(tre_parse_ctx_t *ctx, int negate,
 						 *      or per-context character encoding using hawk_cmgr_t */
 						/* if (status == REG_OK && TRE_MB_CUR_MAX == 1) */
 						/* END HAWK */
-						if (status == REG_OK)	
+						if (status == REG_OK)
 						{
 							status = tre_expand_ctype(ctx->mem, class, items, &i, &max_i, ctx->cflags);
 							class = (tre_ctype_t)0;
