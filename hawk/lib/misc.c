@@ -510,15 +510,17 @@ static int matchtre_bcs (hawk_tre_t* tre, int opt, const hawk_bcs_t* str, hawk_b
 	return 1;
 }
 
-int hawk_rtx_matchval (hawk_rtx_t* rtx, hawk_val_t* val, const hawk_oocs_t* str, const hawk_oocs_t* substr, hawk_oocs_t* match, hawk_oocs_t submat[9])
+int hawk_rtx_matchvalwithucs (hawk_rtx_t* rtx, hawk_val_t* val, const hawk_ucs_t* str, const hawk_ucs_t* substr, hawk_ucs_t* match, hawk_ucs_t submat[9])
 {
 	int ignorecase, x;
 	int opt = HAWK_TRE_BACKTRACKING; /* TODO: option... HAWK_TRE_BACKTRACKING ??? */
 	hawk_tre_t* code;
+	hawk_val_type_t v_type;
 
 	ignorecase = rtx->gbl.ignorecase;
 
-	if (HAWK_RTX_GETVALTYPE(rtx, val) == HAWK_VAL_REX)
+	v_type = HAWK_RTX_GETVALTYPE(rtx, val);
+	if (v_type == HAWK_VAL_REX)
 	{
 		code = ((hawk_val_rex_t*)val)->code[ignorecase];
 	}
@@ -536,16 +538,13 @@ int hawk_rtx_matchval (hawk_rtx_t* rtx, hawk_val_t* val, const hawk_oocs_t* str,
 		if (x <= -1) return -1;
 	}
 
-#if defined(HAWK_OOCH_IS_UCH)
+
 	x = matchtre_ucs(
-#else
-	x = matchtre_bcs(
-#endif
 		code, ((str->ptr == substr->ptr)? opt: (opt | HAWK_TRE_NOTBOL)),
 		substr, match, submat, hawk_rtx_getgem(rtx)
 	);
 
-	if (HAWK_RTX_GETVALTYPE(rtx, val) == HAWK_VAL_REX) 
+	if (v_type == HAWK_VAL_REX) 
 	{
 		/* nothing to free */
 	}
@@ -556,6 +555,53 @@ int hawk_rtx_matchval (hawk_rtx_t* rtx, hawk_val_t* val, const hawk_oocs_t* str,
 
 	return x;
 }
+
+
+int hawk_rtx_matchvalwithbcs (hawk_rtx_t* rtx, hawk_val_t* val, const hawk_bcs_t* str, const hawk_bcs_t* substr, hawk_bcs_t* match, hawk_bcs_t submat[9])
+{
+	int ignorecase, x;
+	int opt = HAWK_TRE_BACKTRACKING; /* TODO: option... HAWK_TRE_BACKTRACKING ??? */
+	hawk_tre_t* code;
+	hawk_val_type_t v_type;
+
+	ignorecase = rtx->gbl.ignorecase;
+
+	v_type = HAWK_RTX_GETVALTYPE(rtx, val);
+	if (v_type == HAWK_VAL_REX)
+	{
+		code = ((hawk_val_rex_t*)val)->code[ignorecase];
+	}
+	else 
+	{
+		/* convert to a string and build a regular expression */
+		hawk_oocs_t tmp;
+
+		tmp.ptr = hawk_rtx_getvaloocstr(rtx, val, &tmp.len);
+		if (HAWK_UNLIKELY(!tmp.ptr)) return -1;
+
+		x = ignorecase? hawk_rtx_buildrex(rtx, tmp.ptr, tmp.len, HAWK_NULL, &code):
+		                hawk_rtx_buildrex(rtx, tmp.ptr, tmp.len, &code, HAWK_NULL);
+		hawk_rtx_freevaloocstr (rtx, val, tmp.ptr);
+		if (x <= -1) return -1;
+	}
+
+	x = matchtre_bcs(
+		code, ((str->ptr == substr->ptr)? opt: (opt | HAWK_TRE_NOTBOL)),
+		substr, match, submat, hawk_rtx_getgem(rtx)
+	);
+
+	if (v_type == HAWK_VAL_REX) 
+	{
+		/* nothing to free */
+	}
+	else
+	{
+		hawk_tre_close (code);
+	}
+
+	return x;
+}
+
 
 int hawk_rtx_matchrexwithucs (hawk_rtx_t* rtx, hawk_tre_t* code, const hawk_ucs_t* str, const hawk_ucs_t* substr, hawk_ucs_t* match, hawk_ucs_t submat[9])
 {

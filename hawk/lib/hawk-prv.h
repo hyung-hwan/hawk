@@ -463,7 +463,7 @@ struct hawk_rtx_t
 	{
 		hawk_becs_t bout;
 		hawk_ooecs_t oout;
-	} subst; /* output buffer for gsub and sub */
+	} fnc; /* output buffer simple functions like gsub, sub, match*/
 
 	struct
 	{
