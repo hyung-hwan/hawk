@@ -801,7 +801,7 @@ int hawk_fnc_split (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	hawk_oow_t nargs;
 	hawk_val_t* a0, * a2, * t1, * t2;
-	hawk_val_type_t a1_vtype, a2_vtype, t1_vtype;
+	hawk_val_type_t a2_vtype, t1_vtype;
 
 	hawk_oocs_t str;
 	hawk_oocs_t fs;
@@ -825,7 +825,7 @@ int hawk_fnc_split (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	a2 = (nargs >= 3)? hawk_rtx_getarg (rtx, 2): HAWK_NULL;
 
 	str.ptr = hawk_rtx_getvaloocstr(rtx, a0, &str.len);
-	if (str.ptr == HAWK_NULL) goto oops;
+	if (HAWK_UNLIKELY(!str.ptr)) goto oops;
 
 	if (a2 == HAWK_NULL)
 	{
@@ -974,7 +974,6 @@ int hawk_fnc_split (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	return 0;
 
 oops:
-	/*if (str_free) hawk_rtx_freemem (rtx, str_free);*/
 	if (str.ptr) hawk_rtx_freevaloocstr (rtx, a0, str.ptr);
 
 	if (fs_free) hawk_rtx_freemem (rtx, fs_free);
@@ -1291,6 +1290,9 @@ static int __substitute (hawk_rtx_t* rtx, hawk_oow_t max_count)
 	else 
 	{
 		r2 = hawk_rtx_getrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, 2));
+		if (!r2)
+		{
+		}
 
 		if (HAWK_RTX_GETVALTYPE(rtx, r2) == HAWK_VAL_MBS)
 		{
@@ -1461,7 +1463,12 @@ int hawk_fnc_match (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	match("abcdefg", "cde");
 	match("abcdefgdefx", "def", 7);
 	------------------------------------
-	match("abcdefgdefx", /(def)g(.+)/, 1, x); 
+	match("ab\uB098cdefgdefx", /(def)g(.+)/, 1, x); 
+	q = length(x) / 2;
+	for (i = 1; i <= q; i++) print x[i,"start"], x[i,"length"]; 
+	print RSTART, RLENGTH;
+	* ------------------------------------
+	match(B"ab\xB0\x98cdefgdefx", /(def)g(.+)/, 1, x); 
 	q = length(x) / 2;
 	for (i = 1; i <= q; i++) print x[i,"start"], x[i,"length"]; 
 	print RSTART, RLENGTH;
@@ -1470,12 +1477,29 @@ int hawk_fnc_match (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_oow_t nargs;
 	hawk_val_t* a0, * a1;
 	hawk_val_type_t a0_type;
-	hawk_ooch_t* str0;
+
+	union
+	{
+		hawk_ooch_t* o;
+		hawk_bch_t* b;
+	} str0;
 	hawk_oow_t len0;
 	hawk_int_t idx, start = 1;
 	hawk_val_t* x0 = HAWK_NULL, * x1 = HAWK_NULL, * x2 = HAWK_NULL;
+
+	union
+	{
+		hawk_oocs_t o;
+		hawk_bcs_t b;
+	} mat;
+
+	union
+	{
+		hawk_oocs_t o[9];
+		hawk_bcs_t b[9];
+	} submat;
+
 	int n;
-	hawk_oocs_t mat, submat[9];
 
 	nargs = hawk_rtx_getnargs(rtx);
 	HAWK_ASSERT (nargs >= 2 && nargs <= 4);
@@ -1494,52 +1518,61 @@ int hawk_fnc_match (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		if (n <= -1) return -1;
 	}
 
-/* TODO: match support MBS */
+	HAWK_MEMSET (&submat, 0, HAWK_SIZEOF(submat));
+
 	a0_type = HAWK_RTX_GETVALTYPE(rtx, a0);
-	/*if (a0_type == HAWK_VAL_MBS)
+	if (a0_type == HAWK_VAL_MBS)
 	{
-		str0 = hawk_rtx_getvalbcstr(rtx, a0, &len0);
+		hawk_bcs_t tmp;
+
+		str0.b = hawk_rtx_getvalbcstr(rtx, a0, &len0);
+		if (HAWK_UNLIKELY(!str0.b)) return -1;
+
+		if (start == 0) start = 1;
+		else if (start < 0) start = len0 + start + 1;
+		if (start > len0 || start <= 0) n = 0;
+
+		tmp.ptr = str0.b + start - 1;
+		tmp.len = len0 - start + 1;
+
+		n = hawk_rtx_matchvalwithbcs(rtx, a1, &tmp, &tmp, &mat.b, (nargs >= 4? submat.b: HAWK_NULL));
+		hawk_rtx_freevalbcstr (rtx, a0, str0.b);
+
+		if (n <= -1) return -1;
+
+		/* RSTART: 0 on no match */
+		idx = (n == 0)? 0: ((hawk_int_t)(mat.b.ptr - str0.b) + 1);
 	}
-	else
-	{*/
-		str0 = hawk_rtx_getvaloocstr(rtx, a0, &len0);
-	/*}*/
-	if (HAWK_UNLIKELY(!str0)) return -1;
-
-	if (start == 0) start = 1;
-	else if (start < 0) start = len0 + start + 1;
-
-	HAWK_MEMSET (submat, 0, HAWK_SIZEOF(submat));
-	if (start > len0 || start <= 0) n = 0;
 	else
 	{
 		hawk_oocs_t tmp;
 
-		tmp.ptr = str0 + start - 1;
+		str0.o = hawk_rtx_getvaloocstr(rtx, a0, &len0);
+		if (HAWK_UNLIKELY(!str0.o)) return -1;
+
+		if (start == 0) start = 1;
+		else if (start < 0) start = len0 + start + 1;
+		if (start > len0 || start <= 0) n = 0;
+
+		tmp.ptr = str0.o + start - 1;
 		tmp.len = len0 - start + 1;
 
-		n = hawk_rtx_matchvalwithoocs(rtx, a1, &tmp, &tmp, &mat, (nargs >= 4? submat: HAWK_NULL));
+		n = hawk_rtx_matchvalwithoocs(rtx, a1, &tmp, &tmp, &mat.o, (nargs >= 4? submat.o: HAWK_NULL));
+		hawk_rtx_freevaloocstr (rtx, a0, str0.o);
+
 		if (n <= -1) return -1;
-	}
 
-	/*if (a0_type == HAWK_VAL_MBS)
-	{
-		hawk_rtx_freevalbcstr (rtx, a0, str0);
+		/* RSTART: 0 on no match */
+		idx = (n == 0)? 0: ((hawk_int_t)(mat.o.ptr - str0.o) + 1);
 	}
-	else
-	{*/
-		hawk_rtx_freevaloocstr (rtx, a0, str0);
-	/*}*/
-
-	/* RSTART: 0 on no match */
-	idx = (n == 0)? 0: ((hawk_int_t)(mat.ptr - str0) + 1);
 
 	x0 = hawk_rtx_makeintval(rtx, idx);
 	if (!x0) goto oops;
 	hawk_rtx_refupval (rtx, x0);
 
 	/* RLENGTH: -1 on no match */
-	x1 = hawk_rtx_makeintval(rtx, ((n == 0)? (hawk_int_t)-1: (hawk_int_t)mat.len));
+	HAWK_ASSERT (&mat.o.len == &mat.b.len);
+	x1 = hawk_rtx_makeintval(rtx, ((n == 0)? (hawk_int_t)-1: (hawk_int_t)mat.o.len)); /* just use mat.o.len regardless of a0_type */
 	if (!x1) goto oops;
 	hawk_rtx_refupval (rtx, x1);
 
@@ -1558,9 +1591,10 @@ int hawk_fnc_match (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 		submatcount = 0;
 		subsep = hawk_rtx_getsubsep(rtx);
-		for (i = 0; i < HAWK_COUNTOF(submat); i++)
+		for (i = 0; i < HAWK_COUNTOF(submat.o); i++)
 		{
-			if (!submat[i].ptr) break;
+			HAWK_ASSERT ((void*)&submat.o[i] == (void*)&submat.b[i]);
+			if (!submat.o[i].ptr) break;
 
 			submatcount++;
 
@@ -1569,7 +1603,7 @@ int hawk_fnc_match (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			xlen = HAWK_OOECS_LEN(&rtx->fnc.oout);
 			if (hawk_ooecs_ncat(&rtx->fnc.oout, HAWK_T("start"), 5) == (hawk_oow_t)-1) goto oops;
 
-			tv = hawk_rtx_makeintval(rtx, submat[i].ptr - str0 + 1);
+			tv = hawk_rtx_makeintval(rtx, ((a0_type == HAWK_VAL_MBS)? submat.b[i].ptr - str0.b + 1: submat.o[i].ptr - str0.o + 1));
 			if (!tv) goto oops;
 			if (!hawk_rtx_setmapvalfld(rtx, x2, HAWK_OOECS_PTR(&rtx->fnc.oout), HAWK_OOECS_LEN(&rtx->fnc.oout), tv))
 			{
@@ -1581,7 +1615,7 @@ int hawk_fnc_match (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			if (hawk_ooecs_setlen(&rtx->fnc.oout, xlen) == (hawk_oow_t)-1 ||
 			    hawk_ooecs_ncat(&rtx->fnc.oout, HAWK_T("length"), 6) == (hawk_oow_t)-1) goto oops;
 
-			tv = hawk_rtx_makeintval(rtx, submat[i].len);
+			tv = hawk_rtx_makeintval(rtx, submat.o[i].len);
 			if (!tv) goto oops;
 			if (!hawk_rtx_setmapvalfld(rtx, x2, HAWK_OOECS_PTR(&rtx->fnc.oout), HAWK_OOECS_LEN(&rtx->fnc.oout), tv))
 			{
@@ -1627,13 +1661,10 @@ int hawk_fnc_sprintf (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	a0 = hawk_rtx_getarg(rtx, 0);
 	if (HAWK_RTX_GETVALTYPE(rtx, a0) == HAWK_VAL_MBS)
 	{
-		hawk_becs_t out, fbu;
-		int out_inited = 0, fbu_inited = 0;
+		hawk_becs_t fbu;
+		int fbu_inited = 0;
 		hawk_bcs_t cs0;
 		hawk_bcs_t x;
-
-		if (hawk_becs_init(&out, hawk_rtx_getgem(rtx), 256) <= -1) goto oops_mbs;
-		out_inited = 1;
 
 		if (hawk_becs_init(&fbu, hawk_rtx_getgem(rtx), 256) <= -1) goto oops_mbs;
 		fbu_inited = 1;
@@ -1641,54 +1672,47 @@ int hawk_fnc_sprintf (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		cs0.ptr = hawk_rtx_getvalbcstr(rtx, a0, &cs0.len);
 		if (HAWK_UNLIKELY(!cs0.ptr)) goto oops_mbs;
 
-		x.ptr = hawk_rtx_formatmbs(rtx, &out, &fbu, cs0.ptr, cs0.len, nargs, HAWK_NULL, &x.len);
+		x.ptr = hawk_rtx_formatmbs(rtx, &rtx->fnc.bout, &fbu, cs0.ptr, cs0.len, nargs, HAWK_NULL, &x.len);
 		hawk_rtx_freevalbcstr (rtx, a0, cs0.ptr);
 		if (HAWK_UNLIKELY(!x.ptr)) goto oops_mbs;
 		
 		a0 = hawk_rtx_makembsvalwithbcs(rtx, &x);
-		if (a0 == HAWK_NULL) goto oops_mbs;
+		if (HAWK_UNLIKELY(!a0)) goto oops_mbs;
 
 		hawk_becs_fini (&fbu);
-		hawk_becs_fini (&out);
 		hawk_rtx_setretval (rtx, a0);
 		return 0;
 
 	oops_mbs:
 		if (fbu_inited) hawk_becs_fini (&fbu);
-		if (out_inited) hawk_becs_fini (&out);
 		return -1;
 	}
 	else
 	{
-		hawk_ooecs_t out, fbu;
-		int out_inited = 0, fbu_inited = 0;
+		hawk_ooecs_t fbu;
+		int fbu_inited = 0;
 		hawk_oocs_t cs0;
 		hawk_oocs_t x;
-
-		if (hawk_ooecs_init(&out, hawk_rtx_getgem(rtx), 256) <= -1) goto oops;
-		out_inited = 1;
 
 		if (hawk_ooecs_init(&fbu, hawk_rtx_getgem(rtx), 256) <= -1) goto oops;
 		fbu_inited = 1;
 
 		cs0.ptr = hawk_rtx_getvaloocstr(rtx, a0, &cs0.len);
-		if (cs0.ptr == HAWK_NULL) goto oops;
+		if (HAWK_UNLIKELY(!cs0.ptr)) goto oops;
 
-		x.ptr = hawk_rtx_format(rtx, &out, &fbu, cs0.ptr, cs0.len, nargs, HAWK_NULL, &x.len);
+		x.ptr = hawk_rtx_format(rtx, &rtx->fnc.oout, &fbu, cs0.ptr, cs0.len, nargs, HAWK_NULL, &x.len);
 		hawk_rtx_freevaloocstr (rtx, a0, cs0.ptr);
-		if (!x.ptr) goto oops;
-		
+		if (HAWK_UNLIKELY(!x.ptr)) goto oops;
+
 		a0 = hawk_rtx_makestrvalwithoocs(rtx, &x);
-		if (a0 == HAWK_NULL) goto oops;
+		if (HAWK_UNLIKELY(!a0)) goto oops;
 
 		hawk_ooecs_fini (&fbu);
-		hawk_ooecs_fini (&out);
 		hawk_rtx_setretval (rtx, a0);
 		return 0;
 
 	oops:
 		if (fbu_inited) hawk_ooecs_fini (&fbu);
-		if (out_inited) hawk_ooecs_fini (&out);
 		return -1;
 	}
 }

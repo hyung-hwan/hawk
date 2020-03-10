@@ -1605,9 +1605,12 @@ hawk_ooch_t* hawk_rtx_getvaloocstrwithcmgr (hawk_rtx_t* rtx, hawk_val_t* v, hawk
  * if you know that a value is a reference, you can get the referenced value
  * with hawk_rtx_getrefval() and call this function over it */
 		case HAWK_VAL_REF:
-			v = hawk_rtx_getrefval(rtx, (hawk_val_ref_t*)v);
-			if (HAWK_RTX_GETVALTYPE(rtx, v) == HAWK_VAL_STR) goto plain_str;
+		{
+			hawk_val_t* v1;
+			v1 = hawk_rtx_getrefval(rtx, (hawk_val_ref_t*)v);
+			if (v1 && HAWK_RTX_GETVALTYPE(rtx, v1) == HAWK_VAL_STR) { v = v1; goto plain_str; }
 			/* fall through */
+		}
 #endif
 
 		default:
@@ -1629,7 +1632,7 @@ void hawk_rtx_freevaloocstr (hawk_rtx_t* rtx, hawk_val_t* v, hawk_ooch_t* str)
 #if 0
 		case HAWK_VAL_REF:
 			v = hawk_rtx_getrefval(rtx, (hawk_val_ref_t*)v);
-			if (HAWK_RTX_GETVALTYPE(rtx, v) == HAWK_VAL_STR) goto plain_str;
+			if (v && HAWK_RTX_GETVALTYPE(rtx, v) == HAWK_VAL_STR) goto plain_str;
 			/* fall through */
 #endif
 
@@ -1656,8 +1659,11 @@ hawk_bch_t* hawk_rtx_getvalbcstrwithcmgr (hawk_rtx_t* rtx, hawk_val_t* v, hawk_o
  * if you know that a value is a reference, you can get the referenced value
  * with hawk_rtx_getrefval() and call this function over it */
 		case HAWK_VAL_REF:
-			v = hawk_rtx_getrefval(rtx, (hawk_val_ref_t*)v);
-			if (HAWK_RTX_GETVALTYPE(rtx, v) == HAWK_VAL_MBS) goto plain_mbs;
+		{
+			hawk_val_t* v1;
+			v1 = hawk_rtx_getrefval(rtx, (hawk_val_ref_t*)v);
+			if (v1 && HAWK_RTX_GETVALTYPE(rtx, v1) == HAWK_VAL_MBS) { v = v1; goto plain_mbs; }
+		}
 			/* fall through */
 #endif
 
@@ -1680,7 +1686,7 @@ void hawk_rtx_freevalbcstr (hawk_rtx_t* rtx, hawk_val_t* v, hawk_bch_t* str)
 #if 0
 		case HAWK_VAL_REF:
 			v = hawk_rtx_getrefval(rtx, (hawk_val_ref_t*)v);
-			if (HAWK_RTX_GETVALTYPE(rtx, v) == HAWK_VAL_MBS) goto plain_mbs;
+			if (v && HAWK_RTX_GETVALTYPE(rtx, v) == HAWK_VAL_MBS) goto plain_mbs;
 			/* fall through */
 #endif
 
@@ -1901,7 +1907,21 @@ hawk_val_type_t hawk_rtx_getrefvaltype (hawk_rtx_t* rtx, hawk_val_ref_t* ref)
 	{
 		case HAWK_VAL_REF_POS:
 		{
-			return HAWK_VAL_STR;
+			hawk_oow_t idx;
+
+			idx = (hawk_oow_t)ref->adr;
+			if (idx == 0)
+			{
+				return HAWK_RTX_GETVALTYPE(rtx, rtx->inrec.d0);
+			}
+			else if (idx <= rtx->inrec.nflds)
+			{
+				return HAWK_RTX_GETVALTYPE(rtx, rtx->inrec.flds[idx-1].val);
+			}
+			else
+			{
+				return HAWK_RTX_GETVALTYPE(rtx, hawk_val_nil);
+			}
 		}
 
 		case HAWK_VAL_REF_GBL:
@@ -1934,9 +1954,21 @@ hawk_val_t* hawk_rtx_getrefval (hawk_rtx_t* rtx, hawk_val_ref_t* ref)
 	{
 		case HAWK_VAL_REF_POS:
 		{
-			/* a positional doesn't contain a value. you should use hawk_rtx_valtoXXX()
-			 * like hawk_rtx_valtostr(), hawk_rtx_valtoint() */
-			return HAWK_NULL;
+			hawk_oow_t idx;
+
+			idx = (hawk_oow_t)ref->adr;
+			if (idx == 0)
+			{
+				return rtx->inrec.d0;
+			}
+			else if (idx <= rtx->inrec.nflds)
+			{
+				return rtx->inrec.flds[idx-1].val;
+			}
+			else
+			{
+				return hawk_val_nil;
+			}
 		}
 
 		case HAWK_VAL_REF_GBL:
