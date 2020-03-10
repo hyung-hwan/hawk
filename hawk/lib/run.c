@@ -1055,8 +1055,8 @@ static int init_rtx (hawk_rtx_t* rtx, hawk_t* awk, hawk_rio_cbs_t* rio)
 	if (hawk_becs_init(&rtx->formatmbs.out, hawk_rtx_getgem(rtx), 256) <= -1) goto oops_7;
 	if (hawk_becs_init(&rtx->formatmbs.fmt, hawk_rtx_getgem(rtx), 256) <= -1) goto oops_8;
 
-	if (hawk_becs_init(&rtx->subst.bout, hawk_rtx_getgem(rtx), 256) <= -1) goto oops_9;
-	if (hawk_ooecs_init(&rtx->subst.oout, hawk_rtx_getgem(rtx), 256) <= -1) goto oops_10;
+	if (hawk_becs_init(&rtx->fnc.bout, hawk_rtx_getgem(rtx), 256) <= -1) goto oops_9;
+	if (hawk_ooecs_init(&rtx->fnc.oout, hawk_rtx_getgem(rtx), 256) <= -1) goto oops_10;
 
 
 	rtx->named = hawk_htb_open(hawk_rtx_getgem(rtx), HAWK_SIZEOF(rtx), 1024, 70, HAWK_SIZEOF(hawk_ooch_t), 1);
@@ -1107,9 +1107,9 @@ oops_13:
 oops_12:
 	hawk_htb_close (rtx->named);
 oops_11:
-	hawk_becs_fini (&rtx->subst.oout);
+	hawk_becs_fini (&rtx->fnc.oout);
 oops_10:
-	hawk_becs_fini (&rtx->subst.bout);
+	hawk_becs_fini (&rtx->fnc.bout);
 oops_9:
 	hawk_becs_fini (&rtx->formatmbs.fmt);
 oops_8:
@@ -1196,8 +1196,8 @@ static void fini_rtx (hawk_rtx_t* rtx, int fini_globals)
 		rtx->gbl.subsep.len = 0;
 	}
 
-	hawk_ooecs_fini (&rtx->subst.oout);
-	hawk_becs_fini (&rtx->subst.bout);
+	hawk_ooecs_fini (&rtx->fnc.oout);
+	hawk_becs_fini (&rtx->fnc.bout);
 
 	hawk_rtx_freemem (rtx, rtx->formatmbs.tmp.ptr);
 	rtx->formatmbs.tmp.ptr = HAWK_NULL;
@@ -3369,7 +3369,7 @@ static hawk_val_t* eval_expression (hawk_rtx_t* rtx, hawk_nde_t* nde)
 		#endif
 		}
 
-		n = hawk_rtx_matchval(rtx, v, &vs, &vs, HAWK_NULL, HAWK_NULL);
+		n = hawk_rtx_matchvalwithoocs(rtx, v, &vs, &vs, HAWK_NULL, HAWK_NULL);
 		hawk_rtx_refdownval (rtx, v);
 		if (free_vs) hawk_rtx_freevaloocstr (rtx, rtx->inrec.d0, vs.ptr);
 		if (n <= -1)
@@ -5389,17 +5389,17 @@ static hawk_val_t* eval_binop_match0 (
 	out.ptr = hawk_rtx_getvaloocstr (rtx, left, &out.len);
 	if (out.ptr == HAWK_NULL) return HAWK_NULL;
 
-	n = hawk_rtx_matchval(rtx, right, &out, &out, HAWK_NULL, HAWK_NULL);
+	n = hawk_rtx_matchvalwithoocs(rtx, right, &out, &out, HAWK_NULL, HAWK_NULL);
 	hawk_rtx_freevaloocstr (rtx, left, out.ptr);
 
-	if (n <= -1) 
+	if (HAWK_UNLIKELY(n <= -1)) 
 	{
 		ADJERR_LOC (rtx, lloc);
 		return HAWK_NULL;
 	}
 
-	res = hawk_rtx_makeintval (rtx, (n == ret));
-	if (res == HAWK_NULL) 
+	res = hawk_rtx_makeintval(rtx, (n == ret));
+	if (HAWK_UNLIKELY(!res)) 
 	{
 		ADJERR_LOC (rtx, lloc);
 		return HAWK_NULL;

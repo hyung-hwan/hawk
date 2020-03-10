@@ -3127,7 +3127,7 @@ HAWK_EXPORT hawk_uch_t* hawk_rtx_valtoucstrdupwithcmgr (
  */
 HAWK_EXPORT hawk_ooch_t* hawk_rtx_getvaloocstrwithcmgr (
 	hawk_rtx_t*       rtx, /**< runtime context */
-	const hawk_val_t* val, /**< value to convert */
+	hawk_val_t*       val, /**< value to convert */
 	hawk_oow_t*       len, /**< result length */
 	hawk_cmgr_t*      cmgr
 );
@@ -3142,14 +3142,14 @@ HAWK_EXPORT hawk_ooch_t* hawk_rtx_getvaloocstrwithcmgr (
  */
 HAWK_EXPORT void hawk_rtx_freevaloocstr (
 	hawk_rtx_t*       rtx, /**< runtime context */
-	const hawk_val_t* val, /**< value to convert */
+	hawk_val_t*       val, /**< value to convert */
 	hawk_ooch_t*      str  /**< string pointer */
 );
 
 
 HAWK_EXPORT hawk_bch_t* hawk_rtx_getvalbcstrwithcmgr (
 	hawk_rtx_t*       rtx, /**< runtime context */
-	const hawk_val_t* val, /**< value to convert */
+	hawk_val_t*       val, /**< value to convert */
 	hawk_oow_t*       len, /**< result length */
 	hawk_cmgr_t*      cmgr
 );
@@ -3158,7 +3158,7 @@ HAWK_EXPORT hawk_bch_t* hawk_rtx_getvalbcstrwithcmgr (
 
 HAWK_EXPORT void hawk_rtx_freevalbcstr (
 	hawk_rtx_t*       rtx, /**< runtime context */
-	const hawk_val_t* val, /**< value to convert */
+	hawk_val_t*       val, /**< value to convert */
 	hawk_bch_t*       str  /**< string pointer */
 );
 

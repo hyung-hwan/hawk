@@ -3147,7 +3147,7 @@ done:
 		if (rv)
 		{
 			hawk_rtx_refupval (rtx, rv);
-			ret = hawk_rtx_setrefval (rtx, (hawk_val_ref_t*)hawk_rtx_getarg (rtx, 2), rv);
+			ret = hawk_rtx_setrefval (rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, 2), rv);
 			hawk_rtx_refdownval (rtx, rv);
 			if (ret >= 0) hawk_rtx_setretval (rtx, HAWK_VAL_ZERO);
 		}

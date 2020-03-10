@@ -302,7 +302,6 @@ hawk_val_t* hawk_rtx_makestrvalwithbchars2 (hawk_rtx_t* rtx, const hawk_bch_t* b
 
 hawk_val_t* hawk_rtx_makenumorstrvalwithuchars (hawk_rtx_t* rtx, const hawk_uch_t* ptr, hawk_oow_t len)
 {
-	hawk_t* hawk = hawk_rtx_gethawk(rtx);
 	int x;
 	hawk_int_t l;
 	hawk_flt_t r;
@@ -316,7 +315,6 @@ hawk_val_t* hawk_rtx_makenumorstrvalwithuchars (hawk_rtx_t* rtx, const hawk_uch_
 
 hawk_val_t* hawk_rtx_makenumorstrvalwithbchars (hawk_rtx_t* rtx, const hawk_bch_t* ptr, hawk_oow_t len)
 {
-	hawk_t* hawk = hawk_rtx_gethawk(rtx);
 	int x;
 	hawk_int_t l;
 	hawk_flt_t r;
@@ -333,7 +331,6 @@ hawk_val_t* hawk_rtx_makenumorstrvalwithbchars (hawk_rtx_t* rtx, const hawk_bch_
 
 hawk_val_t* hawk_rtx_makenstrvalwithuchars (hawk_rtx_t* rtx, const hawk_uch_t* ptr, hawk_oow_t len)
 {
-	hawk_t* hawk = hawk_rtx_gethawk(rtx);
 	int x;
 	hawk_val_t* v;
 	hawk_int_t l;
@@ -357,7 +354,6 @@ hawk_val_t* hawk_rtx_makenstrvalwithuchars (hawk_rtx_t* rtx, const hawk_uch_t* p
 
 hawk_val_t* hawk_rtx_makenstrvalwithbchars (hawk_rtx_t* rtx, const hawk_bch_t* ptr, hawk_oow_t len)
 {
-	hawk_t* hawk = hawk_rtx_gethawk(rtx);
 	int x;
 	hawk_val_t* v;
 	hawk_int_t l;
@@ -460,7 +456,6 @@ hawk_val_t* hawk_rtx_makembsvalwithucs (hawk_rtx_t* rtx, const hawk_ucs_t* ucs)
 
 hawk_val_t* hawk_rtx_makenumormbsvalwithuchars (hawk_rtx_t* rtx, const hawk_uch_t* ptr, hawk_oow_t len)
 {
-	hawk_t* hawk = hawk_rtx_gethawk(rtx);
 	int x;
 	hawk_int_t l;
 	hawk_flt_t r;
@@ -474,7 +469,6 @@ hawk_val_t* hawk_rtx_makenumormbsvalwithuchars (hawk_rtx_t* rtx, const hawk_uch_
 
 hawk_val_t* hawk_rtx_makenumormbsvalwithbchars (hawk_rtx_t* rtx, const hawk_bch_t* ptr, hawk_oow_t len)
 {
-	hawk_t* hawk = hawk_rtx_gethawk(rtx);
 	int x;
 	hawk_int_t l;
 	hawk_flt_t r;
@@ -1362,7 +1356,7 @@ static int val_ref_to_str (hawk_rtx_t* rtx, const hawk_val_ref_t* ref, hawk_rtx_
 		case HAWK_VAL_REF_POS:
 		{
 			hawk_oow_t idx;
-	       
+
 			/* special case when the reference value is 
 			 * pointing to the positional */
 
@@ -1594,54 +1588,110 @@ hawk_uch_t* hawk_rtx_valtoucstrdupwithcmgr (hawk_rtx_t* rtx, const hawk_val_t* v
 	return wcs;
 }
 
-hawk_ooch_t* hawk_rtx_getvaloocstrwithcmgr (hawk_rtx_t* rtx, const hawk_val_t* v, hawk_oow_t* len, hawk_cmgr_t* cmgr)
+hawk_ooch_t* hawk_rtx_getvaloocstrwithcmgr (hawk_rtx_t* rtx, hawk_val_t* v, hawk_oow_t* len, hawk_cmgr_t* cmgr)
 {
-	if (HAWK_RTX_GETVALTYPE(rtx, v) == HAWK_VAL_STR)
+	switch (HAWK_RTX_GETVALTYPE(rtx, v))
 	{
-		if (len) *len = ((hawk_val_str_t*)v)->val.len;
-		return ((hawk_val_str_t*)v)->val.ptr;
-	}
-	else
-	{
-		return hawk_rtx_valtooocstrdupwithcmgr(rtx, v, len, cmgr);
+		case HAWK_VAL_STR:
+#if 0
+		plain_str:
+#endif
+			if (len) *len = ((hawk_val_str_t*)v)->val.len;
+			return ((hawk_val_str_t*)v)->val.ptr;
+
+#if 0
+/* i'm commenting out this part because hawk_rtx_setrefval() changes v->adr 
+ * and leads hawk_rtx_freevaloocstr() to check a wrong value obejct.
+ * if you know that a value is a reference, you can get the referenced value
+ * with hawk_rtx_getrefval() and call this function over it */
+		case HAWK_VAL_REF:
+			v = hawk_rtx_getrefval(rtx, (hawk_val_ref_t*)v);
+			if (HAWK_RTX_GETVALTYPE(rtx, v) == HAWK_VAL_STR) goto plain_str;
+			/* fall through */
+#endif
+
+		default:
+			return hawk_rtx_valtooocstrdupwithcmgr(rtx, v, len, cmgr);
 	}
 }
 
-void hawk_rtx_freevaloocstr (hawk_rtx_t* rtx, const hawk_val_t* v, hawk_ooch_t* str)
+void hawk_rtx_freevaloocstr (hawk_rtx_t* rtx, hawk_val_t* v, hawk_ooch_t* str)
 {
-	if (HAWK_RTX_GETVALTYPE(rtx, v) != HAWK_VAL_STR ||
-	    str != ((hawk_val_str_t*)v)->val.ptr)
+	switch (HAWK_RTX_GETVALTYPE(rtx, v))
 	{
-		hawk_rtx_freemem (rtx, str);
+		case HAWK_VAL_STR:
+#if 0
+		plain_str:
+#endif
+			if (str != ((hawk_val_str_t*)v)->val.ptr) hawk_rtx_freemem (rtx, str);
+			break;
+
+#if 0
+		case HAWK_VAL_REF:
+			v = hawk_rtx_getrefval(rtx, (hawk_val_ref_t*)v);
+			if (HAWK_RTX_GETVALTYPE(rtx, v) == HAWK_VAL_STR) goto plain_str;
+			/* fall through */
+#endif
+
+		default:
+			hawk_rtx_freemem (rtx, str);
+			break;
 	}
 }
 
-hawk_bch_t* hawk_rtx_getvalbcstrwithcmgr (hawk_rtx_t* rtx, const hawk_val_t* v, hawk_oow_t* len, hawk_cmgr_t* cmgr)
+hawk_bch_t* hawk_rtx_getvalbcstrwithcmgr (hawk_rtx_t* rtx, hawk_val_t* v, hawk_oow_t* len, hawk_cmgr_t* cmgr)
 {
-	if (HAWK_RTX_GETVALTYPE(rtx, v) == HAWK_VAL_MBS)
+	switch (HAWK_RTX_GETVALTYPE(rtx, v))
 	{
-		if (len) *len = ((hawk_val_mbs_t*)v)->val.len;
-		return ((hawk_val_mbs_t*)v)->val.ptr;
-	}
-	else
-	{
-		return hawk_rtx_valtobcstrdupwithcmgr(rtx, v, len, cmgr);
+		case HAWK_VAL_MBS:
+#if 0
+		plain_mbs:
+#endif
+			if (len) *len = ((hawk_val_mbs_t*)v)->val.len;
+			return ((hawk_val_mbs_t*)v)->val.ptr;
+
+#if 0
+/* i'm commenting out this part because hawk_rtx_setrefval() changes v->adr 
+ * and leads hawk_rtx_freevalbcstr() to check a wrong value obejct.
+ * if you know that a value is a reference, you can get the referenced value
+ * with hawk_rtx_getrefval() and call this function over it */
+		case HAWK_VAL_REF:
+			v = hawk_rtx_getrefval(rtx, (hawk_val_ref_t*)v);
+			if (HAWK_RTX_GETVALTYPE(rtx, v) == HAWK_VAL_MBS) goto plain_mbs;
+			/* fall through */
+#endif
+
+		default:
+			return hawk_rtx_valtobcstrdupwithcmgr(rtx, v, len, cmgr);
 	}
 }
 
-void hawk_rtx_freevalbcstr (hawk_rtx_t* rtx, const hawk_val_t* v, hawk_bch_t* str)
+void hawk_rtx_freevalbcstr (hawk_rtx_t* rtx, hawk_val_t* v, hawk_bch_t* str)
 {
-	if (HAWK_RTX_GETVALTYPE(rtx, v) != HAWK_VAL_MBS ||
-	    str != ((hawk_val_mbs_t*)v)->val.ptr)
+	switch (HAWK_RTX_GETVALTYPE(rtx, v))
 	{
-		hawk_rtx_freemem (rtx, str);
+		case HAWK_VAL_MBS:
+#if 0
+		plain_mbs:
+#endif
+			if (str != ((hawk_val_mbs_t*)v)->val.ptr) hawk_rtx_freemem (rtx, str);
+			break;
+
+#if 0
+		case HAWK_VAL_REF:
+			v = hawk_rtx_getrefval(rtx, (hawk_val_ref_t*)v);
+			if (HAWK_RTX_GETVALTYPE(rtx, v) == HAWK_VAL_MBS) goto plain_mbs;
+			/* fall through */
+#endif
+
+		default:
+			hawk_rtx_freemem (rtx, str);
+			break;
 	}
 }
 
 static int val_ref_to_num (hawk_rtx_t* rtx, const hawk_val_ref_t* ref, hawk_int_t* l, hawk_flt_t* r)
 {
-	hawk_t* hawk = hawk_rtx_gethawk(rtx);
-
 	switch (ref->id)
 	{
 		case HAWK_VAL_REF_POS:
@@ -1698,7 +1748,6 @@ static int val_ref_to_num (hawk_rtx_t* rtx, const hawk_val_ref_t* ref, hawk_int_
 int hawk_rtx_valtonum (hawk_rtx_t* rtx, const hawk_val_t* v, hawk_int_t* l, hawk_flt_t* r)
 {
 	hawk_val_type_t vtype = HAWK_RTX_GETVALTYPE(rtx, v);
-	hawk_t* hawk = hawk_rtx_gethawk(rtx);
 
 	switch (vtype)
 	{
@@ -1854,6 +1903,7 @@ hawk_val_type_t hawk_rtx_getrefvaltype (hawk_rtx_t* rtx, hawk_val_ref_t* ref)
 		{
 			return HAWK_VAL_STR;
 		}
+
 		case HAWK_VAL_REF_GBL:
 		{
 			hawk_oow_t idx;
@@ -1902,7 +1952,7 @@ hawk_val_t* hawk_rtx_getrefval (hawk_rtx_t* rtx, hawk_val_ref_t* ref)
 			/* A reference value is not able to point to another 
 			 * refernce value for the way values are represented
 			 * in HAWKAWK */
-			HAWK_ASSERT (HAWK_RTX_GETVALTYPE (rtx, *xref)!= HAWK_VAL_REF); 
+			HAWK_ASSERT (HAWK_RTX_GETVALTYPE(rtx, *xref) != HAWK_VAL_REF); 
 			return *xref;
 		}
 	}
