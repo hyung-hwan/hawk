@@ -7708,7 +7708,7 @@ wp_mod_main:
 					ch = HAWK_T('\0');
 					ch_len = 0;
 					break;
-			
+
 				case HAWK_VAL_INT:
 					ch = (hawk_ooch_t)HAWK_RTX_GETINTFROMVAL (rtx, v);
 					ch_len = 1;
