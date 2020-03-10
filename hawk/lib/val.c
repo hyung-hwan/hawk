@@ -979,7 +979,7 @@ static int val_ref_to_bool (hawk_rtx_t* rtx, const hawk_val_ref_t* ref)
 
 			/* A reference value is not able to point to another 
 			 * refernce value for the way values are represented
-			 * in HAWKAWK */
+			 * in HAWK */
 			HAWK_ASSERT (HAWK_RTX_GETVALTYPE (rtx, *xref)!= HAWK_VAL_REF); 
 
 			/* make a recursive call back to the caller */
@@ -1397,7 +1397,7 @@ static int val_ref_to_str (hawk_rtx_t* rtx, const hawk_val_ref_t* ref, hawk_rtx_
 
 			/* A reference value is not able to point to another 
 			 * refernce value for the way values are represented
-			 * in HAWKAWK */
+			 * in HAWK */
 			HAWK_ASSERT (HAWK_RTX_GETVALTYPE (rtx, *xref) != HAWK_VAL_REF); 
 
 			/* make a recursive call back to the caller */
@@ -1605,12 +1605,9 @@ hawk_ooch_t* hawk_rtx_getvaloocstrwithcmgr (hawk_rtx_t* rtx, hawk_val_t* v, hawk
  * if you know that a value is a reference, you can get the referenced value
  * with hawk_rtx_getrefval() and call this function over it */
 		case HAWK_VAL_REF:
-		{
-			hawk_val_t* v1;
-			v1 = hawk_rtx_getrefval(rtx, (hawk_val_ref_t*)v);
-			if (v1 && HAWK_RTX_GETVALTYPE(rtx, v1) == HAWK_VAL_STR) { v = v1; goto plain_str; }
+			v = hawk_rtx_getrefval(rtx, (hawk_val_ref_t*)v);
+			if (HAWK_RTX_GETVALTYPE(rtx, v1) == HAWK_VAL_STR) goto plain_str;
 			/* fall through */
-		}
 #endif
 
 		default:
@@ -1659,11 +1656,8 @@ hawk_bch_t* hawk_rtx_getvalbcstrwithcmgr (hawk_rtx_t* rtx, hawk_val_t* v, hawk_o
  * if you know that a value is a reference, you can get the referenced value
  * with hawk_rtx_getrefval() and call this function over it */
 		case HAWK_VAL_REF:
-		{
-			hawk_val_t* v1;
 			v1 = hawk_rtx_getrefval(rtx, (hawk_val_ref_t*)v);
-			if (v1 && HAWK_RTX_GETVALTYPE(rtx, v1) == HAWK_VAL_MBS) { v = v1; goto plain_mbs; }
-		}
+			if (v1 && HAWK_RTX_GETVALTYPE(rtx, v1) == HAWK_VAL_MBS) goto plain_mbs;
 			/* fall through */
 #endif
 
@@ -1741,7 +1735,7 @@ static int val_ref_to_num (hawk_rtx_t* rtx, const hawk_val_ref_t* ref, hawk_int_
 
 			/* A reference value is not able to point to another 
 			 * refernce value for the way values are represented
-			 * in HAWKAWK */
+			 * in HAWK */
 			HAWK_ASSERT (HAWK_RTX_GETVALTYPE(rtx, *xref) != HAWK_VAL_REF); 
 
 			/* make a recursive call back to the caller */
@@ -1940,7 +1934,7 @@ hawk_val_type_t hawk_rtx_getrefvaltype (hawk_rtx_t* rtx, hawk_val_ref_t* ref)
 
 			/* A reference value is not able to point to another 
 			 * refernce value for the way values are represented
-			 * in HAWKAWK */
+			 * in HAWK */
 			v = *xref;
 			HAWK_ASSERT (HAWK_RTX_GETVALTYPE(rtx, v) != HAWK_VAL_REF); 
 			return HAWK_RTX_GETVALTYPE(rtx, v);
@@ -1983,7 +1977,7 @@ hawk_val_t* hawk_rtx_getrefval (hawk_rtx_t* rtx, hawk_val_ref_t* ref)
 			hawk_val_t** xref = (hawk_val_t**)ref->adr;
 			/* A reference value is not able to point to another 
 			 * refernce value for the way values are represented
-			 * in HAWKAWK */
+			 * in HAWK */
 			HAWK_ASSERT (HAWK_RTX_GETVALTYPE(rtx, *xref) != HAWK_VAL_REF); 
 			return *xref;
 		}

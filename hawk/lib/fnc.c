@@ -1290,9 +1290,6 @@ static int __substitute (hawk_rtx_t* rtx, hawk_oow_t max_count)
 	else 
 	{
 		r2 = hawk_rtx_getrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, 2));
-		if (!r2)
-		{
-		}
 
 		if (HAWK_RTX_GETVALTYPE(rtx, r2) == HAWK_VAL_MBS)
 		{
@@ -1829,7 +1826,7 @@ static HAWK_INLINE int __fnc_asort (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, 
 	 */
 
 	hawk_oow_t nargs;
-	hawk_val_t* a0, * a0_val, * a2;
+	hawk_val_t* a0, * a0_val;
 	hawk_val_type_t a0_type, v_type;
 	hawk_val_t* r, * rmap = HAWK_NULL;
 	hawk_int_t rv = 0; /* as if no element in the map */
@@ -1861,24 +1858,23 @@ static HAWK_INLINE int __fnc_asort (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, 
 	a0_val = hawk_rtx_getrefval(rtx, (hawk_val_ref_t*)a0);
 	HAWK_ASSERT (HAWK_RTX_GETVALTYPE(rtx, a0_val) == HAWK_VAL_MAP);
 
-	if (nargs >= 2)
+	if (nargs >= 3)
 	{
-		if (nargs >= 3)
-		{
-			a2 = hawk_rtx_getarg(rtx, 2);
-			if (HAWK_RTX_GETVALTYPE(rtx, a2) != HAWK_VAL_FUN)
-			{
-				hawk_rtx_seterrfmt (rtx, HAWK_NULL, HAWK_EINVAL, HAWK_T("comparator not a function"));
-				return -1;
-			}
+		hawk_val_t* a2;
 
-			fun = ((hawk_val_fun_t*)a2)->fun;
-			if (fun->nargs < 2) 
-			{
-				/* the comparison accepts less than 2 arguments */
-				hawk_rtx_seterrfmt (rtx, HAWK_NULL, HAWK_EINVAL, HAWK_T("%.*js not accepting 2 arguments"), fun->name.len, fun->name.ptr);
-				return -1;
-			}
+		a2 = hawk_rtx_getarg(rtx, 2);
+		if (HAWK_RTX_GETVALTYPE(rtx, a2) != HAWK_VAL_FUN)
+		{
+			hawk_rtx_seterrfmt (rtx, HAWK_NULL, HAWK_EINVAL, HAWK_T("comparator not a function"));
+			return -1;
+		}
+
+		fun = ((hawk_val_fun_t*)a2)->fun;
+		if (fun->nargs < 2) 
+		{
+			/* the comparison accepts less than 2 arguments */
+			hawk_rtx_seterrfmt (rtx, HAWK_NULL, HAWK_EINVAL, HAWK_T("%.*js not accepting 2 arguments"), fun->name.len, fun->name.ptr);
+			return -1;
 		}
 	}
 
