@@ -1055,25 +1055,29 @@ static int init_rtx (hawk_rtx_t* rtx, hawk_t* awk, hawk_rio_cbs_t* rio)
 	if (hawk_becs_init(&rtx->formatmbs.out, hawk_rtx_getgem(rtx), 256) <= -1) goto oops_7;
 	if (hawk_becs_init(&rtx->formatmbs.fmt, hawk_rtx_getgem(rtx), 256) <= -1) goto oops_8;
 
+	if (hawk_becs_init(&rtx->subst.bout, hawk_rtx_getgem(rtx), 256) <= -1) goto oops_9;
+	if (hawk_ooecs_init(&rtx->subst.oout, hawk_rtx_getgem(rtx), 256) <= -1) goto oops_10;
+
+
 	rtx->named = hawk_htb_open(hawk_rtx_getgem(rtx), HAWK_SIZEOF(rtx), 1024, 70, HAWK_SIZEOF(hawk_ooch_t), 1);
-	if (!rtx->named) goto oops_9;
+	if (!rtx->named) goto oops_11;
 	*(hawk_rtx_t**)hawk_htb_getxtn(rtx->named) = rtx;
 	hawk_htb_setstyle (rtx->named, &style_for_named);
 
 	rtx->format.tmp.ptr = (hawk_ooch_t*)hawk_rtx_allocmem(rtx, 4096 * HAWK_SIZEOF(hawk_ooch_t)); 
-	if (!rtx->format.tmp.ptr) goto oops_10; /* the error is set on the awk object after this jump is made */
+	if (!rtx->format.tmp.ptr) goto oops_12; /* the error is set on the awk object after this jump is made */
 	rtx->format.tmp.len = 4096;
 	rtx->format.tmp.inc = 4096 * 2;
 
 	rtx->formatmbs.tmp.ptr = (hawk_bch_t*)hawk_rtx_allocmem(rtx, 4096 * HAWK_SIZEOF(hawk_bch_t));
-	if (!rtx->formatmbs.tmp.ptr) goto oops_11;
+	if (!rtx->formatmbs.tmp.ptr) goto oops_13;
 	rtx->formatmbs.tmp.len = 4096;
 	rtx->formatmbs.tmp.inc = 4096 * 2;
 
 	if (rtx->hawk->tree.chain_size > 0)
 	{
 		rtx->pattern_range_state = (hawk_oob_t*)hawk_rtx_allocmem(rtx, rtx->hawk->tree.chain_size * HAWK_SIZEOF(hawk_oob_t));
-		if (!rtx->pattern_range_state) goto oops_12;
+		if (!rtx->pattern_range_state) goto oops_14;
 		HAWK_MEMSET (rtx->pattern_range_state, 0, rtx->hawk->tree.chain_size * HAWK_SIZEOF(hawk_oob_t));
 	}
 	else rtx->pattern_range_state = HAWK_NULL;
@@ -1096,12 +1100,16 @@ static int init_rtx (hawk_rtx_t* rtx, hawk_t* awk, hawk_rio_cbs_t* rio)
 
 	return 0;
 
-oops_12:
+oops_14:
 	hawk_rtx_freemem (rtx, rtx->formatmbs.tmp.ptr);
-oops_11:
+oops_13:
 	hawk_rtx_freemem (rtx, rtx->format.tmp.ptr);
-oops_10:
+oops_12:
 	hawk_htb_close (rtx->named);
+oops_11:
+	hawk_becs_fini (&rtx->subst.oout);
+oops_10:
+	hawk_becs_fini (&rtx->subst.bout);
 oops_9:
 	hawk_becs_fini (&rtx->formatmbs.fmt);
 oops_8:
@@ -1187,6 +1195,9 @@ static void fini_rtx (hawk_rtx_t* rtx, int fini_globals)
 		rtx->gbl.subsep.ptr = HAWK_NULL;
 		rtx->gbl.subsep.len = 0;
 	}
+
+	hawk_ooecs_fini (&rtx->subst.oout);
+	hawk_becs_fini (&rtx->subst.bout);
 
 	hawk_rtx_freemem (rtx, rtx->formatmbs.tmp.ptr);
 	rtx->formatmbs.tmp.ptr = HAWK_NULL;

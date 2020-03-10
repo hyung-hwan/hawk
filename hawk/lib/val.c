@@ -1394,7 +1394,7 @@ static int val_ref_to_str (hawk_rtx_t* rtx, const hawk_val_ref_t* ref, hawk_rtx_
 		case HAWK_VAL_REF_GBL:
 		{
 			hawk_oow_t idx = (hawk_oow_t)ref->adr;
-			return hawk_rtx_valtostr (rtx, RTX_STACK_GBL (rtx, idx), out);
+			return hawk_rtx_valtostr(rtx, RTX_STACK_GBL (rtx, idx), out);
 		}
 
 		default:
@@ -1407,7 +1407,7 @@ static int val_ref_to_str (hawk_rtx_t* rtx, const hawk_val_ref_t* ref, hawk_rtx_
 			HAWK_ASSERT (HAWK_RTX_GETVALTYPE (rtx, *xref) != HAWK_VAL_REF); 
 
 			/* make a recursive call back to the caller */
-			return hawk_rtx_valtostr (rtx, *xref, out);
+			return hawk_rtx_valtostr(rtx, *xref, out);
 		}
 	}
 }
@@ -1514,6 +1514,7 @@ hawk_bch_t* hawk_rtx_valtobcstrdupwithcmgr (hawk_rtx_t* rtx, const hawk_val_t* v
 
 			out.type = HAWK_RTX_VALTOSTR_CPLDUP;
 			if (hawk_rtx_valtostr(rtx, v, &out) <= -1) return HAWK_NULL;
+/* TODO IMPLEMENT hawk_rtx_valtobcs()... and use it */
 
 			mbs = hawk_rtx_duputobcharswithcmgr(rtx, out.u.cpldup.ptr, out.u.cpldup.len, &mbslen, cmgr);
 			hawk_rtx_freemem (rtx, out.u.cpldup.ptr);

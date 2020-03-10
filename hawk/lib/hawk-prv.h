@@ -461,6 +461,12 @@ struct hawk_rtx_t
 
 	struct
 	{
+		hawk_becs_t bout;
+		hawk_ooecs_t oout;
+	} subst; /* output buffer for gsub and sub */
+
+	struct
+	{
 		hawk_oow_t block;
 		hawk_oow_t expr; /* expression */
 	} depth;
