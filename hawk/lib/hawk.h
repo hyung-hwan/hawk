@@ -1151,8 +1151,11 @@ enum hawk_trait_t
 	/** allows undeclared variables */
 	HAWK_IMPLICIT = (1 << 0),
 
+	/** allows multiline string literals or regular expression literals */
+	HAWK_MULTILINESTR = (1 << 1),
+
 	/** enables nextofile and NEXTOFILE */
-	HAWK_NEXTOFILE = (1 << 1),
+	HAWK_NEXTOFILE = (1 << 2),
 
 	/** supports \b getline, \b print, \b printf, \b close, \b fflush,
 	 *  piping, and file rediction */

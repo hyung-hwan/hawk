@@ -499,6 +499,7 @@ struct opttab_t
 } opttab[] =
 {
 	{ "implicit",     HAWK_IMPLICIT,       "allow undeclared variables" },
+	{ "multilinestr", HAWK_MULTILINESTR,   "allow raw multiline string and regular expression literals" },
 	{ "nextofile",    HAWK_NEXTOFILE,      "enable nextofile & OFILENAME" },
 	{ "rio",          HAWK_RIO,            "enable builtin I/O including getline & print" },
 	{ "rwpipe",       HAWK_RWPIPE,         "allow a dual-directional pipe" },
@@ -640,6 +641,7 @@ static int process_argv (int argc, hawk_bch_t* argv[], struct arg_t* arg)
 	static hawk_bcli_lng_t lng[] = 
 	{
 		{ ":implicit",         '\0' },
+		{ ":multilinestr",     '\0' },
 		{ ":nextofile",        '\0' },
 		{ ":rio",              '\0' },
 		{ ":rwpipe",           '\0' },

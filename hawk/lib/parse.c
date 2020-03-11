@@ -872,7 +872,7 @@ static int begin_include (hawk_t* awk, int once)
 	arg->pragma_trait = awk->parse.pragma.trait;
 	/* but don't change awk->parse.pragma.trait. it means the included file inherits
 	 * the existing progma values. 
-	awk->parse.pragma.trait = (awk->opt.trait & (HAWK_IMPLICIT | HAWK_STRIPRECSPC | HAWK_STRIPSTRSPC));
+	awk->parse.pragma.trait = (awk->opt.trait & (HAWK_IMPLICIT | HAWK_MULTILINESTR | HAWK_STRIPRECSPC | HAWK_STRIPSTRSPC));
 	*/
 
 	/* i update the current pointer after opening is successful */
@@ -1039,6 +1039,35 @@ static int parse_progunit (hawk_t* awk)
 				goto error_ident_on_off_expected_for_implicit;
 			}
 		}
+		else if (hawk_comp_oochars_oocstr(name.ptr, name.len, HAWK_T("multilinestr")) == 0)
+		{
+			if (get_token(awk) <= -1) return -1;
+			if (!MATCH(awk, TOK_IDENT))
+			{
+			error_ident_on_off_expected_for_multilinestr:
+				hawk_seterrfmt (awk, &awk->ptok.loc, HAWK_EIDENT, HAWK_T("identifier 'on' or 'off' expected for 'multilinestr'"));
+				return -1;
+			}
+
+			name.len = HAWK_OOECS_LEN(awk->tok.name);
+			name.ptr = HAWK_OOECS_PTR(awk->tok.name);
+			if (hawk_comp_oochars_oocstr(name.ptr, name.len, HAWK_T("on")) == 0)
+			{
+				awk->parse.pragma.trait |= HAWK_MULTILINESTR;
+			}
+			else if (hawk_comp_oochars_oocstr(name.ptr, name.len, HAWK_T("off")) == 0)
+			{
+				awk->parse.pragma.trait &= ~HAWK_MULTILINESTR;
+			}
+			else
+			{
+				goto error_ident_on_off_expected_for_multilinestr;
+			}
+		}
+		/* ---------------------------------------------------------------------
+		 * the pragmas up to this point affect the parser 
+		 * the following pragmas affect runtime 
+		 * --------------------------------------------------------------------- */
 		else if (hawk_comp_oochars_oocstr(name.ptr, name.len, HAWK_T("stack_limit")) == 0)
 		{
 			hawk_int_t sl;
@@ -6131,22 +6160,47 @@ static int get_string (
 			}
 		}
 
-		if (escaped == 0 && c == end_char)
+		if (escaped == 99)
 		{
-			/* terminating quote */
-			/*GET_CHAR_TO (awk, c);*/
-			GET_CHAR (awk);
-			break;
+			escaped = 0;
+			if (c == '\n') continue; /* backslash \r \n */
 		}
 
-		if (escaped == 0 && c == esc_char)
+		if (escaped == 0)
 		{
-			escaped = 1;
-			continue;
+			if (c == end_char)
+			{
+				/* terminating quote */
+				/*GET_CHAR_TO (awk, c);*/
+				GET_CHAR (awk);
+				break;
+			}
+			else if (c == esc_char)
+			{
+				escaped = 1;
+				continue;
+			}
+			else if (!(awk->parse.pragma.trait & HAWK_MULTILINESTR) && c == '\n' || c == '\r')
+			{
+				hawk_seterrnum (awk, &awk->tok.loc, HAWK_ESTRNC);
+				return -1;
+			}
 		}
 
 		if (escaped == 1)
 		{
+			if (c == '\n')
+			{
+				/* line continuation - a backslash at the end of line */
+				escaped = 0;
+				continue;
+			}
+			else if (c == '\r')
+			{
+				escaped = 99;
+				continue;
+			}
+
 			if (c == HAWK_T('n')) c = HAWK_T('\n');
 			else if (c == HAWK_T('r')) c = HAWK_T('\r');
 			else if (c == HAWK_T('t')) c = HAWK_T('\t');

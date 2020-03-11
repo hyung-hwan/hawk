@@ -133,7 +133,7 @@ The typical execution begins with the BEGIN block, goes through pattern-action b
 	}
 
 
-### Value
+### Values
 
 - unitialized value
 - integer
@@ -142,9 +142,21 @@ The typical execution begins with the BEGIN block, goes through pattern-action b
 - byte string
 - array
 
+### Pragmas
+
+A program item of the file scope can be placed in any source files.
+A pragma item of the global scope can appear only once thoughout the all source files.
+
+|               | Scope  | Values        | Description                                            |
+|---------------|--------|---------------|--------------------------------------------------------|
+| implicit      | file   | on, off       | allow undeclared variables                             |
+| multilinestr  | file   | on, off       | allow a multiline string literal without continuation  |
+| entry         | global | function name | change the program entry point                         |
+| striprecspc   | global | on, off       |                                                        |
+| striprecspc   | global | on, off       | trim leading and trailing spaces when convering a string to a number |
+
+
 ### Module
-
-
 
 ### Incompatibility with AWK
 
