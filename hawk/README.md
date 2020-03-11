@@ -141,10 +141,27 @@ The typical execution begins with the BEGIN block, goes through pattern-action b
 - string
 - byte string
 - array
+- function
+- regular expression
+
+To know the current type of a value, call typename().
+
+	function f() { return 10; }
+	BEGIN { 
+		a="hello";
+		b=12345;
+		print typename(a), typename(b), typename(c), typename(f), typename(1.23), typename(B"world");
+	}
+
+A regular expression literal is special in that it never appears as an indendent value and still entails a match operation against $0 without an match operator.	
+
+	BEGIN { $0="ab"; print /ab/, typename(/ab/); }
+
+For this reason, there is no way to get the type name of a regular expressin literal.
 
 ### Pragmas
 
-A program item of the file scope can be placed in any source files.
+A pragma item of the file scope can be placed in any source files.
 A pragma item of the global scope can appear only once thoughout the all source files.
 
 |               | Scope  | Values        | Description                                            |
@@ -178,6 +195,16 @@ Alternatively, you may form an array before passing it to a function.
 
 	function q(a) {a[1]=20; a[2]=30;}
 	BEGIN { x[3]=99; q(x); for (i in x) print i, x[i]; }'
+
+
+### Positional variable expression
+
+There are subtle differences when you put an expression for a position variable. In Hawk, most of the ambiguity issues are resolved if you enclose the expression inside parentheses.
+
+|              | HAWK          | AWK             |
+|--------------|---------------|-----------------|
+| $++$++i      | syntax error  | OK              |
+| $(++$(++i))  | OK            | syntax error    |
 
 
 ## Basic Modules <a name="basic-modules"></a>
