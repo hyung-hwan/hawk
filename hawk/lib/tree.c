@@ -678,8 +678,9 @@ static int print_expr (hawk_t* awk, hawk_nde_t* nde)
 
 		case HAWK_NDE_POS:
 		{
-			PUT_SRCSTR (awk, HAWK_T("$"));
+			PUT_SRCSTR (awk, HAWK_T("$("));
 			PRINT_EXPR (awk, ((hawk_nde_pos_t*)nde)->val);
+			PUT_SRCSTR (awk, HAWK_T(")"));
 			break;
 		}
 

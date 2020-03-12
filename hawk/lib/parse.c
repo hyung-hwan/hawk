@@ -4872,8 +4872,8 @@ static hawk_nde_t* parse_primary_positional (hawk_t* awk, const hawk_loc_t* xloc
 	hawk_nde_pos_t* nde;
 	hawk_loc_t ploc;
 
-	nde = (hawk_nde_pos_t*) hawk_callocmem (awk, HAWK_SIZEOF(*nde));
-	if (nde == HAWK_NULL) 
+	nde = (hawk_nde_pos_t*)hawk_callocmem(awk, HAWK_SIZEOF(*nde));
+	if (HAWK_UNLIKELY(!nde)) 
 	{
 		ADJERR_LOC (awk, xloc);
 		goto oops;
@@ -4886,7 +4886,7 @@ static hawk_nde_t* parse_primary_positional (hawk_t* awk, const hawk_loc_t* xloc
 
 	ploc = awk->tok.loc;
 	nde->val = parse_primary(awk, &ploc);
-	if (!nde->val) goto oops;
+	if (HAWK_UNLIKELY(!nde->val)) goto oops;
 
 	return (hawk_nde_t*)nde;
 
@@ -4914,7 +4914,7 @@ static hawk_nde_t* parse_primary_lparen (hawk_t* awk, const hawk_loc_t* xloc)
 	/* parse the sub-expression inside the parentheses */
 	eloc = awk->tok.loc;
 	nde = parse_expr_withdc(awk, &eloc);
-	if (!nde) return HAWK_NULL;
+	if (HAWK_UNLIKELY(!nde)) return HAWK_NULL;
 
 	/* parse subsequent expressions separated by a comma, if any */
 	last = nde;
@@ -4932,7 +4932,7 @@ static hawk_nde_t* parse_primary_lparen (hawk_t* awk, const hawk_loc_t* xloc)
 
 		eloc = awk->tok.loc;
 		tmp = parse_expr_withdc(awk, &eloc);
-		if (!tmp) goto oops;
+		if (HAWK_UNLIKELY(!tmp)) goto oops;
 
 		HAWK_ASSERT (tmp->next == HAWK_NULL);
 		last->next = tmp;
@@ -4971,7 +4971,7 @@ static hawk_nde_t* parse_primary_lparen (hawk_t* awk, const hawk_loc_t* xloc)
 		}
 
 		tmp = (hawk_nde_grp_t*)hawk_callocmem(awk, HAWK_SIZEOF(hawk_nde_grp_t));
-		if (!tmp)
+		if (HAWK_UNLIKELY(!tmp))
 		{
 			ADJERR_LOC (awk, xloc);
 			goto oops;
@@ -5003,7 +5003,7 @@ static hawk_nde_t* parse_primary_getline (hawk_t* awk, const hawk_loc_t* xloc, i
 	hawk_loc_t ploc;
 
 	nde = (hawk_nde_getline_t*)hawk_callocmem(awk, HAWK_SIZEOF(*nde));
-	if (nde == HAWK_NULL) goto oops;
+	if (HAWK_UNLIKELY(!nde)) goto oops;
 
 	nde->type = HAWK_NDE_GETLINE;
 	nde->mbs = mbs;
@@ -5040,8 +5040,8 @@ static hawk_nde_t* parse_primary_getline (hawk_t* awk, const hawk_loc_t* xloc, i
 		}
 
 		ploc = awk->tok.loc;
-		nde->var = parse_primary (awk, &ploc);
-		if (nde->var == HAWK_NULL) goto oops;
+		nde->var = parse_primary(awk, &ploc);
+		if (HAWK_UNLIKELY(!nde->var)) goto oops;
 
 		if (!is_var(nde->var) && nde->var->type != HAWK_NDE_POS)
 		{
@@ -5063,8 +5063,8 @@ novar:
 		ploc = awk->tok.loc;
 		/* TODO: is this correct? */
 		/*nde->in = parse_expr_withdc (awk, &ploc);*/
-		nde->in = parse_primary (awk, &ploc);
-		if (nde->in == HAWK_NULL) goto oops;
+		nde->in = parse_primary(awk, &ploc);
+		if (HAWK_UNLIKELY(!nde->in)) goto oops;
 
 		nde->in_type = HAWK_IN_FILE;
 	}

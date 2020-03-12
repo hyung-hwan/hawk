@@ -164,7 +164,7 @@ For this reason, there is no way to get the type name of a regular expressin lit
 A pragma item of the file scope can be placed in any source files.
 A pragma item of the global scope can appear only once thoughout the all source files.
 
-|               | Scope  | Values        | Description                                            |
+| Name          | Scope  | Values        | Description                                            |
 |---------------|--------|---------------|--------------------------------------------------------|
 | implicit      | file   | on, off       | allow undeclared variables                             |
 | multilinestr  | file   | on, off       | allow a multiline string literal without continuation  |
@@ -201,7 +201,7 @@ Alternatively, you may form an array before passing it to a function.
 
 There are subtle differences when you put an expression for a position variable. In Hawk, most of the ambiguity issues are resolved if you enclose the expression inside parentheses.
 
-|              | HAWK          | AWK             |
+| Expression   | HAWK          | AWK             |
 |--------------|---------------|-----------------|
 | $++$++i      | syntax error  | OK              |
 | $(++$(++i))  | OK            | syntax error    |
