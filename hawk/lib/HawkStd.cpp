@@ -845,18 +845,29 @@ void HawkStd::clearConsoleOutputs ()
 
 static int check_var_assign (hawk_rtx_t* rtx, const hawk_ooch_t* str)
 {
-	hawk_ooch_t* eq, * var;
+	hawk_ooch_t* eq, * dstr;
 	int n;
 
 	eq = hawk_find_oochar_in_oocstr(str, '=');
 	if (!eq || eq <= str) return 0; /* not assignment */
 
-	var = hawk_rtx_dupoochars(rtx, str, eq - str);
-	if (HAWK_UNLIKELY(!var)) return -1;
+	dstr = hawk_rtx_dupoocstr(rtx, str, HAWK_NULL);
+	if (HAWK_UNLIKELY(!dstr)) return -1;
 
-	n = hawk_isvalidident(hawk_rtx_gethawk(rtx), var)?
-		((hawk_rtx_setgbltostrbyname(rtx, var, eq + 1) <= -1)? -1: 1): 0;
-	hawk_rtx_freemem (rtx, var);
+	eq = dstr + (eq - str);
+	*eq = '\0';
+
+	if (hawk_isvalidident(hawk_rtx_gethawk(rtx), dstr))
+	{
+		hawk_unescape_oocstr (eq + 1);
+		n = (hawk_rtx_setgbltostrbyname(rtx, dstr, eq + 1) <= -1)? -1: 1;
+	}
+	else
+	{
+		n = 0;
+	}
+
+	hawk_rtx_freemem (rtx, dstr);
 	return n;
 }
 

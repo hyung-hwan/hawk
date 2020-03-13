@@ -195,7 +195,7 @@ init:
 	val->fcb = 0;
 	val->val.len = len1 + len2;
 	val->val.ptr = (hawk_ooch_t*)(val + 1);
-	if (str1) hawk_copy_oochars_to_oocstr_unlimited (&val->val.ptr[0], str1, len1);
+	if (HAWK_LIKELY(str1)) hawk_copy_oochars_to_oocstr_unlimited (&val->val.ptr[0], str1, len1);
 	if (str2) hawk_copy_oochars_to_oocstr_unlimited (&val->val.ptr[len1], str2, len2);
 	val->val.ptr[val->val.len] = '\0';
 
@@ -204,7 +204,6 @@ init:
 #endif
 	return (hawk_val_t*)val;
 }
-
 
 hawk_val_t* hawk_rtx_makestrvalwithuchars (hawk_rtx_t* rtx, const hawk_uch_t* ucs, hawk_oow_t len)
 {
