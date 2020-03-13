@@ -1836,6 +1836,303 @@ exit_loop:
 
 /* ------------------------------------------------------------------------ */
 
+void hawk_unescape_ucstr (hawk_uch_t* str)
+{
+	hawk_uch_t c, c_acc, * p1, * p2;
+	int escaped = 0, digit_count;
+
+	p1 = str;
+	p2 = str;
+	while ((c = *p1++) != '\0')
+	{
+		if (escaped == 3)
+		{
+			/* octal */
+			if (c >= '0' && c <= '7')
+			{
+				c_acc = c_acc * 8 + c - '0';
+				digit_count++;
+				
+				if (digit_count >= escaped) 
+				{
+					/* should i limit the max to 0xFF/0377? 
+					 if (c_acc > 0377) c_acc = 0377; */
+					escaped = 0;
+					*p2++ = c_acc;
+				}
+				continue;
+			}
+			else
+			{
+				escaped = 0;
+				*p2++ = c_acc;
+			}
+		}
+		else if (escaped == 2 || escaped == 4 || escaped == 8)
+		{
+			/* hexadecimal */
+			if (c >= '0' && c <= '9')
+			{
+				c_acc = c_acc * 16 + c - '0';
+				digit_count++;
+				if (digit_count >= escaped) 
+				{
+					*p2++ = c_acc;
+					escaped = 0;
+				}
+				continue;
+			}
+			else if (c >= 'A' && c <= 'F')
+			{
+				c_acc = c_acc * 16 + c - 'A' + 10;
+				digit_count++;
+				if (digit_count >= escaped) 
+				{
+					*p2++ = c_acc;
+					escaped = 0;
+				}
+				continue;
+			}
+			else if (c >= 'a' && c <= 'f')
+			{
+				c_acc = c_acc * 16 + c - 'a' + 10;
+				digit_count++;
+				if (digit_count >= escaped) 
+				{
+					*p2++ = c_acc;
+					escaped = 0;
+				}
+				continue;
+			}
+			else
+			{
+				hawk_uch_t rc;
+
+				rc = (escaped == 2)? 'x':
+				     (escaped == 4)? 'u': 'U';
+				if (digit_count == 0) 
+				{
+					/* no valid character after the escaper.
+					 * keep the escaper as it is. consider this input:
+					 *   \xGG
+					 * 'c' is at the first G. this part is to restore the
+					 * \x part. since \x is not followed by any hexadecimal
+					 * digits, it's literally 'x' */
+					*p2++ = rc;
+				}
+				else *p2++ = c_acc;
+
+				escaped = 0;
+			}
+		}
+
+		if (escaped == 1)
+		{
+			switch (c) 
+			{
+				case 'n': c = '\n'; break;
+				case 'r': c = '\r'; break;
+				case 't': c = '\t'; break;
+				case 'f': c = '\f'; break;
+				case 'b': c = '\b'; break;
+				case 'v': c = '\v'; break;
+				case 'a': c = '\a'; break;
+
+				case '0': case '1': case '2': case '3':
+				case '4': case '5': case '6': case '7':
+					escaped = 3;
+					digit_count = 1;
+					c_acc = c - '0';
+					continue;
+
+				case 'x':
+					escaped = 2;
+					digit_count = 0;
+					c_acc = 0;
+					continue;
+
+				case 'u':
+					escaped = 4;
+					digit_count = 0;
+					c_acc = 0;
+					continue;
+
+				case 'U':
+					escaped = 8;
+					digit_count = 0;
+					c_acc = 0;
+					continue;
+				}
+
+			*p2++ = c;
+			escaped = 0;
+			continue;
+		}
+
+		if (c == '\\') 
+		{
+			escaped = 1;
+			continue;
+		}
+
+		*p2++ = c;
+	}
+
+	*p2 = '\0';
+}
+
+/* ------------------------------------------------------------------------ */
+
+void hawk_unescape_bcstr (hawk_bch_t* str)
+{
+	hawk_bch_t c, c_acc, * p1, * p2;
+	int escaped = 0, digit_count;
+
+	p1 = str;
+	p2 = str;
+	while ((c = *p1++) != '\0')
+	{
+		if (escaped == 3)
+		{
+			/* octal */
+			if (c >= '0' && c <= '7')
+			{
+				c_acc = c_acc * 8 + c - '0';
+				digit_count++;
+				
+				if (digit_count >= escaped) 
+				{
+					/* should i limit the max to 0xFF/0377? 
+					 if (c_acc > 0377) c_acc = 0377; */
+					escaped = 0;
+					*p2++ = c_acc;
+				}
+				continue;
+			}
+			else
+			{
+				escaped = 0;
+				*p2++ = c_acc;
+			}
+		}
+		else if (escaped == 2 || escaped == 4 || escaped == 8)
+		{
+			/* hexadecimal */
+			if (c >= '0' && c <= '9')
+			{
+				c_acc = c_acc * 16 + c - '0';
+				digit_count++;
+				if (digit_count >= escaped) 
+				{
+					*p2++ = c_acc;
+					escaped = 0;
+				}
+				continue;
+			}
+			else if (c >= 'A' && c <= 'F')
+			{
+				c_acc = c_acc * 16 + c - 'A' + 10;
+				digit_count++;
+				if (digit_count >= escaped) 
+				{
+					*p2++ = c_acc;
+					escaped = 0;
+				}
+				continue;
+			}
+			else if (c >= 'a' && c <= 'f')
+			{
+				c_acc = c_acc * 16 + c - 'a' + 10;
+				digit_count++;
+				if (digit_count >= escaped) 
+				{
+					*p2++ = c_acc;
+					escaped = 0;
+				}
+				continue;
+			}
+			else
+			{
+				hawk_bch_t rc;
+
+				rc = (escaped == 2)? 'x':
+				     (escaped == 4)? 'u': 'U';
+				if (digit_count == 0) 
+				{
+					/* no valid character after the escaper.
+					 * keep the escaper as it is. consider this input:
+					 *   \xGG
+					 * 'c' is at the first G. this part is to restore the
+					 * \x part. since \x is not followed by any hexadecimal
+					 * digits, it's literally 'x' */
+					*p2++ = rc;
+				}
+				else *p2++ = c_acc;
+
+				escaped = 0;
+			}
+		}
+
+		if (escaped == 1)
+		{
+			switch (c) 
+			{
+				case 'n': c = '\n'; break;
+				case 'r': c = '\r'; break;
+				case 't': c = '\t'; break;
+				case 'f': c = '\f'; break;
+				case 'b': c = '\b'; break;
+				case 'v': c = '\v'; break;
+				case 'a': c = '\a'; break;
+
+				case '0': case '1': case '2': case '3':
+				case '4': case '5': case '6': case '7':
+					escaped = 3;
+					digit_count = 1;
+					c_acc = c - '0';
+					continue;
+
+				case 'x':
+					escaped = 2;
+					digit_count = 0;
+					c_acc = 0;
+					continue;
+
+			#if 0
+				/* don't support \u and \U in byte string. */
+				case 'u':
+					escaped = 4;
+					digit_count = 0;
+					c_acc = 0;
+					continue;
+
+				case 'U':
+					escaped = 8;
+					digit_count = 0;
+					c_acc = 0;
+					continue;
+			#endif
+				}
+
+			*p2++ = c;
+			escaped = 0;
+			continue;
+		}
+
+		if (c == '\\') 
+		{
+			escaped = 1;
+			continue;
+		}
+
+		*p2++ = c;
+	}
+
+	*p2 = '\0';
+}
+
+/* ------------------------------------------------------------------------ */
+
 hawk_oow_t hawk_int_to_oocstr (hawk_int_t value, int radix, const hawk_ooch_t* prefix, hawk_ooch_t* buf, hawk_oow_t size)
 {
 	hawk_int_t t, rem;
