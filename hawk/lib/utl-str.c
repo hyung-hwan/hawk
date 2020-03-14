@@ -1838,7 +1838,8 @@ exit_loop:
 
 void hawk_unescape_ucstr (hawk_uch_t* str)
 {
-	hawk_uch_t c, c_acc, * p1, * p2;
+	hawk_uch_t c, * p1, * p2;
+	hawk_uint32_t c_acc;
 	int escaped = 0, digit_count;
 
 	p1 = str;
@@ -1866,6 +1867,7 @@ void hawk_unescape_ucstr (hawk_uch_t* str)
 			{
 				escaped = 0;
 				*p2++ = c_acc;
+				goto normal_char;
 			}
 		}
 		else if (escaped == 2 || escaped == 4 || escaped == 8)
@@ -1906,10 +1908,6 @@ void hawk_unescape_ucstr (hawk_uch_t* str)
 			}
 			else
 			{
-				hawk_uch_t rc;
-
-				rc = (escaped == 2)? 'x':
-				     (escaped == 4)? 'u': 'U';
 				if (digit_count == 0) 
 				{
 					/* no valid character after the escaper.
@@ -1918,11 +1916,13 @@ void hawk_unescape_ucstr (hawk_uch_t* str)
 					 * 'c' is at the first G. this part is to restore the
 					 * \x part. since \x is not followed by any hexadecimal
 					 * digits, it's literally 'x' */
-					*p2++ = rc;
+					*p2++ = (escaped == 2)? 'x':
+				             (escaped == 4)? 'u': 'U';
 				}
 				else *p2++ = c_acc;
 
 				escaped = 0;
+				goto normal_char;
 			}
 		}
 
@@ -1969,6 +1969,7 @@ void hawk_unescape_ucstr (hawk_uch_t* str)
 			continue;
 		}
 
+	normal_char:
 		if (c == '\\') 
 		{
 			escaped = 1;
@@ -1985,8 +1986,12 @@ void hawk_unescape_ucstr (hawk_uch_t* str)
 
 void hawk_unescape_bcstr (hawk_bch_t* str)
 {
-	hawk_bch_t c, c_acc, * p1, * p2;
+	hawk_bch_t c, * p1, * p2;
+	hawk_uint32_t c_acc;
 	int escaped = 0, digit_count;
+	hawk_cmgr_t* utf8_cmgr;
+
+	utf8_cmgr = hawk_get_cmgr_by_id(HAWK_CMGR_UTF8);
 
 	p1 = str;
 	p2 = str;
@@ -2013,6 +2018,7 @@ void hawk_unescape_bcstr (hawk_bch_t* str)
 			{
 				escaped = 0;
 				*p2++ = c_acc;
+				goto normal_char;
 			}
 		}
 		else if (escaped == 2 || escaped == 4 || escaped == 8)
@@ -2024,7 +2030,8 @@ void hawk_unescape_bcstr (hawk_bch_t* str)
 				digit_count++;
 				if (digit_count >= escaped) 
 				{
-					*p2++ = c_acc;
+					if (escaped == 2) *p2++ = c_acc;
+					else p2 += utf8_cmgr->uctobc(c_acc, p2, HAWK_TYPE_MAX(hawk_oow_t));
 					escaped = 0;
 				}
 				continue;
@@ -2035,7 +2042,8 @@ void hawk_unescape_bcstr (hawk_bch_t* str)
 				digit_count++;
 				if (digit_count >= escaped) 
 				{
-					*p2++ = c_acc;
+					if (escaped == 2) *p2++ = c_acc;
+					else p2 += utf8_cmgr->uctobc(c_acc, p2, HAWK_TYPE_MAX(hawk_oow_t));
 					escaped = 0;
 				}
 				continue;
@@ -2046,17 +2054,16 @@ void hawk_unescape_bcstr (hawk_bch_t* str)
 				digit_count++;
 				if (digit_count >= escaped) 
 				{
-					*p2++ = c_acc;
+					if (escaped == 2) *p2++ = c_acc;
+					else p2 += utf8_cmgr->uctobc(c_acc, p2, HAWK_TYPE_MAX(hawk_oow_t));
 					escaped = 0;
 				}
 				continue;
 			}
 			else
 			{
-				hawk_bch_t rc;
-
-				rc = (escaped == 2)? 'x':
-				     (escaped == 4)? 'u': 'U';
+				/* non digit or xdigit */
+				
 				if (digit_count == 0) 
 				{
 					/* no valid character after the escaper.
@@ -2065,11 +2072,19 @@ void hawk_unescape_bcstr (hawk_bch_t* str)
 					 * 'c' is at the first G. this part is to restore the
 					 * \x part. since \x is not followed by any hexadecimal
 					 * digits, it's literally 'x' */
-					*p2++ = rc;
+					*p2++ = (escaped == 2)? 'x':
+					        (escaped == 4)? 'u': 'U';
 				}
-				else *p2++ = c_acc;
+				else 
+				{
+					/* for a unicode, the utf8 conversion can never outgrow the input string of the hexadecimal notation with an escaper.
+					 * so it must be safe to specify a very large buffer size to uctobc() */
+					if (escaped == 2) *p2++ = c_acc;
+					else p2 += utf8_cmgr->uctobc(c_acc, p2, HAWK_TYPE_MAX(hawk_oow_t));
+				}
 
 				escaped = 0;
+				goto normal_char;
 			}
 		}
 
@@ -2098,8 +2113,6 @@ void hawk_unescape_bcstr (hawk_bch_t* str)
 					c_acc = 0;
 					continue;
 
-			#if 0
-				/* don't support \u and \U in byte string. */
 				case 'u':
 					escaped = 4;
 					digit_count = 0;
@@ -2111,7 +2124,6 @@ void hawk_unescape_bcstr (hawk_bch_t* str)
 					digit_count = 0;
 					c_acc = 0;
 					continue;
-			#endif
 				}
 
 			*p2++ = c;
@@ -2119,6 +2131,7 @@ void hawk_unescape_bcstr (hawk_bch_t* str)
 			continue;
 		}
 
+	normal_char:
 		if (c == '\\') 
 		{
 			escaped = 1;

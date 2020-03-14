@@ -6140,31 +6140,35 @@ static int get_string (
 			}
 			else
 			{
-				hawk_ooch_t rc;
-
-				rc = (escaped == HEX_DIGIT_LIMIT_FOR_X)? HAWK_T('x'):
-				     (escaped == 4)? HAWK_T('u'): HAWK_T('U');
+				
 				if (digit_count == 0) 
 				{
+					hawk_ooch_t ec;
+
+					ec = (escaped == HEX_DIGIT_LIMIT_FOR_X)? HAWK_T('x'):
+					     (escaped == 4)? HAWK_T('u'): HAWK_T('U');
+
 					/* no valid character after the escaper.
 					 * keep the escaper as it is. consider this input:
 					 *   \xGG
 					 * 'c' is at the first G. this part is to restore the
 					 * \x part. since \x is not followed by any hexadecimal
 					 * digits, it's literally 'x' */
-					ADD_TOKEN_CHAR (awk, tok, rc);
+					ADD_TOKEN_CHAR (awk, tok, ec);
 				}
 				else ADD_TOKEN_UINT32 (awk, tok, c_acc);
 
 				escaped = 0;
+				/* carray on to handle the current character  */
 			}
 		}
-
-		if (escaped == 99)
+		else if (escaped == 99)
 		{
 			escaped = 0;
 			if (c == '\n') continue; /* backslash \r \n */
 		}
+
+		/* -------------------------------------- */
 
 		if (escaped == 0)
 		{
@@ -6180,14 +6184,13 @@ static int get_string (
 				escaped = 1;
 				continue;
 			}
-			else if (!(awk->parse.pragma.trait & HAWK_MULTILINESTR) && c == '\n' || c == '\r')
+			else if (!(awk->parse.pragma.trait & HAWK_MULTILINESTR) && (c == '\n' || c == '\r'))
 			{
 				hawk_seterrnum (awk, &awk->tok.loc, HAWK_ESTRNC);
 				return -1;
 			}
 		}
-
-		if (escaped == 1)
+		else if (escaped == 1)
 		{
 			if (c == '\n')
 			{
