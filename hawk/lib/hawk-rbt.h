@@ -243,6 +243,17 @@ struct hawk_rbt_t
 	hawk_rbt_pair_t*        root;      /**< root pair */
 };
 
+
+struct hawk_rbt_itr_t
+{
+	hawk_rbt_pair_t* pair;
+	hawk_rbt_pair_t* _prev;
+	int _dir; /* 0 or 1 */
+	int _state;
+};
+
+typedef struct hawk_rbt_itr_t hawk_rbt_itr_t;
+
 /**
  * The HAWK_RBT_COPIER_SIMPLE macros defines a copier that remembers the
  * pointer and length of data in a pair.
@@ -379,9 +390,9 @@ HAWK_EXPORT hawk_rbt_pair_t* hawk_rbt_search (
  */
 HAWK_EXPORT hawk_rbt_pair_t* hawk_rbt_upsert (
 	hawk_rbt_t* rbt,   /**< red-black tree */
-	void*      kptr,  /**< key pointer */
+	void*       kptr,  /**< key pointer */
 	hawk_oow_t  klen,  /**< key length */
-	void*      vptr,  /**< value pointer */
+	void*       vptr,  /**< value pointer */
 	hawk_oow_t  vlen   /**< value length */
 );
 
@@ -393,9 +404,9 @@ HAWK_EXPORT hawk_rbt_pair_t* hawk_rbt_upsert (
  */
 HAWK_EXPORT hawk_rbt_pair_t* hawk_rbt_ensert (
 	hawk_rbt_t* rbt,   /**< red-black tree */
-	void*      kptr,  /**< key pointer */
+	void*       kptr,  /**< key pointer */
 	hawk_oow_t  klen,  /**< key length */
-	void*      vptr,  /**< value pointer */
+	void*       vptr,  /**< value pointer */
 	hawk_oow_t  vlen   /**< value length */
 );
 
@@ -407,9 +418,9 @@ HAWK_EXPORT hawk_rbt_pair_t* hawk_rbt_ensert (
  */
 HAWK_EXPORT hawk_rbt_pair_t* hawk_rbt_insert (
 	hawk_rbt_t* rbt,   /**< red-black tree */
-	void*      kptr,  /**< key pointer */
+	void*       kptr,  /**< key pointer */
 	hawk_oow_t  klen,  /**< key length */
-	void*      vptr,  /**< value pointer */
+	void*       vptr,  /**< value pointer */
 	hawk_oow_t  vlen   /**< value length */
 );
 
@@ -527,7 +538,7 @@ HAWK_EXPORT hawk_rbt_pair_t* hawk_rbt_cbsert (
  */
 HAWK_EXPORT int hawk_rbt_delete (
 	hawk_rbt_t*  rbt,   /**< red-black tree */
-	const void* kptr,  /**< key pointer */
+	const void*  kptr,  /**< key pointer */
 	hawk_oow_t   klen   /**< key size */
 );
 
@@ -536,6 +547,21 @@ HAWK_EXPORT int hawk_rbt_delete (
  */
 HAWK_EXPORT void hawk_rbt_clear (
 	hawk_rbt_t* rbt /**< red-black tree */
+);
+
+HAWK_EXPORT void hawk_init_rbt_itr (
+	hawk_rbt_itr_t* itr,
+	int             dir /* 0 or 1 */
+);
+
+HAWK_EXPORT hawk_rbt_pair_t* hawk_rbt_getfirstpair (
+	hawk_rbt_t*     rbt,
+	hawk_rbt_itr_t* itr
+);
+
+HAWK_EXPORT hawk_rbt_pair_t* hawk_rbt_getnextpair (
+	hawk_rbt_t*      rbt,
+	hawk_rbt_itr_t*  itr
 );
 
 /**

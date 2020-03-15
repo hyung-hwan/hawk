@@ -511,9 +511,9 @@ hawk_val_t* hawk_rtx_makerexval (hawk_rtx_t* rtx, const hawk_oocs_t* str, hawk_t
 	return (hawk_val_t*)val;
 }
 
-static void free_mapval (hawk_htb_t* map, void* dptr, hawk_oow_t dlen)
+static void free_mapval (hawk_map_t* map, void* dptr, hawk_oow_t dlen)
 {
-	hawk_rtx_t* rtx = *(hawk_rtx_t**)hawk_htb_getxtn(map);
+	hawk_rtx_t* rtx = *(hawk_rtx_t**)hawk_map_getxtn(map);
 
 #if defined(DEBUG_VAL)
 	hawk_logfmt (hawk_rtx_gethawk(rtx), HAWK_T("refdown in map free - [%O]\n"), dptr);
@@ -522,9 +522,9 @@ static void free_mapval (hawk_htb_t* map, void* dptr, hawk_oow_t dlen)
 	hawk_rtx_refdownval (rtx, dptr);
 }
 
-static void same_mapval (hawk_htb_t* map, void* dptr, hawk_oow_t dlen)
+static void same_mapval (hawk_map_t* map, void* dptr, hawk_oow_t dlen)
 {
-	hawk_rtx_t* run = *(hawk_rtx_t**)hawk_htb_getxtn(map);
+	hawk_rtx_t* run = *(hawk_rtx_t**)hawk_map_getxtn(map);
 #if defined(DEBUG_VAL)
 	hawk_logfmt (hawk_rtx_gethawk(rtx), HAWK_T("refdown nofree in map free - [%O]\n"), dptr);
 #endif
@@ -533,46 +533,28 @@ static void same_mapval (hawk_htb_t* map, void* dptr, hawk_oow_t dlen)
 
 hawk_val_t* hawk_rtx_makemapval (hawk_rtx_t* rtx)
 {
-	static hawk_htb_style_t style =
+	static hawk_map_style_t style =
 	{
 	/* the key is copied inline into a pair and is freed when the pair
 	 * is destroyed. not setting copier for a value means that the pointer 
 	 * to the data allocated somewhere else is remembered in a pair. but 
 	 * freeing the actual value is handled by free_mapval and same_mapval */
 		{
-			HAWK_HTB_COPIER_INLINE,
-			HAWK_HTB_COPIER_DEFAULT
+			HAWK_MAP_COPIER_INLINE,
+			HAWK_MAP_COPIER_DEFAULT
 		},
 		{
-			HAWK_HTB_FREEER_DEFAULT,
+			HAWK_MAP_FREEER_DEFAULT,
 			free_mapval
 		},
-		HAWK_HTB_COMPER_DEFAULT,
+		HAWK_MAP_COMPER_DEFAULT,
 		same_mapval,
-		HAWK_HTB_SIZER_DEFAULT,
-		HAWK_HTB_HASHER_DEFAULT
+		HAWK_MAP_SIZER_DEFAULT,
+		HAWK_MAP_HASHER_DEFAULT
 	};
 	hawk_val_map_t* val;
 
-	/* CHECK */
-	/* 
-	val = (hawk_val_map_t*)hawk_rtx_callocmem(rtx, HAWK_SIZEOF(hawk_val_map_t));
-	if (!val) return HAWK_NULL;
-
-	val->type = HAWK_VAL_MAP;
-	val->ref = 0;
-	val->stat = 0;
-	val->nstr = 0;
-	val->fcb = 0;
-	val->map = hawk_htb_open(hawk_rtx_getgem(rtx), 256, 70, free_mapval, same_mapval);
-	if (val->map == HAWK_NULL)
-	{
-		hawk_rtx_freemem (rtx, val);
-		return HAWK_NULL;
-	}
-	*/
-
-	val = (hawk_val_map_t*)hawk_rtx_callocmem(rtx, HAWK_SIZEOF(hawk_val_map_t) + HAWK_SIZEOF(hawk_htb_t) + HAWK_SIZEOF(rtx));
+	val = (hawk_val_map_t*)hawk_rtx_callocmem(rtx, HAWK_SIZEOF(hawk_val_map_t) + HAWK_SIZEOF(hawk_map_t) + HAWK_SIZEOF(rtx));
 	if (!val) return HAWK_NULL;
 
 	val->v_type = HAWK_VAL_MAP;
@@ -580,16 +562,15 @@ hawk_val_t* hawk_rtx_makemapval (hawk_rtx_t* rtx)
 	val->stat = 0;
 	val->nstr = 0;
 	val->fcb = 0;
-	val->map = (hawk_htb_t*)(val + 1);
+	val->map = (hawk_map_t*)(val + 1);
 
-	if (hawk_htb_init(val->map, hawk_rtx_getgem(rtx), 256, 70, HAWK_SIZEOF(hawk_ooch_t), 1) <= -1)
+	if (hawk_map_init(val->map, hawk_rtx_getgem(rtx), 256, 70, HAWK_SIZEOF(hawk_ooch_t), 1) <= -1)
 	{
 		hawk_rtx_freemem (rtx, val);
 		return HAWK_NULL;
 	}
-	*(hawk_rtx_t**)hawk_htb_getxtn(val->map) = rtx;
-	hawk_htb_setstyle (val->map, &style);
-	/* END CHECK */
+	*(hawk_rtx_t**)hawk_map_getxtn(val->map) = rtx;
+	hawk_map_setstyle (val->map, &style);
 
 	return (hawk_val_t*)val;
 }
@@ -664,7 +645,7 @@ hawk_val_t* hawk_rtx_setmapvalfld (
 {
 	HAWK_ASSERT (HAWK_RTX_GETVALTYPE (rtx, map) == HAWK_VAL_MAP);
 
-	if (hawk_htb_upsert (((hawk_val_map_t*)map)->map, (hawk_ooch_t*)kptr, klen, v, 0) == HAWK_NULL) return HAWK_NULL;
+	if (hawk_map_upsert (((hawk_val_map_t*)map)->map, (hawk_ooch_t*)kptr, klen, v, 0) == HAWK_NULL) return HAWK_NULL;
 
 	/* the value is passed in by an external party. we can't refup()
 	 * and refdown() the value if htb_upsert() fails. that way, the value
@@ -677,11 +658,11 @@ hawk_val_t* hawk_rtx_setmapvalfld (
 
 hawk_val_t* hawk_rtx_getmapvalfld (hawk_rtx_t* rtx, hawk_val_t* map, const hawk_ooch_t* kptr, hawk_oow_t klen)
 {
-	hawk_htb_pair_t* pair;
+	hawk_map_pair_t* pair;
 
 	HAWK_ASSERT (HAWK_RTX_GETVALTYPE(rtx, map) == HAWK_VAL_MAP);
 
-	pair = hawk_htb_search(((hawk_val_map_t*)map)->map, kptr, klen);
+	pair = hawk_map_search(((hawk_val_map_t*)map)->map, kptr, klen);
 	if (!pair)
 	{
 		/* the given key is not found in the map.
@@ -693,20 +674,21 @@ hawk_val_t* hawk_rtx_getmapvalfld (hawk_rtx_t* rtx, hawk_val_t* map, const hawk_
 		return HAWK_NULL;
 	}
 
-	return HAWK_HTB_VPTR(pair);
+	return HAWK_MAP_VPTR(pair);
 }
 
 hawk_val_map_itr_t* hawk_rtx_getfirstmapvalitr (hawk_rtx_t* rtx, hawk_val_t* map, hawk_val_map_itr_t* itr)
 {
-	HAWK_ASSERT (HAWK_RTX_GETVALTYPE (rtx, map) == HAWK_VAL_MAP);
-	itr->pair = hawk_htb_getfirstpair (((hawk_val_map_t*)map)->map, &itr->buckno);
+	HAWK_ASSERT (HAWK_RTX_GETVALTYPE(rtx, map) == HAWK_VAL_MAP);
+	hawk_init_map_itr (itr, 0); /* override the caller provided direction to 0 */
+	itr->pair = hawk_map_getfirstpair(((hawk_val_map_t*)map)->map, itr);
 	return itr->pair? itr: HAWK_NULL;
 }
 
 hawk_val_map_itr_t* hawk_rtx_getnextmapvalitr (hawk_rtx_t* rtx, hawk_val_t* map, hawk_val_map_itr_t* itr)
 {
-	HAWK_ASSERT (HAWK_RTX_GETVALTYPE (rtx, map) == HAWK_VAL_MAP);
-	itr->pair = hawk_htb_getnextpair (((hawk_val_map_t*)map)->map, itr->pair, &itr->buckno);
+	HAWK_ASSERT (HAWK_RTX_GETVALTYPE(rtx, map) == HAWK_VAL_MAP);
+	itr->pair = hawk_map_getnextpair(((hawk_val_map_t*)map)->map, itr);
 	return itr->pair? itr: HAWK_NULL;
 }
 
@@ -864,7 +846,7 @@ void hawk_rtx_freeval (hawk_rtx_t* rtx, hawk_val_t* val, int cache)
 
 			case HAWK_VAL_MAP:
 			{
-				hawk_htb_fini (((hawk_val_map_t*)val)->map);
+				hawk_map_fini (((hawk_val_map_t*)val)->map);
 				hawk_rtx_freemem (rtx, val);
 				break;
 			}
@@ -1013,7 +995,7 @@ int hawk_rtx_valtobool (hawk_rtx_t* rtx, const hawk_val_t* val)
 			return 1;
 		case HAWK_VAL_MAP:
 			/* true if the map size is greater than 0. false if not */
-			return HAWK_HTB_SIZE(((hawk_val_map_t*)val)->map) > 0;
+			return HAWK_MAP_SIZE(((hawk_val_map_t*)val)->map) > 0;
 		case HAWK_VAL_REF:
 			return val_ref_to_bool(rtx, (hawk_val_ref_t*)val);
 	}
@@ -1785,7 +1767,7 @@ int hawk_rtx_valtonum (hawk_rtx_t* rtx, const hawk_val_t* v, hawk_int_t* l, hawk
 		case HAWK_VAL_MAP:
 			if (rtx->hawk->opt.trait & HAWK_FLEXMAP)
 			{
-				*l = HAWK_HTB_SIZE(((hawk_val_map_t*)v)->map);
+				*l = HAWK_MAP_SIZE(((hawk_val_map_t*)v)->map);
 				return 0; /* long */
 			}
 			goto invalid;
@@ -2117,17 +2099,17 @@ int hawk_rtx_setrefval (hawk_rtx_t* rtx, hawk_val_ref_t* ref, hawk_val_t* val)
 
 #define hawk_errputstrf hawk_errputstrf
 
-static hawk_htb_walk_t print_pair (hawk_htb_t* map, hawk_htb_pair_t* pair, void* arg)
+static hawk_map_walk_t print_pair (hawk_map_t* map, hawk_map_pair_t* pair, void* arg)
 {
 	hawk_rtx_t* run = (hawk_rtx_t*)arg;
 
-	HAWK_ASSERT (run == *(hawk_rtx_t**)hawk_htb_getxtn(map));
+	HAWK_ASSERT (run == *(hawk_rtx_t**)hawk_map_getxtn(map));
 
-	hawk_errputstrf (HAWK_T(" %.*s=>"), HAWK_HTB_KLEN(pair), HAWK_HTB_KPTR(pair));
-	hawk_dprintval ((hawk_rtx_t*)arg, HAWK_HTB_VPTR(pair));
+	hawk_errputstrf (HAWK_T(" %.*s=>"), HAWK_MAP_KLEN(pair), HAWK_MAP_KPTR(pair));
+	hawk_dprintval ((hawk_rtx_t*)arg, HAWK_MAP_VPTR(pair));
 	hawk_errputstrf (HAWK_T(" "));
 
-	return HAWK_HTB_WALK_FORWARD;
+	return HAWK_MAP_WALK_FORWARD;
 }
 
 void hawk_dprintval (hawk_rtx_t* run, hawk_val_t* val)
@@ -2168,7 +2150,7 @@ void hawk_dprintval (hawk_rtx_t* run, hawk_val_t* val)
 
 		case HAWK_VAL_MAP:
 			hawk_errputstrf (HAWK_T("MAP["));
-			hawk_htb_walk (((hawk_val_map_t*)val)->map, print_pair, run);
+			hawk_map_walk (((hawk_val_map_t*)val)->map, print_pair, run);
 			hawk_errputstrf (HAWK_T("]"));
 			break;
 

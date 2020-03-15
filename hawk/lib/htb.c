@@ -663,7 +663,14 @@ void hawk_htb_walk (hawk_htb_t* htb, walker_t walker, void* ctx)
 	}
 }
 
-pair_t* hawk_htb_getfirstpair (hawk_htb_t* htb, hawk_oow_t* buckno)
+
+void hawk_init_htb_itr (hawk_htb_itr_t* itr)
+{
+	itr->pair = HAWK_NULL;
+	itr->buckno = 0;
+}
+
+pair_t* hawk_htb_getfirstpair (hawk_htb_t* htb, hawk_htb_itr_t* itr)
 {
 	hawk_oow_t i;
 	pair_t* pair;
@@ -671,9 +678,10 @@ pair_t* hawk_htb_getfirstpair (hawk_htb_t* htb, hawk_oow_t* buckno)
 	for (i = 0; i < htb->capa; i++)
 	{
 		pair = htb->bucket[i];
-		if (pair != HAWK_NULL) 
+		if (pair) 
 		{
-			*buckno = i;
+			itr->buckno = i;
+			itr->pair = pair;
 			return pair;
 		}
 	}
@@ -681,24 +689,26 @@ pair_t* hawk_htb_getfirstpair (hawk_htb_t* htb, hawk_oow_t* buckno)
 	return HAWK_NULL;
 }
 
-pair_t* hawk_htb_getnextpair (hawk_htb_t* htb, pair_t* pair, hawk_oow_t* buckno)
+pair_t* hawk_htb_getnextpair (hawk_htb_t* htb, hawk_htb_itr_t* itr)
 {
 	hawk_oow_t i;
-	pair_t* next;
+	pair_t* pair;
 
-	next = NEXT(pair);
-	if (next != HAWK_NULL) 
+	pair = NEXT(itr->pair);
+	if (pair) 
 	{
 		/* no change in bucket number */
-		return next;
+		itr->pair = pair;
+		return pair;
 	}
 
-	for (i = (*buckno)+1; i < htb->capa; i++)
+	for (i = itr->buckno + 1; i < htb->capa; i++)
 	{
 		pair = htb->bucket[i];
-		if (pair != HAWK_NULL) 
+		if (pair) 
 		{
-			*buckno = i;
+			itr->buckno = i;
+			itr->pair = pair;
 			return pair;
 		}
 	}

@@ -1880,11 +1880,11 @@ static HAWK_INLINE int __fnc_asort (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, 
 
 	if (!hawk_rtx_getfirstmapvalitr(rtx, a0_val, &itr)) goto done; /* map empty */
 
-	msz = hawk_htb_getsize(((hawk_val_map_t*)a0_val)->map);
+	msz = hawk_map_getsize(((hawk_val_map_t*)a0_val)->map);
 	HAWK_ASSERT (msz > 0);
 
 	va = (hawk_val_t**)hawk_rtx_allocmem(rtx, msz * HAWK_SIZEOF(*va));
-	if (!va) return -1;
+	if (HAWK_UNLIKELY(!va)) return -1;
 	i = 0;
 	if (sort_keys)
 	{
@@ -1892,7 +1892,7 @@ static HAWK_INLINE int __fnc_asort (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, 
 		{
 			const hawk_oocs_t* key = HAWK_VAL_MAP_ITR_KEY(&itr);
 			va[i] = hawk_rtx_makestrvalwithoocs(rtx, key);
-			if (!va[i]) 
+			if (HAWK_UNLIKELY(!va[i])) 
 			{
 				while (i > 0)
 				{
