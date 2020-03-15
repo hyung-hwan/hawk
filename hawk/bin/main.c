@@ -122,18 +122,6 @@ struct arg_t
 
 /* ========================================================================= */
 
-static void dprint (const hawk_ooch_t* fmt, ...)
-{
-	if (app_debug)
-	{
-		va_list ap;
-		va_start (ap, fmt);
-		// TODO: output..
-		//hawk_sio_putstrvf (HAWK_STDERR, fmt, ap);
-		va_end (ap);
-	}
-}
-
 /* ---------------------------------------------------------------------- */
 
 typedef struct sig_state_t sig_state_t;
@@ -328,29 +316,30 @@ static void unset_intr_run (void)
 static hawk_htb_walk_t print_awk_value (hawk_htb_t* map, hawk_htb_pair_t* pair, void* arg)
 {
 	hawk_rtx_t* rtx = (hawk_rtx_t*)arg;
+	hawk_t* hawk = hawk_rtx_gethawk(rtx);
 	hawk_ooch_t* str;
 	hawk_oow_t len;
 	hawk_errinf_t oerrinf;
 
 	hawk_rtx_geterrinf (rtx, &oerrinf);
 
-	str = hawk_rtx_valtooocstrdup(rtx, HAWK_HTB_VPTR(pair), &len);
-	if (str == HAWK_NULL)
+	str = hawk_rtx_getvaloocstr(rtx, HAWK_HTB_VPTR(pair), &len);
+	if (HAWK_UNLIKELY(!str))
 	{
 		if (hawk_rtx_geterrnum(rtx) == HAWK_EVALTOSTR)
 		{
-			dprint (HAWK_T("%.*s = [not printable]\n"), HAWK_HTB_KLEN(pair), HAWK_HTB_KPTR(pair));
+			hawk_logfmt (hawk, HAWK_LOG_STDERR, HAWK_T("%.*js = [not printable]\n"), HAWK_HTB_KLEN(pair), HAWK_HTB_KPTR(pair));
 			hawk_rtx_seterrinf (rtx, &oerrinf);
 		}
 		else
 		{
-			dprint (HAWK_T("***OUT OF MEMORY***\n"));
+			hawk_logfmt (hawk, HAWK_LOG_STDERR, HAWK_T("***OUT OF MEMORY***\n"));
 		}
 	}
 	else
 	{
-		dprint (HAWK_T("%.*s = %.*s\n"), HAWK_HTB_KLEN(pair), HAWK_HTB_KPTR(pair), len, str);
-		hawk_rtx_freemem (rtx, str);
+		hawk_logfmt (hawk, HAWK_LOG_STDERR, HAWK_T("%.*js = %.*js\n"), HAWK_HTB_KLEN(pair), HAWK_HTB_KPTR(pair), len, str);
+		hawk_rtx_freevaloocstr (rtx, HAWK_HTB_VPTR(pair), str);
 	}
 
 	return HAWK_HTB_WALK_FORWARD;
@@ -434,36 +423,39 @@ static int apply_fs_and_gvs_to_rtx (hawk_rtx_t* rtx, arg_t* arg)
 
 static void dprint_return (hawk_rtx_t* rtx, hawk_val_t* ret)
 {
+	hawk_t* hawk = hawk_rtx_gethawk(rtx);
 	hawk_oow_t len;
 	hawk_ooch_t* str;
+	
 
 	if (hawk_rtx_isnilval(rtx, ret))
 	{
-		dprint (HAWK_T("[RETURN] - ***nil***\n"));
+		hawk_logfmt (hawk, HAWK_LOG_STDERR,HAWK_T("[RETURN] - ***nil***\n"));
 	}
 	else
 	{
 		str = hawk_rtx_valtooocstrdup (rtx, ret, &len);
 		if (str == HAWK_NULL)
 		{
-			dprint (HAWK_T("[RETURN] - ***OUT OF MEMORY***\n"));
+			hawk_logfmt (hawk, HAWK_LOG_STDERR,HAWK_T("[RETURN] - ***OUT OF MEMORY***\n"));
 		}
 		else
 		{
-			dprint (HAWK_T("[RETURN] - [%.*js]\n"), len, str);
+			hawk_logfmt (hawk, HAWK_LOG_STDERR, HAWK_T("[RETURN] - [%.*js]\n"), len, str);
 			hawk_freemem (hawk_rtx_gethawk(rtx), str);
 		}
 	}
 
-	dprint (HAWK_T("[NAMED VARIABLES]\n"));
+	hawk_logfmt (hawk, HAWK_LOG_STDERR, HAWK_T("[NAMED VARIABLES]\n"));
 	hawk_htb_walk (hawk_rtx_getnvmap(rtx), print_awk_value, rtx);
-	dprint (HAWK_T("[END NAMED VARIABLES]\n"));
+	hawk_logfmt (hawk, HAWK_LOG_STDERR, HAWK_T("[END NAMED VARIABLES]\n"));
 }
 
 #if defined(ENABLE_CALLBACK)
 static void on_statement (hawk_rtx_t* rtx, hawk_nde_t* nde)
 {
-	dprint (HAWK_T("running %d at line %zu\n"), (int)nde->type, (hawk_oow_t)nde->loc.line);
+	
+	hawk_logfmt (hawk_rtx_gethawk(rtx), HAWK_LOG_STDERR, HAWK_T("running %d at line %zu\n"), (int)nde->type, (hawk_oow_t)nde->loc.line);
 }
 #endif
 

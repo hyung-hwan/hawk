@@ -256,6 +256,14 @@ struct hawk_htb_t
 	hawk_htb_pair_t** bucket;
 };
 
+struct hawk_htb_itr_t
+{
+	hawk_htb_pair_t* pair;
+	hawk_oow_t       buckno;
+};
+
+typedef struct hawk_htb_itr_t hawk_htb_itr_t;
+
 /**
  * The HAWK_HTB_COPIER_SIMPLE macros defines a copier that remembers the
  * pointer and length of data in a pair.
@@ -595,13 +603,17 @@ HAWK_EXPORT void hawk_htb_walk (
 	void*            ctx     /**< pointer to user-specific data */
 );
 
+HAWK_EXPORT void hawk_init_htb_itr (
+	hawk_htb_itr_t* itr
+);
+
 /**
  * The hawk_htb_getfirstpair() function returns the pointer to the first pair
  * in a hash table.
  */
 HAWK_EXPORT hawk_htb_pair_t* hawk_htb_getfirstpair (
-	hawk_htb_t*   htb,     /**< hash table */
-	hawk_oow_t*  buckno   /**< bucket number */
+	hawk_htb_t*     htb,   /**< hash table */
+	hawk_htb_itr_t* itr    /**< iterator*/
 );
 
 /**
@@ -610,8 +622,7 @@ HAWK_EXPORT hawk_htb_pair_t* hawk_htb_getfirstpair (
  */
 HAWK_EXPORT hawk_htb_pair_t* hawk_htb_getnextpair (
 	hawk_htb_t*      htb,    /**< hash table */
-	hawk_htb_pair_t* pair,   /**< current pair  */
-	hawk_oow_t*     buckno  /**< bucket number */
+	hawk_htb_itr_t*  itr    /**< iterator*/
 );
 
 /**

@@ -878,8 +878,8 @@ int HawkStd::open_console_in (Console& io)
 	hawk_val_t* v_argc, * v_argv, * v_pair;
 	hawk_int_t i_argc;
 	const hawk_ooch_t* file;
-	hawk_htb_t* map;
-	hawk_htb_pair_t* pair;
+	hawk_map_t* map;
+	hawk_map_pair_t* pair;
 	hawk_ooch_t ibuf[128];
 	hawk_oow_t ibuflen;
 	hawk_oocs_t as;
@@ -933,7 +933,7 @@ nextfile:
 	}
 
 	ibuflen = hawk_int_to_oocstr(this->runarg_index + 1, 10, HAWK_NULL, ibuf, HAWK_COUNTOF(ibuf));
-	pair = hawk_htb_search(map, ibuf, ibuflen);
+	pair = hawk_map_search(map, ibuf, ibuflen);
 	if (!pair) 
 	{
 		if (this->runarg_count <= 0) goto console_open_stdin;
@@ -1123,6 +1123,7 @@ hawk_ooi_t HawkStd::readConsole (Console& io, hawk_ooch_t* data, hawk_oow_t size
 		}
 
 		if (sio) hawk_sio_close (sio);
+		((Run*)io)->setGlobal (HAWK_GBL_FNR, (hawk_int_t)0);
 	}
 
 	return nn;
@@ -1147,6 +1148,7 @@ hawk_ooi_t HawkStd::readConsoleBytes (Console& io, hawk_bch_t* data, hawk_oow_t 
 		}
 
 		if (sio) hawk_sio_close (sio);
+		((Run*)io)->setGlobal (HAWK_GBL_FNR, (hawk_int_t)0);
 	}
 
 	return nn;

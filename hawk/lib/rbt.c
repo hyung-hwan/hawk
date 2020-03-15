@@ -892,10 +892,24 @@ static HAWK_INLINE hawk_rbt_walk_t walk_recursively (
 }
 #endif
 
-static HAWK_INLINE void walk (hawk_rbt_t* rbt, walker_t walker, void* ctx, int l, int r)
+void hawk_init_rbt_itr (hawk_rbt_itr_t* itr, int dir)
 {
-	hawk_rbt_pair_t* x_cur = rbt->root;
-	hawk_rbt_pair_t* prev = rbt->root->parent;
+	itr->pair = HAWK_NULL;
+	itr->_prev = HAWK_NULL;
+	itr->_dir = dir;
+	itr->_state = 0;
+}
+
+
+static hawk_rbt_pair_t* get_next_pair (hawk_rbt_t* rbt, hawk_rbt_itr_t* itr)
+{
+	hawk_rbt_pair_t* x_cur = itr->pair;
+	hawk_rbt_pair_t* prev = itr->_prev;
+	int l = !!itr->_dir;
+	int r = !itr->_dir;
+
+	if (itr->_state == 1) goto resume_1;
+	if (itr->_state == 2) goto resume_2;
 
 	while (x_cur && !IS_NIL(rbt,x_cur))
 	{
@@ -911,8 +925,13 @@ static HAWK_INLINE void walk (hawk_rbt_t* rbt, walker_t walker, void* ctx, int l
 			}
 			else
 			{
-				if (walker (rbt, x_cur, ctx) == HAWK_RBT_WALK_STOP) break;
+				/*if (walker(rbt, x_cur, ctx) == HAWK_RBT_WALK_STOP) break; */
+				itr->pair = x_cur;
+				itr->_prev = prev;
+				itr->_state = 1;
+				return x_cur;	
 
+			resume_1:
 				if (!IS_NIL(rbt,x_cur->child[r]))
 				{
 					/* go down to the right node if exists */
@@ -931,8 +950,13 @@ static HAWK_INLINE void walk (hawk_rbt_t* rbt, walker_t walker, void* ctx, int l
 		{
 			/* the left child has been already traversed */
 
-			if (walker (rbt, x_cur, ctx) == HAWK_RBT_WALK_STOP) break;
+			/*if (walker(rbt, x_cur, ctx) == HAWK_RBT_WALK_STOP) break;*/
+			itr->pair = x_cur;
+			itr->_prev = prev;
+			itr->_state = 2;
+			return x_cur;
 
+		resume_2:
 			if (!IS_NIL(rbt,x_cur->child[r]))
 			{
 				/* go down to the right node if it exists */
@@ -955,17 +979,51 @@ static HAWK_INLINE void walk (hawk_rbt_t* rbt, walker_t walker, void* ctx, int l
 			x_cur = x_cur->parent;
 		}
 	}
+
+	return HAWK_NULL;
+}
+
+hawk_rbt_pair_t* hawk_rbt_getfirstpair (hawk_rbt_t* rbt, hawk_rbt_itr_t* itr)
+{
+	itr->pair = rbt->root;
+	itr->_prev = rbt->root->parent;
+	itr->_state = 0;
+	return get_next_pair(rbt, itr);
+}
+
+hawk_rbt_pair_t* hawk_rbt_getnextpair (hawk_rbt_t* rbt, hawk_rbt_itr_t* itr)
+{
+	return get_next_pair(rbt, itr);
 }
 
 void hawk_rbt_walk (hawk_rbt_t* rbt, walker_t walker, void* ctx)
 {
-	walk (rbt, walker, ctx, LEFT, RIGHT);
+	hawk_rbt_itr_t itr;
+	hawk_rbt_pair_t* pair;
+
+	itr._dir = 0;
+	pair = hawk_rbt_getfirstpair(rbt, &itr);
+	while (pair)
+	{
+		if (walker(rbt, pair, ctx) == HAWK_RBT_WALK_STOP) break;
+		pair = hawk_rbt_getnextpair(rbt, &itr);
+	}
 }
 
 void hawk_rbt_rwalk (hawk_rbt_t* rbt, walker_t walker, void* ctx)
 {
-	walk (rbt, walker, ctx, RIGHT, LEFT);
+	hawk_rbt_itr_t itr;
+	hawk_rbt_pair_t* pair;
+
+	itr._dir = 1;
+	pair = hawk_rbt_getfirstpair(rbt, &itr);
+	while (pair)
+	{
+		if (walker(rbt, pair, ctx) == HAWK_RBT_WALK_STOP) break;
+		pair = hawk_rbt_getnextpair(rbt, &itr);
+	}
 }
+
 
 int hawk_rbt_dflcomp (const hawk_rbt_t* rbt, const void* kptr1, hawk_oow_t klen1, const void* kptr2, hawk_oow_t klen2)
 {

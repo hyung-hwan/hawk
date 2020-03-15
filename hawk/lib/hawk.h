@@ -30,9 +30,12 @@
 #include <hawk-cmn.h>
 #include <hawk-ecs.h>
 #include <hawk-gem.h>
-#include <hawk-htb.h>
 #include <hawk-tre.h>
 #include <hawk-utl.h>
+
+#include <hawk-htb.h> /* for rtx->named */
+#define HAWK_MAP_IS_RBT
+#include <hawk-map.h>
 #include <stdarg.h>
 
 /** \file
@@ -238,7 +241,7 @@ struct hawk_val_map_t
 	 *       integers switch to map dynamically once the 
 	 *       non-integral index is seen.
 	 */
-	hawk_htb_t* map; 
+	hawk_map_t* map; 
 };
 typedef struct hawk_val_map_t  hawk_val_map_t;
 
@@ -276,26 +279,19 @@ typedef struct hawk_val_ref_t  hawk_val_ref_t;
 /**
  * The hawk_val_map_itr_t type defines the iterator to map value fields.
  */
-struct hawk_val_map_itr_t
-{
-	hawk_htb_pair_t* pair;
-	hawk_oow_t      buckno;
-};
-typedef struct hawk_val_map_itr_t hawk_val_map_itr_t;
+typedef hawk_map_itr_t hawk_val_map_itr_t;
 
 /**
  * The #HAWK_VAL_MAP_ITR_KEY macro get the pointer to the key part 
  * of a map value.
  */
-#define HAWK_VAL_MAP_ITR_KEY(itr) \
-	((const hawk_oocs_t*)HAWK_HTB_KPTL((itr)->pair))
+#define HAWK_VAL_MAP_ITR_KEY(itr) ((const hawk_oocs_t*)HAWK_MAP_KPTL((itr)->pair))
 
 /**
  * The #HAWK_VAL_MAP_ITR_VAL macro get the pointer to the value part 
  * of a map value.
  */
-#define HAWK_VAL_MAP_ITR_VAL(itr) \
-	((const hawk_val_t*)HAWK_HTB_VPTR((itr)->pair))
+#define HAWK_VAL_MAP_ITR_VAL(itr) ((const hawk_val_t*)HAWK_MAP_VPTR((itr)->pair))
 
 
 /**

@@ -579,10 +579,10 @@ static int parse (hawk_t* awk)
 		 * o	therwise, the error detection will get delay until run-time. */
 
 		hawk_htb_pair_t* p;
-		hawk_oow_t buckno;
+		hawk_htb_itr_t itr;
 
-		p = hawk_htb_getfirstpair(awk->parse.funs, &buckno);
-		while (p != HAWK_NULL)
+		p = hawk_htb_getfirstpair(awk->parse.funs, &itr);
+		while (p)
 		{
 			if (hawk_htb_search(awk->tree.funs, HAWK_HTB_KPTR(p), HAWK_HTB_KLEN(p)) == HAWK_NULL)
 			{
@@ -595,7 +595,7 @@ static int parse (hawk_t* awk)
 				goto oops;
 			}
 
-			p = hawk_htb_getnextpair (awk->parse.funs, p, &buckno);
+			p = hawk_htb_getnextpair(awk->parse.funs, &itr);
 		}
 	}
 

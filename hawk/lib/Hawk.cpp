@@ -1151,7 +1151,7 @@ Hawk::Value::IndexIterator Hawk::Value::getFirstIndex (Index* idx) const
 {
 	HAWK_ASSERT (this->val != HAWK_NULL);
 
-	if (HAWK_RTX_GETVALTYPE (this->run->rtx, this->val) != HAWK_VAL_MAP) return IndexIterator::END;
+	if (HAWK_RTX_GETVALTYPE(this->run->rtx, this->val) != HAWK_VAL_MAP) return IndexIterator::END;
 
 	HAWK_ASSERT (this->run != HAWK_NULL);
 
@@ -1166,16 +1166,15 @@ Hawk::Value::IndexIterator Hawk::Value::getFirstIndex (Index* idx) const
 	return itr;
 }
 
-Hawk::Value::IndexIterator Hawk::Value::getNextIndex (
-	Index* idx, const IndexIterator& curitr) const
+Hawk::Value::IndexIterator Hawk::Value::getNextIndex (Index* idx, const IndexIterator& curitr) const
 {
 	HAWK_ASSERT (val != HAWK_NULL);
 
-	if (HAWK_RTX_GETVALTYPE (this->run->rtx, val) != HAWK_VAL_MAP) return IndexIterator::END;
+	if (HAWK_RTX_GETVALTYPE(this->run->rtx, val) != HAWK_VAL_MAP) return IndexIterator::END;
 
 	HAWK_ASSERT (this->run != HAWK_NULL);
 
-	Hawk::Value::IndexIterator itr (curitr);
+	Hawk::Value::IndexIterator itr(curitr);
 	hawk_val_map_itr_t* iptr;
 
 	iptr = hawk_rtx_getnextmapvalitr(this->run->rtx, this->val, &itr);
@@ -1273,7 +1272,7 @@ int Hawk::Run::setGlobal (int id, hawk_int_t v)
 {
 	HAWK_ASSERT (this->rtx != HAWK_NULL);
 
-	hawk_val_t* tmp = hawk_rtx_makeintval (this->rtx, v);
+	hawk_val_t* tmp = hawk_rtx_makeintval(this->rtx, v);
 	if (HAWK_UNLIKELY(!tmp)) return -1;
 
 	hawk_rtx_refupval (this->rtx, tmp);
@@ -2201,15 +2200,15 @@ int Hawk::findGlobal (const hawk_uch_t* name, bool inc_builtins)
 int Hawk::setGlobal (int id, const Value& v) 
 {
 	HAWK_ASSERT (this->hawk != HAWK_NULL);
-	HAWK_ASSERT (runctx.rtx != HAWK_NULL);
+	HAWK_ASSERT (this->runctx.rtx != HAWK_NULL);
 
-	if (v.run != &runctx) 
+	if (v.run != &this->runctx) 
 	{
 		this->setError (HAWK_EINVAL);
 		return -1;
 	}
 
-	int n = runctx.setGlobal (id, v);
+	int n = this->runctx.setGlobal(id, v);
 	if (n <= -1) this->retrieveError ();
 	return n;
 }

@@ -945,26 +945,22 @@ public:
 			///
 			IndexIterator ()
 			{
-				this->pair = HAWK_NULL;
-				this->buckno = 0;
+				hawk_init_map_itr (this, 0);
 			}
 
-		protected:
-			IndexIterator (hawk_htb_pair_t* pair, hawk_oow_t buckno)
+			bool operator== (const IndexIterator& ii) const
 			{
-				this->pair = pair;
-				this->buckno = buckno;
-			}
-
-		public:
-			bool operator==  (const IndexIterator& ii) const
-			{
+				// the most common use of this operator is to test it against END
+			#if defined(HAWK_MAP_IS_HTB)
 				return this->pair == ii.pair && this->buckno == ii.buckno;
+			#else
+				return this->pair == ii.pair && this->_prev == ii._prev;
+			#endif
 			}
 
-			bool operator!=  (const IndexIterator& ii) const
+			bool operator!= (const IndexIterator& ii) const
 			{
-				return !operator== (ii);
+				return !this->operator==(ii);
 			}
 		};
 

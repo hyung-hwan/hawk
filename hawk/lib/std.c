@@ -2044,8 +2044,8 @@ static int open_rio_console (hawk_rtx_t* rtx, hawk_rio_arg_t* riod)
 		hawk_val_t* v_argc, * v_argv, * v_pair;
 		hawk_int_t i_argc;
 		const hawk_ooch_t* file;
-		hawk_htb_t* map;
-		hawk_htb_pair_t* pair;
+		hawk_map_t* map;
+		hawk_map_pair_t* pair;
 		hawk_ooch_t ibuf[128];
 		hawk_oow_t ibuflen;
 		hawk_oocs_t as;
@@ -2100,7 +2100,7 @@ static int open_rio_console (hawk_rtx_t* rtx, hawk_rio_arg_t* riod)
 
 		ibuflen = hawk_int_to_oocstr(rxtn->c.in.index + 1, 10, HAWK_NULL, ibuf, HAWK_COUNTOF(ibuf));
 
-		pair = hawk_htb_search(map, ibuf, ibuflen);
+		pair = hawk_map_search(map, ibuf, ibuflen);
 		if (!pair)
 		{
 			/* the key doesn't exist any more */
@@ -2337,8 +2337,10 @@ static hawk_ooi_t awk_rio_console (hawk_rtx_t* rtx, hawk_rio_cmd_t cmd, hawk_rio
 				}
 
 				if (sio) hawk_sio_close (sio);
+
+				/* reset FNR to 0 here since the caller doesn't know that the file has changed. */
+				hawk_rtx_setgbl(rtx, HAWK_GBL_FNR, hawk_rtx_makeintval(rtx, 0));
 			}
-		
 			return nn;
 		}
 
@@ -2361,6 +2363,7 @@ static hawk_ooi_t awk_rio_console (hawk_rtx_t* rtx, hawk_rio_cmd_t cmd, hawk_rio
 				}
 
 				if (sio) hawk_sio_close (sio);
+				hawk_rtx_setgbl(rtx, HAWK_GBL_FNR, hawk_rtx_makeintval(rtx, 0));
 			}
 		
 			return nn;
@@ -2459,7 +2462,7 @@ static int build_argcv (hawk_rtx_t* rtx, int argc_id, int argv_id, const hawk_oo
 	hawk_rtx_refupval (rtx, v_tmp);
 
 	key_len = hawk_copy_oocstr(key, HAWK_COUNTOF(key), HAWK_T("0"));
-	if (hawk_htb_upsert(((hawk_val_map_t*)v_argv)->map, key, key_len, v_tmp, 0) == HAWK_NULL)
+	if (hawk_map_upsert(((hawk_val_map_t*)v_argv)->map, key, key_len, v_tmp, 0) == HAWK_NULL)
 	{
 		/* if the assignment operation fails, decrements
 		 * the reference of v_tmp to free it */
@@ -2490,7 +2493,7 @@ static int build_argcv (hawk_rtx_t* rtx, int argc_id, int argv_id, const hawk_oo
 
 			hawk_rtx_refupval (rtx, v_tmp);
 
-			if (hawk_htb_upsert(((hawk_val_map_t*)v_argv)->map, key, key_len, v_tmp, 0) == HAWK_NULL)
+			if (hawk_map_upsert(((hawk_val_map_t*)v_argv)->map, key, key_len, v_tmp, 0) == HAWK_NULL)
 			{
 				hawk_rtx_refdownval (rtx, v_tmp);
 				hawk_rtx_refdownval (rtx, v_argv);
@@ -2603,7 +2606,7 @@ static int build_environ (hawk_rtx_t* rtx, int gbl_id, env_char_t* envarr[])
 
 			/* the string in ENVIRON should be a numeric value if
 			 * it can be converted to a number. 
-			/*v_tmp = hawk_rtx_makenstrvalwithoocstr(rtx, vptr);*/
+			 *v_tmp = hawk_rtx_makenstrvalwithoocstr(rtx, vptr);*/
 			v_tmp = hawk_rtx_makenumorstrvalwithoochars(rtx, vptr, vlen);
 			if (HAWK_UNLIKELY(!v_tmp))
 			{
@@ -2622,7 +2625,7 @@ static int build_environ (hawk_rtx_t* rtx, int gbl_id, env_char_t* envarr[])
 			 * it has successfully been assigned into ARGV. */
 			hawk_rtx_refupval (rtx, v_tmp);
 
-			if (hawk_htb_upsert(((hawk_val_map_t*)v_env)->map, kptr, klen, v_tmp, 0) == HAWK_NULL)
+			if (hawk_map_upsert(((hawk_val_map_t*)v_env)->map, kptr, klen, v_tmp, 0) == HAWK_NULL)
 			{
 				/* if the assignment operation fails, decrements
 				 * the reference of v_tmp to free it */
