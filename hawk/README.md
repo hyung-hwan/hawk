@@ -121,6 +121,7 @@ The regular expression `/abc/` matches the first input line and `/stu/` matches 
 third input line. So the range is true between the first input line and the
 third input line inclusive.
 
+
 ### Entry Point
 
 The typical execution begins with the BEGIN block, goes through pattern-action blocks, and eaches the END block. If you like to use a function as an entry point, you may set a function name with @pragma entry.
@@ -132,6 +133,99 @@ The typical execution begins with the BEGIN block, goes through pattern-action b
 		print "hello, world";
 	}
 
+
+### Pragmas
+
+Besides the entry pragma, there are other prgrma available.
+ 
+A pragma item of the file scope can be placed in any source files.
+A pragma item of the global scope can appear only once thoughout the all source files.
+
+| Name          | Scope  | Values        | Description                                            |
+|---------------|--------|---------------|--------------------------------------------------------|
+| implicit      | file   | on, off       | allow undeclared variables                             |
+| multilinestr  | file   | on, off       | allow a multiline string literal without continuation  |
+| entry         | global | function name | change the program entry point                         |
+| striprecspc   | global | on, off       |                                                        |
+| striprecspc   | global | on, off       | trim leading and trailing spaces when convering a string to a number |
+
+
+
+### @include and @include_once
+
+The @include directive inserts the contents of the file specified in the following string as if they appeared in the source stream being processed.
+
+Assuming the hello.inc file contains the print_hello() function as shown below,
+
+	function print_hello() { print "hello\n"; }
+
+You may include the the file and use the function.
+
+	@include "hello.inc";
+	BEGIN { print_hello(); }
+
+The semicolon after the included file name is optional. You could write @include "hello.inc" without the ending semicolon.
+
+@include_once is similar to @include except it doesn't include the same file multiple times.
+
+	@include_once "hello.inc";
+	@include_once "hello.inc";
+	BEGIN { print_hello(); }
+
+In this example, print_hello() is not included twice.
+
+You may use @include and @include_once inside a block as well as at the top level.
+
+	BEGIN {
+		@include "init.inc";
+		...
+	}
+
+
+### Comments
+
+Hawk supports a single-line commnt that begins with a hash sign # and the C-style multi-line comment.
+
+	x = y; # assign y to x.
+	/*
+	this line is ignored.
+	this line is ignored too.
+	*/
+
+### Reserved Words
+
+The following words are reserved and cannot be used as a variable name, a parameter name, or a function name.
+
+ - @abort
+ - @global
+ - @include
+ - @include_once
+ - @local
+ - @pragma
+ - @reset
+ - BEGIN
+ - END
+ - break
+ - continue
+ - delete
+ - do
+ - else
+ - exit
+ - for
+ - function
+ - getbline
+ - getline
+ - if
+ - in
+ - next
+ - nextfile
+ - nextofile
+ - print
+ - printf
+ - return
+ - while
+
+However, these words can be used as normal names in the context of a module call. For example, mymod::break. In practice, the predefined names used for built-in commands, functions, and variables are treated as if they are reserved since you can't create another denifition with the same name.
 
 ### Values
 
@@ -159,21 +253,283 @@ A regular expression literal is special in that it never appears as an indendent
 
 For this reason, there is no way to get the type name of a regular expressin literal.
 
-### Pragmas
 
-A pragma item of the file scope can be placed in any source files.
-A pragma item of the global scope can appear only once thoughout the all source files.
+### Numbers ###
 
-| Name          | Scope  | Values        | Description                                            |
-|---------------|--------|---------------|--------------------------------------------------------|
-| implicit      | file   | on, off       | allow undeclared variables                             |
-| multilinestr  | file   | on, off       | allow a multiline string literal without continuation  |
-| entry         | global | function name | change the program entry point                         |
-| striprecspc   | global | on, off       |                                                        |
-| striprecspc   | global | on, off       | trim leading and trailing spaces when convering a string to a number |
+An integer begins with a numeric digit between 0 and 9 inclusive and can be
+followed by more numeric digits. If an integer is immediately followed by a
+floating point, and optionally a series of numeric digits without whitespaces,
+it becomes a floting-point number. An integer or a simple floating-point number
+can be followed by e or E, and optionally a series of numeric digits with a
+optional single sign letter. A floating-point number may begin with a floting
+point with a preceeding number.
+
+    369   # integer
+    3.69  # floating-pointe number
+    13.   # 13.0
+    .369  # 0.369
+    34e-2 # 34 * (10 ** -2)
+    34e+2 # 34 * (10 ** 2)
+    34.56e # 34.56
+    34.56E3
+
+An integer can be prefixed with 0x, 0, 0b for a hexa-decimal number, an octal
+number, and a binary number respectively. For a hexa-decimal number, letters
+from A to F can form a number case-insenstively in addition to numeric digits.
+
+    0xA1   # 161
+    0xB0b0 # 45232
+    020    # 16
+    0b101  # 5
+
+If the prefix is not followed by any numeric digits, it is still a valid token
+and represents the value of 0.
+
+    0x # 0x0 but not desirable.
+    0b # 0b0 but not desirable.
 
 
 ### Module
+
+Hawk supports various modules.
+
+
+#### String
+The *str* module provides an extensive set of string manipulation functions.
+
+- str::gsub - equivalent to gsub
+- str::index
+- str::isalnum
+- str::isalpha
+- str::isblank
+- str::iscntrl
+- str::isdigit
+- str::isgraph
+- str::islower
+- str::isprint
+- str::ispunct
+- str::isspace
+- str::isupper
+- str::isxdigit
+- str::length - equivalent to length
+- str::ltrim
+- str::match - equivalent to match
+- str::normspace
+- str::printf - equivalent to sprintf
+- str::rindex
+- str::rtrim
+- str::split - equivalent to split
+- str::sub - equivalent to sub
+- str::substr - equivalent to substr
+- str::tolower - equivalent to tolower
+- str::tonum - convert a string to a number. a numeric value passed as a parameter is returned as it is. the leading prefix of 0b, 0, and 0x specifies the radix of 2, 8, 16 repectively. conversion stops when the end of the string is reached or the first invalid character for conversion is encountered.
+- str::toupper - equivalent to toupper
+- str::trim
+- str::value - get the numeric value of the first character
+
+#### System
+
+The *sys* module provides various functions concerning the underlying operation system.
+
+- sys::chmod
+- sys::close
+- sys::closedir
+- sys::dup
+- sys::errmsg
+- sys::fork
+- sys::getegid
+- sys::getenv
+- sys::geteuid
+- sys::getgid
+- sys::getpid
+- sys::getppid
+- sys::gettid
+- sys::gettime
+- sys::getuid
+- sys::kill
+- sys::mkdir
+- sys::mktime
+- sys::open
+- sys::opendir
+- sys::openfd
+- sys::pipe
+- sys::read
+- sys::readdir
+- sys::setttime
+- sys::sleep
+- sys::strftime
+- sys::system
+- sys::unlink
+- sys::wait
+- sys::write
+
+
+You may read the file in raw bytes.
+
+	BEGIN {
+		f = sys::open("/etc/sysctl.conf", sys::O_RDONLY);
+		while (sys::read(f, x, 10) > 0) printf (B"%s", x);
+		sys::close (f);
+	}
+
+
+You can map a raw file descriptor to a handle created by this module and use it.
+
+	BEGIN {
+		a = sys::openfd(1);
+		sys::write (a, B"let me write something here\n");
+		sys::close (a, sys::C_KEEPFD); ## set C_KEEPFD to release 1 without closing it.
+		##sys::close (a);
+		print "done\n";
+	}
+
+
+Creating pipes and sharing them with a child process is not big an issue.
+
+	BEGIN {
+		if (sys::pipe(p0, p1, sys::O_CLOEXEC | sys::O_NONBLOCK) <= -1)
+		##if (sys::pipe(p0, p1, sys::O_CLOEXEC) <= -1)
+		##if (sys::pipe(p0, p1) <= -1)
+		{
+			print "pipe error";
+			return -1;
+		}
+		a = sys::fork();
+		if (a <= -1) 
+		{
+			print "fork error";
+			sys::close (p0);
+			sys::close (p1);
+		}
+		else if (a == 0)
+		{
+			## child
+			printf ("child.... %d %d %d\n", sys::getpid(), p0, p1);
+			sys::close (p1);
+			while (1)
+			{
+				n = sys::read (p0, k, 3);
+				if (n <= 0) 
+				{
+					if (n == sys::RC_EAGAIN) continue; ## nonblock but data not available
+					if (n != 0) print "ERROR: " sys::errmsg();
+					break;
+				}
+				print k;
+			}
+			sys::close (p0);
+			return 123;
+		}
+		else
+		{
+			## parent
+			printf ("parent.... %d %d %d\n", sys::getpid(), p0, p1);
+			sys::close (p0);
+			sys::write (p1, B"hello");
+			sys::write (p1, B"world");
+			sys::close (p1);
+
+			##sys::wait(a, status, sys::WNOHANG);
+			while (sys::wait(a, status) != a);
+			if (sys::WIFEXITED(status)) print "Exit code: " sys::WEXITSTATUS(status);
+			else print "Child terminated abnormally"
+		}
+	}
+
+
+	BEGIN {
+		if (sys::pipe(p0, p1, sys::O_NONBLOCK | sys::O_CLOEXEC) <= -1)
+		{
+			 print "pipe error";
+			 return -1;
+		}
+		a = sys::fork();
+		if (a <= -1)
+		{
+			print "fork error";
+			sys::close (p0);
+			sys::close (p1);
+		}
+		else if (a == 0)
+		{
+			## child
+			sys::close (p0);
+
+			stdout = sys::openfd(1);
+			sys::dup(p1, stdout);
+
+			print B"hello world";
+			print B"testing sys::dup()";
+			print B"writing to standard output..";
+
+			sys::close (p1);
+			sys::close (stdout);
+		}
+		else
+		{
+			sys::close (p1);
+			while (1)
+			{
+				n = sys::read(p0, k, 10);
+				if (n <= 0)
+				{
+					if (n == sys::RC_EAGAIN) continue; ## nonblock but data not available
+					if (n != 0) print "ERROR: " sys::errmsg();
+					break;
+				}
+				print "[" k "]";
+			}
+			sys::close (p0);
+			sys::wait(a);
+		}
+	}
+
+You can duplicate file handles as necessary.
+
+	BEGIN {
+		a = sys::open("/etc/inittab", sys::O_RDONLY);
+		x = sys::open("/etc/fstab", sys::O_RDONLY);
+
+		b = sys::dup(a);
+		sys::close(a);
+
+		while (sys::read(b, abc, 100) > 0) printf (B"%s", abc);
+
+		print "-------------------------------";
+
+		c = sys::dup(x, b, sys::O_CLOEXEC);
+		## assertion: b == c
+		sys::close (x);
+
+		while (sys::read(c, abc, 100) > 0) printf (B"%s", abc);
+		sys::close (c);
+	}
+
+
+Directory traversal is easy.
+
+	BEGIN {
+		d = sys::opendir("/etc", sys::DIR_SORT);
+		if (d >= 0)
+		{
+			while (sys::readdir(d,a) > 0) 
+			{
+				sys::stat(a, b);
+				for (i in b) print i, b[i]; }
+			}
+			sys::closedir(d);
+		}
+	}
+
+
+Socket functions are available.
+
+	BEGIN
+	{
+		s = sys::socket();
+		...
+		sys::close (s);
+	}
 
 ### Incompatibility with AWK
 
