@@ -44,6 +44,7 @@ pkginclude_HEADERS = \
 	hawk-fmt.h \
 	hawk-gem.h \
 	hawk-htb.h \
+	hawk-map.h \
 	hawk-rbt.h \
 	hawk-pack1.h \
 	hawk-utl.h \

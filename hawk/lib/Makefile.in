@@ -203,21 +203,22 @@ libhawk_sys_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 @ENABLE_LIBUNWIND_TRUE@am__DEPENDENCIES_4 = $(am__DEPENDENCIES_1)
 am__libhawk_la_SOURCES_DIST = hawk.h hawk-arr.h hawk-chr.h hawk-cmn.h \
 	hawk-dir.h hawk-ecs.h hawk-fmt.h hawk-gem.h hawk-htb.h \
-	hawk-rbt.h hawk-pack1.h hawk-utl.h hawk-std.h hawk-tre.h \
-	hawk-unpack.h Hawk.hpp HawkStd.hpp arr.c chr.c dir.c ecs-imp.h \
-	ecs.c err-prv.h err.c err-sys.c fmt-imp.h fmt.c fnc-prv.h \
-	fnc.c htb.c gem.c gem-skad.c gem-nwif.c gem-nwif2.c hawk-prv.h \
-	hawk.c mb8.c misc-prv.h misc.c parse-prv.h parse.c rbt.c rec.c \
-	rio-prv.h rio.c run-prv.h run.c tre-prv.h tre-ast.c tre-ast.h \
-	tre-compile.c tre-compile.h tre-match-bt.c tre-match-pa.c \
-	tre-match-ut.h tre-mem.c tre-mem.h tre-parse.c tre-parse.h \
-	tre-stack.h tre-stack.c tre.c tree-prv.h tree.c uch-prop.h \
-	uch-case.h utf16.c utf8.c utl-ass.c utl-skad.c utl-skad.h \
-	utl-sort.c utl-str.c utl-sys.c utl.c val-prv.h val.c \
-	hawk-cli.h hawk-fio.h hawk-mtx.h hawk-pio.h hawk-sio.h \
-	hawk-tio.h cli-imp.h cli.c fio.c mtx.c pio.c sio.c syscall.h \
-	tio.c std-prv.h std.c Hawk.cpp HawkStd.cpp imap-imp.h \
-	mod-math.c mod-math.h mod-str.c mod-str.h mod-sys.c mod-sys.h
+	hawk-map.h hawk-rbt.h hawk-pack1.h hawk-utl.h hawk-std.h \
+	hawk-tre.h hawk-unpack.h Hawk.hpp HawkStd.hpp arr.c chr.c \
+	dir.c ecs-imp.h ecs.c err-prv.h err.c err-sys.c fmt-imp.h \
+	fmt.c fnc-prv.h fnc.c htb.c gem.c gem-skad.c gem-nwif.c \
+	gem-nwif2.c hawk-prv.h hawk.c mb8.c misc-prv.h misc.c \
+	parse-prv.h parse.c rbt.c rec.c rio-prv.h rio.c run-prv.h \
+	run.c tre-prv.h tre-ast.c tre-ast.h tre-compile.c \
+	tre-compile.h tre-match-bt.c tre-match-pa.c tre-match-ut.h \
+	tre-mem.c tre-mem.h tre-parse.c tre-parse.h tre-stack.h \
+	tre-stack.c tre.c tree-prv.h tree.c uch-prop.h uch-case.h \
+	utf16.c utf8.c utl-ass.c utl-skad.c utl-skad.h utl-sort.c \
+	utl-str.c utl-sys.c utl.c val-prv.h val.c hawk-cli.h \
+	hawk-fio.h hawk-mtx.h hawk-pio.h hawk-sio.h hawk-tio.h \
+	cli-imp.h cli.c fio.c mtx.c pio.c sio.c syscall.h tio.c \
+	std-prv.h std.c Hawk.cpp HawkStd.cpp imap-imp.h mod-math.c \
+	mod-math.h mod-str.c mod-str.h mod-sys.c mod-sys.h
 am__objects_1 =
 am__objects_2 = $(am__objects_1)
 @ENABLE_CXX_TRUE@am__objects_3 = libhawk_la-Hawk.lo \
@@ -352,8 +353,8 @@ am__can_run_installinfo = \
   esac
 am__pkginclude_HEADERS_DIST = hawk.h hawk-arr.h hawk-chr.h hawk-cmn.h \
 	hawk-dir.h hawk-ecs.h hawk-fmt.h hawk-gem.h hawk-htb.h \
-	hawk-rbt.h hawk-pack1.h hawk-utl.h hawk-std.h hawk-tre.h \
-	hawk-unpack.h Hawk.hpp HawkStd.hpp
+	hawk-map.h hawk-rbt.h hawk-pack1.h hawk-utl.h hawk-std.h \
+	hawk-tre.h hawk-unpack.h Hawk.hpp HawkStd.hpp
 HEADERS = $(pkginclude_HEADERS)
 am__tagged_files = $(HEADERS) $(SOURCES) $(TAGS_FILES) \
 	$(LISP)hawk-cfg.h.in
@@ -569,8 +570,8 @@ CPPFLAGS_ALL_COMMON = \
 @WIN32_TRUE@	$(am__append_1) $(am__append_2)
 pkginclude_HEADERS = hawk.h hawk-arr.h hawk-chr.h hawk-cmn.h \
 	hawk-dir.h hawk-ecs.h hawk-fmt.h hawk-gem.h hawk-htb.h \
-	hawk-rbt.h hawk-pack1.h hawk-utl.h hawk-std.h hawk-tre.h \
-	hawk-unpack.h $(am__append_7)
+	hawk-map.h hawk-rbt.h hawk-pack1.h hawk-utl.h hawk-std.h \
+	hawk-tre.h hawk-unpack.h $(am__append_7)
 pkglib_LTLIBRARIES = libhawk.la $(am__append_15)
 libhawk_la_SOURCES = $(pkginclude_HEADERS) arr.c chr.c dir.c ecs-imp.h \
 	ecs.c err-prv.h err.c err-sys.c fmt-imp.h fmt.c fnc-prv.h \
