@@ -2960,7 +2960,95 @@ static int fnc_symlink (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 }
 
 /* ------------------------------------------------------------ */
-/* TODO: fnc_stat */
+static int fnc_stat (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+{
+	sys_list_t* sys_list;
+	hawk_val_t* a0;
+	hawk_int_t rx;
+
+	sys_list = rtx_to_sys_list(rtx, fi);
+	a0 = hawk_rtx_getarg(rtx, 0);
+
+#if defined(_WIN32)
+	rx = set_error_on_sys_list(rtx, sys_list, HAWK_ENOIMPL, HAWK_NULL);
+#elif defined(__OS2__)
+	rx = set_error_on_sys_list(rtx, sys_list, HAWK_ENOIMPL, HAWK_NULL);
+#elif defined(__DOS__)
+	rx = set_error_on_sys_list(rtx, sys_list, HAWK_ENOIMPL, HAWK_NULL);
+#else
+	{
+		hawk_bch_t* str1;
+		hawk_oow_t len1;
+		hawk_val_t* tmp;
+		hawk_stat_t stbuf;
+		hawk_val_map_data_t md[10];
+		hawk_int_t dev, ino, size;
+		int x;
+
+		str1 = hawk_rtx_getvalbcstr(rtx, a0, &len1);
+		if (!str1)
+		{
+			rx = copy_error_to_sys_list(rtx, sys_list);
+			goto done;
+		}
+
+		if (hawk_find_bchar(str1, len1, '\0'))
+		{
+			rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_NULL);
+			hawk_rtx_freevalbcstr (rtx, a0, str1);
+			goto done;
+		}
+
+		rx = HAWK_STAT(str1, &stbuf);
+		hawk_rtx_freevalbcstr (rtx, a0, str1);
+		if (rx <= -1) 
+		{
+			rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
+			goto done;
+		}
+
+		HAWK_MEMSET (md, 0, HAWK_SIZEOF(md));
+
+		md[0].key.ptr = HAWK_T("dev");
+		md[0].key.len = 3;
+		md[0].type = HAWK_VAL_MAP_DATA_INT;
+		dev = stbuf.st_dev;
+		md[0].vptr = &dev;
+
+		md[1].key.ptr = HAWK_T("ino");
+		md[1].key.len = 3;
+		md[1].type = HAWK_VAL_MAP_DATA_INT;
+		ino = stbuf.st_ino;
+		md[1].vptr = &ino;
+
+		md[2].key.ptr = HAWK_T("size");
+		md[2].key.len = 4;
+		md[3].type = HAWK_VAL_MAP_DATA_INT;
+		size = stbuf.st_size;
+		md[2].vptr = &size;
+
+		tmp = hawk_rtx_makemapvalwithdata(rtx, md);
+		if (!tmp) goto fail;
+
+		hawk_rtx_refupval (rtx, tmp);
+		x = hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, 1), tmp);
+		hawk_rtx_refdownval (rtx, tmp);
+		if (x <= -1) 
+		{
+		fail:
+			rx = copy_error_to_sys_list(rtx, sys_list);
+		}
+		else
+		{
+			rx = ERRNUM_TO_RC(HAWK_ENOERR);
+		}
+	}
+done:
+#endif
+	HAWK_ASSERT (HAWK_IN_QUICKINT_RANGE(rx));
+	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
+	return 0;
+}
 
 #if 0
 TODO: fnc_utime
@@ -4324,6 +4412,7 @@ static fnctab_t fnctab[] =
 	{ HAWK_T("sleep"),       { { 1, 1, HAWK_NULL       }, fnc_sleep,       0  } },
 	{ HAWK_T("sockaddrdom"), { { 1, 1, HAWK_NULL       }, fnc_sockaddrdom, 0  } },
 	{ HAWK_T("socket"),      { { 3, 3, HAWK_NULL       }, fnc_socket,      0  } },
+	{ HAWK_T("stat"),        { { 2, 2, HAWK_T("vr")    }, fnc_stat,        0  } },
 	{ HAWK_T("strftime"),    { { 2, 3, HAWK_NULL       }, fnc_strftime,    0  } },
 	{ HAWK_T("symlink"),     { { 2, 2, HAWK_NULL       }, fnc_symlink,     0  } },
 	{ HAWK_T("system"),      { { 1, 1, HAWK_NULL       }, fnc_system,      0  } },
