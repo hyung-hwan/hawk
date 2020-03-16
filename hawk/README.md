@@ -297,6 +297,7 @@ Hawk supports various modules.
 #### String
 The *str* module provides an extensive set of string manipulation functions.
 
+- str::fromcharcode
 - str::gsub - equivalent to gsub
 - str::index
 - str::isalnum
@@ -321,11 +322,12 @@ The *str* module provides an extensive set of string manipulation functions.
 - str::split - equivalent to split
 - str::sub - equivalent to sub
 - str::substr - equivalent to substr
+- str::tocharcode - get the numeric value of the first character
 - str::tolower - equivalent to tolower
 - str::tonum - convert a string to a number. a numeric value passed as a parameter is returned as it is. the leading prefix of 0b, 0, and 0x specifies the radix of 2, 8, 16 repectively. conversion stops when the end of the string is reached or the first invalid character for conversion is encountered.
 - str::toupper - equivalent to toupper
 - str::trim
-- str::value - get the numeric value of the first character
+
 
 #### System
 
@@ -437,6 +439,8 @@ Creating pipes and sharing them with a child process is not big an issue.
 	}
 
 
+You can read standard output of a child process in a parent process.
+
 	BEGIN {
 		if (sys::pipe(p0, p1, sys::O_NONBLOCK | sys::O_CLOEXEC) <= -1)
 		{
@@ -512,15 +516,15 @@ Directory traversal is easy.
 		d = sys::opendir("/etc", sys::DIR_SORT);
 		if (d >= 0)
 		{
-			while (sys::readdir(d,a) > 0) 
+			while (sys::readdir(d,a) > 0)
 			{
-				sys::stat(a, b);
-				for (i in b) print i, b[i]; }
+				print a;
+				sys::stat("/etc/" %% a, b);
+				for (i in b) print "\t", i, b[i];
 			}
 			sys::closedir(d);
-		}
+		} 
 	}
-
 
 Socket functions are available.
 
