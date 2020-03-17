@@ -205,12 +205,6 @@ static hawk_val_t* eval_getline (hawk_rtx_t* rtx, hawk_nde_t* nde);
 static hawk_val_t* eval_print (hawk_rtx_t* rtx, hawk_nde_t* nde);
 static hawk_val_t* eval_printf (hawk_rtx_t* rtx, hawk_nde_t* nde);
 
-static int __raw_push (hawk_rtx_t* rtx, void* val);
-#define __raw_pop(rtx) \
-	do { \
-		HAWK_ASSERT ((rtx)->stack_top > (rtx)->stack_base); \
-		(rtx)->stack_top--; \
-	} while (0)
 
 static int read_record (hawk_rtx_t* rtx);
 
@@ -1298,6 +1292,36 @@ oops:
 	return n;
 }
 
+static HAWK_INLINE int __raw_push (hawk_rtx_t* rtx, void* val)
+{
+	if (rtx->stack_top >= rtx->stack_limit)
+	{
+		/*
+		void** tmp;
+		hawk_oow_t n;
+
+		n = rtx->stack_limit + RTX_STACK_INCREMENT;
+
+		tmp = (void**)hawk_rtx_reallocmem(rtx, rtx->stack, n * HAWK_SIZEOF(void*)); 
+		if (!tmp) return -1;
+
+		rtx->stack = tmp;
+		rtx->stack_limit = n;
+		*/
+		hawk_rtx_seterrfmt (rtx, HAWK_NULL, HAWK_ESTACK, HAWK_T("runtime stack full"));
+		return -1;
+	}
+
+	rtx->stack[rtx->stack_top++] = val;
+	return 0;
+}
+
+#define __raw_pop(rtx) \
+	do { \
+		HAWK_ASSERT ((rtx)->stack_top > (rtx)->stack_base); \
+		(rtx)->stack_top--; \
+	} while (0)
+
 /* 
  * create global variables into the runtime stack
  * each variable is initialized to nil or zero.
@@ -1314,11 +1338,7 @@ static int prepare_globals (hawk_rtx_t* rtx)
 	while (ngbls > 0)
 	{
 		--ngbls;
-		if (__raw_push(rtx,hawk_val_nil) <= -1)
-		{
-			hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_ENOMEM);
-			goto oops;
-		}
+		if (HAWK_UNLIKELY(__raw_push(rtx,hawk_val_nil) <= -1)) goto oops;
 	}
 
 	/* override NF to zero */
@@ -1451,16 +1471,16 @@ static int enter_stack_frame (hawk_rtx_t* rtx)
 	saved_stack_top = rtx->stack_top;
 
 	/* push the current stack base */
-	if (__raw_push(rtx,(void*)rtx->stack_base) <= -1) goto oops;
+	if (HAWK_UNLIKELY(__raw_push(rtx,(void*)rtx->stack_base) <= -1)) goto oops;
 
 	/* push the current stack top before push the current stack base */
-	if (__raw_push(rtx,(void*)saved_stack_top) <= -1) goto oops;
+	if (HAWK_UNLIKELY(__raw_push(rtx,(void*)saved_stack_top) <= -1)) goto oops;
 	
 	/* secure space for a return value */
-	if (__raw_push(rtx,hawk_val_nil) <= -1) goto oops;
+	if (HAWK_UNLIKELY(__raw_push(rtx,hawk_val_nil) <= -1)) goto oops;
 	
 	/* secure space for RTX_STACK_NARGS */
-	if (__raw_push(rtx,hawk_val_nil) <= -1) goto oops;
+	if (HAWK_UNLIKELY(__raw_push(rtx,hawk_val_nil) <= -1)) goto oops;
 
 	/* let the stack top remembered be the base of a new stack frame */
 	rtx->stack_base = saved_stack_top;
@@ -1471,7 +1491,6 @@ oops:
 	 * it is ok to do so as the values pushed are
 	 * nils and binary numbers. */
 	rtx->stack_top = saved_stack_top;
-	hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_ENOMEM);
 	return -1;
 }
 
@@ -2081,7 +2100,7 @@ static HAWK_INLINE int run_block0 (hawk_rtx_t* rtx, hawk_nde_blk_t* nde)
 	while (nlcls > 0)
 	{
 		--nlcls;
-		if (__raw_push(rtx,hawk_val_nil) <= -1)
+		if (HAWK_UNLIKELY(__raw_push(rtx,hawk_val_nil) <= -1))
 		{
 			/* restore stack top */
 			rtx->stack_top = saved_stack_top;
@@ -5994,35 +6013,35 @@ static hawk_val_t* __eval_call (
 	hawk_logfmt (hawk_rtx_gethawk(rtx), HAWK_T("setting up function stack frame top=%zd base=%zd\n"), (hawk_oow_t)rtx->stack_top, (hawk_oow_t)rtx->stack_base);
 #endif
 
-	if (__raw_push(rtx,(void*)rtx->stack_base) <= -1) 
+	if (HAWK_UNLIKELY(__raw_push(rtx,(void*)rtx->stack_base) <= -1)) 
 	{
-		hawk_rtx_seterrnum (rtx, &nde->loc, HAWK_ENOMEM);
+		ADJERR_LOC (rtx, &nde->loc);
 		return HAWK_NULL;
 	}
 
-	if (__raw_push(rtx,(void*)saved_stack_top) <= -1) 
+	if (HAWK_UNLIKELY(__raw_push(rtx,(void*)saved_stack_top) <= -1)) 
 	{
 		__raw_pop (rtx);
-		hawk_rtx_seterrnum (rtx, &nde->loc, HAWK_ENOMEM);
+		ADJERR_LOC (rtx, &nde->loc);
 		return HAWK_NULL;
 	}
 
 	/* secure space for a return value. */
-	if (__raw_push(rtx,hawk_val_nil) <= -1)
+	if (HAWK_UNLIKELY(__raw_push(rtx,hawk_val_nil) <= -1))
 	{
 		__raw_pop (rtx);
 		__raw_pop (rtx);
-		hawk_rtx_seterrnum (rtx, &nde->loc, HAWK_ENOMEM);
+		ADJERR_LOC (rtx, &nde->loc);
 		return HAWK_NULL;
 	}
 
 	/* secure space for nargs */
-	if (__raw_push(rtx,hawk_val_nil) <= -1)
+	if (HAWK_UNLIKELY(__raw_push(rtx,hawk_val_nil) <= -1))
 	{
 		__raw_pop (rtx);
 		__raw_pop (rtx);
 		__raw_pop (rtx);
-		hawk_rtx_seterrnum (rtx, &nde->loc, HAWK_ENOMEM);
+		ADJERR_LOC (rtx, &nde->loc);
 		return HAWK_NULL;
 	}
 
@@ -6065,10 +6084,10 @@ static hawk_val_t* __eval_call (
 		while (nargs < fun->nargs)
 		{
 			/* push as many nils as the number of missing actual arguments */
-			if (__raw_push(rtx, hawk_val_nil) <= -1)
+			if (HAWK_UNLIKELY(__raw_push(rtx, hawk_val_nil) <= -1))
 			{
 				UNWIND_RTX_STACK (rtx, nargs);
-				hawk_rtx_seterrnum (rtx, &nde->loc, HAWK_ENOMEM);
+				ADJERR_LOC (rtx, &nde->loc);
 				return HAWK_NULL;
 			}
 
@@ -6250,13 +6269,13 @@ static hawk_oow_t push_arg_from_vals (hawk_rtx_t* rtx, hawk_nde_fncall_t* call, 
 				return (hawk_oow_t)-1;
 			}
 
-			if (__raw_push(rtx, v)  <= -1)
+			if (HAWK_UNLIKELY(__raw_push(rtx, v)  <= -1))
 			{
 				hawk_rtx_refupval (rtx, v);
 				hawk_rtx_refdownval (rtx, v);
 
 				UNWIND_RTX_STACK_ARG (rtx, nargs);
-				hawk_rtx_seterrnum (rtx, &call->loc, HAWK_ENOMEM);
+				ADJERR_LOC (rtx, &call->loc);
 				return (hawk_oow_t)-1;
 			}
 
@@ -6264,7 +6283,7 @@ static hawk_oow_t push_arg_from_vals (hawk_rtx_t* rtx, hawk_nde_fncall_t* call, 
 		}
 		else
 		{
-			if (__raw_push(rtx, pafv->args[nargs]) <= -1) 
+			if (HAWK_UNLIKELY(__raw_push(rtx, pafv->args[nargs]) <= -1)) 
 			{
 				/* ugly - arg needs to be freed if it doesn't have
 				 * any reference. but its reference has not been 
@@ -6275,7 +6294,7 @@ static hawk_oow_t push_arg_from_vals (hawk_rtx_t* rtx, hawk_nde_fncall_t* call, 
 				hawk_rtx_refdownval (rtx, pafv->args[nargs]);
 
 				UNWIND_RTX_STACK_ARG (rtx, nargs);
-				hawk_rtx_seterrnum (rtx, &call->loc, HAWK_ENOMEM);
+				ADJERR_LOC (rtx, &call->loc);
 				return (hawk_oow_t)-1;
 			}
 
@@ -6343,7 +6362,7 @@ static hawk_oow_t push_arg_from_nde (hawk_rtx_t* rtx, hawk_nde_fncall_t* call, v
 			return (hawk_oow_t)-1;
 		}
 
-		if (__raw_push(rtx,v) <= -1) 
+		if (HAWK_UNLIKELY(__raw_push(rtx,v) <= -1)) 
 		{
 			/* ugly - v needs to be freed if it doesn't have
 			 * any reference. but its reference has not been 
@@ -6354,7 +6373,7 @@ static hawk_oow_t push_arg_from_nde (hawk_rtx_t* rtx, hawk_nde_fncall_t* call, v
 			hawk_rtx_refdownval (rtx, v);
 
 			UNWIND_RTX_STACK_ARG (rtx, nargs);
-			hawk_rtx_seterrnum (rtx, &call->loc, HAWK_ENOMEM);
+			ADJERR_LOC (rtx, &call->loc);
 			return (hawk_oow_t)-1;
 		}
 
@@ -6984,30 +7003,6 @@ static hawk_val_t* eval_printf (hawk_rtx_t* run, hawk_nde_t* nde)
 	if (n == PRINT_IOERR) n = -1; /* let print return -1 */
 	else if (n <= -1) return HAWK_NULL;
 	return hawk_rtx_makeintval(run, n);
-}
-
-static int __raw_push (hawk_rtx_t* rtx, void* val)
-{
-	if (rtx->stack_top >= rtx->stack_limit)
-	{
-		/*
-		void** tmp;
-		hawk_oow_t n;
-
-		n = rtx->stack_limit + RTX_STACK_INCREMENT;
-
-		tmp = (void**)hawk_rtx_reallocmem(rtx, rtx->stack, n * HAWK_SIZEOF(void*)); 
-		if (!tmp) return -1;
-
-		rtx->stack = tmp;
-		rtx->stack_limit = n;
-		*/
-		hawk_rtx_seterrfmt (rtx, HAWK_NULL, HAWK_ESTACK, HAWK_T("runtime stack full"));
-		return -1;
-	}
-
-	rtx->stack[rtx->stack_top++] = val;
-	return 0;
 }
 
 static int read_record (hawk_rtx_t* rtx)
