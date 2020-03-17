@@ -68,7 +68,7 @@ HAWK_INLINE hawk_rbt_pair_t* hawk_rbt_allocpair (
 	if (vcop == HAWK_RBT_COPIER_INLINE) as += VTOB(rbt,vlen);
 
 	pair = (hawk_rbt_pair_t*)hawk_gem_allocmem(rbt->gem, as);
-	if (!pair) return HAWK_NULL;
+	if (HAWK_UNLIKELY(!pair)) return HAWK_NULL;
 
 	pair->color = HAWK_RBT_RED;
 	pair->parent = HAWK_NULL;
@@ -196,9 +196,9 @@ hawk_rbt_t* hawk_rbt_open (hawk_gem_t* gem, hawk_oow_t xtnsize, int kscale, int 
 	hawk_rbt_t* rbt;
 
 	rbt = (hawk_rbt_t*)hawk_gem_allocmem(gem, HAWK_SIZEOF(hawk_rbt_t) + xtnsize);
-	if (!rbt) return HAWK_NULL;
+	if (HAWK_UNLIKELY(!rbt)) return HAWK_NULL;
 
-	if (hawk_rbt_init(rbt, gem, kscale, vscale) <= -1)
+	if (HAWK_UNLIKELY(hawk_rbt_init(rbt, gem, kscale, vscale) <= -1))
 	{
 		hawk_gem_freemem (gem, rbt);
 		return HAWK_NULL;
@@ -443,7 +443,7 @@ static hawk_rbt_pair_t* change_pair_val (
 			{
 				/* need to reconstruct the pair */
 				hawk_rbt_pair_t* p = hawk_rbt_allocpair(rbt, KPTR(pair), KLEN(pair), vptr, vlen);
-				if (p == HAWK_NULL) return HAWK_NULL;
+				if (HAWK_UNLIKELY(!p)) return HAWK_NULL;
 
 				p->color = pair->color;
 				p->left = pair->left;
@@ -530,7 +530,7 @@ static hawk_rbt_pair_t* insert (hawk_rbt_t* rbt, void* kptr, hawk_oow_t klen, vo
 	}
 
 	x_new = hawk_rbt_allocpair(rbt, kptr, klen, vptr, vlen);
-	if (x_new == HAWK_NULL) return HAWK_NULL;
+	if (HAWK_UNLIKELY(!x_new)) return HAWK_NULL;
 
 	if (x_par == HAWK_NULL)
 	{
