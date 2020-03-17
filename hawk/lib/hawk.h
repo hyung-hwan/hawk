@@ -322,7 +322,9 @@ typedef enum hawk_val_map_data_type_t hawk_val_map_data_type_t;
 struct hawk_val_map_data_t
 {
 	hawk_oocs_t               key;
-	hawk_val_map_data_type_t  type;
+	hawk_val_map_data_type_t  type: 8;
+	unsigned int              type_size: 16; /* size information that supplements the type */
+	/* maybe there are some unused bits here as this struct is not packed */
 	void*                     vptr;
 };
 

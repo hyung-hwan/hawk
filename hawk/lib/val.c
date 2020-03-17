@@ -588,8 +588,24 @@ hawk_val_t* hawk_rtx_makemapvalwithdata (hawk_rtx_t* rtx, hawk_val_map_data_t da
 		switch (p->type)
 		{
 			case HAWK_VAL_MAP_DATA_INT:
-				tmp = hawk_rtx_makeintval(rtx, *(hawk_int_t*)p->vptr);
+			{
+				hawk_int_t iv = 0;
+
+				if (p->type_size > 0 && p->type_size <= HAWK_SIZEOF(iv))
+				{
+				#if defined(HAWK_ENDIAN_LITTLE)
+					HAWK_MEMCPY (&iv, p->vptr, p->type_size);
+				#else
+					HAWK_MEMCPY ((hawk_uint8_t*)&iv + (HAWK_SIZEOF(iv) - p->type_size), p->vptr, p->type_size);
+				#endif
+				}
+				else
+				{
+					iv = *(hawk_int_t*)p->vptr;
+				}
+				tmp = hawk_rtx_makeintval(rtx, iv);
 				break;
+			}
 
 			case HAWK_VAL_MAP_DATA_FLT:
 				tmp = hawk_rtx_makefltval(rtx, *(hawk_flt_t*)p->vptr);
