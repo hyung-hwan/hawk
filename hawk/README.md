@@ -526,6 +526,16 @@ Directory traversal is easy.
 		} 
 	}
 
+
+You can get information of a network interface.
+
+	BEGIN { 
+		if (sys::getnwifcfg("lo", sys::NWIFCFG_IN6, x) <= -1)
+			print sys::errmsg();
+		else
+			for (i in x) print i, x[i]; 
+	}
+
 Socket functions are available.
 
 	BEGIN

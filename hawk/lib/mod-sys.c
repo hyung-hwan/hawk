@@ -1998,7 +1998,7 @@ static int fnc_gettime (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_val_t* retv;
 	hawk_ntime_t now;
 
-	if (hawk_get_time (&now) <= -1) now.sec = 0;
+	if (hawk_get_time(&now) <= -1) now.sec = 0;
 
 	retv = hawk_rtx_makeintval(rtx, now.sec);
 	if (!retv) return -1;
@@ -2016,7 +2016,7 @@ static int fnc_settime (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 	now.nsec = 0;
 
-	if (hawk_rtx_valtoint(rtx, hawk_rtx_getarg (rtx, 0), &tmp) <= -1) rx = -1;
+	if (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 0), &tmp) <= -1) rx = -1;
 	else
 	{
 		now.sec = tmp;
@@ -2460,14 +2460,14 @@ static int fnc_getifcfg (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		md[0].key.ptr = HAWK_T("index");
 		md[0].key.len = 5;
 		md[0].type = HAWK_VAL_MAP_DATA_INT;
-		index = cfg.index;
-		md[0].vptr = &index;
+		md[0].type_size = HAWK_SIZEOF(cfg.index);
+		md[0].vptr = &cfg.index;
 
 		md[1].key.ptr = HAWK_T("mtu");
 		md[1].key.len = 3;
 		md[1].type = HAWK_VAL_MAP_DATA_INT;
-		mtu = cfg.mtu;
-		md[1].vptr = &mtu;
+		md[1].type_size = HAWK_SIZEOF(cfg.mtu);
+		md[1].vptr = &cfg.mtu;
 
 		md[2].key.ptr = HAWK_T("addr");
 		md[2].key.len = 4;
@@ -2981,8 +2981,8 @@ static int fnc_stat (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		hawk_oow_t len1;
 		hawk_val_t* tmp;
 		hawk_stat_t stbuf;
-		hawk_val_map_data_t md[10];
-		hawk_int_t dev, ino, size;
+		hawk_val_map_data_t md[14];
+		hawk_flt_t atime_f, mtime_f, ctime_f;
 		int x;
 
 		str1 = hawk_rtx_getvalbcstr(rtx, a0, &len1);
@@ -3012,20 +3012,98 @@ static int fnc_stat (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		md[0].key.ptr = HAWK_T("dev");
 		md[0].key.len = 3;
 		md[0].type = HAWK_VAL_MAP_DATA_INT;
-		dev = stbuf.st_dev;
-		md[0].vptr = &dev;
+		md[0].type_size = HAWK_SIZEOF(stbuf.st_dev);
+		md[0].vptr = &stbuf.st_dev;
 
 		md[1].key.ptr = HAWK_T("ino");
 		md[1].key.len = 3;
 		md[1].type = HAWK_VAL_MAP_DATA_INT;
-		ino = stbuf.st_ino;
-		md[1].vptr = &ino;
+		md[1].type_size = HAWK_SIZEOF(stbuf.st_ino);
+		md[1].vptr = &stbuf.st_ino;
 
 		md[2].key.ptr = HAWK_T("size");
 		md[2].key.len = 4;
+		md[2].type = HAWK_VAL_MAP_DATA_INT;
+		md[2].type_size = HAWK_SIZEOF(stbuf.st_size);
+		md[2].vptr = &stbuf.st_size;
+
+		md[3].key.ptr = HAWK_T("mode");
+		md[3].key.len = 4;
 		md[3].type = HAWK_VAL_MAP_DATA_INT;
-		size = stbuf.st_size;
-		md[2].vptr = &size;
+		md[3].type_size = HAWK_SIZEOF(stbuf.st_mode);
+		md[3].vptr = &stbuf.st_mode;
+
+		md[4].key.ptr = HAWK_T("nlink");
+		md[4].key.len = 5;
+		md[4].type = HAWK_VAL_MAP_DATA_INT;
+		md[4].type_size = HAWK_SIZEOF(stbuf.st_nlink);
+		md[4].vptr = &stbuf.st_nlink;
+
+		md[5].key.ptr = HAWK_T("uid");
+		md[5].key.len = 3;
+		md[5].type = HAWK_VAL_MAP_DATA_INT;
+		md[5].type_size = HAWK_SIZEOF(stbuf.st_uid);
+		md[5].vptr = &stbuf.st_uid;
+
+		md[6].key.ptr = HAWK_T("gid");
+		md[6].key.len = 3;
+		md[6].type = HAWK_VAL_MAP_DATA_INT;
+		md[6].type_size = HAWK_SIZEOF(stbuf.st_gid);
+		md[6].vptr = &stbuf.st_gid;
+
+		md[7].key.ptr = HAWK_T("rdev");
+		md[7].key.len = 4;
+		md[7].type = HAWK_VAL_MAP_DATA_INT;
+		md[7].type_size = HAWK_SIZEOF(stbuf.st_rdev);
+		md[7].vptr = &stbuf.st_rdev;
+
+		md[8].key.ptr = HAWK_T("blksize");
+		md[8].key.len = 7;
+		md[8].type = HAWK_VAL_MAP_DATA_INT;
+		md[8].type_size = HAWK_SIZEOF(stbuf.st_blksize);
+		md[8].vptr = &stbuf.st_blksize;
+
+		md[9].key.ptr = HAWK_T("blocks");
+		md[9].key.len = 6;
+		md[9].type = HAWK_VAL_MAP_DATA_INT;
+		md[9].type_size = HAWK_SIZEOF(stbuf.st_blocks);
+		md[9].vptr = &stbuf.st_blocks;
+
+		md[10].key.ptr = HAWK_T("atime");
+		md[10].key.len = 5;
+	#if defined(HAVE_STRUCT_STAT_ST_MTIM_TV_NSEC)
+		md[10].type = HAWK_VAL_MAP_DATA_FLT;
+		atime_f = (hawk_flt_t)stbuf.st_atim.tv_sec + ((hawk_flt_t)stbuf.st_atim.tv_nsec / HAWK_NSECS_PER_SEC);
+		md[10].vptr = &atime_f;
+	#else
+		md[10].type = HAWK_VAL_MAP_DATA_INT;
+		md[10].type_size = HAWK_SIZEOF(stbuf.st_atime);
+		md[10].vptr = &stbuf.st_atime;
+	#endif
+
+		md[11].key.ptr = HAWK_T("mtime");
+		md[11].key.len = 5;
+	#if defined(HAVE_STRUCT_STAT_ST_MTIM_TV_NSEC)
+		md[11].type = HAWK_VAL_MAP_DATA_FLT;
+		mtime_f = (hawk_flt_t)stbuf.st_mtim.tv_sec + ((hawk_flt_t)stbuf.st_mtim.tv_nsec / HAWK_NSECS_PER_SEC);
+		md[11].vptr = &mtime_f;
+	#else
+		md[11].type = HAWK_VAL_MAP_DATA_INT;
+		md[11].type_size = HAWK_SIZEOF(stbuf.st_mtime);
+		md[11].vptr = &stbuf.st_mtime;
+	#endif
+
+		md[12].key.ptr = HAWK_T("ctime");
+		md[12].key.len = 5;
+	#if defined(HAVE_STRUCT_STAT_ST_MTIM_TV_NSEC)
+		md[12].type = HAWK_VAL_MAP_DATA_FLT;
+		ctime_f = (hawk_flt_t)stbuf.st_ctim.tv_sec + ((hawk_flt_t)stbuf.st_ctim.tv_nsec / HAWK_NSECS_PER_SEC);
+		md[12].vptr = &ctime_f;
+	#else
+		md[12].type = HAWK_VAL_MAP_DATA_INT;
+		md[12].type_size = HAWK_SIZEOF(stbuf.st_ctime);
+		md[12].vptr = &stbuf.st_ctime;
+	#endif
 
 		tmp = hawk_rtx_makemapvalwithdata(rtx, md);
 		if (!tmp) goto fail;

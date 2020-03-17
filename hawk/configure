@@ -1490,7 +1490,7 @@ Optional Features:
                           no:4 (default. yes)
   --enable-debug          compile the code in the debug mode (default. no)
   --enable-intmax         use hawk_intmax_t for integers (default. no)
-  --enable-awk-fltmax     use hawk_fltmax_t for floating-point numbers
+  --enable-fltmax         use hawk_fltmax_t for floating-point numbers
                           (default. no)
   --enable-cxx            build the library for C++ if a C++ compiler is
                           available (default. yes)
