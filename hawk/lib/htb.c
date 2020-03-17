@@ -300,7 +300,7 @@ int hawk_htb_init (hawk_htb_t* htb, hawk_gem_t* gem, hawk_oow_t capa, int factor
 	htb->gem = gem;
 
 	htb->bucket = hawk_gem_allocmem(gem, capa * HAWK_SIZEOF(pair_t*));
-	if (htb->bucket == HAWK_NULL) return -1;
+	if (HAWK_UNLIKELY(!htb->bucket)) return -1;
 
 	/*for (i = 0; i < capa; i++) htb->bucket[i] = HAWK_NULL;*/
 	HAWK_MEMSET (htb->bucket, 0, capa * HAWK_SIZEOF(pair_t*));
@@ -391,7 +391,7 @@ static HAWK_INLINE int reorganize (hawk_htb_t* htb)
 	}
 
 	new_buck = (pair_t**)hawk_gem_allocmem(htb->gem, new_capa * HAWK_SIZEOF(pair_t*));
-	if (new_buck == HAWK_NULL) 
+	if (HAWK_UNLIKELY(!new_buck)) 
 	{
 		/* reorganization is disabled once it fails */
 		htb->threshold = 0;
