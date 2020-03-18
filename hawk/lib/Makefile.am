@@ -80,6 +80,7 @@ libhawk_la_SOURCES = \
 	gem-nwif2.c \
 	hawk-prv.h \
 	hawk.c \
+	idmap-imp.h \
 	mb8.c \
 	misc-prv.h \
 	misc.c \
@@ -184,7 +185,6 @@ if ENABLE_STATIC_MODULE
 # STATIC MODULES BUILT INTO MAIN LIBRARY
 ##################################################
 libhawk_la_SOURCES += \
-	imap-imp.h \
 	mod-math.c mod-math.h \
 	mod-str.c mod-str.h \
 	mod-sys.c mod-sys.h

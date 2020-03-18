@@ -1,7 +1,7 @@
 # Hawk
 
  - [Language](#language)
- - [Basic Modules](#basic-modules)
+ - [Modules](#modules)
  - [Embedding Guide](#embedding-guide)
 
 ## Language <a name="language"></a>
@@ -289,7 +289,7 @@ and represents the value of 0.
     0b # 0b0 but not desirable.
 
 
-### Module
+### Modules <a name="modules"></a>
 
 Hawk supports various modules.
 
@@ -545,6 +545,44 @@ Socket functions are available.
 		sys::close (s);
 	}
 
+
+### ffi
+
+
+### mysql
+
+	BEGIN {
+		mysql = mysql::open();
+
+		if (mysql::connect(mysql, "10.30.1.219", "pdns", "pdns", "pdns") <= -1)
+		{
+			 print "connect error -", mysql::errmsg();
+		}
+
+		if (mysql::query(mysql, "select * from records") <= -1)
+		{
+			print "query error -", mysql::errmsg();
+		}
+
+		result = mysql::store_result(mysql);
+		if (result <= -1)
+		{
+			print "store result error - ", mysql::errmsg();
+		}
+
+		while (mysql::fetch_row(result, row) > 0)
+		{
+			ncols = length(row);
+			for (i = 0; i < ncols; i++) print row[i];
+			print "----";
+		}
+
+		mysql::free_result(result);
+
+		mysql::close(mysql);
+	}
+
+
 ### Incompatibility with AWK
 
 #### Parameter passing
@@ -576,14 +614,6 @@ There are subtle differences when you put an expression for a position variable.
 | $++$++i      | syntax error  | OK              |
 | $(++$(++i))  | OK            | syntax error    |
 
-
-## Basic Modules <a name="basic-modules"></a>
-
-### sys
-
-### ffi
-
-### mysql
 
 ## Embedding Guide <a name="embedding-guide"></a>
 

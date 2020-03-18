@@ -604,7 +604,7 @@ int hawk_htb_delete (hawk_htb_t* htb, const void* kptr, hawk_oow_t klen)
 
 	while (pair != HAWK_NULL) 
 	{
-		if (htb->style->comper (htb, KPTR(pair), KLEN(pair), kptr, klen) == 0) 
+		if (htb->style->comper(htb, KPTR(pair), KLEN(pair), kptr, klen) == 0) 
 		{
 			if (prev == HAWK_NULL) 
 				htb->bucket[hc] = NEXT(pair);

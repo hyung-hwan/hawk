@@ -127,26 +127,51 @@ struct hawk_rtx_alt_t
 	HAWK_RTX_HDR;
 };
 
+/* ------------------------------------------------------------------------ */
+
+typedef struct hawk_gc_info_t hawk_gc_info_t;
+struct hawk_gc_info_t
+{
+	hawk_gc_info_t* gc_prev;
+	hawk_gc_info_t* gc_next;
+	hawk_uintptr_t  gc_refs;
+};
+
+#if defined(HAWK_HAVE_INLINE)
+static HAWK_INLINE hawk_gc_info_t* hawk_val_to_gcinfo(hawk_val_t* v)
+{
+	return ((hawk_gc_info_t*)v) - 1;
+}
+static HAWK_INLINE hawk_val_t* hawk_gcinfo_to_val(hawk_gc_info_t* gci)
+{
+	return (hawk_val_t*)(gci + 1);
+}
+
+#else
+#	defined hawk_val_to_gcinfo(v) (((hawk_gc_info_t*)(v)) - 1)
+#	defined hawk_gcinfo_to_val(gci) ((hawk_val_t*)(((hawk_gc_info_t*)(gci)) + 1))
+#endif
+
 /**
  * The #HAWK_VAL_HDR defines the common header for a value.
  * Three common fields are:
- * - type - type of a value from #hawk_val_type_t
- * - ref - reference count
- * - stat - static value 
+ * - v_type - type of a value from #hawk_val_type_t
+ * - v_refs - reference count
+ * - v_static - static value indicator
  * - nstr - numeric string marker, 1 -> integer, 2 -> floating-point number
  */
 /*
 #define HAWK_VAL_HDR \
-	unsigned int type: 4; \
-	unsigned int ref: 24; \
-	unsigned int stat: 1; \
+	unsigned int v_type: 4; \
+	unsigned int v_refs: 24; \
+	unsigned int v_static: 1; \
 	unsigned int nstr: 2; \
 	unsigned int fcb: 1
 */
 #define HAWK_VAL_HDR \
 	hawk_uintptr_t v_type: 4; \
-	hawk_uintptr_t ref: ((HAWK_SIZEOF_UINTPTR_T * 8) - 8); \
-	hawk_uintptr_t stat: 1; \
+	hawk_uintptr_t v_refs: ((HAWK_SIZEOF_UINTPTR_T * 8) - 8); \
+	hawk_uintptr_t v_static: 1; \
 	hawk_uintptr_t nstr: 2; \
 	hawk_uintptr_t fcb: 1
 
