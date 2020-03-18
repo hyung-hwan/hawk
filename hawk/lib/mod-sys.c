@@ -166,13 +166,15 @@ struct sys_list_data_t
 };
 typedef struct sys_list_data_t sys_list_data_t;
 
-#define __IMAP_NODE_T_DATA sys_node_data_t ctx;
-#define __IMAP_LIST_T_DATA sys_list_data_t ctx;
-#define __IMAP_LIST_T sys_list_t
-#define __IMAP_NODE_T sys_node_t
-#define __MAKE_IMAP_NODE __new_sys_node
-#define __FREE_IMAP_NODE __free_sys_node
-#include "imap-imp.h"
+#define __IDMAP_NODE_T_DATA sys_node_data_t ctx;
+#define __IDMAP_LIST_T_DATA sys_list_data_t ctx;
+#define __IDMAP_LIST_T sys_list_t
+#define __IDMAP_NODE_T sys_node_t
+#define __INIT_IDMAP_LIST __init_sys_list
+#define __FINI_IDMAP_LIST __fini_sys_list
+#define __MAKE_IDMAP_NODE __new_sys_node
+#define __FREE_IDMAP_NODE __free_sys_node
+#include "idmap-imp.h"
 
 struct rtx_data_t
 {
@@ -713,7 +715,7 @@ static int fnc_write (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	{
 		hawk_bch_t* dptr;
 		hawk_oow_t dlen;
-		hawk_ooi_t startpos = 0, maxlen = HAWK_TYPE_MAX(hawk_ooi_t);
+		hawk_int_t startpos = 0, maxlen = HAWK_TYPE_MAX(hawk_int_t);
 		hawk_val_t* a1;
 
 		if (hawk_rtx_getnargs(rtx) >= 3 && (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 2), &startpos) <= -1 || startpos < 0)) startpos = 0;
@@ -4762,14 +4764,19 @@ static int query (hawk_mod_t* mod, hawk_t* awk, const hawk_ooch_t* name, hawk_mo
 static int init (hawk_mod_t* mod, hawk_rtx_t* rtx)
 {
 	mod_ctx_t* mctx = (mod_ctx_t*)mod->ctx;
-	rtx_data_t data;
+	rtx_data_t data, * datap;
+	hawk_rbt_pair_t* pair;
 
 	mctx->log.type = SYSLOG_LOCAL;
 	mctx->log.syslog_opened = 0;
 	mctx->log.sck = -1; 
 
 	HAWK_MEMSET (&data, 0, HAWK_SIZEOF(data));
-	if (hawk_rbt_insert(mctx->rtxtab, &rtx, HAWK_SIZEOF(rtx), &data, HAWK_SIZEOF(data)) == HAWK_NULL) return -1;
+	pair = hawk_rbt_insert(mctx->rtxtab, &rtx, HAWK_SIZEOF(rtx), &data, HAWK_SIZEOF(data));
+	if (HAWK_UNLIKELY(!pair)) return -1;
+
+	datap = (rtx_data_t*)HAWK_RBT_VPTR(pair);
+	__init_sys_list (rtx, &datap->sys_list);
 
 	return 0;
 }
@@ -4789,17 +4796,9 @@ static void fini (hawk_mod_t* mod, hawk_rtx_t* rtx)
 	if (pair)
 	{
 		rtx_data_t* data;
-		sys_node_t* sys_node, * sys_next;
+
 
 		data = (rtx_data_t*)HAWK_RBT_VPTR(pair);
-
-		sys_node = data->sys_list.head;
-		while (sys_node)
-		{
-			sys_next = sys_node->next;
-			free_sys_node (rtx, &data->sys_list, sys_node);
-			sys_node = sys_next;
-		}
 
 		if (data->sys_list.ctx.readbuf)
 		{
@@ -4807,6 +4806,9 @@ static void fini (hawk_mod_t* mod, hawk_rtx_t* rtx)
 			data->sys_list.ctx.readbuf = HAWK_NULL;
 			data->sys_list.ctx.readbuf_capa = 0;
 		}
+
+		__fini_sys_list (rtx, &data->sys_list);
+
 		hawk_rbt_delete (mctx->rtxtab, &rtx, HAWK_SIZEOF(rtx));
 	}
 

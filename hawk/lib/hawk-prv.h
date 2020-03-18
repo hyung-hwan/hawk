@@ -492,8 +492,8 @@ struct hawk_mod_data_t
 #define HAWK_RTX_INIT_REF_VAL(refval, _id, _adr, _nrefs) \
 	do { \
 		(refval)->v_type = HAWK_VAL_REF; \
-		(refval)->ref = (_nrefs); \
-		(refval)->stat = 0; \
+		(refval)->v_refs = (_nrefs); \
+		(refval)->v_static = 0; \
 		(refval)->nstr = 0; \
 		(refval)->fcb = 0; \
 		(refval)->id = (_id); \

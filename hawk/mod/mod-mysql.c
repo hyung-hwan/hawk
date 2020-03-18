@@ -49,43 +49,53 @@ struct param_data_t
 typedef struct param_data_t param_data_t;
 typedef struct param_data_t res_data_t;
 
-#define __IMAP_NODE_T_DATA  MYSQL* mysql; int connect_ever_attempted;
-#define __IMAP_LIST_T_DATA  int errnum; hawk_ooch_t errmsg[256];
-#define __IMAP_LIST_T sql_list_t
-#define __IMAP_NODE_T sql_node_t
-#define __MAKE_IMAP_NODE __new_sql_node
-#define __FREE_IMAP_NODE __free_sql_node
-#include "../lib/imap-imp.h"
+#define __IDMAP_NODE_T_DATA  MYSQL* mysql; int connect_ever_attempted;
+#define __IDMAP_LIST_T_DATA  int errnum; hawk_ooch_t errmsg[256];
+#define __IDMAP_LIST_T sql_list_t
+#define __IDMAP_NODE_T sql_node_t
+#define __INIT_IDMAP_LIST __init_sql_list
+#define __FINI_IDMAP_LIST __fini_sql_list
+#define __MAKE_IDMAP_NODE __new_sql_node
+#define __FREE_IDMAP_NODE __free_sql_node
+#include "../lib/idmap-imp.h"
 
-#undef __IMAP_NODE_T_DATA
-#undef __IMAP_LIST_T_DATA
-#undef __IMAP_LIST_T
-#undef __IMAP_NODE_T
-#undef __MAKE_IMAP_NODE
-#undef __FREE_IMAP_NODE
+#undef __IDMAP_NODE_T_DATA
+#undef __IDMAP_LIST_T_DATA
+#undef __IDMAP_LIST_T
+#undef __IDMAP_NODE_T
+#undef __INIT_IDMAP_LIST
+#undef __FINI_IDMAP_LIST
+#undef __MAKE_IDMAP_NODE
+#undef __FREE_IDMAP_NODE
 
-#define __IMAP_NODE_T_DATA  MYSQL_RES* res; unsigned int num_fields;
-#define __IMAP_LIST_T_DATA  /* int errnum; */
-#define __IMAP_LIST_T res_list_t
-#define __IMAP_NODE_T res_node_t
-#define __MAKE_IMAP_NODE __new_res_node
-#define __FREE_IMAP_NODE __free_res_node
-#include "../lib/imap-imp.h"
+#define __IDMAP_NODE_T_DATA  MYSQL_RES* res; unsigned int num_fields;
+#define __IDMAP_LIST_T_DATA  /* int errnum; */
+#define __IDMAP_LIST_T res_list_t
+#define __IDMAP_NODE_T res_node_t
+#define __INIT_IDMAP_LIST __init_res_list
+#define __FINI_IDMAP_LIST __fini_res_list
+#define __MAKE_IDMAP_NODE __new_res_node
+#define __FREE_IDMAP_NODE __free_res_node
+#include "../lib/idmap-imp.h"
 
-#undef __IMAP_NODE_T_DATA
-#undef __IMAP_LIST_T_DATA
-#undef __IMAP_LIST_T
-#undef __IMAP_NODE_T
-#undef __MAKE_IMAP_NODE
-#undef __FREE_IMAP_NODE
+#undef __IDMAP_NODE_T_DATA
+#undef __IDMAP_LIST_T_DATA
+#undef __IDMAP_LIST_T
+#undef __IDMAP_NODE_T
+#undef __INIT_IDMAP_LIST
+#undef __FINI_IDMAP_LIST
+#undef __MAKE_IDMAP_NODE
+#undef __FREE_IDMAP_NODE
 
-#define __IMAP_NODE_T_DATA  MYSQL_STMT* stmt; MYSQL_BIND* param_binds; param_data_t* param_data; hawk_oow_t param_capa; MYSQL_BIND* res_binds; res_data_t* res_data; hawk_oow_t res_capa;
-#define __IMAP_LIST_T_DATA  /* int errnum; */
-#define __IMAP_LIST_T stmt_list_t
-#define __IMAP_NODE_T stmt_node_t
-#define __MAKE_IMAP_NODE __new_stmt_node
-#define __FREE_IMAP_NODE __free_stmt_node
-#include "../lib/imap-imp.h"
+#define __IDMAP_NODE_T_DATA  MYSQL_STMT* stmt; MYSQL_BIND* param_binds; param_data_t* param_data; hawk_oow_t param_capa; MYSQL_BIND* res_binds; res_data_t* res_data; hawk_oow_t res_capa;
+#define __IDMAP_LIST_T_DATA  /* int errnum; */
+#define __IDMAP_LIST_T stmt_list_t
+#define __IDMAP_NODE_T stmt_node_t
+#define __INIT_IDMAP_LIST __init_stmt_list
+#define __FINI_IDMAP_LIST __fini_stmt_list
+#define __MAKE_IDMAP_NODE __new_stmt_node
+#define __FREE_IDMAP_NODE __free_stmt_node
+#include "../lib/idmap-imp.h"
 
 struct rtx_data_t
 {
@@ -1832,12 +1842,19 @@ static int query (hawk_mod_t* mod, hawk_t* awk, const hawk_ooch_t* name, hawk_mo
 static int init (hawk_mod_t* mod, hawk_rtx_t* rtx)
 {
 	hawk_rbt_t* rbt;
-	rtx_data_t data;
+	rtx_data_t data, * datap;
+	hawk_rbt_pair_t* pair;
 
 	rbt = (hawk_rbt_t*)mod->ctx;
 
 	HAWK_MEMSET (&data, 0, HAWK_SIZEOF(data));
-	if (hawk_rbt_insert(rbt, &rtx, HAWK_SIZEOF(rtx), &data, HAWK_SIZEOF(data)) == HAWK_NULL)  return -1;
+	pair = hawk_rbt_insert(rbt, &rtx, HAWK_SIZEOF(rtx), &data, HAWK_SIZEOF(data));
+	if (HAWK_UNLIKELY(!pair)) return -1;
+
+	datap = (rtx_data_t*)HAWK_RBT_VPTR(pair);
+	__init_sql_list (rtx, &datap->sql_list);
+	__init_res_list (rtx, &datap->res_list);
+	__init_stmt_list (rtx, &datap->stmt_list);
 
 	return 0;
 }
@@ -1854,26 +1871,12 @@ static void fini (hawk_mod_t* mod, hawk_rtx_t* rtx)
 	if (pair)
 	{
 		rtx_data_t* data;
-		sql_node_t* sql_node, * sql_next;
-		res_node_t* res_node, * res_next;
 
 		data = (rtx_data_t*)HAWK_RBT_VPTR(pair);
 
-		res_node = data->res_list.head;
-		while (res_node)
-		{
-			res_next = res_node->next;
-			free_res_node (rtx, &data->res_list, res_node);
-			res_node = res_next;
-		}
-
-		sql_node = data->sql_list.head;
-		while (sql_node)
-		{
-			sql_next = sql_node->next;
-			free_sql_node (rtx, &data->sql_list, sql_node);
-			sql_node = sql_next;
-		}
+		__fini_stmt_list (rtx, &data->stmt_list);
+		__fini_res_list (rtx, &data->res_list);
+		__fini_sql_list (rtx, &data->sql_list);
 
 		hawk_rbt_delete (rbt, &rtx, HAWK_SIZEOF(rtx));
 	}
@@ -1901,7 +1904,7 @@ int hawk_mod_mysql (hawk_mod_t* mod, hawk_t* hawk)
 	mod->fini = fini;
 
 	rbt = hawk_rbt_open(hawk_getgem(hawk), 0, 1, 1);
-	if (rbt == HAWK_NULL) return -1;
+	if (HAWK_UNLIKELY(!rbt)) return -1;
 
 	hawk_rbt_setstyle (rbt, hawk_get_rbt_style(HAWK_RBT_STYLE_INLINE_COPIERS));
 

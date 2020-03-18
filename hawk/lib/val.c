@@ -36,6 +36,22 @@ hawk_val_t* hawk_val_nil = (hawk_val_t*)&awk_nil;
 hawk_val_t* hawk_val_zls = (hawk_val_t*)&awk_zls; 
 hawk_val_t* hawk_val_zlm = (hawk_val_t*)&awk_zlm;
 
+
+/* --------------------------------------------------------------------- */
+
+/* TOOD: */
+static hawk_val_t* gc_calloc (hawk_rtx_t* rtx, hawk_oow_t size)
+{
+	hawk_gc_info_t* gci;
+
+	gci = (hawk_gc_info_t*)hawk_rtx_callocmem(rtx, HAWK_SIZEOF(*gci) + size);
+	if (HAWK_UNLIKELY(!gci)) return HAWK_NULL;
+
+	return hawk_gcinfo_to_val(gci);
+}
+
+/* --------------------------------------------------------------------- */
+
 hawk_val_t* hawk_get_awk_nil_val (void)
 {
 	return (hawk_val_t*)&awk_nil;
@@ -95,8 +111,8 @@ hawk_val_t* hawk_rtx_makeintval (hawk_rtx_t* rtx, hawk_int_t v)
 	rtx->vmgr.ifree = (hawk_val_int_t*)val->nde;
 
 	val->v_type = HAWK_VAL_INT;
-	val->ref = 0;
-	val->stat = 0;
+	val->v_refs = 0;
+	val->v_static = 0;
 	val->nstr = 0;
 	val->fcb = 0;
 	val->i_val = v;
@@ -146,8 +162,8 @@ hawk_val_t* hawk_rtx_makefltval (hawk_rtx_t* rtx, hawk_flt_t v)
 	rtx->vmgr.rfree = (hawk_val_flt_t*)val->nde;
 
 	val->v_type = HAWK_VAL_FLT;
-	val->ref = 0;
-	val->stat = 0;
+	val->v_refs = 0;
+	val->v_static = 0;
 	val->nstr = 0;
 	val->fcb = 0;
 	val->val = v;
@@ -189,8 +205,8 @@ static HAWK_INLINE hawk_val_t* make_str_val (hawk_rtx_t* rtx, const hawk_ooch_t*
 init:
 #endif
 	val->v_type = HAWK_VAL_STR;
-	val->ref = 0;
-	val->stat = 0;
+	val->v_refs = 0;
+	val->v_static = 0;
 	val->nstr = 0;
 	val->fcb = 0;
 	val->val.len = len1 + len2;
@@ -337,8 +353,7 @@ hawk_val_t* hawk_rtx_makenstrvalwithuchars (hawk_rtx_t* rtx, const hawk_uch_t* p
 
 	x = hawk_uchars_to_num(HAWK_OOCHARS_TO_NUM_MAKE_OPTION(1, 0, HAWK_RTX_IS_STRIPSTRSPC_ON(rtx), 0), ptr, len, &l, &r);
 	v = hawk_rtx_makestrvalwithuchars(rtx, ptr, len);
-
-	if (!v) return HAWK_NULL;
+	if (HAWK_UNLIKELY(!v)) return HAWK_NULL;
 
 	if (x >= 0) 
 	{
@@ -360,8 +375,7 @@ hawk_val_t* hawk_rtx_makenstrvalwithbchars (hawk_rtx_t* rtx, const hawk_bch_t* p
 
 	x = hawk_bchars_to_num(HAWK_OOCHARS_TO_NUM_MAKE_OPTION(1, 0, HAWK_RTX_IS_STRIPSTRSPC_ON(rtx), 0), ptr, len, &l, &r);
 	v = hawk_rtx_makestrvalwithbchars(rtx, ptr, len);
-
-	if (!v) return HAWK_NULL;
+	if (HAWK_UNLIKELY(!v)) return HAWK_NULL;
 
 	if (x >= 0) 
 	{
@@ -410,8 +424,8 @@ hawk_val_t* hawk_rtx_makembsvalwithbchars (hawk_rtx_t* rtx, const hawk_bch_t* pt
 	if (HAWK_UNLIKELY(!val)) return HAWK_NULL;
 
 	val->v_type = HAWK_VAL_MBS;
-	val->ref = 0;
-	val->stat = 0;
+	val->v_refs = 0;
+	val->v_static = 0;
 	val->nstr = 0;
 	val->fcb = 0;
 	val->val.len = len;
@@ -496,8 +510,8 @@ hawk_val_t* hawk_rtx_makerexval (hawk_rtx_t* rtx, const hawk_oocs_t* str, hawk_t
 	if (HAWK_UNLIKELY(!val)) return HAWK_NULL;
 
 	val->v_type = HAWK_VAL_REX;
-	val->ref = 0;
-	val->stat = 0;
+	val->v_refs = 0;
+	val->v_static = 0;
 	val->nstr = 0;
 	val->fcb = 0;
 	val->str.len = str->len;
@@ -549,17 +563,19 @@ hawk_val_t* hawk_rtx_makemapval (hawk_rtx_t* rtx)
 		},
 		HAWK_MAP_COMPER_DEFAULT,
 		same_mapval,
+	#if defined(HAWK_MAP_IS_HTB)
 		HAWK_MAP_SIZER_DEFAULT,
 		HAWK_MAP_HASHER_DEFAULT
+	#endif
 	};
 	hawk_val_map_t* val;
 
 	val = (hawk_val_map_t*)hawk_rtx_callocmem(rtx, HAWK_SIZEOF(hawk_val_map_t) + HAWK_SIZEOF(hawk_map_t) + HAWK_SIZEOF(rtx));
-	if (!val) return HAWK_NULL;
+	if (HAWK_UNLIKELY(!val)) return HAWK_NULL;
 
 	val->v_type = HAWK_VAL_MAP;
-	val->ref = 0;
-	val->stat = 0;
+	val->v_refs = 0;
+	val->v_static = 0;
 	val->nstr = 0;
 	val->fcb = 0;
 	val->map = (hawk_map_t*)(val + 1);
@@ -734,8 +750,8 @@ hawk_val_t* hawk_rtx_makefunval (hawk_rtx_t* rtx, const hawk_fun_t* fun)
 	if (HAWK_UNLIKELY(!val)) return HAWK_NULL;
 
 	val->v_type = HAWK_VAL_FUN;
-	val->ref = 0;
-	val->stat = 0;
+	val->v_refs = 0;
+	val->v_static = 0;
 	val->nstr = 0;
 	val->fcb = 0;
 	val->fun = (hawk_fun_t*)fun;
@@ -888,9 +904,9 @@ void hawk_rtx_refupval (hawk_rtx_t* rtx, hawk_val_t* val)
 		if (IS_STATICVAL(val)) return;
 
 	#if defined(DEBUG_VAL)
-		hawk_logfmt (hawk_rtx_gethawk(rtx), HAWK_T("ref up [ptr=%p] [count=%d] - [%O]\n"), val, (int)val->ref, val);
+		hawk_logfmt (hawk_rtx_gethawk(rtx), HAWK_T("ref up [ptr=%p] [count=%d] - [%O]\n"), val, (int)val->v_refs, val);
 	#endif
-		val->ref++;
+		val->v_refs++;
 	}
 }
 
@@ -901,15 +917,14 @@ void hawk_rtx_refdownval (hawk_rtx_t* rtx, hawk_val_t* val)
 		if (IS_STATICVAL(val)) return;
 
 	#if defined(DEBUG_VAL)
-		hawk_logfmt (hawk_rtx_gethawk(rtx), HAWK_T("ref down [ptr=%p] [count=%d] - [%O]\n"), val, (int)val->ref, val);
+		hawk_logfmt (hawk_rtx_gethawk(rtx), HAWK_T("ref down [ptr=%p] [count=%d] - [%O]\n"), val, (int)val->v_refs, val);
 	#endif
 
 		/* the reference count of a value should be greater than zero for it to be decremented. check the source code for any bugs */
-		HAWK_ASSERT (val->ref > 0);
-			
+		HAWK_ASSERT (val->v_refs > 0);
 
-		val->ref--;
-		if (val->ref <= 0) 
+		val->v_refs--;
+		if (val->v_refs <= 0) 
 		{
 			hawk_rtx_freeval(rtx, val, 1);
 		}
@@ -923,9 +938,9 @@ void hawk_rtx_refdownval_nofree (hawk_rtx_t* rtx, hawk_val_t* val)
 		if (IS_STATICVAL(val)) return;
 	
 		/* the reference count of a value should be greater than zero for it to be decremented. check the source code for any bugs */
-		HAWK_ASSERT (val->ref > 0);
+		HAWK_ASSERT (val->v_refs > 0);
 
-		val->ref--;
+		val->v_refs--;
 	}
 }
 
