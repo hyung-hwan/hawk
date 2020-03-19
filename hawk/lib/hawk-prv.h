@@ -379,6 +379,14 @@ struct hawk_rtx_t
 		hawk_val_chunk_t* rchunk;
 	} vmgr;
 
+	struct
+	{
+		int collecting;
+		hawk_oow_t all_count;
+		hawk_gci_t all; /* allocated objects */
+		hawk_gci_t saved; /* objects to preserve */
+	} gc;
+
 	hawk_nde_blk_t* active_block;
 	hawk_uint8_t* pattern_range_state;
 
@@ -495,7 +503,7 @@ struct hawk_mod_data_t
 		(refval)->v_refs = (_nrefs); \
 		(refval)->v_static = 0; \
 		(refval)->nstr = 0; \
-		(refval)->fcb = 0; \
+		(refval)->v_gc = 0; \
 		(refval)->id = (_id); \
 		(refval)->adr = (_adr); \
 	} while(0);

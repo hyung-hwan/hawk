@@ -39,15 +39,173 @@ hawk_val_t* hawk_val_zlm = (hawk_val_t*)&awk_zlm;
 
 /* --------------------------------------------------------------------- */
 
-/* TOOD: */
+/*#define HAWK_ENABLE_GC*/
+#define GCI_MOVED HAWK_TYPE_MAX(hawk_uintptr_t)
+
 static hawk_val_t* gc_calloc (hawk_rtx_t* rtx, hawk_oow_t size)
 {
-	hawk_gc_info_t* gci;
+	hawk_gci_t* gci;
 
-	gci = (hawk_gc_info_t*)hawk_rtx_callocmem(rtx, HAWK_SIZEOF(*gci) + size);
+	gci = (hawk_gci_t*)hawk_rtx_callocmem(rtx, HAWK_SIZEOF(*gci) + size);
 	if (HAWK_UNLIKELY(!gci)) return HAWK_NULL;
 
-	return hawk_gcinfo_to_val(gci);
+	return hawk_gci_to_val(gci);
+}
+
+static HAWK_INLINE void gc_chain_gci (hawk_gci_t* list, hawk_gci_t* gci)
+{
+	gci->gc_next = list;
+	gci->gc_prev = list->gc_prev;
+	gci->gc_prev->gc_next = gci;
+	list->gc_prev = gci;
+}
+
+static HAWK_INLINE void gc_chain_val (hawk_gci_t* list, hawk_val_t* v)
+{
+	gc_chain_gci (list, hawk_val_to_gci(v));
+}
+
+static HAWK_INLINE void gc_unchain_gci (hawk_gci_t* gci)
+{
+	gci->gc_prev->gc_next = gci->gc_next;
+	gci->gc_next->gc_prev = gci->gc_prev;
+}
+
+static HAWK_INLINE void gc_unchain_val (hawk_val_t* v)
+{
+	gc_unchain_gci (hawk_val_to_gci(v));
+}
+
+static void gc_clone_refs (hawk_gci_t* list)
+{
+	hawk_gci_t* gci;
+
+	gci = list->gc_next;
+	while (gci != list)
+	{
+		gci->gc_refs = hawk_gci_to_val(gci)->v_refs;
+		gci = gci->gc_next;
+	}
+}
+
+static void gc_trace_refs (hawk_gci_t* list)
+{
+	hawk_gci_t* gci;
+	hawk_val_t* v, * iv;
+	hawk_map_itr_t itr;
+	hawk_map_pair_t* pair;
+
+	gci = list->gc_next;
+	while (gci != list)
+	{
+		v = hawk_gci_to_val(gci);
+
+		/* as of now, there is only one type available - HAWK_VAL_MAP */
+		HAWK_ASSERT (v->v_type == HAWK_VAL_MAP);
+		itr._dir = 0;
+		pair = hawk_map_getfirstpair(((hawk_val_map_t*)v)->map, &itr);
+		while (pair)
+		{
+			iv = (hawk_val_t*)HAWK_MAP_VPTR(pair);
+			if (HAWK_VTR_IS_POINTER(iv) && iv->v_gc) 
+			{
+printf ("decrementing...\n");
+				hawk_val_to_gci(iv)->gc_refs--;
+			}
+			pair = hawk_map_getnextpair(((hawk_val_map_t*)v)->map, &itr);
+		}
+
+		gci = gci->gc_next;
+	}
+}
+
+static void gc_dump_refs (hawk_rtx_t* rtx, hawk_gci_t* list)
+{
+	hawk_gci_t* gci;
+
+	gci = list->gc_next;
+	while (gci != list)
+	{
+		printf (" %p %d\n", gci, (int)gci->gc_refs);
+		gci = gci->gc_next;
+	}
+	printf ("-----all_count => %d---------\n\n", (int)rtx->gc.all_count);
+}
+
+static void gc_move_roots (hawk_gci_t* list, hawk_gci_t* reachable_list)
+{
+	hawk_gci_t* gci, * next;
+
+	gci = list->gc_next;
+	while (gci != list)
+	{
+		next = gci->gc_next;
+		if (gci->gc_refs > 0)
+		{
+			gc_unchain_gci (gci);
+			gc_chain_gci (reachable_list, gci);
+			gci->gc_refs = GCI_MOVED;
+		}
+		gci = next;
+	}
+}
+
+static void gc_move_reachables_from_root (hawk_gci_t* reachable_list)
+{
+	hawk_gci_t* gci, * igci;
+	hawk_val_t* v, * iv;
+	hawk_map_itr_t itr;
+	hawk_map_pair_t* pair;
+
+	gci = reachable_list->gc_next;
+	while (gci != reachable_list)
+	{
+		v = hawk_gci_to_val(gci);
+
+		/* as of now, there is only one type available - HAWK_VAL_MAP */
+/* the key part is a string. don't care. but if a generic value is allowed as a key, this should change... */
+		HAWK_ASSERT (v->v_type == HAWK_VAL_MAP);
+		itr._dir = 0;
+		pair = hawk_map_getfirstpair(((hawk_val_map_t*)v)->map, &itr);
+		while (pair)
+		{
+			iv = (hawk_val_t*)HAWK_MAP_VPTR(pair);
+			if (HAWK_VPTR_IS_POINTER(iv) && iv->v_gc) 
+			{
+				igci = hawk_val_to_gci(iv);
+				if (igci->gc_refs != GCI_MOVED)
+				{
+					gc_unchain_gci (igci);
+					gc_chain_gci (reachable_list, igci);
+					igci->gc_refs = GCI_MOVED;
+				}
+			}
+			pair = hawk_map_getnextpair(((hawk_val_map_t*)v)->map, &itr);
+		}
+
+		gci = gci->gc_next;
+	}
+}
+
+void gc_collect_garbage (hawk_rtx_t* rtx)
+{
+	hawk_gci_t reachable;
+
+	gc_clone_refs (&rtx->gc.all);
+	gc_trace_refs (&rtx->gc.all);
+
+gc_dump_refs (rtx, &rtx->gc.all);
+
+
+	/*reachable.gc_prev = &reachable;
+	reachable.gc_next = &reachable;
+	gc_move_roots (&rtx->gc.all, &reachable);*/
+/*
+	gc_move_reachables_from_root (&reachable, &reachable);
+
+
+	destroy_all_in_ rtx->gc.all
+	move_reachable_back_to rtx->gc.all???*/
 }
 
 /* --------------------------------------------------------------------- */
@@ -83,10 +241,8 @@ hawk_val_t* hawk_rtx_makeintval (hawk_rtx_t* rtx, hawk_int_t v)
 		 * any alignment issues on platforms requiring
 		 * aligned memory access - using the code commented out
 		 * will cause a fault on such a platform */
-
-		/* c = hawk_rtx_allocmem(rtx, HAWK_SIZEOF(hawk_val_chunk_t) + HAWK_SIZEOF(hawk_val_int_t)*CHUNKSIZE); */
 		c = hawk_rtx_allocmem(rtx, HAWK_SIZEOF(hawk_val_ichunk_t));
-		if (!c) return HAWK_NULL;
+		if (HAWK_UNLIKELY(!c)) return HAWK_NULL;
 		
 		c->next = rtx->vmgr.ichunk;
 		/*run->vmgr.ichunk = c;*/
@@ -114,7 +270,7 @@ hawk_val_t* hawk_rtx_makeintval (hawk_rtx_t* rtx, hawk_int_t v)
 	val->v_refs = 0;
 	val->v_static = 0;
 	val->nstr = 0;
-	val->fcb = 0;
+	val->v_gc = 0;
 	val->i_val = v;
 	val->nde = HAWK_NULL;
 
@@ -131,25 +287,13 @@ hawk_val_t* hawk_rtx_makefltval (hawk_rtx_t* rtx, hawk_flt_t v)
 	if (rtx->vmgr.rfree == HAWK_NULL)
 	{
 		hawk_val_rchunk_t* c;
-		/*hawk_val_flt_t* x;*/
 		hawk_oow_t i;
 
-		/* c = hawk_rtx_allocmem (rtx, HAWK_SIZEOF(hawk_val_chunk_t) + HAWK_SIZEOF(hawk_val_flt_t) * CHUNKSIZE); */
 		c = hawk_rtx_allocmem(rtx, HAWK_SIZEOF(hawk_val_rchunk_t));
 		if (!c) return HAWK_NULL;
 
 		c->next = rtx->vmgr.rchunk;
-		/*run->vmgr.rchunk = c;*/
 		rtx->vmgr.rchunk = (hawk_val_chunk_t*)c;
-
-		/*
-		x = (hawk_val_flt_t*)(c + 1);
-		for (i = 0; i < CHUNKSIZE-1; i++) 
-			x[i].nde = (hawk_nde_flt_t*)&x[i+1];
-		x[i].nde = HAWK_NULL;
-
-		run->vmgr.rfree = x;
-		*/
 
 		for (i = 0; i < CHUNKSIZE-1; i++)
 			c->slot[i].nde = (hawk_nde_flt_t*)&c->slot[i+1];
@@ -165,7 +309,7 @@ hawk_val_t* hawk_rtx_makefltval (hawk_rtx_t* rtx, hawk_flt_t v)
 	val->v_refs = 0;
 	val->v_static = 0;
 	val->nstr = 0;
-	val->fcb = 0;
+	val->v_gc = 0;
 	val->val = v;
 	val->nde = HAWK_NULL;
 
@@ -208,7 +352,7 @@ init:
 	val->v_refs = 0;
 	val->v_static = 0;
 	val->nstr = 0;
-	val->fcb = 0;
+	val->v_gc = 0;
 	val->val.len = len1 + len2;
 	val->val.ptr = (hawk_ooch_t*)(val + 1);
 	if (HAWK_LIKELY(str1)) hawk_copy_oochars_to_oocstr_unlimited (&val->val.ptr[0], str1, len1);
@@ -427,7 +571,7 @@ hawk_val_t* hawk_rtx_makembsvalwithbchars (hawk_rtx_t* rtx, const hawk_bch_t* pt
 	val->v_refs = 0;
 	val->v_static = 0;
 	val->nstr = 0;
-	val->fcb = 0;
+	val->v_gc = 0;
 	val->val.len = len;
 	val->val.ptr = (hawk_bch_t*)(val + 1);
 	if (ptr) HAWK_MEMCPY (val->val.ptr, ptr, xsz);
@@ -513,7 +657,7 @@ hawk_val_t* hawk_rtx_makerexval (hawk_rtx_t* rtx, const hawk_oocs_t* str, hawk_t
 	val->v_refs = 0;
 	val->v_static = 0;
 	val->nstr = 0;
-	val->fcb = 0;
+	val->v_gc = 0;
 	val->str.len = str->len;
 
 	val->str.ptr = (hawk_ooch_t*)(val + 1);
@@ -570,14 +714,19 @@ hawk_val_t* hawk_rtx_makemapval (hawk_rtx_t* rtx)
 	};
 	hawk_val_map_t* val;
 
+#if defined(HAWK_ENABLE_GC)
+gc_collect_garbage(rtx);
+	val = (hawk_val_map_t*)gc_calloc(rtx, HAWK_SIZEOF(hawk_val_map_t) + HAWK_SIZEOF(hawk_map_t) + HAWK_SIZEOF(rtx));
+#else
 	val = (hawk_val_map_t*)hawk_rtx_callocmem(rtx, HAWK_SIZEOF(hawk_val_map_t) + HAWK_SIZEOF(hawk_map_t) + HAWK_SIZEOF(rtx));
+#endif
 	if (HAWK_UNLIKELY(!val)) return HAWK_NULL;
 
 	val->v_type = HAWK_VAL_MAP;
 	val->v_refs = 0;
 	val->v_static = 0;
 	val->nstr = 0;
-	val->fcb = 0;
+	val->v_gc = 0;
 	val->map = (hawk_map_t*)(val + 1);
 
 	if (hawk_map_init(val->map, hawk_rtx_getgem(rtx), 256, 70, HAWK_SIZEOF(hawk_ooch_t), 1) <= -1)
@@ -587,6 +736,12 @@ hawk_val_t* hawk_rtx_makemapval (hawk_rtx_t* rtx)
 	}
 	*(hawk_rtx_t**)hawk_map_getxtn(val->map) = rtx;
 	hawk_map_setstyle (val->map, &style);
+
+#if defined(HAWK_ENABLE_GC)
+	gc_chain_val (&rtx->gc.all, (hawk_val_t*)val);
+	rtx->gc.all_count++;
+	val->v_gc = 1;
+#endif
 
 	return (hawk_val_t*)val;
 }
@@ -753,7 +908,7 @@ hawk_val_t* hawk_rtx_makefunval (hawk_rtx_t* rtx, const hawk_fun_t* fun)
 	val->v_refs = 0;
 	val->v_static = 0;
 	val->nstr = 0;
-	val->fcb = 0;
+	val->v_gc = 0;
 	val->fun = (hawk_fun_t*)fun;
 
 	return (hawk_val_t*)val;
@@ -877,22 +1032,24 @@ void hawk_rtx_freeval (hawk_rtx_t* rtx, hawk_val_t* val, int cache)
 				break;
 
 			case HAWK_VAL_MAP:
-			{
+			#if defined(HAWK_ENABLE_GC)
+				rtx->gc.all_count--;
+				gc_unchain_val (val);
+				hawk_map_fini (((hawk_val_map_t*)val)->map);
+				hawk_rtx_freemem (rtx, hawk_val_to_gci(val));
+			#else
 				hawk_map_fini (((hawk_val_map_t*)val)->map);
 				hawk_rtx_freemem (rtx, val);
+			#endif
 				break;
-			}
 
 			case HAWK_VAL_REF:
-			{
 				if (cache && rtx->rcache_count < HAWK_COUNTOF(rtx->rcache))
 				{
 					rtx->rcache[rtx->rcache_count++] = (hawk_val_ref_t*)val;
 				}
 				else hawk_rtx_freemem (rtx, val);
 				break;
-			}
-
 		}
 	}
 }
