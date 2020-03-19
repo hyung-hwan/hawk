@@ -876,7 +876,7 @@ hawk_rtx_t* hawk_rtx_open (hawk_t* awk, hawk_oow_t xtnsize, hawk_rio_cbs_t* rio)
 	
 	/* allocate the storage for the rtx object */
 	rtx = (hawk_rtx_t*)hawk_allocmem(awk, HAWK_SIZEOF(hawk_rtx_t) + xtnsize);
-	if (!rtx)
+	if (HAWK_UNLIKELY(!rtx))
 	{
 		/* if it fails, the failure is reported thru the awk object */
 		return HAWK_NULL;
@@ -885,13 +885,13 @@ hawk_rtx_t* hawk_rtx_open (hawk_t* awk, hawk_oow_t xtnsize, hawk_rio_cbs_t* rio)
 	/* initialize the rtx object */
 	HAWK_MEMSET (rtx, 0, HAWK_SIZEOF(hawk_rtx_t) + xtnsize);
 	rtx->_instsize = HAWK_SIZEOF(hawk_rtx_t);
-	if (init_rtx(rtx, awk, rio) <= -1) 
+	if (HAWK_UNLIKELY(init_rtx(rtx, awk, rio) <= -1)) 
 	{
 		hawk_freemem (awk, rtx);
 		return HAWK_NULL;
 	}
 
-	if (init_globals(rtx) <= -1)
+	if (HAWK_UNLIKELY(init_globals(rtx) <= -1))
 	{
 		hawk_rtx_errortohawk (rtx, awk);
 		fini_rtx (rtx, 0);
@@ -1020,7 +1020,7 @@ static int init_rtx (hawk_rtx_t* rtx, hawk_t* awk, hawk_rio_cbs_t* rio)
 	stack_limit = awk->parse.pragma.rtx_stack_limit > 0? awk->parse.pragma.rtx_stack_limit: awk->opt.rtx_stack_limit;
 	if (stack_limit < HAWK_MIN_RTX_STACK_LIMIT) stack_limit = HAWK_MIN_RTX_STACK_LIMIT;
 	rtx->stack = hawk_rtx_allocmem(rtx, stack_limit * HAWK_SIZEOF(void*));
-	if (!rtx->stack) goto oops_0;
+	if (HAWK_UNLIKELY(!rtx->stack)) goto oops_0;
 	rtx->stack_top = 0;
 	rtx->stack_base = 0;
 	rtx->stack_limit = stack_limit;
@@ -1032,6 +1032,14 @@ static int init_rtx (hawk_rtx_t* rtx, hawk_t* awk, hawk_rio_cbs_t* rio)
 	rtx->vmgr.rchunk = HAWK_NULL;
 	rtx->vmgr.rfree = HAWK_NULL;
 
+	/* initialize circular doubly-linked list */
+	rtx->gc.collecting = 0;
+	rtx->gc.all_count = 0;
+	rtx->gc.all.gc_next = &rtx->gc.all;
+	rtx->gc.all.gc_prev = &rtx->gc.all;
+	rtx->gc.saved.gc_next = &rtx->gc.saved;
+	rtx->gc.saved.gc_prev = &rtx->gc.saved;
+
 	rtx->inrec.buf_pos = 0;
 	rtx->inrec.buf_len = 0;
 	rtx->inrec.flds = HAWK_NULL;
@@ -1039,39 +1047,39 @@ static int init_rtx (hawk_rtx_t* rtx, hawk_t* awk, hawk_rio_cbs_t* rio)
 	rtx->inrec.maxflds = 0;
 	rtx->inrec.d0 = hawk_val_nil;
 
-	if (hawk_ooecs_init(&rtx->inrec.line, hawk_rtx_getgem(rtx), DEF_BUF_CAPA) <= -1) goto oops_1;
-	if (hawk_ooecs_init(&rtx->inrec.linew, hawk_rtx_getgem(rtx), DEF_BUF_CAPA) <= -1) goto oops_2;
-	if (hawk_ooecs_init(&rtx->inrec.lineg, hawk_rtx_getgem(rtx), DEF_BUF_CAPA) <= -1) goto oops_3;
-	if (hawk_becs_init(&rtx->inrec.linegb, hawk_rtx_getgem(rtx), DEF_BUF_CAPA) <= -1) goto oops_4;
-	if (hawk_ooecs_init(&rtx->format.out, hawk_rtx_getgem(rtx), 256) <= -1) goto oops_5;
-	if (hawk_ooecs_init(&rtx->format.fmt, hawk_rtx_getgem(rtx), 256) <= -1) goto oops_6;
+	if (HAWK_UNLIKELY(hawk_ooecs_init(&rtx->inrec.line, hawk_rtx_getgem(rtx), DEF_BUF_CAPA) <= -1)) goto oops_1;
+	if (HAWK_UNLIKELY(hawk_ooecs_init(&rtx->inrec.linew, hawk_rtx_getgem(rtx), DEF_BUF_CAPA) <= -1)) goto oops_2;
+	if (HAWK_UNLIKELY(hawk_ooecs_init(&rtx->inrec.lineg, hawk_rtx_getgem(rtx), DEF_BUF_CAPA) <= -1)) goto oops_3;
+	if (HAWK_UNLIKELY(hawk_becs_init(&rtx->inrec.linegb, hawk_rtx_getgem(rtx), DEF_BUF_CAPA) <= -1)) goto oops_4;
+	if (HAWK_UNLIKELY(hawk_ooecs_init(&rtx->format.out, hawk_rtx_getgem(rtx), 256) <= -1)) goto oops_5;
+	if (HAWK_UNLIKELY(hawk_ooecs_init(&rtx->format.fmt, hawk_rtx_getgem(rtx), 256) <= -1)) goto oops_6;
 
-	if (hawk_becs_init(&rtx->formatmbs.out, hawk_rtx_getgem(rtx), 256) <= -1) goto oops_7;
-	if (hawk_becs_init(&rtx->formatmbs.fmt, hawk_rtx_getgem(rtx), 256) <= -1) goto oops_8;
+	if (HAWK_UNLIKELY(hawk_becs_init(&rtx->formatmbs.out, hawk_rtx_getgem(rtx), 256) <= -1)) goto oops_7;
+	if (HAWK_UNLIKELY(hawk_becs_init(&rtx->formatmbs.fmt, hawk_rtx_getgem(rtx), 256) <= -1)) goto oops_8;
 
-	if (hawk_becs_init(&rtx->fnc.bout, hawk_rtx_getgem(rtx), 256) <= -1) goto oops_9;
-	if (hawk_ooecs_init(&rtx->fnc.oout, hawk_rtx_getgem(rtx), 256) <= -1) goto oops_10;
+	if (HAWK_UNLIKELY(hawk_becs_init(&rtx->fnc.bout, hawk_rtx_getgem(rtx), 256) <= -1)) goto oops_9;
+	if (HAWK_UNLIKELY(hawk_ooecs_init(&rtx->fnc.oout, hawk_rtx_getgem(rtx), 256) <= -1)) goto oops_10;
 
 
 	rtx->named = hawk_htb_open(hawk_rtx_getgem(rtx), HAWK_SIZEOF(rtx), 1024, 70, HAWK_SIZEOF(hawk_ooch_t), 1);
-	if (!rtx->named) goto oops_11;
+	if (HAWK_UNLIKELY(!rtx->named)) goto oops_11;
 	*(hawk_rtx_t**)hawk_htb_getxtn(rtx->named) = rtx;
 	hawk_htb_setstyle (rtx->named, &style_for_named);
 
 	rtx->format.tmp.ptr = (hawk_ooch_t*)hawk_rtx_allocmem(rtx, 4096 * HAWK_SIZEOF(hawk_ooch_t)); 
-	if (!rtx->format.tmp.ptr) goto oops_12; /* the error is set on the awk object after this jump is made */
+	if (HAWK_UNLIKELY(!rtx->format.tmp.ptr)) goto oops_12; /* the error is set on the awk object after this jump is made */
 	rtx->format.tmp.len = 4096;
 	rtx->format.tmp.inc = 4096 * 2;
 
 	rtx->formatmbs.tmp.ptr = (hawk_bch_t*)hawk_rtx_allocmem(rtx, 4096 * HAWK_SIZEOF(hawk_bch_t));
-	if (!rtx->formatmbs.tmp.ptr) goto oops_13;
+	if (HAWK_UNLIKELY(!rtx->formatmbs.tmp.ptr)) goto oops_13;
 	rtx->formatmbs.tmp.len = 4096;
 	rtx->formatmbs.tmp.inc = 4096 * 2;
 
 	if (rtx->hawk->tree.chain_size > 0)
 	{
 		rtx->pattern_range_state = (hawk_oob_t*)hawk_rtx_allocmem(rtx, rtx->hawk->tree.chain_size * HAWK_SIZEOF(hawk_oob_t));
-		if (!rtx->pattern_range_state) goto oops_14;
+		if (HAWK_UNLIKELY(!rtx->pattern_range_state)) goto oops_14;
 		HAWK_MEMSET (rtx->pattern_range_state, 0, rtx->hawk->tree.chain_size * HAWK_SIZEOF(hawk_oob_t));
 	}
 	else rtx->pattern_range_state = HAWK_NULL;

@@ -30,6 +30,7 @@ static int fnc_close (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi);
 static int fnc_fflush (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi);
 static int fnc_int (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi);
 static int fnc_typename (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi);
+static int fnc_gcrefs (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi);
 static int fnc_isnil (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi);
 static int fnc_ismap (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi);
 static int fnc_asort (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi);
@@ -60,6 +61,7 @@ static hawk_fnc_t sysfnctab[] =
 	{ {HAWK_T("isnil"),    5}, 0, { {1,     1, HAWK_NULL},        fnc_isnil,            0 }, HAWK_NULL},
 	{ {HAWK_T("ismap"),    5}, 0, { {1,     1, HAWK_NULL},        fnc_ismap,            0 }, HAWK_NULL},
 	{ {HAWK_T("typename"), 8}, 0, { {1,     1, HAWK_NULL},        fnc_typename,         0 }, HAWK_NULL},
+	{ {HAWK_T("gcrefs"),   6}, 0, { {1,     1, HAWK_NULL},        fnc_gcrefs,           0 }, HAWK_NULL},
 
 	/* map(array) sort */
 	{ {HAWK_T("asort"),    5}, 0, { {1,     3, HAWK_T("rrv")},    fnc_asort,            0 }, HAWK_NULL},
@@ -1748,6 +1750,15 @@ static int fnc_typename (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_rtx_setretval (rtx, r);
 	return 0;
 }
+
+static int fnc_gcrefs (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+{
+	hawk_val_t* a0;
+	a0 = hawk_rtx_getarg(rtx, 0);
+	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, HAWK_VTR_IS_POINTER(a0)? a0->v_refs: 0));
+	return 0;
+}
+
 
 static int fnc_isnil (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
