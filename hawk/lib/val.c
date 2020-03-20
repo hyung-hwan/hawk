@@ -39,7 +39,6 @@ hawk_val_t* hawk_val_zlm = (hawk_val_t*)&awk_zlm;
 
 /* --------------------------------------------------------------------- */
 
-/*#define HAWK_ENABLE_GC*/
 #define GCI_MOVED HAWK_TYPE_MAX(hawk_uintptr_t)
 
 static hawk_val_t* gc_calloc (hawk_rtx_t* rtx, hawk_oow_t size)
@@ -170,7 +169,7 @@ static void gc_move_reachables_from_root (hawk_gci_t* reachable_list)
 		while (pair)
 		{
 			iv = (hawk_val_t*)HAWK_MAP_VPTR(pair);
-			if (HAWK_VPTR_IS_POINTER(iv) && iv->v_gc) 
+			if (HAWK_VTR_IS_POINTER(iv) && iv->v_gc) 
 			{
 				igci = hawk_val_to_gci(iv);
 				if (igci->gc_refs != GCI_MOVED)
@@ -323,20 +322,20 @@ static HAWK_INLINE hawk_val_t* make_str_val (hawk_rtx_t* rtx, const hawk_ooch_t*
 {
 	hawk_val_str_t* val = HAWK_NULL;
 	hawk_oow_t aligned_len;
-#if defined(ENABLE_FEATURE_SCACHE)
+#if defined(HAWK_ENABLE_STR_CACHE)
 	hawk_oow_t i;
 #endif
 
 	if (HAWK_UNLIKELY(len1 <= 0 && len2 <= 0)) return hawk_val_zls;
-	aligned_len = HAWK_ALIGN_POW2((len1 + len2 + 1), FEATURE_SCACHE_BLOCK_UNIT);
+	aligned_len = HAWK_ALIGN_POW2((len1 + len2 + 1), HAWK_STR_CACHE_BLOCK_UNIT);
 
-#if defined(ENABLE_FEATURE_SCACHE)
-	i = aligned_len / FEATURE_SCACHE_BLOCK_UNIT;
-	if (i < HAWK_COUNTOF(rtx->scache_count))
+#if defined(HAWK_ENABLE_STR_CACHE)
+	i = aligned_len / HAWK_STR_CACHE_BLOCK_UNIT;
+	if (i < HAWK_COUNTOF(rtx->str_cache_count))
 	{
-		if (rtx->scache_count[i] > 0)
+		if (rtx->str_cache_count[i] > 0)
 		{
-			val = rtx->scache[i][--rtx->scache_count[i]];
+			val = rtx->str_cache[i][--rtx->str_cache_count[i]];
 			goto init;
 		}
 	}
@@ -345,7 +344,7 @@ static HAWK_INLINE hawk_val_t* make_str_val (hawk_rtx_t* rtx, const hawk_ooch_t*
 	val = (hawk_val_str_t*)hawk_rtx_callocmem(rtx, HAWK_SIZEOF(hawk_val_str_t) + (aligned_len * HAWK_SIZEOF(hawk_ooch_t)));
 	if (HAWK_UNLIKELY(!val)) return HAWK_NULL;
 
-#if defined(ENABLE_FEATURE_SCACHE)
+#if defined(HAWK_ENABLE_STR_CACHE)
 init:
 #endif
 	val->v_type = HAWK_VAL_STR;
@@ -555,18 +554,36 @@ hawk_val_t* hawk_rtx_makenstrvalwithbcs (hawk_rtx_t* rtx, const hawk_bcs_t* str)
 
 /* --------------------------------------------------------------------- */
 
+
 hawk_val_t* hawk_rtx_makembsvalwithbchars (hawk_rtx_t* rtx, const hawk_bch_t* ptr, hawk_oow_t len)
 {
-	hawk_val_mbs_t* val = HAWK_NULL;
-	hawk_oow_t xsz;
+	hawk_val_mbs_t* val;
+	hawk_oow_t aligned_len;
+#if defined(HAWK_ENABLE_MBS_CACHE)
+	hawk_oow_t i;
+#endif
 
 	if (HAWK_UNLIKELY(len <= 0)) return hawk_val_zlm;
+	aligned_len = HAWK_ALIGN_POW2((len + 1), HAWK_MBS_CACHE_BLOCK_UNIT);
 
-	xsz = len * HAWK_SIZEOF(*ptr);
+#if defined(HAWK_ENABLE_MBS_CACHE)
+	i = aligned_len / HAWK_MBS_CACHE_BLOCK_UNIT;
+	if (i < HAWK_COUNTOF(rtx->mbs_cache_count))
+	{
+		if (rtx->mbs_cache_count[i] > 0)
+		{
+			val = rtx->mbs_cache[i][--rtx->mbs_cache_count[i]];
+			goto init;
+		}
+	}
+#endif
 
-	val = (hawk_val_mbs_t*)hawk_rtx_callocmem(rtx, HAWK_SIZEOF(hawk_val_mbs_t) + xsz + HAWK_SIZEOF(*ptr));
+	val = (hawk_val_mbs_t*)hawk_rtx_callocmem(rtx, HAWK_SIZEOF(hawk_val_mbs_t) + (aligned_len * HAWK_SIZEOF(hawk_bch_t)));
 	if (HAWK_UNLIKELY(!val)) return HAWK_NULL;
 
+#if defined(HAWK_ENABLE_MBS_CACHE)
+init:
+#endif
 	val->v_type = HAWK_VAL_MBS;
 	val->v_refs = 0;
 	val->v_static = 0;
@@ -574,8 +591,8 @@ hawk_val_t* hawk_rtx_makembsvalwithbchars (hawk_rtx_t* rtx, const hawk_bch_t* pt
 	val->v_gc = 0;
 	val->val.len = len;
 	val->val.ptr = (hawk_bch_t*)(val + 1);
-	if (ptr) HAWK_MEMCPY (val->val.ptr, ptr, xsz);
-	val->val.ptr[len] = HAWK_BT('\0');
+	if (ptr) HAWK_MEMCPY (val->val.ptr, ptr, len);
+	val->val.ptr[len] = '\0';
 
 	return (hawk_val_t*)val;
 }
@@ -986,29 +1003,50 @@ void hawk_rtx_freeval (hawk_rtx_t* rtx, hawk_val_t* val, int cache)
 
 			case HAWK_VAL_STR:
 			{
-			#if defined(ENABLE_FEATURE_SCACHE)
+			#if defined(HAWK_ENABLE_STR_CACHE)
 				if (cache)
 				{
 					hawk_val_str_t* v = (hawk_val_str_t*)val;
+					hawk_oow_t aligned_len;
 					int i;
-		
-					i = v->val.len / FEATURE_SCACHE_BLOCK_UNIT;
-					if (i < HAWK_COUNTOF(rtx->scache_count) &&
-					    rtx->scache_count[i] < HAWK_COUNTOF(rtx->scache[i]))
+
+					aligned_len = HAWK_ALIGN_POW2((v->val.len + 1), HAWK_STR_CACHE_BLOCK_UNIT);
+					i = aligned_len / HAWK_STR_CACHE_BLOCK_UNIT;
+					if (i < HAWK_COUNTOF(rtx->str_cache_count) &&
+					    rtx->str_cache_count[i] < HAWK_COUNTOF(rtx->str_cache[i]))
 					{
-						rtx->scache[i][rtx->scache_count[i]++] = v;
+						rtx->str_cache[i][rtx->str_cache_count[i]++] = v;
 						v->nstr = 0;
 					}
 					else hawk_rtx_freemem (rtx, val);
+					break;
 				}
-				else 
 			#endif
-					hawk_rtx_freemem (rtx, val);
 
+				hawk_rtx_freemem (rtx, val);
 				break;
 			}
 
 			case HAWK_VAL_MBS:
+			#if defined(HAWK_ENABLE_MBS_CACHE)
+				if (cache)
+				{
+					hawk_val_mbs_t* v = (hawk_val_mbs_t*)val;
+					hawk_oow_t aligned_len;
+					int i;
+
+					aligned_len = HAWK_ALIGN_POW2((v->val.len + 1), HAWK_MBS_CACHE_BLOCK_UNIT);
+					i = aligned_len / HAWK_MBS_CACHE_BLOCK_UNIT;
+					if (i < HAWK_COUNTOF(rtx->mbs_cache_count) &&
+					    rtx->mbs_cache_count[i] < HAWK_COUNTOF(rtx->mbs_cache[i]))
+					{
+						rtx->mbs_cache[i][rtx->mbs_cache_count[i]++] = v;
+					}
+					else hawk_rtx_freemem (rtx, val);
+					break;
+				}
+			#endif
+
 				hawk_rtx_freemem (rtx, val);
 				break;
 
