@@ -48,7 +48,7 @@ typedef struct hawk_tree_t hawk_tree_t;
 #include "err-prv.h"
 #include "misc-prv.h"
 
-//#define HAWK_ENABLE_GC
+/*#define HAWK_ENABLE_GC*/
 #define HAWK_ENABLE_STR_CACHE
 #define HAWK_ENABLE_MBS_CACHE
 
@@ -395,8 +395,8 @@ struct hawk_rtx_t
 	{
 		int collecting;
 		hawk_oow_t all_count;
-		hawk_gci_t all; /* allocated objects */
-		hawk_gci_t saved; /* objects to preserve */
+		hawk_gch_t all; /* allocated objects */
+		hawk_gch_t saved; /* objects to preserve */
 	} gc;
 
 	hawk_nde_blk_t* active_block;

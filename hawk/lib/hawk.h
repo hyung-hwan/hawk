@@ -129,29 +129,29 @@ struct hawk_rtx_alt_t
 
 /* ------------------------------------------------------------------------ */
 
-typedef struct hawk_gci_t hawk_gci_t;
-struct hawk_gci_t
+typedef struct hawk_gch_t hawk_gch_t;
+struct hawk_gch_t
 {
-	hawk_gci_t* gc_prev;
-	hawk_gci_t* gc_next;
+	hawk_gch_t* gc_prev;
+	hawk_gch_t* gc_next;
 	hawk_uintptr_t  gc_refs;
 };
 
 #if defined(HAWK_HAVE_INLINE)
 
-static HAWK_INLINE hawk_val_t* hawk_gci_to_val(hawk_gci_t* gci)
+static HAWK_INLINE hawk_val_t* hawk_gch_to_val(hawk_gch_t* gch)
 {
-	return (hawk_val_t*)(gci + 1);
+	return (hawk_val_t*)(gch + 1);
 }
 
-static HAWK_INLINE hawk_gci_t* hawk_val_to_gci(hawk_val_t* v)
+static HAWK_INLINE hawk_gch_t* hawk_val_to_gch(hawk_val_t* v)
 {
-	return ((hawk_gci_t*)v) - 1;
+	return ((hawk_gch_t*)v) - 1;
 }
 
 #else
-#	define hawk_val_to_gci(v) (((hawk_gci_t*)(v)) - 1)
-#	define hawk_gci_to_val(gci) ((hawk_val_t*)(((hawk_gci_t*)(gci)) + 1))
+#	define hawk_val_to_gch(v) (((hawk_gch_t*)(v)) - 1)
+#	define hawk_gch_to_val(gch) ((hawk_val_t*)(((hawk_gch_t*)(gch)) + 1))
 #endif
 
 /**
