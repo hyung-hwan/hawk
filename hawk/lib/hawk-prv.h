@@ -48,10 +48,17 @@ typedef struct hawk_tree_t hawk_tree_t;
 #include "err-prv.h"
 #include "misc-prv.h"
 
-#define ENABLE_FEATURE_SCACHE
-#define FEATURE_SCACHE_NUM_BLOCKS 16
-#define FEATURE_SCACHE_BLOCK_UNIT 16
-#define FEATURE_SCACHE_BLOCK_SIZE 128
+//#define HAWK_ENABLE_GC
+#define HAWK_ENABLE_STR_CACHE
+#define HAWK_ENABLE_MBS_CACHE
+
+#define HAWK_STR_CACHE_NUM_BLOCKS 16
+#define HAWK_STR_CACHE_BLOCK_UNIT 16
+#define HAWK_STR_CACHE_BLOCK_SIZE 128
+
+#define HAWK_MBS_CACHE_NUM_BLOCKS 16
+#define HAWK_MBS_CACHE_BLOCK_UNIT 16
+#define HAWK_MBS_CACHE_BLOCK_SIZE 128
 
 /* [NOTE] the function value support implemented is very limited.
  *        it supports very primitive way to call a function via a variable.
@@ -366,9 +373,14 @@ struct hawk_rtx_t
 	hawk_val_ref_t* rcache[128];
 	hawk_oow_t rcache_count;
 
-#if defined(ENABLE_FEATURE_SCACHE)
-	hawk_val_str_t* scache[FEATURE_SCACHE_NUM_BLOCKS][FEATURE_SCACHE_BLOCK_SIZE];
-	hawk_oow_t scache_count[FEATURE_SCACHE_NUM_BLOCKS];
+#if defined(HAWK_ENABLE_STR_CACHE)
+	hawk_val_str_t* str_cache[HAWK_STR_CACHE_NUM_BLOCKS][HAWK_STR_CACHE_BLOCK_SIZE];
+	hawk_oow_t str_cache_count[HAWK_STR_CACHE_NUM_BLOCKS];
+#endif
+
+#if defined(HAWK_ENABLE_MBS_CACHE)
+	hawk_val_mbs_t* mbs_cache[HAWK_MBS_CACHE_NUM_BLOCKS][HAWK_MBS_CACHE_BLOCK_SIZE];
+	hawk_oow_t mbs_cache_count[HAWK_MBS_CACHE_NUM_BLOCKS];
 #endif
 
 	struct
