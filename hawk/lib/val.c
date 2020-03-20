@@ -39,65 +39,91 @@ hawk_val_t* hawk_val_zlm = (hawk_val_t*)&awk_zlm;
 
 /* --------------------------------------------------------------------- */
 
-#define GCI_MOVED HAWK_TYPE_MAX(hawk_uintptr_t)
+#if defined(HAWK_ENABLE_GC)
+
+/*
+ BEGIN {
+   @local a, b, nil; 
+   for (i = 1; i < 10; i++) a[i] = i;
+   a[11] = a;
+   a[12] = a;
+   a = nil;
+   b[1] = a;
+   c[1] = 0;
+ } */
+
+#define GCH_MOVED HAWK_TYPE_MAX(hawk_uintptr_t)
 
 static hawk_val_t* gc_calloc (hawk_rtx_t* rtx, hawk_oow_t size)
 {
-	hawk_gci_t* gci;
+	hawk_gch_t* gch;
 
-	gci = (hawk_gci_t*)hawk_rtx_callocmem(rtx, HAWK_SIZEOF(*gci) + size);
-	if (HAWK_UNLIKELY(!gci)) return HAWK_NULL;
+	gch = (hawk_gch_t*)hawk_rtx_callocmem(rtx, HAWK_SIZEOF(*gch) + size);
+	if (HAWK_UNLIKELY(!gch)) return HAWK_NULL;
 
-	return hawk_gci_to_val(gci);
+	return hawk_gch_to_val(gch);
 }
 
-static HAWK_INLINE void gc_chain_gci (hawk_gci_t* list, hawk_gci_t* gci)
+static HAWK_INLINE void gc_chain_gch (hawk_gch_t* list, hawk_gch_t* gch)
 {
-	gci->gc_next = list;
-	gci->gc_prev = list->gc_prev;
-	gci->gc_prev->gc_next = gci;
-	list->gc_prev = gci;
+	gch->gc_next = list;
+	gch->gc_prev = list->gc_prev;
+	gch->gc_prev->gc_next = gch;
+	list->gc_prev = gch;
 }
 
-static HAWK_INLINE void gc_chain_val (hawk_gci_t* list, hawk_val_t* v)
+static HAWK_INLINE void gc_chain_val (hawk_gch_t* list, hawk_val_t* v)
 {
-	gc_chain_gci (list, hawk_val_to_gci(v));
+	gc_chain_gch (list, hawk_val_to_gch(v));
 }
 
-static HAWK_INLINE void gc_unchain_gci (hawk_gci_t* gci)
+static HAWK_INLINE void gc_move_gchs (hawk_gch_t* list, hawk_gch_t* src)
 {
-	gci->gc_prev->gc_next = gci->gc_next;
-	gci->gc_next->gc_prev = gci->gc_prev;
+	if (list->gc_next != list)
+	{
+		hawk_gch_t* last;
+
+		last = list->gc_prev;
+		last->gc_next = src->gc_next;
+		last->gc_next->gc_prev = last;
+		list->gc_prev = src->gc_prev;
+		list->gc_prev->gc_next = list;
+	}
+	src->gc_prev = src;
+	src->gc_next = src;
+}
+
+static HAWK_INLINE void gc_unchain_gch (hawk_gch_t* gch)
+{
+	gch->gc_prev->gc_next = gch->gc_next;
+	gch->gc_next->gc_prev = gch->gc_prev;
 }
 
 static HAWK_INLINE void gc_unchain_val (hawk_val_t* v)
 {
-	gc_unchain_gci (hawk_val_to_gci(v));
+	gc_unchain_gch (hawk_val_to_gch(v));
 }
 
-static void gc_clone_refs (hawk_gci_t* list)
+static void gc_trace_refs (hawk_gch_t* list)
 {
-	hawk_gci_t* gci;
-
-	gci = list->gc_next;
-	while (gci != list)
-	{
-		gci->gc_refs = hawk_gci_to_val(gci)->v_refs;
-		gci = gci->gc_next;
-	}
-}
-
-static void gc_trace_refs (hawk_gci_t* list)
-{
-	hawk_gci_t* gci;
+	hawk_gch_t* gch;
 	hawk_val_t* v, * iv;
 	hawk_map_itr_t itr;
 	hawk_map_pair_t* pair;
 
-	gci = list->gc_next;
-	while (gci != list)
+	/* phase 1 - copy the reference count field from the value header to the gc header */
+	gch = list->gc_next;
+	while (gch != list)
 	{
-		v = hawk_gci_to_val(gci);
+		gch->gc_refs = hawk_gch_to_val(gch)->v_refs;
+		gch = gch->gc_next;
+	}
+
+	/* phase 2 - decrement the reference count in the gc header whenever a reference is found */
+	gch = list->gc_next;
+	while (gch != list)
+	{
+		v = hawk_gch_to_val(gch);
 
 		/* as of now, there is only one type available - HAWK_VAL_MAP */
 		HAWK_ASSERT (v->v_type == HAWK_VAL_MAP);
@@ -108,58 +134,52 @@ static void gc_trace_refs (hawk_gci_t* list)
 			iv = (hawk_val_t*)HAWK_MAP_VPTR(pair);
 			if (HAWK_VTR_IS_POINTER(iv) && iv->v_gc) 
 			{
-printf ("decrementing...\n");
-				hawk_val_to_gci(iv)->gc_refs--;
+				hawk_val_to_gch(iv)->gc_refs--;
 			}
 			pair = hawk_map_getnextpair(((hawk_val_map_t*)v)->map, &itr);
 		}
 
-		gci = gci->gc_next;
+		gch = gch->gc_next;
 	}
 }
 
-static void gc_dump_refs (hawk_rtx_t* rtx, hawk_gci_t* list)
+static void gc_dump_refs (hawk_rtx_t* rtx, hawk_gch_t* list)
 {
-	hawk_gci_t* gci;
+	hawk_gch_t* gch;
 
-	gci = list->gc_next;
-	while (gci != list)
+	gch = list->gc_next;
+	while (gch != list)
 	{
-		printf (" %p %d\n", gci, (int)gci->gc_refs);
-		gci = gci->gc_next;
+		printf (" %p %d\n", gch, (int)gch->gc_refs);
+		gch = gch->gc_next;
 	}
 	printf ("-----all_count => %d---------\n\n", (int)rtx->gc.all_count);
 }
 
-static void gc_move_roots (hawk_gci_t* list, hawk_gci_t* reachable_list)
+static void gc_move_reachables (hawk_gch_t* list, hawk_gch_t* reachable_list)
 {
-	hawk_gci_t* gci, * next;
-
-	gci = list->gc_next;
-	while (gci != list)
-	{
-		next = gci->gc_next;
-		if (gci->gc_refs > 0)
-		{
-			gc_unchain_gci (gci);
-			gc_chain_gci (reachable_list, gci);
-			gci->gc_refs = GCI_MOVED;
-		}
-		gci = next;
-	}
-}
-
-static void gc_move_reachables_from_root (hawk_gci_t* reachable_list)
-{
-	hawk_gci_t* gci, * igci;
+	hawk_gch_t* gch, * tmp;
 	hawk_val_t* v, * iv;
 	hawk_map_itr_t itr;
 	hawk_map_pair_t* pair;
 
-	gci = reachable_list->gc_next;
-	while (gci != reachable_list)
+	gch = list->gc_next;
+	while (gch != list)
 	{
-		v = hawk_gci_to_val(gci);
+		tmp = gch->gc_next;
+		if (gch->gc_refs > 0)
+		{
+			gc_unchain_gch (gch);
+			gc_chain_gch (reachable_list, gch);
+			gch->gc_refs = GCH_MOVED;
+		}
+		gch = tmp;
+	}
+
+	gch = reachable_list->gc_next;
+	while (gch != reachable_list)
+	{
+		v = hawk_gch_to_val(gch);
 
 		/* as of now, there is only one type available - HAWK_VAL_MAP */
 /* the key part is a string. don't care. but if a generic value is allowed as a key, this should change... */
@@ -171,41 +191,57 @@ static void gc_move_reachables_from_root (hawk_gci_t* reachable_list)
 			iv = (hawk_val_t*)HAWK_MAP_VPTR(pair);
 			if (HAWK_VTR_IS_POINTER(iv) && iv->v_gc) 
 			{
-				igci = hawk_val_to_gci(iv);
-				if (igci->gc_refs != GCI_MOVED)
+				tmp = hawk_val_to_gch(iv);
+				if (tmp->gc_refs != GCH_MOVED)
 				{
-					gc_unchain_gci (igci);
-					gc_chain_gci (reachable_list, igci);
-					igci->gc_refs = GCI_MOVED;
+					gc_unchain_gch (tmp);
+					gc_chain_gch (reachable_list, tmp);
+					tmp->gc_refs = GCH_MOVED;
 				}
 			}
 			pair = hawk_map_getnextpair(((hawk_val_map_t*)v)->map, &itr);
 		}
 
-		gci = gci->gc_next;
+		gch = gch->gc_next;
+	}
+}
+
+static void gc_free_unreachables (hawk_rtx_t* rtx, hawk_gch_t* list)
+{
+	hawk_gch_t* gch, * tmp;
+
+	gch = list->gc_next;
+	while (gch != list)
+	{
+		tmp = gch->gc_next;
+printf ("^^^^^^^^^^^^^^^^^^^^^^^^ freeing %p(%p)    gc_refs %d v_refs %d\n", gch, gch->gc_refs, hawk_gch_to_val(gch)->v_refs);
+		hawk_rtx_freeval (rtx, hawk_gch_to_val(gch), 0);
+		gch = tmp;
 	}
 }
 
 void gc_collect_garbage (hawk_rtx_t* rtx)
 {
-	hawk_gci_t reachable;
+	hawk_gch_t reachable;
 
-	gc_clone_refs (&rtx->gc.all);
+printf ("collecting garbage...\n");
 	gc_trace_refs (&rtx->gc.all);
 
-gc_dump_refs (rtx, &rtx->gc.all);
-
-
-	/*reachable.gc_prev = &reachable;
+	reachable.gc_prev = &reachable;
 	reachable.gc_next = &reachable;
-	gc_move_roots (&rtx->gc.all, &reachable);*/
-/*
-	gc_move_reachables_from_root (&reachable, &reachable);
+	gc_move_reachables (&rtx->gc.all, &reachable);
 
+	/* only unreachables are left in rtx->gc.all */
+gc_dump_refs (rtx, &rtx->gc.all);
+	gc_free_unreachables (rtx, &rtx->gc.all);
+	HAWK_ASSERT (rtx->gc.all.gc_next == &rtx->gc.all); 
 
-	destroy_all_in_ rtx->gc.all
-	move_reachable_back_to rtx->gc.all???*/
+	gc_move_gchs (&rtx->gc.all, &reachable);
+
+printf ("collecting garbage.done ..\n");
 }
+
+#endif
 
 /* --------------------------------------------------------------------- */
 
@@ -694,6 +730,11 @@ static void free_mapval (hawk_map_t* map, void* dptr, hawk_oow_t dlen)
 	hawk_logfmt (hawk_rtx_gethawk(rtx), HAWK_T("refdown in map free - [%O]\n"), dptr);
 #endif
 
+#if defined(HAWK_ENABLE_GC)
+	/* this part is not right i think.... revisit this ... */
+	if (HAWK_RTX_GETVALTYPE(rtx, (hawk_val_t*)dptr) == HAWK_VAL_MAP && 
+	    ((hawk_val_map_t*)dptr)->map == map) return;
+#endif
 	hawk_rtx_refdownval (rtx, dptr);
 }
 
@@ -1055,7 +1096,7 @@ void hawk_rtx_freeval (hawk_rtx_t* rtx, hawk_val_t* val, int cache)
 				/* don't free ptr as it is inlined to val
 				hawk_rtx_freemem (rtx, ((hawk_val_rex_t*)val)->ptr);
 				 */
-			
+
 				/* code is just a pointer to a regular expression stored
 				 * in parse tree nodes. so don't free it.
 				hawk_freerex (rtx->hawk, ((hawk_val_rex_t*)val)->code[0], ((hawk_val_rex_t*)val)->code[1]);
@@ -1074,7 +1115,7 @@ void hawk_rtx_freeval (hawk_rtx_t* rtx, hawk_val_t* val, int cache)
 				rtx->gc.all_count--;
 				gc_unchain_val (val);
 				hawk_map_fini (((hawk_val_map_t*)val)->map);
-				hawk_rtx_freemem (rtx, hawk_val_to_gci(val));
+				hawk_rtx_freemem (rtx, hawk_val_to_gch(val));
 			#else
 				hawk_map_fini (((hawk_val_map_t*)val)->map);
 				hawk_rtx_freemem (rtx, val);
