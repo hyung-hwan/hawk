@@ -338,7 +338,7 @@ HAWK_EXPORT void hawk_rbt_fini (
 #if defined(HAWK_HAVE_INLINE)
 static HAWK_INLINE void* hawk_rbt_getxtn (hawk_rbt_t* rbt) { return (void*)(rbt + 1); }
 #else
-#define hawk_rbt_getxtn(awk) ((void*)((hawk_rbt_t*)(rbt) + 1))
+#define hawk_rbt_getxtn(rbt) ((void*)((hawk_rbt_t*)(rbt) + 1))
 #endif
 
 /**
