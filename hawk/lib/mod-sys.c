@@ -1971,7 +1971,7 @@ static int fnc_sleep (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	rx = 0;
 	#else
 	rx = sleep(nt.sec);
-	#endif;
+	#endif
 #elif defined(HAVE_NANOSLEEP)
 	struct timespec req;
 	req.tv_sec = nt.sec;
