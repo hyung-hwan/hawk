@@ -71,7 +71,7 @@ typedef struct hawk_nde_getline_t   hawk_nde_getline_t;
 typedef struct hawk_nde_if_t        hawk_nde_if_t;
 typedef struct hawk_nde_while_t     hawk_nde_while_t;
 typedef struct hawk_nde_for_t       hawk_nde_for_t;
-typedef struct hawk_nde_foreach_t   hawk_nde_foreach_t;
+typedef struct hawk_nde_forin_t   hawk_nde_forin_t;
 typedef struct hawk_nde_break_t     hawk_nde_break_t;
 typedef struct hawk_nde_continue_t  hawk_nde_continue_t;
 typedef struct hawk_nde_return_t    hawk_nde_return_t;
@@ -263,8 +263,8 @@ struct hawk_nde_for_t
 	hawk_nde_t* body;
 };
 
-/* HAWK_NDE_FOREACH */
-struct hawk_nde_foreach_t
+/* HAWK_NDE_FORIN */
+struct hawk_nde_forin_t
 {
 	HAWK_NDE_HDR;
 	hawk_nde_t* test;

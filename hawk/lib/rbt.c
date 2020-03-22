@@ -235,6 +235,11 @@ int hawk_rbt_init (hawk_rbt_t* rbt, hawk_gem_t* gem, int kscale, int vscale)
 	/* root is set to nil initially */
 	rbt->root = &rbt->xnil;
 
+#if defined(HAWK_ENABLE_RBT_ITR_PROTECTION)
+	rbt->_prot_itr._prot_next = &rbt->_prot_itr;
+	rbt->_prot_itr._prot_prev = &rbt->_prot_itr;
+#endif
+
 	return 0;
 }
 
@@ -408,8 +413,7 @@ static void adjust (hawk_rbt_t* rbt, hawk_rbt_pair_t* pair)
 	}
 }
 
-static hawk_rbt_pair_t* change_pair_val (
-	hawk_rbt_t* rbt, hawk_rbt_pair_t* pair, void* vptr, hawk_oow_t vlen)
+static hawk_rbt_pair_t* change_pair_val (hawk_rbt_t* rbt, hawk_rbt_pair_t* pair, void* vptr, hawk_oow_t vlen)
 {
 	if (VPTR(pair) == vptr && VLEN(pair) == vlen)
 	{
@@ -769,7 +773,7 @@ static void adjust_for_delete (hawk_rbt_t* rbt, hawk_rbt_pair_t* pair, hawk_rbt_
 
 static void delete_pair (hawk_rbt_t* rbt, hawk_rbt_pair_t* pair)
 {
-	hawk_rbt_pair_t* x, * y, * par;
+	hawk_rbt_pair_t* x, * y, * parent;
 
 	HAWK_ASSERT (pair && !IS_NIL(rbt,pair));
 
@@ -786,15 +790,15 @@ static void delete_pair (hawk_rbt_t* rbt, hawk_rbt_pair_t* pair)
 
 	x = IS_NIL(rbt,y->left)? y->right: y->left;
 
-	par = y->parent;
-	if (!IS_NIL(rbt,x)) x->parent = par;
+	parent = y->parent;
+	if (!IS_NIL(rbt,x)) x->parent = parent;
 
-	if (par)
+	if (parent)
 	{
-		if (y == par->left)
-			par->left = x;
+		if (y == parent->left)
+			parent->left = x;
 		else
-			par->right = x;
+			parent->right = x;
 	}
 	else
 	{
@@ -804,16 +808,15 @@ static void delete_pair (hawk_rbt_t* rbt, hawk_rbt_pair_t* pair)
 	if (y == pair)
 	{
 		if (y->color == HAWK_RBT_BLACK && !IS_NIL(rbt,x))
-			adjust_for_delete (rbt, x, par);
+			adjust_for_delete (rbt, x, parent);
 
 		hawk_rbt_freepair (rbt, y);
 	}
 	else
 	{
 		if (y->color == HAWK_RBT_BLACK && !IS_NIL(rbt,x))
-			adjust_for_delete (rbt, x, par);
+			adjust_for_delete (rbt, x, parent);
 
-#if 1
 		if (pair->parent)
 		{
 			if (pair->parent->left == pair) pair->parent->left = y;
@@ -831,34 +834,48 @@ static void delete_pair (hawk_rbt_t* rbt, hawk_rbt_pair_t* pair)
 
 		if (pair->left->parent == pair) pair->left->parent = y;
 		if (pair->right->parent == pair) pair->right->parent = y;
-#else
-		*y = *pair;
-		if (y->parent)
-		{
-			if (y->parent->left == pair) y->parent->left = y;
-			if (y->parent->right == pair) y->parent->right = y;
-		}
-		else
-		{
-			rbt->root = y;
-		}
-
-		if (y->left->parent == pair) y->left->parent = y;
-		if (y->right->parent == pair) y->right->parent = y;
-#endif
 
 		hawk_rbt_freepair (rbt, pair);
 	}
 
 	rbt->size--;
+
+#if defined(HAWK_ENABLE_RBT_ITR_PROTECTION)
+	/* an iterator set by hawk_rbt_getfirstpair() or hawk_rbt_getnextpair(), if deleted, gets invalidated.
+	 * this protection updates registered iterators to the next valid pair if they gets deleted.
+	 * the caller may reuse the iterator if _prot_updated is set to a non-zero value */
+	if (rbt->_prot_itr._prot_next != &rbt->_prot_itr)
+	{
+		/* there are protected iterators */
+		hawk_rbt_itr_t* itr = rbt->_prot_itr._prot_next;
+		do
+		{
+			if (itr->pair == pair) 
+			{
+				hawk_oow_t seqno = itr->_prot_seqno;
+
+				/* TODO: this is slow. devise a way to get the next pair safely without traversal */
+				hawk_rbt_getfirstpair (rbt, itr);
+				while (itr->pair && itr->_prot_seqno < seqno)
+				{
+					hawk_rbt_getnextpair (rbt, itr);
+				}
+
+				itr->_prot_updated = 1;
+			}
+			itr = itr->_prot_next;
+		}
+		while (itr != &rbt->_prot_itr);
+	}
+#endif
 }
 
 int hawk_rbt_delete (hawk_rbt_t* rbt, const void* kptr, hawk_oow_t klen)
 {
 	hawk_rbt_pair_t* pair;
 
-	pair = hawk_rbt_search (rbt, kptr, klen);
-	if (pair == HAWK_NULL) return -1;
+	pair = hawk_rbt_search(rbt, kptr, klen);
+	if (!pair) return -1;
 
 	delete_pair (rbt, pair);
 	return 0;
@@ -900,7 +917,6 @@ void hawk_init_rbt_itr (hawk_rbt_itr_t* itr, int dir)
 	itr->_state = 0;
 }
 
-
 static hawk_rbt_pair_t* get_next_pair (hawk_rbt_t* rbt, hawk_rbt_itr_t* itr)
 {
 	hawk_rbt_pair_t* x_cur = itr->pair;
@@ -929,7 +945,10 @@ static hawk_rbt_pair_t* get_next_pair (hawk_rbt_t* rbt, hawk_rbt_itr_t* itr)
 				itr->pair = x_cur;
 				itr->_prev = prev;
 				itr->_state = 1;
-				return x_cur;	
+			#if defined(HAWK_ENABLE_RBT_ITR_PROTECTION)
+				itr->_prot_seqno++;
+			#endif
+				return x_cur;
 
 			resume_1:
 				if (!IS_NIL(rbt,x_cur->child[r]))
@@ -954,6 +973,9 @@ static hawk_rbt_pair_t* get_next_pair (hawk_rbt_t* rbt, hawk_rbt_itr_t* itr)
 			itr->pair = x_cur;
 			itr->_prev = prev;
 			itr->_state = 2;
+		#if defined(HAWK_ENABLE_RBT_ITR_PROTECTION)
+			itr->_prot_seqno++;
+		#endif
 			return x_cur;
 
 		resume_2:
@@ -980,6 +1002,9 @@ static hawk_rbt_pair_t* get_next_pair (hawk_rbt_t* rbt, hawk_rbt_itr_t* itr)
 		}
 	}
 
+	itr->pair = HAWK_NULL;
+	itr->_prev = HAWK_NULL;
+	itr->_state = 0;
 	return HAWK_NULL;
 }
 
@@ -988,6 +1013,12 @@ hawk_rbt_pair_t* hawk_rbt_getfirstpair (hawk_rbt_t* rbt, hawk_rbt_itr_t* itr)
 	itr->pair = rbt->root;
 	itr->_prev = rbt->root->parent;
 	itr->_state = 0;
+#if defined(HAWK_ENABLE_RBT_ITR_PROTECTION)
+	itr->_prot_seqno = 0;
+	/* _prot_prev and _prot_next must be left uninitialized because of the way 
+	 * this function is called in delete_pair() for protection handling
+	 */
+#endif
 	return get_next_pair(rbt, itr);
 }
 
@@ -996,12 +1027,28 @@ hawk_rbt_pair_t* hawk_rbt_getnextpair (hawk_rbt_t* rbt, hawk_rbt_itr_t* itr)
 	return get_next_pair(rbt, itr);
 }
 
+#if defined(HAWK_ENABLE_RBT_ITR_PROTECTION)
+void hawk_rbt_protectitr (hawk_rbt_t* rbt, hawk_rbt_itr_t* itr)
+{
+	itr->_prot_next = &rbt->_prot_itr;
+	itr->_prot_prev = rbt->_prot_itr._prot_prev;
+	itr->_prot_prev->_prot_next = itr;
+	rbt->_prot_itr._prot_prev = itr;
+}
+
+void hawk_rbt_unprotectitr (hawk_rbt_t* rbt, hawk_rbt_itr_t* itr)
+{
+	itr->_prot_prev->_prot_next = itr->_prot_next;
+	itr->_prot_next->_prot_prev = itr->_prot_prev;
+}
+#endif
+
 void hawk_rbt_walk (hawk_rbt_t* rbt, walker_t walker, void* ctx)
 {
 	hawk_rbt_itr_t itr;
 	hawk_rbt_pair_t* pair;
 
-	itr._dir = 0;
+	hawk_init_map_itr (&itr, 0);
 	pair = hawk_rbt_getfirstpair(rbt, &itr);
 	while (pair)
 	{
@@ -1015,7 +1062,7 @@ void hawk_rbt_rwalk (hawk_rbt_t* rbt, walker_t walker, void* ctx)
 	hawk_rbt_itr_t itr;
 	hawk_rbt_pair_t* pair;
 
-	itr._dir = 1;
+	hawk_init_map_itr (&itr, 1);
 	pair = hawk_rbt_getfirstpair(rbt, &itr);
 	while (pair)
 	{

@@ -45,7 +45,7 @@
 #endif
 
 /// \file
-/// AWK Interpreter
+/// Hawk Interpreter
 
 /////////////////////////////////
 HAWK_BEGIN_NAMESPACE(HAWK)

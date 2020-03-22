@@ -230,6 +230,21 @@ enum hawk_rbt_style_kind_t
 
 typedef enum hawk_rbt_style_kind_t  hawk_rbt_style_kind_t;
 
+typedef struct hawk_rbt_itr_t hawk_rbt_itr_t;
+struct hawk_rbt_itr_t
+{
+	hawk_rbt_pair_t* pair;
+	hawk_rbt_pair_t* _prev;
+	unsigned int _dir: 1; /* 0 or 1 */
+	unsigned int _state: 8;
+#if defined(HAWK_ENABLE_RBT_ITR_PROTECTION)
+	unsigned int _prot_updated: 1;
+	hawk_oow_t _prot_seqno;
+	hawk_rbt_itr_t* _prot_prev;
+	hawk_rbt_itr_t* _prot_next;
+#endif
+};
+
 /**
  * The hawk_rbt_t type defines a red-black tree.
  */
@@ -241,18 +256,10 @@ struct hawk_rbt_t
 	hawk_rbt_pair_t         xnil;      /**< internal nil node */
 	hawk_oow_t              size;      /**< number of pairs */
 	hawk_rbt_pair_t*        root;      /**< root pair */
+#if defined(HAWK_ENABLE_RBT_ITR_PROTECTION)
+	hawk_rbt_itr_t          _prot_itr; /**< protected iterators */
+#endif
 };
-
-
-struct hawk_rbt_itr_t
-{
-	hawk_rbt_pair_t* pair;
-	hawk_rbt_pair_t* _prev;
-	int _dir; /* 0 or 1 */
-	int _state;
-};
-
-typedef struct hawk_rbt_itr_t hawk_rbt_itr_t;
 
 /**
  * The HAWK_RBT_COPIER_SIMPLE macros defines a copier that remembers the
@@ -563,6 +570,18 @@ HAWK_EXPORT hawk_rbt_pair_t* hawk_rbt_getnextpair (
 	hawk_rbt_t*      rbt,
 	hawk_rbt_itr_t*  itr
 );
+
+#if defined(HAWK_ENABLE_RBT_ITR_PROTECTION)
+HAWK_EXPORT void hawk_rbt_protectitr (
+	hawk_rbt_t*      rbt,
+	hawk_rbt_itr_t*  itr
+);
+
+HAWK_EXPORT void hawk_rbt_unprotectitr (
+	hawk_rbt_t*      rbt,
+	hawk_rbt_itr_t*  itr
+);
+#endif
 
 /**
  * The hawk_rbt_walk() function traverses a red-black tree in preorder 

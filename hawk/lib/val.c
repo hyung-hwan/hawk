@@ -127,7 +127,7 @@ static void gc_trace_refs (hawk_gch_t* list)
 
 		/* as of now, there is only one type available - HAWK_VAL_MAP */
 		HAWK_ASSERT (v->v_type == HAWK_VAL_MAP);
-		itr._dir = 0;
+		hawk_init_map_itr (&itr, 0);
 		pair = hawk_map_getfirstpair(((hawk_val_map_t*)v)->map, &itr);
 		while (pair)
 		{
@@ -184,7 +184,7 @@ static void gc_move_reachables (hawk_gch_t* list, hawk_gch_t* reachable_list)
 		/* as of now, there is only one type available - HAWK_VAL_MAP */
 /* the key part is a string. don't care. but if a generic value is allowed as a key, this should change... */
 		HAWK_ASSERT (v->v_type == HAWK_VAL_MAP);
-		itr._dir = 0;
+		hawk_init_map_itr (&itr, 0);
 		pair = hawk_map_getfirstpair(((hawk_val_map_t*)v)->map, &itr);
 		while (pair)
 		{
@@ -214,8 +214,29 @@ static void gc_free_unreachables (hawk_rtx_t* rtx, hawk_gch_t* list)
 	while (gch != list)
 	{
 		tmp = gch->gc_next;
-printf ("^^^^^^^^^^^^^^^^^^^^^^^^ freeing %p(%p)    gc_refs %d v_refs %d\n", gch, gch->gc_refs, hawk_gch_to_val(gch)->v_refs);
-		hawk_rtx_freeval (rtx, hawk_gch_to_val(gch), 0);
+
+printf ("^^^^^^^^^^^^^^^^^^^^^^^^ freeing %p    gc_refs %d v_refs %d\n", gch, (int)gch->gc_refs, (int)hawk_gch_to_val(gch)->v_refs);
+		//hawk_rtx_freeval (rtx, hawk_gch_to_val(gch), 0);
+
+		{
+			// TODO: revise this. MAP ONLY as of now.
+			hawk_val_map_t* v = (hawk_val_map_t*)hawk_gch_to_val(gch);
+			hawk_map_pair_t* pair;
+			hawk_map_itr_t itr;
+			hawk_oow_t refs = 0;
+
+			hawk_init_map_itr (&itr, 0);
+			pair = hawk_map_getfirstpair(v->map, &itr);
+			while (pair)
+			{
+				if (HAWK_MAP_VPTR(pair) == v) refs++;
+				else hawk_rtx_refdownval (rtx, HAWK_MAP_VPTR(pair));
+				pair = hawk_map_getnextpair(v->map, &itr);
+			}
+
+			while (refs-- > 0) hawk_rtx_refdownval (rtx, v);
+		}
+
 		gch = tmp;
 	}
 }
@@ -234,6 +255,7 @@ printf ("collecting garbage...\n");
 	/* only unreachables are left in rtx->gc.all */
 gc_dump_refs (rtx, &rtx->gc.all);
 	gc_free_unreachables (rtx, &rtx->gc.all);
+gc_dump_refs (rtx, &rtx->gc.all);
 	HAWK_ASSERT (rtx->gc.all.gc_next == &rtx->gc.all); 
 
 	gc_move_gchs (&rtx->gc.all, &reachable);
@@ -533,6 +555,7 @@ hawk_val_t* hawk_rtx_makenstrvalwithuchars (hawk_rtx_t* rtx, const hawk_uch_t* p
 	x = hawk_uchars_to_num(HAWK_OOCHARS_TO_NUM_MAKE_OPTION(1, 0, HAWK_RTX_IS_STRIPSTRSPC_ON(rtx), 0), ptr, len, &l, &r);
 	v = hawk_rtx_makestrvalwithuchars(rtx, ptr, len);
 	if (HAWK_UNLIKELY(!v)) return HAWK_NULL;
+
 
 	if (x >= 0) 
 	{

@@ -2613,7 +2613,7 @@ static hawk_nde_t* parse_for (hawk_t* awk, const hawk_loc_t* xloc)
 	hawk_nde_t* init = HAWK_NULL, * test = HAWK_NULL;
 	hawk_nde_t* incr = HAWK_NULL, * body = HAWK_NULL;
 	hawk_nde_for_t* nde_for; 
-	hawk_nde_foreach_t* nde_foreach;
+	hawk_nde_forin_t* nde_forin;
 	hawk_loc_t ploc;
 
 	if (!MATCH(awk,TOK_LPAREN))
@@ -2628,17 +2628,17 @@ static hawk_nde_t* parse_for (hawk_t* awk, const hawk_loc_t* xloc)
 		/* this line is very ugly. it checks the entire next 
 		 * expression or the first element in the expression
 		 * is wrapped by a parenthesis */
-		int no_foreach = MATCH(awk,TOK_LPAREN);
+		int no_forin = MATCH(awk,TOK_LPAREN);
 
 		ploc = awk->tok.loc;
 		init = parse_expr_withdc (awk, &ploc);
 		if (init == HAWK_NULL) goto oops;
 
-		if (!no_foreach && init->type == HAWK_NDE_EXP_BIN &&
+		if (!no_forin && init->type == HAWK_NDE_EXP_BIN &&
 		    ((hawk_nde_exp_t*)init)->opcode == HAWK_BINOP_IN &&
 		    is_plain_var(((hawk_nde_exp_t*)init)->left))
 		{	
-			/* switch to foreach - for (x in y) */
+			/* switch to forin - for (x in y) */
 			
 			if (!MATCH(awk,TOK_RPAREN))
 			{
@@ -2652,20 +2652,20 @@ static hawk_nde_t* parse_for (hawk_t* awk, const hawk_loc_t* xloc)
 			body = parse_statement (awk, &ploc);
 			if (body == HAWK_NULL) goto oops;
 
-			nde_foreach = (hawk_nde_foreach_t*) hawk_callocmem (
-				awk, HAWK_SIZEOF(*nde_foreach));
-			if (nde_foreach == HAWK_NULL)
+			nde_forin = (hawk_nde_forin_t*) hawk_callocmem (
+				awk, HAWK_SIZEOF(*nde_forin));
+			if (nde_forin == HAWK_NULL)
 			{
 				ADJERR_LOC (awk, xloc);
 				goto oops;
 			}
 
-			nde_foreach->type = HAWK_NDE_FOREACH;
-			nde_foreach->loc = *xloc;
-			nde_foreach->test = init;
-			nde_foreach->body = body;
+			nde_forin->type = HAWK_NDE_FORIN;
+			nde_forin->loc = *xloc;
+			nde_forin->test = init;
+			nde_forin->body = body;
 
-			return (hawk_nde_t*)nde_foreach;
+			return (hawk_nde_t*)nde_forin;
 		}
 
 		if (!MATCH(awk,TOK_SEMICOLON)) 

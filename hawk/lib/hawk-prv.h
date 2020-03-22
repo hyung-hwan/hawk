@@ -491,6 +491,13 @@ struct hawk_rtx_t
 		hawk_oow_t expr; /* expression */
 	} depth;
 
+	struct
+	{
+		hawk_val_t** ptr;
+		hawk_oow_t size;
+		hawk_oow_t capa;
+	} forin; /* keys for for (x in y) ... */
+
 	hawk_oow_t  errmsg_len; /* used by errbfmt() and errufmt(). don't rely on this. some other funtions don't set this properly */
 	hawk_ooch_t errmsg_backup[HAWK_ERRMSG_CAPA];
 #if defined(HAWK_OOCH_IS_BCH)
