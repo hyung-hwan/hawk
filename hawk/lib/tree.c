@@ -955,9 +955,9 @@ static int print_stmt (hawk_t* awk, hawk_nde_t* p, int depth)
 			break;
 		}
 
-		case HAWK_NDE_FOREACH:
+		case HAWK_NDE_FORIN:
 		{
-			hawk_nde_foreach_t* px = (hawk_nde_foreach_t*)p;
+			hawk_nde_forin_t* px = (hawk_nde_forin_t*)p;
 
 			PRINT_TABS (awk, depth);
 			hawk_getkwname (awk, HAWK_KWID_FOR, &kw);
@@ -1209,10 +1209,10 @@ void hawk_clrpt (hawk_t* awk, hawk_nde_t* tree)
 				break;
 			}
 
-			case HAWK_NDE_FOREACH:
+			case HAWK_NDE_FORIN:
 			{
-				hawk_clrpt (awk, ((hawk_nde_foreach_t*)p)->test);
-				hawk_clrpt (awk, ((hawk_nde_foreach_t*)p)->body);
+				hawk_clrpt (awk, ((hawk_nde_forin_t*)p)->test);
+				hawk_clrpt (awk, ((hawk_nde_forin_t*)p)->body);
 				hawk_freemem (awk, p);
 				break;
 			}

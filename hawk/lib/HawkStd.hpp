@@ -30,7 +30,7 @@
 #include <Hawk.hpp>
 
 /// \file
-/// Standard AWK Interpreter
+/// Standard Hawk Interpreter
 
 /////////////////////////////////
 HAWK_BEGIN_NAMESPACE(HAWK)

@@ -104,7 +104,7 @@ static int run_statement (hawk_rtx_t* rtx, hawk_nde_t* nde);
 static int run_if (hawk_rtx_t* rtx, hawk_nde_if_t* nde);
 static int run_while (hawk_rtx_t* rtx, hawk_nde_while_t* nde);
 static int run_for (hawk_rtx_t* rtx, hawk_nde_for_t* nde);
-static int run_foreach (hawk_rtx_t* rtx, hawk_nde_foreach_t* nde);
+static int run_forin (hawk_rtx_t* rtx, hawk_nde_forin_t* nde);
 static int run_break (hawk_rtx_t* rtx, hawk_nde_break_t* nde);
 static int run_continue (hawk_rtx_t* rtx, hawk_nde_continue_t* nde);
 static int run_return (hawk_rtx_t* rtx, hawk_nde_return_t* nde);
@@ -1136,6 +1136,17 @@ oops_0:
 
 static void fini_rtx (hawk_rtx_t* rtx, int fini_globals)
 {
+	if (rtx->forin.ptr)
+	{
+		while (rtx->forin.size > 0)
+		{
+			hawk_rtx_refdownval (rtx, rtx->forin.ptr[--rtx->forin.size]);
+		}
+		hawk_rtx_freemem (rtx, rtx->forin.ptr);
+		rtx->forin.ptr = HAWK_NULL;
+		rtx->forin.capa = 0;
+	}
+
 	if (rtx->pattern_range_state)
 		hawk_rtx_freemem (rtx, rtx->pattern_range_state);
 
@@ -1273,7 +1284,7 @@ static void fini_rtx (hawk_rtx_t* rtx, int fini_globals)
 		{
 			while (rtx->mbs_cache_count[i] > 0)
 			{
-				hawk_val_str_t* t = rtx->mbs_cache[i][--rtx->mbs_cache_count[i]];
+				hawk_val_mbs_t* t = rtx->mbs_cache[i][--rtx->mbs_cache_count[i]];
 				hawk_rtx_freeval (rtx, (hawk_val_t*)t, 0);
 			}
 		}
@@ -2154,7 +2165,7 @@ static HAWK_INLINE int run_block0 (hawk_rtx_t* rtx, hawk_nde_blk_t* nde)
 	while (nlcls > 0)
 	{
 		--nlcls;
-		hawk_rtx_refdownval (rtx, RTX_STACK_LCL(rtx,nlcls));
+		hawk_rtx_refdownval (rtx, RTX_STACK_LCL(rtx, nlcls));
 		__raw_pop (rtx);
 	}
 
@@ -2217,8 +2228,8 @@ static int run_statement (hawk_rtx_t* rtx, hawk_nde_t* nde)
 			xret = run_for(rtx, (hawk_nde_for_t*)nde);
 			break;
 
-		case HAWK_NDE_FOREACH:
-			xret = run_foreach(rtx, (hawk_nde_foreach_t*)nde);
+		case HAWK_NDE_FORIN:
+			xret = run_forin(rtx, (hawk_nde_forin_t*)nde);
 			break;
 
 		case HAWK_NDE_BREAK:
@@ -2476,15 +2487,17 @@ static int run_for (hawk_rtx_t* rtx, hawk_nde_for_t* nde)
 	return 0;
 }
 
-static int run_foreach (hawk_rtx_t* rtx, hawk_nde_foreach_t* nde)
+static int run_forin (hawk_rtx_t* rtx, hawk_nde_forin_t* nde)
 {
 	hawk_nde_exp_t* test;
 	hawk_val_t* rv;
-	hawk_map_t* map;
+	hawk_map_t* map = HAWK_NULL;
 	hawk_map_pair_t* pair;
 	hawk_map_itr_t itr;
 	hawk_val_type_t rvtype;
+	hawk_oow_t old_forin_size, i;
 	int ret;
+	
 
 	test = (hawk_nde_exp_t*)nde->test;
 	HAWK_ASSERT (test->type == HAWK_NDE_EXP_BIN && test->opcode == HAWK_BINOP_IN);
@@ -2514,11 +2527,93 @@ static int run_foreach (hawk_rtx_t* rtx, hawk_nde_foreach_t* nde)
 
 	map = ((hawk_val_map_t*)rv)->map;
 
+
+#if 1
+	old_forin_size = rtx->forin.size;
+
+	if (rtx->forin.capa - rtx->forin.size < hawk_map_getsize(map))
+	{
+		hawk_val_t** tmp;
+		hawk_oow_t newcapa;
+
+		newcapa = rtx->forin.size + hawk_map_getsize(map);
+		newcapa = HAWK_ALIGN_POW2(newcapa, 128);
+		tmp = hawk_rtx_reallocmem(rtx, rtx->forin.ptr, newcapa * HAWK_SIZEOF(*tmp));
+		if (HAWK_UNLIKELY(!tmp)) 
+		{
+			ADJERR_LOC (rtx, &test->left->loc);
+			ret = -1;
+			goto done;
+		}
+
+		rtx->forin.ptr = tmp;
+		rtx->forin.capa = newcapa;
+	}
+
+	/* take a snapshot of the keys first so that the actual pairs become mutation safe
+	 * this proctection is needed in case the body contains destructive statements like 'delete' or '@reset'*/
 	hawk_init_map_itr (&itr, 0);
 	pair = hawk_map_getfirstpair(map, &itr);
 	while (pair)
 	{
 		hawk_val_t* str;
+
+		str = (hawk_val_t*)hawk_rtx_makenstrvalwithoochars(rtx, HAWK_HTB_KPTR(pair), HAWK_HTB_KLEN(pair));
+		if (HAWK_UNLIKELY(!str)) 
+		{
+			ADJERR_LOC (rtx, &test->left->loc);
+			ret = -1;
+			goto done;
+		}
+
+		rtx->forin.ptr[rtx->forin.size++] = str;
+		hawk_rtx_refupval (rtx, str);
+
+		pair = hawk_map_getnextpair(map, &itr);
+	}
+
+	/* iterate over the keys in the snapshot */
+	for (i = old_forin_size;  i < rtx->forin.size; i++)
+	{
+		if (HAWK_UNLIKELY(!do_assignment(rtx, test->left, rtx->forin.ptr[i])) || HAWK_UNLIKELY(run_statement(rtx, nde->body) <= -1))
+		{
+			ret = -1;
+			goto done;
+		}
+
+		if (rtx->exit_level == EXIT_BREAK)
+		{
+			rtx->exit_level = EXIT_NONE;
+			goto done;
+		}
+		else if (rtx->exit_level == EXIT_CONTINUE)
+		{
+			rtx->exit_level = EXIT_NONE;
+		}
+		else if (rtx->exit_level != EXIT_NONE) 
+		{
+			goto done;
+		}
+	}
+
+done:
+	while (rtx->forin.size > old_forin_size)
+		hawk_rtx_refdownval (rtx, rtx->forin.ptr[--rtx->forin.size]);
+	hawk_rtx_refdownval (rtx, rv);
+	return ret;
+#else
+	hawk_init_map_itr (&itr, 0);
+#if defined(HAWK_MAP_IS_RBT)
+	hawk_rbt_protectitr (map, &itr);
+#endif
+	pair = hawk_map_getfirstpair(map, &itr);
+	while (pair)
+	{
+		hawk_val_t* str;
+
+#if defined(HAWK_MAP_IS_RBT)
+		itr._prot_updated = 0;
+#endif
 
 		str = (hawk_val_t*)hawk_rtx_makestrvalwithoochars(rtx, HAWK_HTB_KPTR(pair), HAWK_HTB_KLEN(pair));
 		if (HAWK_UNLIKELY(!str)) 
@@ -2529,7 +2624,7 @@ static int run_foreach (hawk_rtx_t* rtx, hawk_nde_foreach_t* nde)
 		}
 
 		hawk_rtx_refupval (rtx, str);
-		if (!do_assignment(rtx, test->left, str) || run_statement(rtx, nde->body) <= -1)
+		if (HAWK_UNLIKELY(!do_assignment(rtx, test->left, str)) || HAWK_UNLIKELY(run_statement(rtx, nde->body) <= -1))
 		{
 			hawk_rtx_refdownval (rtx, str);
 			ret = -1;
@@ -2551,12 +2646,20 @@ static int run_foreach (hawk_rtx_t* rtx, hawk_nde_foreach_t* nde)
 			goto done;
 		}
 
-		pair = hawk_map_getnextpair(map, &itr);
+#if defined(HAWK_MAP_IS_RBT)
+		pair = itr._prot_updated? itr.pair: hawk_map_getnextpair(map, &itr);
+#else
+#	error UNSUPPORTED
+#endif
 	}
 
 done:
+#if defined(HAWK_MAP_IS_RBT)
+	if (map) hawk_rbt_unprotectitr (map, &itr);
+#endif
 	hawk_rtx_refdownval (rtx, rv);
 	return ret;
+#endif
 }
 
 static int run_break (hawk_rtx_t* run, hawk_nde_break_t* nde)
