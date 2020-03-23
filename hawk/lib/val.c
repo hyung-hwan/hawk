@@ -208,14 +208,13 @@ static void gc_move_reachables (hawk_gch_t* list, hawk_gch_t* reachable_list)
 
 static void gc_free_unreachables (hawk_rtx_t* rtx, hawk_gch_t* list)
 {
-	hawk_gch_t* gch, * tmp;
+	hawk_gch_t* gch;
 
-	gch = list->gc_next;
-	while (gch != list)
+	while (list->gc_next != list)
 	{
-		tmp = gch->gc_next;
+		gch = list->gc_next;
 
-printf ("^^^^^^^^^^^^^^^^^^^^^^^^ freeing %p    gc_refs %d v_refs %d\n", gch, (int)gch->gc_refs, (int)hawk_gch_to_val(gch)->v_refs);
+printf ("^^^^^^^^^^^ freeing %p    gc_refs %d v_refs %d\n", gch, (int)gch->gc_refs, (int)hawk_gch_to_val(gch)->v_refs);
 		//hawk_rtx_freeval (rtx, hawk_gch_to_val(gch), 0);
 
 		{
@@ -229,15 +228,24 @@ printf ("^^^^^^^^^^^^^^^^^^^^^^^^ freeing %p    gc_refs %d v_refs %d\n", gch, (i
 			pair = hawk_map_getfirstpair(v->map, &itr);
 			while (pair)
 			{
-				if (HAWK_MAP_VPTR(pair) == v) refs++;
-				else hawk_rtx_refdownval (rtx, HAWK_MAP_VPTR(pair));
+				if (HAWK_MAP_VPTR(pair) == v) 
+				{
+					HAWK_MAP_VPTR(pair) = hawk_rtx_makenilval(rtx);
+					refs++;
+				}
+				else 
+				{
+					HAWK_MAP_VPTR(pair) = hawk_rtx_makenilval(rtx);
+					hawk_rtx_refdownval (rtx, HAWK_MAP_VPTR(pair));
+				}
 				pair = hawk_map_getnextpair(v->map, &itr);
 			}
 
+printf ("   >>>>>>>> freeing %p  val %p  gc_refs %d v_refs %d refs %d\n", gch, v, (int)gch->gc_refs, (int)hawk_gch_to_val(gch)->v_refs, (int)refs);
 			while (refs-- > 0) hawk_rtx_refdownval (rtx, v);
-		}
 
-		gch = tmp;
+printf ("   >>>>>>>> freed %p\n", gch);
+		}
 	}
 }
 
@@ -1135,6 +1143,7 @@ void hawk_rtx_freeval (hawk_rtx_t* rtx, hawk_val_t* val, int cache)
 
 			case HAWK_VAL_MAP:
 			#if defined(HAWK_ENABLE_GC)
+printf ("FREEING VAL %p\n");
 				rtx->gc.all_count--;
 				gc_unchain_val (val);
 				hawk_map_fini (((hawk_val_map_t*)val)->map);
