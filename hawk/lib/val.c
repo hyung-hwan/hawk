@@ -43,14 +43,51 @@ hawk_val_t* hawk_val_zlm = (hawk_val_t*)&awk_zlm;
 
 /*
  BEGIN {
-   @local a, b, nil; 
+  @local a, b, c, nil; 
+  for (i = 1; i < 10; i++) a[i] = i;
+  a[11] = a;
+  a[12] = a;
+  a = nil;
+  b[1] = a;
+  c[1] = 0;
+} 
+
+BEGIN {
+   @local a, b, c, nil;
+   j[1] = 20;
+   j[2] = 20;
    for (i = 1; i < 10; i++) a[i] = i;
+   a[9] = j;
+   a[10] = "world";
    a[11] = a;
    a[12] = a;
+   a[13] = "hello";
+   j[3] = a;
+   a[14] = j;
    a = nil;
    b[1] = a;
    c[1] = 0;
- } */
+}
+* 
+* BEGIN {
+   @local a, b, c, nil;
+   j[1] = 20;
+   j[2] = 20;
+   for (i = 1; i < 10; i++) a[i] = i;
+   a[9] = j;
+   a[10] = "world";
+   a[11] = a;
+   a[12] = a;
+   a[13] = "hello";
+   j[3] = a;
+   a[14] = j;
+   a = nil;
+   j = nil;
+   b[1] = a;
+   c[1] = 0;
+}
+
+*/
 
 #define GCH_MOVED HAWK_TYPE_MAX(hawk_uintptr_t)
 
@@ -77,18 +114,21 @@ static HAWK_INLINE void gc_chain_val (hawk_gch_t* list, hawk_val_t* v)
 	gc_chain_gch (list, hawk_val_to_gch(v));
 }
 
-static HAWK_INLINE void gc_move_gchs (hawk_gch_t* list, hawk_gch_t* src)
+static HAWK_INLINE void gc_move_all_gchs (hawk_gch_t* src, hawk_gch_t* dst)
 {
-	if (list->gc_next != list)
+	if (src->gc_next != src)
 	{
-		hawk_gch_t* last;
-
-		last = list->gc_prev;
-		last->gc_next = src->gc_next;
-		last->gc_next->gc_prev = last;
-		list->gc_prev = src->gc_prev;
-		list->gc_prev->gc_next = list;
+		dst->gc_next = src->gc_next;
+		dst->gc_next->gc_prev = dst;
+		dst->gc_prev = src->gc_prev;
+		dst->gc_prev->gc_next = dst;
 	}
+	else
+	{
+		dst->gc_prev = dst;
+		dst->gc_next = dst;
+	}
+
 	src->gc_prev = src;
 	src->gc_next = src;
 }
@@ -153,7 +193,7 @@ static void gc_dump_refs (hawk_rtx_t* rtx, hawk_gch_t* list)
 		printf (" %p %d\n", gch, (int)gch->gc_refs);
 		gch = gch->gc_next;
 	}
-	printf ("-----all_count => %d---------\n\n", (int)rtx->gc.all_count);
+	printf ("-----all_count => %d---------\n", (int)rtx->gc.all_count);
 }
 
 static void gc_move_reachables (hawk_gch_t* list, hawk_gch_t* reachable_list)
@@ -212,11 +252,12 @@ static void gc_free_unreachables (hawk_rtx_t* rtx, hawk_gch_t* list)
 
 	while (list->gc_next != list)
 	{
-		gch = list->gc_next;
+		gch = list->gc_next; /* the first entry in the list */
 
 printf ("^^^^^^^^^^^ freeing %p    gc_refs %d v_refs %d\n", gch, (int)gch->gc_refs, (int)hawk_gch_to_val(gch)->v_refs);
-		//hawk_rtx_freeval (rtx, hawk_gch_to_val(gch), 0);
-
+#if 0
+		hawk_rtx_freeval (rtx, hawk_gch_to_val(gch), 0);
+#else
 		{
 			// TODO: revise this. MAP ONLY as of now.
 			hawk_val_map_t* v = (hawk_val_map_t*)hawk_gch_to_val(gch);
@@ -230,22 +271,23 @@ printf ("^^^^^^^^^^^ freeing %p    gc_refs %d v_refs %d\n", gch, (int)gch->gc_re
 			{
 				if (HAWK_MAP_VPTR(pair) == v) 
 				{
-					HAWK_MAP_VPTR(pair) = hawk_rtx_makenilval(rtx);
 					refs++;
+					HAWK_MAP_VPTR(pair) = hawk_rtx_makenilval(rtx);
 				}
 				else 
 				{
-					HAWK_MAP_VPTR(pair) = hawk_rtx_makenilval(rtx);
 					hawk_rtx_refdownval (rtx, HAWK_MAP_VPTR(pair));
+					HAWK_MAP_VPTR(pair) = hawk_rtx_makenilval(rtx);
 				}
 				pair = hawk_map_getnextpair(v->map, &itr);
 			}
 
-printf ("   >>>>>>>> freeing %p  val %p  gc_refs %d v_refs %d refs %d\n", gch, v, (int)gch->gc_refs, (int)hawk_gch_to_val(gch)->v_refs, (int)refs);
+//printf ("   >>>>>>>> freeing %p  val %p  gc_refs %d v_refs %d refs %d\n", gch, v, (int)gch->gc_refs, (int)hawk_gch_to_val(gch)->v_refs, (int)refs);
 			while (refs-- > 0) hawk_rtx_refdownval (rtx, v);
 
-printf ("   >>>>>>>> freed %p\n", gch);
+//printf ("   >>>>>>>> freed %p\n", gch);
 		}
+#endif
 	}
 }
 
@@ -266,7 +308,8 @@ gc_dump_refs (rtx, &rtx->gc.all);
 gc_dump_refs (rtx, &rtx->gc.all);
 	HAWK_ASSERT (rtx->gc.all.gc_next == &rtx->gc.all); 
 
-	gc_move_gchs (&rtx->gc.all, &reachable);
+	/* move all reachables back to the main list */
+	gc_move_all_gchs (&reachable, &rtx->gc.all);
 
 printf ("collecting garbage.done ..\n");
 }
@@ -904,7 +947,7 @@ hawk_val_t* hawk_rtx_makemapvalwithdata (hawk_rtx_t* rtx, hawk_val_map_data_t da
 				break;
 		}
 
-		if (tmp == HAWK_NULL || hawk_rtx_setmapvalfld (rtx, map, p->key.ptr, p->key.len, tmp) == HAWK_NULL)
+		if (tmp == HAWK_NULL || hawk_rtx_setmapvalfld(rtx, map, p->key.ptr, p->key.len, tmp) == HAWK_NULL)
 		{
 			if (tmp) hawk_rtx_freeval (rtx, tmp, 1);
 			hawk_rtx_freeval (rtx, map, 1);
@@ -915,9 +958,7 @@ hawk_val_t* hawk_rtx_makemapvalwithdata (hawk_rtx_t* rtx, hawk_val_map_data_t da
 	return map;
 }
 
-hawk_val_t* hawk_rtx_setmapvalfld (
-	hawk_rtx_t* rtx, hawk_val_t* map, 
-	const hawk_ooch_t* kptr, hawk_oow_t klen, hawk_val_t* v)
+hawk_val_t* hawk_rtx_setmapvalfld (hawk_rtx_t* rtx, hawk_val_t* map, const hawk_ooch_t* kptr, hawk_oow_t klen, hawk_val_t* v)
 {
 	HAWK_ASSERT (HAWK_RTX_GETVALTYPE (rtx, map) == HAWK_VAL_MAP);
 
@@ -1143,7 +1184,7 @@ void hawk_rtx_freeval (hawk_rtx_t* rtx, hawk_val_t* val, int cache)
 
 			case HAWK_VAL_MAP:
 			#if defined(HAWK_ENABLE_GC)
-printf ("FREEING VAL %p\n");
+printf ("FREEING GCH %p VAL %p\n", hawk_val_to_gch(val), val);
 				rtx->gc.all_count--;
 				gc_unchain_val (val);
 				hawk_map_fini (((hawk_val_map_t*)val)->map);
