@@ -69,6 +69,24 @@
 #define FLOCK_GET (1 << 30)
 #define FLOCK_WAIT (1 << 31)
 
+#if defined(SOCK_CLOEXEC)
+#	define X_SOCK_CLOEXEC SOCK_CLOEXEC
+#else
+#	define X_SOCK_CLOEXEC 0 /* 0 is effectless for a bit flag */
+#endif
+
+#if defined(SOCK_CLOEXEC)
+#	define X_SOCK_CLOEXEC SOCK_NONBLOCK
+#else
+#	define X_SOCK_NONBLOCK 0 /* 0 is effectless for a bit flag */
+#endif
+
+#if defined(SO_REUSEPORT)
+#	define X_SO_REUSEPORT SO_REUSEPORT
+#else
+#	define X_SO_REUSEPORT 9999999 /* this must be a non-existent code */
+#endif
+
 /*
  * IMPLEMENTATION NOTE:
  *   - hard failure only if it cannot make a final return value. (e.g. fnc_errmsg, fnc_fork, fnc_getpid)
@@ -1973,15 +1991,19 @@ static int fnc_sleep (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	rx = sleep(nt.sec);
 	#endif
 #elif defined(HAVE_NANOSLEEP)
-	struct timespec req;
-	req.tv_sec = nt.sec;
-	req.tv_nsec = nt.nsec;
-	rx = nanosleep(&req, HAWK_NULL);
+	{
+		struct timespec req;
+		req.tv_sec = nt.sec;
+		req.tv_nsec = nt.nsec;
+		rx = nanosleep(&req, HAWK_NULL);
+	}
 #elif defined(HAVE_SELECT)
-	struct timeval req;
-	req.tv_sec = nt.sec;
-	req.tv_usec = HAWK_NSEC_TO_USEC(nt.nsec);
-	rx = select(0, HAWK_NULL, HAWK_NULL, HAWK_NULL, &req);
+	{
+		struct timeval req;
+		req.tv_sec = nt.sec;
+		req.tv_usec = HAWK_NSEC_TO_USEC(nt.nsec);
+		rx = select(0, HAWK_NULL, HAWK_NULL, HAWK_NULL, &req);
+	}
 #else
 	/* no high-resolution sleep() is available */
 	rx = sleep(nt.sec);
@@ -3935,11 +3957,11 @@ static int fnc_accept (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		fd_flags = fcntl(fd, F_GETFD, 0);
 		if (fd_flags >= 0)
 		{
-		#if defined(FD_CLOEXEC)
-			if (flags & SOCK_NONBLOCK) fd_flags |= FD_CLOEXEC;
+		#if defined(FD_CLOEXEC) && defined(SOCK_CLOEXEC)
+			if (flags & SOCK_CLOEXEC) fd_flags |= FD_CLOEXEC;
 		#endif
-		#if defined(O_NONBLOCK)
-			if (flags & SOCK_CLOEXEC) fd_flags |= O_NONBLOCK;
+		#if defined(O_NONBLOCK) && defined(SOCK_NONBLOCK)
+			if (flags & SOCK_NONBLOCK) fd_flags |= O_NONBLOCK;
 		#endif
 			fcntl(fd, F_SETFD, fd_flags);
 		}
@@ -4694,9 +4716,9 @@ static inttab_t inttab[] =
 	{ HAWK_T("SIGSEGV"),       { SIGSEGV } },
 	{ HAWK_T("SIGTERM"),       { SIGTERM } },
 
-	{ HAWK_T("SOCK_CLOEXEC"),  { SOCK_CLOEXEC } },
+	{ HAWK_T("SOCK_CLOEXEC"),  { X_SOCK_CLOEXEC } },
 	{ HAWK_T("SOCK_DGRAM"),    { SOCK_DGRAM } },
-	{ HAWK_T("SOCK_NONBLOCK"), { SOCK_NONBLOCK } },
+	{ HAWK_T("SOCK_NONBLOCK"), { X_SOCK_NONBLOCK } },
 	{ HAWK_T("SOCK_STREAM"),   { SOCK_STREAM } },
 
 	{ HAWK_T("SOL_SOCKET"),    { SOL_SOCKET } },
@@ -4707,9 +4729,7 @@ static inttab_t inttab[] =
 	{ HAWK_T("SO_RCVBUF"),     { SO_RCVBUF } },
 	{ HAWK_T("SO_RCVTIMEO"),   { SO_RCVTIMEO } },
 	{ HAWK_T("SO_REUSEADDR"),  { SO_REUSEADDR } },
-#if defined(SO_REUSEPORT)
-	{ HAWK_T("SO_REUSEPORT"),  { SO_REUSEPORT } },
-#endif
+	{ HAWK_T("SO_REUSEPORT"),  { X_SO_REUSEPORT } },
 	{ HAWK_T("SO_SNDBUF"),     { SO_SNDBUF } },
 	{ HAWK_T("SO_SNDTIMEO"),   { SO_SNDTIMEO } },
 
