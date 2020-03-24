@@ -2523,7 +2523,6 @@ static int run_forin (hawk_rtx_t* rtx, hawk_nde_forin_t* nde)
 	hawk_oow_t old_forin_size, i;
 	int ret;
 	
-
 	test = (hawk_nde_exp_t*)nde->test;
 	HAWK_ASSERT (test->type == HAWK_NDE_EXP_BIN && test->opcode == HAWK_BINOP_IN);
 
@@ -2541,21 +2540,19 @@ static int run_forin (hawk_rtx_t* rtx, hawk_nde_forin_t* nde)
 	if (rvtype == HAWK_VAL_NIL) 
 	{
 		/* just return without excuting the loop body */
-		goto done;
+		goto done1;
 	}
 	else if (rvtype != HAWK_VAL_MAP)
 	{
 		hawk_rtx_seterrnum (rtx, &test->right->loc, HAWK_ENOTMAPIN);
 		ret = -1;
-		goto done;
+		goto done1;
 	}
 
 	map = ((hawk_val_map_t*)rv)->map;
 
-
 #if 1
 	old_forin_size = rtx->forin.size;
-
 	if (rtx->forin.capa - rtx->forin.size < hawk_map_getsize(map))
 	{
 		hawk_val_t** tmp;
@@ -2568,7 +2565,7 @@ static int run_forin (hawk_rtx_t* rtx, hawk_nde_forin_t* nde)
 		{
 			ADJERR_LOC (rtx, &test->left->loc);
 			ret = -1;
-			goto done;
+			goto done2;
 		}
 
 		rtx->forin.ptr = tmp;
@@ -2588,7 +2585,7 @@ static int run_forin (hawk_rtx_t* rtx, hawk_nde_forin_t* nde)
 		{
 			ADJERR_LOC (rtx, &test->left->loc);
 			ret = -1;
-			goto done;
+			goto done2;
 		}
 
 		rtx->forin.ptr[rtx->forin.size++] = str;
@@ -2603,13 +2600,13 @@ static int run_forin (hawk_rtx_t* rtx, hawk_nde_forin_t* nde)
 		if (HAWK_UNLIKELY(!do_assignment(rtx, test->left, rtx->forin.ptr[i])) || HAWK_UNLIKELY(run_statement(rtx, nde->body) <= -1))
 		{
 			ret = -1;
-			goto done;
+			goto done2;
 		}
 
 		if (rtx->exit_level == EXIT_BREAK)
 		{
 			rtx->exit_level = EXIT_NONE;
-			goto done;
+			goto done2;
 		}
 		else if (rtx->exit_level == EXIT_CONTINUE)
 		{
@@ -2617,13 +2614,15 @@ static int run_forin (hawk_rtx_t* rtx, hawk_nde_forin_t* nde)
 		}
 		else if (rtx->exit_level != EXIT_NONE) 
 		{
-			goto done;
+			goto done2;
 		}
 	}
 
-done:
+done2:
 	while (rtx->forin.size > old_forin_size)
 		hawk_rtx_refdownval (rtx, rtx->forin.ptr[--rtx->forin.size]);
+
+done1:
 	hawk_rtx_refdownval (rtx, rv);
 	return ret;
 #else
