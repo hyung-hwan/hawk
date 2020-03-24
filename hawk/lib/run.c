@@ -1680,7 +1680,7 @@ hawk_val_t* hawk_rtx_execwithucstrarr (hawk_rtx_t* rtx, const hawk_uch_t* args[]
 #if defined(HAWK_ENABLE_GC)
 	/* i assume this function is a usual hawk program starter.
 	 * call garbage collection after a whole program finishes */
-	//hawk_rtx_gc (rtx);
+	hawk_rtx_gc (rtx);
 #endif
 
 	return v;
@@ -1697,7 +1697,7 @@ hawk_val_t* hawk_rtx_execwithbcstrarr (hawk_rtx_t* rtx, const hawk_bch_t* args[]
 #if defined(HAWK_ENABLE_GC)
 	/* i assume this function is a usual hawk program starter.
 	 * call garbage collection after a whole program finishes */
-	//hawk_rtx_gc (rtx);
+	hawk_rtx_gc (rtx);
 #endif
 
 	return v;

@@ -1,7 +1,7 @@
 #
-# genoptcode.awk
+# genoptcode.hawk
 #
-# hawk -f genoptcode.awk hawk.h
+# hawk -f genoptcode.hawk hawk.h
 #
 
 BEGIN { 
