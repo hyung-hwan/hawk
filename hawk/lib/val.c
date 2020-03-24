@@ -42,7 +42,7 @@ hawk_val_t* hawk_val_zlm = (hawk_val_t*)&awk_zlm;
 #if defined(HAWK_ENABLE_GC)
 
 /*
- BEGIN {
+BEGIN {
   @local a, b, c, nil; 
   for (i = 1; i < 10; i++) a[i] = i;
   a[11] = a;
@@ -68,8 +68,25 @@ BEGIN {
    b[1] = a;
    c[1] = 0;
 }
-* 
-* BEGIN {
+ 
+BEGIN {
+   @local a, b, c, j, nil;
+   j[1] = 20;
+   j[2] = 20;
+   for (i = 1; i < 10; i++) a[i] = i;
+   a[9] = j;
+   a[10] = "world";
+   a[11] = a;
+   a[12] = a;
+   a[13] = "hello";
+   j[3] = a;
+   a[14] = j;
+   a = nil;
+   b[1] = a;
+   c[1] = 0;
+}
+ 
+BEGIN {
    @local a, b, c, nil;
    j[1] = 20;
    j[2] = 20;
@@ -90,6 +107,7 @@ BEGIN {
 */
 
 #define GCH_MOVED HAWK_TYPE_MAX(hawk_uintptr_t)
+#define GCH_UNREACHABLE (GCH_MOVED - 1)
 
 static hawk_val_t* gc_calloc (hawk_rtx_t* rtx, hawk_oow_t size)
 {
@@ -250,52 +268,45 @@ static void gc_free_unreachables (hawk_rtx_t* rtx, hawk_gch_t* list)
 {
 	hawk_gch_t* gch;
 
+	/* there might be recursive cross references among unreachable values.
+	 * simple traversal and sequential disposal causes various issues */
+
+	/* mark all unreabale values */
+	gch = list->gc_next;
+	while (gch != list)
+	{
+		gch->gc_refs = GCH_UNREACHABLE;
+//printf (">>>MARKED UNREACHABLE %p\n", gch);
+		gch = gch->gc_next;
+	}
+
+	/* free the values without actually freeing the outer shell */
+	gch = list->gc_next;
+	while (gch != list)
+	{
+		/* -9999 preserves the outer shell */
+		hawk_rtx_freeval (rtx, hawk_gch_to_val(gch), -9999);
+		gch = gch->gc_next;
+	}
+
+	/* free the outer shell forcibly*/
 	while (list->gc_next != list)
 	{
 		gch = list->gc_next; /* the first entry in the list */
 
-printf ("^^^^^^^^^^^ freeing %p    gc_refs %d v_refs %d\n", gch, (int)gch->gc_refs, (int)hawk_gch_to_val(gch)->v_refs);
-#if 0
-		hawk_rtx_freeval (rtx, hawk_gch_to_val(gch), 0);
-#else
-		{
-			// TODO: revise this. MAP ONLY as of now.
-			hawk_val_map_t* v = (hawk_val_map_t*)hawk_gch_to_val(gch);
-			hawk_map_pair_t* pair;
-			hawk_map_itr_t itr;
-			hawk_oow_t refs = 0;
-
-			hawk_init_map_itr (&itr, 0);
-			pair = hawk_map_getfirstpair(v->map, &itr);
-			while (pair)
-			{
-				if (HAWK_MAP_VPTR(pair) == v) 
-				{
-					refs++;
-					HAWK_MAP_VPTR(pair) = hawk_rtx_makenilval(rtx);
-				}
-				else 
-				{
-					hawk_rtx_refdownval (rtx, HAWK_MAP_VPTR(pair));
-					HAWK_MAP_VPTR(pair) = hawk_rtx_makenilval(rtx);
-				}
-				pair = hawk_map_getnextpair(v->map, &itr);
-			}
-
-//printf ("   >>>>>>>> freeing %p  val %p  gc_refs %d v_refs %d refs %d\n", gch, v, (int)gch->gc_refs, (int)hawk_gch_to_val(gch)->v_refs, (int)refs);
-			while (refs-- > 0) hawk_rtx_refdownval (rtx, v);
-
-//printf ("   >>>>>>>> freed %p\n", gch);
-		}
-#endif
+		/* do what hawk_rtx_freeval() would do without -9999 */
+		rtx->gc.all_count--;
+		gc_unchain_gch (gch);
+//printf ("^^^^^^^^^^^ freeing %p    gc_refs %d v_refs %d\n", gch, (int)gch->gc_refs, (int)hawk_gch_to_val(gch)->v_refs);
+		hawk_rtx_freemem (rtx, gch);
 	}
 }
 
-void gc_collect_garbage (hawk_rtx_t* rtx)
+void hawk_rtx_gc (hawk_rtx_t* rtx)
 {
 	hawk_gch_t reachable;
 
-printf ("collecting garbage...\n");
+//printf ("collecting garbage...\n");
 	gc_trace_refs (&rtx->gc.all);
 
 	reachable.gc_prev = &reachable;
@@ -303,15 +314,15 @@ printf ("collecting garbage...\n");
 	gc_move_reachables (&rtx->gc.all, &reachable);
 
 	/* only unreachables are left in rtx->gc.all */
-gc_dump_refs (rtx, &rtx->gc.all);
+//gc_dump_refs (rtx, &rtx->gc.all);
 	gc_free_unreachables (rtx, &rtx->gc.all);
-gc_dump_refs (rtx, &rtx->gc.all);
+//gc_dump_refs (rtx, &rtx->gc.all);
 	HAWK_ASSERT (rtx->gc.all.gc_next == &rtx->gc.all); 
 
 	/* move all reachables back to the main list */
 	gc_move_all_gchs (&reachable, &rtx->gc.all);
 
-printf ("collecting garbage.done ..\n");
+//printf ("collecting garbage.done ..\n");
 }
 
 #endif
@@ -799,17 +810,23 @@ hawk_val_t* hawk_rtx_makerexval (hawk_rtx_t* rtx, const hawk_oocs_t* str, hawk_t
 static void free_mapval (hawk_map_t* map, void* dptr, hawk_oow_t dlen)
 {
 	hawk_rtx_t* rtx = *(hawk_rtx_t**)hawk_map_getxtn(map);
+	hawk_val_t* v = (hawk_val_t*)dptr;
 
 #if defined(DEBUG_VAL)
-	hawk_logfmt (hawk_rtx_gethawk(rtx), HAWK_T("refdown in map free - [%O]\n"), dptr);
+	hawk_logfmt (hawk_rtx_gethawk(rtx), HAWK_T("refdown in map free - [%O]\n"), v);
 #endif
 
 #if defined(HAWK_ENABLE_GC)
-	/* this part is not right i think.... revisit this ... */
-	if (HAWK_RTX_GETVALTYPE(rtx, (hawk_val_t*)dptr) == HAWK_VAL_MAP && 
-	    ((hawk_val_map_t*)dptr)->map == map) return;
+	if (HAWK_VTR_IS_POINTER(v) && v->v_gc && hawk_val_to_gch(v)->gc_refs == GCH_UNREACHABLE)
+	{
+		/* do nothing if the element is unreachable. 
+		 * this behavior pairs up with gc_free_unreachables() to 
+		 * achieve safe disposal of a value */
+		return;
+	}
 #endif
-	hawk_rtx_refdownval (rtx, dptr);
+
+	hawk_rtx_refdownval (rtx, v);
 }
 
 static void same_mapval (hawk_map_t* map, void* dptr, hawk_oow_t dlen)
@@ -847,7 +864,7 @@ hawk_val_t* hawk_rtx_makemapval (hawk_rtx_t* rtx)
 	hawk_val_map_t* val;
 
 #if defined(HAWK_ENABLE_GC)
-gc_collect_garbage(rtx);
+hawk_rtx_gc(rtx);
 	val = (hawk_val_map_t*)gc_calloc(rtx, HAWK_SIZEOF(hawk_val_map_t) + HAWK_SIZEOF(hawk_map_t) + HAWK_SIZEOF(rtx));
 #else
 	val = (hawk_val_map_t*)hawk_rtx_callocmem(rtx, HAWK_SIZEOF(hawk_val_map_t) + HAWK_SIZEOF(hawk_map_t) + HAWK_SIZEOF(rtx));
@@ -873,6 +890,7 @@ gc_collect_garbage(rtx);
 	gc_chain_val (&rtx->gc.all, (hawk_val_t*)val);
 	rtx->gc.all_count++;
 	val->v_gc = 1;
+//printf ("MADE GCH %p VAL %p\n", hawk_val_to_gch(val), val);
 #endif
 
 	return (hawk_val_t*)val;
@@ -1184,11 +1202,15 @@ void hawk_rtx_freeval (hawk_rtx_t* rtx, hawk_val_t* val, int cache)
 
 			case HAWK_VAL_MAP:
 			#if defined(HAWK_ENABLE_GC)
-printf ("FREEING GCH %p VAL %p\n", hawk_val_to_gch(val), val);
-				rtx->gc.all_count--;
-				gc_unchain_val (val);
+//printf ("FREEING GCH %p VAL %p\n", hawk_val_to_gch(val), val);
+				
 				hawk_map_fini (((hawk_val_map_t*)val)->map);
-				hawk_rtx_freemem (rtx, hawk_val_to_gch(val));
+				if (cache != -9999)
+				{
+					rtx->gc.all_count--;
+					gc_unchain_val (val);
+					hawk_rtx_freemem (rtx, hawk_val_to_gch(val));
+				}
 			#else
 				hawk_map_fini (((hawk_val_map_t*)val)->map);
 				hawk_rtx_freemem (rtx, val);

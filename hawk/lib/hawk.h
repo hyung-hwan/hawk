@@ -3004,6 +3004,11 @@ HAWK_EXPORT void hawk_rtx_refdownval_nofree (
 	hawk_val_t* val  /**< value pointer */
 );
 
+
+HAWK_EXPORT void hawk_rtx_gc (
+	hawk_rtx_t* rtx
+);
+
 /**
  * The hawk_rtx_valtobool() function converts a value \a val to a boolean
  * value.
