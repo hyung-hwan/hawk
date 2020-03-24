@@ -106,6 +106,8 @@ BEGIN {
 
 */
 
+/*#define DEBUG_GC*/
+
 #define GCH_MOVED HAWK_TYPE_MAX(hawk_uintptr_t)
 #define GCH_UNREACHABLE (GCH_MOVED - 1)
 
@@ -134,6 +136,8 @@ static HAWK_INLINE void gc_chain_val (hawk_gch_t* list, hawk_val_t* v)
 
 static HAWK_INLINE void gc_move_all_gchs (hawk_gch_t* src, hawk_gch_t* dst)
 {
+#if 0
+	/* move src to dst */
 	if (src->gc_next != src)
 	{
 		dst->gc_next = src->gc_next;
@@ -149,6 +153,21 @@ static HAWK_INLINE void gc_move_all_gchs (hawk_gch_t* src, hawk_gch_t* dst)
 
 	src->gc_prev = src;
 	src->gc_next = src;
+#else
+	/* append src to dst */
+	if (src->gc_next != src)
+	{
+		hawk_gch_t* last;
+
+		last = dst->gc_prev;
+		last->gc_next = src->gc_next;
+		last->gc_next->gc_prev = last;
+		dst->gc_prev = src->gc_prev;
+		dst->gc_prev->gc_next = dst;
+	}
+	src->gc_prev = src;
+	src->gc_next = src;
+#endif
 }
 
 static HAWK_INLINE void gc_unchain_gch (hawk_gch_t* gch)
@@ -208,10 +227,10 @@ static void gc_dump_refs (hawk_rtx_t* rtx, hawk_gch_t* list)
 	gch = list->gc_next;
 	while (gch != list)
 	{
-		printf (" %p %d\n", gch, (int)gch->gc_refs);
+		hawk_logbfmt (hawk_rtx_gethawk(rtx), HAWK_LOG_STDERR,  "[GC] GCH %p gc_refs %d\n", gch, (int)gch->gc_refs);
 		gch = gch->gc_next;
 	}
-	printf ("-----all_count => %d---------\n", (int)rtx->gc.all_count);
+	hawk_logbfmt (hawk_rtx_gethawk(rtx), HAWK_LOG_STDERR, "[GC] all_count => %d\n", (int)rtx->gc.all_count);
 }
 
 static void gc_move_reachables (hawk_gch_t* list, hawk_gch_t* reachable_list)
@@ -276,7 +295,9 @@ static void gc_free_unreachables (hawk_rtx_t* rtx, hawk_gch_t* list)
 	while (gch != list)
 	{
 		gch->gc_refs = GCH_UNREACHABLE;
-//printf (">>>MARKED UNREACHABLE %p\n", gch);
+	#if defined(DEBUG_GC)
+		hawk_logbfmt (hawk_rtx_gethawk(rtx), HAWK_LOG_STDERR, "[GC] MARKED UNREACHABLE GCH %p\n", gch);
+	#endif
 		gch = gch->gc_next;
 	}
 
@@ -294,10 +315,12 @@ static void gc_free_unreachables (hawk_rtx_t* rtx, hawk_gch_t* list)
 	{
 		gch = list->gc_next; /* the first entry in the list */
 
+	#if defined(DEBUG_GC)
+		hawk_logbfmt (hawk_rtx_gethawk(rtx), HAWK_LOG_STDERR, "[GC] FREEING UNREACHABLE GCH %p gc_refs %zu v_refs %zu\n", gch, gch->gc_refs, hawk_gch_to_val(gch)->v_refs);
+	#endif
 		/* do what hawk_rtx_freeval() would do without -9999 */
 		rtx->gc.all_count--;
 		gc_unchain_gch (gch);
-//printf ("^^^^^^^^^^^ freeing %p    gc_refs %d v_refs %d\n", gch, (int)gch->gc_refs, (int)hawk_gch_to_val(gch)->v_refs);
 		hawk_rtx_freemem (rtx, gch);
 	}
 }
@@ -306,7 +329,9 @@ void hawk_rtx_gc (hawk_rtx_t* rtx)
 {
 	hawk_gch_t reachable;
 
-//printf ("collecting garbage...\n");
+#if defined(DEBUG_GC)
+	hawk_logbfmt (hawk_rtx_gethawk(rtx), HAWK_LOG_STDERR,  "[GC] **started**\n");
+#endif
 	gc_trace_refs (&rtx->gc.all);
 
 	reachable.gc_prev = &reachable;
@@ -322,7 +347,9 @@ void hawk_rtx_gc (hawk_rtx_t* rtx)
 	/* move all reachables back to the main list */
 	gc_move_all_gchs (&reachable, &rtx->gc.all);
 
-//printf ("collecting garbage.done ..\n");
+#if defined(DEBUG_GC)
+	hawk_logbfmt (hawk_rtx_gethawk(rtx), HAWK_LOG_STDERR,  "[GC] **ended**\n");
+#endif
 }
 
 #endif
@@ -394,7 +421,7 @@ hawk_val_t* hawk_rtx_makeintval (hawk_rtx_t* rtx, hawk_int_t v)
 	val->nde = HAWK_NULL;
 
 #if defined(DEBUG_VAL)
-	hawk_logfmt (hawk_rtx_gethawk(rtx), HAWK_T("makeintval => %jd [%p] - [%O]\n"), (hawk_intmax_t)v, val, val);
+	hawk_logfmt (hawk_rtx_gethawk(rtx), HAWK_LOG_STDERR, HAWK_T("makeintval => %jd [%p] - [%O]\n"), (hawk_intmax_t)v, val, val);
 #endif
 	return (hawk_val_t*)val;
 }
@@ -433,7 +460,7 @@ hawk_val_t* hawk_rtx_makefltval (hawk_rtx_t* rtx, hawk_flt_t v)
 	val->nde = HAWK_NULL;
 
 #if defined(DEBUG_VAL)
-	hawk_logfmt (hawk_rtx_gethawk(rtx), HAWK_T("makefltval => %Lf [%p] - [%O]\n"), (double)v, val, val);
+	hawk_logfmt (hawk_rtx_gethawk(rtx), HAWK_LOG_STDERR, HAWK_T("makefltval => %Lf [%p] - [%O]\n"), (double)v, val, val);
 #endif
 	return (hawk_val_t*)val;
 }
@@ -479,7 +506,7 @@ init:
 	val->val.ptr[val->val.len] = '\0';
 
 #if defined(DEBUG_VAL)
-	hawk_logfmt (hawk_rtx_gethawk(rtx), HAWK_T("make_str_val => %p - [%O]\n"), val, val);
+	hawk_logfmt (hawk_rtx_gethawk(rtx), HAWK_LOG_STDERR, HAWK_T("make_str_val => %p - [%O]\n"), val, val);
 #endif
 	return (hawk_val_t*)val;
 }
@@ -813,7 +840,7 @@ static void free_mapval (hawk_map_t* map, void* dptr, hawk_oow_t dlen)
 	hawk_val_t* v = (hawk_val_t*)dptr;
 
 #if defined(DEBUG_VAL)
-	hawk_logfmt (hawk_rtx_gethawk(rtx), HAWK_T("refdown in map free - [%O]\n"), v);
+	hawk_logfmt (hawk_rtx_gethawk(rtx), HAWK_LOG_STDERR, HAWK_T("refdown in map free - [%O]\n"), v);
 #endif
 
 #if defined(HAWK_ENABLE_GC)
@@ -833,7 +860,7 @@ static void same_mapval (hawk_map_t* map, void* dptr, hawk_oow_t dlen)
 {
 	hawk_rtx_t* run = *(hawk_rtx_t**)hawk_map_getxtn(map);
 #if defined(DEBUG_VAL)
-	hawk_logfmt (hawk_rtx_gethawk(rtx), HAWK_T("refdown nofree in map free - [%O]\n"), dptr);
+	hawk_logfmt (hawk_rtx_gethawk(rtx), HAWK_LOG_STDERR, HAWK_T("refdown nofree in map free - [%O]\n"), dptr);
 #endif
 	hawk_rtx_refdownval_nofree (run, dptr);
 }
@@ -890,7 +917,9 @@ hawk_rtx_gc(rtx);
 	gc_chain_val (&rtx->gc.all, (hawk_val_t*)val);
 	rtx->gc.all_count++;
 	val->v_gc = 1;
-//printf ("MADE GCH %p VAL %p\n", hawk_val_to_gch(val), val);
+	#if defined(DEBUG_GC)
+	hawk_logbfmt (hawk_rtx_gethawk(rtx), HAWK_LOG_STDERR, "[GC] MADE GCH %p VAL %p\n", hawk_val_to_gch(val), val);
+	#endif
 #endif
 
 	return (hawk_val_t*)val;
@@ -1106,7 +1135,7 @@ void hawk_rtx_freeval (hawk_rtx_t* rtx, hawk_val_t* val, int cache)
 		if (IS_STATICVAL(val)) return;
 
 	#if defined(DEBUG_VAL)
-		hawk_logfmt (hawk_rtx_gethawk(rtx), HAWK_T("freeing [cache=%d] - [%O]\n"), cache, val);
+		hawk_logfmt (hawk_rtx_gethawk(rtx), HAWK_LOG_STDERR, HAWK_T("freeing [cache=%d] - [%O]\n"), cache, val);
 	#endif
 
 		vtype = HAWK_RTX_GETVALTYPE (rtx, val);
@@ -1202,8 +1231,11 @@ void hawk_rtx_freeval (hawk_rtx_t* rtx, hawk_val_t* val, int cache)
 
 			case HAWK_VAL_MAP:
 			#if defined(HAWK_ENABLE_GC)
-//printf ("FREEING GCH %p VAL %p\n", hawk_val_to_gch(val), val);
-				
+
+				#if defined(DEBUG_GC)
+				hawk_logbfmt (hawk_rtx_gethawk(rtx), HAWK_LOG_STDERR, "[GC] FREEING GCH %p VAL %p - flags %d\n", hawk_val_to_gch(val), val, cache);
+				#endif
+
 				hawk_map_fini (((hawk_val_map_t*)val)->map);
 				if (cache != -9999)
 				{
@@ -1235,7 +1267,7 @@ void hawk_rtx_refupval (hawk_rtx_t* rtx, hawk_val_t* val)
 		if (IS_STATICVAL(val)) return;
 
 	#if defined(DEBUG_VAL)
-		hawk_logfmt (hawk_rtx_gethawk(rtx), HAWK_T("ref up [ptr=%p] [count=%d] - [%O]\n"), val, (int)val->v_refs, val);
+		hawk_logfmt (hawk_rtx_gethawk(rtx), HAWK_LOG_STDERR, HAWK_T("ref up [ptr=%p] [count=%d] - [%O]\n"), val, (int)val->v_refs, val);
 	#endif
 		val->v_refs++;
 	}
@@ -1248,7 +1280,7 @@ void hawk_rtx_refdownval (hawk_rtx_t* rtx, hawk_val_t* val)
 		if (IS_STATICVAL(val)) return;
 
 	#if defined(DEBUG_VAL)
-		hawk_logfmt (hawk_rtx_gethawk(rtx), HAWK_T("ref down [ptr=%p] [count=%d] - [%O]\n"), val, (int)val->v_refs, val);
+		hawk_logfmt (hawk_rtx_gethawk(rtx), HAWK_LOG_STDERR, HAWK_T("ref down [ptr=%p] [count=%d] - [%O]\n"), val, (int)val->v_refs, val);
 	#endif
 
 		/* the reference count of a value should be greater than zero for it to be decremented. check the source code for any bugs */
@@ -1797,7 +1829,7 @@ int hawk_rtx_valtostr (hawk_rtx_t* rtx, const hawk_val_t* v, hawk_rtx_valtostr_o
 		default:
 		invalid:
 		#if defined(DEBUG_VAL)
-			hawk_logfmt (hawk_rtx_gethawk(rtx), HAWK_T(">>WRONG VALUE TYPE [%d] in hawk_rtx_valtostr\n"), v->type);
+			hawk_logfmt (hawk_rtx_gethawk(rtx), HAWK_LOG_STDERR, HAWK_T(">>WRONG VALUE TYPE [%d] in hawk_rtx_valtostr\n"), v->type);
 		#endif
 			hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EVALTOSTR);
 			return -1;
@@ -2227,7 +2259,7 @@ hawk_int_t hawk_rtx_hashval (hawk_rtx_t* rtx, hawk_val_t* v)
 		default:
 
 #if defined(DEBUG_VAL)
-			hawk_logfmt (hawk_rtx_gethawk(rtx), HAWK_T(">>WRONG VALUE TYPE [%d] in hawk_rtx_hashval()\n"), v->type);
+			hawk_logfmt (hawk_rtx_gethawk(rtx), HAWK_LOG_STDERR, HAWK_T(">>WRONG VALUE TYPE [%d] in hawk_rtx_hashval()\n"), v->type);
 #endif
 			hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EHASHVAL);
 			return -1;
