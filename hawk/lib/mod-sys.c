@@ -3223,7 +3223,6 @@ static int fnc_utime (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 static int fnc_openmux (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
-#if defined(USE_EPOLL)
 	sys_list_t* sys_list;
 	sys_node_t* sys_node = HAWK_NULL;
 	hawk_int_t rx;
@@ -3248,9 +3247,6 @@ static int fnc_openmux (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		}
 		#endif
 	}
-#else
-	/* TODO: */
-#endif
 
 	if (fd >= 0)
 	{
@@ -3269,19 +3265,17 @@ static int fnc_openmux (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	{
 		rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
 	}
+#else
+	rx = set_error_on_sys_list(rtx, sys_list, HAWK_ENOIMPL, HAWK_NULL);
+#endif
 
 	/*HAWK_ASSERT (HAWK_IN_QUICKINT_RANGE(rx));*/
 	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
-#else
-	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, ERRNUM_TO_RC(HAWK_ENOIMPL)));
-	return 0;
-#endif
 }
 
 static int fnc_closemux (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
-#if defined(USE_EPOLL)
 	sys_list_t* sys_list;
 	sys_node_t* sys_node;
 	hawk_int_t rx = ERRNUM_TO_RC(HAWK_ENOERR);
@@ -3293,10 +3287,6 @@ static int fnc_closemux (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
-#else
-	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, ERRNUM_TO_RC(HAWK_ENOIMPL)));
-	return 0;
-#endif
 }
 
 #if defined(USE_EPOLL)
