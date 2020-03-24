@@ -1239,13 +1239,7 @@ static void fini_rtx (hawk_rtx_t* rtx, int fini_globals)
 	hawk_ooecs_fini (&rtx->inrec.linew);
 	hawk_ooecs_fini (&rtx->inrec.line);
 
-	if (fini_globals) 
-	{
-		refdown_globals (rtx, 1);
-	#if defined(HAWK_ENABLE_GC)
-		hawk_rtx_gc (rtx);
-	#endif
-	}
+	if (fini_globals) refdown_globals (rtx, 1);
 
 	/* destroy the stack if necessary */
 	if (rtx->stack)
@@ -1261,6 +1255,11 @@ static void fini_rtx (hawk_rtx_t* rtx, int fini_globals)
 
 	/* destroy named variables */
 	hawk_htb_close (rtx->named);
+
+#if defined(HAWK_ENABLE_GC)
+	/* collect garbage after having released global variables and named global variables */
+	hawk_rtx_gc (rtx);
+#endif
 
 	/* destroy values in free list */
 	while (rtx->rcache_count > 0)
