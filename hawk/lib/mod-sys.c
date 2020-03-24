@@ -75,8 +75,8 @@
 #	define X_SOCK_CLOEXEC 0 /* 0 is effectless for a bit flag */
 #endif
 
-#if defined(SOCK_CLOEXEC)
-#	define X_SOCK_CLOEXEC SOCK_NONBLOCK
+#if defined(SOCK_NONBLOCK)
+#	define X_SOCK_NONBLOCK SOCK_NONBLOCK
 #else
 #	define X_SOCK_NONBLOCK 0 /* 0 is effectless for a bit flag */
 #endif

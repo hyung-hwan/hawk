@@ -48,7 +48,7 @@ typedef struct hawk_tree_t hawk_tree_t;
 #include "err-prv.h"
 #include "misc-prv.h"
 
-/*#define HAWK_ENABLE_GC*/
+#define HAWK_ENABLE_GC
 #define HAWK_ENABLE_STR_CACHE
 #define HAWK_ENABLE_MBS_CACHE
 

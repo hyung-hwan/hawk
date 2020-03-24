@@ -109,10 +109,10 @@ HAWK_INLINE hawk_rbt_pair_t* hawk_rbt_allocpair (
 	}
 	else
 	{
-		VPTR(pair) = vcop (rbt, vptr, vlen);
+		VPTR(pair) = vcop(rbt, vptr, vlen);
 		if (VPTR(pair) != HAWK_NULL)
 		{
-			if (rbt->style->freeer[HAWK_RBT_KEY] != HAWK_NULL)
+			if (rbt->style->freeer[HAWK_RBT_KEY])
 				rbt->style->freeer[HAWK_RBT_KEY] (rbt, KPTR(pair), KLEN(pair));
 			hawk_gem_freemem (rbt->gem, pair);
 			return HAWK_NULL;
@@ -124,9 +124,9 @@ HAWK_INLINE hawk_rbt_pair_t* hawk_rbt_allocpair (
 
 HAWK_INLINE void hawk_rbt_freepair (hawk_rbt_t* rbt, hawk_rbt_pair_t* pair)
 {
-	if (rbt->style->freeer[HAWK_RBT_KEY] != HAWK_NULL)
+	if (rbt->style->freeer[HAWK_RBT_KEY])
 		rbt->style->freeer[HAWK_RBT_KEY] (rbt, KPTR(pair), KLEN(pair));
-	if (rbt->style->freeer[HAWK_RBT_VAL] != HAWK_NULL)
+	if (rbt->style->freeer[HAWK_RBT_VAL])
 		rbt->style->freeer[HAWK_RBT_VAL] (rbt, VPTR(pair), VLEN(pair));
 	hawk_gem_freemem (rbt->gem, pair);
 }
@@ -478,13 +478,13 @@ static hawk_rbt_pair_t* change_pair_val (hawk_rbt_t* rbt, hawk_rbt_pair_t* pair,
 		else
 		{
 			void* nvptr = vcop(rbt, vptr, vlen);
-			if (nvptr == HAWK_NULL) return HAWK_NULL;
+			if (HAWK_UNLIKELY(!nvptr)) return HAWK_NULL;
 			VPTR(pair) = nvptr;
 			VLEN(pair) = vlen;
 		}
 
 		/* free up the old value */
-		if (rbt->style->freeer[HAWK_RBT_VAL] != HAWK_NULL)
+		if (rbt->style->freeer[HAWK_RBT_VAL])
 		{
 			rbt->style->freeer[HAWK_RBT_VAL] (rbt, ovptr, ovlen);
 		}

@@ -1239,7 +1239,13 @@ static void fini_rtx (hawk_rtx_t* rtx, int fini_globals)
 	hawk_ooecs_fini (&rtx->inrec.linew);
 	hawk_ooecs_fini (&rtx->inrec.line);
 
-	if (fini_globals) refdown_globals (rtx, 1);
+	if (fini_globals) 
+	{
+		refdown_globals (rtx, 1);
+	#if defined(HAWK_ENABLE_GC)
+		hawk_rtx_gc (rtx);
+	#endif
+	}
 
 	/* destroy the stack if necessary */
 	if (rtx->stack)
@@ -1605,7 +1611,7 @@ static hawk_val_t* run_bpae_loop (hawk_rtx_t* rtx)
 
 		rtx->active_block = blk;
 		rtx->exit_level = EXIT_NONE;
-		if (run_block (rtx, blk) <= -1) ret = -1;
+		if (run_block(rtx, blk) <= -1) ret = -1;
 		else if (rtx->exit_level >= EXIT_GLOBAL) 
 		{
 			/* once exit is called inside one of END blocks,
@@ -1665,18 +1671,37 @@ hawk_val_t* hawk_rtx_loop (hawk_rtx_t* rtx)
 
 hawk_val_t* hawk_rtx_execwithucstrarr (hawk_rtx_t* rtx, const hawk_uch_t* args[], hawk_oow_t nargs)
 {
-	return (rtx->hawk->parse.pragma.entry[0] != '\0')?
+	hawk_val_t* v;
+
+	v = (rtx->hawk->parse.pragma.entry[0] != '\0')?
 		hawk_rtx_callwithooucstrarr(rtx, rtx->hawk->parse.pragma.entry, args, nargs):
 		hawk_rtx_loop(rtx);
+
+#if defined(HAWK_ENABLE_GC)
+	/* i assume this function is a usual hawk program starter.
+	 * call garbage collection after a whole program finishes */
+	//hawk_rtx_gc (rtx);
+#endif
+
+	return v;
 }
 
 hawk_val_t* hawk_rtx_execwithbcstrarr (hawk_rtx_t* rtx, const hawk_bch_t* args[], hawk_oow_t nargs)
 {
-	return (rtx->hawk->parse.pragma.entry[0] != '\0')?
+	hawk_val_t* v;
+
+	v = (rtx->hawk->parse.pragma.entry[0] != '\0')?
 		hawk_rtx_callwithoobcstrarr(rtx, rtx->hawk->parse.pragma.entry, args, nargs):
 		hawk_rtx_loop(rtx);
-}
 
+#if defined(HAWK_ENABLE_GC)
+	/* i assume this function is a usual hawk program starter.
+	 * call garbage collection after a whole program finishes */
+	//hawk_rtx_gc (rtx);
+#endif
+
+	return v;
+}
 
 /* find an AWK function by name */
 static hawk_fun_t* find_fun (hawk_rtx_t* rtx, const hawk_ooch_t* name)
@@ -1806,7 +1831,7 @@ hawk_val_t* hawk_rtx_callwithucstr (hawk_rtx_t* rtx, const hawk_uch_t* name, haw
 	hawk_fun_t* fun;
 
 	fun = hawk_rtx_findfunwithucstr(rtx, name);
-	if (!fun) return HAWK_NULL;
+	if (HAWK_UNLIKELY(!fun)) return HAWK_NULL;
 
 	return hawk_rtx_callfun(rtx, fun, args, nargs);
 }
@@ -1827,12 +1852,12 @@ hawk_val_t* hawk_rtx_callwithucstrarr (hawk_rtx_t* rtx, const hawk_uch_t* name, 
 	hawk_val_t** v, * ret;
 
 	v = hawk_rtx_allocmem(rtx, HAWK_SIZEOF(*v) * nargs);
-	if (!v) return HAWK_NULL;
+	if (HAWK_UNLIKELY(!v)) return HAWK_NULL;
 
 	for (i = 0; i < nargs; i++)
 	{
 		v[i] = hawk_rtx_makestrvalwithucstr(rtx, args[i]);
-		if (!v[i])
+		if (HAWK_UNLIKELY(!v[i]))
 		{
 			ret = HAWK_NULL;
 			goto oops;
@@ -1858,12 +1883,12 @@ hawk_val_t* hawk_rtx_callwithbcstrarr (hawk_rtx_t* rtx, const hawk_bch_t* name, 
 	hawk_val_t** v, * ret;
 
 	v = hawk_rtx_allocmem(rtx, HAWK_SIZEOF(*v) * nargs);
-	if (!v) return HAWK_NULL;
+	if (HAWK_UNLIKELY(!v)) return HAWK_NULL;
 
 	for (i = 0; i < nargs; i++)
 	{
 		v[i] = hawk_rtx_makestrvalwithbcstr(rtx, args[i]);
-		if (!v[i])
+		if (HAWK_UNLIKELY(!v[i]))
 		{
 			ret = HAWK_NULL;
 			goto oops;
@@ -1889,12 +1914,12 @@ hawk_val_t* hawk_rtx_callwithooucstrarr (hawk_rtx_t* rtx, const hawk_ooch_t* nam
 	hawk_val_t** v, * ret;
 
 	v = hawk_rtx_allocmem(rtx, HAWK_SIZEOF(*v) * nargs);
-	if (!v) return HAWK_NULL;
+	if (HAWK_UNLIKELY(!v)) return HAWK_NULL;
 
 	for (i = 0; i < nargs; i++)
 	{
 		v[i] = hawk_rtx_makestrvalwithucstr(rtx, args[i]);
-		if (!v[i])
+		if (HAWK_UNLIKELY(!v[i]))
 		{
 			ret = HAWK_NULL;
 			goto oops;
@@ -1920,12 +1945,12 @@ hawk_val_t* hawk_rtx_callwithoobcstrarr (hawk_rtx_t* rtx, const hawk_ooch_t* nam
 	hawk_val_t** v, * ret;
 
 	v = hawk_rtx_allocmem(rtx, HAWK_SIZEOF(*v) * nargs);
-	if (!v) return HAWK_NULL;
+	if (HAWK_UNLIKELY(!v)) return HAWK_NULL;
 
 	for (i = 0; i < nargs; i++)
 	{
 		v[i] = hawk_rtx_makestrvalwithbcstr(rtx, args[i]);
-		if (!v[i])
+		if (HAWK_UNLIKELY(!v[i]))
 		{
 			ret = HAWK_NULL;
 			goto oops;
