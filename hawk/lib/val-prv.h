@@ -128,6 +128,10 @@ struct hawk_val_rchunk_t
 #define HAWK_VAL_ONE  HAWK_VTR_ONE
 #define HAWK_VAL_NEGONE HAWK_VTR_NEGONE
 
+
+#define HAWK_RTX_FREEVAL_CACHE       (1 << 0)
+#define HAWK_RTX_FREEVAL_GC_PRESERVE (1 << 1)
+
 #if defined(__cplusplus)
 extern "C" {
 #endif
@@ -142,7 +146,7 @@ extern hawk_val_t* hawk_val_zls;
 void hawk_rtx_freeval (
         hawk_rtx_t* rtx,
         hawk_val_t* val,
-        int         cache
+        int         flags
 );
 
 void hawk_rtx_freevalchunk (

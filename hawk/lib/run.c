@@ -5570,13 +5570,13 @@ static hawk_val_t* eval_binop_ma (hawk_rtx_t* run, hawk_nde_t* left, hawk_nde_t*
 	HAWK_ASSERT (left->next == HAWK_NULL);
 	HAWK_ASSERT (right->next == HAWK_NULL);
 
-	lv = eval_expression (run, left);
-	if (lv == HAWK_NULL) return HAWK_NULL;
+	lv = eval_expression(run, left);
+	if (HAWK_UNLIKELY(!lv)) return HAWK_NULL;
 
 	hawk_rtx_refupval (run, lv);
 
-	rv = eval_expression0 (run, right);
-	if (rv == HAWK_NULL)
+	rv = eval_expression0(run, right);
+	if (HAWK_UNLIKELY(!rv))
 	{
 		hawk_rtx_refdownval (run, lv);
 		return HAWK_NULL;
@@ -5584,7 +5584,7 @@ static hawk_val_t* eval_binop_ma (hawk_rtx_t* run, hawk_nde_t* left, hawk_nde_t*
 
 	hawk_rtx_refupval (run, rv);
 
-	res = eval_binop_match0 (run, lv, rv, &left->loc, &right->loc, 1);
+	res = eval_binop_match0(run, lv, rv, &left->loc, &right->loc, 1);
 
 	hawk_rtx_refdownval (run, rv);
 	hawk_rtx_refdownval (run, lv);
@@ -5599,13 +5599,13 @@ static hawk_val_t* eval_binop_nm (hawk_rtx_t* run, hawk_nde_t* left, hawk_nde_t*
 	HAWK_ASSERT (left->next == HAWK_NULL);
 	HAWK_ASSERT (right->next == HAWK_NULL);
 
-	lv = eval_expression (run, left);
-	if (lv == HAWK_NULL) return HAWK_NULL;
+	lv = eval_expression(run, left);
+	if (HAWK_UNLIKELY(!lv)) return HAWK_NULL;
 
 	hawk_rtx_refupval (run, lv);
 
-	rv = eval_expression0 (run, right);
-	if (rv == HAWK_NULL)
+	rv = eval_expression0(run, right);
+	if (HAWK_UNLIKELY(!rv))
 	{
 		hawk_rtx_refdownval (run, lv);
 		return HAWK_NULL;
@@ -5613,7 +5613,7 @@ static hawk_val_t* eval_binop_nm (hawk_rtx_t* run, hawk_nde_t* left, hawk_nde_t*
 
 	hawk_rtx_refupval (run, rv);
 
-	res = eval_binop_match0 (run, lv, rv, &left->loc, &right->loc, 0);
+	res = eval_binop_match0(run, lv, rv, &left->loc, &right->loc, 0);
 
 	hawk_rtx_refdownval (run, rv);
 	hawk_rtx_refdownval (run, lv);
@@ -5640,19 +5640,19 @@ static hawk_val_t* eval_unary (hawk_rtx_t* rtx, hawk_nde_t* nde)
 		exp->opcode == HAWK_UNROP_BNOT);
 
 	HAWK_ASSERT (exp->left->next == HAWK_NULL);
-	left = eval_expression (rtx, exp->left);
-	if (left == HAWK_NULL) return HAWK_NULL;
+	left = eval_expression(rtx, exp->left);
+	if (HAWK_UNLIKELY(!left)) return HAWK_NULL;
 
 	hawk_rtx_refupval (rtx, left);
 
 	switch (exp->opcode)
 	{
 		case HAWK_UNROP_MINUS:
-			n = hawk_rtx_valtonum (rtx, left, &l, &r);
-			if (n <= -1) goto exit_func;
+			n = hawk_rtx_valtonum(rtx, left, &l, &r);
+			if (HAWK_UNLIKELY(n <= -1)) goto exit_func;
 
-			res = (n == 0)? hawk_rtx_makeintval (rtx, -l):
-			                hawk_rtx_makefltval (rtx, -r);
+			res = (n == 0)? hawk_rtx_makeintval(rtx, -l):
+			                hawk_rtx_makefltval(rtx, -r);
 			break;
 
 		case HAWK_UNROP_LNOT:
@@ -5660,38 +5660,37 @@ static hawk_val_t* eval_unary (hawk_rtx_t* rtx, hawk_nde_t* nde)
 			{
 				/* 0 if the string length is greater than 0.
 				 * 1 if it's empty */
-				res = hawk_rtx_makeintval (
-					rtx, !(((hawk_val_str_t*)left)->val.len > 0));
+				res = hawk_rtx_makeintval(rtx, !(((hawk_val_str_t*)left)->val.len > 0));
 			}
 			else
 			{
-				n = hawk_rtx_valtonum (rtx, left, &l, &r);
-				if (n <= -1) goto exit_func;
+				n = hawk_rtx_valtonum(rtx, left, &l, &r);
+				if (HAWK_UNLIKELY(n <= -1)) goto exit_func;
 
-				res = (n == 0)? hawk_rtx_makeintval (rtx, !l):
-				                hawk_rtx_makefltval (rtx, !r);
+				res = (n == 0)? hawk_rtx_makeintval(rtx, !l):
+				                hawk_rtx_makefltval(rtx, !r);
 			}
 			break;
-	
-		case HAWK_UNROP_BNOT:
-			n = hawk_rtx_valtoint (rtx, left, &l);
-			if (n <= -1) goto exit_func;
 
-			res = hawk_rtx_makeintval (rtx, ~l);
+		case HAWK_UNROP_BNOT:
+			n = hawk_rtx_valtoint(rtx, left, &l);
+			if (HAWK_UNLIKELY(n <= -1)) goto exit_func;
+
+			res = hawk_rtx_makeintval(rtx, ~l);
 			break;
 
 		case HAWK_UNROP_PLUS:
-			n = hawk_rtx_valtonum (rtx, left, &l, &r);
-			if (n <= -1) goto exit_func;
+			n = hawk_rtx_valtonum(rtx, left, &l, &r);
+			if (HAWK_UNLIKELY(n <= -1)) goto exit_func;
 
-			res = (n == 0)? hawk_rtx_makeintval (rtx, l):
-			                hawk_rtx_makefltval (rtx, r);
+			res = (n == 0)? hawk_rtx_makeintval(rtx, l):
+			                hawk_rtx_makefltval(rtx, r);
 			break;
 	}
 
 exit_func:
 	hawk_rtx_refdownval (rtx, left);
-	if (res == HAWK_NULL) ADJERR_LOC (rtx, &nde->loc);
+	if (HAWK_UNLIKELY(!res)) ADJERR_LOC (rtx, &nde->loc);
 	return res;
 }
 
@@ -5735,19 +5734,19 @@ static hawk_val_t* eval_incpre (hawk_rtx_t* rtx, hawk_nde_t* nde)
 	}
 
 	HAWK_ASSERT (exp->left->next == HAWK_NULL);
-	left = eval_expression (rtx, exp->left);
-	if (left == HAWK_NULL) return HAWK_NULL;
+	left = eval_expression(rtx, exp->left);
+	if (HAWK_UNLIKELY(!left)) return HAWK_NULL;
 
 	hawk_rtx_refupval (rtx, left);
-	left_vtype = HAWK_RTX_GETVALTYPE (rtx, left);
+	left_vtype = HAWK_RTX_GETVALTYPE(rtx, left);
 
 	switch (left_vtype)
 	{
 		case HAWK_VAL_INT:
 		{
 			hawk_int_t r = HAWK_RTX_GETINTFROMVAL (rtx, left);
-			res = hawk_rtx_makeintval (rtx, r + inc_val_int);
-			if (res == HAWK_NULL) 
+			res = hawk_rtx_makeintval(rtx, r + inc_val_int);
+			if (HAWK_UNLIKELY(!res))
 			{
 				hawk_rtx_refdownval (rtx, left);
 				ADJERR_LOC (rtx, &nde->loc);
@@ -5759,8 +5758,8 @@ static hawk_val_t* eval_incpre (hawk_rtx_t* rtx, hawk_nde_t* nde)
 		case HAWK_VAL_FLT:
 		{
 			hawk_flt_t r = ((hawk_val_flt_t*)left)->val;
-			res = hawk_rtx_makefltval (rtx, r + inc_val_flt);
-			if (res == HAWK_NULL) 
+			res = hawk_rtx_makefltval(rtx, r + inc_val_flt);
+			if (HAWK_UNLIKELY(!res))
 			{
 				hawk_rtx_refdownval (rtx, left);
 				ADJERR_LOC (rtx, &nde->loc);
@@ -5775,8 +5774,8 @@ static hawk_val_t* eval_incpre (hawk_rtx_t* rtx, hawk_nde_t* nde)
 			hawk_flt_t v2;
 			int n;
 
-			n = hawk_rtx_valtonum (rtx, left, &v1, &v2);
-			if (n <= -1)
+			n = hawk_rtx_valtonum(rtx, left, &v1, &v2);
+			if (HAWK_UNLIKELY(n <= -1))
 			{
 				hawk_rtx_refdownval (rtx, left);
 				ADJERR_LOC (rtx, &nde->loc);
@@ -5793,7 +5792,7 @@ static hawk_val_t* eval_incpre (hawk_rtx_t* rtx, hawk_nde_t* nde)
 				res = hawk_rtx_makefltval (rtx, v2 + inc_val_flt);
 			}
 
-			if (res == HAWK_NULL) 
+			if (HAWK_UNLIKELY(!res))
 			{
 				hawk_rtx_refdownval (rtx, left);
 				ADJERR_LOC (rtx, &nde->loc);
@@ -5804,7 +5803,7 @@ static hawk_val_t* eval_incpre (hawk_rtx_t* rtx, hawk_nde_t* nde)
 		}
 	}
 
-	if (do_assignment (rtx, exp->left, res) == HAWK_NULL)
+	if (HAWK_UNLIKELY(do_assignment(rtx, exp->left, res) == HAWK_NULL))
 	{
 		hawk_rtx_refdownval (rtx, left);
 		return HAWK_NULL;
@@ -5854,8 +5853,8 @@ static hawk_val_t* eval_incpst (hawk_rtx_t* rtx, hawk_nde_t* nde)
 	}
 
 	HAWK_ASSERT (exp->left->next == HAWK_NULL);
-	left = eval_expression (rtx, exp->left);
-	if (left == HAWK_NULL) return HAWK_NULL;
+	left = eval_expression(rtx, exp->left);
+	if (HAWK_UNLIKELY(!left)) return HAWK_NULL;
 
 	hawk_rtx_refupval (rtx, left);
 
@@ -5865,20 +5864,20 @@ static hawk_val_t* eval_incpst (hawk_rtx_t* rtx, hawk_nde_t* nde)
 	{
 		case HAWK_VAL_INT:
 		{
-			hawk_int_t r = HAWK_RTX_GETINTFROMVAL (rtx, left);
-			res = hawk_rtx_makeintval (rtx, r);
-			if (res == HAWK_NULL) 
+			hawk_int_t r = HAWK_RTX_GETINTFROMVAL(rtx, left);
+			res = hawk_rtx_makeintval(rtx, r);
+			if (HAWK_UNLIKELY(!res))
 			{
 				hawk_rtx_refdownval (rtx, left);
 				ADJERR_LOC (rtx, &nde->loc);
 				return HAWK_NULL;
 			}
 
-			res2 = hawk_rtx_makeintval (rtx, r + inc_val_int);
-			if (res2 == HAWK_NULL)
+			res2 = hawk_rtx_makeintval(rtx, r + inc_val_int);
+			if (HAWK_UNLIKELY(!res2))
 			{
 				hawk_rtx_refdownval (rtx, left);
-				hawk_rtx_freeval (rtx, res, 1);
+				hawk_rtx_freeval (rtx, res, HAWK_RTX_FREEVAL_CACHE);
 				ADJERR_LOC (rtx, &nde->loc);
 				return HAWK_NULL;
 			}
@@ -5889,19 +5888,19 @@ static hawk_val_t* eval_incpst (hawk_rtx_t* rtx, hawk_nde_t* nde)
 		case HAWK_VAL_FLT:
 		{
 			hawk_flt_t r = ((hawk_val_flt_t*)left)->val;
-			res = hawk_rtx_makefltval (rtx, r);
-			if (res == HAWK_NULL) 
+			res = hawk_rtx_makefltval(rtx, r);
+			if (HAWK_UNLIKELY(!res))
 			{
 				hawk_rtx_refdownval (rtx, left);
 				ADJERR_LOC (rtx, &nde->loc);
 				return HAWK_NULL;
 			}
 
-			res2 = hawk_rtx_makefltval (rtx, r + inc_val_flt);
-			if (res2 == HAWK_NULL)
+			res2 = hawk_rtx_makefltval(rtx, r + inc_val_flt);
+			if (HAWK_UNLIKELY(!res2))
 			{
 				hawk_rtx_refdownval (rtx, left);
-				hawk_rtx_freeval (rtx, res, 1);
+				hawk_rtx_freeval (rtx, res, HAWK_RTX_FREEVAL_CACHE);
 				ADJERR_LOC (rtx, &nde->loc);
 				return HAWK_NULL;
 			}
@@ -5915,8 +5914,8 @@ static hawk_val_t* eval_incpst (hawk_rtx_t* rtx, hawk_nde_t* nde)
 			hawk_flt_t v2;
 			int n;
 
-			n = hawk_rtx_valtonum (rtx, left, &v1, &v2);
-			if (n <= -1)
+			n = hawk_rtx_valtonum(rtx, left, &v1, &v2);
+			if (HAWK_UNLIKELY(n <= -1))
 			{
 				hawk_rtx_refdownval (rtx, left);
 				ADJERR_LOC (rtx, &nde->loc);
@@ -5925,19 +5924,19 @@ static hawk_val_t* eval_incpst (hawk_rtx_t* rtx, hawk_nde_t* nde)
 
 			if (n == 0) 
 			{
-				res = hawk_rtx_makeintval (rtx, v1);
-				if (res == HAWK_NULL)
+				res = hawk_rtx_makeintval(rtx, v1);
+				if (HAWK_UNLIKELY(!res))
 				{
 					hawk_rtx_refdownval (rtx, left);
 					ADJERR_LOC (rtx, &nde->loc);
 					return HAWK_NULL;
 				}
 
-				res2 = hawk_rtx_makeintval (rtx, v1 + inc_val_int);
-				if (res2 == HAWK_NULL)
+				res2 = hawk_rtx_makeintval(rtx, v1 + inc_val_int);
+				if (HAWK_UNLIKELY(!res2))
 				{
 					hawk_rtx_refdownval (rtx, left);
-					hawk_rtx_freeval (rtx, res, 1);
+					hawk_rtx_freeval (rtx, res, HAWK_RTX_FREEVAL_CACHE);
 					ADJERR_LOC (rtx, &nde->loc);
 					return HAWK_NULL;
 				}
@@ -5945,19 +5944,19 @@ static hawk_val_t* eval_incpst (hawk_rtx_t* rtx, hawk_nde_t* nde)
 			else /* if (n == 1) */
 			{
 				HAWK_ASSERT (n == 1);
-				res = hawk_rtx_makefltval (rtx, v2);
-				if (res == HAWK_NULL)
+				res = hawk_rtx_makefltval(rtx, v2);
+				if (HAWK_UNLIKELY(!res))
 				{
 					hawk_rtx_refdownval (rtx, left);
 					ADJERR_LOC (rtx, &nde->loc);
 					return HAWK_NULL;
 				}
 
-				res2 = hawk_rtx_makefltval (rtx, v2 + inc_val_flt);
-				if (res2 == HAWK_NULL)
+				res2 = hawk_rtx_makefltval(rtx, v2 + inc_val_flt);
+				if (HAWK_UNLIKELY(!res2))
 				{
 					hawk_rtx_refdownval (rtx, left);
-					hawk_rtx_freeval (rtx, res, 1);
+					hawk_rtx_freeval (rtx, res, HAWK_RTX_FREEVAL_CACHE);
 					ADJERR_LOC (rtx, &nde->loc);
 					return HAWK_NULL;
 				}
@@ -5967,7 +5966,7 @@ static hawk_val_t* eval_incpst (hawk_rtx_t* rtx, hawk_nde_t* nde)
 		}
 	}
 
-	if (do_assignment (rtx, exp->left, res2) == HAWK_NULL)
+	if (HAWK_UNLIKELY(do_assignment(rtx, exp->left, res2) == HAWK_NULL))
 	{
 		hawk_rtx_refdownval (rtx, left);
 		return HAWK_NULL;

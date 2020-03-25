@@ -305,8 +305,7 @@ static void gc_free_unreachables (hawk_rtx_t* rtx, hawk_gch_t* list)
 	gch = list->gc_next;
 	while (gch != list)
 	{
-		/* -9999 preserves the outer shell */
-		hawk_rtx_freeval (rtx, hawk_gch_to_val(gch), -9999);
+		hawk_rtx_freeval (rtx, hawk_gch_to_val(gch), HAWK_RTX_FREEVAL_GC_PRESERVE);
 		gch = gch->gc_next;
 	}
 
@@ -318,7 +317,7 @@ static void gc_free_unreachables (hawk_rtx_t* rtx, hawk_gch_t* list)
 	#if defined(DEBUG_GC)
 		hawk_logbfmt (hawk_rtx_gethawk(rtx), HAWK_LOG_STDERR, "[GC] FREEING UNREACHABLE GCH %p gc_refs %zu v_refs %zu\n", gch, gch->gc_refs, hawk_gch_to_val(gch)->v_refs);
 	#endif
-		/* do what hawk_rtx_freeval() would do without -9999 */
+		/* do what hawk_rtx_freeval() would do without HAWK_RTX_FREEVAL_GC_PRESERVE */
 		rtx->gc.all_count--;
 		gc_unchain_gch (gch);
 		hawk_rtx_freemem (rtx, gch);
@@ -996,8 +995,8 @@ hawk_val_t* hawk_rtx_makemapvalwithdata (hawk_rtx_t* rtx, hawk_val_map_data_t da
 
 		if (tmp == HAWK_NULL || hawk_rtx_setmapvalfld(rtx, map, p->key.ptr, p->key.len, tmp) == HAWK_NULL)
 		{
-			if (tmp) hawk_rtx_freeval (rtx, tmp, 1);
-			hawk_rtx_freeval (rtx, map, 1);
+			if (tmp) hawk_rtx_freeval (rtx, tmp, HAWK_RTX_FREEVAL_CACHE);
+			hawk_rtx_freeval (rtx, map, HAWK_RTX_FREEVAL_CACHE);
 			return HAWK_NULL;
 		}
 	}
@@ -1126,7 +1125,7 @@ int hawk_rtx_getintfromval (hawk_rtx_t* rtx, hawk_val_t* val)
 	return HAWK_RTX_GETINTFROMVAL(rtx, val);
 }
 
-void hawk_rtx_freeval (hawk_rtx_t* rtx, hawk_val_t* val, int cache)
+void hawk_rtx_freeval (hawk_rtx_t* rtx, hawk_val_t* val, int flags)
 {
 	hawk_val_type_t vtype;
 
@@ -1164,7 +1163,7 @@ void hawk_rtx_freeval (hawk_rtx_t* rtx, hawk_val_t* val, int cache)
 			case HAWK_VAL_STR:
 			{
 			#if defined(HAWK_ENABLE_STR_CACHE)
-				if (cache)
+				if (flags & HAWK_RTX_FREEVAL_CACHE)
 				{
 					hawk_val_str_t* v = (hawk_val_str_t*)val;
 					hawk_oow_t aligned_len;
@@ -1189,7 +1188,7 @@ void hawk_rtx_freeval (hawk_rtx_t* rtx, hawk_val_t* val, int cache)
 
 			case HAWK_VAL_MBS:
 			#if defined(HAWK_ENABLE_MBS_CACHE)
-				if (cache)
+				if (flags & HAWK_RTX_FREEVAL_CACHE)
 				{
 					hawk_val_mbs_t* v = (hawk_val_mbs_t*)val;
 					hawk_oow_t aligned_len;
@@ -1233,11 +1232,11 @@ void hawk_rtx_freeval (hawk_rtx_t* rtx, hawk_val_t* val, int cache)
 			#if defined(HAWK_ENABLE_GC)
 
 				#if defined(DEBUG_GC)
-				hawk_logbfmt (hawk_rtx_gethawk(rtx), HAWK_LOG_STDERR, "[GC] FREEING GCH %p VAL %p - flags %d\n", hawk_val_to_gch(val), val, cache);
+				hawk_logbfmt (hawk_rtx_gethawk(rtx), HAWK_LOG_STDERR, "[GC] FREEING GCH %p VAL %p - flags %d\n", hawk_val_to_gch(val), val, flags);
 				#endif
 
 				hawk_map_fini (((hawk_val_map_t*)val)->map);
-				if (cache != -9999)
+				if (!(flags & HAWK_RTX_FREEVAL_GC_PRESERVE))
 				{
 					rtx->gc.all_count--;
 					gc_unchain_val (val);
@@ -1250,7 +1249,7 @@ void hawk_rtx_freeval (hawk_rtx_t* rtx, hawk_val_t* val, int cache)
 				break;
 
 			case HAWK_VAL_REF:
-				if (cache && rtx->rcache_count < HAWK_COUNTOF(rtx->rcache))
+				if ((flags & HAWK_RTX_FREEVAL_CACHE) && rtx->rcache_count < HAWK_COUNTOF(rtx->rcache))
 				{
 					rtx->rcache[rtx->rcache_count++] = (hawk_val_ref_t*)val;
 				}
@@ -1289,7 +1288,7 @@ void hawk_rtx_refdownval (hawk_rtx_t* rtx, hawk_val_t* val)
 		val->v_refs--;
 		if (val->v_refs <= 0) 
 		{
-			hawk_rtx_freeval(rtx, val, 1);
+			hawk_rtx_freeval (rtx, val, HAWK_RTX_FREEVAL_CACHE);
 		}
 	}
 }
