@@ -1032,13 +1032,15 @@ static int init_rtx (hawk_rtx_t* rtx, hawk_t* awk, hawk_rio_cbs_t* rio)
 	rtx->vmgr.rchunk = HAWK_NULL;
 	rtx->vmgr.rfree = HAWK_NULL;
 
-	/* initialize circular doubly-linked list */
-	rtx->gc.collecting = 0;
 	for (i = 0; i < HAWK_COUNTOF(rtx->gc.g); i++)
 	{
-		rtx->gc.c[i] = 0;
+		/* initialize circular doubly-linked list */
 		rtx->gc.g[i].gc_next = &rtx->gc.g[i];
 		rtx->gc.g[i].gc_prev = &rtx->gc.g[i];
+
+		/* initialize some counters */
+		rtx->gc.nv[i] = 0;
+		rtx->gc.nc[i] = 0;
 	}
 
 	rtx->inrec.buf_pos = 0;
