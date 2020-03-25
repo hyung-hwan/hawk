@@ -66,9 +66,9 @@ struct hawk_val_rchunk_t
  * add a field to indicate if a value is static.
  * 
 
-#define IS_STATICVAL(val) ((val) == HAWK_NULL || (val) == hawk_val_nil || (val) == hawk_val_zls || (val) == hawk_val_zlm)
+#define HAWK_IS_STATICVAL(val) ((val) == HAWK_NULL || (val) == hawk_val_nil || (val) == hawk_val_zls || (val) == hawk_val_zlm)
 */
-#define IS_STATICVAL(val) ((val)->v_static)
+#define HAWK_IS_STATICVAL(val) ((val)->v_static)
 
 
 /* hawk_val_t pointer encoding assumes the pointer is an even number.

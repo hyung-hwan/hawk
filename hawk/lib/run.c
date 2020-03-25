@@ -30,7 +30,7 @@
 
 #define CMP_ERROR -99
 #define DEF_BUF_CAPA 256
-#define RTX_STACK_INCREMENT 512
+#define HAWK_RTX_STACK_INCREMENT 512
 
 /* Don't forget to grow IDXBUFSIZE if hawk_int_t is very large */
 #if (HAWK_SIZEOF_INT_T <= 16) /* 128 bits */
@@ -216,18 +216,18 @@ typedef hawk_val_t* (*eval_expr_t) (hawk_rtx_t* rtx, hawk_nde_t* nde);
 
 HAWK_INLINE hawk_oow_t hawk_rtx_getnargs (hawk_rtx_t* rtx)
 {
-	return (hawk_oow_t) RTX_STACK_NARGS(rtx);
+	return (hawk_oow_t) HAWK_RTX_STACK_NARGS(rtx);
 }
 
 HAWK_INLINE hawk_val_t* hawk_rtx_getarg (hawk_rtx_t* rtx, hawk_oow_t idx)
 {
-	return RTX_STACK_ARG(rtx, idx);
+	return HAWK_RTX_STACK_ARG(rtx, idx);
 }
 
 HAWK_INLINE hawk_val_t* hawk_rtx_getgbl (hawk_rtx_t* rtx, int id)
 {
 	HAWK_ASSERT (id >= 0 && id < (int)HAWK_ARR_SIZE(rtx->hawk->parse.gbls));
-	return RTX_STACK_GBL(rtx, id);
+	return HAWK_RTX_STACK_GBL(rtx, id);
 }
 
 const hawk_oocs_t* hawk_rtx_getsubsep (hawk_rtx_t* rtx)
@@ -244,7 +244,7 @@ static int set_global (hawk_rtx_t* rtx, int idx, hawk_nde_var_t* var, hawk_val_t
 	hawk_rtx_ecb_t* ecb;
 	hawk_val_type_t vtype, old_vtype;
 
-	old = RTX_STACK_GBL (rtx, idx);
+	old = HAWK_RTX_STACK_GBL (rtx, idx);
 
 	vtype = HAWK_RTX_GETVALTYPE (rtx, val);
 	old_vtype = HAWK_RTX_GETVALTYPE (rtx, old);
@@ -645,7 +645,7 @@ static int set_global (hawk_rtx_t* rtx, int idx, hawk_nde_var_t* var, hawk_val_t
 	}
 
 	hawk_rtx_refdownval (rtx, old);
-	RTX_STACK_GBL(rtx,idx) = val;
+	HAWK_RTX_STACK_GBL(rtx,idx) = val;
 	hawk_rtx_refupval (rtx, val);
 
 	for (ecb = (rtx)->ecb; ecb; ecb = ecb->next)
@@ -658,8 +658,8 @@ static int set_global (hawk_rtx_t* rtx, int idx, hawk_nde_var_t* var, hawk_val_t
 
 HAWK_INLINE void hawk_rtx_setretval (hawk_rtx_t* rtx, hawk_val_t* val)
 {
-	hawk_rtx_refdownval (rtx, RTX_STACK_RETVAL(rtx));
-	RTX_STACK_RETVAL(rtx) = val;
+	hawk_rtx_refdownval (rtx, HAWK_RTX_STACK_RETVAL(rtx));
+	HAWK_RTX_STACK_RETVAL(rtx) = val;
 	/* should use the same trick as run_return */
 	hawk_rtx_refupval (rtx, val);
 }
@@ -1010,7 +1010,7 @@ static int init_rtx (hawk_rtx_t* rtx, hawk_t* awk, hawk_rio_cbs_t* rio)
 		HAWK_HTB_SIZER_DEFAULT,
 		HAWK_HTB_HASHER_DEFAULT
 	};
-	hawk_oow_t stack_limit;
+	hawk_oow_t stack_limit, i;
 
 	rtx->_gem = awk->_gem;
 	rtx->hawk = awk;
@@ -1034,11 +1034,12 @@ static int init_rtx (hawk_rtx_t* rtx, hawk_t* awk, hawk_rio_cbs_t* rio)
 
 	/* initialize circular doubly-linked list */
 	rtx->gc.collecting = 0;
-	rtx->gc.all_count = 0;
-	rtx->gc.all.gc_next = &rtx->gc.all;
-	rtx->gc.all.gc_prev = &rtx->gc.all;
-	rtx->gc.saved.gc_next = &rtx->gc.saved;
-	rtx->gc.saved.gc_prev = &rtx->gc.saved;
+	for (i = 0; i < HAWK_COUNTOF(rtx->gc.g); i++)
+	{
+		rtx->gc.c[i] = 0;
+		rtx->gc.g[i].gc_next = &rtx->gc.g[i];
+		rtx->gc.g[i].gc_prev = &rtx->gc.g[i];
+	}
 
 	rtx->inrec.buf_pos = 0;
 	rtx->inrec.buf_len = 0;
@@ -1338,7 +1339,7 @@ static HAWK_INLINE int __raw_push (hawk_rtx_t* rtx, void* val)
 		void** tmp;
 		hawk_oow_t n;
 
-		n = rtx->stack_limit + RTX_STACK_INCREMENT;
+		n = rtx->stack_limit + HAWK_RTX_STACK_INCREMENT;
 
 		tmp = (void**)hawk_rtx_reallocmem(rtx, rtx->stack, n * HAWK_SIZEOF(void*)); 
 		if (!tmp) return -1;
@@ -1438,7 +1439,7 @@ static int defaultify_globals (hawk_rtx_t* rtx)
 		
 		hawk_rtx_refupval (rtx, tmp);
 
-		HAWK_ASSERT (RTX_STACK_GBL(rtx,gtab[i].idx) == hawk_val_nil);
+		HAWK_ASSERT (HAWK_RTX_STACK_GBL(rtx,gtab[i].idx) == hawk_val_nil);
 
 		if (hawk_rtx_setgbl(rtx, gtab[i].idx, tmp) == -1)
 		{
@@ -1465,9 +1466,9 @@ static void refdown_globals (hawk_rtx_t* rtx, int pop)
 	while (ngbls > 0)
 	{
 		--ngbls;
-		hawk_rtx_refdownval (rtx, RTX_STACK_GBL(rtx,ngbls));
+		hawk_rtx_refdownval (rtx, HAWK_RTX_STACK_GBL(rtx,ngbls));
 		if (pop) __raw_pop (rtx);
-		else RTX_STACK_GBL(rtx,ngbls) = hawk_val_nil;
+		else HAWK_RTX_STACK_GBL(rtx,ngbls) = hawk_val_nil;
 	}
 }
 
@@ -1497,7 +1498,7 @@ static void capture_retval_on_exit (void* arg)
 	struct capture_retval_data_t* data;
 
 	data = (struct capture_retval_data_t*)arg;
-	data->val = RTX_STACK_RETVAL(data->rtx);
+	data->val = HAWK_RTX_STACK_RETVAL(data->rtx);
 	hawk_rtx_refupval (data->rtx, data->val);
 }
 
@@ -1517,7 +1518,7 @@ static int enter_stack_frame (hawk_rtx_t* rtx)
 	/* secure space for a return value */
 	if (HAWK_UNLIKELY(__raw_push(rtx,hawk_val_nil) <= -1)) goto oops;
 	
-	/* secure space for RTX_STACK_NARGS */
+	/* secure space for HAWK_RTX_STACK_NARGS */
 	if (HAWK_UNLIKELY(__raw_push(rtx,hawk_val_nil) <= -1)) goto oops;
 
 	/* let the stack top remembered be the base of a new stack frame */
@@ -1551,7 +1552,7 @@ static hawk_val_t* run_bpae_loop (hawk_rtx_t* rtx)
 
 	/* set nargs to zero */
 	nargs = 0;
-	RTX_STACK_NARGS(rtx) = (void*)nargs;
+	HAWK_RTX_STACK_NARGS(rtx) = (void*)nargs;
 
 	/* execute the BEGIN block */
 	for (nde = rtx->hawk->tree.begin; 
@@ -1632,13 +1633,13 @@ static hawk_val_t* run_bpae_loop (hawk_rtx_t* rtx)
 	/* derefrence all arguments. however, there should be no arguments 
 	 * pushed to the stack as asserted below. we didn't push any arguments
 	 * for BEGIN/pattern action/END block execution.*/
-	nargs = (hawk_oow_t)RTX_STACK_NARGS(rtx);
+	nargs = (hawk_oow_t)HAWK_RTX_STACK_NARGS(rtx);
 	HAWK_ASSERT (nargs == 0);
 	for (i = 0; i < nargs; i++) 
-		hawk_rtx_refdownval (rtx, RTX_STACK_ARG(rtx,i));
+		hawk_rtx_refdownval (rtx, HAWK_RTX_STACK_ARG(rtx,i));
 
 	/* get the return value in the current stack frame */
-	retv = RTX_STACK_RETVAL(rtx);
+	retv = HAWK_RTX_STACK_RETVAL(rtx);
 
 	if (ret <= -1)
 	{
@@ -2189,7 +2190,7 @@ static HAWK_INLINE int run_block0 (hawk_rtx_t* rtx, hawk_nde_blk_t* nde)
 	while (nlcls > 0)
 	{
 		--nlcls;
-		hawk_rtx_refdownval (rtx, RTX_STACK_LCL(rtx, nlcls));
+		hawk_rtx_refdownval (rtx, HAWK_RTX_STACK_LCL(rtx, nlcls));
 		__raw_pop (rtx);
 	}
 
@@ -2722,8 +2723,8 @@ static int run_return (hawk_rtx_t* rtx, hawk_nde_return_t* nde)
 			}
 		}
 
-		hawk_rtx_refdownval (rtx, RTX_STACK_RETVAL(rtx));
-		RTX_STACK_RETVAL(rtx) = val;
+		hawk_rtx_refdownval (rtx, HAWK_RTX_STACK_RETVAL(rtx));
+		HAWK_RTX_STACK_RETVAL(rtx) = val;
 
 		/* NOTE: see eval_call() for the trick */
 		hawk_rtx_refupval (rtx, val); 
@@ -2746,8 +2747,8 @@ static int run_exit (hawk_rtx_t* rtx, hawk_nde_exit_t* nde)
 		val = eval_expression(rtx, nde->val);
 		if (HAWK_UNLIKELY(!val)) return -1;
 
-		hawk_rtx_refdownval (rtx, RTX_STACK_RETVAL_GBL(rtx));
-		RTX_STACK_RETVAL_GBL(rtx) = val; /* global return value */
+		hawk_rtx_refdownval (rtx, HAWK_RTX_STACK_RETVAL_GBL(rtx));
+		HAWK_RTX_STACK_RETVAL_GBL(rtx) = val; /* global return value */
 
 		hawk_rtx_refupval (rtx, val);
 	}
@@ -2945,16 +2946,16 @@ static int run_delete_unnamed (hawk_rtx_t* rtx, hawk_nde_var_t* var)
 	{
 		case HAWK_NDE_GBL:
 		case HAWK_NDE_GBLIDX:
-			val = RTX_STACK_GBL(rtx,var->id.idxa);
+			val = HAWK_RTX_STACK_GBL(rtx,var->id.idxa);
 			break;
 	
 		case HAWK_NDE_LCL:
 		case HAWK_NDE_LCLIDX:
-			val = RTX_STACK_LCL(rtx,var->id.idxa);
+			val = HAWK_RTX_STACK_LCL(rtx,var->id.idxa);
 			break;
 
 		default:
-			val = RTX_STACK_ARG(rtx,var->id.idxa);
+			val = HAWK_RTX_STACK_ARG(rtx,var->id.idxa);
 			break;
 	}
 
@@ -2998,12 +2999,12 @@ static int run_delete_unnamed (hawk_rtx_t* rtx, hawk_nde_var_t* var)
 
 			case HAWK_NDE_LCL:
 			case HAWK_NDE_LCLIDX:
-				RTX_STACK_LCL(rtx,var->id.idxa) = tmp;
+				HAWK_RTX_STACK_LCL(rtx,var->id.idxa) = tmp;
 				hawk_rtx_refupval (rtx, tmp);
 				break;
 
 			default:
-				RTX_STACK_ARG(rtx,var->id.idxa) = tmp;
+				HAWK_RTX_STACK_ARG(rtx,var->id.idxa) = tmp;
 				hawk_rtx_refupval (rtx, tmp);
 				break;
 		}
@@ -3086,15 +3087,15 @@ static int reset_variable (hawk_rtx_t* rtx, hawk_nde_var_t* var)
 			switch (var->type)
 			{
 				case HAWK_NDE_GBL:
-					val = RTX_STACK_GBL(rtx,var->id.idxa);
+					val = HAWK_RTX_STACK_GBL(rtx,var->id.idxa);
 					break;
 
 				case HAWK_NDE_LCL:
-					val = RTX_STACK_LCL(rtx,var->id.idxa);
+					val = HAWK_RTX_STACK_LCL(rtx,var->id.idxa);
 					break;
 
 				case HAWK_NDE_ARG:
-					val = RTX_STACK_ARG(rtx,var->id.idxa);
+					val = HAWK_RTX_STACK_ARG(rtx,var->id.idxa);
 					break;
 			}
 
@@ -3106,15 +3107,15 @@ static int reset_variable (hawk_rtx_t* rtx, hawk_nde_var_t* var)
 				switch (var->type)
 				{
 					case HAWK_NDE_GBL:
-						RTX_STACK_GBL(rtx,var->id.idxa) = hawk_val_nil;
+						HAWK_RTX_STACK_GBL(rtx,var->id.idxa) = hawk_val_nil;
 						break;
 					
 					case HAWK_NDE_LCL:
-						RTX_STACK_LCL(rtx,var->id.idxa) = hawk_val_nil;
+						HAWK_RTX_STACK_LCL(rtx,var->id.idxa) = hawk_val_nil;
 						break;
 
 					case HAWK_NDE_ARG:
-						RTX_STACK_ARG(rtx,var->id.idxa) = hawk_val_nil;
+						HAWK_RTX_STACK_ARG(rtx,var->id.idxa) = hawk_val_nil;
 						break;
 				}
 			}
@@ -3825,7 +3826,7 @@ static hawk_val_t* do_assignment_nonidx (hawk_rtx_t* rtx, hawk_nde_var_t* var, h
 
 		case HAWK_NDE_LCL:
 		{
-			hawk_val_t* old = RTX_STACK_LCL(rtx,var->id.idxa);
+			hawk_val_t* old = HAWK_RTX_STACK_LCL(rtx,var->id.idxa);
 
 			if (!(rtx->hawk->opt.trait & HAWK_FLEXMAP))
 			{
@@ -3848,14 +3849,14 @@ static hawk_val_t* do_assignment_nonidx (hawk_rtx_t* rtx, hawk_nde_var_t* var, h
 			}
 
 			hawk_rtx_refdownval (rtx, old);
-			RTX_STACK_LCL(rtx,var->id.idxa) = val;
+			HAWK_RTX_STACK_LCL(rtx,var->id.idxa) = val;
 			hawk_rtx_refupval (rtx, val);
 			break;
 		}
 
 		case HAWK_NDE_ARG:
 		{
-			hawk_val_t* old = RTX_STACK_ARG(rtx,var->id.idxa);
+			hawk_val_t* old = HAWK_RTX_STACK_ARG(rtx,var->id.idxa);
 
 			if (!(rtx->hawk->opt.trait & HAWK_FLEXMAP))
 			{
@@ -3878,7 +3879,7 @@ static hawk_val_t* do_assignment_nonidx (hawk_rtx_t* rtx, hawk_nde_var_t* var, h
 			}
 
 			hawk_rtx_refdownval (rtx, old);
-			RTX_STACK_ARG(rtx,var->id.idxa) = val;
+			HAWK_RTX_STACK_ARG(rtx,var->id.idxa) = val;
 			hawk_rtx_refupval (rtx, val);
 			break;
 		}
@@ -3917,15 +3918,15 @@ retry:
 		}
 
 		case HAWK_NDE_GBLIDX:
-			map = (hawk_val_map_t*)RTX_STACK_GBL(rtx,var->id.idxa);
+			map = (hawk_val_map_t*)HAWK_RTX_STACK_GBL(rtx,var->id.idxa);
 			break;
 
 		case HAWK_NDE_LCLIDX:
-			map = (hawk_val_map_t*)RTX_STACK_LCL(rtx,var->id.idxa);
+			map = (hawk_val_map_t*)HAWK_RTX_STACK_LCL(rtx,var->id.idxa);
 			break;
 
 		default:  /* HAWK_NDE_ARGIDX */
-			map = (hawk_val_map_t*)RTX_STACK_ARG(rtx,var->id.idxa);
+			map = (hawk_val_map_t*)HAWK_RTX_STACK_ARG(rtx,var->id.idxa);
 			break;
 	} 
 
@@ -3977,13 +3978,13 @@ retry:
 
 			case HAWK_NDE_LCLIDX:
 				hawk_rtx_refdownval (rtx, (hawk_val_t*)map);
-				RTX_STACK_LCL(rtx,var->id.idxa) = tmp;
+				HAWK_RTX_STACK_LCL(rtx,var->id.idxa) = tmp;
 				hawk_rtx_refupval (rtx, tmp);
 				break;
 			
 			default: /* HAWK_NDE_ARGIDX */
 				hawk_rtx_refdownval (rtx, (hawk_val_t*)map);
-				RTX_STACK_ARG(rtx,var->id.idxa) = tmp;
+				HAWK_RTX_STACK_ARG(rtx,var->id.idxa) = tmp;
 				hawk_rtx_refupval (rtx, tmp);
 				break;
 		}
@@ -6078,9 +6079,9 @@ static hawk_val_t* eval_fncall_var (hawk_rtx_t* rtx, hawk_nde_t* nde)
 }
 
 /* run->stack_base has not been set for this  
- * stack frame. so the RTX_STACK_ARG macro cannot be used as in 
- * hawk_rtx_refdownval (run, RTX_STACK_ARG(run,nargs));*/ 
-#define UNWIND_RTX_STACK_ARG(rtx,nargs) \
+ * stack frame. so the HAWK_RTX_STACK_ARG macro cannot be used as in 
+ * hawk_rtx_refdownval (run, HAWK_RTX_STACK_ARG(run,nargs));*/ 
+#define UNWIND_HAWK_RTX_STACK_ARG(rtx,nargs) \
 	do { \
 		while ((nargs) > 0) \
 		{ \
@@ -6090,7 +6091,7 @@ static hawk_val_t* eval_fncall_var (hawk_rtx_t* rtx, hawk_nde_t* nde)
 		} \
 	} while (0)
 
-#define UNWIND_RTX_STACK_BASE(rtx) \
+#define UNWIND_HAWK_RTX_STACK_BASE(rtx) \
 	do { \
 		__raw_pop (rtx); /* nargs */ \
 		__raw_pop (rtx); /* return */ \
@@ -6100,8 +6101,8 @@ static hawk_val_t* eval_fncall_var (hawk_rtx_t* rtx, hawk_nde_t* nde)
 
 #define UNWIND_RTX_STACK(rtx,nargs) \
 	do { \
-		UNWIND_RTX_STACK_ARG (rtx,nargs); \
-		UNWIND_RTX_STACK_BASE (rtx); \
+		UNWIND_HAWK_RTX_STACK_ARG (rtx,nargs); \
+		UNWIND_HAWK_RTX_STACK_BASE (rtx); \
 	} while (0)
 
 static hawk_val_t* __eval_call (
@@ -6200,7 +6201,7 @@ static hawk_val_t* __eval_call (
 	nargs = argpusher(rtx, call, apdata);
 	if (nargs == (hawk_oow_t)-1)
 	{
-		UNWIND_RTX_STACK_BASE (rtx);
+		UNWIND_HAWK_RTX_STACK_BASE (rtx);
 		return HAWK_NULL;
 	}
 
@@ -6247,7 +6248,7 @@ static hawk_val_t* __eval_call (
 	}
 
 	rtx->stack_base = saved_stack_top;
-	RTX_STACK_NARGS(rtx) = (void*)nargs;
+	HAWK_RTX_STACK_NARGS(rtx) = (void*)nargs;
 
 #if defined(DEBUG_RUN)
 	hawk_logfmt (hawk_rtx_gethawk(rtx), HAWK_T("running function body\n"));
@@ -6279,7 +6280,7 @@ static hawk_val_t* __eval_call (
 	}
 
 	/* refdown args in the rtx.stack */
-	nargs = (hawk_oow_t)RTX_STACK_NARGS(rtx);
+	nargs = (hawk_oow_t)HAWK_RTX_STACK_NARGS(rtx);
 #if defined(DEBUG_RUN)
 	hawk_logfmt (hawk_rtx_gethawk(rtx), HAWK_T("block rtx complete nargs = %d\n"), (int)nargs); 
 #endif
@@ -6318,23 +6319,23 @@ static hawk_val_t* __eval_call (
 				rtx->stack_base = cur_stack_base; /* UGLY */
 
 				HAWK_RTX_INIT_REF_VAL (&refv, p->type - HAWK_NDE_NAMED, ref, 9); /* initialize a fake reference variable. 9 chosen randomly */
-				hawk_rtx_setrefval (rtx, &refv, RTX_STACK_ARG(rtx, i));
+				hawk_rtx_setrefval (rtx, &refv, HAWK_RTX_STACK_ARG(rtx, i));
 			}
 
-			hawk_rtx_refdownval (rtx, RTX_STACK_ARG(rtx,i));
+			hawk_rtx_refdownval (rtx, HAWK_RTX_STACK_ARG(rtx,i));
 			p = p->next;
 		}
 
 		for (; i < nargs; i++)
 		{
-			hawk_rtx_refdownval (rtx, RTX_STACK_ARG(rtx,i));
+			hawk_rtx_refdownval (rtx, HAWK_RTX_STACK_ARG(rtx,i));
 		}
 	}
 	else
 	{
 		for (i = 0; i < nargs; i++)
 		{
-			hawk_rtx_refdownval (rtx, RTX_STACK_ARG(rtx,i));
+			hawk_rtx_refdownval (rtx, HAWK_RTX_STACK_ARG(rtx,i));
 		}
 	}
 
@@ -6342,7 +6343,7 @@ static hawk_val_t* __eval_call (
 	hawk_logfmt (hawk_rtx_gethawk(rtx), HAWK_T("got return value\n"));
 #endif
 
-	v = RTX_STACK_RETVAL(rtx);
+	v = HAWK_RTX_STACK_RETVAL(rtx);
 	if (n == -1)
 	{
 		if (hawk_rtx_geterrnum(rtx) == HAWK_ENOERR && errhandler != HAWK_NULL) 
@@ -6351,19 +6352,19 @@ static hawk_val_t* __eval_call (
 			 * invoked from hawk_rtx_call(). Under this 
 			 * circumstance, this stack frame is the first
 			 * activated and the stack base is the first element
-			 * after the global variables. so RTX_STACK_RETVAL(rtx)
-			 * effectively becomes RTX_STACK_RETVAL_GBL(rtx).
+			 * after the global variables. so HAWK_RTX_STACK_RETVAL(rtx)
+			 * effectively becomes HAWK_RTX_STACK_RETVAL_GBL(rtx).
 			 * As __eval_call() returns HAWK_NULL on error and
-			 * the reference count of RTX_STACK_RETVAL(rtx) should be
+			 * the reference count of HAWK_RTX_STACK_RETVAL(rtx) should be
 			 * decremented, it can't get the return value
 			 * if it turns out to be terminated by exit().
 			 * The return value could be destroyed by then.
 			 * Unlikely, rtx_bpae_loop() just checks if rtx->errinf.num
-			 * is HAWK_ENOERR and gets RTX_STACK_RETVAL_GBL(rtx)
+			 * is HAWK_ENOERR and gets HAWK_RTX_STACK_RETVAL_GBL(rtx)
 			 * to determine if it is terminated by exit().
 			 *
 			 * The handler capture_retval_on_exit() 
-			 * increments the reference of RTX_STACK_RETVAL(rtx)
+			 * increments the reference of HAWK_RTX_STACK_RETVAL(rtx)
 			 * and stores the pointer into accompanying space.
 			 * This way, the return value is preserved upon
 			 * termination by exit() out to the caller.
@@ -6375,7 +6376,7 @@ static hawk_val_t* __eval_call (
 		 * has to return a error, the return value is just
 		 * destroyed and replaced by nil */
 		hawk_rtx_refdownval (rtx, v);
-		RTX_STACK_RETVAL(rtx) = hawk_val_nil;
+		HAWK_RTX_STACK_RETVAL(rtx) = hawk_val_nil;
 	}
 	else
 	{
@@ -6415,7 +6416,7 @@ static hawk_oow_t push_arg_from_vals (hawk_rtx_t* rtx, hawk_nde_fncall_t* call, 
 			v = hawk_rtx_makerefval(rtx, HAWK_VAL_REF_LCL, ref); /* this type(HAWK_VAL_REF_LCL) is fake */
 			if (!v)
 			{
-				UNWIND_RTX_STACK_ARG (rtx, nargs);
+				UNWIND_HAWK_RTX_STACK_ARG (rtx, nargs);
 				ADJERR_LOC (rtx, &call->loc);
 				return (hawk_oow_t)-1;
 			}
@@ -6425,7 +6426,7 @@ static hawk_oow_t push_arg_from_vals (hawk_rtx_t* rtx, hawk_nde_fncall_t* call, 
 				hawk_rtx_refupval (rtx, v);
 				hawk_rtx_refdownval (rtx, v);
 
-				UNWIND_RTX_STACK_ARG (rtx, nargs);
+				UNWIND_HAWK_RTX_STACK_ARG (rtx, nargs);
 				ADJERR_LOC (rtx, &call->loc);
 				return (hawk_oow_t)-1;
 			}
@@ -6444,7 +6445,7 @@ static hawk_oow_t push_arg_from_vals (hawk_rtx_t* rtx, hawk_nde_fncall_t* call, 
 				hawk_rtx_refupval (rtx, pafv->args[nargs]);
 				hawk_rtx_refdownval (rtx, pafv->args[nargs]);
 
-				UNWIND_RTX_STACK_ARG (rtx, nargs);
+				UNWIND_HAWK_RTX_STACK_ARG (rtx, nargs);
 				ADJERR_LOC (rtx, &call->loc);
 				return (hawk_oow_t)-1;
 			}
@@ -6490,7 +6491,7 @@ static hawk_oow_t push_arg_from_nde (hawk_rtx_t* rtx, hawk_nde_fncall_t* call, v
 
 			if (get_reference(rtx, p, &ref) <= -1)
 			{
-				UNWIND_RTX_STACK_ARG (rtx, nargs);
+				UNWIND_HAWK_RTX_STACK_ARG (rtx, nargs);
 				return (hawk_oow_t)-1;
 			}
 
@@ -6509,7 +6510,7 @@ static hawk_oow_t push_arg_from_nde (hawk_rtx_t* rtx, hawk_nde_fncall_t* call, v
 
 		if (!v)
 		{
-			UNWIND_RTX_STACK_ARG (rtx, nargs);
+			UNWIND_HAWK_RTX_STACK_ARG (rtx, nargs);
 			return (hawk_oow_t)-1;
 		}
 
@@ -6523,7 +6524,7 @@ static hawk_oow_t push_arg_from_nde (hawk_rtx_t* rtx, hawk_nde_fncall_t* call, v
 			hawk_rtx_refupval (rtx, v);
 			hawk_rtx_refdownval (rtx, v);
 
-			UNWIND_RTX_STACK_ARG (rtx, nargs);
+			UNWIND_HAWK_RTX_STACK_ARG (rtx, nargs);
 			ADJERR_LOC (rtx, &call->loc);
 			return (hawk_oow_t)-1;
 		}
@@ -6566,16 +6567,16 @@ static int get_reference (hawk_rtx_t* rtx, hawk_nde_t* nde, hawk_val_t*** ref)
 		}
 		
 		case HAWK_NDE_GBL:
-			/* *ref = (hawk_val_t**)&RTX_STACK_GBL(rtx,tgt->id.idxa); */
+			/* *ref = (hawk_val_t**)&HAWK_RTX_STACK_GBL(rtx,tgt->id.idxa); */
 			*ref = (hawk_val_t**)((hawk_oow_t)tgt->id.idxa);
 			return 0;
 
 		case HAWK_NDE_LCL:
-			*ref = (hawk_val_t**)&RTX_STACK_LCL(rtx,tgt->id.idxa);
+			*ref = (hawk_val_t**)&HAWK_RTX_STACK_LCL(rtx,tgt->id.idxa);
 			return 0;
 
 		case HAWK_NDE_ARG:
-			*ref = (hawk_val_t**)&RTX_STACK_ARG(rtx,tgt->id.idxa);
+			*ref = (hawk_val_t**)&HAWK_RTX_STACK_ARG(rtx,tgt->id.idxa);
 			return 0;
 
 		case HAWK_NDE_NAMEDIDX:
@@ -6600,19 +6601,19 @@ static int get_reference (hawk_rtx_t* rtx, hawk_nde_t* nde, hawk_val_t*** ref)
 		}
 		
 		case HAWK_NDE_GBLIDX:
-			tmp = get_reference_indexed(rtx, tgt, (hawk_val_t**)&RTX_STACK_GBL(rtx,tgt->id.idxa));
+			tmp = get_reference_indexed(rtx, tgt, (hawk_val_t**)&HAWK_RTX_STACK_GBL(rtx,tgt->id.idxa));
 			if (tmp == HAWK_NULL) return -1;
 			*ref = tmp;
 			return 0;
 
 		case HAWK_NDE_LCLIDX:
-			tmp = get_reference_indexed(rtx, tgt, (hawk_val_t**)&RTX_STACK_LCL(rtx,tgt->id.idxa));
+			tmp = get_reference_indexed(rtx, tgt, (hawk_val_t**)&HAWK_RTX_STACK_LCL(rtx,tgt->id.idxa));
 			if (tmp == HAWK_NULL) return -1;
 			*ref = tmp;
 			return 0;
 
 		case HAWK_NDE_ARGIDX:
-			tmp = get_reference_indexed(rtx, tgt, (hawk_val_t**)&RTX_STACK_ARG(rtx,tgt->id.idxa));
+			tmp = get_reference_indexed(rtx, tgt, (hawk_val_t**)&HAWK_RTX_STACK_ARG(rtx,tgt->id.idxa));
 			if (tmp == HAWK_NULL) return -1;
 			*ref = tmp;
 			return 0;
@@ -6793,17 +6794,17 @@ static hawk_val_t* eval_named (hawk_rtx_t* rtx, hawk_nde_t* nde)
 
 static hawk_val_t* eval_gbl (hawk_rtx_t* rtx, hawk_nde_t* nde)
 {
-	return RTX_STACK_GBL(rtx,((hawk_nde_var_t*)nde)->id.idxa);
+	return HAWK_RTX_STACK_GBL(rtx,((hawk_nde_var_t*)nde)->id.idxa);
 }
 
 static hawk_val_t* eval_lcl (hawk_rtx_t* rtx, hawk_nde_t* nde)
 {
-	return RTX_STACK_LCL(rtx,((hawk_nde_var_t*)nde)->id.idxa);
+	return HAWK_RTX_STACK_LCL(rtx,((hawk_nde_var_t*)nde)->id.idxa);
 }
 
 static hawk_val_t* eval_arg (hawk_rtx_t* rtx, hawk_nde_t* nde)
 {
-	return RTX_STACK_ARG(rtx,((hawk_nde_var_t*)nde)->id.idxa);
+	return HAWK_RTX_STACK_ARG(rtx,((hawk_nde_var_t*)nde)->id.idxa);
 }
 
 static hawk_val_t* eval_indexed (hawk_rtx_t* rtx, hawk_nde_var_t* nde, hawk_val_t** val)
@@ -6873,17 +6874,17 @@ static hawk_val_t* eval_namedidx (hawk_rtx_t* rtx, hawk_nde_t* nde)
 
 static hawk_val_t* eval_gblidx (hawk_rtx_t* rtx, hawk_nde_t* nde)
 {
-	return eval_indexed(rtx, (hawk_nde_var_t*)nde, (hawk_val_t**)&RTX_STACK_GBL(rtx,((hawk_nde_var_t*)nde)->id.idxa));
+	return eval_indexed(rtx, (hawk_nde_var_t*)nde, (hawk_val_t**)&HAWK_RTX_STACK_GBL(rtx,((hawk_nde_var_t*)nde)->id.idxa));
 }
 
 static hawk_val_t* eval_lclidx (hawk_rtx_t* rtx, hawk_nde_t* nde)
 {
-	return eval_indexed(rtx, (hawk_nde_var_t*)nde, (hawk_val_t**)&RTX_STACK_LCL(rtx,((hawk_nde_var_t*)nde)->id.idxa));
+	return eval_indexed(rtx, (hawk_nde_var_t*)nde, (hawk_val_t**)&HAWK_RTX_STACK_LCL(rtx,((hawk_nde_var_t*)nde)->id.idxa));
 }
 
 static hawk_val_t* eval_argidx (hawk_rtx_t* rtx, hawk_nde_t* nde)
 {
-	return eval_indexed(rtx, (hawk_nde_var_t*)nde, (hawk_val_t**)&RTX_STACK_ARG(rtx,((hawk_nde_var_t*)nde)->id.idxa));
+	return eval_indexed(rtx, (hawk_nde_var_t*)nde, (hawk_val_t**)&HAWK_RTX_STACK_ARG(rtx,((hawk_nde_var_t*)nde)->id.idxa));
 }
 
 static hawk_val_t* eval_pos (hawk_rtx_t* rtx, hawk_nde_t* nde)

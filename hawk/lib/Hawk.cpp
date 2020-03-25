@@ -1966,7 +1966,7 @@ int Hawk::dispatch_function (Run* run, const hawk_fnc_info_t* fi)
 				case hawk_val_ref_t::HAWK_VAL_REF_GBL:
 				{
 					hawk_oow_t idx = (hawk_oow_t)ref->adr;
-					hawk_val_t* val = (hawk_val_t*)RTX_STACK_GBL(run->rtx, idx);
+					hawk_val_t* val = (hawk_val_t*)HAWK_RTX_STACK_GBL(run->rtx, idx);
 					xx = args[i].setVal (run, val);
 					break;
 				}

@@ -5254,7 +5254,7 @@ static hawk_nde_t* parse_variable (hawk_t* awk, const hawk_loc_t* xloc, hawk_nde
 
 	if (MATCH(awk,TOK_LPAREN))
 	{
-	#if defined(ENABLE_FEATURE_FUN_AS_VALUE)
+	#if defined(HAWK_ENABLE_FUN_AS_VALUE)
 /*
 	if (MATCH(awk,TOK_LPAREN) && 
 	    (!(awk->opt.trait & HAWK_BLANKCONCAT) || 
@@ -5296,7 +5296,7 @@ static hawk_nde_t* parse_variable (hawk_t* awk, const hawk_loc_t* xloc, hawk_nde
 	nde->id.idxa = idxa;
 	nde->idx = HAWK_NULL;
 
-#if defined(ENABLE_FEATURE_FUN_AS_VALUE)
+#if defined(HAWK_ENABLE_FUN_AS_VALUE)
 	if (!is_fcv) return (hawk_nde_t*)nde;
 	return parse_fncall(awk, (const hawk_oocs_t*)nde, HAWK_NULL, xloc, FNCALL_FLAG_VAR);
 #else
@@ -5357,7 +5357,7 @@ oops:
 	return -1;
 }
 
-#if defined(ENABLE_FEATURE_FUN_AS_VALUE)
+#if defined(HAWK_ENABLE_FUN_AS_VALUE)
 static hawk_nde_t* parse_fun_as_value  (hawk_t* awk, const hawk_oocs_t* name, const hawk_loc_t* xloc, hawk_fun_t* funptr)
 {
 	hawk_nde_fun_t* nde;
@@ -5461,7 +5461,7 @@ static hawk_nde_t* parse_primary_ident_noseg (hawk_t* awk, const hawk_loc_t* xlo
 			else
 			{
 				/* function name appeared without (). used as a value without invocation */
-			#if defined(ENABLE_FEATURE_FUN_AS_VALUE)
+			#if defined(HAWK_ENABLE_FUN_AS_VALUE)
 				nde = parse_fun_as_value(awk, name, xloc, funptr);
 			#else
 				hawk_seterrfmt (awk, xloc, HAWK_EFUNRED, HAWK_T("function '%.*js' redefined"), name->len, name->ptr);
@@ -5490,7 +5490,7 @@ static hawk_nde_t* parse_primary_ident_noseg (hawk_t* awk, const hawk_loc_t* xlo
 				if (hawk_htb_search(awk->parse.named, name->ptr, name->len) != HAWK_NULL)
 				{
 					/* the function call conflicts with a named variable */
-			#if defined(ENABLE_FEATURE_FUN_AS_VALUE)
+			#if defined(HAWK_ENABLE_FUN_AS_VALUE)
 					is_fncall_var = 1;
 					goto named_var;
 			#else
@@ -5506,7 +5506,7 @@ static hawk_nde_t* parse_primary_ident_noseg (hawk_t* awk, const hawk_loc_t* xlo
 			{
 				hawk_nde_var_t* tmp;
 
-			#if defined(ENABLE_FEATURE_FUN_AS_VALUE)
+			#if defined(HAWK_ENABLE_FUN_AS_VALUE)
 			named_var:
 			#endif
 
@@ -5535,7 +5535,7 @@ static hawk_nde_t* parse_primary_ident_noseg (hawk_t* awk, const hawk_loc_t* xlo
 						tmp->idx = HAWK_NULL;
 						nde = (hawk_nde_t*)tmp;
 
-			#if defined(ENABLE_FEATURE_FUN_AS_VALUE)
+			#if defined(HAWK_ENABLE_FUN_AS_VALUE)
 						if (is_fncall_var) 
 							nde = parse_fncall(awk, (const hawk_oocs_t*)nde, HAWK_NULL, xloc, FNCALL_FLAG_VAR);
 			#endif
