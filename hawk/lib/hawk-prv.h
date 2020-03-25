@@ -406,8 +406,8 @@ struct hawk_rtx_t
 	struct
 	{
 		int collecting;
-		hawk_oow_t c[HAWK_GC_NUM_GENS];
-		hawk_gch_t g[HAWK_GC_NUM_GENS];
+		hawk_oow_t c[HAWK_GC_NUM_GENS]; /* number of values in each list */
+		hawk_gch_t g[HAWK_GC_NUM_GENS]; /* lists of values under gc management */
 	} gc;
 
 	hawk_nde_blk_t* active_block;
