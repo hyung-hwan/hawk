@@ -499,7 +499,7 @@ int hawk_rtx_truncrec (hawk_rtx_t* rtx, hawk_oow_t nflds)
 
 	if (nflds > 1)
 	{
-		v = RTX_STACK_GBL(rtx, HAWK_GBL_OFS);
+		v = HAWK_RTX_STACK_GBL(rtx, HAWK_GBL_OFS);
 		hawk_rtx_refupval (rtx, v);
 		vtype = HAWK_RTX_GETVALTYPE(rtx, v);
 

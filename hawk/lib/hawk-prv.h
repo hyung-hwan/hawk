@@ -51,15 +51,6 @@ typedef struct hawk_tree_t hawk_tree_t;
 #define HAWK_ENABLE_GC
 #define HAWK_ENABLE_STR_CACHE
 #define HAWK_ENABLE_MBS_CACHE
-
-#define HAWK_STR_CACHE_NUM_BLOCKS 16
-#define HAWK_STR_CACHE_BLOCK_UNIT 16
-#define HAWK_STR_CACHE_BLOCK_SIZE 128
-
-#define HAWK_MBS_CACHE_NUM_BLOCKS 16
-#define HAWK_MBS_CACHE_BLOCK_UNIT 16
-#define HAWK_MBS_CACHE_BLOCK_SIZE 128
-
 /* [NOTE] the function value support implemented is very limited.
  *        it supports very primitive way to call a function via a variable.
  *        only user-defined functions are supported. neither builtin functions
@@ -74,19 +65,40 @@ typedef struct hawk_tree_t hawk_tree_t;
  *   function show(printer, a,b,c) { printer(a, b, c); }  
  *   BEGIN { show(__printer, 10, 20, 30); } ## passing the function value as an argumnet is ok.
  */
-#define ENABLE_FEATURE_FUN_AS_VALUE
+#define HAWK_ENABLE_FUN_AS_VALUE
 
-#define HAWK_MAX_GBLS 9999
-#define HAWK_MAX_LCLS  9999
-#define HAWK_MAX_PARAMS  9999
+/* ------------------------------------------------------------------------ */
 
-#define HAWK_DFL_RTX_STACK_LIMIT 5120
-#define HAWK_MIN_RTX_STACK_LIMIT 512
+/* gc configuration */
+#define HAWK_GC_NUM_GENS (3)
+
+/* string cache configuration */
+#define HAWK_STR_CACHE_NUM_BLOCKS (16)
+#define HAWK_STR_CACHE_BLOCK_UNIT (16)
+#define HAWK_STR_CACHE_BLOCK_SIZE (128)
+
+/* byte string cache configuration */
+#define HAWK_MBS_CACHE_NUM_BLOCKS (16)
+#define HAWK_MBS_CACHE_BLOCK_UNIT (16)
+#define HAWK_MBS_CACHE_BLOCK_SIZE (128)
+
+/* maximum number of globals, locals, parameters allowed in parsing */
+#define HAWK_MAX_GBLS    (9999)
+#define HAWK_MAX_LCLS    (9999)
+#define HAWK_MAX_PARAMS  (9999)
+
+
+/* runtime stack limit */
+#define HAWK_DFL_RTX_STACK_LIMIT (5120)
+#define HAWK_MIN_RTX_STACK_LIMIT (512)
 #if (HAWK_SIZEOF_VOID_P <= 4)
 #	define HAWK_MAX_RTX_STACK_LIMIT ((hawk_oow_t)1 << (HAWK_SIZEOF_VOID_P * 4 + 1))
 #else
 #	define HAWK_MAX_RTX_STACK_LIMIT ((hawk_oow_t)1 << (HAWK_SIZEOF_VOID_P * 4))
 #endif
+
+/* ------------------------------------------------------------------------ */
+
 
 #define HAWK_BYTE_PRINTABLE(x) ((x) <= 0x7F && (x) != '\\' && hawk_is_bch_print(x))
 
@@ -350,13 +362,13 @@ struct hawk_chain_t
 	hawk_chain_t* next;
 };
 
-#define RTX_STACK_AT(rtx,n) ((rtx)->stack[(rtx)->stack_base+(n)])
-#define RTX_STACK_NARGS(rtx) RTX_STACK_AT(rtx,3)
-#define RTX_STACK_ARG(rtx,n) RTX_STACK_AT(rtx,3+1+(n))
-#define RTX_STACK_LCL(rtx,n) RTX_STACK_AT(rtx,3+(hawk_oow_t)RTX_STACK_NARGS(rtx)+1+(n))
-#define RTX_STACK_RETVAL(rtx) RTX_STACK_AT(rtx,2)
-#define RTX_STACK_GBL(rtx,n) ((rtx)->stack[(n)])
-#define RTX_STACK_RETVAL_GBL(rtx) ((rtx)->stack[(rtx)->hawk->tree.ngbls+2])
+#define HAWK_RTX_STACK_AT(rtx,n) ((rtx)->stack[(rtx)->stack_base+(n)])
+#define HAWK_RTX_STACK_NARGS(rtx) HAWK_RTX_STACK_AT(rtx,3)
+#define HAWK_RTX_STACK_ARG(rtx,n) HAWK_RTX_STACK_AT(rtx,3+1+(n))
+#define HAWK_RTX_STACK_LCL(rtx,n) HAWK_RTX_STACK_AT(rtx,3+(hawk_oow_t)HAWK_RTX_STACK_NARGS(rtx)+1+(n))
+#define HAWK_RTX_STACK_RETVAL(rtx) HAWK_RTX_STACK_AT(rtx,2)
+#define HAWK_RTX_STACK_GBL(rtx,n) ((rtx)->stack[(n)])
+#define HAWK_RTX_STACK_RETVAL_GBL(rtx) ((rtx)->stack[(rtx)->hawk->tree.ngbls+2])
 
 struct hawk_rtx_t
 {
@@ -394,9 +406,8 @@ struct hawk_rtx_t
 	struct
 	{
 		int collecting;
-		hawk_oow_t all_count;
-		hawk_gch_t all; /* allocated objects */
-		hawk_gch_t saved; /* objects to preserve */
+		hawk_oow_t c[HAWK_GC_NUM_GENS];
+		hawk_gch_t g[HAWK_GC_NUM_GENS];
 	} gc;
 
 	hawk_nde_blk_t* active_block;
