@@ -211,7 +211,7 @@ static void gc_dump_refs (hawk_rtx_t* rtx, hawk_gch_t* list)
 		hawk_logbfmt (hawk_rtx_gethawk(rtx), HAWK_LOG_STDERR,  "[GC] GCH %p gc_refs %d\n", gch, (int)gch->gc_refs);
 		gch = gch->gc_next;
 	}
-	hawk_logbfmt (hawk_rtx_gethawk(rtx), HAWK_LOG_STDERR, "[GC] all_count => %d\n", (int)rtx->gc.c[0]);
+	hawk_logbfmt (hawk_rtx_gethawk(rtx), HAWK_LOG_STDERR, "[GC] all_count => %d\n", (int)rtx->gc.nv[0]);
 }
 
 static void gc_move_reachables (hawk_gch_t* list, hawk_gch_t* reachable_list)
@@ -299,13 +299,13 @@ static void gc_free_unreachables (hawk_rtx_t* rtx, hawk_gch_t* list)
 		hawk_logbfmt (hawk_rtx_gethawk(rtx), HAWK_LOG_STDERR, "[GC] FREEING UNREACHABLE GCH %p gc_refs %zu v_refs %zu\n", gch, gch->gc_refs, hawk_gch_to_val(gch)->v_refs);
 	#endif
 		/* do what hawk_rtx_freeval() would do without HAWK_RTX_FREEVAL_GC_PRESERVE */
-		rtx->gc.c[0]--;
+		rtx->gc.nv[0]--;
 		gc_unchain_gch (gch);
 		hawk_rtx_freemem (rtx, gch);
 	}
 }
 
-static void gc_collect_garbage (hawk_rtx_t* rtx, int gen)
+static void gc_collect_garbage_in_generation (hawk_rtx_t* rtx, int gen)
 {
 	hawk_oow_t i, newgen;
 	hawk_gch_t reachable;
@@ -338,6 +338,29 @@ static void gc_collect_garbage (hawk_rtx_t* rtx, int gen)
 #endif
 }
 
+#if 0
+static void gc_collect_garbage (hawk_rtx_t* rtx)
+{
+	hawk_oow_t i;
+
+	i = HAWK_COUNTOF(rtx->gc.g); 
+	while (i > 1)
+	{
+		--i;
+		if (rtx->gc.nc[i - 1] > rtx->gc.t[i]) 
+		{
+			gc_collect_garbage_in_generation(rtx, i);
+			rtx->gc.nc[i]++;
+			if (i > 0) rtx->gc.nc[i - 1] = 0;
+			return;
+		}
+	}
+
+	gc_collect_garbage_in_generation(rtx, 0);
+	rtx->gc.nc[0]++;
+}
+#endif
+
 void hawk_rtx_gc (hawk_rtx_t* rtx)
 {
 #if 0
@@ -365,8 +388,10 @@ void hawk_rtx_gc (hawk_rtx_t* rtx)
 #if defined(DEBUG_GC)
 	hawk_logbfmt (hawk_rtx_gethawk(rtx), HAWK_LOG_STDERR,  "[GC] **ended**\n");
 #endif
+
+
 #else
-	gc_collect_garbage (rtx, HAWK_COUNTOF(rtx->gc.g) - 1); /* full garbage collection */
+	gc_collect_garbage_in_generation (rtx, HAWK_COUNTOF(rtx->gc.g) - 1); /* full garbage collection */
 #endif
 }
 
@@ -933,7 +958,7 @@ hawk_rtx_gc(rtx);
 
 #if defined(HAWK_ENABLE_GC)
 	gc_chain_val (&rtx->gc.g[0], (hawk_val_t*)val);
-	rtx->gc.c[0]++;
+	rtx->gc.nv[0]++;
 	val->v_gc = 1;
 	#if defined(DEBUG_GC)
 	hawk_logbfmt (hawk_rtx_gethawk(rtx), HAWK_LOG_STDERR, "[GC] MADE GCH %p VAL %p\n", hawk_val_to_gch(val), val);
@@ -1257,7 +1282,7 @@ void hawk_rtx_freeval (hawk_rtx_t* rtx, hawk_val_t* val, int flags)
 				hawk_map_fini (((hawk_val_map_t*)val)->map);
 				if (!(flags & HAWK_RTX_FREEVAL_GC_PRESERVE))
 				{
-					rtx->gc.c[0]--;
+					rtx->gc.nv[0]--;
 					gc_unchain_val (val);
 					hawk_rtx_freemem (rtx, hawk_val_to_gch(val));
 				}
