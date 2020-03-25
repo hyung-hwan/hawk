@@ -136,24 +136,6 @@ static HAWK_INLINE void gc_chain_val (hawk_gch_t* list, hawk_val_t* v)
 
 static HAWK_INLINE void gc_move_all_gchs (hawk_gch_t* src, hawk_gch_t* dst)
 {
-#if 0
-	/* move src to dst */
-	if (src->gc_next != src)
-	{
-		dst->gc_next = src->gc_next;
-		dst->gc_next->gc_prev = dst;
-		dst->gc_prev = src->gc_prev;
-		dst->gc_prev->gc_next = dst;
-	}
-	else
-	{
-		dst->gc_prev = dst;
-		dst->gc_next = dst;
-	}
-
-	src->gc_prev = src;
-	src->gc_next = src;
-#else
 	/* append src to dst */
 	if (src->gc_next != src)
 	{
@@ -167,7 +149,6 @@ static HAWK_INLINE void gc_move_all_gchs (hawk_gch_t* src, hawk_gch_t* dst)
 	}
 	src->gc_prev = src;
 	src->gc_next = src;
-#endif
 }
 
 static HAWK_INLINE void gc_unchain_gch (hawk_gch_t* gch)
@@ -324,8 +305,42 @@ static void gc_free_unreachables (hawk_rtx_t* rtx, hawk_gch_t* list)
 	}
 }
 
+static void gc_collect_garbage (hawk_rtx_t* rtx, int gen)
+{
+	hawk_oow_t i, newgen;
+	hawk_gch_t reachable;
+
+#if defined(DEBUG_GC)
+	hawk_logbfmt (hawk_rtx_gethawk(rtx), HAWK_LOG_STDERR,  "[GC] **started**\n");
+#endif
+
+	newgen = (gen < HAWK_COUNTOF(rtx->gc.g) - 1)? (gen + 1): gen;
+	for (i = 0; i < gen; i++) gc_move_all_gchs (&rtx->gc.g[i], &rtx->gc.g[gen]);
+
+	gc_trace_refs (&rtx->gc.g[gen]);
+
+	reachable.gc_prev = &reachable;
+	reachable.gc_next = &reachable;
+	gc_move_reachables (&rtx->gc.g[gen], &reachable);
+
+	/* only unreachables are left in rtx->gc.g[0] */
+#if defined(DEBUG_GC)
+/*gc_dump_refs (rtx, &rtx->gc.g[0]);*/
+#endif
+	gc_free_unreachables (rtx, &rtx->gc.g[gen]);
+	HAWK_ASSERT (rtx->gc.g[gen].gc_next == &rtx->gc.g[gen]); 
+
+	/* move all reachables back to the main list */
+	gc_move_all_gchs (&reachable, &rtx->gc.g[newgen]);
+
+#if defined(DEBUG_GC)
+	hawk_logbfmt (hawk_rtx_gethawk(rtx), HAWK_LOG_STDERR,  "[GC] **ended**\n");
+#endif
+}
+
 void hawk_rtx_gc (hawk_rtx_t* rtx)
 {
+#if 0
 	hawk_gch_t reachable;
 
 #if defined(DEBUG_GC)
@@ -338,9 +353,10 @@ void hawk_rtx_gc (hawk_rtx_t* rtx)
 	gc_move_reachables (&rtx->gc.g[0], &reachable);
 
 	/* only unreachables are left in rtx->gc.g[0] */
-//gc_dump_refs (rtx, &rtx->gc.g[0]);
+#if defined(DEBUG_GC)
+/*gc_dump_refs (rtx, &rtx->gc.g[0]);*/
+#endif
 	gc_free_unreachables (rtx, &rtx->gc.g[0]);
-//gc_dump_refs (rtx, &rtx->gc.g[0]);
 	HAWK_ASSERT (rtx->gc.g[0].gc_next == &rtx->gc.g[0]); 
 
 	/* move all reachables back to the main list */
@@ -348,6 +364,9 @@ void hawk_rtx_gc (hawk_rtx_t* rtx)
 
 #if defined(DEBUG_GC)
 	hawk_logbfmt (hawk_rtx_gethawk(rtx), HAWK_LOG_STDERR,  "[GC] **ended**\n");
+#endif
+#else
+	gc_collect_garbage (rtx, HAWK_COUNTOF(rtx->gc.g) - 1); /* full garbage collection */
 #endif
 }
 
