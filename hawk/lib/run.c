@@ -1039,12 +1039,12 @@ static int init_rtx (hawk_rtx_t* rtx, hawk_t* awk, hawk_rio_cbs_t* rio)
 		rtx->gc.g[i].gc_prev = &rtx->gc.g[i];
 
 		/* initialize some counters */
-		rtx->gc.ncolls[i] = 0;
-		rtx->gc.threshold[i] = (HAWK_COUNTOF(rtx->gc.g) - i) * 3;
+		rtx->gc.pressure[i] = 0;
+		rtx->gc.threshold[i] = (HAWK_COUNTOF(rtx->gc.g) - i) * 10;
 		if (i == 0 && rtx->gc.threshold[i] < 100) rtx->gc.threshold[i] = 100; /* minimum threshold for gen 0 is 100 */
 	}
 
-	rtx->gc.ncolls[i] = 0; /* ncolls is larger than other elements by 1 in size */
+	rtx->gc.pressure[i] = 0; /* pressure is larger than other elements by 1 in size */
 
 	rtx->inrec.buf_pos = 0;
 	rtx->inrec.buf_len = 0;

@@ -409,10 +409,11 @@ struct hawk_rtx_t
 		hawk_gch_t g[HAWK_GC_NUM_GENS]; 
 
 		/* 
-		 * ncolls[0] - number of allocation attempt since the last gc
-		 * ncolls[N] - nubmer of collections performed for generation N - 1. 
+		 * Pressure imposed on each generation before gc is triggered
+		 *  pressure[0] - number of allocation attempt since the last gc
+		 *  pressure[N] - nubmer of collections performed for generation N - 1. 
 		 */
-		hawk_oow_t ncolls[HAWK_GC_NUM_GENS + 1];
+		hawk_oow_t pressure[HAWK_GC_NUM_GENS + 1];
 
 		/* threshold to trigger generational collection. */
 		hawk_oow_t threshold[HAWK_GC_NUM_GENS];

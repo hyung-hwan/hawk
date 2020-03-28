@@ -185,6 +185,7 @@ if ENABLE_STATIC_MODULE
 # STATIC MODULES BUILT INTO MAIN LIBRARY
 ##################################################
 libhawk_la_SOURCES += \
+	mod-hawk.c mod-hawk.h \
 	mod-math.c mod-math.h \
 	mod-str.c mod-str.h \
 	mod-sys.c mod-sys.h
@@ -212,6 +213,13 @@ DEPENDENCIES_MOD_COMMON = libhawk.la
 
 #pkglibdir = $(libdir)
 #pkglib_LTLIBRARIES = 
+
+pkglib_LTLIBRARIES += libhawk-hawk.la
+libhawk_hawk_la_SOURCES = mod-hawk.c mod-hawk.h
+libhawk_hawk_la_CPPFLAGS = $(CPPFLAGS_MOD_COMMON)
+libhawk_hawk_la_LDFLAGS = $(LDFLAGS_MOD_COMMON)
+libhawk_hawk_la_LIBADD = $(LIBADD_MOD_COMMON)
+libhawk_hawk_la_DEPENDENCIES = $(DEPENDENCIES_MOD_COMMON)
 
 pkglib_LTLIBRARIES += libhawk-math.la
 libhawk_math_la_SOURCES = mod-math.c mod-math.h

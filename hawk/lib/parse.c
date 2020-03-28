@@ -7185,6 +7185,7 @@ int hawk_putsrcoochars (hawk_t* hawk, const hawk_ooch_t* str, hawk_oow_t len)
 #if defined(HAWK_ENABLE_STATIC_MODULE)
 
 /* let's hardcode module information */
+#include "mod-hawk.h"
 #include "mod-math.h"
 #include "mod-str.h"
 #include "mod-sys.h"
@@ -7209,6 +7210,7 @@ static struct
 	int (*modload) (hawk_mod_t* mod, hawk_t* awk);
 } static_modtab[] = 
 {
+	{ HAWK_T("hawk"),   hawk_mod_hawk },
 	{ HAWK_T("math"),   hawk_mod_math },
 #if defined(HAWK_ENABLE_MOD_MYSQL)
 	{ HAWK_T("mysql"),  hawk_mod_mysql },
