@@ -432,7 +432,7 @@ static int flush_io (hawk_rtx_t* rtx, int rio, const hawk_ooch_t* name, int n)
 
 	if (rtx->rio.handler[rio] != HAWK_NULL)
 	{
-		n2 = hawk_rtx_flushio (rtx, rio, name);
+		n2 = hawk_rtx_flushio(rtx, rio, name);
 		if (n2 <= -1)
 		{
 			/*
@@ -478,7 +478,7 @@ static int fnc_fflush (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		 * BEGIN { flush(); } # flush() returns -1
 		 * BEGIN { print 1; flush(); } # flush() returns 0
 		 */
-		n = hawk_rtx_flushio (rtx, HAWK_OUT_CONSOLE, HAWK_T(""));
+		n = hawk_rtx_flushio(rtx, HAWK_OUT_CONSOLE, HAWK_T(""));
 	}
 	else
 	{

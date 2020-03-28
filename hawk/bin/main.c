@@ -1221,6 +1221,11 @@ static HAWK_INLINE int execute_hawk (int argc, hawk_bch_t* argv[])
 		hawk_rtx_execwithbcstrarr(rtx, (const hawk_bch_t**)arg.icf.ptr, arg.icf.size);
 #endif
 
+	/* clear unflushed io data - this is also done by hawk_rtx_close().
+	 * but i restore the SIGPIPE handler to the default in unset_intr_run().
+	 * any output after this restoration may cause the program to terminate for unhandled SIGPIPE */
+	hawk_rtx_cleario (rtx);
+
 	unset_intr_run ();
 
 	if (retv)

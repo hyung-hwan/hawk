@@ -3356,7 +3356,7 @@ static int run_printf (hawk_rtx_t* rtx, hawk_nde_print_t* nde)
 	HAWK_ASSERT (head != HAWK_NULL);
 
 	v = eval_expression(rtx, head);
-	if (v == HAWK_NULL) goto oops_1;
+	if (HAWK_UNLIKELY(!v)) goto oops_1;
 	
 	hawk_rtx_refupval (rtx, v);
 	vtype = HAWK_RTX_GETVALTYPE(rtx, v);
@@ -5547,8 +5547,8 @@ static hawk_val_t* eval_binop_match0 (
 	hawk_oocs_t out;
 	int n;
 
-	out.ptr = hawk_rtx_getvaloocstr (rtx, left, &out.len);
-	if (out.ptr == HAWK_NULL) return HAWK_NULL;
+	out.ptr = hawk_rtx_getvaloocstr(rtx, left, &out.len);
+	if (HAWK_UNLIKELY(!out.ptr)) return HAWK_NULL;
 
 	n = hawk_rtx_matchvalwithoocs(rtx, right, &out, &out, HAWK_NULL, HAWK_NULL);
 	hawk_rtx_freevaloocstr (rtx, left, out.ptr);
