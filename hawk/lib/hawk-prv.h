@@ -405,9 +405,17 @@ struct hawk_rtx_t
 
 	struct
 	{
-		hawk_gch_t g[HAWK_GC_NUM_GENS]; /* lists of values under gc management */
-		hawk_oow_t nv[HAWK_GC_NUM_GENS]; /* number of values in each list */
-		hawk_oow_t nc[HAWK_GC_NUM_GENS]; /* number of collections performed for each generation */
+		/* lists of values under gc management */
+		hawk_gch_t g[HAWK_GC_NUM_GENS]; 
+
+		/* 
+		 * ncolls[0] - number of allocation attempt since the last gc
+		 * ncolls[N] - nubmer of collections performed for generation N - 1. 
+		 */
+		hawk_oow_t ncolls[HAWK_GC_NUM_GENS + 1];
+
+		/* threshold to trigger generational collection. */
+		hawk_oow_t threshold[HAWK_GC_NUM_GENS];
 	} gc;
 
 	hawk_nde_blk_t* active_block;

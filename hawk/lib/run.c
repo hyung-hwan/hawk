@@ -1039,9 +1039,12 @@ static int init_rtx (hawk_rtx_t* rtx, hawk_t* awk, hawk_rio_cbs_t* rio)
 		rtx->gc.g[i].gc_prev = &rtx->gc.g[i];
 
 		/* initialize some counters */
-		rtx->gc.nv[i] = 0;
-		rtx->gc.nc[i] = 0;
+		rtx->gc.ncolls[i] = 0;
+		rtx->gc.threshold[i] = (HAWK_COUNTOF(rtx->gc.g) - i) * 3;
+		if (i == 0 && rtx->gc.threshold[i] < 100) rtx->gc.threshold[i] = 100; /* minimum threshold for gen 0 is 100 */
 	}
+
+	rtx->gc.ncolls[i] = 0; /* ncolls is larger than other elements by 1 in size */
 
 	rtx->inrec.buf_pos = 0;
 	rtx->inrec.buf_len = 0;
@@ -1261,7 +1264,7 @@ static void fini_rtx (hawk_rtx_t* rtx, int fini_globals)
 
 #if defined(HAWK_ENABLE_GC)
 	/* collect garbage after having released global variables and named global variables */
-	hawk_rtx_gc (rtx);
+	hawk_rtx_gc (rtx, HAWK_RTX_GC_GEN_FULL);
 #endif
 
 	/* destroy values in free list */
@@ -1682,7 +1685,7 @@ hawk_val_t* hawk_rtx_execwithucstrarr (hawk_rtx_t* rtx, const hawk_uch_t* args[]
 #if defined(HAWK_ENABLE_GC)
 	/* i assume this function is a usual hawk program starter.
 	 * call garbage collection after a whole program finishes */
-	hawk_rtx_gc (rtx);
+	hawk_rtx_gc (rtx, HAWK_RTX_GC_GEN_FULL);
 #endif
 
 	return v;
@@ -1699,7 +1702,7 @@ hawk_val_t* hawk_rtx_execwithbcstrarr (hawk_rtx_t* rtx, const hawk_bch_t* args[]
 #if defined(HAWK_ENABLE_GC)
 	/* i assume this function is a usual hawk program starter.
 	 * call garbage collection after a whole program finishes */
-	hawk_rtx_gc (rtx);
+	hawk_rtx_gc (rtx, HAWK_RTX_GC_GEN_FULL);
 #endif
 
 	return v;

@@ -111,16 +111,6 @@ BEGIN {
 #define GCH_MOVED HAWK_TYPE_MAX(hawk_uintptr_t)
 #define GCH_UNREACHABLE (GCH_MOVED - 1)
 
-static hawk_val_t* gc_calloc (hawk_rtx_t* rtx, hawk_oow_t size)
-{
-	hawk_gch_t* gch;
-
-	gch = (hawk_gch_t*)hawk_rtx_callocmem(rtx, HAWK_SIZEOF(*gch) + size);
-	if (HAWK_UNLIKELY(!gch)) return HAWK_NULL;
-
-	return hawk_gch_to_val(gch);
-}
-
 static HAWK_INLINE void gc_chain_gch (hawk_gch_t* list, hawk_gch_t* gch)
 {
 	gch->gc_next = list;
@@ -204,6 +194,7 @@ static void gc_trace_refs (hawk_gch_t* list)
 static void gc_dump_refs (hawk_rtx_t* rtx, hawk_gch_t* list)
 {
 	hawk_gch_t* gch;
+	hawk_oow_t count  = 0;
 
 	gch = list->gc_next;
 	while (gch != list)
@@ -211,7 +202,7 @@ static void gc_dump_refs (hawk_rtx_t* rtx, hawk_gch_t* list)
 		hawk_logbfmt (hawk_rtx_gethawk(rtx), HAWK_LOG_STDERR,  "[GC] GCH %p gc_refs %d\n", gch, (int)gch->gc_refs);
 		gch = gch->gc_next;
 	}
-	hawk_logbfmt (hawk_rtx_gethawk(rtx), HAWK_LOG_STDERR, "[GC] all_count => %d\n", (int)rtx->gc.nv[0]);
+	hawk_logbfmt (hawk_rtx_gethawk(rtx), HAWK_LOG_STDERR, "[GC] dumped %ju values\n", count);
 }
 
 static void gc_move_reachables (hawk_gch_t* list, hawk_gch_t* reachable_list)
@@ -264,6 +255,11 @@ static void gc_move_reachables (hawk_gch_t* list, hawk_gch_t* reachable_list)
 	}
 }
 
+static HAWK_INLINE void gc_free_val (hawk_rtx_t* rtx, hawk_val_t* v)
+{
+	hawk_rtx_freemem (rtx, hawk_val_to_gch(v));
+}
+
 static void gc_free_unreachables (hawk_rtx_t* rtx, hawk_gch_t* list)
 {
 	hawk_gch_t* gch;
@@ -299,47 +295,59 @@ static void gc_free_unreachables (hawk_rtx_t* rtx, hawk_gch_t* list)
 		hawk_logbfmt (hawk_rtx_gethawk(rtx), HAWK_LOG_STDERR, "[GC] FREEING UNREACHABLE GCH %p gc_refs %zu v_refs %zu\n", gch, gch->gc_refs, hawk_gch_to_val(gch)->v_refs);
 	#endif
 		/* do what hawk_rtx_freeval() would do without HAWK_RTX_FREEVAL_GC_PRESERVE */
-		rtx->gc.nv[0]--;
 		gc_unchain_gch (gch);
-		hawk_rtx_freemem (rtx, gch);
+		gc_free_val (rtx, hawk_gch_to_val(gch));
 	}
 }
 
-static void gc_collect_garbage_in_generation (hawk_rtx_t* rtx, int gen)
+static HAWK_INLINE void gc_collect_garbage_in_generation (hawk_rtx_t* rtx, int gen)
 {
 	hawk_oow_t i, newgen;
-	hawk_gch_t reachable;
 
 #if defined(DEBUG_GC)
-	hawk_logbfmt (hawk_rtx_gethawk(rtx), HAWK_LOG_STDERR,  "[GC] **started**\n");
+	hawk_logbfmt (hawk_rtx_gethawk(rtx), HAWK_LOG_STDERR,  "[GC] **started - gen %d**\n", gen);
 #endif
 
 	newgen = (gen < HAWK_COUNTOF(rtx->gc.g) - 1)? (gen + 1): gen;
-	for (i = 0; i < gen; i++) gc_move_all_gchs (&rtx->gc.g[i], &rtx->gc.g[gen]);
+	for (i = 0; i < gen; i++) 
+	{
+		gc_move_all_gchs (&rtx->gc.g[i], &rtx->gc.g[gen]);
+	}
 
-	gc_trace_refs (&rtx->gc.g[gen]);
+	if (rtx->gc.g[gen].gc_next != &rtx->gc.g[gen]) 
+	{
+		hawk_gch_t reachable;
 
-	reachable.gc_prev = &reachable;
-	reachable.gc_next = &reachable;
-	gc_move_reachables (&rtx->gc.g[gen], &reachable);
+		gc_trace_refs (&rtx->gc.g[gen]);
 
-	/* only unreachables are left in rtx->gc.g[0] */
-#if defined(DEBUG_GC)
-/*gc_dump_refs (rtx, &rtx->gc.g[0]);*/
-#endif
-	gc_free_unreachables (rtx, &rtx->gc.g[gen]);
-	HAWK_ASSERT (rtx->gc.g[gen].gc_next == &rtx->gc.g[gen]); 
+		reachable.gc_prev = &reachable;
+		reachable.gc_next = &reachable;
+		gc_move_reachables (&rtx->gc.g[gen], &reachable);
 
-	/* move all reachables back to the main list */
-	gc_move_all_gchs (&reachable, &rtx->gc.g[newgen]);
+		/* only unreachables are left in rtx->gc.g[0] */
+	#if defined(DEBUG_GC)
+	/*gc_dump_refs (rtx, &rtx->gc.g[0]);*/
+	#endif
+		gc_free_unreachables (rtx, &rtx->gc.g[gen]);
+		HAWK_ASSERT (rtx->gc.g[gen].gc_next == &rtx->gc.g[gen]); 
+
+		/* move all reachables back to the main list */
+		gc_move_all_gchs (&reachable, &rtx->gc.g[newgen]);
+	}
+
+	/* [NOTE] ncolls is greater than other elements by 1 in size.
+	 *        i store the number of collections for gen 0 in ncolls[1].
+	 *        so i can avoid some comparison when doing this */
+	rtx->gc.ncolls[gen + 1]++; /* number of collections done for gen */
+	rtx->gc.ncolls[gen] = 0;   /* reset the number of collections of the previous generation */
+	rtx->gc.ncolls[0] = 0; /* reset the number of allocations since last gc. this line is redundant if gen is 0. */
 
 #if defined(DEBUG_GC)
 	hawk_logbfmt (hawk_rtx_gethawk(rtx), HAWK_LOG_STDERR,  "[GC] **ended**\n");
 #endif
 }
 
-#if 0
-static void gc_collect_garbage (hawk_rtx_t* rtx)
+static HAWK_INLINE int gc_collect_garbage_auto (hawk_rtx_t* rtx)
 {
 	hawk_oow_t i;
 
@@ -347,52 +355,56 @@ static void gc_collect_garbage (hawk_rtx_t* rtx)
 	while (i > 1)
 	{
 		--i;
-		if (rtx->gc.nc[i - 1] > rtx->gc.t[i]) 
+		if (rtx->gc.ncolls[i] >= rtx->gc.threshold[i])
 		{
-			gc_collect_garbage_in_generation(rtx, i);
-			rtx->gc.nc[i]++;
-			if (i > 0) rtx->gc.nc[i - 1] = 0;
-			return;
+			gc_collect_garbage_in_generation (rtx, i);
+			return i;
 		}
 	}
 
-	gc_collect_garbage_in_generation(rtx, 0);
-	rtx->gc.nc[0]++;
+	gc_collect_garbage_in_generation (rtx, 0);
+	return 0;
 }
-#endif
 
-void hawk_rtx_gc (hawk_rtx_t* rtx)
+void hawk_rtx_gc (hawk_rtx_t* rtx, int gen)
 {
-#if 0
-	hawk_gch_t reachable;
-
-#if defined(DEBUG_GC)
-	hawk_logbfmt (hawk_rtx_gethawk(rtx), HAWK_LOG_STDERR,  "[GC] **started**\n");
-#endif
-	gc_trace_refs (&rtx->gc.g[0]);
-
-	reachable.gc_prev = &reachable;
-	reachable.gc_next = &reachable;
-	gc_move_reachables (&rtx->gc.g[0], &reachable);
-
-	/* only unreachables are left in rtx->gc.g[0] */
-#if defined(DEBUG_GC)
-/*gc_dump_refs (rtx, &rtx->gc.g[0]);*/
-#endif
-	gc_free_unreachables (rtx, &rtx->gc.g[0]);
-	HAWK_ASSERT (rtx->gc.g[0].gc_next == &rtx->gc.g[0]); 
-
-	/* move all reachables back to the main list */
-	gc_move_all_gchs (&reachable, &rtx->gc.g[0]);
-
-#if defined(DEBUG_GC)
-	hawk_logbfmt (hawk_rtx_gethawk(rtx), HAWK_LOG_STDERR,  "[GC] **ended**\n");
-#endif
+	if (gen < 0)
+	{
+		gc_collect_garbage_auto (rtx);
+	}
+	else
+	{
+		if (gen >= HAWK_COUNTOF(rtx->gc.g)) gen = HAWK_COUNTOF(rtx->gc.g) - 1;
+		gc_collect_garbage_in_generation (rtx, gen);
+	}
+}
 
 
-#else
-	gc_collect_garbage_in_generation (rtx, HAWK_COUNTOF(rtx->gc.g) - 1); /* full garbage collection */
-#endif
+static HAWK_INLINE hawk_val_t* gc_calloc_val (hawk_rtx_t* rtx, hawk_oow_t size)
+{
+	hawk_gch_t* gch;
+	int gc_gen = 0;
+
+	if (HAWK_UNLIKELY(rtx->gc.ncolls[0] >= rtx->gc.threshold[0])) 
+	{
+		/* invoke generational garbage collection */
+		gc_gen = gc_collect_garbage_auto(rtx);
+	}
+
+	gch = (hawk_gch_t*)hawk_rtx_callocmem(rtx, HAWK_SIZEOF(*gch) + size);
+	if (HAWK_UNLIKELY(!gch)) 
+	{
+		if (gc_gen < HAWK_COUNTOF(rtx->gc.g) - 1) 
+		{
+			/* perform full gc if full gc has not been triggerred at the beginning of this function */
+			hawk_rtx_gc (rtx, HAWK_COUNTOF(rtx->gc.g) - 1); 
+		}
+		gch = (hawk_gch_t*)hawk_rtx_callocmem(rtx, HAWK_SIZEOF(*gch) + size);
+		if (HAWK_UNLIKELY(!gch)) return HAWK_NULL;
+	}
+
+	rtx->gc.ncolls[0]++; /* increment of the number of allocation attempt */
+	return hawk_gch_to_val(gch);
 }
 
 #endif
@@ -742,7 +754,6 @@ hawk_val_t* hawk_rtx_makenstrvalwithbcs (hawk_rtx_t* rtx, const hawk_bcs_t* str)
 	return hawk_rtx_makenstrvalwithbchars(rtx, str->ptr, str->len);
 }
 
-
 /* --------------------------------------------------------------------- */
 
 
@@ -931,11 +942,14 @@ hawk_val_t* hawk_rtx_makemapval (hawk_rtx_t* rtx)
 		HAWK_MAP_HASHER_DEFAULT
 	#endif
 	};
+#if defined(HAWK_ENABLE_GC)
+	int retried = 0;
+#endif
 	hawk_val_map_t* val;
 
 #if defined(HAWK_ENABLE_GC)
-hawk_rtx_gc(rtx);
-	val = (hawk_val_map_t*)gc_calloc(rtx, HAWK_SIZEOF(hawk_val_map_t) + HAWK_SIZEOF(hawk_map_t) + HAWK_SIZEOF(rtx));
+retry:
+	val = (hawk_val_map_t*)gc_calloc_val(rtx, HAWK_SIZEOF(hawk_val_map_t) + HAWK_SIZEOF(hawk_map_t) + HAWK_SIZEOF(rtx));
 #else
 	val = (hawk_val_map_t*)hawk_rtx_callocmem(rtx, HAWK_SIZEOF(hawk_val_map_t) + HAWK_SIZEOF(hawk_map_t) + HAWK_SIZEOF(rtx));
 #endif
@@ -948,9 +962,21 @@ hawk_rtx_gc(rtx);
 	val->v_gc = 0;
 	val->map = (hawk_map_t*)(val + 1);
 
-	if (hawk_map_init(val->map, hawk_rtx_getgem(rtx), 256, 70, HAWK_SIZEOF(hawk_ooch_t), 1) <= -1)
+	if (HAWK_UNLIKELY(hawk_map_init(val->map, hawk_rtx_getgem(rtx), 256, 70, HAWK_SIZEOF(hawk_ooch_t), 1) <= -1))
 	{
+#if defined(HAWK_ENABLE_GC)
+		gc_free_val (rtx, (hawk_val_t*)val);
+		if (HAWK_LIKELY(!retried))
+		{
+			/* this map involves non-gc allocatinon, which happens outside gc_calloc_val().
+		      * reattempt to allocate after full gc like gc_calloc_val() */
+			hawk_rtx_gc (rtx, HAWK_COUNTOF(rtx->gc.g) - 1);
+			retried = 1;
+			goto retry;
+		}
+#else
 		hawk_rtx_freemem (rtx, val);
+#endif
 		return HAWK_NULL;
 	}
 	*(hawk_rtx_t**)hawk_map_getxtn(val->map) = rtx;
@@ -958,7 +984,6 @@ hawk_rtx_gc(rtx);
 
 #if defined(HAWK_ENABLE_GC)
 	gc_chain_val (&rtx->gc.g[0], (hawk_val_t*)val);
-	rtx->gc.nv[0]++;
 	val->v_gc = 1;
 	#if defined(DEBUG_GC)
 	hawk_logbfmt (hawk_rtx_gethawk(rtx), HAWK_LOG_STDERR, "[GC] MADE GCH %p VAL %p\n", hawk_val_to_gch(val), val);
@@ -1282,9 +1307,8 @@ void hawk_rtx_freeval (hawk_rtx_t* rtx, hawk_val_t* val, int flags)
 				hawk_map_fini (((hawk_val_map_t*)val)->map);
 				if (!(flags & HAWK_RTX_FREEVAL_GC_PRESERVE))
 				{
-					rtx->gc.nv[0]--;
 					gc_unchain_val (val);
-					hawk_rtx_freemem (rtx, hawk_val_to_gch(val));
+					gc_free_val (rtx, val);
 				}
 			#else
 				hawk_map_fini (((hawk_val_map_t*)val)->map);
