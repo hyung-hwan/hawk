@@ -626,7 +626,7 @@ static int query (hawk_mod_t* mod, hawk_t* awk, const hawk_ooch_t* name, hawk_mo
 			sym->u.in = inttab[mid].info;
 			return 0;
 		}
-     }
+	}
 
 	hawk_seterrfmt (awk, HAWK_NULL, HAWK_ENOENT, HAWK_T("'%js' not found"), name);
 	return -1;

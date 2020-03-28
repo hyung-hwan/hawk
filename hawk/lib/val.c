@@ -335,12 +335,12 @@ static HAWK_INLINE void gc_collect_garbage_in_generation (hawk_rtx_t* rtx, int g
 		gc_move_all_gchs (&reachable, &rtx->gc.g[newgen]);
 	}
 
-	/* [NOTE] ncolls is greater than other elements by 1 in size.
-	 *        i store the number of collections for gen 0 in ncolls[1].
+	/* [NOTE] pressure is greater than other elements by 1 in size.
+	 *        i store the number of collections for gen 0 in pressure[1].
 	 *        so i can avoid some comparison when doing this */
-	rtx->gc.ncolls[gen + 1]++; /* number of collections done for gen */
-	rtx->gc.ncolls[gen] = 0;   /* reset the number of collections of the previous generation */
-	rtx->gc.ncolls[0] = 0; /* reset the number of allocations since last gc. this line is redundant if gen is 0. */
+	rtx->gc.pressure[gen + 1]++; /* number of collections done for gen */
+	rtx->gc.pressure[gen] = 0;   /* reset the number of collections of the previous generation */
+	rtx->gc.pressure[0] = 0; /* reset the number of allocations since last gc. this line is redundant if gen is 0. */
 
 #if defined(DEBUG_GC)
 	hawk_logbfmt (hawk_rtx_gethawk(rtx), HAWK_LOG_STDERR,  "[GC] **ended**\n");
@@ -355,7 +355,7 @@ static HAWK_INLINE int gc_collect_garbage_auto (hawk_rtx_t* rtx)
 	while (i > 1)
 	{
 		--i;
-		if (rtx->gc.ncolls[i] >= rtx->gc.threshold[i])
+		if (rtx->gc.pressure[i] >= rtx->gc.threshold[i])
 		{
 			gc_collect_garbage_in_generation (rtx, i);
 			return i;
@@ -366,16 +366,17 @@ static HAWK_INLINE int gc_collect_garbage_auto (hawk_rtx_t* rtx)
 	return 0;
 }
 
-void hawk_rtx_gc (hawk_rtx_t* rtx, int gen)
+int hawk_rtx_gc (hawk_rtx_t* rtx, int gen)
 {
 	if (gen < 0)
 	{
-		gc_collect_garbage_auto (rtx);
+		return gc_collect_garbage_auto (rtx);
 	}
 	else
 	{
 		if (gen >= HAWK_COUNTOF(rtx->gc.g)) gen = HAWK_COUNTOF(rtx->gc.g) - 1;
 		gc_collect_garbage_in_generation (rtx, gen);
+		return gen;
 	}
 }
 
@@ -385,7 +386,7 @@ static HAWK_INLINE hawk_val_t* gc_calloc_val (hawk_rtx_t* rtx, hawk_oow_t size)
 	hawk_gch_t* gch;
 	int gc_gen = 0;
 
-	if (HAWK_UNLIKELY(rtx->gc.ncolls[0] >= rtx->gc.threshold[0])) 
+	if (HAWK_UNLIKELY(rtx->gc.pressure[0] >= rtx->gc.threshold[0])) 
 	{
 		/* invoke generational garbage collection */
 		gc_gen = gc_collect_garbage_auto(rtx);
@@ -403,7 +404,7 @@ static HAWK_INLINE hawk_val_t* gc_calloc_val (hawk_rtx_t* rtx, hawk_oow_t size)
 		if (HAWK_UNLIKELY(!gch)) return HAWK_NULL;
 	}
 
-	rtx->gc.ncolls[0]++; /* increment of the number of allocation attempt */
+	rtx->gc.pressure[0]++; /* increment of the number of allocation attempt */
 	return hawk_gch_to_val(gch);
 }
 
