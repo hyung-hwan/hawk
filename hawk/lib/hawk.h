@@ -3005,8 +3005,11 @@ HAWK_EXPORT void hawk_rtx_refdownval_nofree (
 );
 
 
+#define HAWK_RTX_GC_GEN_FULL (HAWK_TYPE_MAX(int))
+#define HAWK_RTX_GC_GEN_AUTO (-1)
 HAWK_EXPORT void hawk_rtx_gc (
-	hawk_rtx_t* rtx
+	hawk_rtx_t* rtx,
+	int         gen
 );
 
 /**
