@@ -1794,8 +1794,18 @@ int Hawk::call (const hawk_uch_t* name, Value* ret, const Value* args, hawk_oow_
 
 int Hawk::exec (Value* ret, const Value* args, hawk_oow_t nargs)
 {
-	return (this->runctx.rtx->hawk->parse.pragma.entry[0] != '\0')?
+	int n = (this->runctx.rtx->hawk->parse.pragma.entry[0] != '\0')?
 		this->call(this->runctx.rtx->hawk->parse.pragma.entry, ret, args, nargs): this->loop(ret);
+
+	hawk_rtx_cleario (this->runctx.rtx);
+
+#if defined(HAWK_ENABLE_GC)
+        /* i assume this function is a usual hawk program starter.
+         * call garbage collection after a whole program finishes */
+        hawk_rtx_gc (this->runctx.rtx, HAWK_RTX_GC_GEN_FULL);
+#endif
+
+	return n;
 }
 
 void Hawk::halt () 
