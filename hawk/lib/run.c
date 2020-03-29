@@ -1682,6 +1682,8 @@ hawk_val_t* hawk_rtx_execwithucstrarr (hawk_rtx_t* rtx, const hawk_uch_t* args[]
 		hawk_rtx_callwithooucstrarr(rtx, rtx->hawk->parse.pragma.entry, args, nargs):
 		hawk_rtx_loop(rtx);
 
+	hawk_rtx_cleario (rtx);
+
 #if defined(HAWK_ENABLE_GC)
 	/* i assume this function is a usual hawk program starter.
 	 * call garbage collection after a whole program finishes */

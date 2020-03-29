@@ -239,6 +239,11 @@ static void stop_run (int sig)
 	if (app_hawk) app_hawk->halt ();
 	errno = e;
 }
+
+static void do_nothing (int sig)
+{
+}
+
 #endif
 
 static void set_signal (void)
@@ -248,6 +253,7 @@ static void set_signal (void)
 #else
 	/*setsignal (SIGINT, stop_run, 1); TO BE MORE COMPATIBLE WITH WIN32*/
 	setsignal (SIGINT, stop_run, 0);
+	setsignal (SIGPIPE, do_nothing, 0);
 #endif
 }
 
@@ -257,6 +263,7 @@ static void unset_signal (void)
 	SetConsoleCtrlHandler (stop_run, FALSE);
 #else
 	setsignal (SIGINT, SIG_DFL, 1);
+	setsignal (SIGPIPE, SIG_DFL, 1);
 #endif
 }
 
