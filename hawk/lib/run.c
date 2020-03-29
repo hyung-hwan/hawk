@@ -1671,6 +1671,10 @@ hawk_val_t* hawk_rtx_loop (hawk_rtx_t* rtx)
 
 	/* reset the exit level */
 	rtx->exit_level = EXIT_NONE;
+
+	/* clear any pending io's */
+	hawk_rtx_cleario (rtx);
+
 	return retv;
 }
 
@@ -1681,8 +1685,6 @@ hawk_val_t* hawk_rtx_execwithucstrarr (hawk_rtx_t* rtx, const hawk_uch_t* args[]
 	v = (rtx->hawk->parse.pragma.entry[0] != '\0')?
 		hawk_rtx_callwithooucstrarr(rtx, rtx->hawk->parse.pragma.entry, args, nargs):
 		hawk_rtx_loop(rtx);
-
-	hawk_rtx_cleario (rtx);
 
 #if defined(HAWK_ENABLE_GC)
 	/* i assume this function is a usual hawk program starter.
@@ -1811,7 +1813,7 @@ hawk_val_t* hawk_rtx_callfun (hawk_rtx_t* rtx, hawk_fun_t* fun, hawk_val_t* args
 
 	v = __eval_call(rtx, (hawk_nde_t*)&call, fun, push_arg_from_vals, (void*)&pafv, capture_retval_on_exit, &crdata);
 
-	if (!v)
+	if (HAWK_UNLIKELY(!v))
 	{
 		/* an error occurred. let's check if it is caused by exit().
 		 * if so, the return value should have been captured into
@@ -1826,6 +1828,9 @@ hawk_val_t* hawk_rtx_callfun (hawk_rtx_t* rtx, hawk_fun_t* fun, hawk_val_t* args
 		 * returned. */
 		hawk_rtx_refupval (rtx, v);
 	}
+
+	/* clear any pending io's */
+	hawk_rtx_cleario  (rtx);
 
 	/* return the return value with its reference count at least 1.
 	 * the caller of this function should count down its reference. */
