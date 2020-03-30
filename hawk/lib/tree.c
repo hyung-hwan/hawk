@@ -136,6 +136,10 @@ static const hawk_ooch_t* print_outop_str[] =
 	if (print_expr_list(awk,nde) == -1) return -1; \
 } while(0)
 
+#define PRINT_EXPR_LIST_FOR_IDX(awk,nde) do { \
+	if (print_expr_list_for_idx(awk,nde) == -1) return -1; \
+} while(0)
+
 #define PRINT_STMTS(awk,nde,depth) do { \
 	if (print_stmts(awk,nde,depth) == -1) return -1; \
 } while(0)
@@ -143,6 +147,7 @@ static const hawk_ooch_t* print_outop_str[] =
 static int print_tabs (hawk_t* awk, int depth);
 static int print_expr (hawk_t* awk, hawk_nde_t* nde);
 static int print_expr_list (hawk_t* awk, hawk_nde_t* tree);
+static int print_expr_list_for_idx (hawk_t* awk, hawk_nde_t* tree);
 static int print_stmts (hawk_t* awk, hawk_nde_t* tree, int depth);
 
 static int print_tabs (hawk_t* awk, int depth)
@@ -527,9 +532,7 @@ static int print_expr (hawk_t* awk, hawk_nde_t* nde)
 			PUT_SRCSTR (awk, HAWK_T("__p"));
 			n = hawk_int_to_oocstr(px->id.idxa, 10, HAWK_NULL, awk->tmp.fmt, HAWK_COUNTOF(awk->tmp.fmt));
 			PUT_SRCSTRN (awk, awk->tmp.fmt, n);
-			PUT_SRCSTR (awk, HAWK_T("["));
-			PRINT_EXPR_LIST (awk, px->idx);
-			PUT_SRCSTR (awk, HAWK_T("]"));
+			PRINT_EXPR_LIST_FOR_IDX (awk, px->idx);
 			break;
 		}
 
@@ -550,9 +553,7 @@ static int print_expr (hawk_t* awk, hawk_nde_t* nde)
 			HAWK_ASSERT (px->idx != HAWK_NULL);
 
 			PUT_SRCSTRN (awk, px->id.name.ptr, px->id.name.len);
-			PUT_SRCSTR (awk, HAWK_T("["));
-			PRINT_EXPR_LIST (awk, px->idx);
-			PUT_SRCSTR (awk, HAWK_T("]"));
+			PRINT_EXPR_LIST_FOR_IDX (awk, px->idx);
 			break;
 		}
 
@@ -621,16 +622,13 @@ static int print_expr (hawk_t* awk, hawk_nde_t* nde)
 					n = hawk_int_to_oocstr(px->id.idxa, 10, HAWK_NULL, tmp, HAWK_COUNTOF(tmp));
 					PUT_SRCSTRN (awk, tmp, n);
 				}
-				PUT_SRCSTR (awk, HAWK_T("["));
 			}
 			else 
 			{
 				PUT_SRCSTRN (awk, px->id.name.ptr, px->id.name.len);
-				PUT_SRCSTR (awk, HAWK_T("["));
 			}
 			HAWK_ASSERT (px->idx != HAWK_NULL);
-			PRINT_EXPR_LIST (awk, px->idx);
-			PUT_SRCSTR (awk, HAWK_T("]"));
+			PRINT_EXPR_LIST_FOR_IDX (awk, px->idx);
 			break;
 		}
 
@@ -663,16 +661,13 @@ static int print_expr (hawk_t* awk, hawk_nde_t* nde)
 				PUT_SRCSTR (awk, HAWK_T("__l"));
 				n = hawk_int_to_oocstr(px->id.idxa, 10, HAWK_NULL, awk->tmp.fmt, HAWK_COUNTOF(awk->tmp.fmt));
 				PUT_SRCSTRN (awk, awk->tmp.fmt, n);
-				PUT_SRCSTR (awk, HAWK_T("["));
 			}
 			else 
 			{
 				PUT_SRCSTRN (awk, px->id.name.ptr, px->id.name.len);
-				PUT_SRCSTR (awk, HAWK_T("["));
 			}
 			HAWK_ASSERT (px->idx != HAWK_NULL);
-			PRINT_EXPR_LIST (awk, px->idx);
-			PUT_SRCSTR (awk, HAWK_T("]"));
+			PRINT_EXPR_LIST_FOR_IDX (awk, px->idx);
 			break;
 		}
 
@@ -774,12 +769,40 @@ static int print_expr_list (hawk_t* awk, hawk_nde_t* tree)
 {
 	hawk_nde_t* p = tree;
 
-	while (p != HAWK_NULL) 
+	while (p) 
 	{
 		PRINT_EXPR (awk, p);
 		p = p->next;
-		if (p != HAWK_NULL) PUT_SRCSTR (awk, HAWK_T(","));
+		if (p) PUT_SRCSTR (awk, HAWK_T(","));
 	}
+
+	return 0;
+}
+
+static int print_expr_list_for_idx (hawk_t* awk, hawk_nde_t* tree)
+{
+	hawk_nde_t* p = tree;
+
+	PUT_SRCSTR (awk, HAWK_T("["));
+	while (p) 
+	{
+		PRINT_EXPR (awk, p);
+		p = p->next;
+		if (p) 
+		{
+			if (p->type == HAWK_NDE_NULL) 
+			{
+				/* the parser injects a HAWK_NDE_NULL node between the true multi-dimensional indices
+				 * if the true multi-dimensional indices are enabled(i.e. HAWK_ENABLE_GC is defined)
+				 * e.g. a[x][y][z]
+				 * let me print this regardless of */
+				PUT_SRCSTR (awk, HAWK_T("]["));
+				p = p->next;
+			}
+			else PUT_SRCSTR (awk, HAWK_T(","));
+		}
+	}
+	PUT_SRCSTR (awk, HAWK_T("]"));
 
 	return 0;
 }
@@ -877,7 +900,7 @@ static int print_stmt (hawk_t* awk, hawk_nde_t* p, int depth)
 			PRINT_TABS (awk, depth);
 			hawk_getkwname (awk, HAWK_KWID_WHILE, &kw);
 			PUT_SRCSTRN (awk, kw.ptr, kw.len);
-			PUT_SRCSTR (awk, HAWK_T(" ("));	
+			PUT_SRCSTR (awk, HAWK_T(" ("));
 			PRINT_EXPR (awk, px->test);
 			PUT_SRCSTR (awk, HAWK_T(")"));
 			PUT_NL (awk);
@@ -912,7 +935,7 @@ static int print_stmt (hawk_t* awk, hawk_nde_t* p, int depth)
 			PRINT_TABS (awk, depth);
 			hawk_getkwname (awk, HAWK_KWID_WHILE, &kw);
 			PUT_SRCSTRN (awk, kw.ptr, kw.len);
-			PUT_SRCSTR (awk, HAWK_T(" ("));	
+			PUT_SRCSTR (awk, HAWK_T(" ("));
 			PRINT_EXPR (awk, px->test);
 			PUT_SRCSTR (awk, HAWK_T(");"));
 			PUT_NL (awk);

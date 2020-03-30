@@ -1827,12 +1827,12 @@ static hawk_nde_t* parse_block (hawk_t* awk, const hawk_loc_t* xloc, int istop)
 				nde = parse_statement (awk, &sloc);
 			}
 
-			if (nde == HAWK_NULL) 
+			if (HAWK_UNLIKELY(!nde)) 
 			{
 				hawk_arr_delete (
 					awk->parse.lcls, nlcls, 
 					HAWK_ARR_SIZE(awk->parse.lcls)-nlcls);
-				if (head != HAWK_NULL) hawk_clrpt (awk, head);
+				if (head) hawk_clrpt (awk, head);
 				return HAWK_NULL;
 			}
 
@@ -1857,7 +1857,7 @@ static hawk_nde_t* parse_block (hawk_t* awk, const hawk_loc_t* xloc, int istop)
 	}
 
 	block = (hawk_nde_blk_t*)hawk_callocmem(awk, HAWK_SIZEOF(*block));
-	if (block == HAWK_NULL) 
+	if (HAWK_UNLIKELY(!block)) 
 	{
 		hawk_arr_delete (awk->parse.lcls, nlcls, HAWK_ARR_SIZE(awk->parse.lcls) - nlcls);
 		hawk_clrpt (awk, head);
@@ -5687,33 +5687,38 @@ static hawk_nde_t* parse_hashidx (hawk_t* awk, const hawk_oocs_t* name, const ha
 	idx = HAWK_NULL;
 	last = HAWK_NULL;
 
+#if defined(HAWK_ENABLE_GC)
+more_idx:
+#endif
 	do
 	{
 		if (get_token(awk) <= -1) 
 		{
-			if (idx != HAWK_NULL) hawk_clrpt (awk, idx);
+			if (idx) hawk_clrpt (awk, idx);
 			return HAWK_NULL;
 		}
 
 		{
 			hawk_loc_t eloc;
-
 			eloc = awk->tok.loc;
 			tmp = parse_expr_withdc(awk, &eloc);
 		}
-		if (tmp == HAWK_NULL) 
+		if (HAWK_UNLIKELY(!tmp)) 
 		{
-			if (idx != HAWK_NULL) hawk_clrpt (awk, idx);
+			if (idx) hawk_clrpt (awk, idx);
 			return HAWK_NULL;
 		}
 
-		if (idx == HAWK_NULL)
+		if (!idx)
 		{
+			/* this is the first item */
 			HAWK_ASSERT (last == HAWK_NULL);
-			idx = tmp; last = tmp;
+			idx = tmp;
+			last = tmp;
 		}
 		else
 		{
+			/* not the first item. append it */
 			last->next = tmp;
 			last = tmp;
 		}
@@ -5735,8 +5740,31 @@ static hawk_nde_t* parse_hashidx (hawk_t* awk, const hawk_oocs_t* name, const ha
 		return HAWK_NULL;
 	}
 
+#if defined(HAWK_ENABLE_GC)
+	if (MATCH(awk,TOK_LBRACK))
+	{
+		/* additional index - a[10][20] ... 
+		 * use the NULL node as a splitter */
+		tmp = (hawk_nde_t*)hawk_callocmem(awk, HAWK_SIZEOF(*tmp));
+		if (HAWK_UNLIKELY(!tmp))
+		{
+			hawk_clrpt (awk, idx);
+			ADJERR_LOC (awk, xloc);
+			return HAWK_NULL;
+		}
+		tmp->type = HAWK_NDE_NULL;
+
+		HAWK_ASSERT (idx != HAWK_NULL);
+		HAWK_ASSERT (last != HAWK_NULL);
+
+		last->next = tmp;
+		last = tmp;
+		goto more_idx;
+	}
+#endif
+
 	nde = (hawk_nde_var_t*)hawk_callocmem(awk, HAWK_SIZEOF(*nde));
-	if (nde == HAWK_NULL) 
+	if (HAWK_UNLIKELY(!nde)) 
 	{
 		hawk_clrpt (awk, idx);
 		ADJERR_LOC (awk, xloc);
