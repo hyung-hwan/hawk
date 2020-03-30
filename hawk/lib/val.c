@@ -1078,7 +1078,7 @@ hawk_val_t* hawk_rtx_setmapvalfld (hawk_rtx_t* rtx, hawk_val_t* map, const hawk_
 {
 	HAWK_ASSERT (HAWK_RTX_GETVALTYPE (rtx, map) == HAWK_VAL_MAP);
 
-	if (hawk_map_upsert (((hawk_val_map_t*)map)->map, (hawk_ooch_t*)kptr, klen, v, 0) == HAWK_NULL) return HAWK_NULL;
+	if (hawk_map_upsert(((hawk_val_map_t*)map)->map, (hawk_ooch_t*)kptr, klen, v, 0) == HAWK_NULL) return HAWK_NULL;
 
 	/* the value is passed in by an external party. we can't refup()
 	 * and refdown() the value if htb_upsert() fails. that way, the value
