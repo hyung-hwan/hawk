@@ -2503,6 +2503,7 @@ int hawk_rtx_setrefval (hawk_rtx_t* rtx, hawk_val_ref_t* ref, hawk_val_t* val)
 		case HAWK_VAL_REF_GBLIDX:
 		case HAWK_VAL_REF_LCLIDX:
 		case HAWK_VAL_REF_ARGIDX:
+		#if !defined(HAWK_ENABLE_GC)
 			if (vtype == HAWK_VAL_MAP)
 			{
 				/* an indexed variable cannot be assigned a map. 
@@ -2510,6 +2511,7 @@ int hawk_rtx_setrefval (hawk_rtx_t* rtx, hawk_val_ref_t* ref, hawk_val_t* val)
 				hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EMAPTOIDX);
 				return -1;
 			}
+		#endif
 			/* fall through */
 
 		default:
