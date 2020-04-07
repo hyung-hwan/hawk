@@ -2631,15 +2631,19 @@ static hawk_nde_t* parse_for (hawk_t* awk, const hawk_loc_t* xloc)
 		int no_forin = MATCH(awk,TOK_LPAREN);
 
 		ploc = awk->tok.loc;
-		init = parse_expr_withdc (awk, &ploc);
-		if (init == HAWK_NULL) goto oops;
+		init = parse_expr_withdc(awk, &ploc);
+		if (HAWK_UNLIKELY(!init)) goto oops;
 
 		if (!no_forin && init->type == HAWK_NDE_EXP_BIN &&
 		    ((hawk_nde_exp_t*)init)->opcode == HAWK_BINOP_IN &&
+		#if defined(HAWK_ENABLE_GC)
+		    is_var(((hawk_nde_exp_t*)init)->left))
+		#else
 		    is_plain_var(((hawk_nde_exp_t*)init)->left))
-		{	
+		#endif
+		{
 			/* switch to forin - for (x in y) */
-			
+
 			if (!MATCH(awk,TOK_RPAREN))
 			{
 				hawk_seterrfmt (awk,  &awk->tok.loc, HAWK_ERPAREN, FMT_ERPAREN, HAWK_OOECS_LEN(awk->tok.name), HAWK_OOECS_PTR(awk->tok.name));
@@ -2649,12 +2653,11 @@ static hawk_nde_t* parse_for (hawk_t* awk, const hawk_loc_t* xloc)
 			if (get_token(awk) <= -1) goto oops;
 			
 			ploc = awk->tok.loc;
-			body = parse_statement (awk, &ploc);
-			if (body == HAWK_NULL) goto oops;
+			body = parse_statement(awk, &ploc);
+			if (HAWK_UNLIKELY(!body)) goto oops;
 
-			nde_forin = (hawk_nde_forin_t*) hawk_callocmem (
-				awk, HAWK_SIZEOF(*nde_forin));
-			if (nde_forin == HAWK_NULL)
+			nde_forin = (hawk_nde_forin_t*)hawk_callocmem(awk, HAWK_SIZEOF(*nde_forin));
+			if (HAWK_UNLIKELY(!nde_forin))
 			{
 				ADJERR_LOC (awk, xloc);
 				goto oops;
@@ -3032,8 +3035,8 @@ static hawk_nde_t* parse_delete (hawk_t* awk, const hawk_loc_t* xloc)
 	var = parse_primary_ident (awk, &dloc);
 	if (var == HAWK_NULL) goto oops;
 
-	if ((type == HAWK_NDE_DELETE && !is_var (var)) ||
-	    (type == HAWK_NDE_RESET && !is_plain_var (var)))
+	if ((type == HAWK_NDE_DELETE && !is_var(var)) ||
+	    (type == HAWK_NDE_RESET && !is_plain_var(var)))
 	{
 		hawk_seterrnum (awk, &dloc, HAWK_EBADARG);
 		goto oops;
@@ -4127,17 +4130,20 @@ static hawk_nde_t* parse_in (hawk_t* awk, const hawk_loc_t* xloc)
 
 		rloc = awk->tok.loc;
 		right = parse_regex_match(awk, &rloc);
-		if (right == HAWK_NULL)  goto oops;
+		if (HAWK_UNLIKELY(!right))  goto oops;
 
+	#if defined(HAWK_ENABLE_GC)
+		if (!is_var(right))
+	#else
 		if (!is_plain_var(right))
+	#endif
 		{
 			hawk_seterrnum (awk, &rloc, HAWK_ENOTVAR);
 			goto oops;
 		}
 
-		tmp = new_exp_bin_node (
-			awk, xloc, HAWK_BINOP_IN, left, right);
-		if (left == HAWK_NULL) goto oops;
+		tmp = new_exp_bin_node(awk, xloc, HAWK_BINOP_IN, left, right);
+		if (HAWK_UNLIKELY(!left)) goto oops;
 
 		left = tmp;
 		right = HAWK_NULL;
