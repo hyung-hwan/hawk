@@ -1863,16 +1863,14 @@ static HAWK_INLINE int __fnc_asort (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, 
 
 	if (nargs >= 3)
 	{
-		hawk_val_t* a2;
-
-		a2 = hawk_rtx_getarg(rtx, 2);
-		if (HAWK_RTX_GETVALTYPE(rtx, a2) != HAWK_VAL_FUN)
+		fun = hawk_rtx_valtofun(rtx, hawk_rtx_getarg(rtx, 2));
+		if (HAWK_UNLIKELY(!fun))
 		{
-			hawk_rtx_seterrfmt (rtx, HAWK_NULL, HAWK_EINVAL, HAWK_T("comparator not a function"));
+			if (hawk_rtx_geterrnum(rtx) == HAWK_EINVAL)
+				hawk_rtx_seterrfmt (rtx, HAWK_NULL, HAWK_EINVAL, HAWK_T("comparator not a function"));
 			return -1;
 		}
 
-		fun = ((hawk_val_fun_t*)a2)->fun;
 		if (fun->nargs < 2) 
 		{
 			/* the comparison accepts less than 2 arguments */
