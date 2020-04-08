@@ -2275,6 +2275,42 @@ int hawk_rtx_valtoflt (hawk_rtx_t* rtx, const hawk_val_t* v, hawk_flt_t* r)
 	return n;
 }
 
+
+hawk_fun_t* hawk_rtx_valtofun (hawk_rtx_t* rtx, hawk_val_t* v)
+{
+	hawk_fun_t* fun;
+	hawk_val_type_t vtype;
+
+	vtype = HAWK_RTX_GETVALTYPE(rtx, v);
+
+	switch (vtype)
+	{
+		case HAWK_VAL_FUN:
+			fun = ((hawk_val_fun_t*)v)->fun;
+			break;
+
+		case HAWK_VAL_STR:
+			if (hawk_count_oocstr(((hawk_val_str_t*)v)->val.ptr) != ((hawk_val_str_t*)v)->val.len) goto error_inval;
+			fun = hawk_rtx_findfunwithoocstr(rtx, ((hawk_val_str_t*)v)->val.ptr);
+			if (!fun) return HAWK_NULL;
+			break;
+
+		case HAWK_VAL_MBS:
+			if (hawk_count_bcstr(((hawk_val_mbs_t*)v)->val.ptr) != ((hawk_val_mbs_t*)v)->val.len) goto error_inval;
+			fun = hawk_rtx_findfunwithbcstr(rtx, ((hawk_val_mbs_t*)v)->val.ptr);
+			if (!fun) return HAWK_NULL;
+			break;
+
+		default:
+		error_inval:
+			hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EINVAL);
+			return HAWK_NULL;
+	}
+
+	return fun;
+}
+
+
 /* ========================================================================== */
 
 static HAWK_INLINE hawk_uint_t hash (hawk_uint8_t* ptr, hawk_oow_t len)

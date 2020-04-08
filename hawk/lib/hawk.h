@@ -2143,9 +2143,9 @@ HAWK_EXPORT hawk_fun_t* hawk_rtx_findfunwithucstr (
 );
 
 #if defined(HAWK_OOCH_IS_BCH)
-#	define hawk_rtx_findfun hawk_rtx_findfunwithbcstr
+#	define hawk_rtx_findfunwithoocstr hawk_rtx_findfunwithbcstr
 #else
-#	define hawk_rtx_findfun hawk_rtx_findfunwithucstr
+#	define hawk_rtx_findfunwithoocstr hawk_rtx_findfunwithucstr
 #endif
 
 /**
@@ -3245,13 +3245,18 @@ HAWK_EXPORT int hawk_rtx_valtoflt (
 	hawk_flt_t*       r
 );
 
+HAWK_EXPORT hawk_fun_t* hawk_rtx_valtofun (
+	hawk_rtx_t* rtx,
+	hawk_val_t* val
+);
+
 /**
  * The hawk_rtx_hashval() function hashes a simple value
  * to a positive integer. It returns -1 for a inhashable value.
  */
 HAWK_EXPORT hawk_int_t hawk_rtx_hashval (
-	hawk_rtx_t* rtx,
-	hawk_val_t* v
+	hawk_rtx_t*   rtx,
+	hawk_val_t*   v
 );
 
 /**
