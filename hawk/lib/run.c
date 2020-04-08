@@ -1158,7 +1158,7 @@ static void fini_rtx (hawk_rtx_t* rtx, int fini_globals)
 
 	/* close all pending io's */
 	/* TODO: what if this operation fails? */
-	hawk_rtx_cleario (rtx);
+	hawk_rtx_clearallios (rtx);
 	HAWK_ASSERT (rtx->rio.chain == HAWK_NULL);
 
 	if (rtx->gbl.rs[0])
@@ -1672,8 +1672,8 @@ hawk_val_t* hawk_rtx_loop (hawk_rtx_t* rtx)
 	/* reset the exit level */
 	rtx->exit_level = EXIT_NONE;
 
-	/* clear any pending io's */
-	hawk_rtx_cleario (rtx);
+	/* flush all buffered io data */
+	hawk_rtx_flushallios (rtx);
 
 	return retv;
 }
@@ -1829,8 +1829,8 @@ hawk_val_t* hawk_rtx_callfun (hawk_rtx_t* rtx, hawk_fun_t* fun, hawk_val_t* args
 		hawk_rtx_refupval (rtx, v);
 	}
 
-	/* clear any pending io's */
-	hawk_rtx_cleario  (rtx);
+	/* flush all buffered io data */
+	hawk_rtx_flushallios (rtx);
 
 	/* return the return value with its reference count at least 1.
 	 * the caller of this function should count down its reference. */

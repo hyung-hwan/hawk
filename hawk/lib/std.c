@@ -2020,7 +2020,19 @@ static hawk_ooi_t awk_rio_file (hawk_rtx_t* rtx, hawk_rio_cmd_t cmd, hawk_rio_ar
 			return hawk_sio_putbchars((hawk_sio_t*)riod->handle, data, size);
 
 		case HAWK_RIO_CMD_FLUSH:
-			return hawk_sio_flush((hawk_sio_t*)riod->handle);
+		{
+			int n;
+
+			n = hawk_sio_flush((hawk_sio_t*)riod->handle);
+			if (HAWK_UNLIKELY(n <= -1))
+			{
+				/* if flushing fails, discard the buffered data
+				 * keeping the unflushed data causes causes subsequent write or close() to
+				 * flush again and again */
+				hawk_sio_drain ((hawk_sio_t*)riod->handle);
+			}
+			return n;
+		}
 
 		case HAWK_RIO_CMD_NEXT:
 			return -1;
@@ -2376,7 +2388,19 @@ static hawk_ooi_t awk_rio_console (hawk_rtx_t* rtx, hawk_rio_cmd_t cmd, hawk_rio
 			return hawk_sio_putbchars((hawk_sio_t*)riod->handle, data, size);
 
 		case HAWK_RIO_CMD_FLUSH:
-			return hawk_sio_flush((hawk_sio_t*)riod->handle);
+		{
+			int n;
+
+			n = hawk_sio_flush((hawk_sio_t*)riod->handle);
+			if (HAWK_UNLIKELY(n <= -1))
+			{
+				/* if flushing fails, discard the buffered data
+				 * keeping the unflushed data causes causes subsequent write or close() to
+				 * flush again and again */
+				hawk_sio_drain ((hawk_sio_t*)riod->handle);
+			}
+			return n;
+		}
 
 		case HAWK_RIO_CMD_NEXT:
 		{

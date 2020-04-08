@@ -405,7 +405,7 @@ static int fnc_close (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		}
 	}
 
-	n = hawk_rtx_closeio (rtx, name, opt);
+	n = hawk_rtx_closeio(rtx, name, opt);
 	/* failure to close is not a critical error. instead, that is
 	 * flagged by the return value of close(). 
 	if (n <= -1 && rtx->errinf.num != HAWK_EIONMNF)
@@ -430,7 +430,7 @@ static int flush_io (hawk_rtx_t* rtx, int rio, const hawk_ooch_t* name, int n)
 {
 	int n2;
 
-	if (rtx->rio.handler[rio] != HAWK_NULL)
+	if (rtx->rio.handler[rio])
 	{
 		n2 = hawk_rtx_flushio(rtx, rio, name);
 		if (n2 <= -1)
@@ -484,8 +484,8 @@ static int fnc_fflush (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	{
 		hawk_ooch_t* ptr, * end;
 
-		a0 = hawk_rtx_getarg (rtx, 0);
-		str0 = hawk_rtx_getvaloocstr (rtx, a0, &len0);
+		a0 = hawk_rtx_getarg(rtx, 0);
+		str0 = hawk_rtx_getvaloocstr(rtx, a0, &len0);
 		if (str0 == HAWK_NULL) return -1;
 
 		/* the target name contains a null character.
@@ -521,21 +521,13 @@ static int fnc_fflush (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		 *  }
 		 */
 
-		n = flush_io (
-			rtx, HAWK_OUT_FILE, 
-			((len0 == 0)? HAWK_NULL: str0), 1);
+		n = flush_io(rtx, HAWK_OUT_FILE, ((len0 == 0)? HAWK_NULL: str0), 1);
 		/*if (n == -99) return -1;*/
-		n = flush_io (
-			rtx, HAWK_OUT_APFILE, 
-			((len0 == 0)? HAWK_NULL: str0), n);
+		n = flush_io(rtx, HAWK_OUT_APFILE, ((len0 == 0)? HAWK_NULL: str0), n);
 		/*if (n == -99) return -1;*/
-		n = flush_io (
-			rtx, HAWK_OUT_PIPE,
-			((len0 == 0)? HAWK_NULL: str0), n);
+		n = flush_io(rtx, HAWK_OUT_PIPE, ((len0 == 0)? HAWK_NULL: str0), n);
 		/*if (n == -99) return -1;*/
-		n = flush_io (
-			rtx, HAWK_OUT_RWPIPE,
-			((len0 == 0)? HAWK_NULL: str0), n);
+		n = flush_io(rtx, HAWK_OUT_RWPIPE, ((len0 == 0)? HAWK_NULL: str0), n);
 		/*if (n == -99) return -1;*/
 
 		/* if n remains 1, no io handlers have been defined for
