@@ -32,41 +32,42 @@ extern "C" {
 #endif
 
 int hawk_rtx_readio (
-	hawk_rtx_t* run, int in_type, 
+	hawk_rtx_t* rtx, int in_type, 
 	const hawk_ooch_t* name, hawk_ooecs_t* buf);
 
 int hawk_rtx_readiobytes (
-	hawk_rtx_t* run, int in_type, 
+	hawk_rtx_t* rtx, int in_type, 
 	const hawk_ooch_t* name, hawk_becs_t* buf);
 
 int hawk_rtx_writeioval (
-	hawk_rtx_t* run, int out_type, 
+	hawk_rtx_t* rtx, int out_type, 
 	const hawk_ooch_t* name, hawk_val_t* v);
 
 int hawk_rtx_writeiostr (
-	hawk_rtx_t* run, int out_type, 
+	hawk_rtx_t* rtx, int out_type, 
 	const hawk_ooch_t* name, hawk_ooch_t* str, hawk_oow_t len);
 
 int hawk_rtx_writeiobytes (
-	hawk_rtx_t* run, int out_type, 
+	hawk_rtx_t* rtx, int out_type, 
 	const hawk_ooch_t* name, hawk_bch_t* str, hawk_oow_t len);
 
 int hawk_rtx_flushio (
-	hawk_rtx_t* run, int out_type, const hawk_ooch_t* name);
+	hawk_rtx_t* rtx, int out_type, const hawk_ooch_t* name);
 
 int hawk_rtx_nextio_read (
-	hawk_rtx_t* run, int in_type, const hawk_ooch_t* name);
+	hawk_rtx_t* rtx, int in_type, const hawk_ooch_t* name);
 
 int hawk_rtx_nextio_write (
-	hawk_rtx_t* run, int out_type, const hawk_ooch_t* name);
+	hawk_rtx_t* rtx, int out_type, const hawk_ooch_t* name);
 
 int hawk_rtx_closeio (
-	hawk_rtx_t*    run,
+	hawk_rtx_t*        rtx,
 	const hawk_ooch_t* name,
 	const hawk_ooch_t* opt
 );
 
-void hawk_rtx_cleario (hawk_rtx_t* run);
+void hawk_rtx_flushallios (hawk_rtx_t* rtx);
+void hawk_rtx_clearallios (hawk_rtx_t* rtx);
 
 #if defined(__cplusplus)
 }

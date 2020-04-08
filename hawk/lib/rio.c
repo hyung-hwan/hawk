@@ -1039,7 +1039,7 @@ static int prepare_for_write_io_data (hawk_rtx_t* rtx, int out_type, const hawk_
 	io_mask = out_mask_map[out_type];
 
 	handler = rtx->rio.handler[io_type];
-	if (handler == HAWK_NULL)
+	if (HAWK_UNLIKELY(!handler))
 	{
 		/* no I/O handler provided */
 		hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EIOUSER);
@@ -1067,12 +1067,12 @@ static int prepare_for_write_io_data (hawk_rtx_t* rtx, int out_type, const hawk_
 	if (p == HAWK_NULL)
 	{
 		p = (hawk_rio_arg_t*)hawk_rtx_allocmem(rtx, HAWK_SIZEOF(hawk_rio_arg_t));
-		if (p == HAWK_NULL) return -1;
+		if (HAWK_UNLIKELY(!p)) return -1;
 
 		HAWK_MEMSET (p, 0, HAWK_SIZEOF(*p));
 
 		p->name = hawk_rtx_dupoocstr(rtx, name, HAWK_NULL);
-		if (p->name == HAWK_NULL)
+		if (HAWK_UNLIKELY(!p->name))
 		{
 			hawk_rtx_freemem (rtx, p);
 			return -1;
@@ -1422,7 +1422,7 @@ int hawk_rtx_closio_write (hawk_rtx_t* rtx, int out_type, const hawk_ooch_t* nam
 	io_mask = out_mask_map[out_type];
 
 	handler = rtx->rio.handler[io_type];
-	if (!handler)
+	if (HAWK_UNLIKELY(!handler))
 	{
 		/* no io handler provided */
 		hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EIOUSER);
@@ -1434,7 +1434,7 @@ int hawk_rtx_closio_write (hawk_rtx_t* rtx, int out_type, const hawk_ooch_t* nam
 		if (p->type == (io_type | io_mask) && hawk_comp_oocstr(p->name, name, 0) == 0) 
 		{
 			hawk_rio_impl_t handler;
-		       
+
 			handler = rtx->rio.handler[p->type & IO_MASK_CLEAR];
 			if (handler && handler(rtx, HAWK_RIO_CMD_CLOSE, p, HAWK_NULL, 0) <= -1) return -1;
 
@@ -1525,7 +1525,7 @@ int hawk_rtx_closeio (hawk_rtx_t* rtx, const hawk_ooch_t* name, const hawk_ooch_
 				}
 			}
 
-			if (px != HAWK_NULL) px->next = p->next;
+			if (px) px->next = p->next;
 			else rtx->rio.chain = p->next;
 
 			hawk_rtx_freemem (rtx, p->name);
@@ -1543,7 +1543,22 @@ int hawk_rtx_closeio (hawk_rtx_t* rtx, const hawk_ooch_t* name, const hawk_ooch_
 	return -1;
 }
 
-void hawk_rtx_cleario (hawk_rtx_t* rtx)
+void hawk_rtx_flushallios (hawk_rtx_t* rtx)
+{
+	hawk_rio_arg_t* rio;
+	hawk_rio_impl_t handler;
+
+	for (rio = rtx->rio.chain; rio; rio = rio->next)
+	{
+		handler = rtx->rio.handler[rio->type & IO_MASK_CLEAR];
+		if (handler)
+		{
+			handler (rtx, HAWK_RIO_CMD_FLUSH, rio, HAWK_NULL, 0);
+		}
+	}
+}
+
+void hawk_rtx_clearallios (hawk_rtx_t* rtx)
 {
 	hawk_rio_arg_t* next;
 	hawk_rio_impl_t handler;
