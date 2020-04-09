@@ -5994,19 +5994,22 @@ static hawk_val_t* eval_fncall_var (hawk_rtx_t* rtx, hawk_nde_t* nde)
 {
 	hawk_nde_fncall_t* call = (hawk_nde_fncall_t*)nde;
 	hawk_val_t* fv, * rv;
+	hawk_fun_t* fun;
 
 	fv = eval_expression(rtx, (hawk_nde_t*)call->u.var.var);
 	if (!fv) return HAWK_NULL;
 
 	hawk_rtx_refupval (rtx, fv);
-	if (HAWK_RTX_GETVALTYPE(rtx, fv) != HAWK_VAL_FUN)
+	fun = hawk_rtx_valtofun(rtx, fv);
+	if (!fun)
 	{
-		hawk_rtx_seterrfmt (rtx, &nde->loc, HAWK_ENOTFUN, HAWK_T("non-function value in %.*js"), call->u.var.var->id.name.len, call->u.var.var->id.name.ptr);
+		if (hawk_rtx_geterrnum(rtx) == HAWK_EINVAL)
+			hawk_rtx_seterrfmt (rtx, &nde->loc, HAWK_ENOTFUN, HAWK_T("non-function value in %.*js"), call->u.var.var->id.name.len, call->u.var.var->id.name.ptr);
 		rv = HAWK_NULL;
+		ADJERR_LOC (rtx, &nde->loc);
 	}
 	else
 	{
-		hawk_fun_t* fun = ((hawk_val_fun_t*)fv)->fun;
 		rv = __eval_call(rtx, nde, fun, push_arg_from_nde, HAWK_NULL, HAWK_NULL, HAWK_NULL);
 	}
 	hawk_rtx_refdownval (rtx, fv);
