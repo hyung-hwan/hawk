@@ -7327,7 +7327,7 @@ static hawk_mod_t* query_module (hawk_t* awk, const hawk_oocs_t segs[], int nseg
 			if (pair == HAWK_NULL) return HAWK_NULL;
 
 			mdp = (hawk_mod_data_t*)HAWK_RBT_VPTR(pair);
-			if (load (&mdp->mod, awk) <= -1)
+			if (load(&mdp->mod, awk) <= -1)
 			{
 				hawk_rbt_delete (awk->modtab, segs[0].ptr, segs[0].len);
 				return HAWK_NULL;

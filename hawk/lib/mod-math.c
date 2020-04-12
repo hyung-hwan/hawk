@@ -713,7 +713,7 @@ int hawk_mod_math (hawk_mod_t* mod, hawk_t* awk)
 	hawk_get_time (&tv);
 	modctx->seed = tv.sec + tv.nsec;
 #if defined(HAVE_INITSTATE_R) && defined(HAVE_SRANDOM_R) && defined(HAVE_RANDOM_R)
-	initstate_r (0, &modctx->prand_bin, HAWK_SIZEOF(&modctx->prand_bin), &modctx->prand);
+	initstate_r (0, modctx->prand_bin, HAWK_SIZEOF(modctx->prand_bin), &modctx->prand);
 	srandom_r (modctx->seed, &modctx->prand);
 #elif defined(HAVE_RANDOM)
 	srandom (modctx->seed);
