@@ -129,7 +129,7 @@ const hawk_ooch_t* hawk_dfl_errstr (hawk_errnum_t errnum)
 		HAWK_T("word after @ not recognized"),
 		HAWK_T("@ not followed by a valid word"),
 
-		HAWK_T("stack error"),
+		HAWK_T("stack full"),
 		HAWK_T("divide by zero"),
 		HAWK_T("invalid operand"),
 		HAWK_T("wrong position index"),

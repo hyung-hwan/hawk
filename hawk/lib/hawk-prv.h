@@ -362,14 +362,6 @@ struct hawk_chain_t
 	hawk_chain_t* next;
 };
 
-#define HAWK_RTX_STACK_AT(rtx,n) ((rtx)->stack[(rtx)->stack_base+(n)])
-#define HAWK_RTX_STACK_NARGS(rtx) HAWK_RTX_STACK_AT(rtx,3)
-#define HAWK_RTX_STACK_ARG(rtx,n) HAWK_RTX_STACK_AT(rtx,3+1+(n))
-#define HAWK_RTX_STACK_LCL(rtx,n) HAWK_RTX_STACK_AT(rtx,3+(hawk_oow_t)HAWK_RTX_STACK_NARGS(rtx)+1+(n))
-#define HAWK_RTX_STACK_RETVAL(rtx) HAWK_RTX_STACK_AT(rtx,2)
-#define HAWK_RTX_STACK_GBL(rtx,n) ((rtx)->stack[(n)])
-#define HAWK_RTX_STACK_RETVAL_GBL(rtx) ((rtx)->stack[(rtx)->hawk->tree.ngbls+2])
-
 struct hawk_rtx_t
 {
 	HAWK_RTX_HDR;
@@ -535,6 +527,35 @@ struct hawk_mod_data_t
 	void* handle;
 	hawk_mod_t mod;
 };
+
+
+#define HAWK_RTX_STACK_AT(rtx,n) ((rtx)->stack[(rtx)->stack_base+(n)])
+#define HAWK_RTX_STACK_NARGS(rtx) HAWK_RTX_STACK_AT(rtx,3)
+#define HAWK_RTX_STACK_ARG(rtx,n) HAWK_RTX_STACK_AT(rtx,3+1+(n))
+#define HAWK_RTX_STACK_LCL(rtx,n) HAWK_RTX_STACK_AT(rtx,3+(hawk_oow_t)HAWK_RTX_STACK_NARGS(rtx)+1+(n))
+#define HAWK_RTX_STACK_RETVAL(rtx) HAWK_RTX_STACK_AT(rtx,2)
+#define HAWK_RTX_STACK_GBL(rtx,n) ((rtx)->stack[(n)])
+#define HAWK_RTX_STACK_RETVAL_GBL(rtx) ((rtx)->stack[(rtx)->hawk->tree.ngbls+2])
+
+#define HAWK_RTX_STACK_AVAIL(rtx) ((rtx)->stack_limit - (rtx)->stack_top)
+
+#if defined(HAWK_HAVE_INLINE)
+static HAWK_INLINE void HAWK_RTX_STACK_PUSH (hawk_rtx_t* rtx, hawk_val_t* val)
+{
+	/*HAWK_ASSERT (rtx->stack_top < rtx->stack_limit);*/
+	rtx->stack[rtx->stack_top++] = val;
+}
+
+static HAWK_INLINE void HAWK_RTX_STACK_POP (hawk_rtx_t* rtx)
+{
+	/*HAWK_ASSERT (rtx->stack_top > rtx->stack_base);*/
+	rtx->stack_top--;
+}
+#else
+#define HAWK_RTX_STACK_PUSH(rtx,val) ((rtx)->stack[(rtx)->stack_top++] = val)
+#define HAWK_RTX_STACK_POP(rtx) ((rtx)->stack_top--)
+#endif
+
 
 #define HAWK_RTX_INIT_REF_VAL(refval, _id, _adr, _nrefs) \
 	do { \

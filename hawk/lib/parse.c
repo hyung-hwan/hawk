@@ -1460,7 +1460,8 @@ static hawk_nde_t* parse_function (hawk_t* awk)
 					for (i = argspeccapa; i < newcapa; i++) argspec[i] = HAWK_T(' ');
 					argspeccapa = newcapa;
 				}
-				argspec[nargs] = HAWK_T('r');
+				argspec[nargs] = 'r';
+				argspec[nargs + 1] = '\0';
 				if (get_token(awk) <= -1) goto oops;
 			}
 

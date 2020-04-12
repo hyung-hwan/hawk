@@ -1231,7 +1231,7 @@ static HAWK_INLINE int execute_hawk (int argc, hawk_bch_t* argv[])
 		if (app_debug) dprint_return (rtx, retv);
 
 		ret = 0;
-		if (hawk_rtx_valtoint (rtx, retv, &tmp) >= 0) ret = tmp;
+		if (hawk_rtx_valtoint(rtx, retv, &tmp) >= 0) ret = tmp;
 	}
 	else
 	{

@@ -140,6 +140,17 @@ int hawk_rtx_cmpval (
 	int*          ret
 );
 
+
+hawk_val_t* hawk_rtx_evalcall (
+	hawk_rtx_t* rtx,
+	hawk_nde_fncall_t* call, 
+	hawk_fun_t* fun, 
+	hawk_oow_t(*argpusher)(hawk_rtx_t*,hawk_nde_fncall_t*,void*),
+	void* apdata, /* data to argpusher */
+	void(*errhandler)(void*),
+	void* eharg
+);
+
 #if defined(__cplusplus)
 }
 #endif

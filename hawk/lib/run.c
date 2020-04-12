@@ -174,14 +174,6 @@ static hawk_val_t* eval_fncall_fnc (hawk_rtx_t* rtx, hawk_nde_t* nde);
 static hawk_val_t* eval_fncall_fun (hawk_rtx_t* rtx, hawk_nde_t* nde);
 static hawk_val_t* eval_fncall_var (hawk_rtx_t* rtx, hawk_nde_t* nde);
 
-static hawk_val_t* __eval_call (
-	hawk_rtx_t* rtx,
-	hawk_nde_t* nde, 
-	hawk_fun_t* fun, 
-	hawk_oow_t(*argpusher)(hawk_rtx_t*,hawk_nde_fncall_t*,void*),
-	void* apdata, /* data to argpusher */
-	void(*errhandler)(void*),
-	void* eharg);
 
 static int get_reference (hawk_rtx_t* rtx, hawk_nde_t* nde, hawk_val_t*** ref);
 static hawk_val_t** get_reference_indexed (hawk_rtx_t* rtx, hawk_nde_var_t* var);
@@ -216,7 +208,7 @@ typedef hawk_val_t* (*eval_expr_t) (hawk_rtx_t* rtx, hawk_nde_t* nde);
 
 HAWK_INLINE hawk_oow_t hawk_rtx_getnargs (hawk_rtx_t* rtx)
 {
-	return (hawk_oow_t) HAWK_RTX_STACK_NARGS(rtx);
+	return (hawk_oow_t)HAWK_RTX_STACK_NARGS(rtx);
 }
 
 HAWK_INLINE hawk_val_t* hawk_rtx_getarg (hawk_rtx_t* rtx, hawk_oow_t idx)
@@ -1336,36 +1328,6 @@ oops:
 	return n;
 }
 
-static HAWK_INLINE int __raw_push (hawk_rtx_t* rtx, void* val)
-{
-	if (rtx->stack_top >= rtx->stack_limit)
-	{
-		/*
-		void** tmp;
-		hawk_oow_t n;
-
-		n = rtx->stack_limit + HAWK_RTX_STACK_INCREMENT;
-
-		tmp = (void**)hawk_rtx_reallocmem(rtx, rtx->stack, n * HAWK_SIZEOF(void*)); 
-		if (!tmp) return -1;
-
-		rtx->stack = tmp;
-		rtx->stack_limit = n;
-		*/
-		hawk_rtx_seterrfmt (rtx, HAWK_NULL, HAWK_ESTACK, HAWK_T("runtime stack full"));
-		return -1;
-	}
-
-	rtx->stack[rtx->stack_top++] = val;
-	return 0;
-}
-
-#define __raw_pop(rtx) \
-	do { \
-		HAWK_ASSERT ((rtx)->stack_top > (rtx)->stack_base); \
-		(rtx)->stack_top--; \
-	} while (0)
-
 /* 
  * create global variables into the runtime stack
  * each variable is initialized to nil or zero.
@@ -1375,29 +1337,36 @@ static int prepare_globals (hawk_rtx_t* rtx)
 	hawk_oow_t saved_stack_top;
 	hawk_oow_t ngbls;
 
-	saved_stack_top = rtx->stack_top;
 	ngbls = rtx->hawk->tree.ngbls;
+
+	if (HAWK_UNLIKELY(HAWK_RTX_STACK_AVAIL(rtx) < ngbls))
+	{
+		hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_ESTACK);
+		return -1;
+	}
+
+	saved_stack_top = rtx->stack_top;
 
 	/* initialize all global variables to nil by push nils to the stack */
 	while (ngbls > 0)
 	{
 		--ngbls;
-		if (HAWK_UNLIKELY(__raw_push(rtx,hawk_val_nil) <= -1)) goto oops;
+		HAWK_RTX_STACK_PUSH (rtx, hawk_val_nil);
 	}
 
 	/* override NF to zero */
-	if (hawk_rtx_setgbl(rtx, HAWK_GBL_NF, HAWK_VAL_ZERO) <= -1) goto oops;
+	if (hawk_rtx_setgbl(rtx, HAWK_GBL_NF, HAWK_VAL_ZERO) <= -1)
+	{
+		/* restore the stack_top this way instead of calling HAWK_RTX_STACK_POP()
+		 * as many times as successful HAWK_RTX_STACK_PUSH(). it is ok because
+		 * the values pushed so far are hawk_val_nils and HAWK_VAL_ZEROs.
+		 */
+		rtx->stack_top = saved_stack_top;
+		return -1;
+	}
 
 	/* return success */
 	return 0;
-
-oops:
-	/* restore the stack_top this way instead of calling __raw_pop()
-	 * as many times as successful __raw_push(). it is ok because
-	 * the values pushed so far are hawk_val_nils and HAWK_VAL_ZEROs.
-	 */
-	rtx->stack_top = saved_stack_top;
-	return -1;
 }
 
 /*
@@ -1472,7 +1441,7 @@ static void refdown_globals (hawk_rtx_t* rtx, int pop)
 	{
 		--ngbls;
 		hawk_rtx_refdownval (rtx, HAWK_RTX_STACK_GBL(rtx,ngbls));
-		if (pop) __raw_pop (rtx);
+		if (pop) HAWK_RTX_STACK_POP (rtx);
 		else HAWK_RTX_STACK_GBL(rtx,ngbls) = hawk_val_nil;
 	}
 }
@@ -1505,47 +1474,6 @@ static void capture_retval_on_exit (void* arg)
 	data = (struct capture_retval_data_t*)arg;
 	data->val = HAWK_RTX_STACK_RETVAL(data->rtx);
 	hawk_rtx_refupval (data->rtx, data->val);
-}
-
-static int enter_stack_frame (hawk_rtx_t* rtx)
-{
-	hawk_oow_t saved_stack_top;
-
-	/* remember the current stack top */
-	saved_stack_top = rtx->stack_top;
-
-	/* push the current stack base */
-	if (HAWK_UNLIKELY(__raw_push(rtx,(void*)rtx->stack_base) <= -1)) goto oops;
-
-	/* push the current stack top before push the current stack base */
-	if (HAWK_UNLIKELY(__raw_push(rtx,(void*)saved_stack_top) <= -1)) goto oops;
-	
-	/* secure space for a return value */
-	if (HAWK_UNLIKELY(__raw_push(rtx,hawk_val_nil) <= -1)) goto oops;
-	
-	/* secure space for HAWK_RTX_STACK_NARGS */
-	if (HAWK_UNLIKELY(__raw_push(rtx,hawk_val_nil) <= -1)) goto oops;
-
-	/* let the stack top remembered be the base of a new stack frame */
-	rtx->stack_base = saved_stack_top;
-	return 0;
-
-oops:
-	/* restore the stack top in a cheesy(?) way. 
-	 * it is ok to do so as the values pushed are
-	 * nils and binary numbers. */
-	rtx->stack_top = saved_stack_top;
-	return -1;
-}
-
-static void exit_stack_frame (hawk_rtx_t* run)
-{
-	/* At this point, the current stack frame should have 
-	 * the 4 entries pushed in enter_stack_frame(). */
-	HAWK_ASSERT ((run->stack_top-run->stack_base) == 4);
-
-	run->stack_top = (hawk_oow_t)run->stack[run->stack_base + 1];
-	run->stack_base = (hawk_oow_t)run->stack[run->stack_base + 0];
 }
 
 static hawk_val_t* run_bpae_loop (hawk_rtx_t* rtx)
@@ -1660,14 +1588,37 @@ static hawk_val_t* run_bpae_loop (hawk_rtx_t* rtx)
 hawk_val_t* hawk_rtx_loop (hawk_rtx_t* rtx)
 {
 	hawk_val_t* retv = HAWK_NULL;
+	hawk_oow_t saved_stack_top;
 
 	rtx->exit_level = EXIT_NONE;
 
-	if (enter_stack_frame(rtx) == 0)
+	/* make a new stack frame */
+
+	if (HAWK_UNLIKELY(HAWK_RTX_STACK_AVAIL(rtx) < 4))
 	{
-		retv = run_bpae_loop(rtx);
-		exit_stack_frame (rtx);
+		/* restore the stack top in a cheesy(?) way. 
+		 * it is ok to do so as the values pushed are
+		 * nils and binary numbers. */
+		hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_ESTACK);
+		return HAWK_NULL;
 	}
+
+	saved_stack_top = rtx->stack_top; 	/* remember the current stack top */
+	HAWK_RTX_STACK_PUSH (rtx, (void*)rtx->stack_base); /* push the current stack base */
+	HAWK_RTX_STACK_PUSH (rtx, (void*)saved_stack_top); /* push the current stack top before push the current stack base */
+	HAWK_RTX_STACK_PUSH (rtx, hawk_val_nil); /* secure space for a return value */
+	HAWK_RTX_STACK_PUSH (rtx, hawk_val_nil); /* secure space for HAWK_RTX_STACK_NARGS */
+
+	/* enter the new stack frame */
+	rtx->stack_base = saved_stack_top; /* let the stack top remembered be the base of a new stack frame */
+
+	/* run the BEGIN/pattern-action/END loop */
+	retv = run_bpae_loop(rtx);
+
+	/* exit the stack frame */
+	HAWK_ASSERT ((rtx->stack_top - rtx->stack_base) == 4); /* at this point, the current stack frame should have the 4 entries pushed above */
+	rtx->stack_top = (hawk_oow_t)rtx->stack[rtx->stack_base + 1];
+	rtx->stack_base = (hawk_oow_t)rtx->stack[rtx->stack_base + 0];
 
 	/* reset the exit level */
 	rtx->exit_level = EXIT_NONE;
@@ -1771,7 +1722,7 @@ hawk_val_t* hawk_rtx_callfun (hawk_rtx_t* rtx, hawk_fun_t* fun, hawk_val_t* args
 	pafv.nargs = nargs;
 	pafv.argspec = fun->argspec;
 
-	if (rtx->exit_level >= EXIT_GLOBAL) 
+	if (HAWK_UNLIKELY(rtx->exit_level >= EXIT_GLOBAL))
 	{
 		/* cannot call the function again when exit() is called
 		 * in an AWK program or hawk_rtx_halt() is invoked */
@@ -1795,7 +1746,7 @@ hawk_val_t* hawk_rtx_callfun (hawk_rtx_t* rtx, hawk_fun_t* fun, hawk_val_t* args
 	call.type = HAWK_NDE_FNCALL_FUN;
 	call.u.fun.name = fun->name;
 	call.nargs = nargs;
-	/* keep HAWK_NULL in call.args so that __eval_call() knows it's a fake call structure */
+	/* keep HAWK_NULL in call.args so that hawk_rtx_evalcall() knows it's a fake call structure */
 
 	/* check if the number of arguments given is more than expected */
 	if (nargs > fun->nargs)
@@ -1811,7 +1762,7 @@ hawk_val_t* hawk_rtx_callfun (hawk_rtx_t* rtx, hawk_fun_t* fun, hawk_val_t* args
 	crdata.rtx = rtx;
 	crdata.val = HAWK_NULL;
 
-	v = __eval_call(rtx, (hawk_nde_t*)&call, fun, push_arg_from_vals, (void*)&pafv, capture_retval_on_exit, &crdata);
+	v = hawk_rtx_evalcall(rtx, &call, fun, push_arg_from_vals, (void*)&pafv, capture_retval_on_exit, &crdata);
 
 	if (HAWK_UNLIKELY(!v))
 	{
@@ -2159,24 +2110,22 @@ static HAWK_INLINE int run_block0 (hawk_rtx_t* rtx, hawk_nde_blk_t* nde)
 	nlcls = nde->nlcls;
 
 #if defined(DEBUG_RUN)
-	hawk_logfmt (hawk_rtx_gethawk(rtx), 
-		HAWK_T("securing space for local variables nlcls = %d\n"), 
-		(int)nlcls);
+	hawk_logfmt (hawk_rtx_gethawk(rtx), HAWK_T("securing space for local variables nlcls = %d\n"), (int)nlcls);
 #endif
+
+	/* secure space for local variables */
+	if (HAWK_UNLIKELY(HAWK_RTX_STACK_AVAIL(rtx) < nlcls))
+	{
+		hawk_rtx_seterrnum (rtx, &nde->loc, HAWK_ESTACK);
+		return -1;
+	}
 
 	saved_stack_top = rtx->stack_top;
 
-	/* secure space for local variables */
 	while (nlcls > 0)
 	{
 		--nlcls;
-		if (HAWK_UNLIKELY(__raw_push(rtx,hawk_val_nil) <= -1))
-		{
-			/* restore stack top */
-			rtx->stack_top = saved_stack_top;
-			return -1;
-		}
-
+		HAWK_RTX_STACK_PUSH (rtx, hawk_val_nil);
 		/* refupval is not required for hawk_val_nil */
 	}
 
@@ -2186,7 +2135,7 @@ static HAWK_INLINE int run_block0 (hawk_rtx_t* rtx, hawk_nde_blk_t* nde)
 
 	while (p != HAWK_NULL && rtx->exit_level == EXIT_NONE)
 	{
-		if (run_statement(rtx, p) <= -1)
+		if (HAWK_UNLIKELY(run_statement(rtx, p) <= -1))
 		{
 			n = -1;
 			break;
@@ -2203,7 +2152,7 @@ static HAWK_INLINE int run_block0 (hawk_rtx_t* rtx, hawk_nde_blk_t* nde)
 	{
 		--nlcls;
 		hawk_rtx_refdownval (rtx, HAWK_RTX_STACK_LCL(rtx, nlcls));
-		__raw_pop (rtx);
+		HAWK_RTX_STACK_POP (rtx);
 	}
 
 	return n;
@@ -2687,7 +2636,7 @@ static int run_return (hawk_rtx_t* rtx, hawk_nde_return_t* nde)
 
 static int run_exit (hawk_rtx_t* rtx, hawk_nde_exit_t* nde)
 {
-	if (nde->val != HAWK_NULL)
+	if (nde->val)
 	{
 		hawk_val_t* val;
 
@@ -5938,7 +5887,7 @@ static hawk_val_t* eval_fncall_fnc (hawk_rtx_t* rtx, hawk_nde_t* nde)
 	hawk_nde_fncall_t* call = (hawk_nde_fncall_t*)nde;
 	/* the parser must make sure that the number of arguments is proper */ 
 	HAWK_ASSERT (call->nargs >= call->u.fnc.spec.arg.min && call->nargs <= call->u.fnc.spec.arg.max); 
-	return __eval_call(rtx, nde, HAWK_NULL, push_arg_from_nde, (void*)call->u.fnc.spec.arg.spec, HAWK_NULL, HAWK_NULL);
+	return hawk_rtx_evalcall(rtx, call, HAWK_NULL, push_arg_from_nde, (void*)call->u.fnc.spec.arg.spec, HAWK_NULL, HAWK_NULL);
 }
 
 static HAWK_INLINE hawk_val_t* eval_fncall_fun_ex (hawk_rtx_t* rtx, hawk_nde_t* nde, void(*errhandler)(void*), void* eharg)
@@ -5982,7 +5931,7 @@ static HAWK_INLINE hawk_val_t* eval_fncall_fun_ex (hawk_rtx_t* rtx, hawk_nde_t* 
 		return HAWK_NULL;
 	}
 
-	return __eval_call(rtx, nde, fun, push_arg_from_nde, HAWK_NULL, errhandler, eharg);
+	return hawk_rtx_evalcall(rtx, call, fun, push_arg_from_nde, fun->argspec, errhandler, eharg);
 }
 
 static hawk_val_t* eval_fncall_fun (hawk_rtx_t* rtx, hawk_nde_t* nde)
@@ -5997,11 +5946,11 @@ static hawk_val_t* eval_fncall_var (hawk_rtx_t* rtx, hawk_nde_t* nde)
 	hawk_fun_t* fun;
 
 	fv = eval_expression(rtx, (hawk_nde_t*)call->u.var.var);
-	if (!fv) return HAWK_NULL;
+	if (HAWK_UNLIKELY(!fv)) return HAWK_NULL;
 
 	hawk_rtx_refupval (rtx, fv);
 	fun = hawk_rtx_valtofun(rtx, fv);
-	if (!fun)
+	if (HAWK_UNLIKELY(!fun))
 	{
 		if (hawk_rtx_geterrnum(rtx) == HAWK_EINVAL)
 			hawk_rtx_seterrfmt (rtx, &nde->loc, HAWK_ENOTFUN, HAWK_T("non-function value in %.*js"), call->u.var.var->id.name.len, call->u.var.var->id.name.ptr);
@@ -6010,48 +5959,20 @@ static hawk_val_t* eval_fncall_var (hawk_rtx_t* rtx, hawk_nde_t* nde)
 	}
 	else
 	{
-		rv = __eval_call(rtx, nde, fun, push_arg_from_nde, HAWK_NULL, HAWK_NULL, HAWK_NULL);
+		rv = hawk_rtx_evalcall(rtx, call, fun, push_arg_from_nde, fun->argspec, HAWK_NULL, HAWK_NULL);
 	}
 	hawk_rtx_refdownval (rtx, fv);
 
 	return rv;
 }
 
-/* run->stack_base has not been set for this  
- * stack frame. so the HAWK_RTX_STACK_ARG macro cannot be used as in 
- * hawk_rtx_refdownval (run, HAWK_RTX_STACK_ARG(run,nargs));*/ 
-#define UNWIND_HAWK_RTX_STACK_ARG(rtx,nargs) \
-	do { \
-		while ((nargs) > 0) \
-		{ \
-			--(nargs); \
-			hawk_rtx_refdownval ((rtx), (rtx)->stack[(rtx)->stack_top-1]); \
-			__raw_pop (rtx); \
-		} \
-	} while (0)
-
-#define UNWIND_HAWK_RTX_STACK_BASE(rtx) \
-	do { \
-		__raw_pop (rtx); /* nargs */ \
-		__raw_pop (rtx); /* return */ \
-		__raw_pop (rtx); /* prev stack top */ \
-		__raw_pop (rtx); /* prev stack back */  \
-	} while (0)
-
-#define UNWIND_RTX_STACK(rtx,nargs) \
-	do { \
-		UNWIND_HAWK_RTX_STACK_ARG (rtx,nargs); \
-		UNWIND_HAWK_RTX_STACK_BASE (rtx); \
-	} while (0)
-
-static hawk_val_t* __eval_call (
-	hawk_rtx_t* rtx, hawk_nde_t* nde, hawk_fun_t* fun, 
+hawk_val_t* hawk_rtx_evalcall (
+	hawk_rtx_t* rtx, hawk_nde_fncall_t* call, hawk_fun_t* fun, 
 	hawk_oow_t(*argpusher)(hawk_rtx_t*,hawk_nde_fncall_t*,void*), void* apdata,
 	void(*errhandler)(void*), void* eharg)
 {
-	hawk_nde_fncall_t* call = (hawk_nde_fncall_t*)nde;
-	hawk_oow_t saved_stack_top;
-	hawk_oow_t nargs, i;
+	hawk_oow_t saved_stack_top, saved_arg_stack_top;
+	hawk_oow_t nargs, i, stack_req;
 	hawk_val_t* v;
 	int n;
 
@@ -6104,88 +6025,47 @@ static hawk_val_t* __eval_call (
 	hawk_logfmt (hawk_rtx_gethawk(rtx), HAWK_T("setting up function stack frame top=%zd base=%zd\n"), (hawk_oow_t)rtx->stack_top, (hawk_oow_t)rtx->stack_base);
 #endif
 
-	if (HAWK_UNLIKELY(__raw_push(rtx,(void*)rtx->stack_base) <= -1)) 
+	/* make a new stack frame */
+	stack_req = 4 + call->nargs;
+	if (fun) 
 	{
-		ADJERR_LOC (rtx, &nde->loc);
+		HAWK_ASSERT (fun->nargs >= call->nargs); /* the compiler must guarantee this */
+		stack_req += fun->nargs - call->nargs;
+	}
+	/* if fun is HAWK_NULL, there is no way for this function to know expected argument numbers.
+	 * the argument pusher must ensure the stack availality before pushing arguments */
+
+	if (HAWK_UNLIKELY(HAWK_RTX_STACK_AVAIL(rtx) < stack_req))
+	{
+		hawk_rtx_seterrnum (rtx, &call->loc, HAWK_ESTACK);
 		return HAWK_NULL;
 	}
 
-	if (HAWK_UNLIKELY(__raw_push(rtx,(void*)saved_stack_top) <= -1)) 
-	{
-		__raw_pop (rtx);
-		ADJERR_LOC (rtx, &nde->loc);
-		return HAWK_NULL;
-	}
+	HAWK_RTX_STACK_PUSH (rtx, (void*)rtx->stack_base);
+	HAWK_RTX_STACK_PUSH (rtx, (void*)saved_stack_top);
+	HAWK_RTX_STACK_PUSH (rtx, hawk_val_nil); /* space for return value */
+	HAWK_RTX_STACK_PUSH (rtx, hawk_val_nil); /* space for number of arguments */
 
-	/* secure space for a return value. */
-	if (HAWK_UNLIKELY(__raw_push(rtx,hawk_val_nil) <= -1))
-	{
-		__raw_pop (rtx);
-		__raw_pop (rtx);
-		ADJERR_LOC (rtx, &nde->loc);
-		return HAWK_NULL;
-	}
-
-	/* secure space for nargs */
-	if (HAWK_UNLIKELY(__raw_push(rtx,hawk_val_nil) <= -1))
-	{
-		__raw_pop (rtx);
-		__raw_pop (rtx);
-		__raw_pop (rtx);
-		ADJERR_LOC (rtx, &nde->loc);
-		return HAWK_NULL;
-	}
+	saved_arg_stack_top = rtx->stack_top;
 
 	/* push all arguments onto the stack */
 	nargs = argpusher(rtx, call, apdata);
-	if (nargs == (hawk_oow_t)-1)
-	{
-		UNWIND_HAWK_RTX_STACK_BASE (rtx);
-		return HAWK_NULL;
-	}
+	if (nargs == (hawk_oow_t)-1) goto oops_making_stack_frame;
 
 	HAWK_ASSERT (nargs == call->nargs);
 
 	if (fun)
 	{
 		/* extra step for normal awk functions */
-
-		if (fun->argspec && call->args) /* hawk_rtx_callfun() sets up a fake call structure with nargs > 0 but args == HAWK_NULL */
-		{
-			/* sanity check for pass-by-reference parameters of a normal awk function.
-			 * it tests if each pass-by-reference argument is referenceable. */
-
-			hawk_nde_t* p = call->args;
-			for (i = 0; i < nargs; i++)
-			{
-				if (fun->argspec[i] == HAWK_T('r'))
-				{
-					hawk_val_t** ref;
-
-					if (get_reference(rtx, p, &ref) <= -1)
-					{
-						UNWIND_RTX_STACK (rtx, nargs);
-						return HAWK_NULL;
-					}
-				}
-				p = p->next;
-			}
-		}
-
 		while (nargs < fun->nargs)
 		{
 			/* push as many nils as the number of missing actual arguments */
-			if (HAWK_UNLIKELY(__raw_push(rtx, hawk_val_nil) <= -1))
-			{
-				UNWIND_RTX_STACK (rtx, nargs);
-				ADJERR_LOC (rtx, &nde->loc);
-				return HAWK_NULL;
-			}
-
+			HAWK_RTX_STACK_PUSH (rtx, hawk_val_nil);
 			nargs++;
 		}
 	}
 
+	/* entering a new stack frame */
 	rtx->stack_base = saved_stack_top;
 	HAWK_RTX_STACK_NARGS(rtx) = (void*)nargs;
 
@@ -6197,7 +6077,7 @@ static hawk_val_t* __eval_call (
 	{
 		/* normal awk function */
 		HAWK_ASSERT (fun->body->type == HAWK_NDE_BLK);
-		n = run_block(rtx,(hawk_nde_blk_t*)fun->body);
+		n = run_block(rtx, (hawk_nde_blk_t*)fun->body);
 	}
 	else
 	{
@@ -6209,7 +6089,7 @@ static hawk_val_t* __eval_call (
 		if (call->u.fnc.spec.impl)
 		{
 			n = call->u.fnc.spec.impl(rtx, &call->u.fnc.info);
-			if (HAWK_UNLIKELY(n <= -1)) ADJERR_LOC (rtx, &nde->loc);
+			if (HAWK_UNLIKELY(n <= -1)) ADJERR_LOC (rtx, &call->loc);
 		}
 	}
 
@@ -6219,7 +6099,8 @@ static hawk_val_t* __eval_call (
 	hawk_logfmt (hawk_rtx_gethawk(rtx), HAWK_T("block rtx complete nargs = %d\n"), (int)nargs); 
 #endif
 
-	if (fun && fun->argspec && call->args && call->nargs > 0)  /* hawk_rtx_callfun() sets up a fake call structure with nargs > 0 but args == HAWK_NULL */
+	i = 0;
+	if (fun && fun->argspec && call->nargs > 0)  /* hawk_rtx_callfun() sets up a fake call structure with call->nargs > 0 but call->args == HAWK_NULL */
 	{
 		/* set back the values for pass-by-reference parameters of normal functions.
 		 * the intrinsic functions are not handled here but their implementation would
@@ -6231,50 +6112,86 @@ static hawk_val_t* __eval_call (
 		 * all parameters are nils in this case. nargs and fun->nargs are 2 but call->nargs is 0.
 		 */
 
-		hawk_oow_t cur_stack_base = rtx->stack_base;
-		hawk_oow_t prev_stack_base = (hawk_oow_t)rtx->stack[rtx->stack_base + 0];
-
-		hawk_nde_t* p = call->args;
-		for (i = 0; i < call->nargs; i++)
+		if (call->args)
 		{
-			if (n >= 0 && fun->argspec[i] == HAWK_T('r'))
+			hawk_oow_t cur_stack_base = rtx->stack_base;
+			hawk_oow_t prev_stack_base = (hawk_oow_t)rtx->stack[rtx->stack_base + 0];
+			hawk_nde_t* p = call->args;
+
+			for (; i < call->nargs; i++)
 			{
-				hawk_val_t** ref;
-				hawk_val_ref_t refv;
-
-				/* if an argument passed is a local variable or a parameter to the previous caller,
-				 * the argument node information stored is relative to the previous stack frame.
-				 * i revert rtx->stack_base to the previous stack frame base before calling 
-				 * get_reference() and restors it back to the current base. this tactic
-				 * is very ugly because the assumptions for this is dependent on get_reference()
-				 * implementation */
-				rtx->stack_base = prev_stack_base; /* UGLY */
-				get_reference (rtx, p, &ref); /* no failure check as it must succeed here for the check done above */
-				rtx->stack_base = cur_stack_base; /* UGLY */
-
-				HAWK_RTX_INIT_REF_VAL (&refv, p->type - HAWK_NDE_NAMED, ref, 9); /* initialize a fake reference variable. 9 chosen randomly */
-				if (HAWK_UNLIKELY(hawk_rtx_setrefval(rtx, &refv, HAWK_RTX_STACK_ARG(rtx, i)) <= -1)) 
+				if (n >= 0 && (fun->argspec[i] == 'r' || fun->argspec[i] == 'R'))
 				{
-					n = -1;
-					ADJERR_LOC (rtx, &nde->loc);
+					hawk_val_t** ref;
+					hawk_val_ref_t refv;
+					int r;
+
+					/* if an argument passed is a local variable or a parameter to the previous caller,
+					 * the argument node information stored is relative to the previous stack frame.
+					 * i revert rtx->stack_base to the previous stack frame base before calling 
+					 * get_reference() and restors it back to the current base. this tactic
+					 * is very ugly because the assumptions for this is depecallnt on get_reference()
+					 * implementation */
+					rtx->stack_base = prev_stack_base; /* UGLY */
+					r = get_reference(rtx, p, &ref);
+					rtx->stack_base = cur_stack_base; /* UGLY */
+
+					/* if argspec is 'r', get_reference() must succeed all the time.
+					 * if argspec is 'R', it may fail. if it happens, don't copy the value */
+					if (HAWK_LIKELY(r >= 0))
+					{
+						HAWK_RTX_INIT_REF_VAL (&refv, p->type - HAWK_NDE_NAMED, ref, 9); /* initialize a fake reference variable. 9 chosen randomly */
+						if (HAWK_UNLIKELY(hawk_rtx_setrefval(rtx, &refv, HAWK_RTX_STACK_ARG(rtx, i)) <= -1)) 
+						{
+							n = -1;
+							ADJERR_LOC (rtx, &call->loc);
+						}
+					}
 				}
+
+				hawk_rtx_refdownval (rtx, HAWK_RTX_STACK_ARG(rtx,i));
+				p = p->next;
 			}
-
-			hawk_rtx_refdownval (rtx, HAWK_RTX_STACK_ARG(rtx,i));
-			p = p->next;
 		}
-
-		for (; i < nargs; i++)
+		else if (call->arg_base > 0) /* special case. set by hawk::call() */
 		{
-			hawk_rtx_refdownval (rtx, HAWK_RTX_STACK_ARG(rtx,i));
+			/*
+			 *  function f1(a,&b) { b *= 20; }
+			 *  BEGIN { q = 4; hawk::call(r, "f1", 20, q); print q; 
+* }
+			 * the fourth argument to hawk::call() must map to the second argument to f1().
+			 * hawk::call() accepts the third to the last arguments as reference if possible.
+			 * this function attempts to copy back the pass-by-reference values to 
+			 * one stack frame up.
+			 *
+			 *  f1(1, 2) is an error as 2 is not referenceable.
+			 *  hakw::call(r, "f1", 1, 2) is not an error but can't capture changes made inside f1.
+			 */
+			for (; i < call->nargs; i++)
+			{
+				if (n >= 0 && (fun->argspec[i] == 'r' || fun->argspec[i] == 'R'))
+				{
+					hawk_val_t* v;
+
+					v = rtx->stack[call->arg_base + i]; /* UGLY */
+					if (HAWK_RTX_GETVALTYPE(rtx, v) == HAWK_VAL_REF)
+					{
+						if (HAWK_UNLIKELY(hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)v, HAWK_RTX_STACK_ARG(rtx, i)) <= -1)) 
+						{
+							n = -1;
+							ADJERR_LOC (rtx, &call->loc);
+						}
+					}
+				}
+
+				hawk_rtx_refdownval (rtx, HAWK_RTX_STACK_ARG(rtx,i));
+			}
 		}
 	}
-	else
+
+	for (; i < nargs; i++)
 	{
-		for (i = 0; i < nargs; i++)
-		{
-			hawk_rtx_refdownval (rtx, HAWK_RTX_STACK_ARG(rtx,i));
-		}
+		hawk_rtx_refdownval (rtx, HAWK_RTX_STACK_ARG(rtx,i));
 	}
 
 #if defined(DEBUG_RUN)
@@ -6286,13 +6203,13 @@ static hawk_val_t* __eval_call (
 	{
 		if (hawk_rtx_geterrnum(rtx) == HAWK_ENOERR && errhandler != HAWK_NULL) 
 		{
-			/* errhandler is passed only when __eval_call() is
-			 * invoked from hawk_rtx_call(). Under this 
+			/* errhandler is passed only when hawk_rtx_evalcall() is
+			 * invoked from hawk_rtx_call(). Ucallr this 
 			 * circumstance, this stack frame is the first
 			 * activated and the stack base is the first element
 			 * after the global variables. so HAWK_RTX_STACK_RETVAL(rtx)
 			 * effectively becomes HAWK_RTX_STACK_RETVAL_GBL(rtx).
-			 * As __eval_call() returns HAWK_NULL on error and
+			 * As hawk_rtx_evalcall() returns HAWK_NULL on error and
 			 * the reference count of HAWK_RTX_STACK_RETVAL(rtx) should be
 			 * decremented, it can't get the return value
 			 * if it turns out to be terminated by exit().
@@ -6336,6 +6253,27 @@ static hawk_val_t* __eval_call (
 	hawk_logfmt (hawk_rtx_gethawk(rtx), HAWK_T("returning from function top=%zd, base=%zd\n"), (hawk_oow_t)rtx->stack_top, (hawk_oow_t)rtx->stack_base); 
 #endif
 	return (n <= -1)? HAWK_NULL: v;
+
+oops_making_stack_frame:
+	while (rtx->stack_top > saved_arg_stack_top)
+	{
+		/* call hawk_rtx_refdownval() for all arguments. 
+		 * it is safe because nil or quickint is immune to excessive hawk_rtx_refdownval() calls */
+		hawk_rtx_refdownval(rtx, rtx->stack[rtx->stack_top - 1]);
+		HAWK_RTX_STACK_POP (rtx);
+	}
+	HAWK_ASSERT (rtx->stack_top - saved_stack_top == 4);
+	while (rtx->stack_top > saved_stack_top)
+	{
+		/* the stack frame prologue does not have a reference-counted value 
+		 * before being entered. so no hawk_rtx_refdownval().
+		 * three slots contains raw integers for internal use.. only one 
+		 * slot that contains the return value would be reference counted
+		 * after it is set to a reference counted value. here, it never happens */
+		HAWK_RTX_STACK_POP (rtx);
+	}
+	ADJERR_LOC (rtx, &call->loc);
+	return HAWK_NULL;
 }
 
 static hawk_oow_t push_arg_from_vals (hawk_rtx_t* rtx, hawk_nde_fncall_t* call, void* data)
@@ -6343,51 +6281,33 @@ static hawk_oow_t push_arg_from_vals (hawk_rtx_t* rtx, hawk_nde_fncall_t* call, 
 	struct pafv_t* pafv = (struct pafv_t*)data;
 	hawk_oow_t nargs = 0;
 
+	if (HAWK_UNLIKELY(HAWK_RTX_STACK_AVAIL(rtx) < pafv->nargs))
+	{
+		hawk_rtx_seterrnum (rtx, &call->loc, HAWK_ESTACK);
+		return (hawk_oow_t)-1;
+	}
+
 	for (nargs = 0; nargs < pafv->nargs; nargs++)
 	{
-		if (pafv->argspec && pafv->argspec[nargs] == HAWK_T('r'))
+		if (pafv->argspec && (pafv->argspec[nargs] == 'r' || pafv->argspec[nargs] == 'R'))
 		{
 			hawk_val_t** ref;
 			hawk_val_t* v;
 
 			ref = (hawk_val_t**)&pafv->args[nargs];
 			v = hawk_rtx_makerefval(rtx, HAWK_VAL_REF_LCL, ref); /* this type(HAWK_VAL_REF_LCL) is fake */
-			if (!v)
+			if (HAWK_UNLIKELY(!v))
 			{
-				UNWIND_HAWK_RTX_STACK_ARG (rtx, nargs);
 				ADJERR_LOC (rtx, &call->loc);
 				return (hawk_oow_t)-1;
 			}
 
-			if (HAWK_UNLIKELY(__raw_push(rtx, v)  <= -1))
-			{
-				hawk_rtx_refupval (rtx, v);
-				hawk_rtx_refdownval (rtx, v);
-
-				UNWIND_HAWK_RTX_STACK_ARG (rtx, nargs);
-				ADJERR_LOC (rtx, &call->loc);
-				return (hawk_oow_t)-1;
-			}
-
+			HAWK_RTX_STACK_PUSH (rtx, v);
 			hawk_rtx_refupval (rtx, v);
 		}
 		else
 		{
-			if (HAWK_UNLIKELY(__raw_push(rtx, pafv->args[nargs]) <= -1)) 
-			{
-				/* ugly - arg needs to be freed if it doesn't have
-				 * any reference. but its reference has not been 
-				 * updated yet as it is carried out after successful
-				 * stack push. so it adds up a reference and 
-				 * dereferences it */
-				hawk_rtx_refupval (rtx, pafv->args[nargs]);
-				hawk_rtx_refdownval (rtx, pafv->args[nargs]);
-
-				UNWIND_HAWK_RTX_STACK_ARG (rtx, nargs);
-				ADJERR_LOC (rtx, &call->loc);
-				return (hawk_oow_t)-1;
-			}
-
+			HAWK_RTX_STACK_PUSH (rtx, pafv->args[nargs]);
 			hawk_rtx_refupval (rtx, pafv->args[nargs]);
 		}
 	}
@@ -6400,11 +6320,17 @@ static hawk_oow_t push_arg_from_nde (hawk_rtx_t* rtx, hawk_nde_fncall_t* call, v
 	hawk_nde_t* p;
 	hawk_val_t* v;
 	hawk_oow_t nargs;
-	const hawk_ooch_t* fnc_arg_spec = (const hawk_ooch_t*)data;
+	const hawk_ooch_t* arg_spec = (const hawk_ooch_t*)data;
 	hawk_oow_t spec_len;
 
-	spec_len = fnc_arg_spec? hawk_count_oocstr(fnc_arg_spec): 0;
-	for (p = call->args, nargs = 0; p != HAWK_NULL; p = p->next, nargs++)
+	if (HAWK_UNLIKELY(HAWK_RTX_STACK_AVAIL(rtx) < call->nargs))
+	{
+		hawk_rtx_seterrnum (rtx, &call->loc, HAWK_ESTACK);
+		return (hawk_oow_t)-1;
+	}
+
+	spec_len = arg_spec? hawk_count_oocstr(arg_spec): 0;
+	for (p = call->args, nargs = 0; p; p = p->next, nargs++)
 	{
 		hawk_ooch_t spec;
 
@@ -6414,59 +6340,47 @@ static hawk_oow_t push_arg_from_nde (hawk_rtx_t* rtx, hawk_nde_fncall_t* call, v
 			{
 				/* not sufficient number of spec characters given.
 				 * take the last value and use it */
-				spec = fnc_arg_spec[spec_len - 1]; 
+				spec = arg_spec[spec_len - 1]; 
 			}
 			else
 			{
-				spec = fnc_arg_spec[nargs];
+				spec = arg_spec[nargs];
 			}
 		}
 		else spec = '\0';
 
-		if (spec == 'r')
+		switch (spec)
 		{
-			hawk_val_t** ref;
-
-			if (get_reference(rtx, p, &ref) <= -1)
+			case 'R': /* make reference if a referenceable is given. otherwise accept a normal value - useful for hawk::call() */
+			case 'r': /* make reference. a non-referenceable value is rejected */
 			{
-				UNWIND_HAWK_RTX_STACK_ARG (rtx, nargs);
-				return (hawk_oow_t)-1;
+				hawk_val_t** ref;
+
+				if (get_reference(rtx, p, &ref) <= -1) 
+				{
+					if (spec == 'R') goto normal_arg;
+					return (hawk_oow_t)-1; /* return -1 without unwinding stack as hawk_rtx_evalcall() does it */
+				}
+
+				/* 'p->type - HAWK_NDE_NAMED' must produce a relevant HAWK_VAL_REF_XXX value. */
+				v = hawk_rtx_makerefval(rtx, p->type - HAWK_NDE_NAMED, ref);
+				break;
 			}
 
-			/* 'p->type - HAWK_NDE_NAMED' must produce a relevant HAWK_VAL_REF_XXX value. */
-			v = hawk_rtx_makerefval(rtx, p->type - HAWK_NDE_NAMED, ref);
-		}
-		else if (spec == 'x')
-		{
-			/* a regular expression is passed to the function as it is */
-			v = eval_expression0(rtx, p);
-		}
-		else
-		{
-			v = eval_expression(rtx, p);
+			case 'x':
+				/* a regular expression is passed to the function as it is */
+				v = eval_expression0(rtx, p);
+				break;
+
+			default:
+			normal_arg:
+				v = eval_expression(rtx, p);
+				break;
 		}
 
-		if (HAWK_UNLIKELY(!v))
-		{
-			UNWIND_HAWK_RTX_STACK_ARG (rtx, nargs);
-			return (hawk_oow_t)-1;
-		}
+		if (HAWK_UNLIKELY(!v)) return (hawk_oow_t)-1; /* return -1 without unwinding stack as hawk_rtx_evalcall() does it */
 
-		if (HAWK_UNLIKELY(__raw_push(rtx,v) <= -1)) 
-		{
-			/* ugly - v needs to be freed if it doesn't have
-			 * any reference. but its reference has not been 
-			 * updated yet as it is carried out after the 
-			 * successful stack push. so it adds up a reference 
-			 * and dereferences it */
-			hawk_rtx_refupval (rtx, v);
-			hawk_rtx_refdownval (rtx, v);
-
-			UNWIND_HAWK_RTX_STACK_ARG (rtx, nargs);
-			ADJERR_LOC (rtx, &call->loc);
-			return (hawk_oow_t)-1;
-		}
-
+		HAWK_RTX_STACK_PUSH (rtx, v);
 		hawk_rtx_refupval (rtx, v);
 	}
 
@@ -7423,7 +7337,7 @@ wp_mod_main:
 					hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EFMTARG);
 					return HAWK_NULL;
 				}
-				v = hawk_rtx_getarg (rtx, stack_arg_idx);
+				v = hawk_rtx_getarg(rtx, stack_arg_idx);
 			}
 			else
 			{
@@ -7438,7 +7352,7 @@ wp_mod_main:
 				}
 				else 
 				{
-					v = eval_expression (rtx, args);
+					v = eval_expression(rtx, args);
 					if (v == HAWK_NULL) return HAWK_NULL;
 				}
 			}
@@ -7898,7 +7812,7 @@ wp_mod_main:
 					hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EFMTARG);
 					return HAWK_NULL;
 				}
-				v = hawk_rtx_getarg (rtx, stack_arg_idx);
+				v = hawk_rtx_getarg(rtx, stack_arg_idx);
 			}
 			else
 			{
@@ -8331,7 +8245,7 @@ wp_mod_main:
 					hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EFMTARG);
 					return HAWK_NULL;
 				}
-				v = hawk_rtx_getarg (rtx, stack_arg_idx);
+				v = hawk_rtx_getarg(rtx, stack_arg_idx);
 			}
 			else
 			{
@@ -8346,7 +8260,7 @@ wp_mod_main:
 				}
 				else 
 				{
-					v = eval_expression (rtx, args);
+					v = eval_expression(rtx, args);
 					if (v == HAWK_NULL) return HAWK_NULL;
 				}
 			}
@@ -8712,7 +8626,7 @@ wp_mod_main:
 					hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EFMTARG);
 					return HAWK_NULL;
 				}
-				v = hawk_rtx_getarg (rtx, stack_arg_idx);
+				v = hawk_rtx_getarg(rtx, stack_arg_idx);
 			}
 			else
 			{
@@ -8727,7 +8641,7 @@ wp_mod_main:
 				}
 				else 
 				{
-					v = eval_expression (rtx, args);
+					v = eval_expression(rtx, args);
 					if (v == HAWK_NULL) return HAWK_NULL;
 				}
 			}
