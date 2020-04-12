@@ -695,7 +695,7 @@ int hawk_fnc_length (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	}
 	else
 	{
-		v = hawk_rtx_getarg (rtx, 0);
+		v = hawk_rtx_getarg(rtx, 0);
 		vtype = HAWK_RTX_GETVALTYPE (rtx, v);
 
 		switch (vtype)
@@ -987,7 +987,7 @@ int hawk_fnc_tolower (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_oow_t i;
 	hawk_val_t* a0, * r;
 
-	a0 = hawk_rtx_getarg (rtx, 0);
+	a0 = hawk_rtx_getarg(rtx, 0);
 	if (HAWK_RTX_GETVALTYPE(rtx, a0) == HAWK_VAL_MBS)
 	{
 		hawk_bcs_t str;
@@ -1021,7 +1021,7 @@ int hawk_fnc_toupper (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_oow_t i;
 	hawk_val_t* a0, * r;
 
-	a0 = hawk_rtx_getarg (rtx, 0);
+	a0 = hawk_rtx_getarg(rtx, 0);
 	if (HAWK_RTX_GETVALTYPE(rtx, a0) == HAWK_VAL_MBS)
 	{
 		hawk_bcs_t str;

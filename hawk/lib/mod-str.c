@@ -129,7 +129,7 @@ static int is_class (hawk_rtx_t* rtx, hawk_ooch_prop_t ctype)
 	hawk_val_t* a0;
 	int tmp;
 
-	a0 = hawk_rtx_getarg (rtx, 0);
+	a0 = hawk_rtx_getarg(rtx, 0);
 
 	if (HAWK_RTX_GETVALTYPE(rtx, a0) == HAWK_VAL_MBS)
 	{
@@ -349,7 +349,6 @@ static int fnc_tocharcode (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 	return 0;
 }
-
 
 static int fnc_frommbs (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {

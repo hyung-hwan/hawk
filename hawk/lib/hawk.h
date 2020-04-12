@@ -449,7 +449,7 @@ struct hawk_nde_t
 struct hawk_fun_t
 {
 	hawk_oocs_t     name;
-	hawk_oow_t     nargs;
+	hawk_oow_t      nargs;
 	hawk_ooch_t*    argspec; /* similar to  the argument spec of hawk_fnc_arg_t. supports v & r only. */
 	hawk_nde_t* body;
 };

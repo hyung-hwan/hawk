@@ -27,10 +27,91 @@
 #include "mod-hawk.h"
 #include "hawk-prv.h"
 
+struct pafs_t
+{
+	hawk_oow_t stack_base;
+	hawk_oow_t start_index;
+	hawk_oow_t end_index;
+};
+
+static hawk_oow_t push_args_from_stack (hawk_rtx_t* rtx, hawk_nde_fncall_t* call, void* data)
+{
+	struct pafs_t* pasf = (struct pafs_t*)data;
+	hawk_oow_t org_stack_base, i;
+	hawk_val_t* v;
+
+	if (HAWK_RTX_STACK_AVAIL(rtx) < pasf->end_index - pasf->start_index + 1)
+	{
+		hawk_rtx_seterrnum (rtx, &call->loc, HAWK_ESTACK);
+		return (hawk_oow_t)-1;
+	}
+
+	org_stack_base = rtx->stack_base;
+	for (i = pasf->start_index; i <= pasf->end_index; i++) 
+	{
+		rtx->stack_base = pasf->stack_base;
+		v = HAWK_RTX_STACK_ARG(rtx, i);
+		rtx->stack_base = org_stack_base;
+
+		HAWK_RTX_STACK_PUSH (rtx, v);
+		hawk_rtx_refupval (rtx, v);
+	}
+
+	return pasf->end_index - pasf->start_index + 1;
+}
+
+static int fnc_call (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+{
+	hawk_fun_t* fun;
+	hawk_oow_t nargs;
+	hawk_nde_fncall_t call;
+	struct pafs_t pafs;
+	hawk_val_t* v, * a0;
+	int rx = -1;
+
+	/* this function is similar to hawk_rtx_callfun() but it is more simplified */
+
+	a0 = hawk_rtx_getarg(rtx, 0);
+
+	fun = hawk_rtx_valtofun(rtx, hawk_rtx_getarg(rtx, 1));
+	if (!fun) goto done;
+
+	nargs = hawk_rtx_getnargs(rtx);
+	if (nargs - 2 > fun->nargs)
+	{
+		/*hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EARGTM);
+		return HAWK_NULL;*/
+		goto done;
+	}
+
+	HAWK_MEMSET (&call, 0, HAWK_SIZEOF(call));
+	call.type = HAWK_NDE_FNCALL_FUN;
+	call.u.fun.name = fun->name;
+	call.nargs = nargs - 2;
+	/* keep HAWK_NULL in call.args so that hawk_rtx_evalcall() knows it's a fake call structure */
+	call.arg_base = rtx->stack_base + 6; /* 6 = 4(stack frame prologue) + 2(the first two arguments to hawk::call()) */
+
+	pafs.stack_base = rtx->stack_base;
+	pafs.start_index = 2;
+	pafs.end_index = nargs - 1;
+
+	v = hawk_rtx_evalcall(rtx, &call, fun, push_args_from_stack, (void*)&pafs, HAWK_NULL, HAWK_NULL);
+	if (HAWK_LIKELY(v))
+	{
+		hawk_rtx_refupval (rtx, v);
+		rx = hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)a0, v);
+		hawk_rtx_refdownval (rtx, v);
+	}
+
+done:
+	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
+	return 0;
+}
+
 /*
    hawk::gc();
-   hawk::gc_set_threshold(gen)
    hawk::gc_get_threshold(gen)
+   hawk::gc_set_threshold(gen, threshold)
    hawk::GC_NUM_GENS
  */
 
@@ -107,9 +188,10 @@ struct inttab_t
 static fnctab_t fnctab[] =
 {
 	/* keep this table sorted for binary search in query(). */
-	{ HAWK_T("gc"),               { { 0, 1, HAWK_NULL },  fnc_gc,                    0 } },
-	{ HAWK_T("gc_get_threshold"), { { 1, 1, HAWK_NULL },  fnc_gc_get_threshold,      0 } },
-	{ HAWK_T("gc_set_threshold"), { { 2, 2, HAWK_NULL },  fnc_gc_set_threshold,      0 } }
+	{ HAWK_T("call"),             { { 2, A_MAX, HAWK_T("rvR") },  fnc_call,                  0 } },
+	{ HAWK_T("gc"),               { { 0, 1,     HAWK_NULL     },  fnc_gc,                    0 } },
+	{ HAWK_T("gc_get_threshold"), { { 1, 1,     HAWK_NULL     },  fnc_gc_get_threshold,      0 } },
+	{ HAWK_T("gc_set_threshold"), { { 2, 2,     HAWK_NULL     },  fnc_gc_set_threshold,      0 } }
 };
 
 static inttab_t inttab[] =

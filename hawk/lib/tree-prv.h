@@ -224,6 +224,7 @@ struct hawk_nde_fncall_t
 	} u;
 	hawk_nde_t* args;
 	hawk_oow_t nargs;
+	hawk_oow_t arg_base; /* special field set by hawk::call() and handled by hawk_rtx_evalcall() */
 };
 
 /* HAWK_NDE_GETLINE */
