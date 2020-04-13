@@ -158,7 +158,7 @@ HAWK_EXPORT void hawk_sio_fini (
 #if defined(HAWK_HAVE_INLINE)
 static HAWK_INLINE void* hawk_sio_getxtn (hawk_sio_t* sio) { return (void*)(sio + 1); }
 #else
-#define hawk_sio_getxtn(awk) ((void*)((hawk_sio_t*)(sio) + 1))
+#define hawk_sio_getxtn(sio) ((void*)((hawk_sio_t*)(sio) + 1))
 #endif
 
 HAWK_EXPORT hawk_cmgr_t* hawk_sio_getcmgr (

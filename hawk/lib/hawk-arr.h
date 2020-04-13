@@ -202,7 +202,7 @@ HAWK_EXPORT void hawk_arr_fini (
 #if defined(HAWK_HAVE_INLINE)
 static HAWK_INLINE void* hawk_arr_getxtn (hawk_arr_t* arr) { return (void*)(arr + 1); }
 #else
-#define hawk_arr_getxtn(awk) ((void*)((hawk_arr_t*)(arr) + 1))
+#define hawk_arr_getxtn(arr) ((void*)((hawk_arr_t*)(arr) + 1))
 #endif
 
 /**

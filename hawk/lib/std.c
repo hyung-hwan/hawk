@@ -190,10 +190,10 @@ typedef struct ioattr_t
 } ioattr_t;
 
 #if defined(HAWK_HAVE_INLINE)
-static HAWK_INLINE xtn_t* GET_XTN(hawk_t* awk) { return (xtn_t*)((hawk_uint8_t*)hawk_getxtn(awk) - HAWK_SIZEOF(xtn_t)); }
+static HAWK_INLINE xtn_t* GET_XTN(hawk_t* hawk) { return (xtn_t*)((hawk_uint8_t*)hawk_getxtn(hawk) - HAWK_SIZEOF(xtn_t)); }
 static HAWK_INLINE rxtn_t* GET_RXTN(hawk_rtx_t* rtx) { return (rxtn_t*)((hawk_uint8_t*)hawk_rtx_getxtn(rtx) - HAWK_SIZEOF(rxtn_t)); }
 #else
-#define GET_XTN(awk) ((xtn_t*)((hawk_uint8_t*)hawk_getxtn(awk) - HAWK_SIZEOF(xtn_t)))
+#define GET_XTN(hawk) ((xtn_t*)((hawk_uint8_t*)hawk_getxtn(hawk) - HAWK_SIZEOF(xtn_t)))
 #define GET_RXTN(rtx) ((rxtn_t*)((hawk_uint8_t*)hawk_rtx_getxtn(rtx) - HAWK_SIZEOF(rxtn_t)))
 #endif
 

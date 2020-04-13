@@ -111,7 +111,7 @@ HAWK_EXPORT void hawk_mtx_fini (
 #if defined(HAWK_HAVE_INLINE)
 static HAWK_INLINE void* hawk_mtx_getxtn (hawk_mtx_t* mtx) { return (void*)(mtx + 1); }
 #else
-#define hawk_mtx_getxtn(awk) ((void*)((hawk_mtx_t*)(mtx) + 1))
+#define hawk_mtx_getxtn(mtx) ((void*)((hawk_mtx_t*)(mtx) + 1))
 #endif
 
 HAWK_EXPORT int hawk_mtx_lock (
