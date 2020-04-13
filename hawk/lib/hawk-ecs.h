@@ -158,7 +158,7 @@ HAWK_EXPORT void hawk_becs_fini (
 #if defined(HAWK_HAVE_INLINE)
 static HAWK_INLINE void* hawk_becs_getxtn (hawk_becs_t* becs) { return (void*)(becs + 1); }
 #else
-#define hawk_becs_getxtn(awk) ((void*)((hawk_becs_t*)(becs) + 1))
+#define hawk_becs_getxtn(becs) ((void*)((hawk_becs_t*)(becs) + 1))
 #endif
 
 /**
@@ -372,7 +372,7 @@ HAWK_EXPORT void hawk_uecs_fini (
 #if defined(HAWK_HAVE_INLINE)
 static HAWK_INLINE void* hawk_uecs_getxtn (hawk_uecs_t* uecs) { return (void*)(uecs + 1); }
 #else
-#define hawk_uecs_getxtn(awk) ((void*)((hawk_uecs_t*)(uecs) + 1))
+#define hawk_uecs_getxtn(uecs) ((void*)((hawk_uecs_t*)(uecs) + 1))
 #endif
 
 /**

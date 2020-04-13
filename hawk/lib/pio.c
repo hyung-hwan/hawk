@@ -1791,7 +1791,7 @@ create_process:
 			int r;
 
 			tio[i] = hawk_tio_open(pio->gem, HAWK_SIZEOF(&pio->pin[i]), topt);
-			if (tio[i] == HAWK_NULL) goto oops;
+			if (HAWK_UNLIKELY(!tio[i])) goto oops;
 
 			*(hawk_pio_pin_t**)hawk_tio_getxtn(tio[i]) = &pio->pin[i];
 

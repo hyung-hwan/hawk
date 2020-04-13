@@ -100,7 +100,7 @@ HAWK_EXPORT void hawk_tre_fini (
 #if defined(HAWK_HAVE_INLINE)
 static HAWK_INLINE void* hawk_tre_getxtn (hawk_tre_t* tre) { return (void*)(tre + 1); }
 #else
-#define hawk_tre_getxtn(awk) ((void*)((hawk_tre_t*)(tre) + 1))
+#define hawk_tre_getxtn(tre) ((void*)((hawk_tre_t*)(tre) + 1))
 #endif
 
 HAWK_EXPORT int hawk_tre_compx (

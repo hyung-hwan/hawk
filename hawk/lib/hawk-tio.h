@@ -138,7 +138,7 @@ HAWK_EXPORT int hawk_tio_fini (
 #if defined(HAWK_HAVE_INLINE)
 static HAWK_INLINE void* hawk_tio_getxtn (hawk_tio_t* tio) { return (void*)(tio + 1); }
 #else
-#define hawk_tio_getxtn(awk) ((void*)((hawk_tio_t*)(tio) + 1))
+#define hawk_tio_getxtn(tio) ((void*)((hawk_tio_t*)(tio) + 1))
 #endif
 
 /**

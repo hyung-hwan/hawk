@@ -246,7 +246,7 @@ HAWK_EXPORT void hawk_pio_fini (
 #if defined(HAWK_HAVE_INLINE)
 static HAWK_INLINE void* hawk_pio_getxtn (hawk_pio_t* pio) { return (void*)(pio + 1); }
 #else
-#define hawk_pio_getxtn(awk) ((void*)((hawk_pio_t*)(pio) + 1))
+#define hawk_pio_getxtn(pio) ((void*)((hawk_pio_t*)(pio) + 1))
 #endif
 
 /**

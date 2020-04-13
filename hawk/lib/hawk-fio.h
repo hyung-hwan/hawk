@@ -201,7 +201,7 @@ HAWK_EXPORT void hawk_fio_fini (
 #if defined(HAWK_HAVE_INLINE)
 static HAWK_INLINE void* hawk_fio_getxtn (hawk_fio_t* fio) { return (void*)(fio + 1); }
 #else
-#define hawk_fio_getxtn(awk) ((void*)((hawk_fio_t*)(fio) + 1))
+#define hawk_fio_getxtn(fio) ((void*)((hawk_fio_t*)(fio) + 1))
 #endif
 
 /**
