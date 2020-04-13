@@ -2465,7 +2465,7 @@ hawk_val_t* hawk_rtx_getrefval (hawk_rtx_t* rtx, hawk_val_ref_t* ref)
 
 int hawk_rtx_setrefval (hawk_rtx_t* rtx, hawk_val_ref_t* ref, hawk_val_t* val)
 {
-	hawk_val_type_t vtype = HAWK_RTX_GETVALTYPE (rtx, val);
+	hawk_val_type_t vtype = HAWK_RTX_GETVALTYPE(rtx, val);
 
 	if (vtype == HAWK_VAL_REX || vtype == HAWK_VAL_REF)
 	{

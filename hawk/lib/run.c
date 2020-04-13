@@ -6124,27 +6124,44 @@ hawk_val_t* hawk_rtx_evalcall (
 				{
 					hawk_val_t** ref;
 					hawk_val_ref_t refv;
+					hawk_val_t* av;
 					int r;
 
-					/* if an argument passed is a local variable or a parameter to the previous caller,
-					 * the argument node information stored is relative to the previous stack frame.
-					 * i revert rtx->stack_base to the previous stack frame base before calling 
-					 * get_reference() and restors it back to the current base. this tactic
-					 * is very ugly because the assumptions for this is depecallnt on get_reference()
-					 * implementation */
-					rtx->stack_base = prev_stack_base; /* UGLY */
-					r = get_reference(rtx, p, &ref);
-					rtx->stack_base = cur_stack_base; /* UGLY */
-
-					/* if argspec is 'r', get_reference() must succeed all the time.
-					 * if argspec is 'R', it may fail. if it happens, don't copy the value */
-					if (HAWK_LIKELY(r >= 0))
+					av = HAWK_RTX_STACK_ARG(rtx, i);
+					if (HAWK_RTX_GETVALTYPE(rtx, av) == HAWK_VAL_REF)
 					{
-						HAWK_RTX_INIT_REF_VAL (&refv, p->type - HAWK_NDE_NAMED, ref, 9); /* initialize a fake reference variable. 9 chosen randomly */
-						if (HAWK_UNLIKELY(hawk_rtx_setrefval(rtx, &refv, HAWK_RTX_STACK_ARG(rtx, i)) <= -1)) 
+						/* the argument still has the reference type. 
+						 * this means, the argument has not been set. 
+						 * 
+						 *   function f1(&a, &b) { b = 20 } 
+						 * 
+						 * since a is not set in f1, the value for a is still the pushed value which is a reference
+						 */
+
+						/* ---- DO NOTHING ---- */
+					}
+					else
+					{
+						/* if an argument passed is a local variable or a parameter to the previous caller,
+						 * the argument node information stored is relative to the previous stack frame.
+						 * i revert rtx->stack_base to the previous stack frame base before calling 
+						 * get_reference() and restors it back to the current base. this tactic
+						 * is very ugly because the assumptions for this is depecallnt on get_reference()
+						 * implementation */
+						rtx->stack_base = prev_stack_base; /* UGLY */
+						r = get_reference(rtx, p, &ref);
+						rtx->stack_base = cur_stack_base; /* UGLY */
+
+						/* if argspec is 'r', get_reference() must succeed all the time.
+						 * if argspec is 'R', it may fail. if it happens, don't copy the value */
+						if (HAWK_LIKELY(r >= 0))
 						{
-							n = -1;
-							ADJERR_LOC (rtx, &call->loc);
+							HAWK_RTX_INIT_REF_VAL (&refv, p->type - HAWK_NDE_NAMED, ref, 9); /* initialize a fake reference variable. 9 chosen randomly */
+							if (HAWK_UNLIKELY(hawk_rtx_setrefval(rtx, &refv, av) <= -1)) 
+							{
+								n = -1;
+								ADJERR_LOC (rtx, &call->loc);
+							}
 						}
 					}
 				}
@@ -6157,8 +6174,8 @@ hawk_val_t* hawk_rtx_evalcall (
 		{
 			/*
 			 *  function f1(a,&b) { b *= 20; }
-			 *  BEGIN { q = 4; hawk::call(r, "f1", 20, q); print q; 
-* }
+			 *  BEGIN { q = 4; hawk::call(r, "f1", 20, q); print q; }
+			 *
 			 * the fourth argument to hawk::call() must map to the second argument to f1().
 			 * hawk::call() accepts the third to the last arguments as reference if possible.
 			 * this function attempts to copy back the pass-by-reference values to 
@@ -6171,15 +6188,23 @@ hawk_val_t* hawk_rtx_evalcall (
 			{
 				if (n >= 0 && (fun->argspec[i] == 'r' || fun->argspec[i] == 'R'))
 				{
-					hawk_val_t* v;
+					hawk_val_t* v, * av;
 
-					v = rtx->stack[call->arg_base + i]; /* UGLY */
-					if (HAWK_RTX_GETVALTYPE(rtx, v) == HAWK_VAL_REF)
+					av = HAWK_RTX_STACK_ARG(rtx, i);
+					if (HAWK_RTX_GETVALTYPE(rtx, av) == HAWK_VAL_REF)
 					{
-						if (HAWK_UNLIKELY(hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)v, HAWK_RTX_STACK_ARG(rtx, i)) <= -1)) 
+						/* ---- DO NOTHING ---- */
+					}
+					else
+					{
+						v = rtx->stack[call->arg_base + i]; /* UGLY */
+						if (HAWK_RTX_GETVALTYPE(rtx, v) == HAWK_VAL_REF)
 						{
-							n = -1;
-							ADJERR_LOC (rtx, &call->loc);
+							if (HAWK_UNLIKELY(hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)v, av) <= -1)) 
+							{
+								n = -1;
+								ADJERR_LOC (rtx, &call->loc);
+							}
 						}
 					}
 				}

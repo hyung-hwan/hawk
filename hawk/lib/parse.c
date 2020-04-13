@@ -1454,14 +1454,13 @@ static hawk_nde_t* parse_function (hawk_t* awk)
 				nargs = HAWK_ARR_SIZE(awk->parse.params);
 				if (nargs >= argspeccapa)
 				{
-					hawk_oow_t i, newcapa = HAWK_ALIGN_POW2(nargs + 1, 64);
+					hawk_oow_t i, newcapa = HAWK_ALIGN_POW2(nargs + 2, 64);
 					argspec = hawk_reallocmem(awk, argspec, newcapa * HAWK_SIZEOF(*argspec));
 					if (!argspec) goto oops;
 					for (i = argspeccapa; i < newcapa; i++) argspec[i] = HAWK_T(' ');
 					argspeccapa = newcapa;
 				}
 				argspec[nargs] = 'r';
-				argspec[nargs + 1] = '\0';
 				if (get_token(awk) <= -1) goto oops;
 			}
 
@@ -1522,6 +1521,7 @@ static hawk_nde_t* parse_function (hawk_t* awk)
 			while (MATCH(awk,TOK_NEWLINE));
 		}
 
+		if (argspec) argspec[nargs + 1] = '\0';
 		if (get_token(awk) <= -1) goto oops;
 	}
 
