@@ -14,6 +14,7 @@
 
 @SET_MAKE@
 
+
 VPATH = @srcdir@
 am__is_gnu_make = { \
   if test -z '$(MAKELEVEL)'; then \
@@ -122,6 +123,7 @@ t_002_OBJECTS = $(am_t_002_OBJECTS)
 am__DEPENDENCIES_2 = $(am__DEPENDENCIES_1)
 am_t_005_OBJECTS = t-005.$(OBJEXT)
 t_005_OBJECTS = $(am_t_005_OBJECTS)
+SCRIPTS = $(noinst_SCRIPTS)
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -355,6 +357,7 @@ AM_CPPFLAGS = \
 
 AM_LDFLAGS = -L$(abs_builddir)/../lib  -L$(libdir)
 LDADD = $(PTHREAD_LIBS)
+noinst_SCRIPTS = h-001.hawk
 t_001_SOURCES = t-001.c
 t_002_SOURCES = t-002.c
 t_002_LDADD = -lhawk $(LDADD)
@@ -598,7 +601,7 @@ distdir-am: $(DISTFILES)
 	done
 check-am: all-am
 check: check-am
-all-am: Makefile $(PROGRAMS)
+all-am: Makefile $(PROGRAMS) $(SCRIPTS)
 installdirs:
 	for dir in "$(DESTDIR)$(bindir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
