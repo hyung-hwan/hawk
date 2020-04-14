@@ -31,12 +31,11 @@ static hawk_mmgr_t sys_mmgr =
 static int test1 (void)
 {
 	hawk_becs_t* b;
-	hawk_alt_t hawk_dummy;
-	hawk_t* t = (hawk_t*)&hawk_dummy;
-	hawk_dummy._mmgr = &sys_mmgr;
+	hawk_gem_t g;
 
+	g.mmgr = &sys_mmgr;
 
-	b = hawk_becs_open (t,  0, 5);
+	b = hawk_becs_open(&g,  0, 5);
 	hawk_becs_cat (b, "hello");
 	T_ASSERT0 (hawk_becs_getlen(b) == 5);
 
@@ -49,6 +48,7 @@ static int test1 (void)
 	T_ASSERT0 (HAWK_BECS_CHAR(b, 13) == '\0');
 
 	printf ("[%s]\n", HAWK_BECS_PTR(b)); 
+	hawk_becs_close (b);
 	return 0;
 
 oops:
@@ -61,8 +61,8 @@ static int test2 (void)
 	hawk_uch_t dst[6] = {'0','1','2','3','4','5'};
         hawk_oow_t q, i;
 
-        q = hawk_copy_uchars_to_ucstr (dst, HAWK_COUNTOF(dst), src, 7);
-	T_ASSERT0 (q == HAWK_COUNTOF(buf) - 1);
+        q = hawk_copy_uchars_to_ucstr(dst, HAWK_COUNTOF(dst), src, 7);
+	T_ASSERT0 (q == HAWK_COUNTOF(dst) - 1);
 	T_ASSERT0 (dst[HAWK_COUNTOF(dst) - 1] == '\0');
 	for (i = 0; i < q; i++) T_ASSERT0 (dst[i] == src[i]);
 
