@@ -6377,20 +6377,8 @@ static hawk_oow_t push_arg_from_nde (hawk_rtx_t* rtx, hawk_nde_fncall_t* call, v
 	{
 		hawk_ooch_t spec;
 
-		if (spec_len > 0)
-		{
-			if (nargs >= spec_len)
-			{
-				/* not sufficient number of spec characters given.
-				 * take the last value and use it */
-				spec = arg_spec[spec_len - 1]; 
-			}
-			else
-			{
-				spec = arg_spec[nargs];
-			}
-		}
-		else spec = '\0';
+		/* if not sufficient number of spec characters given, take the last value and use it */
+		spec = (spec_len <= 0)? '\0': arg_spec[((nargs < spec_len)? nargs: spec_len - 1)];
 
 		switch (spec)
 		{
