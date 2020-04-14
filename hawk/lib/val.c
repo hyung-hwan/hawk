@@ -1391,9 +1391,7 @@ static int val_ref_to_bool (hawk_rtx_t* rtx, const hawk_val_ref_t* ref)
 	{
 		case HAWK_VAL_REF_POS:
 		{
-			hawk_oow_t idx;
-
-			idx = (hawk_oow_t)ref->adr;
+			hawk_oow_t idx = (hawk_oow_t)ref->adr;
 			if (idx == 0)
 			{
 				return HAWK_OOECS_LEN(&rtx->inrec.line) > 0;
@@ -1411,9 +1409,8 @@ static int val_ref_to_bool (hawk_rtx_t* rtx, const hawk_val_ref_t* ref)
 		}
 		case HAWK_VAL_REF_GBL:
 		{
-			hawk_oow_t idx;
-			idx = (hawk_oow_t)ref->adr;
-			return hawk_rtx_valtobool(rtx, HAWK_RTX_STACK_GBL (rtx, idx));
+			hawk_oow_t idx = (hawk_oow_t)ref->adr;
+			return hawk_rtx_valtobool(rtx, HAWK_RTX_STACK_GBL(rtx, idx));
 		}
 
 		default:
@@ -1831,7 +1828,7 @@ static int val_ref_to_str (hawk_rtx_t* rtx, const hawk_val_ref_t* ref, hawk_rtx_
 		case HAWK_VAL_REF_GBL:
 		{
 			hawk_oow_t idx = (hawk_oow_t)ref->adr;
-			return hawk_rtx_valtostr(rtx, HAWK_RTX_STACK_GBL (rtx, idx), out);
+			return hawk_rtx_valtostr(rtx, HAWK_RTX_STACK_GBL(rtx, idx), out);
 		}
 
 		default:
@@ -2169,7 +2166,7 @@ static int val_ref_to_num (hawk_rtx_t* rtx, const hawk_val_ref_t* ref, hawk_int_
 		case HAWK_VAL_REF_GBL:
 		{
 			hawk_oow_t idx = (hawk_oow_t)ref->adr;
-			return hawk_rtx_valtonum(rtx, HAWK_RTX_STACK_GBL (rtx, idx), l, r);
+			return hawk_rtx_valtonum(rtx, HAWK_RTX_STACK_GBL(rtx, idx), l, r);
 		}
 
 		default:
