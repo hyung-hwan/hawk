@@ -197,7 +197,6 @@ static hawk_val_t* eval_getline (hawk_rtx_t* rtx, hawk_nde_t* nde);
 static hawk_val_t* eval_print (hawk_rtx_t* rtx, hawk_nde_t* nde);
 static hawk_val_t* eval_printf (hawk_rtx_t* rtx, hawk_nde_t* nde);
 
-
 static int read_record (hawk_rtx_t* rtx);
 
 static hawk_ooch_t* idxnde_to_str (hawk_rtx_t* rtx, hawk_nde_t* nde, hawk_ooch_t* buf, hawk_oow_t* len, hawk_nde_t** remidx);
@@ -205,6 +204,10 @@ static hawk_ooch_t* idxnde_to_str (hawk_rtx_t* rtx, hawk_nde_t* nde, hawk_ooch_t
 typedef hawk_val_t* (*binop_func_t) (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t* right);
 typedef hawk_val_t* (*eval_expr_t) (hawk_rtx_t* rtx, hawk_nde_t* nde);
 
+#define POS_VAL(rtx, idx) \
+	(((idx) == 0)? (rtx)->inrec.d0: \
+	 ((idx) > 0 && (idx) <= (hawk_int_t)(rtx)->inrec.nflds)? (rtx)->inrec.flds[(idx) - 1].val: \
+	 hawk_val_zls)
 
 HAWK_INLINE hawk_oow_t hawk_rtx_getnargs (hawk_rtx_t* rtx)
 {
@@ -2263,7 +2266,7 @@ static int run_statement (hawk_rtx_t* rtx, hawk_nde_t* nde)
 		default:
 		__fallback__:
 			tmp = eval_expression(rtx, nde);
-			if (tmp == HAWK_NULL) xret = -1;
+			if (HAWK_UNLIKELY(!tmp)) xret = -1;
 			else
 			{
 				/* destroy the value if not referenced */
@@ -2287,8 +2290,8 @@ static int run_if (hawk_rtx_t* rtx, hawk_nde_if_t* nde)
 	 * parser first of all */
 	HAWK_ASSERT (nde->test->next == HAWK_NULL);
 
-	test = eval_expression (rtx, nde->test);
-	if (test == HAWK_NULL) return -1;
+	test = eval_expression(rtx, nde->test);
+	if (HAWK_UNLIKELY(!test)) return -1;
 
 	hawk_rtx_refupval (rtx, test);
 	if (hawk_rtx_valtobool(rtx, test))
@@ -2319,7 +2322,7 @@ static int run_while (hawk_rtx_t* rtx, hawk_nde_while_t* nde)
 			ON_STATEMENT (rtx, nde->test);
 
 			test = eval_expression(rtx, nde->test);
-			if (!test) return -1;
+			if (HAWK_UNLIKELY(!test)) return -1;
 
 			hawk_rtx_refupval (rtx, test);
 
@@ -2462,7 +2465,7 @@ static int run_for (hawk_rtx_t* rtx, hawk_nde_for_t* nde)
 			HAWK_ASSERT (nde->incr->next == HAWK_NULL);
 
 			ON_STATEMENT (rtx, nde->incr);
-			val = eval_expression (rtx, nde->incr);
+			val = eval_expression(rtx, nde->incr);
 			if (HAWK_UNLIKELY(!val)) return -1;
 
 			hawk_rtx_refupval (rtx, val);
@@ -2608,12 +2611,12 @@ static int run_return (hawk_rtx_t* rtx, hawk_nde_return_t* nde)
 		 * by the parser first of all */
 		HAWK_ASSERT (nde->val->next == HAWK_NULL); 
 
-		val = eval_expression (rtx, nde->val);
+		val = eval_expression(rtx, nde->val);
 		if (HAWK_UNLIKELY(!val)) return -1;
 
 		if (!(rtx->hawk->opt.trait & HAWK_FLEXMAP))
 		{
-			if (HAWK_RTX_GETVALTYPE (rtx, val) == HAWK_VAL_MAP)
+			if (HAWK_RTX_GETVALTYPE(rtx, val) == HAWK_VAL_MAP)
 			{
 				/* cannot return a map */
 				hawk_rtx_refupval (rtx, val);
@@ -2791,17 +2794,17 @@ static hawk_val_t* fetch_topval_from_var (hawk_rtx_t* rtx, hawk_nde_var_t* var)
 
 		case HAWK_NDE_GBL:
 		case HAWK_NDE_GBLIDX:
-			val = HAWK_RTX_STACK_GBL(rtx,var->id.idxa);
+			val = HAWK_RTX_STACK_GBL(rtx, var->id.idxa);
 			break;
 
 		case HAWK_NDE_LCL:
 		case HAWK_NDE_LCLIDX:
-			val = HAWK_RTX_STACK_LCL(rtx,var->id.idxa);
+			val = HAWK_RTX_STACK_LCL(rtx, var->id.idxa);
 			break;
 
 		default:
 			HAWK_ASSERT (var->type == HAWK_NDE_ARG || var->type == HAWK_NDE_ARGIDX);
-			val = HAWK_RTX_STACK_ARG(rtx,var->id.idxa);
+			val = HAWK_RTX_STACK_ARG(rtx, var->id.idxa);
 			break;
 	}
 
@@ -3051,15 +3054,14 @@ static int run_reset (hawk_rtx_t* rtx, hawk_nde_reset_t* nde)
 
 static hawk_val_t* io_nde_to_str(hawk_rtx_t* rtx, hawk_nde_t* nde, hawk_oocs_t* dst, int seterr)
 {
-	
 	hawk_val_t* v;
 
 	v = eval_expression(rtx, nde);
-	if (!v) return HAWK_NULL;
+	if (HAWK_UNLIKELY(!v)) return HAWK_NULL;
 
 	hawk_rtx_refupval (rtx, v);
 	dst->ptr = hawk_rtx_getvaloocstr(rtx, v, &dst->len);
-	if (!dst) 
+	if (HAWK_UNLIKELY(!dst)) 
 	{
 		hawk_rtx_refdownval (rtx, v);
 		return HAWK_NULL;
@@ -3165,7 +3167,7 @@ static int run_print (hawk_rtx_t* rtx, hawk_nde_print_t* nde)
 			}
 
 			v = eval_expression(rtx, np);
-			if (v == HAWK_NULL) goto oops_1;
+			if (HAWK_UNLIKELY(!v)) goto oops_1;
 
 			hawk_rtx_refupval (rtx, v);
 			n = hawk_rtx_writeioval(rtx, nde->out_type, out.ptr, v);
@@ -3390,10 +3392,10 @@ static hawk_val_t* eval_expression (hawk_rtx_t* rtx, hawk_nde_t* nde)
 	}
 #endif
 
-	v = eval_expression0 (rtx, nde);
-	if (v == HAWK_NULL) return HAWK_NULL;
+	v = eval_expression0(rtx, nde);
+	if (HAWK_UNLIKELY(!v)) return HAWK_NULL;
 
-	if (HAWK_RTX_GETVALTYPE (rtx, v) == HAWK_VAL_REX)
+	if (HAWK_RTX_GETVALTYPE(rtx, v) == HAWK_VAL_REX)
 	{
 		hawk_oocs_t vs;
 		int free_vs = 0;
@@ -3490,7 +3492,7 @@ static hawk_val_t* eval_expression0 (hawk_rtx_t* rtx, hawk_nde_t* nde)
 
 	HAWK_ASSERT (nde->type >= HAWK_NDE_GRP && (nde->type - HAWK_NDE_GRP) < HAWK_COUNTOF(__evaluator));
 
-	v = __evaluator[nde->type-HAWK_NDE_GRP](rtx, nde);
+	v = __evaluator[nde->type - HAWK_NDE_GRP](rtx, nde);
 
 	if (HAWK_UNLIKELY(v && rtx->exit_level >= EXIT_GLOBAL))
 	{
@@ -3503,6 +3505,44 @@ static hawk_val_t* eval_expression0 (hawk_rtx_t* rtx, hawk_nde_t* nde)
 		 * non-error condition.*/
 		hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_ENOERR);
 		return HAWK_NULL;
+	}
+
+	if (v && HAWK_RTX_GETVALTYPE(rtx, v) == HAWK_VAL_REF)
+	{
+		/* as a rvalue, a reference can get resolved to a final value */
+
+		hawk_val_ref_t* ref = (hawk_val_ref_t*)v;
+		hawk_val_t* nv;
+
+printf ("REF>>>>>>>>>>>>>>>>>>>>> %d\n", ref->id);
+        	switch (ref->id)
+        	{
+			case HAWK_VAL_REF_POS:
+			{
+				hawk_oow_t idx = (hawk_oow_t)ref->adr;
+				nv = POS_VAL(rtx, idx);
+				break;
+			}
+
+			case HAWK_VAL_REF_NAMED:
+			case HAWK_VAL_REF_NAMEDIDX:
+			{
+				hawk_oow_t idx = (hawk_oow_t)ref->adr;
+printf ("XXXXXXXXXXXXXXX[%lu]\n", (unsigned long)idx);
+				nv = HAWK_RTX_STACK_GBL(rtx, idx);
+				break;
+			}
+
+			default:
+				nv = *(hawk_val_t**)ref->adr;
+				break;
+		}
+
+		hawk_rtx_refupval (rtx, v);
+		hawk_rtx_refdownval (rtx, v);
+
+		v = nv;
+printf ("---- %d\n", HAWK_RTX_GETVALTYPE(rtx, v));
 	}
 
 	return v;
@@ -3559,8 +3599,8 @@ static hawk_val_t* eval_assignment (hawk_rtx_t* rtx, hawk_nde_t* nde)
 	HAWK_ASSERT (ass->right != HAWK_NULL);
 
 	HAWK_ASSERT (ass->right->next == HAWK_NULL);
-	val = eval_expression (rtx, ass->right);
-	if (val == HAWK_NULL) return HAWK_NULL;
+	val = eval_expression(rtx, ass->right);
+	if (HAWK_UNLIKELY(!val)) return HAWK_NULL;
 
 	hawk_rtx_refupval (rtx, val);
 
@@ -3588,7 +3628,7 @@ static hawk_val_t* eval_assignment (hawk_rtx_t* rtx, hawk_nde_t* nde)
 
 		HAWK_ASSERT (ass->left->next == HAWK_NULL);
 		val2 = eval_expression(rtx, ass->left);
-		if (val2 == HAWK_NULL)
+		if (HAWK_UNLIKELY(!val2))
 		{
 			hawk_rtx_refdownval (rtx, val);
 			return HAWK_NULL;
@@ -3601,7 +3641,7 @@ static hawk_val_t* eval_assignment (hawk_rtx_t* rtx, hawk_nde_t* nde)
 		HAWK_ASSERT (binop_func[ass->opcode] != HAWK_NULL);
 
 		tmp = binop_func[ass->opcode](rtx, val2, val);
-		if (tmp == HAWK_NULL)
+		if (HAWK_UNLIKELY(!tmp))
 		{
 			hawk_rtx_refdownval (rtx, val2);
 			hawk_rtx_refdownval (rtx, val);
@@ -6667,7 +6707,7 @@ static hawk_val_t* eval_fun (hawk_rtx_t* rtx, hawk_nde_t* nde)
 static hawk_val_t* eval_named (hawk_rtx_t* rtx, hawk_nde_t* nde)
 {
 	hawk_htb_pair_t* pair;
-	pair = hawk_htb_search (rtx->named, ((hawk_nde_var_t*)nde)->id.name.ptr, ((hawk_nde_var_t*)nde)->id.name.len);
+	pair = hawk_htb_search(rtx->named, ((hawk_nde_var_t*)nde)->id.name.ptr, ((hawk_nde_var_t*)nde)->id.name.len);
 	return (pair == HAWK_NULL)? hawk_val_nil: HAWK_HTB_VPTR(pair);
 }
 
@@ -6794,10 +6834,10 @@ static hawk_val_t* eval_pos (hawk_rtx_t* rtx, hawk_nde_t* nde)
 	int n;
 
 	v = eval_expression (rtx, pos->val);
-	if (v == HAWK_NULL) return HAWK_NULL;
+	if (HAWK_UNLIKELY(!v)) return HAWK_NULL;
 
 	hawk_rtx_refupval (rtx, v);
-	n = hawk_rtx_valtoint (rtx, v, &lv);
+	n = hawk_rtx_valtoint(rtx, v, &lv);
 	hawk_rtx_refdownval (rtx, v);
 	if (n <= -1) 
 	{
@@ -6810,10 +6850,14 @@ static hawk_val_t* eval_pos (hawk_rtx_t* rtx, hawk_nde_t* nde)
 		hawk_rtx_seterrnum (rtx, &nde->loc, HAWK_EPOSIDX);
 		return HAWK_NULL;
 	}
+
+	v = POS_VAL(rtx, lv);
+#if 0
 	if (lv == 0) v = rtx->inrec.d0;
 	else if (lv > 0 && lv <= (hawk_int_t)rtx->inrec.nflds) 
 		v = rtx->inrec.flds[lv-1].val;
 	else v = hawk_val_zls; /*hawk_val_nil;*/
+#endif
 
 	return v;
 }

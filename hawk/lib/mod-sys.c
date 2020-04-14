@@ -3243,7 +3243,7 @@ static int fnc_openmux (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		#elif defined(FD_CLOEXEC)
 		{
 			int flag = fcntl(fd, F_GETFD);
-			if (flag >= 0) fcntl (mux->fd, F_SETFD, flag | FD_CLOEXEC);
+			if (flag >= 0) fcntl (fd, F_SETFD, flag | FD_CLOEXEC);
 		}
 		#endif
 	}

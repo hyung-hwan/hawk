@@ -1491,7 +1491,9 @@ static int fnc_stmt_execute (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 					case MYSQL_TYPE_LONG:
 					case MYSQL_TYPE_SHORT:
 					case MYSQL_TYPE_TINY:
+				#if (MYSQL_VERSION_ID >= 50000)
 					case MYSQL_TYPE_BIT:
+				#endif
 					case MYSQL_TYPE_INT24:
 						bind->buffer_type = MYSQL_TYPE_LONGLONG;
 						bind->buffer = &data->u.llv;
@@ -1504,7 +1506,9 @@ static int fnc_stmt_execute (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 						break;
 
 					case MYSQL_TYPE_STRING:
+				#if (MYSQL_VERSION_ID >= 50000)
 					case MYSQL_TYPE_VARCHAR:
+				#endif
 					case MYSQL_TYPE_VAR_STRING:
 						bind->buffer_type = MYSQL_TYPE_STRING;
 
@@ -1620,10 +1624,12 @@ static int fnc_stmt_fetch (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 			ret = 1; /* have data */
 		}
+	#if (MYSQL_VERSION_ID >= 50000)
 		else if (n == MYSQL_DATA_TRUNCATED)
 		{
 			set_error_on_sql_list (rtx, sql_list, HAWK_T("data truncated"));
 		}
+	#endif
 		else
 		{
 			take_rtx_err = 1;
