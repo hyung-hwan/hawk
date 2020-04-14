@@ -177,14 +177,6 @@ function handle_bridge_event (&brtab, fd, mx, evmask)
 	{
 		if (evmask & sys::MUX_EVT_OUT)
 		{
-{
-@local i;
-print typename(brtab);
-for (i in brtab)
-{
-	print i, brtab[i];
-}
-}
 			if ((fd,"connecting") in brtab)
 			{
 				## remote peer connection
