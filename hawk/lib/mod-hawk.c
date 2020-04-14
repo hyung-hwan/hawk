@@ -56,14 +56,26 @@ static hawk_oow_t push_args_from_stack (hawk_rtx_t* rtx, hawk_nde_fncall_t* call
 	org_stack_base = rtx->stack_base;
 	for (i = pasf->start_index, j = 0; i <= pasf->end_index; i++, j++) 
 	{
+		hawk_ooch_t spec;
+
 		rtx->stack_base = pasf->stack_base;
 		v = HAWK_RTX_STACK_ARG(rtx, i);
 		rtx->stack_base = org_stack_base;
 
-		if (j < spec_len && pasf->fun->argspec[j] == 'r' && HAWK_RTX_GETVALTYPE(rtx, v) != HAWK_VAL_REF)
+		/* if not sufficient number of spec characters given, take the last value and use it */
+		spec = (spec_len <= 0)? '\0': pasf->fun->argspec[((j < spec_len)? j: spec_len - 1)];
+
+		if (HAWK_RTX_GETVALTYPE(rtx, v) == HAWK_VAL_REF)
 		{
-			hawk_rtx_seterrnum (rtx, &call->loc, HAWK_ENOTREF);
-			return (hawk_oow_t)-1;
+			v = hawk_rtx_getrefval(rtx, (hawk_val_ref_t*)v);
+		}
+		else
+		{
+			if (spec == 'r')
+			{
+				hawk_rtx_seterrnum (rtx, &call->loc, HAWK_ENOTREF);
+				return (hawk_oow_t)-1;
+			}
 		}
 
 		HAWK_RTX_STACK_PUSH (rtx, v);
