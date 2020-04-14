@@ -3507,44 +3507,8 @@ static hawk_val_t* eval_expression0 (hawk_rtx_t* rtx, hawk_nde_t* nde)
 		return HAWK_NULL;
 	}
 
-	if (v && HAWK_RTX_GETVALTYPE(rtx, v) == HAWK_VAL_REF)
-	{
-		/* as a rvalue, a reference can get resolved to a final value */
-
-		hawk_val_ref_t* ref = (hawk_val_ref_t*)v;
-		hawk_val_t* nv;
-
-printf ("REF>>>>>>>>>>>>>>>>>>>>> %d\n", ref->id);
-        	switch (ref->id)
-        	{
-			case HAWK_VAL_REF_POS:
-			{
-				hawk_oow_t idx = (hawk_oow_t)ref->adr;
-				nv = POS_VAL(rtx, idx);
-				break;
-			}
-
-			case HAWK_VAL_REF_NAMED:
-			case HAWK_VAL_REF_NAMEDIDX:
-			{
-				hawk_oow_t idx = (hawk_oow_t)ref->adr;
-printf ("XXXXXXXXXXXXXXX[%lu]\n", (unsigned long)idx);
-				nv = HAWK_RTX_STACK_GBL(rtx, idx);
-				break;
-			}
-
-			default:
-				nv = *(hawk_val_t**)ref->adr;
-				break;
-		}
-
-		hawk_rtx_refupval (rtx, v);
-		hawk_rtx_refdownval (rtx, v);
-
-		v = nv;
-printf ("---- %d\n", HAWK_RTX_GETVALTYPE(rtx, v));
-	}
-
+	/* this function returns a regular expression without further mathiching.
+	 * it is done in eval_expression(). */
 	return v;
 }
 
@@ -5930,7 +5894,7 @@ static hawk_val_t* eval_fncall_fnc (hawk_rtx_t* rtx, hawk_nde_t* nde)
 	return hawk_rtx_evalcall(rtx, call, HAWK_NULL, push_arg_from_nde, (void*)call->u.fnc.spec.arg.spec, HAWK_NULL, HAWK_NULL);
 }
 
-static HAWK_INLINE hawk_val_t* eval_fncall_fun_ex (hawk_rtx_t* rtx, hawk_nde_t* nde, void(*errhandler)(void*), void* eharg)
+static HAWK_INLINE hawk_val_t* eval_fncall_fun (hawk_rtx_t* rtx, hawk_nde_t* nde)
 {
 	hawk_nde_fncall_t* call = (hawk_nde_fncall_t*)nde;
 	hawk_fun_t* fun;
@@ -5971,12 +5935,15 @@ static HAWK_INLINE hawk_val_t* eval_fncall_fun_ex (hawk_rtx_t* rtx, hawk_nde_t* 
 		return HAWK_NULL;
 	}
 
-	return hawk_rtx_evalcall(rtx, call, fun, push_arg_from_nde, fun->argspec, errhandler, eharg);
-}
-
-static hawk_val_t* eval_fncall_fun (hawk_rtx_t* rtx, hawk_nde_t* nde)
-{
-	return eval_fncall_fun_ex(rtx, nde, HAWK_NULL, HAWK_NULL);
+	/* push_arg_from_nde() has special handling for references when the function
+	 * argument spec contains 'r' or 'R'.
+	 * a reference is passed to a built-in function as a reference value
+	 * but its evaluation result is passed to user-defined function. 
+	 * I pass HAWK_NULL to prevent special handling.
+	 * the value change for a reference variable inside a user-defined function is reflected by hawk_rtx_evalcall()
+	 * specially whereas a built-in function must call hawk_rtx_setrefval() to update the reference 
+	 */
+	return hawk_rtx_evalcall(rtx, call, fun, push_arg_from_nde, HAWK_NULL/*fun->argspec*/, HAWK_NULL, HAWK_NULL);
 }
 
 static hawk_val_t* eval_fncall_var (hawk_rtx_t* rtx, hawk_nde_t* nde)
@@ -5994,12 +5961,21 @@ static hawk_val_t* eval_fncall_var (hawk_rtx_t* rtx, hawk_nde_t* nde)
 	{
 		if (hawk_rtx_geterrnum(rtx) == HAWK_EINVAL)
 			hawk_rtx_seterrfmt (rtx, &nde->loc, HAWK_ENOTFUN, HAWK_T("non-function value in %.*js"), call->u.var.var->id.name.len, call->u.var.var->id.name.ptr);
-		rv = HAWK_NULL;
 		ADJERR_LOC (rtx, &nde->loc);
+		rv = HAWK_NULL;
+	}
+	else	if (call->nargs > fun->nargs)
+	{
+		/* TODO: is this correct? what if i want to 
+		*       allow arbitarary numbers of arguments? */
+		hawk_rtx_seterrnum (rtx, &nde->loc, HAWK_EARGTM);
+		rv = HAWK_NULL;
 	}
 	else
 	{
-		rv = hawk_rtx_evalcall(rtx, call, fun, push_arg_from_nde, fun->argspec, HAWK_NULL, HAWK_NULL);
+		/* pass HAWK_NULL for the argument spec regardless of the actual spec.
+		 * see comments in eval_fncall_fun() for more */
+		rv = hawk_rtx_evalcall(rtx, call, fun, push_arg_from_nde, HAWK_NULL/*fun->argspec*/, HAWK_NULL, HAWK_NULL);
 	}
 	hawk_rtx_refdownval (rtx, fv);
 
@@ -6394,6 +6370,8 @@ static hawk_oow_t push_arg_from_nde (hawk_rtx_t* rtx, hawk_nde_fncall_t* call, v
 		return (hawk_oow_t)-1;
 	}
 
+	/* in practice, this function gets NULL for a user-defined function regardless of its actual spec.
+	 * it may get a non-NULL arg_spec for builtin/module functions */
 	spec_len = arg_spec? hawk_count_oocstr(arg_spec): 0;
 	for (p = call->args, nargs = 0; p; p = p->next, nargs++)
 	{
