@@ -12,6 +12,8 @@ AM_CPPFLAGS = \
 AM_LDFLAGS = -L$(abs_builddir)/../lib  -L$(libdir)
 LDADD = $(PTHREAD_LIBS)
 
+noinst_SCRIPTS = h-001.hawk
+
 ##bin_PROGRAMS = t-001 t-002 t-003 t-004
 bin_PROGRAMS = t-001 t-002 t-005
 

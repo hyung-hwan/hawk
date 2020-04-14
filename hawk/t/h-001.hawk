@@ -1,0 +1,60 @@
+@pragma entry main
+
+function ensure (a, b, desc)
+{
+	if (a != b) 
+	{
+		print "FAILURE", desc;
+		exit (-1);
+	}
+}
+
+function call_by_ref_1(&a, b, &c)
+{
+	c = "hello, world";
+	return b * a;
+}
+
+function call_by_ref_2(a, &b)
+{
+	b[1] = b[1] * a;
+	return a;
+}
+
+function main()
+{
+	
+	x = 20;
+	y = 90;
+	r = call_by_ref_1(x, y, z);	
+	ensure (r, 1800);
+	ensure (x, 20);
+	ensure (y, 90);
+	ensure (z, "hello, world");
+
+## TODO: add a new special word, @FILENAME, @FILELINE, @LINE <--- which are understood by the parser and swapped to the actual value
+
+	{
+		@local b;
+		call_by_ref_2(99, b);
+		ensure (b[1], 0);
+	}
+
+	{
+		@local b;
+		b[1] = 1;
+		r = call_by_ref_2(99, b);
+		ensure (r, 99);
+		ensure (b[1], 99);
+	}
+
+	{
+		@local b;
+		b[1] = 1;
+		r = hawk::call("call_by_ref_2", 99, b);
+		ensure (r, 99);
+		ensure (b[1], 99);
+	}
+
+	print "SUCCESS"
+}

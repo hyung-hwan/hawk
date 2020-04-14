@@ -308,6 +308,7 @@ static stmt_node_t* get_stmt_list_node_with_arg (hawk_rtx_t* rtx, sql_list_t* sq
 
 /* ------------------------------------------------------------------------ */
 /*
+BEGIN {
 	mysql = mysql::open();
 
 	if (mysql::connect(mysql, "localhost", "username", "password", "database") <= -1)
@@ -315,8 +316,8 @@ static stmt_node_t* get_stmt_list_node_with_arg (hawk_rtx_t* rtx, sql_list_t* sq
 		print "connect error -", mysql::errmsg();
 	}
 
-
-	if (mysql::query(mysql, "select * from mytable") <= -1)
+	mysql::escape_string(mysql, "hawk", name);
+	if (mysql::query(mysql, sprintf("select * from mytable where name like '%%%s%%'", name)) <= -1)
 	{
 		print "query error -", mysql::errmsg();
 	}
@@ -337,6 +338,42 @@ static stmt_node_t* get_stmt_list_node_with_arg (hawk_rtx_t* rtx, sql_list_t* sq
 	mysql::free_result(result);
 
 	mysql::close(mysql);
+}
+
+BEGIN {
+	mysql = mysql::open();
+
+	if (mysql::connect(mysql, "localhost", "username", "password", "database") <= -1)
+	{
+		print "connect error -", mysql::errmsg();
+	}
+
+	stmt = mysql::stmt_init(mysql);
+	if (stmt <= -1)
+	{
+		print "stmt initialization error - ", mysql::errmsg();
+	}
+
+	if (mysql::stmt_prepare(stmt, "select name,id,location from mytable where name like ?") <= -1)
+	{
+		print "stmt preparation error - ", mysql::errmsg();
+	}
+
+	result = mysql::stmt_execute(stmt, "%hawk%");
+	if (result <= -1)
+	{
+		print "statement execution error - ", mysql::errmsg();
+	}
+
+	while (mysql::stmt_fetch(result, name, id, loc) > 0)
+	{
+		print "name=", name, "id=", id, "location=", loc;
+	}
+
+	mysql::stmt_close (stmt);
+	mysql::close(mysql);
+}
+
 */
 
 static int fnc_open (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
@@ -1303,7 +1340,7 @@ static int fnc_stmt_execute (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		param_count = mysql_stmt_param_count(stmt_node->stmt);
 		if (nparams != param_count)
 		{
-			set_error_on_sql_list (rtx, sql_list, HAWK_T("invalid number of pramaters"));
+			set_error_on_sql_list (rtx, sql_list, HAWK_T("invalid number of paramaters"));
 			goto done;
 		}
 
