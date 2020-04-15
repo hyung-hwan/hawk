@@ -18,9 +18,9 @@ endif
 if WIN32
 # you must adjust the value of DEFAULT_MODPOSTFIX according
 # to the first number in -version-info above
-CPPFLAGS_PFMOD = -DHAWK_DEFAULT_MODPREFIX=\"libhawk-\" -DHAWK_DEFAULT_MODPOSTFIX=\"-1.dll\"
+CPPFLAGS_PFMOD = -DHAWK_DEFAULT_MODLIBDIRS=\"\" -DHAWK_DEFAULT_MODPREFIX=\"libhawk-\" -DHAWK_DEFAULT_MODPOSTFIX=\"-1.dll\"
 else
-CPPFLAGS_PFMOD = -DHAWK_DEFAULT_MODPREFIX=\"$(libdir)/libhawk-\"
+CPPFLAGS_PFMOD = -DHAWK_DEFAULT_MODLIBDIRS=\"$(libdir)\" -DHAWK_DEFAULT_MODPREFIX=\"libhawk-\"
 if MACOSX
 CPPFLAGS_PFMOD += -DHAWK_DEFAULT_MODPOSTFIX=\".dylib\"
 else

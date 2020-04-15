@@ -107,6 +107,8 @@ struct arg_t
 	hawk_bch_t*   call; /* function to call */
 	hawk_cmgr_t*  script_cmgr;
 	hawk_cmgr_t*  console_cmgr;
+	hawk_bch_t*   includedirs;
+	hawk_bch_t*   modlibdirs;
 
 	unsigned int modern: 1;
 	unsigned int classic: 1;
@@ -345,7 +347,7 @@ static hawk_htb_walk_t print_awk_value (hawk_htb_t* map, hawk_htb_pair_t* pair, 
 	return HAWK_HTB_WALK_FORWARD;
 }
 
-static int add_gvs_to_awk (hawk_t* hawk, arg_t* arg)
+static int add_gvs_to_hawk (hawk_t* hawk, arg_t* arg)
 {
 	if (arg->gvm.size > 0)
 	{
@@ -539,6 +541,9 @@ static void print_usage (FILE* out, const hawk_bch_t* argv0)
 	fprintf (out, " --script-encoding    string       specify script file encoding name\n");
 	fprintf (out, " --console-encoding   string       specify console encoding name\n");
 #endif
+
+	fprintf (out, " --includedirs                     specify directories to look for module files in\n");
+	fprintf (out, " --modlibdirs                      specify directories to look for include files in\n");
 	fprintf (out, " --modern                          run in the modern mode(default)\n");
 	fprintf (out, " --classic                         run in the classic mode\n");
 
@@ -659,6 +664,10 @@ static int process_argv (int argc, hawk_bch_t* argv[], struct arg_t* arg)
 
 		{ ":script-encoding",  '\0' },
 		{ ":console-encoding", '\0' },
+#if 0
+		{ ":includedirs",      '\0' },
+#endif
+		{ ":modlibdirs",       '\0' },
 
 		{ "modern",            '\0' },
 		{ "classic",           '\0' },
@@ -749,8 +758,8 @@ static int process_argv (int argc, hawk_bch_t* argv[], struct arg_t* arg)
 				tmp.len = hawk_count_bcstr(opt.arg);
 				if (collect_into_xarg(&tmp, &arg->ocf) <= -1) 
 				{
-						print_error ("out of memory\n");
-						goto oops;
+					print_error ("out of memory\n");
+					goto oops;
 				}
 				arg->ocf.ptr[arg->ocf.size] = HAWK_NULL;
 				break;
@@ -862,6 +871,16 @@ static int process_argv (int argc, hawk_bch_t* argv[], struct arg_t* arg)
 				else if (hawk_comp_bcstr(opt.lngopt, "classic", 0) == 0)
 				{
 					arg->classic = 1;
+				}
+			#if 0
+				else if (hawk_comp_bcstr(opt.lngopt, "includedirs", 0) == 0)
+				{
+					arg->includedirs = opt.arg;
+				}
+			#endif
+				else if (hawk_comp_bcstr(opt.lngopt, "modlibdirs", 0) == 0)
+				{
+					arg->modlibdirs = opt.arg;
 				}
 				else
 				{
@@ -1083,7 +1102,7 @@ static hawk_mmgr_t debug_mmgr =
 
 static HAWK_INLINE int execute_hawk (int argc, hawk_bch_t* argv[])
 {
-	hawk_t* awk = HAWK_NULL;
+	hawk_t* hawk = HAWK_NULL;
 	hawk_rtx_t* rtx = HAWK_NULL;
 	hawk_val_t* retv;
 	int i;
@@ -1142,60 +1161,98 @@ static HAWK_INLINE int execute_hawk (int argc, hawk_bch_t* argv[])
 	}
 #endif
 
-	awk = hawk_openstd(0, HAWK_NULL);
-	if (awk == HAWK_NULL)
+	hawk = hawk_openstd(0, HAWK_NULL);
+	if (HAWK_UNLIKELY(!hawk))
 	{
-		print_error ("cannot open awk\n");
+		print_error ("cannot open hawk\n");
 		goto oops;
 	}
 
 	if (arg.modern) i = HAWK_MODERN;
 	else if (arg.classic) i = HAWK_CLASSIC;
-	else hawk_getopt (awk, HAWK_OPT_TRAIT, &i);
+	else hawk_getopt (hawk, HAWK_OPT_TRAIT, &i);
 	if (arg.opton) i |= arg.opton;
 	if (arg.optoff) i &= ~arg.optoff;
-	hawk_setopt (awk, HAWK_OPT_TRAIT, &i);
+	hawk_setopt (hawk, HAWK_OPT_TRAIT, &i);
 
 	/* TODO: get depth from command line */
 	{
 		hawk_oow_t tmp;
 		tmp = 50;
-		hawk_setopt (awk, HAWK_OPT_DEPTH_BLOCK_PARSE, &tmp);
-		hawk_setopt (awk, HAWK_OPT_DEPTH_EXPR_PARSE, &tmp);
+		hawk_setopt (hawk, HAWK_OPT_DEPTH_BLOCK_PARSE, &tmp);
+		hawk_setopt (hawk, HAWK_OPT_DEPTH_EXPR_PARSE, &tmp);
 		tmp = 500;
-		hawk_setopt (awk, HAWK_OPT_DEPTH_BLOCK_RUN, &tmp);
-		hawk_setopt (awk, HAWK_OPT_DEPTH_EXPR_RUN, &tmp);
+		hawk_setopt (hawk, HAWK_OPT_DEPTH_BLOCK_RUN, &tmp);
+		hawk_setopt (hawk, HAWK_OPT_DEPTH_EXPR_RUN, &tmp);
 		tmp = 64;
-		hawk_setopt (awk, HAWK_OPT_DEPTH_INCLUDE, &tmp);
+		hawk_setopt (hawk, HAWK_OPT_DEPTH_INCLUDE, &tmp);
 	}
 
-	if (add_gvs_to_awk(awk, &arg) <= -1)
+#if 0
+	if (arg.includedirs) 
 	{
-		print_hawk_error (awk);
+	#if defined(HAWK_OOCH_IS_UCH)
+		hawk_ooch_t* tmp;
+		tmp = hawk_dupbtoucstr(hawk, arg.includedirs, HAWK_NULL, 1);
+		if (HAWK_UNLIKELY(!tmp))
+		{
+			print_hawk_error (hawk);
+			goto oops;
+		}
+
+		hawk_setopt (hawk, HAWK_OPT_INCLUDEDIRS, tmp);
+		hawk_freemem (hawk, tmp);
+	#else
+		hawk_setopt (hawk, HAWK_OPT_INCLUDEDIRS, arg.includedirs);
+	#endif
+	}
+#endif
+
+	if (arg.modlibdirs) 
+	{
+	#if defined(HAWK_OOCH_IS_UCH)
+		hawk_ooch_t* tmp;
+		tmp = hawk_dupbtoucstr(hawk, arg.modlibdirs, HAWK_NULL, 1);
+		if (HAWK_UNLIKELY(!tmp))
+		{
+			print_hawk_error (hawk);
+			goto oops;
+		}
+
+		hawk_setopt (hawk, HAWK_OPT_MODLIBDIRS, tmp);
+		hawk_freemem (hawk, tmp);
+	#else
+		hawk_setopt (hawk, HAWK_OPT_MODLIBDIRS, arg.modlibdirs);
+	#endif
+	}
+
+	if (add_gvs_to_hawk(hawk, &arg) <= -1)
+	{
+		print_hawk_error (hawk);
 		goto oops;
 	}
 
-	if (hawk_parsestd(awk, arg.psin, ((arg.osf == HAWK_NULL)? HAWK_NULL: &psout)) <= -1)
+	if (hawk_parsestd(hawk, arg.psin, ((arg.osf == HAWK_NULL)? HAWK_NULL: &psout)) <= -1)
 	{
-		print_hawk_error (awk);
+		print_hawk_error (hawk);
 		goto oops;
 	}
 
 	rtx = hawk_rtx_openstdwithbcstr(
-		awk, 0, argv[0],
+		hawk, 0, argv[0],
 		(arg.call? HAWK_NULL: arg.icf.ptr), /* console input */
 		arg.ocf.ptr, /* console output */
 		arg.console_cmgr
 	);
-	if (rtx == HAWK_NULL) 
+	if (HAWK_UNLIKELY(!rtx))
 	{
-		print_hawk_error (awk);
+		print_hawk_error (hawk);
 		goto oops;
 	}
 
 	if (apply_fs_and_gvs_to_rtx(rtx, &arg) <= -1)
 	{
-		print_hawk_error (awk);
+		print_hawk_error (hawk);
 		goto oops;
 	}
 	
@@ -1241,7 +1298,7 @@ static HAWK_INLINE int execute_hawk (int argc, hawk_bch_t* argv[])
 
 oops:
 	if (rtx) hawk_rtx_close (rtx);
-	if (awk) hawk_close (awk);
+	if (hawk) hawk_close (hawk);
 
 #if 0
 	if (xma_mmgr.ctx) hawk_xma_close (xma_mmgr.ctx);

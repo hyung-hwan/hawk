@@ -914,6 +914,7 @@ hawk_t* hawk_openstdwithmmgr (hawk_mmgr_t* mmgr, hawk_oow_t xtnsize, hawk_cmgr_t
 	/* adjust the object size by the sizeof xtn_t so that hawk_getxtn() returns the right pointer. */
 	awk->_instsize += HAWK_SIZEOF(xtn_t);
 
+/*
 #if defined(USE_DLFCN)
 	if (hawk_setopt(awk, HAWK_OPT_MODPOSTFIX, HAWK_T(".so")) <= -1) 
 	{
@@ -921,6 +922,7 @@ hawk_t* hawk_openstdwithmmgr (hawk_mmgr_t* mmgr, hawk_oow_t xtnsize, hawk_cmgr_t
 		goto oops;
 	}
 #endif
+*/
 
 	/* initialize extension */
 	xtn = GET_XTN(awk);

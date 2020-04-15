@@ -210,7 +210,7 @@ struct hawk_t
 	{
 		int trait;
 		hawk_oocs_t mod[3];
-		hawk_oocs_t incldirs;
+		hawk_oocs_t includedirs;
 
 		union
 		{

@@ -175,7 +175,7 @@ int hawk_init (hawk_t* awk, hawk_mmgr_t* mmgr, hawk_cmgr_t* cmgr, const hawk_prm
 	    init_token(awk, &awk->ntok) <= -1) goto oops;
 
 	awk->opt.trait = HAWK_MODERN;
-#if defined(__OS2__) || defined(_WIN32) || defined(__DOS__)
+#if defined(__WIN32__) || defined(_OS2) || defined(__DOS__)
 	awk->opt.trait |= HAWK_CRLF;
 #endif
 	awk->opt.rtx_stack_limit = HAWK_DFL_RTX_STACK_LIMIT;
@@ -427,22 +427,22 @@ void hawk_clear (hawk_t* awk)
 	 */
 }
 
-void hawk_getprm (hawk_t* awk, hawk_prm_t* prm)
+void hawk_getprm (hawk_t* hawk, hawk_prm_t* prm)
 {
-	*prm = awk->prm;
+	*prm = hawk->prm;
 }
 
-void hawk_setprm (hawk_t* awk, const hawk_prm_t* prm)
+void hawk_setprm (hawk_t* hawk, const hawk_prm_t* prm)
 {
-	awk->prm = *prm;
+	hawk->prm = *prm;
 }
 
-static int dup_str_opt (hawk_t* awk, const void* value, hawk_oocs_t* tmp)
+static int dup_str_opt (hawk_t* hawk, const void* value, hawk_oocs_t* tmp)
 {
 	if (value)
 	{
-		tmp->ptr = hawk_dupoocstr(awk, value, &tmp->len);
-		if (!tmp->ptr) return -1;
+		tmp->ptr = hawk_dupoocstr(hawk, value, &tmp->len);
+		if (HAWK_UNLIKELY(!tmp->ptr)) return -1;
 	}
 	else
 	{
@@ -461,7 +461,7 @@ int hawk_setopt (hawk_t* hawk, hawk_opt_t id, const void* value)
 			hawk->opt.trait = *(const int*)value;
 			return 0;
 
-		case HAWK_OPT_MODLIBDIR:
+		case HAWK_OPT_MODLIBDIRS:
 		case HAWK_OPT_MODPREFIX:
 		case HAWK_OPT_MODPOSTFIX:
 		{
@@ -470,7 +470,7 @@ int hawk_setopt (hawk_t* hawk, hawk_opt_t id, const void* value)
 
 			if (dup_str_opt(hawk, value, &tmp) <= -1) return -1;
 
-			idx = id - HAWK_OPT_MODLIBDIR;
+			idx = id - HAWK_OPT_MODLIBDIRS;
 			if (hawk->opt.mod[idx].ptr) hawk_freemem (hawk, hawk->opt.mod[idx].ptr);
 
 			hawk->opt.mod[idx] = tmp;
@@ -481,8 +481,8 @@ int hawk_setopt (hawk_t* hawk, hawk_opt_t id, const void* value)
 		{
 			hawk_oocs_t tmp;
 			if (dup_str_opt(hawk, value, &tmp) <= -1) return -1;
-			if (hawk->opt.incldirs.ptr) hawk_freemem (hawk, hawk->opt.incldirs.ptr);
-			hawk->opt.incldirs = tmp;
+			if (hawk->opt.includedirs.ptr) hawk_freemem (hawk, hawk->opt.includedirs.ptr);
+			hawk->opt.includedirs = tmp;
 			return 0;
 		}
 
@@ -525,14 +525,14 @@ int hawk_getopt (hawk_t* hawk, hawk_opt_t id, void* value)
 			*(int*)value = hawk->opt.trait;
 			return 0;
 
-		case HAWK_OPT_MODLIBDIR:
+		case HAWK_OPT_MODLIBDIRS:
 		case HAWK_OPT_MODPREFIX:
 		case HAWK_OPT_MODPOSTFIX:
-			*(const hawk_ooch_t**)value = hawk->opt.mod[id - HAWK_OPT_MODLIBDIR].ptr;
+			*(const hawk_ooch_t**)value = hawk->opt.mod[id - HAWK_OPT_MODLIBDIRS].ptr;
 			return 0;
 
 		case HAWK_OPT_INCLUDEDIRS:
-			*(const hawk_ooch_t**)value = hawk->opt.incldirs.ptr;
+			*(const hawk_ooch_t**)value = hawk->opt.includedirs.ptr;
 			return 0;
 
 		case HAWK_OPT_DEPTH_INCLUDE:
