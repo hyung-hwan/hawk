@@ -457,27 +457,27 @@ int hawk_setopt (hawk_t* hawk, hawk_opt_t id, const void* value)
 {
 	switch (id)
 	{
-		case HAWK_TRAIT:
+		case HAWK_OPT_TRAIT:
 			hawk->opt.trait = *(const int*)value;
 			return 0;
 
-		case HAWK_MODLIBDIR:
-		case HAWK_MODPREFIX:
-		case HAWK_MODPOSTFIX:
+		case HAWK_OPT_MODLIBDIR:
+		case HAWK_OPT_MODPREFIX:
+		case HAWK_OPT_MODPOSTFIX:
 		{
 			hawk_oocs_t tmp;
 			int idx;
 
 			if (dup_str_opt(hawk, value, &tmp) <= -1) return -1;
 
-			idx = id - HAWK_MODLIBDIR;
+			idx = id - HAWK_OPT_MODLIBDIR;
 			if (hawk->opt.mod[idx].ptr) hawk_freemem (hawk, hawk->opt.mod[idx].ptr);
 
 			hawk->opt.mod[idx] = tmp;
 			return 0;
 		}
 
-		case HAWK_INCLUDEDIRS:
+		case HAWK_OPT_INCLUDEDIRS:
 		{
 			hawk_oocs_t tmp;
 			if (dup_str_opt(hawk, value, &tmp) <= -1) return -1;
@@ -486,28 +486,28 @@ int hawk_setopt (hawk_t* hawk, hawk_opt_t id, const void* value)
 			return 0;
 		}
 
-		case HAWK_DEPTH_INCLUDE:
-		case HAWK_DEPTH_BLOCK_PARSE:
-		case HAWK_DEPTH_BLOCK_RUN:
-		case HAWK_DEPTH_EXPR_PARSE:
-		case HAWK_DEPTH_EXPR_RUN:
-		case HAWK_DEPTH_REX_BUILD:
-		case HAWK_DEPTH_REX_MATCH:
-			hawk->opt.depth.a[id - HAWK_DEPTH_INCLUDE] = *(const hawk_oow_t*)value;
+		case HAWK_OPT_DEPTH_INCLUDE:
+		case HAWK_OPT_DEPTH_BLOCK_PARSE:
+		case HAWK_OPT_DEPTH_BLOCK_RUN:
+		case HAWK_OPT_DEPTH_EXPR_PARSE:
+		case HAWK_OPT_DEPTH_EXPR_RUN:
+		case HAWK_OPT_DEPTH_REX_BUILD:
+		case HAWK_OPT_DEPTH_REX_MATCH:
+			hawk->opt.depth.a[id - HAWK_OPT_DEPTH_INCLUDE] = *(const hawk_oow_t*)value;
 			return 0;
 
-		case HAWK_RTX_STACK_LIMIT:
+		case HAWK_OPT_RTX_STACK_LIMIT:
 			hawk->opt.rtx_stack_limit = *(const hawk_oow_t*)value;
 			if (hawk->opt.rtx_stack_limit < HAWK_MIN_RTX_STACK_LIMIT) hawk->opt.rtx_stack_limit = HAWK_MIN_RTX_STACK_LIMIT;
 			else if (hawk->opt.rtx_stack_limit > HAWK_MAX_RTX_STACK_LIMIT) hawk->opt.rtx_stack_limit = HAWK_MAX_RTX_STACK_LIMIT;
 			return 0;
 
 
-		case HAWK_LOG_MASK:
+		case HAWK_OPT_LOG_MASK:
 			hawk->opt.log_mask = *(hawk_bitmask_t*)value;
 			return 0;
 
-		case HAWK_LOG_MAXCAPA:
+		case HAWK_OPT_LOG_MAXCAPA:
 			hawk->opt.log_maxcapa = *(hawk_oow_t*)value;
 			return 0;
 
@@ -521,39 +521,39 @@ int hawk_getopt (hawk_t* hawk, hawk_opt_t id, void* value)
 {
 	switch  (id)
 	{
-		case HAWK_TRAIT:
+		case HAWK_OPT_TRAIT:
 			*(int*)value = hawk->opt.trait;
 			return 0;
 
-		case HAWK_MODLIBDIR:
-		case HAWK_MODPREFIX:
-		case HAWK_MODPOSTFIX:
-			*(const hawk_ooch_t**)value = hawk->opt.mod[id - HAWK_MODLIBDIR].ptr;
+		case HAWK_OPT_MODLIBDIR:
+		case HAWK_OPT_MODPREFIX:
+		case HAWK_OPT_MODPOSTFIX:
+			*(const hawk_ooch_t**)value = hawk->opt.mod[id - HAWK_OPT_MODLIBDIR].ptr;
 			return 0;
 
-		case HAWK_INCLUDEDIRS:
+		case HAWK_OPT_INCLUDEDIRS:
 			*(const hawk_ooch_t**)value = hawk->opt.incldirs.ptr;
 			return 0;
 
-		case HAWK_DEPTH_INCLUDE:
-		case HAWK_DEPTH_BLOCK_PARSE:
-		case HAWK_DEPTH_BLOCK_RUN:
-		case HAWK_DEPTH_EXPR_PARSE:
-		case HAWK_DEPTH_EXPR_RUN:
-		case HAWK_DEPTH_REX_BUILD:
-		case HAWK_DEPTH_REX_MATCH:
-			*(hawk_oow_t*)value = hawk->opt.depth.a[id - HAWK_DEPTH_INCLUDE];
+		case HAWK_OPT_DEPTH_INCLUDE:
+		case HAWK_OPT_DEPTH_BLOCK_PARSE:
+		case HAWK_OPT_DEPTH_BLOCK_RUN:
+		case HAWK_OPT_DEPTH_EXPR_PARSE:
+		case HAWK_OPT_DEPTH_EXPR_RUN:
+		case HAWK_OPT_DEPTH_REX_BUILD:
+		case HAWK_OPT_DEPTH_REX_MATCH:
+			*(hawk_oow_t*)value = hawk->opt.depth.a[id - HAWK_OPT_DEPTH_INCLUDE];
 			return 0;
 
-		case HAWK_RTX_STACK_LIMIT:
+		case HAWK_OPT_RTX_STACK_LIMIT:
 			*(hawk_oow_t*)value = hawk->opt.rtx_stack_limit;
 			return 0;
 
-		case HAWK_LOG_MASK:
+		case HAWK_OPT_LOG_MASK:
 			*(hawk_bitmask_t*)value = hawk->opt.log_mask;
 			return 0;
 
-		case HAWK_LOG_MAXCAPA:
+		case HAWK_OPT_LOG_MAXCAPA:
 			*(hawk_oow_t*)value = hawk->opt.log_maxcapa;
 			return 0;
 

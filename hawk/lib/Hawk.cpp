@@ -1851,14 +1851,14 @@ int Hawk::getTrait () const
 {
 	HAWK_ASSERT (this->hawk != HAWK_NULL);
 	int val;
-	hawk_getopt (this->hawk, HAWK_TRAIT, &val);
+	hawk_getopt (this->hawk, HAWK_OPT_TRAIT, &val);
 	return val;
 }
 
 void Hawk::setTrait (int trait) 
 {
 	HAWK_ASSERT (this->hawk != HAWK_NULL);
-	hawk_setopt (this->hawk, HAWK_TRAIT, &trait);
+	hawk_setopt (this->hawk, HAWK_OPT_TRAIT, &trait);
 }
 
 hawk_oow_t Hawk::getMaxDepth (depth_t id) const 
