@@ -461,6 +461,7 @@ int hawk_setopt (hawk_t* hawk, hawk_opt_t id, const void* value)
 			hawk->opt.trait = *(const int*)value;
 			return 0;
 
+		case HAWK_MODLIBDIR:
 		case HAWK_MODPREFIX:
 		case HAWK_MODPOSTFIX:
 		{
@@ -469,7 +470,7 @@ int hawk_setopt (hawk_t* hawk, hawk_opt_t id, const void* value)
 
 			if (dup_str_opt(hawk, value, &tmp) <= -1) return -1;
 
-			idx = id - HAWK_MODPREFIX;
+			idx = id - HAWK_MODLIBDIR;
 			if (hawk->opt.mod[idx].ptr) hawk_freemem (hawk, hawk->opt.mod[idx].ptr);
 
 			hawk->opt.mod[idx] = tmp;
@@ -524,9 +525,10 @@ int hawk_getopt (hawk_t* hawk, hawk_opt_t id, void* value)
 			*(int*)value = hawk->opt.trait;
 			return 0;
 
+		case HAWK_MODLIBDIR:
 		case HAWK_MODPREFIX:
 		case HAWK_MODPOSTFIX:
-			*(const hawk_ooch_t**)value = hawk->opt.mod[id - HAWK_MODPREFIX].ptr;
+			*(const hawk_ooch_t**)value = hawk->opt.mod[id - HAWK_MODLIBDIR].ptr;
 			return 0;
 
 		case HAWK_INCLUDEDIRS:

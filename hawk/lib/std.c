@@ -307,10 +307,19 @@ void* hawk_stdmodopen (hawk_t* awk, const hawk_mod_spec_t* spec)
 	void* h;
 	lt_dladvise adv;
 	hawk_bch_t* modpath;
-	const hawk_ooch_t* tmp[4];
+	const hawk_ooch_t* tmp[6];
 	int count;
+	static hawk_ooch_t ds[] = { '/', '\0' };
 
 	count = 0;
+	if (spec->libdir) 
+	{
+		hawk_oow_t len;
+
+		tmp[count++] = spec->libdir;
+		len = hawk_count_oocstr(spec->libdir);
+		if (len > 0 && spec->libdir[len - 1] != '/') tmp[count++] = ds;
+	}
 	if (spec->prefix) tmp[count++] = spec->prefix;
 	tmp[count++] = spec->name;
 	if (spec->postfix) tmp[count++] = spec->postfix;
@@ -344,10 +353,22 @@ void* hawk_stdmodopen (hawk_t* awk, const hawk_mod_spec_t* spec)
 
 	HMODULE h;
 	hawk_ooch_t* modpath;
-	const hawk_ooch_t* tmp[4];
+	const hawk_ooch_t* tmp[6];
 	int count;
-
+	static hawk_ooch_t ds[][2] = { { '\\', '\0' }, { '/', '\0' } }
+                                       false 0              treu 1
 	count = 0;
+	if (spec->libdir) 
+	{
+		hawk_oow_t len;
+
+		tmp[count++] = spec->libdir;
+		len = hawk_count_oocstr(spec->libdir);
+		if (len > 0 && (spec->libdir[len - 1] != '/' && spec->libdir[len - 1] != '\\')) 
+		{
+			tmp[count++] = ds[hawk_find_oochar_in_oocstr(spec->libdir, '/') != HAWK_NULL];
+		}
+	}
 	if (spec->prefix) tmp[count++] = spec->prefix;
 	tmp[count++] = spec->name;
 	if (spec->postfix) tmp[count++] = spec->postfix;
@@ -368,12 +389,21 @@ void* hawk_stdmodopen (hawk_t* awk, const hawk_mod_spec_t* spec)
 
 	HMODULE h;
 	hawk_bch_t* modpath;
-	const hawk_ooch_t* tmp[4];
+	const hawk_ooch_t* tmp[6];
 	int count;
 	char errbuf[CCHMAXPATH];
 	APIRET rc;
+	static hawk_ooch_t ds[] = { '\\', '\0' };
 
 	count = 0;
+	if (spec->libdir) 
+	{
+		hawk_oow_t len;
+
+		tmp[count++] = spec->libdir;
+		len = hawk_count_oocstr(spec->libdir);
+		if (len > 0 && spec->libdir[len - 1] != '\\') tmp[count++] = ds;
+	}
 	if (spec->prefix) tmp[count++] = spec->prefix;
 	tmp[count++] = spec->name;
 	if (spec->postfix) tmp[count++] = spec->postfix;
@@ -407,10 +437,19 @@ void* hawk_stdmodopen (hawk_t* awk, const hawk_mod_spec_t* spec)
 	 * when building for DOS. */
 	void* h;
 	hawk_bch_t* modpath;
-	const hawk_ooch_t* tmp[4];
+	const hawk_ooch_t* tmp[6];
 	int count;
+	static hawk_ooch_t ds[] = { '\\', '\0' };
 
 	count = 0;
+	if (spec->libdir) 
+	{
+		hawk_oow_t len;
+
+		tmp[count++] = spec->libdir;
+		len = hawk_count_oocstr(spec->libdir);
+		if (len > 0 && spec->libdir[len - 1] != '/') tmp[count++] = ds;
+	}
 	if (spec->prefix) tmp[count++] = spec->prefix;
 	tmp[count++] = spec->name;
 	if (spec->postfix) tmp[count++] = spec->postfix;
@@ -434,10 +473,19 @@ void* hawk_stdmodopen (hawk_t* awk, const hawk_mod_spec_t* spec)
 #elif defined(USE_DLFCN)
 	void* h;
 	hawk_bch_t* modpath;
-	const hawk_ooch_t* tmp[4];
+	const hawk_ooch_t* tmp[6];
 	int count;
+	static hawk_ooch_t ds[] = { '/', '\0' };
 
 	count = 0;
+	if (spec->libdir) 
+	{
+		hawk_oow_t len;
+
+		tmp[count++] = spec->libdir;
+		len = hawk_count_oocstr(spec->libdir);
+		if (len > 0 && spec->libdir[len - 1] != '/') tmp[count++] = ds;
+	}
 	if (spec->prefix) tmp[count++] = spec->prefix;
 	tmp[count++] = spec->name;
 	if (spec->postfix) tmp[count++] = spec->postfix;
