@@ -915,7 +915,7 @@ hawk_t* hawk_openstdwithmmgr (hawk_mmgr_t* mmgr, hawk_oow_t xtnsize, hawk_cmgr_t
 	awk->_instsize += HAWK_SIZEOF(xtn_t);
 
 #if defined(USE_DLFCN)
-	if (hawk_setopt(awk, HAWK_MODPOSTFIX, HAWK_T(".so")) <= -1) 
+	if (hawk_setopt(awk, HAWK_OPT_MODPOSTFIX, HAWK_T(".so")) <= -1) 
 	{
 		if (errnum) *errnum = hawk_geterrnum(awk);
 		goto oops;

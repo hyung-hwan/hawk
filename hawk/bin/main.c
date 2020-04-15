@@ -1151,22 +1151,22 @@ static HAWK_INLINE int execute_hawk (int argc, hawk_bch_t* argv[])
 
 	if (arg.modern) i = HAWK_MODERN;
 	else if (arg.classic) i = HAWK_CLASSIC;
-	else hawk_getopt (awk, HAWK_TRAIT, &i);
+	else hawk_getopt (awk, HAWK_OPT_TRAIT, &i);
 	if (arg.opton) i |= arg.opton;
 	if (arg.optoff) i &= ~arg.optoff;
-	hawk_setopt (awk, HAWK_TRAIT, &i);
+	hawk_setopt (awk, HAWK_OPT_TRAIT, &i);
 
 	/* TODO: get depth from command line */
 	{
 		hawk_oow_t tmp;
 		tmp = 50;
-		hawk_setopt (awk, HAWK_DEPTH_BLOCK_PARSE, &tmp);
-		hawk_setopt (awk, HAWK_DEPTH_EXPR_PARSE, &tmp);
+		hawk_setopt (awk, HAWK_OPT_DEPTH_BLOCK_PARSE, &tmp);
+		hawk_setopt (awk, HAWK_OPT_DEPTH_EXPR_PARSE, &tmp);
 		tmp = 500;
-		hawk_setopt (awk, HAWK_DEPTH_BLOCK_RUN, &tmp);
-		hawk_setopt (awk, HAWK_DEPTH_EXPR_RUN, &tmp);
+		hawk_setopt (awk, HAWK_OPT_DEPTH_BLOCK_RUN, &tmp);
+		hawk_setopt (awk, HAWK_OPT_DEPTH_EXPR_RUN, &tmp);
 		tmp = 64;
-		hawk_setopt (awk, HAWK_DEPTH_INCLUDE, &tmp);
+		hawk_setopt (awk, HAWK_OPT_DEPTH_INCLUDE, &tmp);
 	}
 
 	if (add_gvs_to_awk(awk, &arg) <= -1)

@@ -151,7 +151,7 @@ int HawkStd::open ()
 	if (!this->stdmod_up)
 	{
 	#if defined(USE_DLFCN)
-		if (hawk_setopt(this->hawk, HAWK_MODPOSTFIX, HAWK_T(".so")) <= -1) goto oops;
+		if (hawk_setopt(this->hawk, HAWK_OPT_MODPOSTFIX, HAWK_T(".so")) <= -1) goto oops;
 	#endif
 
 		if (hawk_stdmodstartup(this->hawk) <= -1) goto oops;
