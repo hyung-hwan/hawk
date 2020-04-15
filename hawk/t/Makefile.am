@@ -42,4 +42,4 @@ TESTS = $(check_PROGRAMS) $(check_SCRIPTS)
 
 TEST_EXTENSIONS = .hawk
 HAWK_LOG_COMPILER = ../bin/hawk
-AM_HAWK_LOG_FLAGS = -f
+AM_HAWK_LOG_FLAGS = --modlibdirs=../lib/.libs:../mod/.libs -f

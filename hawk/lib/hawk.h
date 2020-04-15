@@ -1144,7 +1144,7 @@ enum hawk_opt_t
 	/** trait option. 0 or bitwise-ORed of ::hawk_trait_t values */
 	HAWK_OPT_TRAIT,  
 
-	HAWK_OPT_MODLIBDIR,
+	HAWK_OPT_MODLIBDIRS,
 	HAWK_OPT_MODPREFIX,
 	HAWK_OPT_MODPOSTFIX,
 

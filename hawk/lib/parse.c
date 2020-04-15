@@ -26,8 +26,8 @@
 
 #include "hawk-prv.h"
 
-#if !defined(HAWK_DEFAULT_MODLIBDIR)
-#	define HAWK_DEFAULT_MODLIBDIR ""
+#if !defined(HAWK_DEFAULT_MODLIBDIRS)
+#	define HAWK_DEFAULT_MODLIBDIRS ""
 #endif
 
 #if !defined(HAWK_DEFAULT_MODPREFIX)
@@ -836,7 +836,7 @@ static int begin_include (hawk_t* awk, int once)
 		return -1;
 	}
 
-	if (awk->opt.incldirs.ptr)
+	if (awk->opt.includedirs.ptr)
 	{
 		/* include directory is set... */
 /* TODO: search target files in these directories */
@@ -890,7 +890,6 @@ static int begin_include (hawk_t* awk, int once)
 		if (get_token(awk) <= -1) return -1; /* skip the include file name */
 		if (MATCH(awk, TOK_SEMICOLON) || MATCH(awk, TOK_NEWLINE))
 		{
-
 			if (get_token(awk) <= -1) return -1; /* skip the semicolon */
 		}
 	}
@@ -3703,8 +3702,7 @@ static int fold_constants_for_binop (
 	/* TODO: can i shorten various comparisons below? 
  	 *       i hate to repeat similar code just for type difference */
 
-	if (left->type == HAWK_NDE_INT &&
-	    right->type == HAWK_NDE_INT)
+	if (left->type == HAWK_NDE_INT && right->type == HAWK_NDE_INT)
 	{
 		fold = HAWK_NDE_INT;
 		switch (opcode)
@@ -3760,8 +3758,7 @@ static int fold_constants_for_binop (
 				break;
 		}
 	}
-	else if (left->type == HAWK_NDE_FLT &&
-	         right->type == HAWK_NDE_FLT)
+	else if (left->type == HAWK_NDE_FLT && right->type == HAWK_NDE_FLT)
 	{
 		fold = HAWK_NDE_FLT;
 		switch (opcode)
@@ -3788,7 +3785,7 @@ static int fold_constants_for_binop (
 				break;
 
 			case HAWK_BINOP_MOD:
-				folded->r = awk->prm.math.mod (
+				folded->r = awk->prm.math.mod(
 					awk, 
 					((hawk_nde_flt_t*)left)->val, 
 					((hawk_nde_flt_t*)right)->val
@@ -3800,8 +3797,7 @@ static int fold_constants_for_binop (
 				break;
 		}
 	}
-	else if (left->type == HAWK_NDE_INT &&
-	         right->type == HAWK_NDE_FLT)
+	else if (left->type == HAWK_NDE_INT && right->type == HAWK_NDE_FLT)
 	{
 		fold = HAWK_NDE_FLT;
 		switch (opcode)
@@ -3830,7 +3826,7 @@ static int fold_constants_for_binop (
 				break;
 
 			case HAWK_BINOP_MOD:
-				folded->r = awk->prm.math.mod (
+				folded->r = awk->prm.math.mod(
 					awk, 
 					(hawk_flt_t)((hawk_nde_int_t*)left)->val, 
 					((hawk_nde_flt_t*)right)->val
@@ -3842,8 +3838,7 @@ static int fold_constants_for_binop (
 				break;
 		}
 	}
-	else if (left->type == HAWK_NDE_FLT &&
-	         right->type == HAWK_NDE_INT)
+	else if (left->type == HAWK_NDE_FLT && right->type == HAWK_NDE_INT)
 	{
 		fold = HAWK_NDE_FLT;
 		switch (opcode)
@@ -3872,7 +3867,7 @@ static int fold_constants_for_binop (
 				break;
 
 			case HAWK_BINOP_MOD:
-				folded->r = awk->prm.math.mod (
+				folded->r = awk->prm.math.mod(
 					awk, 
 					((hawk_nde_flt_t*)left)->val, 
 					(hawk_flt_t)((hawk_nde_int_t*)right)->val
@@ -3908,59 +3903,55 @@ static hawk_nde_t* new_exp_bin_node (
 	return (hawk_nde_t*)tmp;
 }
 
-static hawk_nde_t* new_int_node (
-	hawk_t* awk, hawk_int_t lv, const hawk_loc_t* loc)
+static hawk_nde_t* new_int_node (hawk_t* hawk, hawk_int_t lv, const hawk_loc_t* loc)
 {
 	hawk_nde_int_t* tmp;
 
-	tmp = (hawk_nde_int_t*) hawk_callocmem (awk, HAWK_SIZEOF(*tmp));
-	if (tmp)
+	tmp = (hawk_nde_int_t*)hawk_callocmem(hawk, HAWK_SIZEOF(*tmp));
+	if (HAWK_LIKELY(tmp))
 	{
 		tmp->type = HAWK_NDE_INT;
 		tmp->loc = *loc;
 		tmp->val = lv;
 	}
-	else ADJERR_LOC (awk, loc);
+	else ADJERR_LOC (hawk, loc);
 
 	return (hawk_nde_t*)tmp;
 }
 
-static hawk_nde_t* new_flt_node (
-	hawk_t* awk, hawk_flt_t rv, const hawk_loc_t* loc)
+static hawk_nde_t* new_flt_node (hawk_t* hawk, hawk_flt_t rv, const hawk_loc_t* loc)
 {
 	hawk_nde_flt_t* tmp;
 
-	tmp = (hawk_nde_flt_t*) hawk_callocmem (awk, HAWK_SIZEOF(*tmp));
-	if (tmp)
+	tmp = (hawk_nde_flt_t*)hawk_callocmem(hawk, HAWK_SIZEOF(*tmp));
+	if (HAWK_LIKELY(tmp))
 	{
 		tmp->type = HAWK_NDE_FLT;
 		tmp->loc = *loc;
 		tmp->val = rv;
 	}
-	else ADJERR_LOC (awk, loc);
+	else ADJERR_LOC (hawk, loc);
 
 	return (hawk_nde_t*)tmp;
 }
 
-static HAWK_INLINE void update_int_node (
-	hawk_t* awk, hawk_nde_int_t* node, hawk_int_t lv)
+static HAWK_INLINE void update_int_node (hawk_t* hawk, hawk_nde_int_t* node, hawk_int_t lv)
 {
 	node->val = lv;
 	if (node->str)
 	{
-		hawk_freemem (awk, node->str);
+		hawk_freemem (hawk, node->str);
 		node->str = HAWK_NULL;
 		node->len = 0;
 	}
 }
 
-static HAWK_INLINE void update_flt_node (
-	hawk_t* awk, hawk_nde_flt_t* node, hawk_flt_t rv)
+static HAWK_INLINE void update_flt_node (hawk_t* hawk, hawk_nde_flt_t* node, hawk_flt_t rv)
 {
 	node->val = rv;
 	if (node->str)
 	{
-		hawk_freemem (awk, node->str);
+		hawk_freemem (hawk, node->str);
 		node->str = HAWK_NULL;
 		node->len = 0;
 	}
@@ -3975,8 +3966,8 @@ static hawk_nde_t* parse_binary (
 	hawk_nde_t* right = HAWK_NULL;
 	hawk_loc_t rloc;
 
-	left = next_level_func (awk, xloc);
-	if (left == HAWK_NULL) goto oops;
+	left = next_level_func(awk, xloc);
+	if (HAWK_UNLIKELY(!left)) goto oops;
 
 	do
 	{
@@ -7340,43 +7331,36 @@ static hawk_mod_t* query_module (hawk_t* awk, const hawk_oocs_t segs[], int nseg
 			goto done;
 		}
 #endif
-
+		/* attempt to find an external module */
+		HAWK_MEMSET (&spec, 0, HAWK_SIZEOF(spec));
+		spec.prefix = (awk->opt.mod[1].len > 0)? awk->opt.mod[1].ptr: HAWK_T(HAWK_DEFAULT_MODPREFIX);
+		spec.postfix = (awk->opt.mod[2].len > 0)? awk->opt.mod[2].ptr: HAWK_T(HAWK_DEFAULT_MODPOSTFIX);
+		spec.name = segs[0].ptr;
 		if (!awk->prm.modopen || !awk->prm.modgetsym || !awk->prm.modclose)
 		{
 			hawk_seterrfmt (awk, HAWK_NULL, HAWK_EINVAL, HAWK_T("module callbacks not set properly"));
 			goto open_fail;
 		}
 
-		hawk_seterrnum (awk, HAWK_NULL, HAWK_ENOERR);
-
-		/* attempt to find an external module */
-		HAWK_MEMSET (&spec, 0, HAWK_SIZEOF(spec));
-		if (awk->opt.mod[0].len > 0)
-			spec.libdir = awk->opt.mod[0].ptr;
-		else
-			spec.libdir = HAWK_T(HAWK_DEFAULT_MODLIBDIR);
-
-		if (awk->opt.mod[1].len > 0)
-			spec.prefix = awk->opt.mod[1].ptr;
-		else spec.prefix = HAWK_T(HAWK_DEFAULT_MODPREFIX);
-
-		if (awk->opt.mod[2].len > 0)
-			spec.postfix = awk->opt.mod[2].ptr;
-		else spec.postfix = HAWK_T(HAWK_DEFAULT_MODPOSTFIX);
-
-		HAWK_MEMSET (&md, 0, HAWK_SIZEOF(md));
-		spec.name = segs[0].ptr;
+		spec.libdir = (awk->opt.mod[0].len > 0)? awk->opt.mod[0].ptr: HAWK_T(HAWK_DEFAULT_MODLIBDIRS);
 		do
 		{
+#if defined(_WIN32) || defined(__OS2__) || defined(__DOS__)
+#	define LIBDIR_SEPARATOR ';'
+#else
+#	define LIBDIR_SEPARATOR ':'
+#endif
 			hawk_ooch_t* colon;
-
-			colon = hawk_find_oochar_in_oocstr(spec.libdir, ':');
+			colon = hawk_find_oochar_in_oocstr(spec.libdir, LIBDIR_SEPARATOR);
 			if (colon) *colon = '\0';
 
+			HAWK_MEMSET (&md, 0, HAWK_SIZEOF(md));
 			md.handle = awk->prm.modopen(awk, &spec);
 			if (!colon) break;
 
-			*colon = ':';
+			*colon = LIBDIR_SEPARATOR;
+			spec.libdir = colon + 1;
+#undef LIBDIR_SEPARATOR
 		}
 		while (!md.handle);
 

@@ -571,8 +571,8 @@ CPPFLAGS_ALL_COMMON = \
 
 @ENABLE_STATIC_MODULE_FALSE@LDFLAGS_ALL_COMMON = -L$(abs_builddir) -L$(libdir)
 @ENABLE_STATIC_MODULE_TRUE@LDFLAGS_ALL_COMMON = -L$(abs_builddir)/../mod -L$(abs_builddir) -L$(libdir)
-@WIN32_FALSE@CPPFLAGS_PFMOD =  \
-@WIN32_FALSE@	-DHAWK_DEFAULT_MODPREFIX=\"$(libdir)/libhawk-\" \
+@WIN32_FALSE@CPPFLAGS_PFMOD = -DHAWK_DEFAULT_MODLIBDIRS=\"$(libdir)\" \
+@WIN32_FALSE@	-DHAWK_DEFAULT_MODPREFIX=\"libhawk-\" \
 @WIN32_FALSE@	$(am__append_1) $(am__append_2)
 
 ##################################################
@@ -581,7 +581,8 @@ CPPFLAGS_ALL_COMMON = \
 
 # you must adjust the value of DEFAULT_MODPOSTFIX according
 # to the first number in -version-info above
-@WIN32_TRUE@CPPFLAGS_PFMOD = -DHAWK_DEFAULT_MODPREFIX=\"libhawk-\" \
+@WIN32_TRUE@CPPFLAGS_PFMOD = -DHAWK_DEFAULT_MODLIBDIRS=\"\" \
+@WIN32_TRUE@	-DHAWK_DEFAULT_MODPREFIX=\"libhawk-\" \
 @WIN32_TRUE@	-DHAWK_DEFAULT_MODPOSTFIX=\"-1.dll\" \
 @WIN32_TRUE@	$(am__append_1) $(am__append_2)
 pkginclude_HEADERS = hawk.h hawk-arr.h hawk-chr.h hawk-cmn.h \
