@@ -26,6 +26,10 @@
 
 #include "hawk-prv.h"
 
+#if !defined(HAWK_DEFAULT_MODLIBDIR)
+#	define HAWK_DEFAULT_MODLIBDIR ""
+#endif
+
 #if !defined(HAWK_DEFAULT_MODPREFIX)
 #	if defined(_WIN32)
 #		define HAWK_DEFAULT_MODPREFIX "hawk-"
@@ -7336,33 +7340,51 @@ static hawk_mod_t* query_module (hawk_t* awk, const hawk_oocs_t segs[], int nseg
 			goto done;
 		}
 #endif
+
+		if (!awk->prm.modopen || !awk->prm.modgetsym || !awk->prm.modclose)
+		{
+			hawk_seterrfmt (awk, HAWK_NULL, HAWK_EINVAL, HAWK_T("module callbacks not set properly"));
+			goto open_fail;
+		}
+
 		hawk_seterrnum (awk, HAWK_NULL, HAWK_ENOERR);
 
 		/* attempt to find an external module */
 		HAWK_MEMSET (&spec, 0, HAWK_SIZEOF(spec));
 		if (awk->opt.mod[0].len > 0)
-			spec.prefix = awk->opt.mod[0].ptr;
-		else spec.prefix = HAWK_T(HAWK_DEFAULT_MODPREFIX);
+			spec.libdir = awk->opt.mod[0].ptr;
+		else
+			spec.libdir = HAWK_T(HAWK_DEFAULT_MODLIBDIR);
 
 		if (awk->opt.mod[1].len > 0)
-			spec.postfix = awk->opt.mod[1].ptr;
+			spec.prefix = awk->opt.mod[1].ptr;
+		else spec.prefix = HAWK_T(HAWK_DEFAULT_MODPREFIX);
+
+		if (awk->opt.mod[2].len > 0)
+			spec.postfix = awk->opt.mod[2].ptr;
 		else spec.postfix = HAWK_T(HAWK_DEFAULT_MODPOSTFIX);
 
 		HAWK_MEMSET (&md, 0, HAWK_SIZEOF(md));
 		spec.name = segs[0].ptr;
-		md.handle = HAWK_NULL;
-		if (awk->prm.modopen && awk->prm.modgetsym && awk->prm.modclose)
+		do
 		{
-			md.handle = awk->prm.modopen(awk, &spec);
-		}
-		else 
-		{
-			hawk_seterrfmt (awk, HAWK_NULL, HAWK_EINVAL, HAWK_T("module callbacks not set properly"));
-		}
+			hawk_ooch_t* colon;
 
-		if (md.handle == HAWK_NULL) 
+			colon = hawk_find_oochar_in_oocstr(spec.libdir, ':');
+			if (colon) *colon = '\0';
+
+			md.handle = awk->prm.modopen(awk, &spec);
+			if (!colon) break;
+
+			*colon = ':';
+		}
+		while (!md.handle);
+
+		if (!md.handle)
 		{
-			const hawk_ooch_t* bem = hawk_backuperrmsg(awk);
+			const hawk_ooch_t* bem;
+		open_fail:
+			bem = hawk_backuperrmsg(awk);
 			hawk_seterrfmt (awk, HAWK_NULL, HAWK_ENOENT, HAWK_T("'%js%js%js' for module '%js' not found - %js"), 
 				(spec.prefix? spec.prefix: HAWK_T("")), spec.name, (spec.postfix? spec.postfix: HAWK_T("")), spec.name, bem);
 			return HAWK_NULL;

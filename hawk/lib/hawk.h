@@ -481,6 +481,7 @@ typedef struct hawk_mod_spec_t hawk_mod_spec_t;
 
 struct hawk_mod_spec_t
 {
+	const hawk_ooch_t* libdir;
 	const hawk_ooch_t* prefix;
 	const hawk_ooch_t* postfix;
 	const hawk_ooch_t* name;
@@ -1143,6 +1144,7 @@ enum hawk_opt_t
 	/** trait option. 0 or bitwise-ORed of ::hawk_trait_t values */
 	HAWK_TRAIT,  
 
+	HAWK_MODLIBDIR,
 	HAWK_MODPREFIX,
 	HAWK_MODPOSTFIX,
 
