@@ -29,6 +29,9 @@ AC_CHECK_PROG(HAVE_CXX, $CXX, yes, no)
 dnl check if the C++ compiler supports namespace
 AX_CXX_NAMESPACE_STD
 
+dnl HAVE_CXX11
+AX_CXX_COMPILE_STDCXX(11, , optional)
+
 dnl determine some key programs
 AC_PROG_INSTALL
 AC_PROG_EGREP

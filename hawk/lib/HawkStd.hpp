@@ -39,15 +39,15 @@ HAWK_BEGIN_NAMESPACE(HAWK)
 class HAWK_EXPORT MmgrStd: public Mmgr
 {
 public:
-	MmgrStd () HAWK_CPP_NOEXCEPT: Mmgr () {}
+	MmgrStd () HAWK_CXX_NOEXCEPT: Mmgr () {}
 
-	void* allocMem (hawk_oow_t n) HAWK_CPP_NOEXCEPT;
-	void* reallocMem (void* ptr, hawk_oow_t n) HAWK_CPP_NOEXCEPT;
-	void freeMem (void* ptr) HAWK_CPP_NOEXCEPT;
+	void* allocMem (hawk_oow_t n) HAWK_CXX_NOEXCEPT;
+	void* reallocMem (void* ptr, hawk_oow_t n) HAWK_CXX_NOEXCEPT;
+	void freeMem (void* ptr) HAWK_CXX_NOEXCEPT;
 
 #if 0
 	/// The getInstance() function returns the stock instance of the MmgrStd class.
-	static MmgrStd* getInstance () HAWK_CPP_NOEXCEPT;
+	static MmgrStd* getInstance () HAWK_CXX_NOEXCEPT;
 #endif
 };
 

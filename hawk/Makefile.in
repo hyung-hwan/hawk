@@ -92,6 +92,7 @@ host_triplet = @host@
 subdir = .
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/ax_check_sign.m4 \
+	$(top_srcdir)/m4/ax_cxx_compile_stdcxx.m4 \
 	$(top_srcdir)/m4/ax_cxx_namespace.m4 \
 	$(top_srcdir)/m4/ax_lib_mysql.m4 $(top_srcdir)/m4/ax_numval.m4 \
 	$(top_srcdir)/m4/ax_pthread.m4 \
@@ -169,8 +170,8 @@ am__DIST_COMMON = $(srcdir)/Makefile.in $(top_srcdir)/ac/ar-lib \
 	$(top_srcdir)/ac/config.sub $(top_srcdir)/ac/install-sh \
 	$(top_srcdir)/ac/ltmain.sh $(top_srcdir)/ac/missing \
 	$(top_srcdir)/pkgs/hawk.spec.in ac/ar-lib ac/compile \
-	ac/config.guess ac/config.sub ac/install-sh ac/ltmain.sh \
-	ac/missing
+	ac/config.guess ac/config.sub ac/depcomp ac/install-sh \
+	ac/ltmain.sh ac/missing
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 distdir = $(PACKAGE)-$(VERSION)
 top_distdir = $(distdir)
@@ -248,6 +249,7 @@ FFI_LIBS = @FFI_LIBS@
 FGREP = @FGREP@
 GREP = @GREP@
 HAVE_CXX = @HAVE_CXX@
+HAVE_CXX11 = @HAVE_CXX11@
 HAWK_PROJECT_AUTHOR = @HAWK_PROJECT_AUTHOR@
 HAWK_PROJECT_URL = @HAWK_PROJECT_URL@
 HAWK_SIZEOF_CHAR = @HAWK_SIZEOF_CHAR@

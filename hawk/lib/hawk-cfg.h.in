@@ -111,6 +111,9 @@
 /* Define to 1 if you have the <crt_externs.h> header file. */
 #undef HAVE_CRT_EXTERNS_H
 
+/* define if the compiler supports basic C++11 syntax */
+#undef HAVE_CXX11
+
 /* Define if c++ supports namespace std. */
 #undef HAVE_CXX_NAMESPACE_STD
 
