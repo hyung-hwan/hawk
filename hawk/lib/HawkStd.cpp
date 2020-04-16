@@ -54,17 +54,17 @@ HAWK_BEGIN_NAMESPACE(HAWK)
 //////////////////////////////////////////////////////////////////////////////
 // MmgrStd
 //////////////////////////////////////////////////////////////////////////////
-void* MmgrStd::allocMem (hawk_oow_t n) HAWK_CPP_NOEXCEPT
+void* MmgrStd::allocMem (hawk_oow_t n) HAWK_CXX_NOEXCEPT
 {
 	return ::malloc(n);
 }
 
-void* MmgrStd::reallocMem (void* ptr, hawk_oow_t n) HAWK_CPP_NOEXCEPT
+void* MmgrStd::reallocMem (void* ptr, hawk_oow_t n) HAWK_CXX_NOEXCEPT
 {
 	return ::realloc(ptr, n);
 }
 
-void MmgrStd::freeMem (void* ptr) HAWK_CPP_NOEXCEPT
+void MmgrStd::freeMem (void* ptr) HAWK_CXX_NOEXCEPT
 {
 	::free (ptr);
 }

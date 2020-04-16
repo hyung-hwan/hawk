@@ -40,6 +40,7 @@
 #if defined(HAWK_USE_HTB_FOR_FUNCTION_MAP)
 #	include <hawk-htb.h>
 #else
+// this part not supported for now
 #	include <hawk/HashTable.hpp>
 #	include <hawk/Cstr.hpp>
 #endif
@@ -52,28 +53,28 @@ HAWK_BEGIN_NAMESPACE(HAWK)
 /////////////////////////////////
 
 #if (__cplusplus >= 201103L) || (defined(_MSC_VER) && _MSC_VER >= 1900) // C++11 or later
-	#define HAWK_LANG_CPP11 1
-	#define HAWK_CPP_NOEXCEPT noexcept(true)
+	#define HAWK_LANG_CXX11 1
+	#define HAWK_CXX_NOEXCEPT noexcept(true)
 
-	/// The HAWK_CPP_ENABLE_CPP11_MOVE macro enables C++11 move semantics in various classes.
-	#define HAWK_CPP_ENABLE_CPP11_MOVE 1
+	/// The HAWK_CXX_ENABLE_CXX11_MOVE macro enables C++11 move semantics in various classes.
+	#define HAWK_CXX_ENABLE_CXX11_MOVE 1
 
-	// The HAWK_CPP_CALL_DESTRUCTOR() macro calls a destructor explicitly.
-	#define HAWK_CPP_CALL_DESTRUCTOR(ptr, class_name) ((ptr)->~class_name())
+	// The HAWK_CXX_CALL_DESTRUCTOR() macro calls a destructor explicitly.
+	#define HAWK_CXX_CALL_DESTRUCTOR(ptr, class_name) ((ptr)->~class_name())
 
-	// The HAWK_CPP_CALL_PLACEMENT_DELETE1() macro calls the global operator delete
+	// The HAWK_CXX_CALL_PLACEMENT_DELETE1() macro calls the global operator delete
 	// with 1 extra argument given.
-	#define HAWK_CPP_CALL_PLACEMENT_DELETE1(ptr, arg1) (::operator delete((ptr), (arg1)))
+	#define HAWK_CXX_CALL_PLACEMENT_DELETE1(ptr, arg1) (::operator delete((ptr), (arg1)))
 
 #elif (__cplusplus >= 199711L) // C++98
-	#undef HAWK_LANG_CPP11 
-	#define HAWK_CPP_NOEXCEPT throw()
+	#undef HAWK_LANG_CXX11 
+	#define HAWK_CXX_NOEXCEPT throw()
 
-	#define HAWK_CPP_CALL_DESTRUCTOR(ptr, class_name) ((ptr)->~class_name())
-	#define HAWK_CPP_CALL_PLACEMENT_DELETE1(ptr, arg1) (::operator delete((ptr), (arg1)))
+	#define HAWK_CXX_CALL_DESTRUCTOR(ptr, class_name) ((ptr)->~class_name())
+	#define HAWK_CXX_CALL_PLACEMENT_DELETE1(ptr, arg1) (::operator delete((ptr), (arg1)))
 #else
-	#undef HAWK_LANG_CPP11 
-	#define HAWK_CPP_NOEXCEPT 
+	#undef HAWK_LANG_CXX11 
+	#define HAWK_CXX_NOEXCEPT 
 
 	#if defined(__BORLANDC__)
 
@@ -88,8 +89,8 @@ HAWK_BEGIN_NAMESPACE(HAWK)
 		//
 		//   x->Node::~Node ();
 
-		#define HAWK_CPP_CALL_DESTRUCTOR(ptr, class_name) ((ptr)->class_name::~class_name())
-		#define HAWK_CPP_CALL_PLACEMENT_DELETE1(ptr, arg1) (::operator delete((ptr), (arg1)))
+		#define HAWK_CXX_CALL_DESTRUCTOR(ptr, class_name) ((ptr)->class_name::~class_name())
+		#define HAWK_CXX_CALL_PLACEMENT_DELETE1(ptr, arg1) (::operator delete((ptr), (arg1)))
 
 
 	#elif defined(__WATCOMC__)
@@ -97,8 +98,8 @@ HAWK_BEGIN_NAMESPACE(HAWK)
 		//    Node* x; x->Node::~Node(). 
 		// But it doesn't support operator delete overloading.
 
-		#define HAWK_CPP_CALL_DESTRUCTOR(ptr, class_name) ((ptr)->~class_name())
-		#define HAWK_CPP_CALL_PLACEMENT_DELETE1(ptr, arg1) (::hawk_operator_delete((ptr), (arg1)))
+		#define HAWK_CXX_CALL_DESTRUCTOR(ptr, class_name) ((ptr)->~class_name())
+		#define HAWK_CXX_CALL_PLACEMENT_DELETE1(ptr, arg1) (::hawk_operator_delete((ptr), (arg1)))
 
 		// When  the name of a member template specialization appears after .  or
 		// -> in a postfix-expression, or after :: in a qualified-id that explic-
@@ -120,37 +121,37 @@ HAWK_BEGIN_NAMESPACE(HAWK)
 		//
 		// WATCOM doesn't support this qualifier.
 
-		#define HAWK_CPP_NO_OPERATOR_DELETE_OVERLOADING 1
+		#define HAWK_CXX_NO_OPERATOR_DELETE_OVERLOADING 1
 	#else
 
-		#define HAWK_CPP_CALL_DESTRUCTOR(ptr, class_name) ((ptr)->~class_name())
-		#define HAWK_CPP_CALL_PLACEMENT_DELETE1(ptr, arg1) (::operator delete((ptr), (arg1)))
+		#define HAWK_CXX_CALL_DESTRUCTOR(ptr, class_name) ((ptr)->~class_name())
+		#define HAWK_CXX_CALL_PLACEMENT_DELETE1(ptr, arg1) (::operator delete((ptr), (arg1)))
 
 	#endif
 
 #endif
 
-#if defined(HAWK_CPP_ENABLE_CPP11_MOVE)
+#if defined(HAWK_CXX_ENABLE_CXX11_MOVE)
 
-	template<typename T> struct HAWK_CPP_RMREF      { typedef T Type; };
-	template<typename T> struct HAWK_CPP_RMREF<T&>  { typedef T Type; };
-	template<typename T> struct HAWK_CPP_RMREF<T&&> { typedef T Type; };
+	template<typename T> struct HAWK_CXX_RMREF      { typedef T Type; };
+	template<typename T> struct HAWK_CXX_RMREF<T&>  { typedef T Type; };
+	template<typename T> struct HAWK_CXX_RMREF<T&&> { typedef T Type; };
 
 	template<typename T> inline
-	typename HAWK_CPP_RMREF<T>::Type&& HAWK_CPP_RVREF(T&& v)
+	typename HAWK_CXX_RMREF<T>::Type&& HAWK_CXX_RVREF(T&& v)
 	{
-		return (typename HAWK_CPP_RMREF<T>::Type&&)v;
+		return (typename HAWK_CXX_RMREF<T>::Type&&)v;
 	}
 #else
 
 	/*
 	template<typename T> inline
-	T& HAWK_CPP_RVREF(T& v) { return (T&)v; }
+	T& HAWK_CXX_RVREF(T& v) { return (T&)v; }
 
 	template<typename T> inline
-	const T& HAWK_CPP_RVREF(const T& v) { return (const T&)v; }
+	const T& HAWK_CXX_RVREF(const T& v) { return (const T&)v; }
 	*/
-	#define HAWK_CPP_RVREF(x) x
+	#define HAWK_CXX_RVREF(x) x
 #endif
 
 /// The Exception class implements the exception object.
@@ -159,7 +160,7 @@ class HAWK_EXPORT Exception
 public:
 	Exception (
 		const hawk_ooch_t* name, const hawk_ooch_t* msg, 
-		const hawk_ooch_t* file, hawk_oow_t line) HAWK_CPP_NOEXCEPT: 
+		const hawk_ooch_t* file, hawk_oow_t line) HAWK_CXX_NOEXCEPT: 
 		name(name), msg(msg)
 #if !defined(HAWK_NO_LOCATION_IN_EXCEPTION)
 		, file(file), line(line) 
@@ -185,7 +186,7 @@ public:
 	{ \
 	public: \
 		ex_name (const hawk_ooch_t* name, const hawk_ooch_t* msg, \
-		         const hawk_ooch_t* file, hawk_oow_t line) HAWK_CPP_NOEXCEPT: \
+		         const hawk_ooch_t* file, hawk_oow_t line) HAWK_CXX_NOEXCEPT: \
 			HAWK::Exception (name, msg, file, line) {} \
 	}
 
@@ -203,7 +204,7 @@ public:
 class HAWK_EXPORT Uncopyable
 {
 public:
-	Uncopyable () HAWK_CPP_NOEXCEPT {}
+	Uncopyable () HAWK_CXX_NOEXCEPT {}
 	//virtual ~Uncopyable () {}
 
 private:
@@ -237,7 +238,7 @@ public:
 	/// The Mmgr() function builds a memory manager composed of bridge
 	/// functions connecting itself with it.
 	///
-	Mmgr () HAWK_CPP_NOEXCEPT
+	Mmgr () HAWK_CXX_NOEXCEPT
 	{
 		// NOTE:
 		//  the #hawk_mmgr_t interface is not affected by raise_exception
@@ -252,7 +253,7 @@ public:
 	///
 	/// The ~Mmgr() function finalizes a memory manager.
 	///
-	virtual ~Mmgr () HAWK_CPP_NOEXCEPT {}
+	virtual ~Mmgr () HAWK_CXX_NOEXCEPT {}
 
 	///
 	/// The allocate() function calls allocMem() for memory
@@ -287,7 +288,7 @@ public:
 	///
 	/// The dispose() function calls freeMem() for memory disposal.
 	///
-	void dispose (void* ptr) HAWK_CPP_NOEXCEPT
+	void dispose (void* ptr) HAWK_CXX_NOEXCEPT
 	{
 		this->freeMem (ptr);
 	}
@@ -300,7 +301,7 @@ public:
 	///
 	virtual void* allocMem (
 		hawk_oow_t n ///< size of memory chunk to allocate in bytes 
-	) HAWK_CPP_NOEXCEPT = 0;
+	) HAWK_CXX_NOEXCEPT = 0;
 
 	///
 	/// The reallocMem() function resizes a chunk of memory previously
@@ -311,7 +312,7 @@ public:
 	virtual void* reallocMem (
 		void* ptr, ///< pointer to memory chunk to resize
 		hawk_oow_t n   ///< new size in bytes
-	) HAWK_CPP_NOEXCEPT = 0;
+	) HAWK_CXX_NOEXCEPT = 0;
 
 	///
 	/// The freeMem() function frees a chunk of memory allocated with
@@ -319,27 +320,27 @@ public:
 	///
 	virtual void freeMem (
 		void* ptr ///< pointer to memory chunk to free 
-	) HAWK_CPP_NOEXCEPT = 0;
+	) HAWK_CXX_NOEXCEPT = 0;
 
 protected:
 	///
 	/// bridge function from the #hawk_mmgr_t type the allocMem() function.
 	///
-	static void* alloc_mem (mmgr_t* mmgr, hawk_oow_t n) HAWK_CPP_NOEXCEPT;
+	static void* alloc_mem (mmgr_t* mmgr, hawk_oow_t n) HAWK_CXX_NOEXCEPT;
 
 	///
 	/// bridge function from the #hawk_mmgr_t type the reallocMem() function.
 	///
-	static void* realloc_mem (mmgr_t* mmgr, void* ptr, hawk_oow_t n) HAWK_CPP_NOEXCEPT;
+	static void* realloc_mem (mmgr_t* mmgr, void* ptr, hawk_oow_t n) HAWK_CXX_NOEXCEPT;
 
 	///
 	/// bridge function from the #hawk_mmgr_t type the freeMem() function.
 	///
-	static void  free_mem (mmgr_t* mmgr, void* ptr) HAWK_CPP_NOEXCEPT;
+	static void  free_mem (mmgr_t* mmgr, void* ptr) HAWK_CXX_NOEXCEPT;
 
 public:
-	static Mmgr* getDFL () HAWK_CPP_NOEXCEPT;
-	static void setDFL (Mmgr* mmgr) HAWK_CPP_NOEXCEPT;
+	static Mmgr* getDFL () HAWK_CXX_NOEXCEPT;
+	static void setDFL (Mmgr* mmgr) HAWK_CXX_NOEXCEPT;
 
 protected:
 	static Mmgr* dfl_mmgr;
@@ -1821,7 +1822,7 @@ HAWK_END_NAMESPACE(HAWK)
 
 HAWK_EXPORT void* operator new (hawk_oow_t size, HAWK::Mmgr* mmgr);
 
-#if defined(HAWK_CPP_NO_OPERATOR_DELETE_OVERLOADING)
+#if defined(HAWK_CXX_NO_OPERATOR_DELETE_OVERLOADING)
 HAWK_EXPORT void hawk_operator_delete (void* ptr, HAWK::Mmgr* mmgr);
 #else
 HAWK_EXPORT void operator delete (void* ptr, HAWK::Mmgr* mmgr);
@@ -1841,10 +1842,10 @@ void* operator new[] (hawk_oow_t size, HAWK::Mmgr* mmgr);
 void operator delete[] (void* ptr, HAWK::Mmgr* mmgr);
 #endif
 
-#define HAWK_CPP_DELETE_WITH_MMGR(ptr, class_name, mmgr) \
+#define HAWK_CXX_DELETE_WITH_MMGR(ptr, class_name, mmgr) \
 	do { \
-		HAWK_CPP_CALL_DESTRUCTOR (ptr, class_name); \
-		HAWK_CPP_CALL_PLACEMENT_DELETE1(ptr, mmgr); \
+		HAWK_CXX_CALL_DESTRUCTOR (ptr, class_name); \
+		HAWK_CXX_CALL_PLACEMENT_DELETE1(ptr, mmgr); \
 	} while(0); 
 
 #endif

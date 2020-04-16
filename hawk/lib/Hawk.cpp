@@ -53,22 +53,22 @@ void Mmged::setMmgr (Mmgr* mmgr)
 //////////////////////////////////////////////////////////////////
 
 
-void* Mmgr::alloc_mem (mmgr_t* mmgr, hawk_oow_t n) HAWK_CPP_NOEXCEPT
+void* Mmgr::alloc_mem (mmgr_t* mmgr, hawk_oow_t n) HAWK_CXX_NOEXCEPT
 {
 	return ((Mmgr*)mmgr->ctx)->allocMem (n);
 }
 
-void* Mmgr::realloc_mem (mmgr_t* mmgr, void* ptr, hawk_oow_t n) HAWK_CPP_NOEXCEPT
+void* Mmgr::realloc_mem (mmgr_t* mmgr, void* ptr, hawk_oow_t n) HAWK_CXX_NOEXCEPT
 {
 	return ((Mmgr*)mmgr->ctx)->reallocMem (ptr, n);
 }
 
-void Mmgr::free_mem (mmgr_t* mmgr, void* ptr) HAWK_CPP_NOEXCEPT
+void Mmgr::free_mem (mmgr_t* mmgr, void* ptr) HAWK_CXX_NOEXCEPT
 {
 	((Mmgr*)mmgr->ctx)->freeMem (ptr);
 }
 
-void* Mmgr::callocate (hawk_oow_t n, bool raise_exception) /*HAWK_CPP_THREXCEPT1(MemoryError)*/
+void* Mmgr::callocate (hawk_oow_t n, bool raise_exception) /*HAWK_CXX_THREXCEPT1(MemoryError)*/
 {
 	void* ptr = this->allocate(n, raise_exception);
 	HAWK_MEMSET (ptr, 0, n);
@@ -83,7 +83,7 @@ static MmgrStd std_dfl_mmgr; //<-- has an issue for undefined initialization ord
 #endif
 Mmgr* Mmgr::dfl_mmgr = &std_dfl_mmgr; 
 //Mmgr* Mmgr::dfl_mmgr = MmgrStd::getInstance();  //<--- has an issue as well
-Mmgr* Mmgr::getDFL () HAWK_CPP_NOEXCEPT
+Mmgr* Mmgr::getDFL () HAWK_CXX_NOEXCEPT
 {
 	return Mmgr::dfl_mmgr;
 }
@@ -94,7 +94,7 @@ Mmgr* Mmgr::getDFL () HAWK_CPP_NOEXCEPT
 // Mmgr::getDFL() resets dfl_mmgr to &std_dfl_mmgr if it's NULL.
 Mmgr* Mmgr::dfl_mmgr = HAWK_NULL;
 
-Mmgr* Mmgr::getDFL () HAWK_CPP_NOEXCEPT
+Mmgr* Mmgr::getDFL () HAWK_CXX_NOEXCEPT
 {
 	static MmgrStd std_dfl_mmgr;
 	Mmgr* mmgr = Mmgr::dfl_mmgr;
@@ -102,7 +102,7 @@ Mmgr* Mmgr::getDFL () HAWK_CPP_NOEXCEPT
 }
 #endif
 
-void Mmgr::setDFL (Mmgr* mmgr) HAWK_CPP_NOEXCEPT
+void Mmgr::setDFL (Mmgr* mmgr) HAWK_CXX_NOEXCEPT
 {
 	Mmgr::dfl_mmgr = mmgr;
 }
@@ -2798,12 +2798,12 @@ HAWK_END_NAMESPACE(HAWK)
 
 
 
-void* operator new (hawk_oow_t size, HAWK::Mmgr* mmgr) /*HAWK_CPP_THREXCEPT1(HAWK::Mmgr::MemoryError)*/
+void* operator new (hawk_oow_t size, HAWK::Mmgr* mmgr) /*HAWK_CXX_THREXCEPT1(HAWK::Mmgr::MemoryError)*/
 {
 	return mmgr->allocate(size);
 }
 
-#if defined(HAWK_CPP_NO_OPERATOR_DELETE_OVERLOADING)
+#if defined(HAWK_CXX_NO_OPERATOR_DELETE_OVERLOADING)
 void hawk_operator_delete (void* ptr, HAWK::Mmgr* mmgr)
 #else
 void operator delete (void* ptr, HAWK::Mmgr* mmgr)
@@ -2812,7 +2812,7 @@ void operator delete (void* ptr, HAWK::Mmgr* mmgr)
 	mmgr->dispose (ptr);
 }
 
-void* operator new (hawk_oow_t size, HAWK::Mmgr* mmgr, void* existing_ptr) /*HAWK_CPP_THREXCEPT1(HAWK::Mmgr::MemoryError)*/
+void* operator new (hawk_oow_t size, HAWK::Mmgr* mmgr, void* existing_ptr) /*HAWK_CXX_THREXCEPT1(HAWK::Mmgr::MemoryError)*/
 {
 	// mmgr unused. i put it in the parameter list to make this function
 	// less conflicting with the stock ::operator new() that doesn't allocate.

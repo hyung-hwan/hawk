@@ -93,6 +93,7 @@ bin_PROGRAMS = $(am__EXEEXT_1)
 subdir = samples
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/ax_check_sign.m4 \
+	$(top_srcdir)/m4/ax_cxx_compile_stdcxx.m4 \
 	$(top_srcdir)/m4/ax_cxx_namespace.m4 \
 	$(top_srcdir)/m4/ax_lib_mysql.m4 $(top_srcdir)/m4/ax_numval.m4 \
 	$(top_srcdir)/m4/ax_pthread.m4 \
@@ -245,6 +246,7 @@ FFI_LIBS = @FFI_LIBS@
 FGREP = @FGREP@
 GREP = @GREP@
 HAVE_CXX = @HAVE_CXX@
+HAVE_CXX11 = @HAVE_CXX11@
 HAWK_PROJECT_AUTHOR = @HAWK_PROJECT_AUTHOR@
 HAWK_PROJECT_URL = @HAWK_PROJECT_URL@
 HAWK_SIZEOF_CHAR = @HAWK_SIZEOF_CHAR@
