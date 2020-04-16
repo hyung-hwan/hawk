@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
-    Copyright (c) 2006-2019 Chung, Hyung-Hwan. All rights reserved.
+    Copyright (c) 2006-2020 Chung, Hyung-Hwan. All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
     modification, are permitted provided that the following conditions
@@ -153,10 +153,10 @@ static hawk_fnc_t* add_fnc (hawk_t* hawk, const hawk_ooch_t* name, const hawk_fn
 	return fnc;
 }
 
-hawk_fnc_t* hawk_addfncwithbcstr (hawk_t* awk, const hawk_bch_t* name, const hawk_fnc_mspec_t* spec)
+hawk_fnc_t* hawk_addfncwithbcstr (hawk_t* hawk, const hawk_bch_t* name, const hawk_fnc_mspec_t* spec)
 {
 #if defined(HAWK_OOCH_IS_BCH)
-	return add_fnc(awk, name, spec);
+	return add_fnc(hawk, name, spec);
 #else
 	hawk_ucs_t wcs;
 	hawk_fnc_t* fnc;
@@ -167,26 +167,26 @@ hawk_fnc_t* hawk_addfncwithbcstr (hawk_t* awk, const hawk_bch_t* name, const haw
 	HAWK_MEMCPY (&wspec, spec, HAWK_SIZEOF(wspec));
 	if (spec->arg.spec)
 	{
-		wcs.ptr = hawk_dupbtoucstr(awk, spec->arg.spec, &wcs.len, 0);
+		wcs.ptr = hawk_dupbtoucstr(hawk, spec->arg.spec, &wcs.len, 0);
 		if (HAWK_UNLIKELY(!wcs.ptr)) return HAWK_NULL;
 		wspec.arg.spec = wcs.ptr;
 	}
 
-	wcs.ptr = hawk_dupbtoucstr(awk, name, &wcs.len, 0);
+	wcs.ptr = hawk_dupbtoucstr(hawk, name, &wcs.len, 0);
 	if (HAWK_UNLIKELY(!wcs.ptr)) 
 	{
-		if (wspec.arg.spec) hawk_freemem (awk, (hawk_uch_t*)wspec.arg.spec);
+		if (wspec.arg.spec) hawk_freemem (hawk, (hawk_uch_t*)wspec.arg.spec);
 		return HAWK_NULL;
 	}
 
-	fnc = add_fnc(awk, wcs.ptr, &wspec);
-	hawk_freemem (awk, wcs.ptr);
-	if (wspec.arg.spec) hawk_freemem (awk, (hawk_uch_t*)wspec.arg.spec);
+	fnc = add_fnc(hawk, wcs.ptr, &wspec);
+	hawk_freemem (hawk, wcs.ptr);
+	if (wspec.arg.spec) hawk_freemem (hawk, (hawk_uch_t*)wspec.arg.spec);
 	return fnc;
 #endif
 }
 
-hawk_fnc_t* hawk_addfncwithucstr (hawk_t* awk, const hawk_uch_t* name, const hawk_fnc_wspec_t* spec)
+hawk_fnc_t* hawk_addfncwithucstr (hawk_t* hawk, const hawk_uch_t* name, const hawk_fnc_wspec_t* spec)
 {
 #if defined(HAWK_OOCH_IS_BCH)
 	hawk_bcs_t mbs;
@@ -198,24 +198,24 @@ hawk_fnc_t* hawk_addfncwithucstr (hawk_t* awk, const hawk_uch_t* name, const haw
 	HAWK_MEMCPY (&mspec, spec, HAWK_SIZEOF(mspec));
 	if (spec->arg.spec)
 	{
-		mbs.ptr = hawk_duputobcstr(awk, spec->arg.spec, &mbs.len);
+		mbs.ptr = hawk_duputobcstr(hawk, spec->arg.spec, &mbs.len);
 		if (HAWK_UNLIKELY(!mbs.ptr)) return HAWK_NULL;
 		mspec.arg.spec = mbs.ptr;
 	}
 
-	mbs.ptr = hawk_duputobcstr(awk, name, &mbs.len);
+	mbs.ptr = hawk_duputobcstr(hawk, name, &mbs.len);
 	if (HAWK_UNLIKELY(!mbs.ptr))
 	{
-		if (mspec.arg.spec) hawk_freemem (awk, (hawk_bch_t*)mspec.arg.spec);
+		if (mspec.arg.spec) hawk_freemem (hawk, (hawk_bch_t*)mspec.arg.spec);
 		return HAWK_NULL;
 	}
 
-	fnc = add_fnc(awk, mbs.ptr, &mspec);
-	hawk_freemem (awk, mbs.ptr);
-	if (mspec.arg.spec) hawk_freemem (awk, (hawk_bch_t*)mspec.arg.spec);
+	fnc = add_fnc(hawk, mbs.ptr, &mspec);
+	hawk_freemem (hawk, mbs.ptr);
+	if (mspec.arg.spec) hawk_freemem (hawk, (hawk_bch_t*)mspec.arg.spec);
 	return fnc;
 #else
-	return add_fnc(awk, name, spec);
+	return add_fnc(hawk, name, spec);
 #endif
 }
 
@@ -277,12 +277,12 @@ int hawk_delfncwithucstr (hawk_t* hawk, const hawk_uch_t* name)
 	return 0;
 }
 
-void hawk_clrfnc (hawk_t* awk)
+void hawk_clrfnc (hawk_t* hawk)
 {
-	hawk_htb_clear (awk->fnc.user);
+	hawk_htb_clear (hawk->fnc.user);
 }
 
-static hawk_fnc_t* find_fnc (hawk_t* awk, const hawk_oocs_t* name)
+static hawk_fnc_t* find_fnc (hawk_t* hawk, const hawk_oocs_t* name)
 {
 	hawk_htb_pair_t* pair;
 	int i;
@@ -294,51 +294,51 @@ static hawk_fnc_t* find_fnc (hawk_t* awk, const hawk_oocs_t* name)
 	 */
 	for (i = 0; i < HAWK_COUNTOF(sysfnctab); i++)
 	{
-		if ((awk->opt.trait & sysfnctab[i].spec.trait) != sysfnctab[i].spec.trait) continue;
+		if ((hawk->opt.trait & sysfnctab[i].spec.trait) != sysfnctab[i].spec.trait) continue;
 		if (hawk_comp_oochars(sysfnctab[i].name.ptr, sysfnctab[i].name.len, name->ptr, name->len, 0) == 0) return &sysfnctab[i];
 	}
 
-	pair = hawk_htb_search(awk->fnc.user, name->ptr, name->len);
+	pair = hawk_htb_search(hawk->fnc.user, name->ptr, name->len);
 	if (pair)
 	{
 		hawk_fnc_t* fnc;
 		fnc = (hawk_fnc_t*)HAWK_HTB_VPTR(pair);
-		if ((awk->opt.trait & fnc->spec.trait) == fnc->spec.trait) return fnc;
+		if ((hawk->opt.trait & fnc->spec.trait) == fnc->spec.trait) return fnc;
 	}
 
-	hawk_seterrfmt (awk, HAWK_NULL, HAWK_ENOENT, HAWK_T("no such function - %js"), name);
+	hawk_seterrfmt (hawk, HAWK_NULL, HAWK_ENOENT, HAWK_T("no such function - %js"), name);
 	return HAWK_NULL;
 }
 
-hawk_fnc_t* hawk_findfncwithbcs (hawk_t* awk, const hawk_bcs_t* name)
+hawk_fnc_t* hawk_findfncwithbcs (hawk_t* hawk, const hawk_bcs_t* name)
 {
 #if defined(HAWK_OOCH_IS_BCH)
-	return find_fnc(awk, name);
+	return find_fnc(hawk, name);
 #else
 	hawk_ucs_t wcs;
 	hawk_fnc_t* fnc;
 
-	wcs.ptr = hawk_dupbtouchars(awk, name->ptr, name->len, &wcs.len, 0);
+	wcs.ptr = hawk_dupbtouchars(hawk, name->ptr, name->len, &wcs.len, 0);
 	if (HAWK_UNLIKELY(!wcs.ptr)) return HAWK_NULL;
-	fnc = find_fnc(awk, &wcs);
-	hawk_freemem (awk, wcs.ptr);
+	fnc = find_fnc(hawk, &wcs);
+	hawk_freemem (hawk, wcs.ptr);
 	return fnc;
 #endif
 }
 
-hawk_fnc_t* hawk_findfncwithucs (hawk_t* awk, const hawk_ucs_t* name)
+hawk_fnc_t* hawk_findfncwithucs (hawk_t* hawk, const hawk_ucs_t* name)
 {
 #if defined(HAWK_OOCH_IS_BCH)
 	hawk_bcs_t mbs;
 	hawk_fnc_t* fnc;
 
-	mbs.ptr = hawk_duputobchars(awk, name->ptr, name->len, &mbs.len);
+	mbs.ptr = hawk_duputobchars(hawk, name->ptr, name->len, &mbs.len);
 	if (HAWK_UNLIKELY(!mbs.ptr)) return HAWK_NULL;
-	fnc = find_fnc(awk, &mbs);
-	hawk_freemem (awk, mbs.ptr);
+	fnc = find_fnc(hawk, &mbs);
+	hawk_freemem (hawk, mbs.ptr);
 	return fnc;
 #else
-	return find_fnc(awk, name);
+	return find_fnc(hawk, name);
 #endif
 }
 

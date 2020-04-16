@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
-    Copyright (c) 2006-2019 Chung, Hyung-Hwan. All rights reserved.
+    Copyright (c) 2006-2020 Chung, Hyung-Hwan. All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
     modification, are permitted provided that the following conditions
@@ -60,7 +60,7 @@
  * hawk_sio_cbs_t sio; // need to initialize it with callback functions
  * hawk_rio_cbs_t rio; // need to initialize it with callback functions
  *
- * awk = hawk_open(mmgr, 0, prm); // create an interpreter 
+ * hawk = hawk_open(mmgr, 0, prm); // create an interpreter 
  * hawk_parse (hawk, &sio);          // parse a script 
  * rtx = hawk_rtx_open(hawk, 0, &rio); // create a runtime context 
  * retv = hawk_rtx_loop(rtx);     // run a standard AWK loop 
@@ -465,12 +465,12 @@ typedef struct hawk_val_fun_t  hawk_val_fun_t;
 /* ------------------------------------------------------------------------ */
 
 typedef hawk_flt_t (*hawk_math1_t) (
-	hawk_t* awk,
+	hawk_t* hawk,
 	hawk_flt_t x
 );
 
 typedef hawk_flt_t (*hawk_math2_t) (
-	hawk_t* awk,
+	hawk_t* hawk,
 	hawk_flt_t x, 
 	hawk_flt_t y
 );
@@ -488,18 +488,18 @@ struct hawk_mod_spec_t
 };
 
 typedef void* (*hawk_mod_open_t) (
-	hawk_t*                awk,
+	hawk_t*                hawk,
 	const hawk_mod_spec_t* spec
 );
 
 typedef void* (*hawk_mod_getsym_t) (
-	hawk_t*            awk,
+	hawk_t*            hawk,
 	void*              handle,
 	const hawk_ooch_t* name
 );
 
 typedef void (*hawk_mod_close_t) (
-	hawk_t*    awk,
+	hawk_t*    hawk,
 	void*      handle
 );
 
@@ -516,13 +516,13 @@ typedef void (*hawk_log_write_t) (
 
 #if 0
 typedef void* (*hawk_buildrex_t) (
-	hawk_t*        awk,
+	hawk_t*        hawk,
 	const hawk_ooch_t* ptn, 
 	hawk_oow_t        len
 );
 
 typedef int (*hawk_matchrex_t) (
-	hawk_t*         awk,
+	hawk_t*         hawk,
 	void*              code,
 	int                option,
 	const hawk_ooch_t*  str,
@@ -532,12 +532,12 @@ typedef int (*hawk_matchrex_t) (
 );
 
 typedef void (*hawk_freerex_t) (
-	hawk_t* awk,
+	hawk_t* hawk,
 	void*      code
 );
 
 typedef int (*hawk_isemptyrex_t) (
-	hawk_t* awk,
+	hawk_t* hawk,
 	void*      code
 );
 #endif
@@ -626,7 +626,7 @@ struct hawk_sio_arg_t
  * The hawk_sio_impl_t type defines a source IO function
  */
 typedef hawk_ooi_t (*hawk_sio_impl_t) (
-	hawk_t*         awk,
+	hawk_t*         hawk,
 	hawk_sio_cmd_t  cmd, 
 	hawk_sio_arg_t* arg,
 	hawk_ooch_t*    data,
@@ -779,7 +779,7 @@ typedef struct hawk_prm_t hawk_prm_t;
  *
  * \code
  * hawk_ooi_t in (
- *    hawk_t* awk, hawk_sio_cmd_t cmd,
+ *    hawk_t* hawk, hawk_sio_cmd_t cmd,
  *    hawk_sio_arg_t* arg,
  *    hawk_ooch_t* buf, hawk_oow_t size)
  * {
@@ -789,7 +789,7 @@ typedef struct hawk_prm_t hawk_prm_t;
  * }
  *
  * hawk_ooi_t out (
- *    hawk_t* awk, hawk_sio_cmd_t cmd,
+ *    hawk_t* hawk, hawk_sio_cmd_t cmd,
  *    hawk_sio_arg_t* arg,
  *    hawk_ooch_t* data, hawk_oow_t size)
  * {
@@ -957,19 +957,19 @@ struct hawk_fnc_info_t
 
 typedef int (*hawk_mod_load_t) (
 	hawk_mod_t* mod,
-	hawk_t*     awk
+	hawk_t*     hawk
 );
 
 typedef int (*hawk_mod_query_t) (
 	hawk_mod_t*     mod,
-	hawk_t*         awk,
+	hawk_t*         hawk,
 	const hawk_ooch_t*  name,
 	hawk_mod_sym_t* sym
 );
 
 typedef void (*hawk_mod_unload_t) (
 	hawk_mod_t* mod,
-	hawk_t*     awk
+	hawk_t*     hawk
 );
 
 typedef int (*hawk_mod_init_t) (
@@ -1033,21 +1033,21 @@ struct hawk_mod_sym_t
 
 /**
  * The hawk_ecb_close_t type defines the callback function
- * called when an awk object is closed. The hawk_close() function
+ * called when an hawk object is closed. The hawk_close() function
  * calls this callback function after having called hawk_clear()
  * but before actual closing.
  */
 typedef void (*hawk_ecb_close_t) (
-	hawk_t* awk  /**< awk */
+	hawk_t* hawk  /**< hawk */
 );
 
 /**
  * The hawk_ecb_clear_t type defines the callback function
- * called when an awk object is cleared. The hawk_clear() function
+ * called when an hawk object is cleared. The hawk_clear() function
  * calls this calllback function before it performs actual clearing.
  */
 typedef void (*hawk_ecb_clear_t) (
-	hawk_t* awk  /**< awk */
+	hawk_t* hawk  /**< hawk */
 );
 
 /**
@@ -1306,7 +1306,7 @@ typedef struct hawk_errinf_t hawk_errinf_t;
  * The hawk_errstr_t type defines an error string getter. It should return 
  * an error formatting string for an error number requested. A new string
  * should contain the same number of positional parameters (${X}) as in the
- * default error formatting string. You can set a new getter into an awk
+ * default error formatting string. You can set a new getter into an hawk
  * object with the hawk_seterrstr() function to customize an error string.
  */
 typedef const hawk_ooch_t* (*hawk_errstr_t) (
@@ -1481,7 +1481,7 @@ HAWK_EXPORT hawk_t* hawk_open (
  *  The hawk_close() function destroys a hawk_t object.
  */
 HAWK_EXPORT void hawk_close (
-	hawk_t* awk /**< awk */
+	hawk_t* hawk /**< hawk */
 );
 
 #if defined(HAWK_HAVE_INLINE)
@@ -1504,7 +1504,7 @@ static HAWK_INLINE void hawk_setcmgr (hawk_t* hawk, hawk_cmgr_t* cmgr) { ((hawk_
  * structure specified by \a prm.
  */
 HAWK_EXPORT void hawk_getprm (
-	hawk_t*     awk,
+	hawk_t*     hawk,
 	hawk_prm_t* prm
 );
 
@@ -1513,26 +1513,26 @@ HAWK_EXPORT void hawk_getprm (
  * functions. 
  */
 HAWK_EXPORT void hawk_setprm (
-	hawk_t*           awk,
+	hawk_t*           hawk,
 	const hawk_prm_t* prm
 );
 
 /**
- * The hawk_clear() clears the internal state of \a awk. If you want to
+ * The hawk_clear() clears the internal state of \a hawk. If you want to
  * reuse a hawk_t instance that finished being used, you may call 
  * hawk_clear() instead of destroying and creating a new
  * #hawk_t instance using hawk_close() and hawk_open().
 
  */
 HAWK_EXPORT void hawk_clear (
-	hawk_t* awk 
+	hawk_t* hawk 
 );
 
 /**
  * The hawk_geterrstr() gets an error string getter.
  */
 HAWK_EXPORT hawk_errstr_t hawk_geterrstr (
-	hawk_t* awk    /**< awk */
+	hawk_t* hawk    /**< hawk */
 );
 
 /**
@@ -1542,9 +1542,9 @@ HAWK_EXPORT hawk_errstr_t hawk_geterrstr (
  */
 
 #if defined(HAWK_HAVE_INLINE)
-static HAWK_INLINE hawk_errnum_t hawk_geterrnum (hawk_t* awk) { return ((hawk_alt_t*)awk)->_gem.errnum; }
+static HAWK_INLINE hawk_errnum_t hawk_geterrnum (hawk_t* hawk) { return ((hawk_alt_t*)hawk)->_gem.errnum; }
 #else
-#	define hawk_geterrnum(awk) (((hawk_alt_t*)(awk))->_gem.errnum)
+#	define hawk_geterrnum(hawk) (((hawk_alt_t*)(hawk))->_gem.errnum)
 #endif
 
 /**
@@ -1552,7 +1552,7 @@ static HAWK_INLINE hawk_errnum_t hawk_geterrnum (hawk_t* awk) { return ((hawk_al
  * last error has occurred.
  */
 HAWK_EXPORT const hawk_loc_t* hawk_geterrloc (
-	hawk_t* awk /**< awk */
+	hawk_t* hawk /**< hawk */
 );
 
 /**
@@ -1562,7 +1562,7 @@ HAWK_EXPORT const hawk_loc_t* hawk_geterrloc (
  * \return error message
  */
 HAWK_EXPORT const hawk_bch_t* hawk_geterrbmsg (
-	hawk_t* awk /**< awk */
+	hawk_t* hawk /**< hawk */
 );
 
 /**
@@ -1572,7 +1572,7 @@ HAWK_EXPORT const hawk_bch_t* hawk_geterrbmsg (
  * \return error message
  */
 HAWK_EXPORT const hawk_uch_t* hawk_geterrumsg (
-	hawk_t* awk /**< awk */
+	hawk_t* hawk /**< hawk */
 );
 
 
@@ -1584,16 +1584,16 @@ HAWK_EXPORT const hawk_uch_t* hawk_geterrumsg (
 
 
 HAWK_EXPORT const hawk_ooch_t* hawk_backuperrmsg (
-	hawk_t* awk /**< awk */
+	hawk_t* hawk /**< hawk */
 );
 
 
 /**
  * The hawk_geterrinf() function copies error information into memory
- * pointed to by \a errinf from \a awk.
+ * pointed to by \a errinf from \a hawk.
  */
 HAWK_EXPORT void hawk_geterrinf (
-	hawk_t*        awk,   /**< awk */
+	hawk_t*        hawk,   /**< hawk */
 	hawk_errinf_t* errinf /**< error information buffer */
 );
 
@@ -1610,7 +1610,7 @@ static HAWK_INLINE void hawk_seterrnum (hawk_t* hawk, const hawk_loc_t* errloc, 
 #endif
 
 HAWK_EXPORT void hawk_seterrbfmt (
-	hawk_t*             awk,
+	hawk_t*             hawk,
 	const hawk_loc_t*   errloc,
 	hawk_errnum_t       errnum,
 	const hawk_bch_t*   errfmt,
@@ -1618,7 +1618,7 @@ HAWK_EXPORT void hawk_seterrbfmt (
 );
 
 HAWK_EXPORT void hawk_seterrufmt (
-	hawk_t*             awk,
+	hawk_t*             hawk,
 	const hawk_loc_t*   errloc,
 	hawk_errnum_t       errnum,
 	const hawk_uch_t*   errfmt,
@@ -1626,7 +1626,7 @@ HAWK_EXPORT void hawk_seterrufmt (
 );
 
 HAWK_EXPORT void hawk_seterrbvfmt (
-	hawk_t*             awk,
+	hawk_t*             hawk,
 	const hawk_loc_t*   errloc,
 	hawk_errnum_t       errnum,
 	const hawk_bch_t*   errfmt,
@@ -1634,7 +1634,7 @@ HAWK_EXPORT void hawk_seterrbvfmt (
 );
 
 HAWK_EXPORT void hawk_seterruvfmt (
-	hawk_t*             awk,
+	hawk_t*             hawk,
 	const hawk_loc_t*   errloc,
 	hawk_errnum_t       errnum,
 	const hawk_uch_t*   errfmt,
@@ -1655,7 +1655,7 @@ HAWK_EXPORT void hawk_seterruvfmt (
  * it automatically formatted.
  */
 HAWK_EXPORT void hawk_seterrinf (
-	hawk_t*              awk,   /**< awk */
+	hawk_t*              hawk,   /**< hawk */
 	const hawk_errinf_t* errinf /**< error information */
 );
 
@@ -1664,7 +1664,7 @@ HAWK_EXPORT void hawk_seterrinf (
  * The hawk_geterror() function gets error information via parameters.
  */
 HAWK_EXPORT void hawk_geterror (
-	hawk_t*             awk,    /**< awk */
+	hawk_t*             hawk,    /**< hawk */
 	hawk_errnum_t*      errnum, /**< error number */
 	const hawk_ooch_t** errmsg, /**< error message */
 	hawk_loc_t*         errloc  /**< error location */
@@ -1677,7 +1677,7 @@ HAWK_EXPORT void hawk_geterror (
  * \return 0 on success, -1 on failure
  */
 HAWK_EXPORT int hawk_getopt (
-	hawk_t*      awk,
+	hawk_t*      hawk,
 	hawk_opt_t   id,
 	void*        value
 );
@@ -1689,25 +1689,25 @@ HAWK_EXPORT int hawk_getopt (
  * \return 0 on success, -1 on failure
  */
 HAWK_EXPORT int hawk_setopt (
-	hawk_t*       awk,
+	hawk_t*       hawk,
 	hawk_opt_t    id,
 	const void*   value
 );
 
 /**
- * The hawk_popecb() function pops an awk event callback set
+ * The hawk_popecb() function pops an hawk event callback set
  * and returns the pointer to it. If no callback set can be popped,
  * it returns #HAWK_NULL.
  */
 HAWK_EXPORT hawk_ecb_t* hawk_popecb (
-	hawk_t* awk /**< awk */
+	hawk_t* hawk /**< hawk */
 );
 
 /**
  * The hawk_pushecb() function register a runtime callback set.
  */
 HAWK_EXPORT void hawk_pushecb (
-	hawk_t*     awk, /**< awk */
+	hawk_t*     hawk, /**< hawk */
 	hawk_ecb_t* ecb  /**< callback set */
 );
 
@@ -1781,7 +1781,7 @@ HAWK_EXPORT int hawk_findgblwithucstr (
  * The hawk_addfncwithbcstr() function adds an intrinsic function.
  */
 HAWK_EXPORT hawk_fnc_t* hawk_addfncwithbcstr (
-	hawk_t*                 awk,
+	hawk_t*                 hawk,
 	const hawk_bch_t*         name,
 	const hawk_fnc_mspec_t* spec
 );
@@ -1790,7 +1790,7 @@ HAWK_EXPORT hawk_fnc_t* hawk_addfncwithbcstr (
  * The hawk_addfncwithucstr() function adds an intrinsic function.
  */
 HAWK_EXPORT hawk_fnc_t* hawk_addfncwithucstr (
-	hawk_t*                 awk,
+	hawk_t*                 hawk,
 	const hawk_uch_t*         name,
 	const hawk_fnc_wspec_t* spec
 );
@@ -1800,7 +1800,7 @@ HAWK_EXPORT hawk_fnc_t* hawk_addfncwithucstr (
  * \return 0 on success, -1 on failure
  */
 HAWK_EXPORT int hawk_delfncwithbcstr (
-	hawk_t*         awk,  /**< awk */
+	hawk_t*         hawk,  /**< hawk */
 	const hawk_bch_t* name  /**< function name */
 );
 
@@ -1809,7 +1809,7 @@ HAWK_EXPORT int hawk_delfncwithbcstr (
  * \return 0 on success, -1 on failure
  */
 HAWK_EXPORT int hawk_delfncwithucstr (
-	hawk_t*         awk,  /**< awk */
+	hawk_t*         hawk,  /**< hawk */
 	const hawk_uch_t* name  /**< function name */
 );
 
@@ -1825,7 +1825,7 @@ HAWK_EXPORT int hawk_delfncwithucstr (
  * The hawk_clrfnc() function deletes all intrinsic functions
  */
 HAWK_EXPORT void hawk_clrfnc (
-	hawk_t* awk /**< awk */
+	hawk_t* hawk /**< hawk */
 );
 
 /**
@@ -1836,12 +1836,12 @@ HAWK_EXPORT void hawk_clrfnc (
  * below:
  *
  * \code
- * n = sio->in(awk, HAWK_SIO_CMD_OPEN);
+ * n = sio->in(hawk, HAWK_SIO_CMD_OPEN);
  * if (n >= 0)
  * {
  *    while (n > 0)
- *       n = sio->in (awk, HAWK_SIO_CMD_READ, buf, buf_size);
- *    sio->in (awk, HAWK_SIO_CMD_CLOSE);
+ *       n = sio->in (hawk, HAWK_SIO_CMD_READ, buf, buf_size);
+ *    sio->in (hawk, HAWK_SIO_CMD_CLOSE);
  * }
  * \endcode
  *
@@ -1854,12 +1854,12 @@ HAWK_EXPORT void hawk_clrfnc (
  * calling \a sio->out as shown below:
  *
  * \code
- * n = sio->out (awk, HAWK_SIO_CMD_OPEN);
+ * n = sio->out (hawk, HAWK_SIO_CMD_OPEN);
  * if (n >= 0)
  * {
  *    while (n > 0)
- *       n = sio->out (awk, HAWK_SIO_CMD_WRITE, text, text_size);
- *    sio->out (awk, HAWK_SIO_CMD_CLOSE);
+ *       n = sio->out (hawk, HAWK_SIO_CMD_WRITE, text, text_size);
+ *    sio->out (hawk, HAWK_SIO_CMD_CLOSE);
  * }
  * \endcode
  * 
@@ -1870,7 +1870,7 @@ HAWK_EXPORT void hawk_clrfnc (
  * \return 0 on success, -1 on failure.
  */
 HAWK_EXPORT int hawk_parse (
-	hawk_t*         awk, /**< awk */
+	hawk_t*         hawk, /**< hawk */
 	hawk_sio_cbs_t* sio  /**< source script I/O handler */
 );
 
@@ -2063,7 +2063,7 @@ HAWK_EXPORT hawk_ooi_t hawk_logbfmt (
 
 
 /**
- * The hawk_rtx_open() creates a runtime context associated with \a awk.
+ * The hawk_rtx_open() creates a runtime context associated with \a hawk.
  * It also allocates an extra memory block as large as the \a xtn bytes.
  * You can get the pointer to the beginning of the block with 
  * hawk_rtx_getxtn(). The block is destroyed when the runtime context is
@@ -2072,7 +2072,7 @@ HAWK_EXPORT hawk_ooi_t hawk_logbfmt (
  * \return new runtime context on success, #HAWK_NULL on failure
  */
 HAWK_EXPORT hawk_rtx_t* hawk_rtx_open (
-	hawk_t*         awk, /**< awk */
+	hawk_t*         hawk, /**< hawk */
 	hawk_oow_t      xtn, /**< size of extension in bytes */
 	hawk_rio_cbs_t* rio  /**< runtime IO handlers */
 );
@@ -2109,7 +2109,7 @@ static HAWK_INLINE void hawk_rtx_setcmgr (hawk_rtx_t* rtx, hawk_cmgr_t* cmgr) { 
  *
  * The example shows typical usage of the function.
  * \code
- * rtx = hawk_rtx_open(awk, 0, rio);
+ * rtx = hawk_rtx_open(hawk, 0, rio);
  * if (rtx)
  * {
  *    retv = hawk_rtx_loop (rtx);
@@ -2170,7 +2170,7 @@ HAWK_EXPORT hawk_val_t* hawk_rtx_callfun (
  *
  * The example shows typical usage of the function.
  * \code
- * rtx = hawk_rtx_open(awk, 0, rio);
+ * rtx = hawk_rtx_open(hawk, 0, rio);
  * if (rtx)
  * {
  *     v = hawk_rtx_callwithucstr (rtx, HAWK_UT("init"), HAWK_NULL, 0);
@@ -2198,7 +2198,7 @@ HAWK_EXPORT hawk_val_t* hawk_rtx_callwithucstr (
  *
  * The example shows typical usage of the function.
  * \code
- * rtx = hawk_rtx_open(awk, 0, rio);
+ * rtx = hawk_rtx_open(hawk, 0, rio);
  * if (rtx)
  * {
  *     v = hawk_rtx_callwithbcstr (rtx, HAWK_BT("init"), HAWK_NULL, 0);
@@ -2281,10 +2281,10 @@ HAWK_EXPORT hawk_val_t* hawk_rtx_execwithbcstrarr (
 
 /**
  * The hawk_haltall() function aborts all active runtime contexts
- * associated with \a awk.
+ * associated with \a hawk.
  */
 HAWK_EXPORT void hawk_haltall (
-	hawk_t* awk /**< awk */
+	hawk_t* hawk /**< hawk */
 );
 
 /**
@@ -2474,7 +2474,7 @@ HAWK_EXPORT hawk_htb_t* hawk_rtx_getnvmap (
 #if defined(HAWK_HAVE_INLINE)
 static HAWK_INLINE hawk_errnum_t hawk_rtx_geterrnum (hawk_rtx_t* rtx) { return ((hawk_rtx_alt_t*)rtx)->_gem.errnum; }
 #else
-#	define hawk_rtx_geterrnum(awk) (((hawk_rtx_alt_t*)(rtx))->_gem.errnum)
+#	define hawk_rtx_geterrnum(hawk) (((hawk_rtx_alt_t*)(rtx))->_gem.errnum)
 #endif
 
 /**
@@ -3442,10 +3442,10 @@ static HAWK_INLINE void hawk_rtx_freerex (hawk_rtx_t* rtx, hawk_tre_t* code, haw
 /* ----------------------------------------------------------------------- */
 
 /**
- * The hawk_get_awk_nil_val() function returns the pointer to the predefined
+ * The hawk_get_nil_val() function returns the pointer to the predefined
  * nil value. you can call this without creating a runtime context. 
  */
-HAWK_EXPORT hawk_val_t* hawk_get_awk_nil_val (
+HAWK_EXPORT hawk_val_t* hawk_get_nil_val (
 	void
 );
 

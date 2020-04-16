@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
-    Copyright (c) 2006-2019 Chung, Hyung-Hwan. All rights reserved.
+    Copyright (c) 2006-2020 Chung, Hyung-Hwan. All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
     modification, are permitted provided that the following conditions
@@ -120,7 +120,7 @@ static int fnc_math_2 (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, hawk_math2_t 
 }
 
 
-static hawk_flt_t math_ceil (hawk_t* awk, hawk_flt_t x)
+static hawk_flt_t math_ceil (hawk_t* hawk, hawk_flt_t x)
 {
 #if defined(HAWK_USE_AWK_FLTMAX) && defined(HAVE_CEILQ)
 	return ceilq (x);
@@ -135,7 +135,7 @@ static hawk_flt_t math_ceil (hawk_t* awk, hawk_flt_t x)
 #endif
 }
 
-static hawk_flt_t math_floor (hawk_t* awk, hawk_flt_t x)
+static hawk_flt_t math_floor (hawk_t* hawk, hawk_flt_t x)
 {
 #if defined(HAWK_USE_AWK_FLTMAX) && defined(HAVE_FLOORQ)
 	return floorq (x);
@@ -150,7 +150,7 @@ static hawk_flt_t math_floor (hawk_t* awk, hawk_flt_t x)
 #endif
 }
 
-static hawk_flt_t math_round (hawk_t* awk, hawk_flt_t x)
+static hawk_flt_t math_round (hawk_t* hawk, hawk_flt_t x)
 {
 #if defined(HAWK_USE_AWK_FLTMAX) && defined(HAVE_ROUNDQ)
 	return roundq (x);
@@ -164,7 +164,7 @@ static hawk_flt_t math_round (hawk_t* awk, hawk_flt_t x)
 
 	hawk_flt_t f, d;
 
-	f = math_floor (awk, x);
+	f = math_floor (hawk, x);
 	d = x - f; /* get fraction */
 
 	if (d > (hawk_flt_t)0.5)
@@ -186,7 +186,7 @@ static hawk_flt_t math_round (hawk_t* awk, hawk_flt_t x)
 		}
 	#else
 		/* round half to even - C99's rint() does this, i guess. */
-		d = f - (hawk_flt_t)2.0 * math_floor(awk, f * (hawk_flt_t)0.5);
+		d = f - (hawk_flt_t)2.0 * math_floor(hawk, f * (hawk_flt_t)0.5);
 		if (d == (hawk_flt_t)1.0) f =  f + (hawk_flt_t)1.0;
 	#endif
 	}
@@ -203,7 +203,7 @@ static hawk_flt_t math_round (hawk_t* awk, hawk_flt_t x)
 #endif
 }
 
-static hawk_flt_t math_sinh (hawk_t* awk, hawk_flt_t x)
+static hawk_flt_t math_sinh (hawk_t* hawk, hawk_flt_t x)
 {
 #if defined(HAWK_USE_AWK_FLTMAX) && defined(HAVE_SINHQ)
 	return sinhq (x);
@@ -218,7 +218,7 @@ static hawk_flt_t math_sinh (hawk_t* awk, hawk_flt_t x)
 #endif
 }
 
-static hawk_flt_t math_cosh (hawk_t* awk, hawk_flt_t x)
+static hawk_flt_t math_cosh (hawk_t* hawk, hawk_flt_t x)
 {
 #if defined(HAWK_USE_AWK_FLTMAX) && defined(HAVE_COSHQ)
 	return coshq (x);
@@ -233,7 +233,7 @@ static hawk_flt_t math_cosh (hawk_t* awk, hawk_flt_t x)
 #endif
 }
 
-static hawk_flt_t math_tanh (hawk_t* awk, hawk_flt_t x)
+static hawk_flt_t math_tanh (hawk_t* hawk, hawk_flt_t x)
 {
 #if defined(HAWK_USE_AWK_FLTMAX) && defined(HAVE_TANHQ)
 	return tanhq (x);
@@ -248,7 +248,7 @@ static hawk_flt_t math_tanh (hawk_t* awk, hawk_flt_t x)
 #endif
 }
 
-static hawk_flt_t math_asin (hawk_t* awk, hawk_flt_t x)
+static hawk_flt_t math_asin (hawk_t* hawk, hawk_flt_t x)
 {
 #if defined(HAWK_USE_AWK_FLTMAX) && defined(HAVE_ASINQ)
 	return asinq (x);
@@ -263,7 +263,7 @@ static hawk_flt_t math_asin (hawk_t* awk, hawk_flt_t x)
 #endif
 }
 
-static hawk_flt_t math_acos (hawk_t* awk, hawk_flt_t x)
+static hawk_flt_t math_acos (hawk_t* hawk, hawk_flt_t x)
 {
 #if defined(HAWK_USE_AWK_FLTMAX) && defined(HAVE_ACOSQ)
 	return acosq (x);
@@ -281,7 +281,7 @@ static hawk_flt_t math_acos (hawk_t* awk, hawk_flt_t x)
 /* ----------------------------------------------------------------------- */
 
 
-static hawk_flt_t math_sin (hawk_t* awk, hawk_flt_t x)
+static hawk_flt_t math_sin (hawk_t* hawk, hawk_flt_t x)
 {
 #if defined(HAWK_USE_AWK_FLTMAX) && defined(HAVE_SINQ)
 	return sinq (x);
@@ -296,7 +296,7 @@ static hawk_flt_t math_sin (hawk_t* awk, hawk_flt_t x)
 #endif
 }
 
-static hawk_flt_t math_cos (hawk_t* awk, hawk_flt_t x)
+static hawk_flt_t math_cos (hawk_t* hawk, hawk_flt_t x)
 {
 #if defined(HAWK_USE_AWK_FLTMAX) && defined(HAVE_COSQ)
 	return cosq (x);
@@ -311,7 +311,7 @@ static hawk_flt_t math_cos (hawk_t* awk, hawk_flt_t x)
 #endif
 }
 
-static hawk_flt_t math_tan (hawk_t* awk, hawk_flt_t x)
+static hawk_flt_t math_tan (hawk_t* hawk, hawk_flt_t x)
 {
 #if defined(HAWK_USE_AWK_FLTMAX) && defined(HAVE_TANQ)
 	return tanq (x);
@@ -326,7 +326,7 @@ static hawk_flt_t math_tan (hawk_t* awk, hawk_flt_t x)
 #endif
 }
 
-static hawk_flt_t math_atan (hawk_t* awk, hawk_flt_t x)
+static hawk_flt_t math_atan (hawk_t* hawk, hawk_flt_t x)
 {
 #if defined(HAWK_USE_AWK_FLTMAX) && defined(HAVE_ATANQ)
 	return atanq (x);
@@ -341,7 +341,7 @@ static hawk_flt_t math_atan (hawk_t* awk, hawk_flt_t x)
 #endif
 }
 
-static hawk_flt_t math_atan2 (hawk_t* awk, hawk_flt_t x, hawk_flt_t y)
+static hawk_flt_t math_atan2 (hawk_t* hawk, hawk_flt_t x, hawk_flt_t y)
 {
 #if defined(HAWK_USE_AWK_FLTMAX) && defined(HAVE_ATAN2Q)
 	return atan2q (x, y);
@@ -356,7 +356,7 @@ static hawk_flt_t math_atan2 (hawk_t* awk, hawk_flt_t x, hawk_flt_t y)
 #endif
 }
 
-static HAWK_INLINE hawk_flt_t math_log (hawk_t* awk, hawk_flt_t x)
+static HAWK_INLINE hawk_flt_t math_log (hawk_t* hawk, hawk_flt_t x)
 {
 #if defined(HAWK_USE_AWK_FLTMAX) && defined(HAVE_LOGQ)
 	return logq (x);
@@ -371,7 +371,7 @@ static HAWK_INLINE hawk_flt_t math_log (hawk_t* awk, hawk_flt_t x)
 #endif
 }
 
-static hawk_flt_t math_log2 (hawk_t* awk, hawk_flt_t x)
+static hawk_flt_t math_log2 (hawk_t* hawk, hawk_flt_t x)
 {
 #if defined(HAWK_USE_AWK_FLTMAX) && defined(HAVE_LOG2Q)
 	return log2q (x);
@@ -382,11 +382,11 @@ static hawk_flt_t math_log2 (hawk_t* awk, hawk_flt_t x)
 #elif defined(HAVE_LOG2F)
 	return log2f (x);
 #else
-	return math_log(awk, x) / math_log(awk, 2.0);
+	return math_log(hawk, x) / math_log(hawk, 2.0);
 #endif
 }
 
-static hawk_flt_t math_log10 (hawk_t* awk, hawk_flt_t x)
+static hawk_flt_t math_log10 (hawk_t* hawk, hawk_flt_t x)
 {
 #if defined(HAWK_USE_AWK_FLTMAX) && defined(HAVE_LOG10Q)
 	return log10q (x);
@@ -401,7 +401,7 @@ static hawk_flt_t math_log10 (hawk_t* awk, hawk_flt_t x)
 #endif
 }
 
-static hawk_flt_t math_exp (hawk_t* awk, hawk_flt_t x)
+static hawk_flt_t math_exp (hawk_t* hawk, hawk_flt_t x)
 {
 #if defined(HAWK_USE_AWK_FLTMAX) && defined(HAVE_EXPQ)
 	return expq (x);
@@ -416,7 +416,7 @@ static hawk_flt_t math_exp (hawk_t* awk, hawk_flt_t x)
 #endif
 }
 
-static hawk_flt_t math_sqrt (hawk_t* awk, hawk_flt_t x)
+static hawk_flt_t math_sqrt (hawk_t* hawk, hawk_flt_t x)
 {
 #if defined(HAWK_USE_AWK_FLTMAX) && defined(HAVE_SQRTQ)
 	return sqrtq (x);
@@ -637,7 +637,7 @@ static fnctab_t fnctab[] =
 	{ HAWK_T("tanh"),    { { 1, 1, HAWK_NULL },     fnc_tanh,       0 } }
 };
 
-static int query (hawk_mod_t* mod, hawk_t* awk, const hawk_ooch_t* name, hawk_mod_sym_t* sym)
+static int query (hawk_mod_t* mod, hawk_t* hawk, const hawk_ooch_t* name, hawk_mod_sym_t* sym)
 {
 	int left, right, mid, n;
 
@@ -676,7 +676,7 @@ static int query (hawk_mod_t* mod, hawk_t* awk, const hawk_ooch_t* name, hawk_mo
      }
 #endif
 
-	hawk_seterrfmt (awk, HAWK_NULL, HAWK_ENOENT, HAWK_T("'%js' not found"), name);
+	hawk_seterrfmt (hawk, HAWK_NULL, HAWK_ENOENT, HAWK_T("'%js' not found"), name);
 	return -1;
 }
 
@@ -692,20 +692,20 @@ static void fini (hawk_mod_t* mod, hawk_rtx_t* rtx)
 	/* TODO: anything */
 }
 
-static void unload (hawk_mod_t* mod, hawk_t* awk)
+static void unload (hawk_mod_t* mod, hawk_t* hawk)
 {
 	modctx_t* modctx;
 
 	modctx = (modctx_t*)mod->ctx;
-	hawk_freemem (awk, modctx);
+	hawk_freemem (hawk, modctx);
 }
 
-int hawk_mod_math (hawk_mod_t* mod, hawk_t* awk)
+int hawk_mod_math (hawk_mod_t* mod, hawk_t* hawk)
 {
 	modctx_t* modctx;
 	hawk_ntime_t tv;
 
-	modctx = hawk_allocmem(awk, HAWK_SIZEOF(*modctx));
+	modctx = hawk_allocmem(hawk, HAWK_SIZEOF(*modctx));
 	if (modctx == HAWK_NULL) return -1;
 
 	HAWK_MEMSET (modctx, 0, HAWK_SIZEOF(*modctx));

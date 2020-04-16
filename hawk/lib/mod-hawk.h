@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
-    Copyright (c) 2006-2019 Chung, Hyung-Hwan. All rights reserved.
+    Copyright (c) 2006-2020 Chung, Hyung-Hwan. All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
     modification, are permitted provided that the following conditions
@@ -33,7 +33,7 @@
 extern "C" {
 #endif
 
-HAWK_EXPORT int hawk_mod_hawk (hawk_mod_t* mod, hawk_t* awk);
+HAWK_EXPORT int hawk_mod_hawk (hawk_mod_t* mod, hawk_t* hawk);
 
 #if defined(__cplusplus)
 }

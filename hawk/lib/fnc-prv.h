@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
-    Copyright (c) 2006-2019 Chung, Hyung-Hwan. All rights reserved.
+    Copyright (c) 2006-2020 Chung, Hyung-Hwan. All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
     modification, are permitted provided that the following conditions
@@ -48,8 +48,8 @@ struct hawk_fnc_t
 extern "C" {
 #endif
 
-hawk_fnc_t* hawk_findfncwithbcs (hawk_t* awk, const hawk_bcs_t* name);
-hawk_fnc_t* hawk_findfncwithucs (hawk_t* awk, const hawk_ucs_t* name);
+hawk_fnc_t* hawk_findfncwithbcs (hawk_t* hawk, const hawk_bcs_t* name);
+hawk_fnc_t* hawk_findfncwithucs (hawk_t* hawk, const hawk_ucs_t* name);
 
 #if defined(HAWK_OOCH_IS_BCH)
 #	define hawk_findfncwithoocs hawk_findfncwithbcs

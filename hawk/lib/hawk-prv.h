@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
-    Copyright (c) 2006-2019 Chung, Hyung-Hwan. All rights reserved.
+    Copyright (c) 2006-2020 Chung, Hyung-Hwan. All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
     modification, are permitted provided that the following conditions
@@ -174,7 +174,7 @@ struct hawk_tree_t
 	hawk_oow_t ngbls; /* total number of globals */
 	hawk_oow_t ngbls_base; /* number of intrinsic globals */
 	hawk_oocs_t cur_fun;
-	hawk_htb_t* funs; /* awk function map */
+	hawk_htb_t* funs; /* hawk function map */
 
 	hawk_nde_t* begin;
 	hawk_nde_t* begin_tail;
@@ -576,8 +576,8 @@ static HAWK_INLINE void HAWK_RTX_STACK_POP (hawk_rtx_t* rtx)
 extern "C" {
 #endif
 
-int hawk_init (hawk_t* awk, hawk_mmgr_t* mmgr, hawk_cmgr_t* cmgr, const hawk_prm_t* prm);
-void hawk_fini (hawk_t* awk);
+int hawk_init (hawk_t* hawk, hawk_mmgr_t* mmgr, hawk_cmgr_t* cmgr, const hawk_prm_t* prm);
+void hawk_fini (hawk_t* hawk);
 
 #if defined(__cplusplus)
 }

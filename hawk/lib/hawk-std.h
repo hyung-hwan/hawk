@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
-    Copyright (c) 2006-2019 Chung, Hyung-Hwan. All rights reserved.
+    Copyright (c) 2006-2020 Chung, Hyung-Hwan. All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
     modification, are permitted provided that the following conditions
@@ -31,8 +31,8 @@
 
 /** \file
  * This file defines functions and data types that help you create
- * an awk interpreter with less effort. It is designed to be as close
- * to conventional awk implementations as possible.
+ * an hawk interpreter with less effort. It is designed to be as close
+ * to conventional hawk implementations as possible.
  * 
  * The source script handler does not evaluate a file name of the "var=val"
  * form as an assignment expression. Instead, it just treats it as a
@@ -105,7 +105,7 @@ struct hawk_parsestd_t
 		 * pointer and the length of a deparsed source string. The output
 		 * string is dynamically allocated. You don't need to set these
 		 * fields before calling hawk_parsestd() because they are set
-		 * by hawk_parsestd() and valid while the relevant awk object
+		 * by hawk_parsestd() and valid while the relevant hawk object
 		 * is alive. You must free the memory chunk pointed to by the
 		 * ptr field with hawk_freemem() once you're done with it to 
 		 * avoid memory leaks. 
@@ -123,7 +123,7 @@ extern "C" {
 #endif
 
 /**
- * The hawk_openstd() function creates an awk object using the default 
+ * The hawk_openstd() function creates an hawk object using the default 
  * memory manager and primitive functions. Besides, it adds a set of
  * standard intrinsic functions like atan, system, etc. Use this function
  * over hawk_open() if you don't need finer-grained customization.
@@ -134,7 +134,7 @@ HAWK_EXPORT hawk_t* hawk_openstd (
 );
 
 /**
- * The hawk_openstdwithmmgr() function creates an awk object with a 
+ * The hawk_openstdwithmmgr() function creates an hawk object with a 
  * user-defined memory manager. It is equivalent to hawk_openstd(), 
  * except that you can specify your own memory manager.
  */
@@ -159,7 +159,7 @@ HAWK_EXPORT hawk_t* hawk_openstdwithmmgr (
  * in[0].u.str.len = hawk_count_oocstr(in.u.str.ptr);
  * in[1].type = HAWK_PARSESTD_NULL;
  * out.type = HAWK_PARSESTD_OOCS;
- * n = hawk_parsestd (awk, in, &out);
+ * n = hawk_parsestd (hawk, in, &out);
  * if (n >= 0) 
  * {
  *   hawk_printf (HAWK_T("%s\n"), out.u.str.ptr);
@@ -168,7 +168,7 @@ HAWK_EXPORT hawk_t* hawk_openstdwithmmgr (
  * \endcode
  */
 HAWK_EXPORT int hawk_parsestd (
-	hawk_t*          awk,
+	hawk_t*          hawk,
 	hawk_parsestd_t  in[], 
 	hawk_parsestd_t* out
 );
@@ -180,7 +180,7 @@ HAWK_EXPORT int hawk_parsestd (
  * streams created with \a icf and \a ocf if it is not #HAWK_NULL.
  */
 HAWK_EXPORT hawk_rtx_t* hawk_rtx_openstdwithbcstr (
-	hawk_t*           awk,
+	hawk_t*           hawk,
 	hawk_oow_t        xtnsize,
 	const hawk_bch_t* id,
 	hawk_bch_t*       icf[],
@@ -195,7 +195,7 @@ HAWK_EXPORT hawk_rtx_t* hawk_rtx_openstdwithbcstr (
  * streams created with \a icf and \a ocf if it is not #HAWK_NULL.
  */
 HAWK_EXPORT hawk_rtx_t* hawk_rtx_openstdwithucstr (
-	hawk_t*           awk,
+	hawk_t*           hawk,
 	hawk_oow_t        xtnsize,
 	const hawk_uch_t* id,
 	hawk_uch_t*       icf[],

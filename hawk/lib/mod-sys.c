@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
-    Copyright (c) 2006-2019 Chung, Hyung-Hwan. All rights reserved.
+    Copyright (c) 2006-2020 Chung, Hyung-Hwan. All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
     modification, are permitted provided that the following conditions
@@ -4728,7 +4728,7 @@ static inttab_t inttab[] =
 	{ HAWK_T("WNOHANG"),       { WNOHANG } }
 };
 
-static int query (hawk_mod_t* mod, hawk_t* awk, const hawk_ooch_t* name, hawk_mod_sym_t* sym)
+static int query (hawk_mod_t* mod, hawk_t* hawk, const hawk_ooch_t* name, hawk_mod_sym_t* sym)
 {
 	int left, right, mid, n;
 
@@ -4765,7 +4765,7 @@ static int query (hawk_mod_t* mod, hawk_t* awk, const hawk_ooch_t* name, hawk_mo
 		}
 	}
 
-	hawk_seterrfmt (awk, HAWK_NULL, HAWK_ENOENT, HAWK_T("'%js' not found"), name);
+	hawk_seterrfmt (hawk, HAWK_NULL, HAWK_ENOENT, HAWK_T("'%js' not found"), name);
 	return -1;
 }
 
@@ -4859,17 +4859,17 @@ static void fini (hawk_mod_t* mod, hawk_rtx_t* rtx)
 	}
 }
 
-static void unload (hawk_mod_t* mod, hawk_t* awk)
+static void unload (hawk_mod_t* mod, hawk_t* hawk)
 {
 	mod_ctx_t* mctx = (mod_ctx_t*)mod->ctx;
 
 	HAWK_ASSERT (HAWK_RBT_SIZE(mctx->rtxtab) == 0);
 	hawk_rbt_close (mctx->rtxtab);
 
-	hawk_freemem (awk, mctx);
+	hawk_freemem (hawk, mctx);
 }
 
-int hawk_mod_sys (hawk_mod_t* mod, hawk_t* awk)
+int hawk_mod_sys (hawk_mod_t* mod, hawk_t* hawk)
 {
 	hawk_rbt_t* rbt;
 
@@ -4879,13 +4879,13 @@ int hawk_mod_sys (hawk_mod_t* mod, hawk_t* awk)
 	mod->init = init;
 	mod->fini = fini;
 
-	mod->ctx = hawk_callocmem(awk, HAWK_SIZEOF(mod_ctx_t));
+	mod->ctx = hawk_callocmem(hawk, HAWK_SIZEOF(mod_ctx_t));
 	if (!mod->ctx) return -1;
 
-	rbt = hawk_rbt_open(hawk_getgem(awk), 0, 1, 1);
+	rbt = hawk_rbt_open(hawk_getgem(hawk), 0, 1, 1);
 	if (rbt == HAWK_NULL) 
 	{
-		hawk_freemem (awk, mod->ctx);
+		hawk_freemem (hawk, mod->ctx);
 		return -1;
 	}
 	hawk_rbt_setstyle (rbt, hawk_get_rbt_style(HAWK_RBT_STYLE_INLINE_COPIERS));

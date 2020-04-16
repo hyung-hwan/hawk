@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
-    Copyright (c) 2006-2019 Chung, Hyung-Hwan. All rights reserved.
+    Copyright (c) 2006-2020 Chung, Hyung-Hwan. All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
     modification, are permitted provided that the following conditions
@@ -28,13 +28,13 @@
 
 #define CHUNKSIZE HAWK_VAL_CHUNK_SIZE
 
-static hawk_val_nil_t awk_nil = { HAWK_VAL_NIL, 0, 1, 0, 0 };
-static hawk_val_str_t awk_zls = { HAWK_VAL_STR, 0, 1, 0, 0, { HAWK_T(""), 0 } };
-static hawk_val_mbs_t awk_zlm = { HAWK_VAL_MBS, 0, 1, 0, 0, { HAWK_BT(""), 0 } };
+static hawk_val_nil_t hawk_nil = { HAWK_VAL_NIL, 0, 1, 0, 0 };
+static hawk_val_str_t hawk_zls = { HAWK_VAL_STR, 0, 1, 0, 0, { HAWK_T(""), 0 } };
+static hawk_val_mbs_t hawk_zlm = { HAWK_VAL_MBS, 0, 1, 0, 0, { HAWK_BT(""), 0 } };
 
-hawk_val_t* hawk_val_nil = (hawk_val_t*)&awk_nil;
-hawk_val_t* hawk_val_zls = (hawk_val_t*)&awk_zls; 
-hawk_val_t* hawk_val_zlm = (hawk_val_t*)&awk_zlm;
+hawk_val_t* hawk_val_nil = (hawk_val_t*)&hawk_nil;
+hawk_val_t* hawk_val_zls = (hawk_val_t*)&hawk_zls; 
+hawk_val_t* hawk_val_zlm = (hawk_val_t*)&hawk_zlm;
 
 
 /* --------------------------------------------------------------------- */
@@ -412,19 +412,19 @@ static HAWK_INLINE hawk_val_t* gc_calloc_val (hawk_rtx_t* rtx, hawk_oow_t size)
 
 /* --------------------------------------------------------------------- */
 
-hawk_val_t* hawk_get_awk_nil_val (void)
+hawk_val_t* hawk_get_nil_val (void)
 {
-	return (hawk_val_t*)&awk_nil;
+	return (hawk_val_t*)&hawk_nil;
 }
 
 int hawk_rtx_isnilval (hawk_rtx_t* rtx, hawk_val_t* val)
 {
-	return val == (hawk_val_t*)&awk_nil || (HAWK_VTR_IS_POINTER(val) && val->v_type == HAWK_VAL_NIL);
+	return val == (hawk_val_t*)&hawk_nil || (HAWK_VTR_IS_POINTER(val) && val->v_type == HAWK_VAL_NIL);
 }
 
 hawk_val_t* hawk_rtx_makenilval (hawk_rtx_t* rtx)
 {
-	return (hawk_val_t*)&awk_nil;
+	return (hawk_val_t*)&hawk_nil;
 }
 
 hawk_val_t* hawk_rtx_makeintval (hawk_rtx_t* rtx, hawk_int_t v)
@@ -1100,7 +1100,7 @@ hawk_val_t* hawk_rtx_getmapvalfld (hawk_rtx_t* rtx, hawk_val_t* map, const hawk_
 	{
 		/* the given key is not found in the map.
 		 * we return NULL here as this function is called by 
-		 * a user unlike the awk statement accessing the map key.
+		 * a user unlike the hawk statement accessing the map key.
 		 * so you can easily determine if the key is found by
 		 * checking the error number.
 		 */
@@ -1174,7 +1174,7 @@ const hawk_ooch_t* hawk_rtx_getvaltypename(hawk_rtx_t* rtx, hawk_val_t* val)
 {
 	static const hawk_ooch_t* __val_type_name[] =
 	{
-		/* synchronize this table with enum hawk_val_type_t in awk.h */
+		/* synchronize this table with enum hawk_val_type_t in hawk.h */
 		HAWK_T("nil"),
 		HAWK_T("int"),
 		HAWK_T("flt"),

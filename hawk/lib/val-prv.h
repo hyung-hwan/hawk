@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
-    Copyright (c) 2006-2019 Chung, Hyung-Hwan. All rights reserved.
+    Copyright (c) 2006-2020 Chung, Hyung-Hwan. All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
     modification, are permitted provided that the following conditions
@@ -111,7 +111,7 @@ struct hawk_val_rchunk_t
 
 /* sizeof(hawk_intptr_t) may not be the same as sizeof(hawk_int_t).
  * so step-by-step type conversions are needed.
- * e.g) pointer to uintptr_t, uintptr_t to intptr_t, intptr_t to awk_int_t */
+ * e.g) pointer to uintptr_t, uintptr_t to intptr_t, intptr_t to hawk_int_t */
 #define HAWK_VTR_TO_QUICKINT_POSITIVE(p) \
 	((hawk_intptr_t)((hawk_uintptr_t)(p) >> HAWK_VTR_NUM_TYPE_BITS))
 #define HAWK_VTR_TO_QUICKINT_NEGATIVE(p) \

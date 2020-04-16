@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
-    Copyright (c) 2006-2019 Chung, Hyung-Hwan. All rights reserved.
+    Copyright (c) 2006-2020 Chung, Hyung-Hwan. All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
     modification, are permitted provided that the following conditions
@@ -1160,8 +1160,8 @@ public:
 		friend class RIOBase;
 		friend class Console;
 
-		Run (Hawk* awk);
-		Run (Hawk* awk, hawk_rtx_t* run);
+		Run (Hawk* hawk);
+		Run (Hawk* hawk, hawk_rtx_t* run);
 		~Run ();
 
 	public:
@@ -1301,7 +1301,7 @@ public:
 	///
 	/// The uponClosing() function is called back after Hawk::close() 
 	/// has cleared most of the internal data but before destroying 
-	/// the underlying awk object. This maps to the close callback
+	/// the underlying hawk object. This maps to the close callback
 	/// of #hawk_ecb_t.
 	/// 
 	virtual void uponClosing ();
@@ -1605,7 +1605,7 @@ public:
 	/// handler object. An external pipe handler can be implemented
 	/// outside this class without overriding various pipe functions.
 	/// Note that an external pipe handler must outlive an outer
-	/// awk object.
+	/// hawk object.
 	/// 
 	void setPipeHandler (Pipe::Handler* handler)
 	{
@@ -1627,7 +1627,7 @@ public:
 	/// handler object. An external file handler can be implemented
 	/// outside this class without overriding various file functions.
 	/// Note that an external file handler must outlive an outer
-	/// awk object.
+	/// hawk object.
 	/// 
 	void setFileHandler (File::Handler* handler)
 	{
@@ -1649,7 +1649,7 @@ public:
 	/// handler object. An external file handler can be implemented
 	/// outside this class without overriding various console functions.
 	/// Note that an external console handler must outlive an outer
-	/// awk object.
+	/// hawk object.
 	/// 
 	void setConsoleHandler (Console::Handler* handler)
 	{
@@ -1721,10 +1721,10 @@ protected:
 
 	// static glue members for various handlers
 	static hawk_ooi_t readSource (
-		hawk_t* awk, hawk_sio_cmd_t cmd, hawk_sio_arg_t* arg,
+		hawk_t* hawk, hawk_sio_cmd_t cmd, hawk_sio_arg_t* arg,
 		hawk_ooch_t* data, hawk_oow_t count);
 	static hawk_ooi_t writeSource (
-		hawk_t* awk, hawk_sio_cmd_t cmd, hawk_sio_arg_t* arg,
+		hawk_t* hawk, hawk_sio_cmd_t cmd, hawk_sio_arg_t* arg,
 		hawk_ooch_t* data, hawk_oow_t count);
 
 	static hawk_ooi_t pipeHandler (
@@ -1740,12 +1740,12 @@ protected:
 	static int functionHandler (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi);
 
 
-	static hawk_flt_t pow (hawk_t* awk, hawk_flt_t x, hawk_flt_t y);
-	static hawk_flt_t mod (hawk_t* awk, hawk_flt_t x, hawk_flt_t y);
+	static hawk_flt_t pow (hawk_t* hawk, hawk_flt_t x, hawk_flt_t y);
+	static hawk_flt_t mod (hawk_t* hawk, hawk_flt_t x, hawk_flt_t y);
 
-	static void* modopen (hawk_t* awk, const hawk_mod_spec_t* spec);
-	static void  modclose (hawk_t* awk, void* handle);
-	static void* modgetsym (hawk_t* awk, void* handle, const hawk_ooch_t* name);
+	static void* modopen (hawk_t* hawk, const hawk_mod_spec_t* spec);
+	static void  modclose (hawk_t* hawk, void* handle);
+	static void* modgetsym (hawk_t* hawk, void* handle, const hawk_ooch_t* name);
 
 public:
 	// use these with care
@@ -1771,7 +1771,7 @@ protected:
 	class FunctionMap: public HashTable<Cstr,FunctionHandler>
 	{
 	public:
-		FunctionMap (Hawk* awk): hawk(hawk) {}
+		FunctionMap (Hawk* hawk): hawk(hawk) {}
 
 	protected:
 		Hawk* hawk;
@@ -1791,10 +1791,10 @@ protected:
 	{
 		xstrs_t (): ptr (HAWK_NULL), len (0), capa (0) {}
 
-		int add (hawk_t* awk, const hawk_uch_t* arg, hawk_oow_t len);
-		int add (hawk_t* awk, const hawk_bch_t* arg, hawk_oow_t len);
+		int add (hawk_t* hawk, const hawk_uch_t* arg, hawk_oow_t len);
+		int add (hawk_t* hawk, const hawk_bch_t* arg, hawk_oow_t len);
 
-		void clear (hawk_t* awk);
+		void clear (hawk_t* hawk);
 
 		hawk_oocs_t* ptr;
 		hawk_oow_t   len;
