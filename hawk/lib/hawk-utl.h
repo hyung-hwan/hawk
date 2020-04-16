@@ -479,6 +479,18 @@ HAWK_EXPORT hawk_oow_t hawk_copy_bchars_to_bcstr_unlimited (
 	hawk_oow_t        len
 );
 
+HAWK_EXPORT hawk_oow_t hawk_copy_ucstr_to_uchars (
+	hawk_uch_t*        dst,
+	hawk_uch_t         dlen,
+	const hawk_uch_t*  src
+);
+
+HAWK_EXPORT hawk_oow_t hawk_copy_bcstr_to_bchars (
+	hawk_bch_t*        dst,
+	hawk_bch_t         dlen,
+	const hawk_bch_t*  src
+);
+
 HAWK_EXPORT hawk_oow_t hawk_copy_ucstr (
 	hawk_uch_t*       dst,
 	hawk_oow_t        len,
@@ -710,6 +722,7 @@ HAWK_EXPORT void hawk_unescape_bcstr (
 
 #	define hawk_copy_oochars_to_oocstr hawk_copy_uchars_to_ucstr
 #	define hawk_copy_oochars_to_oocstr_unlimited hawk_copy_uchars_to_ucstr_unlimited
+#	define hawk_copy_oocstr_to_oochars hawk_copy_ucstr_to_uchars
 #	define hawk_copy_oocstr hawk_copy_ucstr
 #	define hawk_copy_oocstr_unlimited hawk_copy_ucstr_unlimited
 
@@ -749,6 +762,7 @@ HAWK_EXPORT void hawk_unescape_bcstr (
 
 #	define hawk_copy_oochars_to_oocstr hawk_copy_bchars_to_bcstr
 #	define hawk_copy_oochars_to_oocstr_unlimited hawk_copy_bchars_to_bcstr_unlimited
+#	define hawk_copy_oocstr_to_oochars hawk_copy_bcstr_to_bchars
 #	define hawk_copy_oocstr hawk_copy_bcstr
 #	define hawk_copy_oocstr_unlimited hawk_copy_bcstr_unlimited
 
