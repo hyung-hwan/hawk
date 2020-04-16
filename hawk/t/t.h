@@ -8,7 +8,7 @@
 #	define T_ASSERT_FAIL1(msg1) printf("FAILURE in %s:%s[%d] - %s\n", __FILE__, __func__, (int)__LINE__, msg1)
 #	define T_ASSERT_FAIL2(msg1,msg2) printf("FAILURE in %s:%s[%d] - %s - %s\n", __FILE__, __func__, (int)__LINE__, msg1, msg2)
 #else
-#	define T_ASSERT_FAIL1() printf("FAILURE in %s[%d]\n", __FILE__, (int)__LINE__)
+#	define T_ASSERT_FAIL0() printf("FAILURE in %s[%d]\n", __FILE__, (int)__LINE__)
 #	define T_ASSERT_FAIL1(msg1) printf("FAILURE in %s[%d] - %s\n", __FILE__, (int)__LINE__, msg1)
 #	define T_ASSERT_FAIL2(msg1,msg2) printf("FAILURE in %s[%d] - %s - %s\n", __FILE__, (int)__LINE__, msg1, msg2)
 #endif
