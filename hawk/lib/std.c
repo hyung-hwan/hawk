@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
-    Copyright (c) 2006-2019 Chung, Hyung-Hwan. All rights reserved.
+    Copyright (c) 2006-2020 Chung, Hyung-Hwan. All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
     modification, are permitted provided that the following conditions
@@ -226,7 +226,7 @@ static hawk_mmgr_t sys_mmgr =
 /* ----------------------------------------------------------------------- */
 
 
-hawk_flt_t hawk_stdmathpow (hawk_t* awk, hawk_flt_t x, hawk_flt_t y)
+hawk_flt_t hawk_stdmathpow (hawk_t* hawk, hawk_flt_t x, hawk_flt_t y)
 {
 #if defined(HAWK_USE_AWK_FLTMAX) && defined(HAVE_POWQ)
 	return powq(x, y);
@@ -241,7 +241,7 @@ hawk_flt_t hawk_stdmathpow (hawk_t* awk, hawk_flt_t x, hawk_flt_t y)
 #endif
 }
 
-hawk_flt_t hawk_stdmathmod (hawk_t* awk, hawk_flt_t x, hawk_flt_t y)
+hawk_flt_t hawk_stdmathmod (hawk_t* hawk, hawk_flt_t x, hawk_flt_t y)
 {
 #if defined(HAWK_USE_AWK_FLTMAX) && defined(HAVE_FMODQ)
 	return fmodq(x, y);
@@ -258,10 +258,10 @@ hawk_flt_t hawk_stdmathmod (hawk_t* awk, hawk_flt_t x, hawk_flt_t y)
 
 /* [IMPORTANT]
  * hawk_stdmodXXXX() functions must not access the extension
- * area of 'awk'. they are used in StdAwk.cpp which instantiates
- * an awk object with hawk_open() instead of hawk_openstd(). */
+ * area of 'hawk'. they are used in StdAwk.cpp which instantiates
+ * an hawk object with hawk_open() instead of hawk_openstd(). */
 
-int hawk_stdmodstartup (hawk_t* awk)
+int hawk_stdmodstartup (hawk_t* hawk)
 {
 #if defined(USE_LTDL)
 
@@ -277,7 +277,7 @@ int hawk_stdmodstartup (hawk_t* awk)
 
 }
 
-void hawk_stdmodshutdown (hawk_t* awk)
+void hawk_stdmodshutdown (hawk_t* hawk)
 {
 #if defined(USE_LTDL)
 	lt_dlexit ();
@@ -286,22 +286,22 @@ void hawk_stdmodshutdown (hawk_t* awk)
 #endif
 }
 
-static void* std_mod_open_checked (hawk_t* awk, const hawk_mod_spec_t* spec)
+static void* std_mod_open_checked (hawk_t* hawk, const hawk_mod_spec_t* spec)
 {
-	xtn_t* xtn = GET_XTN(awk);
+	xtn_t* xtn = GET_XTN(hawk);
 
 	if (!xtn->stdmod_up)
 	{
 		/* hawk_stdmodstartup() must have failed upon start-up.
 		 * return failure immediately */
-		hawk_seterrnum (awk, HAWK_NULL, HAWK_ENOIMPL);
+		hawk_seterrnum (hawk, HAWK_NULL, HAWK_ENOIMPL);
 		return HAWK_NULL;
 	}
 
-	return hawk_stdmodopen(awk, spec);
+	return hawk_stdmodopen(hawk, spec);
 }
 
-void* hawk_stdmodopen (hawk_t* awk, const hawk_mod_spec_t* spec)
+void* hawk_stdmodopen (hawk_t* hawk, const hawk_mod_spec_t* spec)
 {
 #if defined(USE_LTDL)
 	void* h;
@@ -326,15 +326,15 @@ void* hawk_stdmodopen (hawk_t* awk, const hawk_mod_spec_t* spec)
 	tmp[count] = HAWK_NULL;
 
 	#if defined(HAWK_OOCH_IS_BCH)
-	modpath = hawk_dupbcstrarr(awk, tmp, HAWK_NULL);
+	modpath = hawk_dupbcstrarr(hawk, tmp, HAWK_NULL);
 	#else
-	modpath = hawk_dupucstrarrtobcstr(awk, tmp, HAWK_NULL)
+	modpath = hawk_dupucstrarrtobcstr(hawk, tmp, HAWK_NULL)
 	#endif
 	if (!modpath) return HAWK_NULL;
 
 	if (lt_dladvise_init(&adv) != 0)
 	{
-		hawk_seterrfmt (awk, HAWK_NULL, HAWK_ESYSERR, HAWK_T("%hs"), lt_dlerror());
+		hawk_seterrfmt (hawk, HAWK_NULL, HAWK_ESYSERR, HAWK_T("%hs"), lt_dlerror());
 		return HAWK_NULL;
 	}
 
@@ -345,7 +345,7 @@ void* hawk_stdmodopen (hawk_t* awk, const hawk_mod_spec_t* spec)
 
 	lt_dladvise_destroy (&adv);
 
-	HAWK_MMGR_FREE (hawk_getmmgr(awk), modpath);
+	HAWK_MMGR_FREE (hawk_getmmgr(hawk), modpath);
 
 	return h;
 
@@ -374,13 +374,13 @@ void* hawk_stdmodopen (hawk_t* awk, const hawk_mod_spec_t* spec)
 	if (spec->postfix) tmp[count++] = spec->postfix;
 	tmp[count] = HAWK_NULL;
 
-	modpath = hawk_dupoocstrarr(awk, tmp, HAWK_NULL);
+	modpath = hawk_dupoocstrarr(hawk, tmp, HAWK_NULL);
 	if (!modpath) return HAWK_NULL;
 
 	h = LoadLibrary (modpath);
-	if (!h) hawk_seterrnum (awk, HAWK_NULL, hawk_syserr_to_errnum(GetLastError());
+	if (!h) hawk_seterrnum (hawk, HAWK_NULL, hawk_syserr_to_errnum(GetLastError());
 
-	hawk_freemem (awk, modpath);
+	hawk_freemem (hawk, modpath);
 
 	HAWK_ASSERT (HAWK_SIZEOF(h) <= HAWK_SIZEOF(void*));
 	return h;
@@ -410,9 +410,9 @@ void* hawk_stdmodopen (hawk_t* awk, const hawk_mod_spec_t* spec)
 	tmp[count] = HAWK_NULL;
 
 	#if defined(HAWK_OOCH_IS_BCH)
-	modpath = hawk_dupbcstrarr(awk, tmp, HAWK_NULL);
+	modpath = hawk_dupbcstrarr(hawk, tmp, HAWK_NULL);
 	#else
-	modpath = hawk_dupucstrarrtobcstr(awk, tmp, HAWK_NULL);
+	modpath = hawk_dupucstrarrtobcstr(hawk, tmp, HAWK_NULL);
 	#endif
 	if (!modpath) return HAWK_NULL;
 
@@ -422,10 +422,10 @@ void* hawk_stdmodopen (hawk_t* awk, const hawk_mod_spec_t* spec)
 	if (rc != NO_ERROR) 
 	{
 		h = HAWK_NULL;
-		hawk_seterrnum (awk, HAWK_NULL, hawk_syserr_to_errnum(rc));
+		hawk_seterrnum (hawk, HAWK_NULL, hawk_syserr_to_errnum(rc));
 	}
 
-	hawk_freemem (awk, modpath);
+	hawk_freemem (hawk, modpath);
 
 	HAWK_ASSERT (HAWK_SIZEOF(h) <= HAWK_SIZEOF(void*));
 	return h;
@@ -456,16 +456,16 @@ void* hawk_stdmodopen (hawk_t* awk, const hawk_mod_spec_t* spec)
 	tmp[count] = HAWK_NULL;
 
 	#if defined(HAWK_OOCH_IS_BCH)
-	modpath = hawk_dupbcstrarr(awk, tmp, HAWK_NULL);
+	modpath = hawk_dupbcstrarr(hawk, tmp, HAWK_NULL);
 	#else
-	modpath = hawk_dupucstrarrtobcstr(awk, tmp, HAWK_NULL);
+	modpath = hawk_dupucstrarrtobcstr(hawk, tmp, HAWK_NULL);
 	#endif
 	if (!modpath) return HAWK_NULL;
 
 	h = LoadModule(modpath);
-	if (!h) hawk_seterrnum (awk, HAWK_NULL, HAWK_ESYSERR);
+	if (!h) hawk_seterrnum (hawk, HAWK_NULL, HAWK_ESYSERR);
 
-	hawk_freemem (awk, modpath);
+	hawk_freemem (hawk, modpath);
 	
 	HAWK_ASSERT (HAWK_SIZEOF(h) <= HAWK_SIZEOF(void*));
 	return h;
@@ -492,26 +492,26 @@ void* hawk_stdmodopen (hawk_t* awk, const hawk_mod_spec_t* spec)
 	tmp[count] = HAWK_NULL;
 
 	#if defined(HAWK_OOCH_IS_BCH)
-	modpath = hawk_dupbcstrarr(awk, tmp, HAWK_NULL);
+	modpath = hawk_dupbcstrarr(hawk, tmp, HAWK_NULL);
 	#else
-	modpath = hawk_dupucstrarrtobcstr(awk, tmp, HAWK_NULL);
+	modpath = hawk_dupucstrarrtobcstr(hawk, tmp, HAWK_NULL);
 	#endif
 	if (!modpath) return HAWK_NULL;
 
 	h = dlopen(modpath, RTLD_NOW);
-	if (!h) hawk_seterrfmt (awk, HAWK_NULL, HAWK_ESYSERR, HAWK_T("%hs"), dlerror());
+	if (!h) hawk_seterrfmt (hawk, HAWK_NULL, HAWK_ESYSERR, HAWK_T("%hs"), dlerror());
 
-	hawk_freemem (awk, modpath);
+	hawk_freemem (hawk, modpath);
 
 	return h;
 
 #else
-	hawk_seterrnum (awk, HAWK_NULL, HAWK_ENOIMPL);
+	hawk_seterrnum (hawk, HAWK_NULL, HAWK_ENOIMPL);
 	return HAWK_NULL;
 #endif
 }
 
-void hawk_stdmodclose (hawk_t* awk, void* handle)
+void hawk_stdmodclose (hawk_t* hawk, void* handle)
 {
 #if defined(USE_LTDL)
 	lt_dlclose (handle);
@@ -528,7 +528,7 @@ void hawk_stdmodclose (hawk_t* awk, void* handle)
 #endif
 }
 
-void* hawk_stdmodgetsym (hawk_t* awk, void* handle, const hawk_ooch_t* name)
+void* hawk_stdmodgetsym (hawk_t* hawk, void* handle, const hawk_ooch_t* name)
 {
 	void* s;
 	hawk_bch_t* mname;
@@ -536,17 +536,17 @@ void* hawk_stdmodgetsym (hawk_t* awk, void* handle, const hawk_ooch_t* name)
 #if defined(HAWK_OOCH_IS_BCH)
 	mname = (hawk_bch_t*)name;
 #else
-	mname = hawk_duputobcstr(awk, name, HAWK_NULL);
+	mname = hawk_duputobcstr(hawk, name, HAWK_NULL);
 	if (!mname) return HAWK_NULL;
 #endif
 
 #if defined(USE_LTDL)
 	s = lt_dlsym(handle, mname);
-	if (!s) hawk_seterrfmt (awk, HAWK_NULL, HAWK_ESYSERR, HAWK_T("%hs"), lt_dlerror());
+	if (!s) hawk_seterrfmt (hawk, HAWK_NULL, HAWK_ESYSERR, HAWK_T("%hs"), lt_dlerror());
 	
 #elif defined(_WIN32)
 	s = GetProcAddress((HMODULE)handle, mname);
-	if (!s) hawk_seterrnum (awk, HAWK_NULL, hawk_syserr_to_errnum(GetLastError());
+	if (!s) hawk_seterrnum (hawk, HAWK_NULL, hawk_syserr_to_errnum(GetLastError());
 
 #elif defined(__OS2__)
 	{
@@ -555,17 +555,17 @@ void* hawk_stdmodgetsym (hawk_t* awk, void* handle, const hawk_ooch_t* name)
 		if (rc != NO_ERROR) 
 		{
 			s = HAWK_NULL;
-			hawk_seterrnum (awk, HAWK_NULL, hawk_syserr_to_errnum(rc));
+			hawk_seterrnum (hawk, HAWK_NULL, hawk_syserr_to_errnum(rc));
 		}
 	}
 
 #elif defined(__DOS__) && defined(HAWK_ENABLE_DOS_DYNAMIC_MODULE)
 	s = GetProcAddress(handle, mname);
-	if (!s) hawk_seterrnum (awk, HAWK_NULL, HAWK_ESYSERR);
+	if (!s) hawk_seterrnum (hawk, HAWK_NULL, HAWK_ESYSERR);
 
 #elif defined(USE_DLFCN)
 	s = dlsym(handle, mname);
-	if (!s) hawk_seterrfmt (awk, HAWK_NULL, HAWK_ESYSERR, HAWK_T("%hs"), dlerror());
+	if (!s) hawk_seterrfmt (hawk, HAWK_NULL, HAWK_ESYSERR, HAWK_T("%hs"), dlerror());
 
 #else
 	s = HAWK_NULL;
@@ -574,7 +574,7 @@ void* hawk_stdmodgetsym (hawk_t* awk, void* handle, const hawk_ooch_t* name)
 #if defined(HAWK_OOCH_IS_BCH)
 	/* nothing to do */
 #else
-	hawk_freemem (awk, mname);
+	hawk_freemem (hawk, mname);
 #endif
 
 	return s;
@@ -866,20 +866,20 @@ static void log_write (hawk_t* hawk, hawk_bitmask_t mask, const hawk_ooch_t* msg
 }
 /* ----------------------------------------------------------------------- */
 
-static int add_globals (hawk_t* awk);
-static int add_functions (hawk_t* awk);
+static int add_globals (hawk_t* hawk);
+static int add_functions (hawk_t* hawk);
 
 hawk_t* hawk_openstd (hawk_oow_t xtnsize, hawk_errnum_t* errnum)
 {
 	return hawk_openstdwithmmgr(&sys_mmgr, xtnsize, hawk_get_cmgr_by_id(HAWK_CMGR_UTF8), errnum);
 }
 
-static void fini_xtn (hawk_t* awk)
+static void fini_xtn (hawk_t* hawk)
 {
-	xtn_t* xtn = GET_XTN(awk);
+	xtn_t* xtn = GET_XTN(hawk);
 	if (xtn->stdmod_up)
 	{
-		hawk_stdmodshutdown (awk);
+		hawk_stdmodshutdown (hawk);
 		xtn->stdmod_up = 0;
 	}
 
@@ -887,14 +887,14 @@ static void fini_xtn (hawk_t* awk)
 	reset_log_to_default (xtn);
 }
 
-static void clear_xtn (hawk_t* awk)
+static void clear_xtn (hawk_t* hawk)
 {
 	/* nothing to do */
 }
 
 hawk_t* hawk_openstdwithmmgr (hawk_mmgr_t* mmgr, hawk_oow_t xtnsize, hawk_cmgr_t* cmgr, hawk_errnum_t* errnum)
 {
-	hawk_t* awk;
+	hawk_t* hawk;
 	hawk_prm_t prm;
 	xtn_t* xtn;
 
@@ -908,35 +908,35 @@ hawk_t* hawk_openstdwithmmgr (hawk_mmgr_t* mmgr, hawk_oow_t xtnsize, hawk_cmgr_t
 	prm.logwrite = log_write;
 
 	/* create an object */
-	awk = hawk_open(mmgr, HAWK_SIZEOF(xtn_t) + xtnsize, cmgr, &prm, errnum);
-	if (!awk) return HAWK_NULL;
+	hawk = hawk_open(mmgr, HAWK_SIZEOF(xtn_t) + xtnsize, cmgr, &prm, errnum);
+	if (!hawk) return HAWK_NULL;
 
 	/* adjust the object size by the sizeof xtn_t so that hawk_getxtn() returns the right pointer. */
-	awk->_instsize += HAWK_SIZEOF(xtn_t);
+	hawk->_instsize += HAWK_SIZEOF(xtn_t);
 
 /*
 #if defined(USE_DLFCN)
-	if (hawk_setopt(awk, HAWK_OPT_MODPOSTFIX, HAWK_T(".so")) <= -1) 
+	if (hawk_setopt(hawk, HAWK_OPT_MODPOSTFIX, HAWK_T(".so")) <= -1) 
 	{
-		if (errnum) *errnum = hawk_geterrnum(awk);
+		if (errnum) *errnum = hawk_geterrnum(hawk);
 		goto oops;
 	}
 #endif
 */
 
 	/* initialize extension */
-	xtn = GET_XTN(awk);
+	xtn = GET_XTN(hawk);
 
 	reset_log_to_default (xtn);
 
 	/* add intrinsic global variables and functions */
-	if (add_globals(awk) <= -1 || add_functions(awk) <= -1) 
+	if (add_globals(hawk) <= -1 || add_functions(hawk) <= -1) 
 	{
-		if (errnum) *errnum = hawk_geterrnum(awk);
+		if (errnum) *errnum = hawk_geterrnum(hawk);
 		goto oops;
 	}
 
-	if (hawk_stdmodstartup(awk) <= -1) 
+	if (hawk_stdmodstartup(hawk) <= -1) 
 	{
 		xtn->stdmod_up = 0;
 		/* carry on regardless of failure */
@@ -948,12 +948,12 @@ hawk_t* hawk_openstdwithmmgr (hawk_mmgr_t* mmgr, hawk_oow_t xtnsize, hawk_cmgr_t
 
 	xtn->ecb.close = fini_xtn;
 	xtn->ecb.clear = clear_xtn;
-	hawk_pushecb (awk, &xtn->ecb);
+	hawk_pushecb (hawk, &xtn->ecb);
 
-	return awk;
+	return hawk;
 
 oops:
-	if (awk) hawk_close (awk);
+	if (hawk) hawk_close (hawk);
 	return HAWK_NULL;
 }
 
@@ -988,14 +988,14 @@ static hawk_oocs_t sio_std_names[] =
 	{ HAWK_T("stderr"),  6 }
 };
 
-static hawk_sio_t* open_sio_std (hawk_t* awk, hawk_sio_std_t std, int flags)
+static hawk_sio_t* open_sio_std (hawk_t* hawk, hawk_sio_std_t std, int flags)
 {
 	hawk_sio_t* sio;
-	sio = hawk_sio_openstd(hawk_getgem(awk), 0, std, flags);
+	sio = hawk_sio_openstd(hawk_getgem(hawk), 0, std, flags);
 	if (sio == HAWK_NULL) 
 	{
-		const hawk_ooch_t* bem = hawk_backuperrmsg(awk);
-		hawk_seterrfmt (awk, HAWK_NULL, HAWK_EOPEN, HAWK_T("unable to open %js - %js"), &sio_std_names[std], bem);
+		const hawk_ooch_t* bem = hawk_backuperrmsg(hawk);
+		hawk_seterrfmt (hawk, HAWK_NULL, HAWK_EOPEN, HAWK_T("unable to open %js - %js"), &sio_std_names[std], bem);
 	}
 	return sio;
 }
@@ -1022,7 +1022,7 @@ static int is_psin_file (hawk_parsestd_t* psin)
 	       psin->type == HAWK_PARSESTD_FILEU;
 }
 
-static int open_parsestd (hawk_t* awk, hawk_sio_arg_t* arg, xtn_t* xtn, hawk_oow_t index)
+static int open_parsestd (hawk_t* hawk, hawk_sio_arg_t* arg, xtn_t* xtn, hawk_oow_t index)
 {
 	hawk_parsestd_t* psin = &xtn->s.in.x[index];
 
@@ -1043,13 +1043,13 @@ static int open_parsestd (hawk_t* awk, hawk_sio_arg_t* arg, xtn_t* xtn, hawk_oow
 			{
 				/* no path name or - -> stdin */
 				path = HAWK_NULL;
-				tmp = open_sio_std(awk, HAWK_SIO_STDIN, HAWK_SIO_READ | HAWK_SIO_IGNOREECERR);
+				tmp = open_sio_std(hawk, HAWK_SIO_STDIN, HAWK_SIO_READ | HAWK_SIO_IGNOREECERR);
 			}
 			else
 			{
-				path = hawk_addsionamewithbchars(awk, psin->u.fileb.path, hawk_count_bcstr(psin->u.fileb.path));
+				path = hawk_addsionamewithbchars(hawk, psin->u.fileb.path, hawk_count_bcstr(psin->u.fileb.path));
 				if (!path) return -1;
-				tmp = open_sio(awk, path, HAWK_SIO_READ | HAWK_SIO_IGNOREECERR | HAWK_SIO_KEEPPATH);
+				tmp = open_sio(hawk, path, HAWK_SIO_READ | HAWK_SIO_IGNOREECERR | HAWK_SIO_KEEPPATH);
 			}
 			if (tmp == HAWK_NULL) return -1;
 
@@ -1075,13 +1075,13 @@ static int open_parsestd (hawk_t* awk, hawk_sio_arg_t* arg, xtn_t* xtn, hawk_oow
 			{
 				/* no path name or - -> stdin */
 				path = HAWK_NULL;
-				tmp = open_sio_std(awk, HAWK_SIO_STDIN, HAWK_SIO_READ | HAWK_SIO_IGNOREECERR);
+				tmp = open_sio_std(hawk, HAWK_SIO_STDIN, HAWK_SIO_READ | HAWK_SIO_IGNOREECERR);
 			}
 			else
 			{
-				path = hawk_addsionamewithuchars(awk, psin->u.fileu.path, hawk_count_ucstr(psin->u.fileu.path));
+				path = hawk_addsionamewithuchars(hawk, psin->u.fileu.path, hawk_count_ucstr(psin->u.fileu.path));
 				if (!path) return -1;
-				tmp = open_sio(awk, path, HAWK_SIO_READ | HAWK_SIO_IGNOREECERR | HAWK_SIO_KEEPPATH);
+				tmp = open_sio(hawk, path, HAWK_SIO_READ | HAWK_SIO_IGNOREECERR | HAWK_SIO_KEEPPATH);
 			}
 			if (tmp == HAWK_NULL) return -1;
 
@@ -1112,7 +1112,7 @@ static int open_parsestd (hawk_t* awk, hawk_sio_arg_t* arg, xtn_t* xtn, hawk_oow
 			return 0;
 
 		default:
-			hawk_seterrnum (awk, HAWK_NULL, HAWK_EINTERN);
+			hawk_seterrnum (hawk, HAWK_NULL, HAWK_EINTERN);
 			return -1;
 	}
 }
@@ -1159,16 +1159,16 @@ static int fill_sio_arg_unique_id (hawk_t* hawk, hawk_sio_arg_t* arg, const hawk
 #endif
 }
 
-static hawk_ooi_t sf_in_open (hawk_t* awk, hawk_sio_arg_t* arg, xtn_t* xtn)
+static hawk_ooi_t sf_in_open (hawk_t* hawk, hawk_sio_arg_t* arg, xtn_t* xtn)
 {
 	if (arg->prev == HAWK_NULL)
 	{
 		/* handle top-level source input stream specified to hawk_parsestd() */
 		hawk_ooi_t x;
 
-		HAWK_ASSERT (arg == &awk->sio.arg);
+		HAWK_ASSERT (arg == &hawk->sio.arg);
 
-		x = open_parsestd(awk, arg, xtn, 0);
+		x = open_parsestd(hawk, arg, xtn, 0);
 		if (x >= 0) xtn->s.in.xindex = 0; /* update the current stream index */
 
 		return x;
@@ -1203,7 +1203,7 @@ static hawk_ooi_t sf_in_open (hawk_t* awk, hawk_sio_arg_t* arg, xtn_t* xtn)
 					totlen = hawk_count_oocstr(arg->name) + dirlen;
 					if (totlen >= HAWK_COUNTOF(fbuf))
 					{
-						dbuf = hawk_allocmem(awk, HAWK_SIZEOF(hawk_ooch_t) * (totlen + 1));
+						dbuf = hawk_allocmem(hawk, HAWK_SIZEOF(hawk_ooch_t) * (totlen + 1));
 						if (!dbuf) return -1;
 						path = dbuf;
 					}
@@ -1214,35 +1214,35 @@ static hawk_ooi_t sf_in_open (hawk_t* awk, hawk_sio_arg_t* arg, xtn_t* xtn)
 				}
 			}
 
-			xpath = hawk_addsionamewithoochars(awk, path, hawk_count_oocstr(path));
-			if (dbuf) hawk_freemem (awk, dbuf);
+			xpath = hawk_addsionamewithoochars(hawk, path, hawk_count_oocstr(path));
+			if (dbuf) hawk_freemem (hawk, dbuf);
 		}
 		else
 		{
-			xpath = hawk_addsionamewithoochars(awk, arg->name, hawk_count_oocstr(arg->name));
+			xpath = hawk_addsionamewithoochars(hawk, arg->name, hawk_count_oocstr(arg->name));
 		}
 		if (!xpath) goto fail;
 
-		arg->handle = hawk_sio_open(hawk_getgem(awk), 0, xpath, HAWK_SIO_READ | HAWK_SIO_IGNOREECERR | HAWK_SIO_KEEPPATH);
+		arg->handle = hawk_sio_open(hawk_getgem(hawk), 0, xpath, HAWK_SIO_READ | HAWK_SIO_IGNOREECERR | HAWK_SIO_KEEPPATH);
 		if (!arg->handle)
 		{
 			const hawk_ooch_t* bem;
 		fail:
-			bem = hawk_backuperrmsg(awk);
-			hawk_seterrfmt (awk, HAWK_NULL, HAWK_EOPEN, HAWK_T("unable to open %js - %js"), arg->name, bem);
+			bem = hawk_backuperrmsg(hawk);
+			hawk_seterrfmt (hawk, HAWK_NULL, HAWK_EOPEN, HAWK_T("unable to open %js - %js"), arg->name, bem);
 			return -1;
 		}
 
 		arg->path = xpath;
 		/* TODO: use the system handle(file descriptor) instead of the path? */
 		/*syshnd = hawk_sio_gethnd(arg->handle);*/
-		fill_sio_arg_unique_id(awk, arg, xpath); /* ignore failure */
+		fill_sio_arg_unique_id(hawk, arg, xpath); /* ignore failure */
 
 		return 0;
 	}
 }
 
-static hawk_ooi_t sf_in_close (hawk_t* awk, hawk_sio_arg_t* arg, xtn_t* xtn)
+static hawk_ooi_t sf_in_close (hawk_t* hawk, hawk_sio_arg_t* arg, xtn_t* xtn)
 {
 	if (arg->prev == HAWK_NULL)
 	{
@@ -1276,13 +1276,13 @@ static hawk_ooi_t sf_in_close (hawk_t* awk, hawk_sio_arg_t* arg, xtn_t* xtn)
 	return 0;
 }
 
-static hawk_ooi_t sf_in_read (hawk_t* awk, hawk_sio_arg_t* arg, hawk_ooch_t* data, hawk_oow_t size, xtn_t* xtn)
+static hawk_ooi_t sf_in_read (hawk_t* hawk, hawk_sio_arg_t* arg, hawk_ooch_t* data, hawk_oow_t size, xtn_t* xtn)
 {
 	if (arg->prev == HAWK_NULL)
 	{
 		hawk_ooi_t n;
 
-		HAWK_ASSERT (arg == &awk->sio.arg);
+		HAWK_ASSERT (arg == &hawk->sio.arg);
 
 	again:
 		switch (xtn->s.in.x[xtn->s.in.xindex].type)
@@ -1295,13 +1295,13 @@ static hawk_ooi_t sf_in_read (hawk_t* awk, hawk_sio_arg_t* arg, hawk_ooch_t* dat
 				n = hawk_sio_getoochars(arg->handle, data, size);
 				if (n <= -1)
 				{
-					const hawk_ooch_t* bem = hawk_backuperrmsg(awk);
+					const hawk_ooch_t* bem = hawk_backuperrmsg(hawk);
 					const hawk_uch_t* path;
 					path = xtn->s.in.x[xtn->s.in.xindex].u.fileu.path;
 					if (path) 
-						hawk_seterrfmt (awk, HAWK_NULL, HAWK_EREAD, HAWK_T("unable to read %ls - %js"), path, bem);
+						hawk_seterrfmt (hawk, HAWK_NULL, HAWK_EREAD, HAWK_T("unable to read %ls - %js"), path, bem);
 					else
-						hawk_seterrfmt (awk, HAWK_NULL, HAWK_EREAD, HAWK_T("unable to read %js - %js"), sio_std_names[HAWK_SIO_STDIN].ptr, bem);
+						hawk_seterrfmt (hawk, HAWK_NULL, HAWK_EREAD, HAWK_T("unable to read %js - %js"), sio_std_names[HAWK_SIO_STDIN].ptr, bem);
 				}
 				break;
 
@@ -1313,13 +1313,13 @@ static hawk_ooi_t sf_in_read (hawk_t* awk, hawk_sio_arg_t* arg, hawk_ooch_t* dat
 				n = hawk_sio_getoochars(arg->handle, data, size);
 				if (n <= -1)
 				{
-					const hawk_ooch_t* bem = hawk_backuperrmsg(awk);
+					const hawk_ooch_t* bem = hawk_backuperrmsg(hawk);
 					const hawk_bch_t* path;
 					path = xtn->s.in.x[xtn->s.in.xindex].u.fileb.path;
 					if (path) 
-						hawk_seterrfmt (awk, HAWK_NULL, HAWK_EREAD, HAWK_T("unable to read %hs - %js"), path, bem);
+						hawk_seterrfmt (hawk, HAWK_NULL, HAWK_EREAD, HAWK_T("unable to read %hs - %js"), path, bem);
 					else
-						hawk_seterrfmt (awk, HAWK_NULL, HAWK_EREAD, HAWK_T("unable to read %js - %js"), sio_std_names[HAWK_SIO_STDIN].ptr, bem);
+						hawk_seterrfmt (hawk, HAWK_NULL, HAWK_EREAD, HAWK_T("unable to read %js - %js"), sio_std_names[HAWK_SIO_STDIN].ptr, bem);
 				}
 				break;
 
@@ -1343,9 +1343,9 @@ static hawk_ooi_t sf_in_read (hawk_t* awk, hawk_sio_arg_t* arg, hawk_ooch_t* dat
 
 				mbslen = xtn->s.in.u.bcs.end - xtn->s.in.u.bcs.ptr;
 				wcslen = size;
-				if ((m = hawk_conv_bchars_to_uchars_with_cmgr(xtn->s.in.u.bcs.ptr, &mbslen, data, &wcslen, hawk_getcmgr(awk), 0)) <= -1 && m != -2)
+				if ((m = hawk_conv_bchars_to_uchars_with_cmgr(xtn->s.in.u.bcs.ptr, &mbslen, data, &wcslen, hawk_getcmgr(hawk), 0)) <= -1 && m != -2)
 				{
-					hawk_seterrnum (awk, HAWK_NULL, HAWK_EINVAL);
+					hawk_seterrnum (hawk, HAWK_NULL, HAWK_EINVAL);
 					n = -1;
 				}
 				else
@@ -1365,9 +1365,9 @@ static hawk_ooi_t sf_in_read (hawk_t* awk, hawk_sio_arg_t* arg, hawk_ooch_t* dat
 
 				wcslen = xtn->s.in.u.ucs.end - xtn->s.in.u.ucs.ptr;
 				mbslen = size;
-				if ((m = hawk_conv_uchars_to_bchars_with_cmgr(xtn->s.in.u.ucs.ptr, &wcslen, data, &mbslen, hawk_getcmgr(awk))) <= -1 && m != -2)
+				if ((m = hawk_conv_uchars_to_bchars_with_cmgr(xtn->s.in.u.ucs.ptr, &wcslen, data, &mbslen, hawk_getcmgr(hawk))) <= -1 && m != -2)
 				{
-					hawk_seterrnum (awk, HAWK_NULL, HAWK_EINVAL);
+					hawk_seterrnum (hawk, HAWK_NULL, HAWK_EINVAL);
 					n = -1;
 				}
 				else
@@ -1383,7 +1383,7 @@ static hawk_ooi_t sf_in_read (hawk_t* awk, hawk_sio_arg_t* arg, hawk_ooch_t* dat
 
 			default:
 				/* this should never happen */
-				hawk_seterrnum (awk, HAWK_NULL, HAWK_EINTERN);
+				hawk_seterrnum (hawk, HAWK_NULL, HAWK_EINTERN);
 				n = -1;
 				break;
 		}
@@ -1395,7 +1395,7 @@ static hawk_ooi_t sf_in_read (hawk_t* awk, hawk_sio_arg_t* arg, hawk_ooch_t* dat
 			if (xtn->s.in.x[next].type != HAWK_PARSESTD_NULL)
 			{
 				/* open the next stream if available. */
-				if (open_parsestd(awk, arg, xtn, next) <= -1) n = -1;
+				if (open_parsestd(hawk, arg, xtn, next) <= -1) n = -1;
 				else 
 				{
 					xtn->s.in.xindex = next; /* update the next to the current */
@@ -1420,37 +1420,37 @@ static hawk_ooi_t sf_in_read (hawk_t* awk, hawk_sio_arg_t* arg, hawk_ooch_t* dat
 
 		if (n <= -1)
 		{
-			const hawk_ooch_t* bem = hawk_backuperrmsg(awk);
-			hawk_seterrfmt (awk, HAWK_NULL, HAWK_EREAD, HAWK_T("unable to read %js - %js"), arg->name, bem); 
+			const hawk_ooch_t* bem = hawk_backuperrmsg(hawk);
+			hawk_seterrfmt (hawk, HAWK_NULL, HAWK_EREAD, HAWK_T("unable to read %js - %js"), arg->name, bem); 
 		}
 		return n;
 	}
 }
 
-static hawk_ooi_t sf_in (hawk_t* awk, hawk_sio_cmd_t cmd, hawk_sio_arg_t* arg, hawk_ooch_t* data, hawk_oow_t size)
+static hawk_ooi_t sf_in (hawk_t* hawk, hawk_sio_cmd_t cmd, hawk_sio_arg_t* arg, hawk_ooch_t* data, hawk_oow_t size)
 {
-	xtn_t* xtn = GET_XTN(awk);
+	xtn_t* xtn = GET_XTN(hawk);
 
 	switch (cmd)
 	{
 		case HAWK_SIO_CMD_OPEN:
-			return sf_in_open(awk, arg, xtn);
+			return sf_in_open(hawk, arg, xtn);
 
 		case HAWK_SIO_CMD_CLOSE:
-			return sf_in_close(awk, arg, xtn);
+			return sf_in_close(hawk, arg, xtn);
 
 		case HAWK_SIO_CMD_READ:
-			return sf_in_read(awk, arg, data, size, xtn);
+			return sf_in_read(hawk, arg, data, size, xtn);
 
 		default:
-			hawk_seterrnum (awk, HAWK_NULL, HAWK_EINTERN);
+			hawk_seterrnum (hawk, HAWK_NULL, HAWK_EINTERN);
 			return -1;
 	}
 }
 
-static hawk_ooi_t sf_out (hawk_t* awk, hawk_sio_cmd_t cmd, hawk_sio_arg_t* arg, hawk_ooch_t* data, hawk_oow_t size)
+static hawk_ooi_t sf_out (hawk_t* hawk, hawk_sio_cmd_t cmd, hawk_sio_arg_t* arg, hawk_ooch_t* data, hawk_oow_t size)
 {
-	xtn_t* xtn = GET_XTN(awk);
+	xtn_t* xtn = GET_XTN(hawk);
 
 	switch (cmd)
 	{
@@ -1467,19 +1467,19 @@ static hawk_ooi_t sf_out (hawk_t* awk, hawk_sio_cmd_t cmd, hawk_sio_arg_t* arg, 
 					if (xtn->s.out.x->u.fileb.path == HAWK_NULL || (xtn->s.out.x->u.fileb.path[0] == '-' && xtn->s.out.x->u.fileb.path[1] == '\0'))
 					{
 						/* no path name or - -> stdout */
-						xtn->s.out.u.file.sio = open_sio_std(awk, HAWK_SIO_STDOUT, HAWK_SIO_WRITE | HAWK_SIO_IGNOREECERR | HAWK_SIO_LINEBREAK);
+						xtn->s.out.u.file.sio = open_sio_std(hawk, HAWK_SIO_STDOUT, HAWK_SIO_WRITE | HAWK_SIO_IGNOREECERR | HAWK_SIO_LINEBREAK);
 						if (xtn->s.out.u.file.sio == HAWK_NULL) return -1;
 					}
 					else
 					{
 					#if defined(HAWK_OOCH_IS_UCH)
 						hawk_uch_t* upath;
-						upath = hawk_dupbtoucstr(awk, xtn->s.out.x->u.fileb.path, HAWK_NULL, 1);
+						upath = hawk_dupbtoucstr(hawk, xtn->s.out.x->u.fileb.path, HAWK_NULL, 1);
 						if (!upath) return -1;
-						xtn->s.out.u.file.sio = open_sio(awk, upath, HAWK_SIO_WRITE | HAWK_SIO_CREATE | HAWK_SIO_TRUNCATE | HAWK_SIO_IGNOREECERR);
-						hawk_freemem (awk, upath);
+						xtn->s.out.u.file.sio = open_sio(hawk, upath, HAWK_SIO_WRITE | HAWK_SIO_CREATE | HAWK_SIO_TRUNCATE | HAWK_SIO_IGNOREECERR);
+						hawk_freemem (hawk, upath);
 					#else
-						xtn->s.out.u.file.sio = open_sio(awk, xtn->s.out.x->u.fileb.path, HAWK_SIO_WRITE | HAWK_SIO_CREATE | HAWK_SIO_TRUNCATE | HAWK_SIO_IGNOREECERR);
+						xtn->s.out.u.file.sio = open_sio(hawk, xtn->s.out.x->u.fileb.path, HAWK_SIO_WRITE | HAWK_SIO_CREATE | HAWK_SIO_TRUNCATE | HAWK_SIO_IGNOREECERR);
 					#endif
 						if (xtn->s.out.u.file.sio == HAWK_NULL) return -1;
 					}
@@ -1496,19 +1496,19 @@ static hawk_ooi_t sf_out (hawk_t* awk, hawk_sio_cmd_t cmd, hawk_sio_arg_t* arg, 
 					if (xtn->s.out.x->u.fileu.path == HAWK_NULL || (xtn->s.out.x->u.fileu.path[0] == '-' && xtn->s.out.x->u.fileu.path[1] == '\0'))
 					{
 						/* no path name or - -> stdout */
-						xtn->s.out.u.file.sio = open_sio_std(awk, HAWK_SIO_STDOUT, HAWK_SIO_WRITE | HAWK_SIO_IGNOREECERR | HAWK_SIO_LINEBREAK);
+						xtn->s.out.u.file.sio = open_sio_std(hawk, HAWK_SIO_STDOUT, HAWK_SIO_WRITE | HAWK_SIO_IGNOREECERR | HAWK_SIO_LINEBREAK);
 						if (xtn->s.out.u.file.sio == HAWK_NULL) return -1;
 					}
 					else
 					{
 					#if defined(HAWK_OOCH_IS_UCH)
-						xtn->s.out.u.file.sio = open_sio(awk, xtn->s.out.x->u.fileu.path, HAWK_SIO_WRITE | HAWK_SIO_CREATE | HAWK_SIO_TRUNCATE | HAWK_SIO_IGNOREECERR);
+						xtn->s.out.u.file.sio = open_sio(hawk, xtn->s.out.x->u.fileu.path, HAWK_SIO_WRITE | HAWK_SIO_CREATE | HAWK_SIO_TRUNCATE | HAWK_SIO_IGNOREECERR);
 					#else
 						hawk_bch_t* bpath;
-						bpath = hawk_duputobcstr(awk, xtn->s.out.x->u.fileu.path, HAWK_NULL);
+						bpath = hawk_duputobcstr(hawk, xtn->s.out.x->u.fileu.path, HAWK_NULL);
 						if (!bpath) return -1;
-						xtn->s.out.u.file.sio = open_sio(awk, bpath, HAWK_SIO_WRITE | HAWK_SIO_CREATE | HAWK_SIO_TRUNCATE | HAWK_SIO_IGNOREECERR);
-						hawk_freemem (awk, bpath);
+						xtn->s.out.u.file.sio = open_sio(hawk, bpath, HAWK_SIO_WRITE | HAWK_SIO_CREATE | HAWK_SIO_TRUNCATE | HAWK_SIO_IGNOREECERR);
+						hawk_freemem (hawk, bpath);
 					#endif
 						if (xtn->s.out.u.file.sio == HAWK_NULL) return -1;
 					}
@@ -1517,17 +1517,17 @@ static hawk_ooi_t sf_out (hawk_t* awk, hawk_sio_cmd_t cmd, hawk_sio_arg_t* arg, 
 					return 1;
 
 				case HAWK_PARSESTD_OOCS:
-					xtn->s.out.u.oocs.buf = hawk_ooecs_open(hawk_getgem(awk), 0, 512);
+					xtn->s.out.u.oocs.buf = hawk_ooecs_open(hawk_getgem(hawk), 0, 512);
 					if (xtn->s.out.u.oocs.buf == HAWK_NULL) return -1;
 					return 1;
 
 				case HAWK_PARSESTD_BCS:
-					xtn->s.out.u.bcs.buf = hawk_becs_open(hawk_getgem(awk), 0, 512);
+					xtn->s.out.u.bcs.buf = hawk_becs_open(hawk_getgem(hawk), 0, 512);
 					if (xtn->s.out.u.bcs.buf == HAWK_NULL) return -1;
 					return 1;
 
 				case HAWK_PARSESTD_UCS:
-					xtn->s.out.u.ucs.buf = hawk_uecs_open(hawk_getgem(awk), 0, 512);
+					xtn->s.out.u.ucs.buf = hawk_uecs_open(hawk_getgem(hawk), 0, 512);
 					if (xtn->s.out.u.ucs.buf == HAWK_NULL) return -1;
 					return 1;
 			}
@@ -1571,10 +1571,10 @@ static hawk_ooi_t sf_out (hawk_t* awk, hawk_sio_cmd_t cmd, hawk_sio_arg_t* arg, 
 					if (n <= -1)
 					{
 						const hawk_ooch_t* ioname;
-						const hawk_ooch_t* bem = hawk_backuperrmsg(awk);
+						const hawk_ooch_t* bem = hawk_backuperrmsg(hawk);
 						ioname = xtn->s.out.x->u.file.path;
 						if (!ioname) ioname = sio_std_names[HAWK_SIO_STDOUT].ptr;
-						hawk_seterrfmt (awk, HAWK_NULL, HAWK_EWRITE, HAWK_T("unable to write to %js - %js"), ioname, bem); 
+						hawk_seterrfmt (hawk, HAWK_NULL, HAWK_EWRITE, HAWK_T("unable to write to %js - %js"), ioname, bem); 
 					}
 					return n;
 				}
@@ -1594,14 +1594,14 @@ static hawk_ooi_t sf_out (hawk_t* awk, hawk_sio_cmd_t cmd, hawk_sio_arg_t* arg, 
 					hawk_oow_t orglen;
 
 					wcslen = size;
-					if (hawk_convutobchars(awk, data, &wcslen, HAWK_NULL, &mbslen) <= -1) return -1;
+					if (hawk_convutobchars(hawk, data, &wcslen, HAWK_NULL, &mbslen) <= -1) return -1;
 					if (mbslen > HAWK_TYPE_MAX(hawk_ooi_t)) mbslen = HAWK_TYPE_MAX(hawk_ooi_t);
 
 					orglen = hawk_becs_getlen(xtn->s.out.u.bcs.buf);
 					if (hawk_becs_setlen(xtn->s.out.u.bcs.buf, orglen + mbslen) == (hawk_oow_t)-1) return -1;
 
 					wcslen = size;
-					hawk_convutobchars (awk, data, &wcslen, HAWK_BECS_CPTR(xtn->s.out.u.bcs.buf, orglen), &mbslen);  
+					hawk_convutobchars (hawk, data, &wcslen, HAWK_BECS_CPTR(xtn->s.out.u.bcs.buf, orglen), &mbslen);  
 					size = wcslen;
 
 					return size;
@@ -1615,14 +1615,14 @@ static hawk_ooi_t sf_out (hawk_t* awk, hawk_sio_cmd_t cmd, hawk_sio_arg_t* arg, 
 					hawk_oow_t orglen;
 
 					mbslen = size;
-					if (hawk_convbtouchars(awk, data, &mbslen, HAWK_NULL, &wcslen, 0) <= -1) return -1;
+					if (hawk_convbtouchars(hawk, data, &mbslen, HAWK_NULL, &wcslen, 0) <= -1) return -1;
 					if (wcslen > HAWK_TYPE_MAX(hawk_ooi_t)) wcslen = HAWK_TYPE_MAX(hawk_ooi_t);
 
 					orglen = hawk_becs_getlen(xtn->s.out.u.ucs.buf);
 					if (hawk_uecs_setlen(xtn->s.out.u.ucs.buf, orglen + wcslen) == (hawk_oow_t)-1) return -1;
 
 					mbslen = size;
-					hawk_convbtouchars (awk, data, &mbslen, HAWK_UECS_CPTR(xtn->s.out.u.ucs.buf, orglen), &wcslen, 0);
+					hawk_convbtouchars (hawk, data, &mbslen, HAWK_UECS_CPTR(xtn->s.out.u.ucs.buf, orglen), &wcslen, 0);
 					size = mbslen;
 
 					return size;
@@ -1640,14 +1640,14 @@ static hawk_ooi_t sf_out (hawk_t* awk, hawk_sio_cmd_t cmd, hawk_sio_arg_t* arg, 
 			break;
 	}
 
-	hawk_seterrnum (awk, HAWK_NULL, HAWK_EINTERN);
+	hawk_seterrnum (hawk, HAWK_NULL, HAWK_EINTERN);
 	return -1;
 }
 
-int hawk_parsestd (hawk_t* awk, hawk_parsestd_t in[], hawk_parsestd_t* out)
+int hawk_parsestd (hawk_t* hawk, hawk_parsestd_t in[], hawk_parsestd_t* out)
 {
 	hawk_sio_cbs_t sio;
-	xtn_t* xtn = GET_XTN(awk);
+	xtn_t* xtn = GET_XTN(hawk);
 	int n;
 
 	if (in == HAWK_NULL || (in[0].type != HAWK_PARSESTD_FILE && 
@@ -1659,7 +1659,7 @@ int hawk_parsestd (hawk_t* awk, hawk_parsestd_t in[], hawk_parsestd_t* out)
 	{
 		/* the input is a must. at least 1 file or 1 string 
 		 * must be specified */
-		hawk_seterrnum (awk, HAWK_NULL, HAWK_EINVAL);
+		hawk_seterrnum (hawk, HAWK_NULL, HAWK_EINVAL);
 		return -1;
 	}
 
@@ -1676,14 +1676,14 @@ int hawk_parsestd (hawk_t* awk, hawk_parsestd_t in[], hawk_parsestd_t* out)
 		    out->type != HAWK_PARSESTD_BCS &&
 		    out->type != HAWK_PARSESTD_UCS)
 		{
-			hawk_seterrnum (awk, HAWK_NULL, HAWK_EINVAL);
+			hawk_seterrnum (hawk, HAWK_NULL, HAWK_EINVAL);
 			return -1;
 		}
 		sio.out = sf_out;
 		xtn->s.out.x = out;
 	}
 
-	n = hawk_parse(awk, &sio);
+	n = hawk_parse(hawk, &sio);
 
 	if (out)
 	{
@@ -1951,7 +1951,7 @@ static hawk_ooi_t pio_handler_rest (hawk_rtx_t* rtx, hawk_rio_cmd_t cmd, hawk_ri
 	return -1;
 }
 
-static hawk_ooi_t awk_rio_pipe (hawk_rtx_t* rtx, hawk_rio_cmd_t cmd, hawk_rio_arg_t* riod, void* data, hawk_oow_t size)
+static hawk_ooi_t hawk_rio_pipe (hawk_rtx_t* rtx, hawk_rio_cmd_t cmd, hawk_rio_arg_t* riod, void* data, hawk_oow_t size)
 {
 	if (cmd == HAWK_RIO_CMD_OPEN)
 	{
@@ -1997,7 +1997,7 @@ static hawk_ooi_t awk_rio_pipe (hawk_rtx_t* rtx, hawk_rio_cmd_t cmd, hawk_rio_ar
 		return pio_handler_rest(rtx, cmd, riod, data, size);
 }
 
-static hawk_ooi_t awk_rio_file (hawk_rtx_t* rtx, hawk_rio_cmd_t cmd, hawk_rio_arg_t* riod, void* data, hawk_oow_t size)
+static hawk_ooi_t hawk_rio_file (hawk_rtx_t* rtx, hawk_rio_cmd_t cmd, hawk_rio_arg_t* riod, void* data, hawk_oow_t size)
 {
 	switch (cmd)
 	{
@@ -2199,7 +2199,7 @@ static int open_rio_console (hawk_rtx_t* rtx, hawk_rio_arg_t* riod)
 		 * if an argument has a special form of var=val, it is treated specially 
 		 * 
 		 * on the command-line
-		 *   hawk -f a.awk a=20 /etc/passwd
+		 *   hawk -f a.hawk a=20 /etc/passwd
 		 * or via ARGV
 		 *    hawk 'BEGIN { ARGV[1] = "a=20"; }
 		 *                { print a $1; }' dummy /etc/hosts
@@ -2369,7 +2369,7 @@ static int open_rio_console (hawk_rtx_t* rtx, hawk_rio_arg_t* riod)
 	return -1;
 }
 
-static hawk_ooi_t awk_rio_console (hawk_rtx_t* rtx, hawk_rio_cmd_t cmd, hawk_rio_arg_t* riod, void* data, hawk_oow_t size)
+static hawk_ooi_t hawk_rio_console (hawk_rtx_t* rtx, hawk_rio_cmd_t cmd, hawk_rio_arg_t* riod, void* data, hawk_oow_t size)
 {
 	switch (cmd)
 	{
@@ -2748,7 +2748,7 @@ static int make_additional_globals (hawk_rtx_t* rtx, xtn_t* xtn, const hawk_ooch
 }
 
 static hawk_rtx_t* open_rtx_std (
-	hawk_t*            awk,
+	hawk_t*            hawk,
 	hawk_oow_t         xtnsize,
 	const hawk_ooch_t* id,
 	hawk_ooch_t*       icf[],
@@ -2760,13 +2760,13 @@ static hawk_rtx_t* open_rtx_std (
 	rxtn_t* rxtn;
 	xtn_t* xtn;
 
-	xtn = GET_XTN(awk);
+	xtn = GET_XTN(hawk);
 
-	rio.pipe = awk_rio_pipe;
-	rio.file = awk_rio_file;
-	rio.console = awk_rio_console;
+	rio.pipe = hawk_rio_pipe;
+	rio.file = hawk_rio_file;
+	rio.console = hawk_rio_console;
 
-	rtx = hawk_rtx_open(awk, HAWK_SIZEOF(rxtn_t) + xtnsize, &rio);
+	rtx = hawk_rtx_open(hawk, HAWK_SIZEOF(rxtn_t) + xtnsize, &rio);
 	if (!rtx) return HAWK_NULL;
 
 	rtx->_instsize += HAWK_SIZEOF(rxtn_t);
@@ -2775,7 +2775,7 @@ static hawk_rtx_t* open_rtx_std (
 
 	if (rtx->hawk->opt.trait & HAWK_RIO)
 	{
-		if (hawk_htb_init(&rxtn->cmgrtab, hawk_getgem(awk), 256, 70, HAWK_SIZEOF(hawk_ooch_t), 1) <= -1)
+		if (hawk_htb_init(&rxtn->cmgrtab, hawk_getgem(hawk), 256, 70, HAWK_SIZEOF(hawk_ooch_t), 1) <= -1)
 		{
 			hawk_rtx_close (rtx);
 			return HAWK_NULL;
@@ -2811,7 +2811,7 @@ static hawk_rtx_t* open_rtx_std (
 	{
 		if (hawk_rtx_setofilenamewithoochars(rtx, ocf[0], hawk_count_oocstr(ocf[0])) <= -1)
 		{
-			hawk_rtx_errortohawk (rtx, awk);
+			hawk_rtx_errortohawk (rtx, hawk);
 			hawk_rtx_close (rtx);
 			return HAWK_NULL;
 		}
@@ -2819,7 +2819,7 @@ static hawk_rtx_t* open_rtx_std (
 
 	if (make_additional_globals(rtx, xtn, id, icf) <= -1)
 	{
-		hawk_rtx_errortohawk (rtx, awk);
+		hawk_rtx_errortohawk (rtx, hawk);
 		hawk_rtx_close (rtx);
 		return HAWK_NULL;
 	}
@@ -2828,7 +2828,7 @@ static hawk_rtx_t* open_rtx_std (
 }
 
 hawk_rtx_t* hawk_rtx_openstdwithbcstr (
-	hawk_t*           awk,
+	hawk_t*           hawk,
 	hawk_oow_t        xtnsize,
 	const hawk_bch_t* id,
 	hawk_bch_t*       icf[],
@@ -2840,7 +2840,7 @@ hawk_rtx_t* hawk_rtx_openstdwithbcstr (
 	hawk_ooch_t* xid, ** xicf = HAWK_NULL, ** xocf = HAWK_NULL;
 
 #if defined(HAWK_OOCH_IS_UCH)
-	xid = hawk_dupbtoucstr(awk, id, &wcslen, 0);
+	xid = hawk_dupbtoucstr(hawk, id, &wcslen, 0);
 	if (!xid) return HAWK_NULL;
 #else
 	xid = (hawk_ooch_t*)id;
@@ -2850,15 +2850,15 @@ hawk_rtx_t* hawk_rtx_openstdwithbcstr (
 	{
 		for (i = 0; icf[i]; i++) ;
 
-		xicf = (hawk_ooch_t**)hawk_callocmem(awk, HAWK_SIZEOF(*xicf) * (i + 1));
+		xicf = (hawk_ooch_t**)hawk_callocmem(hawk, HAWK_SIZEOF(*xicf) * (i + 1));
 		if (!xicf) goto done;
 
 		for (i = 0; icf[i]; i++)
 		{
 		#if defined(HAWK_OOCH_IS_UCH)
-			xicf[i] = hawk_dupbtoucstr(awk, icf[i], &wcslen, 0);
+			xicf[i] = hawk_dupbtoucstr(hawk, icf[i], &wcslen, 0);
 		#else
-			xicf[i] = hawk_dupbcstr(awk, icf[i], HAWK_NULL);
+			xicf[i] = hawk_dupbcstr(hawk, icf[i], HAWK_NULL);
 		#endif
 			if (!xicf[i]) goto done;
 		}
@@ -2869,47 +2869,47 @@ hawk_rtx_t* hawk_rtx_openstdwithbcstr (
 	{
 		for (i = 0; ocf[i]; i++) ;
 
-		xocf = (hawk_ooch_t**)hawk_callocmem(awk, HAWK_SIZEOF(*xocf) * (i + 1));
+		xocf = (hawk_ooch_t**)hawk_callocmem(hawk, HAWK_SIZEOF(*xocf) * (i + 1));
 		if (!xocf) goto done;
 
 		for (i = 0; ocf[i]; i++)
 		{
 		#if defined(HAWK_OOCH_IS_UCH)
-			xocf[i] = hawk_dupbtoucstr(awk, ocf[i], &wcslen, 0);
+			xocf[i] = hawk_dupbtoucstr(hawk, ocf[i], &wcslen, 0);
 		#else
-			xocf[i] = hawk_dupucstr(awk, ocf[i], HAWK_NULL);
+			xocf[i] = hawk_dupucstr(hawk, ocf[i], HAWK_NULL);
 		#endif
 			if (!xocf[i]) goto done;
 		}
 		xocf[i] = HAWK_NULL;
 	}
 
-	rtx = open_rtx_std(awk, xtnsize, xid, xicf, xocf, cmgr);
+	rtx = open_rtx_std(hawk, xtnsize, xid, xicf, xocf, cmgr);
 
 done:
 	if (!rtx)
 	{
 		if (xocf)
 		{
-			for (i = 0; xocf[i]; i++) hawk_freemem (awk, xocf[i]);
-			hawk_freemem (awk, xocf);
+			for (i = 0; xocf[i]; i++) hawk_freemem (hawk, xocf[i]);
+			hawk_freemem (hawk, xocf);
 		}
 		if (xicf)
 		{
-			for (i = 0; xicf[i]; i++) hawk_freemem (awk, xicf[i]);
-			hawk_freemem (awk, xicf);
+			for (i = 0; xicf[i]; i++) hawk_freemem (hawk, xicf[i]);
+			hawk_freemem (hawk, xicf);
 		}
 	}
 
 #if defined(HAWK_OOCH_IS_UCH)
-	hawk_freemem (awk, xid);
+	hawk_freemem (hawk, xid);
 #endif
 
 	return rtx;
 }
 
 hawk_rtx_t* hawk_rtx_openstdwithucstr (
-	hawk_t*           awk,
+	hawk_t*           hawk,
 	hawk_oow_t        xtnsize,
 	const hawk_uch_t* id,
 	hawk_uch_t*       icf[],
@@ -2921,7 +2921,7 @@ hawk_rtx_t* hawk_rtx_openstdwithucstr (
 	hawk_ooch_t* xid, ** xicf = HAWK_NULL, ** xocf = HAWK_NULL;
 
 #if defined(HAWK_OOCH_IS_BCH)
-	xid = hawk_duputobcstr(awk, id, &mbslen);
+	xid = hawk_duputobcstr(hawk, id, &mbslen);
 	if (!xid) return HAWK_NULL;
 #else
 	xid = (hawk_ooch_t*)id;
@@ -2931,15 +2931,15 @@ hawk_rtx_t* hawk_rtx_openstdwithucstr (
 	{
 		for (i = 0; icf[i]; i++) ;
 
-		xicf = (hawk_ooch_t**)hawk_callocmem(awk, HAWK_SIZEOF(*xicf) * (i + 1));
+		xicf = (hawk_ooch_t**)hawk_callocmem(hawk, HAWK_SIZEOF(*xicf) * (i + 1));
 		if (!xicf) goto done;
 
 		for (i = 0; icf[i]; i++)
 		{
 		#if defined(HAWK_OOCH_IS_BCH)
-			xicf[i] = hawk_duputobcstr(awk, icf[i], &mbslen);
+			xicf[i] = hawk_duputobcstr(hawk, icf[i], &mbslen);
 		#else
-			xicf[i] = hawk_dupucstr(awk, icf[i], HAWK_NULL);
+			xicf[i] = hawk_dupucstr(hawk, icf[i], HAWK_NULL);
 		#endif
 			if (HAWK_UNLIKELY(!xicf[i])) goto done;
 		}
@@ -2950,40 +2950,40 @@ hawk_rtx_t* hawk_rtx_openstdwithucstr (
 	{
 		for (i = 0; ocf[i]; i++) ;
 
-		xocf = (hawk_ooch_t**)hawk_callocmem(awk, HAWK_SIZEOF(*xocf) * (i + 1));
+		xocf = (hawk_ooch_t**)hawk_callocmem(hawk, HAWK_SIZEOF(*xocf) * (i + 1));
 		if (!xocf) goto done;
 
 		for (i = 0; ocf[i]; i++)
 		{
 		#if defined(HAWK_OOCH_IS_BCH)
-			xocf[i] = hawk_dupbtoucstr(awk, ocf[i], &mbslen, 0);
+			xocf[i] = hawk_dupbtoucstr(hawk, ocf[i], &mbslen, 0);
 		#else
-			xocf[i] = hawk_dupucstr(awk, ocf[i], HAWK_NULL);
+			xocf[i] = hawk_dupucstr(hawk, ocf[i], HAWK_NULL);
 		#endif
 			if (!xocf[i]) goto done;
 		}
 		xocf[i] = HAWK_NULL;
 	}
 
-	rtx = open_rtx_std(awk, xtnsize, xid, xicf, xocf, cmgr);
+	rtx = open_rtx_std(hawk, xtnsize, xid, xicf, xocf, cmgr);
 
 done:
 	if (!rtx)
 	{
 		if (xocf)
 		{
-			for (i = 0; xocf[i]; i++) hawk_freemem (awk, xocf[i]);
-			hawk_freemem (awk, xocf);
+			for (i = 0; xocf[i]; i++) hawk_freemem (hawk, xocf[i]);
+			hawk_freemem (hawk, xocf);
 		}
 		if (xicf)
 		{
-			for (i = 0; xicf[i]; i++) hawk_freemem (awk, xicf[i]);
-			hawk_freemem (awk, xicf);
+			for (i = 0; xicf[i]; i++) hawk_freemem (hawk, xicf[i]);
+			hawk_freemem (hawk, xicf);
 		}
 	}
 
 #if defined(HAWK_OOCH_IS_BCH)
-	hawk_freemem (awk, xid);
+	hawk_freemem (hawk, xid);
 #endif
 
 	return rtx;
@@ -3263,13 +3263,13 @@ hawk_cmgr_t* hawk_rtx_getiocmgrstd (hawk_rtx_t* rtx, const hawk_ooch_t* ioname)
 	return HAWK_NULL;
 }
 
-static int add_globals (hawk_t* awk)
+static int add_globals (hawk_t* hawk)
 {
-	xtn_t* xtn = GET_XTN(awk);
+	xtn_t* xtn = GET_XTN(hawk);
 
-	xtn->gbl_argc = hawk_addgblwithoocstr(awk, HAWK_T("ARGC"));
-	xtn->gbl_argv = hawk_addgblwithoocstr(awk, HAWK_T("ARGV"));
-	xtn->gbl_environ = hawk_addgblwithoocstr(awk, HAWK_T("ENVIRON"));
+	xtn->gbl_argc = hawk_addgblwithoocstr(hawk, HAWK_T("ARGC"));
+	xtn->gbl_argv = hawk_addgblwithoocstr(hawk, HAWK_T("ARGV"));
+	xtn->gbl_environ = hawk_addgblwithoocstr(hawk, HAWK_T("ENVIRON"));
 
 	return (HAWK_UNLIKELY(xtn->gbl_argc <= -1 || xtn->gbl_argv <= -1 || xtn->gbl_environ <= -1))? -1: 0;
 }
@@ -3292,13 +3292,13 @@ static struct fnctab_t fnctab[] =
 	{ HAWK_T("getioattr"), { {3, 3, HAWK_T("vvr")},   fnc_getioattr, HAWK_RIO } }
 };
 
-static int add_functions (hawk_t* awk)
+static int add_functions (hawk_t* hawk)
 {
 	int i;
 
 	for (i = 0; i < HAWK_COUNTOF(fnctab); i++)
 	{
-		if (hawk_addfnc (awk, fnctab[i].name, &fnctab[i].spec) == HAWK_NULL) return -1;
+		if (hawk_addfnc (hawk, fnctab[i].name, &fnctab[i].spec) == HAWK_NULL) return -1;
 	}
 
 	return 0;

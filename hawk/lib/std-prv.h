@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
-    Copyright (c) 2006-2019 Chung, Hyung-Hwan. All rights reserved.
+    Copyright (c) 2006-2020 Chung, Hyung-Hwan. All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
     modification, are permitted provided that the following conditions
@@ -33,15 +33,15 @@
 extern "C" {
 #endif
 
-HAWK_EXPORT hawk_flt_t hawk_stdmathpow (hawk_t* awk, hawk_flt_t x, hawk_flt_t y);
-HAWK_EXPORT hawk_flt_t hawk_stdmathmod (hawk_t* awk, hawk_flt_t x, hawk_flt_t y);
+HAWK_EXPORT hawk_flt_t hawk_stdmathpow (hawk_t* hawk, hawk_flt_t x, hawk_flt_t y);
+HAWK_EXPORT hawk_flt_t hawk_stdmathmod (hawk_t* hawk, hawk_flt_t x, hawk_flt_t y);
 
-HAWK_EXPORT int hawk_stdmodstartup (hawk_t* awk);
-HAWK_EXPORT void hawk_stdmodshutdown (hawk_t* awk);
+HAWK_EXPORT int hawk_stdmodstartup (hawk_t* hawk);
+HAWK_EXPORT void hawk_stdmodshutdown (hawk_t* hawk);
 
-HAWK_EXPORT void* hawk_stdmodopen (hawk_t* awk, const hawk_mod_spec_t* spec);
-HAWK_EXPORT void hawk_stdmodclose (hawk_t* awk, void* handle);
-HAWK_EXPORT void* hawk_stdmodgetsym (hawk_t* awk, void* handle, const hawk_ooch_t* name);
+HAWK_EXPORT void* hawk_stdmodopen (hawk_t* hawk, const hawk_mod_spec_t* spec);
+HAWK_EXPORT void hawk_stdmodclose (hawk_t* hawk, void* handle);
+HAWK_EXPORT void* hawk_stdmodgetsym (hawk_t* hawk, void* handle, const hawk_ooch_t* name);
 
 #if defined(__cplusplus)
 }

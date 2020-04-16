@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
-    Copyright (c) 2006-2019 Chung, Hyung-Hwan. All rights reserved.
+    Copyright (c) 2006-2020 Chung, Hyung-Hwan. All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
     modification, are permitted provided that the following conditions
@@ -340,13 +340,13 @@ extern "C" {
 #endif
 
 /* print the entire tree */
-int hawk_prnpt (hawk_t* awk, hawk_nde_t* tree);
+int hawk_prnpt (hawk_t* hawk, hawk_nde_t* tree);
 /* print a single top-level node */
-int hawk_prnnde (hawk_t* awk, hawk_nde_t* node); 
+int hawk_prnnde (hawk_t* hawk, hawk_nde_t* node); 
 /* print the pattern part */
-int hawk_prnptnpt (hawk_t* awk, hawk_nde_t* tree);
+int hawk_prnptnpt (hawk_t* hawk, hawk_nde_t* tree);
 
-void hawk_clrpt (hawk_t* awk, hawk_nde_t* tree);
+void hawk_clrpt (hawk_t* hawk, hawk_nde_t* tree);
 
 #if defined(__cplusplus)
 }

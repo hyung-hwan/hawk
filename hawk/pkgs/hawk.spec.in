@@ -41,6 +41,9 @@ rm -rf $RPM_BUILD_ROOT%{_libdir}/pkgconfig
 rm -f $RPM_BUILD_ROOT%{_bindir}/uni-case
 rm -f $RPM_BUILD_ROOT%{_bindir}/uni-prop
 
+%check
+make check
+
 %clean
 rm -rf "$RPM_BUILD_ROOT"
 

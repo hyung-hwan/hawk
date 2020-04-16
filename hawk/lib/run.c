@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
-    Copyright (c) 2006-2019 Chung, Hyung-Hwan. All rights reserved.
+    Copyright (c) 2006-2020 Chung, Hyung-Hwan. All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
     modification, are permitted provided that the following conditions
@@ -90,7 +90,7 @@ struct pafv_t
 static hawk_oow_t push_arg_from_vals (hawk_rtx_t* rtx, hawk_nde_fncall_t* call, void* data);
 static hawk_oow_t push_arg_from_nde (hawk_rtx_t* rtx, hawk_nde_fncall_t* call, void* data);
 
-static int init_rtx (hawk_rtx_t* rtx, hawk_t* awk, hawk_rio_cbs_t* rio);
+static int init_rtx (hawk_rtx_t* rtx, hawk_t* hawk, hawk_rio_cbs_t* rio);
 static void fini_rtx (hawk_rtx_t* rtx, int fini_globals);
 
 static int init_globals (hawk_rtx_t* rtx);
@@ -850,47 +850,47 @@ static hawk_rbt_walk_t fini_module (hawk_rbt_t* rbt, hawk_rbt_pair_t* pair, void
 	return HAWK_RBT_WALK_FORWARD;
 }
 
-hawk_rtx_t* hawk_rtx_open (hawk_t* awk, hawk_oow_t xtnsize, hawk_rio_cbs_t* rio)
+hawk_rtx_t* hawk_rtx_open (hawk_t* hawk, hawk_oow_t xtnsize, hawk_rio_cbs_t* rio)
 {
 	hawk_rtx_t* rtx;
 	struct module_init_ctx_t mic;
 
-	/* clear the awk error code */
-	hawk_seterrnum (awk, HAWK_NULL, HAWK_ENOERR);
+	/* clear the hawk error code */
+	hawk_seterrnum (hawk, HAWK_NULL, HAWK_ENOERR);
 
 	/* check if the code has ever been parsed */
-	if (awk->tree.ngbls == 0 && 
-	    awk->tree.begin == HAWK_NULL &&
-	    awk->tree.end == HAWK_NULL &&
-	    awk->tree.chain_size == 0 &&
-	    hawk_htb_getsize(awk->tree.funs) == 0)
+	if (hawk->tree.ngbls == 0 && 
+	    hawk->tree.begin == HAWK_NULL &&
+	    hawk->tree.end == HAWK_NULL &&
+	    hawk->tree.chain_size == 0 &&
+	    hawk_htb_getsize(hawk->tree.funs) == 0)
 	{
-		hawk_seterrnum (awk, HAWK_NULL, HAWK_EPERM);
+		hawk_seterrnum (hawk, HAWK_NULL, HAWK_EPERM);
 		return HAWK_NULL;
 	}
 	
 	/* allocate the storage for the rtx object */
-	rtx = (hawk_rtx_t*)hawk_allocmem(awk, HAWK_SIZEOF(hawk_rtx_t) + xtnsize);
+	rtx = (hawk_rtx_t*)hawk_allocmem(hawk, HAWK_SIZEOF(hawk_rtx_t) + xtnsize);
 	if (HAWK_UNLIKELY(!rtx))
 	{
-		/* if it fails, the failure is reported thru the awk object */
+		/* if it fails, the failure is reported thru the hawk object */
 		return HAWK_NULL;
 	}
 
 	/* initialize the rtx object */
 	HAWK_MEMSET (rtx, 0, HAWK_SIZEOF(hawk_rtx_t) + xtnsize);
 	rtx->_instsize = HAWK_SIZEOF(hawk_rtx_t);
-	if (HAWK_UNLIKELY(init_rtx(rtx, awk, rio) <= -1)) 
+	if (HAWK_UNLIKELY(init_rtx(rtx, hawk, rio) <= -1)) 
 	{
-		hawk_freemem (awk, rtx);
+		hawk_freemem (hawk, rtx);
 		return HAWK_NULL;
 	}
 
 	if (HAWK_UNLIKELY(init_globals(rtx) <= -1))
 	{
-		hawk_rtx_errortohawk (rtx, awk);
+		hawk_rtx_errortohawk (rtx, hawk);
 		fini_rtx (rtx, 0);
-		hawk_freemem (awk, rtx);
+		hawk_freemem (hawk, rtx);
 		return HAWK_NULL;
 	}
 
@@ -908,7 +908,7 @@ hawk_rtx_t* hawk_rtx_open (hawk_t* awk, hawk_oow_t xtnsize, hawk_rio_cbs_t* rio)
 		}
 
 		fini_rtx (rtx, 1);
-		hawk_freemem (awk, rtx);
+		hawk_freemem (hawk, rtx);
 		return HAWK_NULL;
 	}
 
@@ -988,7 +988,7 @@ static void same_namedval (hawk_htb_t* map, void* dptr, hawk_oow_t dlen)
 	hawk_rtx_refdownval_nofree (*(hawk_rtx_t**)hawk_htb_getxtn(map), dptr);
 }
 
-static int init_rtx (hawk_rtx_t* rtx, hawk_t* awk, hawk_rio_cbs_t* rio)
+static int init_rtx (hawk_rtx_t* rtx, hawk_t* hawk, hawk_rio_cbs_t* rio)
 {
 	static hawk_htb_style_t style_for_named =
 	{
@@ -1007,12 +1007,12 @@ static int init_rtx (hawk_rtx_t* rtx, hawk_t* awk, hawk_rio_cbs_t* rio)
 	};
 	hawk_oow_t stack_limit, i;
 
-	rtx->_gem = awk->_gem;
-	rtx->hawk = awk;
+	rtx->_gem = hawk->_gem;
+	rtx->hawk = hawk;
 
 	CLRERR (rtx);
 
-	stack_limit = awk->parse.pragma.rtx_stack_limit > 0? awk->parse.pragma.rtx_stack_limit: awk->opt.rtx_stack_limit;
+	stack_limit = hawk->parse.pragma.rtx_stack_limit > 0? hawk->parse.pragma.rtx_stack_limit: hawk->opt.rtx_stack_limit;
 	if (stack_limit < HAWK_MIN_RTX_STACK_LIMIT) stack_limit = HAWK_MIN_RTX_STACK_LIMIT;
 	rtx->stack = hawk_rtx_allocmem(rtx, stack_limit * HAWK_SIZEOF(void*));
 	if (HAWK_UNLIKELY(!rtx->stack)) goto oops_0;
@@ -1068,7 +1068,7 @@ static int init_rtx (hawk_rtx_t* rtx, hawk_t* awk, hawk_rio_cbs_t* rio)
 	hawk_htb_setstyle (rtx->named, &style_for_named);
 
 	rtx->format.tmp.ptr = (hawk_ooch_t*)hawk_rtx_allocmem(rtx, 4096 * HAWK_SIZEOF(hawk_ooch_t)); 
-	if (HAWK_UNLIKELY(!rtx->format.tmp.ptr)) goto oops_12; /* the error is set on the awk object after this jump is made */
+	if (HAWK_UNLIKELY(!rtx->format.tmp.ptr)) goto oops_12; /* the error is set on the hawk object after this jump is made */
 	rtx->format.tmp.len = 4096;
 	rtx->format.tmp.inc = 4096 * 2;
 
@@ -4892,7 +4892,7 @@ static HAWK_INLINE int __cmp_val (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t*
 	static cmp_val_t func[] =
 	{
 		/* this table must be synchronized with 
-		 * the HAWK_VAL_XXX values in awk.h */
+		 * the HAWK_VAL_XXX values in hawk.h */
 		__cmp_nil_nil, __cmp_nil_int, __cmp_nil_flt, __cmp_nil_str, __cmp_nil_mbs, __cmp_nil_fun, __cmp_nil_map,  
 		__cmp_int_nil, __cmp_int_int, __cmp_int_flt, __cmp_int_str, __cmp_int_mbs, __cmp_int_fun, __cmp_int_map,
 		__cmp_flt_nil, __cmp_flt_int, __cmp_flt_flt, __cmp_flt_str, __cmp_flt_mbs, __cmp_flt_fun, __cmp_flt_map,
@@ -5273,7 +5273,7 @@ static hawk_val_t* eval_binop_mod (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t
 	hawk_flt_t r1, r2;
 	hawk_val_t* res;
 
-	/* the mod function must be provided when the awk object is created to be able to calculate floating-pointer remainder */
+	/* the mod function must be provided when the hawk object is created to be able to calculate floating-pointer remainder */
 	HAWK_ASSERT (rtx->hawk->prm.math.mod != HAWK_NULL);
 
 	n1 = hawk_rtx_valtonum(rtx, left, &l1, &r1);
@@ -5902,7 +5902,7 @@ static HAWK_INLINE hawk_val_t* eval_fncall_fun (hawk_rtx_t* rtx, hawk_nde_t* nde
 
 	if (!call->u.fun.fun)
 	{
-		/* there can be multiple runtime instances for a single awk object.
+		/* there can be multiple runtime instances for a single hawk object.
 		 * changing the parse tree from one runtime instance can affect
 		 * other instances. however i do change the parse tree without protection
 		 * hoping that the pointer assignment is atomic. (call->u.fun.fun = fun).
@@ -6072,7 +6072,7 @@ hawk_val_t* hawk_rtx_evalcall (
 
 	if (fun)
 	{
-		/* extra step for normal awk functions */
+		/* extra step for normal hawk functions */
 		while (nargs < fun->nargs)
 		{
 			/* push as many nils as the number of missing actual arguments */
@@ -6091,7 +6091,7 @@ hawk_val_t* hawk_rtx_evalcall (
 
 	if (fun)
 	{
-		/* normal awk function */
+		/* normal hawk function */
 		HAWK_ASSERT (fun->body->type == HAWK_NDE_BLK);
 		n = run_block(rtx, (hawk_nde_blk_t*)fun->body);
 	}

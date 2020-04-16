@@ -1,7 +1,7 @@
 /*
  * $Id$
  * 
-    Copyright (c) 2006-2019 Chung, Hyung-Hwan. All rights reserved.
+    Copyright (c) 2006-2020 Chung, Hyung-Hwan. All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
     modification, are permitted provided that the following conditions
@@ -324,47 +324,47 @@ void Hawk::Value::operator delete[] (void* ptr)
 }
 #endif
 
-Hawk::Value::Value (): run (HAWK_NULL), val (hawk_get_awk_nil_val()) 
+Hawk::Value::Value (): run(HAWK_NULL), val(hawk_get_nil_val()) 
 {
-	cached.str.ptr = HAWK_NULL;
-	cached.str.len = 0;
-	cached.mbs.ptr = HAWK_NULL;
-	cached.mbs.len = 0;
+	this->cached.str.ptr = HAWK_NULL;
+	this->cached.str.len = 0;
+	this->cached.mbs.ptr = HAWK_NULL;
+	this->cached.mbs.len = 0;
 }
 
-Hawk::Value::Value (Run& run): run (&run), val (hawk_get_awk_nil_val()) 
+Hawk::Value::Value (Run& run): run(&run), val(hawk_get_nil_val()) 
 {
-	cached.str.ptr = HAWK_NULL;
-	cached.str.len = 0;
-	cached.mbs.ptr = HAWK_NULL;
-	cached.mbs.len = 0;
+	this->cached.str.ptr = HAWK_NULL;
+	this->cached.str.len = 0;
+	this->cached.mbs.ptr = HAWK_NULL;
+	this->cached.mbs.len = 0;
 }
 
-Hawk::Value::Value (Run* run): run (run), val (hawk_get_awk_nil_val()) 
+Hawk::Value::Value (Run* run): run(run), val(hawk_get_nil_val()) 
 {
-	cached.str.ptr = HAWK_NULL;
-	cached.str.len = 0;
-	cached.mbs.ptr = HAWK_NULL;
-	cached.mbs.len = 0;
+	this->cached.str.ptr = HAWK_NULL;
+	this->cached.str.len = 0;
+	this->cached.mbs.ptr = HAWK_NULL;
+	this->cached.mbs.len = 0;
 }
 
 Hawk::Value::Value (const Value& v): run(v.run), val(v.val)
 {
-	if (run) hawk_rtx_refupval (run->rtx, val);
+	if (this->run) hawk_rtx_refupval (this->run->rtx, this->val);
 
-	cached.str.ptr = HAWK_NULL;
-	cached.str.len = 0;
-	cached.mbs.ptr = HAWK_NULL;
-	cached.mbs.len = 0;
+	this->cached.str.ptr = HAWK_NULL;
+	this->cached.str.len = 0;
+	this->cached.mbs.ptr = HAWK_NULL;
+	this->cached.mbs.len = 0;
 }
 
 Hawk::Value::~Value ()
 {
-	if (run != HAWK_NULL)
+	if (this->run)
 	{
-		hawk_rtx_refdownval (run->rtx, val);
-		if (cached.str.ptr) hawk_rtx_freemem (run->rtx, cached.str.ptr);
-		if (cached.mbs.ptr) hawk_rtx_freemem (run->rtx, cached.mbs.ptr);
+		hawk_rtx_refdownval (this->run->rtx, val);
+		if (this->cached.str.ptr) hawk_rtx_freemem (this->run->rtx, cached.str.ptr);
+		if (this->cached.mbs.ptr) hawk_rtx_freemem (this->run->rtx, cached.mbs.ptr);
 	}
 }
 
@@ -372,52 +372,52 @@ Hawk::Value& Hawk::Value::operator= (const Value& v)
 {
 	if (this == &v) return *this;
 
-	if (run)
+	if (this->run)
 	{
-		hawk_rtx_refdownval (run->rtx, val);
-		if (cached.str.ptr)
+		hawk_rtx_refdownval (this->run->rtx, this->val);
+		if (this->cached.str.ptr)
 		{
-			hawk_rtx_freemem (run->rtx, cached.str.ptr);
-			cached.str.ptr = HAWK_NULL;
-			cached.str.len = 0;
+			hawk_rtx_freemem (this->run->rtx, this->cached.str.ptr);
+			this->cached.str.ptr = HAWK_NULL;
+			this->cached.str.len = 0;
 		}
-		if (cached.mbs.ptr)
+		if (this->cached.mbs.ptr)
 		{
-			hawk_rtx_freemem (run->rtx, cached.mbs.ptr);
-			cached.mbs.ptr = HAWK_NULL;
-			cached.mbs.len = 0;
+			hawk_rtx_freemem (this->run->rtx, this->cached.mbs.ptr);
+			this->cached.mbs.ptr = HAWK_NULL;
+			this->cached.mbs.len = 0;
 		}
 	}
 
-	run = v.run;
-	val = v.val;
+	this->run = v.run;
+	this->val = v.val;
 
-	if (run) hawk_rtx_refupval (run->rtx, val);
+	if (this->run) hawk_rtx_refupval (this->run->rtx, this->val);
 
 	return *this;
 }
 
 void Hawk::Value::clear ()
 {
-	if (run)
+	if (this->run)
 	{
-		hawk_rtx_refdownval (run->rtx, val);
+		hawk_rtx_refdownval (this->run->rtx, this->val);
 
-		if (cached.str.ptr)
+		if (this->cached.str.ptr)
 		{
-			hawk_rtx_freemem (run->rtx, cached.str.ptr);
-			cached.str.ptr = HAWK_NULL;
-			cached.str.len = 0;
+			hawk_rtx_freemem (this->run->rtx, this->cached.str.ptr);
+			this->cached.str.ptr = HAWK_NULL;
+			this->cached.str.len = 0;
 		}
-		if (cached.mbs.ptr)
+		if (this->cached.mbs.ptr)
 		{
-			hawk_rtx_freemem (run->rtx, cached.mbs.ptr);
-			cached.mbs.ptr = HAWK_NULL;
-			cached.mbs.len = 0;
+			hawk_rtx_freemem (this->run->rtx, this->cached.mbs.ptr);
+			this->cached.mbs.ptr = HAWK_NULL;
+			this->cached.mbs.len = 0;
 		}
 
-		run = HAWK_NULL;
-		val = hawk_get_awk_nil_val();
+		this->run = HAWK_NULL;
+		this->val = hawk_get_nil_val();
 	}
 }
 
@@ -1365,8 +1365,8 @@ const hawk_ooch_t* Hawk::getErrorString (hawk_errnum_t num) const
 
 const hawk_ooch_t* Hawk::xerrstr (hawk_t* a, hawk_errnum_t num) 
 {
-	Hawk* awk = *(Hawk**)GET_XTN(a);
-	return awk->getErrorString(num);
+	Hawk* hawk = *(Hawk**)GET_XTN(a);
+	return hawk->getErrorString(num);
 }
 
 hawk_errnum_t Hawk::getErrorNumber () const 
@@ -1518,15 +1518,15 @@ void Hawk::retrieveError (Run* run)
 	hawk_rtx_geterrinf (run->rtx, &errinf);
 }
 
-static void fini_xtn (hawk_t* awk)
+static void fini_xtn (hawk_t* hawk)
 {
-	xtn_t* xtn = GET_XTN(awk);
+	xtn_t* xtn = GET_XTN(hawk);
 	xtn->hawk->uponClosing ();
 }
 
-static void clear_xtn (hawk_t* awk)
+static void clear_xtn (hawk_t* hawk)
 {
-	xtn_t* xtn = GET_XTN(awk);
+	xtn_t* xtn = GET_XTN(hawk);
 	xtn->hawk->uponClearing ();
 }
 
@@ -1556,7 +1556,7 @@ int Hawk::open ()
 
 	this->hawk->_instsize += HAWK_SIZEOF(xtn_t);
 
-	// associate this Hawk object with the underlying awk object
+	// associate this Hawk object with the underlying hawk object
 	xtn_t* xtn = (xtn_t*)GET_XTN(this->hawk);
 	xtn->hawk = this;
 	xtn->ecb.close = fini_xtn;
@@ -2112,14 +2112,14 @@ int Hawk::xstrs_t::add (hawk_t* hawk, const hawk_bch_t* arg, hawk_oow_t len)
 	return 0;
 }
 
-void Hawk::xstrs_t::clear (hawk_t* awk) 
+void Hawk::xstrs_t::clear (hawk_t* hawk) 
 {
 	if (this->ptr != HAWK_NULL)
 	{
 		while (this->len > 0)
-			hawk_freemem (awk, this->ptr[--this->len].ptr);
+			hawk_freemem (hawk, this->ptr[--this->len].ptr);
 
-		hawk_freemem (awk, this->ptr);
+		hawk_freemem (hawk, this->ptr);
 		this->ptr = HAWK_NULL;
 		this->capa = 0;
 	}
@@ -2392,7 +2392,7 @@ hawk_ooi_t Hawk::writeSource (hawk_t* hawk, hawk_sio_cmd_t cmd, hawk_sio_arg_t* 
 hawk_ooi_t Hawk::pipeHandler (hawk_rtx_t* rtx, hawk_rio_cmd_t cmd, hawk_rio_arg_t* riod, void* data, hawk_oow_t count)
 {
 	rxtn_t* rxtn = GET_RXTN(rtx);
-	Hawk* awk = rxtn->run->hawk;
+	Hawk* hawk = rxtn->run->hawk;
 
 	HAWK_ASSERT ((riod->type & 0xFF) == HAWK_RIO_PIPE);
 
@@ -2400,29 +2400,29 @@ hawk_ooi_t Hawk::pipeHandler (hawk_rtx_t* rtx, hawk_rio_cmd_t cmd, hawk_rio_arg_
 
 	try
 	{
-		if (awk->pipe_handler)
+		if (hawk->pipe_handler)
 		{
 			switch (cmd)
 			{
 				case HAWK_RIO_CMD_OPEN:
-					return awk->pipe_handler->open(pipe);
+					return hawk->pipe_handler->open(pipe);
 
 				case HAWK_RIO_CMD_CLOSE:
-					return awk->pipe_handler->close(pipe);
+					return hawk->pipe_handler->close(pipe);
 
 				case HAWK_RIO_CMD_READ:
-					return awk->pipe_handler->read(pipe, (hawk_ooch_t*)data, count);
+					return hawk->pipe_handler->read(pipe, (hawk_ooch_t*)data, count);
 
 				case HAWK_RIO_CMD_READ_BYTES:
-					return awk->pipe_handler->readBytes(pipe, (hawk_bch_t*)data, count);
+					return hawk->pipe_handler->readBytes(pipe, (hawk_bch_t*)data, count);
 
 				case HAWK_RIO_CMD_WRITE:
-					return awk->pipe_handler->write(pipe, (const hawk_ooch_t*)data, count);
+					return hawk->pipe_handler->write(pipe, (const hawk_ooch_t*)data, count);
 				case HAWK_RIO_CMD_WRITE_BYTES:
-					return awk->pipe_handler->writeBytes(pipe, (const hawk_bch_t*)data, count);
+					return hawk->pipe_handler->writeBytes(pipe, (const hawk_bch_t*)data, count);
 
 				case HAWK_RIO_CMD_FLUSH:
-					return awk->pipe_handler->flush(pipe);
+					return hawk->pipe_handler->flush(pipe);
 	
 				default:
 					hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EINTERN);
@@ -2434,25 +2434,25 @@ hawk_ooi_t Hawk::pipeHandler (hawk_rtx_t* rtx, hawk_rio_cmd_t cmd, hawk_rio_arg_
 			switch (cmd)
 			{
 				case HAWK_RIO_CMD_OPEN:
-					return awk->openPipe(pipe);
+					return hawk->openPipe(pipe);
 
 				case HAWK_RIO_CMD_CLOSE:
-					return awk->closePipe(pipe);
+					return hawk->closePipe(pipe);
 
 				case HAWK_RIO_CMD_READ:
-					return awk->readPipe(pipe, (hawk_ooch_t*)data, count);
+					return hawk->readPipe(pipe, (hawk_ooch_t*)data, count);
 
 				case HAWK_RIO_CMD_READ_BYTES:
-					return awk->readPipeBytes(pipe, (hawk_bch_t*)data, count);
+					return hawk->readPipeBytes(pipe, (hawk_bch_t*)data, count);
 
 				case HAWK_RIO_CMD_WRITE:
-					return awk->writePipe(pipe, (const hawk_ooch_t*)data, count);
+					return hawk->writePipe(pipe, (const hawk_ooch_t*)data, count);
 
 				case HAWK_RIO_CMD_WRITE_BYTES:
-					return awk->writePipeBytes(pipe, (const hawk_bch_t*)data, count);
+					return hawk->writePipeBytes(pipe, (const hawk_bch_t*)data, count);
 	
 				case HAWK_RIO_CMD_FLUSH:
-					return awk->flushPipe(pipe);
+					return hawk->flushPipe(pipe);
 	
 				default:
 					hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EINTERN);
@@ -2469,7 +2469,7 @@ hawk_ooi_t Hawk::pipeHandler (hawk_rtx_t* rtx, hawk_rio_cmd_t cmd, hawk_rio_arg_
 hawk_ooi_t Hawk::fileHandler (hawk_rtx_t* rtx, hawk_rio_cmd_t cmd, hawk_rio_arg_t* riod, void* data, hawk_oow_t count)
 {
 	rxtn_t* rxtn = GET_RXTN(rtx);
-	Hawk* awk = rxtn->run->hawk;
+	Hawk* hawk = rxtn->run->hawk;
 
 	HAWK_ASSERT ((riod->type & 0xFF) == HAWK_RIO_FILE);
 
@@ -2477,29 +2477,29 @@ hawk_ooi_t Hawk::fileHandler (hawk_rtx_t* rtx, hawk_rio_cmd_t cmd, hawk_rio_arg_
 
 	try
 	{
-		if (awk->file_handler)
+		if (hawk->file_handler)
 		{
 			switch (cmd)
 			{
 				case HAWK_RIO_CMD_OPEN:
-					return awk->file_handler->open(file);
+					return hawk->file_handler->open(file);
 
 				case HAWK_RIO_CMD_CLOSE:
-					return awk->file_handler->close(file);
+					return hawk->file_handler->close(file);
 
 				case HAWK_RIO_CMD_READ:
-					return awk->file_handler->read(file, (hawk_ooch_t*)data, count);
+					return hawk->file_handler->read(file, (hawk_ooch_t*)data, count);
 
 				case HAWK_RIO_CMD_READ_BYTES:
-					return awk->file_handler->readBytes(file, (hawk_bch_t*)data, count);
+					return hawk->file_handler->readBytes(file, (hawk_bch_t*)data, count);
 
 				case HAWK_RIO_CMD_WRITE:
-					return awk->file_handler->write(file, (const hawk_ooch_t*)data, count);
+					return hawk->file_handler->write(file, (const hawk_ooch_t*)data, count);
 				case HAWK_RIO_CMD_WRITE_BYTES:
-					return awk->file_handler->writeBytes(file, (const hawk_bch_t*)data, count);
+					return hawk->file_handler->writeBytes(file, (const hawk_bch_t*)data, count);
 
 				case HAWK_RIO_CMD_FLUSH:
-					return awk->file_handler->flush(file);
+					return hawk->file_handler->flush(file);
 	
 				default:
 					hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EINTERN);
@@ -2511,25 +2511,25 @@ hawk_ooi_t Hawk::fileHandler (hawk_rtx_t* rtx, hawk_rio_cmd_t cmd, hawk_rio_arg_
 			switch (cmd)
 			{
 				case HAWK_RIO_CMD_OPEN:
-					return awk->openFile(file);
+					return hawk->openFile(file);
 
 				case HAWK_RIO_CMD_CLOSE:
-					return awk->closeFile(file);
+					return hawk->closeFile(file);
 
 				case HAWK_RIO_CMD_READ:
-					return awk->readFile(file, (hawk_ooch_t*)data, count);
+					return hawk->readFile(file, (hawk_ooch_t*)data, count);
 
 				case HAWK_RIO_CMD_READ_BYTES:
-					return awk->readFileBytes(file, (hawk_bch_t*)data, count);
+					return hawk->readFileBytes(file, (hawk_bch_t*)data, count);
 
 				case HAWK_RIO_CMD_WRITE:
-					return awk->writeFile(file, (const hawk_ooch_t*)data, count);
+					return hawk->writeFile(file, (const hawk_ooch_t*)data, count);
 
 				case HAWK_RIO_CMD_WRITE_BYTES:
-					return awk->writeFileBytes(file, (const hawk_bch_t*)data, count);
+					return hawk->writeFileBytes(file, (const hawk_bch_t*)data, count);
 
 				case HAWK_RIO_CMD_FLUSH:
-					return awk->flushFile(file);
+					return hawk->flushFile(file);
 
 				default:
 					hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EINTERN);
@@ -2546,7 +2546,7 @@ hawk_ooi_t Hawk::fileHandler (hawk_rtx_t* rtx, hawk_rio_cmd_t cmd, hawk_rio_arg_
 hawk_ooi_t Hawk::consoleHandler (hawk_rtx_t* rtx, hawk_rio_cmd_t cmd, hawk_rio_arg_t* riod, void* data, hawk_oow_t count)
 {
 	rxtn_t* rxtn = GET_RXTN(rtx);
-	Hawk* awk = rxtn->run->hawk;
+	Hawk* hawk = rxtn->run->hawk;
 
 	HAWK_ASSERT ((riod->type & 0xFF) == HAWK_RIO_CONSOLE);
 
@@ -2554,31 +2554,31 @@ hawk_ooi_t Hawk::consoleHandler (hawk_rtx_t* rtx, hawk_rio_cmd_t cmd, hawk_rio_a
 
 	try
 	{
-		if (awk->console_handler)
+		if (hawk->console_handler)
 		{
 			switch (cmd)
 			{
 				case HAWK_RIO_CMD_OPEN:
-					return awk->console_handler->open(console);
+					return hawk->console_handler->open(console);
 
 				case HAWK_RIO_CMD_CLOSE:
-					return awk->console_handler->close(console);
+					return hawk->console_handler->close(console);
 
 				case HAWK_RIO_CMD_READ:
-					return awk->console_handler->read(console, (hawk_ooch_t*)data, count);
+					return hawk->console_handler->read(console, (hawk_ooch_t*)data, count);
 
 				case HAWK_RIO_CMD_READ_BYTES:
-					return awk->console_handler->readBytes(console, (hawk_bch_t*)data, count);
+					return hawk->console_handler->readBytes(console, (hawk_bch_t*)data, count);
 				case HAWK_RIO_CMD_WRITE:
-					return awk->console_handler->write(console, (const hawk_ooch_t*)data, count);
+					return hawk->console_handler->write(console, (const hawk_ooch_t*)data, count);
 				case HAWK_RIO_CMD_WRITE_BYTES:
-					return awk->console_handler->writeBytes(console, (const hawk_bch_t*)data, count);
+					return hawk->console_handler->writeBytes(console, (const hawk_bch_t*)data, count);
 
 				case HAWK_RIO_CMD_FLUSH:
-					return awk->console_handler->flush(console);
+					return hawk->console_handler->flush(console);
 
 				case HAWK_RIO_CMD_NEXT:
-					return awk->console_handler->next(console);
+					return hawk->console_handler->next(console);
 
 				default:
 					hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EINTERN);
@@ -2590,28 +2590,28 @@ hawk_ooi_t Hawk::consoleHandler (hawk_rtx_t* rtx, hawk_rio_cmd_t cmd, hawk_rio_a
 			switch (cmd)
 			{
 				case HAWK_RIO_CMD_OPEN:
-					return awk->openConsole(console);
+					return hawk->openConsole(console);
 
 				case HAWK_RIO_CMD_CLOSE:
-					return awk->closeConsole(console);
+					return hawk->closeConsole(console);
 
 				case HAWK_RIO_CMD_READ:
-					return awk->readConsole(console, (hawk_ooch_t*)data, count);
+					return hawk->readConsole(console, (hawk_ooch_t*)data, count);
 
 				case HAWK_RIO_CMD_READ_BYTES:
-					return awk->readConsoleBytes(console, (hawk_bch_t*)data, count);
+					return hawk->readConsoleBytes(console, (hawk_bch_t*)data, count);
 
 				case HAWK_RIO_CMD_WRITE:
-					return awk->writeConsole(console, (const hawk_ooch_t*)data, count);
+					return hawk->writeConsole(console, (const hawk_ooch_t*)data, count);
 
 				case HAWK_RIO_CMD_WRITE_BYTES:
-					return awk->writeConsoleBytes(console, (const hawk_bch_t*)data, count);
+					return hawk->writeConsoleBytes(console, (const hawk_bch_t*)data, count);
 
 				case HAWK_RIO_CMD_FLUSH:
-					return awk->flushConsole(console);
+					return hawk->flushConsole(console);
 
 				case HAWK_RIO_CMD_NEXT:
-					return awk->nextConsole(console);
+					return hawk->nextConsole(console);
 
 				default:
 					hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EINTERN);
@@ -2763,33 +2763,33 @@ int Hawk::functionHandler (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	return rxtn->run->hawk->dispatch_function(rxtn->run, fi);
 }
 
-hawk_flt_t Hawk::pow (hawk_t* awk, hawk_flt_t x, hawk_flt_t y)
+hawk_flt_t Hawk::pow (hawk_t* hawk, hawk_flt_t x, hawk_flt_t y)
 {
-	xtn_t* xtn = GET_XTN(awk);
+	xtn_t* xtn = GET_XTN(hawk);
 	return xtn->hawk->pow(x, y);
 }
 
-hawk_flt_t Hawk::mod (hawk_t* awk, hawk_flt_t x, hawk_flt_t y)
+hawk_flt_t Hawk::mod (hawk_t* hawk, hawk_flt_t x, hawk_flt_t y)
 {
-	xtn_t* xtn = GET_XTN(awk);
+	xtn_t* xtn = GET_XTN(hawk);
 	return xtn->hawk->mod(x, y);
 }
 
-void* Hawk::modopen (hawk_t* awk, const hawk_mod_spec_t* spec)
+void* Hawk::modopen (hawk_t* hawk, const hawk_mod_spec_t* spec)
 {
-	xtn_t* xtn = GET_XTN(awk);
+	xtn_t* xtn = GET_XTN(hawk);
 	return xtn->hawk->modopen(spec);
 }
 
-void Hawk::modclose (hawk_t* awk, void* handle)
+void Hawk::modclose (hawk_t* hawk, void* handle)
 {
-	xtn_t* xtn = GET_XTN(awk);
+	xtn_t* xtn = GET_XTN(hawk);
 	xtn->hawk->modclose (handle);
 }
 
-void* Hawk::modgetsym (hawk_t* awk, void* handle, const hawk_ooch_t* name)
+void* Hawk::modgetsym (hawk_t* hawk, void* handle, const hawk_ooch_t* name)
 {
-	xtn_t* xtn = GET_XTN(awk);
+	xtn_t* xtn = GET_XTN(hawk);
 	return xtn->hawk->modgetsym(handle, name);
 }
 /////////////////////////////////

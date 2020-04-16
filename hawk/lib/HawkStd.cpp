@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
-    Copyright (c) 2006-2019 Chung, Hyung-Hwan. All rights reserved.
+    Copyright (c) 2006-2020 Chung, Hyung-Hwan. All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
     modification, are permitted provided that the following conditions
@@ -79,7 +79,7 @@ static hawk_sio_t* open_sio (Hawk* hawk, HawkStd::Run* run, const hawk_ooch_t* f
 {
 	hawk_sio_t* sio;
 
-	//sio = hawk_sio_open ((run? ((Hawk::awk_t*)*(Hawk*)*run)->mmgr: awk->getMmgr()), 0, file, flags);
+	//sio = hawk_sio_open ((run? ((Hawk::hawk_t*)*(Hawk*)*run)->mmgr: hawk->getMmgr()), 0, file, flags);
 	sio = hawk_sio_open((run? (hawk_gem_t*)*run: (hawk_gem_t*)*hawk), 0, file, flags);
 	if (sio == HAWK_NULL)
 	{
@@ -109,7 +109,7 @@ static hawk_sio_t* open_sio_std (Hawk* hawk, HawkStd::Run* run, hawk_sio_std_t s
 		HAWK_T("stderr"),
 	};
 
-	//sio = hawk_sio_openstd ((run? ((Hawk::awk_t*)*(Hawk*)*run)->mmgr: awk->getMmgr()), 0, std, flags);
+	//sio = hawk_sio_openstd ((run? ((Hawk::hawk_t*)*(Hawk*)*run)->mmgr: hawk->getMmgr()), 0, std, flags);
 	sio = hawk_sio_openstd((run? (hawk_gem_t*)*run: (hawk_gem_t*)*hawk), 0, std, flags);
 	if (sio == HAWK_NULL)
 	{
@@ -122,7 +122,7 @@ static hawk_sio_t* open_sio_std (Hawk* hawk, HawkStd::Run* run, hawk_sio_std_t s
 		else
 		{
 			const hawk_ooch_t* bem = hawk_backuperrmsg((hawk_t*)*hawk);
-			//awk->formatError (HAWK_EOPEN, HAWK_NULL, HAWK_T("unable to open %js - %js"), std_names[std], bem);
+			//hawk->formatError (HAWK_EOPEN, HAWK_NULL, HAWK_T("unable to open %js - %js"), std_names[std], bem);
 			hawk_seterrfmt ((hawk_t*)*hawk, HAWK_NULL, HAWK_EOPEN, HAWK_T("unable to open %js - %js"), std_names[std], bem);
 		}
 	}
@@ -184,7 +184,7 @@ void HawkStd::close ()
 	// but Hawk::close() still needs to call some module's fini and
 	// unload functions. So it must be done in HawkStd::uponClosing()
 	// which is called after modules have been unloaded but while
-	// the underlying awk object is still alive. 
+	// the underlying hawk object is still alive. 
 	//
 	// See HawkStd::uponClosing() below.
 	//
@@ -971,7 +971,7 @@ nextfile:
 	 * if an argument has a special form of var=val, it is treated specially 
 	 * 
 	 * on the command-line
-	 *   hawk -f a.awk a=20 /etc/passwd
+	 *   hawk -f a.hawk a=20 /etc/passwd
 	 * or via ARGV
 	 *    hawk 'BEGIN { ARGV[1] = "a=20"; }
 	 *                { print a $1; }' dummy /etc/hosts

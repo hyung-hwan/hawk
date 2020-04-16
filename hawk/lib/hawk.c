@@ -1,7 +1,7 @@
 /*
  * $Id$ 
  *
-    Copyright (c) 2006-2019 Chung, Hyung-Hwan. All rights reserved.
+    Copyright (c) 2006-2020 Chung, Hyung-Hwan. All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
     modification, are permitted provided that the following conditions
@@ -28,22 +28,22 @@
 
 static void free_fun (hawk_htb_t* map, void* vptr, hawk_oow_t vlen)
 {
-	hawk_t* awk = *(hawk_t**)(map + 1);
+	hawk_t* hawk = *(hawk_t**)(map + 1);
 	hawk_fun_t* f = (hawk_fun_t*)vptr;
 
 	/* f->name doesn't have to be freed */
-	/*hawk_freemem (awk, f->name);*/
+	/*hawk_freemem (hawk, f->name);*/
 
-	if (f->argspec) hawk_freemem (awk, f->argspec);
-	hawk_clrpt (awk, f->body);
-	hawk_freemem (awk, f);
+	if (f->argspec) hawk_freemem (hawk, f->argspec);
+	hawk_clrpt (hawk, f->body);
+	hawk_freemem (hawk, f);
 }
 
 static void free_fnc (hawk_htb_t* map, void* vptr, hawk_oow_t vlen)
 {
-	hawk_t* awk = *(hawk_t**)(map + 1);
+	hawk_t* hawk = *(hawk_t**)(map + 1);
 	hawk_fnc_t* f = (hawk_fnc_t*)vptr;
-	hawk_freemem (awk, f);
+	hawk_freemem (hawk, f);
 }
 
 static int init_token (hawk_t* hawk, hawk_tok_t* tok)
@@ -79,25 +79,25 @@ static void clear_token (hawk_tok_t* tok)
 
 hawk_t* hawk_open (hawk_mmgr_t* mmgr, hawk_oow_t xtnsize, hawk_cmgr_t* cmgr, const hawk_prm_t* prm, hawk_errnum_t* errnum)
 {
-	hawk_t* awk;
+	hawk_t* hawk;
 
-	awk = (hawk_t*)HAWK_MMGR_ALLOC(mmgr, HAWK_SIZEOF(hawk_t) + xtnsize);
-	if (awk)
+	hawk = (hawk_t*)HAWK_MMGR_ALLOC(mmgr, HAWK_SIZEOF(hawk_t) + xtnsize);
+	if (hawk)
 	{
 		int xret;
 
-		xret = hawk_init(awk, mmgr, cmgr, prm);
+		xret = hawk_init(hawk, mmgr, cmgr, prm);
 		if (xret <= -1)
 		{
-			if (errnum) *errnum = hawk_geterrnum(awk);
-			HAWK_MMGR_FREE (mmgr, awk);
-			awk = HAWK_NULL;
+			if (errnum) *errnum = hawk_geterrnum(hawk);
+			HAWK_MMGR_FREE (mmgr, hawk);
+			hawk = HAWK_NULL;
 		}
-		else HAWK_MEMSET (awk + 1, 0, xtnsize);
+		else HAWK_MEMSET (hawk + 1, 0, xtnsize);
 	}
 	else if (errnum) *errnum = HAWK_ENOMEM;
 
-	return awk;
+	return hawk;
 }
 
 void hawk_close (hawk_t* hawk)
@@ -106,7 +106,7 @@ void hawk_close (hawk_t* hawk)
 	HAWK_MMGR_FREE (hawk_getmmgr(hawk), hawk);
 }
 
-int hawk_init (hawk_t* awk, hawk_mmgr_t* mmgr, hawk_cmgr_t* cmgr, const hawk_prm_t* prm)
+int hawk_init (hawk_t* hawk, hawk_mmgr_t* mmgr, hawk_cmgr_t* cmgr, const hawk_prm_t* prm)
 {
 	static hawk_htb_style_t treefuncbs =
 	{
@@ -141,21 +141,21 @@ int hawk_init (hawk_t* awk, hawk_mmgr_t* mmgr, hawk_cmgr_t* cmgr, const hawk_prm
 	};
 
 	/* zero out the object */
-	HAWK_MEMSET (awk, 0, HAWK_SIZEOF(*awk));
+	HAWK_MEMSET (hawk, 0, HAWK_SIZEOF(*hawk));
 
 	/* remember the memory manager */
-	awk->_instsize = HAWK_SIZEOF(*awk);
-	awk->_gem.mmgr = mmgr;
-	awk->_gem.cmgr = cmgr;
+	hawk->_instsize = HAWK_SIZEOF(*hawk);
+	hawk->_gem.mmgr = mmgr;
+	hawk->_gem.cmgr = cmgr;
 
 	/* initialize error handling fields */
-	awk->_gem.errnum = HAWK_ENOERR;
-	awk->_gem.errmsg[0] = '\0';
-	awk->_gem.errloc.line = 0;
-	awk->_gem.errloc.colm = 0;
-	awk->_gem.errloc.file = HAWK_NULL;
-	awk->errstr = hawk_dfl_errstr;
-	awk->haltall = 0;
+	hawk->_gem.errnum = HAWK_ENOERR;
+	hawk->_gem.errmsg[0] = '\0';
+	hawk->_gem.errloc.line = 0;
+	hawk->_gem.errloc.colm = 0;
+	hawk->_gem.errloc.file = HAWK_NULL;
+	hawk->errstr = hawk_dfl_errstr;
+	hawk->haltall = 0;
 
 	/* progagate the primitive functions */
 	HAWK_ASSERT (prm           != HAWK_NULL);
@@ -165,265 +165,265 @@ int hawk_init (hawk_t* awk, hawk_mmgr_t* mmgr, hawk_cmgr_t* cmgr, const hawk_prm
 	    prm->math.pow == HAWK_NULL ||
 	    prm->math.mod == HAWK_NULL)
 	{
-		hawk_seterrnum (awk, HAWK_NULL, HAWK_EINVAL);
+		hawk_seterrnum (hawk, HAWK_NULL, HAWK_EINVAL);
 		goto oops;
 	}
-	awk->prm = *prm;
+	hawk->prm = *prm;
 
-	if (init_token(awk, &awk->ptok) <= -1 ||
-	    init_token(awk, &awk->tok) <= -1 ||
-	    init_token(awk, &awk->ntok) <= -1) goto oops;
+	if (init_token(hawk, &hawk->ptok) <= -1 ||
+	    init_token(hawk, &hawk->tok) <= -1 ||
+	    init_token(hawk, &hawk->ntok) <= -1) goto oops;
 
-	awk->opt.trait = HAWK_MODERN;
+	hawk->opt.trait = HAWK_MODERN;
 #if defined(__WIN32__) || defined(_OS2) || defined(__DOS__)
-	awk->opt.trait |= HAWK_CRLF;
+	hawk->opt.trait |= HAWK_CRLF;
 #endif
-	awk->opt.rtx_stack_limit = HAWK_DFL_RTX_STACK_LIMIT;
-	awk->opt.log_mask = HAWK_LOG_ALL_LEVELS  | HAWK_LOG_ALL_TYPES;
-	awk->opt.log_maxcapa = HAWK_DFL_LOG_MAXCAPA;
+	hawk->opt.rtx_stack_limit = HAWK_DFL_RTX_STACK_LIMIT;
+	hawk->opt.log_mask = HAWK_LOG_ALL_LEVELS  | HAWK_LOG_ALL_TYPES;
+	hawk->opt.log_maxcapa = HAWK_DFL_LOG_MAXCAPA;
 
-	awk->log.capa = HAWK_ALIGN_POW2(1, HAWK_LOG_CAPA_ALIGN);
-	awk->log.ptr = hawk_allocmem(awk, (awk->log.capa + 1) * HAWK_SIZEOF(*awk->log.ptr));
-	if (!awk->log.ptr) goto oops;
+	hawk->log.capa = HAWK_ALIGN_POW2(1, HAWK_LOG_CAPA_ALIGN);
+	hawk->log.ptr = hawk_allocmem(hawk, (hawk->log.capa + 1) * HAWK_SIZEOF(*hawk->log.ptr));
+	if (!hawk->log.ptr) goto oops;
 
-	awk->tree.ngbls = 0;
-	awk->tree.ngbls_base = 0;
-	awk->tree.begin = HAWK_NULL;
-	awk->tree.begin_tail = HAWK_NULL;
-	awk->tree.end = HAWK_NULL;
-	awk->tree.end_tail = HAWK_NULL;
-	awk->tree.chain = HAWK_NULL;
-	awk->tree.chain_tail = HAWK_NULL;
-	awk->tree.chain_size = 0;
+	hawk->tree.ngbls = 0;
+	hawk->tree.ngbls_base = 0;
+	hawk->tree.begin = HAWK_NULL;
+	hawk->tree.begin_tail = HAWK_NULL;
+	hawk->tree.end = HAWK_NULL;
+	hawk->tree.end_tail = HAWK_NULL;
+	hawk->tree.chain = HAWK_NULL;
+	hawk->tree.chain_tail = HAWK_NULL;
+	hawk->tree.chain_size = 0;
 
 	/* TODO: initial map size?? */
-	awk->tree.funs = hawk_htb_open(hawk_getgem(awk), HAWK_SIZEOF(awk), 512, 70, HAWK_SIZEOF(hawk_ooch_t), 1);
-	awk->parse.funs = hawk_htb_open(hawk_getgem(awk), HAWK_SIZEOF(awk), 256, 70, HAWK_SIZEOF(hawk_ooch_t), 1);
-	awk->parse.named = hawk_htb_open(hawk_getgem(awk), HAWK_SIZEOF(awk), 256, 70, HAWK_SIZEOF(hawk_ooch_t), 1);
+	hawk->tree.funs = hawk_htb_open(hawk_getgem(hawk), HAWK_SIZEOF(hawk), 512, 70, HAWK_SIZEOF(hawk_ooch_t), 1);
+	hawk->parse.funs = hawk_htb_open(hawk_getgem(hawk), HAWK_SIZEOF(hawk), 256, 70, HAWK_SIZEOF(hawk_ooch_t), 1);
+	hawk->parse.named = hawk_htb_open(hawk_getgem(hawk), HAWK_SIZEOF(hawk), 256, 70, HAWK_SIZEOF(hawk_ooch_t), 1);
 
-	awk->parse.gbls = hawk_arr_open(hawk_getgem(awk), HAWK_SIZEOF(awk), 128);
-	awk->parse.lcls = hawk_arr_open(hawk_getgem(awk), HAWK_SIZEOF(awk), 64);
-	awk->parse.params = hawk_arr_open(hawk_getgem(awk), HAWK_SIZEOF(awk), 32);
+	hawk->parse.gbls = hawk_arr_open(hawk_getgem(hawk), HAWK_SIZEOF(hawk), 128);
+	hawk->parse.lcls = hawk_arr_open(hawk_getgem(hawk), HAWK_SIZEOF(hawk), 64);
+	hawk->parse.params = hawk_arr_open(hawk_getgem(hawk), HAWK_SIZEOF(hawk), 32);
 
-	awk->fnc.sys = HAWK_NULL;
-	awk->fnc.user = hawk_htb_open(hawk_getgem(awk), HAWK_SIZEOF(awk), 512, 70, HAWK_SIZEOF(hawk_ooch_t), 1);
-	awk->modtab = hawk_rbt_open(hawk_getgem(awk), 0, HAWK_SIZEOF(hawk_ooch_t), 1);
+	hawk->fnc.sys = HAWK_NULL;
+	hawk->fnc.user = hawk_htb_open(hawk_getgem(hawk), HAWK_SIZEOF(hawk), 512, 70, HAWK_SIZEOF(hawk_ooch_t), 1);
+	hawk->modtab = hawk_rbt_open(hawk_getgem(hawk), 0, HAWK_SIZEOF(hawk_ooch_t), 1);
 
-	if (awk->tree.funs == HAWK_NULL ||
-	    awk->parse.funs == HAWK_NULL ||
-	    awk->parse.named == HAWK_NULL ||
-	    awk->parse.gbls == HAWK_NULL ||
-	    awk->parse.lcls == HAWK_NULL ||
-	    awk->parse.params == HAWK_NULL ||
-	    awk->fnc.user == HAWK_NULL ||
-	    awk->modtab == HAWK_NULL) 
+	if (hawk->tree.funs == HAWK_NULL ||
+	    hawk->parse.funs == HAWK_NULL ||
+	    hawk->parse.named == HAWK_NULL ||
+	    hawk->parse.gbls == HAWK_NULL ||
+	    hawk->parse.lcls == HAWK_NULL ||
+	    hawk->parse.params == HAWK_NULL ||
+	    hawk->fnc.user == HAWK_NULL ||
+	    hawk->modtab == HAWK_NULL) 
 	{
-		hawk_seterrnum (awk, HAWK_NULL, HAWK_ENOMEM);
+		hawk_seterrnum (hawk, HAWK_NULL, HAWK_ENOMEM);
 		goto oops;
 	}
 
-	*(hawk_t**)(awk->tree.funs + 1) = awk;
-	hawk_htb_setstyle (awk->tree.funs, &treefuncbs);
+	*(hawk_t**)(hawk->tree.funs + 1) = hawk;
+	hawk_htb_setstyle (hawk->tree.funs, &treefuncbs);
 
-	*(hawk_t**)(awk->parse.funs + 1) = awk;
-	hawk_htb_setstyle (awk->parse.funs, hawk_get_htb_style(HAWK_HTB_STYLE_INLINE_KEY_COPIER));
+	*(hawk_t**)(hawk->parse.funs + 1) = hawk;
+	hawk_htb_setstyle (hawk->parse.funs, hawk_get_htb_style(HAWK_HTB_STYLE_INLINE_KEY_COPIER));
 
-	*(hawk_t**)(awk->parse.named + 1) = awk;
-	hawk_htb_setstyle (awk->parse.named, hawk_get_htb_style(HAWK_HTB_STYLE_INLINE_KEY_COPIER));
+	*(hawk_t**)(hawk->parse.named + 1) = hawk;
+	hawk_htb_setstyle (hawk->parse.named, hawk_get_htb_style(HAWK_HTB_STYLE_INLINE_KEY_COPIER));
 
-	*(hawk_t**)(awk->parse.gbls + 1) = awk;
-	hawk_arr_setscale (awk->parse.gbls, HAWK_SIZEOF(hawk_ooch_t));
-	hawk_arr_setcopier (awk->parse.gbls, HAWK_ARR_COPIER_INLINE);
+	*(hawk_t**)(hawk->parse.gbls + 1) = hawk;
+	hawk_arr_setscale (hawk->parse.gbls, HAWK_SIZEOF(hawk_ooch_t));
+	hawk_arr_setcopier (hawk->parse.gbls, HAWK_ARR_COPIER_INLINE);
 
-	*(hawk_t**)(awk->parse.lcls + 1) = awk;
-	hawk_arr_setscale (awk->parse.lcls, HAWK_SIZEOF(hawk_ooch_t));
-	hawk_arr_setcopier (awk->parse.lcls, HAWK_ARR_COPIER_INLINE);
+	*(hawk_t**)(hawk->parse.lcls + 1) = hawk;
+	hawk_arr_setscale (hawk->parse.lcls, HAWK_SIZEOF(hawk_ooch_t));
+	hawk_arr_setcopier (hawk->parse.lcls, HAWK_ARR_COPIER_INLINE);
 
-	*(hawk_t**)(awk->parse.params + 1) = awk;
-	hawk_arr_setscale (awk->parse.params, HAWK_SIZEOF(hawk_ooch_t));
-	hawk_arr_setcopier (awk->parse.params, HAWK_ARR_COPIER_INLINE);
+	*(hawk_t**)(hawk->parse.params + 1) = hawk;
+	hawk_arr_setscale (hawk->parse.params, HAWK_SIZEOF(hawk_ooch_t));
+	hawk_arr_setcopier (hawk->parse.params, HAWK_ARR_COPIER_INLINE);
 
-	*(hawk_t**)(awk->fnc.user + 1) = awk;
-	hawk_htb_setstyle (awk->fnc.user, &fncusercbs);
+	*(hawk_t**)(hawk->fnc.user + 1) = hawk;
+	hawk_htb_setstyle (hawk->fnc.user, &fncusercbs);
 
-	hawk_rbt_setstyle (awk->modtab, hawk_get_rbt_style(HAWK_RBT_STYLE_INLINE_COPIERS));
+	hawk_rbt_setstyle (hawk->modtab, hawk_get_rbt_style(HAWK_RBT_STYLE_INLINE_COPIERS));
 
-	if (hawk_initgbls(awk) <= -1) goto oops;
+	if (hawk_initgbls(hawk) <= -1) goto oops;
 	return 0;
 
 oops:
-	if (awk->modtab) hawk_rbt_close (awk->modtab);
-	if (awk->fnc.user) hawk_htb_close (awk->fnc.user);
-	if (awk->parse.params) hawk_arr_close (awk->parse.params);
-	if (awk->parse.lcls) hawk_arr_close (awk->parse.lcls);
-	if (awk->parse.gbls) hawk_arr_close (awk->parse.gbls);
-	if (awk->parse.named) hawk_htb_close (awk->parse.named);
-	if (awk->parse.funs) hawk_htb_close (awk->parse.funs);
-	if (awk->tree.funs) hawk_htb_close (awk->tree.funs);
-	fini_token (&awk->ntok);
-	fini_token (&awk->tok);
-	fini_token (&awk->ptok);
-	if (awk->log.ptr) hawk_freemem (awk, awk->log.ptr);
-	awk->log.capa = 0;
+	if (hawk->modtab) hawk_rbt_close (hawk->modtab);
+	if (hawk->fnc.user) hawk_htb_close (hawk->fnc.user);
+	if (hawk->parse.params) hawk_arr_close (hawk->parse.params);
+	if (hawk->parse.lcls) hawk_arr_close (hawk->parse.lcls);
+	if (hawk->parse.gbls) hawk_arr_close (hawk->parse.gbls);
+	if (hawk->parse.named) hawk_htb_close (hawk->parse.named);
+	if (hawk->parse.funs) hawk_htb_close (hawk->parse.funs);
+	if (hawk->tree.funs) hawk_htb_close (hawk->tree.funs);
+	fini_token (&hawk->ntok);
+	fini_token (&hawk->tok);
+	fini_token (&hawk->ptok);
+	if (hawk->log.ptr) hawk_freemem (hawk, hawk->log.ptr);
+	hawk->log.capa = 0;
 
 	return -1;
 }
 
-void hawk_fini (hawk_t* awk)
+void hawk_fini (hawk_t* hawk)
 {
 	hawk_ecb_t* ecb;
 	int i;
 
-	hawk_clear (awk);
-	/*hawk_clrfnc (awk);*/
+	hawk_clear (hawk);
+	/*hawk_clrfnc (hawk);*/
 
-	if (awk->log.len >  0)
+	if (hawk->log.len >  0)
         {
-		int shuterr = awk->shuterr;
-		awk->shuterr = 1;
-		awk->prm.logwrite (awk, awk->log.last_mask, awk->log.ptr, awk->log.len);
-		awk->shuterr = shuterr;
+		int shuterr = hawk->shuterr;
+		hawk->shuterr = 1;
+		hawk->prm.logwrite (hawk, hawk->log.last_mask, hawk->log.ptr, hawk->log.len);
+		hawk->shuterr = shuterr;
 	}
 
-	for (ecb = awk->ecb; ecb; ecb = ecb->next)
-		if (ecb->close) ecb->close (awk);
+	for (ecb = hawk->ecb; ecb; ecb = ecb->next)
+		if (ecb->close) ecb->close (hawk);
 
-	hawk_rbt_close (awk->modtab);
-	hawk_htb_close (awk->fnc.user);
+	hawk_rbt_close (hawk->modtab);
+	hawk_htb_close (hawk->fnc.user);
 
-	hawk_arr_close (awk->parse.params);
-	hawk_arr_close (awk->parse.lcls);
-	hawk_arr_close (awk->parse.gbls);
-	hawk_htb_close (awk->parse.named);
-	hawk_htb_close (awk->parse.funs);
+	hawk_arr_close (hawk->parse.params);
+	hawk_arr_close (hawk->parse.lcls);
+	hawk_arr_close (hawk->parse.gbls);
+	hawk_htb_close (hawk->parse.named);
+	hawk_htb_close (hawk->parse.funs);
 
-	hawk_htb_close (awk->tree.funs);
+	hawk_htb_close (hawk->tree.funs);
 
-	fini_token (&awk->ntok);
-	fini_token (&awk->tok);
-	fini_token (&awk->ptok);
+	fini_token (&hawk->ntok);
+	fini_token (&hawk->tok);
+	fini_token (&hawk->ptok);
 
-	if (awk->parse.incl_hist.ptr) hawk_freemem (awk, awk->parse.incl_hist.ptr);
-	hawk_clearsionames (awk);
+	if (hawk->parse.incl_hist.ptr) hawk_freemem (hawk, hawk->parse.incl_hist.ptr);
+	hawk_clearsionames (hawk);
 
 	/* destroy dynamically allocated options */
-	for (i = 0; i < HAWK_COUNTOF(awk->opt.mod); i++)
+	for (i = 0; i < HAWK_COUNTOF(hawk->opt.mod); i++)
 	{
-		if (awk->opt.mod[i].ptr) hawk_freemem (awk, awk->opt.mod[i].ptr);
+		if (hawk->opt.mod[i].ptr) hawk_freemem (hawk, hawk->opt.mod[i].ptr);
 	}
 
-	if (awk->log.len > 0)
+	if (hawk->log.len > 0)
 	{
 		/* flush pending log message that could be generated by the fini 
 		 * callbacks. however, the actual logging might not be produced at
 		 * this point because one of the callbacks could arrange to stop
 		 * logging */
-		int shuterr = awk->shuterr;
-		awk->shuterr = 1;
-		awk->prm.logwrite (awk, awk->log.last_mask, awk->log.ptr, awk->log.len);
-		awk->shuterr = shuterr;
+		int shuterr = hawk->shuterr;
+		hawk->shuterr = 1;
+		hawk->prm.logwrite (hawk, hawk->log.last_mask, hawk->log.ptr, hawk->log.len);
+		hawk->shuterr = shuterr;
 	}
 
-	if (awk->log.ptr) 
+	if (hawk->log.ptr) 
 	{
-		hawk_freemem (awk, awk->log.ptr);
-		awk->log.capa = 0;
-		awk->log.len = 0;
+		hawk_freemem (hawk, hawk->log.ptr);
+		hawk->log.capa = 0;
+		hawk->log.len = 0;
 	}
 }
 
 static hawk_rbt_walk_t unload_module (hawk_rbt_t* rbt, hawk_rbt_pair_t* pair, void* ctx)
 {
-	hawk_t* awk = (hawk_t*)ctx;
+	hawk_t* hawk = (hawk_t*)ctx;
 	hawk_mod_data_t* md;
 
 	md = HAWK_RBT_VPTR(pair);
-	if (md->mod.unload) md->mod.unload (&md->mod, awk);
-	if (md->handle) awk->prm.modclose (awk, md->handle);
+	if (md->mod.unload) md->mod.unload (&md->mod, hawk);
+	if (md->handle) hawk->prm.modclose (hawk, md->handle);
 
 	return HAWK_RBT_WALK_FORWARD;
 }
 
-void hawk_clear (hawk_t* awk)
+void hawk_clear (hawk_t* hawk)
 {
 	hawk_ecb_t* ecb;
 
-	for (ecb = awk->ecb; ecb; ecb = ecb->next)
+	for (ecb = hawk->ecb; ecb; ecb = ecb->next)
 	{
-		if (ecb->clear) ecb->clear (awk);
+		if (ecb->clear) ecb->clear (hawk);
 	}
 
-	awk->haltall = 0;
+	hawk->haltall = 0;
 
-	clear_token (&awk->tok);
-	clear_token (&awk->ntok);
-	clear_token (&awk->ptok);
+	clear_token (&hawk->tok);
+	clear_token (&hawk->ntok);
+	clear_token (&hawk->ptok);
 
 	/* clear all loaded modules */
-	hawk_rbt_walk (awk->modtab, unload_module, awk);
-	hawk_rbt_clear (awk->modtab);
+	hawk_rbt_walk (hawk->modtab, unload_module, hawk);
+	hawk_rbt_clear (hawk->modtab);
 
-	HAWK_ASSERT (HAWK_ARR_SIZE(awk->parse.gbls) == awk->tree.ngbls);
+	HAWK_ASSERT (HAWK_ARR_SIZE(hawk->parse.gbls) == hawk->tree.ngbls);
 	/* delete all non-builtin global variables */
 	hawk_arr_delete (
-		awk->parse.gbls, awk->tree.ngbls_base, 
-		HAWK_ARR_SIZE(awk->parse.gbls) - awk->tree.ngbls_base);
+		hawk->parse.gbls, hawk->tree.ngbls_base, 
+		HAWK_ARR_SIZE(hawk->parse.gbls) - hawk->tree.ngbls_base);
 
-	hawk_arr_clear (awk->parse.lcls);
-	hawk_arr_clear (awk->parse.params);
-	hawk_htb_clear (awk->parse.named);
-	hawk_htb_clear (awk->parse.funs);
+	hawk_arr_clear (hawk->parse.lcls);
+	hawk_arr_clear (hawk->parse.params);
+	hawk_htb_clear (hawk->parse.named);
+	hawk_htb_clear (hawk->parse.funs);
 
-	awk->parse.nlcls_max = 0; 
-	awk->parse.depth.block = 0;
-	awk->parse.depth.loop = 0;
-	awk->parse.depth.expr = 0;
-	awk->parse.depth.incl = 0;
-	awk->parse.pragma.trait = (awk->opt.trait & (HAWK_IMPLICIT | HAWK_MULTILINESTR | HAWK_STRIPRECSPC | HAWK_STRIPSTRSPC)); /* implicit on if you didn't mask it off in awk->opt.trait with hawk_setopt */
-	awk->parse.pragma.rtx_stack_limit = 0;
-	awk->parse.pragma.entry[0] = '\0';
+	hawk->parse.nlcls_max = 0; 
+	hawk->parse.depth.block = 0;
+	hawk->parse.depth.loop = 0;
+	hawk->parse.depth.expr = 0;
+	hawk->parse.depth.incl = 0;
+	hawk->parse.pragma.trait = (hawk->opt.trait & (HAWK_IMPLICIT | HAWK_MULTILINESTR | HAWK_STRIPRECSPC | HAWK_STRIPSTRSPC)); /* implicit on if you didn't mask it off in hawk->opt.trait with hawk_setopt */
+	hawk->parse.pragma.rtx_stack_limit = 0;
+	hawk->parse.pragma.entry[0] = '\0';
 
-	awk->parse.incl_hist.count =0;
+	hawk->parse.incl_hist.count =0;
 
 	/* clear parse trees */
-	/*awk->tree.ngbls_base = 0;
-	awk->tree.ngbls = 0; */
-	awk->tree.ngbls = awk->tree.ngbls_base;
+	/*hawk->tree.ngbls_base = 0;
+	hawk->tree.ngbls = 0; */
+	hawk->tree.ngbls = hawk->tree.ngbls_base;
 
-	awk->tree.cur_fun.ptr = HAWK_NULL;
-	awk->tree.cur_fun.len = 0;
-	hawk_htb_clear (awk->tree.funs);
+	hawk->tree.cur_fun.ptr = HAWK_NULL;
+	hawk->tree.cur_fun.len = 0;
+	hawk_htb_clear (hawk->tree.funs);
 
-	if (awk->tree.begin) 
+	if (hawk->tree.begin) 
 	{
-		hawk_clrpt (awk, awk->tree.begin);
-		awk->tree.begin = HAWK_NULL;
-		awk->tree.begin_tail = HAWK_NULL;
+		hawk_clrpt (hawk, hawk->tree.begin);
+		hawk->tree.begin = HAWK_NULL;
+		hawk->tree.begin_tail = HAWK_NULL;
 	}
 
-	if (awk->tree.end) 
+	if (hawk->tree.end) 
 	{
-		hawk_clrpt (awk, awk->tree.end);
-		awk->tree.end = HAWK_NULL;
-		awk->tree.end_tail = HAWK_NULL;
+		hawk_clrpt (hawk, hawk->tree.end);
+		hawk->tree.end = HAWK_NULL;
+		hawk->tree.end_tail = HAWK_NULL;
 	}
 
-	while (awk->tree.chain) 
+	while (hawk->tree.chain) 
 	{
-		hawk_chain_t* next = awk->tree.chain->next;
-		if (awk->tree.chain->pattern) hawk_clrpt (awk, awk->tree.chain->pattern);
-		if (awk->tree.chain->action) hawk_clrpt (awk, awk->tree.chain->action);
-		hawk_freemem (awk, awk->tree.chain);
-		awk->tree.chain = next;
+		hawk_chain_t* next = hawk->tree.chain->next;
+		if (hawk->tree.chain->pattern) hawk_clrpt (hawk, hawk->tree.chain->pattern);
+		if (hawk->tree.chain->action) hawk_clrpt (hawk, hawk->tree.chain->action);
+		hawk_freemem (hawk, hawk->tree.chain);
+		hawk->tree.chain = next;
 	}
 
-	awk->tree.chain_tail = HAWK_NULL;
-	awk->tree.chain_size = 0;
+	hawk->tree.chain_tail = HAWK_NULL;
+	hawk->tree.chain_size = 0;
 
 	/* this table must not be cleared here as there can be a reference
 	 * to an entry of this table from errinf.loc.file when hawk_parse() 
 	 * failed. this table is cleared in hawk_parse().
-	 * hawk_claersionames (awk);
+	 * hawk_claersionames (hawk);
 	 */
 }
 
@@ -563,22 +563,22 @@ int hawk_getopt (hawk_t* hawk, hawk_opt_t id, void* value)
 	return -1;
 }
 
-void hawk_haltall (hawk_t* awk)
+void hawk_haltall (hawk_t* hawk)
 {
-	awk->haltall = 1;
+	hawk->haltall = 1;
 }
 
-hawk_ecb_t* hawk_popecb (hawk_t* awk)
+hawk_ecb_t* hawk_popecb (hawk_t* hawk)
 {
-	hawk_ecb_t* top = awk->ecb;
-	if (top) awk->ecb = top->next;
+	hawk_ecb_t* top = hawk->ecb;
+	if (top) hawk->ecb = top->next;
 	return top;
 }
 
-void hawk_pushecb (hawk_t* awk, hawk_ecb_t* ecb)
+void hawk_pushecb (hawk_t* hawk, hawk_ecb_t* ecb)
 {
-	ecb->next = awk->ecb;
-	awk->ecb = ecb;
+	ecb->next = hawk->ecb;
+	hawk->ecb = ecb;
 }
 
 /* ------------------------------------------------------------------------ */

@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
-    Copyright (c) 2006-2019 Chung, Hyung-Hwan. All rights reserved.
+    Copyright (c) 2006-2020 Chung, Hyung-Hwan. All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
     modification, are permitted provided that the following conditions
@@ -241,7 +241,7 @@ static inttab_t inttab[] =
 	{ HAWK_T("GC_NUM_GENS"), { HAWK_GC_NUM_GENS } }
 };
 
-static int query (hawk_mod_t* mod, hawk_t* awk, const hawk_ooch_t* name, hawk_mod_sym_t* sym)
+static int query (hawk_mod_t* mod, hawk_t* hawk, const hawk_ooch_t* name, hawk_mod_sym_t* sym)
 {
 	int left, right, mid, n;
 
@@ -278,7 +278,7 @@ static int query (hawk_mod_t* mod, hawk_t* awk, const hawk_ooch_t* name, hawk_mo
 		}
 	}
 
-	hawk_seterrfmt (awk, HAWK_NULL, HAWK_ENOENT, HAWK_T("'%js' not found"), name);
+	hawk_seterrfmt (hawk, HAWK_NULL, HAWK_ENOENT, HAWK_T("'%js' not found"), name);
 	return -1;
 }
 
@@ -294,12 +294,12 @@ static void fini (hawk_mod_t* mod, hawk_rtx_t* rtx)
 	/* TODO: anything */
 }
 
-static void unload (hawk_mod_t* mod, hawk_t* awk)
+static void unload (hawk_mod_t* mod, hawk_t* hawk)
 {
 	/* TODO: anything */
 }
 
-int hawk_mod_hawk (hawk_mod_t* mod, hawk_t* awk)
+int hawk_mod_hawk (hawk_mod_t* mod, hawk_t* hawk)
 {
 	mod->query = query;
 	mod->unload = unload;
