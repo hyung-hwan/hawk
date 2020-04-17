@@ -78,6 +78,71 @@
 #endif
 
 /* =========================================================================
+ * MACROS THAT CHANGES THE BEHAVIORS OF THE C COMPILER/LINKER
+ * =========================================================================*/
+
+#if defined(EMSCRIPTEN)
+#	define HAWK_IMPORT
+#	define HAWK_EXPORT EMSCRIPTEN_KEEPALIVE
+#	define HAWK_PRIVATE
+#elif defined(__BORLANDC__) && (__BORLANDC__ < 0x500)
+#	define HAWK_IMPORT
+#	define HAWK_EXPORT
+#	define HAWK_PRIVATE
+#elif defined(_WIN32) || (defined(__WATCOMC__) && (__WATCOMC__ >= 1000) && !defined(__WINDOWS_386__))
+#	define HAWK_IMPORT __declspec(dllimport)
+#	define HAWK_EXPORT __declspec(dllexport)
+#	define HAWK_PRIVATE 
+#elif defined(__GNUC__) && ((__GNUC__>= 4) || (__GNUC__ == 3 && __GNUC_MINOR__ >= 3))
+#	define HAWK_IMPORT __attribute__((visibility("default")))
+#	define HAWK_EXPORT __attribute__((visibility("default")))
+#	define HAWK_PRIVATE __attribute__((visibility("hidden")))
+/*#	define HAWK_PRIVATE __attribute__((visibility("internal")))*/
+#else
+#	define HAWK_IMPORT
+#	define HAWK_EXPORT
+#	define HAWK_PRIVATE
+#endif
+
+#if defined(__cplusplus) || (defined(__STDC_VERSION__) && (__STDC_VERSION__>=199901L))
+	/* C++/C99 has inline */
+#	define HAWK_INLINE inline
+#	define HAWK_HAVE_INLINE
+#elif defined(__GNUC__) && defined(__GNUC_GNU_INLINE__)
+	/* gcc disables inline when -std=c89 or -ansi is used. 
+	 * so use __inline__ supported by gcc regardless of the options */
+#	define HAWK_INLINE /*extern*/ __inline__
+#	define HAWK_HAVE_INLINE
+#else
+#	define HAWK_INLINE 
+#	undef HAWK_HAVE_INLINE
+#endif
+
+#if defined(__GNUC__) && (__GNUC__ > 2 || (__GNUC__ == 2 && __GNUC_MINOR__ > 4))
+#	define HAWK_UNUSED __attribute__((__unused__))
+#else
+#	define HAWK_UNUSED
+#endif
+
+/* =========================================================================
+ * STATIC ASSERTION
+ * =========================================================================*/
+#define HAWK_STATIC_JOIN_INNER(x, y) x ## y
+#define HAWK_STATIC_JOIN(x, y) HAWK_STATIC_JOIN_INNER(x, y)
+
+#if defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 201112L)
+#	define HAWK_STATIC_ASSERT(expr)  _Static_assert (expr, "invalid assertion")
+#elif defined(__cplusplus) && (__cplusplus >= 201103L)
+#	define HAWK_STATIC_ASSERT(expr) static_assert (expr, "invalid assertion")
+#elif defined(__cplusplus) || (defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 199901L))
+#	define HAWK_STATIC_ASSERT(expr) typedef char HAWK_STATIC_JOIN(HAWK_STATIC_ASSERT_T_, __LINE__)[(expr)? 1: -1] HAWK_UNUSED
+#else
+#	define HAWK_STATIC_ASSERT(expr) do { typedef char HAWK_STATIC_JOIN(HAWK_STATIC_ASSERT_T_, __LINE__)[(expr)? 1: -1] HAWK_UNUSED; } while(0)
+#endif
+
+#define HAWK_STATIC_ASSERT_EXPR(expr) ((void)HAWK_SIZEOF(char[(expr)? 1: -1]))
+
+/* =========================================================================
  * PRIMITIVE TYPE DEFINTIONS
  * ========================================================================= */
 
@@ -411,7 +476,7 @@ typedef unsigned char           hawk_bchu_t; /* unsigned version of hawk_bch_t f
 #define HAWK_SIZEOF_BCH_T HAWK_SIZEOF_CHAR
 #define HAWK_SIZEOF_BCI_T HAWK_SIZEOF_INT
 
-#if (defined(__cplusplus) && (defined(HAWK_USE_CPP_CHAR16_T) || (__cplusplus >= 201103L) || (defined(_MSC_VER) && _MSC_VER >= 1900))) /* user chosen or C++11 or later */
+#if (defined(__cplusplus) && (defined(HAWK_USE_CXX_CHAR16_T) || (__cplusplus >= 201103L) || (defined(_MSC_VER) && _MSC_VER >= 1900))) /* user chosen or C++11 or later */
 #	if defined(HAWK_UNICODE_SIZE) && (HAWK_UNICODE_SIZE >= 4)
 		typedef char32_t           hawk_uch_t;  /* char32_t is an unsigned integer type used for 16-bit wide characters */
 		typedef char32_t           hawk_uchu_t; /* same as hawk_uch_t as it is already unsigned */
@@ -428,10 +493,20 @@ typedef unsigned char           hawk_bchu_t; /* unsigned version of hawk_bch_t f
 	typedef hawk_uint32_t     hawk_uchu_t;
 #	define HAWK_SIZEOF_UCH_T 4
 
+	// if this assertion becomes false, you must check if the size of the wchar_t type is the same as the size used
+	// for this library.
+	HAWK_STATIC_ASSERT (HAWK_UNICODE_SIZE == sizeof(hawk_uch_t));
+
 #elif defined(__cplusplus) && defined(HAWK_UNICODE_SIZE) && (HAWK_UNICODE_SIZE == 2) && (HAWK_SIZEOF_WCHAR_T == 2)
 	typedef wchar_t           hawk_uch_t;
 	typedef hawk_uint16_t     hawk_uchu_t;
 #	define HAWK_SIZEOF_UCH_T 2
+
+	// if the library is compiled with 2-byte wchar_t, and the library user compiles a program with 4-byte wchar_t,
+	// there will be size disparity issue on the hawk_uch_t type.
+	// if this assertion becomes false, you must check if the size of the wchar_t type is the same as the size used 
+	// for this library.
+	HAWK_STATIC_ASSERT (HAWK_UNICODE_SIZE == sizeof(hawk_uch_t));
 
 #elif defined(HAWK_UNICODE_SIZE) && (HAWK_UNICODE_SIZE >= 4) && defined(__GNUC__) && defined(__CHAR32_TYPE__)
 	typedef __CHAR32_TYPE__    hawk_uch_t;
@@ -989,52 +1064,8 @@ enum hawk_log_mask_t
 typedef enum hawk_log_mask_t hawk_log_mask_t;
 
 /* =========================================================================
- * MACROS THAT CHANGES THE BEHAVIORS OF THE C COMPILER/LINKER
+ * MACROS THAT DETERMINES NUMERIC SIGN
  * =========================================================================*/
-
-#if defined(EMSCRIPTEN)
-#	define HAWK_IMPORT
-#	define HAWK_EXPORT EMSCRIPTEN_KEEPALIVE
-#	define HAWK_PRIVATE
-#elif defined(__BORLANDC__) && (__BORLANDC__ < 0x500)
-#	define HAWK_IMPORT
-#	define HAWK_EXPORT
-#	define HAWK_PRIVATE
-#elif defined(_WIN32) || (defined(__WATCOMC__) && (__WATCOMC__ >= 1000) && !defined(__WINDOWS_386__))
-#	define HAWK_IMPORT __declspec(dllimport)
-#	define HAWK_EXPORT __declspec(dllexport)
-#	define HAWK_PRIVATE 
-#elif defined(__GNUC__) && ((__GNUC__>= 4) || (__GNUC__ == 3 && __GNUC_MINOR__ >= 3))
-#	define HAWK_IMPORT __attribute__((visibility("default")))
-#	define HAWK_EXPORT __attribute__((visibility("default")))
-#	define HAWK_PRIVATE __attribute__((visibility("hidden")))
-/*#	define HAWK_PRIVATE __attribute__((visibility("internal")))*/
-#else
-#	define HAWK_IMPORT
-#	define HAWK_EXPORT
-#	define HAWK_PRIVATE
-#endif
-
-#if defined(__cplusplus) || (defined(__STDC_VERSION__) && (__STDC_VERSION__>=199901L))
-	/* C++/C99 has inline */
-#	define HAWK_INLINE inline
-#	define HAWK_HAVE_INLINE
-#elif defined(__GNUC__) && defined(__GNUC_GNU_INLINE__)
-	/* gcc disables inline when -std=c89 or -ansi is used. 
-	 * so use __inline__ supported by gcc regardless of the options */
-#	define HAWK_INLINE /*extern*/ __inline__
-#	define HAWK_HAVE_INLINE
-#else
-#	define HAWK_INLINE 
-#	undef HAWK_HAVE_INLINE
-#endif
-
-#if defined(__GNUC__) && (__GNUC__ > 2 || (__GNUC__ == 2 && __GNUC_MINOR__ > 4))
-#	define HAWK_UNUSED __attribute__((__unused__))
-#else
-#	define HAWK_UNUSED
-#endif
-
 /**
  * The HAWK_TYPE_IS_SIGNED() macro determines if a type is signed.
  * \code
@@ -1245,24 +1276,6 @@ typedef enum hawk_log_mask_t hawk_log_mask_t;
 #	define HAWK_UNLIKELY(x) (x)
 #endif
 
-
-/* =========================================================================
- * STATIC ASSERTION
- * =========================================================================*/
-#define HAWK_STATIC_JOIN_INNER(x, y) x ## y
-#define HAWK_STATIC_JOIN(x, y) HAWK_STATIC_JOIN_INNER(x, y)
-
-#if defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 201112L)
-#	define HAWK_STATIC_ASSERT(expr)  _Static_assert (expr, "invalid assertion")
-#elif defined(__cplusplus) && (__cplusplus >= 201103L)
-#	define HAWK_STATIC_ASSERT(expr) static_assert (expr, "invalid assertion")
-#elif defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 199901L)
-#	define HAWK_STATIC_ASSERT(expr) typedef char HAWK_STATIC_JOIN(HAWK_STATIC_ASSERT_T_, __LINE__)[(expr)? 1: -1] HAWK_UNUSED
-#else
-#	define HAWK_STATIC_ASSERT(expr) do { typedef char HAWK_STATIC_JOIN(HAWK_STATIC_ASSERT_T_, __LINE__)[(expr)? 1: -1] HAWK_UNUSED; } while(0)
-#endif
-
-#define HAWK_STATIC_ASSERT_EXPR(expr) ((void)HAWK_SIZEOF(char[(expr)? 1: -1]))
 
 /* =========================================================================
  * ASSERTION
