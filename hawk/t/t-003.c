@@ -1,3 +1,4 @@
+#include <hawk-fmt.h>
 #include <hawk-utl.h>
 #include <string.h>
 #include <stdio.h>
@@ -5,7 +6,7 @@
 #include <locale.h>
 #include "t.h"
 
-static int put_bcs (hawk_fmtout_t* fmtout, const hawk_bch_t* c, hawk_oow_t len)
+static int put_bchars (hawk_fmtout_t* fmtout, const hawk_bch_t* c, hawk_oow_t len)
 {
 	while (len > 0)
 	{
@@ -16,7 +17,7 @@ static int put_bcs (hawk_fmtout_t* fmtout, const hawk_bch_t* c, hawk_oow_t len)
 	return 1;
 }
 
-static int put_ucs (hawk_fmtout_t* fmtout, const hawk_uch_t* c, hawk_oow_t len)
+static int put_uchars (hawk_fmtout_t* fmtout, const hawk_uch_t* c, hawk_oow_t len)
 {
 	hawk_cmgr_t* cmgr = hawk_get_utf8_cmgr();
 	hawk_bch_t bcs[HAWK_BCSIZE_MAX];
@@ -40,8 +41,8 @@ static hawk_ooi_t bfmt_out (const hawk_bch_t* fmt, ...)
 	int n;
 
 	memset (&fmtout, 0, HAWK_SIZEOF(fmtout));
-	fmtout.putbcs = put_bcs;
-	fmtout.putucs = put_ucs;
+	fmtout.putbchars = put_bchars;
+	fmtout.putuchars = put_uchars;
 
 	va_start (ap, fmt);
 	n = hawk_bfmt_outv (&fmtout, fmt, ap);

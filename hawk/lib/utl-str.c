@@ -2180,6 +2180,310 @@ void hawk_unescape_bcstr (hawk_bch_t* str)
 
 /* ------------------------------------------------------------------------ */
 
+static const hawk_uch_t* scan_dollar_for_subst_u (const hawk_uch_t* f, hawk_oow_t l, hawk_ucs_t* ident, hawk_ucs_t* dfl, int depth)
+{
+	const hawk_uch_t* end = f + l;
+
+	HAWK_ASSERT (l >= 2);
+	
+	f += 2; /* skip ${ */ 
+	if (ident) ident->ptr = f;
+
+	while (1)
+	{
+		if (f >= end) return HAWK_NULL;
+		if (*f == '}' || *f == ':') break;
+		f++;
+	}
+
+	if (*f == ':')
+	{
+		if (f >= end || *(f + 1) != '=') 
+		{
+			/* not := */
+			return HAWK_NULL; 
+		}
+
+		if (ident) ident->len = f - ident->ptr;
+
+		f += 2; /* skip := */
+
+		if (dfl) dfl->ptr = f;
+		while (1)
+		{
+			if (f >= end) return HAWK_NULL;
+
+			else if (*f == '$' && *(f + 1) == '{')
+			{
+				if (depth >= 64) return HAWK_NULL; /* depth too deep */
+
+				/* TODO: remove recursion */
+				f = scan_dollar_for_subst_u(f, end - f, HAWK_NULL, HAWK_NULL, depth + 1);
+				if (!f) return HAWK_NULL;
+			}
+			else if (*f == '}') 
+			{
+				/* ending bracket  */
+				if (dfl) dfl->len = f - dfl->ptr;
+				return f + 1;
+			}
+			else f++;
+		}
+	}
+	else if (*f == '}') 
+	{
+		if (ident) ident->len = f - ident->ptr;
+		if (dfl) 
+		{
+			dfl->ptr = HAWK_NULL;
+			dfl->len = 0;
+		}
+		return f + 1;
+	}
+
+	/* this part must not be reached */
+	return HAWK_NULL;
+}
+
+static hawk_uch_t* exapnd_dollar_for_subst_u (hawk_uch_t* buf, hawk_oow_t bsz, const hawk_ucs_t* ident, const hawk_ucs_t* dfl, hawk_subst_for_ucs_t subst, void* ctx)
+{
+	hawk_uch_t* tmp;
+
+	tmp = subst(buf, bsz, ident, ctx);
+	if (tmp == HAWK_NULL)
+	{
+		/* substitution failed */
+		if (dfl->len > 0)
+		{
+			/* take the default value */
+			hawk_oow_t len;
+
+			/* TODO: remove recursion */
+			len = hawk_subst_for_uchars_to_ucstr(buf, bsz, dfl->ptr, dfl->len, subst, ctx);
+			tmp = buf + len;
+		}
+		else tmp = buf;
+	}
+
+	return tmp;
+}
+
+hawk_oow_t hawk_subst_for_uchars_to_ucstr (hawk_uch_t* buf, hawk_oow_t bsz, const hawk_uch_t* fmt, hawk_oow_t fsz, hawk_subst_for_ucs_t subst, void* ctx)
+{
+	hawk_uch_t* b = buf;
+	hawk_uch_t* end = buf + bsz - 1;
+	const hawk_uch_t* f = fmt;
+	const hawk_uch_t* fend = fmt + fsz;
+
+	if (buf != HAWK_SUBST_NOBUF && bsz <= 0) return 0;
+
+	while (f < fend)
+	{
+		if (*f == '$' && f < fend - 1)
+		{
+			if (*(f + 1) == '{')
+			{
+				const hawk_uch_t* tmp;
+				hawk_ucs_t ident, dfl;
+
+				tmp = scan_dollar_for_subst_u(f, fend - f, &ident, &dfl, 0);
+				if (!tmp || ident.len <= 0) goto normal;
+				f = tmp;
+
+				if (buf != HAWK_SUBST_NOBUF)
+				{
+					b = exapnd_dollar_for_subst_u(b, end - b + 1, &ident, &dfl, subst, ctx);
+					if (b >= end) goto fini;
+				}
+				else
+				{
+					/* the buffer points to HAWK_SUBST_NOBUF. */
+					tmp = exapnd_dollar_for_subst_u(buf, bsz, &ident, &dfl, subst, ctx);
+					/* increment b by the length of the expanded string */
+					b += (tmp - buf);
+				}
+
+				continue;
+			}
+			else if (*(f + 1) == '$') 
+			{
+				/* $$ -> $. */
+				f++;
+			}
+		}
+
+	normal:
+		if (buf != HAWK_SUBST_NOBUF)
+		{
+			if (b >= end) break;
+			*b = *f;
+		}
+		b++; f++;
+	}
+
+fini:
+	if (buf != HAWK_SUBST_NOBUF) *b = '\0';
+	return b - buf;
+}
+
+hawk_oow_t hawk_subst_for_ucstr_to_ucstr (hawk_uch_t* buf, hawk_oow_t bsz, const hawk_uch_t* fmt, hawk_subst_for_ucs_t subst, void* ctx)
+{
+	return hawk_subst_for_uchars_to_ucstr(buf, bsz, fmt, hawk_count_ucstr(fmt), subst, ctx);
+}
+
+/* ------------------------------------------------------------------------ */
+
+static const hawk_bch_t* scan_dollar_for_subst_b (const hawk_bch_t* f, hawk_oow_t l, hawk_bcs_t* ident, hawk_bcs_t* dfl, int depth)
+{
+	const hawk_bch_t* end = f + l;
+
+	HAWK_ASSERT (l >= 2);
+	
+	f += 2; /* skip ${ */ 
+	if (ident) ident->ptr = f;
+
+	while (1)
+	{
+		if (f >= end) return HAWK_NULL;
+		if (*f == '}' || *f == ':') break;
+		f++;
+	}
+
+	if (*f == ':')
+	{
+		if (f >= end || *(f + 1) != '=') 
+		{
+			/* not := */
+			return HAWK_NULL; 
+		}
+
+		if (ident) ident->len = f - ident->ptr;
+
+		f += 2; /* skip := */
+
+		if (dfl) dfl->ptr = f;
+		while (1)
+		{
+			if (f >= end) return HAWK_NULL;
+
+			else if (*f == '$' && *(f + 1) == '{')
+			{
+				if (depth >= 64) return HAWK_NULL; /* depth too deep */
+
+				/* TODO: remove recursion */
+				f = scan_dollar_for_subst_b(f, end - f, HAWK_NULL, HAWK_NULL, depth + 1);
+				if (!f) return HAWK_NULL;
+			}
+			else if (*f == '}') 
+			{
+				/* ending bracket  */
+				if (dfl) dfl->len = f - dfl->ptr;
+				return f + 1;
+			}
+			else f++;
+		}
+	}
+	else if (*f == '}') 
+	{
+		if (ident) ident->len = f - ident->ptr;
+		if (dfl) 
+		{
+			dfl->ptr = HAWK_NULL;
+			dfl->len = 0;
+		}
+		return f + 1;
+	}
+
+	/* this part must not be reached */
+	return HAWK_NULL;
+}
+
+static hawk_bch_t* exapnd_dollar_for_subst_b (hawk_bch_t* buf, hawk_oow_t bsz, const hawk_bcs_t* ident, const hawk_bcs_t* dfl, hawk_subst_for_bcs_t subst, void* ctx)
+{
+	hawk_bch_t* tmp;
+
+	tmp = subst(buf, bsz, ident, ctx);
+	if (tmp == HAWK_NULL)
+	{
+		/* substitution failed */
+		if (dfl->len > 0)
+		{
+			/* take the default value */
+			hawk_oow_t len;
+
+			/* TODO: remove recursion */
+			len = hawk_subst_for_bchars_to_bcstr(buf, bsz, dfl->ptr, dfl->len, subst, ctx);
+			tmp = buf + len;
+		}
+		else tmp = buf;
+	}
+
+	return tmp;
+}
+
+hawk_oow_t hawk_subst_for_bchars_to_bcstr (hawk_bch_t* buf, hawk_oow_t bsz, const hawk_bch_t* fmt, hawk_oow_t fsz, hawk_subst_for_bcs_t subst, void* ctx)
+{
+	hawk_bch_t* b = buf;
+	hawk_bch_t* end = buf + bsz - 1;
+	const hawk_bch_t* f = fmt;
+	const hawk_bch_t* fend = fmt + fsz;
+
+	if (buf != HAWK_SUBST_NOBUF && bsz <= 0) return 0;
+
+	while (f < fend)
+	{
+		if (*f == '$' && f < fend - 1)
+		{
+			if (*(f + 1) == '{')
+			{
+				const hawk_bch_t* tmp;
+				hawk_bcs_t ident, dfl;
+
+				tmp = scan_dollar_for_subst_b(f, fend - f, &ident, &dfl, 0);
+				if (!tmp || ident.len <= 0) goto normal;
+				f = tmp;
+
+				if (buf != HAWK_SUBST_NOBUF)
+				{
+					b = exapnd_dollar_for_subst_b(b, end - b + 1, &ident, &dfl, subst, ctx);
+					if (b >= end) goto fini;
+				}
+				else
+				{
+					/* the buffer points to HAWK_SUBST_NOBUF. */
+					tmp = exapnd_dollar_for_subst_b(buf, bsz, &ident, &dfl, subst, ctx);
+					/* increment b by the length of the expanded string */
+					b += (tmp - buf);
+				}
+
+				continue;
+			}
+			else if (*(f + 1) == '$') 
+			{
+				/* $$ -> $. */
+				f++;
+			}
+		}
+
+	normal:
+		if (buf != HAWK_SUBST_NOBUF)
+		{
+			if (b >= end) break;
+			*b = *f;
+		}
+		b++; f++;
+	}
+
+fini:
+	if (buf != HAWK_SUBST_NOBUF) *b = '\0';
+	return b - buf;
+}
+
+hawk_oow_t hawk_subst_for_bcstr_to_bcstr (hawk_bch_t* buf, hawk_oow_t bsz, const hawk_bch_t* fmt, hawk_subst_for_bcs_t subst, void* ctx)
+{
+	return hawk_subst_for_bchars_to_bcstr(buf, bsz, fmt, hawk_count_bcstr(fmt), subst, ctx);
+}
+/* ------------------------------------------------------------------------ */
 hawk_oow_t hawk_int_to_oocstr (hawk_int_t value, int radix, const hawk_ooch_t* prefix, hawk_ooch_t* buf, hawk_oow_t size)
 {
 	hawk_int_t t, rem;
