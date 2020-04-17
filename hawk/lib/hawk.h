@@ -2669,13 +2669,13 @@ HAWK_EXPORT hawk_val_t* hawk_rtx_makefltval (
 
 
 HAWK_EXPORT hawk_val_t* hawk_rtx_makestrvalwithuchars (
-     hawk_rtx_t*       rtx,
+	hawk_rtx_t*       rtx,
 	const hawk_uch_t* ucs,
 	hawk_oow_t        len
 );
 
 HAWK_EXPORT hawk_val_t* hawk_rtx_makestrvalwithbchars (
-     hawk_rtx_t*       rtx,
+	hawk_rtx_t*       rtx,
 	const hawk_bch_t* bcs,
 	hawk_oow_t        len
 );
@@ -2686,7 +2686,7 @@ HAWK_EXPORT hawk_val_t* hawk_rtx_makestrvalwithbchars (
  * \return value on success, #HAWK_NULL on failure
  */
 HAWK_EXPORT hawk_val_t* hawk_rtx_makestrvalwithbcstr (
-     hawk_rtx_t*       rtx,
+	hawk_rtx_t*       rtx,
 	const hawk_bch_t* bcs
 );
 
@@ -2696,7 +2696,7 @@ HAWK_EXPORT hawk_val_t* hawk_rtx_makestrvalwithbcstr (
  * \return value on success, #HAWK_NULL on failure
  */
 HAWK_EXPORT hawk_val_t* hawk_rtx_makestrvalwithucstr (
-     hawk_rtx_t*       rtx,
+	hawk_rtx_t*       rtx,
 	const hawk_uch_t* ucs
 );
 

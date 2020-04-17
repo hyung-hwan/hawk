@@ -724,7 +724,7 @@ int Hawk::Value::setStr (Run* r, const hawk_uch_t* str, hawk_oow_t len, bool num
 
 int Hawk::Value::setStr (const hawk_uch_t* str, bool numeric)
 {
-	if (this->run == HAWK_NULL) return -1;
+	if (HAWK_UNLIKELY(!this->run)) return -1;
 	return this->setStr(this->run, str, numeric);
 }
 
@@ -777,7 +777,7 @@ int Hawk::Value::setStr (Run* r, const hawk_bch_t* str, hawk_oow_t len, bool num
 
 int Hawk::Value::setStr (const hawk_bch_t* str, bool numeric)
 {
-	if (this->run == HAWK_NULL) return -1;
+	if (HAWK_UNLIKELY(!this->run)) return -1;
 	return this->setStr(this->run, str, numeric);
 }
 
@@ -832,7 +832,7 @@ int Hawk::Value::setMbs (Run* r, const hawk_bch_t* str, hawk_oow_t len)
 
 int Hawk::Value::setMbs (const hawk_bch_t* str)
 {
-	if (this->run == HAWK_NULL) return -1;
+	if (HAWK_UNLIKELY(!this->run)) return -1;
 	return this->setMbs(this->run, str);
 }
 
@@ -853,7 +853,7 @@ int Hawk::Value::setMbs (Run* r, const hawk_bch_t* str)
 
 int Hawk::Value::setIndexedVal (const Index& idx, hawk_val_t* v)
 {
-	if (this->run == HAWK_NULL) return -1;
+	if (HAWK_UNLIKELY(!this->run)) return -1;
 	return this->setIndexedVal(this->run, idx, v);
 }
 
@@ -966,7 +966,7 @@ int Hawk::Value::setIndexedFlt (Run* r, const Index& idx, hawk_flt_t v)
 
 int Hawk::Value::setIndexedStr (const Index& idx, const hawk_uch_t* str, hawk_oow_t len, bool numeric)
 {
-	if (this->run == HAWK_NULL) return -1; // NOTE: this->run isn't available. neither is this->run->hawk. unable to set an error code
+	if (HAWK_UNLIKELY(!this->run)) return -1; // NOTE: this->run isn't available. neither is this->run->hawk. unable to set an error code
 	return this->setIndexedStr(this->run, idx, str, len, numeric);
 }
 
@@ -976,7 +976,7 @@ int Hawk::Value::setIndexedStr (Run* r, const Index& idx, const hawk_uch_t* str,
 
 	tmp = numeric? hawk_rtx_makenumorstrvalwithuchars(r->rtx, str, len):
 	               hawk_rtx_makestrvalwithuchars(r->rtx, str, len);
-	if (tmp == HAWK_NULL) 
+	if (HAWK_UNLIKELY(!tmp)) 
 	{
 		r->hawk->retrieveError (r);
 		return -1;
@@ -1000,7 +1000,7 @@ int Hawk::Value::setIndexedStr (Run* r, const Index& idx, const hawk_uch_t* str,
 	hawk_val_t* tmp;
 	tmp = numeric? hawk_rtx_makenumorstrvalwithuchars(r->rtx, str, hawk_count_ucstr(str)):
 	               hawk_rtx_makestrvalwithucstr(r->rtx, str);
-	if (tmp == HAWK_NULL)
+	if (HAWK_UNLIKELY(!tmp))
 	{
 		r->hawk->retrieveError (r);
 		return -1;
@@ -1015,7 +1015,7 @@ int Hawk::Value::setIndexedStr (Run* r, const Index& idx, const hawk_uch_t* str,
 
 int Hawk::Value::setIndexedStr (const Index& idx, const hawk_bch_t* str, hawk_oow_t len, bool numeric)
 {
-	if (this->run == HAWK_NULL) return -1; // NOTE: this->run isn't available. neither is this->run->hawk. unable to set an error code
+	if (HAWK_UNLIKELY(!this->run)) return -1; // NOTE: this->run isn't available. neither is this->run->hawk. unable to set an error code
 	return this->setIndexedStr(this->run, idx, str, len, numeric);
 }
 
@@ -1025,7 +1025,7 @@ int Hawk::Value::setIndexedStr (Run* r, const Index& idx, const hawk_bch_t* str,
 
 	tmp = numeric? hawk_rtx_makenumorstrvalwithbchars(r->rtx, str, len):
 	               hawk_rtx_makestrvalwithbchars(r->rtx, str, len);
-	if (tmp == HAWK_NULL) 
+	if (HAWK_UNLIKELY(!tmp))
 	{
 		r->hawk->retrieveError (r);
 		return -1;
@@ -1040,7 +1040,7 @@ int Hawk::Value::setIndexedStr (Run* r, const Index& idx, const hawk_bch_t* str,
 
 int Hawk::Value::setIndexedStr (const Index& idx, const hawk_bch_t* str, bool numeric)
 {
-	if (run == HAWK_NULL) return -1; // NOTE: this->run isn't available. neither is this->run->hawk. unable to set an error code
+	if (HAWK_UNLIKELY(!this->run)) return -1; // NOTE: this->run isn't available. neither is this->run->hawk. unable to set an error code
 	return this->setIndexedStr(run, idx, str, numeric);
 }
 
@@ -1049,7 +1049,7 @@ int Hawk::Value::setIndexedStr (Run* r, const Index& idx, const hawk_bch_t* str,
 	hawk_val_t* tmp;
 	tmp = numeric? hawk_rtx_makenumorstrvalwithbchars(r->rtx, str, hawk_count_bcstr(str)):
 	               hawk_rtx_makestrvalwithbcstr(r->rtx, str);
-	if (tmp == HAWK_NULL)
+	if (HAWK_UNLIKELY(!tmp))
 	{
 		r->hawk->retrieveError (r);
 		return -1;
@@ -1066,7 +1066,7 @@ int Hawk::Value::setIndexedStr (Run* r, const Index& idx, const hawk_bch_t* str,
 
 int Hawk::Value::setIndexedMbs (const Index& idx, const hawk_bch_t* str, hawk_oow_t len)
 {
-	if (run == HAWK_NULL) return -1; // NOTE: this->run isn't available. neither is this->run->hawk. unable to set an error code
+	if (HAWK_UNLIKELY(!this->run)) return -1; // NOTE: this->run isn't available. neither is this->run->hawk. unable to set an error code
 	return this->setIndexedMbs(this->run, idx, str, len);
 }
 
@@ -1079,7 +1079,7 @@ int Hawk::Value::setIndexedMbs (Run* r, const Index& idx, const hawk_bch_t* str,
 	oocs.len = len;
 
 	tmp = hawk_rtx_makembsvalwithbcs(r->rtx, &oocs);
-	if (!tmp) 
+	if (HAWK_UNLIKELY(!tmp))
 	{
 		r->hawk->retrieveError (r);
 		return -1;
@@ -1094,7 +1094,7 @@ int Hawk::Value::setIndexedMbs (Run* r, const Index& idx, const hawk_bch_t* str,
 
 int Hawk::Value::setIndexedMbs (const Index& idx, const hawk_bch_t* str)
 {
-	if (run == HAWK_NULL) return -1; // NOTE: this->run isn't available. neither is this->run->hawk. unable to set an error code
+	if (HAWK_UNLIKELY(!this->run)) return -1; // NOTE: this->run isn't available. neither is this->run->hawk. unable to set an error code
 	return this->setIndexedMbs(run, idx, str);
 }
 
@@ -1102,7 +1102,7 @@ int Hawk::Value::setIndexedMbs (Run* r, const Index& idx, const hawk_bch_t* str)
 {
 	hawk_val_t* tmp;
 	tmp = hawk_rtx_makembsvalwithbchars(r->rtx, str, hawk_count_bcstr(str));
-	if (tmp == HAWK_NULL)
+	if (HAWK_UNLIKELY(!tmp))
 	{
 		r->hawk->retrieveError (r);
 		return -1;
