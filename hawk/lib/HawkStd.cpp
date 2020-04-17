@@ -131,8 +131,8 @@ static hawk_sio_t* open_sio_std (Hawk* hawk, HawkStd::Run* run, hawk_sio_std_t s
 
 int HawkStd::open () 
 {
-	int n = Hawk::open ();
-	if (n == -1) return n;
+	int n = Hawk::open();
+	if (HAWK_UNLIKELY(n <= -1)) return n;
 
 	this->gbl_argc = this->addGlobal(HAWK_T("ARGC"));
 	this->gbl_argv = this->addGlobal(HAWK_T("ARGV"));

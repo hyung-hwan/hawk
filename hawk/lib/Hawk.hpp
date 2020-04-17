@@ -1336,7 +1336,7 @@ public:
 	///
 	const Hawk::Run* getRunContext () const
 	{
-		return &runctx;
+		return &this->runctx;
 	}
 
 	///
@@ -1348,7 +1348,7 @@ public:
 	///
 	Hawk::Run* getRunContext () 
 	{
-		return &runctx;
+		return &this->runctx;
 	}
 
 	///

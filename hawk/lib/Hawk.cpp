@@ -861,7 +861,7 @@ int Hawk::Value::setIndexedVal (Run* r, const Index& idx, hawk_val_t* v)
 {
 	HAWK_ASSERT (r != HAWK_NULL);
 
-	if (HAWK_RTX_GETVALTYPE (r->rtx, this->val) != HAWK_VAL_MAP)
+	if (HAWK_RTX_GETVALTYPE(r->rtx, this->val) != HAWK_VAL_MAP)
 	{
 		// the previous value is not a map. 
 		// a new map value needs to be created first.
@@ -1047,6 +1047,7 @@ int Hawk::Value::setIndexedStr (const Index& idx, const hawk_bch_t* str, bool nu
 int Hawk::Value::setIndexedStr (Run* r, const Index& idx, const hawk_bch_t* str, bool numeric)
 {
 	hawk_val_t* tmp;
+
 	tmp = numeric? hawk_rtx_makenumorstrvalwithbchars(r->rtx, str, hawk_count_bcstr(str)):
 	               hawk_rtx_makestrvalwithbcstr(r->rtx, str);
 	if (HAWK_UNLIKELY(!tmp))
@@ -1339,15 +1340,15 @@ int Hawk::Run::getGlobal (int id, Value& g) const
 //////////////////////////////////////////////////////////////////
 
 Hawk::Hawk (Mmgr* mmgr): 
-	Mmged (mmgr), hawk (HAWK_NULL), 
+	Mmged(mmgr), hawk(HAWK_NULL), 
 #if defined(HAWK_USE_HTB_FOR_FUNCTION_MAP)
-	functionMap (HAWK_NULL), 
+	functionMap(HAWK_NULL), 
 #else
-	functionMap (this), 
+	functionMap(this), 
 #endif
-	source_reader (HAWK_NULL), source_writer (HAWK_NULL),
-	pipe_handler (HAWK_NULL), file_handler (HAWK_NULL), 
-	console_handler (HAWK_NULL), runctx (this)
+	source_reader(HAWK_NULL), source_writer(HAWK_NULL),
+	pipe_handler(HAWK_NULL), file_handler(HAWK_NULL), 
+	console_handler(HAWK_NULL), runctx(this)
 
 {
 	HAWK_MEMSET (&errinf, 0, HAWK_SIZEOF(errinf));
@@ -1823,17 +1824,17 @@ int Hawk::init_runctx ()
 	rio.console = consoleHandler;
 
 	hawk_rtx_t* rtx = hawk_rtx_open(this->hawk, HAWK_SIZEOF(rxtn_t), &rio);
-	if (rtx == HAWK_NULL) 
+	if (HAWK_UNLIKELY(!rtx)) 
 	{
 		this->retrieveError();
 		return -1;
 	}
 
 	rtx->_instsize += HAWK_SIZEOF(rxtn_t);
-	runctx.rtx = rtx;
+	this->runctx.rtx = rtx;
 
 	rxtn_t* rxtn = GET_RXTN(rtx);
-	rxtn->run = &runctx;
+	rxtn->run = &this->runctx;
 
 	return 0;
 }
