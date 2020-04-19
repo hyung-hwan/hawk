@@ -49,10 +49,11 @@
 #		endif
 #	endif
 
+#	include <termios.h>
+#	include <sys/socket.h>
+
 #	define ENABLE_SYSLOG
 #	include <syslog.h>
-
-#	include <sys/socket.h>
 
 #endif
 
@@ -1053,6 +1054,229 @@ static int fnc_fseek (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi) /* this is act
 		rx = lseek(sys_node->ctx.u.file.fd, offset, whence);
 		if (rx <= -1) 
 		{
+			set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
+			goto done;
+		}
+	}
+
+done:
+	retv = hawk_rtx_makeintval(rtx, rx);
+	if (!retv) return -1; /* hard failure. unable to make a return value */
+
+	hawk_rtx_setretval (rtx, retv);
+	return 0;
+}
+
+
+/* sys::tcgetattr(sys::openfd(1), a);
+ * for (i in a) print i, a[i]; */
+static int fnc_tcgetattr (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi) /* this is actually lseek */
+{
+	sys_list_t* sys_list;
+	sys_node_t* sys_node;
+	hawk_int_t rx;
+	hawk_val_t* retv;
+
+	sys_list = rtx_to_sys_list(rtx, fi);
+	sys_node = get_sys_list_node_with_arg(rtx, sys_list, hawk_rtx_getarg(rtx, 0), SYS_NODE_DATA_TYPE_FILE, &rx);
+	if (sys_node)
+	{
+		struct termios t;
+		hawk_val_map_data_t md[5];
+		hawk_val_t* tmp;
+		int x;
+
+		rx = tcgetattr(sys_node->ctx.u.file.fd, &t);
+		if (rx <= -1) 
+		{
+			set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
+			goto done;
+		}
+		
+		/* make a map value containg configuration */
+		HAWK_MEMSET (md, 0, HAWK_SIZEOF(md));
+
+		md[0].key.ptr = HAWK_T("iflag");
+		md[0].key.len = 5;
+		md[0].type = HAWK_VAL_MAP_DATA_INT;
+		md[0].type_size = HAWK_SIZEOF(t.c_iflag);
+		md[0].vptr = &t.c_iflag;
+
+		md[1].key.ptr = HAWK_T("oflag");
+		md[1].key.len = 5;
+		md[1].type = HAWK_VAL_MAP_DATA_INT;
+		md[1].type_size = HAWK_SIZEOF(t.c_oflag);
+		md[1].vptr = &t.c_oflag;
+
+		md[2].key.ptr = HAWK_T("cflag");
+		md[2].key.len = 5;
+		md[2].type = HAWK_VAL_MAP_DATA_INT;
+		md[2].type_size = HAWK_SIZEOF(t.c_oflag);
+		md[2].vptr = &t.c_oflag;
+
+		md[3].key.ptr = HAWK_T("lflag");
+		md[3].key.len = 5;
+		md[3].type = HAWK_VAL_MAP_DATA_INT;
+		md[3].type_size = HAWK_SIZEOF(t.c_lflag);
+		md[3].vptr = &t.c_lflag;
+
+/* TODO: t.c_cc... */
+
+		tmp = hawk_rtx_makemapvalwithdata(rtx, md);
+		if (!tmp) goto fail;
+
+		hawk_rtx_refupval (rtx, tmp);
+		x = hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, 1), tmp);
+		hawk_rtx_refdownval (rtx, tmp);
+		if (x <= -1) 
+		{
+		fail:
+			rx = copy_error_to_sys_list(rtx, sys_list);
+		}
+	}
+
+done:
+	retv = hawk_rtx_makeintval(rtx, rx);
+	if (!retv) return -1; /* hard failure. unable to make a return value */
+
+	hawk_rtx_setretval (rtx, retv);
+	return 0;
+}
+
+/*
+BEGIN {
+        IN = sys::openfd(0);
+        ##OUT = sys::openfd(1);
+        sys::tcgetattr(IN, a);
+        a["lflag"] &= ~sys::TC_LFLAG_ECHO;
+        sys::tcsetattr(IN, 0, a);
+        printf ("Password:");
+        ##sys::write (OUT, B"Password:");
+        getline x;
+        a["lflag"] |= sys::TC_LFLAG_ECHO;
+        sys::tcsetattr(IN, 0, a);
+        printf "\nYour input is [%s]\n", x;
+}
+*/
+static int fnc_tcsetattr (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi) /* this is actually lseek */
+{
+	sys_list_t* sys_list;
+	sys_node_t* sys_node;
+	hawk_int_t rx;
+	hawk_val_t* retv;
+
+	sys_list = rtx_to_sys_list(rtx, fi);
+	sys_node = get_sys_list_node_with_arg(rtx, sys_list, hawk_rtx_getarg(rtx, 0), SYS_NODE_DATA_TYPE_FILE, &rx);
+	if (sys_node)
+	{
+		struct termios t;
+		hawk_map_itr_t itr;
+		hawk_map_pair_t* pair;
+		hawk_val_t* a2;
+		hawk_int_t action, flag;
+
+		if (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 1), &action) <= -1)
+		{
+			rx = copy_error_to_sys_list(rtx, sys_list);
+			goto done;
+		}
+
+		a2 = hawk_rtx_getarg(rtx, 2);
+		if (HAWK_RTX_GETVALTYPE(rtx, a2) != HAWK_VAL_MAP)
+		{
+			rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_NULL);
+			goto done;
+		}
+
+/* I call this because tcgetattr doesn't fetch c_cc yet */
+		rx = tcgetattr(sys_node->ctx.u.file.fd, &t);
+		if (rx <= -1) goto fail_with_errno;
+
+		hawk_init_map_itr (&itr, 0);
+		pair = hawk_map_getfirstpair(((hawk_val_map_t*)a2)->map, &itr);
+		while (pair)
+		{
+			if (hawk_rtx_valtoint(rtx, HAWK_MAP_VPTR(pair), &flag) <= -1)
+			{
+				rx = copy_error_to_sys_list(rtx, sys_list);
+				goto done;
+			}
+
+			if (hawk_comp_oochars_bcstr(HAWK_MAP_KPTR(pair), HAWK_MAP_KLEN(pair), "iflag") == 0)
+			{
+				t.c_iflag = flag;
+			}
+			else if (hawk_comp_oochars_bcstr(HAWK_MAP_KPTR(pair), HAWK_MAP_KLEN(pair), "oflag") == 0)
+			{
+				t.c_oflag = flag;
+			}
+			else if (hawk_comp_oochars_bcstr(HAWK_MAP_KPTR(pair), HAWK_MAP_KLEN(pair), "cflag") == 0)
+			{
+				t.c_cflag = flag;
+			}
+			else if (hawk_comp_oochars_bcstr(HAWK_MAP_KPTR(pair), HAWK_MAP_KLEN(pair), "lflag") == 0)
+			{
+				t.c_lflag = flag;
+			}
+
+/* TODO: t.c_cc */
+			pair = hawk_map_getnextpair(((hawk_val_map_t*)a2)->map, &itr);
+		}
+
+		rx = tcsetattr(sys_node->ctx.u.file.fd, action, &t);
+		if (rx <= -1) 
+		{
+		fail_with_errno:
+			set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
+			goto done;
+		}
+	}
+
+done:
+	retv = hawk_rtx_makeintval(rtx, rx);
+	if (!retv) return -1; /* hard failure. unable to make a return value */
+
+	hawk_rtx_setretval (rtx, retv);
+	return 0;
+}
+
+/*
+BEGIN {
+        IN = sys::openfd(0);
+        sys::tcgetattr(IN, a);
+        sys::tcsetraw(IN);
+        sys::read(IN, x, 1);
+        sys::tcsetattr(IN, 0, a);
+        print x;
+}
+*/
+/*TODO: tcsetsane, tcsetcooked, etc that stty supports */
+static int fnc_tcsetraw (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi) /* this is actually lseek */
+{
+	sys_list_t* sys_list;
+	sys_node_t* sys_node;
+	hawk_int_t rx;
+	hawk_val_t* retv;
+
+	sys_list = rtx_to_sys_list(rtx, fi);
+	sys_node = get_sys_list_node_with_arg(rtx, sys_list, hawk_rtx_getarg(rtx, 0), SYS_NODE_DATA_TYPE_FILE, &rx);
+	if (sys_node)
+	{
+		struct termios t;
+
+		rx = tcgetattr(sys_node->ctx.u.file.fd, &t);
+		if (rx <= -1) goto fail_with_errno;
+
+		t.c_iflag &= ~(IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL | IXON);
+		t.c_oflag &= ~OPOST;
+		t.c_lflag &= ~(ECHO | ECHONL | ICANON | ISIG | IEXTEN);
+		t.c_cflag &= ~(CSIZE | PARENB);
+		t.c_cflag |= CS8;
+
+		rx = tcsetattr(sys_node->ctx.u.file.fd, 0, &t);
+		if (rx <= -1) 
+		{
+		fail_with_errno:
 			set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
 			goto done;
 		}
@@ -3220,7 +3444,6 @@ static int fnc_utime (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 /* ------------------------------------------------------------ */
 
-
 static int fnc_openmux (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	sys_list_t* sys_list;
@@ -4509,6 +4732,9 @@ static fnctab_t fnctab[] =
 	{ HAWK_T("symlink"),     { { 2, 2, HAWK_NULL       }, fnc_symlink,     0  } },
 	{ HAWK_T("system"),      { { 1, 1, HAWK_NULL       }, fnc_system,      0  } },
 	{ HAWK_T("systime"),     { { 0, 0, HAWK_NULL       }, fnc_gettime,     0  } }, /* alias to gettime() */
+	{ HAWK_T("tcgetattr"),   { { 2, 2, HAWK_T("vr")    }, fnc_tcgetattr,   0  } },
+	{ HAWK_T("tcsetattr"),   { { 3, 3, HAWK_NULL       }, fnc_tcsetattr,   0  } },
+	{ HAWK_T("tcsetraw"),    { { 1, 1, HAWK_NULL       }, fnc_tcsetraw,    0  } },
 	{ HAWK_T("unlink"),      { { 1, 1, HAWK_NULL       }, fnc_unlink,      0  } },
 	{ HAWK_T("unsetenv"),    { { 1, 1, HAWK_NULL       }, fnc_unsetenv,    0  } },
 	{ HAWK_T("wait"),        { { 1, 3, HAWK_T("vrv")   }, fnc_wait,        0  } },
@@ -4724,6 +4950,16 @@ static inttab_t inttab[] =
 	{ HAWK_T("SO_SNDTIMEO"),   { SO_SNDTIMEO } },
 
 	{ HAWK_T("STRFTIME_UTC"),  { STRFTIME_UTC } },
+
+	/* TODO: more termio flag items */
+	{ HAWK_T("TC_LFLAG_ECHO"),   { ECHO  } },  
+	{ HAWK_T("TC_LFLAG_ICANON"), { ICANON  } },  
+	{ HAWK_T("TC_LFLAG_ISIG"),   { ISIG  } },  
+
+	
+	{ HAWK_T("TC_SADRAIN"),    { TCSADRAIN  } },  
+	{ HAWK_T("TC_SAFLUSH"),    { TCSAFLUSH } },  
+	{ HAWK_T("TC_SANOW"),      { TCSANOW  } },  
 
 	{ HAWK_T("WNOHANG"),       { WNOHANG } }
 };
