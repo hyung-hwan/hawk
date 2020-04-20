@@ -2867,6 +2867,14 @@ HAWK_EXPORT hawk_val_t* hawk_rtx_makerexval (
 );
 
 /**
+ * The hawk_rtx_makemapval() function creates an empty array value.
+ * \return value on success, #HAWK_NULL on failure
+ */
+HAWK_EXPORT hawk_val_t* hawk_rtx_makearrayval (
+	hawk_rtx_t* rtx
+);
+
+/**
  * The hawk_rtx_makemapval() function creates an empty map value.
  * \return value on success, #HAWK_NULL on failure
  */
