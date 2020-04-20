@@ -88,6 +88,18 @@
 #	define X_SO_REUSEPORT 9999999 /* this must be a non-existent code */
 #endif
 
+#if defined(OXTABS)
+#	define X_OXTABS OXTABS
+#else
+#	define X_OXTABS 0
+#endif
+
+#if defined(ONOEOT)
+#	define X_ONOEOT ONOEOT
+#else
+#	define X_ONOEOT 0
+#endif
+
 /*
  * IMPLEMENTATION NOTE:
  *   - hard failure only if it cannot make a final return value. (e.g. fnc_errmsg, fnc_fork, fnc_getpid)
@@ -4960,9 +4972,9 @@ static inttab_t inttab[] =
 	{ HAWK_T("TC_OFLAG_ONLCR"),  { ONLCR  } },
 	{ HAWK_T("TC_OFLAG_ONLRET"), { ONLRET  } },
 	{ HAWK_T("TC_OFLAG_ONOCR"),  { ONOCR  } },
-	{ HAWK_T("TC_OFLAG_ONOEOT"), { ONOEOT  } },
+	{ HAWK_T("TC_OFLAG_ONOEOT"), { X_ONOEOT  } },
 	{ HAWK_T("TC_OFLAG_OPOST"),  { OPOST  } },
-	{ HAWK_T("TC_OFLAG_OXTABS"), { OXTABS  } },
+	{ HAWK_T("TC_OFLAG_OXTABS"), { X_OXTABS  } },
 
 	{ HAWK_T("TC_SADRAIN"),      { TCSADRAIN  } },  
 	{ HAWK_T("TC_SAFLUSH"),      { TCSAFLUSH } },  
