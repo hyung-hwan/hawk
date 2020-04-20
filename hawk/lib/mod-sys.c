@@ -1111,8 +1111,8 @@ static int fnc_tcgetattr (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi) /* this is
 		md[2].key.ptr = HAWK_T("cflag");
 		md[2].key.len = 5;
 		md[2].type = HAWK_VAL_MAP_DATA_INT;
-		md[2].type_size = HAWK_SIZEOF(t.c_oflag);
-		md[2].vptr = &t.c_oflag;
+		md[2].type_size = HAWK_SIZEOF(t.c_cflag);
+		md[2].vptr = &t.c_cflag;
 
 		md[3].key.ptr = HAWK_T("lflag");
 		md[3].key.len = 5;
@@ -1268,7 +1268,7 @@ static int fnc_tcsetraw (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi) /* this is 
 		if (rx <= -1) goto fail_with_errno;
 
 		t.c_iflag &= ~(IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL | IXON);
-		t.c_oflag &= ~OPOST;
+		t.c_oflag &= ~(OPOST);
 		t.c_lflag &= ~(ECHO | ECHONL | ICANON | ISIG | IEXTEN);
 		t.c_cflag &= ~(CSIZE | PARENB);
 		t.c_cflag |= CS8;
@@ -4889,79 +4889,86 @@ static inttab_t inttab[] =
 	{ HAWK_T("O_WRONLY"),     { O_WRONLY } },
 #endif
 
-	{ HAWK_T("RC_EACCES"),     { -HAWK_EACCES } },
-	{ HAWK_T("RC_EAGAIN"),     { -HAWK_EAGAIN } },
-	{ HAWK_T("RC_EBUFFULL"),   { -HAWK_EBUFFULL} },
-	{ HAWK_T("RC_EBUSY"),      { -HAWK_EBUSY} },
-	{ HAWK_T("RC_ECHILD"),     { -HAWK_ECHILD } },
-	{ HAWK_T("RC_EECERR"),     { -HAWK_EECERR } },
-	{ HAWK_T("RC_EEXIST"),     { -HAWK_EEXIST } },
-	{ HAWK_T("RC_EINPROG"),    { -HAWK_EINPROG } },
-	{ HAWK_T("RC_EINTERN"),    { -HAWK_EINTERN } },
-	{ HAWK_T("RC_EINTR"),      { -HAWK_EINTR } },
-	{ HAWK_T("RC_EINVAL"),     { -HAWK_EINVAL } },
-	{ HAWK_T("RC_EIOERR"),     { -HAWK_EIOERR } },
-	{ HAWK_T("RC_EISDIR"),     { -HAWK_EISDIR } },
-	{ HAWK_T("RC_ENOENT"),     { -HAWK_ENOENT } },
-	{ HAWK_T("RC_ENOHND"),     { -HAWK_ENOHND } },
-	{ HAWK_T("RC_ENOIMPL"),    { -HAWK_ENOIMPL } },
-	{ HAWK_T("RC_ENOMEM"),     { -HAWK_ENOMEM } },
-	{ HAWK_T("RC_ENOSUP"),     { -HAWK_ENOSUP } },
-	{ HAWK_T("RC_ENOTDIR"),    { -HAWK_ENOTDIR } },
-	{ HAWK_T("RC_EOTHER"),     { -HAWK_EOTHER } },
-	{ HAWK_T("RC_EPERM"),      { -HAWK_EPERM } },
-	{ HAWK_T("RC_EPIPE"),      { -HAWK_EPIPE } },
-	{ HAWK_T("RC_ESTATE"),     { -HAWK_ESTATE } },
-	{ HAWK_T("RC_ESYSERR"),    { -HAWK_ESYSERR } },
-	{ HAWK_T("RC_ETMOUT"),     { -HAWK_ETMOUT } },
+	{ HAWK_T("RC_EACCES"),       { -HAWK_EACCES } },
+	{ HAWK_T("RC_EAGAIN"),       { -HAWK_EAGAIN } },
+	{ HAWK_T("RC_EBUFFULL"),     { -HAWK_EBUFFULL} },
+	{ HAWK_T("RC_EBUSY"),        { -HAWK_EBUSY} },
+	{ HAWK_T("RC_ECHILD"),       { -HAWK_ECHILD } },
+	{ HAWK_T("RC_EECERR"),       { -HAWK_EECERR } },
+	{ HAWK_T("RC_EEXIST"),       { -HAWK_EEXIST } },
+	{ HAWK_T("RC_EINPROG"),      { -HAWK_EINPROG } },
+	{ HAWK_T("RC_EINTERN"),      { -HAWK_EINTERN } },
+	{ HAWK_T("RC_EINTR"),        { -HAWK_EINTR } },
+	{ HAWK_T("RC_EINVAL"),       { -HAWK_EINVAL } },
+	{ HAWK_T("RC_EIOERR"),       { -HAWK_EIOERR } },
+	{ HAWK_T("RC_EISDIR"),       { -HAWK_EISDIR } },
+	{ HAWK_T("RC_ENOENT"),       { -HAWK_ENOENT } },
+	{ HAWK_T("RC_ENOHND"),       { -HAWK_ENOHND } },
+	{ HAWK_T("RC_ENOIMPL"),      { -HAWK_ENOIMPL } },
+	{ HAWK_T("RC_ENOMEM"),       { -HAWK_ENOMEM } },
+	{ HAWK_T("RC_ENOSUP"),       { -HAWK_ENOSUP } },
+	{ HAWK_T("RC_ENOTDIR"),      { -HAWK_ENOTDIR } },
+	{ HAWK_T("RC_EOTHER"),       { -HAWK_EOTHER } },
+	{ HAWK_T("RC_EPERM"),        { -HAWK_EPERM } },
+	{ HAWK_T("RC_EPIPE"),        { -HAWK_EPIPE } },
+	{ HAWK_T("RC_ESTATE"),       { -HAWK_ESTATE } },
+	{ HAWK_T("RC_ESYSERR"),      { -HAWK_ESYSERR } },
+	{ HAWK_T("RC_ETMOUT"),       { -HAWK_ETMOUT } },
 
-	{ HAWK_T("SEEK_CUR"),      { SEEK_CUR } },
-	{ HAWK_T("SEEK_END"),      { SEEK_END } },
-	{ HAWK_T("SEEK_SET"),      { SEEK_SET } },
+	{ HAWK_T("SEEK_CUR"),        { SEEK_CUR } },
+	{ HAWK_T("SEEK_END"),        { SEEK_END } },
+	{ HAWK_T("SEEK_SET"),        { SEEK_SET } },
 
-	{ HAWK_T("SHUT_RD"),       { SHUT_RD } },
-	{ HAWK_T("SHUT_RDWR"),     { SHUT_RDWR } },
-	{ HAWK_T("SHUT_WR"),       { SHUT_WR } },
+	{ HAWK_T("SHUT_RD"),         { SHUT_RD } },
+	{ HAWK_T("SHUT_RDWR"),       { SHUT_RDWR } },
+	{ HAWK_T("SHUT_WR"),         { SHUT_WR } },
 
-	{ HAWK_T("SIGABRT"),       { SIGABRT } },
-	{ HAWK_T("SIGALRM"),       { SIGALRM } },
-	{ HAWK_T("SIGHUP"),        { SIGHUP } },
-	{ HAWK_T("SIGINT"),        { SIGINT } },
-	{ HAWK_T("SIGKILL"),       { SIGKILL } },
-	{ HAWK_T("SIGQUIT"),       { SIGQUIT } },
-	{ HAWK_T("SIGSEGV"),       { SIGSEGV } },
-	{ HAWK_T("SIGTERM"),       { SIGTERM } },
+	{ HAWK_T("SIGABRT"),         { SIGABRT } },
+	{ HAWK_T("SIGALRM"),         { SIGALRM } },
+	{ HAWK_T("SIGHUP"),          { SIGHUP } },
+	{ HAWK_T("SIGINT"),          { SIGINT } },
+	{ HAWK_T("SIGKILL"),         { SIGKILL } },
+	{ HAWK_T("SIGQUIT"),         { SIGQUIT } },
+	{ HAWK_T("SIGSEGV"),         { SIGSEGV } },
+	{ HAWK_T("SIGTERM"),         { SIGTERM } },
 
-	{ HAWK_T("SOCK_CLOEXEC"),  { X_SOCK_CLOEXEC } },
-	{ HAWK_T("SOCK_DGRAM"),    { SOCK_DGRAM } },
-	{ HAWK_T("SOCK_NONBLOCK"), { X_SOCK_NONBLOCK } },
-	{ HAWK_T("SOCK_STREAM"),   { SOCK_STREAM } },
+	{ HAWK_T("SOCK_CLOEXEC"),    { X_SOCK_CLOEXEC } },
+	{ HAWK_T("SOCK_DGRAM"),      { SOCK_DGRAM } },
+	{ HAWK_T("SOCK_NONBLOCK"),   { X_SOCK_NONBLOCK } },
+	{ HAWK_T("SOCK_STREAM"),     { SOCK_STREAM } },
 
-	{ HAWK_T("SOL_SOCKET"),    { SOL_SOCKET } },
+	{ HAWK_T("SOL_SOCKET"),      { SOL_SOCKET } },
 
-	{ HAWK_T("SO_BROADCAST"),  { SO_BROADCAST } },
-	{ HAWK_T("SO_DONTROUTE"),  { SO_DONTROUTE } },
-	{ HAWK_T("SO_KEEPALIVE"),  { SO_KEEPALIVE } },
-	{ HAWK_T("SO_RCVBUF"),     { SO_RCVBUF } },
-	{ HAWK_T("SO_RCVTIMEO"),   { SO_RCVTIMEO } },
-	{ HAWK_T("SO_REUSEADDR"),  { SO_REUSEADDR } },
-	{ HAWK_T("SO_REUSEPORT"),  { X_SO_REUSEPORT } },
-	{ HAWK_T("SO_SNDBUF"),     { SO_SNDBUF } },
-	{ HAWK_T("SO_SNDTIMEO"),   { SO_SNDTIMEO } },
+	{ HAWK_T("SO_BROADCAST"),    { SO_BROADCAST } },
+	{ HAWK_T("SO_DONTROUTE"),    { SO_DONTROUTE } },
+	{ HAWK_T("SO_KEEPALIVE"),    { SO_KEEPALIVE } },
+	{ HAWK_T("SO_RCVBUF"),       { SO_RCVBUF } },
+	{ HAWK_T("SO_RCVTIMEO"),     { SO_RCVTIMEO } },
+	{ HAWK_T("SO_REUSEADDR"),    { SO_REUSEADDR } },
+	{ HAWK_T("SO_REUSEPORT"),    { X_SO_REUSEPORT } },
+	{ HAWK_T("SO_SNDBUF"),       { SO_SNDBUF } },
+	{ HAWK_T("SO_SNDTIMEO"),     { SO_SNDTIMEO } },
 
-	{ HAWK_T("STRFTIME_UTC"),  { STRFTIME_UTC } },
+	{ HAWK_T("STRFTIME_UTC"),    { STRFTIME_UTC } },
 
 	/* TODO: more termio flag items */
 	{ HAWK_T("TC_LFLAG_ECHO"),   { ECHO  } },  
 	{ HAWK_T("TC_LFLAG_ICANON"), { ICANON  } },  
 	{ HAWK_T("TC_LFLAG_ISIG"),   { ISIG  } },  
 
-	
-	{ HAWK_T("TC_SADRAIN"),    { TCSADRAIN  } },  
-	{ HAWK_T("TC_SAFLUSH"),    { TCSAFLUSH } },  
-	{ HAWK_T("TC_SANOW"),      { TCSANOW  } },  
+	{ HAWK_T("TC_OFLAG_OCRNL"),  { OCRNL  } },
+	{ HAWK_T("TC_OFLAG_ONLCR"),  { ONLCR  } },
+	{ HAWK_T("TC_OFLAG_ONLRET"), { ONLRET  } },
+	{ HAWK_T("TC_OFLAG_ONOCR"),  { ONOCR  } },
+	{ HAWK_T("TC_OFLAG_ONOEOT"), { ONOEOT  } },
+	{ HAWK_T("TC_OFLAG_OPOST"),  { OPOST  } },
+	{ HAWK_T("TC_OFLAG_OXTABS"), { OXTABS  } },
 
-	{ HAWK_T("WNOHANG"),       { WNOHANG } }
+	{ HAWK_T("TC_SADRAIN"),      { TCSADRAIN  } },  
+	{ HAWK_T("TC_SAFLUSH"),      { TCSAFLUSH } },  
+	{ HAWK_T("TC_SANOW"),        { TCSANOW  } },  
+
+	{ HAWK_T("WNOHANG"),         { WNOHANG } }
 };
 
 static int query (hawk_mod_t* mod, hawk_t* hawk, const hawk_ooch_t* name, hawk_mod_sym_t* sym)
