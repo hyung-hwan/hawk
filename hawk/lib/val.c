@@ -889,6 +889,17 @@ hawk_val_t* hawk_rtx_makerexval (hawk_rtx_t* rtx, const hawk_oocs_t* str, hawk_t
 	return (hawk_val_t*)val;
 }
 
+/* --------------------------------------------------------------------- */
+
+hawk_val_t* hawk_rtx_makearrayval (hawk_rtx_t* rtx)
+{
+/* TODO: */
+	hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_ENOIMPL);
+	return HAWK_NULL;
+}
+
+/* --------------------------------------------------------------------- */
+
 static void free_mapval (hawk_map_t* map, void* dptr, hawk_oow_t dlen)
 {
 	hawk_rtx_t* rtx = *(hawk_rtx_t**)hawk_map_getxtn(map);

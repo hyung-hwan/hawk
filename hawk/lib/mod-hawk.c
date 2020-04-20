@@ -148,6 +148,8 @@ static int fnc_function_exists (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	return 0;
 }
 
+/* -------------------------------------------------------------------------- */
+
 /*
    hawk::gc();
    hawk::gc_get_threshold(gen)
@@ -209,6 +211,53 @@ static int fnc_gc_set_threshold (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	return 0;
 }
 
+/* -------------------------------------------------------------------------- */
+
+#define RESET_TO_NIL   (0)
+#define RESET_TO_ZERO  (1)
+#define RESET_TO_ARRAY (2)
+#define RESET_TO_MAP   (3)
+
+static int fnc_reset (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+{
+	hawk_val_t* tmp;
+	hawk_int_t type;
+	int x;
+
+	if (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 1), &type) <= -1) type = RESET_TO_NIL;
+
+	switch (type)
+	{
+		case RESET_TO_ZERO:
+			tmp = hawk_rtx_makeintval(rtx, 0);
+			break;
+
+		case RESET_TO_ARRAY:
+			tmp = hawk_rtx_makearrayval(rtx);
+			break;
+
+		case RESET_TO_MAP:
+			tmp = hawk_rtx_makemapval(rtx);
+			break;
+
+		case RESET_TO_NIL:
+		default:
+			tmp = hawk_rtx_makenilval(rtx);
+			break;
+	}
+	if (HAWK_UNLIKELY(!tmp)) return -1; /* hard failure */
+
+	hawk_rtx_refupval (rtx, tmp);
+	x = hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, 0), tmp);
+	hawk_rtx_refdownval (rtx, tmp);
+	if (HAWK_UNLIKELY(x <= -1)) return -1; /* hard failure */
+
+	hawk_rtx_setretval (rtx, tmp);
+	return 0;
+}
+
+/* -------------------------------------------------------------------------- */
+
 typedef struct fnctab_t fnctab_t;
 struct fnctab_t
 {
@@ -232,13 +281,19 @@ static fnctab_t fnctab[] =
 	{ HAWK_T("function_exists"),  { { 1, 1,     HAWK_NULL     },  fnc_function_exists,       0 } },
 	{ HAWK_T("gc"),               { { 0, 1,     HAWK_NULL     },  fnc_gc,                    0 } },
 	{ HAWK_T("gc_get_threshold"), { { 1, 1,     HAWK_NULL     },  fnc_gc_get_threshold,      0 } },
-	{ HAWK_T("gc_set_threshold"), { { 2, 2,     HAWK_NULL     },  fnc_gc_set_threshold,      0 } }
+	{ HAWK_T("gc_set_threshold"), { { 2, 2,     HAWK_NULL     },  fnc_gc_set_threshold,      0 } },
+	{ HAWK_T("reset"),            { { 2, 2,     HAWK_T("rv")  },  fnc_reset,                 0 } }
 };
 
 static inttab_t inttab[] =
 {
 	/* keep this table sorted for binary search in query(). */
-	{ HAWK_T("GC_NUM_GENS"), { HAWK_GC_NUM_GENS } }
+	{ HAWK_T("GC_NUM_GENS"), { HAWK_GC_NUM_GENS } },
+
+	{ HAWK_T("RESET_TO_ARRAY"),   { RESET_TO_ARRAY } },
+	{ HAWK_T("RESET_TO_MAP"),     { RESET_TO_MAP } },
+	{ HAWK_T("RESET_TO_NIL"),     { RESET_TO_NIL } },
+	{ HAWK_T("RESET_TO_ZERO"),    { RESET_TO_ZERO } }
 };
 
 static int query (hawk_mod_t* mod, hawk_t* hawk, const hawk_ooch_t* name, hawk_mod_sym_t* sym)
