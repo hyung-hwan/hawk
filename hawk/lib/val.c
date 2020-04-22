@@ -1005,16 +1005,21 @@ retry:
 	return (hawk_val_t*)val;
 }
 
-hawk_val_t* hawk_rtx_makemapvalwithdata (hawk_rtx_t* rtx, hawk_val_map_data_t data[])
+hawk_val_t* hawk_rtx_makemapvalwithdata (hawk_rtx_t* rtx, hawk_val_map_data_t data[], hawk_oow_t count)
 {
 	hawk_val_t* map, * tmp;
-	hawk_val_map_data_t* p;
+
+	hawk_oow_t i;
 
 	map = hawk_rtx_makemapval(rtx);
 	if (HAWK_UNLIKELY(!map)) return HAWK_NULL;
 
-	for (p = data; p->key.ptr; p++)
+	for (i = 0; i < count; i++)
 	{
+		hawk_val_map_data_t* p;
+
+		p = &data[i];
+
 		switch (p->type)
 		{
 			case HAWK_VAL_MAP_DATA_INT:
@@ -1041,30 +1046,27 @@ hawk_val_t* hawk_rtx_makemapvalwithdata (hawk_rtx_t* rtx, hawk_val_map_data_t da
 				tmp = hawk_rtx_makefltval(rtx, *(hawk_flt_t*)p->vptr);
 				break;
 
-			case HAWK_VAL_MAP_DATA_STR:
+			case HAWK_VAL_MAP_DATA_OOCSTR:
 				tmp = hawk_rtx_makestrvalwithoocstr(rtx, (hawk_ooch_t*)p->vptr);
 				break;
 
-			case HAWK_VAL_MAP_DATA_MBS:
+			case HAWK_VAL_MAP_DATA_BCSTR:
 				tmp = hawk_rtx_makestrvalwithbcstr(rtx, (hawk_bch_t*)p->vptr);
 				break;
 
-			case HAWK_VAL_MAP_DATA_WCS:
+			case HAWK_VAL_MAP_DATA_UCSTR:
 				tmp = hawk_rtx_makestrvalwithucstr(rtx, (hawk_uch_t*)p->vptr);
 				break;
-					
-			case HAWK_VAL_MAP_DATA_XSTR:
-			case HAWK_VAL_MAP_DATA_CSTR:
+
+			case HAWK_VAL_MAP_DATA_OOCS:
 				tmp = hawk_rtx_makestrvalwithoocs(rtx, (hawk_oocs_t*)p->vptr);
 				break;
 
-			case HAWK_VAL_MAP_DATA_MXSTR:
-			case HAWK_VAL_MAP_DATA_MCSTR:
+			case HAWK_VAL_MAP_DATA_BCS:
 				tmp = hawk_rtx_makestrvalwithbcs(rtx, (hawk_bcs_t*)p->vptr);
 				break;
 
-			case HAWK_VAL_MAP_DATA_WXSTR:
-			case HAWK_VAL_MAP_DATA_WCSTR:
+			case HAWK_VAL_MAP_DATA_UCS:
 				tmp = hawk_rtx_makestrvalwithucs(rtx, (hawk_ucs_t*)p->vptr);
 				break;
 

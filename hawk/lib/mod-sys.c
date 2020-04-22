@@ -1080,8 +1080,12 @@ done:
 }
 
 
-/* sys::tcgetattr(sys::openfd(1), a);
- * for (i in a) print i, a[i]; */
+/* 
+ BEGIN {
+     if (sys::tcgetattr(sys::openfd(1), a) <= -1) print sys::errmsg();
+     for (i in a) print i, a[i]; 
+ } 
+*/
 static int fnc_tcgetattr (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi) /* this is actually lseek */
 {
 	sys_list_t* sys_list;
@@ -1095,6 +1099,7 @@ static int fnc_tcgetattr (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi) /* this is
 	{
 		struct termios t;
 		hawk_val_map_data_t md[5];
+		hawk_bcs_t c_cc;
 		hawk_val_t* tmp;
 		int x;
 
@@ -1132,9 +1137,14 @@ static int fnc_tcgetattr (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi) /* this is
 		md[3].type_size = HAWK_SIZEOF(t.c_lflag);
 		md[3].vptr = &t.c_lflag;
 
-/* TODO: t.c_cc... */
+		md[4].key.ptr = HAWK_T("cc");
+		md[4].key.len = 2;
+		md[4].type = HAWK_VAL_MAP_DATA_BCS;
+		md[4].vptr = &c_cc;
+		c_cc.ptr = t.c_cc;
+		c_cc.len = HAWK_COUNTOF(t.c_cc);
 
-		tmp = hawk_rtx_makemapvalwithdata(rtx, md);
+		tmp = hawk_rtx_makemapvalwithdata(rtx, md, HAWK_COUNTOF(md));
 		if (!tmp) goto fail;
 
 		hawk_rtx_refupval (rtx, tmp);
@@ -1200,7 +1210,7 @@ static int fnc_tcsetattr (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi) /* this is
 			goto done;
 		}
 
-/* I call this because tcgetattr doesn't fetch c_cc yet */
+		/* i call this to keep the old value for the fields not present in the given attribute map */
 		rx = tcgetattr(sys_node->ctx.u.file.fd, &t);
 		if (rx <= -1) goto fail_with_errno;
 
@@ -1208,30 +1218,49 @@ static int fnc_tcsetattr (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi) /* this is
 		pair = hawk_map_getfirstpair(((hawk_val_map_t*)a2)->map, &itr);
 		while (pair)
 		{
-			if (hawk_rtx_valtoint(rtx, HAWK_MAP_VPTR(pair), &flag) <= -1)
+			if (hawk_comp_oochars_bcstr(HAWK_MAP_KPTR(pair), HAWK_MAP_KLEN(pair), "cc") == 0)
 			{
-				rx = copy_error_to_sys_list(rtx, sys_list);
-				goto done;
+				hawk_bch_t* ptr;
+				hawk_oow_t len;
+
+				ptr = hawk_rtx_getvalbcstr(rtx, HAWK_MAP_VPTR(pair), &len);
+				if (!ptr)
+				{
+					rx = copy_error_to_sys_list(rtx, sys_list);
+					goto done;
+				}
+
+				if (len >= HAWK_COUNTOF(t.c_cc)) len = HAWK_COUNTOF(t.c_cc);
+				HAWK_MEMCPY (t.c_cc, ptr, len);
+				hawk_rtx_freevalbcstr (rtx, HAWK_MAP_VPTR(pair), ptr);
+			}
+			else
+			{
+				if (hawk_rtx_valtoint(rtx, HAWK_MAP_VPTR(pair), &flag) <= -1)
+				{
+					rx = copy_error_to_sys_list(rtx, sys_list);
+					goto done;
+				}
+
+				if (hawk_comp_oochars_bcstr(HAWK_MAP_KPTR(pair), HAWK_MAP_KLEN(pair), "iflag") == 0)
+				{
+					t.c_iflag = flag;
+				}
+				else if (hawk_comp_oochars_bcstr(HAWK_MAP_KPTR(pair), HAWK_MAP_KLEN(pair), "oflag") == 0)
+				{
+					t.c_oflag = flag;
+				}
+				else if (hawk_comp_oochars_bcstr(HAWK_MAP_KPTR(pair), HAWK_MAP_KLEN(pair), "cflag") == 0)
+				{
+					t.c_cflag = flag;
+				}
+				else if (hawk_comp_oochars_bcstr(HAWK_MAP_KPTR(pair), HAWK_MAP_KLEN(pair), "lflag") == 0)
+				{
+					t.c_lflag = flag;
+				}
 			}
 
-			if (hawk_comp_oochars_bcstr(HAWK_MAP_KPTR(pair), HAWK_MAP_KLEN(pair), "iflag") == 0)
-			{
-				t.c_iflag = flag;
-			}
-			else if (hawk_comp_oochars_bcstr(HAWK_MAP_KPTR(pair), HAWK_MAP_KLEN(pair), "oflag") == 0)
-			{
-				t.c_oflag = flag;
-			}
-			else if (hawk_comp_oochars_bcstr(HAWK_MAP_KPTR(pair), HAWK_MAP_KLEN(pair), "cflag") == 0)
-			{
-				t.c_cflag = flag;
-			}
-			else if (hawk_comp_oochars_bcstr(HAWK_MAP_KPTR(pair), HAWK_MAP_KLEN(pair), "lflag") == 0)
-			{
-				t.c_lflag = flag;
-			}
 
-/* TODO: t.c_cc */
 			pair = hawk_map_getnextpair(((hawk_val_map_t*)a2)->map, &itr);
 		}
 
@@ -2705,7 +2734,8 @@ static int fnc_getifcfg (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		hawk_int_t type;
 		hawk_int_t index, mtu;
 		hawk_ooch_t ethw[32];
-		hawk_val_map_data_t md[7];
+		hawk_val_map_data_t md[6];
+		hawk_oow_t md_count;
 		hawk_val_t* tmp;
 		int x;
 
@@ -2731,32 +2761,34 @@ static int fnc_getifcfg (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 		md[2].key.ptr = HAWK_T("addr");
 		md[2].key.len = 4;
-		md[2].type = HAWK_VAL_MAP_DATA_STR;
+		md[2].type = HAWK_VAL_MAP_DATA_OOCSTR;
 		hawk_gem_skadtooocstr (hawk_rtx_getgem(rtx), &cfg.addr, sys_list->ctx.skadbuf[0], HAWK_COUNTOF(sys_list->ctx.skadbuf[0]), HAWK_SKAD_TO_OOCSTR_ADDR);
 		md[2].vptr = sys_list->ctx.skadbuf[0];
 
 		md[3].key.ptr = HAWK_T("mask");
 		md[3].key.len = 4;
-		md[3].type = HAWK_VAL_MAP_DATA_STR;
+		md[3].type = HAWK_VAL_MAP_DATA_OOCSTR;
 		hawk_gem_skadtooocstr (hawk_rtx_getgem(rtx), &cfg.mask, sys_list->ctx.skadbuf[1], HAWK_COUNTOF(sys_list->ctx.skadbuf[1]), HAWK_SKAD_TO_OOCSTR_ADDR);
 		md[3].vptr = sys_list->ctx.skadbuf[1];
 
 		md[4].key.ptr = HAWK_T("ethw");
 		md[4].key.len = 4;
-		md[4].type = HAWK_VAL_MAP_DATA_STR;
+		md[4].type = HAWK_VAL_MAP_DATA_OOCSTR;
 		hawk_rtx_fmttooocstr (rtx, ethw, HAWK_COUNTOF(ethw), HAWK_T("%02X:%02X:%02X:%02X:%02X:%02X"), 
 			cfg.ethw[0], cfg.ethw[1], cfg.ethw[2], cfg.ethw[3], cfg.ethw[4], cfg.ethw[5]);
 		md[4].vptr = ethw;
+		md_count = 5;
 
 		if (cfg.flags & (HAWK_IFCFG_LINKUP | HAWK_IFCFG_LINKDOWN))
 		{
 			md[5].key.ptr = HAWK_T("link");
 			md[5].key.len = 4;
-			md[5].type = HAWK_VAL_MAP_DATA_STR;
+			md[5].type = HAWK_VAL_MAP_DATA_OOCSTR;
 			md[5].vptr = (cfg.flags & HAWK_IFCFG_LINKUP)? HAWK_T("up"): HAWK_T("down");
+			md_count++;
 		}
 
-		tmp = hawk_rtx_makemapvalwithdata(rtx, md);
+		tmp = hawk_rtx_makemapvalwithdata(rtx, md, md_count);
 		if (!tmp) goto fail;
 
 		hawk_rtx_refupval (rtx, tmp);
@@ -3241,7 +3273,7 @@ static int fnc_stat (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		hawk_oow_t len1;
 		hawk_val_t* tmp;
 		hawk_stat_t stbuf;
-		hawk_val_map_data_t md[14];
+		hawk_val_map_data_t md[13];
 		hawk_flt_t atime_f, mtime_f, ctime_f;
 		int x;
 
@@ -3365,7 +3397,7 @@ static int fnc_stat (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		md[12].vptr = &stbuf.st_ctime;
 	#endif
 
-		tmp = hawk_rtx_makemapvalwithdata(rtx, md);
+		tmp = hawk_rtx_makemapvalwithdata(rtx, md, HAWK_COUNTOF(md));
 		if (!tmp) goto fail;
 
 		hawk_rtx_refupval (rtx, tmp);
@@ -4963,10 +4995,48 @@ static inttab_t inttab[] =
 
 	{ HAWK_T("STRFTIME_UTC"),    { STRFTIME_UTC } },
 
-	/* TODO: more termio flag items */
+	{ HAWK_T("TC_CC_VDISCARD"),  { VDISCARD } },
+	{ HAWK_T("TC_CC_VEOF"),      { VEOF } },
+	{ HAWK_T("TC_CC_VEOL"),      { VEOL } },
+	{ HAWK_T("TC_CC_VEOL2"),     { VEOL2 } },
+	{ HAWK_T("TC_CC_VERASE"),    { VERASE } },
+	{ HAWK_T("TC_CC_VINTR"),     { VINTR } },
+	{ HAWK_T("TC_CC_VKILL"),     { VKILL } },
+	{ HAWK_T("TC_CC_VLNEXT"),    { VLNEXT } },
+	{ HAWK_T("TC_CC_VMIN"),      { VMIN } },
+	{ HAWK_T("TC_CC_VQUIT"),     { VQUIT } },
+	{ HAWK_T("TC_CC_VREPINT"),   { VREPRINT } },
+	{ HAWK_T("TC_CC_VSTART"),    { VSTART } },
+	{ HAWK_T("TC_CC_VSTOP"),     { VSTOP } },
+	{ HAWK_T("TC_CC_VSUSP"),     { VSUSP } },
+	{ HAWK_T("TC_CC_VSWTC"),     { VSWTC } },
+	{ HAWK_T("TC_CC_VTIME"),     { VTIME } },
+	{ HAWK_T("TC_CC_VWERASE"),   { VWERASE } },
+
+	{ HAWK_T("TC_IFLAG_BRKINT"), { BRKINT } },
+	{ HAWK_T("TC_IFLAG_ICRNL"),  { ICRNL } },
+	{ HAWK_T("TC_IFLAG_IGNBRK"), { IGNBRK } },
+	{ HAWK_T("TC_IFLAG_IGNCR"),  { IGNCR } },
+	{ HAWK_T("TC_IFLAG_IGNPAR"), { IGNPAR } }, 
+	{ HAWK_T("TC_IFLAG_IMAXBEL"),{ IMAXBEL } },
+	{ HAWK_T("TC_IFLAG_INLCR"),  { INLCR } },
+	{ HAWK_T("TC_IFLAG_INPCK"),  { INPCK } },
+	{ HAWK_T("TC_IFLAG_ISTRIP"), { ISTRIP } },
+	{ HAWK_T("TC_IFLAG_IUCLC"),  { IUCLC } },
+	{ HAWK_T("TC_IFLAG_IUTF8"),  { IUTF8 } },
+	{ HAWK_T("TC_IFLAG_IXANY"),  { IXANY } },
+	{ HAWK_T("TC_IFLAG_IXOFF"),  { IXOFF } },
+	{ HAWK_T("TC_IFLAG_IXON"),   { IXON } },
+	{ HAWK_T("TC_IFLAG_PARMRK"), { PARMRK } },
+
 	{ HAWK_T("TC_LFLAG_ECHO"),   { ECHO  } },  
+	{ HAWK_T("TC_LFLAG_ECHOE"),  { ECHOE  } },  
+	{ HAWK_T("TC_LFLAG_ECHOK"),  { ECHOK  } },  
+	{ HAWK_T("TC_LFLAG_ECHONL"), { ECHONL  } },  
 	{ HAWK_T("TC_LFLAG_ICANON"), { ICANON  } },  
 	{ HAWK_T("TC_LFLAG_ISIG"),   { ISIG  } },  
+	{ HAWK_T("TC_LFLAG_NOFLSH"), { NOFLSH  } },  
+	{ HAWK_T("TC_LFLAG_TOSTOP"), { TOSTOP  } },  
 
 	{ HAWK_T("TC_OFLAG_OCRNL"),  { OCRNL  } },
 	{ HAWK_T("TC_OFLAG_ONLCR"),  { ONLCR  } },
