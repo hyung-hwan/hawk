@@ -73,31 +73,37 @@
 #if defined(SOCK_CLOEXEC)
 #	define X_SOCK_CLOEXEC SOCK_CLOEXEC
 #else
-#	define X_SOCK_CLOEXEC 0 /* 0 is effectless for a bit flag */
+#	define X_SOCK_CLOEXEC (0) /* 0 is effectless for a bit flag */
 #endif
 
 #if defined(SOCK_NONBLOCK)
 #	define X_SOCK_NONBLOCK SOCK_NONBLOCK
 #else
-#	define X_SOCK_NONBLOCK 0 /* 0 is effectless for a bit flag */
+#	define X_SOCK_NONBLOCK (0) /* 0 is effectless for a bit flag */
 #endif
 
 #if defined(SO_REUSEPORT)
 #	define X_SO_REUSEPORT SO_REUSEPORT
 #else
-#	define X_SO_REUSEPORT 9999999 /* this must be a non-existent code */
+#	define X_SO_REUSEPORT (9999999) /* this must be a non-existent code */
+#endif
+
+#if defined(IUTF8)
+#	define X_IUTF8 IUTF8
+#else
+#	define X_IUTF8 (0)
 #endif
 
 #if defined(OXTABS)
 #	define X_OXTABS OXTABS
 #else
-#	define X_OXTABS 0
+#	define X_OXTABS (0)
 #endif
 
 #if defined(ONOEOT)
 #	define X_ONOEOT ONOEOT
 #else
-#	define X_ONOEOT 0
+#	define X_ONOEOT (0)
 #endif
 
 /*
@@ -5023,7 +5029,7 @@ static inttab_t inttab[] =
 	{ HAWK_T("TC_IFLAG_INPCK"),  { INPCK } },
 	{ HAWK_T("TC_IFLAG_ISTRIP"), { ISTRIP } },
 	{ HAWK_T("TC_IFLAG_IUCLC"),  { IUCLC } },
-	{ HAWK_T("TC_IFLAG_IUTF8"),  { IUTF8 } },
+	{ HAWK_T("TC_IFLAG_IUTF8"),  { X_IUTF8 } },
 	{ HAWK_T("TC_IFLAG_IXANY"),  { IXANY } },
 	{ HAWK_T("TC_IFLAG_IXOFF"),  { IXOFF } },
 	{ HAWK_T("TC_IFLAG_IXON"),   { IXON } },
