@@ -329,15 +329,12 @@ enum hawk_val_map_data_type_t
 {
 	HAWK_VAL_MAP_DATA_INT  = 0,
 	HAWK_VAL_MAP_DATA_FLT,
-	HAWK_VAL_MAP_DATA_STR,
-	HAWK_VAL_MAP_DATA_MBS,
-	HAWK_VAL_MAP_DATA_WCS,
-	HAWK_VAL_MAP_DATA_CSTR,
-	HAWK_VAL_MAP_DATA_XSTR,
-	HAWK_VAL_MAP_DATA_MCSTR,
-	HAWK_VAL_MAP_DATA_MXSTR,
-	HAWK_VAL_MAP_DATA_WCSTR,
-	HAWK_VAL_MAP_DATA_WXSTR
+	HAWK_VAL_MAP_DATA_OOCSTR,
+	HAWK_VAL_MAP_DATA_BCSTR,
+	HAWK_VAL_MAP_DATA_UCSTR,
+	HAWK_VAL_MAP_DATA_OOCS,
+	HAWK_VAL_MAP_DATA_BCS,
+	HAWK_VAL_MAP_DATA_UCS
 };
 typedef enum hawk_val_map_data_type_t hawk_val_map_data_type_t;
 
@@ -2891,7 +2888,8 @@ HAWK_EXPORT hawk_val_t* hawk_rtx_makemapval (
  */
 HAWK_EXPORT hawk_val_t* hawk_rtx_makemapvalwithdata (
 	hawk_rtx_t*         rtx,
-	hawk_val_map_data_t data[]
+	hawk_val_map_data_t data[],
+	hawk_oow_t          count
 );
 
 /**
@@ -2900,11 +2898,11 @@ HAWK_EXPORT hawk_val_t* hawk_rtx_makemapvalwithdata (
  * \return value \a v on success, #HAWK_NULL on failure.
  */
 HAWK_EXPORT hawk_val_t* hawk_rtx_setmapvalfld (
-	hawk_rtx_t*    rtx,
-	hawk_val_t*    map,
+	hawk_rtx_t*        rtx,
+	hawk_val_t*        map,
 	const hawk_ooch_t* kptr,
-	hawk_oow_t        klen,
-	hawk_val_t*    v
+	hawk_oow_t         klen,
+	hawk_val_t*        v
 );
 
 /**
@@ -2915,10 +2913,10 @@ HAWK_EXPORT hawk_val_t* hawk_rtx_setmapvalfld (
  * \return field value on success, #HAWK_NULL on failure.
  */
 HAWK_EXPORT hawk_val_t* hawk_rtx_getmapvalfld (
-	hawk_rtx_t*     rtx,
-	hawk_val_t*     map,
+	hawk_rtx_t*         rtx,
+	hawk_val_t*         map,
 	const hawk_ooch_t*  kptr,
-	hawk_oow_t         klen
+	hawk_oow_t          klen
 );
 
 /**
