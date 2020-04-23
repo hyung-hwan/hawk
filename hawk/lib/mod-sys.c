@@ -88,6 +88,12 @@
 #	define X_SO_REUSEPORT (9999999) /* this must be a non-existent code */
 #endif
 
+#if defined(IUCLC)
+#	define X_IUCLC IUCLC
+#else
+#	define X_IUCLC (0)
+#endif
+
 #if defined(IUTF8)
 #	define X_IUTF8 IUTF8
 #else
@@ -1298,7 +1304,7 @@ BEGIN {
 }
 */
 /*TODO: tcsetsane, tcsetcooked, etc that stty supports */
-static int fnc_tcsetraw (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi) /* this is actually lseek */
+static int fnc_tcsetraw (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	sys_list_t* sys_list;
 	sys_node_t* sys_node;
@@ -1337,6 +1343,36 @@ done:
 	return 0;
 }
 
+static int fnc_tcflush (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+{
+	sys_list_t* sys_list;
+	sys_node_t* sys_node;
+	hawk_int_t rx;
+	hawk_val_t* retv;
+
+	sys_list = rtx_to_sys_list(rtx, fi);
+	sys_node = get_sys_list_node_with_arg(rtx, sys_list, hawk_rtx_getarg(rtx, 0), SYS_NODE_DATA_TYPE_FILE, &rx);
+	if (sys_node)
+	{
+		hawk_int_t qs;
+
+		if (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 1), &qs) <= -1) qs = TCIOFLUSH;
+
+		rx = tcflush(sys_node->ctx.u.file.fd, qs);
+		if (rx <= -1) 
+		{
+			set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
+			goto done;
+		}
+	}
+
+done:
+	retv = hawk_rtx_makeintval(rtx, rx);
+	if (!retv) return -1; /* hard failure. unable to make a return value */
+
+	hawk_rtx_setretval (rtx, retv);
+	return 0;
+}
 /* ------------------------------------------------------------------------ */
 
 /*
@@ -4782,6 +4818,7 @@ static fnctab_t fnctab[] =
 	{ HAWK_T("symlink"),     { { 2, 2, HAWK_NULL       }, fnc_symlink,     0  } },
 	{ HAWK_T("system"),      { { 1, 1, HAWK_NULL       }, fnc_system,      0  } },
 	{ HAWK_T("systime"),     { { 0, 0, HAWK_NULL       }, fnc_gettime,     0  } }, /* alias to gettime() */
+	{ HAWK_T("tcflush"),     { { 2, 2, HAWK_NULL       }, fnc_tcflush,     0  } },
 	{ HAWK_T("tcgetattr"),   { { 2, 2, HAWK_T("vr")    }, fnc_tcgetattr,   0  } },
 	{ HAWK_T("tcsetattr"),   { { 3, 3, HAWK_NULL       }, fnc_tcsetattr,   0  } },
 	{ HAWK_T("tcsetraw"),    { { 1, 1, HAWK_NULL       }, fnc_tcsetraw,    0  } },
@@ -5015,9 +5052,46 @@ static inttab_t inttab[] =
 	{ HAWK_T("TC_CC_VSTART"),    { VSTART } },
 	{ HAWK_T("TC_CC_VSTOP"),     { VSTOP } },
 	{ HAWK_T("TC_CC_VSUSP"),     { VSUSP } },
-	{ HAWK_T("TC_CC_VSWTC"),     { VSWTC } },
+#if defined(VSWTC)
+	{ HAWK_T("TC_CC_VSWTC"),     { VSWTC } },  /* hard to define with an alternative value when it's not available */
+#endif
 	{ HAWK_T("TC_CC_VTIME"),     { VTIME } },
 	{ HAWK_T("TC_CC_VWERASE"),   { VWERASE } },
+
+	{ HAWK_T("TC_CFLAG_B0"),      { B0 } },
+	{ HAWK_T("TC_CFLAG_B110"),    { B110 } },
+	{ HAWK_T("TC_CFLAG_B115200"), { B115200 } },
+	{ HAWK_T("TC_CFLAG_B1200"),   { B1200 } },
+	{ HAWK_T("TC_CFLAG_B134"),    { B134 } },
+	{ HAWK_T("TC_CFLAG_B150"),    { B150 } },
+	{ HAWK_T("TC_CFLAG_B1800"),   { B1800 } },
+	{ HAWK_T("TC_CFLAG_B19200"),  { B19200 } },
+	{ HAWK_T("TC_CFLAG_B200"),    { B200 } },
+	{ HAWK_T("TC_CFLAG_B230400"), { B230400 } },
+	{ HAWK_T("TC_CFLAG_B2400"),   { B2400 } },
+	{ HAWK_T("TC_CFLAG_B300"),    { B300 } },
+	{ HAWK_T("TC_CFLAG_B38400"),  { B38400 } },
+	{ HAWK_T("TC_CFLAG_B460800"), { B460800 } },
+	{ HAWK_T("TC_CFLAG_B4800"),   { B4800 } },
+	{ HAWK_T("TC_CFLAG_B50"),     { B50 } },
+	{ HAWK_T("TC_CFLAG_B57600"),  { B57600 } },
+	{ HAWK_T("TC_CFLAG_B600"),    { B600 } },
+	{ HAWK_T("TC_CFLAG_B75"),     { B75 } },
+	{ HAWK_T("TC_CFLAG_B921600"), { B921600 } },
+	{ HAWK_T("TC_CFLAG_B9600"),   { B9600 } },
+
+	{ HAWK_T("TC_CFLAG_CLOCAL"),  { CLOCAL } },
+	{ HAWK_T("TC_CFLAG_CREAD"),   { CREAD } },
+	{ HAWK_T("TC_CFLAG_CRTSCTS"), { CRTSCTS } },
+	{ HAWK_T("TC_CFLAG_CS5"),     { CS5 } },
+	{ HAWK_T("TC_CFLAG_CS6"),     { CS6 } },
+	{ HAWK_T("TC_CFLAG_CS7"),     { CS7 } },
+	{ HAWK_T("TC_CFLAG_CS8"),     { CS8 } },
+	{ HAWK_T("TC_CFLAG_CSIZE"),   { CSIZE } },
+	{ HAWK_T("TC_CFLAG_CSTOPB"),  { CSTOPB } },
+	{ HAWK_T("TC_CFLAG_HUPCL"),   { HUPCL } },
+	{ HAWK_T("TC_CFLAG_PARENB"),  { PARENB } },
+	{ HAWK_T("TC_CFLAG_PARODD"),  { PARODD } },
 
 	{ HAWK_T("TC_IFLAG_BRKINT"), { BRKINT } },
 	{ HAWK_T("TC_IFLAG_ICRNL"),  { ICRNL } },
@@ -5028,12 +5102,16 @@ static inttab_t inttab[] =
 	{ HAWK_T("TC_IFLAG_INLCR"),  { INLCR } },
 	{ HAWK_T("TC_IFLAG_INPCK"),  { INPCK } },
 	{ HAWK_T("TC_IFLAG_ISTRIP"), { ISTRIP } },
-	{ HAWK_T("TC_IFLAG_IUCLC"),  { IUCLC } },
+	{ HAWK_T("TC_IFLAG_IUCLC"),  { X_IUCLC } },
 	{ HAWK_T("TC_IFLAG_IUTF8"),  { X_IUTF8 } },
 	{ HAWK_T("TC_IFLAG_IXANY"),  { IXANY } },
 	{ HAWK_T("TC_IFLAG_IXOFF"),  { IXOFF } },
 	{ HAWK_T("TC_IFLAG_IXON"),   { IXON } },
 	{ HAWK_T("TC_IFLAG_PARMRK"), { PARMRK } },
+
+	{ HAWK_T("TC_IFLUSH"),       { TCIFLUSH } },
+	{ HAWK_T("TC_IOFLUSH"),      { TCIOFLUSH } },
+	{ HAWK_T("TC_OFLUSH"),       { TCOFLUSH } },
 
 	{ HAWK_T("TC_LFLAG_ECHO"),   { ECHO  } },  
 	{ HAWK_T("TC_LFLAG_ECHOE"),  { ECHOE  } },  
