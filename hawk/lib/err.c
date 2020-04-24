@@ -153,6 +153,11 @@ const hawk_ooch_t* hawk_dfl_errstr (hawk_errnum_t errnum)
 		HAWK_T("invalid value to convert to a number"),
 		HAWK_T("invalid value to a character"),
 		HAWK_T("invalid value for hashing"),
+		HAWK_T("cannot return an array"),                       /* EARRRET */
+		HAWK_T("cannot assign an array to a positional"),       /* EARRTOPOS */
+		HAWK_T("cannot assign an array to an indexed variable"),/* EARRTOIDX */
+		HAWK_T("array index out of allowed range"),
+		HAWK_T("single-bracketed multidimensional array indices not allowed"),
 		HAWK_T("'next' called from BEGIN block"),
 		HAWK_T("'next' called from END block"),
 		HAWK_T("'nextfile' called from BEGIN block"),

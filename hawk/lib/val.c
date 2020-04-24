@@ -173,18 +173,43 @@ static void gc_trace_refs (hawk_gch_t* list)
 	{
 		v = hawk_gch_to_val(gch);
 
-		/* as of now, there is only one type available - HAWK_VAL_MAP */
-		HAWK_ASSERT (v->v_type == HAWK_VAL_MAP);
-		hawk_init_map_itr (&itr, 0);
-		pair = hawk_map_getfirstpair(((hawk_val_map_t*)v)->map, &itr);
-		while (pair)
+		if (v->v_type == HAWK_VAL_MAP)
 		{
-			iv = (hawk_val_t*)HAWK_MAP_VPTR(pair);
-			if (HAWK_VTR_IS_POINTER(iv) && iv->v_gc) 
+			hawk_map_t* map;
+
+			map = ((hawk_val_map_t*)v)->map;
+			hawk_init_map_itr (&itr, 0);
+			pair = hawk_map_getfirstpair(map, &itr);
+			while (pair)
 			{
-				hawk_val_to_gch(iv)->gc_refs--;
+				iv = (hawk_val_t*)HAWK_MAP_VPTR(pair);
+				if (HAWK_VTR_IS_POINTER(iv) && iv->v_gc) 
+				{
+					hawk_val_to_gch(iv)->gc_refs--;
+				}
+				pair = hawk_map_getnextpair(map, &itr);
 			}
-			pair = hawk_map_getnextpair(((hawk_val_map_t*)v)->map, &itr);
+		}
+		else /* if (v->v_type == HAWK_VAL_ARR) */
+		{
+			hawk_oow_t size, i;
+			hawk_arr_t* arr;
+
+			HAWK_ASSERT (v->v_type == HAWK_VAL_ARR); /* only HAWK_VAL_MAP and HAWK_VAL_ARR */
+
+			arr = ((hawk_val_arr_t*)v)->arr;
+			size = HAWK_ARR_SIZE(arr);
+			for (i = 0; i < size; i++)
+			{
+				if (HAWK_ARR_SLOT(arr, i))
+				{
+					iv = (hawk_val_t*)HAWK_ARR_DPTR(arr, i);
+					if (HAWK_VTR_IS_POINTER(iv) && iv->v_gc) 
+					{
+						hawk_val_to_gch(iv)->gc_refs--;
+					}
+				}
+			}
 		}
 
 		gch = gch->gc_next;
@@ -230,25 +255,57 @@ static void gc_move_reachables (hawk_gch_t* list, hawk_gch_t* reachable_list)
 	{
 		v = hawk_gch_to_val(gch);
 
-		/* as of now, there is only one type available - HAWK_VAL_MAP */
-/* the key part is a string. don't care. but if a generic value is allowed as a key, this should change... */
-		HAWK_ASSERT (v->v_type == HAWK_VAL_MAP);
-		hawk_init_map_itr (&itr, 0);
-		pair = hawk_map_getfirstpair(((hawk_val_map_t*)v)->map, &itr);
-		while (pair)
+		if (v->v_type == HAWK_VAL_MAP)
 		{
-			iv = (hawk_val_t*)HAWK_MAP_VPTR(pair);
-			if (HAWK_VTR_IS_POINTER(iv) && iv->v_gc) 
+			hawk_map_t* map;
+
+			/* the key part is a string. don't care. but if a generic value is allowed as a key, this should change... */
+			map = ((hawk_val_map_t*)v)->map;
+
+			hawk_init_map_itr (&itr, 0);
+			pair = hawk_map_getfirstpair(map, &itr);
+			while (pair)
 			{
-				tmp = hawk_val_to_gch(iv);
-				if (tmp->gc_refs != GCH_MOVED)
+				iv = (hawk_val_t*)HAWK_MAP_VPTR(pair);
+				if (HAWK_VTR_IS_POINTER(iv) && iv->v_gc) 
 				{
-					gc_unchain_gch (tmp);
-					gc_chain_gch (reachable_list, tmp);
-					tmp->gc_refs = GCH_MOVED;
+					tmp = hawk_val_to_gch(iv);
+					if (tmp->gc_refs != GCH_MOVED)
+					{
+						gc_unchain_gch (tmp);
+						gc_chain_gch (reachable_list, tmp);
+						tmp->gc_refs = GCH_MOVED;
+					}
+				}
+				pair = hawk_map_getnextpair(map, &itr);
+			}
+		}
+		else /* if (v->v_type == HAWK_VAL_ARR) */
+		{
+			hawk_oow_t size, i;
+			hawk_arr_t* arr;
+
+			HAWK_ASSERT (v->v_type == HAWK_VAL_ARR); /* only HAWK_VAL_MAP and HAWK_VAL_ARR */
+
+			arr = ((hawk_val_arr_t*)v)->arr;
+			size = HAWK_ARR_SIZE(arr);
+			for (i = 0; i < size; i++)
+			{
+				if (HAWK_ARR_SLOT(arr, i))
+				{
+					iv = (hawk_val_t*)HAWK_ARR_DPTR(arr, i);
+					if (HAWK_VTR_IS_POINTER(iv) && iv->v_gc) 
+					{
+						tmp = hawk_val_to_gch(iv);
+						if (tmp->gc_refs != GCH_MOVED)
+						{
+							gc_unchain_gch (tmp);
+							gc_chain_gch (reachable_list, tmp);
+							tmp->gc_refs = GCH_MOVED;
+						}
+					}
 				}
 			}
-			pair = hawk_map_getnextpair(((hawk_val_map_t*)v)->map, &itr);
 		}
 
 		gch = gch->gc_next;
@@ -915,11 +972,11 @@ static void free_arrayval (hawk_arr_t* arr, void* dptr, hawk_oow_t dlen)
 
 static void same_arrayval (hawk_arr_t* map, void* dptr, hawk_oow_t dlen)
 {
-	hawk_rtx_t* run = *(hawk_rtx_t**)hawk_arr_getxtn(map);
+	hawk_rtx_t* rtx = *(hawk_rtx_t**)hawk_arr_getxtn(map);
 #if defined(DEBUG_VAL)
-	hawk_logfmt (hawk_rtx_gethawk(rtx), HAWK_LOG_STDERR, HAWK_T("refdown nofree in map free - [%O]\n"), dptr);
+	hawk_logfmt (hawk_rtx_gethawk(rtx), HAWK_LOG_STDERR, HAWK_T("refdown nofree in arr free - [%O]\n"), dptr);
 #endif
-	hawk_rtx_refdownval_nofree (run, dptr);
+	hawk_rtx_refdownval_nofree (rtx, dptr);
 }
 
 
@@ -983,7 +1040,7 @@ retry:
 	gc_chain_val (&rtx->gc.g[0], (hawk_val_t*)val);
 	val->v_gc = 1;
 	#if defined(DEBUG_GC)
-	hawk_logbfmt (hawk_rtx_gethawk(rtx), HAWK_LOG_STDERR, "[GC] MADE GCH %p VAL %p\n", hawk_val_to_gch(val), val);
+	hawk_logbfmt (hawk_rtx_gethawk(rtx), HAWK_LOG_STDERR, "[GC] MADE GCH %p VAL(ARR) %p\n", hawk_val_to_gch(val), val);
 	#endif
 #endif
 
@@ -1016,11 +1073,11 @@ static void free_mapval (hawk_map_t* map, void* dptr, hawk_oow_t dlen)
 
 static void same_mapval (hawk_map_t* map, void* dptr, hawk_oow_t dlen)
 {
-	hawk_rtx_t* run = *(hawk_rtx_t**)hawk_map_getxtn(map);
+	hawk_rtx_t* rtx = *(hawk_rtx_t**)hawk_map_getxtn(map);
 #if defined(DEBUG_VAL)
 	hawk_logfmt (hawk_rtx_gethawk(rtx), HAWK_LOG_STDERR, HAWK_T("refdown nofree in map free - [%O]\n"), dptr);
 #endif
-	hawk_rtx_refdownval_nofree (run, dptr);
+	hawk_rtx_refdownval_nofree (rtx, dptr);
 }
 
 hawk_val_t* hawk_rtx_makemapval (hawk_rtx_t* rtx)
@@ -1090,7 +1147,7 @@ retry:
 	gc_chain_val (&rtx->gc.g[0], (hawk_val_t*)val);
 	val->v_gc = 1;
 	#if defined(DEBUG_GC)
-	hawk_logbfmt (hawk_rtx_gethawk(rtx), HAWK_LOG_STDERR, "[GC] MADE GCH %p VAL %p\n", hawk_val_to_gch(val), val);
+	hawk_logbfmt (hawk_rtx_gethawk(rtx), HAWK_LOG_STDERR, "[GC] MADE GCH %p VAL(MAP) %p\n", hawk_val_to_gch(val), val);
 	#endif
 #endif
 
@@ -1407,7 +1464,7 @@ void hawk_rtx_freeval (hawk_rtx_t* rtx, hawk_val_t* val, int flags)
 			#if defined(HAWK_ENABLE_GC)
 
 				#if defined(DEBUG_GC)
-				hawk_logbfmt (hawk_rtx_gethawk(rtx), HAWK_LOG_STDERR, "[GC] FREEING GCH %p VAL %p - flags %d\n", hawk_val_to_gch(val), val, flags);
+				hawk_logbfmt (hawk_rtx_gethawk(rtx), HAWK_LOG_STDERR, "[GC] FREEING GCH %p VAL(MAP) %p - flags %d\n", hawk_val_to_gch(val), val, flags);
 				#endif
 
 				hawk_map_fini (((hawk_val_map_t*)val)->map);
@@ -1418,6 +1475,25 @@ void hawk_rtx_freeval (hawk_rtx_t* rtx, hawk_val_t* val, int flags)
 				}
 			#else
 				hawk_map_fini (((hawk_val_map_t*)val)->map);
+				hawk_rtx_freemem (rtx, val);
+			#endif
+				break;
+
+			case HAWK_VAL_ARR:
+			#if defined(HAWK_ENABLE_GC)
+
+				#if defined(DEBUG_GC)
+				hawk_logbfmt (hawk_rtx_gethawk(rtx), HAWK_LOG_STDERR, "[GC] FREEING GCH %p VAL(ARR) %p - flags %d\n", hawk_val_to_gch(val), val, flags);
+				#endif
+
+				hawk_arr_fini (((hawk_val_arr_t*)val)->arr);
+				if (!(flags & HAWK_RTX_FREEVAL_GC_PRESERVE))
+				{
+					gc_unchain_val (val);
+					gc_free_val (rtx, val);
+				}
+			#else
+				hawk_arr_fini (((hawk_val_arr_t*)val)->arr);
 				hawk_rtx_freemem (rtx, val);
 			#endif
 				break;

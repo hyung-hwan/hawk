@@ -704,7 +704,11 @@ int hawk_fnc_length (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		{
 			case HAWK_VAL_MAP:
 				/* map size */
-				len = HAWK_HTB_SIZE(((hawk_val_map_t*)v)->map);
+				len = HAWK_MAP_SIZE(((hawk_val_map_t*)v)->map);
+				break;
+
+			case HAWK_VAL_ARR:
+				len = HAWK_ARR_SIZE(((hawk_val_arr_t*)v)->arr);
 				break;
 
 			case HAWK_VAL_STR:
