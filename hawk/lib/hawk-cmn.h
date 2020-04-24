@@ -988,6 +988,11 @@ enum hawk_errnum_t
 	HAWK_EVALTONUM,     /**< invalid value to convert to a number */
 	HAWK_EVALTOCHR,     /**< invalid value to convert to a character */
 	HAWK_EHASHVAL,      /**< invalid value to hash */
+	HAWK_EARRRET,       /**< array cannot be returned */
+	HAWK_EARRTOPOS,     /**< array cannot be assigned to a positional */
+	HAWK_EARRTOIDX,     /**< array cannot be assigned to an indexed variable */
+	HAWK_EARRIDXRANGE,  /**< disallowed array index range */
+	HAWK_EARRIDXMULTI,  /**< single-bracketed multidimensional array indices not allowed */
 	HAWK_ERNEXTBEG,     /**< 'next' called from BEGIN block */
 	HAWK_ERNEXTEND,     /**< 'next' called from END block */
 	HAWK_ERNEXTFBEG,    /**< 'nextfile' called from BEGIN block */

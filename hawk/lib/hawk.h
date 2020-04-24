@@ -465,7 +465,7 @@ struct hawk_fun_t
 	hawk_oocs_t     name;
 	hawk_oow_t      nargs;
 	hawk_ooch_t*    argspec; /* similar to  the argument spec of hawk_fnc_arg_t. supports v & r only. */
-	hawk_nde_t* body;
+	hawk_nde_t*     body;
 };
 typedef struct hawk_fun_t hawk_fun_t;
 
@@ -530,29 +530,29 @@ typedef void (*hawk_log_write_t) (
 
 #if 0
 typedef void* (*hawk_buildrex_t) (
-	hawk_t*        hawk,
+	hawk_t*            hawk,
 	const hawk_ooch_t* ptn, 
-	hawk_oow_t        len
+	hawk_oow_t         len
 );
 
 typedef int (*hawk_matchrex_t) (
-	hawk_t*         hawk,
-	void*              code,
-	int                option,
+	hawk_t*             hawk,
+	void*               code,
+	int                 option,
 	const hawk_ooch_t*  str,
-	hawk_oow_t         len, 
+	hawk_oow_t          len, 
 	const hawk_ooch_t** mptr,
-	hawk_oow_t*        mlen
+	hawk_oow_t*         mlen
 );
 
 typedef void (*hawk_freerex_t) (
 	hawk_t* hawk,
-	void*      code
+	void*   code
 );
 
 typedef int (*hawk_isemptyrex_t) (
 	hawk_t* hawk,
-	void*      code
+	void*   code
 );
 #endif
 

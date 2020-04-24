@@ -485,9 +485,9 @@ hawk_oow_t hawk_arr_walk (hawk_arr_t* arr, walker_t walker, void* ctx)
 
 	while (1)	
 	{
-		if (arr->slot[i] != HAWK_NULL) 
+		if (arr->slot[i])
 		{
-               w = walker (arr, i, ctx);
+			w = walker(arr, i, ctx);
 			nwalks++;
 		}
 
