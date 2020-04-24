@@ -211,6 +211,14 @@ static int fnc_gc_set_threshold (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	return 0;
 }
 
+static int fnc_gcrefs (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+{
+	hawk_val_t* a0;
+	a0 = hawk_rtx_getarg(rtx, 0);
+	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, HAWK_VTR_IS_POINTER(a0)? a0->v_refs: 0));
+	return 0;
+}
+
 /* -------------------------------------------------------------------------- */
 
 static int fnc_array (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
@@ -239,6 +247,66 @@ static int fnc_map (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 /* -------------------------------------------------------------------------- */
 
+static int fnc_isnil (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+{
+	hawk_val_t* a0;
+	hawk_val_t* r;
+
+	a0 = hawk_rtx_getarg(rtx, 0);
+
+	r = hawk_rtx_makeintval(rtx, HAWK_RTX_GETVALTYPE(rtx, a0) == HAWK_VAL_NIL);
+	if (r == HAWK_NULL) return -1;
+
+	hawk_rtx_setretval (rtx, r);
+	return 0;
+}
+
+static int fnc_ismap (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+{
+	hawk_val_t* a0;
+	hawk_val_t* r;
+
+	a0 = hawk_rtx_getarg(rtx, 0);
+
+	r = hawk_rtx_makeintval(rtx, HAWK_RTX_GETVALTYPE(rtx, a0) == HAWK_VAL_MAP);
+	if (HAWK_UNLIKELY(!r)) return -1;
+
+	hawk_rtx_setretval (rtx, r);
+	return 0;
+}
+
+static int fnc_isarr (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+{
+	hawk_val_t* a0;
+	hawk_val_t* r;
+
+	a0 = hawk_rtx_getarg(rtx, 0);
+
+	r = hawk_rtx_makeintval(rtx, HAWK_RTX_GETVALTYPE(rtx, a0) == HAWK_VAL_ARR);
+	if (HAWK_UNLIKELY(!r)) return -1;
+
+	hawk_rtx_setretval (rtx, r);
+	return 0;
+}
+
+static int fnc_typename (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+{
+	hawk_val_t* a0;
+	hawk_val_t* r;
+	const hawk_ooch_t* name;
+
+	a0 = hawk_rtx_getarg(rtx, 0);
+	name = hawk_rtx_getvaltypename(rtx, a0);
+
+	r = hawk_rtx_makestrvalwithoocstr(rtx, name);
+	if (r == HAWK_NULL) return -1;
+
+	hawk_rtx_setretval (rtx, r);
+	return 0;
+}
+
+/* -------------------------------------------------------------------------- */
+
 typedef struct fnctab_t fnctab_t;
 struct fnctab_t
 {
@@ -262,9 +330,14 @@ static fnctab_t fnctab[] =
 	{ HAWK_T("call"),             { { 1, A_MAX, HAWK_T("vR")  },  fnc_call,                  0 } },
 	{ HAWK_T("function_exists"),  { { 1, 1,     HAWK_NULL     },  fnc_function_exists,       0 } },
 	{ HAWK_T("gc"),               { { 0, 1,     HAWK_NULL     },  fnc_gc,                    0 } },
+	{ HAWK_T("gcrefs"),           { { 1, 1,     HAWK_NULL     },  fnc_gcrefs,                0 } },
 	{ HAWK_T("gc_get_threshold"), { { 1, 1,     HAWK_NULL     },  fnc_gc_get_threshold,      0 } },
 	{ HAWK_T("gc_set_threshold"), { { 2, 2,     HAWK_NULL     },  fnc_gc_set_threshold,      0 } },
-	{ HAWK_T("map"),              { { 0, A_MAX                },  fnc_map,                   0 } }
+	{ HAWK_T("isarray"),          { { 1, 1,     HAWK_NULL     },  fnc_isarr,                 0 } },
+	{ HAWK_T("ismap"),            { { 1, 1,     HAWK_NULL     },  fnc_ismap,                 0 } },
+	{ HAWK_T("isnil"),            { { 1, 1,     HAWK_NULL     },  fnc_isnil,                 0 } },
+	{ HAWK_T("map"),              { { 0, A_MAX, HAWK_NULL     },  fnc_map,                   0 } },
+	{ HAWK_T("typename"),         { { 1, 1,     HAWK_NULL     },  fnc_typename,              0 } }
 };
 
 static inttab_t inttab[] =

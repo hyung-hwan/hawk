@@ -168,8 +168,6 @@ static hawk_val_t* eval_incpre (hawk_rtx_t* rtx, hawk_nde_t* nde);
 static hawk_val_t* eval_incpst (hawk_rtx_t* rtx, hawk_nde_t* nde);
 static hawk_val_t* eval_cnd (hawk_rtx_t* rtx, hawk_nde_t* nde);
 
-static hawk_val_t* eval_fncall_fun_ex (hawk_rtx_t* rtx, hawk_nde_t* nde, void(*errhandler)(void*), void* eharg);
-
 static hawk_val_t* eval_fncall_fnc (hawk_rtx_t* rtx, hawk_nde_t* nde);
 static hawk_val_t* eval_fncall_fun (hawk_rtx_t* rtx, hawk_nde_t* nde);
 static hawk_val_t* eval_fncall_var (hawk_rtx_t* rtx, hawk_nde_t* nde);
@@ -250,14 +248,14 @@ static int set_global (hawk_rtx_t* rtx, int idx, hawk_nde_var_t* var, hawk_val_t
 		hawk_errnum_t errnum = HAWK_ENOERR;
 		const hawk_ooch_t* errfmt;
 
-		if (vtype == HAWK_VAL_MAP)
+		if (vtype == HAWK_VAL_MAP || vtype == HAWK_VAL_ARR)
 		{
 			if (old_vtype == HAWK_VAL_NIL)
 			{
 				/* a nil valul can be overridden with any values */
 				/* ok. no error */
 			}
-			else if (!assign && old_vtype == HAWK_VAL_MAP)
+			else if (!assign && old_vtype == vtype)
 			{
 				/* when both are maps, how should this operation be 
 				 * interpreted?
@@ -277,16 +275,16 @@ static int set_global (hawk_rtx_t* rtx, int idx, hawk_nde_var_t* var, hawk_val_t
 			}
 			else
 			{
-				errnum = HAWK_ESCALARTOMAP;
-				errfmt = HAWK_T("not allowed to change a scalar '%.*js' to a map");
+				errnum = HAWK_ESCALARTONONSCA;
+				errfmt = HAWK_T("not allowed to change a scalar value in '%.*js' to a non-scalar value");
 			}
 		}
 		else
 		{
-			if (old_vtype == HAWK_VAL_MAP) 
+			if (old_vtype == HAWK_VAL_MAP || old_vtype == HAWK_VAL_ARR) 
 			{
-				errnum = HAWK_EMAPTOSCALAR;
-				errfmt = HAWK_T("not allowed to change a map '%.*js' to a scalar");
+				errnum = HAWK_ENONSCATOSCALAR;
+				errfmt = HAWK_T("not allowed to change a non-scalar value in '%.*js' to a scalar value");
 			}
 		}
 
@@ -312,7 +310,7 @@ static int set_global (hawk_rtx_t* rtx, int idx, hawk_nde_var_t* var, hawk_val_t
 		}
 	}
 
-	if (vtype == HAWK_VAL_MAP)
+	if (vtype == HAWK_VAL_MAP || vtype == HAWK_VAL_ARR)
 	{
 		if (idx >= HAWK_MIN_GBL_ID && idx <= HAWK_MAX_GBL_ID)
 		{
@@ -325,7 +323,7 @@ static int set_global (hawk_rtx_t* rtx, int idx, hawk_nde_var_t* var, hawk_val_t
 
 			hawk_oocs_t ea;
 			ea.ptr = (hawk_ooch_t*)hawk_getgblname(hawk_rtx_gethawk(rtx), idx, &ea.len);
-			hawk_rtx_seterrfmt (rtx, HAWK_NULL, HAWK_ESCALARTOMAP, HAWK_T("not allowed to change a scalar '%.*js' to a map"), ea.len, ea.ptr);
+			hawk_rtx_seterrfmt (rtx, HAWK_NULL, HAWK_ESCALARTONONSCA, HAWK_T("not allowed to change a scalar value in '%.*js' to a non-scalar value"), ea.len, ea.ptr);
 			return -1;
 		}
 	}
@@ -2709,19 +2707,12 @@ static int run_return (hawk_rtx_t* rtx, hawk_nde_return_t* nde)
 		{
 			hawk_val_type_t vtype = HAWK_RTX_GETVALTYPE(rtx, val);
 
-			if (vtype == HAWK_VAL_MAP)
+			if (vtype == HAWK_VAL_MAP || vtype == HAWK_VAL_ARR)
 			{
 				/* cannot return a map */
 				hawk_rtx_refupval (rtx, val);
 				hawk_rtx_refdownval (rtx, val);
-				hawk_rtx_seterrnum (rtx, &nde->loc, HAWK_EMAPRET);
-				return -1;
-			}
-			else if (vtype == HAWK_VAL_ARR)
-			{
-				hawk_rtx_refupval (rtx, val);
-				hawk_rtx_refdownval (rtx, val);
-				hawk_rtx_seterrnum (rtx, &nde->loc, HAWK_EARRRET);
+				hawk_rtx_seterrnum (rtx, &nde->loc, HAWK_ENONSCARET);
 				return -1;
 			}
 		}
@@ -2989,7 +2980,7 @@ static hawk_val_t* assign_newmapval_to_var (hawk_rtx_t* rtx, hawk_nde_var_t* var
 }
 
 
-static int delete_indexed (hawk_rtx_t* rtx, hawk_val_t* vv, hawk_nde_var_t* var)
+static int delete_indexed_in_map (hawk_rtx_t* rtx, hawk_val_t* vv, hawk_nde_var_t* var)
 {
 	hawk_map_t* map;
 	hawk_ooch_t* str = HAWK_NULL;
@@ -3039,7 +3030,7 @@ static int delete_indexed (hawk_rtx_t* rtx, hawk_val_t* vv, hawk_nde_var_t* var)
 				}
 				else
 				{
-					hawk_rtx_seterrfmt (rtx, &var->loc, HAWK_ENOTDEL, HAWK_T("nested scalar under '%.*js' not deletable"), var->id.name.len, var->id.name.ptr);
+					hawk_rtx_seterrfmt (rtx, &var->loc, HAWK_ENOTDEL, HAWK_T("nested scalar value under '%.*js' not deletable"), var->id.name.len, var->id.name.ptr);
 					goto oops;
 				}
 		}
@@ -3062,6 +3053,24 @@ oops:
 	if (str && str != idxbuf) hawk_rtx_freemem (rtx, str);
 	ADJERR_LOC (rtx, &var->loc);
 	return -1;
+}
+
+static int delete_indexed_in_arr (hawk_rtx_t* rtx, hawk_val_t* vv, hawk_nde_var_t* var)
+{
+	hawk_arr_t* arr;
+	hawk_ooi_t idx;
+
+	HAWK_ASSERT (var->idx != HAWK_NULL);
+	HAWK_ASSERT (HAWK_RTX_GETVALTYPE(rtx, vv) == HAWK_VAL_ARR);
+
+	idx = idxnde_to_int(rtx, var->idx);
+	if (HAWK_UNLIKELY(idx <= -1)) return -1;
+
+	arr = ((hawk_val_arr_t*)vv)->arr;
+
+	/* no bound check because hawk_arr_delete() performs sanity check */
+	hawk_arr_delete (arr, idx, 1);
+	return 0;
 }
 
 static int run_delete (hawk_rtx_t* rtx, hawk_nde_delete_t* nde)
@@ -3087,7 +3096,7 @@ static int run_delete (hawk_rtx_t* rtx, hawk_nde_delete_t* nde)
 			if (var->type == HAWK_NDE_NAMEDIDX || var->type == HAWK_NDE_GBLIDX ||
 			    var->type == HAWK_NDE_LCLIDX || var->type == HAWK_NDE_ARGIDX)
 			{
-				if (delete_indexed(rtx, val, var) <= -1) goto oops;
+				if (delete_indexed_in_map(rtx, val, var) <= -1) goto oops;
 			}
 			else
 			{
@@ -3104,6 +3113,17 @@ static int run_delete (hawk_rtx_t* rtx, hawk_nde_delete_t* nde)
 			}
 			break;
 
+		case HAWK_VAL_ARR:
+			if (var->type == HAWK_NDE_NAMEDIDX || var->type == HAWK_NDE_GBLIDX ||
+			    var->type == HAWK_NDE_LCLIDX || var->type == HAWK_NDE_ARGIDX)
+			{
+				if (delete_indexed_in_arr(rtx, val, var) <= -1) goto oops;
+			}
+			else
+			{
+				hawk_arr_clear (((hawk_val_arr_t*)val)->arr);
+			}
+			break;
 		default:
 			hawk_rtx_seterrfmt (rtx, &var->loc, HAWK_ENOTDEL, HAWK_T("'%.*js' not deletable"), var->id.name.len, var->id.name.ptr);
 			goto oops;
@@ -3754,15 +3774,10 @@ static hawk_val_t* do_assignment (hawk_rtx_t* rtx, hawk_nde_t* var, hawk_val_t* 
 		case HAWK_NDE_ARGIDX:
 		#if !defined(HAWK_ENABLE_GC)
 			hawk_val_type_t vtype = HAWK_RTX_GETVALTYPE(rtx, val);
-			if (vtype == HAWK_VAL_MAP)
+			if (vtype == HAWK_VAL_MAP || vtype == HAWK_VAL_ARR)
 			{
 				/* a map cannot become a member of a map */
-				errnum = HAWK_EMAPTOIDX;
-				goto exit_on_error;
-			}
-			else if (vtype == HAWK_VAL_ARR)
-			{
-				errnum = HAWK_EARRTOIDX;
+				errnum = HAWK_ENONSCATOIDX;
 				goto exit_on_error;
 			}
 		#endif
@@ -3773,15 +3788,10 @@ static hawk_val_t* do_assignment (hawk_rtx_t* rtx, hawk_nde_t* var, hawk_val_t* 
 		case HAWK_NDE_POS:
 		{
 			hawk_val_type_t vtype = HAWK_RTX_GETVALTYPE(rtx, val);
-			if (vtype == HAWK_VAL_MAP)
+			if (vtype == HAWK_VAL_MAP || vtype == HAWK_VAL_ARR)
 			{
 				/* a map cannot be assigned to a positional */
-				errnum = HAWK_EMAPTOPOS;
-				goto exit_on_error;
-			}
-			else if (vtype == HAWK_VAL_ARR)
-			{
-				errnum = HAWK_EARRTOPOS;
+				errnum = HAWK_ENONSCATOPOS;
 				goto exit_on_error;
 			}
 
@@ -3826,20 +3836,21 @@ static hawk_val_t* do_assignment_nonidx (hawk_rtx_t* rtx, hawk_nde_var_t* var, h
 
 			if (!(rtx->hawk->opt.trait & HAWK_FLEXMAP))
 			{
-				if (pair && HAWK_RTX_GETVALTYPE(rtx, (hawk_val_t*)HAWK_HTB_VPTR(pair)) == HAWK_VAL_MAP)
+				hawk_val_type_t old_vtype;
+				if (pair && ((old_vtype = HAWK_RTX_GETVALTYPE(rtx, (hawk_val_t*)HAWK_HTB_VPTR(pair))) == HAWK_VAL_MAP || old_vtype == HAWK_VAL_ARR))
 				{
 					/* old value is a map - it can only be accessed through indexing. */
-					if (vtype == HAWK_VAL_MAP)
-						hawk_rtx_seterrfmt (rtx, &var->loc, HAWK_EMAPTOMAP, HAWK_T("not allowed to change a map '%.*js' to another map"), var->id.name.len, var->id.name.ptr);
+					if (vtype == old_vtype)
+						hawk_rtx_seterrfmt (rtx, &var->loc, HAWK_ENONSCATONONSCA, HAWK_T("not allowed to change a non-scalar value in '%.*js' to another non-scalar value"), var->id.name.len, var->id.name.ptr);
 					else
-						hawk_rtx_seterrfmt (rtx, &var->loc, HAWK_EMAPTOSCALAR, HAWK_T("not allowed to change a map '%.*js' to a scalar"), var->id.name.len, var->id.name.ptr);
+						hawk_rtx_seterrfmt (rtx, &var->loc, HAWK_ENONSCATOSCALAR, HAWK_T("not allowed to change a non-scalar value in '%.*js' to a scalar value"), var->id.name.len, var->id.name.ptr);
 					return HAWK_NULL;
 				}
-				else if (vtype == HAWK_VAL_MAP)
+				else if (vtype == HAWK_VAL_MAP || vtype == HAWK_VAL_ARR)
 				{
 					/* old value is not a map but a new value is a map.
 					 * a map cannot be assigned to a variable if FLEXMAP is off. */
-					hawk_rtx_seterrfmt (rtx, &var->loc, HAWK_EMAPTOVAR, HAWK_T("not allowed to assign a map to a variable '%.*js'"), var->id.name.len, var->id.name.ptr);
+					hawk_rtx_seterrfmt (rtx, &var->loc, HAWK_ENONSCATOVAR, HAWK_T("not allowed to assign a non-scalar value to a variable '%.*js'"), var->id.name.len, var->id.name.ptr);
 					return HAWK_NULL;
 				}
 			}
@@ -3870,20 +3881,22 @@ static hawk_val_t* do_assignment_nonidx (hawk_rtx_t* rtx, hawk_nde_var_t* var, h
 
 			if (!(rtx->hawk->opt.trait & HAWK_FLEXMAP))
 			{
-				if (HAWK_RTX_GETVALTYPE(rtx, old) == HAWK_VAL_MAP)
+				hawk_val_type_t old_type;
+
+				if ((old_type = HAWK_RTX_GETVALTYPE(rtx, old)) == HAWK_VAL_MAP || old_type == HAWK_VAL_ARR)
 				{
 					/* old value is a map - it can only be accessed through indexing. */
-					if (vtype == HAWK_VAL_MAP)
-						hawk_rtx_seterrfmt (rtx, &var->loc, HAWK_EMAPTOMAP, HAWK_T("not allowed to change a map '%.*js' to another map"), var->id.name.len, var->id.name.ptr);
+					if (vtype == old_type)
+						hawk_rtx_seterrfmt (rtx, &var->loc, HAWK_ENONSCATONONSCA, HAWK_T("not allowed to change a non-scalar value in '%.*js' to another non-scalar value"), var->id.name.len, var->id.name.ptr);
 					else
-						hawk_rtx_seterrfmt (rtx, &var->loc, HAWK_EMAPTOSCALAR, HAWK_T("not allowed to change a map '%.*js' to a scalar"), var->id.name.len, var->id.name.ptr);
+						hawk_rtx_seterrfmt (rtx, &var->loc, HAWK_ENONSCATOSCALAR, HAWK_T("not allowed to change a non-scalar value in '%.*js' to a scalar value"), var->id.name.len, var->id.name.ptr);
 					return HAWK_NULL;
 				}
-				else if (vtype == HAWK_VAL_MAP)
+				else if (vtype == HAWK_VAL_MAP || vtype == HAWK_VAL_ARR)
 				{
 					/* old value is not a map but a new value is a map.
 					 * a map cannot be assigned to a variable if FLEXMAP is off. */
-					hawk_rtx_seterrfmt (rtx, &var->loc, HAWK_EMAPTOVAR, HAWK_T("not allowed to assign a map to a variable '%.*js'"), var->id.name.len, var->id.name.ptr);
+					hawk_rtx_seterrfmt (rtx, &var->loc, HAWK_ENONSCATOVAR, HAWK_T("not allowed to assign a non-scalar value to a variable '%.*js'"), var->id.name.len, var->id.name.ptr);
 					return HAWK_NULL;
 				}
 			}
@@ -3900,20 +3913,22 @@ static hawk_val_t* do_assignment_nonidx (hawk_rtx_t* rtx, hawk_nde_var_t* var, h
 
 			if (!(rtx->hawk->opt.trait & HAWK_FLEXMAP))
 			{
-				if (HAWK_RTX_GETVALTYPE(rtx, old) == HAWK_VAL_MAP)
+				hawk_val_type_t old_type;
+
+				if ((old_type = HAWK_RTX_GETVALTYPE(rtx, old) == HAWK_VAL_MAP) || old_type == HAWK_VAL_ARR)
 				{
 					/* old value is a map - it can only be accessed through indexing. */
-					if (vtype == HAWK_VAL_MAP)
-						hawk_rtx_seterrfmt (rtx, &var->loc, HAWK_EMAPTOMAP, HAWK_T("not allowed to change a map '%.*js' to another map"), var->id.name.len, var->id.name.ptr);
+					if (vtype == old_type)
+						hawk_rtx_seterrfmt (rtx, &var->loc, HAWK_ENONSCATONONSCA, HAWK_T("not allowed to change a non-scalar value in '%.*js' to another non-scalar value"), var->id.name.len, var->id.name.ptr);
 					else
-						hawk_rtx_seterrfmt (rtx, &var->loc, HAWK_EMAPTOSCALAR, HAWK_T("not allowed to change a map '%.*js' to a scalar"), var->id.name.len, var->id.name.ptr);
+						hawk_rtx_seterrfmt (rtx, &var->loc, HAWK_ENONSCATOSCALAR, HAWK_T("not allowed to change a non-scalar value in '%.*js' to a scalar value"), var->id.name.len, var->id.name.ptr);
 					return HAWK_NULL;
 				}
-				else if (vtype == HAWK_VAL_MAP)
+				else if (vtype == HAWK_VAL_MAP || vtype == HAWK_VAL_ARR)
 				{
 					/* old value is not a map but a new value is a map.
 					 * a map cannot be assigned to a variable if FLEXMAP is off. */
-					hawk_rtx_seterrfmt (rtx, &var->loc, HAWK_EMAPTOVAR, HAWK_T("not allowed to assign a map to a variable '%.*js'"), var->id.name.len, var->id.name.ptr);
+					hawk_rtx_seterrfmt (rtx, &var->loc, HAWK_ENONSCATOVAR, HAWK_T("not allowed to assign a non-scalar value to a variable '%.*js'"), var->id.name.len, var->id.name.ptr);
 					return HAWK_NULL;
 				}
 			}
@@ -4007,7 +4022,7 @@ static hawk_val_t* do_assignment_idx (hawk_rtx_t* rtx, hawk_nde_var_t* var, hawk
 						}
 						else
 						{
-							hawk_rtx_seterrfmt (rtx, &var->loc, HAWK_ESCALARTOMAP, HAWK_T("not allowed to change a nested scalar under '%.*js' to a map"), var->id.name.len, var->id.name.ptr);
+							hawk_rtx_seterrfmt (rtx, &var->loc, HAWK_ESCALARTONONSCA, HAWK_T("not allowed to change a nested scalar value under '%.*js' to a non-scalar value"), var->id.name.len, var->id.name.ptr);
 							goto oops_map;
 						}
 				}
@@ -4064,7 +4079,7 @@ static hawk_val_t* do_assignment_idx (hawk_rtx_t* rtx, hawk_nde_var_t* var, hawk
 			{
 				/* you can't manipulate a variable pointing to
 				 * a scalar value with an index if FLEXMAP is off. */
-				hawk_rtx_seterrfmt (rtx, &var->loc, HAWK_ESCALARTOMAP, HAWK_T("not allowed to change a scalar '%.*js' to a map"), var->id.name.len, var->id.name.ptr);
+				hawk_rtx_seterrfmt (rtx, &var->loc, HAWK_ESCALARTONONSCA, HAWK_T("not allowed to change a scalar value in '%.*js' to a non-scalar value"), var->id.name.len, var->id.name.ptr);
 				return HAWK_NULL;
 			}
 	}
@@ -6918,7 +6933,8 @@ static hawk_val_t* eval_indexed (hawk_rtx_t* rtx, hawk_nde_var_t* var)
 			if (idx <= -1) return HAWK_NULL;
 
 			arr = ((hawk_val_arr_t*)v)->arr;
-			/* return nil if the index is out of range or the element at the index is not set */
+			/* return nil if the index is out of range or the element at the index is not set.
+			 * no check for a negative index as it's guaranteed to be positive by idxnde_to_int() */
 			return (idx < HAWK_ARR_SIZE(arr) && HAWK_ARR_SLOT(arr, idx))? ((hawk_val_t*)HAWK_ARR_DPTR(arr, idx)): hawk_val_nil;
 		}
 

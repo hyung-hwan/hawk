@@ -977,20 +977,19 @@ enum hawk_errnum_t
 	HAWK_ENOTMAPIN,     /**< right-hand side of 'in' not a map */
 	HAWK_ENOTMAPNILIN,  /**< right-hand side of 'in' not a map nor nil */
 	HAWK_ENOTREF,       /**< value not referenceable */
-	HAWK_EMAPRET,       /**< map cannot be returned */
-	HAWK_EMAPTOPOS,     /**< map cannot be assigned to a positional */
-	HAWK_EMAPTOIDX,     /**< map cannot be assigned to an indexed variable */
-	HAWK_EMAPTOVAR,     /**< map cannot be assigned to a variable */
-	HAWK_EMAPTOSCALAR,  /**< cannot change a map to a scalar value */
-	HAWK_EMAPTOMAP,     /**< cannot change a map to another map */
-	HAWK_ESCALARTOMAP,  /**< cannot change a scalar to a map */
+	HAWK_ENONSCARET,    /**< non-scalar value cannot be returned */
+	HAWK_ENONSCATOPOS,  /**< non-scalar value cannot be assigned to a positional */
+	HAWK_ENONSCATOIDX,  /**< non-scalar value cannot be assigned to an indexed variable */
+	HAWK_ENONSCATOVAR,  /**< non-scalar cannot be assigned to a variable */
+	HAWK_ENONSCATOSCALAR, /**< cannot change a non-scalar value to a scalar value */
+	HAWK_ENONSCATONONSCA, /**< cannot change a non-scalar value to another non-scalar value */
+	HAWK_ESCALARTONONSCA, /**< cannot change a scalar value to to a non-scalar value */
 	HAWK_EVALTOSTR,     /**< invalid value to convert to a string */
 	HAWK_EVALTONUM,     /**< invalid value to convert to a number */
 	HAWK_EVALTOCHR,     /**< invalid value to convert to a character */
 	HAWK_EHASHVAL,      /**< invalid value to hash */
-	HAWK_EARRRET,       /**< array cannot be returned */
-	HAWK_EARRTOPOS,     /**< array cannot be assigned to a positional */
-	HAWK_EARRTOIDX,     /**< array cannot be assigned to an indexed variable */
+
+
 	HAWK_EARRIDXRANGE,  /**< disallowed array index range */
 	HAWK_EARRIDXMULTI,  /**< single-bracketed multidimensional array indices not allowed */
 	HAWK_ERNEXTBEG,     /**< 'next' called from BEGIN block */

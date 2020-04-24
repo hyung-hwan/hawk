@@ -29,11 +29,6 @@
 static int fnc_close (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi);
 static int fnc_fflush (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi);
 static int fnc_int (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi);
-static int fnc_typename (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi);
-static int fnc_gcrefs (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi);
-static int fnc_isnil (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi);
-static int fnc_ismap (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi);
-static int fnc_isarr (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi);
 static int fnc_asort (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi);
 static int fnc_asorti (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi);
 
@@ -59,11 +54,6 @@ static hawk_fnc_t sysfnctab[] =
 
 	/* type info/conversion */
 	{ {HAWK_T("int"),      3}, 0, { {1,     1, HAWK_NULL},        fnc_int,              0 }, HAWK_NULL},
-	{ {HAWK_T("isarray"),  7}, 0, { {1,     1, HAWK_NULL},        fnc_isarr,            0 }, HAWK_NULL},
-	{ {HAWK_T("isnil"),    5}, 0, { {1,     1, HAWK_NULL},        fnc_isnil,            0 }, HAWK_NULL},
-	{ {HAWK_T("ismap"),    5}, 0, { {1,     1, HAWK_NULL},        fnc_ismap,            0 }, HAWK_NULL},
-	{ {HAWK_T("typename"), 8}, 0, { {1,     1, HAWK_NULL},        fnc_typename,         0 }, HAWK_NULL},
-	{ {HAWK_T("gcrefs"),   6}, 0, { {1,     1, HAWK_NULL},        fnc_gcrefs,           0 }, HAWK_NULL},
 
 	/* map(array) sort */
 	{ {HAWK_T("asort"),    5}, 0, { {1,     3, HAWK_T("rrv")},    fnc_asort,            0 }, HAWK_NULL},
@@ -1733,73 +1723,6 @@ static int fnc_int (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	return 0;
 }
 
-static int fnc_typename (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
-{
-	hawk_val_t* a0;
-	hawk_val_t* r;
-	const hawk_ooch_t* name;
-
-	a0 = hawk_rtx_getarg(rtx, 0);
-	name = hawk_rtx_getvaltypename(rtx, a0);
-
-	r = hawk_rtx_makestrvalwithoocstr(rtx, name);
-	if (r == HAWK_NULL) return -1;
-
-	hawk_rtx_setretval (rtx, r);
-	return 0;
-}
-
-static int fnc_gcrefs (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
-{
-	hawk_val_t* a0;
-	a0 = hawk_rtx_getarg(rtx, 0);
-	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, HAWK_VTR_IS_POINTER(a0)? a0->v_refs: 0));
-	return 0;
-}
-
-
-static int fnc_isnil (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
-{
-	hawk_val_t* a0;
-	hawk_val_t* r;
-
-	a0 = hawk_rtx_getarg(rtx, 0);
-
-	r = hawk_rtx_makeintval(rtx, HAWK_RTX_GETVALTYPE(rtx, a0) == HAWK_VAL_NIL);
-	if (r == HAWK_NULL) return -1;
-
-	hawk_rtx_setretval (rtx, r);
-	return 0;
-}
-
-static int fnc_ismap (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
-{
-	hawk_val_t* a0;
-	hawk_val_t* r;
-
-	a0 = hawk_rtx_getarg(rtx, 0);
-
-	r = hawk_rtx_makeintval(rtx, HAWK_RTX_GETVALTYPE(rtx, a0) == HAWK_VAL_MAP);
-	if (HAWK_UNLIKELY(!r)) return -1;
-
-	hawk_rtx_setretval (rtx, r);
-	return 0;
-}
-
-static int fnc_isarr (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
-{
-	hawk_val_t* a0;
-	hawk_val_t* r;
-
-	a0 = hawk_rtx_getarg(rtx, 0);
-
-	r = hawk_rtx_makeintval(rtx, HAWK_RTX_GETVALTYPE(rtx, a0) == HAWK_VAL_ARR);
-	if (HAWK_UNLIKELY(!r)) return -1;
-
-	hawk_rtx_setretval (rtx, r);
-	return 0;
-}
-
 static HAWK_INLINE int asort_compare (const void* x1, const void* x2, void* ctx, int* cv)
 {
 	int n;
@@ -1865,6 +1788,7 @@ static HAWK_INLINE int __fnc_asort (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, 
 	a0_type = HAWK_RTX_GETVALTYPE(rtx, a0);
 	HAWK_ASSERT (a0_type == HAWK_VAL_REF);
 
+/* TODO: handel HAWK_VAL_ARR */
 	v_type = hawk_rtx_getrefvaltype(rtx, (hawk_val_ref_t*)a0);
 	if (v_type != HAWK_VAL_MAP)
 	{
