@@ -142,20 +142,17 @@ const hawk_ooch_t* hawk_dfl_errstr (hawk_errnum_t errnum)
 		HAWK_T("right-hand side of the 'in' operator not a map"),
 		HAWK_T("right-hand side of the 'in' operator not a map nor nil"),
 		HAWK_T("value not referenceable"),
-		HAWK_T("cannot return a map"),                       /* EMAPRET */
-		HAWK_T("cannot assign a map to a positional"),       /* EMAPTOPOS */
-		HAWK_T("cannot assign a map to an indexed variable"),/* EMAPTOIDX */
-		HAWK_T("cannot assign a map to a variable"),         /* EMAPTOVAR */
-		HAWK_T("cannot change a map to a scalar"),           /* EMAPTOSCALAR */
-		HAWK_T("cannot change a map to another map"),        /* EMAPTOMAP */
-		HAWK_T("cannot change a scalar to a map"),           /* ESCALARTOMAP */
+		HAWK_T("cannot return a non-scalar value"),         /* ENONSCARET */
+		HAWK_T("cannot assign a non-scalar value to a positional"), /* ENONSCATOPOS */
+		HAWK_T("cannot assign a non-scalar value to an indexed variable"),/* ENONSCATOIDX */
+		HAWK_T("cannot assign a non-scalar value to a variable"),         /* ENONSCATOVAR */
+		HAWK_T("cannot change a non-scalar value to a scalar value"),     /* ENONSCATOSCALAR */
+		HAWK_T("cannot change a non-scalar value to another non-scalar value"), /* ENONSCATONONSCA */
+		HAWK_T("cannot change a scalar value to a non-scalar value"),           /* ESCALARTONONSCA */
 		HAWK_T("invalid value to convert to a string"),
 		HAWK_T("invalid value to convert to a number"),
 		HAWK_T("invalid value to a character"),
 		HAWK_T("invalid value for hashing"),
-		HAWK_T("cannot return an array"),                       /* EARRRET */
-		HAWK_T("cannot assign an array to a positional"),       /* EARRTOPOS */
-		HAWK_T("cannot assign an array to an indexed variable"),/* EARRTOIDX */
 		HAWK_T("array index out of allowed range"),
 		HAWK_T("single-bracketed multidimensional array indices not allowed"),
 		HAWK_T("'next' called from BEGIN block"),

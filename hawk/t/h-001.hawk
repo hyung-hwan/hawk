@@ -61,5 +61,17 @@ function main()
 		ensure (b[2], "perfect", SCRIPTNAME);
 	}
 
+
+	{
+		@local a;
+		a[1] = hawk::array();
+		a[1][2]=20; 
+		ensure (a[1][2], 20, SCRIPTNAME);
+		a[1][2]++;
+		ensure (a[1][2], 21, SCRIPTNAME);
+		--a[1][2];
+		ensure (a[1][2], 20, SCRIPTNAME);
+	}
+
 	print "SUCCESS"
 }

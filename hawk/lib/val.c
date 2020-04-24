@@ -1238,7 +1238,7 @@ hawk_val_t* hawk_rtx_makemapvalwithdata (hawk_rtx_t* rtx, hawk_val_map_data_t da
 
 hawk_val_t* hawk_rtx_setmapvalfld (hawk_rtx_t* rtx, hawk_val_t* map, const hawk_ooch_t* kptr, hawk_oow_t klen, hawk_val_t* v)
 {
-	HAWK_ASSERT (HAWK_RTX_GETVALTYPE (rtx, map) == HAWK_VAL_MAP);
+	HAWK_ASSERT (HAWK_RTX_GETVALTYPE(rtx, map) == HAWK_VAL_MAP);
 
 	if (hawk_map_upsert(((hawk_val_map_t*)map)->map, (hawk_ooch_t*)kptr, klen, v, 0) == HAWK_NULL) return HAWK_NULL;
 
@@ -1344,13 +1344,13 @@ const hawk_ooch_t* hawk_rtx_getvaltypename(hawk_rtx_t* rtx, hawk_val_t* val)
 		HAWK_T("mbs"),
 		HAWK_T("fun"),
 		HAWK_T("map"),
+		HAWK_T("arr"),
 		HAWK_T("rex"),
 		HAWK_T("ref")
 	};
 
 	return __val_type_name[HAWK_RTX_GETVALTYPE(rtx, val)];
 }
-
 
 int hawk_rtx_getintfromval (hawk_rtx_t* rtx, hawk_val_t* val)
 {
@@ -1636,6 +1636,8 @@ int hawk_rtx_valtobool (hawk_rtx_t* rtx, const hawk_val_t* val)
 		case HAWK_VAL_MAP:
 			/* true if the map size is greater than 0. false if not */
 			return HAWK_MAP_SIZE(((hawk_val_map_t*)val)->map) > 0;
+		case HAWK_VAL_ARR:
+			return HAWK_ARR_SIZE(((hawk_val_arr_t*)val)->arr) > 0;
 		case HAWK_VAL_REF:
 			return val_ref_to_bool(rtx, (hawk_val_ref_t*)val);
 	}
@@ -2068,6 +2070,13 @@ int hawk_rtx_valtostr (hawk_rtx_t* rtx, const hawk_val_t* v, hawk_rtx_valtostr_o
 			}
 			goto invalid;
 
+		case HAWK_VAL_ARR:
+			if (rtx->hawk->opt.trait & HAWK_FLEXMAP)
+			{
+				return str_to_str(rtx, HAWK_T("#ARR"), 4, out);
+			}
+			goto invalid;
+
 		case HAWK_VAL_REF:
 			return val_ref_to_str(rtx, (hawk_val_ref_t*)v, out);
 
@@ -2412,6 +2421,14 @@ int hawk_rtx_valtonum (hawk_rtx_t* rtx, const hawk_val_t* v, hawk_int_t* l, hawk
 			}
 			goto invalid;
 
+		case HAWK_VAL_ARR:
+			if (rtx->hawk->opt.trait & HAWK_FLEXMAP)
+			{
+				*l = HAWK_ARR_SIZE(((hawk_val_arr_t*)v)->arr);
+				return 0; /* long */
+			}
+			goto invalid;
+
 		case HAWK_VAL_REF:
 			return val_ref_to_num(rtx, (hawk_val_ref_t*)v, l, r);
 
@@ -2665,8 +2682,9 @@ int hawk_rtx_setrefval (hawk_rtx_t* rtx, hawk_val_ref_t* ref, hawk_val_t* val)
 			switch (vtype)
 			{
 				case HAWK_VAL_MAP:
+				case HAWK_VAL_ARR:
 					/* a map is assigned to a positional. this is disallowed. */
-					hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EMAPTOPOS);
+					hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_ENONSCATOPOS);
 					return -1;
 
 				case HAWK_VAL_STR:
@@ -2718,11 +2736,11 @@ int hawk_rtx_setrefval (hawk_rtx_t* rtx, hawk_val_ref_t* ref, hawk_val_t* val)
 		case HAWK_VAL_REF_LCLIDX:
 		case HAWK_VAL_REF_ARGIDX:
 		#if !defined(HAWK_ENABLE_GC)
-			if (vtype == HAWK_VAL_MAP)
+			if (vtype == HAWK_VAL_MAP || vtype == HAWK_VAL_ARR)
 			{
 				/* an indexed variable cannot be assigned a map. 
 				 * in other cases, it falls down to the default case. */
-				hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EMAPTOIDX);
+				hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_ENONSCATOIDX);
 				return -1;
 			}
 		#endif
@@ -2735,15 +2753,15 @@ int hawk_rtx_setrefval (hawk_rtx_t* rtx, hawk_val_ref_t* ref, hawk_val_t* val)
 
 			rref = (hawk_val_t**)ref->adr; /* old value pointer */
 			rref_vtype = HAWK_RTX_GETVALTYPE(rtx, *rref); /* old value type */
-			if (vtype == HAWK_VAL_MAP)
+			if (vtype == HAWK_VAL_MAP || vtype == HAWK_VAL_ARR)
 			{
 				/* new value: map, old value: nil or map => ok */
-				if (rref_vtype != HAWK_VAL_NIL && rref_vtype != HAWK_VAL_MAP)
+				if (rref_vtype != HAWK_VAL_NIL && rref_vtype != vtype)
 				{
 					if (!(rtx->hawk->opt.trait & HAWK_FLEXMAP))
 					{
 						/* cannot change a scalar value to a map */
-						hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_ESCALARTOMAP);
+						hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_ESCALARTONONSCA);
 						return -1;
 					}
 				}
@@ -2751,11 +2769,11 @@ int hawk_rtx_setrefval (hawk_rtx_t* rtx, hawk_val_ref_t* ref, hawk_val_t* val)
 			else
 			{
 				/* new value: scalar, old value: nil or scalar => ok */
-				if (rref_vtype == HAWK_VAL_MAP)
+				if (rref_vtype == HAWK_VAL_MAP || rref_vtype == HAWK_VAL_ARR)
 				{
 					if (!(rtx->hawk->opt.trait & HAWK_FLEXMAP))
 					{
-						hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EMAPTOSCALAR);
+						hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_ENONSCATOSCALAR);
 						return -1;
 					}
 				}
@@ -2779,9 +2797,9 @@ int hawk_rtx_setrefval (hawk_rtx_t* rtx, hawk_val_ref_t* ref, hawk_val_t* val)
 
 static hawk_map_walk_t print_pair (hawk_map_t* map, hawk_map_pair_t* pair, void* arg)
 {
-	hawk_rtx_t* run = (hawk_rtx_t*)arg;
+	hawk_rtx_t* rtx = (hawk_rtx_t*)arg;
 
-	HAWK_ASSERT (run == *(hawk_rtx_t**)hawk_map_getxtn(map));
+	HAWK_ASSERT (rtx == *(hawk_rtx_t**)hawk_map_getxtn(map));
 
 	hawk_errputstrf (HAWK_T(" %.*s=>"), HAWK_MAP_KLEN(pair), HAWK_MAP_KPTR(pair));
 	hawk_dprintval ((hawk_rtx_t*)arg, HAWK_MAP_VPTR(pair));
@@ -2789,6 +2807,21 @@ static hawk_map_walk_t print_pair (hawk_map_t* map, hawk_map_pair_t* pair, void*
 
 	return HAWK_MAP_WALK_FORWARD;
 }
+
+
+static hawk_arr_walk_t print_pair (hawk_arr_t* arr, hawk_oow_t index, void* arg)
+{
+	hawk_rtx_t* rtx = (hawk_rtx_t*)arg;
+
+	HAWK_ASSERT (rtx == *(hawk_rtx_t**)hawk_arr_getxtn(arr));
+
+	hawk_errputstrf (HAWK_T(" %lu=>"), (unsigned long int)index);
+	hawk_dprintval ((hawk_rtx_t*)arg, (HAWK_ARR_SLOT(arr,index)? HAWK_ARR_DPTR(arr, index): hawk_val_nil));
+	hawk_errputstrf (HAWK_T(" "));
+
+	return HAWK_ARR_WALK_FORWARD;
+}
+
 
 void hawk_dprintval (hawk_rtx_t* run, hawk_val_t* val)
 {
@@ -2829,6 +2862,12 @@ void hawk_dprintval (hawk_rtx_t* run, hawk_val_t* val)
 		case HAWK_VAL_MAP:
 			hawk_errputstrf (HAWK_T("MAP["));
 			hawk_map_walk (((hawk_val_map_t*)val)->map, print_pair, run);
+			hawk_errputstrf (HAWK_T("]"));
+			break;
+
+		case HAWK_VAL_ARR:
+			hawk_errputstrf (HAWK_T("ARR["));
+			hawk_arr_walk (((hawk_val_arr_t*)val)->arr, print_elem, run);
 			hawk_errputstrf (HAWK_T("]"));
 			break;
 
