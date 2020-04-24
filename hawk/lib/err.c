@@ -142,13 +142,13 @@ const hawk_ooch_t* hawk_dfl_errstr (hawk_errnum_t errnum)
 		HAWK_T("right-hand side of the 'in' operator not a map"),
 		HAWK_T("right-hand side of the 'in' operator not a map nor nil"),
 		HAWK_T("value not referenceable"),
-		HAWK_T("cannot return a non-scalar value"),         /* ENONSCARET */
-		HAWK_T("cannot assign a non-scalar value to a positional"), /* ENONSCATOPOS */
-		HAWK_T("cannot assign a non-scalar value to an indexed variable"),/* ENONSCATOIDX */
-		HAWK_T("cannot assign a non-scalar value to a variable"),         /* ENONSCATOVAR */
-		HAWK_T("cannot change a non-scalar value to a scalar value"),     /* ENONSCATOSCALAR */
-		HAWK_T("cannot change a non-scalar value to another non-scalar value"), /* ENONSCATONONSCA */
-		HAWK_T("cannot change a scalar value to a non-scalar value"),           /* ESCALARTONONSCA */
+		HAWK_T("cannot return a nonscalar value"),         /* ENONSCARET */
+		HAWK_T("cannot assign a nonscalar value to a positional"), /* ENONSCATOPOS */
+		HAWK_T("cannot assign a nonscalar value to an indexed variable"),/* ENONSCATOIDX */
+		HAWK_T("cannot assign a nonscalar value to a variable"),         /* ENONSCATOVAR */
+		HAWK_T("cannot change a nonscalar value to a scalar value"),     /* ENONSCATOSCALAR */
+		HAWK_T("cannot change a nonscalar value to another nonscalar value"), /* ENONSCATONONSCA */
+		HAWK_T("cannot change a scalar value to a nonscalar value"),           /* ESCALARTONONSCA */
 		HAWK_T("invalid value to convert to a string"),
 		HAWK_T("invalid value to convert to a number"),
 		HAWK_T("invalid value to a character"),

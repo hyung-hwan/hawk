@@ -977,13 +977,13 @@ enum hawk_errnum_t
 	HAWK_ENOTMAPIN,     /**< right-hand side of 'in' not a map */
 	HAWK_ENOTMAPNILIN,  /**< right-hand side of 'in' not a map nor nil */
 	HAWK_ENOTREF,       /**< value not referenceable */
-	HAWK_ENONSCARET,    /**< non-scalar value cannot be returned */
-	HAWK_ENONSCATOPOS,  /**< non-scalar value cannot be assigned to a positional */
-	HAWK_ENONSCATOIDX,  /**< non-scalar value cannot be assigned to an indexed variable */
-	HAWK_ENONSCATOVAR,  /**< non-scalar cannot be assigned to a variable */
-	HAWK_ENONSCATOSCALAR, /**< cannot change a non-scalar value to a scalar value */
-	HAWK_ENONSCATONONSCA, /**< cannot change a non-scalar value to another non-scalar value */
-	HAWK_ESCALARTONONSCA, /**< cannot change a scalar value to to a non-scalar value */
+	HAWK_ENONSCARET,    /**< nonscalar value cannot be returned */
+	HAWK_ENONSCATOPOS,  /**< nonscalar value cannot be assigned to a positional */
+	HAWK_ENONSCATOIDX,  /**< nonscalar value cannot be assigned to an indexed variable */
+	HAWK_ENONSCATOVAR,  /**< nonscalar cannot be assigned to a variable */
+	HAWK_ENONSCATOSCALAR, /**< cannot change a nonscalar value to a scalar value */
+	HAWK_ENONSCATONONSCA, /**< cannot change a nonscalar value to another nonscalar value */
+	HAWK_ESCALARTONONSCA, /**< cannot change a scalar value to to a nonscalar value */
 	HAWK_EVALTOSTR,     /**< invalid value to convert to a string */
 	HAWK_EVALTONUM,     /**< invalid value to convert to a number */
 	HAWK_EVALTOCHR,     /**< invalid value to convert to a character */
