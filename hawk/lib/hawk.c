@@ -233,15 +233,15 @@ int hawk_init (hawk_t* hawk, hawk_mmgr_t* mmgr, hawk_cmgr_t* cmgr, const hawk_pr
 
 	*(hawk_t**)(hawk->parse.gbls + 1) = hawk;
 	hawk_arr_setscale (hawk->parse.gbls, HAWK_SIZEOF(hawk_ooch_t));
-	hawk_arr_setcopier (hawk->parse.gbls, HAWK_ARR_COPIER_INLINE);
+	hawk_arr_setstyle (hawk->parse.gbls, hawk_get_arr_style(HAWK_ARR_STYLE_INLINE_COPIER));
 
 	*(hawk_t**)(hawk->parse.lcls + 1) = hawk;
 	hawk_arr_setscale (hawk->parse.lcls, HAWK_SIZEOF(hawk_ooch_t));
-	hawk_arr_setcopier (hawk->parse.lcls, HAWK_ARR_COPIER_INLINE);
+	hawk_arr_setstyle (hawk->parse.lcls, hawk_get_arr_style(HAWK_ARR_STYLE_INLINE_COPIER));
 
 	*(hawk_t**)(hawk->parse.params + 1) = hawk;
 	hawk_arr_setscale (hawk->parse.params, HAWK_SIZEOF(hawk_ooch_t));
-	hawk_arr_setcopier (hawk->parse.params, HAWK_ARR_COPIER_INLINE);
+	hawk_arr_setstyle (hawk->parse.params, hawk_get_arr_style(HAWK_ARR_STYLE_INLINE_COPIER));
 
 	*(hawk_t**)(hawk->fnc.user + 1) = hawk;
 	hawk_htb_setstyle (hawk->fnc.user, &fncusercbs);

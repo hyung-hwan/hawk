@@ -36,6 +36,7 @@
 #include <hawk-htb.h> /* for rtx->named */
 #define HAWK_MAP_IS_RBT
 #include <hawk-map.h>
+#include <hawk-arr.h>
 #include <stdarg.h>
 
 /** \file
@@ -271,6 +272,22 @@ struct hawk_val_map_t
 	hawk_map_t* map; 
 };
 typedef struct hawk_val_map_t  hawk_val_map_t;
+
+/**
+ * The hawk_val_arr_t type defines a arr type. The type field is 
+ * #HAWK_VAL_MAP.
+ */
+struct hawk_val_arr_t
+{
+	HAWK_VAL_HDR;
+
+	/* TODO: make val_arr to array if the indices used are all 
+	 *       integers switch to arr dynamically once the 
+	 *       non-integral index is seen.
+	 */
+	hawk_arr_t* arr; 
+};
+typedef struct hawk_val_arr_t  hawk_val_arr_t;
 
 /**
  * The hawk_val_ref_t type defines a reference type that is used
@@ -1371,9 +1388,10 @@ enum hawk_val_type_t
 	HAWK_VAL_MBS     = 4, /**< byte array */
 	HAWK_VAL_FUN     = 5, /**< function pointer */
 	HAWK_VAL_MAP     = 6, /**< map */
+	HAWK_VAL_ARR     = 7, /**< array */
 
-	HAWK_VAL_REX     = 7, /**< regular expression */
-	HAWK_VAL_REF     = 8  /**< reference to other types */
+	HAWK_VAL_REX     = 8, /**< regular expression */
+	HAWK_VAL_REF     = 9  /**< reference to other types */
 };
 typedef enum hawk_val_type_t hawk_val_type_t;
 
@@ -2867,8 +2885,9 @@ HAWK_EXPORT hawk_val_t* hawk_rtx_makerexval (
  * The hawk_rtx_makemapval() function creates an empty array value.
  * \return value on success, #HAWK_NULL on failure
  */
-HAWK_EXPORT hawk_val_t* hawk_rtx_makearrayval (
-	hawk_rtx_t* rtx
+HAWK_EXPORT hawk_val_t* hawk_rtx_makearrval (
+	hawk_rtx_t* rtx,
+	hawk_oow_t  init_capa
 );
 
 /**

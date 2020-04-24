@@ -48,6 +48,12 @@ typedef enum   hawk_arr_walk_t hawk_arr_walk_t;
 #define HAWK_ARR_COPIER_SIMPLE  ((hawk_arr_copier_t)1)
 #define HAWK_ARR_COPIER_INLINE  ((hawk_arr_copier_t)2)
 
+#define HAWK_ARR_COPIER_DEFAULT (HAWK_ARR_COPIER_SIMPLE)
+#define HAWK_ARR_FREEER_DEFAULT (HAWK_NULL)
+#define HAWK_ARR_COMPER_DEFAULT (hawk_arr_dflcomp)
+#define HAWK_ARR_KEEPER_DEFAULT (HAWK_NULL)
+#define HAWK_ARR_SIZER_DEFAULT  (HAWK_NULL)
+
 #define HAWK_ARR_NIL ((hawk_oow_t)-1)
 
 #define HAWK_ARR_SIZE(arr)        (*(const hawk_oow_t*)&(arr)->size)
@@ -64,17 +70,16 @@ typedef enum   hawk_arr_walk_t hawk_arr_walk_t;
  *  define how the data to add can be maintained in the array. A dynamic
  *  array not specified with any copiers stores the data pointer and
  *  the data length into a slot. A special copier HAWK_ARR_COPIER_INLINE copies 
- *  the contents of the data a user provided into the slot. You can use the
- *  hawk_arr_setcopier() function to change the copier. 
- * 
+ *  the contents of the data a user provided into the slot.
+ *
  *  A copier should return the pointer to the copied data. If it fails to copy
  *  data, it may return HAWK_NULL. You need to set a proper freeer to free up
  *  memory allocated for copy.
  */
 typedef void* (*hawk_arr_copier_t) (
 	hawk_arr_t* arr    /**< array */,
-	void*      dptr   /**< pointer to data to copy */,
-	hawk_oow_t dlen   /**< length of data to copy */
+	void*       dptr   /**< pointer to data to copy */,
+	hawk_oow_t  dlen   /**< length of data to copy */
 );
 
 /**
@@ -82,8 +87,8 @@ typedef void* (*hawk_arr_copier_t) (
  */
 typedef void (*hawk_arr_freeer_t) (
 	hawk_arr_t* arr    /**< array */,
-	void*      dptr   /**< pointer to data to free */,
-	hawk_oow_t dlen   /**< length of data to free */
+	void*       dptr   /**< pointer to data to free */,
+	hawk_oow_t  dlen   /**< length of data to free */
 );
 
 /**
@@ -103,10 +108,10 @@ typedef void (*hawk_arr_freeer_t) (
  */
 typedef int (*hawk_arr_comper_t) (
 	hawk_arr_t*  arr    /* array */, 
-	const void* dptr1  /* data pointer */,
-	hawk_oow_t  dlen1  /* data length */,
-	const void* dptr2  /* data pointer */,
-	hawk_oow_t  dlen2  /* data length */
+	const void*  dptr1  /* data pointer */,
+	hawk_oow_t   dlen1  /* data length */,
+	const void*  dptr2  /* data pointer */,
+	hawk_oow_t   dlen2  /* data length */
 );
 
 /**
@@ -117,8 +122,8 @@ typedef int (*hawk_arr_comper_t) (
  */
 typedef void (*hawk_arr_keeper_t) (
 	hawk_arr_t* arr     /**< array */,
-	void* vptr         /**< pointer to a value */,
-	hawk_oow_t vlen    /**< length of a value */	
+	void*       vptr    /**< pointer to a value */,
+	hawk_oow_t  vlen    /**< length of a value */	
 );
 
 /**
@@ -127,13 +132,40 @@ typedef void (*hawk_arr_keeper_t) (
  */
 typedef hawk_oow_t (*hawk_arr_sizer_t) (
 	hawk_arr_t* arr,  /**< array */
-	hawk_oow_t hint  /**< sizing hint */
+	hawk_oow_t  hint  /**< sizing hint */
 );
+
+
+typedef struct hawk_arr_style_t hawk_arr_style_t;
+
+struct hawk_arr_style_t
+{
+	hawk_arr_copier_t copier; /* data copier */
+	hawk_arr_freeer_t freeer; /* data freeer */
+	hawk_arr_comper_t comper; /* data comparator */
+	hawk_arr_keeper_t keeper; /* data keeper */
+	hawk_arr_sizer_t  sizer;  /* size calculator */
+};
+
+/**
+ * The hawk_arr_style_kind_t type defines the type of predefined
+ * callback set for pair manipulation.
+ */
+enum hawk_arr_style_kind_t
+{
+	/** store element pointers */
+	HAWK_ARR_STYLE_DEFAULT,
+	/** copy elements */
+	HAWK_ARR_STYLE_INLINE_COPIER
+};
+
+typedef enum hawk_arr_style_kind_t  hawk_arr_style_kind_t;
+
 
 typedef hawk_arr_walk_t (*hawk_arr_walker_t) (
 	hawk_arr_t*      arr   /* array */,
-	hawk_oow_t      index /* index to the visited slot */,
-	void*           ctx   /* user-defined context */
+	hawk_oow_t       index /* index to the visited slot */,
+	void*            ctx   /* user-defined context */
 );
 
 /**
@@ -142,11 +174,7 @@ typedef hawk_arr_walk_t (*hawk_arr_walker_t) (
 struct hawk_arr_t
 {
 	hawk_gem_t*       gem;
-	hawk_arr_copier_t copier; /* data copier */
-	hawk_arr_freeer_t freeer; /* data freeer */
-	hawk_arr_comper_t comper; /* data comparator */
-	hawk_arr_keeper_t keeper; /* data keeper */
-	hawk_arr_sizer_t  sizer;  /* size calculator */
+	const hawk_arr_style_t* style;
 	hawk_uint8_t      scale;  /* scale factor */
 	hawk_oow_t        heap_pos_offset; /* offset in the data element where position 
 	                                   * is stored when heap operation is performed. */
@@ -166,6 +194,14 @@ struct hawk_arr_slot_t
 #if defined(__cplusplus)
 extern "C" {
 #endif
+
+/**
+ * The hawk_get_arr_style() functions returns a predefined callback set for
+ * pair manipulation.
+ */
+HAWK_EXPORT const hawk_arr_style_t* hawk_get_arr_style (
+	hawk_arr_style_kind_t kind
+);
 
 /**
  * The hawk_arr_open() function creates a linear dynamic array.
@@ -228,65 +264,14 @@ HAWK_EXPORT hawk_arr_copier_t hawk_arr_getcopier (
 	hawk_arr_t* arr   /* array */
 );
 
-/**
- * The hawk_arr_setcopier() specifies how to clone an element. The special 
- * copier #HAWK_ARR_COPIER_INLINE copies the data inline to the internal slot.
- * No freeer is invoked when the slot is freeed. You may set the copier to 
- * #HAWK_ARR_COPIER_SIMPLE to perform no special operation when the data 
- * pointer is stored.
- */
-HAWK_EXPORT void hawk_arr_setcopier (
-	hawk_arr_t* arr           /** arr */, 
-	hawk_arr_copier_t copier  /** element copier */
+
+HAWK_EXPORT void hawk_arr_setstyle (
+	hawk_arr_t*             arr,
+	const hawk_arr_style_t* style  
 );
 
-/**
- * The hawk_arr_getfreeer() function returns a custom element destroyer.
- */
-HAWK_EXPORT hawk_arr_freeer_t hawk_arr_getfreeer (
-	hawk_arr_t*   arr  /**< arr */
-);
-
-/**
- * The hawk_arr_setfreeer() function specifies how to destroy an element.
- * The @a freeer is called when a slot containing the element is destroyed.
- */
-HAWK_EXPORT void hawk_arr_setfreeer (
-	hawk_arr_t* arr           /**< arr */,
-	hawk_arr_freeer_t freeer  /**< element freeer */
-);
-
-HAWK_EXPORT hawk_arr_comper_t hawk_arr_getcomper (
-	hawk_arr_t*   arr  /**< arr */
-);
-
-/**
- * The hawk_arr_setcomper() function specifies how to compare two elements
- * for equality test. The comparator @a comper must return 0 if two elements
- * compared are equal, 1 if the first element is greater than the 
- * second, -1 if the second element is greater than the first.
- */
-HAWK_EXPORT void hawk_arr_setcomper (
-	hawk_arr_t*       arr     /**< arr */,
-	hawk_arr_comper_t comper  /**< comparator */
-);
-
-HAWK_EXPORT hawk_arr_keeper_t hawk_arr_getkeeper (
-        hawk_arr_t* arr
-);
-
-HAWK_EXPORT void hawk_arr_setkeeper (
-        hawk_arr_t* arr,
-        hawk_arr_keeper_t keeper 
-);
-
-HAWK_EXPORT hawk_arr_sizer_t hawk_arr_getsizer (
-        hawk_arr_t* arr
-);
-
-HAWK_EXPORT void hawk_arr_setsizer (
-        hawk_arr_t* arr,
-        hawk_arr_sizer_t sizer
+HAWK_EXPORT const hawk_arr_style_t* hawk_arr_getstyle (
+	hawk_arr_t* arr
 );
 
 HAWK_EXPORT hawk_oow_t hawk_arr_getsize (
@@ -473,6 +458,19 @@ HAWK_EXPORT hawk_oow_t hawk_arr_getheapposoffset (
 HAWK_EXPORT void hawk_arr_setheapposoffset (
 	hawk_arr_t* arr,
 	hawk_oow_t offset
+);
+
+
+
+/**
+ * The hawk_arr_dflcomp() function is the default comparator
+ */
+HAWK_EXPORT int hawk_arr_dflcomp (
+	hawk_arr_t* arr,
+	const void* dptr1,
+	hawk_oow_t  dlen1,
+	const void* dptr2,
+	hawk_oow_t dlen2
 );
 
 #if defined(__cplusplus)

@@ -1610,12 +1610,12 @@ static int fnc_fchmod (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 /* ------------------------------------------------------------------------ */
 
 /*
-        d = sys::opendir("/etc", sys::DIR_SORT);
-        if (d >= 0)
-        {
-                while (sys::readdir(d,a) > 0) print a;
-                sys::closedir(d);
-        }
+	d = sys::opendir("/etc", sys::DIR_SORT);
+	if (d >= 0)
+	{
+		while (sys::readdir(d,a) > 0) print a;
+		sys::closedir(d);
+	}
 
 	################################################# 
 

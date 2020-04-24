@@ -891,11 +891,103 @@ hawk_val_t* hawk_rtx_makerexval (hawk_rtx_t* rtx, const hawk_oocs_t* str, hawk_t
 
 /* --------------------------------------------------------------------- */
 
-hawk_val_t* hawk_rtx_makearrayval (hawk_rtx_t* rtx)
+static void free_arrayval (hawk_arr_t* arr, void* dptr, hawk_oow_t dlen)
 {
-/* TODO: */
-	hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_ENOIMPL);
-	return HAWK_NULL;
+	hawk_rtx_t* rtx = *(hawk_rtx_t**)hawk_arr_getxtn(arr);
+	hawk_val_t* v = (hawk_val_t*)dptr;
+
+#if defined(DEBUG_VAL)
+	hawk_logfmt (hawk_rtx_gethawk(rtx), HAWK_LOG_STDERR, HAWK_T("refdown in arr free - [%O]\n"), v);
+#endif
+
+#if defined(HAWK_ENABLE_GC)
+	if (HAWK_VTR_IS_POINTER(v) && v->v_gc && hawk_val_to_gch(v)->gc_refs == GCH_UNREACHABLE)
+	{
+		/* do nothing if the element is unreachable. 
+		 * this behavior pairs up with gc_free_unreachables() to 
+		 * achieve safe disposal of a value */
+		return;
+	}
+#endif
+
+	hawk_rtx_refdownval (rtx, v);
+}
+
+static void same_arrayval (hawk_arr_t* map, void* dptr, hawk_oow_t dlen)
+{
+	hawk_rtx_t* run = *(hawk_rtx_t**)hawk_arr_getxtn(map);
+#if defined(DEBUG_VAL)
+	hawk_logfmt (hawk_rtx_gethawk(rtx), HAWK_LOG_STDERR, HAWK_T("refdown nofree in map free - [%O]\n"), dptr);
+#endif
+	hawk_rtx_refdownval_nofree (run, dptr);
+}
+
+
+hawk_val_t* hawk_rtx_makearrval (hawk_rtx_t* rtx, hawk_oow_t init_capa)
+{
+	static hawk_arr_style_t style =
+	{
+	/* the key is copied inline into a pair and is freed when the pair
+	 * is destroyed. not setting copier for a value means that the pointer 
+	 * to the data allocated somewhere else is remembered in a pair. but 
+	 * freeing the actual value is handled by free_arrval and same_arrval */
+		
+		HAWK_ARR_COPIER_DEFAULT,
+		free_arrayval,
+		HAWK_ARR_COMPER_DEFAULT,
+		same_arrayval,
+		HAWK_ARR_SIZER_DEFAULT
+	};
+#if defined(HAWK_ENABLE_GC)
+	int retried = 0;
+#endif
+	hawk_val_arr_t* val;
+
+#if defined(HAWK_ENABLE_GC)
+retry:
+	val = (hawk_val_arr_t*)gc_calloc_val(rtx, HAWK_SIZEOF(hawk_val_arr_t) + HAWK_SIZEOF(hawk_arr_t) + HAWK_SIZEOF(rtx));
+#else
+	val = (hawk_val_arr_t*)hawk_rtx_callocmem(rtx, HAWK_SIZEOF(hawk_val_arr_t) + HAWK_SIZEOF(hawk_arr_t) + HAWK_SIZEOF(rtx));
+#endif
+	if (HAWK_UNLIKELY(!val)) return HAWK_NULL;
+
+	val->v_type = HAWK_VAL_ARR;
+	val->v_refs = 0;
+	val->v_static = 0;
+	val->nstr = 0;
+	val->v_gc = 0;
+	val->arr = (hawk_arr_t*)(val + 1);
+
+	if (init_capa <= 0) init_capa = 64; /* TODO: what is the best initial value? */
+	if (HAWK_UNLIKELY(hawk_arr_init(val->arr, hawk_rtx_getgem(rtx), init_capa) <= -1)) 
+	{
+#if defined(HAWK_ENABLE_GC)
+		gc_free_val (rtx, (hawk_val_t*)val);
+		if (HAWK_LIKELY(!retried))
+		{
+			/* this arr involves non-gc allocatinon, which happens outside gc_calloc_val().
+			 * reattempt to allocate after full gc like gc_calloc_val() */
+			hawk_rtx_gc (rtx, HAWK_COUNTOF(rtx->gc.g) - 1);
+			retried = 1;
+			goto retry;
+		}
+#else
+		hawk_rtx_freemem (rtx, val);
+#endif
+		return HAWK_NULL;
+	}
+	*(hawk_rtx_t**)hawk_arr_getxtn(val->arr) = rtx;
+	hawk_arr_setstyle (val->arr, &style);
+
+#if defined(HAWK_ENABLE_GC)
+	gc_chain_val (&rtx->gc.g[0], (hawk_val_t*)val);
+	val->v_gc = 1;
+	#if defined(DEBUG_GC)
+	hawk_logbfmt (hawk_rtx_gethawk(rtx), HAWK_LOG_STDERR, "[GC] MADE GCH %p VAL %p\n", hawk_val_to_gch(val), val);
+	#endif
+#endif
+
+	return (hawk_val_t*)val;
 }
 
 /* --------------------------------------------------------------------- */
@@ -981,7 +1073,7 @@ retry:
 		if (HAWK_LIKELY(!retried))
 		{
 			/* this map involves non-gc allocatinon, which happens outside gc_calloc_val().
-		      * reattempt to allocate after full gc like gc_calloc_val() */
+			 * reattempt to allocate after full gc like gc_calloc_val() */
 			hawk_rtx_gc (rtx, HAWK_COUNTOF(rtx->gc.g) - 1);
 			retried = 1;
 			goto retry;

@@ -125,6 +125,15 @@ static int compare_dirent (hawk_arr_t* arr, const void* dptr1, hawk_oow_t dlen1,
 
 int hawk_dir_init (hawk_dir_t* dir, hawk_gem_t* gem, const hawk_ooch_t* path, int flags)
 {
+	static hawk_arr_style_t stab_style =
+	{
+		HAWK_ARR_COPIER_INLINE,
+		HAWK_ARR_FREEER_DEFAULT,
+		compare_dirent,
+		HAWK_ARR_KEEPER_DEFAULT,
+		HAWK_ARR_SIZER_DEFAULT
+	};
+
 	int n;
 	int path_flags;
 
@@ -159,11 +168,11 @@ int hawk_dir_init (hawk_dir_t* dir, hawk_gem_t* gem, const hawk_ooch_t* path, in
 	if (dir->flags & HAWK_DIR_SORT)
 	{
 		dir->stab = hawk_arr_open(gem, 0, 128);
-		if (dir->stab == HAWK_NULL) goto oops_3;
+		if (HAWK_UNLIKELY(!dir->stab)) goto oops_3;
 
 		/*hawk_arr_setscale (dir->stab, 1);*/
-		hawk_arr_setcopier (dir->stab, HAWK_ARR_COPIER_INLINE);
-		hawk_arr_setcomper (dir->stab, compare_dirent);
+		hawk_arr_setstyle (dir->stab, &stab_style);
+
 		if (read_ahead_and_sort(dir, path) <= -1) goto oops_4;
 	}
 
