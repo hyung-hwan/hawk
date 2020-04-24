@@ -6918,7 +6918,8 @@ static hawk_val_t* eval_indexed (hawk_rtx_t* rtx, hawk_nde_var_t* var)
 			if (idx <= -1) return HAWK_NULL;
 
 			arr = ((hawk_val_arr_t*)v)->arr;
-			return HAWK_ARR_SLOT(arr, idx)? ((hawk_val_t*)HAWK_ARR_DPTR(arr, idx)): ((hawk_val_t*)&hawk_val_nil);
+			/* return nil if the index is out of range or the element at the index is not set */
+			return (idx < HAWK_ARR_SIZE(arr) && HAWK_ARR_SLOT(arr, idx))? ((hawk_val_t*)HAWK_ARR_DPTR(arr, idx)): hawk_val_nil;
 		}
 
 		default:
