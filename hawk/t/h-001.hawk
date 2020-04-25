@@ -23,9 +23,13 @@ function call_by_ref_2(a, &b)
 	return a;
 }
 
+function call_by_ref_3(&x)
+{
+	x = "hello world";
+}
+
 function main()
 {
-	
 	x = 20;
 	y = 90;
 	r = call_by_ref_1(x, y, z);	
@@ -72,6 +76,20 @@ function main()
 		--a[1][2];
 		ensure (a[1][2], 20, SCRIPTNAME);
 	}
+
+	{
+		@local a;
+		a = hawk::array();
+		a[10] = "good";
+		call_by_ref_3(a[9]);
+		ensure (a[10], "good", SCRIPTNAME);
+		ensure (a[9], "hello world", SCRIPTNAME);
+		call_by_ref_3(a[10]);
+		ensure (a[10], "hello world", SCRIPTNAME);
+		ensure (a[9], "hello world", SCRIPTNAME);
+	}
+
+
 
 	print "SUCCESS"
 }
