@@ -2887,7 +2887,7 @@ HAWK_EXPORT hawk_val_t* hawk_rtx_makerexval (
  */
 HAWK_EXPORT hawk_val_t* hawk_rtx_makearrval (
 	hawk_rtx_t* rtx,
-	hawk_oow_t  init_capa
+	hawk_ooi_t  init_capa
 );
 
 /**

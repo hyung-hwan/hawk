@@ -980,7 +980,7 @@ static void same_arrayval (hawk_arr_t* map, void* dptr, hawk_oow_t dlen)
 }
 
 
-hawk_val_t* hawk_rtx_makearrval (hawk_rtx_t* rtx, hawk_oow_t init_capa)
+hawk_val_t* hawk_rtx_makearrval (hawk_rtx_t* rtx, hawk_ooi_t init_capa)
 {
 	static hawk_arr_style_t style =
 	{
@@ -1015,7 +1015,7 @@ retry:
 	val->v_gc = 0;
 	val->arr = (hawk_arr_t*)(val + 1);
 
-	if (init_capa <= 0) init_capa = 64; /* TODO: what is the best initial value? */
+	if (init_capa < 0) init_capa = 64; /* TODO: what is the best initial value? */
 	if (HAWK_UNLIKELY(hawk_arr_init(val->arr, hawk_rtx_getgem(rtx), init_capa) <= -1)) 
 	{
 #if defined(HAWK_ENABLE_GC)
@@ -1344,7 +1344,7 @@ const hawk_ooch_t* hawk_rtx_getvaltypename(hawk_rtx_t* rtx, hawk_val_t* val)
 		HAWK_T("mbs"),
 		HAWK_T("fun"),
 		HAWK_T("map"),
-		HAWK_T("arr"),
+		HAWK_T("array"),
 		HAWK_T("rex"),
 		HAWK_T("ref")
 	};
@@ -2073,7 +2073,7 @@ int hawk_rtx_valtostr (hawk_rtx_t* rtx, const hawk_val_t* v, hawk_rtx_valtostr_o
 		case HAWK_VAL_ARR:
 			if (rtx->hawk->opt.trait & HAWK_FLEXMAP)
 			{
-				return str_to_str(rtx, HAWK_T("#ARR"), 4, out);
+				return str_to_str(rtx, HAWK_T("#ARRAY"), 4, out);
 			}
 			goto invalid;
 

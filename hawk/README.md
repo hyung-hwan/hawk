@@ -244,7 +244,7 @@ To know the current type of a value, call typename().
 	BEGIN { 
 		a="hello";
 		b=12345;
-		print typename(a), typename(b), typename(c), typename(f), typename(1.23), typename(B"world");
+		print hawk::typename(a), hawk::typename(b), hawk::typename(c), hawk::typename(f), hawk::typename(1.23), hawk::typename(B"world");
 	}
 
 A regular expression literal is special in that it never appears as an indendent value and still entails a match operation against $0 without an match operator.	

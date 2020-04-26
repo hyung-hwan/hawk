@@ -1788,7 +1788,7 @@ static HAWK_INLINE int __fnc_asort (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, 
 	a0_type = HAWK_RTX_GETVALTYPE(rtx, a0);
 	HAWK_ASSERT (a0_type == HAWK_VAL_REF);
 
-/* TODO: handel HAWK_VAL_ARR */
+/* TODO: handle HAWK_VAL_ARR as input */
 	v_type = hawk_rtx_getrefvaltype(rtx, (hawk_val_ref_t*)a0);
 	if (v_type != HAWK_VAL_MAP)
 	{
