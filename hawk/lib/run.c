@@ -126,9 +126,9 @@ static hawk_val_t* eval_group (hawk_rtx_t* rtx, hawk_nde_t* nde);
 
 static hawk_val_t* eval_assignment (hawk_rtx_t* rtx, hawk_nde_t* nde);
 static hawk_val_t* do_assignment (hawk_rtx_t* rtx, hawk_nde_t* var, hawk_val_t* val);
-static hawk_val_t* do_assignment_nonidx (hawk_rtx_t* rtx, hawk_nde_var_t* var, hawk_val_t* val);
-static hawk_val_t* do_assignment_idx (hawk_rtx_t* rtx, hawk_nde_var_t* var, hawk_val_t* val);
-static hawk_val_t* do_assignment_pos (hawk_rtx_t* rtx, hawk_nde_pos_t* pos, hawk_val_t* val);
+static hawk_val_t* do_assignment_nonindexed (hawk_rtx_t* rtx, hawk_nde_var_t* var, hawk_val_t* val);
+static hawk_val_t* do_assignment_indexed (hawk_rtx_t* rtx, hawk_nde_var_t* var, hawk_val_t* val);
+static hawk_val_t* do_assignment_positional (hawk_rtx_t* rtx, hawk_nde_pos_t* pos, hawk_val_t* val);
 
 static hawk_val_t* eval_binary (hawk_rtx_t* rtx, hawk_nde_t* nde);
 static hawk_val_t* eval_binop_lor (hawk_rtx_t* rtx, hawk_nde_t* left, hawk_nde_t* right);
@@ -685,7 +685,7 @@ int hawk_rtx_setgbltostrbyname (hawk_rtx_t* rtx, const hawk_ooch_t* name, const 
 		var.id.idxa = (hawk_oow_t)-1;
 		var.idx = HAWK_NULL;
 
-		n = do_assignment_nonidx(rtx, &var, v)? 0: -1;
+		n = do_assignment_nonindexed(rtx, &var, v)? 0: -1;
 	}
 	else
 	{
@@ -2849,8 +2849,7 @@ static hawk_val_t* assign_newmapval_in_map (hawk_rtx_t* rtx, hawk_map_t* contain
 	tmp = hawk_rtx_makemapval(rtx);
 	if (HAWK_UNLIKELY(!tmp)) return HAWK_NULL;
 
-	/* as this is the assignment, it needs to update
-	 * the reference count of the target value. */
+	/* as this is the assignment, it needs to update the reference count of the target value. */
 	hawk_rtx_refupval (rtx, tmp);
 	pair = hawk_map_upsert(container, idxptr, idxlen, tmp, 0);
 	if (HAWK_UNLIKELY(!pair)) 
@@ -2863,23 +2862,20 @@ static hawk_val_t* assign_newmapval_in_map (hawk_rtx_t* rtx, hawk_map_t* contain
 	return tmp;
 }
 
-static hawk_val_t* assign_newmapval_in_arr (hawk_rtx_t* rtx, hawk_arr_t* container, hawk_ooi_t idx)
+static hawk_val_t* assign_newarrval_in_arr (hawk_rtx_t* rtx, hawk_arr_t* container, hawk_ooi_t idx)
 {
 	hawk_val_t* tmp;
-	hawk_map_pair_t* pair;
 
-	tmp = hawk_rtx_makemapval(rtx);
+	tmp = hawk_rtx_makearrval(rtx, -1);
 	if (HAWK_UNLIKELY(!tmp)) return HAWK_NULL;
 
-	/* as this is the assignment, it needs to update
-	 * the reference count of the target value. */
+	/* as this is the assignment, it needs to update the reference count of the target value. */
 	hawk_rtx_refupval (rtx, tmp);
-	if (HAWK_UNLIKELY(hawk_arr_upsert(container, idx, tmp, 0) == HAWK_VAL_NIL))
+	if (HAWK_UNLIKELY(hawk_arr_upsert(container, idx, tmp, 0) == HAWK_ARR_NIL))
 	{
 		hawk_rtx_refdownval (rtx, tmp);  /* decrement upon upsert() failure */
 		return HAWK_NULL;
 	}
-
 	return tmp;
 }
 
@@ -3049,26 +3045,39 @@ static HAWK_INLINE int delete_indexed (hawk_rtx_t* rtx, hawk_val_t* vv, hawk_nde
 
 		switch (vtype)
 		{
-			case HAWK_VAL_NIL:
-			remidx_nil_to_map:
-				vv = container_vtype == HAWK_VAL_MAP? assign_newmapval_in_map(rtx, map, str, len): assign_newmapval_in_arr(rtx, arr, idx);
-				if (HAWK_UNLIKELY(!vv)) { ADJERR_LOC(rtx, &var->loc); goto oops; }
-				vtype = HAWK_RTX_GETVALTYPE(rtx, vv);
-				map = ((hawk_val_map_t*)vv)->map;
-				break;
-
 			case HAWK_VAL_MAP:
+			val_map:
+				if (str && str != idxbuf) hawk_rtx_freemem (rtx, str);
+				len = HAWK_COUNTOF(idxbuf);
+				str = idxnde_to_str(rtx, remidx, idxbuf, &len, &remidx);
+				if (HAWK_UNLIKELY(!str)) goto oops;
 				map = ((hawk_val_map_t*)vv)->map;
 				break;
 
 			case HAWK_VAL_ARR:
+			val_arr:
+				idx = idxnde_to_int(rtx, remidx, &remidx);
+				if (HAWK_UNLIKELY(idx <= -1)) goto oops;
 				arr = ((hawk_val_arr_t*)vv)->arr;
 				break;
 
 			default:
-				if (rtx->hawk->opt.trait & HAWK_FLEXMAP)
+				if (vtype == HAWK_VAL_NIL || (rtx->hawk->opt.trait & HAWK_FLEXMAP))
 				{
-					goto remidx_nil_to_map;
+					if (container_vtype == HAWK_VAL_MAP)
+					{
+						vv = assign_newmapval_in_map(rtx, map, str, len);
+						if (HAWK_UNLIKELY(!vv)) { ADJERR_LOC(rtx, &var->loc); goto oops; }
+						vtype = HAWK_VAL_MAP;
+						goto val_map;
+					}
+					else
+					{
+						vv = assign_newarrval_in_arr(rtx, arr, idx);
+						if (HAWK_UNLIKELY(!vv)) { ADJERR_LOC(rtx, &var->loc); goto oops; }
+						vtype = HAWK_VAL_ARR;
+						goto val_arr;
+					}
 				}
 				else
 				{
@@ -3076,27 +3085,13 @@ static HAWK_INLINE int delete_indexed (hawk_rtx_t* rtx, hawk_val_t* vv, hawk_nde
 					goto oops;
 				}
 		}
-
-		if (str && str != idxbuf) { hawk_rtx_freemem (rtx, str); str = HAWK_NULL; }
-		if (vtype == HAWK_VAL_MAP)
-		{
-			len = HAWK_COUNTOF(idxbuf);
-			str = idxnde_to_str(rtx, remidx, idxbuf, &len, &remidx);
-			if (HAWK_UNLIKELY(!str)) goto oops;
-		}
-		else
-		{
-			idx = idxnde_to_int(rtx, remidx, &remidx);
-			if (HAWK_UNLIKELY(idx <= -1)) goto oops;
-			arr = ((hawk_val_arr_t*)vv)->arr;
-		}
 	}
 #endif
 
 	if (vtype == HAWK_VAL_MAP)
 		hawk_map_delete (map, str, len);
 	else
-		hawk_arr_delete (arr, idx,  1);
+		hawk_arr_uplete (arr, idx,  1); /* no reindexing by compaction. keep the place unset */
 
 	if (str && str != idxbuf) hawk_rtx_freemem (rtx, str);
 	return 0;
@@ -3799,13 +3794,14 @@ static hawk_val_t* do_assignment (hawk_rtx_t* rtx, hawk_nde_t* var, hawk_val_t* 
 		case HAWK_NDE_GBL:
 		case HAWK_NDE_LCL:
 		case HAWK_NDE_ARG:
-			ret = do_assignment_nonidx(rtx, (hawk_nde_var_t*)var, val);
+			ret = do_assignment_nonindexed(rtx, (hawk_nde_var_t*)var, val);
 			break;
 
 		case HAWK_NDE_NAMEDIDX:
 		case HAWK_NDE_GBLIDX:
 		case HAWK_NDE_LCLIDX:
 		case HAWK_NDE_ARGIDX:
+		{
 		#if !defined(HAWK_ENABLE_GC)
 			hawk_val_type_t vtype = HAWK_RTX_GETVALTYPE(rtx, val);
 			if (vtype == HAWK_VAL_MAP || vtype == HAWK_VAL_ARR)
@@ -3816,8 +3812,9 @@ static hawk_val_t* do_assignment (hawk_rtx_t* rtx, hawk_nde_t* var, hawk_val_t* 
 			}
 		#endif
 
-			ret = do_assignment_idx(rtx, (hawk_nde_var_t*)var, val);
+			ret = do_assignment_indexed(rtx, (hawk_nde_var_t*)var, val);
 			break;
+		}
 
 		case HAWK_NDE_POS:
 		{
@@ -3829,7 +3826,7 @@ static hawk_val_t* do_assignment (hawk_rtx_t* rtx, hawk_nde_t* var, hawk_val_t* 
 				goto exit_on_error;
 			}
 
-			ret = do_assignment_pos(rtx, (hawk_nde_pos_t*)var, val);
+			ret = do_assignment_positional(rtx, (hawk_nde_pos_t*)var, val);
 			break;
 		}
 
@@ -3846,7 +3843,7 @@ exit_on_error:
 	return HAWK_NULL;
 }
 
-static hawk_val_t* do_assignment_nonidx (hawk_rtx_t* rtx, hawk_nde_var_t* var, hawk_val_t* val)
+static hawk_val_t* do_assignment_nonindexed (hawk_rtx_t* rtx, hawk_nde_var_t* var, hawk_val_t* val)
 {
 	hawk_val_type_t vtype;
 
@@ -3973,14 +3970,25 @@ static hawk_val_t* do_assignment_nonidx (hawk_rtx_t* rtx, hawk_nde_var_t* var, h
 			break;
 		}
 
+		default:
+			hawk_rtx_seterrnum (rtx, &var->loc, HAWK_EINTERN);
+			return HAWK_NULL;
 	}
 
 	return val;
 }
 
-static hawk_val_t* do_assignment_idx (hawk_rtx_t* rtx, hawk_nde_var_t* var, hawk_val_t* val)
+static hawk_val_t* do_assignment_indexed (hawk_rtx_t* rtx, hawk_nde_var_t* var, hawk_val_t* val)
 {
-	
+	hawk_map_t* map;
+	hawk_ooch_t* str = HAWK_NULL;
+	hawk_oow_t len;
+	hawk_ooch_t idxbuf[IDXBUFSIZE];
+
+	hawk_ooi_t idx;
+	hawk_arr_t* arr;
+
+	hawk_nde_t* remidx;
 	hawk_val_t* vv; /* existing value pointed to by var */
 	hawk_val_type_t vtype;
 
@@ -3999,37 +4007,21 @@ static hawk_val_t* do_assignment_idx (hawk_rtx_t* rtx, hawk_nde_var_t* var, hawk
 	vtype = HAWK_RTX_GETVALTYPE(rtx, vv);
 	switch (vtype)
 	{
-		case HAWK_VAL_NIL:
-		nil_to_map:
-			vv = assign_newmapval_to_var(rtx, var);
-			if (HAWK_UNLIKELY(!vv)) return HAWK_NULL;
-			vtype = HAWK_RTX_GETVALTYPE(rtx, vv); /* it must be HAWK_VAL_MAP */
-			/* fall thru */
-
 		case HAWK_VAL_MAP:
 		case HAWK_VAL_ARR:
 		{
-			hawk_map_t* map;
-			hawk_ooch_t* str = HAWK_NULL;
-			hawk_oow_t len;
-			hawk_ooch_t idxbuf[IDXBUFSIZE];
-
-			hawk_ooi_t idx;
-			hawk_arr_t* arr;
-
-			hawk_nde_t* remidx;
-
+		val_map_or_arr:
 			if (vtype == HAWK_VAL_MAP)
 			{
 				len = HAWK_COUNTOF(idxbuf);
 				str = idxnde_to_str(rtx, var->idx, idxbuf, &len, &remidx);
-				if (HAWK_UNLIKELY(!str)) goto oops_map;
+				if (HAWK_UNLIKELY(!str)) goto oops;
 				map = ((hawk_val_map_t*)vv)->map;
 			}
 			else
 			{
 				idx = idxnde_to_int(rtx, var->idx, &remidx);
-				if (idx <= -1) return HAWK_NULL;
+				if (idx <= -1) goto oops;
 				arr = ((hawk_val_arr_t*)vv)->arr;
 			}
 
@@ -4048,30 +4040,29 @@ static hawk_val_t* do_assignment_idx (hawk_rtx_t* rtx, hawk_nde_var_t* var, hawk
 				{
 					vv = (idx < HAWK_ARR_SIZE(arr) && HAWK_ARR_SLOT(arr, idx))? ((hawk_val_t*)HAWK_ARR_DPTR(arr, idx)): hawk_val_nil;
 				}
-
 				container_vtype = vtype;
 				vtype = HAWK_RTX_GETVALTYPE(rtx, vv);
 
 				switch (vtype)
 				{
-					case HAWK_VAL_NIL:
-					remidx_nil_to_map:
-						vv = container_vtype == HAWK_VAL_MAP? assign_newmapval_in_map(rtx, map, str, len): assign_newmapval_in_arr(rtx, arr, idx);
-						if (HAWK_UNLIKELY(!vv)) goto oops_map;
-						vtype = HAWK_RTX_GETVALTYPE(rtx, vv); /* it must be HAWK_VAL_MAP */
-						map = ((hawk_val_map_t*)vv)->map;
-						break;
-
 					case HAWK_VAL_MAP:
+					val_map:
+						if (str != idxbuf) hawk_rtx_freemem (rtx, str);
+						len = HAWK_COUNTOF(idxbuf);
+						str = idxnde_to_str(rtx, remidx, idxbuf, &len, &remidx);
+						if (HAWK_UNLIKELY(!str)) goto oops;
 						map = ((hawk_val_map_t*)vv)->map;
 						break;
 
 					case HAWK_VAL_ARR:
+					val_arr:
+						idx = idxnde_to_int(rtx, remidx, &remidx);
+						if (idx <= -1) goto oops;
 						arr = ((hawk_val_arr_t*)vv)->arr;
 						break;
 
 					default:
-						if (rtx->hawk->opt.trait & HAWK_FLEXMAP)
+						if (vtype == HAWK_VAL_NIL || (rtx->hawk->opt.trait & HAWK_FLEXMAP))
 						{
 							/* BEGIN { @local a, b; b="hello"; a[1]=b; a[1][2]=20; print a[1][2];} */
 							/* BEGIN { a[1]="hello"; a[1][2]=20; print a[1][2];  } */
@@ -4080,27 +4071,26 @@ static hawk_val_t* do_assignment_idx (hawk_rtx_t* rtx, hawk_nde_var_t* var, hawk
 							/* well, this is not the first level index.
 							 * the logic is different from the first level where reset_variable is called.
 							 * here it simply creates a new map. */
-							goto remidx_nil_to_map;
+							if (container_vtype == HAWK_VAL_MAP)
+							{
+								vv = assign_newmapval_in_map(rtx, map, str, len);
+								if (HAWK_UNLIKELY(!vv)) { ADJERR_LOC(rtx, &var->loc); goto oops; }
+								vtype = HAWK_VAL_MAP;
+								goto val_map;
+							}
+							else
+							{
+								vv = assign_newarrval_in_arr(rtx, arr, idx);
+								if (HAWK_UNLIKELY(!vv)) { ADJERR_LOC(rtx, &var->loc); goto oops; }
+								vtype = HAWK_VAL_ARR;
+								goto val_arr;
+							}
 						}
 						else
 						{
 							hawk_rtx_seterrfmt (rtx, &var->loc, HAWK_ESCALARTONONSCA, HAWK_T("not allowed to change a nested scalar value under '%.*js' to a nonscalar value"), var->id.name.len, var->id.name.ptr);
-							goto oops_map;
+							goto oops;
 						}
-				}
-
-				if (vtype == HAWK_VAL_MAP)
-				{
-					if (str != idxbuf) hawk_rtx_freemem (rtx, str);
-					len = HAWK_COUNTOF(idxbuf);
-					str = idxnde_to_str(rtx, remidx, idxbuf, &len, &remidx);
-					if (HAWK_UNLIKELY(!str)) goto oops_map;
-				}
-				else
-				{
-					idx = idxnde_to_int(rtx, remidx, &remidx);
-					if (idx <= -1) return HAWK_NULL;
-					arr = ((hawk_val_arr_t*)vv)->arr;
 				}
 			}
 		#endif
@@ -4111,40 +4101,51 @@ static hawk_val_t* do_assignment_idx (hawk_rtx_t* rtx, hawk_nde_var_t* var, hawk
 
 			if (vtype == HAWK_VAL_MAP)
 			{
-				if (HAWK_UNLIKELY(hawk_map_upsert(map, str, len, val, 0) == HAWK_NULL)) goto oops_map;
+				if (HAWK_UNLIKELY(hawk_map_upsert(map, str, len, val, 0) == HAWK_NULL)) 
+				{
+					ADJERR_LOC (rtx, &var->loc);
+					goto oops;
+				}
 			}
 			else
 			{
-				if (HAWK_UNLIKELY(hawk_arr_upsert(arr, idx, val, 0) == HAWK_ARR_NIL))  goto oops_map;
+				if (HAWK_UNLIKELY(hawk_arr_upsert(arr, idx, val, 0) == HAWK_ARR_NIL))
+				{
+					ADJERR_LOC (rtx, &var->loc);
+					goto oops;
+				}
 			}
 
-			if (str && str != idxbuf) hawk_rtx_freemem (rtx, str); 
 			hawk_rtx_refupval (rtx, val);
+			if (str && str != idxbuf) hawk_rtx_freemem (rtx, str); 
 			return val;
-
-		oops_map:
-			if (str && str != idxbuf) hawk_rtx_freemem (rtx, str);
-			ADJERR_LOC (rtx, &var->loc);
-			return HAWK_NULL;
 		}
 
 		default:
-			if (rtx->hawk->opt.trait & HAWK_FLEXMAP)
+			if (vtype == HAWK_VAL_NIL || (rtx->hawk->opt.trait & HAWK_FLEXMAP))
 			{
-				/* if FLEXMAP is on, you can switch a scalar value to a map */
-				goto nil_to_map; /* switch a scalar value to a map */
+				/* 1. switch a nil value to a map value at the first level */
+				/* 2. if FLEXMAP is on, you can switch a scalar value to a map value */
+				vv = assign_newmapval_to_var(rtx, var);
+				if (HAWK_UNLIKELY(!vv)) return HAWK_NULL;
+				vtype = HAWK_VAL_MAP;
+				goto val_map_or_arr;
 			}
 			else
 			{
 				/* you can't manipulate a variable pointing to
 				 * a scalar value with an index if FLEXMAP is off. */
 				hawk_rtx_seterrfmt (rtx, &var->loc, HAWK_ESCALARTONONSCA, HAWK_T("not allowed to change a scalar value in '%.*js' to a nonscalar value"), var->id.name.len, var->id.name.ptr);
-				return HAWK_NULL;
+				goto oops;
 			}
 	}
+
+oops:
+	if (str && str != idxbuf) hawk_rtx_freemem (rtx, str); 
+	return HAWK_NULL;
 }
 
-static hawk_val_t* do_assignment_pos (hawk_rtx_t* rtx, hawk_nde_pos_t* pos, hawk_val_t* val)
+static hawk_val_t* do_assignment_positional (hawk_rtx_t* rtx, hawk_nde_pos_t* pos, hawk_val_t* val)
 {
 	hawk_val_t* v;
 	hawk_val_type_t vtype;
@@ -6749,31 +6750,26 @@ static hawk_val_t** get_reference_indexed (hawk_rtx_t* rtx, hawk_nde_var_t* var)
 		case HAWK_VAL_NIL:
 			v = assign_newmapval_to_var(rtx, var);
 			if (HAWK_UNLIKELY(!v)) goto oops;
-			vtype = HAWK_RTX_GETVALTYPE(rtx, v);
-			break;
+			vtype = HAWK_VAL_MAP;
+			goto val_map_init;
 
 		case HAWK_VAL_MAP:
+		val_map_init:
+			len = HAWK_COUNTOF(idxbuf);
+			str = idxnde_to_str(rtx, var->idx, idxbuf, &len, &remidx);
+			if (HAWK_UNLIKELY(!str)) goto oops;
+			map = ((hawk_val_map_t*)v)->map;
+			break;
+
 		case HAWK_VAL_ARR:
-			/* do nothing */
+			idx = idxnde_to_int(rtx, var->idx, &remidx);
+			if (HAWK_UNLIKELY(idx <= -1)) goto oops;
+			arr = ((hawk_val_arr_t*)v)->arr;
 			break;
 
 		default:
-			hawk_rtx_seterrnum (rtx, &var->loc, HAWK_ENOTMAP);
+			hawk_rtx_seterrnum (rtx, &var->loc, HAWK_ENOTIDXACC);
 			goto oops;
-	}
-
-	if (vtype == HAWK_VAL_MAP)
-	{
-		len = HAWK_COUNTOF(idxbuf);
-		str = idxnde_to_str(rtx, var->idx, idxbuf, &len, &remidx);
-		if (HAWK_UNLIKELY(!str)) goto oops;
-		map = ((hawk_val_map_t*)v)->map;
-	}
-	else
-	{
-		idx = idxnde_to_int(rtx, var->idx, &remidx);
-		if (HAWK_UNLIKELY(idx <= -1)) goto oops;
-		arr = ((hawk_val_arr_t*)v)->arr;
 	}
 
 #if defined(HAWK_ENABLE_GC)
@@ -6796,38 +6792,43 @@ static hawk_val_t** get_reference_indexed (hawk_rtx_t* rtx, hawk_nde_var_t* var)
 
 		switch (vtype)
 		{
-			case HAWK_VAL_NIL:
-				v = container_vtype == HAWK_VAL_MAP? assign_newmapval_in_map(rtx, map, str, len): assign_newmapval_in_arr(rtx, arr, idx); 
-				if (HAWK_UNLIKELY(!v)) goto oops;
-				vtype = HAWK_RTX_GETVALTYPE(rtx, v);
-				map = ((hawk_val_map_t*)v)->map;
-				break;
-
 			case HAWK_VAL_MAP:
+			val_map:
+				if (str && str != idxbuf) hawk_rtx_freemem (rtx, str);
+				len = HAWK_COUNTOF(idxbuf);
+				str = idxnde_to_str(rtx, remidx, idxbuf, &len, &remidx);
+				if (HAWK_UNLIKELY(!str)) goto oops;
 				map = ((hawk_val_map_t*)v)->map;
 				break;
 
 			case HAWK_VAL_ARR:
+			val_arr:
+				idx = idxnde_to_int(rtx, remidx, &remidx);
+				if (HAWK_UNLIKELY(idx <= -1)) goto oops;
 				arr = ((hawk_val_arr_t*)v)->arr;
 				break;
 
 			default:
-				hawk_rtx_seterrnum (rtx, &var->loc, HAWK_ENOTMAP);
+				if (vtype == HAWK_VAL_NIL /* || (rtx->hawk->opt.trait & HAWK_FLEXMAP) no flexmap because this is in a 'get' context. */) 
+				{
+					if (container_vtype == HAWK_VAL_MAP)
+					{
+						v = assign_newmapval_in_map(rtx, map, str, len);
+						if (HAWK_UNLIKELY(!v)) { ADJERR_LOC(rtx, &var->loc); goto oops; }
+						vtype = HAWK_VAL_MAP;
+						goto val_map;
+					}
+					else
+					{
+						v = assign_newarrval_in_arr(rtx, arr, idx);
+						if (HAWK_UNLIKELY(!v)) { ADJERR_LOC(rtx, &var->loc); goto oops; }
+						vtype = HAWK_VAL_ARR;
+						goto val_arr;
+					}
+				}
+
+				hawk_rtx_seterrnum (rtx, &var->loc, HAWK_ENOTIDXACC);
 				goto oops;
-		}
-
-		if (str && str != idxbuf) { hawk_rtx_freemem (rtx, str); str = HAWK_NULL; }
-
-		if (vtype  == HAWK_VAL_MAP)
-		{
-			len = HAWK_COUNTOF(idxbuf);
-			str = idxnde_to_str(rtx, remidx, idxbuf, &len, &remidx);
-			if (HAWK_UNLIKELY(!str)) goto oops;
-		}
-		else
-		{
-			idx = idxnde_to_int(rtx, remidx, &remidx);
-			if (HAWK_UNLIKELY(idx <= -1)) goto oops;
 		}
 	}
 #endif
@@ -6840,7 +6841,7 @@ static hawk_val_t** get_reference_indexed (hawk_rtx_t* rtx, hawk_nde_var_t* var)
 		{
 			/* if the value doesn't exist for the given key, insert a nil for it to create a placeholder for the reference */
 			pair = hawk_map_upsert(map, str, len, hawk_val_nil, 0);
-			if (HAWK_UNLIKELY(!pair)) goto oops;
+			if (HAWK_UNLIKELY(!pair)) { ADJERR_LOC(rtx, &var->loc); goto oops; }
 			HAWK_ASSERT (HAWK_MAP_VPTR(pair) == hawk_val_nil);
 			/* no reference count increment as hawk_val_nil is upserted
 			hawk_rtx_refupval (rtx, HAWK_MAP_VPTR(pair)); */
@@ -6855,14 +6856,13 @@ static hawk_val_t** get_reference_indexed (hawk_rtx_t* rtx, hawk_nde_var_t* var)
 		if (idx >= HAWK_ARR_SIZE(arr) || !HAWK_ARR_SLOT(arr, idx))
 		{
 			/* if the value doesn't exist for the given index, insert a nil at that position to create a placeholder for the reference */
-			if (HAWK_UNLIKELY(hawk_arr_upsert (arr, idx, hawk_val_nil, 0) == HAWK_ARR_NIL)) goto oops;
+			if (HAWK_UNLIKELY(hawk_arr_upsert (arr, idx, hawk_val_nil, 0) == HAWK_ARR_NIL)) { ADJERR_LOC(rtx, &var->loc);  goto oops; }
 		}
 		return (hawk_val_t**)&HAWK_ARR_DPTR(arr, idx);
 	}
 
 oops:
 	if (str && str != idxbuf) hawk_rtx_freemem (rtx, str);
-	ADJERR_LOC (rtx, &var->loc);
 	return HAWK_NULL;
 }
 
@@ -6964,148 +6964,134 @@ static hawk_val_t* eval_arg (hawk_rtx_t* rtx, hawk_nde_t* nde)
 
 static hawk_val_t* eval_indexed (hawk_rtx_t* rtx, hawk_nde_var_t* var)
 {
+	hawk_map_t* map; /* containing map */
+	hawk_ooch_t* str = HAWK_NULL;
+	hawk_oow_t len;
+	hawk_ooch_t idxbuf[IDXBUFSIZE];
+
+	hawk_arr_t* arr; /* containing array */
+	hawk_ooi_t idx;
+
+	hawk_nde_t* remidx;
+
 	hawk_val_t* v;
 	hawk_val_type_t vtype;
 
 	v = fetch_topval_from_var(rtx, var);
 	vtype = HAWK_RTX_GETVALTYPE(rtx, v);
 
+	HAWK_ASSERT (var->idx != HAWK_NULL);
+
 	switch (vtype)
 	{
 		case HAWK_VAL_NIL:
 			v = assign_newmapval_to_var(rtx, var);
 			if (HAWK_UNLIKELY(!v)) return HAWK_NULL;
-			vtype = HAWK_RTX_GETVALTYPE(rtx, v);
-			/* fall thru */
+			vtype = HAWK_VAL_MAP;
+			goto init_val_map;
 
 		case HAWK_VAL_MAP:
+		init_val_map:
+			len = HAWK_COUNTOF(idxbuf);
+			str = idxnde_to_str(rtx, var->idx, idxbuf, &len, &remidx);
+			if (HAWK_UNLIKELY(!str)) goto oops;
+			map = ((hawk_val_map_t*)v)->map;
+			break;
+
 		case HAWK_VAL_ARR:
-		{
-			hawk_map_t* map; /* containing map */
-			hawk_map_pair_t* pair;
-
-			hawk_ooch_t* str = HAWK_NULL;
-			hawk_oow_t len;
-			hawk_ooch_t idxbuf[IDXBUFSIZE];
-
-			hawk_arr_t* arr; /* containing array */
-			hawk_ooi_t idx;
-
-			hawk_nde_t* remidx;
-
-			HAWK_ASSERT (var->idx != HAWK_NULL);
-
-			if (vtype == HAWK_VAL_MAP)
-			{
-				len = HAWK_COUNTOF(idxbuf);
-				str = idxnde_to_str(rtx, var->idx, idxbuf, &len, &remidx);
-				if (HAWK_UNLIKELY(!str)) goto oops;
-				map = ((hawk_val_map_t*)v)->map;
-				pair = hawk_map_search(map, str, len);
-			}
-			else
-			{
-				idx = idxnde_to_int(rtx, var->idx, &remidx);
-				if (idx <= -1) goto oops;
-				arr = ((hawk_val_arr_t*)v)->arr;
-			}
-
-		#if defined(HAWK_ENABLE_GC)
-			while (remidx)
-			{
-				hawk_val_type_t container_vtype;
-
-				if (vtype == HAWK_VAL_MAP)
-				{
-					v = pair? (hawk_val_t*)HAWK_MAP_VPTR(pair): hawk_val_nil;
-				}
-				else
-				{
-					v = (idx < HAWK_ARR_SIZE(arr) && HAWK_ARR_SLOT(arr, idx))? ((hawk_val_t*)HAWK_ARR_DPTR(arr, idx)): hawk_val_nil;
-				}
-				container_vtype = vtype;
-				vtype = HAWK_RTX_GETVALTYPE(rtx, v);
-
-
-/*
-a[10] = hawk::array();
-
-print typename(a[10][40][50]);
-print typename(a[10][40]);
-* 
-* 
-a[10] = hawk::array();
-a[10][40] = hawk::array();
-a[10][40][5] = hawk::array();
-* 
-* 
-a = hawk::array(
-	hawk::array(10, 20, 30),
-	hawk::array(99, 99, 99, 88, 77)
-);
-*/
-				switch (vtype)
-				{
-					case HAWK_VAL_NIL:
-						v = container_vtype == HAWK_VAL_MAP? assign_newmapval_in_map(rtx, map, str, len): assign_newmapval_in_arr(rtx, arr, idx); /* TODO: should i do assign_newarrval_in_arr(rtx, arr, idx)? instead??? */
-						if (HAWK_UNLIKELY(!v)) goto oops;
-						vtype = HAWK_RTX_GETVALTYPE(rtx, v); /* it must be HAWK_VAL_MAP */
-						map = ((hawk_val_map_t*)v)->map;
-						break;
-
-					case HAWK_VAL_MAP:
-						map = ((hawk_val_map_t*)v)->map;
-						break;
-
-					case HAWK_VAL_ARR:
-						arr = ((hawk_val_arr_t*)v)->arr;
-						break;
-
-					default:
-						hawk_rtx_seterrnum (rtx, &var->loc, HAWK_ENOTMAP);
-						goto oops;
-				}
-
-				if (str && str != idxbuf) { hawk_rtx_freemem (rtx, str); str = HAWK_NULL; }
-
-				if (vtype == HAWK_VAL_MAP)
-				{
-					len = HAWK_COUNTOF(idxbuf);
-					str = idxnde_to_str(rtx, remidx, idxbuf, &len, &remidx);
-					if (HAWK_UNLIKELY(!str)) goto oops;
-					pair = hawk_map_search(map, str, len);
-				}
-				else
-				{
-					idx = idxnde_to_int(rtx, remidx, &remidx);
-					if (idx <= -1) goto oops;
-					arr = ((hawk_val_arr_t*)v)->arr;
-				}
-			}
-		#endif
-
-			if (str && str != idxbuf) hawk_rtx_freemem (rtx, str);
-			if (vtype == HAWK_VAL_MAP)
-			{
-				return pair? (hawk_val_t*)HAWK_MAP_VPTR(pair): hawk_val_nil;
-			}
-			else
-			{
-				/* return nil if the index is out of range or the element at the index is not set.
-				 * no check for a negative index as it's guaranteed to be positive by idxnde_to_int() */
-				return (idx < HAWK_ARR_SIZE(arr) && HAWK_ARR_SLOT(arr, idx))? ((hawk_val_t*)HAWK_ARR_DPTR(arr, idx)): hawk_val_nil;
-			}
-
-		oops:
-			if (str && str != idxbuf) hawk_rtx_freemem (rtx, str);
-			ADJERR_LOC (rtx, &var->loc);
-			return HAWK_NULL;
-		}
+			idx = idxnde_to_int(rtx, var->idx, &remidx);
+			if (idx <= -1) goto oops;
+			arr = ((hawk_val_arr_t*)v)->arr;
+			break;
 
 		default:
-			hawk_rtx_seterrnum (rtx, &var->loc, HAWK_ENOTMAP); /* TODO: change error code... ENOTINDEXABLE, not map or not array */
+			hawk_rtx_seterrnum (rtx, &var->loc, HAWK_ENOTIDXACC);
 			return HAWK_NULL;
 	}
+
+#if defined(HAWK_ENABLE_GC)
+	while (remidx)
+	{
+		hawk_val_type_t container_vtype;
+
+		if (vtype == HAWK_VAL_MAP)
+		{
+			hawk_map_pair_t* pair;
+			pair = hawk_map_search(map, str, len);
+			v = pair? (hawk_val_t*)HAWK_MAP_VPTR(pair): hawk_val_nil;
+		}
+		else
+		{
+			v = (idx < HAWK_ARR_SIZE(arr) && HAWK_ARR_SLOT(arr, idx))? ((hawk_val_t*)HAWK_ARR_DPTR(arr, idx)): hawk_val_nil;
+		}
+		container_vtype = vtype;
+		vtype = HAWK_RTX_GETVALTYPE(rtx, v);
+
+		switch (vtype)
+		{
+			case HAWK_VAL_MAP:
+			val_map:
+				if (str && str != idxbuf) hawk_rtx_freemem (rtx, str);
+				len = HAWK_COUNTOF(idxbuf);
+				str = idxnde_to_str(rtx, remidx, idxbuf, &len, &remidx);
+				if (HAWK_UNLIKELY(!str)) goto oops;
+				map = ((hawk_val_map_t*)v)->map;
+				break;
+
+			case HAWK_VAL_ARR:
+			val_arr:
+				idx = idxnde_to_int(rtx, remidx, &remidx);
+				if (idx <= -1) goto oops;
+				arr = ((hawk_val_arr_t*)v)->arr;
+				break;
+
+			default:
+				if (vtype == HAWK_VAL_NIL /* || (rtx->hawk->opt.trait & HAWK_FLEXMAP) no flexmap because this is in a 'get' context */)
+				{
+					if (container_vtype == HAWK_VAL_MAP)
+					{
+						v = assign_newmapval_in_map(rtx, map, str, len);
+						if (HAWK_UNLIKELY(!v)) { ADJERR_LOC (rtx, &var->loc); goto oops; }
+						vtype = HAWK_VAL_MAP;
+						goto val_map;
+					}
+					else
+					{
+						v = assign_newarrval_in_arr(rtx, arr, idx);
+						if (HAWK_UNLIKELY(!v)) { ADJERR_LOC (rtx, &var->loc); goto oops; }
+						vtype = HAWK_VAL_ARR;
+						goto val_arr;
+					}
+				}
+				else
+				{
+					hawk_rtx_seterrnum (rtx, &var->loc, HAWK_ENOTIDXACC);
+					goto oops;
+				}
+		}
+	}
+#endif
+
+	if (vtype == HAWK_VAL_MAP)
+	{
+		hawk_map_pair_t* pair;
+		pair = hawk_map_search(map, str, len);
+		if (str && str != idxbuf) hawk_rtx_freemem (rtx, str);
+		return pair? (hawk_val_t*)HAWK_MAP_VPTR(pair): hawk_val_nil;
+	}
+	else
+	{
+		/* return nil if the index is out of range or the element at the index is not set.
+		 * no check for a negative index as it's guaranteed to be positive by idxnde_to_int() */
+		if (str && str != idxbuf) hawk_rtx_freemem (rtx, str);
+		return (idx < HAWK_ARR_SIZE(arr) && HAWK_ARR_SLOT(arr, idx))? ((hawk_val_t*)HAWK_ARR_DPTR(arr, idx)): hawk_val_nil;
+	}
+
+oops:
+	if (str && str != idxbuf) hawk_rtx_freemem (rtx, str);
+	return HAWK_NULL;
+
+
 }
 
 static hawk_val_t* eval_namedidx (hawk_rtx_t* rtx, hawk_nde_t* nde)

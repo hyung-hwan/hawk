@@ -328,8 +328,8 @@ HAWK_EXPORT hawk_oow_t hawk_arr_update (
  */
 HAWK_EXPORT hawk_oow_t hawk_arr_delete (
 	hawk_arr_t* arr,
-	hawk_oow_t index,
-	hawk_oow_t count
+	hawk_oow_t  index,
+	hawk_oow_t  count
 );
 
 /**
@@ -338,8 +338,8 @@ HAWK_EXPORT hawk_oow_t hawk_arr_delete (
  */
 HAWK_EXPORT hawk_oow_t hawk_arr_uplete (
 	hawk_arr_t* arr,
-	hawk_oow_t index,
-	hawk_oow_t count
+	hawk_oow_t  index,
+	hawk_oow_t  count
 );
 
 HAWK_EXPORT void hawk_arr_clear (

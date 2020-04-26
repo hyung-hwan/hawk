@@ -225,7 +225,7 @@ static int fnc_array (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	hawk_val_t* tmp;
 
-	tmp = hawk_rtx_makearrval(rtx, 0);
+	tmp = hawk_rtx_makearrval(rtx, -1);
 	if (HAWK_UNLIKELY(!tmp)) return -1; /* hard failure */
 
 /* TODO: take arguments and put them to the map */
