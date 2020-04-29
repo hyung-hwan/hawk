@@ -56,8 +56,9 @@ typedef enum   hawk_arr_walk_t hawk_arr_walk_t;
 
 #define HAWK_ARR_NIL ((hawk_oow_t)-1)
 
-#define HAWK_ARR_SIZE(arr)        (*(const hawk_oow_t*)&(arr)->size)
-#define HAWK_ARR_CAPA(arr)        (*(const hawk_oow_t*)&(arr)->capa)
+#define HAWK_ARR_SIZE(arr)        ((arr)->size)
+#define HAWK_ARR_CAPA(arr)        ((arr)->capa)
+#define HAWK_ARR_TALLY(arr)       ((arr)->tally)
 
 #define HAWK_ARR_SLOT(arr,index)  ((arr)->slot[index])
 #define HAWK_ARR_DPTL(arr,index)  ((const hawk_ptl_t*)&(arr)->slot[index]->val)
@@ -179,6 +180,7 @@ struct hawk_arr_t
 	hawk_oow_t        heap_pos_offset; /* offset in the data element where position 
 	                                   * is stored when heap operation is performed. */
 	hawk_oow_t        size;   /* number of items */
+	hawk_oow_t        tally;  /* number of items set */
 	hawk_oow_t        capa;   /* capacity */
 	hawk_arr_slot_t** slot;
 };

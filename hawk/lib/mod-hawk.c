@@ -233,6 +233,44 @@ static int fnc_array (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	return 0;
 }
 
+static int fnc_array_size (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+{
+	hawk_val_t* a0;
+	hawk_oow_t iv;
+
+	a0 = hawk_rtx_getarg(rtx, 0);
+
+	if (HAWK_RTX_GETVALTYPE(rtx, a0) != HAWK_VAL_ARR)
+	{
+		hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_ENOTARR);
+		return -1;
+	}
+
+	iv = HAWK_ARR_SIZE(((hawk_val_arr_t*)a0)->arr);
+	HAWK_ASSERT  (iv >= 0 && iv <= HAWK_QUICKINT_MAX);
+	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, iv));
+	return 0;
+}
+
+static int fnc_array_tally (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+{
+	hawk_val_t* a0;
+	hawk_oow_t iv;
+
+	a0 = hawk_rtx_getarg(rtx, 0);
+
+	if (HAWK_RTX_GETVALTYPE(rtx, a0) != HAWK_VAL_ARR)
+	{
+		hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_ENOTARR);
+		return -1;
+	}
+
+	iv = HAWK_ARR_TALLY(((hawk_val_arr_t*)a0)->arr);
+	HAWK_ASSERT  (iv >= 0 && iv <= HAWK_QUICKINT_MAX);
+	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, iv));
+	return 0;
+}
+
 static int fnc_map (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	hawk_val_t* tmp;
@@ -327,6 +365,9 @@ static fnctab_t fnctab[] =
 {
 	/* keep this table sorted for binary search in query(). */
 	{ HAWK_T("array"),            { { 0, A_MAX                },  fnc_array,                 0 } },
+	{ HAWK_T("array_size"),       { { 1, 1                    },  fnc_array_size,            0 } },
+	{ HAWK_T("array_tally"),      { { 1, 1                    },  fnc_array_tally,           0 } },
+
 	{ HAWK_T("call"),             { { 1, A_MAX, HAWK_T("vR")  },  fnc_call,                  0 } },
 	{ HAWK_T("function_exists"),  { { 1, 1,     HAWK_NULL     },  fnc_function_exists,       0 } },
 	{ HAWK_T("gc"),               { { 0, 1,     HAWK_NULL     },  fnc_gc,                    0 } },

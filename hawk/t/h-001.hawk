@@ -94,13 +94,48 @@ function main()
 		ensure (a[0][40], "bye", SCRIPTNAME);
 		call_by_ref_3(a[0][40]);
 		ensure (a[0][40], "hello world", SCRIPTNAME);
-		ensure (length(a[0]), 41);
+		ensure (length(a[0]), 2, SCRIPTNAME);
+		ensure (hawk::array_size(a[0]), 41, SCRIPTNAME);
 		delete a[0][40];
-		ensure (length(a[0]), 41);
+		ensure (length(a[0]), 1, SCRIPTNAME);
+		ensure (hawk::array_size(a[0]), 41, SCRIPTNAME);
 		ensure (a[0][0], "farewell", SCRIPTNAME);
 		ensure (a[0][40], nil, SCRIPTNAME);
-		#hawk::splice (a[0], 40, 1);
-		#ensure (length(a[0]), 40);
+		#hawk::splice (a[0], 40, 1, SCRIPTNAME);
+		#ensure (length(a[0]), 40, SCRIPTNAME);
+	}
+
+
+	{
+		@local a, i;
+
+		a = hawk::array(); 
+		ensure (length(a), 0, SCRIPTNAME);
+		ensure (hawk::array_size(a), 0, SCRIPTNAME);
+		
+		for (i = 0; i < 10; i++) a[i*i]=i; 
+		ensure (length(a), 10, SCRIPTNAME);
+		ensure (hawk::array_size(a), 82, SCRIPTNAME);
+
+		delete a[0];
+		ensure (length(a), 9, SCRIPTNAME);
+		ensure (hawk::array_size(a), 82, SCRIPTNAME);
+
+		delete a[81]; 
+		ensure (length(a), 8, SCRIPTNAME);
+		ensure (hawk::array_size(a), 82, SCRIPTNAME);
+
+		delete a[36]; 
+		ensure (length(a), 7, SCRIPTNAME);
+		ensure (hawk::array_size(a), 82, SCRIPTNAME);
+
+		for (i = 0; i < 10; i++) delete a[i*i]; 
+		ensure (length(a), 0, SCRIPTNAME);
+		ensure (hawk::array_size(a), 82, SCRIPTNAME);
+
+		delete a;
+		ensure (length(a), 0, SCRIPTNAME);
+		ensure (hawk::array_size(a), 0, SCRIPTNAME);
 	}
 
 	print "SUCCESS"
