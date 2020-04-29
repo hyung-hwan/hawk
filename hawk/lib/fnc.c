@@ -697,8 +697,8 @@ int hawk_fnc_length (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 				len = HAWK_MAP_SIZE(((hawk_val_map_t*)v)->map);
 				break;
 
-			case HAWK_VAL_ARR:
-				len = HAWK_ARR_SIZE(((hawk_val_arr_t*)v)->arr);
+			case HAWK_VAL_ARR: /* returns the number of set items instead of the last index + 1 */
+				len = HAWK_ARR_TALLY(((hawk_val_arr_t*)v)->arr);
 				break;
 
 			case HAWK_VAL_STR:

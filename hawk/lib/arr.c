@@ -145,13 +145,13 @@ const hawk_arr_style_t* hawk_get_arr_style (hawk_arr_style_kind_t kind)
 	return &style[kind];
 }
 
-
 int hawk_arr_init (hawk_arr_t* arr, hawk_gem_t* gem, hawk_oow_t capa)
 {
 	HAWK_MEMSET (arr, 0, HAWK_SIZEOF(*arr));
 
 	arr->gem = gem;
 	arr->size = 0;
+	arr->tally = 0;
 	arr->capa = 0;
 	arr->slot = HAWK_NULL;
 	arr->scale = 1;
@@ -170,6 +170,8 @@ void hawk_arr_fini (hawk_arr_t* arr)
 		hawk_gem_freemem (arr->gem, arr->slot);
 		arr->slot = HAWK_NULL;
 		arr->capa = 0;
+		arr->size = 0 ;
+		arr->tally = 0;
 	}
 }
 
@@ -217,7 +219,7 @@ hawk_arr_t* hawk_arr_setcapa (hawk_arr_t* arr, hawk_oow_t capa)
 
 	if (capa == arr->capa) return arr;
 
-	if (arr->size > capa) 
+	if (capa < arr->size)
 	{
 		/* to trigger freeers on the items truncated */
 		hawk_arr_delete (arr, capa, arr->size - capa);
@@ -238,6 +240,9 @@ hawk_arr_t* hawk_arr_setcapa (hawk_arr_t* arr, hawk_oow_t capa)
 		}
 
 		tmp = HAWK_NULL;
+
+		HAWK_ASSERT (arr->size == 0);
+		HAWK_ASSERT (arr->tally == 0);
 	}
 
 	arr->slot = tmp;
@@ -359,6 +364,7 @@ hawk_oow_t hawk_arr_insert (hawk_arr_t* arr, hawk_oow_t pos, void* dptr, hawk_oo
 
 	if (pos > arr->size) arr->size = pos + 1;
 	else arr->size++;
+	arr->tally++;
 
 	return pos;
 }
@@ -379,6 +385,7 @@ hawk_oow_t hawk_arr_update (hawk_arr_t* arr, hawk_oow_t pos, void* dptr, hawk_oo
 		/* no previous data */
 		arr->slot[pos] = alloc_slot(arr, dptr, dlen);
 		if (arr->slot[pos] == HAWK_NULL) return HAWK_ARR_NIL;
+		arr->tally++;
 	}
 	else
 	{
@@ -415,20 +422,20 @@ hawk_oow_t hawk_arr_delete (hawk_arr_t* arr, hawk_oow_t index, hawk_oow_t count)
 	for (i = index; i < index + count; i++)
 	{
 		slot_t* c = arr->slot[i];
-
-		if (c != HAWK_NULL)
+		if (c)
 		{
 			if (arr->style->freeer) arr->style->freeer (arr, DPTR(c), DLEN(c));
 			hawk_gem_freemem (arr->gem, c);
 			arr->slot[i] = HAWK_NULL;
+			arr->tally--;
 		}
 	}
 
 	for (i = index + count; i < arr->size; i++)
 	{
-		arr->slot[i-count] = arr->slot[i];
+		arr->slot[i - count] = arr->slot[i];
 	}
-	arr->slot[arr->size-1] = HAWK_NULL;
+	arr->slot[arr->size - 1] = HAWK_NULL;
 
 	arr->size -= count;
 	return count;
@@ -446,12 +453,12 @@ hawk_oow_t hawk_arr_uplete (hawk_arr_t* arr, hawk_oow_t index, hawk_oow_t count)
 	for (i = index; i < index + count; i++)
 	{
 		slot_t* c = arr->slot[i];
-
-		if (c != HAWK_NULL)
+		if (c)
 		{
 			if (arr->style->freeer) arr->style->freeer (arr, DPTR(c), DLEN(c));
 			hawk_gem_freemem (arr->gem, c);
 			arr->slot[i] = HAWK_NULL;
+			arr->tally--;
 		}
 	}
 
@@ -474,6 +481,7 @@ void hawk_arr_clear (hawk_arr_t* arr)
 	}
 
 	arr->size = 0;
+	arr->tally = 0;
 }
 
 hawk_oow_t hawk_arr_walk (hawk_arr_t* arr, walker_t walker, void* ctx)
@@ -701,6 +709,7 @@ void hawk_arr_deleteheap (hawk_arr_t* arr, hawk_oow_t index)
 
 	/* empty the last slot */
 	arr->slot[arr->size] = HAWK_NULL;
+	arr->tally--;
 }
 
 hawk_oow_t hawk_arr_updateheap (hawk_arr_t* arr, hawk_oow_t index, void* dptr, hawk_oow_t dlen)
