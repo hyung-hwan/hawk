@@ -603,6 +603,7 @@ HAWK_EXPORT hawk_oow_t hawk_uecs_fmt (
 #	define hawk_ooecs_ccat hawk_becs_ccat
 #	define hawk_ooecs_nccat hawk_becs_nccat
 #	define hawk_ooecs_del hawk_becs_del
+#	define hawk_ooecs_amend hawk_becs_amend
 #	define hawk_ooecs_vfcat hawk_becs_vfcat
 #	define hawk_ooecs_fcat hawk_becs_fcat
 #	define hawk_ooecs_vfmt hawk_becs_vfmt
