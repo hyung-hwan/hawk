@@ -564,23 +564,23 @@ static int parse (hawk_t* hawk)
 	adjust_static_globals (hawk);
 
 	/* get the first character and the first token */
-	if (get_char (hawk) <= -1 || get_token (hawk)) goto oops; 
+	if (get_char(hawk) <= -1 || get_token(hawk)) goto oops; 
 
 	while (1) 
 	{
 		while (MATCH(hawk,TOK_NEWLINE)) 
 		{
-			if (get_token (hawk) <= -1) goto oops;
+			if (get_token(hawk) <= -1) goto oops;
 		}
 		if (MATCH(hawk,TOK_EOF)) break;
 
-		if (parse_progunit (hawk) <= -1) goto oops;
+		if (parse_progunit(hawk) <= -1) goto oops;
 	}
 
 	if (!(hawk->opt.trait & HAWK_IMPLICIT))
 	{
 		/* ensure that all functions called are defined in the EXPLICIT-only mode.
-		 * o	therwise, the error detection will get delay until run-time. */
+		 * otherwise, the error detection will get delay until run-time. */
 
 		hawk_htb_pair_t* p;
 		hawk_htb_itr_t itr;
@@ -1244,7 +1244,7 @@ static int parse_progunit (hawk_t* hawk)
 		if (parse_end(hawk) == HAWK_NULL) return -1;
 
 		/* skip a semicolon after an action block if any */
-		if (MATCH(hawk,TOK_SEMICOLON) && get_token (hawk) <= -1) return -1;
+		if (MATCH(hawk,TOK_SEMICOLON) && get_token(hawk) <= -1) return -1;
 	}
 	else if (MATCH(hawk, TOK_LBRACE))
 	{
@@ -1291,7 +1291,7 @@ static int parse_progunit (hawk_t* hawk)
 
 		if (MATCH(hawk,TOK_COMMA))
 		{
-			if (get_token (hawk) <= -1) 
+			if (get_token(hawk) <= -1) 
 			{
 				hawk_clrpt (hawk, ptn);
 				return -1;
