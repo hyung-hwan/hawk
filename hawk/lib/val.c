@@ -1287,6 +1287,30 @@ hawk_val_map_itr_t* hawk_rtx_getnextmapvalitr (hawk_rtx_t* rtx, hawk_val_t* map,
 	return itr->pair? itr: HAWK_NULL;
 }
 
+hawk_val_t* hawk_rtx_setarrvalfld (hawk_rtx_t* rtx, hawk_val_t* arr, hawk_ooi_t index, hawk_val_t* v)
+{
+	HAWK_ASSERT (HAWK_RTX_GETVALTYPE(rtx, arr) == HAWK_VAL_ARR);
+
+	if (hawk_arr_upsert(((hawk_val_arr_t*)arr)->arr, index, v, 0) == HAWK_ARR_NIL) return HAWK_NULL;
+
+	/* the value is passed in by an external party. we can't refup()
+	 * and refdown() the value if htb_upsert() fails. that way, the value
+	 * can be destroyed if it was passed with the reference count of 0.
+	 * so we increment the reference count when htb_upsert() is complete */
+	hawk_rtx_refupval (rtx, v);
+
+	return v;
+}
+
+hawk_val_t* hawk_rtx_getarrvalfld (hawk_rtx_t* rtx, hawk_val_t* arr, hawk_ooi_t index)
+{
+	hawk_arr_t* _arr;
+	HAWK_ASSERT (HAWK_RTX_GETVALTYPE(rtx, arr) == HAWK_VAL_ARR);
+	_arr = ((hawk_val_arr_t*)arr)->arr;
+	if (index < 0 || index >= HAWK_ARR_SIZE(_arr) || !HAWK_ARR_SLOT(_arr, index)) return HAWK_NULL;
+	return HAWK_ARR_DPTR(_arr, index);
+}
+
 hawk_val_t* hawk_rtx_makerefval (hawk_rtx_t* rtx, int id, hawk_val_t** adr)
 {
 	hawk_val_ref_t* val;
