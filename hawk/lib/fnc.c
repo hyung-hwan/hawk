@@ -1774,36 +1774,15 @@ static HAWK_INLINE int __fnc_asort (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, 
 	hawk_oow_t nargs;
 	hawk_val_t* a0, * a0_val;
 	hawk_val_type_t a0_type, v_type;
-	hawk_val_t* r, * rmap = HAWK_NULL;
+	hawk_val_t* r, * rrv = HAWK_NULL;
 	hawk_int_t rv = 0; /* as if no element in the map */
-	hawk_val_map_itr_t itr;
 	hawk_fun_t* fun = HAWK_NULL;
-	hawk_oow_t msz, i;
-	hawk_val_t** va;
-	int x;
 
 	nargs = hawk_rtx_getnargs(rtx);
 
 	a0 = hawk_rtx_getarg(rtx, 0);
 	a0_type = HAWK_RTX_GETVALTYPE(rtx, a0);
 	HAWK_ASSERT (a0_type == HAWK_VAL_REF);
-
-/* TODO: handle HAWK_VAL_ARR as input */
-	v_type = hawk_rtx_getrefvaltype(rtx, (hawk_val_ref_t*)a0);
-	if (v_type != HAWK_VAL_MAP)
-	{
-		if (v_type == HAWK_VAL_NIL)
-		{
-			/* treat it as an empty value */
-			goto done;
-		}
-
-		hawk_rtx_seterrfmt (rtx, HAWK_NULL, HAWK_ENOTMAP, HAWK_T("source not a map"));
-		return -1;
-	}
-
-	a0_val = hawk_rtx_getrefval(rtx, (hawk_val_ref_t*)a0);
-	HAWK_ASSERT (HAWK_RTX_GETVALTYPE(rtx, a0_val) == HAWK_VAL_MAP);
 
 	if (nargs >= 3)
 	{
@@ -1823,111 +1802,215 @@ static HAWK_INLINE int __fnc_asort (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, 
 		}
 	}
 
-	if (!hawk_rtx_getfirstmapvalitr(rtx, a0_val, &itr)) goto done; /* map empty */
-
-	msz = hawk_map_getsize(((hawk_val_map_t*)a0_val)->map);
-	HAWK_ASSERT (msz > 0);
-
-	va = (hawk_val_t**)hawk_rtx_allocmem(rtx, msz * HAWK_SIZEOF(*va));
-	if (HAWK_UNLIKELY(!va)) return -1;
-	i = 0;
-	if (sort_keys)
+	v_type = hawk_rtx_getrefvaltype(rtx, (hawk_val_ref_t*)a0);
+	switch (v_type)
 	{
-		do
+		case HAWK_VAL_NIL:
+			goto done; /* treat it as an empty value */
+
+		case HAWK_VAL_MAP:
+			goto val_map;
+
+		case HAWK_VAL_ARR:
+			goto val_arr;
+
+		default:
+			hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_ENOTIDXACC);
+			return -1;
+	}
+
+val_map:
+	{
+		hawk_val_map_itr_t itr;
+		hawk_oow_t i, msz;
+		hawk_val_t** va;
+		int x;
+
+		a0_val = hawk_rtx_getrefval(rtx, (hawk_val_ref_t*)a0);
+		HAWK_ASSERT (HAWK_RTX_GETVALTYPE(rtx, a0_val) == HAWK_VAL_MAP);
+
+		if (!hawk_rtx_getfirstmapvalitr(rtx, a0_val, &itr)) goto done; /* map empty */
+
+		msz = hawk_map_getsize(((hawk_val_map_t*)a0_val)->map);
+		HAWK_ASSERT (msz > 0);
+
+		va = (hawk_val_t**)hawk_rtx_allocmem(rtx, msz * HAWK_SIZEOF(*va));
+		if (HAWK_UNLIKELY(!va)) return -1;
+		i = 0;
+		if (sort_keys)
 		{
-			const hawk_oocs_t* key = HAWK_VAL_MAP_ITR_KEY(&itr);
-			va[i] = hawk_rtx_makestrvalwithoocs(rtx, key);
-			if (HAWK_UNLIKELY(!va[i])) 
-			{
-				while (i > 0)
-				{
-					--i;
-					hawk_rtx_refdownval (rtx, va[i]);
-				}
-				hawk_rtx_freemem (rtx, va);
-				return -1;
-			}
-			hawk_rtx_refupval (rtx, va[i]);
-			i++;
-		}
-		while (hawk_rtx_getnextmapvalitr(rtx, a0_val, &itr));
-	}
-	else
-	{
-		do
-		{
-			va[i] = (hawk_val_t*)HAWK_VAL_MAP_ITR_VAL(&itr);
-			hawk_rtx_refupval (rtx, va[i]);
-			i++;
-		}
-		while (hawk_rtx_getnextmapvalitr(rtx, a0_val, &itr));
-	}
-
-	if (fun)
-	{
-		struct cud_t cud;
-		cud.rtx = rtx;
-		cud.fun = fun;
-		x = hawk_qsortx(va, msz, HAWK_SIZEOF(*va), asort_compare_ud, &cud);
-	}
-	else
-	{
-		x = hawk_qsortx(va, msz, HAWK_SIZEOF(*va), asort_compare, rtx);
-	}
-
-	if (x <= -1 || !(rmap = hawk_rtx_makemapval(rtx)))
-	{
-		for (i = 0; i < msz; i++) hawk_rtx_refdownval (rtx, va[i]);
-		hawk_rtx_freemem (rtx, va);
-		return -1;
-	}
-
-	for (i = 0; i < msz; i++)
-	{
-		hawk_ooch_t ridx[128]; /* TODO: make it dynamic? can overflow? */
-		hawk_oow_t ridx_len;
-
-		ridx_len = hawk_fmt_uintmax_to_oocstr(
-			ridx,
-			HAWK_COUNTOF(ridx),
-			i,
-			10 | HAWK_FMT_UINTMAX_NOTRUNC | HAWK_FMT_UINTMAX_NONULL,
-			-1,
-			HAWK_T('\0'),
-			HAWK_NULL
-		);
-
-		if (hawk_rtx_setmapvalfld(rtx, rmap, ridx, ridx_len, va[i]) == HAWK_NULL)
-		{
-			/* decrement the reference count of the values not added to the map */
 			do
 			{
-				hawk_rtx_refdownval (rtx, va[i]);
+				const hawk_oocs_t* key = HAWK_VAL_MAP_ITR_KEY(&itr);
+				va[i] = hawk_rtx_makestrvalwithoocs(rtx, key);
+				if (HAWK_UNLIKELY(!va[i])) 
+				{
+					while (i > 0)
+					{
+						--i;
+						hawk_rtx_refdownval (rtx, va[i]);
+					}
+					hawk_rtx_freemem (rtx, va);
+					return -1;
+				}
+				hawk_rtx_refupval (rtx, va[i]);
 				i++;
 			}
-			while (i < msz);
-			hawk_rtx_freeval (rtx, rmap, 0); /* this derefs the elements added. */
+			while (hawk_rtx_getnextmapvalitr(rtx, a0_val, &itr));
+		}
+		else
+		{
+			do
+			{
+				va[i] = (hawk_val_t*)HAWK_VAL_MAP_ITR_VAL(&itr);
+				hawk_rtx_refupval (rtx, va[i]);
+				i++;
+			}
+			while (hawk_rtx_getnextmapvalitr(rtx, a0_val, &itr));
+		}
+
+		if (fun)
+		{
+			struct cud_t cud;
+			cud.rtx = rtx;
+			cud.fun = fun;
+			x = hawk_qsortx(va, msz, HAWK_SIZEOF(*va), asort_compare_ud, &cud);
+		}
+		else
+		{
+			x = hawk_qsortx(va, msz, HAWK_SIZEOF(*va), asort_compare, rtx);
+		}
+
+		if (x <= -1 || !(rrv = hawk_rtx_makemapval(rtx)))
+		{
+			for (i = 0; i < msz; i++) hawk_rtx_refdownval (rtx, va[i]);
 			hawk_rtx_freemem (rtx, va);
 			return -1;
 		}
 
-		hawk_rtx_refdownval (rtx, va[i]); /* deref it as it has been added to the map */
+		for (i = 0; i < msz; i++)
+		{
+			hawk_ooch_t ridx[128]; /* TODO: make it dynamic? can overflow? */
+			hawk_oow_t ridx_len;
+
+			ridx_len = hawk_fmt_uintmax_to_oocstr(
+				ridx,
+				HAWK_COUNTOF(ridx),
+				i + 1, /* basically 1-based */
+				10 | HAWK_FMT_UINTMAX_NOTRUNC | HAWK_FMT_UINTMAX_NONULL,
+				-1,
+				HAWK_T('\0'),
+				HAWK_NULL
+			);
+
+			if (hawk_rtx_setmapvalfld(rtx, rrv, ridx, ridx_len, va[i]) == HAWK_NULL)
+			{
+				/* decrement the reference count of the values not added to the map */
+				do
+				{
+					hawk_rtx_refdownval (rtx, va[i]);
+					i++;
+				}
+				while (i < msz);
+				hawk_rtx_freeval (rtx, rrv, 0); /* this derefs the elements added. */
+				hawk_rtx_freemem (rtx, va);
+				return -1;
+			}
+
+			hawk_rtx_refdownval (rtx, va[i]); /* deref it as it has been added to the map */
+		}
+
+		rv = msz;
+		hawk_rtx_freemem (rtx, va);
+		goto done;
 	}
 
-	rv = msz;
-	hawk_rtx_freemem (rtx, va);
+
+val_arr:
+	{
+		hawk_arr_t* arr;
+		hawk_oow_t i, j, msz, ssz;
+		hawk_val_t** va;
+		int x;
+
+		a0_val = hawk_rtx_getrefval(rtx, (hawk_val_ref_t*)a0);
+		HAWK_ASSERT (HAWK_RTX_GETVALTYPE(rtx, a0_val) == HAWK_VAL_ARR);
+		arr = ((hawk_val_arr_t*)a0_val)->arr;
+		msz = HAWK_ARR_TALLY(arr);
+		if (msz == 0) goto done; /* array empty */
+
+		ssz = HAWK_ARR_SIZE(arr);
+		HAWK_ASSERT (msz <= ssz);
+		HAWK_ASSERT (msz <= HAWK_QUICKINT_MAX);
+		HAWK_ASSERT (ssz <= HAWK_QUICKINT_MAX);
+		
+		va = (hawk_val_t**)hawk_rtx_allocmem(rtx, msz * HAWK_SIZEOF(*va));
+		if (HAWK_UNLIKELY(!va)) return -1;
+		for (i = 0, j = 0; j < ssz; j++)
+		{
+			if (HAWK_ARR_SLOT(arr, j)) 
+			{
+				va[i] = sort_keys? hawk_rtx_makeintval(rtx, j): HAWK_ARR_DPTR(arr, j);
+				hawk_rtx_refupval (rtx, va[i]);
+				i++;
+			}
+		}
+
+		if (fun)
+		{
+			struct cud_t cud;
+			cud.rtx = rtx;
+			cud.fun = fun;
+			x = hawk_qsortx(va, msz, HAWK_SIZEOF(*va), asort_compare_ud, &cud);
+		}
+		else
+		{
+			x = hawk_qsortx(va, msz, HAWK_SIZEOF(*va), asort_compare, rtx);
+		}
+
+		if (x <= -1 || !(rrv = hawk_rtx_makearrval(rtx, -1)))
+		{
+			for (i = 0; i < msz; i++) hawk_rtx_refdownval (rtx, va[i]);
+			hawk_rtx_freemem (rtx, va);
+			return -1;
+		}
+
+		for (i = 0; i < msz; i++)
+		{
+			if (hawk_rtx_setarrvalfld(rtx, rrv, i + 1, va[i]) == HAWK_NULL) /* i + 1 for 1-based indexing*/
+			{
+				/* decrement the reference count of the values not added to the map */
+				do
+				{
+					hawk_rtx_refdownval (rtx, va[i]);
+					i++;
+				}
+				while (i < msz);
+				hawk_rtx_freeval (rtx, rrv, 0); /* this derefs the elements added. */
+				hawk_rtx_freemem (rtx, va);
+				return -1;
+			}
+
+			hawk_rtx_refdownval (rtx, va[i]); /* deref it as it has been added to the map */
+		}
+
+		rv = msz;
+		hawk_rtx_freemem (rtx, va);
+		goto done;
+	}
 
 done:
 	r = hawk_rtx_makeintval(rtx, rv);
-	if (!r) return -1;
+	if (HAWK_UNLIKELY(!r)) return -1;
 
-	if (rmap)
+	if (rrv)
 	{
-		/* rmap can be NULL when a jump has been made for an empty source 
+		int x;
+		/* rrv can be NULL when a jump has been made for an empty source 
 		 * at the beginning of this fucntion */
-		hawk_rtx_refupval (rtx, rmap);
-		x = hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, (nargs >= 2)), rmap);
-		hawk_rtx_refdownval (rtx, rmap);
+		hawk_rtx_refupval (rtx, rrv);
+		x = hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, (nargs >= 2)), rrv);
+		hawk_rtx_refdownval (rtx, rrv);
 		if (x <= -1) 
 		{
 			hawk_rtx_freeval (rtx, r, 0);
