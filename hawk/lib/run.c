@@ -3005,6 +3005,7 @@ static HAWK_INLINE int delete_indexed (hawk_rtx_t* rtx, hawk_val_t* vv, hawk_nde
 	hawk_ooch_t* str = HAWK_NULL;
 	hawk_oow_t len;
 	hawk_ooch_t idxbuf[IDXBUFSIZE];
+
 	hawk_arr_t* arr;
 	hawk_ooi_t idx;
 
@@ -4424,7 +4425,6 @@ static hawk_val_t* eval_binop_in (hawk_rtx_t* rtx, hawk_nde_t* left, hawk_nde_t*
 	hawk_ooch_t idxbuf[IDXBUFSIZE];
 	hawk_nde_t* remidx;
 	idxnde_to_str_idxint_t idxint;
-	hawk_errnum_t errnum;
 
 #if defined(HAWK_ENABLE_GC)
 	if (right->type < HAWK_NDE_NAMED || right->type > HAWK_NDE_ARGIDX)
@@ -4494,7 +4494,7 @@ static hawk_val_t* eval_binop_in (hawk_rtx_t* rtx, hawk_nde_t* left, hawk_nde_t*
 			}
 
 			arr = ((hawk_val_arr_t*)ropv)->arr;
-			res = (idxint.v < 0 || idxint.v > HAWK_ARR_SIZE(arr) || !HAWK_ARR_SLOT(arr, idxint.v))? HAWK_VAL_ZERO: HAWK_VAL_ONE;
+			res = (idxint.v < 0 || idxint.v >= HAWK_ARR_SIZE(arr) || !HAWK_ARR_SLOT(arr, idxint.v))? HAWK_VAL_ZERO: HAWK_VAL_ONE;
 			break;
 		}
 
