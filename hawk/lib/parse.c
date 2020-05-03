@@ -748,7 +748,7 @@ int hawk_parse (hawk_t* hawk, hawk_sio_cbs_t* sio)
 	hawk->sio.inp = &hawk->sio.arg;
 
 	n = parse(hawk);
-	if (n == 0  && hawk->sio.outf != HAWK_NULL) n = deparse (hawk);
+	if (n == 0  && hawk->sio.outf != HAWK_NULL) n = deparse(hawk);
 
 	HAWK_ASSERT (hawk->parse.depth.loop == 0);
 	HAWK_ASSERT (hawk->parse.depth.expr == 0);

@@ -139,11 +139,10 @@ const hawk_ooch_t* hawk_dfl_errstr (hawk_errnum_t errnum)
 		HAWK_T("non-function value"),
 		HAWK_T("not deletable"),
 		HAWK_T("value not a map"),
-		HAWK_T("right-hand side of the 'in' operator not a map"),
-		HAWK_T("right-hand side of the 'in' operator not a map nor nil"),
 		HAWK_T("value not an array"),
 		HAWK_T("value not accessible with index"),
 		HAWK_T("value not referenceable"),
+		HAWK_T("wrong operand in right-hand side of 'in'"), /* EINROP */
 		HAWK_T("cannot return a nonscalar value"),         /* ENONSCARET */
 		HAWK_T("cannot assign a nonscalar value to a positional"), /* ENONSCATOPOS */
 		HAWK_T("cannot assign a nonscalar value to an indexed variable"),/* ENONSCATOIDX */

@@ -974,11 +974,10 @@ enum hawk_errnum_t
 	HAWK_ENOTFUN,       /**< non-function value  */
 	HAWK_ENOTDEL,       /**< not deletable */
 	HAWK_ENOTMAP,       /**< value not a map */
-	HAWK_ENOTMAPIN,     /**< right-hand side of 'in' not a map */
-	HAWK_ENOTMAPNILIN,  /**< right-hand side of 'in' not a map nor nil */
 	HAWK_ENOTARR,       /**< value not an array */
 	HAWK_ENOTIDXACC,    /**< value not accessible with index */
 	HAWK_ENOTREF,       /**< value not referenceable */
+	HAWK_EINROP,        /**< wrong operand in right-hand side of 'in'*/
 	HAWK_ENONSCARET,    /**< nonscalar value cannot be returned */
 	HAWK_ENONSCATOPOS,  /**< nonscalar value cannot be assigned to a positional */
 	HAWK_ENONSCATOIDX,  /**< nonscalar value cannot be assigned to an indexed variable */
