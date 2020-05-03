@@ -193,7 +193,14 @@ static hawk_val_t* eval_printf (hawk_rtx_t* rtx, hawk_nde_t* nde);
 
 static int read_record (hawk_rtx_t* rtx);
 
-static hawk_ooch_t* idxnde_to_str (hawk_rtx_t* rtx, hawk_nde_t* nde, hawk_ooch_t* buf, hawk_oow_t* len, hawk_nde_t** remidx);
+struct idxnde_to_str_idxint_t
+{
+	int ok;
+	hawk_int_t v;
+};
+typedef struct idxnde_to_str_idxint_t idxnde_to_str_idxint_t;
+
+static hawk_ooch_t* idxnde_to_str (hawk_rtx_t* rtx, hawk_nde_t* nde, hawk_ooch_t* buf, hawk_oow_t* len, hawk_nde_t** remidx, idxnde_to_str_idxint_t* firstidxint);
 static hawk_ooi_t idxnde_to_int (hawk_rtx_t* rtx, hawk_nde_t* nde, hawk_nde_t** remidx);
 
 typedef hawk_val_t* (*binop_func_t) (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t* right);
@@ -2663,7 +2670,7 @@ static int run_forin (hawk_rtx_t* rtx, hawk_nde_forin_t* nde)
 		}
 
 		default:
-			hawk_rtx_seterrnum (rtx, &test->right->loc, HAWK_ENOTMAPIN);
+			hawk_rtx_seterrnum (rtx, &test->right->loc, HAWK_EINROP);
 			ret = -1;
 			goto done1;
 	}
@@ -3013,7 +3020,7 @@ static HAWK_INLINE int delete_indexed (hawk_rtx_t* rtx, hawk_val_t* vv, hawk_nde
 	if (vtype == HAWK_VAL_MAP)
 	{
 		len = HAWK_COUNTOF(idxbuf);
-		str = idxnde_to_str(rtx, var->idx, idxbuf, &len, &remidx);
+		str = idxnde_to_str(rtx, var->idx, idxbuf, &len, &remidx, HAWK_NULL);
 		if (HAWK_UNLIKELY(!str)) goto oops;
 		map = ((hawk_val_map_t*)vv)->map;
 	}
@@ -3049,7 +3056,7 @@ static HAWK_INLINE int delete_indexed (hawk_rtx_t* rtx, hawk_val_t* vv, hawk_nde
 			val_map:
 				if (str && str != idxbuf) hawk_rtx_freemem (rtx, str);
 				len = HAWK_COUNTOF(idxbuf);
-				str = idxnde_to_str(rtx, remidx, idxbuf, &len, &remidx);
+				str = idxnde_to_str(rtx, remidx, idxbuf, &len, &remidx, HAWK_NULL);
 				if (HAWK_UNLIKELY(!str)) goto oops;
 				map = ((hawk_val_map_t*)vv)->map;
 				break;
@@ -4014,7 +4021,7 @@ static hawk_val_t* do_assignment_indexed (hawk_rtx_t* rtx, hawk_nde_var_t* var, 
 			if (vtype == HAWK_VAL_MAP)
 			{
 				len = HAWK_COUNTOF(idxbuf);
-				str = idxnde_to_str(rtx, var->idx, idxbuf, &len, &remidx);
+				str = idxnde_to_str(rtx, var->idx, idxbuf, &len, &remidx, HAWK_NULL);
 				if (HAWK_UNLIKELY(!str)) goto oops;
 				map = ((hawk_val_map_t*)vv)->map;
 			}
@@ -4049,7 +4056,7 @@ static hawk_val_t* do_assignment_indexed (hawk_rtx_t* rtx, hawk_nde_var_t* var, 
 					val_map:
 						if (str != idxbuf) hawk_rtx_freemem (rtx, str);
 						len = HAWK_COUNTOF(idxbuf);
-						str = idxnde_to_str(rtx, remidx, idxbuf, &len, &remidx);
+						str = idxnde_to_str(rtx, remidx, idxbuf, &len, &remidx, HAWK_NULL);
 						if (HAWK_UNLIKELY(!str)) goto oops;
 						map = ((hawk_val_map_t*)vv)->map;
 						break;
@@ -4409,12 +4416,15 @@ static hawk_val_t* eval_binop_land (hawk_rtx_t* rtx, hawk_nde_t* left, hawk_nde_
 
 static hawk_val_t* eval_binop_in (hawk_rtx_t* rtx, hawk_nde_t* left, hawk_nde_t* right)
 {
-	hawk_val_t* rv;
-	hawk_val_type_t rvtype;
+	hawk_val_t* res;
+	hawk_val_t* ropv;
+	hawk_val_type_t ropvtype;
 	hawk_ooch_t* str;
 	hawk_oow_t len;
 	hawk_ooch_t idxbuf[IDXBUFSIZE];
 	hawk_nde_t* remidx;
+	idxnde_to_str_idxint_t idxint;
+	hawk_errnum_t errnum;
 
 #if defined(HAWK_ENABLE_GC)
 	if (right->type < HAWK_NDE_NAMED || right->type > HAWK_NDE_ARGIDX)
@@ -4430,47 +4440,78 @@ static hawk_val_t* eval_binop_in (hawk_rtx_t* rtx, hawk_nde_t* left, hawk_nde_t*
 
 	/* evaluate the left-hand side of the operator */
 	len = HAWK_COUNTOF(idxbuf);
-	str = (left->type == HAWK_NDE_GRP)?
-		idxnde_to_str(rtx, ((hawk_nde_grp_t*)left)->body, idxbuf, &len, &remidx):
-		idxnde_to_str(rtx, left, idxbuf, &len, &remidx);
+	str = (left->type == HAWK_NDE_GRP)? /* it is inefficinet to call idxnde_to_str() for an array. but i don't know if the right hand side is a map or an array yet */
+		idxnde_to_str(rtx, ((hawk_nde_grp_t*)left)->body, idxbuf, &len, &remidx, &idxint):
+		idxnde_to_str(rtx, left, idxbuf, &len, &remidx, &idxint);
 	if (HAWK_UNLIKELY(!str)) return HAWK_NULL;
+
+	/* There is no way to express a true multi-dimensional indices for the 'in' operator.
+	 * So remidx must be NULL here. 
+	 *   a[10][20] <--- no way to express the test of 20 under 10 in a.
+	 * You may use multi-level test conjoined with a logical and operator in such a case.
+	 *   ((10 in a) && (20 in a[10])) 
+	 *
+	 *  '(10, 20) in a' is to test for a[10,20] if 'a' is a map.
+	 */
+	HAWK_ASSERT (remidx == HAWK_NULL);
 
 	/* evaluate the right-hand side of the operator */
 	HAWK_ASSERT (right->next == HAWK_NULL);
-	rv = eval_expression(rtx, right);
-	if (HAWK_UNLIKELY(!rv)) 
+	ropv = eval_expression(rtx, right);
+	if (HAWK_UNLIKELY(!ropv)) 
 	{
 		if (str != idxbuf) hawk_rtx_freemem (rtx, str);
 		return HAWK_NULL;
 	}
 
-	hawk_rtx_refupval (rtx, rv);
+	hawk_rtx_refupval (rtx, ropv);
 
-	rvtype = HAWK_RTX_GETVALTYPE(rtx, rv);
-	if (rvtype == HAWK_VAL_NIL)
+	ropvtype = HAWK_RTX_GETVALTYPE(rtx, ropv);
+	switch (ropvtype)
 	{
-		if (str != idxbuf) hawk_rtx_freemem (rtx, str);
-		hawk_rtx_refdownval (rtx, rv);
-		return HAWK_VAL_ZERO;
+		case HAWK_VAL_NIL:
+			res = HAWK_VAL_ZERO;
+			break;
+
+		case HAWK_VAL_MAP:
+		{
+			
+			hawk_map_t* map;
+
+			map = ((hawk_val_map_t*)ropv)->map;
+			res = (hawk_map_search(map, str, len) == HAWK_NULL)? HAWK_VAL_ZERO: HAWK_VAL_ONE;
+			break;
+		}
+
+		case HAWK_VAL_ARR:
+		{
+			hawk_arr_t* arr;
+
+			if (!idxint.ok)
+			{
+				hawk_rtx_seterrnum (rtx, &left->loc, HAWK_EARRIDXMULTI);
+				goto oops;
+			}
+
+			arr = ((hawk_val_arr_t*)ropv)->arr;
+			res = (idxint.v < 0 || idxint.v > HAWK_ARR_SIZE(arr) || !HAWK_ARR_SLOT(arr, idxint.v))? HAWK_VAL_ZERO: HAWK_VAL_ONE;
+			break;
+		}
+
+		default:
+			hawk_rtx_seterrnum (rtx, &right->loc, HAWK_EINROP);
+			goto oops;
 	}
-	else if (rvtype == HAWK_VAL_MAP)
-	{
-		hawk_val_t* res;
-		hawk_map_t* map;
 
-		map = ((hawk_val_map_t*)rv)->map;
-		res = (hawk_map_search(map, str, len) == HAWK_NULL)? HAWK_VAL_ZERO: HAWK_VAL_ONE;
-
-		if (str != idxbuf) hawk_rtx_freemem (rtx, str);
-		hawk_rtx_refdownval (rtx, rv);
-		return res;
-	}
-
-	/* need a map */
+done:
 	if (str != idxbuf) hawk_rtx_freemem (rtx, str);
-	hawk_rtx_refdownval (rtx, rv);
+	hawk_rtx_refdownval (rtx, ropv);
+	return res;
 
-	hawk_rtx_seterrnum (rtx, &right->loc, HAWK_ENOTMAPNILIN);
+oops:
+	if (str != idxbuf) hawk_rtx_freemem (rtx, str);
+	hawk_rtx_refdownval (rtx, ropv);
+
 	return HAWK_NULL;
 }
 
@@ -6756,7 +6797,7 @@ static hawk_val_t** get_reference_indexed (hawk_rtx_t* rtx, hawk_nde_var_t* var)
 		case HAWK_VAL_MAP:
 		val_map_init:
 			len = HAWK_COUNTOF(idxbuf);
-			str = idxnde_to_str(rtx, var->idx, idxbuf, &len, &remidx);
+			str = idxnde_to_str(rtx, var->idx, idxbuf, &len, &remidx, HAWK_NULL);
 			if (HAWK_UNLIKELY(!str)) goto oops;
 			map = ((hawk_val_map_t*)v)->map;
 			break;
@@ -6796,7 +6837,7 @@ static hawk_val_t** get_reference_indexed (hawk_rtx_t* rtx, hawk_nde_var_t* var)
 			val_map:
 				if (str && str != idxbuf) hawk_rtx_freemem (rtx, str);
 				len = HAWK_COUNTOF(idxbuf);
-				str = idxnde_to_str(rtx, remidx, idxbuf, &len, &remidx);
+				str = idxnde_to_str(rtx, remidx, idxbuf, &len, &remidx, HAWK_NULL);
 				if (HAWK_UNLIKELY(!str)) goto oops;
 				map = ((hawk_val_map_t*)v)->map;
 				break;
@@ -6993,7 +7034,7 @@ static hawk_val_t* eval_indexed (hawk_rtx_t* rtx, hawk_nde_var_t* var)
 		case HAWK_VAL_MAP:
 		init_val_map:
 			len = HAWK_COUNTOF(idxbuf);
-			str = idxnde_to_str(rtx, var->idx, idxbuf, &len, &remidx);
+			str = idxnde_to_str(rtx, var->idx, idxbuf, &len, &remidx, HAWK_NULL);
 			if (HAWK_UNLIKELY(!str)) goto oops;
 			map = ((hawk_val_map_t*)v)->map;
 			break;
@@ -7033,7 +7074,7 @@ static hawk_val_t* eval_indexed (hawk_rtx_t* rtx, hawk_nde_var_t* var)
 			val_map:
 				if (str && str != idxbuf) hawk_rtx_freemem (rtx, str);
 				len = HAWK_COUNTOF(idxbuf);
-				str = idxnde_to_str(rtx, remidx, idxbuf, &len, &remidx);
+				str = idxnde_to_str(rtx, remidx, idxbuf, &len, &remidx, HAWK_NULL);
 				if (HAWK_UNLIKELY(!str)) goto oops;
 				map = ((hawk_val_map_t*)v)->map;
 				break;
@@ -7428,10 +7469,11 @@ read_again:
 	return 1;
 }
 
-static hawk_ooch_t* idxnde_to_str (hawk_rtx_t* rtx, hawk_nde_t* nde, hawk_ooch_t* buf, hawk_oow_t* len, hawk_nde_t** remidx)
+static hawk_ooch_t* idxnde_to_str (hawk_rtx_t* rtx, hawk_nde_t* nde, hawk_ooch_t* buf, hawk_oow_t* len, hawk_nde_t** remidx, idxnde_to_str_idxint_t* firstidxint)
 {
 	hawk_ooch_t* str;
 	hawk_val_t* idx;
+	hawk_int_t idxint;
 
 	HAWK_ASSERT (nde != HAWK_NULL);
 
@@ -7444,6 +7486,16 @@ static hawk_ooch_t* idxnde_to_str (hawk_rtx_t* rtx, hawk_nde_t* nde, hawk_ooch_t
 		if (HAWK_UNLIKELY(!idx)) return HAWK_NULL;
 
 		hawk_rtx_refupval (rtx, idx);
+
+		if (firstidxint)
+		{
+			if (hawk_rtx_valtoint(rtx, idx, &idxint) <= -1)
+			{
+				hawk_rtx_refdownval (rtx, idx);
+				ADJERR_LOC (rtx, &nde->loc);
+				return HAWK_NULL;
+			}
+		}
 
 		str = HAWK_NULL;
 
@@ -7480,10 +7532,15 @@ static hawk_ooch_t* idxnde_to_str (hawk_rtx_t* rtx, hawk_nde_t* nde, hawk_ooch_t
 
 		hawk_rtx_refdownval (rtx, idx);
 		*remidx = HAWK_NULL;
+		if (firstidxint) 
+		{
+			firstidxint->ok = 1;
+			firstidxint->v = idxint;
+		}
 	}
 	else
 	{
-		/* multidimensional index */
+		/* multidimensional index - e.g. [1,2,3] */
 		hawk_ooecs_t idxstr;
 		hawk_oocs_t tmp;
 		hawk_rtx_valtostr_out_t out;
@@ -7542,6 +7599,8 @@ static hawk_ooch_t* idxnde_to_str (hawk_rtx_t* rtx, hawk_nde_t* nde, hawk_ooch_t
 
 		/* if nde is not HAWK_NULL, it should be of the HAWK_NDE_NULL type */
 		*remidx = nde? nde->next: nde;
+
+		if (firstidxint) firstidxint->ok = 0;
 	}
 
 	return str;
