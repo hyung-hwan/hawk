@@ -224,61 +224,69 @@ static int fnc_gcrefs (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 static int fnc_array (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	hawk_val_t* tmp;
+	hawk_oow_t nargs, i;
 
-	tmp = hawk_rtx_makearrval(rtx, -1);
+	nargs = hawk_rtx_getnargs(rtx);
+
+	tmp = hawk_rtx_makearrval(rtx, ((nargs > 0)? nargs: -1));
 	if (HAWK_UNLIKELY(!tmp)) return -1; /* hard failure */
 
-/* TODO: take arguments and put them to the array*/
+	for (i = 0; i < nargs; i++)
+	{
+		if (HAWK_UNLIKELY(hawk_rtx_setarrvalfld(rtx, tmp, i + 1, hawk_rtx_getarg(rtx, i)) == HAWK_NULL))
+		{
+			hawk_rtx_freeval (rtx, tmp, 0);
+			return -1;
+		}
+	}
+
 	hawk_rtx_setretval (rtx, tmp);
-	return 0;
-}
-
-static int fnc_array_size (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
-{
-	hawk_val_t* a0;
-	hawk_oow_t iv;
-
-	a0 = hawk_rtx_getarg(rtx, 0);
-
-	if (HAWK_RTX_GETVALTYPE(rtx, a0) != HAWK_VAL_ARR)
-	{
-		hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_ENOTARR);
-		return -1;
-	}
-
-	iv = HAWK_ARR_SIZE(((hawk_val_arr_t*)a0)->arr);
-	HAWK_ASSERT  (iv >= 0 && iv <= HAWK_QUICKINT_MAX);
-	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, iv));
-	return 0;
-}
-
-static int fnc_array_tally (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
-{
-	hawk_val_t* a0;
-	hawk_oow_t iv;
-
-	a0 = hawk_rtx_getarg(rtx, 0);
-
-	if (HAWK_RTX_GETVALTYPE(rtx, a0) != HAWK_VAL_ARR)
-	{
-		hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_ENOTARR);
-		return -1;
-	}
-
-	iv = HAWK_ARR_TALLY(((hawk_val_arr_t*)a0)->arr);
-	HAWK_ASSERT  (iv >= 0 && iv <= HAWK_QUICKINT_MAX);
-	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, iv));
 	return 0;
 }
 
 static int fnc_map (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	hawk_val_t* tmp;
+	hawk_oow_t nargs, i;
+	hawk_ooch_t idxbuf[HAWK_IDX_BUF_SIZE];
 
 	tmp = hawk_rtx_makemapval(rtx);
 	if (HAWK_UNLIKELY(!tmp)) return -1; /* hard failure */
 
-/* TODO: take arguments and put them to the map */
+	nargs = hawk_rtx_getnargs(rtx);
+
+	for (i = 0; i < nargs; i++)
+	{
+		hawk_rtx_valtostr_out_t out;
+		hawk_val_t* v;
+
+		v = hawk_rtx_getarg(rtx, i);
+		out.type = HAWK_RTX_VALTOSTR_CPLCPY;
+		out.u.cplcpy.ptr = idxbuf;
+		out.u.cplcpy.len = HAWK_COUNTOF(idxbuf);
+		if (hawk_rtx_valtostr(rtx, v, &out) <= -1)
+		{
+			out.type = HAWK_RTX_VALTOSTR_CPLDUP;
+			if (hawk_rtx_valtostr(rtx, v, &out) <= -1)
+			{
+				hawk_rtx_freeval (rtx, tmp, 0);
+				return -1;
+			}
+		}
+
+		v = (++i >= nargs)? hawk_val_nil: hawk_rtx_getarg(rtx, i);
+		v = hawk_rtx_setmapvalfld(rtx, tmp, out.u.cpldup.ptr, out.u.cpldup.len, v);
+		if (out.u.cpldup.ptr != idxbuf) hawk_rtx_freemem (rtx, out.u.cpldup.ptr);
+
+		if (HAWK_UNLIKELY(!v))
+		{
+			hawk_rtx_freeval (rtx, tmp, 0);
+			return -1;
+		}
+
+		/* if (i >= nargs) break;  this check is probably not needed. another i++ in the 3rd segment of the for statement should be mostly harmless. potential overflow issue is not a real issue as the number of arguments can be so high. */
+	}
+
 	hawk_rtx_setretval (rtx, tmp);
 	return 0;
 }
@@ -365,9 +373,6 @@ static fnctab_t fnctab[] =
 {
 	/* keep this table sorted for binary search in query(). */
 	{ HAWK_T("array"),            { { 0, A_MAX                },  fnc_array,                 0 } },
-	{ HAWK_T("array_size"),       { { 1, 1                    },  fnc_array_size,            0 } },
-	{ HAWK_T("array_tally"),      { { 1, 1                    },  fnc_array_tally,           0 } },
-
 	{ HAWK_T("call"),             { { 1, A_MAX, HAWK_T("vR")  },  fnc_call,                  0 } },
 	{ HAWK_T("function_exists"),  { { 1, 1,     HAWK_NULL     },  fnc_function_exists,       0 } },
 	{ HAWK_T("gc"),               { { 0, 1,     HAWK_NULL     },  fnc_gc,                    0 } },

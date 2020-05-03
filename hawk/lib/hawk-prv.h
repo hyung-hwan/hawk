@@ -97,6 +97,21 @@ typedef struct hawk_tree_t hawk_tree_t;
 #	define HAWK_MAX_RTX_STACK_LIMIT ((hawk_oow_t)1 << (HAWK_SIZEOF_VOID_P * 4))
 #endif
 
+/* Don't forget to grow HAWK_IDX_BUF_SIZE if hawk_int_t is very large */
+#if (HAWK_SIZEOF_INT_T <= 16) /* 128 bits */
+#	define HAWK_IDX_BUF_SIZE 64
+#elif (HAWK_SIZEOF_INT_T <= 32) /* 256 bits */
+#	define HAWK_IDX_BUF_SIZE 128
+#elif (HAWK_SIZEOF_INT_T <= 64) /* 512 bits */
+#	define HAWK_IDX_BUF_SIZE 192
+#elif (HAWK_SIZEOF_INT_T <= 128) /* 1024 bits */
+#	define HAWK_IDX_BUF_SIZE 384
+#elif (HAWK_SIZEOF_INT_T <= 256) /* 2048 bits */
+#	define HAWK_IDX_BUF_SIZE 640
+#else
+#	error unsupported. hawk_int_t too big
+#endif
+
 /* ------------------------------------------------------------------------ */
 
 
