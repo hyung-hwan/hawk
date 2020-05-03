@@ -32,21 +32,6 @@
 #define DEF_BUF_CAPA 256
 #define HAWK_RTX_STACK_INCREMENT 512
 
-/* Don't forget to grow IDXBUFSIZE if hawk_int_t is very large */
-#if (HAWK_SIZEOF_INT_T <= 16) /* 128 bits */
-#	define IDXBUFSIZE 64
-#elif (HAWK_SIZEOF_INT_T <= 32) /* 256 bits */
-#	define IDXBUFSIZE 128
-#elif (HAWK_SIZEOF_INT_T <= 64) /* 512 bits */
-#	define IDXBUFSIZE 192
-#elif (HAWK_SIZEOF_INT_T <= 128) /* 1024 bits */
-#	define IDXBUFSIZE 384
-#elif (HAWK_SIZEOF_INT_T <= 256) /* 2048 bits */
-#	define IDXBUFSIZE 640
-#else
-#	error unsupported. hawk_int_t too big
-#endif
-
 enum exit_level_t
 {
 	EXIT_NONE,
@@ -2997,7 +2982,7 @@ static HAWK_INLINE int delete_indexed (hawk_rtx_t* rtx, hawk_val_t* vv, hawk_nde
 	hawk_map_t* map;
 	hawk_ooch_t* str = HAWK_NULL;
 	hawk_oow_t len;
-	hawk_ooch_t idxbuf[IDXBUFSIZE];
+	hawk_ooch_t idxbuf[HAWK_IDX_BUF_SIZE];
 
 	hawk_arr_t* arr;
 	hawk_ooi_t idx;
@@ -3984,7 +3969,7 @@ static hawk_val_t* do_assignment_indexed (hawk_rtx_t* rtx, hawk_nde_var_t* var, 
 	hawk_map_t* map;
 	hawk_ooch_t* str = HAWK_NULL;
 	hawk_oow_t len;
-	hawk_ooch_t idxbuf[IDXBUFSIZE];
+	hawk_ooch_t idxbuf[HAWK_IDX_BUF_SIZE];
 
 	hawk_ooi_t idx;
 	hawk_arr_t* arr;
@@ -4415,7 +4400,7 @@ static hawk_val_t* eval_binop_in (hawk_rtx_t* rtx, hawk_nde_t* left, hawk_nde_t*
 	hawk_val_type_t ropvtype;
 	hawk_ooch_t* str;
 	hawk_oow_t len;
-	hawk_ooch_t idxbuf[IDXBUFSIZE];
+	hawk_ooch_t idxbuf[HAWK_IDX_BUF_SIZE];
 	hawk_nde_t* remidx;
 	hawk_int_t idxint;
 
@@ -6764,7 +6749,7 @@ static hawk_val_t** get_reference_indexed (hawk_rtx_t* rtx, hawk_nde_var_t* var)
 	hawk_map_t* map;
 	hawk_ooch_t* str = HAWK_NULL;
 	hawk_oow_t len;
-	hawk_ooch_t idxbuf[IDXBUFSIZE];
+	hawk_ooch_t idxbuf[HAWK_IDX_BUF_SIZE];
 
 	hawk_arr_t* arr;
 	hawk_ooi_t idx;
@@ -7000,7 +6985,7 @@ static hawk_val_t* eval_indexed (hawk_rtx_t* rtx, hawk_nde_var_t* var)
 	hawk_map_t* map; /* containing map */
 	hawk_ooch_t* str = HAWK_NULL;
 	hawk_oow_t len;
-	hawk_ooch_t idxbuf[IDXBUFSIZE];
+	hawk_ooch_t idxbuf[HAWK_IDX_BUF_SIZE];
 
 	hawk_arr_t* arr; /* containing array */
 	hawk_ooi_t idx;
