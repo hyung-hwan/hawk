@@ -138,5 +138,25 @@ function main()
 		ensure (hawk::array_size(a), 0, SCRIPTNAME);
 	}
 
+	{
+		@local a, b;
+		a = hawk::array();
+		a[10][20][30] = 20;
+		b[12][20][30] = 20;
+		ensure ((10 in a) && (20 in a[10]) && (30 in a[10][20]), 1, SCRIPTNAME);
+		ensure ((11 in a) && (20 in a[10]) && (30 in a[10][20]), 0, SCRIPTNAME);
+
+		b = hawk::map();
+		b[10][20][30] = 20;
+		b[12][20][30] = 20;
+		ensure ((10 in a) && (20 in a[10]) && (30 in a[10][20]), 1, SCRIPTNAME);
+		ensure ((11 in a) && (20 in a[10]) && (30 in a[10][20]), 0, SCRIPTNAME);
+
+		c = hawk::map();
+		c[10,20,30] = "heloo";
+		ensure (((10,20,30) in c), 1, SCRIPTNAME);
+		ensure (((10,30,30) in c), 0, SCRIPTNAME);
+	}
+
 	print "SUCCESS"
 }
