@@ -193,14 +193,7 @@ static hawk_val_t* eval_printf (hawk_rtx_t* rtx, hawk_nde_t* nde);
 
 static int read_record (hawk_rtx_t* rtx);
 
-struct idxnde_to_str_idxint_t
-{
-	int ok;
-	hawk_int_t v;
-};
-typedef struct idxnde_to_str_idxint_t idxnde_to_str_idxint_t;
-
-static hawk_ooch_t* idxnde_to_str (hawk_rtx_t* rtx, hawk_nde_t* nde, hawk_ooch_t* buf, hawk_oow_t* len, hawk_nde_t** remidx, idxnde_to_str_idxint_t* firstidxint);
+static hawk_ooch_t* idxnde_to_str (hawk_rtx_t* rtx, hawk_nde_t* nde, hawk_ooch_t* buf, hawk_oow_t* len, hawk_nde_t** remidx, hawk_int_t* firstidxint);
 static hawk_ooi_t idxnde_to_int (hawk_rtx_t* rtx, hawk_nde_t* nde, hawk_nde_t** remidx);
 
 typedef hawk_val_t* (*binop_func_t) (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t* right);
@@ -4424,7 +4417,7 @@ static hawk_val_t* eval_binop_in (hawk_rtx_t* rtx, hawk_nde_t* left, hawk_nde_t*
 	hawk_oow_t len;
 	hawk_ooch_t idxbuf[IDXBUFSIZE];
 	hawk_nde_t* remidx;
-	idxnde_to_str_idxint_t idxint;
+	hawk_int_t idxint;
 
 #if defined(HAWK_ENABLE_GC)
 	if (right->type < HAWK_NDE_NAMED || right->type > HAWK_NDE_ARGIDX)
@@ -4441,7 +4434,7 @@ static hawk_val_t* eval_binop_in (hawk_rtx_t* rtx, hawk_nde_t* left, hawk_nde_t*
 	/* evaluate the left-hand side of the operator */
 	len = HAWK_COUNTOF(idxbuf);
 	str = (left->type == HAWK_NDE_GRP)? /* it is inefficinet to call idxnde_to_str() for an array. but i don't know if the right hand side is a map or an array yet */
-		idxnde_to_str(rtx, ((hawk_nde_grp_t*)left)->body, idxbuf, &len, &remidx, &idxint):
+		idxnde_to_str(rtx, ((hawk_nde_grp_t*)left)->body, idxbuf, &len, &remidx, HAWK_NULL):
 		idxnde_to_str(rtx, left, idxbuf, &len, &remidx, &idxint);
 	if (HAWK_UNLIKELY(!str)) return HAWK_NULL;
 
@@ -4487,14 +4480,14 @@ static hawk_val_t* eval_binop_in (hawk_rtx_t* rtx, hawk_nde_t* left, hawk_nde_t*
 		{
 			hawk_arr_t* arr;
 
-			if (!idxint.ok)
+			if (left->type == HAWK_NDE_GRP)
 			{
 				hawk_rtx_seterrnum (rtx, &left->loc, HAWK_EARRIDXMULTI);
 				goto oops;
 			}
 
 			arr = ((hawk_val_arr_t*)ropv)->arr;
-			res = (idxint.v < 0 || idxint.v >= HAWK_ARR_SIZE(arr) || !HAWK_ARR_SLOT(arr, idxint.v))? HAWK_VAL_ZERO: HAWK_VAL_ONE;
+			res = (idxint < 0 || idxint >= HAWK_ARR_SIZE(arr) || !HAWK_ARR_SLOT(arr, idxint))? HAWK_VAL_ZERO: HAWK_VAL_ONE;
 			break;
 		}
 
@@ -4503,7 +4496,6 @@ static hawk_val_t* eval_binop_in (hawk_rtx_t* rtx, hawk_nde_t* left, hawk_nde_t*
 			goto oops;
 	}
 
-done:
 	if (str != idxbuf) hawk_rtx_freemem (rtx, str);
 	hawk_rtx_refdownval (rtx, ropv);
 	return res;
@@ -7469,7 +7461,7 @@ read_again:
 	return 1;
 }
 
-static hawk_ooch_t* idxnde_to_str (hawk_rtx_t* rtx, hawk_nde_t* nde, hawk_ooch_t* buf, hawk_oow_t* len, hawk_nde_t** remidx, idxnde_to_str_idxint_t* firstidxint)
+static hawk_ooch_t* idxnde_to_str (hawk_rtx_t* rtx, hawk_nde_t* nde, hawk_ooch_t* buf, hawk_oow_t* len, hawk_nde_t** remidx, hawk_int_t* firstidxint)
 {
 	hawk_ooch_t* str;
 	hawk_val_t* idx;
@@ -7532,11 +7524,6 @@ static hawk_ooch_t* idxnde_to_str (hawk_rtx_t* rtx, hawk_nde_t* nde, hawk_ooch_t
 
 		hawk_rtx_refdownval (rtx, idx);
 		*remidx = HAWK_NULL;
-		if (firstidxint) 
-		{
-			firstidxint->ok = 1;
-			firstidxint->v = idxint;
-		}
 	}
 	else
 	{
@@ -7545,6 +7532,7 @@ static hawk_ooch_t* idxnde_to_str (hawk_rtx_t* rtx, hawk_nde_t* nde, hawk_ooch_t
 		hawk_oocs_t tmp;
 		hawk_rtx_valtostr_out_t out;
 		hawk_nde_t* xnde;
+		int first = 1;
 
 		out.type = HAWK_RTX_VALTOSTR_STRPCAT;
 		out.u.strpcat = &idxstr;
@@ -7570,6 +7558,19 @@ static hawk_ooch_t* idxnde_to_str (hawk_rtx_t* rtx, hawk_nde_t* nde, hawk_ooch_t
 			}
 
 			hawk_rtx_refupval (rtx, idx);
+
+			if (firstidxint && first)
+			{
+				if (hawk_rtx_valtoint(rtx, idx, &idxint) <= -1)
+				{
+					hawk_rtx_refdownval (rtx, idx);
+					hawk_ooecs_fini (&idxstr);
+					ADJERR_LOC (rtx, &nde->loc);
+					return HAWK_NULL;
+				}
+
+				first = 0;
+			}
 
 			if (xnde != nde && hawk_ooecs_ncat(&idxstr, rtx->gbl.subsep.ptr, rtx->gbl.subsep.len) == (hawk_oow_t)-1)
 			{
@@ -7599,10 +7600,9 @@ static hawk_ooch_t* idxnde_to_str (hawk_rtx_t* rtx, hawk_nde_t* nde, hawk_ooch_t
 
 		/* if nde is not HAWK_NULL, it should be of the HAWK_NDE_NULL type */
 		*remidx = nde? nde->next: nde;
-
-		if (firstidxint) firstidxint->ok = 0;
 	}
 
+	if (firstidxint) *firstidxint = idxint;
 	return str;
 }
 
