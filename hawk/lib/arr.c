@@ -194,7 +194,7 @@ void hawk_arr_setscale (hawk_arr_t* arr, int scale)
 
 const hawk_arr_style_t* hawk_arr_getstyle (hawk_arr_t* arr)
 {
-	return &arr->style;
+	return arr->style;
 }
 
 void hawk_arr_setstyle (hawk_arr_t* arr, const hawk_arr_style_t* style)
