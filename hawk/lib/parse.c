@@ -136,7 +136,6 @@ enum tok_t
 	TOK_COLON,
 	TOK_DBLCOLON,
 	TOK_QUEST,
-	/*TOK_DBLAT,*/
 
 	/* ==  begin reserved words == */
 	/* === extended reserved words === */
@@ -398,7 +397,7 @@ static global_t gtab[] =
 
 #define ADD_TOKEN_CHAR(hawk,tok,c) \
 	do { \
-		if (hawk_ooecs_ccat((tok)->name,(c)) == (hawk_oow_t)-1) \
+		if (HAWK_UNLIKELY(hawk_ooecs_ccat((tok)->name,(c)) == (hawk_oow_t)-1)) \
 		{ \
 			ADJERR_LOC (hawk, &(tok)->loc); \
 			return -1; \
@@ -407,7 +406,7 @@ static global_t gtab[] =
 
 #define ADD_TOKEN_STR(hawk,tok,s,l) \
 	do { \
-		if (hawk_ooecs_ncat((tok)->name,(s),(l)) == (hawk_oow_t)-1) \
+		if (HAWK_UNLIKELY(hawk_ooecs_ncat((tok)->name,(s),(l)) == (hawk_oow_t)-1)) \
 		{ \
 			ADJERR_LOC (hawk, &(tok)->loc); \
 			return -1; \
@@ -504,7 +503,7 @@ static int get_char (hawk_t* hawk)
 		}
 
 		hawk->sio.inp->b.pos = 0;
-		hawk->sio.inp->b.len = n;	
+		hawk->sio.inp->b.len = n;
 	}
 
 	if (hawk->sio.inp->last.c == HAWK_T('\n'))
@@ -6642,7 +6641,7 @@ retry:
 	}
 	else if (hawk_is_ooch_digit(c)/*|| c == HAWK_T('.')*/)
 	{
-		if (get_number (hawk, tok) <= -1) return -1;
+		if (get_number(hawk, tok) <= -1) return -1;
 	}
 	else if (c == HAWK_T('.'))
 	{
@@ -6672,17 +6671,7 @@ retry:
 		ADD_TOKEN_CHAR (hawk, tok, c);
 		GET_CHAR_TO (hawk, c);
 
-		/*
-		if (c == HAWK_T('@'))
-		{
-			SET_TOKEN_TYPE (hawk, tok, TOK_DBLAT);
-			GET_CHAR (hawk);
-		}*/
-		/* other special extended operators here 
-		else if (c == HAWK_T('*'))
-		{
-		}*/
-		/*else*/ if (c != HAWK_T('_') && !hawk_is_ooch_alpha(c))
+		if (c != HAWK_T('_') && !hawk_is_ooch_alpha(c))
 		{
 			/* this extended keyword is empty, 
 			 * not followed by a valid word */
@@ -6699,13 +6688,28 @@ retry:
 			} 
 			while (c == HAWK_T('_') || hawk_is_ooch_alpha(c) || hawk_is_ooch_digit(c));
 
-			type = classify_ident(hawk, HAWK_OOECS_OOCS(tok->name));
-			if (type == TOK_IDENT)
+			if (hawk_comp_oochars_bcstr(HAWK_OOECS_PTR(tok->name), HAWK_OOECS_LEN(tok->name), "@SCRIPTNAME") == 0)
 			{
-				hawk_seterrfmt (hawk,  &hawk->tok.loc, HAWK_EXKWNR, FMT_EXKWNR, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
-				return -1;
+				/* special parser-level word @SCRIPTNAME. substitute an actual value for it */
+				if (HAWK_UNLIKELY(hawk_ooecs_cpy(tok->name, tok->loc.file) == (hawk_oow_t)-1)) return -1;
+				SET_TOKEN_TYPE (hawk, tok, TOK_STR);
 			}
-			SET_TOKEN_TYPE (hawk, tok, type);
+			else if (hawk_comp_oochars_bcstr(HAWK_OOECS_PTR(tok->name), HAWK_OOECS_LEN(tok->name), "@SCRIPTLINE") == 0)
+			{
+				/* special parser-level word @SCRIPTLINE. subsitute an actual value for it */
+				if (HAWK_UNLIKELY(hawk_ooecs_fmt(tok->name, HAWK_T("%zu"), tok->loc.line) == (hawk_oow_t)-1)) return -1;
+				SET_TOKEN_TYPE (hawk, tok, TOK_INT);
+			}
+			else
+			{
+				type = classify_ident(hawk, HAWK_OOECS_OOCS(tok->name));
+				if (type == TOK_IDENT)
+				{
+					hawk_seterrfmt (hawk,  &hawk->tok.loc, HAWK_EXKWNR, FMT_EXKWNR, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
+					return -1;
+				}
+				SET_TOKEN_TYPE (hawk, tok, type);
+			}
 		}
 	}
 	else if (c == HAWK_T('B'))
