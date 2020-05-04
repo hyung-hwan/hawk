@@ -1,11 +1,11 @@
 @pragma entry main
 
 
-function ensure (a, b, desc)
+function ensure (a, b, desc, line)
 {
 	if (a != b) 
 	{
-		print "FAILURE in", desc;
+		printf ("FAILURE[%d] %s\n", line, desc);
 		exit (-1);
 	}
 }
@@ -33,13 +33,13 @@ function main()
 	x = 20;
 	y = 90;
 	r = call_by_ref_1(x, y, z);	
-	ensure (r, 1800, SCRIPTNAME);
+	ensure (r, 1800, @SCRIPTNAME, @SCRIPTLINE);
 	ensure (x, 20);
 	ensure (y, 90);
 	ensure (z, "hello, world");
 
 ## TODO: add a new special word, @FILENAME, @FILELINE, @LINE <--- which are understood by the parser and swapped to the actual value
-## SCRIPTNAME doesn't tell the main file.
+## @SCRIPTNAME, @SCRIPTLINE doesn't tell the main file.
 
 	{
 		@local b;
@@ -60,9 +60,9 @@ function main()
 		b[1] = 1;
 		r = hawk::call("call_by_ref_2", 99, b);
 		ensure (r, 99);
-		ensure (length(b), 2, SCRIPTNAME);
-		ensure (b[1], 99, SCRIPTNAME);
-		ensure (b[2], "perfect", SCRIPTNAME);
+		ensure (length(b), 2, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (b[1], 99, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (b[2], "perfect", @SCRIPTNAME, @SCRIPTLINE);
 	}
 
 
@@ -70,11 +70,11 @@ function main()
 		@local a;
 		a[1] = hawk::array();
 		a[1][2]=20; 
-		ensure (a[1][2], 20, SCRIPTNAME);
+		ensure (a[1][2], 20, @SCRIPTNAME, @SCRIPTLINE);
 		a[1][2]++;
-		ensure (a[1][2], 21, SCRIPTNAME);
+		ensure (a[1][2], 21, @SCRIPTNAME, @SCRIPTLINE);
 		--a[1][2];
-		ensure (a[1][2], 20, SCRIPTNAME);
+		ensure (a[1][2], 20, @SCRIPTNAME, @SCRIPTLINE);
 	}
 
 	{
@@ -83,24 +83,24 @@ function main()
 		a[10] = "good";
 		a[0][40] = "bye"
 		a[0][0] = "farewell"
-		ensure (hawk::typename(a), "array", SCRIPTNAME);
-		ensure (hawk::typename(a[0]), "array", SCRIPTNAME);
+		ensure (hawk::typename(a), "array", @SCRIPTNAME, @SCRIPTLINE);
+		ensure (hawk::typename(a[0]), "array", @SCRIPTNAME, @SCRIPTLINE);
 		call_by_ref_3(a[9]);
-		ensure (a[10], "good", SCRIPTNAME);
-		ensure (a[9], "hello world", SCRIPTNAME);
+		ensure (a[10], "good", @SCRIPTNAME, @SCRIPTLINE);
+		ensure (a[9], "hello world", @SCRIPTNAME, @SCRIPTLINE);
 		call_by_ref_3(a[10]);
-		ensure (a[10], "hello world", SCRIPTNAME);
-		ensure (a[9], "hello world", SCRIPTNAME);
-		ensure (a[0][40], "bye", SCRIPTNAME);
+		ensure (a[10], "hello world", @SCRIPTNAME, @SCRIPTLINE);
+		ensure (a[9], "hello world", @SCRIPTNAME, @SCRIPTLINE);
+		ensure (a[0][40], "bye", @SCRIPTNAME, @SCRIPTLINE);
 		call_by_ref_3(a[0][40]);
-		ensure (a[0][40], "hello world", SCRIPTNAME);
-		ensure (length(a[0]), 2, SCRIPTNAME);
+		ensure (a[0][40], "hello world", @SCRIPTNAME, @SCRIPTLINE);
+		ensure (length(a[0]), 2, @SCRIPTNAME, @SCRIPTLINE);
 		delete a[0][40];
-		ensure (length(a[0]), 1, SCRIPTNAME);
-		ensure (a[0][0], "farewell", SCRIPTNAME);
-		ensure (a[0][40], nil, SCRIPTNAME);
-		#hawk::splice (a[0], 40, 1, SCRIPTNAME);
-		#ensure (length(a[0]), 40, SCRIPTNAME);
+		ensure (length(a[0]), 1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (a[0][0], "farewell", @SCRIPTNAME, @SCRIPTLINE);
+		ensure (a[0][40], nil, @SCRIPTNAME, @SCRIPTLINE);
+		#hawk::splice (a[0], 40, 1, @SCRIPTNAME, @SCRIPTLINE);
+		#ensure (length(a[0]), 40, @SCRIPTNAME, @SCRIPTLINE);
 	}
 
 
@@ -108,25 +108,25 @@ function main()
 		@local a, i;
 
 		a = hawk::array(); 
-		ensure (length(a), 0, SCRIPTNAME);
+		ensure (length(a), 0, @SCRIPTNAME, @SCRIPTLINE);
 		
 		for (i = 0; i < 10; i++) a[i*i]=i; 
-		ensure (length(a), 10, SCRIPTNAME);
+		ensure (length(a), 10, @SCRIPTNAME, @SCRIPTLINE);
 
 		delete a[0];
-		ensure (length(a), 9, SCRIPTNAME);
+		ensure (length(a), 9, @SCRIPTNAME, @SCRIPTLINE);
 
 		delete a[81]; 
-		ensure (length(a), 8, SCRIPTNAME);
+		ensure (length(a), 8, @SCRIPTNAME, @SCRIPTLINE);
 
 		delete a[36]; 
-		ensure (length(a), 7, SCRIPTNAME);
+		ensure (length(a), 7, @SCRIPTNAME, @SCRIPTLINE);
 
 		for (i = 0; i < 10; i++) delete a[i*i]; 
-		ensure (length(a), 0, SCRIPTNAME);
+		ensure (length(a), 0, @SCRIPTNAME, @SCRIPTLINE);
 
 		delete a;
-		ensure (length(a), 0, SCRIPTNAME);
+		ensure (length(a), 0, @SCRIPTNAME, @SCRIPTLINE);
 	}
 
 	{
@@ -134,19 +134,19 @@ function main()
 		a = hawk::array();
 		a[10][20][30] = 20;
 		b[12][20][30] = 20;
-		ensure ((10 in a) && (20 in a[10]) && (30 in a[10][20]), 1, SCRIPTNAME);
-		ensure ((11 in a) && (20 in a[10]) && (30 in a[10][20]), 0, SCRIPTNAME);
+		ensure ((10 in a) && (20 in a[10]) && (30 in a[10][20]), 1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure ((11 in a) && (20 in a[10]) && (30 in a[10][20]), 0, @SCRIPTNAME, @SCRIPTLINE);
 
 		b = hawk::map();
 		b[10][20][30] = 20;
 		b[12][20][30] = 20;
-		ensure ((10 in a) && (20 in a[10]) && (30 in a[10][20]), 1, SCRIPTNAME);
-		ensure ((11 in a) && (20 in a[10]) && (30 in a[10][20]), 0, SCRIPTNAME);
+		ensure ((10 in a) && (20 in a[10]) && (30 in a[10][20]), 1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure ((11 in a) && (20 in a[10]) && (30 in a[10][20]), 0, @SCRIPTNAME, @SCRIPTLINE);
 
 		c = hawk::map();
 		c[10,20,30] = "heloo";
-		ensure (((10,20,30) in c), 1, SCRIPTNAME);
-		ensure (((10,30,30) in c), 0, SCRIPTNAME);
+		ensure (((10,20,30) in c), 1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (((10,30,30) in c), 0, @SCRIPTNAME, @SCRIPTLINE);
 	}
 
 	print "SUCCESS"
