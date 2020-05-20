@@ -339,7 +339,7 @@ void hawk_copy_uchars_to_bchars (hawk_bch_t* dst, const hawk_uch_t* src, hawk_oo
 	for (i = 0; i < len; i++) dst[i] = src[i];
 }
 
-hawk_oow_t hawk_copy_uchars_to_ucstr (hawk_uch_t* dst, hawk_uch_t dlen, const hawk_uch_t* src, hawk_oow_t slen)
+hawk_oow_t hawk_copy_uchars_to_ucstr (hawk_uch_t* dst, hawk_oow_t dlen, const hawk_uch_t* src, hawk_oow_t slen)
 {
 	hawk_oow_t i;
 	if (dlen <= 0) return 0;
@@ -349,7 +349,7 @@ hawk_oow_t hawk_copy_uchars_to_ucstr (hawk_uch_t* dst, hawk_uch_t dlen, const ha
 	return i;
 }
 
-hawk_oow_t hawk_copy_bchars_to_bcstr (hawk_bch_t* dst, hawk_bch_t dlen, const hawk_bch_t* src, hawk_oow_t slen)
+hawk_oow_t hawk_copy_bchars_to_bcstr (hawk_bch_t* dst, hawk_oow_t dlen, const hawk_bch_t* src, hawk_oow_t slen)
 {
 	hawk_oow_t i;
 	if (dlen <= 0) return 0;
