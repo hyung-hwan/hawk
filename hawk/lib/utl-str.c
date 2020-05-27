@@ -2615,21 +2615,19 @@ hawk_int_t hawk_uchars_to_int (const hawk_uch_t* str, hawk_oow_t len, int option
 	} 
 	else if (rem >= 2 && base == 16)
 	{
-		if (*p == '0' && 
-		    (*(p + 1) == 'x' || *(p + 1) == 'X')) p += 2; 
+		if (*p == '0' && (*(p + 1) == 'x' || *(p + 1) == 'X')) p += 2; 
 	}
 	else if (rem >= 2 && base == 2)
 	{
-		if (*p == '0' && 
-		    (*(p + 1) == 'b' || *(p + 1) == 'B')) p += 2; 
+		if (*p == '0' && (*(p + 1) == 'b' || *(p + 1) == 'B')) p += 2; 
 	}
 
 	/* process the digits */
 	pp = p;
 	while (p < end)
 	{
-		digit = HAWK_XDIGIT_TO_NUM(*p);
-		if (digit <= - 1 || digit >= base) break;
+		digit = HAWK_ZDIGIT_TO_NUM(*p, base);
+		if (digit >= base) break;
 		n = n * base + digit;
 		p++;
 	}
@@ -2701,21 +2699,19 @@ hawk_int_t hawk_bchars_to_int (const hawk_bch_t* str, hawk_oow_t len, int option
 	} 
 	else if (rem >= 2 && base == 16)
 	{
-		if (*p == '0' && 
-		    (*(p + 1) == 'x' || *(p + 1) == 'X')) p += 2; 
+		if (*p == '0' && (*(p + 1) == 'x' || *(p + 1) == 'X')) p += 2; 
 	}
 	else if (rem >= 2 && base == 2)
 	{
-		if (*p == '0' && 
-		    (*(p + 1) == 'b' || *(p + 1) == 'B')) p += 2; 
+		if (*p == '0' && (*(p + 1) == 'b' || *(p + 1) == 'B')) p += 2; 
 	}
 
 	/* process the digits */
 	pp = p;
 	while (p < end)
 	{
-		digit = HAWK_XDIGIT_TO_NUM(*p);
-		if (digit <= - 1 || digit >= base) break;
+		digit = HAWK_ZDIGIT_TO_NUM(*p, base);
+		if (digit >= base) break;
 		n = n * base + digit;
 		p++;
 	}
