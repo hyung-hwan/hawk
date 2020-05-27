@@ -2628,17 +2628,9 @@ hawk_int_t hawk_uchars_to_int (const hawk_uch_t* str, hawk_oow_t len, int option
 	pp = p;
 	while (p < end)
 	{
-		if (*p >= '0' && *p <= '9') {
-			digit = *p - '0'; }
-		else if (*p >= 'A' && *p <= 'Z')
-			digit = *p - 'A' + 10;
-		else if (*p >= 'a' && *p <= 'z')
-			digit = *p - 'a' + 10;
-		else break;
-
-		if (digit >= base) break;
+		digit = HAWK_XDIGIT_TO_NUM(*p);
+		if (digit <= - 1 || digit >= base) break;
 		n = n * base + digit;
-
 		p++;
 	}
 
@@ -2722,17 +2714,9 @@ hawk_int_t hawk_bchars_to_int (const hawk_bch_t* str, hawk_oow_t len, int option
 	pp = p;
 	while (p < end)
 	{
-		if (*p >= '0' && *p <= '9')
-			digit = *p - '0';
-		else if (*p >= 'A' && *p <= 'Z')
-			digit = *p - 'A' + 10;
-		else if (*p >= 'a' && *p <= 'z')
-			digit = *p - 'a' + 10;
-		else break;
-
-		if (digit >= base) break;
+		digit = HAWK_XDIGIT_TO_NUM(*p);
+		if (digit <= - 1 || digit >= base) break;
 		n = n * base + digit;
-
 		p++;
 	}
 
@@ -3314,11 +3298,6 @@ int hawk_bchars_to_num (int option, const hawk_bch_t* ptr, hawk_oow_t len, hawk_
 
 /* ------------------------------------------------------------------------ */
 
-#define XDIGIT_TO_NUM(c) \
-	(((c) >= '0' && (c) <= '9')? ((c) - '0'): \
-	 ((c) >= 'A' && (c) <= 'F')? ((c) - 'A' + 10): \
-	 ((c) >= 'a' && (c) <= 'f')? ((c) - 'a' + 10): -1)
-
 int hawk_uchars_to_bin (const hawk_uch_t* hex, hawk_oow_t hexlen, hawk_uint8_t* buf, hawk_oow_t buflen)
 {
 	const hawk_uch_t* end = hex + hexlen;
@@ -3328,14 +3307,14 @@ int hawk_uchars_to_bin (const hawk_uch_t* hex, hawk_oow_t hexlen, hawk_uint8_t* 
 	{
 		int v;
 
-		v = XDIGIT_TO_NUM(*hex);
+		v = HAWK_XDIGIT_TO_NUM(*hex);
 		if (v <= -1) return -1;
 		buf[bi] = buf[bi] * 16 + v;
 
 		hex++;
 		if (hex >= end) return -1;
 
-		v = XDIGIT_TO_NUM(*hex);
+		v = HAWK_XDIGIT_TO_NUM(*hex);
 		if (v <= -1) return -1;
 		buf[bi] = buf[bi] * 16 + v;
 
@@ -3355,14 +3334,14 @@ int hawk_bchars_to_bin (const hawk_bch_t* hex, hawk_oow_t hexlen, hawk_uint8_t* 
 	{
 		int v;
 
-		v = XDIGIT_TO_NUM(*hex);
+		v = HAWK_XDIGIT_TO_NUM(*hex);
 		if (v <= -1) return -1;
 		buf[bi] = buf[bi] * 16 + v;
 
 		hex++;
 		if (hex >= end) return -1;
 
-		v = XDIGIT_TO_NUM(*hex);
+		v = HAWK_XDIGIT_TO_NUM(*hex);
 		if (v <= -1) return -1;
 		buf[bi] = buf[bi] * 16 + v;
 

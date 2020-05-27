@@ -103,13 +103,7 @@ static int str_to_ipv6 (const hawk_ooch_t* src, hawk_oow_t len, struct in6_addr*
 
 		ch = *src++;
 
-		if (ch >= '0' && ch <= '9')
-			v1 = ch - '0';
-		else if (ch >= 'A' && ch <= 'F')
-			v1 = ch - 'A' + 10;
-		else if (ch >= 'a' && ch <= 'f')
-			v1 = ch - 'a' + 10;
-		else v1 = -1;
+		v1 = HAWK_XDIGIT_TO_NUM(ch);
 		if (v1 >= 0)
 		{
 			val <<= 4;

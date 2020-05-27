@@ -5983,12 +5983,12 @@ static int get_number (hawk_t* hawk, hawk_tok_t* tok)
 
 	c = hawk->sio.last.c;
 
-	if (c == HAWK_T('0'))
+	if (c == '0')
 	{
 		ADD_TOKEN_CHAR (hawk, tok, c);
 		GET_CHAR_TO (hawk, c);
 
-		if (c == HAWK_T('x') || c == HAWK_T('X'))
+		if (c == 'x' || c == 'X')
 		{
 			/* hexadecimal number */
 			do 
@@ -6000,7 +6000,7 @@ static int get_number (hawk_t* hawk, hawk_tok_t* tok)
 
 			return 0;
 		}
-		else if (c == HAWK_T('b') || c == HAWK_T('B'))
+		else if (c == 'b' || c == 'B')
 		{
 			/* binary number */
 			do
@@ -6008,20 +6008,20 @@ static int get_number (hawk_t* hawk, hawk_tok_t* tok)
 				ADD_TOKEN_CHAR (hawk, tok, c);
 				GET_CHAR_TO (hawk, c);
 			} 
-			while (c == HAWK_T('0') || c == HAWK_T('1'));
+			while (c == '0' || c == '1');
 
 			return 0;
 		}
 		else if (c != '.')
 		{
 			/* octal number */
-			while (c >= HAWK_T('0') && c <= HAWK_T('7'))
+			while (c >= '0' && c <= '7')
 			{
 				ADD_TOKEN_CHAR (hawk, tok, c);
 				GET_CHAR_TO (hawk, c);
 			}
 
-			if (c == HAWK_T('8') || c == HAWK_T('9'))
+			if (c == '8' || c == '9')
 			{
 				hawk_seterrfmt (hawk, &hawk->tok.loc, HAWK_ELXCHR, HAWK_T("invalid digit '%jc'"), (hawk_ooch_t)c);
 				return -1;
@@ -6037,7 +6037,7 @@ static int get_number (hawk_t* hawk, hawk_tok_t* tok)
 		GET_CHAR_TO (hawk, c);
 	} 
 
-	if (c == HAWK_T('.'))
+	if (c == '.')
 	{
 		/* floating-point number */
 		SET_TOKEN_TYPE (hawk, tok, TOK_FLT);
@@ -6052,14 +6052,14 @@ static int get_number (hawk_t* hawk, hawk_tok_t* tok)
 		}
 	}
 
-	if (c == HAWK_T('E') || c == HAWK_T('e'))
+	if (c == 'E' || c == 'e')
 	{
 		SET_TOKEN_TYPE (hawk, tok, TOK_FLT);
 
 		ADD_TOKEN_CHAR (hawk, tok, c);
 		GET_CHAR_TO (hawk, c);
 
-		if (c == HAWK_T('+') || c == HAWK_T('-'))
+		if (c == '+' || c == '-')
 		{
 			ADD_TOKEN_CHAR (hawk, tok, c);
 			GET_CHAR_TO (hawk, c);

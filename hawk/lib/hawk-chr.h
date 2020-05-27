@@ -84,6 +84,13 @@ typedef enum hawk_ooch_prop_t hawk_ooch_prop_t;
 typedef enum hawk_ooch_prop_t hawk_uch_prop_t;
 typedef enum hawk_ooch_prop_t hawk_bch_prop_t;
 
+#define HAWK_DIGIT_TO_NUM(c) (((c) >= '0' && (c) <= '9')? ((c) - '0'): -1)
+
+#define HAWK_XDIGIT_TO_NUM(c) \
+	(((c) >= '0' && (c) <= '9')? ((c) - '0'): \
+	 ((c) >= 'A' && (c) <= 'F')? ((c) - 'A' + 10): \
+	 ((c) >= 'a' && (c) <= 'f')? ((c) - 'a' + 10): -1)
+
 #if defined(__cplusplus)
 extern "C" {
 #endif
