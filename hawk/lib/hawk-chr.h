@@ -91,6 +91,11 @@ typedef enum hawk_ooch_prop_t hawk_bch_prop_t;
 	 ((c) >= 'A' && (c) <= 'F')? ((c) - 'A' + 10): \
 	 ((c) >= 'a' && (c) <= 'f')? ((c) - 'a' + 10): -1)
 
+#define HAWK_ZDIGIT_TO_NUM(c,base) \
+	(((c) >= '0' && (c) <= '9')? ((c) - '0'): \
+	 ((c) >= 'A' && (c) <= 'Z')? ((c) - 'A' + 10): \
+	 ((c) >= 'a' && (c) <= 'z')? ((c) - 'a' + 10): base)
+
 #if defined(__cplusplus)
 extern "C" {
 #endif
