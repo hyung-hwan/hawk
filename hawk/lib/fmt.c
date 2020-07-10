@@ -1227,7 +1227,7 @@ static int fmt_outv (hawk_fmtout_t* fmtout, va_list ap)
 			sign = 0;
 			if (lm_flag & LF_J)
 			{
-			#if defined(__GNUC__) && \
+			#if 0 && defined(__GNUC__) && \
 			    (HAWK_SIZEOF_UINTMAX_T > HAWK_SIZEOF_OOW_T) && \
 			    (HAWK_SIZEOF_UINTMAX_T != HAWK_SIZEOF_LONG_LONG) && \
 			    (HAWK_SIZEOF_UINTMAX_T != HAWK_SIZEOF_LONG)
