@@ -1,5 +1,8 @@
 # Hawk
 
+	█░█ ▄▀█ █░█░█ █▄▀
+	█▀█ █▀█ ▀▄▀▄▀ █░█
+
  - [Language](#language)
  - [Modules](#modules)
  - [Embedding Guide](#embedding-guide)
