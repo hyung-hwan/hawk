@@ -476,9 +476,10 @@ typedef unsigned char           hawk_bchu_t; /* unsigned version of hawk_bch_t f
 #define HAWK_SIZEOF_BCH_T HAWK_SIZEOF_CHAR
 #define HAWK_SIZEOF_BCI_T HAWK_SIZEOF_INT
 
+// You may specify -DHAWK_USE_CXX_CHAR16_T in CXXFLAGS to force char16_t with c++.
 #if (defined(__cplusplus) && (defined(HAWK_USE_CXX_CHAR16_T) || (__cplusplus >= 201103L) || (defined(_MSC_VER) && _MSC_VER >= 1900))) /* user chosen or C++11 or later */
 #	if defined(HAWK_UNICODE_SIZE) && (HAWK_UNICODE_SIZE >= 4)
-		typedef char32_t           hawk_uch_t;  /* char32_t is an unsigned integer type used for 16-bit wide characters */
+		typedef char32_t           hawk_uch_t;  /* char32_t is an unsigned integer type used for 32-bit wide characters */
 		typedef char32_t           hawk_uchu_t; /* same as hawk_uch_t as it is already unsigned */
 #		define HAWK_SIZEOF_UCH_T 4
 #		define HAWK_USE_PREFIX_BIG_U
@@ -506,6 +507,7 @@ typedef unsigned char           hawk_bchu_t; /* unsigned version of hawk_bch_t f
 	// there will be size disparity issue on the hawk_uch_t type.
 	// if this assertion becomes false, you must check if the size of the wchar_t type is the same as the size used 
 	// for this library.
+	//   gcc/g++/clang/clang++: -fshort-wchar makes wchar_t to 2 bytes.
 	HAWK_STATIC_ASSERT (HAWK_UNICODE_SIZE == sizeof(hawk_uch_t));
 
 #elif defined(HAWK_UNICODE_SIZE) && (HAWK_UNICODE_SIZE >= 4) && defined(__GNUC__) && defined(__CHAR32_TYPE__)
