@@ -25,7 +25,7 @@
  */
 
 #include "mod-mysql.h"
-#include <mysql/mysql.h>
+#include <mysql.h>
 #include "../lib/hawk-prv.h"
 
 #if !defined(MYSQL_OPT_RECONNECT)
