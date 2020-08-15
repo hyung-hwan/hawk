@@ -92,8 +92,6 @@ dnl check the math library (check if -lm is needed)
 LT_LIB_M
 AC_SUBST(LIBM, $LIBM)
 
-AX_PTHREAD()
-
 dnl ===== enable-unicode =====
 dnl this enable option is placed way above other options
 dnl as -fshort-wchar affects the size of wchar_t.
@@ -343,7 +341,8 @@ then
 fi
 AC_SUBST(SOCKET_LIBS)
 
-
+dnl pthread
+AX_PTHREAD()
 AC_CHECK_LIB([pthread], [pthread_mutex_timedlock],  [
 	AC_DEFINE([HAVE_PTHREAD_MUTEX_TIMEDLOCK],1,[pthreads has pthread_mutex_timedlock()])
 ])
@@ -986,6 +985,17 @@ then
 fi
 AM_CONDITIONAL(ENABLE_MOD_UCI, test "${enable_mod_uci_is}" = "yes")
 
+
+dnl ==== include pthread options to the default flags ====
+dnl keep this as  the last option as it changes the default compile flags.                                              dnl otherwise, other tests may get affected if this option is on. 
+AC_ARG_ENABLE([pthread-flags], [AS_HELP_STRING([--enable-pthread-flags],[add thread flags to CFLAGS, CXXFLAGS, LIBS(default. yes)])],
+        enable_pthread_flags_is=$enableval,enable_pthread_flags_is=yes)
+if test "$enable_pthread_flags_is" = "yes"
+then
+	[CFLAGS="$CFLAGS $PTHREAD_CFLAGS"]
+	[CXXFLAGS="$CXXFLAGS $PTHREAD_CFLAGS"]
+	[LIBS="$LIBS $PTHREAD_LIBS"]
+fi
 
 AC_SUBST(HAWK_SIZEOF_WCHAR_T, $ac_cv_sizeof_wchar_t)
 AC_SUBST(HAWK_SIZEOF_LONG_LONG, $ac_cv_sizeof_long_long)
