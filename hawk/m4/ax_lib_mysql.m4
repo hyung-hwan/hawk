@@ -1,6 +1,4 @@
-# ===========================================================================
-#       https://www.gnu.org/software/autoconf-archive/ax_lib_mysql.html
-# ===========================================================================
+##### http://autoconf-archive.cryp.to/ax_lib_mysql.html
 #
 # SYNOPSIS
 #
@@ -8,18 +6,19 @@
 #
 # DESCRIPTION
 #
-#   This macro provides tests of availability of MySQL client library of
-#   particular version or newer.
+#   This macro provides tests of availability of MySQL client library
+#   of particular version or newer.
 #
-#   AX_LIB_MYSQL macro takes only one argument which is optional. If there
-#   is no required version passed, then macro does not run version test.
+#   AX_LIB_MYSQL macro takes only one argument which is optional. If
+#   there is no required version passed, then macro does not run
+#   version test.
 #
 #   The --with-mysql option takes one of three possible values:
 #
 #   no - do not check for MySQL client library
 #
-#   yes - do check for MySQL library in standard locations (mysql_config
-#   should be in the PATH)
+#   yes - do check for MySQL library in standard locations
+#   (mysql_config should be in the PATH)
 #
 #   path - complete path to mysql_config utility, use this option if
 #   mysql_config can't be found in the PATH
@@ -28,28 +27,32 @@
 #
 #     AC_SUBST(MYSQL_CFLAGS)
 #     AC_SUBST(MYSQL_LDFLAGS)
+#     AC_SUBST(MYSQL_LIBS)
 #     AC_SUBST(MYSQL_VERSION)
 #
 #   And sets:
 #
 #     HAVE_MYSQL
 #
-# LICENSE
+# LAST MODIFICATION
 #
-#   Copyright (c) 2008 Mateusz Loskot <mateusz@loskot.net>
+#   2006-07-16
 #
-#   Copying and distribution of this file, with or without modification, are
-#   permitted in any medium without royalty provided the copyright notice
-#   and this notice are preserved. This file is offered as-is, without any
-#   warranty.
-
-#serial 13
+# COPYLEFT
+#
+#   Copyright (c) 2006 Mateusz Loskot <mateusz@loskot.net>
+#
+#   Copying and distribution of this file, with or without
+#   modification, are permitted in any medium without royalty provided
+#   the copyright notice and this notice are preserved.
 
 AC_DEFUN([AX_LIB_MYSQL],
 [
+    MYSQL_CONFIG="no"
+
     AC_ARG_WITH([mysql],
-        AS_HELP_STRING([--with-mysql=@<:@ARG@:>@],
-            [use MySQL client library @<:@default=yes@:>@, optionally specify path to mysql_config]
+        AC_HELP_STRING([--with-mysql@<:@=ARG@:>@],
+            [use MySQL client library @<:@default=no@:>@, optionally specify path to mysql_config]
         ),
         [
         if test "$withval" = "no"; then
@@ -61,12 +64,12 @@ AC_DEFUN([AX_LIB_MYSQL],
             MYSQL_CONFIG="$withval"
         fi
         ],
-        [want_mysql="yes"]
+        [want_mysql="no"]
     )
-    AC_ARG_VAR([MYSQL_CONFIG], [Full path to mysql_config program])
 
     MYSQL_CFLAGS=""
     MYSQL_LDFLAGS=""
+    MYSQL_LIBS=""
     MYSQL_VERSION=""
 
     dnl
@@ -75,15 +78,57 @@ AC_DEFUN([AX_LIB_MYSQL],
 
     if test "$want_mysql" = "yes"; then
 
-        if test -z "$MYSQL_CONFIG" ; then
-            AC_PATH_PROGS([MYSQL_CONFIG], [mysql_config mysql_config5], [no])
-        fi
+        AC_PATH_PROGS(MYSQL_CONFIG, mysql_config mariadb_config)
 
-        if test "$MYSQL_CONFIG" != "no"; then
+        if test -x "$MYSQL_CONFIG"; then
             MYSQL_CFLAGS="`$MYSQL_CONFIG --cflags`"
-            MYSQL_LDFLAGS="`$MYSQL_CONFIG --libs`"
+            _full_libmysql_libs="`$MYSQL_CONFIG --libs`"
 
+             _save_mysql_ldflags="${LDFLAGS}"
+            _save_mysql_cflags="${CFLAGS}"
+            LDFLAGS="${LDFLAGS} ${_full_libmysql_libs}"
+            CFLAGS="${CFLAGS} ${MYSQL_CFLAGS}"
+
+            for i in $_full_libmysql_libs; do
+                case $i in
+                    -lmysqlclient|-lperconaserverclient|-lmariadbclient|-lmariadb)
+
+                        _lib_name="`echo "$i" | cut -b3-`"
+                        AC_CHECK_LIB($_lib_name, main, [
+                        	MYSQL_LIBS="-l${_lib_name} ${MYSQL_LIBS}"
+                        	],[
+                        	AC_MSG_ERROR([Not found $_lib_name library])
+                        	])
+                ;;
+                    -L*)
+
+                        MYSQL_LDFLAGS="${MYSQL_LDFLAGS} $i"
+                ;;
+                    -R*)
+
+                        MYSQL_LDFLAGS="${MYSQL_LDFLAGS} -Wl,$i"
+                ;;
+                    -l*)
+
+                        _lib_name="`echo "$i" | cut -b3-`"
+                        AC_CHECK_LIB($_lib_name, main, [
+                        	MYSQL_LIBS="${MYSQL_LIBS} ${i}"
+                        	],[
+                        	AC_MSG_ERROR([Not found $i library])
+                        	])
+                ;;
+                esac
+            done
+    
+            LDFLAGS="${_save_mysql_ldflags}"
+            CFLAGS="${_save_mysql_cflags}"
+            unset _save_mysql_ldflags
+            unset _save_mysql_cflags
+    
             MYSQL_VERSION=`$MYSQL_CONFIG --version`
+    
+            AC_DEFINE([HAVE_MYSQL], [1],
+                [Define to 1 if MySQL libraries are available])
 
             found_mysql="yes"
         else
@@ -94,7 +139,6 @@ AC_DEFUN([AX_LIB_MYSQL],
     dnl
     dnl Check if required version of MySQL is available
     dnl
-
 
     mysql_version_req=ifelse([$1], [], [], [$1])
 
@@ -136,12 +180,8 @@ AC_DEFUN([AX_LIB_MYSQL],
         fi
     fi
 
-    if test "$found_mysql" = "yes" ; then
-        AC_DEFINE([HAVE_MYSQL], [1],
-                  [Define to 1 if MySQL libraries are available])
-    fi
-
     AC_SUBST([MYSQL_VERSION])
     AC_SUBST([MYSQL_CFLAGS])
     AC_SUBST([MYSQL_LDFLAGS])
+    AC_SUBST([MYSQL_LIBS])
 ])

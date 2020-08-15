@@ -964,6 +964,10 @@ AC_ARG_ENABLE([mod-mysql],
 	enable_mod_mysql_is=$enableval,
 	enable_mod_mysql_is=yes
 )
+if test "x${found_mysql}" != "xyes"
+then
+	enable_mod_mysql_is="no"
+fi
 if test "${enable_mod_mysql_is}" = "yes"
 then
 	AC_DEFINE([HAWK_ENABLE_MOD_MYSQL],[1],[build mod/mysql])

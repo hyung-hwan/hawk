@@ -62,7 +62,7 @@ if ENABLE_MOD_MYSQL
 libhawk_mysql_la_SOURCES = mod-mysql.c mod-mysql.h
 libhawk_mysql_la_CPPFLAGS = $(CPPFLAGS_COMMON) $(MYSQL_CFLAGS)
 libhawk_mysql_la_LDFLAGS = $(LDFLAGS_COMMON) $(MYSQL_LDFLAGS)
-libhawk_mysql_la_LIBADD = $(LIBADD_COMMON) 
+libhawk_mysql_la_LIBADD = $(LIBADD_COMMON) $(MYSQL_LIBS)
 endif
 
 if ENABLE_MOD_UCI

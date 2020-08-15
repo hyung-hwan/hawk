@@ -668,6 +668,7 @@ PACKAGE_VERSION_PATCH
 PACKAGE_VERSION_MINOR
 PACKAGE_VERSION_MAJOR
 QUADMATH_LIBS
+MYSQL_LIBS
 MYSQL_LDFLAGS
 MYSQL_CFLAGS
 MYSQL_VERSION
@@ -794,6 +795,7 @@ infodir
 docdir
 oldincludedir
 includedir
+runstatedir
 localstatedir
 sharedstatedir
 sysconfdir
@@ -854,8 +856,7 @@ CXXFLAGS
 CCC
 LT_SYS_LIBRARY_PATH
 CPP
-CXXCPP
-MYSQL_CONFIG'
+CXXCPP'
 
 
 # Initialize some variables set by options.
@@ -894,6 +895,7 @@ datadir='${datarootdir}'
 sysconfdir='${prefix}/etc'
 sharedstatedir='${prefix}/com'
 localstatedir='${prefix}/var'
+runstatedir='${localstatedir}/run'
 includedir='${prefix}/include'
 oldincludedir='/usr/include'
 docdir='${datarootdir}/doc/${PACKAGE_TARNAME}'
@@ -1146,6 +1148,15 @@ do
   | -silent | --silent | --silen | --sile | --sil)
     silent=yes ;;
 
+  -runstatedir | --runstatedir | --runstatedi | --runstated \
+  | --runstate | --runstat | --runsta | --runst | --runs \
+  | --run | --ru | --r)
+    ac_prev=runstatedir ;;
+  -runstatedir=* | --runstatedir=* | --runstatedi=* | --runstated=* \
+  | --runstate=* | --runstat=* | --runsta=* | --runst=* | --runs=* \
+  | --run=* | --ru=* | --r=*)
+    runstatedir=$ac_optarg ;;
+
   -sbindir | --sbindir | --sbindi | --sbind | --sbin | --sbi | --sb)
     ac_prev=sbindir ;;
   -sbindir=* | --sbindir=* | --sbindi=* | --sbind=* | --sbin=* \
@@ -1283,7 +1294,7 @@ fi
 for ac_var in	exec_prefix prefix bindir sbindir libexecdir datarootdir \
 		datadir sysconfdir sharedstatedir localstatedir includedir \
 		oldincludedir docdir infodir htmldir dvidir pdfdir psdir \
-		libdir localedir mandir
+		libdir localedir mandir runstatedir
 do
   eval ac_val=\$$ac_var
   # Remove trailing slashes.
@@ -1436,6 +1447,7 @@ Fine tuning of the installation directories:
   --sysconfdir=DIR        read-only single-machine data [PREFIX/etc]
   --sharedstatedir=DIR    modifiable architecture-independent data [PREFIX/com]
   --localstatedir=DIR     modifiable single-machine data [PREFIX/var]
+  --runstatedir=DIR       modifiable per-process data [LOCALSTATEDIR/run]
   --libdir=DIR            object code libraries [EPREFIX/lib]
   --includedir=DIR        C header files [PREFIX/include]
   --oldincludedir=DIR     C header files for non-gcc [/usr/include]
@@ -1514,7 +1526,7 @@ Optional Packages:
   --with-gnu-ld           assume the C compiler uses GNU ld [default=no]
   --with-sysroot[=DIR]    Search for dependent libraries within DIR (or the
                           compiler's sysroot if not specified).
-  --with-mysql=[ARG]      use MySQL client library [default=yes], optionally
+  --with-mysql[=ARG]      use MySQL client library [default=no], optionally
                           specify path to mysql_config
 
 Some influential environment variables:
@@ -1531,8 +1543,6 @@ Some influential environment variables:
               User-defined run-time library search path.
   CPP         C preprocessor
   CXXCPP      C++ preprocessor
-  MYSQL_CONFIG
-              Full path to mysql_config program
 
 Use these variables to override the choices made by `configure' or to help
 it to find libraries and programs with nonstandard names/locations.
@@ -18055,7 +18065,7 @@ else
     We can't simply define LARGE_OFF_T to be 9223372036854775807,
     since some C++ compilers masquerading as C compilers
     incorrectly reject 9223372036854775807.  */
-#define LARGE_OFF_T (((off_t) 1 << 62) - 1 + ((off_t) 1 << 62))
+#define LARGE_OFF_T ((((off_t) 1 << 31) << 31) - 1 + (((off_t) 1 << 31) << 31))
   int off_t_is_large[(LARGE_OFF_T % 2147483629 == 721
 		       && LARGE_OFF_T % 2147483647 == 1)
 		      ? 1 : -1];
@@ -18101,7 +18111,7 @@ else
     We can't simply define LARGE_OFF_T to be 9223372036854775807,
     since some C++ compilers masquerading as C compilers
     incorrectly reject 9223372036854775807.  */
-#define LARGE_OFF_T (((off_t) 1 << 62) - 1 + ((off_t) 1 << 62))
+#define LARGE_OFF_T ((((off_t) 1 << 31) << 31) - 1 + (((off_t) 1 << 31) << 31))
   int off_t_is_large[(LARGE_OFF_T % 2147483629 == 721
 		       && LARGE_OFF_T % 2147483647 == 1)
 		      ? 1 : -1];
@@ -18125,7 +18135,7 @@ rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
     We can't simply define LARGE_OFF_T to be 9223372036854775807,
     since some C++ compilers masquerading as C compilers
     incorrectly reject 9223372036854775807.  */
-#define LARGE_OFF_T (((off_t) 1 << 62) - 1 + ((off_t) 1 << 62))
+#define LARGE_OFF_T ((((off_t) 1 << 31) << 31) - 1 + (((off_t) 1 << 31) << 31))
   int off_t_is_large[(LARGE_OFF_T % 2147483629 == 721
 		       && LARGE_OFF_T % 2147483647 == 1)
 		      ? 1 : -1];
@@ -18170,7 +18180,7 @@ else
     We can't simply define LARGE_OFF_T to be 9223372036854775807,
     since some C++ compilers masquerading as C compilers
     incorrectly reject 9223372036854775807.  */
-#define LARGE_OFF_T (((off_t) 1 << 62) - 1 + ((off_t) 1 << 62))
+#define LARGE_OFF_T ((((off_t) 1 << 31) << 31) - 1 + (((off_t) 1 << 31) << 31))
   int off_t_is_large[(LARGE_OFF_T % 2147483629 == 721
 		       && LARGE_OFF_T % 2147483647 == 1)
 		      ? 1 : -1];
@@ -18194,7 +18204,7 @@ rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
     We can't simply define LARGE_OFF_T to be 9223372036854775807,
     since some C++ compilers masquerading as C compilers
     incorrectly reject 9223372036854775807.  */
-#define LARGE_OFF_T (((off_t) 1 << 62) - 1 + ((off_t) 1 << 62))
+#define LARGE_OFF_T ((((off_t) 1 << 31) << 31) - 1 + (((off_t) 1 << 31) << 31))
   int off_t_is_large[(LARGE_OFF_T % 2147483629 == 721
 		       && LARGE_OFF_T % 2147483647 == 1)
 		      ? 1 : -1];
@@ -20359,6 +20369,8 @@ fi
 
 
 
+    MYSQL_CONFIG="no"
+
 
 # Check whether --with-mysql was given.
 if test "${with_mysql+set}" = set; then :
@@ -20373,21 +20385,20 @@ if test "${with_mysql+set}" = set; then :
         fi
 
 else
-  want_mysql="yes"
+  want_mysql="no"
 
 fi
 
 
-
     MYSQL_CFLAGS=""
     MYSQL_LDFLAGS=""
+    MYSQL_LIBS=""
     MYSQL_VERSION=""
 
 
     if test "$want_mysql" = "yes"; then
 
-        if test -z "$MYSQL_CONFIG" ; then
-            for ac_prog in mysql_config mysql_config5
+        for ac_prog in mysql_config mariadb_config
 do
   # Extract the first word of "$ac_prog", so it can be a program name with args.
 set dummy $ac_prog; ac_word=$2
@@ -20431,22 +20442,138 @@ fi
 
   test -n "$MYSQL_CONFIG" && break
 done
-test -n "$MYSQL_CONFIG" || MYSQL_CONFIG="no"
 
-        fi
 
-        if test "$MYSQL_CONFIG" != "no"; then
+        if test -x "$MYSQL_CONFIG"; then
             MYSQL_CFLAGS="`$MYSQL_CONFIG --cflags`"
-            MYSQL_LDFLAGS="`$MYSQL_CONFIG --libs`"
+            _full_libmysql_libs="`$MYSQL_CONFIG --libs`"
+
+             _save_mysql_ldflags="${LDFLAGS}"
+            _save_mysql_cflags="${CFLAGS}"
+            LDFLAGS="${LDFLAGS} ${_full_libmysql_libs}"
+            CFLAGS="${CFLAGS} ${MYSQL_CFLAGS}"
+
+            for i in $_full_libmysql_libs; do
+                case $i in
+                    -lmysqlclient|-lperconaserverclient|-lmariadbclient|-lmariadb)
+
+                        _lib_name="`echo "$i" | cut -b3-`"
+                        as_ac_Lib=`$as_echo "ac_cv_lib_$_lib_name''_main" | $as_tr_sh`
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -l$_lib_name" >&5
+$as_echo_n "checking for main in -l$_lib_name... " >&6; }
+if eval \${$as_ac_Lib+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-l$_lib_name  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+
+int
+main ()
+{
+return main ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  eval "$as_ac_Lib=yes"
+else
+  eval "$as_ac_Lib=no"
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+eval ac_res=\$$as_ac_Lib
+	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
+$as_echo "$ac_res" >&6; }
+if eval test \"x\$"$as_ac_Lib"\" = x"yes"; then :
+
+                        	MYSQL_LIBS="-l${_lib_name} ${MYSQL_LIBS}"
+
+else
+
+                        	as_fn_error $? "Not found $_lib_name library" "$LINENO" 5
+
+fi
+
+                ;;
+                    -L*)
+
+                        MYSQL_LDFLAGS="${MYSQL_LDFLAGS} $i"
+                ;;
+                    -R*)
+
+                        MYSQL_LDFLAGS="${MYSQL_LDFLAGS} -Wl,$i"
+                ;;
+                    -l*)
+
+                        _lib_name="`echo "$i" | cut -b3-`"
+                        as_ac_Lib=`$as_echo "ac_cv_lib_$_lib_name''_main" | $as_tr_sh`
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -l$_lib_name" >&5
+$as_echo_n "checking for main in -l$_lib_name... " >&6; }
+if eval \${$as_ac_Lib+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-l$_lib_name  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+
+int
+main ()
+{
+return main ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  eval "$as_ac_Lib=yes"
+else
+  eval "$as_ac_Lib=no"
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+eval ac_res=\$$as_ac_Lib
+	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
+$as_echo "$ac_res" >&6; }
+if eval test \"x\$"$as_ac_Lib"\" = x"yes"; then :
+
+                        	MYSQL_LIBS="${MYSQL_LIBS} ${i}"
+
+else
+
+                        	as_fn_error $? "Not found $i library" "$LINENO" 5
+
+fi
+
+                ;;
+                esac
+            done
+
+            LDFLAGS="${_save_mysql_ldflags}"
+            CFLAGS="${_save_mysql_cflags}"
+            unset _save_mysql_ldflags
+            unset _save_mysql_cflags
 
             MYSQL_VERSION=`$MYSQL_CONFIG --version`
+
+
+$as_echo "#define HAVE_MYSQL 1" >>confdefs.h
+
 
             found_mysql="yes"
         else
             found_mysql="no"
         fi
     fi
-
 
 
     mysql_version_req=
@@ -20488,11 +20615,6 @@ $as_echo "no" >&6; }
         fi
     fi
 
-    if test "$found_mysql" = "yes" ; then
-
-$as_echo "#define HAVE_MYSQL 1" >>confdefs.h
-
-    fi
 
 
 
@@ -23942,6 +24064,10 @@ else
 
 fi
 
+if test "x${found_mysql}" != "xyes"
+then
+	enable_mod_mysql_is="no"
+fi
 if test "${enable_mod_mysql_is}" = "yes"
 then
 
