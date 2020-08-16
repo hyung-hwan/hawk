@@ -92,18 +92,18 @@ dnl check the math library (check if -lm is needed)
 LT_LIB_M
 AC_SUBST(LIBM, $LIBM)
 
-dnl ===== enable-unicode =====
+dnl ===== enable-wide-char =====
 dnl this enable option is placed way above other options
 dnl as -fshort-wchar affects the size of wchar_t.
-AC_ARG_ENABLE([unicode], 
-	[AS_HELP_STRING([--enable-unicode],[Use the unicode character type as the default character type. one of yes, no, yes:2, yes:4, no:2, no:4 (default. yes)])],
-	enable_unicode=$enableval,
-	enable_unicode=yes
+AC_ARG_ENABLE([wide-char], 
+	[AS_HELP_STRING([--enable-wide-char],[Use the wide-character type as the default character type. one of yes, no, yes:2, yes:4, no:2, no:4 (default. yes)])],
+	enable_wide_char=$enableval,
+	enable_wide_char=yes
 )
-if test "${enable_unicode}" = "yes:4" -o "${enable_unicode}" = "yes:4w"
+if test "${enable_wide_char}" = "yes:4" -o "${enable_wide_char}" = "yes:4w"
 then
-	AC_DEFINE([HAWK_UNICODE_SIZE],[4],[Unicode character type size])
-	AC_DEFINE([HAWK_ENABLE_UNICODE],[1],[Use the unicode character type as the default character type])
+	AC_DEFINE([HAWK_WIDE_CHAR_SIZE],[4],[Wide-character type size])
+	AC_DEFINE([HAWK_ENABLE_WIDE_CHAR],[1],[Use the wide-character type as the default character type])
 	if test "${platform_win32}" = "yes"
 	then
 		[CFLAGS="$CFLAGS -DUNICODE -D_UNICODE"]
@@ -115,15 +115,15 @@ then
 		[CFLAGS="$CFLAGS -fno-short-wchar"]
 		[CXXFLAGS="$CXXFLAGS -fno-short-wchar"]
 	fi
-	if test "${enable_unicode}" = "yes:4w"
+	if test "${enable_wide_char}" = "yes:4w"
 	then
-		AC_DEFINE([HAWK_PREFER_PREFIX_L],[1],[Prefix unicode literals with L])
+		AC_DEFINE([HAWK_PREFER_PREFIX_L],[1],[Prefix wide-character literals with L])
 	fi
 
-elif test "${enable_unicode}" = "yes:2" -o "${enable_unicode}" = "yes:2w" -o "${enable_unicode}" = "yes"
+elif test "${enable_wide_char}" = "yes:2" -o "${enable_wide_char}" = "yes:2w" -o "${enable_wide_char}" = "yes"
 then
-	AC_DEFINE([HAWK_UNICODE_SIZE],[2],[Unicode character type size])
-	AC_DEFINE([HAWK_ENABLE_UNICODE],[1],[Use the unicode character type as the default character type])
+	AC_DEFINE([HAWK_WIDE_CHAR_SIZE],[2],[Wide-character type size])
+	AC_DEFINE([HAWK_ENABLE_WIDE_CHAR],[1],[Use the wide-character type as the default character type])
 	if test "${platform_win32}" = "yes"
 	then
 		[CFLAGS="$CFLAGS -DUNICODE -D_UNICODE"]
@@ -134,14 +134,14 @@ then
 		[CFLAGS="$CFLAGS -fshort-wchar"]
 		[CXXFLAGS="$CXXFLAGS -fshort-wchar"]
 	fi
-	if test "${enable_unicode}" = "yes:2w"
+	if test "${enable_wide_char}" = "yes:2w"
 	then
-		AC_DEFINE([HAWK_PREFER_PREFIX_L],[1],[Prefix unicode literals with L])
+		AC_DEFINE([HAWK_PREFER_PREFIX_L],[1],[Prefix wide-character literals with L])
 	fi
 
-elif test "${enable_unicode}" = "no:4" -o test "${enable_unicode}" = "no:4w"
+elif test "${enable_wide_char}" = "no:4" -o test "${enable_wide_char}" = "no:4w"
 then
-	AC_DEFINE([HAWK_UNICODE_SIZE],[4],[Unicode character type size])
+	AC_DEFINE([HAWK_WIDE_CHAR_SIZE],[4],[Wide-character type size])
 
 	if test "${ac_cv_cflags__fno_short_wchar}" = "yes"
 	then
@@ -149,13 +149,13 @@ then
 		[CXXFLAGS="$CXXFLAGS -fno-short-wchar"]
 	fi
 
-	if test "${enable_unicode}" = "no:4w"
+	if test "${enable_wide_char}" = "no:4w"
 	then
-		AC_DEFINE([HAWK_PREFER_PREFIX_L],[1],[Prefix unicode literals with L])
+		AC_DEFINE([HAWK_PREFER_PREFIX_L],[1],[Prefix wide-character literals with L])
 	fi
 else
 	dnl no:2, no:2w, no, or anything else
-	AC_DEFINE([HAWK_UNICODE_SIZE],[2],[Unicode character type size])
+	AC_DEFINE([HAWK_WIDE_CHAR_SIZE],[2],[Wide-character type size])
 
 	if test "${ac_cv_cflags__fshort_wchar}" = "yes"
 	then
@@ -163,9 +163,9 @@ else
 		[CXXFLAGS="$CXXFLAGS -fshort-wchar"]
 	fi
 
-	if test "${enable_unicode}" = "no:2w"
+	if test "${enable_wide_char}" = "no:2w"
 	then
-		AC_DEFINE([HAWK_PREFER_PREFIX_L],[1],[Prefix unicode literals with L])
+		AC_DEFINE([HAWK_PREFER_PREFIX_L],[1],[Prefix wide-character literals with L])
 	fi
 fi
 

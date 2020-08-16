@@ -702,8 +702,8 @@
 /* link modules statically into the main library */
 #undef HAWK_ENABLE_STATIC_MODULE
 
-/* Use the unicode character type as the default character type */
-#undef HAWK_ENABLE_UNICODE
+/* Use the wide-character type as the default character type */
+#undef HAWK_ENABLE_WIDE_CHAR
 
 /* Big Endian */
 #undef HAWK_ENDIAN_BIG
@@ -747,7 +747,7 @@
 /* PATH_MAX */
 #undef HAWK_PATH_MAX
 
-/* Prefix unicode literals with L */
+/* Prefix wide-character literals with L */
 #undef HAWK_PREFER_PREFIX_L
 
 /* Define if pthread_cond_t is signed */
@@ -855,14 +855,14 @@
 /* Define if socklen_t is signed */
 #undef HAWK_SOCKLEN_T_IS_SIGNED
 
-/* Unicode character type size */
-#undef HAWK_UNICODE_SIZE
-
 /* use hawk_fltmax_t for floating-point numbers */
 #undef HAWK_USE_FLTMAX
 
 /* use hawk_intmax_t for integers */
 #undef HAWK_USE_INTMAX
+
+/* Wide-character type size */
+#undef HAWK_WIDE_CHAR_SIZE
 
 /* Define to the sub-directory where libtool stores uninstalled libraries. */
 #undef LT_OBJDIR

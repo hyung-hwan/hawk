@@ -830,7 +830,7 @@ with_gnu_ld
 with_sysroot
 enable_libtool_lock
 enable_largefile
-enable_unicode
+enable_wide_char
 with_mysql
 enable_debug
 enable_intmax
@@ -1499,9 +1499,9 @@ Optional Features:
                           optimize for fast installation [default=yes]
   --disable-libtool-lock  avoid locking (might break parallel builds)
   --disable-largefile     omit support for large files
-  --enable-unicode        Use the unicode character type as the default
-                          character type. one of yes, no, yes:2, yes:4, no:2,
-                          no:4 (default. yes)
+  --enable-wide-char      Use the wide-character type as the default character
+                          type. one of yes, no, yes:2, yes:4, no:2, no:4
+                          (default. yes)
   --enable-debug          compile the code in the debug mode (default. no)
   --enable-intmax         use hawk_intmax_t for integers (default. no)
   --enable-fltmax         use hawk_fltmax_t for floating-point numbers
@@ -7882,7 +7882,7 @@ linux* | k*bsd*-gnu | kopensolaris*-gnu | gnu*)
   lt_cv_deplibs_check_method=pass_all
   ;;
 
-netbsd*)
+netbsd* | netbsdelf*-gnu)
   if echo __ELF__ | $CC -E - | $GREP __ELF__ > /dev/null; then
     lt_cv_deplibs_check_method='match_pattern /lib[^/]+(\.so\.[0-9]+\.[0-9]+|_pic\.a)$'
   else
@@ -8745,11 +8745,8 @@ _LT_EOF
   test $ac_status = 0; }; then
     # Now try to grab the symbols.
     nlist=conftest.nm
-    if { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$NM conftest.$ac_objext \| "$lt_cv_sys_global_symbol_pipe" \> $nlist\""; } >&5
-  (eval $NM conftest.$ac_objext \| "$lt_cv_sys_global_symbol_pipe" \> $nlist) 2>&5
-  ac_status=$?
-  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
-  test $ac_status = 0; } && test -s "$nlist"; then
+    $ECHO "$as_me:$LINENO: $NM conftest.$ac_objext | $lt_cv_sys_global_symbol_pipe > $nlist" >&5
+    if eval "$NM" conftest.$ac_objext \| "$lt_cv_sys_global_symbol_pipe" \> $nlist 2>&5 && test -s "$nlist"; then
       # Try sorting and uniquifying the output.
       if sort "$nlist" | uniq > "$nlist"T; then
 	mv -f "$nlist"T "$nlist"
@@ -11584,6 +11581,9 @@ $as_echo_n "checking whether the $compiler linker ($LD) supports shared librarie
   openbsd* | bitrig*)
     with_gnu_ld=no
     ;;
+  linux* | k*bsd*-gnu | gnu*)
+    link_all_deplibs=no
+    ;;
   esac
 
   ld_shlibs=yes
@@ -11838,7 +11838,7 @@ _LT_EOF
       fi
       ;;
 
-    netbsd*)
+    netbsd* | netbsdelf*-gnu)
       if echo __ELF__ | $CC -E - | $GREP __ELF__ >/dev/null; then
 	archive_cmds='$LD -Bshareable $libobjs $deplibs $linker_flags -o $lib'
 	wlarc=
@@ -12508,6 +12508,7 @@ $as_echo "$lt_cv_irix_exported_symbol" >&6; }
 	if test yes = "$lt_cv_irix_exported_symbol"; then
           archive_expsym_cmds='$CC -shared $pic_flag $libobjs $deplibs $compiler_flags $wl-soname $wl$soname `test -n "$verstring" && func_echo_all "$wl-set_version $wl$verstring"` $wl-update_registry $wl$output_objdir/so_locations $wl-exports_file $wl$export_symbols -o $lib'
 	fi
+	link_all_deplibs=no
       else
 	archive_cmds='$CC -shared $libobjs $deplibs $compiler_flags -soname $soname `test -n "$verstring" && func_echo_all "-set_version $verstring"` -update_registry $output_objdir/so_locations -o $lib'
 	archive_expsym_cmds='$CC -shared $libobjs $deplibs $compiler_flags -soname $soname `test -n "$verstring" && func_echo_all "-set_version $verstring"` -update_registry $output_objdir/so_locations -exports_file $export_symbols -o $lib'
@@ -12529,7 +12530,7 @@ $as_echo "$lt_cv_irix_exported_symbol" >&6; }
       esac
       ;;
 
-    netbsd*)
+    netbsd* | netbsdelf*-gnu)
       if echo __ELF__ | $CC -E - | $GREP __ELF__ >/dev/null; then
 	archive_cmds='$LD -Bshareable -o $lib $libobjs $deplibs $linker_flags'  # a.out
       else
@@ -13624,9 +13625,6 @@ fi
   # before this can be enabled.
   hardcode_into_libs=yes
 
-  # Add ABI-specific directories to the system library path.
-  sys_lib_dlsearch_path_spec="/lib64 /usr/lib64 /lib /usr/lib"
-
   # Ideally, we could use ldconfig to report *all* directores which are
   # searched for libraries, however this is still not possible.  Aside from not
   # being certain /sbin/ldconfig is available, command
@@ -13635,7 +13633,7 @@ fi
   # appending ld.so.conf contents (and includes) to the search path.
   if test -f /etc/ld.so.conf; then
     lt_ld_extra=`awk '/^include / { system(sprintf("cd /etc; cat %s 2>/dev/null", \$2)); skip = 1; } { if (!skip) print \$0; skip = 0; }' < /etc/ld.so.conf | $SED -e 's/#.*//;/^[	 ]*hwcap[	 ]/d;s/[:,	]/ /g;s/=[^=]*$//;s/=[^= ]* / /g;s/"//g;/^$/d' | tr '\n' ' '`
-    sys_lib_dlsearch_path_spec="$sys_lib_dlsearch_path_spec $lt_ld_extra"
+    sys_lib_dlsearch_path_spec="/lib /usr/lib $lt_ld_extra"
   fi
 
   # We used to test for /lib/ld.so.1 and disable shared libraries on
@@ -13645,6 +13643,18 @@ fi
   # people can always --disable-shared, the test was removed, and we
   # assume the GNU/Linux dynamic linker is in use.
   dynamic_linker='GNU/Linux ld.so'
+  ;;
+
+netbsdelf*-gnu)
+  version_type=linux
+  need_lib_prefix=no
+  need_version=no
+  library_names_spec='${libname}${release}${shared_ext}$versuffix ${libname}${release}${shared_ext}$major ${libname}${shared_ext}'
+  soname_spec='${libname}${release}${shared_ext}$major'
+  shlibpath_var=LD_LIBRARY_PATH
+  shlibpath_overrides_runpath=no
+  hardcode_into_libs=yes
+  dynamic_linker='NetBSD ld.elf_so'
   ;;
 
 netbsd*)
@@ -15037,7 +15047,7 @@ with_gnu_ld=$lt_cv_prog_gnu_ld
       # Commands to make compiler produce verbose output that lists
       # what "hidden" libraries, object files and flags are used when
       # linking a shared library.
-      output_verbose_link_cmd='$CC -shared $CFLAGS -v conftest.$objext 2>&1 | $GREP -v "^Configured with:" | $GREP "\-L"'
+      output_verbose_link_cmd='$CC -shared $CFLAGS -v conftest.$objext 2>&1 | $GREP -v "^Configured with:" | $GREP " \-L"'
 
     else
       GXX=no
@@ -15529,7 +15539,7 @@ fi
             # explicitly linking system object files so we need to strip them
             # from the output so that they don't get included in the library
             # dependencies.
-            output_verbose_link_cmd='templist=`($CC -b $CFLAGS -v conftest.$objext 2>&1) | $EGREP "\-L"`; list= ; for z in $templist; do case $z in conftest.$objext) list="$list $z";; *.$objext);; *) list="$list $z";;esac; done; func_echo_all "$list"'
+            output_verbose_link_cmd='templist=`($CC -b $CFLAGS -v conftest.$objext 2>&1) | $EGREP " \-L"`; list= ; for z in $templist; do case $z in conftest.$objext) list="$list $z";; *.$objext);; *) list="$list $z";;esac; done; func_echo_all "$list"'
             ;;
           *)
             if test yes = "$GXX"; then
@@ -15594,7 +15604,7 @@ fi
 	    # explicitly linking system object files so we need to strip them
 	    # from the output so that they don't get included in the library
 	    # dependencies.
-	    output_verbose_link_cmd='templist=`($CC -b $CFLAGS -v conftest.$objext 2>&1) | $GREP "\-L"`; list= ; for z in $templist; do case $z in conftest.$objext) list="$list $z";; *.$objext);; *) list="$list $z";;esac; done; func_echo_all "$list"'
+	    output_verbose_link_cmd='templist=`($CC -b $CFLAGS -v conftest.$objext 2>&1) | $GREP " \-L"`; list= ; for z in $templist; do case $z in conftest.$objext) list="$list $z";; *.$objext);; *) list="$list $z";;esac; done; func_echo_all "$list"'
 	    ;;
           *)
 	    if test yes = "$GXX"; then
@@ -15933,7 +15943,7 @@ fi
 	      # Commands to make compiler produce verbose output that lists
 	      # what "hidden" libraries, object files and flags are used when
 	      # linking a shared library.
-	      output_verbose_link_cmd='$CC -shared $CFLAGS -v conftest.$objext 2>&1 | $GREP -v "^Configured with:" | $GREP "\-L"'
+	      output_verbose_link_cmd='$CC -shared $CFLAGS -v conftest.$objext 2>&1 | $GREP -v "^Configured with:" | $GREP " \-L"'
 
 	    else
 	      # FIXME: insert proper C++ library support
@@ -16017,7 +16027,7 @@ fi
 	        # Commands to make compiler produce verbose output that lists
 	        # what "hidden" libraries, object files and flags are used when
 	        # linking a shared library.
-	        output_verbose_link_cmd='$CC -shared $CFLAGS -v conftest.$objext 2>&1 | $GREP -v "^Configured with:" | $GREP "\-L"'
+	        output_verbose_link_cmd='$CC -shared $CFLAGS -v conftest.$objext 2>&1 | $GREP -v "^Configured with:" | $GREP " \-L"'
 	      else
 	        # g++ 2.7 appears to require '-G' NOT '-shared' on this
 	        # platform.
@@ -16028,7 +16038,7 @@ fi
 	        # Commands to make compiler produce verbose output that lists
 	        # what "hidden" libraries, object files and flags are used when
 	        # linking a shared library.
-	        output_verbose_link_cmd='$CC -G $CFLAGS -v conftest.$objext 2>&1 | $GREP -v "^Configured with:" | $GREP "\-L"'
+	        output_verbose_link_cmd='$CC -G $CFLAGS -v conftest.$objext 2>&1 | $GREP -v "^Configured with:" | $GREP " \-L"'
 	      fi
 
 	      hardcode_libdir_flag_spec_CXX='$wl-R $wl$libdir'
@@ -16541,7 +16551,7 @@ lt_prog_compiler_static_CXX=
 	    ;;
 	esac
 	;;
-      netbsd*)
+      netbsd* | netbsdelf*-gnu)
 	;;
       *qnx* | *nto*)
         # QNX uses GNU C++, but need to define -shared option too, otherwise
@@ -16915,6 +16925,9 @@ $as_echo_n "checking whether the $compiler linker ($LD) supports shared librarie
       exclude_expsyms_CXX='[_]+GLOBAL_OFFSET_TABLE_|[_]+GLOBAL__[FID]_.*|[_]+head_[A-Za-z0-9_]+_dll|[A-Za-z0-9_]+_dll_iname'
       ;;
     esac
+    ;;
+  linux* | k*bsd*-gnu | gnu*)
+    link_all_deplibs_CXX=no
     ;;
   *)
     export_symbols_cmds_CXX='$NM $libobjs $convenience | $global_symbol_pipe | $SED '\''s/.* //'\'' | sort | uniq > $export_symbols'
@@ -17589,9 +17602,6 @@ fi
   # before this can be enabled.
   hardcode_into_libs=yes
 
-  # Add ABI-specific directories to the system library path.
-  sys_lib_dlsearch_path_spec="/lib64 /usr/lib64 /lib /usr/lib"
-
   # Ideally, we could use ldconfig to report *all* directores which are
   # searched for libraries, however this is still not possible.  Aside from not
   # being certain /sbin/ldconfig is available, command
@@ -17600,7 +17610,7 @@ fi
   # appending ld.so.conf contents (and includes) to the search path.
   if test -f /etc/ld.so.conf; then
     lt_ld_extra=`awk '/^include / { system(sprintf("cd /etc; cat %s 2>/dev/null", \$2)); skip = 1; } { if (!skip) print \$0; skip = 0; }' < /etc/ld.so.conf | $SED -e 's/#.*//;/^[	 ]*hwcap[	 ]/d;s/[:,	]/ /g;s/=[^=]*$//;s/=[^= ]* / /g;s/"//g;/^$/d' | tr '\n' ' '`
-    sys_lib_dlsearch_path_spec="$sys_lib_dlsearch_path_spec $lt_ld_extra"
+    sys_lib_dlsearch_path_spec="/lib /usr/lib $lt_ld_extra"
   fi
 
   # We used to test for /lib/ld.so.1 and disable shared libraries on
@@ -17610,6 +17620,18 @@ fi
   # people can always --disable-shared, the test was removed, and we
   # assume the GNU/Linux dynamic linker is in use.
   dynamic_linker='GNU/Linux ld.so'
+  ;;
+
+netbsdelf*-gnu)
+  version_type=linux
+  need_lib_prefix=no
+  need_version=no
+  library_names_spec='${libname}${release}${shared_ext}$versuffix ${libname}${release}${shared_ext}$major ${libname}${shared_ext}'
+  soname_spec='${libname}${release}${shared_ext}$major'
+  shlibpath_var=LD_LIBRARY_PATH
+  shlibpath_overrides_runpath=no
+  hardcode_into_libs=yes
+  dynamic_linker='NetBSD ld.elf_so'
   ;;
 
 netbsd*)
@@ -18411,21 +18433,21 @@ esac
 LIBM=$LIBM
 
 
-# Check whether --enable-unicode was given.
-if test "${enable_unicode+set}" = set; then :
-  enableval=$enable_unicode; enable_unicode=$enableval
+# Check whether --enable-wide-char was given.
+if test "${enable_wide_char+set}" = set; then :
+  enableval=$enable_wide_char; enable_wide_char=$enableval
 else
-  enable_unicode=yes
+  enable_wide_char=yes
 
 fi
 
-if test "${enable_unicode}" = "yes:4" -o "${enable_unicode}" = "yes:4w"
+if test "${enable_wide_char}" = "yes:4" -o "${enable_wide_char}" = "yes:4w"
 then
 
-$as_echo "#define HAWK_UNICODE_SIZE 4" >>confdefs.h
+$as_echo "#define HAWK_WIDE_CHAR_SIZE 4" >>confdefs.h
 
 
-$as_echo "#define HAWK_ENABLE_UNICODE 1" >>confdefs.h
+$as_echo "#define HAWK_ENABLE_WIDE_CHAR 1" >>confdefs.h
 
 	if test "${platform_win32}" = "yes"
 	then
@@ -18438,20 +18460,20 @@ $as_echo "#define HAWK_ENABLE_UNICODE 1" >>confdefs.h
 		CFLAGS="$CFLAGS -fno-short-wchar"
 		CXXFLAGS="$CXXFLAGS -fno-short-wchar"
 	fi
-	if test "${enable_unicode}" = "yes:4w"
+	if test "${enable_wide_char}" = "yes:4w"
 	then
 
 $as_echo "#define HAWK_PREFER_PREFIX_L 1" >>confdefs.h
 
 	fi
 
-elif test "${enable_unicode}" = "yes:2" -o "${enable_unicode}" = "yes:2w" -o "${enable_unicode}" = "yes"
+elif test "${enable_wide_char}" = "yes:2" -o "${enable_wide_char}" = "yes:2w" -o "${enable_wide_char}" = "yes"
 then
 
-$as_echo "#define HAWK_UNICODE_SIZE 2" >>confdefs.h
+$as_echo "#define HAWK_WIDE_CHAR_SIZE 2" >>confdefs.h
 
 
-$as_echo "#define HAWK_ENABLE_UNICODE 1" >>confdefs.h
+$as_echo "#define HAWK_ENABLE_WIDE_CHAR 1" >>confdefs.h
 
 	if test "${platform_win32}" = "yes"
 	then
@@ -18463,17 +18485,17 @@ $as_echo "#define HAWK_ENABLE_UNICODE 1" >>confdefs.h
 		CFLAGS="$CFLAGS -fshort-wchar"
 		CXXFLAGS="$CXXFLAGS -fshort-wchar"
 	fi
-	if test "${enable_unicode}" = "yes:2w"
+	if test "${enable_wide_char}" = "yes:2w"
 	then
 
 $as_echo "#define HAWK_PREFER_PREFIX_L 1" >>confdefs.h
 
 	fi
 
-elif test "${enable_unicode}" = "no:4" -o test "${enable_unicode}" = "no:4w"
+elif test "${enable_wide_char}" = "no:4" -o test "${enable_wide_char}" = "no:4w"
 then
 
-$as_echo "#define HAWK_UNICODE_SIZE 4" >>confdefs.h
+$as_echo "#define HAWK_WIDE_CHAR_SIZE 4" >>confdefs.h
 
 
 	if test "${ac_cv_cflags__fno_short_wchar}" = "yes"
@@ -18482,7 +18504,7 @@ $as_echo "#define HAWK_UNICODE_SIZE 4" >>confdefs.h
 		CXXFLAGS="$CXXFLAGS -fno-short-wchar"
 	fi
 
-	if test "${enable_unicode}" = "no:4w"
+	if test "${enable_wide_char}" = "no:4w"
 	then
 
 $as_echo "#define HAWK_PREFER_PREFIX_L 1" >>confdefs.h
@@ -18490,7 +18512,7 @@ $as_echo "#define HAWK_PREFER_PREFIX_L 1" >>confdefs.h
 	fi
 else
 
-$as_echo "#define HAWK_UNICODE_SIZE 2" >>confdefs.h
+$as_echo "#define HAWK_WIDE_CHAR_SIZE 2" >>confdefs.h
 
 
 	if test "${ac_cv_cflags__fshort_wchar}" = "yes"
@@ -18499,7 +18521,7 @@ $as_echo "#define HAWK_UNICODE_SIZE 2" >>confdefs.h
 		CXXFLAGS="$CXXFLAGS -fshort-wchar"
 	fi
 
-	if test "${enable_unicode}" = "no:2w"
+	if test "${enable_wide_char}" = "no:2w"
 	then
 
 $as_echo "#define HAWK_PREFER_PREFIX_L 1" >>confdefs.h
@@ -26025,7 +26047,6 @@ See \`config.log' for more details" "$LINENO" 5; }
     cat <<_LT_EOF >> "$cfgfile"
 #! $SHELL
 # Generated automatically by $as_me ($PACKAGE) $VERSION
-# Libtool was configured on host `(hostname || uname -n) 2>/dev/null | sed 1q`:
 # NOTE: Changes made to this file will be lost: look at ltmain.sh.
 
 # Provide generalized library-building support services.
