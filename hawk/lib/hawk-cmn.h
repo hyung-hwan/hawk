@@ -1332,8 +1332,8 @@ typedef enum hawk_log_mask_t hawk_log_mask_t;
 #else
 #       define HAWK_UT(txt)    (L ## txt)
 
-	/* if this assertion fails, you should check the compiler flags determining the sizeof wchar_t */
-	HAWK_STATIC_ASSERT (sizeof(HAWK_UT('X')) == HAWK_SIZEOF_UCH_T);
+	/* if this assertion fails, you should check the compiler flags determining the size of wchar_t */
+	HAWK_STATIC_ASSERT (sizeof(L'X') == HAWK_SIZEOF_UCH_T);
 #endif
 
 
