@@ -137,7 +137,7 @@
 #elif defined(__cplusplus) || (defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 199901L))
 #	define HAWK_STATIC_ASSERT(expr) typedef char HAWK_STATIC_JOIN(HAWK_STATIC_ASSERT_T_, __LINE__)[(expr)? 1: -1] HAWK_UNUSED
 #else
-#	define HAWK_STATIC_ASSERT(expr) do { typedef char HAWK_STATIC_JOIN(HAWK_STATIC_ASSERT_T_, __LINE__)[(expr)? 1: -1] HAWK_UNUSED; } while(0)
+#	define HAWK_STATIC_ASSERT(expr) typedef char HAWK_STATIC_JOIN(HAWK_STATIC_ASSERT_T_, __LINE__)[(expr)? 1: -1] HAWK_UNUSED
 #endif
 
 #define HAWK_STATIC_ASSERT_EXPR(expr) ((void)HAWK_SIZEOF(char[(expr)? 1: -1]))
