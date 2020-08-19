@@ -714,6 +714,12 @@
 /* Unknown Endian */
 #undef HAWK_ENDIAN_UNKNOWN
 
+/* char32_t literal prefix */
+#undef HAWK_HAVE_PREFIX_BIG_U
+
+/* char16_t literal prefix */
+#undef HAWK_HAVE_PREFIX_SMALL_U
+
 /* MB_LEN_MAX */
 #undef HAWK_MBLEN_MAX
 

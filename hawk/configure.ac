@@ -169,6 +169,21 @@ else
 	fi
 fi
 
+AC_MSG_CHECKING([for char16_t literal])
+AC_LINK_IFELSE(
+	[AC_LANG_PROGRAM([], [const void* x = u"ab cd ef gh";])],
+	[AC_MSG_RESULT(yes)
+	 AC_DEFINE([HAWK_HAVE_PREFIX_SMALL_U], [1], [char16_t literal prefix])],
+	[AC_MSG_RESULT(no)]
+)
+
+AC_MSG_CHECKING([for char32_t literal])
+AC_LINK_IFELSE(
+	[AC_LANG_PROGRAM([], [const void* x = U"ab cd ef gh";])],
+	[AC_MSG_RESULT(yes)
+	 AC_DEFINE([HAWK_HAVE_PREFIX_BIG_U], [1], [char32_t literal prefix])],
+	[AC_MSG_RESULT(no)]
+)
 
 dnl check some compiler builtins
 AC_MSG_CHECKING([for __builtin_memset])
