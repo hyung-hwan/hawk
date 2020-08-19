@@ -510,7 +510,7 @@ typedef unsigned char           hawk_bchu_t; /* unsigned version of hawk_bch_t f
 	//   gcc/g++/clang/clang++: -fshort-wchar makes wchar_t to 2 bytes.
 	HAWK_STATIC_ASSERT (HAWK_WIDE_CHAR_SIZE == sizeof(hawk_uch_t));
 
-#elif defined(HAWK_WIDE_CHAR_SIZE) && (HAWK_WIDE_CHAR_SIZE >= 4) && defined(__GNUC__) && defined(__CHAR32_TYPE__)
+#elif defined(HAWK_WIDE_CHAR_SIZE) && (HAWK_WIDE_CHAR_SIZE >= 4) && defined(__GNUC__) && defined(__CHAR32_TYPE__) && defined(HAWK_HAVE_PREFIX_BIG_U)
 	typedef __CHAR32_TYPE__    hawk_uch_t;
 	typedef hawk_uint32_t      hawk_uchu_t;
 #	define HAWK_SIZEOF_UCH_T 4
@@ -523,7 +523,7 @@ typedef unsigned char           hawk_bchu_t; /* unsigned version of hawk_bch_t f
 	typedef hawk_uint32_t      hawk_uchu_t;
 #	define HAWK_SIZEOF_UCH_T 4
 
-#elif defined(__GNUC__) && defined(__CHAR16_TYPE__)
+#elif defined(__GNUC__) && defined(__CHAR16_TYPE__) && defined(HAWK_HAVE_PREFIX_SMALL_U)
 	typedef __CHAR16_TYPE__    hawk_uch_t;
 	typedef hawk_uint16_t      hawk_uchu_t;
 #	define HAWK_SIZEOF_UCH_T 2
