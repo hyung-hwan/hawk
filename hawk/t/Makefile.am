@@ -16,7 +16,7 @@ check_SCRIPTS = h-001.hawk
 ##noinst_SCRIPTS = $(check_SCRIPTS)
 EXTRA_DIST = $(check_SCRIPTS)
 
-check_PROGRAMS = t-001 t-002 t-003 t-004 t-005
+check_PROGRAMS = t-001 t-002 t-003 t-004 t-005 t-006
 
 t_001_SOURCES = t-001.c t.h
 
@@ -35,6 +35,10 @@ t_004_DEPENDENCIES = ../lib/libhawk.la
 t_005_SOURCES = t-005.c t.h
 t_005_LDADD = -lhawk $(LDADD)
 t_005_DEPENDENCIES = ../lib/libhawk.la
+
+t_006_SOURCES = t-006.c t.h
+t_006_LDADD = -lhawk $(LDADD)
+t_006_DEPENDENCIES = ../lib/libhawk.la
 
 
 TESTS = $(check_PROGRAMS) $(check_SCRIPTS)

@@ -1607,24 +1607,31 @@ HAWK_EXPORT int hawk_qsortx (
 /* =========================================================================
  * TIME 
  * ========================================================================= */
-HAWK_EXPORT int hawk_get_time (
+HAWK_EXPORT int hawk_get_ntime (
 	hawk_ntime_t* t
 );
 
-HAWK_EXPORT int hawk_set_time (
+HAWK_EXPORT int hawk_set_ntime (
 	const hawk_ntime_t* t
 );
 
-HAWK_EXPORT void hawk_add_time (
+/**
+ * The hawk_add_ntime() adds two time structures pointed to by x and y and 
+ * stores the result in z. Upon overflow, it sets z to the largest value
+ * the hawk_ntime_t type can represent. Upon underflow, it sets z to the 
+ * smallest value. If you don't need this extra range check, you may use 
+ * the HAWK_ADD_NTIME() macro.
+ */
+HAWK_EXPORT void hawk_add_ntime (
+	hawk_ntime_t*       z,
 	const hawk_ntime_t* x,
-	const hawk_ntime_t* y,
-	hawk_ntime_t*       z
+	const hawk_ntime_t* y
 );
 
-HAWK_EXPORT void hawk_sub_time (
+HAWK_EXPORT void hawk_sub_ntime (
+	hawk_ntime_t*       z,
 	const hawk_ntime_t* x,
-	const hawk_ntime_t* y,
-	hawk_ntime_t*       z
+	const hawk_ntime_t* y
 );
 
 

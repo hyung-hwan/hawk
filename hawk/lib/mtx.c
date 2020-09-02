@@ -233,8 +233,8 @@ int hawk_mtx_lock (hawk_mtx_t* mtx, const hawk_ntime_t* waiting_time)
 		struct timespec ts;
 		int n;
 
-		hawk_get_time (&t);
-		hawk_add_time (&t, waiting_time, &t);
+		hawk_get_ntime (&t);
+		hawk_add_ntime (&t, waiting_time, &t);
 
 		ts.tv_sec = t.sec;
 		ts.tv_nsec = t.nsec;
@@ -326,7 +326,7 @@ int hawk_mtx_trylock (hawk_mtx_t* mtx)
 	#elif defined(HAVE_PTHREAD_MUTEX_TIMEDLOCK)
 	hawk_ntime_t t;
 	struct timespec ts;
-	hawk_get_time (&t);
+	hawk_get_ntime (&t);
 	ts.tv_sec = t.sec;
 	ts.tv_nsec = t.nsec;
 	n = pthread_mutex_timedlock((pthread_mutex_t*)&mtx->hnd, &ts);

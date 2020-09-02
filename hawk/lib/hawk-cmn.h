@@ -647,11 +647,14 @@ struct hawk_link_t
 #define HAWK_SEC_TO_USEC(sec) ((sec) * HAWK_USECS_PER_SEC)
 #define HAWK_USEC_TO_SEC(usec) ((usec) / HAWK_USECS_PER_SEC)
 
+typedef hawk_int64_t hawk_ntime_sec_t;
+typedef hawk_int32_t hawk_ntime_nsec_t;
+
 typedef struct hawk_ntime_t hawk_ntime_t;
 struct hawk_ntime_t
 {
-	hawk_intptr_t  sec;
-	hawk_int32_t   nsec; /* nanoseconds */
+	hawk_ntime_sec_t  sec;
+	hawk_ntime_nsec_t nsec; /* nanoseconds */
 };
 
 #define HAWK_INIT_NTIME(c,s,ns) (((c)->sec = (s)), ((c)->nsec = (ns)))

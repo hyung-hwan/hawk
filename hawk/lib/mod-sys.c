@@ -2329,7 +2329,7 @@ static int fnc_gettime (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_val_t* retv;
 	hawk_ntime_t now;
 
-	if (hawk_get_time(&now) <= -1) now.sec = 0;
+	if (hawk_get_ntime(&now) <= -1) now.sec = 0;
 
 	retv = hawk_rtx_makeintval(rtx, now.sec);
 	if (!retv) return -1;
@@ -2351,7 +2351,7 @@ static int fnc_settime (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	else
 	{
 		now.sec = tmp;
-		if (hawk_set_time(&now) <= -1) rx = -1;
+		if (hawk_set_ntime(&now) <= -1) rx = -1;
 		else rx = 0;
 	}
 
@@ -2440,7 +2440,7 @@ static int fnc_mktime (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	else
 	{
 		/* get the current time when no argument is given */
-		hawk_get_time (&nt);
+		hawk_get_ntime (&nt);
 	}
 
 	retv = hawk_rtx_makeintval(rtx, nt.sec);
@@ -4677,7 +4677,7 @@ static int fnc_writelog (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 				if (!mctx->log.dmsgbuf) goto fail;
 			}
 
-			if (hawk_get_time(&now) <= -1)
+			if (hawk_get_ntime(&now) <= -1)
 			{
 				rx = set_error_on_sys_list(rtx, sys_list, HAWK_ESYSERR, HAWK_T("unable to get time"));
 				goto done;

@@ -88,7 +88,7 @@ POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
 check_PROGRAMS = t-001$(EXEEXT) t-002$(EXEEXT) t-003$(EXEEXT) \
-	t-004$(EXEEXT) t-005$(EXEEXT)
+	t-004$(EXEEXT) t-005$(EXEEXT) t-006$(EXEEXT)
 subdir = t
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/ax_check_sign.m4 \
@@ -125,6 +125,8 @@ am_t_004_OBJECTS = t-004.$(OBJEXT)
 t_004_OBJECTS = $(am_t_004_OBJECTS)
 am_t_005_OBJECTS = t-005.$(OBJEXT)
 t_005_OBJECTS = $(am_t_005_OBJECTS)
+am_t_006_OBJECTS = t-006.$(OBJEXT)
+t_006_OBJECTS = $(am_t_006_OBJECTS)
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -141,7 +143,8 @@ DEFAULT_INCLUDES =
 depcomp = $(SHELL) $(top_srcdir)/ac/depcomp
 am__maybe_remake_depfiles = depfiles
 am__depfiles_remade = ./$(DEPDIR)/t-001.Po ./$(DEPDIR)/t-002.Po \
-	./$(DEPDIR)/t-003.Po ./$(DEPDIR)/t-004.Po ./$(DEPDIR)/t-005.Po
+	./$(DEPDIR)/t-003.Po ./$(DEPDIR)/t-004.Po ./$(DEPDIR)/t-005.Po \
+	./$(DEPDIR)/t-006.Po
 am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -162,9 +165,9 @@ am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 = 
 SOURCES = $(t_001_SOURCES) $(t_002_SOURCES) $(t_003_SOURCES) \
-	$(t_004_SOURCES) $(t_005_SOURCES)
+	$(t_004_SOURCES) $(t_005_SOURCES) $(t_006_SOURCES)
 DIST_SOURCES = $(t_001_SOURCES) $(t_002_SOURCES) $(t_003_SOURCES) \
-	$(t_004_SOURCES) $(t_005_SOURCES)
+	$(t_004_SOURCES) $(t_005_SOURCES) $(t_006_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -569,6 +572,9 @@ t_004_DEPENDENCIES = ../lib/libhawk.la
 t_005_SOURCES = t-005.c t.h
 t_005_LDADD = -lhawk $(LDADD)
 t_005_DEPENDENCIES = ../lib/libhawk.la
+t_006_SOURCES = t-006.c t.h
+t_006_LDADD = -lhawk $(LDADD)
+t_006_DEPENDENCIES = ../lib/libhawk.la
 TESTS = $(check_PROGRAMS) $(check_SCRIPTS)
 TEST_EXTENSIONS = .hawk
 HAWK_LOG_COMPILER = ../bin/hawk
@@ -636,6 +642,10 @@ t-005$(EXEEXT): $(t_005_OBJECTS) $(t_005_DEPENDENCIES) $(EXTRA_t_005_DEPENDENCIE
 	@rm -f t-005$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(t_005_OBJECTS) $(t_005_LDADD) $(LIBS)
 
+t-006$(EXEEXT): $(t_006_OBJECTS) $(t_006_DEPENDENCIES) $(EXTRA_t_006_DEPENDENCIES) 
+	@rm -f t-006$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(t_006_OBJECTS) $(t_006_LDADD) $(LIBS)
+
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
 
@@ -647,6 +657,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/t-003.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/t-004.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/t-005.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/t-006.Po@am__quote@ # am--include-marker
 
 $(am__depfiles_remade):
 	@$(MKDIR_P) $(@D)
@@ -912,6 +923,13 @@ t-005.log: t-005$(EXEEXT)
 	--log-file $$b.log --trs-file $$b.trs \
 	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
 	"$$tst" $(AM_TESTS_FD_REDIRECT)
+t-006.log: t-006$(EXEEXT)
+	@p='t-006$(EXEEXT)'; \
+	b='t-006'; \
+	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
+	--log-file $$b.log --trs-file $$b.trs \
+	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
+	"$$tst" $(AM_TESTS_FD_REDIRECT)
 .hawk.log:
 	@p='$<'; \
 	$(am__set_b); \
@@ -1010,6 +1028,7 @@ distclean: distclean-am
 	-rm -f ./$(DEPDIR)/t-003.Po
 	-rm -f ./$(DEPDIR)/t-004.Po
 	-rm -f ./$(DEPDIR)/t-005.Po
+	-rm -f ./$(DEPDIR)/t-006.Po
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-tags
@@ -1060,6 +1079,7 @@ maintainer-clean: maintainer-clean-am
 	-rm -f ./$(DEPDIR)/t-003.Po
 	-rm -f ./$(DEPDIR)/t-004.Po
 	-rm -f ./$(DEPDIR)/t-005.Po
+	-rm -f ./$(DEPDIR)/t-006.Po
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 
