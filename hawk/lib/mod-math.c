@@ -572,7 +572,7 @@ static int fnc_srand (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	if (nargs <= 0)
 	{
 		hawk_ntime_t tv;
-		hawk_get_time (&tv);
+		hawk_get_ntime (&tv);
 		modctx->seed = tv.sec + tv.nsec;
 	#if defined(HAVE_INITSTATE_R) && defined(HAVE_SRANDOM_R) && defined(HAVE_RANDOM_R)
 		srandom_r (modctx->seed, &modctx->prand);
@@ -710,7 +710,7 @@ int hawk_mod_math (hawk_mod_t* mod, hawk_t* hawk)
 
 	HAWK_MEMSET (modctx, 0, HAWK_SIZEOF(*modctx));
 
-	hawk_get_time (&tv);
+	hawk_get_ntime (&tv);
 	modctx->seed = tv.sec + tv.nsec;
 #if defined(HAVE_INITSTATE_R) && defined(HAVE_SRANDOM_R) && defined(HAVE_RANDOM_R)
 	initstate_r (0, modctx->prand_bin, HAWK_SIZEOF(modctx->prand_bin), &modctx->prand);

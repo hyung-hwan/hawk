@@ -50,7 +50,7 @@
 #	endif
 #endif
 
-int hawk_get_time (hawk_ntime_t* t)
+int hawk_get_ntime (hawk_ntime_t* t)
 {
 #if defined(_WIN32)
 	SYSTEMTIME st;
@@ -161,7 +161,7 @@ int hawk_get_time (hawk_ntime_t* t)
 #endif
 }
 
-int hawk_set_time (const hawk_ntime_t* t)
+int hawk_set_ntime (const hawk_ntime_t* t)
 {
 #if defined(_WIN32)
 	FILETIME ft;
@@ -243,6 +243,7 @@ int hawk_set_time (const hawk_ntime_t* t)
 #endif
 }
 
+#if 0
 void hawk_add_time (const hawk_ntime_t* x, const hawk_ntime_t* y, hawk_ntime_t* z)
 {
 	/*HAWK_ASSERT (x->nsec >= 0 && x->nsec < HAWK_NSECS_PER_SEC);
@@ -272,4 +273,112 @@ void hawk_sub_time (const hawk_ntime_t* x, const hawk_ntime_t* y, hawk_ntime_t* 
 		z->nsec = z->nsec + HAWK_NSECS_PER_SEC;
 	}
 }
+#endif
 
+void hawk_add_ntime (hawk_ntime_t* z, const hawk_ntime_t* x, const hawk_ntime_t* y)
+{
+	hawk_ntime_sec_t xs, ys;
+	hawk_ntime_nsec_t ns;
+
+	HAWK_ASSERT (x->nsec >= 0 && x->nsec < HAWK_NSECS_PER_SEC);
+	HAWK_ASSERT (y->nsec >= 0 && y->nsec < HAWK_NSECS_PER_SEC);
+
+	ns = x->nsec + y->nsec;
+	if (ns >= HAWK_NSECS_PER_SEC)
+	{
+		ns = ns - HAWK_NSECS_PER_SEC;
+		if (x->sec == HAWK_TYPE_MAX(hawk_ntime_sec_t))
+		{
+			if (y->sec >= 0) goto overflow;
+			xs = x->sec;
+			ys = y->sec + 1; /* this won't overflow */
+		}
+		else
+		{
+			xs = x->sec + 1; /* this won't overflow */
+			ys = y->sec;
+		}
+	}
+	else
+	{
+		xs = x->sec;
+		ys = y->sec;
+	}
+
+	if ((ys >= 1 && xs > HAWK_TYPE_MAX(hawk_ntime_sec_t) - ys) ||
+	    (ys <= -1 && xs < HAWK_TYPE_MIN(hawk_ntime_sec_t) - ys))
+	{
+		if (xs >= 0)
+		{
+		overflow:
+			xs = HAWK_TYPE_MAX(hawk_ntime_sec_t);
+			ns = HAWK_NSECS_PER_SEC - 1;
+		}
+		else
+		{
+			xs = HAWK_TYPE_MIN(hawk_ntime_sec_t);
+			ns = 0;
+		}
+	}
+	else
+	{
+		xs = xs + ys;
+	}
+
+	z->sec = xs;
+	z->nsec = ns;
+}
+
+void hawk_sub_ntime (hawk_ntime_t* z, const hawk_ntime_t* x, const hawk_ntime_t* y)
+{
+	hawk_ntime_sec_t xs, ys;
+	hawk_ntime_nsec_t ns;
+
+	HAWK_ASSERT (x->nsec >= 0 && x->nsec < HAWK_NSECS_PER_SEC);
+	HAWK_ASSERT (y->nsec >= 0 && y->nsec < HAWK_NSECS_PER_SEC);
+
+	ns = x->nsec - y->nsec;
+	if (ns < 0)
+	{
+		ns = ns + HAWK_NSECS_PER_SEC;
+		if (x->sec == HAWK_TYPE_MIN(hawk_ntime_sec_t))
+		{
+			if (y->sec <= 0) goto underflow;
+			xs = x->sec;
+			ys = y->sec - 1; /* this won't underflow */
+		}
+		else
+		{
+			xs = x->sec - 1; /* this won't underflow */
+			ys = y->sec;
+		}
+	}
+	else
+	{
+		xs = x->sec;
+		ys = y->sec;
+	}
+
+	if ((ys >= 1 && xs < HAWK_TYPE_MIN(hawk_ntime_sec_t) + ys) ||
+	    (ys <= -1 && xs > HAWK_TYPE_MAX(hawk_ntime_sec_t) + ys))
+	{
+		if (xs >= 0)
+		{
+			xs = HAWK_TYPE_MAX(hawk_ntime_sec_t);
+			ns = HAWK_NSECS_PER_SEC - 1;
+		}
+		else
+		{
+		underflow:
+			xs = HAWK_TYPE_MIN(hawk_ntime_sec_t);
+			ns = 0;
+		}
+	} 
+	else
+	{
+		xs = xs - ys;
+	}
+
+	z->sec = xs;
+	z->nsec = ns;
+}
