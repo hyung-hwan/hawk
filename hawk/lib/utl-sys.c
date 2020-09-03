@@ -243,38 +243,6 @@ int hawk_set_ntime (const hawk_ntime_t* t)
 #endif
 }
 
-#if 0
-void hawk_add_time (const hawk_ntime_t* x, const hawk_ntime_t* y, hawk_ntime_t* z)
-{
-	/*HAWK_ASSERT (x->nsec >= 0 && x->nsec < HAWK_NSECS_PER_SEC);
-	HAWK_ASSERT (y->nsec >= 0 && y->nsec < HAWK_NSECS_PER_SEC);*/
-
-	z->sec = x->sec + y->sec;
-	z->nsec = x->nsec + y->nsec;
-
-	if (z->nsec >= HAWK_NSECS_PER_SEC)
-	{
-		z->sec = z->sec + 1;
-		z->nsec = z->nsec - HAWK_NSECS_PER_SEC;
-	}
-}
-
-void hawk_sub_time (const hawk_ntime_t* x, const hawk_ntime_t* y, hawk_ntime_t* z)
-{
-	/*HAWK_ASSERT (x->nsec >= 0 && x->nsec < HAWK_NSECS_PER_SEC);
-	HAWK_ASSERT (y->nsec >= 0 && y->nsec < HAWK_NSECS_PER_SEC);*/
-
-	z->sec = x->sec - y->sec;
-	z->nsec = x->nsec - y->nsec;
-
-	if (z->nsec < 0)
-	{
-		z->sec = z->sec - 1;
-		z->nsec = z->nsec + HAWK_NSECS_PER_SEC;
-	}
-}
-#endif
-
 void hawk_add_ntime (hawk_ntime_t* z, const hawk_ntime_t* x, const hawk_ntime_t* y)
 {
 	hawk_ntime_sec_t xs, ys;
