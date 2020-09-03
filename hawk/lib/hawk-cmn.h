@@ -647,7 +647,11 @@ struct hawk_link_t
 #define HAWK_SEC_TO_USEC(sec) ((sec) * HAWK_USECS_PER_SEC)
 #define HAWK_USEC_TO_SEC(usec) ((usec) / HAWK_USECS_PER_SEC)
 
+#if defined(HAWK_SIZEOF_INT64_T) && (HAWK_SIZEOF_INT64_T > 0)
 typedef hawk_int64_t hawk_ntime_sec_t;
+#else
+typedef hawk_int32_t hawk_ntime_sec_t;
+#endif
 typedef hawk_int32_t hawk_ntime_nsec_t;
 
 typedef struct hawk_ntime_t hawk_ntime_t;
