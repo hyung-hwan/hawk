@@ -852,15 +852,21 @@ static int fnc_dup (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		#else
 				if (oflags)
 				{
-					int nflags = 0;
+					int xflags;
 				#if defined(O_CLOEXEC) && defined(FD_CLOEXEC)
-					if (oflags & O_CLOEXEC) nflags |= FD_CLOEXEC;
+					if (oflags & O_CLOEXEC) 
+					{
+						xflags = fcntl(fd, F_GETFD);
+						if (xflags >= 0) fcntl(fd, F_SETFD, xflags | FD_CLOEXEC);
+					}
 				#endif
-				#if defined(O_NONBLOCK) && defined(FD_NONBLOCK)
-					/*if (oflags & O_NONBLOCK) nflags |= FD_NONBLOCK;  dup3() doesn't seem to support NONBLOCK. */
+				#if defined(O_NONBLOCK) 
+					/*if (oflags & O_NONBLOCK)
+					{
+						xflags = fcntl(fd, F_GETFL);
+						if (xflags >= 0) fcntl(fd, F_SETFL, xflags | O_NONBLOCK);
+					} dup3() doesn't seem to support NONBLOCK. */
 				#endif
-					if (nflags) fcntl (fd, F_SETFD, nflags);
-				
 				}
 		#endif
 				/* dup2 or dup3 closes the descriptor sys_node2_.ctx.u.file.fd implicitly
@@ -1485,22 +1491,26 @@ static int fnc_pipe (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	#else
 		if (flags > 0)
 		{
-			int nflags = 0;
+			int xflags;
 
-			/* needs translation from O_XXXX to FD_XXXX */
 		#if defined(O_CLOEXEC) && defined(FD_CLOEXEC)
-			if (flags & O_CLOEXEC) nflags |= FD_CLOEXEC;
-		#endif
-		#if defined(O_NONBLOCK) && defined(FD_NONBLOCK)
-			if (flags & O_NONBLOCK) nflags |= FD_NONBLOCK;
-		#endif
-
-			if (nflags > 0)
+			if (flags & O_CLOEXEC) 
 			{
-				/* don't care about failure */
-				fcntl (fds[0], F_SETFD, nflags);
-				fcntl (fds[1], F_SETFD, nflags);
+				xflags = fcntl(fds[0], F_GETFD);
+				if (xflags >= 0) fcntl(fds[0], F_SETFD, xflags | FD_CLOEXEC);
+				xflags = fcntl(fds[1], F_GETFD);
+				if (xflags >= 0) fcntl(fds[1], F_SETFD, xflags | FD_CLOEXEC);
 			}
+		#endif
+		#if defined(O_NONBLOCK)
+			if (flags & O_NONBLOCK) 
+			{
+				xflags = fcntl(fds[0], F_GETFL);
+				if (xflags >= 0) fcntl(fds[0], F_SETFL, xflags | O_NONBLOCK);
+				xflags = fcntl(fds[1], F_GETFL);
+				if (xflags >= 0) fcntl(fds[1], F_SETFL, xflags | O_NONBLOCK);
+			}
+		#endif
 		}
 	#endif
 		node1 = new_sys_node_fd(rtx, sys_list, fds[0]);
