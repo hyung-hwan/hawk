@@ -205,6 +205,7 @@ struct sys_list_data_t
 	hawk_ooch_t errmsg[256];
 	hawk_bch_t* readbuf;
 	hawk_oow_t readbuf_capa;
+	hawk_oow_t readbuf_len;
 	hawk_ooch_t skadbuf[2][256];
 };
 typedef struct sys_list_data_t sys_list_data_t;
@@ -683,12 +684,19 @@ static int fnc_openfd (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 }
 
 
+/* sys::read(sck, buf[, limit, [, delim]]); 
+ * 
+ * [NOTE]
+ * If delim is specified, sys::read() may keep some residue data for subsequent calls.
+ * sys::recvfrom() discards the residue data if it is called  after sys::read().
+ */
 static int fnc_read (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	sys_list_t* sys_list;
 	sys_node_t* sys_node;
 	hawk_int_t rx;
 	hawk_int_t reqsize = 8192;
+	hawk_bci_t delim = HAWK_BCI_EOF;
 
 	sys_list = rtx_to_sys_list(rtx, fi);
 	sys_node = get_sys_list_node_with_arg(rtx, sys_list, hawk_rtx_getarg(rtx, 0), SYS_NODE_DATA_TYPE_FILE | SYS_NODE_DATA_TYPE_SCK, &rx);
@@ -709,7 +717,44 @@ static int fnc_read (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			sys_list->ctx.readbuf_capa = reqsize;
 		}
 
-		rx = read(sys_node->ctx.u.file.fd, sys_list->ctx.readbuf, reqsize);
+		if (hawk_rtx_getnargs(rtx) >= 4)
+		{
+			hawk_bch_t* str;
+			hawk_oow_t len;
+			hawk_val_t* a3 = hawk_rtx_getarg(rtx, 3);
+
+			str = hawk_rtx_getvalbcstr(rtx, a3, &len);
+			if (!str)
+			{
+				rx = copy_error_to_sys_list(rtx, sys_list);
+				goto done;
+			}
+
+
+			if (len >= 1) delim = str[0];
+			hawk_rtx_freevalbcstr (rtx, a3, str);
+		}
+
+		if (sys_list->ctx.readbuf_len > 0 && delim != HAWK_BCI_EOF)
+		{
+			/* the read buffer has some residue data and the delimiter has been specified */
+			hawk_int_t i;
+			for (i = 0; i < sys_list->ctx.readbuf_len; i++)
+			{
+				if (sys_list->ctx.readbuf[i] == delim) 
+				{
+					/* the residue data contains the delimiter */
+					rx = i + 1;
+					goto make_val_1;
+				}
+			}
+		}
+
+		/* check the residue data is bigger than the maximum data size requested */
+		if (sys_list->ctx.readbuf_len >= reqsize) goto make_val_0; 
+
+		/* invoke the read system call */
+		rx = read(sys_node->ctx.u.file.fd, &sys_list->ctx.readbuf[sys_list->ctx.readbuf_len], reqsize - sys_list->ctx.readbuf_len);
 		if (rx <= 0) 
 		{
 			if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_T("unable to read"));
@@ -720,12 +765,41 @@ static int fnc_read (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			hawk_val_t* sv;
 			int x;
 
+			sys_list->ctx.readbuf_len += rx;
+
+		make_val_0:
+			/* determine the data size to return */
+			rx = reqsize <= sys_list->ctx.readbuf_len? reqsize: sys_list->ctx.readbuf_len;
+			if (delim != HAWK_BCI_EOF)	
+			{
+				/* if the delimiter is specified, check if the data size can be shortened
+				 * by finding the delimiter */
+				hawk_int_t i;
+				for (i = 0; i < rx; i++)
+				{
+					if (sys_list->ctx.readbuf[i] == delim) 
+					{
+						rx = i + 1;
+						break;
+					}
+				}
+			}
+
+		make_val_1:
 			sv = hawk_rtx_makembsvalwithbchars(rtx, sys_list->ctx.readbuf, rx);
 			if (!sv) 
 			{
 				rx = copy_error_to_sys_list(rtx, sys_list);
 				goto done;
 			}
+
+			if (rx < sys_list->ctx.readbuf_len)
+			{
+				HAWK_MEMMOVE (&sys_list->ctx.readbuf[0], &sys_list->ctx.readbuf[rx],
+				              (sys_list->ctx.readbuf_len - rx) * HAWK_SIZEOF(hawk_bch_t));
+				sys_list->ctx.readbuf_len -= rx;
+			}
+			else sys_list->ctx.readbuf_len =  0;
 
 			hawk_rtx_refupval (rtx, sv);
 			x = hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, 1), sv);
@@ -3991,6 +4065,9 @@ done:
 	return 0;
 }
 
+/*
+ * sys:recvfrom(x, buf [, reqsize[, fromaddr]])
+ */
 static int fnc_recvfrom (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	sys_list_t* sys_list;
@@ -4031,6 +4108,11 @@ static int fnc_recvfrom (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		{
 			hawk_val_t* sv;
 			int x;
+
+			/* avoid conflict with mixed calls to sys::read() and sys::recvfrom().
+			 * sys::recvfrom() discards residue data by sys::read() and it leaves
+			 * no residue by itself. */
+			sys_list->ctx.readbuf_len = 0;
 
 			sv = hawk_rtx_makembsvalwithbchars(rtx, sys_list->ctx.readbuf, rx);
 			if (!sv) 
@@ -4810,7 +4892,7 @@ static fnctab_t fnctab[] =
 	{ HAWK_T("openlog"),     { { 3, 3, HAWK_NULL       }, fnc_openlog,     0  } },
 	{ HAWK_T("openmux"),     { { 0, 0, HAWK_NULL       }, fnc_openmux,     0  } },
 	{ HAWK_T("pipe"),        { { 2, 3, HAWK_T("rrv")   }, fnc_pipe,        0  } },
-	{ HAWK_T("read"),        { { 2, 3, HAWK_T("vrv")   }, fnc_read,        0  } },
+	{ HAWK_T("read"),        { { 2, 4, HAWK_T("vrvv")  }, fnc_read,        0  } },
 	{ HAWK_T("readdir"),     { { 2, 2, HAWK_T("vr")    }, fnc_readdir,     0  } },
 	{ HAWK_T("recvfrom"),    { { 2, 4, HAWK_T("vrvr")  }, fnc_recvfrom,    0  } },
 	{ HAWK_T("resetdir"),    { { 2, 2, HAWK_NULL       }, fnc_resetdir,    0  } },
