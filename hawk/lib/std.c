@@ -341,7 +341,7 @@ void* hawk_stdmodopen (hawk_t* hawk, const hawk_mod_spec_t* spec)
 	lt_dladvise_ext (&adv);
 	/*lt_dladvise_resident (&adv); useful for debugging with valgrind */
 
-	h = lt_dlopenadvise (modpath, adv);
+	h = lt_dlopenadvise(modpath, adv);
 
 	lt_dladvise_destroy (&adv);
 
@@ -498,7 +498,7 @@ void* hawk_stdmodopen (hawk_t* hawk, const hawk_mod_spec_t* spec)
 	#endif
 	if (!modpath) return HAWK_NULL;
 
-	h = dlopen(modpath, RTLD_NOW);
+	h = dlopen(modpath, RTLD_NOW | RTLD_LOCAL);
 	if (!h) hawk_seterrfmt (hawk, HAWK_NULL, HAWK_ESYSERR, HAWK_T("%hs"), dlerror());
 
 	hawk_freemem (hawk, modpath);
