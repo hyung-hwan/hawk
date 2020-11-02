@@ -223,6 +223,11 @@ static hawk_mmgr_t sys_mmgr =
 	HAWK_NULL
 };
 
+
+hawk_mmgr_t* hawk_get_sys_mmgr (void)
+{
+	return &sys_mmgr;
+}
 /* ----------------------------------------------------------------------- */
 
 
@@ -907,9 +912,12 @@ hawk_t* hawk_openstdwithmmgr (hawk_mmgr_t* mmgr, hawk_oow_t xtnsize, hawk_cmgr_t
 
 	prm.logwrite = log_write;
 
+	if (!mmgr) mmgr = &sys_mmgr;
+	if (!cmgr) cmgr = hawk_get_cmgr_by_id(HAWK_CMGR_UTF8);
+
 	/* create an object */
 	hawk = hawk_open(mmgr, HAWK_SIZEOF(xtn_t) + xtnsize, cmgr, &prm, errnum);
-	if (!hawk) return HAWK_NULL;
+	if (HAWK_UNLIKELY(!hawk)) return HAWK_NULL;
 
 	/* adjust the object size by the sizeof xtn_t so that hawk_getxtn() returns the right pointer. */
 	hawk->_instsize += HAWK_SIZEOF(xtn_t);
@@ -2767,7 +2775,7 @@ static hawk_rtx_t* open_rtx_std (
 	rio.console = hawk_rio_console;
 
 	rtx = hawk_rtx_open(hawk, HAWK_SIZEOF(rxtn_t) + xtnsize, &rio);
-	if (!rtx) return HAWK_NULL;
+	if (HAWK_UNLIKELY(!rtx)) return HAWK_NULL;
 
 	rtx->_instsize += HAWK_SIZEOF(rxtn_t);
 
@@ -2841,7 +2849,7 @@ hawk_rtx_t* hawk_rtx_openstdwithbcstr (
 
 #if defined(HAWK_OOCH_IS_UCH)
 	xid = hawk_dupbtoucstr(hawk, id, &wcslen, 0);
-	if (!xid) return HAWK_NULL;
+	if (HAWK_UNLIKELY(!xid)) return HAWK_NULL;
 #else
 	xid = (hawk_ooch_t*)id;
 #endif

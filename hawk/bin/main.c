@@ -28,6 +28,7 @@
 #include <hawk-utl.h>
 #include <hawk-fmt.h>
 #include <hawk-cli.h>
+#include <hawk-xma.h>
 
 #include <stdio.h>
 #include <string.h>
@@ -1026,15 +1027,14 @@ static void print_hawk_rtx_error (hawk_rtx_t* rtx)
 	);
 }
 
-#if 0
 static void* xma_alloc (hawk_mmgr_t* mmgr, hawk_oow_t size)
 {
-	return hawk_xma_alloc (mmgr->ctx, size);
+	return hawk_xma_alloc(mmgr->ctx, size);
 }
 
 static void* xma_realloc (hawk_mmgr_t* mmgr, void* ptr, hawk_oow_t size)
 {
-	return hawk_xma_realloc (mmgr->ctx, ptr, size);
+	return hawk_xma_realloc(mmgr->ctx, ptr, size);
 }
 
 static void xma_free (hawk_mmgr_t* mmgr, void* ptr)
@@ -1049,7 +1049,6 @@ static hawk_mmgr_t xma_mmgr =
 	xma_free,
 	HAWK_NULL
 };
-
 
 #if defined(HAWK_BUILD_DEBUG)
 static hawk_uintptr_t debug_mmgr_count = 0;
@@ -1098,8 +1097,6 @@ static hawk_mmgr_t debug_mmgr =
 };
 #endif
 
-#endif
-
 static HAWK_INLINE int execute_hawk (int argc, hawk_bch_t* argv[])
 {
 	hawk_t* hawk = HAWK_NULL;
@@ -1120,9 +1117,7 @@ static HAWK_INLINE int execute_hawk (int argc, hawk_bch_t* argv[])
 
 	/* TODO: change it to support multiple source files */
 	hawk_parsestd_t psout;
-#if 0
-	hawk_mmgr_t* mmgr = HAWK_MMGR_GETDFL();
-#endif
+	hawk_mmgr_t* mmgr = hawk_get_sys_mmgr();
 
 	i = process_argv(argc, argv, &arg);
 	if (i <= 0)
@@ -1140,7 +1135,6 @@ static HAWK_INLINE int execute_hawk (int argc, hawk_bch_t* argv[])
 		psout.u.fileb.cmgr = arg.script_cmgr;
 	}
 
-#if 0
 #if defined(HAWK_BUILD_DEBUG)
 	if (arg.failmalloc > 0)
 	{
@@ -1151,7 +1145,7 @@ static HAWK_INLINE int execute_hawk (int argc, hawk_bch_t* argv[])
 #endif
 	if (arg.memlimit > 0)
 	{
-		xma_mmgr.ctx = hawk_xma_open(HAWK_MMGR_GETDFL(), 0, arg.memlimit);
+		xma_mmgr.ctx = hawk_xma_open(hawk_get_sys_mmgr(), 0, HAWK_NULL, arg.memlimit);
 		if (xma_mmgr.ctx == HAWK_NULL)
 		{
 			print_error ("cannot open memory heap\n");
@@ -1159,9 +1153,8 @@ static HAWK_INLINE int execute_hawk (int argc, hawk_bch_t* argv[])
 		}
 		mmgr = &xma_mmgr;
 	}
-#endif
 
-	hawk = hawk_openstd(0, HAWK_NULL);
+	hawk = hawk_openstdwithmmgr(mmgr, 0, hawk_get_cmgr_by_id(HAWK_CMGR_UTF8), HAWK_NULL);
 	if (HAWK_UNLIKELY(!hawk))
 	{
 		print_error ("cannot open hawk\n");
@@ -1252,7 +1245,7 @@ static HAWK_INLINE int execute_hawk (int argc, hawk_bch_t* argv[])
 
 	if (apply_fs_and_gvs_to_rtx(rtx, &arg) <= -1)
 	{
-		print_hawk_error (hawk);
+		print_hawk_rtx_error (hawk);
 		goto oops;
 	}
 	
@@ -1300,9 +1293,7 @@ oops:
 	if (rtx) hawk_rtx_close (rtx);
 	if (hawk) hawk_close (hawk);
 
-#if 0
 	if (xma_mmgr.ctx) hawk_xma_close (xma_mmgr.ctx);
-#endif
 	freearg (&arg);
 
 #if defined(HAWK_BUILD_DEBUG)

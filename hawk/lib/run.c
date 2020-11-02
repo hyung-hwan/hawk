@@ -862,6 +862,10 @@ hawk_rtx_t* hawk_rtx_open (hawk_t* hawk, hawk_oow_t xtnsize, hawk_rio_cbs_t* rio
 	rtx->_instsize = HAWK_SIZEOF(hawk_rtx_t);
 	if (HAWK_UNLIKELY(init_rtx(rtx, hawk, rio) <= -1)) 
 	{
+		/* because the error information is in the gem part, 
+		 * it should be ok to copy over rtx error to hawk even if
+		 * rtx initialization fails. */
+		hawk_rtx_errortohawk (rtx, hawk); 
 		hawk_freemem (hawk, rtx);
 		return HAWK_NULL;
 	}
@@ -6827,19 +6831,19 @@ static hawk_val_t** get_reference_indexed (hawk_rtx_t* rtx, hawk_nde_var_t* var)
 				break;
 
 			default:
-				if (vtype == HAWK_VAL_NIL /* || (rtx->hawk->opt.trait & HAWK_FLEXMAP) no flexmap because this is in a 'get' context. */) 
+				if (vtype == HAWK_VAL_NIL /* || (rtx->hawk->opt.trait & HAWK_FLEXMAP) no flexmap because this is in a 'get' context */) 
 				{
 					if (container_vtype == HAWK_VAL_MAP)
 					{
 						v = assign_newmapval_in_map(rtx, map, str, len);
-						if (HAWK_UNLIKELY(!v)) { ADJERR_LOC(rtx, &var->loc); goto oops; }
+						if (HAWK_UNLIKELY(!v)) { ADJERR_LOC (rtx, &var->loc); goto oops; }
 						vtype = HAWK_VAL_MAP;
 						goto val_map;
 					}
 					else
 					{
 						v = assign_newarrval_in_arr(rtx, arr, idx);
-						if (HAWK_UNLIKELY(!v)) { ADJERR_LOC(rtx, &var->loc); goto oops; }
+						if (HAWK_UNLIKELY(!v)) { ADJERR_LOC (rtx, &var->loc); goto oops; }
 						vtype = HAWK_VAL_ARR;
 						goto val_arr;
 					}
@@ -7059,7 +7063,7 @@ static hawk_val_t* eval_indexed (hawk_rtx_t* rtx, hawk_nde_var_t* var)
 			case HAWK_VAL_ARR:
 			val_arr:
 				idx = idxnde_to_int(rtx, remidx, &remidx);
-				if (idx <= -1) goto oops;
+				if (HAWK_UNLIKELY(idx <= -1)) goto oops;
 				arr = ((hawk_val_arr_t*)v)->arr;
 				break;
 
@@ -7081,11 +7085,9 @@ static hawk_val_t* eval_indexed (hawk_rtx_t* rtx, hawk_nde_var_t* var)
 						goto val_arr;
 					}
 				}
-				else
-				{
-					hawk_rtx_seterrnum (rtx, &var->loc, HAWK_ENOTIDXACC);
-					goto oops;
-				}
+
+				hawk_rtx_seterrnum (rtx, &var->loc, HAWK_ENOTIDXACC);
+				goto oops;
 		}
 	}
 #endif

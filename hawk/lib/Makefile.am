@@ -50,7 +50,8 @@ pkginclude_HEADERS = \
 	hawk-utl.h \
 	hawk-std.h \
 	hawk-tre.h \
-	hawk-unpack.h
+	hawk-unpack.h \
+	hawk-xma.h
 
 
 ##################################################
@@ -121,7 +122,8 @@ libhawk_la_SOURCES = \
 	utl-sys.c \
 	utl.c \
 	val-prv.h \
-	val.c
+	val.c \
+	xma.c
 
 libhawk_la_SOURCES += \
 	hawk-cli.h \

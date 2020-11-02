@@ -161,8 +161,10 @@ static int fnc_gc (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	hawk_int_t gen = -1;
 
+#if defined(HAWK_ENABLE_GC)
 	if (hawk_rtx_getnargs(rtx) >= 1 && hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 0), &gen) <= -1) gen = -1;
 	gen = hawk_rtx_gc(rtx, gen);
+#endif
 
 	HAWK_ASSERT (HAWK_IN_QUICKINT_RANGE(gen));
 	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, gen));
