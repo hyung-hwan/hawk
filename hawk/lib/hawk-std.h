@@ -260,6 +260,12 @@ HAWK_EXPORT void* hawk_stdmodgetsym (
 	const hawk_ooch_t*     name
 );
 
+/* ------------------------------------------------------------------------- */
+
+HAWK_EXPORT hawk_mmgr_t* hawk_get_sys_mmgr (
+	void
+);
+
 #if defined(__cplusplus)
 }
 #endif
