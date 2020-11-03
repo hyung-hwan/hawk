@@ -790,7 +790,7 @@ void hawk_xma_dump (hawk_xma_t* xma, hawk_xma_dumper_t dumper, void* ctx)
 	hawk_oow_t isum;
 #endif
 
-	dumper (ctx, "<XMA DUMP>\n");
+	dumper (ctx, "[XMA DUMP]\n");
 
 #if defined(HAWK_XMA_ENABLE_STAT)
 	dumper (ctx, "== statistics ==\n");
