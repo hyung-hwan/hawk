@@ -30,8 +30,8 @@
 
 #define ALIGN HAWK_SIZEOF(hawk_oow_t) /* this must be a power of 2 */
 #define MBLKHDRSIZE HAWK_SIZEOF(hawk_xma_mblk_t)
-#define MINBLKLEN HAWK_SIZEOF(hawk_xma_fblk_t) /* need space for the free links when the block is freeed */
 #define MINALLOCSIZE (ALIGN + ALIGN) /* as large as the free links in hawk_xma_fblk_t */
+#define MINBLKLEN HAWK_SIZEOF(hawk_xma_fblk_t) /* need space for the free links when the block is freeed */
 
 #define SYS_TO_USR(b) ((hawk_uint8_t*)(b) + MBLKHDRSIZE)
 #define USR_TO_SYS(b) ((hawk_uint8_t*)(b) - MBLKHDRSIZE)
@@ -52,14 +52,14 @@
 struct hawk_xma_mblk_t
 {
 	hawk_oow_t prev_size;
-	hawk_oow_t avail: 1;
+	hawk_oow_t free: 1;
 	hawk_oow_t size: HAWK_XMA_SIZE_BITS;/**< block size */
 };
 
 struct hawk_xma_fblk_t 
 {
 	hawk_oow_t prev_size;
-	hawk_oow_t avail: 1;
+	hawk_oow_t free: 1;
 	hawk_oow_t size: HAWK_XMA_SIZE_BITS;/**< block size */
 
 	/* these two fields are used only if the block is free */
@@ -191,7 +191,7 @@ int hawk_xma_init (hawk_xma_t* xma, hawk_mmgr_t* mmgr, void* zoneptr, hawk_oow_t
 
 	/* initialize the header part of the free chunk. the entire zone is a single free block */
 	free->prev_size = 0;
-	free->avail = 1;
+	free->free = 1;
 	free->size = zonesize - MBLKHDRSIZE; /* size excluding the block header */
 	free->free_prev = HAWK_NULL;
 	free->free_next = HAWK_NULL;
@@ -267,7 +267,6 @@ static HAWK_INLINE void detach_from_freelist (hawk_xma_t* xma, hawk_xma_fblk_t* 
 	{
 		/* the previous item does not exist. the block is the first
  		 * item in the free list. */
-
 		hawk_oow_t xfi = getxfi(xma, b->size);
 		HAWK_ASSERT (b == xma->xfree[xfi]);
 		/* let's update the free list head */
@@ -281,17 +280,17 @@ static HAWK_INLINE void detach_from_freelist (hawk_xma_t* xma, hawk_xma_fblk_t* 
 
 static hawk_xma_fblk_t* alloc_from_freelist (hawk_xma_t* xma, hawk_oow_t xfi, hawk_oow_t size)
 {
-	hawk_xma_fblk_t* free;
+	hawk_xma_fblk_t* cand;
 
-	for (free = xma->xfree[xfi]; free; free = free->free_next)
+	for (cand = xma->xfree[xfi]; cand; cand = cand->free_next)
 	{
-		if (free->size >= size)
+		if (cand->size >= size)
 		{
 			hawk_oow_t rem;
 
-			detach_from_freelist (xma, free);
+			detach_from_freelist (xma, cand);
 
-			rem = free->size - size;
+			rem = cand->size - size;
 			if (rem >= MINBLKLEN)
 			{
 				hawk_xma_mblk_t* y, * z;
@@ -301,15 +300,15 @@ static hawk_xma_fblk_t* alloc_from_freelist (hawk_xma_t* xma, hawk_oow_t xfi, ha
 				 */
 
 				/* shrink the size of the 'free' block */
-				free->size = size;
+				cand->size = size;
 
-				/* let 'tmp' point to the remaining part */
-				y = next_mblk(free); /* get the next adjacent block */
+				/* let 'y' point to the remaining part */
+				y = next_mblk(cand); /* get the next adjacent block */
 
 				/* initialize some fields */
-				y->avail = 1;
+				y->free = 1;
 				y->size = rem - MBLKHDRSIZE;
-				y->prev_size = free->size;
+				y->prev_size = cand->size;
 
 				/* add the remaining part to the free list */
 				attach_to_freelist (xma, (hawk_xma_fblk_t*)y);
@@ -330,18 +329,18 @@ static hawk_xma_fblk_t* alloc_from_freelist (hawk_xma_t* xma, hawk_oow_t xfi, ha
 			}
 #endif
 
-			free->avail = 0;
+			cand->free = 0;
 			/*
-			free->free_next = HAWK_NULL;
-			free->free_prev = HAWK_NULL;
+			cand->free_next = HAWK_NULL;
+			cand->free_prev = HAWK_NULL;
 			*/
 
 #if defined(HAWK_XMA_ENABLE_STAT)
 			xma->stat.nused++;
-			xma->stat.alloc += free->size;
-			xma->stat.avail -= free->size;
+			xma->stat.alloc += cand->size;
+			xma->stat.avail -= cand->size;
 #endif
-			return free;
+			return cand;
 		}
 	}
 
@@ -369,11 +368,11 @@ void* hawk_xma_alloc (hawk_xma_t* xma, hawk_oow_t size)
 		/* try the best fit */
 		free = xma->xfree[xfi];
 
-		HAWK_ASSERT (free->avail != 0);
+		HAWK_ASSERT (free->free != 0);
 		HAWK_ASSERT (free->size == size);
 
 		detach_from_freelist (xma, free);
-		free->avail = 0;
+		free->free = 0;
 
 #if defined(HAWK_XMA_ENABLE_STAT)
 		xma->stat.nfree--;
@@ -443,7 +442,7 @@ static void* _realloc_merge (hawk_xma_t* xma, void* b, hawk_oow_t size)
 
 		n = next_mblk(blk);
 		/* check if the next adjacent block is available */
-		if ((hawk_uint8_t*)n >= xma->end || !n->avail || req > n->size) return HAWK_NULL; /* no! */
+		if ((hawk_uint8_t*)n >= xma->end || !n->free || req > n->size) return HAWK_NULL; /* no! */
 
 		HAWK_ASSERT (blk->size == n->prev_size);
 
@@ -462,7 +461,7 @@ static void* _realloc_merge (hawk_xma_t* xma, void* b, hawk_oow_t size)
 
 			blk->size += req;
 			tmp = next_mblk(blk);
-			tmp->avail = 1;
+			tmp->free = 1;
 			tmp->size = rem - MBLKHDRSIZE;
 			tmp->prev_size = blk->size;
 			attach_to_freelist (xma, (hawk_xma_fblk_t*)tmp);
@@ -504,7 +503,7 @@ static void* _realloc_merge (hawk_xma_t* xma, void* b, hawk_oow_t size)
 
 			/* the leftover is large enough to hold a block of minimum size.
 			 * split the current block. let 'tmp' point to the leftover. */
-			if ((hawk_uint8_t*)n < xma->end && n->avail)
+			if ((hawk_uint8_t*)n < xma->end && n->free)
 			{
 				/* let the leftover block merge with the next block */
 				detach_from_freelist (xma, (hawk_xma_fblk_t*)n);
@@ -512,7 +511,7 @@ static void* _realloc_merge (hawk_xma_t* xma, void* b, hawk_oow_t size)
 				blk->size = size;
 
 				tmp = next_mblk(blk);
-				tmp->avail = 1;
+				tmp->free = 1;
 				tmp->size = rem + n->size;
 				tmp->prev_size = blk->size;
 
@@ -535,7 +534,7 @@ static void* _realloc_merge (hawk_xma_t* xma, void* b, hawk_oow_t size)
 				blk->size = size;
 
 				tmp = next_mblk(blk);
-				tmp->avail = 1;
+				tmp->free = 1;
 				tmp->size = rem - MBLKHDRSIZE;
 				tmp->prev_size = blk->size;
 
@@ -607,7 +606,7 @@ void hawk_xma_free (hawk_xma_t* xma, void* b)
 
 	x = prev_mblk(blk);
 	y = next_mblk(blk);
-	if (((hawk_uint8_t*)x >= xma->start && x->avail) && ((hawk_uint8_t*)y < xma->end && y->avail))
+	if (((hawk_uint8_t*)x >= xma->start && x->free) && ((hawk_uint8_t*)y < xma->end && y->free))
 	{
 		/*
 		 * Merge the block with surrounding blocks
@@ -626,7 +625,7 @@ void hawk_xma_free (hawk_xma_t* xma, void* b)
 		 *
 		 */
 		
-		hawk_xma_mblk_t* z = next_mblk(y);
+		hawk_xma_mblk_t* z;
 		hawk_oow_t ns = MBLKHDRSIZE + blk->size + MBLKHDRSIZE;
 		hawk_oow_t bs = ns + y->size;
 
@@ -644,7 +643,7 @@ void hawk_xma_free (hawk_xma_t* xma, void* b)
 		xma->stat.avail += ns;
 #endif
 	}
-	else if ((hawk_uint8_t*)y < xma->end && y->avail)
+	else if ((hawk_uint8_t*)y < xma->end && y->free)
 	{
 		/*
 		 * Merge the block with the next block
@@ -677,7 +676,7 @@ void hawk_xma_free (hawk_xma_t* xma, void* b)
 		detach_from_freelist (xma, (hawk_xma_fblk_t*)y);
 
 		/* update the block availability */
-		blk->avail = 1;
+		blk->free = 1;
 		/* update the block size. MBLKHDRSIZE for the header space in x */
 		blk->size += MBLKHDRSIZE + y->size;
 
@@ -687,7 +686,7 @@ void hawk_xma_free (hawk_xma_t* xma, void* b)
 		/* attach blk to the free list */
 		attach_to_freelist (xma, (hawk_xma_fblk_t*)blk);
 	}
-	else if ((hawk_uint8_t*)x >= xma->start && x->avail)
+	else if ((hawk_uint8_t*)x >= xma->start && x->free)
 	{
 		/*
 		 * Merge the block with the previous block 
@@ -705,19 +704,22 @@ void hawk_xma_free (hawk_xma_t* xma, void* b)
 		 */
 #if defined(HAWK_XMA_ENABLE_STAT)
 		xma->stat.avail += MBLKHDRSIZE + blk->size;
+		//xma->stat.avail = 0;
 #endif
 
 		detach_from_freelist (xma, (hawk_xma_fblk_t*)x);
 
 		x->size += MBLKHDRSIZE + blk->size;
+		//HAWK_ASSERT (y == next_mblk(x));
 		if ((hawk_uint8_t*)y < xma->end) y->prev_size = x->size;
 
 		attach_to_freelist (xma, (hawk_xma_fblk_t*)x);
+
 	}
 	else
 	{
 
-		blk->avail = 1;
+		blk->free = 1;
 		attach_to_freelist (xma, (hawk_xma_fblk_t*)blk);
 
 #if defined(HAWK_XMA_ENABLE_STAT)
@@ -750,8 +752,8 @@ void hawk_xma_dump (hawk_xma_t* xma, hawk_xma_dumper_t dumper, void* ctx)
 	dumper (ctx, " size               avail address\n");
 	for (tmp = (hawk_xma_mblk_t*)xma->start, fsum = 0, asum = 0; (hawk_uint8_t*)tmp < xma->end; tmp = next_mblk(tmp))
 	{
-		dumper (ctx, " %-18zu %-5u %p\n", tmp->size, (unsigned int)tmp->avail, tmp);
-		if (tmp->avail) fsum += tmp->size;
+		dumper (ctx, " %-18zu %-5u %p\n", tmp->size, (unsigned int)tmp->free, tmp);
+		if (tmp->free) fsum += tmp->size;
 		else asum += tmp->size;
 	}
 
