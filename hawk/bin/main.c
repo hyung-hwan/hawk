@@ -1050,6 +1050,15 @@ static hawk_mmgr_t xma_mmgr =
 	HAWK_NULL
 };
 
+static int xma_dumper_without_hawk (void* ctx, const hawk_bch_t* fmt, ...)
+{
+	va_list ap;
+	va_start (ap, fmt);
+	vfprintf (stderr, fmt, ap); 
+	va_end (ap);
+	return 0;
+}
+
 #if defined(HAWK_BUILD_DEBUG)
 static hawk_uintptr_t debug_mmgr_count = 0;
 static hawk_uintptr_t debug_mmgr_alloc_count = 0;
@@ -1245,7 +1254,7 @@ static HAWK_INLINE int execute_hawk (int argc, hawk_bch_t* argv[])
 
 	if (apply_fs_and_gvs_to_rtx(rtx, &arg) <= -1)
 	{
-		print_hawk_rtx_error (hawk);
+		print_hawk_rtx_error (rtx);
 		goto oops;
 	}
 	
@@ -1293,7 +1302,11 @@ oops:
 	if (rtx) hawk_rtx_close (rtx);
 	if (hawk) hawk_close (hawk);
 
-	if (xma_mmgr.ctx) hawk_xma_close (xma_mmgr.ctx);
+	if (xma_mmgr.ctx) 
+	{
+		if (app_debug) hawk_xma_dump (xma_mmgr.ctx, xma_dumper_without_hawk, HAWK_NULL);
+		hawk_xma_close (xma_mmgr.ctx);
+	}
 	freearg (&arg);
 
 #if defined(HAWK_BUILD_DEBUG)
