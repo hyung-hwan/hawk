@@ -5163,13 +5163,17 @@ static inttab_t inttab[] =
 	{ HAWK_T("TC_CFLAG_B2400"),   { B2400 } },
 	{ HAWK_T("TC_CFLAG_B300"),    { B300 } },
 	{ HAWK_T("TC_CFLAG_B38400"),  { B38400 } },
+#if defined(B460800)
 	{ HAWK_T("TC_CFLAG_B460800"), { B460800 } },
+#endif
 	{ HAWK_T("TC_CFLAG_B4800"),   { B4800 } },
 	{ HAWK_T("TC_CFLAG_B50"),     { B50 } },
 	{ HAWK_T("TC_CFLAG_B57600"),  { B57600 } },
 	{ HAWK_T("TC_CFLAG_B600"),    { B600 } },
 	{ HAWK_T("TC_CFLAG_B75"),     { B75 } },
+#if defined(B921600)
 	{ HAWK_T("TC_CFLAG_B921600"), { B921600 } },
+#endif
 	{ HAWK_T("TC_CFLAG_B9600"),   { B9600 } },
 
 	{ HAWK_T("TC_CFLAG_CLOCAL"),  { CLOCAL } },
