@@ -756,6 +756,9 @@
 /* Prefix wide-character literals with L */
 #undef HAWK_PREFER_PREFIX_L
 
+/* prefer unsigned int for the first parameter of operator new */
+#undef HAWK_PREFER_UNSIGNED_INT_FOR_OPERATOR_NEW
+
 /* Define if pthread_cond_t is signed */
 #undef HAWK_PTHREAD_MUTEX_T_IS_SIGNED
 

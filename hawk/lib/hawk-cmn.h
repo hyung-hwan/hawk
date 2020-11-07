@@ -210,7 +210,16 @@
 
 
 /* hawk_int32_t */
-#if defined(HAWK_SIZEOF_INT) && (HAWK_SIZEOF_INT == 4)
+#if defined(HAWK_SIZEOF_LONG) && (HAWK_SIZEOF_LONG == 4) && !defined(HAWK_PREFER_UNSIGNED_INT_FOR_OPERATOR_NEW)
+	/* in case c++ compiler defines the first parameter of the operator new() to unsigned int */
+	/* in addition, if c++ is disabled, long is preferred by default */
+#	define HAWK_HAVE_UINT32_T
+#	define HAWK_HAVE_INT32_T
+#	define HAWK_SIZEOF_UINT32_T (HAWK_SIZEOF_LONG)
+#	define HAWK_SIZEOF_INT32_T (HAWK_SIZEOF_LONG)
+	typedef unsigned long int   hawk_uint32_t;
+	typedef signed long int     hawk_int32_t;
+#elif defined(HAWK_SIZEOF_INT) && (HAWK_SIZEOF_INT == 4)
 #	define HAWK_HAVE_UINT32_T
 #	define HAWK_HAVE_INT32_T
 #	define HAWK_SIZEOF_UINT32_T (HAWK_SIZEOF_INT)

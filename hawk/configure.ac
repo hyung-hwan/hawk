@@ -26,11 +26,13 @@ AC_PROG_CXX
 dnl check if the C++ compiler exists in PATH
 AC_CHECK_PROG(HAVE_CXX, $CXX, yes, no)
 
-dnl check if the C++ compiler supports namespace
-AX_CXX_NAMESPACE_STD
-
-dnl HAVE_CXX11
-AX_CXX_COMPILE_STDCXX(11, , optional)
+if test "${HAVE_CXX}" = "yes"  
+then
+	dnl check if the C++ compiler supports namespace
+	AX_CXX_NAMESPACE_STD
+	dnl HAVE_CXX11
+	AX_CXX_COMPILE_STDCXX(11, , optional)
+fi
 
 dnl determine some key programs
 AC_PROG_INSTALL
@@ -222,9 +224,21 @@ AC_MSG_CHECKING([labels as values])
 AC_COMPILE_IFELSE(
 	[AC_LANG_PROGRAM( [], [[void* jp[] = { &&jpt1, &&jpt2, &&jpt3 }; goto *jp[1]; jpt1: 1; jpt2: 2; jpt3: 3; ]])],
 	[AC_MSG_RESULT(yes)
-	 AC_DEFINE(HAVE_LABELS_AS_VALUES, 1, [labels as values])],
+	 AC_DEFINE([HAVE_LABELS_AS_VALUES], [1], [labels as values])],
 	[AC_MSG_RESULT(no)]
 )
+
+if test "${HAVE_CXX}" = "yes"  
+then
+	AC_LANG_PUSH([C++])
+	AC_COMPILE_IFELSE(
+		[AC_LANG_PROGRAM( [[void* operator new (unsigned int) { return (void*)0; }]], [[ ]])],
+		[AC_MSG_RESULT(yes)
+		AC_DEFINE([HAWK_PREFER_UNSIGNED_INT_FOR_OPERATOR_NEW], [1], [prefer unsigned int for the first parameter of operator new])],
+		[AC_MSG_RESULT(no)]
+	)
+	AC_LANG_POP([C++])
+fi
 
 dnl check header files.
 AC_HEADER_STDC
