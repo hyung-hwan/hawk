@@ -6691,7 +6691,7 @@ retry:
 			if (hawk_comp_oochars_bcstr(HAWK_OOECS_PTR(tok->name), HAWK_OOECS_LEN(tok->name), "@SCRIPTNAME") == 0)
 			{
 				/* special parser-level word @SCRIPTNAME. substitute an actual value for it */
-				if (HAWK_UNLIKELY(hawk_ooecs_cpy(tok->name, tok->loc.file) == (hawk_oow_t)-1)) return -1;
+				if (HAWK_UNLIKELY(hawk_ooecs_cpy(tok->name, (tok->loc.file? tok->loc.file: HAWK_T(""))) == (hawk_oow_t)-1)) return -1;
 				SET_TOKEN_TYPE (hawk, tok, TOK_STR);
 			}
 			else if (hawk_comp_oochars_bcstr(HAWK_OOECS_PTR(tok->name), HAWK_OOECS_LEN(tok->name), "@SCRIPTLINE") == 0)
