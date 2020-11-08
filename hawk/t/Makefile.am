@@ -12,7 +12,7 @@ AM_CPPFLAGS = \
 AM_LDFLAGS = -L$(abs_builddir)/../lib  -L$(libdir)
 LDADD = $(PTHREAD_LIBS)
 
-check_SCRIPTS = h-001.hawk
+check_SCRIPTS = h-001.hawk h-002.hawk
 ##noinst_SCRIPTS = $(check_SCRIPTS)
 EXTRA_DIST = $(check_SCRIPTS)
 

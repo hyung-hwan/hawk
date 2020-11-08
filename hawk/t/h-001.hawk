@@ -1,14 +1,6 @@
 @pragma entry main
 
-
-function ensure (a, b, desc, line)
-{
-	if (a != b) 
-	{
-		printf ("FAILURE[%d] %s\n", line, desc);
-		exit (-1);
-	}
-}
+@include "ensure.inc";
 
 function call_by_ref_1(&a, b, &c)
 {

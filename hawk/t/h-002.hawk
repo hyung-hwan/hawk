@@ -1,0 +1,87 @@
+@pragma entry main
+@pragma implicit off
+
+@include "ensure.inc";
+
+function main()
+{
+
+	## call by reference. change an argument to array in the callee
+	{
+		@local ini, foo1, foo2, foo3, foo4;
+	
+		test1(foo1); 
+		test2(foo2); 
+		test3(foo3); 
+		test4(foo4); 
+		ensure (hawk::typename(foo1), "map", @SCRIPTNAME, @SCRIPTLINE);
+		ensure (hawk::typename(foo2), "map", @SCRIPTNAME, @SCRIPTLINE);
+		ensure (hawk::typename(foo3), "nil", @SCRIPTNAME, @SCRIPTLINE);
+		ensure (hawk::typename(foo4), "nil", @SCRIPTNAME, @SCRIPTLINE);
+		ensure (foo1[1], 1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (foo2[1], 1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (foo3[1], ini, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (foo4[1], ini, @SCRIPTNAME, @SCRIPTLINE);
+	}	
+
+	## gsub 
+	{
+		@local w, x, y, z, z1, z2;
+		x = y = "x\\y";
+		gsub(/\\\\/, "A", x);
+		gsub("\\\\", "A", y);
+		ensure (x, "x\\y", @SCRIPTNAME, @SCRIPTLINE);
+		ensure (y, "xAy", @SCRIPTNAME, @SCRIPTLINE);
+
+		x = y = "x\\\\y";
+		gsub(/\\\\/, "A", x);
+		gsub("\\\\", "A", y);
+		ensure (x, "xAy", @SCRIPTNAME, @SCRIPTLINE);
+		ensure (y, "xAAy", @SCRIPTNAME, @SCRIPTLINE);
+	}
+
+	## gsub - POSIX rule for &, \&, \\&, \\\& 
+	{	
+		@local w, x, y, z, z1, z2, z3;
+		w = x = y = z = z1 = z2 = "xax";
+
+       		gsub(/a/, "\&", w);  # gsub sees &
+       		gsub(/a/, "\\&", x);   # gsub sees \&
+       		gsub(/a/, "\\\&", y);   # gsub sees \&
+
+       		gsub(/a/, "\\\\&", z);  # gsub sees \\&
+       		gsub(/a/, "\\\\\&", z1); # gsub sees \\&
+       		gsub(/a/, "\\\\\\&", z2); # gsub sees \\\&
+
+		ensure (w, "xax", @SCRIPTNAME, @SCRIPTLINE);
+		ensure (x, "x&x", @SCRIPTNAME, @SCRIPTLINE);
+		ensure (y, "x&x", @SCRIPTNAME, @SCRIPTLINE);
+		ensure (z, "x\\ax", @SCRIPTNAME, @SCRIPTLINE);
+		ensure (z1, "x\\ax", @SCRIPTNAME, @SCRIPTLINE);
+		ensure (z2, "x\\&x", @SCRIPTNAME, @SCRIPTLINE);
+	}
+
+	## gsub - POSIX rule for &, \&, \\&, \\\&  - express the same test with a raw string literal
+	{	
+		@local w, x, y, z;
+		w = x = y = z = "xax";
+
+       		gsub(/a/, @r"&", w);  # gsub sees &
+       		gsub(/a/, @r"\&", x);   # gsub sees \&
+
+       		gsub(/a/, @r"\\&", y);  # gsub sees \\&
+       		gsub(/a/, @r"\\\&", z); # gsub sees \\\&
+
+		ensure (w, "xax", @SCRIPTNAME, @SCRIPTLINE);
+		ensure (x, "x&x", @SCRIPTNAME, @SCRIPTLINE);
+		ensure (y, @r"x\ax", @SCRIPTNAME, @SCRIPTLINE);
+		ensure (z, @r"x\&x", @SCRIPTNAME, @SCRIPTLINE);
+	}
+
+	print "SUCCESS";
+}
+
+function test1(&foo) { test2(foo) }
+function test2(&bar) { bar[1] = 1 }
+function test3(foo) { test2(foo) }
+function test4(bar) { bar[1] = 1 }

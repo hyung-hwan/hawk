@@ -1093,8 +1093,23 @@ static int __substitute_oocs (hawk_rtx_t* rtx, hawk_oow_t* max_count, hawk_tre_t
 
 		for (i = 0; i < s1->len; i++)
 		{
-			if ((i+1) < s1->len && s1->ptr[i] == '\\' && s1->ptr[i+1] == '&')
+			if ((i + 3) < s1->len && s1->ptr[i] == '\\' && s1->ptr[i+1] == '\\' && s1->ptr[i+2] == '\\' && s1->ptr[i+3] == '&')
 			{
+				/* \\\& to produce a literal \& */
+				m = hawk_ooecs_cat(new, HAWK_T("\\&"));
+				i += 3;
+			}
+			else if ((i + 2) < s1->len && s1->ptr[i] == '\\' && s1->ptr[i+1] == '\\' && s1->ptr[i+2] == '&')
+			{
+				/* \\& to produce a literal \ followed by the matched text */
+				m = hawk_ooecs_ccat(new, '\\');
+				if (HAWK_UNLIKELY(m == (hawk_oow_t)-1)) goto oops;
+				m = hawk_ooecs_ncat(new, mat.ptr, mat.len);
+				i += 2;
+			}
+			else if ((i + 1) < s1->len && s1->ptr[i] == '\\' && s1->ptr[i+1] == '&')
+			{
+				/* \& to produce literal '&' */
 				m = hawk_ooecs_ccat(new, '&');
 				i++;
 			}
@@ -1183,8 +1198,23 @@ static int __substitute_bcs (hawk_rtx_t* rtx, hawk_oow_t* max_count, hawk_tre_t*
 
 		for (i = 0; i < s1->len; i++)
 		{
-			if ((i+1) < s1->len && s1->ptr[i] == '\\' && s1->ptr[i+1] == '&')
+			if ((i + 3) < s1->len && s1->ptr[i] == '\\' && s1->ptr[i+1] == '\\' && s1->ptr[i+2] == '\\' && s1->ptr[i+3] == '&')
 			{
+				/* \\\& to produce a literal \& */
+				m = hawk_becs_cat(new, "\\&");
+				i += 3;
+			}
+			else if ((i + 2) < s1->len && s1->ptr[i] == '\\' && s1->ptr[i+1] == '\\' && s1->ptr[i+2] == '&')
+			{
+				/* \\& to produce a literal \ followed by the matched text */
+				m = hawk_becs_ccat(new, '\\');
+				if (HAWK_UNLIKELY(m == (hawk_oow_t)-1)) goto oops;
+				m = hawk_becs_ncat(new, mat.ptr, mat.len);
+				i += 2;
+			}
+			else if ((i + 1) < s1->len && s1->ptr[i] == '\\' && s1->ptr[i+1] == '&')
+			{
+				/* \& to produce literal '&' */
 				m = hawk_becs_ccat(new, '&');
 				i++;
 			}
@@ -1455,7 +1485,7 @@ int hawk_fnc_match (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	for (i = 1; i <= q; i++) print x[i,"start"], x[i,"length"]; 
 	print RSTART, RLENGTH;
 	* ------------------------------------
-	match(B"ab\xB0\x98cdefgdefx", /(def)g(.+)/, 1, x); 
+	match(@b"ab\xB0\x98cdefgdefx", /(def)g(.+)/, 1, x); 
 	q = length(x) / 2;
 	for (i = 1; i <= q; i++) print x[i,"start"], x[i,"length"]; 
 	print RSTART, RLENGTH;
