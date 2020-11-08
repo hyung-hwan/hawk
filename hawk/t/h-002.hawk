@@ -45,13 +45,13 @@ function main()
 		@local w, x, y, z, z1, z2, z3;
 		w = x = y = z = z1 = z2 = "xax";
 
-       		gsub(/a/, "\&", w);  # gsub sees &
-       		gsub(/a/, "\\&", x);   # gsub sees \&
-       		gsub(/a/, "\\\&", y);   # gsub sees \&
+		gsub(/a/, "\&", w);  # gsub sees &
+		gsub(/a/, "\\&", x);   # gsub sees \&
+		gsub(/a/, "\\\&", y);   # gsub sees \&
 
-       		gsub(/a/, "\\\\&", z);  # gsub sees \\&
-       		gsub(/a/, "\\\\\&", z1); # gsub sees \\&
-       		gsub(/a/, "\\\\\\&", z2); # gsub sees \\\&
+		gsub(/a/, "\\\\&", z);  # gsub sees \\&
+		gsub(/a/, "\\\\\&", z1); # gsub sees \\&
+		gsub(/a/, "\\\\\\&", z2); # gsub sees \\\&
 
 		ensure (w, "xax", @SCRIPTNAME, @SCRIPTLINE);
 		ensure (x, "x&x", @SCRIPTNAME, @SCRIPTLINE);
@@ -59,6 +59,23 @@ function main()
 		ensure (z, "x\\ax", @SCRIPTNAME, @SCRIPTLINE);
 		ensure (z1, "x\\ax", @SCRIPTNAME, @SCRIPTLINE);
 		ensure (z2, "x\\&x", @SCRIPTNAME, @SCRIPTLINE);
+
+		w = x = y = z = z1 = z2 = "xaax";
+
+		gsub(/a/, "\&", w);  # gsub sees &
+		gsub(/a/, "\\&", x);   # gsub sees \&
+		gsub(/a/, "\\\&", y);   # gsub sees \&
+
+		gsub(/a/, "\\\\&", z);  # gsub sees \\&
+		gsub(/a/, "\\\\\&", z1); # gsub sees \\&
+		gsub(/a/, "\\\\\\&", z2); # gsub sees \\\&
+
+		ensure (w, "xaax", @SCRIPTNAME, @SCRIPTLINE);
+		ensure (x, "x&&x", @SCRIPTNAME, @SCRIPTLINE);
+		ensure (y, "x&&x", @SCRIPTNAME, @SCRIPTLINE);
+		ensure (z, "x\\a\\ax", @SCRIPTNAME, @SCRIPTLINE);
+		ensure (z1, "x\\a\\ax", @SCRIPTNAME, @SCRIPTLINE);
+		ensure (z2, "x\\&\\&x", @SCRIPTNAME, @SCRIPTLINE);
 	}
 
 	## gsub - POSIX rule for &, \&, \\&, \\\&  - express the same test with a raw string literal
@@ -66,16 +83,69 @@ function main()
 		@local w, x, y, z;
 		w = x = y = z = "xax";
 
-       		gsub(/a/, @r"&", w);  # gsub sees &
-       		gsub(/a/, @r"\&", x);   # gsub sees \&
+		gsub(/a/, @r"&", w);  # gsub sees &
+		gsub(/a/, @r"\&", x);   # gsub sees \&
 
-       		gsub(/a/, @r"\\&", y);  # gsub sees \\&
-       		gsub(/a/, @r"\\\&", z); # gsub sees \\\&
+		gsub(/a/, @r"\\&", y);  # gsub sees \\&
+		gsub(/a/, @r"\\\&", z); # gsub sees \\\&
 
 		ensure (w, "xax", @SCRIPTNAME, @SCRIPTLINE);
 		ensure (x, "x&x", @SCRIPTNAME, @SCRIPTLINE);
 		ensure (y, @r"x\ax", @SCRIPTNAME, @SCRIPTLINE);
 		ensure (z, @r"x\&x", @SCRIPTNAME, @SCRIPTLINE);
+
+		w = x = y = z = "xaax";
+
+		gsub(/a/, @r"&", w);  # gsub sees &
+		gsub(/a/, @r"\&", x);   # gsub sees \&
+
+		gsub(/a/, @r"\\&", y);  # gsub sees \\&
+		gsub(/a/, @r"\\\&", z); # gsub sees \\\&
+
+		ensure (w, "xaax", @SCRIPTNAME, @SCRIPTLINE);
+		ensure (x, "x&&x", @SCRIPTNAME, @SCRIPTLINE);
+		ensure (y, @r"x\a\ax", @SCRIPTNAME, @SCRIPTLINE);
+		ensure (z, @r"x\&\&x", @SCRIPTNAME, @SCRIPTLINE);
+	}
+
+	## sub - POSIX rule for &, \&, \\&, \\\&  - express the same test with a raw string literal
+	{	
+		@local w, x, y, z;
+		w = x = y = z = "xax";
+
+		sub(/a/, @r"&", w);
+		sub(/a/, @r"\&", x);
+
+		sub(/a/, @r"\\&", y);
+		sub(/a/, @r"\\\&", z);
+
+		ensure (w, "xax", @SCRIPTNAME, @SCRIPTLINE);
+		ensure (x, "x&x", @SCRIPTNAME, @SCRIPTLINE);
+		ensure (y, @r"x\ax", @SCRIPTNAME, @SCRIPTLINE);
+		ensure (z, @r"x\&x", @SCRIPTNAME, @SCRIPTLINE);
+
+		w = x = y = z = "xaax";
+
+		sub(/a/, @r"&", w);
+		sub(/a/, @r"\&", x);
+
+		sub(/a/, @r"\\&", y);
+		sub(/a/, @r"\\\&", z);
+
+		ensure (w, "xaax", @SCRIPTNAME, @SCRIPTLINE);
+		ensure (x, "x&ax", @SCRIPTNAME, @SCRIPTLINE);
+		ensure (y, @r"x\aax", @SCRIPTNAME, @SCRIPTLINE);
+		ensure (z, @r"x\&ax", @SCRIPTNAME, @SCRIPTLINE);
+	}
+
+	ensure (sprintf("%*sworld", -20, "hello"), "hello               world", @SCRIPTNAME, @SCRIPTLINE);
+
+	{
+		@local bool, b, c;
+
+		bool = ((b = 1) in c);
+		ensure (bool, 0, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (b, 1, @SCRIPTNAME, @SCRIPTLINE);
 	}
 
 	print "SUCCESS";
