@@ -352,10 +352,10 @@ static int fnc_tocharcode (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 static int fnc_frommbs (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
-	/* str::frommbs(B"byte-string" [, "encoding-name"])
+	/* str::frommbs(@b"byte-string" [, "encoding-name"])
 	 * 
 	 * if you use a supported encoding name, it may look like this:
-	 *   a = str::frommbs(B"\xC7\xD1\xB1\xDB", "cp949");
+	 *   a = str::frommbs(@b"\xC7\xD1\xB1\xDB", "cp949");
 	 *   printf ("%K\n", a);
 	 */
 	hawk_val_t* a0, * r;
@@ -413,7 +413,7 @@ static int fnc_tombs (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	 * 
 	 * if you use a supported encoding name, it may look like this:
 	 *   a = str::tombs("\uD55C\uAE00", "cp949"); 
-	 *   printf (B"%K\n", a); 
+	 *   printf (@b"%K\n", a); 
 	 */
 
 	hawk_val_t* a0, * r;

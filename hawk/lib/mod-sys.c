@@ -580,7 +580,7 @@ static int fnc_close (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 /*
   BEGIN {
      f = sys::open("/tmp/test.txt", sys::O_RDONLY);
-     while (sys::read(f, x, 10) > 0) printf (B"%s", x);
+     while (sys::read(f, x, 10) > 0) printf (@b"%s", x);
      sys::close (f);
   }
 */
@@ -642,7 +642,7 @@ static int fnc_open (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 /*
 	a = sys::openfd(1);
-	sys::write (a, B"let me write something here\n");
+	sys::write (a, @b"let me write something here\n");
 	sys::close (a, sys::C_KEEPFD); ## set C_KEEPFD to release 1 without closing it.
 	##sys::close (a);
 	print "done\n";
@@ -874,7 +874,7 @@ static int fnc_write (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	b = sys::dup(a);
 	sys::close(a);
 
-	while (sys::read(b, abc, 100) > 0) printf (B"%s", abc);
+	while (sys::read(b, abc, 100) > 0) printf (@b"%s", abc);
 
 	print "-------------------------------";
 
@@ -882,7 +882,7 @@ static int fnc_write (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	## assertion: b == c
 	sys::close (x);
 
-	while (sys::read(c, abc, 100) > 0) printf (B"%s", abc);
+	while (sys::read(c, abc, 100) > 0) printf (@b"%s", abc);
 	sys::close (c);
 */
 
@@ -1265,7 +1265,7 @@ BEGIN {
         a["lflag"] &= ~sys::TC_LFLAG_ECHO;
         sys::tcsetattr(IN, 0, a);
         printf ("Password:");
-        ##sys::write (OUT, B"Password:");
+        ##sys::write (OUT, @b"Password:");
         getline x;
         a["lflag"] |= sys::TC_LFLAG_ECHO;
         sys::tcsetattr(IN, 0, a);
@@ -1492,8 +1492,8 @@ done:
 		## parent
 		printf ("parent.... %d %d %d\n", sys::getpid(), p0, p1);
 		sys::close (p0);
-		sys::write (p1, B"hello");
-		sys::write (p1, B"world");
+		sys::write (p1, @b"hello");
+		sys::write (p1, @b"world");
 		sys::close (p1);
 		sys::wait(a);
 	}##if (sys::pipe(p0, p1) <= -1)
@@ -1532,8 +1532,8 @@ done:
 		## parent
 		printf ("parent.... %d %d %d\n", sys::getpid(), p0, p1);
 		sys::close (p0);
-		sys::write (p1, B"hello");
-		sys::write (p1, B"world");
+		sys::write (p1, @b"hello");
+		sys::write (p1, @b"world");
 		sys::close (p1);
 		sys::wait(a);
 	}

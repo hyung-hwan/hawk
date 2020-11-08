@@ -423,7 +423,7 @@ static int print_expr (hawk_t* hawk, hawk_nde_t* nde)
 			hawk_bch_t* ptr;
 			hawk_oow_t len, i;
 
-			PUT_SRCSTR (hawk, HAWK_T("B\""));
+			PUT_SRCSTR (hawk, HAWK_T("@b\""));
 			ptr = ((hawk_nde_mbs_t*)nde)->ptr;
 			len = ((hawk_nde_mbs_t*)nde)->len;
 			for (i = 0; i < len; i++)
@@ -1143,9 +1143,9 @@ static int print_stmts (hawk_t* hawk, hawk_nde_t* tree, int depth)
 {
 	hawk_nde_t* p = tree;
 
-	while (p != HAWK_NULL) 
+	while (p) 
 	{
-		if (print_stmt (hawk, p, depth) == -1) return -1;
+		if (print_stmt(hawk, p, depth) == -1) return -1;
 		p = p->next;
 	}
 
@@ -1154,19 +1154,19 @@ static int print_stmts (hawk_t* hawk, hawk_nde_t* tree, int depth)
 
 int hawk_prnpt (hawk_t* hawk, hawk_nde_t* tree)
 {
-	return print_stmts (hawk, tree, 0);
+	return print_stmts(hawk, tree, 0);
 }
 
 int hawk_prnnde (hawk_t* hawk, hawk_nde_t* tree)
 {
-	return print_stmt (hawk, tree, 0);
+	return print_stmt(hawk, tree, 0);
 }
 
 int hawk_prnptnpt (hawk_t* hawk, hawk_nde_t* tree)
 {
 	hawk_nde_t* nde = tree;
 
-	while (nde != HAWK_NULL)
+	while (nde)
 	{
 		if (print_expr (hawk, nde) == -1) return -1;
 		if (nde->next == HAWK_NULL) break;
@@ -1183,7 +1183,7 @@ void hawk_clrpt (hawk_t* hawk, hawk_nde_t* tree)
 	hawk_nde_t* p = tree;
 	hawk_nde_t* next;
 
-	while (p != HAWK_NULL) 
+	while (p) 
 	{
 		next = p->next;
 

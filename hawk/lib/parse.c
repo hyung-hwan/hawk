@@ -6104,7 +6104,7 @@ static int get_string (
 	#if defined(HAWK_OOCH_IS_BCH)
 		/* nothing extra to handle byte_only */
 	#else
-		if (byte_only && c != HAWK_T('\\') && !HAWK_BYTE_PRINTABLE(c))
+		if (byte_only && c != '\\' && !HAWK_BYTE_PRINTABLE(c))
 		{
 			hawk_seterrfmt (hawk, &hawk->tok.loc, HAWK_EMBSCHR, HAWK_T("invalid mbs character '%jc'"), (hawk_ooch_t)c);
 			return -1;
@@ -6330,7 +6330,7 @@ static int get_rexstr (hawk_t* hawk, hawk_tok_t* tok)
 }
 
 
-static int get_single_quoted_string (hawk_t* hawk, int byte_only, hawk_tok_t* tok)
+static int get_raw_string (hawk_t* hawk, hawk_ooch_t end_char, int byte_only, hawk_tok_t* tok)
 {
 	hawk_ooci_t c;
 
@@ -6347,14 +6347,14 @@ static int get_single_quoted_string (hawk_t* hawk, int byte_only, hawk_tok_t* to
 	#if defined(HAWK_OOCH_IS_BCH)
 		/* nothing extra to handle byte_only */
 	#else
-		if (byte_only && c != HAWK_T('\\') && !HAWK_BYTE_PRINTABLE(c))
+		if (byte_only && c != '\\' && !HAWK_BYTE_PRINTABLE(c))
 		{
 			hawk_seterrfmt (hawk, &hawk->tok.loc, HAWK_EMBSCHR, HAWK_T("invalid mbs character '%jc'"), (hawk_ooch_t)c);
 			return -1;
 		}
 	#endif
 
-		if (c == HAWK_T('\''))
+		if (c == end_char)
 		{
 			/* terminating quote */
 			GET_CHAR (hawk);
@@ -6668,7 +6668,6 @@ retry:
 	{
 		int type;
 
-		ADD_TOKEN_CHAR (hawk, tok, c);
 		GET_CHAR_TO (hawk, c);
 
 		if (c != HAWK_T('_') && !hawk_is_ooch_alpha(c))
@@ -6678,8 +6677,100 @@ retry:
 			hawk_seterrnum (hawk, &(hawk)->tok.loc, HAWK_EXKWEM);
 			return -1;
 		}
+
+		if (c == 'B' || c == 'b')
+		{
+			hawk_sio_lxc_t pc1 = hawk->sio.last;
+			GET_CHAR_TO (hawk, c);
+			if (c == 'R' || c == 'r')
+			{
+				hawk_sio_lxc_t pc2 = hawk->sio.last;
+				GET_CHAR_TO (hawk, c);
+				if (c == '\"')
+				{
+					/* raw byte string */
+					SET_TOKEN_TYPE (hawk, tok, TOK_MBS);
+					if (get_raw_string(hawk, c, 1, tok) <= -1) return -1;
+				}
+				else
+				{
+					unget_char (hawk, &hawk->sio.last);
+					unget_char (hawk, &pc2);
+					hawk->sio.last = pc1;
+					c = pc1.c;
+					goto process_at_identifier;
+				}
+			}
+			else if (c == '\"')
+			{
+				/* B, b - byte string */
+				SET_TOKEN_TYPE (hawk, tok, TOK_MBS);
+				if (get_string(hawk, c, HAWK_T('\\'), 0, 1, 0, tok) <= -1) return -1;
+			}
+	#if 0
+			
+			else if (c == '\'')
+			{
+				/* TODO: character literal when I add a character type?? */
+			}
+	#endif
+			else
+			{
+				unget_char (hawk, &hawk->sio.last);
+				hawk->sio.last = pc1;
+				c = pc1.c;
+				goto process_at_identifier;
+			}
+		}
+		else if (c == 'R' || c == 'r')
+		{
+			hawk_sio_lxc_t pc1 = hawk->sio.last;
+			GET_CHAR_TO (hawk, c);
+			if (c == 'B' || c == 'b')
+			{
+				hawk_sio_lxc_t pc2 = hawk->sio.last;
+				GET_CHAR_TO (hawk, c);
+				if (c == '\"')
+				{
+					/* raw byte string */
+					SET_TOKEN_TYPE (hawk, tok, TOK_MBS);
+					if (get_raw_string(hawk, c, 1, tok) <= -1) return -1;
+				}
+				else
+				{
+					unget_char (hawk, &hawk->sio.last);
+					unget_char (hawk, &pc2);
+					hawk->sio.last = pc1;
+					c = pc1.c;
+					goto process_at_identifier;
+				}
+			}
+			else if (c == '\"')
+			{
+				/* R, r - raw string */
+				SET_TOKEN_TYPE (hawk, tok, TOK_STR);
+				if (get_raw_string(hawk, c, 0, tok) <= -1) return -1;
+			}
+	#if 0
+			
+			else if (c == '\'')
+			{
+				/* TODO: character literal when I add a character type?? */
+			}
+	#endif
+			else
+			{
+				unget_char (hawk, &hawk->sio.last);
+				hawk->sio.last = pc1;
+				c = pc1.c;
+				goto process_at_identifier;
+			}
+		}
 		else
 		{
+		process_at_identifier:
+			ADD_TOKEN_CHAR (hawk, tok, HAWK_T('@'));
+
 			/* expect normal identifier starting with an alphabet */
 			do 
 			{
@@ -6712,54 +6803,33 @@ retry:
 			}
 		}
 	}
-	else if (c == HAWK_T('B'))
-	{
-		GET_CHAR_TO (hawk, c);
-		if (c == HAWK_T('\"'))
-		{
-			/* multi-byte string/byte array */
-			SET_TOKEN_TYPE (hawk, tok, TOK_MBS);
-			if (get_string(hawk, c, HAWK_T('\\'), 0, 1, 0, tok) <= -1) return -1;
-		}
-		else if (c == HAWK_T('\''))
-		{
-			SET_TOKEN_TYPE (hawk, tok, TOK_MBS);
-			if (get_single_quoted_string(hawk, 1, tok) <= -1) return -1;
-		}
-		else
-		{
-			ADD_TOKEN_CHAR (hawk, tok, HAWK_T('B'));
-			goto process_identifier;
-		}
-	}
-	else if (c == HAWK_T('_') || hawk_is_ooch_alpha(c))
+	else if (c == '_' || hawk_is_ooch_alpha(c))
 	{
 		int type;
 
-	process_identifier:
 		/* identifier */
 		do 
 		{
 			ADD_TOKEN_CHAR (hawk, tok, c);
 			GET_CHAR_TO (hawk, c);
 		} 
-		while (c == HAWK_T('_') || hawk_is_ooch_alpha(c) || hawk_is_ooch_digit(c));
+		while (c == '_' || hawk_is_ooch_alpha(c) || hawk_is_ooch_digit(c));
 
 		type = classify_ident(hawk, HAWK_OOECS_OOCS(tok->name));
 		SET_TOKEN_TYPE (hawk, tok, type);
 	}
-	else if (c == HAWK_T('\"'))
+	else if (c == '\"')
 	{
 		/* double-quoted string */
 		SET_TOKEN_TYPE (hawk, tok, TOK_STR);
-		if (get_string(hawk, c, HAWK_T('\\'), 0, 0, 0, tok) <= -1) return -1;
+		if (get_string(hawk, c, '\\', 0, 0, 0, tok) <= -1) return -1;
 	}
-	else if (c == HAWK_T('\''))
+#if 0
+	else if (c == '\''))
 	{
-		/* single-quoted string - no escaping */
-		SET_TOKEN_TYPE (hawk, tok, TOK_STR);
-		if (get_single_quoted_string(hawk, 0, tok) <= -1) return -1;
+		/* TODO: character literal */
 	}
+#endif
 	else
 	{
 	try_get_symbols:
@@ -7025,9 +7095,9 @@ static int deparse (hawk_t* hawk)
 
 		hawk_getkwname (hawk, HAWK_KWID_BEGIN, &kw);
 
-		if (hawk_putsrcoochars (hawk, kw.ptr, kw.len) <= -1) EXIT_DEPARSE ();
-		if (hawk_putsrcoocstr (hawk, HAWK_T(" ")) <= -1) EXIT_DEPARSE ();
-		if (hawk_prnnde (hawk, nde) <= -1) EXIT_DEPARSE ();
+		if (hawk_putsrcoochars(hawk, kw.ptr, kw.len) <= -1) EXIT_DEPARSE ();
+		if (hawk_putsrcoocstr(hawk, HAWK_T(" ")) <= -1) EXIT_DEPARSE ();
+		if (hawk_prnnde(hawk, nde) <= -1) EXIT_DEPARSE ();
 
 		if (hawk->opt.trait & HAWK_CRLF)
 		{
@@ -7194,7 +7264,7 @@ static int flush_out (hawk_t* hawk)
 
 int hawk_putsrcoocstr (hawk_t* hawk, const hawk_ooch_t* str)
 {
-	while (*str != HAWK_T('\0'))
+	while (*str != '\0')
 	{
 		if (put_char(hawk, *str) <= -1) return -1;
 		str++;
