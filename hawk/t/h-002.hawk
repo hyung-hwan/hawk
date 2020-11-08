@@ -138,7 +138,25 @@ function main()
 		ensure (z, @r"x\&ax", @SCRIPTNAME, @SCRIPTLINE);
 	}
 
-	ensure (sprintf("%*sworld", -20, "hello"), "hello               world", @SCRIPTNAME, @SCRIPTLINE);
+
+	{
+		@local pi, e;
+
+		pi = 3.1415927;
+
+		ensure (sprintf("%.10d:%.10x", 5, 14), "0000000005:000000000e", @SCRIPTNAME,  @SCRIPTLINE);
+
+		ensure (sprintf("cos(%f) = %f", pi/4, cos(pi/4)), "cos(0.785398) = 0.707107", @SCRIPTNAME, @SCRIPTLINE);
+		ensure (sprintf("sin(%f) = %f", pi/4, sin(pi/4)), "sin(0.785398) = 0.707107", @SCRIPTNAME, @SCRIPTLINE);
+
+		e = exp(1);
+		ensure (sprintf("e = %f", e), "e = 2.718282", @SCRIPTNAME, @SCRIPTLINE);
+		ensure (sprintf("log(e) = %f", log(e)), "log(e) = 1.000000", @SCRIPTNAME, @SCRIPTLINE);
+		ensure (sprintf("sqrt(pi ^ 2) = %f", sqrt(pi ^ 2)), "sqrt(pi ^ 2) = 3.141593", @SCRIPTNAME, @SCRIPTLINE);
+		ensure (sprintf("atan2(1, 1) = %f", atan2(1, 1)), "atan2(1, 1) = 0.785398", @SCRIPTNAME, @SCRIPTLINE);
+
+		ensure (sprintf("%*sworld", -20, "hello"), "hello               world", @SCRIPTNAME, @SCRIPTLINE);
+	}
 
 	{
 		@local bool, b, c;
