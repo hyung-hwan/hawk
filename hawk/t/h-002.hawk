@@ -140,7 +140,7 @@ function main()
 
 
 	{
-		@local pi, e;
+		@local pi, e, tmp;
 
 		pi = 3.1415927;
 
@@ -155,7 +155,90 @@ function main()
 		ensure (sprintf("sqrt(pi ^ 2) = %f", sqrt(pi ^ 2)), "sqrt(pi ^ 2) = 3.141593", @SCRIPTNAME, @SCRIPTLINE);
 		ensure (sprintf("atan2(1, 1) = %f", atan2(1, 1)), "atan2(1, 1) = 0.785398", @SCRIPTNAME, @SCRIPTLINE);
 
-		ensure (sprintf("%*sworld", -20, "hello"), "hello               world", @SCRIPTNAME, @SCRIPTLINE);
+		tmp = sprintf("%s", "hello");
+		ensure ((tmp === @b"hello"), 0, @SCRIPTNAME, @SCRIPTLINE);
+		ensure ((tmp === "hello"),   1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure ((tmp == @b"hello"),  1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure ((tmp == "hello"),    1, @SCRIPTNAME, @SCRIPTLINE);
+
+		tmp = sprintf("%s", @b"hello");
+		ensure ((tmp === @b"hello"), 0, @SCRIPTNAME, @SCRIPTLINE);
+		ensure ((tmp === "hello"),   1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure ((tmp == @b"hello"),  1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure ((tmp == "hello"),    1, @SCRIPTNAME, @SCRIPTLINE);
+
+		tmp = sprintf(@b"%s", "hello");
+		ensure ((tmp === @b"hello"), 1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure ((tmp === "hello"),   0, @SCRIPTNAME, @SCRIPTLINE);
+		ensure ((tmp == @b"hello"),  1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure ((tmp == "hello"),    1, @SCRIPTNAME, @SCRIPTLINE);
+
+		tmp = sprintf(@b"%s", @b"hello");
+		ensure ((tmp === @b"hello"), 1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure ((tmp === "hello"),   0, @SCRIPTNAME, @SCRIPTLINE);
+		ensure ((tmp == @b"hello"),  1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure ((tmp == "hello"),    1, @SCRIPTNAME, @SCRIPTLINE);
+
+		ensure (sprintf("%0d", 0),            "0",          @SCRIPTNAME,  @SCRIPTLINE);
+		ensure (sprintf("%0.d", 0),           "",           @SCRIPTNAME,  @SCRIPTLINE);
+		ensure (sprintf("%.d", 0),            "",           @SCRIPTNAME,  @SCRIPTLINE);
+		ensure (sprintf("%.*d", 0, 0),        "",           @SCRIPTNAME,  @SCRIPTLINE);
+		ensure (sprintf("%.*d", 1, 0),        "0",          @SCRIPTNAME,  @SCRIPTLINE);
+		ensure (sprintf("%*d", 0, 0),         "0",          @SCRIPTNAME,  @SCRIPTLINE);
+		ensure (sprintf("%*.*d", 0, 0, 0),    "",           @SCRIPTNAME,  @SCRIPTLINE);
+		ensure (sprintf("%-*.*d", 0, 0, 0),   "",           @SCRIPTNAME,  @SCRIPTLINE);
+		ensure (sprintf("%*.*d", 1, 0, 0),    " ",          @SCRIPTNAME,  @SCRIPTLINE);
+		ensure (sprintf("%*.*d", 0, 3, 0),    "000",        @SCRIPTNAME,  @SCRIPTLINE);
+		ensure (sprintf("%-*d", 0, 0),        "0",          @SCRIPTNAME,  @SCRIPTLINE);
+
+		ensure (sprintf(@b"%0d", 0),          @b"0",        @SCRIPTNAME,  @SCRIPTLINE);
+		ensure (sprintf(@b"%0.d", 0),         @b"",         @SCRIPTNAME,  @SCRIPTLINE);
+		ensure (sprintf(@b"%.d", 0),          @b"",         @SCRIPTNAME,  @SCRIPTLINE);
+		ensure (sprintf(@b"%.*d", 0, 0),      @b"",         @SCRIPTNAME,  @SCRIPTLINE);
+		ensure (sprintf(@b"%.*d", 1, 0),      @b"0",        @SCRIPTNAME,  @SCRIPTLINE);
+		ensure (sprintf(@b"%*d", 0, 0),       @b"0",        @SCRIPTNAME,  @SCRIPTLINE);
+		ensure (sprintf(@b"%*.*d", 0, 0, 0),  @b"",         @SCRIPTNAME,  @SCRIPTLINE);
+		ensure (sprintf(@b"%-*.*d", 0, 0, 0), @b"",         @SCRIPTNAME,  @SCRIPTLINE);
+		ensure (sprintf(@b"%*.*d", 1, 0, 0),  @b" ",        @SCRIPTNAME,  @SCRIPTLINE);
+		ensure (sprintf(@b"%*.*d", 0, 3, 0),  @b"000",      @SCRIPTNAME,  @SCRIPTLINE);
+		ensure (sprintf(@b"%-*d", 0, 0),      @b"0",        @SCRIPTNAME,  @SCRIPTLINE);
+
+		ensure (sprintf("%5d", 5),            "    5",      @SCRIPTNAME,  @SCRIPTLINE);
+		ensure (sprintf("%-5d", 5),           "5    ",      @SCRIPTNAME,  @SCRIPTLINE);
+		ensure (sprintf("%*d", 5, 5),         "    5",      @SCRIPTNAME,  @SCRIPTLINE);
+		ensure (sprintf("%*d", -5, 5),        "5    ",      @SCRIPTNAME,  @SCRIPTLINE);
+		ensure (sprintf("%-*d", 5, 5),        "5    ",      @SCRIPTNAME,  @SCRIPTLINE);
+		ensure (sprintf("%-*d", -5, 5),       "5    ",      @SCRIPTNAME,  @SCRIPTLINE);
+
+		ensure (sprintf(@b"%5d", 5),          @b"    5",    @SCRIPTNAME,  @SCRIPTLINE);
+		ensure (sprintf(@b"%-5d", 5),         @b"5    ",    @SCRIPTNAME,  @SCRIPTLINE);
+		ensure (sprintf(@b"%*d", 5, 5),       @b"    5",    @SCRIPTNAME,  @SCRIPTLINE);
+		ensure (sprintf(@b"%*d", -5, 5),      @b"5    ",    @SCRIPTNAME,  @SCRIPTLINE);
+		ensure (sprintf(@b"%-*d", 5, 5),      @b"5    ",    @SCRIPTNAME,  @SCRIPTLINE);
+
+		ensure (sprintf("%*sworld", 20, "hello"),        "               helloworld",   @SCRIPTNAME, @SCRIPTLINE);
+		ensure (sprintf("%*sworld", -20, "hello"),       "hello               world",   @SCRIPTNAME, @SCRIPTLINE);
+		ensure (sprintf("%-*sworld", 20, "hello"),       "hello               world",   @SCRIPTNAME, @SCRIPTLINE);
+		ensure (sprintf("%-*sworld", -20, "hello"),      "hello               world",   @SCRIPTNAME, @SCRIPTLINE);
+
+		ensure (sprintf(@b"%*sworld", 20, "hello"),      @b"               helloworld", @SCRIPTNAME, @SCRIPTLINE);
+		ensure (sprintf(@b"%*sworld", -20, "hello"),     @b"hello               world", @SCRIPTNAME, @SCRIPTLINE);
+		ensure (sprintf(@b"%-*sworld", 20, "hello"),     @b"hello               world", @SCRIPTNAME, @SCRIPTLINE);
+		ensure (sprintf(@b"%-*sworld", -20, "hello"),    @b"hello               world", @SCRIPTNAME, @SCRIPTLINE);
+
+		ensure (sprintf("%0s", "hello"),                 "hello",                       @SCRIPTNAME, @SCRIPTLINE);
+		ensure (sprintf("%.0s", "hello"),                "",                            @SCRIPTNAME, @SCRIPTLINE);
+		ensure (sprintf("%0.0s", "hello"),               "",                            @SCRIPTNAME, @SCRIPTLINE);
+		ensure (sprintf("%1.0s", "hello"),               " ",                           @SCRIPTNAME, @SCRIPTLINE);
+		ensure (sprintf("%*.*s", 20, 0, "hello"),        "                    ",        @SCRIPTNAME, @SCRIPTLINE);
+		ensure (sprintf("%*.*s", 20, 2, "hello"),        "                  he",        @SCRIPTNAME, @SCRIPTLINE);
+
+		ensure (sprintf(@b"%0s", "hello"),                 @b"hello",                   @SCRIPTNAME, @SCRIPTLINE);
+		ensure (sprintf(@b"%.0s", "hello"),                @b"",                        @SCRIPTNAME, @SCRIPTLINE);
+		ensure (sprintf(@b"%0.0s", "hello"),               @b"",                        @SCRIPTNAME, @SCRIPTLINE);
+		ensure (sprintf(@b"%1.0s", "hello"),               @b" ",                       @SCRIPTNAME, @SCRIPTLINE);
+		ensure (sprintf(@b"%*.*s", 20, 0, "hello"),        @b"                    ",    @SCRIPTNAME, @SCRIPTLINE);
+		ensure (sprintf(@b"%*.*s", 20, 2, "hello"),        @b"                  he",    @SCRIPTNAME, @SCRIPTLINE);
 	}
 
 	{
