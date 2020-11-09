@@ -2007,7 +2007,7 @@ static int run_pblock (hawk_rtx_t* rtx, hawk_chain_t* cha, hawk_oow_t bno)
 			hawk_val_t* v1;
 
 			v1 = eval_expression(rtx, ptn);
-			if (!v1) return -1;
+			if (HAWK_UNLIKELY(!v1)) return -1;
 
 			hawk_rtx_refupval (rtx, v1);
 
@@ -2045,7 +2045,7 @@ static int run_pblock (hawk_rtx_t* rtx, hawk_chain_t* cha, hawk_oow_t bno)
 				hawk_val_t* v2;
 
 				v2 = eval_expression(rtx, ptn->next);
-				if (!v2) return -1;
+				if (HAWK_UNLIKELY(!v2)) return -1;
 				hawk_rtx_refupval (rtx, v2);
 				rtx->pattern_range_state[bno] = !hawk_rtx_valtobool(rtx, v2);
 				hawk_rtx_refdownval (rtx, v2);
@@ -2363,7 +2363,7 @@ static int run_while (hawk_rtx_t* rtx, hawk_nde_while_t* nde)
 			ON_STATEMENT (rtx, nde->test);
 
 			test = eval_expression(rtx, nde->test);
-			if (!test) return -1;
+			if (HAWK_UNLIKELY(!test)) return -1;
 
 			hawk_rtx_refupval (rtx, test);
 
@@ -2408,7 +2408,7 @@ static int run_for (hawk_rtx_t* rtx, hawk_nde_for_t* nde)
 			HAWK_ASSERT (nde->test->next == HAWK_NULL);
 
 			ON_STATEMENT (rtx, nde->test);
-			test = eval_expression (rtx, nde->test);
+			test = eval_expression(rtx, nde->test);
 			if (HAWK_UNLIKELY(!test)) return -1;
 
 			hawk_rtx_refupval (rtx, test);
@@ -4143,11 +4143,11 @@ static hawk_val_t* do_assignment_positional (hawk_rtx_t* rtx, hawk_nde_pos_t* po
 	hawk_oocs_t str;
 	int n;
 
-	v = eval_expression (rtx, pos->val);
-	if (v == HAWK_NULL) return HAWK_NULL;
+	v = eval_expression(rtx, pos->val);
+	if (HAWK_UNLIKELY(!v)) return HAWK_NULL;
 
 	hawk_rtx_refupval (rtx, v);
-	n = hawk_rtx_valtoint (rtx, v, &lv);
+	n = hawk_rtx_valtoint(rtx, v, &lv);
 	hawk_rtx_refdownval (rtx, v);
 
 	if (n <= -1) 
@@ -4317,8 +4317,8 @@ static hawk_val_t* eval_binop_lor (hawk_rtx_t* rtx, hawk_nde_t* left, hawk_nde_t
 	hawk_val_t* lv, * rv, * res;
 
 	HAWK_ASSERT (left->next == HAWK_NULL);
-	lv = eval_expression (rtx, left);
-	if (lv == HAWK_NULL) return HAWK_NULL;
+	lv = eval_expression(rtx, left);
+	if (HAWK_UNLIKELY(!lv)) return HAWK_NULL;
 
 	hawk_rtx_refupval (rtx, lv);
 	if (hawk_rtx_valtobool(rtx, lv)) 
@@ -4328,8 +4328,8 @@ static hawk_val_t* eval_binop_lor (hawk_rtx_t* rtx, hawk_nde_t* left, hawk_nde_t
 	else
 	{
 		HAWK_ASSERT (right->next == HAWK_NULL);
-		rv = eval_expression (rtx, right);
-		if (rv == HAWK_NULL)
+		rv = eval_expression(rtx, right);
+		if (HAWK_UNLIKELY(!rv))
 		{
 			hawk_rtx_refdownval (rtx, lv);
 			return HAWK_NULL;
@@ -6113,8 +6113,8 @@ static hawk_val_t* eval_cnd (hawk_rtx_t* run, hawk_nde_t* nde)
 
 	HAWK_ASSERT (cnd->test->next == HAWK_NULL);
 
-	tv = eval_expression (run, cnd->test);
-	if (tv == HAWK_NULL) return HAWK_NULL;
+	tv = eval_expression(run, cnd->test);
+	if (HAWK_UNLIKELY(!tv)) return HAWK_NULL;
 
 	hawk_rtx_refupval (run, tv);
 
@@ -7141,7 +7141,7 @@ static hawk_val_t* eval_pos (hawk_rtx_t* rtx, hawk_nde_t* nde)
 	hawk_int_t lv;
 	int n;
 
-	v = eval_expression (rtx, pos->val);
+	v = eval_expression(rtx, pos->val);
 	if (HAWK_UNLIKELY(!v)) return HAWK_NULL;
 
 	hawk_rtx_refupval (rtx, v);
@@ -7756,7 +7756,7 @@ hawk_ooch_t* hawk_rtx_format (
 		}
 
 wp_mod_init:
-		wp[WP_WIDTH] = -1; /* width */
+		wp[WP_WIDTH] = 0; /* width */
 		wp[WP_PRECISION] = -1; /* precision */
 		wp_idx = WP_WIDTH; /* width first */
 
@@ -7792,14 +7792,14 @@ wp_mod_main:
 				else 
 				{
 					v = eval_expression(rtx, args);
-					if (v == HAWK_NULL) return HAWK_NULL;
+					if (HAWK_UNLIKELY(!v)) return HAWK_NULL;
 				}
 			}
 
 			hawk_rtx_refupval (rtx, v);
 			n = hawk_rtx_valtoint(rtx, v, &wp[wp_idx]);
 			hawk_rtx_refdownval (rtx, v);
-			if (n <= -1) return HAWK_NULL; 
+			if (HAWK_UNLIKELY(n <= -1)) return HAWK_NULL; 
 
 			do
 			{
@@ -7847,14 +7847,19 @@ wp_mod_main:
 
 		if (wp_idx == WP_WIDTH && i < fmt_len && fmt[i] == HAWK_T('.'))
 		{
-			wp[WP_PRECISION] = 0;
 			FMT_CHAR (fmt[i]); i++;
-
+			wp[WP_PRECISION] = 0;
 			wp_idx = WP_PRECISION; /* change index to precision */
 			goto wp_mod_main;
 		}
 
 		if (i >= fmt_len) break;
+
+		if (wp[WP_WIDTH] < 0)
+		{
+			wp[WP_WIDTH] = -wp[WP_WIDTH];
+			flags |= FLAG_MINUS;
+		}
 
 		if (fmt[i] == 'd' || fmt[i] == 'i' || 
 		    fmt[i] == 'x' || fmt[i] == 'X' ||
@@ -7878,7 +7883,7 @@ wp_mod_main:
 					hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EFMTARG);
 					return HAWK_NULL;
 				}
-				v = hawk_rtx_getarg (rtx, stack_arg_idx);
+				v = hawk_rtx_getarg(rtx, stack_arg_idx);
 			}
 			else
 			{
@@ -7893,31 +7898,28 @@ wp_mod_main:
 				}
 				else 
 				{
-					v = eval_expression (rtx, args);
-					if (v == HAWK_NULL) return HAWK_NULL;
+					v = eval_expression(rtx, args);
+					if (HAWK_UNLIKELY(!v)) return HAWK_NULL;
 				}
 			}
 
 			hawk_rtx_refupval (rtx, v);
-			n = hawk_rtx_valtoint (rtx, v, &l);
+			n = hawk_rtx_valtoint(rtx, v, &l);
 			hawk_rtx_refdownval (rtx, v);
-			if (n <= -1) return HAWK_NULL; 
+			if (HAWK_UNLIKELY(n <= -1)) return HAWK_NULL; 
 
 			fmt_flags = HAWK_FMT_INTMAX_NOTRUNC | HAWK_FMT_INTMAX_NONULL;
 
-			if (l == 0 && wp[WP_PRECISION] == 0)
+			if (l == 0 && wp_idx == WP_PRECISION && wp[WP_PRECISION] == 0)
 			{
-				/* A zero value with a precision of zero produces
-				 * no character. */
+				/* printf ("%.d", 0); printf ("%.0d", 0); printf ("%.*d", 0, 0); */
+				/* A zero value with a precision of zero produces no character. */
 				fmt_flags |= HAWK_FMT_INTMAX_NOZERO;
 			}
 
-			if (wp[WP_WIDTH] != -1)
+			if (wp[WP_WIDTH] > 0)
 			{
-				/* Width must be greater than 0 if specified */
-				HAWK_ASSERT (wp[WP_WIDTH] > 0);
-
-				/* justification when width is specified. */
+				/* justification for width greater than 0 */
 				if (flags & FLAG_ZERO)
 				{
 					if (flags & FLAG_MINUS)
@@ -7933,7 +7935,7 @@ wp_mod_main:
 					}
 					else
 					{
-						if (wp[WP_PRECISION] == -1)
+						if (wp_idx != WP_PRECISION) /* if precision is not specified, wp_idx is at WP_WIDTH */
 						{
 							/* precision not specified. 
 							 * FLAG_ZERO can take effect */
@@ -8108,7 +8110,7 @@ wp_mod_main:
 				else 
 				{
 					v = eval_expression(rtx, args);
-					if (v == HAWK_NULL) return HAWK_NULL;
+					if (HAWK_UNLIKELY(!v)) return HAWK_NULL;
 				}
 			}
 
@@ -8149,7 +8151,7 @@ wp_mod_main:
 				else 
 				{
 					v = eval_expression(rtx, args);
-					if (!HAWK_UNLIKELY(v)) return HAWK_NULL;
+					if (HAWK_UNLIKELY(!v)) return HAWK_NULL;
 				}
 			}
 
@@ -8189,7 +8191,7 @@ wp_mod_main:
 					return HAWK_NULL;
 			}
 
-			if (wp[WP_PRECISION] == -1 || wp[WP_PRECISION] == 0 || wp[WP_PRECISION] > (hawk_int_t)ch_len) 
+			if (wp[WP_PRECISION] <= 0 || wp[WP_PRECISION] > (hawk_int_t)ch_len) 
 			{
 				wp[WP_PRECISION] = (hawk_int_t)ch_len;
 			}
@@ -8267,7 +8269,7 @@ wp_mod_main:
 				else 
 				{
 					v = eval_expression(rtx, args);
-					if (v == HAWK_NULL) return HAWK_NULL;
+					if (HAWK_UNLIKELY(!v)) return HAWK_NULL;
 				}
 			}
 
@@ -8321,7 +8323,11 @@ wp_mod_main:
 				}
 			}
 
-			if (wp[WP_PRECISION] == -1 || wp[WP_PRECISION] > (hawk_int_t)str_len) wp[WP_PRECISION] = (hawk_int_t)str_len;
+			if (wp_idx != WP_PRECISION || wp[WP_PRECISION] <= -1 || wp[WP_PRECISION] > (hawk_int_t)str_len) 
+			{
+				/* precision not specified, or specified to a negative value or greater than the actual length */
+				wp[WP_PRECISION] = (hawk_int_t)str_len;
+			}
 			if (wp[WP_PRECISION] > wp[WP_WIDTH]) wp[WP_WIDTH] = wp[WP_PRECISION];
 
 			if (!(flags & FLAG_MINUS))
@@ -8562,7 +8568,7 @@ hawk_bch_t* hawk_rtx_formatmbs (
 		}
 
 wp_mod_init:
-		wp[WP_WIDTH] = -1; /* width */
+		wp[WP_WIDTH] = 0; /* width */
 		wp[WP_PRECISION] = -1; /* precision */
 		wp_idx = WP_WIDTH; /* width first */
 
@@ -8598,14 +8604,14 @@ wp_mod_main:
 				else 
 				{
 					v = eval_expression(rtx, args);
-					if (v == HAWK_NULL) return HAWK_NULL;
+					if (HAWK_UNLIKELY(!v)) return HAWK_NULL;
 				}
 			}
 
 			hawk_rtx_refupval (rtx, v);
 			n = hawk_rtx_valtoint(rtx, v, &wp[wp_idx]);
 			hawk_rtx_refdownval (rtx, v);
-			if (n <= -1) return HAWK_NULL; 
+			if (HAWK_UNLIKELY(n <= -1)) return HAWK_NULL; 
 
 			do
 			{
@@ -8653,14 +8659,20 @@ wp_mod_main:
 
 		if (wp_idx == WP_WIDTH && i < fmt_len && fmt[i] == HAWK_BT('.'))
 		{
-			wp[WP_PRECISION] = 0;
 			FMT_MCHAR (fmt[i]); i++;
 
+			wp[WP_PRECISION] = 0;
 			wp_idx = WP_PRECISION; /* change index to precision */
 			goto wp_mod_main;
 		}
 
 		if (i >= fmt_len) break;
+
+		if (wp[WP_WIDTH] < 0)
+		{
+			wp[WP_WIDTH] = -wp[WP_WIDTH];
+			flags |= FLAG_MINUS;
+		}
 
 		if (fmt[i] == HAWK_BT('d') || fmt[i] == HAWK_BT('i') || 
 		    fmt[i] == HAWK_BT('x') || fmt[i] == HAWK_BT('X') ||
@@ -8700,30 +8712,27 @@ wp_mod_main:
 				else 
 				{
 					v = eval_expression(rtx, args);
-					if (v == HAWK_NULL) return HAWK_NULL;
+					if (HAWK_UNLIKELY(!v)) return HAWK_NULL;
 				}
 			}
 
 			hawk_rtx_refupval (rtx, v);
-			n = hawk_rtx_valtoint (rtx, v, &l);
+			n = hawk_rtx_valtoint(rtx, v, &l);
 			hawk_rtx_refdownval (rtx, v);
-			if (n <= -1) return HAWK_NULL; 
+			if (HAWK_UNLIKELY(n <= -1)) return HAWK_NULL; 
 
 			fmt_flags = HAWK_FMT_INTMAX_NOTRUNC | HAWK_FMT_INTMAX_NONULL;
 
-			if (l == 0 && wp[WP_PRECISION] == 0)
+			if (l == 0 && wp_idx == WP_PRECISION && wp[WP_PRECISION] == 0)
 			{
-				/* A zero value with a precision of zero produces
-				 * no character. */
+				/* printf ("%.d", 0); printf ("%.0d", 0); printf ("%.*d", 0, 0); */
+				/* A zero value with a precision of zero produces no character. */
 				fmt_flags |= HAWK_FMT_INTMAX_NOZERO;
 			}
 
-			if (wp[WP_WIDTH] != -1)
+			if (wp[WP_WIDTH] > 0)
 			{
-				/* Width must be greater than 0 if specified */
-				HAWK_ASSERT (wp[WP_WIDTH] > 0);
-
-				/* justification when width is specified. */
+				/* justification for width greater than 0 */
 				if (flags & FLAG_ZERO)
 				{
 					if (flags & FLAG_MINUS)
@@ -8739,7 +8748,7 @@ wp_mod_main:
 					}
 					else
 					{
-						if (wp[WP_PRECISION] == -1)
+						if (wp_idx != WP_PRECISION) /* if precision is not set, wp_idx is at WP_WIDTH */
 						{
 							/* precision not specified. 
 							 * FLAG_ZERO can take effect */
@@ -8912,7 +8921,7 @@ wp_mod_main:
 				else 
 				{
 					v = eval_expression(rtx, args);
-					if (v == HAWK_NULL) return HAWK_NULL;
+					if (HAWK_UNLIKELY(!v)) return HAWK_NULL;
 				}
 			}
 
@@ -8953,7 +8962,7 @@ wp_mod_main:
 				else 
 				{
 					v = eval_expression(rtx, args);
-					if (v == HAWK_NULL) return HAWK_NULL;
+					if (HAWK_UNLIKELY(!v)) return HAWK_NULL;
 				}
 			}
 
@@ -9003,7 +9012,7 @@ wp_mod_main:
 					return HAWK_NULL;
 			}
 
-			if (wp[WP_PRECISION] == -1 || wp[WP_PRECISION] == 0 || wp[WP_PRECISION] > (hawk_int_t)ch_len) 
+			if (wp[WP_PRECISION] <= 0 || wp[WP_PRECISION] > (hawk_int_t)ch_len) 
 			{
 				wp[WP_PRECISION] = (hawk_int_t)ch_len;
 			}
@@ -9081,7 +9090,7 @@ wp_mod_main:
 				else 
 				{
 					v = eval_expression(rtx, args);
-					if (v == HAWK_NULL) return HAWK_NULL;
+					if (HAWK_UNLIKELY(!v)) return HAWK_NULL;
 				}
 			}
 
@@ -9137,7 +9146,11 @@ wp_mod_main:
 				}
 			}
 
-			if (wp[WP_PRECISION] == -1 || wp[WP_PRECISION] > (hawk_int_t)str_len) wp[WP_PRECISION] = (hawk_int_t)str_len;
+			if (wp_idx != WP_PRECISION || wp[WP_PRECISION] <= -1 || wp[WP_PRECISION] > (hawk_int_t)str_len) 
+			{
+				/* precision not specified, or specified to a negative value or greater than the actual length */
+				wp[WP_PRECISION] = (hawk_int_t)str_len;
+			}
 			if (wp[WP_PRECISION] > wp[WP_WIDTH]) wp[WP_WIDTH] = wp[WP_PRECISION];
 
 			if (!(flags & FLAG_MINUS))
