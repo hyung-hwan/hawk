@@ -2966,8 +2966,8 @@ static hawk_nde_t* parse_next (hawk_t* hawk, const hawk_loc_t* xloc)
 		return HAWK_NULL;
 	}
 
-	nde = (hawk_nde_next_t*) hawk_callocmem (hawk, HAWK_SIZEOF(*nde));
-	if (nde == HAWK_NULL)
+	nde = (hawk_nde_next_t*)hawk_callocmem(hawk, HAWK_SIZEOF(*nde));
+	if (HAWK_UNLIKELY(!nde))
 	{
 		ADJERR_LOC (hawk, xloc);
 		return HAWK_NULL;
@@ -2978,8 +2978,7 @@ static hawk_nde_t* parse_next (hawk_t* hawk, const hawk_loc_t* xloc)
 	return (hawk_nde_t*)nde;
 }
 
-static hawk_nde_t* parse_nextfile (
-	hawk_t* hawk, const hawk_loc_t* xloc, int out)
+static hawk_nde_t* parse_nextfile (hawk_t* hawk, const hawk_loc_t* xloc, int out)
 {
 	hawk_nde_nextfile_t* nde;
 
@@ -2994,8 +2993,8 @@ static hawk_nde_t* parse_nextfile (
 		return HAWK_NULL;
 	}
 
-	nde = (hawk_nde_nextfile_t*) hawk_callocmem (hawk, HAWK_SIZEOF(*nde));
-	if (nde == HAWK_NULL)
+	nde = (hawk_nde_nextfile_t*)hawk_callocmem(hawk, HAWK_SIZEOF(*nde));
+	if (HAWK_UNLIKELY(!nde))
 	{
 		ADJERR_LOC (hawk, xloc);
 		return HAWK_NULL;
@@ -3035,8 +3034,8 @@ static hawk_nde_t* parse_delete (hawk_t* hawk, const hawk_loc_t* xloc)
 	}
 
 	dloc = hawk->tok.loc;
-	var = parse_primary_ident (hawk, &dloc);
-	if (var == HAWK_NULL) goto oops;
+	var = parse_primary_ident(hawk, &dloc);
+	if (HAWK_UNLIKELY(!var)) goto oops;
 
 	if ((type == HAWK_NDE_DELETE && !is_var(var)) ||
 	    (type == HAWK_NDE_RESET && !is_plain_var(var)))
@@ -3056,8 +3055,8 @@ static hawk_nde_t* parse_delete (hawk_t* hawk, const hawk_loc_t* xloc)
 		if (get_token(hawk) <= -1) goto oops;
 	}
 
-	nde = (hawk_nde_delete_t*) hawk_callocmem (hawk, HAWK_SIZEOF(*nde));
-	if (nde == HAWK_NULL)
+	nde = (hawk_nde_delete_t*)hawk_callocmem(hawk, HAWK_SIZEOF(*nde));
+	if (HAWK_UNLIKELY(!nde))
 	{
 		ADJERR_LOC (hawk, xloc);
 		goto oops;
@@ -3083,17 +3082,12 @@ static hawk_nde_t* parse_print (hawk_t* hawk, const hawk_loc_t* xloc)
 	hawk_nde_type_t type;
 	hawk_loc_t eloc;
 
-	HAWK_ASSERT (hawk->ptok.type == TOK_PRINT || 
-	            hawk->ptok.type == TOK_PRINTF);
+	HAWK_ASSERT (hawk->ptok.type == TOK_PRINT || hawk->ptok.type == TOK_PRINTF);
 
-	type = (hawk->ptok.type == TOK_PRINT)?
-		HAWK_NDE_PRINT: HAWK_NDE_PRINTF;
+	type = (hawk->ptok.type == TOK_PRINT)? HAWK_NDE_PRINT: HAWK_NDE_PRINTF;
 
-	if (!MATCH_TERMINATOR(hawk) &&
-	    !MATCH(hawk,TOK_GT) &&
-	    !MATCH(hawk,TOK_RS) &&
-	    !MATCH(hawk,TOK_BOR) &&
-	    !MATCH(hawk,TOK_LOR)) 
+	if (!MATCH_TERMINATOR(hawk) && !MATCH(hawk,TOK_GT) &&
+	    !MATCH(hawk,TOK_RS) && !MATCH(hawk,TOK_BOR) && !MATCH(hawk,TOK_LOR)) 
 	{
 		hawk_nde_t* args_tail;
 		hawk_nde_t* tail_prev;
@@ -3259,7 +3253,7 @@ static hawk_nde_t* parse_print (hawk_t* hawk, const hawk_loc_t* xloc)
 		           MATCH(hawk,TOK_BOR)?      HAWK_OUT_PIPE:
 		           ((hawk->opt.trait & HAWK_RWPIPE) &&
 		            MATCH(hawk,TOK_LOR))?    HAWK_OUT_RWPIPE:
-		                                    HAWK_OUT_CONSOLE;
+		                                     HAWK_OUT_CONSOLE;
 
 		if (out_type != HAWK_OUT_CONSOLE)
 		{
@@ -3345,42 +3339,42 @@ static hawk_nde_t* parse_statement_nb (
 	else if (MATCH(hawk,TOK_BREAK)) 
 	{
 		if (get_token(hawk) <= -1) return HAWK_NULL;
-		nde = parse_break (hawk, xloc);
+		nde = parse_break(hawk, xloc);
 	}
 	else if (MATCH(hawk,TOK_CONTINUE)) 
 	{
 		if (get_token(hawk) <= -1) return HAWK_NULL;
-		nde = parse_continue (hawk, xloc);
+		nde = parse_continue(hawk, xloc);
 	}
 	else if (MATCH(hawk,TOK_RETURN)) 
 	{
 		if (get_token(hawk) <= -1) return HAWK_NULL;
-		nde = parse_return (hawk, xloc);
+		nde = parse_return(hawk, xloc);
 	}
 	else if (MATCH(hawk,TOK_EXIT) || MATCH(hawk,TOK_XABORT)) 
 	{
 		if (get_token(hawk) <= -1) return HAWK_NULL;
-		nde = parse_exit (hawk, xloc);
+		nde = parse_exit(hawk, xloc);
 	}
 	else if (MATCH(hawk,TOK_NEXT)) 
 	{
 		if (get_token(hawk) <= -1) return HAWK_NULL;
-		nde = parse_next (hawk, xloc);
+		nde = parse_next(hawk, xloc);
 	}
 	else if (MATCH(hawk,TOK_NEXTFILE)) 
 	{
 		if (get_token(hawk) <= -1) return HAWK_NULL;
-		nde = parse_nextfile (hawk, xloc, 0);
+		nde = parse_nextfile(hawk, xloc, 0);
 	}
 	else if (MATCH(hawk,TOK_NEXTOFILE))
 	{
 		if (get_token(hawk) <= -1) return HAWK_NULL;
-		nde = parse_nextfile (hawk, xloc, 1);
+		nde = parse_nextfile(hawk, xloc, 1);
 	}
 	else if (MATCH(hawk,TOK_DELETE) || MATCH(hawk,TOK_XRESET)) 
 	{
 		if (get_token(hawk) <= -1) return HAWK_NULL;
-		nde = parse_delete (hawk, xloc);
+		nde = parse_delete(hawk, xloc);
 	}
 	else if (!(hawk->opt.trait & HAWK_TOLERANT))
 	{
@@ -3389,23 +3383,23 @@ static hawk_nde_t* parse_statement_nb (
 		if (MATCH(hawk,TOK_PRINT) || MATCH(hawk,TOK_PRINTF))
 		{
 			if (get_token(hawk) <= -1) return HAWK_NULL;
-			nde = parse_print (hawk, xloc);
+			nde = parse_print(hawk, xloc);
 		}
-		else nde = parse_expr_withdc (hawk, xloc);
+		else nde = parse_expr_withdc(hawk, xloc);
 	}
 	else 
 	{
-		nde = parse_expr_withdc (hawk, xloc);
+		nde = parse_expr_withdc(hawk, xloc);
 	}
 
-	if (nde == HAWK_NULL) return HAWK_NULL;
+	if (HAWK_UNLIKELY(!nde)) return HAWK_NULL;
 
 	if (MATCH_TERMINATOR_NORMAL(hawk))
 	{
 		/* check if a statement ends with a semicolon or <NL> */
 		if (get_token(hawk) <= -1)
 		{
-			if (nde != HAWK_NULL) hawk_clrpt (hawk, nde);
+			if (nde) hawk_clrpt (hawk, nde);
 			return HAWK_NULL;
 		}
 	}
@@ -3416,7 +3410,7 @@ static hawk_nde_t* parse_statement_nb (
 	}
 	else
 	{
-		if (nde != HAWK_NULL) hawk_clrpt (hawk, nde);
+		if (nde) hawk_clrpt (hawk, nde);
 		hawk_seterrnum (hawk, &hawk->ptok.loc, HAWK_ESTMEND);
 		return HAWK_NULL;
 	}
@@ -3438,7 +3432,7 @@ static hawk_nde_t* parse_statement (hawk_t* hawk, const hawk_loc_t* xloc)
 	{
 		/* null statement */
 		nde = (hawk_nde_t*)hawk_callocmem(hawk, HAWK_SIZEOF(*nde));
-		if (!nde) 
+		if (HAWK_UNLIKELY(!nde)) 
 		{
 			ADJERR_LOC (hawk, xloc);
 			return HAWK_NULL;
