@@ -162,6 +162,7 @@ static hawk_val_t* eval_flt (hawk_rtx_t* rtx, hawk_nde_t* nde);
 static hawk_val_t* eval_str (hawk_rtx_t* rtx, hawk_nde_t* nde);
 static hawk_val_t* eval_mbs (hawk_rtx_t* rtx, hawk_nde_t* nde);
 static hawk_val_t* eval_rex (hawk_rtx_t* rtx, hawk_nde_t* nde);
+static hawk_val_t* eval_xnil (hawk_rtx_t* rtx, hawk_nde_t* nde);
 static hawk_val_t* eval_fun (hawk_rtx_t* rtx, hawk_nde_t* nde);
 static hawk_val_t* eval_named (hawk_rtx_t* rtx, hawk_nde_t* nde);
 static hawk_val_t* eval_gbl (hawk_rtx_t* rtx, hawk_nde_t* nde);
@@ -3621,6 +3622,7 @@ static hawk_val_t* eval_expression0 (hawk_rtx_t* rtx, hawk_nde_t* nde)
 		eval_str,
 		eval_mbs,
 		eval_rex,
+		eval_xnil,
 		eval_fun,
 		eval_named,
 		eval_gbl,
@@ -6892,7 +6894,7 @@ static hawk_val_t* eval_int (hawk_rtx_t* rtx, hawk_nde_t* nde)
 {
 	hawk_val_t* val;
 	val = hawk_rtx_makeintval(rtx, ((hawk_nde_int_t*)nde)->val);
-	if (val == HAWK_NULL) ADJERR_LOC (rtx, &nde->loc);
+	if (HAWK_UNLIKELY(!val)) ADJERR_LOC (rtx, &nde->loc);
 	else if (HAWK_VTR_IS_POINTER(val)) ((hawk_val_int_t*)val)->nde = nde;
 	return val;
 }
@@ -6901,7 +6903,7 @@ static hawk_val_t* eval_flt (hawk_rtx_t* rtx, hawk_nde_t* nde)
 {
 	hawk_val_t* val;
 	val = hawk_rtx_makefltval(rtx, ((hawk_nde_flt_t*)nde)->val);
-	if (val == HAWK_NULL) ADJERR_LOC (rtx, &nde->loc);
+	if (HAWK_UNLIKELY(!val)) ADJERR_LOC (rtx, &nde->loc);
 	else ((hawk_val_flt_t*)val)->nde = nde;
 	return val;
 }
@@ -6910,7 +6912,7 @@ static hawk_val_t* eval_str (hawk_rtx_t* rtx, hawk_nde_t* nde)
 {
 	hawk_val_t* val;
 	val = hawk_rtx_makestrvalwithoochars(rtx, ((hawk_nde_str_t*)nde)->ptr, ((hawk_nde_str_t*)nde)->len);
-	if (val == HAWK_NULL) ADJERR_LOC (rtx, &nde->loc);
+	if (HAWK_UNLIKELY(!val)) ADJERR_LOC (rtx, &nde->loc);
 	return val;
 }
 
@@ -6918,7 +6920,7 @@ static hawk_val_t* eval_mbs (hawk_rtx_t* rtx, hawk_nde_t* nde)
 {
 	hawk_val_t* val;
 	val = hawk_rtx_makembsvalwithbchars(rtx, ((hawk_nde_mbs_t*)nde)->ptr, ((hawk_nde_mbs_t*)nde)->len);
-	if (val == HAWK_NULL) ADJERR_LOC (rtx, &nde->loc);
+	if (HAWK_UNLIKELY(!val)) ADJERR_LOC (rtx, &nde->loc);
 	return val;
 }
 
@@ -6926,7 +6928,15 @@ static hawk_val_t* eval_rex (hawk_rtx_t* rtx, hawk_nde_t* nde)
 {
 	hawk_val_t* val;
 	val = hawk_rtx_makerexval(rtx, &((hawk_nde_rex_t*)nde)->str, ((hawk_nde_rex_t*)nde)->code);
-	if (val == HAWK_NULL) ADJERR_LOC (rtx, &nde->loc);
+	if (HAWK_UNLIKELY(!val)) ADJERR_LOC (rtx, &nde->loc);
+	return val;
+}
+
+static hawk_val_t* eval_xnil (hawk_rtx_t* rtx, hawk_nde_t* nde)
+{
+	hawk_val_t* val;
+	val = hawk_rtx_makenilval(rtx);
+	if (HAWK_UNLIKELY(!val)) ADJERR_LOC (rtx, &nde->loc);
 	return val;
 }
 
@@ -6958,7 +6968,7 @@ static hawk_val_t* eval_fun (hawk_rtx_t* rtx, hawk_nde_t* nde)
 	}
 
 	val = hawk_rtx_makefunval(rtx, fun); 
-	if (!val) ADJERR_LOC (rtx, &nde->loc);
+	if (HAWK_UNLIKELY(!val)) ADJERR_LOC (rtx, &nde->loc);
 	return val;
 }
 
