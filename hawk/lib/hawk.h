@@ -399,7 +399,7 @@ enum hawk_nde_type_t
 
 	/* expression */
 	/* if you change the following values including their order,
-	 * you should change __evaluator of __eval_expression 
+	 * you should change __evaluator of eval_expression0()
 	 * in run.c accordingly */
 	HAWK_NDE_GRP, 
 	HAWK_NDE_ASS,
@@ -416,6 +416,7 @@ enum hawk_nde_type_t
 	HAWK_NDE_STR,
 	HAWK_NDE_MBS,
 	HAWK_NDE_REX,
+	HAWK_NDE_XNIL,
 	HAWK_NDE_FUN,
 
 	/* keep this order for the following items otherwise, you may have 

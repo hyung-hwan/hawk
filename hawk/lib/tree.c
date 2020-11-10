@@ -498,6 +498,12 @@ static int print_expr (hawk_t* hawk, hawk_nde_t* nde)
 			break;
 		}
 
+		case HAWK_NDE_XNIL:
+		{
+			PUT_SRCSTR (hawk, HAWK_T("@nil"));
+			break;
+		}
+
 		case HAWK_NDE_FUN:
 		{
 			PUT_SRCSTRN (hawk,
@@ -715,9 +721,7 @@ static int print_expr (hawk_t* hawk, hawk_nde_t* nde)
 
 			PUT_SRCSTR (hawk, HAWK_T("("));
 
-			if (px->in != HAWK_NULL &&
-			    (px->in_type == HAWK_IN_PIPE ||
-			     px->in_type == HAWK_IN_RWPIPE))
+			if (px->in && (px->in_type == HAWK_IN_PIPE || px->in_type == HAWK_IN_RWPIPE))
 			{
 				PRINT_EXPR (hawk, px->in);
 				PUT_SRCSTR (hawk, HAWK_T(" "));
@@ -727,14 +731,13 @@ static int print_expr (hawk_t* hawk, hawk_nde_t* nde)
 
 			hawk_getkwname (hawk, (px->mbs? HAWK_KWID_GETBLINE: HAWK_KWID_GETLINE), &kw);
 			PUT_SRCSTRN (hawk, kw.ptr, kw.len);
-			if (px->var != HAWK_NULL)
+			if (px->var)
 			{
 				PUT_SRCSTR (hawk, HAWK_T(" "));
 				PRINT_EXPR (hawk, px->var);
 			}
 
-			if (px->in != HAWK_NULL &&
-			    px->in_type == HAWK_IN_FILE)
+			if (px->in && px->in_type == HAWK_IN_FILE)
 			{
 				PUT_SRCSTR (hawk, HAWK_T(" "));
 				PUT_SRCSTR (hawk, getline_inop_str[px->in_type]);
@@ -750,7 +753,7 @@ static int print_expr (hawk_t* hawk, hawk_nde_t* nde)
 		case HAWK_NDE_PRINTF:
 		{
 			PUT_SRCSTR (hawk, HAWK_T("("));
-			if (print_printx (hawk, (hawk_nde_print_t*)nde) <= -1) return -1;
+			if (print_printx(hawk, (hawk_nde_print_t*)nde) <= -1) return -1;
 			PUT_SRCSTR (hawk, HAWK_T(")"));
 			break;
 		}
@@ -1381,6 +1384,12 @@ void hawk_clrpt (hawk_t* hawk, hawk_nde_t* tree)
 				hawk_nde_rex_t* rex = (hawk_nde_rex_t*)p;
 				hawk_freerex (hawk, rex->code[0], rex->code[1]);
 				hawk_freemem (hawk, ((hawk_nde_rex_t*)p)->str.ptr);
+				hawk_freemem (hawk, p);
+				break;
+			}
+
+			case HAWK_NDE_XNIL:
+			{
 				hawk_freemem (hawk, p);
 				break;
 			}

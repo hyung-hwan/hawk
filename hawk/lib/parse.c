@@ -178,6 +178,7 @@ enum tok_t
 	TOK_STR,
 	TOK_MBS,
 	TOK_REX,
+	TOK_XNIL,
 
 	__TOKEN_COUNT__
 };
@@ -281,13 +282,14 @@ struct kwent_t
 
 static kwent_t kwtab[] = 
 {
-	/* keep this table in sync with the kw_t enums in <parse.h>.
+	/* keep this table in sync with the kw_t enums in "parse-prv.h".
 	 * also keep it sorted by the first field for binary search */
 	{ { HAWK_T("@abort"),         6 }, TOK_XABORT,        0 },
 	{ { HAWK_T("@global"),        7 }, TOK_XGLOBAL,       0 },
 	{ { HAWK_T("@include"),       8 }, TOK_XINCLUDE,      0 },
 	{ { HAWK_T("@include_once"), 13 }, TOK_XINCLUDE_ONCE, 0 },
 	{ { HAWK_T("@local"),         6 }, TOK_XLOCAL,        0 },
+	{ { HAWK_T("@nil"),           4 }, TOK_XNIL,          0 },
 	{ { HAWK_T("@pragma"),        7 }, TOK_XPRAGMA,       0 },
 	{ { HAWK_T("@reset"),         6 }, TOK_XRESET,        0 },
 	{ { HAWK_T("BEGIN"),          5 }, TOK_BEGIN,         HAWK_PABLOCK },
@@ -1566,7 +1568,7 @@ static hawk_nde_t* parse_function (hawk_t* hawk)
 	hawk_arr_clear (hawk->parse.params);
 
 	fun = (hawk_fun_t*)hawk_callocmem(hawk, HAWK_SIZEOF(*fun));
-	if (fun == HAWK_NULL) 
+	if (HAWK_UNLIKELY(!fun)) 
 	{
 		ADJERR_LOC (hawk, &hawk->tok.loc);
 		goto oops;
@@ -1579,7 +1581,7 @@ static hawk_nde_t* parse_function (hawk_t* hawk)
 	fun->body = body;
 
 	pair = hawk_htb_insert(hawk->tree.funs, name.ptr, name.len, fun, 0);
-	if (pair == HAWK_NULL)
+	if (HAWK_UNLIKELY(!pair)) 
 	{
 		/* if hawk_htb_insert() fails for other reasons than memory 
 		 * shortage, there should be implementaion errors as duplicate
@@ -1616,8 +1618,8 @@ static hawk_nde_t* parse_begin (hawk_t* hawk)
 	HAWK_ASSERT (MATCH(hawk,TOK_LBRACE));
 
 	if (get_token(hawk) <= -1) return HAWK_NULL; 
-	nde = parse_block_dc (hawk, &xloc, 1);
-	if (nde == HAWK_NULL) return HAWK_NULL;
+	nde = parse_block_dc(hawk, &xloc, 1);
+	if (HAWK_UNLIKELY(!nde)) return HAWK_NULL;
 
 	if (hawk->tree.begin == HAWK_NULL)
 	{
@@ -1642,8 +1644,8 @@ static hawk_nde_t* parse_end (hawk_t* hawk)
 	HAWK_ASSERT (MATCH(hawk,TOK_LBRACE));
 
 	if (get_token(hawk) <= -1) return HAWK_NULL; 
-	nde = parse_block_dc (hawk, &xloc, 1);
-	if (nde == HAWK_NULL) return HAWK_NULL;
+	nde = parse_block_dc(hawk, &xloc, 1);
+	if (HAWK_UNLIKELY(!nde)) return HAWK_NULL;
 
 	if (hawk->tree.end == HAWK_NULL)
 	{
@@ -1658,8 +1660,7 @@ static hawk_nde_t* parse_end (hawk_t* hawk)
 	return nde;
 }
 
-static hawk_chain_t* parse_action_block (
-	hawk_t* hawk, hawk_nde_t* ptn, int blockless)
+static hawk_chain_t* parse_action_block (hawk_t* hawk, hawk_nde_t* ptn, int blockless)
 {
 	hawk_nde_t* nde;
 	hawk_chain_t* chain;
@@ -1672,11 +1673,11 @@ static hawk_chain_t* parse_action_block (
 		HAWK_ASSERT (MATCH(hawk,TOK_LBRACE));
 		if (get_token(hawk) <= -1) return HAWK_NULL; 
 		nde = parse_block_dc(hawk, &xloc, 1);
-		if (nde == HAWK_NULL) return HAWK_NULL;
+		if (HAWK_UNLIKELY(!nde)) return HAWK_NULL;
 	}
 
 	chain = (hawk_chain_t*)hawk_callocmem(hawk, HAWK_SIZEOF(*chain));
-	if (chain == HAWK_NULL) 
+	if (HAWK_UNLIKELY(!chain)) 
 	{
 		hawk_clrpt (hawk, nde);
 		ADJERR_LOC (hawk, &xloc);
@@ -1749,13 +1750,13 @@ static hawk_nde_t* parse_block (hawk_t* hawk, const hawk_loc_t* xloc, int istop)
 			/* @local ... */
 			if (get_token(hawk) <= -1) 
 			{
-				hawk_arr_delete (hawk->parse.lcls, nlcls, HAWK_ARR_SIZE(hawk->parse.lcls)-nlcls);
+				hawk_arr_delete (hawk->parse.lcls, nlcls, HAWK_ARR_SIZE(hawk->parse.lcls) - nlcls);
 				return HAWK_NULL;
 			}
 	
-			if (collect_locals (hawk, nlcls, istop) == HAWK_NULL)
+			if (collect_locals(hawk, nlcls, istop) == HAWK_NULL)
 			{
-				hawk_arr_delete (hawk->parse.lcls, nlcls, HAWK_ARR_SIZE(hawk->parse.lcls)-nlcls);
+				hawk_arr_delete (hawk->parse.lcls, nlcls, HAWK_ARR_SIZE(hawk->parse.lcls) - nlcls);
 				return HAWK_NULL;
 			}
 		}
@@ -1776,10 +1777,8 @@ static hawk_nde_t* parse_block (hawk_t* hawk, const hawk_loc_t* xloc, int istop)
 		/* if EOF is met before the right brace, this is an error */
 		if (MATCH(hawk,TOK_EOF)) 
 		{
-			hawk_arr_delete (
-				hawk->parse.lcls, nlcls, 
-				HAWK_ARR_SIZE(hawk->parse.lcls) - nlcls);
-			if (head != HAWK_NULL) hawk_clrpt (hawk, head);
+			hawk_arr_delete (hawk->parse.lcls, nlcls, HAWK_ARR_SIZE(hawk->parse.lcls) - nlcls);
+			if (head) hawk_clrpt (hawk, head);
 			hawk_seterrnum (hawk, &hawk->tok.loc, HAWK_EEOF);
 			return HAWK_NULL;
 		}
@@ -1789,10 +1788,8 @@ static hawk_nde_t* parse_block (hawk_t* hawk, const hawk_loc_t* xloc, int istop)
 		{
 			if (get_token(hawk) <= -1) 
 			{
-				hawk_arr_delete (
-					hawk->parse.lcls, nlcls, 
-					HAWK_ARR_SIZE(hawk->parse.lcls)-nlcls);
-				if (head != HAWK_NULL) hawk_clrpt (hawk, head);
+				hawk_arr_delete (hawk->parse.lcls, nlcls, HAWK_ARR_SIZE(hawk->parse.lcls)-nlcls);
+				if (head) hawk_clrpt (hawk, head);
 				return HAWK_NULL; 
 			}
 
@@ -1827,14 +1824,12 @@ static hawk_nde_t* parse_block (hawk_t* hawk, const hawk_loc_t* xloc, int istop)
 			{
 				hawk_loc_t sloc;
 				sloc = hawk->tok.loc;
-				nde = parse_statement (hawk, &sloc);
+				nde = parse_statement(hawk, &sloc);
 			}
 
 			if (HAWK_UNLIKELY(!nde)) 
 			{
-				hawk_arr_delete (
-					hawk->parse.lcls, nlcls, 
-					HAWK_ARR_SIZE(hawk->parse.lcls)-nlcls);
+				hawk_arr_delete (hawk->parse.lcls, nlcls, HAWK_ARR_SIZE(hawk->parse.lcls)-nlcls);
 				if (head) hawk_clrpt (hawk, head);
 				return HAWK_NULL;
 			}
@@ -1846,8 +1841,7 @@ static hawk_nde_t* parse_block (hawk_t* hawk, const hawk_loc_t* xloc, int istop)
 				hawk_clrpt (hawk, nde);
 				continue;
 			}
-			if (nde->type == HAWK_NDE_BLK && 
-			    ((hawk_nde_blk_t*)nde)->body == HAWK_NULL) 
+			if (nde->type == HAWK_NDE_BLK && ((hawk_nde_blk_t*)nde)->body == HAWK_NULL) 
 			{
 				hawk_clrpt (hawk, nde);
 				continue;
@@ -1871,7 +1865,7 @@ static hawk_nde_t* parse_block (hawk_t* hawk, const hawk_loc_t* xloc, int istop)
 	tmp = HAWK_ARR_SIZE(hawk->parse.lcls);
 	if (tmp > hawk->parse.nlcls_max) hawk->parse.nlcls_max = tmp;
 
-	/* remove all lcls to move it up to the top level */
+	/* remove all lcls to move them up to the top level */
 	hawk_arr_delete (hawk->parse.lcls, nlcls, tmp - nlcls);
 
 	/* adjust the number of lcls for a block without any statements */
@@ -1904,6 +1898,7 @@ static hawk_nde_t* parse_block_dc (hawk_t* hawk, const hawk_loc_t* xloc, int ist
 {
 	hawk_nde_t* nde;
 
+	/* perform the depth check before calling parse_block() */
 	if (hawk->opt.depth.s.block_parse > 0 &&
 	    hawk->parse.depth.block >= hawk->opt.depth.s.block_parse)
 	{
@@ -3015,11 +3010,9 @@ static hawk_nde_t* parse_delete (hawk_t* hawk, const hawk_loc_t* xloc)
 	hawk_nde_type_t type;
 	int inparen = 0;
 
-	HAWK_ASSERT (hawk->ptok.type == TOK_DELETE || 
-	            hawk->ptok.type == TOK_XRESET);
+	HAWK_ASSERT (hawk->ptok.type == TOK_DELETE || hawk->ptok.type == TOK_XRESET);
 
-	type = (hawk->ptok.type == TOK_DELETE)?
-		HAWK_NDE_DELETE: HAWK_NDE_RESET;
+	type = (hawk->ptok.type == TOK_DELETE)?  HAWK_NDE_DELETE: HAWK_NDE_RESET;
 
 	if (MATCH(hawk,TOK_LPAREN))
 	{
@@ -3455,7 +3448,7 @@ static hawk_nde_t* parse_statement (hawk_t* hawk, const hawk_loc_t* xloc)
 
 		tloc = hawk->ptok.loc;
 		if (get_token(hawk) <= -1) return HAWK_NULL; 
-		nde = parse_block_dc (hawk, &tloc, 0);
+		nde = parse_block_dc(hawk, &tloc, 0);
 	}
 	else 
 	{
@@ -4532,8 +4525,8 @@ static hawk_nde_t* parse_increment (hawk_t* hawk, const hawk_loc_t* xloc)
 	}
 
 	ploc = hawk->tok.loc;
-	left = parse_primary (hawk, &ploc);
-	if (left == HAWK_NULL) return HAWK_NULL;
+	left = parse_primary(hawk, &ploc);
+	if (HAWK_UNLIKELY(!left)) return HAWK_NULL;
 
 	/* check for postfix increment operator */
 	opcode2 = MATCH(hawk,TOK_PLUSPLUS)? HAWK_INCOP_PLUS:
@@ -5076,6 +5069,31 @@ oops:
 	return HAWK_NULL;
 }
 
+static hawk_nde_t* parse_primary_xnil (hawk_t* hawk, const hawk_loc_t* xloc)
+{
+	hawk_nde_xnil_t* nde;
+
+	nde = (hawk_nde_xnil_t*)hawk_callocmem(hawk, HAWK_SIZEOF(*nde));
+	if (HAWK_UNLIKELY(!nde))
+	{
+		ADJERR_LOC (hawk, xloc);
+		return HAWK_NULL;
+	}
+
+	nde->type = HAWK_NDE_XNIL;
+	nde->loc = *xloc;
+
+	if (get_token(hawk) <= -1) goto oops;
+
+	return (hawk_nde_t*)nde;
+
+oops:
+	HAWK_ASSERT (nde != HAWK_NULL);
+	hawk_freemem (hawk, nde);
+	return HAWK_NULL;
+}
+
+
 static hawk_nde_t* parse_primary_nopipe (hawk_t* hawk, const hawk_loc_t* xloc)
 {
 	switch (hawk->tok.type)
@@ -5110,6 +5128,10 @@ static hawk_nde_t* parse_primary_nopipe (hawk_t* hawk, const hawk_loc_t* xloc)
 
 		case TOK_GETLINE:
 			return parse_primary_getline(hawk, xloc, 0);
+
+		case TOK_XNIL:
+			return parse_primary_xnil(hawk, xloc);
+
 
 		default:
 		{
