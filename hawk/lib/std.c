@@ -729,7 +729,10 @@ static void log_write (hawk_t* hawk, hawk_bitmask_t mask, const hawk_ooch_t* msg
 	{
 		logfd = xtn->log.fd;
 #if !defined(EMSCRIPTEN)
-		if (logfd <= -1) return;
+		if (logfd <= -1) 
+		{
+			return;
+		}
 #endif
 	}
 

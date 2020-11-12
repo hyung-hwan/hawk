@@ -88,6 +88,8 @@ struct hawk_nde_blk_t
 {
 	HAWK_NDE_HDR;
 	hawk_oow_t nlcls; /* number of local variables */
+	hawk_oow_t org_nlcls; /* the original number of local variables before pushing to the top-level block  */
+	hawk_oow_t outer_nlcls; /* the number of local variables in the outer blocks accumulated */
 	hawk_nde_t* body;
 };
 
