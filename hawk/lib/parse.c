@@ -1708,9 +1708,9 @@ static hawk_nde_t* parse_block (hawk_t* hawk, const hawk_loc_t* xloc, int istop)
 {
 	hawk_nde_t* head, * curr, * nde;
 	hawk_nde_blk_t* block;
-	hawk_oow_t nlcls, nlcls_max, tmp;
+	hawk_oow_t nlcls_outer, nlcls_max, tmp;
 
-	nlcls = HAWK_ARR_SIZE(hawk->parse.lcls);
+	nlcls_outer = HAWK_ARR_SIZE(hawk->parse.lcls);
 	nlcls_max = hawk->parse.nlcls_max;
 
 	/* local variable declarations */
@@ -1750,13 +1750,13 @@ static hawk_nde_t* parse_block (hawk_t* hawk, const hawk_loc_t* xloc, int istop)
 			/* @local ... */
 			if (get_token(hawk) <= -1) 
 			{
-				hawk_arr_delete (hawk->parse.lcls, nlcls, HAWK_ARR_SIZE(hawk->parse.lcls) - nlcls);
+				hawk_arr_delete (hawk->parse.lcls, nlcls_outer, HAWK_ARR_SIZE(hawk->parse.lcls) - nlcls_outer);
 				return HAWK_NULL;
 			}
 	
-			if (collect_locals(hawk, nlcls, istop) == HAWK_NULL)
+			if (collect_locals(hawk, nlcls_outer, istop) == HAWK_NULL)
 			{
-				hawk_arr_delete (hawk->parse.lcls, nlcls, HAWK_ARR_SIZE(hawk->parse.lcls) - nlcls);
+				hawk_arr_delete (hawk->parse.lcls, nlcls_outer, HAWK_ARR_SIZE(hawk->parse.lcls) - nlcls_outer);
 				return HAWK_NULL;
 			}
 		}
@@ -1777,7 +1777,7 @@ static hawk_nde_t* parse_block (hawk_t* hawk, const hawk_loc_t* xloc, int istop)
 		/* if EOF is met before the right brace, this is an error */
 		if (MATCH(hawk,TOK_EOF)) 
 		{
-			hawk_arr_delete (hawk->parse.lcls, nlcls, HAWK_ARR_SIZE(hawk->parse.lcls) - nlcls);
+			hawk_arr_delete (hawk->parse.lcls, nlcls_outer, HAWK_ARR_SIZE(hawk->parse.lcls) - nlcls_outer);
 			if (head) hawk_clrpt (hawk, head);
 			hawk_seterrnum (hawk, &hawk->tok.loc, HAWK_EEOF);
 			return HAWK_NULL;
@@ -1788,7 +1788,7 @@ static hawk_nde_t* parse_block (hawk_t* hawk, const hawk_loc_t* xloc, int istop)
 		{
 			if (get_token(hawk) <= -1) 
 			{
-				hawk_arr_delete (hawk->parse.lcls, nlcls, HAWK_ARR_SIZE(hawk->parse.lcls)-nlcls);
+				hawk_arr_delete (hawk->parse.lcls, nlcls_outer, HAWK_ARR_SIZE(hawk->parse.lcls) - nlcls_outer);
 				if (head) hawk_clrpt (hawk, head);
 				return HAWK_NULL; 
 			}
@@ -1829,7 +1829,7 @@ static hawk_nde_t* parse_block (hawk_t* hawk, const hawk_loc_t* xloc, int istop)
 
 			if (HAWK_UNLIKELY(!nde)) 
 			{
-				hawk_arr_delete (hawk->parse.lcls, nlcls, HAWK_ARR_SIZE(hawk->parse.lcls)-nlcls);
+				hawk_arr_delete (hawk->parse.lcls, nlcls_outer, HAWK_ARR_SIZE(hawk->parse.lcls) - nlcls_outer);
 				if (head) hawk_clrpt (hawk, head);
 				return HAWK_NULL;
 			}
@@ -1856,7 +1856,7 @@ static hawk_nde_t* parse_block (hawk_t* hawk, const hawk_loc_t* xloc, int istop)
 	block = (hawk_nde_blk_t*)hawk_callocmem(hawk, HAWK_SIZEOF(*block));
 	if (HAWK_UNLIKELY(!block)) 
 	{
-		hawk_arr_delete (hawk->parse.lcls, nlcls, HAWK_ARR_SIZE(hawk->parse.lcls) - nlcls);
+		hawk_arr_delete (hawk->parse.lcls, nlcls_outer, HAWK_ARR_SIZE(hawk->parse.lcls) - nlcls_outer);
 		hawk_clrpt (hawk, head);
 		ADJERR_LOC (hawk, xloc);
 		return HAWK_NULL;
@@ -1866,7 +1866,7 @@ static hawk_nde_t* parse_block (hawk_t* hawk, const hawk_loc_t* xloc, int istop)
 	if (tmp > hawk->parse.nlcls_max) hawk->parse.nlcls_max = tmp;
 
 	/* remove all lcls to move them up to the top level */
-	hawk_arr_delete (hawk->parse.lcls, nlcls, tmp - nlcls);
+	hawk_arr_delete (hawk->parse.lcls, nlcls_outer, tmp - nlcls_outer);
 
 	/* adjust the number of lcls for a block without any statements */
 	/* if (head == HAWK_NULL) tmp = 0; */
@@ -1875,21 +1875,29 @@ static hawk_nde_t* parse_block (hawk_t* hawk, const hawk_loc_t* xloc, int istop)
 	block->loc = *xloc;
 	block->body = head;
 
+	block->org_nlcls = tmp - nlcls_outer; /* number of locals defined in this block */
+	block->outer_nlcls = nlcls_outer; /* number of locals defined in outer blocks */
+
+#if 1
 	/* TODO: not only local variables but also nested blocks, 
 	unless it is part of other constructs such as if, can be promoted 
 	and merged to top-level block */
 
-	/* migrate all block-local variables to a top-level block */
+	/* migrate all block-local variables to the outermost block */
 	if (istop) 
 	{
-		block->nlcls = hawk->parse.nlcls_max - nlcls;
-		hawk->parse.nlcls_max = nlcls_max;
+		HAWK_ASSERT (nlcls_outer == 0 && nlcls_max == 0);
+		block->nlcls = hawk->parse.nlcls_max - nlcls_outer;
+		hawk->parse.nlcls_max = nlcls_max; /* restore */
 	}
 	else 
 	{
-		/*block->nlcls = tmp - nlcls;*/
 		block->nlcls = 0;
 	}
+#else
+	/* no migration */
+	block->nlcls = block->org_nlcls; 
+#endif
 
 	return (hawk_nde_t*)block;
 }
@@ -7113,6 +7121,7 @@ static int deparse (hawk_t* hawk)
 
 		if (hawk_putsrcoochars(hawk, kw.ptr, kw.len) <= -1) EXIT_DEPARSE ();
 		if (hawk_putsrcoocstr(hawk, HAWK_T(" ")) <= -1) EXIT_DEPARSE ();
+
 		if (hawk_prnnde(hawk, nde) <= -1) EXIT_DEPARSE ();
 
 		if (hawk->opt.trait & HAWK_CRLF)
@@ -7124,7 +7133,7 @@ static int deparse (hawk_t* hawk)
 	}
 
 	chain = hawk->tree.chain;
-	while (chain != HAWK_NULL) 
+	while (chain) 
 	{
 		if (chain->pattern != HAWK_NULL) 
 		{
@@ -7143,7 +7152,7 @@ static int deparse (hawk_t* hawk)
 		}
 		else 
 		{
-			if (chain->pattern != HAWK_NULL)
+			if (chain->pattern)
 			{
 				if (put_char(hawk, HAWK_T(' ')) <= -1) EXIT_DEPARSE ();
 			}
@@ -7168,6 +7177,7 @@ static int deparse (hawk_t* hawk)
 
 		if (hawk_putsrcoochars(hawk, kw.ptr, kw.len) <= -1) EXIT_DEPARSE ();
 		if (hawk_putsrcoocstr(hawk, HAWK_T(" ")) <= -1) EXIT_DEPARSE ();
+
 		if (hawk_prnnde(hawk, nde) <= -1) EXIT_DEPARSE ();
 		
 		/*

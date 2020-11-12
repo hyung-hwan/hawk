@@ -244,7 +244,8 @@ function main()
 	{
 		@local bool, b, c;
 
-		c = @nil;
+		ensure ((c === @nil), 1, @SCRIPTNAME, @SCRIPTLINE); ## ensure local variable initialization
+
 		bool = ((b = 1) in c);
 		ensure (bool, 0, @SCRIPTNAME, @SCRIPTLINE);
 		ensure (b, 1, @SCRIPTNAME, @SCRIPTLINE);

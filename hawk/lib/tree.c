@@ -638,6 +638,7 @@ static int print_expr (hawk_t* hawk, hawk_nde_t* nde)
 			break;
 		}
 
+
 		case HAWK_NDE_LCL:
 		{
 			hawk_oow_t n;
@@ -834,7 +835,7 @@ static int print_stmt (hawk_t* hawk, hawk_nde_t* p, int depth)
 			PUT_SRCSTR (hawk, HAWK_T("{"));
 			PUT_NL (hawk);
 
-			if (px->nlcls > 0) 
+			if (px->org_nlcls > 0) 
 			{
 				PRINT_TABS (hawk, depth + 1);
 
@@ -842,16 +843,18 @@ static int print_stmt (hawk_t* hawk, hawk_nde_t* p, int depth)
 				PUT_SRCSTRN (hawk, kw.ptr, kw.len);
 				PUT_SRCSTR (hawk, HAWK_T(" "));
 
-				for (i = 0; i < px->nlcls - 1; i++) 
+				/* though the parser pushed up all local variables to the outer-most level,
+				 * the code here restores the original declarations with org_nlcls and prv_nlcls */
+				for (i = 0; i < px->org_nlcls - 1; i++) 
 				{
 					PUT_SRCSTR (hawk, HAWK_T("__l"));
-					n = hawk_int_to_oocstr(i, 10, HAWK_NULL, hawk->tmp.fmt, HAWK_COUNTOF(hawk->tmp.fmt));
+					n = hawk_int_to_oocstr(px->outer_nlcls + i, 10, HAWK_NULL, hawk->tmp.fmt, HAWK_COUNTOF(hawk->tmp.fmt));
 					PUT_SRCSTRN (hawk, hawk->tmp.fmt, n);
 					PUT_SRCSTR (hawk, HAWK_T(", "));
 				}
 
 				PUT_SRCSTR (hawk, HAWK_T("__l"));
-				n = hawk_int_to_oocstr(i, 10, HAWK_NULL, hawk->tmp.fmt, HAWK_COUNTOF(hawk->tmp.fmt));
+				n = hawk_int_to_oocstr(px->outer_nlcls + i, 10, HAWK_NULL, hawk->tmp.fmt, HAWK_COUNTOF(hawk->tmp.fmt));
 				PUT_SRCSTRN (hawk, hawk->tmp.fmt, n);
 				PUT_SRCSTR (hawk, HAWK_T(";"));
 				PUT_NL (hawk);
@@ -1148,7 +1151,7 @@ static int print_stmts (hawk_t* hawk, hawk_nde_t* tree, int depth)
 
 	while (p) 
 	{
-		if (print_stmt(hawk, p, depth) == -1) return -1;
+		if (print_stmt(hawk, p, depth) <= -1) return -1;
 		p = p->next;
 	}
 
@@ -1171,8 +1174,8 @@ int hawk_prnptnpt (hawk_t* hawk, hawk_nde_t* tree)
 
 	while (nde)
 	{
-		if (print_expr (hawk, nde) == -1) return -1;
-		if (nde->next == HAWK_NULL) break;
+		if (print_expr(hawk, nde) <= -1) return -1;
+		if (!nde->next) break;
 
 		PUT_SRCSTR (hawk, HAWK_T(","));
 		nde = nde->next;

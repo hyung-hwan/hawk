@@ -2093,35 +2093,60 @@ static HAWK_INLINE int run_block0 (hawk_rtx_t* rtx, hawk_nde_blk_t* nde)
 	}
 
 	HAWK_ASSERT (nde->type == HAWK_NDE_BLK);
-
-	p = nde->body;
-	nlcls = nde->nlcls;
-
-#if defined(DEBUG_RUN)
-	hawk_logfmt (hawk_rtx_gethawk(rtx), HAWK_T("securing space for local variables nlcls = %d\n"), (int)nlcls);
-#endif
-
-	/* secure space for local variables */
-	if (HAWK_UNLIKELY(HAWK_RTX_STACK_AVAIL(rtx) < nlcls))
-	{
-		hawk_rtx_seterrnum (rtx, &nde->loc, HAWK_ESTACK);
-		return -1;
-	}
-
 	saved_stack_top = rtx->stack_top;
 
-	while (nlcls > 0)
+#if defined(DEBUG_RUN)
+	hawk_logfmt (hawk_rtx_gethawk(rtx), HAWK_T("securing space for local variables nlcls = %d\n"), (int)nde->nlcls);
+#endif
+
+	if (nde->nlcls > 0)
 	{
-		--nlcls;
-		HAWK_RTX_STACK_PUSH (rtx, hawk_val_nil);
-		/* refupval is not required for hawk_val_nil */
+		hawk_oow_t tmp = nde->nlcls;
+
+		/* ensure sufficient space for local variables */
+		if (HAWK_UNLIKELY(HAWK_RTX_STACK_AVAIL(rtx) < tmp))
+		{
+			hawk_rtx_seterrnum (rtx, &nde->loc, HAWK_ESTACK);
+			return -1;
+		}
+	
+		do
+		{
+			--tmp;
+			HAWK_RTX_STACK_PUSH (rtx, hawk_val_nil);
+			/* refupval is not required for hawk_val_nil */
+		}
+		while (tmp > 0);
+	}
+	else if (nde->nlcls != nde->org_nlcls)
+	{
+		/* this part can be reached if:
+		 *   - the block is nested
+		 *   - the block declares local variables
+		 *   - the local variables have been migrated to the outer-most block by the parser.
+		 *
+		 * if the parser skips migrations, this part isn't reached but the normal push/pop
+		 * will take place for a nested block with local variable declaration.
+		 */
+		hawk_oow_t tmp, end;
+
+		/* when the outer-most block has been entered, the space large enough for all local 
+		 * variables defined has been secured. nullify part of the stack to initialze local 
+		 * variables defined for a nested block */
+		end = nde->outer_nlcls + nde->org_nlcls;
+		for (tmp = nde->outer_nlcls; tmp < end; tmp++)
+		{
+			hawk_rtx_refdownval (rtx, HAWK_RTX_STACK_LCL(rtx, tmp));
+			HAWK_RTX_STACK_LCL(rtx, tmp) = hawk_val_nil;
+		}
 	}
 
 #if defined(DEBUG_RUN)
 	hawk_logfmt (hawk_rtx_gethawk(rtx), HAWK_T("executing block statements\n"));
 #endif
 
-	while (p != HAWK_NULL && rtx->exit_level == EXIT_NONE)
+	p = nde->body;
+	while (p && rtx->exit_level == EXIT_NONE)
 	{
 		if (HAWK_UNLIKELY(run_statement(rtx, p) <= -1))
 		{
@@ -2135,12 +2160,18 @@ static HAWK_INLINE int run_block0 (hawk_rtx_t* rtx, hawk_nde_blk_t* nde)
 #if defined(DEBUG_RUN)
 	hawk_logfmt (hawk_rtx_gethawk(rtx), HAWK_T("popping off local variables\n"));
 #endif
-	nlcls = nde->nlcls;
-	while (nlcls > 0)
+
+	if (nde->nlcls > 0)
 	{
-		--nlcls;
-		hawk_rtx_refdownval (rtx, HAWK_RTX_STACK_LCL(rtx, nlcls));
-		HAWK_RTX_STACK_POP (rtx);
+		hawk_oow_t tmp = nde->nlcls;
+
+		do
+		{
+			--tmp;
+			hawk_rtx_refdownval (rtx, HAWK_RTX_STACK_LCL(rtx, tmp));
+			HAWK_RTX_STACK_POP (rtx);
+		}
+		while (tmp > 0);
 	}
 
 	return n;
@@ -6206,7 +6237,7 @@ static hawk_val_t* eval_fncall_var (hawk_rtx_t* rtx, hawk_nde_t* nde)
 		ADJERR_LOC (rtx, &nde->loc);
 		rv = HAWK_NULL;
 	}
-	else	if (call->nargs > fun->nargs)
+	else if (call->nargs > fun->nargs)
 	{
 		/* TODO: is this correct? what if i want to 
 		*       allow arbitarary numbers of arguments? */
