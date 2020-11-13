@@ -169,11 +169,7 @@ SUBMATCH[4] = [defg]
 #define tre_tolower(c)  hawk_to_ooch_lower(c)
 #define tre_toupper(c)  hawk_to_ooch_upper(c)
 
-#if defined(HAWK_OOCH_IS_BCH) && (HAWK_SIZEOF_MCHAR_T == HAWK_SIZEOF_CHAR)
-	typedef unsigned char tre_char_t;
-#else
-	typedef hawk_ooch_t tre_char_t;
-#endif
+typedef hawk_ooch_t tre_char_t;
 typedef hawk_ooci_t tre_cint_t;
 
 #define size_t hawk_oow_t

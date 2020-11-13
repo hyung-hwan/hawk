@@ -379,12 +379,12 @@ static int set_global (hawk_rtx_t* rtx, int idx, hawk_nde_var_t* var, hawk_val_t
 				HAWK_ASSERT (vtype != HAWK_VAL_REX);
 
 				out.type = HAWK_RTX_VALTOSTR_CPLDUP;
-				if (hawk_rtx_valtostr (rtx, val, &out) <= -1) return -1;
+				if (hawk_rtx_valtostr(rtx, val, &out) <= -1) return -1;
 				fs_ptr = out.u.cpldup.ptr;
 				fs_len = out.u.cpldup.len;
 			}
 
-			if (fs_len > 1 && !(fs_len == 5 && fs_ptr[0] == HAWK_T('?')))
+			if (fs_len > 1 && !(fs_len == 5 && fs_ptr[0] == '?'))
 			{
 				/* it's a regular expression if FS contains multiple characters.
 				 * however, it's not a regular expression if it's 5 character

@@ -24,6 +24,92 @@
     THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+char_t* split_xchars_to_fields (hawk_rtx_t* rtx, char_t* str, hawk_oow_t len, char_t fs, char_t ec, char_t lq, char_t rq, xcs_t* tok)
+{
+	char_t* p = str;
+	char_t* end = str + len;
+	int escaped = 0, quoted = 0;
+	char_t* ts; /* token start */
+	char_t* tp; /* points to one char past the last token char */
+	char_t* xp; /* points to one char past the last effective char */
+
+	/* skip leading spaces */
+	while (p < end && is_xch_space(*p)) p++;
+
+	/* initialize token pointers */
+	ts = tp = xp = p; 
+
+	while (p < end)
+	{
+		char c = *p;
+
+		if (escaped)
+		{
+			*tp++ = c; xp = tp; p++;
+			escaped = 0;
+		}
+		else
+		{
+			if (c == ec)
+			{
+				escaped = 1;
+				p++;
+			}
+			else if (quoted)
+			{
+				if (c == rq)
+				{
+					quoted = 0;
+					p++;
+				}
+				else
+				{
+					*tp++ = c; xp = tp; p++;
+				}
+			}
+			else 
+			{
+				if (c == fs)
+				{
+					tok->ptr = ts;
+					tok->len = xp - ts;
+					p++;
+
+					if (is_xch_space(fs))
+					{
+						while (p < end && *p == fs) p++;
+						if (p >= end) return HAWK_NULL;
+					}
+
+					return p;
+				}
+		
+				if (c == lq)
+				{
+					quoted = 1;
+					p++;
+				}
+				else
+				{
+					*tp++ = c; p++;
+					if (!is_xch_space(c)) xp = tp; 
+				}
+			}
+		}
+	}
+
+	if (escaped) 
+	{
+		/* if it is still escaped, the last character must be 
+		 * the escaper itself. treat it as a normal character */
+		*xp++ = ec;
+	}
+
+	tok->ptr = ts;
+	tok->len = xp - ts;
+	return HAWK_NULL;
+}
+
 char_t* tokenize_xchars (hawk_rtx_t* rtx, const char_t* s, hawk_oow_t len, const char_t* delim, hawk_oow_t delim_len, xcs_t* tok)
 {
 	const char_t* p = s, *d;
@@ -214,88 +300,102 @@ exit_loop:
 	return (char_t*)++p;
 }
 
-char_t* split_xchars_to_fields (hawk_rtx_t* rtx, char_t* str, hawk_oow_t len, char_t fs, char_t ec, char_t lq, char_t rq, xcs_t* tok)
+
+char_t* tokenize_xchars_by_rex (hawk_rtx_t* rtx, const char_t* str, hawk_oow_t len, const char_t* substr, hawk_oow_t sublen, hawk_tre_t* rex, xcs_t* tok)
 {
-	char_t* p = str;
-	char_t* end = str + len;
-	int escaped = 0, quoted = 0;
-	char_t* ts; /* token start */
-	char_t* tp; /* points to one char past the last token char */
-	char_t* xp; /* points to one char past the last effective char */
+	int n;
+	hawk_oow_t i;
+	xcs_t match, s, cursub, realsub;
 
-	/* skip leading spaces */
-	while (p < end && is_xch_space(*p)) p++;
+	s.ptr = (char_t*)str;
+	s.len = len;
 
-	/* initialize token pointers */
-	ts = tp = xp = p; 
+	cursub.ptr = (char_t*)substr;
+	cursub.len = sublen;
 
-	while (p < end)
+	realsub.ptr = (char_t*)substr;
+	realsub.len = sublen;
+
+	while (cursub.len > 0)
 	{
-		char c = *p;
+		n = match_rex_with_xcs(rtx, rex, &s, &cursub, &match, HAWK_NULL);
+		if (n <= -1) return HAWK_NULL;
 
-		if (escaped)
+		if (n == 0)
 		{
-			*tp++ = c; xp = tp; p++;
-			escaped = 0;
+			/* no match has been found. return the entire string as a token */
+			hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_ENOERR); /* reset HAWK_EREXNOMAT to no error */
+			tok->ptr = realsub.ptr;
+			tok->len = realsub.len;
+			return HAWK_NULL; 
 		}
-		else
+
+		HAWK_ASSERT (n == 1);
+
+		if (match.len == 0)
 		{
-			if (c == ec)
+			/* the match length is zero. */
+			cursub.ptr++;
+			cursub.len--;
+		}
+		else if (HAWK_RTX_IS_STRIPRECSPC_ON(rtx))
+		{
+			/* match at the beginning of the input string */
+			if (match.ptr == substr) 
 			{
-				escaped = 1;
-				p++;
-			}
-			else if (quoted)
-			{
-				if (c == rq)
+				for (i = 0; i < match.len; i++)
 				{
-					quoted = 0;
-					p++;
+					if (!is_xch_space(match.ptr[i])) goto exit_loop;
 				}
-				else
-				{
-					*tp++ = c; xp = tp; p++;
-				}
-			}
-			else 
-			{
-				if (c == fs)
-				{
-					tok->ptr = ts;
-					tok->len = xp - ts;
-					p++;
 
-					if (is_xch_space(fs))
-					{
-						while (p < end && *p == fs) p++;
-						if (p >= end) return HAWK_NULL;
-					}
+				/* the match that is all spaces at the 
+				 * beginning of the input string is skipped */
+				cursub.ptr += match.len;
+				cursub.len -= match.len;
 
-					return p;
-				}
-		
-				if (c == lq)
-				{
-					quoted = 1;
-					p++;
-				}
-				else
-				{
-					*tp++ = c; p++;
-					if (!is_xch_space(c)) xp = tp; 
-				}
+				/* adjust the substring by skipping the leading
+				 * spaces and retry matching */
+				realsub.ptr = (char_t*)substr + match.len;
+				realsub.len -= match.len;
 			}
+			else break;
+		}
+		else break;
+	}
+
+exit_loop:
+	hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_ENOERR);
+
+	if (cursub.len <= 0)
+	{
+		tok->ptr = realsub.ptr;
+		tok->len = realsub.len;
+		return HAWK_NULL; 
+	}
+
+	tok->ptr = realsub.ptr;
+	tok->len = match.ptr - realsub.ptr;
+
+	for (i = 0; i < match.len; i++)
+	{
+		if (!is_xch_space(match.ptr[i]))
+		{
+			/* the match contains a non-space character. */
+			return (char_t*)match.ptr+match.len;
 		}
 	}
 
-	if (escaped) 
+	/* the match is all spaces */
+	if (HAWK_RTX_IS_STRIPRECSPC_ON(rtx))
 	{
-		/* if it is still escaped, the last character must be 
-		 * the escaper itself. treat it as a normal character */
-		*xp++ = ec;
+		/* if the match reached the last character in the input string,
+		 * it returns HAWK_NULL to terminate tokenization. */
+		return (match.ptr+match.len >= substr+sublen)? HAWK_NULL: ((char_t*)match.ptr+match.len);
 	}
-
-	tok->ptr = ts;
-	tok->len = xp - ts;
-	return HAWK_NULL;
+	else
+	{
+		/* if the match went beyond the the last character in the input 
+		 * string, it returns HAWK_NULL to terminate tokenization. */
+		return (match.ptr+match.len > substr+sublen)? HAWK_NULL: ((char_t*)match.ptr+match.len);
+	}
 }

@@ -291,6 +291,33 @@ function main()
 		ensure (a[2] === @b"Is",                               1, @SCRIPTNAME, @SCRIPTLINE);
 		ensure (a[3] === @b"Some",                             1, @SCRIPTNAME, @SCRIPTLINE);
 		ensure (a[4] === @b"Data",                             1, @SCRIPTNAME, @SCRIPTLINE);
+
+		ensure (split(@b"Here===Is=Some=====Data", a, /=+/),    4, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (a[1] === @b"Here",                             1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (a[2] === @b"Is",                               1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (a[3] === @b"Some",                             1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (a[4] === @b"Data",                             1, @SCRIPTNAME, @SCRIPTLINE);
+
+		ensure (split("[Here] : [Is]  : [So\\]me] :[Da:ta]", a, "?:\\[]"), 4, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (a[1] === "Here",                               1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (a[2] === "Is",                                 1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (a[3] === "So]me",                              1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (a[4] === "Da:ta",                              1, @SCRIPTNAME, @SCRIPTLINE);
+
+		ensure (split(@b"[Here] : [Is]  : [So\\]me] :[Da:ta]", a, "?:\\[]"), 4, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (a[1] === @b"Here",                             1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (a[2] === @b"Is",                               1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (a[3] === @b"So]me",                            1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (a[4] === @b"Da:ta",                            1, @SCRIPTNAME, @SCRIPTLINE);
+
+		ensure (split("Here===Is=Some=====Data", a, ""),       23, @SCRIPTNAME, @SCRIPTLINE);
+
+		ensure (split("Here  Is Some   Data", a, / /),         7, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (split("Here  Is Some   Data", a, " "),         4, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (a[1] === "Here",                               1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (a[2] === "Is",                                 1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (a[3] === "Some",                               1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (a[4] === "Data",                               1, @SCRIPTNAME, @SCRIPTLINE);
 	}
 
 	print "SUCCESS";

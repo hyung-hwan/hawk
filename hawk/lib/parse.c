@@ -2579,8 +2579,8 @@ static hawk_nde_t* parse_while (hawk_t* hawk, const hawk_loc_t* xloc)
 	if (get_token(hawk) <= -1) goto oops;
 
 	ploc = hawk->tok.loc;
-	test = parse_expr_withdc (hawk, &ploc);
-	if (test == HAWK_NULL) goto oops;
+	test = parse_expr_withdc(hawk, &ploc);
+	if (HAWK_UNLIKELY(!test)) goto oops;
 
 	if (!MATCH(hawk,TOK_RPAREN)) 
 	{
@@ -2591,11 +2591,11 @@ static hawk_nde_t* parse_while (hawk_t* hawk, const hawk_loc_t* xloc)
 	if (get_token(hawk) <= -1)  goto oops;
 
 	ploc = hawk->tok.loc;
-	body = parse_statement (hawk, &ploc);
-	if (body == HAWK_NULL) goto oops;
+	body = parse_statement(hawk, &ploc);
+	if (HAWK_UNLIKELY(!body)) goto oops;
 
-	nde = (hawk_nde_while_t*) hawk_callocmem (hawk, HAWK_SIZEOF(*nde));
-	if (nde == HAWK_NULL) 
+	nde = (hawk_nde_while_t*)hawk_callocmem(hawk, HAWK_SIZEOF(*nde));
+	if (HAWK_UNLIKELY(!nde)) 
 	{
 		ADJERR_LOC (hawk, xloc);
 		goto oops;
@@ -2628,7 +2628,7 @@ static hawk_nde_t* parse_for (hawk_t* hawk, const hawk_loc_t* xloc)
 		return HAWK_NULL;
 	}
 	if (get_token(hawk) <= -1) return HAWK_NULL;
-		
+
 	if (!MATCH(hawk,TOK_SEMICOLON)) 
 	{
 		/* this line is very ugly. it checks the entire next 
@@ -2694,8 +2694,8 @@ static hawk_nde_t* parse_for (hawk_t* hawk, const hawk_loc_t* xloc)
 	if (!MATCH(hawk,TOK_SEMICOLON)) 
 	{
 		ploc = hawk->tok.loc;
-		test = parse_expr_withdc (hawk, &ploc);
-		if (test == HAWK_NULL) goto oops;
+		test = parse_expr_withdc(hawk, &ploc);
+		if (HAWK_UNLIKELY(!test)) goto oops;
 
 		if (!MATCH(hawk,TOK_SEMICOLON)) 
 		{
@@ -2717,8 +2717,8 @@ static hawk_nde_t* parse_for (hawk_t* hawk, const hawk_loc_t* xloc)
 			hawk_loc_t eloc;
 
 			eloc = hawk->tok.loc;
-			incr = parse_expr_withdc (hawk, &eloc);
-			if (incr == HAWK_NULL) goto oops;
+			incr = parse_expr_withdc(hawk, &eloc);
+			if (HAWK_UNLIKELY(!incr)) goto oops;
 		}
 
 		if (!MATCH(hawk,TOK_RPAREN)) 
@@ -2734,8 +2734,8 @@ static hawk_nde_t* parse_for (hawk_t* hawk, const hawk_loc_t* xloc)
 	body = parse_statement (hawk, &ploc);
 	if (body == HAWK_NULL) goto oops;
 
-	nde_for = (hawk_nde_for_t*) hawk_callocmem (hawk, HAWK_SIZEOF(*nde_for));
-	if (nde_for == HAWK_NULL) 
+	nde_for = (hawk_nde_for_t*)hawk_callocmem(hawk, HAWK_SIZEOF(*nde_for));
+	if (HAWK_UNLIKELY(!nde_for)) 
 	{
 		ADJERR_LOC (hawk, xloc);
 		goto oops;
@@ -2768,8 +2768,8 @@ static hawk_nde_t* parse_dowhile (hawk_t* hawk, const hawk_loc_t* xloc)
 	HAWK_ASSERT (hawk->ptok.type == TOK_DO);
 
 	ploc = hawk->tok.loc;
-	body = parse_statement (hawk, &ploc);
-	if (body == HAWK_NULL) goto oops;
+	body = parse_statement(hawk, &ploc);
+	if (HAWK_UNLIKELY(!body)) goto oops;
 
 	while (MATCH(hawk,TOK_NEWLINE))
 	{
@@ -2794,7 +2794,7 @@ static hawk_nde_t* parse_dowhile (hawk_t* hawk, const hawk_loc_t* xloc)
 
 	ploc = hawk->tok.loc;
 	test = parse_expr_withdc (hawk, &ploc);
-	if (test == HAWK_NULL) goto oops;
+	if (HAWK_UNLIKELY(!test)) goto oops;
 
 	if (!MATCH(hawk,TOK_RPAREN)) 
 	{
@@ -2803,9 +2803,9 @@ static hawk_nde_t* parse_dowhile (hawk_t* hawk, const hawk_loc_t* xloc)
 	}
 
 	if (get_token(hawk) <= -1)  goto oops;
-	
-	nde = (hawk_nde_while_t*) hawk_callocmem (hawk, HAWK_SIZEOF(*nde));
-	if (nde == HAWK_NULL) 
+
+	nde = (hawk_nde_while_t*)hawk_callocmem(hawk, HAWK_SIZEOF(*nde));
+	if (HAWK_UNLIKELY(!nde)) 
 	{
 		ADJERR_LOC (hawk, xloc);
 		goto oops;
@@ -2836,8 +2836,8 @@ static hawk_nde_t* parse_break (hawk_t* hawk, const hawk_loc_t* xloc)
 		return HAWK_NULL;
 	}
 
-	nde = (hawk_nde_break_t*) hawk_callocmem (hawk, HAWK_SIZEOF(*nde));
-	if (nde == HAWK_NULL)
+	nde = (hawk_nde_break_t*)hawk_callocmem(hawk, HAWK_SIZEOF(*nde));
+	if (HAWK_UNLIKELY(!nde))
 	{
 		ADJERR_LOC (hawk, xloc);
 		return HAWK_NULL;
@@ -2845,7 +2845,7 @@ static hawk_nde_t* parse_break (hawk_t* hawk, const hawk_loc_t* xloc)
 
 	nde->type = HAWK_NDE_BREAK;
 	nde->loc = *xloc;
-	
+
 	return (hawk_nde_t*)nde;
 }
 
@@ -2860,8 +2860,8 @@ static hawk_nde_t* parse_continue (hawk_t* hawk, const hawk_loc_t* xloc)
 		return HAWK_NULL;
 	}
 
-	nde = (hawk_nde_continue_t*) hawk_callocmem (hawk, HAWK_SIZEOF(*nde));
-	if (nde == HAWK_NULL)
+	nde = (hawk_nde_continue_t*)hawk_callocmem(hawk, HAWK_SIZEOF(*nde));
+	if (HAWK_UNLIKELY(!nde))
 	{
 		ADJERR_LOC (hawk, xloc);
 		return HAWK_NULL;
@@ -2880,8 +2880,8 @@ static hawk_nde_t* parse_return (hawk_t* hawk, const hawk_loc_t* xloc)
 
 	HAWK_ASSERT (hawk->ptok.type == TOK_RETURN);
 
-	nde = (hawk_nde_return_t*) hawk_callocmem ( hawk, HAWK_SIZEOF(*nde));
-	if (nde == HAWK_NULL)
+	nde = (hawk_nde_return_t*)hawk_callocmem(hawk, HAWK_SIZEOF(*nde));
+	if (HAWK_UNLIKELY(!nde))
 	{
 		ADJERR_LOC (hawk, xloc);
 		return HAWK_NULL;
@@ -2900,8 +2900,8 @@ static hawk_nde_t* parse_return (hawk_t* hawk, const hawk_loc_t* xloc)
 		hawk_loc_t eloc;
 
 		eloc = hawk->tok.loc;
-		val = parse_expr_withdc (hawk, &eloc);
-		if (val == HAWK_NULL) 
+		val = parse_expr_withdc(hawk, &eloc);
+		if (HAWK_UNLIKELY(!val)) 
 		{
 			hawk_freemem (hawk, nde);
 			return HAWK_NULL;

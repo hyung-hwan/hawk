@@ -64,23 +64,36 @@ hawk_bch_t* hawk_rtx_tokbcharswithbchars (
 	const hawk_bch_t* delim, hawk_oow_t delim_len, hawk_bcs_t* tok);
 
 
+hawk_uch_t* hawk_rtx_tokucharsbyrex (
+	hawk_rtx_t*       rtx, 
+	const hawk_uch_t* str,
+	hawk_oow_t        len,
+	const hawk_uch_t* substr,
+	hawk_oow_t        sublen,
+	hawk_tre_t*       rex,
+	hawk_ucs_t*       tok
+);
+
+hawk_bch_t* hawk_rtx_tokbcharsbyrex (
+	hawk_rtx_t*       rtx, 
+	const hawk_bch_t* str,
+	hawk_oow_t        len,
+	const hawk_bch_t* substr,
+	hawk_oow_t        sublen,
+	hawk_tre_t*       rex,
+	hawk_bcs_t*       tok
+);
+
+
 #if defined(HAWK_OOCH_IS_UCH)
 #	define hawk_rtx_fldoochars hawk_rtx_flduchars
 #	define hawk_rtx_tokoocharswithoochars hawk_rtx_tokucharswithuchars
+#	define hawk_rtx_tokoocharsbyrex hawk_rtx_tokucharsbyrex
 #else
 #	define hawk_rtx_fldoochars hawk_rtx_fldbchars
 #	define hawk_rtx_tokoocharswithoochars hawk_rtx_tokbcharswithbchars
+#	define hawk_rtx_tokoocharsbyrex hawk_rtx_tokbcharsbyrex
 #endif
-
-hawk_ooch_t* hawk_rtx_tokoocharsbyrex (
-	hawk_rtx_t*        rtx, 
-	const hawk_ooch_t* str,
-	hawk_oow_t         len,
-	const hawk_ooch_t* substr,
-	hawk_oow_t         sublen,
-	hawk_tre_t*        rex,
-	hawk_oocs_t*       tok
-);
 
 
 int hawk_rtx_matchvalwithucs (

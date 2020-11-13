@@ -64,83 +64,83 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /* Wide character and multibyte support. */
 
-#define GET_NEXT_WCHAR()						      \
-  do {									      \
-    prev_c = next_c;							      \
-    if (type == STR_BYTE)						      \
-      {									      \
-	pos++;								      \
-	if (len >= 0 && pos >= len)					      \
-	  next_c = '\0';						      \
-	else								      \
-	  next_c = (unsigned char)(*str_byte++);			      \
-      }									      \
-    else if (type == STR_WIDE)						      \
-      {									      \
-	pos++;								      \
-	if (len >= 0 && pos >= len)					      \
-	  next_c = HAWK_T('\0');						      \
-	else								      \
-	  next_c = *str_wide++;						      \
-      }									      \
-    else if (type == STR_MBS)						      \
-      {									      \
-        pos += pos_add_next;					      	      \
-	if (str_byte == NULL)						      \
-	  next_c = HAWK_T('\0');						      \
-	else								      \
-	  {								      \
-	    size_t w;							      \
-	    int max;							      \
-	    if (len >= 0)						      \
-	      max = len - pos;						      \
-	    else							      \
-	      max = 32;							      \
-	    if (max <= 0)						      \
-	      {								      \
-		next_c = HAWK_T('\0');						      \
-		pos_add_next = 1;					      \
-	      }								      \
-	    else							      \
-	      {								      \
-		w = hawk_mbrtowc(str_byte, (size_t)max, &next_c, &mbstate);    \
-		if (w <= 0 || w > max)			      \
-		  return REG_NOMATCH;					      \
-		if (next_c == HAWK_T('\0') && len >= 0)					      \
-		  {							      \
-		    pos_add_next = 1;					      \
-		    next_c = 0;						      \
-		    str_byte++;						      \
-		  }							      \
-		else							      \
-		  {							      \
-		    pos_add_next = w;					      \
-		    str_byte += w;					      \
-		  }							      \
-	      }								      \
-	  }								      \
-      }									      \
-  } while(/*CONSTCOND*/0)
+#define GET_NEXT_WCHAR() \
+	do { \
+		prev_c = next_c; \
+		if (type == STR_BYTE) \
+		{ \
+			pos++; \
+			if (len >= 0 && pos >= len) \
+				next_c = '\0'; \
+			else \
+				next_c = (unsigned char)(*str_byte++); \
+		} \
+		else if (type == STR_WIDE) \
+		{ \
+			pos++; \
+			if (len >= 0 && pos >= len) \
+				next_c = '\0'; \
+			else \
+				next_c = *str_wide++; \
+		} \
+		else if (type == STR_MBS) \
+		{ \
+			pos += pos_add_next; \
+			if (str_byte == NULL) \
+				next_c = '\0'; \
+			else \
+			{  \
+				size_t w;  \
+				int max;  \
+				if (len >= 0)  \
+					max = len - pos;  \
+				else  \
+					max = 32;  \
+				if (max <= 0)  \
+				{  \
+					next_c = '\0';  \
+					pos_add_next = 1;  \
+				}  \
+				else  \
+				{  \
+					w = hawk_mbrtowc(str_byte, (size_t)max, &next_c, &mbstate); \
+					if (w <= 0 || w > max) \
+						return REG_NOMATCH;  \
+					if (next_c == '\0' && len >= 0) \
+					{ \
+						pos_add_next = 1; \
+						next_c = 0; \
+						str_byte++; \
+					} \
+					else \
+					{ \
+						pos_add_next = w; \
+						str_byte += w; \
+					} \
+				} \
+			} \
+		} \
+	} while(/*CONSTCOND*/0)
 
 #else /* !TRE_MULTIBYTE */
 
 /* Wide character support, no multibyte support. */
 
-#define GET_NEXT_WCHAR()						      \
-do {									      \
-	prev_c = next_c;							      \
-	if (type == STR_BYTE)						      \
-	{									      \
-		pos++;								      \
-		if (len >= 0 && pos >= len) next_c = HAWK_BT('\0'); \
-		else	next_c = (unsigned char)(*str_byte++);		  \
-      }									      \
-	else if (type == STR_WIDE)						      \
-	{									      \
-		pos++;								      \
-		if (len >= 0 && pos >= len) next_c = HAWK_T('\0');	\
-		else next_c = *str_wide++;					\
-      }									      \
+#define GET_NEXT_WCHAR() \
+do { \
+	prev_c = next_c;  \
+	if (type == STR_BYTE) \
+	{ \
+		pos++; \
+		if (len >= 0 && pos >= len) next_c = '\0'; \
+		else	next_c = (unsigned char)(*str_byte++);   \
+	}  \
+	else if (type == STR_WIDE) \
+	{ \
+		pos++; \
+		if (len >= 0 && pos >= len) next_c = '\0'; \
+		else next_c = *str_wide++; \
+	} \
 } while(/*CONSTCOND*/0)
 
 #endif /* !TRE_MULTIBYTE */
@@ -166,22 +166,22 @@ do {									      \
 
 #define IS_WORD_CHAR(c)	 ((c) == HAWK_T('_') || tre_isalnum(c))
 
-#define CHECK_ASSERTIONS(assertions)					      \
-  (((assertions & ASSERT_AT_BOL)					      \
-    && (pos > 0 || reg_notbol)						      \
-    && (prev_c != HAWK_T('\n') || !reg_newline))				      \
-   || ((assertions & ASSERT_AT_EOL)					      \
-       && (next_c != HAWK_T('\0') || reg_noteol)				      \
-       && (next_c != HAWK_T('\n') || !reg_newline))				      \
-   || ((assertions & ASSERT_AT_BOW)					      \
-       && (IS_WORD_CHAR(prev_c) || !IS_WORD_CHAR(next_c)))	              \
-   || ((assertions & ASSERT_AT_EOW)					      \
-       && (!IS_WORD_CHAR(prev_c) || IS_WORD_CHAR(next_c)))		      \
-   || ((assertions & ASSERT_AT_WB)					      \
-       && (pos != 0 && next_c != HAWK_T('\0')					      \
-	   && IS_WORD_CHAR(prev_c) == IS_WORD_CHAR(next_c)))		      \
-   || ((assertions & ASSERT_AT_WB_NEG)					      \
-       && (pos == 0 || next_c == HAWK_T('\0')					      \
+#define CHECK_ASSERTIONS(assertions) \
+  (((assertions & ASSERT_AT_BOL) \
+    && (pos > 0 || reg_notbol) \
+    && (prev_c != HAWK_T('\n') || !reg_newline)) \
+   || ((assertions & ASSERT_AT_EOL) \
+       && (next_c != HAWK_T('\0') || reg_noteol) \
+       && (next_c != HAWK_T('\n') || !reg_newline)) \
+   || ((assertions & ASSERT_AT_BOW) \
+       && (IS_WORD_CHAR(prev_c) || !IS_WORD_CHAR(next_c))) \
+   || ((assertions & ASSERT_AT_EOW) \
+       && (!IS_WORD_CHAR(prev_c) || IS_WORD_CHAR(next_c))) \
+   || ((assertions & ASSERT_AT_WB) \
+       && (pos != 0 && next_c != HAWK_T('\0') \
+	   && IS_WORD_CHAR(prev_c) == IS_WORD_CHAR(next_c))) \
+   || ((assertions & ASSERT_AT_WB_NEG) \
+       && (pos == 0 || next_c == HAWK_T('\0') \
 	   || IS_WORD_CHAR(prev_c) != IS_WORD_CHAR(next_c))))
 
 #define CHECK_CHAR_CLASSES(trans_i, tnfa, eflags)                             \
@@ -191,7 +191,7 @@ do {									      \
     || ((trans_i->assertions & ASSERT_CHAR_CLASS)                             \
         && (tnfa->cflags & REG_ICASE)                                         \
         && !tre_isctype(tre_tolower((tre_cint_t)prev_c),trans_i->u.class)     \
-	&& !tre_isctype(tre_toupper((tre_cint_t)prev_c),trans_i->u.class))    \
+        && !tre_isctype(tre_toupper((tre_cint_t)prev_c),trans_i->u.class))    \
     || ((trans_i->assertions & ASSERT_CHAR_CLASS_NEG)                         \
         && tre_neg_char_classes_match(trans_i->neg_classes,(tre_cint_t)prev_c,\
                                       tnfa->cflags & REG_ICASE)))
@@ -201,8 +201,7 @@ do {									      \
 
 /* Returns 1 if `t1' wins `t2', 0 otherwise. */
 HAWK_INLINE static int
-tre_tag_order(int num_tags, tre_tag_direction_t *tag_directions,
-              int *t1, int *t2)
+tre_tag_order(int num_tags, tre_tag_direction_t *tag_directions, int *t1, int *t2)
 {
 	int i;
 	for (i = 0; i < num_tags; i++)

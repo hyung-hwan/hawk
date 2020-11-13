@@ -1869,14 +1869,14 @@ tre_ast_to_tnfa(hawk_gem_t* gem, tre_ast_node_t *node, tre_tnfa_transition_t *tr
 }
 
 
-#define ERROR_EXIT(err)		  \
-  do				  \
-    {				  \
-      errcode = err;		  \
-      if (/*CONSTCOND*/1)	  \
-      	goto error_exit;	  \
-    }				  \
- while (/*CONSTCOND*/0)
+#define ERROR_EXIT(err) \
+	do \
+	{ \
+		errcode = err; \
+		if (/*CONSTCOND*/1) \
+			goto error_exit; \
+	} \
+	while (/*CONSTCOND*/0)
 
 
 int tre_compile (regex_t *preg, const tre_char_t *regex, size_t n, int cflags)
@@ -1901,11 +1901,10 @@ int tre_compile (regex_t *preg, const tre_char_t *regex, size_t n, int cflags)
 /* HAWK: deleted limit on the stack size 
 	stack = tre_stack_new(preg->gem, 512, 10240, 128); */
 	stack = tre_stack_new(preg->gem, 512, -1, 128); 
-	if (!stack)
-		return REG_ESPACE;
+	if (HAWK_UNLIKELY(!stack)) return REG_ESPACE;
 	/* Allocate a fast memory allocator. */
 	mem = tre_mem_new(preg->gem);
-	if (!mem)
+	if (HAWK_UNLIKELY(!mem))
 	{
 		tre_stack_destroy(stack);
 		return REG_ESPACE;
@@ -1921,8 +1920,7 @@ int tre_compile (regex_t *preg, const tre_char_t *regex, size_t n, int cflags)
 	parse_ctx.max_backref = -1;
 	DPRINT(("tre_compile: parsing '%.*" STRF "'\n", (int)n, regex));
 	errcode = tre_parse(&parse_ctx);
-	if (errcode != REG_OK)
-		ERROR_EXIT(errcode);
+	if (errcode != REG_OK) ERROR_EXIT(errcode);
 	preg->re_nsub = parse_ctx.submatch_id - 1;
 	tree = parse_ctx.result;
 
@@ -1941,8 +1939,8 @@ int tre_compile (regex_t *preg, const tre_char_t *regex, size_t n, int cflags)
 
 	/* Allocate the TNFA struct. */
 	tnfa = xcalloc(preg->gem, 1, sizeof(tre_tnfa_t));
-	if (tnfa == NULL)
-		ERROR_EXIT(REG_ESPACE);
+	if (HAWK_UNLIKELY(!tnfa)) ERROR_EXIT(REG_ESPACE);
+
 	tnfa->have_backrefs = parse_ctx.max_backref >= 0;
 	tnfa->have_approx = parse_ctx.have_approx;
 	tnfa->num_submatches = parse_ctx.submatch_id;
@@ -1966,26 +1964,21 @@ int tre_compile (regex_t *preg, const tre_char_t *regex, size_t n, int cflags)
 		{
 			tag_directions = xmalloc(preg->gem,sizeof(*tag_directions)
 			                         * (tnfa->num_tags + 1));
-			if (tag_directions == NULL)
-				ERROR_EXIT(REG_ESPACE);
+			if (tag_directions == NULL) ERROR_EXIT(REG_ESPACE);
 			tnfa->tag_directions = tag_directions;
-			HAWK_MEMSET(tag_directions, -1,
-			           sizeof(*tag_directions) * (tnfa->num_tags + 1));
+			HAWK_MEMSET(tag_directions, -1, sizeof(*tag_directions) * (tnfa->num_tags + 1));
 		}
 		tnfa->minimal_tags = xcalloc(preg->gem, (unsigned)tnfa->num_tags * 2 + 1,
 		                             sizeof(tnfa->minimal_tags));
 		if (tnfa->minimal_tags == NULL)
 			ERROR_EXIT(REG_ESPACE);
 
-		submatch_data = xcalloc(preg->gem,(unsigned)parse_ctx.submatch_id,
-		                        sizeof(*submatch_data));
-		if (submatch_data == NULL)
-			ERROR_EXIT(REG_ESPACE);
+		submatch_data = xcalloc(preg->gem,(unsigned)parse_ctx.submatch_id, sizeof(*submatch_data));
+		if (HAWK_UNLIKELY(!submatch_data)) ERROR_EXIT(REG_ESPACE);
 		tnfa->submatch_data = submatch_data;
 
 		errcode = tre_add_tags(mem, stack, tree, tnfa, 0);
-		if (errcode != REG_OK)
-			ERROR_EXIT(errcode);
+		if (errcode != REG_OK) ERROR_EXIT(errcode);
 
 #ifdef TRE_DEBUG
 		for (i = 0; i < parse_ctx.submatch_id; i++)
@@ -1999,10 +1992,8 @@ int tre_compile (regex_t *preg, const tre_char_t *regex, size_t n, int cflags)
 	}
 
 	/* Expand iteration nodes. */
-	errcode = tre_expand_ast(mem, stack, tree, &parse_ctx.position,
-	                         tag_directions, &tnfa->params_depth);
-	if (errcode != REG_OK)
-		ERROR_EXIT(errcode);
+	errcode = tre_expand_ast(mem, stack, tree, &parse_ctx.position, tag_directions, &tnfa->params_depth);
+	if (errcode != REG_OK) ERROR_EXIT(errcode);
 
 	/* Add a dummy node for the final state.
 	   XXX - For certain patterns this dummy node can be optimized away,
@@ -2010,12 +2001,10 @@ int tre_compile (regex_t *preg, const tre_char_t *regex, size_t n, int cflags)
 	   this possibility. */
 	tmp_ast_l = tree;
 	tmp_ast_r = tre_ast_new_literal(mem, 0, 0, parse_ctx.position++);
-	if (tmp_ast_r == NULL)
-		ERROR_EXIT(REG_ESPACE);
+	if (HAWK_UNLIKELY(!tmp_ast_r)) ERROR_EXIT(REG_ESPACE);
 
 	tree = tre_ast_new_catenation(mem, tmp_ast_l, tmp_ast_r);
-	if (tree == NULL)
-		ERROR_EXIT(REG_ESPACE);
+	if (HAWK_UNLIKELY(!tree)) ERROR_EXIT(REG_ESPACE);
 
 #ifdef TRE_DEBUG
 	tre_ast_print(tree);
@@ -2023,16 +2012,13 @@ int tre_compile (regex_t *preg, const tre_char_t *regex, size_t n, int cflags)
 #endif /* TRE_DEBUG */
 
 	errcode = tre_compute_nfl(mem, stack, tree);
-	if (errcode != REG_OK)
-		ERROR_EXIT(errcode);
+	if (errcode != REG_OK) ERROR_EXIT(errcode);
 
 	counts = xmalloc(preg->gem,sizeof(int) * parse_ctx.position);
-	if (counts == NULL)
-		ERROR_EXIT(REG_ESPACE);
+	if (HAWK_UNLIKELY(!counts)) ERROR_EXIT(REG_ESPACE);
 
 	offs = xmalloc(preg->gem,sizeof(int) * parse_ctx.position);
-	if (offs == NULL)
-		ERROR_EXIT(REG_ESPACE);
+	if (HAWK_UNLIKELY(!offs)) ERROR_EXIT(REG_ESPACE);
 
 	for (i = 0; i < parse_ctx.position; i++)
 		counts[i] = 0;
@@ -2046,15 +2032,13 @@ int tre_compile (regex_t *preg, const tre_char_t *regex, size_t n, int cflags)
 		counts[i] = 0;
 	}
 	transitions = xcalloc(preg->gem, (unsigned)add + 1, sizeof(*transitions));
-	if (transitions == NULL)
-		ERROR_EXIT(REG_ESPACE);
+	if (HAWK_UNLIKELY(!transitions)) ERROR_EXIT(REG_ESPACE);
 	tnfa->transitions = transitions;
 	tnfa->num_transitions = add;
 
 	DPRINT(("Converting to TNFA:\n"));
 	errcode = tre_ast_to_tnfa(preg->gem, tree, transitions, counts, offs);
-	if (errcode != REG_OK)
-		ERROR_EXIT(errcode);
+	if (errcode != REG_OK) ERROR_EXIT(errcode);
 
 	/* If in eight bit mode, compute a table of characters that can be the
 	   first character of a match. */
@@ -2145,8 +2129,7 @@ int tre_compile (regex_t *preg, const tre_char_t *regex, size_t n, int cflags)
 	}
 
 	initial = xcalloc(preg->gem, (unsigned)i + 1, sizeof(tre_tnfa_transition_t));
-	if (initial == NULL)
-		ERROR_EXIT(REG_ESPACE);
+	if (HAWK_UNLIKELY(!initial)) ERROR_EXIT(REG_ESPACE);
 	tnfa->initial = initial;
 
 	i = 0;
@@ -2162,18 +2145,15 @@ int tre_compile (regex_t *preg, const tre_char_t *regex, size_t n, int cflags)
 			int j;
 			for (j = 0; p->tags[j] >= 0; j++);
 			initial[i].tags = xmalloc(preg->gem,sizeof(*p->tags) * (j + 1));
-			if (!initial[i].tags)
-				ERROR_EXIT(REG_ESPACE);
+			if (HAWK_UNLIKELY(!initial[i].tags)) ERROR_EXIT(REG_ESPACE);
 			HAWK_MEMCPY (initial[i].tags, p->tags, sizeof(*p->tags) * (j + 1));
 		}
 		initial[i].params = NULL;
 		if (p->params)
 		{
 			initial[i].params = xmalloc(preg->gem,sizeof(*p->params) * TRE_PARAM_LAST);
-			if (!initial[i].params)
-				ERROR_EXIT(REG_ESPACE);
-			HAWK_MEMCPY (initial[i].params, p->params,
-			            sizeof(*p->params) * TRE_PARAM_LAST);
+			if (HAWK_UNLIKELY(!initial[i].params)) ERROR_EXIT(REG_ESPACE);
+			HAWK_MEMCPY (initial[i].params, p->params, sizeof(*p->params) * TRE_PARAM_LAST);
 		}
 		initial[i].assertions = p->assertions;
 		i++;
@@ -2198,12 +2178,9 @@ int tre_compile (regex_t *preg, const tre_char_t *regex, size_t n, int cflags)
 error_exit:
 	/* Free everything that was allocated and return the error code. */
 	tre_mem_destroy(mem);
-	if (stack != NULL)
-		tre_stack_destroy(stack);
-	if (counts != NULL)
-		xfree(preg->gem,counts);
-	if (offs != NULL)
-		xfree(preg->gem,offs);
+	if (stack) tre_stack_destroy(stack);
+	if (counts) xfree(preg->gem,counts);
+	if (offs) xfree(preg->gem,offs);
 	preg->TRE_REGEX_T_FIELD = (void *)tnfa;
 	tre_free(preg);
 	return errcode;
