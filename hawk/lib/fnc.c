@@ -1001,8 +1001,12 @@ oops:
 
 int hawk_fnc_split (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
-	/*return fnc_split(rtx, fi, 1);*/
 	return fnc_split(rtx, fi, 0);
+}
+
+int hawk_fnc_splita (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+{
+	return fnc_split(rtx, fi, 1);
 }
 
 int hawk_fnc_tolower (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)

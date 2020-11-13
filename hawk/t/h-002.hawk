@@ -310,7 +310,10 @@ function main()
 		ensure (a[3] === @b"So]me",                            1, @SCRIPTNAME, @SCRIPTLINE);
 		ensure (a[4] === @b"Da:ta",                            1, @SCRIPTNAME, @SCRIPTLINE);
 
-		ensure (split("Here===Is=Some=====Data", a, ""),       23, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (split("Here===Is=Some=====Data", a, ""),       23,     @SCRIPTNAME, @SCRIPTLINE);
+		ensure (hawk::typename(a),                             "map",  @SCRIPTNAME, @SCRIPTLINE);
+		ensure (str::splita("Here===Is=Some=====Data", a, ""),  23,    @SCRIPTNAME, @SCRIPTLINE);
+		ensure (hawk::typename(a),                             "array",@SCRIPTNAME, @SCRIPTLINE);
 
 		ensure (split("Here  Is Some   Data", a, / /),         7, @SCRIPTNAME, @SCRIPTLINE);
 		ensure (split("Here  Is Some   Data", a, " "),         4, @SCRIPTNAME, @SCRIPTLINE);

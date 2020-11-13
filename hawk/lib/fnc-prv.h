@@ -64,6 +64,7 @@ HAWK_EXPORT int hawk_fnc_length  (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi);
 HAWK_EXPORT int hawk_fnc_match   (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi);
 HAWK_EXPORT int hawk_fnc_rindex  (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi);
 HAWK_EXPORT int hawk_fnc_split   (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi);
+HAWK_EXPORT int hawk_fnc_splita  (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi);
 HAWK_EXPORT int hawk_fnc_sprintf (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi);
 HAWK_EXPORT int hawk_fnc_sub     (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi);
 HAWK_EXPORT int hawk_fnc_substr  (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi);

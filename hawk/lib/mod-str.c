@@ -574,6 +574,7 @@ static fnctab_t fnctab[] =
 	{ HAWK_T("rindex"),       { { 2, 3, HAWK_NULL },      hawk_fnc_rindex,       0 } },
 	{ HAWK_T("rtrim"),        { { 1, 1, HAWK_NULL },      fnc_rtrim,             0 } },
 	{ HAWK_T("split"),        { { 2, 3, HAWK_T("vrx") },  hawk_fnc_split,        0 } },
+	{ HAWK_T("splita"),       { { 2, 3, HAWK_T("vrx") },  hawk_fnc_splita,       0 } }, /* split to array. asplit is not a good name for this */
 	{ HAWK_T("sub"),          { { 2, 3, HAWK_T("xvr") },  hawk_fnc_sub,          0 } },
 	{ HAWK_T("substr"),       { { 2, 3, HAWK_NULL },      hawk_fnc_substr,       0 } },
 	{ HAWK_T("tocharcode"),   { { 1, 2, HAWK_NULL },      fnc_tocharcode,        0 } },
