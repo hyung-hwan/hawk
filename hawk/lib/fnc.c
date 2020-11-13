@@ -787,7 +787,200 @@ int hawk_fnc_substr (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	return 0;
 }
 
-int hawk_fnc_split (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+#if 0
+static int split_mbs (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+{
+	hawk_oow_t nargs;
+	hawk_val_t* a0, * a2, * t1, * t2;
+	hawk_val_type_t a2_vtype, t1_vtype;
+
+	hawk_bcs_t str;
+	hawk_bcs_t fs;
+	hawk_bch_t* fs_free = HAWK_NULL;
+	const hawk_bch_t* p;
+	hawk_oow_t str_left, org_len;
+	hawk_tre_t* fs_rex = HAWK_NULL; 
+	hawk_tre_t* fs_rex_free = HAWK_NULL;
+
+	hawk_bcs_t tok;
+	hawk_int_t nflds;
+	int x;
+
+	str.ptr = HAWK_NULL;
+	str.len = 0;
+
+	nargs = hawk_rtx_getnargs(rtx);
+	HAWK_ASSERT (nargs >= 2 && nargs <= 3);
+
+	a0 = hawk_rtx_getarg(rtx, 0);
+	a2 = (nargs >= 3)? hawk_rtx_getarg(rtx, 2): HAWK_NULL;
+
+	str.ptr = hawk_rtx_getvalbcstr(rtx, a0, &str.len);
+	if (HAWK_UNLIKELY(!str.ptr)) goto oops;
+
+	if (!a2)
+	{
+		/* get the value from FS */
+		t1 = hawk_rtx_getgbl(rtx, HAWK_GBL_FS);
+		t1_vtype = HAWK_RTX_GETVALTYPE(rtx, t1);
+		if (t1_vtype == HAWK_VAL_NIL)
+		{
+			fs.ptr = " ";
+			fs.len = 1;
+		}
+		else if (t1_vtype == HAWK_VAL_MBS)
+		{
+			fs.ptr = ((hawk_val_mbs_t*)t1)->val.ptr;
+			fs.len = ((hawk_val_mbs_t*)t1)->val.len;
+		}
+		else
+		{
+			fs.ptr = hawk_rtx_valtobcstrdup(rtx, t1, &fs.len);
+			if (HAWK_UNLIKELY(!fs.ptr)) goto oops;
+			fs_free = (hawk_bch_t*)fs.ptr;
+		}
+
+		if (fs.len > 1) fs_rex = rtx->gbl.fs[rtx->gbl.ignorecase];
+	}
+	else 
+	{
+		a2_vtype = HAWK_RTX_GETVALTYPE(rtx, a2);
+
+		if (a2_vtype == HAWK_VAL_REX)
+		{
+			/* the third parameter is a regular expression */
+			fs_rex = ((hawk_val_rex_t*)a2)->code[rtx->gbl.ignorecase];
+
+			/* make the loop below to take fs_rex by 
+			 * setting fs_len greater than 1*/
+			fs.ptr = HAWK_NULL;
+			fs.len = 2;
+		}
+		else 
+		{
+			if (a2_vtype == HAWK_VAL_MBS)
+			{
+				fs.ptr = ((hawk_val_mbs_t*)a2)->val.ptr;
+				fs.len = ((hawk_val_mbs_t*)a2)->val.len;
+			}
+			else
+			{
+				fs.ptr = hawk_rtx_valtobcstrdup(rtx, a2, &fs.len);
+				if (fs.ptr == HAWK_NULL) goto oops;
+				fs_free = (hawk_bch_t*)fs.ptr;
+			}
+
+			if (fs.len > 1) 
+			{
+				int x;
+
+				x = rtx->gbl.ignorecase?
+					hawk_rtx_buildrex(rtx, fs.ptr, fs.len, HAWK_NULL, &fs_rex):
+					hawk_rtx_buildrex(rtx, fs.ptr, fs.len, &fs_rex, HAWK_NULL);
+				if (x <= -1) goto oops;
+
+				fs_rex_free = fs_rex;
+			}
+		}
+	}
+
+	t1 = hawk_rtx_makearrval(rtx);
+	if (HAWK_UNLIKELY(!t1)) goto oops;
+
+	hawk_rtx_refupval (rtx, t1);
+	x = hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, 1), t1);
+	hawk_rtx_refdownval (rtx, t1);
+	if (HAWK_UNLIKELY(x <= -1)) goto oops;
+
+	/* fill the map with actual values */
+	p = str.ptr; str_left = str.len; org_len = str.len;
+	nflds = 0;
+
+	while (p)
+	{
+		hawk_bch_t key_buf[HAWK_SIZEOF(hawk_int_t)*8+2];
+		hawk_oow_t key_len;
+
+		if (fs.len <= 1)
+		{
+			p = hawk_rtx_tokoocharswithoochars(rtx, p, str.len, fs.ptr, fs.len, &tok);
+		}
+		else
+		{
+			p = hawk_rtx_tokoocharsbyrex(rtx, str.ptr, org_len, p, str.len, fs_rex, &tok);
+			if (p == HAWK_NULL && hawk_rtx_geterrnum(rtx) != HAWK_ENOERR)
+			{
+				goto oops;
+			}
+		}
+
+		if (nflds == 0 && p == HAWK_NULL && tok.len == 0) 
+		{
+			/* no field at all*/
+			break; 
+		}
+
+		HAWK_ASSERT ((tok.ptr != HAWK_NULL && tok.len > 0) || tok.len == 0);
+
+		/* create the field string - however, the split function must
+		 * create a numeric value if the string is a number */
+		/*t2 = hawk_rtx_makembsvalwithbcs (rtx, &tok);*/
+		/*t2 = hawk_rtx_makenmbsvalwithbcs(rtx, &tok); */
+		t2 = hawk_rtx_makenumormbsvalwithbchars(rtx, tok.ptr, tok.len);
+		if (HAWK_UNLIKELY(!t2)) goto oops;
+
+		/* put it into the map */
+		key_len = hawk_int_to_oocstr(++nflds, 10, HAWK_NULL, key_buf, HAWK_COUNTOF(key_buf));
+		HAWK_ASSERT (key_len != (hawk_oow_t)-1);
+
+		if (hawk_rtx_setarrvalfld(rtx, t1, key_buf, key_len, t2) == HAWK_NULL)
+		{
+			hawk_rtx_refupval (rtx, t2);
+			hawk_rtx_refdownval (rtx, t2);
+			goto oops;
+		}
+
+		str.len = str_left - (p - str.ptr);
+	}
+
+	/*if (str_free) hawk_rtx_freemem (rtx, str_free);*/
+	hawk_rtx_freevalbcstr (rtx, a0, str.ptr);
+
+	if (fs_free) hawk_rtx_freemem (rtx, fs_free);
+
+	if (fs_rex_free) 
+	{
+		if (rtx->gbl.ignorecase)
+			hawk_rtx_freerex (rtx, HAWK_NULL, fs_rex_free);
+		else
+			hawk_rtx_freerex (rtx, fs_rex_free, HAWK_NULL);
+	}
+
+	/*nflds--;*/
+
+	t1 = hawk_rtx_makeintval(rtx, nflds);
+	if (HAWK_UNLIKELY(!t1)) return -1;
+
+	hawk_rtx_setretval (rtx, t1);
+	return 0;
+
+oops:
+	if (str.ptr) hawk_rtx_freevalbcstr (rtx, a0, str.ptr);
+
+	if (fs_free) hawk_rtx_freemem (rtx, fs_free);
+
+	if (fs_rex_free) 
+	{
+		if (rtx->gbl.ignorecase)
+			hawk_rtx_freerex (rtx, HAWK_NULL, fs_rex_free);
+		else
+			hawk_rtx_freerex (rtx, fs_rex_free, HAWK_NULL);
+	}
+	return -1;
+}
+#endif
+
+static int fnc_split (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, int use_array)
 {
 	hawk_oow_t nargs;
 	hawk_val_t* a0, * a2, * t1, * t2;
@@ -817,7 +1010,7 @@ int hawk_fnc_split (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	str.ptr = hawk_rtx_getvaloocstr(rtx, a0, &str.len);
 	if (HAWK_UNLIKELY(!str.ptr)) goto oops;
 
-	if (a2 == HAWK_NULL)
+	if (!a2)
 	{
 		/* get the value from FS */
 		t1 = hawk_rtx_getgbl(rtx, HAWK_GBL_FS);
@@ -835,7 +1028,7 @@ int hawk_fnc_split (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		else
 		{
 			fs.ptr = hawk_rtx_valtooocstrdup(rtx, t1, &fs.len);
-			if (fs.ptr == HAWK_NULL) goto oops;
+			if (HAWK_UNLIKELY(!fs.ptr)) goto oops;
 			fs_free = (hawk_ooch_t*)fs.ptr;
 		}
 
@@ -883,7 +1076,7 @@ int hawk_fnc_split (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		}
 	}
 
-	t1 = hawk_rtx_makemapval(rtx);
+	t1 = use_array? hawk_rtx_makearrval(rtx, 16): hawk_rtx_makemapval(rtx);
 	if (HAWK_UNLIKELY(!t1)) goto oops;
 
 	hawk_rtx_refupval (rtx, t1);
@@ -902,11 +1095,11 @@ int hawk_fnc_split (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 		if (fs.len <= 1)
 		{
-			p = hawk_rtx_strxntok(rtx, p, str.len, fs.ptr, fs.len, &tok);
+			p = hawk_rtx_tokoocharswithoochars(rtx, p, str.len, fs.ptr, fs.len, &tok);
 		}
 		else
 		{
-			p = hawk_rtx_strxntokbyrex(rtx, str.ptr, org_len, p, str.len, fs_rex, &tok);
+			p = hawk_rtx_tokoocharsbyrex(rtx, str.ptr, org_len, p, str.len, fs_rex, &tok);
 			if (p == HAWK_NULL && hawk_rtx_geterrnum(rtx) != HAWK_ENOERR)
 			{
 				goto oops;
@@ -928,15 +1121,27 @@ int hawk_fnc_split (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		t2 = hawk_rtx_makenumorstrvalwithoochars(rtx, tok.ptr, tok.len);
 		if (HAWK_UNLIKELY(!t2)) goto oops;
 
-		/* put it into the map */
-		key_len = hawk_int_to_oocstr(++nflds, 10, HAWK_NULL, key_buf, HAWK_COUNTOF(key_buf));
-		HAWK_ASSERT (key_len != (hawk_oow_t)-1);
-
-		if (hawk_rtx_setmapvalfld(rtx, t1, key_buf, key_len, t2) == HAWK_NULL)
+		if (use_array)
 		{
-			hawk_rtx_refupval (rtx, t2);
-			hawk_rtx_refdownval (rtx, t2);
-			goto oops;
+			if (hawk_rtx_setarrvalfld(rtx, t1, ++nflds, t2) == HAWK_NULL)
+			{
+				hawk_rtx_refupval (rtx, t2);
+				hawk_rtx_refdownval (rtx, t2);
+				goto oops;
+			}
+		}
+		else
+		{
+			/* put it into the map */
+			key_len = hawk_int_to_oocstr(++nflds, 10, HAWK_NULL, key_buf, HAWK_COUNTOF(key_buf));
+			HAWK_ASSERT (key_len != (hawk_oow_t)-1);
+
+			if (hawk_rtx_setmapvalfld(rtx, t1, key_buf, key_len, t2) == HAWK_NULL)
+			{
+				hawk_rtx_refupval (rtx, t2);
+				hawk_rtx_refdownval (rtx, t2);
+				goto oops;
+			}
 		}
 
 		str.len = str_left - (p - str.ptr);
@@ -958,7 +1163,7 @@ int hawk_fnc_split (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	/*nflds--;*/
 
 	t1 = hawk_rtx_makeintval (rtx, nflds);
-	if (t1 == HAWK_NULL) return -1;
+	if (HAWK_UNLIKELY(!t1)) return -1;
 
 	hawk_rtx_setretval (rtx, t1);
 	return 0;
@@ -976,6 +1181,11 @@ oops:
 			hawk_rtx_freerex (rtx, fs_rex_free, HAWK_NULL);
 	}
 	return -1;
+}
+
+int hawk_fnc_split (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+{
+	return fnc_split(rtx, fi, 1);
 }
 
 int hawk_fnc_tolower (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)

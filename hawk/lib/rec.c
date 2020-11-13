@@ -166,14 +166,14 @@ static int split_record (hawk_rtx_t* rtx, int prefer_number)
 		switch (how)
 		{
 			case 0:
-				p = hawk_rtx_strxntok (rtx, p, len, fs_ptr, fs_len, &tok);
+				p = hawk_rtx_tokoocharswithoochars (rtx, p, len, fs_ptr, fs_len, &tok);
 				break;
 
 			case 1:
 				break;
 
 			default:
-				p = hawk_rtx_strxntokbyrex(
+				p = hawk_rtx_tokoocharsbyrex(
 					rtx, 
 					HAWK_OOECS_PTR(&rtx->inrec.line),
 					HAWK_OOECS_LEN(&rtx->inrec.line),
@@ -241,17 +241,17 @@ static int split_record (hawk_rtx_t* rtx, int prefer_number)
 		{
 			case 0:
 				/* 1 character FS */
-				p = hawk_rtx_strxntok(rtx, p, len, fs_ptr, fs_len, &tok);
+				p = hawk_rtx_tokoocharswithoochars(rtx, p, len, fs_ptr, fs_len, &tok);
 				break;
 
 			case 1:
 				/* 5 character FS beginning with ? */
-				p = hawk_rtx_strxnfld(rtx, p, len, fs_ptr[1], fs_ptr[2], fs_ptr[3], fs_ptr[4], &tok);
+				p = hawk_rtx_fldoochars(rtx, p, len, fs_ptr[1], fs_ptr[2], fs_ptr[3], fs_ptr[4], &tok);
 				break;
 
 			default:
 				/* all other cases */
-				p = hawk_rtx_strxntokbyrex(
+				p = hawk_rtx_tokoocharsbyrex(
 					rtx, 
 					HAWK_OOECS_PTR(&rtx->inrec.line),
 					HAWK_OOECS_LEN(&rtx->inrec.line),
