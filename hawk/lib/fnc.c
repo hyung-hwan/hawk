@@ -797,7 +797,7 @@ static int fnc_split (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, int use_array)
 	hawk_ooch_t* fs_free = HAWK_NULL;
 	hawk_ooch_t* p;
 
-	hawk_oow_t str_left, org_len;
+	hawk_oow_t org_len;
 	hawk_tre_t* fs_rex = HAWK_NULL; 
 	hawk_tre_t* fs_rex_free = HAWK_NULL;
 
@@ -887,8 +887,7 @@ static int fnc_split (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, int use_array)
 	if (HAWK_UNLIKELY(x <= -1)) goto oops;
 
 	/* fill the map with actual values */
-	p = str.ptr; str_left = str.len; org_len = str.len;
-	nflds = 0;
+	p = str.ptr; org_len = str.len; nflds = 0;
 
 	while (p)
 	{
@@ -954,9 +953,9 @@ static int fnc_split (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, int use_array)
 		}
 
 		if (byte_str)
-			str.len = str_left - ((p - str.ptr) * HAWK_SIZEOF_OOCH_T);
+			str.len = org_len - ((hawk_bch_t*)p - (hawk_bch_t*)str.ptr);
 		else
-			str.len = str_left - (p - str.ptr);
+			str.len = org_len - (p - str.ptr);
 	}
 
 	if (do_fld) hawk_rtx_freemem (rtx, str.ptr);
