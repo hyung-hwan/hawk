@@ -33,23 +33,46 @@
 extern "C" {
 #endif
 
-hawk_ooch_t* hawk_rtx_strtok (
-	hawk_rtx_t* rtx, const hawk_ooch_t* s, 
-	const hawk_ooch_t* delim, hawk_oocs_t* tok);
+hawk_uch_t* hawk_rtx_flduchars (
+	hawk_rtx_t*    rtx,
+	hawk_uch_t*    str,
+	hawk_oow_t     len,
+	hawk_uch_t     fs,
+	hawk_uch_t     lq,
+	hawk_uch_t     rq,
+	hawk_uch_t     ec,
+	hawk_ucs_t*    tok
+);
 
-hawk_ooch_t* hawk_rtx_strxtok (
-	hawk_rtx_t* rtx, const hawk_ooch_t* s, hawk_oow_t len,
-	const hawk_ooch_t* delim, hawk_oocs_t* tok);
+hawk_bch_t* hawk_rtx_fldbchars (
+	hawk_rtx_t*    rtx,
+	hawk_bch_t*    str,
+	hawk_oow_t     len,
+	hawk_bch_t     fs,
+	hawk_bch_t     lq,
+	hawk_bch_t     rq,
+	hawk_bch_t     ec,
+	hawk_bcs_t*    tok
+);
 
-hawk_ooch_t* hawk_rtx_strntok (
-	hawk_rtx_t* rtx, const hawk_ooch_t* s, 
-	const hawk_ooch_t* delim, hawk_oow_t delim_len, hawk_oocs_t* tok);
+hawk_uch_t* hawk_rtx_tokucharswithuchars (
+	hawk_rtx_t* rtx, const hawk_uch_t* s, hawk_oow_t len,
+	const hawk_uch_t* delim, hawk_oow_t delim_len, hawk_ucs_t* tok);
 
-hawk_ooch_t* hawk_rtx_strxntok (
-	hawk_rtx_t* rtx, const hawk_ooch_t* s, hawk_oow_t len,
-	const hawk_ooch_t* delim, hawk_oow_t delim_len, hawk_oocs_t* tok);
+hawk_bch_t* hawk_rtx_tokbcharswithbchars (
+	hawk_rtx_t* rtx, const hawk_bch_t* s, hawk_oow_t len,
+	const hawk_bch_t* delim, hawk_oow_t delim_len, hawk_bcs_t* tok);
 
-hawk_ooch_t* hawk_rtx_strxntokbyrex (
+
+#if defined(HAWK_OOCH_IS_UCH)
+#	define hawk_rtx_fldoochars hawk_rtx_flduchars
+#	define hawk_rtx_tokoocharswithoochars hawk_rtx_tokucharswithuchars
+#else
+#	define hawk_rtx_fldoochars hawk_rtx_fldbchars
+#	define hawk_rtx_tokoocharswithoochars hawk_rtx_tokbcharswithbchars
+#endif
+
+hawk_ooch_t* hawk_rtx_tokoocharsbyrex (
 	hawk_rtx_t*        rtx, 
 	const hawk_ooch_t* str,
 	hawk_oow_t         len,
@@ -59,16 +82,6 @@ hawk_ooch_t* hawk_rtx_strxntokbyrex (
 	hawk_oocs_t*       tok
 );
 
-hawk_ooch_t* hawk_rtx_strxnfld (
-	hawk_rtx_t*     rtx,
-	hawk_ooch_t*    str,
-	hawk_oow_t      len,
-	hawk_ooch_t     fs,
-	hawk_ooch_t     lq,
-	hawk_ooch_t     rq,
-	hawk_ooch_t     ec,
-	hawk_oocs_t*    tok
-);
 
 int hawk_rtx_matchvalwithucs (
 	hawk_rtx_t* rtx, hawk_val_t* val,

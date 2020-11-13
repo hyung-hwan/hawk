@@ -26,221 +26,32 @@
 
 #include "hawk-prv.h"
 
-hawk_ooch_t* hawk_rtx_strtok (
-	hawk_rtx_t* rtx, const hawk_ooch_t* s, 
-	const hawk_ooch_t* delim, hawk_oocs_t* tok)
-{
-	return hawk_rtx_strxntok(rtx, s, hawk_count_oocstr(s), delim, hawk_count_oocstr(delim), tok);
-}
 
-hawk_ooch_t* hawk_rtx_strxtok (
-	hawk_rtx_t* rtx, const hawk_ooch_t* s, hawk_oow_t len,
-	const hawk_ooch_t* delim, hawk_oocs_t* tok)
-{
-	return hawk_rtx_strxntok(rtx, s, len, delim, hawk_count_oocstr(delim), tok);
-}
+#undef char_t
+#undef xcs_t
+#undef is_xch_space
+#undef tokenize_xchars
+#undef split_xchars_to_fields
+#define char_t hawk_bch_t
+#define xcs_t hawk_bcs_t
+#define is_xch_space hawk_is_bch_space
+#define tokenize_xchars hawk_rtx_tokbcharswithbchars
+#define split_xchars_to_fields hawk_rtx_fldbchars
+#include "misc-imp.h"
 
-hawk_ooch_t* hawk_rtx_strntok (
-	hawk_rtx_t* rtx, const hawk_ooch_t* s, 
-	const hawk_ooch_t* delim, hawk_oow_t delim_len,
-	hawk_oocs_t* tok)
-{
-	return hawk_rtx_strxntok(rtx, s, hawk_count_oocstr(s), delim, delim_len, tok);
-}
+#undef char_t
+#undef xcs_t
+#undef is_xch_space
+#undef tokenize_xchars
+#undef split_xchars_to_fields
+#define char_t hawk_uch_t
+#define xcs_t hawk_ucs_t
+#define is_xch_space hawk_is_uch_space
+#define tokenize_xchars hawk_rtx_tokucharswithuchars
+#define split_xchars_to_fields hawk_rtx_flduchars
+#include "misc-imp.h"
 
-hawk_ooch_t* hawk_rtx_strxntok (
-	hawk_rtx_t* rtx, const hawk_ooch_t* s, hawk_oow_t len,
-	const hawk_ooch_t* delim, hawk_oow_t delim_len, hawk_oocs_t* tok)
-{
-	const hawk_ooch_t* p = s, *d;
-	const hawk_ooch_t* end = s + len;	
-	const hawk_ooch_t* sp = HAWK_NULL, * ep = HAWK_NULL;
-	const hawk_ooch_t* delim_end = delim + delim_len;
-	hawk_ooch_t c; 
-	int delim_mode;
-
-#define __DELIM_NULL      0
-#define __DELIM_EMPTY     1
-#define __DELIM_SPACES    2
-#define __DELIM_NOSPACES  3
-#define __DELIM_COMPOSITE 4
-	if (delim == HAWK_NULL) delim_mode = __DELIM_NULL;
-	else 
-	{
-		delim_mode = __DELIM_EMPTY;
-
-		for (d = delim; d < delim_end; d++) 
-		{
-			if (hawk_is_ooch_space(*d)) 
-			{
-				if (delim_mode == __DELIM_EMPTY)
-					delim_mode = __DELIM_SPACES;
-				else if (delim_mode == __DELIM_NOSPACES)
-				{
-					delim_mode = __DELIM_COMPOSITE;
-					break;
-				}
-			}
-			else
-			{
-				if (delim_mode == __DELIM_EMPTY)
-					delim_mode = __DELIM_NOSPACES;
-				else if (delim_mode == __DELIM_SPACES)
-				{
-					delim_mode = __DELIM_COMPOSITE;
-					break;
-				}
-			}
-		}
-
-		/* TODO: verify the following statement... */
-		if (delim_mode == __DELIM_SPACES && 
-		    delim_len == 1 && 
-		    delim[0] != HAWK_T(' ')) delim_mode = __DELIM_NOSPACES;
-	}		
-	
-	if (delim_mode == __DELIM_NULL) 
-	{ 
-		/* when HAWK_NULL is given as "delim", it trims off the 
-		 * leading and trailing spaces characters off the source
-		 * string "s" eventually. */
-
-		while (p < end && hawk_is_ooch_space(*p)) p++;
-		while (p < end) 
-		{
-			c = *p;
-
-			if (!hawk_is_ooch_space(c)) 
-			{
-				if (sp == HAWK_NULL) sp = p;
-				ep = p;
-			}
-			p++;
-		}
-	}
-	else if (delim_mode == __DELIM_EMPTY)
-	{
-		/* each character in the source string "s" becomes a token. */
-		if (p < end)
-		{
-			c = *p;
-			sp = p;
-			ep = p++;
-		}
-	}
-	else if (delim_mode == __DELIM_SPACES) 
-	{
-		/* each token is delimited by space characters. all leading
-		 * and trailing spaces are removed. */
-
-		while (p < end && hawk_is_ooch_space(*p)) p++;
-		while (p < end) 
-		{
-			c = *p;
-			if (hawk_is_ooch_space(c)) break;
-			if (sp == HAWK_NULL) sp = p;
-			ep = p++;
-		}
-		while (p < end && hawk_is_ooch_space(*p)) p++;
-	}
-	else if (delim_mode == __DELIM_NOSPACES)
-	{
-		/* each token is delimited by one of charaters 
-		 * in the delimeter set "delim". */
-		if (rtx->gbl.ignorecase)
-		{
-			while (p < end) 
-			{
-				c = hawk_to_ooch_upper(*p);
-				for (d = delim; d < delim_end; d++) 
-				{
-					if (c == hawk_to_ooch_upper(*d)) goto exit_loop;
-				}
-
-				if (sp == HAWK_NULL) sp = p;
-				ep = p++;
-			}
-		}
-		else
-		{
-			while (p < end) 
-			{
-				c = *p;
-				for (d = delim; d < delim_end; d++) 
-				{
-					if (c == *d) goto exit_loop;
-				}
-
-				if (sp == HAWK_NULL) sp = p;
-				ep = p++;
-			}
-		}
-	}
-	else /* if (delim_mode == __DELIM_COMPOSITE) */ 
-	{
-		/* each token is delimited by one of non-space charaters
-		 * in the delimeter set "delim". however, all space characters
-		 * surrounding the token are removed */
-		while (p < end && hawk_is_ooch_space(*p)) p++;
-		if (rtx->gbl.ignorecase)
-		{
-			while (p < end) 
-			{
-				c = hawk_to_ooch_upper(*p);
-				if (hawk_is_ooch_space(c)) 
-				{
-					p++;
-					continue;
-				}
-				for (d = delim; d < delim_end; d++) 
-				{
-					if (c == hawk_to_ooch_upper(*d))
-						goto exit_loop;
-				}
-				if (sp == HAWK_NULL) sp = p;
-				ep = p++;
-			}
-		}
-		else
-		{
-			while (p < end) 
-			{
-				c = *p;
-				if (hawk_is_ooch_space(c)) 
-				{
-					p++;
-					continue;
-				}
-				for (d = delim; d < delim_end; d++) 
-				{
-					if (c == *d) goto exit_loop;
-				}
-				if (sp == HAWK_NULL) sp = p;
-				ep = p++;
-			}
-		}
-	}
-
-exit_loop:
-	if (sp == HAWK_NULL) 
-	{
-		tok->ptr = HAWK_NULL;
-		tok->len = (hawk_oow_t)0;
-	}
-	else 
-	{
-		tok->ptr = (hawk_ooch_t*)sp;
-		tok->len = ep - sp + 1;
-	}
-
-	/* if HAWK_NULL is returned, this function should not be called again */
-	if (p >= end) return HAWK_NULL;
-	if (delim_mode == __DELIM_EMPTY || 
-	    delim_mode == __DELIM_SPACES) return (hawk_ooch_t*)p;
-	return (hawk_ooch_t*)++p;
-}
-
-hawk_ooch_t* hawk_rtx_strxntokbyrex (
+hawk_ooch_t* hawk_rtx_tokoocharsbyrex (
 	hawk_rtx_t* rtx, 
 	const hawk_ooch_t* str, hawk_oow_t len,
 	const hawk_ooch_t* substr, hawk_oow_t sublen,
@@ -343,6 +154,7 @@ exit_loop:
 	}
 }
 
+#if 0
 hawk_ooch_t* hawk_rtx_strxnfld (
 	hawk_rtx_t* rtx, hawk_ooch_t* str, hawk_oow_t len,
 	hawk_ooch_t fs, hawk_ooch_t ec, hawk_ooch_t lq, hawk_ooch_t rq,
@@ -431,6 +243,7 @@ hawk_ooch_t* hawk_rtx_strxnfld (
 	tok->len = xp - ts;
 	return HAWK_NULL;
 }
+#endif
 
 static int matchtre_ucs (hawk_tre_t* tre, int opt, const hawk_ucs_t* str, hawk_ucs_t* mat, hawk_ucs_t submat[9], hawk_gem_t* errgem)
 {

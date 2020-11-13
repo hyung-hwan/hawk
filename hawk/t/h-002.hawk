@@ -233,12 +233,15 @@ function main()
 		ensure (sprintf("%*.*s", 20, 0, "hello"),        "                    ",        @SCRIPTNAME, @SCRIPTLINE);
 		ensure (sprintf("%*.*s", 20, 2, "hello"),        "                  he",        @SCRIPTNAME, @SCRIPTLINE);
 
-		ensure (sprintf(@b"%0s", "hello"),                 @b"hello",                   @SCRIPTNAME, @SCRIPTLINE);
-		ensure (sprintf(@b"%.0s", "hello"),                @b"",                        @SCRIPTNAME, @SCRIPTLINE);
-		ensure (sprintf(@b"%0.0s", "hello"),               @b"",                        @SCRIPTNAME, @SCRIPTLINE);
-		ensure (sprintf(@b"%1.0s", "hello"),               @b" ",                       @SCRIPTNAME, @SCRIPTLINE);
-		ensure (sprintf(@b"%*.*s", 20, 0, "hello"),        @b"                    ",    @SCRIPTNAME, @SCRIPTLINE);
-		ensure (sprintf(@b"%*.*s", 20, 2, "hello"),        @b"                  he",    @SCRIPTNAME, @SCRIPTLINE);
+		ensure (sprintf(@b"%0s", "hello"),               @b"hello",                     @SCRIPTNAME, @SCRIPTLINE);
+		ensure (sprintf(@b"%.0s", "hello"),              @b"",                          @SCRIPTNAME, @SCRIPTLINE);
+		ensure (sprintf(@b"%0.0s", "hello"),             @b"",                          @SCRIPTNAME, @SCRIPTLINE);
+		ensure (sprintf(@b"%1.0s", "hello"),             @b" ",                         @SCRIPTNAME, @SCRIPTLINE);
+		ensure (sprintf(@b"%*.*s", 20, 0, "hello"),      @b"                    ",      @SCRIPTNAME, @SCRIPTLINE);
+		ensure (sprintf(@b"%*.*s", 20, 2, "hello"),      @b"                  he",      @SCRIPTNAME, @SCRIPTLINE);
+
+		ensure (sprintf("%+d %d", 3, 4),                 "+3 4",                        @SCRIPTNAME, @SCRIPTLINE);
+		ensure (sprintf(@b"%+d %d", 3, 4),               @b"+3 4",                      @SCRIPTNAME, @SCRIPTLINE);
 	}
 
 	{
@@ -249,6 +252,45 @@ function main()
 		bool = ((b = 1) in c);
 		ensure (bool, 0, @SCRIPTNAME, @SCRIPTLINE);
 		ensure (b, 1, @SCRIPTNAME, @SCRIPTLINE);
+	}
+
+
+	{
+		ensure (substr(1000+"5000", 2) === "000",          1,  @SCRIPTNAME, @SCRIPTLINE);
+		ensure (substr(1000+"10000", 2) === "1000",        1,  @SCRIPTNAME, @SCRIPTLINE);
+		ensure (substr(1000+"5000", 2) === "000",          1,  @SCRIPTNAME, @SCRIPTLINE);
+
+		ensure (substr("5000" + 1000, 2) === "000",        1,  @SCRIPTNAME, @SCRIPTLINE);
+		ensure (substr("10000" + 1000, 2) === "1000",      1,  @SCRIPTNAME, @SCRIPTLINE);
+		ensure (substr("5000" + 1000, 2) === "000",        1,  @SCRIPTNAME, @SCRIPTLINE);
+
+		ensure (substr(@b"5000" + 1000, 2) === "000",      1,  @SCRIPTNAME, @SCRIPTLINE);
+		ensure (substr(@b"10000" + 1000, 2) === "1000",    1,  @SCRIPTNAME, @SCRIPTLINE);
+		ensure (substr(@b"5000" + 1000, 2) === "000",      1,  @SCRIPTNAME, @SCRIPTLINE);
+
+		ensure (substr(@b"5000", 2) === @b"000",           1,  @SCRIPTNAME, @SCRIPTLINE);
+		ensure (substr(@b"10000", 2) === @b"0000",         1,  @SCRIPTNAME, @SCRIPTLINE);
+		ensure (substr(@b"5000", 2) === @b"000",           1,  @SCRIPTNAME, @SCRIPTLINE);
+
+		ensure (substr(1000+5000, 2) === "000",            1,  @SCRIPTNAME, @SCRIPTLINE);
+		ensure (substr(1000+10000, 2) === "1000",          1,  @SCRIPTNAME, @SCRIPTLINE);
+		ensure (substr(1000+5000, 2) === "000",            1,  @SCRIPTNAME, @SCRIPTLINE);
+	}
+
+
+	{
+		@local a;
+		ensure (split("Here===Is=Some=====Data", a, "=+"),     4, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (a[1] === "Here",                               1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (a[2] === "Is",                                 1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (a[3] === "Some",                               1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (a[4] === "Data",                               1, @SCRIPTNAME, @SCRIPTLINE);
+
+		ensure (split(@b"Here===Is=Some=====Data", a, @b"=+"), 4, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (a[1] === @b"Here",                             1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (a[2] === @b"Is",                               1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (a[3] === @b"Some",                             1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (a[4] === @b"Data",                             1, @SCRIPTNAME, @SCRIPTLINE);
 	}
 
 	print "SUCCESS";
