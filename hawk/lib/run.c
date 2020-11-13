@@ -2063,7 +2063,6 @@ static int run_pblock (hawk_rtx_t* rtx, hawk_chain_t* cha, hawk_oow_t bno)
 static HAWK_INLINE int run_block0 (hawk_rtx_t* rtx, hawk_nde_blk_t* nde)
 {
 	hawk_nde_t* p;
-	hawk_oow_t nlcls;
 	hawk_oow_t saved_stack_top;
 	int n = 0;
 
