@@ -3626,14 +3626,12 @@ static int fnc_openmux (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 #if defined(USE_EPOLL)
 	#if defined(HAVE_EPOLL_CREATE1) && defined(EPOLL_CLOEXEC)
 	fd = epoll_create1(EPOLL_CLOEXEC);
-	#elif defined(HAVE_EPOLL_CREATE1) && defined(O_CLOEXEC)
-	fd = epoll_create1(O_CLOEXEC);
 	#else
 	fd = epoll_create(4096);
 	#endif
 	if (fd >= 0)
 	{
-		#if defined(HAVE_EPOLL_CREATE1) && defined(O_CLOEXEC)
+		#if defined(HAVE_EPOLL_CREATE1) && defined(EPOLL_CLOEXEC)
 		/* nothing to do */
 		#elif defined(FD_CLOEXEC)
 		{
