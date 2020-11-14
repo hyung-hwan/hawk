@@ -14,6 +14,13 @@ LDFLAGS_ALL_COMMON = -L$(abs_builddir) -L$(abs_builddir)/../lib -L$(libdir)
 
 CPPFLAGS_BIN_COMMON = $(CPPFLAGS_ALL_COMMON)
 LDFLAGS_BIN_COMMON = $(LDFLAGS_ALL_COMMON) -no-undefined
+
+##
+## -lm may get omitted from dependency_libs in libhawk.la.
+## the generated libtool in the build directory may include -lm in postdeps
+## dependency_libs excludes items in postdeps.
+## specify -lm explicitly to satisfy dependency regardless of libtool behavior.
+##
 LIBADD_BIN_COMMON = $(LIBM) 
 
 bin_PROGRAMS = hawk
