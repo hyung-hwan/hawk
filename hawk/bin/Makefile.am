@@ -1,12 +1,14 @@
 AUTOMAKE_OPTIONS = nostdinc
 
+CFLAGS_ALL_COMMON = $(PTHREAD_CFLAGS)
+CXXFLAGS_ALL_COMMON = $(PTHREAD_CFLAGS)
+
 CPPFLAGS_ALL_COMMON = \
 	-I$(abs_builddir) \
 	-I$(abs_builddir)/../lib  \
 	-I$(abs_srcdir) \
 	-I$(abs_srcdir)/../lib \
-	-I$(includedir) \
-	$(PTHREAD_CFLAGS)
+	-I$(includedir)
 
 LDFLAGS_ALL_COMMON = -L$(abs_builddir) -L$(abs_builddir)/../lib -L$(libdir)
 
@@ -21,7 +23,9 @@ bin_PROGRAMS = hawk
 ##################################################
 hawk_SOURCES = main.c 
 hawk_CPPFLAGS = $(CPPFLAGS_ALL_COMMON)
+hawk_CFLAGS = $(CFLAGS_ALL_COMMON)
+hawk_CXXFLAGS = $(CXXFLAGS_ALL_COMMON)
 hawk_LDFLAGS = $(LDFLAGS_ALL_COMMON)
-hawk_LDADD = -lhawk $(LIBADD_BIN_COMMON) $(SOCKET_LIBS) $(PTHREAD_LIBS)
+hawk_LDADD = -lhawk $(LIBADD_BIN_COMMON) ### $(SOCKET_LIBS) $(PTHREAD_LIBS)
 hawk_DEPENDENCIES = ../lib/libhawk.la
 

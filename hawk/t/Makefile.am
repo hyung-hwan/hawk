@@ -1,6 +1,7 @@
 AUTOMAKE_OPTIONS = nostdinc
 
 AM_CFLAGS = $(PTHREAD_CFLAGS)
+AM_CXXFLAGS = $(PTHREAD_CFLAGS)
 
 AM_CPPFLAGS = \
 	-I$(abs_builddir) \
@@ -10,7 +11,7 @@ AM_CPPFLAGS = \
 	-I$(includedir)
 
 AM_LDFLAGS = -L$(abs_builddir)/../lib  -L$(libdir)
-LDADD = $(PTHREAD_LIBS)
+LDADD = 
 
 check_SCRIPTS = h-001.hawk h-002.hawk
 ##noinst_SCRIPTS = $(check_SCRIPTS)
@@ -29,7 +30,7 @@ t_003_LDADD = -lhawk $(LDADD)
 t_003_DEPENDENCIES = ../lib/libhawk.la
 
 t_004_SOURCES = t-004.c t.h
-t_004_LDADD = -lhawk $(LDADD) $(LIBM)
+t_004_LDADD = -lhawk $(LDADD)
 t_004_DEPENDENCIES = ../lib/libhawk.la
 
 t_005_SOURCES = t-005.c t.h

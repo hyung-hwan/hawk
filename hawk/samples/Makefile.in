@@ -121,13 +121,13 @@ am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
 am__v_lt_0 = --silent
 am__v_lt_1 = 
 hawk02_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
-	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
+	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(hawk02_CFLAGS) $(CFLAGS) \
 	$(hawk02_LDFLAGS) $(LDFLAGS) -o $@
 am__hawk51_SOURCES_DIST = hawk51.cpp
 @ENABLE_CXX_TRUE@am_hawk51_OBJECTS = hawk51-hawk51.$(OBJEXT)
 hawk51_OBJECTS = $(am_hawk51_OBJECTS)
 hawk51_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) \
-	$(LIBTOOLFLAGS) --mode=link $(CXXLD) $(AM_CXXFLAGS) \
+	$(LIBTOOLFLAGS) --mode=link $(CXXLD) $(hawk51_CXXFLAGS) \
 	$(CXXFLAGS) $(hawk51_LDFLAGS) $(LDFLAGS) -o $@
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
@@ -361,27 +361,34 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 AUTOMAKE_OPTIONS = nostdinc
+CFLAGS_ALL_COMMON = $(PTHREAD_CFLAGS)
+CXXFLAGS_ALL_COMMON = $(PTHREAD_CFLAGS)
 CPPFLAGS_ALL_COMMON = \
 	-I$(abs_builddir) \
 	-I$(abs_builddir)/../lib  \
 	-I$(abs_srcdir) \
 	-I$(abs_srcdir)/../lib \
-	-I$(includedir) \
-	$(PTHREAD_CFLAGS)
+	-I$(includedir)
 
 LDFLAGS_ALL_COMMON = -L$(abs_builddir) -L$(abs_builddir)/../lib -L$(libdir)
 CPPFLAGS_BIN_COMMON = $(CPPFLAGS_ALL_COMMON)
+CFLAGS_BIN_COMMON = $(CFLAGS_ALL_COMMON)
+CXXFLAGS_BIN_COMMON = $(CXXFLAGS_ALL_COMMON)
 LDFLAGS_BIN_COMMON = $(LDFLAGS_ALL_COMMON) -no-undefined
 LIBADD_BIN_COMMON = $(LIBM) 
 @ENABLE_CXX_TRUE@hawk02_SOURCES = hawk02.c
 @ENABLE_CXX_TRUE@hawk02_CPPFLAGS = $(CPPFLAGS_ALL_COMMON)
+@ENABLE_CXX_TRUE@hawk02_CFLAGS = $(CFLAGS_ALL_COMMON)
+@ENABLE_CXX_TRUE@hawk02_CXXFLAGS = $(CXXFLAGS_ALL_COMMON)
 @ENABLE_CXX_TRUE@hawk02_LDFLAGS = $(LDFLAGS_ALL_COMMON)
-@ENABLE_CXX_TRUE@hawk02_LDADD = -lhawk $(LIBADD_BIN_COMMON) $(SOCKET_LIBS)
+@ENABLE_CXX_TRUE@hawk02_LDADD = -lhawk $(LIBADD_BIN_COMMON) ### $(SOCKET_LIBS) $(PTHREAD_LIBS)
 @ENABLE_CXX_TRUE@hawk02_DEPENDENCIES = ../lib/libhawk.la
 @ENABLE_CXX_TRUE@hawk51_SOURCES = hawk51.cpp
 @ENABLE_CXX_TRUE@hawk51_CPPFLAGS = $(CPPFLAGS_ALL_COMMON)
+@ENABLE_CXX_TRUE@hawk51_CFLAGS = $(CFLAGS_ALL_COMMON)
+@ENABLE_CXX_TRUE@hawk51_CXXFLAGS = $(CXXFLAGS_ALL_COMMON)
 @ENABLE_CXX_TRUE@hawk51_LDFLAGS = $(LDFLAGS_ALL_COMMON)
-@ENABLE_CXX_TRUE@hawk51_LDADD = -lhawk $(LIBADD_BIN_COMMON) $(SOCKET_LIBS)
+@ENABLE_CXX_TRUE@hawk51_LDADD = -lhawk $(LIBADD_BIN_COMMON) ### $(SOCKET_LIBS) $(PTHREAD_LIBS)
 @ENABLE_CXX_TRUE@hawk51_DEPENDENCIES = ../lib/libhawk.la
 all: all-am
 
@@ -514,18 +521,18 @@ am--depfiles: $(am__depfiles_remade)
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LTCOMPILE) -c -o $@ $<
 
 hawk02-hawk02.o: hawk02.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(hawk02_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT hawk02-hawk02.o -MD -MP -MF $(DEPDIR)/hawk02-hawk02.Tpo -c -o hawk02-hawk02.o `test -f 'hawk02.c' || echo '$(srcdir)/'`hawk02.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(hawk02_CPPFLAGS) $(CPPFLAGS) $(hawk02_CFLAGS) $(CFLAGS) -MT hawk02-hawk02.o -MD -MP -MF $(DEPDIR)/hawk02-hawk02.Tpo -c -o hawk02-hawk02.o `test -f 'hawk02.c' || echo '$(srcdir)/'`hawk02.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/hawk02-hawk02.Tpo $(DEPDIR)/hawk02-hawk02.Po
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='hawk02.c' object='hawk02-hawk02.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(hawk02_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o hawk02-hawk02.o `test -f 'hawk02.c' || echo '$(srcdir)/'`hawk02.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(hawk02_CPPFLAGS) $(CPPFLAGS) $(hawk02_CFLAGS) $(CFLAGS) -c -o hawk02-hawk02.o `test -f 'hawk02.c' || echo '$(srcdir)/'`hawk02.c
 
 hawk02-hawk02.obj: hawk02.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(hawk02_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT hawk02-hawk02.obj -MD -MP -MF $(DEPDIR)/hawk02-hawk02.Tpo -c -o hawk02-hawk02.obj `if test -f 'hawk02.c'; then $(CYGPATH_W) 'hawk02.c'; else $(CYGPATH_W) '$(srcdir)/hawk02.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(hawk02_CPPFLAGS) $(CPPFLAGS) $(hawk02_CFLAGS) $(CFLAGS) -MT hawk02-hawk02.obj -MD -MP -MF $(DEPDIR)/hawk02-hawk02.Tpo -c -o hawk02-hawk02.obj `if test -f 'hawk02.c'; then $(CYGPATH_W) 'hawk02.c'; else $(CYGPATH_W) '$(srcdir)/hawk02.c'; fi`
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/hawk02-hawk02.Tpo $(DEPDIR)/hawk02-hawk02.Po
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='hawk02.c' object='hawk02-hawk02.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(hawk02_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o hawk02-hawk02.obj `if test -f 'hawk02.c'; then $(CYGPATH_W) 'hawk02.c'; else $(CYGPATH_W) '$(srcdir)/hawk02.c'; fi`
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(hawk02_CPPFLAGS) $(CPPFLAGS) $(hawk02_CFLAGS) $(CFLAGS) -c -o hawk02-hawk02.obj `if test -f 'hawk02.c'; then $(CYGPATH_W) 'hawk02.c'; else $(CYGPATH_W) '$(srcdir)/hawk02.c'; fi`
 
 .cpp.o:
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.o$$||'`;\
@@ -552,18 +559,18 @@ hawk02-hawk02.obj: hawk02.c
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LTCXXCOMPILE) -c -o $@ $<
 
 hawk51-hawk51.o: hawk51.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(hawk51_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT hawk51-hawk51.o -MD -MP -MF $(DEPDIR)/hawk51-hawk51.Tpo -c -o hawk51-hawk51.o `test -f 'hawk51.cpp' || echo '$(srcdir)/'`hawk51.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(hawk51_CPPFLAGS) $(CPPFLAGS) $(hawk51_CXXFLAGS) $(CXXFLAGS) -MT hawk51-hawk51.o -MD -MP -MF $(DEPDIR)/hawk51-hawk51.Tpo -c -o hawk51-hawk51.o `test -f 'hawk51.cpp' || echo '$(srcdir)/'`hawk51.cpp
 @am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/hawk51-hawk51.Tpo $(DEPDIR)/hawk51-hawk51.Po
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='hawk51.cpp' object='hawk51-hawk51.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(hawk51_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o hawk51-hawk51.o `test -f 'hawk51.cpp' || echo '$(srcdir)/'`hawk51.cpp
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(hawk51_CPPFLAGS) $(CPPFLAGS) $(hawk51_CXXFLAGS) $(CXXFLAGS) -c -o hawk51-hawk51.o `test -f 'hawk51.cpp' || echo '$(srcdir)/'`hawk51.cpp
 
 hawk51-hawk51.obj: hawk51.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(hawk51_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT hawk51-hawk51.obj -MD -MP -MF $(DEPDIR)/hawk51-hawk51.Tpo -c -o hawk51-hawk51.obj `if test -f 'hawk51.cpp'; then $(CYGPATH_W) 'hawk51.cpp'; else $(CYGPATH_W) '$(srcdir)/hawk51.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(hawk51_CPPFLAGS) $(CPPFLAGS) $(hawk51_CXXFLAGS) $(CXXFLAGS) -MT hawk51-hawk51.obj -MD -MP -MF $(DEPDIR)/hawk51-hawk51.Tpo -c -o hawk51-hawk51.obj `if test -f 'hawk51.cpp'; then $(CYGPATH_W) 'hawk51.cpp'; else $(CYGPATH_W) '$(srcdir)/hawk51.cpp'; fi`
 @am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/hawk51-hawk51.Tpo $(DEPDIR)/hawk51-hawk51.Po
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='hawk51.cpp' object='hawk51-hawk51.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(hawk51_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o hawk51-hawk51.obj `if test -f 'hawk51.cpp'; then $(CYGPATH_W) 'hawk51.cpp'; else $(CYGPATH_W) '$(srcdir)/hawk51.cpp'; fi`
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(hawk51_CPPFLAGS) $(CPPFLAGS) $(hawk51_CXXFLAGS) $(CXXFLAGS) -c -o hawk51-hawk51.obj `if test -f 'hawk51.cpp'; then $(CYGPATH_W) 'hawk51.cpp'; else $(CYGPATH_W) '$(srcdir)/hawk51.cpp'; fi`
 
 mostlyclean-libtool:
 	-rm -f *.lo
