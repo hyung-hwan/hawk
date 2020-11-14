@@ -191,7 +191,7 @@ libhawk_la_SOURCES += \
 	mod-math.c mod-math.h \
 	mod-str.c mod-str.h \
 	mod-sys.c mod-sys.h
-libhawk_la_LIBADD +=
+libhawk_la_LIBADD += $(SOCKET_LIBS)
 
 if ENABLE_MOD_MYSQL
 libhawk_la_LIBADD += -lhawk-mysql
@@ -227,7 +227,7 @@ pkglib_LTLIBRARIES += libhawk-math.la
 libhawk_math_la_SOURCES = mod-math.c mod-math.h
 libhawk_math_la_CPPFLAGS = $(CPPFLAGS_MOD_COMMON)
 libhawk_math_la_LDFLAGS = $(LDFLAGS_MOD_COMMON)
-libhawk_math_la_LIBADD = $(LIBADD_MOD_COMMON)
+libhawk_math_la_LIBADD = $(LIBADD_MOD_COMMON) $(LIBM)
 libhawk_math_la_DEPENDENCIES = $(DEPENDENCIES_MOD_COMMON)
 
 pkglib_LTLIBRARIES += libhawk-str.la
@@ -241,7 +241,7 @@ pkglib_LTLIBRARIES += libhawk-sys.la
 libhawk_sys_la_SOURCES = mod-sys.c mod-sys.h
 libhawk_sys_la_CPPFLAGS = $(CPPFLAGS_MOD_COMMON)
 libhawk_sys_la_LDFLAGS = $(LDFLAGS_MOD_COMMON)
-libhawk_sys_la_LIBADD = $(LIBADD_MOD_COMMON)
+libhawk_sys_la_LIBADD = $(LIBADD_MOD_COMMON) $(SOCKET_LIBS)
 libhawk_sys_la_DEPENDENCIES = $(DEPENDENCIES_MOD_COMMON)
 
 endif
