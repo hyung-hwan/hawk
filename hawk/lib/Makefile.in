@@ -176,8 +176,8 @@ am__v_lt_0 = --silent
 am__v_lt_1 = 
 libhawk_hawk_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
-	$(AM_CFLAGS) $(CFLAGS) $(libhawk_hawk_la_LDFLAGS) $(LDFLAGS) \
-	-o $@
+	$(libhawk_hawk_la_CFLAGS) $(CFLAGS) $(libhawk_hawk_la_LDFLAGS) \
+	$(LDFLAGS) -o $@
 @ENABLE_STATIC_MODULE_FALSE@am_libhawk_hawk_la_rpath = -rpath \
 @ENABLE_STATIC_MODULE_FALSE@	$(pkglibdir)
 am__libhawk_math_la_SOURCES_DIST = mod-math.c mod-math.h
@@ -186,8 +186,8 @@ am__libhawk_math_la_SOURCES_DIST = mod-math.c mod-math.h
 libhawk_math_la_OBJECTS = $(am_libhawk_math_la_OBJECTS)
 libhawk_math_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
-	$(AM_CFLAGS) $(CFLAGS) $(libhawk_math_la_LDFLAGS) $(LDFLAGS) \
-	-o $@
+	$(libhawk_math_la_CFLAGS) $(CFLAGS) $(libhawk_math_la_LDFLAGS) \
+	$(LDFLAGS) -o $@
 @ENABLE_STATIC_MODULE_FALSE@am_libhawk_math_la_rpath = -rpath \
 @ENABLE_STATIC_MODULE_FALSE@	$(pkglibdir)
 am__libhawk_str_la_SOURCES_DIST = mod-str.c mod-str.h
@@ -196,8 +196,8 @@ am__libhawk_str_la_SOURCES_DIST = mod-str.c mod-str.h
 libhawk_str_la_OBJECTS = $(am_libhawk_str_la_OBJECTS)
 libhawk_str_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
-	$(AM_CFLAGS) $(CFLAGS) $(libhawk_str_la_LDFLAGS) $(LDFLAGS) -o \
-	$@
+	$(libhawk_str_la_CFLAGS) $(CFLAGS) $(libhawk_str_la_LDFLAGS) \
+	$(LDFLAGS) -o $@
 @ENABLE_STATIC_MODULE_FALSE@am_libhawk_str_la_rpath = -rpath \
 @ENABLE_STATIC_MODULE_FALSE@	$(pkglibdir)
 am__libhawk_sys_la_SOURCES_DIST = mod-sys.c mod-sys.h
@@ -206,8 +206,8 @@ am__libhawk_sys_la_SOURCES_DIST = mod-sys.c mod-sys.h
 libhawk_sys_la_OBJECTS = $(am_libhawk_sys_la_OBJECTS)
 libhawk_sys_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
-	$(AM_CFLAGS) $(CFLAGS) $(libhawk_sys_la_LDFLAGS) $(LDFLAGS) -o \
-	$@
+	$(libhawk_sys_la_CFLAGS) $(CFLAGS) $(libhawk_sys_la_LDFLAGS) \
+	$(LDFLAGS) -o $@
 @ENABLE_STATIC_MODULE_FALSE@am_libhawk_sys_la_rpath = -rpath \
 @ENABLE_STATIC_MODULE_FALSE@	$(pkglibdir)
 @ENABLE_LIBLTDL_TRUE@am__DEPENDENCIES_2 = $(am__DEPENDENCIES_1)
@@ -559,10 +559,12 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 AUTOMAKE_OPTIONS = nostdinc
+CFLAGS_ALL_COMMON = $(PTHREAD_CFLAGS)
+CXXFLAGS_ALL_COMMON = $(PTHREAD_CFLAGS)
 CPPFLAGS_ALL_COMMON = \
 	-I$(abs_builddir) \
 	-I$(abs_srcdir) \
-	-I$(includedir) $(PTHREAD_CFLAGS)
+	-I$(includedir)
 
 @ENABLE_STATIC_MODULE_FALSE@LDFLAGS_ALL_COMMON = -L$(abs_builddir) -L$(libdir)
 @ENABLE_STATIC_MODULE_TRUE@LDFLAGS_ALL_COMMON = -L$(abs_builddir)/../mod -L$(abs_builddir) -L$(libdir)
@@ -601,6 +603,8 @@ libhawk_la_SOURCES = $(pkginclude_HEADERS) arr.c chr.c dir.c ecs-imp.h \
 	$(am__append_9)
 libhawk_la_CPPFLAGS = $(CPPFLAGS_ALL_COMMON) $(CPPFLAGS_PFMOD) \
 	$(am__append_3)
+libhawk_la_CFLAGS = $(CFLAGS_ALL_COMMON)
+libhawk_la_CXXFLAGS = $(CXXFLAGS_ALL_COMMON)
 libhawk_la_LDFLAGS = $(LDFLAGS_ALL_COMMON) -version-info 1:0:0 -no-undefined
 libhawk_la_LIBADD = $(LIBM) $(PTHREAD_LIBS) $(am__append_4) \
 	$(am__append_5) $(am__append_6) $(am__append_10) \
@@ -621,26 +625,36 @@ libhawk_la_DEPENDENCIES = $(am__append_12) $(am__append_14)
 # DYNAMIC MODULES 
 ##################################################
 @ENABLE_STATIC_MODULE_FALSE@CPPFLAGS_MOD_COMMON = $(CPPFLAGS_ALL_COMMON)
+@ENABLE_STATIC_MODULE_FALSE@CFLAGS_MOD_COMMON = $(CFLAGS_ALL_COMMON)
+@ENABLE_STATIC_MODULE_FALSE@CXXFLAGS_MOD_COMMON = $(CXXFLAGS_ALL_COMMON)
 @ENABLE_STATIC_MODULE_FALSE@LDFLAGS_MOD_COMMON = $(LDFLAGS_ALL_COMMON)
 @ENABLE_STATIC_MODULE_FALSE@LIBADD_MOD_COMMON = -lhawk
 @ENABLE_STATIC_MODULE_FALSE@DEPENDENCIES_MOD_COMMON = libhawk.la
 @ENABLE_STATIC_MODULE_FALSE@libhawk_hawk_la_SOURCES = mod-hawk.c mod-hawk.h
 @ENABLE_STATIC_MODULE_FALSE@libhawk_hawk_la_CPPFLAGS = $(CPPFLAGS_MOD_COMMON)
+@ENABLE_STATIC_MODULE_FALSE@libhawk_hawk_la_CFLAGS = $(CFLAGS_MOD_COMMON)
+@ENABLE_STATIC_MODULE_FALSE@libhawk_hawk_la_CXXFLAGS = $(CXXFLAGS_MOD_COMMON)
 @ENABLE_STATIC_MODULE_FALSE@libhawk_hawk_la_LDFLAGS = $(LDFLAGS_MOD_COMMON)
 @ENABLE_STATIC_MODULE_FALSE@libhawk_hawk_la_LIBADD = $(LIBADD_MOD_COMMON)
 @ENABLE_STATIC_MODULE_FALSE@libhawk_hawk_la_DEPENDENCIES = $(DEPENDENCIES_MOD_COMMON)
 @ENABLE_STATIC_MODULE_FALSE@libhawk_math_la_SOURCES = mod-math.c mod-math.h
 @ENABLE_STATIC_MODULE_FALSE@libhawk_math_la_CPPFLAGS = $(CPPFLAGS_MOD_COMMON)
+@ENABLE_STATIC_MODULE_FALSE@libhawk_math_la_CFLAGS = $(CFLAGS_MOD_COMMON)
+@ENABLE_STATIC_MODULE_FALSE@libhawk_math_la_CXXFLAGS = $(CXXFLAGS_MOD_COMMON)
 @ENABLE_STATIC_MODULE_FALSE@libhawk_math_la_LDFLAGS = $(LDFLAGS_MOD_COMMON)
 @ENABLE_STATIC_MODULE_FALSE@libhawk_math_la_LIBADD = $(LIBADD_MOD_COMMON) $(LIBM)
 @ENABLE_STATIC_MODULE_FALSE@libhawk_math_la_DEPENDENCIES = $(DEPENDENCIES_MOD_COMMON)
 @ENABLE_STATIC_MODULE_FALSE@libhawk_str_la_SOURCES = mod-str.c mod-str.h
 @ENABLE_STATIC_MODULE_FALSE@libhawk_str_la_CPPFLAGS = $(CPPFLAGS_MOD_COMMON)
+@ENABLE_STATIC_MODULE_FALSE@libhawk_str_la_CFLAGS = $(CFLAGS_MOD_COMMON)
+@ENABLE_STATIC_MODULE_FALSE@libhawk_str_la_CXXFLAGS = $(CXXFLAGS_MOD_COMMON)
 @ENABLE_STATIC_MODULE_FALSE@libhawk_str_la_LDFLAGS = $(LDFLAGS_MOD_COMMON)
 @ENABLE_STATIC_MODULE_FALSE@libhawk_str_la_LIBADD = $(LIBADD_MOD_COMMON)
 @ENABLE_STATIC_MODULE_FALSE@libhawk_str_la_DEPENDENCIES = $(DEPENDENCIES_MOD_COMMON)
 @ENABLE_STATIC_MODULE_FALSE@libhawk_sys_la_SOURCES = mod-sys.c mod-sys.h
 @ENABLE_STATIC_MODULE_FALSE@libhawk_sys_la_CPPFLAGS = $(CPPFLAGS_MOD_COMMON)
+@ENABLE_STATIC_MODULE_FALSE@libhawk_sys_la_CFLAGS = $(CFLAGS_MOD_COMMON)
+@ENABLE_STATIC_MODULE_FALSE@libhawk_sys_la_CXXFLAGS = $(CXXFLAGS_MOD_COMMON)
 @ENABLE_STATIC_MODULE_FALSE@libhawk_sys_la_LDFLAGS = $(LDFLAGS_MOD_COMMON)
 @ENABLE_STATIC_MODULE_FALSE@libhawk_sys_la_LIBADD = $(LIBADD_MOD_COMMON) $(SOCKET_LIBS)
 @ENABLE_STATIC_MODULE_FALSE@libhawk_sys_la_DEPENDENCIES = $(DEPENDENCIES_MOD_COMMON)
@@ -839,389 +853,389 @@ am--depfiles: $(am__depfiles_remade)
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LTCOMPILE) -c -o $@ $<
 
 libhawk_hawk_la-mod-hawk.lo: mod-hawk.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_hawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libhawk_hawk_la-mod-hawk.lo -MD -MP -MF $(DEPDIR)/libhawk_hawk_la-mod-hawk.Tpo -c -o libhawk_hawk_la-mod-hawk.lo `test -f 'mod-hawk.c' || echo '$(srcdir)/'`mod-hawk.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_hawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_hawk_la_CFLAGS) $(CFLAGS) -MT libhawk_hawk_la-mod-hawk.lo -MD -MP -MF $(DEPDIR)/libhawk_hawk_la-mod-hawk.Tpo -c -o libhawk_hawk_la-mod-hawk.lo `test -f 'mod-hawk.c' || echo '$(srcdir)/'`mod-hawk.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libhawk_hawk_la-mod-hawk.Tpo $(DEPDIR)/libhawk_hawk_la-mod-hawk.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='mod-hawk.c' object='libhawk_hawk_la-mod-hawk.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_hawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libhawk_hawk_la-mod-hawk.lo `test -f 'mod-hawk.c' || echo '$(srcdir)/'`mod-hawk.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_hawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_hawk_la_CFLAGS) $(CFLAGS) -c -o libhawk_hawk_la-mod-hawk.lo `test -f 'mod-hawk.c' || echo '$(srcdir)/'`mod-hawk.c
 
 libhawk_math_la-mod-math.lo: mod-math.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_math_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libhawk_math_la-mod-math.lo -MD -MP -MF $(DEPDIR)/libhawk_math_la-mod-math.Tpo -c -o libhawk_math_la-mod-math.lo `test -f 'mod-math.c' || echo '$(srcdir)/'`mod-math.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_math_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_math_la_CFLAGS) $(CFLAGS) -MT libhawk_math_la-mod-math.lo -MD -MP -MF $(DEPDIR)/libhawk_math_la-mod-math.Tpo -c -o libhawk_math_la-mod-math.lo `test -f 'mod-math.c' || echo '$(srcdir)/'`mod-math.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libhawk_math_la-mod-math.Tpo $(DEPDIR)/libhawk_math_la-mod-math.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='mod-math.c' object='libhawk_math_la-mod-math.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_math_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libhawk_math_la-mod-math.lo `test -f 'mod-math.c' || echo '$(srcdir)/'`mod-math.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_math_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_math_la_CFLAGS) $(CFLAGS) -c -o libhawk_math_la-mod-math.lo `test -f 'mod-math.c' || echo '$(srcdir)/'`mod-math.c
 
 libhawk_str_la-mod-str.lo: mod-str.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_str_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libhawk_str_la-mod-str.lo -MD -MP -MF $(DEPDIR)/libhawk_str_la-mod-str.Tpo -c -o libhawk_str_la-mod-str.lo `test -f 'mod-str.c' || echo '$(srcdir)/'`mod-str.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_str_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_str_la_CFLAGS) $(CFLAGS) -MT libhawk_str_la-mod-str.lo -MD -MP -MF $(DEPDIR)/libhawk_str_la-mod-str.Tpo -c -o libhawk_str_la-mod-str.lo `test -f 'mod-str.c' || echo '$(srcdir)/'`mod-str.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libhawk_str_la-mod-str.Tpo $(DEPDIR)/libhawk_str_la-mod-str.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='mod-str.c' object='libhawk_str_la-mod-str.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_str_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libhawk_str_la-mod-str.lo `test -f 'mod-str.c' || echo '$(srcdir)/'`mod-str.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_str_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_str_la_CFLAGS) $(CFLAGS) -c -o libhawk_str_la-mod-str.lo `test -f 'mod-str.c' || echo '$(srcdir)/'`mod-str.c
 
 libhawk_sys_la-mod-sys.lo: mod-sys.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_sys_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libhawk_sys_la-mod-sys.lo -MD -MP -MF $(DEPDIR)/libhawk_sys_la-mod-sys.Tpo -c -o libhawk_sys_la-mod-sys.lo `test -f 'mod-sys.c' || echo '$(srcdir)/'`mod-sys.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_sys_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_sys_la_CFLAGS) $(CFLAGS) -MT libhawk_sys_la-mod-sys.lo -MD -MP -MF $(DEPDIR)/libhawk_sys_la-mod-sys.Tpo -c -o libhawk_sys_la-mod-sys.lo `test -f 'mod-sys.c' || echo '$(srcdir)/'`mod-sys.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libhawk_sys_la-mod-sys.Tpo $(DEPDIR)/libhawk_sys_la-mod-sys.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='mod-sys.c' object='libhawk_sys_la-mod-sys.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_sys_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libhawk_sys_la-mod-sys.lo `test -f 'mod-sys.c' || echo '$(srcdir)/'`mod-sys.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_sys_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_sys_la_CFLAGS) $(CFLAGS) -c -o libhawk_sys_la-mod-sys.lo `test -f 'mod-sys.c' || echo '$(srcdir)/'`mod-sys.c
 
 libhawk_la-arr.lo: arr.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libhawk_la-arr.lo -MD -MP -MF $(DEPDIR)/libhawk_la-arr.Tpo -c -o libhawk_la-arr.lo `test -f 'arr.c' || echo '$(srcdir)/'`arr.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -MT libhawk_la-arr.lo -MD -MP -MF $(DEPDIR)/libhawk_la-arr.Tpo -c -o libhawk_la-arr.lo `test -f 'arr.c' || echo '$(srcdir)/'`arr.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libhawk_la-arr.Tpo $(DEPDIR)/libhawk_la-arr.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='arr.c' object='libhawk_la-arr.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libhawk_la-arr.lo `test -f 'arr.c' || echo '$(srcdir)/'`arr.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -c -o libhawk_la-arr.lo `test -f 'arr.c' || echo '$(srcdir)/'`arr.c
 
 libhawk_la-chr.lo: chr.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libhawk_la-chr.lo -MD -MP -MF $(DEPDIR)/libhawk_la-chr.Tpo -c -o libhawk_la-chr.lo `test -f 'chr.c' || echo '$(srcdir)/'`chr.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -MT libhawk_la-chr.lo -MD -MP -MF $(DEPDIR)/libhawk_la-chr.Tpo -c -o libhawk_la-chr.lo `test -f 'chr.c' || echo '$(srcdir)/'`chr.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libhawk_la-chr.Tpo $(DEPDIR)/libhawk_la-chr.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='chr.c' object='libhawk_la-chr.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libhawk_la-chr.lo `test -f 'chr.c' || echo '$(srcdir)/'`chr.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -c -o libhawk_la-chr.lo `test -f 'chr.c' || echo '$(srcdir)/'`chr.c
 
 libhawk_la-dir.lo: dir.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libhawk_la-dir.lo -MD -MP -MF $(DEPDIR)/libhawk_la-dir.Tpo -c -o libhawk_la-dir.lo `test -f 'dir.c' || echo '$(srcdir)/'`dir.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -MT libhawk_la-dir.lo -MD -MP -MF $(DEPDIR)/libhawk_la-dir.Tpo -c -o libhawk_la-dir.lo `test -f 'dir.c' || echo '$(srcdir)/'`dir.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libhawk_la-dir.Tpo $(DEPDIR)/libhawk_la-dir.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='dir.c' object='libhawk_la-dir.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libhawk_la-dir.lo `test -f 'dir.c' || echo '$(srcdir)/'`dir.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -c -o libhawk_la-dir.lo `test -f 'dir.c' || echo '$(srcdir)/'`dir.c
 
 libhawk_la-ecs.lo: ecs.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libhawk_la-ecs.lo -MD -MP -MF $(DEPDIR)/libhawk_la-ecs.Tpo -c -o libhawk_la-ecs.lo `test -f 'ecs.c' || echo '$(srcdir)/'`ecs.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -MT libhawk_la-ecs.lo -MD -MP -MF $(DEPDIR)/libhawk_la-ecs.Tpo -c -o libhawk_la-ecs.lo `test -f 'ecs.c' || echo '$(srcdir)/'`ecs.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libhawk_la-ecs.Tpo $(DEPDIR)/libhawk_la-ecs.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='ecs.c' object='libhawk_la-ecs.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libhawk_la-ecs.lo `test -f 'ecs.c' || echo '$(srcdir)/'`ecs.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -c -o libhawk_la-ecs.lo `test -f 'ecs.c' || echo '$(srcdir)/'`ecs.c
 
 libhawk_la-err.lo: err.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libhawk_la-err.lo -MD -MP -MF $(DEPDIR)/libhawk_la-err.Tpo -c -o libhawk_la-err.lo `test -f 'err.c' || echo '$(srcdir)/'`err.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -MT libhawk_la-err.lo -MD -MP -MF $(DEPDIR)/libhawk_la-err.Tpo -c -o libhawk_la-err.lo `test -f 'err.c' || echo '$(srcdir)/'`err.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libhawk_la-err.Tpo $(DEPDIR)/libhawk_la-err.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='err.c' object='libhawk_la-err.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libhawk_la-err.lo `test -f 'err.c' || echo '$(srcdir)/'`err.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -c -o libhawk_la-err.lo `test -f 'err.c' || echo '$(srcdir)/'`err.c
 
 libhawk_la-err-sys.lo: err-sys.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libhawk_la-err-sys.lo -MD -MP -MF $(DEPDIR)/libhawk_la-err-sys.Tpo -c -o libhawk_la-err-sys.lo `test -f 'err-sys.c' || echo '$(srcdir)/'`err-sys.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -MT libhawk_la-err-sys.lo -MD -MP -MF $(DEPDIR)/libhawk_la-err-sys.Tpo -c -o libhawk_la-err-sys.lo `test -f 'err-sys.c' || echo '$(srcdir)/'`err-sys.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libhawk_la-err-sys.Tpo $(DEPDIR)/libhawk_la-err-sys.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='err-sys.c' object='libhawk_la-err-sys.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libhawk_la-err-sys.lo `test -f 'err-sys.c' || echo '$(srcdir)/'`err-sys.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -c -o libhawk_la-err-sys.lo `test -f 'err-sys.c' || echo '$(srcdir)/'`err-sys.c
 
 libhawk_la-fmt.lo: fmt.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libhawk_la-fmt.lo -MD -MP -MF $(DEPDIR)/libhawk_la-fmt.Tpo -c -o libhawk_la-fmt.lo `test -f 'fmt.c' || echo '$(srcdir)/'`fmt.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -MT libhawk_la-fmt.lo -MD -MP -MF $(DEPDIR)/libhawk_la-fmt.Tpo -c -o libhawk_la-fmt.lo `test -f 'fmt.c' || echo '$(srcdir)/'`fmt.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libhawk_la-fmt.Tpo $(DEPDIR)/libhawk_la-fmt.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='fmt.c' object='libhawk_la-fmt.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libhawk_la-fmt.lo `test -f 'fmt.c' || echo '$(srcdir)/'`fmt.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -c -o libhawk_la-fmt.lo `test -f 'fmt.c' || echo '$(srcdir)/'`fmt.c
 
 libhawk_la-fnc.lo: fnc.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libhawk_la-fnc.lo -MD -MP -MF $(DEPDIR)/libhawk_la-fnc.Tpo -c -o libhawk_la-fnc.lo `test -f 'fnc.c' || echo '$(srcdir)/'`fnc.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -MT libhawk_la-fnc.lo -MD -MP -MF $(DEPDIR)/libhawk_la-fnc.Tpo -c -o libhawk_la-fnc.lo `test -f 'fnc.c' || echo '$(srcdir)/'`fnc.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libhawk_la-fnc.Tpo $(DEPDIR)/libhawk_la-fnc.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='fnc.c' object='libhawk_la-fnc.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libhawk_la-fnc.lo `test -f 'fnc.c' || echo '$(srcdir)/'`fnc.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -c -o libhawk_la-fnc.lo `test -f 'fnc.c' || echo '$(srcdir)/'`fnc.c
 
 libhawk_la-htb.lo: htb.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libhawk_la-htb.lo -MD -MP -MF $(DEPDIR)/libhawk_la-htb.Tpo -c -o libhawk_la-htb.lo `test -f 'htb.c' || echo '$(srcdir)/'`htb.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -MT libhawk_la-htb.lo -MD -MP -MF $(DEPDIR)/libhawk_la-htb.Tpo -c -o libhawk_la-htb.lo `test -f 'htb.c' || echo '$(srcdir)/'`htb.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libhawk_la-htb.Tpo $(DEPDIR)/libhawk_la-htb.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='htb.c' object='libhawk_la-htb.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libhawk_la-htb.lo `test -f 'htb.c' || echo '$(srcdir)/'`htb.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -c -o libhawk_la-htb.lo `test -f 'htb.c' || echo '$(srcdir)/'`htb.c
 
 libhawk_la-gem.lo: gem.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libhawk_la-gem.lo -MD -MP -MF $(DEPDIR)/libhawk_la-gem.Tpo -c -o libhawk_la-gem.lo `test -f 'gem.c' || echo '$(srcdir)/'`gem.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -MT libhawk_la-gem.lo -MD -MP -MF $(DEPDIR)/libhawk_la-gem.Tpo -c -o libhawk_la-gem.lo `test -f 'gem.c' || echo '$(srcdir)/'`gem.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libhawk_la-gem.Tpo $(DEPDIR)/libhawk_la-gem.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='gem.c' object='libhawk_la-gem.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libhawk_la-gem.lo `test -f 'gem.c' || echo '$(srcdir)/'`gem.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -c -o libhawk_la-gem.lo `test -f 'gem.c' || echo '$(srcdir)/'`gem.c
 
 libhawk_la-gem-skad.lo: gem-skad.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libhawk_la-gem-skad.lo -MD -MP -MF $(DEPDIR)/libhawk_la-gem-skad.Tpo -c -o libhawk_la-gem-skad.lo `test -f 'gem-skad.c' || echo '$(srcdir)/'`gem-skad.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -MT libhawk_la-gem-skad.lo -MD -MP -MF $(DEPDIR)/libhawk_la-gem-skad.Tpo -c -o libhawk_la-gem-skad.lo `test -f 'gem-skad.c' || echo '$(srcdir)/'`gem-skad.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libhawk_la-gem-skad.Tpo $(DEPDIR)/libhawk_la-gem-skad.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='gem-skad.c' object='libhawk_la-gem-skad.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libhawk_la-gem-skad.lo `test -f 'gem-skad.c' || echo '$(srcdir)/'`gem-skad.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -c -o libhawk_la-gem-skad.lo `test -f 'gem-skad.c' || echo '$(srcdir)/'`gem-skad.c
 
 libhawk_la-gem-nwif.lo: gem-nwif.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libhawk_la-gem-nwif.lo -MD -MP -MF $(DEPDIR)/libhawk_la-gem-nwif.Tpo -c -o libhawk_la-gem-nwif.lo `test -f 'gem-nwif.c' || echo '$(srcdir)/'`gem-nwif.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -MT libhawk_la-gem-nwif.lo -MD -MP -MF $(DEPDIR)/libhawk_la-gem-nwif.Tpo -c -o libhawk_la-gem-nwif.lo `test -f 'gem-nwif.c' || echo '$(srcdir)/'`gem-nwif.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libhawk_la-gem-nwif.Tpo $(DEPDIR)/libhawk_la-gem-nwif.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='gem-nwif.c' object='libhawk_la-gem-nwif.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libhawk_la-gem-nwif.lo `test -f 'gem-nwif.c' || echo '$(srcdir)/'`gem-nwif.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -c -o libhawk_la-gem-nwif.lo `test -f 'gem-nwif.c' || echo '$(srcdir)/'`gem-nwif.c
 
 libhawk_la-gem-nwif2.lo: gem-nwif2.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libhawk_la-gem-nwif2.lo -MD -MP -MF $(DEPDIR)/libhawk_la-gem-nwif2.Tpo -c -o libhawk_la-gem-nwif2.lo `test -f 'gem-nwif2.c' || echo '$(srcdir)/'`gem-nwif2.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -MT libhawk_la-gem-nwif2.lo -MD -MP -MF $(DEPDIR)/libhawk_la-gem-nwif2.Tpo -c -o libhawk_la-gem-nwif2.lo `test -f 'gem-nwif2.c' || echo '$(srcdir)/'`gem-nwif2.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libhawk_la-gem-nwif2.Tpo $(DEPDIR)/libhawk_la-gem-nwif2.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='gem-nwif2.c' object='libhawk_la-gem-nwif2.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libhawk_la-gem-nwif2.lo `test -f 'gem-nwif2.c' || echo '$(srcdir)/'`gem-nwif2.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -c -o libhawk_la-gem-nwif2.lo `test -f 'gem-nwif2.c' || echo '$(srcdir)/'`gem-nwif2.c
 
 libhawk_la-hawk.lo: hawk.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libhawk_la-hawk.lo -MD -MP -MF $(DEPDIR)/libhawk_la-hawk.Tpo -c -o libhawk_la-hawk.lo `test -f 'hawk.c' || echo '$(srcdir)/'`hawk.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -MT libhawk_la-hawk.lo -MD -MP -MF $(DEPDIR)/libhawk_la-hawk.Tpo -c -o libhawk_la-hawk.lo `test -f 'hawk.c' || echo '$(srcdir)/'`hawk.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libhawk_la-hawk.Tpo $(DEPDIR)/libhawk_la-hawk.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='hawk.c' object='libhawk_la-hawk.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libhawk_la-hawk.lo `test -f 'hawk.c' || echo '$(srcdir)/'`hawk.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -c -o libhawk_la-hawk.lo `test -f 'hawk.c' || echo '$(srcdir)/'`hawk.c
 
 libhawk_la-mb8.lo: mb8.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libhawk_la-mb8.lo -MD -MP -MF $(DEPDIR)/libhawk_la-mb8.Tpo -c -o libhawk_la-mb8.lo `test -f 'mb8.c' || echo '$(srcdir)/'`mb8.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -MT libhawk_la-mb8.lo -MD -MP -MF $(DEPDIR)/libhawk_la-mb8.Tpo -c -o libhawk_la-mb8.lo `test -f 'mb8.c' || echo '$(srcdir)/'`mb8.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libhawk_la-mb8.Tpo $(DEPDIR)/libhawk_la-mb8.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='mb8.c' object='libhawk_la-mb8.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libhawk_la-mb8.lo `test -f 'mb8.c' || echo '$(srcdir)/'`mb8.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -c -o libhawk_la-mb8.lo `test -f 'mb8.c' || echo '$(srcdir)/'`mb8.c
 
 libhawk_la-misc.lo: misc.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libhawk_la-misc.lo -MD -MP -MF $(DEPDIR)/libhawk_la-misc.Tpo -c -o libhawk_la-misc.lo `test -f 'misc.c' || echo '$(srcdir)/'`misc.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -MT libhawk_la-misc.lo -MD -MP -MF $(DEPDIR)/libhawk_la-misc.Tpo -c -o libhawk_la-misc.lo `test -f 'misc.c' || echo '$(srcdir)/'`misc.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libhawk_la-misc.Tpo $(DEPDIR)/libhawk_la-misc.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='misc.c' object='libhawk_la-misc.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libhawk_la-misc.lo `test -f 'misc.c' || echo '$(srcdir)/'`misc.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -c -o libhawk_la-misc.lo `test -f 'misc.c' || echo '$(srcdir)/'`misc.c
 
 libhawk_la-parse.lo: parse.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libhawk_la-parse.lo -MD -MP -MF $(DEPDIR)/libhawk_la-parse.Tpo -c -o libhawk_la-parse.lo `test -f 'parse.c' || echo '$(srcdir)/'`parse.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -MT libhawk_la-parse.lo -MD -MP -MF $(DEPDIR)/libhawk_la-parse.Tpo -c -o libhawk_la-parse.lo `test -f 'parse.c' || echo '$(srcdir)/'`parse.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libhawk_la-parse.Tpo $(DEPDIR)/libhawk_la-parse.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='parse.c' object='libhawk_la-parse.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libhawk_la-parse.lo `test -f 'parse.c' || echo '$(srcdir)/'`parse.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -c -o libhawk_la-parse.lo `test -f 'parse.c' || echo '$(srcdir)/'`parse.c
 
 libhawk_la-rbt.lo: rbt.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libhawk_la-rbt.lo -MD -MP -MF $(DEPDIR)/libhawk_la-rbt.Tpo -c -o libhawk_la-rbt.lo `test -f 'rbt.c' || echo '$(srcdir)/'`rbt.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -MT libhawk_la-rbt.lo -MD -MP -MF $(DEPDIR)/libhawk_la-rbt.Tpo -c -o libhawk_la-rbt.lo `test -f 'rbt.c' || echo '$(srcdir)/'`rbt.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libhawk_la-rbt.Tpo $(DEPDIR)/libhawk_la-rbt.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='rbt.c' object='libhawk_la-rbt.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libhawk_la-rbt.lo `test -f 'rbt.c' || echo '$(srcdir)/'`rbt.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -c -o libhawk_la-rbt.lo `test -f 'rbt.c' || echo '$(srcdir)/'`rbt.c
 
 libhawk_la-rec.lo: rec.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libhawk_la-rec.lo -MD -MP -MF $(DEPDIR)/libhawk_la-rec.Tpo -c -o libhawk_la-rec.lo `test -f 'rec.c' || echo '$(srcdir)/'`rec.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -MT libhawk_la-rec.lo -MD -MP -MF $(DEPDIR)/libhawk_la-rec.Tpo -c -o libhawk_la-rec.lo `test -f 'rec.c' || echo '$(srcdir)/'`rec.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libhawk_la-rec.Tpo $(DEPDIR)/libhawk_la-rec.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='rec.c' object='libhawk_la-rec.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libhawk_la-rec.lo `test -f 'rec.c' || echo '$(srcdir)/'`rec.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -c -o libhawk_la-rec.lo `test -f 'rec.c' || echo '$(srcdir)/'`rec.c
 
 libhawk_la-rio.lo: rio.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libhawk_la-rio.lo -MD -MP -MF $(DEPDIR)/libhawk_la-rio.Tpo -c -o libhawk_la-rio.lo `test -f 'rio.c' || echo '$(srcdir)/'`rio.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -MT libhawk_la-rio.lo -MD -MP -MF $(DEPDIR)/libhawk_la-rio.Tpo -c -o libhawk_la-rio.lo `test -f 'rio.c' || echo '$(srcdir)/'`rio.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libhawk_la-rio.Tpo $(DEPDIR)/libhawk_la-rio.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='rio.c' object='libhawk_la-rio.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libhawk_la-rio.lo `test -f 'rio.c' || echo '$(srcdir)/'`rio.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -c -o libhawk_la-rio.lo `test -f 'rio.c' || echo '$(srcdir)/'`rio.c
 
 libhawk_la-run.lo: run.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libhawk_la-run.lo -MD -MP -MF $(DEPDIR)/libhawk_la-run.Tpo -c -o libhawk_la-run.lo `test -f 'run.c' || echo '$(srcdir)/'`run.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -MT libhawk_la-run.lo -MD -MP -MF $(DEPDIR)/libhawk_la-run.Tpo -c -o libhawk_la-run.lo `test -f 'run.c' || echo '$(srcdir)/'`run.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libhawk_la-run.Tpo $(DEPDIR)/libhawk_la-run.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='run.c' object='libhawk_la-run.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libhawk_la-run.lo `test -f 'run.c' || echo '$(srcdir)/'`run.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -c -o libhawk_la-run.lo `test -f 'run.c' || echo '$(srcdir)/'`run.c
 
 libhawk_la-tre-ast.lo: tre-ast.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libhawk_la-tre-ast.lo -MD -MP -MF $(DEPDIR)/libhawk_la-tre-ast.Tpo -c -o libhawk_la-tre-ast.lo `test -f 'tre-ast.c' || echo '$(srcdir)/'`tre-ast.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -MT libhawk_la-tre-ast.lo -MD -MP -MF $(DEPDIR)/libhawk_la-tre-ast.Tpo -c -o libhawk_la-tre-ast.lo `test -f 'tre-ast.c' || echo '$(srcdir)/'`tre-ast.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libhawk_la-tre-ast.Tpo $(DEPDIR)/libhawk_la-tre-ast.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='tre-ast.c' object='libhawk_la-tre-ast.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libhawk_la-tre-ast.lo `test -f 'tre-ast.c' || echo '$(srcdir)/'`tre-ast.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -c -o libhawk_la-tre-ast.lo `test -f 'tre-ast.c' || echo '$(srcdir)/'`tre-ast.c
 
 libhawk_la-tre-compile.lo: tre-compile.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libhawk_la-tre-compile.lo -MD -MP -MF $(DEPDIR)/libhawk_la-tre-compile.Tpo -c -o libhawk_la-tre-compile.lo `test -f 'tre-compile.c' || echo '$(srcdir)/'`tre-compile.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -MT libhawk_la-tre-compile.lo -MD -MP -MF $(DEPDIR)/libhawk_la-tre-compile.Tpo -c -o libhawk_la-tre-compile.lo `test -f 'tre-compile.c' || echo '$(srcdir)/'`tre-compile.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libhawk_la-tre-compile.Tpo $(DEPDIR)/libhawk_la-tre-compile.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='tre-compile.c' object='libhawk_la-tre-compile.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libhawk_la-tre-compile.lo `test -f 'tre-compile.c' || echo '$(srcdir)/'`tre-compile.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -c -o libhawk_la-tre-compile.lo `test -f 'tre-compile.c' || echo '$(srcdir)/'`tre-compile.c
 
 libhawk_la-tre-match-bt.lo: tre-match-bt.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libhawk_la-tre-match-bt.lo -MD -MP -MF $(DEPDIR)/libhawk_la-tre-match-bt.Tpo -c -o libhawk_la-tre-match-bt.lo `test -f 'tre-match-bt.c' || echo '$(srcdir)/'`tre-match-bt.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -MT libhawk_la-tre-match-bt.lo -MD -MP -MF $(DEPDIR)/libhawk_la-tre-match-bt.Tpo -c -o libhawk_la-tre-match-bt.lo `test -f 'tre-match-bt.c' || echo '$(srcdir)/'`tre-match-bt.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libhawk_la-tre-match-bt.Tpo $(DEPDIR)/libhawk_la-tre-match-bt.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='tre-match-bt.c' object='libhawk_la-tre-match-bt.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libhawk_la-tre-match-bt.lo `test -f 'tre-match-bt.c' || echo '$(srcdir)/'`tre-match-bt.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -c -o libhawk_la-tre-match-bt.lo `test -f 'tre-match-bt.c' || echo '$(srcdir)/'`tre-match-bt.c
 
 libhawk_la-tre-match-pa.lo: tre-match-pa.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libhawk_la-tre-match-pa.lo -MD -MP -MF $(DEPDIR)/libhawk_la-tre-match-pa.Tpo -c -o libhawk_la-tre-match-pa.lo `test -f 'tre-match-pa.c' || echo '$(srcdir)/'`tre-match-pa.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -MT libhawk_la-tre-match-pa.lo -MD -MP -MF $(DEPDIR)/libhawk_la-tre-match-pa.Tpo -c -o libhawk_la-tre-match-pa.lo `test -f 'tre-match-pa.c' || echo '$(srcdir)/'`tre-match-pa.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libhawk_la-tre-match-pa.Tpo $(DEPDIR)/libhawk_la-tre-match-pa.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='tre-match-pa.c' object='libhawk_la-tre-match-pa.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libhawk_la-tre-match-pa.lo `test -f 'tre-match-pa.c' || echo '$(srcdir)/'`tre-match-pa.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -c -o libhawk_la-tre-match-pa.lo `test -f 'tre-match-pa.c' || echo '$(srcdir)/'`tre-match-pa.c
 
 libhawk_la-tre-mem.lo: tre-mem.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libhawk_la-tre-mem.lo -MD -MP -MF $(DEPDIR)/libhawk_la-tre-mem.Tpo -c -o libhawk_la-tre-mem.lo `test -f 'tre-mem.c' || echo '$(srcdir)/'`tre-mem.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -MT libhawk_la-tre-mem.lo -MD -MP -MF $(DEPDIR)/libhawk_la-tre-mem.Tpo -c -o libhawk_la-tre-mem.lo `test -f 'tre-mem.c' || echo '$(srcdir)/'`tre-mem.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libhawk_la-tre-mem.Tpo $(DEPDIR)/libhawk_la-tre-mem.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='tre-mem.c' object='libhawk_la-tre-mem.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libhawk_la-tre-mem.lo `test -f 'tre-mem.c' || echo '$(srcdir)/'`tre-mem.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -c -o libhawk_la-tre-mem.lo `test -f 'tre-mem.c' || echo '$(srcdir)/'`tre-mem.c
 
 libhawk_la-tre-parse.lo: tre-parse.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libhawk_la-tre-parse.lo -MD -MP -MF $(DEPDIR)/libhawk_la-tre-parse.Tpo -c -o libhawk_la-tre-parse.lo `test -f 'tre-parse.c' || echo '$(srcdir)/'`tre-parse.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -MT libhawk_la-tre-parse.lo -MD -MP -MF $(DEPDIR)/libhawk_la-tre-parse.Tpo -c -o libhawk_la-tre-parse.lo `test -f 'tre-parse.c' || echo '$(srcdir)/'`tre-parse.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libhawk_la-tre-parse.Tpo $(DEPDIR)/libhawk_la-tre-parse.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='tre-parse.c' object='libhawk_la-tre-parse.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libhawk_la-tre-parse.lo `test -f 'tre-parse.c' || echo '$(srcdir)/'`tre-parse.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -c -o libhawk_la-tre-parse.lo `test -f 'tre-parse.c' || echo '$(srcdir)/'`tre-parse.c
 
 libhawk_la-tre-stack.lo: tre-stack.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libhawk_la-tre-stack.lo -MD -MP -MF $(DEPDIR)/libhawk_la-tre-stack.Tpo -c -o libhawk_la-tre-stack.lo `test -f 'tre-stack.c' || echo '$(srcdir)/'`tre-stack.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -MT libhawk_la-tre-stack.lo -MD -MP -MF $(DEPDIR)/libhawk_la-tre-stack.Tpo -c -o libhawk_la-tre-stack.lo `test -f 'tre-stack.c' || echo '$(srcdir)/'`tre-stack.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libhawk_la-tre-stack.Tpo $(DEPDIR)/libhawk_la-tre-stack.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='tre-stack.c' object='libhawk_la-tre-stack.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libhawk_la-tre-stack.lo `test -f 'tre-stack.c' || echo '$(srcdir)/'`tre-stack.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -c -o libhawk_la-tre-stack.lo `test -f 'tre-stack.c' || echo '$(srcdir)/'`tre-stack.c
 
 libhawk_la-tre.lo: tre.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libhawk_la-tre.lo -MD -MP -MF $(DEPDIR)/libhawk_la-tre.Tpo -c -o libhawk_la-tre.lo `test -f 'tre.c' || echo '$(srcdir)/'`tre.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -MT libhawk_la-tre.lo -MD -MP -MF $(DEPDIR)/libhawk_la-tre.Tpo -c -o libhawk_la-tre.lo `test -f 'tre.c' || echo '$(srcdir)/'`tre.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libhawk_la-tre.Tpo $(DEPDIR)/libhawk_la-tre.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='tre.c' object='libhawk_la-tre.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libhawk_la-tre.lo `test -f 'tre.c' || echo '$(srcdir)/'`tre.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -c -o libhawk_la-tre.lo `test -f 'tre.c' || echo '$(srcdir)/'`tre.c
 
 libhawk_la-tree.lo: tree.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libhawk_la-tree.lo -MD -MP -MF $(DEPDIR)/libhawk_la-tree.Tpo -c -o libhawk_la-tree.lo `test -f 'tree.c' || echo '$(srcdir)/'`tree.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -MT libhawk_la-tree.lo -MD -MP -MF $(DEPDIR)/libhawk_la-tree.Tpo -c -o libhawk_la-tree.lo `test -f 'tree.c' || echo '$(srcdir)/'`tree.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libhawk_la-tree.Tpo $(DEPDIR)/libhawk_la-tree.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='tree.c' object='libhawk_la-tree.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libhawk_la-tree.lo `test -f 'tree.c' || echo '$(srcdir)/'`tree.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -c -o libhawk_la-tree.lo `test -f 'tree.c' || echo '$(srcdir)/'`tree.c
 
 libhawk_la-utf16.lo: utf16.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libhawk_la-utf16.lo -MD -MP -MF $(DEPDIR)/libhawk_la-utf16.Tpo -c -o libhawk_la-utf16.lo `test -f 'utf16.c' || echo '$(srcdir)/'`utf16.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -MT libhawk_la-utf16.lo -MD -MP -MF $(DEPDIR)/libhawk_la-utf16.Tpo -c -o libhawk_la-utf16.lo `test -f 'utf16.c' || echo '$(srcdir)/'`utf16.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libhawk_la-utf16.Tpo $(DEPDIR)/libhawk_la-utf16.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='utf16.c' object='libhawk_la-utf16.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libhawk_la-utf16.lo `test -f 'utf16.c' || echo '$(srcdir)/'`utf16.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -c -o libhawk_la-utf16.lo `test -f 'utf16.c' || echo '$(srcdir)/'`utf16.c
 
 libhawk_la-utf8.lo: utf8.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libhawk_la-utf8.lo -MD -MP -MF $(DEPDIR)/libhawk_la-utf8.Tpo -c -o libhawk_la-utf8.lo `test -f 'utf8.c' || echo '$(srcdir)/'`utf8.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -MT libhawk_la-utf8.lo -MD -MP -MF $(DEPDIR)/libhawk_la-utf8.Tpo -c -o libhawk_la-utf8.lo `test -f 'utf8.c' || echo '$(srcdir)/'`utf8.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libhawk_la-utf8.Tpo $(DEPDIR)/libhawk_la-utf8.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='utf8.c' object='libhawk_la-utf8.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libhawk_la-utf8.lo `test -f 'utf8.c' || echo '$(srcdir)/'`utf8.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -c -o libhawk_la-utf8.lo `test -f 'utf8.c' || echo '$(srcdir)/'`utf8.c
 
 libhawk_la-utl-ass.lo: utl-ass.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libhawk_la-utl-ass.lo -MD -MP -MF $(DEPDIR)/libhawk_la-utl-ass.Tpo -c -o libhawk_la-utl-ass.lo `test -f 'utl-ass.c' || echo '$(srcdir)/'`utl-ass.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -MT libhawk_la-utl-ass.lo -MD -MP -MF $(DEPDIR)/libhawk_la-utl-ass.Tpo -c -o libhawk_la-utl-ass.lo `test -f 'utl-ass.c' || echo '$(srcdir)/'`utl-ass.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libhawk_la-utl-ass.Tpo $(DEPDIR)/libhawk_la-utl-ass.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='utl-ass.c' object='libhawk_la-utl-ass.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libhawk_la-utl-ass.lo `test -f 'utl-ass.c' || echo '$(srcdir)/'`utl-ass.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -c -o libhawk_la-utl-ass.lo `test -f 'utl-ass.c' || echo '$(srcdir)/'`utl-ass.c
 
 libhawk_la-utl-skad.lo: utl-skad.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libhawk_la-utl-skad.lo -MD -MP -MF $(DEPDIR)/libhawk_la-utl-skad.Tpo -c -o libhawk_la-utl-skad.lo `test -f 'utl-skad.c' || echo '$(srcdir)/'`utl-skad.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -MT libhawk_la-utl-skad.lo -MD -MP -MF $(DEPDIR)/libhawk_la-utl-skad.Tpo -c -o libhawk_la-utl-skad.lo `test -f 'utl-skad.c' || echo '$(srcdir)/'`utl-skad.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libhawk_la-utl-skad.Tpo $(DEPDIR)/libhawk_la-utl-skad.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='utl-skad.c' object='libhawk_la-utl-skad.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libhawk_la-utl-skad.lo `test -f 'utl-skad.c' || echo '$(srcdir)/'`utl-skad.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -c -o libhawk_la-utl-skad.lo `test -f 'utl-skad.c' || echo '$(srcdir)/'`utl-skad.c
 
 libhawk_la-utl-sort.lo: utl-sort.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libhawk_la-utl-sort.lo -MD -MP -MF $(DEPDIR)/libhawk_la-utl-sort.Tpo -c -o libhawk_la-utl-sort.lo `test -f 'utl-sort.c' || echo '$(srcdir)/'`utl-sort.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -MT libhawk_la-utl-sort.lo -MD -MP -MF $(DEPDIR)/libhawk_la-utl-sort.Tpo -c -o libhawk_la-utl-sort.lo `test -f 'utl-sort.c' || echo '$(srcdir)/'`utl-sort.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libhawk_la-utl-sort.Tpo $(DEPDIR)/libhawk_la-utl-sort.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='utl-sort.c' object='libhawk_la-utl-sort.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libhawk_la-utl-sort.lo `test -f 'utl-sort.c' || echo '$(srcdir)/'`utl-sort.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -c -o libhawk_la-utl-sort.lo `test -f 'utl-sort.c' || echo '$(srcdir)/'`utl-sort.c
 
 libhawk_la-utl-str.lo: utl-str.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libhawk_la-utl-str.lo -MD -MP -MF $(DEPDIR)/libhawk_la-utl-str.Tpo -c -o libhawk_la-utl-str.lo `test -f 'utl-str.c' || echo '$(srcdir)/'`utl-str.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -MT libhawk_la-utl-str.lo -MD -MP -MF $(DEPDIR)/libhawk_la-utl-str.Tpo -c -o libhawk_la-utl-str.lo `test -f 'utl-str.c' || echo '$(srcdir)/'`utl-str.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libhawk_la-utl-str.Tpo $(DEPDIR)/libhawk_la-utl-str.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='utl-str.c' object='libhawk_la-utl-str.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libhawk_la-utl-str.lo `test -f 'utl-str.c' || echo '$(srcdir)/'`utl-str.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -c -o libhawk_la-utl-str.lo `test -f 'utl-str.c' || echo '$(srcdir)/'`utl-str.c
 
 libhawk_la-utl-sys.lo: utl-sys.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libhawk_la-utl-sys.lo -MD -MP -MF $(DEPDIR)/libhawk_la-utl-sys.Tpo -c -o libhawk_la-utl-sys.lo `test -f 'utl-sys.c' || echo '$(srcdir)/'`utl-sys.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -MT libhawk_la-utl-sys.lo -MD -MP -MF $(DEPDIR)/libhawk_la-utl-sys.Tpo -c -o libhawk_la-utl-sys.lo `test -f 'utl-sys.c' || echo '$(srcdir)/'`utl-sys.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libhawk_la-utl-sys.Tpo $(DEPDIR)/libhawk_la-utl-sys.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='utl-sys.c' object='libhawk_la-utl-sys.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libhawk_la-utl-sys.lo `test -f 'utl-sys.c' || echo '$(srcdir)/'`utl-sys.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -c -o libhawk_la-utl-sys.lo `test -f 'utl-sys.c' || echo '$(srcdir)/'`utl-sys.c
 
 libhawk_la-utl.lo: utl.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libhawk_la-utl.lo -MD -MP -MF $(DEPDIR)/libhawk_la-utl.Tpo -c -o libhawk_la-utl.lo `test -f 'utl.c' || echo '$(srcdir)/'`utl.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -MT libhawk_la-utl.lo -MD -MP -MF $(DEPDIR)/libhawk_la-utl.Tpo -c -o libhawk_la-utl.lo `test -f 'utl.c' || echo '$(srcdir)/'`utl.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libhawk_la-utl.Tpo $(DEPDIR)/libhawk_la-utl.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='utl.c' object='libhawk_la-utl.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libhawk_la-utl.lo `test -f 'utl.c' || echo '$(srcdir)/'`utl.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -c -o libhawk_la-utl.lo `test -f 'utl.c' || echo '$(srcdir)/'`utl.c
 
 libhawk_la-val.lo: val.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libhawk_la-val.lo -MD -MP -MF $(DEPDIR)/libhawk_la-val.Tpo -c -o libhawk_la-val.lo `test -f 'val.c' || echo '$(srcdir)/'`val.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -MT libhawk_la-val.lo -MD -MP -MF $(DEPDIR)/libhawk_la-val.Tpo -c -o libhawk_la-val.lo `test -f 'val.c' || echo '$(srcdir)/'`val.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libhawk_la-val.Tpo $(DEPDIR)/libhawk_la-val.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='val.c' object='libhawk_la-val.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libhawk_la-val.lo `test -f 'val.c' || echo '$(srcdir)/'`val.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -c -o libhawk_la-val.lo `test -f 'val.c' || echo '$(srcdir)/'`val.c
 
 libhawk_la-xma.lo: xma.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libhawk_la-xma.lo -MD -MP -MF $(DEPDIR)/libhawk_la-xma.Tpo -c -o libhawk_la-xma.lo `test -f 'xma.c' || echo '$(srcdir)/'`xma.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -MT libhawk_la-xma.lo -MD -MP -MF $(DEPDIR)/libhawk_la-xma.Tpo -c -o libhawk_la-xma.lo `test -f 'xma.c' || echo '$(srcdir)/'`xma.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libhawk_la-xma.Tpo $(DEPDIR)/libhawk_la-xma.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='xma.c' object='libhawk_la-xma.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libhawk_la-xma.lo `test -f 'xma.c' || echo '$(srcdir)/'`xma.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -c -o libhawk_la-xma.lo `test -f 'xma.c' || echo '$(srcdir)/'`xma.c
 
 libhawk_la-cli.lo: cli.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libhawk_la-cli.lo -MD -MP -MF $(DEPDIR)/libhawk_la-cli.Tpo -c -o libhawk_la-cli.lo `test -f 'cli.c' || echo '$(srcdir)/'`cli.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -MT libhawk_la-cli.lo -MD -MP -MF $(DEPDIR)/libhawk_la-cli.Tpo -c -o libhawk_la-cli.lo `test -f 'cli.c' || echo '$(srcdir)/'`cli.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libhawk_la-cli.Tpo $(DEPDIR)/libhawk_la-cli.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='cli.c' object='libhawk_la-cli.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libhawk_la-cli.lo `test -f 'cli.c' || echo '$(srcdir)/'`cli.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -c -o libhawk_la-cli.lo `test -f 'cli.c' || echo '$(srcdir)/'`cli.c
 
 libhawk_la-fio.lo: fio.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libhawk_la-fio.lo -MD -MP -MF $(DEPDIR)/libhawk_la-fio.Tpo -c -o libhawk_la-fio.lo `test -f 'fio.c' || echo '$(srcdir)/'`fio.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -MT libhawk_la-fio.lo -MD -MP -MF $(DEPDIR)/libhawk_la-fio.Tpo -c -o libhawk_la-fio.lo `test -f 'fio.c' || echo '$(srcdir)/'`fio.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libhawk_la-fio.Tpo $(DEPDIR)/libhawk_la-fio.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='fio.c' object='libhawk_la-fio.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libhawk_la-fio.lo `test -f 'fio.c' || echo '$(srcdir)/'`fio.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -c -o libhawk_la-fio.lo `test -f 'fio.c' || echo '$(srcdir)/'`fio.c
 
 libhawk_la-mtx.lo: mtx.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libhawk_la-mtx.lo -MD -MP -MF $(DEPDIR)/libhawk_la-mtx.Tpo -c -o libhawk_la-mtx.lo `test -f 'mtx.c' || echo '$(srcdir)/'`mtx.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -MT libhawk_la-mtx.lo -MD -MP -MF $(DEPDIR)/libhawk_la-mtx.Tpo -c -o libhawk_la-mtx.lo `test -f 'mtx.c' || echo '$(srcdir)/'`mtx.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libhawk_la-mtx.Tpo $(DEPDIR)/libhawk_la-mtx.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='mtx.c' object='libhawk_la-mtx.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libhawk_la-mtx.lo `test -f 'mtx.c' || echo '$(srcdir)/'`mtx.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -c -o libhawk_la-mtx.lo `test -f 'mtx.c' || echo '$(srcdir)/'`mtx.c
 
 libhawk_la-pio.lo: pio.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libhawk_la-pio.lo -MD -MP -MF $(DEPDIR)/libhawk_la-pio.Tpo -c -o libhawk_la-pio.lo `test -f 'pio.c' || echo '$(srcdir)/'`pio.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -MT libhawk_la-pio.lo -MD -MP -MF $(DEPDIR)/libhawk_la-pio.Tpo -c -o libhawk_la-pio.lo `test -f 'pio.c' || echo '$(srcdir)/'`pio.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libhawk_la-pio.Tpo $(DEPDIR)/libhawk_la-pio.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='pio.c' object='libhawk_la-pio.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libhawk_la-pio.lo `test -f 'pio.c' || echo '$(srcdir)/'`pio.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -c -o libhawk_la-pio.lo `test -f 'pio.c' || echo '$(srcdir)/'`pio.c
 
 libhawk_la-sio.lo: sio.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libhawk_la-sio.lo -MD -MP -MF $(DEPDIR)/libhawk_la-sio.Tpo -c -o libhawk_la-sio.lo `test -f 'sio.c' || echo '$(srcdir)/'`sio.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -MT libhawk_la-sio.lo -MD -MP -MF $(DEPDIR)/libhawk_la-sio.Tpo -c -o libhawk_la-sio.lo `test -f 'sio.c' || echo '$(srcdir)/'`sio.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libhawk_la-sio.Tpo $(DEPDIR)/libhawk_la-sio.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='sio.c' object='libhawk_la-sio.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libhawk_la-sio.lo `test -f 'sio.c' || echo '$(srcdir)/'`sio.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -c -o libhawk_la-sio.lo `test -f 'sio.c' || echo '$(srcdir)/'`sio.c
 
 libhawk_la-tio.lo: tio.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libhawk_la-tio.lo -MD -MP -MF $(DEPDIR)/libhawk_la-tio.Tpo -c -o libhawk_la-tio.lo `test -f 'tio.c' || echo '$(srcdir)/'`tio.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -MT libhawk_la-tio.lo -MD -MP -MF $(DEPDIR)/libhawk_la-tio.Tpo -c -o libhawk_la-tio.lo `test -f 'tio.c' || echo '$(srcdir)/'`tio.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libhawk_la-tio.Tpo $(DEPDIR)/libhawk_la-tio.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='tio.c' object='libhawk_la-tio.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libhawk_la-tio.lo `test -f 'tio.c' || echo '$(srcdir)/'`tio.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -c -o libhawk_la-tio.lo `test -f 'tio.c' || echo '$(srcdir)/'`tio.c
 
 libhawk_la-std.lo: std.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libhawk_la-std.lo -MD -MP -MF $(DEPDIR)/libhawk_la-std.Tpo -c -o libhawk_la-std.lo `test -f 'std.c' || echo '$(srcdir)/'`std.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -MT libhawk_la-std.lo -MD -MP -MF $(DEPDIR)/libhawk_la-std.Tpo -c -o libhawk_la-std.lo `test -f 'std.c' || echo '$(srcdir)/'`std.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libhawk_la-std.Tpo $(DEPDIR)/libhawk_la-std.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='std.c' object='libhawk_la-std.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libhawk_la-std.lo `test -f 'std.c' || echo '$(srcdir)/'`std.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -c -o libhawk_la-std.lo `test -f 'std.c' || echo '$(srcdir)/'`std.c
 
 libhawk_la-mod-hawk.lo: mod-hawk.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libhawk_la-mod-hawk.lo -MD -MP -MF $(DEPDIR)/libhawk_la-mod-hawk.Tpo -c -o libhawk_la-mod-hawk.lo `test -f 'mod-hawk.c' || echo '$(srcdir)/'`mod-hawk.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -MT libhawk_la-mod-hawk.lo -MD -MP -MF $(DEPDIR)/libhawk_la-mod-hawk.Tpo -c -o libhawk_la-mod-hawk.lo `test -f 'mod-hawk.c' || echo '$(srcdir)/'`mod-hawk.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libhawk_la-mod-hawk.Tpo $(DEPDIR)/libhawk_la-mod-hawk.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='mod-hawk.c' object='libhawk_la-mod-hawk.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libhawk_la-mod-hawk.lo `test -f 'mod-hawk.c' || echo '$(srcdir)/'`mod-hawk.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -c -o libhawk_la-mod-hawk.lo `test -f 'mod-hawk.c' || echo '$(srcdir)/'`mod-hawk.c
 
 libhawk_la-mod-math.lo: mod-math.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libhawk_la-mod-math.lo -MD -MP -MF $(DEPDIR)/libhawk_la-mod-math.Tpo -c -o libhawk_la-mod-math.lo `test -f 'mod-math.c' || echo '$(srcdir)/'`mod-math.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -MT libhawk_la-mod-math.lo -MD -MP -MF $(DEPDIR)/libhawk_la-mod-math.Tpo -c -o libhawk_la-mod-math.lo `test -f 'mod-math.c' || echo '$(srcdir)/'`mod-math.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libhawk_la-mod-math.Tpo $(DEPDIR)/libhawk_la-mod-math.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='mod-math.c' object='libhawk_la-mod-math.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libhawk_la-mod-math.lo `test -f 'mod-math.c' || echo '$(srcdir)/'`mod-math.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -c -o libhawk_la-mod-math.lo `test -f 'mod-math.c' || echo '$(srcdir)/'`mod-math.c
 
 libhawk_la-mod-str.lo: mod-str.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libhawk_la-mod-str.lo -MD -MP -MF $(DEPDIR)/libhawk_la-mod-str.Tpo -c -o libhawk_la-mod-str.lo `test -f 'mod-str.c' || echo '$(srcdir)/'`mod-str.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -MT libhawk_la-mod-str.lo -MD -MP -MF $(DEPDIR)/libhawk_la-mod-str.Tpo -c -o libhawk_la-mod-str.lo `test -f 'mod-str.c' || echo '$(srcdir)/'`mod-str.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libhawk_la-mod-str.Tpo $(DEPDIR)/libhawk_la-mod-str.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='mod-str.c' object='libhawk_la-mod-str.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libhawk_la-mod-str.lo `test -f 'mod-str.c' || echo '$(srcdir)/'`mod-str.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -c -o libhawk_la-mod-str.lo `test -f 'mod-str.c' || echo '$(srcdir)/'`mod-str.c
 
 libhawk_la-mod-sys.lo: mod-sys.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libhawk_la-mod-sys.lo -MD -MP -MF $(DEPDIR)/libhawk_la-mod-sys.Tpo -c -o libhawk_la-mod-sys.lo `test -f 'mod-sys.c' || echo '$(srcdir)/'`mod-sys.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -MT libhawk_la-mod-sys.lo -MD -MP -MF $(DEPDIR)/libhawk_la-mod-sys.Tpo -c -o libhawk_la-mod-sys.lo `test -f 'mod-sys.c' || echo '$(srcdir)/'`mod-sys.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libhawk_la-mod-sys.Tpo $(DEPDIR)/libhawk_la-mod-sys.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='mod-sys.c' object='libhawk_la-mod-sys.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libhawk_la-mod-sys.lo `test -f 'mod-sys.c' || echo '$(srcdir)/'`mod-sys.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -c -o libhawk_la-mod-sys.lo `test -f 'mod-sys.c' || echo '$(srcdir)/'`mod-sys.c
 
 .cpp.o:
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.o$$||'`;\
@@ -1248,18 +1262,18 @@ libhawk_la-mod-sys.lo: mod-sys.c
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LTCXXCOMPILE) -c -o $@ $<
 
 libhawk_la-Hawk.lo: Hawk.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT libhawk_la-Hawk.lo -MD -MP -MF $(DEPDIR)/libhawk_la-Hawk.Tpo -c -o libhawk_la-Hawk.lo `test -f 'Hawk.cpp' || echo '$(srcdir)/'`Hawk.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CXXFLAGS) $(CXXFLAGS) -MT libhawk_la-Hawk.lo -MD -MP -MF $(DEPDIR)/libhawk_la-Hawk.Tpo -c -o libhawk_la-Hawk.lo `test -f 'Hawk.cpp' || echo '$(srcdir)/'`Hawk.cpp
 @am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libhawk_la-Hawk.Tpo $(DEPDIR)/libhawk_la-Hawk.Plo
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Hawk.cpp' object='libhawk_la-Hawk.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o libhawk_la-Hawk.lo `test -f 'Hawk.cpp' || echo '$(srcdir)/'`Hawk.cpp
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CXXFLAGS) $(CXXFLAGS) -c -o libhawk_la-Hawk.lo `test -f 'Hawk.cpp' || echo '$(srcdir)/'`Hawk.cpp
 
 libhawk_la-HawkStd.lo: HawkStd.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT libhawk_la-HawkStd.lo -MD -MP -MF $(DEPDIR)/libhawk_la-HawkStd.Tpo -c -o libhawk_la-HawkStd.lo `test -f 'HawkStd.cpp' || echo '$(srcdir)/'`HawkStd.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CXXFLAGS) $(CXXFLAGS) -MT libhawk_la-HawkStd.lo -MD -MP -MF $(DEPDIR)/libhawk_la-HawkStd.Tpo -c -o libhawk_la-HawkStd.lo `test -f 'HawkStd.cpp' || echo '$(srcdir)/'`HawkStd.cpp
 @am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libhawk_la-HawkStd.Tpo $(DEPDIR)/libhawk_la-HawkStd.Plo
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='HawkStd.cpp' object='libhawk_la-HawkStd.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o libhawk_la-HawkStd.lo `test -f 'HawkStd.cpp' || echo '$(srcdir)/'`HawkStd.cpp
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CXXFLAGS) $(CXXFLAGS) -c -o libhawk_la-HawkStd.lo `test -f 'HawkStd.cpp' || echo '$(srcdir)/'`HawkStd.cpp
 
 mostlyclean-libtool:
 	-rm -f *.lo

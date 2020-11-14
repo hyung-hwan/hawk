@@ -110,15 +110,14 @@ CONFIG_CLEAN_VPATH_FILES =
 am_t_001_OBJECTS = t-001.$(OBJEXT)
 t_001_OBJECTS = $(am_t_001_OBJECTS)
 t_001_LDADD = $(LDADD)
-am__DEPENDENCIES_1 =
-t_001_DEPENDENCIES = $(am__DEPENDENCIES_1)
+t_001_DEPENDENCIES =
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
 am__v_lt_0 = --silent
 am__v_lt_1 = 
 am_t_002_OBJECTS = t-002.$(OBJEXT)
 t_002_OBJECTS = $(am_t_002_OBJECTS)
-am__DEPENDENCIES_2 = $(am__DEPENDENCIES_1)
+am__DEPENDENCIES_1 =
 am_t_003_OBJECTS = t-003.$(OBJEXT)
 t_003_OBJECTS = $(am_t_003_OBJECTS)
 am_t_004_OBJECTS = t-004.$(OBJEXT)
@@ -549,6 +548,7 @@ top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 AUTOMAKE_OPTIONS = nostdinc
 AM_CFLAGS = $(PTHREAD_CFLAGS)
+AM_CXXFLAGS = $(PTHREAD_CFLAGS)
 AM_CPPFLAGS = \
 	-I$(abs_builddir) \
 	-I$(abs_builddir)/../lib \
@@ -557,7 +557,7 @@ AM_CPPFLAGS = \
 	-I$(includedir)
 
 AM_LDFLAGS = -L$(abs_builddir)/../lib  -L$(libdir)
-LDADD = $(PTHREAD_LIBS)
+LDADD = 
 check_SCRIPTS = h-001.hawk h-002.hawk
 EXTRA_DIST = $(check_SCRIPTS)
 t_001_SOURCES = t-001.c t.h
@@ -568,7 +568,7 @@ t_003_SOURCES = t-003.c t.h
 t_003_LDADD = -lhawk $(LDADD)
 t_003_DEPENDENCIES = ../lib/libhawk.la
 t_004_SOURCES = t-004.c t.h
-t_004_LDADD = -lhawk $(LDADD) $(LIBM)
+t_004_LDADD = -lhawk $(LDADD)
 t_004_DEPENDENCIES = ../lib/libhawk.la
 t_005_SOURCES = t-005.c t.h
 t_005_LDADD = -lhawk $(LDADD)
