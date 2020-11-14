@@ -110,14 +110,15 @@ CONFIG_CLEAN_VPATH_FILES =
 am_t_001_OBJECTS = t-001.$(OBJEXT)
 t_001_OBJECTS = $(am_t_001_OBJECTS)
 t_001_LDADD = $(LDADD)
-t_001_DEPENDENCIES =
+am__DEPENDENCIES_1 =
+t_001_DEPENDENCIES = $(am__DEPENDENCIES_1)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
 am__v_lt_0 = --silent
 am__v_lt_1 = 
 am_t_002_OBJECTS = t-002.$(OBJEXT)
 t_002_OBJECTS = $(am_t_002_OBJECTS)
-am__DEPENDENCIES_1 =
+am__DEPENDENCIES_2 = $(am__DEPENDENCIES_1)
 am_t_003_OBJECTS = t-003.$(OBJEXT)
 t_003_OBJECTS = $(am_t_003_OBJECTS)
 am_t_004_OBJECTS = t-004.$(OBJEXT)
@@ -557,7 +558,7 @@ AM_CPPFLAGS = \
 	-I$(includedir)
 
 AM_LDFLAGS = -L$(abs_builddir)/../lib  -L$(libdir)
-LDADD = 
+LDADD = $(LIBM)
 check_SCRIPTS = h-001.hawk h-002.hawk
 EXTRA_DIST = $(check_SCRIPTS)
 t_001_SOURCES = t-001.c t.h

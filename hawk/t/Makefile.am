@@ -11,7 +11,7 @@ AM_CPPFLAGS = \
 	-I$(includedir)
 
 AM_LDFLAGS = -L$(abs_builddir)/../lib  -L$(libdir)
-LDADD = 
+LDADD = $(LIBM)
 
 check_SCRIPTS = h-001.hawk h-002.hawk
 ##noinst_SCRIPTS = $(check_SCRIPTS)
