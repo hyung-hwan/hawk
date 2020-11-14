@@ -105,7 +105,7 @@ host_triplet = @host@
 @ENABLE_STATIC_MODULE_TRUE@	mod-str.c mod-str.h \
 @ENABLE_STATIC_MODULE_TRUE@	mod-sys.c mod-sys.h
 
-@ENABLE_STATIC_MODULE_TRUE@am__append_10 = 
+@ENABLE_STATIC_MODULE_TRUE@am__append_10 = $(SOCKET_LIBS)
 @ENABLE_MOD_MYSQL_TRUE@@ENABLE_STATIC_MODULE_TRUE@am__append_11 = -lhawk-mysql
 @ENABLE_MOD_MYSQL_TRUE@@ENABLE_STATIC_MODULE_TRUE@am__append_12 = ../mod/libhawk-mysql.la
 @ENABLE_MOD_UCI_TRUE@@ENABLE_STATIC_MODULE_TRUE@am__append_13 = -lhawk-uci
@@ -213,6 +213,7 @@ libhawk_sys_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 @ENABLE_LIBLTDL_TRUE@am__DEPENDENCIES_2 = $(am__DEPENDENCIES_1)
 @ENABLE_LIBLTDL_FALSE@am__DEPENDENCIES_3 = $(am__DEPENDENCIES_1)
 @ENABLE_LIBUNWIND_TRUE@am__DEPENDENCIES_4 = $(am__DEPENDENCIES_1)
+@ENABLE_STATIC_MODULE_TRUE@am__DEPENDENCIES_5 = $(am__DEPENDENCIES_1)
 am__libhawk_la_SOURCES_DIST = hawk.h hawk-arr.h hawk-chr.h hawk-cmn.h \
 	hawk-dir.h hawk-ecs.h hawk-fmt.h hawk-gem.h hawk-htb.h \
 	hawk-map.h hawk-rbt.h hawk-pack1.h hawk-utl.h hawk-std.h \
@@ -631,7 +632,7 @@ libhawk_la_DEPENDENCIES = $(am__append_12) $(am__append_14)
 @ENABLE_STATIC_MODULE_FALSE@libhawk_math_la_SOURCES = mod-math.c mod-math.h
 @ENABLE_STATIC_MODULE_FALSE@libhawk_math_la_CPPFLAGS = $(CPPFLAGS_MOD_COMMON)
 @ENABLE_STATIC_MODULE_FALSE@libhawk_math_la_LDFLAGS = $(LDFLAGS_MOD_COMMON)
-@ENABLE_STATIC_MODULE_FALSE@libhawk_math_la_LIBADD = $(LIBADD_MOD_COMMON)
+@ENABLE_STATIC_MODULE_FALSE@libhawk_math_la_LIBADD = $(LIBADD_MOD_COMMON) $(LIBM)
 @ENABLE_STATIC_MODULE_FALSE@libhawk_math_la_DEPENDENCIES = $(DEPENDENCIES_MOD_COMMON)
 @ENABLE_STATIC_MODULE_FALSE@libhawk_str_la_SOURCES = mod-str.c mod-str.h
 @ENABLE_STATIC_MODULE_FALSE@libhawk_str_la_CPPFLAGS = $(CPPFLAGS_MOD_COMMON)
@@ -641,7 +642,7 @@ libhawk_la_DEPENDENCIES = $(am__append_12) $(am__append_14)
 @ENABLE_STATIC_MODULE_FALSE@libhawk_sys_la_SOURCES = mod-sys.c mod-sys.h
 @ENABLE_STATIC_MODULE_FALSE@libhawk_sys_la_CPPFLAGS = $(CPPFLAGS_MOD_COMMON)
 @ENABLE_STATIC_MODULE_FALSE@libhawk_sys_la_LDFLAGS = $(LDFLAGS_MOD_COMMON)
-@ENABLE_STATIC_MODULE_FALSE@libhawk_sys_la_LIBADD = $(LIBADD_MOD_COMMON)
+@ENABLE_STATIC_MODULE_FALSE@libhawk_sys_la_LIBADD = $(LIBADD_MOD_COMMON) $(SOCKET_LIBS)
 @ENABLE_STATIC_MODULE_FALSE@libhawk_sys_la_DEPENDENCIES = $(DEPENDENCIES_MOD_COMMON)
 all: hawk-cfg.h
 	$(MAKE) $(AM_MAKEFLAGS) all-am
