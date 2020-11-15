@@ -1,12 +1,12 @@
 AUTOMAKE_OPTIONS = nostdinc
 
-CFLAGS_ALL_COMMON = $(PTHREAD_CFLAGS)
-CXXFLAGS_ALL_COMMON = $(PTHREAD_CFLAGS)
-
 CPPFLAGS_ALL_COMMON = \
 	-I$(abs_builddir) \
 	-I$(abs_srcdir) \
 	-I$(includedir)
+
+CFLAGS_ALL_COMMON = $(PTHREAD_CFLAGS)
+CXXFLAGS_ALL_COMMON = $(PTHREAD_CFLAGS)
 
 if ENABLE_STATIC_MODULE
 LDFLAGS_ALL_COMMON = -L$(abs_builddir)/../mod -L$(abs_builddir) -L$(libdir)

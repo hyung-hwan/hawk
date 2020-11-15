@@ -559,13 +559,13 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 AUTOMAKE_OPTIONS = nostdinc
-CFLAGS_ALL_COMMON = $(PTHREAD_CFLAGS)
-CXXFLAGS_ALL_COMMON = $(PTHREAD_CFLAGS)
 CPPFLAGS_ALL_COMMON = \
 	-I$(abs_builddir) \
 	-I$(abs_srcdir) \
 	-I$(includedir)
 
+CFLAGS_ALL_COMMON = $(PTHREAD_CFLAGS)
+CXXFLAGS_ALL_COMMON = $(PTHREAD_CFLAGS)
 @ENABLE_STATIC_MODULE_FALSE@LDFLAGS_ALL_COMMON = -L$(abs_builddir) -L$(libdir)
 @ENABLE_STATIC_MODULE_TRUE@LDFLAGS_ALL_COMMON = -L$(abs_builddir)/../mod -L$(abs_builddir) -L$(libdir)
 @WIN32_FALSE@CPPFLAGS_PFMOD = -DHAWK_DEFAULT_MODLIBDIRS=\"$(libdir)\" \
