@@ -564,8 +564,8 @@ CPPFLAGS_ALL_COMMON = \
 	-I$(abs_srcdir) \
 	-I$(includedir)
 
-CFLAGS_ALL_COMMON = $(PTHREAD_CFLAGS)
-CXXFLAGS_ALL_COMMON = $(PTHREAD_CFLAGS)
+CFLAGS_ALL_COMMON = 
+CXXFLAGS_ALL_COMMON = 
 @ENABLE_STATIC_MODULE_FALSE@LDFLAGS_ALL_COMMON = -L$(abs_builddir) -L$(libdir)
 @ENABLE_STATIC_MODULE_TRUE@LDFLAGS_ALL_COMMON = -L$(abs_builddir)/../mod -L$(abs_builddir) -L$(libdir)
 @WIN32_FALSE@CPPFLAGS_PFMOD = -DHAWK_DEFAULT_MODLIBDIRS=\"$(libdir)\" \
@@ -606,7 +606,7 @@ libhawk_la_CPPFLAGS = $(CPPFLAGS_ALL_COMMON) $(CPPFLAGS_PFMOD) \
 libhawk_la_CFLAGS = $(CFLAGS_ALL_COMMON)
 libhawk_la_CXXFLAGS = $(CXXFLAGS_ALL_COMMON)
 libhawk_la_LDFLAGS = $(LDFLAGS_ALL_COMMON) -version-info 1:0:0 -no-undefined
-libhawk_la_LIBADD = $(LIBM) $(PTHREAD_LIBS) $(am__append_4) \
+libhawk_la_LIBADD = $(LIBM) $(SOCKET_LIBS) $(am__append_4) \
 	$(am__append_5) $(am__append_6) $(am__append_10) \
 	$(am__append_11) $(am__append_13)
 libhawk_la_DEPENDENCIES = $(am__append_12) $(am__append_14)
