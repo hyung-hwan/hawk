@@ -117,13 +117,13 @@ am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
 am__v_lt_0 = --silent
 am__v_lt_1 = 
 uni_case_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
-	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
-	$(uni_case_LDFLAGS) $(LDFLAGS) -o $@
+	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(uni_case_CFLAGS) \
+	$(CFLAGS) $(uni_case_LDFLAGS) $(LDFLAGS) -o $@
 am_uni_prop_OBJECTS = uni_prop-uni-prop.$(OBJEXT)
 uni_prop_OBJECTS = $(am_uni_prop_OBJECTS)
 uni_prop_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
-	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
-	$(uni_prop_LDFLAGS) $(LDFLAGS) -o $@
+	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(uni_prop_CFLAGS) \
+	$(CFLAGS) $(uni_prop_LDFLAGS) $(LDFLAGS) -o $@
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -338,27 +338,29 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 AUTOMAKE_OPTIONS = nostdinc
-CPPFLAGS_ALL_COMMON = \
+CPPFLAGS_COMMON = \
 	-I$(abs_builddir) \
 	-I$(abs_builddir)/../lib  \
 	-I$(abs_srcdir) \
 	-I$(abs_srcdir)/../lib \
 	-I$(includedir)
 
-LDFLAGS_ALL_COMMON = -L$(abs_builddir) -L$(abs_builddir)/../lib -L$(libdir)
-CPPFLAGS_BIN_COMMON = $(CPPFLAGS_ALL_COMMON)
-LDFLAGS_BIN_COMMON = $(LDFLAGS_ALL_COMMON) -version-info 1:0:0 -no-undefined
-LIBADD_BIN_COMMON = 
+CFLAGS_COMMON = 
+LDFLAGS_COMMON = -L$(abs_builddir)/../lib -L$(libdir) 
+LIBADD_COMMON = 
+DEPENDENCIES_COMMON = 
 uni_case_SOURCES = uni-case.c
-uni_case_CPPFLAGS = $(CPPFLAGS_ALL_COMMON)
-uni_case_LDFLAGS = $(LDFLAGS_ALL_COMMON)
-uni_case_LDADD = $(LIBADD_BIN_COMMON) 
-uni_case_DEPENDENCIES = 
+uni_case_CPPFLAGS = $(CPPFLAGS_COMMON)
+uni_case_CFLAGS = $(CFLAGS_COMMON)
+uni_case_LDFLAGS = $(LDFLAGS_COMMON)
+uni_case_LDADD = $(LIBADD_COMMON) 
+uni_case_DEPENDENCIES = $(DEPENDENCIES_COMMON)
 uni_prop_SOURCES = uni-prop.c
-uni_prop_CPPFLAGS = $(CPPFLAGS_ALL_COMMON)
-uni_prop_LDFLAGS = $(LDFLAGS_ALL_COMMON)
-uni_prop_LDADD = $(LIBADD_BIN_COMMON) 
-uni_prop_DEPENDENCIES = 
+uni_prop_CPPFLAGS = $(CPPFLAGS_COMMON)
+uni_prop_CFLAGS = $(CFLAGS_COMMON)
+uni_prop_LDFLAGS = $(LDFLAGS_COMMON)
+uni_prop_LDADD = $(LIBADD_COMMON) 
+uni_prop_DEPENDENCIES = $(DEPENDENCIES_COMMON)
 all: all-am
 
 .SUFFIXES:
@@ -490,32 +492,32 @@ am--depfiles: $(am__depfiles_remade)
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LTCOMPILE) -c -o $@ $<
 
 uni_case-uni-case.o: uni-case.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(uni_case_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT uni_case-uni-case.o -MD -MP -MF $(DEPDIR)/uni_case-uni-case.Tpo -c -o uni_case-uni-case.o `test -f 'uni-case.c' || echo '$(srcdir)/'`uni-case.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(uni_case_CPPFLAGS) $(CPPFLAGS) $(uni_case_CFLAGS) $(CFLAGS) -MT uni_case-uni-case.o -MD -MP -MF $(DEPDIR)/uni_case-uni-case.Tpo -c -o uni_case-uni-case.o `test -f 'uni-case.c' || echo '$(srcdir)/'`uni-case.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/uni_case-uni-case.Tpo $(DEPDIR)/uni_case-uni-case.Po
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='uni-case.c' object='uni_case-uni-case.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(uni_case_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o uni_case-uni-case.o `test -f 'uni-case.c' || echo '$(srcdir)/'`uni-case.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(uni_case_CPPFLAGS) $(CPPFLAGS) $(uni_case_CFLAGS) $(CFLAGS) -c -o uni_case-uni-case.o `test -f 'uni-case.c' || echo '$(srcdir)/'`uni-case.c
 
 uni_case-uni-case.obj: uni-case.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(uni_case_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT uni_case-uni-case.obj -MD -MP -MF $(DEPDIR)/uni_case-uni-case.Tpo -c -o uni_case-uni-case.obj `if test -f 'uni-case.c'; then $(CYGPATH_W) 'uni-case.c'; else $(CYGPATH_W) '$(srcdir)/uni-case.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(uni_case_CPPFLAGS) $(CPPFLAGS) $(uni_case_CFLAGS) $(CFLAGS) -MT uni_case-uni-case.obj -MD -MP -MF $(DEPDIR)/uni_case-uni-case.Tpo -c -o uni_case-uni-case.obj `if test -f 'uni-case.c'; then $(CYGPATH_W) 'uni-case.c'; else $(CYGPATH_W) '$(srcdir)/uni-case.c'; fi`
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/uni_case-uni-case.Tpo $(DEPDIR)/uni_case-uni-case.Po
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='uni-case.c' object='uni_case-uni-case.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(uni_case_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o uni_case-uni-case.obj `if test -f 'uni-case.c'; then $(CYGPATH_W) 'uni-case.c'; else $(CYGPATH_W) '$(srcdir)/uni-case.c'; fi`
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(uni_case_CPPFLAGS) $(CPPFLAGS) $(uni_case_CFLAGS) $(CFLAGS) -c -o uni_case-uni-case.obj `if test -f 'uni-case.c'; then $(CYGPATH_W) 'uni-case.c'; else $(CYGPATH_W) '$(srcdir)/uni-case.c'; fi`
 
 uni_prop-uni-prop.o: uni-prop.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(uni_prop_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT uni_prop-uni-prop.o -MD -MP -MF $(DEPDIR)/uni_prop-uni-prop.Tpo -c -o uni_prop-uni-prop.o `test -f 'uni-prop.c' || echo '$(srcdir)/'`uni-prop.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(uni_prop_CPPFLAGS) $(CPPFLAGS) $(uni_prop_CFLAGS) $(CFLAGS) -MT uni_prop-uni-prop.o -MD -MP -MF $(DEPDIR)/uni_prop-uni-prop.Tpo -c -o uni_prop-uni-prop.o `test -f 'uni-prop.c' || echo '$(srcdir)/'`uni-prop.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/uni_prop-uni-prop.Tpo $(DEPDIR)/uni_prop-uni-prop.Po
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='uni-prop.c' object='uni_prop-uni-prop.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(uni_prop_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o uni_prop-uni-prop.o `test -f 'uni-prop.c' || echo '$(srcdir)/'`uni-prop.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(uni_prop_CPPFLAGS) $(CPPFLAGS) $(uni_prop_CFLAGS) $(CFLAGS) -c -o uni_prop-uni-prop.o `test -f 'uni-prop.c' || echo '$(srcdir)/'`uni-prop.c
 
 uni_prop-uni-prop.obj: uni-prop.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(uni_prop_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT uni_prop-uni-prop.obj -MD -MP -MF $(DEPDIR)/uni_prop-uni-prop.Tpo -c -o uni_prop-uni-prop.obj `if test -f 'uni-prop.c'; then $(CYGPATH_W) 'uni-prop.c'; else $(CYGPATH_W) '$(srcdir)/uni-prop.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(uni_prop_CPPFLAGS) $(CPPFLAGS) $(uni_prop_CFLAGS) $(CFLAGS) -MT uni_prop-uni-prop.obj -MD -MP -MF $(DEPDIR)/uni_prop-uni-prop.Tpo -c -o uni_prop-uni-prop.obj `if test -f 'uni-prop.c'; then $(CYGPATH_W) 'uni-prop.c'; else $(CYGPATH_W) '$(srcdir)/uni-prop.c'; fi`
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/uni_prop-uni-prop.Tpo $(DEPDIR)/uni_prop-uni-prop.Po
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='uni-prop.c' object='uni_prop-uni-prop.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(uni_prop_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o uni_prop-uni-prop.obj `if test -f 'uni-prop.c'; then $(CYGPATH_W) 'uni-prop.c'; else $(CYGPATH_W) '$(srcdir)/uni-prop.c'; fi`
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(uni_prop_CPPFLAGS) $(CPPFLAGS) $(uni_prop_CFLAGS) $(CFLAGS) -c -o uni_prop-uni-prop.obj `if test -f 'uni-prop.c'; then $(CYGPATH_W) 'uni-prop.c'; else $(CYGPATH_W) '$(srcdir)/uni-prop.c'; fi`
 
 mostlyclean-libtool:
 	-rm -f *.lo

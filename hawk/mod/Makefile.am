@@ -1,13 +1,13 @@
 AUTOMAKE_OPTIONS = nostdinc
 
-##AM_CFLAGS = $(PTHREAD_CFLAGS)
-
 CPPFLAGS_COMMON = \
 	-I$(abs_builddir) \
 	-I$(abs_builddir)/../lib \
 	-I$(abs_srcdir) \
 	-I$(abs_srcdir)/../lib \
 	-I$(includedir)
+
+CFLAGS_COMMON =
 
 ##################################################
 if ENABLE_STATIC_MODULE
@@ -61,6 +61,7 @@ endif
 if ENABLE_MOD_MYSQL
 libhawk_mysql_la_SOURCES = mod-mysql.c mod-mysql.h
 libhawk_mysql_la_CPPFLAGS = $(CPPFLAGS_COMMON) $(MYSQL_CFLAGS)
+libhawk_mysql_la_CFLAGS = $(CFLAGS_COMMON) 
 libhawk_mysql_la_LDFLAGS = $(LDFLAGS_COMMON) $(MYSQL_LDFLAGS)
 libhawk_mysql_la_LIBADD = $(LIBADD_COMMON) $(MYSQL_LIBS)
 endif
@@ -68,6 +69,7 @@ endif
 if ENABLE_MOD_UCI
 libhawk_uci_la_SOURCES = mod-uci.c mod-uci.h
 libhawk_uci_la_CPPFLAGS = $(CPPFLAGS_COMMON)
+libhawk_uci_la_CFLAGS = $(CFLAGS_COMMON) 
 libhawk_uci_la_LDFLAGS = $(LDFLAGS_COMMON)
 libhawk_uci_la_LIBADD = $(LIBADD_COMMON) $(UCI_LIBS)
 endif

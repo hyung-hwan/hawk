@@ -1,27 +1,22 @@
 AUTOMAKE_OPTIONS = nostdinc
 
-CFLAGS_ALL_COMMON = $(PTHREAD_CFLAGS)
-CXXFLAGS_ALL_COMMON = $(PTHREAD_CFLAGS)
 
-CPPFLAGS_ALL_COMMON = \
+CPPFLAGS_COMMON = \
 	-I$(abs_builddir) \
 	-I$(abs_builddir)/../lib  \
 	-I$(abs_srcdir) \
 	-I$(abs_srcdir)/../lib \
 	-I$(includedir)
-
-LDFLAGS_ALL_COMMON = -L$(abs_builddir) -L$(abs_builddir)/../lib -L$(libdir)
-
-CPPFLAGS_BIN_COMMON = $(CPPFLAGS_ALL_COMMON)
-LDFLAGS_BIN_COMMON = $(LDFLAGS_ALL_COMMON) -no-undefined
-
+CFLAGS_COMMON =
+LDFLAGS_COMMON = -L$(abs_builddir)/../lib -L$(libdir)
 ##
 ## -lm may get omitted from dependency_libs in libhawk.la.
 ## the generated libtool in the build directory may include -lm in postdeps
 ## dependency_libs excludes items in postdeps.
 ## specify -lm explicitly to satisfy dependency regardless of libtool behavior.
 ##
-LIBADD_BIN_COMMON = $(LIBM) 
+LIBADD_COMMON = -lhawk $(LIBM)
+DEPENDENCIES_COMMON = ../lib/libhawk.la
 
 bin_PROGRAMS = hawk
 
@@ -29,10 +24,9 @@ bin_PROGRAMS = hawk
 # hawk
 ##################################################
 hawk_SOURCES = main.c 
-hawk_CPPFLAGS = $(CPPFLAGS_ALL_COMMON)
-hawk_CFLAGS = $(CFLAGS_ALL_COMMON)
-hawk_CXXFLAGS = $(CXXFLAGS_ALL_COMMON)
-hawk_LDFLAGS = $(LDFLAGS_ALL_COMMON)
-hawk_LDADD = -lhawk $(LIBADD_BIN_COMMON) ### $(SOCKET_LIBS) $(PTHREAD_LIBS)
-hawk_DEPENDENCIES = ../lib/libhawk.la
+hawk_CPPFLAGS = $(CPPFLAGS_COMMON)
+hawk_CFLAGS = $(CFLAGS_COMMON)
+hawk_LDFLAGS = $(LDFLAGS_COMMON)
+hawk_LDADD = $(LIBADD_COMMON)
+hawk_DEPENDENCIES = $(DEPENDENCIES_COMMON)
 
