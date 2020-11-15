@@ -5,8 +5,8 @@ CPPFLAGS_ALL_COMMON = \
 	-I$(abs_srcdir) \
 	-I$(includedir)
 
-CFLAGS_ALL_COMMON = $(PTHREAD_CFLAGS)
-CXXFLAGS_ALL_COMMON = $(PTHREAD_CFLAGS)
+CFLAGS_ALL_COMMON = 
+CXXFLAGS_ALL_COMMON = 
 
 if ENABLE_STATIC_MODULE
 LDFLAGS_ALL_COMMON = -L$(abs_builddir)/../mod -L$(abs_builddir) -L$(libdir)
@@ -151,7 +151,8 @@ libhawk_la_CPPFLAGS = $(CPPFLAGS_ALL_COMMON) $(CPPFLAGS_PFMOD)
 libhawk_la_CFLAGS = $(CFLAGS_ALL_COMMON)
 libhawk_la_CXXFLAGS = $(CXXFLAGS_ALL_COMMON)
 libhawk_la_LDFLAGS = $(LDFLAGS_ALL_COMMON) -version-info 1:0:0 -no-undefined
-libhawk_la_LIBADD = $(LIBM) $(PTHREAD_LIBS)
+## socket() is used in gem-nwif.c and gem-nwif2.c
+libhawk_la_LIBADD = $(LIBM) $(SOCKET_LIBS)
 libhawk_la_DEPENDENCIES = 
 
 if ENABLE_LIBLTDL
