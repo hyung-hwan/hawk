@@ -9,13 +9,7 @@ CPPFLAGS_COMMON = \
 	-I$(includedir)
 CFLAGS_COMMON =
 LDFLAGS_COMMON = -L$(abs_builddir)/../lib -L$(libdir)
-##
-## -lm may get omitted from dependency_libs in libhawk.la.
-## the generated libtool in the build directory may include -lm in postdeps
-## dependency_libs excludes items in postdeps.
-## specify -lm explicitly to satisfy dependency regardless of libtool behavior.
-##
-LIBADD_COMMON = -lhawk $(LIBM)
+LIBADD_COMMON = -lhawk 
 DEPENDENCIES_COMMON = ../lib/libhawk.la
 
 bin_PROGRAMS = hawk
@@ -27,6 +21,20 @@ hawk_SOURCES = main.c
 hawk_CPPFLAGS = $(CPPFLAGS_COMMON)
 hawk_CFLAGS = $(CFLAGS_COMMON)
 hawk_LDFLAGS = $(LDFLAGS_COMMON)
-hawk_LDADD = $(LIBADD_COMMON)
+##
+## -lm is omitted from dependency_libs in libhawk.la because
+## libhawk contains some C++ code and postdeps_CXX contains -lm.
+##
+## Under the default libtool configuration, postdeps is empty.
+## Under the C++ tagged libtool configuration, postdeps is set to 
+## the value of postdeps_CXX.
+##
+## libtool doesn't include -lm in dependency_libs in libhawk.la 
+## because libtool --tag=CXX is used for mixed C++ code.
+##
+## specify -lm to a C only target to satisify dependency regardless
+## of different behavior depending on the libtool tag.
+##
+hawk_LDADD = $(LIBADD_COMMON) $(LIBM)
 hawk_DEPENDENCIES = $(DEPENDENCIES_COMMON)
 

@@ -112,7 +112,6 @@ PROGRAMS = $(bin_PROGRAMS)
 am_hawk_OBJECTS = hawk-main.$(OBJEXT)
 hawk_OBJECTS = $(am_hawk_OBJECTS)
 am__DEPENDENCIES_1 =
-am__DEPENDENCIES_2 = $(am__DEPENDENCIES_1)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
 am__v_lt_0 = --silent
@@ -342,7 +341,7 @@ CPPFLAGS_COMMON = \
 
 CFLAGS_COMMON = 
 LDFLAGS_COMMON = -L$(abs_builddir)/../lib -L$(libdir)
-LIBADD_COMMON = -lhawk $(LIBM)
+LIBADD_COMMON = -lhawk 
 DEPENDENCIES_COMMON = ../lib/libhawk.la
 
 ##################################################
@@ -352,7 +351,7 @@ hawk_SOURCES = main.c
 hawk_CPPFLAGS = $(CPPFLAGS_COMMON)
 hawk_CFLAGS = $(CFLAGS_COMMON)
 hawk_LDFLAGS = $(LDFLAGS_COMMON)
-hawk_LDADD = $(LIBADD_COMMON)
+hawk_LDADD = $(LIBADD_COMMON) $(LIBM)
 hawk_DEPENDENCIES = $(DEPENDENCIES_COMMON)
 all: all-am
 

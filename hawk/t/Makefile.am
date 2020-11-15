@@ -8,12 +8,15 @@ CPPFLAGS_COMMON = \
 	-I$(includedir)
 CFLAGS_COMMON =
 LDFLAGS_COMMON=-L$(abs_builddir)/../lib  -L$(libdir)
+## place $(LIBM)  here as all programs below are C only programs linked
+## against the C/C++ hybrid library. Read comments in ../bin/Makefile.am
+## for more information.
 LIBADD_COMMON = -lhawk $(LIBM)
 DEPENDENCIES_COMMON = ../lib/libhawk.la
 
 check_SCRIPTS = h-001.hawk h-002.hawk
 ##noinst_SCRIPTS = $(check_SCRIPTS)
-EXTRA_DIST = $(check_SCRIPTS)
+EXTRA_DIST = $(check_SCRIPTS) ensure.inc
 
 check_PROGRAMS = t-001 t-002 t-003 t-004 t-005 t-006
 
