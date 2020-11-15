@@ -86,6 +86,7 @@ libhawk_la_SOURCES = \
 	hawk.c \
 	idmap-imp.h \
 	mb8.c \
+	misc-imp.h \
 	misc-prv.h \
 	misc.c \
 	parse-prv.h \
