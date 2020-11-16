@@ -106,14 +106,12 @@ host_triplet = @host@
 @ENABLE_STATIC_MODULE_TRUE@	mod-sys.c mod-sys.h
 
 @ENABLE_STATIC_MODULE_TRUE@am__append_10 = $(SOCKET_LIBS)
-@ENABLE_MOD_MYSQL_TRUE@@ENABLE_STATIC_MODULE_TRUE@am__append_11 = -lhawk-mysql
-@ENABLE_MOD_MYSQL_TRUE@@ENABLE_STATIC_MODULE_TRUE@am__append_12 = ../mod/libhawk-mysql.la
-@ENABLE_MOD_UCI_TRUE@@ENABLE_STATIC_MODULE_TRUE@am__append_13 = -lhawk-uci
-@ENABLE_MOD_UCI_TRUE@@ENABLE_STATIC_MODULE_TRUE@am__append_14 = ../mod/libhawk-uci.la
+@ENABLE_MOD_MYSQL_TRUE@@ENABLE_STATIC_MODULE_TRUE@am__append_11 = ../mod/libhawk-mysql.la
+@ENABLE_MOD_UCI_TRUE@@ENABLE_STATIC_MODULE_TRUE@am__append_12 = ../mod/libhawk-uci.la
 
 #pkglibdir = $(libdir)
 #pkglib_LTLIBRARIES = 
-@ENABLE_STATIC_MODULE_FALSE@am__append_15 = libhawk-hawk.la \
+@ENABLE_STATIC_MODULE_FALSE@am__append_13 = libhawk-hawk.la \
 @ENABLE_STATIC_MODULE_FALSE@	libhawk-math.la libhawk-str.la \
 @ENABLE_STATIC_MODULE_FALSE@	libhawk-sys.la
 subdir = lib
@@ -165,7 +163,8 @@ am__uninstall_files_from_dir = { \
 am__installdirs = "$(DESTDIR)$(pkglibdir)" \
 	"$(DESTDIR)$(pkgincludedir)"
 LTLIBRARIES = $(pkglib_LTLIBRARIES)
-am__DEPENDENCIES_1 =
+@ENABLE_STATIC_MODULE_FALSE@libhawk_hawk_la_DEPENDENCIES =  \
+@ENABLE_STATIC_MODULE_FALSE@	$(LIBADD_MOD_COMMON)
 am__libhawk_hawk_la_SOURCES_DIST = mod-hawk.c mod-hawk.h
 @ENABLE_STATIC_MODULE_FALSE@am_libhawk_hawk_la_OBJECTS =  \
 @ENABLE_STATIC_MODULE_FALSE@	libhawk_hawk_la-mod-hawk.lo
@@ -180,6 +179,10 @@ libhawk_hawk_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 	$(LDFLAGS) -o $@
 @ENABLE_STATIC_MODULE_FALSE@am_libhawk_hawk_la_rpath = -rpath \
 @ENABLE_STATIC_MODULE_FALSE@	$(pkglibdir)
+am__DEPENDENCIES_1 =
+@ENABLE_STATIC_MODULE_FALSE@libhawk_math_la_DEPENDENCIES =  \
+@ENABLE_STATIC_MODULE_FALSE@	$(LIBADD_MOD_COMMON) \
+@ENABLE_STATIC_MODULE_FALSE@	$(am__DEPENDENCIES_1)
 am__libhawk_math_la_SOURCES_DIST = mod-math.c mod-math.h
 @ENABLE_STATIC_MODULE_FALSE@am_libhawk_math_la_OBJECTS =  \
 @ENABLE_STATIC_MODULE_FALSE@	libhawk_math_la-mod-math.lo
@@ -190,6 +193,8 @@ libhawk_math_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 	$(LDFLAGS) -o $@
 @ENABLE_STATIC_MODULE_FALSE@am_libhawk_math_la_rpath = -rpath \
 @ENABLE_STATIC_MODULE_FALSE@	$(pkglibdir)
+@ENABLE_STATIC_MODULE_FALSE@libhawk_str_la_DEPENDENCIES =  \
+@ENABLE_STATIC_MODULE_FALSE@	$(LIBADD_MOD_COMMON)
 am__libhawk_str_la_SOURCES_DIST = mod-str.c mod-str.h
 @ENABLE_STATIC_MODULE_FALSE@am_libhawk_str_la_OBJECTS =  \
 @ENABLE_STATIC_MODULE_FALSE@	libhawk_str_la-mod-str.lo
@@ -200,6 +205,9 @@ libhawk_str_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 	$(LDFLAGS) -o $@
 @ENABLE_STATIC_MODULE_FALSE@am_libhawk_str_la_rpath = -rpath \
 @ENABLE_STATIC_MODULE_FALSE@	$(pkglibdir)
+@ENABLE_STATIC_MODULE_FALSE@libhawk_sys_la_DEPENDENCIES =  \
+@ENABLE_STATIC_MODULE_FALSE@	$(LIBADD_MOD_COMMON) \
+@ENABLE_STATIC_MODULE_FALSE@	$(am__DEPENDENCIES_1)
 am__libhawk_sys_la_SOURCES_DIST = mod-sys.c mod-sys.h
 @ENABLE_STATIC_MODULE_FALSE@am_libhawk_sys_la_OBJECTS =  \
 @ENABLE_STATIC_MODULE_FALSE@	libhawk_sys_la-mod-sys.lo
@@ -214,6 +222,10 @@ libhawk_sys_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 @ENABLE_LIBLTDL_FALSE@am__DEPENDENCIES_3 = $(am__DEPENDENCIES_1)
 @ENABLE_LIBUNWIND_TRUE@am__DEPENDENCIES_4 = $(am__DEPENDENCIES_1)
 @ENABLE_STATIC_MODULE_TRUE@am__DEPENDENCIES_5 = $(am__DEPENDENCIES_1)
+libhawk_la_DEPENDENCIES = $(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
+	$(am__DEPENDENCIES_2) $(am__DEPENDENCIES_3) \
+	$(am__DEPENDENCIES_4) $(am__DEPENDENCIES_5) $(am__append_11) \
+	$(am__append_12)
 am__libhawk_la_SOURCES_DIST = hawk.h hawk-arr.h hawk-chr.h hawk-cmn.h \
 	hawk-dir.h hawk-ecs.h hawk-fmt.h hawk-gem.h hawk-htb.h \
 	hawk-map.h hawk-rbt.h hawk-pack1.h hawk-utl.h hawk-std.h \
@@ -586,7 +598,7 @@ pkginclude_HEADERS = hawk.h hawk-arr.h hawk-chr.h hawk-cmn.h \
 	hawk-dir.h hawk-ecs.h hawk-fmt.h hawk-gem.h hawk-htb.h \
 	hawk-map.h hawk-rbt.h hawk-pack1.h hawk-utl.h hawk-std.h \
 	hawk-tre.h hawk-unpack.h hawk-xma.h $(am__append_7)
-pkglib_LTLIBRARIES = libhawk.la $(am__append_15)
+pkglib_LTLIBRARIES = libhawk.la $(am__append_13)
 libhawk_la_SOURCES = $(pkginclude_HEADERS) arr.c chr.c dir.c ecs-imp.h \
 	ecs.c err-prv.h err.c err-sys.c fmt-imp.h fmt.c fnc-prv.h \
 	fnc.c htb.c gem.c gem-skad.c gem-nwif.c gem-nwif2.c hawk-prv.h \
@@ -608,8 +620,7 @@ libhawk_la_CXXFLAGS = $(CXXFLAGS_ALL_COMMON)
 libhawk_la_LDFLAGS = $(LDFLAGS_ALL_COMMON) -version-info 1:0:0 -no-undefined
 libhawk_la_LIBADD = $(LIBM) $(SOCKET_LIBS) $(am__append_4) \
 	$(am__append_5) $(am__append_6) $(am__append_10) \
-	$(am__append_11) $(am__append_13)
-libhawk_la_DEPENDENCIES = $(am__append_12) $(am__append_14)
+	$(am__append_11) $(am__append_12)
 @ENABLE_CXX_FALSE@libhawk_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 @ENABLE_CXX_FALSE@	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) \
 @ENABLE_CXX_FALSE@	$(CFLAGS) $(libhawk_la_LDFLAGS) $(LDFLAGS) -o $@
@@ -628,36 +639,31 @@ libhawk_la_DEPENDENCIES = $(am__append_12) $(am__append_14)
 @ENABLE_STATIC_MODULE_FALSE@CFLAGS_MOD_COMMON = $(CFLAGS_ALL_COMMON)
 @ENABLE_STATIC_MODULE_FALSE@CXXFLAGS_MOD_COMMON = $(CXXFLAGS_ALL_COMMON)
 @ENABLE_STATIC_MODULE_FALSE@LDFLAGS_MOD_COMMON = $(LDFLAGS_ALL_COMMON)
-@ENABLE_STATIC_MODULE_FALSE@LIBADD_MOD_COMMON = -lhawk
-@ENABLE_STATIC_MODULE_FALSE@DEPENDENCIES_MOD_COMMON = libhawk.la
+@ENABLE_STATIC_MODULE_FALSE@LIBADD_MOD_COMMON = libhawk.la
 @ENABLE_STATIC_MODULE_FALSE@libhawk_hawk_la_SOURCES = mod-hawk.c mod-hawk.h
 @ENABLE_STATIC_MODULE_FALSE@libhawk_hawk_la_CPPFLAGS = $(CPPFLAGS_MOD_COMMON)
 @ENABLE_STATIC_MODULE_FALSE@libhawk_hawk_la_CFLAGS = $(CFLAGS_MOD_COMMON)
 @ENABLE_STATIC_MODULE_FALSE@libhawk_hawk_la_CXXFLAGS = $(CXXFLAGS_MOD_COMMON)
 @ENABLE_STATIC_MODULE_FALSE@libhawk_hawk_la_LDFLAGS = $(LDFLAGS_MOD_COMMON)
 @ENABLE_STATIC_MODULE_FALSE@libhawk_hawk_la_LIBADD = $(LIBADD_MOD_COMMON)
-@ENABLE_STATIC_MODULE_FALSE@libhawk_hawk_la_DEPENDENCIES = $(DEPENDENCIES_MOD_COMMON)
 @ENABLE_STATIC_MODULE_FALSE@libhawk_math_la_SOURCES = mod-math.c mod-math.h
 @ENABLE_STATIC_MODULE_FALSE@libhawk_math_la_CPPFLAGS = $(CPPFLAGS_MOD_COMMON)
 @ENABLE_STATIC_MODULE_FALSE@libhawk_math_la_CFLAGS = $(CFLAGS_MOD_COMMON)
 @ENABLE_STATIC_MODULE_FALSE@libhawk_math_la_CXXFLAGS = $(CXXFLAGS_MOD_COMMON)
 @ENABLE_STATIC_MODULE_FALSE@libhawk_math_la_LDFLAGS = $(LDFLAGS_MOD_COMMON)
 @ENABLE_STATIC_MODULE_FALSE@libhawk_math_la_LIBADD = $(LIBADD_MOD_COMMON) $(LIBM)
-@ENABLE_STATIC_MODULE_FALSE@libhawk_math_la_DEPENDENCIES = $(DEPENDENCIES_MOD_COMMON)
 @ENABLE_STATIC_MODULE_FALSE@libhawk_str_la_SOURCES = mod-str.c mod-str.h
 @ENABLE_STATIC_MODULE_FALSE@libhawk_str_la_CPPFLAGS = $(CPPFLAGS_MOD_COMMON)
 @ENABLE_STATIC_MODULE_FALSE@libhawk_str_la_CFLAGS = $(CFLAGS_MOD_COMMON)
 @ENABLE_STATIC_MODULE_FALSE@libhawk_str_la_CXXFLAGS = $(CXXFLAGS_MOD_COMMON)
 @ENABLE_STATIC_MODULE_FALSE@libhawk_str_la_LDFLAGS = $(LDFLAGS_MOD_COMMON)
 @ENABLE_STATIC_MODULE_FALSE@libhawk_str_la_LIBADD = $(LIBADD_MOD_COMMON)
-@ENABLE_STATIC_MODULE_FALSE@libhawk_str_la_DEPENDENCIES = $(DEPENDENCIES_MOD_COMMON)
 @ENABLE_STATIC_MODULE_FALSE@libhawk_sys_la_SOURCES = mod-sys.c mod-sys.h
 @ENABLE_STATIC_MODULE_FALSE@libhawk_sys_la_CPPFLAGS = $(CPPFLAGS_MOD_COMMON)
 @ENABLE_STATIC_MODULE_FALSE@libhawk_sys_la_CFLAGS = $(CFLAGS_MOD_COMMON)
 @ENABLE_STATIC_MODULE_FALSE@libhawk_sys_la_CXXFLAGS = $(CXXFLAGS_MOD_COMMON)
 @ENABLE_STATIC_MODULE_FALSE@libhawk_sys_la_LDFLAGS = $(LDFLAGS_MOD_COMMON)
 @ENABLE_STATIC_MODULE_FALSE@libhawk_sys_la_LIBADD = $(LIBADD_MOD_COMMON) $(SOCKET_LIBS)
-@ENABLE_STATIC_MODULE_FALSE@libhawk_sys_la_DEPENDENCIES = $(DEPENDENCIES_MOD_COMMON)
 all: hawk-cfg.h
 	$(MAKE) $(AM_MAKEFLAGS) all-am
 
