@@ -153,7 +153,6 @@ libhawk_la_CXXFLAGS = $(CXXFLAGS_ALL_COMMON)
 libhawk_la_LDFLAGS = $(LDFLAGS_ALL_COMMON) -version-info 1:0:0 -no-undefined
 ## socket() is used in gem-nwif.c and gem-nwif2.c
 libhawk_la_LIBADD = $(LIBM) $(SOCKET_LIBS)
-libhawk_la_DEPENDENCIES = 
 
 if ENABLE_LIBLTDL
 libhawk_la_CPPFLAGS += $(LTDLINCL)
@@ -201,13 +200,11 @@ libhawk_la_SOURCES += \
 libhawk_la_LIBADD += $(SOCKET_LIBS)
 
 if ENABLE_MOD_MYSQL
-libhawk_la_LIBADD += -lhawk-mysql
-libhawk_la_DEPENDENCIES += ../mod/libhawk-mysql.la
+libhawk_la_LIBADD += ../mod/libhawk-mysql.la
 endif
 
 if ENABLE_MOD_UCI
-libhawk_la_LIBADD += -lhawk-uci
-libhawk_la_DEPENDENCIES += ../mod/libhawk-uci.la
+libhawk_la_LIBADD += ../mod/libhawk-uci.la
 endif
 
 else
@@ -219,8 +216,7 @@ CPPFLAGS_MOD_COMMON = $(CPPFLAGS_ALL_COMMON)
 CFLAGS_MOD_COMMON = $(CFLAGS_ALL_COMMON)
 CXXFLAGS_MOD_COMMON = $(CXXFLAGS_ALL_COMMON)
 LDFLAGS_MOD_COMMON = $(LDFLAGS_ALL_COMMON)
-LIBADD_MOD_COMMON = -lhawk
-DEPENDENCIES_MOD_COMMON = libhawk.la
+LIBADD_MOD_COMMON = libhawk.la
 
 #pkglibdir = $(libdir)
 #pkglib_LTLIBRARIES = 
@@ -232,7 +228,6 @@ libhawk_hawk_la_CFLAGS = $(CFLAGS_MOD_COMMON)
 libhawk_hawk_la_CXXFLAGS = $(CXXFLAGS_MOD_COMMON)
 libhawk_hawk_la_LDFLAGS = $(LDFLAGS_MOD_COMMON)
 libhawk_hawk_la_LIBADD = $(LIBADD_MOD_COMMON)
-libhawk_hawk_la_DEPENDENCIES = $(DEPENDENCIES_MOD_COMMON)
 
 pkglib_LTLIBRARIES += libhawk-math.la
 libhawk_math_la_SOURCES = mod-math.c mod-math.h
@@ -241,7 +236,6 @@ libhawk_math_la_CFLAGS = $(CFLAGS_MOD_COMMON)
 libhawk_math_la_CXXFLAGS = $(CXXFLAGS_MOD_COMMON)
 libhawk_math_la_LDFLAGS = $(LDFLAGS_MOD_COMMON)
 libhawk_math_la_LIBADD = $(LIBADD_MOD_COMMON) $(LIBM)
-libhawk_math_la_DEPENDENCIES = $(DEPENDENCIES_MOD_COMMON)
 
 pkglib_LTLIBRARIES += libhawk-str.la
 libhawk_str_la_SOURCES = mod-str.c mod-str.h
@@ -250,7 +244,6 @@ libhawk_str_la_CFLAGS = $(CFLAGS_MOD_COMMON)
 libhawk_str_la_CXXFLAGS = $(CXXFLAGS_MOD_COMMON)
 libhawk_str_la_LDFLAGS = $(LDFLAGS_MOD_COMMON)
 libhawk_str_la_LIBADD = $(LIBADD_MOD_COMMON)
-libhawk_str_la_DEPENDENCIES = $(DEPENDENCIES_MOD_COMMON)
 
 pkglib_LTLIBRARIES += libhawk-sys.la
 libhawk_sys_la_SOURCES = mod-sys.c mod-sys.h
@@ -259,7 +252,6 @@ libhawk_sys_la_CFLAGS = $(CFLAGS_MOD_COMMON)
 libhawk_sys_la_CXXFLAGS = $(CXXFLAGS_MOD_COMMON)
 libhawk_sys_la_LDFLAGS = $(LDFLAGS_MOD_COMMON)
 libhawk_sys_la_LIBADD = $(LIBADD_MOD_COMMON) $(SOCKET_LIBS)
-libhawk_sys_la_DEPENDENCIES = $(DEPENDENCIES_MOD_COMMON)
 
 endif
 

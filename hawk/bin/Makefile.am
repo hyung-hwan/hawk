@@ -1,6 +1,5 @@
 AUTOMAKE_OPTIONS = nostdinc
 
-
 CPPFLAGS_COMMON = \
 	-I$(abs_builddir) \
 	-I$(abs_builddir)/../lib  \
@@ -9,8 +8,10 @@ CPPFLAGS_COMMON = \
 	-I$(includedir)
 CFLAGS_COMMON =
 LDFLAGS_COMMON = -L$(abs_builddir)/../lib -L$(libdir)
-LIBADD_COMMON = -lhawk 
-DEPENDENCIES_COMMON = ../lib/libhawk.la
+
+## specify the libhawk.la file instead of -lhawk. 
+##Use -l for third party libraries for automatic inclusion to DEPENDENCIES .
+LIBADD_COMMON = ../lib/libhawk.la
 
 bin_PROGRAMS = hawk
 
@@ -36,5 +37,4 @@ hawk_LDFLAGS = $(LDFLAGS_COMMON)
 ## of different behavior depending on the libtool tag.
 ##
 hawk_LDADD = $(LIBADD_COMMON) $(LIBM)
-hawk_DEPENDENCIES = $(DEPENDENCIES_COMMON)
 

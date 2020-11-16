@@ -112,6 +112,7 @@ PROGRAMS = $(bin_PROGRAMS)
 am_uni_case_OBJECTS = uni_case-uni-case.$(OBJEXT)
 uni_case_OBJECTS = $(am_uni_case_OBJECTS)
 am__DEPENDENCIES_1 =
+uni_case_DEPENDENCIES = $(am__DEPENDENCIES_1)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
 am__v_lt_0 = --silent
@@ -121,6 +122,7 @@ uni_case_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(CFLAGS) $(uni_case_LDFLAGS) $(LDFLAGS) -o $@
 am_uni_prop_OBJECTS = uni_prop-uni-prop.$(OBJEXT)
 uni_prop_OBJECTS = $(am_uni_prop_OBJECTS)
+uni_prop_DEPENDENCIES = $(am__DEPENDENCIES_1)
 uni_prop_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(uni_prop_CFLAGS) \
 	$(CFLAGS) $(uni_prop_LDFLAGS) $(LDFLAGS) -o $@
@@ -348,19 +350,16 @@ CPPFLAGS_COMMON = \
 CFLAGS_COMMON = 
 LDFLAGS_COMMON = -L$(abs_builddir)/../lib -L$(libdir) 
 LIBADD_COMMON = 
-DEPENDENCIES_COMMON = 
 uni_case_SOURCES = uni-case.c
 uni_case_CPPFLAGS = $(CPPFLAGS_COMMON)
 uni_case_CFLAGS = $(CFLAGS_COMMON)
 uni_case_LDFLAGS = $(LDFLAGS_COMMON)
 uni_case_LDADD = $(LIBADD_COMMON) 
-uni_case_DEPENDENCIES = $(DEPENDENCIES_COMMON)
 uni_prop_SOURCES = uni-prop.c
 uni_prop_CPPFLAGS = $(CPPFLAGS_COMMON)
 uni_prop_CFLAGS = $(CFLAGS_COMMON)
 uni_prop_LDFLAGS = $(LDFLAGS_COMMON)
 uni_prop_LDADD = $(LIBADD_COMMON) 
-uni_prop_DEPENDENCIES = $(DEPENDENCIES_COMMON)
 all: all-am
 
 .SUFFIXES:
