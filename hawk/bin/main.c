@@ -1056,7 +1056,6 @@ static int xma_dumper_without_hawk (void* ctx, const hawk_bch_t* fmt, ...)
 	va_start (ap, fmt);
 	vfprintf (stderr, fmt, ap); 
 	va_end (ap);
-	return 0;
 }
 
 #if defined(HAWK_BUILD_DEBUG)
