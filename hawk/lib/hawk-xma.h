@@ -123,8 +123,8 @@ struct hawk_xma_t
  * The hawk_xma_dumper_t type defines a printf-like output function
  * for hawk_xma_dump().
  */
-typedef int (*hawk_xma_dumper_t) (
-	void*            ctx,
+typedef void (*hawk_xma_dumper_t) (
+	void*             ctx,
 	const hawk_bch_t* fmt,
 	...
 );
