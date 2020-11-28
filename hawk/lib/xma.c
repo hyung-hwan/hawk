@@ -232,6 +232,12 @@ int hawk_xma_init (hawk_xma_t* xma, hawk_mmgr_t* mmgr, void* zoneptr, hawk_oow_t
 
 		internal = 1;
 	}
+	else if (zonesize < FBLKMINSIZE) 
+	{
+		/* the zone size is too small for an externally allocated zone. */
+/* TODO: difference error code from memory allocation failure.. this is not really memory shortage */
+		return -1;
+	}
 
 	first = (hawk_xma_fblk_t*)zoneptr;
 
