@@ -303,7 +303,7 @@ static int fnc_isnil (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	a0 = hawk_rtx_getarg(rtx, 0);
 
 	r = hawk_rtx_makeintval(rtx, HAWK_RTX_GETVALTYPE(rtx, a0) == HAWK_VAL_NIL);
-	if (r == HAWK_NULL) return -1;
+	if (HAWK_UNLIKELY(!r)) return -1;
 
 	hawk_rtx_setretval (rtx, r);
 	return 0;
@@ -337,6 +337,18 @@ static int fnc_isarr (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	return 0;
 }
 
+static int fnc_modlibdirs (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+{
+	hawk_t* hawk = hawk_rtx_gethawk(rtx);
+	hawk_val_t* r;
+
+	r = hawk_rtx_makestrvalwithoocstr(rtx, (hawk->opt.mod[0].len > 0)? hawk->opt.mod[0].ptr: HAWK_T(HAWK_DEFAULT_MODLIBDIRS));
+	if (HAWK_UNLIKELY(!r)) return -1;
+
+	hawk_rtx_setretval (rtx, r);
+	return 0;
+}
+
 static int fnc_typename (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	hawk_val_t* a0;
@@ -347,7 +359,7 @@ static int fnc_typename (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	name = hawk_rtx_getvaltypename(rtx, a0);
 
 	r = hawk_rtx_makestrvalwithoocstr(rtx, name);
-	if (r == HAWK_NULL) return -1;
+	if (HAWK_UNLIKELY(!r)) return -1;
 
 	hawk_rtx_setretval (rtx, r);
 	return 0;
@@ -385,6 +397,7 @@ static fnctab_t fnctab[] =
 	{ HAWK_T("ismap"),            { { 1, 1,     HAWK_NULL     },  fnc_ismap,                 0 } },
 	{ HAWK_T("isnil"),            { { 1, 1,     HAWK_NULL     },  fnc_isnil,                 0 } },
 	{ HAWK_T("map"),              { { 0, A_MAX, HAWK_NULL     },  fnc_map,                   0 } },
+	{ HAWK_T("modlibdirs"),       { { 0, 0,     HAWK_NULL     },  fnc_modlibdirs,            0 } },
 	{ HAWK_T("typename"),         { { 1, 1,     HAWK_NULL     },  fnc_typename,              0 } }
 };
 

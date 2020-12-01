@@ -51,7 +51,7 @@ function run_test (x, more_opts, in_name, out_name)
 	outf = sprintf("/tmp/%s.%d.out", out_name, sys::getpid());
 ##print TDIR, inf, expf, outf;
 
-	cmd=sprintf("%s %s -f %s/%s.hawk %s > %s", ARGV[0], more_opts, TDIR, x, inf, outf);
+	cmd=sprintf("%s %s -f %s/%s.hawk --modlibdirs=%s %s > %s", ARGV[0], more_opts, TDIR, x, hawk::modlibdirs(), inf, outf);
 ##print cmd;
 	system (cmd);
 		

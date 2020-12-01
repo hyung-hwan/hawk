@@ -663,7 +663,7 @@ function html_header()
 	print prefix(2) "<TITLE>"
 	print prefix(3)  Journal
 	print prefix(2) "</TITLE>"
-	print prefix(2) "<LINK REV=\"made\" HREF=\"mailto:" USER "@" HOSTNAME "\">"
+	##print prefix(2) "<LINK REV=\"made\" HREF=\"mailto:" USER "@" HOSTNAME "\">"
 	print prefix(1) "</HEAD>"
 	print ""
 	print prefix(1) "<BODY>"

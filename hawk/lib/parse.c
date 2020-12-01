@@ -26,27 +26,6 @@
 
 #include "hawk-prv.h"
 
-#if !defined(HAWK_DEFAULT_MODLIBDIRS)
-#	define HAWK_DEFAULT_MODLIBDIRS ""
-#endif
-
-#if !defined(HAWK_DEFAULT_MODPREFIX)
-#	if defined(_WIN32)
-#		define HAWK_DEFAULT_MODPREFIX "hawk-"
-#	elif defined(__OS2__)
-#		define HAWK_DEFAULT_MODPREFIX "hawk"
-#	elif defined(__DOS__)
-#		define HAWK_DEFAULT_MODPREFIX "hawk"
-#	else
-#		define HAWK_DEFAULT_MODPREFIX "libhawk-"
-#	endif
-#endif
-
-#if !defined(HAWK_DEFAULT_MODPOSTFIX)
-#	define HAWK_DEFAULT_MODPOSTFIX ""
-#endif
-
-
 #define FMT_EBADVAR       HAWK_T("'%.*js' not a valid variable name")
 #define FMT_ECOMMA        HAWK_T("comma expected in place of '%.*js'")
 #define FMT_ECOLON        HAWK_T("colon expected in place of '%.*js'")
