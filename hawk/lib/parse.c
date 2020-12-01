@@ -69,6 +69,7 @@
 #define FMT_EUNDEF        HAWK_T("undefined identifier '%.*js'")
 #define FMT_EXKWNR        HAWK_T("'%.*js' not recognized")
 
+#define TOK_FLAGS_LPAREN_CLOSER (1 << 0)
 
 enum tok_t
 {
@@ -3117,7 +3118,7 @@ static hawk_nde_t* parse_print (hawk_t* hawk, const hawk_loc_t* xloc)
 		}
 
 		eloc = hawk->tok.loc;
-		args = parse_expr_withdc (hawk, &eloc);
+		args = parse_expr_withdc(hawk, &eloc);
 		if (args == HAWK_NULL) goto oops;
 
 		args_tail = args;
@@ -3150,7 +3151,7 @@ static hawk_nde_t* parse_print (hawk_t* hawk, const hawk_loc_t* xloc)
 				}
 
 				eloc = hawk->tok.loc;
-				args_tail->next = parse_expr_withdc (hawk, &eloc);
+				args_tail->next = parse_expr_withdc(hawk, &eloc);
 				if (args_tail->next == HAWK_NULL) goto oops;
 
 				tail_prev = args_tail;
@@ -3184,7 +3185,7 @@ static hawk_nde_t* parse_print (hawk_t* hawk, const hawk_loc_t* xloc)
 		 * print 1, 2, (3 > 4) > 5;
 		 * print 1, 2, (3 > 4) > 5 + 6;
 		 */
-		if (in_parens == 1 && hawk->ptok.type == TOK_RPAREN && 
+		if (in_parens == 1 && hawk->ptok.type == TOK_RPAREN && (hawk->ptok.flags & TOK_FLAGS_LPAREN_CLOSER) &&
 		    hawk->parse.lparen_last_closed == opening_lparen_seq) 
 		{
 			in_parens = 2; /* confirmed */
@@ -3192,6 +3193,10 @@ static hawk_nde_t* parse_print (hawk_t* hawk, const hawk_loc_t* xloc)
 
 		if (in_parens != 2 && gm_in_parens != 2 && args_tail->type == HAWK_NDE_EXP_BIN)
 		{
+			/* check if the expression ends with an output redirector
+			 * and take out the part after the redirector and make it
+			 * the output target */
+
 			int i;
 			hawk_nde_exp_t* ep = (hawk_nde_exp_t*)args_tail;
 			static struct 
@@ -3233,8 +3238,7 @@ static hawk_nde_t* parse_print (hawk_t* hawk, const hawk_loc_t* xloc)
 
 					tmp = args_tail;
 
-					if (tail_prev != HAWK_NULL) 
-						tail_prev->next = ep->left;
+					if (tail_prev) tail_prev->next = ep->left;
 					else args = ep->left;
 
 					out = ep->right;
@@ -3261,7 +3265,7 @@ static hawk_nde_t* parse_print (hawk_t* hawk, const hawk_loc_t* xloc)
 			if (get_token(hawk) <= -1) goto oops;
 
 			eloc = hawk->tok.loc;
-			out = parse_expr_withdc (hawk, &eloc);
+			out = parse_expr_withdc(hawk, &eloc);
 			if (out == HAWK_NULL) goto oops;
 		}
 	}
@@ -3272,8 +3276,8 @@ static hawk_nde_t* parse_print (hawk_t* hawk, const hawk_loc_t* xloc)
 		goto oops;
 	}
 
-	nde = (hawk_nde_print_t*) hawk_callocmem (hawk, HAWK_SIZEOF(*nde));
-	if (nde == HAWK_NULL) 
+	nde = (hawk_nde_print_t*)hawk_callocmem(hawk, HAWK_SIZEOF(*nde));
+	if (HAWK_UNLIKELY(!nde)) 
 	{
 		ADJERR_LOC (hawk, xloc);
 		goto oops;
@@ -3621,7 +3625,7 @@ static hawk_nde_t* parse_expr (hawk_t* hawk, const hawk_loc_t* xloc)
 	{
 		hawk_loc_t eloc;
 		eloc = hawk->tok.loc;
-		y = parse_expr_withdc (hawk, &eloc);
+		y = parse_expr_withdc(hawk, &eloc);
 	}
 	if (y == HAWK_NULL) 
 	{
@@ -4944,8 +4948,9 @@ static hawk_nde_t* parse_primary_lparen (hawk_t* hawk, const hawk_loc_t* xloc)
 	}
 
 	/* remember the sequence number of the left parenthesis
-	 * that' been just closed by the matching right parenthesis */
+	 * that's been just closed by the matching right parenthesis */
 	hawk->parse.lparen_last_closed = opening_lparen_seq;
+	hawk->tok.flags |= TOK_FLAGS_LPAREN_CLOSER; /* indicate that this RPAREN is closing LPAREN */
 
 	if (get_token(hawk) <= -1) goto oops;
 
@@ -5151,7 +5156,7 @@ static hawk_nde_t* parse_primary_nopipe (hawk_t* hawk, const hawk_loc_t* xloc)
 			    (MATCH(hawk,TOK_PRINT) || MATCH(hawk,TOK_PRINTF)))
 			{
 				if (get_token(hawk) <= -1) return HAWK_NULL;
-				return parse_print (hawk, xloc);
+				return parse_print(hawk, xloc);
 			}
 
 			/* valid expression introducer is expected */
@@ -6635,6 +6640,7 @@ retry:
 	while (n >= 1);
 
 	hawk_ooecs_clear (tok->name);
+	tok->flags = 0;
 	tok->loc.file = hawk->sio.last.file;
 	tok->loc.line = hawk->sio.last.line;
 	tok->loc.colm = hawk->sio.last.colm;
@@ -6895,6 +6901,7 @@ retry:
 static int get_token (hawk_t* hawk)
 {
 	hawk->ptok.type = hawk->tok.type;
+	hawk->ptok.flags = hawk->tok.flags;
 	hawk->ptok.loc.file = hawk->tok.loc.file;
 	hawk->ptok.loc.line = hawk->tok.loc.line;
 	hawk->ptok.loc.colm = hawk->tok.loc.colm;
@@ -6903,6 +6910,7 @@ static int get_token (hawk_t* hawk)
 	if (HAWK_OOECS_LEN(hawk->ntok.name) > 0)
 	{
 		hawk->tok.type = hawk->ntok.type;
+		hawk->tok.flags = hawk->ntok.flags;
 		hawk->tok.loc.file = hawk->ntok.loc.file;
 		hawk->tok.loc.line = hawk->ntok.loc.line;
 		hawk->tok.loc.colm = hawk->ntok.loc.colm;	
@@ -6913,7 +6921,7 @@ static int get_token (hawk_t* hawk)
 		return 0;
 	}
 
-	return get_token_into (hawk, &hawk->tok);
+	return get_token_into(hawk, &hawk->tok);
 }
 
 static int preget_token (hawk_t* hawk)
@@ -6956,7 +6964,7 @@ static int preget_token (hawk_t* hawk)
 	{
 		/* if there is no token pre-read, we get a new
 		 * token and place it to hawk->ntok. */ 
-		return get_token_into (hawk, &hawk->ntok);
+		return get_token_into(hawk, &hawk->ntok);
 	}
 }
 

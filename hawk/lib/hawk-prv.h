@@ -208,6 +208,7 @@ typedef struct hawk_tok_t hawk_tok_t;
 struct hawk_tok_t
 {
 	int           type;
+	int           flags;
 	hawk_ooecs_t* name;
 	hawk_loc_t    loc;
 };

@@ -558,7 +558,6 @@ pdfdir = @pdfdir@
 prefix = @prefix@
 program_transform_name = @program_transform_name@
 psdir = @psdir@
-runstatedir = @runstatedir@
 sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
 srcdir = @srcdir@
@@ -578,8 +577,11 @@ CPPFLAGS_COMMON = \
 CFLAGS_COMMON = 
 LDFLAGS_COMMON = -L$(abs_builddir)/../lib  -L$(libdir)
 LIBADD_COMMON = ../lib/libhawk.la $(LIBM)
-check_SCRIPTS = h-001.hawk h-002.hawk
-EXTRA_DIST = $(check_SCRIPTS) ensure.inc
+check_SCRIPTS = h-001.hawk h-002.hawk h-003.hawk
+EXTRA_DIST = $(check_SCRIPTS) ensure.inc \
+	journal-toc.hawk journal-toc.in journal-toc.out journal-toc-html.out \
+	bibtex-to-html.hawk bibtex-to-html.out
+
 t_001_SOURCES = t-001.c t.h
 t_001_CPPFLAGS = $(CPPFLAGS_COMMON)
 t_002_SOURCES = t-002.c t.h
@@ -610,7 +612,7 @@ t_006_LDADD = $(LIBADD_COMMON)
 TESTS = $(check_PROGRAMS) $(check_SCRIPTS)
 TEST_EXTENSIONS = .hawk
 HAWK_LOG_COMPILER = ../bin/hawk
-AM_HAWK_LOG_FLAGS = --modlibdirs=../lib/.libs:../mod/.libs -f
+AM_HAWK_LOG_FLAGS = -vTDIR=${abs_srcdir} --modlibdirs=../lib/.libs:../mod/.libs -f
 all: all-am
 
 .SUFFIXES:
