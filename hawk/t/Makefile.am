@@ -13,9 +13,11 @@ LDFLAGS_COMMON=-L$(abs_builddir)/../lib  -L$(libdir)
 ## for more information.
 LIBADD_COMMON = ../lib/libhawk.la $(LIBM)
 
-check_SCRIPTS = h-001.hawk h-002.hawk
+check_SCRIPTS = h-001.hawk h-002.hawk h-003.hawk
 ##noinst_SCRIPTS = $(check_SCRIPTS)
-EXTRA_DIST = $(check_SCRIPTS) ensure.inc
+EXTRA_DIST = $(check_SCRIPTS) ensure.inc \
+	journal-toc.hawk journal-toc.in journal-toc.out journal-toc-html.out \
+	bibtex-to-html.hawk bibtex-to-html.out
 
 check_PROGRAMS = t-001 t-002 t-003 t-004 t-005 t-006
 
@@ -57,4 +59,4 @@ TESTS = $(check_PROGRAMS) $(check_SCRIPTS)
 
 TEST_EXTENSIONS = .hawk
 HAWK_LOG_COMPILER = ../bin/hawk
-AM_HAWK_LOG_FLAGS = --modlibdirs=../lib/.libs:../mod/.libs -f
+AM_HAWK_LOG_FLAGS = -vTDIR=${abs_srcdir} --modlibdirs=../lib/.libs:../mod/.libs -f

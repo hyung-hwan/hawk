@@ -724,10 +724,13 @@ hawk_val_t* hawk_rtx_makenumorstrvalwithuchars (hawk_rtx_t* rtx, const hawk_uch_
 	hawk_int_t l;
 	hawk_flt_t r;
 
+	if (ptr[0] == '.' && len == 1) goto make_str;
+
 	x = hawk_uchars_to_num(HAWK_OOCHARS_TO_NUM_MAKE_OPTION(1, 1, HAWK_RTX_IS_STRIPSTRSPC_ON(rtx), 0), ptr, len, &l, &r);
 	if (x == 0) return hawk_rtx_makeintval(rtx, l);
 	else if (x >= 1) return hawk_rtx_makefltval(rtx, r);
 
+make_str:
 	return hawk_rtx_makestrvalwithuchars(rtx, ptr, len);
 }
 
@@ -737,10 +740,13 @@ hawk_val_t* hawk_rtx_makenumorstrvalwithbchars (hawk_rtx_t* rtx, const hawk_bch_
 	hawk_int_t l;
 	hawk_flt_t r;
 
+	if (ptr[0] == '.' && len == 1) goto make_str;
+
 	x = hawk_bchars_to_num(HAWK_OOCHARS_TO_NUM_MAKE_OPTION(1, 1, HAWK_RTX_IS_STRIPSTRSPC_ON(rtx), 0), ptr, len, &l, &r);
 	if (x == 0) return hawk_rtx_makeintval(rtx, l);
 	else if (x >= 1) return hawk_rtx_makefltval(rtx, r);
 
+make_str:
 	return hawk_rtx_makestrvalwithbchars(rtx, ptr, len);
 }
 

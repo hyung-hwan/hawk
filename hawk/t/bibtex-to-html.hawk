@@ -1,0 +1,545 @@
+# http://www.netlib.org/bibnet/tools/software/bibtex-to-html.awk
+#
+### ====================================================================
+###  @Awk-file{
+###     author          = "Nelson H. F. Beebe",
+###     version         = "1.02",
+###     date            = "05 July 1997",
+###     time            = "12:04:52 MDT",
+###     filename        = "bibtex-to-html.awk",
+###     address         = "Center for Scientific Computing
+###                        Department of Mathematics
+###                        University of Utah
+###                        Salt Lake City, UT 84112
+###                        USA",
+###     telephone       = "+1 801 581 5254",
+###     FAX             = "+1 801 581 4148",
+###     URL             = "http://www.math.utah.edu/~beebe",
+###     checksum        = "08699 482 2173 18348",
+###     email           = "beebe@math.utah.edu (Internet)",
+###     codetable       = "ISO/ASCII",
+###     keywords        = "bibliography, BibTeX, HTML, World-Wide Web,
+###                        WWW",
+###     supported       = "yes",
+###     docstring       = "This program converts BibTeX bibliographies
+###                        to HTML, suitable for viewing on the
+###                        World-Wide Web.
+###
+###                        The level of HTML produced is version 3.2,
+###                        adopted 14-Jan-1997, and defined in the SGML
+###                        document type definition (DTD) available at
+###
+###                            http://www.w3.org/MarkUp/Wilbur/HTML32.dtd
+###
+###                        and documented at
+###
+###                            http://www.w3.org/MarkUp/Wilbur/
+###                            http://www.w3.org/TR/REC-html32.html
+###
+###                        HTML markup is added to provide hypertext
+###                        links for:
+###
+###                            * all URLs in the BibTeX file, both in
+###                              comments, and inside string values;
+###                            * all bibliography entry crossref
+###                              values;
+###                            * all \cite{} references;
+###                            * all @String{name = "value"} names.
+###
+###                        In addition, every BibTeX citation label in
+###                        @Entry lines, and every @String name, will
+###                        be marked as an HTML label, allowing
+###                        hypertext links to each from elsewhere in
+###                        the same HTML file, or from other HTML
+###                        files.  In particular, every bibliography
+###                        entry can be directly referenced by
+###                        hypertext links from anywhere on the
+###                        Internet.
+###
+###                        Each such linkable-name will be displayed
+###                        in bold text to draw attention to the fact
+###                        that it can be directly referenced by a
+###                        suitable URL.  In principle, this should be
+###                        an option that WWW browsers provide, but
+###                        none that I have used currently do.
+###
+###                        Although no browsers to my knowledge yet
+###                        provide the capability of partial
+###                        downloading of HTML files, the possibility
+###                        has been discussed for future versions of
+###                        the HTTP protocol.  Such support would make
+###                        it possible to construct bibliographies in
+###                        electronic documents as links to large
+###                        bibliography database files, without the
+###                        browser having to load the entire database,
+###                        but just individual entries.  Since these
+###                        in turn can have URLs that point to other
+###                        electronic sources of the publication, a
+###                        reader could easily follow links from a
+###                        publication to a bibliography and then to
+###                        abstracts and to the complete original
+###                        text.  Some journals, such as the Digital
+###                        Technical Journal (electronically accessible
+###                        at http://www.digital.com:80/info/DTJ/home.html),
+###                        already could offer this possibility.
+###
+###                        The Web browser user will see material that
+###                        looks just like normal BibTeX entries,
+###                        except that some portions may be
+###                        highlighted to indicate hypertext links.
+###                        However, window cut-and-paste actions will
+###                        recover a BibTeX entry in a form suitable
+###                        for pasting into another BibTeX file,
+###                        without any need for further editing.
+###
+###                        This program assumes that the BibTeX
+###                        bibliography is formatted in the style
+###                        produced by bibclean, and that embedded
+###                        URLs and "key = stringname" pairs are coded
+###                        on a single line, so that simple pattern
+###                        matching suffices to recognize text in need
+###                        of additional HTML markup.
+###
+###                        Usage:
+###                            nawk -f bibtex-to-html.awk \
+###                                [-v PREFIX=prefix] [-v SUFFIX=suffix] \
+###                                BibTeX-file(s)
+###
+###                        An input file with a filename of the form
+###                        abc.xyz is output to a file named
+###                        PREFIXabcSUFFIX.  The default PREFIX is
+###                        empty, and the default SUFFIX is ".html".
+###
+###			   If no   file  names are specified    on the
+###			   command line, then   the PREFIX and  SUFFIX
+###			   settings  are ignored,   and input is  read
+###			   from   stdin,  and  output  is   written to
+###			   stdout, so that the program  can be used in
+###			   a UNIX pipeline.
+###
+###                        In the current version, no provision is
+###                        made for splitting the output files into
+###                        smaller pieces to speed network file
+###                        transfer.  While this would improve browser
+###                        responsiveness over slow network
+###                        connections, it would also significantly
+###                        complicate hypertext link generation for
+###                        this program, and seriously damage browser
+###                        search capability within the bibliography
+###                        file.  Perhaps the solution will come in
+###                        (a) browsers' adopting the netscape browser
+###                        practice of displaying data as soon as
+###                        enough to fill a screen is available, and
+###                        (b) faster network connections.
+###
+###                        In the TUG bibliography collection at
+###                        ftp://ftp.math.utah.edu/, bibliography
+###                        file sizes range from 3K to 4700K, with an
+###                        average of 370K.  These are rather large,
+###                        since typical WWW file sizes need to be
+###                        about 16K or less for good responsiveness.
+###
+###                        The checksum field above contains a CRC-16
+###                        checksum as the first value, followed by the
+###                        equivalent of the standard UNIX wc (word
+###                        count) utility output of lines, words, and
+###                        characters.  This is produced by Robert
+###                        Solovay's checksum utility.",
+###  }
+### ====================================================================
+BEGIN \
+	{
+	    ######################################################################
+	    VERSION = "1.02 [05-Jul-1997]" # <-- NB: Change this with each update!
+	    ######################################################################
+
+	    PROGRAM = "bibtex-to-html"
+
+	    UNSET_FILENAME = "/dev/unset"
+	    LASTFILENAME = UNSET_FILENAME
+	    _last_input_filename = UNSET_FILENAME
+
+	    if (SUFFIX == "")
+		SUFFIX = ".html"
+
+	    USER = ENVIRON["USER"]
+
+	    if (USER == "")
+		USER = ENVIRON["LOGNAME"]
+
+	    if (USER == "")
+		USER = "????"
+
+	    "hostname" | getline HOSTNAME
+	    "date" | getline DATE
+#	    [01-Aug-2019] ypcat no longer available: replace by getent
+#	    ("ypcat passwd | grep '^" USER ":' | awk -F: '{print $5}'") | getline PERSONAL_NAME
+	    ("getent passwd " USER " | " ARGV[0] " -F: '{print $5}'") | getline PERSONAL_NAME
+
+	    if (PERSONAL_NAME == "")
+		##("grep  '^" USER ":' /etc/passwd | awk -F: '{print $5}'") | getline PERSONAL_NAME
+		("grep  '^" USER ":' /etc/passwd | " ARGV[0] " -F: '{print $5}'") | getline PERSONAL_NAME
+
+	    # NB: " has become &#34; before this pattern is used
+	    CROSSREF_EQUALS_LABEL_PATTERN = "^[ \t]*crossref[ \t]*=[ \t]*&#34;"
+
+	    # Pattern to match a line like this:
+	    # %%%     email           = "beebe at math.utah.edu (Internet)",
+
+	    BIBTEX_EMAIL_PATTERN = "= &#34;[A-Za-z0-9-]+ at [A-Za-z0-9.-]+"
+	    BIBTEX_EMAIL_OFFSET = 7 # was 8 before &quot; became &#34;
+	    BIBTEX_EMAIL_PREFIX = "mailto:"
+	    BIBTEX_EMAIL_SAVE_LABEL = 0
+
+	    ##CITE_PATTERN = "\\\\cite{[^}]+}"
+	    CITE_PATTERN = "\\\\cite\\{[^\\}]+}"
+	    CITE_OFFSET = 6
+	    CITE_PREFIX = ""
+	    CITE_SAVE_LABEL = 1
+
+	    EMAIL_PATTERN = "[A-Za-z0-9-]+@[A-Za-z0-9.-]+"
+	    EMAIL_OFFSET = 0
+	    EMAIL_PREFIX = "mailto:"
+	    EMAIL_SAVE_LABEL = 0
+
+	    # See Nelson H. F. Beebe, ``Bibliography prettyprinting
+	    # and syntax checking'', TUGboat 14(3), 222-222, October
+	    # (1993), and 14(4), 395--419, December (1993) for the
+	    # syntax of BibTeX names used here in ENTRY_PATTERN,
+	    # KEY_EQUALS_NAME_PATTERN and STRING_PATTERN.
+
+	    ##ENTRY_PATTERN = "^[ \t]*@[ \t]*[A-Za-z][A-Za-z0-9:.+/'-]*[ \t]*{[A-Za-z][A-Za-z0-9:.+/'-]*,[ \t]*$"
+	    ENTRY_PATTERN = "^[ \t]*@[ \t]*[A-Za-z][A-Za-z0-9:.+/'-]*[ \t]*\\{[A-Za-z][A-Za-z0-9:.+/'-]*,[ \t]*$"
+
+	    KEY_EQUALS_NAME_PATTERN = "^[ \t]*[A-Za-z][A-Za-z0-9:.+/'-]*[ \t]*=[ \t]*[A-Za-z]"
+
+	    ##STRING_PATTERN = "^@[Ss][Tt][Rr][Ii][Nn][gG]{[A-Za-z][A-Za-z0-9:.+/'-]*"
+	    STRING_PATTERN = "^@[Ss][Tt][Rr][Ii][Nn][gG]\\{[A-Za-z][A-Za-z0-9:.+/'-]*"
+	    STRING_OFFSET = 8
+	    STRING_PREFIX = ""
+	    STRING_SAVE_LABEL = 1
+
+	    # According to Internet RFC 1614 (May 1994), a URL is
+	    # defined in the document T. Berners-Lee, ``Uniform
+	    # Resource Locators'', March 1993, available at URL
+	    # ftp://info.cern.ch/pub/ietf/url4.ps.  Unfortunately,
+	    # that address is no longer valid.  However, I was able to
+	    # track down pointers from http://www.w3.org/ to locate a
+	    # suitable description in Internet RFC 1630 (June 1994).
+
+	    # NB: We additionally disallow & in a URL because it is
+	    # needed in SGML entities "&name;".  We also disallow =
+	    # and | because these are commonly used in \path=...= and
+	    # \path|...| strings in BibTeX files.  These restrictions
+	    # could be removed if we went to the trouble of first
+	    # encoding these special characters in %xy hexadecimal
+	    # format, but they are rare enough that I am not going to
+	    # do so for now.  The worst that will happen from this
+	    # decision is that an occasional URL in a BibTeX file will
+	    # be missing a surrounding anchor.
+
+	    URL_PATTERN = "[A-Za-z]+://[^ \",&=|]+"
+	    URL_OFFSET = 0
+	    URL_PREFIX = ""
+	    URL_SAVE_LABEL = 0
+
+	    # [24-May-2016] support for background coloring of block comments
+	    IN_BLOCK_COMMENT = 0
+	}
+
+# Each line receives identical processing.
+	{ do_line() }
+
+END   \
+	{
+	    if (LASTFILENAME != UNSET_FILENAME)
+		end_file(LASTFILENAME)
+	}
+
+
+function add_entry(array,value)
+{
+    if (value in array)
+	array[value] = array[value] " " FNR
+    else
+	array[value] = FNR
+}
+
+
+function anchor(s,type,pattern,offset,prefix,save_label, name,rstart,rlength)
+{
+    # Add anchors <A type="....">...</A> around text in s matching
+    # pattern.  A non-zero offset discards that many characters from
+    # the start of the match, allowing the pattern to contain leading
+    # context which goes outside the anchored region.  The prefix is
+    # attached to the start of the matched string, inside the value
+    # quotes in the anchor.
+
+    if (match(s,pattern))
+    {
+	rstart = RSTART		# need private copies of these globals because
+	rlength = RLENGTH	# recursion will change them
+
+	rstart += offset	# adjust by offset to discard leading
+	rlength -= offset	# context in pattern
+
+	name = substr(s,rstart,rlength)
+	sub(/ +at +/,"@",name)	# reduce "user at host" to "user@host"
+
+	s = substr(s,1,rstart-1) \
+	    "<A " type "=\"" prefix name "\">" \
+	    ((type == "NAME") ? "<STRONG>" : "") \
+	    substr(s,rstart,rlength) \
+	    ((type == "NAME") ? "</STRONG>" : "") \
+	    "</A>" \
+	    anchor(substr(s,rstart+rlength),type,pattern,offset,prefix,save)
+
+	if (save_label)
+	{
+	    if (type == "HREF")
+		add_entry(label_hrefs, name)
+	    else if (type == "NAME")
+		add_entry(label_names, name)
+	}
+    }
+
+    return (s)
+}
+
+
+function begin_file( f)
+{
+    f = output_filename(FILENAME)
+
+    ## NB: If Transitional is eliminated in DOCTYPE, background coloring is lost! Why?
+    slash_pos = str::rindex(FILENAME, "/");
+    BASE_FILENAME = (slash_pos > 0)? str::substr(FILENAME, slash_pos + 1): FILENAME;
+
+    print "<!-- -*-html-*- -->"									> f
+    print ""											> f
+##    print "<!-- " FILENAME " -->"								> f
+    print "<!-- " BASE_FILENAME " -->"								> f
+    print "<!-- WARNING: Do NOT edit this file.  It was converted from -->"			> f
+    print "<!-- BibTeX format to HTML by " PROGRAM " version " VERSION " -->"			> f
+##    print "<!-- on " DATE " -->"								> f
+##    print "<!-- for " PERSONAL_NAME " (" USER "@" HOSTNAME ") -->"				> f
+    print ""											> f
+    print "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0 Transitional//EN\" \"http://www.w3.org/TR/1998/REC-html40-19980424/loose.dtd\">" > f
+    print ""											> f
+    print ""											> f
+    print "<HTML>"										> f
+    print "    <HEAD>"										> f
+    print "        <META HTTP-EQUIV=\"Content-Type\" CONTENT=\"text/html; charset=iso-8859-1\">"> f
+    print "        <TITLE>"									> f
+##    print "            BibTeX bibliography " FILENAME						> f
+    print "            BibTeX bibliography " BASE_FILENAME						> f
+    print "        </TITLE>"									> f
+    print "        <LINK REV=\"made\" HREF=\"mailto:" USER "@" HOSTNAME "\">"			> f
+    print "        <LINK HREF=\"http://www.math.utah.edu/pub/tex/bib/tugbib.css\" TYPE=\"text/css\" REL=\"stylesheet\">"	> f
+    print "    </HEAD>"										> f
+    print ""											> f
+    print "    <BODY>"										> f
+    print "        <DIV  ALIGN=\"right\">"							> f
+    print "            <A HREF=\"http://validator.w3.org/check/referer\">"			> f
+    print "                <IMG ALIGN=\"MIDDLE\" BORDER=\"0\" SRC=\"/images/valid-html40.png\" ALT=\"Valid HTML 4.0!\" HEIGHT=\"31\" WIDTH=\"88\">" > f
+    print "            </A>"									> f
+    print "            <A HREF=\"http://jigsaw.w3.org/css-validator/check/referer\">"		> f
+    print "                <IMG ALIGN=\"MIDDLE\" BORDER=\"0\" SRC=\"/images/valid-css.gif\" ALT=\"Valid CSS!\" HEIGHT=\"31\" WIDTH=\"88\">" > f
+    print "            </A>"									> f
+    print "        </DIV>"									> f
+    print "<PRE>"										> f
+
+    clear_array(label_names)
+    clear_array(label_hrefs)
+}
+
+
+function check_for_file_change()
+{
+    if (LASTFILENAME != FILENAME)
+    {
+	if (LASTFILENAME != UNSET_FILENAME)
+	{
+	    end_file(LASTFILENAME)
+
+	    if (LASTFILENAME != "/dev/stdout")
+	        close (output_filename(LASTFILENAME))
+	}
+
+	LASTFILENAME = FILENAME
+	begin_file()
+    }
+}
+
+
+function check_refs( label)
+{
+    for (label in label_hrefs)
+    {
+	if (!(label in label_names))
+	    warning("undefined label " label " at line(s) " label_hrefs[label])
+    }
+}
+
+
+function clear_array(array, key)
+{
+    for (key in array)
+	delete array[key]
+}
+
+
+function end_file(filename, f)
+{
+    f = output_filename(filename)
+
+    print "</PRE>" > f
+    print "    </BODY>" > f
+    print "</HTML>" > f
+    check_refs()
+}
+
+
+function do_cite(s, k,n,labels,t)
+{
+    n = split(substr(s,RSTART + CITE_OFFSET,RLENGTH - 1 - CITE_OFFSET),labels,",")
+    t = substr(s,1,RSTART+CITE_OFFSET-1)
+
+    for (k = 1; k <= n; ++k)
+    {
+	t = t ((k > 1) ? "," : "") "<A HREF=\"#" labels[k] "\">" labels[k] "</A>"
+	add_entry(label_hrefs, labels[k])
+    }
+
+    t = t substr(s,RSTART + RLENGTH - 1)
+
+    return (t)
+}
+
+
+function do_line( n,name,s)
+{
+    s = protect_SGML_characters($0)
+    
+    if (match(s,STRING_PATTERN)) # remember name from @String{name = "value"}
+    {
+	name = substr(s,RSTART + STRING_OFFSET,RLENGTH - STRING_OFFSET)
+	string_name[name] = 1
+	# print "DEBUG 1: name =", name >"/dev/stderr"
+    }
+
+    if (match(s,/^%+[ \t]*email[ \t]*=/)) # special handling because BibTeX does not allow @ in comments
+	s = anchor(s,"HREF",BIBTEX_EMAIL_PATTERN,BIBTEX_EMAIL_OFFSET,BIBTEX_EMAIL_PREFIX,\
+		   BIBTEX_EMAIL_SAVE_LABEL)
+    else
+	s = anchor(s,"HREF",EMAIL_PATTERN,EMAIL_OFFSET,EMAIL_PREFIX,EMAIL_SAVE_LABEL)
+
+    s = anchor(s,"HREF",URL_PATTERN,URL_OFFSET,URL_PREFIX,URL_SAVE_LABEL)
+    s = anchor(s,"NAME",STRING_PATTERN,STRING_OFFSET,STRING_PREFIX,STRING_SAVE_LABEL)
+
+    if (match(s,CITE_PATTERN))
+	s = do_cite(s)
+
+    if (match(s,ENTRY_PATTERN))	# then have ``@Entry{label,''
+    {
+	n = index(s,"{")
+	name = substr(s,n+1)
+	gsub(/^[ \t]*/,"",name)	# trim optional leading space
+	gsub(/,[ \t]*$/,"",name) # trim trailing comma and optional space
+	# print "DEBUG 2: name =", name >"/dev/stderr"
+	s = substr(s,1,n) \
+	    "<A NAME=\"" name "\"><STRONG>" name "</STRONG></A>" \
+	    substr(s,n+1+length(name))
+	add_entry(label_names, name)
+    }
+    else if (match(s,KEY_EQUALS_NAME_PATTERN)) # then have ``key = name''
+    {
+	name = substr(s,RSTART+RLENGTH-1)
+	sub(/,?[ \t]*$/,"",name) # trim optional trailing comma and space
+	# print "DEBUG 3: name =", name >"/dev/stderr"
+
+	if (name in string_name) # then we have a definition of this name
+	{
+	    s = substr(s,1,RSTART+RLENGTH-2) \
+		"<A HREF=\"#" name "\">" name "</A>" substr(s,RSTART+RLENGTH-1+length(name))
+	    add_entry(label_hrefs, name)
+	}
+    }
+    else if (match(s,CROSSREF_EQUALS_LABEL_PATTERN)) # then have `` crossref = "label"''
+    {
+	name = substr(s,RSTART+RLENGTH)
+	sub(/&#34;,?[ \t]*$/,"",name) # trim trailing quote and optional comma and space
+	# print "DEBUG 4: name =", name >"/dev/stderr"
+	s = substr(s,1,RSTART+RLENGTH-1) \
+	    "<A HREF=\"#" name "\">" name "</A>" substr(s,RSTART+RLENGTH+length(name))
+	add_entry(label_hrefs, name)
+    }
+
+    check_for_file_change()
+
+    if ( (s ~ "^%") && !IN_BLOCK_COMMENT)
+    {
+	printf("</PRE><PRE CLASS=\"blockcomment\">")	> output_filename(FILENAME)
+	IN_BLOCK_COMMENT = 1
+    }
+    else if ( (s !~ "^%") && IN_BLOCK_COMMENT)
+    {
+	printf("</PRE><PRE>")				> output_filename(FILENAME)
+	IN_BLOCK_COMMENT = 0
+    }
+
+    print s					>output_filename(FILENAME)
+}
+
+
+function output_filename(input_filename)
+{
+## HAWK - for use in t/h-003.hawk
+return "/dev/stdout";
+
+    if (input_filename != _last_input_filename)
+    {			# optimization: we cache last function result for speed
+	_last_input_filename = input_filename
+	sub(/.[^.]*$/,"",input_filename)
+
+	if ((input_filename == "") || (input_filename == "/dev/stdin"))
+	    _last_output_filename = "/dev/stdout"
+	else
+	    _last_output_filename = PREFIX input_filename SUFFIX
+
+    }
+
+    return (_last_output_filename)
+}
+
+
+function protect_SGML_characters(s)
+{
+    gsub(/&/,"\\&amp;",s)	# NB: this one MUST be first
+    gsub(/</,"\\&lt;",s)
+    gsub(/>/,"\\&gt;",s)
+
+    ## [24-May-2016] with the change from HTML 3.2 to 4.0, we can use &quot; again!	
+    ## gsub(/\"/,"\\&#34;",s)	# this was &quot; in earlier HTML
+				# versions, including the HTML 3.2
+				# draft, but was stupidly eliminated in
+				# the final HTML 3.2 version: see
+				# http://www.w3.org/pub/WWW/MarkUp/Wilbur/
+				# in the section ``What happened to &quot;?''
+    gsub(/\"/,"\\&quot;",s)
+
+    return (s)
+}
+
+
+function warning(message)
+{
+    # print FILENAME ":" FNR ":%%" message >"/dev/stderr"
+    #
+    # The only place that we need warning messages above is
+    # checkrefs(), after the current file has been closed, and a new
+    # one started, so we need LASTFILENAME instead of FILENAME here,
+    # and we omit the FNR, since we have no record of it for
+    # LASTFILENAME.
+    print LASTFILENAME ":%%" message >"/dev/stderr"
+}

@@ -1,0 +1,76 @@
+@pragma entry main
+@pragma implicit off
+
+@include "ensure.inc";
+
+function are_files_identical(a, b)
+{
+	@local f1, f2, x, y, diff;
+	
+	f1 = sys::open(a, sys::O_RDONLY);
+	if (f1 <= -1)
+	{
+		printf ("ERROR: unable to open %s\n", a);
+		return -1;
+	}
+
+	f2 = sys::open(b, sys::O_RDONLY);
+	if (f2 <= -1)
+	{
+		sys::close (a);
+		printf ("ERROR: unable to open %s\n", b);
+		return -1;
+	}
+
+	diff = 0;
+	while (sys::read(f1, x, 1) > 0)
+	{
+		if (sys::read(f2, y, 1) <= 0 || x !== y) 
+		{
+			diff = 1;
+			break;
+		}
+	}
+
+	if (sys::read(f2, y, 1) > 0) diff = 1;
+
+	sys::close (f2);
+	sys::close (f1);
+	return !diff;
+}
+
+function run_test (x, more_opts, in_name, out_name)
+{
+	@local cmd, inf, expf, outf, same;
+
+	if (hawk::isnil(in_name)) in_name = x;
+	if (hawk::isnil(out_name)) out_name = x;
+
+	inf = sprintf("%s/%s.in", TDIR, in_name);
+	expf = sprintf("%s/%s.out", TDIR, out_name);
+	outf = sprintf("/tmp/%s.%d.out", out_name, sys::getpid());
+##print TDIR, inf, expf, outf;
+
+	cmd=sprintf("%s %s -f %s/%s.hawk %s > %s", ARGV[0], more_opts, TDIR, x, inf, outf);
+##print cmd;
+	system (cmd);
+		
+	same = are_files_identical(expf, outf);
+	if (same <= 0) 
+	{
+		## don't delete the output file for review.
+		printf ("FAILURE: %s - %s and %s differ\n", x, expf, outf);
+		exit (1);
+	}
+
+	sys::unlink (outf);
+}
+
+function main()
+{
+	run_test ("journal-toc");
+	run_test ("journal-toc", "-vHTML=1", "journal-toc", "journal-toc-html");
+	run_test ("bibtex-to-html", "", "journal-toc", "bibtex-to-html");
+	print "SUCCESS";
+}
+

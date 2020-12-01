@@ -22,7 +22,7 @@ function main()
 		ensure (foo2[1], 1, @SCRIPTNAME, @SCRIPTLINE);
 		ensure (foo3[1], ini, @SCRIPTNAME, @SCRIPTLINE);
 		ensure (foo4[1], ini, @SCRIPTNAME, @SCRIPTLINE);
-	}	
+	}
 
 	## gsub 
 	{
@@ -279,7 +279,9 @@ function main()
 
 
 	{
-		@local a;
+		# split, str::split, str::splita
+		@local a, str;
+
 		ensure (split("Here===Is=Some=====Data", a, "=+"),     4, @SCRIPTNAME, @SCRIPTLINE);
 		ensure (a[1] === "Here",                               1, @SCRIPTNAME, @SCRIPTLINE);
 		ensure (a[2] === "Is",                                 1, @SCRIPTNAME, @SCRIPTLINE);
@@ -315,13 +317,36 @@ function main()
 		ensure (str::splita("Here===Is=Some=====Data", a, ""),  23,    @SCRIPTNAME, @SCRIPTLINE);
 		ensure (hawk::typename(a),                             "array",@SCRIPTNAME, @SCRIPTLINE);
 
-		ensure (split("Here  Is Some   Data", a, / /),         7, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (split("Here  Is Some   Data", a, " "),         4, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (str::split("Here  Is Some   Data", a, / /),    7, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (str::split("Here  Is Some   Data", a, " "),    4, @SCRIPTNAME, @SCRIPTLINE);
 		ensure (a[1] === "Here",                               1, @SCRIPTNAME, @SCRIPTLINE);
 		ensure (a[2] === "Is",                                 1, @SCRIPTNAME, @SCRIPTLINE);
 		ensure (a[3] === "Some",                               1, @SCRIPTNAME, @SCRIPTLINE);
 		ensure (a[4] === "Data",                               1, @SCRIPTNAME, @SCRIPTLINE);
+
+		str = "a   b\t\tc d";
+		ensure (str::splita(str, a, " "), 4,              @SCRIPTNAME, @SCRIPTLINE);
+		ensure (a[1],               "a",            @SCRIPTNAME, @SCRIPTLINE);
+		ensure (a[2],               "b",            @SCRIPTNAME, @SCRIPTLINE);
+		ensure (a[3],               "c",            @SCRIPTNAME, @SCRIPTLINE);
+		ensure (a[4],               "d",            @SCRIPTNAME, @SCRIPTLINE);
+
+		ensure (str::splita(str, a, / /), 5, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (a[1],               "a",            @SCRIPTNAME, @SCRIPTLINE);
+		ensure (a[2],               "",             @SCRIPTNAME, @SCRIPTLINE);
+		ensure (a[3],               "",             @SCRIPTNAME, @SCRIPTLINE);
+		ensure (a[4],               "b\t\tc",       @SCRIPTNAME, @SCRIPTLINE);
+		ensure (a[5],               "d",            @SCRIPTNAME, @SCRIPTLINE);
 	}
+
+
+	{
+		## back reference in a regular expression
+		ensure (("a2b" ~ /(a)\12b/), 0, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (("aa2b" ~ /(a)\12b/), 1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (("aaa2b" ~ /(a)\12b/), 1, @SCRIPTNAME, @SCRIPTLINE);
+	}
+
 
 	print "SUCCESS";
 }
