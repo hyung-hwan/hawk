@@ -334,7 +334,7 @@ function begin_file( f)
 ##    print "            BibTeX bibliography " FILENAME						> f
     print "            BibTeX bibliography " BASE_FILENAME						> f
     print "        </TITLE>"									> f
-    print "        <LINK REV=\"made\" HREF=\"mailto:" USER "@" HOSTNAME "\">"			> f
+##    print "        <LINK REV=\"made\" HREF=\"mailto:" USER "@" HOSTNAME "\">"			> f
     print "        <LINK HREF=\"http://www.math.utah.edu/pub/tex/bib/tugbib.css\" TYPE=\"text/css\" REL=\"stylesheet\">"	> f
     print "    </HEAD>"										> f
     print ""											> f

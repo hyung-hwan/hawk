@@ -588,6 +588,31 @@ static HAWK_INLINE void HAWK_RTX_STACK_POP (hawk_rtx_t* rtx)
 #define HAWK_RTX_IS_STRIPRECSPC_ON(rtx) ((rtx)->gbl.striprecspc > 0 || ((rtx)->gbl.striprecspc < 0 && ((rtx)->hawk->parse.pragma.trait & HAWK_STRIPRECSPC)))
 #define HAWK_RTX_IS_STRIPSTRSPC_ON(rtx) ((rtx)->gbl.stripstrspc > 0 || ((rtx)->gbl.stripstrspc < 0 && ((rtx)->hawk->parse.pragma.trait & HAWK_STRIPSTRSPC)))
 
+
+
+
+#if !defined(HAWK_DEFAULT_MODLIBDIRS)
+#	define HAWK_DEFAULT_MODLIBDIRS ""
+#endif
+
+#if !defined(HAWK_DEFAULT_MODPREFIX)
+#	if defined(_WIN32)
+#		define HAWK_DEFAULT_MODPREFIX "hawk-"
+#	elif defined(__OS2__)
+#		define HAWK_DEFAULT_MODPREFIX "hawk"
+#	elif defined(__DOS__)
+#		define HAWK_DEFAULT_MODPREFIX "hawk"
+#	else
+#		define HAWK_DEFAULT_MODPREFIX "libhawk-"
+#	endif
+#endif
+
+#if !defined(HAWK_DEFAULT_MODPOSTFIX)
+#	define HAWK_DEFAULT_MODPOSTFIX ""
+#endif
+
+
+
 #if defined(__cplusplus)
 extern "C" {
 #endif
