@@ -58,13 +58,6 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-/*
-  TODO:
-   - Fix tre_ast_to_tnfa() to recurse using a stack instead of recursive
-     function calls.
-*/
-
-
 #include <hawk-tre.h>
 #include "tre-stack.h"
 #include "tre-ast.h"
@@ -758,6 +751,9 @@ tre_copy_ast(tre_mem_t mem, tre_stack_t *stack, tre_ast_node_t *ast,
 				*result = tre_ast_new_literal(mem, min, max, pos);
 				if (*result == NULL) status = REG_ESPACE;
 
+				/* HAWK */
+				((tre_literal_t*)(*result)->obj)->u.class = lit->u.class;
+				/* END HAWK */
 				if (pos > *max_pos)
 					*max_pos = pos;
 				break;
@@ -1812,6 +1808,8 @@ tre_make_trans(hawk_gem_t* gem, tre_pos_and_tags_t *p1, tre_pos_and_tags_t *p2,
    labelled with one character range (there are no transitions on empty
    strings).  The TNFA takes O(n^2) space in the worst case, `n' is size of
    the regexp. */
+/* HAWK */
+#if 0
 static reg_errcode_t
 tre_ast_to_tnfa(hawk_gem_t* gem, tre_ast_node_t *node, tre_tnfa_transition_t *transitions,
                 int *counts, int *offs)
@@ -1867,7 +1865,75 @@ tre_ast_to_tnfa(hawk_gem_t* gem, tre_ast_node_t *node, tre_tnfa_transition_t *tr
 	}
 	return errcode;
 }
+#endif
+static reg_errcode_t
+__tre_ast_to_tnfa(hawk_gem_t *gem, tre_stack_t* stack, tre_ast_node_t *node, tre_tnfa_transition_t *transitions, int *counts, int *offs)
+{
+	tre_union_t *uni;
+	tre_catenation_t *cat;
+	tre_iteration_t *iter;
+	reg_errcode_t errcode = REG_OK;
 
+	STACK_PUSHR(stack, voidptr, node);
+
+	while (tre_stack_num_objects(stack)) 
+	{
+		node = (tre_ast_node_t*)tre_stack_pop_voidptr(stack);
+
+		switch (node->type)
+		{
+			case LITERAL:
+				break;
+
+			case UNION:
+				uni = (tre_union_t *)node->obj;
+				STACK_PUSHR(stack, voidptr, uni->right);
+				STACK_PUSHR(stack, voidptr, uni->left);
+				break;
+
+			case CATENATION:
+				cat = (tre_catenation_t *)node->obj;
+				/* Add a transition from each position in cat->left->lastpos to each position in cat->right->firstpos. */
+				errcode = tre_make_trans(gem, cat->left->lastpos, cat->right->firstpos, transitions, counts, offs);
+				if (errcode != REG_OK) return errcode;
+
+				STACK_PUSHR(stack, voidptr, cat->right);
+				STACK_PUSHR(stack, voidptr, cat->left);
+				break;
+
+			case ITERATION:
+				iter = (tre_iteration_t *)node->obj;
+				if(!(iter->max == -1 || iter->max == 1)) return REG_BADBR;
+
+				if (iter->max == -1)
+				{
+					if(!(iter->min == 0 || iter->min == 1)) return REG_BADBR;
+					/* Add a transition from each last position in the iterated expression to each first position. */
+					errcode = tre_make_trans(gem, iter->arg->lastpos, iter->arg->firstpos, transitions, counts, offs);
+					if (errcode != REG_OK) return errcode;	  
+				}
+				STACK_PUSHR(stack, voidptr, iter->arg);
+				break;
+		 }
+	}
+	return REG_OK;
+}
+
+static reg_errcode_t
+tre_ast_to_tnfa(hawk_gem_t* gem, tre_ast_node_t *node, tre_tnfa_transition_t *transitions, int *counts, int *offs)
+{
+	reg_errcode_t x;
+	tre_stack_t* stack;
+
+	stack = tre_stack_new(gem, 1024, -1, 4096);
+	if (HAWK_UNLIKELY(!stack)) return REG_ESPACE;
+
+	x = __tre_ast_to_tnfa(gem, stack, node, transitions, counts, offs);
+
+	tre_stack_destroy(stack);
+	return x;
+}
+/* END HAWK */
 
 #define ERROR_EXIT(err) \
 	do \
