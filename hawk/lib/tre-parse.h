@@ -76,7 +76,10 @@ typedef struct
 	const tre_char_t *re_start;
 	/* The first character after the end of the regexp. */
 	const tre_char_t *re_end;
-	int len;
+	/* HAWK: changed int to hawk_oow_t */
+	/*int len;*/
+	hawk_oow_t len;
+	/* END HAWK */
 	/* Current submatch ID. */
 	int submatch_id;
 	/* Current position (number of literal). */

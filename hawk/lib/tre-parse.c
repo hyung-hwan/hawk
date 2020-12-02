@@ -134,8 +134,11 @@ tre_expand_macro(const tre_char_t *regex, const tre_char_t *regex_end,
 			unsigned int j;
 			DPRINT(("Expanding macro '%c' => '%s'\n",
 			        tre_macros[i].c, tre_macros[i].expansion));
-			for (j = 0; tre_macros[i].expansion[j] && j < buf_len; j++)
+			/* HAWK */
+			/*for (j = 0; tre_macros[i].expansion[j] && j < buf_len; j++)*/
+			for (j = 0; tre_macros[i].expansion[j] && j < buf_len - 1; j++)
 				buf[j] = tre_macros[i].expansion[j];
+			/* END HAWK */
 			buf[j] = 0;
 			break;
 		}
@@ -214,7 +217,10 @@ tre_compare_items(const void *a, const void *b, void* ctx)
 	const tre_ast_node_t *node_a = *(tre_ast_node_t * const *)a;
 	const tre_ast_node_t *node_b = *(tre_ast_node_t * const *)b;
 	tre_literal_t *l_a = node_a->obj, *l_b = node_b->obj;
-	int a_min = l_a->code_min, b_min = l_b->code_min;
+	/* HAWK: changed int to long */
+	/*int a_min = l_a->code_min, b_min = l_b->code_min;*/
+	long a_min = l_a->code_min, b_min = l_b->code_min;
+	/* END HAWK */
 
 	if (a_min < b_min)
 		return -1;
@@ -295,7 +301,10 @@ tre_parse_bracket_items(tre_parse_ctx_t *ctx, int negate,
 			         && *re == CHAR_LBRACKET && *(re + 1) == CHAR_COLON)
 			{
 				const tre_char_t *endptr = re + 2;
-				int len;
+				/* HAWK: changed int to hawk_oow_t */
+				/*int len;*/
+				hawk_oow_t len;
+				/* END HAWK */
 				DPRINT(("tre_parse_bracket:  class: '%.*" STRF "'\n", REST(re)));
 				while (endptr < ctx->re_end && *endptr != CHAR_COLON) endptr++;
 				if (endptr != ctx->re_end)
@@ -557,14 +566,24 @@ parse_bracket_done:
 static int
 tre_parse_int(const tre_char_t **regex, const tre_char_t *regex_end)
 {
+	/* HAWK : added overflow check with other code optimizations */
 	int num = -1;
 	const tre_char_t *r = *regex;
-	while (r < regex_end && *r >= HAWK_T('0') && *r <= HAWK_T('9'))
+
+	if (r < regex_end && *r >= HAWK_T('0') && *r <= HAWK_T('9'))
 	{
-		if (num < 0)
-			num = 0;
-		num = num * 10 + *r - HAWK_T('0');
-		r++;
+		int ever_overflowed = 0;
+
+		num = 0;
+		do
+		{
+			if (num > (HAWK_TYPE_MAX(int) - 9) / 10) ever_overflowed = 1;
+			num = num * 10 + *r - HAWK_T('0');
+			r++;
+		}
+		while (r < regex_end && *r >= HAWK_T('0') && *r <= HAWK_T('9'));
+
+		if (ever_overflowed) num = -1;
 	}
 	*regex = r;
 	return num;
@@ -1355,9 +1374,13 @@ reg_errcode_t tre_parse(tre_parse_ctx_t *ctx)
 				break;
 	
 			case CHAR_RPAREN:  /* end of current subexpression */
-				if ((ctx->cflags & REG_EXTENDED && depth > 0)
+				/* HAWK: fixed the condition */
+				/* if ((ctx->cflags & REG_EXTENDED && depth > 0)
 				        || (ctx->re > ctx->re_start
-				            && *(ctx->re - 1) == CHAR_BACKSLASH))
+				            && *(ctx->re - 1) == CHAR_BACKSLASH)) */
+				if (((ctx->cflags & REG_EXTENDED) && depth > 0) ||
+				    (!(ctx->cflags & REG_EXTENDED) && ctx->re > ctx->re_start && *(ctx->re - 1) == CHAR_BACKSLASH))
+				/* END HAWK */
 				{
 					DPRINT(("tre_parse:	    empty: '%.*" STRF "'\n", REST(ctx->re)));
 					/* We were expecting an atom, but instead the current
@@ -1649,7 +1672,7 @@ reg_errcode_t tre_parse(tre_parse_ctx_t *ctx)
 	
 	
 				/* We are expecting an atom.  If the subexpression (or the whole
-				 regexp ends here, we interpret it as an empty expression
+				 regexp) ends here, we interpret it as an empty expression
 				 (which matches an empty string).  */
 				if (
 	#ifdef REG_LITERAL
