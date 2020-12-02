@@ -231,7 +231,6 @@ tre_tnfa_run_backtrack(hawk_gem_t* gem, const tre_tnfa_t *tnfa, const void *stri
 	/* Current TNFA state. */
 	tre_tnfa_transition_t *state;
 	int *states_seen = NULL;
-
 	/* Memory allocator to for allocating the backtracking stack. */
 	tre_mem_t mem = tre_bt_mem_new(gem);
 
@@ -581,7 +580,8 @@ backtrack:
 			if (stack->prev)
 			{
 				DPRINT(("	 backtracking\n"));
-				if (stack->item.state->assertions && ASSERT_BACKREF)
+				/*if (stack->item.state->assertions && ASSERT_BACKREF)*/
+				if (stack->item.state->assertions & ASSERT_BACKREF)
 				{
 					DPRINT(("  states_seen[%d] = 0\n", stack->item.state_id));
 					states_seen[stack->item.state_id] = 0;
