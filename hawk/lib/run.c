@@ -8120,7 +8120,7 @@ wp_mod_main:
 			hawk_flt_t r;
 			int n;
 
-		#if defined(HAWK_USE_AWK_FLTMAX)
+		#if defined(HAWK_USE_FLTMAX)
 			FMT_CHAR (HAWK_T('j'));
 		#else
 			FMT_CHAR (HAWK_T('z'));
@@ -8931,7 +8931,7 @@ wp_mod_main:
 			hawk_flt_t r;
 			int n;
 
-		#if defined(HAWK_USE_AWK_FLTMAX)
+		#if defined(HAWK_USE_FLTMAX)
 			FMT_MCHAR (HAWK_BT('j'));
 		#else
 			FMT_MCHAR (HAWK_BT('z'));

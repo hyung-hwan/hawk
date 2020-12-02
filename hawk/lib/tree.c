@@ -352,7 +352,7 @@ static int print_expr (hawk_t* hawk, hawk_nde_t* nde)
 
 				hawk_fmttooocstr (hawk,
 					buf, HAWK_COUNTOF(buf), 
-				#if defined(HAWK_USE_AWK_FLTMAX)
+				#if defined(HAWK_USE_FLTMAX)
 					HAWK_T("%jf"),
 				#else
 					HAWK_T("%zf"), 

@@ -32,7 +32,7 @@
 #include <math.h>
 #if defined(HAVE_QUADMATH_H)
 #	include <quadmath.h>
-#elif defined(HAWK_USE_AWK_FLTMAX) && (HAWK_SIZEOF_FLT_T == 16) && defined(HAWK_FLTMAX_REQUIRE_QUADMATH)
+#elif defined(HAWK_USE_FLTMAX) && (HAWK_SIZEOF_FLT_T == 16) && defined(HAWK_FLTMAX_REQUIRE_QUADMATH)
 #	error QUADMATH.H NOT AVAILABLE or NOT COMPILABLE
 #endif
 
@@ -122,7 +122,7 @@ static int fnc_math_2 (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, hawk_math2_t 
 
 static hawk_flt_t math_ceil (hawk_t* hawk, hawk_flt_t x)
 {
-#if defined(HAWK_USE_AWK_FLTMAX) && defined(HAVE_CEILQ)
+#if defined(HAWK_USE_FLTMAX) && defined(HAVE_CEILQ)
 	return ceilq (x);
 #elif defined(HAVE_CEILL) && (HAWK_SIZEOF_LONG_DOUBLE > HAWK_SIZEOF_DOUBLE)
 	return ceill (x);
@@ -137,7 +137,7 @@ static hawk_flt_t math_ceil (hawk_t* hawk, hawk_flt_t x)
 
 static hawk_flt_t math_floor (hawk_t* hawk, hawk_flt_t x)
 {
-#if defined(HAWK_USE_AWK_FLTMAX) && defined(HAVE_FLOORQ)
+#if defined(HAWK_USE_FLTMAX) && defined(HAVE_FLOORQ)
 	return floorq (x);
 #elif defined(HAVE_FLOORL) && (HAWK_SIZEOF_LONG_DOUBLE > HAWK_SIZEOF_DOUBLE)
 	return floorl (x);
@@ -152,7 +152,7 @@ static hawk_flt_t math_floor (hawk_t* hawk, hawk_flt_t x)
 
 static hawk_flt_t math_round (hawk_t* hawk, hawk_flt_t x)
 {
-#if defined(HAWK_USE_AWK_FLTMAX) && defined(HAVE_ROUNDQ)
+#if defined(HAWK_USE_FLTMAX) && defined(HAVE_ROUNDQ)
 	return roundq (x);
 #elif defined(HAVE_ROUNDL) && (HAWK_SIZEOF_LONG_DOUBLE > HAWK_SIZEOF_DOUBLE)
 	return roundl (x);
@@ -205,7 +205,7 @@ static hawk_flt_t math_round (hawk_t* hawk, hawk_flt_t x)
 
 static hawk_flt_t math_sinh (hawk_t* hawk, hawk_flt_t x)
 {
-#if defined(HAWK_USE_AWK_FLTMAX) && defined(HAVE_SINHQ)
+#if defined(HAWK_USE_FLTMAX) && defined(HAVE_SINHQ)
 	return sinhq (x);
 #elif defined(HAVE_SINHL) && (HAWK_SIZEOF_LONG_DOUBLE > HAWK_SIZEOF_DOUBLE)
 	return sinhl (x);
@@ -220,7 +220,7 @@ static hawk_flt_t math_sinh (hawk_t* hawk, hawk_flt_t x)
 
 static hawk_flt_t math_cosh (hawk_t* hawk, hawk_flt_t x)
 {
-#if defined(HAWK_USE_AWK_FLTMAX) && defined(HAVE_COSHQ)
+#if defined(HAWK_USE_FLTMAX) && defined(HAVE_COSHQ)
 	return coshq (x);
 #elif defined(HAVE_COSHL) && (HAWK_SIZEOF_LONG_DOUBLE > HAWK_SIZEOF_DOUBLE)
 	return coshl (x);
@@ -235,7 +235,7 @@ static hawk_flt_t math_cosh (hawk_t* hawk, hawk_flt_t x)
 
 static hawk_flt_t math_tanh (hawk_t* hawk, hawk_flt_t x)
 {
-#if defined(HAWK_USE_AWK_FLTMAX) && defined(HAVE_TANHQ)
+#if defined(HAWK_USE_FLTMAX) && defined(HAVE_TANHQ)
 	return tanhq (x);
 #elif defined(HAVE_TANHL) && (HAWK_SIZEOF_LONG_DOUBLE > HAWK_SIZEOF_DOUBLE)
 	return tanhl (x);
@@ -250,7 +250,7 @@ static hawk_flt_t math_tanh (hawk_t* hawk, hawk_flt_t x)
 
 static hawk_flt_t math_asin (hawk_t* hawk, hawk_flt_t x)
 {
-#if defined(HAWK_USE_AWK_FLTMAX) && defined(HAVE_ASINQ)
+#if defined(HAWK_USE_FLTMAX) && defined(HAVE_ASINQ)
 	return asinq (x);
 #elif defined(HAVE_ASINL) && (HAWK_SIZEOF_LONG_DOUBLE > HAWK_SIZEOF_DOUBLE)
 	return asinl (x);
@@ -265,7 +265,7 @@ static hawk_flt_t math_asin (hawk_t* hawk, hawk_flt_t x)
 
 static hawk_flt_t math_acos (hawk_t* hawk, hawk_flt_t x)
 {
-#if defined(HAWK_USE_AWK_FLTMAX) && defined(HAVE_ACOSQ)
+#if defined(HAWK_USE_FLTMAX) && defined(HAVE_ACOSQ)
 	return acosq (x);
 #elif defined(HAVE_ACOSL) && (HAWK_SIZEOF_LONG_DOUBLE > HAWK_SIZEOF_DOUBLE)
 	return acosl (x);
@@ -283,7 +283,7 @@ static hawk_flt_t math_acos (hawk_t* hawk, hawk_flt_t x)
 
 static hawk_flt_t math_sin (hawk_t* hawk, hawk_flt_t x)
 {
-#if defined(HAWK_USE_AWK_FLTMAX) && defined(HAVE_SINQ)
+#if defined(HAWK_USE_FLTMAX) && defined(HAVE_SINQ)
 	return sinq (x);
 #elif defined(HAVE_SINL) && (HAWK_SIZEOF_LONG_DOUBLE > HAWK_SIZEOF_DOUBLE)
 	return sinl (x);
@@ -298,7 +298,7 @@ static hawk_flt_t math_sin (hawk_t* hawk, hawk_flt_t x)
 
 static hawk_flt_t math_cos (hawk_t* hawk, hawk_flt_t x)
 {
-#if defined(HAWK_USE_AWK_FLTMAX) && defined(HAVE_COSQ)
+#if defined(HAWK_USE_FLTMAX) && defined(HAVE_COSQ)
 	return cosq (x);
 #elif defined(HAVE_COSL) && (HAWK_SIZEOF_LONG_DOUBLE > HAWK_SIZEOF_DOUBLE)
 	return cosl (x);
@@ -313,7 +313,7 @@ static hawk_flt_t math_cos (hawk_t* hawk, hawk_flt_t x)
 
 static hawk_flt_t math_tan (hawk_t* hawk, hawk_flt_t x)
 {
-#if defined(HAWK_USE_AWK_FLTMAX) && defined(HAVE_TANQ)
+#if defined(HAWK_USE_FLTMAX) && defined(HAVE_TANQ)
 	return tanq (x);
 #elif defined(HAVE_TANL) && (HAWK_SIZEOF_LONG_DOUBLE > HAWK_SIZEOF_DOUBLE)
 	return tanl (x);
@@ -328,7 +328,7 @@ static hawk_flt_t math_tan (hawk_t* hawk, hawk_flt_t x)
 
 static hawk_flt_t math_atan (hawk_t* hawk, hawk_flt_t x)
 {
-#if defined(HAWK_USE_AWK_FLTMAX) && defined(HAVE_ATANQ)
+#if defined(HAWK_USE_FLTMAX) && defined(HAVE_ATANQ)
 	return atanq (x);
 #elif defined(HAVE_ATANL) && (HAWK_SIZEOF_LONG_DOUBLE > HAWK_SIZEOF_DOUBLE)
 	return atanl (x);
@@ -343,7 +343,7 @@ static hawk_flt_t math_atan (hawk_t* hawk, hawk_flt_t x)
 
 static hawk_flt_t math_atan2 (hawk_t* hawk, hawk_flt_t x, hawk_flt_t y)
 {
-#if defined(HAWK_USE_AWK_FLTMAX) && defined(HAVE_ATAN2Q)
+#if defined(HAWK_USE_FLTMAX) && defined(HAVE_ATAN2Q)
 	return atan2q (x, y);
 #elif defined(HAVE_ATAN2L) && (HAWK_SIZEOF_LONG_DOUBLE > HAWK_SIZEOF_DOUBLE)
 	return atan2l (x, y);
@@ -358,7 +358,7 @@ static hawk_flt_t math_atan2 (hawk_t* hawk, hawk_flt_t x, hawk_flt_t y)
 
 static HAWK_INLINE hawk_flt_t math_log (hawk_t* hawk, hawk_flt_t x)
 {
-#if defined(HAWK_USE_AWK_FLTMAX) && defined(HAVE_LOGQ)
+#if defined(HAWK_USE_FLTMAX) && defined(HAVE_LOGQ)
 	return logq (x);
 #elif defined(HAVE_LOGL) && (HAWK_SIZEOF_LONG_DOUBLE > HAWK_SIZEOF_DOUBLE)
 	return logl (x);
@@ -373,7 +373,7 @@ static HAWK_INLINE hawk_flt_t math_log (hawk_t* hawk, hawk_flt_t x)
 
 static hawk_flt_t math_log2 (hawk_t* hawk, hawk_flt_t x)
 {
-#if defined(HAWK_USE_AWK_FLTMAX) && defined(HAVE_LOG2Q)
+#if defined(HAWK_USE_FLTMAX) && defined(HAVE_LOG2Q)
 	return log2q (x);
 #elif defined(HAVE_LOG2L) && (HAWK_SIZEOF_LONG_DOUBLE > HAWK_SIZEOF_DOUBLE)
 	return log2l (x);
@@ -388,7 +388,7 @@ static hawk_flt_t math_log2 (hawk_t* hawk, hawk_flt_t x)
 
 static hawk_flt_t math_log10 (hawk_t* hawk, hawk_flt_t x)
 {
-#if defined(HAWK_USE_AWK_FLTMAX) && defined(HAVE_LOG10Q)
+#if defined(HAWK_USE_FLTMAX) && defined(HAVE_LOG10Q)
 	return log10q (x);
 #elif defined(HAVE_LOG10L) && (HAWK_SIZEOF_LONG_DOUBLE > HAWK_SIZEOF_DOUBLE)
 	return log10l (x);
@@ -403,7 +403,7 @@ static hawk_flt_t math_log10 (hawk_t* hawk, hawk_flt_t x)
 
 static hawk_flt_t math_exp (hawk_t* hawk, hawk_flt_t x)
 {
-#if defined(HAWK_USE_AWK_FLTMAX) && defined(HAVE_EXPQ)
+#if defined(HAWK_USE_FLTMAX) && defined(HAVE_EXPQ)
 	return expq (x);
 #elif defined(HAVE_EXPL) && (HAWK_SIZEOF_LONG_DOUBLE > HAWK_SIZEOF_DOUBLE)
 	return expl (x);
@@ -418,7 +418,7 @@ static hawk_flt_t math_exp (hawk_t* hawk, hawk_flt_t x)
 
 static hawk_flt_t math_sqrt (hawk_t* hawk, hawk_flt_t x)
 {
-#if defined(HAWK_USE_AWK_FLTMAX) && defined(HAVE_SQRTQ)
+#if defined(HAWK_USE_FLTMAX) && defined(HAVE_SQRTQ)
 	return sqrtq (x);
 #elif defined(HAVE_SQRTL) && (HAWK_SIZEOF_LONG_DOUBLE > HAWK_SIZEOF_DOUBLE)
 	return sqrtl (x);

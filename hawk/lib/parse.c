@@ -4688,7 +4688,7 @@ oops:
 	return HAWK_NULL;
 }
 
-static hawk_nde_t* parse_primary_flt  (hawk_t* hawk, const hawk_loc_t* xloc)
+static hawk_nde_t* parse_primary_flt (hawk_t* hawk, const hawk_loc_t* xloc)
 {
 	hawk_nde_flt_t* nde;
 
