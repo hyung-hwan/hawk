@@ -263,7 +263,24 @@ typedef hawk_ooci_t tre_cint_t;
 
 /* Define the character types and functions. */
 #ifdef TRE_WCHAR
-#	define TRE_CHAR_MAX HAWK_TYPE_MAX(hawk_uch_t)
+/* [HAWK]
+ * the TRE code uses the int type to represent a code point
+ * in various part. in fact, it uses int, long, tre_cint_t intermixedly.
+ * it's not easy to switch to a single type because lit->code_max is bitwise-ORed
+ * with the assertions field which is of the int type.
+ *
+ * if TRE_CHAR_MAX is greater than INT_MAX, some comparion fails as TRE_CHAR_MAX
+ * is treated as -1. here let me define TRE_CHAR_MAX to avoid this issue.
+ *
+ * however, if int is 2 bytes long,TRE_CHAR_MAX becomes 32767 which is way too small
+ * to represent even upper-half of the  UCS-2 codepoints.
+ */
+#	if (HAWK_SIZEOF_UCH_T < HAWK_SIZEOF_INT) 
+#		define TRE_CHAR_MAX HAWK_TYPE_MAX(hawk_uch_t)
+#	else
+#		define TRE_CHAR_MAX HAWK_TYPE_MAX(int)
+#	endif
+
 /*
 #	ifdef TRE_MULTIBYTE
 #		define TRE_MB_CUR_MAX (hawk_getmbcurmax())
@@ -313,6 +330,7 @@ struct tnfa_transition
 	/* END HAWK */
 	tre_cint_t code_min;
 	tre_cint_t code_max;
+
 	/* Pointer to the destination state. */
 	tre_tnfa_transition_t *state;
 	/* ID number of the destination state. */

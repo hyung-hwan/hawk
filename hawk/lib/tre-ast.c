@@ -220,7 +220,7 @@ tre_do_print(FILE *stream, tre_ast_node_t *ast, int indent)
 		else
 		{
 			fprintf(stream, "literal (%c, %c) (%d, %d), pos %d, sub %d, "
-			        "%d tags\n", code_min, code_max, code_min, code_max, pos,
+			        "%d tags\n", (int)code_min, (int)code_max, (int)code_min, (int)code_max, pos,
 			        ast->submatch_id, num_tags);
 		}
 		break;

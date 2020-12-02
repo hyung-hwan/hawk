@@ -59,8 +59,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 
-#ifndef _HAWK_LIB_CMN_TRE_AST_H_
-#define _HAWK_LIB_CMN_TRE_AST_H_
+#ifndef _HAWK_LIB_TRE_AST_H_
+#define _HAWK_LIB_TRE_AST_H_
 
 #include "tre-prv.h"
 #include "tre-mem.h"
