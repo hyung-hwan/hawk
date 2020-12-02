@@ -1,0 +1,37 @@
+language: c
+sudo: false
+
+os:
+  - linux
+
+compiler:
+  - gcc
+  - clang
+
+env:
+  matrix:
+    - OPTIONS="--enable-static=yes --enable-shared=no --enable-debug=no --enable-dynamic-module=yes --enable-static-module=yes --enable-wide-char=yes:2 --enable-intmax=yes --enable-fltmax=yes --enable-mod-mysql=no --enable-mod-uci=no --enable-pthread-flags=yes"
+    - OPTIONS="--enable-static=yes --enable-shared=no --enable-debug=no --enable-dynamic-module=yes --enable-static-module=yes --enable-wide-char=yes:4 --enable-intmax=yes --enable-fltmax=yes --enable-mod-mysql=no --enable-mod-uci=no --enable-pthread-flags=yes"
+    - OPTIONS="--enable-static=no --enable-shared=yes --enable-debug=no --enable-dynamic-module=yes --enable-static-module=yes --enable-wide-char=yes:2 --enable-intmax=yes --enable-fltmax=yes --enable-mod-mysql=no --enable-mod-uci=no --enable-pthread-flags=yes"
+    - OPTIONS="--enable-static=no --enable-shared=yes --enable-debug=no --enable-dynamic-module=yes --enable-static-module=yes --enable-wide-char=yes:4 --enable-intmax=yes --enable-fltmax=yes --enable-mod-mysql=no --enable-mod-uci=no --enable-pthread-flags=yes"
+    - OPTIONS="--enable-static=yes --enable-shared=no --enable-debug=yes --enable-dynamic-module=yes --enable-static-module=yes --enable-wide-char=yes:2 --enable-intmax=yes --enable-fltmax=yes --enable-mod-mysql=no --enable-mod-uci=no --enable-pthread-flags=yes"
+    - OPTIONS="--enable-static=yes --enable-shared=no --enable-debug=yes --enable-dynamic-module=yes --enable-static-module=yes --enable-wide-char=yes:4 --enable-intmax=yes --enable-fltmax=yes --enable-mod-mysql=no --enable-mod-uci=no --enable-pthread-flags=yes"
+    - OPTIONS="--enable-static=no --enable-shared=yes --enable-debug=yes --enable-dynamic-module=yes --enable-static-module=yes --enable-wide-char=yes:2 --enable-intmax=yes --enable-fltmax=yes --enable-mod-mysql=no --enable-mod-uci=no --enable-pthread-flags=yes"
+    - OPTIONS="--enable-static=no --enable-shared=yes --enable-debug=yes --enable-dynamic-module=yes --enable-static-module=yes --enable-wide-char=yes:4 --enable-intmax=yes --enable-fltmax=yes --enable-mod-mysql=no --enable-mod-uci=no --enable-pthread-flags=yes"
+    - OPTIONS="--enable-static=yes --enable-shared=no --enable-debug=no --enable-dynamic-module=yes --enable-static-module=yes --enable-wide-char=yes:2 --enable-intmax=no --enable-fltmax=no --enable-mod-mysql=no --enable-mod-uci=no --enable-pthread-flags=yes"
+    - OPTIONS="--enable-static=yes --enable-shared=no --enable-debug=no --enable-dynamic-module=yes --enable-static-module=yes --enable-wide-char=yes:4 --enable-intmax=no --enable-fltmax=no --enable-mod-mysql=no --enable-mod-uci=no --enable-pthread-flags=yes"
+    - OPTIONS="--enable-static=no --enable-shared=yes --enable-debug=no --enable-dynamic-module=yes --enable-static-module=yes --enable-wide-char=yes:2 --enable-intmax=no --enable-fltmax=no --enable-mod-mysql=no --enable-mod-uci=no --enable-pthread-flags=yes"
+    - OPTIONS="--enable-static=no --enable-shared=yes --enable-debug=no --enable-dynamic-module=yes --enable-static-module=yes --enable-wide-char=yes:4 --enable-intmax=no --enable-fltmax=no --enable-mod-mysql=no --enable-mod-uci=no --enable-pthread-flags=yes"
+    - OPTIONS="--enable-static=yes --enable-shared=no --enable-debug=yes --enable-dynamic-module=yes --enable-static-module=yes --enable-wide-char=yes:2 --enable-intmax=no --enable-fltmax=no --enable-mod-mysql=no --enable-mod-uci=no --enable-pthread-flags=yes"
+    - OPTIONS="--enable-static=yes --enable-shared=no --enable-debug=yes --enable-dynamic-module=yes --enable-static-module=yes --enable-wide-char=yes:4 --enable-intmax=no --enable-fltmax=no --enable-mod-mysql=no --enable-mod-uci=no --enable-pthread-flags=yes"
+    - OPTIONS="--enable-static=no --enable-shared=yes --enable-debug=yes --enable-dynamic-module=yes --enable-static-module=yes --enable-wide-char=yes:2 --enable-intmax=no --enable-fltmax=no --enable-mod-mysql=no --enable-mod-uci=no --enable-pthread-flags=yes"
+    - OPTIONS="--enable-static=no --enable-shared=yes --enable-debug=yes --enable-dynamic-module=yes --enable-static-module=yes --enable-wide-char=yes:4 --enable-intmax=no --enable-fltmax=no --enable-mod-mysql=no --enable-mod-uci=no --enable-pthread-flags=yes"
+
+matrix:
+  include:
+    - os: osx
+      compiler: clang
+      env: OPTIONS="--enable-static=yes --enable-shared=no --enable-dynamic-module=yes --enable-static-module=yes --enable-wide-char=yes:2 --enable-intmax=yes --enable-fltmax=yes --enable-mod-mysql=no --enable-mod-uci=no --enable-pthread-flags=yes CPPFLAGS='-D__BEGIN_DECLS -D__END_DECLS'"
+
+script:
+  - touch -r hawk/configure hawk/* hawk/*/* && cd hawk && ./configure $OPTIONS && make && make check && make distcheck
