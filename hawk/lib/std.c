@@ -233,7 +233,7 @@ hawk_mmgr_t* hawk_get_sys_mmgr (void)
 
 hawk_flt_t hawk_stdmathpow (hawk_t* hawk, hawk_flt_t x, hawk_flt_t y)
 {
-#if defined(HAWK_USE_AWK_FLTMAX) && defined(HAVE_POWQ)
+#if defined(HAWK_USE_FLTMAX) && defined(HAVE_POWQ)
 	return powq(x, y);
 #elif defined(HAVE_POWL) && (HAWK_SIZEOF_LONG_DOUBLE > HAWK_SIZEOF_DOUBLE)
 	return powl(x, y);
@@ -248,7 +248,7 @@ hawk_flt_t hawk_stdmathpow (hawk_t* hawk, hawk_flt_t x, hawk_flt_t y)
 
 hawk_flt_t hawk_stdmathmod (hawk_t* hawk, hawk_flt_t x, hawk_flt_t y)
 {
-#if defined(HAWK_USE_AWK_FLTMAX) && defined(HAVE_FMODQ)
+#if defined(HAWK_USE_FLTMAX) && defined(HAVE_FMODQ)
 	return fmodq(x, y);
 #elif defined(HAVE_FMODL) && (HAWK_SIZEOF_LONG_DOUBLE > HAWK_SIZEOF_DOUBLE)
 	return fmodl(x, y);
