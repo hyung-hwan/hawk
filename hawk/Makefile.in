@@ -170,8 +170,8 @@ am__DIST_COMMON = $(srcdir)/Makefile.in $(top_srcdir)/ac/ar-lib \
 	$(top_srcdir)/ac/config.sub $(top_srcdir)/ac/install-sh \
 	$(top_srcdir)/ac/ltmain.sh $(top_srcdir)/ac/missing \
 	$(top_srcdir)/pkgs/hawk.spec.in ac/ar-lib ac/compile \
-	ac/config.guess ac/config.sub ac/depcomp ac/install-sh \
-	ac/ltmain.sh ac/missing
+	ac/config.guess ac/config.sub ac/install-sh ac/ltmain.sh \
+	ac/missing
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 distdir = $(PACKAGE)-$(VERSION)
 top_distdir = $(distdir)
