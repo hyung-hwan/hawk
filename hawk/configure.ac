@@ -98,7 +98,7 @@ dnl ===== enable-wide-char =====
 dnl this enable option is placed way above other options
 dnl as -fshort-wchar affects the size of wchar_t.
 AC_ARG_ENABLE([wide-char], 
-	[AS_HELP_STRING([--enable-wide-char],[Use the wide-character type as the default character type. one of yes, no, yes:2, yes:4, no:2, no:4 (default. yes)])],
+	[AS_HELP_STRING([--enable-wide-char],[Use the wide-character type as the default character type. one of yes, no, yes:2, yes:2w, yes:4, yes:4w, no:2, no:2w, no:4, no:4w (default. yes)])],
 	enable_wide_char=$enableval,
 	enable_wide_char=yes
 )
