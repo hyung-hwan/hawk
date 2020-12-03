@@ -18681,6 +18681,8 @@ ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
 ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
 
+	{ $as_echo "$as_me:${as_lineno-$LINENO}: checking unsigned int usability as the first parameter type of operator new" >&5
+$as_echo_n "checking unsigned int usability as the first parameter type of operator new... " >&6; }
 	cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 void* operator new (unsigned int) { return (void*)0; }

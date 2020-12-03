@@ -231,6 +231,7 @@ AC_COMPILE_IFELSE(
 if test "${HAVE_CXX}" = "yes"  
 then
 	AC_LANG_PUSH([C++])
+	AC_MSG_CHECKING([unsigned int usability as the first parameter type of operator new])
 	AC_COMPILE_IFELSE(
 		[AC_LANG_PROGRAM( [[void* operator new (unsigned int) { return (void*)0; }]], [[ ]])],
 		[AC_MSG_RESULT(yes)
