@@ -1,5 +1,4 @@
 language: c
-sudo: false
 
 os:
   - linux
@@ -9,7 +8,7 @@ compiler:
   - clang
 
 env:
-  matrix:
+  jobs:
     - OPTIONS="--enable-static=yes --enable-shared=no --enable-debug=no --enable-dynamic-module=yes --enable-static-module=yes --enable-wide-char=yes:2 --enable-intmax=yes --enable-fltmax=yes --enable-mod-mysql=no --enable-mod-uci=no --enable-cxx=yes --enable-pthread-flags=yes"
     - OPTIONS="--enable-static=yes --enable-shared=no --enable-debug=no --enable-dynamic-module=yes --enable-static-module=yes --enable-wide-char=yes:4 --enable-intmax=yes --enable-fltmax=yes --enable-mod-mysql=no --enable-mod-uci=no --enable-cxx=yes --enable-pthread-flags=yes"
     - OPTIONS="--enable-static=no --enable-shared=yes --enable-debug=no --enable-dynamic-module=yes --enable-static-module=yes --enable-wide-char=yes:2 --enable-intmax=yes --enable-fltmax=yes --enable-mod-mysql=no --enable-mod-uci=no --enable-cxx=yes --enable-pthread-flags=yes"
@@ -27,7 +26,7 @@ env:
     - OPTIONS="--enable-static=no --enable-shared=yes --enable-debug=yes --enable-dynamic-module=yes --enable-static-module=yes --enable-wide-char=yes:2 --enable-intmax=no --enable-fltmax=no --enable-mod-mysql=no --enable-mod-uci=no --enable-cxx=yes --enable-pthread-flags=yes"
     - OPTIONS="--enable-static=no --enable-shared=yes --enable-debug=yes --enable-dynamic-module=yes --enable-static-module=yes --enable-wide-char=yes:4 --enable-intmax=no --enable-fltmax=no --enable-mod-mysql=no --enable-mod-uci=no --enable-cxx=yes --enable-pthread-flags=yes"
 
-matrix:
+jobs:
   include:
     - os: osx
       compiler: clang
