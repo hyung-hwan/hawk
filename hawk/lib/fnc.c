@@ -958,9 +958,9 @@ static int fnc_split (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, int use_array)
 			str.len = org_len - (p - str.ptr);
 	}
 
-	if (do_fld) hawk_rtx_freemem (rtx, str.ptr);
-	else if (byte_str) hawk_rtx_freevalbcstr (rtx, a0, str.ptr);
-	else hawk_rtx_freevaloocstr (rtx, a0, str.ptr);
+	if (do_fld) { hawk_rtx_freemem (rtx, str.ptr); }
+	else if (byte_str) { hawk_rtx_freevalbcstr (rtx, a0, str.ptr); }
+	else { hawk_rtx_freevaloocstr (rtx, a0, str.ptr); }
 
 	if (fs_free) hawk_rtx_freevaloocstr (rtx, t0, fs_free);
 
@@ -981,9 +981,9 @@ static int fnc_split (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, int use_array)
 oops:
 	if (str.ptr) 
 	{
-		if (do_fld) hawk_rtx_freemem (rtx, str.ptr);
-		else if (byte_str) hawk_rtx_freevalbcstr (rtx, a0, str.ptr);
-		else hawk_rtx_freevaloocstr (rtx, a0, str.ptr);
+		if (do_fld) { hawk_rtx_freemem (rtx, str.ptr); }
+		else if (byte_str) { hawk_rtx_freevalbcstr (rtx, a0, str.ptr); }
+		else { hawk_rtx_freevaloocstr (rtx, a0, str.ptr); }
 	}
 
 	if (fs_free) hawk_rtx_freemem (rtx, fs_free);
