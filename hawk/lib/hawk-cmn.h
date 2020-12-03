@@ -1322,17 +1322,17 @@ typedef enum hawk_log_mask_t hawk_log_mask_t;
 #define HAWK_BT(txt)   (txt)
 
 #if (HAWK_SIZEOF_UCH_T == HAWK_SIZEOF_BCH_T)
-#       define HAWK_UQ_I(val)  (#val)
-#       define HAWK_UQ(val)    HAWK_UQ_I(val)
+#	define HAWK_UQ_I(val)  (#val)
+#	define HAWK_UQ(val)    HAWK_UQ_I(val)
 #elif defined(HAWK_USE_PREFIX_BIG_U)
-#       define HAWK_UQ_I(val)  (U ## #val)
-#       define HAWK_UQ(val)    HAWK_UQ_I(val)
+#	define HAWK_UQ_I(val)  (U ## #val)
+#	define HAWK_UQ(val)    HAWK_UQ_I(val)
 #elif defined(HAWK_USE_PREFIX_SMALL_U)
-#       define HAWK_UQ_I(val)  (u ## #val)
-#       define HAWK_UQ(val)    HAWK_UQ_I(val)
+#	define HAWK_UQ_I(val)  (u ## #val)
+#	define HAWK_UQ(val)    HAWK_UQ_I(val)
 #else
-#       define HAWK_UQ_I(val)  (L ## #val)
-#       define HAWK_UQ(val)    HAWK_UQ_I(val)
+#	define HAWK_UQ_I(val)  (L ## #val)
+#	define HAWK_UQ(val)    HAWK_UQ_I(val)
 #endif
 
 /**
@@ -1340,13 +1340,13 @@ typedef enum hawk_log_mask_t hawk_log_mask_t;
  * string by prefixing it with a supported prefix.
  */
 #if (HAWK_SIZEOF_UCH_T == HAWK_SIZEOF_BCH_T)
-#       define HAWK_UT(txt)    (txt)
+#	define HAWK_UT(txt)    (txt)
 #elif defined(HAWK_USE_PREFIX_BIG_U)
-#       define HAWK_UT(txt)    (U ## txt)
+#	define HAWK_UT(txt)    (U ## txt)
 #elif defined(HAWK_USE_PREFIX_SMALL_U)
-#       define HAWK_UT(txt)    (u ## txt)
+#	define HAWK_UT(txt)    (u ## txt)
 #else
-#       define HAWK_UT(txt)    (L ## txt)
+#	define HAWK_UT(txt)    (L ## txt)
 
 	/* if this assertion fails, you should check the compiler flags determining the size of wchar_t */
 	HAWK_STATIC_ASSERT (sizeof(L'X') == HAWK_SIZEOF_UCH_T);
@@ -1358,11 +1358,11 @@ typedef enum hawk_log_mask_t hawk_log_mask_t;
  * #HAWK_UT if #HAWK_OOCH_IS_UCH is defined.
  */
 #if defined(HAWK_OOCH_IS_BCH)
-#       define HAWK_Q(val) HAWK_BQ(val)
-#       define HAWK_T(txt) HAWK_BT(txt)
+#	define HAWK_Q(val) HAWK_BQ(val)
+#	define HAWK_T(txt) HAWK_BT(txt)
 #else
-#       define HAWK_Q(val) HAWK_UQ(val)
-#       define HAWK_T(txt) HAWK_UT(txt)
+#	define HAWK_Q(val) HAWK_UQ(val)
+#	define HAWK_T(txt) HAWK_UT(txt)
 #endif
 
 
