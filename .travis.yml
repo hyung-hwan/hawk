@@ -31,8 +31,7 @@ jobs:
     - os: osx
       compiler: clang
       env: 
-        - OPTIONS="--enable-static=yes --enable-shared=no --enable-dynamic-module=yes --enable-static-module=yes --enable-wide-char=yes:2 --enable-intmax=yes --enable-fltmax=yes --enable-mod-mysql=no --enable-mod-uci=no --enable-cxx=yes --enable-pthread-flags=yes" 
-        - CPPFLAGS="-D__BEGIN_DECLS -D__END_DECLS"
+        - OPTIONS="--enable-static=yes --enable-shared=no --enable-dynamic-module=yes --enable-static-module=yes --enable-wide-char=yes:2 --enable-intmax=yes --enable-fltmax=yes --enable-mod-mysql=no --enable-mod-uci=no --enable-cxx=yes --enable-pthread-flags=yes" CPPFLAGS="-D__BEGIN_DECLS -D__END_DECLS"
 
 script:
   - touch -r hawk/configure hawk/* hawk/*/* && cd hawk && ./configure $OPTIONS && make && make check && make distcheck
