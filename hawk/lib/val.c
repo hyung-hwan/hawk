@@ -2864,13 +2864,16 @@ void hawk_dprintval (hawk_rtx_t* run, hawk_val_t* val)
 		       	break;
 
 		case HAWK_VAL_INT:
-			hawk_errputstrf (HAWK_T("%jd"), 
-				(hawk_intmax_t)((hawk_val_int_t*)val)->val);
+			hawk_errputstrf (HAWK_T("%jd"), (hawk_intmax_t)((hawk_val_int_t*)val)->val);
 			break;
 
 		case HAWK_VAL_FLT:
-			hawk_errputstrf (HAWK_T("%jf"), 
-				(hawk_fltmax_t)((hawk_val_flt_t*)val)->val);
+		#if defined(HAWK_USE_FLTMAX)
+			/*hawk_errputstrf (HAWK_T("%jf"), ((hawk_val_flt_t*)val)->val);*/
+			hawk_errputstrf (HAWK_T("%jjf"), &((hawk_val_flt_t*)val)->val);
+		#else
+			hawk_errputstrf (HAWK_T("%zf"), ((hawk_val_flt_t*)val)->val);
+		#endif
 			break;
 
 		case HAWK_VAL_STR:

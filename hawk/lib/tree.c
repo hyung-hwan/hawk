@@ -350,16 +350,12 @@ static int print_expr (hawk_t* hawk, hawk_nde_t* nde)
 			{
 				hawk_ooch_t buf[96];
 
-				hawk_fmttooocstr (hawk,
-					buf, HAWK_COUNTOF(buf), 
-				#if defined(HAWK_USE_FLTMAX)
-					HAWK_T("%jf"),
-				#else
-					HAWK_T("%zf"), 
-				#endif
-					((hawk_nde_flt_t*)nde)->val
-				);
-
+			#if defined(HAWK_USE_FLTMAX)
+				/*hawk_fmttooocstr (hawk, buf, HAWK_COUNTOF(buf), HAWK_T("%jf"), ((hawk_nde_flt_t*)nde)->val);*/
+				hawk_fmttooocstr (hawk, buf, HAWK_COUNTOF(buf), HAWK_T("%jjf"), &((hawk_nde_flt_t*)nde)->val);
+			#else
+				hawk_fmttooocstr (hawk, buf, HAWK_COUNTOF(buf), HAWK_T("%zf"), ((hawk_nde_flt_t*)nde)->val);
+			#endif
 				PUT_SRCSTR (hawk, buf);
 			}
 			break;
