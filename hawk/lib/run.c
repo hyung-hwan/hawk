@@ -8121,7 +8121,8 @@ wp_mod_main:
 			int n;
 
 		#if defined(HAWK_USE_FLTMAX)
-			FMT_CHAR (HAWK_T('j'));
+			/*FMT_CHAR (HAWK_T('j'));*/
+			FMT_STR (HAWK_T("jj"), 2); /* see fmt.c for info on jj */
 		#else
 			FMT_CHAR (HAWK_T('z'));
 		#endif
@@ -8159,7 +8160,12 @@ wp_mod_main:
 			hawk_rtx_refdownval (rtx, v);
 			if (n <= -1) return HAWK_NULL;
 
+		#if defined(HAWK_USE_FLTMAX)
+			/*if (hawk_ooecs_fcat(out, HAWK_OOECS_PTR(fbu), r) == (hawk_oow_t)-1) return HAWK_NULL;*/
+			if (hawk_ooecs_fcat(out, HAWK_OOECS_PTR(fbu), &r) == (hawk_oow_t)-1) return HAWK_NULL;
+		#else
 			if (hawk_ooecs_fcat(out, HAWK_OOECS_PTR(fbu), r) == (hawk_oow_t)-1) return HAWK_NULL;
+		#endif
 		}
 		else if (fmt[i] == HAWK_T('c')) 
 		{
@@ -8932,7 +8938,8 @@ wp_mod_main:
 			int n;
 
 		#if defined(HAWK_USE_FLTMAX)
-			FMT_MCHAR (HAWK_BT('j'));
+			/*FMT_MCHAR (HAWK_BT('j'));*/
+			FMT_MBS (HAWK_BT("jj"), 2); /* see fmt.c for info on jj */
 		#else
 			FMT_MCHAR (HAWK_BT('z'));
 		#endif
@@ -8970,7 +8977,12 @@ wp_mod_main:
 			hawk_rtx_refdownval (rtx, v);
 			if (n <= -1) return HAWK_NULL;
 
+		#if defined(HAWK_USE_FLTMAX)
+			/*if (hawk_becs_fcat(out, HAWK_BECS_PTR(fbu), r) == (hawk_oow_t)-1) return HAWK_NULL;*/
+			if (hawk_becs_fcat(out, HAWK_BECS_PTR(fbu), &r) == (hawk_oow_t)-1) return HAWK_NULL;
+		#else
 			if (hawk_becs_fcat(out, HAWK_BECS_PTR(fbu), r) == (hawk_oow_t)-1) return HAWK_NULL;
+		#endif
 		}
 		else if (fmt[i] == HAWK_BT('c')) 
 		{

@@ -97,13 +97,62 @@ enum
 	/* long double */
 	LF_LD = (1 << 7),
 	/* __float128 */
-	LF_QD = (1 << 8)
+	LF_QD = (1 << 8),
+
+	/* intmax or fltmax passed as a pointer - introduced to work around the issue where 
+	 * __float128 value is not passed properly via va_list. for example, the following clode
+	 * compiled with clang -O1, -O2, -O3, etc produced a wrong value instead of 9.200000
+
+#include <stdio.h>
+#include <stdarg.h>
+void bbb (const char* fmt, va_list ap)
+{
+        __float128 x;
+        x = va_arg(ap, __float128);
+        printf ("%Lf\n", (long double)x);
+}
+void aaa (const char* fmt, ...)
+{
+        va_list ap;
+        va_start (ap, fmt);
+        bbb (fmt, ap);
+        va_end (ap);
+}
+int main ()
+{
+        __float128 t = 9.2;
+        aaa ("aaaa\n", t);
+        return 0;
+}
+
+
+$ clang --version
+clang version 7.0.1-8+deb10u2 (tags/RELEASE_701/final)
+Target: x86_64-pc-linux-gnu
+Thread model: posix
+InstalledDir: /usr/bin
+$ clang -O2 -o a a.c
+$ ./a
+0.000000
+$ clang -O0 -o a a.c
+$ ./a
+9.200000
+
+	 * the same code printed a correct value without compiler optimization. 
+	 *
+	 * passing a large value via a pointer is a safe way to work around this problem.
+	 * hawk_rtx_format() and hawk_rtx_formatmbs() pass 'jj' for a floating-pointer number
+	 * when built with  HAWK_USE_FLTMAX on.
+	 *
+	 * 'jj' is allowed for 'c' and 's' but it works like 'j' for them.
+	 */
+	LF_JJ = (1 << 9)
 };
 
 static struct
 {
-	hawk_uint8_t flag; /* for single occurrence */
-	hawk_uint8_t dflag; /* for double occurrence */
+	hawk_uint16_t flag; /* for single occurrence */
+	hawk_uint16_t dflag; /* for double occurrence */
 } lm_tab[26] = 
 {
 	{ 0,    0 }, /* a */
@@ -115,7 +164,7 @@ static struct
 	{ 0,    0 }, /* g */
 	{ LF_H, LF_C }, /* h */
 	{ 0,    0 }, /* i */
-	{ LF_J, 0 }, /* j */
+	{ LF_J, LF_JJ }, /* j */
 	{ 0,    0 }, /* k */
 	{ LF_L, LF_Q }, /* l */
 	{ 0,    0 }, /* m */
@@ -129,7 +178,7 @@ static struct
 	{ 0,    0 }, /* u */
 	{ 0,    0 }, /* v */
 	{ 0,    0 }, /* w */
-	{ 0,    0 }, /* z */
+	{ 0,    0 }, /* x */
 	{ 0,    0 }, /* y */
 	{ LF_Z, 0 }, /* z */
 };
@@ -704,7 +753,7 @@ static int fmt_outv (hawk_fmtout_t* fmtout, va_list ap)
 		/* end of length modifiers */
 
 		case 'n': /* number of characters printed so far */
-			if (lm_flag & LF_J) /* j */
+			if (lm_flag & (LF_J | LF_JJ)) /* j, jj */
 				*(va_arg(ap, hawk_intmax_t*)) = fmtout->count;
 			else if (lm_flag & LF_Z) /* z */
 				*(va_arg(ap, hawk_ooi_t*)) = fmtout->count;
@@ -764,7 +813,7 @@ static int fmt_outv (hawk_fmtout_t* fmtout, va_list ap)
 			if (flagc & FLAGC_ZEROPAD) padc = ' '; 
 			if (lm_flag & LF_L) goto uppercase_c;
 		#if defined(HAWK_OOCH_IS_UCH)
-			if (lm_flag & LF_J) goto uppercase_c;
+			if (lm_flag & (LF_J | LF_JJ)) goto uppercase_c;
 		#endif
 		lowercase_c:
 			bch = HAWK_SIZEOF(hawk_bch_t) < HAWK_SIZEOF(int)? va_arg(ap, int): va_arg(ap, hawk_bch_t);
@@ -784,7 +833,7 @@ static int fmt_outv (hawk_fmtout_t* fmtout, va_list ap)
 			if (flagc & FLAGC_ZEROPAD) padc = ' ';
 			if (lm_flag & LF_H) goto lowercase_c;
 		#if defined(HAWK_OOCH_IS_BCH)
-			if (lm_flag & LF_J) goto lowercase_c;
+			if (lm_flag & (LF_J | LF_JJ)) goto lowercase_c;
 		#endif
 		uppercase_c:
 			uch = HAWK_SIZEOF(hawk_uch_t) < HAWK_SIZEOF(int)? va_arg(ap, int): va_arg(ap, hawk_uch_t);
@@ -805,7 +854,7 @@ static int fmt_outv (hawk_fmtout_t* fmtout, va_list ap)
 			if (flagc & FLAGC_ZEROPAD) padc = ' ';
 			if (lm_flag & LF_L) goto uppercase_s;
 		#if defined(HAWK_OOCH_IS_UCH)
-			if (lm_flag & LF_J) goto uppercase_s;
+			if (lm_flag & (LF_J | LF_JJ)) goto uppercase_s;
 		#endif
 		lowercase_s:
 			bsp = va_arg(ap, hawk_bch_t*);
@@ -837,7 +886,7 @@ static int fmt_outv (hawk_fmtout_t* fmtout, va_list ap)
 			if (flagc & FLAGC_ZEROPAD) padc = ' ';
 			if (lm_flag & LF_H) goto lowercase_s;
 		#if defined(HAWK_OOCH_IS_UCH)
-			if (lm_flag & LF_J) goto lowercase_s;
+			if (lm_flag & (LF_J | LF_JJ)) goto lowercase_s;
 		#endif
 		uppercase_s:
 			usp = va_arg(ap, hawk_uch_t*);
@@ -1054,21 +1103,35 @@ static int fmt_outv (hawk_fmtout_t* fmtout, va_list ap)
 				#error Unsupported hawk_flt_t
 			#endif
 			}
+			else if (lm_flag & LF_JJ)
+			{
+			#if (HAWK_SIZEOF___FLOAT128 > 0) && defined(HAVE_QUADMATH_SNPRINTF) && (HAWK_SIZEOF_FLTMAX_T == HAWK_SIZEOF___FLOAT128)
+				v.qd = *(hawk_fltmax_t*)va_arg(ap, hawk_fltmax_t*);
+				dtype = LF_QD;
+			#elif HAWK_SIZEOF_FLTMAX_T == HAWK_SIZEOF_DOUBLE
+				v.d = *(hawk_fltmax_t*)va_arg(ap, hawk_fltmax_t*);
+			#elif HAWK_SIZEOF_FLTMAX_T == HAWK_SIZEOF_LONG_DOUBLE
+				v.ld = *(hawk_fltmax_t*)va_arg(ap, hawk_fltmax_t*);
+				dtype = LF_LD;
+			#else
+				#error Unsupported hawk_fltmax_t
+			#endif
+			}
 			else if (lm_flag & LF_Z)
 			{
-				/* hawk_flt_t is limited to double or long double */
+				/* limited to double or long double. use hawk_fltbas_t */
 
 				/* precedence goes to double if sizeof(double) == sizeof(long double) 
 				 * for example, %Lf didn't work on some old platforms.
 				 * so i prefer the format specifier with no modifier.
 				 */
-			#if HAWK_SIZEOF_FLT_T == HAWK_SIZEOF_DOUBLE
-				v.d = va_arg(ap, hawk_flt_t);
-			#elif HAWK_SIZEOF_FLT_T == HAWK_SIZEOF_LONG_DOUBLE
-				v.ld = va_arg(ap, hawk_flt_t);
+			#if HAWK_SIZEOF_FLTBAS_T == HAWK_SIZEOF_DOUBLE
+				v.d = va_arg(ap, hawk_fltbas_t);
+			#elif HAWK_SIZEOF_FLTBAS_T == HAWK_SIZEOF_LONG_DOUBLE
+				v.ld = va_arg(ap, hawk_fltbas_t);
 				dtype = LF_LD;
 			#else
-				#error Unsupported hawk_flt_t
+				#error Unsupported hawk_fltbas_t
 			#endif
 			}
 			else if (lm_flag & (LF_LD | LF_L))
@@ -1248,6 +1311,10 @@ static int fmt_outv (hawk_fmtout_t* fmtout, va_list ap)
 				num = va_arg(ap, hawk_uintmax_t);
 			#endif
 			}
+			else if (lm_flag & LF_JJ)
+			{
+				num = *(hawk_uintmax_t*)va_arg(ap, hawk_uintmax_t*);
+			}
 			else if (lm_flag & LF_T)
 				num = va_arg(ap, hawk_intptr_t/*hawk_ptrdiff_t*/);
 			else if (lm_flag & LF_Z)
@@ -1290,6 +1357,8 @@ static int fmt_outv (hawk_fmtout_t* fmtout, va_list ap)
 				num = va_arg(ap, hawk_intmax_t);
 			#endif
 			}
+			else if (lm_flag & LF_JJ)
+				num = *(hawk_intmax_t*)va_arg(ap, hawk_intmax_t*);
 
 			else if (lm_flag & LF_T)
 				num = va_arg(ap, hawk_intptr_t/*hawk_ptrdiff_t*/);
