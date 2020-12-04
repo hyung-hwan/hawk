@@ -153,10 +153,10 @@ static hawk_val_t* eval_fncall_fnc (hawk_rtx_t* rtx, hawk_nde_t* nde);
 static hawk_val_t* eval_fncall_fun (hawk_rtx_t* rtx, hawk_nde_t* nde);
 static hawk_val_t* eval_fncall_var (hawk_rtx_t* rtx, hawk_nde_t* nde);
 
-
 static int get_reference (hawk_rtx_t* rtx, hawk_nde_t* nde, hawk_val_t*** ref);
 static hawk_val_t** get_reference_indexed (hawk_rtx_t* rtx, hawk_nde_var_t* var);
 
+static hawk_val_t* eval_char (hawk_rtx_t* rtx, hawk_nde_t* nde);
 static hawk_val_t* eval_int (hawk_rtx_t* rtx, hawk_nde_t* nde);
 static hawk_val_t* eval_flt (hawk_rtx_t* rtx, hawk_nde_t* nde);
 static hawk_val_t* eval_str (hawk_rtx_t* rtx, hawk_nde_t* nde);
@@ -2063,7 +2063,7 @@ static int run_pblock (hawk_rtx_t* rtx, hawk_chain_t* cha, hawk_oow_t bno)
 static HAWK_INLINE int run_block0 (hawk_rtx_t* rtx, hawk_nde_blk_t* nde)
 {
 	hawk_nde_t* p;
-	hawk_oow_t saved_stack_top;
+	/*hawk_oow_t saved_stack_top;*/
 	int n = 0;
 
 	if (nde == HAWK_NULL)
@@ -2092,7 +2092,7 @@ static HAWK_INLINE int run_block0 (hawk_rtx_t* rtx, hawk_nde_blk_t* nde)
 	}
 
 	HAWK_ASSERT (nde->type == HAWK_NDE_BLK);
-	saved_stack_top = rtx->stack_top;
+	/*saved_stack_top = rtx->stack_top;*/
 
 #if defined(DEBUG_RUN)
 	hawk_logfmt (hawk_rtx_gethawk(rtx), HAWK_T("securing space for local variables nlcls = %d\n"), (int)nde->nlcls);
@@ -3647,6 +3647,7 @@ static hawk_val_t* eval_expression0 (hawk_rtx_t* rtx, hawk_nde_t* nde)
 		eval_fncall_fnc,
 		eval_fncall_fun,
 		eval_fncall_var,
+		eval_char,
 		eval_int,
 		eval_flt,
 		eval_str,
@@ -4633,9 +4634,15 @@ static HAWK_INLINE int __cmp_nil_nil (hawk_rtx_t* rtx, hawk_val_t* left, hawk_va
 	return 0;
 }
 
+static HAWK_INLINE int __cmp_nil_char (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t* right, cmp_op_t op_hint)
+{
+	hawk_ooch_t v = HAWK_RTX_GETCHARFROMVAL(rtx, right);
+	return (v < 0)? 1: ((v > 0)? -1: 0);
+}
+
 static HAWK_INLINE int __cmp_nil_int (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t* right, cmp_op_t op_hint)
 {
-	hawk_int_t v = HAWK_RTX_GETINTFROMVAL (rtx, right);
+	hawk_int_t v = HAWK_RTX_GETINTFROMVAL(rtx, right);
 	return (v < 0)? 1: ((v > 0)? -1: 0);
 }
 
@@ -4669,15 +4676,82 @@ static HAWK_INLINE int __cmp_nil_map (hawk_rtx_t* rtx, hawk_val_t* left, hawk_va
 
 /* -------------------------------------------------------------------- */
 
+static HAWK_INLINE int __cmp_char_nil (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t* right, cmp_op_t op_hint)
+{
+	hawk_ooch_t v = HAWK_RTX_GETCHARFROMVAL(rtx, left);
+	return (v > 0)? 1: ((v < 0)? -1: 0);
+}
+
+static HAWK_INLINE int __cmp_char_char (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t* right, cmp_op_t op_hint)
+{
+	hawk_ooch_t v1 = HAWK_RTX_GETCHARFROMVAL(rtx, left);
+	hawk_ooch_t v2 = HAWK_RTX_GETCHARFROMVAL(rtx, right);
+	return (v1 > v2)? 1: ((v1 < v2)? -1: 0);
+}
+
+static HAWK_INLINE int __cmp_char_int (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t* right, cmp_op_t op_hint)
+{
+	hawk_ooch_t v1 = HAWK_RTX_GETCHARFROMVAL(rtx, left);
+	hawk_ooch_t v2 = HAWK_RTX_GETCHARFROMVAL(rtx, right);
+	return (v1 > v2)? 1: ((v1 < v2)? -1: 0);
+}
+
+static HAWK_INLINE int __cmp_char_flt (
+	hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t* right, cmp_op_t op_hint)
+{
+	hawk_ooch_t v1 = HAWK_RTX_GETCHARFROMVAL(rtx, left);
+	if (v1 > ((hawk_val_flt_t*)right)->val) return 1;
+	if (v1 < ((hawk_val_flt_t*)right)->val) return -1;
+	return 0;
+}
+
+static HAWK_INLINE int __cmp_char_str (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t* right, cmp_op_t op_hint)
+{
+	hawk_ooch_t v1 = HAWK_RTX_GETCHARFROMVAL(rtx, left);
+	return hawk_comp_oochars(&v1, 1, ((hawk_val_str_t*)right)->val.ptr, ((hawk_val_str_t*)right)->val.len, rtx->gbl.ignorecase);
+}
+
+static HAWK_INLINE int __cmp_char_mbs (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t* right, cmp_op_t op_hint)
+{
+	hawk_ooch_t v1 = HAWK_RTX_GETCHARFROMVAL(rtx, left);
+	hawk_bch_t bc;
+	if (v1 > 0xFF) return 1;
+	bc = v1;
+	return hawk_comp_bchars(&bc, 1, ((hawk_val_mbs_t*)right)->val.ptr, ((hawk_val_mbs_t*)right)->val.len, rtx->gbl.ignorecase);
+}
+
+static HAWK_INLINE int __cmp_char_fun (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t* right, cmp_op_t op_hint)
+{
+	return __cmp_ensure_not_equal(rtx, op_hint);
+}
+
+static HAWK_INLINE int __cmp_char_map (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t* right, cmp_op_t op_hint)
+{
+	/* compare an integer and the size of a map */
+	hawk_ooch_t v1 = HAWK_RTX_GETCHARFROMVAL(rtx, left);
+	hawk_int_t v2 = HAWK_HTB_SIZE(((hawk_val_map_t*)right)->map);
+	if (v1 > v2) return 1;
+	if (v1 < v2) return -1;
+	return 0;
+}
+
+/* -------------------------------------------------------------------- */
+
 static HAWK_INLINE int __cmp_int_nil (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t* right, cmp_op_t op_hint)
 {
 	hawk_int_t v = HAWK_RTX_GETINTFROMVAL(rtx, left);
 	return (v > 0)? 1: ((v < 0)? -1: 0);
 }
 
+static HAWK_INLINE int __cmp_int_char (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t* right, cmp_op_t op_hint)
+{
+	hawk_int_t v1 = HAWK_RTX_GETINTFROMVAL(rtx, left);
+	hawk_ooch_t v2 = HAWK_RTX_GETCHARFROMVAL(rtx, right);
+	return (v1 > v2)? 1: ((v1 < v2)? -1: 0);
+}
+
 static HAWK_INLINE int __cmp_int_int (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t* right, cmp_op_t op_hint)
 {
-
 	hawk_int_t v1 = HAWK_RTX_GETINTFROMVAL(rtx, left);
 	hawk_int_t v2 = HAWK_RTX_GETINTFROMVAL(rtx, right);
 	return (v1 > v2)? 1: ((v1 < v2)? -1: 0);
@@ -4797,9 +4871,17 @@ static HAWK_INLINE int __cmp_flt_nil (hawk_rtx_t* rtx, hawk_val_t* left, hawk_va
 	return 0;
 }
 
+static HAWK_INLINE int __cmp_flt_char (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t* right, cmp_op_t op_hint)
+{
+	hawk_ooch_t v2 = HAWK_RTX_GETCHARFROMVAL(rtx, right);
+	if (((hawk_val_flt_t*)left)->val > v2) return 1;
+	if (((hawk_val_flt_t*)left)->val < v2) return -1;
+	return 0;
+}
+
 static HAWK_INLINE int __cmp_flt_int (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t* right, cmp_op_t op_hint)
 {
-	hawk_int_t v2 = HAWK_RTX_GETINTFROMVAL (rtx, right);
+	hawk_int_t v2 = HAWK_RTX_GETINTFROMVAL(rtx, right);
 	if (((hawk_val_flt_t*)left)->val > v2) return 1;
 	if (((hawk_val_flt_t*)left)->val < v2) return -1;
 	return 0;
@@ -4892,6 +4974,14 @@ static HAWK_INLINE int __cmp_str_nil (hawk_rtx_t* rtx, hawk_val_t* left, hawk_va
 	return (((hawk_val_str_t*)left)->val.len == 0)? 0: 1;
 }
 
+static HAWK_INLINE int __cmp_str_char (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t* right, cmp_op_t op_hint)
+{
+	int n;
+	n = __cmp_char_str(rtx, right, left, inverse_cmp_op(op_hint));
+	if (n == CMP_ERROR) return CMP_ERROR;
+	return -n;
+}
+
 static HAWK_INLINE int __cmp_str_int (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t* right, cmp_op_t op_hint)
 {
 	int n;
@@ -4910,7 +5000,6 @@ static HAWK_INLINE int __cmp_str_flt (hawk_rtx_t* rtx, hawk_val_t* left, hawk_va
 
 static HAWK_INLINE int __cmp_str_str (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t* right, cmp_op_t op_hint)
 {
-	hawk_t* hawk = hawk_rtx_gethawk(rtx);
 	hawk_val_str_t* ls, * rs;
 	int stripspc;
 
@@ -5024,6 +5113,14 @@ static HAWK_INLINE int __cmp_mbs_nil (hawk_rtx_t* rtx, hawk_val_t* left, hawk_va
 	return (((hawk_val_mbs_t*)left)->val.len == 0)? 0: 1;
 }
 
+static HAWK_INLINE int __cmp_mbs_char (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t* right, cmp_op_t op_hint)
+{
+	int n;
+	n = __cmp_char_mbs(rtx, right, left, inverse_cmp_op(op_hint));
+	if (n == CMP_ERROR) return CMP_ERROR;
+	return -n;
+}
+
 static HAWK_INLINE int __cmp_mbs_int (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t* right, cmp_op_t op_hint)
 {
 	int n;
@@ -5075,6 +5172,11 @@ static HAWK_INLINE int __cmp_fun_nil (hawk_rtx_t* rtx, hawk_val_t* left, hawk_va
 	return __cmp_ensure_not_equal(rtx, op_hint);
 }
 
+static HAWK_INLINE int __cmp_fun_char (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t* right, cmp_op_t op_hint)
+{
+	return __cmp_ensure_not_equal(rtx, op_hint);
+}
+
 static HAWK_INLINE int __cmp_fun_int (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t* right, cmp_op_t op_hint)
 {
 	return __cmp_ensure_not_equal(rtx, op_hint);
@@ -5111,6 +5213,14 @@ static HAWK_INLINE int __cmp_map_nil (hawk_rtx_t* rtx, hawk_val_t* left, hawk_va
 {
 	int n;
 	n = __cmp_nil_map(rtx, right, left, inverse_cmp_op(op_hint));
+	if (n == CMP_ERROR) return CMP_ERROR;
+	return -n;
+}
+
+static HAWK_INLINE int __cmp_map_char (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t* right, cmp_op_t op_hint)
+{
+	int n;
+	n = __cmp_char_map(rtx, right, left, inverse_cmp_op(op_hint));
 	if (n == CMP_ERROR) return CMP_ERROR;
 	return -n;
 }
@@ -5165,13 +5275,14 @@ static HAWK_INLINE int __cmp_val (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t*
 	{
 		/* this table must be synchronized with 
 		 * the HAWK_VAL_XXX values in hawk.h */
-		__cmp_nil_nil, __cmp_nil_int, __cmp_nil_flt, __cmp_nil_str, __cmp_nil_mbs, __cmp_nil_fun, __cmp_nil_map,  
-		__cmp_int_nil, __cmp_int_int, __cmp_int_flt, __cmp_int_str, __cmp_int_mbs, __cmp_int_fun, __cmp_int_map,
-		__cmp_flt_nil, __cmp_flt_int, __cmp_flt_flt, __cmp_flt_str, __cmp_flt_mbs, __cmp_flt_fun, __cmp_flt_map,
-		__cmp_str_nil, __cmp_str_int, __cmp_str_flt, __cmp_str_str, __cmp_str_mbs, __cmp_str_fun, __cmp_str_map,
-		__cmp_mbs_nil, __cmp_mbs_int, __cmp_mbs_flt, __cmp_mbs_str, __cmp_mbs_mbs, __cmp_mbs_fun, __cmp_mbs_map,
-		__cmp_fun_nil, __cmp_fun_int, __cmp_fun_flt, __cmp_fun_str, __cmp_fun_mbs, __cmp_fun_fun, __cmp_fun_map,
-		__cmp_map_nil, __cmp_map_int, __cmp_map_flt, __cmp_map_str, __cmp_map_mbs, __cmp_map_fun, __cmp_map_map
+		__cmp_nil_nil,  __cmp_nil_char,  __cmp_nil_int, __cmp_nil_flt, __cmp_nil_str, __cmp_nil_mbs, __cmp_nil_fun, __cmp_nil_map,  
+		__cmp_char_nil, __cmp_char_char, __cmp_char_int, __cmp_char_flt, __cmp_char_str, __cmp_char_mbs, __cmp_char_fun, __cmp_char_map,  
+		__cmp_int_nil,  __cmp_int_char,  __cmp_int_int, __cmp_int_flt, __cmp_int_str, __cmp_int_mbs, __cmp_int_fun, __cmp_int_map,
+		__cmp_flt_nil,  __cmp_flt_char,  __cmp_flt_int, __cmp_flt_flt, __cmp_flt_str, __cmp_flt_mbs, __cmp_flt_fun, __cmp_flt_map,
+		__cmp_str_nil,  __cmp_str_char,  __cmp_str_int, __cmp_str_flt, __cmp_str_str, __cmp_str_mbs, __cmp_str_fun, __cmp_str_map,
+		__cmp_mbs_nil,  __cmp_mbs_char,  __cmp_mbs_int, __cmp_mbs_flt, __cmp_mbs_str, __cmp_mbs_mbs, __cmp_mbs_fun, __cmp_mbs_map,
+		__cmp_fun_nil,  __cmp_fun_char,  __cmp_fun_int, __cmp_fun_flt, __cmp_fun_str, __cmp_fun_mbs, __cmp_fun_fun, __cmp_fun_map,
+		__cmp_map_nil,  __cmp_map_char, __cmp_map_int, __cmp_map_flt, __cmp_map_str, __cmp_map_mbs, __cmp_map_fun, __cmp_map_map
 	};
 
 	lvtype = HAWK_RTX_GETVALTYPE(rtx, left);
@@ -5189,19 +5300,20 @@ static HAWK_INLINE int __cmp_val (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t*
 
 	/* mapping fomula and table layout assume:
 	 *  HAWK_VAL_NIL  = 0
-	 *  HAWK_VAL_INT  = 1
-	 *  HAWK_VAL_FLT  = 2
-	 *  HAWK_VAL_STR  = 3
-	 *  HAWK_VAL_MBS  = 4
-	 *  HAWK_VAL_FUN  = 5
-	 *  HAWK_VAL_MAP  = 6
+	 *  HAWK_VAL_CHAR = 1
+	 *  HAWK_VAL_INT  = 2
+	 *  HAWK_VAL_FLT  = 3
+	 *  HAWK_VAL_STR  = 4
+	 *  HAWK_VAL_MBS  = 5
+	 *  HAWK_VAL_FUN  = 6
+	 *  HAWK_VAL_MAP  = 7
 	 * 
 	 * op_hint indicate the operation in progress when this function is called.
 	 * this hint doesn't require the comparison function to compare using this
 	 * operation. the comparision function should return 0 if equal, -1 if less,
 	 * 1 if greater, CMP_ERROR upon error regardless of this hint.
 	 */
-	n = func[lvtype * 7 + rvtype](rtx, left, right, op_hint);
+	n = func[lvtype * 8 + rvtype](rtx, left, right, op_hint);
 	if (n == CMP_ERROR) return -1;
 
 	*ret = n;
@@ -5231,6 +5343,10 @@ static int teq_val (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t* right)
 			{
 				case HAWK_VAL_NIL:
 					n = 1; 
+					break;
+
+				case HAWK_VAL_CHAR:
+					n = (HAWK_RTX_GETCHARFROMVAL (rtx, left) == HAWK_RTX_GETCHARFROMVAL (rtx, right));
 					break;
 
 				case HAWK_VAL_INT:
@@ -6920,6 +7036,14 @@ oops:
 	return HAWK_NULL;
 }
 
+static hawk_val_t* eval_char (hawk_rtx_t* rtx, hawk_nde_t* nde)
+{
+	hawk_val_t* val;
+	val = hawk_rtx_makecharval(rtx, ((hawk_nde_char_t*)nde)->val);
+	if (HAWK_UNLIKELY(!val)) ADJERR_LOC (rtx, &nde->loc);
+	return val;
+}
+
 static hawk_val_t* eval_int (hawk_rtx_t* rtx, hawk_nde_t* nde)
 {
 	hawk_val_t* val;
@@ -8210,6 +8334,11 @@ wp_mod_main:
 					ch_len = 0;
 					break;
 
+				case HAWK_VAL_CHAR:
+					ch = (hawk_ooch_t)HAWK_RTX_GETCHARFROMVAL (rtx, v);
+					ch_len = 1;
+					break;
+
 				case HAWK_VAL_INT:
 					ch = (hawk_ooch_t)HAWK_RTX_GETINTFROMVAL (rtx, v);
 					ch_len = 1;
@@ -9025,6 +9154,11 @@ wp_mod_main:
 				case HAWK_VAL_NIL:
 					ch = HAWK_BT('\0');
 					ch_len = 0;
+					break;
+
+				case HAWK_VAL_CHAR:
+					ch = (hawk_bch_t)HAWK_RTX_GETCHARFROMVAL(rtx, v); /* the value may get truncated */
+					ch_len = 1;
 					break;
 
 				case HAWK_VAL_INT:

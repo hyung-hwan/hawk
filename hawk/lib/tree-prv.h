@@ -57,6 +57,7 @@ typedef struct hawk_nde_exp_t       hawk_nde_exp_t;
 typedef struct hawk_nde_cnd_t       hawk_nde_cnd_t;
 typedef struct hawk_nde_pos_t       hawk_nde_pos_t;
 
+typedef struct hawk_nde_char_t      hawk_nde_char_t;
 typedef struct hawk_nde_int_t       hawk_nde_int_t;
 typedef struct hawk_nde_flt_t       hawk_nde_flt_t;
 typedef struct hawk_nde_str_t       hawk_nde_str_t;
@@ -135,13 +136,20 @@ struct hawk_nde_pos_t
 	hawk_nde_t* val;
 };
 
+/* HAWK_NDE_CHAR */
+struct hawk_nde_char_t
+{
+	HAWK_NDE_HDR;
+	hawk_ooch_t val;
+};
+
 /* HAWK_NDE_INT */
 struct hawk_nde_int_t
 {
 	HAWK_NDE_HDR;
 	hawk_int_t val;
-	hawk_ooch_t*   str; 
-	hawk_oow_t    len;
+	hawk_ooch_t* str; 
+	hawk_oow_t len;
 };
 
 /* HAWK_NDE_FLT */
@@ -149,8 +157,8 @@ struct hawk_nde_flt_t
 {
 	HAWK_NDE_HDR;
 	hawk_flt_t val;
-	hawk_ooch_t*   str;
-	hawk_oow_t    len;
+	hawk_ooch_t* str;
+	hawk_oow_t len;
 };
 
 /* HAWK_NDE_STR */
@@ -158,7 +166,7 @@ struct hawk_nde_str_t
 {
 	HAWK_NDE_HDR;
 	hawk_ooch_t* ptr;
-	hawk_oow_t  len;
+	hawk_oow_t len;
 };
 
 /* HAWK_NDE_MBS */

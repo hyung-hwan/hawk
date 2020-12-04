@@ -411,6 +411,7 @@ enum hawk_nde_type_t
 	HAWK_NDE_FNCALL_FNC,
 	HAWK_NDE_FNCALL_FUN,
 	HAWK_NDE_FNCALL_VAR,
+	HAWK_NDE_CHAR,
 	HAWK_NDE_INT,
 	HAWK_NDE_FLT,
 	HAWK_NDE_STR,
@@ -1383,16 +1384,17 @@ enum hawk_val_type_t
 	 * must be synchronized with an internal table of the __cmp_val 
 	 * function in run.c and the __val_type_name in val.c */
 	HAWK_VAL_NIL     = 0, /**< nil */
-	HAWK_VAL_INT     = 1, /**< integer */
-	HAWK_VAL_FLT     = 2, /**< floating-pointer number */
-	HAWK_VAL_STR     = 3, /**< string */
-	HAWK_VAL_MBS     = 4, /**< byte array */
-	HAWK_VAL_FUN     = 5, /**< function pointer */
-	HAWK_VAL_MAP     = 6, /**< map */
-	HAWK_VAL_ARR     = 7, /**< array */
+	HAWK_VAL_CHAR    = 1, /**< character */
+	HAWK_VAL_INT     = 2, /**< integer */
+	HAWK_VAL_FLT     = 3, /**< floating-pointer number */
+	HAWK_VAL_STR     = 4, /**< string */
+	HAWK_VAL_MBS     = 5, /**< byte array */
+	HAWK_VAL_FUN     = 6, /**< function pointer */
+	HAWK_VAL_MAP     = 7, /**< map */
+	HAWK_VAL_ARR     = 8, /**< array */
 
-	HAWK_VAL_REX     = 8, /**< regular expression */
-	HAWK_VAL_REF     = 9  /**< reference to other types */
+	HAWK_VAL_REX     = 9, /**< regular expression */
+	HAWK_VAL_REF     = 10 /**< reference to other types */
 };
 typedef enum hawk_val_type_t hawk_val_type_t;
 
@@ -2660,6 +2662,12 @@ HAWK_EXPORT int hawk_rtx_isnilval (
  */
 HAWK_EXPORT hawk_val_t* hawk_rtx_makenilval (
 	hawk_rtx_t* rtx
+);
+
+
+HAWK_EXPORT hawk_val_t* hawk_rtx_makecharval (
+	hawk_rtx_t* rtx,
+	hawk_ooch_t v
 );
 
 /**

@@ -77,11 +77,12 @@ struct hawk_val_rchunk_t
  *
  * is this a safe assumption? do i have to use memalign or write my own
  * aligned malloc()? */
-#define HAWK_VTR_NUM_TYPE_BITS        1
-#define HAWK_VTR_MASK_TYPE_BITS       1 
+#define HAWK_VTR_NUM_TYPE_BITS        2 /* last 2 bits */
+#define HAWK_VTR_MASK_TYPE_BITS       3 /* all 1's in the last 2 bits */
 
 #define HAWK_VTR_TYPE_BITS_POINTER    0
 #define HAWK_VTR_TYPE_BITS_QUICKINT   1
+#define HAWK_VTR_TYPE_BITS_QUICKCHAR  2
 #define HAWK_VTR_SIGN_BIT ((hawk_uintptr_t)1 << (HAWK_SIZEOF_UINTPTR_T * 8 - 1))
 
 /* shrink the bit range by 1 more bit to ease signbit handling. 
@@ -95,6 +96,7 @@ struct hawk_val_rchunk_t
 #define HAWK_VTR_TYPE_BITS(p) (((hawk_uintptr_t)(p)) & HAWK_VTR_MASK_TYPE_BITS)
 #define HAWK_VTR_IS_POINTER(p) (HAWK_VTR_TYPE_BITS(p) == HAWK_VTR_TYPE_BITS_POINTER)
 #define HAWK_VTR_IS_QUICKINT(p) (HAWK_VTR_TYPE_BITS(p) == HAWK_VTR_TYPE_BITS_QUICKINT)
+#define HAWK_VTR_IS_QUICKCHAR(p) (HAWK_VTR_TYPE_BITS(p) == HAWK_VTR_TYPE_BITS_QUICKCHAR)
 
 #define HAWK_QUICKINT_TO_VTR_POSITIVE(i) \
 	(((hawk_uintptr_t)(i) << HAWK_VTR_NUM_TYPE_BITS) | HAWK_VTR_TYPE_BITS_QUICKINT)
@@ -104,6 +106,8 @@ struct hawk_val_rchunk_t
 
 #define HAWK_QUICKINT_TO_VTR(i) \
 	((hawk_val_t*)(((i) < 0)? HAWK_QUICKINT_TO_VTR_NEGATIVE(i): HAWK_QUICKINT_TO_VTR_POSITIVE(i)))
+
+#define HAWK_QUICKCHAR_TO_VTR(i) (((hawk_uintptr_t)(i) << HAWK_VTR_NUM_TYPE_BITS) | HAWK_VTR_TYPE_BITS_QUICKCHAR)
 
 #define HAWK_VTR_ZERO ((hawk_val_t*)HAWK_QUICKINT_TO_VTR_POSITIVE(0))
 #define HAWK_VTR_ONE  ((hawk_val_t*)HAWK_QUICKINT_TO_VTR_POSITIVE(1))
@@ -119,9 +123,12 @@ struct hawk_val_rchunk_t
 #define HAWK_VTR_TO_QUICKINT(p) \
 	(((hawk_uintptr_t)(p) & HAWK_VTR_SIGN_BIT)? HAWK_VTR_TO_QUICKINT_NEGATIVE(p): HAWK_VTR_TO_QUICKINT_POSITIVE(p))
 
+#define HAWK_VTR_TO_QUICKCHAR(p) ((hawk_ooch_t)((hawk_uintptr_t)(p) >> HAWK_VTR_NUM_TYPE_BITS))
 
-#define HAWK_RTX_GETVALTYPE(rtx,p) (HAWK_VTR_IS_QUICKINT(p)? HAWK_VAL_INT: (p)->v_type)
+#define HAWK_RTX_GETVALTYPE(rtx,p) (HAWK_VTR_IS_QUICKINT(p)? HAWK_VAL_INT: \
+                                    HAWK_VTR_IS_QUICKCHAR(p)? HAWK_VAL_CHAR: (p)->v_type)
 #define HAWK_RTX_GETINTFROMVAL(rtx,p) ((HAWK_VTR_IS_QUICKINT(p)? (hawk_int_t)HAWK_VTR_TO_QUICKINT(p): ((hawk_val_int_t*)(p))->i_val))
+#define HAWK_RTX_GETCHARFROMVAL(rtx, p) (HAWK_VTR_TO_QUICKCHAR(p))
 
 
 #define HAWK_VAL_ZERO HAWK_VTR_ZERO
