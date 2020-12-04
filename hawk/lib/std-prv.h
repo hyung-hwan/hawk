@@ -24,7 +24,7 @@
     THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _HAWK_STD_PRV_H
+#ifndef _HAWK_STD_PRV_H_
 #define _HAWK_STD_PRV_H_
 
 #include <hawk-std.h>

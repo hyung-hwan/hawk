@@ -42,9 +42,10 @@
 
 #if defined(HAVE_CRT_EXTERNS_H)
 #	include <crt_externs.h> /* MacOSX/darwin. _NSGetEnviron() */
-#	define environ (*(_NSGetEnviron()))
+#	define SYSTEM_ENVIRON (*(_NSGetEnviron()))
 #else
 	extern char** environ;
+#	define SYSTEM_ENVIRON ::environ
 #endif
 
 /////////////////////////////////
@@ -343,7 +344,7 @@ int HawkStd::make_additional_globals (Run* run)
 {
 	/* TODO: use wenviron where it's available */
 
-	if (this->build_argcv(run) <= -1 || this->build_environ(run, ::environ) <= -1) return -1;
+	if (this->build_argcv(run) <= -1 || this->build_environ(run, SYSTEM_ENVIRON) <= -1) return -1;
 
 	return 0;
 }
