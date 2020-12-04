@@ -16,7 +16,7 @@ if ENABLE_STATIC_MODULE
 #-------------------------------------------------
 # STATIC MODULES BUILT INTO MAIN LIBRARY
 #-------------------------------------------------
-LDFLAGS_COMMON =-L$(libdir) -version-info 1:0:0 -no-undefined
+LDFLAGS_COMMON =-L$(libdir) 
 LIBADD_COMMON =
 
 noinst_LTLIBRARIES =
