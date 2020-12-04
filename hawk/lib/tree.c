@@ -303,6 +303,41 @@ static int print_expr (hawk_t* hawk, hawk_nde_t* nde)
 			break;
 		}
 
+		case HAWK_NDE_CHAR:
+		{
+			hawk_ooch_t tmp = ((hawk_nde_char_t*)nde)->val;
+			hawk_ooch_t buf[16]; 
+
+			PUT_SRCSTR (hawk, HAWK_T("\'"));
+			if (tmp == '\0')
+				PUT_SRCSTR (hawk, HAWK_T("\\0"));
+			else if (tmp == '\'')
+				PUT_SRCSTR (hawk, HAWK_T("\\'"));
+			else if (hawk_is_ooch_print(tmp))
+				PUT_SRCSTRN (hawk, &tmp, 1);
+		#if defined(HAWK_OOCH_IS_UCH)
+			else if (tmp <= 0xFFFF)
+			{
+				hawk_fmttooocstr (hawk, buf, HAWK_COUNTOF(buf), HAWK_T("\\u%04x"), tmp);
+				PUT_SRCSTR (hawk, buf);
+			}
+			else
+			{
+				hawk_fmttooocstr (hawk, buf, HAWK_COUNTOF(buf), HAWK_T("\\U%08x"), tmp);
+				PUT_SRCSTR (hawk, buf);
+			}
+		#else
+			else
+			{
+				hawk_fmttooocstr (hawk, buf, HAWK_COUNTOF(buf), HAWK_T("\\x%02x"), tmp);
+				PUT_SRCSTR (hawk, buf);
+			}
+		#endif
+
+			PUT_SRCSTR (hawk, HAWK_T("\'"));
+			break;
+		}
+
 		case HAWK_NDE_INT:
 		{
 			if (((hawk_nde_int_t*)nde)->str)

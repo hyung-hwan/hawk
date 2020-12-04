@@ -484,6 +484,11 @@ hawk_val_t* hawk_rtx_makenilval (hawk_rtx_t* rtx)
 	return (hawk_val_t*)&hawk_nil;
 }
 
+hawk_val_t* hawk_rtx_makecharval (hawk_rtx_t* rtx, hawk_ooch_t v)
+{
+	return HAWK_QUICKCHAR_TO_VTR(v);
+}
+
 hawk_val_t* hawk_rtx_makeintval (hawk_rtx_t* rtx, hawk_int_t v)
 {
 	hawk_val_int_t* val;
@@ -1368,6 +1373,7 @@ const hawk_ooch_t* hawk_rtx_getvaltypename(hawk_rtx_t* rtx, hawk_val_t* val)
 	{
 		/* synchronize this table with enum hawk_val_type_t in hawk.h */
 		HAWK_T("nil"),
+		HAWK_T("char"),
 		HAWK_T("int"),
 		HAWK_T("flt"),
 		HAWK_T("str"),
@@ -1407,7 +1413,13 @@ void hawk_rtx_freeval (hawk_rtx_t* rtx, hawk_val_t* val, int flags)
 				hawk_rtx_freemem (rtx, val);
 				break;
 			}
-			
+
+			case HAWK_VAL_CHAR:
+			{
+				/* this never happens */
+				break;
+			}
+
 			case HAWK_VAL_INT:
 			{
 				((hawk_val_int_t*)val)->nde = (hawk_nde_int_t*)rtx->vmgr.ifree;
@@ -1650,6 +1662,8 @@ int hawk_rtx_valtobool (hawk_rtx_t* rtx, const hawk_val_t* val)
 	{
 		case HAWK_VAL_NIL:
 			return 0;
+		case HAWK_VAL_CHAR:
+			return HAWK_RTX_GETCHARFROMVAL(rtx, val) != 0;
 		case HAWK_VAL_INT:
 			return HAWK_RTX_GETINTFROMVAL(rtx, val) != 0;
 		case HAWK_VAL_FLT:
@@ -2068,6 +2082,12 @@ int hawk_rtx_valtostr (hawk_rtx_t* rtx, const hawk_val_t* v, hawk_rtx_valtostr_o
 		case HAWK_VAL_NIL:
 			return str_to_str(rtx, HAWK_T(""), 0, out);
 
+		case HAWK_VAL_CHAR:
+		{
+			hawk_ooch_t tmp = HAWK_RTX_GETCHARFROMVAL(rtx, v);
+			return str_to_str(rtx, &tmp, 1, out);
+		}
+
 		case HAWK_VAL_INT:
 			return val_int_to_str(rtx, (hawk_val_int_t*)v, out);
 
@@ -2415,6 +2435,10 @@ int hawk_rtx_valtonum (hawk_rtx_t* rtx, const hawk_val_t* v, hawk_int_t* l, hawk
 			*l = 0;
 			return 0;
 
+		case HAWK_VAL_CHAR:
+			*l = HAWK_RTX_GETCHARFROMVAL(rtx, v);
+			return 0; /* long */
+
 		case HAWK_VAL_INT:
 			*l = HAWK_RTX_GETINTFROMVAL(rtx, v);
 			return 0; /* long */
@@ -2555,6 +2579,13 @@ hawk_int_t hawk_rtx_hashval (hawk_rtx_t* rtx, hawk_val_t* v)
 		case HAWK_VAL_NIL:
 			hv = 0;
 			break;
+
+		case HAWK_VAL_CHAR:
+		{
+			hawk_ooch_t tmp = HAWK_RTX_GETCHARFROMVAL(rtx, v);
+			hv = (hawk_int_t)hash((hawk_uint8_t*)&tmp, HAWK_SIZEOF(tmp));
+			break;
+		}
 
 		case HAWK_VAL_INT:
 		{
@@ -2860,8 +2891,29 @@ void hawk_dprintval (hawk_rtx_t* run, hawk_val_t* val)
 	switch (val->type)
 	{
 		case HAWK_VAL_NIL:
-			hawk_errputstrf (HAWK_T("nil"));
+			hawk_errputstrf (HAWK_T("@nil"));
 		       	break;
+
+		case HAWK_VAL_NIL:
+		{
+			hawk_ooch_t tmp = HAWK_RTX_GETCHARFROMVAL(rtx, val);
+			if (tmp == '\'')
+				hawk_errputstrf (HAWK_T("'\\%c'"), tmp);
+			else if (tmp == '\0')
+				hawk_errputstrf (HAWK_T("'\\0'"));
+			else if (hawk_is_ooch_print(tmp))
+				hawk_errputstrf (HAWK_T("'%jc'"), tmp);
+		#if defined(HAWK_OOCH_IS_UCH)
+			else if (tmp <= 0xFFFF)
+				hawk_errputstrf (HAWK_T("'\\u%04x'"), tmp);
+			else 
+				hawk_errputstrf (HAWK_T("'\\U%08x'"), tmp);
+		#else
+			else
+				hawk_errputstrf (HAWK_T("'\\x%02x'"), tmp);
+		#endif
+			break;
+		}
 
 		case HAWK_VAL_INT:
 			hawk_errputstrf (HAWK_T("%jd"), (hawk_intmax_t)((hawk_val_int_t*)val)->val);
