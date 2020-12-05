@@ -1383,6 +1383,12 @@ void hawk_clrpt (hawk_t* hawk, hawk_nde_t* tree)
 				break;
 			}
 
+			case HAWK_NDE_CHAR:
+			{
+				hawk_freemem (hawk, p);
+				break;
+			}
+
 			case HAWK_NDE_INT:
 			{
 				if (((hawk_nde_int_t*)p)->str)
