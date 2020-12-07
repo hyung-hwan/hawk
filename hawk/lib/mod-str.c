@@ -43,7 +43,7 @@ static int fnc_normspace (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		hawk_oow_t len0;
 
 		str0 = hawk_rtx_valtobcstrdup(rtx, a0, &len0);
-		if (!str0) return -1;
+		if (HAWK_UNLIKELY(!str0)) return -1;
 		len0 = hawk_compact_bchars(str0, len0);
 		retv = hawk_rtx_makembsvalwithbchars(rtx, str0, len0);
 		hawk_rtx_freemem (rtx, str0);
@@ -54,7 +54,7 @@ static int fnc_normspace (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		hawk_oow_t len0;
 
 		str0 = hawk_rtx_valtooocstrdup(rtx, a0, &len0);
-		if (!str0) return -1;
+		if (HAWK_UNLIKELY(!str0)) return -1;
 		len0 = hawk_compact_oochars(str0, len0);
 		retv = hawk_rtx_makestrvalwithoochars(rtx, str0, len0);
 		hawk_rtx_freemem (rtx, str0);

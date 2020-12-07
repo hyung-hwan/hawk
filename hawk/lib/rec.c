@@ -489,7 +489,7 @@ static int recomp_record_fields (hawk_rtx_t* rtx, hawk_oow_t lv, const hawk_oocs
 
 int hawk_rtx_truncrec (hawk_rtx_t* rtx, hawk_oow_t nflds)
 {
-	hawk_val_t* v;
+	hawk_val_t* v = HAWK_NULL, * w;
 	hawk_ooch_t* ofs_free = HAWK_NULL, * ofs_ptr;
 	hawk_oow_t ofs_len, i;
 	hawk_ooecs_t tmp;
@@ -509,62 +509,47 @@ int hawk_rtx_truncrec (hawk_rtx_t* rtx, hawk_oow_t nflds)
 			ofs_ptr = HAWK_T(" ");
 			ofs_len = 1;
 		}
-		else if (vtype == HAWK_VAL_STR)
-		{
-			ofs_ptr = ((hawk_val_str_t*)v)->val.ptr;
-			ofs_len = ((hawk_val_str_t*)v)->val.len;
-		}
 		else
 		{
-			hawk_rtx_valtostr_out_t out;
-
-			out.type = HAWK_RTX_VALTOSTR_CPLDUP;
-			if (hawk_rtx_valtostr(rtx, v, &out) <= -1) return -1;
-
-			ofs_ptr = out.u.cpldup.ptr;
-			ofs_len = out.u.cpldup.len;
+			ofs_ptr = hawk_rtx_getvaloocstr(rtx, v, &ofs_len);
+			if (HAWK_UNLIKELY(!ofs_ptr)) goto oops;
 			ofs_free = ofs_ptr;
 		}
 	}
 
-	if (hawk_ooecs_init(&tmp, hawk_rtx_getgem(rtx), HAWK_OOECS_LEN(&rtx->inrec.line)) <= -1)
-	{
-		if (ofs_free) hawk_rtx_freemem (rtx, ofs_free);
-		if (nflds > 1) hawk_rtx_refdownval (rtx, v);
-		return -1;
-	}
+	if (hawk_ooecs_init(&tmp, hawk_rtx_getgem(rtx), HAWK_OOECS_LEN(&rtx->inrec.line)) <= -1) goto oops;
 
 	for (i = 0; i < nflds; i++)
 	{
 		if (i > 0 && hawk_ooecs_ncat(&tmp,ofs_ptr,ofs_len) == (hawk_oow_t)-1)
 		{
 			hawk_ooecs_fini (&tmp);
-			if (ofs_free) hawk_rtx_freemem (rtx, ofs_free);
-			if (nflds > 1) hawk_rtx_refdownval (rtx, v);
-			return -1;
+			goto oops;
 		}
 
 		if (hawk_ooecs_ncat(&tmp, rtx->inrec.flds[i].ptr, rtx->inrec.flds[i].len) == (hawk_oow_t)-1)
 		{
 			hawk_ooecs_fini (&tmp);
-			if (ofs_free) hawk_rtx_freemem (rtx, ofs_free);
-			if (nflds > 1) hawk_rtx_refdownval (rtx, v);
-			return -1;
+			goto oops;
 		}
 	}
 
-	if (ofs_free) hawk_rtx_freemem (rtx, ofs_free);
-	if (nflds > 1) hawk_rtx_refdownval (rtx, v);
+	if (v)
+	{
+		if (ofs_free) hawk_rtx_freevaloocstr (rtx, v, ofs_free);
+		hawk_rtx_refdownval(rtx, v);
+		v = HAWK_NULL;
+	}
 
-	v = (hawk_val_t*)hawk_rtx_makestrvalwithoocs(rtx, HAWK_OOECS_OOCS(&tmp));
-	if (!v) 
+	w = (hawk_val_t*)hawk_rtx_makestrvalwithoocs(rtx, HAWK_OOECS_OOCS(&tmp));
+	if (!w) 
 	{
 		hawk_ooecs_fini (&tmp);
 		return -1;
 	}
 
 	if (HAWK_RTX_GETVALTYPE(rtx, rtx->inrec.d0) != HAWK_VAL_NIL) hawk_rtx_refdownval (rtx, rtx->inrec.d0);
-	rtx->inrec.d0 = v;
+	rtx->inrec.d0 = w;
 	hawk_rtx_refupval (rtx, rtx->inrec.d0);
 
 	hawk_ooecs_swap (&tmp, &rtx->inrec.line);
@@ -577,4 +562,12 @@ int hawk_rtx_truncrec (hawk_rtx_t* rtx, hawk_oow_t nflds)
 
 	rtx->inrec.nflds = nflds;
 	return 0;
+
+oops:
+	if (v)
+	{
+		if (ofs_free) hawk_rtx_freevaloocstr (rtx, v, ofs_free);
+		hawk_rtx_refdownval(rtx, v);
+	}
+	return -1;
 }

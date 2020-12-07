@@ -1663,7 +1663,8 @@ int hawk_rtx_valtobool (hawk_rtx_t* rtx, const hawk_val_t* val)
 		case HAWK_VAL_NIL:
 			return 0;
 		case HAWK_VAL_CHAR:
-			return HAWK_RTX_GETCHARFROMVAL(rtx, val) != 0;
+			/* return always true - treat it like a 1-letter string */
+			return 1;
 		case HAWK_VAL_INT:
 			return HAWK_RTX_GETINTFROMVAL(rtx, val) != 0;
 		case HAWK_VAL_FLT:
@@ -1949,7 +1950,7 @@ static int val_flt_to_str (hawk_rtx_t* rtx, const hawk_val_flt_t* v, hawk_rtx_va
 	fbu_inited = 1;
 
 	tmp = hawk_rtx_format(rtx, &buf, &fbu, tmp, tmp_len, (hawk_oow_t)-1, (hawk_nde_t*)v, &tmp_len);
-	if (tmp == HAWK_NULL) goto oops;
+	if (HAWK_UNLIKELY(!tmp)) goto oops;
 
 	switch (type)
 	{
@@ -2270,8 +2271,32 @@ hawk_uch_t* hawk_rtx_valtoucstrdupwithcmgr (hawk_rtx_t* rtx, const hawk_val_t* v
 
 hawk_ooch_t* hawk_rtx_getvaloocstrwithcmgr (hawk_rtx_t* rtx, hawk_val_t* v, hawk_oow_t* len, hawk_cmgr_t* cmgr)
 {
+	hawk_ooch_t c;
+	hawk_oow_t l;
+
 	switch (HAWK_RTX_GETVALTYPE(rtx, v))
 	{
+		case HAWK_VAL_NIL:
+			c = '\0';
+			l = 0;
+			goto ctos;
+		case HAWK_VAL_CHAR:
+			c = HAWK_RTX_GETCHARFROMVAL(rtx, v);
+			l = 1;
+		ctos:
+			if (rtx->ctos.fi) /* free slot available */
+			{
+				/* use a ctos slot to avoid duplication */
+				hawk_oow_t fi;
+				fi = rtx->ctos.fi;
+				rtx->ctos.fi = rtx->ctos.b[rtx->ctos.fi].c[0];
+				rtx->ctos.b[fi].c[0] = c;
+				rtx->ctos.b[fi].c[1] = '\0';
+				if (len) *len = l;
+				return &rtx->ctos.b[fi];
+			}
+			goto duplicate;
+
 		case HAWK_VAL_STR:
 #if 0
 		plain_str:
@@ -2291,6 +2316,7 @@ hawk_ooch_t* hawk_rtx_getvaloocstrwithcmgr (hawk_rtx_t* rtx, hawk_val_t* v, hawk
 #endif
 
 		default:
+		duplicate:
 			return hawk_rtx_valtooocstrdupwithcmgr(rtx, v, len, cmgr);
 	}
 }
@@ -2299,6 +2325,22 @@ void hawk_rtx_freevaloocstr (hawk_rtx_t* rtx, hawk_val_t* v, hawk_ooch_t* str)
 {
 	switch (HAWK_RTX_GETVALTYPE(rtx, v))
 	{
+		case HAWK_VAL_NIL:
+		case HAWK_VAL_CHAR:
+		{
+			hawk_ctos_b_t* b = (hawk_ctos_b_t*)str;
+			if (b >= &rtx->ctos.b[0] && b < &rtx->ctos.b[HAWK_COUNTOF(rtx->ctos.b)])
+			{
+				hawk_oow_t fi;
+				fi = b - &rtx->ctos.b[0];
+				rtx->ctos.b[fi].c[0] = rtx->ctos.fi;
+				rtx->ctos.fi = fi;
+				break;
+			}
+
+			goto freemem;
+		}
+
 		case HAWK_VAL_STR:
 #if 0
 		plain_str:
@@ -2314,6 +2356,7 @@ void hawk_rtx_freevaloocstr (hawk_rtx_t* rtx, hawk_val_t* v, hawk_ooch_t* str)
 #endif
 
 		default:
+		freemem:
 			hawk_rtx_freemem (rtx, str);
 			break;
 	}
@@ -2436,8 +2479,14 @@ int hawk_rtx_valtonum (hawk_rtx_t* rtx, const hawk_val_t* v, hawk_int_t* l, hawk
 			return 0;
 
 		case HAWK_VAL_CHAR:
-			*l = HAWK_RTX_GETCHARFROMVAL(rtx, v);
-			return 0; /* long */
+		{
+			/* treat it as if it is a 1-letter string */
+			hawk_ooch_t tmp = HAWK_RTX_GETCHARFROMVAL(rtx, v);
+			return hawk_oochars_to_num(
+				HAWK_OOCHARS_TO_NUM_MAKE_OPTION(0, 0, HAWK_RTX_IS_STRIPSTRSPC_ON(rtx), 0),
+				&tmp, 1, l, r
+			);
+		}
 
 		case HAWK_VAL_INT:
 			*l = HAWK_RTX_GETINTFROMVAL(rtx, v);
@@ -2748,41 +2797,21 @@ int hawk_rtx_setrefval (hawk_rtx_t* rtx, hawk_val_ref_t* ref, hawk_val_t* val)
 					hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_ENONSCATOPOS);
 					return -1;
 
-				case HAWK_VAL_STR:
-				{
-					int x;
-					/* handle this separately from the default case
-					 * for no duplication. jumping to the default case
-					 * and callinghawk_rtx_valtooocstrdup() would also work, anyway. */
-					hawk_rtx_refupval (rtx, val);
-					x = hawk_rtx_setrec(rtx, (hawk_oow_t)ref->adr, &((hawk_val_str_t*)val)->val, 0);
-					hawk_rtx_refdownval (rtx, val);
-					return x;
-				}
-
-				case HAWK_VAL_MBS:
-				#if defined(HAWK_OOCH_IS_BCH)
-				{
-					/* same as str in the mchar mode */
-					int x;
-					hawk_rtx_refupval (rtx, val);
-					x = hawk_rtx_setrec(rtx, (hawk_oow_t)ref->adr, &((hawk_val_mbs_t*)val)->val, 0);
-					hawk_rtx_refdownval (rtx, val);
-					return x;
-				}
-				#endif
-					/* fall thru otherwise */
-
 				default:
 				{
 					hawk_oocs_t str;
 					int x;
 
-					str.ptr = hawk_rtx_valtooocstrdup(rtx, val, &str.len);
 					hawk_rtx_refupval (rtx, val);
+					str.ptr = hawk_rtx_getvaloocstr(rtx, val, &str.len);
+					if (HAWK_UNLIKELY(!str.ptr))
+					{
+						hawk_rtx_refdownval (rtx, val);
+						return -1;
+					}
 					x = hawk_rtx_setrec(rtx, (hawk_oow_t)ref->adr, &str, 0);
+					hawk_rtx_freevaloocstr (rtx, val, str.ptr);
 					hawk_rtx_refdownval (rtx, val);
-					hawk_rtx_freemem (rtx, str.ptr);
 					return x;
 				}
 			}
