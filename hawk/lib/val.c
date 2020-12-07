@@ -2293,7 +2293,8 @@ hawk_ooch_t* hawk_rtx_getvaloocstrwithcmgr (hawk_rtx_t* rtx, hawk_val_t* v, hawk
 				rtx->ctos.b[fi].c[0] = c;
 				rtx->ctos.b[fi].c[1] = '\0';
 				if (len) *len = l;
-				return &rtx->ctos.b[fi];
+				HAWK_ASSERT ((void*)&rtx->ctos.b[fi] == (void*)rtx->ctos.b[fi].c);
+				return rtx->ctos.b[fi].c;
 			}
 			goto duplicate;
 

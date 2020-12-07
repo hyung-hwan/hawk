@@ -1050,7 +1050,7 @@ static hawk_mmgr_t xma_mmgr =
 	HAWK_NULL
 };
 
-static int xma_dumper_without_hawk (void* ctx, const hawk_bch_t* fmt, ...)
+static void xma_dumper_without_hawk (void* ctx, const hawk_bch_t* fmt, ...)
 {
 	va_list ap;
 	va_start (ap, fmt);

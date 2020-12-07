@@ -3051,7 +3051,7 @@ static ioattr_t* find_or_make_ioattr (hawk_rtx_t* rtx, hawk_htb_t* tab, const ha
 
 static int fnc_setioattr (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
-	hawk_t* hawk = hawk_rtx_gethawk(rtx);
+	/*hawk_t* hawk = hawk_rtx_gethawk(rtx);*/
 	rxtn_t* rxtn;
 	hawk_val_t* v[3];
 	hawk_ooch_t* ptr[3];

@@ -261,7 +261,7 @@ int hawk_xma_init (hawk_xma_t* xma, hawk_mmgr_t* mmgr, void* zoneptr, hawk_oow_t
 	/* let it be the head, which is natural with only a block */
 	xma->start = (hawk_uint8_t*)first;
 	xma->end = xma->start + zonesize;
-	xma->internal = 1;
+	xma->internal = internal;
 
 	/* initialize some statistical variables */
 #if defined(HAWK_XMA_ENABLE_STAT)

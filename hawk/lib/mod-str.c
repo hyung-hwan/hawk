@@ -468,7 +468,7 @@ static int fnc_tonum (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	/* str::tonum(value) */
 	/* str::tonum(string, base) */
 
-	hawk_t* hawk = hawk_rtx_gethawk(rtx);
+	/*hawk_t* hawk = hawk_rtx_gethawk(rtx);*/
 	hawk_val_t* retv;
 	hawk_val_t* a0;
 	hawk_int_t lv;
