@@ -107,7 +107,7 @@ struct hawk_val_rchunk_t
 #define HAWK_QUICKINT_TO_VTR(i) \
 	((hawk_val_t*)(((i) < 0)? HAWK_QUICKINT_TO_VTR_NEGATIVE(i): HAWK_QUICKINT_TO_VTR_POSITIVE(i)))
 
-#define HAWK_QUICKCHAR_TO_VTR(i) (((hawk_uintptr_t)(i) << HAWK_VTR_NUM_TYPE_BITS) | HAWK_VTR_TYPE_BITS_QUICKCHAR)
+#define HAWK_QUICKCHAR_TO_VTR(i) ((hawk_val_t*)(((hawk_uintptr_t)(i) << HAWK_VTR_NUM_TYPE_BITS) | HAWK_VTR_TYPE_BITS_QUICKCHAR))
 
 #define HAWK_VTR_ZERO ((hawk_val_t*)HAWK_QUICKINT_TO_VTR_POSITIVE(0))
 #define HAWK_VTR_ONE  ((hawk_val_t*)HAWK_QUICKINT_TO_VTR_POSITIVE(1))

@@ -325,26 +325,25 @@ static int set_global (hawk_rtx_t* rtx, int idx, hawk_nde_var_t* var, hawk_val_t
 		case HAWK_GBL_CONVFMT:
 		{
 			hawk_oow_t i;
-			hawk_rtx_valtostr_out_t out;
+			hawk_oocs_t str;
 
-			out.type = HAWK_RTX_VALTOSTR_CPLDUP;
-			if (hawk_rtx_valtostr (rtx, val, &out) <= -1)
-				return -1;
+			str.ptr = hawk_rtx_valtooocstrdup(rtx, val, &str.len);
+			if (HAWK_UNLIKELY(!str.ptr)) return -1;
 
-			for (i = 0; i < out.u.cpldup.len; i++)
+			for (i = 0; i < str.len; i++)
 			{
-				if (out.u.cpldup.ptr[i] == HAWK_T('\0'))
+				if (str.ptr[i] == '\0')
 				{
 					/* '\0' is included in the value */
-					hawk_rtx_freemem (rtx, out.u.cpldup.ptr);
+					hawk_rtx_freemem (rtx, str.ptr);
 					hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_ECONVFMTCHR);
 					return -1;
 				}
 			}
 
 			if (rtx->gbl.convfmt.ptr) hawk_rtx_freemem (rtx, rtx->gbl.convfmt.ptr);
-			rtx->gbl.convfmt.ptr = out.u.cpldup.ptr;
-			rtx->gbl.convfmt.len = out.u.cpldup.len;
+			rtx->gbl.convfmt.ptr = str.ptr;
+			rtx->gbl.convfmt.len = str.len;
 			break;
 		}
 
@@ -365,24 +364,12 @@ static int set_global (hawk_rtx_t* rtx, int idx, hawk_nde_var_t* var, hawk_val_t
 			hawk_ooch_t* fs_ptr;
 			hawk_oow_t fs_len;
 
-			if (vtype == HAWK_VAL_STR)
-			{
-				fs_ptr = ((hawk_val_str_t*)val)->val.ptr;
-				fs_len = ((hawk_val_str_t*)val)->val.len;
-			}
-			else
-			{
-				hawk_rtx_valtostr_out_t out;
+			/* due to the expression evaluation rule, the 
+			 * regular expression can not be an assigned value */
+			HAWK_ASSERT (vtype != HAWK_VAL_REX);
 
-				/* due to the expression evaluation rule, the 
-				 * regular expression can not be an assigned value */
-				HAWK_ASSERT (vtype != HAWK_VAL_REX);
-
-				out.type = HAWK_RTX_VALTOSTR_CPLDUP;
-				if (hawk_rtx_valtostr(rtx, val, &out) <= -1) return -1;
-				fs_ptr = out.u.cpldup.ptr;
-				fs_len = out.u.cpldup.len;
-			}
+			fs_ptr = hawk_rtx_getvaloocstr(rtx, val, &fs_len);
+			if (HAWK_UNLIKELY(!fs_ptr)) return -1;
 
 			if (fs_len > 1 && !(fs_len == 5 && fs_ptr[0] == '?'))
 			{
@@ -393,7 +380,7 @@ static int set_global (hawk_rtx_t* rtx, int idx, hawk_nde_var_t* var, hawk_val_t
 
 				if (hawk_rtx_buildrex(rtx, fs_ptr, fs_len, &rex, &irex) <= -1)
 				{
-					if (vtype != HAWK_VAL_STR) hawk_rtx_freemem (rtx, fs_ptr);
+					hawk_rtx_freevaloocstr (rtx, val, fs_ptr);
 					return -1;
 				}
 
@@ -403,7 +390,7 @@ static int set_global (hawk_rtx_t* rtx, int idx, hawk_nde_var_t* var, hawk_val_t
 				rtx->gbl.fs[1] = irex;
 			}
 
-			if (vtype != HAWK_VAL_STR) hawk_rtx_freemem (rtx, fs_ptr);
+			hawk_rtx_freevaloocstr (rtx, val, fs_ptr);
 			break;
 		}
 
@@ -487,50 +474,51 @@ static int set_global (hawk_rtx_t* rtx, int idx, hawk_nde_var_t* var, hawk_val_t
 		case HAWK_GBL_OFMT:
 		{
 			hawk_oow_t i;
-			hawk_rtx_valtostr_out_t out;
+			hawk_oocs_t str;
 
-			out.type = HAWK_RTX_VALTOSTR_CPLDUP;
-			if (hawk_rtx_valtostr(rtx, val, &out) <= -1) return -1;
+			str.ptr = hawk_rtx_valtooocstrdup(rtx, val, &str.len);
+			if (HAWK_UNLIKELY(!str.ptr)) return -1;
 
-			for (i = 0; i < out.u.cpldup.len; i++)
+			for (i = 0; i < str.len; i++)
 			{
-				if (out.u.cpldup.ptr[i] == HAWK_T('\0'))
+				if (str.ptr[i] == '\0')
 				{
-					hawk_rtx_freemem (rtx, out.u.cpldup.ptr);
-					hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EOFMTCHR);
+					/* '\0' is included in the value */
+					hawk_rtx_freemem (rtx, str.ptr);
+					hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_ECONVFMTCHR);
 					return -1;
 				}
 			}
 
 			if (rtx->gbl.ofmt.ptr) hawk_rtx_freemem (rtx, rtx->gbl.ofmt.ptr);
-			rtx->gbl.ofmt.ptr = out.u.cpldup.ptr;
-			rtx->gbl.ofmt.len = out.u.cpldup.len;
-
-			break;
+			rtx->gbl.ofmt.ptr = str.ptr;
+			rtx->gbl.ofmt.len = str.len;
 		}
 
 		case HAWK_GBL_OFS:
 		{
-			hawk_rtx_valtostr_out_t out;
+			hawk_oocs_t str;
 
-			out.type = HAWK_RTX_VALTOSTR_CPLDUP;
-			if (hawk_rtx_valtostr(rtx, val, &out) <= -1) return -1;
+			str.ptr = hawk_rtx_valtooocstrdup(rtx, val, &str.len);
+			if (HAWK_UNLIKELY(!str.ptr)) return -1;
+
 			if (rtx->gbl.ofs.ptr) hawk_rtx_freemem (rtx, rtx->gbl.ofs.ptr);
-			rtx->gbl.ofs.ptr = out.u.cpldup.ptr;
-			rtx->gbl.ofs.len = out.u.cpldup.len;
+			rtx->gbl.ofs.ptr = str.ptr;
+			rtx->gbl.ofs.len = str.len;
 
 			break;
 		}
 
 		case HAWK_GBL_ORS:
 		{	
-			hawk_rtx_valtostr_out_t out;
+			hawk_oocs_t str;
 
-			out.type = HAWK_RTX_VALTOSTR_CPLDUP;
-			if (hawk_rtx_valtostr(rtx, val, &out) <= -1) return -1;
+			str.ptr = hawk_rtx_valtooocstrdup(rtx, val, &str.len);
+			if (HAWK_UNLIKELY(!str.ptr)) return -1;
+
 			if (rtx->gbl.ors.ptr) hawk_rtx_freemem (rtx, rtx->gbl.ors.ptr);
-			rtx->gbl.ors.ptr = out.u.cpldup.ptr;
-			rtx->gbl.ors.len = out.u.cpldup.len;
+			rtx->gbl.ors.ptr = str.ptr;
+			rtx->gbl.ors.len = str.len;
 
 			break;
 		}
@@ -607,14 +595,14 @@ static int set_global (hawk_rtx_t* rtx, int idx, hawk_nde_var_t* var, hawk_val_t
 
 		case HAWK_GBL_SUBSEP:
 		{
-			hawk_rtx_valtostr_out_t out;
+			hawk_oocs_t str;
 
-			out.type = HAWK_RTX_VALTOSTR_CPLDUP;
-			if (hawk_rtx_valtostr(rtx, val, &out) <= -1) return -1;
+			str.ptr = hawk_rtx_valtooocstrdup(rtx, val, &str.len);
+			if (HAWK_UNLIKELY(!str.ptr)) return -1;
 
 			if (rtx->gbl.subsep.ptr) hawk_rtx_freemem (rtx, rtx->gbl.subsep.ptr);
-			rtx->gbl.subsep.ptr = out.u.cpldup.ptr;
-			rtx->gbl.subsep.len = out.u.cpldup.len;
+			rtx->gbl.subsep.ptr = str.ptr;
+			rtx->gbl.subsep.len = str.len;
 
 			break;
 		}
@@ -835,6 +823,7 @@ hawk_rtx_t* hawk_rtx_open (hawk_t* hawk, hawk_oow_t xtnsize, hawk_rio_cbs_t* rio
 {
 	hawk_rtx_t* rtx;
 	struct module_init_ctx_t mic;
+	hawk_oow_t i;
 
 	/* clear the hawk error code */
 	hawk_seterrnum (hawk, HAWK_NULL, HAWK_ENOERR);
@@ -896,6 +885,16 @@ hawk_rtx_t* hawk_rtx_open (hawk_t* hawk, hawk_oow_t xtnsize, hawk_rio_cbs_t* rio
 		hawk_freemem (hawk, rtx);
 		return HAWK_NULL;
 	}
+
+	/* chain the ctos slots */
+	rtx->ctos.fi = HAWK_COUNTOF(rtx->ctos.b) - 1;
+	for (i = HAWK_COUNTOF(rtx->ctos.b); i > 1;)
+	{
+		--i;
+		rtx->ctos.b[i].c[0] = i - 1;
+	}
+	/* rtx->ctos.b[0] is not used as the free index of 0 indicates the end of the list.
+	 * see hawk_rtx_getvaloocstr(). */
 
 	return rtx;
 }
@@ -8335,12 +8334,12 @@ wp_mod_main:
 					break;
 
 				case HAWK_VAL_CHAR:
-					ch = (hawk_ooch_t)HAWK_RTX_GETCHARFROMVAL (rtx, v);
+					ch = (hawk_ooch_t)HAWK_RTX_GETCHARFROMVAL(rtx, v);
 					ch_len = 1;
 					break;
 
 				case HAWK_VAL_INT:
-					ch = (hawk_ooch_t)HAWK_RTX_GETINTFROMVAL (rtx, v);
+					ch = (hawk_ooch_t)HAWK_RTX_GETINTFROMVAL(rtx, v);
 					ch_len = 1;
 					break;
 

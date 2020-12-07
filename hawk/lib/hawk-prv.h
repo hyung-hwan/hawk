@@ -378,6 +378,12 @@ struct hawk_chain_t
 	hawk_chain_t* next;
 };
 
+typedef struct hawk_ctos_b_t hawk_ctos_b_t;
+struct hawk_ctos_b_t
+{
+	hawk_ooch_t c[2];
+};
+
 struct hawk_rtx_t
 {
 	HAWK_RTX_HDR;
@@ -410,6 +416,16 @@ struct hawk_rtx_t
 		hawk_val_flt_t* rfree;
 		hawk_val_chunk_t* rchunk;
 	} vmgr;
+
+	struct
+	{
+#if defined(HAWK_OOCH_IS_UCH)
+		hawk_ctos_b_t b[512];
+#else
+		hawk_ctos_b_t b[256]; /* it must not be larger than 256 */
+#endif
+		hawk_oow_t fi;
+	} ctos; /* char/nil to string conversion */
 
 	struct
 	{
