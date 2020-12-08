@@ -450,7 +450,7 @@ static int fnc_tombs (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		{
 			hawk_bcs_t str;
 			str.ptr = hawk_rtx_getvalbcstrwithcmgr(rtx, a0, &str.len, cmgr);
-			if (!str.ptr) return -1;
+			if (HAWK_UNLIKELY(!str.ptr)) return -1;
 			r = hawk_rtx_makembsvalwithbcs(rtx, &str);
 			hawk_rtx_freevalbcstr (rtx, a0, str.ptr);
 			if (!r) return -1;
@@ -477,38 +477,67 @@ static int fnc_tonum (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 	a0 = hawk_rtx_getarg(rtx, 0);
 
-	if (HAWK_RTX_GETVALTYPE(rtx, a0) == HAWK_VAL_MBS && hawk_rtx_getnargs(rtx) >= 2)
+	if (hawk_rtx_getnargs(rtx) >= 2)
 	{
-		/* if the value is known to be a byte string, it supports the optional
-		 * base parameter */
-		hawk_val_t* a1 = hawk_rtx_getarg(rtx, 1);
-		hawk_int_t base;
+		switch (HAWK_RTX_GETVALTYPE(rtx, a0))
+		{
+			case HAWK_VAL_MBS:	
+			{
+				/* if the value is known to be a byte string, it supports the optional
+				 * base parameter */
+				hawk_val_t* a1 = hawk_rtx_getarg(rtx, 1);
+				hawk_int_t base;
 
-		if (hawk_rtx_valtoint(rtx, a1, &base) <= -1) return -1;
-		rx = hawk_bchars_to_num(
-			HAWK_OOCHARS_TO_NUM_MAKE_OPTION(0, 0, HAWK_RTX_IS_STRIPSTRSPC_ON(rtx), base),
-			((hawk_val_mbs_t*)a0)->val.ptr,
-			((hawk_val_mbs_t*)a0)->val.len,
-			&lv, &rv
-		);
-	}
-	else if (HAWK_RTX_GETVALTYPE(rtx, a0) == HAWK_VAL_STR && hawk_rtx_getnargs(rtx) >= 2)
-	{
-		/* if the value is known to be a string, it supports the optional
-		 * base parameter */
-		hawk_val_t* a1 = hawk_rtx_getarg(rtx, 1);
-		hawk_int_t base;
+				if (hawk_rtx_valtoint(rtx, a1, &base) <= -1) return -1;
+				rx = hawk_bchars_to_num(
+					HAWK_OOCHARS_TO_NUM_MAKE_OPTION(0, 0, HAWK_RTX_IS_STRIPSTRSPC_ON(rtx), base),
+					((hawk_val_mbs_t*)a0)->val.ptr,
+					((hawk_val_mbs_t*)a0)->val.len,
+					&lv, &rv
+				);
+				break;
+			}
 
-		if (hawk_rtx_valtoint(rtx, a1, &base) <= -1) return -1;
-		rx = hawk_oochars_to_num(
-			HAWK_OOCHARS_TO_NUM_MAKE_OPTION(0, 0, HAWK_RTX_IS_STRIPSTRSPC_ON(rtx), base),
-			((hawk_val_str_t*)a0)->val.ptr,
-			((hawk_val_str_t*)a0)->val.len,
-			&lv, &rv
-		);
+			case HAWK_VAL_CHAR:
+			{
+				/* if the value is known to be a string, it supports the optional
+				 * base parameter */
+				hawk_val_t* a1 = hawk_rtx_getarg(rtx, 1);
+				hawk_int_t base;
+				hawk_ooch_t tmp = HAWK_RTX_GETCHARFROMVAL(rtx, a0);
+
+				if (hawk_rtx_valtoint(rtx, a1, &base) <= -1) return -1;
+				rx = hawk_oochars_to_num(
+					HAWK_OOCHARS_TO_NUM_MAKE_OPTION(0, 0, HAWK_RTX_IS_STRIPSTRSPC_ON(rtx), base),
+					&tmp, 1, &lv, &rv
+				);
+				break;
+			}
+
+			case HAWK_VAL_STR:
+			{
+				/* if the value is known to be a string, it supports the optional
+				 * base parameter */
+				hawk_val_t* a1 = hawk_rtx_getarg(rtx, 1);
+				hawk_int_t base;
+
+				if (hawk_rtx_valtoint(rtx, a1, &base) <= -1) return -1;
+				rx = hawk_oochars_to_num(
+					HAWK_OOCHARS_TO_NUM_MAKE_OPTION(0, 0, HAWK_RTX_IS_STRIPSTRSPC_ON(rtx), base),
+					((hawk_val_str_t*)a0)->val.ptr,
+					((hawk_val_str_t*)a0)->val.len,
+					&lv, &rv
+				);
+				break;
+			}
+
+			default:
+				goto val_to_num;
+		}
 	}
 	else
 	{
+	val_to_num:
 		rx = hawk_rtx_valtonum(rtx, a0, &lv, &rv);
 	}
 
@@ -528,6 +557,60 @@ static int fnc_tonum (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	if (!retv) return -1;
 
 	hawk_rtx_setretval (rtx, retv);
+	return 0;
+}
+
+static int fnc_subchar (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+{
+	hawk_oow_t nargs;
+	hawk_val_t* a0, * a1, * r;
+	hawk_int_t lindex, lcount;
+	int n;
+
+	nargs = hawk_rtx_getnargs(rtx);
+	HAWK_ASSERT (nargs >= 2 && nargs <= 3);
+
+	a0 = hawk_rtx_getarg(rtx, 0);
+	a1 = hawk_rtx_getarg(rtx, 1);
+
+	n = hawk_rtx_valtoint(rtx, a1, &lindex);
+	if (n <= -1) return -1;
+
+	lindex = lindex - 1;
+
+	if (HAWK_RTX_GETVALTYPE(rtx, a0) == HAWK_VAL_MBS)
+	{
+		hawk_bch_t* str;
+		hawk_oow_t len;
+
+		str = ((hawk_val_mbs_t*)a0)->val.ptr;
+		len = ((hawk_val_mbs_t*)a0)->val.len;
+
+		if (lindex >= 0 && lindex < (hawk_int_t)len)
+			r = hawk_rtx_makecharval(rtx, str[lindex]);
+		else
+			r = hawk_rtx_makenilval(rtx);
+
+		if (HAWK_UNLIKELY(!r)) return -1;
+	}
+	else
+	{
+		hawk_ooch_t* str;
+		hawk_oow_t len;
+
+		str = hawk_rtx_getvaloocstr(rtx, a0, &len);
+		if (!str) return -1;
+
+		if (lindex >= 0 && lindex < (hawk_int_t)len)
+			r = hawk_rtx_makecharval(rtx, str[lindex]);
+		else
+			r = hawk_rtx_makenilval(rtx);
+
+		hawk_rtx_freevaloocstr (rtx, a0, str);
+		if (HAWK_UNLIKELY(!r)) return -1;
+	}
+
+	hawk_rtx_setretval (rtx, r);
 	return 0;
 }
 
@@ -576,6 +659,7 @@ static fnctab_t fnctab[] =
 	{ HAWK_T("split"),        { { 2, 3, HAWK_T("vrx") },  hawk_fnc_split,        0 } },
 	{ HAWK_T("splita"),       { { 2, 3, HAWK_T("vrx") },  hawk_fnc_splita,       0 } }, /* split to array. asplit is not a good name for this */
 	{ HAWK_T("sub"),          { { 2, 3, HAWK_T("xvr") },  hawk_fnc_sub,          0 } },
+	{ HAWK_T("subchar"),      { { 2, 2, HAWK_NULL },      fnc_subchar,           0 } },
 	{ HAWK_T("substr"),       { { 2, 3, HAWK_NULL },      hawk_fnc_substr,       0 } },
 	{ HAWK_T("tocharcode"),   { { 1, 2, HAWK_NULL },      fnc_tocharcode,        0 } },
 	{ HAWK_T("tolower"),      { { 1, 1, HAWK_NULL },      hawk_fnc_tolower,      0 } },
