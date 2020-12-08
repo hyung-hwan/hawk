@@ -765,7 +765,7 @@ int hawk_fnc_substr (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		if (lcount > (hawk_int_t)len - lindex) lcount = (hawk_int_t)len - lindex;
 
 		r = hawk_rtx_makembsvalwithbchars(rtx, &str[lindex], (hawk_oow_t)lcount);
-		if (!r) return -1;
+		if (HAWK_UNLIKELY(!r)) return -1;
 	}
 	else
 	{
@@ -780,7 +780,7 @@ int hawk_fnc_substr (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 		r = hawk_rtx_makestrvalwithoochars(rtx, &str[lindex], (hawk_oow_t)lcount);
 		hawk_rtx_freevaloocstr (rtx, a0, str);
-		if (!r) return -1;
+		if (HAWK_UNLIKELY(!r)) return -1;
 	}
 
 	hawk_rtx_setretval (rtx, r);
@@ -1014,30 +1014,46 @@ int hawk_fnc_tolower (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_val_t* a0, * r;
 
 	a0 = hawk_rtx_getarg(rtx, 0);
-	if (HAWK_RTX_GETVALTYPE(rtx, a0) == HAWK_VAL_MBS)
+	switch (HAWK_RTX_GETVALTYPE(rtx, a0))
 	{
-		hawk_bcs_t str;
-		str.ptr = hawk_rtx_getvalbcstr(rtx, a0, &str.len);
-		if (!str.ptr) return -1;
-		r = hawk_rtx_makembsvalwithbcs(rtx, &str);
-		hawk_rtx_freevalbcstr (rtx, a0, str.ptr);
-		if (!r) return -1;
-		str.ptr = ((hawk_val_mbs_t*)r)->val.ptr;
-		str.len = ((hawk_val_mbs_t*)r)->val.len;
-		for (i = 0; i < str.len; i++) str.ptr[i] = hawk_to_bch_lower(str.ptr[i]);
+		case HAWK_VAL_MBS:
+		{
+			hawk_bcs_t str;
+			str.ptr = hawk_rtx_getvalbcstr(rtx, a0, &str.len);
+			if (!str.ptr) return -1;
+			r = hawk_rtx_makembsvalwithbcs(rtx, &str);
+			hawk_rtx_freevalbcstr (rtx, a0, str.ptr);
+			if (HAWK_UNLIKELY(!r)) return -1;
+			str.ptr = ((hawk_val_mbs_t*)r)->val.ptr;
+			str.len = ((hawk_val_mbs_t*)r)->val.len;
+			for (i = 0; i < str.len; i++) str.ptr[i] = hawk_to_bch_lower(str.ptr[i]);
+			break;
+		}
+
+		case  HAWK_VAL_CHAR:
+		{
+			hawk_ooch_t tmp = HAWK_RTX_GETCHARFROMVAL(rtx, a0);
+			tmp = hawk_to_bch_lower(tmp);
+			r = hawk_rtx_makecharval(rtx, tmp);
+			if (HAWK_UNLIKELY(!r)) return -1;
+			break;
+		}
+
+		default:
+		{
+			hawk_oocs_t str;
+			str.ptr = hawk_rtx_getvaloocstr(rtx, a0, &str.len);
+			if (!str.ptr) return -1;
+			r = hawk_rtx_makestrvalwithoocs(rtx, &str);
+			hawk_rtx_freevaloocstr (rtx, a0, str.ptr);
+			if (HAWK_UNLIKELY(!r)) return -1;
+			str.ptr = ((hawk_val_str_t*)r)->val.ptr;
+			str.len = ((hawk_val_str_t*)r)->val.len;
+			for (i = 0; i < str.len; i++) str.ptr[i] = hawk_to_ooch_lower(str.ptr[i]);
+			break;
+		}
 	}
-	else
-	{
-		hawk_oocs_t str;
-		str.ptr = hawk_rtx_getvaloocstr(rtx, a0, &str.len);
-		if (!str.ptr) return -1;
-		r = hawk_rtx_makestrvalwithoocs(rtx, &str);
-		hawk_rtx_freevaloocstr (rtx, a0, str.ptr);
-		if (!r) return -1;
-		str.ptr = ((hawk_val_str_t*)r)->val.ptr;
-		str.len = ((hawk_val_str_t*)r)->val.len;
-		for (i = 0; i < str.len; i++) str.ptr[i] = hawk_to_ooch_lower(str.ptr[i]);
-	}
+
 	hawk_rtx_setretval (rtx, r);
 	return 0;
 }
@@ -1048,30 +1064,46 @@ int hawk_fnc_toupper (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_val_t* a0, * r;
 
 	a0 = hawk_rtx_getarg(rtx, 0);
-	if (HAWK_RTX_GETVALTYPE(rtx, a0) == HAWK_VAL_MBS)
+	switch (HAWK_RTX_GETVALTYPE(rtx, a0))
 	{
-		hawk_bcs_t str;
-		str.ptr = hawk_rtx_getvalbcstr(rtx, a0, &str.len);
-		if (!str.ptr) return -1;
-		r = hawk_rtx_makembsvalwithbcs(rtx, &str);
-		hawk_rtx_freevalbcstr (rtx, a0, str.ptr);
-		if (!r) return -1;
-		str.ptr = ((hawk_val_mbs_t*)r)->val.ptr;
-		str.len = ((hawk_val_mbs_t*)r)->val.len;
-		for (i = 0; i < str.len; i++) str.ptr[i] = hawk_to_bch_upper(str.ptr[i]);
+		case HAWK_VAL_MBS:
+		{
+			hawk_bcs_t str;
+			str.ptr = hawk_rtx_getvalbcstr(rtx, a0, &str.len);
+			if (!str.ptr) return -1;
+			r = hawk_rtx_makembsvalwithbcs(rtx, &str);
+			hawk_rtx_freevalbcstr (rtx, a0, str.ptr);
+			if (HAWK_UNLIKELY(!r)) return -1;
+			str.ptr = ((hawk_val_mbs_t*)r)->val.ptr;
+			str.len = ((hawk_val_mbs_t*)r)->val.len;
+			for (i = 0; i < str.len; i++) str.ptr[i] = hawk_to_bch_upper(str.ptr[i]);
+			break;
+		}
+
+		case  HAWK_VAL_CHAR:
+		{
+			hawk_ooch_t tmp = HAWK_RTX_GETCHARFROMVAL(rtx, a0);
+			tmp = hawk_to_bch_upper(tmp);
+			r = hawk_rtx_makecharval(rtx, tmp);
+			if (HAWK_UNLIKELY(!r)) return -1;
+			break;
+		}
+
+		default:
+		{
+			hawk_oocs_t str;
+			str.ptr = hawk_rtx_getvaloocstr(rtx, a0, &str.len);
+			if (!str.ptr) return -1;
+			r = hawk_rtx_makestrvalwithoocs(rtx, &str);
+			hawk_rtx_freevaloocstr (rtx, a0, str.ptr);
+			if (HAWK_UNLIKELY(!r)) return -1;
+			str.ptr = ((hawk_val_str_t*)r)->val.ptr;
+			str.len = ((hawk_val_str_t*)r)->val.len;
+			for (i = 0; i < str.len; i++) str.ptr[i] = hawk_to_ooch_upper(str.ptr[i]);
+			break;
+		}
 	}
-	else
-	{
-		hawk_oocs_t str;
-		str.ptr = hawk_rtx_getvaloocstr(rtx, a0, &str.len);
-		if (!str.ptr) return -1;
-		r = hawk_rtx_makestrvalwithoocs(rtx, &str);
-		hawk_rtx_freevaloocstr (rtx, a0, str.ptr);
-		if (!r) return -1;
-		str.ptr = ((hawk_val_str_t*)r)->val.ptr;
-		str.len = ((hawk_val_str_t*)r)->val.len;
-		for (i = 0; i < str.len; i++) str.ptr[i] = hawk_to_ooch_upper(str.ptr[i]);
-	}
+
 	hawk_rtx_setretval (rtx, r);
 	return 0;
 }

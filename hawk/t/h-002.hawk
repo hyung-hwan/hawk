@@ -33,6 +33,12 @@ function main()
 		ensure (x, "x\\y", @SCRIPTNAME, @SCRIPTLINE);
 		ensure (y, "xAy", @SCRIPTNAME, @SCRIPTLINE);
 
+		x = y = "x\\y";
+		gsub(/\\\\/, 'A', x);
+		gsub("\\\\", 'A', y);
+		ensure (x, "x\\y", @SCRIPTNAME, @SCRIPTLINE);
+		ensure (y, "xAy", @SCRIPTNAME, @SCRIPTLINE);
+
 		x = y = "x\\\\y";
 		gsub(/\\\\/, "A", x);
 		gsub("\\\\", "A", y);
@@ -275,6 +281,28 @@ function main()
 		ensure (substr(1000+5000, 2) === "000",            1,  @SCRIPTNAME, @SCRIPTLINE);
 		ensure (substr(1000+10000, 2) === "1000",          1,  @SCRIPTNAME, @SCRIPTLINE);
 		ensure (substr(1000+5000, 2) === "000",            1,  @SCRIPTNAME, @SCRIPTLINE);
+
+
+		ensure (str::subchar("abc", -1) === @nil,          1, @SCRIPTNAME, @SCRIPTNAME);
+		ensure (str::subchar("abc", 0) === @nil,           1, @SCRIPTNAME, @SCRIPTNAME);
+		ensure (str::subchar("abc", 1) === 'a',            1, @SCRIPTNAME, @SCRIPTNAME);
+		ensure (str::subchar("abc", 2) === 'b',            1, @SCRIPTNAME, @SCRIPTNAME);
+		ensure (str::subchar("abc", 3) === 'c',            1, @SCRIPTNAME, @SCRIPTNAME);
+		ensure (str::subchar("abc", 4) === @nil,           1, @SCRIPTNAME, @SCRIPTNAME);
+
+		ensure (str::subchar("☕⛄", -1) === @nil,          1, @SCRIPTNAME, @SCRIPTNAME);
+		ensure (str::subchar("☕⛄", 0) === @nil,           1, @SCRIPTNAME, @SCRIPTNAME);
+		ensure (str::subchar("☕⛄", 1) === '☕',           1, @SCRIPTNAME, @SCRIPTNAME);
+		ensure (str::subchar("☕⛄", 2) === '⛄',           1, @SCRIPTNAME, @SCRIPTNAME);
+		ensure (str::subchar("☕⛄", 3) === @nil,           1, @SCRIPTNAME, @SCRIPTNAME);
+		ensure (str::subchar("☕⛄", 4) === @nil,           1, @SCRIPTNAME, @SCRIPTNAME);
+
+		ensure (str::subchar(@b"abc", -1) === @nil,          1, @SCRIPTNAME, @SCRIPTNAME);
+		ensure (str::subchar(@b"abc", 0) === @nil,           1, @SCRIPTNAME, @SCRIPTNAME);
+		ensure (str::subchar(@b"abc", 1) === 'a',            1, @SCRIPTNAME, @SCRIPTNAME);
+		ensure (str::subchar(@b"abc", 2) === 'b',            1, @SCRIPTNAME, @SCRIPTNAME);
+		ensure (str::subchar(@b"abc", 3) === 'c',            1, @SCRIPTNAME, @SCRIPTNAME);
+		ensure (str::subchar(@b"abc", 4) === @nil,           1, @SCRIPTNAME, @SCRIPTNAME);
 	}
 
 
@@ -347,6 +375,49 @@ function main()
 		ensure (("aaa2b" ~ /(a)\12b/), 1, @SCRIPTNAME, @SCRIPTLINE);
 	}
 
+
+	{
+		## character class functions in the str modules
+		ensure (str::isalnum('a'), 1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (str::isalpha('a'), 1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (str::isblank('a'), 0, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (str::iscntrl('a'), 0, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (str::isdigit('a'), 0, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (str::isgraph('a'), 1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (str::islower('a'), 1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (str::isprint('a'), 1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (str::ispunct('a'), 0, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (str::isspace('a'), 0, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (str::isupper('a'), 0, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (str::isxdigit('a'), 1, @SCRIPTNAME, @SCRIPTLINE);
+
+		ensure (str::toupper('a') === 'A', 1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (str::tolower('A') === 'a', 1, @SCRIPTNAME, @SCRIPTLINE);
+
+		ensure (str::isalnum("a"), 1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (str::isalpha("a"), 1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (str::isblank("a"), 0, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (str::iscntrl("a"), 0, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (str::isdigit("a"), 0, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (str::isgraph("a"), 1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (str::islower("a"), 1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (str::isprint("a"), 1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (str::ispunct("a"), 0, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (str::isspace("a"), 0, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (str::isupper("a"), 0, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (str::isxdigit("a"), 1, @SCRIPTNAME, @SCRIPTLINE);
+
+		ensure (str::toupper("abc") === "ABC", 1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (str::tolower("ABC") === "abc", 1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (str::toupper(@b"abc") === @b"ABC", 1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (str::tolower(@b"ABC") === @b"abc", 1, @SCRIPTNAME, @SCRIPTLINE);
+	}
+
+
+	{
+		ensure (str::tocharcode(str::fromcharcode('2')), 2, @SCRIPTNAME, @SCRIPTNAME);
+		ensure (str::tonum('a', 16), 10, @SCRIPTNAME, @SCRIPTNAME);
+	}
 
 	print "SUCCESS";
 }
