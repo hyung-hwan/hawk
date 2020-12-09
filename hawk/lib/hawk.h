@@ -161,21 +161,22 @@ static HAWK_INLINE hawk_gch_t* hawk_val_to_gch(hawk_val_t* v)
  * - v_type - type of a value from #hawk_val_type_t
  * - v_refs - reference count
  * - v_static - static value indicator
- * - nstr - numeric string marker, 1 -> integer, 2 -> floating-point number
+ * - v_nstr - numeric string marker, 1 -> integer, 2 -> floating-point number
+ * - v_gc - used for garbage collection together with v_refs
  */
 /*
 #define HAWK_VAL_HDR \
 	unsigned int v_type: 4; \
 	unsigned int v_refs: 24; \
 	unsigned int v_static: 1; \
-	unsigned int nstr: 2; \
+	unsigned int v_nstr: 2; \
 	unsigned int v_gc: 1
 */
 #define HAWK_VAL_HDR \
 	hawk_uintptr_t v_type: 4; \
 	hawk_uintptr_t v_refs: ((HAWK_SIZEOF_UINTPTR_T * 8) - 8); \
 	hawk_uintptr_t v_static: 1; \
-	hawk_uintptr_t nstr: 2; \
+	hawk_uintptr_t v_nstr: 2; \
 	hawk_uintptr_t v_gc: 1
 
 /**
@@ -2841,26 +2842,42 @@ HAWK_EXPORT hawk_val_t* hawk_rtx_makenstrvalwithbcs (
  * The hawk_rtx_makembsvalwithbchars() function create a byte array value.
  * \return value on success, #HAWK_NULL on failure
  */
-hawk_val_t* hawk_rtx_makembsvalwithbchars (
+HAWK_EXPORT hawk_val_t* hawk_rtx_makembsvalwithbchars (
 	hawk_rtx_t*        rtx,
 	const hawk_bch_t*  ptr,
 	hawk_oow_t         len
 );
 
-hawk_val_t* hawk_rtx_makembsvalwithuchars (
+HAWK_EXPORT hawk_val_t* hawk_rtx_makembsvalwithuchars (
 	hawk_rtx_t*        rtx,
 	const hawk_uch_t*  ptr,
 	hawk_oow_t         len
 );
 
-hawk_val_t* hawk_rtx_makembsvalwithbcs (
+HAWK_EXPORT hawk_val_t* hawk_rtx_makembsvalwithbcs (
 	hawk_rtx_t*       rtx,
 	const hawk_bcs_t* bcs
 );
 
-hawk_val_t* hawk_rtx_makembsvalwithucs (
+HAWK_EXPORT hawk_val_t* hawk_rtx_makembsvalwithucs (
 	hawk_rtx_t*       rtx,
 	const hawk_ucs_t* ucs
+);
+
+HAWK_EXPORT hawk_val_t* hawk_rtx_makembsvalwithuchars2 (
+	hawk_rtx_t*       rtx,
+	const hawk_uch_t* ucs1,
+	hawk_oow_t        len1,
+	const hawk_uch_t* ucs2,
+	hawk_oow_t        len2
+);
+
+HAWK_EXPORT hawk_val_t* hawk_rtx_makembsvalwithbchars2 (
+	hawk_rtx_t*       rtx,
+	const hawk_bch_t* bcs1,
+	hawk_oow_t        len1,
+	const hawk_bch_t* bcs2,
+	hawk_oow_t        len2
 );
 
 /* -------------------------------------------------------------------------- */

@@ -250,7 +250,10 @@ static int fnc_isxdigit (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 static int fnc_fromcharcode (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
-	/* create a string from a series of charcter codes */
+	/* create a string from a series of character codes.
+	 * create a character from a single character code.
+	 *  - str::fromcharcode(65) for 'A'
+	 *  - str::fromcharcode(65, 66, 67) for "ABC" */
 
 	hawk_val_t* retv;
 	hawk_oow_t nargs, i;
@@ -258,24 +261,38 @@ static int fnc_fromcharcode (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 	nargs = hawk_rtx_getnargs(rtx);
 
-	retv = hawk_rtx_makestrvalwithoochars(rtx, HAWK_NULL, nargs);
-	if (!retv) return -1;
-
-	ptr0 = (hawk_oochu_t*)((hawk_val_str_t*)retv)->val.ptr;
-
-	for (i = 0; i < nargs; i++)
+	if (nargs == 1)
 	{
 		hawk_val_t* a0;
 		hawk_int_t cc;
 
-		a0 = hawk_rtx_getarg(rtx, i);
-		if (hawk_rtx_valtoint(rtx, a0, &cc) <= -1) 
-		{
-			hawk_rtx_freeval (rtx, retv, 0);
-			return -1;
-		}
+		a0 = hawk_rtx_getarg(rtx, 0);
+		if (hawk_rtx_valtoint(rtx, a0, &cc) <= -1) return -1;
 
-		ptr0[i] = cc;
+		retv = hawk_rtx_makecharval(rtx, (hawk_ooch_t)cc);
+		if (HAWK_UNLIKELY(!retv)) return -1;
+	}
+	else
+	{
+		retv = hawk_rtx_makestrvalwithoochars(rtx, HAWK_NULL, nargs);
+		if (HAWK_UNLIKELY(!retv)) return -1;
+
+		ptr0 = (hawk_oochu_t*)((hawk_val_str_t*)retv)->val.ptr;
+
+		for (i = 0; i < nargs; i++)
+		{
+			hawk_val_t* a0;
+			hawk_int_t cc;
+
+			a0 = hawk_rtx_getarg(rtx, i);
+			if (hawk_rtx_valtoint(rtx, a0, &cc) <= -1) 
+			{
+				hawk_rtx_freeval (rtx, retv, 0);
+				return -1;
+			}
+
+			ptr0[i] = cc;
+		}
 	}
 
 	hawk_rtx_setretval (rtx, retv);
@@ -466,7 +483,7 @@ done:
 static int fnc_tonum (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	/* str::tonum(value) */
-	/* str::tonum(string, base) */
+	/* str::tonum(string/character, base) */
 
 	/*hawk_t* hawk = hawk_rtx_gethawk(rtx);*/
 	hawk_val_t* retv;

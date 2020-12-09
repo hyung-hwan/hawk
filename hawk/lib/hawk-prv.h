@@ -594,7 +594,7 @@ static HAWK_INLINE void HAWK_RTX_STACK_POP (hawk_rtx_t* rtx)
 		(refval)->v_type = HAWK_VAL_REF; \
 		(refval)->v_refs = (_nrefs); \
 		(refval)->v_static = 0; \
-		(refval)->nstr = 0; \
+		(refval)->v_nstr = 0; \
 		(refval)->v_gc = 0; \
 		(refval)->id = (_id); \
 		(refval)->adr = (_adr); \
