@@ -2187,7 +2187,7 @@ static const hawk_uch_t* scan_dollar_for_subst_u (const hawk_uch_t* f, hawk_oow_
 	HAWK_ASSERT (l >= 2);
 	
 	f += 2; /* skip ${ */ 
-	if (ident) ident->ptr = f;
+	if (ident) ident->ptr = (hawk_uch_t*)f;
 
 	while (1)
 	{
@@ -2208,7 +2208,7 @@ static const hawk_uch_t* scan_dollar_for_subst_u (const hawk_uch_t* f, hawk_oow_
 
 		f += 2; /* skip := */
 
-		if (dfl) dfl->ptr = f;
+		if (dfl) dfl->ptr = (hawk_uch_t*)f;
 		while (1)
 		{
 			if (f >= end) return HAWK_NULL;
@@ -2340,7 +2340,7 @@ static const hawk_bch_t* scan_dollar_for_subst_b (const hawk_bch_t* f, hawk_oow_
 	HAWK_ASSERT (l >= 2);
 	
 	f += 2; /* skip ${ */ 
-	if (ident) ident->ptr = f;
+	if (ident) ident->ptr = (hawk_bch_t*)f;
 
 	while (1)
 	{
@@ -2361,7 +2361,7 @@ static const hawk_bch_t* scan_dollar_for_subst_b (const hawk_bch_t* f, hawk_oow_
 
 		f += 2; /* skip := */
 
-		if (dfl) dfl->ptr = f;
+		if (dfl) dfl->ptr = (hawk_bch_t*)f;
 		while (1)
 		{
 			if (f >= end) return HAWK_NULL;

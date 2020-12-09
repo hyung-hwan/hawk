@@ -4772,8 +4772,8 @@ static HAWK_INLINE int __cmp_int_str (hawk_rtx_t* rtx, hawk_val_t* left, hawk_va
 	hawk_oow_t len0;
 	int n;
 
-	/* SCO CC doesn't seem to handle right->nstr > 0 properly */
-	if ((hawk->opt.trait & HAWK_NCMPONSTR) || right->nstr /*> 0*/)
+	/* SCO CC doesn't seem to handle right->v_nstr > 0 properly */
+	if ((hawk->opt.trait & HAWK_NCMPONSTR) || right->v_nstr /*> 0*/)
 	{
 		hawk_int_t ll, v1;
 		hawk_flt_t rr;
@@ -4813,7 +4813,7 @@ static HAWK_INLINE int __cmp_int_mbs (hawk_rtx_t* rtx, hawk_val_t* left, hawk_va
 	hawk_oow_t len0;
 	int n;
 
-	if ((hawk->opt.trait & HAWK_NCMPONSTR) || right->nstr /*> 0*/)
+	if ((hawk->opt.trait & HAWK_NCMPONSTR) || right->v_nstr /*> 0*/)
 	{
 		hawk_int_t ll, v1;
 		hawk_flt_t rr;
@@ -4902,8 +4902,8 @@ static HAWK_INLINE int __cmp_flt_str (hawk_rtx_t* rtx, hawk_val_t* left, hawk_va
 	hawk_oow_t len0;
 	int n;
 
-	/* SCO CC doesn't seem to handle right->nstr > 0 properly */
-	if ((hawk->opt.trait & HAWK_NCMPONSTR) || right->nstr /*> 0*/)
+	/* SCO CC doesn't seem to handle right->v_nstr > 0 properly */
+	if ((hawk->opt.trait & HAWK_NCMPONSTR) || right->v_nstr /*> 0*/)
 	{
 		const hawk_ooch_t* end;
 		hawk_flt_t rr;
@@ -4931,7 +4931,7 @@ static HAWK_INLINE int __cmp_flt_mbs (hawk_rtx_t* rtx, hawk_val_t* left, hawk_va
 	hawk_oow_t len0;
 	int n;
 
-	if ((hawk->opt.trait & HAWK_NCMPONSTR) || right->nstr /*> 0*/)
+	if ((hawk->opt.trait & HAWK_NCMPONSTR) || right->v_nstr /*> 0*/)
 	{
 		const hawk_bch_t* end;
 		hawk_flt_t rr;
@@ -5005,7 +5005,7 @@ static HAWK_INLINE int __cmp_str_str (hawk_rtx_t* rtx, hawk_val_t* left, hawk_va
 	ls = (hawk_val_str_t*)left;
 	rs = (hawk_val_str_t*)right;
 
-	if (HAWK_LIKELY(ls->nstr == 0 || rs->nstr == 0))
+	if (HAWK_LIKELY(ls->v_nstr == 0 || rs->v_nstr == 0))
 	{
 		/* both are definitely strings */
 		return hawk_comp_oochars(ls->val.ptr, ls->val.len, rs->val.ptr, rs->val.len, rtx->gbl.ignorecase);
@@ -5013,13 +5013,13 @@ static HAWK_INLINE int __cmp_str_str (hawk_rtx_t* rtx, hawk_val_t* left, hawk_va
 
 	stripspc = HAWK_RTX_IS_STRIPSTRSPC_ON(rtx);
 
-	if (ls->nstr == 1)
+	if (ls->v_nstr == 1)
 	{
 		hawk_int_t ll;
 
 		ll = hawk_oochars_to_int(ls->val.ptr, ls->val.len, HAWK_OOCHARS_TO_INT_MAKE_OPTION(stripspc, stripspc, 0), HAWK_NULL, HAWK_NULL);
 
-		if (rs->nstr == 1)
+		if (rs->v_nstr == 1)
 		{
 			hawk_int_t rr;
 			
@@ -5032,7 +5032,7 @@ static HAWK_INLINE int __cmp_str_str (hawk_rtx_t* rtx, hawk_val_t* left, hawk_va
 		{
 			hawk_flt_t rr;
 
-			HAWK_ASSERT (rs->nstr == 2);
+			HAWK_ASSERT (rs->v_nstr == 2);
 
 			rr = hawk_oochars_to_flt(rs->val.ptr, rs->val.len, HAWK_NULL, stripspc);
 
@@ -5044,11 +5044,11 @@ static HAWK_INLINE int __cmp_str_str (hawk_rtx_t* rtx, hawk_val_t* left, hawk_va
 	{
 		hawk_flt_t ll;
 
-		HAWK_ASSERT (ls->nstr == 2);
+		HAWK_ASSERT (ls->v_nstr == 2);
 
 		ll = hawk_oochars_to_flt(ls->val.ptr, ls->val.len, HAWK_NULL, stripspc);
 		
-		if (rs->nstr == 1)
+		if (rs->v_nstr == 1)
 		{
 			hawk_int_t rr;
 			
@@ -5061,7 +5061,7 @@ static HAWK_INLINE int __cmp_str_str (hawk_rtx_t* rtx, hawk_val_t* left, hawk_va
 		{
 			hawk_flt_t rr;
 
-			HAWK_ASSERT (rs->nstr == 2);
+			HAWK_ASSERT (rs->v_nstr == 2);
 
 			rr = hawk_oochars_to_flt(rs->val.ptr, rs->val.len, HAWK_NULL, stripspc);
 
@@ -5786,26 +5786,46 @@ static hawk_val_t* eval_binop_exp (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t
 static hawk_val_t* eval_binop_concat (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t* right)
 {
 	hawk_val_t* res;
-	hawk_rtx_valtostr_out_t lout, rout;
 
-	lout.type = HAWK_RTX_VALTOSTR_CPLDUP;
-	if (hawk_rtx_valtostr(rtx, left, &lout) <= -1) return HAWK_NULL;
-
-	rout.type = HAWK_RTX_VALTOSTR_CPLDUP;
-	if (hawk_rtx_valtostr(rtx, right, &rout) <= -1)
+	if (HAWK_RTX_GETVALTYPE(rtx, left) == HAWK_VAL_MBS)
 	{
-		hawk_rtx_freemem (rtx, lout.u.cpldup.ptr);
-		return HAWK_NULL;
+		hawk_bcs_t l, r;
+
+		l.ptr = hawk_rtx_getvalbcstr(rtx, left, &l.len);
+		if (HAWK_UNLIKELY(!l.ptr)) return HAWK_NULL;
+
+		r.ptr = hawk_rtx_getvalbcstr(rtx, right, &r.len);
+		if (HAWK_UNLIKELY(!r.ptr)) 
+		{
+			hawk_rtx_freevalbcstr (rtx, left, l.ptr);
+			return HAWK_NULL;
+		}
+
+		res = (hawk_val_t*)hawk_rtx_makembsvalwithbchars2(rtx, l.ptr, l.len, r.ptr, r.len);
+
+		hawk_rtx_freevalbcstr (rtx, right, r.ptr);
+		hawk_rtx_freevalbcstr (rtx, left, l.ptr);
 	}
+	else
+	{
 
-	res = hawk_rtx_makestrvalwithoochars2(
-		rtx, 
-		lout.u.cpldup.ptr, lout.u.cpldup.len,
-		rout.u.cpldup.ptr, rout.u.cpldup.len
-	);
+		hawk_oocs_t l, r;
 
-	hawk_rtx_freemem (rtx, rout.u.cpldup.ptr);
-	hawk_rtx_freemem (rtx, lout.u.cpldup.ptr);
+		l.ptr = hawk_rtx_getvaloocstr(rtx, left, &l.len);
+		if (HAWK_UNLIKELY(!l.ptr)) return HAWK_NULL;
+
+		r.ptr = hawk_rtx_getvaloocstr(rtx, right, &r.len);
+		if (HAWK_UNLIKELY(!r.ptr)) 
+		{
+			hawk_rtx_freevaloocstr (rtx, left, l.ptr);
+			return HAWK_NULL;
+		}
+
+		res = (hawk_val_t*)hawk_rtx_makestrvalwithoochars2(rtx, l.ptr, l.len, r.ptr, r.len);
+
+		hawk_rtx_freevaloocstr (rtx, right, r.ptr);
+		hawk_rtx_freevaloocstr (rtx, left, l.ptr);
+	}
 
 	return res;
 }

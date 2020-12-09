@@ -141,5 +141,44 @@ function main()
 		ensure (((10,30,30) in c), 0, @SCRIPTNAME, @SCRIPTLINE);
 	}
 
+
+	{
+		# concatenation operator
+		ensure ((@b"hawk" 10) === @b"hawk10", 1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (("hawk" 10) === "hawk10", 1, @SCRIPTNAME, @SCRIPTLINE);
+
+		ensure ((@b"hawk" "hawk") === @b"hawkhawk", 1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (("hawk" @b"hawk") === "hawkhawk", 1, @SCRIPTNAME, @SCRIPTLINE);
+
+		ensure ((@b"hawk" '1') === @b"hawk1", 1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (("hawk" '1') === "hawk1", 1, @SCRIPTNAME, @SCRIPTLINE);
+
+		ensure (('*' @b"hawk" '1') === "*hawk1", 1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (('*' "hawk" '1') === "*hawk1", 1, @SCRIPTNAME, @SCRIPTLINE);
+
+		ensure ((@b"hawk" '⚾') === @b"hawk\xe2\x9a\xbe", 1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (("hawk" '⚾') === "hawk⚾", 1, @SCRIPTNAME, @SCRIPTLINE);
+
+		ensure ((@b"hawk" str::fromcharcode(0x26be)) === @b"hawk\xe2\x9a\xbe", 1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (("hawk" str::fromcharcode(0x26be)) === "hawk⚾", 1, @SCRIPTNAME, @SCRIPTLINE);
+
+		ensure ((@b"hawk" %% 10) === @b"hawk10", 1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (("hawk" %% 10) === "hawk10", 1, @SCRIPTNAME, @SCRIPTLINE);
+
+		ensure ((@b"hawk" %% "hawk") === @b"hawkhawk", 1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (("hawk" %% @b"hawk") === "hawkhawk", 1, @SCRIPTNAME, @SCRIPTLINE);
+
+		ensure ((@b"hawk" %% '1') === @b"hawk1", 1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (("hawk" %% '1') === "hawk1", 1, @SCRIPTNAME, @SCRIPTLINE);
+
+		ensure (('*' %% @b"hawk" %% '1') === "*hawk1", 1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (('*' %% "hawk" %% '1') === "*hawk1", 1, @SCRIPTNAME, @SCRIPTLINE);
+
+		ensure ((@b"hawk" %% '⚾') === @b"hawk\xe2\x9a\xbe", 1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (("hawk" %% '⚾') === "hawk⚾", 1, @SCRIPTNAME, @SCRIPTLINE);
+
+		ensure ((@b"hawk" %% str::fromcharcode(0x26be)) === @b"hawk\xe2\x9a\xbe", 1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (("hawk" %% str::fromcharcode(0x26be)) === "hawk⚾", 1, @SCRIPTNAME, @SCRIPTLINE);
+	}
 	print "SUCCESS"
 }
