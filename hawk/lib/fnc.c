@@ -2017,7 +2017,6 @@ val_map:
 		goto done;
 	}
 
-
 val_arr:
 	{
 		hawk_arr_t* arr;
@@ -2033,8 +2032,8 @@ val_arr:
 
 		ssz = HAWK_ARR_SIZE(arr);
 		HAWK_ASSERT (msz <= ssz);
-		HAWK_ASSERT (msz <= HAWK_QUICKINT_MAX);
-		HAWK_ASSERT (ssz <= HAWK_QUICKINT_MAX);
+		HAWK_ASSERT (msz <= HAWK_QINT_MAX);
+		HAWK_ASSERT (ssz <= HAWK_QINT_MAX);
 		
 		va = (hawk_val_t**)hawk_rtx_allocmem(rtx, msz * HAWK_SIZEOF(*va));
 		if (HAWK_UNLIKELY(!va)) return -1;

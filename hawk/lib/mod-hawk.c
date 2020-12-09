@@ -166,7 +166,7 @@ static int fnc_gc (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	gen = hawk_rtx_gc(rtx, gen);
 #endif
 
-	HAWK_ASSERT (HAWK_IN_QUICKINT_RANGE(gen));
+	HAWK_ASSERT (HAWK_IN_QINT_RANGE(gen));
 	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, gen));
 	return 0;
 }
@@ -182,7 +182,7 @@ static int fnc_gc_get_threshold (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 	threshold = rtx->gc.threshold[gen];
 
-	HAWK_ASSERT (HAWK_IN_QUICKINT_RANGE(threshold));
+	HAWK_ASSERT (HAWK_IN_QINT_RANGE(threshold));
 	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, threshold));
 	return 0;
 }
@@ -200,7 +200,7 @@ static int fnc_gc_set_threshold (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 	if (threshold >= 0) 
 	{
-		if (threshold >= HAWK_QUICKINT_MAX) threshold = HAWK_QUICKINT_MAX;
+		if (threshold >= HAWK_QINT_MAX) threshold = HAWK_QINT_MAX;
 		rtx->gc.threshold[gen] = threshold; /* update */
 	}
 	else 
@@ -208,7 +208,7 @@ static int fnc_gc_set_threshold (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		threshold = rtx->gc.threshold[gen]; /* no update. but retrieve the existing value */
 	}
 
-	HAWK_ASSERT (HAWK_IN_QUICKINT_RANGE(threshold));
+	HAWK_ASSERT (HAWK_IN_QINT_RANGE(threshold));
 	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, threshold));
 	return 0;
 }
@@ -364,7 +364,202 @@ static int fnc_typename (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_rtx_setretval (rtx, r);
 	return 0;
 }
+/* -------------------------------------------------------------------------- */
+#include "mod-bin.c"
 
+#if 0
+static int pack_data (hawk_rtx_t* rtx, const hawk_oocs_t* fmt, const hawk_fnc_info_t* fi)
+{
+	hawk_oow_t rep_cnt = 0;
+
+	const hawk_ooch_t* fmtp, *fmte;
+	hawk_uint8_t *bp;
+	int endian = ENDIAN_NATIVE;
+	char* s;
+
+	bp = buf;
+
+	fmte = fmt->ptr + fmt->len;
+	for (fmtp = fmt,ptr; fmtp < fmte; fmtp++) 
+	{
+		switch (*fmtp) 
+		{
+			case '=': /* native */
+				endian = ENDIAN_NATIVE;
+				break;
+
+			case '<': /* little-endian */
+				endian = ENDIAN_LITTLE;
+				break;
+
+			case '>': /* big-endian */
+				endian = ENDIAN_BIG;
+				break;
+
+			case '!': /* network (= big-endian) */
+				endian = ENDIAN_BIG;
+				break;
+
+			case 'b': /* byte, char */
+			{
+				signed char v;
+				BEGIN_REPETITION();
+				v = va_arg(args, int);
+				*bp++ = v;
+				END_REPETITION();
+				break;
+			}
+
+			case 'B':
+			{
+				unsigned char v;
+				BEGIN_REPETITION();
+				v = va_arg(args, unsigned int);
+				*bp++ = v;
+				END_REPETITION();
+				break;
+			}
+
+			case 'h':
+			{
+				short int v;
+				BEGIN_REPETITION();
+				v = va_arg(args, int);
+				bp = pack_int16_t(bp, v, endian);
+				END_REPETITION();
+				break;
+			}
+
+			case 'H':
+			{
+				unsigned short int v;
+				BEGIN_REPETITION();
+				v = va_arg(args, int);
+				bp = pack_int16_t(bp, v, endian);
+				END_REPETITION();
+				break;
+			}
+
+			case 'i':
+			case 'l':
+			{
+				hawk_int32_t v;
+				BEGIN_REPETITION();
+				v = va_arg(args, hawk_int32_t);
+				bp = pack_int32_t(bp, v, endian);
+				END_REPETITION();
+				break;
+			}
+
+			case 'I': /* fall through */
+			case 'L':
+			{
+				hawk_uint32_t v;
+				BEGIN_REPETITION();
+				v = va_arg(args, hawk_uint32_t);
+				bp =  pack_int32_t(bp, v, endian);
+				END_REPETITION();
+				break;
+			}
+
+			case 'q':
+			{
+				hawk_int64_t v;
+				BEGIN_REPETITION();
+				v = va_arg(args, hawk_int64_t);
+				bp = pack_int64_t(bp, v, endian);
+				END_REPETITION();
+				break;
+			}
+
+			case 'Q':
+			{
+				hawk_uint64_t v;
+				BEGIN_REPETITION();
+				v = va_arg(args, hawk_uint64_t);
+				bp = pack_int64_t(bp, v, endian);
+				END_REPETITION();
+				break;
+			}
+
+#if 0
+			case 'f':
+				BEGIN_REPETITION();
+				f = va_arg(args, double);
+				pack_float(&bp, f, *ep);
+				END_REPETITION();
+				break;
+
+			case 'd':
+				BEGIN_REPETITION();
+				d = va_arg(args, double);
+				pack_double(&bp, d, *ep);
+				END_REPETITION();
+				break;
+#endif
+
+			case 's':
+			case 'p':
+			{
+				int i = 0;
+				s = va_arg(args, char*);
+				BEGIN_REPETITION();
+				*bp++ = s[i++];
+				END_REPETITION();
+				break;
+			}
+
+			case 'x':
+				BEGIN_REPETITION();
+				*bp++ = 0;
+				END_REPETITION();
+				break;
+
+			default:
+				if (hawk_is_bch_digit(*fmtp)) 
+				{
+					INC_REPETITION();
+				} 
+				else 
+				{
+					return -1;
+				}
+				break;
+		}
+
+		if (!hawk_is_bch_digit((int)*fmtp)) CLEAR_REPETITION();
+	}
+
+	return (bp - buf);
+}
+
+#endif
+
+static int fnc_pack (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+{
+	hawk_val_t* a0, * r;
+	hawk_oocs_t fmt;
+
+	a0 = hawk_rtx_getarg(rtx, 0);
+	fmt.ptr = hawk_rtx_getvaloocstr(rtx, a0, &fmt.len);
+	if (HAWK_UNLIKELY(!fmt.ptr)) return -1;
+
+#if 0
+	pack_data (rtx, &fmt, &buf, fi);
+
+	r = hawk_rtx_makembsvalwithbchars(rtx, buf.ptr, buf.len);
+	if (HAWK_UNLIKELY(!r)) return -1;
+
+	hawk_rtx_setretval (rtx, r);
+#endif
+	return 0;
+}
+
+static int fnc_unpack (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+{
+/* TODO: */
+	return 0;
+}
 /* -------------------------------------------------------------------------- */
 
 typedef struct fnctab_t fnctab_t;
@@ -386,7 +581,7 @@ struct inttab_t
 static fnctab_t fnctab[] =
 {
 	/* keep this table sorted for binary search in query(). */
-	{ HAWK_T("array"),            { { 0, A_MAX                },  fnc_array,                 0 } },
+	{ HAWK_T("array"),            { { 0, A_MAX,  HAWK_NULL    },  fnc_array,                 0 } },
 	{ HAWK_T("call"),             { { 1, A_MAX, HAWK_T("vR")  },  fnc_call,                  0 } },
 	{ HAWK_T("function_exists"),  { { 1, 1,     HAWK_NULL     },  fnc_function_exists,       0 } },
 	{ HAWK_T("gc"),               { { 0, 1,     HAWK_NULL     },  fnc_gc,                    0 } },
@@ -398,7 +593,9 @@ static fnctab_t fnctab[] =
 	{ HAWK_T("isnil"),            { { 1, 1,     HAWK_NULL     },  fnc_isnil,                 0 } },
 	{ HAWK_T("map"),              { { 0, A_MAX, HAWK_NULL     },  fnc_map,                   0 } },
 	{ HAWK_T("modlibdirs"),       { { 0, 0,     HAWK_NULL     },  fnc_modlibdirs,            0 } },
-	{ HAWK_T("typename"),         { { 1, 1,     HAWK_NULL     },  fnc_typename,              0 } }
+	{ HAWK_T("pack"),             { { 1, A_MAX, HAWK_NULL     },  fnc_pack,                  0 } },
+	{ HAWK_T("typename"),         { { 1, 1,     HAWK_NULL     },  fnc_typename,              0 } },
+	//{ HAWK_T("unpack"),           { { 1, A_MAX, HAWK_NULL     },  fnc_unpack,                0 } }
 };
 
 static inttab_t inttab[] =

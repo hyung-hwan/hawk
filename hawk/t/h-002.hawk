@@ -299,9 +299,9 @@ function main()
 
 		ensure (str::subchar(@b"abc", -1) === @nil,          1, @SCRIPTNAME, @SCRIPTNAME);
 		ensure (str::subchar(@b"abc", 0) === @nil,           1, @SCRIPTNAME, @SCRIPTNAME);
-		ensure (str::subchar(@b"abc", 1) === 'a',            1, @SCRIPTNAME, @SCRIPTNAME);
-		ensure (str::subchar(@b"abc", 2) === 'b',            1, @SCRIPTNAME, @SCRIPTNAME);
-		ensure (str::subchar(@b"abc", 3) === 'c',            1, @SCRIPTNAME, @SCRIPTNAME);
+		ensure (str::subchar(@b"abc", 1) === @b'a',            1, @SCRIPTNAME, @SCRIPTNAME);
+		ensure (str::subchar(@b"abc", 2) === @b'b',            1, @SCRIPTNAME, @SCRIPTNAME);
+		ensure (str::subchar(@b"abc", 3) === @b'c',            1, @SCRIPTNAME, @SCRIPTNAME);
 		ensure (str::subchar(@b"abc", 4) === @nil,           1, @SCRIPTNAME, @SCRIPTNAME);
 	}
 

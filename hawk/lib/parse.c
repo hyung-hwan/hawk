@@ -154,6 +154,7 @@ enum tok_t
 
 	TOK_IDENT,
 	TOK_CHAR,
+	TOK_BCHR,
 	TOK_INT,
 	TOK_FLT,
 	TOK_STR,
@@ -4686,6 +4687,31 @@ oops:
 	return HAWK_NULL;
 }
 
+static hawk_nde_t* parse_primary_bchr  (hawk_t* hawk, const hawk_loc_t* xloc)
+{
+	hawk_nde_bchr_t* nde;
+
+	nde = (hawk_nde_bchr_t*)hawk_callocmem (hawk, HAWK_SIZEOF(*nde));
+	if (HAWK_UNLIKELY(!nde)) 
+	{
+		ADJERR_LOC (hawk, xloc);
+		return HAWK_NULL;
+	}
+
+	nde->type = HAWK_NDE_BCHR;
+	nde->loc = *xloc;
+	nde->val = HAWK_OOECS_CHAR(hawk->tok.name, 0);
+
+	if (get_token(hawk) <= -1) goto oops;
+
+	return (hawk_nde_t*)nde;
+
+oops:
+	HAWK_ASSERT (nde != HAWK_NULL);
+	hawk_freemem (hawk, nde);
+	return HAWK_NULL;
+}
+
 static hawk_nde_t* parse_primary_int  (hawk_t* hawk, const hawk_loc_t* xloc)
 {
 	hawk_nde_int_t* nde;
@@ -5121,6 +5147,9 @@ static hawk_nde_t* parse_primary_nopipe (hawk_t* hawk, const hawk_loc_t* xloc)
 
 		case TOK_CHAR:
 			return parse_primary_char(hawk, xloc);
+
+		case TOK_BCHR:
+			return parse_primary_bchr(hawk, xloc);
 
 		case TOK_INT:
 			return parse_primary_int(hawk, xloc);
@@ -6741,17 +6770,21 @@ retry:
 			}
 			else if (c == '\"')
 			{
-				/* B, b - byte string */
+				/* @B"XXX", @b"XXX" - byte string */
 				SET_TOKEN_TYPE (hawk, tok, TOK_MBS);
 				if (get_string(hawk, c, HAWK_T('\\'), 0, 1, 0, tok) <= -1) return -1;
-			}
-	#if 0
-			
+			}			
 			else if (c == '\'')
 			{
-				/* TODO: character literal when I add a character type?? */
+				/* @B'X' @b'x' - byte character */
+				SET_TOKEN_TYPE (hawk, tok, TOK_BCHR);
+				if (get_string(hawk, c, '\\', 0, 1, 0, tok) <= -1) return -1;
+				if (HAWK_OOECS_LEN(tok->name) != 1)
+				{
+					hawk_seterrfmt (hawk, &tok->loc, HAWK_ELXCHR, HAWK_T("invalid byte-character token"));
+					return -1;
+				}
 			}
-	#endif
 			else
 			{
 				unget_char (hawk, &hawk->sio.last);
