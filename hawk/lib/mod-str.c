@@ -604,7 +604,7 @@ static int fnc_subchar (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		len = ((hawk_val_mbs_t*)a0)->val.len;
 
 		if (lindex >= 0 && lindex < (hawk_int_t)len)
-			r = hawk_rtx_makecharval(rtx, str[lindex]);
+			r = hawk_rtx_makebchrval(rtx, str[lindex]);
 		else
 			r = hawk_rtx_makenilval(rtx);
 

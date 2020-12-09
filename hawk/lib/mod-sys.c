@@ -635,7 +635,7 @@ static int fnc_open (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		rx = copy_error_to_sys_list(rtx, sys_list);
 	}
 
-	HAWK_ASSERT (HAWK_IN_QUICKINT_RANGE(rx));
+	HAWK_ASSERT (HAWK_IN_QINT_RANGE(rx));
 	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
@@ -678,7 +678,7 @@ static int fnc_openfd (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_T("invalid file descriptor %jd"), (hawk_intmax_t)fd);
 	}
 
-	HAWK_ASSERT (HAWK_IN_QUICKINT_RANGE(rx));
+	HAWK_ASSERT (HAWK_IN_QINT_RANGE(rx));
 	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
@@ -703,7 +703,7 @@ static int fnc_read (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	if (sys_node)
 	{
 		if (hawk_rtx_getnargs(rtx) >= 3 && (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 2), &reqsize) <= -1 || reqsize <= 0)) reqsize = 8192;
-		if (reqsize > HAWK_QUICKINT_MAX) reqsize = HAWK_QUICKINT_MAX;
+		if (reqsize > HAWK_QINT_MAX) reqsize = HAWK_QINT_MAX;
 
 		if (reqsize > sys_list->ctx.readbuf_capa)
 		{
@@ -813,7 +813,7 @@ static int fnc_read (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	}
 
 done:
-	/* the value in 'rx' never exceeds HAWK_QUICKINT_MAX as 'reqsize' has been limited to
+	/* the value in 'rx' never exceeds HAWK_QINT_MAX as 'reqsize' has been limited to
 	 * it before the call to 'read'. so it's safe not to check the result of hawk_rtx_makeintval() */
 	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
@@ -982,7 +982,7 @@ static int fnc_dup (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	}
 
 done:
-	HAWK_ASSERT (HAWK_IN_QUICKINT_RANGE(rx)); /* assume a file descriptor never gets larger than HAWK_QUICKINT_MAX */
+	HAWK_ASSERT (HAWK_IN_QINT_RANGE(rx)); /* assume a file descriptor never gets larger than HAWK_QINT_MAX */
 	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
@@ -1759,7 +1759,7 @@ static int fnc_opendir (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		rx = copy_error_to_sys_list(rtx, sys_list);
 	}
 
-	/*HAWK_ASSERT (HAWK_IN_QUICKINT_RANGE(rx));*/
+	/*HAWK_ASSERT (HAWK_IN_QINT_RANGE(rx));*/
 	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
@@ -2787,7 +2787,7 @@ done:
 	if (val) hawk_rtx_freevalbcstr (rtx, a1, val);
 	if (var) hawk_rtx_freevalbcstr (rtx, a0, var);
 
-	HAWK_ASSERT (HAWK_IN_QUICKINT_RANGE(rx));
+	HAWK_ASSERT (HAWK_IN_QINT_RANGE(rx));
 	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
@@ -2824,7 +2824,7 @@ static int fnc_unsetenv (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 done:
 	if (str) hawk_rtx_freevalbcstr (rtx, a0, str);
 
-	HAWK_ASSERT (HAWK_IN_QUICKINT_RANGE(rx));
+	HAWK_ASSERT (HAWK_IN_QINT_RANGE(rx));
 	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
@@ -2989,7 +2989,7 @@ static int fnc_system (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 done:
 	if (str) hawk_rtx_freevaloocstr (rtx, a0, str);
 
-	HAWK_ASSERT (HAWK_IN_QUICKINT_RANGE(rx));
+	HAWK_ASSERT (HAWK_IN_QINT_RANGE(rx));
 	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
@@ -3038,7 +3038,7 @@ static int fnc_chroot (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	}
 #endif
 
-	HAWK_ASSERT (HAWK_IN_QUICKINT_RANGE(rx));
+	HAWK_ASSERT (HAWK_IN_QINT_RANGE(rx));
 	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
@@ -3090,7 +3090,7 @@ static int fnc_chmod (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	}
 #endif
 
-	HAWK_ASSERT (HAWK_IN_QUICKINT_RANGE(rx));
+	HAWK_ASSERT (HAWK_IN_QINT_RANGE(rx));
 	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
@@ -3170,7 +3170,7 @@ static int fnc_mkdir (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	}
 #endif
 
-	HAWK_ASSERT (HAWK_IN_QUICKINT_RANGE(rx));
+	HAWK_ASSERT (HAWK_IN_QINT_RANGE(rx));
 	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
@@ -3246,7 +3246,7 @@ static int fnc_rmdir (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	}
 #endif
 
-	HAWK_ASSERT (HAWK_IN_QUICKINT_RANGE(rx));
+	HAWK_ASSERT (HAWK_IN_QINT_RANGE(rx));
 	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
@@ -3324,7 +3324,7 @@ static int fnc_unlink (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	}
 #endif
 
-	HAWK_ASSERT (HAWK_IN_QUICKINT_RANGE(rx));
+	HAWK_ASSERT (HAWK_IN_QINT_RANGE(rx));
 	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
@@ -3372,7 +3372,7 @@ static int fnc_symlink (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	}
 #endif
 
-	HAWK_ASSERT (HAWK_IN_QUICKINT_RANGE(rx));
+	HAWK_ASSERT (HAWK_IN_QINT_RANGE(rx));
 	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
@@ -3541,7 +3541,7 @@ static int fnc_stat (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	}
 done:
 #endif
-	HAWK_ASSERT (HAWK_IN_QUICKINT_RANGE(rx));
+	HAWK_ASSERT (HAWK_IN_QINT_RANGE(rx));
 	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
@@ -3606,7 +3606,7 @@ static int fnc_utime (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	}
 #endif
 
-	HAWK_ASSERT (HAWK_IN_QUICKINT_RANGE(rx));
+	HAWK_ASSERT (HAWK_IN_QINT_RANGE(rx));
 	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
@@ -3662,7 +3662,7 @@ static int fnc_openmux (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	rx = set_error_on_sys_list(rtx, sys_list, HAWK_ENOIMPL, HAWK_NULL);
 #endif
 
-	/*HAWK_ASSERT (HAWK_IN_QUICKINT_RANGE(rx));*/
+	/*HAWK_ASSERT (HAWK_IN_QINT_RANGE(rx));*/
 	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
@@ -3923,11 +3923,11 @@ static int fnc_getmuxevt (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			goto done;
 		}
 
-		HAWK_ASSERT (HAWK_IN_QUICKINT_RANGE(file_node->id));
+		HAWK_ASSERT (HAWK_IN_QINT_RANGE(file_node->id));
 		x = hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, 2), hawk_rtx_makeintval(rtx, file_node->id));
 		if (x <= -1) goto fail;
 
-		HAWK_ASSERT (HAWK_IN_QUICKINT_RANGE(mux_data->x_evt[index].events));
+		HAWK_ASSERT (HAWK_IN_QINT_RANGE(mux_data->x_evt[index].events));
 		x = hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, 3), hawk_rtx_makeintval(rtx, mux_data->x_evt[index].events));
 		if (x <= -1) goto fail;
 	}
@@ -3974,7 +3974,7 @@ static int fnc_sockaddrdom (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		rx = copy_error_to_sys_list(rtx, sys_list);
 	}
 
-	HAWK_ASSERT (HAWK_IN_QUICKINT_RANGE(rx));
+	HAWK_ASSERT (HAWK_IN_QINT_RANGE(rx));
 	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
@@ -4015,7 +4015,7 @@ static int fnc_socket (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
 	}
 
-	HAWK_ASSERT (HAWK_IN_QUICKINT_RANGE(rx));
+	HAWK_ASSERT (HAWK_IN_QINT_RANGE(rx));
 	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
@@ -4083,7 +4083,7 @@ static int fnc_recvfrom (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		socklen_t addrlen;
 
 		if (hawk_rtx_getnargs(rtx) >= 3 && (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 2), &reqsize) <= -1 || reqsize <= 0)) reqsize = 8192;
-		if (reqsize > HAWK_QUICKINT_MAX) reqsize = HAWK_QUICKINT_MAX;
+		if (reqsize > HAWK_QINT_MAX) reqsize = HAWK_QINT_MAX;
 
 		if (reqsize > sys_list->ctx.readbuf_capa)
 		{
@@ -4153,7 +4153,7 @@ static int fnc_recvfrom (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	}
 
 done:
-	/* the value in 'rx' never exceeds HAWK_QUICKINT_MAX as 'reqsize' has been limited to
+	/* the value in 'rx' never exceeds HAWK_QINT_MAX as 'reqsize' has been limited to
 	 * it before the call to 'read'. so it's safe not to check the result of hawk_rtx_makeintval() */
 	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;

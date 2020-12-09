@@ -58,6 +58,7 @@ typedef struct hawk_nde_cnd_t       hawk_nde_cnd_t;
 typedef struct hawk_nde_pos_t       hawk_nde_pos_t;
 
 typedef struct hawk_nde_char_t      hawk_nde_char_t;
+typedef struct hawk_nde_bchr_t      hawk_nde_bchr_t;
 typedef struct hawk_nde_int_t       hawk_nde_int_t;
 typedef struct hawk_nde_flt_t       hawk_nde_flt_t;
 typedef struct hawk_nde_str_t       hawk_nde_str_t;
@@ -141,6 +142,14 @@ struct hawk_nde_char_t
 {
 	HAWK_NDE_HDR;
 	hawk_ooch_t val;
+};
+
+
+/* HAWK_NDE_BCHR */
+struct hawk_nde_bchr_t
+{
+	HAWK_NDE_HDR;
+	hawk_bch_t val;
 };
 
 /* HAWK_NDE_INT */

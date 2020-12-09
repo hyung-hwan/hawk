@@ -486,14 +486,19 @@ hawk_val_t* hawk_rtx_makenilval (hawk_rtx_t* rtx)
 
 hawk_val_t* hawk_rtx_makecharval (hawk_rtx_t* rtx, hawk_ooch_t v)
 {
-	return HAWK_QUICKCHAR_TO_VTR(v);
+	return HAWK_QCHAR_TO_VTR((hawk_oochu_t)v);
+}
+
+hawk_val_t* hawk_rtx_makebchrval (hawk_rtx_t* rtx, hawk_bch_t v)
+{
+	return HAWK_QBCHR_TO_VTR((hawk_bchu_t)v);
 }
 
 hawk_val_t* hawk_rtx_makeintval (hawk_rtx_t* rtx, hawk_int_t v)
 {
 	hawk_val_int_t* val;
 
-	if (HAWK_IN_QUICKINT_RANGE(v)) return HAWK_QUICKINT_TO_VTR(v);
+	if (HAWK_IN_QINT_RANGE(v)) return HAWK_QINT_TO_VTR(v);
 
 	if (!rtx->vmgr.ifree)
 	{
@@ -1418,6 +1423,7 @@ const hawk_ooch_t* hawk_rtx_getvaltypename(hawk_rtx_t* rtx, hawk_val_t* val)
 		/* synchronize this table with enum hawk_val_type_t in hawk.h */
 		HAWK_T("nil"),
 		HAWK_T("char"),
+		HAWK_T("bchar"),
 		HAWK_T("int"),
 		HAWK_T("flt"),
 		HAWK_T("str"),
@@ -1425,6 +1431,7 @@ const hawk_ooch_t* hawk_rtx_getvaltypename(hawk_rtx_t* rtx, hawk_val_t* val)
 		HAWK_T("fun"),
 		HAWK_T("map"),
 		HAWK_T("array"),
+
 		HAWK_T("rex"),
 		HAWK_T("ref")
 	};

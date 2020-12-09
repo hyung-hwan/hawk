@@ -338,6 +338,28 @@ static int print_expr (hawk_t* hawk, hawk_nde_t* nde)
 			break;
 		}
 
+		case HAWK_NDE_BCHR:
+		{
+			hawk_bch_t tmp = ((hawk_nde_char_t*)nde)->val;
+			hawk_ooch_t buf[16]; 
+
+			PUT_SRCSTR (hawk, HAWK_T("@b\'"));
+			if (tmp == '\0')
+				PUT_SRCSTR (hawk, HAWK_T("\\0"));
+			else if (tmp == '\'')
+				PUT_SRCSTR (hawk, HAWK_T("\\'"));
+			else if (hawk_is_bch_print(tmp))
+				PUT_SRCSTRN (hawk, &tmp, 1);
+			else
+			{
+				hawk_fmttooocstr (hawk, buf, HAWK_COUNTOF(buf), HAWK_T("\\x%02x"), tmp);
+				PUT_SRCSTR (hawk, buf);
+			}
+
+			PUT_SRCSTR (hawk, HAWK_T("\'"));
+			break;
+		}
+
 		case HAWK_NDE_INT:
 		{
 			if (((hawk_nde_int_t*)nde)->str)
@@ -1384,6 +1406,7 @@ void hawk_clrpt (hawk_t* hawk, hawk_nde_t* tree)
 			}
 
 			case HAWK_NDE_CHAR:
+			case HAWK_NDE_BCHR:
 			{
 				hawk_freemem (hawk, p);
 				break;
