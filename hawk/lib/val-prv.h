@@ -66,7 +66,7 @@ struct hawk_val_rchunk_t
  * add a field to indicate if a value is static.
  * 
 
-#define HAWK_IS_STATICVAL(val) ((val) == HAWK_NULL || (val) == hawk_val_nil || (val) == hawk_val_zls || (val) == hawk_val_zlm)
+#define HAWK_IS_STATICVAL(val) ((val) == HAWK_NULL || (val) == hawk_val_nil || (val) == hawk_val_zls || (val) == hawk_val_zlbs)
 */
 #define HAWK_IS_STATICVAL(val) ((val)->v_static)
 
@@ -169,11 +169,14 @@ extern hawk_val_t* hawk_val_nil;
 /* represents an empty string  */
 extern hawk_val_t* hawk_val_zls;
 
+/* represents an empty byte string */
+extern hawk_val_t* hawk_val_zlbs;
+
 
 void hawk_rtx_freeval (
-        hawk_rtx_t* rtx,
-        hawk_val_t* val,
-        int         flags
+	hawk_rtx_t* rtx,
+	hawk_val_t* val,
+	int         flags
 );
 
 void hawk_rtx_freevalchunk (

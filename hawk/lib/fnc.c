@@ -566,94 +566,101 @@ static int index_or_rindex (hawk_rtx_t* rtx, int rindex)
 		if (n <= -1) return -1;
 	}
 
-	if (HAWK_RTX_GETVALTYPE(rtx, a0) == HAWK_VAL_MBS)
+	switch (HAWK_RTX_GETVALTYPE(rtx, a0))
 	{
-		hawk_bch_t* str0, * str1, * ptr;
-		hawk_oow_t len0, len1;
-
-		str0 = ((hawk_val_mbs_t*)a0)->val.ptr;
-		len0 = ((hawk_val_mbs_t*)a0)->val.len;
-
-		str1 = hawk_rtx_getvalbcstr(rtx, a1, &len1);
-		if (!str1) return -1;
-
-		if (nargs < 3)
+		case HAWK_VAL_BCHR:
+		case HAWK_VAL_MBS:
 		{
-			boundary = rindex? len0: 1;
+			hawk_bch_t* str0, * str1, * ptr;
+			hawk_oow_t len0, len1;
+
+			str0 = ((hawk_val_mbs_t*)a0)->val.ptr;
+			len0 = ((hawk_val_mbs_t*)a0)->val.len;
+
+			str1 = hawk_rtx_getvalbcstr(rtx, a1, &len1);
+			if (HAWK_UNLIKELY(!str0)) return -1;
+
+			if (nargs < 3)
+			{
+				boundary = rindex? len0: 1;
+			}
+			else
+			{
+				if (boundary == 0) boundary = 1;
+				else if (boundary < 0) boundary = len0 + boundary + 1;
+			}
+
+			if (boundary > len0 || boundary <= 0)
+			{
+				ptr = HAWK_NULL;
+			}
+			else if (rindex)
+			{
+				/* 'boundary' acts as an end position */
+				ptr = hawk_rfind_bchars_in_bchars(&str0[0], boundary, str1, len1, rtx->gbl.ignorecase);
+			}
+			else
+			{
+				/* 'boundary' acts as an start position */
+				ptr = hawk_find_bchars_in_bchars(&str0[boundary-1], len0 - boundary + 1, str1, len1, rtx->gbl.ignorecase);
+			}
+
+			idx = (ptr == HAWK_NULL)? 0: ((hawk_int_t)(ptr - str0) + 1);
+
+			hawk_rtx_freevalbcstr (rtx, a1, str1);
+			break;
 		}
-		else
+	
+		default:
 		{
-			if (boundary == 0) boundary = 1;
-			else if (boundary < 0) boundary = len0 + boundary + 1;
-		}
+			hawk_ooch_t* str0, * str1, * ptr;
+			hawk_oow_t len0, len1;
 
-		if (boundary > len0 || boundary <= 0)
-		{
-			ptr = HAWK_NULL;
-		}
-		else if (rindex)
-		{
-			/* 'boundary' acts as an end position */
-			ptr = hawk_rfind_bchars_in_bchars(&str0[0], boundary, str1, len1, rtx->gbl.ignorecase);
-		}
-		else
-		{
-			/* 'boundary' acts as an start position */
-			ptr = hawk_find_bchars_in_bchars(&str0[boundary-1], len0 - boundary + 1, str1, len1, rtx->gbl.ignorecase);
-		}
+			str0 = hawk_rtx_getvaloocstr(rtx, a0, &len0);
+			if (HAWK_UNLIKELY(!str0)) return -1;
 
-		idx = (ptr == HAWK_NULL)? 0: ((hawk_int_t)(ptr - str0) + 1);
+			str1 = hawk_rtx_getvaloocstr(rtx, a1, &len1);
+			if (!str1)
+			{
+				hawk_rtx_freevaloocstr (rtx, a0, str0);
+				return -1;
+			}
 
-		hawk_rtx_freevalbcstr (rtx, a1, str1);
-	}
-	else
-	{
-		hawk_ooch_t* str0, * str1, * ptr;
-		hawk_oow_t len0, len1;
+			if (nargs < 3)
+			{
+				boundary = rindex? len0: 1;
+			}
+			else
+			{
+				if (boundary == 0) boundary = 1;
+				else if (boundary < 0) boundary = len0 + boundary + 1;
+			}
 
-		str0 = hawk_rtx_getvaloocstr(rtx, a0, &len0);
-		if (!str0) return -1;
+			if (boundary > len0 || boundary <= 0)
+			{
+				ptr = HAWK_NULL;
+			}
+			else if (rindex)
+			{
+				/* 'boundary' acts as an end position */
+				ptr = hawk_rfind_oochars_in_oochars(&str0[0], boundary, str1, len1, rtx->gbl.ignorecase);
+			}
+			else
+			{
+				/* 'boundary' acts as an start position */
+				ptr = hawk_find_oochars_in_oochars(&str0[boundary-1], len0 - boundary + 1, str1, len1, rtx->gbl.ignorecase);
+			}
 
-		str1 = hawk_rtx_getvaloocstr(rtx, a1, &len1);
-		if (!str1)
-		{
+			idx = (ptr == HAWK_NULL)? 0: ((hawk_int_t)(ptr - str0) + 1);
+
+			hawk_rtx_freevaloocstr (rtx, a1, str1);
 			hawk_rtx_freevaloocstr (rtx, a0, str0);
-			return -1;
 		}
-
-		if (nargs < 3)
-		{
-			boundary = rindex? len0: 1;
-		}
-		else
-		{
-			if (boundary == 0) boundary = 1;
-			else if (boundary < 0) boundary = len0 + boundary + 1;
-		}
-
-		if (boundary > len0 || boundary <= 0)
-		{
-			ptr = HAWK_NULL;
-		}
-		else if (rindex)
-		{
-			/* 'boundary' acts as an end position */
-			ptr = hawk_rfind_oochars_in_oochars(&str0[0], boundary, str1, len1, rtx->gbl.ignorecase);
-		}
-		else
-		{
-			/* 'boundary' acts as an start position */
-			ptr = hawk_find_oochars_in_oochars(&str0[boundary-1], len0 - boundary + 1, str1, len1, rtx->gbl.ignorecase);
-		}
-
-		idx = (ptr == HAWK_NULL)? 0: ((hawk_int_t)(ptr - str0) + 1);
-
-		hawk_rtx_freevaloocstr (rtx, a1, str1);
-		hawk_rtx_freevaloocstr (rtx, a0, str0);
+		break;
 	}
 
 	a0 = hawk_rtx_makeintval(rtx, idx);
-	if (a0 == HAWK_NULL) return -1;
+	if (HAWK_UNLIKELY(!a0)) return -1;
 
 	hawk_rtx_setretval (rtx, a0);
 	return 0;
@@ -661,12 +668,12 @@ static int index_or_rindex (hawk_rtx_t* rtx, int rindex)
 
 int hawk_fnc_index (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
-	return index_or_rindex (rtx, 0);
+	return index_or_rindex(rtx, 0);
 }
 
 int hawk_fnc_rindex (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
-	return index_or_rindex (rtx, 1);
+	return index_or_rindex(rtx, 1);
 }
 
 int hawk_fnc_length (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
@@ -701,13 +708,21 @@ int hawk_fnc_length (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 				len = HAWK_ARR_TALLY(((hawk_val_arr_t*)v)->arr);
 				break;
 
-			case HAWK_VAL_STR:
-				/* string length */
-				len = ((hawk_val_str_t*)v)->val.len;
+			case HAWK_VAL_BCHR:
+				len = 1;
 				break;
 
 			case HAWK_VAL_MBS:
 				len = ((hawk_val_mbs_t*)v)->val.len;
+				break;
+
+			case HAWK_VAL_CHAR:
+				len = 1;
+				break;
+
+			case HAWK_VAL_STR:
+				/* string length */
+				len = ((hawk_val_str_t*)v)->val.len;
 				break;
 
 			default:
@@ -753,34 +768,42 @@ int hawk_fnc_substr (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	lindex = lindex - 1;
 	if (lindex < 0) lindex = 0;
 
-	if (HAWK_RTX_GETVALTYPE(rtx, a0) == HAWK_VAL_MBS)
+	switch (HAWK_RTX_GETVALTYPE(rtx, a0))
 	{
-		hawk_bch_t* str;
-		hawk_oow_t len;
+		case HAWK_VAL_BCHR:
+		case HAWK_VAL_MBS:
+		{
+			hawk_bch_t* str;
+			hawk_oow_t len;
 
-		str = ((hawk_val_mbs_t*)a0)->val.ptr;
-		len = ((hawk_val_mbs_t*)a0)->val.len;
+			str = hawk_rtx_getvalbcstr(rtx, a0, &len);
+			if (HAWK_UNLIKELY(!str)) return -1;
 
-		if (lindex >= (hawk_int_t)len) lindex = (hawk_int_t)len;
-		if (lcount > (hawk_int_t)len - lindex) lcount = (hawk_int_t)len - lindex;
+			if (lindex >= (hawk_int_t)len) lindex = (hawk_int_t)len;
+			if (lcount > (hawk_int_t)len - lindex) lcount = (hawk_int_t)len - lindex;
 
-		r = hawk_rtx_makembsvalwithbchars(rtx, &str[lindex], (hawk_oow_t)lcount);
-		if (HAWK_UNLIKELY(!r)) return -1;
-	}
-	else
-	{
-		hawk_ooch_t* str;
-		hawk_oow_t len;
+			r = hawk_rtx_makembsvalwithbchars(rtx, &str[lindex], (hawk_oow_t)lcount);
+			hawk_rtx_freevalbcstr (rtx, a0, str);
+			if (HAWK_UNLIKELY(!r)) return -1;
+			break;
+		}
 
-		str = hawk_rtx_getvaloocstr(rtx, a0, &len);
-		if (!str) return -1;
+		default:
+		{
+			hawk_ooch_t* str;
+			hawk_oow_t len;
 
-		if (lindex >= (hawk_int_t)len) lindex = (hawk_int_t)len;
-		if (lcount > (hawk_int_t)len - lindex) lcount = (hawk_int_t)len - lindex;
+			str = hawk_rtx_getvaloocstr(rtx, a0, &len);
+			if (HAWK_UNLIKELY(!str)) return -1;
 
-		r = hawk_rtx_makestrvalwithoochars(rtx, &str[lindex], (hawk_oow_t)lcount);
-		hawk_rtx_freevaloocstr (rtx, a0, str);
-		if (HAWK_UNLIKELY(!r)) return -1;
+			if (lindex >= (hawk_int_t)len) lindex = (hawk_int_t)len;
+			if (lcount > (hawk_int_t)len - lindex) lcount = (hawk_int_t)len - lindex;
+
+			r = hawk_rtx_makestrvalwithoochars(rtx, &str[lindex], (hawk_oow_t)lcount);
+			hawk_rtx_freevaloocstr (rtx, a0, str);
+			if (HAWK_UNLIKELY(!r)) return -1;
+			break;
+		}
 	}
 
 	hawk_rtx_setretval (rtx, r);
@@ -836,6 +859,9 @@ static int fnc_split (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, int use_array)
 	}
 	else
 	{
+		/* no distinction between byte-string and normal string for the  lack of hawk_rtx_buildrex() with a byte string.
+		 * TODO: distingish byte strings from normal strings once the regular expresson builder supports them */
+
 		fs.ptr = hawk_rtx_getvaloocstr(rtx, t0, &fs.len);
 		if (HAWK_UNLIKELY(!fs.ptr)) goto oops;
 
@@ -864,17 +890,20 @@ static int fnc_split (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, int use_array)
 	}
 
 	/* the first parameter - string to split */
-	if (HAWK_RTX_GETVALTYPE(rtx, a0) == HAWK_VAL_MBS)
+	switch (HAWK_RTX_GETVALTYPE(rtx, a0))
 	{
-		byte_str = 1;
-		str.ptr = do_fld? hawk_rtx_valtobcstrdup(rtx, a0, &str.len):
-		                  hawk_rtx_getvalbcstr(rtx, a0, &str.len);
-	}
-	else
-	{
-		byte_str = 0;
-		str.ptr = do_fld? hawk_rtx_valtooocstrdup(rtx, a0, &str.len):
-		                  hawk_rtx_getvaloocstr(rtx, a0, &str.len);
+		case HAWK_VAL_BCHR:
+		case HAWK_VAL_MBS:
+			byte_str = 1;
+			str.ptr = do_fld? hawk_rtx_valtobcstrdup(rtx, a0, &str.len):
+			                  hawk_rtx_getvalbcstr(rtx, a0, &str.len);
+			break;
+
+		default:
+			byte_str = 0;
+			str.ptr = do_fld? hawk_rtx_valtooocstrdup(rtx, a0, &str.len):
+			                  hawk_rtx_getvaloocstr(rtx, a0, &str.len);
+			break;
 	}
 	if (HAWK_UNLIKELY(!str.ptr)) goto oops;
 
@@ -1016,6 +1045,15 @@ int hawk_fnc_tolower (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	a0 = hawk_rtx_getarg(rtx, 0);
 	switch (HAWK_RTX_GETVALTYPE(rtx, a0))
 	{
+		case  HAWK_VAL_BCHR:
+		{
+			hawk_bch_t tmp = HAWK_RTX_GETBCHRFROMVAL(rtx, a0);
+			tmp = hawk_to_bch_lower(tmp);
+			r = hawk_rtx_makebchrval(rtx, tmp);
+			if (HAWK_UNLIKELY(!r)) return -1;
+			break;
+		}
+
 		case HAWK_VAL_MBS:
 		{
 			hawk_bcs_t str;
@@ -1033,7 +1071,7 @@ int hawk_fnc_tolower (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		case  HAWK_VAL_CHAR:
 		{
 			hawk_ooch_t tmp = HAWK_RTX_GETCHARFROMVAL(rtx, a0);
-			tmp = hawk_to_bch_lower(tmp);
+			tmp = hawk_to_ooch_lower(tmp);
 			r = hawk_rtx_makecharval(rtx, tmp);
 			if (HAWK_UNLIKELY(!r)) return -1;
 			break;
@@ -1066,6 +1104,15 @@ int hawk_fnc_toupper (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	a0 = hawk_rtx_getarg(rtx, 0);
 	switch (HAWK_RTX_GETVALTYPE(rtx, a0))
 	{
+		case  HAWK_VAL_BCHR:
+		{
+			hawk_bch_t tmp = HAWK_RTX_GETCHARFROMVAL(rtx, a0);
+			tmp = hawk_to_bch_upper(tmp);
+			r = hawk_rtx_makebchrval(rtx, tmp);
+			if (HAWK_UNLIKELY(!r)) return -1;
+			break;
+		}
+
 		case HAWK_VAL_MBS:
 		{
 			hawk_bcs_t str;
@@ -1083,7 +1130,7 @@ int hawk_fnc_toupper (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		case  HAWK_VAL_CHAR:
 		{
 			hawk_ooch_t tmp = HAWK_RTX_GETCHARFROMVAL(rtx, a0);
-			tmp = hawk_to_bch_upper(tmp);
+			tmp = hawk_to_ooch_upper(tmp);
 			r = hawk_rtx_makecharval(rtx, tmp);
 			if (HAWK_UNLIKELY(!r)) return -1;
 			break;
@@ -1373,23 +1420,26 @@ static int __substitute (hawk_rtx_t* rtx, hawk_oow_t max_count)
 	{
 		r2 = hawk_rtx_getrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, 2));
 
-		if (HAWK_RTX_GETVALTYPE(rtx, r2) == HAWK_VAL_MBS)
+		switch (HAWK_RTX_GETVALTYPE(rtx, r2))
 		{
-			s2.ptr = hawk_rtx_getvalbcstr(rtx, r2, &s2.len);
-			s2_free = 2;
+			case HAWK_VAL_BCHR:
+			case HAWK_VAL_MBS:
+				s2.ptr = hawk_rtx_getvalbcstr(rtx, r2, &s2.len);
+				s2_free = 2;
 
-			/* the second argument - substitute */
-			s1.ptr = hawk_rtx_getvalbcstr(rtx, a1, &s1.len);
-			s1_free = 2;
-		}
-		else
-		{
-			s2.ptr = hawk_rtx_getvaloocstr(rtx, r2, &s2.len);
-			s2_free = 1;
+				/* the second argument - substitute */
+				s1.ptr = hawk_rtx_getvalbcstr(rtx, a1, &s1.len);
+				s1_free = 2;
+				break;
 
-			/* the second argument - substitute */
-			s1.ptr = hawk_rtx_getvaloocstr(rtx, a1, &s1.len);
-			s1_free = 1;
+			default:
+				s2.ptr = hawk_rtx_getvaloocstr(rtx, r2, &s2.len);
+				s2_free = 1;
+
+				/* the second argument - substitute */
+				s1.ptr = hawk_rtx_getvaloocstr(rtx, a1, &s1.len);
+				s1_free = 1;
+				break;
 		}
 	}
 
@@ -1738,61 +1788,66 @@ int hawk_fnc_sprintf (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	HAWK_ASSERT (nargs > 0);
 
 	a0 = hawk_rtx_getarg(rtx, 0);
-	if (HAWK_RTX_GETVALTYPE(rtx, a0) == HAWK_VAL_MBS)
+	switch (HAWK_RTX_GETVALTYPE(rtx, a0))
 	{
-		hawk_becs_t fbu;
-		int fbu_inited = 0;
-		hawk_bcs_t cs0;
-		hawk_bcs_t x;
+		case HAWK_VAL_BCHR:
+		case HAWK_VAL_MBS:
+		{
+			hawk_becs_t fbu;
+			int fbu_inited = 0;
+			hawk_bcs_t cs0;
+			hawk_bcs_t x;
 
-		if (hawk_becs_init(&fbu, hawk_rtx_getgem(rtx), 256) <= -1) goto oops_mbs;
-		fbu_inited = 1;
+			if (hawk_becs_init(&fbu, hawk_rtx_getgem(rtx), 256) <= -1) goto oops_mbs;
+			fbu_inited = 1;
 
-		cs0.ptr = hawk_rtx_getvalbcstr(rtx, a0, &cs0.len);
-		if (HAWK_UNLIKELY(!cs0.ptr)) goto oops_mbs;
+			cs0.ptr = hawk_rtx_getvalbcstr(rtx, a0, &cs0.len);
+			if (HAWK_UNLIKELY(!cs0.ptr)) goto oops_mbs;
 
-		x.ptr = hawk_rtx_formatmbs(rtx, &rtx->fnc.bout, &fbu, cs0.ptr, cs0.len, nargs, HAWK_NULL, &x.len);
-		hawk_rtx_freevalbcstr (rtx, a0, cs0.ptr);
-		if (HAWK_UNLIKELY(!x.ptr)) goto oops_mbs;
-		
-		a0 = hawk_rtx_makembsvalwithbcs(rtx, &x);
-		if (HAWK_UNLIKELY(!a0)) goto oops_mbs;
+			x.ptr = hawk_rtx_formatmbs(rtx, &rtx->fnc.bout, &fbu, cs0.ptr, cs0.len, nargs, HAWK_NULL, &x.len);
+			hawk_rtx_freevalbcstr (rtx, a0, cs0.ptr);
+			if (HAWK_UNLIKELY(!x.ptr)) goto oops_mbs;
+			
+			a0 = hawk_rtx_makembsvalwithbcs(rtx, &x);
+			if (HAWK_UNLIKELY(!a0)) goto oops_mbs;
 
-		hawk_becs_fini (&fbu);
-		hawk_rtx_setretval (rtx, a0);
-		return 0;
+			hawk_becs_fini (&fbu);
+			hawk_rtx_setretval (rtx, a0);
+			return 0;
 
-	oops_mbs:
-		if (fbu_inited) hawk_becs_fini (&fbu);
-		return -1;
-	}
-	else
-	{
-		hawk_ooecs_t fbu;
-		int fbu_inited = 0;
-		hawk_oocs_t cs0;
-		hawk_oocs_t x;
+		oops_mbs:
+			if (fbu_inited) hawk_becs_fini (&fbu);
+			return -1;
+		}
 
-		if (hawk_ooecs_init(&fbu, hawk_rtx_getgem(rtx), 256) <= -1) goto oops;
-		fbu_inited = 1;
+		default:
+		{
+			hawk_ooecs_t fbu;
+			int fbu_inited = 0;
+			hawk_oocs_t cs0;
+			hawk_oocs_t x;
 
-		cs0.ptr = hawk_rtx_getvaloocstr(rtx, a0, &cs0.len);
-		if (HAWK_UNLIKELY(!cs0.ptr)) goto oops;
+			if (hawk_ooecs_init(&fbu, hawk_rtx_getgem(rtx), 256) <= -1) goto oops;
+			fbu_inited = 1;
 
-		x.ptr = hawk_rtx_format(rtx, &rtx->fnc.oout, &fbu, cs0.ptr, cs0.len, nargs, HAWK_NULL, &x.len);
-		hawk_rtx_freevaloocstr (rtx, a0, cs0.ptr);
-		if (HAWK_UNLIKELY(!x.ptr)) goto oops;
+			cs0.ptr = hawk_rtx_getvaloocstr(rtx, a0, &cs0.len);
+			if (HAWK_UNLIKELY(!cs0.ptr)) goto oops;
 
-		a0 = hawk_rtx_makestrvalwithoocs(rtx, &x);
-		if (HAWK_UNLIKELY(!a0)) goto oops;
+			x.ptr = hawk_rtx_format(rtx, &rtx->fnc.oout, &fbu, cs0.ptr, cs0.len, nargs, HAWK_NULL, &x.len);
+			hawk_rtx_freevaloocstr (rtx, a0, cs0.ptr);
+			if (HAWK_UNLIKELY(!x.ptr)) goto oops;
 
-		hawk_ooecs_fini (&fbu);
-		hawk_rtx_setretval (rtx, a0);
-		return 0;
+			a0 = hawk_rtx_makestrvalwithoocs(rtx, &x);
+			if (HAWK_UNLIKELY(!a0)) goto oops;
 
-	oops:
-		if (fbu_inited) hawk_ooecs_fini (&fbu);
-		return -1;
+			hawk_ooecs_fini (&fbu);
+			hawk_rtx_setretval (rtx, a0);
+			return 0;
+
+		oops:
+			if (fbu_inited) hawk_ooecs_fini (&fbu);
+			return -1;
+		}
 	}
 }
 

@@ -44,6 +44,54 @@ function main()
 		gsub("\\\\", "A", y);
 		ensure (x, "xAy", @SCRIPTNAME, @SCRIPTLINE);
 		ensure (y, "xAAy", @SCRIPTNAME, @SCRIPTLINE);
+
+
+		x = y = @b"x\\\\y";
+		gsub(/\\\\/, "A", x);
+		gsub("\\\\", "A", y);
+		ensure (x === @b"xAy", 1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (y === @b"xAAy", 1, @SCRIPTNAME, @SCRIPTLINE);
+
+		x = y = @b"x\\\\y";
+		gsub(/\\\\/, 'A', x);
+		gsub("\\\\", 'A', y);
+		ensure (x === @b"xAy", 1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (y === @b"xAAy", 1, @SCRIPTNAME, @SCRIPTLINE);
+
+		x = y = "x\\\\y";
+		gsub(/\\\\/, @b'A', x);
+		gsub("\\\\", @b'A', y);
+		ensure (x === "xAy", 1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (y === "xAAy", 1, @SCRIPTNAME, @SCRIPTLINE);
+
+		x = y = "x\\\\y";
+		gsub(/\\\\/, @b"A", x);
+		gsub("\\\\", @b"A", y);
+		ensure (x === "xAy", 1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (y === "xAAy", 1, @SCRIPTNAME, @SCRIPTLINE);
+
+		x = y = '\\';
+		gsub(/\\/, @b"A", x);
+		gsub("\\\\", @b"A", y);
+		ensure (x === "A", 1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (y === "A", 1, @SCRIPTNAME, @SCRIPTLINE);
+
+		x = y = '\\';
+		gsub(/\\/, @b'A', x);
+		gsub("\\\\", @b'A', y);
+		ensure (x === "A", 1, @SCRIPTNAME, @SCRIPTLINE);
+
+		x = y = @b'\\';
+		gsub(/\\/, @b"A", x);
+		gsub("\\\\", @b"A", y);
+		ensure (x === @b"A", 1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (y === @b"A", 1, @SCRIPTNAME, @SCRIPTLINE);
+
+		x = y = @b'\\';
+		gsub(/\\/, @b'A', x);
+		gsub("\\\\", @b'A', y);
+		ensure (x === @b"A", 1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (y === @b"A", 1, @SCRIPTNAME, @SCRIPTLINE);
 	}
 
 	## gsub - POSIX rule for &, \&, \\&, \\\& 
@@ -248,6 +296,10 @@ function main()
 
 		ensure (sprintf("%+d %d", 3, 4),                 "+3 4",                        @SCRIPTNAME, @SCRIPTLINE);
 		ensure (sprintf(@b"%+d %d", 3, 4),               @b"+3 4",                      @SCRIPTNAME, @SCRIPTLINE);
+
+
+		ensure (sprintf(@b'A') === @b"A", 1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (sprintf('A') === "A", 1, @SCRIPTNAME, @SCRIPTLINE);
 	}
 
 	{
@@ -282,29 +334,74 @@ function main()
 		ensure (substr(1000+10000, 2) === "1000",          1,  @SCRIPTNAME, @SCRIPTLINE);
 		ensure (substr(1000+5000, 2) === "000",            1,  @SCRIPTNAME, @SCRIPTLINE);
 
+		ensure (str::subchar("abc", -1) === @nil,          1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (str::subchar("abc", 0) === @nil,           1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (str::subchar("abc", 1) === 'a',            1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (str::subchar("abc", 2) === 'b',            1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (str::subchar("abc", 3) === 'c',            1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (str::subchar("abc", 4) === @nil,           1, @SCRIPTNAME, @SCRIPTLINE);
 
-		ensure (str::subchar("abc", -1) === @nil,          1, @SCRIPTNAME, @SCRIPTNAME);
-		ensure (str::subchar("abc", 0) === @nil,           1, @SCRIPTNAME, @SCRIPTNAME);
-		ensure (str::subchar("abc", 1) === 'a',            1, @SCRIPTNAME, @SCRIPTNAME);
-		ensure (str::subchar("abc", 2) === 'b',            1, @SCRIPTNAME, @SCRIPTNAME);
-		ensure (str::subchar("abc", 3) === 'c',            1, @SCRIPTNAME, @SCRIPTNAME);
-		ensure (str::subchar("abc", 4) === @nil,           1, @SCRIPTNAME, @SCRIPTNAME);
+		ensure (str::subchar("☕⛄", -1) === @nil,          1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (str::subchar("☕⛄", 0) === @nil,           1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (str::subchar("☕⛄", 1) === '☕',           1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (str::subchar("☕⛄", 2) === '⛄',           1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (str::subchar("☕⛄", 3) === @nil,           1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (str::subchar("☕⛄", 4) === @nil,           1, @SCRIPTNAME, @SCRIPTLINE);
 
-		ensure (str::subchar("☕⛄", -1) === @nil,          1, @SCRIPTNAME, @SCRIPTNAME);
-		ensure (str::subchar("☕⛄", 0) === @nil,           1, @SCRIPTNAME, @SCRIPTNAME);
-		ensure (str::subchar("☕⛄", 1) === '☕',           1, @SCRIPTNAME, @SCRIPTNAME);
-		ensure (str::subchar("☕⛄", 2) === '⛄',           1, @SCRIPTNAME, @SCRIPTNAME);
-		ensure (str::subchar("☕⛄", 3) === @nil,           1, @SCRIPTNAME, @SCRIPTNAME);
-		ensure (str::subchar("☕⛄", 4) === @nil,           1, @SCRIPTNAME, @SCRIPTNAME);
+		ensure (str::subchar(@b"abc", -1) === @nil,          1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (str::subchar(@b"abc", 0) === @nil,           1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (str::subchar(@b"abc", 1) === @b'a',            1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (str::subchar(@b"abc", 2) === @b'b',            1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (str::subchar(@b"abc", 3) === @b'c',            1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (str::subchar(@b"abc", 4) === @nil,           1, @SCRIPTNAME, @SCRIPTLINE);
 
-		ensure (str::subchar(@b"abc", -1) === @nil,          1, @SCRIPTNAME, @SCRIPTNAME);
-		ensure (str::subchar(@b"abc", 0) === @nil,           1, @SCRIPTNAME, @SCRIPTNAME);
-		ensure (str::subchar(@b"abc", 1) === @b'a',            1, @SCRIPTNAME, @SCRIPTNAME);
-		ensure (str::subchar(@b"abc", 2) === @b'b',            1, @SCRIPTNAME, @SCRIPTNAME);
-		ensure (str::subchar(@b"abc", 3) === @b'c',            1, @SCRIPTNAME, @SCRIPTNAME);
-		ensure (str::subchar(@b"abc", 4) === @nil,           1, @SCRIPTNAME, @SCRIPTNAME);
+		ensure (str::subchar('a', 0) === @nil,            1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (str::subchar('a', 1) === 'a',             1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (str::subchar('a', 2) === @nil,            1, @SCRIPTNAME, @SCRIPTLINE);
+
+		ensure (str::subchar(@b'a', 0) === @nil,            1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (str::subchar(@b'a', 1) === @b'a',           1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (str::subchar(@b'a', 2) === @nil,            1, @SCRIPTNAME, @SCRIPTLINE);
+
+		ensure (str::subchar(123, 0) === @nil,             1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (str::subchar(123, 1) === '1',            1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (str::subchar(123, 2) === '2',            1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (str::subchar(123, 3) === '3',            1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (str::subchar(123, 4) === @nil,            1, @SCRIPTNAME, @SCRIPTLINE);
 	}
 
+	{
+		ensure (str::substr("☕Q⛄", 0) === "☕Q⛄",         1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (str::substr("☕Q⛄", 1) === "☕Q⛄",         1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (str::substr("☕Q⛄", 2) === "Q⛄",           1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (str::substr("☕Q⛄", 3) === "⛄",            1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (str::substr("☕Q⛄", 4) === "",            1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (str::substr("☕Q⛄", 1, 2) === "☕Q",         1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (str::substr("☕Q⛄", 1, 4) === "☕Q⛄",         1, @SCRIPTNAME, @SCRIPTLINE);
+		###ensure (str::substr("☕Q⛄", -1, 1) === "⛄",         1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (str::substr('☕', 1, 4) === "☕",         1, @SCRIPTNAME, @SCRIPTLINE);
+
+		ensure (str::substr(@b"\xAD\xAA\xBB\CC", 2, 2) === @b"\xAA\xBB", 1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (str::substr(@b'\xAD', 1, 1) === @b"\xAD", 1, @SCRIPTNAME, @SCRIPTLINE);
+	}
+
+	{
+		ensure (str::index("☕Q⛄X⛄Z", '⛄'),  3, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (str::index("☕Q⛄X⛄Z", "⛄"),  3, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (str::index("☕Q⛄X⛄Z", "Q⛄"),  2, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (str::rindex("☕Q⛄X⛄Z", '⛄'),  5, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (str::rindex("☕Q⛄X⛄Z", "⛄"),  5, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (str::rindex("☕Q⛄X⛄Z", "Q⛄"),  2, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (str::rindex("☕Q⛄X⛄Z", "Q⛄Q"),  0, @SCRIPTNAME, @SCRIPTLINE);
+
+		ensure (str::index(@b"\xFFQ\xABX\xABZ", @b'\xAB'),  3, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (str::index(@b"\xFFQ\xABX\xABZ", @b"\xAB"),  3, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (str::index(@b"\xFFQ\xABX\xABZ", @b"Q\xAB"),  2, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (str::rindex(@b"\xFFQ\xABX\xABZ", @b'\xAB'),  5, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (str::rindex(@b"\xFFQ\xABX\xABZ", @b"\xAB"),  5, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (str::rindex(@b"\xFFQ\xABX\xABZ", @b"Q\xAB"),  2, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (str::rindex(@b"\xFFQ\xABX\xABZ", @b"Q\xABQ"),  0, @SCRIPTNAME, @SCRIPTLINE);
+	}
 
 	{
 		# split, str::split, str::splita
@@ -365,6 +462,26 @@ function main()
 		ensure (a[3],               "",             @SCRIPTNAME, @SCRIPTLINE);
 		ensure (a[4],               "b\t\tc",       @SCRIPTNAME, @SCRIPTLINE);
 		ensure (a[5],               "d",            @SCRIPTNAME, @SCRIPTLINE);
+
+		ensure  (str::split('a', a, /a/), 2, @SCRIPTNAME, @SCRIPTLINE);
+		ensure  (a[1] === "", 1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure  (a[2] === "", 1, @SCRIPTNAME, @SCRIPTLINE);
+
+		ensure  (str::split('a', a, 'a'), 2, @SCRIPTNAME, @SCRIPTLINE);
+		ensure  (a[1] === "", 1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure  (a[2] === "", 1, @SCRIPTNAME, @SCRIPTLINE);
+
+		ensure  (str::split('a', a, @b'a'), 2, @SCRIPTNAME, @SCRIPTLINE);
+		ensure  (a[1] === "", 1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure  (a[2] === "", 1, @SCRIPTNAME, @SCRIPTLINE);
+
+		ensure  (str::split(@b'a', a, /a/), 2, @SCRIPTNAME, @SCRIPTLINE);
+		ensure  (a[1] === @b"", 1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure  (a[2] === @b"", 1, @SCRIPTNAME, @SCRIPTLINE);
+
+		ensure  (str::split(@b'a', a, @b'a'), 2, @SCRIPTNAME, @SCRIPTLINE);
+		ensure  (a[1] === @b"", 1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure  (a[2] === @b"", 1, @SCRIPTNAME, @SCRIPTLINE);
 	}
 
 
@@ -413,10 +530,26 @@ function main()
 		ensure (str::tolower(@b"ABC") === @b"abc", 1, @SCRIPTNAME, @SCRIPTLINE);
 	}
 
-
 	{
-		ensure (str::tocharcode(str::fromcharcode('2')), 2, @SCRIPTNAME, @SCRIPTNAME);
-		ensure (str::tonum('a', 16), 10, @SCRIPTNAME, @SCRIPTNAME);
+		ensure (str::tocharcode(@b'\xFF'), 0xFF, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (str::tocharcode('\u3321'), 0x3321, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (str::tocharcode(@b'\xFF', 0), @nil, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (str::tocharcode('\u3321', 0), @nil, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (str::tocharcode(@b'\xFF', 1), 0xFF, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (str::tocharcode('\u3321', 1), 0x3321, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (str::tocharcode(@b'\xFF', 2), @nil, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (str::tocharcode('\u3321', 2), @nil, @SCRIPTNAME, @SCRIPTLINE);
+
+		ensure (str::tocharcode(str::fromcharcode('2')), 2, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (str::tonum('a', 16), 10, @SCRIPTNAME, @SCRIPTLINE);
+
+		ensure (str::fromcharcode(65, 66, 67) === "ABC", 1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (str::frombcharcode(65, 66, 67) === @b"ABC", 1, @SCRIPTNAME, @SCRIPTLINE);
+
+		ensure (str::trim("  hello  world  ") === "hello  world", 1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (str::trim("  hello  world  ", str::TRIM_PAC_SPACES) === "hello world", 1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (str::trim(@b"  hello  world  ") === @b"hello  world", 1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (str::trim(@b"  hello  world  ", str::TRIM_PAC_SPACES) === @b"hello world", 1, @SCRIPTNAME, @SCRIPTLINE);
 	}
 
 	print "SUCCESS";

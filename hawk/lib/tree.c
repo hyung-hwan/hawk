@@ -318,18 +318,18 @@ static int print_expr (hawk_t* hawk, hawk_nde_t* nde)
 		#if defined(HAWK_OOCH_IS_UCH)
 			else if (tmp <= 0xFFFF)
 			{
-				hawk_fmttooocstr (hawk, buf, HAWK_COUNTOF(buf), HAWK_T("\\u%04x"), tmp);
+				hawk_fmttooocstr (hawk, buf, HAWK_COUNTOF(buf), HAWK_T("\\u%04x"), (hawk_oochu_t)tmp);
 				PUT_SRCSTR (hawk, buf);
 			}
 			else
 			{
-				hawk_fmttooocstr (hawk, buf, HAWK_COUNTOF(buf), HAWK_T("\\U%08x"), tmp);
+				hawk_fmttooocstr (hawk, buf, HAWK_COUNTOF(buf), HAWK_T("\\U%08x"), (hawk_oochu_t)tmp);
 				PUT_SRCSTR (hawk, buf);
 			}
 		#else
 			else
 			{
-				hawk_fmttooocstr (hawk, buf, HAWK_COUNTOF(buf), HAWK_T("\\x%02x"), tmp);
+				hawk_fmttooocstr (hawk, buf, HAWK_COUNTOF(buf), HAWK_T("\\x%02x"), (hawk_oochu_t)tmp);
 				PUT_SRCSTR (hawk, buf);
 			}
 		#endif
@@ -349,10 +349,13 @@ static int print_expr (hawk_t* hawk, hawk_nde_t* nde)
 			else if (tmp == '\'')
 				PUT_SRCSTR (hawk, HAWK_T("\\'"));
 			else if (hawk_is_bch_print(tmp))
-				PUT_SRCSTRN (hawk, &tmp, 1);
+			{
+				hawk_ooch_t oc = (hawk_bchu_t)tmp;
+				PUT_SRCSTRN (hawk, &oc, 1);
+			}
 			else
 			{
-				hawk_fmttooocstr (hawk, buf, HAWK_COUNTOF(buf), HAWK_T("\\x%02x"), tmp);
+				hawk_fmttooocstr (hawk, buf, HAWK_COUNTOF(buf), HAWK_T("\\x%02x"), (hawk_bchu_t)tmp);
 				PUT_SRCSTR (hawk, buf);
 			}
 
@@ -364,9 +367,7 @@ static int print_expr (hawk_t* hawk, hawk_nde_t* nde)
 		{
 			if (((hawk_nde_int_t*)nde)->str)
 			{
-				PUT_SRCSTRN (hawk,
-					((hawk_nde_int_t*)nde)->str,
-					((hawk_nde_int_t*)nde)->len);
+				PUT_SRCSTRN (hawk, ((hawk_nde_int_t*)nde)->str, ((hawk_nde_int_t*)nde)->len);
 			}
 			else
 			{
@@ -399,9 +400,7 @@ static int print_expr (hawk_t* hawk, hawk_nde_t* nde)
 		{
 			if (((hawk_nde_flt_t*)nde)->str)
 			{
-				PUT_SRCSTRN (hawk,
-					((hawk_nde_flt_t*)nde)->str,
-					((hawk_nde_flt_t*)nde)->len);
+				PUT_SRCSTRN (hawk, ((hawk_nde_flt_t*)nde)->str, ((hawk_nde_flt_t*)nde)->len);
 			}
 			else
 			{
@@ -519,18 +518,18 @@ static int print_expr (hawk_t* hawk, hawk_nde_t* nde)
 					#if defined(HAWK_OOCH_IS_BCH)
 						PUT_SRCSTRN (hawk, &ptr[i], 1);
 					#else
-						hawk_ooch_t wc = ptr[i];
-						if (HAWK_BYTE_PRINTABLE(wc))
+						hawk_ooch_t oc = (hawk_bchu_t)ptr[i];
+						if (HAWK_BYTE_PRINTABLE(oc))
 						{
-							PUT_SRCSTRN (hawk, &wc, 1);
+							PUT_SRCSTRN (hawk, &oc, 1);
 						}
 						else
 						{
 							hawk_bch_t xbuf[3];
-							hawk_byte_to_bcstr (wc, xbuf, HAWK_COUNTOF(xbuf), 16, '0');
+							hawk_byte_to_bcstr (oc, xbuf, HAWK_COUNTOF(xbuf), 16, '0');
 							PUT_SRCSTR (hawk, HAWK_T("\\x"));
-							wc = xbuf[0]; PUT_SRCSTRN (hawk, &wc, 1);
-							wc = xbuf[1]; PUT_SRCSTRN (hawk, &wc, 1);
+							oc = (hawk_bchu_t)xbuf[0]; PUT_SRCSTRN (hawk, &oc, 1);
+							oc = (hawk_bchu_t)xbuf[1]; PUT_SRCSTRN (hawk, &oc, 1);
 						}
 					#endif
 						break;

@@ -996,8 +996,20 @@ int hawk_rtx_writeioval (hawk_rtx_t* rtx, int out_type, const hawk_ooch_t* name,
 
 	switch (vtype)
 	{
+		case HAWK_VAL_CHAR:
+		{
+			hawk_ooch_t tmp = HAWK_RTX_GETCHARFROMVAL(rtx, v);
+			return hawk_rtx_writeiostr(rtx, out_type, name, &tmp, 1);
+		}
+
 		case HAWK_VAL_STR:
 			return hawk_rtx_writeiostr(rtx, out_type, name, ((hawk_val_str_t*)v)->val.ptr, ((hawk_val_str_t*)v)->val.len);
+
+		case HAWK_VAL_BCHR:
+		{
+			hawk_bch_t tmp = HAWK_RTX_GETBCHRFROMVAL(rtx, v);
+			return hawk_rtx_writeiobytes(rtx, out_type, name, &tmp, 1);
+		}
 
 		case HAWK_VAL_MBS:
 			return hawk_rtx_writeiobytes(rtx, out_type, name, ((hawk_val_mbs_t*)v)->val.ptr, ((hawk_val_mbs_t*)v)->val.len);
@@ -1006,7 +1018,6 @@ int hawk_rtx_writeioval (hawk_rtx_t* rtx, int out_type, const hawk_ooch_t* name,
 		{
 			hawk_rtx_valtostr_out_t out;
 			int n;
-
 			out.type = HAWK_RTX_VALTOSTR_CPLDUP | HAWK_RTX_VALTOSTR_PRINT;
 			if (hawk_rtx_valtostr(rtx, v, &out) <= -1) return -1;
 			n = hawk_rtx_writeiostr(rtx, out_type, name, out.u.cpldup.ptr, out.u.cpldup.len);

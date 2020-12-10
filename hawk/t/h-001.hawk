@@ -3,6 +3,11 @@
 
 @include "ensure.inc";
 
+function f(a, b, c)
+{
+	return a + b + c;
+}
+
 function call_by_ref_1(&a, b, &c)
 {
 	c = "hello, world";
@@ -23,8 +28,17 @@ function call_by_ref_3(&x)
 
 function main()
 {
-
 	{
+		ensure (@b"" !== "", 1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (@b"" === "", 0, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (@b"" != "", 0, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (@b"" == "", 1, @SCRIPTNAME, @SCRIPTLINE);
+
+		ensure (@b' ' !== ' ', 1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (@b' ' === ' ', 0, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (@b' ' != ' ', 0, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (@b' ' == ' ', 1, @SCRIPTNAME, @SCRIPTLINE);
+
 		ensure ((@nil == 'A'), 0, @SCRIPTNAME, @SCRIPTLINE);
 		ensure ((@nil != 'A'), 1, @SCRIPTNAME, @SCRIPTLINE);
 		ensure ((@nil > 'A'), 0, @SCRIPTNAME, @SCRIPTLINE);
@@ -41,6 +55,14 @@ function main()
 
 		ensure (('A' == @b'A'), 1, @SCRIPTNAME, @SCRIPTLINE);
 		ensure (('\u00FF' == @b'\xFF'), 1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (('A' < @b'\xFF'), 1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure ((@b'A' < @b'\xFF'), 1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (('A' > @b'\xFF'), 0, @SCRIPTNAME, @SCRIPTLINE);
+		ensure ((@b'A' > @b'\xFF'), 0, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (('A' < @b'B'), 1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure ((@b'A' < @b'B'), 1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (('A' > @b'B'), 0, @SCRIPTNAME, @SCRIPTLINE);
+		ensure ((@b'A' > @b'B'), 0, @SCRIPTNAME, @SCRIPTLINE);
 
 		ensure (("10" == 10), 1, @SCRIPTNAME, @SCRIPTLINE);
 		ensure (("10" == 10.00), 1, @SCRIPTNAME, @SCRIPTLINE);
@@ -146,6 +168,11 @@ function main()
 		ensure (length(b), 2, @SCRIPTNAME, @SCRIPTLINE);
 		ensure (b[1], 99, @SCRIPTNAME, @SCRIPTLINE);
 		ensure (b[2], "perfect", @SCRIPTNAME, @SCRIPTLINE);
+
+		ensure (hawk::call('f', 1, 2, 3), 6, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (hawk::call("f", 1, 2, 3), 6, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (hawk::call(@b'f', 1, 2, 3), 6, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (hawk::call(@b"f", 1, 2, 3), 6, @SCRIPTNAME, @SCRIPTLINE);
 	}
 
 
@@ -262,6 +289,8 @@ function main()
 
 		ensure ((@b"hawk" str::fromcharcode(0x26be)) === @b"hawk\xe2\x9a\xbe", 1, @SCRIPTNAME, @SCRIPTLINE);
 		ensure (("hawk" str::fromcharcode(0x26be)) === "hawk⚾", 1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure ((@b"hawk" @b'\xFF') === @b"hawk\xFF", 1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure ((str::subchar(@b"\xFF\xFE", 1) str::subchar(@b"\xFF\xFE", 2)) === @b"\xFF\xFE", 1, @SCRIPTNAME, @SCRIPTLINE);
 
 		ensure ((@b"hawk" %% 10) === @b"hawk10", 1, @SCRIPTNAME, @SCRIPTLINE);
 		ensure (("hawk" %% 10) === "hawk10", 1, @SCRIPTNAME, @SCRIPTLINE);

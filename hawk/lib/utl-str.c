@@ -3495,9 +3495,7 @@ int hawk_conv_bcstr_to_ucstr_with_cmgr (
 	return n;
 }
 
-int hawk_conv_uchars_to_bchars_with_cmgr (
-	const hawk_uch_t* ucs, hawk_oow_t* ucslen,
-	hawk_bch_t* bcs, hawk_oow_t* bcslen, hawk_cmgr_t* cmgr)
+int hawk_conv_uchars_to_bchars_with_cmgr (const hawk_uch_t* ucs, hawk_oow_t* ucslen, hawk_bch_t* bcs, hawk_oow_t* bcslen, hawk_cmgr_t* cmgr)
 {
 	const hawk_uch_t* p = ucs;
 	const hawk_uch_t* end = ucs + *ucslen;
