@@ -166,7 +166,6 @@ const hawk_ooch_t* hawk_dfl_errstr (hawk_errnum_t errnum)
 		HAWK_T("I/O name empty"),
 		HAWK_T("I/O name containing '\\0'"),
 		HAWK_T("not sufficient arguments to formatting sequence"),
-		HAWK_T("recursion detected in format conversion"),
 		HAWK_T("invalid character in CONVFMT"),
 		HAWK_T("invalid character in OFMT"),
 

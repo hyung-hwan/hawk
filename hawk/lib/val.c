@@ -30,11 +30,11 @@
 
 static hawk_val_nil_t hawk_nil = { HAWK_VAL_NIL, 0, 1, 0, 0 };
 static hawk_val_str_t hawk_zls = { HAWK_VAL_STR, 0, 1, 0, 0, { HAWK_T(""), 0 } };
-static hawk_val_mbs_t hawk_zlm = { HAWK_VAL_MBS, 0, 1, 0, 0, { HAWK_BT(""), 0 } };
+static hawk_val_mbs_t hawk_zlbs = { HAWK_VAL_MBS, 0, 1, 0, 0, { HAWK_BT(""), 0 } };
 
 hawk_val_t* hawk_val_nil = (hawk_val_t*)&hawk_nil;
 hawk_val_t* hawk_val_zls = (hawk_val_t*)&hawk_zls; 
-hawk_val_t* hawk_val_zlm = (hawk_val_t*)&hawk_zlm;
+hawk_val_t* hawk_val_zlbs = (hawk_val_t*)&hawk_zlbs;
 
 
 /* --------------------------------------------------------------------- */
@@ -734,7 +734,7 @@ hawk_val_t* hawk_rtx_makenumorstrvalwithuchars (hawk_rtx_t* rtx, const hawk_uch_
 	hawk_int_t l;
 	hawk_flt_t r;
 
-	if (ptr[0] == '.' && len == 1) goto make_str;
+	if (len == 1 && ptr[0] == '.') goto make_str;
 
 	x = hawk_uchars_to_num(HAWK_OOCHARS_TO_NUM_MAKE_OPTION(1, 1, HAWK_RTX_IS_STRIPSTRSPC_ON(rtx), 0), ptr, len, &l, &r);
 	if (x == 0) return hawk_rtx_makeintval(rtx, l);
@@ -750,7 +750,7 @@ hawk_val_t* hawk_rtx_makenumorstrvalwithbchars (hawk_rtx_t* rtx, const hawk_bch_
 	hawk_int_t l;
 	hawk_flt_t r;
 
-	if (ptr[0] == '.' && len == 1) goto make_str;
+	if (len == 1 && ptr[0] == '.') goto make_str;
 
 	x = hawk_bchars_to_num(HAWK_OOCHARS_TO_NUM_MAKE_OPTION(1, 1, HAWK_RTX_IS_STRIPSTRSPC_ON(rtx), 0), ptr, len, &l, &r);
 	if (x == 0) return hawk_rtx_makeintval(rtx, l);
@@ -838,7 +838,7 @@ static HAWK_INLINE hawk_val_t* make_mbs_val (hawk_rtx_t* rtx, const hawk_bch_t* 
 	hawk_oow_t i;
 #endif
 
-	if (HAWK_UNLIKELY(len1 <= 0 && len2 <= 0)) return hawk_val_zls;
+	if (HAWK_UNLIKELY(len1 <= 0 && len2 <= 0)) return hawk_val_zlbs;
 	aligned_len = HAWK_ALIGN_POW2((len1 + len2 + 1), HAWK_MBS_CACHE_BLOCK_UNIT);
 
 #if defined(HAWK_ENABLE_MBS_CACHE)
@@ -887,7 +887,7 @@ hawk_val_t* hawk_rtx_makembsvalwithuchars (hawk_rtx_t* rtx, const hawk_uch_t* uc
 	hawk_bch_t* bcs;
 	hawk_oow_t bcslen;
 
-	if (HAWK_UNLIKELY(len <= 0)) return hawk_val_zlm;
+	if (HAWK_UNLIKELY(len <= 0)) return hawk_val_zlbs;
 
 	bcs = hawk_rtx_duputobchars(rtx, ucs, len, &bcslen);
 	if (HAWK_UNLIKELY(!bcs)) return HAWK_NULL;
@@ -954,10 +954,13 @@ hawk_val_t* hawk_rtx_makenumormbsvalwithuchars (hawk_rtx_t* rtx, const hawk_uch_
 	hawk_int_t l;
 	hawk_flt_t r;
 
+	if (len == 1 && ptr[0] == '.') goto make_str;
+
 	x = hawk_uchars_to_num(HAWK_OOCHARS_TO_NUM_MAKE_OPTION(1, 1, HAWK_RTX_IS_STRIPSTRSPC_ON(rtx), 0), ptr, len, &l, &r);
 	if (x == 0) return hawk_rtx_makeintval(rtx, l);
 	else if (x >= 1) return hawk_rtx_makefltval(rtx, r);
 
+make_str:
 	return hawk_rtx_makembsvalwithuchars(rtx, ptr, len);
 }
 
@@ -967,10 +970,13 @@ hawk_val_t* hawk_rtx_makenumormbsvalwithbchars (hawk_rtx_t* rtx, const hawk_bch_
 	hawk_int_t l;
 	hawk_flt_t r;
 
+	if (len == 1 && ptr[0] == '.') goto make_str;
+
 	x = hawk_bchars_to_num(HAWK_OOCHARS_TO_NUM_MAKE_OPTION(1, 1, HAWK_RTX_IS_STRIPSTRSPC_ON(rtx), 0), ptr, len, &l, &r);
 	if (x == 0) return hawk_rtx_makeintval(rtx, l);
 	else if (x >= 1) return hawk_rtx_makefltval(rtx, r);
 
+make_str:
 	return hawk_rtx_makembsvalwithbchars(rtx, ptr, len);
 }
 
@@ -1465,6 +1471,7 @@ void hawk_rtx_freeval (hawk_rtx_t* rtx, hawk_val_t* val, int flags)
 				break;
 			}
 
+			case HAWK_VAL_BCHR:
 			case HAWK_VAL_CHAR:
 			{
 				/* this never happens */
@@ -1713,9 +1720,12 @@ int hawk_rtx_valtobool (hawk_rtx_t* rtx, const hawk_val_t* val)
 	{
 		case HAWK_VAL_NIL:
 			return 0;
+
+		case HAWK_VAL_BCHR:
 		case HAWK_VAL_CHAR:
 			/* return always true - treat it like a 1-letter string */
 			return 1;
+
 		case HAWK_VAL_INT:
 			return HAWK_RTX_GETINTFROMVAL(rtx, val) != 0;
 		case HAWK_VAL_FLT:
@@ -2134,6 +2144,16 @@ int hawk_rtx_valtostr (hawk_rtx_t* rtx, const hawk_val_t* v, hawk_rtx_valtostr_o
 		case HAWK_VAL_NIL:
 			return str_to_str(rtx, HAWK_T(""), 0, out);
 
+		case HAWK_VAL_BCHR:
+		{
+			hawk_bch_t tmp = HAWK_RTX_GETBCHRFROMVAL(rtx, v);
+		#if defined(HAWK_OOCH_IS_BCH)
+			return str_to_str(rtx, &tmp, 1, out);
+		#else
+			return mbs_to_str(rtx, &tmp, 1, out);
+		#endif
+		}
+
 		case HAWK_VAL_CHAR:
 		{
 			hawk_ooch_t tmp = HAWK_RTX_GETCHARFROMVAL(rtx, v);
@@ -2416,8 +2436,33 @@ void hawk_rtx_freevaloocstr (hawk_rtx_t* rtx, hawk_val_t* v, hawk_ooch_t* str)
 
 hawk_bch_t* hawk_rtx_getvalbcstrwithcmgr (hawk_rtx_t* rtx, hawk_val_t* v, hawk_oow_t* len, hawk_cmgr_t* cmgr)
 {
+	hawk_bch_t c;
+	hawk_oow_t l;
+
 	switch (HAWK_RTX_GETVALTYPE(rtx, v))
 	{
+		case HAWK_VAL_NIL:
+			c = '\0';
+			l = 0;
+			goto bctos;
+		case HAWK_VAL_BCHR:
+			c = HAWK_RTX_GETBCHRFROMVAL(rtx, v);
+			l = 1;
+		bctos:
+			if (rtx->bctos.fi) /* free slot available */
+			{
+				/* use a bctos slot to avoid duplication */
+				hawk_oow_t fi;
+				fi = rtx->bctos.fi;
+				rtx->bctos.fi = rtx->bctos.b[rtx->bctos.fi].c[0];
+				rtx->bctos.b[fi].c[0] = c;
+				rtx->bctos.b[fi].c[1] = '\0';
+				if (len) *len = l;
+				HAWK_ASSERT ((void*)&rtx->bctos.b[fi] == (void*)rtx->bctos.b[fi].c);
+				return rtx->bctos.b[fi].c;
+			}
+			goto duplicate;
+
 		case HAWK_VAL_MBS:
 #if 0
 		plain_mbs:
@@ -2436,19 +2481,8 @@ hawk_bch_t* hawk_rtx_getvalbcstrwithcmgr (hawk_rtx_t* rtx, hawk_val_t* v, hawk_o
 			/* fall through */
 #endif
 
-
-#if 0
-		case HAWK_VAL_CHAR:
-			i can treat a character value between 0 and 255 as a byte.
-			but doing so can cause inconsitency between the two ranges:
-				* 128 - 255 (kept as a single byte)
-				* 255 - max character value (encoded to multiple bytes)
-
-			it looks more consistent that 255 becomes \xc3\xbf (assuming utf8).
-			so no special handling for HAWK_VAL_CHAR here.
-#endif
-
 		default:
+		duplicate:
 			return hawk_rtx_valtobcstrdupwithcmgr(rtx, v, len, cmgr);
 	}
 }
@@ -2457,6 +2491,22 @@ void hawk_rtx_freevalbcstr (hawk_rtx_t* rtx, hawk_val_t* v, hawk_bch_t* str)
 {
 	switch (HAWK_RTX_GETVALTYPE(rtx, v))
 	{
+		case HAWK_VAL_NIL:
+		case HAWK_VAL_BCHR:
+		{
+			hawk_bctos_b_t* b = (hawk_bctos_b_t*)str;
+			if (b >= &rtx->bctos.b[0] && b < &rtx->bctos.b[HAWK_COUNTOF(rtx->bctos.b)])
+			{
+				hawk_oow_t fi;
+				fi = b - &rtx->bctos.b[0];
+				rtx->bctos.b[fi].c[0] = rtx->bctos.fi;
+				rtx->bctos.fi = fi;
+				break;
+			}
+
+			goto freemem;
+		}
+
 		case HAWK_VAL_MBS:
 #if 0
 		plain_mbs:
@@ -2472,6 +2522,7 @@ void hawk_rtx_freevalbcstr (hawk_rtx_t* rtx, hawk_val_t* v, hawk_bch_t* str)
 #endif
 
 		default:
+		freemem:
 			hawk_rtx_freemem (rtx, str);
 			break;
 	}
@@ -2541,6 +2592,15 @@ int hawk_rtx_valtonum (hawk_rtx_t* rtx, const hawk_val_t* v, hawk_int_t* l, hawk
 		case HAWK_VAL_NIL:
 			*l = 0;
 			return 0;
+
+		case HAWK_VAL_BCHR:
+		{
+			hawk_bch_t tmp = HAWK_RTX_GETBCHRFROMVAL(rtx, v);
+			return hawk_bchars_to_num(
+				HAWK_OOCHARS_TO_NUM_MAKE_OPTION(0, 0, HAWK_RTX_IS_STRIPSTRSPC_ON(rtx), 0),
+				&tmp, 1, l, r
+			);
+		}
 
 		case HAWK_VAL_CHAR:
 		{
@@ -2651,17 +2711,39 @@ hawk_fun_t* hawk_rtx_valtofun (hawk_rtx_t* rtx, hawk_val_t* v)
 			fun = ((hawk_val_fun_t*)v)->fun;
 			break;
 
-		case HAWK_VAL_STR:
-			if (hawk_count_oocstr(((hawk_val_str_t*)v)->val.ptr) != ((hawk_val_str_t*)v)->val.len) goto error_inval;
-			fun = hawk_rtx_findfunwithoocstr(rtx, ((hawk_val_str_t*)v)->val.ptr);
-			if (!fun) return HAWK_NULL;
-			break;
-
+		case HAWK_VAL_BCHR:
 		case HAWK_VAL_MBS:
-			if (hawk_count_bcstr(((hawk_val_mbs_t*)v)->val.ptr) != ((hawk_val_mbs_t*)v)->val.len) goto error_inval;
-			fun = hawk_rtx_findfunwithbcstr(rtx, ((hawk_val_mbs_t*)v)->val.ptr);
+		{
+			hawk_bcs_t x;
+			x.ptr = hawk_rtx_getvalbcstr(rtx, v, &x.len);
+			if (HAWK_UNLIKELY(!x.ptr)) return HAWK_NULL;
+			if (hawk_count_bcstr(x.ptr) != x.len)
+			{
+				hawk_rtx_freevalbcstr (rtx, v, x.ptr);
+				goto error_inval;
+			}
+			fun = hawk_rtx_findfunwithbcstr(rtx, x.ptr);
+			hawk_rtx_freevalbcstr (rtx, v, x.ptr);
 			if (!fun) return HAWK_NULL;
 			break;
+		}
+
+		case HAWK_VAL_CHAR:
+		case HAWK_VAL_STR:
+		{
+			hawk_oocs_t x;
+			x.ptr = hawk_rtx_getvaloocstr(rtx, v, &x.len);
+			if (HAWK_UNLIKELY(!x.ptr)) return HAWK_NULL;
+			if (hawk_count_oocstr(x.ptr) != x.len) 
+			{
+				hawk_rtx_freevaloocstr (rtx, v, x.ptr);
+				goto error_inval;
+			}
+			fun = hawk_rtx_findfunwithoocstr(rtx, x.ptr);
+			hawk_rtx_freevaloocstr (rtx, v, x.ptr);
+			if (!fun) return HAWK_NULL;
+			break;
+		}
 
 		default:
 		error_inval:
@@ -2692,6 +2774,13 @@ hawk_int_t hawk_rtx_hashval (hawk_rtx_t* rtx, hawk_val_t* v)
 		case HAWK_VAL_NIL:
 			hv = 0;
 			break;
+
+		case HAWK_VAL_BCHR:
+		{
+			hawk_bch_t tmp = HAWK_RTX_GETBCHRFROMVAL(rtx, v);
+			hv = (hawk_int_t)hash((hawk_uint8_t*)&tmp, HAWK_SIZEOF(tmp));
+			break;
+		}
 
 		case HAWK_VAL_CHAR:
 		{
@@ -3008,8 +3097,16 @@ void hawk_dprintval (hawk_rtx_t* run, hawk_val_t* val)
 			break;
 		}
 
+		case HAWK_VAL_BCHR:
+			hawk_errputstrf (HAWK_T("%hc"), HAWK_GETBCHRFROMVAL(val));
+			break;
+
+		case HAWK_VAL_CHAR:
+			hawk_errputstrf (HAWK_T("%jc"), HAWK_GETCHARFROMVAL(val));
+			break;
+
 		case HAWK_VAL_INT:
-			hawk_errputstrf (HAWK_T("%jd"), (hawk_intmax_t)((hawk_val_int_t*)val)->val);
+			hawk_errputstrf (HAWK_T("%jd"), (hawk_intmax_t)HAWK_GETINTFROMVAL(val));
 			break;
 
 		case HAWK_VAL_FLT:

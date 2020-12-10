@@ -81,7 +81,7 @@ static HAWK_INLINE __utf8_t* get_utf8_slot (hawk_uch_t uc)
 
 hawk_oow_t hawk_uc_to_utf8 (hawk_uch_t uc, hawk_bch_t* utf8, hawk_oow_t size)
 {
-	__utf8_t* cur = get_utf8_slot (uc);
+	__utf8_t* cur = get_utf8_slot(uc);
 
 	if (cur == HAWK_NULL) return 0; /* illegal character */
 

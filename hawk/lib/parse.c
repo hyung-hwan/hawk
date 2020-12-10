@@ -4666,7 +4666,7 @@ static hawk_nde_t* parse_primary_char  (hawk_t* hawk, const hawk_loc_t* xloc)
 {
 	hawk_nde_char_t* nde;
 
-	nde = (hawk_nde_char_t*)hawk_callocmem (hawk, HAWK_SIZEOF(*nde));
+	nde = (hawk_nde_char_t*)hawk_callocmem(hawk, HAWK_SIZEOF(*nde));
 	if (HAWK_UNLIKELY(!nde)) 
 	{
 		ADJERR_LOC (hawk, xloc);
@@ -4691,7 +4691,7 @@ static hawk_nde_t* parse_primary_bchr  (hawk_t* hawk, const hawk_loc_t* xloc)
 {
 	hawk_nde_bchr_t* nde;
 
-	nde = (hawk_nde_bchr_t*)hawk_callocmem (hawk, HAWK_SIZEOF(*nde));
+	nde = (hawk_nde_bchr_t*)hawk_callocmem(hawk, HAWK_SIZEOF(*nde));
 	if (HAWK_UNLIKELY(!nde)) 
 	{
 		ADJERR_LOC (hawk, xloc);
@@ -4717,7 +4717,7 @@ static hawk_nde_t* parse_primary_int  (hawk_t* hawk, const hawk_loc_t* xloc)
 	hawk_nde_int_t* nde;
 
 	/* create the node for the literal */
-	nde = (hawk_nde_int_t*)new_int_node (
+	nde = (hawk_nde_int_t*)new_int_node(
 		hawk, 
 		hawk_oochars_to_int (HAWK_OOECS_PTR(hawk->tok.name), HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOCHARS_TO_INT_MAKE_OPTION(0, 0, 0), HAWK_NULL, HAWK_NULL),
 		xloc
@@ -4801,7 +4801,7 @@ static hawk_nde_t* parse_primary_mbs (hawk_t* hawk, const hawk_loc_t* xloc)
 	hawk_nde_mbs_t* nde;
 
 	nde = (hawk_nde_mbs_t*)hawk_callocmem(hawk, HAWK_SIZEOF(*nde));
-	if (nde == HAWK_NULL) 
+	if (HAWK_UNLIKELY(!nde)) 
 	{
 		ADJERR_LOC (hawk, xloc);
 		return HAWK_NULL;
@@ -5212,7 +5212,7 @@ static hawk_nde_t* parse_primary (hawk_t* hawk, const hawk_loc_t* xloc)
 	hawk_loc_t ploc;
 
 	left = parse_primary_nopipe(hawk, xloc);
-	if (left == HAWK_NULL) goto oops;
+	if (!left) goto oops;
 
 	/* handle the piping part */
 	do
@@ -5288,7 +5288,7 @@ static hawk_nde_t* parse_primary (hawk_t* hawk, const hawk_loc_t* xloc)
 
 	novar:
 		nde = (hawk_nde_getline_t*)hawk_callocmem(hawk, HAWK_SIZEOF(*nde));
-		if (nde == HAWK_NULL)
+		if (HAWK_UNLIKELY(!nde))
 		{
 			ADJERR_LOC (hawk, xloc);
 			goto oops;
@@ -7243,7 +7243,7 @@ static int deparse (hawk_t* hawk)
 		*/
 	}
 
-	if (flush_out (hawk) <= -1) EXIT_DEPARSE ();
+	if (flush_out(hawk) <= -1) EXIT_DEPARSE ();
 
 exit_deparse:
 	if (hawk->sio.outf(hawk, HAWK_SIO_CMD_CLOSE, &hawk->sio.arg, HAWK_NULL, 0) != 0 && n == 0) n = -1;

@@ -1021,7 +1021,6 @@ enum hawk_errnum_t
 	HAWK_EIONMEM,       /**< I/O name empty */
 	HAWK_EIONMNL,       /**< I/O name containing '\\0' */
 	HAWK_EFMTARG,       /**< not sufficient arguments to formatting sequence */
-	HAWK_EFMTCNV,       /**< recursion detected in format conversion */
 	HAWK_ECONVFMTCHR,   /**< invalid character in CONVFMT */
 	HAWK_EOFMTCHR,      /**< invalid character in OFMT */
 

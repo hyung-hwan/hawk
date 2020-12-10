@@ -381,7 +381,13 @@ struct hawk_chain_t
 typedef struct hawk_ctos_b_t hawk_ctos_b_t;
 struct hawk_ctos_b_t
 {
-	hawk_ooch_t c[2];
+	hawk_oochu_t c[2]; /* ensure the unsigned type to hold not only a character but also a free slot index */
+};
+
+typedef struct hawk_bctos_b_t hawk_bctos_b_t;
+struct hawk_bctos_b_t
+{
+	hawk_bchu_t c[2]; /* ensure the unsigned type to hold not only a byte character but also a free slot index */
 };
 
 struct hawk_rtx_t
@@ -426,6 +432,12 @@ struct hawk_rtx_t
 #endif
 		hawk_oow_t fi;
 	} ctos; /* char/nil to string conversion */
+
+	struct
+	{
+		hawk_bctos_b_t b[256];
+		hawk_oow_t fi;
+	} bctos;
 
 	struct
 	{
