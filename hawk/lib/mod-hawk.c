@@ -365,8 +365,6 @@ static int fnc_typename (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	return 0;
 }
 /* -------------------------------------------------------------------------- */
-#include "mod-bin.c"
-
 #if 0
 static int pack_data (hawk_rtx_t* rtx, const hawk_oocs_t* fmt, const hawk_fnc_info_t* fi)
 {
