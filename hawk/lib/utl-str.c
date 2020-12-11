@@ -3716,7 +3716,6 @@ hawk_cmgr_t* hawk_get_cmgr_by_id (hawk_cmgr_id_t id)
 	return &builtin_cmgr[id];
 }
 
-
 static struct
 {
 	const hawk_bch_t* name;

@@ -2222,22 +2222,47 @@ hawk_bch_t* hawk_rtx_valtobcstrdupwithcmgr (hawk_rtx_t* rtx, const hawk_val_t* v
 
 	switch (vtype)
 	{
+		case HAWK_VAL_BCHR:
+		{
+			hawk_bch_t tmp = HAWK_RTX_GETBCHRFROMVAL(rtx, v);
+			mbs = hawk_rtx_dupbchars(rtx, &v, 1);
+			if (!mbs) return HAWK_NULL;
+			if (len) *len = 1;
+			break;
+		}
+
 		case HAWK_VAL_MBS:
 			mbs = hawk_rtx_dupbchars(rtx, ((hawk_val_mbs_t*)v)->val.ptr, ((hawk_val_mbs_t*)v)->val.len);
 			if (!mbs) return HAWK_NULL;
 			if (len) *len = ((hawk_val_mbs_t*)v)->val.len;
 			break;
 
+		case HAWK_VAL_CHAR:
 		case HAWK_VAL_STR:
 		{
+			const hawk_ooch_t* ptr;
+			hawk_oow_t slen;
+			hawk_ooch_t tmp;
+
+			if (vtype == HAWK_VAL_CHAR)
+			{
+				tmp = HAWK_RTX_GETCHARFROMVAL(rtx, v);
+				ptr = &tmp;
+				slen = 1;
+			}
+			else
+			{
+				ptr = ((hawk_val_str_t*)v)->val.ptr;
+				slen = ((hawk_val_str_t*)v)->val.len;
+			}
 		#if defined(HAWK_OOCH_IS_BCH)
-			mbs = hawk_rtx_dupbchars(rtx, ((hawk_val_str_t*)v)->val.ptr, ((hawk_val_str_t*)v)->val.len);
+			mbs = hawk_rtx_dupbchars(rtx, (ptr, slen);
 			if (!mbs) return HAWK_NULL;
-			if (len) *len = ((hawk_val_str_t*)v)->val.len;
+			if (len) *len = slen;
 		#else
 			hawk_oow_t mbslen, wcslen;
-			wcslen = ((hawk_val_str_t*)v)->val.len;
-			mbs = hawk_rtx_duputobcharswithcmgr(rtx, ((hawk_val_str_t*)v)->val.ptr, wcslen, &mbslen, cmgr);
+			wcslen = slen;
+			mbs = hawk_rtx_duputobcharswithcmgr(rtx, ptr, wcslen, &mbslen, cmgr);
 			if (!mbs) return HAWK_NULL;
 			if (len) *len = mbslen;
 		#endif

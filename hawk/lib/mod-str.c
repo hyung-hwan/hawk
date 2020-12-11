@@ -540,7 +540,17 @@ static int fnc_tombs (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	a0 = hawk_rtx_getarg(rtx, 0);
 	switch (HAWK_RTX_GETVALTYPE(rtx, a0))
 	{
+		case HAWK_VAL_BCHR:
+		{
+			/* no conversion, but make it a byte string */
+			hawk_bch_t tmp = HAWK_RTX_GETBCHRFROMVAL(rtx, a0);
+			r = hawk_rtx_makembsvalwithbchars(rtx, &tmp, 1);
+			if (HAWK_UNLIKELY(!r)) return -1;
+			break;
+		}
+		
 		case HAWK_VAL_MBS:
+			/* no conversion */
 			r = a0;
 			break;
 
@@ -551,7 +561,7 @@ static int fnc_tombs (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			if (HAWK_UNLIKELY(!str.ptr)) return -1;
 			r = hawk_rtx_makembsvalwithbcs(rtx, &str);
 			hawk_rtx_freevalbcstr (rtx, a0, str.ptr);
-			if (!r) return -1;
+			if (HAWK_UNLIKELY(!r)) return -1;
 			break;
 		}
 	}

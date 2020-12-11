@@ -147,6 +147,30 @@ static int fnc_function_exists (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
+/* -------------------------------------------------------------------------- */
+
+static int fnc_cmgr_exists (hawk_rtx_t* rtx, const hawk_fnc_info_t*  fi)
+{
+	hawk_val_t* a0;
+	hawk_ooch_t* str;
+	hawk_oow_t len;
+	int rx;
+
+	a0 = hawk_rtx_getarg(rtx, 0);
+	str = hawk_rtx_getvaloocstr(rtx, a0, &len);
+	if (HAWK_UNLIKELY(!str))
+	{
+		rx = 0;
+	}
+	else
+	{
+		rx = (hawk_get_cmgr_by_name(str) != HAWK_NULL);
+		hawk_rtx_freevaloocstr (rtx, a0, str);
+	}
+
+	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
+	return 0;
+}
 
 /* -------------------------------------------------------------------------- */
 
@@ -364,6 +388,7 @@ static int fnc_typename (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_rtx_setretval (rtx, r);
 	return 0;
 }
+
 /* -------------------------------------------------------------------------- */
 #if 0
 static int pack_data (hawk_rtx_t* rtx, const hawk_oocs_t* fmt, const hawk_fnc_info_t* fi)
@@ -378,7 +403,7 @@ static int pack_data (hawk_rtx_t* rtx, const hawk_oocs_t* fmt, const hawk_fnc_in
 	bp = buf;
 
 	fmte = fmt->ptr + fmt->len;
-	for (fmtp = fmt,ptr; fmtp < fmte; fmtp++) 
+	for (fmtp = fmt->ptr; fmtp < fmte; fmtp++) 
 	{
 		switch (*fmtp) 
 		{
@@ -581,6 +606,7 @@ static fnctab_t fnctab[] =
 	/* keep this table sorted for binary search in query(). */
 	{ HAWK_T("array"),            { { 0, A_MAX,  HAWK_NULL    },  fnc_array,                 0 } },
 	{ HAWK_T("call"),             { { 1, A_MAX, HAWK_T("vR")  },  fnc_call,                  0 } },
+	{ HAWK_T("cmgr_exists"),      { { 1, 1,     HAWK_NULL     },  fnc_cmgr_exists,           0 } },
 	{ HAWK_T("function_exists"),  { { 1, 1,     HAWK_NULL     },  fnc_function_exists,       0 } },
 	{ HAWK_T("gc"),               { { 0, 1,     HAWK_NULL     },  fnc_gc,                    0 } },
 	{ HAWK_T("gcrefs"),           { { 1, 1,     HAWK_NULL     },  fnc_gcrefs,                0 } },
