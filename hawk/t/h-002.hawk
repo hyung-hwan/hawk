@@ -378,7 +378,7 @@ function main()
 		ensure (str::substr("☕Q⛄", 4) === "",            1, @SCRIPTNAME, @SCRIPTLINE);
 		ensure (str::substr("☕Q⛄", 1, 2) === "☕Q",         1, @SCRIPTNAME, @SCRIPTLINE);
 		ensure (str::substr("☕Q⛄", 1, 4) === "☕Q⛄",         1, @SCRIPTNAME, @SCRIPTLINE);
-		###ensure (str::substr("☕Q⛄", -1, 1) === "⛄",         1, @SCRIPTNAME, @SCRIPTLINE);
+		###ensure (str::substr("☕Q⛄", -1, 1) === "⛄",         1, @SCRIPTNAME, @SCRIPTLINE); ## not supported yet
 		ensure (str::substr('☕', 1, 4) === "☕",         1, @SCRIPTNAME, @SCRIPTLINE);
 
 		ensure (str::substr(@b"\xAD\xAA\xBB\CC", 2, 2) === @b"\xAA\xBB", 1, @SCRIPTNAME, @SCRIPTLINE);
