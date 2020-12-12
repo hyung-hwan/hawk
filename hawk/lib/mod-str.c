@@ -759,7 +759,7 @@ struct inttab_t
 	hawk_mod_sym_int_t info;
 };
 
-#define A_MAX HAWK_TYPE_MAX(int)
+#define A_MAX HAWK_TYPE_MAX(hawk_oow_t)
 
 static fnctab_t fnctab[] =
 {
