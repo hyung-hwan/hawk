@@ -32,7 +32,7 @@ static int fnc_int (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi);
 static int fnc_asort (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi);
 static int fnc_asorti (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi);
 
-#define A_MAX HAWK_TYPE_MAX(int)
+#define A_MAX HAWK_TYPE_MAX(hawk_oow_t)
 
 /* Argument Specifier 
  *
