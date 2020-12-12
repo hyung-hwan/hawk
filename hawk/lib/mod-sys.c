@@ -5385,10 +5385,10 @@ int hawk_mod_sys (hawk_mod_t* mod, hawk_t* hawk)
 	mod->fini = fini;
 
 	mod->ctx = hawk_callocmem(hawk, HAWK_SIZEOF(mod_ctx_t));
-	if (!mod->ctx) return -1;
+	if (HAWK_UNLIKELY(!mod->ctx)) return -1;
 
 	rbt = hawk_rbt_open(hawk_getgem(hawk), 0, 1, 1);
-	if (rbt == HAWK_NULL) 
+	if (HAWK_UNLIKELY(!rbt))
 	{
 		hawk_freemem (hawk, mod->ctx);
 		return -1;

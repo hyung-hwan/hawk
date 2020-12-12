@@ -8733,7 +8733,7 @@ wp_mod_main:
 
 			hawk_rtx_refdownval (rtx, v);
 		}
-		else if (fmt[i] == HAWK_T('s') || fmt[i] == HAWK_T('k') || fmt[i] == HAWK_T('K')) 
+		else if (fmt[i] == 's' || fmt[i] == 'k' || fmt[i] == 'K' || fmt[i] == 'w' || fmt[i] == 'W') 
 		{
 			hawk_val_t* v;
 
@@ -8889,7 +8889,7 @@ wp_mod_main:
 					}
 				}
 
-				if (fmt[i] == HAWK_T('k')) bytetostr_flagged_radix |= HAWK_BYTE_TO_BCSTR_LOWERCASE;
+				if (fmt[i] == 'k' || fmt[i] == 'w') bytetostr_flagged_radix |= HAWK_BYTE_TO_BCSTR_LOWERCASE;
 
 				for (k = 0; k < wp[WP_PRECISION]; k++) 
 				{
@@ -8903,7 +8903,7 @@ wp_mod_main:
 					else curc = str_ptr[k];
 				#endif
 
-					if (fmt[i] != HAWK_T('s') && !HAWK_BYTE_PRINTABLE(curc))
+					if ((fmt[i] != 's' && !HAWK_BYTE_PRINTABLE(curc)) || fmt[i] == 'w' || fmt[i] == 'W')
 					{
 						hawk_ooch_t xbuf[3];
 						if (curc <= 0xFF)
@@ -9617,7 +9617,7 @@ wp_mod_main:
 
 			hawk_rtx_refdownval (rtx, v);
 		}
-		else if (fmt[i] == HAWK_BT('s') || fmt[i] == HAWK_BT('k') || fmt[i] == HAWK_BT('K')) 
+		else if (fmt[i] == 's' || fmt[i] == 'k' || fmt[i] == 'K' || fmt[i] == 'w' || fmt[i] == 'W')
 		{
 			hawk_val_t* v;
 
@@ -9773,7 +9773,7 @@ wp_mod_main:
 					}
 				}
 
-				if (fmt[i] == HAWK_BT('k')) bytetombs_flagged_radix |= HAWK_BYTE_TO_BCSTR_LOWERCASE;
+				if (fmt[i] == 'k' || fmt[i] == 'w') bytetombs_flagged_radix |= HAWK_BYTE_TO_BCSTR_LOWERCASE;
 
 				for (k = 0; k < wp[WP_PRECISION]; k++) 
 				{
@@ -9781,7 +9781,7 @@ wp_mod_main:
 
 					curc = str_ptr[k];
 
-					if (fmt[i] != HAWK_BT('s') && !HAWK_BYTE_PRINTABLE(curc))
+					if ((fmt[i] != 's' && !HAWK_BYTE_PRINTABLE(curc)) || fmt[i] == 'w' || fmt[i] == 'W')
 					{
 						hawk_bch_t xbuf[3];
 						if (curc <= 0xFF)

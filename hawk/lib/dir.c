@@ -492,7 +492,7 @@ static int reset_to_path (hawk_dir_t* dir, const hawk_ooch_t* path)
 	rc = _dos_findfirst(mptr, _A_NORMAL | _A_SUBDIR, &f);
 	if (rc != 0) 
 	{
-		hawk_gem_seterrnum (dir->gem, HAWK_NULL,hawk_syserr_to_errnum(errno));
+		hawk_gem_seterrnum (dir->gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
 		return -1;
 	}
 
