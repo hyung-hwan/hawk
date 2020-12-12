@@ -5148,6 +5148,49 @@ oops_internal:
 	return copy_error_to_sys_list (rtx, &rdp->sys_list);
 }
 
+static hawk_int_t unpack_data (hawk_rtx_t* rtx, const hawk_bcs_t* bin, const hawk_oocs_t* fmt, const hawk_fnc_info_t* fi, rtx_data_t* rdp)
+{
+	const hawk_ooch_t* fmtp, * fmte;
+	const hawk_bch_t* binp, * bine;
+	hawk_oow_t arg_idx, arg_cnt;
+	hawk_val_t* v;
+
+
+/* TODO: */
+
+	arg_idx = 2; /* set past the format specifier */
+	arg_cnt = hawk_rtx_getnargs(rtx);
+
+	binp = bin->ptr;
+	bine = bin->ptr + bin->len;
+	fmte = fmt->ptr + fmt->len;
+#if 0
+	for (fmtp = fmt->ptr; fmtp < fmte; fmtp++) 
+	{
+		switch (*fmtp)
+		{
+			case 'b':
+			{
+				v = hawk_rtx_makeintval(rtx, *binp++);
+				if (HAWK_UNLIKELY(!v)) goto oops_internal;
+				if (hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, arg_idx), v) <= -1) goto oops_internal;
+			}
+
+			case 'h':
+			{
+				v = hawk_rtx_makeintval(rtx, *binp++);
+				if (HAWK_UNLIKELY(!v)) goto oops_internal;
+				if (hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, arg_idx), v) <= -1) goto oops_internal;
+			}
+		}
+	}
+#endif
+	return 0;
+
+oops_internal:
+	return copy_error_to_sys_list (rtx, &rdp->sys_list);
+}
+
 static int fnc_pack (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	rtx_data_t* rdp = rtx_to_data(rtx, fi);
@@ -5188,8 +5231,53 @@ static int fnc_pack (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 static int fnc_unpack (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
-/* TODO: */
+	rtx_data_t* rdp = rtx_to_data(rtx, fi);
+	hawk_val_t* a0, * a1;
+	hawk_oocs_t fmt;
+	hawk_bcs_t bin;
+	hawk_int_t rx = 0;
+
+	fmt.ptr = HAWK_NULL;
+	bin.ptr = HAWK_NULL;
+
+	a0 = hawk_rtx_getarg(rtx, 0);
+	bin.ptr = hawk_rtx_getvalbcstr(rtx, a0, &bin.len);
+	if (HAWK_UNLIKELY(!bin.ptr)) goto fail;
+
+	a1 = hawk_rtx_getarg(rtx, 1);
+	fmt.ptr = hawk_rtx_getvaloocstr(rtx, a1, &fmt.len);
+	if (HAWK_UNLIKELY(!fmt.ptr)) goto fail;
+		
+	/* sys::unpack(@b"\x00\x11\x12\x13\x14\x15", "h h h", a, b, c); */
+
+	rx = unpack_data(rtx, &bin, &fmt, fi, rdp);
+
+	hawk_rtx_freevaloocstr (rtx, a1, fmt.ptr); fmt.ptr = HAWK_NULL;
+	hawk_rtx_freevalbcstr (rtx, a0, bin.ptr); bin.ptr = HAWK_NULL;
+
+	if (rx >= 0)
+	{
+		hawk_val_t* tmp;
+		int x;
+
+		tmp = hawk_rtx_makembsvalwithbchars(rtx, rdp->pack.ptr, rdp->pack.len);
+		if (HAWK_UNLIKELY(!tmp)) goto fail;
+
+		hawk_rtx_refupval (rtx, tmp);
+		x = hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, 0), tmp);
+		hawk_rtx_refdownval (rtx, tmp);
+		if (x <= -1) goto fail;
+	}
+
+done:
+	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
+
+fail:
+	rx = copy_error_to_sys_list (rtx, &rdp->sys_list);
+	if (bin.ptr) hawk_rtx_freevalbcstr(rtx, a0, bin.ptr);
+	if (fmt.ptr) hawk_rtx_freevaloocstr(rtx, a1, fmt.ptr);
+	goto done;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -5286,6 +5374,7 @@ static fnctab_t fnctab[] =
 	{ HAWK_T("tcsetattr"),   { { 3, 3, HAWK_NULL       }, fnc_tcsetattr,   0  } },
 	{ HAWK_T("tcsetraw"),    { { 1, 1, HAWK_NULL       }, fnc_tcsetraw,    0  } },
 	{ HAWK_T("unlink"),      { { 1, 1, HAWK_NULL       }, fnc_unlink,      0  } },
+	{ HAWK_T("unpack"),      { { 2, A_MAX, HAWK_T("vvr")  }, fnc_unpack,   0  } },
 	{ HAWK_T("unsetenv"),    { { 1, 1, HAWK_NULL       }, fnc_unsetenv,    0  } },
 	{ HAWK_T("wait"),        { { 1, 3, HAWK_T("vrv")   }, fnc_wait,        0  } },
 	{ HAWK_T("waitonmux"),   { { 2, 2, HAWK_T("vv")    }, fnc_waitonmux,   0  } },
