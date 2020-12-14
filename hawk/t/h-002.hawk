@@ -552,6 +552,33 @@ function main()
 		ensure (str::trim(@b"  hello  world  ", str::TRIM_PAC_SPACES) === @b"hello world", 1, @SCRIPTNAME, @SCRIPTLINE);
 	}
 
+
+	{
+		@local a, b, c, d;
+		sys::pack(a, ">hhl", 1, 2, 3);
+		ensure (a === @b"\x00\x01\x00\x02\x00\x00\x00\x03", 1, @SCRIPTNAME, @SCRIPTLINE);
+
+		sys::pack(a, ">ci", @b'*', 0x12131415);
+		ensure (a === @b"*\x12\x13\x14\x15", 1, @SCRIPTNAME, @SCRIPTLINE);
+
+		sys::pack(a, ">ic", 0x12131415, @b"*+-");
+		ensure (a === @b"\x12\x13\x14\x15*", 1, @SCRIPTNAME, @SCRIPTLINE);
+
+		sys::pack(a, "3c", @b"*+-", 't', "pack");
+		ensure (a === @b"*tp", 1, @SCRIPTNAME, @SCRIPTLINE);
+
+		sys::unpack (@b"raymond   \x32\x12\x08\x01\x08", "<10sHHb", a, b, c, d);
+		ensure (a === @b"raymond   ", 1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (b === 4658, 1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (c === 264, 1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (d === 8, 1, @SCRIPTNAME, @SCRIPTLINE);
+
+		sys::unpack (@b"raymond", "3c", a, b, c);
+		ensure (a === @b'r' , 1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (b === @b'a' , 1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (c === @b'y' , 1, @SCRIPTNAME, @SCRIPTLINE);
+	}
+
 	print "SUCCESS";
 }
 

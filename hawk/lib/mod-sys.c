@@ -4846,7 +4846,7 @@ done:
 #	define ENDIAN_NATIVE ENDIAN_LITTLE
 #endif
 
-static hawk_oow_t pack_int16_t (hawk_uint8_t* dst, hawk_uint16_t val, int endian)
+static hawk_oow_t pack_uint16_t (hawk_uint8_t* dst, hawk_uint16_t val, int endian)
 {
 	if (endian == ENDIAN_NATIVE)
 	{
@@ -4862,7 +4862,7 @@ static hawk_oow_t pack_int16_t (hawk_uint8_t* dst, hawk_uint16_t val, int endian
 	return 2;
 }
 
-static hawk_oow_t pack_int32_t (hawk_uint8_t* dst, hawk_uint32_t val, int endian)
+static hawk_oow_t pack_uint32_t (hawk_uint8_t* dst, hawk_uint32_t val, int endian)
 {
 	if (endian == ENDIAN_NATIVE)
 	{
@@ -4882,7 +4882,7 @@ static hawk_oow_t pack_int32_t (hawk_uint8_t* dst, hawk_uint32_t val, int endian
 	return 4;
 }
 
-static hawk_oow_t pack_int64_t (hawk_uint8_t* dst, hawk_uint64_t val, int endian)
+static hawk_oow_t pack_uint64_t (hawk_uint8_t* dst, hawk_uint64_t val, int endian)
 {
 	if (endian == ENDIAN_NATIVE)
 	{
@@ -4908,6 +4908,21 @@ static hawk_oow_t pack_int64_t (hawk_uint8_t* dst, hawk_uint64_t val, int endian
 	}
 
 	return 8;
+}
+
+static hawk_oow_t pack_uintptr_t (hawk_uint8_t* dst, hawk_oow_t val, int endian)
+{
+	hawk_oow_t i;
+
+	if (endian == ENDIAN_NATIVE)
+	{
+		for (i = 0; i < HAWK_SIZEOF(hawk_oow_t); i++) *dst++ = val >> (i * 8);
+	}
+	else
+	{
+		for (i = HAWK_SIZEOF(hawk_oow_t); i > 0; ) *dst++ = val >> ((--i) * 8);
+	}
+	return HAWK_SIZEOF(hawk_oow_t);
 }
 
 static int ensure_pack_buf (hawk_rtx_t* rtx, rtx_data_t* rdp, hawk_oow_t reqsz)
@@ -4962,17 +4977,27 @@ static hawk_int_t pack_data (hawk_rtx_t* rtx, const hawk_oocs_t* fmt, const hawk
 	{
 		switch (*fmtp) 
 		{
-			case '=': /* native */
+		#if 0
+			case '@': /* native size, native alignment */
+				break;
+		#endif
+
+			case '=': /* native endian, no alignment */
 				endian = ENDIAN_NATIVE;
 				break;
 
-			case '<': /* little-endian */
+			case '<': /* little-endian, no alignment */
 				endian = ENDIAN_LITTLE;
 				break;
 
-			case '>': /* big-endian */
-			case '!': /* network */
+			case '>': /* big-endian, no alignment */
+			case '!': /* network, no alignment */
 				endian = ENDIAN_BIG;
+				break;
+
+			case 'x': /* zero-padding */
+				PACK_CHECK_ARG_AND_BUF (0, rep_cnt * HAWK_SIZEOF(hawk_uint8_t));
+				for (rc = 0; rc < rep_cnt; rc++) rdp->pack.ptr[rdp->pack.len++] = 0;
 				break;
 
 			case 'b': /* byte, char */
@@ -5006,7 +5031,7 @@ static hawk_int_t pack_data (hawk_rtx_t* rtx, const hawk_oocs_t* fmt, const hawk
 				for (rc = 0; rc < rep_cnt; rc++)
 				{
 					if (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, arg_idx++), &v) <= -1) goto oops_internal;
-					rdp->pack.len += pack_int16_t(&rdp->pack.ptr[rdp->pack.len], (hawk_int16_t)v, endian);
+					rdp->pack.len += pack_uint16_t(&rdp->pack.ptr[rdp->pack.len], (hawk_int16_t)v, endian);
 				}
 				break;
 			}
@@ -5018,7 +5043,7 @@ static hawk_int_t pack_data (hawk_rtx_t* rtx, const hawk_oocs_t* fmt, const hawk
 				for (rc = 0; rc < rep_cnt; rc++)
 				{
 					if (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, arg_idx++), &v) <= -1) goto oops_internal;
-					rdp->pack.len += pack_int16_t(&rdp->pack.ptr[rdp->pack.len], (hawk_uint16_t)v, endian);
+					rdp->pack.len += pack_uint16_t(&rdp->pack.ptr[rdp->pack.len], (hawk_uint16_t)v, endian);
 				}
 				break;
 			}
@@ -5031,7 +5056,7 @@ static hawk_int_t pack_data (hawk_rtx_t* rtx, const hawk_oocs_t* fmt, const hawk
 				for (rc = 0; rc < rep_cnt; rc++)
 				{
 					if (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, arg_idx++), &v) <= -1) goto oops_internal;
-					rdp->pack.len += pack_int32_t(&rdp->pack.ptr[rdp->pack.len], (hawk_int32_t)v, endian);
+					rdp->pack.len += pack_uint32_t(&rdp->pack.ptr[rdp->pack.len], (hawk_int32_t)v, endian);
 				}
 				break;
 			}
@@ -5044,7 +5069,7 @@ static hawk_int_t pack_data (hawk_rtx_t* rtx, const hawk_oocs_t* fmt, const hawk
 				for (rc = 0; rc < rep_cnt; rc++)
 				{
 					if (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, arg_idx++), &v) <= -1) goto oops_internal;
-					rdp->pack.len += pack_int16_t(&rdp->pack.ptr[rdp->pack.len], (hawk_uint32_t)v, endian);
+					rdp->pack.len += pack_uint16_t(&rdp->pack.ptr[rdp->pack.len], (hawk_uint32_t)v, endian);
 				}
 				break;
 			}
@@ -5056,7 +5081,7 @@ static hawk_int_t pack_data (hawk_rtx_t* rtx, const hawk_oocs_t* fmt, const hawk
 				for (rc = 0; rc < rep_cnt; rc++)
 				{
 					if (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, arg_idx++), &v) <= -1) goto oops_internal;
-					rdp->pack.len += pack_int64_t(rdp->pack.ptr, (hawk_int64_t)v, endian);
+					rdp->pack.len += pack_uint64_t(rdp->pack.ptr, (hawk_int64_t)v, endian);
 				}
 				break;
 			}
@@ -5068,10 +5093,35 @@ static hawk_int_t pack_data (hawk_rtx_t* rtx, const hawk_oocs_t* fmt, const hawk
 				for (rc = 0; rc < rep_cnt; rc++)
 				{
 					if (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, arg_idx++), &v) <= -1) goto oops_internal;
-					rdp->pack.len += pack_int64_t(rdp->pack.ptr, (hawk_uint64_t)v, endian);
+					rdp->pack.len += pack_uint64_t(rdp->pack.ptr, (hawk_uint64_t)v, endian);
 				}
 				break;
 			}
+
+			case 'n':
+			{
+				hawk_int_t v;
+				PACK_CHECK_ARG_AND_BUF (rep_cnt, HAWK_SIZEOF(hawk_intptr_t) * rep_cnt);
+				for (rc = 0; rc < rep_cnt; rc++)
+				{
+					if (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, arg_idx++), &v) <= -1) goto oops_internal;
+					rdp->pack.len += pack_uintptr_t(rdp->pack.ptr, (hawk_intptr_t)v, endian);
+				}
+				break;
+			}
+
+			case 'N':
+			{
+				hawk_int_t v;
+				PACK_CHECK_ARG_AND_BUF (rep_cnt, HAWK_SIZEOF(hawk_uintptr_t) * rep_cnt);
+				for (rc = 0; rc < rep_cnt; rc++)
+				{
+					if (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, arg_idx++), &v) <= -1) goto oops_internal;
+					rdp->pack.len += pack_uintptr_t(rdp->pack.ptr, (hawk_uintptr_t)v, endian);
+				}
+				break;
+			}
+
 
 #if 0
 			case 'f':
@@ -5084,6 +5134,31 @@ static hawk_int_t pack_data (hawk_rtx_t* rtx, const hawk_oocs_t* fmt, const hawk
 				pack_double(&bp, d, *ep);
 				break;
 #endif
+
+			case 'c':
+			{
+				hawk_val_t* a;
+				hawk_bcs_t tmp;
+
+				PACK_CHECK_ARG_AND_BUF (rep_cnt, HAWK_SIZEOF(hawk_uint8_t) * rep_cnt);
+
+				for (rc = 0; rc < rep_cnt; rc++)
+				{
+					a = hawk_rtx_getarg(rtx, arg_idx++);
+
+					tmp.ptr = hawk_rtx_getvalbcstr(rtx, a, &tmp.len);
+					if (HAWK_UNLIKELY(!tmp.ptr)) goto oops_internal;
+
+					if (tmp.len < 1)
+					{
+						hawk_rtx_freevalbcstr (rtx, a, tmp.ptr);
+						return set_error_on_sys_list (rtx, &rdp->sys_list, HAWK_EINVAL, HAWK_T("data too short for '%jc'"), *fmtp);
+					}
+					rdp->pack.ptr[rdp->pack.len++] = tmp.ptr[0];
+					hawk_rtx_freevalbcstr (rtx, a, tmp.ptr);
+				}
+				break;
+			}
 
 
 			case 's':
@@ -5108,11 +5183,6 @@ static hawk_int_t pack_data (hawk_rtx_t* rtx, const hawk_oocs_t* fmt, const hawk
 				hawk_rtx_freevalbcstr (rtx, a, tmp.ptr);
 				break;
 			}
-
-			case 'x': /* zero-padding */
-				PACK_CHECK_ARG_AND_BUF (0, rep_cnt * HAWK_SIZEOF(hawk_uint8_t));
-				for (rc = 0; rc < rep_cnt; rc++) rdp->pack.ptr[rdp->pack.len++] = 0;
-				break;
 
 			default:
 				/* handle below outside 'switch' */
@@ -5230,6 +5300,29 @@ static hawk_int64_t unpack_int64 (const hawk_uint8_t* binp, int endian)
 	return (v <= HAWK_TYPE_MAX(hawk_int64_t))? (hawk_int64_t)v: ((hawk_int64_t)-1 - (hawk_int64_t)(HAWK_TYPE_MAX(hawk_uint64_t) - v));
 }
 
+static hawk_uintptr_t unpack_uintptr (const hawk_uint8_t* binp, int endian)
+{
+	hawk_uintptr_t v = 0;
+	hawk_oow_t i;
+
+	if (endian == ENDIAN_NATIVE)
+	{
+		for (i = 0; i < HAWK_SIZEOF(hawk_uintptr_t); i++) v |= (hawk_uintptr_t)(*binp++) << (i * 8);
+	}
+	else
+	{
+		for (i = HAWK_SIZEOF(hawk_uintptr_t); i > 0; ) v |= (hawk_uintptr_t)(*binp++) << ((--i) * 8);
+	}
+	return v;
+}
+
+static hawk_intptr_t unpack_intptr (const hawk_uint8_t* binp, int endian)
+{
+	hawk_uintptr_t v = unpack_uintptr(binp, endian);
+	return (v <= HAWK_TYPE_MAX(hawk_intptr_t))? (hawk_intptr_t)v: ((hawk_intptr_t)-1 - (hawk_intptr_t)(HAWK_TYPE_MAX(hawk_uintptr_t) - v));
+}
+
+
 static hawk_int_t unpack_data (hawk_rtx_t* rtx, const hawk_bcs_t* bin, const hawk_oocs_t* fmt, const hawk_fnc_info_t* fi, rtx_data_t* rdp)
 {
 	const hawk_ooch_t* fmtp, * fmte;
@@ -5271,6 +5364,11 @@ static hawk_int_t unpack_data (hawk_rtx_t* rtx, const hawk_bcs_t* bin, const haw
 			case '!': /* network */
 				endian = ENDIAN_BIG;
 				break;
+
+			case 'x':
+				binp += rep_cnt;
+				break;
+
 
 			case 'b':
 			{
@@ -5377,10 +5475,50 @@ static hawk_int_t unpack_data (hawk_rtx_t* rtx, const hawk_bcs_t* bin, const haw
 				break;
 			}
 
+			case 'n':
+			{
+				UNPACK_CHECK_ARG_AND_DATA (rep_cnt, rep_cnt * HAWK_SIZEOF(hawk_intptr_t));
+				for (rc = 0; rc < rep_cnt; rc++)
+				{
+					v = hawk_rtx_makeintval(rtx, unpack_intptr(binp, endian)); 
+					binp += HAWK_SIZEOF(hawk_intptr_t);
+					if (HAWK_UNLIKELY(!v)) goto oops_internal;
+					if (hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, arg_idx++), v) <= -1) goto oops_internal;
+				}
+				break;
+			}
+
+			case 'N':
+			{
+				UNPACK_CHECK_ARG_AND_DATA (rep_cnt, rep_cnt * HAWK_SIZEOF(hawk_uintptr_t));
+				for (rc = 0; rc < rep_cnt; rc++)
+				{
+					v = hawk_rtx_makeintval(rtx, unpack_uintptr(binp, endian));
+					binp += HAWK_SIZEOF(hawk_uintptr_t);
+					if (HAWK_UNLIKELY(!v)) goto oops_internal;
+					if (hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, arg_idx++), v) <= -1) goto oops_internal;
+				}
+				break;
+			}
+
+
 #if 0
 			case 'f':
 			case 'd':
 #endif
+
+
+			case 'c':
+			{
+				UNPACK_CHECK_ARG_AND_DATA (rep_cnt, rep_cnt * HAWK_SIZEOF(hawk_uint8_t));
+				for (rc = 0; rc < rep_cnt; rc++)
+				{
+					v = hawk_rtx_makebchrval(rtx, *binp++);
+					if (HAWK_UNLIKELY(!v)) goto oops_internal;
+					if (hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, arg_idx++), v) <= -1) goto oops_internal;
+				}
+				break;
+			}
 
 			case 's':
 			case 'p':
@@ -5392,10 +5530,6 @@ static hawk_int_t unpack_data (hawk_rtx_t* rtx, const hawk_bcs_t* bin, const haw
 				if (hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, arg_idx++), v) <= -1) goto oops_internal;
 				break;
 			}
-
-			case 'x':
-				binp += rep_cnt;
-				break;
 
 			default:
 				/* handle below outside 'switch' */
