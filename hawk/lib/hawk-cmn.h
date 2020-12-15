@@ -414,11 +414,11 @@
 #if defined(HAWK_USE_INTMAX)
 typedef hawk_intmax_t hawk_int_t;
 typedef hawk_uintmax_t hawk_uint_t;
-#define HAWK_SIZEOF_INT_T HAWK_SIZEZOF_INTMAX_T
+#define HAWK_SIZEOF_INT_T HAWK_SIZEOF_INTMAX_T
 #else
 typedef hawk_intptr_t hawk_int_t;
 typedef hawk_uintptr_t hawk_uint_t;
-#define HAWK_SIZEOF_INT_T HAWK_SIZEZOF_INTPTR_T
+#define HAWK_SIZEOF_INT_T HAWK_SIZEOF_INTPTR_T
 #endif
 
 /* =========================================================================

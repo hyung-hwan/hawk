@@ -556,7 +556,7 @@ function main()
 	{
 		@local a, b, c, d;
 		sys::pack(a, ">hhl", 1, 2, 3);
-		ensure (a === @b"\x00\x01\x00\x02\x00\x00\x00\x03", 1, @SCRIPTNAME, @SCRIPTLINE);
+		ensure (a === @b"\x00\x01\x00\x02\x00\x00\x00\x00\x00\x00\x00\x03", 1, @SCRIPTNAME, @SCRIPTLINE);
 
 		sys::pack(a, ">ci", @b'*', 0x12131415);
 		ensure (a === @b"*\x12\x13\x14\x15", 1, @SCRIPTNAME, @SCRIPTLINE);
