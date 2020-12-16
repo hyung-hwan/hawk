@@ -213,7 +213,7 @@ tre_tnfa_run_parallel(hawk_gem_t* gem, const tre_tnfa_t *tnfa, const void *strin
 		int first = tnfa->first_char;
 
 		if (len >= 0)
-			str_byte = hawk_find_bchar(orig_str, (size_t)len, first);
+			str_byte = hawk_find_bchar_in_bchars(orig_str, (size_t)len, first);
 		else
 			str_byte = hawk_find_bchar_in_bcstr(orig_str, first);
 		if (str_byte == NULL)
