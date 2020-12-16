@@ -3072,7 +3072,7 @@ static int fnc_setioattr (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			goto done;
 		}
 
-		if (hawk_find_oochar(ptr[i], len[i], HAWK_T('\0')))
+		if (hawk_find_oochar_in_oochars(ptr[i], len[i], '\0'))
 		{
 			fret = -1;
 			goto done;
@@ -3194,7 +3194,7 @@ static int fnc_getioattr (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			goto done;
 		}
 
-		if (hawk_find_oochar(ptr[i], len[i], HAWK_T('\0'))) goto done;
+		if (hawk_find_oochar_in_oochars(ptr[i], len[i], '\0')) goto done;
 	}
 
 	ioattr = get_ioattr(&rxtn->cmgrtab, ptr[0], len[0]);

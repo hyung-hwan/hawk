@@ -593,25 +593,25 @@ HAWK_EXPORT void hawk_fill_bchars (
 	hawk_oow_t        len
 );
 
-HAWK_EXPORT hawk_uch_t* hawk_find_uchar (
+HAWK_EXPORT hawk_uch_t* hawk_find_uchar_in_uchars (
 	const hawk_uch_t* ptr,
 	hawk_oow_t        len,
 	hawk_uch_t        c
 );
 
-HAWK_EXPORT hawk_bch_t* hawk_find_bchar (
+HAWK_EXPORT hawk_bch_t* hawk_find_bchar_in_bchars (
 	const hawk_bch_t* ptr,
 	hawk_oow_t        len,
 	hawk_bch_t        c
 );
 
-HAWK_EXPORT hawk_uch_t* hawk_rfind_uchar (
+HAWK_EXPORT hawk_uch_t* hawk_rfind_uchar_in_uchars (
 	const hawk_uch_t* ptr,
 	hawk_oow_t        len,
 	hawk_uch_t        c
 );
 
-HAWK_EXPORT hawk_bch_t* hawk_rfind_bchar (
+HAWK_EXPORT hawk_bch_t* hawk_rfind_bchar_in_bchars (
 	const hawk_bch_t* ptr,
 	hawk_oow_t        len,
 	hawk_bch_t        c
@@ -622,7 +622,17 @@ HAWK_EXPORT hawk_uch_t* hawk_find_uchar_in_ucstr (
 	hawk_uch_t        c
 );
 
+HAWK_EXPORT hawk_uch_t* hawk_rfind_uchar_in_ucstr (
+	const hawk_uch_t* ptr,
+	hawk_uch_t        c
+);
+
 HAWK_EXPORT hawk_bch_t* hawk_find_bchar_in_bcstr (
+	const hawk_bch_t* ptr,
+	hawk_bch_t        c
+);
+
+HAWK_EXPORT hawk_bch_t* hawk_rfind_bchar_in_bcstr (
 	const hawk_bch_t* ptr,
 	hawk_bch_t        c
 );
@@ -799,9 +809,10 @@ HAWK_EXPORT hawk_oow_t hawk_subst_for_bcstr_to_bcstr (
 #	define hawk_count_oocstr_limited hawk_count_ucstr_limited
 
 #	define hawk_fill_oochars hawk_fill_uchars
-#	define hawk_find_oochar hawk_find_uchar
-#	define hawk_rfind_oochar hawk_rfind_uchar
+#	define hawk_find_oochar_in_oochars hawk_find_uchar_in_uchars
+#	define hawk_rfind_oochar_in_oochars hawk_rfind_uchar_in_uchars
 #	define hawk_find_oochar_in_oocstr hawk_find_uchar_in_ucstr
+#	define hawk_rfind_oochar_in_oocstr hawk_rfind_uchar_in_ucstr
 
 #	define hawk_find_oochars_in_oochars hawk_find_uchars_in_uchars
 #	define hawk_rfind_oochars_in_oochars hawk_rfind_uchars_in_uchars
@@ -841,9 +852,10 @@ HAWK_EXPORT hawk_oow_t hawk_subst_for_bcstr_to_bcstr (
 #	define hawk_count_oocstr_limited hawk_count_bcstr_limited
 
 #	define hawk_fill_oochars hawk_fill_bchars
-#	define hawk_find_oochar hawk_find_bchar
-#	define hawk_rfind_oochar hawk_rfind_bchar
+#	define hawk_find_oochar_in_oochars hawk_find_bchar_in_bchars
+#	define hawk_rfind_oochar_in_oochars hawk_rfind_bchar_in_bchars
 #	define hawk_find_oochar_in_oocstr hawk_find_bchar_in_bcstr
+#	define hawk_rfind_oochar_in_oocstr hawk_rfind_bchar_in_bcstr
 
 #	define hawk_find_oochars_in_oochars hawk_find_bchars_in_bchars
 #	define hawk_rfind_oochars_in_oochars hawk_rfind_bchars_in_bchars

@@ -508,7 +508,7 @@ void hawk_fill_bchars (hawk_bch_t* dst, hawk_bch_t ch, hawk_oow_t len)
 
 /* ------------------------------------------------------------------------ */
 
-hawk_uch_t* hawk_find_uchar (const hawk_uch_t* ptr, hawk_oow_t len, hawk_uch_t c)
+hawk_uch_t* hawk_find_uchar_in_uchars (const hawk_uch_t* ptr, hawk_oow_t len, hawk_uch_t c)
 {
 	const hawk_uch_t* end;
 
@@ -522,7 +522,7 @@ hawk_uch_t* hawk_find_uchar (const hawk_uch_t* ptr, hawk_oow_t len, hawk_uch_t c
 	return HAWK_NULL;
 }
 
-hawk_bch_t* hawk_find_bchar (const hawk_bch_t* ptr, hawk_oow_t len, hawk_bch_t c)
+hawk_bch_t* hawk_find_bchar_in_bchars (const hawk_bch_t* ptr, hawk_oow_t len, hawk_bch_t c)
 {
 	const hawk_bch_t* end;
 
@@ -536,7 +536,7 @@ hawk_bch_t* hawk_find_bchar (const hawk_bch_t* ptr, hawk_oow_t len, hawk_bch_t c
 	return HAWK_NULL;
 }
 
-hawk_uch_t* hawk_rfind_uchar (const hawk_uch_t* ptr, hawk_oow_t len, hawk_uch_t c)
+hawk_uch_t* hawk_rfind_uchar_in_uchars (const hawk_uch_t* ptr, hawk_oow_t len, hawk_uch_t c)
 {
 	const hawk_uch_t* cur;
 
@@ -550,7 +550,7 @@ hawk_uch_t* hawk_rfind_uchar (const hawk_uch_t* ptr, hawk_oow_t len, hawk_uch_t 
 	return HAWK_NULL;
 }
 
-hawk_bch_t* hawk_rfind_bchar (const hawk_bch_t* ptr, hawk_oow_t len, hawk_bch_t c)
+hawk_bch_t* hawk_rfind_bchar_in_bchars (const hawk_bch_t* ptr, hawk_oow_t len, hawk_bch_t c)
 {
 	const hawk_bch_t* cur;
 
@@ -575,6 +575,11 @@ hawk_uch_t* hawk_find_uchar_in_ucstr (const hawk_uch_t* ptr, hawk_uch_t c)
 	return HAWK_NULL;
 }
 
+hawk_uch_t* hawk_rfind_uchar_in_ucstr (const hawk_uch_t* ptr, hawk_uch_t c)
+{
+	return hawk_rfind_uchar_in_uchars(ptr, hawk_count_ucstr(ptr), c);
+}
+
 hawk_bch_t* hawk_find_bchar_in_bcstr (const hawk_bch_t* ptr, hawk_bch_t c)
 {
 	while (*ptr != '\0')
@@ -585,6 +590,12 @@ hawk_bch_t* hawk_find_bchar_in_bcstr (const hawk_bch_t* ptr, hawk_bch_t c)
 
 	return HAWK_NULL;
 }
+
+hawk_bch_t* hawk_rfind_bchar_in_bcstr (const hawk_bch_t* ptr, hawk_bch_t c)
+{
+	return hawk_rfind_bchar_in_bchars(ptr, hawk_count_bcstr(ptr), c);
+}
+
 /* ------------------------------------------------------------------------ */
 
 hawk_uch_t* hawk_find_uchars_in_uchars (const hawk_uch_t* str, hawk_oow_t strsz, const hawk_uch_t* sub, hawk_oow_t subsz, int ignorecase)

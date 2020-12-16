@@ -2720,7 +2720,7 @@ static int fnc_getenv (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	{
 		hawk_bch_t* val;
 
-		if (hawk_find_bchar(var, len, '\0'))
+		if (hawk_find_bchar_in_bchars(var, len, '\0'))
 		{
 			rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_NULL);
 			hawk_rtx_freevalbcstr (rtx, a0, var);
@@ -2783,8 +2783,8 @@ static int fnc_setenv (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	}
 
 	/* the target name contains a null character. */
-	if (hawk_find_bchar(var, var_len, '\0') ||
-	    hawk_find_bchar(val, val_len, '\0'))
+	if (hawk_find_bchar_in_bchars(var, var_len, '\0') ||
+	    hawk_find_bchar_in_bchars(val, val_len, '\0'))
 	{
 		rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_NULL);
 		goto done;
@@ -2824,7 +2824,7 @@ static int fnc_unsetenv (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	}
 
 	/* the target name contains a null character. */
-	if (hawk_find_bchar(str, len, '\0'))
+	if (hawk_find_bchar_in_bchars(str, len, '\0'))
 	{
 		rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_NULL);
 		goto done;
@@ -2967,7 +2967,7 @@ static int fnc_system (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	}
 
 	/* the target name contains a null character. make system return -1 */
-	if (hawk_find_oochar(str, len, '\0'))
+	if (hawk_find_oochar_in_oochars(str, len, '\0'))
 	{
 		rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_NULL);
 		goto done;
@@ -3036,7 +3036,7 @@ static int fnc_chroot (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		}
 
 		/* the target name contains a null character. */
-		if (hawk_find_bchar(str, len, '\0'))
+		if (hawk_find_bchar_in_bchars(str, len, '\0'))
 		{
 			rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_NULL);
 			goto done;
@@ -3088,7 +3088,7 @@ static int fnc_chmod (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		}
 
 		/* the target name contains a null character. */
-		if (hawk_find_bchar(str, len, '\0'))
+		if (hawk_find_bchar_in_bchars(str, len, '\0'))
 		{
 			rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_NULL);
 			goto done;
@@ -3133,7 +3133,7 @@ static int fnc_mkdir (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		}
 
 		/* the target name contains a null character. */
-		if (hawk_find_oochar(str, len, '\0'))
+		if (hawk_find_oochar_in_oochars(str, len, '\0'))
 		{
 			rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_NULL);
 			goto done;
@@ -3157,7 +3157,7 @@ static int fnc_mkdir (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		}
 
 		/* the target name contains a null character. */
-		if (hawk_find_bchar(str, len, '\0'))
+		if (hawk_find_bchar_in_bchars(str, len, '\0'))
 		{
 			rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_NULL);
 			goto done;
@@ -3209,7 +3209,7 @@ static int fnc_rmdir (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		}
 
 		/* the target name contains a null character. */
-		if (hawk_find_oochar(str, len, '\0'))
+		if (hawk_find_oochar_in_oochars(str, len, '\0'))
 		{
 			rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_NULL);
 			goto done;
@@ -3233,7 +3233,7 @@ static int fnc_rmdir (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		}
 
 		/* the target name contains a null character. */
-		if (hawk_find_bchar(str, len, '\0'))
+		if (hawk_find_bchar_in_bchars(str, len, '\0'))
 		{
 			rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_NULL);
 			goto done;
@@ -3287,7 +3287,7 @@ static int fnc_unlink (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		}
 
 		/* the target name contains a null character. */
-		if (hawk_find_oochar(str, len, '\0'))
+		if (hawk_find_oochar_in_oochars(str, len, '\0'))
 		{
 			rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_NULL);
 			goto done;
@@ -3311,7 +3311,7 @@ static int fnc_unlink (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		}
 
 		/* the target name contains a null character. */
-		if (hawk_find_bchar(str, len, '\0'))
+		if (hawk_find_bchar_in_bchars(str, len, '\0'))
 		{
 			rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_NULL);
 			goto done;
@@ -3370,7 +3370,7 @@ static int fnc_symlink (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			goto done;
 		}
 
-		if (hawk_find_bchar(str1, len1, '\0') || hawk_find_bchar(str2, len2, '\0'))
+		if (hawk_find_bchar_in_bchars(str1, len1, '\0') || hawk_find_bchar_in_bchars(str2, len2, '\0'))
 		{
 			rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_NULL);
 			goto done;
@@ -3422,7 +3422,7 @@ static int fnc_stat (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			goto done;
 		}
 
-		if (hawk_find_bchar(str1, len1, '\0'))
+		if (hawk_find_bchar_in_bchars(str1, len1, '\0'))
 		{
 			rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_NULL);
 			hawk_rtx_freevalbcstr (rtx, a0, str1);
@@ -3591,7 +3591,7 @@ static int fnc_utime (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		}
 
 		/* the target name contains a null character. */
-		if (hawk_find_bchar(str, len, '\0'))
+		if (hawk_find_bchar_in_bchars(str, len, '\0'))
 		{
 			rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_NULL);
 			goto done;
@@ -4490,12 +4490,16 @@ done:
  sys::openlog("remote://192.168.1.23:1234/test", sys::LOG_OPT_PID | sys::LOG_OPT_NDELAY, sys::LOG_FAC_LOCAL0);
  for (i = 0; i < 10; i++) sys::writelog(sys::LOG_PRI_DEBUG, "hello world " i);
  sys::closelog(); 
+
+local://xxx opens the local syslog using the openlog() call in the libc library.
+openlog() affects the entire process.
+
+to open /dev/log on the local system for the current running context,
+you can specify the remote:// with /dev/log.
+ sys::openlog("remote:///dev/log/xxx", sys::LOG_OPT_PID | sys::LOG_OPT_NDELAY, sys::LOG_FAC_LOCAL0);
  */
 static void open_remote_log_socket (hawk_rtx_t* rtx, mod_ctx_t* mctx)
 {
-#if defined(_WIN32)
-	/* TODO: implement this */
-#else
 	int sck, flags;
 	int domain = hawk_skad_family(&mctx->log.skad);
 	int type = SOCK_DGRAM;
@@ -4538,8 +4542,6 @@ open_socket:
 
 done:
 	mctx->log.sck = sck;
-
-#endif
 }
 
 static int fnc_openlog (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
@@ -4547,7 +4549,7 @@ static int fnc_openlog (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_int_t rx = ERRNUM_TO_RC(HAWK_EOTHER);
 	hawk_int_t opt, fac;
 	hawk_ooch_t* ident = HAWK_NULL, * actual_ident;
-	hawk_oow_t ident_len;
+	hawk_oow_t ident_len, actual_ident_len;
 	hawk_bch_t* mbs_ident;
 	mod_ctx_t* mctx = (mod_ctx_t*)fi->mod->ctx;
 	hawk_skad_t skad;
@@ -4564,7 +4566,7 @@ static int fnc_openlog (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 	/* the target name contains a null character.
 	 * make system return -1 */
-	if (hawk_find_oochar(ident, ident_len, '\0')) 
+	if (hawk_find_oochar_in_oochars(ident, ident_len, '\0')) 
 	{
 		rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_T("invalid identifier of length %zu containing '\\0'"), ident_len);
 		goto done;
@@ -4580,7 +4582,8 @@ static int fnc_openlog (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 		log_type = SYSLOG_REMOTE;
 		actual_ident = ident + 9;
-		slash = hawk_find_oochar_in_oocstr(actual_ident, '/');
+		actual_ident_len = ident_len - 9;
+		slash = hawk_rfind_oochar_in_oochars(actual_ident, actual_ident_len, '/');
 		if (!slash) 
 		{
 			rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_T("invalid identifier '%js' with remote address"), ident);
@@ -4733,7 +4736,7 @@ static int fnc_writelog (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	msg = hawk_rtx_getvaloocstr(rtx, hawk_rtx_getarg(rtx, 1), &msglen);
 	if (!msg) goto fail;
 
-	if (hawk_find_oochar(msg, msglen, '\0')) 
+	if (hawk_find_oochar_in_oochars(msg, msglen, '\0')) 
 	{
 		rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_NULL);
 		goto done;

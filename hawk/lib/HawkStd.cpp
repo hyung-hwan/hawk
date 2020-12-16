@@ -412,9 +412,9 @@ int HawkStd::setioattr (
 	ptr[1] = args[1].toStr(&l[1]);
 	ptr[2] = args[2].toStr(&l[2]);
 
-	if (hawk_find_oochar(ptr[0], l[0], HAWK_T('\0')) ||
-	    hawk_find_oochar(ptr[1], l[1], HAWK_T('\0')) ||
-	    hawk_find_oochar(ptr[2], l[2], HAWK_T('\0')))
+	if (hawk_find_oochar_in_oochars(ptr[0], l[0], '\0') ||
+	    hawk_find_oochar_in_oochars(ptr[1], l[1], '\0') ||
+	    hawk_find_oochar_in_oochars(ptr[2], l[2], '\0'))
 	{
 		return ret.setInt ((hawk_int_t)-1);
 	}
@@ -489,8 +489,8 @@ int HawkStd::getioattr (
 	int xx = -1;
 
 	/* ionames must not contains a null character */
-	if (hawk_find_oochar(ptr[0], l[0], HAWK_T('\0')) == HAWK_NULL &&
-	    hawk_find_oochar(ptr[1], l[1], HAWK_T('\0')) == HAWK_NULL)
+	if (hawk_find_oochar_in_oochars(ptr[0], l[0], '\0') == HAWK_NULL &&
+	    hawk_find_oochar_in_oochars(ptr[1], l[1], '\0') == HAWK_NULL)
 	{
 		ioattr_t* ioattr = get_ioattr(ptr[0], l[0]);
 		if (ioattr == HAWK_NULL) ioattr = &HawkStd::default_ioattr;
