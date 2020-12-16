@@ -131,18 +131,6 @@ enum syslog_type_t
 struct mod_ctx_t
 {
 	hawk_rbt_t* rtxtab;
-
-	struct
-	{
-		syslog_type_t type;
-		char* ident;
-		hawk_skad_t skad;
-		int syslog_opened; // has openlog() been called?
-		int opt;
-		int fac;
-		int sck;
-		hawk_becs_t* dmsgbuf;
-	} log;
 };
 typedef struct mod_ctx_t mod_ctx_t;
 
@@ -231,6 +219,20 @@ struct rtx_data_t
 		hawk_oow_t capa;
 		hawk_oow_t len;
 	} pack;
+
+
+	/* syslog data */
+	struct
+	{
+		syslog_type_t type;
+		char* ident;
+		hawk_skad_t skad;
+		int syslog_opened; // has openlog() been called?
+		int opt;
+		int fac;
+		int sck;
+		hawk_becs_t* dmsgbuf;
+	} log;
 };
 typedef struct rtx_data_t rtx_data_t;
 
@@ -4498,13 +4500,13 @@ to open /dev/log on the local system for the current running context,
 you can specify the remote:// with /dev/log.
  sys::openlog("remote:///dev/log/xxx", sys::LOG_OPT_PID | sys::LOG_OPT_NDELAY, sys::LOG_FAC_LOCAL0);
  */
-static void open_remote_log_socket (hawk_rtx_t* rtx, mod_ctx_t* mctx)
+static void open_remote_log_socket (hawk_rtx_t* rtx, rtx_data_t* rdp)
 {
 	int sck, flags;
-	int domain = hawk_skad_family(&mctx->log.skad);
+	int domain = hawk_skad_family(&rdp->log.skad);
 	int type = SOCK_DGRAM;
 
-	HAWK_ASSERT (mctx->log.sck <= -1);
+	HAWK_ASSERT (rdp->log.sck <= -1);
 
 #if defined(SOCK_NONBLOCK) && defined(SOCK_CLOEXEC)
 	type |= SOCK_NONBLOCK;
@@ -4541,7 +4543,7 @@ open_socket:
 	if (fcntl(sck, F_SETFD, flags) <= -1) return;
 
 done:
-	mctx->log.sck = sck;
+	rdp->log.sck = sck;
 }
 
 static int fnc_openlog (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
@@ -4551,9 +4553,9 @@ static int fnc_openlog (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_ooch_t* ident = HAWK_NULL, * actual_ident;
 	hawk_oow_t ident_len, actual_ident_len;
 	hawk_bch_t* mbs_ident;
-	mod_ctx_t* mctx = (mod_ctx_t*)fi->mod->ctx;
 	hawk_skad_t skad;
 	syslog_type_t log_type = SYSLOG_LOCAL;
+	rtx_data_t* rdp = rtx_to_data(rtx, fi);
 	sys_list_t* sys_list = rtx_to_sys_list(rtx, fi);
 
 	ident = hawk_rtx_getvaloocstr(rtx, hawk_rtx_getarg(rtx, 0), &ident_len);
@@ -4617,40 +4619,40 @@ static int fnc_openlog (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		goto done;
 	}
 
-	if (mctx->log.ident) hawk_rtx_freemem (rtx, mctx->log.ident);
-	mctx->log.ident = mbs_ident;
+	if (rdp->log.ident) hawk_rtx_freemem (rtx, rdp->log.ident);
+	rdp->log.ident = mbs_ident;
 
 #if defined(ENABLE_SYSLOG)
-	if (mctx->log.syslog_opened)
+	if (rdp->log.syslog_opened)
 	{
 		closelog ();
-		mctx->log.syslog_opened = 0;
+		rdp->log.syslog_opened = 0;
 	}
 #endif
-	if (mctx->log.sck >= 0)
+	if (rdp->log.sck >= 0)
 	{
 	#if defined(_WIN32)
 		/* TODO: impelement this */
 	#else
-		close (mctx->log.sck);
+		close (rdp->log.sck);
 	#endif
-		mctx->log.sck = -1;
+		rdp->log.sck = -1;
 	}
 
-	mctx->log.type = log_type;
-	mctx->log.opt = opt;
-	mctx->log.fac = fac;
-	if (mctx->log.type == SYSLOG_LOCAL)
+	rdp->log.type = log_type;
+	rdp->log.opt = opt;
+	rdp->log.fac = fac;
+	if (rdp->log.type == SYSLOG_LOCAL)
 	{
 	#if defined(ENABLE_SYSLOG)
 		openlog(mbs_ident, opt, fac);
-		mctx->log.syslog_opened = 1;
+		rdp->log.syslog_opened = 1;
 	#endif
 	}
-	else if (mctx->log.type == SYSLOG_REMOTE)
+	else if (rdp->log.type == SYSLOG_REMOTE)
 	{
-		mctx->log.skad = skad;
-		if ((opt & LOG_NDELAY) && mctx->log.sck <= -1) open_remote_log_socket (rtx, mctx);
+		rdp->log.skad = skad;
+		if ((opt & LOG_NDELAY) && rdp->log.sck <= -1) open_remote_log_socket (rtx, rdp);
 	}
 
 	rx = ERRNUM_TO_RC(HAWK_ENOERR);
@@ -4665,9 +4667,9 @@ done:
 static int fnc_closelog (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	hawk_int_t rx = ERRNUM_TO_RC(HAWK_EOTHER);
-	mod_ctx_t* mctx = (mod_ctx_t*)fi->mod->ctx;
+	rtx_data_t* rdp = rtx_to_data(rtx, fi);
 
-	switch (mctx->log.type)
+	switch (rdp->log.type)
 	{
 		case SYSLOG_LOCAL:
 		#if defined(ENABLE_SYSLOG)
@@ -4676,39 +4678,39 @@ static int fnc_closelog (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			 * check if syslog_opened is true.
 			 * it is just used as an indicator to decide wheter closelog()
 			 * should be called upon module finalization(fini). */
-			mctx->log.syslog_opened = 0;
+			rdp->log.syslog_opened = 0;
 		#endif
 			break;
 
 		case SYSLOG_REMOTE:
-			if (mctx->log.sck >= 0)
+			if (rdp->log.sck >= 0)
 			{
 			#if defined(_WIN32)
 				/* TODO: impelement this */
 			#else
-				close (mctx->log.sck);
+				close (rdp->log.sck);
 			#endif
-				mctx->log.sck = -1;
+				rdp->log.sck = -1;
 			}
 
-			if (mctx->log.dmsgbuf)
+			if (rdp->log.dmsgbuf)
 			{
-				hawk_becs_close (mctx->log.dmsgbuf);
-				mctx->log.dmsgbuf = HAWK_NULL;
+				hawk_becs_close (rdp->log.dmsgbuf);
+				rdp->log.dmsgbuf = HAWK_NULL;
 			}
 
 			break;
 	}
 
-	if (mctx->log.ident)
+	if (rdp->log.ident)
 	{
-		hawk_rtx_freemem (rtx, mctx->log.ident);
-		mctx->log.ident = HAWK_NULL;
+		hawk_rtx_freemem (rtx, rdp->log.ident);
+		rdp->log.ident = HAWK_NULL;
 	}
 
 	/* back to the local syslog in case writelog() is called
 	 * without another openlog() after this closelog() */
-	mctx->log.type = SYSLOG_LOCAL;
+	rdp->log.type = SYSLOG_LOCAL;
 
 	rx = ERRNUM_TO_RC(HAWK_ENOERR);
 
@@ -4723,7 +4725,7 @@ static int fnc_writelog (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_int_t pri;
 	hawk_ooch_t* msg = HAWK_NULL;
 	hawk_oow_t msglen;
-	mod_ctx_t* mctx = (mod_ctx_t*)fi->mod->ctx;
+	rtx_data_t* rdp = rtx_to_data(rtx, fi);
 	sys_list_t* sys_list = rtx_to_sys_list(rtx, fi);
 
 	if (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 0), &pri) <= -1)
@@ -4742,7 +4744,7 @@ static int fnc_writelog (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		goto done;
 	}
 
-	if (mctx->log.type == SYSLOG_LOCAL)
+	if (rdp->log.type == SYSLOG_LOCAL)
 	{
 	#if defined(ENABLE_SYSLOG)
 		#if defined(HAWK_OOCH_IS_BCH)
@@ -4758,7 +4760,7 @@ static int fnc_writelog (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		#endif
 	#endif
 	}
-	else if (mctx->log.type == SYSLOG_REMOTE)
+	else if (rdp->log.type == SYSLOG_REMOTE)
 	{
 	#if defined(_WIN32)
 		/* TODO: implement this */
@@ -4770,18 +4772,18 @@ static int fnc_writelog (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			"Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
 		};
 
-		if (mctx->log.sck <= -1) open_remote_log_socket (rtx, mctx);
+		if (rdp->log.sck <= -1) open_remote_log_socket (rtx, rdp);
 
-		if (mctx->log.sck >= 0)
+		if (rdp->log.sck >= 0)
 		{
 			hawk_ntime_t now;
 			struct tm tm, * tmx;
 			time_t t;
 
-			if (!mctx->log.dmsgbuf) 
+			if (!rdp->log.dmsgbuf) 
 			{
-				mctx->log.dmsgbuf = hawk_becs_open(hawk_rtx_getgem(rtx), 0, 0);
-				if (!mctx->log.dmsgbuf) goto fail;
+				rdp->log.dmsgbuf = hawk_becs_open(hawk_rtx_getgem(rtx), 0, 0);
+				if (!rdp->log.dmsgbuf) goto fail;
 			}
 
 			if (hawk_get_ntime(&now) <= -1)
@@ -4803,29 +4805,29 @@ static int fnc_writelog (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			}
 
 			if (hawk_becs_fmt(
-				mctx->log.dmsgbuf, HAWK_BT("<%d>%hs %02d %02d:%02d:%02d "), 
-				(int)(mctx->log.fac | pri),
+				rdp->log.dmsgbuf, HAWK_BT("<%d>%hs %02d %02d:%02d:%02d "), 
+				(int)(rdp->log.fac | pri),
 				__syslog_month_names[tmx->tm_mon], tmx->tm_mday, 
 				tmx->tm_hour, tmx->tm_min, tmx->tm_sec) == (hawk_oow_t)-1) goto fail;
 
-			if (mctx->log.ident || (mctx->log.opt & LOG_PID))
+			if (rdp->log.ident || (rdp->log.opt & LOG_PID))
 			{
 				/* if the identifier is set or LOG_PID is set, the produced tag won't be empty.
 				 * so appending ':' is kind of ok */
-				if (hawk_becs_fcat(mctx->log.dmsgbuf, HAWK_BT("%hs"), (mctx->log.ident? mctx->log.ident: HAWK_BT(""))) == (hawk_oow_t)-1) goto fail;
-				if ((mctx->log.opt & LOG_PID) && hawk_becs_fcat(mctx->log.dmsgbuf, HAWK_BT("[%d]"), (int)HAWK_GETPID()) == (hawk_oow_t)-1) goto fail;
-				if (hawk_becs_fcat(mctx->log.dmsgbuf, HAWK_BT(": ")) == (hawk_oow_t)-1) goto fail;
+				if (hawk_becs_fcat(rdp->log.dmsgbuf, HAWK_BT("%hs"), (rdp->log.ident? rdp->log.ident: HAWK_BT(""))) == (hawk_oow_t)-1) goto fail;
+				if ((rdp->log.opt & LOG_PID) && hawk_becs_fcat(rdp->log.dmsgbuf, HAWK_BT("[%d]"), (int)HAWK_GETPID()) == (hawk_oow_t)-1) goto fail;
+				if (hawk_becs_fcat(rdp->log.dmsgbuf, HAWK_BT(": ")) == (hawk_oow_t)-1) goto fail;
 			}
 
 		#if defined(HAWK_OOCH_IS_BCH)
-			if (hawk_becs_fcat(mctx->log.dmsgbuf, HAWK_BT("%hs"), msg) == (hawk_oow_t)-1) goto fail;
+			if (hawk_becs_fcat(rdp->log.dmsgbuf, HAWK_BT("%hs"), msg) == (hawk_oow_t)-1) goto fail;
 		#else
-			if (hawk_becs_fcat(mctx->log.dmsgbuf, HAWK_BT("%ls"), msg) == (hawk_oow_t)-1) goto fail;
+			if (hawk_becs_fcat(rdp->log.dmsgbuf, HAWK_BT("%ls"), msg) == (hawk_oow_t)-1) goto fail;
 		#endif
 
 			/* don't care about output failure */
-			sendto (mctx->log.sck, HAWK_BECS_PTR(mctx->log.dmsgbuf), HAWK_BECS_LEN(mctx->log.dmsgbuf),
-			        0, (struct sockaddr*)&mctx->log.skad, hawk_skad_size(&mctx->log.skad));
+			sendto (rdp->log.sck, HAWK_BECS_PTR(rdp->log.dmsgbuf), HAWK_BECS_LEN(rdp->log.dmsgbuf),
+			        0, (struct sockaddr*)&rdp->log.skad, hawk_skad_size(&rdp->log.skad));
 		}
 	#endif
 	}
@@ -6262,10 +6264,6 @@ static int init (hawk_mod_t* mod, hawk_rtx_t* rtx)
 	rtx_data_t rd, * rdp;
 	hawk_rbt_pair_t* pair;
 
-	mctx->log.type = SYSLOG_LOCAL;
-	mctx->log.syslog_opened = 0;
-	mctx->log.sck = -1; 
-
 	HAWK_MEMSET (&rd, 0, HAWK_SIZEOF(rd));
 	pair = hawk_rbt_insert(mctx->rtxtab, &rtx, HAWK_SIZEOF(rtx), &rd, HAWK_SIZEOF(rd));
 	if (HAWK_UNLIKELY(!pair)) return -1;
@@ -6277,7 +6275,49 @@ static int init (hawk_mod_t* mod, hawk_rtx_t* rtx)
 	rdp->pack.capa = HAWK_COUNTOF(rdp->pack.__static_buf);
 	rdp->pack.len = 0;
 
+	rdp->log.type = SYSLOG_LOCAL;
+	rdp->log.syslog_opened = 0;
+	rdp->log.sck = -1;
+
 	return 0;
+}
+
+static void __fini_log (hawk_rtx_t* rtx, rtx_data_t* rdp)
+{
+#if defined(ENABLE_SYSLOG)
+	if (rdp->log.syslog_opened) 
+	{
+		/* closelog() only if openlog() has been called explicitly.
+		 * if you call writelog() functions without openlog() and
+		 * end yoru program without closelog(), the program may leak
+		 * some resources created by the writelog() function. (e.g.
+		 * socket to /dev/log) */
+		closelog ();
+		rdp->log.syslog_opened = 0;
+	}
+#endif
+	
+	if (rdp->log.sck >= 0)
+	{
+	#if defined(_WIN32)
+		/* TODO: implement this */
+	#else
+		close (rdp->log.sck);
+	#endif
+		rdp->log.sck = -1;
+	}
+
+	if (rdp->log.dmsgbuf)
+	{
+		hawk_becs_close (rdp->log.dmsgbuf);
+		rdp->log.dmsgbuf = HAWK_NULL;
+	}
+
+	if (rdp->log.ident) 
+	{
+		hawk_rtx_freemem (rtx, rdp->log.ident);
+		rdp->log.ident = HAWK_NULL;
+	}
 }
 
 static void fini (hawk_mod_t* mod, hawk_rtx_t* rtx)
@@ -6298,6 +6338,10 @@ static void fini (hawk_mod_t* mod, hawk_rtx_t* rtx)
 
 		rdp = (rtx_data_t*)HAWK_RBT_VPTR(pair);
 
+		__fini_log (rtx, rdp);
+
+		if (rdp->pack.ptr != rdp->pack.__static_buf) hawk_rtx_freemem (rtx, rdp->pack.ptr);
+
 		if (rdp->sys_list.ctx.readbuf)
 		{
 			hawk_rtx_freemem (rtx, rdp->sys_list.ctx.readbuf);
@@ -6305,47 +6349,9 @@ static void fini (hawk_mod_t* mod, hawk_rtx_t* rtx)
 			rdp->sys_list.ctx.readbuf_capa = 0;
 		}
 
-		if (rdp->pack.ptr != rdp->pack.__static_buf) hawk_rtx_freemem (rtx, rdp->pack.ptr);
-
 		__fini_sys_list (rtx, &rdp->sys_list);
 
 		hawk_rbt_delete (mctx->rtxtab, &rtx, HAWK_SIZEOF(rtx));
-	}
-
-
-#if defined(ENABLE_SYSLOG)
-	if (mctx->log.syslog_opened) 
-	{
-		/* closelog() only if openlog() has been called explicitly.
-		 * if you call writelog() functions without openlog() and
-		 * end yoru program without closelog(), the program may leak
-		 * some resources created by the writelog() function. (e.g.
-		 * socket to /dev/log) */
-		closelog ();
-		mctx->log.syslog_opened = 0;
-	}
-#endif
-	
-	if (mctx->log.sck >= 0)
-	{
-	#if defined(_WIN32)
-		/* TODO: implement this */
-	#else
-		close (mctx->log.sck);
-	#endif
-		mctx->log.sck = -1;
-	}
-
-	if (mctx->log.dmsgbuf)
-	{
-		hawk_becs_close (mctx->log.dmsgbuf);
-		mctx->log.dmsgbuf = HAWK_NULL;
-	}
-
-	if (mctx->log.ident) 
-	{
-		hawk_rtx_freemem (rtx, mctx->log.ident);
-		mctx->log.ident = HAWK_NULL;
 	}
 }
 
