@@ -199,6 +199,10 @@ libhawk_la_SOURCES += \
 	mod-sys.c mod-sys.h
 libhawk_la_LIBADD += $(SOCKET_LIBS)
 
+if ENABLE_MOD_FFI
+libhawk_la_LIBADD += ../mod/libhawk-ffi.la
+endif
+
 if ENABLE_MOD_MYSQL
 libhawk_la_LIBADD += ../mod/libhawk-mysql.la
 endif

@@ -608,3 +608,32 @@ int hawk_buildrex (hawk_t* hawk, const hawk_ooch_t* ptn, hawk_oow_t len, hawk_tr
 {
 	return hawk_gem_buildrex(hawk_getgem(hawk), ptn, len, !(hawk->opt.trait & HAWK_REXBOUND), code, icode);
 }
+
+
+
+/* ------------------------------------------------------------------------ */
+
+int hawk_finmodsymfnc (hawk_t* hawk, hawk_mod_fnc_tab_t* fnctab, hawk_oow_t count, const hawk_ooch_t* name, hawk_oow_t namelen, hawk_mod_sym_t* sym)
+{
+	int n;
+
+	/* binary search */
+	/* [NOTE] this algorithm is underflow safe with hawk_oow_t types */
+	hawk_oow_t base, mid, lim;
+
+	for (base = 0, lim = count; lim > 0; lim >>= 1)
+	{
+		mid = base + (lim >> 1);
+		n = hawk_comp_oochars_oocstr(name, namelen, fnctab[mid].name);
+		if (n == 0) 
+		{
+			sym->type = HAWK_MOD_FNC;
+			sym->u.fnc = fnctab[mid].info;
+			return 0;
+		}
+		if (n > 0) { base = mid + 1; lim--; }
+	}
+
+	hawk_seterrbfmt (hawk, HAWK_NULL, HAWK_ENOENT, "'%js' not found", name);
+	return -1;
+}

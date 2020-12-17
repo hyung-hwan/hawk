@@ -1046,6 +1046,14 @@ struct hawk_mod_sym_t
 	} u;
 };
 
+/* ------------------------------------------------------------------------ */
+
+typedef struct hawk_mod_fnc_tab_t hawk_mod_fnc_tab_t;
+struct hawk_mod_fnc_tab_t
+{
+        const hawk_ooch_t* name;
+        hawk_mod_sym_fnc_t info;
+};
 
 /* ------------------------------------------------------------------------ */
 

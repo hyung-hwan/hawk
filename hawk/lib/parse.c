@@ -7373,6 +7373,10 @@ int hawk_putsrcoochars (hawk_t* hawk, const hawk_ooch_t* str, hawk_oow_t len)
 #include "mod-str.h"
 #include "mod-sys.h"
 
+#if defined(HAWK_ENABLE_MOD_FFI)
+#include "../mod/mod-ffi.h"
+#endif
+
 #if defined(HAWK_ENABLE_MOD_MYSQL)
 #include "../mod/mod-mysql.h"
 #endif

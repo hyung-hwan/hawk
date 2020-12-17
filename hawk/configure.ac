@@ -986,6 +986,21 @@ fi
 AM_CONDITIONAL(ENABLE_LIBUNWIND, test "x${enable_libunwind_is}" = "xyes")
 
 
+dnl ===== enable-mod-ffi =====
+AC_ARG_ENABLE([mod-ffi],
+	[AS_HELP_STRING([--enable-mod-ffi],[enable mod/ffi (default. yes)])],
+	enable_mod_ffi_is=$enableval,
+	enable_mod_ffi_is=yes
+)
+if test "x${ac_cv_lib_ffi_ffi_call}" != "xyes" -a "x${ac_cv_lib_dyncall_s_dcNewCallVM}" != "xyes" 
+then
+	enable_mod_ffi_is="no"
+fi
+if test "${enable_mod_ffi_is}" = "yes"
+then
+	AC_DEFINE([HAWK_ENABLE_MOD_FFI],[1],[build mod/ffi])
+fi
+AM_CONDITIONAL(ENABLE_MOD_FFI, test "${enable_mod_ffi_is}" = "yes")
 
 dnl ===== enable-mod-mysql =====
 AC_ARG_ENABLE([mod-mysql],

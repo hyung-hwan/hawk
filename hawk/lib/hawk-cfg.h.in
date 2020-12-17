@@ -693,6 +693,9 @@
 /* use libunwind for backtracing stack frames */
 #undef HAWK_ENABLE_LIBUNWIND
 
+/* build mod/ffi */
+#undef HAWK_ENABLE_MOD_FFI
+
 /* build mod/mysql */
 #undef HAWK_ENABLE_MOD_MYSQL
 
