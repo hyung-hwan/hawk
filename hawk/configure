@@ -641,6 +641,8 @@ ENABLE_MOD_UCI_FALSE
 ENABLE_MOD_UCI_TRUE
 ENABLE_MOD_MYSQL_FALSE
 ENABLE_MOD_MYSQL_TRUE
+ENABLE_MOD_FFI_FALSE
+ENABLE_MOD_FFI_TRUE
 ENABLE_LIBUNWIND_FALSE
 ENABLE_LIBUNWIND_TRUE
 ENABLE_LIBLTDL_FALSE
@@ -827,6 +829,7 @@ enable_dynamic_module
 enable_static_module
 enable_libltdl
 enable_libunwind
+enable_mod_ffi
 enable_mod_mysql
 enable_mod_uci
 enable_pthread_flags
@@ -1489,6 +1492,7 @@ Optional Features:
                           library(default. no)
   --enable-libltdl        use libltdl(default. no)
   --enable-libunwind      use libunwind(default. no)
+  --enable-mod-ffi        enable mod/ffi (default. yes)
   --enable-mod-mysql      enable mod/mysql (default. yes)
   --enable-mod-uci        enable mod/uci (default. no)
   --enable-pthread-flags  add thread flags to CFLAGS, CXXFLAGS, LIBS(default.
@@ -24128,6 +24132,32 @@ fi
 
 
 
+# Check whether --enable-mod-ffi was given.
+if test "${enable_mod_ffi+set}" = set; then :
+  enableval=$enable_mod_ffi; enable_mod_ffi_is=$enableval
+else
+  enable_mod_ffi_is=yes
+
+fi
+
+if test "x${ac_cv_lib_ffi_ffi_call}" != "xyes" -a "x${ac_cv_lib_dyncall_s_dcNewCallVM}" != "xyes"
+then
+	enable_mod_ffi_is="no"
+fi
+if test "${enable_mod_ffi_is}" = "yes"
+then
+
+$as_echo "#define HAWK_ENABLE_MOD_FFI 1" >>confdefs.h
+
+fi
+ if test "${enable_mod_ffi_is}" = "yes"; then
+  ENABLE_MOD_FFI_TRUE=
+  ENABLE_MOD_FFI_FALSE='#'
+else
+  ENABLE_MOD_FFI_TRUE='#'
+  ENABLE_MOD_FFI_FALSE=
+fi
+
 
 # Check whether --enable-mod-mysql was given.
 if test "${enable_mod_mysql+set}" = set; then :
@@ -24373,6 +24403,10 @@ Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${ENABLE_LIBUNWIND_TRUE}" && test -z "${ENABLE_LIBUNWIND_FALSE}"; then
   as_fn_error $? "conditional \"ENABLE_LIBUNWIND\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${ENABLE_MOD_FFI_TRUE}" && test -z "${ENABLE_MOD_FFI_FALSE}"; then
+  as_fn_error $? "conditional \"ENABLE_MOD_FFI\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${ENABLE_MOD_MYSQL_TRUE}" && test -z "${ENABLE_MOD_MYSQL_FALSE}"; then

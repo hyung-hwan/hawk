@@ -21,6 +21,10 @@ LIBADD_COMMON =
 
 noinst_LTLIBRARIES =
 
+if ENABLE_MOD_FFI
+noinst_LTLIBRARIES += libhawk-ffi.la
+endif
+
 if ENABLE_MOD_MYSQL
 noinst_LTLIBRARIES += libhawk-mysql.la
 endif
@@ -42,6 +46,10 @@ LIBADD_COMMON = -lhawk
 pkgmodexecdir = $(libdir)
 pkgmodexec_LTLIBRARIES =
 
+if ENABLE_MOD_FFI
+pkgmodexec_LTLIBRARIES += libhawk-ffi.la
+endif
+
 if ENABLE_MOD_MYSQL
 pkgmodexec_LTLIBRARIES += libhawk-mysql.la
 endif
@@ -58,6 +66,14 @@ endif
 #-------------------------------------------------
 # ACTUAL MODULES
 #-------------------------------------------------
+if ENABLE_MOD_FFI
+libhawk_ffi_la_SOURCES = mod-ffi.c mod-ffi.h
+libhawk_ffi_la_CPPFLAGS = $(CPPFLAGS_COMMON) $(MYSQL_CFLAGS)
+libhawk_ffi_la_CFLAGS = $(CFLAGS_COMMON) 
+libhawk_ffi_la_LDFLAGS = $(LDFLAGS_COMMON) $(MYSQL_LDFLAGS)
+libhawk_ffi_la_LIBADD = $(LIBADD_COMMON) $(MYSQL_LIBS)
+endif
+
 if ENABLE_MOD_MYSQL
 libhawk_mysql_la_SOURCES = mod-mysql.c mod-mysql.h
 libhawk_mysql_la_CPPFLAGS = $(CPPFLAGS_COMMON) $(MYSQL_CFLAGS)
