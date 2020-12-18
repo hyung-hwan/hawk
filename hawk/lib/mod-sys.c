@@ -4876,7 +4876,7 @@ struct st_pointer_t { hawk_uint8_t x; void* y; };
 
 static hawk_oow_t pack_uint16_t (hawk_uint8_t* dst, hawk_uint16_t val, int endian)
 {
-	if (endian == ENDIAN_NATIVE)
+	if (endian == ENDIAN_LITTLE)
 	{
 		*dst++ = val;
 		*dst++ = val >> 8;
@@ -4892,7 +4892,7 @@ static hawk_oow_t pack_uint16_t (hawk_uint8_t* dst, hawk_uint16_t val, int endia
 
 static hawk_oow_t pack_uint32_t (hawk_uint8_t* dst, hawk_uint32_t val, int endian)
 {
-	if (endian == ENDIAN_NATIVE)
+	if (endian == ENDIAN_LITTLE)
 	{
 		*dst++ = val;
 		*dst++ = val >> 8;
@@ -4912,7 +4912,7 @@ static hawk_oow_t pack_uint32_t (hawk_uint8_t* dst, hawk_uint32_t val, int endia
 
 static hawk_oow_t pack_uint64_t (hawk_uint8_t* dst, hawk_uint64_t val, int endian)
 {
-	if (endian == ENDIAN_NATIVE)
+	if (endian == ENDIAN_LITTLE)
 	{
 		*dst++ = val;
 		*dst++ = val >> 8;
@@ -4942,7 +4942,7 @@ static hawk_oow_t pack_uintmax_t (hawk_uint8_t* dst, hawk_uintmax_t val, int end
 {
 	hawk_uintmax_t i;
 
-	if (endian == ENDIAN_NATIVE)
+	if (endian == ENDIAN_LITTLE)
 	{
 		for (i = 0; i < HAWK_SIZEOF(hawk_uintmax_t); i++) *dst++ = val >> (i * 8);
 	}
@@ -4957,7 +4957,7 @@ static hawk_oow_t pack_uintptr_t (hawk_uint8_t* dst, hawk_uintptr_t val, int end
 {
 	hawk_uintptr_t i;
 
-	if (endian == ENDIAN_NATIVE)
+	if (endian == ENDIAN_LITTLE)
 	{
 		for (i = 0; i < HAWK_SIZEOF(hawk_uintptr_t); i++) *dst++ = val >> (i * 8);
 	}
@@ -5305,7 +5305,7 @@ static hawk_uint16_t unpack_uint16 (const hawk_uint8_t* binp, int endian)
 {
 	hawk_uint16_t v;
 
-	if (endian == ENDIAN_NATIVE)
+	if (endian == ENDIAN_LITTLE)
 	{
 		v = *binp++;
 		v |= (hawk_uint16_t)(*binp++) << 8;
@@ -5328,7 +5328,7 @@ static hawk_uint32_t unpack_uint32 (const hawk_uint8_t* binp, int endian)
 {
 	hawk_uint32_t v;
 
-	if (endian == ENDIAN_NATIVE)
+	if (endian == ENDIAN_LITTLE)
 	{
 		v = *binp++;
 		v |= (hawk_uint32_t)(*binp++) << 8;
@@ -5355,7 +5355,7 @@ static hawk_uint64_t unpack_uint64 (const hawk_uint8_t* binp, int endian)
 {
 	hawk_uint64_t v;
 
-	if (endian == ENDIAN_NATIVE)
+	if (endian == ENDIAN_LITTLE)
 	{
 		v = *binp++;
 		v |= (hawk_uint64_t)(*binp++) << 8;
@@ -5391,7 +5391,7 @@ static hawk_uintmax_t unpack_uintmax (const hawk_uint8_t* binp, int endian)
 	hawk_uintmax_t v = 0;
 	hawk_oow_t i;
 
-	if (endian == ENDIAN_NATIVE)
+	if (endian == ENDIAN_LITTLE)
 	{
 		for (i = 0; i < HAWK_SIZEOF(hawk_uintmax_t); i++) v |= (hawk_uintmax_t)(*binp++) << (i * 8);
 	}
@@ -5413,7 +5413,7 @@ static hawk_uintptr_t unpack_uintptr (const hawk_uint8_t* binp, int endian)
 	hawk_uintptr_t v = 0;
 	hawk_oow_t i;
 
-	if (endian == ENDIAN_NATIVE)
+	if (endian == ENDIAN_LITTLE)
 	{
 		for (i = 0; i < HAWK_SIZEOF(hawk_uintptr_t); i++) v |= (hawk_uintptr_t)(*binp++) << (i * 8);
 	}
