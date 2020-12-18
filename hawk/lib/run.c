@@ -7356,7 +7356,7 @@ static hawk_val_t* eval_char (hawk_rtx_t* rtx, hawk_nde_t* nde)
 static hawk_val_t* eval_bchr (hawk_rtx_t* rtx, hawk_nde_t* nde)
 {
 	hawk_val_t* val;
-	val = hawk_rtx_makebchrval(rtx, ((hawk_nde_char_t*)nde)->val);
+	val = hawk_rtx_makebchrval(rtx, ((hawk_nde_bchr_t*)nde)->val);
 	if (HAWK_UNLIKELY(!val)) ADJERR_LOC (rtx, &nde->loc);
 	return val;
 }
