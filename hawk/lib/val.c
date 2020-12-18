@@ -2225,7 +2225,7 @@ hawk_bch_t* hawk_rtx_valtobcstrdupwithcmgr (hawk_rtx_t* rtx, const hawk_val_t* v
 		case HAWK_VAL_BCHR:
 		{
 			hawk_bch_t tmp = HAWK_RTX_GETBCHRFROMVAL(rtx, v);
-			mbs = hawk_rtx_dupbchars(rtx, &v, 1);
+			mbs = hawk_rtx_dupbchars(rtx, &tmp, 1);
 			if (!mbs) return HAWK_NULL;
 			if (len) *len = 1;
 			break;
@@ -2308,6 +2308,18 @@ hawk_uch_t* hawk_rtx_valtoucstrdupwithcmgr (hawk_rtx_t* rtx, const hawk_val_t* v
 
 	switch (vtype)
 	{
+		case HAWK_VAL_BCHR:
+		{
+			hawk_bch_t tmp;
+			hawk_oow_t mbslen, wcslen;
+
+			tmp = HAWK_RTX_GETBCHRFROMVAL(rtx, v);
+			mbslen = 1;
+			wcs = hawk_rtx_dupbtoucharswithcmgr(rtx, &tmp, mbslen, &wcslen, cmgr, 1);
+			if (!wcs) return HAWK_NULL;
+			if (len) *len = wcslen;
+			break;
+		}
 		case HAWK_VAL_MBS:
 		{
 			hawk_oow_t mbslen, wcslen;
@@ -2315,6 +2327,25 @@ hawk_uch_t* hawk_rtx_valtoucstrdupwithcmgr (hawk_rtx_t* rtx, const hawk_val_t* v
 			wcs = hawk_rtx_dupbtoucharswithcmgr(rtx, ((hawk_val_mbs_t*)v)->val.ptr, mbslen, &wcslen, cmgr, 1);
 			if (!wcs) return HAWK_NULL;
 			if (len) *len = wcslen;
+			break;
+		}
+
+		case HAWK_VAL_CHAR:
+		{
+			hawk_ooch_t tmp = HAWK_RTX_GETCHARFROMVAL(rtx, v);
+		#if defined(HAWK_OOCH_IS_BCH)
+			hawk_oow_t wcslen, mbslen;
+			mbslen = 1;
+			wcs = hawk_rtx_dupbtoucharswithcmgr(rtx, &tmp, mbslen, &wcslen, cmgr, 1);
+		#else
+			wcs = hawk_rtx_dupuchars(rtx, &tmp, 1);
+		#endif
+			if (!wcs) return HAWK_NULL;
+		#if defined(HAWK_OOCH_IS_BCH)
+			if (len) *len = wcslen;
+		#else
+			if (len) *len = 1;
+		#endif
 			break;
 		}
 
