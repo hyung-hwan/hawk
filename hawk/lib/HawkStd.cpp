@@ -1222,7 +1222,7 @@ hawk_flt_t HawkStd::mod (hawk_flt_t x, hawk_flt_t y)
 void* HawkStd::modopen (const hawk_mod_spec_t* spec)
 {
 	void* h;
-	h = hawk_stdmodopen (this->hawk, spec);
+	h = hawk_stdmodopen(this->hawk, spec);
 	if (!h) this->retrieveError ();
 	return h;
 }
