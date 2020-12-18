@@ -340,7 +340,7 @@ static int print_expr (hawk_t* hawk, hawk_nde_t* nde)
 
 		case HAWK_NDE_BCHR:
 		{
-			hawk_bch_t tmp = ((hawk_nde_char_t*)nde)->val;
+			hawk_bch_t tmp = ((hawk_nde_bchr_t*)nde)->val;
 			hawk_ooch_t buf[16]; 
 
 			PUT_SRCSTR (hawk, HAWK_T("@b\'"));

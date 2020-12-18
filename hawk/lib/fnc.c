@@ -827,6 +827,7 @@ static int fnc_split (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, int use_array)
 	hawk_oocs_t tok;
 	hawk_int_t nflds;
 	int x, byte_str, do_fld = 0;
+	int switch_fs_to_bchr = 0;
 
 	str.ptr = HAWK_NULL;
 	str.len = 0;
@@ -887,6 +888,10 @@ static int fnc_split (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, int use_array)
 				fs_rex = rtx->gbl.fs[rtx->gbl.ignorecase];
 			}
 		}
+		else
+		{
+			switch_fs_to_bchr = 1;
+		}
 	}
 
 	/* the first parameter - string to split */
@@ -895,8 +900,8 @@ static int fnc_split (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, int use_array)
 		case HAWK_VAL_BCHR:
 		case HAWK_VAL_MBS:
 			byte_str = 1;
-			str.ptr = do_fld? hawk_rtx_valtobcstrdup(rtx, a0, &str.len):
-			                  hawk_rtx_getvalbcstr(rtx, a0, &str.len);
+			str.ptr = do_fld? (hawk_ooch_t*)hawk_rtx_valtobcstrdup(rtx, a0, &str.len):
+			                  (hawk_ooch_t*)hawk_rtx_getvalbcstr(rtx, a0, &str.len);
 			break;
 
 		default:
@@ -906,6 +911,19 @@ static int fnc_split (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, int use_array)
 			break;
 	}
 	if (HAWK_UNLIKELY(!str.ptr)) goto oops;
+
+
+	if (byte_str && switch_fs_to_bchr)
+	{
+		HAWK_ASSERT (fs_free = fs.ptr);
+
+		hawk_rtx_freevaloocstr (rtx, t0, fs_free);
+
+		fs.ptr = (hawk_ooch_t*)hawk_rtx_getvalbcstr(rtx, t0, &fs.len);
+		if (HAWK_UNLIKELY(!fs.ptr)) goto oops;
+
+		fs_free = fs.ptr;
+	}
 
 	t1 = use_array? hawk_rtx_makearrval(rtx, 16): hawk_rtx_makemapval(rtx);
 	if (HAWK_UNLIKELY(!t1)) goto oops;
@@ -922,7 +940,7 @@ static int fnc_split (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, int use_array)
 	{
 		if (fs_rex)
 		{
-			p = byte_str? hawk_rtx_tokbcharsbyrex(rtx, str.ptr, org_len, p, str.len, fs_rex, &tok):
+			p = byte_str? (hawk_ooch_t*)hawk_rtx_tokbcharsbyrex(rtx, (hawk_bch_t*)str.ptr, org_len, (hawk_bch_t*)p, str.len, fs_rex, (hawk_bcs_t*)&tok):
 			              hawk_rtx_tokoocharsbyrex(rtx, str.ptr, org_len, p, str.len, fs_rex, &tok);
 			if (p && hawk_rtx_geterrnum(rtx) != HAWK_ENOERR) goto oops;
 		}
@@ -930,12 +948,12 @@ static int fnc_split (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, int use_array)
 		{
 			/* [NOTE] even if byte_str is true, the field seperator is of the ooch type. 
 			 *        there may be some data truncation and related issues */
-			p = byte_str? hawk_rtx_fldbchars(rtx, p, str.len, fs.ptr[1], fs.ptr[2], fs.ptr[3], fs.ptr[4], &tok):
+			p = byte_str? (hawk_ooch_t*)hawk_rtx_fldbchars(rtx, (hawk_bch_t*)p, str.len, fs.ptr[1], fs.ptr[2], fs.ptr[3], fs.ptr[4], (hawk_bcs_t*)&tok):
 			              hawk_rtx_fldoochars(rtx, p, str.len, fs.ptr[1], fs.ptr[2], fs.ptr[3], fs.ptr[4], &tok);
 		}
 		else
 		{
-			p = byte_str? hawk_rtx_tokbcharswithbchars(rtx, p, str.len, fs.ptr, fs.len, &tok):
+			p = byte_str? (hawk_ooch_t*)hawk_rtx_tokbcharswithbchars(rtx, (hawk_bch_t*)p, str.len, (hawk_bch_t*)fs.ptr, fs.len, (hawk_bcs_t*)&tok):
 			              hawk_rtx_tokoocharswithoochars(rtx, p, str.len, fs.ptr, fs.len, &tok);
 		}
 
@@ -951,7 +969,7 @@ static int fnc_split (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, int use_array)
 		 * create a numeric value if the string is a number */
 		/*t2 = hawk_rtx_makestrvalwithoocs (rtx, &tok);*/
 		/*t2 = hawk_rtx_makenstrvalwithoocs(rtx, &tok); */
-		t2 = byte_str? hawk_rtx_makenumormbsvalwithbchars(rtx, tok.ptr, tok.len):
+		t2 = byte_str? hawk_rtx_makenumormbsvalwithbchars(rtx, (hawk_bch_t*)tok.ptr, tok.len):
 		               hawk_rtx_makenumorstrvalwithoochars(rtx, tok.ptr, tok.len);
 		if (HAWK_UNLIKELY(!t2)) goto oops;
 
@@ -988,10 +1006,16 @@ static int fnc_split (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, int use_array)
 	}
 
 	if (do_fld) { hawk_rtx_freemem (rtx, str.ptr); }
-	else if (byte_str) { hawk_rtx_freevalbcstr (rtx, a0, str.ptr); }
+	else if (byte_str) { hawk_rtx_freevalbcstr (rtx, a0, (hawk_bch_t*)str.ptr); }
 	else { hawk_rtx_freevaloocstr (rtx, a0, str.ptr); }
 
-	if (fs_free) hawk_rtx_freevaloocstr (rtx, t0, fs_free);
+	if (fs_free) 
+	{
+		if (byte_str && switch_fs_to_bchr)
+			hawk_rtx_freevalbcstr (rtx, t0, (hawk_bch_t*)fs_free);
+		else
+			hawk_rtx_freevaloocstr (rtx, t0, fs_free);
+	}
 
 	if (fs_rex_free) 
 	{
@@ -1011,11 +1035,17 @@ oops:
 	if (str.ptr) 
 	{
 		if (do_fld) { hawk_rtx_freemem (rtx, str.ptr); }
-		else if (byte_str) { hawk_rtx_freevalbcstr (rtx, a0, str.ptr); }
+		else if (byte_str) { hawk_rtx_freevalbcstr (rtx, a0, (hawk_bch_t*)str.ptr); }
 		else { hawk_rtx_freevaloocstr (rtx, a0, str.ptr); }
 	}
 
-	if (fs_free) hawk_rtx_freemem (rtx, fs_free);
+	if (fs_free)
+	{
+		if (byte_str && switch_fs_to_bchr)
+			hawk_rtx_freevalbcstr (rtx, t0, (hawk_bch_t*)fs_free);
+		else
+			hawk_rtx_freevaloocstr (rtx, t0, fs_free);
+	}
 
 	if (fs_rex_free) 
 	{

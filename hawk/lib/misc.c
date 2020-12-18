@@ -30,6 +30,7 @@
 #undef char_t
 #undef xcs_t
 #undef is_xch_space
+#undef to_xch_space
 #undef match_rex_with_xcs
 #undef split_xchars_to_fields
 #undef tokenize_xchars
@@ -38,6 +39,7 @@
 #define char_t hawk_bch_t
 #define xcs_t hawk_bcs_t
 #define is_xch_space hawk_is_bch_space
+#define to_xch_upper hawk_to_bch_upper
 #define match_rex_with_xcs hawk_rtx_matchrexwithbcs
 
 #define split_xchars_to_fields hawk_rtx_fldbchars
@@ -49,6 +51,7 @@
 #undef char_t
 #undef xcs_t
 #undef is_xch_space
+#undef to_xch_upper
 #undef match_rex_with_xcs
 #undef split_xchars_to_fields
 #undef tokenize_xchars
@@ -57,6 +60,7 @@
 #define char_t hawk_uch_t
 #define xcs_t hawk_ucs_t
 #define is_xch_space hawk_is_uch_space
+#define to_xch_upper hawk_to_uch_upper
 #define match_rex_with_xcs hawk_rtx_matchrexwithucs
 
 #define split_xchars_to_fields hawk_rtx_flduchars

@@ -211,10 +211,10 @@ char_t* tokenize_xchars (hawk_rtx_t* rtx, const char_t* s, hawk_oow_t len, const
 		{
 			while (p < end) 
 			{
-				c = hawk_to_ooch_upper(*p);
+				c = to_xch_upper(*p);
 				for (d = delim; d < delim_end; d++) 
 				{
-					if (c == hawk_to_ooch_upper(*d)) goto exit_loop;
+					if (c == to_xch_upper(*d)) goto exit_loop;
 				}
 
 				if (sp == HAWK_NULL) sp = p;
@@ -246,7 +246,7 @@ char_t* tokenize_xchars (hawk_rtx_t* rtx, const char_t* s, hawk_oow_t len, const
 		{
 			while (p < end) 
 			{
-				c = hawk_to_ooch_upper(*p);
+				c = to_xch_upper(*p);
 				if (is_xch_space(c)) 
 				{
 					p++;
@@ -254,8 +254,7 @@ char_t* tokenize_xchars (hawk_rtx_t* rtx, const char_t* s, hawk_oow_t len, const
 				}
 				for (d = delim; d < delim_end; d++) 
 				{
-					if (c == hawk_to_ooch_upper(*d))
-						goto exit_loop;
+					if (c == to_xch_upper(*d)) goto exit_loop;
 				}
 				if (sp == HAWK_NULL) sp = p;
 				ep = p++;
@@ -290,7 +289,7 @@ exit_loop:
 	else 
 	{
 		tok->ptr = (char_t*)sp;
-		tok->len = ep - sp + 1;
+		tok->len = ep - sp + 1; 
 	}
 
 	/* if HAWK_NULL is returned, this function should not be called again */
