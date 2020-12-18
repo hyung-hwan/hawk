@@ -10,7 +10,7 @@ CFLAGS_COMMON =
 LDFLAGS_COMMON = -L$(abs_builddir)/../lib -L$(libdir) 
 LIBADD_COMMON = 
 
-bin_PROGRAMS = uni-case uni-prop
+noinst_PROGRAMS = uni-case uni-prop
 
 uni_case_SOURCES = uni-case.c
 uni_case_CPPFLAGS = $(CPPFLAGS_COMMON)
