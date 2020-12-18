@@ -5639,7 +5639,7 @@ static hawk_nde_t* parse_primary_ident_segs (hawk_t* hawk, const hawk_loc_t* xlo
 	hawk_fnc_t fnc;
 
 	mod = query_module(hawk, segs, nsegs, &sym);
-	if (mod == HAWK_NULL)
+	if (!mod)
 	{
 		ADJERR_LOC (hawk, xloc);
 	}
@@ -5648,7 +5648,7 @@ static hawk_nde_t* parse_primary_ident_segs (hawk_t* hawk, const hawk_loc_t* xlo
 		switch (sym.type)
 		{
 			case HAWK_MOD_FNC:
-				if ((hawk->opt.trait & sym.u.fnc.trait) != sym.u.fnc.trait)
+				if ((hawk->opt.trait & sym.u.fnc_.trait) != sym.u.fnc_.trait)
 				{
 					hawk_seterrfmt (hawk, xloc, HAWK_EUNDEF, FMT_EUNDEF, full->len, full->ptr);
 					break;
@@ -5659,9 +5659,9 @@ static hawk_nde_t* parse_primary_ident_segs (hawk_t* hawk, const hawk_loc_t* xlo
 					HAWK_MEMSET (&fnc, 0, HAWK_SIZEOF(fnc));
 					fnc.name.ptr = full->ptr; 
 					fnc.name.len = full->len;
-					fnc.spec = sym.u.fnc;
+					fnc.spec = sym.u.fnc_;
 					fnc.mod = mod;
-					nde = parse_fncall (hawk, full, &fnc, xloc, 0);
+					nde = parse_fncall(hawk, full, &fnc, xloc, 0);
 				}
 				else
 				{
@@ -5670,12 +5670,24 @@ static hawk_nde_t* parse_primary_ident_segs (hawk_t* hawk, const hawk_loc_t* xlo
 				break;
 
 			case HAWK_MOD_INT:
-				nde = new_int_node(hawk, sym.u.in.val, xloc);
+				if ((hawk->opt.trait & sym.u.int_.trait) != sym.u.int_.trait)
+				{
+					hawk_seterrfmt (hawk, xloc, HAWK_EUNDEF, FMT_EUNDEF, full->len, full->ptr);
+					break;
+				}
+
+				nde = new_int_node(hawk, sym.u.int_.val, xloc);
 				/* i don't remember the symbol in the original form */
 				break;
 
 			case HAWK_MOD_FLT:
-				nde = new_flt_node(hawk, sym.u.flt.val, xloc);
+				if ((hawk->opt.trait & sym.u.flt_.trait) != sym.u.flt_.trait)
+				{
+					hawk_seterrfmt (hawk, xloc, HAWK_EUNDEF, FMT_EUNDEF, full->len, full->ptr);
+					break;
+				}
+
+				nde = new_flt_node(hawk, sym.u.flt_.val, xloc);
 				/* i don't remember the symbol in the original form */
 				break;
 

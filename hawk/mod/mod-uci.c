@@ -1301,14 +1301,7 @@ static int fnc_uci_getsection (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 /* ------------------------------------------------------------------------ */
 
-typedef struct fnctab_t fnctab_t;
-struct fnctab_t
-{
-	const hawk_char_t* name;
-	hawk_mod_sym_fnc_t info;
-};
-
-static fnctab_t fnctab[] =
+static hawk_mod_fnc_tab_t fnctab[] =
 {
 	{ HAWK_T("adddeltapath"), { { 2, 2, HAWK_NULL    }, fnc_uci_adddeltapath, 0 } },
 	{ HAWK_T("addlist"),      { { 2, 2, HAWK_NULL    }, fnc_uci_addlist,      0 } },
@@ -1335,27 +1328,7 @@ static fnctab_t fnctab[] =
 
 static int query (hawk_mod_t* mod, hawk_t* awk, const hawk_char_t* name, hawk_mod_sym_t* sym)
 {
-	int left, right, mid, n;
-
-	left = 0; right = HAWK_COUNTOF(fnctab) - 1;
-
-	while (left <= right)
-	{
-		mid = left + (right - left) / 2;
-
-		n = hawk_strcmp (fnctab[mid].name, name);
-		if (n > 0) right = mid - 1; 
-		else if (n < 0) left = mid + 1;
-		else
-		{
-			sym->type = HAWK_MOD_FNC;
-			sym->u.fnc = fnctab[mid].info;
-			return 0;
-		}
-	}
-
-	hawk_seterrfmt (awk, HAWK_NULL, HAWK_ENOENT, HAWK_T("'%js' not found"), name);
-	return -1;
+	return hawk_findmodsymfnc(hawk, fnctab, HAWK_COUNTOF(fnctab), name, sym);
 }
 
 static int init (hawk_mod_t* mod, hawk_rtx_t* rtx)
@@ -1366,7 +1339,7 @@ static int init (hawk_mod_t* mod, hawk_rtx_t* rtx)
 	rbt = (hawk_rbt_t*)mod->ctx;
 
 	HAWK_MEMSET (&list, 0, HAWK_SIZEOF(list));
-	if (hawk_rbt_insert (rbt, &rtx, HAWK_SIZEOF(rtx), &list, HAWK_SIZEOF(list)) == HAWK_NULL) 
+	if (hawk_rbt_insert(rbt, &rtx, HAWK_SIZEOF(rtx), &list, HAWK_SIZEOF(list)) == HAWK_NULL) 
 	{
 		hawk_rtx_seterrnum (rtx, HAWK_ENOMEM, HAWK_NULL);
 		return -1;

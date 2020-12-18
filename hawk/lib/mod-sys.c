@@ -2832,8 +2832,13 @@ static int fnc_unsetenv (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		goto done;
 	}
 
+#if defined(UNSETENV_RETURNS_VOID)
+	unsetenv(str);
+	rx = 0;
+#else
 	rx = unsetenv(str);
 	if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
+#endif
 
 done:
 	if (str) hawk_rtx_freevalbcstr (rtx, a0, str);
@@ -5794,25 +5799,11 @@ fail:
 	goto done;
 }
 
-/* -------------------------------------------------------------------------- */
-
-typedef struct fnctab_t fnctab_t;
-struct fnctab_t
-{
-	const hawk_ooch_t* name;
-	hawk_mod_sym_fnc_t info;
-};
-
-typedef struct inttab_t inttab_t;
-struct inttab_t
-{
-	const hawk_ooch_t* name;
-	hawk_mod_sym_int_t info;
-};
+/* ----------------------------------------------------------------------- */
 
 #define A_MAX HAWK_TYPE_MAX(hawk_oow_t)
 
-static fnctab_t fnctab[] =
+static hawk_mod_fnc_tab_t fnctab[] =
 {
 	/* keep this table sorted for binary search in query(). */
 
@@ -5921,7 +5912,7 @@ static fnctab_t fnctab[] =
 #	define SIGTERM 15
 #endif
 
-static inttab_t inttab[] =
+static hawk_mod_int_tab_t inttab[] =
 {
 	/* keep this table sorted for binary search in query(). */
 
@@ -6217,43 +6208,8 @@ static inttab_t inttab[] =
 
 static int query (hawk_mod_t* mod, hawk_t* hawk, const hawk_ooch_t* name, hawk_mod_sym_t* sym)
 {
-	int left, right, mid, n;
-
-	left = 0; right = HAWK_COUNTOF(fnctab) - 1;
-
-	while (left <= right)
-	{
-		mid = left + (right - left) / 2;
-
-		n = hawk_comp_oocstr(fnctab[mid].name, name, 0);
-		if (n > 0) right = mid - 1; 
-		else if (n < 0) left = mid + 1;
-		else
-		{
-			sym->type = HAWK_MOD_FNC;
-			sym->u.fnc = fnctab[mid].info;
-			return 0;
-		}
-	}
-
-	left = 0; right = HAWK_COUNTOF(inttab) - 1;
-	while (left <= right)
-	{
-		mid = left + (right - left) / 2;
-
-		n = hawk_comp_oocstr(inttab[mid].name, name, 0);
-		if (n > 0) right = mid - 1; 
-		else if (n < 0) left = mid + 1;
-		else
-		{
-			sym->type = HAWK_MOD_INT;
-			sym->u.in = inttab[mid].info;
-			return 0;
-		}
-	}
-
-	hawk_seterrfmt (hawk, HAWK_NULL, HAWK_ENOENT, HAWK_T("'%js' not found"), name);
-	return -1;
+	if (hawk_findmodsymfnc_noerr(hawk, fnctab, HAWK_COUNTOF(fnctab), name, sym) >= 0) return 0;
+	return hawk_findmodsymint(hawk, inttab, HAWK_COUNTOF(inttab), name, sym);
 }
 
 /* TODO: proper resource management */

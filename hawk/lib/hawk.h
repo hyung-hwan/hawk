@@ -1008,7 +1008,7 @@ struct hawk_mod_t
 	hawk_mod_init_t   init; /* per-rtx initialization */
 	hawk_mod_fini_t   fini; /* per-rtx finalization */
 
-	void*                ctx;
+	void*             ctx;
 };
 
 enum hawk_mod_sym_type_t
@@ -1028,11 +1028,13 @@ typedef struct hawk_mod_sym_flt_t hawk_mod_sym_flt_t;
 struct hawk_mod_sym_int_t
 {
 	hawk_int_t val;
+	int trait;
 };
 
 struct hawk_mod_sym_flt_t
 {
 	hawk_flt_t val;
+	int trait;
 };
 
 struct hawk_mod_sym_t
@@ -1040,9 +1042,9 @@ struct hawk_mod_sym_t
 	hawk_mod_sym_type_t type; 
 	union
 	{
-		hawk_mod_sym_fnc_t fnc;
-		hawk_mod_sym_int_t in;
-		hawk_mod_sym_flt_t flt;
+		hawk_mod_sym_fnc_t fnc_;
+		hawk_mod_sym_int_t int_;
+		hawk_mod_sym_flt_t flt_;
 	} u;
 };
 
@@ -1053,6 +1055,20 @@ struct hawk_mod_fnc_tab_t
 {
         const hawk_ooch_t* name;
         hawk_mod_sym_fnc_t info;
+};
+
+typedef struct hawk_mod_int_tab_t hawk_mod_int_tab_t;
+struct  hawk_mod_int_tab_t
+{
+	const hawk_ooch_t* name;
+	hawk_mod_sym_int_t info;
+};
+
+typedef struct hawk_mod_flt_tab_t hawk_mod_flt_tab_t;
+struct  hawk_mod_flt_tab_t
+{
+	const hawk_ooch_t* name;
+	hawk_mod_sym_flt_t info;
 };
 
 /* ------------------------------------------------------------------------ */
@@ -1909,6 +1925,58 @@ HAWK_EXPORT int hawk_isvalidident (
 	hawk_t*            hawk,
 	const hawk_ooch_t* str
 );
+
+/* ----------------------------------------------------------------------- */
+
+HAWK_EXPORT int hawk_findmodsymfnc_noerr (
+	hawk_t*             hawk,
+	hawk_mod_fnc_tab_t* fnctab,
+	hawk_oow_t          count,
+	const hawk_ooch_t*  name,
+	hawk_mod_sym_t*     sym
+);
+
+HAWK_EXPORT int hawk_findmodsymint_noerr (
+	hawk_t*             hawk,
+	hawk_mod_int_tab_t* inttab,
+	hawk_oow_t          count,
+	const hawk_ooch_t*  name,
+	hawk_mod_sym_t*     sym
+);
+
+HAWK_EXPORT int hawk_findmodsymflt_noerr (
+	hawk_t*             hawk,
+	hawk_mod_flt_tab_t* flttab,
+	hawk_oow_t          count,
+	const hawk_ooch_t*  name,
+	hawk_mod_sym_t*     sym
+);
+
+HAWK_EXPORT int hawk_findmodsymfnc (
+	hawk_t*             hawk,
+	hawk_mod_fnc_tab_t* fnctab,
+	hawk_oow_t          count,
+	const hawk_ooch_t*  name,
+	hawk_mod_sym_t*     sym
+);
+
+HAWK_EXPORT int hawk_findmodsymint (
+	hawk_t*             hawk,
+	hawk_mod_int_tab_t* inttab,
+	hawk_oow_t          count,
+	const hawk_ooch_t*  name,
+	hawk_mod_sym_t*     sym
+);
+
+HAWK_EXPORT int hawk_findmodsymflt (
+	hawk_t*             hawk,
+	hawk_mod_flt_tab_t* flttab,
+	hawk_oow_t          count,
+	const hawk_ooch_t*  name,
+	hawk_mod_sym_t*     sym
+);
+
+/* ----------------------------------------------------------------------- */
 
 #if defined(HAWK_HAVE_INLINE)
 static HAWK_INLINE void* hawk_allocmem (hawk_t* hawk, hawk_oow_t size) { return hawk_gem_allocmem(hawk_getgem(hawk), size); }

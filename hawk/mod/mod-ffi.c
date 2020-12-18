@@ -23,10 +23,11 @@
     (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
     THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#if 0
 
+#if 0
 #include "mod-ffi.h"
 #include <hawk-utl.h>
+#include "../lib/hawk-prv.h"
 
 #include <errno.h>
 #include <string.h>
@@ -154,6 +155,17 @@ struct ffi_t
 };
 
 
+#define __IDMAP_NODE_T_DATA  ffi_t ffi;
+#define __IDMAP_LIST_T_DATA  int errnum; hawk_ooch_t errmsg[256];
+#define __IDMAP_LIST_T ffi_list_t
+#define __IDMAP_NODE_T ffi_node_t
+#define __INIT_IDMAP_LIST __init_ffi_list
+#define __FINI_IDMAP_LIST __fini_ffi_list
+#define __MAKE_IDMAP_NODE __new_ffi_node
+#define __FREE_IDMAP_NODE __free_ffi_node
+#include "../lib/idmap-imp.h"
+
+
 static HAWK_INLINE void link_ca (ffi_t* ffi, void* ptr)
 {
 	link_t* l = (link_t*)((hawk_oob_t*)ptr - HAWK_SIZEOF_VOID_P);
@@ -172,39 +184,17 @@ static void free_linked_cas (hawk_t* hawk, ffi_t* ffi)
 	}
 }
 
-static hawk_pfrc_t fnc_open (hawk_t* hawk, hawk_mod_t* mod, hawk_ooi_t nargs)
+static int fnc_open (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
+	hawk_t* hawk = hawk_rtx_gethawk(rtx);
 	ffi_t* ffi;
-	hawk_oop_t name;
+	hawk_mod_spec_t spec;
 	void* handle;
 #if defined(USE_DYNCALL)
 	DCCallVM* dc;
 #endif
 
-	HAWK_ASSERT (hawk, nargs == 1);
-
-	ffi = (ffi_t*)hawk_getobjtrailer(hawk, HAWK_STACK_GETRCV(hawk, nargs), HAWK_NULL);
-	name = HAWK_STACK_GETARG(hawk, nargs, 0);
-
-	if (!HAWK_OBJ_IS_CHAR_POINTER(name))
-	{
-		hawk_seterrnum (hawk, HAWK_EINVAL);
-		goto softfail;
-	}
-
-	if (!hawk->vmprim.dl_open)
-	{
-		hawk_seterrnum (hawk, HAWK_ENOIMPL);
-		goto softfail;
-	}
-
-	if (ffi->handle)
-	{
-		hawk_seterrnum (hawk, HAWK_EPERM); /* no allowed to open again */
-		goto softfail;
-	}
-
-	handle = hawk->vmprim.dl_open(hawk, HAWK_OBJ_GET_CHAR_SLOT(name), 0);
+	handle = hawk->prm.modopen(hawk, &spec);
 	if (!handle) goto softfail;
 
 #if defined(USE_DYNCALL)
@@ -254,7 +244,6 @@ static hawk_pfrc_t fnc_open (hawk_t* hawk, hawk_mod_t* mod, hawk_ooi_t nargs)
 	ffi->fmtc_to_type[1][FMTC_UCS] = &ffi_type_pointer;
 #endif
 
-	HAWK_DEBUG3 (hawk, "<ffi.open> %.*js => %p\n", HAWK_OBJ_GET_SIZE(name), HAWK_OBJ_GET_CHAR_SLOT(name), ffi->handle);
 	HAWK_STACK_SETRETTORCV (hawk, nargs);
 	return HAWK_PF_SUCCESS;
 
@@ -1199,12 +1188,7 @@ softfail:
 
 /* ------------------------------------------------------------------------ */
 
-#define C HAWK_METHOD_CLASS
-#define I HAWK_METHOD_INSTANCE
-
-#define MA HAWK_TYPE_MAX(hawk_oow_t)
-
-static hawk_mod_fnc_tab_t pfinfos[] =
+static hawk_mod_fnc_tab_t fnctab[] =
 {
 	{ HAWK_T("call"),      { { 3, 3, HAWK_NULL },  fnc_call,     0 } },
 	{ HAWK_T("close"),     { { 0, 0, HAWK_NULL },  fnc_close,    0 } },
@@ -1214,17 +1198,10 @@ static hawk_mod_fnc_tab_t pfinfos[] =
 
 /* ------------------------------------------------------------------------ */
 
-static int import (hawk_t* hawk, hawk_mod_t* mod, hawk_oop_class_t _class)
+static int query (hawk_mod_t* mod, hawk_t* hawk, const hawk_ooch_t* name, hawk_mod_sym_t* sym)
 {
-	if (hawk_setclasstrsize(hawk, _class, HAWK_SIZEOF(ffi_t), HAWK_NULL) <= -1) return -1;
-	return 0;
+	return hawk_findmodsymfnc(hawk, fnctab, HAWK_COUNTOF(fnctab), name, sym);
 }
-
-static int query (hawk_mod_t* mod, hawk_t* awk, const hawk_ooch_t* name, hawk_mod_sym_t* sym)
-{
-	///hawk_findmodsymfnc(hawk, pfinfos, HAWK_COUNTOF(pfinfos), name, namelen);
-}
-
 
 static void unload (hawk_t* hawk, hawk_mod_t* mod)
 {
@@ -1234,12 +1211,9 @@ static void unload (hawk_t* hawk, hawk_mod_t* mod)
 
 int hawk_mod_ffi (hawk_t* hawk, hawk_mod_t* mod)
 {
-	mod->import = import;
 	mod->query = query;
 	mod->unload = unload; 
 	mod->ctx = HAWK_NULL;
 	return 0;
 }
-
-
 #endif
