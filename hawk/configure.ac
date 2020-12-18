@@ -457,10 +457,10 @@ AC_TRY_RUN(
 AC_MSG_CHECKING([return type of unsetenv()])
 AC_COMPILE_IFELSE(
 	[AC_LANG_PROGRAM( [#include <stdlib.h>], [
-	 	return unsetenv("foo");
+	 	return unsetenv("foo")
 	])],
 
-	[AC_MSG_RESULT(int)]
+	[AC_MSG_RESULT(int)],
 
 	[AC_MSG_RESULT(void)
 	 AC_DEFINE([UNSETENV_RETURNS_VOID], [1], [unsetenv returns int])]
