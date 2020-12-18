@@ -12,11 +12,11 @@ CXXFLAGS_COMMON =
 LDFLAGS_COMMON = -L$(abs_builddir)/../lib -L$(libdir)
 LIBADD_COMMON = ../lib/libhawk.la
 
-bin_PROGRAMS = 
+noinst_PROGRAMS = 
 
 if ENABLE_CXX
 
-bin_PROGRAMS += hawk02 hawk51
+noinst_PROGRAMS += hawk02 hawk51
 
 hawk02_SOURCES = hawk02.c
 hawk02_CPPFLAGS = $(CPPFLAGS_COMMON)
