@@ -64,6 +64,10 @@
 #	else
 #		error UNSUPPORTED DYNAMIC LINKER
 #	endif
+
+#	if defined(HAVE_CRT_EXTERNS_H)
+#		include <crt_externs.h> /* MacOSX/darwin. _NSGetEnviron() */
+#	endif
 #endif
 
 #if !defined(HAWK_HAVE_CFG_H)
@@ -2620,7 +2624,12 @@ static int build_argcv (hawk_rtx_t* rtx, int argc_id, int argv_id, const hawk_oo
 /* TODO: use wenviron where it's available */
 typedef hawk_bch_t env_char_t;
 #define ENV_CHAR_IS_BCH
-extern char **environ;
+
+#if defined(HAVE_CRT_EXTERNS_H)
+#define environ (*(_NSGetEnviron()))
+#else
+extern char** environ;
+#endif
 
 static int build_environ (hawk_rtx_t* rtx, int gbl_id, env_char_t* envarr[])
 {
