@@ -24,7 +24,6 @@
     THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#if 0
 #include "mod-ffi.h"
 #include <hawk-utl.h>
 #include "../lib/hawk-prv.h"
@@ -74,8 +73,7 @@
 #define __dcCallInt64 dcCallLongLong
 #endif
 
-
-#endif
+#endif /* USE_DYNCALL */
 
 #define FMTC_NULL '\0' /* internal use only */
 
@@ -118,7 +116,6 @@ union ffi_sv_t
 	long long int ll;
 #endif
 
-
 	hawk_uint8_t ui8;
 	hawk_int8_t i8;
 	hawk_uint16_t ui16;
@@ -156,7 +153,7 @@ struct ffi_t
 
 
 #define __IDMAP_NODE_T_DATA  ffi_t ffi;
-#define __IDMAP_LIST_T_DATA  int errnum; hawk_ooch_t errmsg[256];
+#define __IDMAP_LIST_T_DATA  hawk_ooch_t errmsg[256];
 #define __IDMAP_LIST_T ffi_list_t
 #define __IDMAP_NODE_T ffi_node_t
 #define __INIT_IDMAP_LIST __init_ffi_list
@@ -165,6 +162,82 @@ struct ffi_t
 #define __FREE_IDMAP_NODE __free_ffi_node
 #include "../lib/idmap-imp.h"
 
+struct rtx_data_t
+{
+	ffi_list_t ffi_list;
+
+};
+typedef struct rtx_data_t rtx_data_t;
+
+/* ------------------------------------------------------------------------ */
+#define ERRNUM_TO_RC(errnum) (-((hawk_int_t)errnum))
+
+static hawk_int_t copy_error_to_ffi_list (hawk_rtx_t* rtx, ffi_list_t* ffi_list)
+{
+	hawk_errnum_t errnum = hawk_rtx_geterrnum(rtx);
+	hawk_copy_oocstr (ffi_list->errmsg, HAWK_COUNTOF(ffi_list->errmsg), hawk_rtx_geterrmsg(rtx));
+	return ERRNUM_TO_RC(errnum);
+}
+
+static hawk_int_t set_error_on_ffi_list_with_errno (hawk_rtx_t* rtx, ffi_list_t* ffi_list, const hawk_ooch_t* title)
+{
+	int err = errno;
+
+	if (title)
+		 hawk_rtx_fmttooocstr (rtx, ffi_list->errmsg, HAWK_COUNTOF(ffi_list->errmsg), HAWK_T("%js - %hs"), title, strerror(err));
+	else
+		 hawk_rtx_fmttooocstr (rtx, ffi_list->errmsg, HAWK_COUNTOF(ffi_list->errmsg), HAWK_T("%hs"), strerror(err));
+	return ERRNUM_TO_RC(hawk_syserr_to_errnum(err));
+}
+
+
+static hawk_int_t set_error_on_ffi_list (hawk_rtx_t* rtx, ffi_list_t* ffi_list, hawk_errnum_t errnum, const hawk_ooch_t* errfmt, ...)
+{
+	va_list ap;
+	if (errfmt)
+	{
+		va_start (ap, errfmt);
+		hawk_rtx_vfmttooocstr (rtx, ffi_list->errmsg, HAWK_COUNTOF(ffi_list->errmsg), errfmt, ap);
+		va_end (ap);
+	}
+	else
+	{
+		hawk_rtx_fmttooocstr (rtx, ffi_list->errmsg, HAWK_COUNTOF(ffi_list->errmsg), HAWK_T("%js"), hawk_geterrstr(hawk_rtx_gethawk(rtx))(errnum));
+	}
+	return ERRNUM_TO_RC(errnum);
+}
+
+static void set_errmsg_on_ffi_list (hawk_rtx_t* rtx, ffi_list_t* ffi_list, const hawk_ooch_t* errfmt, ...)
+{
+	if (errfmt)
+	{
+		va_list ap;
+		va_start (ap, errfmt);
+		hawk_rtx_vfmttooocstr (rtx, ffi_list->errmsg, HAWK_COUNTOF(ffi_list->errmsg), errfmt, ap);
+		va_end (ap);
+	}
+	else
+	{
+		hawk_copy_oocstr (ffi_list->errmsg, HAWK_COUNTOF(ffi_list->errmsg), hawk_rtx_geterrmsg(rtx));
+	}
+}
+
+/* ------------------------------------------------------------------------ */
+
+static HAWK_INLINE rtx_data_t* rtx_to_data (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+{
+	hawk_rbt_pair_t* pair;
+	pair = hawk_rbt_search((hawk_rbt_t*)fi->mod->ctx, &rtx, HAWK_SIZEOF(rtx));
+	HAWK_ASSERT (pair != HAWK_NULL);
+	return (rtx_data_t*)HAWK_RBT_VPTR(pair);
+}
+
+static HAWK_INLINE ffi_list_t* rtx_to_ffi_list (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+{
+	return &rtx_to_data(rtx, fi)->ffi_list;
+}
+
+/* ------------------------------------------------------------------------ */
 
 static HAWK_INLINE void link_ca (ffi_t* ffi, void* ptr)
 {
@@ -173,137 +246,250 @@ static HAWK_INLINE void link_ca (ffi_t* ffi, void* ptr)
 	ffi->ca = l;
 }
 
-static void free_linked_cas (hawk_t* hawk, ffi_t* ffi)
+static void free_linked_cas (hawk_rtx_t* rtx, ffi_t* ffi)
 {
 	while (ffi->ca)
 	{
 		link_t* ptr;
 		ptr = ffi->ca;
 		ffi->ca = ptr->next;
-		hawk_freemem (hawk, ptr);
+		hawk_rtx_freemem (rtx, ptr);
 	}
 }
 
-static int fnc_open (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+/* ------------------------------------------------------------------------ */
+
+static ffi_node_t* new_ffi_node (hawk_rtx_t* rtx, ffi_list_t* ffi_list, const hawk_ooch_t* name)
 {
 	hawk_t* hawk = hawk_rtx_gethawk(rtx);
-	ffi_t* ffi;
+	ffi_node_t* ffi_node;
 	hawk_mod_spec_t spec;
 	void* handle;
 #if defined(USE_DYNCALL)
 	DCCallVM* dc;
 #endif
 
+	ffi_node = __new_ffi_node(rtx, ffi_list);
+	if (!ffi_node) return HAWK_NULL;
+
+	HAWK_MEMSET (&spec, 0, HAWK_SIZEOF(spec));
+	spec.name = name;
+
 	handle = hawk->prm.modopen(hawk, &spec);
-	if (!handle) goto softfail;
+	if (!handle) 
+	{
+		const hawk_ooch_t* olderrmsg;
+		olderrmsg = hawk_backuperrmsg(hawk);
+		hawk_rtx_seterrfmt (rtx, HAWK_NULL, HAWK_ENOMEM, HAWK_T("unable to open the '%js' ffi module - %js"), name, olderrmsg);
+
+		__free_ffi_node (rtx, ffi_list, ffi_node);
+		return HAWK_NULL;
+	}
 
 #if defined(USE_DYNCALL)
 	dc = dcNewCallVM(4096); /* TODO: right size?  */
 	if (!dc) 
 	{
-		hawk_seterrwithsyserr (hawk, 0, errno);
-		hawk->vmprim.dl_close (hawk, handle);
-		goto softfail;
+		hawk_rtx_seterrwithsyserr (hawk, 0, errno);
+		hawk->prm.modclose (hawk, handle);
+		__free_ffi_node (rtx, ffi_list, ffi_node);
+		return HAWK_NULL;
 	}
 #endif
 
-	ffi->handle = handle;
+	ffi_node->ffi.handle = handle;
 
 #if defined(USE_DYNCALL)
-	ffi->dc = dc;
+	ffi_node->ffi.dc = dc;
 #elif defined(USE_LIBFFI)
-	ffi->fmtc_to_type[0][FMTC_NULL] = &ffi_type_void;
-	ffi->fmtc_to_type[1][FMTC_NULL] = &ffi_type_void;
+	ffi_node->ffi.fmtc_to_type[0][FMTC_NULL] = &ffi_type_void;
+	ffi_node->ffi.fmtc_to_type[1][FMTC_NULL] = &ffi_type_void;
 
-	ffi->fmtc_to_type[0][FMTC_CHAR] = &ffi_type_schar;
-	ffi->fmtc_to_type[1][FMTC_CHAR] = &ffi_type_uchar;
-	ffi->fmtc_to_type[0][FMTC_SHORT] = &ffi_type_sshort;
-	ffi->fmtc_to_type[1][FMTC_SHORT] = &ffi_type_ushort;
-	ffi->fmtc_to_type[0][FMTC_INT] = &ffi_type_sint;
-	ffi->fmtc_to_type[1][FMTC_INT] = &ffi_type_uint;
-	ffi->fmtc_to_type[0][FMTC_LONG] = &ffi_type_slong;
-	ffi->fmtc_to_type[1][FMTC_LONG] = &ffi_type_ulong;
+	ffi_node->ffi.fmtc_to_type[0][FMTC_CHAR] = &ffi_type_schar;
+	ffi_node->ffi.fmtc_to_type[1][FMTC_CHAR] = &ffi_type_uchar;
+	ffi_node->ffi.fmtc_to_type[0][FMTC_SHORT] = &ffi_type_sshort;
+	ffi_node->ffi.fmtc_to_type[1][FMTC_SHORT] = &ffi_type_ushort;
+	ffi_node->ffi.fmtc_to_type[0][FMTC_INT] = &ffi_type_sint;
+	ffi_node->ffi.fmtc_to_type[1][FMTC_INT] = &ffi_type_uint;
+	ffi_node->ffi.fmtc_to_type[0][FMTC_LONG] = &ffi_type_slong;
+	ffi_node->ffi.fmtc_to_type[1][FMTC_LONG] = &ffi_type_ulong;
 	#if (HAWK_SIZEOF_LONG_LONG > 0)
-	ffi->fmtc_to_type[0][FMTC_LONGLONG] = &ffi_type_slonglong;
-	ffi->fmtc_to_type[1][FMTC_LONGLONG] = &ffi_type_ulonglong;
+	ffi_node->ffi.fmtc_to_type[0][FMTC_LONGLONG] = &ffi_type_slonglong;
+	ffi_node->ffi.fmtc_to_type[1][FMTC_LONGLONG] = &ffi_type_ulonglong;
 	#endif
-	ffi->fmtc_to_type[0][FMTC_INT8] = &ffi_type_sint8;
-	ffi->fmtc_to_type[1][FMTC_INT8] = &ffi_type_uint8;
-	ffi->fmtc_to_type[0][FMTC_INT16] = &ffi_type_sint16;
-	ffi->fmtc_to_type[1][FMTC_INT16] = &ffi_type_uint16;
-	ffi->fmtc_to_type[0][FMTC_INT32] = &ffi_type_sint32;
-	ffi->fmtc_to_type[1][FMTC_INT32] = &ffi_type_uint32;
-	ffi->fmtc_to_type[0][FMTC_INT64] = &ffi_type_sint64;
-	ffi->fmtc_to_type[1][FMTC_INT64] = &ffi_type_uint64;
+	ffi_node->ffi.fmtc_to_type[0][FMTC_INT8] = &ffi_type_sint8;
+	ffi_node->ffi.fmtc_to_type[1][FMTC_INT8] = &ffi_type_uint8;
+	ffi_node->ffi.fmtc_to_type[0][FMTC_INT16] = &ffi_type_sint16;
+	ffi_node->ffi.fmtc_to_type[1][FMTC_INT16] = &ffi_type_uint16;
+	ffi_node->ffi.fmtc_to_type[0][FMTC_INT32] = &ffi_type_sint32;
+	ffi_node->ffi.fmtc_to_type[1][FMTC_INT32] = &ffi_type_uint32;
+	ffi_node->ffi.fmtc_to_type[0][FMTC_INT64] = &ffi_type_sint64;
+	ffi_node->ffi.fmtc_to_type[1][FMTC_INT64] = &ffi_type_uint64;
 
-	ffi->fmtc_to_type[0][FMTC_POINTER] = &ffi_type_pointer;
-	ffi->fmtc_to_type[1][FMTC_POINTER] = &ffi_type_pointer;
-	ffi->fmtc_to_type[0][FMTC_BCS] = &ffi_type_pointer;
-	ffi->fmtc_to_type[1][FMTC_BCS] = &ffi_type_pointer;
-	ffi->fmtc_to_type[0][FMTC_UCS] = &ffi_type_pointer;
-	ffi->fmtc_to_type[1][FMTC_UCS] = &ffi_type_pointer;
+	ffi_node->ffi.fmtc_to_type[0][FMTC_POINTER] = &ffi_type_pointer;
+	ffi_node->ffi.fmtc_to_type[1][FMTC_POINTER] = &ffi_type_pointer;
+	ffi_node->ffi.fmtc_to_type[0][FMTC_BCS] = &ffi_type_pointer;
+	ffi_node->ffi.fmtc_to_type[1][FMTC_BCS] = &ffi_type_pointer;
+	ffi_node->ffi.fmtc_to_type[0][FMTC_UCS] = &ffi_type_pointer;
+	ffi_node->ffi.fmtc_to_type[1][FMTC_UCS] = &ffi_type_pointer;
 #endif
 
-	HAWK_STACK_SETRETTORCV (hawk, nargs);
-	return HAWK_PF_SUCCESS;
-
-softfail:
-	HAWK_STACK_SETRETTOERRNUM (hawk, nargs);
-	return HAWK_PF_SUCCESS;
+	return ffi_node;
 }
 
-static hawk_pfrc_t fnc_close (hawk_t* hawk, hawk_mod_t* mod, hawk_ooi_t nargs)
+static void free_ffi_node (hawk_rtx_t* rtx, ffi_list_t* ffi_list, ffi_node_t* ffi_node)
 {
-	ffi_t* ffi;
+	hawk_t* hawk = hawk_rtx_gethawk(rtx);
 
-	HAWK_ASSERT (hawk, nargs == 0);
-
-	ffi = (ffi_t*)hawk_getobjtrailer(hawk, HAWK_STACK_GETRCV(hawk, nargs), HAWK_NULL);
-
-	if (!hawk->vmprim.dl_open)
-	{
-		hawk_seterrnum (hawk, HAWK_ENOIMPL);
-		goto softfail;
-	}
-
-	HAWK_DEBUG1 (hawk, "<ffi.close> %p\n", ffi->handle);
-
-	free_linked_cas (hawk, ffi);
+	free_linked_cas (rtx, &ffi_node->ffi);
 
 #if defined(USE_DYNCALL)
-	dcFree (ffi->dc);
-	ffi->dc = HAWK_NULL;
+	dcFree (ffi_node->ffi.dc);
+	ffi_node->ffi.dc = HAWK_NULL;
 #elif defined(USE_LIBFFI)
-	if (ffi->arg_types)
+	if (ffi_node->ffi.arg_types)
 	{
-		hawk_freemem (hawk, ffi->arg_types);
-		ffi->arg_types = HAWK_NULL;
+		hawk_rtx_freemem (rtx, ffi_node->ffi.arg_types);
+		ffi_node->ffi.arg_types = HAWK_NULL;
 	}
-	if (ffi->arg_values)
+	if (ffi_node->ffi.arg_values)
 	{
-		hawk_freemem (hawk, ffi->arg_values);
-		ffi->arg_values = HAWK_NULL;
+		hawk_rtx_freemem (rtx, ffi_node->ffi.arg_values);
+		ffi_node->ffi.arg_values = HAWK_NULL;
 	}
-	if (ffi->arg_svs)
+	if (ffi_node->ffi.arg_svs)
 	{
-		hawk_freemem (hawk, ffi->arg_svs);
-		ffi->arg_svs = HAWK_NULL;
+		hawk_rtx_freemem (rtx, ffi_node->ffi.arg_svs);
+		ffi_node->ffi.arg_svs = HAWK_NULL;
 	}
-	ffi->arg_max = 0;
-	ffi->arg_count = 0;
+	ffi_node->ffi.arg_max = 0;
+	ffi_node->ffi.arg_count = 0;
 #endif
 
-	hawk->vmprim.dl_close (hawk, ffi->handle);
-	ffi->handle = HAWK_NULL;
+	hawk->prm.modclose (hawk, ffi_node->ffi.handle);
+	ffi_node->ffi.handle = HAWK_NULL;
 
-	HAWK_STACK_SETRETTORCV (hawk, nargs);
-	return HAWK_PF_SUCCESS;
-
-softfail:
-	HAWK_STACK_SETRETTOERRNUM (hawk, nargs);
-	return HAWK_PF_SUCCESS;
+	__free_ffi_node (rtx, ffi_list, ffi_node);
 }
 
+static HAWK_INLINE ffi_node_t* get_ffi_list_node (ffi_list_t* ffi_list, hawk_int_t id)
+{
+	if (id < 0 || id >= ffi_list->map.high || !ffi_list->map.tab[id]) return HAWK_NULL;
+	return ffi_list->map.tab[id];
+}
+
+static ffi_node_t* get_ffi_list_node_with_arg (hawk_rtx_t* rtx, ffi_list_t* ffi_list, hawk_val_t* arg, hawk_int_t* rx)
+{
+	hawk_int_t id;
+	ffi_node_t* ffi_node;
+
+
+	if (hawk_rtx_valtoint(rtx, arg, &id) <= -1)
+	{
+		 *rx = ERRNUM_TO_RC(hawk_rtx_geterrnum(rtx));
+		 set_errmsg_on_ffi_list (rtx, ffi_list, HAWK_T("illegal handle value"));
+		 return HAWK_NULL;
+	}
+	else if (!(ffi_node = get_ffi_list_node(ffi_list, id)))
+	{
+		 *rx = ERRNUM_TO_RC(HAWK_EINVAL);
+		 set_errmsg_on_ffi_list (rtx, ffi_list, HAWK_T("invalid handle - %zd"), (hawk_oow_t)id);
+		 return HAWK_NULL;
+	}
+
+	return ffi_node;
+}
+
+/* ------------------------------------------------------------------------ */
+
+static int fnc_open (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+{
+	ffi_list_t* ffi_list;
+	ffi_node_t* ffi_node = HAWK_NULL;
+	hawk_int_t ret = -1;
+	hawk_val_t* retv;
+	hawk_val_t* a0;
+	hawk_oocs_t name;
+
+	ffi_list = rtx_to_ffi_list(rtx, fi);
+
+	a0 = hawk_rtx_getarg(rtx, 0);
+	name.ptr = hawk_rtx_getvaloocstr(rtx, a0, &name.len);
+	if (HAWK_UNLIKELY(!name.ptr))
+	{
+		ret = copy_error_to_ffi_list (rtx, ffi_list);
+		goto done;
+	}
+
+	if (name.len != hawk_count_oocstr(name.ptr))
+	{
+		ret = set_error_on_ffi_list(rtx, ffi_list, HAWK_EINVAL, HAWK_T("invalid ffi module name '%.*js'"), name.len, name.ptr);
+		goto done;
+	}
+
+	ffi_node = new_ffi_node(rtx, ffi_list, name.ptr);
+	if (ffi_node) ret = ffi_node->id;
+	else ret = copy_error_to_ffi_list (rtx, ffi_list);
+
+done:
+	if (name.ptr) hawk_rtx_freevaloocstr (rtx, a0, name.ptr);
+
+	retv = hawk_rtx_makeintval(rtx, ret);
+	if (HAWK_UNLIKELY(!retv))
+	{
+		if (ffi_node) free_ffi_node (rtx, ffi_list, ffi_node);
+		return -1;
+	}
+
+	hawk_rtx_setretval (rtx, retv);
+	return 0;
+}
+
+static int fnc_close (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+{
+	hawk_t* hawk = hawk_rtx_gethawk(rtx);
+	ffi_list_t* ffi_list;
+	ffi_node_t* ffi_node;
+	hawk_int_t ret = -1;
+
+	ffi_list = rtx_to_ffi_list(rtx, fi);
+	ffi_node = get_ffi_list_node_with_arg(rtx, ffi_list, hawk_rtx_getarg(rtx, 0), &ret);
+	if (ffi_node)
+	{
+		free_linked_cas (rtx, &ffi_node->ffi);
+
+	#if defined(USE_DYNCALL)
+		dcFree (ffi_node->ffi.dc);
+		ffi_node->ffi.dc = HAWK_NULL;
+	#elif defined(USE_LIBFFI)
+		if (ffi_node->ffi.arg_types)
+		{
+			hawk_rtx_freemem (rtx, ffi_node->ffi.arg_types);
+			ffi_node->ffi.arg_types = HAWK_NULL;
+		}
+		if (ffi_node->ffi.arg_values)
+		{
+			hawk_rtx_freemem (rtx, ffi_node->ffi.arg_values);
+			ffi_node->ffi.arg_values = HAWK_NULL;
+		}
+		if (ffi_node->ffi.arg_svs)
+		{
+			hawk_rtx_freemem (rtx, ffi_node->ffi.arg_svs);
+			ffi_node->ffi.arg_svs = HAWK_NULL;
+		}
+		ffi_node->ffi.arg_max = 0;
+		ffi_node->ffi.arg_count = 0;
+	#endif
+
+		hawk->prm.modclose (hawk, ffi_node->ffi.handle);
+		ffi_node->ffi.handle = HAWK_NULL;
+	}
+
+	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, ret));
+	return 0;
+}
+
+#if 0
 static HAWK_INLINE int add_ffi_arg (hawk_t* hawk, ffi_t* ffi, hawk_ooch_t fmtc, int _unsigned, hawk_oop_t arg)
 {
 #if defined(USE_LIBFFI)
@@ -317,11 +503,11 @@ static HAWK_INLINE int add_ffi_arg (hawk_t* hawk, ffi_t* ffi, hawk_ooch_t fmtc, 
 
 		newmax = ffi->arg_max + 16; /* TODO: adjust this? */
 		ttmp = hawk_reallocmem(hawk, ffi->arg_types, HAWK_SIZEOF(*ttmp) * newmax);
-		if (!ttmp) goto oops;
+		if (HAWK_UNLIKELY(!ttmp)) goto oops;
 		vtmp = hawk_reallocmem(hawk, ffi->arg_values, HAWK_SIZEOF(*vtmp) * newmax);
-		if (!vtmp) goto oops;
+		if (HAWK_UNLIKELY(!vtmp)) goto oops;
 		stmp = hawk_reallocmem(hawk, ffi->arg_svs, HAWK_SIZEOF(*stmp) * newmax);
-		if (!stmp) goto oops;
+		if (HAWK_UNLIKELY(!stmp)) goto oops;
 
 		ffi->arg_types = ttmp;
 		ffi->arg_values = vtmp;
@@ -1185,15 +1371,30 @@ softfail:
 	HAWK_STACK_SETRETTOERRNUM (hawk, nargs);
 	return HAWK_PF_SUCCESS;
 }
+#endif
 
+static int fnc_errmsg (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+{
+	ffi_list_t* ffi_list;
+	hawk_val_t* retv;
+
+	ffi_list = rtx_to_ffi_list(rtx, fi);
+	retv = hawk_rtx_makestrvalwithoocstr(rtx, ffi_list->errmsg);
+	if (!retv) return -1;
+
+	hawk_rtx_setretval (rtx, retv);
+	return 0;
+}
 /* ------------------------------------------------------------------------ */
 
 static hawk_mod_fnc_tab_t fnctab[] =
 {
-	{ HAWK_T("call"),      { { 3, 3, HAWK_NULL },  fnc_call,     0 } },
-	{ HAWK_T("close"),     { { 0, 0, HAWK_NULL },  fnc_close,    0 } },
-	{ HAWK_T("getsym"),    { { 1, 1, HAWK_NULL },  fnc_getsym,   0 } },
-	{ HAWK_T("open"),      { { 1, 1, HAWK_NULL },  fnc_open,     0 } }
+	//{ HAWK_T("call"),      { { 3, 3, HAWK_NULL },  fnc_call,     0 } },
+	{ HAWK_T("close"),     { { 1, 1, HAWK_NULL },  fnc_close,     0 } },
+	{ HAWK_T("errmsg"),    { { 0, 0, HAWK_NULL },  fnc_errmsg,    0 } },
+	//{ HAWK_T("getsym"),    { { 1, 1, HAWK_NULL },  fnc_getsym,   0 } },
+	{ HAWK_T("open"),      { { 1, 1, HAWK_NULL },  fnc_open,      0 } }
+	
 };
 
 /* ------------------------------------------------------------------------ */
@@ -1203,17 +1404,69 @@ static int query (hawk_mod_t* mod, hawk_t* hawk, const hawk_ooch_t* name, hawk_m
 	return hawk_findmodsymfnc(hawk, fnctab, HAWK_COUNTOF(fnctab), name, sym);
 }
 
-static void unload (hawk_t* hawk, hawk_mod_t* mod)
+static int init (hawk_mod_t* mod, hawk_rtx_t* rtx)
 {
-	/* TODO: anything? close open open dll handles? For that, fnc_open must store the value it returns to mod->ctx or somewhere..*/
-	/* TODO: track all opened shared objects... clear all external memories/resources created but not cleared (for lacking the call to 'close') */
-}
+	hawk_rbt_t* rbt;
+	rtx_data_t data, * datap;
+	hawk_rbt_pair_t* pair;
 
-int hawk_mod_ffi (hawk_t* hawk, hawk_mod_t* mod)
-{
-	mod->query = query;
-	mod->unload = unload; 
-	mod->ctx = HAWK_NULL;
+	rbt = (hawk_rbt_t*)mod->ctx;
+
+	HAWK_MEMSET (&data, 0, HAWK_SIZEOF(data));
+	pair = hawk_rbt_insert(rbt, &rtx, HAWK_SIZEOF(rtx), &data, HAWK_SIZEOF(data));
+	if (HAWK_UNLIKELY(!pair)) return -1;
+
+	datap = (rtx_data_t*)HAWK_RBT_VPTR(pair);
+	__init_ffi_list (rtx, &datap->ffi_list);
+
 	return 0;
 }
-#endif
+
+static void fini (hawk_mod_t* mod, hawk_rtx_t* rtx)
+{
+	hawk_rbt_t* rbt;
+	hawk_rbt_pair_t* pair;
+
+	rbt = (hawk_rbt_t*)mod->ctx;
+
+	/* garbage clean-up */
+	pair = hawk_rbt_search(rbt, &rtx, HAWK_SIZEOF(rtx));
+	if (pair)
+	{
+		rtx_data_t* data;
+
+		data = (rtx_data_t*)HAWK_RBT_VPTR(pair);
+
+		__fini_ffi_list (rtx, &data->ffi_list);
+
+		hawk_rbt_delete (rbt, &rtx, HAWK_SIZEOF(rtx));
+	}
+}
+
+static void unload (hawk_mod_t* mod, hawk_t* hawk)
+{
+	hawk_rbt_t* rbt;
+
+	rbt = (hawk_rbt_t*)mod->ctx;
+
+	HAWK_ASSERT (HAWK_RBT_SIZE(rbt) == 0);
+	hawk_rbt_close (rbt);
+}
+
+int hawk_mod_ffi (hawk_mod_t* mod, hawk_t* hawk)
+{
+	hawk_rbt_t* rbt;
+
+	mod->query = query;
+	mod->unload = unload;
+	mod->init = init;
+	mod->fini = fini;
+
+	rbt = hawk_rbt_open(hawk_getgem(hawk), 0, 1, 1);
+	if (HAWK_UNLIKELY(!rbt)) return -1;
+
+	hawk_rbt_setstyle (rbt, hawk_get_rbt_style(HAWK_RBT_STYLE_INLINE_COPIERS));
+	mod->ctx = rbt;
+
+	return 0;
+}
