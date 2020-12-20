@@ -44,9 +44,9 @@ int main ()
 		x.arr[2] = 0x33;
 		x.arr[3] = 0x44;
 
-		printf("x.u32 = 0x%08x\n", x.u32);
-		printf("htole32(x.u32) = 0x%08x\n", hawk_htole32(x.u32));
-		printf("htobe32(x.u32) = 0x%08x\n", hawk_htobe32(x.u32));
+		printf("x.u32 = 0x%08x\n", (unsigned int)x.u32);
+		printf("htole32(x.u32) = 0x%08x\n", (unsigned int)hawk_htole32(x.u32));
+		printf("htobe32(x.u32) = 0x%08x\n", (unsigned int)hawk_htobe32(x.u32));
 
 		T_ASSERT1 (x.u32 != hawk_htole32(x.u32) || x.u32 != hawk_htobe32(x.u32), "u32 endian conversion #0");
 		T_ASSERT1 (x.u32 == hawk_le32toh(hawk_htole32(x.u32)), "u32 endian conversion #1");
