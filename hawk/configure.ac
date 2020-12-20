@@ -245,7 +245,7 @@ dnl check header files.
 AC_HEADER_STDC
 AC_CHECK_HEADERS([stddef.h wchar.h wctype.h errno.h signal.h fcntl.h dirent.h])
 AC_CHECK_HEADERS([time.h sys/time.h utime.h spawn.h execinfo.h ucontext.h])
-AC_CHECK_HEADERS([sys/resource.h sys/wait.h sys/syscall.h sys/ioctl.h])
+AC_CHECK_HEADERS([sys/resource.h sys/wait.h sys/syscall.h sys/ioctl.h sys/sysctl.h])
 AC_CHECK_HEADERS([dlfcn.h ltdl.h sys/mman.h])
 AC_CHECK_HEADERS([sys/devpoll.h sys/epoll.h poll.h sys/event.h])
 AC_CHECK_HEADERS([netinet/in.h sys/un.h netpacket/packet.h net/if.h net/if_dl.h], [], [], [
