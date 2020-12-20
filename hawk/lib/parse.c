@@ -7409,6 +7409,9 @@ static struct
 	int (*modload) (hawk_mod_t* mod, hawk_t* hawk);
 } static_modtab[] = 
 {
+#if defined(HAWK_ENABLE_MOD_FFI)
+	{ HAWK_T("ffi"),    hawk_mod_ffi },
+#endif
 	{ HAWK_T("hawk"),   hawk_mod_hawk },
 	{ HAWK_T("math"),   hawk_mod_math },
 #if defined(HAWK_ENABLE_MOD_MYSQL)

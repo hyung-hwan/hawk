@@ -33,7 +33,7 @@
 extern "C" {
 #endif
 
-HAWK_EXPORT int hawk_mod_ffi (hawk_t* hawk, hawk_mod_t* mod);
+HAWK_EXPORT int hawk_mod_ffi (hawk_mod_t* mod, hawk_t* hawk);
 
 #if defined(__cplusplus)
 }

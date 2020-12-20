@@ -115,6 +115,7 @@ static sql_node_t* new_sql_node (hawk_rtx_t* rtx, sql_list_t* sql_list)
 	sql_node->mysql = mysql_init(HAWK_NULL);
 	if (!sql_node->mysql)
 	{
+		__free_sql_node (rtx, sql_list, sql_node);
 		hawk_rtx_seterrfmt (rtx, HAWK_NULL, HAWK_ENOMEM, HAWK_T("unable to allocate a mysql object"));
 		return HAWK_NULL;
 	}
