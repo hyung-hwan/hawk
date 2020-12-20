@@ -248,7 +248,7 @@ AC_CHECK_HEADERS([time.h sys/time.h utime.h spawn.h execinfo.h ucontext.h])
 AC_CHECK_HEADERS([sys/resource.h sys/wait.h sys/syscall.h sys/ioctl.h sys/sysctl.h])
 AC_CHECK_HEADERS([dlfcn.h ltdl.h sys/mman.h])
 AC_CHECK_HEADERS([sys/devpoll.h sys/epoll.h poll.h sys/event.h])
-AC_CHECK_HEADERS([netinet/in.h sys/un.h netpacket/packet.h net/if.h net/if_dl.h], [], [], [
+AC_CHECK_HEADERS([netinet/in.h sys/un.h netpacket/packet.h net/if.h net/if_dl.h net/route.h], [], [], [
 	#include <sys/types.h>
 	#include <sys/socket.h>])
 AC_CHECK_HEADERS([sys/stropts.h sys/macstat.h linux/ethtool.h linux/sockios.h])
