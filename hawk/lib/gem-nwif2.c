@@ -64,6 +64,9 @@
 #	if defined(HAVE_NET_IF_DL_H)
 #		include <net/if_dl.h>
 #	endif
+#	if defined(HAVE_NET_ROUTE_H)
+#		include <net/route.h>
+#	endif
 #	if defined(HAVE_SYS_SOCKIO_H)
 #		include <sys/sockio.h>
 #	endif
@@ -591,21 +594,34 @@ static int get_ifcfg (hawk_gem_t* gem, int s, hawk_ifcfg_t* cfg, struct ifreq* i
 		mib[5] = cfg->index;
 		if (sysctl(mib, HAWK_COUNTOF(mib), HAWK_NULL, &len, HAWK_NULL, 0) >= 0)
 		{
-			hawk_mmgr_t* mmgr = HAWK_MMGR_GETDFL();
-			void* buf;
+			hawk_uint8_t* buf;
 
 			buf = hawk_gem_allocmem(gem, len);
 			if (buf)
 			{
 				if (sysctl(mib, HAWK_COUNTOF(mib), buf, &len, HAWK_NULL, 0) >= 0)
 				{
+					hawk_uint8_t* ptr, * end;
+					struct if_msghdr* ifm;
 					struct sockaddr_dl* sadl;
-					sadl = ((struct if_msghdr*)buf + 1);
 
-					/* i don't really care if it's really ethernet
-					 * so long as the data is long enough */
-					if (sadl->sdl_alen >= HAWK_COUNTOF(cfg->ethw))
-						HAWK_MEMCPY (cfg->ethw, LLADDR(sadl), HAWK_SIZEOF(cfg->ethw));
+					ptr = buf;
+					end = buf + len;
+					while (ptr < end)
+					{
+						ifm = (struct if_msghdr*)ptr;
+						sadl = (struct sockaddr_dl*)(ifm + 1);
+
+						/* i don't really care if it's really ethernet
+						 * so long as the data is long enough */
+						if (sadl->sdl_alen >= HAWK_COUNTOF(cfg->ethw))
+						{
+							HAWK_MEMCPY (cfg->ethw, LLADDR(sadl), HAWK_SIZEOF(cfg->ethw));
+							break;
+						}
+
+						ptr += ifm->ifm_msglen;
+					}
 				}
 
 				hawk_gem_freemem (gem, buf);
