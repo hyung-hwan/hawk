@@ -613,7 +613,7 @@ int hawk_buildrex (hawk_t* hawk, const hawk_ooch_t* ptn, hawk_oow_t len, hawk_tr
 
 /* ------------------------------------------------------------------------ */
 
-int hawk_findmodsymfnc_noerr (hawk_t* hawk, hawk_mod_fnc_tab_t* fnctab, hawk_oow_t count, const hawk_ooch_t* name, hawk_mod_sym_t* sym)
+int hawk_findmodsymfnc_noseterr (hawk_t* hawk, hawk_mod_fnc_tab_t* fnctab, hawk_oow_t count, const hawk_ooch_t* name, hawk_mod_sym_t* sym)
 {
 	int n;
 
@@ -637,7 +637,7 @@ int hawk_findmodsymfnc_noerr (hawk_t* hawk, hawk_mod_fnc_tab_t* fnctab, hawk_oow
 }
 
 
-int hawk_findmodsymint_noerr (hawk_t* hawk, hawk_mod_int_tab_t* inttab, hawk_oow_t count, const hawk_ooch_t* name, hawk_mod_sym_t* sym)
+int hawk_findmodsymint_noseterr (hawk_t* hawk, hawk_mod_int_tab_t* inttab, hawk_oow_t count, const hawk_ooch_t* name, hawk_mod_sym_t* sym)
 {
 	int n;
 
@@ -660,7 +660,7 @@ int hawk_findmodsymint_noerr (hawk_t* hawk, hawk_mod_int_tab_t* inttab, hawk_oow
 	return -1;
 }
 
-int hawk_findmodsymflt_noerr (hawk_t* hawk, hawk_mod_flt_tab_t* flttab, hawk_oow_t count, const hawk_ooch_t* name, hawk_mod_sym_t* sym)
+int hawk_findmodsymflt_noseterr (hawk_t* hawk, hawk_mod_flt_tab_t* flttab, hawk_oow_t count, const hawk_ooch_t* name, hawk_mod_sym_t* sym)
 {
 	int n;
 
@@ -685,21 +685,21 @@ int hawk_findmodsymflt_noerr (hawk_t* hawk, hawk_mod_flt_tab_t* flttab, hawk_oow
 
 int hawk_findmodsymfnc (hawk_t* hawk, hawk_mod_fnc_tab_t* fnctab, hawk_oow_t count, const hawk_ooch_t* name, hawk_mod_sym_t* sym)
 {
-	int n = hawk_findmodsymfnc_noerr(hawk, fnctab, count, name, sym);
+	int n = hawk_findmodsymfnc_noseterr(hawk, fnctab, count, name, sym);
 	if (n <= -1) hawk_seterrfmt (hawk, HAWK_NULL, HAWK_ENOENT, HAWK_T("'%js' not found"), name);
 	return n;
 }
 
 int hawk_findmodsymint (hawk_t* hawk, hawk_mod_int_tab_t* inttab, hawk_oow_t count, const hawk_ooch_t* name, hawk_mod_sym_t* sym)
 {
-	int n = hawk_findmodsymint_noerr(hawk, inttab, count, name, sym);
+	int n = hawk_findmodsymint_noseterr(hawk, inttab, count, name, sym);
 	if (n <= -1) hawk_seterrfmt (hawk, HAWK_NULL, HAWK_ENOENT, HAWK_T("'%js' not found"), name);
 	return n;
 }
 
 int hawk_findmodsymflt (hawk_t* hawk, hawk_mod_flt_tab_t* flttab, hawk_oow_t count, const hawk_ooch_t* name, hawk_mod_sym_t* sym)
 {
-	int n = hawk_findmodsymflt_noerr(hawk, flttab, count, name, sym);
+	int n = hawk_findmodsymflt_noseterr(hawk, flttab, count, name, sym);
 	if (n <= -1) hawk_seterrfmt (hawk, HAWK_NULL, HAWK_ENOENT, HAWK_T("'%js' not found"), name);
 	return n;
 }

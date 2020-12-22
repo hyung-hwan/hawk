@@ -218,13 +218,13 @@ typedef hawk_ooci_t tre_cint_t;
 
 
 
-/* use the noerr version becuase various tre functions return 
+/* use the noseterr version because various tre functions return 
  * REG_ESPACE upon memory shortage and the wrapper functions
  * uses the returned code to set the error number on the 
  * hawk_tre_t wrapper object */
-#define xmalloc(gem,size) hawk_gem_allocmem_noerr(gem,size)
-#define xrealloc(gem,ptr,new_size) hawk_gem_reallocmem_noerr(gem, ptr, new_size)
-#define xcalloc(gem,nmemb,size) hawk_gem_callocmem_noerr(gem, (nmemb) * (size))
+#define xmalloc(gem,size) hawk_gem_allocmem_noseterr(gem,size)
+#define xrealloc(gem,ptr,new_size) hawk_gem_reallocmem_noseterr(gem, ptr, new_size)
+#define xcalloc(gem,nmemb,size) hawk_gem_callocmem_noseterr(gem, (nmemb) * (size))
 #define xfree(gem,ptr) hawk_gem_freemem(gem,ptr)
 
 /* tre-ast.h */
