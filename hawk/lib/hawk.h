@@ -1928,7 +1928,7 @@ HAWK_EXPORT int hawk_isvalidident (
 
 /* ----------------------------------------------------------------------- */
 
-HAWK_EXPORT int hawk_findmodsymfnc_noerr (
+HAWK_EXPORT int hawk_findmodsymfnc_noseterr (
 	hawk_t*             hawk,
 	hawk_mod_fnc_tab_t* fnctab,
 	hawk_oow_t          count,
@@ -1936,7 +1936,7 @@ HAWK_EXPORT int hawk_findmodsymfnc_noerr (
 	hawk_mod_sym_t*     sym
 );
 
-HAWK_EXPORT int hawk_findmodsymint_noerr (
+HAWK_EXPORT int hawk_findmodsymint_noseterr (
 	hawk_t*             hawk,
 	hawk_mod_int_tab_t* inttab,
 	hawk_oow_t          count,
@@ -1944,7 +1944,7 @@ HAWK_EXPORT int hawk_findmodsymint_noerr (
 	hawk_mod_sym_t*     sym
 );
 
-HAWK_EXPORT int hawk_findmodsymflt_noerr (
+HAWK_EXPORT int hawk_findmodsymflt_noseterr (
 	hawk_t*             hawk,
 	hawk_mod_flt_tab_t* flttab,
 	hawk_oow_t          count,

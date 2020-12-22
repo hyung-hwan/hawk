@@ -1831,7 +1831,7 @@ static hawk_mod_int_tab_t inttab[] =
 
 static int query (hawk_mod_t* mod, hawk_t* hawk, const hawk_ooch_t* name, hawk_mod_sym_t* sym)
 {
-	if (hawk_findmodsymfnc_noerr(hawk, fnctab, HAWK_COUNTOF(fnctab), name, sym) >= 0) return 0;
+	if (hawk_findmodsymfnc_noseterr(hawk, fnctab, HAWK_COUNTOF(fnctab), name, sym) >= 0) return 0;
 	return hawk_findmodsymint(hawk, inttab, HAWK_COUNTOF(inttab), name, sym);
 }
 

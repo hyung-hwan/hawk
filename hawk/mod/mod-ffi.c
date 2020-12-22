@@ -489,8 +489,7 @@ static int fnc_close (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	return 0;
 }
 
-#if 0
-static HAWK_INLINE int add_ffi_arg (hawk_t* hawk, ffi_t* ffi, hawk_ooch_t fmtc, int _unsigned, hawk_oop_t arg)
+static HAWK_INLINE int add_ffi_arg (hawk_rtx_t* rtx, ffi_t* ffi, hawk_ooch_t fmtc, int _unsigned, hawk_val_t* arg)
 {
 #if defined(USE_LIBFFI)
 	if (ffi->arg_count >= ffi->arg_max)
@@ -502,11 +501,11 @@ static HAWK_INLINE int add_ffi_arg (hawk_t* hawk, ffi_t* ffi, hawk_ooch_t fmtc, 
 		hawk_oow_t newmax;
 
 		newmax = ffi->arg_max + 16; /* TODO: adjust this? */
-		ttmp = hawk_reallocmem(hawk, ffi->arg_types, HAWK_SIZEOF(*ttmp) * newmax);
+		ttmp = hawk_rtx_reallocmem(rtx, ffi->arg_types, HAWK_SIZEOF(*ttmp) * newmax);
 		if (HAWK_UNLIKELY(!ttmp)) goto oops;
-		vtmp = hawk_reallocmem(hawk, ffi->arg_values, HAWK_SIZEOF(*vtmp) * newmax);
+		vtmp = hawk_rtx_reallocmem(rtx, ffi->arg_values, HAWK_SIZEOF(*vtmp) * newmax);
 		if (HAWK_UNLIKELY(!vtmp)) goto oops;
-		stmp = hawk_reallocmem(hawk, ffi->arg_svs, HAWK_SIZEOF(*stmp) * newmax);
+		stmp = hawk_rtx_reallocmem(rtx, ffi->arg_svs, HAWK_SIZEOF(*stmp) * newmax);
 		if (HAWK_UNLIKELY(!stmp)) goto oops;
 
 		ffi->arg_types = ttmp;
@@ -519,244 +518,203 @@ static HAWK_INLINE int add_ffi_arg (hawk_t* hawk, ffi_t* ffi, hawk_ooch_t fmtc, 
 	switch (fmtc)
 	{
 		case FMTC_INT8:
+		{
+			hawk_int_t v;
+			if (hawk_rtx_valtoint(rtx, arg, &v) <=  -1) goto inval_arg_value;
+		#if defined(USE_DYNCALL)
+			__dcArgInt8 (ffi->dc, v);
+		#elif defined(USE_LIBFFI)
 			if (_unsigned)
 			{
-				hawk_oow_t v;
-				if (HAWK_OOP_IS_CHAR(arg)) v = HAWK_OOP_TO_CHAR(arg);
-				else if (hawk_inttooow_noseterr(hawk, arg, &v) <= 0) goto inval_arg_value;;
-			#if defined(USE_DYNCALL)
-				__dcArgInt8 (ffi->dc, v);
-			#elif defined(USE_LIBFFI)
 				ffi->arg_values[ffi->arg_count] = &ffi->arg_svs[ffi->arg_count].ui8;
 				ffi->arg_svs[ffi->arg_count].ui8 = v;
-			#endif
 			}
 			else
 			{
-				hawk_ooi_t v;
-				if (HAWK_OOP_IS_CHAR(arg)) v = HAWK_OOP_TO_CHAR(arg);
-				else if (hawk_inttoooi_noseterr(hawk, arg, &v) == 0) goto inval_arg_value;;
-			#if defined(USE_DYNCALL)
-				__dcArgInt8 (ffi->dc, v);
-			#elif defined(USE_LIBFFI)
 				ffi->arg_values[ffi->arg_count] = &ffi->arg_svs[ffi->arg_count].i8;
 				ffi->arg_svs[ffi->arg_count].i8 = v;
-			#endif
 			}
+		#endif
 			break;
+		}
 
 		case FMTC_INT16:
+		{
+			hawk_int_t v;
+			if (hawk_rtx_valtoint(rtx, arg, &v) <=  -1) goto inval_arg_value;
+		#if defined(USE_DYNCALL)
+			__dcArgInt16 (ffi->dc, v);
+		#elif defined(USE_LIBFFI)
 			if (_unsigned)
 			{
-				hawk_oow_t v;
-				if (hawk_inttooow_noseterr(hawk, arg, &v) <= 0) goto inval_arg_value;;
-			#if defined(USE_DYNCALL)
-				__dcArgInt16 (ffi->dc, v);
-			#elif defined(USE_LIBFFI)
 				ffi->arg_values[ffi->arg_count] = &ffi->arg_svs[ffi->arg_count].ui16;
 				ffi->arg_svs[ffi->arg_count].ui16 = v;
-			#endif
 			}
 			else
 			{
-				hawk_ooi_t v;
-				if (hawk_inttoooi_noseterr(hawk, arg, &v) == 0) goto inval_arg_value;;
-			#if defined(USE_DYNCALL)
-				__dcArgInt16 (ffi->dc, v);
-			#elif defined(USE_LIBFFI)
 				ffi->arg_values[ffi->arg_count] = &ffi->arg_svs[ffi->arg_count].i16;
 				ffi->arg_svs[ffi->arg_count].i16 = v;
-			#endif
 			}
+		#endif
 			break;
+		}
 
 
 		case FMTC_INT32:
+		{
+			hawk_int_t v;
+			if (hawk_rtx_valtoint(rtx, arg, &v) <=  -1) goto inval_arg_value;
+		#if defined(USE_DYNCALL)
+			__dcArgInt32 (ffi->dc, v);
+		#elif defined(USE_LIBFFI)
 			if (_unsigned)
 			{
-				hawk_oow_t v;
-				if (hawk_inttooow_noseterr(hawk, arg, &v) <= 0) goto inval_arg_value;;
-			#if defined(USE_DYNCALL)
-				__dcArgInt32 (ffi->dc, v);
-			#elif defined(USE_LIBFFI)
 				ffi->arg_values[ffi->arg_count] = &ffi->arg_svs[ffi->arg_count].ui32;
 				ffi->arg_svs[ffi->arg_count].ui32 = v;
-			#endif
 			}
 			else
 			{
-				hawk_ooi_t v;
-				if (hawk_inttoooi_noseterr(hawk, arg, &v) == 0) goto inval_arg_value;;
-			#if defined(USE_DYNCALL)
-				__dcArgInt32 (ffi->dc, v);
-			#elif defined(USE_LIBFFI)
 				ffi->arg_values[ffi->arg_count] = &ffi->arg_svs[ffi->arg_count].i32;
 				ffi->arg_svs[ffi->arg_count].i32 = v;
-			#endif
 			}
+		#endif
 			break;
-
+		}
 
 		case FMTC_INT64:
+		{
 		#if (HAWK_SIZEOF_INT64_T > 0)
+			hawk_int_t v;
+			if (hawk_rtx_valtoint(rtx, arg, &v) <=  -1) goto inval_arg_value;
+		#if defined(USE_DYNCALL)
+			__dcArgInt64 (ffi->dc, v);
+		#elif defined(USE_LIBFFI)
 			if (_unsigned)
 			{
-				hawk_oow_t v;
-				if (hawk_inttooow_noseterr(hawk, arg, &v) <= 0) goto inval_arg_value;
-			#if defined(USE_DYNCALL)
-				__dcArgInt64 (ffi->dc, v);
-			#elif defined(USE_LIBFFI)
 				ffi->arg_values[ffi->arg_count] = &ffi->arg_svs[ffi->arg_count].ui64;
 				ffi->arg_svs[ffi->arg_count].ui64 = v;
-			#endif
 			}
 			else
 			{
-				hawk_ooi_t v;
-				if (hawk_inttoooi_noseterr(hawk, arg, &v) == 0) goto inval_arg_value;
-			#if defined(USE_DYNCALL)
-				__dcArgInt64 (ffi->dc, v);
-			#elif defined(USE_LIBFFI)
 				ffi->arg_values[ffi->arg_count] = &ffi->arg_svs[ffi->arg_count].i64;
 				ffi->arg_svs[ffi->arg_count].i64 = v;
-			#endif
 			}
+		#endif
 			break;
 		#else
 			goto inval_sig_ch;
 		#endif
+		}
 
 		case FMTC_CHAR: /* this is a byte */
+		{
+			hawk_int_t v;
+			if (hawk_rtx_valtoint(rtx, arg, &v) <=  -1) goto inval_arg_value;
+		#if defined(USE_DYNCALL)
+			__dcArgChar (ffi->dc, v);
+		#elif defined(USE_LIBFFI)
 			if (_unsigned)
 			{
-				hawk_oow_t v;
-				if (HAWK_OOP_IS_CHAR(arg)) v = HAWK_OOP_TO_CHAR(arg);
-				else if (hawk_inttooow_noseterr(hawk, arg, &v) <= 0) goto inval_arg_value;;
-			#if defined(USE_DYNCALL)
-				dcArgChar (ffi->dc, v);
-			#elif defined(USE_LIBFFI)
 				ffi->arg_values[ffi->arg_count] = &ffi->arg_svs[ffi->arg_count].uc;
 				ffi->arg_svs[ffi->arg_count].uc = v;
-			#endif
 			}
 			else
 			{
-				hawk_ooi_t v;
-				if (HAWK_OOP_IS_CHAR(arg)) v = HAWK_OOP_TO_CHAR(arg);
-				else if (hawk_inttoooi_noseterr(hawk, arg, &v) == 0) goto inval_arg_value;;
-			#if defined(USE_DYNCALL)
-				dcArgChar (ffi->dc, v);
-			#elif defined(USE_LIBFFI)
 				ffi->arg_values[ffi->arg_count] = &ffi->arg_svs[ffi->arg_count].c;
 				ffi->arg_svs[ffi->arg_count].c = v;
-			#endif
 			}
+		#endif
 			break;
+		}
 
 		case FMTC_SHORT:
+		{
+			hawk_int_t v;
+			if (hawk_rtx_valtoint(rtx, arg, &v) <=  -1) goto inval_arg_value;
+		#if defined(USE_DYNCALL)
+			__dcArgShort (ffi->dc, v);
+		#elif defined(USE_LIBFFI)
 			if (_unsigned)
 			{
-				hawk_oow_t v;
-				if (hawk_inttooow_noseterr(hawk, arg, &v) <= 0) goto inval_arg_value;
-			#if defined(USE_DYNCALL)
-				dcArgShort (ffi->dc, v);
-			#elif defined(USE_LIBFFI)
 				ffi->arg_values[ffi->arg_count] = &ffi->arg_svs[ffi->arg_count].uh;
 				ffi->arg_svs[ffi->arg_count].uh = v;
-			#endif
 			}
 			else
 			{
-				hawk_ooi_t v;
-				if (hawk_inttoooi_noseterr(hawk, arg, &v) == 0) goto inval_arg_value;
-			#if defined(USE_DYNCALL)
-				dcArgShort (ffi->dc, v);
-			#elif defined(USE_LIBFFI)
 				ffi->arg_values[ffi->arg_count] = &ffi->arg_svs[ffi->arg_count].h;
 				ffi->arg_svs[ffi->arg_count].h = v;
-			#endif
 			}
+		#endif
 			break;
+		}
 
 		case FMTC_INT:
+		{
+			hawk_int_t v;
+			if (hawk_rtx_valtoint(rtx, arg, &v) <=  -1) goto inval_arg_value;
+		#if defined(USE_DYNCALL)
+			__dcArgInt (ffi->dc, v);
+		#elif defined(USE_LIBFFI)
 			if (_unsigned)
 			{
-				hawk_oow_t v;
-				if (hawk_inttooow_noseterr(hawk, arg, &v) <= 0) goto inval_arg_value;
-			#if defined(USE_DYNCALL)
-				dcArgInt (ffi->dc, v);
-			#elif defined(USE_LIBFFI)
 				ffi->arg_values[ffi->arg_count] = &ffi->arg_svs[ffi->arg_count].ui;
 				ffi->arg_svs[ffi->arg_count].ui = v;
-			#endif
 			}
 			else
 			{
-				hawk_ooi_t v;
-				if (hawk_inttoooi_noseterr(hawk, arg, &v) == 0) goto inval_arg_value;
-			#if defined(USE_DYNCALL)
-				dcArgInt (ffi->dc, v);
-			#elif defined(USE_LIBFFI)
 				ffi->arg_values[ffi->arg_count] = &ffi->arg_svs[ffi->arg_count].i;
 				ffi->arg_svs[ffi->arg_count].i = v;
-			#endif
 			}
+		#endif
 			break;
+		}
 
 		case FMTC_LONG:
+		{
+			hawk_int_t v;
 		arg_as_long:
+			if (hawk_rtx_valtoint(rtx, arg, &v) <=  -1) goto inval_arg_value;
+		#if defined(USE_DYNCALL)
+			__dcArgLong (ffi->dc, v);
+		#elif defined(USE_LIBFFI)
 			if (_unsigned)
 			{
-				hawk_oow_t v;
-				if (hawk_inttooow_noseterr(hawk, arg, &v) <= 0) goto inval_arg_value;
-			#if defined(USE_DYNCALL)
-				dcArgLong (ffi->dc, v);
-			#elif defined(USE_LIBFFI)
 				ffi->arg_values[ffi->arg_count] = &ffi->arg_svs[ffi->arg_count].ul;
 				ffi->arg_svs[ffi->arg_count].ul = v;
-			#endif
 			}
-			else 
+			else
 			{
-				hawk_ooi_t v;
-				if (hawk_inttoooi_noseterr(hawk, arg, &v) == 0) goto inval_arg_value;;
-			#if defined(USE_DYNCALL)
-				dcArgLong (ffi->dc, v);
-			#elif defined(USE_LIBFFI)
 				ffi->arg_values[ffi->arg_count] = &ffi->arg_svs[ffi->arg_count].l;
 				ffi->arg_svs[ffi->arg_count].l = v;
-			#endif
 			}
+		#endif
 			break;
+		}
 
 		case FMTC_LONGLONG:
+		{
 		#if (HAWK_SIZEOF_LONG_LONG <= HAWK_SIZEOF_LONG)
 			goto arg_as_long;
 		#else
+			hawk_int_t v;
+			if (hawk_rtx_valtoint(rtx, arg, &v) <=  -1) goto inval_arg_value;
+		#if defined(USE_DYNCALL)
+			__dcArgLongLong (ffi->dc, v);
+		#elif defined(USE_LIBFFI)
 			if (_unsigned)
 			{
-				hawk_uintmax_t v;
-				if (hawk_inttouintmax_noseterr(hawk, arg, &v) <= 0) goto inval_arg_value;
-			#if defined(USE_DYNCALL)
-				dcArgLongLong (ffi->dc, v);
-			#elif defined(USE_LIBFFI)
 				ffi->arg_values[ffi->arg_count] = &ffi->arg_svs[ffi->arg_count].ull;
 				ffi->arg_svs[ffi->arg_count].ull = v;
-			#endif
 			}
 			else
 			{
-				hawk_intmax_t v;
-				if (hawk_inttointmax_noseterr(hawk, arg, &v) == 0) goto inval_arg_value;
-			#if defined(USE_DYNCALL)
-				dcArgLongLong (ffi->dc, v);
-			#elif defined(USE_LIBFFI)
 				ffi->arg_values[ffi->arg_count] = &ffi->arg_svs[ffi->arg_count].ll;
 				ffi->arg_svs[ffi->arg_count].ll = v;
-			#endif
 			}
+		#endif
 			break;
 		#endif
+		}
 
 		case FMTC_BCS:
 		{
@@ -844,7 +802,7 @@ static HAWK_INLINE int add_ffi_arg (hawk_t* hawk, ffi_t* ffi, hawk_ooch_t fmtc, 
 		default:
 		inval_sig_ch:
 			/* invalid argument signature specifier */
-			hawk_seterrbfmt (hawk, HAWK_EINVAL, "invalid argument type signature - %jc", fmtc);
+			hawk_rtx_seterrbfmt (rtx, HAWK_NULL, HAWK_EINVAL, "invalid argument type signature - %jc", fmtc);
 			goto oops;
 	}
 
@@ -862,6 +820,7 @@ oops:
 }
 
 
+#if 0
 static hawk_pfrc_t fnc_call (hawk_t* hawk, hawk_mod_t* mod, hawk_ooi_t nargs)
 {
 #if defined(USE_DYNCALL) || defined(USE_LIBFFI)
