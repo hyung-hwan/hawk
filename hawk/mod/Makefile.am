@@ -71,7 +71,7 @@ libhawk_ffi_la_SOURCES = mod-ffi.c mod-ffi.h
 libhawk_ffi_la_CPPFLAGS = $(CPPFLAGS_COMMON)
 libhawk_ffi_la_CFLAGS = $(CFLAGS_COMMON) 
 libhawk_ffi_la_LDFLAGS = $(LDFLAGS_COMMON)
-libhawk_ffi_la_LIBADD = $(LIBADD_COMMON) $(DYNCALL_LIBS) $(FFI_LIBS)
+libhawk_ffi_la_LIBADD = $(LIBADD_COMMON) $(FFI_LIBS)
 endif
 
 if ENABLE_MOD_MYSQL
