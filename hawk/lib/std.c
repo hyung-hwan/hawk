@@ -354,8 +354,7 @@ void* hawk_stdmodopen (hawk_t* hawk, const hawk_mod_spec_t* spec)
 
 	lt_dladvise_destroy (&adv);
 
-	HAWK_MMGR_FREE (hawk_getmmgr(hawk), modpath);
-
+	if (modpath) hawk_freemem(hawk, modpath);
 	return h;
 
 #elif defined(_WIN32)
@@ -386,7 +385,7 @@ void* hawk_stdmodopen (hawk_t* hawk, const hawk_mod_spec_t* spec)
 	modpath = hawk_dupoocstrarr(hawk, tmp, HAWK_NULL);
 	if (!modpath) return HAWK_NULL;
 
-	h = LoadLibrary (modpath);
+	h = LoadLibrary(modpath);
 	if (!h) hawk_seterrnum (hawk, HAWK_NULL, hawk_syserr_to_errnum(GetLastError());
 
 	hawk_freemem (hawk, modpath);
@@ -427,7 +426,7 @@ void* hawk_stdmodopen (hawk_t* hawk, const hawk_mod_spec_t* spec)
 
 	/* DosLoadModule() seems to have severe limitation on 
 	 * the file name it can load (max-8-letters.xxx) */
-	rc = DosLoadModule (errbuf, HAWK_COUNTOF(errbuf) - 1, modpath, &h);
+	rc = DosLoadModule(errbuf, HAWK_COUNTOF(errbuf) - 1, modpath, &h);
 	if (rc != NO_ERROR) 
 	{
 		h = HAWK_NULL;

@@ -31,49 +31,16 @@
 #include <errno.h>
 #include <string.h>
 
-#if defined(HAVE_FFI_LIB) && defined(HAVE_FFI_H)
-#	define USE_LIBFFI
-#elif defined(HAVE_DYNCALL_LIB) && defined(HAVE_DYNCALL_H)
-#	define USE_DYNCALL
-#endif
-
-#if defined(USE_LIBFFI)
-#	include <ffi.h>
-#	if (HAWK_SIZEOF_LONG_LONG > 0) && !defined(ffi_type_ulonglong)
-#		if HAWK_SIZEOF_LONG_LONG == HAWK_SIZEOF_INT32_T
-#			define ffi_type_ulonglong ffi_type_uint32
-#			define ffi_type_slonglong ffi_type_sint32
-#		elif HAWK_SIZEOF_LONG_LONG == HAWK_SIZEOF_INT64_T
-#			define ffi_type_ulonglong ffi_type_uint64
-#			define ffi_type_slonglong ffi_type_sint64
-#		endif
+#include <ffi.h>
+#if (HAWK_SIZEOF_LONG_LONG > 0) && !defined(ffi_type_ulonglong)
+#	if HAWK_SIZEOF_LONG_LONG == HAWK_SIZEOF_INT32_T
+#		define ffi_type_ulonglong ffi_type_uint32
+#		define ffi_type_slonglong ffi_type_sint32
+#	elif HAWK_SIZEOF_LONG_LONG == HAWK_SIZEOF_INT64_T
+#		define ffi_type_ulonglong ffi_type_uint64
+#		define ffi_type_slonglong ffi_type_sint64
 #	endif
-#elif defined(USE_DYNCALL)
-#	include <dyncall.h>
-
-#define __dcArgInt8 dcArgChar
-#define __dcCallInt8 dcCallChar
-
-#define __dcArgInt16 dcArgShort
-#define __dcCallInt16 dcCallShort
-
-#if (HAWK_SIZEOF_INT32_T == HAWK_SIZEOF_INT)
-#define __dcArgInt32 dcArgInt
-#define __dcCallInt32 dcCallInt
-#elif (HAWK_SIZEOF_INT32_T == HAWK_SIZEOF_LONG)
-#define __dcArgInt32 dcArgLong
-#define __dcCallInt32 dcCallLong
 #endif
-
-#if (HAWK_SIZEOF_INT64_T == HAWK_SIZEOF_LONG)
-#define __dcArgInt64 dcArgLong
-#define __dcCallInt64 dcCallLong
-#elif (HAWK_SIZEOF_INT64_T == HAWK_SIZEOF_LONG_LONG)
-#define __dcArgInt64 dcArgLongLong
-#define __dcCallInt64 dcCallLongLong
-#endif
-
-#endif /* USE_DYNCALL */
 
 #define FMTC_NULL '\0' /* internal use only */
 
@@ -82,22 +49,14 @@
 #define FMTC_INT 'i'
 #define FMTC_LONG 'l'
 #define FMTC_LONGLONG 'L'
-#define FMTC_BCS 's'
-#define FMTC_UCS 'S'
-#define FMTC_POINTER 'p'
+#define FMTC_MBS 's'
+#define FMTC_STR 'S'
 
 #define FMTC_INT8 '1'
 #define FMTC_INT16 '2'
 #define FMTC_INT32 '4'
 #define FMTC_INT64 '8'
 
-typedef struct link_t link_t;
-struct link_t
-{
-	link_t* next;
-};
-
-#if defined(USE_LIBFFI)
 typedef union ffi_sv_t ffi_sv_t;
 union ffi_sv_t
 {
@@ -126,16 +85,12 @@ union ffi_sv_t
 	hawk_int64_t i64;
 #endif
 };
-#endif
 
 typedef struct ffi_t ffi_t;
 struct ffi_t
 {
 	void* handle;
 
-#if defined(USE_DYNCALL)
-	DCCallVM* dc;
-#elif defined(USE_LIBFFI)
 	hawk_oow_t arg_count;
 	hawk_oow_t arg_max;
 	ffi_type** arg_types;
@@ -145,9 +100,6 @@ struct ffi_t
 	ffi_sv_t ret_sv;
 	ffi_cif cif;
 	ffi_type* fmtc_to_type[2][128];
-#endif
-
-	link_t* ca; /* call arguments duplicated */
 };
 
 
@@ -178,6 +130,7 @@ static hawk_int_t copy_error_to_ffi_list (hawk_rtx_t* rtx, ffi_list_t* ffi_list)
 	return ERRNUM_TO_RC(errnum);
 }
 
+/*
 static hawk_int_t set_error_on_ffi_list_with_errno (hawk_rtx_t* rtx, ffi_list_t* ffi_list, const hawk_ooch_t* title)
 {
 	int err = errno;
@@ -187,8 +140,7 @@ static hawk_int_t set_error_on_ffi_list_with_errno (hawk_rtx_t* rtx, ffi_list_t*
 	else
 		 hawk_rtx_fmttooocstr (rtx, ffi_list->errmsg, HAWK_COUNTOF(ffi_list->errmsg), HAWK_T("%hs"), strerror(err));
 	return ERRNUM_TO_RC(hawk_syserr_to_errnum(err));
-}
-
+}*/
 
 static hawk_int_t set_error_on_ffi_list (hawk_rtx_t* rtx, ffi_list_t* ffi_list, hawk_errnum_t errnum, const hawk_ooch_t* errfmt, ...)
 {
@@ -238,35 +190,12 @@ static HAWK_INLINE ffi_list_t* rtx_to_ffi_list (hawk_rtx_t* rtx, const hawk_fnc_
 
 /* ------------------------------------------------------------------------ */
 
-static HAWK_INLINE void link_ca (ffi_t* ffi, void* ptr)
-{
-	link_t* l = (link_t*)((hawk_oob_t*)ptr - HAWK_SIZEOF_VOID_P);
-	l->next = ffi->ca;
-	ffi->ca = l;
-}
-
-static void free_linked_cas (hawk_rtx_t* rtx, ffi_t* ffi)
-{
-	while (ffi->ca)
-	{
-		link_t* ptr;
-		ptr = ffi->ca;
-		ffi->ca = ptr->next;
-		hawk_rtx_freemem (rtx, ptr);
-	}
-}
-
-/* ------------------------------------------------------------------------ */
-
 static ffi_node_t* new_ffi_node (hawk_rtx_t* rtx, ffi_list_t* ffi_list, const hawk_ooch_t* name)
 {
 	hawk_t* hawk = hawk_rtx_gethawk(rtx);
 	ffi_node_t* ffi_node;
 	hawk_mod_spec_t spec;
 	void* handle;
-#if defined(USE_DYNCALL)
-	DCCallVM* dc;
-#endif
 
 	ffi_node = __new_ffi_node(rtx, ffi_list);
 	if (!ffi_node) return HAWK_NULL;
@@ -285,22 +214,8 @@ static ffi_node_t* new_ffi_node (hawk_rtx_t* rtx, ffi_list_t* ffi_list, const ha
 		return HAWK_NULL;
 	}
 
-#if defined(USE_DYNCALL)
-	dc = dcNewCallVM(4096); /* TODO: right size?  */
-	if (!dc) 
-	{
-		hawk_rtx_seterrwithsyserr (hawk, 0, errno);
-		hawk->prm.modclose (hawk, handle);
-		__free_ffi_node (rtx, ffi_list, ffi_node);
-		return HAWK_NULL;
-	}
-#endif
-
 	ffi_node->ffi.handle = handle;
 
-#if defined(USE_DYNCALL)
-	ffi_node->ffi.dc = dc;
-#elif defined(USE_LIBFFI)
 	ffi_node->ffi.fmtc_to_type[0][FMTC_NULL] = &ffi_type_void;
 	ffi_node->ffi.fmtc_to_type[1][FMTC_NULL] = &ffi_type_void;
 
@@ -325,27 +240,19 @@ static ffi_node_t* new_ffi_node (hawk_rtx_t* rtx, ffi_list_t* ffi_list, const ha
 	ffi_node->ffi.fmtc_to_type[0][FMTC_INT64] = &ffi_type_sint64;
 	ffi_node->ffi.fmtc_to_type[1][FMTC_INT64] = &ffi_type_uint64;
 
-	ffi_node->ffi.fmtc_to_type[0][FMTC_POINTER] = &ffi_type_pointer;
-	ffi_node->ffi.fmtc_to_type[1][FMTC_POINTER] = &ffi_type_pointer;
-	ffi_node->ffi.fmtc_to_type[0][FMTC_BCS] = &ffi_type_pointer;
-	ffi_node->ffi.fmtc_to_type[1][FMTC_BCS] = &ffi_type_pointer;
-	ffi_node->ffi.fmtc_to_type[0][FMTC_UCS] = &ffi_type_pointer;
-	ffi_node->ffi.fmtc_to_type[1][FMTC_UCS] = &ffi_type_pointer;
-#endif
+	ffi_node->ffi.fmtc_to_type[0][FMTC_MBS] = &ffi_type_pointer;
+	ffi_node->ffi.fmtc_to_type[1][FMTC_MBS] = &ffi_type_pointer;
+	ffi_node->ffi.fmtc_to_type[0][FMTC_STR] = &ffi_type_pointer;
+	ffi_node->ffi.fmtc_to_type[1][FMTC_STR] = &ffi_type_pointer;
 
 	return ffi_node;
 }
+
 
 static void free_ffi_node (hawk_rtx_t* rtx, ffi_list_t* ffi_list, ffi_node_t* ffi_node)
 {
 	hawk_t* hawk = hawk_rtx_gethawk(rtx);
 
-	free_linked_cas (rtx, &ffi_node->ffi);
-
-#if defined(USE_DYNCALL)
-	dcFree (ffi_node->ffi.dc);
-	ffi_node->ffi.dc = HAWK_NULL;
-#elif defined(USE_LIBFFI)
 	if (ffi_node->ffi.arg_types)
 	{
 		hawk_rtx_freemem (rtx, ffi_node->ffi.arg_types);
@@ -363,7 +270,6 @@ static void free_ffi_node (hawk_rtx_t* rtx, ffi_list_t* ffi_list, ffi_node_t* ff
 	}
 	ffi_node->ffi.arg_max = 0;
 	ffi_node->ffi.arg_count = 0;
-#endif
 
 	hawk->prm.modclose (hawk, ffi_node->ffi.handle);
 	ffi_node->ffi.handle = HAWK_NULL;
@@ -455,12 +361,6 @@ static int fnc_close (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	ffi_node = get_ffi_list_node_with_arg(rtx, ffi_list, hawk_rtx_getarg(rtx, 0), &ret);
 	if (ffi_node)
 	{
-		free_linked_cas (rtx, &ffi_node->ffi);
-
-	#if defined(USE_DYNCALL)
-		dcFree (ffi_node->ffi.dc);
-		ffi_node->ffi.dc = HAWK_NULL;
-	#elif defined(USE_LIBFFI)
 		if (ffi_node->ffi.arg_types)
 		{
 			hawk_rtx_freemem (rtx, ffi_node->ffi.arg_types);
@@ -478,7 +378,6 @@ static int fnc_close (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		}
 		ffi_node->ffi.arg_max = 0;
 		ffi_node->ffi.arg_count = 0;
-	#endif
 
 		hawk->prm.modclose (hawk, ffi_node->ffi.handle);
 		ffi_node->ffi.handle = HAWK_NULL;
@@ -488,32 +387,33 @@ static int fnc_close (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	return 0;
 }
 
-#if 0
-static HAWK_INLINE int add_ffi_arg (hawk_rtx_t* rtx, ffi_t* ffi, hawk_ooch_t fmtc, int _unsigned, hawk_val_t* arg)
+static HAWK_INLINE int add_ffi_arg (hawk_rtx_t* rtx, ffi_list_t* ffi_list, ffi_node_t* ffi_node, hawk_ooch_t fmtc, int _unsigned, hawk_val_t* arg, hawk_int_t* rx)
 {
-#if defined(USE_LIBFFI)
+	ffi_t* ffi = &ffi_node->ffi;
+
 	if (ffi->arg_count >= ffi->arg_max)
 	{
 		ffi_type** ttmp;
 		void** vtmp;
 		ffi_sv_t* stmp;
-
 		hawk_oow_t newmax;
 
 		newmax = ffi->arg_max + 16; /* TODO: adjust this? */
+
 		ttmp = hawk_rtx_reallocmem(rtx, ffi->arg_types, HAWK_SIZEOF(*ttmp) * newmax);
 		if (HAWK_UNLIKELY(!ttmp)) goto oops;
+		ffi->arg_types = ttmp;
+
 		vtmp = hawk_rtx_reallocmem(rtx, ffi->arg_values, HAWK_SIZEOF(*vtmp) * newmax);
 		if (HAWK_UNLIKELY(!vtmp)) goto oops;
+		ffi->arg_values = vtmp;
+
 		stmp = hawk_rtx_reallocmem(rtx, ffi->arg_svs, HAWK_SIZEOF(*stmp) * newmax);
 		if (HAWK_UNLIKELY(!stmp)) goto oops;
-
-		ffi->arg_types = ttmp;
-		ffi->arg_values = vtmp;
 		ffi->arg_svs = stmp;
+
 		ffi->arg_max = newmax;
 	}
-#endif
 
 	switch (fmtc)
 	{
@@ -521,9 +421,6 @@ static HAWK_INLINE int add_ffi_arg (hawk_rtx_t* rtx, ffi_t* ffi, hawk_ooch_t fmt
 		{
 			hawk_int_t v;
 			if (hawk_rtx_valtoint(rtx, arg, &v) <=  -1) goto inval_arg_value;
-		#if defined(USE_DYNCALL)
-			__dcArgInt8 (ffi->dc, v);
-		#elif defined(USE_LIBFFI)
 			if (_unsigned)
 			{
 				ffi->arg_values[ffi->arg_count] = &ffi->arg_svs[ffi->arg_count].ui8;
@@ -534,7 +431,6 @@ static HAWK_INLINE int add_ffi_arg (hawk_rtx_t* rtx, ffi_t* ffi, hawk_ooch_t fmt
 				ffi->arg_values[ffi->arg_count] = &ffi->arg_svs[ffi->arg_count].i8;
 				ffi->arg_svs[ffi->arg_count].i8 = v;
 			}
-		#endif
 			break;
 		}
 
@@ -542,9 +438,6 @@ static HAWK_INLINE int add_ffi_arg (hawk_rtx_t* rtx, ffi_t* ffi, hawk_ooch_t fmt
 		{
 			hawk_int_t v;
 			if (hawk_rtx_valtoint(rtx, arg, &v) <=  -1) goto inval_arg_value;
-		#if defined(USE_DYNCALL)
-			__dcArgInt16 (ffi->dc, v);
-		#elif defined(USE_LIBFFI)
 			if (_unsigned)
 			{
 				ffi->arg_values[ffi->arg_count] = &ffi->arg_svs[ffi->arg_count].ui16;
@@ -555,18 +448,13 @@ static HAWK_INLINE int add_ffi_arg (hawk_rtx_t* rtx, ffi_t* ffi, hawk_ooch_t fmt
 				ffi->arg_values[ffi->arg_count] = &ffi->arg_svs[ffi->arg_count].i16;
 				ffi->arg_svs[ffi->arg_count].i16 = v;
 			}
-		#endif
 			break;
 		}
-
 
 		case FMTC_INT32:
 		{
 			hawk_int_t v;
 			if (hawk_rtx_valtoint(rtx, arg, &v) <=  -1) goto inval_arg_value;
-		#if defined(USE_DYNCALL)
-			__dcArgInt32 (ffi->dc, v);
-		#elif defined(USE_LIBFFI)
 			if (_unsigned)
 			{
 				ffi->arg_values[ffi->arg_count] = &ffi->arg_svs[ffi->arg_count].ui32;
@@ -577,7 +465,6 @@ static HAWK_INLINE int add_ffi_arg (hawk_rtx_t* rtx, ffi_t* ffi, hawk_ooch_t fmt
 				ffi->arg_values[ffi->arg_count] = &ffi->arg_svs[ffi->arg_count].i32;
 				ffi->arg_svs[ffi->arg_count].i32 = v;
 			}
-		#endif
 			break;
 		}
 
@@ -586,9 +473,6 @@ static HAWK_INLINE int add_ffi_arg (hawk_rtx_t* rtx, ffi_t* ffi, hawk_ooch_t fmt
 		#if (HAWK_SIZEOF_INT64_T > 0)
 			hawk_int_t v;
 			if (hawk_rtx_valtoint(rtx, arg, &v) <=  -1) goto inval_arg_value;
-		#if defined(USE_DYNCALL)
-			__dcArgInt64 (ffi->dc, v);
-		#elif defined(USE_LIBFFI)
 			if (_unsigned)
 			{
 				ffi->arg_values[ffi->arg_count] = &ffi->arg_svs[ffi->arg_count].ui64;
@@ -599,7 +483,6 @@ static HAWK_INLINE int add_ffi_arg (hawk_rtx_t* rtx, ffi_t* ffi, hawk_ooch_t fmt
 				ffi->arg_values[ffi->arg_count] = &ffi->arg_svs[ffi->arg_count].i64;
 				ffi->arg_svs[ffi->arg_count].i64 = v;
 			}
-		#endif
 			break;
 		#else
 			goto inval_sig_ch;
@@ -610,9 +493,6 @@ static HAWK_INLINE int add_ffi_arg (hawk_rtx_t* rtx, ffi_t* ffi, hawk_ooch_t fmt
 		{
 			hawk_int_t v;
 			if (hawk_rtx_valtoint(rtx, arg, &v) <=  -1) goto inval_arg_value;
-		#if defined(USE_DYNCALL)
-			__dcArgChar (ffi->dc, v);
-		#elif defined(USE_LIBFFI)
 			if (_unsigned)
 			{
 				ffi->arg_values[ffi->arg_count] = &ffi->arg_svs[ffi->arg_count].uc;
@@ -623,7 +503,6 @@ static HAWK_INLINE int add_ffi_arg (hawk_rtx_t* rtx, ffi_t* ffi, hawk_ooch_t fmt
 				ffi->arg_values[ffi->arg_count] = &ffi->arg_svs[ffi->arg_count].c;
 				ffi->arg_svs[ffi->arg_count].c = v;
 			}
-		#endif
 			break;
 		}
 
@@ -631,9 +510,6 @@ static HAWK_INLINE int add_ffi_arg (hawk_rtx_t* rtx, ffi_t* ffi, hawk_ooch_t fmt
 		{
 			hawk_int_t v;
 			if (hawk_rtx_valtoint(rtx, arg, &v) <=  -1) goto inval_arg_value;
-		#if defined(USE_DYNCALL)
-			__dcArgShort (ffi->dc, v);
-		#elif defined(USE_LIBFFI)
 			if (_unsigned)
 			{
 				ffi->arg_values[ffi->arg_count] = &ffi->arg_svs[ffi->arg_count].uh;
@@ -644,7 +520,6 @@ static HAWK_INLINE int add_ffi_arg (hawk_rtx_t* rtx, ffi_t* ffi, hawk_ooch_t fmt
 				ffi->arg_values[ffi->arg_count] = &ffi->arg_svs[ffi->arg_count].h;
 				ffi->arg_svs[ffi->arg_count].h = v;
 			}
-		#endif
 			break;
 		}
 
@@ -652,9 +527,6 @@ static HAWK_INLINE int add_ffi_arg (hawk_rtx_t* rtx, ffi_t* ffi, hawk_ooch_t fmt
 		{
 			hawk_int_t v;
 			if (hawk_rtx_valtoint(rtx, arg, &v) <=  -1) goto inval_arg_value;
-		#if defined(USE_DYNCALL)
-			__dcArgInt (ffi->dc, v);
-		#elif defined(USE_LIBFFI)
 			if (_unsigned)
 			{
 				ffi->arg_values[ffi->arg_count] = &ffi->arg_svs[ffi->arg_count].ui;
@@ -665,7 +537,6 @@ static HAWK_INLINE int add_ffi_arg (hawk_rtx_t* rtx, ffi_t* ffi, hawk_ooch_t fmt
 				ffi->arg_values[ffi->arg_count] = &ffi->arg_svs[ffi->arg_count].i;
 				ffi->arg_svs[ffi->arg_count].i = v;
 			}
-		#endif
 			break;
 		}
 
@@ -674,9 +545,6 @@ static HAWK_INLINE int add_ffi_arg (hawk_rtx_t* rtx, ffi_t* ffi, hawk_ooch_t fmt
 			hawk_int_t v;
 		arg_as_long:
 			if (hawk_rtx_valtoint(rtx, arg, &v) <=  -1) goto inval_arg_value;
-		#if defined(USE_DYNCALL)
-			__dcArgLong (ffi->dc, v);
-		#elif defined(USE_LIBFFI)
 			if (_unsigned)
 			{
 				ffi->arg_values[ffi->arg_count] = &ffi->arg_svs[ffi->arg_count].ul;
@@ -687,7 +555,6 @@ static HAWK_INLINE int add_ffi_arg (hawk_rtx_t* rtx, ffi_t* ffi, hawk_ooch_t fmt
 				ffi->arg_values[ffi->arg_count] = &ffi->arg_svs[ffi->arg_count].l;
 				ffi->arg_svs[ffi->arg_count].l = v;
 			}
-		#endif
 			break;
 		}
 
@@ -698,9 +565,6 @@ static HAWK_INLINE int add_ffi_arg (hawk_rtx_t* rtx, ffi_t* ffi, hawk_ooch_t fmt
 		#else
 			hawk_int_t v;
 			if (hawk_rtx_valtoint(rtx, arg, &v) <=  -1) goto inval_arg_value;
-		#if defined(USE_DYNCALL)
-			__dcArgLongLong (ffi->dc, v);
-		#elif defined(USE_LIBFFI)
 			if (_unsigned)
 			{
 				ffi->arg_values[ffi->arg_count] = &ffi->arg_svs[ffi->arg_count].ull;
@@ -711,93 +575,165 @@ static HAWK_INLINE int add_ffi_arg (hawk_rtx_t* rtx, ffi_t* ffi, hawk_ooch_t fmt
 				ffi->arg_values[ffi->arg_count] = &ffi->arg_svs[ffi->arg_count].ll;
 				ffi->arg_svs[ffi->arg_count].ll = v;
 			}
-		#endif
 			break;
 		#endif
 		}
 
-		case FMTC_BCS:
+		case FMTC_MBS:
 		{
 			hawk_bch_t* ptr;
 			hawk_oow_t len;
 
-			ptr = hawk_rtx_getvalbcstr(rtx, arg,  &len);
+			ptr = hawk_rtx_valtobcstrdup(rtx, arg,  &len);
 			if(HAWK_UNLIKELY(!ptr)) goto inval_arg_value;
 
-		#if defined(USE_DYNCALL)
-			dcArgPointer (ffi->dc, ptr);
-		#elif defined(USE_LIBFFI)
 			ffi->arg_values[ffi->arg_count] = &ffi->arg_svs[ffi->arg_count].p;
 			ffi->arg_svs[ffi->arg_count].p = ptr;
-		#endif
 			break;
 		}
 
-		case FMTC_UCS:
+		case FMTC_STR:
 		{
 			hawk_uch_t* ptr;
 			hawk_oow_t len;
 
-			ptr = hawk_rtx_valtoucstrdup(rtx, arg, &len);
+			ptr = hawk_rtx_valtooocstrdup(rtx, arg, &len);
 			if(HAWK_UNLIKELY(!ptr)) goto inval_arg_value;
 
-
-		#if defined(USE_DYNCALL)
-			dcArgPointer (ffi->dc, ptr);
-		#elif defined(USE_LIBFFI)
 			ffi->arg_values[ffi->arg_count] = &ffi->arg_svs[ffi->arg_count].p;
 			ffi->arg_svs[ffi->arg_count].p = ptr;
-		#endif
 			break;
 		}
-
-#if 0
-		case FMTC_POINTER:
-		{
-			void* ptr;
-
-			/* TODO: map nil to NULL? or should #\p0 be enough? */
-			if (!HAWK_OOP_IS_SMPTR(arg)) goto inval_arg_value;
-			ptr = HAWK_OOP_TO_SMPTR(arg);
-
-		#if defined(USE_DYNCALL)
-			dcArgPointer (ffi->dc, ptr);
-		#elif defined(USE_LIBFFI)
-			ffi->arg_values[ffi->arg_count] = &ffi->arg_svs[ffi->arg_count].p;
-			ffi->arg_svs[ffi->arg_count].p = ptr;
-		#endif
-			break;
-		}
-#endif
 
 		default:
-		inval_sig_ch:
-			/* invalid argument signature specifier */
-			hawk_rtx_seterrbfmt (rtx, HAWK_NULL, HAWK_EINVAL, "invalid argument type signature - %jc", fmtc);
-			goto oops;
+			*rx = set_error_on_ffi_list(rtx, ffi_list, HAWK_EINVAL, HAWK_T("invalid argument type signature - %jc"), fmtc);
+			return -1;
 	}
 
-#if defined(USE_LIBFFI)
 	ffi->arg_types[ffi->arg_count] = ffi->fmtc_to_type[_unsigned][fmtc];
 	ffi->arg_count++;
-#endif
 	return 0;
 
 inval_arg_value:
-	hawk_rtx_seterrbfmt (rtx, HAWK_NULL, HAWK_EINVAL, "invalid argument value - %O", arg);
+	*rx = set_error_on_ffi_list(rtx, ffi_list, HAWK_EINVAL, HAWK_T("invalid argument value - %O"), arg);
+	return -1;
 
 oops:
+	*rx = copy_error_to_ffi_list(rtx, ffi_list);
 	return -1;
 }
 
-#endif
+static int capture_return (hawk_rtx_t* rtx, ffi_list_t* ffi_list, ffi_node_t* ffi_node, hawk_ooch_t fmtc, int _unsigned, hawk_int_t* rx)
+{
+	hawk_val_t* r;
+	ffi_t* ffi = &ffi_node->ffi;
 
+	switch (fmtc)
+	{
+/* TODO: support more types... */
+/* TODO: proper return value conversion */
+		case FMTC_INT8:
+			r = hawk_rtx_makeintval(rtx, _unsigned? ffi->ret_sv.ui8: ffi->ret_sv.i8);
+			break;
+
+		case FMTC_INT16:
+			r = hawk_rtx_makeintval(rtx, _unsigned? ffi->ret_sv.ui16: ffi->ret_sv.i16);
+			break;
+
+		case FMTC_INT32:
+			r = hawk_rtx_makeintval(rtx, _unsigned? ffi->ret_sv.ui32: ffi->ret_sv.i32);
+			break;
+
+		case FMTC_INT64:
+		#if (HAWK_SIZEOF_INT64_T > 0)
+			r = hawk_rtx_makeintval(rtx, _unsigned? ffi->ret_sv.ui64: ffi->ret_sv.i64);		
+			break;
+		#else
+			hawk_rtx_seterrbfmt (hawk, HAWK_NULL, HAWK_EINVAL, "invalid return type signature - %jc", fmtc);
+			goto oops;
+		#endif
+
+		case FMTC_CHAR:
+			r = hawk_rtx_makeintval(rtx, _unsigned? ffi->ret_sv.uc: ffi->ret_sv.c);
+			break;
+
+		case FMTC_SHORT:
+			r = hawk_rtx_makeintval(rtx, _unsigned? ffi->ret_sv.uh: ffi->ret_sv.h);
+			break;
+
+		case FMTC_INT:
+			r = hawk_rtx_makeintval(rtx, _unsigned? ffi->ret_sv.ui: ffi->ret_sv.i);
+			break;
+
+		case FMTC_LONG:
+			r = hawk_rtx_makeintval(rtx, _unsigned? ffi->ret_sv.ul: ffi->ret_sv.l);
+			break;
+
+		case FMTC_LONGLONG:
+			r = hawk_rtx_makeintval(rtx, _unsigned? ffi->ret_sv.ull: ffi->ret_sv.ll);
+			break;
+
+/* TODO: capture char or bchr??? not as numeric but as a character... */
+		case FMTC_MBS:
+			r = hawk_rtx_makembsvalwithbcstr(rtx, ffi->ret_sv.p);
+			break;
+
+		case FMTC_STR:
+			r = hawk_rtx_makestrvalwithoocstr(rtx, ffi->ret_sv.p);
+			break;
+
+		default:
+			/* capture no return value */
+			return 0;
+	}
+	if (HAWK_UNLIKELY(!r)) goto oops;
+
+	if (hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, 1), r) <= -1) goto oops;
+	return 0;
+
+oops:
+	*rx = copy_error_to_ffi_list(rtx, ffi_list);
+	return 0;
+}
+
+/*
+BEGIN {
+        t = ffi::open("libc.so.6");
+        if (t <= -1)
+        {
+                print t, ffi::errmsg();
+                return -1;
+        }
+
+        ##t = ffi::call(t, r, "printf", "s|ii>X", "%d  **%%** %d\n", 10, 20);
+        x = ffi::call(t, r, "printf", "s|ii>i", "%d  **%%** %d\n", 10, 20);
+        if (x <= -1)
+        {
+                print "unable to call -", t, ffi::errmsg();
+        }
+        else
+        {
+                print "return value => ", r;
+        }
+
+        x = ffi::call(t, r, "getenv", "s>s", "PATH");
+        if (x <= -1)
+        {
+                print "unable to call -", t, ffi::errmsg();
+        }
+        else
+        {
+                print "return value => ", r;
+        }
+
+        ffi::close (t);
+} */
 static int fnc_call (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
-#if 0
 	hawk_t* hawk = hawk_rtx_gethawk(rtx);
 	ffi_list_t* ffi_list;
 	ffi_node_t* ffi_node;
+	ffi_t* ffi = HAWK_NULL;
 	hawk_int_t ret = -1;
 
 	hawk_val_t* a2;
@@ -811,17 +747,7 @@ static int fnc_call (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	int vbar = 0;
 	hawk_ooch_t fmtc;
 
-#if 0
-	hawk_oop_t fun, sig, args;
-	void* f;
-	
-	
-	
-	#if defined(USE_LIBFFI)
 	ffi_status fs;
-	#endif
-
-#endif
 
 	/* ffi::call (ffi-handle, return-value, "function name", "signature", argument....); */
 	ffi_list = rtx_to_ffi_list(rtx, fi);
@@ -830,7 +756,7 @@ static int fnc_call (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 	a2 = hawk_rtx_getarg(rtx, 2);
 	fun.ptr = hawk_rtx_getvaloocstr(rtx, a2, &fun.len);
-	if (!fun.ptr)
+	if (HAWK_UNLIKELY(!fun.ptr))
 	{
 		ret = copy_error_to_ffi_list (rtx, ffi_list);
 		goto done;
@@ -838,7 +764,7 @@ static int fnc_call (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 	a3 = hawk_rtx_getarg(rtx, 3);
 	sig.ptr = hawk_rtx_getvaloocstr(rtx, a3, &sig.len);
-	if (!sig.ptr)
+	if (HAWK_UNLIKELY(!sig.ptr))
 	{
 		ret = copy_error_to_ffi_list (rtx, ffi_list);
 		goto done;
@@ -850,7 +776,10 @@ static int fnc_call (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		goto done;
 	}
 
-	funx = hawk->prm.modgetsym(hawk, ffi_node->ffi.handle, fun.ptr);
+	ffi = &ffi_node->ffi;
+	ffi->arg_count = 0;
+
+	funx = hawk->prm.modgetsym(hawk, ffi->handle, fun.ptr);
 	if (!funx)
 	{
 		const hawk_ooch_t* olderr = hawk_backuperrmsg(hawk);
@@ -858,34 +787,13 @@ static int fnc_call (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		goto done;
 	}
 
-#if defined(USE_DYNCALL)
-	dcMode (ffi->dc, DC_CALL_C_DEFAULT);
-	dcReset (ffi->dc);
-
-	for (i = 0; i < HAWK_OBJ_GET_SIZE(sig); i++)
-	{
-		fmtc = HAWK_OBJ_GET_CHAR_VAL(sig, i);
-		if (fmtc == '>') break; /* end of arguments. start of return type */
-		if (fmtc == '|')
-		{
-			dcMode (ffi->dc, DC_CALL_C_ELLIPSIS); /* variadic. for arguments before ... */
-			/* the error code should be DC_ERROR_UNSUPPORTED_MODE */
-			if (dcGetError(ffi->dc) != DC_ERROR_NONE) goto noimpl;
-			dcReset (ffi->dc);
-			break;
-		}
-	}
-#else
-	ffi_node->ffi.arg_count = 0;
-#endif
-
 	/* check argument signature */
-	for (i = 0, j = 4, nfixedargs = 0, _unsigned = 0; i < sig.len; i++)
+	for (i = 0, j = 0, nfixedargs = 0, _unsigned = 0; i < sig.len; i++)
 	{
 		fmtc = sig.ptr[i];
 		if (fmtc == ' ') continue;
 
-		if (fmtc == '>') 
+		if (fmtc == '>') /* end of signature. return value expected */
 		{
 			i++;
 			if (!vbar) nfixedargs = j;
@@ -895,11 +803,6 @@ static int fnc_call (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		{
 			if (!vbar)
 			{
-			#if defined(USE_DYNCALL)
-				dcMode (ffi->dc, DC_CALL_C_ELLIPSIS_VARARGS); /* start of arguments that fall to the ... part */
-				/* the error code should be DC_ERROR_UNSUPPORTED_MODE */
-				if (dcGetError(ffi->dc) != DC_ERROR_NONE) goto noimpl;
-			#endif
 				nfixedargs = j;
 				vbar = 1;
 			}
@@ -912,356 +815,62 @@ static int fnc_call (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		}
 
 		/* more items in signature than the actual argument */  
-		if (j >= hawk_rtx_getnargs(rtx)) goto inval;
+		if (j >= hawk_rtx_getnargs(rtx) - 4) 
+		{
+			ret = set_error_on_ffi_list(rtx, ffi_list, HAWK_EINVAL, HAWK_T("two few arguments for the argument signature"));
+			goto done;
+		}
 
-		if (add_ffi_arg(hawk, &ffi_node->ffi, fmtc, _unsigned, hawk_rtx_getarg(rtx, j), &ret) <= -1) goto done;
+		if (add_ffi_arg(rtx, ffi_list, ffi_node, fmtc, _unsigned, hawk_rtx_getarg(rtx, j + 4), &ret) <= -1) goto done;
 		_unsigned = 0;
 		j++;
 	}
 
 	while (i < sig.len && sig.ptr[i] == ' ') i++; /* skip all spaces after > */
-
 	fmtc = (i >= sig.len)? FMTC_NULL: sig.ptr[i];
-
-#if defined(USE_LIBFFI)
-	fs = (nfixedargs == j)? ffi_prep_cif(&ffi_node->ffi.cif, FFI_DEFAULT_ABI, j, ffi_node->ffi.fmtc_to_type[0][fmtc], ffi_node->ffi.arg_types):
-	                        ffi_prep_cif_var(&ffi_node->ffi.cif, FFI_DEFAULT_ABI, nfixedargs, j, ffi_node->ffi.fmtc_to_type[0][fmtc], ffi_node->ffi.arg_types);
-	if (fs != FFI_OK)
-	{
-		hawk_seterrnum (hawk, HAWK_ESYSERR);
-		goto softfail;
-	}
-
-	ffi_call (&ffi_node->ffi.cif, FFI_FN(f), &ffi_node->ffi.ret_sv, ffi_node->ffi.arg_values);
-#endif
-
 	if (fmtc == 'u') 
 	{
 		_unsigned = 1;
-		fmtc++;
+		fmtc = (i >= sig.len)? FMTC_NULL: sig.ptr[i];
 	}
 	else
 	{
 		_unsigned = 0;
 	}
 
-	/* check the return value type in signature */
-	switch (fmtc)
+	if (!ffi->fmtc_to_type[0][fmtc])
 	{
-/* TODO: support more types... */
-/* TODO: proper return value conversion */
-		case FMTC_INT8:
-		{
-			hawk_oop_t r;
-			if (_unsigned)
-			{
-			#if defined(USE_DYNCALL)
-				r = hawk_oowtoint(hawk, __dcCallInt8(ffi->dc, f));
-			#elif defined(USE_LIBFFI)
-				r = hawk_oowtoint(hawk, ffi->ret_sv.ui8);
-			#endif
-			}
-			else
-			{
-			#if defined(USE_DYNCALL)
-				r = hawk_ooitoint(hawk, __dcCallInt8(ffi->dc, f));
-			#elif defined(USE_LIBFFI)
-				r = hawk_ooitoint(hawk, ffi->ret_sv.i8);
-			#endif
-			}
-			if (!r) goto hardfail;
-		
-			HAWK_STACK_SETRET (hawk, nargs, r);
-			break;
-		}
-
-		case FMTC_INT16:
-		{
-			hawk_oop_t r;
-			if (_unsigned)
-			{
-			#if defined(USE_DYNCALL)
-				r = hawk_oowtoint(hawk, __dcCallInt16(ffi->dc, f));
-			#elif defined(USE_LIBFFI)
-				r = hawk_oowtoint(hawk, ffi->ret_sv.ui16);
-			#endif
-			}
-			else
-			{
-			#if defined(USE_DYNCALL)
-				r = hawk_ooitoint(hawk, __dcCallInt16(ffi->dc, f));
-			#elif defined(USE_LIBFFI)
-				r = hawk_ooitoint(hawk, ffi->ret_sv.i16);
-			#endif
-			}
-			if (!r) goto hardfail;
-		
-			HAWK_STACK_SETRET (hawk, nargs, r);
-			break;
-		}
-
-		case FMTC_INT32:
-		{
-			hawk_oop_t r;
-			if (_unsigned)
-			{
-			#if defined(USE_DYNCALL)
-				r = hawk_oowtoint(hawk, __dcCallInt32(ffi->dc, f));
-			#elif defined(USE_LIBFFI)
-				r = hawk_oowtoint(hawk, ffi->ret_sv.ui32);
-			#endif
-			}
-			else
-			{
-			#if defined(USE_DYNCALL)
-				r = hawk_ooitoint(hawk, __dcCallInt32(ffi->dc, f));
-			#elif defined(USE_LIBFFI)
-				r = hawk_ooitoint(hawk, ffi->ret_sv.i32);
-			#endif
-			}
-			if (!r) goto hardfail;
-		
-			HAWK_STACK_SETRET (hawk, nargs, r);
-			break;
-		}
-
-		case FMTC_INT64:
-		{
-		#if (HAWK_SIZEOF_INT64_T > 0)
-			hawk_oop_t r;
-			if (_unsigned)
-			{
-			#if defined(USE_DYNCALL)
-				r = hawk_oowtoint(hawk, __dcCallInt64(ffi->dc, f));
-			#elif defined(USE_LIBFFI)
-				r = hawk_oowtoint(hawk, ffi->ret_sv.ui64);
-			#endif
-			}
-			else
-			{
-			#if defined(USE_DYNCALL)
-				r = hawk_ooitoint(hawk, __dcCallInt64(ffi->dc, f));
-			#elif defined(USE_LIBFFI)
-				r = hawk_ooitoint(hawk, ffi->ret_sv.i64);
-			#endif
-			}
-			if (!r) goto hardfail;
-
-			HAWK_STACK_SETRET (hawk, nargs, r);
-			break;
-		#else
-			hawk_seterrbfmt (hawk, HAWK_EINVAL, "invalid return type signature - %jc", fmtc);
-			goto softfail;
-		#endif
-		}
-
-
-		case FMTC_CHAR:
-		{
-		#if defined(USE_DYNCALL)
-			char r = dcCallChar(ffi->dc, f);
-			HAWK_STACK_SETRET (hawk, nargs, HAWK_CHAR_TO_OOP(r));
-		#elif defined(USE_LIBFFI)
-			if (_unsigned)
-			{
-				HAWK_STACK_SETRET (hawk, nargs, HAWK_CHAR_TO_OOP(ffi->ret_sv.uc));
-			}
-			else
-			{
-				HAWK_STACK_SETRET (hawk, nargs, HAWK_CHAR_TO_OOP(ffi->ret_sv.c));
-			}
-		#endif
-			break;
-		}
-
-		case FMTC_SHORT:
-		{
-			hawk_oop_t r;
-			if (_unsigned)
-			{
-			#if defined(USE_DYNCALL)
-				r = hawk_oowtoint(hawk, dcCallShort(ffi->dc, f));
-			#elif defined(USE_LIBFFI)
-				r = hawk_oowtoint(hawk, ffi->ret_sv.uh);
-			#endif
-			}
-			else
-			{
-			#if defined(USE_DYNCALL)
-				r = hawk_ooitoint(hawk, dcCallShort(ffi->dc, f));
-			#elif defined(USE_LIBFFI)
-				r = hawk_ooitoint(hawk, ffi->ret_sv.h);
-			#endif
-			}
-			if (!r) goto hardfail;
-
-			HAWK_STACK_SETRET (hawk, nargs, r);
-			break;
-		}
-
-		case FMTC_INT:
-		{
-			hawk_oop_t r;
-			if (_unsigned)
-			{
-			#if defined(USE_DYNCALL)
-				r = hawk_oowtoint(hawk, dcCallInt(ffi->dc, f));
-			#elif defined(USE_LIBFFI)
-				r = hawk_oowtoint(hawk, ffi->ret_sv.ui);
-			#endif
-			}
-			else
-			{
-			#if defined(USE_DYNCALL)
-				r = hawk_ooitoint(hawk, dcCallInt(ffi->dc, f));
-			#elif defined(USE_LIBFFI)
-				r = hawk_ooitoint(hawk, ffi->ret_sv.i);
-			#endif
-			}
-			if (!r) goto hardfail;
-			HAWK_STACK_SETRET (hawk, nargs, r);
-			break;
-		}
-
-		case FMTC_LONG:
-		{
-			hawk_oop_t r;
-		ret_as_long:
-			if (_unsigned)
-			{
-			#if defined(USE_DYNCALL)
-				r = hawk_oowtoint(hawk, dcCallLong(ffi->dc, f));
-			#elif defined(USE_LIBFFI)
-				r = hawk_oowtoint(hawk, ffi->ret_sv.ul);
-			#endif
-			}
-			else
-			{
-			#if defined(USE_DYNCALL)
-				r = hawk_ooitoint(hawk, dcCallLong(ffi->dc, f));
-			#elif defined(USE_LIBFFI)
-				r = hawk_ooitoint(hawk, ffi->ret_sv.l);
-			#endif
-			}
-			if (!r) goto hardfail;
-			HAWK_STACK_SETRET (hawk, nargs, r);
-			break;
-		}
-
-		case FMTC_LONGLONG:
-		{
-		#if (HAWK_SIZEOF_LONG_LONG <= HAWK_SIZEOF_LONG)
-			goto ret_as_long;
-		#else
-			hawk_oop_t r;
-			if (_unsigned)
-			{
-			#if defined(USE_DYNCALL)	
-				r = hawk_uintmaxtoint(hawk, dcCallLongLong(ffi->dc, f));
-			#elif defined(USE_LIBFFI)
-				r = hawk_uintmaxtoint(hawk, ffi->ret_sv.ull);
-			#endif
-			}
-			else
-			{
-			#if defined(USE_DYNCALL)	
-				r = hawk_intmaxtoint(hawk, dcCallLongLong(ffi->dc, f));
-			#elif defined(USE_LIBFFI)
-				r = hawk_intmaxtoint(hawk, ffi->ret_sv.ll);
-			#endif
-			}
-			if (!r) goto hardfail;
-			HAWK_STACK_SETRET (hawk, nargs, r);
-			break;
-		#endif
-		}
-
-		case FMTC_BCS:
-		{
-			hawk_oop_t s;
-			hawk_bch_t* r;
-
-		#if defined(USE_DYNCALL)
-			r = dcCallPointer(ffi->dc, f);
-		#elif defined(USE_LIBFFI)
-			r = ffi->ret_sv.p;
-		#endif
-
-		#if defined(HAWK_OOCH_IS_UCH)
-			s = hawk_makestringwithbchars(hawk, r, hawk_count_bcstr(r));
-		#else
-			s = hawk_makestring(hawk, r, hawk_count_bcstr(r));
-		#endif
-			if (!s) 
-			{
-				if (hawk->errnum == HAWK_EOOMEM) goto hardfail; /* out of object memory - hard failure*/
-				goto softfail;
-			}
-
-			HAWK_STACK_SETRET (hawk, nargs, s); 
-			break;
-		}
-
-		case FMTC_UCS:
-		{
-			hawk_oop_t s;
-			hawk_uch_t* r;
-
-		#if defined(USE_DYNCALL)
-			r = dcCallPointer(ffi->dc, f);
-		#elif defined(USE_LIBFFI)
-			r = ffi->ret_sv.p;
-		#endif
-
-		#if defined(HAWK_OOCH_IS_UCH)
-			s = hawk_makestring(hawk, r, hawk_count_ucstr(r));
-		#else
-			s = hawk_makestringwithuchars(hawk, r, hawk_count_ucstr(r));
-		#endif
-			if (!s) 
-			{
-				if (hawk->errnum == HAWK_EOOMEM) goto hardfail; /* out of object memory - hard failure*/
-				goto softfail;
-			}
-
-			HAWK_STACK_SETRET (hawk, nargs, s); 
-			break;
-		}
-
-		case FMTC_POINTER:
-		{
-			void* r;
-
-		#if defined(USE_DYNCALL)
-			r = dcCallPointer(ffi->dc, f);
-		#elif defined(USE_LIBFFI)
-			r = ffi->ret_sv.p;
-		#endif
-
-			if (!HAWK_IN_SMPTR_RANGE(r)) 
-			{
-				/* the returned pointer is not aligned */
-				goto inval;
-			}
-
-			HAWK_STACK_SETRET (hawk, nargs, HAWK_SMPTR_TO_OOP(r));
-			break;
-		}
-
-		default:
-		#if defined(USE_DYNCALL)
-			dcCallVoid (ffi->dc, f);
-		#endif
-			HAWK_STACK_SETRETTORCV (hawk, nargs);
-			break;
+		ret = set_error_on_ffi_list(rtx, ffi_list, HAWK_EINVAL, HAWK_T("invalid return type signature - %jc"), fmtc);
+		goto done;
 	}
 
-	free_linked_cas (hawk, ffi);
+	fs = (nfixedargs == j)? ffi_prep_cif(&ffi->cif, FFI_DEFAULT_ABI, j, ffi->fmtc_to_type[0][fmtc], ffi->arg_types):
+	                        ffi_prep_cif_var(&ffi->cif, FFI_DEFAULT_ABI, nfixedargs, j, ffi->fmtc_to_type[0][fmtc], ffi->arg_types);
+	if (fs != FFI_OK)
+	{
+		ret = set_error_on_ffi_list(rtx, ffi_list, HAWK_ESYSERR, HAWK_T("unable to prepare the ffi_cif structure"));
+		goto done;
+	}
+
+	ffi_call (&ffi->cif, FFI_FN(funx), &ffi->ret_sv, ffi->arg_values);
+
+	if (fmtc != FMTC_NULL && capture_return(rtx, ffi_list, ffi_node, fmtc, _unsigned, &ret) <= -1) goto done;
+	ret = 0;
 
 done:
-	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(ret));
+	if (ffi)
+	{
+		for (i = 0; i  < ffi->arg_count; i++)
+		{
+			if (ffi->arg_types[i] == &ffi_type_pointer)
+			{
+				hawk_rtx_freemem (rtx, ffi->arg_svs[i].p);
+			}
+		}
+	}
+
+	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, ret));
 	return 0;
-#endif
 }
 
 static int fnc_errmsg (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
@@ -1276,15 +885,19 @@ static int fnc_errmsg (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_rtx_setretval (rtx, retv);
 	return 0;
 }
+
 /* ------------------------------------------------------------------------ */
 #define A_MAX HAWK_TYPE_MAX(hawk_oow_t)
 
 static hawk_mod_fnc_tab_t fnctab[] =
 {
-	{ HAWK_T("call"),      { { 4, A_MAX, HAWK_NULL },  fnc_call,     0 } },
+/*
+ * TODO: implement ffi::_call() that calls in the current module without open...
+	{ HAWK_T("_call"),     { { 3, A_MAX, HAWK_T("rv") }, fnc_call, 0 } }, */
+	{ HAWK_T("call"),      { { 4, A_MAX, HAWK_T("vrv") },  fnc_call,     0 } },
 	{ HAWK_T("close"),     { { 1, 1, HAWK_NULL },  fnc_close,     0 } },
 	{ HAWK_T("errmsg"),    { { 0, 0, HAWK_NULL },  fnc_errmsg,    0 } },
-	{ HAWK_T("open"),      { { 1, 1, HAWK_NULL },  fnc_open,      0 } }
+	{ HAWK_T("open"),      { { 1, 1, HAWK_NULL },  fnc_open,      0 } },
 };
 
 /* ------------------------------------------------------------------------ */

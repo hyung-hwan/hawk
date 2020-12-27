@@ -908,6 +908,16 @@ hawk_val_t* hawk_rtx_makembsvalwithucs (hawk_rtx_t* rtx, const hawk_ucs_t* ucs)
 	return hawk_rtx_makembsvalwithuchars(rtx, ucs->ptr, ucs->len);
 }
 
+
+hawk_val_t* hawk_rtx_makembsvalwithbcstr (hawk_rtx_t* rtx, const hawk_bch_t* bcs)
+{
+	return make_mbs_val(rtx, bcs, hawk_count_bcstr(bcs), HAWK_NULL, 0);
+}
+
+hawk_val_t* hawk_rtx_makembsvalwithucstr (hawk_rtx_t* rtx, const hawk_uch_t* ucs)
+{
+	return hawk_rtx_makembsvalwithuchars(rtx, ucs, hawk_count_ucstr(ucs));
+}
 /* --------------------------------------------------------------------- */
 
 hawk_val_t* hawk_rtx_makembsvalwithuchars2 (hawk_rtx_t* rtx, const hawk_uch_t* ucs1, hawk_oow_t len1, const hawk_uch_t* ucs2, hawk_oow_t len2)
