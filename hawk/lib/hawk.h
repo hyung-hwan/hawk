@@ -2948,6 +2948,17 @@ HAWK_EXPORT hawk_val_t* hawk_rtx_makembsvalwithucs (
 	const hawk_ucs_t* ucs
 );
 
+HAWK_EXPORT hawk_val_t* hawk_rtx_makembsvalwithbcstr (
+	hawk_rtx_t*       rtx,
+	const hawk_bch_t* bcs
+);
+
+HAWK_EXPORT hawk_val_t* hawk_rtx_makembsvalwithucstr (
+	hawk_rtx_t*       rtx,
+	const hawk_uch_t* ucs
+);
+
+
 HAWK_EXPORT hawk_val_t* hawk_rtx_makembsvalwithuchars2 (
 	hawk_rtx_t*       rtx,
 	const hawk_uch_t* ucs1,
