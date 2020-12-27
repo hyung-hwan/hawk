@@ -133,12 +133,6 @@
 /* Define to 1 if you have the <dlfcn.h> header file. */
 #undef HAVE_DLFCN_H
 
-/* Define to 1 if you have the <dyncall.h> header file. */
-#undef HAVE_DYNCALL_H
-
-/* dyncall library is available */
-#undef HAVE_DYNCALL_LIB
-
 /* Define to 1 if you have the `epoll_create' function. */
 #undef HAVE_EPOLL_CREATE
 

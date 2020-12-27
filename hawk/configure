@@ -674,7 +674,6 @@ ax_pthread_config
 SOCKET_LIBS
 UNWIND_LIBS
 FFI_LIBS
-DYNCALL_LIBS
 LTDL_LIBS
 DL_LIBS
 LIBM
@@ -18958,7 +18957,7 @@ fi
 
 done
 
-for ac_header in ffi.h dyncall.h libunwind.h quadmath.h crt_externs.h
+for ac_header in ffi.h libunwind.h quadmath.h crt_externs.h
 do :
   as_ac_Header=`$as_echo "ac_cv_header_$ac_header" | $as_tr_sh`
 ac_fn_c_check_header_mongrel "$LINENO" "$ac_header" "$as_ac_Header" "$ac_includes_default"
@@ -19276,54 +19275,6 @@ if test "$ac_res" != no; then :
 fi
 
 LIBS="$save_LIBS"
-
-
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for dcNewCallVM in -ldyncall_s" >&5
-$as_echo_n "checking for dcNewCallVM in -ldyncall_s... " >&6; }
-if ${ac_cv_lib_dyncall_s_dcNewCallVM+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-ldyncall_s  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char dcNewCallVM ();
-int
-main ()
-{
-return dcNewCallVM ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_dyncall_s_dcNewCallVM=yes
-else
-  ac_cv_lib_dyncall_s_dcNewCallVM=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_dyncall_s_dcNewCallVM" >&5
-$as_echo "$ac_cv_lib_dyncall_s_dcNewCallVM" >&6; }
-if test "x$ac_cv_lib_dyncall_s_dcNewCallVM" = xyes; then :
-
-		DYNCALL_LIBS="-ldyncall_s"
-
-$as_echo "#define HAVE_DYNCALL_LIB 1" >>confdefs.h
-
-
-
-fi
-
 
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for ffi_call in -lffi" >&5
@@ -24202,7 +24153,7 @@ else
 
 fi
 
-if test "x${ac_cv_lib_ffi_ffi_call}" != "xyes" -a "x${ac_cv_lib_dyncall_s_dcNewCallVM}" != "xyes"
+if test "x${ac_cv_lib_ffi_ffi_call}" != "xyes"
 then
 	enable_mod_ffi_is="no"
 fi
@@ -26913,7 +26864,7 @@ echo "  C++ compiler: ${CXX} ${CXXFLAGS}"
 echo "  C++ support: ${enable_cxx_is}"
 echo "  Math library: ${LIBM}"
 echo "  Socket library: ${SOCKET_LIBS}"
-echo "  Native function call library: ${FFI_LIBS} ${DYNCALL_LIBS}"
+echo "  Native function call library: ${FFI_LIBS}"
 echo "  Thraed library: ${PTHREAD_LIBS}"
 echo "-------------------------------------------------------------------------"
 

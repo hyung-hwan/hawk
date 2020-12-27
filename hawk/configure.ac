@@ -252,7 +252,7 @@ AC_CHECK_HEADERS([netinet/in.h sys/un.h netpacket/packet.h net/if.h net/if_dl.h 
 	#include <sys/types.h>
 	#include <sys/socket.h>])
 AC_CHECK_HEADERS([sys/stropts.h sys/macstat.h linux/ethtool.h linux/sockios.h])
-AC_CHECK_HEADERS([ffi.h dyncall.h libunwind.h quadmath.h crt_externs.h])
+AC_CHECK_HEADERS([ffi.h libunwind.h quadmath.h crt_externs.h])
 
 dnl check data types
 dnl AC_CHECK_TYPE([wchar_t], 
@@ -302,14 +302,6 @@ AC_SEARCH_LIBS([lt_dlopen], [ltdl], [
 ])
 LIBS="$save_LIBS"
 AC_SUBST(LTDL_LIBS)
-
-AC_CHECK_LIB([dyncall_s], [dcNewCallVM], 
-	[
-		DYNCALL_LIBS="-ldyncall_s"
-		AC_DEFINE([HAVE_DYNCALL_LIB], [1], [dyncall library is available])
-	]
-)
-AC_SUBST(DYNCALL_LIBS)
 
 AC_CHECK_LIB([ffi], [ffi_call], 
 	[
@@ -1004,7 +996,7 @@ AC_ARG_ENABLE([mod-ffi],
 	enable_mod_ffi_is=$enableval,
 	enable_mod_ffi_is=yes
 )
-if test "x${ac_cv_lib_ffi_ffi_call}" != "xyes" -a "x${ac_cv_lib_dyncall_s_dcNewCallVM}" != "xyes" 
+if test "x${ac_cv_lib_ffi_ffi_call}" != "xyes" 
 then
 	enable_mod_ffi_is="no"
 fi
@@ -1082,7 +1074,7 @@ echo "  C++ compiler: ${CXX} ${CXXFLAGS}"
 echo "  C++ support: ${enable_cxx_is}"
 echo "  Math library: ${LIBM}"
 echo "  Socket library: ${SOCKET_LIBS}"
-echo "  Native function call library: ${FFI_LIBS} ${DYNCALL_LIBS}"
+echo "  Native function call library: ${FFI_LIBS}"
 echo "  Thraed library: ${PTHREAD_LIBS}"
 echo "-------------------------------------------------------------------------"
 ]
