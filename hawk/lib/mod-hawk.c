@@ -26,7 +26,14 @@
 
 #include "mod-hawk.h"
 #include "hawk-prv.h"
+#include <hawk-mtx.h>
 
+
+struct mod_data_t
+{
+	hawk_mtx_t mq_mtx;
+};
+typedef struct mod_data_t mod_data_t;
 /* ----------------------------------------------------------------- */
 
 /*
@@ -150,7 +157,14 @@ static int fnc_function_exists (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			if (!rx)
 			{
 				hawk_mod_sym_t sym;
+				mod_data_t* md;
+
+				md = (mod_data_t*)fi->mod->ctx;
+				/* hawk_query_module_with_name() may update some shared data under
+				 * the hawk object. use a mutex for shared data safety */
+				hawk_mtx_lock (&md->mq_mtx, HAWK_NULL);
 				rx = (hawk_query_module_with_name(hawk_rtx_gethawk(rtx), &name, &sym) != HAWK_NULL);
+				hawk_mtx_unlock (&md->mq_mtx);
 			}
 		}
 		hawk_rtx_freevaloocstr (rtx, a0, name.ptr);
@@ -449,17 +463,27 @@ static void fini (hawk_mod_t* mod, hawk_rtx_t* rtx)
 
 static void unload (hawk_mod_t* mod, hawk_t* hawk)
 {
-	/* nothing to do */
+	mod_data_t* md = (mod_data_t*)mod->ctx;
+
+	hawk_mtx_fini (&md->mq_mtx);
+	hawk_freemem (hawk, md);
 }
 
 int hawk_mod_hawk (hawk_mod_t* mod, hawk_t* hawk)
 {
+	mod_data_t* md;
+
+	md = hawk_allocmem(hawk, HAWK_SIZEOF(*md));
+	if (HAWK_UNLIKELY(!md)) return -1;
+
+	hawk_mtx_init (&md->mq_mtx, hawk_getgem(hawk));
+
 	mod->query = query;
 	mod->unload = unload;
 
 	mod->init = init;
 	mod->fini = fini;
-	mod->ctx = HAWK_NULL;
+	mod->ctx = md;
 
 	return 0;
 }

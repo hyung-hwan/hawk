@@ -363,7 +363,7 @@ void* hawk_stdmodopen (hawk_t* hawk, const hawk_mod_spec_t* spec)
 	else
 	{
 		void* h;
-		h = lt_dlopen(NULL);
+		h = lt_dlopen(HAWK_NULL);
 		if (HAWK_UNLIKELY(!h)) hawk_seterrfmt (hawk, HAWK_NULL, HAWK_ESYSERR, HAWK_T("%hs"), lt_dlerror());
 		return h;
 	}
@@ -409,7 +409,7 @@ void* hawk_stdmodopen (hawk_t* hawk, const hawk_mod_spec_t* spec)
 	else
 	{
 		HMODULE h;
-		h = GetModuleHandle(NULL);
+		h = GetModuleHandle(HAWK_NULL);
 		if (!h) hawk_seterrnum (hawk, HAWK_NULL, hawk_syserr_to_errnum(GetLastError());
 		return h;
 	}
@@ -512,7 +512,7 @@ void* hawk_stdmodopen (hawk_t* hawk, const hawk_mod_spec_t* spec)
 	else
 	{
 		void* h;
-		h = GetModuleHandle(NULL);
+		h = GetModuleHandle(HAWK_NULL);
 		if (!h) hawk_seterrnum (hawk, HAWK_NULL, HAWK_ESYSERR);
 		return h;
 	}
@@ -572,11 +572,11 @@ void hawk_stdmodclose (hawk_t* hawk, void* handle)
 #if defined(USE_LTDL)
 	lt_dlclose (handle);
 #elif defined(_WIN32)
-	if (handle != GetModuleHandle(NULL)) FreeLibrary ((HMODULE)handle);
+	if (handle != GetModuleHandle(HAWK_NULL)) FreeLibrary ((HMODULE)handle);
 #elif defined(__OS2__)
 	DosFreeModule ((HMODULE)handle);
 #elif defined(__DOS__) && defined(HAWK_ENABLE_DOS_DYNAMIC_MODULE)
-	if (handle != GetModuleHandle(NULL))  FreeModule (handle);
+	if (handle != GetModuleHandle(HAWK_NULL))  FreeModule (handle);
 #elif defined(USE_DLFCN)
 	dlclose (handle);
 #else
