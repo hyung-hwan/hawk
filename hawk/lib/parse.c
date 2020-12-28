@@ -254,7 +254,6 @@ static int flush_out (hawk_t* hawk);
 static hawk_mod_t* query_module (hawk_t* hawk, const hawk_oocs_t segs[], int nsegs, hawk_mod_sym_t* sym);
 
 typedef struct kwent_t kwent_t;
-
 struct kwent_t 
 { 
 	hawk_oocs_t name;
@@ -3061,7 +3060,7 @@ static hawk_nde_t* parse_print (hawk_t* hawk, const hawk_loc_t* xloc)
 	hawk_nde_print_t* nde;
 	hawk_nde_t* args = HAWK_NULL; 
 	hawk_nde_t* out = HAWK_NULL;
-	int out_type;
+	hawk_out_type_t out_type;
 	hawk_nde_type_t type;
 	hawk_loc_t eloc;
 
@@ -3224,7 +3223,6 @@ static hawk_nde_t* parse_print (hawk_t* hawk, const hawk_loc_t* xloc)
 
 					out = ep->right;
 					out_type = tab[i].out;
-
 					hawk_freemem (hawk, tmp);
 					break;
 				}
@@ -7433,7 +7431,7 @@ static hawk_mod_t* query_module (hawk_t* hawk, const hawk_oocs_t segs[], int nse
 
 	HAWK_ASSERT (nsegs == 2);
 
-	pair = hawk_rbt_search (hawk->modtab, segs[0].ptr, segs[0].len);
+	pair = hawk_rbt_search(hawk->modtab, segs[0].ptr, segs[0].len);
 	if (pair)
 	{
 		mdp = (hawk_mod_data_t*)HAWK_RBT_VPTR(pair);
@@ -7468,7 +7466,7 @@ static hawk_mod_t* query_module (hawk_t* hawk, const hawk_oocs_t segs[], int nse
 		/* TODO: binary search ... */
 		for (n = 0; n < HAWK_COUNTOF(static_modtab); n++)
 		{
-			if (hawk_comp_oocstr(static_modtab[n].modname, segs[0].ptr, 0) == 0) 
+			if (hawk_comp_oochars_oocstr(segs[0].ptr, segs[0].len, static_modtab[n].modname) == 0)
 			{
 				load = static_modtab[n].modload;
 				break;
@@ -7491,7 +7489,7 @@ static hawk_mod_t* query_module (hawk_t* hawk, const hawk_oocs_t segs[], int nse
 			/* i copy-insert 'md' into the table before calling 'load'.
 			 * to pass the same address to load(), query(), etc */
 			pair = hawk_rbt_insert(hawk->modtab, segs[0].ptr, segs[0].len, &md, HAWK_SIZEOF(md));
-			if (pair == HAWK_NULL) return HAWK_NULL;
+			if (!pair) return HAWK_NULL;
 
 			mdp = (hawk_mod_data_t*)HAWK_RBT_VPTR(pair);
 			if (load(&mdp->mod, hawk) <= -1)
@@ -7600,4 +7598,27 @@ done:
 		return HAWK_NULL;
 	}
 	return &mdp->mod;
+}
+
+
+hawk_mod_t* hawk_query_module_with_name (hawk_t* hawk, const hawk_oocs_t* name, hawk_mod_sym_t* sym)
+{
+	const hawk_ooch_t* dc;
+	hawk_oocs_t segs[2]; 
+/*TOOD: non-module builtin function? fnc? */
+
+	dc = hawk_find_oochars_in_oochars(name->ptr, name->len, HAWK_T("::"), 2, 0);
+	if (!dc) 
+	{
+		hawk_seterrfmt (hawk, HAWK_NULL, HAWK_EINVAL, HAWK_T("invalid module name -  %js"), name);
+		return HAWK_NULL;
+	}
+
+	segs[0].ptr = name->ptr;
+	segs[0].len = dc - name->ptr;
+
+	segs[1].ptr = segs[0].ptr + segs[0].len + 2;
+	segs[1].len = name->len - segs[0].len - 2;
+
+	return query_module(hawk, segs, 2, sym);
 }

@@ -194,21 +194,28 @@ static ffi_node_t* new_ffi_node (hawk_rtx_t* rtx, ffi_list_t* ffi_list, const ha
 {
 	hawk_t* hawk = hawk_rtx_gethawk(rtx);
 	ffi_node_t* ffi_node;
-	hawk_mod_spec_t spec;
+	
 	void* handle;
 
 	ffi_node = __new_ffi_node(rtx, ffi_list);
 	if (!ffi_node) return HAWK_NULL;
 
-	HAWK_MEMSET (&spec, 0, HAWK_SIZEOF(spec));
-	spec.name = name;
-
-	handle = hawk->prm.modopen(hawk, &spec);
+	if (name)
+	{
+		hawk_mod_spec_t spec;
+		HAWK_MEMSET (&spec, 0, HAWK_SIZEOF(spec));
+		spec.name = name;
+		handle = hawk->prm.modopen(hawk, &spec);
+	}
+	else
+	{
+		handle = hawk->prm.modopen(hawk, HAWK_NULL);
+	}
 	if (!handle) 
 	{
 		const hawk_ooch_t* olderrmsg;
 		olderrmsg = hawk_backuperrmsg(hawk);
-		hawk_rtx_seterrfmt (rtx, HAWK_NULL, HAWK_ENOMEM, HAWK_T("unable to open the '%js' ffi module - %js"), name, olderrmsg);
+		hawk_rtx_seterrfmt (rtx, HAWK_NULL, HAWK_ENOMEM, HAWK_T("unable to open the '%js' ffi module - %js"), (name? name: HAWK_T("")), olderrmsg);
 
 		__free_ffi_node (rtx, ffi_list, ffi_node);
 		return HAWK_NULL;
@@ -318,18 +325,26 @@ static int fnc_open (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 	ffi_list = rtx_to_ffi_list(rtx, fi);
 
-	a0 = hawk_rtx_getarg(rtx, 0);
-	name.ptr = hawk_rtx_getvaloocstr(rtx, a0, &name.len);
-	if (HAWK_UNLIKELY(!name.ptr))
+	if (hawk_rtx_getnargs(rtx) >= 1)
 	{
-		ret = copy_error_to_ffi_list (rtx, ffi_list);
-		goto done;
-	}
+		a0 = hawk_rtx_getarg(rtx, 0);
+		name.ptr = hawk_rtx_getvaloocstr(rtx, a0, &name.len);
+		if (HAWK_UNLIKELY(!name.ptr))
+		{
+			ret = copy_error_to_ffi_list (rtx, ffi_list);
+			goto done;
+		}
 
-	if (name.len != hawk_count_oocstr(name.ptr))
+		if (name.len != hawk_count_oocstr(name.ptr))
+		{
+			ret = set_error_on_ffi_list(rtx, ffi_list, HAWK_EINVAL, HAWK_T("invalid ffi module name '%.*js'"), name.len, name.ptr);
+			goto done;
+		}
+	}
+	else
 	{
-		ret = set_error_on_ffi_list(rtx, ffi_list, HAWK_EINVAL, HAWK_T("invalid ffi module name '%.*js'"), name.len, name.ptr);
-		goto done;
+		name.ptr = HAWK_NULL;
+		a0 = HAWK_NULL;
 	}
 
 	ffi_node = new_ffi_node(rtx, ffi_list, name.ptr);
@@ -623,7 +638,7 @@ oops:
 	return -1;
 }
 
-static int capture_return (hawk_rtx_t* rtx, ffi_list_t* ffi_list, ffi_node_t* ffi_node, hawk_ooch_t fmtc, int _unsigned, hawk_int_t* rx)
+static int capture_return (hawk_rtx_t* rtx, ffi_list_t* ffi_list, ffi_node_t* ffi_node, hawk_ooch_t fmtc, int _unsigned, hawk_oow_t refidx, hawk_int_t* rx)
 {
 	hawk_val_t* r;
 	ffi_t* ffi = &ffi_node->ffi;
@@ -646,7 +661,7 @@ static int capture_return (hawk_rtx_t* rtx, ffi_list_t* ffi_list, ffi_node_t* ff
 
 		case FMTC_INT64:
 		#if (HAWK_SIZEOF_INT64_T > 0)
-			r = hawk_rtx_makeintval(rtx, _unsigned? ffi->ret_sv.ui64: ffi->ret_sv.i64);		
+			r = hawk_rtx_makeintval(rtx, _unsigned? ffi->ret_sv.ui64: ffi->ret_sv.i64);
 			break;
 		#else
 			hawk_rtx_seterrbfmt (hawk, HAWK_NULL, HAWK_EINVAL, "invalid return type signature - %jc", fmtc);
@@ -688,7 +703,7 @@ static int capture_return (hawk_rtx_t* rtx, ffi_list_t* ffi_list, ffi_node_t* ff
 	}
 	if (HAWK_UNLIKELY(!r)) goto oops;
 
-	if (hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, 1), r) <= -1) goto oops;
+	if (hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, refidx), r) <= -1) goto oops;
 	return 0;
 
 oops:
@@ -733,8 +748,8 @@ static int fnc_call (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_t* hawk = hawk_rtx_gethawk(rtx);
 	ffi_list_t* ffi_list;
 	ffi_node_t* ffi_node;
-	ffi_t* ffi = HAWK_NULL;
-	hawk_int_t ret = -1;
+	ffi_t* ffi;
+	hawk_int_t ret;
 
 	hawk_val_t* a2;
 	hawk_oocs_t fun;
@@ -749,6 +764,15 @@ static int fnc_call (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 	ffi_status fs;
 
+#define FNC_CALL_ARG_BASE 4
+
+	ret = -1;
+	ffi = HAWK_NULL;
+	fun.ptr = HAWK_NULL;
+	sig.ptr = HAWK_NULL;
+	a2 = HAWK_NULL;
+	a3 = HAWK_NULL;
+
 	/* ffi::call (ffi-handle, return-value, "function name", "signature", argument....); */
 	ffi_list = rtx_to_ffi_list(rtx, fi);
 	ffi_node = get_ffi_list_node_with_arg(rtx, ffi_list, hawk_rtx_getarg(rtx, 0), &ret);
@@ -762,17 +786,17 @@ static int fnc_call (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		goto done;
 	}
 
+	if (hawk_count_oocstr(fun.ptr) != fun.len)
+	{
+		ret = set_error_on_ffi_list(rtx, ffi_list, HAWK_EINVAL,  HAWK_T("invalid function name - %.*js"), fun.len, fun.ptr);
+		goto done;
+	}
+
 	a3 = hawk_rtx_getarg(rtx, 3);
 	sig.ptr = hawk_rtx_getvaloocstr(rtx, a3, &sig.len);
 	if (HAWK_UNLIKELY(!sig.ptr))
 	{
 		ret = copy_error_to_ffi_list (rtx, ffi_list);
-		goto done;
-	}
-
-	if (hawk_count_oocstr(fun.ptr) != fun.len)
-	{
-		ret = set_error_on_ffi_list(rtx, ffi_list, HAWK_EINVAL,  HAWK_T("invalid function name - %.*js"), fun.len, fun.ptr);
 		goto done;
 	}
 
@@ -815,13 +839,13 @@ static int fnc_call (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		}
 
 		/* more items in signature than the actual argument */  
-		if (j >= hawk_rtx_getnargs(rtx) - 4) 
+		if (j >= hawk_rtx_getnargs(rtx) - FNC_CALL_ARG_BASE) 
 		{
 			ret = set_error_on_ffi_list(rtx, ffi_list, HAWK_EINVAL, HAWK_T("two few arguments for the argument signature"));
 			goto done;
 		}
 
-		if (add_ffi_arg(rtx, ffi_list, ffi_node, fmtc, _unsigned, hawk_rtx_getarg(rtx, j + 4), &ret) <= -1) goto done;
+		if (add_ffi_arg(rtx, ffi_list, ffi_node, fmtc, _unsigned, hawk_rtx_getarg(rtx, j + FNC_CALL_ARG_BASE), &ret) <= -1) goto done;
 		_unsigned = 0;
 		j++;
 	}
@@ -854,7 +878,7 @@ static int fnc_call (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 	ffi_call (&ffi->cif, FFI_FN(funx), &ffi->ret_sv, ffi->arg_values);
 
-	if (fmtc != FMTC_NULL && capture_return(rtx, ffi_list, ffi_node, fmtc, _unsigned, &ret) <= -1) goto done;
+	if (fmtc != FMTC_NULL && capture_return(rtx, ffi_list, ffi_node, fmtc, _unsigned, 1, &ret) <= -1) goto done;
 	ret = 0;
 
 done:
@@ -868,6 +892,9 @@ done:
 			}
 		}
 	}
+
+	if (sig.ptr) hawk_rtx_freevaloocstr(rtx, a3, sig.ptr);
+	if (fun.ptr) hawk_rtx_freevaloocstr(rtx, a2, fun.ptr);
 
 	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, ret));
 	return 0;
@@ -891,13 +918,10 @@ static int fnc_errmsg (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 static hawk_mod_fnc_tab_t fnctab[] =
 {
-/*
- * TODO: implement ffi::_call() that calls in the current module without open...
-	{ HAWK_T("_call"),     { { 3, A_MAX, HAWK_T("rv") }, fnc_call, 0 } }, */
 	{ HAWK_T("call"),      { { 4, A_MAX, HAWK_T("vrv") },  fnc_call,     0 } },
 	{ HAWK_T("close"),     { { 1, 1, HAWK_NULL },  fnc_close,     0 } },
 	{ HAWK_T("errmsg"),    { { 0, 0, HAWK_NULL },  fnc_errmsg,    0 } },
-	{ HAWK_T("open"),      { { 1, 1, HAWK_NULL },  fnc_open,      0 } },
+	{ HAWK_T("open"),      { { 0, 1, HAWK_NULL },  fnc_open,      0 } },
 };
 
 /* ------------------------------------------------------------------------ */

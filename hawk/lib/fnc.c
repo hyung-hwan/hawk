@@ -418,13 +418,15 @@ skip_close:
 	return 0;
 }
 
-static int flush_io (hawk_rtx_t* rtx, int rio, const hawk_ooch_t* name, int n)
+static int flush_io (hawk_rtx_t* rtx, hawk_out_type_t out_type, const hawk_ooch_t* name, int n)
 {
 	int n2;
+	hawk_rio_type_t rio;
 
+	rio = hawk_rtx_outtoriotype(rtx, out_type);
 	if (rtx->rio.handler[rio])
 	{
-		n2 = hawk_rtx_flushio(rtx, rio, name);
+		n2 = hawk_rtx_flushio(rtx, out_type, name);
 		if (n2 <= -1)
 		{
 			/*
@@ -434,7 +436,7 @@ static int flush_io (hawk_rtx_t* rtx, int rio, const hawk_ooch_t* name, int n)
 				if (n != 0) n = -2;
 			}
 			else n = -99; 
-			*/	
+			*/
 			if (hawk_rtx_geterrnum(rtx) == HAWK_EIONMNF) 
 			{
 				if (n != 0) n = -2;

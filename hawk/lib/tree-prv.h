@@ -27,6 +27,7 @@
 #ifndef _HAWK_TREE_PRV_H_
 #define _HAWK_TREE_PRV_H_
 
+
 enum hawk_in_type_t
 {
 	/* the order of these values match 
@@ -37,6 +38,8 @@ enum hawk_in_type_t
 	HAWK_IN_FILE,
 	HAWK_IN_CONSOLE
 };
+typedef enum hawk_in_type_t hawk_in_type_t;
+
 
 enum hawk_out_type_t
 {
@@ -49,6 +52,7 @@ enum hawk_out_type_t
 	HAWK_OUT_APFILE, /* file for appending */
 	HAWK_OUT_CONSOLE
 };
+typedef enum hawk_out_type_t hawk_out_type_t;
 
 typedef struct hawk_nde_blk_t       hawk_nde_blk_t;
 typedef struct hawk_nde_grp_t       hawk_nde_grp_t;
@@ -74,7 +78,7 @@ typedef struct hawk_nde_getline_t   hawk_nde_getline_t;
 typedef struct hawk_nde_if_t        hawk_nde_if_t;
 typedef struct hawk_nde_while_t     hawk_nde_while_t;
 typedef struct hawk_nde_for_t       hawk_nde_for_t;
-typedef struct hawk_nde_forin_t   hawk_nde_forin_t;
+typedef struct hawk_nde_forin_t     hawk_nde_forin_t;
 typedef struct hawk_nde_break_t     hawk_nde_break_t;
 typedef struct hawk_nde_continue_t  hawk_nde_continue_t;
 typedef struct hawk_nde_return_t    hawk_nde_return_t;
@@ -258,7 +262,7 @@ struct hawk_nde_getline_t
 	HAWK_NDE_HDR;
 	hawk_nde_t* var;
 	int mbs;
-	int in_type; /* HAWK_IN_CONSOLE, HAWK_IN_FILE, etc */
+	hawk_in_type_t in_type; /* HAWK_IN_CONSOLE, HAWK_IN_FILE, etc */
 	hawk_nde_t* in;
 };
 
@@ -356,7 +360,7 @@ struct hawk_nde_print_t
 {
 	HAWK_NDE_HDR;
 	hawk_nde_t* args;
-	int out_type; /* HAWK_OUT_XXX */
+	hawk_out_type_t out_type; /* HAWK_OUT_XXX */
 	hawk_nde_t* out;
 };
 
