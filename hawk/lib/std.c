@@ -313,206 +313,254 @@ static void* std_mod_open_checked (hawk_t* hawk, const hawk_mod_spec_t* spec)
 void* hawk_stdmodopen (hawk_t* hawk, const hawk_mod_spec_t* spec)
 {
 #if defined(USE_LTDL)
-	void* h;
-	lt_dladvise adv;
-	hawk_bch_t* modpath;
-	const hawk_ooch_t* tmp[6];
-	int count;
-	static hawk_ooch_t ds[] = { '/', '\0' };
-
-	count = 0;
-	if (spec->libdir) 
+	if (spec)
 	{
-		hawk_oow_t len;
+		void* h;
+		lt_dladvise adv;
+		hawk_bch_t* modpath;
+		const hawk_ooch_t* tmp[6];
+		int count;
+		static hawk_ooch_t ds[] = { '/', '\0' };
 
-		tmp[count++] = spec->libdir;
-		len = hawk_count_oocstr(spec->libdir);
-		if (len > 0 && spec->libdir[len - 1] != '/') tmp[count++] = ds;
+		count = 0;
+		if (spec->libdir) 
+		{
+			hawk_oow_t len;
+
+			tmp[count++] = spec->libdir;
+			len = hawk_count_oocstr(spec->libdir);
+			if (len > 0 && spec->libdir[len - 1] != '/') tmp[count++] = ds;
+		}
+		if (spec->prefix) tmp[count++] = spec->prefix;
+		tmp[count++] = spec->name;
+		if (spec->postfix) tmp[count++] = spec->postfix;
+		tmp[count] = HAWK_NULL;
+
+		#if defined(HAWK_OOCH_IS_BCH)
+		modpath = hawk_dupbcstrarr(hawk, tmp, HAWK_NULL);
+		#else
+		modpath = hawk_dupucstrarrtobcstr(hawk, tmp, HAWK_NULL)
+		#endif
+		if (!modpath) return HAWK_NULL;
+
+		if (lt_dladvise_init(&adv) != 0)
+		{
+			hawk_seterrfmt (hawk, HAWK_NULL, HAWK_ESYSERR, HAWK_T("%hs"), lt_dlerror());
+			return HAWK_NULL;
+		}
+
+		lt_dladvise_ext (&adv);
+		/*lt_dladvise_resident (&adv); useful for debugging with valgrind */
+
+		h = lt_dlopenadvise(modpath, adv);
+		if (!h) hawk_seterrfmt (hawk, HAWK_NULL, HAWK_ESYSERR, HAWK_T("%hs"), lt_dlerror());
+
+		lt_dladvise_destroy (&adv);
+
+		if (modpath) hawk_freemem(hawk, modpath);
+		return h;
 	}
-	if (spec->prefix) tmp[count++] = spec->prefix;
-	tmp[count++] = spec->name;
-	if (spec->postfix) tmp[count++] = spec->postfix;
-	tmp[count] = HAWK_NULL;
-
-	#if defined(HAWK_OOCH_IS_BCH)
-	modpath = hawk_dupbcstrarr(hawk, tmp, HAWK_NULL);
-	#else
-	modpath = hawk_dupucstrarrtobcstr(hawk, tmp, HAWK_NULL)
-	#endif
-	if (!modpath) return HAWK_NULL;
-
-	if (lt_dladvise_init(&adv) != 0)
+	else
 	{
-		hawk_seterrfmt (hawk, HAWK_NULL, HAWK_ESYSERR, HAWK_T("%hs"), lt_dlerror());
-		return HAWK_NULL;
+		void* h;
+		h = lt_dlopen(NULL);
+		if (HAWK_UNLIKELY(!h)) hawk_seterrfmt (hawk, HAWK_NULL, HAWK_ESYSERR, HAWK_T("%hs"), lt_dlerror());
+		return h;
 	}
-
-	lt_dladvise_ext (&adv);
-	/*lt_dladvise_resident (&adv); useful for debugging with valgrind */
-
-	h = lt_dlopenadvise(modpath, adv);
-
-	lt_dladvise_destroy (&adv);
-
-	if (modpath) hawk_freemem(hawk, modpath);
-	return h;
 
 #elif defined(_WIN32)
 
-	HMODULE h;
-	hawk_ooch_t* modpath;
-	const hawk_ooch_t* tmp[6];
-	int count;
-	static hawk_ooch_t ds[][2] = { { '\\', '\0' }, { '/', '\0' } }
-                                       false 0              treu 1
-	count = 0;
-	if (spec->libdir) 
+	if (spec)
 	{
-		hawk_oow_t len;
-
-		tmp[count++] = spec->libdir;
-		len = hawk_count_oocstr(spec->libdir);
-		if (len > 0 && (spec->libdir[len - 1] != '/' && spec->libdir[len - 1] != '\\')) 
+		HMODULE h;
+		hawk_ooch_t* modpath;
+		const hawk_ooch_t* tmp[6];
+		int count;
+		static hawk_ooch_t ds[][2] = { { '\\', '\0' }, { '/', '\0' } }
+								    false 0              treu 1
+		count = 0;
+		if (spec->libdir) 
 		{
-			tmp[count++] = ds[hawk_find_oochar_in_oocstr(spec->libdir, '/') != HAWK_NULL];
+			hawk_oow_t len;
+
+			tmp[count++] = spec->libdir;
+			len = hawk_count_oocstr(spec->libdir);
+			if (len > 0 && (spec->libdir[len - 1] != '/' && spec->libdir[len - 1] != '\\')) 
+			{
+				tmp[count++] = ds[hawk_find_oochar_in_oocstr(spec->libdir, '/') != HAWK_NULL];
+			}
 		}
+		if (spec->prefix) tmp[count++] = spec->prefix;
+		tmp[count++] = spec->name;
+		if (spec->postfix) tmp[count++] = spec->postfix;
+		tmp[count] = HAWK_NULL;
+
+		modpath = hawk_dupoocstrarr(hawk, tmp, HAWK_NULL);
+		if (!modpath) return HAWK_NULL;
+
+		h = LoadLibrary(modpath);
+		if (!h) hawk_seterrnum (hawk, HAWK_NULL, hawk_syserr_to_errnum(GetLastError());
+
+		hawk_freemem (hawk, modpath);
+
+		HAWK_ASSERT (HAWK_SIZEOF(h) <= HAWK_SIZEOF(void*));
+		return h;
 	}
-	if (spec->prefix) tmp[count++] = spec->prefix;
-	tmp[count++] = spec->name;
-	if (spec->postfix) tmp[count++] = spec->postfix;
-	tmp[count] = HAWK_NULL;
-
-	modpath = hawk_dupoocstrarr(hawk, tmp, HAWK_NULL);
-	if (!modpath) return HAWK_NULL;
-
-	h = LoadLibrary(modpath);
-	if (!h) hawk_seterrnum (hawk, HAWK_NULL, hawk_syserr_to_errnum(GetLastError());
-
-	hawk_freemem (hawk, modpath);
-
-	HAWK_ASSERT (HAWK_SIZEOF(h) <= HAWK_SIZEOF(void*));
-	return h;
+	else
+	{
+		HMODULE h;
+		h = GetModuleHandle(NULL);
+		if (!h) hawk_seterrnum (hawk, HAWK_NULL, hawk_syserr_to_errnum(GetLastError());
+		return h;
+	}
 
 #elif defined(__OS2__)
 
-	HMODULE h;
-	hawk_bch_t* modpath;
-	const hawk_ooch_t* tmp[6];
-	int count;
-	char errbuf[CCHMAXPATH];
-	APIRET rc;
-	static hawk_ooch_t ds[] = { '\\', '\0' };
-
-	count = 0;
-	if (spec->libdir) 
+	if (spec)
 	{
-		hawk_oow_t len;
+		HMODULE h;
+		hawk_bch_t* modpath;
+		const hawk_ooch_t* tmp[6];
+		int count;
+		char errbuf[CCHMAXPATH];
+		APIRET rc;
+		static hawk_ooch_t ds[] = { '\\', '\0' };
 
-		tmp[count++] = spec->libdir;
-		len = hawk_count_oocstr(spec->libdir);
-		if (len > 0 && spec->libdir[len - 1] != '\\') tmp[count++] = ds;
+		count = 0;
+		if (spec->libdir) 
+		{
+			hawk_oow_t len;
+
+			tmp[count++] = spec->libdir;
+			len = hawk_count_oocstr(spec->libdir);
+			if (len > 0 && spec->libdir[len - 1] != '\\') tmp[count++] = ds;
+		}
+		if (spec->prefix) tmp[count++] = spec->prefix;
+		tmp[count++] = spec->name;
+		if (spec->postfix) tmp[count++] = spec->postfix;
+		tmp[count] = HAWK_NULL;
+
+		#if defined(HAWK_OOCH_IS_BCH)
+		modpath = hawk_dupbcstrarr(hawk, tmp, HAWK_NULL);
+		#else
+		modpath = hawk_dupucstrarrtobcstr(hawk, tmp, HAWK_NULL);
+		#endif
+		if (HAWK_UNLIKELY(!modpath)) return HAWK_NULL;
+
+		/* DosLoadModule() seems to have severe limitation on 
+		 * the file name it can load (max-8-letters.xxx) */
+		rc = DosLoadModule(errbuf, HAWK_COUNTOF(errbuf) - 1, modpath, &h);
+		if (rc != NO_ERROR) 
+		{
+			h = HAWK_NULL;
+			hawk_seterrnum (hawk, HAWK_NULL, hawk_syserr_to_errnum(rc));
+		}
+
+		hawk_freemem (hawk, modpath);
+
+		HAWK_ASSERT (HAWK_SIZEOF(h) <= HAWK_SIZEOF(void*));
+		return h;
 	}
-	if (spec->prefix) tmp[count++] = spec->prefix;
-	tmp[count++] = spec->name;
-	if (spec->postfix) tmp[count++] = spec->postfix;
-	tmp[count] = HAWK_NULL;
-
-	#if defined(HAWK_OOCH_IS_BCH)
-	modpath = hawk_dupbcstrarr(hawk, tmp, HAWK_NULL);
-	#else
-	modpath = hawk_dupucstrarrtobcstr(hawk, tmp, HAWK_NULL);
-	#endif
-	if (!modpath) return HAWK_NULL;
-
-	/* DosLoadModule() seems to have severe limitation on 
-	 * the file name it can load (max-8-letters.xxx) */
-	rc = DosLoadModule(errbuf, HAWK_COUNTOF(errbuf) - 1, modpath, &h);
-	if (rc != NO_ERROR) 
+	else
 	{
-		h = HAWK_NULL;
-		hawk_seterrnum (hawk, HAWK_NULL, hawk_syserr_to_errnum(rc));
+		hawk_seterrnum (hawk, HAWK_NULL, HAWK_ENOIMPL);
+		return HAWK_NULL;
 	}
-
-	hawk_freemem (hawk, modpath);
-
-	HAWK_ASSERT (HAWK_SIZEOF(h) <= HAWK_SIZEOF(void*));
-	return h;
 
 #elif defined(__DOS__) && defined(HAWK_ENABLE_DOS_DYNAMIC_MODULE)
 
-	/* the DOS code here is not generic enough. it's for a specific
-	 * dos-extender only. the best is not to use dynamic loading
-	 * when building for DOS. */
-	void* h;
-	hawk_bch_t* modpath;
-	const hawk_ooch_t* tmp[6];
-	int count;
-	static hawk_ooch_t ds[] = { '\\', '\0' };
-
-	count = 0;
-	if (spec->libdir) 
+	if (spec)
 	{
-		hawk_oow_t len;
+		/* the DOS code here is not generic enough. it's for a specific
+		 * dos-extender only. the best is not to use dynamic loading
+		 * when building for DOS. */
+		void* h;
+		hawk_bch_t* modpath;
+		const hawk_ooch_t* tmp[6];
+		int count;
+		static hawk_ooch_t ds[] = { '\\', '\0' };
 
-		tmp[count++] = spec->libdir;
-		len = hawk_count_oocstr(spec->libdir);
-		if (len > 0 && spec->libdir[len - 1] != '/') tmp[count++] = ds;
+		count = 0;
+		if (spec->libdir) 
+		{
+			hawk_oow_t len;
+
+			tmp[count++] = spec->libdir;
+			len = hawk_count_oocstr(spec->libdir);
+			if (len > 0 && spec->libdir[len - 1] != '/') tmp[count++] = ds;
+		}
+		if (spec->prefix) tmp[count++] = spec->prefix;
+		tmp[count++] = spec->name;
+		if (spec->postfix) tmp[count++] = spec->postfix;
+		tmp[count] = HAWK_NULL;
+
+		#if defined(HAWK_OOCH_IS_BCH)
+		modpath = hawk_dupbcstrarr(hawk, tmp, HAWK_NULL);
+		#else
+		modpath = hawk_dupucstrarrtobcstr(hawk, tmp, HAWK_NULL);
+		#endif
+		if (!modpath) return HAWK_NULL;
+
+		h = LoadModule(modpath);
+		if (!h) hawk_seterrnum (hawk, HAWK_NULL, HAWK_ESYSERR);
+
+		hawk_freemem (hawk, modpath);
+		
+		HAWK_ASSERT (HAWK_SIZEOF(h) <= HAWK_SIZEOF(void*));
+		return h;
 	}
-	if (spec->prefix) tmp[count++] = spec->prefix;
-	tmp[count++] = spec->name;
-	if (spec->postfix) tmp[count++] = spec->postfix;
-	tmp[count] = HAWK_NULL;
-
-	#if defined(HAWK_OOCH_IS_BCH)
-	modpath = hawk_dupbcstrarr(hawk, tmp, HAWK_NULL);
-	#else
-	modpath = hawk_dupucstrarrtobcstr(hawk, tmp, HAWK_NULL);
-	#endif
-	if (!modpath) return HAWK_NULL;
-
-	h = LoadModule(modpath);
-	if (!h) hawk_seterrnum (hawk, HAWK_NULL, HAWK_ESYSERR);
-
-	hawk_freemem (hawk, modpath);
-	
-	HAWK_ASSERT (HAWK_SIZEOF(h) <= HAWK_SIZEOF(void*));
-	return h;
+	else
+	{
+		void* h;
+		h = GetModuleHandle(NULL);
+		if (!h) hawk_seterrnum (hawk, HAWK_NULL, HAWK_ESYSERR);
+		return h;
+	}
 
 #elif defined(USE_DLFCN)
-	void* h;
-	hawk_bch_t* modpath;
-	const hawk_ooch_t* tmp[6];
-	int count;
-	static hawk_ooch_t ds[] = { '/', '\0' };
-
-	count = 0;
-	if (spec->libdir) 
+	if (spec)
 	{
-		hawk_oow_t len;
+		void* h;
+		hawk_bch_t* modpath;
+		const hawk_ooch_t* tmp[6];
+		int count;
+		static hawk_ooch_t ds[] = { '/', '\0' };
 
-		tmp[count++] = spec->libdir;
-		len = hawk_count_oocstr(spec->libdir);
-		if (len > 0 && spec->libdir[len - 1] != '/') tmp[count++] = ds;
+		count = 0;
+		if (spec->libdir) 
+		{
+			hawk_oow_t len;
+
+			tmp[count++] = spec->libdir;
+			len = hawk_count_oocstr(spec->libdir);
+			if (len > 0 && spec->libdir[len - 1] != '/') tmp[count++] = ds;
+		}
+		if (spec->prefix) tmp[count++] = spec->prefix;
+		tmp[count++] = spec->name;
+		if (spec->postfix) tmp[count++] = spec->postfix;
+		tmp[count] = HAWK_NULL;
+
+		#if defined(HAWK_OOCH_IS_BCH)
+		modpath = hawk_dupbcstrarr(hawk, tmp, HAWK_NULL);
+		#else
+		modpath = hawk_dupucstrarrtobcstr(hawk, tmp, HAWK_NULL);
+		#endif
+		if (!modpath) return HAWK_NULL;
+
+		h = dlopen(modpath, RTLD_NOW | RTLD_LOCAL);
+		if (!h) hawk_seterrfmt (hawk, HAWK_NULL, HAWK_ESYSERR, HAWK_T("%hs"), dlerror());
+
+		hawk_freemem (hawk, modpath);
+
+		return h;
 	}
-	if (spec->prefix) tmp[count++] = spec->prefix;
-	tmp[count++] = spec->name;
-	if (spec->postfix) tmp[count++] = spec->postfix;
-	tmp[count] = HAWK_NULL;
-
-	#if defined(HAWK_OOCH_IS_BCH)
-	modpath = hawk_dupbcstrarr(hawk, tmp, HAWK_NULL);
-	#else
-	modpath = hawk_dupucstrarrtobcstr(hawk, tmp, HAWK_NULL);
-	#endif
-	if (!modpath) return HAWK_NULL;
-
-	h = dlopen(modpath, RTLD_NOW | RTLD_LOCAL);
-	if (!h) hawk_seterrfmt (hawk, HAWK_NULL, HAWK_ESYSERR, HAWK_T("%hs"), dlerror());
-
-	hawk_freemem (hawk, modpath);
-
-	return h;
-
+	else
+	{
+		void* h;
+		h = dlopen(NULL, RTLD_NOW | RTLD_LOCAL);
+		if (!h) hawk_seterrfmt (hawk, HAWK_NULL, HAWK_ESYSERR, HAWK_T("%hs"), dlerror());
+		return h;
+	}
 #else
 	hawk_seterrnum (hawk, HAWK_NULL, HAWK_ENOIMPL);
 	return HAWK_NULL;
@@ -524,11 +572,11 @@ void hawk_stdmodclose (hawk_t* hawk, void* handle)
 #if defined(USE_LTDL)
 	lt_dlclose (handle);
 #elif defined(_WIN32)
-	FreeLibrary ((HMODULE)handle);
+	if (handle != GetModuleHandle(NULL)) FreeLibrary ((HMODULE)handle);
 #elif defined(__OS2__)
 	DosFreeModule ((HMODULE)handle);
 #elif defined(__DOS__) && defined(HAWK_ENABLE_DOS_DYNAMIC_MODULE)
-	FreeModule (handle);
+	if (handle != GetModuleHandle(NULL))  FreeModule (handle);
 #elif defined(USE_DLFCN)
 	dlclose (handle);
 #else

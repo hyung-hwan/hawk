@@ -101,8 +101,8 @@ static int run_reset (hawk_rtx_t* rtx, hawk_nde_reset_t* nde);
 static int run_print (hawk_rtx_t* rtx, hawk_nde_print_t* nde);
 static int run_printf (hawk_rtx_t* rtx, hawk_nde_print_t* nde);
 
-static int output_formatted (hawk_rtx_t* run, int out_type, const hawk_ooch_t* dst, 	const hawk_ooch_t* fmt, hawk_oow_t fmt_len, hawk_nde_t* args);
-static int output_formatted_bytes (hawk_rtx_t* run, int out_type, const hawk_ooch_t* dst, const hawk_bch_t* fmt, hawk_oow_t fmt_len, hawk_nde_t* args);
+static int output_formatted (hawk_rtx_t* rtx, hawk_out_type_t out_type, const hawk_ooch_t* dst, const hawk_ooch_t* fmt, hawk_oow_t fmt_len, hawk_nde_t* args);
+static int output_formatted_bytes (hawk_rtx_t* rtx, hawk_out_type_t out_type, const hawk_ooch_t* dst, const hawk_bch_t* fmt, hawk_oow_t fmt_len, hawk_nde_t* args);
 
 static hawk_val_t* eval_expression (hawk_rtx_t* rtx, hawk_nde_t* nde);
 static hawk_val_t* eval_expression0 (hawk_rtx_t* rtx, hawk_nde_t* nde);
@@ -3307,8 +3307,7 @@ static int run_print (hawk_rtx_t* rtx, hawk_nde_print_t* nde)
 	/* check if print is followed by any arguments */
 	if (!nde->args)
 	{
-		/* if it doesn't have any arguments, print the entire 
-		 * input record */
+		/* if it doesn't have any arguments, print the entire input record */
 		n = hawk_rtx_writeiostr(rtx, nde->out_type, out.ptr, HAWK_OOECS_PTR(&rtx->inrec.line), HAWK_OOECS_LEN(&rtx->inrec.line));
 		if (n <= -1 /*&& rtx->errinf.num != HAWK_EIOIMPL*/)
 		{
@@ -3456,7 +3455,7 @@ static int run_printf (hawk_rtx_t* rtx, hawk_nde_print_t* nde)
 
 	v = eval_expression(rtx, head);
 	if (HAWK_UNLIKELY(!v)) goto oops_1;
-	
+
 	hawk_rtx_refupval (rtx, v);
 	vtype = HAWK_RTX_GETVALTYPE(rtx, v);
 	switch (vtype)
@@ -3525,7 +3524,7 @@ oops_1:
 }
 
 static int output_formatted (
-	hawk_rtx_t* rtx, int out_type, const hawk_ooch_t* dst, 
+	hawk_rtx_t* rtx, hawk_out_type_t out_type, const hawk_ooch_t* dst, 
 	const hawk_ooch_t* fmt, hawk_oow_t fmt_len, hawk_nde_t* args)
 {
 	hawk_ooch_t* ptr;
@@ -3545,7 +3544,7 @@ static int output_formatted (
 }
 
 static int output_formatted_bytes (
-	hawk_rtx_t* rtx, int out_type, const hawk_ooch_t* dst, 
+	hawk_rtx_t* rtx, hawk_out_type_t out_type, const hawk_ooch_t* dst, 
 	const hawk_bch_t* fmt, hawk_oow_t fmt_len, hawk_nde_t* args)
 {
 	hawk_bch_t* ptr;

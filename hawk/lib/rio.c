@@ -34,7 +34,7 @@ enum io_mask_t
 	IO_MASK_CLEAR = 0x00FF
 };
 
-static int in_type_map[] =
+static hawk_rio_type_t in_type_map[] =
 {
 	/* the order should match the order of the 
 	 * HAWK_IN_XXX values in tree.h */
@@ -62,7 +62,7 @@ static int in_mask_map[] =
 	IO_MASK_READ
 };
 
-static int out_type_map[] =
+static hawk_rio_type_t out_type_map[] =
 {
 	/* the order should match the order of the 
 	 * HAWK_OUT_XXX values in tree.h */
@@ -93,8 +93,18 @@ static int out_mask_map[] =
 	IO_MASK_WRITE
 };
 
+hawk_rio_type_t hawk_rtx_intoriotype (hawk_rtx_t* rtx, hawk_in_type_t in_type)
+{
+	return in_type_map[in_type];
+}
+
+hawk_rio_type_t hawk_rtx_outtoriotype (hawk_rtx_t* rtx, hawk_in_type_t out_type)
+{
+	return out_type_map[out_type];
+}
+
 static int find_rio_in (
-	hawk_rtx_t* rtx, int in_type, const hawk_ooch_t* name,
+	hawk_rtx_t* rtx, hawk_in_type_t in_type, const hawk_ooch_t* name,
 	int mbs_if_new, hawk_rio_arg_t** rio, hawk_rio_impl_t* fun)
 {
 	hawk_rio_arg_t* p = rtx->rio.chain;
@@ -353,7 +363,7 @@ static HAWK_INLINE int match_long_brs(hawk_rtx_t* rtx, hawk_becs_t* buf, hawk_ri
 	return ret;
 }
 
-int hawk_rtx_readio (hawk_rtx_t* rtx, int in_type, const hawk_ooch_t* name, hawk_ooecs_t* buf)
+int hawk_rtx_readio (hawk_rtx_t* rtx, hawk_in_type_t in_type, const hawk_ooch_t* name, hawk_ooecs_t* buf)
 {
 	hawk_rio_arg_t* p;
 	hawk_rio_impl_t handler;
@@ -671,7 +681,7 @@ int hawk_rtx_readio (hawk_rtx_t* rtx, int in_type, const hawk_ooch_t* name, hawk
 }
 
 
-int hawk_rtx_readiobytes (hawk_rtx_t* rtx, int in_type, const hawk_ooch_t* name, hawk_becs_t* buf)
+int hawk_rtx_readiobytes (hawk_rtx_t* rtx, hawk_in_type_t in_type, const hawk_ooch_t* name, hawk_becs_t* buf)
 {
 	hawk_rio_arg_t* p;
 	hawk_rio_impl_t handler;
@@ -989,7 +999,7 @@ int hawk_rtx_readiobytes (hawk_rtx_t* rtx, int in_type, const hawk_ooch_t* name,
 }
 
 
-int hawk_rtx_writeioval (hawk_rtx_t* rtx, int out_type, const hawk_ooch_t* name, hawk_val_t* v)
+int hawk_rtx_writeioval (hawk_rtx_t* rtx, hawk_out_type_t out_type, const hawk_ooch_t* name, hawk_val_t* v)
 {
 	hawk_val_type_t vtype;
 	vtype = HAWK_RTX_GETVALTYPE (rtx, v);
@@ -1034,7 +1044,7 @@ struct write_io_data_t
 };
 typedef struct write_io_data_t write_io_data_t;
 
-static int prepare_for_write_io_data (hawk_rtx_t* rtx, int out_type, const hawk_ooch_t* name, write_io_data_t* wid)
+static int prepare_for_write_io_data (hawk_rtx_t* rtx, hawk_out_type_t out_type, const hawk_ooch_t* name, write_io_data_t* wid)
 {
 	hawk_rio_arg_t* p = rtx->rio.chain;
 	hawk_rio_impl_t handler;
@@ -1122,7 +1132,7 @@ static int prepare_for_write_io_data (hawk_rtx_t* rtx, int out_type, const hawk_
 	return 1;
 }
 
-int hawk_rtx_writeiostr (hawk_rtx_t* rtx, int out_type, const hawk_ooch_t* name, hawk_ooch_t* str, hawk_oow_t len)
+int hawk_rtx_writeiostr (hawk_rtx_t* rtx, hawk_out_type_t out_type, const hawk_ooch_t* name, hawk_ooch_t* str, hawk_oow_t len)
 {
 	int x;
 	write_io_data_t wid;
@@ -1149,7 +1159,7 @@ int hawk_rtx_writeiostr (hawk_rtx_t* rtx, int out_type, const hawk_ooch_t* name,
 	return 1;
 }
 
-int hawk_rtx_writeiobytes (hawk_rtx_t* rtx, int out_type, const hawk_ooch_t* name, hawk_bch_t* str, hawk_oow_t len)
+int hawk_rtx_writeiobytes (hawk_rtx_t* rtx, hawk_out_type_t out_type, const hawk_ooch_t* name, hawk_bch_t* str, hawk_oow_t len)
 {
 	int x;
 	write_io_data_t wid;
@@ -1176,7 +1186,7 @@ int hawk_rtx_writeiobytes (hawk_rtx_t* rtx, int out_type, const hawk_ooch_t* nam
 	return 1;
 }
 
-int hawk_rtx_flushio (hawk_rtx_t* rtx, int out_type, const hawk_ooch_t* name)
+int hawk_rtx_flushio (hawk_rtx_t* rtx, hawk_out_type_t out_type, const hawk_ooch_t* name)
 {
 	hawk_rio_arg_t* p = rtx->rio.chain;
 	hawk_rio_impl_t handler;
@@ -1226,7 +1236,7 @@ int hawk_rtx_flushio (hawk_rtx_t* rtx, int out_type, const hawk_ooch_t* name)
 	return -1;
 }
 
-int hawk_rtx_nextio_read (hawk_rtx_t* rtx, int in_type, const hawk_ooch_t* name)
+int hawk_rtx_nextio_read (hawk_rtx_t* rtx, hawk_in_type_t in_type, const hawk_ooch_t* name)
 {
 	hawk_rio_arg_t* p = rtx->rio.chain;
 	hawk_rio_impl_t handler;
@@ -1295,7 +1305,7 @@ int hawk_rtx_nextio_read (hawk_rtx_t* rtx, int in_type, const hawk_ooch_t* name)
 	}
 }
 
-int hawk_rtx_nextio_write (hawk_rtx_t* rtx, int out_type, const hawk_ooch_t* name)
+int hawk_rtx_nextio_write (hawk_rtx_t* rtx, hawk_out_type_t out_type, const hawk_ooch_t* name)
 {
 	hawk_rio_arg_t* p = rtx->rio.chain;
 	hawk_rio_impl_t handler;
@@ -1360,7 +1370,7 @@ int hawk_rtx_nextio_write (hawk_rtx_t* rtx, int out_type, const hawk_ooch_t* nam
 	}
 }
 
-int hawk_rtx_closio_read (hawk_rtx_t* rtx, int in_type, const hawk_ooch_t* name)
+int hawk_rtx_closio_read (hawk_rtx_t* rtx, hawk_in_type_t in_type, const hawk_ooch_t* name)
 {
 	hawk_rio_arg_t* p = rtx->rio.chain, * px = HAWK_NULL;
 	hawk_rio_impl_t handler;
@@ -1417,7 +1427,7 @@ int hawk_rtx_closio_read (hawk_rtx_t* rtx, int in_type, const hawk_ooch_t* name)
 	return -1;
 }
 
-int hawk_rtx_closio_write (hawk_rtx_t* rtx, int out_type, const hawk_ooch_t* name)
+int hawk_rtx_closio_write (hawk_rtx_t* rtx, hawk_out_type_t out_type, const hawk_ooch_t* name)
 {
 	hawk_rio_arg_t* p = rtx->rio.chain, * px = HAWK_NULL;
 	hawk_rio_impl_t handler;

@@ -27,38 +27,53 @@
 #ifndef _HAWK_RIO_PRV_H_
 #define _HAWK_RIO_PRV_H_
 
+enum hawk_rio_type_t
+{
+	/* rio types available */
+	HAWK_RIO_PIPE = 0,
+	HAWK_RIO_FILE = 1,
+	HAWK_RIO_CONSOLE = 2,
+
+	/* reserved for internal use only */
+	HAWK_RIO_NUM
+};
+typedef enum hawk_rio_type_t hawk_rio_type_t;
+
 #if defined(__cplusplus)
 extern "C" {
 #endif
 
+hawk_rio_type_t hawk_rtx_intoriotype (hawk_rtx_t* rtx, hawk_in_type_t in_type);
+hawk_rio_type_t hawk_rtx_outtoriotype (hawk_rtx_t* rtx, hawk_in_type_t out_type);
+
 int hawk_rtx_readio (
-	hawk_rtx_t* rtx, int in_type, 
+	hawk_rtx_t* rtx, hawk_in_type_t in_type, 
 	const hawk_ooch_t* name, hawk_ooecs_t* buf);
 
 int hawk_rtx_readiobytes (
-	hawk_rtx_t* rtx, int in_type, 
+	hawk_rtx_t* rtx, hawk_in_type_t in_type, 
 	const hawk_ooch_t* name, hawk_becs_t* buf);
 
 int hawk_rtx_writeioval (
-	hawk_rtx_t* rtx, int out_type, 
+	hawk_rtx_t* rtx, hawk_out_type_t out_type, 
 	const hawk_ooch_t* name, hawk_val_t* v);
 
 int hawk_rtx_writeiostr (
-	hawk_rtx_t* rtx, int out_type, 
+	hawk_rtx_t* rtx, hawk_out_type_t out_type, 
 	const hawk_ooch_t* name, hawk_ooch_t* str, hawk_oow_t len);
 
 int hawk_rtx_writeiobytes (
-	hawk_rtx_t* rtx, int out_type, 
+	hawk_rtx_t* rtx, hawk_out_type_t out_type, 
 	const hawk_ooch_t* name, hawk_bch_t* str, hawk_oow_t len);
 
 int hawk_rtx_flushio (
-	hawk_rtx_t* rtx, int out_type, const hawk_ooch_t* name);
+	hawk_rtx_t* rtx, hawk_out_type_t out_type, const hawk_ooch_t* name);
 
 int hawk_rtx_nextio_read (
-	hawk_rtx_t* rtx, int in_type, const hawk_ooch_t* name);
+	hawk_rtx_t* rtx, hawk_in_type_t in_type, const hawk_ooch_t* name);
 
 int hawk_rtx_nextio_write (
-	hawk_rtx_t* rtx, int out_type, const hawk_ooch_t* name);
+	hawk_rtx_t* rtx, hawk_out_type_t out_type, const hawk_ooch_t* name);
 
 int hawk_rtx_closeio (
 	hawk_rtx_t*        rtx,

@@ -89,6 +89,7 @@ static hawk_oow_t push_args_from_stack (hawk_rtx_t* rtx, hawk_nde_fncall_t* call
 
 static int fnc_call (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
+/* TODO: support to call a module function such as sys::getpid() */
 	hawk_fun_t* fun;
 	hawk_oow_t nargs;
 	hawk_nde_fncall_t call;
@@ -126,24 +127,33 @@ static int fnc_call (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	return 0;
 }
 
-/* hawk::function_exists("xxxx"); */
+/* hawk::function_exists("xxxx"); 
+ * hawk::function_exists("sys::getpid") */
 static int fnc_function_exists (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	hawk_val_t* a0;
-	hawk_ooch_t* str;
-	hawk_oow_t len;
+	hawk_oocs_t name;
 	int rx;
 
 	a0 = hawk_rtx_getarg(rtx, 0);
-	str = hawk_rtx_getvaloocstr(rtx, a0, &len);
-	if (HAWK_UNLIKELY(!str))
+	name.ptr = hawk_rtx_getvaloocstr(rtx, a0, &name.len);
+	if (HAWK_UNLIKELY(!name.ptr))
 	{
 		rx = 0;
 	}
 	else
 	{
-		rx = (hawk_rtx_findfunwithoocstr(rtx, str) != HAWK_NULL);
-		hawk_rtx_freevaloocstr (rtx, a0, str);
+		if (hawk_count_oocstr(name.ptr) != name.len) rx = 0;
+		else
+		{
+			rx = (hawk_rtx_findfunwithoocstr(rtx, name.ptr) != HAWK_NULL);
+			if (!rx)
+			{
+				hawk_mod_sym_t sym;
+				rx = (hawk_query_module_with_name(hawk_rtx_gethawk(rtx), &name, &sym) != HAWK_NULL);
+			}
+		}
+		hawk_rtx_freevaloocstr (rtx, a0, name.ptr);
 	}
 
 	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));

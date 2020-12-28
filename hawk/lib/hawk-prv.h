@@ -173,16 +173,6 @@ typedef struct hawk_tree_t hawk_tree_t;
 
 #endif
 
-enum hawk_rio_type_t
-{
-	/* rio types available */
-	HAWK_RIO_PIPE,
-	HAWK_RIO_FILE,
-	HAWK_RIO_CONSOLE,
-
-	/* reserved for internal use only */
-	HAWK_RIO_NUM
-};
 
 struct hawk_tree_t
 {
