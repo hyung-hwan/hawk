@@ -2266,15 +2266,17 @@ hawk_bch_t* hawk_rtx_valtobcstrdupwithcmgr (hawk_rtx_t* rtx, const hawk_val_t* v
 				slen = ((hawk_val_str_t*)v)->val.len;
 			}
 		#if defined(HAWK_OOCH_IS_BCH)
-			mbs = hawk_rtx_dupbchars(rtx, (ptr, slen);
+			mbs = hawk_rtx_dupbchars(rtx, ptr, slen);
 			if (!mbs) return HAWK_NULL;
 			if (len) *len = slen;
 		#else
-			hawk_oow_t mbslen, wcslen;
-			wcslen = slen;
-			mbs = hawk_rtx_duputobcharswithcmgr(rtx, ptr, wcslen, &mbslen, cmgr);
-			if (!mbs) return HAWK_NULL;
-			if (len) *len = mbslen;
+			{
+				hawk_oow_t mbslen, wcslen;
+				wcslen = slen;
+				mbs = hawk_rtx_duputobcharswithcmgr(rtx, ptr, wcslen, &mbslen, cmgr);
+				if (!mbs) return HAWK_NULL;
+				if (len) *len = mbslen;
+			}
 		#endif
 			break;
 		}
