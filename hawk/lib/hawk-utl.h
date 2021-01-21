@@ -516,13 +516,13 @@ HAWK_EXPORT hawk_oow_t hawk_copy_bchars_to_bcstr_unlimited (
 
 HAWK_EXPORT hawk_oow_t hawk_copy_ucstr_to_uchars (
 	hawk_uch_t*        dst,
-	hawk_uch_t         dlen,
+	hawk_oow_t         dlen,
 	const hawk_uch_t*  src
 );
 
 HAWK_EXPORT hawk_oow_t hawk_copy_bcstr_to_bchars (
 	hawk_bch_t*        dst,
-	hawk_bch_t         dlen,
+	hawk_oow_t         dlen,
 	const hawk_bch_t*  src
 );
 
