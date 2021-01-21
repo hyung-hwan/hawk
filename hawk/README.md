@@ -9,7 +9,9 @@
 
 ## Language <a name="language"></a>
 
-Hawk implements most of the AWK programming language elements with extensions.
+Hawk is an AWK interpreter with many extended features implemetned by who 'H' 
+stands for. It aims to be an easy-to-embed implementation as well as used
+standalone.
 
 ### Program Structure
 
@@ -675,7 +677,7 @@ The following sample illustrates the basic steps hightlighed above.
 		}
 
 		/* create a runtime context needed for execution */
-		rtx = hawk_rtx_openstd (
+		rtx = hawk_rtx_openstd(
 			hawk, 
 			0,
 			HAWK_T("hawk02"),
