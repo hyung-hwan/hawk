@@ -375,7 +375,7 @@ hawk_oow_t hawk_copy_bchars_to_bcstr_unlimited (hawk_bch_t* dst, const hawk_bch_
 	return i;
 }
 
-hawk_oow_t hawk_copy_ucstr_to_uchars (hawk_uch_t* dst, hawk_oow_t dlen,  const hawk_uch_t* src)
+hawk_oow_t hawk_copy_ucstr_to_uchars (hawk_uch_t* dst, hawk_oow_t dlen, const hawk_uch_t* src)
 {
 	/* no null termination */
 	hawk_uch_t* p, * p2;
@@ -391,7 +391,7 @@ hawk_oow_t hawk_copy_ucstr_to_uchars (hawk_uch_t* dst, hawk_oow_t dlen,  const h
 	return p - dst;
 }
 
-hawk_oow_t hawk_copy_bcstr_to_bchars (hawk_bch_t* dst, hawk_oow_t dlen,  const hawk_bch_t* src)
+hawk_oow_t hawk_copy_bcstr_to_bchars (hawk_bch_t* dst, hawk_oow_t dlen, const hawk_bch_t* src)
 {
 	/* no null termination */
 	hawk_bch_t* p, * p2;
