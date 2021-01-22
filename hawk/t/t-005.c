@@ -86,13 +86,15 @@ hawk_bch_t* subst (hawk_bch_t* buf, hawk_oow_t bsz, const hawk_bcs_t* ident, voi
 		return buf + ((buf == HAWK_SUBST_NOBUF)? 3: hawk_copy_bcstr_to_bchars(buf, bsz, "sam"));
 	}
 	else if (hawk_comp_bchars_bcstr(ident->ptr, ident->len, "GROUP") == 0)
+	{
 		return buf + ((buf == HAWK_SUBST_NOBUF)? 6: hawk_copy_bcstr_to_bchars(buf, bsz, "coders"));
+	}
 	return buf; 
 }
 
 static int test3 (void)
 {
-	hawk_bch_t buf[25], * ptr;
+	hawk_bch_t buf[512], * ptr;
 	hawk_oow_t n;
 	n = hawk_subst_for_bcstr_to_bcstr (buf, HAWK_COUNTOF(buf), "user=${USER},group=${GROUP}", subst, HAWK_NULL);
 	T_ASSERT0 (n == 21);
