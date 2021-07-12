@@ -926,7 +926,7 @@ HAWK_EXPORT hawk_oow_t hawk_int_to_oocstr (
 	hawk_oow_t         size
 );
 
-#define HAWK_OOCHARS_TO_INT_MAKE_OPTION(ltrim,rtrim,base) (((!!(ltrim)) << 2) | ((!!(rtrim)) << 4) | ((base) << 8))
+#define HAWK_OOCHARS_TO_INT_MAKE_OPTION(ltrim,rtrim,base) (((!!(ltrim)) << 2) | ((!!(rtrim)) << 3) | ((base) << 8))
 #define HAWK_OOCHARS_TO_INT_GET_OPTION_LTRIM(option) ((option) & 4)
 #define HAWK_OOCHARS_TO_INT_GET_OPTION_RTRIM(option) ((option) & 8)
 #define HAWK_OOCHARS_TO_INT_GET_OPTION_BASE(option) ((option) >> 8)
