@@ -694,15 +694,15 @@ HAWK_EXPORT hawk_oow_t hawk_rotate_bchars (
 );
 
 HAWK_EXPORT hawk_uch_t* hawk_trim_uchars (
-	hawk_uch_t* str,
-	hawk_oow_t* len,
-	int         flags
+	const hawk_uch_t* str,
+	hawk_oow_t*       len,
+	int               flags
 );
 
 HAWK_EXPORT hawk_bch_t* hawk_trim_bchars (
-	hawk_bch_t* str,
-	hawk_oow_t* len,
-	int         flags
+	const hawk_bch_t* str,
+	hawk_oow_t*       len,
+	int               flags
 );
 
 HAWK_EXPORT int hawk_split_ucstr (
