@@ -942,9 +942,9 @@ hawk_oow_t hawk_rotate_bchars (hawk_bch_t* str, hawk_oow_t len, int dir, hawk_oo
 
 /* ------------------------------------------------------------------------ */
 
-hawk_uch_t* hawk_trim_uchars (hawk_uch_t* str, hawk_oow_t* len, int flags)
+hawk_uch_t* hawk_trim_uchars (const hawk_uch_t* str, hawk_oow_t* len, int flags)
 {
-	hawk_uch_t* p = str, * end = str + *len;
+	const hawk_uch_t* p = str, * end = str + *len;
 
 	if (p < end)
 	{
@@ -981,12 +981,12 @@ hawk_uch_t* hawk_trim_uchars (hawk_uch_t* str, hawk_oow_t* len, int flags)
 		}
 	}
 
-	return str;
+	return (hawk_uch_t*)str;
 }
 
-hawk_bch_t* hawk_trim_bchars (hawk_bch_t* str, hawk_oow_t* len, int flags)
+hawk_bch_t* hawk_trim_bchars (const hawk_bch_t* str, hawk_oow_t* len, int flags)
 {
-	hawk_bch_t* p = str, * end = str + *len;
+	const hawk_bch_t* p = str, * end = str + *len;
 
 	if (p < end)
 	{
@@ -1023,7 +1023,7 @@ hawk_bch_t* hawk_trim_bchars (hawk_bch_t* str, hawk_oow_t* len, int flags)
 		}
 	}
 
-	return str;
+	return (hawk_bch_t*)str;
 }
 /* ------------------------------------------------------------------------ */
 
