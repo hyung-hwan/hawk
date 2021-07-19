@@ -129,7 +129,7 @@ xci_t xgetcli (int argc, xch_t* const* argv, xcli_t* opt)
 
 			if (*str == ':') str++;
 
-			if (xcompcharscstr(opt->cur, end - opt->cur, str) != 0) continue;
+			if (xcompcharscstr(opt->cur, end - opt->cur, str, 0) != 0) continue;
 
 			/* match */
 			opt->cur = XEMSG;

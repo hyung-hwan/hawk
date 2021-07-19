@@ -452,31 +452,36 @@ HAWK_EXPORT int hawk_comp_bcstr_limited (
 
 HAWK_EXPORT int hawk_comp_ucstr_bcstr (
 	const hawk_uch_t* str1,
-	const hawk_bch_t* str2
+	const hawk_bch_t* str2,
+	int               ignorecase
 );
 
 HAWK_EXPORT int hawk_comp_uchars_ucstr (
 	const hawk_uch_t* str1,
 	hawk_oow_t        len,
-	const hawk_uch_t* str2
+	const hawk_uch_t* str2,
+	int               ignorecase
 );
 
 HAWK_EXPORT int hawk_comp_uchars_bcstr (
 	const hawk_uch_t* str1,
 	hawk_oow_t        len,
-	const hawk_bch_t* str2
+	const hawk_bch_t* str2,
+	int               ignorecase
 );
 
 HAWK_EXPORT int hawk_comp_bchars_bcstr (
 	const hawk_bch_t* str1,
 	hawk_oow_t        len,
-	const hawk_bch_t* str2
+	const hawk_bch_t* str2,
+	int               ignorecase
 );
 
 HAWK_EXPORT int hawk_comp_bchars_ucstr (
 	const hawk_bch_t* str1,
 	hawk_oow_t        len,
-	const hawk_uch_t* str2
+	const hawk_uch_t* str2,
+	int               ignorecase
 );
 
 HAWK_EXPORT void hawk_copy_uchars (
