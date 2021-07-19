@@ -948,7 +948,7 @@ hawk_uch_t* hawk_trim_uchars (const hawk_uch_t* str, hawk_oow_t* len, int flags)
 
 	if (p < end)
 	{
-		hawk_uch_t* s = HAWK_NULL, * e = HAWK_NULL;
+		const hawk_uch_t* s = HAWK_NULL, * e = HAWK_NULL;
 
 		do
 		{
@@ -990,7 +990,7 @@ hawk_bch_t* hawk_trim_bchars (const hawk_bch_t* str, hawk_oow_t* len, int flags)
 
 	if (p < end)
 	{
-		hawk_bch_t* s = HAWK_NULL, * e = HAWK_NULL;
+		const hawk_bch_t* s = HAWK_NULL, * e = HAWK_NULL;
 
 		do
 		{
