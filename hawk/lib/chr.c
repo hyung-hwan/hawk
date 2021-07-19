@@ -220,7 +220,7 @@ int hawk_ucstr_to_uch_prop (const hawk_uch_t* name, hawk_uch_prop_t* id)
 		mid = left + (right - left) / 2;
 		kwp = &prop_tab[mid];
 
-		n = hawk_comp_ucstr_bcstr(name, kwp->name);
+		n = hawk_comp_ucstr_bcstr(name, kwp->name, 0);
 		if (n > 0) 
 		{
 			/* if left, right, mid were of hawk_oow_t,
@@ -252,7 +252,7 @@ int hawk_uchars_to_uch_prop (const hawk_uch_t* name, hawk_oow_t len, hawk_uch_pr
 		mid = left + (right - left) / 2;
 		kwp = &prop_tab[mid];
 
-		n = hawk_comp_uchars_bcstr(name, len, kwp->name);
+		n = hawk_comp_uchars_bcstr(name, len, kwp->name, 0);
 		if (n < 0) 
 		{
 			/* if left, right, mid were of hawk_oow_t,
@@ -318,7 +318,7 @@ int hawk_bchars_to_bch_prop (const hawk_bch_t* name, hawk_oow_t len, hawk_bch_pr
 		mid = left + (right - left) / 2;
 		kwp = &prop_tab[mid];
 
-		n = hawk_comp_bchars_bcstr(name, len, kwp->name);
+		n = hawk_comp_bchars_bcstr(name, len, kwp->name, 0);
 		if (n < 0) 
 		{
 			/* if left, right, mid were of hawk_oow_t,

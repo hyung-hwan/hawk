@@ -81,11 +81,11 @@ oops:
 
 hawk_bch_t* subst (hawk_bch_t* buf, hawk_oow_t bsz, const hawk_bcs_t* ident, void* ctx)
 { 
-	if (hawk_comp_bchars_bcstr(ident->ptr, ident->len, "USER") == 0)
+	if (hawk_comp_bchars_bcstr(ident->ptr, ident->len, "USER", 0) == 0)
 	{
 		return buf + ((buf == HAWK_SUBST_NOBUF)? 3: hawk_copy_bcstr_to_bchars(buf, bsz, "sam"));
 	}
-	else if (hawk_comp_bchars_bcstr(ident->ptr, ident->len, "GROUP") == 0)
+	else if (hawk_comp_bchars_bcstr(ident->ptr, ident->len, "GROUP", 0) == 0)
 	{
 		return buf + ((buf == HAWK_SUBST_NOBUF)? 6: hawk_copy_bcstr_to_bchars(buf, bsz, "coders"));
 	}

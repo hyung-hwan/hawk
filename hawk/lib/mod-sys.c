@@ -1324,7 +1324,7 @@ static int fnc_tcsetattr (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi) /* this is
 		pair = hawk_map_getfirstpair(((hawk_val_map_t*)a2)->map, &itr);
 		while (pair)
 		{
-			if (hawk_comp_oochars_bcstr(HAWK_MAP_KPTR(pair), HAWK_MAP_KLEN(pair), "cc") == 0)
+			if (hawk_comp_oochars_bcstr(HAWK_MAP_KPTR(pair), HAWK_MAP_KLEN(pair), "cc", 0) == 0)
 			{
 				hawk_bch_t* ptr;
 				hawk_oow_t len;
@@ -1348,19 +1348,19 @@ static int fnc_tcsetattr (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi) /* this is
 					goto done;
 				}
 
-				if (hawk_comp_oochars_bcstr(HAWK_MAP_KPTR(pair), HAWK_MAP_KLEN(pair), "iflag") == 0)
+				if (hawk_comp_oochars_bcstr(HAWK_MAP_KPTR(pair), HAWK_MAP_KLEN(pair), "iflag", 0) == 0)
 				{
 					t.c_iflag = flag;
 				}
-				else if (hawk_comp_oochars_bcstr(HAWK_MAP_KPTR(pair), HAWK_MAP_KLEN(pair), "oflag") == 0)
+				else if (hawk_comp_oochars_bcstr(HAWK_MAP_KPTR(pair), HAWK_MAP_KLEN(pair), "oflag", 0) == 0)
 				{
 					t.c_oflag = flag;
 				}
-				else if (hawk_comp_oochars_bcstr(HAWK_MAP_KPTR(pair), HAWK_MAP_KLEN(pair), "cflag") == 0)
+				else if (hawk_comp_oochars_bcstr(HAWK_MAP_KPTR(pair), HAWK_MAP_KLEN(pair), "cflag", 0) == 0)
 				{
 					t.c_cflag = flag;
 				}
-				else if (hawk_comp_oochars_bcstr(HAWK_MAP_KPTR(pair), HAWK_MAP_KLEN(pair), "lflag") == 0)
+				else if (hawk_comp_oochars_bcstr(HAWK_MAP_KPTR(pair), HAWK_MAP_KLEN(pair), "lflag", 0) == 0)
 				{
 					t.c_lflag = flag;
 				}

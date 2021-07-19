@@ -970,7 +970,7 @@ static int parse_progunit (hawk_t* hawk)
 		name.len = HAWK_OOECS_LEN(hawk->tok.name);
 		name.ptr = HAWK_OOECS_PTR(hawk->tok.name);
 
-		if (hawk_comp_oochars_oocstr(name.ptr, name.len, HAWK_T("entry")) == 0)
+		if (hawk_comp_oochars_oocstr(name.ptr, name.len, HAWK_T("entry"), 0) == 0)
 		{
 			if (get_token(hawk) <= -1) return -1;
 			if (!MATCH(hawk, TOK_IDENT))
@@ -997,7 +997,7 @@ static int parse_progunit (hawk_t* hawk)
 				hawk_copy_oochars_to_oocstr (hawk->parse.pragma.entry, HAWK_COUNTOF(hawk->parse.pragma.entry), HAWK_OOECS_PTR(hawk->tok.name), HAWK_OOECS_LEN(hawk->tok.name));
 			}
 		}
-		else if (hawk_comp_oochars_oocstr(name.ptr, name.len, HAWK_T("implicit")) == 0)
+		else if (hawk_comp_oochars_oocstr(name.ptr, name.len, HAWK_T("implicit"), 0) == 0)
 		{
 			/* @pragma implicit on
 			 * @pragma implicit off */
@@ -1011,11 +1011,11 @@ static int parse_progunit (hawk_t* hawk)
 
 			name.len = HAWK_OOECS_LEN(hawk->tok.name);
 			name.ptr = HAWK_OOECS_PTR(hawk->tok.name);
-			if (hawk_comp_oochars_oocstr(name.ptr, name.len, HAWK_T("on")) == 0)
+			if (hawk_comp_oochars_oocstr(name.ptr, name.len, HAWK_T("on"), 0) == 0)
 			{
 				hawk->parse.pragma.trait |= HAWK_IMPLICIT;
 			}
-			else if (hawk_comp_oochars_oocstr(name.ptr, name.len, HAWK_T("off")) == 0)
+			else if (hawk_comp_oochars_oocstr(name.ptr, name.len, HAWK_T("off"), 0) == 0)
 			{
 				hawk->parse.pragma.trait &= ~HAWK_IMPLICIT;
 			}
@@ -1024,7 +1024,7 @@ static int parse_progunit (hawk_t* hawk)
 				goto error_ident_on_off_expected_for_implicit;
 			}
 		}
-		else if (hawk_comp_oochars_oocstr(name.ptr, name.len, HAWK_T("multilinestr")) == 0)
+		else if (hawk_comp_oochars_oocstr(name.ptr, name.len, HAWK_T("multilinestr"), 0) == 0)
 		{
 			if (get_token(hawk) <= -1) return -1;
 			if (!MATCH(hawk, TOK_IDENT))
@@ -1036,11 +1036,11 @@ static int parse_progunit (hawk_t* hawk)
 
 			name.len = HAWK_OOECS_LEN(hawk->tok.name);
 			name.ptr = HAWK_OOECS_PTR(hawk->tok.name);
-			if (hawk_comp_oochars_oocstr(name.ptr, name.len, HAWK_T("on")) == 0)
+			if (hawk_comp_oochars_oocstr(name.ptr, name.len, HAWK_T("on"), 0) == 0)
 			{
 				hawk->parse.pragma.trait |= HAWK_MULTILINESTR;
 			}
-			else if (hawk_comp_oochars_oocstr(name.ptr, name.len, HAWK_T("off")) == 0)
+			else if (hawk_comp_oochars_oocstr(name.ptr, name.len, HAWK_T("off"), 0) == 0)
 			{
 				hawk->parse.pragma.trait &= ~HAWK_MULTILINESTR;
 			}
@@ -1053,7 +1053,7 @@ static int parse_progunit (hawk_t* hawk)
 		 * the pragmas up to this point affect the parser 
 		 * the following pragmas affect runtime 
 		 * --------------------------------------------------------------------- */
-		else if (hawk_comp_oochars_oocstr(name.ptr, name.len, HAWK_T("stack_limit")) == 0)
+		else if (hawk_comp_oochars_oocstr(name.ptr, name.len, HAWK_T("stack_limit"), 0) == 0)
 		{
 			hawk_int_t sl;
 
@@ -1071,7 +1071,7 @@ static int parse_progunit (hawk_t* hawk)
 			/* take the specified value if it's greater than the existing value */
 			if (sl > hawk->parse.pragma.rtx_stack_limit) hawk->parse.pragma.rtx_stack_limit = sl;
 		}
-		else if (hawk_comp_oochars_oocstr(name.ptr, name.len, HAWK_T("striprecspc")) == 0)
+		else if (hawk_comp_oochars_oocstr(name.ptr, name.len, HAWK_T("striprecspc"), 0) == 0)
 		{
 			/* @pragma striprecspc on
 			 * @pragma striprecspc off 
@@ -1091,11 +1091,11 @@ static int parse_progunit (hawk_t* hawk)
 
 			name.len = HAWK_OOECS_LEN(hawk->tok.name);
 			name.ptr = HAWK_OOECS_PTR(hawk->tok.name);
-			if (hawk_comp_oochars_oocstr(name.ptr, name.len, HAWK_T("on")) == 0)
+			if (hawk_comp_oochars_oocstr(name.ptr, name.len, HAWK_T("on"), 0) == 0)
 			{
 				is_on = 1;
 			}
-			else if (hawk_comp_oochars_oocstr(name.ptr, name.len, HAWK_T("off")) == 0)
+			else if (hawk_comp_oochars_oocstr(name.ptr, name.len, HAWK_T("off"), 0) == 0)
 			{
 				is_on = 0;
 			}
@@ -1113,7 +1113,7 @@ static int parse_progunit (hawk_t* hawk)
 					hawk->parse.pragma.trait &= ~HAWK_STRIPRECSPC;
 			}
 		}
-		else if (hawk_comp_oochars_oocstr(name.ptr, name.len, HAWK_T("stripstrspc")) == 0)
+		else if (hawk_comp_oochars_oocstr(name.ptr, name.len, HAWK_T("stripstrspc"), 0) == 0)
 		{
 			/* @pragma stripstrspc on
 			 * @pragma stripstrspc off 
@@ -1130,11 +1130,11 @@ static int parse_progunit (hawk_t* hawk)
 
 			name.len = HAWK_OOECS_LEN(hawk->tok.name);
 			name.ptr = HAWK_OOECS_PTR(hawk->tok.name);
-			if (hawk_comp_oochars_oocstr(name.ptr, name.len, HAWK_T("on")) == 0)
+			if (hawk_comp_oochars_oocstr(name.ptr, name.len, HAWK_T("on"), 0) == 0)
 			{
 				is_on = 1;
 			}
-			else if (hawk_comp_oochars_oocstr(name.ptr, name.len, HAWK_T("off")) == 0)
+			else if (hawk_comp_oochars_oocstr(name.ptr, name.len, HAWK_T("off"), 0) == 0)
 			{
 				is_on = 0;
 			}
@@ -6860,13 +6860,13 @@ retry:
 			} 
 			while (c == HAWK_T('_') || hawk_is_ooch_alpha(c) || hawk_is_ooch_digit(c));
 
-			if (hawk_comp_oochars_bcstr(HAWK_OOECS_PTR(tok->name), HAWK_OOECS_LEN(tok->name), "@SCRIPTNAME") == 0)
+			if (hawk_comp_oochars_bcstr(HAWK_OOECS_PTR(tok->name), HAWK_OOECS_LEN(tok->name), "@SCRIPTNAME", 0) == 0)
 			{
 				/* special parser-level word @SCRIPTNAME. substitute an actual value for it */
 				if (HAWK_UNLIKELY(hawk_ooecs_cpy(tok->name, (tok->loc.file? tok->loc.file: HAWK_T(""))) == (hawk_oow_t)-1)) return -1;
 				SET_TOKEN_TYPE (hawk, tok, TOK_STR);
 			}
-			else if (hawk_comp_oochars_bcstr(HAWK_OOECS_PTR(tok->name), HAWK_OOECS_LEN(tok->name), "@SCRIPTLINE") == 0)
+			else if (hawk_comp_oochars_bcstr(HAWK_OOECS_PTR(tok->name), HAWK_OOECS_LEN(tok->name), "@SCRIPTLINE", 0) == 0)
 			{
 				/* special parser-level word @SCRIPTLINE. subsitute an actual value for it */
 				if (HAWK_UNLIKELY(hawk_ooecs_fmt(tok->name, HAWK_T("%zu"), tok->loc.line) == (hawk_oow_t)-1)) return -1;
@@ -7466,7 +7466,7 @@ static hawk_mod_t* query_module (hawk_t* hawk, const hawk_oocs_t segs[], int nse
 		/* TODO: binary search ... */
 		for (n = 0; n < HAWK_COUNTOF(static_modtab); n++)
 		{
-			if (hawk_comp_oochars_oocstr(segs[0].ptr, segs[0].len, static_modtab[n].modname) == 0)
+			if (hawk_comp_oochars_oocstr(segs[0].ptr, segs[0].len, static_modtab[n].modname, 0) == 0)
 			{
 				load = static_modtab[n].modload;
 				break;

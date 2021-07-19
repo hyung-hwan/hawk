@@ -247,63 +247,145 @@ int hawk_comp_bcstr_limited (const hawk_bch_t* str1, const hawk_bch_t* str2, haw
 	}
 }
 
-int hawk_comp_ucstr_bcstr (const hawk_uch_t* str1, const hawk_bch_t* str2)
+int hawk_comp_ucstr_bcstr (const hawk_uch_t* str1, const hawk_bch_t* str2, int ignorecase)
 {
-	while (*str1 == *str2)
+	if (ignorecase)
 	{
-		if (*str1 == '\0') return 0;
-		str1++; str2++;
-	}
+		while (hawk_to_uch_lower(*str1) == hawk_to_bch_lower(*str2))
+ 		{
+			if (*str1 == '\0') return 0;
+			str1++; str2++;
+		}
 
-	return ((hawk_uchu_t)*str1 > (hawk_bchu_t)*str2)? 1: -1;
+		return ((hawk_uchu_t)hawk_to_uch_lower(*str1) > (hawk_bchu_t)hawk_to_bch_lower(*str2))? 1: -1;
+	}
+	else
+	{
+		while (*str1 == *str2)
+		{
+			if (*str1 == '\0') return 0;
+			str1++; str2++;
+		}
+
+		return ((hawk_uchu_t)*str1 > (hawk_bchu_t)*str2)? 1: -1;
+	}
 }
 
-int hawk_comp_uchars_ucstr (const hawk_uch_t* str1, hawk_oow_t len, const hawk_uch_t* str2)
+
+int hawk_comp_uchars_ucstr (const hawk_uch_t* str1, hawk_oow_t len, const hawk_uch_t* str2, int ignorecase)
 {
 	/* for "abc\0" of length 4 vs "abc", the fourth character
 	 * of the first string is equal to the terminating null of
 	 * the second string. the first string is still considered 
 	 * bigger */
-	const hawk_uch_t* end = str1 + len;
-	while (str1 < end && *str2 != '\0') 
+	if (ignorecase)
 	{
-		if (*str1 != *str2) return ((hawk_uchu_t)*str1 > (hawk_uchu_t)*str2)? 1: -1;
-		str1++; str2++;
+		const hawk_uch_t* end = str1 + len;
+		hawk_uch_t c1;
+		hawk_uch_t c2;
+		while (str1 < end && *str2 != '\0') 
+		{
+			c1 = hawk_to_uch_lower(*str1);
+			c2 = hawk_to_uch_lower(*str2);
+			if (c1 != c2) return ((hawk_uchu_t)c1 > (hawk_uchu_t)c2)? 1: -1;
+			str1++; str2++;
+		}
+		return (str1 < end)? 1: (*str2 == '\0'? 0: -1);
 	}
-	return (str1 < end)? 1: (*str2 == '\0'? 0: -1);
+	else
+	{
+		const hawk_uch_t* end = str1 + len;
+		while (str1 < end && *str2 != '\0') 
+		{
+			if (*str1 != *str2) return ((hawk_uchu_t)*str1 > (hawk_uchu_t)*str2)? 1: -1;
+			str1++; str2++;
+		}
+		return (str1 < end)? 1: (*str2 == '\0'? 0: -1);
+	}
 }
 
-int hawk_comp_uchars_bcstr (const hawk_uch_t* str1, hawk_oow_t len, const hawk_bch_t* str2)
+int hawk_comp_uchars_bcstr (const hawk_uch_t* str1, hawk_oow_t len, const hawk_bch_t* str2, int ignorecase)
 {
-	const hawk_uch_t* end = str1 + len;
-	while (str1 < end && *str2 != '\0') 
+	if (ignorecase)
 	{
-		if (*str1 != *str2) return ((hawk_uchu_t)*str1 > (hawk_bchu_t)*str2)? 1: -1;
-		str1++; str2++;
+		const hawk_uch_t* end = str1 + len;
+		hawk_uch_t c1;
+		hawk_bch_t c2;
+		while (str1 < end && *str2 != '\0') 
+		{
+			c1 = hawk_to_uch_lower(*str1);
+			c2 = hawk_to_bch_lower(*str2);
+			if (c1 != c2) return ((hawk_uchu_t)c1 > (hawk_bchu_t)c2)? 1: -1;
+			str1++; str2++;
+		}
+		return (str1 < end)? 1: (*str2 == '\0'? 0: -1);
 	}
-	return (str1 < end)? 1: (*str2 == '\0'? 0: -1);
+	else
+	{
+		const hawk_uch_t* end = str1 + len;
+		while (str1 < end && *str2 != '\0') 
+		{
+			if (*str1 != *str2) return ((hawk_uchu_t)*str1 > (hawk_bchu_t)*str2)? 1: -1;
+			str1++; str2++;
+		}
+		return (str1 < end)? 1: (*str2 == '\0'? 0: -1);
+	}
 }
 
-int hawk_comp_bchars_bcstr (const hawk_bch_t* str1, hawk_oow_t len, const hawk_bch_t* str2)
+int hawk_comp_bchars_bcstr (const hawk_bch_t* str1, hawk_oow_t len, const hawk_bch_t* str2, int ignorecase)
 {
-	const hawk_bch_t* end = str1 + len;
-	while (str1 < end && *str2 != '\0') 
+	if (ignorecase)
 	{
-		if (*str1 != *str2) return ((hawk_bchu_t)*str1 > (hawk_bchu_t)*str2)? 1: -1;
-		str1++; str2++;
+		const hawk_bch_t* end = str1 + len;
+		hawk_bch_t c1;
+		hawk_bch_t c2;
+		while (str1 < end && *str2 != '\0') 
+		{
+			c1 = hawk_to_bch_lower(*str1);
+			c2 = hawk_to_bch_lower(*str2);
+			if (c1 != c2) return ((hawk_bchu_t)c1 > (hawk_bchu_t)c2)? 1: -1;
+			str1++; str2++;
+		}
+		return (str1 < end)? 1: (*str2 == '\0'? 0: -1);	
 	}
-	return (str1 < end)? 1: (*str2 == '\0'? 0: -1);
+	else
+	{
+		const hawk_bch_t* end = str1 + len;
+		while (str1 < end && *str2 != '\0') 
+		{
+			if (*str1 != *str2) return ((hawk_bchu_t)*str1 > (hawk_bchu_t)*str2)? 1: -1;
+			str1++; str2++;
+		}
+		return (str1 < end)? 1: (*str2 == '\0'? 0: -1);
+	}
 }
 
-int hawk_comp_bchars_ucstr (const hawk_bch_t* str1, hawk_oow_t len, const hawk_uch_t* str2)
+int hawk_comp_bchars_ucstr (const hawk_bch_t* str1, hawk_oow_t len, const hawk_uch_t* str2, int ignorecase)
 {
-	const hawk_bch_t* end = str1 + len;
-	while (str1 < end && *str2 != '\0') 
+	if (ignorecase)
 	{
-		if (*str1 != *str2) return ((hawk_bchu_t)*str1 > (hawk_uchu_t)*str2)? 1: -1;
-		str1++; str2++;
+		const hawk_bch_t* end = str1 + len;
+		hawk_bch_t c1;
+		hawk_uch_t c2;
+		while (str1 < end && *str2 != '\0') 
+		{
+			c1 = hawk_to_bch_lower(*str1);
+			c2 = hawk_to_uch_lower(*str2);
+			if (c1 != c2) return ((hawk_bchu_t)c1 > (hawk_uchu_t)c2)? 1: -1;
+			str1++; str2++;
+		}
+		return (str1 < end)? 1: (*str2 == '\0'? 0: -1);
 	}
-	return (str1 < end)? 1: (*str2 == '\0'? 0: -1);
+	else
+	{
+		const hawk_bch_t* end = str1 + len;
+		while (str1 < end && *str2 != '\0') 
+		{
+			if (*str1 != *str2) return ((hawk_bchu_t)*str1 > (hawk_uchu_t)*str2)? 1: -1;
+			str1++; str2++;
+		}
+		return (str1 < end)? 1: (*str2 == '\0'? 0: -1);
+	}
 }
 
 /* ------------------------------------------------------------------------ */
@@ -3764,7 +3846,7 @@ hawk_cmgr_t* hawk_get_cmgr_by_ucstr (const hawk_uch_t* name)
 
 		for (i = 0; i < HAWK_COUNTOF(builtin_cmgr_tab); i++)
 		{
-			if (hawk_comp_ucstr_bcstr(name, builtin_cmgr_tab[i].name) == 0)
+			if (hawk_comp_ucstr_bcstr(name, builtin_cmgr_tab[i].name, 0) == 0)
 			{
 				return &builtin_cmgr[builtin_cmgr_tab[i].id];
 			}
