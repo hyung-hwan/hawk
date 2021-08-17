@@ -1266,7 +1266,7 @@ static int parse_progunit (hawk_t* hawk)
 		hawk->parse.id.block = PARSE_PATTERN;
 
 		eloc = hawk->tok.loc;
-		ptn = parse_expr_withdc (hawk, &eloc);
+		ptn = parse_expr_withdc(hawk, &eloc);
 		if (ptn == HAWK_NULL) return -1;
 
 		HAWK_ASSERT (ptn->next == HAWK_NULL);

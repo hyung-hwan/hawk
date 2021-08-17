@@ -1668,8 +1668,8 @@ Hawk::Run* Hawk::parse (Source& in, Source& out)
 	source_writer = (&out == &Source::NONE)? HAWK_NULL: &out;
 
 	hawk_sio_cbs_t sio;
-	sio.in = readSource;
-	sio.out = (source_writer == HAWK_NULL)? HAWK_NULL: writeSource;
+	sio.in = Hawk::readSource;
+	sio.out = (source_writer == HAWK_NULL)? HAWK_NULL: Hawk::writeSource;
 
 	int n = hawk_parse(this->hawk, &sio);
 	if (n <= -1) 

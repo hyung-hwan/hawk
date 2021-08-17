@@ -1240,54 +1240,20 @@ void* HawkStd::modgetsym (void* handle, const hawk_ooch_t* name)
 	return s;
 }
 
-HawkStd::SourceFile::~SourceFile ()
-{
-	if (this->_hawk) 
-	{
-		HAWK_ASSERT (this->name != HAWK_NULL);
-		hawk_freemem (this->_hawk, this->name);
-	}
-}
-
 int HawkStd::SourceFile::open (Data& io)
 {
 	hawk_sio_t* sio;
 
 	if (io.isMaster())
 	{
-		bool hawk_set_here = false;
+		hawk_ooch_t*  xpath;
 
-		// open the main source file.
-		if (!this->name)
-		{
-			this->_hawk = (hawk_t*)io;
-			if (this->_type == NAME_UCH)
-			{
-			#if defined(HAWK_OOCH_IS_UCH)
-				this->name = hawk_dupucstr(this->_hawk, (hawk_uch_t*)this->_name, HAWK_NULL);
-			#else
-				this->name = hawk_duputobcstr(this->_hawk, (hawk_uch_t*)this->_name, HAWK_NULL);
-			#endif
-			}
-			else
-			{
-				HAWK_ASSERT (this->_type == NAME_BCH);
-			#if defined(HAWK_OOCH_IS_UCH)
-				this->name = hawk_dupbtoucstr(this->_hawk, (hawk_bch_t*)this->_name, HAWK_NULL, 0);
-			#else
-				this->name = hawk_dupbcstr(this->_hawk, (hawk_bch_t*)this->_name, HAWK_NULL);
-			#endif
-			}
-			if (!this->name) 
-			{
-				this->_hawk = HAWK_NULL;
-				return -1;
-			}
+		xpath = (this->_type == NAME_UCH)?
+			hawk_addsionamewithuchars((hawk_t*)io, (const hawk_uch_t*)this->_name, hawk_count_ucstr((const hawk_uch_t*)this->_name)):
+			hawk_addsionamewithbchars((hawk_t*)io, (const hawk_bch_t*)this->_name, hawk_count_bcstr((const hawk_bch_t*)this->_name));
+		if (HAWK_UNLIKELY(!xpath)) return -1;
 
-			hawk_set_here = true;
-		}
-
-		if (this->name[0] == HAWK_T('-') && this->name[1] == HAWK_T('\0'))
+		if (xpath[0] == HAWK_T('-') && xpath[1] == HAWK_T('\0'))
 		{
 			if (io.getMode() == READ)
 				sio = open_sio_std(
@@ -1298,38 +1264,22 @@ int HawkStd::SourceFile::open (Data& io)
 					io, HAWK_NULL, HAWK_SIO_STDOUT, 
 					HAWK_SIO_WRITE | HAWK_SIO_CREATE | 
 					HAWK_SIO_TRUNCATE | HAWK_SIO_IGNOREECERR | HAWK_SIO_LINEBREAK);
-			if (sio == HAWK_NULL) 
-			{
-				if (hawk_set_here)
-				{
-					hawk_freemem (this->_hawk, this->name);
-					this->_hawk = HAWK_NULL;
-				}
-				return -1;
-			}
+			if (sio == HAWK_NULL) return -1;
 		}
 		else
 		{
-			sio = open_sio (
-				io, HAWK_NULL, this->name,
+			sio = open_sio(
+				io, HAWK_NULL, xpath,
 				(io.getMode() == READ? 
 					(HAWK_SIO_READ | HAWK_SIO_IGNOREECERR | HAWK_SIO_KEEPPATH): 
 					(HAWK_SIO_WRITE | HAWK_SIO_CREATE | HAWK_SIO_TRUNCATE | HAWK_SIO_IGNOREECERR))
 			);
-			if (sio == HAWK_NULL) 
-			{
-				if (hawk_set_here)
-				{
-					hawk_freemem (this->_hawk, this->name);
-					this->_hawk = HAWK_NULL;
-				}
-				return -1;
-			}
+			if (sio == HAWK_NULL) return -1;
 		}
 
 		if (this->cmgr) hawk_sio_setcmgr (sio, this->cmgr);
-		io.setName (this->name);
-		io.setPath (this->name);
+		io.setName (xpath);
+		io.setPath (xpath); // let parser use this path, especially upon an error
 	}
 	else
 	{
@@ -1526,7 +1476,7 @@ int HawkStd::SourceString::open (Data& io)
 
 		io.setPath (xpath);
 		io.setHandle (sio);
-		//if (this->cmgr) hawk_sio_setcmgr (sio, this->cmgr);
+		if (this->cmgr) hawk_sio_setcmgr (sio, this->cmgr);
 	}
 
 	return 1;
@@ -1534,7 +1484,19 @@ int HawkStd::SourceString::open (Data& io)
 
 int HawkStd::SourceString::close (Data& io)
 {
-	if (!io.isMaster()) hawk_sio_close ((hawk_sio_t*)io.getHandle());
+	if (io.isMaster())
+	{
+		HAWK_ASSERT (this->_hawk != HAWK_NULL);
+		HAWK_ASSERT (this->str != HAWK_NULL);
+		hawk_freemem (this->_hawk, this->str);
+		this->str = HAWK_NULL;
+		this->ptr = HAWK_NULL;
+		this->_hawk = HAWK_NULL;
+	}
+	else
+	{
+		hawk_sio_close ((hawk_sio_t*)io.getHandle());
+	}
 	return 0;
 }
 
@@ -1543,12 +1505,12 @@ hawk_ooi_t HawkStd::SourceString::read (Data& io, hawk_ooch_t* buf, hawk_oow_t l
 	if (io.isMaster())
 	{
 		hawk_oow_t n = 0;
-		while (*ptr != HAWK_T('\0') && n < len) buf[n++] = *ptr++;
+		while (*this->ptr != '\0' && n < len) buf[n++] = *this->ptr++;
 		return n;
 	}
 	else
 	{
-		return hawk_sio_getoochars ((hawk_sio_t*)io.getHandle(), buf, len);
+		return hawk_sio_getoochars((hawk_sio_t*)io.getHandle(), buf, len);
 	}
 }
 
@@ -1562,7 +1524,7 @@ hawk_ooi_t HawkStd::SourceString::write (Data& io, const hawk_ooch_t* buf, hawk_
 	{
 		// in fact, this block will never be reached as
 		// there is no included file concept for deparsing 
-		return hawk_sio_putoochars ((hawk_sio_t*)io.getHandle(), buf, len);
+		return hawk_sio_putoochars((hawk_sio_t*)io.getHandle(), buf, len);
 	}
 }
 

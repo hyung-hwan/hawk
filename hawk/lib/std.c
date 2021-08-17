@@ -1110,7 +1110,7 @@ static int open_parsestd (hawk_t* hawk, hawk_sio_arg_t* arg, xtn_t* xtn, hawk_oo
 			else
 			{
 				path = hawk_addsionamewithbchars(hawk, psin->u.fileb.path, hawk_count_bcstr(psin->u.fileb.path));
-				if (!path) return -1;
+				if (HAWK_UNLIKELY(!path)) return -1;
 				tmp = open_sio(hawk, path, HAWK_SIO_READ | HAWK_SIO_IGNOREECERR | HAWK_SIO_KEEPPATH);
 			}
 			if (tmp == HAWK_NULL) return -1;

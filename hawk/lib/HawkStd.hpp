@@ -65,17 +65,17 @@ public:
 	class HAWK_EXPORT SourceFile: public Source 
 	{
 	public:
-		SourceFile (const hawk_uch_t* name, hawk_cmgr_t* cmgr = HAWK_NULL): _type(NAME_UCH), _name(name), _hawk(HAWK_NULL), name(HAWK_NULL), cmgr (cmgr)
+		SourceFile (const hawk_uch_t* name, hawk_cmgr_t* cmgr = HAWK_NULL): _type(NAME_UCH), _name(name), cmgr(cmgr)
 		{
 			dir.ptr = HAWK_NULL; dir.len = 0; 
 		}
 
-		SourceFile (const hawk_bch_t* name, hawk_cmgr_t* cmgr = HAWK_NULL): _type(NAME_BCH), _name(name), _hawk(HAWK_NULL), name(HAWK_NULL), cmgr (cmgr)
+		SourceFile (const hawk_bch_t* name, hawk_cmgr_t* cmgr = HAWK_NULL): _type(NAME_BCH), _name(name), cmgr(cmgr)
 		{
 			dir.ptr = HAWK_NULL; dir.len = 0; 
 		}
 
-		~SourceFile ();
+		~SourceFile () {};
 
 		int open (Data& io);
 		int close (Data& io);
@@ -89,9 +89,6 @@ public:
 			NAME_BCH
 		} _type;
 		const void* _name;
-		hawk_t* _hawk;
-
-		hawk_ooch_t* name;
 		hawk_oocs_t dir;
 		hawk_cmgr_t* cmgr;
 	};
@@ -103,8 +100,8 @@ public:
 	class HAWK_EXPORT SourceString: public Source
 	{
 	public:
-		SourceString (const hawk_uch_t* str): _type(STR_UCH), _str(str), _hawk(HAWK_NULL), str(HAWK_NULL), ptr(HAWK_NULL) {}
-		SourceString (const hawk_bch_t* str): _type(STR_BCH), _str(str), _hawk(HAWK_NULL), str(HAWK_NULL), ptr(HAWK_NULL) {}
+		SourceString (const hawk_uch_t* str, hawk_cmgr_t* cmgr = HAWK_NULL): _type(STR_UCH), _str(str), _hawk(HAWK_NULL), str(HAWK_NULL), ptr(HAWK_NULL), cmgr(cmgr) {}
+		SourceString (const hawk_bch_t* str, hawk_cmgr_t* cmgr = HAWK_NULL): _type(STR_BCH), _str(str), _hawk(HAWK_NULL), str(HAWK_NULL), ptr(HAWK_NULL), cmgr(cmgr) {}
 		~SourceString ();
 
 		int open (Data& io);
@@ -123,6 +120,7 @@ public:
 
 		hawk_ooch_t* str;
 		const hawk_ooch_t* ptr;
+		hawk_cmgr_t* cmgr; // for reading included files
 	};
 
 	HawkStd (Mmgr* mmgr = HAWK_NULL): Hawk(mmgr), cmgrtab_inited(false), stdmod_up(false), console_cmgr(HAWK_NULL) 
