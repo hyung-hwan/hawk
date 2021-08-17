@@ -1255,6 +1255,8 @@ int HawkStd::SourceFile::open (Data& io)
 
 	if (io.isMaster())
 	{
+		bool hawk_set_here = false;
+
 		// open the main source file.
 		if (!this->name)
 		{
@@ -1276,7 +1278,13 @@ int HawkStd::SourceFile::open (Data& io)
 				this->name = hawk_dupbcstr(this->_hawk, (hawk_bch_t*)this->_name, HAWK_NULL);
 			#endif
 			}
-			if (!this->name) return -1;
+			if (!this->name) 
+			{
+				this->_hawk = HAWK_NULL;
+				return -1;
+			}
+
+			hawk_set_here = true;
 		}
 
 		if (this->name[0] == HAWK_T('-') && this->name[1] == HAWK_T('\0'))
@@ -1290,7 +1298,15 @@ int HawkStd::SourceFile::open (Data& io)
 					io, HAWK_NULL, HAWK_SIO_STDOUT, 
 					HAWK_SIO_WRITE | HAWK_SIO_CREATE | 
 					HAWK_SIO_TRUNCATE | HAWK_SIO_IGNOREECERR | HAWK_SIO_LINEBREAK);
-			if (sio == HAWK_NULL) return -1;
+			if (sio == HAWK_NULL) 
+			{
+				if (hawk_set_here)
+				{
+					hawk_freemem (this->_hawk, this->name);
+					this->_hawk = HAWK_NULL;
+				}
+				return -1;
+			}
 		}
 		else
 		{
@@ -1300,7 +1316,15 @@ int HawkStd::SourceFile::open (Data& io)
 					(HAWK_SIO_READ | HAWK_SIO_IGNOREECERR | HAWK_SIO_KEEPPATH): 
 					(HAWK_SIO_WRITE | HAWK_SIO_CREATE | HAWK_SIO_TRUNCATE | HAWK_SIO_IGNOREECERR))
 			);
-			if (sio == HAWK_NULL) return -1;
+			if (sio == HAWK_NULL) 
+			{
+				if (hawk_set_here)
+				{
+					hawk_freemem (this->_hawk, this->name);
+					this->_hawk = HAWK_NULL;
+				}
+				return -1;
+			}
 		}
 
 		if (this->cmgr) hawk_sio_setcmgr (sio, this->cmgr);
@@ -1434,7 +1458,11 @@ int HawkStd::SourceString::open (Data& io)
 				this->str = hawk_dupbcstr(this->_hawk, (hawk_bch_t*)this->_str, HAWK_NULL);
 			#endif
 			}
-			if (!this->str) return -1;
+			if (!this->str) 
+			{
+				this->_hawk = HAWK_NULL;
+				return -1;
+			}
 		}
 
 		this->ptr = this->str;

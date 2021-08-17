@@ -48,7 +48,7 @@ CFLAGS="${RPM_OPT_FLAGS} -fPIC" CXXFLAGS="${RPM_OPT_FLAGS} -fPIC" ./configure  \
 	--enable-pthread-flags=yes \
 	--enable-libltdl=no \
 	--enable-libunwind=no \
-	--enable-mod=mysql=yes \
+	--enable-mod-mysql=yes \
 	--enable-mod-uci=no ##CC=gcc44 CXX=g++44
 
 make
