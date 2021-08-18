@@ -207,6 +207,19 @@ HAWK_EXPORT int hawk_bchars_to_ipad_bytes (
 	hawk_oow_t          blen
 );
 
+#define hawk_ucstr_to_ipad_bytes(str,buf,blen) hawk_uchars_to_ipad_bytes(str, hawk_count_ucstr(str,buf,len)
+#define hawk_bcstr_to_ipad_bytes(str,buf,blen) hawk_bchars_to_ipad_bytes(str, hawk_count_bcstr(str,buf,len)
+
+#if defined(HAWK_OOCH_IS_UCH)
+#	define hawk_ipad_bytes_to_oocstr hawk_ipad_bytes_to_ucstr
+#	define hawk_oochars_to_ipad_bytes hawk_uchars_to_ipad_bytes
+#	define hawk_oocstr_to_ipad_bytes hawk_ucstr_to_ipad_bytes
+#else
+#	define hawk_ipad_bytes_to_oocstr hawk_ipad_bytes_to_bcstr
+#	define hawk_oochars_to_ipad_bytes hawk_bchars_to_ipad_bytes
+#	define hawk_oocstr_to_ipad_bytes hawk_bcstr_to_ipad_bytes
+#endif
+
 HAWK_EXPORT int hawk_ipad_bytes_is_v4_mapped (
 	const hawk_uint8_t* iptr,
 	hawk_oow_t          ilen
