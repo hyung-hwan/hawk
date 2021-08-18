@@ -1298,6 +1298,11 @@ typedef enum hawk_log_mask_t hawk_log_mask_t;
 #	define HAWK_UNLIKELY(x) (x)
 #endif
 
+#if defined(__GNUC__)
+#	define HAWK_PACKED __attribute__((__packed__))
+#else
+#	define HAWK_PACKED 
+#endif
 
 /* =========================================================================
  * ASSERTION
@@ -1392,6 +1397,7 @@ typedef enum hawk_log_mask_t hawk_log_mask_t;
 
 
 
+#if 0
 /* =========================================================================
  * SOCKET ADDRESS
  * ========================================================================= */
@@ -1419,5 +1425,9 @@ struct hawk_skad_t
 	hawk_uint8_t data[HAWK_SIZEOF_SKAD_T];
 };
 typedef struct hawk_skad_t hawk_skad_t;
+
+#endif
+
+
 
 #endif

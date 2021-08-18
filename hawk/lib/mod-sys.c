@@ -3983,7 +3983,7 @@ static int fnc_sockaddrdom (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		}
 		else
 		{
-			rx = hawk_skad_family(&skad);
+			rx = hawk_skad_get_family(&skad);
 		}
 
 		hawk_rtx_freevaloocstr (rtx, a0, addr);
@@ -4066,7 +4066,7 @@ static int fnc_connect (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			}
 
 			hawk_rtx_freevaloocstr (rtx, a1, addr);
-			rx = connect(sys_node->ctx.u.file.fd, (struct sockaddr*)&skad, hawk_skad_size(&skad));
+			rx = connect(sys_node->ctx.u.file.fd, (struct sockaddr*)&skad, hawk_skad_get_size(&skad));
 			if (rx <= -1) 
 			{
 				rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
@@ -4220,7 +4220,7 @@ static int fnc_sendto (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			hawk_rtx_freevaloocstr (rtx, a2, addr);
 				
 			sa = (struct sockaddr*)&skad;
-			salen = hawk_skad_size(&skad);
+			salen = hawk_skad_get_size(&skad);
 		}
 
 		a1 = hawk_rtx_getarg(rtx, 1);
@@ -4299,7 +4299,7 @@ static int fnc_bind (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		}
 		hawk_rtx_freevaloocstr (rtx, a1, addr);
 
-		rx = bind(sys_node->ctx.u.file.fd, (struct sockaddr*)&skad, hawk_skad_size(&skad));
+		rx = bind(sys_node->ctx.u.file.fd, (struct sockaddr*)&skad, hawk_skad_get_size(&skad));
 		if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
 	}
 
@@ -4508,7 +4508,7 @@ you can specify the remote:// with /dev/log.
 static void open_remote_log_socket (hawk_rtx_t* rtx, rtx_data_t* rdp)
 {
 	int sck, flags;
-	int domain = hawk_skad_family(&rdp->log.skad);
+	int domain = hawk_skad_get_family(&rdp->log.skad);
 	int type = SOCK_DGRAM;
 
 	HAWK_ASSERT (rdp->log.sck <= -1);
@@ -4832,7 +4832,7 @@ static int fnc_writelog (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 			/* don't care about output failure */
 			sendto (rdp->log.sck, HAWK_BECS_PTR(rdp->log.dmsgbuf), HAWK_BECS_LEN(rdp->log.dmsgbuf),
-			        0, (struct sockaddr*)&rdp->log.skad, hawk_skad_size(&rdp->log.skad));
+			        0, (struct sockaddr*)&rdp->log.skad, hawk_skad_get_size(&rdp->log.skad));
 		}
 	#endif
 	}

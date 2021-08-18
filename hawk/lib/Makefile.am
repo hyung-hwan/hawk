@@ -50,6 +50,7 @@ pkginclude_HEADERS = \
 	hawk-map.h \
 	hawk-rbt.h \
 	hawk-pack1.h \
+	hawk-skad.h \
 	hawk-utl.h \
 	hawk-std.h \
 	hawk-tre.h \
@@ -79,7 +80,6 @@ libhawk_la_SOURCES = \
 	fnc.c \
 	htb.c \
 	gem.c \
-	gem-skad.c \
 	gem-nwif.c \
 	gem-nwif2.c \
 	hawk-prv.h \
@@ -97,6 +97,7 @@ libhawk_la_SOURCES = \
 	rio.c \
 	run-prv.h \
 	run.c \
+	skad.c \
 	tre-prv.h \
 	tre-ast.c \
 	tre-ast.h \
@@ -119,8 +120,6 @@ libhawk_la_SOURCES = \
 	utf16.c \
 	utf8.c \
 	utl-ass.c \
-	utl-skad.c \
-	utl-skad.h \
 	utl-sort.c \
 	utl-str.c \
 	utl-sys.c \

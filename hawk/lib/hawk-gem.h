@@ -28,6 +28,8 @@
 #define _HAWK_GEM_H_
 
 #include <hawk-cmn.h>
+#include <hawk-skad.h>
+#include <stdarg.h>
 
 #define HAWK_SKAD_TO_OOCSTR_ADDR (1 << 0)
 #define HAWK_SKAD_TO_OOCSTR_PORT (1 << 1)
@@ -330,13 +332,22 @@ HAWK_EXPORT hawk_oow_t hawk_gem_fmttobcstr (
 
 /* ----------------------------------------------------------------------- */
 
-HAWK_EXPORT int hawk_gem_oocharstoskad (
+HAWK_EXPORT int hawk_gem_ucharstoskad (
 	hawk_gem_t*        gem,
-	const hawk_ooch_t* str,
+	const hawk_uch_t*  str,
 	hawk_oow_t         len,
 	hawk_skad_t*       skad
 );
 
+HAWK_EXPORT int hawk_gem_bcharstoskad (
+	hawk_gem_t*        gem,
+	const hawk_bch_t*  str,
+	hawk_oow_t         len,
+	hawk_skad_t*       skad
+);
+
+#define hawk_gem_ucstrtoskad(gem,str,skad) hawk_gem_ucharstoskad(gem, str, hawk_count_ucstr(str), skad)
+#define hawk_gem_bcstrtoskad(gem,str,skad) hawk_gem_bcharstoskad(gem, str, hawk_count_bcstr(str), skad)
 
 HAWK_EXPORT hawk_oow_t hawk_gem_skadtoucstr (
 	hawk_gem_t*        gem,
@@ -355,8 +366,12 @@ HAWK_EXPORT hawk_oow_t hawk_gem_skadtobcstr (
 );
 
 #if defined(HAWK_OOCH_IS_UCH)
+#	define hawk_gem_oocstrtoskad hawk_gem_ucstrtoskad
+#	define hawk_gem_oocharstoskad hawk_gem_ucharstoskad
 #	define hawk_gem_skadtooocstr hawk_gem_skadtoucstr
 #else
+#	define hawk_gem_oocstrtoskad hawk_gem_bcstrtoskad
+#	define hawk_gem_oocharstoskad hawk_gem_bcharstoskad
 #	define hawk_gem_skadtooocstr hawk_gem_skadtobcstr
 #endif
 /* ----------------------------------------------------------------------- */

@@ -876,7 +876,8 @@
 /* Wide-character type size */
 #undef HAWK_WIDE_CHAR_SIZE
 
-/* Define to the sub-directory where libtool stores uninstalled libraries. */
+/* Define to the sub-directory in which libtool stores uninstalled libraries.
+   */
 #undef LT_OBJDIR
 
 /* The size of `AF_INET', as computed by valueof. */

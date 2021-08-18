@@ -1653,22 +1653,6 @@ HAWK_EXPORT void hawk_sub_ntime (
 
 
 /* =========================================================================
- * SOCKET ADDRESS
- * ========================================================================= */
-
-HAWK_EXPORT int hawk_skad_family (
-	const hawk_skad_t* skad
-);
-
-HAWK_EXPORT int hawk_skad_size (
-	const hawk_skad_t* skad
-);
-
-HAWK_EXPORT void hawk_clear_skad (
-	hawk_skad_t* skad
-);
-
-/* =========================================================================
  * ASSERTION
  * ========================================================================= */
 HAWK_EXPORT void hawk_assert_fail (

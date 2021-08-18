@@ -26,7 +26,7 @@
 
 #if 1
 #include "hawk-prv.h"
-#include "utl-skad.h"
+#include "skad-prv.h"
 #include <hawk-sio.h>
 
 
@@ -686,7 +686,7 @@ static int get_ifcfg (hawk_gem_t* gem, int s, hawk_ifcfg_t* cfg, struct ifreq* i
 	if (ioctl(s, SIOCGIFNETMASK, ifr) >= 0) copy_to_skad ((struct sockaddr*)&ifr->ifr_addr, &cfg->mask);
 
 	#if defined(__linux)
-	if (hawk_skad_family(&cfg->addr) == HAWK_AF_UNSPEC && hawk_skad_family(&cfg->mask) == HAWK_AF_UNSPEC && cfg->type == HAWK_IFCFG_IN6)
+	if (hawk_skad_get_family(&cfg->addr) == HAWK_AF_UNSPEC && hawk_skad_get_family(&cfg->mask) == HAWK_AF_UNSPEC && cfg->type == HAWK_IFCFG_IN6)
 	{
 		/* access /proc/net/if_inet6 */
 		read_proc_net_if_inet6 (gem, cfg, ifr);
