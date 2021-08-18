@@ -130,6 +130,7 @@ struct hawk_rtx_alt_t
 
 /* ------------------------------------------------------------------------ */
 
+/* garbage collection header */
 typedef struct hawk_gch_t hawk_gch_t;
 struct hawk_gch_t
 {
@@ -3607,6 +3608,10 @@ static HAWK_INLINE void hawk_rtx_freerex (hawk_rtx_t* rtx, hawk_tre_t* code, haw
  */
 HAWK_EXPORT hawk_val_t* hawk_get_nil_val (
 	void
+);
+
+HAWK_EXPORT int hawk_get_val_type (
+	hawk_val_t* val
 );
 
 #if defined(__cplusplus)

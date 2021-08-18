@@ -469,6 +469,11 @@ static HAWK_INLINE hawk_val_t* gc_calloc_val (hawk_rtx_t* rtx, hawk_oow_t size)
 
 /* --------------------------------------------------------------------- */
 
+int hawk_get_val_type (hawk_val_t* val)
+{
+	return HAWK_GET_VAL_TYPE(val);
+}
+
 hawk_val_t* hawk_get_nil_val (void)
 {
 	return (hawk_val_t*)&hawk_nil;

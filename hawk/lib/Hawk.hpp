@@ -1045,6 +1045,8 @@ public:
 			return p;
 		}
 
+		int getType () const { return hawk_get_val_type(this->val); }
+
 		int getInt (hawk_int_t* v) const;
 		int getFlt (hawk_flt_t* v) const;
 		int getNum (hawk_int_t* lv, hawk_flt_t* fv) const;

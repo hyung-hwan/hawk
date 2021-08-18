@@ -142,11 +142,12 @@ struct hawk_val_rchunk_t
 #define HAWK_VTR_TO_QCHAR(p) ((hawk_ooch_t)((hawk_uintptr_t)(p) >> HAWK_VTR_NUM_TYPE_BITS_LO))
 #define HAWK_VTR_TO_QBCHR(p) ((hawk_ooch_t)((hawk_uintptr_t)(p) >> HAWK_VTR_NUM_TYPE_BITS_LOHI))
 
-#define HAWK_RTX_GETVALTYPE(rtx,p) (HAWK_VTR_IS_QINT(p)? HAWK_VAL_INT: \
-                                    HAWK_VTR_IS_QCHAR(p)? HAWK_VAL_CHAR: \
-                                    HAWK_VTR_IS_QBCHR(p)? HAWK_VAL_BCHR: (p)->v_type)
+#define HAWK_GET_VAL_TYPE(p) (HAWK_VTR_IS_QINT(p)? HAWK_VAL_INT: \
+                              HAWK_VTR_IS_QCHAR(p)? HAWK_VAL_CHAR: \
+                              HAWK_VTR_IS_QBCHR(p)? HAWK_VAL_BCHR: (p)->v_type)
 
-#define HAWK_RTX_GETINTFROMVAL(rtx,p) ((HAWK_VTR_IS_QINT(p)? (hawk_int_t)HAWK_VTR_TO_QINT(p): ((hawk_val_int_t*)(p))->i_val))
+#define HAWK_RTX_GETVALTYPE(rtx, p) HAWK_GET_VAL_TYPE(p)
+#define HAWK_RTX_GETINTFROMVAL(rtx, p) ((HAWK_VTR_IS_QINT(p)? (hawk_int_t)HAWK_VTR_TO_QINT(p): ((hawk_val_int_t*)(p))->i_val))
 #define HAWK_RTX_GETCHARFROMVAL(rtx, p) (HAWK_VTR_TO_QCHAR(p))
 #define HAWK_RTX_GETBCHRFROMVAL(rtx, p) (HAWK_VTR_TO_QBCHR(p))
 

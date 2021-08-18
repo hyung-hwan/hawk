@@ -1279,7 +1279,7 @@ int HawkStd::SourceFile::open (Data& io)
 
 		if (this->cmgr) hawk_sio_setcmgr (sio, this->cmgr);
 		io.setName (xpath);
-		io.setPath (xpath); // let parser use this path, especially upon an error
+		io.setPath (xpath); // let the parser use this path, especially upon an error
 	}
 	else
 	{
@@ -1367,11 +1367,8 @@ hawk_ooi_t HawkStd::SourceFile::write (Data& io, const hawk_ooch_t* buf, hawk_oo
 
 HawkStd::SourceString::~SourceString ()
 {
-	if (this->_hawk) 
-	{
-		HAWK_ASSERT (this->str != HAWK_NULL);
-		hawk_freemem (this->_hawk, this->str);
-	}
+	HAWK_ASSERT (this->_hawk == HAWK_NULL);
+	HAWK_ASSERT (this->str == HAWK_NULL);
 }
 
 int HawkStd::SourceString::open (Data& io)
@@ -1394,21 +1391,21 @@ int HawkStd::SourceString::open (Data& io)
 			if (this->_type == STR_UCH)
 			{
 			#if defined(HAWK_OOCH_IS_UCH)
-				this->str = hawk_dupucstr(this->_hawk, (hawk_uch_t*)this->_str, HAWK_NULL);
+				this->str = hawk_dupucstr(this->_hawk, (const hawk_uch_t*)this->_str, HAWK_NULL);
 			#else
-				this->str = hawk_duputobcstr(this->_hawk, (hawk_uch_t*)this->_str, HAWK_NULL);
+				this->str = hawk_duputobcstr(this->_hawk, (const hawk_uch_t*)this->_str, HAWK_NULL);
 			#endif
 			}
 			else
 			{
 				HAWK_ASSERT (this->_type == STR_BCH);
 			#if defined(HAWK_OOCH_IS_UCH)
-				this->str = hawk_dupbtoucstr(this->_hawk, (hawk_bch_t*)this->_str, HAWK_NULL, 0);
+				this->str = hawk_dupbtoucstr(this->_hawk, (const hawk_bch_t*)this->_str, HAWK_NULL, 0);
 			#else
-				this->str = hawk_dupbcstr(this->_hawk, (hawk_bch_t*)this->_str, HAWK_NULL);
+				this->str = hawk_dupbcstr(this->_hawk, (const hawk_bch_t*)this->_str, HAWK_NULL);
 			#endif
 			}
-			if (!this->str) 
+			if (HAWK_UNLIKELY(!this->str)) 
 			{
 				this->_hawk = HAWK_NULL;
 				return -1;
@@ -1448,7 +1445,7 @@ int HawkStd::SourceString::open (Data& io)
 					if (totlen >= HAWK_COUNTOF(fbuf))
 					{
 						dbuf = (hawk_ooch_t*)hawk_allocmem((hawk_t*)io, HAWK_SIZEOF(hawk_ooch_t) * (totlen + 1));
-						if (!dbuf) return -1;
+						if (HAWK_UNLIKELY(!dbuf)) return -1;
 						path = dbuf;
 					}
 					else path = fbuf;
@@ -1464,7 +1461,7 @@ int HawkStd::SourceString::open (Data& io)
 		{
 			xpath = hawk_addsionamewithoochars((hawk_t*)io, ioname, hawk_count_oocstr(ioname));
 		}
-		if (!xpath) return -1;
+		if (HAWK_UNLIKELY(!xpath)) return -1;
 
 		sio = open_sio(
 			io, HAWK_NULL, xpath,
