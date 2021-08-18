@@ -97,6 +97,7 @@ libhawk_la_SOURCES = \
 	rio.c \
 	run-prv.h \
 	run.c \
+	skad-prv.h \
 	skad.c \
 	tre-prv.h \
 	tre-ast.c \
