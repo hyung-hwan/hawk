@@ -12,7 +12,7 @@ Group: System Environment/Libraries
 Source0: %{name}-%{version}.tar.gz
 #Requires: 
 
-BuildRequires: mysql-devel
+BuildRequires: mysql-devel, libffi-devel
 BuildRoot: %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 
 %description
@@ -48,6 +48,8 @@ CFLAGS="${RPM_OPT_FLAGS} -fPIC" CXXFLAGS="${RPM_OPT_FLAGS} -fPIC" ./configure  \
 	--enable-pthread-flags=yes \
 	--enable-libltdl=no \
 	--enable-libunwind=no \
+	--enable-mod-ffi=yes \
+	--with-mysql=yes \
 	--enable-mod-mysql=yes \
 	--enable-mod-uci=no ##CC=gcc44 CXX=g++44
 
