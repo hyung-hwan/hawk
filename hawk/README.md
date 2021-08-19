@@ -559,7 +559,7 @@ Socket functions are available.
 	BEGIN {
 		mysql = mysql::open();
 
-		if (mysql::connect(mysql, "192.168.1.1", "mysql", "username", "password") <= -1)
+		if (mysql::connect(mysql, "localhost", "username", "password", "mysql") <= -1)
 		{
 			 print "connect error -", mysql::errmsg();
 		}
@@ -710,7 +710,7 @@ The following sample illustrates the basic steps hightlighed above.
 	}
 
 
-If you prefer C++, you may use the Hawk/HawkStd wrapper classes to simplify the task. The C++ classes are inferior to the C equivalents in that they don't allow creation of multiple runtime contexts over a single hawk instance. Here is the sample code that prints "hello, world":
+If you prefer C++, you may use the Hawk/HawkStd wrapper classes to simplify the task. The C++ classes are inferior to the C equivalents in that they don't allow creation of multiple runtime contexts over a single hawk instance. Here is the sample code that prints "hello, world".
 
 	#include <HawkStd.hpp>
 	#include <stdio.h>
@@ -728,7 +728,7 @@ If you prefer C++, you may use the Hawk/HawkStd wrapper classes to simplify the 
 		HAWK::HawkStd::SourceString s("BEGIN { print \"hello, world\"; }");
 		if (hawk.parse(s, HAWK::HawkStd::Source::NONE) == HAWK_NULL)
 		{
-			fprintf (stderr, "unable to open parse - %s\n", hawk.getErrorMessageB());
+			fprintf (stderr, "unable to parse - %s\n", hawk.getErrorMessageB());
 			hawk.close ();
 			return -1;
 		}
