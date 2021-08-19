@@ -1239,6 +1239,8 @@ public:
 		///
 		int setGlobal (int id, const hawk_uch_t* ptr, hawk_oow_t len, bool mbs = false);
 		int setGlobal (int id, const hawk_bch_t* ptr, hawk_oow_t len, bool mbs = false);
+		int setGlobal (int id, const hawk_uch_t* ptr, bool mbs = false);
+		int setGlobal (int id, const hawk_bch_t* ptr, bool mbs = false);
 
 		/// 
 		/// The setGlobal() function sets a global variable 

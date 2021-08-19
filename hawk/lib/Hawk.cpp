@@ -202,7 +202,7 @@ int Hawk::Console::setFNR (hawk_int_t fnr)
 	if (tmp == HAWK_NULL) return -1;
 
 	hawk_rtx_refupval (this->run->rtx, tmp);
-	n = hawk_rtx_setgbl (this->run->rtx, HAWK_GBL_FNR, tmp);
+	n = hawk_rtx_setgbl(this->run->rtx, HAWK_GBL_FNR, tmp);
 	hawk_rtx_refdownval (this->run->rtx, tmp);
 
 	return n;
@@ -1277,7 +1277,7 @@ int Hawk::Run::setGlobal (int id, hawk_int_t v)
 	if (HAWK_UNLIKELY(!tmp)) return -1;
 
 	hawk_rtx_refupval (this->rtx, tmp);
-	int n = hawk_rtx_setgbl (this->rtx, id, tmp);
+	int n = hawk_rtx_setgbl(this->rtx, id, tmp);
 	hawk_rtx_refdownval (this->rtx, tmp);
 	return n;
 }
@@ -1290,7 +1290,7 @@ int Hawk::Run::setGlobal (int id, hawk_flt_t v)
 	if (HAWK_UNLIKELY(!tmp)) return -1;
 
 	hawk_rtx_refupval (this->rtx, tmp);
-	int n = hawk_rtx_setgbl (this->rtx, id, tmp);
+	int n = hawk_rtx_setgbl(this->rtx, id, tmp);
 	hawk_rtx_refdownval (this->rtx, tmp);
 	return n;
 }
@@ -1304,7 +1304,7 @@ int Hawk::Run::setGlobal (int id, const hawk_uch_t* ptr, hawk_oow_t len, bool mb
 	if (HAWK_UNLIKELY(!tmp)) return -1;
 
 	hawk_rtx_refupval (this->rtx, tmp);
-	int n = hawk_rtx_setgbl (this->rtx, id, tmp);
+	int n = hawk_rtx_setgbl(this->rtx, id, tmp);
 	hawk_rtx_refdownval (this->rtx, tmp);
 	return n;
 }
@@ -1318,7 +1318,35 @@ int Hawk::Run::setGlobal (int id, const hawk_bch_t* ptr, hawk_oow_t len, bool mb
 	if (HAWK_UNLIKELY(!tmp)) return -1;
 
 	hawk_rtx_refupval (this->rtx, tmp);
-	int n = hawk_rtx_setgbl (this->rtx, id, tmp);
+	int n = hawk_rtx_setgbl(this->rtx, id, tmp);
+	hawk_rtx_refdownval (this->rtx, tmp);
+	return n;
+}
+
+int Hawk::Run::setGlobal (int id, const hawk_uch_t* ptr, bool mbs)
+{
+	HAWK_ASSERT (this->rtx != HAWK_NULL);
+
+	hawk_val_t* tmp = mbs? hawk_rtx_makembsvalwithucstr(this->rtx, ptr):
+	                       hawk_rtx_makestrvalwithucstr(this->rtx, ptr);
+	if (HAWK_UNLIKELY(!tmp)) return -1;
+
+	hawk_rtx_refupval (this->rtx, tmp);
+	int n = hawk_rtx_setgbl(this->rtx, id, tmp);
+	hawk_rtx_refdownval (this->rtx, tmp);
+	return n;
+}
+
+int Hawk::Run::setGlobal (int id, const hawk_bch_t* ptr, bool mbs)
+{
+	HAWK_ASSERT (this->rtx != HAWK_NULL);
+
+	hawk_val_t* tmp = mbs? hawk_rtx_makembsvalwithbcstr(this->rtx, ptr):
+	                       hawk_rtx_makestrvalwithbcstr(this->rtx, ptr);
+	if (HAWK_UNLIKELY(!tmp)) return -1;
+
+	hawk_rtx_refupval (this->rtx, tmp);
+	int n = hawk_rtx_setgbl(this->rtx, id, tmp);
 	hawk_rtx_refdownval (this->rtx, tmp);
 	return n;
 }
@@ -1326,7 +1354,7 @@ int Hawk::Run::setGlobal (int id, const hawk_bch_t* ptr, hawk_oow_t len, bool mb
 int Hawk::Run::setGlobal (int id, const Value& gbl)
 {
 	HAWK_ASSERT (this->rtx != HAWK_NULL);
-	return hawk_rtx_setgbl (this->rtx, id, (hawk_val_t*)gbl);
+	return hawk_rtx_setgbl(this->rtx, id, (hawk_val_t*)gbl);
 }
 
 int Hawk::Run::getGlobal (int id, Value& g) const
