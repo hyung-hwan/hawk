@@ -57,6 +57,9 @@ union hawk_skad_alt_t
 #if (HAWK_SIZEOF_STRUCT_SOCKADDR_UN > 0)
 	struct sockaddr_un un;
 #endif
+#if (HAWK_SIZEOF_STRUCT_SOCKADDR_DL > 0)
+	struct sockaddr_dl dl;
+#endif
 };
 typedef union hawk_skad_alt_t hawk_skad_alt_t;
 
