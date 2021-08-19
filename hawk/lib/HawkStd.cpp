@@ -1483,6 +1483,9 @@ int HawkStd::SourceString::close (Data& io)
 {
 	if (io.isMaster())
 	{
+		// free the resources and nullify this->_hawk in particular
+		// to prevent this object from outliving the hawk instance pointed to
+		// by this->_hawk.
 		HAWK_ASSERT (this->_hawk != HAWK_NULL);
 		HAWK_ASSERT (this->str != HAWK_NULL);
 		hawk_freemem (this->_hawk, this->str);
