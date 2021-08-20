@@ -275,12 +275,10 @@ static int fnc_isxdigit (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 static int fnc_frombcharcode (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
-	/* create a string from a series of character codes.
-	 * create a character from a single character code.
-	 *  - str::fromcharcode(65) for 'A'
-	 *  - str::fromcharcode(65, 66, 67) for "ABC" */
-
-/* TODO: how to support byte string? */
+	/* create a byte-string from a series of character codes.
+	 * create a byte-character from a single character code.
+	 *  - str::frombcharcode(65) for 'A'
+	 *  - str::frombcharcode(65, 66, 67) for "ABC" */
 
 	hawk_val_t* retv;
 	hawk_oow_t nargs, i;
@@ -332,8 +330,6 @@ static int fnc_fromcharcode (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	 * create a character from a single character code.
 	 *  - str::fromcharcode(65) for 'A'
 	 *  - str::fromcharcode(65, 66, 67) for "ABC" */
-
-/* TODO: how to support byte string? */
 
 	hawk_val_t* retv;
 	hawk_oow_t nargs, i;

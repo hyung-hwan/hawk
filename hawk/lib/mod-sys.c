@@ -4874,6 +4874,32 @@ struct st_pointer_t { hawk_uint8_t x; void* y; };
 #define AL_POINTER (HAWK_SIZEOF(struct st_pointer_t) - HAWK_SIZEOF(void*))
 #endif
 
+/*
+Byte-Order
+=	native
+<	little-endian
+>	big-endian
+!	network (= big-endian)
+
+b	qse_int8_t
+B	qse_uint8_t
+h	qse_int16_t
+H	qse_uint16_t
+i	qse_int32_t
+I	qse_uint32_t
+l	qse_int64_t
+L	qse_uint64_t
+q	qse_intmax_t
+Q	qse_uintmax_t
+n       qse_intptr_t
+N       qse_uintptr_t
+f	qse_flt_t (32 bits)
+d	qse_flt_t (64 bits)
+s	char[]	
+p	char[]	
+x	pad bytes
+*/
+
 static hawk_oow_t pack_uint16_t (hawk_uint8_t* dst, hawk_uint16_t val, int endian)
 {
 	if (endian == ENDIAN_LITTLE)
@@ -5067,7 +5093,7 @@ static hawk_int_t pack_data (hawk_rtx_t* rtx, const hawk_oocs_t* fmt, const hawk
 				break;
 			}
 
-			case 'h':
+			case 'h': /* 2 bytes signed */
 			{
 				hawk_int_t v;
 				PACK_CHECK_ARG_AND_BUF (rep_cnt, HAWK_SIZEOF(hawk_int16_t) * rep_cnt);
@@ -5079,7 +5105,7 @@ static hawk_int_t pack_data (hawk_rtx_t* rtx, const hawk_oocs_t* fmt, const hawk
 				break;
 			}
 
-			case 'H':
+			case 'H': /* 2 bytes unsigned */
 			{
 				hawk_int_t v;
 				PACK_CHECK_ARG_AND_BUF (rep_cnt, HAWK_SIZEOF(hawk_uint16_t) * rep_cnt);
