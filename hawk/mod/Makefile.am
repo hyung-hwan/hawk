@@ -40,7 +40,7 @@ else
 #-------------------------------------------------
 # DYNAMIC MODULES
 #-------------------------------------------------
-LDFLAGS_COMMON = -L../lib -L$(libdir) -version-info 1:0:0 -no-undefined
+LDFLAGS_COMMON = -L../lib -L$(libdir) -version-info 1:0:0 ## -no-undefined
 LIBADD_COMMON = -lhawk
 
 pkgmodexecdir = $(libdir)

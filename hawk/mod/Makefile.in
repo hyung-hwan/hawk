@@ -422,7 +422,7 @@ CFLAGS_COMMON =
 #-------------------------------------------------
 # DYNAMIC MODULES
 #-------------------------------------------------
-@ENABLE_STATIC_MODULE_FALSE@LDFLAGS_COMMON = -L../lib -L$(libdir) -version-info 1:0:0 -no-undefined
+@ENABLE_STATIC_MODULE_FALSE@LDFLAGS_COMMON = -L../lib -L$(libdir) -version-info 1:0:0 ## -no-undefined
 
 ##################################################
 ##################################################
