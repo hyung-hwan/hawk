@@ -1724,7 +1724,7 @@ hawk_val_t* hawk_rtx_callfun (hawk_rtx_t* rtx, hawk_fun_t* fun, hawk_val_t* args
 	{
 		/* cannot call the function again when exit() is called
 		 * in an AWK program or hawk_rtx_halt() is invoked */
-		hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EPERM);
+		hawk_rtx_seterrfmt (rtx, HAWK_NULL, HAWK_EPERM, HAWK_T("now allowed to call '%.*js' after exit"), fun->name.len, fun->name.ptr);
 		return HAWK_NULL;
 	}
 	/*rtx->exit_level = EXIT_NONE;*/
@@ -1751,7 +1751,7 @@ hawk_val_t* hawk_rtx_callfun (hawk_rtx_t* rtx, hawk_fun_t* fun, hawk_val_t* args
 	{
 		/* TODO: is this correct? what if i want to 
 		 *       allow arbitrary numbers of arguments? */
-		hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EARGTM);
+		hawk_rtx_seterrfmt (rtx, HAWK_NULL, HAWK_EARGTM, HAWK_T("too many arguments to '%.*js'"), fun->name.len, fun->name.ptr);
 		return HAWK_NULL;
 	}
 
