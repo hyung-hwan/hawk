@@ -507,6 +507,7 @@ struct opttab_t
 	{ "pablock",      HAWK_PABLOCK,        "enable pattern-action loop" },
 	{ "rexbound",     HAWK_REXBOUND,       "enable {n,m} in a regular expression" },
 	{ "ncmponstr",    HAWK_NCMPONSTR,      "perform numeric comparsion on numeric strings" },
+	{ "numstrdetect", HAWK_NUMSTRDETECT,   "detect a numeric string and convert it to a number" },
 	{ "strictnaming", HAWK_STRICTNAMING,   "enable the strict naming rule" },
 	{ "tolerant",     HAWK_TOLERANT,       "make more fault-tolerant" },
 	{ HAWK_NULL,      0,                   HAWK_NULL }
@@ -652,6 +653,7 @@ static int process_argv (int argc, hawk_bch_t* argv[], struct arg_t* arg)
 		{ ":pablock",          '\0' },
 		{ ":rexbound",         '\0' },
 		{ ":ncmponstr",        '\0' },
+		{ ":numstrdetect",     '\0' },
 		{ ":strictnaming",     '\0' },
 		{ ":tolerant",         '\0' },
 

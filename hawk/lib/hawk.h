@@ -1317,6 +1317,12 @@ enum hawk_trait_t
 	 */
 	HAWK_TOLERANT = (1 << 17),
 
+	/*
+	 * detect a numeric string and convert to a numeric type
+	 * automatically
+	 */
+	HAWK_NUMSTRDETECT = (1 << 18),
+
 	/** 
 	 * makes #hawk_t to behave compatibly with classical AWK
 	 * implementations
@@ -1324,11 +1330,11 @@ enum hawk_trait_t
 	HAWK_CLASSIC = 
 		HAWK_IMPLICIT | HAWK_RIO | 
 		HAWK_NEWLINE | HAWK_BLANKCONCAT | HAWK_PABLOCK | 
-		HAWK_STRIPSTRSPC | HAWK_STRICTNAMING,
+		HAWK_STRIPSTRSPC | HAWK_STRICTNAMING | HAWK_NUMSTRDETECT,
 
 	HAWK_MODERN =
 		HAWK_CLASSIC | HAWK_FLEXMAP | HAWK_REXBOUND |
-		HAWK_RWPIPE | HAWK_TOLERANT | HAWK_NEXTOFILE  /*| HAWK_NCMPONSTR*/
+		HAWK_RWPIPE | HAWK_TOLERANT | HAWK_NEXTOFILE  | HAWK_NUMSTRDETECT /*| HAWK_NCMPONSTR*/
 };
 typedef enum hawk_trait_t hawk_trait_t;
 
@@ -1380,6 +1386,7 @@ enum hawk_gbl_id_t
 	HAWK_GBL_IGNORECASE,
 	HAWK_GBL_NF,
 	HAWK_GBL_NR,
+	HAWK_GBL_NUMSTRDETECT,
 	HAWK_GBL_OFILENAME,
 	HAWK_GBL_OFMT,
 	HAWK_GBL_OFS,

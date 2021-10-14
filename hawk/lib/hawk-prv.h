@@ -481,6 +481,7 @@ struct hawk_rtx_t
 		int ignorecase;
 		int striprecspc;
 		int stripstrspc;
+		int numstrdetect;
 
 		hawk_int_t nr;
 		hawk_int_t fnr;
@@ -605,9 +606,7 @@ static HAWK_INLINE void HAWK_RTX_STACK_POP (hawk_rtx_t* rtx)
 
 #define HAWK_RTX_IS_STRIPRECSPC_ON(rtx) ((rtx)->gbl.striprecspc > 0 || ((rtx)->gbl.striprecspc < 0 && ((rtx)->hawk->parse.pragma.trait & HAWK_STRIPRECSPC)))
 #define HAWK_RTX_IS_STRIPSTRSPC_ON(rtx) ((rtx)->gbl.stripstrspc > 0 || ((rtx)->gbl.stripstrspc < 0 && ((rtx)->hawk->parse.pragma.trait & HAWK_STRIPSTRSPC)))
-
-
-
+#define HAWK_RTX_IS_NUMSTRDETECT_ON(rtx) ((rtx)->gbl.numstrdetect > 0 || ((rtx)->gbl.stripstrspc < 0 && ((rtx)->hawk->parse.pragma.trait & HAWK_NUMSTRDETECT)))
 
 #if !defined(HAWK_DEFAULT_MODLIBDIRS)
 #	define HAWK_DEFAULT_MODLIBDIRS ""

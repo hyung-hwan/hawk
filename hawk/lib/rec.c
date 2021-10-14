@@ -48,8 +48,9 @@ int hawk_rtx_setrec (hawk_rtx_t* rtx, hawk_oow_t idx, const hawk_oocs_t* str, in
 
 		if (split_record(rtx, prefer_number) <= -1) goto oops;
 
-		v = prefer_number? hawk_rtx_makenumorstrvalwithoochars(rtx, HAWK_OOECS_PTR(&rtx->inrec.line), HAWK_OOECS_LEN(&rtx->inrec.line)): 
-		                   hawk_rtx_makenstrvalwithoochars(rtx, HAWK_OOECS_PTR(&rtx->inrec.line), HAWK_OOECS_LEN(&rtx->inrec.line));
+		v = prefer_number? hawk_rtx_makenumorstrvalwithoochars(rtx, HAWK_OOECS_PTR(&rtx->inrec.line), HAWK_OOECS_LEN(&rtx->inrec.line)):  /* number or string */
+		                   hawk_rtx_makenstrvalwithoochars(rtx, HAWK_OOECS_PTR(&rtx->inrec.line), HAWK_OOECS_LEN(&rtx->inrec.line));  /* str with nstr flag */
+
 		if (HAWK_UNLIKELY(!v)) goto oops;
 	}
 	else

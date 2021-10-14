@@ -472,6 +472,22 @@ static int set_global (hawk_rtx_t* rtx, int idx, hawk_nde_var_t* var, hawk_val_t
 			break;
 		}
 
+		case HAWK_GBL_NUMSTRDETECT:
+		{
+			hawk_int_t l;
+			hawk_flt_t r;
+			int vt;
+
+			vt = hawk_rtx_valtonum(rtx, val, &l, &r);
+			if (vt <= -1) return -1;
+
+			if (vt == 0) 
+				rtx->gbl.numstrdetect = ((l > 0)? 1: (l < 0)? -1: 0);
+			else 
+				rtx->gbl.numstrdetect = ((r > 0.0)? 1: (r < 0.0)? -1: 0);
+			break;
+		}
+
 		case HAWK_GBL_OFMT:
 		{
 			hawk_oow_t i;
@@ -1095,6 +1111,7 @@ static int init_rtx (hawk_rtx_t* rtx, hawk_t* hawk, hawk_rio_cbs_t* rio)
 	rtx->gbl.ignorecase = 0;
 	rtx->gbl.striprecspc = -1; /* means 'not set' */
 	rtx->gbl.stripstrspc = -1; /* means 'not set' */
+	rtx->gbl.numstrdetect = -1; /* means 'not set' */
 
 	return 0;
 

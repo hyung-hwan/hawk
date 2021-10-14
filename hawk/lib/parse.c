@@ -334,6 +334,9 @@ static global_t gtab[] =
 	/* input record number */
 	{ HAWK_T("NR"),           2,  HAWK_PABLOCK },
 
+	/* detect a numeric string */
+	{ HAWK_T("NUMSTRDETECT"), 12, 0 }, 
+
 	/* current output file name */
 	{ HAWK_T("OFILENAME"),    9,  HAWK_PABLOCK | HAWK_NEXTOFILE },
 
@@ -959,6 +962,7 @@ static int parse_progunit (hawk_t* hawk)
 	else if (MATCH(hawk, TOK_XPRAGMA))
 	{
 		hawk_oocs_t name;
+		int trait;
 
 		if (get_token(hawk) <= -1) return -1;
 		if (!MATCH(hawk, TOK_IDENT))
@@ -997,56 +1001,37 @@ static int parse_progunit (hawk_t* hawk)
 				hawk_copy_oochars_to_oocstr (hawk->parse.pragma.entry, HAWK_COUNTOF(hawk->parse.pragma.entry), HAWK_OOECS_PTR(hawk->tok.name), HAWK_OOECS_LEN(hawk->tok.name));
 			}
 		}
-		else if (hawk_comp_oochars_oocstr(name.ptr, name.len, HAWK_T("implicit"), 0) == 0)
+		/* NOTE: trait = is an intended assignment */
+		else if (((trait = HAWK_IMPLICIT) && hawk_comp_oochars_oocstr(name.ptr, name.len, HAWK_T("implicit"), 0) == 0) ||
+		         ((trait = HAWK_MULTILINESTR) && hawk_comp_oochars_oocstr(name.ptr, name.len, HAWK_T("multilinestr"), 0) == 0))
 		{
 			/* @pragma implicit on
-			 * @pragma implicit off */
+			 * @pragma implicit off 
+			 * @pragma multilinestr on
+			 * @pragma multilinestr off */
+			hawk_oocs_t value;
+
 			if (get_token(hawk) <= -1) return -1;
 			if (!MATCH(hawk, TOK_IDENT))
 			{
 			error_ident_on_off_expected_for_implicit:
-				hawk_seterrfmt (hawk, &hawk->ptok.loc, HAWK_EIDENT, HAWK_T("identifier 'on' or 'off' expected for 'implicit'"));
+				hawk_seterrfmt (hawk, &hawk->ptok.loc, HAWK_EIDENT, HAWK_T("identifier 'on' or 'off' expected for '%.*js'"), name.len, name.ptr);
 				return -1;
 			}
 
-			name.len = HAWK_OOECS_LEN(hawk->tok.name);
-			name.ptr = HAWK_OOECS_PTR(hawk->tok.name);
-			if (hawk_comp_oochars_oocstr(name.ptr, name.len, HAWK_T("on"), 0) == 0)
+			value.len = HAWK_OOECS_LEN(hawk->tok.name);
+			value.ptr = HAWK_OOECS_PTR(hawk->tok.name);
+			if (hawk_comp_oochars_oocstr(value.ptr, value.len, HAWK_T("on"), 0) == 0)
 			{
-				hawk->parse.pragma.trait |= HAWK_IMPLICIT;
+				hawk->parse.pragma.trait |= trait;
 			}
-			else if (hawk_comp_oochars_oocstr(name.ptr, name.len, HAWK_T("off"), 0) == 0)
+			else if (hawk_comp_oochars_oocstr(value.ptr, value.len, HAWK_T("off"), 0) == 0)
 			{
-				hawk->parse.pragma.trait &= ~HAWK_IMPLICIT;
+				hawk->parse.pragma.trait &= ~trait;
 			}
 			else
 			{
 				goto error_ident_on_off_expected_for_implicit;
-			}
-		}
-		else if (hawk_comp_oochars_oocstr(name.ptr, name.len, HAWK_T("multilinestr"), 0) == 0)
-		{
-			if (get_token(hawk) <= -1) return -1;
-			if (!MATCH(hawk, TOK_IDENT))
-			{
-			error_ident_on_off_expected_for_multilinestr:
-				hawk_seterrfmt (hawk, &hawk->ptok.loc, HAWK_EIDENT, HAWK_T("identifier 'on' or 'off' expected for 'multilinestr'"));
-				return -1;
-			}
-
-			name.len = HAWK_OOECS_LEN(hawk->tok.name);
-			name.ptr = HAWK_OOECS_PTR(hawk->tok.name);
-			if (hawk_comp_oochars_oocstr(name.ptr, name.len, HAWK_T("on"), 0) == 0)
-			{
-				hawk->parse.pragma.trait |= HAWK_MULTILINESTR;
-			}
-			else if (hawk_comp_oochars_oocstr(name.ptr, name.len, HAWK_T("off"), 0) == 0)
-			{
-				hawk->parse.pragma.trait &= ~HAWK_MULTILINESTR;
-			}
-			else
-			{
-				goto error_ident_on_off_expected_for_multilinestr;
 			}
 		}
 		/* ---------------------------------------------------------------------
@@ -1071,85 +1056,45 @@ static int parse_progunit (hawk_t* hawk)
 			/* take the specified value if it's greater than the existing value */
 			if (sl > hawk->parse.pragma.rtx_stack_limit) hawk->parse.pragma.rtx_stack_limit = sl;
 		}
-		else if (hawk_comp_oochars_oocstr(name.ptr, name.len, HAWK_T("striprecspc"), 0) == 0)
+		/* NOTE: trait = is an intended assignment */
+		else if (((trait = HAWK_STRIPRECSPC) && hawk_comp_oochars_oocstr(name.ptr, name.len, HAWK_T("striprecspc"), 0) == 0) ||
+		         ((trait = HAWK_STRIPSTRSPC) && hawk_comp_oochars_oocstr(name.ptr, name.len, HAWK_T("stripstrspc"), 0) == 0) ||
+		         ((trait = HAWK_NUMSTRDETECT) && hawk_comp_oochars_oocstr(name.ptr, name.len, HAWK_T("numstrdetect"), 0) == 0))
 		{
 			/* @pragma striprecspc on
 			 * @pragma striprecspc off 
+			 * @pragma stripstrspc on
+			 * @pragma stripstrspc off 
+			 * @pragma numstrdetect on
+			 * @pragma numstrdetect off 
 			 *
 			 * Take note the global STRIPRECSPC is available for context based change.
 			 * STRIPRECSPC takes precedence over this pragma.
 			 */
 			int is_on;
+			hawk_oocs_t value;
 
 			if (get_token(hawk) <= -1) return -1;
 			if (!MATCH(hawk, TOK_IDENT))
 			{
 			error_ident_on_off_expected_for_striprecspc:
-				hawk_seterrfmt (hawk, &hawk->ptok.loc, HAWK_EIDENT, HAWK_T("identifier 'on' or 'off' expected for 'striprecspc'"));
+				hawk_seterrfmt (hawk, &hawk->ptok.loc, HAWK_EIDENT, HAWK_T("identifier 'on' or 'off' expected for '%.*js'"), name.len, name.ptr);
 				return -1;
 			}
 
-			name.len = HAWK_OOECS_LEN(hawk->tok.name);
-			name.ptr = HAWK_OOECS_PTR(hawk->tok.name);
-			if (hawk_comp_oochars_oocstr(name.ptr, name.len, HAWK_T("on"), 0) == 0)
-			{
-				is_on = 1;
-			}
-			else if (hawk_comp_oochars_oocstr(name.ptr, name.len, HAWK_T("off"), 0) == 0)
-			{
-				is_on = 0;
-			}
-			else
-			{
-				goto error_ident_on_off_expected_for_striprecspc;
-			}
+			value.len = HAWK_OOECS_LEN(hawk->tok.name);
+			value.ptr = HAWK_OOECS_PTR(hawk->tok.name);
+			if (hawk_comp_oochars_oocstr(value.ptr, value.len, HAWK_T("on"), 0) == 0) is_on = 1;
+			else if (hawk_comp_oochars_oocstr(value.ptr, value.len, HAWK_T("off"), 0) == 0) is_on = 0;
+			else goto error_ident_on_off_expected_for_striprecspc;
 
 			if (hawk->sio.inp == &hawk->sio.arg)
 			{
-				/* only the top level source. ignore striprecspc pragma in other levels */
+				/* only the top level source. ignore the specified pragma in other levels */
 				if (is_on)
-					hawk->parse.pragma.trait |= HAWK_STRIPRECSPC;
+					hawk->parse.pragma.trait |= trait;
 				else
-					hawk->parse.pragma.trait &= ~HAWK_STRIPRECSPC;
-			}
-		}
-		else if (hawk_comp_oochars_oocstr(name.ptr, name.len, HAWK_T("stripstrspc"), 0) == 0)
-		{
-			/* @pragma stripstrspc on
-			 * @pragma stripstrspc off 
-			 */
-			int is_on;
-
-			if (get_token(hawk) <= -1) return -1;
-			if (!MATCH(hawk, TOK_IDENT))
-			{
-			error_ident_on_off_expected_for_stripstrspc:
-				hawk_seterrfmt (hawk, &hawk->ptok.loc, HAWK_EIDENT, HAWK_T("identifier 'on' or 'off' expected for 'stripstrspc'"));
-				return -1;
-			}
-
-			name.len = HAWK_OOECS_LEN(hawk->tok.name);
-			name.ptr = HAWK_OOECS_PTR(hawk->tok.name);
-			if (hawk_comp_oochars_oocstr(name.ptr, name.len, HAWK_T("on"), 0) == 0)
-			{
-				is_on = 1;
-			}
-			else if (hawk_comp_oochars_oocstr(name.ptr, name.len, HAWK_T("off"), 0) == 0)
-			{
-				is_on = 0;
-			}
-			else
-			{
-				goto error_ident_on_off_expected_for_stripstrspc;
-			}
-
-			if (hawk->sio.inp == &hawk->sio.arg)
-			{
-				/* only the top level source. ignore stripstrspc pragma in other levels */
-				if (is_on)
-					hawk->parse.pragma.trait |= HAWK_STRIPSTRSPC;
-				else
-					hawk->parse.pragma.trait &= ~HAWK_STRIPSTRSPC;
+					hawk->parse.pragma.trait &= ~trait;
 			}
 		}
 		else
