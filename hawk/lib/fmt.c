@@ -885,7 +885,7 @@ static int fmt_outv (hawk_fmtout_t* fmtout, va_list ap)
 			/* zeropad must not take effect for 's' */
 			if (flagc & FLAGC_ZEROPAD) padc = ' ';
 			if (lm_flag & LF_H) goto lowercase_s;
-		#if defined(HAWK_OOCH_IS_UCH)
+		#if defined(HAWK_OOCH_IS_BCH)
 			if (lm_flag & (LF_J | LF_JJ)) goto lowercase_s;
 		#endif
 		uppercase_s:
