@@ -16,7 +16,8 @@ Source0: %{name}-%{version}.tar.gz
 
 BuildRequires: mysql-devel
 %if %{enable_mod_ffi}
-BuildRequires: libffi-devel
+## prep_cif_var() available since 3.0.11
+BuildRequires: libffi-devel >= 3.0.11
 %endif
 BuildRoot: %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 
