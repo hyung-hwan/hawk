@@ -1,6 +1,8 @@
 %define _prefix /usr
 %define _sysconfdir /etc
 
+%define enable_mod_ffi 0
+
 Summary: HAWK Interpreter
 Name: @PACKAGE_NAME@
 Version: @PACKAGE_VERSION@
@@ -12,7 +14,10 @@ Group: System Environment/Libraries
 Source0: %{name}-%{version}.tar.gz
 #Requires: 
 
-BuildRequires: mysql-devel, libffi-devel
+BuildRequires: mysql-devel
+%if %{enable_mod_ffi}
+BuildRequires: libffi-devel
+%endif
 BuildRoot: %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 
 %description
@@ -48,7 +53,11 @@ CFLAGS="${RPM_OPT_FLAGS} -fPIC" CXXFLAGS="${RPM_OPT_FLAGS} -fPIC" ./configure  \
 	--enable-pthread-flags=yes \
 	--enable-libltdl=no \
 	--enable-libunwind=no \
+%if %{enable_mod_ffi}
 	--enable-mod-ffi=yes \
+%else
+	--enable-mod-ffi=no \
+%endif
 	--with-mysql=yes \
 	--enable-mod-mysql=yes \
 	--enable-mod-uci=no ##CC=gcc44 CXX=g++44
