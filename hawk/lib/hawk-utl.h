@@ -27,7 +27,7 @@
 #ifndef _HAWK_UTL_H_
 #define _HAWK_UTL_H_
 
-#include "hawk-cmn.h"
+#include <hawk-cmn.h>
 #include <stdarg.h>
 
 #define HAWK_EPOCH_YEAR  (1970)

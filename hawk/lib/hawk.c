@@ -82,7 +82,7 @@ hawk_t* hawk_open (hawk_mmgr_t* mmgr, hawk_oow_t xtnsize, hawk_cmgr_t* cmgr, con
 	hawk_t* hawk;
 
 	hawk = (hawk_t*)HAWK_MMGR_ALLOC(mmgr, HAWK_SIZEOF(hawk_t) + xtnsize);
-	if (hawk)
+	if (HAWK_LIKELY(hawk))
 	{
 		int xret;
 

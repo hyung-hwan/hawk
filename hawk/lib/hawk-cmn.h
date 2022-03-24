@@ -911,7 +911,7 @@ enum hawk_errnum_t
 	HAWK_ETMOUT,  /**< timed out */
 	HAWK_ESTATE,  /**< in bad state */
 
-	/* mostly parse errors */
+	/* mostly hawk parse errors */
 	HAWK_EOPEN,   /**< cannot open */
 	HAWK_EREAD,   /**< cannot read */
 	HAWK_EWRITE,  /**< cannot write */
@@ -981,7 +981,7 @@ enum hawk_errnum_t
 	HAWK_EXKWNR,    /**< word after @ not recognized */
 	HAWK_EXKWEM,    /**< @ not followed by a valid word  */
 
-	/* run time error */
+	/* hawk run time error */
 	HAWK_ESTACK,        /**< stack error */
 	HAWK_EDIVBY0,       /**< divide by zero */
 	HAWK_EOPERAND,      /**< invalid operand */
@@ -1037,9 +1037,40 @@ enum hawk_errnum_t
 	HAWK_EREXBADBR,     /**< invalid content inside braces */
 	HAWK_EREXRANGE,     /**< invalid use of range operator */
 	HAWK_EREXBADRPT,    /**< invalid use of repetition operator */
-	
+
+	/* sed error */
+	HAWK_SED_ECMDNR,  /**< command '${0}' not recognized */
+	HAWK_SED_ECMDMS,  /**< command code missing */
+	HAWK_SED_ECMDIC,  /**< command '${0}' incomplete */
+	HAWK_SED_EREXIC,  /**< regular expression '${0}' incomplete */
+	HAWK_SED_EREXBL,  /**< failed to compile regular expression '${0}' */
+	HAWK_SED_EREXMA,  /**< failed to match regular expression */
+	HAWK_SED_EA1PHB,  /**< address 1 prohibited for '${0}' */
+	HAWK_SED_EA1MOI,  /**< address 1 missing or invalid */
+	HAWK_SED_EA2PHB,  /**< address 2 prohibited */
+	HAWK_SED_EA2MOI,  /**< address 2 missing or invalid */
+	HAWK_SED_ENEWLN,  /**< newline expected */
+	HAWK_SED_EBSEXP,  /**< backslash expected */
+	HAWK_SED_EBSDEL,  /**< backslash used as delimiter */
+	HAWK_SED_EGBABS,  /**< garbage after backslash */
+	HAWK_SED_ESCEXP,  /**< semicolon expected */
+	HAWK_SED_ELABEM,  /**< empty label name */
+	HAWK_SED_ELABDU,  /**< duplicate label name '${0}' */
+	HAWK_SED_ELABNF,  /**< label '${0}' not found */
+	HAWK_SED_EFILEM,  /**< empty file name */
+	HAWK_SED_EFILIL,  /**< illegal file name */
+	HAWK_SED_ETSNSL,  /**< strings in translation set not the same length*/
+	HAWK_SED_EGRNBA,  /**< group brackets not balanced */
+	HAWK_SED_EGRNTD,  /**< group nesting too deep */
+	HAWK_SED_EOCSDU,  /**< multiple occurrence specifiers */
+	HAWK_SED_EOCSZE,  /**< occurrence specifier zero */
+	HAWK_SED_EOCSTL,  /**< occurrence specifier too large */
+	HAWK_SED_ENPREX,  /**< no previous regular expression */
+	HAWK_SED_ECSLNV,  /**< cut selector not valid */
+	HAWK_SED_EIOFIL,  /**< io error with file '${0}' */
+
 	/* the number of error numbers, internal use only */
-	HAWK_NUMERRNUM 
+	HAWK_NUMERRNUMS
 };
 typedef enum hawk_errnum_t hawk_errnum_t;
 

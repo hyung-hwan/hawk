@@ -312,10 +312,10 @@ HAWK_EXPORT const hawk_rbt_style_t* hawk_get_rbt_style (
  * \return hawk_rbt_t pointer on success, HAWK_NULL on failure.
  */
 HAWK_EXPORT hawk_rbt_t* hawk_rbt_open (
-	hawk_gem_t*  gem,
-	hawk_oow_t   xtnsize, /**< extension size in bytes */
-	int          kscale,  /**< key scale */
-	int          vscale   /**< value scale */
+	hawk_gem_t* gem,
+	hawk_oow_t  xtnsize, /**< extension size in bytes */
+	int         kscale,  /**< key scale */
+	int         vscale   /**< value scale */
 );
 
 /**
@@ -329,10 +329,10 @@ HAWK_EXPORT void hawk_rbt_close (
  * The hawk_rbt_init() function initializes a red-black tree
  */
 HAWK_EXPORT int hawk_rbt_init (
-	hawk_rbt_t*  rbt,    /**< red-black tree */
-	hawk_gem_t*  gem,
-	int          kscale, /**< key scale */
-	int          vscale  /**< value scale */
+	hawk_rbt_t* rbt,    /**< red-black tree */
+	hawk_gem_t* gem,
+	int         kscale, /**< key scale */
+	int         vscale  /**< value scale */
 );
 
 /**

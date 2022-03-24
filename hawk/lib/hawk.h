@@ -78,8 +78,8 @@
  * \sa hawk_rtx_t hawk_open hawk_close
  */
 #define HAWK_HDR \
-	hawk_oow_t  _instsize; \
-	hawk_gem_t  _gem;
+	hawk_oow_t _instsize; \
+	hawk_gem_t _gem;
 
 typedef struct hawk_alt_t hawk_alt_t;
 struct hawk_alt_t

@@ -52,6 +52,7 @@ pkginclude_HEADERS = \
 	hawk-pack1.h \
 	hawk-skad.h \
 	hawk-utl.h \
+	hawk-sed.h \
 	hawk-std.h \
 	hawk-tre.h \
 	hawk-unpack.h \
@@ -97,6 +98,8 @@ libhawk_la_SOURCES = \
 	rio.c \
 	run-prv.h \
 	run.c \
+	sed-prv.h \
+	sed.c \
 	skad-prv.h \
 	skad.c \
 	tre-prv.h \
