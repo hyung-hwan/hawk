@@ -439,6 +439,23 @@ static HAWK_INLINE hawk_errnum_t hawk_gem_geterrnum (hawk_gem_t* gem) { return g
 #define hawk_gem_geterrnum(gem) (((hawk_gem_t*)(gem))->errnum) 
 #endif
 
+HAWK_EXPORT void hawk_gem_geterrinf (
+	hawk_gem_t*         gem,
+	hawk_errinf_t*      errinf
+);
+
+HAWK_EXPORT void hawk_gem_geterror (
+	hawk_gem_t*         gem,
+	hawk_errnum_t*      errnum,
+	const hawk_ooch_t** errmsg,
+	hawk_loc_t*         errloc
+);
+
+HAWK_EXPORT void hawk_gem_seterrinf (
+	hawk_gem_t*          gem,
+	const hawk_errinf_t* errinf
+);
+
 HAWK_EXPORT void hawk_gem_seterrnum (
 	hawk_gem_t*       gem,
 	const hawk_loc_t* errloc,
@@ -459,6 +476,22 @@ HAWK_EXPORT void hawk_gem_seterrufmt (
 	hawk_errnum_t       errnum,
 	const hawk_uch_t*   errfmt,
 	...
+);
+
+HAWK_EXPORT void hawk_gem_seterrbvfmt (
+	hawk_gem_t*         gem,
+	const hawk_loc_t*   errloc,
+	hawk_errnum_t       errnum,
+	const hawk_bch_t*   errfmt,
+	va_list             ap
+);
+
+HAWK_EXPORT void hawk_gem_seterruvfmt (
+	hawk_gem_t*         gem,
+	const hawk_loc_t*   errloc,
+	hawk_errnum_t       errnum,
+	const hawk_uch_t*   errfmt,
+	va_list             ap
 );
 
 HAWK_EXPORT int hawk_gem_buildrex (

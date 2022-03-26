@@ -99,6 +99,7 @@ int hawk_sed_init (hawk_sed_t* sed, hawk_mmgr_t* mmgr)
 	sed->_gem.errloc.line = 0;
 	sed->_gem.errloc.colm = 0;
 	sed->_gem.errloc.file = HAWK_NULL;
+	sed->_gem.errstr = hawk_dfl_errstr;
 
 	if (hawk_ooecs_init(&sed->tmp.rex, hawk_sed_getgem(sed), 0) <= -1) goto oops_1;
 	if (hawk_ooecs_init(&sed->tmp.lab, hawk_sed_getgem(sed), 0) <= -1) goto oops_2;

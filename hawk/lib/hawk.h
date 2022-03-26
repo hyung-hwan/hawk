@@ -1340,17 +1340,6 @@ typedef enum hawk_trait_t hawk_trait_t;
 
 /* ------------------------------------------------------------------------ */
 
-/** 
- * The hawk_errinf_t type defines a placeholder for error information.
- */
-struct hawk_errinf_t
-{
-	hawk_errnum_t num;                   /**< error number */
-	hawk_ooch_t   msg[HAWK_ERRMSG_CAPA]; /**< error message */
-	hawk_loc_t    loc;                   /**< error location */
-};
-typedef struct hawk_errinf_t hawk_errinf_t;
-
 /**
  * The hawk_errstr_t type defines an error string getter. It should return 
  * an error formatting string for an error number requested. A new string

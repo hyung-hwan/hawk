@@ -154,7 +154,7 @@ int hawk_init (hawk_t* hawk, hawk_mmgr_t* mmgr, hawk_cmgr_t* cmgr, const hawk_pr
 	hawk->_gem.errloc.line = 0;
 	hawk->_gem.errloc.colm = 0;
 	hawk->_gem.errloc.file = HAWK_NULL;
-	hawk->errstr = hawk_dfl_errstr;
+	hawk->_gem.errstr = hawk_dfl_errstr;
 	hawk->haltall = 0;
 
 	/* progagate the primitive functions */

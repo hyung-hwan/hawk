@@ -1085,6 +1085,30 @@ struct hawk_loc_t
 };
 typedef struct hawk_loc_t hawk_loc_t;
 
+/**
+ * The hawk_errinf_t type defines a placeholder for error information.
+ */
+struct hawk_errinf_t
+{
+	hawk_errnum_t num;                   /**< error number */
+	hawk_ooch_t   msg[HAWK_ERRMSG_CAPA]; /**< error message */
+	hawk_loc_t    loc;                   /**< error location */
+};
+typedef struct hawk_errinf_t hawk_errinf_t;
+
+
+/**
+ * The hawk_errstr_t type defines an error string getter. It should return
+ * an error formatting string for an error number requested. A new string
+ * should contain the same number of positional parameters (${X}) as in the
+ * default error formatting string. You can set a new getter into an hawk
+ * object with the hawk_seterrstr() function to customize an error string.
+ */
+typedef const hawk_ooch_t* (*hawk_errstr_t) (
+	hawk_errnum_t num    /**< error number */
+);
+
+
 struct hawk_gem_t
 {
 	hawk_mmgr_t*  mmgr;
@@ -1092,7 +1116,13 @@ struct hawk_gem_t
 	hawk_errnum_t errnum;
 	hawk_ooch_t   errmsg[HAWK_ERRMSG_CAPA];
 	hawk_loc_t    errloc;
+	hawk_errstr_t errstr;
 	hawk_oow_t    errmsg_len; /* it's not the actual length of errmsg. it's kept here for error formatting */
+#if defined(HAWK_OOCH_IS_BCH)
+	hawk_uch_t    xerrmsg[HAWK_ERRMSG_CAPA];
+#else
+	hawk_bch_t    xerrmsg[HAWK_ERRMSG_CAPA * 2];
+#endif
 };
 
 enum hawk_log_mask_t
