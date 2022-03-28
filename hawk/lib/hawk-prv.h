@@ -338,10 +338,12 @@ struct hawk_t
 	/* housekeeping */
 	//hawk_oow_t    errmsg_len; /* used by errbfmt() and errufmt(). don't rely on this. some other funtions don't set this properly */
 	hawk_ooch_t   errmsg_backup[HAWK_ERRMSG_CAPA];
+#if 0
 #if defined(HAWK_OOCH_IS_BCH)
 	hawk_uch_t    xerrmsg[HAWK_ERRMSG_CAPA];
 #else
 	hawk_bch_t    xerrmsg[HAWK_ERRMSG_CAPA * 2];
+#endif
 #endif
 
 	struct
@@ -546,10 +548,12 @@ struct hawk_rtx_t
 
 	//hawk_oow_t  errmsg_len; /* used by errbfmt() and errufmt(). don't rely on this. some other funtions don't set this properly */
 	hawk_ooch_t errmsg_backup[HAWK_ERRMSG_CAPA];
+#if 0
 #if defined(HAWK_OOCH_IS_BCH)
 	hawk_uch_t  xerrmsg[HAWK_ERRMSG_CAPA];
 #else
 	hawk_bch_t  xerrmsg[HAWK_ERRMSG_CAPA * 2];
+#endif
 #endif
 
 	hawk_rtx_ecb_t* ecb;

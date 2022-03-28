@@ -42,14 +42,11 @@ static int emit_output (hawk_sed_t* sed, int skipline);
 
 #define ADJERR_LOC(sed,l) do { (sed)->_gem.errloc = *(l); } while (0)
 
-#define SETERR0(sed,num,loc) \
-do { hawk_sed_seterror (sed, num, HAWK_NULL, loc); } while (0)
-
 #define SETERR1(sed,num,argp,argl,loc) \
 do { \
 	hawk_oocs_t __ea__; \
 	__ea__.ptr = argp; __ea__.len = argl; \
-	hawk_sed_seterror (sed, num, &__ea__, loc); \
+	hawk_sed_seterror (sed, loc, num, &__ea__); \
 } while (0)
 
 static void free_all_cut_selector_blocks (hawk_sed_t* sed, hawk_sed_cmd_t* cmd);
@@ -654,19 +651,11 @@ static int pickup_rex (
 		{
 			if (cmd)
 			{
-				SETERR1 (
-					sed, HAWK_SED_ECMDIC, 
-					&cmd->type, 1,
-					&sed->src.loc
-				);
+				SETERR1 (sed, HAWK_SED_ECMDIC, &cmd->type, 1, &sed->src.loc);
 			}
 			else
 			{
-				SETERR1 (
-					sed, HAWK_SED_EREXIC, 
-					HAWK_OOECS_PTR(buf), HAWK_OOECS_LEN(buf), 
-					&sed->src.loc
-				);
+				SETERR1 (sed, HAWK_SED_EREXIC, HAWK_OOECS_PTR(buf), HAWK_OOECS_LEN(buf), &sed->src.loc);
 			}
 			return -1;
 		}
@@ -682,20 +671,11 @@ static int pickup_rex (
 			{
 				if (cmd)
 				{
-					SETERR1 (
-						sed, HAWK_SED_ECMDIC, 
-						&cmd->type, 1,
-						&sed->src.loc
-					);
+					SETERR1 (sed, HAWK_SED_ECMDIC, &cmd->type, 1, &sed->src.loc);
 				}
 				else
 				{
-					SETERR1 (
-						sed, HAWK_SED_EREXIC,
-						HAWK_OOECS_PTR(buf),
-						HAWK_OOECS_LEN(buf),
-						&sed->src.loc
-					);
+					SETERR1 (sed, HAWK_SED_EREXIC, HAWK_OOECS_PTR(buf), HAWK_OOECS_LEN(buf), &sed->src.loc);
 				}
 				return -1;
 			}
@@ -847,8 +827,7 @@ static hawk_sed_adr_t* get_address (hawk_sed_t* sed, hawk_sed_adr_t* a, int exte
 		NXTSC (sed, c, HAWK_NULL);
 		if (c == HAWK_OOCI_EOF || IS_LINTERM(c))
 		{
-			SETERR1 (sed, HAWK_SED_EREXIC, 
-				HAWK_T(""), 0, &sed->src.loc);
+			SETERR1 (sed, HAWK_SED_EREXIC, HAWK_T(""), 0, &sed->src.loc);
 			return HAWK_NULL;
 		}
 
@@ -866,7 +845,7 @@ static hawk_sed_adr_t* get_address (hawk_sed_t* sed, hawk_sed_adr_t* a, int exte
 		NXTSC (sed, c, HAWK_NULL);
 		if (!(c >= HAWK_T('0') && c <= HAWK_T('9')))
 		{
-			SETERR0 (sed, HAWK_SED_EA2MOI, &sed->src.loc);
+			hawk_sed_seterrnum (sed, &sed->src.loc, HAWK_SED_EA2MOI);
 			return HAWK_NULL;
 		}
 
@@ -990,7 +969,7 @@ static int get_label (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 		/* label name is empty */
 		if (sed->opt.trait & HAWK_SED_STRICT)
 		{
-			SETERR0 (sed, HAWK_SED_ELABEM, &sed->src.loc);
+			hawk_sed_seterrnum (sed, &sed->src.loc, HAWK_SED_ELABEM);
 			return -1;
 		}
 
@@ -1012,12 +991,7 @@ static int get_label (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 			HAWK_OOECS_PTR(&sed->tmp.lab),
 			HAWK_OOECS_LEN(&sed->tmp.lab)) != HAWK_NULL)
 		{
-			SETERR1 (
-				sed, HAWK_SED_ELABDU,
-				HAWK_OOECS_PTR(&sed->tmp.lab),
-				HAWK_OOECS_LEN(&sed->tmp.lab),
-				&sed->src.loc
-			);
+			SETERR1 (sed, HAWK_SED_ELABDU, HAWK_OOECS_PTR(&sed->tmp.lab), HAWK_OOECS_LEN(&sed->tmp.lab), &sed->src.loc);
 			return -1;
 		}
 
@@ -1052,7 +1026,7 @@ static int terminate_command (hawk_sed_t* sed)
 	while (IS_SPACE(c)) NXTSC (sed, c, -1);
 	if (!IS_CMDTERM(c))
 	{
-		SETERR0 (sed, HAWK_SED_ESCEXP, &sed->src.loc);
+		hawk_sed_seterrnum (sed, &sed->src.loc, HAWK_SED_ESCEXP);
 		return -1;
 	}
 
@@ -1133,7 +1107,7 @@ static int get_file (hawk_sed_t* sed, hawk_oocs_t* xstr)
 
 	if (IS_CMDTERM(c))
 	{
-		SETERR0 (sed, HAWK_SED_EFILEM, &sed->src.loc);
+		hawk_sed_seterrnum (sed, &sed->src.loc, HAWK_SED_EFILEM);
 		goto oops;	
 	}
 
@@ -1145,7 +1119,7 @@ static int get_file (hawk_sed_t* sed, hawk_oocs_t* xstr)
 		if (c == HAWK_T('\0'))
 		{
 			/* the file name should not contain '\0' */
-			SETERR0 (sed, HAWK_SED_EFILIL, &sed->src.loc);
+			hawk_sed_seterrnum (sed, &sed->src.loc, HAWK_SED_EFILIL);
 			goto oops;
 		}
 
@@ -1157,7 +1131,7 @@ static int get_file (hawk_sed_t* sed, hawk_oocs_t* xstr)
 			NXTSC_GOTO (sed, c, oops);
 			if (c == HAWK_T('\0') || c == HAWK_OOCI_EOF || IS_LINTERM(c))
 			{
-				SETERR0 (sed, HAWK_SED_EFILIL, &sed->src.loc);
+				hawk_sed_seterrnum (sed, &sed->src.loc, HAWK_SED_EFILIL);
 				goto oops;
 			}
 
@@ -1194,8 +1168,7 @@ oops:
 do { \
 	if (c == HAWK_OOCI_EOF || IS_LINTERM(c)) \
 	{ \
-		SETERR1 (sed, HAWK_SED_ECMDIC, \
-			&cmd->type, 1, &sed->src.loc); \
+		SETERR1 (sed, HAWK_SED_ECMDIC, &cmd->type, 1, &sed->src.loc); \
 		action; \
 	} \
 } while (0)
@@ -1204,8 +1177,7 @@ do { \
 do { \
 	if (c == HAWK_OOCI_EOF) \
 	{ \
-		SETERR1 (sed, HAWK_SED_ECMDIC, \
-			&cmd->type, 1, &sed->src.loc); \
+		SETERR1 (sed, HAWK_SED_ECMDIC, &cmd->type, 1, &sed->src.loc); \
 		action; \
 	} \
 } while (0)
@@ -1226,7 +1198,7 @@ static int get_subst (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 	if (delim == HAWK_T('\\'))
 	{
 		/* backspace is an illegal delimiter */
-		SETERR0 (sed, HAWK_SED_EBSDEL, &sed->src.loc);
+		hawk_sed_seterrnum (sed, &sed->src.loc, HAWK_SED_EBSDEL);
 		goto oops;
 	}
 
@@ -1271,7 +1243,8 @@ static int get_subst (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 
 			if (cmd->u.subst.occ != 0)
 			{
-				SETERR0 (sed, HAWK_SED_EOCSDU, &sed->src.loc);
+				/* multiple occurrence specifiers */
+				hawk_sed_seterrnum (sed, &sed->src.loc, HAWK_SED_EOCSDU);
 				goto oops;
 			}
 
@@ -1282,7 +1255,8 @@ static int get_subst (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 				occ = occ * 10 + (c - HAWK_T('0')); 
 				if (occ > HAWK_TYPE_MAX(unsigned short))
 				{
-					SETERR0 (sed, HAWK_SED_EOCSTL, &sed->src.loc);
+					/* occurrence specifier too large */
+					hawk_sed_seterrnum (sed, &sed->src.loc, HAWK_SED_EOCSTL);
 					goto oops;
 				}
 				NXTSC_GOTO (sed, c, oops);
@@ -1291,7 +1265,8 @@ static int get_subst (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 
 			if (occ == 0)
 			{
-				SETERR0 (sed, HAWK_SED_EOCSZE, &sed->src.loc);
+				/* zero not allowed as occurrence specifier */
+				hawk_sed_seterrnum (sed, &sed->src.loc, HAWK_SED_EOCSZE);
 				goto oops;
 			}
 
@@ -1345,7 +1320,7 @@ static int get_transet (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 	if (delim == HAWK_T('\\'))
 	{
 		/* backspace is an illegal delimiter */
-		SETERR0 (sed, HAWK_SED_EBSDEL, &sed->src.loc);
+		hawk_sed_seterrnum (sed, &sed->src.loc, HAWK_SED_EBSDEL);
 		goto oops;
 	}
 
@@ -1387,7 +1362,7 @@ static int get_transet (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 		if (pos >= HAWK_OOECS_LEN(t))
 		{
 			/* source and target not the same length */
-			SETERR0 (sed, HAWK_SED_ETSNSL, &sed->src.loc);
+			hawk_sed_seterrnum (sed, &sed->src.loc, HAWK_SED_ETSNSL);
 			goto oops;
 		}
 
@@ -1398,7 +1373,7 @@ static int get_transet (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 	if (pos < HAWK_OOECS_LEN(t))
 	{
 		/* source and target not the same length */
-		SETERR0 (sed, HAWK_SED_ETSNSL, &sed->src.loc);
+		hawk_sed_seterrnum (sed, &sed->src.loc, HAWK_SED_ETSNSL);
 		goto oops;
 	}
 
@@ -1469,7 +1444,7 @@ static int get_cut (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 	if (delim == HAWK_T('\\'))
 	{
 		/* backspace is an illegal delimiter */
-		SETERR0 (sed, HAWK_SED_EBSDEL, &sed->src.loc);
+		hawk_sed_seterrnum (sed, &sed->src.loc, HAWK_SED_EBSDEL);
 		goto oops;
 	}
 
@@ -1490,7 +1465,7 @@ static int get_cut (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 		while (IS_SPACE(c)) NXTSC_GOTO (sed, c, oops);
 		if (c == HAWK_OOCI_EOF)
 		{
-			SETERR0 (sed, HAWK_SED_ECSLNV, &sed->src.loc);
+			hawk_sed_seterrnum (sed, &sed->src.loc, HAWK_SED_ECSLNV);
 			goto oops;
 		}
 
@@ -1501,7 +1476,7 @@ static int get_cut (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 			NXTSC_GOTO (sed, c, oops);
 			if (c == HAWK_OOCI_EOF)
 			{
-				SETERR0 (sed, HAWK_SED_ECSLNV, &sed->src.loc);
+				hawk_sed_seterrnum (sed, &sed->src.loc, HAWK_SED_ECSLNV);
 				goto oops;
 			}
 			cmd->u.cut.delim[delim_idx] = c;
@@ -1557,7 +1532,8 @@ static int get_cut (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 
 			if (!(mask & (MASK_START | MASK_END)))
 			{
-				SETERR0 (sed, HAWK_SED_ECSLNV, &sed->src.loc);
+				/* invalid cut selector */
+				hawk_sed_seterrnum (sed, &sed->src.loc, HAWK_SED_ECSLNV);
 				goto oops;
 			}
 
@@ -1581,7 +1557,7 @@ static int get_cut (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 
 		if (c == HAWK_OOCI_EOF)
 		{
-			SETERR0 (sed, HAWK_SED_ECSLNV, &sed->src.loc);
+			hawk_sed_seterrnum (sed, &sed->src.loc, HAWK_SED_ECSLNV);
 			goto oops;
 		}
 
@@ -1589,7 +1565,7 @@ static int get_cut (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 
 		if (c != HAWK_T(',')) 
 		{
-			SETERR0 (sed, HAWK_SED_ECSLNV, &sed->src.loc);
+			hawk_sed_seterrnum (sed, &sed->src.loc, HAWK_SED_ECSLNV);
 			goto oops;
 		}
 		NXTSC_GOTO (sed, c, oops); /* skip a comma */
@@ -1646,17 +1622,14 @@ static int get_command (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 
 		case HAWK_OOCI_EOF:
 		case HAWK_T('\n'):
-			SETERR0 (sed, HAWK_SED_ECMDMS, &sed->src.loc);
+			hawk_sed_seterrnum (sed, &sed->src.loc, HAWK_SED_ECMDMS);
 			return -1;	
 
 		case HAWK_T(':'):
 			if (cmd->a1.type != HAWK_SED_ADR_NONE)
 			{
 				/* label cannot have an address */
-				SETERR1 (
-					sed, HAWK_SED_EA1PHB,
-					&cmd->type, 1, &sed->src.loc
-				);
+				SETERR1 (sed, HAWK_SED_EA1PHB, &cmd->type, 1, &sed->src.loc);
 				return -1;
 			}
 
@@ -1680,7 +1653,7 @@ static int get_command (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 			if (sed->tmp.grp.level >= HAWK_COUNTOF(sed->tmp.grp.cmd))
 			{
 				/* group nesting too deep */
-				SETERR0 (sed, HAWK_SED_EGRNTD, &sed->src.loc);
+				hawk_sed_seterrnum (sed, &sed->src.loc, HAWK_SED_EGRNTD);
 				return -1;
 			}
 
@@ -1695,10 +1668,7 @@ static int get_command (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 			if (cmd->a1.type != HAWK_SED_ADR_NONE)
 			{
 				hawk_ooch_t tmpc = c;
-				SETERR1 (
-					sed, HAWK_SED_EA1PHB,
-					&tmpc, 1, &sed->src.loc
-				);
+				SETERR1 (sed, HAWK_SED_EA1PHB, &tmpc, 1, &sed->src.loc);
 				return -1;
 			}
 
@@ -1707,7 +1677,7 @@ static int get_command (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 			if (sed->tmp.grp.level <= 0) 
 			{
 				/* group not balanced */
-				SETERR0 (sed, HAWK_SED_EGRNBA, &sed->src.loc);
+				hawk_sed_seterrnum (sed, &sed->src.loc, HAWK_SED_EGRNBA);
 				return -1;
 			}
 
@@ -1724,10 +1694,7 @@ static int get_command (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 			if (sed->opt.trait & HAWK_SED_STRICT &&
 			    cmd->a2.type != HAWK_SED_ADR_NONE)
 			{
-				SETERR1 (
-					sed, HAWK_SED_EA2PHB,
-					&cmd->type, 1, &sed->src.loc
-				);
+				SETERR1 (sed, HAWK_SED_EA2PHB, &cmd->type, 1, &sed->src.loc);
 				return -1;
 			}
 
@@ -1741,10 +1708,7 @@ static int get_command (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 			    cmd->a2.type != HAWK_SED_ADR_NONE)
 			{
 				hawk_ooch_t tmpc = c;
-				SETERR1 (
-					sed, HAWK_SED_EA2PHB,
-					&tmpc, 1, &sed->src.loc
-				);
+				SETERR1 (sed, HAWK_SED_EA2PHB, &tmpc, 1, &sed->src.loc);
 				return -1;
 			}
 		case HAWK_T('c'):
@@ -1764,7 +1728,7 @@ static int get_command (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 					goto sameline_ok;
 				}
 
-				SETERR0 (sed, HAWK_SED_EBSEXP, &sed->src.loc);
+				hawk_sed_seterrnum (sed, &sed->src.loc, HAWK_SED_EBSEXP);
 				return -1;
 			}
 		
@@ -1780,7 +1744,7 @@ static int get_command (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 					goto sameline_ok;
 				}
 
-				SETERR0 (sed, HAWK_SED_EGBABS, &sed->src.loc);
+				hawk_sed_seterrnum (sed, &sed->src.loc, HAWK_SED_EGBABS);
 				return -1;
 			}
 			
@@ -1798,10 +1762,7 @@ static int get_command (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 			    cmd->a2.type != HAWK_SED_ADR_NONE)
 			{
 				hawk_ooch_t tmpc = c;
-				SETERR1 (
-					sed, HAWK_SED_EA2PHB,
-					&tmpc, 1, &sed->src.loc
-				);
+				SETERR1 (sed, HAWK_SED_EA2PHB, &tmpc, 1, &sed->src.loc);
 				return -1;
 			}
 
@@ -1931,7 +1892,7 @@ int hawk_sed_comp (hawk_sed_t* sed, hawk_sed_io_impl_t inf)
 		if (get_address (sed, &cmd->a1, 0) == HAWK_NULL) 
 		{
 			cmd = HAWK_NULL;
-			SETERR0 (sed, HAWK_SED_EA1MOI, &sed->src.loc);
+			hawk_sed_seterrnum (sed, &sed->src.loc, HAWK_SED_EA1MOI);
 			goto oops;
 		}
 
@@ -1951,7 +1912,7 @@ int hawk_sed_comp (hawk_sed_t* sed, hawk_sed_io_impl_t inf)
 				if (get_address (sed, &cmd->a2, (sed->opt.trait & HAWK_SED_EXTENDEDADR)) == HAWK_NULL) 
 				{
 					HAWK_ASSERT (cmd->a2.type == HAWK_SED_ADR_NONE);
-					SETERR0 (sed, HAWK_SED_EA2MOI, &sed->src.loc);
+					hawk_sed_seterrnum (sed, &sed->src.loc, HAWK_SED_EA2MOI);
 					goto oops;
 				}
 
@@ -1959,7 +1920,7 @@ int hawk_sed_comp (hawk_sed_t* sed, hawk_sed_io_impl_t inf)
 				{
 					if (cmd->a2.type == HAWK_SED_ADR_NONE)
 					{
-						SETERR0 (sed, HAWK_SED_EA2MOI, &sed->src.loc);
+						hawk_sed_seterrnum (sed, &sed->src.loc, HAWK_SED_EA2MOI);
 						goto oops;
 					}
 					if (cmd->a2.type == HAWK_SED_ADR_RELLINE || 
@@ -1978,7 +1939,7 @@ int hawk_sed_comp (hawk_sed_t* sed, hawk_sed_io_impl_t inf)
 					if (cmd->a1.type != HAWK_SED_ADR_LINE || 
 					    cmd->a2.type != HAWK_SED_ADR_LINE)
 					{
-						SETERR0 (sed, HAWK_SED_EA2MOI, &sed->src.loc);
+						hawk_sed_seterrnum (sed, &sed->src.loc, HAWK_SED_EA2MOI);
 						goto oops;
 					}
 
@@ -2018,7 +1979,7 @@ int hawk_sed_comp (hawk_sed_t* sed, hawk_sed_io_impl_t inf)
 			}
 			else
 			{
-				SETERR0 (sed, HAWK_SED_EA1MOI, &a1_loc);
+				hawk_sed_seterrnum (sed, &sed->src.loc, HAWK_SED_EA1MOI);
 				goto oops;
 			}
 		}
@@ -2058,7 +2019,8 @@ int hawk_sed_comp (hawk_sed_t* sed, hawk_sed_io_impl_t inf)
 
 	if (sed->tmp.grp.level != 0)
 	{
-		SETERR0 (sed, HAWK_SED_EGRNBA, &sed->src.loc);
+		/* group brackets not balanced - since it's not 0, probably no balancing closing brakcets */
+		hawk_sed_seterrnum (sed, &sed->src.loc, HAWK_SED_EGRNBA);
 		goto oops;
 	}
 
@@ -2655,7 +2617,8 @@ static int do_subst (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 				rex = sed->e.last_rex;
 				if (rex == HAWK_NULL)
 				{
-					SETERR0 (sed, HAWK_SED_ENPREX, &cmd->loc);
+					/* no previous regular expression */
+					hawk_sed_seterrnum (sed, &cmd->loc, HAWK_SED_ENPREX);
 					return -1;
 				}
 			}
@@ -3610,10 +3573,7 @@ static int init_command_block_for_exec (hawk_sed_t* sed, hawk_sed_cmd_blk_t* b)
 					&sed->tmp.labs, lab->ptr, lab->len);
 				if (pair == HAWK_NULL)
 				{
-					SETERR1 (
-						sed, HAWK_SED_ELABNF,
-						lab->ptr, lab->len, &c->loc
-					);
+					SETERR1 (sed, HAWK_SED_ELABNF, lab->ptr, lab->len, &c->loc);
 					return -1;
 				}
 

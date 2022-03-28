@@ -231,36 +231,12 @@ const hawk_loc_t* hawk_geterrloc (hawk_t* hawk)
 
 const hawk_bch_t* hawk_geterrbmsg (hawk_t* hawk)
 {
-#if defined(HAWK_OOCH_IS_BCH)
-	return (hawk->_gem.errmsg[0] == '\0')? hawk_geterrstr(hawk)(hawk->_gem.errnum): hawk->_gem.errmsg;
-#else
-	const hawk_ooch_t* msg;
-	hawk_oow_t wcslen, mbslen;
-
-	msg = (hawk->_gem.errmsg[0] == '\0')? hawk_geterrstr(hawk)(hawk->_gem.errnum): hawk->_gem.errmsg;
-
-	mbslen = HAWK_COUNTOF(hawk->xerrmsg);
-	hawk_conv_ucstr_to_bcstr_with_cmgr (msg, &wcslen, hawk->xerrmsg, &mbslen, hawk_getcmgr(hawk));
-
-	return hawk->xerrmsg;
-#endif
+	return hawk_gem_geterrbmsg(hawk_getgem(hawk));
 }
 
 const hawk_uch_t* hawk_geterrumsg (hawk_t* hawk)
 {
-#if defined(HAWK_OOCH_IS_BCH)
-	const hawk_ooch_t* msg;
-	hawk_oow_t wcslen, mbslen;
-
-	msg = (hawk->_gem.errmsg[0] == '\0')? hawk_geterrstr(hawk)(hawk->_gem.errnum): hawk->_gem.errmsg;
-
-	wcslen = HAWK_COUNTOF(hawk->xerrmsg);
-	hawk_conv_bcstr_to_ucstr_with_cmgr (msg, &mbslen, hawk->xerrmsg, &wcslen, hawk_getcmgr(hawk), 1);
-
-	return hawk->xerrmsg;
-#else
-	return (hawk->_gem.errmsg[0] == '\0')? hawk_geterrstr(hawk)(hawk->_gem.errnum): hawk->_gem.errmsg;
-#endif
+	return hawk_gem_geterrumsg(hawk_getgem(hawk));
 }
 
 void hawk_geterrinf (hawk_t* hawk, hawk_errinf_t* errinf)
@@ -319,36 +295,12 @@ const hawk_loc_t* hawk_rtx_geterrloc (hawk_rtx_t* rtx)
 
 const hawk_bch_t* hawk_rtx_geterrbmsg (hawk_rtx_t* rtx)
 {
-#if defined(HAWK_OOCH_IS_BCH)
-	return (rtx->_gem.errmsg[0] == '\0')? hawk_geterrstr(hawk_rtx_gethawk(rtx))(rtx->_gem.errnum): rtx->_gem.errmsg;
-#else
-	const hawk_ooch_t* msg;
-	hawk_oow_t wcslen, mbslen;
-
-	msg = (rtx->_gem.errmsg[0] == '\0')? hawk_geterrstr(hawk_rtx_gethawk(rtx))(rtx->_gem.errnum): rtx->_gem.errmsg;
-
-	mbslen = HAWK_COUNTOF(rtx->xerrmsg);
-	hawk_conv_ucstr_to_bcstr_with_cmgr (msg, &wcslen, rtx->xerrmsg, &mbslen, hawk_rtx_getcmgr(rtx));
-
-	return rtx->xerrmsg;
-#endif
+	return hawk_gem_geterrbmsg(hawk_rtx_getgem(rtx));
 }
 
 const hawk_uch_t* hawk_rtx_geterrumsg (hawk_rtx_t* rtx)
 {
-#if defined(HAWK_OOCH_IS_BCH)
-	const hawk_ooch_t* msg;
-	hawk_oow_t wcslen, mbslen;
-
-	msg = (rtx->_gem.errmsg[0] == '\0')? hawk_geterrstr(hawk_rtx_gethawk(rtx))(rtx->_gem.errnum): rtx->_gem.errmsg;
-
-	wcslen = HAWK_COUNTOF(rtx->xerrmsg);
-	hawk_conv_bcstr_to_ucstr_with_cmgr (msg, &mbslen, rtx->xerrmsg, &wcslen, hawk_rtx_getcmgr(rtx), 1);
-
-	return rtx->xerrmsg;
-#else
-	return (rtx->_gem.errmsg[0] == '\0')? hawk_geterrstr(hawk_rtx_gethawk(rtx))(rtx->_gem.errnum): rtx->_gem.errmsg;
-#endif
+	return hawk_gem_geterrumsg(hawk_rtx_getgem(rtx));
 }
 
 void hawk_rtx_geterrinf (hawk_rtx_t* rtx, hawk_errinf_t* errinf)
@@ -596,4 +548,19 @@ void hawk_gem_seterruvfmt (hawk_gem_t* gem, const hawk_loc_t* errloc, hawk_errnu
 
 	gem->errnum = errnum;
 	gem->errloc =  (errloc? *errloc: _nullloc);
+}
+
+void hawk_gem_seterror (hawk_gem_t* gem, hawk_errnum_t errnum, const hawk_oocs_t* errarg, const hawk_loc_t* errloc)
+{
+	const hawk_ooch_t* errfmt;
+
+	gem->errnum = errnum;
+
+	errfmt = gem->errstr(gem->errnum);
+	HAWK_ASSERT (errfmt != HAWK_NULL);
+
+	hawk_copy_oocses_to_oochars (gem->errmsg, HAWK_COUNTOF(gem->errmsg), errfmt, errarg);
+
+	if (errloc != HAWK_NULL) gem->errloc = *errloc;
+	else HAWK_MEMSET (&gem->errloc, 0, HAWK_SIZEOF(gem->errloc));
 }

@@ -451,6 +451,14 @@ HAWK_EXPORT void hawk_gem_geterror (
 	hawk_loc_t*         errloc
 );
 
+HAWK_EXPORT const hawk_bch_t* hawk_gem_geterrbmsg (
+	hawk_gem_t* gem
+);
+
+HAWK_EXPORT const hawk_uch_t* hawk_gem_geterrumsg (
+	hawk_gem_t* gem
+);
+
 HAWK_EXPORT void hawk_gem_seterrinf (
 	hawk_gem_t*          gem,
 	const hawk_errinf_t* errinf

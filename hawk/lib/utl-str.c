@@ -537,6 +537,254 @@ hawk_oow_t hawk_copy_bcstr_unlimited (hawk_bch_t* dst, const hawk_bch_t* src)
 	return dst - org - 1;
 }
 
+
+hawk_oow_t hawk_copy_ucstrs_to_uchars (hawk_uch_t* buf, hawk_oow_t bsz, const hawk_uch_t* fmt, const hawk_uch_t* str[])
+{
+	hawk_uch_t* b = buf;
+	hawk_uch_t* end = buf + bsz - 1;
+	const hawk_uch_t* f = fmt;
+ 
+	if (bsz <= 0) return 0;
+ 
+	while (*f != HAWK_UT('\0'))
+	{
+		if (*f == HAWK_UT('\\'))
+		{
+			/* get the escaped character and treat it normally.
+			 * if the escaper is the last character, treat it 
+			 * normally also. */
+			if (f[1] != HAWK_UT('\0')) f++;
+		}
+		else if (*f == HAWK_UT('$'))
+		{
+			if (f[1] == HAWK_UT('{') && 
+			    (f[2] >= HAWK_UT('0') && f[2] <= HAWK_UT('9')))
+			{
+				const hawk_uch_t* tmp;
+				hawk_oow_t idx = 0;
+ 
+				tmp = f;
+				f += 2;
+ 
+				do idx = idx * 10 + (*f++ - HAWK_UT('0'));
+				while (*f >= HAWK_UT('0') && *f <= HAWK_UT('9'));
+	
+				if (*f != HAWK_UT('}'))
+				{
+					f = tmp;
+					goto normal;
+				}
+ 
+				f++;
+				
+				tmp = str[idx];
+				while (*tmp != HAWK_UT('\0')) 
+				{
+					if (b >= end) goto fini;
+					*b++ = *tmp++;
+				}
+				continue;
+			}
+			else if (f[1] == HAWK_UT('$')) f++;
+		}
+ 
+	normal:
+		if (b >= end) break;
+		*b++ = *f++;
+	}
+ 
+fini:
+	*b = HAWK_UT('\0');
+	return b - buf;
+}
+
+hawk_oow_t hawk_copy_bcstrs_to_bchars (hawk_bch_t* buf, hawk_oow_t bsz, const hawk_bch_t* fmt, const hawk_bch_t* str[])
+{
+	hawk_bch_t* b = buf;
+	hawk_bch_t* end = buf + bsz - 1;
+	const hawk_bch_t* f = fmt;
+ 
+	if (bsz <= 0) return 0;
+ 
+	while (*f != HAWK_BT('\0'))
+	{
+		if (*f == HAWK_BT('\\'))
+		{
+			/* get the escaped character and treat it normally.
+			 * if the escaper is the last character, treat it 
+			 * normally also. */
+			if (f[1] != HAWK_BT('\0')) f++;
+		}
+		else if (*f == HAWK_BT('$'))
+		{
+			if (f[1] == HAWK_BT('{') && 
+			    (f[2] >= HAWK_BT('0') && f[2] <= HAWK_BT('9')))
+			{
+				const hawk_bch_t* tmp;
+				hawk_oow_t idx = 0;
+ 
+				tmp = f;
+				f += 2;
+ 
+				do idx = idx * 10 + (*f++ - HAWK_BT('0'));
+				while (*f >= HAWK_BT('0') && *f <= HAWK_BT('9'));
+	
+				if (*f != HAWK_BT('}'))
+				{
+					f = tmp;
+					goto normal;
+				}
+ 
+				f++;
+				
+				tmp = str[idx];
+				while (*tmp != HAWK_BT('\0')) 
+				{
+					if (b >= end) goto fini;
+					*b++ = *tmp++;
+				}
+				continue;
+			}
+			else if (f[1] == HAWK_BT('$')) f++;
+		}
+ 
+	normal:
+		if (b >= end) break;
+		*b++ = *f++;
+	}
+ 
+fini:
+	*b = HAWK_BT('\0');
+	return b - buf;
+}
+
+
+
+hawk_oow_t hawk_copy_ucses_to_uchars (hawk_uch_t* buf, hawk_oow_t bsz, const hawk_uch_t* fmt, const hawk_ucs_t str[])
+{
+	hawk_uch_t* b = buf;
+	hawk_uch_t* end = buf + bsz - 1;
+	const hawk_uch_t* f = fmt;
+ 
+	if (bsz <= 0) return 0;
+ 
+	while (*f != HAWK_UT('\0'))
+	{
+		if (*f == HAWK_UT('\\'))
+		{
+			/* get the escaped character and treat it normally.
+			 * if the escaper is the last character, treat it 
+			 * normally also. */
+			if (f[1] != HAWK_UT('\0')) f++;
+		}
+		else if (*f == HAWK_UT('$'))
+		{
+			if (f[1] == HAWK_UT('{') && 
+			    (f[2] >= HAWK_UT('0') && f[2] <= HAWK_UT('9')))
+			{
+				const hawk_uch_t* tmp, * tmpend;
+				hawk_oow_t idx = 0;
+ 
+				tmp = f;
+				f += 2;
+ 
+				do idx = idx * 10 + (*f++ - HAWK_UT('0'));
+				while (*f >= HAWK_UT('0') && *f <= HAWK_UT('9'));
+	
+				if (*f != HAWK_UT('}'))
+				{
+					f = tmp;
+					goto normal;
+				}
+ 
+				f++;
+				
+				tmp = str[idx].ptr;
+				tmpend = tmp + str[idx].len;
+ 
+				while (tmp < tmpend)
+				{
+					if (b >= end) goto fini;
+					*b++ = *tmp++;
+				}
+				continue;
+			}
+			else if (f[1] == HAWK_UT('$')) f++;
+		}
+ 
+	normal:
+		if (b >= end) break;
+		*b++ = *f++;
+	}
+ 
+fini:
+	*b = HAWK_UT('\0');
+	return b - buf;
+}
+
+hawk_oow_t hawk_copy_bcses_to_bchars (hawk_bch* buf, hawk_oow_t bsz, const hawk_bch* fmt, const hawk_bcs_t str[])
+{
+	hawk_bch* b = buf;
+	hawk_bch* end = buf + bsz - 1;
+	const hawk_bch* f = fmt;
+ 
+	if (bsz <= 0) return 0;
+ 
+	while (*f != HAWK_BT('\0'))
+	{
+		if (*f == HAWK_BT('\\'))
+		{
+			/* get the escaped character and treat it normally.
+			 * if the escaper is the last character, treat it 
+			 * normally also. */
+			if (f[1] != HAWK_BT('\0')) f++;
+		}
+		else if (*f == HAWK_BT('$'))
+		{
+			if (f[1] == HAWK_BT('{') && 
+			    (f[2] >= HAWK_BT('0') && f[2] <= HAWK_BT('9')))
+			{
+				const hawk_bch* tmp, * tmpend;
+				hawk_oow_t idx = 0;
+ 
+				tmp = f;
+				f += 2;
+ 
+				do idx = idx * 10 + (*f++ - HAWK_BT('0'));
+				while (*f >= HAWK_BT('0') && *f <= HAWK_BT('9'));
+	
+				if (*f != HAWK_BT('}'))
+				{
+					f = tmp;
+					goto normal;
+				}
+ 
+				f++;
+				
+				tmp = str[idx].ptr;
+				tmpend = tmp + str[idx].len;
+ 
+				while (tmp < tmpend)
+				{
+					if (b >= end) goto fini;
+					*b++ = *tmp++;
+				}
+				continue;
+			}
+			else if (f[1] == HAWK_BT('$')) f++;
+		}
+ 
+	normal:
+		if (b >= end) break;
+		*b++ = *f++;
+	}
+ 
+fini:
+	*b = HAWK_BT('\0');
+	return b - buf;
+}
+
+
 /* ------------------------------------------------------------------------ */
 
 hawk_oow_t hawk_count_ucstr (const hawk_uch_t* str)
