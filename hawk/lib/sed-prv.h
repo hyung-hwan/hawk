@@ -222,8 +222,9 @@ extern "C" {
 #endif
 
 int hawk_sed_init (
-	hawk_sed_t* sed, 
-	hawk_mmgr_t* mmgr
+	hawk_sed_t*  sed, 
+	hawk_mmgr_t* mmgr,
+	hawk_cmgr_t* cmgr
 );
 
 void hawk_sed_fini (

@@ -48,7 +48,9 @@ enum hawk_sio_flag_t
 	/* ensure that the following enumerators are one of
 	 * hawk_fio_flags_t enumerators */
 	HAWK_SIO_HANDLE        = HAWK_FIO_HANDLE,
+	HAWK_SIO_TEMPORARY     = HAWK_FIO_TEMPORARY,
 	HAWK_SIO_NOCLOSE       = HAWK_FIO_NOCLOSE,
+	HAWK_SIO_BCSTRPATH     = HAWK_FIO_BCSTRPATH,
 	HAWK_SIO_READ          = HAWK_FIO_READ,
 	HAWK_SIO_WRITE         = HAWK_FIO_WRITE,
 	HAWK_SIO_APPEND        = HAWK_FIO_APPEND,

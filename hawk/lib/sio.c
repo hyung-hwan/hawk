@@ -135,7 +135,22 @@ int hawk_sio_init (hawk_sio_t* sio, hawk_gem_t* gem, const hawk_ooch_t* path, in
 
 	if ((flags & HAWK_SIO_KEEPPATH) && !(flags & HAWK_SIO_HANDLE))
 	{
+	#if defined(HAWK_OOCH_IS_BCH)
 		sio->path = hawk_gem_dupoocstr(gem, path, HAWK_NULL);
+	#else
+		if (flags & HAWK_SIO_BCSTRPATH)
+		{
+			/* the stored path is always of the hawk_ooch_t type.
+			 * and the conversion uses the cmgr set on the gem object.
+			 * note that cmgr for the actual file content can be set
+			 * with hawk_sio_setcmgr(). */
+			sio->path = hawk_gem_dupbtoucstr(gem, (const hawk_bch_t*)path, HAWK_NULL, 1);
+		}
+		else
+		{
+			sio->path = hawk_gem_dupoocstr(gem, path, HAWK_NULL);
+		}
+	#endif
 		if (sio->path == HAWK_NULL) goto oops02;
 	}
 
@@ -173,7 +188,7 @@ int hawk_sio_initstd (hawk_sio_t* sio, hawk_gem_t* gem, hawk_sio_std_t std, int 
 	int n;
 	hawk_fio_hnd_t hnd;
 
-	if (hawk_get_std_fio_handle (std, &hnd) <= -1) return -1;
+	if (hawk_get_std_fio_handle(std, &hnd) <= -1) return -1;
 
 	n = hawk_sio_init(sio, gem, (const hawk_ooch_t*)&hnd, flags | HAWK_SIO_HANDLE | HAWK_SIO_NOCLOSE);
 
@@ -219,7 +234,9 @@ hawk_sio_hnd_t hawk_sio_gethnd (const hawk_sio_t* sio)
 
 const hawk_ooch_t* hawk_sio_getpath (hawk_sio_t* sio)
 {
-	/* this path is valid if HAWK_SIO_HANDLE is off and HAWK_SIO_KEEPPATH is on */
+	/* this path is valid if HAWK_SIO_HANDLE is off and HAWK_SIO_KEEPPATH is on.
+	 * HAWK_SIO_BCSTRPATH doesn't affect this value. The opening side ensures it
+	 * to be in the hawk_ooch_type. */
 	return sio->path;
 }
 

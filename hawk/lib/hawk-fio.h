@@ -38,17 +38,15 @@ enum hawk_fio_flag_t
 	/** treat the file name pointer as a handle pointer */
 	HAWK_FIO_HANDLE        = (1 << 8),
 
-#if 0
 	/** treat the file name pointer as a pointer to file name
 	 *  template to use when making a temporary file name */
 	HAWK_FIO_TEMPORARY     = (1 << 9),
-#endif
 
 	/** don't close an I/O handle in hawk_fio_fini() and hawk_fio_close() */
 	HAWK_FIO_NOCLOSE       = (1 << 10),
 
 	/** treat the path name as a multi-byte string */
-	HAWK_FIO_MBSPATH       = (1 << 11), 
+	HAWK_FIO_BCSTRPATH    = (1 << 11), 
 
 	/* normal open flags */
 	HAWK_FIO_READ          = (1 << 14),

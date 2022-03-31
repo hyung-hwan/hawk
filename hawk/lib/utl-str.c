@@ -660,7 +660,7 @@ fini:
 
 
 
-hawk_oow_t hawk_copy_ucses_to_uchars (hawk_uch_t* buf, hawk_oow_t bsz, const hawk_uch_t* fmt, const hawk_ucs_t str[])
+hawk_oow_t hawk_copy_ufcs_to_uchars (hawk_uch_t* buf, hawk_oow_t bsz, const hawk_uch_t* fmt, const hawk_ucs_t str[])
 {
 	hawk_uch_t* b = buf;
 	hawk_uch_t* end = buf + bsz - 1;
@@ -722,11 +722,11 @@ fini:
 	return b - buf;
 }
 
-hawk_oow_t hawk_copy_bcses_to_bchars (hawk_bch* buf, hawk_oow_t bsz, const hawk_bch* fmt, const hawk_bcs_t str[])
+hawk_oow_t hawk_copy_bfcs_to_bchars (hawk_bch_t* buf, hawk_oow_t bsz, const hawk_bch_t* fmt, const hawk_bcs_t str[])
 {
-	hawk_bch* b = buf;
-	hawk_bch* end = buf + bsz - 1;
-	const hawk_bch* f = fmt;
+	hawk_bch_t* b = buf;
+	hawk_bch_t* end = buf + bsz - 1;
+	const hawk_bch_t* f = fmt;
  
 	if (bsz <= 0) return 0;
  
@@ -744,7 +744,7 @@ hawk_oow_t hawk_copy_bcses_to_bchars (hawk_bch* buf, hawk_oow_t bsz, const hawk_
 			if (f[1] == HAWK_BT('{') && 
 			    (f[2] >= HAWK_BT('0') && f[2] <= HAWK_BT('9')))
 			{
-				const hawk_bch* tmp, * tmpend;
+				const hawk_bch_t* tmp, * tmpend;
 				hawk_oow_t idx = 0;
  
 				tmp = f;

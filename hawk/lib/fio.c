@@ -140,6 +140,11 @@ int hawk_fio_init (hawk_fio_t* fio, hawk_gem_t* gem, const hawk_ooch_t* path, in
 {
 	hawk_fio_hnd_t handle;
 
+	hawk_uint32_t temp_no;
+	hawk_ooch_t* temp_ptr;
+	hawk_bch_t* temp_ptr_b;
+	hawk_oow_t temp_tries;
+
 #if defined(_WIN32)
 	int fellback = 0;
 #endif
@@ -180,6 +185,102 @@ int hawk_fio_init (hawk_fio_t* fio, hawk_gem_t* gem, const hawk_ooch_t* path, in
 	if (flags & HAWK_FIO_NOCLOSE) 
 		fio->status |= STATUS_NOCLOSE;
 
+	if (flags & HAWK_FIO_TEMPORARY)
+	{
+		hawk_ntime_t now;
+
+		/*if (flags & (HAWK_FIO_HANDLE | HAWK_FIO_BCSTRPATH))*/
+		if (flags & HAWK_FIO_HANDLE)
+		{
+			/* HAWK_FIO_TEMPORARY and HAWK_FIO_HANDLE/HAWK_FIO_BCSTRPATH 
+			 * are mutually exclusive */
+			hawk_gem_seterrnum (fio->gem, HAWK_NULL, HAWK_EINVAL);
+			return -1;
+		}
+
+		temp_no = 0;
+
+		if (flags & HAWK_FIO_BCSTRPATH)
+		{
+
+			for (temp_ptr_b = (hawk_bch_t*)path; *temp_ptr_b; temp_ptr_b++) 
+				temp_no += *temp_ptr_b;
+
+			if (temp_ptr_b - (hawk_bch_t*)path < 4)
+			{
+				hawk_gem_seterrnum (fio->gem, HAWK_NULL, HAWK_EINVAL);
+				return -1; 
+			}
+
+			temp_ptr_b -= 4;
+		}
+		else
+		{
+			/* if HAWK_FIO_TEMPORARY is used, the path name must be writable. */
+			for (temp_ptr = (hawk_ooch_t*)path; *temp_ptr; temp_ptr++) 
+				temp_no += *temp_ptr;
+
+			/* The path name template must be at least 4 characters long
+			 * excluding the terminating null. this function fails if not */
+			if (temp_ptr - path < 4) 
+			{
+				hawk_gem_seterrnum (fio->gem, HAWK_NULL, HAWK_EINVAL);
+				return -1; 
+			}
+
+			temp_ptr -= 4;
+		}
+
+		hawk_get_ntime (&now);
+		temp_no += (now.sec & 0xFFFFFFFFlu);
+
+		temp_tries = 0;
+
+	retry_temporary:
+		temp_tries++;
+
+		/* Fails after 5000 tries. 5000 randomly chosen */
+		if (temp_tries > 5000) 
+		{
+			hawk_gem_seterrnum (fio->gem, HAWK_NULL, HAWK_EINVAL);
+			return -1; 
+		}
+
+		/* Generate the next random number to use to make a 
+		 * new path name */
+		temp_no = hawk_rand31(temp_no);
+
+		/* 
+		 * You must not pass a constant string for a path name
+		 * when HAWK_FIO_TEMPORARY is set, because it changes
+		 * the path name with a random number generated
+		 */
+		if (flags & HAWK_FIO_BCSTRPATH)
+		{
+			hawk_fmt_uintmax_to_bcstr (
+				temp_ptr_b,
+				4, 
+				temp_no % 0x10000, 
+				16 | HAWK_FMT_UINTMAX_NOTRUNC | HAWK_FMT_UINTMAX_NONULL,
+				4,
+				'\0',
+				HAWK_NULL
+			);
+		}
+		else
+		{
+			hawk_fmt_uintmax_to_oocstr (
+				temp_ptr,
+				4, 
+				temp_no % 0x10000, 
+				16 | HAWK_FMT_UINTMAX_NOTRUNC | HAWK_FMT_UINTMAX_NONULL,
+				4,
+				HAWK_T('\0'),
+				HAWK_NULL
+			);
+		}
+	}
+	
 #if defined(_WIN32)
 	if (flags & HAWK_FIO_HANDLE)
 	{
@@ -256,7 +357,7 @@ int hawk_fio_init (hawk_fio_t* fio, hawk_gem_t* gem, const hawk_ooch_t* path, in
 		if (flags & HAWK_FIO_SEQUENTIAL) 
 			flag_and_attr |= FILE_FLAG_SEQUENTIAL_SCAN;
 
-		if (flags & HAWK_FIO_MBSPATH)
+		if (flags & HAWK_FIO_BCSTRPATH)
 		{
 			handle = CreateFileA(
 				(const hawk_bch_t*)path, desired_access, share_mode, 
@@ -291,7 +392,7 @@ int hawk_fio_init (hawk_fio_t* fio, hawk_gem_t* gem, const hawk_ooch_t* path, in
 					desired_access |= GENERIC_WRITE;
 				}
 			
-				if (flags & HAWK_FIO_MBSPATH)
+				if (flags & HAWK_FIO_BCSTRPATH)
 				{
 					handle = CreateFileA(
 						(const hawk_bch_t*)path, desired_access, share_mode, 
@@ -309,12 +410,14 @@ int hawk_fio_init (hawk_fio_t* fio, hawk_gem_t* gem, const hawk_ooch_t* path, in
 				}
 				if (handle == INVALID_HANDLE_VALUE) 
 				{
+				i	if (flags & HAWK_FIO_TEMPORARY) goto retry_temporary;
 					hawk_gem_seterrnum (fio->gem, HAWK_NULL, hawk_syserr_to_errnum(GetLastError()));
 					return -1;
 				}
 			}
 			else
 			{
+				if (flags & HAWK_FIO_TEMPORARY) goto retry_temporary;
 				hawk_gem_seterrnum (fio->gem, HAWK_NULL, hawk_syserr_to_errnum(e));
 				return -1;
 			}
@@ -353,7 +456,7 @@ int hawk_fio_init (hawk_fio_t* fio, hawk_gem_t* gem, const hawk_ooch_t* path, in
 		hawk_oow_t wl, ml;
 		int px;
 
-		if (flags & HAWK_FIO_MBSPATH)
+		if (flags & HAWK_FIO_BCSTRPATH)
 		{
 			path_mb = (hawk_bch_t*)path;
 		}
@@ -460,6 +563,7 @@ int hawk_fio_init (hawk_fio_t* fio, hawk_gem_t* gem, const hawk_ooch_t* path, in
 
 		if (ret != NO_ERROR) 
 		{
+			if (flags & HAWK_FIO_TEMPORARY) goto retry_temporary;
 			hawk_gem_seterrnum (fio->gem, HAWK_NULL, hawk_syserr_to_errnum(ret));
 			return -1;
 		}
@@ -486,7 +590,7 @@ int hawk_fio_init (hawk_fio_t* fio, hawk_gem_t* gem, const hawk_ooch_t* path, in
 		hawk_oow_t wl, ml;
 		int px;
 
-		if (flags & HAWK_FIO_MBSPATH)
+		if (flags & HAWK_FIO_BCSTRPATH)
 		{
 			path_mb = (hawk_bch_t*)path;
 		}
@@ -546,6 +650,7 @@ int hawk_fio_init (hawk_fio_t* fio, hawk_gem_t* gem, const hawk_ooch_t* path, in
 
 		if (handle <= -1) 
 		{
+			if (flags & HAWK_FIO_TEMPORARY) goto retry_temporary;
 			hawk_gem_seterrnum (fio->gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
 			return -1;
 		}
@@ -573,7 +678,7 @@ int hawk_fio_init (hawk_fio_t* fio, hawk_gem_t* gem, const hawk_ooch_t* path, in
 		hawk_oow_t wl, ml;
 		int px;
 
-		if (flags & HAWK_FIO_MBSPATH)
+		if (flags & HAWK_FIO_BCSTRPATH)
 		{
 			path_mb = (hawk_bch_t*)path;
 		}
@@ -695,7 +800,7 @@ int hawk_fio_init (hawk_fio_t* fio, hawk_gem_t* gem, const hawk_ooch_t* path, in
 		hawk_oow_t wl, ml;
 		int px;
 
-		if (flags & HAWK_FIO_MBSPATH)
+		if (flags & HAWK_FIO_BCSTRPATH)
 		{
 			path_mb = (hawk_bch_t*)path;
 		}
@@ -768,6 +873,7 @@ int hawk_fio_init (hawk_fio_t* fio, hawk_gem_t* gem, const hawk_ooch_t* path, in
 	#endif
 		if (handle == -1) 
 		{
+			if (flags & HAWK_FIO_TEMPORARY) goto retry_temporary;
 			hawk_gem_seterrnum (fio->gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
 			return -1;
 		}

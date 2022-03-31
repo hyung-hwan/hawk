@@ -169,6 +169,9 @@
 /* libffi library is available */
 #undef HAVE_FFI_LIB
 
+/* Define to 1 if you have the `ffi_prep_cif_var' function. */
+#undef HAVE_FFI_PREP_CIF_VAR
+
 /* Define to 1 if you have the `floor' function. */
 #undef HAVE_FLOOR
 

@@ -124,6 +124,7 @@ libhawk_la_SOURCES = \
 	utf16.c \
 	utf8.c \
 	utl-ass.c \
+	utl-rnd.c\
 	utl-sort.c \
 	utl-str.c \
 	utl-sys.c \
@@ -148,7 +149,8 @@ libhawk_la_SOURCES += \
 	syscall.h \
 	tio.c \
 	std-prv.h \
-	std.c 
+	std.c  \
+	std-sed.c
 
 libhawk_la_CPPFLAGS = $(CPPFLAGS_ALL_COMMON) $(CPPFLAGS_PFMOD)
 libhawk_la_CFLAGS = $(CFLAGS_ALL_COMMON)

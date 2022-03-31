@@ -19303,6 +19303,21 @@ fi
 
 
 
+OLDLIBS="$LIBS"
+LIBS="$FFI_LIBS $LIBS"
+for ac_func in ffi_prep_cif_var
+do :
+  ac_fn_c_check_func "$LINENO" "ffi_prep_cif_var" "ac_cv_func_ffi_prep_cif_var"
+if test "x$ac_cv_func_ffi_prep_cif_var" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_FFI_PREP_CIF_VAR 1
+_ACEOF
+
+fi
+done
+
+LIBS="$OLDLIBS"
+
 if test "x${ac_cv_header_libunwind_h}" = "xyes"
 then
 	{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for unw_backtrace in -lunwind" >&5

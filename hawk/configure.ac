@@ -311,6 +311,11 @@ AC_CHECK_LIB([ffi], [ffi_call],
 )
 AC_SUBST(FFI_LIBS)
 
+OLDLIBS="$LIBS"
+LIBS="$FFI_LIBS $LIBS"
+AC_CHECK_FUNCS([ffi_prep_cif_var])
+LIBS="$OLDLIBS"
+
 if test "x${ac_cv_header_libunwind_h}" = "xyes" 
 then
 	AC_CHECK_LIB([unwind], [unw_backtrace], 

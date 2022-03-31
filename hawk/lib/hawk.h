@@ -1584,19 +1584,18 @@ HAWK_EXPORT hawk_errstr_t hawk_geterrstr (
  * \return error number
  */
 
-#if defined(HAWK_HAVE_INLINE)
-static HAWK_INLINE hawk_errnum_t hawk_geterrnum (hawk_t* hawk) { return ((hawk_alt_t*)hawk)->_gem.errnum; }
-#else
-#	define hawk_geterrnum(hawk) (((hawk_alt_t*)(hawk))->_gem.errnum)
-#endif
-
 /**
  * The hawk_geterrloc() function returns the location where the
  * last error has occurred.
  */
-HAWK_EXPORT const hawk_loc_t* hawk_geterrloc (
-	hawk_t* hawk /**< hawk */
-);
+
+#if defined(HAWK_HAVE_INLINE)
+static HAWK_INLINE hawk_errnum_t hawk_geterrnum (hawk_t* hawk) { return ((hawk_alt_t*)hawk)->_gem.errnum; }
+static HAWK_INLINE const hawk_loc_t* hawk_geterrloc (hawk_t* hawk) { return hawk_gem_geterrloc(hawk_getgem(hawk)); }
+#else
+#	define hawk_geterrnum(hawk) (((hawk_alt_t*)(hawk))->_gem.errnum)
+#	define hawk_geterrloc(hawk) (hawk_gem_geterrloc(hawk_getgem(hawk)))
+#endif
 
 /**
  * The hawk_geterrbmsg() function returns the error message describing
@@ -1702,6 +1701,13 @@ HAWK_EXPORT void hawk_seterrinf (
 	const hawk_errinf_t* errinf /**< error information */
 );
 
+
+HAWK_EXPORT void hawk_seterror (
+	hawk_t*              hawk,
+	const hawk_loc_t*    errloc,
+	hawk_errnum_t        errnum,
+	const hawk_oocs_t*   errarg
+);
 
 /**
  * The hawk_geterror() function gets error information via parameters.
@@ -2566,20 +2572,19 @@ HAWK_EXPORT hawk_htb_t* hawk_rtx_getnvmap (
  * occurred during runtime.
  * \return error number
  */
-#if defined(HAWK_HAVE_INLINE)
-static HAWK_INLINE hawk_errnum_t hawk_rtx_geterrnum (hawk_rtx_t* rtx) { return ((hawk_rtx_alt_t*)rtx)->_gem.errnum; }
-#else
-#	define hawk_rtx_geterrnum(hawk) (((hawk_rtx_alt_t*)(rtx))->_gem.errnum)
-#endif
 
 /**
  * The hawk_rtx_geterrloc() function gets the location of the last error
  * occurred during runtime. The 
  * \return error location
  */
-HAWK_EXPORT const hawk_loc_t* hawk_rtx_geterrloc (
-	hawk_rtx_t* rtx /**< runtime context */
-);
+#if defined(HAWK_HAVE_INLINE)
+static HAWK_INLINE hawk_errnum_t hawk_rtx_geterrnum (hawk_rtx_t* rtx) { return ((hawk_rtx_alt_t*)rtx)->_gem.errnum; }
+static HAWK_INLINE const hawk_loc_t* hawk_rtx_geterrloc (hawk_rtx_t* rtx) { return hawk_gem_geterrloc(hawk_rtx_getgem(rtx)); }
+#else
+#	define hawk_rtx_geterrnum(rtx) (((hawk_rtx_alt_t*)(rtx))->_gem.errnum)
+#	define hawk_rtx_geterrloc(rtx) (hawk_gem_geterrloc(hawk_rtx_getgem(rtx)))
+#endif
 
 /**
  * The hawk_rtx_geterrbmsg() function gets the string describing the last 
@@ -2643,6 +2648,13 @@ static HAWK_INLINE void hawk_rtx_seterrnum (hawk_rtx_t* rtx, const hawk_loc_t* e
 HAWK_EXPORT void hawk_rtx_seterrinf (
 	hawk_rtx_t*          rtx,   /**< runtime context */
 	const hawk_errinf_t* errinf /**< error information */
+);
+
+HAWK_EXPORT void hawk_rtx_seterror (
+	hawk_rtx_t*          rtx,
+	const hawk_loc_t*    errloc,
+	hawk_errnum_t        errnum,
+	const hawk_oocs_t*   errarg
 );
 
 HAWK_EXPORT void hawk_rtx_seterrbfmt (

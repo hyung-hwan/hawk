@@ -51,14 +51,14 @@ do { \
 
 static void free_all_cut_selector_blocks (hawk_sed_t* sed, hawk_sed_cmd_t* cmd);
 
-hawk_sed_t* hawk_sed_open (hawk_mmgr_t* mmgr, hawk_oow_t xtnsize, hawk_errnum_t* errnum)
+hawk_sed_t* hawk_sed_open (hawk_mmgr_t* mmgr, hawk_oow_t xtnsize, hawk_cmgr_t* cmgr, hawk_errnum_t* errnum)
 {
 	hawk_sed_t* sed;
 
 	sed = (hawk_sed_t*)HAWK_MMGR_ALLOC(mmgr, HAWK_SIZEOF(hawk_sed_t) + xtnsize);
 	if (HAWK_LIKELY(sed))
 	{
-		if (hawk_sed_init(sed, mmgr) <= -1)
+		if (hawk_sed_init(sed, mmgr, cmgr) <= -1)
 		{
 			if (errnum) *errnum = hawk_sed_geterrnum(sed);
 			HAWK_MMGR_FREE (mmgr, sed);
@@ -82,13 +82,13 @@ void hawk_sed_close (hawk_sed_t* sed)
 	HAWK_MMGR_FREE (hawk_sed_getmmgr(sed), sed);
 }
 
-int hawk_sed_init (hawk_sed_t* sed, hawk_mmgr_t* mmgr)
+int hawk_sed_init (hawk_sed_t* sed, hawk_mmgr_t* mmgr, hawk_cmgr_t* cmgr)
 {
 	HAWK_MEMSET (sed, 0, HAWK_SIZEOF(*sed));
 
 	sed->_instsize = HAWK_SIZEOF(*sed);
 	sed->_gem.mmgr = mmgr;
-	sed->_gem.cmgr = HAWK_NULL; /* no cmgr used */
+	sed->_gem.cmgr = cmgr;
 
 	/* initialize error handling fields */
 	sed->_gem.errnum = HAWK_ENOERR;
@@ -1889,7 +1889,7 @@ int hawk_sed_comp (hawk_sed_t* sed, hawk_sed_io_impl_t inf)
 
 		/* process the first address */
 		a1_loc = sed->src.loc;
-		if (get_address (sed, &cmd->a1, 0) == HAWK_NULL) 
+		if (get_address(sed, &cmd->a1, 0) == HAWK_NULL) 
 		{
 			cmd = HAWK_NULL;
 			hawk_sed_seterrnum (sed, &sed->src.loc, HAWK_SED_EA1MOI);

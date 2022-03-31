@@ -847,7 +847,7 @@ static int fnc_call (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 		if (add_ffi_arg(rtx, ffi_list, ffi_node, fmtc, _unsigned, hawk_rtx_getarg(rtx, j + FNC_CALL_ARG_BASE), &ret) <= -1) goto done;
 		_unsigned = 0;
-		j++;
+		j++; /* increment the total number of arguments */
 	}
 
 	while (i < sig.len && sig.ptr[i] == ' ') i++; /* skip all spaces after > */
@@ -868,8 +868,20 @@ static int fnc_call (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		goto done;
 	}
 
-	fs = (nfixedargs == j)? ffi_prep_cif(&ffi->cif, FFI_DEFAULT_ABI, j, ffi->fmtc_to_type[0][fmtc], ffi->arg_types):
-	                        ffi_prep_cif_var(&ffi->cif, FFI_DEFAULT_ABI, nfixedargs, j, ffi->fmtc_to_type[0][fmtc], ffi->arg_types);
+	if (nfixedargs == j)
+	{
+		fs = ffi_prep_cif(&ffi->cif, FFI_DEFAULT_ABI, j, ffi->fmtc_to_type[0][fmtc], ffi->arg_types);
+	}
+	else
+	{
+	#if defined(HAVE_FFI_PREP_CIF_VAR)
+		fs = ffi_prep_cif_var(&ffi->cif, FFI_DEFAULT_ABI, nfixedargs, j, ffi->fmtc_to_type[0][fmtc], ffi->arg_types);
+	#else
+		ret = set_error_on_ffi_list(rtx, ffi_list, HAWK_ENOIMPL, HAWK_T("variadic arguments not supported"));
+		goto done;
+	#endif
+	}
+
 	if (fs != FFI_OK)
 	{
 		ret = set_error_on_ffi_list(rtx, ffi_list, HAWK_ESYSERR, HAWK_T("unable to prepare the ffi_cif structure"));

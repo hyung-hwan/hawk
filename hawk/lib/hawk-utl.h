@@ -567,6 +567,20 @@ HAWK_EXPORT hawk_oow_t hawk_copy_bcstr_unlimited (
 	const hawk_bch_t* src
 );
 
+HAWK_EXPORT hawk_oow_t hawk_copy_ufcs_to_uchars (
+	hawk_uch_t*       buf,
+	hawk_oow_t        bsz,
+	const hawk_uch_t* fmt,
+	const hawk_ucs_t  str[]
+);
+
+HAWK_EXPORT hawk_oow_t hawk_copy_bfcs_to_bchars (
+	hawk_bch_t*       buf,
+	hawk_oow_t        bsz,
+	const hawk_bch_t* fmt,
+	const hawk_bcs_t  str[]
+);
+
 HAWK_EXPORT hawk_oow_t hawk_count_ucstr (
 	const hawk_uch_t* str
 );
@@ -584,7 +598,6 @@ HAWK_EXPORT hawk_oow_t hawk_count_bcstr_limited (
 	const hawk_bch_t* str,
 	hawk_oow_t        maxlen
 );
-
 
 HAWK_EXPORT void hawk_fill_uchars (
 	hawk_uch_t*       dst,
@@ -810,6 +823,8 @@ HAWK_EXPORT hawk_oow_t hawk_subst_for_bcstr_to_bcstr (
 #	define hawk_copy_oocstr hawk_copy_ucstr
 #	define hawk_copy_oocstr_unlimited hawk_copy_ucstr_unlimited
 
+#	define hawk_copy_oofcs_to_oochars hawk_copy_ufcs_to_uchars
+
 #	define hawk_count_oocstr hawk_count_ucstr
 #	define hawk_count_oocstr_limited hawk_count_ucstr_limited
 
@@ -852,6 +867,8 @@ HAWK_EXPORT hawk_oow_t hawk_subst_for_bcstr_to_bcstr (
 #	define hawk_copy_oocstr_to_oochars hawk_copy_bcstr_to_bchars
 #	define hawk_copy_oocstr hawk_copy_bcstr
 #	define hawk_copy_oocstr_unlimited hawk_copy_bcstr_unlimited
+
+#	define hawk_copy_oofcs_to_oochars hawk_copy_bfcs_to_bchars
 
 #	define hawk_count_oocstr hawk_count_bcstr
 #	define hawk_count_oocstr_limited hawk_count_bcstr_limited
@@ -1651,6 +1668,12 @@ HAWK_EXPORT void hawk_sub_ntime (
 	const hawk_ntime_t* y
 );
 
+/* =========================================================================
+ * RANDOM NUMBER GENERATOR
+ * ========================================================================= */
+HAWK_EXPORT hawk_uint32_t hawk_rand31 (
+	hawk_uint32_t seed
+);
 
 /* =========================================================================
  * ASSERTION

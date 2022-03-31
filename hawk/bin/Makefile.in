@@ -109,7 +109,7 @@ CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
-am_hawk_OBJECTS = hawk-main.$(OBJEXT)
+am_hawk_OBJECTS = hawk-main-hawk.$(OBJEXT)
 hawk_OBJECTS = $(am_hawk_OBJECTS)
 am__DEPENDENCIES_1 =
 hawk_DEPENDENCIES = $(LIBADD_COMMON) $(am__DEPENDENCIES_1)
@@ -135,7 +135,7 @@ am__v_at_1 =
 DEFAULT_INCLUDES = 
 depcomp = $(SHELL) $(top_srcdir)/ac/depcomp
 am__maybe_remake_depfiles = depfiles
-am__depfiles_remade = ./$(DEPDIR)/hawk-main.Po
+am__depfiles_remade = ./$(DEPDIR)/hawk-main-hawk.Po
 am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -346,7 +346,7 @@ LIBADD_COMMON = ../lib/libhawk.la
 ##################################################
 # hawk
 ##################################################
-hawk_SOURCES = main.c 
+hawk_SOURCES = main-hawk.c 
 hawk_CPPFLAGS = $(CPPFLAGS_COMMON)
 hawk_CFLAGS = $(CFLAGS_COMMON)
 hawk_LDFLAGS = $(LDFLAGS_COMMON)
@@ -444,7 +444,7 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/hawk-main.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/hawk-main-hawk.Po@am__quote@ # am--include-marker
 
 $(am__depfiles_remade):
 	@$(MKDIR_P) $(@D)
@@ -476,19 +476,19 @@ am--depfiles: $(am__depfiles_remade)
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LTCOMPILE) -c -o $@ $<
 
-hawk-main.o: main.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(hawk_CPPFLAGS) $(CPPFLAGS) $(hawk_CFLAGS) $(CFLAGS) -MT hawk-main.o -MD -MP -MF $(DEPDIR)/hawk-main.Tpo -c -o hawk-main.o `test -f 'main.c' || echo '$(srcdir)/'`main.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/hawk-main.Tpo $(DEPDIR)/hawk-main.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='main.c' object='hawk-main.o' libtool=no @AMDEPBACKSLASH@
+hawk-main-hawk.o: main-hawk.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(hawk_CPPFLAGS) $(CPPFLAGS) $(hawk_CFLAGS) $(CFLAGS) -MT hawk-main-hawk.o -MD -MP -MF $(DEPDIR)/hawk-main-hawk.Tpo -c -o hawk-main-hawk.o `test -f 'main-hawk.c' || echo '$(srcdir)/'`main-hawk.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/hawk-main-hawk.Tpo $(DEPDIR)/hawk-main-hawk.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='main-hawk.c' object='hawk-main-hawk.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(hawk_CPPFLAGS) $(CPPFLAGS) $(hawk_CFLAGS) $(CFLAGS) -c -o hawk-main.o `test -f 'main.c' || echo '$(srcdir)/'`main.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(hawk_CPPFLAGS) $(CPPFLAGS) $(hawk_CFLAGS) $(CFLAGS) -c -o hawk-main-hawk.o `test -f 'main-hawk.c' || echo '$(srcdir)/'`main-hawk.c
 
-hawk-main.obj: main.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(hawk_CPPFLAGS) $(CPPFLAGS) $(hawk_CFLAGS) $(CFLAGS) -MT hawk-main.obj -MD -MP -MF $(DEPDIR)/hawk-main.Tpo -c -o hawk-main.obj `if test -f 'main.c'; then $(CYGPATH_W) 'main.c'; else $(CYGPATH_W) '$(srcdir)/main.c'; fi`
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/hawk-main.Tpo $(DEPDIR)/hawk-main.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='main.c' object='hawk-main.obj' libtool=no @AMDEPBACKSLASH@
+hawk-main-hawk.obj: main-hawk.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(hawk_CPPFLAGS) $(CPPFLAGS) $(hawk_CFLAGS) $(CFLAGS) -MT hawk-main-hawk.obj -MD -MP -MF $(DEPDIR)/hawk-main-hawk.Tpo -c -o hawk-main-hawk.obj `if test -f 'main-hawk.c'; then $(CYGPATH_W) 'main-hawk.c'; else $(CYGPATH_W) '$(srcdir)/main-hawk.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/hawk-main-hawk.Tpo $(DEPDIR)/hawk-main-hawk.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='main-hawk.c' object='hawk-main-hawk.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(hawk_CPPFLAGS) $(CPPFLAGS) $(hawk_CFLAGS) $(CFLAGS) -c -o hawk-main.obj `if test -f 'main.c'; then $(CYGPATH_W) 'main.c'; else $(CYGPATH_W) '$(srcdir)/main.c'; fi`
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(hawk_CPPFLAGS) $(CPPFLAGS) $(hawk_CFLAGS) $(CFLAGS) -c -o hawk-main-hawk.obj `if test -f 'main-hawk.c'; then $(CYGPATH_W) 'main-hawk.c'; else $(CYGPATH_W) '$(srcdir)/main-hawk.c'; fi`
 
 mostlyclean-libtool:
 	-rm -f *.lo
@@ -623,7 +623,7 @@ clean: clean-am
 clean-am: clean-binPROGRAMS clean-generic clean-libtool mostlyclean-am
 
 distclean: distclean-am
-		-rm -f ./$(DEPDIR)/hawk-main.Po
+		-rm -f ./$(DEPDIR)/hawk-main-hawk.Po
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-tags
@@ -669,7 +669,7 @@ install-ps-am:
 installcheck-am:
 
 maintainer-clean: maintainer-clean-am
-		-rm -f ./$(DEPDIR)/hawk-main.Po
+		-rm -f ./$(DEPDIR)/hawk-main-hawk.Po
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 
@@ -706,6 +706,12 @@ uninstall-am: uninstall-binPROGRAMS
 
 .PRECIOUS: Makefile
 
+
+#hsed_SOURCES = main-hsed.c 
+#hsed_CPPFLAGS = $(CPPFLAGS_COMMON)
+#hsed_CFLAGS = $(CFLAGS_COMMON)
+#hsed_LDFLAGS = $(LDFLAGS_COMMON)
+#hsed_LDADD = $(LIBADD_COMMON) $(LIBM)
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

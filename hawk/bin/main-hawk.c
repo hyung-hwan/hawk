@@ -465,7 +465,7 @@ static void on_statement (hawk_rtx_t* rtx, hawk_nde_t* nde)
 static void print_version (const hawk_bch_t* argv0)
 {
 	printf ("%s %s\n", hawk_get_base_name_bcstr(argv0), HAWK_PACKAGE_VERSION);
-	printf ("Copyright 2006-2020 Chung, Hyung-Hwan\n");
+	printf ("Copyright 2006-2022 Chung, Hyung-Hwan\n");
 }
 
 static void print_error (const hawk_bch_t* fmt, ...)

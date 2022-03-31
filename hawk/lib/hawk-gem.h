@@ -164,7 +164,7 @@ HAWK_EXPORT hawk_uch_t* hawk_gem_dupucstrarr (
 HAWK_EXPORT hawk_bch_t* hawk_gem_dupbcstrarr (
 	hawk_gem_t*       gem,
 	const hawk_bch_t* str[],
-	hawk_oow_t* len
+	hawk_oow_t*       len
 );
 
 #if defined(HAWK_OOCH_IS_UCH)
@@ -435,8 +435,10 @@ HAWK_EXPORT int hawk_gem_getifcfg (
 
 #if defined(HAWK_HAVE_INLINE)
 static HAWK_INLINE hawk_errnum_t hawk_gem_geterrnum (hawk_gem_t* gem) { return gem->errnum; }
+static HAWK_INLINE const hawk_loc_t* hawk_gem_geterrloc (hawk_gem_t* gem) { return &gem->errloc; }
 #else
 #define hawk_gem_geterrnum(gem) (((hawk_gem_t*)(gem))->errnum) 
+#define hawk_gem_geterrloc(gem) (&((hawk_gem_t*)(gem))->errloc) 
 #endif
 
 HAWK_EXPORT void hawk_gem_geterrinf (
@@ -462,6 +464,13 @@ HAWK_EXPORT const hawk_uch_t* hawk_gem_geterrumsg (
 HAWK_EXPORT void hawk_gem_seterrinf (
 	hawk_gem_t*          gem,
 	const hawk_errinf_t* errinf
+);
+
+HAWK_EXPORT void hawk_gem_seterror (
+	hawk_gem_t*          gem,
+	const hawk_loc_t*    errloc,
+	hawk_errnum_t        errnum,
+	const hawk_oocs_t*   errarg
 );
 
 HAWK_EXPORT void hawk_gem_seterrnum (
