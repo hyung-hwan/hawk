@@ -159,7 +159,7 @@ HAWK_EXPORT hawk_t* hawk_openstdwithmmgr (
  * in[0].u.str.len = hawk_count_oocstr(in.u.str.ptr);
  * in[1].type = HAWK_PARSESTD_NULL;
  * out.type = HAWK_PARSESTD_OOCS;
- * n = hawk_parsestd (hawk, in, &out);
+ * n = hawk_parsestd(hawk, in, &out);
  * if (n >= 0) 
  * {
  *   hawk_printf (HAWK_T("%s\n"), out.u.str.ptr);

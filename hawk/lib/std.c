@@ -1385,7 +1385,6 @@ static hawk_ooi_t sf_in_read (hawk_t* hawk, hawk_sio_arg_t* arg, hawk_ooch_t* da
 				}
 				break;
 
-
 			case HAWK_PARSESTD_OOCS:
 			parsestd_str:
 				n = 0;

@@ -1589,23 +1589,12 @@ HAWK_EXPORT hawk_errstr_t hawk_geterrstr (
  * last error has occurred.
  */
 
-#if defined(HAWK_HAVE_INLINE)
-static HAWK_INLINE hawk_errnum_t hawk_geterrnum (hawk_t* hawk) { return ((hawk_alt_t*)hawk)->_gem.errnum; }
-static HAWK_INLINE const hawk_loc_t* hawk_geterrloc (hawk_t* hawk) { return hawk_gem_geterrloc(hawk_getgem(hawk)); }
-#else
-#	define hawk_geterrnum(hawk) (((hawk_alt_t*)(hawk))->_gem.errnum)
-#	define hawk_geterrloc(hawk) (hawk_gem_geterrloc(hawk_getgem(hawk)))
-#endif
-
 /**
  * The hawk_geterrbmsg() function returns the error message describing
  * the last error occurred. 
  *
  * \return error message
  */
-HAWK_EXPORT const hawk_bch_t* hawk_geterrbmsg (
-	hawk_t* hawk /**< hawk */
-);
 
 /**
  * The hawk_geterrumsg() function returns the error message describing
@@ -1613,10 +1602,25 @@ HAWK_EXPORT const hawk_bch_t* hawk_geterrbmsg (
  *
  * \return error message
  */
-HAWK_EXPORT const hawk_uch_t* hawk_geterrumsg (
-	hawk_t* hawk /**< hawk */
-);
 
+/**
+ * The hawk_geterrinf() function copies error information into memory
+ * pointed to by \a errinf from \a hawk.
+ */
+
+#if defined(HAWK_HAVE_INLINE)
+static HAWK_INLINE hawk_errnum_t hawk_geterrnum (hawk_t* hawk) { return ((hawk_alt_t*)hawk)->_gem.errnum; }
+static HAWK_INLINE const hawk_loc_t* hawk_geterrloc (hawk_t* hawk) { return hawk_gem_geterrloc(hawk_getgem(hawk)); }
+static HAWK_INLINE const hawk_bch_t* hawk_geterrbmsg (hawk_t* hawk) { return hawk_gem_geterrbmsg(hawk_getgem(hawk)); }
+static HAWK_INLINE const hawk_uch_t* hawk_geterrumsg (hawk_t* hawk) { return hawk_gem_geterrumsg(hawk_getgem(hawk)); }
+static HAWK_INLINE void hawk_geterrinf (hawk_t* hawk, hawk_errinf_t* errinf) { return hawk_gem_geterrinf(hawk_getgem(hawk), errinf); }
+#else
+#define hawk_geterrnum(hawk) (((hawk_alt_t*)(hawk))->_gem.errnum)
+#define hawk_geterrloc(hawk) (hawk_gem_geterrloc(hawk_getgem(hawk)))
+#define hawk_geterrbmsg(hawk) (hawk_gem_geterrbmsg(hawk_getgem(hawk)))
+#define hawk_geterrumsg(hawk) (hawk_gem_geterrumsg(hawk_getgem(hawk)))
+#define hawk_geterrinf(hawk, errinf) (hawk_gem_geterrinf(hawk_getgem(hawk), errinf))
+#endif
 
 #if defined(HAWK_OOCH_IS_BCH)
 #	define hawk_geterrmsg hawk_geterrbmsg
@@ -1624,32 +1628,32 @@ HAWK_EXPORT const hawk_uch_t* hawk_geterrumsg (
 #	define hawk_geterrmsg hawk_geterrumsg
 #endif
 
-
-HAWK_EXPORT const hawk_ooch_t* hawk_backuperrmsg (
-	hawk_t* hawk /**< hawk */
-);
-
-
-/**
- * The hawk_geterrinf() function copies error information into memory
- * pointed to by \a errinf from \a hawk.
- */
-HAWK_EXPORT void hawk_geterrinf (
-	hawk_t*        hawk,   /**< hawk */
-	hawk_errinf_t* errinf /**< error information buffer */
-);
-
 /**
  * The hawk_seterrnum() function sets the error information omitting 
  * error location. You must pass a non-NULL for \a errarg if the specified
  * error number \a errnum requires one or more arguments to format an
  * error message.
  */
+
+/**
+ * The hawk_seterrinf() function sets the error information. This function
+ * may be useful if you want to set a custom error message rather than letting
+ * it automatically formatted.
+ */
 #if defined(HAWK_HAVE_INLINE)
 static HAWK_INLINE void hawk_seterrnum (hawk_t* hawk, const hawk_loc_t* errloc, hawk_errnum_t errnum) { hawk_gem_seterrnum (hawk_getgem(hawk), errloc, errnum); }
+static HAWK_INLINE void hawk_seterrinf (hawk_t* hawk, const hawk_errinf_t* errinf) { hawk_gem_seterrinf (hawk_getgem(hawk), errinf); }
+static HAWK_INLINE void hawk_seterror (hawk_t* hawk, const hawk_loc_t*  errloc, hawk_errnum_t errnum, const hawk_oocs_t* errarg) { hawk_gem_seterror(hawk_getgem(hawk), errloc, errnum, errarg); }
+static HAWK_INLINE const hawk_ooch_t* hawk_backuperrmsg (hawk_t* hawk) { return hawk_gem_backuperrmsg(hawk_getgem(hawk)); }
+static HAWK_INLINE void hawk_geterror (hawk_t* hawk, hawk_errnum_t* errnum, const hawk_ooch_t** errmsg, hawk_loc_t* errloc) { return hawk_gem_geterror(hawk_getgem(hawk), errnum, errmsg, errloc); }
 #else
 #define hawk_seterrnum(hawk, errloc, errnum) hawk_gem_seterrnum(hawk_getgem(hawk), errloc, errnum)
+#define hawk_seterrinf(hawk, errinf) hawk_gem_seterrinf(hawk_getgem(hawk), errinf)
+#define hawk_seterror(hawk, errloc, errnum, errarg) hawk_gem_seterror(hawk_getgem(hawk), errloc, errnum, errarg)
+#define hawk_backuperrmsg(hawk) hawk_gem_backuperrmsg(hawk_getgem(hawk))
+#define hawk_geterror(hawk, errnum, errmsg, errloc) (hawk_gem_geterror(hawk_getgem(hawk), errnum, errmsg, errloc))
 #endif
+
 
 HAWK_EXPORT void hawk_seterrbfmt (
 	hawk_t*             hawk,
@@ -1691,32 +1695,11 @@ HAWK_EXPORT void hawk_seterruvfmt (
 #	define hawk_seterrvfmt hawk_seterrbvfmt
 #endif
 
-/**
- * The hawk_seterrinf() function sets the error information. This function
- * may be useful if you want to set a custom error message rather than letting
- * it automatically formatted.
- */
-HAWK_EXPORT void hawk_seterrinf (
-	hawk_t*              hawk,   /**< hawk */
-	const hawk_errinf_t* errinf /**< error information */
-);
-
-
 HAWK_EXPORT void hawk_seterror (
 	hawk_t*              hawk,
 	const hawk_loc_t*    errloc,
 	hawk_errnum_t        errnum,
 	const hawk_oocs_t*   errarg
-);
-
-/**
- * The hawk_geterror() function gets error information via parameters.
- */
-HAWK_EXPORT void hawk_geterror (
-	hawk_t*             hawk,    /**< hawk */
-	hawk_errnum_t*      errnum, /**< error number */
-	const hawk_ooch_t** errmsg, /**< error message */
-	hawk_loc_t*         errloc  /**< error location */
 );
 
 /**
@@ -2578,50 +2561,23 @@ HAWK_EXPORT hawk_htb_t* hawk_rtx_getnvmap (
  * occurred during runtime. The 
  * \return error location
  */
-#if defined(HAWK_HAVE_INLINE)
-static HAWK_INLINE hawk_errnum_t hawk_rtx_geterrnum (hawk_rtx_t* rtx) { return ((hawk_rtx_alt_t*)rtx)->_gem.errnum; }
-static HAWK_INLINE const hawk_loc_t* hawk_rtx_geterrloc (hawk_rtx_t* rtx) { return hawk_gem_geterrloc(hawk_rtx_getgem(rtx)); }
-#else
-#	define hawk_rtx_geterrnum(rtx) (((hawk_rtx_alt_t*)(rtx))->_gem.errnum)
-#	define hawk_rtx_geterrloc(rtx) (hawk_gem_geterrloc(hawk_rtx_getgem(rtx)))
-#endif
 
 /**
  * The hawk_rtx_geterrbmsg() function gets the string describing the last 
  * error occurred during runtime.
  * \return error message
  */
-HAWK_EXPORT const hawk_bch_t* hawk_rtx_geterrbmsg (
-	hawk_rtx_t* rtx /**< runtime context */
-);
 
 /**
  * The hawk_rtx_geterrumsg() function gets the string describing the last 
  * error occurred during runtime.
  * \return error message
  */
-HAWK_EXPORT const hawk_uch_t* hawk_rtx_geterrumsg (
-	hawk_rtx_t* rtx /**< runtime context */
-);
-
-#if defined(HAWK_OOCH_IS_BCH)
-#	define hawk_rtx_geterrmsg hawk_rtx_geterrbmsg
-#else
-#	define hawk_rtx_geterrmsg hawk_rtx_geterrumsg
-#endif
-
-HAWK_EXPORT const hawk_ooch_t* hawk_rtx_backuperrmsg (
-	hawk_rtx_t* rtx /**< runtime context */
-);
 
 /**
  * The hawk_rtx_geterrinf() function copies error information into memory
  * pointed to by \a errinf from a runtime context \a rtx.
  */
-HAWK_EXPORT void hawk_rtx_geterrinf (
-	hawk_rtx_t*       rtx,   /**< runtime context */
-	hawk_errinf_t*    errinf /**< error information */
-);
 
 /**
  * The hawk_rtx_geterror() function retrieves error information from a 
@@ -2629,33 +2585,44 @@ HAWK_EXPORT void hawk_rtx_geterrinf (
  * to by \a errnum; the error message pointer into memory pointed to by 
  * \a errmsg; the error line into memory pointed to by \a errlin.
  */
-HAWK_EXPORT void hawk_rtx_geterror (
-	hawk_rtx_t*         rtx,    /**< runtime context */
-	hawk_errnum_t*      errnum, /**< error number */
-	const hawk_ooch_t** errmsg, /**< error message */
-	hawk_loc_t*         errloc  /**< error location */
-);
 
 #if defined(HAWK_HAVE_INLINE)
-static HAWK_INLINE void hawk_rtx_seterrnum (hawk_rtx_t* rtx, const hawk_loc_t* errloc, hawk_errnum_t errnum) { hawk_gem_seterrnum (hawk_rtx_getgem(rtx), errloc, errnum); }
+static HAWK_INLINE hawk_errnum_t hawk_rtx_geterrnum (hawk_rtx_t* rtx) { return ((hawk_rtx_alt_t*)rtx)->_gem.errnum; }
+static HAWK_INLINE const hawk_loc_t* hawk_rtx_geterrloc (hawk_rtx_t* rtx) { return hawk_gem_geterrloc(hawk_rtx_getgem(rtx)); }
+static HAWK_INLINE const hawk_bch_t* hawk_rtx_geterrbmsg (hawk_rtx_t* rtx) { return hawk_gem_geterrbmsg(hawk_rtx_getgem(rtx)); }
+static HAWK_INLINE const hawk_uch_t* hawk_rtx_geterrumsg (hawk_rtx_t* rtx) { return hawk_gem_geterrumsg(hawk_rtx_getgem(rtx)); }
+static HAWK_INLINE void hawk_rtx_geterrinf (hawk_rtx_t* rtx, hawk_errinf_t* errinf) { return hawk_gem_geterrinf(hawk_rtx_getgem(rtx), errinf); }
+static HAWK_INLINE void hawk_rtx_geterror (hawk_rtx_t* rtx, hawk_errnum_t* errnum, const hawk_ooch_t** errmsg, hawk_loc_t* errloc) { return hawk_gem_geterror(hawk_rtx_getgem(rtx), errnum, errmsg, errloc); }
 #else
-#define hawk_rtx_seterrnum(rtx, errloc, errnum) hawk_gem_seterrnum(hawk_rtx_getgem(rtx), errloc, errnum)
+#define hawk_rtx_geterrnum(rtx) (((hawk_rtx_alt_t*)(rtx))->_gem.errnum)
+#define hawk_rtx_geterrloc(rtx) (hawk_gem_geterrloc(hawk_rtx_getgem(rtx)))
+#define hawk_rtx_geterrbmsg(rtx) (hawk_gem_geterrbmsg(hawk_rtx_getgem(rtx)))
+#define hawk_rtx_geterrumsg(rtx) (hawk_gem_geterrumsg(hawk_rtx_getgem(rtx)))
+#define hawk_rtx_geterrinf(rtx, errinf) (hawk_gem_geterrinf(hawk_rtx_getgem(rtx), errinf))
+#define hawk_rtx_geterror(rtx, errnum, errmsg, errloc) (hawk_gem_geterror(hawk_rtx_getgem(rtx), errnum, errmsg, errloc))
+#endif
+
+#if defined(HAWK_OOCH_IS_BCH)
+#	define hawk_rtx_geterrmsg hawk_rtx_geterrbmsg
+#else
+#	define hawk_rtx_geterrmsg hawk_rtx_geterrumsg
 #endif
 
 /** 
  * The hawk_rtx_seterrinf() function sets error information.
  */
-HAWK_EXPORT void hawk_rtx_seterrinf (
-	hawk_rtx_t*          rtx,   /**< runtime context */
-	const hawk_errinf_t* errinf /**< error information */
-);
+#if defined(HAWK_HAVE_INLINE)
+static HAWK_INLINE void hawk_rtx_seterrnum (hawk_rtx_t* rtx, const hawk_loc_t* errloc, hawk_errnum_t errnum) { hawk_gem_seterrnum (hawk_rtx_getgem(rtx), errloc, errnum); }
+static HAWK_INLINE void hawk_rtx_seterrinf (hawk_rtx_t* rtx, const hawk_errinf_t* errinf) { hawk_gem_seterrinf (hawk_rtx_getgem(rtx), errinf); }
+static HAWK_INLINE void hawk_rtx_seterror (hawk_rtx_t* rtx, const hawk_loc_t*  errloc, hawk_errnum_t errnum, const hawk_oocs_t* errarg) { hawk_gem_seterror(hawk_rtx_getgem(rtx), errloc, errnum, errarg); }
+static HAWK_INLINE const hawk_ooch_t* hawk_rtx_backuperrmsg (hawk_rtx_t* rtx) { return hawk_gem_backuperrmsg(hawk_rtx_getgem(rtx)); }
+#else
+#define hawk_rtx_seterrnum(rtx, errloc, errnum) hawk_gem_seterrnum(hawk_rtx_getgem(rtx), errloc, errnum)
+#define hawk_rtx_seterrinf(rtx, errinf) hawk_gem_seterrinf(hawk_rtx_getgem(rtx), errinf)
+#define hawk_rtx_seterror(rtx, errloc, errnum, errarg) hawk_gem_seterror(hawk_rtx_getgem(rtx), errloc, errnum, errarg)
+#define hawk_rtx_backuperrmsg(rtx) hawk_gem_backuperrmsg(hawk_rtx_getgem(rtx))
+#endif
 
-HAWK_EXPORT void hawk_rtx_seterror (
-	hawk_rtx_t*          rtx,
-	const hawk_loc_t*    errloc,
-	hawk_errnum_t        errnum,
-	const hawk_oocs_t*   errarg
-);
 
 HAWK_EXPORT void hawk_rtx_seterrbfmt (
 	hawk_rtx_t*       rtx,

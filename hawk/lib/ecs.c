@@ -69,6 +69,8 @@ hawk_oow_t hawk_becs_ncatuchars (hawk_becs_t* str, const hawk_uch_t* s, hawk_oow
 {
 	hawk_oow_t bcslen, ucslen;
 
+	if (!cmgr) cmgr = str->gem->cmgr;
+
 	ucslen = len;
 	if (hawk_conv_uchars_to_bchars_with_cmgr(s, &ucslen, HAWK_NULL, &bcslen, cmgr) <= -1) return (hawk_oow_t)-1;
 
@@ -86,6 +88,8 @@ hawk_oow_t hawk_becs_ncatuchars (hawk_becs_t* str, const hawk_uch_t* s, hawk_oow
 hawk_oow_t hawk_uecs_ncatbchars (hawk_uecs_t* str, const hawk_bch_t* s, hawk_oow_t len, hawk_cmgr_t* cmgr, int all)
 {
 	hawk_oow_t bcslen, ucslen;
+
+	if (!cmgr) cmgr = str->gem->cmgr;
 
 	bcslen = len;
 	if (hawk_conv_bchars_to_uchars_with_cmgr(s, &bcslen, HAWK_NULL, &ucslen, cmgr, all) <= -1) return (hawk_oow_t)-1;

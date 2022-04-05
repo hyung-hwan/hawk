@@ -13,7 +13,7 @@ LDFLAGS_COMMON = -L$(abs_builddir)/../lib -L$(libdir)
 ##Use -l for third party libraries for automatic inclusion to DEPENDENCIES .
 LIBADD_COMMON = ../lib/libhawk.la
 
-bin_PROGRAMS = hawk #hsed
+bin_PROGRAMS = hawk hsed
 
 ##################################################
 # hawk
@@ -38,8 +38,8 @@ hawk_LDFLAGS = $(LDFLAGS_COMMON)
 ##
 hawk_LDADD = $(LIBADD_COMMON) $(LIBM)
 
-#hsed_SOURCES = main-hsed.c 
-#hsed_CPPFLAGS = $(CPPFLAGS_COMMON)
-#hsed_CFLAGS = $(CFLAGS_COMMON)
-#hsed_LDFLAGS = $(LDFLAGS_COMMON)
-#hsed_LDADD = $(LIBADD_COMMON) $(LIBM)
+hsed_SOURCES = main-hsed.c 
+hsed_CPPFLAGS = $(CPPFLAGS_COMMON)
+hsed_CFLAGS = $(CFLAGS_COMMON)
+hsed_LDFLAGS = $(LDFLAGS_COMMON)
+hsed_LDADD = $(LIBADD_COMMON) $(LIBM)

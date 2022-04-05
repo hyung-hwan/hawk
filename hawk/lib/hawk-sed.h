@@ -371,12 +371,14 @@ typedef enum hawk_sed_space_t hawk_sed_space_t;
  */
 enum hawk_sed_iostd_type_t
 {
-	HAWK_SED_IOSTD_NULL, /**< null resource type */
-	HAWK_SED_IOSTD_FILE, /**< file */
+	HAWK_SED_IOSTD_NULL,  /**< null resource type */
+	HAWK_SED_IOSTD_FILE,  /**< file */
 	HAWK_SED_IOSTD_FILEB, /**< file */
 	HAWK_SED_IOSTD_FILEU, /**< file */
-	HAWK_SED_IOSTD_STR,  /**< string  */
-	HAWK_SED_IOSTD_SIO   /**< sio */
+	HAWK_SED_IOSTD_OOCS,  /**< string  */
+	HAWK_SED_IOSTD_BCS,
+	HAWK_SED_IOSTD_UCS, 
+	HAWK_SED_IOSTD_SIO    /**< sio */
 };
 typedef enum hawk_sed_iostd_type_t hawk_sed_iostd_type_t;
 
@@ -429,7 +431,9 @@ struct hawk_sed_iostd_t
 		 * the ptr field with hawk_sed_freemem() once you're done with it
 		 * to avoid memory leaks. 
 		 */
-		hawk_oocs_t        str;
+		hawk_oocs_t        oocs;
+		hawk_bcs_t         bcs;
+		hawk_ucs_t         ucs;
 
 		/** pre-opened sio stream */
 		hawk_sio_t*        sio;
@@ -488,10 +492,12 @@ static HAWK_INLINE hawk_gem_t* hawk_sed_getgem (hawk_sed_t* sed) { return &((haw
  * hawk_sed_open().
  */
 static HAWK_INLINE hawk_mmgr_t* hawk_sed_getmmgr (hawk_sed_t* sed) { return ((hawk_sed_alt_t*)sed)->_gem.mmgr; }
+static HAWK_INLINE hawk_cmgr_t* hawk_sed_getcmgr (hawk_sed_t* sed) { return ((hawk_sed_alt_t*)sed)->_gem.cmgr; }
 #else
 #define hawk_sed_getxtn(sed) ((void*)((hawk_uint8_t*)sed + ((hawk_sed_alt_t*)sed)->_instsize))
 #define hawk_sed_getgem(sed) (&((hawk_sed_alt_t*)(sed))->_gem)
 #define hawk_sed_getmmgr(sed) (((hawk_sed_alt_t*)(sed))->_gem.mmgr)
+#define hawk_sed_getcmgr(sed) (((hawk_sed_alt_t*)(sed))->_gem.cmgr)
 #endif /* HAWK_HAVE_INLINE */
 
 
@@ -535,30 +541,27 @@ HAWK_EXPORT int hawk_sed_setopt (
  * \return error number
  */
 
-#if defined(HAWK_HAVE_INLINE)
-static HAWK_INLINE hawk_errnum_t hawk_sed_geterrnum (hawk_sed_t* sed) { return hawk_gem_geterrnum(hawk_sed_getgem(sed)); }
-static HAWK_INLINE const hawk_loc_t* hawk_sed_geterrloc (hawk_sed_t* sed) { return hawk_gem_geterrloc(hawk_sed_getgem(sed)); }
-static HAWK_INLINE const hawk_bch_t* hawk_sed_geterrbmsg (hawk_sed_t* sed) { return hawk_gem_geterrbmsg(hawk_sed_getgem(sed)); }
-static HAWK_INLINE const hawk_uch_t* hawk_sed_geterrumsg (hawk_sed_t* sed) { return hawk_gem_geterrumsg(hawk_sed_getgem(sed)); }
-#else
-#define hawk_sed_geterrnum(sed) hawk_gem_geterrnum(hawk_sed_getgem(sed))
-#define hawk_sed_geterrloc(sed) hawk_gem_geterrloc(hawk_sed_getgem(sed))
-#define hawk_sed_geterrbmsg(sed) hawk_gem_geterrbmsg(hawk_sed_getgem(sed))
-#define hawk_sed_geterrumsg(sed) hawk_gem_geterrumsg(hawk_sed_getgem(sed))
-#endif
-
-
 /**
  * The hawk_sed_geterror() function gets an error number, an error location, 
  * and an error message. The information is set to the memory area pointed 
  * to by each parameter.
  */
-HAWK_EXPORT void hawk_sed_geterror (
-	hawk_sed_t*         sed,    /**< stream editor */
-	hawk_errnum_t*      errnum, /**< error number */
-	const hawk_ooch_t** errmsg, /**< error message */
-	hawk_loc_t*         errloc  /**< error location */
-);
+#if defined(HAWK_HAVE_INLINE)
+static HAWK_INLINE hawk_errnum_t hawk_sed_geterrnum (hawk_sed_t* sed) { return hawk_gem_geterrnum(hawk_sed_getgem(sed)); }
+static HAWK_INLINE const hawk_loc_t* hawk_sed_geterrloc (hawk_sed_t* sed) { return hawk_gem_geterrloc(hawk_sed_getgem(sed)); }
+static HAWK_INLINE const hawk_bch_t* hawk_sed_geterrbmsg (hawk_sed_t* sed) { return hawk_gem_geterrbmsg(hawk_sed_getgem(sed)); }
+static HAWK_INLINE const hawk_uch_t* hawk_sed_geterrumsg (hawk_sed_t* sed) { return hawk_gem_geterrumsg(hawk_sed_getgem(sed)); }
+static HAWK_INLINE void hawk_sed_geterrinf (hawk_sed_t* sed, hawk_errinf_t* errinf) { return hawk_gem_geterrinf(hawk_sed_getgem(sed), errinf); }
+static HAWK_INLINE void hawk_sed_geterror (hawk_sed_t* sed, hawk_errnum_t* errnum, const hawk_ooch_t** errmsg, hawk_loc_t* errloc) { return hawk_gem_geterror(hawk_sed_getgem(sed), errnum, errmsg, errloc); }
+#else
+#define hawk_sed_geterrnum(sed) hawk_gem_geterrnum(hawk_sed_getgem(sed))
+#define hawk_sed_geterrloc(sed) hawk_gem_geterrloc(hawk_sed_getgem(sed))
+#define hawk_sed_geterrbmsg(sed) hawk_gem_geterrbmsg(hawk_sed_getgem(sed))
+#define hawk_sed_geterrumsg(sed) hawk_gem_geterrumsg(hawk_sed_getgem(sed))
+#define hawk_sed_geterrinf(sed, errinf) (hawk_gem_geterrinf(hawk_sed_getgem(sed), errinf))
+#define hawk_sed_geterror(sed, errnum, errmsg, errloc) (hawk_gem_geterror(hawk_sed_getgem(sed), errnum, errmsg, errloc))
+#endif
+
 
 /**
  * The hawk_sed_seterrnum() function sets the error information omitting 
@@ -568,11 +571,32 @@ HAWK_EXPORT void hawk_sed_geterror (
  */
 #if defined(HAWK_HAVE_INLINE)
 static HAWK_INLINE void hawk_sed_seterrnum (hawk_sed_t* sed, const hawk_loc_t* errloc, hawk_errnum_t errnum) { hawk_gem_seterrnum (hawk_sed_getgem(sed), errloc, errnum); }
+static HAWK_INLINE void hawk_sed_seterrinf (hawk_sed_t* sed, const hawk_errinf_t* errinf) { hawk_gem_seterrinf (hawk_sed_getgem(sed), errinf); }
 static HAWK_INLINE void hawk_sed_seterror (hawk_sed_t* sed, const hawk_loc_t*  errloc, hawk_errnum_t errnum, const hawk_oocs_t* errarg) { hawk_gem_seterror(hawk_sed_getgem(sed), errloc, errnum, errarg); }
+static HAWK_INLINE const hawk_ooch_t* hawk_sed_backuperrmsg (hawk_sed_t* sed) { return hawk_gem_backuperrmsg(hawk_sed_getgem(sed)); }
 #else
 #define hawk_sed_seterrnum(sed, errloc, errnum) hawk_gem_seterrnum(hawk_sed_getgem(sed), errloc, errnum)
-#define hawk_set_seterror(sed, errloc, errnum, errarg) hawk_sed_seterror(hawk_sed_getgem(sed), errloc, errnum, errarg)
+#define hawk_sed_seterrinf(sed, errinf) hawk_gem_seterrinf(hawk_sed_getgem(sed), errinf)
+#define hawk_sed_seterror(sed, errloc, errnum, errarg) hawk_gem_seterror(hawk_sed_getgem(sed), errloc, errnum, errarg)
+#define hawk_sed_backuperrmsg(sed) hawk_gem_backuperrmsg(hawk_sed_getgem(sed))
 #endif
+
+
+HAWK_EXPORT void hawk_sed_seterrbfmt (
+	hawk_sed_t*       sed,
+	const hawk_loc_t* errloc,
+	hawk_errnum_t     errnum,
+	const hawk_bch_t* fmt,
+	...
+);
+
+HAWK_EXPORT void hawk_sed_seterrufmt (
+	hawk_sed_t*       sed,
+	const hawk_loc_t* errloc,
+	hawk_errnum_t     errnum,
+	const hawk_uch_t* fmt,
+	...
+);
 
 /**
  * The hawk_sed_popecb() function pops an sed event callback set
@@ -642,9 +666,20 @@ HAWK_EXPORT const hawk_ooch_t* hawk_sed_getcompid (
  * If this function fails, the location set in the command
  * may be wrong.
  */
-HAWK_EXPORT const hawk_ooch_t* hawk_sed_setcompid (
+#if defined(HAWK_OOCH_IS_BCH)
+#define hawk_sed_setcompid(sed, id) hawk_sed_setcompidwithbcstr(sed, id)
+#else
+#define hawk_sed_setcompid(sed, id) hawk_sed_setcompidwithucstr(sed, id)
+#endif
+
+HAWK_EXPORT const hawk_ooch_t* hawk_sed_setcompidwithbcstr (
 	hawk_sed_t*        sed,
-	const hawk_ooch_t* id
+	const hawk_bch_t*  id
+);
+
+HAWK_EXPORT const hawk_ooch_t* hawk_sed_setcompidwithucstr (
+	hawk_sed_t*        sed,
+	const hawk_uch_t*  id
 );
 
 /**
@@ -782,21 +817,21 @@ HAWK_EXPORT int hawk_sed_compstdfileu (
 );
 
 /**
- * The hawk_sed_compstdstr() function compiles a sed script stored
+ * The hawk_sed_compstdoocstr() function compiles a sed script stored
  * in a null-terminated string pointed to by \a script.
  * \return 0 on success, -1 on failure
  */
-HAWK_EXPORT int hawk_sed_compstdstr (
+HAWK_EXPORT int hawk_sed_compstdoocstr (
 	hawk_sed_t*        sed, 
 	const hawk_ooch_t* script
 );
 
 /**
- * The hawk_sed_compstdxstr() function compiles a sed script of the 
+ * The hawk_sed_compstdoocs() function compiles a sed script of the 
  * length \a script->len pointed to by \a script->ptr.
  * \return 0 on success, -1 on failure
  */
-HAWK_EXPORT int hawk_sed_compstdxstr (
+HAWK_EXPORT int hawk_sed_compstdoocs (
 	hawk_sed_t*        sed, 
 	const hawk_oocs_t* script
 );

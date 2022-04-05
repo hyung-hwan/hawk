@@ -461,6 +461,12 @@ HAWK_EXPORT const hawk_uch_t* hawk_gem_geterrumsg (
 	hawk_gem_t* gem
 );
 
+#if defined(HAWK_OOCH_IS_BCH)
+#	define hawk_gem_geterrmsg hawk_gem_geterrbmsg
+#else
+#	define hawk_gem_geterrmsg hawk_gem_geterrumsg
+#endif
+
 HAWK_EXPORT void hawk_gem_seterrinf (
 	hawk_gem_t*          gem,
 	const hawk_errinf_t* errinf
@@ -509,6 +515,10 @@ HAWK_EXPORT void hawk_gem_seterruvfmt (
 	hawk_errnum_t       errnum,
 	const hawk_uch_t*   errfmt,
 	va_list             ap
+);
+
+HAWK_EXPORT const hawk_ooch_t* hawk_gem_backuperrmsg (
+	hawk_gem_t* gem
 );
 
 HAWK_EXPORT int hawk_gem_buildrex (

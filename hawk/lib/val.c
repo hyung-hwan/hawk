@@ -919,7 +919,6 @@ hawk_val_t* hawk_rtx_makembsvalwithucs (hawk_rtx_t* rtx, const hawk_ucs_t* ucs)
 	return hawk_rtx_makembsvalwithuchars(rtx, ucs->ptr, ucs->len);
 }
 
-
 hawk_val_t* hawk_rtx_makembsvalwithbcstr (hawk_rtx_t* rtx, const hawk_bch_t* bcs)
 {
 	return make_mbs_val(rtx, bcs, hawk_count_bcstr(bcs), HAWK_NULL, 0);
@@ -933,7 +932,6 @@ hawk_val_t* hawk_rtx_makembsvalwithucstr (hawk_rtx_t* rtx, const hawk_uch_t* ucs
 
 hawk_val_t* hawk_rtx_makembsvalwithuchars2 (hawk_rtx_t* rtx, const hawk_uch_t* ucs1, hawk_oow_t len1, const hawk_uch_t* ucs2, hawk_oow_t len2)
 {
-#if defined(HAWK_OOCH_IS_UCH)
 	hawk_val_t* v;
 	hawk_bch_t* bcs;
 	hawk_oow_t bcslen;
@@ -944,27 +942,11 @@ hawk_val_t* hawk_rtx_makembsvalwithuchars2 (hawk_rtx_t* rtx, const hawk_uch_t* u
 	v = make_mbs_val(rtx, bcs, bcslen, HAWK_NULL, 0);
 	hawk_rtx_freemem (rtx, bcs);
 	return v;
-#else
-	return make_mbs_val(rtx, ucs1, len1, ucs2, len2);
-#endif
 }
 
 hawk_val_t* hawk_rtx_makembsvalwithbchars2 (hawk_rtx_t* rtx, const hawk_bch_t* bcs1, hawk_oow_t len1, const hawk_bch_t* bcs2, hawk_oow_t len2)
 {
-#if defined(HAWK_OOCH_IS_UCH)
 	return make_mbs_val(rtx, bcs1, len1, bcs2, len2);
-#else
-	hawk_val_t* v;
-	hawk_uch_t* ucs;
-	hawk_oow_t ucslen;
-
-	ucs = hawk_rtx_dupb2tobchars(rtx, bcs1, len1, bcs2, len2, &ucslen, 1);
-	if (HAWK_UNLIKELY(!ucs)) return HAWK_NULL;
-
-	v = make_mbs_val(rtx, ucs, ucslen, HAWK_NULL, 0);
-	hawk_rtx_freemem (rtx, ucs);
-	return v;	
-#endif
 }
 
 /* --------------------------------------------------------------------- */

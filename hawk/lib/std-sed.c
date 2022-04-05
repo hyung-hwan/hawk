@@ -33,14 +33,18 @@ struct xtn_in_t
 {
 	hawk_sed_iostd_t* ptr;
 	hawk_sed_iostd_t* cur;
-	hawk_oow_t       mempos;
+	hawk_oow_t        mempos;
 };
 
 typedef struct xtn_out_t xtn_out_t;
 struct xtn_out_t
 {
 	hawk_sed_iostd_t* ptr;
-	hawk_ooecs_t*       memstr;
+	struct
+	{
+		hawk_becs_t* be;
+		hawk_uecs_t* ue;
+	} memstr;
 };
 
 typedef struct xtn_t xtn_t;
@@ -133,7 +137,7 @@ static int verify_iostd_in (hawk_sed_t* sed, hawk_sed_iostd_t in[])
 	{
 		/* if 'in' is specified, it must contains at least one 
 		 * valid entry */
-		hawk_sed_seterrnum (sed, HAWK_NULL, HAWK_EINVAL);
+		hawk_sed_seterrbfmt (sed, HAWK_NULL, HAWK_EINVAL, "no input handler provided");
 		return -1;
 	}
 
@@ -142,10 +146,12 @@ static int verify_iostd_in (hawk_sed_t* sed, hawk_sed_iostd_t in[])
 		if (in[i].type != HAWK_SED_IOSTD_FILE &&
 		    in[i].type != HAWK_SED_IOSTD_FILEB &&
 		    in[i].type != HAWK_SED_IOSTD_FILEU &&
-		    in[i].type != HAWK_SED_IOSTD_STR &&
+		    in[i].type != HAWK_SED_IOSTD_OOCS &&
+		    in[i].type != HAWK_SED_IOSTD_BCS &&
+		    in[i].type != HAWK_SED_IOSTD_UCS &&
 		    in[i].type != HAWK_SED_IOSTD_SIO)
 		{
-			hawk_sed_seterrnum (sed, HAWK_NULL, HAWK_EINVAL);
+			hawk_sed_seterrbfmt (sed, HAWK_NULL, HAWK_EINVAL, "unsupported input type provided - handler %d type %d", i, in[i].type);
 			return -1;
 		}
 	}
@@ -158,12 +164,10 @@ static hawk_sio_t* open_sio_file (hawk_sed_t* sed, const hawk_ooch_t* file, int 
 	hawk_sio_t* sio;
 
 	sio = hawk_sio_open(hawk_sed_getgem(sed), 0, file, flags);
-	if (sio == HAWK_NULL)
+	if (sio == HAWK_NULL) 
 	{
-		hawk_oocs_t ea;
-		ea.ptr = (hawk_ooch_t*)file;
-		ea.len = hawk_count_oocstr(file);
-		hawk_sed_seterror (sed, HAWK_NULL, HAWK_SED_EIOFIL, &ea);
+		const hawk_ooch_t* bem = hawk_sed_backuperrmsg(sed);
+		hawk_sed_seterrbfmt (sed, HAWK_NULL, HAWK_SED_EIOFIL, "unable to open %js - %js", file, bem);
 	}
 	return sio;
 }
@@ -264,6 +268,41 @@ static hawk_sio_t* open_sio_std (hawk_sed_t* sed, hawk_sio_std_t std, int flags)
 	return sio;
 }
 
+static void set_eiofil_for_iostd (hawk_sed_t* sed, hawk_sed_iostd_t* io)
+{
+	HAWK_ASSERT (io->type == HAWK_SED_IOSTD_FILE || io->type == HAWK_SED_IOSTD_FILEB || io->type == HAWK_SED_IOSTD_FILEU);
+
+	if (io->u.file.path) /* file, fileb, fileu are union members. checking file.path regardless of io->type must be safe */
+	{
+		switch (io->type)
+		{
+		#if defined(HAWK_OOCH_IS_BCH)
+			case HAWK_SED_IOSTD_FILE:
+		#endif
+			case HAWK_SED_IOSTD_FILEB:
+				hawk_sed_seterrbfmt (sed, HAWK_NULL, HAWK_SED_EIOFIL, "I/O error with file '%hs'", io->u.fileb.path);
+				break;
+
+		#if defined(HAWK_OOCH_IS_UCH)
+			case HAWK_SED_IOSTD_FILE:
+		#endif
+			case HAWK_SED_IOSTD_FILEU:
+				hawk_sed_seterrbfmt (sed, HAWK_NULL, HAWK_SED_EIOFIL, "I/O error with file '%ls'", io->u.fileu.path);
+				break;
+
+			default:
+				HAWK_ASSERT (!"should never happen - unknown file I/O type");
+				hawk_sed_seterrnum (sed, HAWK_NULL, HAWK_EINVAL);
+				break;
+		}
+	}
+	else
+	{
+		hawk_sed_seterrbfmt (sed, HAWK_NULL, HAWK_SED_EIOFIL, "I/O error with file '%js'", &sio_std_names[HAWK_SIO_STDIN]);
+	}
+}
+
+
 static void close_main_stream (hawk_sed_t* sed, hawk_sed_io_arg_t* arg, hawk_sed_iostd_t* io)
 {
 	switch (io->type)
@@ -274,10 +313,11 @@ static void close_main_stream (hawk_sed_t* sed, hawk_sed_io_arg_t* arg, hawk_sed
 			hawk_sio_close (arg->handle);
 			break;
 
-		case HAWK_SED_IOSTD_STR:
-			/* nothing to do for input. 
-			 * i don't close xtn->e.out.memstr intentionally.
-			 * i close this in hawk_awk_execstd()
+		case HAWK_SED_IOSTD_OOCS:
+		case HAWK_SED_IOSTD_BCS:
+		case HAWK_SED_IOSTD_UCS:
+			/* for input, there is nothing to do here.
+			 * for output, closing xtn->e.out.memstr is required. but put it to hawk_awk_execstd().
 			 */
 			break;
 
@@ -355,7 +395,9 @@ static int open_input_stream (hawk_sed_t* sed, hawk_sed_io_arg_t* arg, hawk_sed_
 			break;
 		}
 
-		case HAWK_SED_IOSTD_STR:
+		case HAWK_SED_IOSTD_OOCS:
+		case HAWK_SED_IOSTD_BCS:
+		case HAWK_SED_IOSTD_UCS:
 			/* don't store anything to arg->handle */
 			base->mempos = 0;
 			break;
@@ -370,29 +412,49 @@ static int open_input_stream (hawk_sed_t* sed, hawk_sed_io_arg_t* arg, hawk_sed_
 			return -1;
 	}
 
-
 	if (base == &xtn->s.in)
 	{
 		/* reset script location */
-		if (io->type == HAWK_SED_IOSTD_FILE) 
+		switch (io->type)
 		{
-			hawk_sed_setcompid (
-				sed, 
-				((io->u.file.path == HAWK_NULL)? sio_std_names[HAWK_SIO_STDIN].ptr: io->u.file.path)
-			);
-		}
-		else 
-		{
-			hawk_ooch_t buf[64];
+			case HAWK_SED_IOSTD_FILE:
+				if (io->u.fileb.path)
+				{
+					hawk_sed_setcompid (sed, io->u.file.path);
+				}
+				else
+				{
+				compid_stdin:
+					hawk_sed_setcompid (sed, sio_std_names[HAWK_SIO_STDIN].ptr);
+				}
+				break;
 
-			/* format an identifier to be something like M#1, S#5 */
-			buf[0] = (io->type == HAWK_SED_IOSTD_STR)? HAWK_T('M'): HAWK_T('S');
-			buf[1] = HAWK_T('#');
-			int_to_str (io - xtn->s.in.ptr, &buf[2], HAWK_COUNTOF(buf) - 2);
+			case HAWK_SED_IOSTD_FILEB:
+				if (!io->u.fileb.path) goto compid_stdin;
+				hawk_sed_setcompidwithbcstr (sed, io->u.fileb.path);
+				break;
 
-			/* don't care about failure int_to_str() though it's not 
-			 * likely to happen */
-			hawk_sed_setcompid (sed, buf); 
+			case HAWK_SED_IOSTD_FILEU:
+				if (!io->u.fileu.path) goto compid_stdin;
+				hawk_sed_setcompid (sed, sio_std_names[HAWK_SIO_STDIN].ptr);
+				break;
+
+			default:
+			{
+				hawk_ooch_t buf[64];
+
+				/* format an identifier to be something like M#1, S#5 */
+				buf[0] = (io->type == HAWK_SED_IOSTD_OOCS || 
+						io->type == HAWK_SED_IOSTD_BCS ||
+						io->type == HAWK_SED_IOSTD_UCS)? HAWK_T('M'): HAWK_T('S');
+				buf[1] = HAWK_T('#');
+				int_to_str (io - xtn->s.in.ptr, &buf[2], HAWK_COUNTOF(buf) - 2);
+
+				/* don't care about failure int_to_str() though it's not 
+				 * likely to happen */
+				hawk_sed_setcompid (sed, buf); 
+				break;
+			}
 		}
 		sed->src.loc.line = 1; 
 		sed->src.loc.colm = 1;
@@ -487,14 +549,21 @@ static int open_output_stream (hawk_sed_t* sed, hawk_sed_io_arg_t* arg, hawk_sed
 			break;
 		}
 
-		case HAWK_SED_IOSTD_STR:
+	#if defined(HAWK_OOCH_IS_BCH)
+		case HAWK_SED_IOSTD_OOCS:
+	#endif
+		case HAWK_SED_IOSTD_BCS:
+			xtn->e.out.memstr.be = hawk_becs_open(hawk_sed_getgem(sed), 0, 512);
+			if (xtn->e.out.memstr.be == HAWK_NULL) return -1;
+			break;
+
+	#if defined(HAWK_OOCH_IS_UCH)
+		case HAWK_SED_IOSTD_OOCS:
+	#endif
+		case HAWK_SED_IOSTD_UCS:
 			/* don't store anything to arg->handle */
-			xtn->e.out.memstr = hawk_ooecs_open(hawk_sed_getgem(sed), 0, 512);
-			if (xtn->e.out.memstr == HAWK_NULL)
-			{
-				hawk_sed_seterrnum (sed, HAWK_NULL, HAWK_ENOMEM);
-				return -1;
-			}
+			xtn->e.out.memstr.ue = hawk_uecs_open(hawk_sed_getgem(sed), 0, 512);
+			if (xtn->e.out.memstr.ue == HAWK_NULL) return -1;
 			break;
 
 		case HAWK_SED_IOSTD_SIO:
@@ -509,6 +578,7 @@ static int open_output_stream (hawk_sed_t* sed, hawk_sed_io_arg_t* arg, hawk_sed
 
 	return 0;
 }
+
 
 static hawk_ooi_t read_input_stream (hawk_sed_t* sed, hawk_sed_io_arg_t* arg, hawk_ooch_t* buf, hawk_oow_t len, xtn_in_t* base)
 {
@@ -531,41 +601,77 @@ static hawk_ooi_t read_input_stream (hawk_sed_t* sed, hawk_sed_io_arg_t* arg, ha
 
 		HAWK_ASSERT (io != HAWK_NULL);
 
-		if (io->type == HAWK_SED_IOSTD_STR)
+		if (io->type == HAWK_SED_IOSTD_OOCS)
 		{
+		iostd_oocs:
 			n = 0;
-			while (base->mempos < io->u.str.len && n < len)
-				buf[n++] = io->u.str.ptr[base->mempos++];
+			while (base->mempos < io->u.oocs.len && n < len)
+				buf[n++] = io->u.oocs.ptr[base->mempos++];
 		}
-		else n = hawk_sio_getoochars(arg->handle, buf, len);
+		else if (io->type == HAWK_SED_IOSTD_BCS)
+		{
+		#if defined(HAWK_OOCH_IS_BCH)
+			goto iostd_oocs;
+		#else
+			int m;
+			hawk_oow_t mbslen, wcslen;
+
+			mbslen = io->u.bcs.len - base->mempos;
+			wcslen = len;
+			if ((m = hawk_conv_bchars_to_uchars_with_cmgr(&io->u.bcs.ptr[base->mempos], &mbslen, buf, &wcslen, hawk_sed_getcmgr(sed), 0)) <= -1 && m != -2)
+			{
+				hawk_sed_seterrnum (sed, HAWK_NULL, HAWK_EECERR);
+				n = -1;
+			}
+			else
+			{
+				base->mempos += mbslen;
+				n = wcslen;
+			}
+		#endif
+		}
+		else if (io->type == HAWK_SED_IOSTD_UCS)
+		{
+		#if defined(HAWK_OOCH_IS_UCH)
+			goto iostd_oocs;
+		#else
+			int m;
+			hawk_oow_t mbslen, wcslen;
+
+			wcslen = io->u.ucs.len - base->mempos;
+			mbslen = len;
+			if ((m = hawk_conv_uchars_to_bchars_with_cmgr(&io->u.ucs.ptr[base->mempos], &wcslen, buf, &mbslen, hawk_sed_getcmgr(sed))) <= -1 && m != -2)
+			{
+				hawk_sed_seterrnum (sed, HAWK_NULL, HAWK_EECERR);
+				n = -1;
+			}
+			else
+			{
+				base->mempos += mbslen;
+				n = mbslen;
+			}
+		#endif
+		}
+		else 
+		{
+			n = hawk_sio_getoochars(arg->handle, buf, len);
+			if (n <= -1)
+			{
+				set_eiofil_for_iostd (sed, io);
+				break;
+			}
+		}
 
 		if (n != 0) 
 		{
-			if (n <= -1)
+			if (base == &xtn->s.in)
 			{
-				if (io->type == HAWK_SED_IOSTD_FILE)
-				{
-					hawk_oocs_t ea;
-					if (io->u.file.path)
-					{
-						ea.ptr = io->u.file.path;
-						ea.len = hawk_count_oocstr(io->u.file.path);
-					}
-					else
-					{
-						ea = sio_std_names[HAWK_SIO_STDIN];
-					}
-					hawk_sed_seterror (sed, HAWK_NULL, HAWK_SED_EIOFIL, &ea);
-				}
-			}
-			else if (base == &xtn->s.in)
-			{
-				xtn->s.last = buf[n-1];
+				xtn->s.last = buf[n - 1];
 			}
 
 			break;
 		}
-	
+
 		/* ============================================= */
 		/* == end of file on the current input stream == */
 		/* ============================================= */
@@ -583,7 +689,7 @@ static hawk_ooi_t read_input_stream (hawk_sed_t* sed, hawk_sed_io_arg_t* arg, ha
 		next = base->cur + 1;
 		if (next->type == HAWK_SED_IOSTD_NULL) 
 		{
-			/* no next stream available - return 0 */	
+			/* no next stream available - return 0 */
 			break; 
 		}
 
@@ -593,21 +699,7 @@ static hawk_ooi_t read_input_stream (hawk_sed_t* sed, hawk_sed_io_arg_t* arg, ha
 		if (open_input_stream(sed, arg, next, base) <= -1)
 		{
 			/* failed to open the next input stream */
-			if (next->type == HAWK_SED_IOSTD_FILE)
-			{
-				hawk_oocs_t ea;
-				if (next->u.file.path)
-				{
-					ea.ptr = next->u.file.path;
-					ea.len = hawk_count_oocstr (next->u.file.path);
-				}
-				else
-				{
-					ea = sio_std_names[HAWK_SIO_STDIN];
-				}
-				hawk_sed_seterror (sed, HAWK_NULL, HAWK_SED_EIOFIL, &ea);
-			}
-
+			set_eiofil_for_iostd (sed, next);
 			n = -1;
 			break;
 		}
@@ -832,37 +924,39 @@ static hawk_ooi_t x_out (
 				else
 				{
 					hawk_sed_iostd_t* io = xtn->e.out.ptr;
-					if (io->type == HAWK_SED_IOSTD_STR)
+					switch (io->type)
 					{
-						if (len > HAWK_TYPE_MAX(hawk_ooi_t)) len = HAWK_TYPE_MAX(hawk_ooi_t);
+					#if defined(HAWK_OOCH_IS_BCH)
+						case HAWK_SED_IOSTD_OOCS:
+					#endif
+						case HAWK_SED_IOSTD_BCS:
+							if (len > HAWK_TYPE_MAX(hawk_ooi_t)) len = HAWK_TYPE_MAX(hawk_ooi_t);
+					#if defined(HAWK_OOCH_IS_BCH)
+							if (hawk_becs_ncat(xtn->e.out.memstr.be, dat, len) == (hawk_oow_t)-1) return -1;
+					#else
+							if (hawk_becs_ncatuchars(xtn->e.out.memstr.be, dat, len, HAWK_NULL) == (hawk_oow_t)-1) return -1;
+					#endif
+							return len;
 
-						if (hawk_ooecs_ncat(xtn->e.out.memstr, dat, len) == (hawk_oow_t)-1)
-						{
-							hawk_sed_seterrnum (sed, HAWK_NULL, HAWK_ENOMEM);
-							return -1;
-						}
+					#if defined(HAWK_OOCH_IS_UCH)
+						case HAWK_SED_IOSTD_OOCS:
+					#endif
+						case HAWK_SED_IOSTD_UCS:
+							if (len > HAWK_TYPE_MAX(hawk_ooi_t)) len = HAWK_TYPE_MAX(hawk_ooi_t);
+					#if defined(HAWK_OOCH_IS_UCH)
+							if (hawk_uecs_ncat(xtn->e.out.memstr.ue, dat, len) == (hawk_oow_t)-1) return -1;
+					#else
+							if (hawk_uecs_ncatbchars(xtn->e.out.memstr.ue, dat, len, HAWK_NULL, 1) == (hawk_oow_t)-1) return -1;
+					#endif
+							return len;
 
-						return len;
-					}
-					else
-					{
-						hawk_ooi_t n;
-						n = hawk_sio_putoochars(arg->handle, dat, len);
-						if (n <= -1)
-						{
-							hawk_oocs_t ea;
-							if (io->u.file.path)
+						default:
 							{
-								ea.ptr = io->u.file.path;
-								ea.len = hawk_count_oocstr(io->u.file.path);
+								hawk_ooi_t n;
+								n = hawk_sio_putoochars(arg->handle, dat, len);
+								if (n <= -1) set_eiofil_for_iostd (sed, io);
+								return n;
 							}
-							else
-							{
-								ea = sio_std_names[HAWK_SIO_STDOUT];
-							}
-							hawk_sed_seterror (sed, HAWK_NULL, HAWK_SED_EIOFIL, &ea);
-						}
-						return n;
 					}
 				}
 			}
@@ -896,10 +990,15 @@ int hawk_sed_compstd (hawk_sed_t* sed, hawk_sed_iostd_t in[], hawk_oow_t* count)
 	if (in == HAWK_NULL)
 	{
 		/* it requires a valid array unlike hawk_sed_execstd(). */
-		hawk_sed_seterrnum (sed, HAWK_NULL, HAWK_EINVAL);
+		hawk_sed_seterrbfmt (sed, HAWK_NULL, HAWK_EINVAL, "no input handler provided");
+		if (count) *count = 0;
 		return -1;
 	}
-	if (verify_iostd_in(sed, in) <= -1) return -1;
+	if (verify_iostd_in(sed, in) <= -1) 
+	{
+		if (count) *count = 0;
+		return -1;
+	}
 
 	HAWK_MEMSET (&xtn->s, 0, HAWK_SIZEOF(xtn->s));
 	xtn->s.in.ptr = in;
@@ -925,7 +1024,7 @@ int hawk_sed_execstd (hawk_sed_t* sed, hawk_sed_iostd_t in[], hawk_sed_iostd_t* 
 		if (out->type != HAWK_SED_IOSTD_FILE &&
 		    out->type != HAWK_SED_IOSTD_FILEB &&
 		    out->type != HAWK_SED_IOSTD_FILEU &&
-		    out->type != HAWK_SED_IOSTD_STR &&
+		    out->type != HAWK_SED_IOSTD_OOCS &&
 		    out->type != HAWK_SED_IOSTD_SIO)
 		{
 			hawk_sed_seterrnum (sed, HAWK_NULL, HAWK_EINVAL);
@@ -938,16 +1037,41 @@ int hawk_sed_execstd (hawk_sed_t* sed, hawk_sed_iostd_t in[], hawk_sed_iostd_t* 
 	xtn->e.in.cur = in;
 	xtn->e.out.ptr = out;
 
-	n = hawk_sed_exec (sed, x_in, x_out);
+	n = hawk_sed_exec(sed, x_in, x_out);
 
-	if (out && out->type == HAWK_SED_IOSTD_STR)
+	if (out && out->type == HAWK_SED_IOSTD_OOCS)
 	{
-		if (n >= 0)
+		switch (out->type)
 		{
-			HAWK_ASSERT (xtn->e.out.memstr != HAWK_NULL);
-			hawk_ooecs_yield (xtn->e.out.memstr, &out->u.str, 0);
+		#if defined(HAWK_OOCH_IS_BCH)
+			case HAWK_SED_IOSTD_OOCS:
+		#endif
+			case HAWK_SED_IOSTD_BCS:
+				if (n >= 0)
+				{
+					HAWK_ASSERT (xtn->e.out.memstr.be != HAWK_NULL);
+					hawk_becs_yield (xtn->e.out.memstr.be, &out->u.bcs, 0);
+				}
+				if (xtn->e.out.memstr.be) hawk_becs_close (xtn->e.out.memstr.be);
+				break;
+
+		#if defined(HAWK_OOCH_IS_UCH)
+			case HAWK_SED_IOSTD_OOCS:
+		#endif
+			case HAWK_SED_IOSTD_UCS:
+				if (n >= 0)
+				{
+					HAWK_ASSERT (xtn->e.out.memstr.ue != HAWK_NULL);
+					hawk_uecs_yield (xtn->e.out.memstr.ue, &out->u.ucs, 0);
+				}
+				if (xtn->e.out.memstr.ue) hawk_uecs_close (xtn->e.out.memstr.ue);
+				break;
+
+			default:
+				/* don't handle other types */
+				break;
 		}
-		if (xtn->e.out.memstr) hawk_ooecs_close (xtn->e.out.memstr);
+
 	}
 
 	clear_sio_names (sed);
@@ -990,27 +1114,27 @@ int hawk_sed_compstdfileu (hawk_sed_t* sed, const hawk_uch_t* file, hawk_cmgr_t*
 	return hawk_sed_compstd(sed, in, HAWK_NULL);
 }
 
-int hawk_sed_compstdstr (hawk_sed_t* sed, const hawk_ooch_t* script)
+int hawk_sed_compstdoocstr (hawk_sed_t* sed, const hawk_ooch_t* script)
 {
 	hawk_sed_iostd_t in[2];
 
-	in[0].type = HAWK_SED_IOSTD_STR;
-	in[0].u.str.ptr = (hawk_ooch_t*)script;
-	in[0].u.str.len = hawk_count_oocstr(script);
+	in[0].type = HAWK_SED_IOSTD_OOCS;
+	in[0].u.oocs.ptr = (hawk_ooch_t*)script;
+	in[0].u.oocs.len = hawk_count_oocstr(script);
 	in[1].type = HAWK_SED_IOSTD_NULL;
 
-	return hawk_sed_compstd (sed, in, HAWK_NULL);
+	return hawk_sed_compstd(sed, in, HAWK_NULL);
 }
 
-int hawk_sed_compstdxstr (hawk_sed_t* sed, const hawk_oocs_t* script)
+int hawk_sed_compstdoocs (hawk_sed_t* sed, const hawk_oocs_t* script)
 {
 	hawk_sed_iostd_t in[2];
 
-	in[0].type = HAWK_SED_IOSTD_STR;
-	in[0].u.str = *script;
+	in[0].type = HAWK_SED_IOSTD_OOCS;
+	in[0].u.oocs = *script;
 	in[1].type = HAWK_SED_IOSTD_NULL;
 
-	return hawk_sed_compstd (sed, in, HAWK_NULL);
+	return hawk_sed_compstd(sed, in, HAWK_NULL);
 }
 
 int hawk_sed_execstdfile (hawk_sed_t* sed, const hawk_ooch_t* infile, const hawk_ooch_t* outfile, hawk_cmgr_t* cmgr)
@@ -1045,15 +1169,15 @@ int hawk_sed_execstdxstr (hawk_sed_t* sed, const hawk_oocs_t* instr, hawk_oocs_t
 	hawk_sed_iostd_t out;
 	int n;
 
-	in[0].type = HAWK_SED_IOSTD_STR;
-	in[0].u.str = *instr;
+	in[0].type = HAWK_SED_IOSTD_OOCS;
+	in[0].u.oocs = *instr;
 	in[1].type = HAWK_SED_IOSTD_NULL;
 
-	out.type = HAWK_SED_IOSTD_STR;
+	out.type = HAWK_SED_IOSTD_OOCS;
 
 	n = hawk_sed_execstd(sed, in, &out);
 
-	if (n >= 0) *outstr = out.u.str;
+	if (n >= 0) *outstr = out.u.oocs;
 
 	return n;
 }

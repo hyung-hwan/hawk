@@ -1123,6 +1123,7 @@ struct hawk_gem_t
 #else
 	hawk_bch_t    xerrmsg[HAWK_ERRMSG_CAPA * 2];
 #endif
+	hawk_ooch_t   errmsg_backup[HAWK_ERRMSG_CAPA];
 };
 
 enum hawk_log_mask_t
