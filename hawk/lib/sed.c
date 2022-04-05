@@ -639,7 +639,7 @@ static int pickup_rex (
 		{
 			if (cmd)
 			{
-				SETERR1 (sed, HAWK_SED_ECMDIC, &cmd->type, 1, &sed->src.loc);
+				SETERR1 (sed, HAWK_SED_ECMDIC, (hawk_ooch_t*)&cmd->type, 1, &sed->src.loc);
 			}
 			else
 			{
@@ -659,7 +659,7 @@ static int pickup_rex (
 			{
 				if (cmd)
 				{
-					SETERR1 (sed, HAWK_SED_ECMDIC, &cmd->type, 1, &sed->src.loc);
+					SETERR1 (sed, HAWK_SED_ECMDIC, (hawk_ooch_t*)&cmd->type, 1, &sed->src.loc);
 				}
 				else
 				{
@@ -2347,7 +2347,7 @@ static int write_str_to_file (
 			 * it is also an error as it can't write any more */
 			sed->e.out.fun (sed, HAWK_SED_IO_CLOSE, ap, HAWK_NULL, 0);
 			ap->handle = HAWK_NULL;
-			SETERR1 (sed, HAWK_SED_EIOFIL, path, plen, &cmd->loc);
+			SETERR1 (sed, HAWK_SED_EIOFIL, (hawk_ooch_t*)path, plen, &cmd->loc);
 			return -1;
 		}
 

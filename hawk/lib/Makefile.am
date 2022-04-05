@@ -212,6 +212,10 @@ if ENABLE_MOD_MYSQL
 libhawk_la_LIBADD += ../mod/libhawk-mysql.la
 endif
 
+if ENABLE_MOD_SED
+libhawk_la_LIBADD += ../mod/libhawk-sed.la
+endif
+
 if ENABLE_MOD_UCI
 libhawk_la_LIBADD += ../mod/libhawk-uci.la
 endif

@@ -7336,6 +7336,10 @@ int hawk_putsrcoochars (hawk_t* hawk, const hawk_ooch_t* str, hawk_oow_t len)
 #include "../mod/mod-mysql.h"
 #endif
 
+#if defined(HAWK_ENABLE_MOD_SED)
+#include "../mod/mod-sed.h"
+#endif
+
 #if defined(HAWK_ENABLE_MOD_UCI)
 #include "../mod/mod-uci.h"
 #endif
@@ -7359,6 +7363,9 @@ static struct
 	{ HAWK_T("math"),   hawk_mod_math },
 #if defined(HAWK_ENABLE_MOD_MYSQL)
 	{ HAWK_T("mysql"),  hawk_mod_mysql },
+#endif
+#if defined(HAWK_ENABLE_MOD_SED)
+	{ HAWK_T("sed"),    hawk_mod_sed },
 #endif
 	{ HAWK_T("str"),    hawk_mod_str },
 	{ HAWK_T("sys"),    hawk_mod_sys },

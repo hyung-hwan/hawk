@@ -1,0 +1,19 @@
+@pragma entry main
+@pragma implicit off
+
+@include "ensure.inc";
+
+function run_test_001 ()
+{
+	@local tmp, out;
+
+	tmp = sed::str_to_str("s/a/j/g", "aaabbbaaacccaaaddd", out);
+	ensure (out === "jjjbbbjjjcccjjjddd", 1, @SCRIPTNAME, @SCRIPTLINE);
+}
+
+function main()
+{
+	run_test_001 ();
+	print "SUCCESS";
+}
+

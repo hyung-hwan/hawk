@@ -764,21 +764,23 @@ static hawk_ooi_t x_in (hawk_sed_t* sed, hawk_sed_io_cmd_t cmd, hawk_sed_io_arg_
 		{
 			if (arg->path == HAWK_NULL)
 			{
-				/* no file specified. console stream */
+				/* main data stream */
 				if (xtn->e.in.ptr == HAWK_NULL) 
 				{
-					/* HAWK_NULL passed into hawk_sed_exec() for input */
+					/* HAWK_NULL passed into hawk_sed_exec() for input. open stdin */
 					sio = open_sio_std(sed, HAWK_SIO_STDIN, HAWK_SIO_READ | HAWK_SIO_IGNOREECERR);
 					if (sio == HAWK_NULL) return -1;
 					arg->handle = sio;
 				}
 				else
 				{
+					/* use the input stream handlers passed to hawk_sed_exec() */
 					if (open_input_stream(sed, arg, xtn->e.in.cur, &xtn->e.in) <= -1) return -1;
 				}
 			}
 			else
 			{
+				/* sub-stream */
 				sio = open_sio_file(sed, arg->path, HAWK_SIO_READ | HAWK_SIO_IGNOREECERR);
 				if (sio == HAWK_NULL) return -1;
 				arg->handle = sio;
@@ -814,11 +816,17 @@ static hawk_ooi_t x_in (hawk_sed_t* sed, hawk_sed_io_cmd_t cmd, hawk_sed_io_arg_
 				{
 					hawk_ooi_t n;
 					n = hawk_sio_getoochars(arg->handle, buf, len);
-					if (n <= -1) hawk_sed_seterror (sed, HAWK_NULL, HAWK_SED_EIOFIL, &sio_std_names[HAWK_SIO_STDIN]);
+					if (n <= -1) 
+					{
+						const hawk_ooch_t* bem = hawk_sed_backuperrmsg(sed);
+						hawk_sed_seterrbfmt (sed, HAWK_NULL, HAWK_SED_EIOFIL, "unable to read '%js' - %js", &sio_std_names[HAWK_SIO_STDIN], bem);
+					}
 					return n;
 				}
 				else
+				{
 					return read_input_stream(sed, arg, buf, len, &xtn->e.in);
+				}
 			}
 			else
 			{
@@ -826,10 +834,8 @@ static hawk_ooi_t x_in (hawk_sed_t* sed, hawk_sed_io_cmd_t cmd, hawk_sed_io_arg_
 				n = hawk_sio_getoochars(arg->handle, buf, len);
 				if (n <= -1)
 				{
-					hawk_oocs_t ea;
-					ea.ptr = arg->path;
-					ea.len = hawk_count_oocstr(arg->path);
-					hawk_sed_seterror (sed, HAWK_NULL, HAWK_SED_EIOFIL, &ea);
+					const hawk_ooch_t* bem = hawk_sed_backuperrmsg(sed);
+					hawk_sed_seterrbfmt (sed, HAWK_NULL, HAWK_SED_EIOFIL, "unable to read '%js' - %js", arg->path, bem);
 				}
 				return n;
 			}
@@ -951,12 +957,12 @@ static hawk_ooi_t x_out (
 							return len;
 
 						default:
-							{
-								hawk_ooi_t n;
-								n = hawk_sio_putoochars(arg->handle, dat, len);
-								if (n <= -1) set_eiofil_for_iostd (sed, io);
-								return n;
-							}
+						{
+							hawk_ooi_t n;
+							n = hawk_sio_putoochars(arg->handle, dat, len);
+							if (n <= -1) set_eiofil_for_iostd (sed, io);
+							return n;
+						}
 					}
 				}
 			}
@@ -966,10 +972,8 @@ static hawk_ooi_t x_out (
 				n = hawk_sio_putoochars(arg->handle, dat, len);
 				if (n <= -1)
 				{
-					hawk_oocs_t ea;
-					ea.ptr = arg->path;
-					ea.len = hawk_count_oocstr(arg->path);
-					hawk_sed_seterror (sed, HAWK_NULL, HAWK_SED_EIOFIL, &ea);
+					const hawk_ooch_t* bem = hawk_sed_backuperrmsg(sed);
+					hawk_sed_seterrbfmt (sed, HAWK_NULL, HAWK_SED_EIOFIL, "unable to write '%js' - %js", arg->path, bem);
 				}
 				return n;
 			}

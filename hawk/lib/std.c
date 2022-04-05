@@ -1591,6 +1591,9 @@ static hawk_ooi_t sf_out (hawk_t* hawk, hawk_sio_cmd_t cmd, hawk_sio_arg_t* arg,
 					xtn->s.out.u.ucs.buf = hawk_uecs_open(hawk_getgem(hawk), 0, 512);
 					if (xtn->s.out.u.ucs.buf == HAWK_NULL) return -1;
 					return 1;
+
+				default:
+					goto internal_error;
 			}
 
 			break;
@@ -1613,6 +1616,9 @@ static hawk_ooi_t sf_out (hawk_t* hawk, hawk_sio_cmd_t cmd, hawk_sio_arg_t* arg,
 					/* i don't close xtn->s.out.u.oocs.buf intentionally here.
 					 * it will be closed at the end of hawk_parsestd() */
 					return 0;
+
+				default:
+					goto internal_error;
 			}
 
 			break;
@@ -1691,6 +1697,9 @@ static hawk_ooi_t sf_out (hawk_t* hawk, hawk_sio_cmd_t cmd, hawk_sio_arg_t* arg,
 				#else
 					goto parsestd_str;
 				#endif
+
+				default:
+					goto internal_error;
 			}
 
 			break;
@@ -1701,6 +1710,7 @@ static hawk_ooi_t sf_out (hawk_t* hawk, hawk_sio_cmd_t cmd, hawk_sio_arg_t* arg,
 			break;
 	}
 
+internal_error:
 	hawk_seterrnum (hawk, HAWK_NULL, HAWK_EINTERN);
 	return -1;
 }
@@ -1775,6 +1785,10 @@ int hawk_parsestd (hawk_t* hawk, hawk_parsestd_t in[], hawk_parsestd_t* out)
 					hawk_uecs_yield (xtn->s.out.u.ucs.buf, &out->u.ucs, 0);
 				}
 				if (xtn->s.out.u.ucs.buf) hawk_uecs_close (xtn->s.out.u.ucs.buf);
+				break;
+
+			default:
+				/* do nothing */
 				break;
 		}
 	}

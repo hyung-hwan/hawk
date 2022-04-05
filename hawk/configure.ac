@@ -1,6 +1,6 @@
 dnl AC_PREREQ([2.67])
 
-AC_INIT([hawk],[0.9.5],[Chung, Hyung-Hwan (hyunghwan.chung@gmail.com)],[],[https://code.miflux.net/@hawk])
+AC_INIT([hawk],[0.9.6],[Chung, Hyung-Hwan (hyunghwan.chung@gmail.com)],[],[https://code.miflux.net/@hawk])
 
 AC_CONFIG_HEADER([lib/hawk-cfg.h])
 AC_CONFIG_AUX_DIR([ac])
@@ -1026,6 +1026,18 @@ then
 	AC_DEFINE([HAWK_ENABLE_MOD_MYSQL],[1],[build mod/mysql])
 fi
 AM_CONDITIONAL(ENABLE_MOD_MYSQL, test "${enable_mod_mysql_is}" = "yes")
+
+dnl ===== enable-mod-sed =====
+AC_ARG_ENABLE([mod-sed],
+	[AS_HELP_STRING([--enable-mod-sed],[enable mod/sed (default. yes)])],
+	enable_mod_sed_is=$enableval,
+	enable_mod_sed_is=yes
+)
+if test "${enable_mod_sed_is}" = "yes"
+then
+	AC_DEFINE([HAWK_ENABLE_MOD_SED],[1],[build mod/sed])
+fi
+AM_CONDITIONAL(ENABLE_MOD_SED, test "${enable_mod_sed_is}" = "yes")
 
 dnl ===== enable-mod-uci =====
 AC_ARG_ENABLE([mod-uci],

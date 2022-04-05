@@ -890,7 +890,7 @@ static HAWK_INLINE int execute_hawk_sed (int argc, hawk_bch_t* argv[])
 			out_file.u.sio = hawk_sio_open(
 				hawk_sed_getgem(sed),
 				0,
-				arg.output_file, /* ignore the type mistch error here */
+				(const hawk_ooch_t*)arg.output_file, /* fake type casting - note HAWK_SIO_BCSTRPATH below */
 				HAWK_SIO_WRITE |
 				HAWK_SIO_CREATE |
 				HAWK_SIO_TRUNCATE |
@@ -946,7 +946,7 @@ static HAWK_INLINE int execute_hawk_sed (int argc, hawk_bch_t* argv[])
 				out_inplace.u.sio = hawk_sio_open(
 					hawk_sed_getgem(sed),
 					0,
-					tmpl_tmpfile, /* expect a type mismatch warning here and note HAWK_SIO_BCSTR_PATH below */
+					(const hawk_ooch_t*)tmpl_tmpfile, /* fake type casting - note HAWK_SIO_BCSTRPATH below */
 					HAWK_SIO_WRITE |
 					HAWK_SIO_CREATE |
 					HAWK_SIO_IGNOREECERR |

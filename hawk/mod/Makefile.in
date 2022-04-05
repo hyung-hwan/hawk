@@ -90,10 +90,12 @@ build_triplet = @build@
 host_triplet = @host@
 @ENABLE_MOD_FFI_TRUE@@ENABLE_STATIC_MODULE_TRUE@am__append_1 = libhawk-ffi.la
 @ENABLE_MOD_MYSQL_TRUE@@ENABLE_STATIC_MODULE_TRUE@am__append_2 = libhawk-mysql.la
-@ENABLE_MOD_UCI_TRUE@@ENABLE_STATIC_MODULE_TRUE@am__append_3 = libhawk-uci.la
-@ENABLE_MOD_FFI_TRUE@@ENABLE_STATIC_MODULE_FALSE@am__append_4 = libhawk-ffi.la
-@ENABLE_MOD_MYSQL_TRUE@@ENABLE_STATIC_MODULE_FALSE@am__append_5 = libhawk-mysql.la
-@ENABLE_MOD_UCI_TRUE@@ENABLE_STATIC_MODULE_FALSE@am__append_6 = libhawk-uci.la
+@ENABLE_MOD_SED_TRUE@@ENABLE_STATIC_MODULE_TRUE@am__append_3 = libhawk-sed.la
+@ENABLE_MOD_UCI_TRUE@@ENABLE_STATIC_MODULE_TRUE@am__append_4 = libhawk-uci.la
+@ENABLE_MOD_FFI_TRUE@@ENABLE_STATIC_MODULE_FALSE@am__append_5 = libhawk-ffi.la
+@ENABLE_MOD_MYSQL_TRUE@@ENABLE_STATIC_MODULE_FALSE@am__append_6 = libhawk-mysql.la
+@ENABLE_MOD_SED_TRUE@@ENABLE_STATIC_MODULE_FALSE@am__append_7 = libhawk-sed.la
+@ENABLE_MOD_UCI_TRUE@@ENABLE_STATIC_MODULE_FALSE@am__append_8 = libhawk-uci.la
 subdir = mod
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/ax_check_sign.m4 \
@@ -176,6 +178,20 @@ libhawk_mysql_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 @ENABLE_MOD_MYSQL_TRUE@@ENABLE_STATIC_MODULE_FALSE@	-rpath \
 @ENABLE_MOD_MYSQL_TRUE@@ENABLE_STATIC_MODULE_FALSE@	$(pkgmodexecdir)
 @ENABLE_MOD_MYSQL_TRUE@@ENABLE_STATIC_MODULE_TRUE@am_libhawk_mysql_la_rpath =
+@ENABLE_MOD_SED_TRUE@libhawk_sed_la_DEPENDENCIES =  \
+@ENABLE_MOD_SED_TRUE@	$(am__DEPENDENCIES_1)
+am__libhawk_sed_la_SOURCES_DIST = mod-sed.c mod-sed.h
+@ENABLE_MOD_SED_TRUE@am_libhawk_sed_la_OBJECTS =  \
+@ENABLE_MOD_SED_TRUE@	libhawk_sed_la-mod-sed.lo
+libhawk_sed_la_OBJECTS = $(am_libhawk_sed_la_OBJECTS)
+libhawk_sed_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
+	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
+	$(libhawk_sed_la_CFLAGS) $(CFLAGS) $(libhawk_sed_la_LDFLAGS) \
+	$(LDFLAGS) -o $@
+@ENABLE_MOD_SED_TRUE@@ENABLE_STATIC_MODULE_FALSE@am_libhawk_sed_la_rpath =  \
+@ENABLE_MOD_SED_TRUE@@ENABLE_STATIC_MODULE_FALSE@	-rpath \
+@ENABLE_MOD_SED_TRUE@@ENABLE_STATIC_MODULE_FALSE@	$(pkgmodexecdir)
+@ENABLE_MOD_SED_TRUE@@ENABLE_STATIC_MODULE_TRUE@am_libhawk_sed_la_rpath =
 @ENABLE_MOD_UCI_TRUE@libhawk_uci_la_DEPENDENCIES =  \
 @ENABLE_MOD_UCI_TRUE@	$(am__DEPENDENCIES_1) \
 @ENABLE_MOD_UCI_TRUE@	$(am__DEPENDENCIES_1)
@@ -208,6 +224,7 @@ depcomp = $(SHELL) $(top_srcdir)/ac/depcomp
 am__maybe_remake_depfiles = depfiles
 am__depfiles_remade = ./$(DEPDIR)/libhawk_ffi_la-mod-ffi.Plo \
 	./$(DEPDIR)/libhawk_mysql_la-mod-mysql.Plo \
+	./$(DEPDIR)/libhawk_sed_la-mod-sed.Plo \
 	./$(DEPDIR)/libhawk_uci_la-mod-uci.Plo
 am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
@@ -229,9 +246,10 @@ am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 = 
 SOURCES = $(libhawk_ffi_la_SOURCES) $(libhawk_mysql_la_SOURCES) \
-	$(libhawk_uci_la_SOURCES)
+	$(libhawk_sed_la_SOURCES) $(libhawk_uci_la_SOURCES)
 DIST_SOURCES = $(am__libhawk_ffi_la_SOURCES_DIST) \
 	$(am__libhawk_mysql_la_SOURCES_DIST) \
+	$(am__libhawk_sed_la_SOURCES_DIST) \
 	$(am__libhawk_uci_la_SOURCES_DIST)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
@@ -435,10 +453,12 @@ CFLAGS_COMMON =
 @ENABLE_STATIC_MODULE_FALSE@LIBADD_COMMON = -lhawk
 @ENABLE_STATIC_MODULE_TRUE@LIBADD_COMMON = 
 @ENABLE_STATIC_MODULE_TRUE@noinst_LTLIBRARIES = $(am__append_1) \
-@ENABLE_STATIC_MODULE_TRUE@	$(am__append_2) $(am__append_3)
+@ENABLE_STATIC_MODULE_TRUE@	$(am__append_2) $(am__append_3) \
+@ENABLE_STATIC_MODULE_TRUE@	$(am__append_4)
 @ENABLE_STATIC_MODULE_FALSE@pkgmodexecdir = $(libdir)
-@ENABLE_STATIC_MODULE_FALSE@pkgmodexec_LTLIBRARIES = $(am__append_4) \
-@ENABLE_STATIC_MODULE_FALSE@	$(am__append_5) $(am__append_6)
+@ENABLE_STATIC_MODULE_FALSE@pkgmodexec_LTLIBRARIES = $(am__append_5) \
+@ENABLE_STATIC_MODULE_FALSE@	$(am__append_6) $(am__append_7) \
+@ENABLE_STATIC_MODULE_FALSE@	$(am__append_8)
 
 ##################################################
 ##################################################
@@ -456,6 +476,11 @@ CFLAGS_COMMON =
 @ENABLE_MOD_MYSQL_TRUE@libhawk_mysql_la_CFLAGS = $(CFLAGS_COMMON) 
 @ENABLE_MOD_MYSQL_TRUE@libhawk_mysql_la_LDFLAGS = $(LDFLAGS_COMMON) $(MYSQL_LDFLAGS)
 @ENABLE_MOD_MYSQL_TRUE@libhawk_mysql_la_LIBADD = $(LIBADD_COMMON) $(MYSQL_LIBS)
+@ENABLE_MOD_SED_TRUE@libhawk_sed_la_SOURCES = mod-sed.c mod-sed.h
+@ENABLE_MOD_SED_TRUE@libhawk_sed_la_CPPFLAGS = $(CPPFLAGS_COMMON)
+@ENABLE_MOD_SED_TRUE@libhawk_sed_la_CFLAGS = $(CFLAGS_COMMON) 
+@ENABLE_MOD_SED_TRUE@libhawk_sed_la_LDFLAGS = $(LDFLAGS_COMMON)
+@ENABLE_MOD_SED_TRUE@libhawk_sed_la_LIBADD = $(LIBADD_COMMON)
 @ENABLE_MOD_UCI_TRUE@libhawk_uci_la_SOURCES = mod-uci.c mod-uci.h
 @ENABLE_MOD_UCI_TRUE@libhawk_uci_la_CPPFLAGS = $(CPPFLAGS_COMMON)
 @ENABLE_MOD_UCI_TRUE@libhawk_uci_la_CFLAGS = $(CFLAGS_COMMON) 
@@ -547,6 +572,9 @@ libhawk-ffi.la: $(libhawk_ffi_la_OBJECTS) $(libhawk_ffi_la_DEPENDENCIES) $(EXTRA
 libhawk-mysql.la: $(libhawk_mysql_la_OBJECTS) $(libhawk_mysql_la_DEPENDENCIES) $(EXTRA_libhawk_mysql_la_DEPENDENCIES) 
 	$(AM_V_CCLD)$(libhawk_mysql_la_LINK) $(am_libhawk_mysql_la_rpath) $(libhawk_mysql_la_OBJECTS) $(libhawk_mysql_la_LIBADD) $(LIBS)
 
+libhawk-sed.la: $(libhawk_sed_la_OBJECTS) $(libhawk_sed_la_DEPENDENCIES) $(EXTRA_libhawk_sed_la_DEPENDENCIES) 
+	$(AM_V_CCLD)$(libhawk_sed_la_LINK) $(am_libhawk_sed_la_rpath) $(libhawk_sed_la_OBJECTS) $(libhawk_sed_la_LIBADD) $(LIBS)
+
 libhawk-uci.la: $(libhawk_uci_la_OBJECTS) $(libhawk_uci_la_DEPENDENCIES) $(EXTRA_libhawk_uci_la_DEPENDENCIES) 
 	$(AM_V_CCLD)$(libhawk_uci_la_LINK) $(am_libhawk_uci_la_rpath) $(libhawk_uci_la_OBJECTS) $(libhawk_uci_la_LIBADD) $(LIBS)
 
@@ -558,6 +586,7 @@ distclean-compile:
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libhawk_ffi_la-mod-ffi.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libhawk_mysql_la-mod-mysql.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libhawk_sed_la-mod-sed.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libhawk_uci_la-mod-uci.Plo@am__quote@ # am--include-marker
 
 $(am__depfiles_remade):
@@ -603,6 +632,13 @@ libhawk_mysql_la-mod-mysql.lo: mod-mysql.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='mod-mysql.c' object='libhawk_mysql_la-mod-mysql.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_mysql_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_mysql_la_CFLAGS) $(CFLAGS) -c -o libhawk_mysql_la-mod-mysql.lo `test -f 'mod-mysql.c' || echo '$(srcdir)/'`mod-mysql.c
+
+libhawk_sed_la-mod-sed.lo: mod-sed.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_sed_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_sed_la_CFLAGS) $(CFLAGS) -MT libhawk_sed_la-mod-sed.lo -MD -MP -MF $(DEPDIR)/libhawk_sed_la-mod-sed.Tpo -c -o libhawk_sed_la-mod-sed.lo `test -f 'mod-sed.c' || echo '$(srcdir)/'`mod-sed.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libhawk_sed_la-mod-sed.Tpo $(DEPDIR)/libhawk_sed_la-mod-sed.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='mod-sed.c' object='libhawk_sed_la-mod-sed.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_sed_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_sed_la_CFLAGS) $(CFLAGS) -c -o libhawk_sed_la-mod-sed.lo `test -f 'mod-sed.c' || echo '$(srcdir)/'`mod-sed.c
 
 libhawk_uci_la-mod-uci.lo: mod-uci.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_uci_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_uci_la_CFLAGS) $(CFLAGS) -MT libhawk_uci_la-mod-uci.lo -MD -MP -MF $(DEPDIR)/libhawk_uci_la-mod-uci.Tpo -c -o libhawk_uci_la-mod-uci.lo `test -f 'mod-uci.c' || echo '$(srcdir)/'`mod-uci.c
@@ -747,6 +783,7 @@ clean-am: clean-generic clean-libtool clean-noinstLTLIBRARIES \
 distclean: distclean-am
 		-rm -f ./$(DEPDIR)/libhawk_ffi_la-mod-ffi.Plo
 	-rm -f ./$(DEPDIR)/libhawk_mysql_la-mod-mysql.Plo
+	-rm -f ./$(DEPDIR)/libhawk_sed_la-mod-sed.Plo
 	-rm -f ./$(DEPDIR)/libhawk_uci_la-mod-uci.Plo
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
@@ -795,6 +832,7 @@ installcheck-am:
 maintainer-clean: maintainer-clean-am
 		-rm -f ./$(DEPDIR)/libhawk_ffi_la-mod-ffi.Plo
 	-rm -f ./$(DEPDIR)/libhawk_mysql_la-mod-mysql.Plo
+	-rm -f ./$(DEPDIR)/libhawk_sed_la-mod-sed.Plo
 	-rm -f ./$(DEPDIR)/libhawk_uci_la-mod-uci.Plo
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic

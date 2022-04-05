@@ -29,6 +29,10 @@ if ENABLE_MOD_MYSQL
 noinst_LTLIBRARIES += libhawk-mysql.la
 endif
 
+if ENABLE_MOD_SED
+noinst_LTLIBRARIES += libhawk-sed.la
+endif
+
 if ENABLE_MOD_UCI
 noinst_LTLIBRARIES += libhawk-uci.la
 endif
@@ -52,6 +56,10 @@ endif
 
 if ENABLE_MOD_MYSQL
 pkgmodexec_LTLIBRARIES += libhawk-mysql.la
+endif
+
+if ENABLE_MOD_SED
+pkgmodexec_LTLIBRARIES += libhawk-sed.la
 endif
 
 if ENABLE_MOD_UCI
@@ -80,6 +88,14 @@ libhawk_mysql_la_CPPFLAGS = $(CPPFLAGS_COMMON) $(MYSQL_CFLAGS)
 libhawk_mysql_la_CFLAGS = $(CFLAGS_COMMON) 
 libhawk_mysql_la_LDFLAGS = $(LDFLAGS_COMMON) $(MYSQL_LDFLAGS)
 libhawk_mysql_la_LIBADD = $(LIBADD_COMMON) $(MYSQL_LIBS)
+endif
+
+if ENABLE_MOD_SED
+libhawk_sed_la_SOURCES = mod-sed.c mod-sed.h
+libhawk_sed_la_CPPFLAGS = $(CPPFLAGS_COMMON)
+libhawk_sed_la_CFLAGS = $(CFLAGS_COMMON) 
+libhawk_sed_la_LDFLAGS = $(LDFLAGS_COMMON)
+libhawk_sed_la_LIBADD = $(LIBADD_COMMON)
 endif
 
 if ENABLE_MOD_UCI

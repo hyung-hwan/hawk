@@ -702,6 +702,9 @@
 /* build mod/mysql */
 #undef HAWK_ENABLE_MOD_MYSQL
 
+/* build mod/sed */
+#undef HAWK_ENABLE_MOD_SED
+
 /* build mod/uci */
 #undef HAWK_ENABLE_MOD_UCI
 
