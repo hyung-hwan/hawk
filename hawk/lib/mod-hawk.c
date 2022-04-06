@@ -42,7 +42,11 @@ typedef struct mod_data_t mod_data_t;
  */
 struct pafs_t
 {
-	hawk_fun_t* fun;
+	int is_fun;
+
+	const hawk_ooch_t* argspec_ptr;
+	hawk_oow_t argspec_len;
+
 	hawk_oow_t stack_base;
 	hawk_oow_t start_index;
 	hawk_oow_t end_index;
@@ -51,7 +55,7 @@ struct pafs_t
 static hawk_oow_t push_args_from_stack (hawk_rtx_t* rtx, hawk_nde_fncall_t* call, void* data)
 {
 	struct pafs_t* pasf = (struct pafs_t*)data;
-	hawk_oow_t org_stack_base, spec_len, i, j;
+	hawk_oow_t org_stack_base, i, j;
 	hawk_val_t* v;
 
 	if (HAWK_RTX_STACK_AVAIL(rtx) < pasf->end_index - pasf->start_index + 1)
@@ -60,8 +64,6 @@ static hawk_oow_t push_args_from_stack (hawk_rtx_t* rtx, hawk_nde_fncall_t* call
 		return (hawk_oow_t)-1;
 	}
 
-	spec_len = pasf->fun->argspec? hawk_count_oocstr(pasf->fun->argspec): 0;
-	
 	org_stack_base = rtx->stack_base;
 	for (i = pasf->start_index, j = 0; i <= pasf->end_index; i++, j++) 
 	{
@@ -72,14 +74,20 @@ static hawk_oow_t push_args_from_stack (hawk_rtx_t* rtx, hawk_nde_fncall_t* call
 		rtx->stack_base = org_stack_base;
 
 		/* if not sufficient number of spec characters given, take the last value and use it */
-		spec = (spec_len <= 0)? '\0': pasf->fun->argspec[((j < spec_len)? j: spec_len - 1)];
+		spec = (pasf->argspec_len <= 0)? '\0': pasf->argspec_ptr[((j < pasf->argspec_len)? j: pasf->argspec_len - 1)];
 
 		if (HAWK_RTX_GETVALTYPE(rtx, v) == HAWK_VAL_REF)
 		{
-			v = hawk_rtx_getrefval(rtx, (hawk_val_ref_t*)v);
+			if (pasf->is_fun)
+			{
+				/* take out the actual value and pass it to the callee 
+				 * only if the callee is a user-defined function */
+				v = hawk_rtx_getrefval(rtx, (hawk_val_ref_t*)v);
+			}
 		}
 		else
 		{
+		/* TODO: verify if R must be checked here.. */
 			if (spec == 'r')
 			{
 				hawk_rtx_seterrnum (rtx, &call->loc, HAWK_ENOTREF);
@@ -96,7 +104,6 @@ static hawk_oow_t push_args_from_stack (hawk_rtx_t* rtx, hawk_nde_fncall_t* call
 
 static int fnc_call (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
-/* TODO: support to call a module function such as sys::getpid() */
 	hawk_fun_t* fun;
 	hawk_oow_t nargs;
 	hawk_nde_fncall_t call;
@@ -104,25 +111,57 @@ static int fnc_call (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_val_t* v;
 
 	/* this function is similar to hawk_rtx_callfun() but it is more simplified */
+	HAWK_MEMSET (&call, 0, HAWK_SIZEOF(call));
+	nargs = hawk_rtx_getnargs(rtx);
 
 	fun = hawk_rtx_valtofun(rtx, hawk_rtx_getarg(rtx, 0));
-	if (!fun) return -1; /* hard failure */
-
-	nargs = hawk_rtx_getnargs(rtx);
-	if (nargs - 1 > fun->nargs)
+	if (fun) 
 	{
-		hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EARGTM);
-		return -1; /* hard failure */
+		if (nargs - 1 > fun->nargs)
+		{
+			hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EARGTM);
+			return -1; /* hard failure */
+		}
+
+		/* user-defined function call */
+		call.type = HAWK_NDE_FNCALL_FUN;
+		call.u.fun.name = fun->name;
+
+		pafs.is_fun = 1;
+		pafs.argspec_ptr = fun->argspec;
+		pafs.argspec_len = fun->argspec? hawk_count_oocstr(fun->argspec): 0;
+	}
+	else
+	{
+		/* find the name in the modules */
+		hawk_mod_t* m;
+		mod_data_t* md;
+
+// TODO: find normal fnc too.
+		md = (mod_data_t*)fi->mod->ctx;
+		/* hawk_querymodulewithname() may update some shared data under
+		 * the hawk object. use a mutex for shared data safety */
+		hawk_mtx_lock (&md->mq_mtx, HAWK_NULL);
+		m = hawk_rtx_valtomodfnc(rtx, hawk_rtx_getarg(rtx, 0), &call.u.fnc.spec);
+		hawk_mtx_unlock (&md->mq_mtx);
+
+		if (!m) return -1; /* hard failure */
+
+		call.type = HAWK_NDE_FNCALL_FNC;
+	// QQQ0
+	//	call.u.fnc.info.name = name;
+		call.u.fnc.info.mod = m;
+
+		pafs.is_fun = 0;
+		pafs.argspec_ptr = call.u.fnc.spec.arg.spec;
+		pafs.argspec_len = call.u.fnc.spec.arg.spec? hawk_count_oocstr(call.u.fnc.spec.arg.spec): 0;
 	}
 
-	HAWK_MEMSET (&call, 0, HAWK_SIZEOF(call));
-	call.type = HAWK_NDE_FNCALL_FUN;
-	call.u.fun.name = fun->name;
 	call.nargs = nargs - 1;
 	/* keep HAWK_NULL in call.args so that hawk_rtx_evalcall() knows it's a fake call structure */
 	call.arg_base = rtx->stack_base + 5; /* 5 = 4(stack frame prologue) + 1(the first argument to hawk::call()) */
+	//pafs.fun = fun;
 
-	pafs.fun = fun;
 	pafs.stack_base = rtx->stack_base;
 	pafs.start_index = 1;
 	pafs.end_index = nargs - 1;
@@ -163,7 +202,7 @@ static int fnc_function_exists (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 				/* hawk_query_module_with_name() may update some shared data under
 				 * the hawk object. use a mutex for shared data safety */
 				hawk_mtx_lock (&md->mq_mtx, HAWK_NULL);
-				rx = (hawk_query_module_with_name(hawk_rtx_gethawk(rtx), &name, &sym) != HAWK_NULL);
+				rx = (hawk_querymodulewithname(hawk_rtx_gethawk(rtx), &name, &sym) != HAWK_NULL);
 				hawk_mtx_unlock (&md->mq_mtx);
 			}
 		}

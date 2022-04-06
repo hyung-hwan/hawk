@@ -2526,7 +2526,7 @@ hawk_bch_t* hawk_rtx_getvalbcstrwithcmgr (hawk_rtx_t* rtx, hawk_val_t* v, hawk_o
 				rtx->bctos.b[fi].c[1] = '\0';
 				if (len) *len = l;
 				HAWK_ASSERT ((void*)&rtx->bctos.b[fi] == (void*)rtx->bctos.b[fi].c);
-				return rtx->bctos.b[fi].c;
+				return (hawk_bch_t*)rtx->bctos.b[fi].c; /* type-cast hawk_bchu_t* to hawk_bch_t* */
 			}
 			goto duplicate;
 
@@ -2821,6 +2821,51 @@ hawk_fun_t* hawk_rtx_valtofun (hawk_rtx_t* rtx, hawk_val_t* v)
 	return fun;
 }
 
+hawk_mod_t* hawk_rtx_valtomodfnc (hawk_rtx_t* rtx, hawk_val_t* v, hawk_fnc_spec_t* spec)
+{
+	hawk_t* hawk = hawk_rtx_gethawk(rtx);
+	hawk_mod_t* mod;
+	hawk_mod_sym_t sym;
+	hawk_val_type_t vtype;
+
+	vtype = HAWK_RTX_GETVALTYPE(rtx, v);
+
+	switch (vtype)
+	{
+		case HAWK_VAL_BCHR:
+		case HAWK_VAL_MBS:
+		case HAWK_VAL_CHAR:
+		case HAWK_VAL_STR:
+		{
+			hawk_oocs_t x;
+			x.ptr = hawk_rtx_getvaloocstr(rtx, v, &x.len);
+			if (HAWK_UNLIKELY(!x.ptr)) return HAWK_NULL;
+			if (hawk_count_oocstr(x.ptr) != x.len) 
+			{
+				hawk_rtx_freevaloocstr (rtx, v, x.ptr);
+				goto error_inval;
+			}
+			mod = hawk_querymodulewithname(hawk, &x, &sym);
+			hawk_rtx_freevaloocstr (rtx, v, x.ptr);
+			if (!mod) return HAWK_NULL;
+			break;
+		}
+
+		default:
+		error_inval:
+			hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EINVAL);
+			return HAWK_NULL;
+	}
+
+	if (sym.type != HAWK_MOD_FNC || (hawk->opt.trait & sym.u.fnc_.trait) != sym.u.fnc_.trait)
+	{
+		hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_ENOENT);
+		return HAWK_NULL;
+	}
+
+	*spec = sym.u.fnc_;
+	return mod;
+}
 
 /* ========================================================================== */
 

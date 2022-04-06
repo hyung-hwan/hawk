@@ -2122,7 +2122,7 @@ static HAWK_INLINE int run_block0 (hawk_rtx_t* rtx, hawk_nde_blk_t* nde)
 	/*saved_stack_top = rtx->stack_top;*/
 
 #if defined(DEBUG_RUN)
-	hawk_logfmt (hawk_rtx_gethawk(rtx), HAWK_T("securing space for local variables nlcls = %d\n"), (int)nde->nlcls);
+	hawk_logbfmt (hawk_rtx_gethawk(rtx), "securing space for local variables nlcls = %d\n", (int)nde->nlcls);
 #endif
 
 	if (nde->nlcls > 0)
@@ -2168,7 +2168,7 @@ static HAWK_INLINE int run_block0 (hawk_rtx_t* rtx, hawk_nde_blk_t* nde)
 	}
 
 #if defined(DEBUG_RUN)
-	hawk_logfmt (hawk_rtx_gethawk(rtx), HAWK_T("executing block statements\n"));
+	hawk_logbfmt (hawk_rtx_gethawk(rtx), "executing block statements\n");
 #endif
 
 	p = nde->body;
@@ -2184,7 +2184,7 @@ static HAWK_INLINE int run_block0 (hawk_rtx_t* rtx, hawk_nde_blk_t* nde)
 
 	/* pop off local variables */
 #if defined(DEBUG_RUN)
-	hawk_logfmt (hawk_rtx_gethawk(rtx), HAWK_T("popping off local variables\n"));
+	hawk_logbfmt (hawk_rtx_gethawk(rtx), "popping off local variables\n");
 #endif
 
 	if (nde->nlcls > 0)
@@ -4146,7 +4146,7 @@ static hawk_val_t* do_assignment_indexed (hawk_rtx_t* rtx, hawk_nde_var_t* var, 
 		#endif
 
 		#if defined(DEBUG_RUN)
-			hawk_logfmt (hawk_rtx_gethawk(rtx), HAWK_T("**** index str=>%s, map->ref=%d, map->type=%d\n"), str, (int)v->ref, (int)v->type);
+			hawk_logbfmt (hawk_rtx_gethawk(rtx), "**** index str=>%js, map->ref=%d, map->type=%d\n", str, (int)v->ref, (int)v->type);
 		#endif
 
 			if (vtype == HAWK_VAL_MAP)
@@ -6751,7 +6751,7 @@ hawk_val_t* hawk_rtx_evalcall (
 	saved_stack_top = rtx->stack_top;
 
 #if defined(DEBUG_RUN)
-	hawk_logfmt (hawk_rtx_gethawk(rtx), HAWK_T("setting up function stack frame top=%zd base=%zd\n"), (hawk_oow_t)rtx->stack_top, (hawk_oow_t)rtx->stack_base);
+	hawk_logbfmt (hawk_rtx_gethawk(rtx), "setting up function stack frame top=%zd base=%zd\n", (hawk_oow_t)rtx->stack_top, (hawk_oow_t)rtx->stack_base);
 #endif
 
 	/* make a new stack frame */
@@ -6799,7 +6799,7 @@ hawk_val_t* hawk_rtx_evalcall (
 	HAWK_RTX_STACK_NARGS(rtx) = (void*)nargs;
 
 #if defined(DEBUG_RUN)
-	hawk_logfmt (hawk_rtx_gethawk(rtx), HAWK_T("running function body\n"));
+	hawk_logbfmt (hawk_rtx_gethawk(rtx), "running function body\n");
 #endif
 
 	if (fun)
@@ -6825,7 +6825,7 @@ hawk_val_t* hawk_rtx_evalcall (
 	/* refdown args in the rtx.stack */
 	nargs = (hawk_oow_t)HAWK_RTX_STACK_NARGS(rtx);
 #if defined(DEBUG_RUN)
-	hawk_logfmt (hawk_rtx_gethawk(rtx), HAWK_T("block rtx complete nargs = %d\n"), (int)nargs); 
+	hawk_logbfmt (hawk_rtx_gethawk(rtx), "block rtx complete nargs = %d\n", (int)nargs); 
 #endif
 
 	i = 0;
@@ -6949,7 +6949,7 @@ hawk_val_t* hawk_rtx_evalcall (
 	}
 
 #if defined(DEBUG_RUN)
-	hawk_logfmt (hawk_rtx_gethawk(rtx), HAWK_T("got return value\n"));
+	hawk_logbfmt (hawk_rtx_gethawk(rtx), "got return value\n");
 #endif
 
 	v = HAWK_RTX_STACK_RETVAL(rtx);
@@ -7004,7 +7004,7 @@ hawk_val_t* hawk_rtx_evalcall (
 	if (rtx->exit_level == EXIT_FUNCTION) rtx->exit_level = EXIT_NONE;
 
 #if defined(DEBUG_RUN)
-	hawk_logfmt (hawk_rtx_gethawk(rtx), HAWK_T("returning from function top=%zd, base=%zd\n"), (hawk_oow_t)rtx->stack_top, (hawk_oow_t)rtx->stack_base); 
+	hawk_logbfmt (hawk_rtx_gethawk(rtx), "returning from function top=%zd, base=%zd\n", (hawk_oow_t)rtx->stack_top, (hawk_oow_t)rtx->stack_base); 
 #endif
 	return (n <= -1)? HAWK_NULL: v;
 
@@ -7922,7 +7922,7 @@ read_again:
 	}
 
 #if defined(DEBUG_RUN)
-	hawk_logfmt (hawk_rtx_gethawk(rtx), HAWK_T("record len = %d str=[%.*js]\n"), (int)HAWK_OOECS_LEN(buf), HAWK_OOECS_LEN(buf), HAWK_OOECS_PTR(buf));
+	hawk_logfbmt (hawk_rtx_gethawk(rtx), "record len = %d str=[%.*js]\n", (int)HAWK_OOECS_LEN(buf), HAWK_OOECS_LEN(buf), HAWK_OOECS_PTR(buf));
 #endif
 	if (n == 0) 
 	{

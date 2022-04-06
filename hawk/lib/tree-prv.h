@@ -238,7 +238,7 @@ struct hawk_nde_fncall_t
 			hawk_fun_t* fun; /* cache it */
 		} fun;
 
-		/* minimum information of a intrinsic function 
+		/* minimum information of an intrinsic function 
 		 * needed during run-time. */
 		struct
 		{

@@ -117,7 +117,7 @@ void hawk_clearsionames (
 );
 
 
-hawk_mod_t* hawk_query_module_with_name (
+hawk_mod_t* hawk_querymodulewithname (
 	hawk_t*            hawk,
 	const hawk_oocs_t* name,
 	hawk_mod_sym_t*    sym

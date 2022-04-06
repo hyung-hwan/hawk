@@ -3388,6 +3388,12 @@ HAWK_EXPORT hawk_fun_t* hawk_rtx_valtofun (
 	hawk_val_t* val
 );
 
+HAWK_EXPORT hawk_mod_t* hawk_rtx_valtomodfnc (
+	hawk_rtx_t*      rtx, 
+	hawk_val_t*      val,
+	hawk_fnc_spec_t* spec
+);
+
 /**
  * The hawk_rtx_hashval() function hashes a simple value
  * to a positive integer. It returns -1 for a inhashable value.

@@ -7553,7 +7553,7 @@ done:
 }
 
 
-hawk_mod_t* hawk_query_module_with_name (hawk_t* hawk, const hawk_oocs_t* name, hawk_mod_sym_t* sym)
+hawk_mod_t* hawk_querymodulewithname (hawk_t* hawk, const hawk_oocs_t* name, hawk_mod_sym_t* sym)
 {
 	const hawk_ooch_t* dc;
 	hawk_oocs_t segs[2]; 

@@ -157,7 +157,6 @@ static int fnc_str_to_str (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	}
 
 /* TODO hawk_set_opt (TRAIT) using the optional parameter */
-
 	for (i = 0; i < 2; i++)
 	{
 		a[i] = hawk_rtx_getarg(rtx, i);
@@ -191,7 +190,7 @@ static int fnc_str_to_str (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	}
 
 	hawk_rtx_refupval (rtx, tmp);
-	n = hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg (rtx, 2), tmp);
+	n = hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, 2), tmp);
 	hawk_rtx_refdownval (rtx, tmp);
 	if (n <= -1)
 	{
