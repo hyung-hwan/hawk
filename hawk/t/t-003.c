@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <wchar.h>
 #include <locale.h>
-#include "t.h"
+#include "tap.h"
 
 static int put_bchars (hawk_fmtout_t* fmtout, const hawk_bch_t* c, hawk_oow_t len)
 {
@@ -56,6 +56,8 @@ int main ()
 	hawk_uch_t x[] = { 'A', L'\uBB33', L'\uBB34', L'\uBB35', 'Q', '\0' };
 	hawk_ooi_t cnt;
 
+	no_plan ();
+
 	setlocale (LC_ALL, NULL);
 	cnt = bfmt_out ("[%s %d %020X %ls %s %w %.*lk]\n", "test", 10, 0x1232, x, "code", x, HAWK_SIZEOF_UCH_T * 3, x);
 
@@ -69,10 +71,7 @@ int main ()
 #else
 #	error UNSUPPORTED UCH SIZE
 #endif
-	T_ASSERT1 (cnt == EXPECTED_LEN, "bfmt_out test #1");
+	OK (cnt == EXPECTED_LEN, "bfmt_out test #1");
 
-	return 0;
-
-oops:
-	return -1;
+	return exit_status();
 }

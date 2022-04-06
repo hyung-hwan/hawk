@@ -1,7 +1,7 @@
 
 #include <hawk-utl.h>
 #include <stdio.h>
-#include "t.h"
+#include "tap.h"
 
 
 struct
@@ -110,6 +110,8 @@ int main ()
 	int i;
 	char buf1[64], buf2[64];
 
+	no_plan();
+
 	for (i = 0; i < HAWK_COUNTOF(tab); i++)
 	{
 		sprintf (buf1, "add - index %d", i);
@@ -121,17 +123,14 @@ int main ()
 		y.nsec = tab[i].ns2;
 
 		hawk_add_ntime (&z, &x, &y);
-		T_ASSERT1 (z.sec == tab[i].add_s, buf1);
-		T_ASSERT1 (z.nsec == tab[i].add_ns, buf1);
+		OK (z.sec == tab[i].add_s, buf1);
+		OK (z.nsec == tab[i].add_ns, buf1);
 
 		hawk_sub_ntime (&z, &x, &y);
-		T_ASSERT1 (z.sec == tab[i].sub_s, buf2);
-		T_ASSERT1 (z.nsec == tab[i].sub_ns, buf2);
+		OK (z.sec == tab[i].sub_s, buf2);
+		OK (z.nsec == tab[i].sub_ns, buf2);
 
 	}
 
-	return 0;
-
-oops:
-	return -1;
+	return exit_status();
 }

@@ -13,6 +13,8 @@ dnl initialize automake
 AM_INIT_AUTOMAKE([-Wall -Werror subdir-objects foreign])
 AM_PROG_AR
 
+AC_REQUIRE_AUX_FILE([tap-driver.sh])
+
 dnl enable silent rules if automake supports them.
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([no])])
 dnl m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])

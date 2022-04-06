@@ -54,7 +54,7 @@ t_006_CFLAGS = $(CFLAGS_COMMON)
 t_006_LDFLAGS = $(LDFLAGS_COMMON)
 t_006_LDADD = $(LIBADD_COMMON)
 
-
+LOG_DRIVER = env AM_TAP_AWK='$(AWK)' $(SHELL) $(top_srcdir)/ac/tap-driver.sh
 TESTS = $(check_PROGRAMS) $(check_SCRIPTS)
 
 TEST_EXTENSIONS = .hawk
