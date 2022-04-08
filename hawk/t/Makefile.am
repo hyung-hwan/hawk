@@ -58,5 +58,6 @@ LOG_DRIVER = env AM_TAP_AWK='$(AWK)' $(SHELL) $(top_srcdir)/ac/tap-driver.sh
 TESTS = $(check_PROGRAMS) $(check_SCRIPTS)
 
 TEST_EXTENSIONS = .hawk
+HAWK_LOG_DRIVER = $(LOG_DRIVER)
 HAWK_LOG_COMPILER = ../bin/hawk
 AM_HAWK_LOG_FLAGS = -vTDIR=${abs_srcdir} --modlibdirs=../lib/.libs:../mod/.libs -f

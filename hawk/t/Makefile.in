@@ -411,11 +411,9 @@ am__set_b = \
 am__test_logs1 = $(TESTS:=.log)
 am__test_logs2 = $(am__test_logs1:@EXEEXT@.log=.log)
 TEST_LOGS = $(am__test_logs2:.hawk.log=.log)
-HAWK_LOG_DRIVER = $(SHELL) $(top_srcdir)/ac/test-driver
 HAWK_LOG_COMPILE = $(HAWK_LOG_COMPILER) $(AM_HAWK_LOG_FLAGS) \
 	$(HAWK_LOG_FLAGS)
-am__DIST_COMMON = $(srcdir)/Makefile.in $(top_srcdir)/ac/depcomp \
-	$(top_srcdir)/ac/test-driver
+am__DIST_COMMON = $(srcdir)/Makefile.in $(top_srcdir)/ac/depcomp
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 ACLOCAL = @ACLOCAL@
 AMTAR = @AMTAR@
@@ -611,6 +609,7 @@ t_006_LDADD = $(LIBADD_COMMON)
 LOG_DRIVER = env AM_TAP_AWK='$(AWK)' $(SHELL) $(top_srcdir)/ac/tap-driver.sh
 TESTS = $(check_PROGRAMS) $(check_SCRIPTS)
 TEST_EXTENSIONS = .hawk
+HAWK_LOG_DRIVER = $(LOG_DRIVER)
 HAWK_LOG_COMPILER = ../bin/hawk
 AM_HAWK_LOG_FLAGS = -vTDIR=${abs_srcdir} --modlibdirs=../lib/.libs:../mod/.libs -f
 all: all-am

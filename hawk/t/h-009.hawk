@@ -1,7 +1,7 @@
 @pragma entry main
 @pragma implicit off
 
-@include "ensure.inc";
+@include "tap.inc";
 
 function run_test_001 ()
 {
@@ -11,13 +11,17 @@ function run_test_001 ()
 	{
 		##tmp = sed::str_to_str("s/a/j/g", "aaabbbaaacccaaaddd", out);
 		tmp = hawk::call("sed::str_to_str", "s/a/j/g", "aaabbbaaacccaaaddd", out);
-		ensure (out === "jjjbbbjjjcccjjjddd", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (out === "jjjbbbjjjcccjjjddd", 1, @SCRIPTNAME, @SCRIPTLINE);
+	}
+	else
+	{
+		tap_skip (sprintf("sed::str_top_str() is unavailable - %s[%d]", @SCRIPTNAME, @SCRIPTLINE));
 	}
 }
 
 function main()
 {
 	run_test_001 ();
-	print "SUCCESS";
+	tap_end ();
 }
 

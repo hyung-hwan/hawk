@@ -1,7 +1,7 @@
 @pragma entry main
 @pragma implicit off
 
-@include "ensure.inc";
+@include "tap.inc";
 
 function main()
 {
@@ -14,14 +14,14 @@ function main()
 		test2(foo2); 
 		test3(foo3); 
 		test4(foo4); 
-		ensure (hawk::typename(foo1), "map", @SCRIPTNAME, @SCRIPTLINE);
-		ensure (hawk::typename(foo2), "map", @SCRIPTNAME, @SCRIPTLINE);
-		ensure (hawk::typename(foo3), "nil", @SCRIPTNAME, @SCRIPTLINE);
-		ensure (hawk::typename(foo4), "nil", @SCRIPTNAME, @SCRIPTLINE);
-		ensure (foo1[1], 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (foo2[1], 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (foo3[1], ini, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (foo4[1], ini, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (hawk::typename(foo1), "map", @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (hawk::typename(foo2), "map", @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (hawk::typename(foo3), "nil", @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (hawk::typename(foo4), "nil", @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (foo1[1], 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (foo2[1], 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (foo3[1], ini, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (foo4[1], ini, @SCRIPTNAME, @SCRIPTLINE);
 	}
 
 	## gsub 
@@ -30,68 +30,68 @@ function main()
 		x = y = "x\\y";
 		gsub(/\\\\/, "A", x);
 		gsub("\\\\", "A", y);
-		ensure (x, "x\\y", @SCRIPTNAME, @SCRIPTLINE);
-		ensure (y, "xAy", @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (x, "x\\y", @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (y, "xAy", @SCRIPTNAME, @SCRIPTLINE);
 
 		x = y = "x\\y";
 		gsub(/\\\\/, 'A', x);
 		gsub("\\\\", 'A', y);
-		ensure (x, "x\\y", @SCRIPTNAME, @SCRIPTLINE);
-		ensure (y, "xAy", @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (x, "x\\y", @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (y, "xAy", @SCRIPTNAME, @SCRIPTLINE);
 
 		x = y = "x\\\\y";
 		gsub(/\\\\/, "A", x);
 		gsub("\\\\", "A", y);
-		ensure (x, "xAy", @SCRIPTNAME, @SCRIPTLINE);
-		ensure (y, "xAAy", @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (x, "xAy", @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (y, "xAAy", @SCRIPTNAME, @SCRIPTLINE);
 
 
 		x = y = @b"x\\\\y";
 		gsub(/\\\\/, "A", x);
 		gsub("\\\\", "A", y);
-		ensure (x === @b"xAy", 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (y === @b"xAAy", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (x === @b"xAy", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (y === @b"xAAy", 1, @SCRIPTNAME, @SCRIPTLINE);
 
 		x = y = @b"x\\\\y";
 		gsub(/\\\\/, 'A', x);
 		gsub("\\\\", 'A', y);
-		ensure (x === @b"xAy", 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (y === @b"xAAy", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (x === @b"xAy", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (y === @b"xAAy", 1, @SCRIPTNAME, @SCRIPTLINE);
 
 		x = y = "x\\\\y";
 		gsub(/\\\\/, @b'A', x);
 		gsub("\\\\", @b'A', y);
-		ensure (x === "xAy", 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (y === "xAAy", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (x === "xAy", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (y === "xAAy", 1, @SCRIPTNAME, @SCRIPTLINE);
 
 		x = y = "x\\\\y";
 		gsub(/\\\\/, @b"A", x);
 		gsub("\\\\", @b"A", y);
-		ensure (x === "xAy", 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (y === "xAAy", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (x === "xAy", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (y === "xAAy", 1, @SCRIPTNAME, @SCRIPTLINE);
 
 		x = y = '\\';
 		gsub(/\\/, @b"A", x);
 		gsub("\\\\", @b"A", y);
-		ensure (x === "A", 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (y === "A", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (x === "A", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (y === "A", 1, @SCRIPTNAME, @SCRIPTLINE);
 
 		x = y = '\\';
 		gsub(/\\/, @b'A', x);
 		gsub("\\\\", @b'A', y);
-		ensure (x === "A", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (x === "A", 1, @SCRIPTNAME, @SCRIPTLINE);
 
 		x = y = @b'\\';
 		gsub(/\\/, @b"A", x);
 		gsub("\\\\", @b"A", y);
-		ensure (x === @b"A", 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (y === @b"A", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (x === @b"A", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (y === @b"A", 1, @SCRIPTNAME, @SCRIPTLINE);
 
 		x = y = @b'\\';
 		gsub(/\\/, @b'A', x);
 		gsub("\\\\", @b'A', y);
-		ensure (x === @b"A", 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (y === @b"A", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (x === @b"A", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (y === @b"A", 1, @SCRIPTNAME, @SCRIPTLINE);
 	}
 
 	## gsub - POSIX rule for &, \&, \\&, \\\& 
@@ -107,12 +107,12 @@ function main()
 		gsub(/a/, "\\\\\&", z1); # gsub sees \\&
 		gsub(/a/, "\\\\\\&", z2); # gsub sees \\\&
 
-		ensure (w, "xax", @SCRIPTNAME, @SCRIPTLINE);
-		ensure (x, "x&x", @SCRIPTNAME, @SCRIPTLINE);
-		ensure (y, "x&x", @SCRIPTNAME, @SCRIPTLINE);
-		ensure (z, "x\\ax", @SCRIPTNAME, @SCRIPTLINE);
-		ensure (z1, "x\\ax", @SCRIPTNAME, @SCRIPTLINE);
-		ensure (z2, "x\\&x", @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (w, "xax", @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (x, "x&x", @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (y, "x&x", @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (z, "x\\ax", @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (z1, "x\\ax", @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (z2, "x\\&x", @SCRIPTNAME, @SCRIPTLINE);
 
 		w = x = y = z = z1 = z2 = "xaax";
 
@@ -124,12 +124,12 @@ function main()
 		gsub(/a/, "\\\\\&", z1); # gsub sees \\&
 		gsub(/a/, "\\\\\\&", z2); # gsub sees \\\&
 
-		ensure (w, "xaax", @SCRIPTNAME, @SCRIPTLINE);
-		ensure (x, "x&&x", @SCRIPTNAME, @SCRIPTLINE);
-		ensure (y, "x&&x", @SCRIPTNAME, @SCRIPTLINE);
-		ensure (z, "x\\a\\ax", @SCRIPTNAME, @SCRIPTLINE);
-		ensure (z1, "x\\a\\ax", @SCRIPTNAME, @SCRIPTLINE);
-		ensure (z2, "x\\&\\&x", @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (w, "xaax", @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (x, "x&&x", @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (y, "x&&x", @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (z, "x\\a\\ax", @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (z1, "x\\a\\ax", @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (z2, "x\\&\\&x", @SCRIPTNAME, @SCRIPTLINE);
 	}
 
 	## gsub - POSIX rule for &, \&, \\&, \\\&  - express the same test with a raw string literal
@@ -143,10 +143,10 @@ function main()
 		gsub(/a/, @r"\\&", y);  # gsub sees \\&
 		gsub(/a/, @r"\\\&", z); # gsub sees \\\&
 
-		ensure (w, "xax", @SCRIPTNAME, @SCRIPTLINE);
-		ensure (x, "x&x", @SCRIPTNAME, @SCRIPTLINE);
-		ensure (y, @r"x\ax", @SCRIPTNAME, @SCRIPTLINE);
-		ensure (z, @r"x\&x", @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (w, "xax", @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (x, "x&x", @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (y, @r"x\ax", @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (z, @r"x\&x", @SCRIPTNAME, @SCRIPTLINE);
 
 		w = x = y = z = "xaax";
 
@@ -156,10 +156,10 @@ function main()
 		gsub(/a/, @r"\\&", y);  # gsub sees \\&
 		gsub(/a/, @r"\\\&", z); # gsub sees \\\&
 
-		ensure (w, "xaax", @SCRIPTNAME, @SCRIPTLINE);
-		ensure (x, "x&&x", @SCRIPTNAME, @SCRIPTLINE);
-		ensure (y, @r"x\a\ax", @SCRIPTNAME, @SCRIPTLINE);
-		ensure (z, @r"x\&\&x", @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (w, "xaax", @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (x, "x&&x", @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (y, @r"x\a\ax", @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (z, @r"x\&\&x", @SCRIPTNAME, @SCRIPTLINE);
 	}
 
 	## sub - POSIX rule for &, \&, \\&, \\\&  - express the same test with a raw string literal
@@ -173,10 +173,10 @@ function main()
 		sub(/a/, @r"\\&", y);
 		sub(/a/, @r"\\\&", z);
 
-		ensure (w, "xax", @SCRIPTNAME, @SCRIPTLINE);
-		ensure (x, "x&x", @SCRIPTNAME, @SCRIPTLINE);
-		ensure (y, @r"x\ax", @SCRIPTNAME, @SCRIPTLINE);
-		ensure (z, @r"x\&x", @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (w, "xax", @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (x, "x&x", @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (y, @r"x\ax", @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (z, @r"x\&x", @SCRIPTNAME, @SCRIPTLINE);
 
 		w = x = y = z = "xaax";
 
@@ -186,10 +186,10 @@ function main()
 		sub(/a/, @r"\\&", y);
 		sub(/a/, @r"\\\&", z);
 
-		ensure (w, "xaax", @SCRIPTNAME, @SCRIPTLINE);
-		ensure (x, "x&ax", @SCRIPTNAME, @SCRIPTLINE);
-		ensure (y, @r"x\aax", @SCRIPTNAME, @SCRIPTLINE);
-		ensure (z, @r"x\&ax", @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (w, "xaax", @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (x, "x&ax", @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (y, @r"x\aax", @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (z, @r"x\&ax", @SCRIPTNAME, @SCRIPTLINE);
 	}
 
 
@@ -198,388 +198,388 @@ function main()
 
 		pi = 3.1415927;
 
-		ensure (sprintf("%.10d:%.10x", 5, 14), "0000000005:000000000e", @SCRIPTNAME,  @SCRIPTLINE);
+		tap_ensure (sprintf("%.10d:%.10x", 5, 14), "0000000005:000000000e", @SCRIPTNAME,  @SCRIPTLINE);
 
-		ensure (sprintf("cos(%f) = %f", pi/4, cos(pi/4)), "cos(0.785398) = 0.707107", @SCRIPTNAME, @SCRIPTLINE);
-		ensure (sprintf("sin(%f) = %f", pi/4, sin(pi/4)), "sin(0.785398) = 0.707107", @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (sprintf("cos(%f) = %f", pi/4, cos(pi/4)), "cos(0.785398) = 0.707107", @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (sprintf("sin(%f) = %f", pi/4, sin(pi/4)), "sin(0.785398) = 0.707107", @SCRIPTNAME, @SCRIPTLINE);
 
 		e = exp(1);
-		ensure (sprintf("e = %f", e), "e = 2.718282", @SCRIPTNAME, @SCRIPTLINE);
-		ensure (sprintf("log(e) = %f", log(e)), "log(e) = 1.000000", @SCRIPTNAME, @SCRIPTLINE);
-		ensure (sprintf("sqrt(pi ^ 2) = %f", sqrt(pi ^ 2)), "sqrt(pi ^ 2) = 3.141593", @SCRIPTNAME, @SCRIPTLINE);
-		ensure (sprintf("atan2(1, 1) = %f", atan2(1, 1)), "atan2(1, 1) = 0.785398", @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (sprintf("e = %f", e), "e = 2.718282", @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (sprintf("log(e) = %f", log(e)), "log(e) = 1.000000", @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (sprintf("sqrt(pi ^ 2) = %f", sqrt(pi ^ 2)), "sqrt(pi ^ 2) = 3.141593", @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (sprintf("atan2(1, 1) = %f", atan2(1, 1)), "atan2(1, 1) = 0.785398", @SCRIPTNAME, @SCRIPTLINE);
 
 		tmp = sprintf("%s", "hello");
-		ensure ((tmp === @b"hello"), 0, @SCRIPTNAME, @SCRIPTLINE);
-		ensure ((tmp === "hello"),   1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure ((tmp == @b"hello"),  1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure ((tmp == "hello"),    1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((tmp === @b"hello"), 0, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((tmp === "hello"),   1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((tmp == @b"hello"),  1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((tmp == "hello"),    1, @SCRIPTNAME, @SCRIPTLINE);
 
 		tmp = sprintf("%s", @b"hello");
-		ensure ((tmp === @b"hello"), 0, @SCRIPTNAME, @SCRIPTLINE);
-		ensure ((tmp === "hello"),   1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure ((tmp == @b"hello"),  1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure ((tmp == "hello"),    1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((tmp === @b"hello"), 0, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((tmp === "hello"),   1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((tmp == @b"hello"),  1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((tmp == "hello"),    1, @SCRIPTNAME, @SCRIPTLINE);
 
 		tmp = sprintf(@b"%s", "hello");
-		ensure ((tmp === @b"hello"), 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure ((tmp === "hello"),   0, @SCRIPTNAME, @SCRIPTLINE);
-		ensure ((tmp == @b"hello"),  1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure ((tmp == "hello"),    1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((tmp === @b"hello"), 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((tmp === "hello"),   0, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((tmp == @b"hello"),  1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((tmp == "hello"),    1, @SCRIPTNAME, @SCRIPTLINE);
 
 		tmp = sprintf(@b"%s", @b"hello");
-		ensure ((tmp === @b"hello"), 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure ((tmp === "hello"),   0, @SCRIPTNAME, @SCRIPTLINE);
-		ensure ((tmp == @b"hello"),  1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure ((tmp == "hello"),    1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((tmp === @b"hello"), 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((tmp === "hello"),   0, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((tmp == @b"hello"),  1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((tmp == "hello"),    1, @SCRIPTNAME, @SCRIPTLINE);
 
-		ensure (sprintf("%0d", 0),            "0",          @SCRIPTNAME,  @SCRIPTLINE);
-		ensure (sprintf("%0.d", 0),           "",           @SCRIPTNAME,  @SCRIPTLINE);
-		ensure (sprintf("%.d", 0),            "",           @SCRIPTNAME,  @SCRIPTLINE);
-		ensure (sprintf("%.*d", 0, 0),        "",           @SCRIPTNAME,  @SCRIPTLINE);
-		ensure (sprintf("%.*d", 1, 0),        "0",          @SCRIPTNAME,  @SCRIPTLINE);
-		ensure (sprintf("%*d", 0, 0),         "0",          @SCRIPTNAME,  @SCRIPTLINE);
-		ensure (sprintf("%*.*d", 0, 0, 0),    "",           @SCRIPTNAME,  @SCRIPTLINE);
-		ensure (sprintf("%-*.*d", 0, 0, 0),   "",           @SCRIPTNAME,  @SCRIPTLINE);
-		ensure (sprintf("%*.*d", 1, 0, 0),    " ",          @SCRIPTNAME,  @SCRIPTLINE);
-		ensure (sprintf("%*.*d", 0, 3, 0),    "000",        @SCRIPTNAME,  @SCRIPTLINE);
-		ensure (sprintf("%-*d", 0, 0),        "0",          @SCRIPTNAME,  @SCRIPTLINE);
+		tap_ensure (sprintf("%0d", 0),            "0",          @SCRIPTNAME,  @SCRIPTLINE);
+		tap_ensure (sprintf("%0.d", 0),           "",           @SCRIPTNAME,  @SCRIPTLINE);
+		tap_ensure (sprintf("%.d", 0),            "",           @SCRIPTNAME,  @SCRIPTLINE);
+		tap_ensure (sprintf("%.*d", 0, 0),        "",           @SCRIPTNAME,  @SCRIPTLINE);
+		tap_ensure (sprintf("%.*d", 1, 0),        "0",          @SCRIPTNAME,  @SCRIPTLINE);
+		tap_ensure (sprintf("%*d", 0, 0),         "0",          @SCRIPTNAME,  @SCRIPTLINE);
+		tap_ensure (sprintf("%*.*d", 0, 0, 0),    "",           @SCRIPTNAME,  @SCRIPTLINE);
+		tap_ensure (sprintf("%-*.*d", 0, 0, 0),   "",           @SCRIPTNAME,  @SCRIPTLINE);
+		tap_ensure (sprintf("%*.*d", 1, 0, 0),    " ",          @SCRIPTNAME,  @SCRIPTLINE);
+		tap_ensure (sprintf("%*.*d", 0, 3, 0),    "000",        @SCRIPTNAME,  @SCRIPTLINE);
+		tap_ensure (sprintf("%-*d", 0, 0),        "0",          @SCRIPTNAME,  @SCRIPTLINE);
 
-		ensure (sprintf(@b"%0d", 0),          @b"0",        @SCRIPTNAME,  @SCRIPTLINE);
-		ensure (sprintf(@b"%0.d", 0),         @b"",         @SCRIPTNAME,  @SCRIPTLINE);
-		ensure (sprintf(@b"%.d", 0),          @b"",         @SCRIPTNAME,  @SCRIPTLINE);
-		ensure (sprintf(@b"%.*d", 0, 0),      @b"",         @SCRIPTNAME,  @SCRIPTLINE);
-		ensure (sprintf(@b"%.*d", 1, 0),      @b"0",        @SCRIPTNAME,  @SCRIPTLINE);
-		ensure (sprintf(@b"%*d", 0, 0),       @b"0",        @SCRIPTNAME,  @SCRIPTLINE);
-		ensure (sprintf(@b"%*.*d", 0, 0, 0),  @b"",         @SCRIPTNAME,  @SCRIPTLINE);
-		ensure (sprintf(@b"%-*.*d", 0, 0, 0), @b"",         @SCRIPTNAME,  @SCRIPTLINE);
-		ensure (sprintf(@b"%*.*d", 1, 0, 0),  @b" ",        @SCRIPTNAME,  @SCRIPTLINE);
-		ensure (sprintf(@b"%*.*d", 0, 3, 0),  @b"000",      @SCRIPTNAME,  @SCRIPTLINE);
-		ensure (sprintf(@b"%-*d", 0, 0),      @b"0",        @SCRIPTNAME,  @SCRIPTLINE);
+		tap_ensure (sprintf(@b"%0d", 0),          @b"0",        @SCRIPTNAME,  @SCRIPTLINE);
+		tap_ensure (sprintf(@b"%0.d", 0),         @b"",         @SCRIPTNAME,  @SCRIPTLINE);
+		tap_ensure (sprintf(@b"%.d", 0),          @b"",         @SCRIPTNAME,  @SCRIPTLINE);
+		tap_ensure (sprintf(@b"%.*d", 0, 0),      @b"",         @SCRIPTNAME,  @SCRIPTLINE);
+		tap_ensure (sprintf(@b"%.*d", 1, 0),      @b"0",        @SCRIPTNAME,  @SCRIPTLINE);
+		tap_ensure (sprintf(@b"%*d", 0, 0),       @b"0",        @SCRIPTNAME,  @SCRIPTLINE);
+		tap_ensure (sprintf(@b"%*.*d", 0, 0, 0),  @b"",         @SCRIPTNAME,  @SCRIPTLINE);
+		tap_ensure (sprintf(@b"%-*.*d", 0, 0, 0), @b"",         @SCRIPTNAME,  @SCRIPTLINE);
+		tap_ensure (sprintf(@b"%*.*d", 1, 0, 0),  @b" ",        @SCRIPTNAME,  @SCRIPTLINE);
+		tap_ensure (sprintf(@b"%*.*d", 0, 3, 0),  @b"000",      @SCRIPTNAME,  @SCRIPTLINE);
+		tap_ensure (sprintf(@b"%-*d", 0, 0),      @b"0",        @SCRIPTNAME,  @SCRIPTLINE);
 
-		ensure (sprintf("%5d", 5),            "    5",      @SCRIPTNAME,  @SCRIPTLINE);
-		ensure (sprintf("%-5d", 5),           "5    ",      @SCRIPTNAME,  @SCRIPTLINE);
-		ensure (sprintf("%*d", 5, 5),         "    5",      @SCRIPTNAME,  @SCRIPTLINE);
-		ensure (sprintf("%*d", -5, 5),        "5    ",      @SCRIPTNAME,  @SCRIPTLINE);
-		ensure (sprintf("%-*d", 5, 5),        "5    ",      @SCRIPTNAME,  @SCRIPTLINE);
-		ensure (sprintf("%-*d", -5, 5),       "5    ",      @SCRIPTNAME,  @SCRIPTLINE);
+		tap_ensure (sprintf("%5d", 5),            "    5",      @SCRIPTNAME,  @SCRIPTLINE);
+		tap_ensure (sprintf("%-5d", 5),           "5    ",      @SCRIPTNAME,  @SCRIPTLINE);
+		tap_ensure (sprintf("%*d", 5, 5),         "    5",      @SCRIPTNAME,  @SCRIPTLINE);
+		tap_ensure (sprintf("%*d", -5, 5),        "5    ",      @SCRIPTNAME,  @SCRIPTLINE);
+		tap_ensure (sprintf("%-*d", 5, 5),        "5    ",      @SCRIPTNAME,  @SCRIPTLINE);
+		tap_ensure (sprintf("%-*d", -5, 5),       "5    ",      @SCRIPTNAME,  @SCRIPTLINE);
 
-		ensure (sprintf(@b"%5d", 5),          @b"    5",    @SCRIPTNAME,  @SCRIPTLINE);
-		ensure (sprintf(@b"%-5d", 5),         @b"5    ",    @SCRIPTNAME,  @SCRIPTLINE);
-		ensure (sprintf(@b"%*d", 5, 5),       @b"    5",    @SCRIPTNAME,  @SCRIPTLINE);
-		ensure (sprintf(@b"%*d", -5, 5),      @b"5    ",    @SCRIPTNAME,  @SCRIPTLINE);
-		ensure (sprintf(@b"%-*d", 5, 5),      @b"5    ",    @SCRIPTNAME,  @SCRIPTLINE);
+		tap_ensure (sprintf(@b"%5d", 5),          @b"    5",    @SCRIPTNAME,  @SCRIPTLINE);
+		tap_ensure (sprintf(@b"%-5d", 5),         @b"5    ",    @SCRIPTNAME,  @SCRIPTLINE);
+		tap_ensure (sprintf(@b"%*d", 5, 5),       @b"    5",    @SCRIPTNAME,  @SCRIPTLINE);
+		tap_ensure (sprintf(@b"%*d", -5, 5),      @b"5    ",    @SCRIPTNAME,  @SCRIPTLINE);
+		tap_ensure (sprintf(@b"%-*d", 5, 5),      @b"5    ",    @SCRIPTNAME,  @SCRIPTLINE);
 
-		ensure (sprintf("%*sworld", 20, "hello"),        "               helloworld",   @SCRIPTNAME, @SCRIPTLINE);
-		ensure (sprintf("%*sworld", -20, "hello"),       "hello               world",   @SCRIPTNAME, @SCRIPTLINE);
-		ensure (sprintf("%-*sworld", 20, "hello"),       "hello               world",   @SCRIPTNAME, @SCRIPTLINE);
-		ensure (sprintf("%-*sworld", -20, "hello"),      "hello               world",   @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (sprintf("%*sworld", 20, "hello"),        "               helloworld",   @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (sprintf("%*sworld", -20, "hello"),       "hello               world",   @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (sprintf("%-*sworld", 20, "hello"),       "hello               world",   @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (sprintf("%-*sworld", -20, "hello"),      "hello               world",   @SCRIPTNAME, @SCRIPTLINE);
 
-		ensure (sprintf(@b"%*sworld", 20, "hello"),      @b"               helloworld", @SCRIPTNAME, @SCRIPTLINE);
-		ensure (sprintf(@b"%*sworld", -20, "hello"),     @b"hello               world", @SCRIPTNAME, @SCRIPTLINE);
-		ensure (sprintf(@b"%-*sworld", 20, "hello"),     @b"hello               world", @SCRIPTNAME, @SCRIPTLINE);
-		ensure (sprintf(@b"%-*sworld", -20, "hello"),    @b"hello               world", @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (sprintf(@b"%*sworld", 20, "hello"),      @b"               helloworld", @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (sprintf(@b"%*sworld", -20, "hello"),     @b"hello               world", @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (sprintf(@b"%-*sworld", 20, "hello"),     @b"hello               world", @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (sprintf(@b"%-*sworld", -20, "hello"),    @b"hello               world", @SCRIPTNAME, @SCRIPTLINE);
 
-		ensure (sprintf("%0s", "hello"),                 "hello",                       @SCRIPTNAME, @SCRIPTLINE);
-		ensure (sprintf("%.0s", "hello"),                "",                            @SCRIPTNAME, @SCRIPTLINE);
-		ensure (sprintf("%0.0s", "hello"),               "",                            @SCRIPTNAME, @SCRIPTLINE);
-		ensure (sprintf("%1.0s", "hello"),               " ",                           @SCRIPTNAME, @SCRIPTLINE);
-		ensure (sprintf("%*.*s", 20, 0, "hello"),        "                    ",        @SCRIPTNAME, @SCRIPTLINE);
-		ensure (sprintf("%*.*s", 20, 2, "hello"),        "                  he",        @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (sprintf("%0s", "hello"),                 "hello",                       @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (sprintf("%.0s", "hello"),                "",                            @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (sprintf("%0.0s", "hello"),               "",                            @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (sprintf("%1.0s", "hello"),               " ",                           @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (sprintf("%*.*s", 20, 0, "hello"),        "                    ",        @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (sprintf("%*.*s", 20, 2, "hello"),        "                  he",        @SCRIPTNAME, @SCRIPTLINE);
 
-		ensure (sprintf(@b"%0s", "hello"),               @b"hello",                     @SCRIPTNAME, @SCRIPTLINE);
-		ensure (sprintf(@b"%.0s", "hello"),              @b"",                          @SCRIPTNAME, @SCRIPTLINE);
-		ensure (sprintf(@b"%0.0s", "hello"),             @b"",                          @SCRIPTNAME, @SCRIPTLINE);
-		ensure (sprintf(@b"%1.0s", "hello"),             @b" ",                         @SCRIPTNAME, @SCRIPTLINE);
-		ensure (sprintf(@b"%*.*s", 20, 0, "hello"),      @b"                    ",      @SCRIPTNAME, @SCRIPTLINE);
-		ensure (sprintf(@b"%*.*s", 20, 2, "hello"),      @b"                  he",      @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (sprintf(@b"%0s", "hello"),               @b"hello",                     @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (sprintf(@b"%.0s", "hello"),              @b"",                          @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (sprintf(@b"%0.0s", "hello"),             @b"",                          @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (sprintf(@b"%1.0s", "hello"),             @b" ",                         @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (sprintf(@b"%*.*s", 20, 0, "hello"),      @b"                    ",      @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (sprintf(@b"%*.*s", 20, 2, "hello"),      @b"                  he",      @SCRIPTNAME, @SCRIPTLINE);
 
-		ensure (sprintf("%+d %d", 3, 4),                 "+3 4",                        @SCRIPTNAME, @SCRIPTLINE);
-		ensure (sprintf(@b"%+d %d", 3, 4),               @b"+3 4",                      @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (sprintf("%+d %d", 3, 4),                 "+3 4",                        @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (sprintf(@b"%+d %d", 3, 4),               @b"+3 4",                      @SCRIPTNAME, @SCRIPTLINE);
 
 
-		ensure (sprintf(@b'A') === @b"A", 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (sprintf('A') === "A", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (sprintf(@b'A') === @b"A", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (sprintf('A') === "A", 1, @SCRIPTNAME, @SCRIPTLINE);
 	}
 
 	{
 		@local bool, b, c;
 
-		ensure ((c === @nil), 1, @SCRIPTNAME, @SCRIPTLINE); ## ensure local variable initialization
+		tap_ensure ((c === @nil), 1, @SCRIPTNAME, @SCRIPTLINE); ## tap_ensure local variable initialization
 
 		bool = ((b = 1) in c);
-		ensure (bool, 0, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (b, 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (bool, 0, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (b, 1, @SCRIPTNAME, @SCRIPTLINE);
 	}
 
 
 	{
-		ensure (substr(1000+"5000", 2) === "000",          1,  @SCRIPTNAME, @SCRIPTLINE);
-		ensure (substr(1000+"10000", 2) === "1000",        1,  @SCRIPTNAME, @SCRIPTLINE);
-		ensure (substr(1000+"5000", 2) === "000",          1,  @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (substr(1000+"5000", 2) === "000",          1,  @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (substr(1000+"10000", 2) === "1000",        1,  @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (substr(1000+"5000", 2) === "000",          1,  @SCRIPTNAME, @SCRIPTLINE);
 
-		ensure (substr("5000" + 1000, 2) === "000",        1,  @SCRIPTNAME, @SCRIPTLINE);
-		ensure (substr("10000" + 1000, 2) === "1000",      1,  @SCRIPTNAME, @SCRIPTLINE);
-		ensure (substr("5000" + 1000, 2) === "000",        1,  @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (substr("5000" + 1000, 2) === "000",        1,  @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (substr("10000" + 1000, 2) === "1000",      1,  @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (substr("5000" + 1000, 2) === "000",        1,  @SCRIPTNAME, @SCRIPTLINE);
 
-		ensure (substr(@b"5000" + 1000, 2) === "000",      1,  @SCRIPTNAME, @SCRIPTLINE);
-		ensure (substr(@b"10000" + 1000, 2) === "1000",    1,  @SCRIPTNAME, @SCRIPTLINE);
-		ensure (substr(@b"5000" + 1000, 2) === "000",      1,  @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (substr(@b"5000" + 1000, 2) === "000",      1,  @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (substr(@b"10000" + 1000, 2) === "1000",    1,  @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (substr(@b"5000" + 1000, 2) === "000",      1,  @SCRIPTNAME, @SCRIPTLINE);
 
-		ensure (substr(@b"5000", 2) === @b"000",           1,  @SCRIPTNAME, @SCRIPTLINE);
-		ensure (substr(@b"10000", 2) === @b"0000",         1,  @SCRIPTNAME, @SCRIPTLINE);
-		ensure (substr(@b"5000", 2) === @b"000",           1,  @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (substr(@b"5000", 2) === @b"000",           1,  @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (substr(@b"10000", 2) === @b"0000",         1,  @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (substr(@b"5000", 2) === @b"000",           1,  @SCRIPTNAME, @SCRIPTLINE);
 
-		ensure (substr(1000+5000, 2) === "000",            1,  @SCRIPTNAME, @SCRIPTLINE);
-		ensure (substr(1000+10000, 2) === "1000",          1,  @SCRIPTNAME, @SCRIPTLINE);
-		ensure (substr(1000+5000, 2) === "000",            1,  @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (substr(1000+5000, 2) === "000",            1,  @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (substr(1000+10000, 2) === "1000",          1,  @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (substr(1000+5000, 2) === "000",            1,  @SCRIPTNAME, @SCRIPTLINE);
 
-		ensure (str::subchar("abc", -1) === @nil,          1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (str::subchar("abc", 0) === @nil,           1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (str::subchar("abc", 1) === 'a',            1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (str::subchar("abc", 2) === 'b',            1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (str::subchar("abc", 3) === 'c',            1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (str::subchar("abc", 4) === @nil,           1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::subchar("abc", -1) === @nil,          1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::subchar("abc", 0) === @nil,           1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::subchar("abc", 1) === 'a',            1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::subchar("abc", 2) === 'b',            1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::subchar("abc", 3) === 'c',            1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::subchar("abc", 4) === @nil,           1, @SCRIPTNAME, @SCRIPTLINE);
 
-		ensure (str::subchar("☕⛄", -1) === @nil,          1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (str::subchar("☕⛄", 0) === @nil,           1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (str::subchar("☕⛄", 1) === '☕',           1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (str::subchar("☕⛄", 2) === '⛄',           1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (str::subchar("☕⛄", 3) === @nil,           1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (str::subchar("☕⛄", 4) === @nil,           1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::subchar("☕⛄", -1) === @nil,          1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::subchar("☕⛄", 0) === @nil,           1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::subchar("☕⛄", 1) === '☕',           1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::subchar("☕⛄", 2) === '⛄',           1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::subchar("☕⛄", 3) === @nil,           1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::subchar("☕⛄", 4) === @nil,           1, @SCRIPTNAME, @SCRIPTLINE);
 
-		ensure (str::subchar(@b"abc", -1) === @nil,          1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (str::subchar(@b"abc", 0) === @nil,           1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (str::subchar(@b"abc", 1) === @b'a',            1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (str::subchar(@b"abc", 2) === @b'b',            1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (str::subchar(@b"abc", 3) === @b'c',            1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (str::subchar(@b"abc", 4) === @nil,           1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::subchar(@b"abc", -1) === @nil,          1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::subchar(@b"abc", 0) === @nil,           1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::subchar(@b"abc", 1) === @b'a',            1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::subchar(@b"abc", 2) === @b'b',            1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::subchar(@b"abc", 3) === @b'c',            1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::subchar(@b"abc", 4) === @nil,           1, @SCRIPTNAME, @SCRIPTLINE);
 
-		ensure (str::subchar('a', 0) === @nil,            1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (str::subchar('a', 1) === 'a',             1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (str::subchar('a', 2) === @nil,            1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::subchar('a', 0) === @nil,            1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::subchar('a', 1) === 'a',             1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::subchar('a', 2) === @nil,            1, @SCRIPTNAME, @SCRIPTLINE);
 
-		ensure (str::subchar(@b'a', 0) === @nil,            1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (str::subchar(@b'a', 1) === @b'a',           1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (str::subchar(@b'a', 2) === @nil,            1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::subchar(@b'a', 0) === @nil,            1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::subchar(@b'a', 1) === @b'a',           1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::subchar(@b'a', 2) === @nil,            1, @SCRIPTNAME, @SCRIPTLINE);
 
-		ensure (str::subchar(123, 0) === @nil,             1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (str::subchar(123, 1) === '1',            1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (str::subchar(123, 2) === '2',            1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (str::subchar(123, 3) === '3',            1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (str::subchar(123, 4) === @nil,            1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::subchar(123, 0) === @nil,             1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::subchar(123, 1) === '1',            1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::subchar(123, 2) === '2',            1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::subchar(123, 3) === '3',            1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::subchar(123, 4) === @nil,            1, @SCRIPTNAME, @SCRIPTLINE);
 	}
 
 	{
-		ensure (str::substr("☕Q⛄", 0) === "☕Q⛄",         1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (str::substr("☕Q⛄", 1) === "☕Q⛄",         1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (str::substr("☕Q⛄", 2) === "Q⛄",           1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (str::substr("☕Q⛄", 3) === "⛄",            1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (str::substr("☕Q⛄", 4) === "",            1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (str::substr("☕Q⛄", 1, 2) === "☕Q",         1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (str::substr("☕Q⛄", 1, 4) === "☕Q⛄",         1, @SCRIPTNAME, @SCRIPTLINE);
-		###ensure (str::substr("☕Q⛄", -1, 1) === "⛄",         1, @SCRIPTNAME, @SCRIPTLINE); ## not supported yet
-		ensure (str::substr('☕', 1, 4) === "☕",         1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::substr("☕Q⛄", 0) === "☕Q⛄",         1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::substr("☕Q⛄", 1) === "☕Q⛄",         1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::substr("☕Q⛄", 2) === "Q⛄",           1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::substr("☕Q⛄", 3) === "⛄",            1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::substr("☕Q⛄", 4) === "",            1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::substr("☕Q⛄", 1, 2) === "☕Q",         1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::substr("☕Q⛄", 1, 4) === "☕Q⛄",         1, @SCRIPTNAME, @SCRIPTLINE);
+		###tap_ensure (str::substr("☕Q⛄", -1, 1) === "⛄",         1, @SCRIPTNAME, @SCRIPTLINE); ## not supported yet
+		tap_ensure (str::substr('☕', 1, 4) === "☕",         1, @SCRIPTNAME, @SCRIPTLINE);
 
-		ensure (str::substr(@b"\xAD\xAA\xBB\CC", 2, 2) === @b"\xAA\xBB", 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (str::substr(@b'\xAD', 1, 1) === @b"\xAD", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::substr(@b"\xAD\xAA\xBB\CC", 2, 2) === @b"\xAA\xBB", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::substr(@b'\xAD', 1, 1) === @b"\xAD", 1, @SCRIPTNAME, @SCRIPTLINE);
 	}
 
 	{
-		ensure (str::index("☕Q⛄X⛄Z", '⛄'),  3, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (str::index("☕Q⛄X⛄Z", "⛄"),  3, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (str::index("☕Q⛄X⛄Z", "Q⛄"),  2, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (str::rindex("☕Q⛄X⛄Z", '⛄'),  5, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (str::rindex("☕Q⛄X⛄Z", "⛄"),  5, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (str::rindex("☕Q⛄X⛄Z", "Q⛄"),  2, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (str::rindex("☕Q⛄X⛄Z", "Q⛄Q"),  0, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::index("☕Q⛄X⛄Z", '⛄'),  3, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::index("☕Q⛄X⛄Z", "⛄"),  3, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::index("☕Q⛄X⛄Z", "Q⛄"),  2, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::rindex("☕Q⛄X⛄Z", '⛄'),  5, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::rindex("☕Q⛄X⛄Z", "⛄"),  5, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::rindex("☕Q⛄X⛄Z", "Q⛄"),  2, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::rindex("☕Q⛄X⛄Z", "Q⛄Q"),  0, @SCRIPTNAME, @SCRIPTLINE);
 
-		ensure (str::index(@b"\xFFQ\xABX\xABZ", @b'\xAB'),  3, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (str::index(@b"\xFFQ\xABX\xABZ", @b"\xAB"),  3, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (str::index(@b"\xFFQ\xABX\xABZ", @b"Q\xAB"),  2, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (str::rindex(@b"\xFFQ\xABX\xABZ", @b'\xAB'),  5, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (str::rindex(@b"\xFFQ\xABX\xABZ", @b"\xAB"),  5, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (str::rindex(@b"\xFFQ\xABX\xABZ", @b"Q\xAB"),  2, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (str::rindex(@b"\xFFQ\xABX\xABZ", @b"Q\xABQ"),  0, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::index(@b"\xFFQ\xABX\xABZ", @b'\xAB'),  3, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::index(@b"\xFFQ\xABX\xABZ", @b"\xAB"),  3, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::index(@b"\xFFQ\xABX\xABZ", @b"Q\xAB"),  2, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::rindex(@b"\xFFQ\xABX\xABZ", @b'\xAB'),  5, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::rindex(@b"\xFFQ\xABX\xABZ", @b"\xAB"),  5, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::rindex(@b"\xFFQ\xABX\xABZ", @b"Q\xAB"),  2, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::rindex(@b"\xFFQ\xABX\xABZ", @b"Q\xABQ"),  0, @SCRIPTNAME, @SCRIPTLINE);
 	}
 
 	{
 		# split, str::split, str::splita
 		@local a, str;
 
-		ensure (split("Here===Is=Some=====Data", a, "=+"),     4, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (a[1] === "Here",                               1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (a[2] === "Is",                                 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (a[3] === "Some",                               1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (a[4] === "Data",                               1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (split("Here===Is=Some=====Data", a, "=+"),     4, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a[1] === "Here",                               1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a[2] === "Is",                                 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a[3] === "Some",                               1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a[4] === "Data",                               1, @SCRIPTNAME, @SCRIPTLINE);
 
-		ensure (split(@b"Here===Is=Some=====Data", a, @b"=+"), 4, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (a[1] === @b"Here",                             1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (a[2] === @b"Is",                               1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (a[3] === @b"Some",                             1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (a[4] === @b"Data",                             1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (split(@b"Here===Is=Some=====Data", a, @b"=+"), 4, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a[1] === @b"Here",                             1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a[2] === @b"Is",                               1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a[3] === @b"Some",                             1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a[4] === @b"Data",                             1, @SCRIPTNAME, @SCRIPTLINE);
 
-		ensure (split(@b"Here===Is=Some=====Data", a, /=+/),    4, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (a[1] === @b"Here",                             1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (a[2] === @b"Is",                               1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (a[3] === @b"Some",                             1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (a[4] === @b"Data",                             1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (split(@b"Here===Is=Some=====Data", a, /=+/),    4, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a[1] === @b"Here",                             1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a[2] === @b"Is",                               1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a[3] === @b"Some",                             1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a[4] === @b"Data",                             1, @SCRIPTNAME, @SCRIPTLINE);
 
-		ensure (split("[Here] : [Is]  : [So\\]me] :[Da:ta]", a, "?:\\[]"), 4, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (a[1] === "Here",                               1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (a[2] === "Is",                                 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (a[3] === "So]me",                              1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (a[4] === "Da:ta",                              1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (split("[Here] : [Is]  : [So\\]me] :[Da:ta]", a, "?:\\[]"), 4, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a[1] === "Here",                               1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a[2] === "Is",                                 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a[3] === "So]me",                              1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a[4] === "Da:ta",                              1, @SCRIPTNAME, @SCRIPTLINE);
 
-		ensure (split(@b"[Here] : [Is]  : [So\\]me] :[Da:ta]", a, "?:\\[]"), 4, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (a[1] === @b"Here",                             1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (a[2] === @b"Is",                               1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (a[3] === @b"So]me",                            1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (a[4] === @b"Da:ta",                            1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (split(@b"[Here] : [Is]  : [So\\]me] :[Da:ta]", a, "?:\\[]"), 4, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a[1] === @b"Here",                             1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a[2] === @b"Is",                               1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a[3] === @b"So]me",                            1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a[4] === @b"Da:ta",                            1, @SCRIPTNAME, @SCRIPTLINE);
 
-		ensure (split("Here===Is=Some=====Data", a, ""),       23,     @SCRIPTNAME, @SCRIPTLINE);
-		ensure (hawk::typename(a),                             "map",  @SCRIPTNAME, @SCRIPTLINE);
-		ensure (str::splita("Here===Is=Some=====Data", a, ""),  23,    @SCRIPTNAME, @SCRIPTLINE);
-		ensure (hawk::typename(a),                             "array",@SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (split("Here===Is=Some=====Data", a, ""),       23,     @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (hawk::typename(a),                             "map",  @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::splita("Here===Is=Some=====Data", a, ""),  23,    @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (hawk::typename(a),                             "array",@SCRIPTNAME, @SCRIPTLINE);
 
-		ensure (str::split("Here  Is Some   Data", a, / /),    7, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (str::split("Here  Is Some   Data", a, " "),    4, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (a[1] === "Here",                               1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (a[2] === "Is",                                 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (a[3] === "Some",                               1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (a[4] === "Data",                               1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::split("Here  Is Some   Data", a, / /),    7, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::split("Here  Is Some   Data", a, " "),    4, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a[1] === "Here",                               1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a[2] === "Is",                                 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a[3] === "Some",                               1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a[4] === "Data",                               1, @SCRIPTNAME, @SCRIPTLINE);
 
 		str = "a   b\t\tc d";
-		ensure (str::splita(str, a, " "), 4,              @SCRIPTNAME, @SCRIPTLINE);
-		ensure (a[1],               "a",            @SCRIPTNAME, @SCRIPTLINE);
-		ensure (a[2],               "b",            @SCRIPTNAME, @SCRIPTLINE);
-		ensure (a[3],               "c",            @SCRIPTNAME, @SCRIPTLINE);
-		ensure (a[4],               "d",            @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::splita(str, a, " "), 4,              @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a[1],               "a",            @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a[2],               "b",            @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a[3],               "c",            @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a[4],               "d",            @SCRIPTNAME, @SCRIPTLINE);
 
-		ensure (str::splita(str, a, / /), 5, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (a[1],               "a",            @SCRIPTNAME, @SCRIPTLINE);
-		ensure (a[2],               "",             @SCRIPTNAME, @SCRIPTLINE);
-		ensure (a[3],               "",             @SCRIPTNAME, @SCRIPTLINE);
-		ensure (a[4],               "b\t\tc",       @SCRIPTNAME, @SCRIPTLINE);
-		ensure (a[5],               "d",            @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::splita(str, a, / /), 5, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a[1],               "a",            @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a[2],               "",             @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a[3],               "",             @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a[4],               "b\t\tc",       @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a[5],               "d",            @SCRIPTNAME, @SCRIPTLINE);
 
-		ensure  (str::split('a', a, /a/), 2, @SCRIPTNAME, @SCRIPTLINE);
-		ensure  (a[1] === "", 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure  (a[2] === "", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure  (str::split('a', a, /a/), 2, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure  (a[1] === "", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure  (a[2] === "", 1, @SCRIPTNAME, @SCRIPTLINE);
 
-		ensure  (str::split('a', a, 'a'), 2, @SCRIPTNAME, @SCRIPTLINE);
-		ensure  (a[1] === "", 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure  (a[2] === "", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure  (str::split('a', a, 'a'), 2, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure  (a[1] === "", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure  (a[2] === "", 1, @SCRIPTNAME, @SCRIPTLINE);
 
-		ensure  (str::split('a', a, @b'a'), 2, @SCRIPTNAME, @SCRIPTLINE);
-		ensure  (a[1] === "", 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure  (a[2] === "", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure  (str::split('a', a, @b'a'), 2, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure  (a[1] === "", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure  (a[2] === "", 1, @SCRIPTNAME, @SCRIPTLINE);
 
-		ensure  (str::split(@b'a', a, /a/), 2, @SCRIPTNAME, @SCRIPTLINE);
-		ensure  (a[1] === @b"", 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure  (a[2] === @b"", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure  (str::split(@b'a', a, /a/), 2, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure  (a[1] === @b"", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure  (a[2] === @b"", 1, @SCRIPTNAME, @SCRIPTLINE);
 
-		ensure  (str::split(@b'a', a, @b'a'), 2, @SCRIPTNAME, @SCRIPTLINE);
-		ensure  (a[1] === @b"", 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure  (a[2] === @b"", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure  (str::split(@b'a', a, @b'a'), 2, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure  (a[1] === @b"", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure  (a[2] === @b"", 1, @SCRIPTNAME, @SCRIPTLINE);
 	}
 
 
 	{
 		## back reference in a regular expression
-		ensure (("a2b" ~ /(a)\12b/), 0, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (("aa2b" ~ /(a)\12b/), 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (("aaa2b" ~ /(a)\12b/), 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (("a2b" ~ /(a)\12b/), 0, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (("aa2b" ~ /(a)\12b/), 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (("aaa2b" ~ /(a)\12b/), 1, @SCRIPTNAME, @SCRIPTLINE);
 	}
 
 
 	{
 		## character class functions in the str modules
-		ensure (str::isalnum('a'), 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (str::isalpha('a'), 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (str::isblank('a'), 0, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (str::iscntrl('a'), 0, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (str::isdigit('a'), 0, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (str::isgraph('a'), 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (str::islower('a'), 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (str::isprint('a'), 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (str::ispunct('a'), 0, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (str::isspace('a'), 0, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (str::isupper('a'), 0, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (str::isxdigit('a'), 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::isalnum('a'), 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::isalpha('a'), 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::isblank('a'), 0, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::iscntrl('a'), 0, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::isdigit('a'), 0, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::isgraph('a'), 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::islower('a'), 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::isprint('a'), 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::ispunct('a'), 0, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::isspace('a'), 0, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::isupper('a'), 0, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::isxdigit('a'), 1, @SCRIPTNAME, @SCRIPTLINE);
 
-		ensure (str::toupper('a') === 'A', 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (str::tolower('A') === 'a', 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::toupper('a') === 'A', 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::tolower('A') === 'a', 1, @SCRIPTNAME, @SCRIPTLINE);
 
-		ensure (str::isalnum("a"), 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (str::isalpha("a"), 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (str::isblank("a"), 0, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (str::iscntrl("a"), 0, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (str::isdigit("a"), 0, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (str::isgraph("a"), 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (str::islower("a"), 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (str::isprint("a"), 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (str::ispunct("a"), 0, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (str::isspace("a"), 0, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (str::isupper("a"), 0, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (str::isxdigit("a"), 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::isalnum("a"), 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::isalpha("a"), 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::isblank("a"), 0, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::iscntrl("a"), 0, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::isdigit("a"), 0, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::isgraph("a"), 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::islower("a"), 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::isprint("a"), 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::ispunct("a"), 0, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::isspace("a"), 0, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::isupper("a"), 0, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::isxdigit("a"), 1, @SCRIPTNAME, @SCRIPTLINE);
 
-		ensure (str::toupper("abc") === "ABC", 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (str::tolower("ABC") === "abc", 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (str::toupper(@b"abc") === @b"ABC", 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (str::tolower(@b"ABC") === @b"abc", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::toupper("abc") === "ABC", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::tolower("ABC") === "abc", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::toupper(@b"abc") === @b"ABC", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::tolower(@b"ABC") === @b"abc", 1, @SCRIPTNAME, @SCRIPTLINE);
 	}
 
 	{
-		ensure (str::tocharcode(@b'\xFF'), 0xFF, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (str::tocharcode('\u3321'), 0x3321, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (str::tocharcode(@b'\xFF', 0), @nil, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (str::tocharcode('\u3321', 0), @nil, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (str::tocharcode(@b'\xFF', 1), 0xFF, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (str::tocharcode('\u3321', 1), 0x3321, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (str::tocharcode(@b'\xFF', 2), @nil, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (str::tocharcode('\u3321', 2), @nil, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::tocharcode(@b'\xFF'), 0xFF, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::tocharcode('\u3321'), 0x3321, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::tocharcode(@b'\xFF', 0), @nil, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::tocharcode('\u3321', 0), @nil, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::tocharcode(@b'\xFF', 1), 0xFF, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::tocharcode('\u3321', 1), 0x3321, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::tocharcode(@b'\xFF', 2), @nil, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::tocharcode('\u3321', 2), @nil, @SCRIPTNAME, @SCRIPTLINE);
 
-		ensure (str::tocharcode(str::fromcharcode('2')), 2, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (str::tonum('a', 16), 10, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::tocharcode(str::fromcharcode('2')), 2, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::tonum('a', 16), 10, @SCRIPTNAME, @SCRIPTLINE);
 
-		ensure (str::fromcharcode(65, 66, 67) === "ABC", 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (str::frombcharcode(65, 66, 67) === @b"ABC", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::fromcharcode(65, 66, 67) === "ABC", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::frombcharcode(65, 66, 67) === @b"ABC", 1, @SCRIPTNAME, @SCRIPTLINE);
 
-		ensure (str::trim("  hello  world  ") === "hello  world", 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (str::trim("  hello  world  ", str::TRIM_PAC_SPACES) === "hello world", 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (str::trim(@b"  hello  world  ") === @b"hello  world", 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (str::trim(@b"  hello  world  ", str::TRIM_PAC_SPACES) === @b"hello world", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::trim("  hello  world  ") === "hello  world", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::trim("  hello  world  ", str::TRIM_PAC_SPACES) === "hello world", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::trim(@b"  hello  world  ") === @b"hello  world", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::trim(@b"  hello  world  ", str::TRIM_PAC_SPACES) === @b"hello world", 1, @SCRIPTNAME, @SCRIPTLINE);
 	}
 
 
 	{
 		@local a, b, c, d;
 		sys::pack(a, ">hhl", 1, 2, 3);
-		ensure (a === @b"\x00\x01\x00\x02\x00\x00\x00\x00\x00\x00\x00\x03", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a === @b"\x00\x01\x00\x02\x00\x00\x00\x00\x00\x00\x00\x03", 1, @SCRIPTNAME, @SCRIPTLINE);
 
 		sys::pack(a, ">ci", @b'*', 0x12131415);
-		ensure (a === @b"*\x12\x13\x14\x15", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a === @b"*\x12\x13\x14\x15", 1, @SCRIPTNAME, @SCRIPTLINE);
 
 		sys::pack(a, ">ic", 0x12131415, @b"*+-");
-		ensure (a === @b"\x12\x13\x14\x15*", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a === @b"\x12\x13\x14\x15*", 1, @SCRIPTNAME, @SCRIPTLINE);
 
 		sys::pack(a, "3c", @b"*+-", 't', "pack");
-		ensure (a === @b"*tp", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a === @b"*tp", 1, @SCRIPTNAME, @SCRIPTLINE);
 
 		sys::unpack (@b"raymond   \x32\x12\x08\x01\x08", "<10sHHb", a, b, c, d);
-		ensure (a === @b"raymond   ", 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (b === 4658, 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (c === 264, 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (d === 8, 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a === @b"raymond   ", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (b === 4658, 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (c === 264, 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (d === 8, 1, @SCRIPTNAME, @SCRIPTLINE);
 
 		sys::unpack (@b"raymond", "3c", a, b, c);
-		ensure (a === @b'r' , 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (b === @b'a' , 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (c === @b'y' , 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a === @b'r' , 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (b === @b'a' , 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (c === @b'y' , 1, @SCRIPTNAME, @SCRIPTLINE);
 	}
 
-	print "SUCCESS";
+	tap_end ();
 }
 
 function test1(&foo) { test2(foo) }

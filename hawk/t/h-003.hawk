@@ -1,7 +1,7 @@
 @pragma entry main
 @pragma implicit off
 
-@include "ensure.inc";
+@include "tap.inc";
 
 function are_files_identical(a, b)
 {
@@ -59,8 +59,11 @@ function run_test (x, more_opts, in_name, out_name)
 	if (same <= 0) 
 	{
 		## don't delete the output file for review.
-		printf ("FAILURE: %s - %s and %s differ\n", x, expf, outf);
-		exit (1);
+		tap_fail (sprintf("%s[%d] %s - %s and %s differ", @SCRIPTNAME, @SCRIPTLINE, x, expf, outf));
+	}
+	else
+	{
+		tap_ok (sprintf("%s[%d]", @SCRIPTNAME, @SCRIPTLINE));
 	}
 
 	sys::unlink (outf);
@@ -71,6 +74,6 @@ function main()
 	run_test ("journal-toc");
 	run_test ("journal-toc", "-vHTML=1", "journal-toc", "journal-toc-html");
 	run_test ("bibtex-to-html", "", "journal-toc", "bibtex-to-html");
-	print "SUCCESS";
+	tap_end ();
 }
 

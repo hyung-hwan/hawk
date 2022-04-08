@@ -1,7 +1,7 @@
 @pragma entry main
 @pragma implicit off
 
-@include "ensure.inc";
+@include "tap.inc";
 
 function f(a, b, c)
 {
@@ -29,106 +29,106 @@ function call_by_ref_3(&x)
 function main()
 {
 	{
-		ensure (@b"" !== "", 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (@b"" === "", 0, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (@b"" != "", 0, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (@b"" == "", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (@b"" !== "", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (@b"" === "", 0, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (@b"" != "", 0, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (@b"" == "", 1, @SCRIPTNAME, @SCRIPTLINE);
 
-		ensure (@b' ' !== ' ', 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (@b' ' === ' ', 0, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (@b' ' != ' ', 0, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (@b' ' == ' ', 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (@b' ' !== ' ', 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (@b' ' === ' ', 0, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (@b' ' != ' ', 0, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (@b' ' == ' ', 1, @SCRIPTNAME, @SCRIPTLINE);
 
-		ensure ((@nil == 'A'), 0, @SCRIPTNAME, @SCRIPTLINE);
-		ensure ((@nil != 'A'), 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure ((@nil > 'A'), 0, @SCRIPTNAME, @SCRIPTLINE);
-		ensure ((@nil < 'A'), 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure ((@nil >= 'A'), 0, @SCRIPTNAME, @SCRIPTLINE);
-		ensure ((@nil <= 'A'), 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((@nil == 'A'), 0, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((@nil != 'A'), 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((@nil > 'A'), 0, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((@nil < 'A'), 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((@nil >= 'A'), 0, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((@nil <= 'A'), 1, @SCRIPTNAME, @SCRIPTLINE);
 
-		ensure ((@nil == @b'A'), 0, @SCRIPTNAME, @SCRIPTLINE);
-		ensure ((@nil != @b'A'), 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure ((@nil > @b'A'), 0, @SCRIPTNAME, @SCRIPTLINE);
-		ensure ((@nil < @b'A'), 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure ((@nil >= @b'A'), 0, @SCRIPTNAME, @SCRIPTLINE);
-		ensure ((@nil <= @b'A'), 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((@nil == @b'A'), 0, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((@nil != @b'A'), 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((@nil > @b'A'), 0, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((@nil < @b'A'), 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((@nil >= @b'A'), 0, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((@nil <= @b'A'), 1, @SCRIPTNAME, @SCRIPTLINE);
 
-		ensure (('A' == @b'A'), 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (('\u00FF' == @b'\xFF'), 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (('A' < @b'\xFF'), 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure ((@b'A' < @b'\xFF'), 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (('A' > @b'\xFF'), 0, @SCRIPTNAME, @SCRIPTLINE);
-		ensure ((@b'A' > @b'\xFF'), 0, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (('A' < @b'B'), 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure ((@b'A' < @b'B'), 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (('A' > @b'B'), 0, @SCRIPTNAME, @SCRIPTLINE);
-		ensure ((@b'A' > @b'B'), 0, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (('A' == @b'A'), 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (('\u00FF' == @b'\xFF'), 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (('A' < @b'\xFF'), 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((@b'A' < @b'\xFF'), 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (('A' > @b'\xFF'), 0, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((@b'A' > @b'\xFF'), 0, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (('A' < @b'B'), 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((@b'A' < @b'B'), 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (('A' > @b'B'), 0, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((@b'A' > @b'B'), 0, @SCRIPTNAME, @SCRIPTLINE);
 
-		ensure (("10" == 10), 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (("10" == 10.00), 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (("10.0" == 10), 0, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (("10.00" == 10), 0, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (("10" == 10), 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (("10" == 10.00), 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (("10.0" == 10), 0, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (("10.00" == 10), 0, @SCRIPTNAME, @SCRIPTLINE);
 
-		ensure ((@b"10" == 10), 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure ((@b"10" == 10.00), 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure ((@b"10.0" == 10), 0, @SCRIPTNAME, @SCRIPTLINE);
-		ensure ((@b"10.00" == 10), 0, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((@b"10" == 10), 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((@b"10" == 10.00), 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((@b"10.0" == 10), 0, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((@b"10.00" == 10), 0, @SCRIPTNAME, @SCRIPTLINE);
 
-		ensure ((79 < '8'), 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure ((79 <= '8'), 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure ((79 > '8'), 0, @SCRIPTNAME, @SCRIPTLINE);
-		ensure ((79 >= '8'), 0, @SCRIPTNAME, @SCRIPTLINE);
-		ensure ((79 == '8'), 0, @SCRIPTNAME, @SCRIPTLINE);
-		ensure ((79 != '8'), 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((79 < '8'), 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((79 <= '8'), 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((79 > '8'), 0, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((79 >= '8'), 0, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((79 == '8'), 0, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((79 != '8'), 1, @SCRIPTNAME, @SCRIPTLINE);
 
-		ensure ((99 < '8'), 0, @SCRIPTNAME, @SCRIPTLINE);
-		ensure ((99 <= '8'), 0, @SCRIPTNAME, @SCRIPTLINE);
-		ensure ((99 > '8'), 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure ((99 >= '8'), 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure ((99 == '8'), 0, @SCRIPTNAME, @SCRIPTLINE);
-		ensure ((99 != '8'), 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((99 < '8'), 0, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((99 <= '8'), 0, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((99 > '8'), 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((99 >= '8'), 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((99 == '8'), 0, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((99 != '8'), 1, @SCRIPTNAME, @SCRIPTLINE);
 
-		ensure ((8 < '8'), 0, @SCRIPTNAME, @SCRIPTLINE);
-		ensure ((8 <= '8'), 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure ((8 > '8'), 0, @SCRIPTNAME, @SCRIPTLINE);
-		ensure ((8 >= '8'), 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure ((8 == '8'), 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure ((8 != '8'), 0, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((8 < '8'), 0, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((8 <= '8'), 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((8 > '8'), 0, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((8 >= '8'), 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((8 == '8'), 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((8 != '8'), 0, @SCRIPTNAME, @SCRIPTLINE);
 
-		ensure ((8.00 < '8'), 0, @SCRIPTNAME, @SCRIPTLINE);
-		ensure ((8.00 <= '8'), 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure ((8.00 > '8'), 0, @SCRIPTNAME, @SCRIPTLINE);
-		ensure ((8.00 >= '8'), 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure ((8.00 == '8'), 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure ((8.00 != '8'), 0, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((8.00 < '8'), 0, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((8.00 <= '8'), 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((8.00 > '8'), 0, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((8.00 >= '8'), 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((8.00 == '8'), 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((8.00 != '8'), 0, @SCRIPTNAME, @SCRIPTLINE);
 
-		ensure ((79 < @b'8'), 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure ((79 <= @b'8'), 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure ((79 > @b'8'), 0, @SCRIPTNAME, @SCRIPTLINE);
-		ensure ((79 >= @b'8'), 0, @SCRIPTNAME, @SCRIPTLINE);
-		ensure ((79 == @b'8'), 0, @SCRIPTNAME, @SCRIPTLINE);
-		ensure ((79 != @b'8'), 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((79 < @b'8'), 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((79 <= @b'8'), 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((79 > @b'8'), 0, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((79 >= @b'8'), 0, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((79 == @b'8'), 0, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((79 != @b'8'), 1, @SCRIPTNAME, @SCRIPTLINE);
 
-		ensure ((99 < @b'8'), 0, @SCRIPTNAME, @SCRIPTLINE);
-		ensure ((99 <= @b'8'), 0, @SCRIPTNAME, @SCRIPTLINE);
-		ensure ((99 > @b'8'), 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure ((99 >= @b'8'), 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure ((99 == @b'8'), 0, @SCRIPTNAME, @SCRIPTLINE);
-		ensure ((99 != @b'8'), 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((99 < @b'8'), 0, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((99 <= @b'8'), 0, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((99 > @b'8'), 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((99 >= @b'8'), 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((99 == @b'8'), 0, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((99 != @b'8'), 1, @SCRIPTNAME, @SCRIPTLINE);
 
-		ensure ((8 < @b'8'), 0, @SCRIPTNAME, @SCRIPTLINE);
-		ensure ((8 <= @b'8'), 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure ((8 > @b'8'), 0, @SCRIPTNAME, @SCRIPTLINE);
-		ensure ((8 >= @b'8'), 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure ((8 == @b'8'), 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure ((8 != @b'8'), 0, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((8 < @b'8'), 0, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((8 <= @b'8'), 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((8 > @b'8'), 0, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((8 >= @b'8'), 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((8 == @b'8'), 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((8 != @b'8'), 0, @SCRIPTNAME, @SCRIPTLINE);
 
-		ensure ((8.00 < @b'8'), 0, @SCRIPTNAME, @SCRIPTLINE);
-		ensure ((8.00 <= @b'8'), 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure ((8.00 > @b'8'), 0, @SCRIPTNAME, @SCRIPTLINE);
-		ensure ((8.00 >= @b'8'), 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure ((8.00 == @b'8'), 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure ((8.00 != @b'8'), 0, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((8.00 < @b'8'), 0, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((8.00 <= @b'8'), 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((8.00 > @b'8'), 0, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((8.00 >= @b'8'), 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((8.00 == @b'8'), 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((8.00 != @b'8'), 0, @SCRIPTNAME, @SCRIPTLINE);
 	}
 
 	{
@@ -137,10 +137,10 @@ function main()
 		x = 20;
 		y = 90;
 		r = call_by_ref_1(x, y, z);	
-		ensure (r, 1800, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (x, 20);
-		ensure (y, 90);
-		ensure (z, "hello, world");
+		tap_ensure (r, 1800, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (x, 20, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (y, 90, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (z, "hello, world", @SCRIPTNAME, @SCRIPTLINE);
 	}
 
 ## TODO: add a new special word, @FILENAME, @FILELINE, @LINE <--- which are understood by the parser and swapped to the actual value
@@ -149,30 +149,30 @@ function main()
 	{
 		@local b;
 		call_by_ref_2(99, b);
-		ensure (b[1], 0);
+		tap_ensure (b[1], 0, @SCRIPTNAME, @SCRIPTLINE);
 	}
 
 	{
 		@local b, r;
 		b[1] = 1;
 		r = call_by_ref_2(99, b);
-		ensure (r, 99);
-		ensure (b[1], 99);
+		tap_ensure (r, 99, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (b[1], 99, @SCRIPTNAME, @SCRIPTLINE);
 	}
 
 	{
 		@local b, r;
 		b[1] = 1;
 		r = hawk::call("call_by_ref_2", 99, b);
-		ensure (r, 99);
-		ensure (length(b), 2, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (b[1], 99, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (b[2], "perfect", @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (r, 99, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (length(b), 2, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (b[1], 99, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (b[2], "perfect", @SCRIPTNAME, @SCRIPTLINE);
 
-		ensure (hawk::call('f', 1, 2, 3), 6, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (hawk::call("f", 1, 2, 3), 6, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (hawk::call(@b'f', 1, 2, 3), 6, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (hawk::call(@b"f", 1, 2, 3), 6, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (hawk::call('f', 1, 2, 3), 6, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (hawk::call("f", 1, 2, 3), 6, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (hawk::call(@b'f', 1, 2, 3), 6, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (hawk::call(@b"f", 1, 2, 3), 6, @SCRIPTNAME, @SCRIPTLINE);
 	}
 
 
@@ -180,11 +180,11 @@ function main()
 		@local a;
 		a[1] = hawk::array();
 		a[1][2]=20; 
-		ensure (a[1][2], 20, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a[1][2], 20, @SCRIPTNAME, @SCRIPTLINE);
 		a[1][2]++;
-		ensure (a[1][2], 21, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a[1][2], 21, @SCRIPTNAME, @SCRIPTLINE);
 		--a[1][2];
-		ensure (a[1][2], 20, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a[1][2], 20, @SCRIPTNAME, @SCRIPTLINE);
 	}
 
 	{
@@ -193,24 +193,24 @@ function main()
 		a[10] = "good";
 		a[0][40] = "bye"
 		a[0][0] = "farewell"
-		ensure (hawk::typename(a), "array", @SCRIPTNAME, @SCRIPTLINE);
-		ensure (hawk::typename(a[0]), "array", @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (hawk::typename(a), "array", @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (hawk::typename(a[0]), "array", @SCRIPTNAME, @SCRIPTLINE);
 		call_by_ref_3(a[9]);
-		ensure (a[10], "good", @SCRIPTNAME, @SCRIPTLINE);
-		ensure (a[9], "hello world", @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a[10], "good", @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a[9], "hello world", @SCRIPTNAME, @SCRIPTLINE);
 		call_by_ref_3(a[10]);
-		ensure (a[10], "hello world", @SCRIPTNAME, @SCRIPTLINE);
-		ensure (a[9], "hello world", @SCRIPTNAME, @SCRIPTLINE);
-		ensure (a[0][40], "bye", @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a[10], "hello world", @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a[9], "hello world", @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a[0][40], "bye", @SCRIPTNAME, @SCRIPTLINE);
 		call_by_ref_3(a[0][40]);
-		ensure (a[0][40], "hello world", @SCRIPTNAME, @SCRIPTLINE);
-		ensure (length(a[0]), 2, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a[0][40], "hello world", @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (length(a[0]), 2, @SCRIPTNAME, @SCRIPTLINE);
 		delete a[0][40];
-		ensure (length(a[0]), 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (a[0][0], "farewell", @SCRIPTNAME, @SCRIPTLINE);
-		ensure (a[0][40], nil, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (length(a[0]), 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a[0][0], "farewell", @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a[0][40], nil, @SCRIPTNAME, @SCRIPTLINE);
 		#hawk::splice (a[0], 40, 1, @SCRIPTNAME, @SCRIPTLINE);
-		#ensure (length(a[0]), 40, @SCRIPTNAME, @SCRIPTLINE);
+		#tap_ensure (length(a[0]), 40, @SCRIPTNAME, @SCRIPTLINE);
 	}
 
 
@@ -218,25 +218,25 @@ function main()
 		@local a, i;
 
 		a = hawk::array(); 
-		ensure (length(a), 0, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (length(a), 0, @SCRIPTNAME, @SCRIPTLINE);
 		
 		for (i = 0; i < 10; i++) a[i*i]=i; 
-		ensure (length(a), 10, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (length(a), 10, @SCRIPTNAME, @SCRIPTLINE);
 
 		delete a[0];
-		ensure (length(a), 9, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (length(a), 9, @SCRIPTNAME, @SCRIPTLINE);
 
 		delete a[81]; 
-		ensure (length(a), 8, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (length(a), 8, @SCRIPTNAME, @SCRIPTLINE);
 
 		delete a[36]; 
-		ensure (length(a), 7, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (length(a), 7, @SCRIPTNAME, @SCRIPTLINE);
 
 		for (i = 0; i < 10; i++) delete a[i*i]; 
-		ensure (length(a), 0, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (length(a), 0, @SCRIPTNAME, @SCRIPTLINE);
 
 		delete a;
-		ensure (length(a), 0, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (length(a), 0, @SCRIPTNAME, @SCRIPTLINE);
 	}
 
 	{
@@ -244,71 +244,72 @@ function main()
 		a = hawk::array();
 		a[10][20][30] = 20;
 		b[12][20][30] = 20;
-		ensure ((10 in a) && (20 in a[10]) && (30 in a[10][20]), 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure ((11 in a) && (20 in a[10]) && (30 in a[10][20]), 0, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((10 in a) && (20 in a[10]) && (30 in a[10][20]), 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((11 in a) && (20 in a[10]) && (30 in a[10][20]), 0, @SCRIPTNAME, @SCRIPTLINE);
 
 		b = hawk::map();
 		b[10][20][30] = 20;
 		b[12][20][30] = 20;
-		ensure ((10 in a) && (20 in a[10]) && (30 in a[10][20]), 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure ((11 in a) && (20 in a[10]) && (30 in a[10][20]), 0, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((10 in a) && (20 in a[10]) && (30 in a[10][20]), 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((11 in a) && (20 in a[10]) && (30 in a[10][20]), 0, @SCRIPTNAME, @SCRIPTLINE);
 
 		c = hawk::map();
 		c[10,20,30] = "heloo";
-		ensure (((10,20,30) in c), 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (((10,30,30) in c), 0, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (((10,20,30) in c), 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (((10,30,30) in c), 0, @SCRIPTNAME, @SCRIPTLINE);
 	}
 
 	{
 		@local a;
 		a = hawk::array(1,2,3);
-		ensure (a[1], 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (a[2], 2, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (a[3], 3, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (length(a), 3, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (hawk::typename(a), "array", @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a[1], 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a[2], 2, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a[3], 3, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (length(a), 3, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (hawk::typename(a), "array", @SCRIPTNAME, @SCRIPTLINE);
 	}
 
 
 	{
 		# concatenation operator
-		ensure ((@b"hawk" 10) === @b"hawk10", 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (("hawk" 10) === "hawk10", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((@b"hawk" 10) === @b"hawk10", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (("hawk" 10) === "hawk10", 1, @SCRIPTNAME, @SCRIPTLINE);
 
-		ensure ((@b"hawk" "hawk") === @b"hawkhawk", 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (("hawk" @b"hawk") === "hawkhawk", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((@b"hawk" "hawk") === @b"hawkhawk", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (("hawk" @b"hawk") === "hawkhawk", 1, @SCRIPTNAME, @SCRIPTLINE);
 
-		ensure ((@b"hawk" '1') === @b"hawk1", 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (("hawk" '1') === "hawk1", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((@b"hawk" '1') === @b"hawk1", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (("hawk" '1') === "hawk1", 1, @SCRIPTNAME, @SCRIPTLINE);
 
-		ensure (('*' @b"hawk" '1') === "*hawk1", 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (('*' "hawk" '1') === "*hawk1", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (('*' @b"hawk" '1') === "*hawk1", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (('*' "hawk" '1') === "*hawk1", 1, @SCRIPTNAME, @SCRIPTLINE);
 
-		ensure ((@b"hawk" '⚾') === @b"hawk\xe2\x9a\xbe", 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (("hawk" '⚾') === "hawk⚾", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((@b"hawk" '⚾') === @b"hawk\xe2\x9a\xbe", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (("hawk" '⚾') === "hawk⚾", 1, @SCRIPTNAME, @SCRIPTLINE);
 
-		ensure ((@b"hawk" str::fromcharcode(0x26be)) === @b"hawk\xe2\x9a\xbe", 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (("hawk" str::fromcharcode(0x26be)) === "hawk⚾", 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure ((@b"hawk" @b'\xFF') === @b"hawk\xFF", 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure ((str::subchar(@b"\xFF\xFE", 1) str::subchar(@b"\xFF\xFE", 2)) === @b"\xFF\xFE", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((@b"hawk" str::fromcharcode(0x26be)) === @b"hawk\xe2\x9a\xbe", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (("hawk" str::fromcharcode(0x26be)) === "hawk⚾", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((@b"hawk" @b'\xFF') === @b"hawk\xFF", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((str::subchar(@b"\xFF\xFE", 1) str::subchar(@b"\xFF\xFE", 2)) === @b"\xFF\xFE", 1, @SCRIPTNAME, @SCRIPTLINE);
 
-		ensure ((@b"hawk" %% 10) === @b"hawk10", 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (("hawk" %% 10) === "hawk10", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((@b"hawk" %% 10) === @b"hawk10", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (("hawk" %% 10) === "hawk10", 1, @SCRIPTNAME, @SCRIPTLINE);
 
-		ensure ((@b"hawk" %% "hawk") === @b"hawkhawk", 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (("hawk" %% @b"hawk") === "hawkhawk", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((@b"hawk" %% "hawk") === @b"hawkhawk", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (("hawk" %% @b"hawk") === "hawkhawk", 1, @SCRIPTNAME, @SCRIPTLINE);
 
-		ensure ((@b"hawk" %% '1') === @b"hawk1", 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (("hawk" %% '1') === "hawk1", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((@b"hawk" %% '1') === @b"hawk1", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (("hawk" %% '1') === "hawk1", 1, @SCRIPTNAME, @SCRIPTLINE);
 
-		ensure (('*' %% @b"hawk" %% '1') === "*hawk1", 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (('*' %% "hawk" %% '1') === "*hawk1", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (('*' %% @b"hawk" %% '1') === "*hawk1", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (('*' %% "hawk" %% '1') === "*hawk1", 1, @SCRIPTNAME, @SCRIPTLINE);
 
-		ensure ((@b"hawk" %% '⚾') === @b"hawk\xe2\x9a\xbe", 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (("hawk" %% '⚾') === "hawk⚾", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((@b"hawk" %% '⚾') === @b"hawk\xe2\x9a\xbe", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (("hawk" %% '⚾') === "hawk⚾", 1, @SCRIPTNAME, @SCRIPTLINE);
 
-		ensure ((@b"hawk" %% str::fromcharcode(0x26be)) === @b"hawk\xe2\x9a\xbe", 1, @SCRIPTNAME, @SCRIPTLINE);
-		ensure (("hawk" %% str::fromcharcode(0x26be)) === "hawk⚾", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure ((@b"hawk" %% str::fromcharcode(0x26be)) === @b"hawk\xe2\x9a\xbe", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (("hawk" %% str::fromcharcode(0x26be)) === "hawk⚾", 1, @SCRIPTNAME, @SCRIPTLINE);
 	}
-	print "SUCCESS"
+
+	tap_end ();
 }

@@ -87,8 +87,7 @@ static hawk_oow_t push_args_from_stack (hawk_rtx_t* rtx, hawk_nde_fncall_t* call
 		}
 		else
 		{
-		/* TODO: verify if R must be checked here.. */
-			if (spec == 'r')
+			if (spec == 'r') /* 'R' allows a normal value. so only checking 'r' here */
 			{
 				hawk_rtx_seterrnum (rtx, &call->loc, HAWK_ENOTREF);
 				return (hawk_oow_t)-1;
@@ -160,7 +159,6 @@ static int fnc_call (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	call.nargs = nargs - 1;
 	/* keep HAWK_NULL in call.args so that hawk_rtx_evalcall() knows it's a fake call structure */
 	call.arg_base = rtx->stack_base + 5; /* 5 = 4(stack frame prologue) + 1(the first argument to hawk::call()) */
-	//pafs.fun = fun;
 
 	pafs.stack_base = rtx->stack_base;
 	pafs.start_index = 1;

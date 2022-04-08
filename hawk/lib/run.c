@@ -6653,8 +6653,9 @@ static HAWK_INLINE hawk_val_t* eval_fncall_fun (hawk_rtx_t* rtx, hawk_nde_t* nde
 	 * a reference is passed to a built-in function as a reference value
 	 * but its evaluation result is passed to user-defined function. 
 	 * I pass HAWK_NULL to prevent special handling.
-	 * the value change for a reference variable inside a user-defined function is reflected by hawk_rtx_evalcall()
-	 * specially whereas a built-in function must call hawk_rtx_setrefval() to update the reference 
+	 * the value change for a reference variable inside a user-defined function is 
+	 * reflected by hawk_rtx_evalcall() specially whereas a built-in function must
+	 * call hawk_rtx_setrefval() to update the reference.
 	 */
 	return hawk_rtx_evalcall(rtx, call, fun, push_arg_from_nde, HAWK_NULL/*fun->argspec*/, HAWK_NULL, HAWK_NULL);
 }
