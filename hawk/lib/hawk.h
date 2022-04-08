@@ -1342,17 +1342,6 @@ typedef enum hawk_trait_t hawk_trait_t;
 /* ------------------------------------------------------------------------ */
 
 /**
- * The hawk_errstr_t type defines an error string getter. It should return 
- * an error formatting string for an error number requested. A new string
- * should contain the same number of positional parameters (${X}) as in the
- * default error formatting string. You can set a new getter into an hawk
- * object with the hawk_seterrstr() function to customize an error string.
- */
-typedef const hawk_ooch_t* (*hawk_errstr_t) (
-	hawk_errnum_t num    /**< error number */
-);
-
-/**
  * The hawk_gbl_id_t type defines intrinsic globals variable IDs.
  */
 enum hawk_gbl_id_t
