@@ -204,15 +204,19 @@ static int fnc_function_exists (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			rx = (hawk_rtx_findfunwithoocstr(rtx, name.ptr) != HAWK_NULL);
 			if (!rx)
 			{
-				hawk_mod_sym_t sym;
-				mod_data_t* md;
+				rx = (hawk_findfncwithoocs(hawk_rtx_gethawk(rtx), &name) != HAWK_NULL);
+				if (!rx)
+				{
+					hawk_mod_sym_t sym;
+					mod_data_t* md;
 
-				md = (mod_data_t*)fi->mod->ctx;
-				/* hawk_query_module_with_name() may update some shared data under
-				 * the hawk object. use a mutex for shared data safety */
-				hawk_mtx_lock (&md->mq_mtx, HAWK_NULL);
-				rx = (hawk_querymodulewithname(hawk_rtx_gethawk(rtx), &name, &sym) != HAWK_NULL);
-				hawk_mtx_unlock (&md->mq_mtx);
+					md = (mod_data_t*)fi->mod->ctx;
+					/* hawk_query_module_with_name() may update some shared data under
+					 * the hawk object. use a mutex for shared data safety */
+					hawk_mtx_lock (&md->mq_mtx, HAWK_NULL);
+					rx = (hawk_querymodulewithname(hawk_rtx_gethawk(rtx), &name, &sym) != HAWK_NULL);
+					hawk_mtx_unlock (&md->mq_mtx);
+				}
 			}
 		}
 		hawk_rtx_freevaloocstr (rtx, a0, name.ptr);

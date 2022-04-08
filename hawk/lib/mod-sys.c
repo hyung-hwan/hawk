@@ -2006,6 +2006,7 @@ static int fnc_wtermsig (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	return 0;
 }
 
+#if defined(WCOREDUMP)
 static int fnc_wcoredump (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	hawk_int_t wstatus;
@@ -2014,6 +2015,7 @@ static int fnc_wcoredump (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rv));
 	return 0;
 }
+#endif
 
 static int fnc_kill (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
@@ -5833,7 +5835,9 @@ static hawk_mod_fnc_tab_t fnctab[] =
 {
 	/* keep this table sorted for binary search in query(). */
 
+#if defined(WCOREDUMP)
 	{ HAWK_T("WCOREDUMP"),   { { 1, 1, HAWK_NULL       }, fnc_wcoredump,   0  } },
+#endif
 	{ HAWK_T("WEXITSTATUS"), { { 1, 1, HAWK_NULL       }, fnc_wexitstatus, 0  } },
 	{ HAWK_T("WIFEXITED"),   { { 1, 1, HAWK_NULL       }, fnc_wifexited,   0  } },
 	{ HAWK_T("WIFSIGNALED"), { { 1, 1, HAWK_NULL       }, fnc_wifsignaled, 0  } },
@@ -6129,17 +6133,23 @@ static hawk_mod_int_tab_t inttab[] =
 
 	{ HAWK_T("STRFTIME_UTC"),    { STRFTIME_UTC } },
 
+#if defined(VDISCARD)
 	{ HAWK_T("TC_CC_VDISCARD"),  { VDISCARD } },
+#endif
 	{ HAWK_T("TC_CC_VEOF"),      { VEOF } },
 	{ HAWK_T("TC_CC_VEOL"),      { VEOL } },
 	{ HAWK_T("TC_CC_VEOL2"),     { VEOL2 } },
 	{ HAWK_T("TC_CC_VERASE"),    { VERASE } },
 	{ HAWK_T("TC_CC_VINTR"),     { VINTR } },
 	{ HAWK_T("TC_CC_VKILL"),     { VKILL } },
+#if defined(VLNEXT)
 	{ HAWK_T("TC_CC_VLNEXT"),    { VLNEXT } },
+#endif
 	{ HAWK_T("TC_CC_VMIN"),      { VMIN } },
 	{ HAWK_T("TC_CC_VQUIT"),     { VQUIT } },
-	{ HAWK_T("TC_CC_VREPINT"),   { VREPRINT } },
+#if defined(VREPRINT)
+	{ HAWK_T("TC_CC_VREPRINT"),  { VREPRINT } },
+#endif
 	{ HAWK_T("TC_CC_VSTART"),    { VSTART } },
 	{ HAWK_T("TC_CC_VSTOP"),     { VSTOP } },
 	{ HAWK_T("TC_CC_VSUSP"),     { VSUSP } },
@@ -6147,7 +6157,9 @@ static hawk_mod_int_tab_t inttab[] =
 	{ HAWK_T("TC_CC_VSWTC"),     { VSWTC } },  /* hard to define with an alternative value when it's not available */
 #endif
 	{ HAWK_T("TC_CC_VTIME"),     { VTIME } },
+#if defined(VWERASE)
 	{ HAWK_T("TC_CC_VWERASE"),   { VWERASE } },
+#endif
 
 	{ HAWK_T("TC_CFLAG_B0"),      { B0 } },
 	{ HAWK_T("TC_CFLAG_B110"),    { B110 } },
@@ -6193,7 +6205,9 @@ static hawk_mod_int_tab_t inttab[] =
 	{ HAWK_T("TC_IFLAG_IGNBRK"), { IGNBRK } },
 	{ HAWK_T("TC_IFLAG_IGNCR"),  { IGNCR } },
 	{ HAWK_T("TC_IFLAG_IGNPAR"), { IGNPAR } }, 
+#if defined(IMAXBEL)
 	{ HAWK_T("TC_IFLAG_IMAXBEL"),{ IMAXBEL } },
+#endif
 	{ HAWK_T("TC_IFLAG_INLCR"),  { INLCR } },
 	{ HAWK_T("TC_IFLAG_INPCK"),  { INPCK } },
 	{ HAWK_T("TC_IFLAG_ISTRIP"), { ISTRIP } },
