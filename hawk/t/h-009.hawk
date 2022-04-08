@@ -7,9 +7,16 @@ function run_test_001 ()
 {
 	@local tmp, out;
 
+	tap_ensure (hawk::function_exists(111), 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure (hawk::function_exists(1.69), 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure (hawk::function_exists("111"), 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure (hawk::function_exists(@b"111"), 0, @SCRIPTNAME, @SCRIPTLINE);
+
+	tap_ensure (hawk::call(@b"length", "hawk"), 4, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure (hawk::call("length", @b"hawk"), 4, @SCRIPTNAME, @SCRIPTLINE);
+
 	if (hawk::function_exists("sed::str_to_str"))
 	{
-		##tmp = sed::str_to_str("s/a/j/g", "aaabbbaaacccaaaddd", out);
 		tmp = hawk::call("sed::str_to_str", "s/a/j/g", "aaabbbaaacccaaaddd", out);
 		tap_ensure (out === "jjjbbbjjjcccjjjddd", 1, @SCRIPTNAME, @SCRIPTLINE);
 	}

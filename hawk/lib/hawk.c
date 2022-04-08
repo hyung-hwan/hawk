@@ -627,6 +627,7 @@ int hawk_findmodsymfnc_noseterr (hawk_t* hawk, hawk_mod_fnc_tab_t* fnctab, hawk_
 		if (n == 0) 
 		{
 			sym->type = HAWK_MOD_FNC;
+			sym->name = fnctab[mid].name;
 			sym->u.fnc_ = fnctab[mid].info;
 			return 0;
 		}
@@ -651,6 +652,7 @@ int hawk_findmodsymint_noseterr (hawk_t* hawk, hawk_mod_int_tab_t* inttab, hawk_
 		if (n == 0) 
 		{
 			sym->type = HAWK_MOD_INT;
+			sym->name = inttab[mid].name;
 			sym->u.int_ = inttab[mid].info;
 			return 0;
 		}
@@ -674,6 +676,7 @@ int hawk_findmodsymflt_noseterr (hawk_t* hawk, hawk_mod_flt_tab_t* flttab, hawk_
 		if (n == 0) 
 		{
 			sym->type = HAWK_MOD_FLT;
+			sym->name = flttab[mid].name;
 			sym->u.flt_ = flttab[mid].info;
 			return 0;
 		}

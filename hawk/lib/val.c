@@ -2821,11 +2821,15 @@ hawk_fun_t* hawk_rtx_valtofun (hawk_rtx_t* rtx, hawk_val_t* v)
 	return fun;
 }
 
-hawk_mod_t* hawk_rtx_valtomodfnc (hawk_rtx_t* rtx, hawk_val_t* v, hawk_fnc_spec_t* spec)
+hawk_fnc_t* hawk_rtx_valtofnc (hawk_rtx_t* rtx, hawk_val_t* v, hawk_fnc_t* rfnc)
 {
+	/* this function looks for intrinsic functions as well as module functions.
+	 * it combines the functionality of the following two functions.
+	 *   hawk_findfncwithoocs() - finds an intrisic function
+	 *   hawk_querymodulewithname() - finds a function defined in a module 
+	 */
+
 	hawk_t* hawk = hawk_rtx_gethawk(rtx);
-	hawk_mod_t* mod;
-	hawk_mod_sym_t sym;
 	hawk_val_type_t vtype;
 
 	vtype = HAWK_RTX_GETVALTYPE(rtx, v);
@@ -2838,6 +2842,8 @@ hawk_mod_t* hawk_rtx_valtomodfnc (hawk_rtx_t* rtx, hawk_val_t* v, hawk_fnc_spec_
 		case HAWK_VAL_STR:
 		{
 			hawk_oocs_t x;
+			hawk_fnc_t* fnc;
+
 			x.ptr = hawk_rtx_getvaloocstr(rtx, v, &x.len);
 			if (HAWK_UNLIKELY(!x.ptr)) return HAWK_NULL;
 			if (hawk_count_oocstr(x.ptr) != x.len) 
@@ -2845,9 +2851,36 @@ hawk_mod_t* hawk_rtx_valtomodfnc (hawk_rtx_t* rtx, hawk_val_t* v, hawk_fnc_spec_
 				hawk_rtx_freevaloocstr (rtx, v, x.ptr);
 				goto error_inval;
 			}
-			mod = hawk_querymodulewithname(hawk, &x, &sym);
-			hawk_rtx_freevaloocstr (rtx, v, x.ptr);
-			if (!mod) return HAWK_NULL;
+
+			fnc = hawk_findfncwithoocs(hawk, &x);
+			if (fnc)
+			{
+				hawk_rtx_freevaloocstr (rtx, v, x.ptr);
+				*rfnc = *fnc;
+			}
+			else
+			{
+				hawk_mod_t* mod;
+				hawk_mod_sym_t sym;
+
+				mod = hawk_querymodulewithname(hawk, &x, &sym);
+				hawk_rtx_freevaloocstr (rtx, v, x.ptr);
+				if (!mod) return HAWK_NULL;
+
+				if (sym.type != HAWK_MOD_FNC || (hawk->opt.trait & sym.u.fnc_.trait) != sym.u.fnc_.trait)
+				{
+					hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_ENOENT);
+					return HAWK_NULL;
+				}
+
+				HAWK_MEMSET (rfnc, 0, HAWK_SIZEOF(*rfnc));
+				rfnc->name.ptr = sym.name;
+				rfnc->name.len = hawk_count_oocstr(sym.name);
+				rfnc->spec = sym.u.fnc_;
+				/* TODO: FIX THIS - set the owner name */
+				/*rfnc->owner = name of the module?*/
+				rfnc->mod = mod;
+			}
 			break;
 		}
 
@@ -2857,14 +2890,7 @@ hawk_mod_t* hawk_rtx_valtomodfnc (hawk_rtx_t* rtx, hawk_val_t* v, hawk_fnc_spec_
 			return HAWK_NULL;
 	}
 
-	if (sym.type != HAWK_MOD_FNC || (hawk->opt.trait & sym.u.fnc_.trait) != sym.u.fnc_.trait)
-	{
-		hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_ENOENT);
-		return HAWK_NULL;
-	}
-
-	*spec = sym.u.fnc_;
-	return mod;
+	return rfnc;
 }
 
 /* ========================================================================== */

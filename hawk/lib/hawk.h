@@ -1041,6 +1041,7 @@ struct hawk_mod_sym_flt_t
 struct hawk_mod_sym_t
 {
 	hawk_mod_sym_type_t type; 
+	const hawk_ooch_t* name;
 	union
 	{
 		hawk_mod_sym_fnc_t fnc_;
@@ -1807,7 +1808,7 @@ HAWK_EXPORT int hawk_findgblwithucstr (
  */
 HAWK_EXPORT hawk_fnc_t* hawk_addfncwithbcstr (
 	hawk_t*                 hawk,
-	const hawk_bch_t*         name,
+	const hawk_bch_t*       name,
 	const hawk_fnc_mspec_t* spec
 );
 
@@ -1816,7 +1817,7 @@ HAWK_EXPORT hawk_fnc_t* hawk_addfncwithbcstr (
  */
 HAWK_EXPORT hawk_fnc_t* hawk_addfncwithucstr (
 	hawk_t*                 hawk,
-	const hawk_uch_t*         name,
+	const hawk_uch_t*       name,
 	const hawk_fnc_wspec_t* spec
 );
 
@@ -1825,7 +1826,7 @@ HAWK_EXPORT hawk_fnc_t* hawk_addfncwithucstr (
  * \return 0 on success, -1 on failure
  */
 HAWK_EXPORT int hawk_delfncwithbcstr (
-	hawk_t*         hawk,  /**< hawk */
+	hawk_t*           hawk,  /**< hawk */
 	const hawk_bch_t* name  /**< function name */
 );
 
@@ -1834,7 +1835,7 @@ HAWK_EXPORT int hawk_delfncwithbcstr (
  * \return 0 on success, -1 on failure
  */
 HAWK_EXPORT int hawk_delfncwithucstr (
-	hawk_t*         hawk,  /**< hawk */
+	hawk_t*           hawk,  /**< hawk */
 	const hawk_uch_t* name  /**< function name */
 );
 
@@ -3381,10 +3382,19 @@ HAWK_EXPORT hawk_fun_t* hawk_rtx_valtofun (
 	hawk_val_t* val
 );
 
-HAWK_EXPORT hawk_mod_t* hawk_rtx_valtomodfnc (
-	hawk_rtx_t*      rtx, 
-	hawk_val_t*      val,
-	hawk_fnc_spec_t* spec
+/** 
+ * The hawk_rtx_valtofnc() function finds an intrinsic function by the name
+ * pointed to by \a val. Unlike hawk_findfncwithoocstr() and the like,
+ * it accepts a function name prefixed with a module name and find an intrinsic
+ * function located in a module. In principle, it combines hawk_findfncwithoocstr()
+ * and hawk_querymodulewithname().
+ *
+ * \return \a fnc on success, #HAWK_NULL on failure
+ */
+HAWK_EXPORT hawk_fnc_t* hawk_rtx_valtofnc (
+	hawk_rtx_t*  rtx, 
+	hawk_val_t*  val,
+	hawk_fnc_t*  fnc  /**< buffer to hold the function information */
 );
 
 /**

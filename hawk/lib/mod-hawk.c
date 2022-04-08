@@ -104,7 +104,7 @@ static hawk_oow_t push_args_from_stack (hawk_rtx_t* rtx, hawk_nde_fncall_t* call
 static int fnc_call (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	hawk_fun_t* fun;
-	hawk_oow_t nargs;
+	hawk_oow_t nargs, f_nargs;
 	hawk_nde_fncall_t call;
 	struct pafs_t pafs;
 	hawk_val_t* v;
@@ -112,11 +112,12 @@ static int fnc_call (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	/* this function is similar to hawk_rtx_callfun() but it is more simplified */
 	HAWK_MEMSET (&call, 0, HAWK_SIZEOF(call));
 	nargs = hawk_rtx_getnargs(rtx);
+	f_nargs = nargs - 1;
 
 	fun = hawk_rtx_valtofun(rtx, hawk_rtx_getarg(rtx, 0));
 	if (fun) 
 	{
-		if (nargs - 1 > fun->nargs)
+		if (f_nargs > fun->nargs)
 		{
 			hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EARGTM);
 			return -1; /* hard failure */
@@ -133,30 +134,40 @@ static int fnc_call (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	else
 	{
 		/* find the name in the modules */
-		hawk_mod_t* m;
+		hawk_fnc_t fnc, * fncp;
 		mod_data_t* md;
 
-// TODO: find normal fnc too.
 		md = (mod_data_t*)fi->mod->ctx;
-		/* hawk_querymodulewithname() may update some shared data under
-		 * the hawk object. use a mutex for shared data safety */
-		hawk_mtx_lock (&md->mq_mtx, HAWK_NULL);
-		m = hawk_rtx_valtomodfnc(rtx, hawk_rtx_getarg(rtx, 0), &call.u.fnc.spec);
-		hawk_mtx_unlock (&md->mq_mtx);
 
-		if (!m) return -1; /* hard failure */
+		/* hawk_querymodulewithname() called by hawk_rtx_valtofnc()
+		 * may update some shared data under the hawk object. 
+		 * use a mutex for shared data safety */
+		/* TODO: this mutex protection is wrong in that if a call to hawk_querymodulewithname()
+		 *       is made outside this hawk module, the call is not protected under
+		 *       the same mutex. FIX THIS */
+		hawk_mtx_lock (&md->mq_mtx, HAWK_NULL);
+		fncp = hawk_rtx_valtofnc(rtx, hawk_rtx_getarg(rtx, 0), &fnc);
+		hawk_mtx_unlock (&md->mq_mtx);
+		if (!fncp) return -1; /* hard failure */
+
+		if (f_nargs < fnc.spec.arg.min  || f_nargs > fnc.spec.arg.max) 
+		{
+			hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EARGTM);
+			return -1;
+		}
 
 		call.type = HAWK_NDE_FNCALL_FNC;
-	// QQQ0
-	//	call.u.fnc.info.name = name;
-		call.u.fnc.info.mod = m;
+		call.u.fnc.info.name.ptr = fnc.name.ptr;
+		call.u.fnc.info.name.len = fnc.name.len;
+		call.u.fnc.info.mod = fnc.mod;
+		call.u.fnc.spec = fnc.spec;
 
 		pafs.is_fun = 0;
 		pafs.argspec_ptr = call.u.fnc.spec.arg.spec;
 		pafs.argspec_len = call.u.fnc.spec.arg.spec? hawk_count_oocstr(call.u.fnc.spec.arg.spec): 0;
 	}
 
-	call.nargs = nargs - 1;
+	call.nargs = f_nargs;
 	/* keep HAWK_NULL in call.args so that hawk_rtx_evalcall() knows it's a fake call structure */
 	call.arg_base = rtx->stack_base + 5; /* 5 = 4(stack frame prologue) + 1(the first argument to hawk::call()) */
 
