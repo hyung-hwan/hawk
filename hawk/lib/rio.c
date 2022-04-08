@@ -98,7 +98,7 @@ hawk_rio_type_t hawk_rtx_intoriotype (hawk_rtx_t* rtx, hawk_in_type_t in_type)
 	return in_type_map[in_type];
 }
 
-hawk_rio_type_t hawk_rtx_outtoriotype (hawk_rtx_t* rtx, hawk_in_type_t out_type)
+hawk_rio_type_t hawk_rtx_outtoriotype (hawk_rtx_t* rtx, hawk_out_type_t out_type)
 {
 	return out_type_map[out_type];
 }

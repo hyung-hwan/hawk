@@ -866,7 +866,7 @@ int hawk_fio_init (hawk_fio_t* fio, hawk_gem_t* gem, const hawk_ooch_t* path, in
 	#if defined(HAWK_OOCH_IS_BCH)
 		/* nothing to do */
 	#else
-		if (path_mb != path_mb_buf && path_mb != path) 
+		if (path_mb != path_mb_buf && path_mb != (hawk_bch_t*)path) 
 		{
 			hawk_gem_freemem (fio->gem, path_mb);
 		}

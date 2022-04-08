@@ -44,7 +44,7 @@ extern "C" {
 #endif
 
 hawk_rio_type_t hawk_rtx_intoriotype (hawk_rtx_t* rtx, hawk_in_type_t in_type);
-hawk_rio_type_t hawk_rtx_outtoriotype (hawk_rtx_t* rtx, hawk_in_type_t out_type);
+hawk_rio_type_t hawk_rtx_outtoriotype (hawk_rtx_t* rtx, hawk_out_type_t out_type);
 
 int hawk_rtx_readio (
 	hawk_rtx_t* rtx, hawk_in_type_t in_type, 

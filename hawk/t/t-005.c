@@ -51,7 +51,6 @@ static void test1 (void)
 
 	printf ("[%s]\n", HAWK_BECS_PTR(b)); 
 	hawk_becs_close (b);
-	return 0;
 }
 
 static void test2 (void)
@@ -71,8 +70,6 @@ static void test2 (void)
 	OK_X (q == 3);
 	OK_X (dst[q] == src[q]);
 	for (i = 0; i < q; i++) OK_X (dst[i] == sxx[i]);
-
-	return 0;
 }
 
 hawk_bch_t* subst (hawk_bch_t* buf, hawk_oow_t bsz, const hawk_bcs_t* ident, void* ctx)
@@ -105,8 +102,6 @@ static void test3 (void)
 	OK_X (hawk_count_bcstr(ptr) == 29);
 	OK_X (hawk_comp_bcstr(ptr, "USERNAME=sam,GROUPNAME=coders", 0) == 0);
 	free (ptr);
-
-	return 0;
 }
 
 int main ()

@@ -9801,11 +9801,15 @@ wp_mod_main:
 					if ((fmt[i] != 's' && !HAWK_BYTE_PRINTABLE(curc)) || fmt[i] == 'w' || fmt[i] == 'W')
 					{
 						hawk_bch_t xbuf[3];
+					#if 0 /* the range check isn't needed for hawk_bch_t. it's always <= 0xFF */
+						
 						if (curc <= 0xFF)
 						{
+					#endif
 							if (hawk_becs_ncat(out, HAWK_BT("\\x"), 2) == (hawk_oow_t)-1) goto s_fail;
 							hawk_byte_to_bcstr(curc, xbuf, HAWK_COUNTOF(xbuf), bytetombs_flagged_radix, HAWK_BT('0'));
 							if (hawk_becs_ncat(out, xbuf, 2) == (hawk_oow_t)-1) goto s_fail;
+					#if 0
 						}
 						else if (curc <= 0xFFFF)
 						{
@@ -9829,6 +9833,7 @@ wp_mod_main:
 							hawk_byte_to_bcstr(u32 & 0xFF, xbuf, HAWK_COUNTOF(xbuf), bytetombs_flagged_radix, HAWK_BT('0'));
 							if (hawk_becs_ncat(out, xbuf, 2) == (hawk_oow_t)-1) goto s_fail;
 						}
+					#endif
 					}
 					else
 					{

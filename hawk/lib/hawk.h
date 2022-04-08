@@ -1695,13 +1695,6 @@ HAWK_EXPORT void hawk_seterruvfmt (
 #	define hawk_seterrvfmt hawk_seterrbvfmt
 #endif
 
-HAWK_EXPORT void hawk_seterror (
-	hawk_t*              hawk,
-	const hawk_loc_t*    errloc,
-	hawk_errnum_t        errnum,
-	const hawk_oocs_t*   errarg
-);
-
 /**
  * The hawk_getopt() function gets the value of an option
  * specified by \a id into the buffer pointed to by \a value.

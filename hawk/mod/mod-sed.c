@@ -93,7 +93,7 @@ static int fnc_file_to_file (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 	/* result = sed::file_to_file ("s/ABC/123/g", input_file, output_file [, option_string]) */
 
-	sed = hawk_sed_openstdwithmmgr(hawk_rtx_getgem(rtx), 0, hawk_rtx_getcmgr(rtx), HAWK_NULL);
+	sed = hawk_sed_openstdwithmmgr(hawk_rtx_getmmgr(rtx), 0, hawk_rtx_getcmgr(rtx), HAWK_NULL);
 	if (sed == HAWK_NULL) 
 	{
 		ret = -2;
@@ -213,14 +213,7 @@ oops:
 	return 0;
 }
 
-typedef struct fnctab_t fnctab_t;
-struct fnctab_t
-{
-	const hawk_ooch_t* name;
-	hawk_mod_sym_fnc_t info;
-};
-
-static fnctab_t fnctab[] =
+static hawk_mod_fnc_tab_t fnctab[] =
 {
 	/* keep this table sorted for binary search in query(). */
 	{ HAWK_T("file_to_file"),  { { 3, 3, HAWK_NULL },    fnc_file_to_file,  0 } },
