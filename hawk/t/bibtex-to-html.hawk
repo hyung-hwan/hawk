@@ -494,8 +494,9 @@ function do_line( n,name,s)
 
 function output_filename(input_filename)
 {
-## HAWK - for use in t/h-003.hawk
-return length(OUTPUT_FILENAME) > 0? OUTPUT_FILENAME: "/dev/stdout";
+    ## HAWK - for use in t/h-003.hawk
+    if (length(T_OUT_NAME) > 0) return T_OUT_NAME;
+    ## END HAWK
 
     if (input_filename != _last_input_filename)
     {			# optimization: we cache last function result for speed
