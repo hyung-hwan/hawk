@@ -39,7 +39,7 @@ function are_files_identical(a, b)
 	return !diff;
 }
 
-function run_test (x, more_opts, in_name, out_name)
+function run_test (x, more_opts, in_name, redir, out_name)
 {
 	@local cmd, inf, expf, outf, same;
 
@@ -51,7 +51,14 @@ function run_test (x, more_opts, in_name, out_name)
 	outf = sprintf("/tmp/%s.%d.out", out_name, sys::getpid());
 ##print TDIR, inf, expf, outf;
 
-	cmd=sprintf("%s %s -f %s/%s.hawk --modlibdirs=%s %s > %s", ARGV[0], more_opts, TDIR, x, hawk::modlibdirs(), inf, outf);
+	if (redir)
+	{
+		cmd=sprintf("%s %s -f %s/%s.hawk --modlibdirs=%s %s > %s", ARGV[0], more_opts, TDIR, x, hawk::modlibdirs(), inf, outf);
+	}
+	else
+	{
+		cmd=sprintf("%s %s -vOUTPUT_FILENAME=%s -f %s/%s.hawk --modlibdirs=%s %s", ARGV[0], more_opts, outf, TDIR, x, hawk::modlibdirs(), inf);
+	}	
 ##print cmd;
 	system (cmd);
 		
@@ -70,9 +77,10 @@ function run_test (x, more_opts, in_name, out_name)
 
 function main()
 {
-	run_test ("journal-toc");
-	run_test ("journal-toc", "-vHTML=1", "journal-toc", "journal-toc-html");
-	run_test ("bibtex-to-html", "", "journal-toc", "bibtex-to-html");
+	run_test ("journal-toc", "", @nil, 1, @nil);
+	run_test ("journal-toc", "-vHTML=1", "journal-toc", 1, "journal-toc-html");
+	run_test ("bibtex-to-html", "", "journal-toc", 0, "bibtex-to-html");
+
 	tap_end ();
 }
 
