@@ -64,9 +64,8 @@ function run_test (x, more_opts, in_name, out_name)
 	else
 	{
 		tap_ok (sprintf("%s[%d]", @SCRIPTNAME, @SCRIPTLINE));
+		sys::unlink (outf);
 	}
-
-	sys::unlink (outf);
 }
 
 function main()
