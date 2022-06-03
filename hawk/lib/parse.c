@@ -5418,7 +5418,7 @@ static hawk_nde_t* parse_primary_ident_noseg (hawk_t* hawk, const hawk_loc_t* xl
 				segs[0].len = hawk_count_oocstr(fnc->spec.arg.spec);
 				segs[1] = *name;
 
-				return parse_primary_ident_segs (hawk, xloc, name, segs, 2);
+				return parse_primary_ident_segs(hawk, xloc, name, segs, 2);
 			}
 
 			/* fnc->dfl0 means that the function can be called without ().
@@ -7457,7 +7457,8 @@ static hawk_mod_t* query_module (hawk_t* hawk, const hawk_oocs_t segs[], int nse
 		HAWK_MEMSET (&spec, 0, HAWK_SIZEOF(spec));
 		spec.prefix = (hawk->opt.mod[1].len > 0)? hawk->opt.mod[1].ptr: HAWK_T(HAWK_DEFAULT_MODPREFIX);
 		spec.postfix = (hawk->opt.mod[2].len > 0)? hawk->opt.mod[2].ptr: HAWK_T(HAWK_DEFAULT_MODPOSTFIX);
-		spec.name = segs[0].ptr;
+		spec.name = segs[0].ptr; /* the caller must ensure that this segment is null-terminated */
+
 		if (!hawk->prm.modopen || !hawk->prm.modgetsym || !hawk->prm.modclose)
 		{
 			hawk_seterrfmt (hawk, HAWK_NULL, HAWK_EINVAL, HAWK_T("module callbacks not set properly"));
@@ -7492,7 +7493,8 @@ static hawk_mod_t* query_module (hawk_t* hawk, const hawk_oocs_t segs[], int nse
 		open_fail:
 			bem = hawk_backuperrmsg(hawk);
 			hawk_seterrfmt (hawk, HAWK_NULL, HAWK_ENOENT, HAWK_T("'%js%js%js' for module '%js' not found - %js"), 
-				(spec.prefix? spec.prefix: HAWK_T("")), spec.name, (spec.postfix? spec.postfix: HAWK_T("")), spec.name, bem);
+				(spec.prefix? spec.prefix: HAWK_T("")), spec.name, (spec.postfix? spec.postfix: HAWK_T("")), 
+				spec.name, bem);
 			return HAWK_NULL;
 		}
 
@@ -7557,6 +7559,9 @@ hawk_mod_t* hawk_querymodulewithname (hawk_t* hawk, const hawk_oocs_t* name, haw
 {
 	const hawk_ooch_t* dc;
 	hawk_oocs_t segs[2]; 
+	hawk_mod_t* mod;
+	hawk_ooch_t tmp;
+
 /*TOOD: non-module builtin function? fnc? */
 
 	dc = hawk_find_oochars_in_oochars(name->ptr, name->len, HAWK_T("::"), 2, 0);
@@ -7566,11 +7571,27 @@ hawk_mod_t* hawk_querymodulewithname (hawk_t* hawk, const hawk_oocs_t* name, haw
 		return HAWK_NULL;
 	}
 
-	segs[0].ptr = name->ptr;
+#if 1
 	segs[0].len = dc - name->ptr;
+	segs[0].ptr = hawk_dupoochars(hawk, name->ptr, segs[0].len);
+	if (!segs[0].ptr) return HAWK_NULL;
+#else
+	segs[0].len = dc - name->ptr;
+	segs[0].ptr = name->ptr;
+	tmp = name->ptr[segs[0].len];
+	name->ptr[segs[0].len] = '\0';
+#endif
 
-	segs[1].ptr = segs[0].ptr + segs[0].len + 2;
 	segs[1].len = name->len - segs[0].len - 2;
+	segs[1].ptr = name->ptr + segs[0].len + 2;
 
-	return query_module(hawk, segs, 2, sym);
+	mod = query_module(hawk, segs, 2, sym);
+
+#if 1
+	hawk_freemem (hawk, segs[0].ptr);
+#else
+	name->ptr[segs[0].len] = tmp;
+#endif
+
+	return mod;
 }

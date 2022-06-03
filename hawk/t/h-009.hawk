@@ -24,7 +24,7 @@ function run_test_001 ()
 	}
 	else
 	{
-		tap_skip (sprintf("sed::str_top_str() is unavailable - %s[%d]", @SCRIPTNAME, @SCRIPTLINE));
+		tap_skip (sprintf("sed::str_to_str() is unavailable - %s[%d]", @SCRIPTNAME, @SCRIPTLINE));
 	}
 }
 
