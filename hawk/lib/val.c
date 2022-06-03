@@ -2863,7 +2863,7 @@ hawk_fnc_t* hawk_rtx_valtofnc (hawk_rtx_t* rtx, hawk_val_t* v, hawk_fnc_t* rfnc)
 				hawk_mod_t* mod;
 				hawk_mod_sym_t sym;
 
-				mod = hawk_querymodulewithname(hawk, &x, &sym);
+				mod = hawk_querymodulewithname(hawk, x.ptr, &sym);
 				hawk_rtx_freevaloocstr (rtx, v, x.ptr);
 				if (!mod) return HAWK_NULL;
 

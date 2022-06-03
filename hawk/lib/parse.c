@@ -7555,43 +7555,34 @@ done:
 }
 
 
-hawk_mod_t* hawk_querymodulewithname (hawk_t* hawk, const hawk_oocs_t* name, hawk_mod_sym_t* sym)
+hawk_mod_t* hawk_querymodulewithname (hawk_t* hawk, hawk_ooch_t* name, hawk_mod_sym_t* sym)
 {
 	const hawk_ooch_t* dc;
 	hawk_oocs_t segs[2]; 
 	hawk_mod_t* mod;
+	hawk_oow_t name_len;
 	hawk_ooch_t tmp;
 
 /*TOOD: non-module builtin function? fnc? */
 
-	dc = hawk_find_oochars_in_oochars(name->ptr, name->len, HAWK_T("::"), 2, 0);
+	name_len = hawk_count_oocstr(name);
+	dc = hawk_find_oochars_in_oochars(name, name_len, HAWK_T("::"), 2, 0);
 	if (!dc) 
 	{
 		hawk_seterrfmt (hawk, HAWK_NULL, HAWK_EINVAL, HAWK_T("invalid module name -  %js"), name);
 		return HAWK_NULL;
 	}
 
-#if 1
-	segs[0].len = dc - name->ptr;
-	segs[0].ptr = hawk_dupoochars(hawk, name->ptr, segs[0].len);
-	if (!segs[0].ptr) return HAWK_NULL;
-#else
-	segs[0].len = dc - name->ptr;
-	segs[0].ptr = name->ptr;
-	tmp = name->ptr[segs[0].len];
-	name->ptr[segs[0].len] = '\0';
-#endif
+	segs[0].len = dc - name;
+	segs[0].ptr = name;
+	tmp = name[segs[0].len];
+	name[segs[0].len] = '\0';
 
-	segs[1].len = name->len - segs[0].len - 2;
-	segs[1].ptr = name->ptr + segs[0].len + 2;
+	segs[1].len = name_len - segs[0].len - 2;
+	segs[1].ptr = (hawk_ooch_t*)name + segs[0].len + 2;
 
 	mod = query_module(hawk, segs, 2, sym);
 
-#if 1
-	hawk_freemem (hawk, segs[0].ptr);
-#else
-	name->ptr[segs[0].len] = tmp;
-#endif
-
+	name[segs[0].len] = tmp;
 	return mod;
 }

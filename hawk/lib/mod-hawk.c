@@ -214,7 +214,7 @@ static int fnc_function_exists (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 					/* hawk_query_module_with_name() may update some shared data under
 					 * the hawk object. use a mutex for shared data safety */
 					hawk_mtx_lock (&md->mq_mtx, HAWK_NULL);
-					rx = (hawk_querymodulewithname(hawk_rtx_gethawk(rtx), &name, &sym) != HAWK_NULL);
+					rx = (hawk_querymodulewithname(hawk_rtx_gethawk(rtx), name.ptr, &sym) != HAWK_NULL);
 					hawk_mtx_unlock (&md->mq_mtx);
 				}
 			}
