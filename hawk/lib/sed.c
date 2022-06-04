@@ -145,6 +145,11 @@ void hawk_sed_fini (hawk_sed_t* sed)
 	hawk_ooecs_fini (&sed->tmp.rex);
 }
 
+hawk_errstr_t hawk_sed_geterrstr (hawk_sed_t* sed)
+{
+	return sed->_gem.errstr;
+}
+
 void hawk_sed_seterrbfmt (hawk_sed_t* sed, const hawk_loc_t* errloc, hawk_errnum_t errnum, const hawk_bch_t* fmt, ...)
 {
 	va_list ap;

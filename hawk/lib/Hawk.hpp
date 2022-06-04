@@ -410,7 +410,7 @@ protected:
 	/// const hawk_ooch_t* MyHawk::getErrorString (hawk_errnum_t num) const 
 	/// {
 	///    if (num == HAWK_ENOENT) return HAWK_T("cannot find '${0}'");
-	///    return Hawk::getErrorString (num);
+	///    return Hawk::getErrorString(num);
 	/// }
 	/// \endcode
 	///
@@ -1817,6 +1817,238 @@ private:
 	int dispatch_function (Run* run, const hawk_fnc_info_t* fi);
 
 	static const hawk_ooch_t* xerrstr (hawk_t* a, hawk_errnum_t num);
+};
+
+
+
+// ----------------------------------------------------------------------------------------
+
+class HAWK_EXPORT MmgrStd: public Mmgr
+{
+public:
+	MmgrStd () HAWK_CXX_NOEXCEPT: Mmgr () {}
+
+	void* allocMem (hawk_oow_t n) HAWK_CXX_NOEXCEPT;
+	void* reallocMem (void* ptr, hawk_oow_t n) HAWK_CXX_NOEXCEPT;
+	void freeMem (void* ptr) HAWK_CXX_NOEXCEPT;
+
+#if 0
+	/// The getInstance() function returns the stock instance of the MmgrStd class.
+	static MmgrStd* getInstance () HAWK_CXX_NOEXCEPT;
+#endif
+};
+
+
+// ----------------------------------------------------------------------------------------
+
+///
+/// The HawkStd class provides an easier-to-use interface by overriding 
+/// primitive methods, and implementing the file handler, the pipe handler, 
+/// and common intrinsic functions.
+///
+class HAWK_EXPORT HawkStd: public Hawk
+{
+public:
+	///
+	/// The SourceFile class implements script I/O from and to a file.
+	///
+	class HAWK_EXPORT SourceFile: public Source 
+	{
+	public:
+		SourceFile (const hawk_uch_t* name, hawk_cmgr_t* cmgr = HAWK_NULL): _type(NAME_UCH), _name(name), cmgr(cmgr)
+		{
+			dir.ptr = HAWK_NULL; dir.len = 0; 
+		}
+
+		SourceFile (const hawk_bch_t* name, hawk_cmgr_t* cmgr = HAWK_NULL): _type(NAME_BCH), _name(name), cmgr(cmgr)
+		{
+			dir.ptr = HAWK_NULL; dir.len = 0; 
+		}
+
+		~SourceFile () {};
+
+		int open (Data& io);
+		int close (Data& io);
+		hawk_ooi_t read (Data& io, hawk_ooch_t* buf, hawk_oow_t len);
+		hawk_ooi_t write (Data& io, const hawk_ooch_t* buf, hawk_oow_t len);
+
+	protected:
+		enum
+		{
+			NAME_UCH,
+			NAME_BCH
+		} _type;
+		const void* _name;
+		hawk_oocs_t dir;
+		hawk_cmgr_t* cmgr;
+	};
+
+	///
+	/// The SourceString class implements script input from a string. 
+	/// Deparsing is not supported.
+	///
+	class HAWK_EXPORT SourceString: public Source
+	{
+	public:
+		SourceString (const hawk_uch_t* str, hawk_cmgr_t* cmgr = HAWK_NULL): _type(STR_UCH), _str(str), _hawk(HAWK_NULL), str(HAWK_NULL), ptr(HAWK_NULL), cmgr(cmgr) {}
+		SourceString (const hawk_bch_t* str, hawk_cmgr_t* cmgr = HAWK_NULL): _type(STR_BCH), _str(str), _hawk(HAWK_NULL), str(HAWK_NULL), ptr(HAWK_NULL), cmgr(cmgr) {}
+		~SourceString ();
+
+		int open (Data& io);
+		int close (Data& io);
+		hawk_ooi_t read (Data& io, hawk_ooch_t* buf, hawk_oow_t len);
+		hawk_ooi_t write (Data& io, const hawk_ooch_t* buf, hawk_oow_t len);
+
+	protected:
+		enum
+		{
+			STR_UCH,
+			STR_BCH
+		} _type;
+		const void* _str;
+		hawk_t* _hawk;
+
+		hawk_ooch_t* str;
+		const hawk_ooch_t* ptr;
+		hawk_cmgr_t* cmgr; // for reading included files
+	};
+
+	HawkStd (Mmgr* mmgr = HAWK_NULL): Hawk(mmgr), cmgrtab_inited(false), stdmod_up(false), console_cmgr(HAWK_NULL) 
+	{
+	}
+
+	int open ();
+	void close ();
+
+	void uponClosing ();
+
+	Run* parse (Source& in, Source& out);
+
+	/// The setConsoleCmgr() function sets the encoding type of 
+	/// the console streams. They include both the input and the output
+	/// streams. It provides no way to specify a different encoding
+	/// type for the input and the output stream.
+	void setConsoleCmgr (const hawk_cmgr_t* cmgr);
+
+	/// The getConsoleCmgr() function returns the current encoding
+	/// type set for the console streams.
+	const hawk_cmgr_t* getConsoleCmgr () const;
+
+	/// The addConsoleOutput() function adds a file to form an
+	/// output console stream.
+	int addConsoleOutput (const hawk_uch_t* arg, hawk_oow_t len);
+	int addConsoleOutput (const hawk_uch_t* arg);
+	int addConsoleOutput (const hawk_bch_t* arg, hawk_oow_t len);
+	int addConsoleOutput (const hawk_bch_t* arg);
+
+	void clearConsoleOutputs ();
+
+protected:
+	#define HAWK_STD_ENV_CHAR_IS_BCH
+	typedef hawk_bch_t env_char_t;
+
+	int make_additional_globals (Run* run);
+	int build_argcv (Run* run);
+	int build_environ (Run* run, env_char_t* envarr[]);
+
+	// intrinsic functions 
+	hawk_cmgr_t* getiocmgr (const hawk_ooch_t* ioname);
+
+	int setioattr (Run& run, Value& ret, Value* args, hawk_oow_t nargs, const hawk_ooch_t* name, hawk_oow_t len);
+	int getioattr (Run& run, Value& ret, Value* args, hawk_oow_t nargs, const hawk_ooch_t* name, hawk_oow_t len);
+
+	// pipe io handlers 
+	int openPipe (Pipe& io);
+	int closePipe (Pipe& io);
+	hawk_ooi_t readPipe (Pipe& io, hawk_ooch_t* buf, hawk_oow_t len);
+	hawk_ooi_t readPipeBytes (Pipe& io, hawk_bch_t* buf, hawk_oow_t len);
+	hawk_ooi_t writePipe (Pipe& io, const hawk_ooch_t* buf, hawk_oow_t len);
+	hawk_ooi_t writePipeBytes (Pipe& io, const hawk_bch_t* buf, hawk_oow_t len);
+	int flushPipe (Pipe& io);
+
+	// file io handlers 
+	int openFile (File& io);
+	int closeFile (File& io);
+	hawk_ooi_t readFile (File& io, hawk_ooch_t* buf, hawk_oow_t len);
+	hawk_ooi_t readFileBytes (File& io, hawk_bch_t* buf, hawk_oow_t len);
+	hawk_ooi_t writeFile (File& io, const hawk_ooch_t* buf, hawk_oow_t len);
+	hawk_ooi_t writeFileBytes (File& io, const hawk_bch_t* buf, hawk_oow_t len);
+	int flushFile (File& io);
+
+	// console io handlers 
+	int openConsole (Console& io);
+	int closeConsole (Console& io);
+	hawk_ooi_t readConsole (Console& io, hawk_ooch_t* buf, hawk_oow_t len);
+	hawk_ooi_t readConsoleBytes (Console& io, hawk_bch_t* buf, hawk_oow_t len);
+	hawk_ooi_t writeConsole (Console& io, const hawk_ooch_t* buf, hawk_oow_t len);
+	hawk_ooi_t writeConsoleBytes (Console& io, const hawk_bch_t* buf, hawk_oow_t len);
+	int flushConsole (Console& io);
+	int nextConsole (Console& io);
+
+	// primitive handlers 
+	void* allocMem (hawk_oow_t n);
+	void* reallocMem (void* ptr, hawk_oow_t n);
+	void  freeMem (void* ptr);
+
+	hawk_flt_t pow (hawk_flt_t x, hawk_flt_t y);
+	hawk_flt_t mod (hawk_flt_t x, hawk_flt_t y);
+
+	void* modopen (const hawk_mod_spec_t* spec);
+	void  modclose (void* handle);
+	void* modgetsym (void* handle, const hawk_ooch_t* name);
+
+protected:
+	hawk_htb_t cmgrtab;
+	bool cmgrtab_inited;
+	bool stdmod_up;
+
+	hawk_cmgr_t* console_cmgr;
+
+	// global variables 
+	int gbl_argc;
+	int gbl_argv;
+	int gbl_environ;
+
+	// standard input console - reuse runarg 
+	hawk_oow_t runarg_index;
+	hawk_oow_t runarg_count;
+
+	// standard output console 
+	xstrs_t ofile;
+	hawk_oow_t ofile_index;
+	hawk_oow_t ofile_count;
+
+public:
+	struct ioattr_t
+	{
+		hawk_cmgr_t* cmgr;
+		hawk_ooch_t cmgr_name[64]; // i assume that the cmgr name never exceeds this length.
+		hawk_ntime_t tmout[4];
+
+		ioattr_t (): cmgr (HAWK_NULL)
+		{
+			this->cmgr_name[0] = HAWK_T('\0');
+			for (hawk_oow_t i = 0; i < HAWK_COUNTOF(this->tmout); i++)
+			{
+				this->tmout[i].sec = -999;
+				this->tmout[i].nsec = 0;
+			}
+		}
+	};
+
+	static ioattr_t default_ioattr;
+
+protected:
+	ioattr_t* get_ioattr (const hawk_ooch_t* ptr, hawk_oow_t len);
+	ioattr_t* find_or_make_ioattr (const hawk_ooch_t* ptr, hawk_oow_t len);
+
+
+private:
+	int open_console_in (Console& io);
+	int open_console_out (Console& io);
+
+	int open_pio (Pipe& io);
+	int open_nwio (Pipe& io, int flags, void* nwad);
 };
 
 /////////////////////////////////

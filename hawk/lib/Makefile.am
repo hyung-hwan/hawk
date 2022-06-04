@@ -170,8 +170,8 @@ libhawk_la_LIBADD += $(UNWIND_LIBS)
 endif
 
 if ENABLE_CXX
-pkginclude_HEADERS += Hawk.hpp HawkStd.hpp
-libhawk_la_SOURCES += Hawk.cpp HawkStd.cpp
+pkginclude_HEADERS += Hawk.hpp Hawk-Sed.hpp
+libhawk_la_SOURCES += Hawk.cpp Std.cpp Sed.cpp Std-Sed.cpp
 
 ###libhawk_la_LINK = $(CXXLINK)
 libhawk_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) \

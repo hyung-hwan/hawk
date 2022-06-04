@@ -712,7 +712,7 @@ The following sample illustrates the basic steps hightlighed above.
 
 If you prefer C++, you may use the Hawk/HawkStd wrapper classes to simplify the task. The C++ classes are inferior to the C equivalents in that they don't allow creation of multiple runtime contexts over a single hawk instance. Here is the sample code that prints "hello, world".
 
-	#include <HawkStd.hpp>
+	#include <Hawk.hpp>
 	#include <stdio.h>
 	
 	int main ()

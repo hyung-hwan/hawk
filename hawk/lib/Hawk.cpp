@@ -25,7 +25,6 @@
  */
 
 #include <Hawk.hpp>
-#include <HawkStd.hpp> // for MmgrStd only. i don't like this being mutually dependent
 #include "hawk-prv.h"
 
 /////////////////////////////////

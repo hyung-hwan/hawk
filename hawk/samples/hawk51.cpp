@@ -24,7 +24,7 @@
     THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <HawkStd.hpp>
+#include <Hawk.hpp>
 #include <hawk-utl.h>
 #include <hawk-fmt.h>
 #include <hawk-cli.h>

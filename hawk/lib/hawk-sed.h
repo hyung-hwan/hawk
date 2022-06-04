@@ -289,7 +289,7 @@ typedef hawk_ooi_t (*hawk_sed_io_impl_t) (
 	hawk_sed_io_cmd_t  cmd,
 	hawk_sed_io_arg_t* arg,
 	hawk_ooch_t*       data,
-	hawk_oow_t        count
+	hawk_oow_t         count
 );
 
 /**
@@ -493,11 +493,13 @@ static HAWK_INLINE hawk_gem_t* hawk_sed_getgem (hawk_sed_t* sed) { return &((haw
  */
 static HAWK_INLINE hawk_mmgr_t* hawk_sed_getmmgr (hawk_sed_t* sed) { return ((hawk_sed_alt_t*)sed)->_gem.mmgr; }
 static HAWK_INLINE hawk_cmgr_t* hawk_sed_getcmgr (hawk_sed_t* sed) { return ((hawk_sed_alt_t*)sed)->_gem.cmgr; }
+static HAWK_INLINE void hawk_sed_setcmgr (hawk_sed_t* sed, hawk_cmgr_t* cmgr) { ((hawk_sed_alt_t*)sed)->_gem.cmgr = cmgr; }
 #else
 #define hawk_sed_getxtn(sed) ((void*)((hawk_uint8_t*)sed + ((hawk_sed_alt_t*)sed)->_instsize))
 #define hawk_sed_getgem(sed) (&((hawk_sed_alt_t*)(sed))->_gem)
 #define hawk_sed_getmmgr(sed) (((hawk_sed_alt_t*)(sed))->_gem.mmgr)
 #define hawk_sed_getcmgr(sed) (((hawk_sed_alt_t*)(sed))->_gem.cmgr)
+#define hawk_sed_setcmgr(sed,_cmgr) (((hawk_sed_alt_t*)(sed))->_gem.cmgr = (_cmgr))
 #endif /* HAWK_HAVE_INLINE */
 
 
@@ -535,6 +537,10 @@ HAWK_EXPORT int hawk_sed_setopt (
 	const void*   value
 );
 
+HAWK_EXPORT hawk_errstr_t hawk_sed_geterrstr (
+	hawk_sed_t* sed   
+);
+
 /**
  * The hawk_sed_geterrnum() function returns the number of the last error 
  * occurred.
@@ -560,6 +566,12 @@ static HAWK_INLINE void hawk_sed_geterror (hawk_sed_t* sed, hawk_errnum_t* errnu
 #define hawk_sed_geterrumsg(sed) hawk_gem_geterrumsg(hawk_sed_getgem(sed))
 #define hawk_sed_geterrinf(sed, errinf) (hawk_gem_geterrinf(hawk_sed_getgem(sed), errinf))
 #define hawk_sed_geterror(sed, errnum, errmsg, errloc) (hawk_gem_geterror(hawk_sed_getgem(sed), errnum, errmsg, errloc))
+#endif
+
+#if defined(HAWK_OOCH_IS_BCH)
+#	define hawk_sed_geterrmsg hawk_sed_geterrbmsg
+#else
+#	define hawk_sed_geterrmsg hawk_sed_geterrumsg
 #endif
 
 

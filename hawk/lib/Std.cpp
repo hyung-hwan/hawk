@@ -24,7 +24,7 @@
     THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <HawkStd.hpp>
+#include <Hawk.hpp>
 #include <hawk-sio.h>
 #include <hawk-pio.h>
 #include <hawk-std.h> // for hawk_stdmodXXX() functions
