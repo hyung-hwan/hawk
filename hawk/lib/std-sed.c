@@ -264,12 +264,18 @@ static hawk_sio_t* open_sio_std (hawk_sed_t* sed, hawk_sio_std_t std, int flags)
 	hawk_sio_t* sio;
 
 	sio = hawk_sio_openstd(hawk_sed_getgem(sed), 0, std, flags);
-	if (sio == HAWK_NULL) hawk_sed_seterror (sed, HAWK_NULL, HAWK_SED_EIOFIL, &sio_std_names[std]);
+	if (sio == HAWK_NULL) 
+	{
+		const hawk_ooch_t* bem = hawk_sed_backuperrmsg(sed);
+		hawk_sed_seterrbfmt (sed, HAWK_NULL, HAWK_SED_EIOFIL, "unable to open %js - %js", &sio_std_names[std], bem);
+	}
 	return sio;
 }
 
 static void set_eiofil_for_iostd (hawk_sed_t* sed, hawk_sed_iostd_t* io)
 {
+	const hawk_ooch_t* bem = hawk_sed_backuperrmsg(sed);
+
 	HAWK_ASSERT (io->type == HAWK_SED_IOSTD_FILE || io->type == HAWK_SED_IOSTD_FILEB || io->type == HAWK_SED_IOSTD_FILEU);
 
 	if (io->u.file.path) /* file, fileb, fileu are union members. checking file.path regardless of io->type must be safe */
@@ -280,14 +286,14 @@ static void set_eiofil_for_iostd (hawk_sed_t* sed, hawk_sed_iostd_t* io)
 			case HAWK_SED_IOSTD_FILE:
 		#endif
 			case HAWK_SED_IOSTD_FILEB:
-				hawk_sed_seterrbfmt (sed, HAWK_NULL, HAWK_SED_EIOFIL, "I/O error with file '%hs'", io->u.fileb.path);
+				hawk_sed_seterrbfmt (sed, HAWK_NULL, HAWK_SED_EIOFIL, "I/O error with file '%hs' - %js", io->u.fileb.path, bem);
 				break;
 
 		#if defined(HAWK_OOCH_IS_UCH)
 			case HAWK_SED_IOSTD_FILE:
 		#endif
 			case HAWK_SED_IOSTD_FILEU:
-				hawk_sed_seterrbfmt (sed, HAWK_NULL, HAWK_SED_EIOFIL, "I/O error with file '%ls'", io->u.fileu.path);
+				hawk_sed_seterrbfmt (sed, HAWK_NULL, HAWK_SED_EIOFIL, "I/O error with file '%ls' - %js", io->u.fileu.path, bem);
 				break;
 
 			default:
@@ -298,7 +304,7 @@ static void set_eiofil_for_iostd (hawk_sed_t* sed, hawk_sed_iostd_t* io)
 	}
 	else
 	{
-		hawk_sed_seterrbfmt (sed, HAWK_NULL, HAWK_SED_EIOFIL, "I/O error with file '%js'", &sio_std_names[HAWK_SIO_STDIN]);
+		hawk_sed_seterrbfmt (sed, HAWK_NULL, HAWK_SED_EIOFIL, "I/O error with file '%js' - %js", &sio_std_names[HAWK_SIO_STDIN], bem);
 	}
 }
 
