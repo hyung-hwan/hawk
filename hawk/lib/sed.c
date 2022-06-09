@@ -3921,15 +3921,6 @@ void hawk_sed_setlinenum (hawk_sed_t* sed, hawk_oow_t num)
 	sed->e.in.num = num;
 }
 
-hawk_sed_ecb_t* hawk_sed_popecb (hawk_sed_t* sed)
-{
-	hawk_sed_ecb_t* top = sed->ecb;
-	if (top == (hawk_sed_ecb_t*)sed) return HAWK_NULL;
-	sed->ecb = top->next;
-	top->next = HAWK_NULL;
-	return top;
-}
-
 void hawk_sed_killecb (hawk_sed_t* sed, hawk_sed_ecb_t* ecb)
 {
 	hawk_sed_ecb_t* prev, * cur;
@@ -3943,6 +3934,15 @@ void hawk_sed_killecb (hawk_sed_t* sed, hawk_sed_ecb_t* ecb)
 			break;
 		}
 	}
+}
+
+hawk_sed_ecb_t* hawk_sed_popecb (hawk_sed_t* sed)
+{
+	hawk_sed_ecb_t* top = sed->ecb;
+	if (top == (hawk_sed_ecb_t*)sed) return HAWK_NULL;
+	sed->ecb = top->next;
+	top->next = HAWK_NULL;
+	return top;
 }
 
 void hawk_sed_pushecb (hawk_sed_t* sed, hawk_sed_ecb_t* ecb)

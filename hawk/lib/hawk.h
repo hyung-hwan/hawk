@@ -1719,21 +1719,26 @@ HAWK_EXPORT int hawk_setopt (
 	const void*   value
 );
 
+HAWK_EXPORT void hawk_killecb (
+	hawk_t*     hawk,
+	hawk_ecb_t* ecb
+);
+
 /**
  * The hawk_popecb() function pops an hawk event callback set
  * and returns the pointer to it. If no callback set can be popped,
  * it returns #HAWK_NULL.
  */
 HAWK_EXPORT hawk_ecb_t* hawk_popecb (
-	hawk_t* hawk /**< hawk */
+	hawk_t* hawk
 );
 
 /**
  * The hawk_pushecb() function register a runtime callback set.
  */
 HAWK_EXPORT void hawk_pushecb (
-	hawk_t*     hawk, /**< hawk */
-	hawk_ecb_t* ecb  /**< callback set */
+	hawk_t*     hawk,
+	hawk_ecb_t* ecb
 );
 
 /**
@@ -2396,6 +2401,11 @@ HAWK_EXPORT void hawk_rtx_getrio (
 HAWK_EXPORT void hawk_rtx_setrio (
 	hawk_rtx_t*           rtx,
 	const hawk_rio_cbs_t* rio
+);
+
+HAWK_EXPORT void hawk_rtx_killecb (
+	hawk_rtx_t*     rtx, /**< runtime context */
+	hawk_rtx_ecb_t* ecb  /**< callback set */
 );
 
 /**

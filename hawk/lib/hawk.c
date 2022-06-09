@@ -578,6 +578,21 @@ void hawk_haltall (hawk_t* hawk)
 	hawk->haltall = 1;
 }
 
+void hawk_killecb (hawk_t* hawk, hawk_ecb_t* ecb)
+{
+	hawk_ecb_t* prev, * cur;
+	for (cur = hawk->ecb, prev = HAWK_NULL; cur != (hawk_ecb_t*)hawk; cur = cur->next)
+	{
+		if (cur == ecb)
+		{
+			if (prev) prev->next = cur->next;
+			else hawk->ecb = cur->next;
+			cur->next = HAWK_NULL;
+			break;
+		}
+	}
+}
+
 hawk_ecb_t* hawk_popecb (hawk_t* hawk)
 {
 	hawk_ecb_t* top = hawk->ecb;

@@ -983,6 +983,21 @@ void hawk_rtx_setrio (hawk_rtx_t* rtx, const hawk_rio_cbs_t* rio)
 	rtx->rio.handler[HAWK_RIO_CONSOLE] = rio->console;
 }
 
+void hawk_rtx_killecb (hawk_rtx_t* rtx, hawk_rtx_ecb_t* ecb)
+{
+	hawk_rtx_ecb_t* prev, * cur;
+	for (cur = rtx->ecb, prev = HAWK_NULL; cur != (hawk_rtx_ecb_t*)rtx; cur = cur->next)
+	{
+		if (cur == ecb)
+		{
+			if (prev) prev->next = cur->next;
+			else rtx->ecb = cur->next;
+			cur->next = HAWK_NULL;
+			break;
+		}
+	}
+}
+
 hawk_rtx_ecb_t* hawk_rtx_popecb (hawk_rtx_t* rtx)
 {
 	hawk_rtx_ecb_t* top = rtx->ecb;
@@ -2233,9 +2248,10 @@ static int run_block (hawk_rtx_t* rtx, hawk_nde_blk_t* nde)
 #define ON_STATEMENT(rtx,nde) do { \
 	hawk_rtx_ecb_t* ecb, * ecb_next; \
 	if ((rtx)->hawk->haltall) (rtx)->exit_level = EXIT_ABORT; \
-	for (ecb = (rtx)->ecb; ecb != (hawk_rtx_ecb_t*)(rtx); ecb = ecb_next) \
+	for (ecb = (rtx)->ecb; ecb != (hawk_rtx_ecb_t*)(rtx); ecb = ecb_next) { \
 		ecb_next = ecb->next; \
 		if (ecb->stmt) ecb->stmt (rtx, nde, ecb->ctx);  \
+	} \
 } while(0)
 
 static int run_statement (hawk_rtx_t* rtx, hawk_nde_t* nde)
