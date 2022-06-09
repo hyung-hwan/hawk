@@ -38,7 +38,7 @@ hawk_LDFLAGS = $(LDFLAGS_COMMON)
 ##
 hawk_LDADD = $(LIBADD_COMMON) $(LIBM)
 
-hawk_sed_SOURCES = hawk-sed.c
+hawk_sed_SOURCES = sed.c
 hawk_sed_CPPFLAGS = $(CPPFLAGS_COMMON)
 hawk_sed_CFLAGS = $(CFLAGS_COMMON)
 hawk_sed_LDFLAGS = $(LDFLAGS_COMMON)
