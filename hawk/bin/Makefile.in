@@ -88,7 +88,7 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
-bin_PROGRAMS = hawk$(EXEEXT) hsed$(EXEEXT)
+bin_PROGRAMS = hawk$(EXEEXT) hawk-sed$(EXEEXT)
 subdir = bin
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/ax_check_sign.m4 \
@@ -109,7 +109,7 @@ CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
-am_hawk_OBJECTS = hawk-bin-hawk.$(OBJEXT)
+am_hawk_OBJECTS = hawk-hawk.$(OBJEXT)
 hawk_OBJECTS = $(am_hawk_OBJECTS)
 am__DEPENDENCIES_1 =
 hawk_DEPENDENCIES = $(LIBADD_COMMON) $(am__DEPENDENCIES_1)
@@ -120,12 +120,12 @@ am__v_lt_1 =
 hawk_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(hawk_CFLAGS) $(CFLAGS) \
 	$(hawk_LDFLAGS) $(LDFLAGS) -o $@
-am_hsed_OBJECTS = hsed-bin-hsed.$(OBJEXT)
-hsed_OBJECTS = $(am_hsed_OBJECTS)
-hsed_DEPENDENCIES = $(LIBADD_COMMON) $(am__DEPENDENCIES_1)
-hsed_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
-	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(hsed_CFLAGS) $(CFLAGS) \
-	$(hsed_LDFLAGS) $(LDFLAGS) -o $@
+am_hawk_sed_OBJECTS = hawk_sed-hawk-sed.$(OBJEXT)
+hawk_sed_OBJECTS = $(am_hawk_sed_OBJECTS)
+hawk_sed_DEPENDENCIES = $(LIBADD_COMMON) $(am__DEPENDENCIES_1)
+hawk_sed_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(hawk_sed_CFLAGS) \
+	$(CFLAGS) $(hawk_sed_LDFLAGS) $(LDFLAGS) -o $@
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -141,8 +141,8 @@ am__v_at_1 =
 DEFAULT_INCLUDES = 
 depcomp = $(SHELL) $(top_srcdir)/ac/depcomp
 am__maybe_remake_depfiles = depfiles
-am__depfiles_remade = ./$(DEPDIR)/hawk-bin-hawk.Po \
-	./$(DEPDIR)/hsed-bin-hsed.Po
+am__depfiles_remade = ./$(DEPDIR)/hawk-hawk.Po \
+	./$(DEPDIR)/hawk_sed-hawk-sed.Po
 am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -162,8 +162,8 @@ AM_V_CCLD = $(am__v_CCLD_@AM_V@)
 am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 = 
-SOURCES = $(hawk_SOURCES) $(hsed_SOURCES)
-DIST_SOURCES = $(hawk_SOURCES) $(hsed_SOURCES)
+SOURCES = $(hawk_SOURCES) $(hawk_sed_SOURCES)
+DIST_SOURCES = $(hawk_SOURCES) $(hawk_sed_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -353,16 +353,16 @@ LIBADD_COMMON = ../lib/libhawk.la
 ##################################################
 # hawk
 ##################################################
-hawk_SOURCES = bin-hawk.c 
+hawk_SOURCES = hawk.c 
 hawk_CPPFLAGS = $(CPPFLAGS_COMMON)
 hawk_CFLAGS = $(CFLAGS_COMMON)
 hawk_LDFLAGS = $(LDFLAGS_COMMON)
 hawk_LDADD = $(LIBADD_COMMON) $(LIBM)
-hsed_SOURCES = bin-hsed.c 
-hsed_CPPFLAGS = $(CPPFLAGS_COMMON)
-hsed_CFLAGS = $(CFLAGS_COMMON)
-hsed_LDFLAGS = $(LDFLAGS_COMMON)
-hsed_LDADD = $(LIBADD_COMMON) $(LIBM)
+hawk_sed_SOURCES = hawk-sed.c
+hawk_sed_CPPFLAGS = $(CPPFLAGS_COMMON)
+hawk_sed_CFLAGS = $(CFLAGS_COMMON)
+hawk_sed_LDFLAGS = $(LDFLAGS_COMMON)
+hawk_sed_LDADD = $(LIBADD_COMMON) $(LIBM)
 all: all-am
 
 .SUFFIXES:
@@ -450,9 +450,9 @@ hawk$(EXEEXT): $(hawk_OBJECTS) $(hawk_DEPENDENCIES) $(EXTRA_hawk_DEPENDENCIES)
 	@rm -f hawk$(EXEEXT)
 	$(AM_V_CCLD)$(hawk_LINK) $(hawk_OBJECTS) $(hawk_LDADD) $(LIBS)
 
-hsed$(EXEEXT): $(hsed_OBJECTS) $(hsed_DEPENDENCIES) $(EXTRA_hsed_DEPENDENCIES) 
-	@rm -f hsed$(EXEEXT)
-	$(AM_V_CCLD)$(hsed_LINK) $(hsed_OBJECTS) $(hsed_LDADD) $(LIBS)
+hawk-sed$(EXEEXT): $(hawk_sed_OBJECTS) $(hawk_sed_DEPENDENCIES) $(EXTRA_hawk_sed_DEPENDENCIES) 
+	@rm -f hawk-sed$(EXEEXT)
+	$(AM_V_CCLD)$(hawk_sed_LINK) $(hawk_sed_OBJECTS) $(hawk_sed_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -460,8 +460,8 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/hawk-bin-hawk.Po@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/hsed-bin-hsed.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/hawk-hawk.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/hawk_sed-hawk-sed.Po@am__quote@ # am--include-marker
 
 $(am__depfiles_remade):
 	@$(MKDIR_P) $(@D)
@@ -493,33 +493,33 @@ am--depfiles: $(am__depfiles_remade)
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LTCOMPILE) -c -o $@ $<
 
-hawk-bin-hawk.o: bin-hawk.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(hawk_CPPFLAGS) $(CPPFLAGS) $(hawk_CFLAGS) $(CFLAGS) -MT hawk-bin-hawk.o -MD -MP -MF $(DEPDIR)/hawk-bin-hawk.Tpo -c -o hawk-bin-hawk.o `test -f 'bin-hawk.c' || echo '$(srcdir)/'`bin-hawk.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/hawk-bin-hawk.Tpo $(DEPDIR)/hawk-bin-hawk.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='bin-hawk.c' object='hawk-bin-hawk.o' libtool=no @AMDEPBACKSLASH@
+hawk-hawk.o: hawk.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(hawk_CPPFLAGS) $(CPPFLAGS) $(hawk_CFLAGS) $(CFLAGS) -MT hawk-hawk.o -MD -MP -MF $(DEPDIR)/hawk-hawk.Tpo -c -o hawk-hawk.o `test -f 'hawk.c' || echo '$(srcdir)/'`hawk.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/hawk-hawk.Tpo $(DEPDIR)/hawk-hawk.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='hawk.c' object='hawk-hawk.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(hawk_CPPFLAGS) $(CPPFLAGS) $(hawk_CFLAGS) $(CFLAGS) -c -o hawk-bin-hawk.o `test -f 'bin-hawk.c' || echo '$(srcdir)/'`bin-hawk.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(hawk_CPPFLAGS) $(CPPFLAGS) $(hawk_CFLAGS) $(CFLAGS) -c -o hawk-hawk.o `test -f 'hawk.c' || echo '$(srcdir)/'`hawk.c
 
-hawk-bin-hawk.obj: bin-hawk.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(hawk_CPPFLAGS) $(CPPFLAGS) $(hawk_CFLAGS) $(CFLAGS) -MT hawk-bin-hawk.obj -MD -MP -MF $(DEPDIR)/hawk-bin-hawk.Tpo -c -o hawk-bin-hawk.obj `if test -f 'bin-hawk.c'; then $(CYGPATH_W) 'bin-hawk.c'; else $(CYGPATH_W) '$(srcdir)/bin-hawk.c'; fi`
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/hawk-bin-hawk.Tpo $(DEPDIR)/hawk-bin-hawk.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='bin-hawk.c' object='hawk-bin-hawk.obj' libtool=no @AMDEPBACKSLASH@
+hawk-hawk.obj: hawk.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(hawk_CPPFLAGS) $(CPPFLAGS) $(hawk_CFLAGS) $(CFLAGS) -MT hawk-hawk.obj -MD -MP -MF $(DEPDIR)/hawk-hawk.Tpo -c -o hawk-hawk.obj `if test -f 'hawk.c'; then $(CYGPATH_W) 'hawk.c'; else $(CYGPATH_W) '$(srcdir)/hawk.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/hawk-hawk.Tpo $(DEPDIR)/hawk-hawk.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='hawk.c' object='hawk-hawk.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(hawk_CPPFLAGS) $(CPPFLAGS) $(hawk_CFLAGS) $(CFLAGS) -c -o hawk-bin-hawk.obj `if test -f 'bin-hawk.c'; then $(CYGPATH_W) 'bin-hawk.c'; else $(CYGPATH_W) '$(srcdir)/bin-hawk.c'; fi`
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(hawk_CPPFLAGS) $(CPPFLAGS) $(hawk_CFLAGS) $(CFLAGS) -c -o hawk-hawk.obj `if test -f 'hawk.c'; then $(CYGPATH_W) 'hawk.c'; else $(CYGPATH_W) '$(srcdir)/hawk.c'; fi`
 
-hsed-bin-hsed.o: bin-hsed.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(hsed_CPPFLAGS) $(CPPFLAGS) $(hsed_CFLAGS) $(CFLAGS) -MT hsed-bin-hsed.o -MD -MP -MF $(DEPDIR)/hsed-bin-hsed.Tpo -c -o hsed-bin-hsed.o `test -f 'bin-hsed.c' || echo '$(srcdir)/'`bin-hsed.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/hsed-bin-hsed.Tpo $(DEPDIR)/hsed-bin-hsed.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='bin-hsed.c' object='hsed-bin-hsed.o' libtool=no @AMDEPBACKSLASH@
+hawk_sed-hawk-sed.o: hawk-sed.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(hawk_sed_CPPFLAGS) $(CPPFLAGS) $(hawk_sed_CFLAGS) $(CFLAGS) -MT hawk_sed-hawk-sed.o -MD -MP -MF $(DEPDIR)/hawk_sed-hawk-sed.Tpo -c -o hawk_sed-hawk-sed.o `test -f 'hawk-sed.c' || echo '$(srcdir)/'`hawk-sed.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/hawk_sed-hawk-sed.Tpo $(DEPDIR)/hawk_sed-hawk-sed.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='hawk-sed.c' object='hawk_sed-hawk-sed.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(hsed_CPPFLAGS) $(CPPFLAGS) $(hsed_CFLAGS) $(CFLAGS) -c -o hsed-bin-hsed.o `test -f 'bin-hsed.c' || echo '$(srcdir)/'`bin-hsed.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(hawk_sed_CPPFLAGS) $(CPPFLAGS) $(hawk_sed_CFLAGS) $(CFLAGS) -c -o hawk_sed-hawk-sed.o `test -f 'hawk-sed.c' || echo '$(srcdir)/'`hawk-sed.c
 
-hsed-bin-hsed.obj: bin-hsed.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(hsed_CPPFLAGS) $(CPPFLAGS) $(hsed_CFLAGS) $(CFLAGS) -MT hsed-bin-hsed.obj -MD -MP -MF $(DEPDIR)/hsed-bin-hsed.Tpo -c -o hsed-bin-hsed.obj `if test -f 'bin-hsed.c'; then $(CYGPATH_W) 'bin-hsed.c'; else $(CYGPATH_W) '$(srcdir)/bin-hsed.c'; fi`
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/hsed-bin-hsed.Tpo $(DEPDIR)/hsed-bin-hsed.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='bin-hsed.c' object='hsed-bin-hsed.obj' libtool=no @AMDEPBACKSLASH@
+hawk_sed-hawk-sed.obj: hawk-sed.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(hawk_sed_CPPFLAGS) $(CPPFLAGS) $(hawk_sed_CFLAGS) $(CFLAGS) -MT hawk_sed-hawk-sed.obj -MD -MP -MF $(DEPDIR)/hawk_sed-hawk-sed.Tpo -c -o hawk_sed-hawk-sed.obj `if test -f 'hawk-sed.c'; then $(CYGPATH_W) 'hawk-sed.c'; else $(CYGPATH_W) '$(srcdir)/hawk-sed.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/hawk_sed-hawk-sed.Tpo $(DEPDIR)/hawk_sed-hawk-sed.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='hawk-sed.c' object='hawk_sed-hawk-sed.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(hsed_CPPFLAGS) $(CPPFLAGS) $(hsed_CFLAGS) $(CFLAGS) -c -o hsed-bin-hsed.obj `if test -f 'bin-hsed.c'; then $(CYGPATH_W) 'bin-hsed.c'; else $(CYGPATH_W) '$(srcdir)/bin-hsed.c'; fi`
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(hawk_sed_CPPFLAGS) $(CPPFLAGS) $(hawk_sed_CFLAGS) $(CFLAGS) -c -o hawk_sed-hawk-sed.obj `if test -f 'hawk-sed.c'; then $(CYGPATH_W) 'hawk-sed.c'; else $(CYGPATH_W) '$(srcdir)/hawk-sed.c'; fi`
 
 mostlyclean-libtool:
 	-rm -f *.lo
@@ -654,8 +654,8 @@ clean: clean-am
 clean-am: clean-binPROGRAMS clean-generic clean-libtool mostlyclean-am
 
 distclean: distclean-am
-		-rm -f ./$(DEPDIR)/hawk-bin-hawk.Po
-	-rm -f ./$(DEPDIR)/hsed-bin-hsed.Po
+		-rm -f ./$(DEPDIR)/hawk-hawk.Po
+	-rm -f ./$(DEPDIR)/hawk_sed-hawk-sed.Po
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-tags
@@ -701,8 +701,8 @@ install-ps-am:
 installcheck-am:
 
 maintainer-clean: maintainer-clean-am
-		-rm -f ./$(DEPDIR)/hawk-bin-hawk.Po
-	-rm -f ./$(DEPDIR)/hsed-bin-hsed.Po
+		-rm -f ./$(DEPDIR)/hawk-hawk.Po
+	-rm -f ./$(DEPDIR)/hawk_sed-hawk-sed.Po
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 
