@@ -345,6 +345,8 @@ hawk_uch_t* hawk_gem_dupbtoucharswithcmgr (hawk_gem_t* gem, const hawk_bch_t* bc
 	hawk_uch_t* ucs;
 	int n;
 
+	if (!cmgr) cmgr = gem->cmgr;
+
 	bcslen = _bcslen; 
 	n = hawk_conv_bchars_to_uchars_with_cmgr(bcs, &bcslen, HAWK_NULL, &ucslen, cmgr, all);
 	if (n <= -1) 
@@ -370,6 +372,8 @@ hawk_bch_t* hawk_gem_duputobcharswithcmgr (hawk_gem_t* gem, const hawk_uch_t* uc
 	hawk_oow_t bcslen, ucslen;
 	hawk_bch_t* bcs;
 	int n;
+
+	if (!cmgr) cmgr = gem->cmgr;
 
 	ucslen = _ucslen;
 	n = hawk_conv_uchars_to_bchars_with_cmgr(ucs, &ucslen, HAWK_NULL, &bcslen, cmgr);

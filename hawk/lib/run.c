@@ -218,7 +218,7 @@ const hawk_oocs_t* hawk_rtx_getsubsep (hawk_rtx_t* rtx)
 static int set_global (hawk_rtx_t* rtx, int idx, hawk_nde_var_t* var, hawk_val_t* val, int assign)
 {
 	hawk_val_t* old;
-	hawk_rtx_ecb_t* ecb;
+	hawk_rtx_ecb_t* ecb, * ecb_next;
 	hawk_val_type_t vtype, old_vtype;
 
 	old = HAWK_RTX_STACK_GBL (rtx, idx);
@@ -629,9 +629,10 @@ static int set_global (hawk_rtx_t* rtx, int idx, hawk_nde_var_t* var, hawk_val_t
 	HAWK_RTX_STACK_GBL(rtx,idx) = val;
 	hawk_rtx_refupval (rtx, val);
 
-	for (ecb = (rtx)->ecb; ecb; ecb = ecb->next)
+	for (ecb = rtx->ecb; ecb != (hawk_rtx_ecb_t*)rtx; ecb = ecb_next)
 	{
-		if (ecb->gblset) ecb->gblset (rtx, idx, val);
+		ecb_next = ecb->next;
+		if (ecb->gblset) ecb->gblset (rtx, idx, val, ecb->ctx);
 	}
 
 	return 0;
@@ -877,6 +878,8 @@ hawk_rtx_t* hawk_rtx_open (hawk_t* hawk, hawk_oow_t xtnsize, hawk_rio_cbs_t* rio
 		return HAWK_NULL;
 	}
 
+	rtx->ecb = (hawk_rtx_ecb_t*)rtx; /* use this as a special sentinel node */
+
 	if (HAWK_UNLIKELY(init_globals(rtx) <= -1))
 	{
 		hawk_rtx_errortohawk (rtx, hawk);
@@ -928,7 +931,7 @@ hawk_rtx_t* hawk_rtx_open (hawk_t* hawk, hawk_oow_t xtnsize, hawk_rio_cbs_t* rio
 
 void hawk_rtx_close (hawk_rtx_t* rtx)
 {
-	hawk_rtx_ecb_t* ecb;
+	hawk_rtx_ecb_t* ecb, * ecb_next;
 	struct module_fini_ctx_t mfc;
 
 	mfc.limit = 0;
@@ -936,10 +939,14 @@ void hawk_rtx_close (hawk_rtx_t* rtx)
 	mfc.rtx = rtx;
 	hawk_rbt_walk (rtx->hawk->modtab, fini_module, &mfc);
 
-	for (ecb = rtx->ecb; ecb; ecb = ecb->next)
+	for (ecb = rtx->ecb; ecb != (hawk_rtx_ecb_t*)rtx; ecb = ecb_next)
 	{
-		if (ecb->close) ecb->close (rtx);
+		ecb_next = ecb->next;
+		if (ecb->close) ecb->close (rtx, ecb->ctx);
 	}
+
+	do { ecb = hawk_rtx_popecb(rtx); } while (ecb);
+	HAWK_ASSERT (rtx->ecb == (hawk_rtx_ecb_t*)rtx);
 
 	/* NOTE:
 	 *  the close callbacks are called before data in rtx
@@ -979,7 +986,9 @@ void hawk_rtx_setrio (hawk_rtx_t* rtx, const hawk_rio_cbs_t* rio)
 hawk_rtx_ecb_t* hawk_rtx_popecb (hawk_rtx_t* rtx)
 {
 	hawk_rtx_ecb_t* top = rtx->ecb;
-	if (top) rtx->ecb = top->next;
+	if (top == (hawk_rtx_ecb_t*)rtx) return HAWK_NULL;
+	rtx->ecb = top->next;
+	top->next = HAWK_NULL;
 	return top;
 }
 
@@ -2222,10 +2231,11 @@ static int run_block (hawk_rtx_t* rtx, hawk_nde_blk_t* nde)
 }
 
 #define ON_STATEMENT(rtx,nde) do { \
-	hawk_rtx_ecb_t* ecb; \
+	hawk_rtx_ecb_t* ecb, * ecb_next; \
 	if ((rtx)->hawk->haltall) (rtx)->exit_level = EXIT_ABORT; \
-	for (ecb = (rtx)->ecb; ecb; ecb = ecb->next) \
-		if (ecb->stmt) ecb->stmt (rtx, nde);  \
+	for (ecb = (rtx)->ecb; ecb != (hawk_rtx_ecb_t*)(rtx); ecb = ecb_next) \
+		ecb_next = ecb->next; \
+		if (ecb->stmt) ecb->stmt (rtx, nde, ecb->ctx);  \
 } while(0)
 
 static int run_statement (hawk_rtx_t* rtx, hawk_nde_t* nde)

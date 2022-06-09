@@ -1122,6 +1122,7 @@ static HAWK_INLINE int execute_hawk (int argc, hawk_bch_t* argv[])
 		HAWK_FV(.close,  HAWK_NULL),
 		HAWK_FV(.stmt,   on_statement),
 		HAWK_FV(.gblset, HAWK_NULL)
+		HAWK_FV(.ctx,    HAWK_NULL)
 	};
 #endif
 

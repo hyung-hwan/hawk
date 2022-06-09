@@ -98,11 +98,12 @@ int Sed::compile (Stream& sstream)
 	return hawk_sed_comp(this->sed, Sed::sin);
 }
 
-int Sed::execute (Stream& iostream)
+int Sed::execute (Stream& istream, Stream& ostream)
 {
 	HAWK_ASSERT (this->sed != HAWK_NULL);
 
-	this->iostream = &iostream;
+	this->istream = &istream;
+	this->ostream = &ostream;
 	return hawk_sed_exec(this->sed, Sed::xin, Sed::xout);
 }
 
@@ -170,6 +171,24 @@ void Sed::setError (hawk_errnum_t err, const hawk_oocs_t* args, const hawk_loc_t
 	hawk_sed_seterror (this->sed, loc, err, args);
 }
 
+void Sed::formatError (hawk_errnum_t code, const hawk_loc_t* loc, const hawk_bch_t* fmt, ...)
+{
+	HAWK_ASSERT (this->rtx != HAWK_NULL);
+	va_list ap;
+	va_start (ap, fmt);
+	hawk_sed_seterrbvfmt (this->sed, loc, code, fmt, ap);
+	va_end (ap);
+}
+
+void Sed::formatError (hawk_errnum_t code, const hawk_loc_t* loc, const hawk_uch_t* fmt, ...)
+{
+	HAWK_ASSERT (this->rtx != HAWK_NULL);
+	va_list ap;
+	va_start (ap, fmt);
+	hawk_sed_seterruvfmt (this->sed, loc, code, fmt, ap);
+	va_end (ap);
+}
+
 const hawk_ooch_t* Sed::getCompileId () const
 {
 	return hawk_sed_getcompid(this->sed);
@@ -229,11 +248,11 @@ hawk_ooi_t Sed::xin (hawk_sed_t* s, hawk_sed_io_cmd_t cmd, hawk_sed_io_arg_t* ar
 		switch (cmd)
 		{
 			case HAWK_SED_IO_OPEN:
-				return xtn->sed->iostream->open(iodata);
+				return xtn->sed->istream->open(iodata);
 			case HAWK_SED_IO_CLOSE:
-				return xtn->sed->iostream->close(iodata);
+				return xtn->sed->istream->close(iodata);
 			case HAWK_SED_IO_READ:
-				return xtn->sed->iostream->read(iodata, buf, len);
+				return xtn->sed->istream->read(iodata, buf, len);
 			default:
 				return -1;
 		}
@@ -255,11 +274,11 @@ hawk_ooi_t Sed::xout (hawk_sed_t* s, hawk_sed_io_cmd_t cmd, hawk_sed_io_arg_t* a
 		switch (cmd)
 		{
 			case HAWK_SED_IO_OPEN:
-				return xtn->sed->iostream->open(iodata);
+				return xtn->sed->ostream->open(iodata);
 			case HAWK_SED_IO_CLOSE:
-				return xtn->sed->iostream->close(iodata);
+				return xtn->sed->ostream->close(iodata);
 			case HAWK_SED_IO_WRITE:
-				return xtn->sed->iostream->write(iodata, dat, len);
+				return xtn->sed->ostream->write(iodata, dat, len);
 			default:
 				return -1;
 		}

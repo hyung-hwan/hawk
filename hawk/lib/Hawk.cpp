@@ -1546,13 +1546,13 @@ void Hawk::retrieveError (Run* run)
 	hawk_rtx_geterrinf (run->rtx, &errinf);
 }
 
-static void fini_xtn (hawk_t* hawk)
+static void fini_xtn (hawk_t* hawk, void* ctx)
 {
 	xtn_t* xtn = GET_XTN(hawk);
 	xtn->hawk->uponClosing ();
 }
 
-static void clear_xtn (hawk_t* hawk)
+static void clear_xtn (hawk_t* hawk, void* ctx)
 {
 	xtn_t* xtn = GET_XTN(hawk);
 	xtn->hawk->uponClearing ();

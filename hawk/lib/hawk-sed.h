@@ -307,7 +307,8 @@ typedef int (*hawk_sed_lformatter_t) (
  * called when an sed object is closed.
  */
 typedef void (*hawk_sed_ecb_close_t) (
-	hawk_sed_t* sed  /**< sed */
+	hawk_sed_t* sed,  /**< sed */
+	void*       ctx
 );
 
 /**
@@ -323,6 +324,7 @@ struct hawk_sed_ecb_t
 	 * called by hawk_sed_close().
 	 */
 	hawk_sed_ecb_close_t close;
+	void* ctx;
 
 	/* internal use only. don't touch this field */
 	hawk_sed_ecb_t* next;
@@ -610,21 +612,44 @@ HAWK_EXPORT void hawk_sed_seterrufmt (
 	...
 );
 
+
+HAWK_EXPORT void hawk_sed_seterrbvfmt (
+	hawk_sed_t*         sed,
+	const hawk_loc_t*   errloc,
+	hawk_errnum_t       errnum,
+	const hawk_bch_t*   errfmt,
+	va_list             ap
+);
+
+HAWK_EXPORT void hawk_sed_seterruvfmt (
+	hawk_sed_t*         sed,
+	const hawk_loc_t*   errloc,
+	hawk_errnum_t       errnum,
+	const hawk_uch_t*   errfmt,
+	va_list             ap
+);
+
+
+HAWK_EXPORT void hawk_sed_killecb (
+	hawk_sed_t*     sed,
+	hawk_sed_ecb_t* ecb
+);
+
 /**
  * The hawk_sed_popecb() function pops an sed event callback set
  * and returns the pointer to it. If no callback set can be popped,
  * it returns #HAWK_NULL.
  */
 HAWK_EXPORT hawk_sed_ecb_t* hawk_sed_popecb (
-	hawk_sed_t* sed /**< sed */
+	hawk_sed_t* sed
 );
 
 /**
  * The hawk_sed_pushecb() function register a runtime callback set.
  */
 HAWK_EXPORT void hawk_sed_pushecb (
-	hawk_sed_t*     sed, /**< sed */
-	hawk_sed_ecb_t* ecb  /**< callback set */
+	hawk_sed_t*     sed,
+	hawk_sed_ecb_t* ecb
 );
 
 /**

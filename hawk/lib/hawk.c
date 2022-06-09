@@ -156,6 +156,7 @@ int hawk_init (hawk_t* hawk, hawk_mmgr_t* mmgr, hawk_cmgr_t* cmgr, const hawk_pr
 	hawk->_gem.errloc.file = HAWK_NULL;
 	hawk->_gem.errstr = hawk_dfl_errstr;
 	hawk->haltall = 0;
+	hawk->ecb = (hawk_ecb_t*)hawk; /* use this as a sentinel node instead of HAWK_NULL */
 
 	/* progagate the primitive functions */
 	HAWK_ASSERT (prm           != HAWK_NULL);
@@ -271,7 +272,7 @@ oops:
 
 void hawk_fini (hawk_t* hawk)
 {
-	hawk_ecb_t* ecb;
+	hawk_ecb_t* ecb, * ecb_next;
 	int i;
 
 	hawk_clear (hawk);
@@ -285,8 +286,15 @@ void hawk_fini (hawk_t* hawk)
 		hawk->shuterr = shuterr;
 	}
 
-	for (ecb = hawk->ecb; ecb; ecb = ecb->next)
-		if (ecb->close) ecb->close (hawk);
+	for (ecb = hawk->ecb; ecb != (hawk_ecb_t*)hawk; ecb = ecb_next)
+	{
+		ecb_next = ecb->next;
+		if (ecb->close) ecb->close (hawk, ecb->ctx);
+	}
+
+	do { ecb = hawk_popecb(hawk); } while (ecb);
+	HAWK_ASSERT (hawk->ecb == (hawk_ecb_t*)hawk);
+
 
 	hawk_rbt_close (hawk->modtab);
 	hawk_htb_close (hawk->fnc.user);
@@ -346,12 +354,14 @@ static hawk_rbt_walk_t unload_module (hawk_rbt_t* rbt, hawk_rbt_pair_t* pair, vo
 
 void hawk_clear (hawk_t* hawk)
 {
-	hawk_ecb_t* ecb;
+	hawk_ecb_t* ecb, * ecb_next;
 
-	for (ecb = hawk->ecb; ecb; ecb = ecb->next)
+	for (ecb = hawk->ecb; ecb != (hawk_ecb_t*)hawk; ecb = ecb_next)
 	{
-		if (ecb->clear) ecb->clear (hawk);
+		ecb_next = ecb->next;
+		if (ecb->clear) ecb->clear (hawk, ecb->ctx);
 	}
+	/* hawk_clear() this doesn't pop event callbacks */
 
 	hawk->haltall = 0;
 
@@ -571,7 +581,9 @@ void hawk_haltall (hawk_t* hawk)
 hawk_ecb_t* hawk_popecb (hawk_t* hawk)
 {
 	hawk_ecb_t* top = hawk->ecb;
-	if (top) hawk->ecb = top->next;
+	if (top == (hawk_ecb_t*)hawk) return HAWK_NULL;
+	hawk->ecb = top->next;
+	top->next = HAWK_NULL;
 	return top;
 }
 

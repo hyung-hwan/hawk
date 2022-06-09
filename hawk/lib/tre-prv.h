@@ -150,6 +150,9 @@ SUBMATCH[4] = [defg]
 #define TRE_REGEX_T_FIELD value
 /*#define assert(x) HAWK_ASSERT(x)*/
 #define assert(x)
+#if defined(NULL)
+#	undef NULL
+#endif
 #define NULL HAWK_NULL
 
 #define tre_islower(c)  hawk_is_ooch_lower(c)

@@ -1082,7 +1082,8 @@ struct  hawk_mod_flt_tab_t
  * but before actual closing.
  */
 typedef void (*hawk_ecb_close_t) (
-	hawk_t* hawk  /**< hawk */
+	hawk_t* hawk,
+	void*   ctx
 );
 
 /**
@@ -1091,7 +1092,8 @@ typedef void (*hawk_ecb_close_t) (
  * calls this calllback function before it performs actual clearing.
  */
 typedef void (*hawk_ecb_clear_t) (
-	hawk_t* hawk  /**< hawk */
+	hawk_t* hawk, 
+	void*   ctx
 );
 
 /**
@@ -1113,6 +1115,9 @@ struct hawk_ecb_t
 	 */
 	hawk_ecb_clear_t clear;
 
+
+	void* ctx;
+
 	/* internal use only. don't touch this field */
 	hawk_ecb_t* next;
 };
@@ -1124,7 +1129,8 @@ struct hawk_ecb_t
  * called when the runtime context is closed.
  */
 typedef void (*hawk_rtx_ecb_close_t) (
-	hawk_rtx_t* rtx  /**< runtime context */
+	hawk_rtx_t* rtx,  /**< runtime context */
+	void*       ctx
 );
 
 
@@ -1134,7 +1140,8 @@ typedef void (*hawk_rtx_ecb_close_t) (
  */
 typedef void (*hawk_rtx_ecb_stmt_t) (
 	hawk_rtx_t* rtx, /**< runtime context */
-	hawk_nde_t* nde  /**< node */
+	hawk_nde_t* nde,  /**< node */
+	void*       ctx
 );
 
 /**
@@ -1145,8 +1152,9 @@ typedef void (*hawk_rtx_ecb_stmt_t) (
  */
 typedef void (*hawk_rtx_ecb_gblset_t) (
 	hawk_rtx_t*     rtx, /**< runtime context */
-	hawk_oow_t         idx, /**< global variable index */
-	hawk_val_t*     val  /**< value */
+	hawk_oow_t      idx, /**< global variable index */
+	hawk_val_t*     val, /**< value */
+	void*           ctx
 );
 
 /**
@@ -1173,6 +1181,8 @@ struct hawk_rtx_ecb_t
 	 * called when a global variable is set with a value.
 	 */
 	hawk_rtx_ecb_gblset_t gblset;
+
+	void* ctx;
 
 	/* internal use only. don't touch this field */
 	hawk_rtx_ecb_t* next;

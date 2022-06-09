@@ -52,7 +52,7 @@ public:
 	/// The Stream class is a abstract class for I/O operation during
 	/// execution.
 	///
-	class HAWK_EXPORT Stream
+	class HAWK_EXPORT Stream: public Uncopyable
 	{
 	public:
 		/// The Mode type defines I/O modes.
@@ -183,7 +183,7 @@ public:
 	/// streams defined through I/O handlers
 	/// \return 0 on success, -1 on failure
 	///
-	int execute (Stream& iostream);
+	int execute (Stream& istream, Stream& ostream);
 
 	///
 	/// The halt() function makes a request to break a running loop
@@ -246,6 +246,20 @@ public:
 		const hawk_loc_t*  loc = HAWK_NULL   ///< error location
 	);
 
+	void formatError (
+		hawk_errnum_t       code,
+		const hawk_loc_t*   loc,
+		const hawk_bch_t*   fmt,
+		...
+	);
+
+	void formatError (
+		hawk_errnum_t       code,
+		const hawk_loc_t*   loc,
+		const hawk_uch_t*   fmt,
+		...
+	);
+
 	const hawk_ooch_t* getCompileId () const;
 
 	const hawk_ooch_t* setCompileId (
@@ -289,12 +303,12 @@ protected:
 	hawk_errstr_t dflerrstr; 
 	/// Stream to read script from
 	Stream* sstream;
-	/// I/O stream to read data from and write output to.
-	Stream* iostream;
-
+	/// I/O stream to read data from
+	Stream* istream;
+	/// I/O stream to write output to
+	Stream* ostream;
 
 private:
-
 	static hawk_ooi_t sin (hawk_sed_t* s, hawk_sed_io_cmd_t cmd, hawk_sed_io_arg_t* arg, hawk_ooch_t* buf, hawk_oow_t len);
 	static hawk_ooi_t xin (hawk_sed_t* s, hawk_sed_io_cmd_t cmd, hawk_sed_io_arg_t* arg, hawk_ooch_t* buf, hawk_oow_t len);
 	static hawk_ooi_t xout (hawk_sed_t* s, hawk_sed_io_cmd_t cmd, hawk_sed_io_arg_t* arg, hawk_ooch_t* dat, hawk_oow_t len);
@@ -318,12 +332,13 @@ public:
 	class HAWK_EXPORT FileStream: public Stream
 	{
 	public:
-		FileStream (const hawk_ooch_t* infile = HAWK_NULL,
-		            const hawk_ooch_t* outfile = HAWK_NULL,
-		            hawk_cmgr_t* cmgr = HAWK_NULL): 
-			infile(infile), outfile(outfile), cmgr(cmgr) 
-		{
-		}
+		FileStream (const hawk_uch_t* file = HAWK_NULL,
+		            hawk_cmgr_t* cmgr = HAWK_NULL);
+
+		FileStream (const hawk_bch_t* file = HAWK_NULL,
+		            hawk_cmgr_t* cmgr = HAWK_NULL);
+
+		~FileStream ();
 
 		int open (Data& io);
 		int close (Data& io);
@@ -331,9 +346,14 @@ public:
 		hawk_ooi_t write (Data& io, const hawk_ooch_t* buf, hawk_oow_t len);
 
 	protected:
-		const hawk_ooch_t* infile;
-		const hawk_ooch_t* outfile;
-		hawk_cmgr_t*   cmgr;
+		enum
+		{
+			NAME_UCH,
+			NAME_BCH
+		} _type;
+		const void* _file;
+		hawk_ooch_t* file;
+		hawk_cmgr_t* cmgr;
 	};
 
 	///
@@ -342,8 +362,11 @@ public:
 	class HAWK_EXPORT StringStream: public Stream
 	{
 	public:
-		StringStream (const hawk_ooch_t* in);
-		StringStream (const hawk_ooch_t* in, hawk_oow_t len);
+		StringStream (hawk_cmgr_t* cmr = HAWK_NULL);
+		StringStream (const hawk_uch_t* in, hawk_cmgr_t* cmgr = HAWK_NULL);
+		StringStream (const hawk_uch_t* in, hawk_oow_t len, hawk_cmgr_t* cmgr = HAWK_NULL);
+		StringStream (const hawk_bch_t* in, hawk_cmgr_t* cmgr = HAWK_NULL);
+		StringStream (const hawk_bch_t* in, hawk_oow_t len, hawk_cmgr_t* cmgr = HAWK_NULL);
 		~StringStream ();
 
 		int open (Data& io);
@@ -351,22 +374,45 @@ public:
 		hawk_ooi_t read (Data& io, hawk_ooch_t* buf, hawk_oow_t len);
 		hawk_ooi_t write (Data& io, const hawk_ooch_t* buf, hawk_oow_t len);
 
-		const hawk_ooch_t* getInput (hawk_oow_t* len = HAWK_NULL) const;
 		const hawk_ooch_t* getOutput (hawk_oow_t* len = HAWK_NULL) const;
+		const hawk_bch_t* getOutputB (hawk_oow_t* len = HAWK_NULL);
+		const hawk_uch_t* getOutputU (hawk_oow_t* len = HAWK_NULL);
 
 	protected:
+		enum
+		{
+			STR_UCH,
+			STR_BCH
+		} _type;
+
 		struct
 		{
-			const hawk_ooch_t* ptr; 
-			const hawk_ooch_t* end; 
-			const hawk_ooch_t* cur;
+			hawk_sed_t* _sed;
+			const void* _str;
+			const void* _end;
+
+			hawk_ooch_t* str;
+			hawk_ooch_t* end;
+			const hawk_ooch_t* ptr;
 		} in;
 
 		struct
 		{
 			bool inited;
 			hawk_ooecs_t buf;
+			hawk_sed_t* _sed;
+			hawk_sed_ecb_t sed_ecb;
+
+			void* alt_buf;
+			hawk_sed_t* alt_sed;
 		} out;
+
+		hawk_cmgr_t* cmgr;
+		
+
+		static void on_sed_close (hawk_sed_t* sed, void* ctx);
+		void clearInputData ();
+		void clearOutputData (bool kill_ecb);
 	};
 };
 
