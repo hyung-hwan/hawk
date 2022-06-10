@@ -85,7 +85,7 @@ typedef struct hawk_skad_t hawk_skad_t;
 #define HAWK_IP4AD_LEN (4)
 #define HAWK_IP6AD_LEN (16)
 
-#include <hawk-pack1.h>
+#include <hawk-pac1.h>
 struct HAWK_PACKED hawk_ethad_t
 {
 	hawk_uint8_t v[HAWK_ETHAD_LEN]; 
@@ -103,7 +103,7 @@ struct HAWK_PACKED hawk_ip6ad_t
 	hawk_uint8_t v[HAWK_IP6AD_LEN]; 
 };
 typedef struct hawk_ip6ad_t hawk_ip6ad_t;
-#include <hawk-unpack.h>
+#include <hawk-upac.h>
 
 #if defined(__cplusplus)
 extern "C" {
