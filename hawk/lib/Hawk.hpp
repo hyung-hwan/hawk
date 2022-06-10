@@ -1443,6 +1443,9 @@ public:
 		depth_t id   ///< depth identifier
 	) const;
 
+	int setIncludeDirs (const hawk_uch_t* dirs);
+	int setIncludeDirs (const hawk_bch_t* dirs);
+
 	///
 	/// The addArgument() function adds an ARGV string as long as \a len 
 	/// characters pointed to 

@@ -30,6 +30,7 @@
 #include <hawk-std.h> // for hawk_stdmodXXX() functions
 #include "hawk-prv.h"
 #include <stdlib.h>
+#include <sys/stat.h>
 
 // TODO: remove the following definitions and find a way to share the similar definitions in std.c 
 #if defined(HAWK_ENABLE_LIBLTDL)
@@ -1321,12 +1322,30 @@ int HawkStd::SourceFile::open (Data& io)
 					hawk_copy_oocstr_unlimited ((hawk_ooch_t*)path + tmplen, ioname);
 				}
 			}
+
+			if (!hawk_stdplainfileexists((hawk_t*)io, path) && ((hawk_t*)io)->opt.includedirs.len > 0 && ioname[0] != '/')
+			{
+				const hawk_ooch_t* tmp;
+				tmp = hawk_stdgetfileindirs((hawk_t*)io, &((hawk_t*)io)->opt.includedirs, ioname);
+				if (tmp) path = tmp;
+			}
+
 			xpath = hawk_addsionamewithoochars((hawk_t*)io, path, hawk_count_oocstr(path));
 			if (dbuf) hawk_freemem ((hawk_t*)io, dbuf);
 		}
 		else
 		{
-			xpath = hawk_addsionamewithoochars((hawk_t*)io, ioname, hawk_count_oocstr(ioname));
+			const hawk_ooch_t* path;
+
+			path = ioname;
+			if (!hawk_stdplainfileexists((hawk_t*)io, path) && ((hawk_t*)io)->opt.includedirs.len > 0 && ioname[0] != '/')
+			{
+				const hawk_ooch_t* tmp;
+				tmp = hawk_stdgetfileindirs((hawk_t*)io, &((hawk_t*)io)->opt.includedirs, ioname);
+				if (tmp) path = tmp;
+			}
+
+			xpath = hawk_addsionamewithoochars((hawk_t*)io, path, hawk_count_oocstr(path));
 		}
 		if (!xpath) return -1;
 

@@ -544,8 +544,8 @@ static void print_usage (FILE* out, const hawk_bch_t* argv0)
 	fprintf (out, " --console-encoding   string       specify console encoding name\n");
 #endif
 
-	fprintf (out, " --includedirs                     specify directories to look for includes files in\n");
-	fprintf (out, " --modlibdirs                      specify directories to look for module files in\n");
+	fprintf (out, " -I/--includedirs     string       specify directories to look for includes files in\n");
+	fprintf (out, " --modlibdirs         string       specify directories to look for module files in\n");
 	fprintf (out, " --modern                          run in the modern mode(default)\n");
 	fprintf (out, " --classic                         run in the classic mode\n");
 
@@ -667,7 +667,7 @@ static int process_argv (int argc, hawk_bch_t* argv[], struct arg_t* arg)
 
 		{ ":script-encoding",  '\0' },
 		{ ":console-encoding", '\0' },
-		{ ":includedirs",          '\0' },
+		{ ":includedirs",      'I' },
 		{ ":modlibdirs",       '\0' },
 
 		{ "modern",            '\0' },
@@ -681,9 +681,9 @@ static int process_argv (int argc, hawk_bch_t* argv[], struct arg_t* arg)
 	static hawk_bcli_t opt = 
 	{
 #if defined(HAWK_BUILD_DEBUG)
-		"hDc:f:d:t:F:v:m:wX:",
+		"hDc:f:d:t:F:v:m:I:wX:",
 #else
-		"hDc:f:d:t:F:v:m:w",
+		"hDc:f:d:t:F:v:m:I:w",
 #endif
 		lng
 	};
@@ -826,6 +826,14 @@ static int process_argv (int argc, hawk_bch_t* argv[], struct arg_t* arg)
 				break;
 			}
 
+
+			case 'I':
+			{
+				arg->includedirs = opt.arg;
+				break;
+			}
+
+
 #if defined(HAWK_BUILD_DEBUG)
 			case 'X':
 			{
@@ -872,10 +880,6 @@ static int process_argv (int argc, hawk_bch_t* argv[], struct arg_t* arg)
 				else if (hawk_comp_bcstr(opt.lngopt, "classic", 0) == 0)
 				{
 					arg->classic = 1;
-				}
-				else if (hawk_comp_bcstr(opt.lngopt, "includedirs", 0) == 0)
-				{
-					arg->includedirs = opt.arg;
 				}
 				else if (hawk_comp_bcstr(opt.lngopt, "modlibdirs", 0) == 0)
 				{

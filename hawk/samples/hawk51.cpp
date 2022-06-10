@@ -277,6 +277,8 @@ static void print_usage (FILE* out, const hawk_bch_t* argv0)
 	fprintf (out, " -d deparsedfile   set the deparsing output file\n");
 	fprintf (out, " -o outputfile     set the console output file\n");
 	fprintf (out, " -F string         set a field separator(FS)\n");
+	fprintf (out, " -I string         set include directories\n");
+
 }
 
 struct cmdline_t
@@ -286,6 +288,7 @@ struct cmdline_t
 	hawk_bch_t* outf;
 	hawk_bch_t* outc;
 	hawk_bch_t* fs;
+	hawk_bch_t* incdirs;
 
 	HAWK::Hawk::Value* argv;
 	int argc;
@@ -295,7 +298,7 @@ static int handle_cmdline (MyHawk& awk, int argc, hawk_bch_t* argv[], cmdline_t*
 {
 	static hawk_bcli_t opt =
 	{
-		"hF:f:d:o:",
+		"hF:f:d:o:I:",
 		HAWK_NULL
 	};
 	hawk_bci_t c;
@@ -323,6 +326,10 @@ static int handle_cmdline (MyHawk& awk, int argc, hawk_bch_t* argv[], cmdline_t*
 
 			case 'o':
 				cmdline->outc = opt.arg;
+				break;
+
+			case 'I':
+				cmdline->incdirs = opt.arg;
 				break;
 
 			case '?':
@@ -417,6 +424,7 @@ static int hawk_main (MyHawk& hawk, int argc, hawk_bch_t* argv[])
 
 	if ((n = handle_cmdline(hawk, argc, argv, &cmdline)) <= 0) return n;
 
+	if (cmdline.incdirs) hawk.setIncludeDirs (cmdline.incdirs);
 	MyHawk::Source* in, * out;
 	MyHawk::SourceString in_str(cmdline.ins);
 	MyHawk::SourceFile in_file(cmdline.inf); 

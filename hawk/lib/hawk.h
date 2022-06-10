@@ -1480,6 +1480,17 @@ struct hawk_nrflt_t
 };
 typedef struct hawk_nrflt_t hawk_nrflt_t;
 
+/* sbuf ids */
+enum hawk_sbuf_id_t
+{
+	HAWK_SBUF_ID_TMP_1 = 0,
+	HAWK_SBUF_ID_TMP_2 = 1,
+	HAWK_SBUF_ID_TMP_3 = 2,
+	/* more? */
+	HAWK_SBUF_COUNT
+};
+typedef enum hawk_sbuf_id_t hawk_sbuf_id_t;
+
 #if defined(__cplusplus)
 extern "C" {
 #endif
@@ -2140,6 +2151,43 @@ HAWK_EXPORT hawk_ooi_t hawk_logbfmt (
 #	define hawk_logfmtv hawk_logbfmtv
 #	define hawk_logfmt hawk_logbfmt
 #endif
+
+
+/* ----------------------------------------------------------------------- */
+
+HAWK_EXPORT int hawk_copyoocstrtosbuf (
+	hawk_t*            hawk,
+	const hawk_ooch_t* str,
+	hawk_sbuf_id_t     id
+);
+
+HAWK_EXPORT int hawk_concatoocstrtosbuf (
+	hawk_t*            hawk,
+	const hawk_ooch_t* str,
+	hawk_sbuf_id_t     id
+);
+
+
+HAWK_EXPORT int hawk_copyoocharstosbuf (
+	hawk_t*            hawk,
+	const hawk_ooch_t* ptr,
+	hawk_oow_t         len,
+	hawk_sbuf_id_t     id
+);
+
+HAWK_EXPORT int hawk_concatoocharstosbuf (
+	hawk_t*            hawk,
+	const hawk_ooch_t* ptr,
+	hawk_oow_t         len,
+	hawk_sbuf_id_t     id
+);
+
+HAWK_EXPORT int hawk_concatoochartosbuf (
+	hawk_t*            hawk,
+	hawk_ooch_t        ch,
+	hawk_oow_t         count,
+	hawk_sbuf_id_t     id
+);
 
 /* ----------------------------------------------------------------------- */
 

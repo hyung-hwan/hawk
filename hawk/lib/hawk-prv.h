@@ -203,6 +203,14 @@ struct hawk_tok_t
 	hawk_loc_t    loc;
 };
 
+struct hawk_sbuf_t
+{
+	hawk_ooch_t* ptr;
+	hawk_oow_t   len;
+	hawk_oow_t   capa;
+};
+typedef struct hawk_sbuf_t hawk_sbuf_t;
+
 struct hawk_t
 {
 	/* exposed fields via hawk_alt_t */
@@ -237,6 +245,9 @@ struct hawk_t
 		hawk_oow_t log_mask;
 		hawk_oow_t log_maxcapa;
 	} opt;
+
+	/* some temporary workspace */
+	hawk_sbuf_t sbuf[HAWK_SBUF_COUNT];	
 
 	/* parse tree */
 	hawk_tree_t tree;

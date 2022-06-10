@@ -1904,6 +1904,36 @@ void Hawk::setMaxDepth (depth_t id, hawk_oow_t depth)
 	hawk_setopt (this->hawk, (hawk_opt_t)id, &depth);
 }
 
+int Hawk::setIncludeDirs (const hawk_uch_t* dirs)
+{
+#if defined(HAWK_OOCH_IS_UCH)
+	return hawk_setopt(this->hawk, HAWK_OPT_INCLUDEDIRS, dirs);
+#else
+	hawk_ooch_t* tmp;
+	tmp = hawk_duputobcstr(hawk, dirs, HAWK_NULL);
+	if (HAWK_UNLIKELY(!tmp)) return -1;
+
+	int n = hawk_setopt(hawk, HAWK_OPT_INCLUDEDIRS, tmp);
+	hawk_freemem (hawk, tmp);
+	return n;
+#endif
+}
+
+int Hawk::setIncludeDirs (const hawk_bch_t* dirs)
+{
+#if defined(HAWK_OOCH_IS_UCH)
+	hawk_ooch_t* tmp;
+	tmp = hawk_dupbtoucstr(hawk, dirs, HAWK_NULL, 1);
+	if (HAWK_UNLIKELY(!tmp)) return -1;
+
+	int n = hawk_setopt(hawk, HAWK_OPT_INCLUDEDIRS, tmp);
+	hawk_freemem (hawk, tmp);
+	return n;
+#else
+	return hawk_setopt(this->hawk, HAWK_OPT_INCLUDEDIRS, dirs);
+#endif
+}
+
 int Hawk::dispatch_function (Run* run, const hawk_fnc_info_t* fi)
 {
 	bool has_ref_arg = false;

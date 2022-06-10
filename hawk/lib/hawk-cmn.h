@@ -844,14 +844,14 @@ typedef struct hawk_cmgr_t hawk_cmgr_t;
 
 typedef hawk_oow_t (*hawk_cmgr_bctouc_t) (
 	const hawk_bch_t*   mb, 
-	hawk_oow_t         size,
+	hawk_oow_t          size,
 	hawk_uch_t*         wc
 );
 
 typedef hawk_oow_t (*hawk_cmgr_uctobc_t) (
 	hawk_uch_t    wc,
 	hawk_bch_t*   mb,
-	hawk_oow_t   size
+	hawk_oow_t    size
 );
 
 /**

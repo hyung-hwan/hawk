@@ -260,6 +260,18 @@ HAWK_EXPORT void* hawk_stdmodgetsym (
 	const hawk_ooch_t*     name
 );
 
+
+HAWK_EXPORT int hawk_stdplainfileexists (
+	hawk_t*                hawk,
+     const hawk_ooch_t*     file
+);
+
+HAWK_EXPORT const hawk_ooch_t* hawk_stdgetfileindirs (
+	hawk_t*                hawk, 
+	const hawk_oocs_t*     dirs,
+	const hawk_ooch_t*     file
+);
+
 /* ------------------------------------------------------------------------- */
 
 HAWK_EXPORT hawk_mmgr_t* hawk_get_sys_mmgr (
