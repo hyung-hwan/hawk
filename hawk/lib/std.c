@@ -112,6 +112,8 @@ typedef struct xtn_t
 					const hawk_uch_t* end;
 				} ucs;
 			} u;
+
+			hawk_ooecs_t tbuf;
 		} in;
 
 		struct
@@ -376,8 +378,8 @@ void* hawk_stdmodopen (hawk_t* hawk, const hawk_mod_spec_t* spec)
 		hawk_ooch_t* modpath;
 		const hawk_ooch_t* tmp[6];
 		int count;
-		static hawk_ooch_t ds[][2] = { { '\\', '\0' }, { '/', '\0' } }
-								    false 0              treu 1
+		static hawk_ooch_t ds[][2] = { { '\\', '\0' }, { '/', '\0' } };
+
 		count = 0;
 		if (spec->libdir) 
 		{
@@ -933,7 +935,7 @@ hawk_t* hawk_openstd (hawk_oow_t xtnsize, hawk_errnum_t* errnum)
 	return hawk_openstdwithmmgr(&sys_mmgr, xtnsize, hawk_get_cmgr_by_id(HAWK_CMGR_UTF8), errnum);
 }
 
-static void fini_xtn (hawk_t* hawk)
+static void fini_xtn (hawk_t* hawk, void* ctx)
 {
 	xtn_t* xtn = GET_XTN(hawk);
 	if (xtn->stdmod_up)
@@ -942,11 +944,13 @@ static void fini_xtn (hawk_t* hawk)
 		xtn->stdmod_up = 0;
 	}
 
+	hawk_ooecs_fini (&xtn->s.in.tbuf);
+
 	if ((xtn->log.fd_flag & LOGFD_OPENED_HERE) && xtn->log.fd >= 0) close (xtn->log.fd);
 	reset_log_to_default (xtn);
 }
 
-static void clear_xtn (hawk_t* hawk)
+static void clear_xtn (hawk_t* hawk, void* ctx)
 {
 	/* nothing to do */
 }
@@ -989,6 +993,7 @@ hawk_t* hawk_openstdwithmmgr (hawk_mmgr_t* mmgr, hawk_oow_t xtnsize, hawk_cmgr_t
 	/* initialize extension */
 	xtn = GET_XTN(hawk);
 
+	hawk_ooecs_init (&xtn->s.in.tbuf, hawk_getgem(hawk), 0);
 	reset_log_to_default (xtn);
 
 	/* add intrinsic global variables and functions */
@@ -1010,6 +1015,7 @@ hawk_t* hawk_openstdwithmmgr (hawk_mmgr_t* mmgr, hawk_oow_t xtnsize, hawk_cmgr_t
 
 	xtn->ecb.close = fini_xtn;
 	xtn->ecb.clear = clear_xtn;
+	xtn->ecb.ctx = HAWK_NULL;
 	hawk_pushecb (hawk, &xtn->ecb);
 
 	return hawk;
@@ -1221,6 +1227,63 @@ static int fill_sio_arg_unique_id (hawk_t* hawk, hawk_sio_arg_t* arg, const hawk
 #endif
 }
 
+static int plain_file_exists (hawk_t* hawk, const hawk_ooch_t* file)
+{
+#if defined(_WIN32)
+	DWORD attr;
+
+	attr = GetFileAttributes(file);
+	if (attr == INVALID_FILE_ATTRIBUTES) return 0;
+	if (attr & FILE_ATTRIBUTE_DIRECTORY) return 0; /* not a plain file. it's a directory */
+	return 1;
+#else
+
+	struct stat st;
+#if defined(HAWK_OOCH_IS_UCH)
+	hawk_bch_t* tmp;
+	int n;
+	tmp = hawk_duputobcstr(hawk, file, HAWK_NULL);
+	if (!tmp) return 0;
+	n = stat(tmp, &st);
+	hawk_freemem (hawk, tmp);
+	if (n == -1) return 0;
+#else
+	if (stat(file, &st) == -1) return 0;
+#endif
+	if (S_ISDIR(st.st_mode)) return 0; /* not a plain file, it's a directory */
+	return 1;
+#endif
+}
+
+static const hawk_ooch_t* get_file_in_dirs_noseterr (hawk_t* hawk, const hawk_oocs_t* dirs, const hawk_ooch_t* file)
+{
+	xtn_t* xtn = GET_XTN(hawk);
+	const hawk_ooch_t* ptr = dirs->ptr;
+	const hawk_ooch_t* dirend = dirs->ptr + dirs->len;
+	const hawk_ooch_t* colon, * endptr;
+
+	while (1)
+	{
+		colon = hawk_find_oochar_in_oocstr(ptr, ':');
+		endptr = colon? colon: dirend;
+
+		hawk_ooecs_clear (&xtn->s.in.tbuf);
+		if (hawk_ooecs_ncat(&xtn->s.in.tbuf, ptr, endptr - ptr) == (hawk_oow_t)-1 ||
+		    hawk_ooecs_ccat(&xtn->s.in.tbuf, '/') == (hawk_oow_t)-1 ||
+		    hawk_ooecs_cat(&xtn->s.in.tbuf, file) == (hawk_oow_t)-1) break; /* the failure in hawk_ooecs_XXX functions still sets the error code */
+
+		if (plain_file_exists(hawk, HAWK_OOECS_PTR(&xtn->s.in.tbuf)))
+		{
+			return HAWK_OOECS_PTR(&xtn->s.in.tbuf);
+		}
+
+		if (!colon) break;
+		ptr = colon + 1;
+	}
+
+	return HAWK_NULL;
+}
+
 static hawk_ooi_t sf_in_open (hawk_t* hawk, hawk_sio_arg_t* arg, xtn_t* xtn)
 {
 	if (arg->prev == HAWK_NULL)
@@ -1257,7 +1320,7 @@ static hawk_ooi_t sf_in_open (hawk_t* hawk, hawk_sio_arg_t* arg, xtn_t* xtn)
 				const hawk_ooch_t* base;
 
 				base = hawk_get_base_name_oocstr(outer);
-				if (base != outer && arg->name[0] != HAWK_T('/'))
+				if (base != outer && arg->name[0] != '/')
 				{
 					hawk_oow_t tmplen, totlen, dirlen;
 
@@ -1276,12 +1339,29 @@ static hawk_ooi_t sf_in_open (hawk_t* hawk, hawk_sio_arg_t* arg, xtn_t* xtn)
 				}
 			}
 
+			if (!plain_file_exists(hawk, path) && hawk->opt.includedirs.len > 0 && arg->name[0] != '/')
+			{
+				const hawk_ooch_t* tmp;
+				tmp = get_file_in_dirs_noseterr(hawk, &hawk->opt.includedirs, arg->name);
+				if (tmp) path = tmp;
+			}
+
 			xpath = hawk_addsionamewithoochars(hawk, path, hawk_count_oocstr(path));
 			if (dbuf) hawk_freemem (hawk, dbuf);
 		}
 		else
 		{
-			xpath = hawk_addsionamewithoochars(hawk, arg->name, hawk_count_oocstr(arg->name));
+			const hawk_ooch_t* path;
+
+			path = arg->name;
+			if (!plain_file_exists(hawk, path) && hawk->opt.includedirs.len > 0 && arg->name[0] != '/')
+			{
+				const hawk_ooch_t* tmp;
+				tmp = get_file_in_dirs_noseterr(hawk, &hawk->opt.includedirs, arg->name);
+				if (tmp) path = tmp;
+			}
+
+			xpath = hawk_addsionamewithoochars(hawk, path, hawk_count_oocstr(path));
 		}
 		if (!xpath) goto fail;
 
@@ -1298,7 +1378,7 @@ static hawk_ooi_t sf_in_open (hawk_t* hawk, hawk_sio_arg_t* arg, xtn_t* xtn)
 		arg->path = xpath;
 		/* TODO: use the system handle(file descriptor) instead of the path? */
 		/*syshnd = hawk_sio_gethnd(arg->handle);*/
-		fill_sio_arg_unique_id(hawk, arg, xpath); /* ignore failure */
+		fill_sio_arg_unique_id (hawk, arg, xpath); /* ignore failure */
 
 		return 0;
 	}
@@ -1598,7 +1678,6 @@ static hawk_ooi_t sf_out (hawk_t* hawk, hawk_sio_cmd_t cmd, hawk_sio_arg_t* arg,
 
 			break;
 		}
-
 
 		case HAWK_SIO_CMD_CLOSE:
 		{
@@ -2551,7 +2630,7 @@ static hawk_ooi_t hawk_rio_console (hawk_rtx_t* rtx, hawk_rio_cmd_t cmd, hawk_ri
 	return -1;
 }
 
-static void fini_rxtn (hawk_rtx_t* rtx)
+static void fini_rxtn (hawk_rtx_t* rtx, void* ctx)
 {
 	rxtn_t* rxtn = GET_RXTN(rtx);
 	/*xtn_t* xtn = (xtn_t*)GET_XTN(hawk_rtx_gethawk(rtx));*/

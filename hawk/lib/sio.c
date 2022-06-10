@@ -103,6 +103,7 @@ hawk_sio_t* hawk_sio_openstd (hawk_gem_t* gem, hawk_oow_t xtnsize, hawk_sio_std_
 	return sio;
 }
 
+
 void hawk_sio_close (hawk_sio_t* sio)
 {
 	hawk_sio_fini (sio);

@@ -49,13 +49,13 @@ pkginclude_HEADERS = \
 	hawk-htb.h \
 	hawk-map.h \
 	hawk-rbt.h \
-	hawk-pack1.h \
+	hawk-pac1.h \
 	hawk-skad.h \
 	hawk-utl.h \
 	hawk-sed.h \
 	hawk-std.h \
 	hawk-tre.h \
-	hawk-unpack.h \
+	hawk-upac.h \
 	hawk-xma.h
 
 

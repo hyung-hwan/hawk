@@ -230,8 +230,8 @@ libhawk_la_DEPENDENCIES = $(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
 	$(am__append_12) $(am__append_13) $(am__append_14)
 am__libhawk_la_SOURCES_DIST = hawk.h hawk-arr.h hawk-chr.h hawk-cmn.h \
 	hawk-dir.h hawk-ecs.h hawk-fmt.h hawk-gem.h hawk-htb.h \
-	hawk-map.h hawk-rbt.h hawk-pack1.h hawk-skad.h hawk-utl.h \
-	hawk-sed.h hawk-std.h hawk-tre.h hawk-unpack.h hawk-xma.h \
+	hawk-map.h hawk-rbt.h hawk-pac1.h hawk-skad.h hawk-utl.h \
+	hawk-sed.h hawk-std.h hawk-tre.h hawk-upac.h hawk-xma.h \
 	Hawk.hpp Hawk-Sed.hpp arr.c chr.c dir.c ecs-imp.h ecs.c \
 	err-prv.h err.c err-sys.c fmt-imp.h fmt.c fnc-prv.h fnc.c \
 	htb.c gem.c gem-nwif.c gem-nwif2.c hawk-prv.h hawk.c \
@@ -390,8 +390,8 @@ am__can_run_installinfo = \
   esac
 am__pkginclude_HEADERS_DIST = hawk.h hawk-arr.h hawk-chr.h hawk-cmn.h \
 	hawk-dir.h hawk-ecs.h hawk-fmt.h hawk-gem.h hawk-htb.h \
-	hawk-map.h hawk-rbt.h hawk-pack1.h hawk-skad.h hawk-utl.h \
-	hawk-sed.h hawk-std.h hawk-tre.h hawk-unpack.h hawk-xma.h \
+	hawk-map.h hawk-rbt.h hawk-pac1.h hawk-skad.h hawk-utl.h \
+	hawk-sed.h hawk-std.h hawk-tre.h hawk-upac.h hawk-xma.h \
 	Hawk.hpp Hawk-Sed.hpp
 HEADERS = $(pkginclude_HEADERS)
 am__tagged_files = $(HEADERS) $(SOURCES) $(TAGS_FILES) $(LISP) \
@@ -601,8 +601,8 @@ CXXFLAGS_ALL_COMMON =
 @WIN32_TRUE@	$(am__append_1) $(am__append_2)
 pkginclude_HEADERS = hawk.h hawk-arr.h hawk-chr.h hawk-cmn.h \
 	hawk-dir.h hawk-ecs.h hawk-fmt.h hawk-gem.h hawk-htb.h \
-	hawk-map.h hawk-rbt.h hawk-pack1.h hawk-skad.h hawk-utl.h \
-	hawk-sed.h hawk-std.h hawk-tre.h hawk-unpack.h hawk-xma.h \
+	hawk-map.h hawk-rbt.h hawk-pac1.h hawk-skad.h hawk-utl.h \
+	hawk-sed.h hawk-std.h hawk-tre.h hawk-upac.h hawk-xma.h \
 	$(am__append_7)
 pkglib_LTLIBRARIES = libhawk.la $(am__append_15)
 libhawk_la_SOURCES = $(pkginclude_HEADERS) arr.c chr.c dir.c ecs-imp.h \

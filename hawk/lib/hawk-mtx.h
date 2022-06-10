@@ -69,13 +69,13 @@ typedef struct hawk_mtx_t hawk_mtx_t;
 			typedef unsigned long hawk_mtx_hnd_t;
 #		endif
 #	else
-#		include <hawk-pack1.h>
+#		include <hawk-pac1.h>
 		struct hawk_mtx_hnd_t
 		{
 			hawk_uint8_t b[HAWK_SIZEOF_PTHREAD_MUTEX_T];
 		};
 		typedef struct hawk_mtx_hnd_t hawk_mtx_hnd_t;
-#		include <hawk-unpack.h>
+#		include <hawk-upac.h>
 #	endif
 
 #endif

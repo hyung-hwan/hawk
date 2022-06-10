@@ -544,7 +544,7 @@ static void print_usage (FILE* out, const hawk_bch_t* argv0)
 	fprintf (out, " --console-encoding   string       specify console encoding name\n");
 #endif
 
-	fprintf (out, " --includedirs                         specify directories to look for includes files in\n");
+	fprintf (out, " --includedirs                     specify directories to look for includes files in\n");
 	fprintf (out, " --modlibdirs                      specify directories to look for module files in\n");
 	fprintf (out, " --modern                          run in the modern mode(default)\n");
 	fprintf (out, " --classic                         run in the classic mode\n");
