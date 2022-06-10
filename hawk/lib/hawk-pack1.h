@@ -24,7 +24,9 @@
     THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#if defined(__GNUC__)
+#if defined(__GNUC__) && (__GNUC__ >= 4)
+#	pragma pack(push,1)
+#elif defined(__GNUC__)
 #	pragma pack(1)
 #elif defined(__HP_aCC) || defined(__HP_cc)
 #	pragma PACK 1

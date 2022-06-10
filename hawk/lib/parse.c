@@ -864,7 +864,7 @@ static int begin_include (hawk_t* hawk, int once)
 	hawk->parse.pragma.trait = (hawk->opt.trait & (HAWK_IMPLICIT | HAWK_MULTILINESTR | HAWK_STRIPRECSPC | HAWK_STRIPSTRSPC));
 	*/
 
-	/* i update the current pointer after opening is successful */
+	/* update the current pointer after opening is successful */
 	hawk->sio.inp = arg;
 	hawk->parse.depth.incl++;
 
