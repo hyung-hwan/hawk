@@ -173,7 +173,7 @@ void Sed::setError (hawk_errnum_t err, const hawk_oocs_t* args, const hawk_loc_t
 
 void Sed::formatError (hawk_errnum_t code, const hawk_loc_t* loc, const hawk_bch_t* fmt, ...)
 {
-	HAWK_ASSERT (this->rtx != HAWK_NULL);
+	HAWK_ASSERT (this->sed != HAWK_NULL);
 	va_list ap;
 	va_start (ap, fmt);
 	hawk_sed_seterrbvfmt (this->sed, loc, code, fmt, ap);
@@ -182,7 +182,7 @@ void Sed::formatError (hawk_errnum_t code, const hawk_loc_t* loc, const hawk_bch
 
 void Sed::formatError (hawk_errnum_t code, const hawk_loc_t* loc, const hawk_uch_t* fmt, ...)
 {
-	HAWK_ASSERT (this->rtx != HAWK_NULL);
+	HAWK_ASSERT (this->sed != HAWK_NULL);
 	va_list ap;
 	va_start (ap, fmt);
 	hawk_sed_seterruvfmt (this->sed, loc, code, fmt, ap);
