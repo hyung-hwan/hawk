@@ -148,7 +148,6 @@ libhawk_la_SOURCES += \
 	sio.c \
 	syscall.h \
 	tio.c \
-	std-prv.h \
 	std.c  \
 	std-sed.c
 

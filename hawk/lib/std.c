@@ -25,8 +25,7 @@
  */
 
 #include "hawk-prv.h"
-#include "std-prv.h"
-
+#include <hawk-std.h>
 #include <hawk-pio.h>
 #include <hawk-sio.h>
 

@@ -244,10 +244,10 @@ am__libhawk_la_SOURCES_DIST = hawk.h hawk-arr.h hawk-chr.h hawk-cmn.h \
 	uch-case.h utf16.c utf8.c utl-ass.c utl-rnd.c utl-sort.c \
 	utl-str.c utl-sys.c utl.c val-prv.h val.c xma.c hawk-cli.h \
 	hawk-fio.h hawk-mtx.h hawk-pio.h hawk-sio.h hawk-tio.h \
-	cli-imp.h cli.c fio.c mtx.c pio.c sio.c syscall.h tio.c \
-	std-prv.h std.c std-sed.c Hawk.cpp Std.cpp Sed.cpp Std-Sed.cpp \
-	mod-hawk.c mod-hawk.h mod-math.c mod-math.h mod-str.c \
-	mod-str.h mod-sys.c mod-sys.h
+	cli-imp.h cli.c fio.c mtx.c pio.c sio.c syscall.h tio.c std.c \
+	std-sed.c Hawk.cpp Std.cpp Sed.cpp Std-Sed.cpp mod-hawk.c \
+	mod-hawk.h mod-math.c mod-math.h mod-str.c mod-str.h mod-sys.c \
+	mod-sys.h
 am__objects_1 =
 am__objects_2 = $(am__objects_1)
 @ENABLE_CXX_TRUE@am__objects_3 = libhawk_la-Hawk.lo libhawk_la-Std.lo \
@@ -617,8 +617,8 @@ libhawk_la_SOURCES = $(pkginclude_HEADERS) arr.c chr.c dir.c ecs-imp.h \
 	uch-case.h utf16.c utf8.c utl-ass.c utl-rnd.c utl-sort.c \
 	utl-str.c utl-sys.c utl.c val-prv.h val.c xma.c hawk-cli.h \
 	hawk-fio.h hawk-mtx.h hawk-pio.h hawk-sio.h hawk-tio.h \
-	cli-imp.h cli.c fio.c mtx.c pio.c sio.c syscall.h tio.c \
-	std-prv.h std.c std-sed.c $(am__append_8) $(am__append_9)
+	cli-imp.h cli.c fio.c mtx.c pio.c sio.c syscall.h tio.c std.c \
+	std-sed.c $(am__append_8) $(am__append_9)
 libhawk_la_CPPFLAGS = $(CPPFLAGS_ALL_COMMON) $(CPPFLAGS_PFMOD) \
 	$(am__append_3)
 libhawk_la_CFLAGS = $(CFLAGS_ALL_COMMON)
