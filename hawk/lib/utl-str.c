@@ -34,36 +34,6 @@
  *  utobcstr -> ucstr to bcstr
  */
 
-int hawk_equal_uchars (const hawk_uch_t* str1, const hawk_uch_t* str2, hawk_oow_t len)
-{
-	hawk_oow_t i;
-
-	/* [NOTE] you should call this function after having ensured that
-	 *       str1 and str2 are in the same length */
-
-	for (i = 0; i < len; i++)
-	{
-		if (str1[i] != str2[i]) return 0;
-	}
-
-	return 1;
-}
-
-int hawk_equal_bchars (const hawk_bch_t* str1, const hawk_bch_t* str2, hawk_oow_t len)
-{
-	hawk_oow_t i;
-
-	/* [NOTE] you should call this function after having ensured that
-	 *        str1 and str2 are in the same length */
-
-	for (i = 0; i < len; i++)
-	{
-		if (str1[i] != str2[i]) return 0;
-	}
-
-	return 1;
-}
-
 int hawk_comp_uchars (const hawk_uch_t* str1, hawk_oow_t len1, const hawk_uch_t* str2, hawk_oow_t len2, int ignorecase)
 {
 	hawk_uchu_t c1, c2;
@@ -146,7 +116,7 @@ int hawk_comp_bchars (const hawk_bch_t* str1, hawk_oow_t len1, const hawk_bch_t*
 
 int hawk_comp_ucstr (const hawk_uch_t* str1, const hawk_uch_t* str2, int ignorecase)
 {
-	if  (ignorecase)
+	if (ignorecase)
 	{
 		while (hawk_to_uch_lower(*str1) == hawk_to_uch_lower(*str2))
 		{
@@ -190,7 +160,6 @@ int hawk_comp_bcstr (const hawk_bch_t* str1, const hawk_bch_t* str2, int ignorec
 
 		return ((hawk_bchu_t)*str1 > (hawk_bchu_t)*str2)? 1: -1;
 	}
-
 }
 
 int hawk_comp_ucstr_limited (const hawk_uch_t* str1, const hawk_uch_t* str2, hawk_oow_t maxlen, int ignorecase)
@@ -245,31 +214,6 @@ int hawk_comp_bcstr_limited (const hawk_bch_t* str1, const hawk_bch_t* str2, haw
 	}
 }
 
-int hawk_comp_ucstr_bcstr (const hawk_uch_t* str1, const hawk_bch_t* str2, int ignorecase)
-{
-	if (ignorecase)
-	{
-		while (hawk_to_uch_lower(*str1) == hawk_to_bch_lower(*str2))
- 		{
-			if (*str1 == '\0') return 0;
-			str1++; str2++;
-		}
-
-		return ((hawk_uchu_t)hawk_to_uch_lower(*str1) > (hawk_bchu_t)hawk_to_bch_lower(*str2))? 1: -1;
-	}
-	else
-	{
-		while (*str1 == *str2)
-		{
-			if (*str1 == '\0') return 0;
-			str1++; str2++;
-		}
-
-		return ((hawk_uchu_t)*str1 > (hawk_bchu_t)*str2)? 1: -1;
-	}
-}
-
-
 int hawk_comp_uchars_ucstr (const hawk_uch_t* str1, hawk_oow_t len, const hawk_uch_t* str2, int ignorecase)
 {
 	/* for "abc\0" of length 4 vs "abc", the fourth character
@@ -302,36 +246,12 @@ int hawk_comp_uchars_ucstr (const hawk_uch_t* str1, hawk_oow_t len, const hawk_u
 	}
 }
 
-int hawk_comp_uchars_bcstr (const hawk_uch_t* str1, hawk_oow_t len, const hawk_bch_t* str2, int ignorecase)
-{
-	if (ignorecase)
-	{
-		const hawk_uch_t* end = str1 + len;
-		hawk_uch_t c1;
-		hawk_bch_t c2;
-		while (str1 < end && *str2 != '\0') 
-		{
-			c1 = hawk_to_uch_lower(*str1);
-			c2 = hawk_to_bch_lower(*str2);
-			if (c1 != c2) return ((hawk_uchu_t)c1 > (hawk_bchu_t)c2)? 1: -1;
-			str1++; str2++;
-		}
-		return (str1 < end)? 1: (*str2 == '\0'? 0: -1);
-	}
-	else
-	{
-		const hawk_uch_t* end = str1 + len;
-		while (str1 < end && *str2 != '\0') 
-		{
-			if (*str1 != *str2) return ((hawk_uchu_t)*str1 > (hawk_bchu_t)*str2)? 1: -1;
-			str1++; str2++;
-		}
-		return (str1 < end)? 1: (*str2 == '\0'? 0: -1);
-	}
-}
-
 int hawk_comp_bchars_bcstr (const hawk_bch_t* str1, hawk_oow_t len, const hawk_bch_t* str2, int ignorecase)
 {
+	/* for "abc\0" of length 4 vs "abc", the fourth character
+	 * of the first string is equal to the terminating null of
+	 * the second string. the first string is still considered 
+	 * bigger */
 	if (ignorecase)
 	{
 		const hawk_bch_t* end = str1 + len;
@@ -358,35 +278,96 @@ int hawk_comp_bchars_bcstr (const hawk_bch_t* str1, hawk_oow_t len, const hawk_b
 	}
 }
 
-int hawk_comp_bchars_ucstr (const hawk_bch_t* str1, hawk_oow_t len, const hawk_uch_t* str2, int ignorecase)
+/* ------------------------------------------------------------------------ */
+hawk_oow_t hawk_concat_uchars_to_ucstr (hawk_uch_t* buf, hawk_oow_t bsz, const hawk_uch_t* str, hawk_oow_t len)
 {
-	if (ignorecase)
+	hawk_uch_t* p, * p2;
+	const hawk_uch_t* end;
+	hawk_oow_t blen;
+
+	blen = hawk_count_ucstr(buf);
+	if (blen >= bsz) return blen; /* something wrong */
+
+	p = buf + blen;
+	p2 = buf + bsz - 1;
+
+	end = str + len;
+
+	while (p < p2) 
 	{
-		const hawk_bch_t* end = str1 + len;
-		hawk_bch_t c1;
-		hawk_uch_t c2;
-		while (str1 < end && *str2 != '\0') 
-		{
-			c1 = hawk_to_bch_lower(*str1);
-			c2 = hawk_to_uch_lower(*str2);
-			if (c1 != c2) return ((hawk_bchu_t)c1 > (hawk_uchu_t)c2)? 1: -1;
-			str1++; str2++;
-		}
-		return (str1 < end)? 1: (*str2 == '\0'? 0: -1);
+		if (str >= end) break;
+		*p++ = *str++;
 	}
-	else
-	{
-		const hawk_bch_t* end = str1 + len;
-		while (str1 < end && *str2 != '\0') 
-		{
-			if (*str1 != *str2) return ((hawk_bchu_t)*str1 > (hawk_uchu_t)*str2)? 1: -1;
-			str1++; str2++;
-		}
-		return (str1 < end)? 1: (*str2 == '\0'? 0: -1);
-	}
+
+	if (bsz > 0) *p = '\0';
+	return p - buf;
 }
 
-/* ------------------------------------------------------------------------ */
+hawk_oow_t hawk_concat_bchars_to_bcstr (hawk_bch_t* buf, hawk_oow_t bsz, const hawk_bch_t* str, hawk_oow_t len)
+{
+	hawk_bch_t* p, * p2;
+	const hawk_bch_t* end;
+	hawk_oow_t blen;
+
+	blen = hawk_count_bcstr(buf);
+	if (blen >= bsz) return blen; /* something wrong */
+
+	p = buf + blen;
+	p2 = buf + bsz - 1;
+
+	end = str + len;
+
+	while (p < p2) 
+	{
+		if (str >= end) break;
+		*p++ = *str++;
+	}
+
+	if (bsz > 0) *p = '\0';
+	return p - buf;
+}
+
+hawk_oow_t hawk_concat_ucstr (hawk_uch_t* buf, hawk_oow_t bsz, const hawk_uch_t* str)
+{
+	hawk_uch_t* p, * p2;
+	hawk_oow_t blen;
+
+	blen = hawk_count_ucstr(buf);
+	if (blen >= bsz) return blen; /* something wrong */
+
+	p = buf + blen;
+	p2 = buf + bsz - 1;
+
+	while (p < p2) 
+	{
+		if (*str == '\0') break;
+		*p++ = *str++;
+	}
+
+	if (bsz > 0) *p = '\0';
+	return p - buf;
+}
+
+hawk_oow_t hawk_concat_bcstr (hawk_bch_t* buf, hawk_oow_t bsz, const hawk_bch_t* str)
+{
+	hawk_bch_t* p, * p2;
+	hawk_oow_t blen;
+
+	blen = hawk_count_bcstr(buf);
+	if (blen >= bsz) return blen; /* something wrong */
+
+	p = buf + blen;
+	p2 = buf + bsz - 1;
+
+	while (p < p2) 
+	{
+		if (*str == '\0') break;
+		*p++ = *str++;
+	}
+
+	if (bsz > 0) *p = '\0';
+	return p - buf;
+}
 
 void hawk_copy_uchars (hawk_uch_t* dst, const hawk_uch_t* src, hawk_oow_t len)
 {
@@ -398,23 +379,6 @@ void hawk_copy_uchars (hawk_uch_t* dst, const hawk_uch_t* src, hawk_oow_t len)
 void hawk_copy_bchars (hawk_bch_t* dst, const hawk_bch_t* src, hawk_oow_t len)
 {
 	/* take note of no forced null termination */
-	hawk_oow_t i;
-	for (i = 0; i < len; i++) dst[i] = src[i];
-}
-
-
-void hawk_copy_bchars_to_uchars (hawk_uch_t* dst, const hawk_bch_t* src, hawk_oow_t len)
-{
-	/* copy without conversions.
-	 * use hawk_convbtouchars() for conversion encoding */
-	hawk_oow_t i;
-	for (i = 0; i < len; i++) dst[i] = src[i];
-}
-
-void hawk_copy_uchars_to_bchars (hawk_bch_t* dst, const hawk_uch_t* src, hawk_oow_t len)
-{
-	/* copy without conversions.
-	 * use hawk_convutobchars() for conversion encoding */
 	hawk_oow_t i;
 	for (i = 0; i < len; i++) dst[i] = src[i];
 }
@@ -487,7 +451,6 @@ hawk_oow_t hawk_copy_bcstr_to_bchars (hawk_bch_t* dst, hawk_oow_t dlen, const ha
 	return p - dst;
 }
 
-
 hawk_oow_t hawk_copy_ucstr (hawk_uch_t* dst, hawk_oow_t len, const hawk_uch_t* src)
 {
 	hawk_uch_t* p, * p2;
@@ -520,7 +483,6 @@ hawk_oow_t hawk_copy_bcstr (hawk_bch_t* dst, hawk_oow_t len, const hawk_bch_t* s
 	return p - dst;
 }
 
-
 hawk_oow_t hawk_copy_ucstr_unlimited (hawk_uch_t* dst, const hawk_uch_t* src)
 {
 	hawk_uch_t* org = dst;
@@ -535,8 +497,7 @@ hawk_oow_t hawk_copy_bcstr_unlimited (hawk_bch_t* dst, const hawk_bch_t* src)
 	return dst - org - 1;
 }
 
-
-hawk_oow_t hawk_copy_ucstrs_to_uchars (hawk_uch_t* buf, hawk_oow_t bsz, const hawk_uch_t* fmt, const hawk_uch_t* str[])
+hawk_oow_t hawk_copy_fmt_ucstrs_to_ucstr (hawk_uch_t* buf, hawk_oow_t bsz, const hawk_uch_t* fmt, const hawk_uch_t* str[])
 {
 	hawk_uch_t* b = buf;
 	hawk_uch_t* end = buf + bsz - 1;
@@ -596,7 +557,7 @@ fini:
 	return b - buf;
 }
 
-hawk_oow_t hawk_copy_bcstrs_to_bchars (hawk_bch_t* buf, hawk_oow_t bsz, const hawk_bch_t* fmt, const hawk_bch_t* str[])
+hawk_oow_t hawk_copy_fmt_bcstrs_to_bcstr (hawk_bch_t* buf, hawk_oow_t bsz, const hawk_bch_t* fmt, const hawk_bch_t* str[])
 {
 	hawk_bch_t* b = buf;
 	hawk_bch_t* end = buf + bsz - 1;
@@ -656,9 +617,7 @@ fini:
 	return b - buf;
 }
 
-
-
-hawk_oow_t hawk_copy_ufcs_to_uchars (hawk_uch_t* buf, hawk_oow_t bsz, const hawk_uch_t* fmt, const hawk_ucs_t str[])
+hawk_oow_t hawk_copy_fmt_ucses_to_ucstr (hawk_uch_t* buf, hawk_oow_t bsz, const hawk_uch_t* fmt, const hawk_ucs_t str[])
 {
 	hawk_uch_t* b = buf;
 	hawk_uch_t* end = buf + bsz - 1;
@@ -720,7 +679,7 @@ fini:
 	return b - buf;
 }
 
-hawk_oow_t hawk_copy_bfcs_to_bchars (hawk_bch_t* buf, hawk_oow_t bsz, const hawk_bch_t* fmt, const hawk_bcs_t str[])
+hawk_oow_t hawk_copy_fmt_bcses_to_bcstr (hawk_bch_t* buf, hawk_oow_t bsz, const hawk_bch_t* fmt, const hawk_bcs_t str[])
 {
 	hawk_bch_t* b = buf;
 	hawk_bch_t* end = buf + bsz - 1;
@@ -792,6 +751,13 @@ hawk_oow_t hawk_count_ucstr (const hawk_uch_t* str)
 	return ptr - str;
 }
 
+hawk_oow_t hawk_count_bcstr (const hawk_bch_t* str)
+{
+	const hawk_bch_t* ptr = str;
+	while (*ptr != '\0') ptr++;
+	return ptr - str;
+}
+
 hawk_oow_t hawk_count_ucstr_limited (const hawk_uch_t* str, hawk_oow_t maxlen)
 {
 	hawk_oow_t i;
@@ -800,13 +766,6 @@ hawk_oow_t hawk_count_ucstr_limited (const hawk_uch_t* str, hawk_oow_t maxlen)
 		if (str[i] == '\0') break;
 	}
 	return i;
-}
-
-hawk_oow_t hawk_count_bcstr (const hawk_bch_t* str)
-{
-	const hawk_bch_t* ptr = str;
-	while (*ptr != '\0') ptr++;
-	return ptr - str;
 }
 
 hawk_oow_t hawk_count_bcstr_limited (const hawk_bch_t* str, hawk_oow_t maxlen)
@@ -821,6 +780,37 @@ hawk_oow_t hawk_count_bcstr_limited (const hawk_bch_t* str, hawk_oow_t maxlen)
 
 /* ------------------------------------------------------------------------ */
 
+int hawk_equal_uchars (const hawk_uch_t* str1, const hawk_uch_t* str2, hawk_oow_t len)
+{
+	hawk_oow_t i;
+
+	/* [NOTE] you should call this function after having ensured that
+	 *       str1 and str2 are in the same length */
+
+	for (i = 0; i < len; i++)
+	{
+		if (str1[i] != str2[i]) return 0;
+	}
+
+	return 1;
+}
+
+int hawk_equal_bchars (const hawk_bch_t* str1, const hawk_bch_t* str2, hawk_oow_t len)
+{
+	hawk_oow_t i;
+
+	/* [NOTE] you should call this function after having ensured that
+	 *        str1 and str2 are in the same length */
+
+	for (i = 0; i < len; i++)
+	{
+		if (str1[i] != str2[i]) return 0;
+	}
+
+	return 1;
+}
+/* ------------------------------------------------------------------------ */
+
 void hawk_fill_uchars (hawk_uch_t* dst, hawk_uch_t ch, hawk_oow_t len)
 {
 	hawk_oow_t i;
@@ -832,7 +822,6 @@ void hawk_fill_bchars (hawk_bch_t* dst, hawk_bch_t ch, hawk_oow_t len)
 	hawk_oow_t i;
 	for (i = 0; i < len; i++) dst[i] = ch;
 }
-
 
 /* ------------------------------------------------------------------------ */
 
@@ -903,11 +892,6 @@ hawk_uch_t* hawk_find_uchar_in_ucstr (const hawk_uch_t* ptr, hawk_uch_t c)
 	return HAWK_NULL;
 }
 
-hawk_uch_t* hawk_rfind_uchar_in_ucstr (const hawk_uch_t* ptr, hawk_uch_t c)
-{
-	return hawk_rfind_uchar_in_uchars(ptr, hawk_count_ucstr(ptr), c);
-}
-
 hawk_bch_t* hawk_find_bchar_in_bcstr (const hawk_bch_t* ptr, hawk_bch_t c)
 {
 	while (*ptr != '\0')
@@ -917,6 +901,11 @@ hawk_bch_t* hawk_find_bchar_in_bcstr (const hawk_bch_t* ptr, hawk_bch_t c)
 	}
 
 	return HAWK_NULL;
+}
+
+hawk_uch_t* hawk_rfind_uchar_in_ucstr (const hawk_uch_t* ptr, hawk_uch_t c)
+{
+	return hawk_rfind_uchar_in_uchars(ptr, hawk_count_ucstr(ptr), c);
 }
 
 hawk_bch_t* hawk_rfind_bchar_in_bcstr (const hawk_bch_t* ptr, hawk_bch_t c)
@@ -3685,359 +3674,6 @@ int hawk_bchars_to_bin (const hawk_bch_t* hex, hawk_oow_t hexlen, hawk_uint8_t* 
 	}
 
 	return 0;
-}
-
-
-/* ------------------------------------------------------------------------ */
-
-int hawk_conv_bchars_to_uchars_with_cmgr (
-	const hawk_bch_t* bcs, hawk_oow_t* bcslen,
-	hawk_uch_t* ucs, hawk_oow_t* ucslen, hawk_cmgr_t* cmgr, int all)
-{
-	const hawk_bch_t* p;
-	int ret = 0;
-	hawk_oow_t mlen;
-
-	if (ucs)
-	{
-		/* destination buffer is specified. 
-		 * copy the conversion result to the buffer */
-
-		hawk_uch_t* q, * qend;
-
-		p = bcs;
-		q = ucs;
-		qend = ucs + *ucslen;
-		mlen = *bcslen;
-
-		while (mlen > 0)
-		{
-			hawk_oow_t n;
-
-			if (q >= qend)
-			{
-				/* buffer too small */
-				ret = -2;
-				break;
-			}
-
-			n = cmgr->bctouc(p, mlen, q);
-			if (n == 0)
-			{
-				/* invalid sequence */
-				if (all)
-				{
-					n = 1;
-					*q = '?';
-				}
-				else
-				{
-					ret = -1;
-					break;
-				}
-			}
-			if (n > mlen)
-			{
-				/* incomplete sequence */
-				if (all)
-				{
-					n = 1;
-					*q = '?';
-				}
-				else
-				{
-					ret = -3;
-					break;
-				}
-			}
-
-			q++;
-			p += n;
-			mlen -= n;
-		}
-
-		*ucslen = q - ucs;
-		*bcslen = p - bcs;
-	}
-	else
-	{
-		/* no destination buffer is specified. perform conversion
-		 * but don't copy the result. the caller can call this function
-		 * without a buffer to find the required buffer size, allocate
-		 * a buffer with the size and call this function again with 
-		 * the buffer. */
-
-		hawk_uch_t w;
-		hawk_oow_t wlen = 0;
-
-		p = bcs;
-		mlen = *bcslen;
-
-		while (mlen > 0)
-		{
-			hawk_oow_t n;
-
-			n = cmgr->bctouc(p, mlen, &w);
-			if (n == 0)
-			{
-				/* invalid sequence */
-				if (all) n = 1;
-				else
-				{
-					ret = -1;
-					break;
-				}
-			}
-			if (n > mlen)
-			{
-				/* incomplete sequence */
-				if (all) n = 1;
-				else
-				{
-					ret = -3;
-					break;
-				}
-			}
-
-			p += n;
-			mlen -= n;
-			wlen += 1;
-		}
-
-		*ucslen = wlen;
-		*bcslen = p - bcs;
-	}
-
-	return ret;
-}
-
-int hawk_conv_bcstr_to_ucstr_with_cmgr (
-	const hawk_bch_t* bcs, hawk_oow_t* bcslen,
-	hawk_uch_t* ucs, hawk_oow_t* ucslen, hawk_cmgr_t* cmgr, int all)
-{
-	const hawk_bch_t* bp;
-	hawk_oow_t mlen, wlen;
-	int n;
-
-	for (bp = bcs; *bp != '\0'; bp++) /* nothing */ ;
-
-	mlen = bp - bcs; wlen = *ucslen;
-	n = hawk_conv_bchars_to_uchars_with_cmgr(bcs, &mlen, ucs, &wlen, cmgr, all);
-	if (ucs)
-	{
-		/* null-terminate the target buffer if it has room for it. */
-		if (wlen < *ucslen) ucs[wlen] = '\0';
-		else n = -2; /* buffer too small */
-	}
-	*bcslen = mlen; *ucslen = wlen;
-
-	return n;
-}
-
-int hawk_conv_uchars_to_bchars_with_cmgr (const hawk_uch_t* ucs, hawk_oow_t* ucslen, hawk_bch_t* bcs, hawk_oow_t* bcslen, hawk_cmgr_t* cmgr)
-{
-	const hawk_uch_t* p = ucs;
-	const hawk_uch_t* end = ucs + *ucslen;
-	int ret = 0; 
-
-	if (bcs)
-	{
-		hawk_oow_t rem = *bcslen;
-
-		while (p < end) 
-		{
-			hawk_oow_t n;
-
-			if (rem <= 0)
-			{
-				ret = -2; /* buffer too small */
-				break;
-			}
-
-			n = cmgr->uctobc(*p, bcs, rem);
-			if (n == 0) 
-			{
-				ret = -1;
-				break; /* illegal character */
-			}
-			if (n > rem) 
-			{
-				ret = -2; /* buffer too small */
-				break;
-			}
-			bcs += n; rem -= n; p++;
-		}
-
-		*bcslen -= rem; 
-	}
-	else
-	{
-		hawk_bch_t bcsbuf[HAWK_BCSIZE_MAX];
-		hawk_oow_t mlen = 0;
-
-		while (p < end)
-		{
-			hawk_oow_t n;
-
-			n = cmgr->uctobc(*p, bcsbuf, HAWK_COUNTOF(bcsbuf));
-			if (n == 0) 
-			{
-				ret = -1;
-				break; /* illegal character */
-			}
-
-			/* it assumes that bcsbuf is large enough to hold a character */
-			/*HAWK_ASSERT (hawk, n <= HAWK_COUNTOF(bcsbuf));*/
-
-			p++; mlen += n;
-		}
-
-		/* this length excludes the terminating null character. 
-		 * this function doesn't even null-terminate the result. */
-		*bcslen = mlen;
-	}
-
-	*ucslen = p - ucs;
-	return ret;
-}
-
-int hawk_conv_ucstr_to_bcstr_with_cmgr (
-	const hawk_uch_t* ucs, hawk_oow_t* ucslen,
-	hawk_bch_t* bcs, hawk_oow_t* bcslen, hawk_cmgr_t* cmgr)
-{
-	const hawk_uch_t* p = ucs;
-	int ret = 0;
-
-	if (bcs)
-	{
-		hawk_oow_t rem = *bcslen;
-
-		while (*p != '\0')
-		{
-			hawk_oow_t n;
-
-			if (rem <= 0)
-			{
-				ret = -2;
-				break;
-			}
-			
-			n = cmgr->uctobc(*p, bcs, rem);
-			if (n == 0) 
-			{
-				ret = -1;
-				break; /* illegal character */
-			}
-			if (n > rem) 
-			{
-				ret = -2;
-				break; /* buffer too small */
-			}
-
-			bcs += n; rem -= n; p++;
-		}
-
-		/* update bcslen to the length of the bcs string converted excluding
-		 * terminating null */
-		*bcslen -= rem; 
-
-		/* null-terminate the multibyte sequence if it has sufficient space */
-		if (rem > 0) *bcs = '\0';
-		else 
-		{
-			/* if ret is -2 and cs[cslen] == '\0', 
-			 * this means that the bcs buffer was lacking one
-			 * slot for the terminating null */
-			ret = -2; /* buffer too small */
-		}
-	}
-	else
-	{
-		hawk_bch_t bcsbuf[HAWK_BCSIZE_MAX];
-		hawk_oow_t mlen = 0;
-
-		while (*p != '\0')
-		{
-			hawk_oow_t n;
-
-			n = cmgr->uctobc(*p, bcsbuf, HAWK_COUNTOF(bcsbuf));
-			if (n == 0) 
-			{
-				ret = -1;
-				break; /* illegal character */
-			}
-
-			/* it assumes that bcs is large enough to hold a character */
-			/*HAWK_ASSERT (hawk, n <= HAWK_COUNTOF(bcs));*/
-
-			p++; mlen += n;
-		}
-
-		/* this length holds the number of resulting multi-byte characters 
-		 * excluding the terminating null character */
-		*bcslen = mlen;
-	}
-
-	*ucslen = p - ucs;  /* the number of wide characters handled. */
-	return ret;
-}
-
-int hawk_conv_bchars_to_uchars_upto_stopper_with_cmgr (
-	const hawk_bch_t* bcs, hawk_oow_t* bcslen,
-	hawk_uch_t* ucs, hawk_oow_t* ucslen, hawk_uch_t stopper, hawk_cmgr_t* cmgr)
-{
-	const hawk_bch_t* p;
-	int ret = 0;
-	hawk_oow_t blen;
-
-	hawk_uch_t w;
-	hawk_oow_t ulen = 0;
-	hawk_uch_t* wend;
-
-	p = bcs;
-	blen = *bcslen;
-
-	if (ucs) wend = ucs + *ucslen;
-
-	/* since it needs to break when a stopper is met,
-	 * i can't perform bulky conversion using the buffer
-	 * provided. so conversion is conducted character by
-	 * character */
-	while (blen > 0)
-	{
-		hawk_oow_t n;
-
-		n = cmgr->bctouc(p, blen, &w);
-		if (n == 0)
-		{
-			/* invalid sequence */
-			ret = -1;
-			break;
-		}
-		if (n > blen)
-		{
-			/* incomplete sequence */
-			ret = -3;
-			break;
-		}
-
-		if (ucs) 
-		{
-			if (ucs >= wend) break;
-			*ucs++ = w;
-		}
-
-		p += n;
-		blen -= n;
-		ulen += 1;
-
-		if (w == stopper) break;
-	}
-
-	*ucslen = ulen;
-	*bcslen = p - bcs;
-
-	return ret;
 }
 
 /* ------------------------------------------------------------------------ */
