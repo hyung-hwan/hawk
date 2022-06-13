@@ -755,50 +755,6 @@ HAWK_EXPORT hawk_bch_t* hawk_tokenize_bchars (
 	int               ignorecase
 );
 
-
-HAWK_EXPORT void hawk_unescape_ucstr (
-	hawk_uch_t* str
-);
-
-HAWK_EXPORT void hawk_unescape_bcstr (
-	hawk_bch_t* str
-);
-
-
-HAWK_EXPORT hawk_oow_t hawk_subst_for_uchars_to_ucstr (
-	hawk_uch_t*           buf,
-	hawk_oow_t            bsz,
-	const hawk_uch_t*     fmt,
-	hawk_oow_t            fsz,
-	hawk_subst_for_ucs_t  subst,
-	void*                 ctx
-);
-
-HAWK_EXPORT hawk_oow_t hawk_subst_for_ucstr_to_ucstr (
-	hawk_uch_t*           buf,
-	hawk_oow_t            bsz,
-	const hawk_uch_t*     fmt,
-	hawk_subst_for_ucs_t  subst,
-	void*                 ctx
-);
-
-HAWK_EXPORT hawk_oow_t hawk_subst_for_bchars_to_bcstr (
-	hawk_bch_t*           buf,
-	hawk_oow_t            bsz,
-	const hawk_bch_t*     fmt,
-	hawk_oow_t            fsz,
-	hawk_subst_for_bcs_t  subst,
-	void*                 ctx
-);
-
-HAWK_EXPORT hawk_oow_t hawk_subst_for_bcstr_to_bcstr (
-	hawk_bch_t*           buf,
-	hawk_oow_t            bsz,
-	const hawk_bch_t*     fmt,
-	hawk_subst_for_bcs_t  subst,
-	void*                 ctx
-);
-
 #if defined(HAWK_OOCH_IS_UCH)
 #	define hawk_equal_oochars hawk_equal_uchars
 #	define hawk_comp_oochars hawk_comp_uchars
@@ -841,9 +797,7 @@ HAWK_EXPORT hawk_oow_t hawk_subst_for_bcstr_to_bcstr (
 
 #	define hawk_split_oocstr hawk_split_ucstr
 #	define hawk_tokenize_oochars hawk_tokenize_uchars
-#	define hawk_unescape_oocstr hawk_unescape_ucstr
-#	define hawk_subst_for_oochars_to_oocstr hawk_subst_for_uchars_to_ucstr
-#	define hawk_subst_for_oocstr_to_oocstr hawk_subst_for_ucstr_to_ucstr (
+
 #else
 #	define hawk_equal_oochars hawk_equal_bchars
 #	define hawk_comp_oochars hawk_comp_bchars
@@ -886,9 +840,60 @@ HAWK_EXPORT hawk_oow_t hawk_subst_for_bcstr_to_bcstr (
 
 #	define hawk_split_oocstr hawk_split_bcstr
 #	define hawk_tokenize_oochars hawk_tokenize_bchars
-#	define hawk_unescape_oocstr hawk_unescape_bcstr
+#endif
+
+/* ------------------------------------------------------------------------- */
+
+HAWK_EXPORT hawk_oow_t hawk_subst_for_uchars_to_ucstr (
+	hawk_uch_t*           buf,
+	hawk_oow_t            bsz,
+	const hawk_uch_t*     fmt,
+	hawk_oow_t            fsz,
+	hawk_subst_for_ucs_t  subst,
+	void*                 ctx
+);
+
+HAWK_EXPORT hawk_oow_t hawk_subst_for_bchars_to_bcstr (
+	hawk_bch_t*           buf,
+	hawk_oow_t            bsz,
+	const hawk_bch_t*     fmt,
+	hawk_oow_t            fsz,
+	hawk_subst_for_bcs_t  subst,
+	void*                 ctx
+);
+
+HAWK_EXPORT hawk_oow_t hawk_subst_for_ucstr_to_ucstr (
+	hawk_uch_t*           buf,
+	hawk_oow_t            bsz,
+	const hawk_uch_t*     fmt,
+	hawk_subst_for_ucs_t  subst,
+	void*                 ctx
+);
+
+HAWK_EXPORT hawk_oow_t hawk_subst_for_bcstr_to_bcstr (
+	hawk_bch_t*           buf,
+	hawk_oow_t            bsz,
+	const hawk_bch_t*     fmt,
+	hawk_subst_for_bcs_t  subst,
+	void*                 ctx
+);
+
+HAWK_EXPORT void hawk_unescape_ucstr (
+	hawk_uch_t* str
+);
+
+HAWK_EXPORT void hawk_unescape_bcstr (
+	hawk_bch_t* str
+);
+
+#if defined(HAWK_OOCH_IS_UCH)
+#	define hawk_subst_for_oochars_to_oocstr hawk_subst_for_uchars_to_ucstr
+#	define hawk_subst_for_oocstr_to_oocstr hawk_subst_for_ucstr_to_ucstr
+#	define hawk_unescape_oocstr hawk_unescape_ucstr
+#else
 #	define hawk_subst_for_oochars_to_oocstr hawk_subst_for_bchars_to_bcstr
-#	define hawk_subst_for_oocstr_to_oocstr hawk_subst_for_bcstr_to_bcstr (
+#	define hawk_subst_for_oocstr_to_oocstr hawk_subst_for_bcstr_to_bcstr
+#	define hawk_unescape_oocstr hawk_unescape_bcstr
 #endif
 
 /* ------------------------------------------------------------------------- */

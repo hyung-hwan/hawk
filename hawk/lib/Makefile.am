@@ -129,6 +129,7 @@ libhawk_la_SOURCES = \
 	utl-sort.c \
 	utl-str.c \
 	utl-sys.c \
+	utl-xstr.c \
 	utl.c \
 	val-prv.h \
 	val.c \

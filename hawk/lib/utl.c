@@ -550,7 +550,7 @@ int hawk_conv_bchars_to_uchars_upto_stopper_with_cmgr (
 	return ret;
 }
 
-/* ----------------------------------------------------------------------- */
+/* ------------------------------------------------------------------------ */
 
 #if defined(_WIN32) || defined(__OS2__) || defined(__DOS__)
 #	define IS_PATH_SEP(c) ((c) == '/' || (c) == '\\')
