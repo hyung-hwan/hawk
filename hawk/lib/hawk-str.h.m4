@@ -431,6 +431,23 @@ HAWK_EXPORT hawk_oow_t hawk_rotate_bchars (
 	hawk_oow_t        n
 );
 
+HAWK_EXPORT hawk_uch_t* hawk_tokenize_uchars (
+	const hawk_uch_t* s,
+	hawk_oow_t        len,
+	const hawk_uch_t* delim,
+	hawk_oow_t        delim_len,
+	hawk_ucs_t*       tok,
+	int               ignorecase
+);
+
+HAWK_EXPORT hawk_bch_t* hawk_tokenize_bchars (
+	const hawk_bch_t* s,
+	hawk_oow_t        len,
+	const hawk_bch_t* delim,
+	hawk_oow_t        delim_len,
+	hawk_bcs_t*       tok,
+	int               ignorecase
+);
 
 HAWK_EXPORT hawk_uch_t* hawk_trim_uchars (
 	const hawk_uch_t* str,
@@ -500,6 +517,7 @@ HAWK_EXPORT int hawk_split_bcstr (
 
 #	define hawk_compact_oochars hawk_compact_uchars
 #	define hawk_rotate_oochars hawk_rotate_uchars
+#	define hawk_tokenize_oochars hawk_tokenize_uchars
 #	define hawk_trim_oochars hawk_trim_uchars
 #	define hawk_split_oocstr hawk_split_ucstr
 #else
@@ -541,6 +559,7 @@ HAWK_EXPORT int hawk_split_bcstr (
 
 #	define hawk_compact_oochars hawk_compact_uchars
 #	define hawk_rotate_oochars hawk_rotate_uchars
+#	define hawk_tokenize_oochars hawk_tokenize_bchars
 #	define hawk_trim_oochars hawk_trim_bchars
 #	define hawk_split_oocstr hawk_split_bcstr
 #endif
