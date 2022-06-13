@@ -602,6 +602,15 @@ CXXFLAGS_ALL_COMMON =
 @WIN32_TRUE@	-DHAWK_DEFAULT_MODPREFIX=\"libhawk-\" \
 @WIN32_TRUE@	-DHAWK_DEFAULT_MODPOSTFIX=\"-1.dll\" \
 @WIN32_TRUE@	$(am__append_1) $(am__append_2)
+EXTRA_DIST = \
+	hawk-str.h.m4 \
+	utl-str.c.m4 \
+	utl-str.m4
+
+BUILT_SOURCES = \
+	hawk-str.h \
+	utl-str.c
+
 pkginclude_HEADERS = hawk.h hawk-arr.h hawk-chr.h hawk-cmn.h \
 	hawk-dir.h hawk-ecs.h hawk-fmt.h hawk-gem.h hawk-htb.h \
 	hawk-map.h hawk-rbt.h hawk-pac1.h hawk-skad.h hawk-utl.h \
@@ -675,7 +684,7 @@ libhawk_la_LIBADD = $(LIBM) $(SOCKET_LIBS) $(am__append_4) \
 @ENABLE_STATIC_MODULE_FALSE@libhawk_sys_la_CXXFLAGS = $(CXXFLAGS_MOD_COMMON)
 @ENABLE_STATIC_MODULE_FALSE@libhawk_sys_la_LDFLAGS = $(LDFLAGS_MOD_COMMON)
 @ENABLE_STATIC_MODULE_FALSE@libhawk_sys_la_LIBADD = $(LIBADD_MOD_COMMON) $(SOCKET_LIBS)
-all: hawk-cfg.h
+all: $(BUILT_SOURCES) hawk-cfg.h
 	$(MAKE) $(AM_MAKEFLAGS) all-am
 
 .SUFFIXES:
@@ -1453,13 +1462,15 @@ distdir-am: $(DISTFILES)
 	  fi; \
 	done
 check-am: all-am
-check: check-am
+check: $(BUILT_SOURCES)
+	$(MAKE) $(AM_MAKEFLAGS) check-am
 all-am: Makefile $(LTLIBRARIES) $(HEADERS) hawk-cfg.h
 installdirs:
 	for dir in "$(DESTDIR)$(pkglibdir)" "$(DESTDIR)$(pkgincludedir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
-install: install-am
+install: $(BUILT_SOURCES)
+	$(MAKE) $(AM_MAKEFLAGS) install-am
 install-exec: install-exec-am
 install-data: install-data-am
 uninstall: uninstall-am
@@ -1489,6 +1500,7 @@ distclean-generic:
 maintainer-clean-generic:
 	@echo "This command is intended for maintainers to use"
 	@echo "it deletes files that may require special tools to rebuild."
+	-test -z "$(BUILT_SOURCES)" || rm -f $(BUILT_SOURCES)
 clean: clean-am
 
 clean-am: clean-generic clean-libtool clean-pkglibLTLIBRARIES \
@@ -1686,7 +1698,8 @@ ps-am:
 uninstall-am: uninstall-pkgincludeHEADERS uninstall-pkglibLTLIBRARIES
 	@$(NORMAL_INSTALL)
 	$(MAKE) $(AM_MAKEFLAGS) uninstall-hook
-.MAKE: all install-am install-data-am install-strip uninstall-am
+.MAKE: all check install install-am install-data-am install-strip \
+	uninstall-am
 
 .PHONY: CTAGS GTAGS TAGS all all-am am--depfiles check check-am clean \
 	clean-generic clean-libtool clean-pkglibLTLIBRARIES \
@@ -1721,6 +1734,12 @@ install-data-hook:
 
 uninstall-hook:
 	@rm -f "$(DESTDIR)$(pkgincludedir)/hawk-cfg.h"
+
+hawk-str.h: utl-str.m4 hawk-str.h.m4
+	m4 -I$(srcdir) $(srcdir)/hawk-str.h.m4 > $(srcdir)/hawk-str.h
+
+utl-str.c: utl-str.m4 utl-str.c.m4
+	m4 -I$(srcdir) $(srcdir)/utl-str.c.m4 > $(srcdir)/utl-str.c
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

@@ -482,7 +482,7 @@ void hawk_gem_seterror (hawk_gem_t* gem, const hawk_loc_t* errloc, hawk_errnum_t
 	errfmt = gem->errstr(gem->errnum);
 	HAWK_ASSERT (errfmt != HAWK_NULL);
 
-	hawk_copy_oofcs_to_oochars (gem->errmsg, HAWK_COUNTOF(gem->errmsg), errfmt, errarg);
+	hawk_copy_fmt_oocses_to_oocstr (gem->errmsg, HAWK_COUNTOF(gem->errmsg), errfmt, errarg);
 
 	if (errloc != HAWK_NULL) gem->errloc = *errloc;
 	else HAWK_MEMSET (&gem->errloc, 0, HAWK_SIZEOF(gem->errloc));

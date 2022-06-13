@@ -31,6 +31,15 @@ CPPFLAGS_PFMOD += -DHAWK_DEFAULT_MODPOSTFIX=\".so\"
 endif
 endif
 
+EXTRA_DIST = \
+	hawk-str.h.m4 \
+	utl-str.c.m4 \
+	utl-str.m4
+
+BUILT_SOURCES = \
+	hawk-str.h \
+	utl-str.c
+
 ##################################################
 # include files to deploy
 ##################################################
@@ -283,3 +292,11 @@ install-data-hook:
 
 uninstall-hook:
 	@rm -f "$(DESTDIR)$(pkgincludedir)/hawk-cfg.h"
+
+
+hawk-str.h: utl-str.m4 hawk-str.h.m4
+	m4 -I$(srcdir) $(srcdir)/hawk-str.h.m4 > $(srcdir)/hawk-str.h
+
+utl-str.c: utl-str.m4 utl-str.c.m4
+	m4 -I$(srcdir) $(srcdir)/utl-str.c.m4 > $(srcdir)/utl-str.c
+
