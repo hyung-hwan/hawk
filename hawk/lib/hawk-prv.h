@@ -144,8 +144,20 @@ typedef struct hawk_tree_t hawk_tree_t;
 
 #else
 
-#	if !defined(HAVE___BUILTIN_MEMSET) || !defined(HAVE___BUILTIN_MEMCPY) || !defined(HAVE___BUILTIN_MEMMOVE) || !defined(HAVE___BUILTIN_MEMCMP)
-#	include <string.h>
+	/* g++ 2.95 had a problem with __builtin_memxxx functions:
+	 * implicit declaration of function `int HAWK::__builtin_memset(...)' */
+#	if defined(__cplusplus) && defined(__GNUC__) && (__GNUC__ <= 2)
+#		undef HAVE___BUILTIN_MEMSET
+#		undef HAVE___BUILTIN_MEMCPY
+#		undef HAVE___BUILTIN_MEMMOVE
+#		undef HAVE___BUILTIN_MEMCMP
+#	endif
+
+#	if !defined(HAVE___BUILTIN_MEMSET) || \
+        !defined(HAVE___BUILTIN_MEMCPY) || \
+        !defined(HAVE___BUILTIN_MEMMOVE) || \
+        !defined(HAVE___BUILTIN_MEMCMP) 
+#		include <string.h>
 #	endif
 
 #	if defined(HAVE___BUILTIN_MEMSET)

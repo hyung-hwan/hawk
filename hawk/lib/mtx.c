@@ -102,9 +102,13 @@ int hawk_mtx_init (hawk_mtx_t* mtx, hawk_gem_t* gem)
 	}
 
 #elif defined(__DOS__)
-#	error not implemented
-
+	/* nothing to implement */
 #else
+
+	#if (HAWK_SIZEOF_PTHREAD_MUTEX_T <= 0)
+		/* nothing to initialize as there is no actual mutex support */
+	#else
+
 	/*
 	hawk_ensure (pthread_mutexattr_init (&attr) == 0);
 	if (pthread_mutexattr_settype (&attr, type) != 0) 
@@ -127,6 +131,8 @@ int hawk_mtx_init (hawk_mtx_t* mtx, hawk_gem_t* gem)
 			return -1;
 		}
 	}
+
+	#endif
 #endif
 
 	return 0;
@@ -141,10 +147,14 @@ void hawk_mtx_fini (hawk_mtx_t* mtx)
 	DosCloseMutexSem (mtx->hnd);
 
 #elif defined(__DOS__)
-#	error not implemented
+	/* nothing to destroy as there is no mutex support */
 
 #else
+	#if (HAWK_SIZEOF_PTHREAD_MUTEX_T <= 0)
+	/* nothing to destroy as there is no actual mutex support */
+	#else
 	pthread_mutex_destroy ((pthread_mutex_t*)&mtx->hnd);
+	#endif
 #endif
 }
 
@@ -222,6 +232,9 @@ int hawk_mtx_lock (hawk_mtx_t* mtx, const hawk_ntime_t* waiting_time)
 	/* nothing to do */
 
 #else
+	#if (HAWK_SIZEOF_PTHREAD_MUTEX_T <= 0)
+		/* nothing to do as there is no actual mutex support */
+	#else
 
 	/* if pthread_mutex_timedlock() isn't available, don't honor the waiting time. */
 	#if defined(HAVE_PTHREAD_MUTEX_TIMEDLOCK)
@@ -256,6 +269,8 @@ int hawk_mtx_lock (hawk_mtx_t* mtx, const hawk_ntime_t* waiting_time)
 	#if defined(HAVE_PTHREAD_MUTEX_TIMEDLOCK)
 	}
 	#endif
+
+	#endif
 #endif
 
 	return 0;
@@ -284,6 +299,10 @@ int hawk_mtx_unlock (hawk_mtx_t* mtx)
 	/* nothing to do */
 
 #else
+	#if (HAWK_SIZEOF_PTHREAD_MUTEX_T <= 0)
+		/* nothing to do as there is no actual mutex support */
+	#else
+
 	int n;
 	n = pthread_mutex_unlock((pthread_mutex_t*)&mtx->hnd);
 	if (n != 0) 
@@ -291,6 +310,8 @@ int hawk_mtx_unlock (hawk_mtx_t* mtx)
 		hawk_gem_seterrnum (mtx->gem, HAWK_NULL, hawk_syserr_to_errnum(n));
 		return -1;
 	}
+
+	#endif
 #endif
 	return 0;
 }
@@ -317,6 +338,9 @@ int hawk_mtx_trylock (hawk_mtx_t* mtx)
 
 #else
 
+	#if (HAWK_SIZEOF_PTHREAD_MUTEX_T <= 0)
+		/* nothing to do as there is no actual mutex support */
+	#else
 	/* -------------------------------------------------- */
 	int n;
 	#if defined(HAVE_PTHREAD_MUTEX_TRYLOCK)
@@ -338,6 +362,7 @@ int hawk_mtx_trylock (hawk_mtx_t* mtx)
 		return -1;
 	}
 	/* -------------------------------------------------- */
+	#endif
 
 #endif
 	return 0;

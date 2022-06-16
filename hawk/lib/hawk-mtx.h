@@ -41,8 +41,8 @@ typedef struct hawk_mtx_t hawk_mtx_t;
 	typedef unsigned long hawk_mtx_hnd_t;
 
 #elif defined(__DOS__)
-	/* not implemented */
-#	error not implemented
+	/* not implemented. define it to a fake type */
+	typedef hawk_uintptr_t hawk_mtx_hnd_t;
 
 #elif defined(__BEOS__)
 	/* typedef int32 sem_id; 
@@ -52,7 +52,8 @@ typedef struct hawk_mtx_t hawk_mtx_t;
 #else
 
 #	if (HAWK_SIZEOF_PTHREAD_MUTEX_T == 0)
-#		error unsupported
+		/* no mutex support. just define it to an integer type to make the compiler happy */
+		typedef hawk_uintptr_t hawk_mtx_hnd_t;
 
 #	elif (HAWK_SIZEOF_PTHREAD_MUTEX_T == HAWK_SIZEOF_INT)
 #		if defined(HAWK_PTHREAD_MUTEX_T_IS_SIGNED)
