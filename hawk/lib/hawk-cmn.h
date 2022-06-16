@@ -1386,19 +1386,16 @@ typedef enum hawk_log_mask_t hawk_log_mask_t;
 #define HAWK_BT(txt)   (txt)
 
 #if (HAWK_SIZEOF_UCH_T == HAWK_SIZEOF_BCH_T)
-#	define HAWK_UQ_I(val)  (HAWK_BQ_I(val))
+#	define HAWK_UQ_I(val)  (#val)
 #	define HAWK_UQ(val)    HAWK_UQ_I(val)
 #elif defined(HAWK_USE_PREFIX_BIG_U)
-#	define HAWK_UQ_I(val)  (U ## HAWK_BQ_I(val))
+#	define HAWK_UQ_I(val)  (U ## #val)
 #	define HAWK_UQ(val)    HAWK_UQ_I(val)
 #elif defined(HAWK_USE_PREFIX_SMALL_U)
-#	define HAWK_UQ_I(val)  (u ## HAWK_BQ_I(val))
+#	define HAWK_UQ_I(val)  (u ## #val)
 #	define HAWK_UQ(val)    HAWK_UQ_I(val)
 #else
-	/* L ## #val triggers a warning on the SCO cc compiler 
-	warning: bad use of "#" or "##" in macro #define */
-/*#	define HAWK_UQ_I(val)  (L ## #val) */
-#	define HAWK_UQ_I(val)  (L ## HAWK_BQ_I(val))
+#	define HAWK_UQ_I(val)  (L ## #val)
 #	define HAWK_UQ(val)    HAWK_UQ_I(val)
 #endif
 
