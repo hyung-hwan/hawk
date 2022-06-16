@@ -819,7 +819,7 @@ static hawk_oow_t ip4ad_to_ucstr (const struct in_addr* ipad, hawk_uch_t* buf, h
 	return p - buf;
 }
 
-
+#if (HAWK_SIZEOF_STRUCT_SOCKADDR_IN6 > 0)
 static hawk_oow_t ip6ad_to_ucstr (const struct in6_addr* ipad, hawk_uch_t* buf, hawk_oow_t size)
 {
 	/*
@@ -918,6 +918,7 @@ static hawk_oow_t ip6ad_to_ucstr (const struct in6_addr* ipad, hawk_uch_t* buf, 
 
 #undef IP6ADDR_NWORDS
 }
+#endif
 
 
 hawk_oow_t hawk_gem_skadtoucstr (hawk_gem_t* gem, const hawk_skad_t* _skad, hawk_uch_t* buf, hawk_oow_t len, int flags)
@@ -952,6 +953,7 @@ hawk_oow_t hawk_gem_skadtoucstr (hawk_gem_t* gem, const hawk_skad_t* _skad, hawk
 			}
 			break;
 
+#if (HAWK_SIZEOF_STRUCT_SOCKADDR_IN6 > 0)
 		case HAWK_AF_INET6:
 			if (flags & HAWK_SKAD_TO_BCSTR_PORT)
 			{
@@ -1007,6 +1009,7 @@ hawk_oow_t hawk_gem_skadtoucstr (hawk_gem_t* gem, const hawk_skad_t* _skad, hawk
 			}
 
 			break;
+#endif
 
 		case HAWK_AF_UNIX:
 			if (flags & HAWK_SKAD_TO_BCSTR_ADDR)
@@ -1065,7 +1068,7 @@ static hawk_oow_t ip4ad_to_bcstr (const struct in_addr* ipad, hawk_bch_t* buf, h
 	return p - buf;
 }
 
-
+#if (HAWK_SIZEOF_STRUCT_SOCKADDR_IN6 > 0)
 static hawk_oow_t ip6ad_to_bcstr (const struct in6_addr* ipad, hawk_bch_t* buf, hawk_oow_t size)
 {
 	/*
@@ -1164,6 +1167,7 @@ static hawk_oow_t ip6ad_to_bcstr (const struct in6_addr* ipad, hawk_bch_t* buf, 
 
 #undef IP6ADDR_NWORDS
 }
+#endif
 
 
 hawk_oow_t hawk_gem_skadtobcstr (hawk_gem_t* gem, const hawk_skad_t* _skad, hawk_bch_t* buf, hawk_oow_t len, int flags)
@@ -1198,6 +1202,7 @@ hawk_oow_t hawk_gem_skadtobcstr (hawk_gem_t* gem, const hawk_skad_t* _skad, hawk
 			}
 			break;
 
+#if (HAWK_SIZEOF_STRUCT_SOCKADDR_IN6 > 0)
 		case HAWK_AF_INET6:
 			if (flags & HAWK_SKAD_TO_BCSTR_PORT)
 			{
@@ -1254,6 +1259,7 @@ hawk_oow_t hawk_gem_skadtobcstr (hawk_gem_t* gem, const hawk_skad_t* _skad, hawk
 			}
 
 			break;
+#endif
 
 		case HAWK_AF_UNIX:
 			if (flags & HAWK_SKAD_TO_BCSTR_ADDR)
@@ -1540,12 +1546,14 @@ hawk_oow_t hawk_ipad_bytes_to_ucstr (const hawk_uint8_t* iptr, hawk_oow_t ilen, 
 			return ip4ad_to_ucstr(&ip4ad, buf, blen);
 		}
 
+#if (HAWK_SIZEOF_STRUCT_SOCKADDR_IN6 > 0)
 		case HAWK_IP6AD_LEN:
 		{
 			struct in6_addr ip6ad;
 			HAWK_MEMCPY (&ip6ad.s6_addr, iptr, ilen);
 			return ip6ad_to_ucstr(&ip6ad, buf, blen);
 		}
+#endif
 
 		default:
 			if (blen > 0) buf[blen] = '\0';
@@ -1564,12 +1572,14 @@ hawk_oow_t hawk_ipad_bytes_to_bcstr (const hawk_uint8_t* iptr, hawk_oow_t ilen, 
 			return ip4ad_to_bcstr(&ip4ad, buf, blen);
 		}
 
+#if (HAWK_SIZEOF_STRUCT_SOCKADDR_IN6 > 0)
 		case HAWK_IP6AD_LEN:
 		{
 			struct in6_addr ip6ad;
 			HAWK_MEMCPY (&ip6ad.s6_addr, iptr, ilen);
 			return ip6ad_to_bcstr(&ip6ad, buf, blen);
 		}
+#endif
 
 		default:
 			if (blen > 0) buf[blen] = '\0';
@@ -1581,10 +1591,12 @@ int hawk_uchars_to_ipad_bytes (const hawk_uch_t* str, hawk_oow_t slen, hawk_uint
 {
 	if (blen >= HAWK_IP6AD_LEN)
 	{
+#if (HAWK_SIZEOF_STRUCT_SOCKADDR_IN6 > 0)
 		struct in6_addr i6;
 		if (uchars_to_ipv6(str, slen, &i6) <= -1) goto ipv4;
 		HAWK_MEMCPY (buf, i6.s6_addr, 16);
 		return HAWK_IP6AD_LEN;
+#endif
 	}
 	else if (blen >= HAWK_IP4AD_LEN)
 	{
@@ -1602,10 +1614,12 @@ int hawk_bchars_to_ipad_bytes (const hawk_bch_t* str, hawk_oow_t slen, hawk_uint
 {
 	if (blen >= HAWK_IP6AD_LEN)
 	{
+#if (HAWK_SIZEOF_STRUCT_SOCKADDR_IN6 > 0)
 		struct in6_addr i6;
 		if (bchars_to_ipv6(str, slen, &i6) <= -1) goto ipv4;
 		HAWK_MEMCPY (buf, i6.s6_addr, 16);
 		return HAWK_IP6AD_LEN;
+#endif
 	}
 	else if (blen >= HAWK_IP4AD_LEN)
 	{

@@ -442,7 +442,7 @@ static int fnc_modlibdirs (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_t* hawk = hawk_rtx_gethawk(rtx);
 	hawk_val_t* r;
 
-	r = hawk_rtx_makestrvalwithoocstr(rtx, (hawk->opt.mod[0].len > 0)? hawk->opt.mod[0].ptr: HAWK_T(HAWK_DEFAULT_MODLIBDIRS));
+	r = hawk_rtx_makestrvalwithoocstr(rtx, (hawk->opt.mod[0].len > 0)? (const hawk_ooch_t*)hawk->opt.mod[0].ptr: (const hawk_ooch_t*)HAWK_T(HAWK_DEFAULT_MODLIBDIRS));
 	if (HAWK_UNLIKELY(!r)) return -1;
 
 	hawk_rtx_setretval (rtx, r);

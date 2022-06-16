@@ -6806,7 +6806,7 @@ retry:
 			if (hawk_comp_oochars_bcstr(HAWK_OOECS_PTR(tok->name), HAWK_OOECS_LEN(tok->name), "@SCRIPTNAME", 0) == 0)
 			{
 				/* special parser-level word @SCRIPTNAME. substitute an actual value for it */
-				if (HAWK_UNLIKELY(hawk_ooecs_cpy(tok->name, (tok->loc.file? tok->loc.file: HAWK_T(""))) == (hawk_oow_t)-1)) return -1;
+				if (HAWK_UNLIKELY(hawk_ooecs_cpy(tok->name, (tok->loc.file? (const hawk_ooch_t*)tok->loc.file: (const hawk_ooch_t*)HAWK_T(""))) == (hawk_oow_t)-1)) return -1;
 				SET_TOKEN_TYPE (hawk, tok, TOK_STR);
 			}
 			else if (hawk_comp_oochars_bcstr(HAWK_OOECS_PTR(tok->name), HAWK_OOECS_LEN(tok->name), "@SCRIPTLINE", 0) == 0)
@@ -7453,8 +7453,8 @@ static hawk_mod_t* query_module (hawk_t* hawk, const hawk_oocs_t segs[], int nse
 #endif
 		/* attempt to find an external module */
 		HAWK_MEMSET (&spec, 0, HAWK_SIZEOF(spec));
-		spec.prefix = (hawk->opt.mod[1].len > 0)? hawk->opt.mod[1].ptr: HAWK_T(HAWK_DEFAULT_MODPREFIX);
-		spec.postfix = (hawk->opt.mod[2].len > 0)? hawk->opt.mod[2].ptr: HAWK_T(HAWK_DEFAULT_MODPOSTFIX);
+		spec.prefix = (hawk->opt.mod[1].len > 0)? (const hawk_ooch_t*)hawk->opt.mod[1].ptr: (const hawk_ooch_t*)HAWK_T(HAWK_DEFAULT_MODPREFIX);
+		spec.postfix = (hawk->opt.mod[2].len > 0)? (const hawk_ooch_t*)hawk->opt.mod[2].ptr: (const hawk_ooch_t*)HAWK_T(HAWK_DEFAULT_MODPOSTFIX);
 		spec.name = segs[0].ptr; /* the caller must ensure that this segment is null-terminated */
 
 		if (!hawk->prm.modopen || !hawk->prm.modgetsym || !hawk->prm.modclose)
@@ -7463,7 +7463,7 @@ static hawk_mod_t* query_module (hawk_t* hawk, const hawk_oocs_t segs[], int nse
 			goto open_fail;
 		}
 
-		spec.libdir = (hawk->opt.mod[0].len > 0)? hawk->opt.mod[0].ptr: HAWK_T(HAWK_DEFAULT_MODLIBDIRS);
+		spec.libdir = (hawk->opt.mod[0].len > 0)? (const hawk_ooch_t*)hawk->opt.mod[0].ptr: (const hawk_ooch_t*)HAWK_T(HAWK_DEFAULT_MODLIBDIRS);
 		do
 		{
 #if defined(_WIN32) || defined(__OS2__) || defined(__DOS__)
@@ -7491,7 +7491,9 @@ static hawk_mod_t* query_module (hawk_t* hawk, const hawk_oocs_t segs[], int nse
 		open_fail:
 			bem = hawk_backuperrmsg(hawk);
 			hawk_seterrfmt (hawk, HAWK_NULL, HAWK_ENOENT, HAWK_T("'%js%js%js' for module '%js' not found - %js"), 
-				(spec.prefix? spec.prefix: HAWK_T("")), spec.name, (spec.postfix? spec.postfix: HAWK_T("")), 
+				(spec.prefix? (const hawk_ooch_t*)spec.prefix: (const hawk_ooch_t*)HAWK_T("")), 
+				spec.name,
+				(spec.postfix? (const hawk_ooch_t*)spec.postfix: (const hawk_ooch_t*)HAWK_T("")), 
 				spec.name, bem);
 			return HAWK_NULL;
 		}
