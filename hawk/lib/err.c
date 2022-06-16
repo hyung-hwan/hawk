@@ -24,7 +24,7 @@
 
 #include "hawk-prv.h"
 
-static hawk_loc_t _nullloc = { 0, 0, HAWK_NULL };
+static const hawk_loc_t _nullloc = { 0, 0, HAWK_NULL };
 
 const hawk_ooch_t* hawk_dfl_errstr (hawk_errnum_t errnum)
 {
@@ -212,7 +212,9 @@ const hawk_ooch_t* hawk_dfl_errstr (hawk_errnum_t errnum)
 		HAWK_T("I/O error with file '${0}'")	
 	};
 
-	return (errnum >= 0 && errnum < HAWK_COUNTOF(errstr))? errstr[errnum]: HAWK_T("unknown error");
+	static const hawk_ooch_t* unknown_error = HAWK_T("unknown error");
+
+	return (errnum >= 0 && errnum < HAWK_COUNTOF(errstr))? errstr[errnum]: unknown_error;
 }
 
 hawk_errstr_t hawk_geterrstr (hawk_t* hawk)

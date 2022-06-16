@@ -94,7 +94,7 @@ HAWK_EXPORT hawk_mtx_t* hawk_mtx_open (
 );
 
 HAWK_EXPORT void hawk_mtx_close (
-	hawk_mtx_t* mtx
+	hawk_mtx_t*  mtx
 );
 
 HAWK_EXPORT int hawk_mtx_init (
@@ -103,7 +103,7 @@ HAWK_EXPORT int hawk_mtx_init (
 );
 
 HAWK_EXPORT void hawk_mtx_fini (
-	hawk_mtx_t* mtx
+	hawk_mtx_t*  mtx
 );
 
 #if defined(HAWK_HAVE_INLINE)
