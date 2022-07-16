@@ -29,6 +29,7 @@
 #include <hawk-fmt.h>
 #include <hawk-cli.h>
 #include <hawk-xma.h>
+#include <hawk-glob.h>
 
 #include <stdio.h>
 #include <string.h>
@@ -36,8 +37,6 @@
 #include <stdarg.h>
 #include <stdlib.h>
 #include <locale.h>
-
-#define HAWK_MEMSET memset
 
 // #define ENABLE_CALLBACK  TODO: enable this back
 #define ABORT(label) goto label
@@ -196,7 +195,7 @@ static int set_signal_handler (int sig, sig_handler_t handler, int extra_flags)
 
 		if (sigaction(sig, HAWK_NULL, &oldsa) == -1) return -1;
 
-		HAWK_MEMSET (&sa, 0, HAWK_SIZEOF(sa));
+		memset (&sa, 0, HAWK_SIZEOF(sa));
 		if (oldsa.sa_flags & SA_SIGINFO)
 		{
 			sa.sa_sigaction = dispatch_siginfo;
@@ -240,7 +239,7 @@ static int unset_signal_handler (int sig)
 	if (!g_sig_state[sig].handler) return -1; /* not set */
 
 #if defined(HAVE_SIGACTION)
-	HAWK_MEMSET (&sa, 0, HAWK_SIZEOF(sa));
+	memset (&sa, 0, HAWK_SIZEOF(sa));
 	sa.sa_mask = g_sig_state[sig].old_sa_mask;
 	sa.sa_flags = g_sig_state[sig].old_sa_flags;
 
@@ -593,7 +592,7 @@ static void purge_xarg (xarg_t* xarg)
 	}
 }
 
-static int expand_wildcard (int argc, hawk_bch_t* argv[], int glob, xarg_t* xarg)
+static int expand_wildcard (int argc, hawk_bch_t* argv[], int do_glob, xarg_t* xarg)
 {
 	int i;
 	hawk_bcs_t tmp;
@@ -602,23 +601,22 @@ static int expand_wildcard (int argc, hawk_bch_t* argv[], int glob, xarg_t* xarg
 	{
 		int x;
 
-#if 0
-// TOOD: revive this part
-		if (glob)
+		if (do_glob)
 		{
+			int glob_flags;
+			hawk_gem_t fake_gem; /* guly to use this fake gem here */
+
+			glob_flags = HAWK_GLOB_TOLERANT | HAWK_GLOB_PERIOD;
 		#if defined(_WIN32) || defined(__OS2__) || defined(__DOS__)
-			int glob_flags = HAWK_GLOB_TOLERANT | HAWK_GLOB_PERIOD | HAWK_GLOB_NOESCAPE | HAWK_GLOB_IGNORECASE;
-		#else
-			int glob_flags = HAWK_GLOB_TOLERANT | HAWK_GLOB_PERIOD;
+			glob_flags |= HAWK_GLOB_NOESCAPE | HAWK_GLOB_IGNORECASE;
 		#endif
 
-			x = hawk_glob(argv[i], collect_into_xarg, xarg, glob_flags, xarg->mmgr, hawk_getdflcmgr());
+			fake_gem.mmgr = hawk_get_sys_mmgr();
+			fake_gem.cmgr = hawk_get_cmgr_by_id(HAWK_CMGR_UTF8); /* TODO: system default? */
+			x = hawk_gem_bglob(&fake_gem, argv[i], collect_into_xarg, xarg, glob_flags);
 			if (x <= -1) return -1;
 		}
 		else x = 0;
-#else
-		x = 0;
-#endif
 
 		if (x == 0)
 		{
@@ -698,7 +696,7 @@ static int process_argv (int argc, hawk_bch_t* argv[], struct arg_t* arg)
 	int oops_ret = -1;
 	int do_glob = 0;
 
-	HAWK_MEMSET (arg, 0, HAWK_SIZEOF(*arg));
+	memset (arg, 0, HAWK_SIZEOF(*arg));
 
 	isf = (hawk_parsestd_t*)malloc(HAWK_SIZEOF(*isf) * isfc);
 	if (!isf)
@@ -962,7 +960,7 @@ static int process_argv (int argc, hawk_bch_t* argv[], struct arg_t* arg)
 	if (opt.ind < argc) 
 	{
 		/* the remaining arguments are input console file names */
-		if (expand_wildcard(argc - opt.ind,  &argv[opt.ind], do_glob, &arg->icf) <= -1)
+		if (expand_wildcard(argc - opt.ind, &argv[opt.ind], do_glob, &arg->icf) <= -1)
 		{
 			print_error ("failed to expand wildcard\n");
 			goto oops;

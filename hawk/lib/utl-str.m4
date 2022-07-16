@@ -1507,3 +1507,237 @@ _int_type_ _fn_name_ (const _char_type_* str, hawk_oow_t len, int option, const 
 }
 popdef([[_fn_name_]])popdef([[_char_type_]])popdef([[_int_type_]])popdef([[_is_space_]])popdef([[_prefix_]])dnl
 ]])
+dnl ---------------------------------------------------------------------------
+define([[fn_fnmat]], [[pushdef([[_fn_name_]], $1)pushdef([[_char_type_]], $2)pushdef([[_to_lower_]], $3)pushdef([[_match_ch_class_]], $4)dnl
+int _fn_name_ (const _char_type_* str, hawk_oow_t slen, const _char_type_* ptn, hawk_oow_t plen, int flags, int no_first_period)
+{
+	const _char_type_* sp = str;
+	const _char_type_* pp = ptn;
+	const _char_type_* se = str + slen;
+	const _char_type_* pe = ptn + plen;
+	_char_type_ sc, pc, pc2;
+
+	while (1) 
+	{
+		if (pp < pe && HAWK_FNMAT_IS_ESC(*pp) && !(flags & HAWK_FNMAT_NOESCAPE)) 
+		{
+			/* pattern is escaped and escaping is allowed. */
+
+			if ((++pp) >= pe) 
+			{
+				/* 
+				 * the last character of the pattern is an WCS_ESC. 
+				 * matching is performed as if the end of the pattern is
+				 * reached just without an WCS_ESC.
+				 */
+				if (sp < se) return 0;
+				return 1;
+			}
+
+			if (sp >= se) return 0; /* premature string termination */
+
+			sc = *sp; pc = *pp; /* pc is just a normal character */
+			if ((flags & HAWK_FNMAT_IGNORECASE) != 0) 
+			{
+				/* make characters to lower-case */
+				sc = _to_lower_()(sc);
+				pc = _to_lower_()(pc); 
+			}
+
+			if (sc != pc) return 0;
+			sp++; pp++; 
+			continue;
+		}
+		if (pp >= pe) 
+		{
+			/* 
+			 * the end of the pattern has been reached. 
+			 * the string must terminate too.
+			 */
+			return sp >= se;
+		}
+
+		if (sp >= se) 
+		{
+			/* the string terminats prematurely */
+			while (pp < pe && *pp == '*') pp++;
+			return pp >= pe;
+		}
+
+		sc = *sp; pc = *pp;
+
+		if (sc == '.' && (flags & HAWK_FNMAT_PERIOD)) 
+		{
+			/* 
+			 * a leading period in the staring must match 
+			 * a period in the pattern explicitly 
+			 */
+			if ((!no_first_period && sp == str) || 
+			    (HAWK_FNMAT_IS_SEP(sp[-1]) && (flags & HAWK_FNMAT_PATHNAME))) 
+			{
+				if (pc != '.') return 0;
+				sp++; pp++;
+				continue;
+			}
+		}
+		else if (HAWK_FNMAT_IS_SEP(sc) && (flags & HAWK_FNMAT_PATHNAME)) 
+		{
+			while (pc == '*') 
+			{
+				if ((++pp) >= pe) return 0;
+				pc = *pp;
+			}
+
+			/* a path separator must be matched explicitly */
+			if (!HAWK_FNMAT_IS_SEP(pc)) return 0;
+			sp++; pp++;
+			continue;
+		}
+
+		/* the handling of special pattern characters begins here */
+		if (pc == '?') 
+		{
+			/* match any single character */
+			sp++; pp++; 
+		} 
+		else if (pc == '*') 
+		{ 
+			/* match zero or more characters */
+
+			/* compact asterisks */
+			do { pp++; } while (pp < pe && *pp == '*');
+
+			if (pp >= pe) 
+			{
+				/* 
+				 * if the last character in the pattern is an asterisk,
+				 * the string should not have any directory separators
+				 * when HAWK_FNMAT_PATHNAME is set.
+				 */
+				if (flags & HAWK_FNMAT_PATHNAME)
+				{
+					const _char_type_* s = sp;
+					for (s = sp; s < se; s++)
+					{
+						if (HAWK_FNMAT_IS_SEP(*s)) return 0;
+					}
+				}
+				return 1;
+			}
+			else 
+			{
+				do 
+				{
+					if (_fn_name_()(sp, se - sp, pp, pe - pp, flags, 1)) return 1;
+					if (HAWK_FNMAT_IS_SEP(*sp) && (flags & HAWK_FNMAT_PATHNAME)) break;
+					sp++;
+				} 
+				while (sp < se);
+
+				return 0;
+			}
+		}
+		else if (pc == '[') 
+		{
+			/* match range */
+			int negate = 0;
+			int matched = 0;
+
+			if ((++pp) >= pe) return 0;
+			if (*pp == '!') { negate = 1; pp++; } 
+
+			while (pp < pe && *pp != ']') 
+			{
+				if (*pp == '[') 
+				{
+					hawk_oow_t pl = pe - pp;
+
+					if (pl >= 9)  /* assumption that [:class:] is at least 9 in _match_ch_class_ */
+					{
+						int x = _match_ch_class_()(pp, sc, &matched);
+						if (x > 0)
+						{
+							pp += x;
+							continue;
+						}
+					}
+
+					/* 
+					 * characters in an invalid class name are 
+					 * just treated as normal characters 
+					 */
+				}
+
+				if (HAWK_FNMAT_IS_ESC(*pp) && !(flags & HAWK_FNMAT_NOESCAPE)) pp++;
+				else if (*pp == ']') break;
+
+				if (pp >= pe) break;
+
+				pc = *pp;
+				if ((flags & HAWK_FNMAT_IGNORECASE) != 0) 
+				{
+					sc = _to_lower_()(sc); 
+					pc = _to_lower_()(pc); 
+				}
+
+				if (pp + 1 < pe && pp[1] == '-') 
+				{
+					pp += 2; /* move the a character next to a dash */
+
+					if (pp >= pe) 
+					{
+						if (sc >= pc) matched = 1;
+						break;
+					}
+
+					if (HAWK_FNMAT_IS_ESC(*pp) && !(flags & HAWK_FNMAT_NOESCAPE)) 
+					{
+						if ((++pp) >= pe) 
+						{
+							if (sc >= pc) matched = 1;
+							break;
+						}
+					}
+					else if (*pp == ']') 
+					{
+						if (sc >= pc) matched = 1;
+						break;
+					}
+
+					pc2 = *pp;
+					if ((flags & HAWK_FNMAT_IGNORECASE) != 0) 
+						pc2 = _to_lower_()(pc2); 
+
+					if (sc >= pc && sc <= pc2) matched = 1;
+					pp++;
+				}
+				else 
+				{
+					if (sc == pc) matched = 1;
+					pp++;
+				}
+			}
+
+			if (negate) matched = !matched;
+			if (!matched) return 0;
+			sp++; if (pp < pe) pp++;
+		}
+		else 
+		{
+			/* a normal character */
+			if ((flags & HAWK_FNMAT_IGNORECASE) != 0) 
+			{
+				sc = _to_lower_()(sc); 
+				pc = _to_lower_()(pc); 
+			}
+
+			if (sc != pc) return 0;
+			sp++; pp++;
+		}
+	}
+
+	/* will never reach here. but make some immature compilers happy... */
+	return 0;
+}
+popdef([[_fn_name_]])popdef([[_char_type_]])popdef([[_int_type_]])popdef([[_match_ch_class_]])dnl
+]])

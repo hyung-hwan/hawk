@@ -50,6 +50,33 @@ int hawk_comp_ucstr_bcstr (const hawk_uch_t* str1, const hawk_bch_t* str2, int i
 	}
 }
 
+int hawk_comp_ucstr_bcstr_limited (const hawk_uch_t* str1, const hawk_bch_t* str2, hawk_oow_t maxlen, int ignorecase)
+{
+	if (maxlen == 0) return 0;
+
+	if (ignorecase)
+	{
+		while (hawk_to_uch_lower(*str1) == hawk_to_bch_lower(*str2))
+ 		{
+			if (*str1 == '\0' || maxlen == 1) return 0;
+
+			str1++; str2++; maxlen--;
+		}
+
+		return ((hawk_uchu_t)hawk_to_uch_lower(*str1) > (hawk_bchu_t)hawk_to_bch_lower(*str2))? 1: -1;
+	}
+	else
+	{
+		while (*str1 == *str2)
+		{
+			if (*str1 == '\0' || maxlen == 1) return 0;
+			str1++; str2++; maxlen--;
+		}
+
+		return ((hawk_uchu_t)*str1 > (hawk_bchu_t)*str2)? 1: -1;
+	}
+}
+
 int hawk_comp_uchars_bcstr (const hawk_uch_t* str1, hawk_oow_t len, const hawk_bch_t* str2, int ignorecase)
 {
 	/* for "abc\0" of length 4 vs "abc", the fourth character

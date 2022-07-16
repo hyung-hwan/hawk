@@ -537,4 +537,3 @@ int hawk_mod_hawk (hawk_mod_t* mod, hawk_t* hawk)
 
 	return 0;
 }
-

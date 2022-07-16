@@ -380,6 +380,13 @@ HAWK_EXPORT int hawk_comp_ucstr_bcstr (
 	int               ignorecase
 );
 
+HAWK_EXPORT int hawk_comp_ucstr_bcstr_limited (
+	const hawk_uch_t* str1,
+	const hawk_bch_t* str2,
+	hawk_oow_t        maxlen,
+	int               ignorecase
+);
+
 HAWK_EXPORT int hawk_comp_uchars_bcstr (
 	const hawk_uch_t* str1,
 	hawk_oow_t        len,

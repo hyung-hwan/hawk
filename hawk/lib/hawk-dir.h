@@ -32,8 +32,8 @@ typedef struct hawk_dir_ent_t hawk_dir_ent_t;
 
 enum hawk_dir_flag_t
 {
-	HAWK_DIR_MBSPATH    = (1 << 0),
-	HAWK_DIR_WCSPATH    = (1 << 1),
+	HAWK_DIR_BPATH      = (1 << 0),
+	HAWK_DIR_UPATH      = (1 << 1),
 	HAWK_DIR_SORT       = (1 << 2),
 	HAWK_DIR_SKIPSPCDIR = (1 << 3)  /**< limited to normal entries excluding . and .. */
 };

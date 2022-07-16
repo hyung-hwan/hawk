@@ -38,21 +38,45 @@
 
 
 
+
 /* ========================================================================= 
  * STRING
  * ========================================================================= */
 
-enum hawk_trim_oochars_flag_t
+enum hawk_trim_flag_t
 {
-        HAWK_TRIM_OOCHARS_LEFT  = (1 << 0), /**< trim leading spaces */
-#define HAWK_TRIM_OOCHARS_LEFT HAWK_TRIM_OOCHARS_LEFT
-#define HAWK_TRIM_UCHARS_LEFT HAWK_TRIM_OOCHARS_LEFT
-#define HAWK_TRIM_BCHARS_LEFT HAWK_TRIM_OOCHARS_LEFT
-        HAWK_TRIM_OOCHARS_RIGHT = (1 << 1)  /**< trim trailing spaces */
-#define HAWK_TRIM_OOCHARS_RIGHT HAWK_TRIM_OOCHARS_RIGHT
-#define HAWK_TRIM_UCHARS_RIGHT HAWK_TRIM_OOCHARS_RIGHT
-#define HAWK_TRIM_BCHARS_RIGHT HAWK_TRIM_OOCHARS_RIGHT
+	HAWK_TRIM_LEFT  = (1 << 0), /**< trim leading spaces */
+#define HAWK_TRIM_LEFT HAWK_TRIM_LEFT
+#define HAWK_TRIM_OOCHARS_LEFT HAWK_TRIM_LEFT
+#define HAWK_TRIM_UCHARS_LEFT HAWK_TRIM_LEFT
+#define HAWK_TRIM_BCHARS_LEFT HAWK_TRIM_LEFT
+	HAWK_TRIM_RIGHT = (1 << 1)  /**< trim trailing spaces */
+#define HAWK_TRIM_RIGHT HAWK_TRIM_RIGHT
+#define HAWK_TRIM_OOCHARS_RIGHT HAWK_TRIM_RIGHT
+#define HAWK_TRIM_UCHARS_RIGHT HAWK_TRIM_RIGHT
+#define HAWK_TRIM_BCHARS_RIGHT HAWK_TRIM_RIGHT
 };
+
+enum hawk_fnmat_flag_t
+{
+	HAWK_FNMAT_PATHNAME   = (1 << 0),
+#define HAWK_FNMAT_PATHNAME   HAWK_FNMAT_PATHNAME
+	HAWK_FNMAT_NOESCAPE   = (1 << 1),
+#define HAWK_FNMAT_NOESCAPE   HAWK_FNMAT_NOESCAPE
+	HAWK_FNMAT_PERIOD     = (1 << 2),
+#define HAWK_FNMAT_PERIOD     HAWK_FNMAT_PERIOD
+	HAWK_FNMAT_IGNORECASE = (1 << 3)
+#define HAWK_FNMAT_IGNORECASE HAWK_FNMAT_IGNORECASE
+};
+
+#if defined(_WIN32) || defined(__OS2__) || defined(__DOS__)
+	/* i don't support escaping in these systems */
+#	define HAWK_FNMAT_IS_ESC(c) (0)
+#	define HAWK_FNMAT_IS_SEP(c) ((c) == '/' || (c) == '\\')
+#else
+#	define HAWK_FNMAT_IS_ESC(c) ((c) == '\\')
+#	define HAWK_FNMAT_IS_SEP(c) ((c) == '/')
+#endif
 
 #if defined(__cplusplus)
 extern "C" {
@@ -477,6 +501,34 @@ HAWK_EXPORT int hawk_split_bcstr (
 );
 
 
+HAWK_EXPORT int hawk_fnmat_uchars_i (
+	const hawk_uch_t* str,
+	hawk_oow_t        slen,
+	const hawk_uch_t* ptn,
+	hawk_oow_t        plen,
+	int               flags,
+	int               no_first_period
+);
+
+HAWK_EXPORT int hawk_fnmat_bchars_i (
+	const hawk_bch_t* str,
+	hawk_oow_t        slen,
+	const hawk_bch_t* ptn,
+	hawk_oow_t        plen,
+	int               flags,
+	int               no_first_period
+);
+
+#define hawk_fnmat_uchars(str, slen, ptn, plen, flags) hawk_fnmat_uchars_i(str, slen, ptn, plen, flags, 0)
+#define hawk_fnmat_ucstr(str, ptn, flags) hawk_fnmat_uchars_i(str, hawk_count_ucstr(str), ptn, hawk_count_ucstr(ptn), flags, 0)
+#define hawk_fnmat_uchars_ucstr(str, slen, ptn, flags) hawk_fnmat_uchars_i(str, slen, ptn, hawk_count_ucstr(ptn), flags, 0)
+#define hawk_fnmat_ucstr_uchars(str, ptn, plen, flags) hawk_fnmat_uchars_i(str, hawk_count_ucstr(str), ptn, plen, flags, 0)
+
+#define hawk_fnmat_bchars(str, slen, ptn, plen, flags) hawk_fnmat_bchars_i(str, slen, ptn, plen, flags, 0)
+#define hawk_fnmat_bcstr(str, ptn, flags) hawk_fnmat_bchars_i(str, hawk_count_bcstr(str), ptn, hawk_count_bcstr(ptn), flags, 0)
+#define hawk_fnmat_bchars_bcstr(str, slen, ptn, flags) hawk_fnmat_bchars_i(str, slen, ptn, hawk_count_bcstr(ptn), flags, 0)
+#define hawk_fnmat_bcstr_bchars(str, ptn, plen, flags) hawk_fnmat_bchars_i(str, hawk_count_bcstr(str), ptn, plen, flags, 0)
+
 #if defined(HAWK_OOCH_IS_UCH)
 #	define hawk_count_oocstr hawk_count_ucstr
 #	define hawk_count_oocstr_limited hawk_count_ucstr_limited
@@ -519,6 +571,12 @@ HAWK_EXPORT int hawk_split_bcstr (
 #	define hawk_tokenize_oochars hawk_tokenize_uchars
 #	define hawk_trim_oochars hawk_trim_uchars
 #	define hawk_split_oocstr hawk_split_ucstr
+
+#	define hawk_fnmat_oochars_i hawk_fnmat_uchars_i
+#	define hawk_fnmat_oochars hawk_fnmat_uchars
+#	define hawk_fnmat_oocstr hawk_fnmat_ucstr
+#	define hawk_fnmat_oochars_oocstr hawk_fnmat_uchars_ucstr
+#	define hawk_fnmat_oocstr_oochars hawk_fnmat_ucstr_uchars
 #else
 #	define hawk_count_oocstr hawk_count_bcstr
 #	define hawk_count_oocstr_limited hawk_count_bcstr_limited
@@ -561,6 +619,12 @@ HAWK_EXPORT int hawk_split_bcstr (
 #	define hawk_tokenize_oochars hawk_tokenize_bchars
 #	define hawk_trim_oochars hawk_trim_bchars
 #	define hawk_split_oocstr hawk_split_bcstr
+
+#	define hawk_fnmat_oochars_i hawk_fnmat_bchars_i
+#	define hawk_fnmat_oochars hawk_fnmat_bchars
+#	define hawk_fnmat_oocstr hawk_fnmat_bcstr
+#	define hawk_fnmat_oochars_oocstr hawk_fnmat_bchars_bcstr
+#	define hawk_fnmat_oocstr_oochars hawk_fnmat_bcstr_bchars
 #endif
 
 /* ------------------------------------------------------------------------- */

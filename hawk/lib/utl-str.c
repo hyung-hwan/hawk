@@ -32,6 +32,130 @@
 #include "hawk-prv.h"
 #include <hawk-chr.h>
 
+static int match_uch_class (const hawk_uch_t* pp, hawk_uch_t sc, int* matched)
+{
+	if (hawk_comp_ucstr_bcstr_limited(pp, "[:upper:]", 9, 0) == 0) 
+	{
+		*matched = hawk_is_uch_upper(sc);
+		return 9;
+	}
+	else if (hawk_comp_ucstr_bcstr_limited(pp, "[:lower:]", 9, 0) == 0) 
+	{
+		*matched = hawk_is_uch_lower(sc);
+		return 9;
+	}
+	else if (hawk_comp_ucstr_bcstr_limited(pp, "[:alpha:]", 9, 0) == 0) 
+	{
+		*matched = hawk_is_uch_alpha(sc);
+		return 9;
+	}
+	else if (hawk_comp_ucstr_bcstr_limited(pp, "[:digit:]", 9, 0) == 0) 
+	{
+		*matched = hawk_is_uch_digit(sc);
+		return 9;
+	}
+	else if (hawk_comp_ucstr_bcstr_limited(pp, "[:xdigit:]", 10, 0) == 0) 
+	{
+		*matched = hawk_is_uch_xdigit(sc);
+		return 10;
+	}
+	else if (hawk_comp_ucstr_bcstr_limited(pp, "[:alnum:]", 9, 0) == 0) 
+	{
+		*matched = hawk_is_uch_alnum(sc);
+		return 9;
+	}
+	else if (hawk_comp_ucstr_bcstr_limited(pp, "[:space:]", 9, 0) == 0) 
+	{
+		*matched = hawk_is_uch_space(sc);
+		return 9;
+	}
+	else if (hawk_comp_ucstr_bcstr_limited(pp, "[:print:]", 9, 0) == 0) 
+	{
+		*matched = hawk_is_uch_print(sc);
+		return 9;
+	}
+	else if (hawk_comp_ucstr_bcstr_limited(pp, "[:graph:]", 9, 0) == 0) 
+	{
+		*matched = hawk_is_uch_graph(sc);
+		return 9;
+	}
+	else if (hawk_comp_ucstr_bcstr_limited(pp, "[:cntrl:]", 9, 0) == 0) 
+	{
+		*matched = hawk_is_uch_cntrl(sc);
+		return 9;
+	}
+	else if (hawk_comp_ucstr_bcstr_limited(pp, "[:punct:]", 9, 0) == 0) 
+	{
+		*matched = hawk_is_uch_punct(sc);
+		return 9;
+	}
+
+	return 0;
+}
+
+static int match_bch_class (const hawk_bch_t* pp, hawk_bch_t sc, int* matched)
+{
+	if (hawk_comp_bcstr_limited(pp, "[:upper:]", 9, 0) == 0) 
+	{
+		*matched = hawk_is_bch_upper(sc);
+		return 9;
+	}
+	else if (hawk_comp_bcstr_limited(pp, "[:lower:]", 9, 0) == 0) 
+	{
+		*matched = hawk_is_bch_lower(sc);
+		return 9;
+	}
+	else if (hawk_comp_bcstr_limited(pp, "[:alpha:]", 9, 0) == 0) 
+	{
+		*matched = hawk_is_bch_alpha(sc);
+		return 9;
+	}
+	else if (hawk_comp_bcstr_limited(pp, "[:digit:]", 9, 0) == 0) 
+	{
+		*matched = hawk_is_bch_digit(sc);
+		return 9;
+	}
+	else if (hawk_comp_bcstr_limited(pp, "[:xdigit:]", 10, 0) == 0) 
+	{
+		*matched = hawk_is_bch_xdigit(sc);
+		return 10;
+	}
+	else if (hawk_comp_bcstr_limited(pp, "[:alnum:]", 9, 0) == 0) 
+	{
+		*matched = hawk_is_bch_alnum(sc);
+		return 9;
+	}
+	else if (hawk_comp_bcstr_limited(pp, "[:space:]", 9, 0) == 0) 
+	{
+		*matched = hawk_is_bch_space(sc);
+		return 9;
+	}
+	else if (hawk_comp_bcstr_limited(pp, "[:print:]", 9, 0) == 0) 
+	{
+		*matched = hawk_is_bch_print(sc);
+		return 9;
+	}
+	else if (hawk_comp_bcstr_limited(pp, "[:graph:]", 9, 0) == 0) 
+	{
+		*matched = hawk_is_bch_graph(sc);
+		return 9;
+	}
+	else if (hawk_comp_bcstr_limited(pp, "[:cntrl:]", 9, 0) == 0) 
+	{
+		*matched = hawk_is_bch_cntrl(sc);
+		return 9;
+	}
+	else if (hawk_comp_bcstr_limited(pp, "[:punct:]", 9, 0) == 0) 
+	{
+		*matched = hawk_is_bch_punct(sc);
+		return 9;
+	}
+
+	return 0;
+}
+
+
+
 
 int hawk_comp_uchars (const hawk_uch_t* str1, hawk_oow_t len1, const hawk_uch_t* str2, hawk_oow_t len2, int ignorecase)
 {
@@ -2999,5 +3123,467 @@ hawk_uint_t hawk_bchars_to_uint (const hawk_bch_t* str, hawk_oow_t len, int opti
 
 	if (endptr) *endptr = p;
 	return n;
+}
+
+int hawk_fnmat_uchars_i (const hawk_uch_t* str, hawk_oow_t slen, const hawk_uch_t* ptn, hawk_oow_t plen, int flags, int no_first_period)
+{
+	const hawk_uch_t* sp = str;
+	const hawk_uch_t* pp = ptn;
+	const hawk_uch_t* se = str + slen;
+	const hawk_uch_t* pe = ptn + plen;
+	hawk_uch_t sc, pc, pc2;
+
+	while (1) 
+	{
+		if (pp < pe && HAWK_FNMAT_IS_ESC(*pp) && !(flags & HAWK_FNMAT_NOESCAPE)) 
+		{
+			/* pattern is escaped and escaping is allowed. */
+
+			if ((++pp) >= pe) 
+			{
+				/* 
+				 * the last character of the pattern is an WCS_ESC. 
+				 * matching is performed as if the end of the pattern is
+				 * reached just without an WCS_ESC.
+				 */
+				if (sp < se) return 0;
+				return 1;
+			}
+
+			if (sp >= se) return 0; /* premature string termination */
+
+			sc = *sp; pc = *pp; /* pc is just a normal character */
+			if ((flags & HAWK_FNMAT_IGNORECASE) != 0) 
+			{
+				/* make characters to lower-case */
+				sc = hawk_to_uch_lower(sc);
+				pc = hawk_to_uch_lower(pc); 
+			}
+
+			if (sc != pc) return 0;
+			sp++; pp++; 
+			continue;
+		}
+		if (pp >= pe) 
+		{
+			/* 
+			 * the end of the pattern has been reached. 
+			 * the string must terminate too.
+			 */
+			return sp >= se;
+		}
+
+		if (sp >= se) 
+		{
+			/* the string terminats prematurely */
+			while (pp < pe && *pp == '*') pp++;
+			return pp >= pe;
+		}
+
+		sc = *sp; pc = *pp;
+
+		if (sc == '.' && (flags & HAWK_FNMAT_PERIOD)) 
+		{
+			/* 
+			 * a leading period in the staring must match 
+			 * a period in the pattern explicitly 
+			 */
+			if ((!no_first_period && sp == str) || 
+			    (HAWK_FNMAT_IS_SEP(sp[-1]) && (flags & HAWK_FNMAT_PATHNAME))) 
+			{
+				if (pc != '.') return 0;
+				sp++; pp++;
+				continue;
+			}
+		}
+		else if (HAWK_FNMAT_IS_SEP(sc) && (flags & HAWK_FNMAT_PATHNAME)) 
+		{
+			while (pc == '*') 
+			{
+				if ((++pp) >= pe) return 0;
+				pc = *pp;
+			}
+
+			/* a path separator must be matched explicitly */
+			if (!HAWK_FNMAT_IS_SEP(pc)) return 0;
+			sp++; pp++;
+			continue;
+		}
+
+		/* the handling of special pattern characters begins here */
+		if (pc == '?') 
+		{
+			/* match any single character */
+			sp++; pp++; 
+		} 
+		else if (pc == '*') 
+		{ 
+			/* match zero or more characters */
+
+			/* compact asterisks */
+			do { pp++; } while (pp < pe && *pp == '*');
+
+			if (pp >= pe) 
+			{
+				/* 
+				 * if the last character in the pattern is an asterisk,
+				 * the string should not have any directory separators
+				 * when HAWK_FNMAT_PATHNAME is set.
+				 */
+				if (flags & HAWK_FNMAT_PATHNAME)
+				{
+					const hawk_uch_t* s = sp;
+					for (s = sp; s < se; s++)
+					{
+						if (HAWK_FNMAT_IS_SEP(*s)) return 0;
+					}
+				}
+				return 1;
+			}
+			else 
+			{
+				do 
+				{
+					if (hawk_fnmat_uchars_i(sp, se - sp, pp, pe - pp, flags, 1)) return 1;
+					if (HAWK_FNMAT_IS_SEP(*sp) && (flags & HAWK_FNMAT_PATHNAME)) break;
+					sp++;
+				} 
+				while (sp < se);
+
+				return 0;
+			}
+		}
+		else if (pc == '[') 
+		{
+			/* match range */
+			int negate = 0;
+			int matched = 0;
+
+			if ((++pp) >= pe) return 0;
+			if (*pp == '!') { negate = 1; pp++; } 
+
+			while (pp < pe && *pp != ']') 
+			{
+				if (*pp == '[') 
+				{
+					hawk_oow_t pl = pe - pp;
+
+					if (pl >= 9)  /* assumption that [:class:] is at least 9 in match_uch_class */
+					{
+						int x = match_uch_class(pp, sc, &matched);
+						if (x > 0)
+						{
+							pp += x;
+							continue;
+						}
+					}
+
+					/* 
+					 * characters in an invalid class name are 
+					 * just treated as normal characters 
+					 */
+				}
+
+				if (HAWK_FNMAT_IS_ESC(*pp) && !(flags & HAWK_FNMAT_NOESCAPE)) pp++;
+				else if (*pp == ']') break;
+
+				if (pp >= pe) break;
+
+				pc = *pp;
+				if ((flags & HAWK_FNMAT_IGNORECASE) != 0) 
+				{
+					sc = hawk_to_uch_lower(sc); 
+					pc = hawk_to_uch_lower(pc); 
+				}
+
+				if (pp + 1 < pe && pp[1] == '-') 
+				{
+					pp += 2; /* move the a character next to a dash */
+
+					if (pp >= pe) 
+					{
+						if (sc >= pc) matched = 1;
+						break;
+					}
+
+					if (HAWK_FNMAT_IS_ESC(*pp) && !(flags & HAWK_FNMAT_NOESCAPE)) 
+					{
+						if ((++pp) >= pe) 
+						{
+							if (sc >= pc) matched = 1;
+							break;
+						}
+					}
+					else if (*pp == ']') 
+					{
+						if (sc >= pc) matched = 1;
+						break;
+					}
+
+					pc2 = *pp;
+					if ((flags & HAWK_FNMAT_IGNORECASE) != 0) 
+						pc2 = hawk_to_uch_lower(pc2); 
+
+					if (sc >= pc && sc <= pc2) matched = 1;
+					pp++;
+				}
+				else 
+				{
+					if (sc == pc) matched = 1;
+					pp++;
+				}
+			}
+
+			if (negate) matched = !matched;
+			if (!matched) return 0;
+			sp++; if (pp < pe) pp++;
+		}
+		else 
+		{
+			/* a normal character */
+			if ((flags & HAWK_FNMAT_IGNORECASE) != 0) 
+			{
+				sc = hawk_to_uch_lower(sc); 
+				pc = hawk_to_uch_lower(pc); 
+			}
+
+			if (sc != pc) return 0;
+			sp++; pp++;
+		}
+	}
+
+	/* will never reach here. but make some immature compilers happy... */
+	return 0;
+}
+
+int hawk_fnmat_bchars_i (const hawk_bch_t* str, hawk_oow_t slen, const hawk_bch_t* ptn, hawk_oow_t plen, int flags, int no_first_period)
+{
+	const hawk_bch_t* sp = str;
+	const hawk_bch_t* pp = ptn;
+	const hawk_bch_t* se = str + slen;
+	const hawk_bch_t* pe = ptn + plen;
+	hawk_bch_t sc, pc, pc2;
+
+	while (1) 
+	{
+		if (pp < pe && HAWK_FNMAT_IS_ESC(*pp) && !(flags & HAWK_FNMAT_NOESCAPE)) 
+		{
+			/* pattern is escaped and escaping is allowed. */
+
+			if ((++pp) >= pe) 
+			{
+				/* 
+				 * the last character of the pattern is an WCS_ESC. 
+				 * matching is performed as if the end of the pattern is
+				 * reached just without an WCS_ESC.
+				 */
+				if (sp < se) return 0;
+				return 1;
+			}
+
+			if (sp >= se) return 0; /* premature string termination */
+
+			sc = *sp; pc = *pp; /* pc is just a normal character */
+			if ((flags & HAWK_FNMAT_IGNORECASE) != 0) 
+			{
+				/* make characters to lower-case */
+				sc = hawk_to_bch_lower(sc);
+				pc = hawk_to_bch_lower(pc); 
+			}
+
+			if (sc != pc) return 0;
+			sp++; pp++; 
+			continue;
+		}
+		if (pp >= pe) 
+		{
+			/* 
+			 * the end of the pattern has been reached. 
+			 * the string must terminate too.
+			 */
+			return sp >= se;
+		}
+
+		if (sp >= se) 
+		{
+			/* the string terminats prematurely */
+			while (pp < pe && *pp == '*') pp++;
+			return pp >= pe;
+		}
+
+		sc = *sp; pc = *pp;
+
+		if (sc == '.' && (flags & HAWK_FNMAT_PERIOD)) 
+		{
+			/* 
+			 * a leading period in the staring must match 
+			 * a period in the pattern explicitly 
+			 */
+			if ((!no_first_period && sp == str) || 
+			    (HAWK_FNMAT_IS_SEP(sp[-1]) && (flags & HAWK_FNMAT_PATHNAME))) 
+			{
+				if (pc != '.') return 0;
+				sp++; pp++;
+				continue;
+			}
+		}
+		else if (HAWK_FNMAT_IS_SEP(sc) && (flags & HAWK_FNMAT_PATHNAME)) 
+		{
+			while (pc == '*') 
+			{
+				if ((++pp) >= pe) return 0;
+				pc = *pp;
+			}
+
+			/* a path separator must be matched explicitly */
+			if (!HAWK_FNMAT_IS_SEP(pc)) return 0;
+			sp++; pp++;
+			continue;
+		}
+
+		/* the handling of special pattern characters begins here */
+		if (pc == '?') 
+		{
+			/* match any single character */
+			sp++; pp++; 
+		} 
+		else if (pc == '*') 
+		{ 
+			/* match zero or more characters */
+
+			/* compact asterisks */
+			do { pp++; } while (pp < pe && *pp == '*');
+
+			if (pp >= pe) 
+			{
+				/* 
+				 * if the last character in the pattern is an asterisk,
+				 * the string should not have any directory separators
+				 * when HAWK_FNMAT_PATHNAME is set.
+				 */
+				if (flags & HAWK_FNMAT_PATHNAME)
+				{
+					const hawk_bch_t* s = sp;
+					for (s = sp; s < se; s++)
+					{
+						if (HAWK_FNMAT_IS_SEP(*s)) return 0;
+					}
+				}
+				return 1;
+			}
+			else 
+			{
+				do 
+				{
+					if (hawk_fnmat_bchars_i(sp, se - sp, pp, pe - pp, flags, 1)) return 1;
+					if (HAWK_FNMAT_IS_SEP(*sp) && (flags & HAWK_FNMAT_PATHNAME)) break;
+					sp++;
+				} 
+				while (sp < se);
+
+				return 0;
+			}
+		}
+		else if (pc == '[') 
+		{
+			/* match range */
+			int negate = 0;
+			int matched = 0;
+
+			if ((++pp) >= pe) return 0;
+			if (*pp == '!') { negate = 1; pp++; } 
+
+			while (pp < pe && *pp != ']') 
+			{
+				if (*pp == '[') 
+				{
+					hawk_oow_t pl = pe - pp;
+
+					if (pl >= 9)  /* assumption that [:class:] is at least 9 in match_bch_class */
+					{
+						int x = match_bch_class(pp, sc, &matched);
+						if (x > 0)
+						{
+							pp += x;
+							continue;
+						}
+					}
+
+					/* 
+					 * characters in an invalid class name are 
+					 * just treated as normal characters 
+					 */
+				}
+
+				if (HAWK_FNMAT_IS_ESC(*pp) && !(flags & HAWK_FNMAT_NOESCAPE)) pp++;
+				else if (*pp == ']') break;
+
+				if (pp >= pe) break;
+
+				pc = *pp;
+				if ((flags & HAWK_FNMAT_IGNORECASE) != 0) 
+				{
+					sc = hawk_to_bch_lower(sc); 
+					pc = hawk_to_bch_lower(pc); 
+				}
+
+				if (pp + 1 < pe && pp[1] == '-') 
+				{
+					pp += 2; /* move the a character next to a dash */
+
+					if (pp >= pe) 
+					{
+						if (sc >= pc) matched = 1;
+						break;
+					}
+
+					if (HAWK_FNMAT_IS_ESC(*pp) && !(flags & HAWK_FNMAT_NOESCAPE)) 
+					{
+						if ((++pp) >= pe) 
+						{
+							if (sc >= pc) matched = 1;
+							break;
+						}
+					}
+					else if (*pp == ']') 
+					{
+						if (sc >= pc) matched = 1;
+						break;
+					}
+
+					pc2 = *pp;
+					if ((flags & HAWK_FNMAT_IGNORECASE) != 0) 
+						pc2 = hawk_to_bch_lower(pc2); 
+
+					if (sc >= pc && sc <= pc2) matched = 1;
+					pp++;
+				}
+				else 
+				{
+					if (sc == pc) matched = 1;
+					pp++;
+				}
+			}
+
+			if (negate) matched = !matched;
+			if (!matched) return 0;
+			sp++; if (pp < pe) pp++;
+		}
+		else 
+		{
+			/* a normal character */
+			if ((flags & HAWK_FNMAT_IGNORECASE) != 0) 
+			{
+				sc = hawk_to_bch_lower(sc); 
+				pc = hawk_to_bch_lower(pc); 
+			}
+
+			if (sc != pc) return 0;
+			sp++; pp++;
+		}
+	}
+
+	/* will never reach here. but make some immature compilers happy... */
+	return 0;
 }
 

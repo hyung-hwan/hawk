@@ -2203,10 +2203,28 @@ static hawk_ooi_t hawk_rio_file (hawk_rtx_t* rtx, hawk_rio_cmd_t cmd, hawk_rio_a
 			return 0;
 
 		case HAWK_RIO_CMD_READ:
-			return hawk_sio_getoochars((hawk_sio_t*)riod->handle, data, size);
+		{
+			hawk_ooi_t t;
+			t = hawk_sio_getoochars((hawk_sio_t*)riod->handle, data, size);
+			if (t <= -1)
+			{
+				const hawk_ooch_t* bem = hawk_rtx_backuperrmsg(rtx);
+				hawk_rtx_seterrfmt (rtx, HAWK_NULL, HAWK_EOPEN, HAWK_T("unable to read %js - %js"), riod->name, bem);
+			}
+			return t;
+		}
 
 		case HAWK_RIO_CMD_READ_BYTES:
-			return hawk_sio_getbchars((hawk_sio_t*)riod->handle, data, size);
+		{
+			hawk_ooi_t t;
+			t = hawk_sio_getbchars((hawk_sio_t*)riod->handle, data, size);
+			if (t <= -1)
+			{
+				const hawk_ooch_t* bem = hawk_rtx_backuperrmsg(rtx);
+				hawk_rtx_seterrfmt (rtx, HAWK_NULL, HAWK_EOPEN, HAWK_T("unable to read %js - %js"), riod->name, bem);
+			}
+			return t;
+		}
 
 		case HAWK_RIO_CMD_WRITE:
 			return hawk_sio_putoochars((hawk_sio_t*)riod->handle, data, size);
@@ -2292,7 +2310,7 @@ static int open_rio_console (hawk_rtx_t* rtx, hawk_rio_arg_t* riod)
 			{
 			console_open_stdin:
 				/* open stdin */
-				sio = open_sio_std_rtx (rtx, HAWK_SIO_STDIN, HAWK_SIO_READ | HAWK_SIO_IGNOREECERR);
+				sio = open_sio_std_rtx(rtx, HAWK_SIO_STDIN, HAWK_SIO_READ | HAWK_SIO_IGNOREECERR);
 				if (HAWK_UNLIKELY(!sio)) return -1;
 
 				if (rxtn->c.cmgr) hawk_sio_setcmgr (sio, rxtn->c.cmgr);
@@ -2361,7 +2379,7 @@ static int open_rio_console (hawk_rtx_t* rtx, hawk_rio_arg_t* riod)
 		 * any fields of riod when the open operation fails */
 		sio = (file[0] == HAWK_T('-') && file[1] == HAWK_T('\0'))?
 			open_sio_std_rtx(rtx, HAWK_SIO_STDIN, HAWK_SIO_READ | HAWK_SIO_IGNOREECERR):
-			open_sio_rtx(rtx, file, HAWK_SIO_READ | HAWK_SIO_IGNOREECERR);
+			open_sio_rtx(rtx, file, HAWK_SIO_READ | HAWK_SIO_IGNOREECERR | HAWK_SIO_KEEPPATH);
 		if (HAWK_UNLIKELY(!sio))
 		{
 			hawk_rtx_freevaloocstr (rtx, v_pair, as.ptr);
@@ -2548,6 +2566,15 @@ static hawk_ooi_t hawk_rio_console (hawk_rtx_t* rtx, hawk_rio_cmd_t cmd, hawk_ri
 				/* reset FNR to 0 here since the caller doesn't know that the file has changed. */
 				hawk_rtx_setgbl(rtx, HAWK_GBL_FNR, hawk_rtx_makeintval(rtx, 0));
 			}
+
+			if (nn <= -1)
+			{
+				const hawk_ooch_t* bem = hawk_rtx_backuperrmsg(rtx);
+				const hawk_ooch_t* path = hawk_sio_getpath((hawk_sio_t*)riod->handle);
+				hawk_rtx_seterrfmt (rtx, HAWK_NULL, HAWK_EOPEN, HAWK_T("unable to read%js%js - %js"), 
+					(path? HAWK_T(" "): HAWK_T("")), (path? path: HAWK_T("")), bem);
+			}
+
 			return nn;
 		}
 
@@ -2572,15 +2599,45 @@ static hawk_ooi_t hawk_rio_console (hawk_rtx_t* rtx, hawk_rio_cmd_t cmd, hawk_ri
 				if (sio) hawk_sio_close (sio);
 				hawk_rtx_setgbl(rtx, HAWK_GBL_FNR, hawk_rtx_makeintval(rtx, 0));
 			}
+
+			if (nn <= -1)
+			{
+				const hawk_ooch_t* bem = hawk_rtx_backuperrmsg(rtx);
+				const hawk_ooch_t* path = hawk_sio_getpath((hawk_sio_t*)riod->handle);
+				hawk_rtx_seterrfmt (rtx, HAWK_NULL, HAWK_EOPEN, HAWK_T("unable to read%js%js - %js"), 
+					(path? HAWK_T(" "): HAWK_T("")), (path? path: HAWK_T("")), bem);
+			}
 		
 			return nn;
 		}
 
 		case HAWK_RIO_CMD_WRITE:
-			return hawk_sio_putoochars((hawk_sio_t*)riod->handle, data, size);
+		{
+			hawk_ooi_t nn;
+			nn = hawk_sio_putoochars((hawk_sio_t*)riod->handle, data, size);
+			if (nn <= -1)
+			{
+				const hawk_ooch_t* bem = hawk_rtx_backuperrmsg(rtx);
+				const hawk_ooch_t* path = hawk_sio_getpath((hawk_sio_t*)riod->handle);
+				hawk_rtx_seterrfmt (rtx, HAWK_NULL, HAWK_EOPEN, HAWK_T("unable to write%js%js - %js"), 
+					(path? HAWK_T(" "): HAWK_T("")), (path? path: HAWK_T("")), bem);
+			}
+			return nn;
+		}
 
 		case HAWK_RIO_CMD_WRITE_BYTES:
-			return hawk_sio_putbchars((hawk_sio_t*)riod->handle, data, size);
+		{
+			hawk_ooi_t nn;
+			nn = hawk_sio_putbchars((hawk_sio_t*)riod->handle, data, size);
+			if (nn <= -1)
+			{
+				const hawk_ooch_t* bem = hawk_rtx_backuperrmsg(rtx);
+				const hawk_ooch_t* path = hawk_sio_getpath((hawk_sio_t*)riod->handle);
+				hawk_rtx_seterrfmt (rtx, HAWK_NULL, HAWK_EOPEN, HAWK_T("unable to write%js%js - %js"), 
+					(path? HAWK_T(" "): HAWK_T("")), (path? path: HAWK_T("")), bem);
+			}
+			return nn;
+		}
 
 		case HAWK_RIO_CMD_FLUSH:
 		{

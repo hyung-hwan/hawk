@@ -31,6 +31,129 @@
 
 #include "hawk-prv.h"
 #include <hawk-chr.h>
+
+static int match_uch_class (const hawk_uch_t* pp, hawk_uch_t sc, int* matched)
+{
+	if (hawk_comp_ucstr_bcstr_limited(pp, "[:upper:]", 9, 0) == 0) 
+	{
+		*matched = hawk_is_uch_upper(sc);
+		return 9;
+	}
+	else if (hawk_comp_ucstr_bcstr_limited(pp, "[:lower:]", 9, 0) == 0) 
+	{
+		*matched = hawk_is_uch_lower(sc);
+		return 9;
+	}
+	else if (hawk_comp_ucstr_bcstr_limited(pp, "[:alpha:]", 9, 0) == 0) 
+	{
+		*matched = hawk_is_uch_alpha(sc);
+		return 9;
+	}
+	else if (hawk_comp_ucstr_bcstr_limited(pp, "[:digit:]", 9, 0) == 0) 
+	{
+		*matched = hawk_is_uch_digit(sc);
+		return 9;
+	}
+	else if (hawk_comp_ucstr_bcstr_limited(pp, "[:xdigit:]", 10, 0) == 0) 
+	{
+		*matched = hawk_is_uch_xdigit(sc);
+		return 10;
+	}
+	else if (hawk_comp_ucstr_bcstr_limited(pp, "[:alnum:]", 9, 0) == 0) 
+	{
+		*matched = hawk_is_uch_alnum(sc);
+		return 9;
+	}
+	else if (hawk_comp_ucstr_bcstr_limited(pp, "[:space:]", 9, 0) == 0) 
+	{
+		*matched = hawk_is_uch_space(sc);
+		return 9;
+	}
+	else if (hawk_comp_ucstr_bcstr_limited(pp, "[:print:]", 9, 0) == 0) 
+	{
+		*matched = hawk_is_uch_print(sc);
+		return 9;
+	}
+	else if (hawk_comp_ucstr_bcstr_limited(pp, "[:graph:]", 9, 0) == 0) 
+	{
+		*matched = hawk_is_uch_graph(sc);
+		return 9;
+	}
+	else if (hawk_comp_ucstr_bcstr_limited(pp, "[:cntrl:]", 9, 0) == 0) 
+	{
+		*matched = hawk_is_uch_cntrl(sc);
+		return 9;
+	}
+	else if (hawk_comp_ucstr_bcstr_limited(pp, "[:punct:]", 9, 0) == 0) 
+	{
+		*matched = hawk_is_uch_punct(sc);
+		return 9;
+	}
+
+	return 0;
+}
+
+static int match_bch_class (const hawk_bch_t* pp, hawk_bch_t sc, int* matched)
+{
+	if (hawk_comp_bcstr_limited(pp, "[:upper:]", 9, 0) == 0) 
+	{
+		*matched = hawk_is_bch_upper(sc);
+		return 9;
+	}
+	else if (hawk_comp_bcstr_limited(pp, "[:lower:]", 9, 0) == 0) 
+	{
+		*matched = hawk_is_bch_lower(sc);
+		return 9;
+	}
+	else if (hawk_comp_bcstr_limited(pp, "[:alpha:]", 9, 0) == 0) 
+	{
+		*matched = hawk_is_bch_alpha(sc);
+		return 9;
+	}
+	else if (hawk_comp_bcstr_limited(pp, "[:digit:]", 9, 0) == 0) 
+	{
+		*matched = hawk_is_bch_digit(sc);
+		return 9;
+	}
+	else if (hawk_comp_bcstr_limited(pp, "[:xdigit:]", 10, 0) == 0) 
+	{
+		*matched = hawk_is_bch_xdigit(sc);
+		return 10;
+	}
+	else if (hawk_comp_bcstr_limited(pp, "[:alnum:]", 9, 0) == 0) 
+	{
+		*matched = hawk_is_bch_alnum(sc);
+		return 9;
+	}
+	else if (hawk_comp_bcstr_limited(pp, "[:space:]", 9, 0) == 0) 
+	{
+		*matched = hawk_is_bch_space(sc);
+		return 9;
+	}
+	else if (hawk_comp_bcstr_limited(pp, "[:print:]", 9, 0) == 0) 
+	{
+		*matched = hawk_is_bch_print(sc);
+		return 9;
+	}
+	else if (hawk_comp_bcstr_limited(pp, "[:graph:]", 9, 0) == 0) 
+	{
+		*matched = hawk_is_bch_graph(sc);
+		return 9;
+	}
+	else if (hawk_comp_bcstr_limited(pp, "[:cntrl:]", 9, 0) == 0) 
+	{
+		*matched = hawk_is_bch_cntrl(sc);
+		return 9;
+	}
+	else if (hawk_comp_bcstr_limited(pp, "[:punct:]", 9, 0) == 0) 
+	{
+		*matched = hawk_is_bch_punct(sc);
+		return 9;
+	}
+
+	return 0;
+}
+
 dnl
 dnl ---------------------------------------------------------------------------
 include(`utl-str.m4')dnl
@@ -136,3 +259,6 @@ fn_chars_to_int(hawk_bchars_to_int, hawk_bch_t, hawk_int_t, hawk_is_bch_space, H
 dnl --
 fn_chars_to_uint(hawk_uchars_to_uint, hawk_uch_t, hawk_uint_t, hawk_is_uch_space, HAWK_UCHARS_TO_UINTMAX)
 fn_chars_to_uint(hawk_bchars_to_uint, hawk_bch_t, hawk_uint_t, hawk_is_bch_space, HAWK_BCHARS_TO_UINTMAX)
+dnl --
+fn_fnmat(hawk_fnmat_uchars_i, hawk_uch_t, hawk_to_uch_lower, match_uch_class)
+fn_fnmat(hawk_fnmat_bchars_i, hawk_bch_t, hawk_to_bch_lower, match_bch_class)

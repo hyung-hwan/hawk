@@ -135,16 +135,16 @@ int hawk_dir_init (hawk_dir_t* dir, hawk_gem_t* gem, const hawk_ooch_t* path, in
 	int n;
 	int path_flags;
 
-	path_flags = flags & (HAWK_DIR_MBSPATH | HAWK_DIR_WCSPATH);
-	if (path_flags == (HAWK_DIR_MBSPATH | HAWK_DIR_WCSPATH) || path_flags == 0)
+	path_flags = flags & (HAWK_DIR_BPATH | HAWK_DIR_UPATH);
+	if (path_flags == (HAWK_DIR_BPATH | HAWK_DIR_UPATH) || path_flags == 0)
 	{
 		/* if both are set or none are set, force it to the default */
 	#if defined(HAWK_OOCH_IS_BCH)
-		flags |= HAWK_DIR_MBSPATH;
-		flags &= ~HAWK_DIR_WCSPATH;
+		flags |= HAWK_DIR_BPATH;
+		flags &= ~HAWK_DIR_UPATH;
 	#else
-		flags |= HAWK_DIR_WCSPATH;
-		flags &= ~HAWK_DIR_MBSPATH;
+		flags |= HAWK_DIR_UPATH;
+		flags &= ~HAWK_DIR_BPATH;
 	#endif
 	}
 
@@ -294,62 +294,6 @@ static hawk_uch_t* make_wcsdos_path (hawk_dir_t* dir, const hawk_uch_t* wpath)
 }
 #endif
 
-/*
-static hawk_ooch_t* make_dos_path (hawk_dir_t* dir, const hawk_ooch_t* path)
-{
-	if (path[0] == HAWK_T('\0'))
-	{
-		if (hawk_str_cpy (&dir->tbuf, HAWK_T("*.*")) == (hawk_oow_t)-1) 
-		{
-			dir->errnum = HAWK_DIR_ENOMEM;
-			return HAWK_NULL;
-		}
-	}
-	else
-	{
-		hawk_oow_t len;
-		if ((len = hawk_str_cpy (&dir->tbuf, path)) == (hawk_oow_t)-1 ||
-		    (!HAWK_ISPATHSEP(path[len - 1]) && 
-		     !hawk_isdrivecurpath(path) &&
-		     hawk_str_ccat (&dir->tbuf, HAWK_T('\\')) == (hawk_oow_t)-1) ||
-		    hawk_str_cat (&dir->tbuf, HAWK_T("*.*")) == (hawk_oow_t)-1)
-		{
-			dir->errnum = HAWK_DIR_ENOMEM;
-			return HAWK_NULL;
-		}
-	}
-
-	return HAWK_STR_PTR(&dir->tbuf);
-}
-
-static hawk_bch_t* mkdospath (hawk_dir_t* dir, const hawk_ooch_t* path)
-{
-
-#if defined(HAWK_OOCH_IS_BCH)
-	return make_dos_path (dir, path);
-#else
-	if (dir->flags & HAWK_DIR_MBSPATH)
-	{
-		return make_mbsdos_path (dir, (const hawk_bch_t*) path);
-	}
-	else
-	{
-		hawk_ooch_t* tptr;
-		hawk_bch_t* mptr;
-
-		tptr = make_dos_path (dir, path);
-		if (tptr == HAWK_NULL) return HAWK_NULL;
-
-		mptr = wcs_to_mbuf (dir, HAWK_STR_PTR(&dir->tbuf), &dir->mbuf);
-		if (mptr == HAWK_NULL) return HAWK_NULL;
-
-		return mptr;
-	}
-#endif
-
-}
-*/
-
 static int reset_to_path (hawk_dir_t* dir, const hawk_ooch_t* path)
 {
 #if defined(_WIN32)
@@ -361,7 +305,7 @@ static int reset_to_path (hawk_dir_t* dir, const hawk_ooch_t* path)
 	dir->status &= ~STATUS_DONE;
 	dir->status &= ~STATUS_DONE_ERR;
 
-	if (dir->flags & HAWK_DIR_MBSPATH)
+	if (dir->flags & HAWK_DIR_BPATH)
 	{
 		hawk_bch_t* mptr;
 
@@ -377,7 +321,7 @@ static int reset_to_path (hawk_dir_t* dir, const hawk_ooch_t* path)
 	else
 	{
 		hawk_uch_t* wptr;
-		HAWK_ASSERT (dir->flags & HAWK_DIR_WCSPATH);
+		HAWK_ASSERT (dir->flags & HAWK_DIR_UPATH);
 
 		wptr = make_wcsdos_path(dir, (const hawk_uch_t*)path);
 		if (wptr == HAWK_NULL) return -1;
@@ -417,14 +361,14 @@ static int reset_to_path (hawk_dir_t* dir, const hawk_ooch_t* path)
 	#endif
 	ULONG count = 1;
 
-	if (dir->flags & HAWK_DIR_MBSPATH)
+	if (dir->flags & HAWK_DIR_BPATH)
 	{
 		mptr = make_mbsdos_path (dir, (const hawk_bch_t*)path);
 	}
 	else
 	{
 		hawk_uch_t* wptr;
-		HAWK_ASSERT (dir->flags & HAWK_DIR_WCSPATH);
+		HAWK_ASSERT (dir->flags & HAWK_DIR_UPATH);
 
 		wptr = make_wcsdos_path(dir, (const hawk_uch_t*)path);
 		if (wptr == HAWK_NULL) return -1;
@@ -471,7 +415,7 @@ static int reset_to_path (hawk_dir_t* dir, const hawk_ooch_t* path)
 	dir->status &= ~STATUS_DONE;
 	dir->status &= ~STATUS_DONE_ERR;
 
-	if (dir->flags & HAWK_DIR_MBSPATH)
+	if (dir->flags & HAWK_DIR_BPATH)
 	{
 		mptr = make_mbsdos_path(dir, (const hawk_bch_t*)path);
 	}
@@ -479,7 +423,7 @@ static int reset_to_path (hawk_dir_t* dir, const hawk_ooch_t* path)
 	{
 		hawk_uch_t* wptr;
 
-		HAWK_ASSERT (dir->flags & HAWK_DIR_WCSPATH);
+		HAWK_ASSERT (dir->flags & HAWK_DIR_UPATH);
 
 		wptr = make_wcsdos_path(dir, (const hawk_uch_t*)path);
 		if (wptr == HAWK_NULL) return -1;
@@ -504,7 +448,7 @@ static int reset_to_path (hawk_dir_t* dir, const hawk_ooch_t* path)
 #else
 	DIR* dp;
 
-	if (dir->flags & HAWK_DIR_MBSPATH)
+	if (dir->flags & HAWK_DIR_BPATH)
 	{
 		const hawk_bch_t* mpath = (const hawk_bch_t*)path;
 		dp = HAWK_OPENDIR(mpath[0] == '\0'? ".": mpath);
@@ -512,7 +456,7 @@ static int reset_to_path (hawk_dir_t* dir, const hawk_ooch_t* path)
 	else
 	{
 		const hawk_uch_t* wpath;
-		/*HAWK_ASSERT (dir->flags & HAWK_DIR_WCSPATH);*/
+		/*HAWK_ASSERT (dir->flags & HAWK_DIR_UPATH);*/
 
 		wpath = (const hawk_uch_t*)path;
 		if (wpath[0] == '\0')
@@ -595,7 +539,7 @@ static int read_dir_to_buf (hawk_dir_t* dir, void** name)
 		}
 	}
 
-	if (dir->flags & HAWK_DIR_MBSPATH)
+	if (dir->flags & HAWK_DIR_BPATH)
 	{
 	#if defined(HAWK_OOCH_IS_BCH)
 		if (mbs_to_mbuf(dir, dir->wfd.cFileName, &dir->mbuf) == HAWK_NULL) return -1;
@@ -606,7 +550,7 @@ static int read_dir_to_buf (hawk_dir_t* dir, void** name)
 	}
 	else
 	{
-		HAWK_ASSERT (dir->flags & HAWK_DIR_WCSPATH);
+		HAWK_ASSERT (dir->flags & HAWK_DIR_UPATH);
 	#if defined(HAWK_OOCH_IS_BCH)
 		if (mbs_to_wbuf(dir, dir->wfd.cFileName, &dir->wbuf) == HAWK_NULL) return -1;
 	#else
@@ -656,14 +600,14 @@ static int read_dir_to_buf (hawk_dir_t* dir, void** name)
 		}
 	}
 
-	if (dir->flags & HAWK_DIR_MBSPATH)
+	if (dir->flags & HAWK_DIR_BPATH)
 	{
 		if (mbs_to_mbuf (dir, dir->ffb.achName, &dir->mbuf) == HAWK_NULL) return -1;
 		*name = HAWK_BECS_PTR(&dir->mbuf);
 	}
 	else
 	{
-		HAWK_ASSERT (dir->flags & HAWK_DIR_WCSPATH);
+		HAWK_ASSERT (dir->flags & HAWK_DIR_UPATH);
 		if (mbs_to_wbuf (dir, dir->ffb.achName, &dir->wbuf) == HAWK_NULL) return -1;
 		*name = HAWK_UECS_PTR(&dir->wbuf);
 	}
@@ -709,14 +653,14 @@ static int read_dir_to_buf (hawk_dir_t* dir, void** name)
 		}
 	}
 
-	if (dir->flags & HAWK_DIR_MBSPATH)
+	if (dir->flags & HAWK_DIR_BPATH)
 	{
 		if (mbs_to_mbuf (dir, dir->f.name, &dir->mbuf) == HAWK_NULL) return -1;
 		*name = HAWK_BECS_PTR(&dir->mbuf);
 	}
 	else
 	{
-		HAWK_ASSERT (dir->flags & HAWK_DIR_WCSPATH);
+		HAWK_ASSERT (dir->flags & HAWK_DIR_UPATH);
 
 		if (mbs_to_wbuf (dir, dir->f.name, &dir->wbuf) == HAWK_NULL) return -1;
 		*name = HAWK_UECS_PTR(&dir->wbuf);
@@ -754,18 +698,17 @@ read:
 	if (dir->flags & HAWK_DIR_SKIPSPCDIR)
 	{
 		/* skip . and .. */
-		if (IS_CURDIR(de->d_name) || 
-		    IS_PREVDIR(de->d_name)) goto read;
+		if (IS_CURDIR(de->d_name) || IS_PREVDIR(de->d_name)) goto read;
 	}
 
-	if (dir->flags & HAWK_DIR_MBSPATH)
+	if (dir->flags & HAWK_DIR_BPATH)
 	{
 		if (mbs_to_mbuf(dir, de->d_name, &dir->mbuf) == HAWK_NULL) return -1;
 		*name = HAWK_BECS_PTR(&dir->mbuf);
 	}
 	else
 	{
-		/*HAWK_ASSERT (dir->flags & HAWK_DIR_WCSPATH);*/
+		/*HAWK_ASSERT (dir->flags & HAWK_DIR_UPATH);*/
 		if (mbs_to_wbuf(dir, de->d_name, &dir->wbuf) == HAWK_NULL) return -1;
 		*name = HAWK_UECS_PTR(&dir->wbuf);
 	}
@@ -788,7 +731,7 @@ static int read_ahead_and_sort (hawk_dir_t* dir, const hawk_ooch_t* path)
 		{
 			hawk_oow_t size;
 
-			if (dir->flags & HAWK_DIR_MBSPATH)
+			if (dir->flags & HAWK_DIR_BPATH)
 				size = (hawk_count_bcstr(name) + 1) * HAWK_SIZEOF(hawk_bch_t);
 			else
 				size = (hawk_count_ucstr(name) + 1) * HAWK_SIZEOF(hawk_uch_t);

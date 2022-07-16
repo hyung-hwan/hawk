@@ -32,11 +32,14 @@ endif
 endif
 
 EXTRA_DIST = \
+	gem-glob.c.m4 \
+	gem-glob.m4 \
 	hawk-str.h.m4 \
 	utl-str.c.m4 \
 	utl-str.m4
 
 BUILT_SOURCES = \
+	gem-glob.c \
 	hawk-str.h \
 	utl-str.c
 
@@ -55,6 +58,7 @@ pkginclude_HEADERS = \
 	hawk-ecs.h \
 	hawk-fmt.h \
 	hawk-gem.h \
+	hawk-glob.h \
 	hawk-htb.h \
 	hawk-map.h \
 	hawk-rbt.h \
@@ -90,6 +94,7 @@ libhawk_la_SOURCES = \
 	fnc.c \
 	htb.c \
 	gem.c \
+	gem-glob.c \
 	gem-nwif.c \
 	gem-nwif2.c \
 	hawk-prv.h \
@@ -293,6 +298,8 @@ install-data-hook:
 uninstall-hook:
 	@rm -f "$(DESTDIR)$(pkgincludedir)/hawk-cfg.h"
 
+gem-glob.c: gem-glob.m4 gem-glob.c.m4
+	m4 -I$(srcdir) $(srcdir)/gem-glob.c.m4 > $(srcdir)/gem-glob.c
 
 hawk-str.h: utl-str.m4 hawk-str.h.m4
 	m4 -I$(srcdir) $(srcdir)/hawk-str.h.m4 > $(srcdir)/hawk-str.h
