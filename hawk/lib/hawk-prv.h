@@ -154,9 +154,9 @@ typedef struct hawk_tree_t hawk_tree_t;
 #	endif
 
 #	if !defined(HAVE___BUILTIN_MEMSET) || \
-        !defined(HAVE___BUILTIN_MEMCPY) || \
-        !defined(HAVE___BUILTIN_MEMMOVE) || \
-        !defined(HAVE___BUILTIN_MEMCMP) 
+	   !defined(HAVE___BUILTIN_MEMCPY) || \
+	   !defined(HAVE___BUILTIN_MEMMOVE) || \
+	   !defined(HAVE___BUILTIN_MEMCMP) 
 #		include <string.h>
 #	endif
 
