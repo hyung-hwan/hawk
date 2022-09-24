@@ -1,0 +1,16 @@
+kind: pipeline
+type: docker
+name: hawk
+
+platform:
+  os: linux
+  arch: amd64
+
+steps:
+  - name: rockylinux-9
+    image: docker.io/rockylinux:9
+    commands:
+      - dnf -y install --enablerepo=devel mysql-devel libffi-devel rpm-build gcc gcc-c++
+      - find . -exec touch -r {} +
+      - mkdir -p bld/rockylinux-9 && cd bld/rockylinux-9
+      - ../../configure && make && make check && make rpm
