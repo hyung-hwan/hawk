@@ -24,6 +24,6 @@ steps:
       base_url: https://code.miflux.com
       api_key:
          from_secret: gitea-api-key-to-code-miflux-com
-      when:
-        event:
-          - tag
+    when:
+      event:
+        - tag
