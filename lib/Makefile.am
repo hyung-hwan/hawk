@@ -155,6 +155,7 @@ libhawk_la_SOURCES += \
 	hawk-mtx.h \
 	hawk-pio.h \
 	hawk-sio.h \
+	hawk-str.h \
 	hawk-tio.h \
 	cli-imp.h \
 	cli.c \
