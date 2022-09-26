@@ -34,7 +34,7 @@
 
 struct param_data_t
 {
-	my_bool is_null;
+	int is_null;
 	union
 	{
 		my_ulonglong llv;
