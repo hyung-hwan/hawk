@@ -15,7 +15,7 @@ LIBADD_COMMON = ../lib/libhawk.la $(LIBM)
 
 check_SCRIPTS = h-001.hawk h-002.hawk h-003.hawk h-009.hawk
 ##noinst_SCRIPTS = $(check_SCRIPTS)
-EXTRA_DIST = $(check_SCRIPTS) \
+EXTRA_DIST = $(check_SCRIPTS) tap.inc \
 	journal-toc.hawk journal-toc.in journal-toc.out journal-toc-html.out \
 	bibtex-to-html.hawk bibtex-to-html.out
 
