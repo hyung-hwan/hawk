@@ -53,20 +53,27 @@ pkginclude_HEADERS = \
 	hawk.h \
 	hawk-arr.h \
 	hawk-chr.h \
+	hawk-cli.h \
 	hawk-cmn.h \
 	hawk-dir.h \
 	hawk-ecs.h \
+	hawk-fio.h \
 	hawk-fmt.h \
 	hawk-gem.h \
 	hawk-glob.h \
 	hawk-htb.h \
 	hawk-map.h \
+	hawk-mtx.h \
 	hawk-rbt.h \
 	hawk-pac1.h \
+	hawk-pio.h \
 	hawk-skad.h \
 	hawk-utl.h \
 	hawk-sed.h \
+	hawk-sio.h \
 	hawk-std.h \
+	hawk-str.h \
+	hawk-tio.h \
 	hawk-tre.h \
 	hawk-upac.h \
 	hawk-xma.h
@@ -150,13 +157,6 @@ libhawk_la_SOURCES = \
 	xma.c
 
 libhawk_la_SOURCES += \
-	hawk-cli.h \
-	hawk-fio.h \
-	hawk-mtx.h \
-	hawk-pio.h \
-	hawk-sio.h \
-	hawk-str.h \
-	hawk-tio.h \
 	cli-imp.h \
 	cli.c \
 	fio.c \
