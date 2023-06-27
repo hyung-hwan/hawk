@@ -1419,17 +1419,17 @@ hawk_val_t* hawk_rtx_makefunval (hawk_rtx_t* rtx, const hawk_fun_t* fun)
 	return (hawk_val_t*)val;
 }
 
-int HAWK_INLINE hawk_rtx_isstaticval (hawk_rtx_t* rtx, hawk_val_t* val)
+int HAWK_INLINE hawk_rtx_isstaticval (hawk_rtx_t* rtx, const hawk_val_t* val)
 {
 	return HAWK_VTR_IS_POINTER(val) && HAWK_IS_STATICVAL(val);
 }
 
-int hawk_rtx_getvaltype (hawk_rtx_t* rtx, hawk_val_t* val)
+int hawk_rtx_getvaltype (hawk_rtx_t* rtx, const hawk_val_t* val)
 {
 	return HAWK_RTX_GETVALTYPE(rtx, val);
 }
 
-const hawk_ooch_t* hawk_rtx_getvaltypename(hawk_rtx_t* rtx, hawk_val_t* val)
+const hawk_ooch_t* hawk_rtx_getvaltypename(hawk_rtx_t* rtx, const hawk_val_t* val)
 {
 	static const hawk_ooch_t* __val_type_name[] =
 	{
@@ -1452,7 +1452,7 @@ const hawk_ooch_t* hawk_rtx_getvaltypename(hawk_rtx_t* rtx, hawk_val_t* val)
 	return __val_type_name[HAWK_RTX_GETVALTYPE(rtx, val)];
 }
 
-int hawk_rtx_getintfromval (hawk_rtx_t* rtx, hawk_val_t* val)
+int hawk_rtx_getintfromval (hawk_rtx_t* rtx, const hawk_val_t* val)
 {
 	return HAWK_RTX_GETINTFROMVAL(rtx, val);
 }

@@ -3148,23 +3148,23 @@ HAWK_EXPORT hawk_val_t* hawk_rtx_makefunval (
  * \return HAWK_TRUE if \a val is static, HAWK_FALSE if \a val is false
  */
 HAWK_EXPORT int hawk_rtx_isstaticval (
-	hawk_rtx_t* rtx, /**< runtime context */
-	hawk_val_t* val  /**< value to check */
+	hawk_rtx_t*       rtx, /**< runtime context */
+	const hawk_val_t* val  /**< value to check */
 );
 
 HAWK_EXPORT int hawk_rtx_getvaltype (
-	hawk_rtx_t* rtx,
-	hawk_val_t* val
+	hawk_rtx_t*      rtx,
+	const hawk_val_t* val
 );
 
 HAWK_EXPORT const hawk_ooch_t* hawk_rtx_getvaltypename (
-	hawk_rtx_t* rtx,
-	hawk_val_t* val
+	hawk_rtx_t*       rtx,
+	const hawk_val_t* val
 );
 
 HAWK_EXPORT int hawk_rtx_getintfromval (
-	hawk_rtx_t* rtx,
-	hawk_val_t* val
+	hawk_rtx_t*       rtx,
+	const hawk_val_t* val
 );
 
 /**
