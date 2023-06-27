@@ -439,16 +439,21 @@ static HAWK_INLINE const hawk_loc_t* hawk_gem_geterrloc (hawk_gem_t* gem) { retu
 #define hawk_gem_geterrloc(gem) (&((hawk_gem_t*)(gem))->errloc) 
 #endif
 
-HAWK_EXPORT void hawk_gem_geterrinf (
-	hawk_gem_t*         gem,
-	hawk_errinf_t*      errinf
-);
-
 HAWK_EXPORT void hawk_gem_geterror (
 	hawk_gem_t*         gem,
 	hawk_errnum_t*      errnum,
 	const hawk_ooch_t** errmsg,
 	hawk_loc_t*         errloc
+);
+
+HAWK_EXPORT void hawk_gem_geterrbinf (
+	hawk_gem_t*         gem,
+	hawk_errbinf_t*     errinf
+);
+
+HAWK_EXPORT void hawk_gem_geterruinf (
+	hawk_gem_t*         gem,
+	hawk_erruinf_t*     errinf
 );
 
 HAWK_EXPORT const hawk_bch_t* hawk_gem_geterrbmsg (
@@ -460,8 +465,10 @@ HAWK_EXPORT const hawk_uch_t* hawk_gem_geterrumsg (
 );
 
 #if defined(HAWK_OOCH_IS_BCH)
+#	define hawk_gem_geterrinf hawk_gem_geterrbinf
 #	define hawk_gem_geterrmsg hawk_gem_geterrbmsg
 #else
+#	define hawk_gem_geterrinf hawk_gem_geterruinf
 #	define hawk_gem_geterrmsg hawk_gem_geterrumsg
 #endif
 

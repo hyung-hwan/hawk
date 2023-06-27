@@ -1622,19 +1622,23 @@ static HAWK_INLINE hawk_errnum_t hawk_geterrnum (hawk_t* hawk) { return ((hawk_a
 static HAWK_INLINE const hawk_loc_t* hawk_geterrloc (hawk_t* hawk) { return hawk_gem_geterrloc(hawk_getgem(hawk)); }
 static HAWK_INLINE const hawk_bch_t* hawk_geterrbmsg (hawk_t* hawk) { return hawk_gem_geterrbmsg(hawk_getgem(hawk)); }
 static HAWK_INLINE const hawk_uch_t* hawk_geterrumsg (hawk_t* hawk) { return hawk_gem_geterrumsg(hawk_getgem(hawk)); }
-static HAWK_INLINE void hawk_geterrinf (hawk_t* hawk, hawk_errinf_t* errinf) { return hawk_gem_geterrinf(hawk_getgem(hawk), errinf); }
+static HAWK_INLINE void hawk_geterrbinf (hawk_t* hawk, hawk_errbinf_t* errinf) { return hawk_gem_geterrbinf(hawk_getgem(hawk), errinf); }
+static HAWK_INLINE void hawk_geterruinf (hawk_t* hawk, hawk_erruinf_t* errinf) { return hawk_gem_geterruinf(hawk_getgem(hawk), errinf); }
 #else
 #define hawk_geterrnum(hawk) (((hawk_alt_t*)(hawk))->_gem.errnum)
 #define hawk_geterrloc(hawk) (hawk_gem_geterrloc(hawk_getgem(hawk)))
 #define hawk_geterrbmsg(hawk) (hawk_gem_geterrbmsg(hawk_getgem(hawk)))
 #define hawk_geterrumsg(hawk) (hawk_gem_geterrumsg(hawk_getgem(hawk)))
-#define hawk_geterrinf(hawk, errinf) (hawk_gem_geterrinf(hawk_getgem(hawk), errinf))
+#define hawk_geterrbinf(hawk, errinf) (hawk_gem_geterrbinf(hawk_getgem(hawk), errinf))
+#define hawk_geterruinf(hawk, errinf) (hawk_gem_geterruinf(hawk_getgem(hawk), errinf))
 #endif
 
 #if defined(HAWK_OOCH_IS_BCH)
 #	define hawk_geterrmsg hawk_geterrbmsg
+#	define hawk_geterrinf hawk_geterrbinf
 #else
 #	define hawk_geterrmsg hawk_geterrumsg
+#	define hawk_geterrinf hawk_geterruinf
 #endif
 
 /**

@@ -557,21 +557,25 @@ static HAWK_INLINE hawk_errnum_t hawk_sed_geterrnum (hawk_sed_t* sed) { return h
 static HAWK_INLINE const hawk_loc_t* hawk_sed_geterrloc (hawk_sed_t* sed) { return hawk_gem_geterrloc(hawk_sed_getgem(sed)); }
 static HAWK_INLINE const hawk_bch_t* hawk_sed_geterrbmsg (hawk_sed_t* sed) { return hawk_gem_geterrbmsg(hawk_sed_getgem(sed)); }
 static HAWK_INLINE const hawk_uch_t* hawk_sed_geterrumsg (hawk_sed_t* sed) { return hawk_gem_geterrumsg(hawk_sed_getgem(sed)); }
-static HAWK_INLINE void hawk_sed_geterrinf (hawk_sed_t* sed, hawk_errinf_t* errinf) { return hawk_gem_geterrinf(hawk_sed_getgem(sed), errinf); }
+static HAWK_INLINE void hawk_sed_geterrbinf (hawk_sed_t* sed, hawk_errbinf_t* errinf) { return hawk_gem_geterrbinf(hawk_sed_getgem(sed), errinf); }
+static HAWK_INLINE void hawk_sed_geterruinf (hawk_sed_t* sed, hawk_erruinf_t* errinf) { return hawk_gem_geterruinf(hawk_sed_getgem(sed), errinf); }
 static HAWK_INLINE void hawk_sed_geterror (hawk_sed_t* sed, hawk_errnum_t* errnum, const hawk_ooch_t** errmsg, hawk_loc_t* errloc) { return hawk_gem_geterror(hawk_sed_getgem(sed), errnum, errmsg, errloc); }
 #else
 #define hawk_sed_geterrnum(sed) hawk_gem_geterrnum(hawk_sed_getgem(sed))
 #define hawk_sed_geterrloc(sed) hawk_gem_geterrloc(hawk_sed_getgem(sed))
 #define hawk_sed_geterrbmsg(sed) hawk_gem_geterrbmsg(hawk_sed_getgem(sed))
 #define hawk_sed_geterrumsg(sed) hawk_gem_geterrumsg(hawk_sed_getgem(sed))
-#define hawk_sed_geterrinf(sed, errinf) (hawk_gem_geterrinf(hawk_sed_getgem(sed), errinf))
+#define hawk_sed_geterrbinf(sed, errinf) (hawk_gem_geterrbinf(hawk_sed_getgem(sed), errinf))
+#define hawk_sed_geterruinf(sed, errinf) (hawk_gem_geterruinf(hawk_sed_getgem(sed), errinf))
 #define hawk_sed_geterror(sed, errnum, errmsg, errloc) (hawk_gem_geterror(hawk_sed_getgem(sed), errnum, errmsg, errloc))
 #endif
 
 #if defined(HAWK_OOCH_IS_BCH)
 #	define hawk_sed_geterrmsg hawk_sed_geterrbmsg
+#	define hawk_sed_geterrinf hawk_sed_geterrbinf
 #else
 #	define hawk_sed_geterrmsg hawk_sed_geterrumsg
+#	define hawk_sed_geterrinf hawk_sed_geterruinf
 #endif
 
 

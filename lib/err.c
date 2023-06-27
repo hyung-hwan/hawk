@@ -287,11 +287,40 @@ void hawk_rtx_errortohawk (hawk_rtx_t* rtx, hawk_t* hawk)
 
 /* ------------------------------------------------------------------------- */
 
-void hawk_gem_geterrinf (hawk_gem_t* gem, hawk_errinf_t* errinf)
+void hawk_gem_geterrbinf (hawk_gem_t* gem, hawk_errbinf_t* errinf)
 {
+#if defined(HAWK_OOCH_IS_BCH)
 	errinf->num = gem->errnum;
 	errinf->loc = gem->errloc;
 	hawk_copy_oocstr (errinf->msg, HAWK_COUNTOF(errinf->msg), (gem->errmsg[0] == '\0'? gem->errstr(gem->errnum): gem->errmsg));
+#else
+	const hawk_ooch_t* msg;
+	hawk_oow_t wcslen, mbslen;
+
+	errinf->num = gem->errnum;
+	errinf->loc = gem->errloc;
+	msg = (gem->errmsg[0] == '\0')? gem->errstr(gem->errnum): gem->errmsg;
+
+	mbslen = HAWK_COUNTOF(errinf->msg);
+	hawk_conv_ucstr_to_bcstr_with_cmgr (msg, &wcslen, errinf->msg, &mbslen, gem->cmgr);
+#endif
+}
+
+void hawk_gem_geterruinf (hawk_gem_t* gem, hawk_erruinf_t* errinf)
+{
+#if defined(HAWK_OOCH_IS_BCH)
+	const hawk_ooch_t* msg;
+	hawk_oow_t wcslen, mbslen;
+
+	msg = (gem->errmsg[0] == '\0')? gem->errstr(gem->errnum): gem->errmsg;
+
+	wcslen = HAWK_COUNTOF(errinf->msg);
+	hawk_conv_bcstr_to_ucstr_with_cmgr (msg, &mbslen, errinf->msg, &wcslen, gem->cmgr, 1);
+#else
+	errinf->num = gem->errnum;
+	errinf->loc = gem->errloc;
+	hawk_copy_oocstr (errinf->msg, HAWK_COUNTOF(errinf->msg), (gem->errmsg[0] == '\0'? gem->errstr(gem->errnum): gem->errmsg));
+#endif
 }
 
 void hawk_gem_geterror (hawk_gem_t* gem, hawk_errnum_t* errnum, const hawk_ooch_t** errmsg, hawk_loc_t* errloc)

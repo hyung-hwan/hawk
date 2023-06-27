@@ -1086,14 +1086,27 @@ typedef struct hawk_loc_t hawk_loc_t;
 /**
  * The hawk_errinf_t type defines a placeholder for error information.
  */
-struct hawk_errinf_t
+struct hawk_errbinf_t
 {
 	hawk_errnum_t num;                   /**< error number */
-	hawk_ooch_t   msg[HAWK_ERRMSG_CAPA]; /**< error message */
+	hawk_bch_t    msg[HAWK_ERRMSG_CAPA]; /**< error message */
 	hawk_loc_t    loc;                   /**< error location */
 };
-typedef struct hawk_errinf_t hawk_errinf_t;
+typedef struct hawk_errbinf_t hawk_errbinf_t;
 
+struct hawk_erruinf_t
+{
+	hawk_errnum_t num;                   /**< error number */
+	hawk_uch_t    msg[HAWK_ERRMSG_CAPA]; /**< error message */
+	hawk_loc_t    loc;                   /**< error location */
+};
+typedef struct hawk_erruinf_t hawk_erruinf_t;
+
+#if defined(HAWK_OOCH_IS_BCH)
+typedef hawk_errbinf_t hawk_errinf_t;
+#else
+typedef hawk_erruinf_t hawk_errinf_t;
+#endif
 
 /**
  * The hawk_errstr_t type defines an error string getter. It should return
