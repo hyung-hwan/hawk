@@ -123,7 +123,8 @@ typedef enum syslog_type_t syslog_type_t;
 enum syslog_type_t
 {
 	SYSLOG_LOCAL,
-	SYSLOG_REMOTE
+	SYSLOG_DEVLOG,
+	SYSLOG_REMOTE,
 };
 
 struct mod_ctx_t
@@ -4605,8 +4606,14 @@ static int fnc_openlog (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	}
 	else if (hawk_comp_oocstr_limited(ident, HAWK_T("local://"), 8, 0) == 0)
 	{
-		/* "local://syslog-identifier" */
+		/* local://syslog-identifier */
 		actual_ident = ident + 8;
+	} 
+	else if (hawk_comp_oocstr_limited(ident, HAWK_T("devlog://"), 9, 0) == 0)
+	{
+		/* devlog://syslog-identifier */
+		actual_ident = ident + 9;
+		log_type = SYSLOG_DEVLOG;
 	}
 	else
 	{

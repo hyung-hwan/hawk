@@ -477,7 +477,7 @@ hawk_val_t* hawk_get_nil_val (void)
 	return (hawk_val_t*)&hawk_nil;
 }
 
-int hawk_rtx_isnilval (hawk_rtx_t* rtx, hawk_val_t* val)
+int hawk_rtx_isnilval (hawk_rtx_t* rtx, const hawk_val_t* val)
 {
 	return val == (hawk_val_t*)&hawk_nil || (HAWK_VTR_IS_POINTER(val) && val->v_type == HAWK_VAL_NIL);
 }

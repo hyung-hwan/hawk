@@ -360,7 +360,7 @@ BEGIN {
 		print "stmt preparation error - ", mysql::errmsg();
 	}
 
-	result = mysql::stmt_execute(stmt, "%hawk%");
+	result = mysql::stmt_execute(stmt, mysql::TYPE_STR, "%hawk%");
 	if (result <= -1)
 	{
 		print "statement execution error - ", mysql::errmsg();

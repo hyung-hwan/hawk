@@ -2760,8 +2760,8 @@ HAWK_EXPORT int hawk_rtx_truncrec (
  * is a nil value.
  */
 HAWK_EXPORT int hawk_rtx_isnilval (
-	hawk_rtx_t* rtx,
-	hawk_val_t* val
+	hawk_rtx_t*       rtx,
+	const hawk_val_t* val
 );
 
 /**
