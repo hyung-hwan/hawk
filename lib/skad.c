@@ -344,14 +344,14 @@ int hawk_gem_ucharstoskad (hawk_gem_t* gem, const hawk_uch_t* str, hawk_oow_t le
 	/* use HAWK_SIZEOF(*_skad) instead of HAWK_SIZEOF(*skad) in case they are different */
 	HAWK_MEMSET (skad, 0, HAWK_SIZEOF(*_skad)); 
 
-	if (*p == '@')
+	if (*p == '@' || *p == '/')
 	{
 #if defined(AF_UNIX) && (HAWK_SIZEOF_STRUCT_SOCKADDR_UN > 0)
 		/* @aaa,  @/tmp/aaa ... */
 		hawk_oow_t srclen, dstlen;
 		dstlen = HAWK_COUNTOF(skad->un.sun_path) - 1;
-		srclen = len - 1;
-		if (hawk_gem_convutobchars(gem, p + 1, &srclen, skad->un.sun_path, &dstlen) <= -1) return -1;
+		srclen = len - (*p == '@');
+		if (hawk_gem_convutobchars(gem, p + (*p == '@'), &srclen, skad->un.sun_path, &dstlen) <= -1) return -1;
 		skad->un.sun_path[dstlen] = '\0';
 		skad->un.sun_family = AF_UNIX;
 		return 0;
@@ -564,11 +564,11 @@ int hawk_gem_bcharstoskad (hawk_gem_t* gem, const hawk_bch_t* str, hawk_oow_t le
 	/* use HAWK_SIZEOF(*_skad) instead of HAWK_SIZEOF(*skad) in case they are different */
 	HAWK_MEMSET (skad, 0, HAWK_SIZEOF(*_skad));
 
-	if (*p == '@')
+	if (*p == '@' || *p == '/')
 	{
 #if defined(AF_UNIX) && (HAWK_SIZEOF_STRUCT_SOCKADDR_UN > 0)
-		/* @aaa,  @/tmp/aaa ... */
-		hawk_copy_bchars_to_bcstr (skad->un.sun_path, HAWK_COUNTOF(skad->un.sun_path), str + 1, len - 1);
+		/* @aaa,  @/tmp/aaa  /tmp/aaa ... */
+		hawk_copy_bchars_to_bcstr (skad->un.sun_path, HAWK_COUNTOF(skad->un.sun_path), str + (*p == '@'), len - (*p == '@'));
 		skad->un.sun_family = AF_UNIX;
 		return 0;
 #else
@@ -1015,7 +1015,7 @@ hawk_oow_t hawk_gem_skadtoucstr (hawk_gem_t* gem, const hawk_skad_t* _skad, hawk
 			if (flags & HAWK_SKAD_TO_BCSTR_ADDR)
 			{
 				if (xlen + 1 >= len) goto done;
-				buf[xlen++] = '@';
+				if (flags & HAWK_SKAD_TO_BCSTR_UNIXAT) buf[xlen++] = '@';
 
 				if (xlen + 1 >= len) goto done;
 				else
@@ -1265,7 +1265,7 @@ hawk_oow_t hawk_gem_skadtobcstr (hawk_gem_t* gem, const hawk_skad_t* _skad, hawk
 			if (flags & HAWK_SKAD_TO_BCSTR_ADDR)
 			{
 				if (xlen + 1 >= len) goto done;
-				buf[xlen++] = '@';
+				if (flags & HAWK_SKAD_TO_BCSTR_UNIXAT) buf[xlen++] = '@';
 
 				if (xlen + 1 >= len) goto done;
 				xlen += hawk_copy_bcstr(&buf[xlen], len - xlen, skad->un.sun_path);

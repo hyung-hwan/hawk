@@ -4502,8 +4502,9 @@ local://xxx opens the local syslog using the openlog() call in the libc library.
 openlog() affects the entire process.
 
 to open /dev/log on the local system for the current running context,
-you can specify the remote:// with /dev/log.
+you can specify the remote:// with /dev/log or @/dev/log.
  sys::openlog("remote:///dev/log/xxx", sys::LOG_OPT_PID | sys::LOG_OPT_NDELAY, sys::LOG_FAC_LOCAL0);
+ sys::openlog("remote://@/dev/log/xxx", sys::LOG_OPT_PID | sys::LOG_OPT_NDELAY, sys::LOG_FAC_LOCAL0);
  */
 static void open_remote_log_socket (hawk_rtx_t* rtx, rtx_data_t* rdp)
 {
@@ -4586,7 +4587,7 @@ static int fnc_openlog (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	    hawk_comp_oocstr_limited(ident, HAWK_T("sock://"), (pfxlen = 7), 0) == 0)
 	{
 		hawk_ooch_t* slash;
-		/* "remote://<target-address>/syslog-identifier" 
+		/* "remote://<target-address>/syslog-identifier"
 		 * "sock://<target-address>/syslog-identifier"
 		 */
 
@@ -4726,7 +4727,6 @@ static int fnc_closelog (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	return 0;
 }
 
-
 static int fnc_writelog (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	hawk_int_t rx = ERRNUM_TO_RC(HAWK_EOTHER);
@@ -4780,62 +4780,73 @@ static int fnc_writelog (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			"Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
 		};
 
-		if (rdp->log.sck <= -1) open_remote_log_socket (rtx, rdp);
+		hawk_ntime_t now;
+		struct tm tm, * tmx;
+		time_t t;
 
-		if (rdp->log.sck >= 0)
+		if (rdp->log.sck <= -1)
 		{
-			hawk_ntime_t now;
-			struct tm tm, * tmx;
-			time_t t;
-
-			if (!rdp->log.dmsgbuf)
+			open_remote_log_socket (rtx, rdp);
+			if (rdp->log.sck <= -1)
 			{
-				rdp->log.dmsgbuf = hawk_becs_open(hawk_rtx_getgem(rtx), 0, 0);
-				if (!rdp->log.dmsgbuf) goto fail;
-			}
-
-			if (hawk_get_ntime(&now) <= -1)
-			{
-				rx = set_error_on_sys_list(rtx, sys_list, HAWK_ESYSERR, HAWK_T("unable to get time"));
+				rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_T("unable to open log socket"));
 				goto done;
 			}
+		}
 
-			t = now.sec;
-		#if defined(HAVE_LOCALTIME_R)
-			tmx = localtime_r(&t, &tm);
-		#else
-			tmx = localtime(&t);
-		#endif
-			if (!tmx)
-			{
-				rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_T("unable to get local time"));
-				goto done;
-			}
+		if (!rdp->log.dmsgbuf)
+		{
+			rdp->log.dmsgbuf = hawk_becs_open(hawk_rtx_getgem(rtx), 0, 0);
+			if (!rdp->log.dmsgbuf) goto fail;
+		}
 
-			if (hawk_becs_fmt(
-				rdp->log.dmsgbuf, HAWK_BT("<%d>%hs %02d %02d:%02d:%02d "),
-				(int)(rdp->log.fac | pri),
-				__syslog_month_names[tmx->tm_mon], tmx->tm_mday,
-				tmx->tm_hour, tmx->tm_min, tmx->tm_sec) == (hawk_oow_t)-1) goto fail;
+		if (hawk_get_ntime(&now) <= -1)
+		{
+			rx = set_error_on_sys_list(rtx, sys_list, HAWK_ESYSERR, HAWK_T("unable to get time"));
+			goto done;
+		}
 
-			if (rdp->log.ident || (rdp->log.opt & LOG_PID))
-			{
-				/* if the identifier is set or LOG_PID is set, the produced tag won't be empty.
-				 * so appending ':' is kind of ok */
-				if (hawk_becs_fcat(rdp->log.dmsgbuf, HAWK_BT("%hs"), (rdp->log.ident? rdp->log.ident: HAWK_BT(""))) == (hawk_oow_t)-1) goto fail;
-				if ((rdp->log.opt & LOG_PID) && hawk_becs_fcat(rdp->log.dmsgbuf, HAWK_BT("[%d]"), (int)HAWK_GETPID()) == (hawk_oow_t)-1) goto fail;
-				if (hawk_becs_fcat(rdp->log.dmsgbuf, HAWK_BT(": ")) == (hawk_oow_t)-1) goto fail;
-			}
+		t = now.sec;
+	#if defined(HAVE_LOCALTIME_R)
+		tmx = localtime_r(&t, &tm);
+	#else
+		tmx = localtime(&t);
+	#endif
+		if (!tmx)
+		{
+			rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_T("unable to get local time"));
+			goto done;
+		}
 
-		#if defined(HAWK_OOCH_IS_BCH)
-			if (hawk_becs_fcat(rdp->log.dmsgbuf, HAWK_BT("%hs"), msg) == (hawk_oow_t)-1) goto fail;
-		#else
-			if (hawk_becs_fcat(rdp->log.dmsgbuf, HAWK_BT("%ls"), msg) == (hawk_oow_t)-1) goto fail;
-		#endif
+		if (hawk_becs_fmt(
+			rdp->log.dmsgbuf, HAWK_BT("<%d>%hs %02d %02d:%02d:%02d "),
+			(int)(rdp->log.fac | pri),
+			__syslog_month_names[tmx->tm_mon], tmx->tm_mday,
+			tmx->tm_hour, tmx->tm_min, tmx->tm_sec) == (hawk_oow_t)-1) goto fail;
 
-			/* don't care about output failure */
-			sendto (rdp->log.sck, HAWK_BECS_PTR(rdp->log.dmsgbuf), HAWK_BECS_LEN(rdp->log.dmsgbuf),
-			        0, (struct sockaddr*)&rdp->log.skad, hawk_skad_get_size(&rdp->log.skad));
+		if (rdp->log.ident || (rdp->log.opt & LOG_PID))
+		{
+			/* if the identifier is set or LOG_PID is set, the produced tag won't be empty.
+				* so appending ':' is kind of ok */
+			if (hawk_becs_fcat(rdp->log.dmsgbuf, HAWK_BT("%hs"), (rdp->log.ident? rdp->log.ident: HAWK_BT(""))) == (hawk_oow_t)-1) goto fail;
+			if ((rdp->log.opt & LOG_PID) && hawk_becs_fcat(rdp->log.dmsgbuf, HAWK_BT("[%d]"), (int)HAWK_GETPID()) == (hawk_oow_t)-1) goto fail;
+			if (hawk_becs_fcat(rdp->log.dmsgbuf, HAWK_BT(": ")) == (hawk_oow_t)-1) goto fail;
+		}
+
+	#if defined(HAWK_OOCH_IS_BCH)
+		if (hawk_becs_fcat(rdp->log.dmsgbuf, HAWK_BT("%hs"), msg) == (hawk_oow_t)-1) goto fail;
+	#else
+		if (hawk_becs_fcat(rdp->log.dmsgbuf, HAWK_BT("%ls"), msg) == (hawk_oow_t)-1) goto fail;
+	#endif
+
+		/* don't care about output failure */
+		if (sendto(rdp->log.sck, HAWK_BECS_PTR(rdp->log.dmsgbuf), HAWK_BECS_LEN(rdp->log.dmsgbuf),
+		           0, (struct sockaddr*)&rdp->log.skad, hawk_skad_get_size(&rdp->log.skad)) <= -1)
+		{
+			hawk_ooch_t msg[256] = HAWK_T("unable to write to log socket ");
+			hawk_gem_skadtooocstr(hawk_rtx_getgem(rtx), &rdp->log.skad, &msg[30], HAWK_COUNTOF(msg) - 30, HAWK_SKAD_TO_OOCSTR_ADDR | HAWK_SKAD_TO_OOCSTR_PORT);
+			rx = set_error_on_sys_list_with_errno(rtx, sys_list, msg);
+			goto done;
 		}
 	#endif
 	}
