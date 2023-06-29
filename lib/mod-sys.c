@@ -4556,7 +4556,7 @@ static int fnc_openlog (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_int_t rx = ERRNUM_TO_RC(HAWK_EOTHER);
 	hawk_int_t opt, fac;
 	hawk_ooch_t* ident = HAWK_NULL, * actual_ident;
-	hawk_oow_t ident_len, actual_ident_len;
+	hawk_oow_t ident_len, actual_ident_len, pfxlen;
 	hawk_bch_t* mbs_ident;
 	hawk_skad_t skad;
 	syslog_type_t log_type = SYSLOG_LOCAL;
@@ -4582,14 +4582,17 @@ static int fnc_openlog (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	if (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 1), &opt) <= -1) goto fail;
 	if (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 2), &fac) <= -1) goto fail;
 
-	if (hawk_comp_oocstr_limited(ident, HAWK_T("remote://"), 9, 0) == 0)
+	if (hawk_comp_oocstr_limited(ident, HAWK_T("remote://"), (pfxlen = 9), 0) == 0 ||
+	    hawk_comp_oocstr_limited(ident, HAWK_T("sock://"), (pfxlen = 7), 0) == 0)
 	{
 		hawk_ooch_t* slash;
-		/* "remote://remote-addr:remote-port/syslog-identifier" */
+		/* "remote://<target-address>/syslog-identifier" 
+		 * "sock://<target-address>/syslog-identifier"
+		 */
 
 		log_type = SYSLOG_REMOTE;
-		actual_ident = ident + 9;
-		actual_ident_len = ident_len - 9;
+		actual_ident = ident + pfxlen;
+		actual_ident_len = ident_len - pfxlen;
 		slash = hawk_rfind_oochar_in_oochars(actual_ident, actual_ident_len, '/'); // fine the last slash
 		if (!slash)
 		{
@@ -4603,10 +4606,10 @@ static int fnc_openlog (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		}
 		actual_ident = slash + 1;
 	}
-	else if (hawk_comp_oocstr_limited(ident, HAWK_T("local://"), 8, 0) == 0)
+	else if (hawk_comp_oocstr_limited(ident, HAWK_T("local://"), (pfxlen = 8), 0) == 0)
 	{
 		/* local://syslog-identifier */
-		actual_ident = ident + 8;
+		actual_ident = ident + pfxlen;
 	}
 	else
 	{
