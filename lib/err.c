@@ -300,7 +300,7 @@ void hawk_gem_geterrbinf (hawk_gem_t* gem, hawk_errbinf_t* errinf)
 	/*errinf->num = gem->errnum;*/
 	errinf->loc.line = gem->errloc.line;
 	errinf->loc.colm = gem->errloc.colm;
-	if (gem->errloc.file) errinf->loc.file = HAWK_NULL;
+	if (!gem->errloc.file) errinf->loc.file = HAWK_NULL;
 	else
 	{
 		mbslen = HAWK_COUNTOF(gem->xerrlocfile);
@@ -323,7 +323,7 @@ void hawk_gem_geterruinf (hawk_gem_t* gem, hawk_erruinf_t* errinf)
 	/*errinf->num = gem->errnum;*/
 	errinf->loc.line = gem->errloc.line;
 	errinf->loc.colm = gem->errloc.colm;
-	if (gem->errloc.file) errinf->loc.file = HAWK_NULL;
+	if (!gem->errloc.file) errinf->loc.file = HAWK_NULL;
 	else
 	{
 		wcslen = HAWK_COUNTOF(gem->xerrlocfile);
