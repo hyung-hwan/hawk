@@ -1073,15 +1073,33 @@ enum hawk_errnum_t
 typedef enum hawk_errnum_t hawk_errnum_t;
 
 /**
- * The hawk_loc_t type defines a structure to hold location.
+ * The hawk_bloc_t type defines a structure to hold location.
  */
-struct hawk_loc_t
+struct hawk_bloc_t
 {
 	hawk_oow_t line; /**< line */
 	hawk_oow_t colm; /**< column */
-	const hawk_ooch_t* file; /**< file specified in @include */
+	const hawk_bch_t* file; /**< file specified in @include */
 };
-typedef struct hawk_loc_t hawk_loc_t;
+typedef struct hawk_bloc_t hawk_bloc_t;
+
+/**
+ * The hawk_uloc_t type defines a structure to hold location.
+ */
+struct hawk_uloc_t
+{
+	hawk_oow_t line; /**< line */
+	hawk_oow_t colm; /**< column */
+	const hawk_uch_t* file; /**< file specified in @include */
+};
+typedef struct hawk_uloc_t hawk_uloc_t;
+
+#if defined(HAWK_OOCH_IS_BCH)
+typedef hawk_bloc_t hawk_loc_t;
+#else
+typedef hawk_uloc_t hawk_loc_t;
+#endif
+
 
 /**
  * The hawk_errinf_t type defines a placeholder for error information.
@@ -1090,7 +1108,7 @@ struct hawk_errbinf_t
 {
 	hawk_errnum_t num;                   /**< error number */
 	hawk_bch_t    msg[HAWK_ERRMSG_CAPA]; /**< error message */
-	hawk_loc_t    loc;                   /**< error location */
+	hawk_bloc_t   loc;                   /**< error location */
 };
 typedef struct hawk_errbinf_t hawk_errbinf_t;
 
@@ -1098,7 +1116,7 @@ struct hawk_erruinf_t
 {
 	hawk_errnum_t num;                   /**< error number */
 	hawk_uch_t    msg[HAWK_ERRMSG_CAPA]; /**< error message */
-	hawk_loc_t    loc;                   /**< error location */
+	hawk_uloc_t   loc;                   /**< error location */
 };
 typedef struct hawk_erruinf_t hawk_erruinf_t;
 
@@ -1131,8 +1149,10 @@ struct hawk_gem_t
 	hawk_oow_t    errmsg_len; /* it's not the actual length of errmsg. it's kept here for error formatting */
 #if defined(HAWK_OOCH_IS_BCH)
 	hawk_uch_t    xerrmsg[HAWK_ERRMSG_CAPA];
+	hawk_uch_t    xerrlocfile[256];
 #else
 	hawk_bch_t    xerrmsg[HAWK_ERRMSG_CAPA * 2];
+	hawk_bch_t    xerrlocfile[256 * 2];
 #endif
 	hawk_ooch_t   errmsg_backup[HAWK_ERRMSG_CAPA];
 };
