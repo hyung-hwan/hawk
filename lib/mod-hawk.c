@@ -466,6 +466,20 @@ static int fnc_typename (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 }
 
 /* -------------------------------------------------------------------------- */
+static int fnc_hash (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+{
+	hawk_val_t* a0;
+	hawk_int_t v;
+	const hawk_ooch_t* name;
+
+	a0 = hawk_rtx_getarg(rtx, 0);
+	v = hawk_rtx_hashval(rtx, a0); /* ignore v <= -1 which is an error */
+
+	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, v));
+	return 0;
+}
+
+/* -------------------------------------------------------------------------- */
 
 #define A_MAX HAWK_TYPE_MAX(hawk_oow_t)
 
@@ -480,6 +494,7 @@ static hawk_mod_fnc_tab_t fnctab[] =
 	{ HAWK_T("gc_get_threshold"), { { 1, 1,     HAWK_NULL     },  fnc_gc_get_threshold,      0 } },
 	{ HAWK_T("gc_set_threshold"), { { 2, 2,     HAWK_NULL     },  fnc_gc_set_threshold,      0 } },
 	{ HAWK_T("gcrefs"),           { { 1, 1,     HAWK_NULL     },  fnc_gcrefs,                0 } },
+	{ HAWK_T("hash"),             { { 1, 1,     HAWK_NULL     },  fnc_hash,                  0 } },
 	{ HAWK_T("isarray"),          { { 1, 1,     HAWK_NULL     },  fnc_isarr,                 0 } },
 	{ HAWK_T("ismap"),            { { 1, 1,     HAWK_NULL     },  fnc_ismap,                 0 } },
 	{ HAWK_T("isnil"),            { { 1, 1,     HAWK_NULL     },  fnc_isnil,                 0 } },

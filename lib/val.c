@@ -2902,7 +2902,7 @@ static HAWK_INLINE hawk_uint_t hash (hawk_uint8_t* ptr, hawk_oow_t len)
 
 hawk_int_t hawk_rtx_hashval (hawk_rtx_t* rtx, hawk_val_t* v)
 {
-	hawk_val_type_t vtype = HAWK_RTX_GETVALTYPE (rtx, v);
+	hawk_val_type_t vtype = HAWK_RTX_GETVALTYPE(rtx, v);
 	hawk_int_t hv;
 
 	switch (vtype)
