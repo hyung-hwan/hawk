@@ -481,6 +481,19 @@ BEGIN
 
 ### ffi
 
+- ffi::open
+- ffi::close
+- ffi::call
+- ffi::errmsg
+
+```
+BEGIN {
+	ffi = ffi::open();
+	if (ffi::call(ffi, r, @B"getenv", @B"s>s", "PATH") <= -1) print ffi::errmsg();
+	else print r;
+	ffi::close (ffi);
+}
+```
 
 ### mysql
 
