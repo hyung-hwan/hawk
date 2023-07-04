@@ -7,7 +7,7 @@
  - [Modules](#modules)
  - [Embedding Guide](#embedding-guide)
 
-## Language <a name="language"></a>
+## Language
 
 `Hawk` is an `AWK` interpreter with many extended features implemented by its creator, with 'H' representing the initial of the creator's name. It aims to be an easy-to-embed implementation as well as a standalone tool.
 
@@ -211,7 +211,7 @@ and represents the value of 0.
 - 0b # 0b0 but not desirable.
 
 
-### Modules <a name="modules"></a>
+### Modules
 
 Hawk supports various modules.
 
@@ -530,7 +530,7 @@ BEGIN {
 }
 ```
 
-### Incompatibility with AWK <a name="incompatibility-with-awk"></a>
+### Incompatibility with AWK
 
 #### Parameter passing
 
@@ -591,7 +591,7 @@ There are subtle differences in handling expressions for positional variables. I
 | `$(++$(++i))`| OK            | syntax error    |
 
 
-## Embedding Guide <a name="embedding-guide"></a>
+## Embedding Guide
 
 To use hawk in your program, do the followings:
 
