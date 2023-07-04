@@ -186,35 +186,52 @@ can be followed by e or E, and optionally a series of numeric digits with a
 optional single sign letter. A floating-point number may begin with a floting
 point with a preceeding number.
 
-- 369   # integer
-- 3.69  # floating-pointe number
-- 13.   # 13.0
-- .369  # 0.369
-- 34e-2 # 34 * (10 ** -2)
-- 34e+2 # 34 * (10 ** 2)
-- 34.56e # 34.56
-- 34.56E3
+- `369`   # integer
+- `3.69`  # floating-pointe number
+- `13.`   # 13.0
+- `.369`  # 0.369
+- `34e-2` # 34 * (10 ** -2)
+- `34e+2` # 34 * (10 ** 2)
+- `34.56e` # 34.56
+- `34.56E3`
 
 An integer can be prefixed with 0x, 0, 0b for a hexa-decimal number, an octal
 number, and a binary number respectively. For a hexa-decimal number, letters
 from A to F can form a number case-insenstively in addition to numeric digits.
 
-- 0xA1   # 161
-- 0xB0b0 # 45232
-- 020    # 16
-- 0b101  # 5
+- `0xA1`   # 161
+- `0xB0b0` # 45232
+- `020`    # 16
+- `0b101`  # 5
 
 If the prefix is not followed by any numeric digits, it is still a valid token
 and represents the value of 0.
 
-- 0x # 0x0 but not desirable.
-- 0b # 0b0 but not desirable.
-
+- `0x` # 0x0 but not desirable.
+- `0b` # 0b0 but not desirable.
 
 ### Modules
 
 Hawk supports various modules.
 
+### Hawk
+
+- hawk::array
+- hawk::call
+- hawk::cmgr_exists
+- hawk::function_exists
+- hawk::gc
+- hawk::gc_get_threshold
+- hawk::gc_set_threshold
+- hawk::gcrefs
+- hawk::hash
+- hawk::isarray
+- hawk::ismap
+- hawk::isnil
+- hawk::map
+- hawk::modlibdirs
+- hawk::typename
+- hawk::GC_NUM_GENS
 
 #### String
 The *str* module provides an extensive set of string manipulation functions.
@@ -253,7 +270,7 @@ The *str* module provides an extensive set of string manipulation functions.
 
 #### System
 
-The *sys* module provides various functions concerning the underlying operation system.
+The `sys` module provides various functions concerning the underlying operation system.
 
 - sys::chmod
 - sys::close
