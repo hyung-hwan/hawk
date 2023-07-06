@@ -681,7 +681,7 @@ int main ()
 	}
 
 	/* execute the BEGIN/pattern-action/END blocks */
-	retv = hawk_rtx_loop(rtx);
+	retv = hawk_rtx_loop(rtx); /* alternatively, hawk_rtx_exec(rtx, HAWK_NULL, 0) */
 	if (!retv)
 	{
 		hawk_logbfmt (hawk, HAWK_LOG_STDERR, "ERROR(rtx_loop): %js\n", hawk_geterrmsg(hawk));
@@ -724,7 +724,7 @@ int main ()
 	}
 
 	HAWK::Hawk::Value vr;
-	hawk.exec (&vr, HAWK_NULL, 0);
+	hawk.loop (&vr);  // alternatively, hawk.exec (&vr, HAWK_NULL, 0);
 
 	hawk.close ();
 	return 0;
