@@ -9,11 +9,11 @@ function main()
 	## call by reference. change an argument to array in the callee
 	{
 		@local ini, foo1, foo2, foo3, foo4;
-	
-		test1(foo1); 
-		test2(foo2); 
-		test3(foo3); 
-		test4(foo4); 
+
+		test1(foo1);
+		test2(foo2);
+		test3(foo3);
+		test4(foo4);
 		tap_ensure (hawk::typename(foo1), "map", @SCRIPTNAME, @SCRIPTLINE);
 		tap_ensure (hawk::typename(foo2), "map", @SCRIPTNAME, @SCRIPTLINE);
 		tap_ensure (hawk::typename(foo3), "nil", @SCRIPTNAME, @SCRIPTLINE);
@@ -24,7 +24,7 @@ function main()
 		tap_ensure (foo4[1], ini, @SCRIPTNAME, @SCRIPTLINE);
 	}
 
-	## gsub 
+	## gsub
 	{
 		@local w, x, y, z, z1, z2;
 		x = y = "x\\y";
@@ -94,8 +94,8 @@ function main()
 		tap_ensure (y === @b"A", 1, @SCRIPTNAME, @SCRIPTLINE);
 	}
 
-	## gsub - POSIX rule for &, \&, \\&, \\\& 
-	{	
+	## gsub - POSIX rule for &, \&, \\&, \\\&
+	{
 		@local w, x, y, z, z1, z2, z3;
 		w = x = y = z = z1 = z2 = "xax";
 
@@ -133,7 +133,7 @@ function main()
 	}
 
 	## gsub - POSIX rule for &, \&, \\&, \\\&  - express the same test with a raw string literal
-	{	
+	{
 		@local w, x, y, z;
 		w = x = y = z = "xax";
 
@@ -163,7 +163,7 @@ function main()
 	}
 
 	## sub - POSIX rule for &, \&, \\&, \\\&  - express the same test with a raw string literal
-	{	
+	{
 		@local w, x, y, z;
 		w = x = y = z = "xax";
 
@@ -579,6 +579,65 @@ function main()
 		tap_ensure (c === @b'y' , 1, @SCRIPTNAME, @SCRIPTLINE);
 	}
 
+
+	{
+		@local a, b;
+
+		RSTART=99;
+		RLENGTH=99;
+		tap_ensure (match("world", /hello/), 0, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (RSTART, 0, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (RLENGTH, -1, @SCRIPTNAME, @SCRIPTLINE);
+
+		tap_ensure (match(@b"world", /hello/), 0, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (RSTART, 0, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (RLENGTH, -1, @SCRIPTNAME, @SCRIPTLINE);
+
+		## match() doesn't support the start index.
+		## the result goes to the third argument.
+		tap_ensure (match("hello, world", /l/), 3, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (RSTART, 3, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (RLENGTH, 1, @SCRIPTNAME, @SCRIPTLINE);
+
+		tap_ensure (match(@b"hello, world", /l/), 3, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (RSTART, 3, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (RLENGTH, 1, @SCRIPTNAME, @SCRIPTLINE);
+
+		tap_ensure (match("hello, world", /(l)lo.*(l)/, a), 3, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (RSTART, 3, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (RLENGTH, 9, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (length(a), 4, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a[1,"start"], 3, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a[1,"length"], 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a[2,"start"], 11, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a[2,"length"], 1, @SCRIPTNAME, @SCRIPTLINE);
+
+		## start::match() support the start index via the third parameter.
+		## the result goes to the fourth argument.
+		tap_ensure (str::match("hello, world", /(l)lo.*(l)/, 1, a), 3, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (RSTART, 3, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (RLENGTH, 9, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (length(a), 4, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a[1,"start"], 3, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a[1,"length"], 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a[2,"start"], 11, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a[2,"length"], 1, @SCRIPTNAME, @SCRIPTLINE);
+
+		tap_ensure (str::match("hello, world, hello, world", /(l)lo.*(l)/, 4, a), 17, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (RSTART, 17, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (RLENGTH, 9, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (length(a), 4, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a[1,"start"], 17, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a[1,"length"], 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a[2,"start"], 25, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a[2,"length"], 1, @SCRIPTNAME, @SCRIPTLINE);
+
+
+		b = 291210;
+		tap_ensure (str::match(b @b"what is this", /10/, 1, a), 5, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (RSTART, 5, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (RLENGTH, 2, @SCRIPTNAME, @SCRIPTLINE);
+	}
 	tap_end ();
 }
 

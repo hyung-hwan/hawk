@@ -15,7 +15,7 @@ At its core, `Hawk` largely supports all the fundamental features of `AWK`, ensu
 
 1. Pattern-Action Statements: Hawk operates on a series of pattern-action statements. Each statement consists of a pattern that matches input records and an associated action that is executed when the pattern matches.
 1. Record Processing: Hawk processes input data by splitting it into records and fields. Records are typically lines in a file, while fields are segments of each record separated by a field separator (by default, whitespace). This enables powerful text processing capabilities.
-1. Built-in Variables: Hawk provides a set of built-in variables that facilitate data manipulation. Commonly used variables include NF (number of fields in the current record), NR (current record number), and $n (the value of the nth field in the current record).
+1. Built-in Variables: Hawk provides a set of built-in variables that facilitate data manipulation. Commonly used variables include `NF` (number of fields in the current record), `NR` (current record number), and `$n` (the value of the nth field in the current record).
 1. Built-in Functions: Hawk offers a rich set of built-in functions to perform various operations on data. These functions include string manipulation, numeric calculations, regular expression matching, and more. You can harness their power to transform and analyze your input data effectively.
 1. Output Formatting: Hawk provides flexible control over the formatting and presentation of output. You can customize the field and record separators, control the output field width, and apply formatting rules to align columns.
 
@@ -62,7 +62,7 @@ BEGIN {	@local a; a = 10; } # syntax ok - a is declared before use.
 
 ### @include and @include_once
 
-The @include directive inserts the contents of the file specified in the following string as if they appeared in the source stream being processed.
+The `@include` directive inserts the contents of the file specified in the following string as if they appeared in the source stream being processed.
 
 Assuming the `hello.inc` file contains the print_hello() function as shown below,
 
@@ -77,9 +77,9 @@ You may include the the file and use the function.
 BEGIN { print_hello(); }
 ```
 
-The semicolon after the included file name is optional. You could write @include "hello.inc" without the ending semicolon.
+The semicolon after the included file name is optional. You could write `@include "hello.inc"` without the ending semicolon.
 
-@include_once is similar to @include except it doesn't include the same file multiple times.
+`@include_once` is similar to `@include` except it doesn't include the same file multiple times.
 
 ```
 @include_once "hello.inc";
@@ -234,7 +234,7 @@ Hawk supports various modules.
 - hawk::GC_NUM_GENS
 
 #### String
-The *str* module provides an extensive set of string manipulation functions.
+The `str` module provides an extensive set of string manipulation functions.
 
 - str::fromcharcode
 - str::gsub - equivalent to gsub
@@ -253,7 +253,7 @@ The *str* module provides an extensive set of string manipulation functions.
 - str::isxdigit
 - str::length - equivalent to length
 - str::ltrim
-- str::match - equivalent to match
+- str::match - similar to match. the optional third argument is the search start index. the optional fourth argument is equivalent to the thrid argument to match().
 - str::normspace
 - str::printf - equivalent to sprintf
 - str::rindex

@@ -2407,7 +2407,6 @@ HAWK_EXPORT hawk_val_t* hawk_rtx_execwithbcstrarr (
 #	define hawk_rtx_execwithoocstrarr hawk_rtx_execwithucstrarr
 
 #	define hawk_rtx_call hawk_rtx_callwithucstr
-#	define hawk_rtx_call hawk_rtx_callwithucstrarr
 #	define hawk_rtx_exec hawk_rtx_execwithucstrarr
 #else
 #	define hawk_rtx_callwithoocstr hawk_rtx_callwithbcstr
@@ -2415,7 +2414,6 @@ HAWK_EXPORT hawk_val_t* hawk_rtx_execwithbcstrarr (
 #	define hawk_rtx_execwithoocstrarr hawk_rtx_execwithbcstrarr
 
 #	define hawk_rtx_call hawk_rtx_callwithbcstr
-#	define hawk_rtx_call hawk_rtx_callwithbcstrarr
 #	define hawk_rtx_exec hawk_rtx_execwithbcstrarr
 #endif
 
