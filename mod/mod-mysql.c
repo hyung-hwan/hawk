@@ -28,13 +28,10 @@
 #include <mysql.h>
 #include "../lib/hawk-prv.h"
 
-#if !defined(MYSQL_OPT_RECONNECT)
-#	define DUMMY_OPT_RECONNECT 31231 /* randomly chosen */
-#endif
-
 struct param_data_t
 {
-	int is_null;
+	//int is_null;
+	my_bool is_null;
 	union
 	{
 		my_ulonglong llv;
@@ -467,7 +464,6 @@ static int fnc_get_option (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 				}
 				break;
 
-		#if defined(MYSQL_OPT_RECONNECT)
 			case MYSQL_OPT_RECONNECT:
 				/* bool * */
 				if (mysql_get_option(sql_node->mysql, id, &v.b) != 0)
@@ -487,17 +483,6 @@ static int fnc_get_option (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 					goto done;
 				}
 				break;
-		#else
-				/* the system without MYSQL_OPT_RECONNECT available. return 1 all the time */
-				if (hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, 2), hawk_rtx_makeintval(rtx, 1)) <= -1) 
-				{
-					hawk_rtx_refupval(rtx, retv);
-					hawk_rtx_refdownval(rtx, retv);
-					take_rtx_err = 1;
-					goto done;
-				}
-				break;
-		#endif
 
 			default:
 				set_error_on_sql_list (rtx, sql_list, HAWK_T("unsupported option id - %zd"), (hawk_oow_t)id);
@@ -556,7 +541,6 @@ static int fnc_set_option (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 				vptr = &v.ui;
 				break;
 
-		#if defined(MYSQL_OPT_RECONNECT)
 			case MYSQL_OPT_RECONNECT:
 				/* bool * */
 				if (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 2), &tv) <= -1)
@@ -568,11 +552,6 @@ static int fnc_set_option (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 				v.b = tv;
 				vptr = &v.b;
 				break;
-		#else
-			case DUMMY_OPT_RECONNECT:
-				ret = 0;
-				goto done;
-		#endif
 
 			default:
 				set_error_on_sql_list (rtx, sql_list, HAWK_T("unsupported option id - %zd"), (hawk_oow_t)id);
@@ -1170,7 +1149,6 @@ static int fnc_stmt_init (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 	sql_list = rtx_to_sql_list(rtx, fi);
 	sql_node = get_sql_list_node_with_arg(rtx, sql_list, hawk_rtx_getarg(rtx, 0));
-
 	if (sql_list)
 	{
 		stmt_list_t* stmt_list;
@@ -1276,7 +1254,6 @@ static int fnc_stmt_close (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 static int fnc_stmt_prepare (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	sql_list_t* sql_list;
-	sql_node_t* sql_node;
 	stmt_list_t* stmt_list;
 	stmt_node_t* stmt_node;
 	int ret = -1;
@@ -1286,7 +1263,6 @@ static int fnc_stmt_prepare (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 	sql_list = rtx_to_sql_list(rtx, fi);
 	stmt_list = rtx_to_stmt_list(rtx, fi);
-	sql_node = get_sql_list_node_with_arg(rtx, sql_list, hawk_rtx_getarg(rtx, 0));
 	stmt_node = get_stmt_list_node_with_arg(rtx, sql_list, stmt_list, hawk_rtx_getarg(rtx, 0));
 	if (stmt_node)
 	{
@@ -1296,8 +1272,6 @@ static int fnc_stmt_prepare (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 		qstr = hawk_rtx_getvalbcstr(rtx, a1, &qlen);
 		if (!qstr) { take_rtx_err = 1; goto done; }
-
-		ENSURE_CONNECT_EVER_ATTEMPTED(rtx, sql_list, sql_node);
 
 		if (mysql_stmt_prepare(stmt_node->stmt, qstr, qlen) != 0)
 		{
@@ -1318,7 +1292,6 @@ done:
 static int fnc_stmt_execute (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	sql_list_t* sql_list;
-	sql_node_t* sql_node;
 	stmt_list_t* stmt_list;
 	stmt_node_t* stmt_node;
 	int ret = -1;
@@ -1327,14 +1300,11 @@ static int fnc_stmt_execute (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 	sql_list = rtx_to_sql_list(rtx, fi);
 	stmt_list = rtx_to_stmt_list(rtx, fi);
-	sql_node = get_sql_list_node_with_arg(rtx, sql_list, hawk_rtx_getarg(rtx, 0));
 	stmt_node = get_stmt_list_node_with_arg(rtx, sql_list, stmt_list, hawk_rtx_getarg(rtx, 0));
 	if (stmt_node)
 	{
 		hawk_oow_t nargs, nparams, i;
 		hawk_oow_t param_count;
-
-		ENSURE_CONNECT_EVER_ATTEMPTED(rtx, sql_list, sql_node);
 
 		nargs = hawk_rtx_getnargs(rtx);
 		nparams = (nargs - 1) / 2;
@@ -1592,7 +1562,6 @@ done:
 static int fnc_stmt_fetch (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	sql_list_t* sql_list;
-	sql_node_t* sql_node;
 	stmt_list_t* stmt_list;
 	stmt_node_t* stmt_node;
 	int ret = -1;
@@ -1600,13 +1569,10 @@ static int fnc_stmt_fetch (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 	sql_list = rtx_to_sql_list(rtx, fi);
 	stmt_list = rtx_to_stmt_list(rtx, fi);
-	sql_node = get_sql_list_node_with_arg(rtx, sql_list, hawk_rtx_getarg(rtx, 0));
 	stmt_node = get_stmt_list_node_with_arg(rtx, sql_list, stmt_list, hawk_rtx_getarg(rtx, 0));
 	if (stmt_node)
 	{
 		int n;
-
-		ENSURE_CONNECT_EVER_ATTEMPTED(rtx, sql_list, sql_node);
 
 		n = mysql_stmt_fetch(stmt_node->stmt);
 		if (n == MYSQL_NO_DATA) ret = 0; /* no more data */
@@ -1685,7 +1651,6 @@ done:
 static int fnc_stmt_affected_rows (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	sql_list_t* sql_list;
-	sql_node_t* sql_node;
 	stmt_list_t* stmt_list;
 	stmt_node_t* stmt_node;
 	int ret = -1;
@@ -1693,14 +1658,11 @@ static int fnc_stmt_affected_rows (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 	sql_list = rtx_to_sql_list(rtx, fi);
 	stmt_list = rtx_to_stmt_list(rtx, fi);
-	sql_node = get_sql_list_node_with_arg(rtx, sql_list, hawk_rtx_getarg(rtx, 0));
 	stmt_node = get_stmt_list_node_with_arg(rtx, sql_list, stmt_list, hawk_rtx_getarg(rtx, 0));
 	if (stmt_node)
 	{
 		my_ulonglong nrows;
 		hawk_val_t* vrows;
-
-		ENSURE_CONNECT_EVER_ATTEMPTED(rtx, sql_list, sql_node);
 
 		nrows = mysql_stmt_affected_rows(stmt_node->stmt);
 
@@ -1732,7 +1694,6 @@ done:
 static int fnc_stmt_insert_id (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	sql_list_t* sql_list;
-	sql_node_t* sql_node;
 	stmt_list_t* stmt_list;
 	stmt_node_t* stmt_node;
 	int ret = -1;
@@ -1740,14 +1701,11 @@ static int fnc_stmt_insert_id (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 	sql_list = rtx_to_sql_list(rtx, fi);
 	stmt_list = rtx_to_stmt_list(rtx, fi);
-	sql_node = get_sql_list_node_with_arg(rtx, sql_list, hawk_rtx_getarg(rtx, 0));
 	stmt_node = get_stmt_list_node_with_arg(rtx, sql_list, stmt_list, hawk_rtx_getarg(rtx, 0));
 	if (stmt_node)
 	{
 		my_ulonglong nrows;
 		hawk_val_t* vrows;
-
-		ENSURE_CONNECT_EVER_ATTEMPTED(rtx, sql_list, sql_node);
 
 		nrows = mysql_stmt_insert_id(stmt_node->stmt);
 
@@ -1816,11 +1774,7 @@ static hawk_mod_int_tab_t inttab[] =
 	/* keep this table sorted for binary search in query(). */
 	{ HAWK_T("OPT_CONNECT_TIMEOUT"), { MYSQL_OPT_CONNECT_TIMEOUT } },
 	{ HAWK_T("OPT_READ_TIMEOUT"),    { MYSQL_OPT_READ_TIMEOUT    } },
-#if defined(MYSQL_OPT_RECONNECT)
 	{ HAWK_T("OPT_RECONNECT"),       { MYSQL_OPT_RECONNECT       } },
-#else
-	{ HAWK_T("OPT_RECONNECT"),       { DUMMY_OPT_RECONNECT       } },
-#endif
 	{ HAWK_T("OPT_WRITE_TIMEOUT"),   { MYSQL_OPT_WRITE_TIMEOUT   } },
 
 	{ HAWK_T("TYPE_BIN"),            { MYSQL_TYPE_BLOB           } },
@@ -1886,7 +1840,7 @@ static void unload (hawk_mod_t* mod, hawk_t* hawk)
 
 	HAWK_ASSERT (HAWK_RBT_SIZE(rbt) == 0);
 	hawk_rbt_close (rbt);
-//mysql_library_end ();
+/*mysql_library_end ();*/
 }
 
 int hawk_mod_mysql (hawk_mod_t* mod, hawk_t* hawk)
