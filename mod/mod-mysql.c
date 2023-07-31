@@ -28,6 +28,10 @@
 #include <mysql.h>
 #include "../lib/hawk-prv.h"
 
+#if MYSQL_VERSION_ID < 50000
+#	define DUMMY_OPT_RECONNECT 31231 /* randomly chosen */
+#endif
+
 struct param_data_t
 {
 	//int is_null;
@@ -464,6 +468,18 @@ static int fnc_get_option (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 				}
 				break;
 
+		#if defined(DUMMY_OPT_RECONNECT)
+			case DUMMY_OPT_RECONNECT:
+				/* the system without MYSQL_OPT_RECONNECT available. return 1 all the time */
+				if (hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, 2), hawk_rtx_makeintval(rtx, 1)) <= -1) 
+				{
+					hawk_rtx_refupval(rtx, retv);
+					hawk_rtx_refdownval(rtx, retv);
+					take_rtx_err = 1;
+					goto done;
+				}
+				break;
+		#else
 			case MYSQL_OPT_RECONNECT:
 				/* bool * */
 				if (mysql_get_option(sql_node->mysql, id, &v.b) != 0)
@@ -483,6 +499,7 @@ static int fnc_get_option (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 					goto done;
 				}
 				break;
+		#endif
 
 			default:
 				set_error_on_sql_list (rtx, sql_list, HAWK_T("unsupported option id - %zd"), (hawk_oow_t)id);
@@ -541,6 +558,11 @@ static int fnc_set_option (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 				vptr = &v.ui;
 				break;
 
+		#if defined(DUMMY_OPT_RECONNECT)
+			case DUMMY_OPT_RECONNECT:
+				ret = 0;
+				goto done;
+		#else
 			case MYSQL_OPT_RECONNECT:
 				/* bool * */
 				if (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 2), &tv) <= -1)
@@ -552,6 +574,7 @@ static int fnc_set_option (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 				v.b = tv;
 				vptr = &v.b;
 				break;
+		#endif
 
 			default:
 				set_error_on_sql_list (rtx, sql_list, HAWK_T("unsupported option id - %zd"), (hawk_oow_t)id);
@@ -1774,7 +1797,11 @@ static hawk_mod_int_tab_t inttab[] =
 	/* keep this table sorted for binary search in query(). */
 	{ HAWK_T("OPT_CONNECT_TIMEOUT"), { MYSQL_OPT_CONNECT_TIMEOUT } },
 	{ HAWK_T("OPT_READ_TIMEOUT"),    { MYSQL_OPT_READ_TIMEOUT    } },
+#if defined(DUMMY_OPT_RECONNECT)
+	{ HAWK_T("OPT_RECONNECT"),       { DUMMY_OPT_RECONNECT       } },
+#else
 	{ HAWK_T("OPT_RECONNECT"),       { MYSQL_OPT_RECONNECT       } },
+#endif
 	{ HAWK_T("OPT_WRITE_TIMEOUT"),   { MYSQL_OPT_WRITE_TIMEOUT   } },
 
 	{ HAWK_T("TYPE_BIN"),            { MYSQL_TYPE_BLOB           } },
