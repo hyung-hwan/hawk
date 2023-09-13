@@ -19508,68 +19508,6 @@ if test "x$ac_cv_lib_socket_connect" = xyes; then :
 
 fi
 
-
-	if test "x$ac_cv_lib_socket_connect" = xno
-	then
-		for ac_func in t_connect
-do :
-  ac_fn_c_check_func "$LINENO" "t_connect" "ac_cv_func_t_connect"
-if test "x$ac_cv_func_t_connect" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_T_CONNECT 1
-_ACEOF
-
-fi
-done
-
-		if test "x$ac_cv_func_t_connect" = "xno"
-		then
-			{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for t_connect in -lnsl_s" >&5
-$as_echo_n "checking for t_connect in -lnsl_s... " >&6; }
-if ${ac_cv_lib_nsl_s_t_connect+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lnsl_s  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char t_connect ();
-int
-main ()
-{
-return t_connect ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_nsl_s_t_connect=yes
-else
-  ac_cv_lib_nsl_s_t_connect=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_nsl_s_t_connect" >&5
-$as_echo "$ac_cv_lib_nsl_s_t_connect" >&6; }
-if test "x$ac_cv_lib_nsl_s_t_connect" = xyes; then :
-
-				SOCKET_LIBS="$SOCKET_LIBS -lnsl_s"
-				$as_echo "#define HAVE_T_CONNECT 1" >>confdefs.h
-
-
-fi
-
-		fi
-	fi
 fi
 if test "x${platform_win32}" = "xyes"
 then

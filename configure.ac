@@ -351,18 +351,6 @@ then
 		SOCKET_LIBS="$SOCKET_LIBS -lsocket"
 		AC_DEFINE(HAVE_CONNECT, 1)
 	])
-
-	if test "x$ac_cv_lib_socket_connect" = xno
-	then
-		AC_CHECK_FUNCS([t_connect])
-		if test "x$ac_cv_func_t_connect" = "xno"
-		then
-			AC_CHECK_LIB([nsl_s], [t_connect], [
-				SOCKET_LIBS="$SOCKET_LIBS -lnsl_s"
-				AC_DEFINE(HAVE_T_CONNECT, 1)
-			])
-		fi
-	fi
 fi
 if test "x${platform_win32}" = "xyes"
 then
