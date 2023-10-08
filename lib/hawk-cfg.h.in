@@ -684,6 +684,12 @@
 /* build release/debug */
 #undef HAWK_BUILD_RELEASE
 
+/* configure arguments */
+#undef HAWK_CONFIGURE_ARGS
+
+/* configure command */
+#undef HAWK_CONFIGURE_CMD
+
 /* enable dynamic module capability */
 #undef HAWK_ENABLE_DYNAMIC_MODULE
 
