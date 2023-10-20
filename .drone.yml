@@ -7,20 +7,19 @@ platform:
   arch: amd64
 
 steps:
-  - name: rockylinux-9
-    image: docker.io/rockylinux:9
+  - name: rocky9
+    image: docker.io/hyunghwan/gcc.rocky9
     commands:
-      - dnf -y install --enablerepo=devel mysql-devel libffi-devel rpm-build gcc gcc-c++
       - find . -exec touch -r {} +
-      - mkdir -p bld/rockylinux-9 && cd bld/rockylinux-9
+      - mkdir -p bld/rocky9 && cd bld/rocky9
       - ../../configure && make && make check && make rpm
 
-  - name: rockylinux-9-release-rpms
+  - name: rocky9-release-rpms
     image: docker.io/plugins/gitea-release:latest
     settings:
       files:
-        - "bld/rockylinux-9/pkgs/RPM/RPMS/*/*.rpm"
-        - "bld/rockylinux-9/pkgs/RPM/SRPMS/*.src.rpm"
+        - "bld/rocky9/pkgs/RPM/RPMS/*/*.rpm"
+        - "bld/rocky9/pkgs/RPM/SRPMS/*.src.rpm"
       base_url: https://code.miflux.com
       api_key:
          from_secret: gitea-api-key-to-code-miflux-com
