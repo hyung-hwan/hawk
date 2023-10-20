@@ -8,7 +8,7 @@ platform:
 
 steps:
   - name: rocky9
-    image: docker.io/hyunghwan/gcc.rocky9
+    image: docker.io/hyunghwan/dev:gcc.rocky9
     commands:
       - find . -exec touch -r {} +
       - mkdir -p bld/rocky9 && cd bld/rocky9
