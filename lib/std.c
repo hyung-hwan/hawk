@@ -33,6 +33,10 @@
 #include <math.h>
 #if defined(HAVE_QUADMATH_H)
 #	include <quadmath.h>
+#elif defined(HAWK_USE_FLTMAX) && (HAWK_SIZEOF_FLT_T == 16) && defined(HAWK_FLTMAX_REQUIRE_QUADMATH)
+	/* the header file doesn't exist while the library is available */
+	extern __float128 powq (__float128, __float128);
+	extern __float128 fmodq (__float128, __float128);
 #endif
 
 #if defined(_WIN32)

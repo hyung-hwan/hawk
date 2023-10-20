@@ -75,6 +75,8 @@
 #endif
 #if defined(HAVE_QUADMATH_H)
 #	include <quadmath.h> /* for quadmath_snprintf() */
+#elif defined(HAVE_QUADMATH_SNPRINTF)
+extern int quadmath_snprintf (const char *str, size_t size, const char *format, ...);
 #endif
 
 /* Max number conversion buffer length:

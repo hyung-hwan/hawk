@@ -31,7 +31,24 @@
 #if defined(HAVE_QUADMATH_H)
 #	include <quadmath.h>
 #elif defined(HAWK_USE_FLTMAX) && (HAWK_SIZEOF_FLT_T == 16) && defined(HAWK_FLTMAX_REQUIRE_QUADMATH)
-#	error QUADMATH.H NOT AVAILABLE or NOT COMPILABLE
+	/* the header file doesn't exist while the library is available */
+	extern __float128 ceilq (__float128);
+	extern __float128 floorq (__float128);
+	extern __float128 roundq (__float128);
+	extern __float128 sinq (__float128);
+	extern __float128 sinhq (__float128);
+	extern __float128 asinq (__float128);
+	extern __float128 cosq (__float128);
+	extern __float128 coshq (__float128);
+	extern __float128 acosq (__float128);
+	extern __float128 tanq (__float128);
+	extern __float128 tanhq (__float128);
+	extern __float128 atanq (__float128);
+	extern __float128 atan2q (__float128, __float128);
+	extern __float128 logq (__float128);
+	extern __float128 log10q (__float128);
+	extern __float128 expq (__float128);
+	extern __float128 sqrtq (__float128);
 #endif
 
 #if !defined(HAWK_HAVE_CFG_H)

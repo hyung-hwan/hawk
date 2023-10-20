@@ -1,4 +1,4 @@
-dnl AC_PREREQ([2.67])
+dnl AC_PREREQ([2.71])
 
 AC_INIT([hawk],[0.9.6],[Chung, Hyung-Hwan (hyunghwan.chung@gmail.com)],[],[https://code.miflux.net/hyung-hwan/hawk])
 
@@ -243,8 +243,6 @@ then
 	AC_LANG_POP([C++])
 fi
 
-dnl check header files.
-AC_HEADER_STDC
 AC_CHECK_HEADERS([stddef.h wchar.h wctype.h errno.h signal.h fcntl.h dirent.h])
 AC_CHECK_HEADERS([time.h sys/time.h utime.h spawn.h execinfo.h ucontext.h])
 AC_CHECK_HEADERS([sys/resource.h sys/wait.h sys/syscall.h sys/ioctl.h sys/sysctl.h])
@@ -386,36 +384,27 @@ dnl libmysqlclient
 AX_LIB_MYSQL()
 
 AC_MSG_CHECKING([for va_copy])
-AC_TRY_LINK(
-	[#include <stdarg.h>],
-	[
+AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <stdarg.h>]], [[
 		va_list x, y;
 		va_copy(x,y);
-	],
-	[
+	]])],[
 		AC_MSG_RESULT(yes)
 		AC_DEFINE([HAVE_VA_COPY], [1], [va_copy is available])
-	],
-	[AC_MSG_RESULT(no)]
-)
+	],[AC_MSG_RESULT(no)
+])
 
 AC_MSG_CHECKING([for __va_copy])
-AC_TRY_LINK(
-	[#include <stdarg.h>],
-	[
+AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <stdarg.h>]], [[
 		va_list x, y;
 		__va_copy(x,y); 
-	],
-	[
+	]])],[
 		AC_MSG_RESULT(yes)
 		AC_DEFINE([HAVE___VA_COPY], [1], [__va_copy is available])
-	],
-	[AC_MSG_RESULT(no)]
-)
+	],[AC_MSG_RESULT(no)
+])
 
 AC_MSG_CHECKING([for strftime %z])
-AC_TRY_RUN(
-	[#include <string.h>
+AC_RUN_IFELSE([AC_LANG_SOURCE([[#include <string.h>
 	 #if defined(HAVE_SYS_TIME_H)
 	 #include <sys/time.h>
 	 #endif
@@ -428,18 +417,14 @@ AC_TRY_RUN(
 		time_t t = 0;
 		strftime (buf, sizeof(buf), "%z", gmtime(&t));
 		return (strcmp(buf, "%z") == 0 || strcmp(buf, "z") == 0)? 1: 0;
-	}],
-	[
+	}]])],[
 	 	AC_MSG_RESULT(yes)
 		AC_DEFINE([HAVE_STRFTIME_SMALL_Z], [1], [strftime supports %z])
-	],
-	[AC_MSG_RESULT(no)],
-	[
+	],[AC_MSG_RESULT(no)],[
 	 	dnl cross-compiling, assume yes
 	 	AC_MSG_RESULT(unknown)
 		AC_DEFINE([HAVE_STRFTIME_SMALL_Z], [1], [strftime supports %z])
-	]
-)
+])
 
 AC_MSG_CHECKING([return type of unsetenv()])
 AC_COMPILE_IFELSE(
@@ -706,19 +691,14 @@ dnl even if the type is available.
 if test ${ac_cv_sizeof___float128} -gt 0
 then
 	AC_MSG_CHECKING([__float128 with linking])
-	AC_TRY_LINK(
-		[#include <stdio.h>],
-		[
+	AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <stdio.h>]], [[
 			__float128 x, y, z;
 			z = x * y + x;
 			printf ("%p", (char*)(int)z);
-		],
-		[AC_MSG_RESULT(yes)],
-		[
+		]])],[AC_MSG_RESULT(yes)],[
 			AC_MSG_RESULT(no)
 			ac_cv_sizeof___float128=0
-		]
-	)
+	])
 fi
 
 dnl Quadmath functions may not be in the default c library.
@@ -939,12 +919,12 @@ AC_ARG_ENABLE([static-module],
 	enable_static_module_is=$enableval,
 	enable_static_module_is=no
 )
-if test "x${enable_shared}" = "xno" -a "x${enable_static}" = "xyes" 
+if test "x${enable_shared}" = "xno" -a "x${enable_static}" = "xyes"
 then
 	enable_static_module_is="yes"
 fi
 
-if test "${enable_static_module_is}" = "yes"
+if test "x${enable_static_module_is}" = "xyes"
 then
 	AC_DEFINE([HAWK_ENABLE_STATIC_MODULE],[1],[link modules statically into the main library])
 fi
@@ -987,15 +967,23 @@ AM_CONDITIONAL(ENABLE_LIBUNWIND, test "x${enable_libunwind_is}" = "xyes")
 
 dnl ===== enable-mod-ffi =====
 AC_ARG_ENABLE([mod-ffi],
-	[AS_HELP_STRING([--enable-mod-ffi],[enable mod/ffi (default. yes)])],
+	[AS_HELP_STRING([--enable-mod-ffi],[enable mod/ffi. one of auto, yes, no (default. auto)])],
 	enable_mod_ffi_is=$enableval,
-	enable_mod_ffi_is=yes
+	enable_mod_ffi_is=auto
 )
-if test "x${ac_cv_lib_ffi_ffi_call}" != "xyes" 
+if test "x${enable_mod_ffi_is}" = "xauto"
 then
-	enable_mod_ffi_is="no"
+	if test "x${ac_cv_header_ffi_h}" != "xyes"
+	then
+		enable_mod_ffi_is="no"
+	elif test "x${ac_cv_lib_ffi_ffi_call}" != "xyes"
+	then
+		enable_mod_ffi_is="no"
+	else
+		enable_mod_ffi_is="yes"
+	fi
 fi
-if test "${enable_mod_ffi_is}" = "yes"
+if test "x${enable_mod_ffi_is}" = "xyes"
 then
 	AC_DEFINE([HAWK_ENABLE_MOD_FFI],[1],[build mod/ffi])
 fi
@@ -1003,15 +991,20 @@ AM_CONDITIONAL(ENABLE_MOD_FFI, test "${enable_mod_ffi_is}" = "yes")
 
 dnl ===== enable-mod-mysql =====
 AC_ARG_ENABLE([mod-mysql],
-	[AS_HELP_STRING([--enable-mod-mysql],[enable mod/mysql (default. yes)])],
+	[AS_HELP_STRING([--enable-mod-mysql],[enable mod/mysql. one of auto, yes, no (default. auto)])],
 	enable_mod_mysql_is=$enableval,
-	enable_mod_mysql_is=yes
+	enable_mod_mysql_is=auto
 )
-if test "x${found_mysql}" != "xyes"
+if test "x${enable_mod_mysql_is}" = "xauto"
 then
-	enable_mod_mysql_is="no"
+	if test "x${found_mysql}" != "xyes"
+	then
+		enable_mod_mysql_is="no"
+	else
+		enable_mod_mysql_is="yes"
+	fi
 fi
-if test "${enable_mod_mysql_is}" = "yes"
+if test "x${enable_mod_mysql_is}" = "xyes"
 then
 	AC_DEFINE([HAWK_ENABLE_MOD_MYSQL],[1],[build mod/mysql])
 fi
@@ -1019,11 +1012,11 @@ AM_CONDITIONAL(ENABLE_MOD_MYSQL, test "${enable_mod_mysql_is}" = "yes")
 
 dnl ===== enable-mod-sed =====
 AC_ARG_ENABLE([mod-sed],
-	[AS_HELP_STRING([--enable-mod-sed],[enable mod/sed (default. yes)])],
+	[AS_HELP_STRING([--enable-mod-sed],[enable mod/sed. one of yes, no (default. yes)])],
 	enable_mod_sed_is=$enableval,
 	enable_mod_sed_is=yes
 )
-if test "${enable_mod_sed_is}" = "yes"
+if test "x${enable_mod_sed_is}" = "xyes"
 then
 	AC_DEFINE([HAWK_ENABLE_MOD_SED],[1],[build mod/sed])
 fi
@@ -1031,11 +1024,23 @@ AM_CONDITIONAL(ENABLE_MOD_SED, test "${enable_mod_sed_is}" = "yes")
 
 dnl ===== enable-mod-uci =====
 AC_ARG_ENABLE([mod-uci],
-	[AS_HELP_STRING([--enable-mod-uci],[enable mod/uci (default. no)])],
+	[AS_HELP_STRING([--enable-mod-uci],[enable mod/uci. one of auto, yes, no (default. auto)])],
 	enable_mod_uci_is=$enableval,
-	enable_mod_uci_is=no
+	enable_mod_uci_is=auto
 )
-if test "${enable_mod_uci_is}" = "yes"
+if test "x${enable_mod_uci_is}" = "xauto"
+then
+	if test "x${ac_cv_header_uci_h}" != "xyes"
+	then
+		enable_mod_uci_is="no"
+	elif test "x${ac_cv_lib_uci_uci_alloc_context}" != "xyes"
+	then
+		enable_mod_uci_is="no"
+	else
+		enable_mod_uci_is="yes"
+	fi
+fi
+if test "x${enable_mod_uci_is}" = "xyes"
 then
 	AC_DEFINE([HAWK_ENABLE_MOD_UCI],[1],[build mod/uci])
 fi

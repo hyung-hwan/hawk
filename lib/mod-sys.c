@@ -38,8 +38,11 @@
 #elif defined(__DOS__)
 #	include <dos.h>
 #else
-#	include "syscall.h"
+#	if !defined(_GNU_SOURCE)
+#		define _GNU_SOURCE
+#	endif
 
+#	include "syscall.h"
 #	if defined(HAVE_SYS_EPOLL_H)
 #		include <sys/epoll.h>
 #		if defined(HAVE_EPOLL_CREATE)
