@@ -93,6 +93,7 @@ subdir = tools
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/ax_check_sign.m4 \
 	$(top_srcdir)/m4/ax_cxx_compile_stdcxx.m4 \
+	$(top_srcdir)/m4/ax_cxx_namespace.m4 \
 	$(top_srcdir)/m4/ax_lib_mysql.m4 $(top_srcdir)/m4/ax_numval.m4 \
 	$(top_srcdir)/m4/ax_pthread.m4 \
 	$(top_srcdir)/m4/hawk_try_cflags.m4 \

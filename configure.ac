@@ -31,7 +31,7 @@ AC_CHECK_PROG(HAVE_CXX, $CXX, yes, no)
 if test "${HAVE_CXX}" = "yes"  
 then
 	dnl check if the C++ compiler supports namespace
-	AX_CXX_NAMESPACE_STD
+	AX_CXX_NAMESPACES
 	dnl HAVE_CXX11
 	AX_CXX_COMPILE_STDCXX(11, , optional)
 fi
