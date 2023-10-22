@@ -670,6 +670,11 @@ ENABLE_MOD_SED_FALSE
 ENABLE_MOD_SED_TRUE
 ENABLE_MOD_MYSQL_FALSE
 ENABLE_MOD_MYSQL_TRUE
+MYSQL_LIBS
+MYSQL_LDFLAGS
+MYSQL_CFLAGS
+MYSQL_VERSION
+MYSQL_CONFIG
 ENABLE_MOD_FFI_FALSE
 ENABLE_MOD_FFI_TRUE
 ENABLE_LIBUNWIND_FALSE
@@ -687,11 +692,6 @@ PACKAGE_VERSION_PATCH
 PACKAGE_VERSION_MINOR
 PACKAGE_VERSION_MAJOR
 QUADMATH_LIBS
-MYSQL_LIBS
-MYSQL_LDFLAGS
-MYSQL_CFLAGS
-MYSQL_VERSION
-MYSQL_CONFIG
 HAVE_LIBUCI_FALSE
 HAVE_LIBUCI_TRUE
 UCI_LIBS
@@ -854,7 +854,6 @@ with_sysroot
 enable_libtool_lock
 enable_largefile
 enable_wide_char
-with_mysql
 enable_debug
 enable_intmax
 enable_fltmax
@@ -865,6 +864,7 @@ enable_libltdl
 enable_libunwind
 enable_mod_ffi
 enable_mod_mysql
+with_mysql
 enable_mod_sed
 enable_mod_uci
 enable_pthread_flags
@@ -22438,271 +22438,6 @@ else
 fi
 
 
-
-    MYSQL_CONFIG="no"
-
-
-# Check whether --with-mysql was given.
-if test ${with_mysql+y}
-then :
-  withval=$with_mysql;
-        if test "$withval" = "no"; then
-            want_mysql="no"
-        elif test "$withval" = "yes"; then
-            want_mysql="yes"
-        else
-            want_mysql="yes"
-            MYSQL_CONFIG="$withval"
-        fi
-
-else $as_nop
-  want_mysql="no"
-
-fi
-
-
-    MYSQL_CFLAGS=""
-    MYSQL_LDFLAGS=""
-    MYSQL_LIBS=""
-    MYSQL_VERSION=""
-
-
-    if test "$want_mysql" = "yes"; then
-
-        for ac_prog in mysql_config mariadb_config
-do
-  # Extract the first word of "$ac_prog", so it can be a program name with args.
-set dummy $ac_prog; ac_word=$2
-{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
-printf %s "checking for $ac_word... " >&6; }
-if test ${ac_cv_path_MYSQL_CONFIG+y}
-then :
-  printf %s "(cached) " >&6
-else $as_nop
-  case $MYSQL_CONFIG in
-  [\\/]* | ?:[\\/]*)
-  ac_cv_path_MYSQL_CONFIG="$MYSQL_CONFIG" # Let the user override the test with a path.
-  ;;
-  *)
-  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in $PATH
-do
-  IFS=$as_save_IFS
-  case $as_dir in #(((
-    '') as_dir=./ ;;
-    */) ;;
-    *) as_dir=$as_dir/ ;;
-  esac
-    for ac_exec_ext in '' $ac_executable_extensions; do
-  if as_fn_executable_p "$as_dir$ac_word$ac_exec_ext"; then
-    ac_cv_path_MYSQL_CONFIG="$as_dir$ac_word$ac_exec_ext"
-    printf "%s\n" "$as_me:${as_lineno-$LINENO}: found $as_dir$ac_word$ac_exec_ext" >&5
-    break 2
-  fi
-done
-  done
-IFS=$as_save_IFS
-
-  ;;
-esac
-fi
-MYSQL_CONFIG=$ac_cv_path_MYSQL_CONFIG
-if test -n "$MYSQL_CONFIG"; then
-  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $MYSQL_CONFIG" >&5
-printf "%s\n" "$MYSQL_CONFIG" >&6; }
-else
-  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
-printf "%s\n" "no" >&6; }
-fi
-
-
-  test -n "$MYSQL_CONFIG" && break
-done
-
-
-        if test -x "$MYSQL_CONFIG"; then
-            MYSQL_CFLAGS="`$MYSQL_CONFIG --cflags`"
-            _full_libmysql_libs="`$MYSQL_CONFIG --libs`"
-
-             _save_mysql_ldflags="${LDFLAGS}"
-            _save_mysql_cflags="${CFLAGS}"
-            LDFLAGS="${LDFLAGS} ${_full_libmysql_libs}"
-            CFLAGS="${CFLAGS} ${MYSQL_CFLAGS}"
-
-            for i in $_full_libmysql_libs; do
-                case $i in
-                    -lmysqlclient|-lperconaserverclient|-lmariadbclient|-lmariadb)
-
-                        _lib_name="`echo "$i" | cut -b3-`"
-                        as_ac_Lib=`printf "%s\n" "ac_cv_lib_$_lib_name""_main" | $as_tr_sh`
-{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for main in -l$_lib_name" >&5
-printf %s "checking for main in -l$_lib_name... " >&6; }
-if eval test \${$as_ac_Lib+y}
-then :
-  printf %s "(cached) " >&6
-else $as_nop
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-l$_lib_name  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-
-int
-main (void)
-{
-return main ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"
-then :
-  eval "$as_ac_Lib=yes"
-else $as_nop
-  eval "$as_ac_Lib=no"
-fi
-rm -f core conftest.err conftest.$ac_objext conftest.beam \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-eval ac_res=\$$as_ac_Lib
-	       { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
-printf "%s\n" "$ac_res" >&6; }
-if eval test \"x\$"$as_ac_Lib"\" = x"yes"
-then :
-
-                        	MYSQL_LIBS="-l${_lib_name} ${MYSQL_LIBS}"
-
-else $as_nop
-
-                        	as_fn_error $? "Not found $_lib_name library" "$LINENO" 5
-
-fi
-
-                ;;
-                    -L*)
-
-                        MYSQL_LDFLAGS="${MYSQL_LDFLAGS} $i"
-                ;;
-                    -R*)
-
-                        MYSQL_LDFLAGS="${MYSQL_LDFLAGS} -Wl,$i"
-                ;;
-                    -l*)
-
-                        _lib_name="`echo "$i" | cut -b3-`"
-                        as_ac_Lib=`printf "%s\n" "ac_cv_lib_$_lib_name""_main" | $as_tr_sh`
-{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for main in -l$_lib_name" >&5
-printf %s "checking for main in -l$_lib_name... " >&6; }
-if eval test \${$as_ac_Lib+y}
-then :
-  printf %s "(cached) " >&6
-else $as_nop
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-l$_lib_name  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-
-int
-main (void)
-{
-return main ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"
-then :
-  eval "$as_ac_Lib=yes"
-else $as_nop
-  eval "$as_ac_Lib=no"
-fi
-rm -f core conftest.err conftest.$ac_objext conftest.beam \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-eval ac_res=\$$as_ac_Lib
-	       { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
-printf "%s\n" "$ac_res" >&6; }
-if eval test \"x\$"$as_ac_Lib"\" = x"yes"
-then :
-
-                        	MYSQL_LIBS="${MYSQL_LIBS} ${i}"
-
-else $as_nop
-
-                        	as_fn_error $? "Not found $i library" "$LINENO" 5
-
-fi
-
-                ;;
-                esac
-            done
-
-            LDFLAGS="${_save_mysql_ldflags}"
-            CFLAGS="${_save_mysql_cflags}"
-            unset _save_mysql_ldflags
-            unset _save_mysql_cflags
-
-            MYSQL_VERSION=`$MYSQL_CONFIG --version`
-
-
-printf "%s\n" "#define HAVE_MYSQL 1" >>confdefs.h
-
-
-            found_mysql="yes"
-        else
-            found_mysql="no"
-        fi
-    fi
-
-
-    mysql_version_req=
-
-    if test "$found_mysql" = "yes" -a -n "$mysql_version_req"; then
-
-        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking if MySQL version is >= $mysql_version_req" >&5
-printf %s "checking if MySQL version is >= $mysql_version_req... " >&6; }
-
-                        mysql_version_req_major=`expr $mysql_version_req : '\([0-9]*\)'`
-        mysql_version_req_minor=`expr $mysql_version_req : '[0-9]*\.\([0-9]*\)'`
-        mysql_version_req_micro=`expr $mysql_version_req : '[0-9]*\.[0-9]*\.\([0-9]*\)'`
-        if test "x$mysql_version_req_micro" = "x"; then
-            mysql_version_req_micro="0"
-        fi
-
-        mysql_version_req_number=`expr $mysql_version_req_major \* 1000000 \
-                                   \+ $mysql_version_req_minor \* 1000 \
-                                   \+ $mysql_version_req_micro`
-
-                        mysql_version_major=`expr $MYSQL_VERSION : '\([0-9]*\)'`
-        mysql_version_minor=`expr $MYSQL_VERSION : '[0-9]*\.\([0-9]*\)'`
-        mysql_version_micro=`expr $MYSQL_VERSION : '[0-9]*\.[0-9]*\.\([0-9]*\)'`
-        if test "x$mysql_version_micro" = "x"; then
-            mysql_version_micro="0"
-        fi
-
-        mysql_version_number=`expr $mysql_version_major \* 1000000 \
-                                   \+ $mysql_version_minor \* 1000 \
-                                   \+ $mysql_version_micro`
-
-        mysql_version_check=`expr $mysql_version_number \>\= $mysql_version_req_number`
-        if test "$mysql_version_check" = "1"; then
-            { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes" >&5
-printf "%s\n" "yes" >&6; }
-        else
-            { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
-printf "%s\n" "no" >&6; }
-        fi
-    fi
-
-
-
-
-
-
-
 { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for va_copy" >&5
 printf %s "checking for va_copy... " >&6; }
 cat confdefs.h - <<_ACEOF >conftest.$ac_ext
@@ -26225,6 +25960,281 @@ then :
   enableval=$enable_mod_mysql; enable_mod_mysql_is=$enableval
 else $as_nop
   enable_mod_mysql_is=auto
+
+fi
+
+
+if test "x${enable_mod_mysql_is}" = "xauto" || test "x${enable_mod_mysql_is}" = "xyes"
+then
+	if ! test ${with_mysql+y}
+	then
+		## as if --with-mysql is specified for AX_LIB_MYSQL below
+		with_mysql=yes
+	fi
+
+
+    MYSQL_CONFIG="no"
+
+
+# Check whether --with-mysql was given.
+if test ${with_mysql+y}
+then :
+  withval=$with_mysql;
+        if test "$withval" = "no"; then
+            want_mysql="no"
+        elif test "$withval" = "yes"; then
+            want_mysql="yes"
+        else
+            want_mysql="yes"
+            MYSQL_CONFIG="$withval"
+        fi
+
+else $as_nop
+  want_mysql="no"
+
+fi
+
+
+    MYSQL_CFLAGS=""
+    MYSQL_LDFLAGS=""
+    MYSQL_LIBS=""
+    MYSQL_VERSION=""
+
+
+    if test "$want_mysql" = "yes"; then
+
+        for ac_prog in mysql_config mariadb_config
+do
+  # Extract the first word of "$ac_prog", so it can be a program name with args.
+set dummy $ac_prog; ac_word=$2
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+printf %s "checking for $ac_word... " >&6; }
+if test ${ac_cv_path_MYSQL_CONFIG+y}
+then :
+  printf %s "(cached) " >&6
+else $as_nop
+  case $MYSQL_CONFIG in
+  [\\/]* | ?:[\\/]*)
+  ac_cv_path_MYSQL_CONFIG="$MYSQL_CONFIG" # Let the user override the test with a path.
+  ;;
+  *)
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  case $as_dir in #(((
+    '') as_dir=./ ;;
+    */) ;;
+    *) as_dir=$as_dir/ ;;
+  esac
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if as_fn_executable_p "$as_dir$ac_word$ac_exec_ext"; then
+    ac_cv_path_MYSQL_CONFIG="$as_dir$ac_word$ac_exec_ext"
+    printf "%s\n" "$as_me:${as_lineno-$LINENO}: found $as_dir$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+  ;;
+esac
+fi
+MYSQL_CONFIG=$ac_cv_path_MYSQL_CONFIG
+if test -n "$MYSQL_CONFIG"; then
+  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $MYSQL_CONFIG" >&5
+printf "%s\n" "$MYSQL_CONFIG" >&6; }
+else
+  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
+printf "%s\n" "no" >&6; }
+fi
+
+
+  test -n "$MYSQL_CONFIG" && break
+done
+
+
+        if test -x "$MYSQL_CONFIG"; then
+            MYSQL_CFLAGS="`$MYSQL_CONFIG --cflags`"
+            _full_libmysql_libs="`$MYSQL_CONFIG --libs`"
+
+             _save_mysql_ldflags="${LDFLAGS}"
+            _save_mysql_cflags="${CFLAGS}"
+            LDFLAGS="${LDFLAGS} ${_full_libmysql_libs}"
+            CFLAGS="${CFLAGS} ${MYSQL_CFLAGS}"
+
+            for i in $_full_libmysql_libs; do
+                case $i in
+                    -lmysqlclient|-lperconaserverclient|-lmariadbclient|-lmariadb)
+
+                        _lib_name="`echo "$i" | cut -b3-`"
+                        as_ac_Lib=`printf "%s\n" "ac_cv_lib_$_lib_name""_main" | $as_tr_sh`
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for main in -l$_lib_name" >&5
+printf %s "checking for main in -l$_lib_name... " >&6; }
+if eval test \${$as_ac_Lib+y}
+then :
+  printf %s "(cached) " >&6
+else $as_nop
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-l$_lib_name  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+
+int
+main (void)
+{
+return main ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"
+then :
+  eval "$as_ac_Lib=yes"
+else $as_nop
+  eval "$as_ac_Lib=no"
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.beam \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+eval ac_res=\$$as_ac_Lib
+	       { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
+printf "%s\n" "$ac_res" >&6; }
+if eval test \"x\$"$as_ac_Lib"\" = x"yes"
+then :
+
+                        	MYSQL_LIBS="-l${_lib_name} ${MYSQL_LIBS}"
+
+else $as_nop
+
+                        	as_fn_error $? "Not found $_lib_name library" "$LINENO" 5
+
+fi
+
+                ;;
+                    -L*)
+
+                        MYSQL_LDFLAGS="${MYSQL_LDFLAGS} $i"
+                ;;
+                    -R*)
+
+                        MYSQL_LDFLAGS="${MYSQL_LDFLAGS} -Wl,$i"
+                ;;
+                    -l*)
+
+                        _lib_name="`echo "$i" | cut -b3-`"
+                        as_ac_Lib=`printf "%s\n" "ac_cv_lib_$_lib_name""_main" | $as_tr_sh`
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for main in -l$_lib_name" >&5
+printf %s "checking for main in -l$_lib_name... " >&6; }
+if eval test \${$as_ac_Lib+y}
+then :
+  printf %s "(cached) " >&6
+else $as_nop
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-l$_lib_name  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+
+int
+main (void)
+{
+return main ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"
+then :
+  eval "$as_ac_Lib=yes"
+else $as_nop
+  eval "$as_ac_Lib=no"
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.beam \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+eval ac_res=\$$as_ac_Lib
+	       { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
+printf "%s\n" "$ac_res" >&6; }
+if eval test \"x\$"$as_ac_Lib"\" = x"yes"
+then :
+
+                        	MYSQL_LIBS="${MYSQL_LIBS} ${i}"
+
+else $as_nop
+
+                        	as_fn_error $? "Not found $i library" "$LINENO" 5
+
+fi
+
+                ;;
+                esac
+            done
+
+            LDFLAGS="${_save_mysql_ldflags}"
+            CFLAGS="${_save_mysql_cflags}"
+            unset _save_mysql_ldflags
+            unset _save_mysql_cflags
+
+            MYSQL_VERSION=`$MYSQL_CONFIG --version`
+
+
+printf "%s\n" "#define HAVE_MYSQL 1" >>confdefs.h
+
+
+            found_mysql="yes"
+        else
+            found_mysql="no"
+        fi
+    fi
+
+
+    mysql_version_req=
+
+    if test "$found_mysql" = "yes" -a -n "$mysql_version_req"; then
+
+        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking if MySQL version is >= $mysql_version_req" >&5
+printf %s "checking if MySQL version is >= $mysql_version_req... " >&6; }
+
+                        mysql_version_req_major=`expr $mysql_version_req : '\([0-9]*\)'`
+        mysql_version_req_minor=`expr $mysql_version_req : '[0-9]*\.\([0-9]*\)'`
+        mysql_version_req_micro=`expr $mysql_version_req : '[0-9]*\.[0-9]*\.\([0-9]*\)'`
+        if test "x$mysql_version_req_micro" = "x"; then
+            mysql_version_req_micro="0"
+        fi
+
+        mysql_version_req_number=`expr $mysql_version_req_major \* 1000000 \
+                                   \+ $mysql_version_req_minor \* 1000 \
+                                   \+ $mysql_version_req_micro`
+
+                        mysql_version_major=`expr $MYSQL_VERSION : '\([0-9]*\)'`
+        mysql_version_minor=`expr $MYSQL_VERSION : '[0-9]*\.\([0-9]*\)'`
+        mysql_version_micro=`expr $MYSQL_VERSION : '[0-9]*\.[0-9]*\.\([0-9]*\)'`
+        if test "x$mysql_version_micro" = "x"; then
+            mysql_version_micro="0"
+        fi
+
+        mysql_version_number=`expr $mysql_version_major \* 1000000 \
+                                   \+ $mysql_version_minor \* 1000 \
+                                   \+ $mysql_version_micro`
+
+        mysql_version_check=`expr $mysql_version_number \>\= $mysql_version_req_number`
+        if test "$mysql_version_check" = "1"; then
+            { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+printf "%s\n" "yes" >&6; }
+        else
+            { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
+printf "%s\n" "no" >&6; }
+        fi
+    fi
+
+
+
+
+
 
 fi
 

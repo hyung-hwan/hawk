@@ -380,9 +380,6 @@ AC_CHECK_LIB([uci], [uci_alloc_context], [UCI_LIBS="-luci"])
 AC_SUBST(UCI_LIBS)
 AM_CONDITIONAL(HAVE_LIBUCI, test "x${ac_cv_lib_uci_uci_alloc_context}" = "xyes" -a "x${ac_cv_header_uci_h}" = "xyes")
 
-dnl libmysqlclient
-AX_LIB_MYSQL()
-
 AC_MSG_CHECKING([for va_copy])
 AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <stdarg.h>]], [[
 		va_list x, y;
@@ -995,6 +992,18 @@ AC_ARG_ENABLE([mod-mysql],
 	enable_mod_mysql_is=$enableval,
 	enable_mod_mysql_is=auto
 )
+
+if test "x${enable_mod_mysql_is}" = "xauto" || test "x${enable_mod_mysql_is}" = "xyes" 
+then
+	if test ${with_mysql+y}
+	then
+		## as if --with-mysql is specified for AX_LIB_MYSQL below
+		with_mysql=yes
+	fi
+
+	AX_LIB_MYSQL()
+fi
+
 if test "x${enable_mod_mysql_is}" = "xauto"
 then
 	if test "x${found_mysql}" != "xyes"
