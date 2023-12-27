@@ -25,7 +25,12 @@
  */
 
 #include "mod-mysql.h"
+
 #include <mysql.h>
+#if !defined(MARIADB_VERSION_ID) && defined(MYSQL_VERSION_ID) && (MYSQL_VERSION_ID > 80000)
+typedef bool my_bool;
+#endif
+
 #include "../lib/hawk-prv.h"
 
 #if MYSQL_VERSION_ID < 50000
@@ -34,7 +39,6 @@
 
 struct param_data_t
 {
-	//int is_null;
 	my_bool is_null;
 	union
 	{
