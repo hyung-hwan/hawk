@@ -1404,7 +1404,8 @@ enum hawk_val_type_t
 	/* - the enumerators between HAWK_VAL_NIL and HAWK_VAL_ARR inclusive
 	 *   must be synchronized with an internal table of the __cmp_val 
 	 *   function in run.c.
-	 * - all enumerators must be in sync with __val_type_name in val.c */
+	 * - all enumerators must be in sync with __val_type_name in val.c 
+	 * - all enumerators must be in sync with VAL_XXX defintion in mod-hawk.c */
 	HAWK_VAL_NIL     = 0, /**< nil */
 	HAWK_VAL_CHAR    = 1, /**< character */
 	HAWK_VAL_BCHR    = 2, /**< byte character */

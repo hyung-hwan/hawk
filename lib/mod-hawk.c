@@ -449,6 +449,22 @@ static int fnc_modlibdirs (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	return 0;
 }
 
+static int fnc_type (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+{
+	hawk_val_t* a0;
+	hawk_val_t* r;
+	int _type;
+
+	a0 = hawk_rtx_getarg(rtx, 0);
+	_type = hawk_rtx_getvaltype(rtx, a0);
+
+	r = hawk_rtx_makeintval(rtx, _type);
+	if (HAWK_UNLIKELY(!r)) return -1;
+
+	hawk_rtx_setretval (rtx, r);
+	return 0;
+}
+
 static int fnc_typename (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	hawk_val_t* a0;
@@ -500,13 +516,30 @@ static hawk_mod_fnc_tab_t fnctab[] =
 	{ HAWK_T("isnil"),            { { 1, 1,     HAWK_NULL     },  fnc_isnil,                 0 } },
 	{ HAWK_T("map"),              { { 0, A_MAX, HAWK_NULL     },  fnc_map,                   0 } },
 	{ HAWK_T("modlibdirs"),       { { 0, 0,     HAWK_NULL     },  fnc_modlibdirs,            0 } },
+	{ HAWK_T("type"),             { { 1, 1,     HAWK_NULL     },  fnc_type,                  0 } },
 	{ HAWK_T("typename"),         { { 1, 1,     HAWK_NULL     },  fnc_typename,              0 } }
 };
 
 static hawk_mod_int_tab_t inttab[] =
 {
 	/* keep this table sorted for binary search in query(). */
-	{ HAWK_T("GC_NUM_GENS"), { HAWK_GC_NUM_GENS } }
+	{ HAWK_T("GC_NUM_GENS"), { HAWK_GC_NUM_GENS } },
+
+        /* synchronize this table with enum hawk_val_type_t in hawk.h */
+	/* the names follow the val_type_name table in val.c */
+	{ HAWK_T("VAL_ARRAY"),  { HAWK_VAL_ARR } },
+	{ HAWK_T("VAL_BCHAR"),  { HAWK_VAL_BCHR } },
+	{ HAWK_T("VAL_CHAR"),   { HAWK_VAL_CHAR } },
+	{ HAWK_T("VAL_FLT"),    { HAWK_VAL_FLT } },
+	{ HAWK_T("VAL_FUN"),    { HAWK_VAL_FUN } },
+	{ HAWK_T("VAL_INT"),    { HAWK_VAL_INT } },
+	{ HAWK_T("VAL_MAP"),    { HAWK_VAL_MAP } },
+	{ HAWK_T("VAL_MBS"),    { HAWK_VAL_MBS } },
+	{ HAWK_T("VAL_NIL"),    { HAWK_VAL_NIL } },
+	{ HAWK_T("VAL_STR"),    { HAWK_VAL_STR } },
+
+	{ HAWK_T("VAL_REF"),    { HAWK_VAL_REF } },
+	{ HAWK_T("VAL_REX"),    { HAWK_VAL_REX } }
 };
 
 static int query (hawk_mod_t* mod, hawk_t* hawk, const hawk_ooch_t* name, hawk_mod_sym_t* sym)

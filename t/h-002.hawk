@@ -22,6 +22,10 @@ function main()
 		tap_ensure (foo2[1], 1, @SCRIPTNAME, @SCRIPTLINE);
 		tap_ensure (foo3[1], ini, @SCRIPTNAME, @SCRIPTLINE);
 		tap_ensure (foo4[1], ini, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (hawk::type('a'), hawk::VAL_CHAR, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (hawk::type(@b'b'), hawk::VAL_BCHAR, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (hawk::type("a"), hawk::VAL_STR, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (hawk::type(@b"a"), hawk::VAL_MBS, @SCRIPTNAME, @SCRIPTLINE);
 	}
 
 	## gsub
