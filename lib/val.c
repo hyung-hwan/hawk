@@ -489,19 +489,19 @@ hawk_val_t* hawk_rtx_makenilval (hawk_rtx_t* rtx)
 
 hawk_val_t* hawk_rtx_makecharval (hawk_rtx_t* rtx, hawk_ooch_t v)
 {
-	return HAWK_QCHAR_TO_VTR((hawk_oochu_t)v);
+	return HAWK_CHAR_TO_VTR((hawk_oochu_t)v);
 }
 
 hawk_val_t* hawk_rtx_makebchrval (hawk_rtx_t* rtx, hawk_bch_t v)
 {
-	return HAWK_QBCHR_TO_VTR((hawk_bchu_t)v);
+	return HAWK_BCHR_TO_VTR((hawk_bchu_t)v);
 }
 
 hawk_val_t* hawk_rtx_makeintval (hawk_rtx_t* rtx, hawk_int_t v)
 {
 	hawk_val_int_t* val;
 
-	if (HAWK_IN_QINT_RANGE(v)) return HAWK_QINT_TO_VTR(v);
+	if (HAWK_IN_INT_RANGE(v)) return HAWK_INT_TO_VTR(v);
 
 	if (!rtx->vmgr.ifree)
 	{

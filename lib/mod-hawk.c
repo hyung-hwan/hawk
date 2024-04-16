@@ -266,7 +266,7 @@ static int fnc_gc (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	gen = hawk_rtx_gc(rtx, gen);
 #endif
 
-	HAWK_ASSERT (HAWK_IN_QINT_RANGE(gen));
+	HAWK_ASSERT (HAWK_IN_INT_RANGE(gen));
 	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, gen));
 	return 0;
 }
@@ -282,7 +282,7 @@ static int fnc_gc_get_threshold (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 	threshold = rtx->gc.threshold[gen];
 
-	HAWK_ASSERT (HAWK_IN_QINT_RANGE(threshold));
+	HAWK_ASSERT (HAWK_IN_INT_RANGE(threshold));
 	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, threshold));
 	return 0;
 }
@@ -300,7 +300,7 @@ static int fnc_gc_set_threshold (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 	if (threshold >= 0) 
 	{
-		if (threshold >= HAWK_QINT_MAX) threshold = HAWK_QINT_MAX;
+		if (threshold >= HAWK_INT_MAX) threshold = HAWK_INT_MAX;
 		rtx->gc.threshold[gen] = threshold; /* update */
 	}
 	else 
@@ -308,7 +308,7 @@ static int fnc_gc_set_threshold (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		threshold = rtx->gc.threshold[gen]; /* no update. but retrieve the existing value */
 	}
 
-	HAWK_ASSERT (HAWK_IN_QINT_RANGE(threshold));
+	HAWK_ASSERT (HAWK_IN_INT_RANGE(threshold));
 	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, threshold));
 	return 0;
 }

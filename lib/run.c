@@ -8140,7 +8140,7 @@ static hawk_ooi_t idxnde_to_int (hawk_rtx_t* rtx, hawk_nde_t* nde, hawk_nde_t** 
 		return -1;
 	}
 
-	if (v < 0 || v > HAWK_QINT_MAX) 
+	if (v < 0 || v > HAWK_INT_MAX) 
 	{
 		/* array index out of permitted range  */
 		hawk_rtx_seterrnum (rtx, &nde->loc, HAWK_EARRIDXRANGE);

@@ -82,10 +82,10 @@ struct hawk_val_rchunk_t
 
 
 #define HAWK_VTR_TYPE_BITS_POINTER    0 /* 00 */
-#define HAWK_VTR_TYPE_BITS_QINT   1 /* 01 */
-#define HAWK_VTR_TYPE_BITS_QCHAR  2 /* 10 */
+#define HAWK_VTR_TYPE_BITS_INT   1 /* 01 */
+#define HAWK_VTR_TYPE_BITS_CHAR  2 /* 10 */
 #define HAWK_VTR_TYPE_BITS_QEXT   3 /* 11 extended */
-#define HAWK_VTR_TYPE_BITS_QBCHR  3 /* 0011 */
+#define HAWK_VTR_TYPE_BITS_BCHR  3 /* 0011 */
 #define HAWK_VTR_TYPE_BITS_RESERVED0  7 /* 0111 */
 #define HAWK_VTR_TYPE_BITS_RESERVED1  11 /* 1011 */
 #define HAWK_VTR_TYPE_BITS_RESERVED2  15 /* 1111 */
@@ -95,9 +95,9 @@ struct hawk_val_rchunk_t
  * i want abs(max) == abs(min).
  * i don't want abs(max) + 1 == abs(min). e.g min: -32768, max: 32767
  */
-#define HAWK_QINT_MAX ((hawk_int_t)((~(hawk_uintptr_t)0) >> (HAWK_VTR_NUM_TYPE_BITS_LO + 1)))
-#define HAWK_QINT_MIN (-HAWK_QINT_MAX)
-#define HAWK_IN_QINT_RANGE(i) ((i) >= HAWK_QINT_MIN && (i) <= HAWK_QINT_MAX)
+#define HAWK_INT_MAX ((hawk_int_t)((~(hawk_uintptr_t)0) >> (HAWK_VTR_NUM_TYPE_BITS_LO + 1)))
+#define HAWK_INT_MIN (-HAWK_INT_MAX)
+#define HAWK_IN_INT_RANGE(i) ((i) >= HAWK_INT_MIN && (i) <= HAWK_INT_MAX)
 
 #define HAWK_VTR_TYPE_BITS_LO(p) (((hawk_uintptr_t)(p)) & HAWK_VTR_MASK_TYPE_BITS_LO)
 #define HAWK_VTR_TYPE_BITS_LOHI(p) (((hawk_uintptr_t)(p)) & HAWK_VTR_MASK_TYPE_BITS_LOHI)
@@ -107,47 +107,47 @@ struct hawk_val_rchunk_t
 
 
 #define HAWK_VTR_IS_POINTER(p) (HAWK_VTR_TYPE_BITS(p) == HAWK_VTR_TYPE_BITS_POINTER)
-#define HAWK_VTR_IS_QINT(p) (HAWK_VTR_TYPE_BITS(p) == HAWK_VTR_TYPE_BITS_QINT)
-#define HAWK_VTR_IS_QCHAR(p) (HAWK_VTR_TYPE_BITS(p) == HAWK_VTR_TYPE_BITS_QCHAR)
-#define HAWK_VTR_IS_QBCHR(p) (HAWK_VTR_TYPE_BITS(p) == HAWK_VTR_TYPE_BITS_QBCHR)
+#define HAWK_VTR_IS_INT(p) (HAWK_VTR_TYPE_BITS(p) == HAWK_VTR_TYPE_BITS_INT)
+#define HAWK_VTR_IS_CHAR(p) (HAWK_VTR_TYPE_BITS(p) == HAWK_VTR_TYPE_BITS_CHAR)
+#define HAWK_VTR_IS_BCHR(p) (HAWK_VTR_TYPE_BITS(p) == HAWK_VTR_TYPE_BITS_BCHR)
 
-#define HAWK_QINT_TO_VTR_POSITIVE(i) \
-	(((hawk_uintptr_t)(i) << HAWK_VTR_NUM_TYPE_BITS_LO) | HAWK_VTR_TYPE_BITS_QINT)
+#define HAWK_INT_TO_VTR_POSITIVE(i) \
+	(((hawk_uintptr_t)(i) << HAWK_VTR_NUM_TYPE_BITS_LO) | HAWK_VTR_TYPE_BITS_INT)
 
-#define HAWK_QINT_TO_VTR_NEGATIVE(i) \
-	((((hawk_uintptr_t)-(i)) << HAWK_VTR_NUM_TYPE_BITS_LO) | HAWK_VTR_TYPE_BITS_QINT | HAWK_VTR_SIGN_BIT)
+#define HAWK_INT_TO_VTR_NEGATIVE(i) \
+	((((hawk_uintptr_t)-(i)) << HAWK_VTR_NUM_TYPE_BITS_LO) | HAWK_VTR_TYPE_BITS_INT | HAWK_VTR_SIGN_BIT)
 
-#define HAWK_QINT_TO_VTR(i) \
-	((hawk_val_t*)(((i) < 0)? HAWK_QINT_TO_VTR_NEGATIVE(i): HAWK_QINT_TO_VTR_POSITIVE(i)))
+#define HAWK_INT_TO_VTR(i) \
+	((hawk_val_t*)(((i) < 0)? HAWK_INT_TO_VTR_NEGATIVE(i): HAWK_INT_TO_VTR_POSITIVE(i)))
 
-#define HAWK_QCHAR_TO_VTR(i) ((hawk_val_t*)(((hawk_uintptr_t)(i) << HAWK_VTR_NUM_TYPE_BITS_LO) | HAWK_VTR_TYPE_BITS_QCHAR))
-#define HAWK_QBCHR_TO_VTR(i) ((hawk_val_t*)(((hawk_uintptr_t)(i) << HAWK_VTR_NUM_TYPE_BITS_LOHI) | HAWK_VTR_TYPE_BITS_QBCHR))
+#define HAWK_CHAR_TO_VTR(i) ((hawk_val_t*)(((hawk_uintptr_t)(i) << HAWK_VTR_NUM_TYPE_BITS_LO) | HAWK_VTR_TYPE_BITS_CHAR))
+#define HAWK_BCHR_TO_VTR(i) ((hawk_val_t*)(((hawk_uintptr_t)(i) << HAWK_VTR_NUM_TYPE_BITS_LOHI) | HAWK_VTR_TYPE_BITS_BCHR))
 
-#define HAWK_VTR_ZERO ((hawk_val_t*)HAWK_QINT_TO_VTR_POSITIVE(0))
-#define HAWK_VTR_ONE  ((hawk_val_t*)HAWK_QINT_TO_VTR_POSITIVE(1))
-#define HAWK_VTR_NEGONE ((hawk_val_t*)HAWK_QINT_TO_VTR_NEGATIVE(-1))
+#define HAWK_VTR_ZERO ((hawk_val_t*)HAWK_INT_TO_VTR_POSITIVE(0))
+#define HAWK_VTR_ONE  ((hawk_val_t*)HAWK_INT_TO_VTR_POSITIVE(1))
+#define HAWK_VTR_NEGONE ((hawk_val_t*)HAWK_INT_TO_VTR_NEGATIVE(-1))
 
 /* sizeof(hawk_intptr_t) may not be the same as sizeof(hawk_int_t).
  * so step-by-step type conversions are needed.
  * e.g) pointer to uintptr_t, uintptr_t to intptr_t, intptr_t to hawk_int_t */
-#define HAWK_VTR_TO_QINT_POSITIVE(p) \
+#define HAWK_VTR_TO_INT_POSITIVE(p) \
 	((hawk_intptr_t)((hawk_uintptr_t)(p) >> HAWK_VTR_NUM_TYPE_BITS_LO))
-#define HAWK_VTR_TO_QINT_NEGATIVE(p) \
+#define HAWK_VTR_TO_INT_NEGATIVE(p) \
 	(-(hawk_intptr_t)(((hawk_uintptr_t)(p) & ~HAWK_VTR_SIGN_BIT) >> HAWK_VTR_NUM_TYPE_BITS_LO))
-#define HAWK_VTR_TO_QINT(p) \
-	(((hawk_uintptr_t)(p) & HAWK_VTR_SIGN_BIT)? HAWK_VTR_TO_QINT_NEGATIVE(p): HAWK_VTR_TO_QINT_POSITIVE(p))
+#define HAWK_VTR_TO_INT(p) \
+	(((hawk_uintptr_t)(p) & HAWK_VTR_SIGN_BIT)? HAWK_VTR_TO_INT_NEGATIVE(p): HAWK_VTR_TO_INT_POSITIVE(p))
 
-#define HAWK_VTR_TO_QCHAR(p) ((hawk_ooch_t)((hawk_uintptr_t)(p) >> HAWK_VTR_NUM_TYPE_BITS_LO))
-#define HAWK_VTR_TO_QBCHR(p) ((hawk_ooch_t)((hawk_uintptr_t)(p) >> HAWK_VTR_NUM_TYPE_BITS_LOHI))
+#define HAWK_VTR_TO_CHAR(p) ((hawk_ooch_t)((hawk_uintptr_t)(p) >> HAWK_VTR_NUM_TYPE_BITS_LO))
+#define HAWK_VTR_TO_BCHR(p) ((hawk_ooch_t)((hawk_uintptr_t)(p) >> HAWK_VTR_NUM_TYPE_BITS_LOHI))
 
-#define HAWK_GET_VAL_TYPE(p) (HAWK_VTR_IS_QINT(p)? HAWK_VAL_INT: \
-                              HAWK_VTR_IS_QCHAR(p)? HAWK_VAL_CHAR: \
-                              HAWK_VTR_IS_QBCHR(p)? HAWK_VAL_BCHR: (p)->v_type)
+#define HAWK_GET_VAL_TYPE(p) (HAWK_VTR_IS_INT(p)? HAWK_VAL_INT: \
+                              HAWK_VTR_IS_CHAR(p)? HAWK_VAL_CHAR: \
+                              HAWK_VTR_IS_BCHR(p)? HAWK_VAL_BCHR: (p)->v_type)
 
 #define HAWK_RTX_GETVALTYPE(rtx, p) HAWK_GET_VAL_TYPE(p)
-#define HAWK_RTX_GETINTFROMVAL(rtx, p) ((HAWK_VTR_IS_QINT(p)? (hawk_int_t)HAWK_VTR_TO_QINT(p): ((hawk_val_int_t*)(p))->i_val))
-#define HAWK_RTX_GETCHARFROMVAL(rtx, p) (HAWK_VTR_TO_QCHAR(p))
-#define HAWK_RTX_GETBCHRFROMVAL(rtx, p) (HAWK_VTR_TO_QBCHR(p))
+#define HAWK_RTX_GETINTFROMVAL(rtx, p) ((HAWK_VTR_IS_INT(p)? (hawk_int_t)HAWK_VTR_TO_INT(p): ((hawk_val_int_t*)(p))->i_val))
+#define HAWK_RTX_GETCHARFROMVAL(rtx, p) (HAWK_VTR_TO_CHAR(p))
+#define HAWK_RTX_GETBCHRFROMVAL(rtx, p) (HAWK_VTR_TO_BCHR(p))
 
 
 #define HAWK_VAL_ZERO HAWK_VTR_ZERO
