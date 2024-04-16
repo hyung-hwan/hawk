@@ -27,13 +27,32 @@
 #define CHUNKSIZE HAWK_VAL_CHUNK_SIZE
 
 static hawk_val_nil_t hawk_nil = { HAWK_VAL_NIL, 0, 1, 0, 0 };
+/* zero-length string */
 static hawk_val_str_t hawk_zls = { HAWK_VAL_STR, 0, 1, 0, 0, { HAWK_T(""), 0 } };
+/* zero-length byte string */
 static hawk_val_mbs_t hawk_zlbs = { HAWK_VAL_MBS, 0, 1, 0, 0, { HAWK_BT(""), 0 } };
 
 hawk_val_t* hawk_val_nil = (hawk_val_t*)&hawk_nil;
 hawk_val_t* hawk_val_zls = (hawk_val_t*)&hawk_zls; 
 hawk_val_t* hawk_val_zlbs = (hawk_val_t*)&hawk_zlbs;
 
+static const hawk_ooch_t* val_type_name[] =
+{
+	/* synchronize this table with enum hawk_val_type_t in hawk.h */
+	HAWK_T("nil"),
+	HAWK_T("char"),
+	HAWK_T("bchar"),
+	HAWK_T("int"),
+	HAWK_T("flt"),
+	HAWK_T("str"),
+	HAWK_T("mbs"),
+	HAWK_T("fun"),
+	HAWK_T("map"),
+	HAWK_T("array"),
+
+	HAWK_T("rex"),
+	HAWK_T("ref")
+};
 
 /* --------------------------------------------------------------------- */
 
@@ -470,6 +489,11 @@ static HAWK_INLINE hawk_val_t* gc_calloc_val (hawk_rtx_t* rtx, hawk_oow_t size)
 int hawk_get_val_type (hawk_val_t* val)
 {
 	return HAWK_GET_VAL_TYPE(val);
+}
+
+const hawk_ooch_t* hawk_get_val_type_name (hawk_val_t* val)
+{
+	return val_type_name[HAWK_GET_VAL_TYPE(val)];
 }
 
 hawk_val_t* hawk_get_nil_val (void)
@@ -1431,25 +1455,7 @@ int hawk_rtx_getvaltype (hawk_rtx_t* rtx, const hawk_val_t* val)
 
 const hawk_ooch_t* hawk_rtx_getvaltypename(hawk_rtx_t* rtx, const hawk_val_t* val)
 {
-	static const hawk_ooch_t* __val_type_name[] =
-	{
-		/* synchronize this table with enum hawk_val_type_t in hawk.h */
-		HAWK_T("nil"),
-		HAWK_T("char"),
-		HAWK_T("bchar"),
-		HAWK_T("int"),
-		HAWK_T("flt"),
-		HAWK_T("str"),
-		HAWK_T("mbs"),
-		HAWK_T("fun"),
-		HAWK_T("map"),
-		HAWK_T("array"),
-
-		HAWK_T("rex"),
-		HAWK_T("ref")
-	};
-
-	return __val_type_name[HAWK_RTX_GETVALTYPE(rtx, val)];
+	return val_type_name[HAWK_RTX_GETVALTYPE(rtx, val)];
 }
 
 int hawk_rtx_getintfromval (hawk_rtx_t* rtx, const hawk_val_t* val)

@@ -3663,6 +3663,10 @@ HAWK_EXPORT int hawk_get_val_type (
 	hawk_val_t* val
 );
 
+HAWK_EXPORT const hawk_ooch_t* hawk_get_val_type_name (
+	hawk_val_t* val
+);
+
 #if defined(__cplusplus)
 }
 #endif

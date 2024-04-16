@@ -1046,6 +1046,7 @@ public:
 		}
 
 		int getType () const { return hawk_get_val_type(this->val); }
+		const hawk_ooch_t* getTypeName () const { return hawk_get_val_type_name(this->val); }
 
 		int getInt (hawk_int_t* v) const;
 		int getFlt (hawk_flt_t* v) const;
