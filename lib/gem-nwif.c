@@ -141,7 +141,11 @@ int hawk_gem_bcstrtoifindex (hawk_gem_t* gem, const hawk_bch_t* ptr, unsigned in
 
 	HAWK_MEMSET (&ifr, 0, HAWK_SIZEOF(ifr));
 	len = hawk_copy_bcstr(ifr.ifr_name, HAWK_COUNTOF(ifr.ifr_name), ptr);
-	if (ptr[len] != '\0') return -1; /* name too long */
+	if (ptr[len] != '\0')
+	{
+		HAWK_CLOSE (h);
+		return -1; /* name too long */
+	}
 
 	x = ioctl(h, SIOCGIFINDEX, &ifr);
 	HAWK_CLOSE (h);
@@ -227,7 +231,11 @@ int hawk_gem_bcharstoifindex (hawk_gem_t* gem, const hawk_bch_t* ptr, hawk_oow_t
 	}
 
 	HAWK_MEMSET (&ifr, 0, HAWK_SIZEOF(ifr));
-	if (hawk_copy_bchars_to_bcstr(ifr.ifr_name, HAWK_COUNTOF(ifr.ifr_name), ptr, len) < len) return -1; /* name too long */
+	if (hawk_copy_bchars_to_bcstr(ifr.ifr_name, HAWK_COUNTOF(ifr.ifr_name), ptr, len) < len)
+	{
+		HAWK_CLOSE (h);
+		return -1; /* name too long */
+	}
 
 	x = ioctl(h, SIOCGIFINDEX, &ifr);
 	HAWK_CLOSE (h);
