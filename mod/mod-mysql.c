@@ -839,6 +839,7 @@ static int fnc_affected_rows (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	{
 		my_ulonglong nrows;
 		hawk_val_t* vrows;
+		int n;
 
 		ENSURE_CONNECT_EVER_ATTEMPTED(rtx, sql_list, sql_node);
 
@@ -856,10 +857,11 @@ static int fnc_affected_rows (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			goto done;
 		}
 
-		if (hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, 1), vrows) <= -1)
+		hawk_rtx_refupval (rtx, vrows);
+		n = hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, 1), vrows);
+		hawk_rtx_refdownval (rtx, vrows);
+		if (n <= -1)
 		{
-			hawk_rtx_refupval (rtx, vrows);
-			hawk_rtx_refdownval (rtx, vrows);
 			take_rtx_err = 1;
 			goto done;
 		}
@@ -885,6 +887,7 @@ static int fnc_insert_id (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	{
 		my_ulonglong nrows;
 		hawk_val_t* vrows;
+		int n;
 
 		ENSURE_CONNECT_EVER_ATTEMPTED(rtx, sql_list, sql_node);
 
@@ -902,10 +905,11 @@ static int fnc_insert_id (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			goto done;
 		}
 
-		if (hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, 1), vrows) <= -1)
+		hawk_rtx_refupval (rtx, vrows);
+		n = hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, 1), vrows);
+		hawk_rtx_refdownval (rtx, vrows);
+		if (n <= -1)
 		{
-			hawk_rtx_refupval (rtx, vrows);
-			hawk_rtx_refdownval (rtx, vrows);
 			take_rtx_err = 1;
 			goto done;
 		}
@@ -934,6 +938,7 @@ static int fnc_escape_string (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	if (sql_node)
 	{
 		hawk_oow_t qlen;
+		int n;
 
 		a1 = hawk_rtx_getarg(rtx, 1);
 
@@ -953,10 +958,11 @@ static int fnc_escape_string (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			goto done;
 		}
 
-		if (hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, 2), retv) <= -1)
+		hawk_rtx_refupval (rtx, retv);
+		n = hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, 2), retv);
+		hawk_rtx_refdownval (rtx, retv);
+		if (n <= -1)
 		{
-			hawk_rtx_refupval (rtx, retv);
-			hawk_rtx_refdownval (rtx, retv);
 			take_rtx_err = 1;
 			goto done;
 		}
@@ -1089,7 +1095,7 @@ static int fnc_fetch_row (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	{
 		MYSQL_ROW row;
 		unsigned int i;
-		hawk_val_t* row_val;
+		hawk_val_t* row_val, * tmp;
 		int x;
 
 		row = mysql_fetch_row(res_node->res);
@@ -1135,10 +1141,11 @@ static int fnc_fetch_row (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			key_len = hawk_int_to_oocstr(i, 10, HAWK_NULL, key_buf, HAWK_COUNTOF(key_buf)); /* TOOD: change this function to hawk_rtx_intxxxxx */
 			HAWK_ASSERT (key_len != (hawk_oow_t)-1);
 
-			if (hawk_rtx_setmapvalfld(rtx, row_map, key_buf, key_len, row_val) == HAWK_NULL)
+			hawk_rtx_refupval (rtx, row_val);
+			tmp = hawk_rtx_setmapvalfld(rtx, row_map, key_buf, key_len, row_val);
+			hawk_rtx_refdownval (rtx, row_val);
+			if (!tmp)
 			{
-				hawk_rtx_refupval (rtx, row_val);
-				hawk_rtx_refdownval (rtx, row_val);
 				take_rtx_err = 1;
 				goto done;
 			}
@@ -1690,6 +1697,7 @@ static int fnc_stmt_affected_rows (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	{
 		my_ulonglong nrows;
 		hawk_val_t* vrows;
+		int n;
 
 		nrows = mysql_stmt_affected_rows(stmt_node->stmt);
 
@@ -1700,10 +1708,11 @@ static int fnc_stmt_affected_rows (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			goto done;
 		}
 
-		if (hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, 1), vrows) <= -1)
+		hawk_rtx_refupval (rtx, vrows);
+		n = hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, 1), vrows);
+		hawk_rtx_refdownval (rtx, vrows);
+		if (n <= -1)
 		{
-			hawk_rtx_refupval (rtx, vrows);
-			hawk_rtx_refdownval (rtx, vrows);
 			take_rtx_err = 1;
 			goto done;
 		}
@@ -1733,6 +1742,7 @@ static int fnc_stmt_insert_id (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	{
 		my_ulonglong nrows;
 		hawk_val_t* vrows;
+		int n;
 
 		nrows = mysql_stmt_insert_id(stmt_node->stmt);
 
@@ -1743,10 +1753,11 @@ static int fnc_stmt_insert_id (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			goto done;
 		}
 
-		if (hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, 1), vrows) <= -1)
+		hawk_rtx_refupval (rtx, vrows);
+		n = hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, 1), vrows);
+		hawk_rtx_refdownval (rtx, vrows);
+		if (n <= -1)
 		{
-			hawk_rtx_refupval (rtx, vrows);
-			hawk_rtx_refdownval (rtx, vrows);
 			take_rtx_err = 1;
 			goto done;
 		}

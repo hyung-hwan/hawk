@@ -43,7 +43,7 @@ typedef struct uctx_node_t uctx_node_t;
 struct uctx_node_t
 {
 	int id;
-	struct uci_context* ctx;	
+	struct uci_context* ctx;
 	uctx_node_t* prev;
 	uctx_node_t* next;
 };
@@ -53,7 +53,7 @@ struct uctx_list_t
 	uctx_node_t* head;
 	uctx_node_t* tail;
 	uctx_node_t* free;
-	
+
 	/* mapping table to map 'id' to 'node' */
 	struct
 	{
@@ -97,7 +97,7 @@ static uctx_node_t* new_uctx_node (hawk_rtx_t* rtx, uctx_list_t* list)
 				rtx, list->map.tab, HAWK_SIZEOF(*tmp) * newcapa);
 			if (!tmp) goto oops;
 
-			HAWK_MEMSET (&tmp[list->map.capa], 0, 
+			HAWK_MEMSET (&tmp[list->map.capa], 0,
 				HAWK_SIZEOF(*tmp) * (newcapa - list->map.capa));
 
 			list->map.tab = tmp;
@@ -134,7 +134,7 @@ static void free_uctx_node (hawk_rtx_t* rtx, uctx_list_t* list, uctx_node_t* nod
 
 	list->map.tab[node->id] = HAWK_NULL;
 
-	if (node->ctx) 
+	if (node->ctx)
 	{
 		uci_free_context (node->ctx);
 	}
@@ -143,7 +143,7 @@ static void free_uctx_node (hawk_rtx_t* rtx, uctx_list_t* list, uctx_node_t* nod
 	{
 		/* destroy the actual node if the node to be freed has the
 		 * highest id */
-		HAWK_MMGR_FREE (hawk_rtx_getmmgr(rtx), node);
+		hawk_rtx_freemem(rtx, node);
 		list->map.high--;
 	}
 	else
@@ -156,22 +156,20 @@ static void free_uctx_node (hawk_rtx_t* rtx, uctx_list_t* list, uctx_node_t* nod
 
 	/* however, i destroy the whole free list when all the nodes are
 	 * chanined to the free list */
-	if (list->head == HAWK_NULL) 
+	if (list->head == HAWK_NULL)
 	{
 		hawk_mmgr_t* mmgr;
 		uctx_node_t* curnode;
-
-		mmgr = hawk_rtx_getmmgr(rtx);
 
 		while (list->free)
 		{
 			curnode = list->free;
 			list->free = list->free->next;
 			HAWK_ASSERT (curnode->ctx == HAWK_NULL);
-			HAWK_MMGR_FREE (mmgr, curnode);
+			hawk_rtx_freemem (rtx, curnode);
 		}
 
-		HAWK_MMGR_FREE (mmgr, list->map.tab);
+		hawk_rtx_freemem (rtx, list->map.tab);
 		list->map.high = 0;
 		list->map.capa = 0;
 		list->map.tab = HAWK_NULL;
@@ -184,12 +182,12 @@ static int close_byid (hawk_rtx_t* rtx, uctx_list_t* list, hawk_int_t id)
 {
 	int x = UCI_ERR_INVAL;
 
-	if (id >= 0 && id < list->map.high && list->map.tab[id]) 
+	if (id >= 0 && id < list->map.high && list->map.tab[id])
 	{
 		free_uctx_node (rtx, list, list->map.tab[id]);
 		x = UCI_OK;
 	}
-	
+
 	return -x;
 }
 
@@ -198,11 +196,11 @@ static int load_byid (
 {
 	int x = UCI_ERR_INVAL;
 
-	if (id >= 0 && id < list->map.high && list->map.tab[id]) 
+	if (id >= 0 && id < list->map.high && list->map.tab[id])
 	{
 		x = uci_load (list->map.tab[id]->ctx, path, HAWK_NULL);
 	}
-	
+
 	return -x;
 }
 
@@ -210,12 +208,12 @@ static int unload_byid (hawk_rtx_t* rtx, uctx_list_t* list, hawk_int_t id)
 {
 	int x = UCI_ERR_INVAL;
 
-	if (id >= 0 && id < list->map.high && list->map.tab[id]) 
+	if (id >= 0 && id < list->map.high && list->map.tab[id])
 	{
 		x = uci_unload (list->map.tab[id]->ctx, HAWK_NULL);
 		return 0;
 	}
-	
+
 	return -x;
 }
 
@@ -223,13 +221,13 @@ static int save_byid (hawk_rtx_t* rtx, uctx_list_t* list, hawk_int_t id, hawk_mc
 {
 	int x = UCI_ERR_INVAL;
 
-	if (id >= 0 && id < list->map.high && list->map.tab[id]) 
+	if (id >= 0 && id < list->map.high && list->map.tab[id])
 	{
 		struct uci_ptr ptr;
 
 		x = uci_lookup_ptr (list->map.tab[id]->ctx, &ptr, item, 1);
 
-		if (x == UCI_OK) 
+		if (x == UCI_OK)
 		{
 
 			if (!ptr.value && (ptr.flags & UCI_LOOKUP_COMPLETE) && (ptr.last->type == UCI_TYPE_PACKAGE))
@@ -238,7 +236,7 @@ static int save_byid (hawk_rtx_t* rtx, uctx_list_t* list, hawk_int_t id, hawk_mc
 				x = UCI_ERR_NOTFOUND;
 		}
 	}
-	
+
 	return -x;
 }
 
@@ -246,13 +244,13 @@ static int commit_byid (hawk_rtx_t* rtx, uctx_list_t* list, hawk_int_t id, hawk_
 {
 	int x = UCI_ERR_INVAL;
 
-	if (id >= 0 && id < list->map.high && list->map.tab[id]) 
+	if (id >= 0 && id < list->map.high && list->map.tab[id])
 	{
 		struct uci_ptr ptr;
 
 		x = uci_lookup_ptr (list->map.tab[id]->ctx, &ptr, item, 1);
 
-		if (x == UCI_OK) 
+		if (x == UCI_OK)
 		{
 			if (!ptr.value && (ptr.flags & UCI_LOOKUP_COMPLETE) && (ptr.last->type == UCI_TYPE_PACKAGE))
 				x = uci_commit (list->map.tab[id]->ctx, &ptr.p, 0);
@@ -260,7 +258,7 @@ static int commit_byid (hawk_rtx_t* rtx, uctx_list_t* list, hawk_int_t id, hawk_
 				x = UCI_ERR_NOTFOUND;
 		}
 	}
-	
+
 	return -x;
 }
 
@@ -268,13 +266,13 @@ static int revert_byid (hawk_rtx_t* rtx, uctx_list_t* list, hawk_int_t id, hawk_
 {
 	int x = UCI_ERR_INVAL;
 
-	if (id >= 0 && id < list->map.high && list->map.tab[id]) 
+	if (id >= 0 && id < list->map.high && list->map.tab[id])
 	{
 		struct uci_ptr ptr;
 
 		x = uci_lookup_ptr (list->map.tab[id]->ctx, &ptr, item, 1);
 
-		if (x == UCI_OK) 
+		if (x == UCI_OK)
 		{
 			if (!ptr.value && (ptr.flags & UCI_LOOKUP_COMPLETE))
 				x = uci_revert (list->map.tab[id]->ctx, &ptr);
@@ -282,7 +280,7 @@ static int revert_byid (hawk_rtx_t* rtx, uctx_list_t* list, hawk_int_t id, hawk_
 				x = UCI_ERR_NOTFOUND;
 		}
 	}
-	
+
 	return -x;
 }
 
@@ -290,13 +288,13 @@ static int delete_byid (hawk_rtx_t* rtx, uctx_list_t* list, hawk_int_t id, hawk_
 {
 	int x = UCI_ERR_INVAL;
 
-	if (id >= 0 && id < list->map.high && list->map.tab[id]) 
+	if (id >= 0 && id < list->map.high && list->map.tab[id])
 	{
 		struct uci_ptr ptr;
 
 		x = uci_lookup_ptr (list->map.tab[id]->ctx, &ptr, item, 1);
 
-		if (x == UCI_OK) 
+		if (x == UCI_OK)
 		{
 			if (!ptr.value && (ptr.flags & UCI_LOOKUP_COMPLETE))
 				x = uci_delete (list->map.tab[id]->ctx, &ptr);
@@ -304,7 +302,7 @@ static int delete_byid (hawk_rtx_t* rtx, uctx_list_t* list, hawk_int_t id, hawk_
 				x = UCI_ERR_NOTFOUND;
 		}
 	}
-	
+
 	return -x;
 }
 
@@ -312,13 +310,13 @@ static int rename_byid (hawk_rtx_t* rtx, uctx_list_t* list, hawk_int_t id, hawk_
 {
 	int x = UCI_ERR_INVAL;
 
-	if (id >= 0 && id < list->map.high && list->map.tab[id]) 
+	if (id >= 0 && id < list->map.high && list->map.tab[id])
 	{
 		struct uci_ptr ptr;
 
 		x = uci_lookup_ptr (list->map.tab[id]->ctx, &ptr, item, 1);
 
-		if (x == UCI_OK) 
+		if (x == UCI_OK)
 		{
 			if (ptr.value && (ptr.flags & UCI_LOOKUP_COMPLETE))
 				x = uci_rename (list->map.tab[id]->ctx, &ptr);
@@ -326,7 +324,7 @@ static int rename_byid (hawk_rtx_t* rtx, uctx_list_t* list, hawk_int_t id, hawk_
 				x = UCI_ERR_NOTFOUND;
 		}
 	}
-	
+
 	return -x;
 }
 
@@ -334,18 +332,18 @@ static int set_byid (hawk_rtx_t* rtx, uctx_list_t* list, hawk_int_t id, hawk_mch
 {
 	int x = UCI_ERR_INVAL;
 
-	if (id >= 0 && id < list->map.high && list->map.tab[id]) 
+	if (id >= 0 && id < list->map.high && list->map.tab[id])
 	{
 		struct uci_ptr ptr;
 
 		x = uci_lookup_ptr (list->map.tab[id]->ctx, &ptr, item, 1);
 
-		if (x == UCI_OK) 
+		if (x == UCI_OK)
 		{
 			x = ptr.value? uci_set (list->map.tab[id]->ctx, &ptr): UCI_ERR_INVAL;
 		}
 	}
-	
+
 	return -x;
 }
 
@@ -353,13 +351,13 @@ static int addsection_byid (hawk_rtx_t* rtx, uctx_list_t* list, hawk_int_t id, h
 {
 	int x = UCI_ERR_INVAL;
 
-	if (id >= 0 && id < list->map.high && list->map.tab[id]) 
+	if (id >= 0 && id < list->map.high && list->map.tab[id])
 	{
 		struct uci_ptr ptr;
 
 		x = uci_lookup_ptr (list->map.tab[id]->ctx, &ptr, item, 1);
 
-		if (x == UCI_OK) 
+		if (x == UCI_OK)
 		{
 			/* add an unnamed section. use set to add a named section */
 			struct uci_section* s = HAWK_NULL;
@@ -368,7 +366,7 @@ static int addsection_byid (hawk_rtx_t* rtx, uctx_list_t* list, hawk_int_t id, h
 			else x = UCI_ERR_INVAL;
 		}
 	}
-	
+
 	return -x;
 }
 
@@ -376,18 +374,18 @@ static int addlist_byid (hawk_rtx_t* rtx, uctx_list_t* list, hawk_int_t id, hawk
 {
 	int x = UCI_ERR_INVAL;
 
-	if (id >= 0 && id < list->map.high && list->map.tab[id]) 
+	if (id >= 0 && id < list->map.high && list->map.tab[id])
 	{
 		struct uci_ptr ptr;
 
 		x = uci_lookup_ptr (list->map.tab[id]->ctx, &ptr, item, 1);
 
-		if (x == UCI_OK) 
+		if (x == UCI_OK)
 		{
 			x = ptr.value? uci_add_list (list->map.tab[id]->ctx, &ptr): UCI_ERR_INVAL;
 		}
 	}
-	
+
 	return -x;
 }
 
@@ -396,11 +394,11 @@ static int setconfdir_byid (
 {
 	int x = UCI_ERR_INVAL;
 
-	if (id >= 0 && id < list->map.high && list->map.tab[id]) 
+	if (id >= 0 && id < list->map.high && list->map.tab[id])
 	{
 		x = uci_set_confdir (list->map.tab[id]->ctx, path);
 	}
-	
+
 	return -x;
 }
 
@@ -409,11 +407,11 @@ static int setsavedir_byid (
 {
 	int x = UCI_ERR_INVAL;
 
-	if (id >= 0 && id < list->map.high && list->map.tab[id]) 
+	if (id >= 0 && id < list->map.high && list->map.tab[id])
 	{
 		x = uci_set_savedir (list->map.tab[id]->ctx, path);
 	}
-	
+
 	return -x;
 }
 
@@ -422,11 +420,11 @@ static int adddeltapath_byid (
 {
 	int x = UCI_ERR_INVAL;
 
-	if (id >= 0 && id < list->map.high && list->map.tab[id]) 
+	if (id >= 0 && id < list->map.high && list->map.tab[id])
 	{
 		x = uci_add_delta_path (list->map.tab[id]->ctx, path);
 	}
-	
+
 	return -x;
 }
 
@@ -436,7 +434,7 @@ static int getsection_byid (
 {
 	int x = UCI_ERR_INVAL;
 
-	if (id >= 0 && id < list->map.high && list->map.tab[id]) 
+	if (id >= 0 && id < list->map.high && list->map.tab[id])
 	{
 		struct uci_ptr ptr;
 
@@ -449,7 +447,7 @@ static int getsection_byid (
 			{
 				struct uci_element* e;
 
-				e = ptr.last;	
+				e = ptr.last;
 				if (e->type == UCI_TYPE_SECTION)
 				{
 					hawk_val_map_data_t md[4];
@@ -457,7 +455,7 @@ static int getsection_byid (
 					hawk_val_t* tmp;
 
 					HAWK_MEMSET (md, 0, HAWK_SIZEOF(md));
-		
+
 					md[0].key.ptr = HAWK_T("type");
 					md[0].key.len = 4;
 					md[0].type = HAWK_VAL_MAP_DATA_MBS;
@@ -475,7 +473,7 @@ static int getsection_byid (
 					md[2].vptr = &lv;
 
 					tmp = hawk_rtx_makemapvalwithdata (rtx, md);
-					if (tmp) 
+					if (tmp)
 					{
 						int n;
 						hawk_rtx_refupval (rtx, tmp);
@@ -486,7 +484,7 @@ static int getsection_byid (
 					else x = UCI_ERR_MEM;
 				}
 				else x = UCI_ERR_NOTFOUND;
-				
+
 			}
 			else x = UCI_ERR_NOTFOUND;
 		}
@@ -501,7 +499,7 @@ static int getoption_byid (
 {
 	int x = UCI_ERR_INVAL;
 
-	if (id >= 0 && id < list->map.high && list->map.tab[id]) 
+	if (id >= 0 && id < list->map.high && list->map.tab[id])
 	{
 		struct uci_ptr ptr;
 
@@ -514,7 +512,7 @@ static int getoption_byid (
 			{
 				struct uci_element* e;
 
-				e = ptr.last;	
+				e = ptr.last;
 				if (e->type == UCI_TYPE_OPTION)
 				{
 					struct uci_option* uo = ptr.o;
@@ -537,7 +535,7 @@ static int getoption_byid (
 						md[1].vptr = uo->v.string;
 
 						map = hawk_rtx_makemapvalwithdata (rtx, md);
-						if (map) 
+						if (map)
 						{
 							int n;
 							hawk_rtx_refupval (rtx, map);
@@ -573,11 +571,11 @@ static int getoption_byid (
 						md[1].type = HAWK_VAL_MAP_DATA_INT;
 						md[1].vptr = &count;
 
-						map = hawk_rtx_makemapvalwithdata (rtx, md);
-						if (map)	
+						map = hawk_rtx_makemapvalwithdata(rtx, md);
+						if (map)
 						{
 							count = 1;
-							uci_foreach_element(&uo->v.list, tmp) 
+							uci_foreach_element(&uo->v.list, tmp)
 							{
 								const hawk_cstr_t* subsep;
 								hawk_cstr_t k[4];
@@ -585,7 +583,7 @@ static int getoption_byid (
 								hawk_char_t* kp;
 								hawk_size_t kl;
 
-								fld = hawk_rtx_makestrvalwithmbs (rtx, tmp->name);
+								fld = hawk_rtx_makestrvalwithbcstr(rtx, tmp->name);
 								if (!fld)
 								{
 									hawk_rtx_refupval (rtx, map);
@@ -595,21 +593,21 @@ static int getoption_byid (
 									break;
 								}
 
-								subsep = hawk_rtx_getsubsep (rtx);
+								subsep = hawk_rtx_getsubsep(rtx);
 
 								k[0].ptr = HAWK_T("value");
 								k[0].len = 5;
 								k[1].ptr = subsep->ptr;
 								k[1].len = subsep->len;
 								k[2].ptr = idxbuf;
-								k[2].len = hawk_fmtuintmax (idxbuf, HAWK_COUNTOF(idxbuf), count, 10, -1, HAWK_T('\0'), HAWK_NULL);
+								k[2].len = hawk_fmtuintmax(idxbuf, HAWK_COUNTOF(idxbuf), count, 10, -1, HAWK_T('\0'), HAWK_NULL);
 								k[3].ptr = HAWK_NULL;
 								k[3].len = 0;
-							
-								kp = hawk_wcstradup (k, &kl, hawk_rtx_getmmgr(rtx));
-								if (kp == HAWK_NULL || hawk_rtx_setmapvalfld (rtx, map, kp, kl, fld) == HAWK_NULL)
+
+								kp = hawk_wcstradup(k, &kl, hawk_rtx_getmmgr(rtx));
+								if (kp == HAWK_NULL || hawk_rtx_setmapvalfld(rtx, map, kp, kl, fld) == HAWK_NULL)
 								{
-									if (kp) HAWK_MMGR_FREE (hawk_rtx_getmmgr(rtx), kp);
+									if (kp) hawk_rtx_freemem (rtx, kp);
 									hawk_rtx_refupval (rtx, fld);
 									hawk_rtx_refdownval (rtx, fld);
 									hawk_rtx_refupval (rtx, map);
@@ -619,13 +617,13 @@ static int getoption_byid (
 									break;
 								}
 
-								HAWK_MMGR_FREE (hawk_rtx_getmmgr(rtx), kp);
+								hawk_rtx_freemem (rtx, kp);
 								count++;
 							}
-							
-							if (map) 
+
+							if (map)
 							{
-								if (hawk_rtx_setrefval (rtx, ref, map) <= -1)
+								if (hawk_rtx_setrefval(rtx, ref, map) <= -1)
 								{
 									hawk_rtx_refupval (rtx, map);
 									hawk_rtx_refdownval (rtx, map);
@@ -635,7 +633,7 @@ static int getoption_byid (
 							}
 						}
 						else x = UCI_ERR_MEM;
-					} 
+					}
 					else x = UCI_ERR_INVAL; /* uo->type */
 				}
 				else x = UCI_ERR_NOTFOUND; /* e->type */
@@ -715,8 +713,8 @@ static int fnc_uci_open (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	list = rtx_to_list (rtx, fi);
 	node = new_uctx_node (rtx, list);
 	ret = node? node->id: -UCI_ERR_MEM;
-	
-	if (ret <= -1) 
+
+	if (ret <= -1)
 	{
 		list->errnum = -ret;
 		ret = -1;
@@ -735,14 +733,14 @@ static int fnc_uci_close (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_val_t* retv;
 	hawk_int_t id;
 	int ret;
-	
+
 	list = rtx_to_list (rtx, fi);
 
 	ret = hawk_rtx_valtoint (rtx, hawk_rtx_getarg (rtx, 0), &id);
 	if (ret <= -1) ret = -UCI_ERR_INVAL;
 	else ret = close_byid (rtx, list, id);
 
-	if (ret <= -1) 
+	if (ret <= -1)
 	{
 		list->errnum = -ret;
 		ret = -1;
@@ -761,7 +759,7 @@ static int fnc_uci_load  (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_val_t* retv;
 	hawk_int_t id;
 	int ret;
-	
+
 	list = rtx_to_list (rtx, fi);
 
 	ret = hawk_rtx_valtoint (rtx, hawk_rtx_getarg (rtx, 0), &id);
@@ -779,7 +777,7 @@ static int fnc_uci_load  (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		else ret = -UCI_ERR_MEM;
 	}
 
-	if (ret <= -1) 
+	if (ret <= -1)
 	{
 		list->errnum = -ret;
 		ret = -1;
@@ -798,14 +796,14 @@ static int fnc_uci_unload  (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_val_t* retv;
 	hawk_int_t id;
 	int ret;
-	
+
 	list = rtx_to_list (rtx, fi);
 
 	ret = hawk_rtx_valtoint (rtx, hawk_rtx_getarg (rtx, 0), &id);
 	if (ret <= -1) ret = -UCI_ERR_INVAL;
 	else ret = unload_byid (rtx, list, id);
 
-	if (ret <= -1) 
+	if (ret <= -1)
 	{
 		list->errnum = -ret;
 		ret = -1;
@@ -824,7 +822,7 @@ static int fnc_uci_save  (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_val_t* retv;
 	hawk_int_t id;
 	int ret;
-	
+
 	list = rtx_to_list (rtx, fi);
 
 	ret = hawk_rtx_valtoint (rtx, hawk_rtx_getarg (rtx, 0), &id);
@@ -842,7 +840,7 @@ static int fnc_uci_save  (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		else ret = -UCI_ERR_MEM;
 	}
 
-	if (ret <= -1) 
+	if (ret <= -1)
 	{
 		list->errnum = -ret;
 		ret = -1;
@@ -861,7 +859,7 @@ static int fnc_uci_commit (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_val_t* retv;
 	hawk_int_t id;
 	int ret;
-	
+
 	list = rtx_to_list (rtx, fi);
 
 	ret = hawk_rtx_valtoint (rtx, hawk_rtx_getarg (rtx, 0), &id);
@@ -879,7 +877,7 @@ static int fnc_uci_commit (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		else ret = -UCI_ERR_MEM;
 	}
 
-	if (ret <= -1) 
+	if (ret <= -1)
 	{
 		list->errnum = -ret;
 		ret = -1;
@@ -898,7 +896,7 @@ static int fnc_uci_revert (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_val_t* retv;
 	hawk_int_t id;
 	int ret;
-	
+
 	list = rtx_to_list (rtx, fi);
 
 	ret = hawk_rtx_valtoint (rtx, hawk_rtx_getarg (rtx, 0), &id);
@@ -916,7 +914,7 @@ static int fnc_uci_revert (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		else ret = -UCI_ERR_MEM;
 	}
 
-	if (ret <= -1) 
+	if (ret <= -1)
 	{
 		list->errnum = -ret;
 		ret = -1;
@@ -935,7 +933,7 @@ static int fnc_uci_delete (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_val_t* retv;
 	hawk_int_t id;
 	int ret;
-	
+
 	list = rtx_to_list (rtx, fi);
 
 	ret = hawk_rtx_valtoint (rtx, hawk_rtx_getarg (rtx, 0), &id);
@@ -953,7 +951,7 @@ static int fnc_uci_delete (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		else ret = -UCI_ERR_MEM;
 	}
 
-	if (ret <= -1) 
+	if (ret <= -1)
 	{
 		list->errnum = -ret;
 		ret = -1;
@@ -972,7 +970,7 @@ static int fnc_uci_rename (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_val_t* retv;
 	hawk_int_t id;
 	int ret;
-	
+
 	list = rtx_to_list (rtx, fi);
 
 	ret = hawk_rtx_valtoint (rtx, hawk_rtx_getarg (rtx, 0), &id);
@@ -990,7 +988,7 @@ static int fnc_uci_rename (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		else ret = -UCI_ERR_MEM;
 	}
 
-	if (ret <= -1) 
+	if (ret <= -1)
 	{
 		list->errnum = -ret;
 		ret = -1;
@@ -1009,7 +1007,7 @@ static int fnc_uci_set (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_val_t* retv;
 	hawk_int_t id;
 	int ret;
-	
+
 	list = rtx_to_list (rtx, fi);
 
 	ret = hawk_rtx_valtoint (rtx, hawk_rtx_getarg (rtx, 0), &id);
@@ -1027,7 +1025,7 @@ static int fnc_uci_set (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		else ret = -UCI_ERR_MEM;
 	}
 
-	if (ret <= -1) 
+	if (ret <= -1)
 	{
 		list->errnum = -ret;
 		ret = -1;
@@ -1046,7 +1044,7 @@ static int fnc_uci_addsection (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_val_t* retv;
 	hawk_int_t id;
 	int ret;
-	
+
 	list = rtx_to_list (rtx, fi);
 
 	ret = hawk_rtx_valtoint (rtx, hawk_rtx_getarg (rtx, 0), &id);
@@ -1067,7 +1065,7 @@ static int fnc_uci_addsection (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		if (item) hawk_rtx_freemem (rtx, item);
 	}
 
-	if (ret <= -1) 
+	if (ret <= -1)
 	{
 		list->errnum = -ret;
 		ret = -1;
@@ -1086,7 +1084,7 @@ static int fnc_uci_addlist (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_val_t* retv;
 	hawk_int_t id;
 	int ret;
-	
+
 	list = rtx_to_list (rtx, fi);
 
 	ret = hawk_rtx_valtoint (rtx, hawk_rtx_getarg (rtx, 0), &id);
@@ -1104,7 +1102,7 @@ static int fnc_uci_addlist (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		else ret = -UCI_ERR_MEM;
 	}
 
-	if (ret <= -1) 
+	if (ret <= -1)
 	{
 		list->errnum = -ret;
 		ret = -1;
@@ -1123,7 +1121,7 @@ static int fnc_uci_setconfdir  (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_val_t* retv;
 	hawk_int_t id;
 	int ret;
-	
+
 	list = rtx_to_list (rtx, fi);
 
 	ret = hawk_rtx_valtoint (rtx, hawk_rtx_getarg (rtx, 0), &id);
@@ -1141,7 +1139,7 @@ static int fnc_uci_setconfdir  (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		else ret = -UCI_ERR_MEM;
 	}
 
-	if (ret <= -1) 
+	if (ret <= -1)
 	{
 		list->errnum = -ret;
 		ret = -1;
@@ -1161,7 +1159,7 @@ static int fnc_uci_setsavedir  (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_val_t* retv;
 	hawk_int_t id;
 	int ret;
-	
+
 	list = rtx_to_list (rtx, fi);
 
 	ret = hawk_rtx_valtoint (rtx, hawk_rtx_getarg (rtx, 0), &id);
@@ -1179,7 +1177,7 @@ static int fnc_uci_setsavedir  (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		else ret = -UCI_ERR_MEM;
 	}
 
-	if (ret <= -1) 
+	if (ret <= -1)
 	{
 		list->errnum = -ret;
 		ret = -1;
@@ -1198,7 +1196,7 @@ static int fnc_uci_adddeltapath  (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_val_t* retv;
 	hawk_int_t id;
 	int ret;
-	
+
 	list = rtx_to_list (rtx, fi);
 
 	ret = hawk_rtx_valtoint (rtx, hawk_rtx_getarg (rtx, 0), &id);
@@ -1216,7 +1214,7 @@ static int fnc_uci_adddeltapath  (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		else ret = -UCI_ERR_MEM;
 	}
 
-	if (ret <= -1) 
+	if (ret <= -1)
 	{
 		list->errnum = -ret;
 		ret = -1;
@@ -1234,7 +1232,7 @@ static int fnc_uci_getoption (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	uctx_list_t* list;
 	hawk_int_t id;
 	int ret;
-	
+
 	list = rtx_to_list (rtx, fi);
 
 	ret = hawk_rtx_valtoint (rtx, hawk_rtx_getarg (rtx, 0), &id);
@@ -1253,7 +1251,7 @@ static int fnc_uci_getoption (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		else ret = -UCI_ERR_MEM;
 	}
 
-	if (ret <= -1) 
+	if (ret <= -1)
 	{
 		list->errnum = -ret;
 		ret = -1;
@@ -1269,7 +1267,7 @@ static int fnc_uci_getsection (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	uctx_list_t* list;
 	hawk_int_t id;
 	int ret;
-	
+
 	list = rtx_to_list (rtx, fi);
 
 	ret = hawk_rtx_valtoint(rtx, hawk_rtx_getarg (rtx, 0), &id);
@@ -1288,7 +1286,7 @@ static int fnc_uci_getsection (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		else ret = -UCI_ERR_MEM;
 	}
 
-	if (ret <= -1) 
+	if (ret <= -1)
 	{
 		list->errnum = -ret;
 		ret = -1;
@@ -1318,9 +1316,9 @@ static hawk_mod_fnc_tab_t fnctab[] =
 	{ HAWK_T("rename"),       { { 2, 2, HAWK_NULL    }, fnc_uci_rename,       0 } },
 	{ HAWK_T("revert"),       { { 2, 2, HAWK_NULL    }, fnc_uci_revert,       0 } },
 	{ HAWK_T("save"),         { { 2, 2, HAWK_NULL    }, fnc_uci_save,         0 } },
-	{ HAWK_T("set"),          { { 2, 2, HAWK_NULL    }, fnc_uci_set,          0 } }, 
-	{ HAWK_T("setconfdir"),   { { 2, 2, HAWK_NULL    }, fnc_uci_setconfdir,   0 } }, 
-	{ HAWK_T("setsavedir"),   { { 2, 2, HAWK_NULL    }, fnc_uci_setsavedir,   0 } }, 
+	{ HAWK_T("set"),          { { 2, 2, HAWK_NULL    }, fnc_uci_set,          0 } },
+	{ HAWK_T("setconfdir"),   { { 2, 2, HAWK_NULL    }, fnc_uci_setconfdir,   0 } },
+	{ HAWK_T("setsavedir"),   { { 2, 2, HAWK_NULL    }, fnc_uci_setsavedir,   0 } },
 	{ HAWK_T("unload"),       { { 1, 1, HAWK_NULL    }, fnc_uci_unload,       0 } }
 };
 
@@ -1339,7 +1337,7 @@ static int init (hawk_mod_t* mod, hawk_rtx_t* rtx)
 	rbt = (hawk_rbt_t*)mod->ctx;
 
 	HAWK_MEMSET (&list, 0, HAWK_SIZEOF(list));
-	if (hawk_rbt_insert(rbt, &rtx, HAWK_SIZEOF(rtx), &list, HAWK_SIZEOF(list)) == HAWK_NULL) 
+	if (hawk_rbt_insert(rbt, &rtx, HAWK_SIZEOF(rtx), &list, HAWK_SIZEOF(list)) == HAWK_NULL)
 	{
 		hawk_rtx_seterrnum (rtx, HAWK_ENOMEM, HAWK_NULL);
 		return -1;
@@ -1352,7 +1350,7 @@ static void fini (hawk_mod_t* mod, hawk_rtx_t* rtx)
 {
 	hawk_rbt_t* rbt;
 	hawk_rbt_pair_t* pair;
-	
+
 	rbt = (hawk_rbt_t*)mod->ctx;
 
 	/* garbage clean-up */
