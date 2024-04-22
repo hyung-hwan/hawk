@@ -395,7 +395,7 @@ static int fnc_open (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	if (sql_node) ret = sql_node->id;
 	else set_error_on_sql_list (rtx, sql_list, HAWK_NULL);
 
-	/* ret may not be a statically managed number. 
+	/* ret may not be a statically managed number.
 	 * error checking is required */
 	retv = hawk_rtx_makeintval(rtx, ret);
 	if (retv == HAWK_NULL)
@@ -475,7 +475,7 @@ static int fnc_get_option (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		#if defined(DUMMY_OPT_RECONNECT)
 			case DUMMY_OPT_RECONNECT:
 				/* the system without MYSQL_OPT_RECONNECT available. return 1 all the time */
-				if (hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, 2), hawk_rtx_makeintval(rtx, 1)) <= -1) 
+				if (hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, 2), hawk_rtx_makeintval(rtx, 1)) <= -1)
 				{
 					hawk_rtx_refupval(rtx, retv);
 					hawk_rtx_refdownval(rtx, retv);
@@ -495,7 +495,7 @@ static int fnc_get_option (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 				retv = hawk_rtx_makeintval(rtx, v.b);
 				if (!retv) goto oops;
 
-				if (hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, 2), retv) <= -1) 
+				if (hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, 2), retv) <= -1)
 				{
 					hawk_rtx_refupval(rtx, retv);
 					hawk_rtx_refdownval(rtx, retv);
@@ -632,7 +632,7 @@ static int fnc_connect (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		{
 		arg_fail:
 			take_rtx_err = 1;
-			goto done; 
+			goto done;
 		}
 
 		if (nargs >= 5)
@@ -1044,7 +1044,7 @@ static int fnc_store_result (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		}
 
 		res_node = new_res_node(rtx, res_list, res);
-		if (!res_node)	
+		if (!res_node)
 		{
 			mysql_free_result (res);
 			take_rtx_err = 1;
@@ -1124,7 +1124,7 @@ static int fnc_fetch_row (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			{
 /* TODO: consider using make multi byte string - hawk_rtx_makembsstr depending on user options or depending on column types */
 				row_val = hawk_rtx_makestrvalwithbcstr(rtx, row[i]);
-				if (!row_val) 
+				if (!row_val)
 				{
 					take_rtx_err = 1;
 					goto done;
@@ -1137,7 +1137,7 @@ static int fnc_fetch_row (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 			++i;
 
-			/* put it into the map */ 
+			/* put it into the map */
 			key_len = hawk_int_to_oocstr(i, 10, HAWK_NULL, key_buf, HAWK_COUNTOF(key_buf)); /* TOOD: change this function to hawk_rtx_intxxxxx */
 			HAWK_ASSERT (key_len != (hawk_oow_t)-1);
 
@@ -1229,11 +1229,11 @@ static int fnc_stmt_close (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	stmt_node = get_stmt_list_node_with_arg(rtx, sql_list, stmt_list, hawk_rtx_getarg(rtx, 0));
 	if (stmt_node)
 	{
-		if (stmt_node->res_data) 
+		if (stmt_node->res_data)
 		{
 			if (stmt_node->res_binds)
 			{
-				/* the program guarantees thats res_binds is non-null if res_data is to have 
+				/* the program guarantees thats res_binds is non-null if res_data is to have
 				 * some valid data. so i do this clearance if res_binds is non-null */
 				hawk_oow_t i;
 				for (i = 0; i < stmt_node->res_capa; i++)
@@ -1253,11 +1253,11 @@ static int fnc_stmt_close (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		if (stmt_node->res_binds) hawk_rtx_freemem (rtx, stmt_node->res_binds);
 
 
-		if (stmt_node->param_data) 
+		if (stmt_node->param_data)
 		{
 			if (stmt_node->param_binds)
 			{
-				/* the program guarantees thats param_binds is non-null if param_data is to have 
+				/* the program guarantees thats param_binds is non-null if param_data is to have
 				 * some valid data. so i do this clearance if param_binds is non-null */
 				hawk_oow_t i;
 				for (i = 0; i < stmt_node->param_capa; i++)
@@ -1520,7 +1520,7 @@ static int fnc_stmt_execute (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			HAWK_MEMSET (stmt_node->res_binds, 0, HAWK_SIZEOF(MYSQL_BIND)* stmt_node->res_capa);
 			HAWK_MEMSET (stmt_node->res_data, 0, HAWK_SIZEOF(res_data_t)* stmt_node->res_capa);
 
-			
+
 			for (i = 0; i < ncols; i++)
 			{
 /* TOOD: more types... */
@@ -1855,7 +1855,7 @@ static void fini (hawk_mod_t* mod, hawk_rtx_t* rtx)
 {
 	hawk_rbt_t* rbt;
 	hawk_rbt_pair_t* pair;
-	
+
 	rbt = (hawk_rbt_t*)mod->ctx;
 
 	/* garbage clean-up */

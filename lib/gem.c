@@ -172,6 +172,43 @@ hawk_bch_t* hawk_gem_dupbcstrarr (hawk_gem_t* gem, const hawk_bch_t* str[], hawk
 	return buf;
 }
 
+hawk_uch_t* hawk_gem_dupucsarr (hawk_gem_t* gem, const hawk_ucs_t* str, hawk_oow_t* len)
+{
+	hawk_uch_t* buf, * ptr;
+	hawk_oow_t i;
+	hawk_oow_t capa = 0;
+
+	for (i = 0; str[i].ptr; i++) capa += str[i].len;
+
+	buf = (hawk_uch_t*)hawk_gem_allocmem(gem, (capa + 1) * HAWK_SIZEOF(*buf));
+	if (!buf) return HAWK_NULL;
+
+	ptr = buf;
+	for (i = 0; str[i].ptr; i++) ptr += hawk_copy_uchars_to_ucstr_unlimited(ptr, str[i].ptr, str[i].len);
+
+	if (len) *len = capa;
+	return buf;
+}
+
+hawk_bch_t* hawk_gem_dupbcsarr (hawk_gem_t* gem, const hawk_bcs_t* str, hawk_oow_t* len)
+{
+	hawk_bch_t* buf, * ptr;
+	hawk_oow_t i;
+	hawk_oow_t capa = 0;
+
+	for (i = 0; str[i].ptr; i++) capa += str[i].len;
+
+	buf = (hawk_bch_t*)hawk_gem_allocmem(gem, (capa + 1) * HAWK_SIZEOF(*buf));
+	if (!buf) return HAWK_NULL;
+
+	ptr = buf;
+	for (i = 0; str[i].ptr; i++) ptr += hawk_copy_bchars_to_bcstr_unlimited(ptr, str[i].ptr, str[i].len);
+
+	if (len) *len = capa;
+	return buf;
+}
+
+
 /* ------------------------------------------------------------------------ */
 
 int hawk_gem_convbtouchars (hawk_gem_t* gem, const hawk_bch_t* bcs, hawk_oow_t* bcslen, hawk_uch_t* ucs, hawk_oow_t* ucslen, int all)

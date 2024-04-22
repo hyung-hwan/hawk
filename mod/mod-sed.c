@@ -94,7 +94,7 @@ static int fnc_file_to_file (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	/* result = sed::file_to_file ("s/ABC/123/g", input_file, output_file [, option_string]) */
 
 	sed = hawk_sed_openstdwithmmgr(hawk_rtx_getmmgr(rtx), 0, hawk_rtx_getcmgr(rtx), HAWK_NULL);
-	if (sed == HAWK_NULL) 
+	if (sed == HAWK_NULL)
 	{
 		ret = -2;
 		goto oops;
@@ -106,20 +106,20 @@ static int fnc_file_to_file (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	{
 		a[i] = hawk_rtx_getarg(rtx, i);
 		xstr[i].ptr = hawk_rtx_getvaloocstr(rtx, a[i], &xstr[i].len);
-		if (xstr[i].ptr == HAWK_NULL) 
+		if (xstr[i].ptr == HAWK_NULL)
 		{
 			ret = -2;
 			goto oops;
 		}
 	}
 
-	if (hawk_sed_compstdoocs(sed, &xstr[0]) <= -1) 
+	if (hawk_sed_compstdoocs(sed, &xstr[0]) <= -1)
 	{
 		ret = -3; /* compile error */
 		goto oops;
 	}
 
-	if (hawk_sed_execstdfile(sed, xstr[1].ptr, xstr[2].ptr, HAWK_NULL) <= -1) 
+	if (hawk_sed_execstdfile(sed, xstr[1].ptr, xstr[2].ptr, HAWK_NULL) <= -1)
 	{
 		ret = -4;
 		goto oops;
@@ -150,7 +150,7 @@ static int fnc_str_to_str (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	int i = 0, ret = 0, n;
 
 	sed = hawk_sed_openstdwithmmgr (hawk_rtx_getmmgr(rtx), 0, hawk_rtx_getcmgr(rtx), HAWK_NULL);
-	if (sed == HAWK_NULL) 
+	if (sed == HAWK_NULL)
 	{
 		ret = -2;
 		goto oops;
@@ -161,20 +161,20 @@ static int fnc_str_to_str (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	{
 		a[i] = hawk_rtx_getarg(rtx, i);
 		xstr[i].ptr = hawk_rtx_getvaloocstr(rtx, a[i], &xstr[i].len);
-		if (xstr[i].ptr == HAWK_NULL) 
+		if (xstr[i].ptr == HAWK_NULL)
 		{
 			ret = -2;
 			goto oops;
 		}
 	}
 
-	if (hawk_sed_compstdoocs(sed, &xstr[0]) <= -1) 
+	if (hawk_sed_compstdoocs(sed, &xstr[0]) <= -1)
 	{
 		ret = -3; /* compile error */
 		goto oops;
 	}
 
-	if (hawk_sed_execstdxstr (sed, &xstr[1], &outstr, HAWK_NULL) <= -1) 
+	if (hawk_sed_execstdxstr (sed, &xstr[1], &outstr, HAWK_NULL) <= -1)
 	{
 		ret = -4;
 		goto oops;
@@ -223,7 +223,7 @@ static hawk_mod_fnc_tab_t fnctab[] =
 /* ------------------------------------------------------------------------ */
 
 static int query (hawk_mod_t* mod, hawk_t* hawk, const hawk_ooch_t* name, hawk_mod_sym_t* sym)
-{	
+{
 	return hawk_findmodsymfnc(hawk, fnctab, HAWK_COUNTOF(fnctab), name, sym);
 }
 

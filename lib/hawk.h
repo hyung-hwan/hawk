@@ -3207,7 +3207,7 @@ HAWK_EXPORT void hawk_rtx_refdownval_nofree (
 #define HAWK_RTX_GC_GEN_AUTO (-1)
 
 /* 
- * The hawk_rtc_gc() function triggers garbage collection.
+ * The hawk_rtx_gc() function triggers garbage collection.
  * It returns the generation number collected and never fails
  */
 HAWK_EXPORT int hawk_rtx_gc (
@@ -3531,6 +3531,8 @@ static HAWK_INLINE hawk_uch_t* hawk_rtx_dupucs (hawk_rtx_t* rtx, const hawk_ucs_
 static HAWK_INLINE hawk_bch_t* hawk_rtx_dupbcs (hawk_rtx_t* rtx, const hawk_bcs_t* bcs) { return hawk_gem_dupbcs(hawk_rtx_getgem(rtx), bcs); }
 static HAWK_INLINE hawk_uch_t* hawk_rtx_dupucstrarr (hawk_rtx_t* rtx, const hawk_uch_t* strs[], hawk_oow_t* len) { return hawk_gem_dupucstrarr(hawk_rtx_getgem(rtx), strs, len); }
 static HAWK_INLINE hawk_bch_t* hawk_rtx_dupbcstrarr (hawk_rtx_t* rtx, const hawk_bch_t* strs[], hawk_oow_t* len) { return hawk_gem_dupbcstrarr(hawk_rtx_getgem(rtx), strs, len); }
+static HAWK_INLINE hawk_uch_t* hawk_rtx_dupucsarr (hawk_rtx_t* rtx, const hawk_ucs_t* strs, hawk_oow_t* len) { return hawk_gem_dupucsarr(hawk_rtx_getgem(rtx), strs, len); }
+static HAWK_INLINE hawk_bch_t* hawk_rtx_dupbcsarr (hawk_rtx_t* rtx, const hawk_bcs_t* strs, hawk_oow_t* len) { return hawk_gem_dupbcsarr(hawk_rtx_getgem(rtx), strs, len); }
 #else
 #define hawk_rtx_dupucstr(rtx, ucs, ucslen) hawk_gem_dupucstr(hawk_rtx_getgem(rtx), ucs, ucslen)
 #define hawk_rtx_dupbcstr(rtx, bcs, bcslen) hawk_gem_dupbcstr(hawk_rtx_getgem(rtx), bcs, bcslen)
@@ -3540,6 +3542,8 @@ static HAWK_INLINE hawk_bch_t* hawk_rtx_dupbcstrarr (hawk_rtx_t* rtx, const hawk
 #define hawk_rtx_dupbcs(rtx, bcs) hawk_gem_dupbcs(hawk_rtx_getgem(rtx), bcs)
 #define hawk_rtx_dupucstrarr(rtx, strs, len) hawk_gem_dupucstrarr(hawk_rtx_getgem(rtx), strs, len)
 #define hawk_rtx_dupbcstrarr(rtx, strs, len) hawk_gem_dupbcstrarr(hawk_rtx_getgem(rtx), strs, len)
+#define hawk_rtx_dupucsarr(rtx, strs, len) hawk_gem_dupucsarr(hawk_rtx_getgem(rtx), strs, len)
+#define hawk_rtx_dupbcsarr(rtx, strs, len) hawk_gem_dupbcsarr(hawk_rtx_getgem(rtx), strs, len)
 #endif
 
 #if defined(HAWK_OOCH_IS_UCH)
@@ -3547,11 +3551,13 @@ static HAWK_INLINE hawk_bch_t* hawk_rtx_dupbcstrarr (hawk_rtx_t* rtx, const hawk
 #	define hawk_rtx_dupoochars    hawk_rtx_dupuchars
 #	define hawk_rtx_dupoocs       hawk_rtx_dupucs
 #	define hawk_rtx_dupoocstrarr  hawk_rtx_dupucstrarr
+#	define hawk_rtx_dupoocsarr    hawk_rtx_dupucsarr
 #else
 #	define hawk_rtx_dupoocstr     hawk_rtx_dupbcstr
 #	define hawk_rtx_dupoochars    hawk_rtx_dupbchars
 #	define hawk_rtx_dupoocs       hawk_rtx_dupbcs
 #	define hawk_rtx_dupoocstrarr  hawk_rtx_dupbcstrarr
+#	define hawk_rtx_dupoocsarr    hawk_rtx_dupbcsarr
 #endif
 
 /* ----------------------------------------------------------------------- */

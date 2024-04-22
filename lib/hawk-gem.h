@@ -168,16 +168,30 @@ HAWK_EXPORT hawk_bch_t* hawk_gem_dupbcstrarr (
 	hawk_oow_t*       len
 );
 
+HAWK_EXPORT hawk_uch_t* hawk_gem_dupucsarr (
+	hawk_gem_t*       gem,
+	const hawk_ucs_t* str,
+	hawk_oow_t*       len
+);
+
+HAWK_EXPORT hawk_bch_t* hawk_gem_dupbcsarr (
+	hawk_gem_t*       gem,
+	const hawk_bcs_t* str,
+	hawk_oow_t*       len
+);
+
 #if defined(HAWK_OOCH_IS_UCH)
 #	define hawk_gem_dupoocstr    hawk_gem_dupucstr
 #	define hawk_gem_dupoochars   hawk_gem_dupuchars
 #	define hawk_gem_dupoocs      hawk_gem_dupucs
 #	define hawk_gem_dupoocstrarr hawk_gem_dupucstrarr
+#	define hawk_gem_dupoocsarr   hawk_gem_dupucsarr
 #else
 #	define hawk_gem_dupoocstr    hawk_gem_dupbcstr
 #	define hawk_gem_dupoochars   hawk_gem_dupbchars
 #	define hawk_gem_dupoocs      hawk_gem_dupbcs
 #	define hawk_gem_dupoocstrarr hawk_gem_dupbcstrarr
+#	define hawk_gem_dupoocsarr   hawk_gem_dupbcsarr
 #endif
 
 /* ----------------------------------------------------------------------- */

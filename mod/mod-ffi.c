@@ -194,7 +194,7 @@ static ffi_node_t* new_ffi_node (hawk_rtx_t* rtx, ffi_list_t* ffi_list, const ha
 {
 	hawk_t* hawk = hawk_rtx_gethawk(rtx);
 	ffi_node_t* ffi_node;
-	
+
 	void* handle;
 
 	ffi_node = __new_ffi_node(rtx, ffi_list);
@@ -211,7 +211,7 @@ static ffi_node_t* new_ffi_node (hawk_rtx_t* rtx, ffi_list_t* ffi_list, const ha
 	{
 		handle = hawk->prm.modopen(hawk, HAWK_NULL);
 	}
-	if (!handle) 
+	if (!handle)
 	{
 		const hawk_ooch_t* olderrmsg;
 		olderrmsg = hawk_backuperrmsg(hawk);
@@ -838,8 +838,8 @@ static int fnc_call (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			continue;
 		}
 
-		/* more items in signature than the actual argument */  
-		if (j >= hawk_rtx_getnargs(rtx) - FNC_CALL_ARG_BASE) 
+		/* more items in signature than the actual argument */
+		if (j >= hawk_rtx_getnargs(rtx) - FNC_CALL_ARG_BASE)
 		{
 			ret = set_error_on_ffi_list(rtx, ffi_list, HAWK_EINVAL, HAWK_T("two few arguments for the argument signature"));
 			goto done;
@@ -852,7 +852,7 @@ static int fnc_call (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 	while (i < sig.len && sig.ptr[i] == ' ') i++; /* skip all spaces after > */
 	fmtc = (i >= sig.len)? FMTC_NULL: sig.ptr[i];
-	if (fmtc == 'u') 
+	if (fmtc == 'u')
 	{
 		_unsigned = 1;
 		fmtc = (i >= sig.len)? FMTC_NULL: sig.ptr[i];

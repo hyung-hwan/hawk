@@ -20279,6 +20279,12 @@ then :
   printf "%s\n" "#define HAVE_CRT_EXTERNS_H 1" >>confdefs.h
 
 fi
+ac_fn_c_check_header_compile "$LINENO" "uci.h" "ac_cv_header_uci_h" "$ac_includes_default"
+if test "x$ac_cv_header_uci_h" = xyes
+then :
+  printf "%s\n" "#define HAVE_UCI_H 1" >>confdefs.h
+
+fi
 
 
 
