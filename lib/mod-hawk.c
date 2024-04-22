@@ -271,6 +271,22 @@ static int fnc_gc (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	return 0;
 }
 
+static int fnc_gc_get_pressure (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+{
+	hawk_int_t gen;
+	hawk_int_t pressure;
+
+	if (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 0), &gen) <= -1) gen = 0;
+	if (gen < 0) gen = 0;
+	else if (gen >= HAWK_COUNTOF(rtx->gc.g)) gen = HAWK_COUNTOF(rtx->gc.g) - 1;
+
+	pressure = rtx->gc.pressure[gen];
+
+	HAWK_ASSERT (HAWK_IN_INT_RANGE(pressure));
+	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, pressure));
+	return 0;
+}
+
 static int fnc_gc_get_threshold (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	hawk_int_t gen;
@@ -507,6 +523,7 @@ static hawk_mod_fnc_tab_t fnctab[] =
 	{ HAWK_T("cmgr_exists"),      { { 1, 1,     HAWK_NULL     },  fnc_cmgr_exists,           0 } },
 	{ HAWK_T("function_exists"),  { { 1, 1,     HAWK_NULL     },  fnc_function_exists,       0 } },
 	{ HAWK_T("gc"),               { { 0, 1,     HAWK_NULL     },  fnc_gc,                    0 } },
+	{ HAWK_T("gc_get_pressure"),  { { 1, 1,     HAWK_NULL     },  fnc_gc_get_pressure,       0 } },
 	{ HAWK_T("gc_get_threshold"), { { 1, 1,     HAWK_NULL     },  fnc_gc_get_threshold,      0 } },
 	{ HAWK_T("gc_set_threshold"), { { 2, 2,     HAWK_NULL     },  fnc_gc_set_threshold,      0 } },
 	{ HAWK_T("gcrefs"),           { { 1, 1,     HAWK_NULL     },  fnc_gcrefs,                0 } },
