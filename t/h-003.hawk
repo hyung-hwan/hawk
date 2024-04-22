@@ -6,7 +6,7 @@
 function are_files_identical(a, b)
 {
 	@local f1, f2, x, y, diff;
-	
+
 	f1 = sys::open(a, sys::O_RDONLY);
 	if (f1 <= -1)
 	{
@@ -25,7 +25,7 @@ function are_files_identical(a, b)
 	diff = 0;
 	while (sys::read(f1, x, 1) > 0)
 	{
-		if (sys::read(f2, y, 1) <= 0 || x !== y) 
+		if (sys::read(f2, y, 1) <= 0 || x !== y)
 		{
 			diff = 1;
 			break;
@@ -58,12 +58,12 @@ function run_test (x, more_opts, in_name, set_out_name, out_name)
 	else
 	{
 		cmd=sprintf("%s %s -f %s/%s.hawk --modlibdirs=%s %s > %s", ARGV[0], more_opts, TDIR, x, hawk::modlibdirs(), inf, outf);
-	}	
+	}
 ##print cmd;
 	system (cmd);
-		
+
 	same = are_files_identical(expf, outf);
-	if (same <= 0) 
+	if (same <= 0)
 	{
 		## don't delete the output file for review.
 		tap_fail (sprintf("%s[%d] %s - %s and %s differ", @SCRIPTNAME, @SCRIPTLINE, x, expf, outf));

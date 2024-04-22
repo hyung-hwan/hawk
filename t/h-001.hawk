@@ -136,7 +136,7 @@ function main()
 
 		x = 20;
 		y = 90;
-		r = call_by_ref_1(x, y, z);	
+		r = call_by_ref_1(x, y, z);
 		tap_ensure (r, 1800, @SCRIPTNAME, @SCRIPTLINE);
 		tap_ensure (x, 20, @SCRIPTNAME, @SCRIPTLINE);
 		tap_ensure (y, 90, @SCRIPTNAME, @SCRIPTLINE);
@@ -179,7 +179,7 @@ function main()
 	{
 		@local a;
 		a[1] = hawk::array();
-		a[1][2]=20; 
+		a[1][2]=20;
 		tap_ensure (a[1][2], 20, @SCRIPTNAME, @SCRIPTLINE);
 		a[1][2]++;
 		tap_ensure (a[1][2], 21, @SCRIPTNAME, @SCRIPTLINE);
@@ -217,22 +217,22 @@ function main()
 	{
 		@local a, i;
 
-		a = hawk::array(); 
+		a = hawk::array();
 		tap_ensure (length(a), 0, @SCRIPTNAME, @SCRIPTLINE);
-		
-		for (i = 0; i < 10; i++) a[i*i]=i; 
+
+		for (i = 0; i < 10; i++) a[i*i]=i;
 		tap_ensure (length(a), 10, @SCRIPTNAME, @SCRIPTLINE);
 
 		delete a[0];
 		tap_ensure (length(a), 9, @SCRIPTNAME, @SCRIPTLINE);
 
-		delete a[81]; 
+		delete a[81];
 		tap_ensure (length(a), 8, @SCRIPTNAME, @SCRIPTLINE);
 
-		delete a[36]; 
+		delete a[36];
 		tap_ensure (length(a), 7, @SCRIPTNAME, @SCRIPTLINE);
 
-		for (i = 0; i < 10; i++) delete a[i*i]; 
+		for (i = 0; i < 10; i++) delete a[i*i];
 		tap_ensure (length(a), 0, @SCRIPTNAME, @SCRIPTLINE);
 
 		delete a;

@@ -420,7 +420,7 @@ function do_cite(s, k,n,labels,t)
 function do_line( n,name,s)
 {
     s = protect_SGML_characters($0)
-    
+
     if (match(s,STRING_PATTERN)) # remember name from @String{name = "value"}
     {
 	name = substr(s,RSTART + STRING_OFFSET,RLENGTH - STRING_OFFSET)
@@ -520,7 +520,7 @@ function protect_SGML_characters(s)
     gsub(/</,"\\&lt;",s)
     gsub(/>/,"\\&gt;",s)
 
-    ## [24-May-2016] with the change from HTML 3.2 to 4.0, we can use &quot; again!	
+    ## [24-May-2016] with the change from HTML 3.2 to 4.0, we can use &quot; again!
     ## gsub(/\"/,"\\&#34;",s)	# this was &quot; in earlier HTML
 				# versions, including the HTML 3.2
 				# draft, but was stupidly eliminated in
