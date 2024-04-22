@@ -2854,6 +2854,7 @@ done:
 /* ------------------------------------------------------------ */
 
 /*
+BEGIN {
 	if (sys::getnwifcfg("eth0", sys::NWIFCFG_IN6, x) >= 0)
 	{
 	    for (i in x) print i, x[i];
@@ -2862,6 +2863,7 @@ done:
 	{
 	    print "Error:", sys::errmsg();
 	}
+}
 */
 static int fnc_getifcfg (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {

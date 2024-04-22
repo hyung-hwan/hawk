@@ -566,6 +566,8 @@ static int getoption_byid (hawk_rtx_t* rtx, uctx_list_t* list, hawk_int_t id, ha
 						if (map)
 						{
 							count = 1;
+							hawk_rtx_refupval (rtx, map);
+
 							uci_foreach_element(&uo->v.list, tmp)
 							{
 								const hawk_oocs_t* subsep;
@@ -577,13 +579,13 @@ static int getoption_byid (hawk_rtx_t* rtx, uctx_list_t* list, hawk_int_t id, ha
 								fld = hawk_rtx_makestrvalwithbcstr(rtx, tmp->name);
 								if (!fld)
 								{
-									hawk_rtx_refupval (rtx, map);
 									hawk_rtx_refdownval (rtx, map);
 									map = HAWK_NULL;
 									x = UCI_ERR_MEM;
 									break;
 								}
 
+								hawk_rtx_refupval (rtx, fld);
 								subsep = hawk_rtx_getsubsep(rtx);
 
 								k[0].ptr = HAWK_T("value");
@@ -599,9 +601,7 @@ static int getoption_byid (hawk_rtx_t* rtx, uctx_list_t* list, hawk_int_t id, ha
 								if (!kp || hawk_rtx_setmapvalfld(rtx, map, kp, kl, fld) == HAWK_NULL)
 								{
 									if (kp) hawk_rtx_freemem (rtx, kp);
-									hawk_rtx_refupval (rtx, fld);
 									hawk_rtx_refdownval (rtx, fld);
-									hawk_rtx_refupval (rtx, map);
 									hawk_rtx_refdownval (rtx, map);
 									map = HAWK_NULL;
 									x = UCI_ERR_MEM;
@@ -609,15 +609,17 @@ static int getoption_byid (hawk_rtx_t* rtx, uctx_list_t* list, hawk_int_t id, ha
 								}
 
 								hawk_rtx_freemem (rtx, kp);
+								hawk_rtx_refdownval (rtx, fld);
 								count++;
 							}
 
 							if (map)
 							{
-								if (hawk_rtx_setrefval(rtx, ref, map) <= -1)
+								int n;
+								n = hawk_rtx_setrefval(rtx, ref, map);
+								hawk_rtx_refdownval (rtx, map);
+								if (n <= -1)
 								{
-									hawk_rtx_refupval (rtx, map);
-									hawk_rtx_refdownval (rtx, map);
 									map = HAWK_NULL;
 									return -9999;
 								}

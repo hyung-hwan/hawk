@@ -64,7 +64,7 @@ BEGIN {
   for (i = 1; i < 10; i++) a[i] = i;
   a[11] = a;
   a[12] = a;
-  a = nil;
+  a = @nil;
   b[1] = a;
   c[1] = 0;
 } 
@@ -81,7 +81,7 @@ BEGIN {
    a[13] = "hello";
    j[3] = a;
    a[14] = j;
-   a = nil;
+   a = @nil;
    b[1] = a;
    c[1] = 0;
 }
@@ -98,7 +98,7 @@ BEGIN {
    a[13] = "hello";
    j[3] = a;
    a[14] = j;
-   a = nil;
+   a = @nil;
    b[1] = a;
    c[1] = 0;
 }
@@ -115,8 +115,8 @@ BEGIN {
    a[13] = "hello";
    j[3] = a;
    a[14] = j;
-   a = nil;
-   j = nil;
+   a = @nil;
+   j = @nil; hawk::gc();
    b[1] = a;
    c[1] = 0;
 }
@@ -1135,7 +1135,7 @@ retry:
 
 #if defined(HAWK_ENABLE_GC)
 	gc_chain_val (&rtx->gc.g[0], (hawk_val_t*)val);
-	val->v_gc = 1;
+	val->v_gc = 1; /* only array and map are to be garbaged collected as of now */
 	#if defined(DEBUG_GC)
 	hawk_logbfmt (hawk_rtx_gethawk(rtx), HAWK_LOG_STDERR, "[GC] MADE GCH %p VAL(ARR) %p\n", hawk_val_to_gch(val), val);
 	#endif
@@ -1242,7 +1242,7 @@ retry:
 
 #if defined(HAWK_ENABLE_GC)
 	gc_chain_val (&rtx->gc.g[0], (hawk_val_t*)val);
-	val->v_gc = 1;
+	val->v_gc = 1; /* only array and map are to be garbaged collected as of now */
 	#if defined(DEBUG_GC)
 	hawk_logbfmt (hawk_rtx_gethawk(rtx), HAWK_LOG_STDERR, "[GC] MADE GCH %p VAL(MAP) %p\n", hawk_val_to_gch(val), val);
 	#endif
@@ -1259,6 +1259,8 @@ hawk_val_t* hawk_rtx_makemapvalwithdata (hawk_rtx_t* rtx, hawk_val_map_data_t da
 
 	map = hawk_rtx_makemapval(rtx);
 	if (HAWK_UNLIKELY(!map)) return HAWK_NULL;
+
+	hawk_rtx_refupval (rtx, map);
 
 	for (i = 0; i < count; i++)
 	{
@@ -1325,11 +1327,13 @@ hawk_val_t* hawk_rtx_makemapvalwithdata (hawk_rtx_t* rtx, hawk_val_map_data_t da
 		if (tmp == HAWK_NULL || hawk_rtx_setmapvalfld(rtx, map, p->key.ptr, p->key.len, tmp) == HAWK_NULL)
 		{
 			if (tmp) hawk_rtx_freeval (rtx, tmp, HAWK_RTX_FREEVAL_CACHE);
-			hawk_rtx_freeval (rtx, map, HAWK_RTX_FREEVAL_CACHE);
+			hawk_rtx_refdownval (rtx, map);
 			return HAWK_NULL;
 		}
 	}
 
+
+	hawk_rtx_refdownval_nofree (rtx, map);
 	return map;
 }
 
