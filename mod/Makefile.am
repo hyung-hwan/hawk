@@ -37,6 +37,10 @@ if ENABLE_MOD_UCI
 noinst_LTLIBRARIES += libhawk-uci.la
 endif
 
+if ENABLE_MOD_MEMC
+noinst_LTLIBRARIES += libhawk-memc.la
+endif
+
 ##################################################
 else
 ##################################################
@@ -64,6 +68,10 @@ endif
 
 if ENABLE_MOD_UCI
 pkgmodexec_LTLIBRARIES += libhawk-uci.la
+endif
+
+if ENABLE_MOD_MEMC
+pkgmodexec_LTLIBRARIES += libhawk-memc.la
 endif
 
 ##################################################
@@ -104,4 +112,12 @@ libhawk_uci_la_CPPFLAGS = $(CPPFLAGS_COMMON)
 libhawk_uci_la_CFLAGS = $(CFLAGS_COMMON) 
 libhawk_uci_la_LDFLAGS = $(LDFLAGS_COMMON)
 libhawk_uci_la_LIBADD = $(LIBADD_COMMON) $(UCI_LIBS)
+endif
+
+if ENABLE_MOD_MEMC
+libhawk_memc_la_SOURCES = mod-memc.c mod-memc.h
+libhawk_memc_la_CPPFLAGS = $(CPPFLAGS_COMMON) $(MEMCACHED_CFLAGS)
+libhawk_memc_la_CFLAGS = $(CFLAGS_COMMON)
+libhawk_memc_la_LDFLAGS = $(LDFLAGS_COMMON) $(MEMCACHED_LDFLAGS)
+libhawk_memc_la_LIBADD = $(LIBADD_COMMON) $(MEMCACHED_LIBS)
 endif
