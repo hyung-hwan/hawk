@@ -1,7 +1,6 @@
 # Hawk
 
-	█░█ ▄▀█ █░█░█ █▄▀
-	█▀█ █▀█ ▀▄▀▄▀ █░█
+![Hawk](hawk.png)
 
 - [Hawk](#hawk)
 - [Building Hawk From Source Code](#building-hawk-from-source-code)
