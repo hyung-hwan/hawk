@@ -3,9 +3,166 @@
 	█░█ ▄▀█ █░█░█ █▄▀
 	█▀█ █▀█ ▀▄▀▄▀ █░█
 
- - [Language](#language)
- - [Modules](#modules)
- - [Embedding Guide](#embedding-guide)
+- [Embedding Hawk in C Applications](#embedding-in-c-app)
+- [Embedding Hawk in C++ Applications](#embedding-in-cxx-app)
+- [Language](#language)
+- [Modules](#modules)
+
+
+`Hawk` is a powerful and embeddable scripting engine inspired by the traditional awk programming language. While it maintains compatibility with awk, Hawk is designed to be seamlessly integrated into other applications, providing a versatile and efficient solution for various scripting and data manipulation tasks.
+
+As an embeddable interpreter, Hawk offers several advantages:
+
+- Highly Portable: Implemented in portable C, Hawk can be easily integrated into applications running on diverse platforms and architectures.
+- Efficient and Lightweight: With a focus on performance and minimalism, Hawk provides a lightweight yet capable scripting solution within larger applications.
+- Extensible Architecture: Hawk features an extensible architecture, allowing developers to create and integrate custom extensions tailored to specific application requirements.
+
+While mostly compatible with awk, Hawk introduces several enhancements and extensions, including:
+
+- Improved Variable Handling: Enhanced mechanisms for working with complex data structures and performing advanced data manipulation.
+- Additional Built-in Functions: A rich set of built-in functions that extend the capabilities of awk for string manipulation, array handling, and more.
+- External Modules: Hawk supports external modules that provide additional functionality and extensibility.
+
+Hawk's embeddable nature and extensible design make it a versatile choice for integrating scripting capabilities into a wide range of applications, from system utilities and tools to data processing pipelines and beyond.
+
+In the following sections, we'll explore Hawk's features in detail, covering its embeddable nature, awk compatibility, extensions, and usage examples to help you effectively integrate and leverage this powerful scripting engine within your applications.
+
+## Embedding Hawk in C Applications <div id="embedding-in-c-app"/>
+
+Here's an example of how Hawk can be embedded within a C application:
+
+```
+#include <hawk-std.h>
+#include <stdio.h>
+#include <string.h>
+
+static const hawk_bch_t* src =
+	"BEGIN {"
+	"   for (i=2;i<=9;i++)"
+	"   {"
+	"       for (j=1;j<=9;j++)"
+	"           print i \"*\" j \"=\" i * j;"
+	"       print \"---------------------\";"
+	"   }"
+	"}";
+
+int main ()
+{
+	hawk_t* hawk = HAWK_NULL;
+	hawk_rtx_t* rtx = HAWK_NULL;
+	hawk_val_t* retv;
+	hawk_parsestd_t psin[2];
+	int ret;
+
+	hawk = hawk_openstd(0, HAWK_NULL); /* create a hawk instance */
+	if (!hawk)
+	{
+		fprintf (stderr, "ERROR: cannot open hawk\n");
+		ret = -1; goto oops;
+	}
+
+	/* set up source script file to read in */
+	memset (&psin, 0, HAWK_SIZEOF(psin));
+	psin[0].type = HAWK_PARSESTD_BCS;  /* specify the first script path */
+	psin[0].u.bcs.ptr = (hawk_bch_t*)src;
+	psin[0].u.bcs.len = hawk_count_bcstr(src);
+	psin[1].type = HAWK_PARSESTD_NULL; /* indicate the no more script to read */
+
+	ret = hawk_parsestd(hawk, psin, HAWK_NULL); /* parse the script */
+	if (ret <= -1)
+	{
+		hawk_logbfmt (hawk, HAWK_LOG_STDERR, "ERROR(parse): %js\n", hawk_geterrmsg(hawk));
+		ret = -1; goto oops;
+	}
+
+	/* create a runtime context needed for execution */
+	rtx = hawk_rtx_openstd(
+		hawk,
+		0,
+		HAWK_T("hawk02"),
+		HAWK_NULL,  /* stdin */
+		HAWK_NULL,  /* stdout */
+		HAWK_NULL   /* default cmgr */
+	);
+	if (!rtx)
+	{
+		hawk_logbfmt (hawk, HAWK_LOG_STDERR, "ERROR(rtx_open): %js\n", hawk_geterrmsg(hawk));
+		ret = -1; goto oops;
+	}
+
+	/* execute the BEGIN/pattern-action/END blocks */
+	retv = hawk_rtx_loop(rtx); /* alternatively, hawk_rtx_exec(rtx, HAWK_NULL, 0) */
+	if (!retv)
+	{
+		hawk_logbfmt (hawk, HAWK_LOG_STDERR, "ERROR(rtx_loop): %js\n", hawk_geterrmsg(hawk));
+		ret = -1; goto oops;
+	}
+
+	/* lowered the reference count of the returned value */
+	hawk_rtx_refdownval (rtx, retv);
+	ret = 0;
+
+oops:
+	if (rtx) hawk_rtx_close (rtx); /* destroy the runtime context */
+	if (hawk) hawk_close (hawk); /* destroy the hawk instance */
+	return -1;
+}
+```
+
+Embedding Hawk within an application involves a few key steps:
+
+- Creating a Hawk Instance: The `hawk_openstd()` function is used to create a new instance of the Hawk interpreter, which serves as the entry point for interacting with Hawk from within the application.
+- Parsing Scripts: The application can provide Hawk scripts as string literals or read them from files using the `hawk_parsestd()` function. This associates the scripts with the Hawk instance for execution.
+- Creating a Runtime Context: A runtime context is created using `hawk_rtx_openstd()`, encapsulating the state and configuration required for script execution, such as input/output streams and other settings.
+- Executing the Script: The `hawk_rtx_loop()` or `hawk_rtx_exec()` functions are used to execute the Hawk script within the created runtime context, returning a value representing the result of the execution.
+- Handling the Result: The application can check the returned value for successful execution and handle any errors or results as needed.
+- Cleaning Up: Finally, the application cleans up by closing the runtime context and destroying the Hawk instance using `hawk_rtx_close()` and `hawk_close()`, respectively.
+
+By following this pattern, applications can seamlessly embed the Hawk interpreter, leveraging its scripting capabilities and data manipulation functionality while benefiting from its portability, efficiency, and extensibility.
+
+## Embedding Hawk in C++ Applications <div id="embedding-in-cxx-app"/>
+
+Hawk can also be embedded in C++ applications. Here's an example:
+
+```
+#include <Hawk.hpp>
+#include <stdio.h>
+
+int main ()
+{
+	HAWK::HawkStd hawk;
+
+	if (hawk.open() <= -1)
+	{
+		fprintf (stderr, "unable to open hawk - %s\n", hawk.getErrorMessageB());
+		return -1;
+	}
+
+	HAWK::HawkStd::SourceString s("BEGIN { print \"hello, world\"; }");
+	if (hawk.parse(s, HAWK::HawkStd::Source::NONE) == HAWK_NULL)
+	{
+		fprintf (stderr, "unable to parse - %s\n", hawk.getErrorMessageB());
+		hawk.close ();
+		return -1;
+	}
+
+	HAWK::Hawk::Value vr;
+	hawk.loop (&vr);  // alternatively, hawk.exec (&vr, HAWK_NULL, 0);
+
+	hawk.close ();
+	return 0;
+}
+```
+
+Embedding Hawk within a C++ application involves the following key steps:
+
+- Creating a Hawk Instance: Create a new instance of the Hawk interpreter using the `HAWK::HawkStd` class.
+- Parsing Scripts: Provide Hawk scripts as strings using the `HAWK::HawkStd::SourceString` class, and parse them using the `hawk.parse()` method.
+- Executing the Script: Use the `hawk.loop()` or `hawk.exec()` methods to execute the Hawk script, returning a value representing the result of the execution.
+- Handling the Result: Handle the returned value or any errors that occurred during execution.
+- Cleaning Up: Clean up by calling `hawk.close()` to destroy the Hawk instance.
+
+The C++ classes are inferior to the C equivalents in that they don't allow creation of multiple runtime contexts over a single hawk instance.
 
 ## Language
 
@@ -606,127 +763,3 @@ There are subtle differences in handling expressions for positional variables. I
 |--------------|---------------|-----------------|
 | `$++$++i`    | syntax error  | OK              |
 | `$(++$(++i))`| OK            | syntax error    |
-
-
-## Embedding Guide
-
-To use hawk in your program, do the followings:
-
-- create a hawk instance
-- parse a source script
-- create a runtime context
-- trigger execution on the runtime context
-- destroy the runtime context
-- destroy the hawk instance
-
-The following sample illustrates the basic steps highlighted above.
-
-```
-#include <hawk-std.h>
-#include <stdio.h>
-#include <string.h>
-
-static const hawk_bch_t* src =
-	"BEGIN {"
-	"   for (i=2;i<=9;i++)"
-	"   {"
-	"       for (j=1;j<=9;j++)"
-	"           print i \"*\" j \"=\" i * j;"
-	"       print \"---------------------\";"
-	"   }"
-	"}";
-
-int main ()
-{
-	hawk_t* hawk = HAWK_NULL;
-	hawk_rtx_t* rtx = HAWK_NULL;
-	hawk_val_t* retv;
-	hawk_parsestd_t psin[2];
-	int ret;
-
-	hawk = hawk_openstd(0, HAWK_NULL); /* create a hawk instance */
-	if (!hawk)  
-	{
-		fprintf (stderr, "ERROR: cannot open hawk\n");
-		ret = -1; goto oops;
-	}
-
-	/* set up source script file to read in */
-	memset (&psin, 0, HAWK_SIZEOF(psin));
-	psin[0].type = HAWK_PARSESTD_BCS;  /* specify the first script path */
-	psin[0].u.bcs.ptr = (hawk_bch_t*)src;
-	psin[0].u.bcs.len = hawk_count_bcstr(src);
-	psin[1].type = HAWK_PARSESTD_NULL; /* indicate the no more script to read */
-
-	ret = hawk_parsestd(hawk, psin, HAWK_NULL); /* parse the script */
-	if (ret <= -1)
-	{
-		hawk_logbfmt (hawk, HAWK_LOG_STDERR, "ERROR(parse): %js\n", hawk_geterrmsg(hawk));
-		ret = -1; goto oops;
-	}
-
-	/* create a runtime context needed for execution */
-	rtx = hawk_rtx_openstd(
-		hawk, 
-		0,
-		HAWK_T("hawk02"),
-		HAWK_NULL,  /* stdin */
-		HAWK_NULL,  /* stdout */
-		HAWK_NULL   /* default cmgr */
-	);
-	if (!rtx)
-	{
-		hawk_logbfmt (hawk, HAWK_LOG_STDERR, "ERROR(rtx_open): %js\n", hawk_geterrmsg(hawk));
-		ret = -1; goto oops;
-	}
-
-	/* execute the BEGIN/pattern-action/END blocks */
-	retv = hawk_rtx_loop(rtx); /* alternatively, hawk_rtx_exec(rtx, HAWK_NULL, 0) */
-	if (!retv)
-	{
-		hawk_logbfmt (hawk, HAWK_LOG_STDERR, "ERROR(rtx_loop): %js\n", hawk_geterrmsg(hawk));
-		ret = -1; goto oops;
-	}
-
-	/* lowered the reference count of the returned value */
-	hawk_rtx_refdownval (rtx, retv);
-	ret = 0;
-
-oops:
-	if (rtx) hawk_rtx_close (rtx); /* destroy the runtime context */
-	if (hawk) hawk_close (hawk); /* destroy the hawk instance */
-	return -1;
-}
-```
-
-If you prefer C++, you may use the Hawk/HawkStd wrapper classes to simplify the task. The C++ classes are inferior to the C equivalents in that they don't allow creation of multiple runtime contexts over a single hawk instance. Here is the sample code that prints "hello, world".
-
-```
-#include <Hawk.hpp>
-#include <stdio.h>
-
-int main ()
-{
-	HAWK::HawkStd hawk;
-
-	if (hawk.open() <= -1)
-	{
-		fprintf (stderr, "unable to open hawk - %s\n", hawk.getErrorMessageB());
-		return -1;
-	}
-
-	HAWK::HawkStd::SourceString s("BEGIN { print \"hello, world\"; }");
-	if (hawk.parse(s, HAWK::HawkStd::Source::NONE) == HAWK_NULL)
-	{
-		fprintf (stderr, "unable to parse - %s\n", hawk.getErrorMessageB());
-		hawk.close ();
-		return -1;
-	}
-
-	HAWK::Hawk::Value vr;
-	hawk.loop (&vr);  // alternatively, hawk.exec (&vr, HAWK_NULL, 0);
-
-	hawk.close ();
-	return 0;
-}
-```
