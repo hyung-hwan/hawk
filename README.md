@@ -14,7 +14,7 @@
 As an embeddable interpreter, Hawk offers several advantages:
 
 - Highly Portable: Implemented in portable C, Hawk can be easily integrated into applications running on diverse platforms and architectures.
-- Efficient and Lightweight: With a focus on performance and minimalism, Hawk provides a lightweight yet capable scripting solution within larger applications.
+- Efficient and Lightweight: Hawk provides a lightweight yet capable scripting solution within larger applications.
 - Extensible Architecture: Hawk features an extensible architecture, allowing developers to create and integrate custom extensions tailored to specific application requirements.
 
 While mostly compatible with awk, Hawk introduces several enhancements and extensions, including:
@@ -178,43 +178,104 @@ At its core, `Hawk` largely supports all the fundamental features of `AWK`, ensu
 
 With these foundational features, Hawk ensures compatibility with existing AWK scripts and enables you to utilize the vast range of AWK resources available.
 
+### Pragmas
 
-### Entry Point
+The `@prama` keyword allows you to change the Hawk's behaviors. A pragma item of the file scope can be placed in any source files. A pragma item of the global scope can appear only once thoughout the all source files.
 
-The typical execution begins with the `BEGIN` block, proceeds through pattern-action blocks, and concludes with the `END` block. If you would like to use a function as the entry point, you can specify a function name using `@pragma entry`.
+| Name          | Scope  | Values        | Default | Description                                            |
+|---------------|--------|---------------|---------|--------------------------------------------------------|
+| entry         | global | function name |         | change the program entry point                         |
+| implicit      | file   | on, off       | on      | allow undeclared variables                             |
+| multilinestr  | file   | on, off       | off     | allow a multiline string literal without continuation  |
+| striprecspc   | global | on, off       | off     | removes empty fields in splitting a record if FS is a regular expression mathcing all spaces |
+| stripstrspc   | global | on, off       | on      | trim leading and trailing spaces when convering a string to a number |
+| numstrdetect  | global | on, off       | on      | trim leading and trailing spaces when convering a string to a number |
+| stack_limit   | global | number        | 5120    | specify the runtime stack size measured in the number of values |
 
-```
+#### entry
+
+In addition to the standard `BEGIN` and `END` blocks found in awk, Hawk introduces the `@pragma entry` feature, which allows you to specify a custom entry point function. This can be useful when you want to bypass the default `BEGIN` block behavior and instead start executing your script from a specific function.
+
+The `@pragma entry` pragma is used to define the entry point function, like this:
+
+```awk
 @pragma entry main
+function main () { print "hello, world"; }
+```
 
-function main ()
-{
-	print "hello, world";
+In this example, the `main` function is set as the entry point for script execution. When the script is run, Hawk will execute the code inside the main function instead of the `BEGIN` block.
+
+You can also pass arguments to the entry point function by defining it with parameters:
+
+```awk
+@pragma entry main
+function main(arg1, arg2) {
+    print "Arguments:", arg1, arg2
 }
 ```
 
-### Pragmas
+In this example, let's assume the script is saved as `script.awk`. The `main` function is set as the entry point for script execution, and it accepts two arguments, `arg1` and `arg2`. Then, when executing the `script.awk` script, you can provide the arguments like this:
 
-Besides the `entry` pragma, there are other prgrmas available.
- 
-A pragma item of the file scope can be placed in any source files.
-A pragma item of the global scope can appear only once thoughout the all source files.
-
-| Name          | Scope  | Values        | Description                                            |
-|---------------|--------|---------------|--------------------------------------------------------|
-| implicit      | file   | on, off       | allow undeclared variables                             |
-| multilinestr  | file   | on, off       | allow a multiline string literal without continuation  |
-| entry         | global | function name | change the program entry point                         |
-| striprecspc   | global | on, off       | trim leading and trailing spaces when convering a string to a number |
-
-
+```sh
+$ hawk script.awk arg1_value arg2_value
 ```
+
+This will cause Hawk to execute the code inside the main function, passing `arg1_value` and `arg2_value` as the respective values for `arg1` and `arg2`.
+
+#### implicit
+
+Hawk also introduces the `@pragma implicit` feature, which allows you to enforce variable declarations. Unlike traditional awk, where local variable declarations are not necessary, Hawk can require you to declare variables before using them. This is controlled by the `@pragma implicit` pragma:
+
+```awk
 @pragma implicit off
-BEGIN {	a = 10; } ## syntax error - undefined identifier 'a'
+BEGIN {
+    a = 10; ## syntax error - undefined identifier 'a'
+}
+```
+
+In the example above, the `@pragma implicit off` directive is used to turn off implicit variable declaration. As a result, attempting to use the undeclared variable a will result in a syntax error.
+
+```awk
+@pragma implicit off
+BEGIN {
+    @local a;
+    a = 10; ## syntax ok - 'a' is declared before use
+}
+```
+With the `@local` declaration, the variable `a` is explicitly declared, allowing it to be used without triggering a syntax error.
+This feature can be beneficial for catching potential variable misspellings or unintended uses of global variables, promoting better code quality and maintainability.
+
+If you don't want to enforce variable declarations, you can simply omit the `@pragma implicit off` directive or specify `@pragma implicit on`, and Hawk will behave like traditional awk, allowing implicit variable declarations.
+
+#### sriprecspc
+```
+$ echo '  a  b  c  d  ' | hawk '@pragma striprecspc on
+BEGIN { FS="[[:space:]]+"; }
+{
+    print "NF=" NF;
+    for (i = 0; i < NF; i++) print i " [" $(i+1) "]";
+}'
+NF=4
+0 [a]
+1 [b]
+2 [c]
+3 [d]
 ```
 
 ```
-@pragma implicit off
-BEGIN {	@local a; a = 10; } # syntax ok - a is declared before use.
+echo '  a  b  c  d  ' | hawk '@pragma striprecspc off
+BEGIN { FS="[[:space:]]+"; }
+{
+    print "NF=" NF;
+    for (i = 0; i < NF; i++) print i " [" $(i+1) "]";
+}'
+NF=6
+0 []
+1 [a]
+2 [b]
+3 [c]
+4 [d]
+5 []
 ```
 
 ### @include and @include_once
