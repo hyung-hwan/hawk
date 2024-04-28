@@ -1261,8 +1261,8 @@ enum hawk_trait_t
 	HAWK_NEWLINE = (1 << 5),
 
 	/** 
-	 * removes empty fields when splitting a record if FS is a regular
-	 * expression and the match is all spaces.
+	 * removes leading and trailing blank fields when splitting a record if FS
+	 * is a regular expression and the match is all spaces.
 	 *
 	 * \code
 	 * BEGIN { FS="[[:space:]]+"; } 
