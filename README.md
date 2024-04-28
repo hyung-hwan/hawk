@@ -19,6 +19,10 @@
 		- [Map](#map)
 		- [Array](#array)
 		- [Multidimensional Map/Array](#multidimensional-maparray)
+	- [Operators](#operators)
+	- [Control Strucutres](#control-strucutres)
+	- [Function](#function)
+	- [Pipes](#pipes)
 	- [Garbage Collection](#garbage-collection)
 	- [Modules](#modules)
 		- [Hawk](#hawk-1)
@@ -593,6 +597,203 @@ BEGIN {
         for (j in k)
                 for (i in x) print j, i, x[i];
 }
+```
+
+## Operators
+
+- ===, ==, !==, !=
+- +, -, *, %
+- &&, ||, &, |
+
+## Control Strucutres
+
+Hawk supports various control structures for flow control and iteration, similar to those found in awk.
+
+The `if` statement in Hawk follows the same syntax as in awk and other programming languages. It allows you to execute a block of code conditionally based on a specified condition.
+
+```awk
+if (condition) {
+	## statements
+} else if (another_condition) {
+	## other statements
+} else {
+	## default statements
+}
+```
+
+The `while` loop in Hawk is used to repeatedly execute a block of code as long as a specific condition is true.
+```awk
+while (condition) {
+	# statements
+}
+```
+
+The `do`-`while` loop is similar to the `while` loop, but it guarantees that the code block will be executed at least once, as the condition is evaluated after the first iteration.
+```awk
+do {
+	# statements
+} while (condition)
+```
+
+The `for` loop in Hawk follows the same syntax as in awk and allows you to iterate over a range of values or an array.
+```awk
+for (initialization; condition; increment/decrement) {
+	## statements
+}
+```
+You can also use the for loop to iterate over the elements of an array:
+```awk
+for (index in array) {
+	## statements using array[index]
+}
+```
+
+Hawk also supports the `break` and `continue` statements, which work the same way as in awk and other programming languages. The `break` statement is used to exit a loop prematurely, while `continue` skips the remaining statements in the current iteration and moves to the next iteration.
+
+Here are some examples demonstrating the usage of control structures in Hawk.
+
+1. Check if a number is even or odd
+```awk
+{
+	if ($1 % 2 == 0) {
+		print $1, "is an even number"
+	} else {
+		print $1, "is an odd number"
+	}
+}
+```
+
+2. Print the first 10 even numbers
+```awk
+BEGIN {
+	i = 0
+	n = 1
+	while (i < 10) {
+		if (n % 2 == 0) {
+			print n
+			i++
+		}
+		n++
+	}
+}
+```
+
+3. Prompt the user for a positive number
+```awk
+BEGIN {
+	do {
+		printf "Enter a positive number: "
+		getline num
+	} while (num <= 0)
+	print "You entered:", num
+}
+```
+
+4. Print the multiplication table
+```awk
+BEGIN {
+	for (i = 1; i <= 10; i++) {
+		for (j = 1; j <= 10; j++) {
+			printf "%4d", i * j
+		}
+		printf "\n"
+	}
+}
+```
+
+5. Print only the even numbers from 1 to 16
+```awk
+BEGIN {
+	for (i = 1; i <= 20; i++) {
+		if (i % 2 != 0) {
+			continue
+		}
+		print i
+		if (i >= 16) {
+			break
+		}
+	}
+}
+```
+
+6. Count the frequency of words in a file
+```awk
+{
+	n = split($0, words, /[^[:alnum:]_]+/)
+	for (i = 1; i <= n; i++) {
+		freq[words[i]]++
+	}
+}
+
+END {
+	for (w in freq) {
+		printf "%s: %d\n", w, freq[w]
+	}
+}
+```
+
+The syntax and behavior of these structures are largely consistent with awk, making it easy for awk users to transition to Hawk and leverage their existing knowledge.
+
+## Function
+
+Hawk supports user-defined functions, which are a powerful feature for modularizing and reusing code. The syntax and behavior of functions in Hawk are largely similar to those in awk, making it easy for awk users to leverage their existing knowledge of functions when working with Hawk. By using functions, you can break down your code into modular, reusable components, promoting code organization and maintainability.
+
+To define a function in Hawk, you use the function keyword followed by the function name and a set of parentheses to enclose the optional function parameters:
+
+```awk
+function function_name(parameter1, parameter2, ...) {
+	## function body
+	## statements
+	return value
+}
+```
+
+Functions in Hawk can accept parameters, perform operations, and optionally return a value using the `return` statement.
+
+Here's an example of a function that calculates the factorial of 10:
+
+```awk
+function factorial(n) {
+	if (n <= 1) {
+		return 1
+	} else {
+		return n * factorial(n - 1)
+	}
+}
+
+BEGIN {
+	num = 10
+	result = factorial(num)
+	print "The factorial of", num, "is", result
+}
+```
+
+If no `return` statement is encountered, the function returns `@nil`, which is Hawk's equivalent of `nil` or `null` in other programming languages.
+
+```awk
+function a() { k=999; }
+BEGIN { k=a(); print k===@nil, k === "", k == ""; }
+```
+
+The expected output of the above example code is `1 0 1`.
+- `k === @nil`: This expression evaluates to 1 (true) because `k` is indeed equal to `@nil` when using the type-precise `===` operator.
+- `k === ""`: This expression evaluates to 0 (false) because `k` is not equal to an empty string when using the type-precise `===` operator.
+- `k == ""`: This expression evaluates to 1 (true) because `@nil` is considered equal to an empty string when using the double equal sign `==` operator.
+
+Functions in Hawk can be called from various contexts, including `BEGIN`, pattern-action blocks, and `END` blocks, as well as from other functions. They can be defined before or after they are used, as Hawk resolves function references.
+
+## Pipes
+
+```awk
+BEGIN {
+	while (("ls -laF" | getline x) > 0) print "\t", x;
+	close ("ls -laF");
+}
+```
+
+```awk
+{ print $0 | "cat" }
+END { close("cat"); print "ENDED"; }
 ```
 
 ## Garbage Collection
