@@ -40,6 +40,9 @@
 	/* implement this */
 
 #else
+#	if !defined(_GNU_SOURCE)
+#		define _GNU_SOURCE
+#	endif
 #	include "syscall.h"
 #	if defined(AIX) && defined(__GNUC__)
 		typedef int crid_t;

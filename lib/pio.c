@@ -37,6 +37,9 @@
 #	include <io.h>
 #	include <errno.h>
 #else
+#	if !defined(_GNU_SOURCE)
+#		define _GNU_SOURCE
+#	endif
 #	include "syscall.h"
 #	if defined(HAVE_SPAWN_H)
 #		include <spawn.h>

@@ -23,6 +23,8 @@
  */
 
 #if 1
+
+#define _GNU_SOURCE
 #include "hawk-prv.h"
 #include "skad-prv.h"
 #include <hawk-sio.h>
@@ -50,6 +52,9 @@
 #elif defined(__DOS__)
 	/* TODO: */
 #else
+#	if !defined(_GNU_SOURCE)
+#		define _GNU_SOURCE
+#	endif
 #	include "syscall.h"
 #	include <sys/socket.h>
 #	include <netinet/in.h>
@@ -639,7 +644,7 @@ static int get_ifcfg (hawk_gem_t* gem, int s, hawk_ifcfg_t* cfg, struct ifreq* i
 		return -1;
 	}
 
-	#if defined(HAVE_STRUCT_IFREQ_IFR_IFINDEX)
+	#if defined(HAVE_STRUCT_IFREQ_IFR_IFINDEX) || defined(ifr_ifindex)
 	cfg->index = ifr->ifr_ifindex;
 	#else
 	cfg->index = ifr->ifr_index;

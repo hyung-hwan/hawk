@@ -31,6 +31,13 @@
 #include <hawk-xma.h>
 #include <hawk-glob.h>
 
+#if !defined(_GNU_SOURCE)
+#	define _GNU_SOURCE
+#endif
+#if !defined(_XOPEN_SOURCE)
+#	define _XOPEN_SOURCE 700
+#endif
+
 #include <stdio.h>
 #include <string.h>
 #include <signal.h>
@@ -38,7 +45,7 @@
 #include <stdlib.h>
 #include <locale.h>
 
-// #define ENABLE_CALLBACK  TODO: enable this back
+/* #define ENABLE_CALLBACK  TODO: enable this back */
 #define ABORT(label) goto label
 
 #if defined(_WIN32)
@@ -436,7 +443,7 @@ static void dprint_return (hawk_rtx_t* rtx, hawk_val_t* ret)
 	}
 	else
 	{
-		str = hawk_rtx_valtooocstrdup (rtx, ret, &len);
+		str = hawk_rtx_valtooocstrdup(rtx, ret, &len);
 		if (str == HAWK_NULL)
 		{
 			hawk_logfmt (hawk, HAWK_LOG_STDERR,HAWK_T("[RETURN] - ***OUT OF MEMORY***\n"));

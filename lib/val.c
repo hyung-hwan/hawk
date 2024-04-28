@@ -26,11 +26,35 @@
 
 #define CHUNKSIZE HAWK_VAL_CHUNK_SIZE
 
-static hawk_val_nil_t hawk_nil = { HAWK_VAL_NIL, 0, 1, 0, 0 };
+/* this isn't necessary as the implemenation is context(rtx)-centric
+ * leave it here for experiment.
+#define USE_ATOMIC_REFCNT */
+
+static hawk_val_nil_t hawk_nil = {
+	HAWK_SFN(v_refs)   0,
+	HAWK_SFN(v_type)   HAWK_VAL_NIL,
+	HAWK_SFN(v_static) 1,
+	HAWK_SFN(v_nstr)   0,
+	HAWK_SFN(v_gc)     0
+};
 /* zero-length string */
-static hawk_val_str_t hawk_zls = { HAWK_VAL_STR, 0, 1, 0, 0, { HAWK_T(""), 0 } };
+static hawk_val_str_t hawk_zls = {
+	HAWK_SFN(v_refs)   0,
+	HAWK_SFN(v_type)   HAWK_VAL_STR,
+	HAWK_SFN(v_static) 1,
+	HAWK_SFN(v_nstr)   0,
+	HAWK_SFN(v_gc)     0,
+	HAWK_SFN(val)      { HAWK_T(""), 0 }
+};
 /* zero-length byte string */
-static hawk_val_mbs_t hawk_zlbs = { HAWK_VAL_MBS, 0, 1, 0, 0, { HAWK_BT(""), 0 } };
+static hawk_val_mbs_t hawk_zlbs = {
+	HAWK_SFN(v_refs)   0,
+	HAWK_SFN(v_type)   HAWK_VAL_MBS,
+	HAWK_SFN(v_static) 1,
+	HAWK_SFN(v_nstr)   0,
+	HAWK_SFN(v_gc)     0,
+	HAWK_SFN(val)      { HAWK_BT(""), 0 }
+};
 
 hawk_val_t* hawk_val_nil = (hawk_val_t*)&hawk_nil;
 hawk_val_t* hawk_val_zls = (hawk_val_t*)&hawk_zls; 
@@ -1635,7 +1659,12 @@ void hawk_rtx_refupval (hawk_rtx_t* rtx, hawk_val_t* val)
 	#if defined(DEBUG_VAL)
 		hawk_logfmt (hawk_rtx_gethawk(rtx), HAWK_LOG_STDERR, HAWK_T("ref up [ptr=%p] [count=%d] - [%O]\n"), val, (int)val->v_refs, val);
 	#endif
+
+	#if defined(USE_ATOMIC_REFCNT) && __has_builtin(__atomic_fetch_add)
+		__atomic_fetch_add(&val->v_refs, 1, __ATOMIC_RELAXED);
+	#else
 		val->v_refs++;
+	#endif
 	}
 }
 
@@ -1652,11 +1681,18 @@ void hawk_rtx_refdownval (hawk_rtx_t* rtx, hawk_val_t* val)
 		/* the reference count of a value should be greater than zero for it to be decremented. check the source code for any bugs */
 		HAWK_ASSERT (val->v_refs > 0);
 
+	#if defined(USE_ATOMIC_REFCNT) && __has_builtin(__atomic_fetch_sub)
+		if (__atomic_fetch_sub(&val->v_refs, 1, __ATOMIC_RELAXED) == 1)
+		{
+			hawk_rtx_freeval (rtx, val, HAWK_RTX_FREEVAL_CACHE);
+		}
+	#else
 		val->v_refs--;
 		if (val->v_refs <= 0) 
 		{
 			hawk_rtx_freeval (rtx, val, HAWK_RTX_FREEVAL_CACHE);
 		}
+	#endif
 	}
 }
 
@@ -1669,7 +1705,11 @@ void hawk_rtx_refdownval_nofree (hawk_rtx_t* rtx, hawk_val_t* val)
 		/* the reference count of a value should be greater than zero for it to be decremented. check the source code for any bugs */
 		HAWK_ASSERT (val->v_refs > 0);
 
+	#if defined(USE_ATOMIC_REFCNT) && __has_builtin(__atomic_fetch_sub)
+		__atomic_fetch_sub(&val->v_refs, 1, __ATOMIC_RELAXED);
+	#else
 		val->v_refs--;
+	#endif
 	}
 }
 

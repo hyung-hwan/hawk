@@ -122,6 +122,10 @@
 #	define HAWK_UNUSED
 #endif
 
+#if !defined(__has_builtin)
+#	define __has_builtin(v) 0
+#endif
+
 /* =========================================================================
  * STATIC ASSERTION
  * =========================================================================*/
@@ -729,8 +733,16 @@ struct hawk_ntime_t
  * The HAWK_ALIGNOF() macro returns the alignment size of a structure.
  * Note that this macro may not work reliably depending on the type given.
  */
-#define HAWK_ALIGNOF(type) HAWK_OFFSETOF(struct { hawk_uint8_t d1; type d2; }, d2)
-        /*(sizeof(struct { hawk_uint8_t d1; type d2; }) - sizeof(type))*/
+#if defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 202311L) /* C23 */
+#define HAWK_ALIGNOF(type) alignof(type)
+#elif defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 201112L) /* C11 */
+#define HAWK_ALIGNOF(type) _Alignof(type)
+#elif defined(__cplusplus) && (__cplusplus >= 201103L) /* C++11 */
+#define HAWK_ALIGNOF(type) alignof(type)
+#else
+#define HAWK_ALIGNOF(type) HAWK_OFFSETOF(struct { hcl_uint8_t d1; type d2; }, d2)
+        /*(sizeof(struct { hcl_uint8_t d1; type d2; }) - sizeof(type))*/
+#endif
 
 #if defined(__cplusplus)
 #	if (__cplusplus >= 201103L) /* C++11 */
@@ -1221,6 +1233,16 @@ typedef enum hawk_log_mask_t hawk_log_mask_t;
 
 #define HAWK_IS_UNALIGNED_POW2(x,y) ((x) & ((y) - 1))
 #define HAWK_IS_ALIGNED_POW2(x,y) (!HAWK_IS_UNALIGNED_POW2(x,y))
+
+#if defined(__cplusplus) || (defined(__STDC_VERSION__) && (__STDC_VERSION__>=199901L))
+/* array index */
+#define HAWK_AID(x) [x]=
+/* struct field name */
+#define HAWK_SFN(x) .x=
+#else
+#define HAWK_AID(x)
+#define HAWK_SFN(x)
+#endif
 
 /* =========================================================================
  * COMPILER FEATURE TEST MACROS

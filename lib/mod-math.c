@@ -25,6 +25,9 @@
 #include "mod-math.h"
 #include "hawk-prv.h"
 
+#if !defined(_GNU_SOURCE)
+#	define _GNU_SOURCE
+#endif
 #include <stdlib.h>
 #include <sys/time.h>
 #include <math.h>

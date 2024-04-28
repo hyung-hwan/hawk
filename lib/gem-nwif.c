@@ -31,6 +31,9 @@
 #elif defined(__DOS__)
 	/* TODO: */
 #else
+#	if !defined(_GNU_SOURCE)
+#		define _GNU_SOURCE
+#	endif
 #	include "syscall.h"
 #	include <sys/socket.h>
 #	if defined(HAVE_SYS_IOCTL_H)
@@ -152,7 +155,7 @@ int hawk_gem_bcstrtoifindex (hawk_gem_t* gem, const hawk_bch_t* ptr, unsigned in
 
 	if (x >= 0)
 	{
-	#if defined(HAVE_STRUCT_IFREQ_IFR_IFINDEX)
+	#if defined(HAVE_STRUCT_IFREQ_IFR_IFINDEX) || defined(ifr_ifindex)
 		*index = ifr.ifr_ifindex;
 	#else
 		*index = ifr.ifr_index;
@@ -242,7 +245,7 @@ int hawk_gem_bcharstoifindex (hawk_gem_t* gem, const hawk_bch_t* ptr, hawk_oow_t
 
 	if (x >= 0)
 	{
-	#if defined(HAVE_STRUCT_IFREQ_IFR_IFINDEX)
+	#if defined(HAVE_STRUCT_IFREQ_IFR_IFINDEX) || defined(ifr_ifindex)
 		*index = ifr.ifr_ifindex;
 	#else
 		*index = ifr.ifr_index;
@@ -326,7 +329,7 @@ int hawk_gem_ucstrtoifindex (hawk_gem_t* gem, const hawk_uch_t* ptr, unsigned in
 
 	if (x >= 0)
 	{
-	#if defined(HAVE_STRUCT_IFREQ_IFR_IFINDEX)
+	#if defined(HAVE_STRUCT_IFREQ_IFR_IFINDEX) || defined(ifr_ifindex)
 		*index = ifr.ifr_ifindex;
 	#else
 		*index = ifr.ifr_index;
@@ -419,7 +422,7 @@ int hawk_gem_ucharstoifindex (hawk_gem_t* gem, const hawk_uch_t* ptr, hawk_oow_t
 
 	if (x >= 0)
 	{
-	#if defined(HAVE_STRUCT_IFREQ_IFR_IFINDEX)
+	#if defined(HAVE_STRUCT_IFREQ_IFR_IFINDEX) || defined(ifr_ifindex)
 		*index = ifr.ifr_ifindex;
 	#else
 		*index = ifr.ifr_index;
@@ -506,7 +509,7 @@ int hawk_gem_ifindextobcstr (hawk_gem_t* gem, unsigned int index, hawk_bch_t* bu
 	}
 
 	HAWK_MEMSET (&ifr, 0, HAWK_SIZEOF(ifr));
-	#if defined(HAVE_STRUCT_IFREQ_IFR_IFINDEX)
+	#if defined(HAVE_STRUCT_IFREQ_IFR_IFINDEX) || defined(ifr_ifindex)
 	ifr.ifr_ifindex = index;
 	#else
 	ifr.ifr_index = index;
@@ -587,7 +590,7 @@ int hawk_gem_ifindextoucstr (hawk_gem_t* gem, unsigned int index, hawk_uch_t* bu
 	}
 
 	HAWK_MEMSET (&ifr, 0, HAWK_SIZEOF(ifr));
-	#if defined(HAVE_STRUCT_IFREQ_IFR_IFINDEX)
+	#if defined(HAVE_STRUCT_IFREQ_IFR_IFINDEX) || defined(ifr_ifindex)
 	ifr.ifr_ifindex = index;
 	#else
 	ifr.ifr_index = index;

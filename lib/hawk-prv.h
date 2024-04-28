@@ -598,11 +598,10 @@ static HAWK_INLINE void HAWK_RTX_STACK_POP (hawk_rtx_t* rtx)
 #define HAWK_RTX_STACK_POP(rtx) ((rtx)->stack_top--)
 #endif
 
-
 #define HAWK_RTX_INIT_REF_VAL(refval, _id, _adr, _nrefs) \
 	do { \
-		(refval)->v_type = HAWK_VAL_REF; \
 		(refval)->v_refs = (_nrefs); \
+		(refval)->v_type = HAWK_VAL_REF; \
 		(refval)->v_static = 0; \
 		(refval)->v_nstr = 0; \
 		(refval)->v_gc = 0; \

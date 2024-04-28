@@ -31,6 +31,13 @@
 #include <hawk-utl.h>
 #include <hawk-std.h>
 
+#if !defined(_GNU_SOURCE)
+#	define _GNU_SOURCE
+#endif
+#if !defined(_XOPEN_SOURCE)
+#	define _XOPEN_SOURCE 700
+#endif
+
 #include <locale.h>
 #include <stdio.h>
 #include <string.h>

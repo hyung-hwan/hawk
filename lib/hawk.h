@@ -157,26 +157,40 @@ static HAWK_INLINE hawk_gch_t* hawk_val_to_gch(hawk_val_t* v)
 /**
  * The #HAWK_VAL_HDR defines the common header for a value.
  * Three common fields are:
- * - v_type - type of a value from #hawk_val_type_t
  * - v_refs - reference count
+ * - v_type - type of a value from #hawk_val_type_t
  * - v_static - static value indicator
  * - v_nstr - numeric string marker, 1 -> integer, 2 -> floating-point number
  * - v_gc - used for garbage collection together with v_refs
+ *
+ *  [IMPORTANT]
+ *   if you change the order of these fields, you must ensure that statically
+ *   defined values follow this order strictly. for example, hawk_nil, hawk_zls,
+ *   hawk_zlbs are defined statically in val.c
  */
 /*
 #define HAWK_VAL_HDR \
-	unsigned int v_type: 4; \
 	unsigned int v_refs: 24; \
+	unsigned int v_type: 4; \
 	unsigned int v_static: 1; \
 	unsigned int v_nstr: 2; \
 	unsigned int v_gc: 1
-*/
+
 #define HAWK_VAL_HDR \
-	hawk_uintptr_t v_type: 4; \
 	hawk_uintptr_t v_refs: ((HAWK_SIZEOF_UINTPTR_T * 8) - 8); \
+	hawk_uintptr_t v_type: 4; \
 	hawk_uintptr_t v_static: 1; \
 	hawk_uintptr_t v_nstr: 2; \
 	hawk_uintptr_t v_gc: 1
+*/
+
+/* regardless of architecture, use 4-byte reference count */
+#define HAWK_VAL_HDR \
+	hawk_uint32_t v_refs; \
+	hawk_uint8_t v_type: 4; \
+	hawk_uint8_t v_static: 1; \
+	hawk_uint8_t v_nstr: 2; \
+	hawk_uint8_t v_gc: 1
 
 /**
  * The hawk_val_t type is an abstract value type. A value commonly contains:

@@ -39,6 +39,9 @@
 #	include <dos.h>
 #	include <time.h>
 #else
+#	if !defined(_GNU_SOURCE)
+#		define _GNU_SOURCE
+#	endif
 #	include "syscall.h"
 #	if defined(HAVE_SYS_TIME_H)
 #		include <sys/time.h>
