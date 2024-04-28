@@ -4,6 +4,7 @@
 	█▀█ █▀█ ▀▄▀▄▀ █░█
 
 - [Hawk](#hawk)
+- [Building Hawk From Source Code](#building-hawk-from-source-code)
 - [Embedding Hawk in C Applications](#embedding-hawk-in-c-applications)
 - [Embedding Hawk in C++ Applications](#embedding-hawk-in-c-applications-1)
 - [Language](#language)
@@ -15,7 +16,11 @@
 	- [Comments](#comments)
 	- [Reserved Words](#reserved-words)
 	- [Values](#values)
-	- [Numbers](#numbers)
+		- [Numbers](#numbers)
+		- [Map](#map)
+		- [Array](#array)
+		- [Multidimensional Map/Array](#multidimensional-maparray)
+	- [Garbage Collection](#garbage-collection)
 	- [Modules](#modules)
 		- [Hawk](#hawk-1)
 		- [String](#string)
@@ -45,6 +50,16 @@ Hawk's embeddable nature and extensible design make it a versatile choice for in
 
 In the following sections, we'll explore Hawk's features in detail, covering its embeddable nature, awk compatibility, extensions, and usage examples to help you effectively integrate and leverage this powerful scripting engine within your applications.
 
+# Building Hawk From Source Code
+
+Hawk uses `autoconf` and `automake` for building. Run the following commands to configure and compile Hawk:
+
+```sh
+$ ./configure ## This step offers various build options
+$ make
+$ make install
+```
+
 # Embedding Hawk in C Applications
 
 Here's an example of how Hawk can be embedded within a C application:
@@ -55,7 +70,7 @@ Here's an example of how Hawk can be embedded within a C application:
 #include <string.h>
 
 static const hawk_bch_t* src =
-	"BEGIN {"
+	"BEGIN { print ARGV[0]"
 	"   for (i=2;i<=9;i++)"
 	"   {"
 	"       for (j=1;j<=9;j++)"
@@ -97,7 +112,7 @@ int main ()
 	rtx = hawk_rtx_openstd(
 		hawk,
 		0,
-		HAWK_T("hawk02"),
+		HAWK_T("hawk02"), /* ARGV[0] */
 		HAWK_NULL,  /* stdin */
 		HAWK_NULL,  /* stdout */
 		HAWK_NULL   /* default cmgr */
@@ -137,6 +152,14 @@ Embedding Hawk within an application involves a few key steps:
 - Cleaning Up: Finally, the application cleans up by closing the runtime context and destroying the Hawk instance using `hawk_rtx_close()` and `hawk_close()`, respectively.
 
 By following this pattern, applications can seamlessly embed the Hawk interpreter, leveraging its scripting capabilities and data manipulation functionality while benefiting from its portability, efficiency, and extensibility.
+
+Assuming the above sample code is stored in `hawk02.c` and the built Hawk library has been installed properly, you may compile the sample code by running the following commands:
+
+```sh
+$ gcc -Wall -O2 -o hawk02 hawk02.c -lhawk
+```
+
+The acutal command may vary depending on the compiler used and the library configure opoptions used.
 
 # Embedding Hawk in C++ Applications
 
@@ -450,6 +473,7 @@ However, these words can be used as normal names in the context of a module call
 ## Values
 
 - unitialized value
+- character
 - integer
 - floating-point number
 - string
@@ -458,10 +482,11 @@ However, these words can be used as normal names in the context of a module call
 - map - conventional AWK array
 - function
 - regular expression
+- reference to a value
 
-To know the current type of a value, call `hawk::typename()`.
+To know the current type name of a value, call `hawk::typename()`.
 
-```
+```awk
 function f() { return 10; }
 BEGIN { 
 	a="hello";
@@ -470,15 +495,28 @@ BEGIN {
 }
 ```
 
+`hawk::type()` returns a numeric type code:
+- hawk::VAL_ARRAY
+- hawk::VAL_BCHAR
+- hawk::VAL_CHAR
+- hawk::VAL_FLT
+- hawk::VAL_INT
+- hawk::VAL_MAP
+- hawk::VAL_MBS
+- hawk::VAL_NIL
+- hawk::VAL_STR
+- hawk::VAL_REF
+- hawk::VAL_REX
+
 A regular expression literal is special in that it never appears as an indendent value and still entails a match operation against $0 without an match operator.	
 
-```
+```awk
 BEGIN { $0="ab"; print /ab/, hawk::typename(/ab/); }
 ```
 
 For this reason, there is no way to get the type name of a regular expressin literal.
 
-## Numbers
+### Numbers
 
 An integer begins with a numeric digit between 0 and 9 inclusive and can be
 followed by more numeric digits. If an integer is immediately followed by a
@@ -512,6 +550,56 @@ and represents the value of 0.
 - `0x` # 0x0 but not desirable.
 - `0b` # 0b0 but not desirable.
 
+
+### Map
+
+```awk
+BEGIN {
+	@local x, i;
+	x = hawk::map(); ## you can omit this line
+	x["one"] = 1;
+	x["two"] = 2;
+	x[199] = 3;
+	for (i in x) print i, x[i];
+}
+```
+
+
+### Array
+
+```awk
+BEGIN {
+	@local x, i
+	x = hawk::array()
+	for (i = 0; i < 20; i++) x[i] = i;
+	print hawk::isarray(x), hawk::ismap(x)
+	print "--------------";
+	for (i in x) print i, x[i];
+}
+```
+
+### Multidimensional Map/Array
+
+```awk
+BEGIN {
+        @local x, i, j, k;
+        k = hawk::array();
+
+        x = hawk::array();
+        k[0] = x;
+        k[1] = x;
+
+        for (i = 0; i < 20; i++) x[i] = i;
+        k[0][0] = 99;
+        for (j in k)
+                for (i in x) print j, i, x[i];
+}
+```
+
+## Garbage Collection
+
+The primary value management is reference counting based but `map` and `array` values are garbage-collected additionally.
+
 ## Modules
 
 Hawk supports various modules.
@@ -532,6 +620,7 @@ Hawk supports various modules.
 - hawk::isnil
 - hawk::map
 - hawk::modlibdirs
+- hawk::type
 - hawk::typename
 - hawk::GC_NUM_GENS
 
@@ -609,7 +698,7 @@ The `sys` module provides various functions concerning the underlying operation 
 
 You may read the file in raw bytes.
 
-```
+```awk
 BEGIN {
 	f = sys::open("/etc/sysctl.conf", sys::O_RDONLY);
 	while (sys::read(f, x, 10) > 0) printf (B"%s", x);
@@ -619,7 +708,7 @@ BEGIN {
 
 You can map a raw file descriptor to a handle created by this module and use it.
 
-```
+```awk
 BEGIN {
 	a = sys::openfd(1);
 	sys::write (a, B"let me write something here\n");
@@ -629,10 +718,9 @@ BEGIN {
 }
 ```
 
-
 Creating pipes and sharing them with a child process is not big an issue.
 
-```
+```awk
 BEGIN {
 	if (sys::pipe(p0, p1, sys::O_CLOEXEC | sys::O_NONBLOCK) <= -1)
 	##if (sys::pipe(p0, p1, sys::O_CLOEXEC) <= -1)
@@ -686,7 +774,7 @@ BEGIN {
 
 You can read standard output of a child process in a parent process.
 
-```
+```awk
 BEGIN {
 	if (sys::pipe(p0, p1, sys::O_NONBLOCK | sys::O_CLOEXEC) <= -1)
 	{
@@ -737,7 +825,7 @@ BEGIN {
 
 You can duplicate file handles as necessary.
 
-```
+```awk
 BEGIN {
 	a = sys::open("/etc/inittab", sys::O_RDONLY);
 	x = sys::open("/etc/fstab", sys::O_RDONLY);
@@ -760,7 +848,7 @@ BEGIN {
 
 Directory traversal is easy.
 
-```
+```awk
 BEGIN {
 	d = sys::opendir("/etc", sys::DIR_SORT);
 	if (d >= 0)
@@ -778,7 +866,7 @@ BEGIN {
 
 You can get information of a network interface.
 
-```
+```awk
 BEGIN { 
 	if (sys::getnwifcfg("lo", sys::NWIFCFG_IN6, x) <= -1)
 		print sys::errmsg();
@@ -789,7 +877,7 @@ BEGIN {
 
 Socket functions are available.
 
-```
+```awk
 BEGIN
 {
 	s = sys::socket();
@@ -805,7 +893,7 @@ BEGIN
 - ffi::call
 - ffi::errmsg
 
-```
+```awk
 BEGIN {
 	ffi = ffi::open();
 	if (ffi::call(ffi, r, @B"getenv", @B"s>s", "PATH") <= -1) print ffi::errmsg();
@@ -816,7 +904,7 @@ BEGIN {
 
 ### mysql
 
-```
+```awk
 BEGIN {
 	mysql = mysql::open();
 
@@ -855,7 +943,7 @@ BEGIN {
 
 In AWK, it is possible for the caller to pass an uninitialized variable as a function parameter and obtain a modified value if the called function sets it to an array.
 
-```
+```awk
 function q(a) {
   a[1] = 20;
   a[2] = 30;
@@ -870,7 +958,7 @@ BEGIN {
 
 In Hawk, to achieve the same effect, you can indicate call-by-reference by prefixing the parameter name with an ampersand (&).
 
-```
+```awk
 function q(&a) {
   a[1] = 20;
   a[2] = 30;
@@ -885,7 +973,7 @@ BEGIN {
 
 Alternatively, you may create an array or a map before passing it to a function.
 
-```
+```awk
 function q(a) {
   a[1] = 20;
   a[2] = 30;
