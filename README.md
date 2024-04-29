@@ -650,9 +650,15 @@ for (index in array) {
 
 Hawk also supports the `break` and `continue` statements, which work the same way as in awk and other programming languages. The `break` statement is used to exit a loop prematurely, while `continue` skips the remaining statements in the current iteration and moves to the next iteration.
 
+TODO:
+`return`
+`exit`
+`nextfile`
+`nextofile`
+
 Here are some examples demonstrating the usage of control structures in Hawk.
 
-1. Check if a number is even or odd
+- Check if a number is even or odd
 ```awk
 {
 	if ($1 % 2 == 0) {
@@ -663,7 +669,7 @@ Here are some examples demonstrating the usage of control structures in Hawk.
 }
 ```
 
-2. Print the first 10 even numbers
+- Print the first 10 even numbers
 ```awk
 BEGIN {
 	i = 0
@@ -678,7 +684,7 @@ BEGIN {
 }
 ```
 
-3. Prompt the user for a positive number
+- Prompt the user for a positive number
 ```awk
 BEGIN {
 	do {
@@ -689,7 +695,7 @@ BEGIN {
 }
 ```
 
-4. Print the multiplication table
+- Print the multiplication table
 ```awk
 BEGIN {
 	for (i = 1; i <= 10; i++) {
@@ -701,7 +707,7 @@ BEGIN {
 }
 ```
 
-5. Print only the even numbers from 1 to 16
+- Print only the even numbers from 1 to 16
 ```awk
 BEGIN {
 	for (i = 1; i <= 20; i++) {
@@ -716,7 +722,7 @@ BEGIN {
 }
 ```
 
-6. Count the frequency of words in a file
+- Count the frequency of words in a file
 ```awk
 {
 	n = split($0, words, /[^[:alnum:]_]+/)
@@ -736,7 +742,7 @@ The syntax and behavior of these structures are largely consistent with awk, mak
 
 ## Function
 
-Hawk supports user-defined functions, which are a powerful feature for modularizing and reusing code. The syntax and behavior of functions in Hawk are largely similar to those in awk, making it easy for awk users to leverage their existing knowledge of functions when working with Hawk. By using functions, you can break down your code into modular, reusable components, promoting code organization and maintainability.
+Hawk supports user-defined functions, enabling developers to break down complex logic into modular component for reuse. Hawk also provides a wide range of built-in functions that extend its capabilities for various tasks, such as string manipulation, array handling, and more.
 
 To define a function in Hawk, you use the function keyword followed by the function name and a set of parentheses to enclose the optional function parameters:
 
@@ -772,7 +778,7 @@ If no `return` statement is encountered, the function returns `@nil`, which is H
 
 ```awk
 function a() { k=999; }
-BEGIN { k=a(); print k===@nil, k === "", k == ""; }
+BEGIN { k=a(); print k === @nil, k === "", k == ""; }
 ```
 
 The expected output of the above example code is `1 0 1`.

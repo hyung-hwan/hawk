@@ -290,6 +290,20 @@ static void do_nothing (int unused)
 {
 }
 
+static void set_intr_pipe (void)
+{
+#if !defined(_WIN32) && !defined(__OS2__) && !defined(__DOS__) && defined(SIGPIPE)
+	set_signal_handler (SIGPIPE, do_nothing, 0);
+#endif
+}
+
+static void unset_intr_pipe (void)
+{
+#if !defined(_WIN32) && !defined(__OS2__) && !defined(__DOS__) && defined(SIGPIPE)
+	unset_signal_handler (SIGPIPE);
+#endif
+}
+
 static void set_intr_run (void)
 {
 #if defined(SIGTERM)
@@ -300,9 +314,6 @@ static void set_intr_run (void)
 #endif
 #if defined(SIGINT)
 	set_signal_handler (SIGINT, stop_run, 0);
-#endif
-#if !defined(_WIN32) && !defined(__OS2__) && !defined(__DOS__) && defined(SIGPIPE)
-	set_signal_handler (SIGPIPE, do_nothing, 0);
 #endif
 }
 
@@ -316,9 +327,6 @@ static void unset_intr_run (void)
 #endif
 #if defined(SIGINT)
 	unset_signal_handler (SIGINT);
-#endif
-#if !defined(_WIN32) && !defined(__OS2__) && !defined(__DOS__) && defined(SIGPIPE)
-	unset_signal_handler (SIGPIPE);
 #endif
 }
 
@@ -1170,6 +1178,8 @@ static HAWK_INLINE int execute_hawk (int argc, hawk_bch_t* argv[])
 		mmgr = &xma_mmgr;
 	}
 
+	set_intr_pipe();
+
 	hawk = hawk_openstdwithmmgr(mmgr, 0, hawk_get_cmgr_by_id(HAWK_CMGR_UTF8), HAWK_NULL);
 	if (HAWK_UNLIKELY(!hawk))
 	{
@@ -1306,6 +1316,8 @@ static HAWK_INLINE int execute_hawk (int argc, hawk_bch_t* argv[])
 oops:
 	if (rtx) hawk_rtx_close (rtx);
 	if (hawk) hawk_close (hawk);
+
+	unset_intr_pipe ();
 
 	if (xma_mmgr.ctx) 
 	{
