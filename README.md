@@ -22,6 +22,7 @@
 	- [Operators](#operators)
 	- [Control Strucutres](#control-strucutres)
 	- [Function](#function)
+	- [Variable](#variable)
 	- [Pipes](#pipes)
 	- [Garbage Collection](#garbage-collection)
 	- [Modules](#modules)
@@ -162,7 +163,7 @@ Assuming the above sample code is stored in `hawk02.c` and the built Hawk librar
 $ gcc -Wall -O2 -o hawk02 hawk02.c -lhawk
 ```
 
-The acutal command may vary depending on the compiler used and the library configure opoptions used.
+The acutal command may vary depending on the compiler used and the library `configure` options used.
 
 # Embedding Hawk in C++ Applications
 
@@ -351,7 +352,7 @@ When you set `FS` to a regular expression that matches one or more whitespace ch
 
 However, Hawk introduces the `@pragma striprecspc` directive, which allows you to change this behavior. Here's how it works:
 
-1. @pragma striprecspc on
+- @pragma striprecspc on
 ```sh
 $ echo '  a  b  c  d  ' | hawk '@pragma striprecspc on;
 BEGIN { FS="[[:space:]]+"; }
@@ -368,7 +369,7 @@ NF=4
 
 When `@pragma striprecspc on` is set, Hawk will automatically remove any leading and trailing blank fields from the input records. In the example above, the input string ' a b c d ' has a leading and trailing space, which would normally result in two additional blank fields. However, with `@pragma striprecspc on`, these blank fields are stripped, and the resulting `NF`(number of fields) is 4, corresponding to the fields "a", "b", "c", and "d".
 
-2. @pragma striprecspc off
+- @pragma striprecspc off
 
 ``` sh
 $ echo '  a  b  c  d  ' | hawk '@pragma striprecspc off;
@@ -786,7 +787,106 @@ The expected output of the above example code is `1 0 1`.
 - `k === ""`: This expression evaluates to 0 (false) because `k` is not equal to an empty string when using the type-precise `===` operator.
 - `k == ""`: This expression evaluates to 1 (true) because `@nil` is considered equal to an empty string when using the double equal sign `==` operator.
 
-Functions in Hawk can be called from various contexts, including `BEGIN`, pattern-action blocks, and `END` blocks, as well as from other functions. They can be defined before or after they are used, as Hawk resolves function references.
+Functions can be called from various contexts, including `BEGIN`, pattern-action blocks, and `END` blocks, as well as from other functions. They can be defined before or after they are used, as Hawk resolves function references.
+
+You can pass fewer arguments than the number of declared parameters to a function. In such cases, the missing parameters are treated as having `@nil`.
+
+Here's an example to illustrate this behavior:
+
+```awk
+@function greet(name, greeting) {
+    if (greeting == "") {
+        greeting = "Hello"
+    }
+    print greeting, name
+}
+
+BEGIN {
+    greet("Alice", "Hi")     ## Output: Hi Alice
+    greet("Bob")             ## Output: Hello Bob
+    greet()                  ## Output: Hello
+}
+```
+
+In the above example:
+
+1. The `greet` function is defined with two parameters: `name` and `greeting`.
+1. In the first function call `greet("Alice", "Hi")`, both arguments are provided, so name is assigned `"Alice"`, and greeting is assigned `"Hi"`.
+1. In the second function call `greet("Bob")`, only one argument is provided. Therefore, name is assigned `"Bob"`, and greeting is assigned `@nil`. The function checks if greeting is empty and assigns the default value `"Hello"`.
+1. In the third function call `greet()`, no arguments are provided. Both `name` and `greeting` are assigned `@nil`. The function then assigns the default value `"Hello"` to greeting and prints `"Hello"`.
+
+However, it's important to note that you cannot pass more arguments than the number of declared parameters in a function. If you attempt to do so, Hawk will raise an error.
+
+## Variable
+
+Variables can be used to store and manipulate data. There are two types of variables:
+
+- Built-in Variables: These are predefined variables provided by the awk language itself. They are used for specific purposes and contain information about the input data or the state of the program.
+- User-defined Variables: These are variables created and used by the programmer to store and manipulate data as needed within the program.
+
+You can declare variables explicitly using the following syntax:
+
+1. Local Variables:
+   - Declared using `@local var_1, var_2, ...`
+   - These variables are scoped within the current block or function.
+1. Global Variables:
+   - Declared using `@global var_1, var_2, ...`
+   - These variables are accessible throughout the entire Hawk program.
+
+While explicit variable declaration is supported, Hawk also maintains compatibility with awk by allowing implicit variable creation and usage. See [@pragma implicit](#pragma-implicit) on how to control this behavior.
+
+```awk
+@global count, total;  # Global variables
+
+BEGIN {
+	@local i, j;  ## Local variables in the BEGIN block
+	count = 0;
+	total = 0;
+}
+
+{
+	@local value;  ## Local variable in the main block
+	value = $1 + $2;
+	count++;
+	total += value;
+}
+
+END {
+	print "Total count:", count;
+	print "Sum of values:", total;
+}
+```
+
+In this example:
+
+- `count` and `total` are global variables declared using `@global`.
+- `i` and `j` are local variables declared in the `BEGIN` block using `@local`.
+- `value` is a local variable declared in the main block using `@local`.
+
+
+### Built-in Variable
+
+| Variable     | Description |
+|--------------|-------------|
+| CONVFMT      |             |
+| FILENAME     |             |
+| FNR          | File Number of Records, reset to 1 for each new input file |
+| FS           | Field Separator, specifies the character(s) that separate fields (columns) in an input record. Default is whitespace |
+| IGNORECASE   |             |
+| NF           | Number of Fields (columns) in the current input record |
+| NR           | Number of Records processed so far |
+| NUMSTRDETECT |             |
+| OFILENAME    |             |
+| OFMT         |             |
+| OFS          |             |
+| ORS          |             |
+| RLENGTH      |             |
+| RS           | Record Separator, specifies the character(s) that separate input records (lines). Default is newline `"\n"` |
+| RSTART       |             |
+| SCRIPTNAME   |             |
+| STRIPRECSPC  |             |
+| STRIPSTRSPC  |             |
+| SUBSPEP      |             |
 
 ## Pipes
 
