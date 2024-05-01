@@ -46,6 +46,7 @@ struct pafv_t
 	hawk_val_t**       args;
 	hawk_oow_t         nargs;
 	const hawk_ooch_t* argspec;
+	hawk_oow_t         argspeclen;
 };
 
 #define DEFAULT_CONVFMT  HAWK_T("%.6g")
@@ -1758,6 +1759,7 @@ hawk_val_t* hawk_rtx_callfun (hawk_rtx_t* rtx, hawk_fun_t* fun, hawk_val_t* args
 	pafv.args = args;
 	pafv.nargs = nargs;
 	pafv.argspec = fun->argspec;
+	pafv.argspeclen = fun->argspeclen;
 
 	if (HAWK_UNLIKELY(rtx->exit_level >= EXIT_GLOBAL))
 	{
@@ -6633,6 +6635,7 @@ static hawk_val_t* eval_fncall_fnc (hawk_rtx_t* rtx, hawk_nde_t* nde)
 
 static HAWK_INLINE hawk_val_t* eval_fncall_fun (hawk_rtx_t* rtx, hawk_nde_t* nde)
 {
+	/* user-defined function */
 	hawk_nde_fncall_t* call = (hawk_nde_fncall_t*)nde;
 	hawk_fun_t* fun;
 	hawk_htb_pair_t* pair;
@@ -6863,7 +6866,7 @@ hawk_val_t* hawk_rtx_evalcall (
 		/* even if fun->argspec exists, call->nargs may still be 0. so i test if call->nargs > 0.
 		 *   function x(a1, &a2) {}
 		 *   BEGIN { x(); }
-		 * all parameters are nils in this case. nargs and fun->nargs are 2 but call->nargs is 0.
+		 * all parameters are @nils in this case. nargs and fun->nargs are 2 but call->nargs is 0.
 		 */
 
 		if (call->args)
@@ -6874,8 +6877,11 @@ hawk_val_t* hawk_rtx_evalcall (
 
 			for (; i < call->nargs; i++)
 			{
-				if (n >= 0 && (fun->argspec[i] == 'r' || fun->argspec[i] == 'R'))
+				if (n >= 0 && i < fun->argspeclen && (fun->argspec[i] == 'r' || fun->argspec[i] == 'R'))
 				{
+					/* if the function call is successful, update the call-by-reference arguments
+					 * with hawk_rtx_setrefval() */
+
 					hawk_val_t** ref;
 					hawk_val_ref_t refv;
 					hawk_val_t* av;
@@ -6900,7 +6906,7 @@ hawk_val_t* hawk_rtx_evalcall (
 						 * the argument node information stored is relative to the previous stack frame.
 						 * i revert rtx->stack_base to the previous stack frame base before calling 
 						 * get_reference() and restors it back to the current base. this tactic
-						 * is very ugly because the assumptions for this is depecallnt on get_reference()
+						 * is very ugly because the assumption for this is dependent on get_reference()
 						 * implementation */
 						rtx->stack_base = prev_stack_base; /* UGLY */
 						r = get_reference(rtx, p, &ref);
@@ -6983,7 +6989,7 @@ hawk_val_t* hawk_rtx_evalcall (
 		if (hawk_rtx_geterrnum(rtx) == HAWK_ENOERR && errhandler != HAWK_NULL) 
 		{
 			/* errhandler is passed only when hawk_rtx_evalcall() is
-			 * invoked from hawk_rtx_call(). Ucallr this 
+			 * invoked from hawk_rtx_call(). Under this
 			 * circumstance, this stack frame is the first
 			 * activated and the stack base is the first element
 			 * after the global variables. so HAWK_RTX_STACK_RETVAL(rtx)
@@ -7115,7 +7121,9 @@ static hawk_oow_t push_arg_from_nde (hawk_rtx_t* rtx, hawk_nde_fncall_t* call, v
 	{
 		hawk_ooch_t spec;
 
-		/* if not sufficient number of spec characters given, take the last value and use it */
+		/* if not sufficient number of spec characters given, take the last value and use it.
+		 * as said above, arg_spec is provided for the implicit functions only.
+		 * so the logic taking the last value at run-time is elsewhere (e.g hawk_rtx_evalcall()). */
 		spec = (spec_len <= 0)? '\0': arg_spec[((nargs < spec_len)? nargs: spec_len - 1)];
 
 		switch (spec)
@@ -7947,7 +7955,7 @@ read_again:
 	}
 
 #if defined(DEBUG_RUN)
-	hawk_logfbmt (hawk_rtx_gethawk(rtx), "record len = %d str=[%.*js]\n", (int)HAWK_OOECS_LEN(buf), HAWK_OOECS_LEN(buf), HAWK_OOECS_PTR(buf));
+	hawk_logbfmt (hawk_rtx_gethawk(rtx), "record len = %d str=[%.*js]\n", (int)HAWK_OOECS_LEN(buf), HAWK_OOECS_LEN(buf), HAWK_OOECS_PTR(buf));
 #endif
 	if (n == 0) 
 	{

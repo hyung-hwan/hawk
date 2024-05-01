@@ -1302,6 +1302,7 @@ static hawk_nde_t* parse_function (hawk_t* hawk)
 	hawk_fun_t* fun = HAWK_NULL;
 	hawk_ooch_t* argspec = HAWK_NULL;
 	hawk_oow_t argspeccapa = 0;
+	hawk_oow_t argspeclen;
 	hawk_oow_t nargs, g;
 	hawk_htb_pair_t* pair;
 	hawk_loc_t xloc;
@@ -1384,7 +1385,7 @@ static hawk_nde_t* parse_function (hawk_t* hawk)
 				{
 					hawk_oow_t i, newcapa = HAWK_ALIGN_POW2(nargs + 2, 64);
 					argspec = hawk_reallocmem(hawk, argspec, newcapa * HAWK_SIZEOF(*argspec));
-					if (!argspec) goto oops;
+					if (HAWK_UNLIKELY(!argspec)) goto oops;
 					for (i = argspeccapa; i < newcapa; i++) argspec[i] = HAWK_T(' ');
 					argspeccapa = newcapa;
 				}
@@ -1449,7 +1450,13 @@ static hawk_nde_t* parse_function (hawk_t* hawk)
 			while (MATCH(hawk,TOK_NEWLINE));
 		}
 
-		if (argspec) argspec[nargs + 1] = '\0';
+		if (argspec)
+		{
+			/* nargs is the number taken before the current argument word was added to the parse.params array.
+			 * so the actual number of arguments is nargs + 1 */
+			argspeclen = nargs + 1;
+			argspec[argspeclen] = '\0';
+		}
 		if (get_token(hawk) <= -1) goto oops;
 	}
 
@@ -1502,6 +1509,7 @@ static hawk_nde_t* parse_function (hawk_t* hawk)
 	fun->name.len = 0;
 	fun->nargs = nargs;
 	fun->argspec = argspec;
+	fun->argspeclen = argspeclen;
 	fun->body = body;
 
 	pair = hawk_htb_insert(hawk->tree.funs, name.ptr, name.len, fun, 0);
@@ -7236,8 +7244,8 @@ static hawk_htb_walk_t deparse_func (hawk_htb_t* map, hawk_htb_pair_t* pair, voi
 
 	for (i = 0; i < fun->nargs; )
 	{
-		if (fun->argspec && fun->argspec[i] == 'r') PUT_S (df, HAWK_T("&"));
-		n = hawk_int_to_oocstr (i++, 10, HAWK_T("__p"), df->tmp, df->tmp_len);
+		if (fun->argspec && i < fun->argspeclen && fun->argspec[i] == 'r') PUT_S (df, HAWK_T("&"));
+		n = hawk_int_to_oocstr(i++, 10, HAWK_T("__p"), df->tmp, df->tmp_len);
 		HAWK_ASSERT (n != (hawk_oow_t)-1);
 		PUT_SX (df, df->tmp, n);
 

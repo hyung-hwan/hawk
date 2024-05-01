@@ -481,7 +481,8 @@ struct hawk_fun_t
 {
 	hawk_oocs_t     name;
 	hawk_oow_t      nargs;
-	hawk_ooch_t*    argspec; /* similar to  the argument spec of hawk_fnc_arg_t. supports v & r only. */
+	hawk_ooch_t*    argspec; /* similar to  the argument spec of hawk_fnc_arg_t. supports v & r only. neither R nor x is set internally. */
+	hawk_oow_t      argspeclen; /* the length of argspec. it can be different from nargs if there are call-by-value parameters after the last call-by-reference parameter or variadic arguments are supported */
 	hawk_nde_t*     body;
 };
 typedef struct hawk_fun_t hawk_fun_t;
