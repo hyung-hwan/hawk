@@ -6011,7 +6011,7 @@ static hawk_val_t* eval_binop_mod (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t
 	switch (n3)
 	{
 		case 0:
-			if  (l2 == 0)
+			if (l2 == 0)
 			{
 				hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EDIVBY0);
 				return HAWK_NULL;
@@ -6793,9 +6793,11 @@ hawk_val_t* hawk_rtx_evalcall (
 
 	/* make a new stack frame */
 	stack_req = 4 + call->nargs;
-	if (fun)
+	if (fun && fun->nargs > call->nargs)
 	{
-		HAWK_ASSERT (fun->nargs >= call->nargs); /* the compiler must guarantee this */
+		/* for variadic functions, fun->nargs can be less than call->nargs.
+		 * for non-variadic functions, the compiler must guarantee that fun->nargs >= call->nargs
+		 * this case can happen for  for non-variadic functions only. */
 		stack_req += fun->nargs - call->nargs;
 	}
 	/* if fun is HAWK_NULL, there is no way for this function to know expected argument numbers.
@@ -7153,24 +7155,10 @@ static hawk_oow_t push_arg_from_nde (hawk_rtx_t* rtx, hawk_nde_fncall_t* call, v
 				break;
 			}
 
-			case 'V':
-				/* the variadic argument marked with ... in the function parameter */
-				if (p->type == HAWK_NDE_LCL)
-				{
-					hawk_nde_var_t* var = (hawk_nde_var_t*)p;
-					v = hawk_rtx_makeintval(rtx,  ((hawk_nde_var_t*)p)->id.idxa);
-				}
-				else
-				{
-					/* THIS IS THE RUNTIME ERROR */
-					/* TODO: */
-				}
-
 			case 'x':
 				/* a regular expression is passed to the function as it is */
 				v = eval_expression0(rtx, p);
 				break;
-
 
 			default:
 			normal_arg:

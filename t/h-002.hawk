@@ -585,7 +585,7 @@ function main()
 
 
 	{
-		@local a, b;
+		@local a, b, f;
 
 		RSTART=99;
 		RLENGTH=99;
@@ -652,6 +652,12 @@ function main()
 		tap_ensure (test10(1, 2, 3, 4, 5, 6, 7, 8, 9, 10),  55, @SCRIPTNAME, @SCRIPTLINE);
 		tap_ensure (test11("aa", "bb", "cc"),  0, @SCRIPTNAME, @SCRIPTLINE);
 		tap_ensure (test11("aa", "bb", "cc", "dd"),  1, @SCRIPTNAME, @SCRIPTLINE);
+
+		f = test11;
+		tap_ensure (f("aa", "bb", "cc", "dd"),  1, @SCRIPTNAME, @SCRIPTLINE);
+
+		f = test10
+		tap_ensure (f(1, 2, 3, 4, 5, 6, 7, 8, 9, 10),  55, @SCRIPTNAME, @SCRIPTLINE);
 	}
 	tap_end ();
 }
