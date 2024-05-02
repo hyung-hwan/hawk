@@ -82,7 +82,7 @@ int hawk_mtx_init (hawk_mtx_t* mtx, hawk_gem_t* gem)
 
 #if defined(_WIN32)
 	mtx->hnd = CreateMutex(HAWK_NULL, FALSE, HAWK_NULL);
-	if (mtx->hnd == HAWK_NULL) 
+	if (mtx->hnd == HAWK_NULL)
 	{
 		hawk_gem_seterrnum (mtx->gem, HAWK_NULL, hawk_syserr_to_errnum(GetLastError()));
 		return -1;
@@ -95,7 +95,7 @@ int hawk_mtx_init (hawk_mtx_t* mtx, hawk_gem_t* gem)
 		HMTX m;
 
 		rc = DosCreateMutexSem(HAWK_NULL, &m, DC_SEM_SHARED, FALSE);
-		if (rc != NO_ERROR) 
+		if (rc != NO_ERROR)
 		{
 			hawk_gem_seterrnum (mtx->gem, HAWK_NULL, hawk_syserr_to_errnum(rc));
 			return -1;
@@ -114,7 +114,7 @@ int hawk_mtx_init (hawk_mtx_t* mtx, hawk_gem_t* gem)
 
 	/*
 	hawk_ensure (pthread_mutexattr_init (&attr) == 0);
-	if (pthread_mutexattr_settype (&attr, type) != 0) 
+	if (pthread_mutexattr_settype (&attr, type) != 0)
 	{
 		int num = hawk_geterrno();
 		pthread_mutexattr_destroy (&attr);
@@ -164,16 +164,16 @@ void hawk_mtx_fini (hawk_mtx_t* mtx)
 int hawk_mtx_lock (hawk_mtx_t* mtx, const hawk_ntime_t* waiting_time)
 {
 #if defined(_WIN32)
-	/* 
+	/*
 	 * MSDN
-	 *   WAIT_ABANDONED The specified object is a mutex object that was 
-	 *                  not released by the thread that owned the mutex 
-	 *                  object before the owning thread terminated. 
-	 *                  Ownership of the mutex object is granted to the 
+	 *   WAIT_ABANDONED The specified object is a mutex object that was
+	 *                  not released by the thread that owned the mutex
+	 *                  object before the owning thread terminated.
+	 *                  Ownership of the mutex object is granted to the
 	 *                  calling thread, and the mutex is set to nonsignaled.
-	 *   WAIT_OBJECT_0  The state of the specified object is signaled. 
-	 *   WAIT_TIMEOUT   The time-out interval elapsed, and the object's 
-	 *                  state is nonsignaled. 
+	 *   WAIT_OBJECT_0  The state of the specified object is signaled.
+	 *   WAIT_TIMEOUT   The time-out interval elapsed, and the object's
+	 *                  state is nonsignaled.
 	 *   WAIT_FAILED    An error occurred
 	 */
 	if (waiting_time)
@@ -199,7 +199,7 @@ int hawk_mtx_lock (hawk_mtx_t* mtx, const hawk_ntime_t* waiting_time)
 	}
 	else
 	{
-		if (WaitForSingleObject(mtx->hnd, INFINITE) == WAIT_FAILED) 
+		if (WaitForSingleObject(mtx->hnd, INFINITE) == WAIT_FAILED)
 		{
 			hawk_gem_seterrnum (mtx->gem, HAWK_NULL, hawk_syserr_to_errnum(GetLastError()));
 			return -1;
@@ -223,7 +223,7 @@ int hawk_mtx_lock (hawk_mtx_t* mtx, const hawk_ntime_t* waiting_time)
 	{
 		APIRET rc;
 		rc = DosRequestMutexSem(mtx->hnd, SEM_INDEFINITE_WAIT);
-		if (rc != NO_ERROR) 
+		if (rc != NO_ERROR)
 		{
 			hawk_gem_seterrnum (mtx->gem, HAWK_NULL, hawk_syserr_to_errnum(rc));
 			return -1;
@@ -282,7 +282,7 @@ int hawk_mtx_lock (hawk_mtx_t* mtx, const hawk_ntime_t* waiting_time)
 int hawk_mtx_unlock (hawk_mtx_t* mtx)
 {
 #if defined(_WIN32)
-	if (ReleaseMutex(mtx->hnd) == FALSE) 
+	if (ReleaseMutex(mtx->hnd) == FALSE)
 	{
 		hawk_gem_seterrnum (mtx->gem, HAWK_NULL, hawk_syserr_to_errnum(GetLastError()));
 		return -1;
@@ -291,7 +291,7 @@ int hawk_mtx_unlock (hawk_mtx_t* mtx)
 #elif defined(__OS2__)
 	APIRET rc;
 	rc = DosReleaseMutexSem(mtx->hnd);
-	if (rc != NO_ERROR) 
+	if (rc != NO_ERROR)
 	{
 		hawk_gem_seterrnum (mtx->gem, HAWK_NULL, hawk_syserr_to_errnum(rc));
 		return -1;
@@ -308,7 +308,7 @@ int hawk_mtx_unlock (hawk_mtx_t* mtx)
 
 	int n;
 	n = pthread_mutex_unlock((pthread_mutex_t*)&mtx->hnd);
-	if (n != 0) 
+	if (n != 0)
 	{
 		hawk_gem_seterrnum (mtx->gem, HAWK_NULL, hawk_syserr_to_errnum(n));
 		return -1;
@@ -322,7 +322,7 @@ int hawk_mtx_unlock (hawk_mtx_t* mtx)
 int hawk_mtx_trylock (hawk_mtx_t* mtx)
 {
 #if defined(_WIN32)
-	if (WaitForSingleObject(mtx->hnd, 0) != WAIT_OBJECT_0) 
+	if (WaitForSingleObject(mtx->hnd, 0) != WAIT_OBJECT_0)
 	{
 		hawk_gem_seterrnum (mtx->gem, HAWK_NULL, hawk_syserr_to_errnum(GetLastError()));
 		return -1;
@@ -330,7 +330,7 @@ int hawk_mtx_trylock (hawk_mtx_t* mtx)
 #elif defined(__OS2__)
 	APIRET rc;
 	rc = DosRequestMutexSem(mtx->hnd, 0);
-	if (rc != NO_ERROR) 
+	if (rc != NO_ERROR)
 	{
 		hawk_gem_seterrnum (mtx->gem, HAWK_NULL, hawk_syserr_to_errnum(rc));
 		return -1;

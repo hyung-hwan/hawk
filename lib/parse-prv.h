@@ -86,7 +86,7 @@ const hawk_ooch_t* hawk_getgblname (
 
 void hawk_getkwname (
 	hawk_t*       hawk,
-	hawk_kwid_t   id, 
+	hawk_kwid_t   id,
 	hawk_oocs_t*  s
 );
 

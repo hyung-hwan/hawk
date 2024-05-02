@@ -58,8 +58,8 @@ static int get_sco_ifconf (hawk_gem_t* gem, struct ifconf* ifc)
 	int h, num;
 	struct ifreq* ifr;
 
-	h = socket(AF_INET, SOCK_DGRAM, 0); 
-	if (h <= -1) 
+	h = socket(AF_INET, SOCK_DGRAM, 0);
+	if (h <= -1)
 	{
 		hawk_gem_seterrnum (gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
 		return -1;
@@ -84,7 +84,7 @@ static int get_sco_ifconf (hawk_gem_t* gem, struct ifconf* ifc)
 
 	/* sco needs reboot when you add an network interface.
 	 * it should be safe not to consider the case when the interface
-	 * is added after SIOCGIFANUM above. 
+	 * is added after SIOCGIFANUM above.
 	 * another thing to note is that SIOCGIFCONF ends with segfault
 	 * if the buffer is not large enough unlike some other OSes
 	 * like opensolaris which truncates the configuration. */
@@ -93,7 +93,7 @@ static int get_sco_ifconf (hawk_gem_t* gem, struct ifconf* ifc)
 	ifc->ifc_buf = hawk_gem_allocmem(gem, ifc->ifc_len);
 	if (ifc->ifc_buf == HAWK_NULL) goto oops;
 
-	if (ioctl(h, SIOCGIFCONF, ifc) <= -1) 
+	if (ioctl(h, SIOCGIFCONF, ifc) <= -1)
 	{
 		hawk_gem_seterrnum (gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
 		goto oops;
@@ -135,7 +135,7 @@ int hawk_gem_bcstrtoifindex (hawk_gem_t* gem, const hawk_bch_t* ptr, unsigned in
 	hawk_oow_t len;
 	struct ifreq ifr;
 
-	h = socket(AF_INET, SOCK_DGRAM, 0); 
+	h = socket(AF_INET, SOCK_DGRAM, 0);
 	if (h <= -1)
 	{
 		hawk_gem_seterrnum (gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
@@ -191,7 +191,7 @@ int hawk_gem_bcstrtoifindex (hawk_gem_t* gem, const hawk_bch_t* ptr, unsigned in
 	num = ifc.ifc_len / HAWK_SIZEOF(struct ifreq);
 	for (i = 0; i < num; i++)
 	{
-		if (hawk_comp_bcstr(ptr, ifc.ifc_req[i].ifr_name, 0) == 0) 
+		if (hawk_comp_bcstr(ptr, ifc.ifc_req[i].ifr_name, 0) == 0)
 		{
 			free_sco_ifconf (gem, &ifc);
 			*index = i + 1;
@@ -226,8 +226,8 @@ int hawk_gem_bcharstoifindex (hawk_gem_t* gem, const hawk_bch_t* ptr, hawk_oow_t
 	int h, x;
 	struct ifreq ifr;
 
-	h = socket(AF_INET, SOCK_DGRAM, 0); 
-	if (h <= -1) 
+	h = socket(AF_INET, SOCK_DGRAM, 0);
+	if (h <= -1)
 	{
 		hawk_gem_seterrnum (gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
 		return -1;
@@ -278,7 +278,7 @@ int hawk_gem_bcharstoifindex (hawk_gem_t* gem, const hawk_bch_t* ptr, hawk_oow_t
 	num = ifc.ifc_len / HAWK_SIZEOF(struct ifreq);
 	for (i = 0; i < num; i++)
 	{
-		if (hawk_comp_bchars_bcstr(ptr, len, ifc.ifc_req[i].ifr_name, 0) == 0) 
+		if (hawk_comp_bchars_bcstr(ptr, len, ifc.ifc_req[i].ifr_name, 0) == 0)
 		{
 			free_sco_ifconf (gem, &ifc);
 			*index = i + 1;
@@ -314,8 +314,8 @@ int hawk_gem_ucstrtoifindex (hawk_gem_t* gem, const hawk_uch_t* ptr, unsigned in
 	struct ifreq ifr;
 	hawk_oow_t wl, ml;
 
-	h = socket(AF_INET, SOCK_DGRAM, 0); 
-	if (h <= -1) 
+	h = socket(AF_INET, SOCK_DGRAM, 0);
+	if (h <= -1)
 	{
 		hawk_gem_seterrnum (gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
 		return -1;
@@ -347,7 +347,7 @@ int hawk_gem_ucstrtoifindex (hawk_gem_t* gem, const hawk_uch_t* ptr, unsigned in
 	if (hawk_gem_convutobcstr(gem, ptr, &wl, tmp, &ml) <= -1) return -1;
 
 	tmpidx = if_nametoindex(tmp);
-	if (tmpidx == 0) 
+	if (tmpidx == 0)
 	{
 		hawk_gem_seterrnum (gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
 		return -1;
@@ -370,7 +370,7 @@ int hawk_gem_ucstrtoifindex (hawk_gem_t* gem, const hawk_uch_t* ptr, unsigned in
 	num = ifc.ifc_len / HAWK_SIZEOF(struct ifreq);
 	for (i = 0; i < num; i++)
 	{
-		if (hawk_comp_bcstr(tmp, ifc.ifc_req[i].ifr_name, 0) == 0) 
+		if (hawk_comp_bcstr(tmp, ifc.ifc_req[i].ifr_name, 0) == 0)
 		{
 			free_sco_ifconf (gem, &ifc);
 			*index = i + 1;
@@ -406,8 +406,8 @@ int hawk_gem_ucharstoifindex (hawk_gem_t* gem, const hawk_uch_t* ptr, hawk_oow_t
 	struct ifreq ifr;
 	hawk_oow_t wl, ml;
 
-	h = socket(AF_INET, SOCK_DGRAM, 0); 
-	if (h <= -1) 
+	h = socket(AF_INET, SOCK_DGRAM, 0);
+	if (h <= -1)
 	{
 		hawk_gem_seterrnum (gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
 		return -1;
@@ -441,7 +441,7 @@ int hawk_gem_ucharstoifindex (hawk_gem_t* gem, const hawk_uch_t* ptr, hawk_oow_t
 	tmp[ml] = '\0';
 
 	tmpidx = if_nametoindex(tmp);
-	if (tmpidx == 0) 
+	if (tmpidx == 0)
 	{
 		hawk_gem_seterrnum (gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
 		return -1;
@@ -464,7 +464,7 @@ int hawk_gem_ucharstoifindex (hawk_gem_t* gem, const hawk_uch_t* ptr, hawk_oow_t
 	num = ifc.ifc_len / HAWK_SIZEOF(struct ifreq);
 	for (i = 0; i < num; i++)
 	{
-		if (hawk_comp_bcstr(gem, tmp, ifc.ifc_req[i].ifr_name) == 0) 
+		if (hawk_comp_bcstr(gem, tmp, ifc.ifc_req[i].ifr_name) == 0)
 		{
 			free_sco_ifconf (gem, &ifc);
 			*index = i + 1;
@@ -501,8 +501,8 @@ int hawk_gem_ifindextobcstr (hawk_gem_t* gem, unsigned int index, hawk_bch_t* bu
 	int h, x;
 	struct ifreq ifr;
 
-	h = socket(AF_INET, SOCK_DGRAM, 0); 
-	if (h <= -1) 
+	h = socket(AF_INET, SOCK_DGRAM, 0);
+	if (h <= -1)
 	{
 		hawk_gem_seterrnum (gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
 		return -1;
@@ -514,7 +514,7 @@ int hawk_gem_ifindextobcstr (hawk_gem_t* gem, unsigned int index, hawk_bch_t* bu
 	#else
 	ifr.ifr_index = index;
 	#endif
-	
+
 	x = ioctl(h, SIOCGIFNAME, &ifr);
 	HAWK_CLOSE (h);
 
@@ -528,7 +528,7 @@ int hawk_gem_ifindextobcstr (hawk_gem_t* gem, unsigned int index, hawk_bch_t* bu
 
 #elif defined(HAVE_IF_INDEXTONAME)
 	hawk_bch_t tmp[IF_NAMESIZE + 1];
-	if (if_indextoname (index, tmp) == HAWK_NULL) 
+	if (if_indextoname (index, tmp) == HAWK_NULL)
 	{
 		hawk_gem_seterrnum (gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
 		return -1;
@@ -545,7 +545,7 @@ int hawk_gem_ifindextobcstr (hawk_gem_t* gem, unsigned int index, hawk_bch_t* bu
 	if (get_sco_ifconf(gem, &ifc) <= -1) return -1;
 
 	num = ifc.ifc_len / HAWK_SIZEOF(struct ifreq);
-	if (index > num) 
+	if (index > num)
 	{
 		hawk_gem_seterrnum (gem, HAWK_NULL, HAWK_ENOENT);
 		free_sco_ifconf (gem, &ifc);
@@ -582,7 +582,7 @@ int hawk_gem_ifindextoucstr (hawk_gem_t* gem, unsigned int index, hawk_uch_t* bu
 	struct ifreq ifr;
 	hawk_oow_t wl, ml;
 
-	h = socket(AF_INET, SOCK_DGRAM, 0); 
+	h = socket(AF_INET, SOCK_DGRAM, 0);
 	if (h <= -1)
 	{
 		hawk_gem_seterrnum (gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
@@ -616,7 +616,7 @@ int hawk_gem_ifindextoucstr (hawk_gem_t* gem, unsigned int index, hawk_uch_t* bu
 	hawk_oow_t ml, wl;
 	int x;
 
-	if (if_indextoname(index, tmp) == HAWK_NULL) 
+	if (if_indextoname(index, tmp) == HAWK_NULL)
 	{
 		hawk_gem_seterrnum (gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
 		return -1;
@@ -637,7 +637,7 @@ int hawk_gem_ifindextoucstr (hawk_gem_t* gem, unsigned int index, hawk_uch_t* bu
 	if (get_sco_ifconf(gem, &ifc) <= -1) return -1;
 
 	num = ifc.ifc_len / HAWK_SIZEOF(struct ifreq);
-	if (index > num) 
+	if (index > num)
 	{
 		free_sco_ifconf (gem, &ifc);
 		return -1;

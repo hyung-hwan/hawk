@@ -29,37 +29,37 @@
 
 /** \file
  * This file provides a red-black tree encapsulated in the #hawk_rbt_t type that
- * implements a self-balancing binary search tree.Its interface is very close 
+ * implements a self-balancing binary search tree.Its interface is very close
  * to #hawk_htb_t.
  *
  * This sample code adds a series of keys and values and print them
  * in descending key order.
  * \code
  * #include <hawk-rbt.h>
- * 
+ *
  * static hawk_rbt_walk_t walk (hawk_rbt_t* rbt, hawk_rbt_pair_t* pair, void* ctx)
  * {
  *   hawk_printf (HAWK_T("key = %d, value = %d\n"),
  *     *(int*)HAWK_RBT_KPTR(pair), *(int*)HAWK_RBT_VPTR(pair));
  *   return HAWK_RBT_WALK_FORWARD;
  * }
- * 
+ *
  * int main ()
  * {
  *   hawk_rbt_t* s1;
  *   int i;
- * 
+ *
  *   s1 = hawk_rbt_open (HAWK_MMGR_GETDFL(), 0, 1, 1); // error handling skipped
  *   hawk_rbt_setstyle (s1, hawk_get_rbt_style(HAWK_RBT_STYLE_INLINE_COPIERS));
- * 
+ *
  *   for (i = 0; i < 20; i++)
  *   {
  *     int x = i * 20;
  *     hawk_rbt_insert (s1, &i, HAWK_SIZEOF(i), &x, HAWK_SIZEOF(x)); // eror handling skipped
  *   }
- * 
+ *
  *   hawk_rbt_rwalk (s1, walk, HAWK_NULL);
- * 
+ *
  *   hawk_rbt_close (s1);
  *   return 0;
  * }
@@ -69,7 +69,7 @@
 typedef struct hawk_rbt_t hawk_rbt_t;
 typedef struct hawk_rbt_pair_t hawk_rbt_pair_t;
 
-/** 
+/**
  * The hawk_rbt_walk_t type defines values that the callback function can
  * return to control hawk_rbt_walk() and hawk_rbt_rwalk().
  */
@@ -96,7 +96,7 @@ typedef enum hawk_rbt_id_t hawk_rbt_id_t;
  */
 typedef void* (*hawk_rbt_copier_t) (
 	hawk_rbt_t* rbt  /**< red-black tree */,
-	void*      dptr /**< pointer to a key or a value */, 
+	void*      dptr /**< pointer to a key or a value */,
 	hawk_oow_t  dlen /**< length of a key or a value */
 );
 
@@ -117,17 +117,17 @@ typedef void (*hawk_rbt_freeer_t) (
  * key is greater than the second key, -1 otherwise.
  */
 typedef int (*hawk_rbt_comper_t) (
-	const hawk_rbt_t* rbt,    /**< red-black tree */ 
+	const hawk_rbt_t* rbt,    /**< red-black tree */
 	const void*       kptr1,  /**< key pointer */
-	hawk_oow_t        klen1,  /**< key length */ 
+	hawk_oow_t        klen1,  /**< key length */
 	const void*       kptr2,  /**< key pointer */
 	hawk_oow_t        klen2   /**< key length */
 );
 
 /**
- * The hawk_rbt_keeper_t type defines a value keeper that is called when 
+ * The hawk_rbt_keeper_t type defines a value keeper that is called when
  * a value is retained in the context that it should be destroyed because
- * it is identical to a new value. Two values are identical if their 
+ * it is identical to a new value. Two values are identical if their
  * pointers and lengths are equal.
  */
 typedef void (*hawk_rbt_keeper_t) (
@@ -147,12 +147,12 @@ typedef hawk_rbt_walk_t (*hawk_rbt_walker_t) (
 
 /**
  * The hawk_rbt_cbserter_t type defines a callback function for hawk_rbt_cbsert().
- * The hawk_rbt_cbserter() function calls it to allocate a new pair for the 
+ * The hawk_rbt_cbserter() function calls it to allocate a new pair for the
  * key pointed to by \a kptr of the length \a klen and the callback context
  * \a ctx. The second parameter \a pair is passed the pointer to the existing
  * pair for the key or #HAWK_NULL in case of no existing key. The callback
  * must return a pointer to a new or a reallocated pair. When reallocating the
- * existing pair, this callback must destroy the existing pair and return the 
+ * existing pair, this callback must destroy the existing pair and return the
  * newly reallocated pair. It must return #HAWK_NULL for failure.
  */
 typedef hawk_rbt_pair_t* (*hawk_rbt_cbserter_t) (
@@ -171,10 +171,10 @@ enum hawk_rbt_pair_color_t
 typedef enum hawk_rbt_pair_color_t hawk_rbt_pair_color_t;
 
 /**
- * The hawk_rbt_pair_t type defines red-black tree pair. A pair is composed 
- * of a key and a value. It maintains pointers to the beginning of a key and 
- * a value plus their length. The length is scaled down with the scale factor 
- * specified in an owning tree. Use macros defined in the 
+ * The hawk_rbt_pair_t type defines red-black tree pair. A pair is composed
+ * of a key and a value. It maintains pointers to the beginning of a key and
+ * a value plus their length. The length is scaled down with the scale factor
+ * specified in an owning tree. Use macros defined in the
  */
 struct hawk_rbt_pair_t
 {
@@ -199,8 +199,8 @@ struct hawk_rbt_pair_t
 typedef struct hawk_rbt_style_t hawk_rbt_style_t;
 
 /**
- * The hawk_rbt_style_t type defines callback function sets for key/value 
- * pair manipulation. 
+ * The hawk_rbt_style_t type defines callback function sets for key/value
+ * pair manipulation.
  */
 struct hawk_rbt_style_t
 {
@@ -354,10 +354,10 @@ HAWK_EXPORT const hawk_rbt_style_t* hawk_rbt_getstyle (
 );
 
 /**
- * The hawk_rbt_setstyle() function sets internal manipulation callback 
+ * The hawk_rbt_setstyle() function sets internal manipulation callback
  * functions for data construction, destruction, comparison, etc.
  * The callback structure pointed to by \a style must outlive the tree
- * pointed to by \a htb as the tree doesn't copy the contents of the 
+ * pointed to by \a htb as the tree doesn't copy the contents of the
  * structure.
  */
 HAWK_EXPORT void hawk_rbt_setstyle (
@@ -373,10 +373,10 @@ HAWK_EXPORT hawk_oow_t hawk_rbt_getsize (
 );
 
 /**
- * The hawk_rbt_search() function searches red-black tree to find a pair with a 
+ * The hawk_rbt_search() function searches red-black tree to find a pair with a
  * matching key. It returns the pointer to the pair found. If it fails
  * to find one, it returns HAWK_NULL.
- * \return pointer to the pair with a maching key, 
+ * \return pointer to the pair with a maching key,
  *         or HAWK_NULL if no match is found.
  */
 HAWK_EXPORT hawk_rbt_pair_t* hawk_rbt_search (
@@ -386,12 +386,12 @@ HAWK_EXPORT hawk_rbt_pair_t* hawk_rbt_search (
 );
 
 /**
- * The hawk_rbt_upsert() function searches red-black tree for the pair with a 
+ * The hawk_rbt_upsert() function searches red-black tree for the pair with a
  * matching key. If one is found, it updates the pair. Otherwise, it inserts
- * a new pair with the key and the value given. It returns the pointer to the 
+ * a new pair with the key and the value given. It returns the pointer to the
  * pair updated or inserted.
- * \return a pointer to the updated or inserted pair on success, 
- *         HAWK_NULL on failure. 
+ * \return a pointer to the updated or inserted pair on success,
+ *         HAWK_NULL on failure.
  */
 HAWK_EXPORT hawk_rbt_pair_t* hawk_rbt_upsert (
 	hawk_rbt_t* rbt,   /**< red-black tree */
@@ -403,9 +403,9 @@ HAWK_EXPORT hawk_rbt_pair_t* hawk_rbt_upsert (
 
 /**
  * The hawk_rbt_ensert() function inserts a new pair with the key and the value
- * given. If there exists a pair with the key given, the function returns 
+ * given. If there exists a pair with the key given, the function returns
  * the pair containing the key.
- * \return pointer to a pair on success, HAWK_NULL on failure. 
+ * \return pointer to a pair on success, HAWK_NULL on failure.
  */
 HAWK_EXPORT hawk_rbt_pair_t* hawk_rbt_ensert (
 	hawk_rbt_t* rbt,   /**< red-black tree */
@@ -417,9 +417,9 @@ HAWK_EXPORT hawk_rbt_pair_t* hawk_rbt_ensert (
 
 /**
  * The hawk_rbt_insert() function inserts a new pair with the key and the value
- * given. If there exists a pair with the key given, the function returns 
+ * given. If there exists a pair with the key given, the function returns
  * HAWK_NULL without channging the value.
- * \return pointer to the pair created on success, HAWK_NULL on failure. 
+ * \return pointer to the pair created on success, HAWK_NULL on failure.
  */
 HAWK_EXPORT hawk_rbt_pair_t* hawk_rbt_insert (
 	hawk_rbt_t* rbt,   /**< red-black tree */
@@ -443,7 +443,7 @@ HAWK_EXPORT hawk_rbt_pair_t* hawk_rbt_update (
 );
 
 /**
- * The hawk_rbt_cbsert() function inserts a key/value pair by delegating pair 
+ * The hawk_rbt_cbsert() function inserts a key/value pair by delegating pair
  * allocation to a callback function. Depending on the callback function,
  * it may behave like hawk_rbt_insert(), hawk_rbt_upsert(), hawk_rbt_update(),
  * hawk_rbt_ensert(), or totally differently. The sample code below inserts
@@ -458,7 +458,7 @@ HAWK_EXPORT hawk_rbt_pair_t* hawk_rbt_update (
  *     HAWK_RBT_VLEN(pair), HAWK_RBT_VPTR(pair), (int)HAWK_RBT_VLEN(pair));
  *   return HAWK_RBT_WALK_FORWARD;
  * }
- * 
+ *
  * hawk_rbt_pair_t* cbserter (
  *   hawk_rbt_t* rbt, hawk_rbt_pair_t* pair,
  *   void* kptr, hawk_oow_t klen, void* ctx)
@@ -466,53 +466,53 @@ HAWK_EXPORT hawk_rbt_pair_t* hawk_rbt_update (
  *   hawk_cstr_t* v = (hawk_cstr_t*)ctx;
  *   if (pair == HAWK_NULL)
  *   {
- *     // no existing key for the key 
+ *     // no existing key for the key
  *     return hawk_rbt_allocpair (rbt, kptr, klen, v->ptr, v->len);
  *   }
  *   else
  *   {
- *     // a pair with the key exists. 
- *     // in this sample, i will append the new value to the old value 
+ *     // a pair with the key exists.
+ *     // in this sample, i will append the new value to the old value
  *     // separated by a comma
  *     hawk_rbt_pair_t* new_pair;
  *     hawk_ooch_t comma = HAWK_T(',');
  *     hawk_oob_t* vptr;
- * 
- *     // allocate a new pair, but without filling the actual value. 
- *     // note vptr is given HAWK_NULL for that purpose 
+ *
+ *     // allocate a new pair, but without filling the actual value.
+ *     // note vptr is given HAWK_NULL for that purpose
  *     new_pair = hawk_rbt_allocpair (
- *       rbt, kptr, klen, HAWK_NULL, pair->vlen + 1 + v->len); 
+ *       rbt, kptr, klen, HAWK_NULL, pair->vlen + 1 + v->len);
  *     if (new_pair == HAWK_NULL) return HAWK_NULL;
- * 
- *     // fill in the value space 
+ *
+ *     // fill in the value space
  *     vptr = new_pair->vptr;
  *     hawk_memcpy (vptr, pair->vptr, pair->vlen*HAWK_SIZEOF(hawk_ooch_t));
  *     vptr += pair->vlen*HAWK_SIZEOF(hawk_ooch_t);
  *     hawk_memcpy (vptr, &comma, HAWK_SIZEOF(hawk_ooch_t));
  *     vptr += HAWK_SIZEOF(hawk_ooch_t);
  *     hawk_memcpy (vptr, v->ptr, v->len*HAWK_SIZEOF(hawk_ooch_t));
- * 
- *     // this callback requires the old pair to be destroyed 
+ *
+ *     // this callback requires the old pair to be destroyed
  *     hawk_rbt_freepair (rbt, pair);
- * 
- *     // return the new pair 
+ *
+ *     // return the new pair
  *     return new_pair;
  *   }
  * }
- * 
+ *
  * int main ()
  * {
  *   hawk_rbt_t* s1;
  *   int i;
  *   hawk_ooch_t* keys[] = { HAWK_T("one"), HAWK_T("two"), HAWK_T("three") };
  *   hawk_ooch_t* vals[] = { HAWK_T("1"), HAWK_T("2"), HAWK_T("3"), HAWK_T("4"), HAWK_T("5") };
- * 
+ *
  *   s1 = hawk_rbt_open (
  *     HAWK_MMGR_GETDFL(), 0,
  *     HAWK_SIZEOF(hawk_ooch_t), HAWK_SIZEOF(hawk_ooch_t)
- *   ); // note error check is skipped 
+ *   ); // note error check is skipped
  *   hawk_rbt_setstyle (s1, &style1);
- * 
+ *
  *   for (i = 0; i < HAWK_COUNTOF(vals); i++)
  *   {
  *     hawk_cstr_t ctx;
@@ -523,7 +523,7 @@ HAWK_EXPORT hawk_rbt_pair_t* hawk_rbt_update (
  *     ); // note error check is skipped
  *   }
  *   hawk_rbt_walk (s1, print_map_pair, HAWK_NULL);
- * 
+ *
  *   hawk_rbt_close (s1);
  *   return 0;
  * }
@@ -538,7 +538,7 @@ HAWK_EXPORT hawk_rbt_pair_t* hawk_rbt_cbsert (
 );
 
 /**
- * The hawk_rbt_delete() function deletes a pair with a matching key 
+ * The hawk_rbt_delete() function deletes a pair with a matching key
  * \return 0 on success, -1 on failure
  */
 HAWK_EXPORT int hawk_rbt_delete (
@@ -582,7 +582,7 @@ HAWK_EXPORT void hawk_rbt_unprotectitr (
 #endif
 
 /**
- * The hawk_rbt_walk() function traverses a red-black tree in preorder 
+ * The hawk_rbt_walk() function traverses a red-black tree in preorder
  * from the leftmost child.
  */
 HAWK_EXPORT void hawk_rbt_walk (
@@ -592,7 +592,7 @@ HAWK_EXPORT void hawk_rbt_walk (
 );
 
 /**
- * The hawk_rbt_walk() function traverses a red-black tree in preorder 
+ * The hawk_rbt_walk() function traverses a red-black tree in preorder
  * from the rightmost child.
  */
 HAWK_EXPORT void hawk_rbt_rwalk (
@@ -602,11 +602,11 @@ HAWK_EXPORT void hawk_rbt_rwalk (
 );
 
 /**
- * The hawk_rbt_allocpair() function allocates a pair for a key and a value 
+ * The hawk_rbt_allocpair() function allocates a pair for a key and a value
  * given. But it does not chain the pair allocated into the red-black tree \a rbt.
- * Use this function at your own risk. 
+ * Use this function at your own risk.
  *
- * Take note of he following special behavior when the copier is 
+ * Take note of he following special behavior when the copier is
  * #HAWK_RBT_COPIER_INLINE.
  * - If \a kptr is #HAWK_NULL, the key space of the size \a klen is reserved but
  *   not propagated with any data.
@@ -615,7 +615,7 @@ HAWK_EXPORT void hawk_rbt_rwalk (
  */
 HAWK_EXPORT hawk_rbt_pair_t* hawk_rbt_allocpair (
 	hawk_rbt_t*  rbt,
-	void*        kptr, 
+	void*        kptr,
 	hawk_oow_t   klen,
 	void*        vptr,
 	hawk_oow_t   vlen
@@ -639,7 +639,7 @@ HAWK_EXPORT int hawk_rbt_dflcomp (
 	const void*       kptr1,
 	hawk_oow_t        klen1,
 	const void*       kptr2,
-	hawk_oow_t        klen2 
+	hawk_oow_t        klen2
 );
 
 #if defined(__cplusplus)

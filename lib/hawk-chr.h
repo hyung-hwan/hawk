@@ -161,7 +161,7 @@ HAWK_EXPORT int hawk_is_bch_type (hawk_bch_t c, hawk_bch_prop_t type);
 #	if __has_builtin(__builtin_tolower)
 #		define hawk_to_bch_lower __builtin_tolower
 #	endif
-#elif (__GNUC__ >= 14) 
+#elif (__GNUC__ >= 14)
 #	define hawk_is_bch_upper __builtin_isupper
 #	define hawk_is_bch_lower __builtin_islower
 #	define hawk_is_bch_alpha __builtin_isalpha

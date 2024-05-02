@@ -27,7 +27,7 @@
 
 static int fnc_normspace (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
-	/* normalize spaces 
+	/* normalize spaces
 	 * - trim leading and trailing spaces
 	 * - replace a series of spaces to a single space
 	 */
@@ -98,11 +98,11 @@ static int trim (hawk_rtx_t* rtx, int flags)
 			hawk_ooch_t* npath;
 			path.ptr = hawk_rtx_getvaloocstr(rtx, a0, &path.len);
 			if (HAWK_UNLIKELY(!path.ptr)) return -1;
-			/* because hawk_trim_oochars() returns the pointer and the length without 
+			/* because hawk_trim_oochars() returns the pointer and the length without
 			 * affecting the string given, it's safe to pass the original value.
-			 * hawk_rtx_getvaloocstr() doesn't duplicate the value if it's of 
+			 * hawk_rtx_getvaloocstr() doesn't duplicate the value if it's of
 			 * the string type. */
-			npath = hawk_trim_oochars(path.ptr, &path.len, flags); 
+			npath = hawk_trim_oochars(path.ptr, &path.len, flags);
 			retv = hawk_rtx_makestrvalwithoochars(rtx, npath, path.len);
 			hawk_rtx_freevaloocstr (rtx, a0, path.ptr);
 			break;
@@ -136,7 +136,7 @@ static int fnc_ltrim (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 static int fnc_rtrim (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	return trim(rtx, HAWK_TRIM_OOCHARS_RIGHT);
-}  
+}
 
 static int is_class (hawk_rtx_t* rtx, hawk_ooch_prop_t ctype)
 {
@@ -163,7 +163,7 @@ static int is_class (hawk_rtx_t* rtx, hawk_ooch_prop_t ctype)
 				do
 				{
 					len0--;
-					if (!hawk_is_bch_type(str0[len0], ctype)) 
+					if (!hawk_is_bch_type(str0[len0], ctype))
 					{
 						tmp = 0;
 						break;
@@ -176,7 +176,7 @@ static int is_class (hawk_rtx_t* rtx, hawk_ooch_prop_t ctype)
 			break;
 		}
 
-		default:	
+		default:
 		{
 			hawk_ooch_t* str0;
 			hawk_oow_t len0;
@@ -191,7 +191,7 @@ static int is_class (hawk_rtx_t* rtx, hawk_ooch_prop_t ctype)
 				do
 				{
 					len0--;
-					if (!hawk_is_ooch_type(str0[len0], ctype)) 
+					if (!hawk_is_ooch_type(str0[len0], ctype))
 					{
 						tmp = 0;
 						break;
@@ -308,7 +308,7 @@ static int fnc_frombcharcode (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			hawk_int_t cc;
 
 			a0 = hawk_rtx_getarg(rtx, i);
-			if (hawk_rtx_valtoint(rtx, a0, &cc) <= -1) 
+			if (hawk_rtx_valtoint(rtx, a0, &cc) <= -1)
 			{
 				hawk_rtx_freeval (rtx, retv, 0);
 				return -1;
@@ -359,7 +359,7 @@ static int fnc_fromcharcode (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			hawk_int_t cc;
 
 			a0 = hawk_rtx_getarg(rtx, i);
-			if (hawk_rtx_valtoint(rtx, a0, &cc) <= -1) 
+			if (hawk_rtx_valtoint(rtx, a0, &cc) <= -1)
 			{
 				hawk_rtx_freeval (rtx, retv, 0);
 				return -1;
@@ -445,7 +445,7 @@ static int fnc_tocharcode (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 static int fnc_frommbs (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	/* str::frommbs(@b"byte-string" [, "encoding-name"])
-	 * 
+	 *
 	 * if you use a supported encoding name, it may look like this:
 	 *   a = str::frommbs(@b"\xC7\xD1\xB1\xDB", "cp949");
 	 *   printf ("%K\n", a);
@@ -458,16 +458,16 @@ static int fnc_frommbs (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		hawk_val_t* a1;
 		hawk_oocs_t enc;
 
-		
+
 		a1 = hawk_rtx_getarg(rtx, 1);
 		enc.ptr = hawk_rtx_getvaloocstr(rtx, a1, &enc.len);
 		if (!enc.ptr) return -1;
-		/* if encoding name is an empty string, hawk_findcmgr() returns the default cmgr. 
+		/* if encoding name is an empty string, hawk_findcmgr() returns the default cmgr.
 		 * i don't want that behavior. */
 		cmgr = (enc.len > 0 && enc.len == hawk_count_oocstr(enc.ptr))? hawk_get_cmgr_by_name(enc.ptr): HAWK_NULL;
 		hawk_rtx_freevaloocstr (rtx, a1, enc.ptr);
 
-		if (!cmgr) 
+		if (!cmgr)
 		{
 			/* if the encoding name is not known, return a zero-length string */
 			r = hawk_rtx_makestrvalwithoochars(rtx, HAWK_NULL, 0); /* this never fails for length 0 */
@@ -501,11 +501,11 @@ done:
 
 static int fnc_tombs (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
-	/* str::tombs("string", [, "encoding-name"]) 
-	 * 
+	/* str::tombs("string", [, "encoding-name"])
+	 *
 	 * if you use a supported encoding name, it may look like this:
-	 *   a = str::tombs("\uD55C\uAE00", "cp949"); 
-	 *   printf (@b"%K\n", a); 
+	 *   a = str::tombs("\uD55C\uAE00", "cp949");
+	 *   printf (@b"%K\n", a);
 	 */
 
 	hawk_val_t* a0, * r;
@@ -518,12 +518,12 @@ static int fnc_tombs (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		a1 = hawk_rtx_getarg(rtx, 1);
 		enc.ptr = hawk_rtx_getvaloocstr(rtx, a1, &enc.len);
 		if (!enc.ptr) return -1;
-		/* if encoding name is an empty string, hawk_findcmgr() returns the default cmgr. 
+		/* if encoding name is an empty string, hawk_findcmgr() returns the default cmgr.
 		 * i don't want that behavior. */
 		cmgr = (enc.len > 0 && enc.len == hawk_count_oocstr(enc.ptr))? hawk_get_cmgr_by_name(enc.ptr): HAWK_NULL;
 		hawk_rtx_freevaloocstr (rtx, a1, enc.ptr);
 
-		if (!cmgr) 
+		if (!cmgr)
 		{
 			/* if the encoding name is not known, return a zero-length string */
 			r = hawk_rtx_makembsvalwithbchars(rtx, HAWK_NULL, 0); /* this never fails for length 0 */
@@ -542,7 +542,7 @@ static int fnc_tombs (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			if (HAWK_UNLIKELY(!r)) return -1;
 			break;
 		}
-		
+
 		case HAWK_VAL_MBS:
 			/* no conversion */
 			r = a0;
@@ -599,7 +599,7 @@ static int fnc_tonum (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 				break;
 			}
 
-			case HAWK_VAL_MBS:	
+			case HAWK_VAL_MBS:
 			{
 				/* if the value is known to be a byte string, it supports the optional
 				 * base parameter */
@@ -715,7 +715,7 @@ static int fnc_subchar (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			hawk_rtx_freevalbcstr (rtx, a0, str);
 			break;
 		}
-	
+
 		default:
 		{
 			hawk_ooch_t* str;

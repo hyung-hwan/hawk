@@ -93,11 +93,11 @@ static int matchtre_ucs (hawk_tre_t* tre, int opt, const hawk_ucs_t* str, hawk_u
 	{
 		int i;
 
-		/* you must intialize submat before you pass into this 
+		/* you must intialize submat before you pass into this
 		 * function because it can abort filling */
 		for (i = 1; i < HAWK_COUNTOF(match); i++)
 		{
-			if (match[i].rm_so != -1) 
+			if (match[i].rm_so != -1)
 			{
 				submat[i-1].ptr = &str->ptr[match[i].rm_so];
 				submat[i-1].len = match[i].rm_eo - match[i].rm_so;
@@ -132,11 +132,11 @@ static int matchtre_bcs (hawk_tre_t* tre, int opt, const hawk_bcs_t* str, hawk_b
 	{
 		int i;
 
-		/* you must intialize submat before you pass into this 
+		/* you must intialize submat before you pass into this
 		 * function because it can abort filling */
 		for (i = 1; i < HAWK_COUNTOF(match); i++)
 		{
-			if (match[i].rm_so != -1) 
+			if (match[i].rm_so != -1)
 			{
 				submat[i-1].ptr = &str->ptr[match[i].rm_so];
 				submat[i-1].len = match[i].rm_eo - match[i].rm_so;
@@ -160,7 +160,7 @@ int hawk_rtx_matchvalwithucs (hawk_rtx_t* rtx, hawk_val_t* val, const hawk_ucs_t
 	{
 		code = ((hawk_val_rex_t*)val)->code[ignorecase];
 	}
-	else 
+	else
 	{
 		/* convert to a string and build a regular expression */
 		hawk_oocs_t tmp;
@@ -180,7 +180,7 @@ int hawk_rtx_matchvalwithucs (hawk_rtx_t* rtx, hawk_val_t* val, const hawk_ucs_t
 		substr, match, submat, hawk_rtx_getgem(rtx)
 	);
 
-	if (v_type == HAWK_VAL_REX) 
+	if (v_type == HAWK_VAL_REX)
 	{
 		/* nothing to free */
 	}
@@ -207,7 +207,7 @@ int hawk_rtx_matchvalwithbcs (hawk_rtx_t* rtx, hawk_val_t* val, const hawk_bcs_t
 	{
 		code = ((hawk_val_rex_t*)val)->code[ignorecase];
 	}
-	else 
+	else
 	{
 		/* convert to a string and build a regular expression */
 		hawk_oocs_t tmp;
@@ -226,7 +226,7 @@ int hawk_rtx_matchvalwithbcs (hawk_rtx_t* rtx, hawk_val_t* val, const hawk_bcs_t
 		substr, match, submat, hawk_rtx_getgem(rtx)
 	);
 
-	if (v_type == HAWK_VAL_REX) 
+	if (v_type == HAWK_VAL_REX)
 	{
 		/* nothing to free */
 	}

@@ -58,8 +58,8 @@ int hawk_get_ntime (hawk_ntime_t* t)
 	FILETIME ft;
 	ULARGE_INTEGER li;
 
-	/* 
-	 * MSDN: The FILETIME structure is a 64-bit value representing the 
+	/*
+	 * MSDN: The FILETIME structure is a 64-bit value representing the
 	 *       number of 100-nanosecond intervals since January 1, 1601 (UTC).
 	 */
 
@@ -81,9 +81,9 @@ int hawk_get_ntime (hawk_ntime_t* t)
 	DATETIME dt;
 	hawk_btime_t bt;
 
-	/* Can I use DosQuerySysInfo(QSV_TIME_LOW) and 
-	 * DosQuerySysInfo(QSV_TIME_HIGH) for this instead? 
-	 * Maybe, resolution too low as it returns values 
+	/* Can I use DosQuerySysInfo(QSV_TIME_LOW) and
+	 * DosQuerySysInfo(QSV_TIME_HIGH) for this instead?
+	 * Maybe, resolution too low as it returns values
 	 * in seconds. */
 
 	rc = DosGetDateTime (&dt);
@@ -126,12 +126,12 @@ int hawk_get_ntime (hawk_ntime_t* t)
 
 #elif defined(macintosh)
 	unsigned long tv;
-	
+
 	GetDateTime (&tv);
-	
+
 	t->sec = tv;
 	tv->nsec = 0;
-	
+
 	return 0;
 
 #elif defined(HAVE_CLOCK_GETTIME)
@@ -342,7 +342,7 @@ void hawk_sub_ntime (hawk_ntime_t* z, const hawk_ntime_t* x, const hawk_ntime_t*
 			xs = HAWK_TYPE_MIN(hawk_ntime_sec_t);
 			ns = 0;
 		}
-	} 
+	}
 	else
 	{
 		xs = xs - ys;

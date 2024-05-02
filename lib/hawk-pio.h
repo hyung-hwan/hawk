@@ -28,7 +28,7 @@
 #include <hawk-cmn.h>
 #include <hawk-tio.h>
 
-/** \file 
+/** \file
  * This file defines a piped interface to a child process. You can execute
  * a child process, read and write to its stdin, stdout, stderr, and terminate
  * it. It provides more advanced interface than popen() and pclose().
@@ -44,7 +44,7 @@ enum hawk_pio_flag_t
 	HAWK_PIO_IGNOREECERR = (1 << 1),
 	HAWK_PIO_NOAUTOFLUSH   = (1 << 2),
 
-	/** execute the command via a system shell 
+	/** execute the command via a system shell
 	 * (/bin/sh on unix/linux, cmd.exe on windows and os2) */
 	HAWK_PIO_SHELL         = (1 << 3),
 
@@ -55,13 +55,13 @@ enum hawk_pio_flag_t
 	/** don't attempt to close open file descriptors unknown to pio.
 	 *  it is useful only on a unix-like systems where file descriptors
 	 *  not set with FD_CLOEXEC are inherited by a child process.
-	 *  you're advised to set this option if all normal file descriptors 
-	 *  in your application are open with FD_CLOEXEC set. it can skip 
+	 *  you're advised to set this option if all normal file descriptors
+	 *  in your application are open with FD_CLOEXEC set. it can skip
 	 *  checking a bunch of file descriptors and arranging to close
 	 *  them to prevent inheritance. */
 	HAWK_PIO_NOCLOEXEC     = (1 << 5),
 
-	/** indidate that the command to hawk_pio_open()/hawk_pio_init() is 
+	/** indidate that the command to hawk_pio_open()/hawk_pio_init() is
 	 *  a pointer to a #hawk_pio_fnc_t structure. supported on unix/linux
 	 *  only */
 	HAWK_PIO_FNCCMD        = (1 << 6),
@@ -86,14 +86,14 @@ enum hawk_pio_flag_t
 	HAWK_PIO_OUTTONUL      = (1 << 15),
 
 	/** drop stdin */
-	HAWK_PIO_DROPIN        = (1 << 16), 
+	HAWK_PIO_DROPIN        = (1 << 16),
 	/** drop stdout */
 	HAWK_PIO_DROPOUT       = (1 << 17),
 	/** drop stderr */
 	HAWK_PIO_DROPERR       = (1 << 18),
 
 	/** do not reread if read has been interrupted */
-	HAWK_PIO_READNORETRY   = (1 << 21), 
+	HAWK_PIO_READNORETRY   = (1 << 21),
 	/** do not rewrite if write has been interrupted */
 	HAWK_PIO_WRITENORETRY  = (1 << 22),
 	/** return immediately from hawk_pio_wait() if a child has not exited */
@@ -114,7 +114,7 @@ enum hawk_pio_flag_t
  */
 enum hawk_pio_hid_t
 {
-	HAWK_PIO_IN  = 0, /**< stdin of a child process */ 
+	HAWK_PIO_IN  = 0, /**< stdin of a child process */
 	HAWK_PIO_OUT = 1, /**< stdout of a child process */
 	HAWK_PIO_ERR = 2  /**< stderr of a child process */
 };
@@ -167,14 +167,14 @@ struct hawk_pio_pin_t
 {
 	hawk_pio_hnd_t handle;
 	hawk_tio_t*    tio;
-	hawk_pio_t*    self;	
+	hawk_pio_t*    self;
 };
 
 
 /**
  * The hawk_pio_t type defines a structure to store status for piped I/O
  * to a child process. The hawk_pio_xxx() funtions are written around this
- * type. Do not change the value of each field directly. 
+ * type. Do not change the value of each field directly.
  */
 struct hawk_pio_t
 {
@@ -195,13 +195,13 @@ extern "C" {
 
 /**
  * The hawk_pio_open() function executes a command \a cmd and establishes
- * pipes to it. #HAWK_PIO_SHELL causes the function to execute \a cmd via 
+ * pipes to it. #HAWK_PIO_SHELL causes the function to execute \a cmd via
  * the default shell of an underlying system: /bin/sh on *nix, cmd.exe on win32.
  * On *nix systems, a full path to the command is needed if it is not specified.
- * If \a env is #HAWK_NULL, the environment of \a cmd inherits that of the 
+ * If \a env is #HAWK_NULL, the environment of \a cmd inherits that of the
  * calling process. If you want to pass an empty environment, you can pass
- * an empty \a env object with no items inserted. If #HAWK_PIO_BCSTRCMD is 
- * specified in \a flags, \a cmd is treated as a multi-byte string whose 
+ * an empty \a env object with no items inserted. If #HAWK_PIO_BCSTRCMD is
+ * specified in \a flags, \a cmd is treated as a multi-byte string whose
  * character type is #hawk_bch_t.
  * \return #hawk_pio_t object on success, #HAWK_NULL on failure
  */
@@ -304,9 +304,9 @@ HAWK_EXPORT hawk_ooi_t hawk_pio_readbytes (
 
 
 /**
- * The hawk_pio_write() function writes up \a size bytes/characters 
- * from the buffer pointed to by \a data. If #HAWK_PIO_TEXT is used 
- * and the \a size parameter is (hawk_oow_t)-1, the function treats 
+ * The hawk_pio_write() function writes up \a size bytes/characters
+ * from the buffer pointed to by \a data. If #HAWK_PIO_TEXT is used
+ * and the \a size parameter is (hawk_oow_t)-1, the function treats
  * the \a data parameter as a pointer to a null-terminated string.
  * (hawk_oow_t)-1 into \a size is not treated specially if #HAWK_PIO_TEXT
  * is not set.
@@ -328,7 +328,7 @@ HAWK_EXPORT hawk_ooi_t hawk_pio_writebytes (
 );
 
 /**
- * The hawk_pio_flush() flushes buffered data if #HAWK_PIO_TEXT has been 
+ * The hawk_pio_flush() flushes buffered data if #HAWK_PIO_TEXT has been
  * specified to hawk_pio_open() and hawk_pio_init().
  */
 HAWK_EXPORT hawk_ooi_t hawk_pio_flush (
@@ -337,8 +337,8 @@ HAWK_EXPORT hawk_ooi_t hawk_pio_flush (
 );
 
 /**
- * The hawk_pio_drain() drops unflushed input and output data in the 
- * buffer. 
+ * The hawk_pio_drain() drops unflushed input and output data in the
+ * buffer.
  */
 HAWK_EXPORT void hawk_pio_drain (
 	hawk_pio_t*    pio, /**< pio object */
@@ -355,7 +355,7 @@ HAWK_EXPORT void hawk_pio_end (
 
 /**
  * The hawk_pio_wait() function waits for a child process to terminate.
- * #HAWK_PIO_WAIT_NORETRY causes the function to return an error and set the 
+ * #HAWK_PIO_WAIT_NORETRY causes the function to return an error and set the
  * \a pio->errnum field to #HAWK_PIO_EINTR if the underlying system call has
  * been interrupted. If #HAWK_PIO_WAIT_NOBLOCK is used, the return value of 256
  * indicates that the child process has not terminated. Otherwise, 256 is never
@@ -376,7 +376,7 @@ HAWK_EXPORT int hawk_pio_wait (
  * kill a process that is not your child process if it has terminated but
  * there is a new process with the same process handle.
  * \return 0 on success, -1 on failure
- */ 
+ */
 HAWK_EXPORT int hawk_pio_kill (
 	hawk_pio_t* pio /**< pio object */
 );

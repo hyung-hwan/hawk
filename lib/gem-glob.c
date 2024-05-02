@@ -22,11 +22,11 @@
     THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/* 
+/*
  * Do NOT edit glob.c. Edit glob.c.m4 instead.
- * 
+ *
  * Generate gem-glob.c with m4
- *   $ m4 gem-glob.c.m4 > gem-glob.c  
+ *   $ m4 gem-glob.c.m4 > gem-glob.c
  */
 
 #include "hawk-prv.h"
@@ -261,7 +261,7 @@ static int __u_get_next_segment (__u_glob_t* g, __u_segment_t* seg)
 				if (escaped) escaped = 0;
 				else
 				{
-					if (IS_ESC(seg->ptr[seg->len])) 
+					if (IS_ESC(seg->ptr[seg->len]))
 					{
 						escaped = 1;
 						seg->esc = 1;
@@ -285,12 +285,12 @@ static int __u_get_next_segment (__u_glob_t* g, __u_segment_t* seg)
 		seg->wild = 0;
 		seg->esc = 0;
 
-		while (!IS_SEP_OR_NIL(seg->ptr[seg->len])) 
+		while (!IS_SEP_OR_NIL(seg->ptr[seg->len]))
 		{
 			if (escaped) escaped = 0;
 			else
 			{
-				if (IS_ESC(seg->ptr[seg->len])) 
+				if (IS_ESC(seg->ptr[seg->len]))
 				{
 					escaped = 1;
 					seg->esc = 1;
@@ -309,7 +309,7 @@ static int __u_get_next_segment (__u_glob_t* g, __u_segment_t* seg)
 		seg->len = 0;
 		seg->wild = 0;
 		seg->esc = 0;
-		if (IS_NIL(seg->ptr[-1])) 
+		if (IS_NIL(seg->ptr[-1]))
 		{
 			seg->type = NONE;
 			seg->next = 0;
@@ -319,12 +319,12 @@ static int __u_get_next_segment (__u_glob_t* g, __u_segment_t* seg)
 		{
 			int escaped = 0;
 			seg->sep = seg->ptr[-1];
-			while (!IS_SEP_OR_NIL(seg->ptr[seg->len])) 
+			while (!IS_SEP_OR_NIL(seg->ptr[seg->len]))
 			{
 				if (escaped) escaped = 0;
 				else
 				{
-					if (IS_ESC(seg->ptr[seg->len])) 
+					if (IS_ESC(seg->ptr[seg->len]))
 					{
 						escaped = 1;
 						seg->esc = 1;
@@ -363,7 +363,7 @@ static int __u_handle_non_wild_segments (__u_glob_t* g, __u_segment_t* seg)
 			tmp.ptr = HAWK_UECS_PTR(&g->tbuf);
 			tmp.len = 0;
 
-			/* the following loop drops the last character 
+			/* the following loop drops the last character
 			 * if it is the escape character */
 			for (i = 0; i < seg->len; i++)
 			{
@@ -374,7 +374,7 @@ static int __u_handle_non_wild_segments (__u_glob_t* g, __u_segment_t* seg)
 				}
 				else
 				{
-					if (IS_ESC(seg->ptr[i])) 
+					if (IS_ESC(seg->ptr[i]))
 						escaped = 1;
 					else
 						tmp.ptr[tmp.len++] = seg->ptr[i];
@@ -437,7 +437,7 @@ entry:
 				hawk_uecs_setlen (&g->path, tmp2);
 
 				x = hawk_dir_read(dp, &ent);
-				if (x <= -1) 
+				if (x <= -1)
 				{
 					if (g->flags & HAWK_GLOB_TOLERANT) break;
 					else goto oops;
@@ -451,7 +451,7 @@ entry:
 					if (seg->next)
 					{
 				#if defined(NO_RECURSION)
-						if (g->free) 
+						if (g->free)
 						{
 							r = g->free;
 							g->free = r->next;
@@ -461,8 +461,8 @@ entry:
 							r = hawk_gem_allocmem(g->gem, HAWK_SIZEOF(*r));
 							if (r == HAWK_NULL) goto oops;
 						}
-						
-						/* push key variables that must be restored 
+
+						/* push key variables that must be restored
 						 * into the stack. */
 						r->tmp = tmp;
 						r->tmp2 = tmp2;
@@ -518,7 +518,7 @@ entry:
 		dp = r->dp;
 		*seg = r->seg;
 
-		/* link the stack node to the free list 
+		/* link the stack node to the free list
 		 * instead of freeing it here */
 		r->next = g->free;
 		g->free = r;
@@ -581,15 +581,15 @@ int hawk_gem_uglob (hawk_gem_t* gem, const hawk_uch_t* pattern, hawk_gem_uglob_c
 	if (flags & HAWK_GLOB_PERIOD) g.fnmat_flags |= HAWK_FNMAT_PERIOD;
 
 	if (hawk_uecs_init(&g.path, g.gem, 512) <= -1) return -1;
-	if (hawk_uecs_init(&g.tbuf, g.gem, 256) <= -1) 
+	if (hawk_uecs_init(&g.tbuf, g.gem, 256) <= -1)
 	{
 		hawk_uecs_fini (&g.path);
 		return -1;
 	}
 
-	if (HAWK_SIZEOF(hawk_uch_t) != HAWK_SIZEOF(hawk_bch_t)) 
+	if (HAWK_SIZEOF(hawk_uch_t) != HAWK_SIZEOF(hawk_bch_t))
 	{
-		if (hawk_becs_init(&g.mbuf, g.gem, 512) <= -1) 
+		if (hawk_becs_init(&g.mbuf, g.gem, 512) <= -1)
 		{
 			hawk_uecs_fini (&g.path);
 			hawk_uecs_fini (&g.path);
@@ -711,7 +711,7 @@ static int __b_get_next_segment (__b_glob_t* g, __b_segment_t* seg)
 				if (escaped) escaped = 0;
 				else
 				{
-					if (IS_ESC(seg->ptr[seg->len])) 
+					if (IS_ESC(seg->ptr[seg->len]))
 					{
 						escaped = 1;
 						seg->esc = 1;
@@ -735,12 +735,12 @@ static int __b_get_next_segment (__b_glob_t* g, __b_segment_t* seg)
 		seg->wild = 0;
 		seg->esc = 0;
 
-		while (!IS_SEP_OR_NIL(seg->ptr[seg->len])) 
+		while (!IS_SEP_OR_NIL(seg->ptr[seg->len]))
 		{
 			if (escaped) escaped = 0;
 			else
 			{
-				if (IS_ESC(seg->ptr[seg->len])) 
+				if (IS_ESC(seg->ptr[seg->len]))
 				{
 					escaped = 1;
 					seg->esc = 1;
@@ -759,7 +759,7 @@ static int __b_get_next_segment (__b_glob_t* g, __b_segment_t* seg)
 		seg->len = 0;
 		seg->wild = 0;
 		seg->esc = 0;
-		if (IS_NIL(seg->ptr[-1])) 
+		if (IS_NIL(seg->ptr[-1]))
 		{
 			seg->type = NONE;
 			seg->next = 0;
@@ -769,12 +769,12 @@ static int __b_get_next_segment (__b_glob_t* g, __b_segment_t* seg)
 		{
 			int escaped = 0;
 			seg->sep = seg->ptr[-1];
-			while (!IS_SEP_OR_NIL(seg->ptr[seg->len])) 
+			while (!IS_SEP_OR_NIL(seg->ptr[seg->len]))
 			{
 				if (escaped) escaped = 0;
 				else
 				{
-					if (IS_ESC(seg->ptr[seg->len])) 
+					if (IS_ESC(seg->ptr[seg->len]))
 					{
 						escaped = 1;
 						seg->esc = 1;
@@ -813,7 +813,7 @@ static int __b_handle_non_wild_segments (__b_glob_t* g, __b_segment_t* seg)
 			tmp.ptr = HAWK_BECS_PTR(&g->tbuf);
 			tmp.len = 0;
 
-			/* the following loop drops the last character 
+			/* the following loop drops the last character
 			 * if it is the escape character */
 			for (i = 0; i < seg->len; i++)
 			{
@@ -824,7 +824,7 @@ static int __b_handle_non_wild_segments (__b_glob_t* g, __b_segment_t* seg)
 				}
 				else
 				{
-					if (IS_ESC(seg->ptr[i])) 
+					if (IS_ESC(seg->ptr[i]))
 						escaped = 1;
 					else
 						tmp.ptr[tmp.len++] = seg->ptr[i];
@@ -887,7 +887,7 @@ entry:
 				hawk_becs_setlen (&g->path, tmp2);
 
 				x = hawk_dir_read(dp, &ent);
-				if (x <= -1) 
+				if (x <= -1)
 				{
 					if (g->flags & HAWK_GLOB_TOLERANT) break;
 					else goto oops;
@@ -901,7 +901,7 @@ entry:
 					if (seg->next)
 					{
 				#if defined(NO_RECURSION)
-						if (g->free) 
+						if (g->free)
 						{
 							r = g->free;
 							g->free = r->next;
@@ -911,8 +911,8 @@ entry:
 							r = hawk_gem_allocmem(g->gem, HAWK_SIZEOF(*r));
 							if (r == HAWK_NULL) goto oops;
 						}
-						
-						/* push key variables that must be restored 
+
+						/* push key variables that must be restored
 						 * into the stack. */
 						r->tmp = tmp;
 						r->tmp2 = tmp2;
@@ -968,7 +968,7 @@ entry:
 		dp = r->dp;
 		*seg = r->seg;
 
-		/* link the stack node to the free list 
+		/* link the stack node to the free list
 		 * instead of freeing it here */
 		r->next = g->free;
 		g->free = r;
@@ -1031,15 +1031,15 @@ int hawk_gem_bglob (hawk_gem_t* gem, const hawk_bch_t* pattern, hawk_gem_bglob_c
 	if (flags & HAWK_GLOB_PERIOD) g.fnmat_flags |= HAWK_FNMAT_PERIOD;
 
 	if (hawk_becs_init(&g.path, g.gem, 512) <= -1) return -1;
-	if (hawk_becs_init(&g.tbuf, g.gem, 256) <= -1) 
+	if (hawk_becs_init(&g.tbuf, g.gem, 256) <= -1)
 	{
 		hawk_becs_fini (&g.path);
 		return -1;
 	}
 
-	if (HAWK_SIZEOF(hawk_bch_t) != HAWK_SIZEOF(hawk_bch_t)) 
+	if (HAWK_SIZEOF(hawk_bch_t) != HAWK_SIZEOF(hawk_bch_t))
 	{
-		if (hawk_becs_init(&g.mbuf, g.gem, 512) <= -1) 
+		if (hawk_becs_init(&g.mbuf, g.gem, 512) <= -1)
 		{
 			hawk_becs_fini (&g.path);
 			hawk_becs_fini (&g.path);

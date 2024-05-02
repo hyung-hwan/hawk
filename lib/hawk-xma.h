@@ -50,15 +50,15 @@
  *   hawk_xma_t* xma;
  *   void* ptr1, * ptr2;
  *
- *   // create a new memory allocator obtaining a 100K byte zone 
+ *   // create a new memory allocator obtaining a 100K byte zone
  *   // with the default memory allocator
- *   xma = hawk_xma_open(HAWK_NULL, 0, 100000L); 
+ *   xma = hawk_xma_open(HAWK_NULL, 0, 100000L);
  *
  *   ptr1 = hawk_xma_alloc(xma, 5000); // allocate a 5K block from the zone
  *   ptr2 = hawk_xma_alloc(xma, 1000); // allocate a 1K block from the zone
  *   ptr1 = hawk_xma_realloc(xma, ptr1, 6000); // resize the 5K block to 6K.
  *
- *   hawk_xma_dump (xma, dumper, HAWK_NULL); // dump memory blocks 
+ *   hawk_xma_dump (xma, dumper, HAWK_NULL); // dump memory blocks
  *
  *   // the following two lines are not actually needed as the allocator
  *   // is closed after them.
@@ -100,7 +100,7 @@ struct hawk_xma_t
 	int           internal;
 
 	/** pointer array to free memory blocks */
-	hawk_xma_fblk_t* xfree[HAWK_XMA_FIXED + HAWK_XMA_SIZE_BITS + 1]; 
+	hawk_xma_fblk_t* xfree[HAWK_XMA_FIXED + HAWK_XMA_SIZE_BITS + 1];
 
 	/** pre-computed value for fast xfree index calculation */
 	hawk_oow_t     bdec;
@@ -148,7 +148,7 @@ HAWK_EXPORT hawk_xma_t* hawk_xma_open (
 
 /**
  * The hawk_xma_close() function destroys a memory allocator. It also frees
- * the memory zone obtained, which invalidates the memory blocks within 
+ * the memory zone obtained, which invalidates the memory blocks within
  * the zone. Call this function to destroy a memory allocator created with
  * hawk_xma_open().
  */
@@ -184,7 +184,7 @@ HAWK_EXPORT int hawk_xma_init (
 );
 
 /**
- * The hawk_xma_fini() function finalizes a memory allocator. Call this 
+ * The hawk_xma_fini() function finalizes a memory allocator. Call this
  * function to finalize a memory allocator initialized with hawk_xma_init().
  */
 HAWK_EXPORT void hawk_xma_fini (

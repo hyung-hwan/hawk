@@ -28,8 +28,8 @@
 #include <hawk-cmn.h>
 
 /** \file
- * This file defines functions and data structures to process 
- * command-line arguments. 
+ * This file defines functions and data structures to process
+ * command-line arguments.
  */
 
 typedef struct hawk_ucli_t hawk_ucli_t;
@@ -52,7 +52,7 @@ struct hawk_ucli_t
 	hawk_uch_t*       arg; /* argument associated with an option */
 
 	/* output */
-	const hawk_uch_t* lngopt; 
+	const hawk_uch_t* lngopt;
 
 	/* input + output */
 	int              ind; /* index into parent argv vector */
@@ -81,7 +81,7 @@ struct hawk_bcli_t
 	hawk_bch_t*       arg; /* argument associated with an option */
 
 	/* output */
-	const hawk_bch_t* lngopt; 
+	const hawk_bch_t* lngopt;
 
 	/* input + output */
 	int              ind; /* index into parent argv vector */
@@ -96,27 +96,27 @@ extern "C" {
 
 /**
  * The hawk_get_cli() function processes the \a argc command-line arguments
- * pointed to by \a argv as configured in \a opt. It can process two 
- * different option styles: a single character starting with '-', and a 
- * long name starting with '--'. 
+ * pointed to by \a argv as configured in \a opt. It can process two
+ * different option styles: a single character starting with '-', and a
+ * long name starting with '--'.
  *
  * A character in \a opt.str is treated as a single character option. Should
  * it require a parameter, specify ':' after it.
  *
- * Two special returning option characters indicate special error conditions. 
+ * Two special returning option characters indicate special error conditions.
  * - \b ? indicates a bad option stored in the \a opt->opt field.
  * - \b : indicates a bad parameter for an option stored in the \a opt->opt field.
  *
  * @return an option character on success, HAWK_CHAR_EOF on no more options.
  */
 HAWK_EXPORT hawk_uci_t hawk_get_ucli (
-	int                 argc, /* argument count */ 
+	int                 argc, /* argument count */
 	hawk_uch_t* const*  argv, /* argument array */
 	hawk_ucli_t*        opt   /* option configuration */
 );
 
 HAWK_EXPORT hawk_bci_t hawk_get_bcli (
-	int                 argc, /* argument count */ 
+	int                 argc, /* argument count */
 	hawk_bch_t* const*  argv, /* argument array */
 	hawk_bcli_t*        opt   /* option configuration */
 );

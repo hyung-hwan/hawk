@@ -45,23 +45,23 @@ hawk_rio_type_t hawk_rtx_intoriotype (hawk_rtx_t* rtx, hawk_in_type_t in_type);
 hawk_rio_type_t hawk_rtx_outtoriotype (hawk_rtx_t* rtx, hawk_out_type_t out_type);
 
 int hawk_rtx_readio (
-	hawk_rtx_t* rtx, hawk_in_type_t in_type, 
+	hawk_rtx_t* rtx, hawk_in_type_t in_type,
 	const hawk_ooch_t* name, hawk_ooecs_t* buf);
 
 int hawk_rtx_readiobytes (
-	hawk_rtx_t* rtx, hawk_in_type_t in_type, 
+	hawk_rtx_t* rtx, hawk_in_type_t in_type,
 	const hawk_ooch_t* name, hawk_becs_t* buf);
 
 int hawk_rtx_writeioval (
-	hawk_rtx_t* rtx, hawk_out_type_t out_type, 
+	hawk_rtx_t* rtx, hawk_out_type_t out_type,
 	const hawk_ooch_t* name, hawk_val_t* v);
 
 int hawk_rtx_writeiostr (
-	hawk_rtx_t* rtx, hawk_out_type_t out_type, 
+	hawk_rtx_t* rtx, hawk_out_type_t out_type,
 	const hawk_ooch_t* name, hawk_ooch_t* str, hawk_oow_t len);
 
 int hawk_rtx_writeiobytes (
-	hawk_rtx_t* rtx, hawk_out_type_t out_type, 
+	hawk_rtx_t* rtx, hawk_out_type_t out_type,
 	const hawk_ooch_t* name, hawk_bch_t* str, hawk_oow_t len);
 
 int hawk_rtx_flushio (

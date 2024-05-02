@@ -164,7 +164,7 @@ Assuming the above sample code is stored in `hawk02.c` and the built Hawk librar
 $ gcc -Wall -O2 -o hawk02 hawk02.c -lhawk
 ```
 
-The acutal command may vary depending on the compiler used and the library `configure` options used.
+The actual command may vary depending on the compiler used and the library `configure` options used.
 
 # Embedding Hawk in C++ Applications
 
@@ -253,7 +253,7 @@ In this example, the `sum.hawk` file contains the Hawk script that sums up the n
 
 It's important to note that if there is no action-pattern block or `END` block present in the Hawk script, the interpreter will not wait for input records. In this case, the script will execute only the `BEGIN` block (if present) and then immediately terminate.
 
-However, if an action-pattern block or an END block is present in the script, even if there is no action-pattern block, Hawk (and awk) will wait for input records or lines. This behavior is consistent with the way awk was designed to operate: it expects input data to process unless the script explicitly indicates that no input is required.
+However, if an action-pattern block or an END block is present in the script, even if there is no action-pattern block, Hawk will wait for input records or lines. This behavior is consistent with the way awk was designed to operate: it expects input data to process unless the script explicitly indicates that no input is required.
 
 For example, consider the following command:
 
@@ -275,8 +275,8 @@ The `@pragma` keyword enables you to modify Hawk’s behavior. You can place a p
 | implicit      | file   | on, off       | on      | allow undeclared variables                             |
 | multilinestr  | file   | on, off       | off     | allow a multiline string literal without continuation  |
 | striprecspc   | global | on, off       | off     | removes leading and trailing blank fields in splitting a record if FS is a regular expression mathcing all spaces |
-| stripstrspc   | global | on, off       | on      | trim leading and trailing spaces when convering a string to a number |
-| numstrdetect  | global | on, off       | on      | trim leading and trailing spaces when convering a string to a number |
+| stripstrspc   | global | on, off       | on      | trim leading and trailing spaces when converting a string to a number |
+| numstrdetect  | global | on, off       | on      | trim leading and trailing spaces when converting a string to a number |
 | stack_limit   | global | number        | 5120    | specify the runtime stack size measured in the number of values |
 
 ### @pragma entry
@@ -295,7 +295,7 @@ In this example, the `main` function is set as the entry point for script execut
 You can also pass arguments to the entry point function by defining it with parameters:
 
 ```awk
-@pragma entry main;
+@pragma entry main
 function main(arg1, arg2) {
 	print "Arguments:", arg1, arg2
 }
@@ -316,10 +316,10 @@ This flexibility in specifying the entry point can be useful in various scenario
 - Testing and Debugging: When working on specific parts of your script, you can temporarily set the entry point to a different function, making it easier to test and debug that particular functionality.
 - Integration with Other Systems: If you need to embed Hawk scripts within a larger application or system, you can use the `@pragma entry` feature to specify the function that should be executed as the entry point, enabling better integration and control over the script execution flow.
 
-If you don't know the number of arguments in advance, you can use the ellipsis `...` in the parameter list and access the varidic arguments using `@argv()` and `@argc()`.
+If you don't know the number of arguments in advance, you can use the ellipsis `...` in the parameter list and access the variadic arguments using `@argv()` and `@argc()`.
 
 ```awk
-@pragma entry main;
+@pragma entry main
 function main(...) {
 	@local i
 	for (i = 0; i < @argc(); i++) printf("%d:", @argv(i))
@@ -449,7 +449,7 @@ BEGIN {
 
 ## Comments
 
-`Hawk` supports a single-line commnt that begins with a hash sign # and the C-style multi-line comment.
+`Hawk` supports a single-line comment that begins with a hash sign # and the C-style multi-line comment.
 
 ```awk
 x = y; # assign y to x.
@@ -492,11 +492,11 @@ The following words are reserved and cannot be used as a variable name, a parame
  - return
  - while
 
-However, these words can be used as normal names in the context of a module call. For example, mymod::break. In practice, the predefined names used for built-in commands, functions, and variables are treated as if they are reserved since you can't create another denifition with the same name.
+However, these words can be used as normal names in the context of a module call. For example, mymod::break. In practice, the predefined names used for built-in commands, functions, and variables are treated as if they are reserved since you can't create another definition with the same name.
 
 ## Values
 
-- unitialized value
+- uninitialized value
 - character
 - integer
 - floating-point number
@@ -532,26 +532,26 @@ BEGIN {
 - hawk::VAL_REF
 - hawk::VAL_REX
 
-A regular expression literal is special in that it never appears as an indendent value and still entails a match operation against $0 without an match operator.	
+A regular expression literal is special in that it never appears as an independent value and still entails a match operation against $0 without an match operator.
 
 ```awk
 BEGIN { $0="ab"; print /ab/, hawk::typename(/ab/); }
 ```
 
-For this reason, there is no way to get the type name of a regular expressin literal.
+For this reason, there is no way to get the type name of a regular expression literal.
 
 ### Numbers
 
 An integer begins with a numeric digit between 0 and 9 inclusive and can be
 followed by more numeric digits. If an integer is immediately followed by a
 floating point, and optionally a series of numeric digits without whitespaces,
-it becomes a floting-point number. An integer or a simple floating-point number
+it becomes a floating-point number. An integer or a simple floating-point number
 can be followed by e or E, and optionally a series of numeric digits with a
-optional single sign letter. A floating-point number may begin with a floting
-point with a preceeding number.
+optional single sign letter. A floating-point number may begin with a floating
+point with a preceding number.
 
 - `369`   # integer
-- `3.69`  # floating-pointe number
+- `3.69`  # floating-point number
 - `13.`   # 13.0
 - `.369`  # 0.369
 - `34e-2` # 34 * (10 ** -2)
@@ -561,7 +561,7 @@ point with a preceeding number.
 
 An integer can be prefixed with 0x, 0, 0b for a hexa-decimal number, an octal
 number, and a binary number respectively. For a hexa-decimal number, letters
-from A to F can form a number case-insenstively in addition to numeric digits.
+from A to F can form a number case-insensitively in addition to numeric digits.
 
 - `0xA1`   # 161
 - `0xB0b0` # 45232
@@ -626,7 +626,7 @@ BEGIN {
 - +, -, *, %
 - &&, ||, &, |
 
-## Control Strucutres
+## Control Structures
 
 Hawk supports various control structures for flow control and iteration, similar to those found in awk.
 
@@ -970,7 +970,7 @@ The `str` module provides an extensive set of string manipulation functions.
 - str::isxdigit
 - str::length - equivalent to length
 - str::ltrim
-- str::match - similar to match. the optional third argument is the search start index. the optional fourth argument is equivalent to the thrid argument to match().
+- str::match - similar to match. the optional third argument is the search start index. the optional fourth argument is equivalent to the third argument to match().
 - str::normspace
 - str::printf - equivalent to sprintf
 - str::rindex
@@ -980,7 +980,7 @@ The `str` module provides an extensive set of string manipulation functions.
 - str::substr - equivalent to substr
 - str::tocharcode - get the numeric value of the first character
 - str::tolower - equivalent to tolower
-- str::tonum - convert a string to a number. a numeric value passed as a parameter is returned as it is. the leading prefix of 0b, 0, and 0x specifies the radix of 2, 8, 16 repectively. conversion stops when the end of the string is reached or the first invalid character for conversion is encountered.
+- str::tonum - convert a string to a number. a numeric value passed as a parameter is returned as it is. the leading prefix of 0b, 0, and 0x specifies the radix of 2, 8, 16 respectively. conversion stops when the end of the string is reached or the first invalid character for conversion is encountered.
 - str::toupper - equivalent to toupper
 - str::trim
 

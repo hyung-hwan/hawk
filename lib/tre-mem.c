@@ -112,7 +112,7 @@ hawk_tre_mem_alloc_impl(hawk_tre_mem_t mem, int provided, void *provided_block,
 	}
       else
 	{
-	/* HAWK */	
+	/* HAWK */
 	/*  int block_size;*/
 	  hawk_oow_t block_size;
 	/* END HAWK */

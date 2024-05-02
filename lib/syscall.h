@@ -552,7 +552,7 @@ so it's not practical to define HAWK_GETCWD().
 
 /* ------------------------------------------------------------------------ */
 
-#if defined(__linux) && defined(__GNUC__) && defined(__x86_64) 
+#if defined(__linux) && defined(__GNUC__) && defined(__x86_64)
 
 #include <sys/syscall.h>
 
@@ -565,8 +565,8 @@ The section is informative only.
 
 A.2.1 Calling Conventions
 The Linux AMD64 kernel uses internally the same calling conventions as user-
-level applications (see section 3.2.3 for details). User-level applications 
-that like to call system calls should use the functions from the C library. 
+level applications (see section 3.2.3 for details). User-level applications
+that like to call system calls should use the functions from the C library.
 The interface between the C library and the Linux kernel is the same as for
 the user-level applications with the following differences:
 
@@ -576,7 +576,7 @@ the user-level applications with the following differences:
 2. A system-call is done via the syscall instruction. The kernel destroys
    registers %rcx and %r11.
 3. The number of the syscall has to be passed in register %rax.
-4. System-calls are limited to six arguments, no argument is passed directly 
+4. System-calls are limited to six arguments, no argument is passed directly
    on the stack.
 5. Returning from the syscall, register %rax contains the result of the
    system-call. A value in the range between -4095 and -1 indicates an error,
@@ -632,7 +632,7 @@ the user-level applications with the following differences:
 		: "a"((hawk_uint64_t)num) \
 		: "memory", "cc", "%rcx", "%r11" \
 	)
- 
+
 
 #define HAWK_SYSCALL1(ret,num,arg1) \
 	__asm__ volatile ( \
@@ -666,7 +666,7 @@ the user-level applications with the following differences:
 		: "memory", "cc", "%rcx", "%r11" \
 	)
 
-#elif defined(__linux) && defined(__GNUC__) && defined(__i386) 
+#elif defined(__linux) && defined(__GNUC__) && defined(__i386)
 
 #include <sys/syscall.h>
 

@@ -32,7 +32,7 @@
  * This file defines various formatting functions.
  */
 
-/** 
+/**
  * The hawk_fmt_intmax_flag_t type defines enumerators to change the
  * behavior of hawk_fmt_intmax() and hawk_fmt_uintmax().
  */
@@ -161,7 +161,7 @@ typedef int (*hawk_fmtout_putobj_t) (
 	hawk_val_t*        val
 );
 
-enum hawk_fmtout_fmt_type_t 
+enum hawk_fmtout_fmt_type_t
 {
 	HAWK_FMTOUT_FMT_TYPE_BCH = 0,
 	HAWK_FMTOUT_FMT_TYPE_UCH
@@ -189,22 +189,22 @@ extern "C" {
 #endif
 
 /**
- * The hawk_fmt_intmax_to_bcstr() function formats an integer \a value to a 
- * multibyte string according to the given base and writes it to a buffer 
- * pointed to by \a buf. It writes to the buffer at most \a size characters 
- * including the terminating null. The base must be between 2 and 36 inclusive 
- * and can be ORed with zero or more #hawk_fmt_intmax_to_bcstr_flag_t enumerators. 
- * This ORed value is passed to the function via the \a base_and_flags 
+ * The hawk_fmt_intmax_to_bcstr() function formats an integer \a value to a
+ * multibyte string according to the given base and writes it to a buffer
+ * pointed to by \a buf. It writes to the buffer at most \a size characters
+ * including the terminating null. The base must be between 2 and 36 inclusive
+ * and can be ORed with zero or more #hawk_fmt_intmax_to_bcstr_flag_t enumerators.
+ * This ORed value is passed to the function via the \a base_and_flags
  * parameter. If the formatted string is shorter than \a bufsize, the redundant
- * slots are filled with the fill character \a fillchar if it is not a null 
+ * slots are filled with the fill character \a fillchar if it is not a null
  * character. The filling behavior is determined by the flags shown below:
  *
- * - If #HAWK_FMT_INTMAX_TO_BCSTR_FILLRIGHT is set in \a base_and_flags, slots 
+ * - If #HAWK_FMT_INTMAX_TO_BCSTR_FILLRIGHT is set in \a base_and_flags, slots
  *   after the formatting string are filled.
- * - If #HAWK_FMT_INTMAX_TO_BCSTR_FILLCENTER is set in \a base_and_flags, slots 
+ * - If #HAWK_FMT_INTMAX_TO_BCSTR_FILLCENTER is set in \a base_and_flags, slots
  *   before the formatting string are filled. However, if it contains the
  *   sign character, the slots between the sign character and the digit part
- *   are filled.  
+ *   are filled.
  * - If neither #HAWK_FMT_INTMAX_TO_BCSTR_FILLRIGHT nor #HAWK_FMT_INTMAX_TO_BCSTR_FILLCENTER
  *   , slots before the formatting string are filled.
  *
@@ -216,26 +216,26 @@ extern "C" {
  *
  * The terminating null is not added if #HAWK_FMT_INTMAX_TO_BCSTR_NONULL is set;
  * The #HAWK_FMT_INTMAX_TO_BCSTR_UPPERCASE flag indicates that the function should
- * use the uppercase letter for a alphabetic digit; 
+ * use the uppercase letter for a alphabetic digit;
  * You can set #HAWK_FMT_INTMAX_TO_BCSTR_NOTRUNC if you require lossless formatting.
- * The #HAWK_FMT_INTMAX_TO_BCSTR_PLUSSIGN flag and #HAWK_FMT_INTMAX_TO_BCSTR_EMPTYSIGN 
- * ensures that the plus sign and a space is added for a positive integer 
+ * The #HAWK_FMT_INTMAX_TO_BCSTR_PLUSSIGN flag and #HAWK_FMT_INTMAX_TO_BCSTR_EMPTYSIGN
+ * ensures that the plus sign and a space is added for a positive integer
  * including 0 respectively.
  * The #HAWK_FMT_INTMAX_TO_BCSTR_ZEROLEAD flag ensures that the numeric string
  * begins with '0' before applying the prefix.
  * You can set the #HAWK_FMT_INTMAX_TO_BCSTR_NOZERO flag if you want the value of
- * 0 to produce nothing. If both #HAWK_FMT_INTMAX_TO_BCSTR_NOZERO and 
+ * 0 to produce nothing. If both #HAWK_FMT_INTMAX_TO_BCSTR_NOZERO and
  * #HAWK_FMT_INTMAX_TO_BCSTR_ZEROLEAD are specified, '0' is still produced.
- * 
+ *
  * If \a prefix is not #HAWK_NULL, it is inserted before the digits.
- * 
+ *
  * \return
- *  - -1 if the base is not between 2 and 36 inclusive. 
- *  - negated number of characters required for lossless formatting 
+ *  - -1 if the base is not between 2 and 36 inclusive.
+ *  - negated number of characters required for lossless formatting
  *   - if \a bufsize is 0.
  *   - if #HAWK_FMT_INTMAX_TO_BCSTR_NOTRUNC is set and \a bufsize is less than
  *     the minimum required for lossless formatting.
- *  - number of characters written to the buffer excluding a terminating 
+ *  - number of characters written to the buffer excluding a terminating
  *    null in all other cases.
  */
 HAWK_EXPORT int hawk_fmt_intmax_to_bcstr (
@@ -249,25 +249,25 @@ HAWK_EXPORT int hawk_fmt_intmax_to_bcstr (
 );
 
 /**
- * The hawk_fmt_intmax_to_ucstr() function formats an integer \a value to a 
- * wide-character string according to the given base and writes it to a buffer 
- * pointed to by \a buf. It writes to the buffer at most \a size characters 
- * including the terminating null. The base must be between 2 and 36 inclusive 
- * and can be ORed with zero or more #hawk_fmt_intmax_to_ucstr_flag_t enumerators. 
- * This ORed value is passed to the function via the \a base_and_flags 
+ * The hawk_fmt_intmax_to_ucstr() function formats an integer \a value to a
+ * wide-character string according to the given base and writes it to a buffer
+ * pointed to by \a buf. It writes to the buffer at most \a size characters
+ * including the terminating null. The base must be between 2 and 36 inclusive
+ * and can be ORed with zero or more #hawk_fmt_intmax_to_ucstr_flag_t enumerators.
+ * This ORed value is passed to the function via the \a base_and_flags
  * parameter. If the formatted string is shorter than \a bufsize, the redundant
- * slots are filled with the fill character \a fillchar if it is not a null 
+ * slots are filled with the fill character \a fillchar if it is not a null
  * character. The filling behavior is determined by the flags shown below:
  *
- * - If #HAWK_FMT_INTMAX_TO_UCSTR_FILLRIGHT is set in \a base_and_flags, slots 
+ * - If #HAWK_FMT_INTMAX_TO_UCSTR_FILLRIGHT is set in \a base_and_flags, slots
  *   after the formatting string are filled.
- * - If #HAWK_FMT_INTMAX_TO_UCSTR_FILLCENTER is set in \a base_and_flags, slots 
+ * - If #HAWK_FMT_INTMAX_TO_UCSTR_FILLCENTER is set in \a base_and_flags, slots
  *   before the formatting string are filled. However, if it contains the
  *   sign character, the slots between the sign character and the digit part
- *   are filled.  
+ *   are filled.
  * - If neither #HAWK_FMT_INTMAX_TO_UCSTR_FILLRIGHT nor #HAWK_FMT_INTMAX_TO_UCSTR_FILLCENTER
  *   , slots before the formatting string are filled.
- * 
+ *
  * The \a precision parameter specified the minimum number of digits to
  * produce from the \ value. If \a value produces fewer digits than
  * \a precision, the actual digits are padded with '0' to meet the precision
@@ -276,26 +276,26 @@ HAWK_EXPORT int hawk_fmt_intmax_to_bcstr (
  *
  * The terminating null is not added if #HAWK_FMT_INTMAX_TO_UCSTR_NONULL is set;
  * The #HAWK_FMT_INTMAX_TO_UCSTR_UPPERCASE flag indicates that the function should
- * use the uppercase letter for a alphabetic digit; 
+ * use the uppercase letter for a alphabetic digit;
  * You can set #HAWK_FMT_INTMAX_TO_UCSTR_NOTRUNC if you require lossless formatting.
- * The #HAWK_FMT_INTMAX_TO_UCSTR_PLUSSIGN flag and #HAWK_FMT_INTMAX_TO_UCSTR_EMPTYSIGN 
- * ensures that the plus sign and a space is added for a positive integer 
+ * The #HAWK_FMT_INTMAX_TO_UCSTR_PLUSSIGN flag and #HAWK_FMT_INTMAX_TO_UCSTR_EMPTYSIGN
+ * ensures that the plus sign and a space is added for a positive integer
  * including 0 respectively.
  * The #HAWK_FMT_INTMAX_TO_UCSTR_ZEROLEAD flag ensures that the numeric string
  * begins with 0 before applying the prefix.
  * You can set the #HAWK_FMT_INTMAX_TO_UCSTR_NOZERO flag if you want the value of
- * 0 to produce nothing. If both #HAWK_FMT_INTMAX_TO_UCSTR_NOZERO and 
+ * 0 to produce nothing. If both #HAWK_FMT_INTMAX_TO_UCSTR_NOZERO and
  * #HAWK_FMT_INTMAX_TO_UCSTR_ZEROLEAD are specified, '0' is still produced.
  *
  * If \a prefix is not #HAWK_NULL, it is inserted before the digits.
- * 
+ *
  * \return
- *  - -1 if the base is not between 2 and 36 inclusive. 
- *  - negated number of characters required for lossless formatting 
+ *  - -1 if the base is not between 2 and 36 inclusive.
+ *  - negated number of characters required for lossless formatting
  *   - if \a bufsize is 0.
  *   - if #HAWK_FMT_INTMAX_TO_UCSTR_NOTRUNC is set and \a bufsize is less than
  *     the minimum required for lossless formatting.
- *  - number of characters written to the buffer excluding a terminating 
+ *  - number of characters written to the buffer excluding a terminating
  *    null in all other cases.
  */
 HAWK_EXPORT int hawk_fmt_intmax_to_ucstr (
@@ -310,8 +310,8 @@ HAWK_EXPORT int hawk_fmt_intmax_to_ucstr (
 
 
 /**
- * The hawk_fmt_uintmax_to_bcstr() function formats an unsigned integer \a value 
- * to a multibyte string buffer. It behaves the same as hawk_fmt_intmax_to_bcstr() 
+ * The hawk_fmt_uintmax_to_bcstr() function formats an unsigned integer \a value
+ * to a multibyte string buffer. It behaves the same as hawk_fmt_intmax_to_bcstr()
  * except that it handles an unsigned integer.
  */
 HAWK_EXPORT int hawk_fmt_uintmax_to_bcstr (
@@ -325,8 +325,8 @@ HAWK_EXPORT int hawk_fmt_uintmax_to_bcstr (
 );
 
 /**
- * The hawk_fmt_uintmax_to_ucstr() function formats an unsigned integer \a value 
- * to a unicode string buffer. It behaves the same as hawk_fmt_intmax_to_ucstr() 
+ * The hawk_fmt_uintmax_to_ucstr() function formats an unsigned integer \a value
+ * to a unicode string buffer. It behaves the same as hawk_fmt_intmax_to_ucstr()
  * except that it handles an unsigned integer.
  */
 HAWK_EXPORT int hawk_fmt_uintmax_to_ucstr (

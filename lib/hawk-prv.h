@@ -60,7 +60,7 @@ typedef struct hawk_tree_t hawk_tree_t;
  *   BEGIN { q[1]=x; y=q[1]; y(1,2,3); } # this works.
  *   -----------------------------------------------------
  *   function __printer(a,b,c) { print a, b, c; }
- *   function show(printer, a,b,c) { printer(a, b, c); }  
+ *   function show(printer, a,b,c) { printer(a, b, c); }
  *   BEGIN { show(__printer, 10, 20, 30); } ## passing the function value as an argumnet is ok.
  */
 #define HAWK_ENABLE_FUN_AS_VALUE
@@ -156,7 +156,7 @@ typedef struct hawk_tree_t hawk_tree_t;
 #	if !defined(HAVE___BUILTIN_MEMSET) || \
 	   !defined(HAVE___BUILTIN_MEMCPY) || \
 	   !defined(HAVE___BUILTIN_MEMMOVE) || \
-	   !defined(HAVE___BUILTIN_MEMCMP) 
+	   !defined(HAVE___BUILTIN_MEMCMP)
 #		include <string.h>
 #	endif
 
@@ -257,7 +257,7 @@ struct hawk_t
 	} opt;
 
 	/* some temporary workspace */
-	hawk_sbuf_t sbuf[HAWK_SBUF_COUNT];	
+	hawk_sbuf_t sbuf[HAWK_SBUF_COUNT];
 
 	/* parse tree */
 	hawk_tree_t tree;
@@ -327,7 +327,7 @@ struct hawk_t
 		hawk_sio_impl_t inf;
 		hawk_sio_impl_t outf;
 
-		hawk_sio_lxc_t last; 
+		hawk_sio_lxc_t last;
 
 		hawk_oow_t nungots;
 		hawk_sio_lxc_t ungot[5];
@@ -446,12 +446,12 @@ struct hawk_rtx_t
 	struct
 	{
 		/* lists of values under gc management */
-		hawk_gch_t g[HAWK_GC_NUM_GENS]; 
+		hawk_gch_t g[HAWK_GC_NUM_GENS];
 
-		/* 
+		/*
 		 * Pressure imposed on each generation before gc is triggered
 		 *  pressure[0] - number of allocation attempt since the last gc
-		 *  pressure[N] - nubmer of collections performed for generation N - 1. 
+		 *  pressure[N] - nubmer of collections performed for generation N - 1.
 		 */
 		hawk_oow_t pressure[HAWK_GC_NUM_GENS + 1];
 
@@ -491,7 +491,7 @@ struct hawk_rtx_t
 	struct
 	{
 		void* rs[2];
-		void* fs[2]; 
+		void* fs[2];
 		int ignorecase;
 		int striprecspc;
 		int stripstrspc;

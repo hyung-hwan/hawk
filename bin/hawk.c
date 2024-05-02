@@ -162,7 +162,7 @@ static void dispatch_siginfo (int sig, siginfo_t* si, void* ctx)
 		((sig_handler_t)g_sig_state[sig].handler) (sig);
 	}
 
-	if (g_sig_state[sig].old_handler && 
+	if (g_sig_state[sig].old_handler &&
 	    g_sig_state[sig].old_handler != (hawk_uintptr_t)SIG_IGN &&
 	    g_sig_state[sig].old_handler != (hawk_uintptr_t)SIG_DFL)
 	{
@@ -179,7 +179,7 @@ static void dispatch_signal (int sig)
 		((sig_handler_t)g_sig_state[sig].handler) (sig);
 	}
 
-	if (g_sig_state[sig].old_handler && 
+	if (g_sig_state[sig].old_handler &&
 	    g_sig_state[sig].old_handler != (hawk_uintptr_t)SIG_IGN &&
 	    g_sig_state[sig].old_handler != (hawk_uintptr_t)SIG_DFL)
 	{
@@ -398,7 +398,7 @@ static int apply_fs_and_gvs_to_rtx (hawk_rtx_t* rtx, arg_t* arg)
 
 	if (arg->gvm.capa > 0)
 	{
-		/* set the value of user-defined global variables 
+		/* set the value of user-defined global variables
 		 * to a runtime context */
 		hawk_oow_t i;
 
@@ -416,19 +416,19 @@ static int apply_fs_and_gvs_to_rtx (hawk_rtx_t* rtx, arg_t* arg)
 		}
 	}
 
-	for (i = 0; arg->psin[i].type != HAWK_PARSESTD_NULL; i++) 
+	for (i = 0; arg->psin[i].type != HAWK_PARSESTD_NULL; i++)
 	{
-		if (arg->psin[i].type == HAWK_PARSESTD_FILE) 
+		if (arg->psin[i].type == HAWK_PARSESTD_FILE)
 		{
 			if (hawk_rtx_setscriptnamewithoochars(rtx, arg->psin[i].u.file.path, hawk_count_oocstr(arg->psin[i].u.file.path)) <= -1) return -1;
 			break;
 		}
-		else if (arg->psin[i].type == HAWK_PARSESTD_FILEB) 
+		else if (arg->psin[i].type == HAWK_PARSESTD_FILEB)
 		{
 			if (hawk_rtx_setscriptnamewithbchars(rtx, arg->psin[i].u.fileb.path, hawk_count_bcstr(arg->psin[i].u.fileb.path)) <= -1) return -1;
 			break;
 		}
-		else if (arg->psin[i].type == HAWK_PARSESTD_FILEU) 
+		else if (arg->psin[i].type == HAWK_PARSESTD_FILEU)
 		{
 			if (hawk_rtx_setscriptnamewithuchars(rtx, arg->psin[i].u.fileu.path, hawk_count_ucstr(arg->psin[i].u.fileu.path)) <= -1) return -1;
 			break;
@@ -443,7 +443,7 @@ static void dprint_return (hawk_rtx_t* rtx, hawk_val_t* ret)
 	hawk_t* hawk = hawk_rtx_gethawk(rtx);
 	hawk_oow_t len;
 	hawk_ooch_t* str;
-	
+
 
 	if (hawk_rtx_isnilval(rtx, ret))
 	{
@@ -471,7 +471,7 @@ static void dprint_return (hawk_rtx_t* rtx, hawk_val_t* ret)
 #if defined(ENABLE_CALLBACK)
 static void on_statement (hawk_rtx_t* rtx, hawk_nde_t* nde)
 {
-	
+
 	hawk_logfmt (hawk_rtx_gethawk(rtx), HAWK_LOG_STDERR, HAWK_T("running %d at line %zu\n"), (int)nde->type, (hawk_oow_t)nde->loc.line);
 }
 #endif
@@ -549,7 +549,7 @@ static void print_usage (FILE* out, const hawk_bch_t* argv0)
 	fprintf (out, " -v/--assign          var=value    add a global variable with a value\n");
 	fprintf (out, " -m/--memory-limit    number       limit the memory usage (bytes)\n");
 	fprintf (out, " -w                                expand datafile wildcards\n");
-	
+
 #if defined(HAWK_BUILD_DEBUG)
 	fprintf (out, " -X                   number       fail the number'th memory allocation\n");
 #endif
@@ -650,7 +650,7 @@ static int expand_wildcard (int argc, hawk_bch_t* argv[], int do_glob, xarg_t* x
 
 static int process_argv (int argc, hawk_bch_t* argv[], struct arg_t* arg)
 {
-	static hawk_bcli_lng_t lng[] = 
+	static hawk_bcli_lng_t lng[] =
 	{
 		{ ":implicit",         '\0' },
 		{ ":multilinestr",     '\0' },
@@ -688,10 +688,10 @@ static int process_argv (int argc, hawk_bch_t* argv[], struct arg_t* arg)
 
 		{ "version",           '\0' },
 		{ "help",              'h' },
-		{ HAWK_NULL,           '\0' }                  
+		{ HAWK_NULL,           '\0' }
 	};
 
-	static hawk_bcli_t opt = 
+	static hawk_bcli_t opt =
 	{
 #if defined(HAWK_BUILD_DEBUG)
 		"hDc:f:d:t:F:v:m:I:wX:",
@@ -770,7 +770,7 @@ static int process_argv (int argc, hawk_bch_t* argv[], struct arg_t* arg)
 				hawk_bcs_t tmp;
 				tmp.ptr = opt.arg;
 				tmp.len = hawk_count_bcstr(opt.arg);
-				if (collect_into_xarg(&tmp, &arg->ocf) <= -1) 
+				if (collect_into_xarg(&tmp, &arg->ocf) <= -1)
 				{
 					print_error ("out of memory\n");
 					goto oops;
@@ -790,7 +790,7 @@ static int process_argv (int argc, hawk_bch_t* argv[], struct arg_t* arg)
 				hawk_bch_t* eq;
 
 				eq = hawk_find_bchar_in_bcstr(opt.arg, HAWK_T('='));
-				if (eq == HAWK_NULL) 
+				if (eq == HAWK_NULL)
 				{
 					if (opt.lngopt)
 						print_error ("no value for '%s' in '%s'\n", opt.arg, opt.lngopt);
@@ -921,7 +921,7 @@ static int process_argv (int argc, hawk_bch_t* argv[], struct arg_t* arg)
 				}
 				break;
 			}
-			
+
 			case '?':
 			{
 				if (opt.lngopt)
@@ -964,7 +964,7 @@ static int process_argv (int argc, hawk_bch_t* argv[], struct arg_t* arg)
 		isfl++;
 	}
 
-	for (i = 0; i < isfl ; i++) 
+	for (i = 0; i < isfl ; i++)
 	{
 		if (isf[i].type == HAWK_PARSESTD_FILE) isf[i].u.file.cmgr = arg->script_cmgr;
 	}
@@ -972,7 +972,7 @@ static int process_argv (int argc, hawk_bch_t* argv[], struct arg_t* arg)
 	isf[isfl].type = HAWK_PARSESTD_NULL;
 	arg->psin = isf;
 
-	if (opt.ind < argc) 
+	if (opt.ind < argc)
 	{
 		/* the remaining arguments are input console file names */
 		if (expand_wildcard(argc - opt.ind, &argv[opt.ind], do_glob, &arg->icf) <= -1)
@@ -988,7 +988,7 @@ oops:
 	if (arg->gvm.ptr) free (arg->gvm.ptr);
 	purge_xarg (&arg->icf);
 	purge_xarg (&arg->ocf);
-	if (isf) 
+	if (isf)
 	{
 		if (arg->incl_conv) free (isf[0].u.bcs.ptr);
 		free (isf);
@@ -998,7 +998,7 @@ oops:
 
 static void freearg (struct arg_t* arg)
 {
-	if (arg->psin) 
+	if (arg->psin)
 	{
 		if (arg->incl_conv) free (arg->psin[0].u.bcs.ptr);
 		free (arg->psin);
@@ -1015,7 +1015,7 @@ static void print_hawk_error (hawk_t* hawk)
 	const hawk_loc_t* loc = hawk_geterrloc(hawk);
 
 	hawk_logfmt (hawk, HAWK_LOG_STDERR,
-		HAWK_T("ERROR: CODE %d LINE %zu COLUMN %zu %js%js%js- %js\n"), 
+		HAWK_T("ERROR: CODE %d LINE %zu COLUMN %zu %js%js%js- %js\n"),
 		(int)hawk_geterrnum(hawk),
 		(hawk_oow_t)loc->line,
 		(hawk_oow_t)loc->colm,
@@ -1031,7 +1031,7 @@ static void print_hawk_rtx_error (hawk_rtx_t* rtx)
 	const hawk_loc_t* loc = hawk_rtx_geterrloc(rtx);
 
 	hawk_logfmt (hawk_rtx_gethawk(rtx), HAWK_LOG_STDERR,
-		HAWK_T("ERROR: CODE %d LINE %zu COLUMN %zu %js%js%js- %js\n"), 
+		HAWK_T("ERROR: CODE %d LINE %zu COLUMN %zu %js%js%js- %js\n"),
 		(int)hawk_rtx_geterrnum(rtx),
 		(hawk_oow_t)loc->line,
 		(hawk_oow_t)loc->colm,
@@ -1057,7 +1057,7 @@ static void xma_free (hawk_mmgr_t* mmgr, void* ptr)
 	hawk_xma_free (mmgr->ctx, ptr);
 }
 
-static hawk_mmgr_t xma_mmgr = 
+static hawk_mmgr_t xma_mmgr =
 {
 	xma_alloc,
 	xma_realloc,
@@ -1069,7 +1069,7 @@ static void xma_dumper_without_hawk (void* ctx, const hawk_bch_t* fmt, ...)
 {
 	va_list ap;
 	va_start (ap, fmt);
-	vfprintf (stderr, fmt, ap); 
+	vfprintf (stderr, fmt, ap);
 	va_end (ap);
 }
 
@@ -1165,7 +1165,7 @@ static HAWK_INLINE int execute_hawk (int argc, hawk_bch_t* argv[])
 		debug_mmgr.ctx = &arg;
 		mmgr = &debug_mmgr;
 	}
-	else 
+	else
 #endif
 	if (arg.memlimit > 0)
 	{
@@ -1207,7 +1207,7 @@ static HAWK_INLINE int execute_hawk (int argc, hawk_bch_t* argv[])
 		hawk_setopt (hawk, HAWK_OPT_DEPTH_INCLUDE, &tmp);
 	}
 
-	if (arg.includedirs) 
+	if (arg.includedirs)
 	{
 	#if defined(HAWK_OOCH_IS_UCH)
 		hawk_ooch_t* tmp;
@@ -1225,7 +1225,7 @@ static HAWK_INLINE int execute_hawk (int argc, hawk_bch_t* argv[])
 	#endif
 	}
 
-	if (arg.modlibdirs) 
+	if (arg.modlibdirs)
 	{
 	#if defined(HAWK_OOCH_IS_UCH)
 		hawk_ooch_t* tmp;
@@ -1272,7 +1272,7 @@ static HAWK_INLINE int execute_hawk (int argc, hawk_bch_t* argv[])
 		print_hawk_rtx_error (rtx);
 		goto oops;
 	}
-	
+
 	app_rtx = rtx;
 #if defined(ENABLE_CALLBACK)
 	hawk_rtx_pushecb (rtx, &rtx_ecb);
@@ -1286,7 +1286,7 @@ static HAWK_INLINE int execute_hawk (int argc, hawk_bch_t* argv[])
 		hawk_rtx_loop(rtx); /* this doesn't support @pragma startup ... */
 #else
 	/* note about @pragma entry ...
-	 * hawk_rtx_execwithbcstrarr() invokes the specified function if '@pragma entry' is set 
+	 * hawk_rtx_execwithbcstrarr() invokes the specified function if '@pragma entry' is set
 	 * in the source code. because arg.icf.ptr has been passed to hawk_rtx_openstdwithbcstr() when
 	 * arg.call is HAWK_NULL, arg.icf.ptr serves as parameters to the startup function and
 	 * affects input consoles */
@@ -1319,7 +1319,7 @@ oops:
 
 	unset_intr_pipe ();
 
-	if (xma_mmgr.ctx) 
+	if (xma_mmgr.ctx)
 	{
 		if (app_debug) hawk_xma_dump (xma_mmgr.ctx, xma_dumper_without_hawk, HAWK_NULL);
 		hawk_xma_close (xma_mmgr.ctx);
@@ -1332,7 +1332,7 @@ oops:
 	{
 		hawk_fprintf (HAWK_STDERR, HAWK_T("\n"));
 		hawk_fprintf (HAWK_STDERR, HAWK_T("-[MALLOC COUNTS]---------------------------------------\n"));
-		hawk_fprintf (HAWK_STDERR, HAWK_T("ALLOC: %lu FREE: %lu: REALLOC: %lu\n"), 
+		hawk_fprintf (HAWK_STDERR, HAWK_T("ALLOC: %lu FREE: %lu: REALLOC: %lu\n"),
 			(unsigned long)debug_mmgr_alloc_count,
 			(unsigned long)debug_mmgr_free_count,
 			(unsigned long)debug_mmgr_realloc_count);
@@ -1417,7 +1417,7 @@ recv      () {}
 setsockopt () {}
 send      () {}
 bind     () {}
-shutdown  () {}  
+shutdown  () {}
 
 void* memmove (void* x, void* y, size_t z) {}
 #endif

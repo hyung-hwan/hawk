@@ -112,7 +112,7 @@ int hawk_sed_init (hawk_sed_t* sed, hawk_mmgr_t* mmgr, hawk_cmgr_t* cmgr)
 	if (hawk_ooecs_init(&sed->e.txt.scratch, hawk_sed_getgem(sed), 256) <= -1) goto oops_7;
 
 	/* on init, the last points to the first */
-	sed->cmd.lb = &sed->cmd.fb; 
+	sed->cmd.lb = &sed->cmd.fb;
 	/* the block has no data yet */
 	sed->cmd.fb.len = 0;
 
@@ -139,7 +139,7 @@ void hawk_sed_fini (hawk_sed_t* sed)
 	free_all_command_blocks (sed);
 	free_all_cids (sed);
 
-	if (sed->e.cutf.flds != sed->e.cutf.sflds) 
+	if (sed->e.cutf.flds != sed->e.cutf.sflds)
 		hawk_sed_freemem (sed, sed->e.cutf.flds);
 
 	hawk_ooecs_fini (&sed->e.txt.scratch);
@@ -243,7 +243,7 @@ int hawk_sed_getopt (hawk_sed_t* sed, hawk_sed_opt_t  id, void* value)
 }
 
 static void* build_rex (
-	hawk_sed_t* sed, const hawk_oocs_t* str, 
+	hawk_sed_t* sed, const hawk_oocs_t* str,
 	int ignorecase, const hawk_loc_t* loc)
 {
 	hawk_tre_t* tre;
@@ -257,7 +257,7 @@ static void* build_rex (
 	}
 
 	/* ignorecase is a compile option for TRE */
-	if (ignorecase) opt |= HAWK_TRE_IGNORECASE; 
+	if (ignorecase) opt |= HAWK_TRE_IGNORECASE;
 	if (sed->opt.trait & HAWK_SED_EXTENDEDREX) opt |= HAWK_TRE_EXTENDED;
 	if (sed->opt.trait & HAWK_SED_NONSTDEXTREX) opt |= HAWK_TRE_NONSTDEXT;
 
@@ -276,7 +276,7 @@ static HAWK_INLINE void free_rex (hawk_sed_t* sed, void* rex)
 }
 
 static int matchtre (
-	hawk_sed_t* sed, hawk_tre_t* tre, int opt, 
+	hawk_sed_t* sed, hawk_tre_t* tre, int opt,
 	const hawk_oocs_t* str, hawk_oocs_t* mat,
 	hawk_oocs_t submat[9], const hawk_loc_t* loc)
 {
@@ -292,7 +292,7 @@ static int matchtre (
 		if (hawk_sed_geterrnum(sed) == HAWK_EREXNOMAT) return 0;
 
 		ADJERR_LOC (sed, loc);
-		return -1;	
+		return -1;
 	}
 
 	HAWK_ASSERT (match[0].rm_so != -1);
@@ -306,11 +306,11 @@ static int matchtre (
 	{
 		int i;
 
-		/* you must intialize submat before you pass into this 
+		/* you must intialize submat before you pass into this
 		 * function because it can abort filling */
 		for (i = 1; i < HAWK_COUNTOF(match); i++)
 		{
-			if (match[i].rm_so != -1) 
+			if (match[i].rm_so != -1)
 			{
 				submat[i-1].ptr = &str->ptr[match[i].rm_so];
 				submat[i-1].len = match[i].rm_eo - match[i].rm_so;
@@ -368,7 +368,7 @@ static int read_script_stream (hawk_sed_t* sed)
 	hawk_ooi_t n;
 
 	n = sed->src.fun (
-		sed, HAWK_SED_IO_READ, &sed->src.arg, 
+		sed, HAWK_SED_IO_READ, &sed->src.arg,
 		sed->src.buf, HAWK_COUNTOF(sed->src.buf)
 	);
 	if (n <= -1) return -1; /* error */
@@ -390,13 +390,13 @@ static int getnextsc (hawk_sed_t* sed, hawk_ooci_t* c)
 {
 	/* adjust the line and column number of the next
 	 * character based on the current character */
-	if (sed->src.cc == HAWK_T('\n')) 
+	if (sed->src.cc == HAWK_T('\n'))
 	{
 		/* TODO: support different line end convension */
 		sed->src.loc.line++;
 		sed->src.loc.colm = 1;
 	}
-	else 
+	else
 	{
 		/* take note that if you keep on calling getnextsc()
 		 * after HAWK_OOCI_EOF is read, this column number
@@ -406,7 +406,7 @@ static int getnextsc (hawk_sed_t* sed, hawk_ooci_t* c)
 		sed->src.loc.colm++;
 	}
 
-	if (sed->src.cur >= sed->src.end && !sed->src.eof) 
+	if (sed->src.cur >= sed->src.end && !sed->src.eof)
 	{
 		/* read in more character if buffer is empty */
 		if (read_script_stream (sed) <= -1) return -1;
@@ -420,7 +420,7 @@ static int getnextsc (hawk_sed_t* sed, hawk_ooci_t* c)
 
 static int peepnextsc (hawk_sed_t* sed, hawk_ooci_t* c)
 {
-	if (sed->src.cur >= sed->src.end && !sed->src.eof) 
+	if (sed->src.cur >= sed->src.end && !sed->src.eof)
 	{
 		/* read in more character if buffer is empty.
 		 * it is ok to fill the buffer in the peeping
@@ -479,7 +479,7 @@ static void free_all_command_blocks (hawk_sed_t* sed)
 		while (b->len > 0) free_command (sed, &b->buf[--b->len]);
 		if (b != &sed->cmd.fb) hawk_sed_freemem (sed, b);
 
-		b = nxt;	
+		b = nxt;
 	}
 
 	HAWK_MEMSET (&sed->cmd.fb, 0, HAWK_SIZEOF(sed->cmd.fb));
@@ -514,7 +514,7 @@ static void free_command (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 			if (cmd->u.branch.label.ptr)
 				hawk_sed_freemem (sed, cmd->u.branch.label.ptr);
 			break;
-	
+
 		case HAWK_SED_CMD_SUBSTITUTE:
 			if (cmd->u.subst.file.ptr)
 				hawk_sed_freemem (sed, cmd->u.subst.file.ptr);
@@ -533,14 +533,14 @@ static void free_command (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 			free_all_cut_selector_blocks (sed, cmd);
 			break;
 
-		default: 
+		default:
 			break;
 	}
 }
 
 static void free_all_cids (hawk_sed_t* sed)
 {
-	if (sed->src.cid == (hawk_sed_cid_t*)&sed->src.unknown_cid) 
+	if (sed->src.cid == (hawk_sed_cid_t*)&sed->src.unknown_cid)
 		sed->src.cid = sed->src.cid->next;
 
 	while (sed->src.cid)
@@ -639,11 +639,11 @@ Omitted for clash with regular expression \b.
 }
 
 static int pickup_rex (
-	hawk_sed_t* sed, hawk_ooch_t rxend, 
+	hawk_sed_t* sed, hawk_ooch_t rxend,
 	int replacement, const hawk_sed_cmd_t* cmd, hawk_ooecs_t* buf)
 {
-	/* 
-	 * 'replacement' indicates that this functions is called for 
+	/*
+	 * 'replacement' indicates that this functions is called for
 	 * 'replacement' in 's/pattern/replacement'.
 	 */
 
@@ -695,17 +695,17 @@ static int pickup_rex (
 			{
 				/*
 				 * if 'replacement' is not set, bracket_state is alyway 0.
-				 * so this block is never reached. 
+				 * so this block is never reached.
 				 *
-				 * a backslashed closing bracket is seen. 
-				 * it is not :]. if bracket_state is 2, this \] 
+				 * a backslashed closing bracket is seen.
+				 * it is not :]. if bracket_state is 2, this \]
 				 * makes an illegal regular expression. but,
 				 * let's not care.. just drop the state to 0
 				 * as if the outer [ is closed.
 				 */
 				if (chars_from_opening_bracket > 1) bracket_state = 0;
 			}
-	
+
 			if (nc == HAWK_T('\n')) c = nc;
 			else
 			{
@@ -715,13 +715,13 @@ static int pickup_rex (
 				if (trans_escaped (sed, nc, &ec, &xamp) <= -1) return -1;
 				if (ec == nc || (xamp && replacement))
 				{
-					/* if the character after a backslash is not special 
-					 * at the this layer, add the backslash into the 
-					 * regular expression buffer as it is. 
+					/* if the character after a backslash is not special
+					 * at the this layer, add the backslash into the
+					 * regular expression buffer as it is.
 					 *
-					 * if \x26 is found in the replacement, i also need to 
-					 * transform it to \& so that it is not treated as a 
-					 * special &. 
+					 * if \x26 is found in the replacement, i also need to
+					 * transform it to \& so that it is not treated as a
+					 * special &.
 					 */
 
 					if (hawk_ooecs_ccat(buf, HAWK_T('\\')) == (hawk_oow_t)-1) return -1;
@@ -729,12 +729,12 @@ static int pickup_rex (
 				c = ec;
 			}
 		}
-		else if (!replacement) 
+		else if (!replacement)
 		{
-			/* this block sets a flag to indicate that we are in [] 
+			/* this block sets a flag to indicate that we are in []
 			 * of a regular expression. */
 
-			if (c == HAWK_T('[')) 
+			if (c == HAWK_T('['))
 			{
 				if (bracket_state <= 0)
 				{
@@ -759,13 +759,13 @@ static int pickup_rex (
 			{
 				if (bracket_state == 1)
 				{
-					/* if it is the first character after [, 
+					/* if it is the first character after [,
 					 * it is a normal character. */
 					if (chars_from_opening_bracket > 1) bracket_state--;
 				}
 				else if (bracket_state == 2)
 				{
-					/* it doesn't really care if colon was for opening bracket 
+					/* it doesn't really care if colon was for opening bracket
 					 * like in [[:]] */
 					if (HAWK_OOECS_LASTCHAR(buf) == HAWK_T(':')) bracket_state--;
 				}
@@ -774,7 +774,7 @@ static int pickup_rex (
 
 		if (hawk_ooecs_ccat(buf, c) == (hawk_oow_t)-1) return -1;
 		chars_from_opening_bracket++;
-	} 
+	}
 
 	return 0;
 }
@@ -792,7 +792,7 @@ static HAWK_INLINE void* compile_rex_address (hawk_sed_t* sed, hawk_ooch_t rxend
 	/* handle a modifer after having handled an empty regex.
 	 * so a modifier is naturally disallowed for an empty regex. */
 	PEEPNXTSC (sed, peeped, HAWK_NULL);
-	if (peeped == HAWK_T('I')) 
+	if (peeped == HAWK_T('I'))
 	{
 		ignorecase = 1;
 		NXTSC (sed, peeped, HAWK_NULL); /* consume the character peeped */
@@ -880,7 +880,7 @@ static hawk_sed_adr_t* get_address (hawk_sed_t* sed, hawk_sed_adr_t* a, int exte
 
 /* get the text for the 'a', 'i', and 'c' commands.
  * POSIX:
- *  The argument text shall consist of one or more lines. Each embedded 
+ *  The argument text shall consist of one or more lines. Each embedded
  *  <newline> in the text shall be preceded by a backslash. Other backslashes
  *  in text shall be removed, and the following character shall be treated
  *  literally. */
@@ -902,7 +902,7 @@ do { \
 
 	c = CURSC (sed);
 
-	do 
+	do
 	{
 		if (sed->opt.trait & HAWK_SED_STRIPLS)
 		{
@@ -917,9 +917,9 @@ do { \
 			if (c == HAWK_T('\\'))
 			{
 				NXTSC_GOTO (sed, c, oops);
-				if (c == HAWK_OOCI_EOF) 
+				if (c == HAWK_OOCI_EOF)
 				{
-					if (sed->opt.trait & HAWK_SED_KEEPTBS) 
+					if (sed->opt.trait & HAWK_SED_KEEPTBS)
 						ADD (sed, t, HAWK_T('\\'), oops);
 					break;
 				}
@@ -945,7 +945,7 @@ do { \
 			}
 
 			NXTSC_GOTO (sed, c, oops);
-		} 
+		}
 	}
 	while (c != HAWK_OOCI_EOF);
 
@@ -998,7 +998,7 @@ static int get_label (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 		while (IS_LABCHAR(c));
 
 		if (hawk_map_search (
-			&sed->tmp.labs, 
+			&sed->tmp.labs,
 			HAWK_OOECS_PTR(&sed->tmp.lab),
 			HAWK_OOECS_LEN(&sed->tmp.lab)) != HAWK_NULL)
 		{
@@ -1007,7 +1007,7 @@ static int get_label (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 		}
 
 		if (hawk_map_insert (
-			&sed->tmp.labs, 
+			&sed->tmp.labs,
 			HAWK_OOECS_PTR(&sed->tmp.lab), HAWK_OOECS_LEN(&sed->tmp.lab),
 			cmd, 0) == HAWK_NULL)
 		{
@@ -1019,11 +1019,11 @@ static int get_label (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 
 	while (IS_SPACE(c)) NXTSC (sed, c, -1);
 
-	if (IS_CMDTERM(c)) 
+	if (IS_CMDTERM(c))
 	{
-		if (c != HAWK_T('}') && 
+		if (c != HAWK_T('}') &&
 		    c != HAWK_T('#') &&
-		    c != HAWK_OOCI_EOF) NXTSC (sed, c, -1);	
+		    c != HAWK_OOCI_EOF) NXTSC (sed, c, -1);
 	}
 
 	return 0;
@@ -1041,13 +1041,13 @@ static int terminate_command (hawk_sed_t* sed)
 		return -1;
 	}
 
-	/* if the target is terminated by #, it should let the caller 
+	/* if the target is terminated by #, it should let the caller
 	 * to skip the comment text. so don't read in the next character.
 	 * the same goes for brackets. */
-	if (c != HAWK_T('#') && 
+	if (c != HAWK_T('#') &&
 	    c != HAWK_T('{') &&
-	    c != HAWK_T('}') && 
-	    c != HAWK_OOCI_EOF) NXTSC (sed, c, -1);	
+	    c != HAWK_T('}') &&
+	    c != HAWK_OOCI_EOF) NXTSC (sed, c, -1);
 	return 0;
 }
 
@@ -1064,7 +1064,7 @@ static int get_branch_target (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 	if (IS_CMDTERM(c))
 	{
 		/* no branch target is given -
-		 * a branch command without a target should cause 
+		 * a branch command without a target should cause
 		 * sed to jump to the end of a script.
 		 */
 		cmd->u.branch.label.ptr = HAWK_NULL;
@@ -1097,7 +1097,7 @@ static int get_branch_target (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 		cmd->u.branch.label.len = 0;
 		cmd->u.branch.target = HAWK_MAP_VPTR(pair);
 	}
-	
+
 	hawk_ooecs_close (t);
 	return 0;
 
@@ -1119,7 +1119,7 @@ static int get_file (hawk_sed_t* sed, hawk_oocs_t* xstr)
 	if (IS_CMDTERM(c))
 	{
 		hawk_sed_seterrnum (sed, &sed->src.loc, HAWK_SED_EFILEM);
-		goto oops;	
+		goto oops;
 	}
 
 	t = hawk_ooecs_open(hawk_sed_getgem(sed), 0, 32);
@@ -1149,11 +1149,11 @@ static int get_file (hawk_sed_t* sed, hawk_oocs_t* xstr)
 			if (c == HAWK_T('n')) c = HAWK_T('\n');
 		}
 
-		if (hawk_ooecs_ccat(t, c) == (hawk_oow_t)-1) 
+		if (hawk_ooecs_ccat(t, c) == (hawk_oow_t)-1)
 		{
 			ADJERR_LOC (sed, &sed->src.loc);
 			goto oops;
-		} 
+		}
 
 		NXTSC_GOTO (sed, c, oops);
 	}
@@ -1228,22 +1228,22 @@ static int get_subst (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 	/* get options */
 	do
 	{
-		if (c == HAWK_T('p')) 
+		if (c == HAWK_T('p'))
 		{
 			cmd->u.subst.p = 1;
 			NXTSC_GOTO (sed, c, oops);
 		}
-		else if (c == HAWK_T('i') || c == HAWK_T('I')) 
+		else if (c == HAWK_T('i') || c == HAWK_T('I'))
 		{
 			cmd->u.subst.i = 1;
 			NXTSC_GOTO (sed, c, oops);
 		}
-		else if (c == HAWK_T('g')) 
+		else if (c == HAWK_T('g'))
 		{
 			cmd->u.subst.g = 1;
 			NXTSC_GOTO (sed, c, oops);
 		}
-		else if (c == HAWK_T('k')) 
+		else if (c == HAWK_T('k'))
 		{
 			cmd->u.subst.k = 1;
 			NXTSC_GOTO (sed, c, oops);
@@ -1261,9 +1261,9 @@ static int get_subst (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 
 			occ = 0;
 
-			do 
+			do
 			{
-				occ = occ * 10 + (c - HAWK_T('0')); 
+				occ = occ * 10 + (c - HAWK_T('0'));
 				if (occ > HAWK_TYPE_MAX(unsigned short))
 				{
 					/* occurrence specifier too large */
@@ -1327,7 +1327,7 @@ static int get_transet (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 	c = CURSC (sed);
 	CHECK_CMDIC (sed, cmd, c, goto oops);
 
-	delim = c;	
+	delim = c;
 	if (delim == HAWK_T('\\'))
 	{
 		/* backspace is an illegal delimiter */
@@ -1356,7 +1356,7 @@ static int get_transet (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 		if (hawk_ooecs_ncat(t, b, 2) == (hawk_oow_t)-1) goto oops;
 
 		NXTSC_GOTO (sed, c, oops);
-	}	
+	}
 
 	NXTSC_GOTO (sed, c, oops);
 	for (pos = 1; c != delim; pos += 2)
@@ -1410,7 +1410,7 @@ static int add_cut_selector_block (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 	b->next = HAWK_NULL;
 	b->len = 0;
 
-	if (cmd->u.cut.fb == HAWK_NULL) 
+	if (cmd->u.cut.fb == HAWK_NULL)
 	{
 		cmd->u.cut.fb = b;
 		cmd->u.cut.lb = b;
@@ -1451,7 +1451,7 @@ static int get_cut (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 	c = CURSC (sed);
 	CHECK_CMDIC (sed, cmd, c, goto oops);
 
-	delim = c;	
+	delim = c;
 	if (delim == HAWK_T('\\'))
 	{
 		/* backspace is an illegal delimiter */
@@ -1504,13 +1504,13 @@ static int get_cut (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 
 			if (hawk_is_ooch_digit(c))
 			{
-				do 
-				{ 
-					start = start * 10 + (c - HAWK_T('0')); 
+				do
+				{
+					start = start * 10 + (c - HAWK_T('0'));
 					NXTSC_GOTO (sed, c, oops);
-				} 
+				}
 				while (hawk_is_ooch_digit(c));
-	
+
 				while (IS_SPACE(c)) NXTSC_GOTO (sed, c, oops);
 				mask |= MASK_START;
 
@@ -1525,11 +1525,11 @@ static int get_cut (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 
 				if (hawk_is_ooch_digit(c))
 				{
-					do 
-					{ 
-						end = end * 10 + (c - HAWK_T('0')); 
+					do
+					{
+						end = end * 10 + (c - HAWK_T('0'));
 						NXTSC_GOTO (sed, c, oops);
-					} 
+					}
 					while (hawk_is_ooch_digit(c));
 					mask |= MASK_END;
 				}
@@ -1574,7 +1574,7 @@ static int get_cut (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 
 		if (c == delim) break;
 
-		if (c != HAWK_T(',')) 
+		if (c != HAWK_T(','))
 		{
 			hawk_sed_seterrnum (sed, &sed->src.loc, HAWK_SED_ECSLNV);
 			goto oops;
@@ -1588,11 +1588,11 @@ static int get_cut (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 	/* get options */
 	do
 	{
-		if (c == HAWK_T('f')) 
+		if (c == HAWK_T('f'))
 		{
 			cmd->u.cut.f = 1;
 		}
-		else if (c == HAWK_T('w')) 
+		else if (c == HAWK_T('w'))
 		{
 			cmd->u.cut.w = 1;
 		}
@@ -1655,7 +1655,7 @@ static int get_command (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 			break;
 
 		case HAWK_T('{'):
-			/* insert a negated branch command at the beginning 
+			/* insert a negated branch command at the beginning
 			 * of a group. this way, all the commands in a group
 			 * can be skipped. the branch target is set once a
 			 * corresponding } is met. */
@@ -1686,7 +1686,7 @@ static int get_command (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 
 			cmd->type = HAWK_SED_CMD_NOOP;
 
-			if (sed->tmp.grp.level <= 0) 
+			if (sed->tmp.grp.level <= 0)
 			{
 				/* group not balanced */
 				hawk_sed_seterrnum (sed, &sed->src.loc, HAWK_SED_EGRNBA);
@@ -1732,10 +1732,10 @@ static int get_command (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 
 			if (c != HAWK_T('\\'))
 			{
-				if ((sed->opt.trait & HAWK_SED_SAMELINE) && 
-				    c != HAWK_OOCI_EOF && c != HAWK_T('\n')) 
+				if ((sed->opt.trait & HAWK_SED_SAMELINE) &&
+				    c != HAWK_OOCI_EOF && c != HAWK_T('\n'))
 				{
-					/* allow text without a starting backslash 
+					/* allow text without a starting backslash
 					 * on the same line as a command */
 					goto sameline_ok;
 				}
@@ -1749,9 +1749,9 @@ static int get_command (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 
 			if (c != HAWK_OOCI_EOF && c != HAWK_T('\n'))
 			{
-				if (sed->opt.trait & HAWK_SED_SAMELINE) 
+				if (sed->opt.trait & HAWK_SED_SAMELINE)
 				{
-					/* allow text with a starting backslash 
+					/* allow text with a starting backslash
 					 * on the same line as a command */
 					goto sameline_ok;
 				}
@@ -1759,7 +1759,7 @@ static int get_command (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 				hawk_sed_seterrnum (sed, &sed->src.loc, HAWK_SED_EGBABS);
 				return -1;
 			}
-			
+
 			NXTSC (sed, c, -1); /* skip the new line */
 
 		sameline_ok:
@@ -1789,17 +1789,17 @@ static int get_command (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 		case HAWK_T('G'):
 		case HAWK_T('x'):
 		case HAWK_T('n'):
-		case HAWK_T('N'): 
+		case HAWK_T('N'):
 		case HAWK_T('z'):
 			cmd->type = c;
-			NXTSC (sed, c, -1); 
+			NXTSC (sed, c, -1);
 			if (terminate_command(sed) <= -1) return -1;
 			break;
 
 		case HAWK_T('b'):
 		case HAWK_T('t'):
 			cmd->type = c;
-			NXTSC (sed, c, -1); 
+			NXTSC (sed, c, -1);
 			if (get_branch_target(sed, cmd) <= -1) return -1;
 			break;
 
@@ -1808,19 +1808,19 @@ static int get_command (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 		case HAWK_T('w'):
 		case HAWK_T('W'):
 			cmd->type = c;
-			NXTSC (sed, c, -1); 
+			NXTSC (sed, c, -1);
 			if (get_file(sed, &cmd->u.file) <= -1) return -1;
 			break;
 
 		case HAWK_T('s'):
 			cmd->type = c;
-			NXTSC (sed, c, -1); 
+			NXTSC (sed, c, -1);
 			if (get_subst(sed, cmd) <= -1) return -1;
 			break;
 
 		case HAWK_T('y'):
 			cmd->type = c;
-			NXTSC (sed, c, -1); 
+			NXTSC (sed, c, -1);
 			if (get_transet(sed, cmd) <= -1) return -1;
 			break;
 
@@ -1878,13 +1878,13 @@ int hawk_sed_comp (hawk_sed_t* sed, hawk_sed_io_impl_t inf)
 		/* check if the line is commented out */
 		if (c == HAWK_T('#'))
 		{
-			do NXTSC_GOTO (sed, c, oops); 
+			do NXTSC_GOTO (sed, c, oops);
 			while (!IS_LINTERM(c) && c != HAWK_OOCI_EOF) ;
 			NXTSC_GOTO (sed, c, oops);
 			continue;
 		}
 
-		if (c == HAWK_T(';')) 
+		if (c == HAWK_T(';'))
 		{
 			/* semicolon without a address-command pair */
 			NXTSC_GOTO (sed, c, oops);
@@ -1897,7 +1897,7 @@ int hawk_sed_comp (hawk_sed_t* sed, hawk_sed_io_impl_t inf)
 
 		/* process the first address */
 		a1_loc = sed->src.loc;
-		if (get_address(sed, &cmd->a1, 0) == HAWK_NULL) 
+		if (get_address(sed, &cmd->a1, 0) == HAWK_NULL)
 		{
 			cmd = HAWK_NULL;
 			hawk_sed_seterrnum (sed, &sed->src.loc, HAWK_SED_EA1MOI);
@@ -1917,7 +1917,7 @@ int hawk_sed_comp (hawk_sed_t* sed, hawk_sed_io_impl_t inf)
 				/* maybe an address range */
 				do { NXTSC_GOTO (sed, c, oops); } while (IS_SPACE(c));
 
-				if (get_address (sed, &cmd->a2, (sed->opt.trait & HAWK_SED_EXTENDEDADR)) == HAWK_NULL) 
+				if (get_address (sed, &cmd->a2, (sed->opt.trait & HAWK_SED_EXTENDEDADR)) == HAWK_NULL)
 				{
 					HAWK_ASSERT (cmd->a2.type == HAWK_SED_ADR_NONE);
 					hawk_sed_seterrnum (sed, &sed->src.loc, HAWK_SED_EA2MOI);
@@ -1931,20 +1931,20 @@ int hawk_sed_comp (hawk_sed_t* sed, hawk_sed_io_impl_t inf)
 						hawk_sed_seterrnum (sed, &sed->src.loc, HAWK_SED_EA2MOI);
 						goto oops;
 					}
-					if (cmd->a2.type == HAWK_SED_ADR_RELLINE || 
+					if (cmd->a2.type == HAWK_SED_ADR_RELLINE ||
 					    cmd->a2.type == HAWK_SED_ADR_RELLINEM)
 					{
-						if (cmd->a2.u.lno <= 0) 
+						if (cmd->a2.u.lno <= 0)
 						{
 							/* tranform 'addr1,+0' and 'addr1,~0' to 'addr1' */
 							cmd->a2.type = HAWK_SED_ADR_NONE;
 						}
 					}
 				}
-				else if ((sed->opt.trait & HAWK_SED_EXTENDEDADR) && 
+				else if ((sed->opt.trait & HAWK_SED_EXTENDEDADR) &&
 				         (delim == HAWK_T('~')))
 				{
-					if (cmd->a1.type != HAWK_SED_ADR_LINE || 
+					if (cmd->a1.type != HAWK_SED_ADR_LINE ||
 					    cmd->a2.type != HAWK_SED_ADR_LINE)
 					{
 						hawk_sed_seterrnum (sed, &sed->src.loc, HAWK_SED_EA2MOI);
@@ -1953,7 +1953,7 @@ int hawk_sed_comp (hawk_sed_t* sed, hawk_sed_io_impl_t inf)
 
 					if (cmd->a2.u.lno > 0)
 					{
-						cmd->a2.type = HAWK_SED_ADR_STEP;	
+						cmd->a2.type = HAWK_SED_ADR_STEP;
 					}
 					else
 					{
@@ -1969,20 +1969,20 @@ int hawk_sed_comp (hawk_sed_t* sed, hawk_sed_io_impl_t inf)
 
 		if (cmd->a1.type == HAWK_SED_ADR_LINE && cmd->a1.u.lno <= 0)
 		{
-			if (cmd->a2.type == HAWK_SED_ADR_STEP || 
-			    ((sed->opt.trait & HAWK_SED_EXTENDEDADR) && 
+			if (cmd->a2.type == HAWK_SED_ADR_STEP ||
+			    ((sed->opt.trait & HAWK_SED_EXTENDEDADR) &&
 			     cmd->a2.type == HAWK_SED_ADR_REX))
 			{
 				/* 0 as the first address is allowed in this two contexts.
 				 *    0~step
 				 *    0,/regex/
-				 * '0~0' is not allowed. but at this point '0~0' 
-				 * is already transformed to '0'. and disallowing it is 
+				 * '0~0' is not allowed. but at this point '0~0'
+				 * is already transformed to '0'. and disallowing it is
 				 * achieved gratuitously.
 				 */
-				/* nothing to do - adding negation to the condition dropped 
+				/* nothing to do - adding negation to the condition dropped
 				 * code readability so i decided to write this part of code
-				 * this way. 
+				 * this way.
 				 */
 			}
 			else
@@ -1998,10 +1998,10 @@ int hawk_sed_comp (hawk_sed_t* sed, hawk_sed_io_impl_t inf)
 		if (c == HAWK_T('!'))
 		{
 			/* allow any number of the negation indicators */
-			do { 
-				cmd->negated = !cmd->negated; 
+			do {
+				cmd->negated = !cmd->negated;
 				NXTSC_GOTO (sed, c, oops);
-			} 
+			}
 			while (c == HAWK_T('!'));
 
 			while (IS_SPACE(c)) NXTSC_GOTO (sed, c, oops);
@@ -2051,7 +2051,7 @@ static int read_char (hawk_sed_t* sed, hawk_ooch_t* c)
 		if (sed->e.in.pos >= sed->e.in.len)
 		{
 			n = sed->e.in.fun (
-				sed, HAWK_SED_IO_READ, &sed->e.in.arg, 
+				sed, HAWK_SED_IO_READ, &sed->e.in.arg,
 				sed->e.in.buf, HAWK_COUNTOF(sed->e.in.buf)
 			);
 			if (n <= -1) return -1;
@@ -2084,14 +2084,14 @@ static int read_line (hawk_sed_t* sed, int append)
 	int n;
 
 	if (!append) hawk_ooecs_clear (&sed->e.in.line);
-	if (sed->e.in.eof) 
+	if (sed->e.in.eof)
 	{
 	#if 0
 		/* no more input detected in the previous read.
 		 * set eof back to 0 here so that read_char() is called
 		 * if read_line() is called again. that way, the result
 		 * of subsequent calls counts on read_char(). */
-		sed->e.in.eof = 0; 
+		sed->e.in.eof = 0;
 	#endif
 		return 0;
 	}
@@ -2109,7 +2109,7 @@ static int read_line (hawk_sed_t* sed, int append)
 		}
 
 		if (hawk_ooecs_ccat(&sed->e.in.line, c) == (hawk_oow_t)-1) return -1;
-		len++;	
+		len++;
 
 		/* TODO: support different line end convension */
 		if (c == HAWK_T('\n')) break;
@@ -2117,7 +2117,7 @@ static int read_line (hawk_sed_t* sed, int append)
 
 	sed->e.in.num++;
 	sed->e.subst_done = 0;
-	return 1;	
+	return 1;
 }
 
 static int flush (hawk_sed_t* sed)
@@ -2193,12 +2193,12 @@ static int write_first_line (
 static int write_num (hawk_sed_t* sed, hawk_oow_t x, int base, int width)
 {
 	hawk_oow_t last = x % base;
-	hawk_oow_t y = 0; 
+	hawk_oow_t y = 0;
 	int dig = 0;
 
 	HAWK_ASSERT (base >= 2 && base <= 36);
 
-	if (x < 0) 
+	if (x < 0)
 	{
 		if (write_char(sed, HAWK_T('-')) <= -1) return -1;
 		if (width > 0) width--;
@@ -2229,9 +2229,9 @@ static int write_num (hawk_sed_t* sed, hawk_oow_t x, int base, int width)
 		dig--;
 	}
 
-	while (dig > 0) 
-	{ 
-		dig--; 
+	while (dig > 0)
+	{
+		dig--;
 		if (write_char (sed, HAWK_T('0')) <= -1) return -1;
 	}
 	if (last < 0) last = -last;
@@ -2309,9 +2309,9 @@ static int write_str_clearly (
 				}
 			}
 		}
-	}		
+	}
 
-	if (len > 1 && end[-1] != HAWK_T('\n')) 
+	if (len > 1 && end[-1] != HAWK_T('\n'))
 		WRITE_STR (sed, HAWK_T("$\n"), 2);
 
 	return 0;
@@ -2319,7 +2319,7 @@ static int write_str_clearly (
 
 static int write_str_to_file (
 	hawk_sed_t* sed, hawk_sed_cmd_t* cmd,
-	const hawk_ooch_t* str, hawk_oow_t len, 
+	const hawk_ooch_t* str, hawk_oow_t len,
 	const hawk_ooch_t* path, hawk_oow_t plen)
 {
 	hawk_ooi_t n;
@@ -2356,7 +2356,7 @@ static int write_str_to_file (
 	while (len > 0)
 	{
 		n = sed->e.out.fun(sed, HAWK_SED_IO_WRITE, ap, (hawk_ooch_t*)str, len);
-		if (n <= -1) 
+		if (n <= -1)
 		{
 			sed->e.out.fun (sed, HAWK_SED_IO_CLOSE, ap, HAWK_NULL, 0);
 			ap->handle = HAWK_NULL;
@@ -2366,7 +2366,7 @@ static int write_str_to_file (
 
 		if (n == 0)
 		{
-			/* eof is returned on the write stream. 
+			/* eof is returned on the write stream.
 			 * it is also an error as it can't write any more */
 			sed->e.out.fun (sed, HAWK_SED_IO_CLOSE, ap, HAWK_NULL, 0);
 			ap->handle = HAWK_NULL;
@@ -2397,7 +2397,7 @@ static int write_file (hawk_sed_t* sed, hawk_sed_cmd_t* cmd, int first_line)
 	{
 		/*return -1;*/
 		/* it is ok if it is not able to open a file */
-		return 0;	
+		return 0;
 	}
 
 	while (1)
@@ -2470,9 +2470,9 @@ static void free_appends (hawk_sed_t* sed)
 {
 	hawk_sed_app_t* app = sed->e.append.d.head;
 	hawk_sed_app_t* next;
-	
+
 	while (app)
-	{	
+	{
 		next = app->next;
 		hawk_sed_freemem (sed, app);
 		app = next;
@@ -2480,7 +2480,7 @@ static void free_appends (hawk_sed_t* sed)
 
 	sed->e.append.d.head = HAWK_NULL;
 	sed->e.append.d.tail = HAWK_NULL;
-	sed->e.append.count = 0;		
+	sed->e.append.count = 0;
 }
 
 static int emit_append (hawk_sed_t* sed, hawk_sed_app_t* app)
@@ -2515,7 +2515,7 @@ static int emit_appends (hawk_sed_t* sed)
 
 	app = sed->e.append.d.head;
 	while (app)
-	{	
+	{
 		if (emit_append(sed, app) <= -1) return -1;
 		app = app->next;
 	}
@@ -2531,10 +2531,10 @@ static const hawk_ooch_t* trim_line (hawk_sed_t* sed, hawk_oocs_t* str)
 	str->len = HAWK_OOECS_LEN(&sed->e.in.line);
 
 	/* TODO: support different line end convension */
-	if (str->len > 0 && str->ptr[str->len-1] == HAWK_T('\n')) 
+	if (str->len > 0 && str->ptr[str->len-1] == HAWK_T('\n'))
 	{
 		str->len--;
-		if (str->len > 0 && str->ptr[str->len-1] == HAWK_T('\r')) 
+		if (str->len > 0 && str->ptr[str->len-1] == HAWK_T('\r'))
 		{
 			lineterm = HAWK_T("\r\n");
 			str->len--;
@@ -2564,7 +2564,7 @@ static int do_subst (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 	hawk_ooecs_clear (&sed->e.txt.scratch);
 
 	lineterm = trim_line(sed, &str);
-		
+
 	str_end = str.ptr + str.len;
 	cur = str;
 
@@ -2595,7 +2595,7 @@ static int do_subst (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 					return -1;
 				}
 			}
-			else 
+			else
 			{
 				rex = cmd->u.subst.rex;
 				sed->e.last_rex = rex;
@@ -2610,7 +2610,7 @@ static int do_subst (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 		}
 		else n = 0;
 
-		if (n == 0) 
+		if (n == 0)
 		{
 			/* no more match found or substitution occurrence matched.
 			 * copy the remaining portion and finish */
@@ -2623,7 +2623,7 @@ static int do_subst (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 			break;
 		}
 
-		if (mat.len == 0 && 
+		if (mat.len == 0 &&
 		    pmat.ptr && mat.ptr == pmat.ptr + pmat.len)
 		{
 			/* match length is 0 and the match is still at the
@@ -2661,7 +2661,7 @@ static int do_subst (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 
 			for (i = 0; i < cmd->u.subst.rpl.len; i++)
 			{
-				if ((i+1) < cmd->u.subst.rpl.len && 
+				if ((i+1) < cmd->u.subst.rpl.len &&
 				    cmd->u.subst.rpl.ptr[i] == HAWK_T('\\'))
 				{
 					hawk_ooch_t nc = cmd->u.subst.rpl.ptr[i+1];
@@ -2677,8 +2677,8 @@ static int do_subst (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 					else
 					{
 						/* Known speical characters have been escaped
-						 * in get_subst(). so i don't call trans_escaped() here. 
-						 * It's a normal character that's escaped. 
+						 * in get_subst(). so i don't call trans_escaped() here.
+						 * It's a normal character that's escaped.
 						 * For example, \1 is just 1. and \M is just M. */
 						m = hawk_ooecs_ccat(&sed->e.txt.scratch, nc);
 					}
@@ -2689,7 +2689,7 @@ static int do_subst (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 				{
 					m = hawk_ooecs_ncat(&sed->e.txt.scratch, mat.ptr, mat.len);
 				}
-				else 
+				else
 				{
 					m = hawk_ooecs_ccat(&sed->e.txt.scratch, cmd->u.subst.rpl.ptr[i]);
 				}
@@ -2731,7 +2731,7 @@ static int do_subst (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 		if (cmd->u.subst.p)
 		{
 			n = write_str (
-				sed, 
+				sed,
 				HAWK_OOECS_PTR(&sed->e.in.line),
 				HAWK_OOECS_LEN(&sed->e.in.line)
 			);
@@ -2770,7 +2770,7 @@ static int split_into_fields_for_cut (
 		hawk_ooch_t c = str->ptr[i++];
 
 		if (cmd->u.cut.w)
-		{ 
+		{
 			/* the w option ignores the d specifier */
 			if (hawk_is_ooch_space(c))
 			{
@@ -2804,7 +2804,7 @@ static int split_into_fields_for_cut (
 				nsz = sed->e.cutf.cflds;
 				if (nsz > 50000) nsz += 50000;
 				else nsz *= 2;
-				
+
 				if (sed->e.cutf.flds == sed->e.cutf.sflds)
 				{
 					tmp = hawk_sed_allocmem (sed, HAWK_SIZEOF(*tmp) * nsz);
@@ -2825,7 +2825,7 @@ static int split_into_fields_for_cut (
 			sed->e.cutf.flds[x].ptr = &str->ptr[i];
 
 			/* mark that this line is delimited at least once */
-			sed->e.cutf.delimited = 1; 
+			sed->e.cutf.delimited = 1;
 		}
 		else xl++;
 	}
@@ -2849,13 +2849,13 @@ static int do_cut (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 
 	if (str.len <= 0) goto done;
 
-	if (cmd->u.cut.fcount > 0) 
+	if (cmd->u.cut.fcount > 0)
 	{
 	    if (split_into_fields_for_cut (sed, cmd, &str) <= -1) goto oops;
 
-		if (cmd->u.cut.d && !sed->e.cutf.delimited) 
+		if (cmd->u.cut.d && !sed->e.cutf.delimited)
 		{
-			/* if the 'd' option is set and the line is not 
+			/* if the 'd' option is set and the line is not
 			 * delimited by the input delimiter, delete the pattern
 			 * space and finish the current cycle */
 			hawk_ooecs_clear (&sed->e.in.line);
@@ -2882,7 +2882,7 @@ static int do_cut (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 					{
 						if (e >= str.len) e = str.len - 1;
 						if ((out_state == 2 && hawk_ooecs_ccat(&sed->e.txt.scratch, cmd->u.cut.delim[1]) == (hawk_oow_t)-1) ||
-						    hawk_ooecs_ncat(&sed->e.txt.scratch, &str.ptr[s], e - s + 1) == (hawk_oow_t)-1) 
+						    hawk_ooecs_ncat(&sed->e.txt.scratch, &str.ptr[s], e - s + 1) == (hawk_oow_t)-1)
 							{
 								goto oops;
 							}
@@ -2917,7 +2917,7 @@ static int do_cut (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 						if (e >= sed->e.cutf.nflds) e = sed->e.cutf.nflds - 1;
 
 						while (s <= e)
-						{	
+						{
 							if ((out_state > 0 && hawk_ooecs_ccat(&sed->e.txt.scratch, cmd->u.cut.delim[1]) == (hawk_oow_t)-1) ||
 							    hawk_ooecs_ncat(&sed->e.txt.scratch, sed->e.cutf.flds[s].ptr, sed->e.cutf.flds[s].len) == (hawk_oow_t)-1)
 							{
@@ -2936,7 +2936,7 @@ static int do_cut (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 						if (s >= sed->e.cutf.nflds) s = sed->e.cutf.nflds - 1;
 
 						while (e <= s)
-						{	
+						{
 							if ((out_state > 0 && hawk_ooecs_ccat(&sed->e.txt.scratch, cmd->u.cut.delim[1]) == (hawk_oow_t)-1) ||
 							    hawk_ooecs_ncat(&sed->e.txt.scratch, sed->e.cutf.flds[e].ptr, sed->e.cutf.flds[e].len) == (hawk_oow_t)-1)
 							{
@@ -2947,7 +2947,7 @@ static int do_cut (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 							out_state = 2;
 						}
 					}
-				}	
+				}
 			}
 		}
 	}
@@ -2983,7 +2983,7 @@ static int match_a (hawk_sed_t* sed, hawk_sed_cmd_t* cmd, hawk_sed_adr_t* a)
 			line.len = HAWK_OOECS_LEN(&sed->e.in.line);
 
 			if (line.len > 0 &&
-			    line.ptr[line.len-1] == HAWK_T('\n')) 
+			    line.ptr[line.len-1] == HAWK_T('\n'))
 			{
 				line.len--;
 				if (line.len > 0 && line.ptr[line.len-1] == HAWK_T('\r')) line.len--;
@@ -2998,7 +2998,7 @@ static int match_a (hawk_sed_t* sed, hawk_sed_cmd_t* cmd, hawk_sed_adr_t* a)
 					return -1;
 				}
 			}
-			else 
+			else
 			{
 				rex = a->u.rex;
 				sed->e.last_rex = rex;
@@ -3036,14 +3036,14 @@ static int match_a (hawk_sed_t* sed, hawk_sed_cmd_t* cmd, hawk_sed_adr_t* a)
 		}
 
 		case HAWK_SED_ADR_RELLINE:
-			/* this address type should be seen only when matching 
+			/* this address type should be seen only when matching
 			 * the second address */
 			HAWK_ASSERT (cmd->state.a1_matched && cmd->state.a1_match_line >= 1);
 			return (sed->e.in.num >= cmd->state.a1_match_line + a->u.lno)? 1: 0;
 
 		case HAWK_SED_ADR_RELLINEM:
 		{
-			/* this address type should be seen only when matching 
+			/* this address type should be seen only when matching
 			 * the second address */
 			hawk_oow_t tmp;
 
@@ -3052,7 +3052,7 @@ static int match_a (hawk_sed_t* sed, hawk_sed_cmd_t* cmd, hawk_sed_adr_t* a)
 
 			/* TODO: is it better to store this value some in the state
 			 *       not to calculate this every time?? */
-			tmp = (cmd->state.a1_match_line + a->u.lno) - 
+			tmp = (cmd->state.a1_match_line + a->u.lno) -
 			      (cmd->state.a1_match_line % a->u.lno);
 
 			return (sed->e.in.num >= tmp)? 1: 0;
@@ -3100,15 +3100,15 @@ static int match_address (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 				if (cmd->a2.type == HAWK_SED_ADR_LINE &&
 				    sed->e.in.num > cmd->a2.u.lno)
 				{
-					/* This check is needed because matching of the second 
+					/* This check is needed because matching of the second
 					 * address could be skipped while it could match.
-					 * 
+					 *
 					 * Consider commands like '1,3p;2N'.
 					 * '3' in '1,3p' is skipped because 'N' in '2N' triggers
 					 * reading of the third line.
 					 *
 					 * Unfortunately, I can't handle a non-line-number
-					 * second address like this. If 'abcxyz' is given as the third 
+					 * second address like this. If 'abcxyz' is given as the third
 					 * line for command '1,/abc/p;2N', 'abcxyz' is not matched
 					 * against '/abc/'. so it doesn't exit the range.
 					 */
@@ -3116,7 +3116,7 @@ static int match_address (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 					return 0;
 				}
 
-				/* still in the range. return match 
+				/* still in the range. return match
 				 * despite the actual mismatch */
 				return 1;
 			}
@@ -3126,19 +3126,19 @@ static int match_address (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 			cmd->state.c_ready = 1;
 			return 1;
 		}
-		else 
+		else
 		{
 			n = match_a (sed, cmd, &cmd->a1);
 			if (n <= -1) return -1;
-			if (n == 0) 
+			if (n == 0)
 			{
 				return 0;
 			}
 
 			if (cmd->a2.type == HAWK_SED_ADR_LINE &&
-			    sed->e.in.num >= cmd->a2.u.lno) 
+			    sed->e.in.num >= cmd->a2.u.lno)
 			{
-				/* the line number specified in the second 
+				/* the line number specified in the second
 				 * address is equal to or less than the current
 				 * line number. */
 				cmd->state.c_ready = 1;
@@ -3174,7 +3174,7 @@ static hawk_sed_cmd_t* exec_cmd (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 	{
 		case HAWK_SED_CMD_NOOP:
 			break;
-			
+
 		case HAWK_SED_CMD_QUIT:
 			jumpto = &sed->cmd.quit;
 			break;
@@ -3206,12 +3206,12 @@ static hawk_sed_cmd_t* exec_cmd (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 				);
 				if (n == (hawk_oow_t)-1) return HAWK_NULL;
 			}
-			else 
-			{		
+			else
+			{
 				hawk_ooecs_clear (&sed->e.in.line);
 			}
 
-			/* move past the last command so as to start 
+			/* move past the last command so as to start
 			 * the next cycle */
 			jumpto = &sed->cmd.over;
 			break;
@@ -3225,10 +3225,10 @@ static hawk_sed_cmd_t* exec_cmd (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 				HAWK_OOECS_PTR(&sed->e.in.line),
 				HAWK_OOECS_LEN(&sed->e.in.line),
 				HAWK_T('\n'));
-			if (nl) 
+			if (nl)
 			{
 				/* if a new line is found. delete up to it  */
-				hawk_ooecs_del (&sed->e.in.line, 0, nl - HAWK_OOECS_PTR(&sed->e.in.line) + 1);	
+				hawk_ooecs_del (&sed->e.in.line, 0, nl - HAWK_OOECS_PTR(&sed->e.in.line) + 1);
 
 				if (HAWK_OOECS_LEN(&sed->e.in.line) > 0)
 				{
@@ -3262,7 +3262,7 @@ static hawk_sed_cmd_t* exec_cmd (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 
 		case HAWK_SED_CMD_PRINT:
 			n = write_str (
-				sed, 
+				sed,
 				HAWK_OOECS_PTR(&sed->e.in.line),
 				HAWK_OOECS_LEN(&sed->e.in.line)
 			);
@@ -3271,7 +3271,7 @@ static hawk_sed_cmd_t* exec_cmd (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 
 		case HAWK_SED_CMD_PRINT_FIRSTLN:
 			n = write_first_line (
-				sed, 
+				sed,
 				HAWK_OOECS_PTR(&sed->e.in.line),
 				HAWK_OOECS_LEN(&sed->e.in.line)
 			);
@@ -3300,21 +3300,21 @@ static hawk_sed_cmd_t* exec_cmd (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 
 		case HAWK_SED_CMD_HOLD:
 			/* copy the pattern space to the hold space */
-			if (hawk_ooecs_ncpy (&sed->e.txt.hold, 	
+			if (hawk_ooecs_ncpy (&sed->e.txt.hold,
 				HAWK_OOECS_PTR(&sed->e.in.line),
 				HAWK_OOECS_LEN(&sed->e.in.line)) == (hawk_oow_t)-1)
 			{
-				return HAWK_NULL;	
+				return HAWK_NULL;
 			}
 			break;
-				
+
 		case HAWK_SED_CMD_HOLD_APPEND:
 			/* append the pattern space to the hold space */
-			if (hawk_ooecs_ncat (&sed->e.txt.hold, 	
+			if (hawk_ooecs_ncat (&sed->e.txt.hold,
 				HAWK_OOECS_PTR(&sed->e.in.line),
 				HAWK_OOECS_LEN(&sed->e.in.line)) == (hawk_oow_t)-1)
 			{
-				return HAWK_NULL;	
+				return HAWK_NULL;
 			}
 			break;
 
@@ -3324,7 +3324,7 @@ static hawk_sed_cmd_t* exec_cmd (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 				HAWK_OOECS_PTR(&sed->e.txt.hold),
 				HAWK_OOECS_LEN(&sed->e.txt.hold)) == (hawk_oow_t)-1)
 			{
-				return HAWK_NULL;	
+				return HAWK_NULL;
 			}
 			break;
 
@@ -3334,7 +3334,7 @@ static hawk_sed_cmd_t* exec_cmd (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 				HAWK_OOECS_PTR(&sed->e.txt.hold),
 				HAWK_OOECS_LEN(&sed->e.txt.hold)) == (hawk_oow_t)-1)
 			{
-				return HAWK_NULL;	
+				return HAWK_NULL;
 			}
 			break;
 
@@ -3349,7 +3349,7 @@ static hawk_sed_cmd_t* exec_cmd (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 			/* read the next line and fill the pattern space */
 			n = read_line (sed, 0);
 			if (n <= -1) return HAWK_NULL;
-			if (n == 0) 
+			if (n == 0)
 			{
 				/* EOF is reached. */
 				jumpto = &sed->cmd.over;
@@ -3368,7 +3368,7 @@ static hawk_sed_cmd_t* exec_cmd (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 				jumpto = &sed->cmd.over;
 			}
 			break;
-				
+
 		case HAWK_SED_CMD_READ_FILE:
 			if (link_append (sed, cmd) <= -1) return HAWK_NULL;
 			break;
@@ -3393,9 +3393,9 @@ static hawk_sed_cmd_t* exec_cmd (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 			const hawk_ooch_t* ptr = HAWK_OOECS_PTR(&sed->e.in.line);
 			hawk_oow_t i, len = HAWK_OOECS_LEN(&sed->e.in.line);
 			for (i = 0; i < len; i++)
-			{	
+			{
 				/* TODO: handle different line end convension */
-				if (ptr[i] == HAWK_T('\n')) 
+				if (ptr[i] == HAWK_T('\n'))
 				{
 					i++;
 					break;
@@ -3410,7 +3410,7 @@ static hawk_sed_cmd_t* exec_cmd (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 			if (n <= -1) return HAWK_NULL;
 			break;
 		}
-			
+
 		case HAWK_SED_CMD_BRANCH_COND:
 			if (!sed->e.subst_done) break;
 			sed->e.subst_done = 0;
@@ -3428,13 +3428,13 @@ static hawk_sed_cmd_t* exec_cmd (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 			hawk_ooch_t* ptr = HAWK_OOECS_PTR(&sed->e.in.line);
 			hawk_oow_t i, len = HAWK_OOECS_LEN(&sed->e.in.line);
 
-		/* TODO: sort cmd->u.transset and do binary search 
-		 * when sorted, you can, before binary search, check 
+		/* TODO: sort cmd->u.transset and do binary search
+		 * when sorted, you can, before binary search, check
 		 * if ptr[i] < transet[0] || ptr[i] > transset[transset_size-1].
 		 * if so, it has not mathing translation */
 
 			/* TODO: support different line end convension */
-			if (len > 0 && ptr[len-1] == HAWK_T('\n')) 
+			if (len > 0 && ptr[len-1] == HAWK_T('\n'))
 			{
 				len--;
 				if (len > 0 && ptr[len-1] == HAWK_T('\r')) len--;
@@ -3470,7 +3470,7 @@ static hawk_sed_cmd_t* exec_cmd (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 
 	if (jumpto == HAWK_NULL) jumpto = cmd->state.next;
 	return jumpto;
-} 
+}
 
 static void close_outfile (hawk_map_t* map, void* dptr, hawk_oow_t dlen)
 {
@@ -3552,7 +3552,7 @@ static int init_command_block_for_exec (hawk_sed_t* sed, hawk_sed_cmd_blk_t* b)
 
 				c->u.branch.target = HAWK_MAP_VPTR(pair);
 
-				/* free resolved label name */ 
+				/* free resolved label name */
 				hawk_sed_freemem (sed, lab->ptr);
 				lab->ptr = HAWK_NULL;
 				lab->len = 0;
@@ -3571,12 +3571,12 @@ static int init_command_block_for_exec (hawk_sed_t* sed, hawk_sed_cmd_blk_t* b)
 			{
 				file = &c->u.subst.file;
 			}
-		
+
 			if (file)
 			{
 				/* call this function to an open output file */
 				int n = write_str_to_file (
-					sed, c, HAWK_NULL, 0, 
+					sed, c, HAWK_NULL, 0,
 					file->ptr, file->len
 				);
 				if (n <= -1) return -1;
@@ -3606,7 +3606,7 @@ static int emit_output (hawk_sed_t* sed, int skipline)
 	if (!skipline && !(sed->opt.trait & HAWK_SED_QUIET))
 	{
 		/* write the pattern space */
-		n = write_str (sed, 
+		n = write_str (sed,
 			HAWK_OOECS_PTR(&sed->e.in.line),
 			HAWK_OOECS_LEN(&sed->e.in.line));
 		if (n <= -1) return -1;
@@ -3615,7 +3615,7 @@ static int emit_output (hawk_sed_t* sed, int skipline)
 	if (emit_appends (sed) <= -1) return -1;
 	free_appends (sed);
 
-	/* flush the output stream in case it's not flushed 
+	/* flush the output stream in case it's not flushed
 	 * in write functions */
 	n = flush (sed);
 	if (n <= -1) return -1;
@@ -3730,7 +3730,7 @@ int hawk_sed_exec (hawk_sed_t* sed, hawk_sed_io_impl_t inf, hawk_sed_io_impl_t o
 
 				n = match_address (sed, c);
 				if (n <= -1) { ret = -1; goto done; }
-	
+
 				if (c->negated) n = !n;
 				if (n == 0)
 				{
@@ -3744,8 +3744,8 @@ int hawk_sed_exec (hawk_sed_t* sed, hawk_sed_io_impl_t inf, hawk_sed_io_impl_t o
 				j = exec_cmd (sed, c);
 				if (j == HAWK_NULL) { ret = -1; goto done; }
 				if (j == &sed->cmd.quit_quiet) goto done;
-				if (j == &sed->cmd.quit) 
-				{ 
+				if (j == &sed->cmd.quit)
+				{
 					if (emit_output (sed, 0) <= -1) ret = -1;
 					goto done;
 				}
@@ -3794,8 +3794,8 @@ const hawk_ooch_t* hawk_sed_setcompid (hawk_sed_t* sed, const hawk_ooch_t* id)
 {
 	hawk_sed_cid_t* cid;
 	hawk_oow_t len;
-	
-	if (sed->src.cid == (hawk_sed_cid_t*)&sed->src.unknown_cid) 
+
+	if (sed->src.cid == (hawk_sed_cid_t*)&sed->src.unknown_cid)
 	{
 		/* if an error has occurred in a previously, you can't set it
 		 * any more */
@@ -3806,9 +3806,9 @@ const hawk_ooch_t* hawk_sed_setcompid (hawk_sed_t* sed, const hawk_ooch_t* id)
 
 	len = hawk_count_oocstr(id);
 	cid = hawk_sed_allocmem(sed, HAWK_SIZEOF(*cid) + ((len + 1) * HAWK_SIZEOF(*id)));
-	if (cid == HAWK_NULL) 
+	if (cid == HAWK_NULL)
 	{
-		/* mark that an error has occurred */ 
+		/* mark that an error has occurred */
 		sed->src.unknown_cid.buf[0] = HAWK_T('\0');
 		cid = (hawk_sed_cid_t*)&sed->src.unknown_cid;
 	}
@@ -3831,7 +3831,7 @@ const hawk_ooch_t* hawk_sed_setcompidwithbcstr (hawk_sed_t* sed, const hawk_bch_
 	hawk_oow_t tmplen;
 #endif
 
-	if (sed->src.cid == (hawk_sed_cid_t*)&sed->src.unknown_cid) 
+	if (sed->src.cid == (hawk_sed_cid_t*)&sed->src.unknown_cid)
 	{
 		/* if an error has occurred in a previously, you can't set it
 		 * any more */
@@ -3846,9 +3846,9 @@ const hawk_ooch_t* hawk_sed_setcompidwithbcstr (hawk_sed_t* sed, const hawk_bch_
 	hawk_conv_bcstr_to_ucstr_with_cmgr(id, &tmplen, HAWK_NULL, &len, hawk_sed_getcmgr(sed), 1);
 #endif
 	cid = hawk_sed_allocmem(sed, HAWK_SIZEOF(*cid) + ((len + 1) * HAWK_SIZEOF(*id)));
-	if (cid == HAWK_NULL) 
+	if (cid == HAWK_NULL)
 	{
-		/* mark that an error has occurred */ 
+		/* mark that an error has occurred */
 		sed->src.unknown_cid.buf[0] = HAWK_T('\0');
 		cid = (hawk_sed_cid_t*)&sed->src.unknown_cid;
 	}
@@ -3873,8 +3873,8 @@ const hawk_ooch_t* hawk_sed_setcompidwithucstr (hawk_sed_t* sed, const hawk_uch_
 #if defined(HAWK_OOCH_IS_BCH)
 	hawk_oow_t tmplen;
 #endif
-	
-	if (sed->src.cid == (hawk_sed_cid_t*)&sed->src.unknown_cid) 
+
+	if (sed->src.cid == (hawk_sed_cid_t*)&sed->src.unknown_cid)
 	{
 		/* if an error has occurred in a previously, you can't set it
 		 * any more */
@@ -3889,9 +3889,9 @@ const hawk_ooch_t* hawk_sed_setcompidwithucstr (hawk_sed_t* sed, const hawk_uch_
 	len = hawk_count_oocstr(id);
 #endif
 	cid = hawk_sed_allocmem(sed, HAWK_SIZEOF(*cid) + ((len + 1) * HAWK_SIZEOF(hawk_ooch_t)));
-	if (cid == HAWK_NULL) 
+	if (cid == HAWK_NULL)
 	{
-		/* mark that an error has occurred */ 
+		/* mark that an error has occurred */
 		sed->src.unknown_cid.buf[0] = HAWK_T('\0');
 		cid = (hawk_sed_cid_t*)&sed->src.unknown_cid;
 	}

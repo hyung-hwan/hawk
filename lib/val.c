@@ -57,7 +57,7 @@ static hawk_val_mbs_t hawk_zlbs = {
 };
 
 hawk_val_t* hawk_val_nil = (hawk_val_t*)&hawk_nil;
-hawk_val_t* hawk_val_zls = (hawk_val_t*)&hawk_zls; 
+hawk_val_t* hawk_val_zls = (hawk_val_t*)&hawk_zls;
 hawk_val_t* hawk_val_zlbs = (hawk_val_t*)&hawk_zlbs;
 
 static const hawk_ooch_t* val_type_name[] =
@@ -84,14 +84,14 @@ static const hawk_ooch_t* val_type_name[] =
 
 /*
 BEGIN {
-  @local a, b, c, nil; 
+  @local a, b, c, nil;
   for (i = 1; i < 10; i++) a[i] = i;
   a[11] = a;
   a[12] = a;
   a = @nil;
   b[1] = a;
   c[1] = 0;
-} 
+}
 
 BEGIN {
    @local a, b, c, nil;
@@ -109,7 +109,7 @@ BEGIN {
    b[1] = a;
    c[1] = 0;
 }
- 
+
 BEGIN {
    @local a, b, c, j, nil;
    j[1] = 20;
@@ -126,7 +126,7 @@ BEGIN {
    b[1] = a;
    c[1] = 0;
 }
- 
+
 BEGIN {
    @local a, b, c, nil;
    j[1] = 20;
@@ -224,7 +224,7 @@ static void gc_trace_refs (hawk_gch_t* list)
 			while (pair)
 			{
 				iv = (hawk_val_t*)HAWK_MAP_VPTR(pair);
-				if (HAWK_VTR_IS_POINTER(iv) && iv->v_gc) 
+				if (HAWK_VTR_IS_POINTER(iv) && iv->v_gc)
 				{
 					hawk_val_to_gch(iv)->gc_refs--;
 				}
@@ -245,7 +245,7 @@ static void gc_trace_refs (hawk_gch_t* list)
 				if (HAWK_ARR_SLOT(arr, i))
 				{
 					iv = (hawk_val_t*)HAWK_ARR_DPTR(arr, i);
-					if (HAWK_VTR_IS_POINTER(iv) && iv->v_gc) 
+					if (HAWK_VTR_IS_POINTER(iv) && iv->v_gc)
 					{
 						hawk_val_to_gch(iv)->gc_refs--;
 					}
@@ -308,7 +308,7 @@ static void gc_move_reachables (hawk_gch_t* list, hawk_gch_t* reachable_list)
 			while (pair)
 			{
 				iv = (hawk_val_t*)HAWK_MAP_VPTR(pair);
-				if (HAWK_VTR_IS_POINTER(iv) && iv->v_gc) 
+				if (HAWK_VTR_IS_POINTER(iv) && iv->v_gc)
 				{
 					tmp = hawk_val_to_gch(iv);
 					if (tmp->gc_refs != GCH_MOVED)
@@ -335,7 +335,7 @@ static void gc_move_reachables (hawk_gch_t* list, hawk_gch_t* reachable_list)
 				if (HAWK_ARR_SLOT(arr, i))
 				{
 					iv = (hawk_val_t*)HAWK_ARR_DPTR(arr, i);
-					if (HAWK_VTR_IS_POINTER(iv) && iv->v_gc) 
+					if (HAWK_VTR_IS_POINTER(iv) && iv->v_gc)
 					{
 						tmp = hawk_val_to_gch(iv);
 						if (tmp->gc_refs != GCH_MOVED)
@@ -407,12 +407,12 @@ static HAWK_INLINE void gc_collect_garbage_in_generation (hawk_rtx_t* rtx, int g
 #endif
 
 	newgen = (gen < HAWK_COUNTOF(rtx->gc.g) - 1)? (gen + 1): gen;
-	for (i = 0; i < gen; i++) 
+	for (i = 0; i < gen; i++)
 	{
 		gc_move_all_gchs (&rtx->gc.g[i], &rtx->gc.g[gen]);
 	}
 
-	if (rtx->gc.g[gen].gc_next != &rtx->gc.g[gen]) 
+	if (rtx->gc.g[gen].gc_next != &rtx->gc.g[gen])
 	{
 		hawk_gch_t reachable;
 
@@ -427,7 +427,7 @@ static HAWK_INLINE void gc_collect_garbage_in_generation (hawk_rtx_t* rtx, int g
 	/*gc_dump_refs (rtx, &rtx->gc.g[0]);*/
 	#endif
 		gc_free_unreachables (rtx, &rtx->gc.g[gen]);
-		HAWK_ASSERT (rtx->gc.g[gen].gc_next == &rtx->gc.g[gen]); 
+		HAWK_ASSERT (rtx->gc.g[gen].gc_next == &rtx->gc.g[gen]);
 
 		/* move all reachables back to the main list */
 		gc_move_all_gchs (&reachable, &rtx->gc.g[newgen]);
@@ -449,7 +449,7 @@ static HAWK_INLINE int gc_collect_garbage_auto (hawk_rtx_t* rtx)
 {
 	hawk_oow_t i;
 
-	i = HAWK_COUNTOF(rtx->gc.g); 
+	i = HAWK_COUNTOF(rtx->gc.g);
 	while (i > 1)
 	{
 		--i;
@@ -484,19 +484,19 @@ static HAWK_INLINE hawk_val_t* gc_calloc_val (hawk_rtx_t* rtx, hawk_oow_t size)
 	hawk_gch_t* gch;
 	int gc_gen = 0;
 
-	if (HAWK_UNLIKELY(rtx->gc.pressure[0] >= rtx->gc.threshold[0])) 
+	if (HAWK_UNLIKELY(rtx->gc.pressure[0] >= rtx->gc.threshold[0]))
 	{
 		/* invoke generational garbage collection */
 		gc_gen = gc_collect_garbage_auto(rtx);
 	}
 
 	gch = (hawk_gch_t*)hawk_rtx_callocmem(rtx, HAWK_SIZEOF(*gch) + size);
-	if (HAWK_UNLIKELY(!gch)) 
+	if (HAWK_UNLIKELY(!gch))
 	{
-		if (gc_gen < HAWK_COUNTOF(rtx->gc.g) - 1) 
+		if (gc_gen < HAWK_COUNTOF(rtx->gc.g) - 1)
 		{
 			/* perform full gc if full gc has not been triggerred at the beginning of this function */
-			hawk_rtx_gc (rtx, HAWK_COUNTOF(rtx->gc.g) - 1); 
+			hawk_rtx_gc (rtx, HAWK_COUNTOF(rtx->gc.g) - 1);
 		}
 		gch = (hawk_gch_t*)hawk_rtx_callocmem(rtx, HAWK_SIZEOF(*gch) + size);
 		if (HAWK_UNLIKELY(!gch)) return HAWK_NULL;
@@ -563,13 +563,13 @@ hawk_val_t* hawk_rtx_makeintval (hawk_rtx_t* rtx, hawk_int_t v)
 		 * will cause a fault on such a platform */
 		c = hawk_rtx_allocmem(rtx, HAWK_SIZEOF(hawk_val_ichunk_t));
 		if (HAWK_UNLIKELY(!c)) return HAWK_NULL;
-		
+
 		c->next = rtx->vmgr.ichunk;
 		/*run->vmgr.ichunk = c;*/
 		rtx->vmgr.ichunk = (hawk_val_chunk_t*)c;
 
 		/*x = (hawk_val_int_t*)(c + 1);
-		for (i = 0; i < CHUNKSIZE-1; i++) 
+		for (i = 0; i < CHUNKSIZE-1; i++)
 			x[i].nde = (hawk_nde_int_t*)&x[i+1];
 		x[i].nde = HAWK_NULL;
 
@@ -792,7 +792,7 @@ hawk_val_t* hawk_rtx_makenumorstrvalwithuchars (hawk_rtx_t* rtx, const hawk_uch_
 		x = hawk_uchars_to_num(HAWK_OOCHARS_TO_NUM_MAKE_OPTION(1, 1, HAWK_RTX_IS_STRIPSTRSPC_ON(rtx), 0), ptr, len, &l, &r);
 		if (x == 0) return hawk_rtx_makeintval(rtx, l);
 		else if (x >= 1) return hawk_rtx_makefltval(rtx, r);
-	}	
+	}
 
 make_str:
 	return hawk_rtx_makestrvalwithuchars(rtx, ptr, len);
@@ -832,7 +832,7 @@ hawk_val_t* hawk_rtx_makenstrvalwithuchars (hawk_rtx_t* rtx, const hawk_uch_t* p
 	if (HAWK_UNLIKELY(!v)) return HAWK_NULL;
 
 
-	if (x >= 0) 
+	if (x >= 0)
 	{
 		/* set the numeric string flag if a string
 		 * can be converted to a number */
@@ -854,7 +854,7 @@ hawk_val_t* hawk_rtx_makenstrvalwithbchars (hawk_rtx_t* rtx, const hawk_bch_t* p
 	v = hawk_rtx_makestrvalwithbchars(rtx, ptr, len);
 	if (HAWK_UNLIKELY(!v)) return HAWK_NULL;
 
-	if (x >= 0) 
+	if (x >= 0)
 	{
 		/* set the numeric string flag if a string
 		 * can be converted to a number */
@@ -1081,8 +1081,8 @@ static void free_arrayval (hawk_arr_t* arr, void* dptr, hawk_oow_t dlen)
 #if defined(HAWK_ENABLE_GC)
 	if (HAWK_VTR_IS_POINTER(v) && v->v_gc && hawk_val_to_gch(v)->gc_refs == GCH_UNREACHABLE)
 	{
-		/* do nothing if the element is unreachable. 
-		 * this behavior pairs up with gc_free_unreachables() to 
+		/* do nothing if the element is unreachable.
+		 * this behavior pairs up with gc_free_unreachables() to
 		 * achieve safe disposal of a value */
 		return;
 	}
@@ -1106,10 +1106,10 @@ hawk_val_t* hawk_rtx_makearrval (hawk_rtx_t* rtx, hawk_ooi_t init_capa)
 	static hawk_arr_style_t style =
 	{
 	/* the key is copied inline into a pair and is freed when the pair
-	 * is destroyed. not setting copier for a value means that the pointer 
-	 * to the data allocated somewhere else is remembered in a pair. but 
+	 * is destroyed. not setting copier for a value means that the pointer
+	 * to the data allocated somewhere else is remembered in a pair. but
 	 * freeing the actual value is handled by free_arrval and same_arrval */
-		
+
 		HAWK_ARR_COPIER_DEFAULT,
 		free_arrayval,
 		HAWK_ARR_COMPER_DEFAULT,
@@ -1137,7 +1137,7 @@ retry:
 	val->arr = (hawk_arr_t*)(val + 1);
 
 	if (init_capa < 0) init_capa = 64; /* TODO: what is the best initial value? */
-	if (HAWK_UNLIKELY(hawk_arr_init(val->arr, hawk_rtx_getgem(rtx), init_capa) <= -1)) 
+	if (HAWK_UNLIKELY(hawk_arr_init(val->arr, hawk_rtx_getgem(rtx), init_capa) <= -1))
 	{
 #if defined(HAWK_ENABLE_GC)
 		gc_free_val (rtx, (hawk_val_t*)val);
@@ -1182,8 +1182,8 @@ static void free_mapval (hawk_map_t* map, void* dptr, hawk_oow_t dlen)
 #if defined(HAWK_ENABLE_GC)
 	if (HAWK_VTR_IS_POINTER(v) && v->v_gc && hawk_val_to_gch(v)->gc_refs == GCH_UNREACHABLE)
 	{
-		/* do nothing if the element is unreachable. 
-		 * this behavior pairs up with gc_free_unreachables() to 
+		/* do nothing if the element is unreachable.
+		 * this behavior pairs up with gc_free_unreachables() to
 		 * achieve safe disposal of a value */
 		return;
 	}
@@ -1206,8 +1206,8 @@ hawk_val_t* hawk_rtx_makemapval (hawk_rtx_t* rtx)
 	static hawk_map_style_t style =
 	{
 	/* the key is copied inline into a pair and is freed when the pair
-	 * is destroyed. not setting copier for a value means that the pointer 
-	 * to the data allocated somewhere else is remembered in a pair. but 
+	 * is destroyed. not setting copier for a value means that the pointer
+	 * to the data allocated somewhere else is remembered in a pair. but
 	 * freeing the actual value is handled by free_mapval and same_mapval */
 		{
 			HAWK_MAP_COPIER_INLINE,
@@ -1386,7 +1386,7 @@ hawk_val_t* hawk_rtx_getmapvalfld (hawk_rtx_t* rtx, hawk_val_t* map, const hawk_
 	if (!pair)
 	{
 		/* the given key is not found in the map.
-		 * we return NULL here as this function is called by 
+		 * we return NULL here as this function is called by
 		 * a user unlike the hawk statement accessing the map key.
 		 * so you can easily determine if the key is found by
 		 * checking the error number.
@@ -1688,7 +1688,7 @@ void hawk_rtx_refdownval (hawk_rtx_t* rtx, hawk_val_t* val)
 		}
 	#else
 		val->v_refs--;
-		if (val->v_refs <= 0) 
+		if (val->v_refs <= 0)
 		{
 			hawk_rtx_freeval (rtx, val, HAWK_RTX_FREEVAL_CACHE);
 		}
@@ -1701,7 +1701,7 @@ void hawk_rtx_refdownval_nofree (hawk_rtx_t* rtx, hawk_val_t* val)
 	if (HAWK_VTR_IS_POINTER(val))
 	{
 		if (HAWK_IS_STATICVAL(val)) return;
-	
+
 		/* the reference count of a value should be greater than zero for it to be decremented. check the source code for any bugs */
 		HAWK_ASSERT (val->v_refs > 0);
 
@@ -1755,10 +1755,10 @@ static int val_ref_to_bool (hawk_rtx_t* rtx, const hawk_val_ref_t* ref)
 		{
 			hawk_val_t** xref = (hawk_val_t**)ref->adr;
 
-			/* A reference value is not able to point to another 
+			/* A reference value is not able to point to another
 			 * refernce value for the way values are represented
 			 * in HAWK */
-			HAWK_ASSERT (HAWK_RTX_GETVALTYPE (rtx, *xref)!= HAWK_VAL_REF); 
+			HAWK_ASSERT (HAWK_RTX_GETVALTYPE (rtx, *xref)!= HAWK_VAL_REF);
 
 			/* make a recursive call back to the caller */
 			return hawk_rtx_valtobool(rtx, *xref);
@@ -1807,7 +1807,7 @@ int hawk_rtx_valtobool (hawk_rtx_t* rtx, const hawk_val_t* val)
 
 	/* the type of a value should be one of HAWK_VAL_XXX enumerators defined in hawk-prv.h */
 	HAWK_ASSERT (!"should never happen - invalid value type");
-		
+
 	return 0;
 }
 
@@ -1892,7 +1892,7 @@ static int mbs_to_str (hawk_rtx_t* rtx, const hawk_bch_t* str, hawk_oow_t str_le
 				return -1;
 			}
 			/* hawk_rtx_convbtouchars() doesn't null terminate the result. -1 to secure space for '\0' */
-			ucslen = out->u.cplcpy.len - 1; 
+			ucslen = out->u.cplcpy.len - 1;
 			if (hawk_rtx_convbtouchars(rtx, str, &str_len, out->u.cplcpy.ptr, &ucslen, 1) <= -1) return -1;
 
 			out->u.cplcpy.ptr[ucslen] = HAWK_T('\0');
@@ -1942,9 +1942,9 @@ static int val_int_to_str (hawk_rtx_t* rtx, const hawk_val_int_t* v, hawk_rtx_va
 	else
 	{
 		/* non-zero values */
-		if (orgval < 0) 
+		if (orgval < 0)
 		{
-			t = orgval * -1; rlen++; 
+			t = orgval * -1; rlen++;
 		}
 		else t = orgval;
 		while (t > 0) { rlen++; t /= 10; }
@@ -1954,10 +1954,10 @@ static int val_int_to_str (hawk_rtx_t* rtx, const hawk_val_int_t* v, hawk_rtx_va
 	{
 		case HAWK_RTX_VALTOSTR_CPL:
 			/* CPL and CPLCP behave the same for int_t.
-			 * i just fall through assuming that cplcpy 
+			 * i just fall through assuming that cplcpy
 			 * and cpl are the same type. the following
 			 * assertion at least ensure that they have
-			 * the same size. */ 
+			 * the same size. */
 			HAWK_ASSERT (HAWK_SIZEOF(out->u.cpl) == HAWK_SIZEOF(out->u.cplcpy));
 
 		case HAWK_RTX_VALTOSTR_CPLCPY:
@@ -1965,7 +1965,7 @@ static int val_int_to_str (hawk_rtx_t* rtx, const hawk_val_int_t* v, hawk_rtx_va
 			{
 				hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EINVAL);
 				/* store the buffer size needed */
-				out->u.cplcpy.len = rlen + 1; 
+				out->u.cplcpy.len = rlen + 1;
 				return -1;
 			}
 
@@ -2019,13 +2019,13 @@ static int val_int_to_str (hawk_rtx_t* rtx, const hawk_val_int_t* v, hawk_rtx_va
 		}
 	}
 
-	if (orgval == 0) tmp[0] = HAWK_T('0'); 
+	if (orgval == 0) tmp[0] = HAWK_T('0');
 	else
 	{
 		t = (orgval < 0)? (orgval * -1): orgval;
 
 		/* fill in the buffer with digits */
-		while (t > 0) 
+		while (t > 0)
 		{
 			tmp[--rlen] = (hawk_ooch_t)(t % 10) + HAWK_T('0');
 			t /= 10;
@@ -2074,10 +2074,10 @@ static int val_flt_to_str (hawk_rtx_t* rtx, const hawk_val_flt_t* v, hawk_rtx_va
 	{
 		case HAWK_RTX_VALTOSTR_CPL:
 			/* CPL and CPLCP behave the same for flt_t.
-			 * i just fall through assuming that cplcpy 
+			 * i just fall through assuming that cplcpy
 			 * and cpl are the same type. the following
 			 * assertion at least ensure that they have
-			 * the same size. */ 
+			 * the same size. */
 			HAWK_ASSERT (HAWK_SIZEOF(out->u.cpl) == HAWK_SIZEOF(out->u.cplcpy));
 
 		case HAWK_RTX_VALTOSTR_CPLCPY:
@@ -2085,7 +2085,7 @@ static int val_flt_to_str (hawk_rtx_t* rtx, const hawk_val_flt_t* v, hawk_rtx_va
 			{
 				hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EINVAL);
 				/* store the buffer size required */
-				out->u.cplcpy.len = tmp_len + 1; 
+				out->u.cplcpy.len = tmp_len + 1;
 				goto oops;
 			}
 
@@ -2143,7 +2143,7 @@ static int val_ref_to_str (hawk_rtx_t* rtx, const hawk_val_ref_t* ref, hawk_rtx_
 		{
 			hawk_oow_t idx;
 
-			/* special case when the reference value is 
+			/* special case when the reference value is
 			 * pointing to the positional */
 
 			idx = (hawk_oow_t)ref->adr;
@@ -2181,10 +2181,10 @@ static int val_ref_to_str (hawk_rtx_t* rtx, const hawk_val_ref_t* ref, hawk_rtx_
 		{
 			hawk_val_t** xref = (hawk_val_t**)ref->adr;
 
-			/* A reference value is not able to point to another 
+			/* A reference value is not able to point to another
 			 * refernce value for the way values are represented
 			 * in HAWK */
-			HAWK_ASSERT (HAWK_RTX_GETVALTYPE (rtx, *xref) != HAWK_VAL_REF); 
+			HAWK_ASSERT (HAWK_RTX_GETVALTYPE (rtx, *xref) != HAWK_VAL_REF);
 
 			/* make a recursive call back to the caller */
 			return hawk_rtx_valtostr(rtx, *xref, out);
@@ -2492,7 +2492,7 @@ hawk_ooch_t* hawk_rtx_getvaloocstrwithcmgr (hawk_rtx_t* rtx, hawk_val_t* v, hawk
 			return ((hawk_val_str_t*)v)->val.ptr;
 
 #if 0
-/* i'm commenting out this part because hawk_rtx_setrefval() changes v->adr 
+/* i'm commenting out this part because hawk_rtx_setrefval() changes v->adr
  * and leads hawk_rtx_freevaloocstr() to check a wrong value obejct.
  * if you know that a value is a reference, you can get the referenced value
  * with hawk_rtx_getrefval() and call this function over it */
@@ -2586,7 +2586,7 @@ hawk_bch_t* hawk_rtx_getvalbcstrwithcmgr (hawk_rtx_t* rtx, hawk_val_t* v, hawk_o
 			return ((hawk_val_mbs_t*)v)->val.ptr;
 
 #if 0
-/* i'm commenting out this part because hawk_rtx_setrefval() changes v->adr 
+/* i'm commenting out this part because hawk_rtx_setrefval() changes v->adr
  * and leads hawk_rtx_freevalbcstr() to check a wrong value obejct.
  * if you know that a value is a reference, you can get the referenced value
  * with hawk_rtx_getrefval() and call this function over it */
@@ -2650,7 +2650,7 @@ static int val_ref_to_num (hawk_rtx_t* rtx, const hawk_val_ref_t* ref, hawk_int_
 		case HAWK_VAL_REF_POS:
 		{
 			hawk_oow_t idx;
-	       
+
 			idx = (hawk_oow_t)ref->adr;
 			if (idx == 0)
 			{
@@ -2686,10 +2686,10 @@ static int val_ref_to_num (hawk_rtx_t* rtx, const hawk_val_ref_t* ref, hawk_int_
 		{
 			hawk_val_t** xref = (hawk_val_t**)ref->adr;
 
-			/* A reference value is not able to point to another 
+			/* A reference value is not able to point to another
 			 * refernce value for the way values are represented
 			 * in HAWK */
-			HAWK_ASSERT (HAWK_RTX_GETVALTYPE(rtx, *xref) != HAWK_VAL_REF); 
+			HAWK_ASSERT (HAWK_RTX_GETVALTYPE(rtx, *xref) != HAWK_VAL_REF);
 
 			/* make a recursive call back to the caller */
 			return hawk_rtx_valtonum(rtx, *xref, l, r);
@@ -2791,7 +2791,7 @@ int hawk_rtx_valtoint (hawk_rtx_t* rtx, const hawk_val_t* v, hawk_int_t* l)
 	hawk_flt_t r;
 
 	n = hawk_rtx_valtonum(rtx, v, l, &r);
-	if (n == 1) 
+	if (n == 1)
 	{
 		*l = (hawk_int_t)r;
 		n = 0;
@@ -2849,7 +2849,7 @@ hawk_fun_t* hawk_rtx_valtofun (hawk_rtx_t* rtx, hawk_val_t* v)
 			hawk_oocs_t x;
 			x.ptr = hawk_rtx_getvaloocstr(rtx, v, &x.len);
 			if (HAWK_UNLIKELY(!x.ptr)) return HAWK_NULL;
-			if (hawk_count_oocstr(x.ptr) != x.len) 
+			if (hawk_count_oocstr(x.ptr) != x.len)
 			{
 				hawk_rtx_freevaloocstr (rtx, v, x.ptr);
 				goto error_inval;
@@ -2874,7 +2874,7 @@ hawk_fnc_t* hawk_rtx_valtofnc (hawk_rtx_t* rtx, hawk_val_t* v, hawk_fnc_t* rfnc)
 	/* this function looks for intrinsic functions as well as module functions.
 	 * it combines the functionality of the following two functions.
 	 *   hawk_findfncwithoocs() - finds an intrisic function
-	 *   hawk_querymodulewithname() - finds a function defined in a module 
+	 *   hawk_querymodulewithname() - finds a function defined in a module
 	 */
 
 	hawk_t* hawk = hawk_rtx_gethawk(rtx);
@@ -2894,7 +2894,7 @@ hawk_fnc_t* hawk_rtx_valtofnc (hawk_rtx_t* rtx, hawk_val_t* v, hawk_fnc_t* rfnc)
 
 			x.ptr = hawk_rtx_getvaloocstr(rtx, v, &x.len);
 			if (HAWK_UNLIKELY(!x.ptr)) return HAWK_NULL;
-			if (hawk_count_oocstr(x.ptr) != x.len) 
+			if (hawk_count_oocstr(x.ptr) != x.len)
 			{
 				hawk_rtx_freevaloocstr (rtx, v, x.ptr);
 				goto error_inval;
@@ -3055,11 +3055,11 @@ hawk_val_type_t hawk_rtx_getrefvaltype (hawk_rtx_t* rtx, hawk_val_ref_t* ref)
 			hawk_val_t** xref = (hawk_val_t**)ref->adr;
 			hawk_val_t* v;
 
-			/* A reference value is not able to point to another 
+			/* A reference value is not able to point to another
 			 * refernce value for the way values are represented
 			 * in HAWK */
 			v = *xref;
-			HAWK_ASSERT (HAWK_RTX_GETVALTYPE(rtx, v) != HAWK_VAL_REF); 
+			HAWK_ASSERT (HAWK_RTX_GETVALTYPE(rtx, v) != HAWK_VAL_REF);
 			return HAWK_RTX_GETVALTYPE(rtx, v);
 		}
 	}
@@ -3098,10 +3098,10 @@ hawk_val_t* hawk_rtx_getrefval (hawk_rtx_t* rtx, hawk_val_ref_t* ref)
 		default:
 		{
 			hawk_val_t** xref = (hawk_val_t**)ref->adr;
-			/* A reference value is not able to point to another 
+			/* A reference value is not able to point to another
 			 * refernce value for the way values are represented
 			 * in HAWK */
-			HAWK_ASSERT (HAWK_RTX_GETVALTYPE(rtx, *xref) != HAWK_VAL_REF); 
+			HAWK_ASSERT (HAWK_RTX_GETVALTYPE(rtx, *xref) != HAWK_VAL_REF);
 			return *xref;
 		}
 	}
@@ -3117,7 +3117,7 @@ int hawk_rtx_setrefval (hawk_rtx_t* rtx, hawk_val_ref_t* ref, hawk_val_t* val)
 		 * can accept a regular expression withtout evaluation when 'x'
 		 * is specified for the parameter, this function doesn't allow
 		 * regular expression to be set to a reference variable to
-		 * avoid potential chaos. the nature of performing '/rex/ ~ $0' 
+		 * avoid potential chaos. the nature of performing '/rex/ ~ $0'
 		 * for a regular expression without the match operator
 		 * makes it difficult to be implemented. */
 		hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EINVAL);
@@ -3167,7 +3167,7 @@ int hawk_rtx_setrefval (hawk_rtx_t* rtx, hawk_val_ref_t* ref, hawk_val_t* val)
 		#if !defined(HAWK_ENABLE_GC)
 			if (vtype == HAWK_VAL_MAP || vtype == HAWK_VAL_ARR)
 			{
-				/* an indexed variable cannot be assigned a map. 
+				/* an indexed variable cannot be assigned a map.
 				 * in other cases, it falls down to the default case. */
 				hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_ENONSCATOIDX);
 				return -1;
@@ -3207,7 +3207,7 @@ int hawk_rtx_setrefval (hawk_rtx_t* rtx, hawk_val_ref_t* ref, hawk_val_t* val)
 					}
 				}
 			}
-			
+
 			if (*rref != val)
 			{
 				/* if the new value is not the same as the old value */
@@ -3274,7 +3274,7 @@ void hawk_dprintval (hawk_rtx_t* run, hawk_val_t* val)
 		#if defined(HAWK_OOCH_IS_UCH)
 			else if (tmp <= 0xFFFF)
 				hawk_errputstrf (HAWK_T("'\\u%04x'"), tmp);
-			else 
+			else
 				hawk_errputstrf (HAWK_T("'\\U%08x'"), tmp);
 		#else
 			else

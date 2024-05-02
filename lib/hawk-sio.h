@@ -21,7 +21,7 @@
     (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
     THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
- 
+
 #ifndef _HAWK_SIO_H_
 #define _HAWK_SIO_H_
 
@@ -174,9 +174,9 @@ HAWK_EXPORT hawk_sio_hnd_t hawk_sio_gethnd (
 	const hawk_sio_t* sio
 );
 
-/** 
+/**
  * The hawk_sio_getpath() returns the file path used to open the stream.
- * It returns #HAWK_NULL if #HAWK_SIO_HANDLE was on or #HAWK_SIO_KEEPPATH 
+ * It returns #HAWK_NULL if #HAWK_SIO_HANDLE was on or #HAWK_SIO_KEEPPATH
  * was off at the time of opening.
  */
 HAWK_EXPORT const hawk_ooch_t* hawk_sio_getpath (
@@ -217,10 +217,10 @@ HAWK_EXPORT hawk_ooi_t hawk_sio_getbchars (
 );
 
 /**
- * The hawk_sio_getucstr() function reads at most @a size - 1 characters 
+ * The hawk_sio_getucstr() function reads at most @a size - 1 characters
  * from the stream @a sio into the buffer @a buf. If a new line or EOF
  * is encountered, it stops reading from the stream. It null-terminates
- * the buffer if @a size is greater than 0. 
+ * the buffer if @a size is greater than 0.
  */
 HAWK_EXPORT hawk_ooi_t hawk_sio_getucstr (
 	hawk_sio_t*  sio,
@@ -229,9 +229,9 @@ HAWK_EXPORT hawk_ooi_t hawk_sio_getucstr (
 );
 
 /**
- * The hawk_sio_getuchars() function reads at most @a size characters 
+ * The hawk_sio_getuchars() function reads at most @a size characters
  * from the stream @a sio into the buffer @a buf. If a new line or EOF
- * is encountered, it stops reading from the stream. 
+ * is encountered, it stops reading from the stream.
  */
 HAWK_EXPORT hawk_ooi_t hawk_sio_getuchars (
 	hawk_sio_t*  sio,
@@ -250,12 +250,12 @@ HAWK_EXPORT hawk_ooi_t hawk_sio_getuchars (
 #endif
 
 HAWK_EXPORT hawk_ooi_t hawk_sio_putbchar (
-	hawk_sio_t*  sio, 
+	hawk_sio_t*  sio,
 	hawk_bch_t   c
 );
 
 HAWK_EXPORT hawk_ooi_t hawk_sio_putuchar (
-	hawk_sio_t*  sio, 
+	hawk_sio_t*  sio,
 	hawk_uch_t   c
 );
 
@@ -271,13 +271,13 @@ HAWK_EXPORT hawk_ooi_t hawk_sio_putucstr (
 
 
 HAWK_EXPORT hawk_ooi_t hawk_sio_putbchars (
-	hawk_sio_t*       sio, 
+	hawk_sio_t*       sio,
 	const hawk_bch_t* str,
 	hawk_oow_t        size
 );
 
 HAWK_EXPORT hawk_ooi_t hawk_sio_putuchars (
-	hawk_sio_t*        sio, 
+	hawk_sio_t*        sio,
 	const hawk_uch_t*  str,
 	hawk_oow_t         size
 );
@@ -322,7 +322,7 @@ HAWK_EXPORT int hawk_sio_truncate (
  * of the file.
  */
 HAWK_EXPORT int hawk_sio_seek (
-	hawk_sio_t*     sio, 
+	hawk_sio_t*     sio,
 	hawk_sio_pos_t* pos,
 	hawk_sio_ori_t  origin
 );

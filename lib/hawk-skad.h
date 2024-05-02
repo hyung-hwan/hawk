@@ -71,8 +71,8 @@ typedef struct hawk_skad_t hawk_skad_t;
 #define HAWK_IP4AD_STRLEN (15) /* not including the terminating '\0' */
 #define HAWK_IP6AD_STRLEN (45) /* not including the terminating '\0'. pure IPv6 address, not including the scope(e.g. %10, %eth0) */
 
-/* size large enough to hold the ip address plus port number. 
- * [IPV6ADDR%SCOPE]:PORT -> 9 for [] % : and PORT 
+/* size large enough to hold the ip address plus port number.
+ * [IPV6ADDR%SCOPE]:PORT -> 9 for [] % : and PORT
  * Let's reserve 16 for SCOPE and not include the terminting '\0'
  */
 #define HAWK_SKAD_IP_STRLEN (HAWK_IP6AD_STRLEN + 25)
@@ -86,7 +86,7 @@ typedef struct hawk_skad_t hawk_skad_t;
 #include <hawk-pac1.h>
 struct HAWK_PACKED hawk_ethad_t
 {
-	hawk_uint8_t v[HAWK_ETHAD_LEN]; 
+	hawk_uint8_t v[HAWK_ETHAD_LEN];
 };
 typedef struct hawk_ethad_t hawk_ethad_t;
 
@@ -98,7 +98,7 @@ typedef struct hawk_ip4ad_t hawk_ip4ad_t;
 
 struct HAWK_PACKED hawk_ip6ad_t
 {
-	hawk_uint8_t v[HAWK_IP6AD_LEN]; 
+	hawk_uint8_t v[HAWK_IP6AD_LEN];
 };
 typedef struct hawk_ip6ad_t hawk_ip6ad_t;
 #include <hawk-upac.h>
@@ -124,7 +124,7 @@ HAWK_EXPORT void hawk_skad_init_for_ip_with_bytes (
 	hawk_skad_t*        skad,
 	hawk_uint16_t       port,
 	const hawk_uint8_t* bytes,
-	hawk_oow_t          len 
+	hawk_oow_t          len
 );
 
 HAWK_EXPORT void hawk_skad_init_for_eth (

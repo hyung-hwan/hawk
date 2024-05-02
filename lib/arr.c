@@ -52,7 +52,7 @@ int hawk_arr_dflcomp (hawk_arr_t* arr, const void* dptr1, hawk_oow_t dlen1, cons
 
 	min = (dlen1 < dlen2)? dlen1: dlen2;
 	n = HAWK_MEMCMP(dptr1, dptr2, TOB(arr,min));
-	if (n == 0 && dlen1 != dlen2) 
+	if (n == 0 && dlen1 != dlen2)
 	{
 		n = (dlen1 > dlen2)? 1: -1;
 	}
@@ -73,7 +73,7 @@ static HAWK_INLINE slot_t* alloc_slot (hawk_arr_t* arr, void* dptr, hawk_oow_t d
 	else if (arr->style->copier == HAWK_ARR_COPIER_INLINE)
 	{
 		n = (slot_t*)hawk_gem_allocmem(arr->gem, HAWK_SIZEOF(slot_t) + TOB(arr,dlen));
-		if (HAWK_UNLIKELY(!n)) return HAWK_NULL; 
+		if (HAWK_UNLIKELY(!n)) return HAWK_NULL;
 
 		HAWK_MEMCPY (n + 1, dptr, TOB(arr,dlen)); /* copy data contents */
 		DPTR(n) = n + 1;
@@ -83,14 +83,14 @@ static HAWK_INLINE slot_t* alloc_slot (hawk_arr_t* arr, void* dptr, hawk_oow_t d
 		n = (slot_t*)hawk_gem_allocmem(arr->gem, HAWK_SIZEOF(slot_t));
 		if (HAWK_UNLIKELY(!n)) return HAWK_NULL;
 		DPTR(n) = arr->style->copier(arr, dptr, dlen); /* call the custom copier */
-		if (HAWK_UNLIKELY(!DPTR(n))) 
+		if (HAWK_UNLIKELY(!DPTR(n)))
 		{
 			hawk_gem_freemem (arr->gem, n);
 			return HAWK_NULL;
 		}
 	}
 
-	DLEN(n) = dlen; 
+	DLEN(n) = dlen;
 
 	return n;
 }
@@ -180,7 +180,7 @@ int hawk_arr_getscale (hawk_arr_t* arr)
 
 void hawk_arr_setscale (hawk_arr_t* arr, int scale)
 {
-	/* The scale should be larger than 0 and less than or equal to the 
+	/* The scale should be larger than 0 and less than or equal to the
 	 * maximum value that the hawk_uint8_t type can hold */
 	HAWK_ASSERT (scale > 0 && scale <= HAWK_TYPE_MAX(hawk_uint8_t));
 
@@ -224,12 +224,12 @@ hawk_arr_t* hawk_arr_setcapa (hawk_arr_t* arr, hawk_oow_t capa)
 		HAWK_ASSERT (arr->size <= capa);
 	}
 
-	if (capa > 0) 
+	if (capa > 0)
 	{
 		tmp = (slot_t**)hawk_gem_reallocmem(arr->gem, arr->slot, HAWK_SIZEOF(*arr->slot) * capa);
 		if (HAWK_UNLIKELY(!tmp)) return HAWK_NULL;
 	}
-	else 
+	else
 	{
 		if (arr->slot)
 		{
@@ -245,7 +245,7 @@ hawk_arr_t* hawk_arr_setcapa (hawk_arr_t* arr, hawk_oow_t capa)
 
 	arr->slot = tmp;
 	arr->capa = capa;
-	
+
 	return arr;
 }
 
@@ -253,7 +253,7 @@ hawk_oow_t hawk_arr_search (hawk_arr_t* arr, hawk_oow_t pos, const void* dptr, h
 {
 	hawk_oow_t i;
 
-	for (i = pos; i < arr->size; i++) 
+	for (i = pos; i < arr->size; i++)
 	{
 		if (arr->slot[i] == HAWK_NULL) continue;
 		if (arr->style->comper(arr, DPTR(arr->slot[i]), DLEN(arr->slot[i]), dptr, dlen) == 0) return i;
@@ -271,7 +271,7 @@ hawk_oow_t hawk_arr_rsearch (hawk_arr_t* arr, hawk_oow_t pos, const void* dptr, 
 	{
 		if (pos >= arr->size) pos = arr->size - 1;
 
-		for (i = pos + 1; i-- > 0; ) 
+		for (i = pos + 1; i-- > 0; )
 		{
 			if (arr->slot[i] == HAWK_NULL) continue;
 			if (arr->style->comper(arr, DPTR(arr->slot[i]), DLEN(arr->slot[i]), dptr, dlen) == 0) return i;
@@ -297,10 +297,10 @@ hawk_oow_t hawk_arr_insert (hawk_arr_t* arr, hawk_oow_t pos, void* dptr, hawk_oo
 	slot = alloc_slot(arr, dptr, dlen);
 	if (HAWK_UNLIKELY(!slot)) return HAWK_ARR_NIL;
 
-	/* do resizeing if necessary. 
-	 * resizing is performed after slot allocation because that way, it 
+	/* do resizeing if necessary.
+	 * resizing is performed after slot allocation because that way, it
 	 * doesn't modify arr on any errors */
-	if (pos >= arr->capa || arr->size >= arr->capa) 
+	if (pos >= arr->capa || arr->size >= arr->capa)
 	{
 		hawk_oow_t capa, mincapa;
 
@@ -313,12 +313,12 @@ hawk_oow_t hawk_arr_insert (hawk_arr_t* arr, hawk_oow_t pos, void* dptr, hawk_oo
 		}
 		else
 		{
-			if (arr->capa <= 0) 
+			if (arr->capa <= 0)
 			{
 				HAWK_ASSERT (arr->size <= 0);
 				capa = HAWK_ALIGN_POW2(pos + 1, 64);
 			}
-			else 
+			else
 			{
 				hawk_oow_t bound = (pos >= arr->size)? pos: arr->size;
 				capa = HAWK_ALIGN_POW2(bound + 1, 64);
@@ -338,7 +338,7 @@ hawk_oow_t hawk_arr_insert (hawk_arr_t* arr, hawk_oow_t pos, void* dptr, hawk_oo
 			}
 
 			capa--; /* let it retry after lowering the capacity */
-		} 
+		}
 		while (1);
 
 		if (pos >= arr->capa || arr->size >= arr->capa)  /* can happen if the sizer() callback isn't good enough */
@@ -371,7 +371,7 @@ hawk_oow_t hawk_arr_update (hawk_arr_t* arr, hawk_oow_t pos, void* dptr, hawk_oo
 {
 	slot_t* c;
 
-	if (pos >= arr->size) 
+	if (pos >= arr->size)
 	{
 		hawk_gem_seterrnum (arr->gem, HAWK_NULL, HAWK_EINVAL);
 		return HAWK_ARR_NIL;
@@ -467,7 +467,7 @@ void hawk_arr_clear (hawk_arr_t* arr)
 {
 	hawk_oow_t i;
 
-	for (i = 0; i < arr->size; i++) 
+	for (i = 0; i < arr->size; i++)
 	{
 		slot_t* c = arr->slot[i];
 		if (c != HAWK_NULL)
@@ -489,7 +489,7 @@ hawk_oow_t hawk_arr_walk (hawk_arr_t* arr, walker_t walker, void* ctx)
 
 	if (arr->size <= 0) return 0;
 
-	while (1)	
+	while (1)
 	{
 		if (arr->slot[i])
 		{
@@ -499,12 +499,12 @@ hawk_oow_t hawk_arr_walk (hawk_arr_t* arr, walker_t walker, void* ctx)
 
 		if (w == HAWK_ARR_WALK_STOP) break;
 
-		if (w == HAWK_ARR_WALK_FORWARD) 
+		if (w == HAWK_ARR_WALK_FORWARD)
 		{
 			i++;
 			if (i >= arr->size) break;
 		}
-		if (w == HAWK_ARR_WALK_BACKWARD) 
+		if (w == HAWK_ARR_WALK_BACKWARD)
 		{
 			if (i <= 0) break;
 			i--;
@@ -522,9 +522,9 @@ hawk_oow_t hawk_arr_rwalk (hawk_arr_t* arr, walker_t walker, void* ctx)
 	if (arr->size <= 0) return 0;
 	i = arr->size - 1;
 
-	while (1)	
+	while (1)
 	{
-		if (arr->slot[i] != HAWK_NULL) 
+		if (arr->slot[i] != HAWK_NULL)
 		{
                 	w = walker (arr, i, ctx);
 			nwalks++;
@@ -532,12 +532,12 @@ hawk_oow_t hawk_arr_rwalk (hawk_arr_t* arr, walker_t walker, void* ctx)
 
 		if (w == HAWK_ARR_WALK_STOP) break;
 
-		if (w == HAWK_ARR_WALK_FORWARD) 
+		if (w == HAWK_ARR_WALK_FORWARD)
 		{
 			i++;
 			if (i >= arr->size) break;
 		}
-		if (w == HAWK_ARR_WALK_BACKWARD) 
+		if (w == HAWK_ARR_WALK_BACKWARD)
 		{
 			if (i <= 0) break;
 			i--;
@@ -596,7 +596,7 @@ static hawk_oow_t sift_up (hawk_arr_t* arr, hawk_oow_t index)
 
 				n = arr->style->comper(arr, DPTR(tmp), DLEN(tmp), DPTR(arr->slot[parent]), DLEN(arr->slot[parent]));
 				if (n <= 0) break;
-			} 
+			}
 
 			arr->slot[index] = tmp;
 			HEAP_UPDATE_POS (arr, index);

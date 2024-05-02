@@ -62,7 +62,7 @@ const hawk_ooch_t* hawk_dfl_errstr (hawk_errnum_t errnum)
 		HAWK_T("cannot read"),
 		HAWK_T("cannot write"),
 		HAWK_T("cannot close"),
-		
+
 		HAWK_T("block nested too deeply"),
 		HAWK_T("expression nested too deeply"),
 
@@ -209,7 +209,7 @@ const hawk_ooch_t* hawk_dfl_errstr (hawk_errnum_t errnum)
 		HAWK_T("occurrence specifier too large"),
 		HAWK_T("no previous regular expression"),
 		HAWK_T("cut selector not valid"),
-		HAWK_T("I/O error with file '${0}'")	
+		HAWK_T("I/O error with file '${0}'")
 	};
 
 	static const hawk_ooch_t* unknown_error = HAWK_T("unknown error");

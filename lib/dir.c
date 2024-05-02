@@ -25,13 +25,13 @@
 #include <hawk-dir.h>
 #include "hawk-prv.h"
 
-#if defined(_WIN32) 
+#if defined(_WIN32)
 #	include <windows.h>
-#elif defined(__OS2__) 
+#elif defined(__OS2__)
 #	define INCL_DOSFILEMGR
 #	define INCL_ERRORS
 #	include <os2.h>
-#elif defined(__DOS__) 
+#elif defined(__DOS__)
 #	include <dos.h>
 #	include <errno.h>
 #else
@@ -65,7 +65,7 @@ struct hawk_dir_t
 	WIN32_FIND_DATA wfd;
 #elif defined(__OS2__)
 	HDIR h;
-	#if defined(FIL_STANDARDL) 
+	#if defined(FIL_STANDARDL)
 	FILEFINDBUF3L ffb;
 	#else
 	FILEFINDBUF3 ffb;
@@ -265,7 +265,7 @@ static hawk_bch_t* make_mbsdos_path (hawk_dir_t* dir, const hawk_bch_t* mpath)
 	{
 		hawk_oow_t len;
 		if ((len = hawk_becs_cpy(&dir->mbuf, mpath)) == (hawk_oow_t)-1 ||
-		    (!HAWK_ISPATHMBSEP(mpath[len - 1]) && 
+		    (!HAWK_ISPATHMBSEP(mpath[len - 1]) &&
 		     !hawk_ismbsdrivecurpath(mpath) &&
 		     hawk_becs_ccat(&dir->mbuf, '\\') == (hawk_oow_t)-1) ||
 		    hawk_becs_cat(&dir->mbuf, "*.*") == (hawk_oow_t)-1) return HAWK_NULL;
@@ -284,7 +284,7 @@ static hawk_uch_t* make_wcsdos_path (hawk_dir_t* dir, const hawk_uch_t* wpath)
 	{
 		hawk_oow_t len;
 		if ((len = hawk_uecs_cpy (&dir->wbuf, wpath)) == (hawk_oow_t)-1 ||
-		    (!HAWK_ISPATHWCSEP(wpath[len - 1]) && 
+		    (!HAWK_ISPATHWCSEP(wpath[len - 1]) &&
 		     !hawk_iswcsdrivecurpath(wpath) &&
 		     hawk_uecs_ccat (&dir->wbuf, HAWK_UT('\\')) == (hawk_oow_t)-1) ||
 		    hawk_uecs_cat (&dir->wbuf, HAWK_UT("*.*")) == (hawk_oow_t)-1) return HAWK_NULL;
@@ -335,7 +335,7 @@ static int reset_to_path (hawk_dir_t* dir, const hawk_ooch_t* path)
 	if (tptr == HAWK_NULL) return -1;
 
 	dh = FindFirstFile(tptr, &wfd);
-	if (dh == INVALID_HANDLE_VALUE) 
+	if (dh == INVALID_HANDLE_VALUE)
 	{
 		hawk_gem_seterrnum (dir->gem, HAWK_NULL, hawk_syserr_to_errnum(GetLastError()));
 		return -1;
@@ -354,7 +354,7 @@ static int reset_to_path (hawk_dir_t* dir, const hawk_ooch_t* path)
 	APIRET rc;
 	const hawk_bch_t* mptr;
 	HDIR h = HDIR_CREATE;
-	#if defined(FIL_STANDARDL) 
+	#if defined(FIL_STANDARDL)
 	FILEFINDBUF3L ffb = { 0 };
 	#else
 	FILEFINDBUF3 ffb = { 0 };
@@ -378,12 +378,12 @@ static int reset_to_path (hawk_dir_t* dir, const hawk_ooch_t* path)
 
 	rc = DosFindFirst (
 		mptr,
-		&h, 
+		&h,
 		FILE_DIRECTORY | FILE_READONLY,
 		&ffb,
 		HAWK_SIZEOF(dir->ffb),
 		&count,
-	#if defined(FIL_STANDARDL) 
+	#if defined(FIL_STANDARDL)
 		FIL_STANDARDL
 	#else
 		FIL_STANDARD
@@ -432,7 +432,7 @@ static int reset_to_path (hawk_dir_t* dir, const hawk_ooch_t* path)
 	if (mptr == HAWK_NULL) return -1;
 
 	rc = _dos_findfirst(mptr, _A_NORMAL | _A_SUBDIR, &f);
-	if (rc != 0) 
+	if (rc != 0)
 	{
 		hawk_gem_seterrnum (dir->gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
 		return -1;
@@ -474,7 +474,7 @@ static int reset_to_path (hawk_dir_t* dir, const hawk_ooch_t* path)
 		}
 	}
 
-	if (dp == HAWK_NULL) 
+	if (dp == HAWK_NULL)
 	{
 		hawk_gem_seterrnum (dir->gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
 		return -1;
@@ -484,7 +484,7 @@ static int reset_to_path (hawk_dir_t* dir, const hawk_ooch_t* path)
 
 	dir->dp = dp;
 	return 0;
-#endif 
+#endif
 }
 
 int hawk_dir_reset (hawk_dir_t* dir, const hawk_ooch_t* path)
@@ -494,7 +494,7 @@ int hawk_dir_reset (hawk_dir_t* dir, const hawk_ooch_t* path)
 	if (dir->flags & HAWK_DIR_SORT)
 	{
 		hawk_arr_clear (dir->stab);
-		if (read_ahead_and_sort(dir, path) <= -1) 
+		if (read_ahead_and_sort(dir, path) <= -1)
 		{
 			dir->status |= STATUS_SORT_ERR;
 			return -1;
@@ -520,10 +520,10 @@ static int read_dir_to_buf (hawk_dir_t* dir, void** name)
 		/* skip . and .. */
 		while (IS_CURDIR(dir->wfd.cFileName) || IS_PREVDIR(dir->wfd.cFileName))
 		{
-			if (FindNextFile(dir->h, &dir->wfd) == FALSE) 
+			if (FindNextFile(dir->h, &dir->wfd) == FALSE)
 			{
 				DWORD x = GetLastError();
-				if (x == ERROR_NO_MORE_FILES) 
+				if (x == ERROR_NO_MORE_FILES)
 				{
 					dir->status |= STATUS_DONE;
 					return 0;
@@ -559,7 +559,7 @@ static int read_dir_to_buf (hawk_dir_t* dir, void** name)
 		*name = HAWK_UECS_PTR(&dir->wbuf);
 	}
 
-	if (FindNextFile (dir->h, &dir->wfd) == FALSE) 
+	if (FindNextFile (dir->h, &dir->wfd) == FALSE)
 	{
 		DWORD x = GetLastError();
 		if (x == ERROR_NO_MORE_FILES) dir->status |= STATUS_DONE;
@@ -587,7 +587,7 @@ static int read_dir_to_buf (hawk_dir_t* dir, void** name)
 		while (IS_CURDIR(dir->ffb.achName) || IS_PREVDIR(dir->ffb.achName))
 		{
 			rc = DosFindNext (dir->h, &dir->ffb, HAWK_SIZEOF(dir->ffb), &dir->count);
-			if (rc == ERROR_NO_MORE_FILES) 
+			if (rc == ERROR_NO_MORE_FILES)
 			{
 				dir->count = 0;
 				return 0;
@@ -611,7 +611,7 @@ static int read_dir_to_buf (hawk_dir_t* dir, void** name)
 		if (mbs_to_wbuf (dir, dir->ffb.achName, &dir->wbuf) == HAWK_NULL) return -1;
 		*name = HAWK_UECS_PTR(&dir->wbuf);
 	}
-	
+
 
 	rc = DosFindNext (dir->h, &dir->ffb, HAWK_SIZEOF(dir->ffb), &dir->count);
 	if (rc == ERROR_NO_MORE_FILES) dir->count = 0;
@@ -637,7 +637,7 @@ static int read_dir_to_buf (hawk_dir_t* dir, void** name)
 		{
 			if (_dos_findnext (&dir->f) != 0)
 			{
-				if (errno == ENOENT) 
+				if (errno == ENOENT)
 				{
 					dir->status |= STATUS_DONE;
 					return 0;
@@ -688,7 +688,7 @@ static int read_dir_to_buf (hawk_dir_t* dir, void** name)
 read:
 	errno = 0;
 	de = HAWK_READDIR(dir->dp);
-	if (de == NULL) 
+	if (de == NULL)
 	{
 		if (errno == 0) return 0;
 		hawk_gem_seterrnum (dir->gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
@@ -751,7 +751,7 @@ int hawk_dir_read (hawk_dir_t* dir, hawk_dir_ent_t* ent)
 {
 	if (dir->flags & HAWK_DIR_SORT)
 	{
-		if (dir->status & STATUS_SORT_ERR) 
+		if (dir->status & STATUS_SORT_ERR)
 		{
 			hawk_gem_seterrnum (dir->gem, HAWK_NULL, HAWK_ESTATE);
 			return -1;

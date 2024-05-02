@@ -63,7 +63,7 @@ static struct
 	hawk_sed_iostd_t* io;
 	hawk_oow_t capa;
 	hawk_oow_t size;
-} g_script = 
+} g_script =
 {
 	HAWK_NULL,
 	0,
@@ -113,7 +113,7 @@ static void xma_free (hawk_mmgr_t* mmgr, void* ptr)
 	hawk_xma_free (mmgr->ctx, ptr);
 }
 
-static hawk_mmgr_t xma_mmgr = 
+static hawk_mmgr_t xma_mmgr =
 {
 	xma_alloc,
 	xma_realloc,
@@ -243,7 +243,7 @@ static int add_script (const hawk_bch_t* str, int mem)
 		hawk_sed_iostd_t* tmp;
 
 		tmp = (hawk_sed_iostd_t*)realloc(g_script.io, HAWK_SIZEOF(*g_script.io) * (g_script.capa + 16 + 1));
-		if (tmp == HAWK_NULL) 
+		if (tmp == HAWK_NULL)
 		{
 			print_error ("out of memory while processing %s\n", str);
 			return -1;
@@ -251,13 +251,13 @@ static int add_script (const hawk_bch_t* str, int mem)
 
 		g_script.io = tmp;
 		g_script.capa += 16;
-	} 
+	}
 
 	if (mem)
 	{
 		/* string */
 		g_script.io[g_script.size].type = HAWK_SED_IOSTD_BCS;
-		/* though its type is not qualified to be const, 
+		/* though its type is not qualified to be const,
 		 * u.mem.ptr is actually const when used for input */
 		g_script.io[g_script.size].u.bcs.ptr = (hawk_bch_t*)str;
 		g_script.io[g_script.size].u.bcs.len = hawk_count_bcstr(str);
@@ -286,7 +286,7 @@ static void free_scripts (void)
 
 static int handle_args (int argc, hawk_bch_t* argv[], struct arg_t* arg)
 {
-	static hawk_bcli_lng_t lng[] = 
+	static hawk_bcli_lng_t lng[] =
 	{
 #if defined(HAWK_OOCH_IS_UCH)
 		{ ":script-encoding",  '\0' },
@@ -296,9 +296,9 @@ static int handle_args (int argc, hawk_bch_t* argv[], struct arg_t* arg)
 
 		{ "version",           '\0' },
 		{ "help",              'h' },
-		{ HAWK_NULL,           '\0' }                  
+		{ HAWK_NULL,           '\0' }
 	};
-	static hawk_bcli_t opt = 
+	static hawk_bcli_t opt =
 	{
 #if defined(HAWK_BUILD_DEBUG)
 		"hne:f:o:rRisabxytm:wX:",
@@ -387,7 +387,7 @@ static int handle_args (int argc, hawk_bch_t* argv[], struct arg_t* arg)
 				print_usage (stderr, argc, argv);
 				goto oops;
 			#endif
- 
+
 			case 'm':
 				arg->memlimit = strtoul(opt.arg, HAWK_NULL, 10);
 				break;
@@ -442,7 +442,7 @@ static int handle_args (int argc, hawk_bch_t* argv[], struct arg_t* arg)
 		}
 	}
 
-	if (opt.ind < argc && g_script.size <= 0) 
+	if (opt.ind < argc && g_script.size <= 0)
 	{
 		if (add_script(argv[opt.ind++], 1) <= -1) goto oops;
 	}
@@ -511,7 +511,7 @@ static void dispatch_siginfo (int sig, siginfo_t* si, void* ctx)
 		((sig_handler_t)g_sig_state[sig].handler) (sig);
 	}
 
-	if (g_sig_state[sig].old_handler && 
+	if (g_sig_state[sig].old_handler &&
 	    g_sig_state[sig].old_handler != (hawk_uintptr_t)SIG_IGN &&
 	    g_sig_state[sig].old_handler != (hawk_uintptr_t)SIG_DFL)
 	{
@@ -528,7 +528,7 @@ static void dispatch_signal (int sig)
 		((sig_handler_t)g_sig_state[sig].handler) (sig);
 	}
 
-	if (g_sig_state[sig].old_handler && 
+	if (g_sig_state[sig].old_handler &&
 	    g_sig_state[sig].old_handler != (hawk_uintptr_t)SIG_IGN &&
 	    g_sig_state[sig].old_handler != (hawk_uintptr_t)SIG_DFL)
 	{
@@ -687,16 +687,16 @@ static void trace_exec (hawk_sed_t* sed, hawk_sed_tracer_op_t op, const hawk_sed
 		/* TODO: use function to get hold space and pattern space and print them */
 
 		case HAWK_SED_TRACER_MATCH:
-			hawk_fprintf (HAWK_STDERR, HAWK_T("%s:%lu [%c] MA\n"), 
-				((cmd->lid && cmd->lid[0])? cmd->lid: HAWK_T("<<UNKNOWN>>")), 
+			hawk_fprintf (HAWK_STDERR, HAWK_T("%s:%lu [%c] MA\n"),
+				((cmd->lid && cmd->lid[0])? cmd->lid: HAWK_T("<<UNKNOWN>>")),
 				(unsigned long)cmd->loc.line,
 				cmd->type
 			);
 			break;
 
 		case HAWK_SED_TRACER_EXEC:
-			hawk_fprintf (HAWK_STDERR, HAWK_T("%s:%lu [%c] EC\n"), 
-				((cmd->lid && cmd->lid[0])? cmd->lid: HAWK_T("<<UNKNOWN>>")), 
+			hawk_fprintf (HAWK_STDERR, HAWK_T("%s:%lu [%c] EC\n"),
+				((cmd->lid && cmd->lid[0])? cmd->lid: HAWK_T("<<UNKNOWN>>")),
 				(unsigned long)cmd->loc.line,
 				cmd->type
 			);
@@ -845,12 +845,12 @@ static HAWK_INLINE int execute_hawk_sed (int argc, hawk_bch_t* argv[])
 		hawk_bch_t exprbuf[128];
 
 		errloc = hawk_sed_geterrloc(sed);
-	
+
 		if (g_script.io[script_count].type == HAWK_SED_IOSTD_FILEB)
 		{
 			target = g_script.io[script_count].u.fileb.path;
 		}
-		else 
+		else
 		{
 			/* i dont' use HAWK_SED_IOSTD_SIO for input */
 			HAWK_ASSERT (g_script.io[script_count].type == HAWK_SED_IOSTD_BCS);
@@ -925,7 +925,7 @@ static HAWK_INLINE int execute_hawk_sed (int argc, hawk_bch_t* argv[])
 		{
 			hawk_sed_iostd_t in[2];
 			hawk_bch_t* tmpl_tmpfile;
-			
+
 			in[0].type = HAWK_SED_IOSTD_FILEB;
 			in[0].u.fileb.path = xarg.ptr[inpos];
 			in[0].u.fileb.cmgr = g_infile_cmgr;
@@ -963,7 +963,7 @@ static HAWK_INLINE int execute_hawk_sed (int argc, hawk_bch_t* argv[])
 				);
 				if (out_inplace.u.sio == HAWK_NULL)
 				{
-					if (retried) 
+					if (retried)
 					{
 						print_error ("cannot open %s\n", tmpl_tmpfile);
 						hawk_sed_freemem (sed, tmpl_tmpfile);
@@ -991,7 +991,7 @@ static HAWK_INLINE int execute_hawk_sed (int argc, hawk_bch_t* argv[])
 			{
 				if (output) hawk_sio_close (output->u.sio);
 
-				if (tmpl_tmpfile) 
+				if (tmpl_tmpfile)
 				{
 					unlink (tmpl_tmpfile);
 					hawk_sed_freemem (sed, tmpl_tmpfile);
@@ -1069,7 +1069,7 @@ static HAWK_INLINE int execute_hawk_sed (int argc, hawk_bch_t* argv[])
 		else
 		{
 			/* arrange to be able to specify cmgr.
-			 * if not for cmgr, i could simply pass HAWK_NULL 
+			 * if not for cmgr, i could simply pass HAWK_NULL
 			 * to hawk_sed_execstd() below like
 			 *   xx = hawk_sed_execstd (sed, in, HAWK_NULL); */
 			out.type = HAWK_SED_IOSTD_FILEB;

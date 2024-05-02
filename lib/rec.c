@@ -130,7 +130,7 @@ static int split_record (hawk_rtx_t* rtx, int prefer_number)
 		fs_len = ((hawk_val_str_t*)fs)->val.len;
 		fs_free = HAWK_NULL;
 	}
-	else 
+	else
 	{
 		fs_ptr = hawk_rtx_valtooocstrdup(rtx, fs, &fs_len);
 		if (HAWK_UNLIKELY(!fs_ptr)) return -1;
@@ -155,7 +155,7 @@ static int split_record (hawk_rtx_t* rtx, int prefer_number)
 		how = (fs_len <= 1)? 0: 2;
 	}
 
-	p = px; 
+	p = px;
 	len = HAWK_OOECS_LEN(&rtx->inrec.line);
 
 #if 0
@@ -173,12 +173,12 @@ static int split_record (hawk_rtx_t* rtx, int prefer_number)
 
 			default:
 				p = hawk_rtx_tokoocharsbyrex(
-					rtx, 
+					rtx,
 					HAWK_OOECS_PTR(&rtx->inrec.line),
 					HAWK_OOECS_LEN(&rtx->inrec.line),
-					p, len, 
+					p, len,
 					rtx->gbl.fs[rtx->gbl.ignorecase], &tok
-				); 
+				);
 				if (p == HAWK_NULL && hawk_rtx_geterrnum(rtx) != HAWK_ENOERR)
 				{
 					if (fs_free) hawk_rtx_freemem (rtx, fs_free);
@@ -230,7 +230,7 @@ static int split_record (hawk_rtx_t* rtx, int prefer_number)
 		px = HAWK_OOECS_PTR(&rtx->inrec.line);
 	}
 
-	p = px; 
+	p = px;
 	len = HAWK_OOECS_LEN(&rtx->inrec.line);
 #endif
 
@@ -251,12 +251,12 @@ static int split_record (hawk_rtx_t* rtx, int prefer_number)
 			default:
 				/* all other cases */
 				p = hawk_rtx_tokoocharsbyrex(
-					rtx, 
+					rtx,
 					HAWK_OOECS_PTR(&rtx->inrec.line),
 					HAWK_OOECS_LEN(&rtx->inrec.line),
 					p, len,
 					rtx->gbl.fs[rtx->gbl.ignorecase], &tok
-				); 
+				);
 				if (p == HAWK_NULL && hawk_rtx_geterrnum(rtx) != HAWK_ENOERR)
 				{
 					if (fs_free) hawk_rtx_freemem (rtx, fs_free);
@@ -284,13 +284,13 @@ static int split_record (hawk_rtx_t* rtx, int prefer_number)
 			else nflds = rtx->inrec.nflds * 2;
 
 			tmp = hawk_rtx_allocmem(rtx, HAWK_SIZEOF(*rtx->inrec.flds) * nflds);
-			if (tmp == HAWK_NULL) 
+			if (tmp == HAWK_NULL)
 			{
 				if (fs_free) hawk_rtx_freemem (rtx, fs_free);
 				return -1;
 			}
 
-			if (rtx->inrec.flds != HAWK_NULL) 
+			if (rtx->inrec.flds != HAWK_NULL)
 			{
 				HAWK_MEMCPY (tmp, rtx->inrec.flds, HAWK_SIZEOF(*rtx->inrec.flds) * rtx->inrec.nflds);
 				hawk_rtx_freemem (rtx, rtx->inrec.flds);
@@ -304,7 +304,7 @@ static int split_record (hawk_rtx_t* rtx, int prefer_number)
 		rtx->inrec.flds[rtx->inrec.nflds].ptr = tok.ptr;
 		rtx->inrec.flds[rtx->inrec.nflds].len = tok.len;
 		/*rtx->inrec.flds[rtx->inrec.nflds].val = hawk_rtx_makenstrvalwithoocs(rtx, &tok);*/
-		rtx->inrec.flds[rtx->inrec.nflds].val = 
+		rtx->inrec.flds[rtx->inrec.nflds].val =
 			prefer_number? hawk_rtx_makenumorstrvalwithoochars(rtx, tok.ptr, tok.len):
 			               hawk_rtx_makestrvalwithoochars(rtx, tok.ptr, tok.len);
 		if (HAWK_UNLIKELY(!rtx->inrec.flds[rtx->inrec.nflds].val))
@@ -326,7 +326,7 @@ static int split_record (hawk_rtx_t* rtx, int prefer_number)
 	if (v == HAWK_NULL) return -1;
 
 	hawk_rtx_refupval (rtx, v);
-	if (hawk_rtx_setgbl(rtx, HAWK_GBL_NF, v) <= -1) 
+	if (hawk_rtx_setgbl(rtx, HAWK_GBL_NF, v) <= -1)
 	{
 		hawk_rtx_refdownval (rtx, v);
 		return -1;
@@ -350,7 +350,7 @@ int hawk_rtx_clrrec (hawk_rtx_t* rtx, int skip_inrec_line)
 	{
 		HAWK_ASSERT (rtx->inrec.flds != HAWK_NULL);
 
-		for (i = 0; i < rtx->inrec.nflds; i++) 
+		for (i = 0; i < rtx->inrec.nflds; i++)
 		{
 			HAWK_ASSERT (rtx->inrec.flds[i].val != HAWK_NULL);
 			hawk_rtx_refdownval (rtx, rtx->inrec.flds[i].val);
@@ -359,7 +359,7 @@ int hawk_rtx_clrrec (hawk_rtx_t* rtx, int skip_inrec_line)
 
 		if (hawk_rtx_setgbl(rtx, HAWK_GBL_NF, HAWK_VAL_ZERO) <= -1)
 		{
-			/* first of all, this should never happen. 
+			/* first of all, this should never happen.
 			 * if it happened, it would return an error
 			 * after all the clearance tasks */
 			n = -1;
@@ -377,12 +377,12 @@ static int recomp_record_fields (hawk_rtx_t* rtx, hawk_oow_t lv, const hawk_oocs
 	hawk_val_t* v;
 	hawk_oow_t max, i, nflds;
 
-	/* recomposes the record and the fields when $N has been assigned 
+	/* recomposes the record and the fields when $N has been assigned
 	 * a new value and recomputes NF accordingly.
-	 * 
+	 *
 	 * BEGIN { OFS=":" } { $2 = "Q"; print $0; }
 	 * If input is abc def xxx, $0 becomes abc:Q:xxx.
-	 * 
+	 *
 	 * We should store the value in rtx->inrec.line so that the caller
 	 * can use it to make a value for $0.
 	 */
@@ -443,7 +443,7 @@ static int recomp_record_fields (hawk_rtx_t* rtx, hawk_oow_t lv, const hawk_oocs
 
 			if (hawk_ooecs_cat(&rtx->inrec.line, HAWK_T("")) == (hawk_oow_t)-1) return -1;
 
-			/* hawk_rtx_refdownval should not be called over 
+			/* hawk_rtx_refdownval should not be called over
 			 * rtx->inrec.flds[i].val as it is not initialized
 			 * to any valid values */
 			/*hawk_rtx_refdownval (rtx, rtx->inrec.flds[i].val);*/
@@ -475,7 +475,7 @@ static int recomp_record_fields (hawk_rtx_t* rtx, hawk_oow_t lv, const hawk_oocs
 		if (v == HAWK_NULL) return -1;
 
 		hawk_rtx_refupval (rtx, v);
-		if (hawk_rtx_setgbl(rtx, HAWK_GBL_NF, v) <= -1) 
+		if (hawk_rtx_setgbl(rtx, HAWK_GBL_NF, v) <= -1)
 		{
 			hawk_rtx_refdownval (rtx, v);
 			return -1;
@@ -521,7 +521,7 @@ int hawk_rtx_truncrec (hawk_rtx_t* rtx, hawk_oow_t nflds)
 				ofs_free = ofs_ptr;
 			}
 		}
-	
+
 		if (hawk_ooecs_ncat(&tmp, rtx->inrec.flds[0].ptr, rtx->inrec.flds[0].len) == (hawk_oow_t)-1) goto oops;
 		for (i = 1; i < nflds; i++)
 		{

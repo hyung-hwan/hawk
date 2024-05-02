@@ -51,14 +51,14 @@ enum hawk_glob_flag_t
 	/** Match a leading period explicitly by a literal period in the pattern */
 	HAWK_GLOB_PERIOD     = (1 << 1),
 
-	/** Perform case-insensitive matching. 
+	/** Perform case-insensitive matching.
 	 *  This option is always on in Win32/OS2/DOS. */
 	HAWK_GLOB_IGNORECASE = (1 << 2),
 
 	/** Make the function to be more fault-resistent */
 	HAWK_GLOB_TOLERANT   = (1 << 3),
 
-	/** Exclude special entries from matching. 
+	/** Exclude special entries from matching.
 	  * Special entries include . and .. */
 	HAWK_GLOB_SKIPSPCDIR  = (1 << 4),
 
@@ -78,7 +78,7 @@ extern "C" {
 /**
  * The hawk_gem_bglob() function finds path names matchin the \a pattern.
  * It calls the call-back function \a cbimpl for each path name found.
- * 
+ *
  * \return -1 on failure, 0 on no match, 1 if matches are found.
  */
 HAWK_EXPORT int hawk_gem_bglob (
@@ -103,7 +103,7 @@ HAWK_EXPORT int hawk_gem_uglob (
 #else
 	typedef hawk_gem_bglob_cb_t hawk_gem_glob_cb_t;
 #	define hawk_gem_glob hawk_gem_bglob
-	
+
 #endif
 
 #if defined(__cplusplus)

@@ -23,7 +23,7 @@
  */
 
 static int fmt_uintmax (
-	char_t* buf, int size, 
+	char_t* buf, int size,
 	hawk_uintmax_t value, int base_and_flags, int prec,
 	char_t fillchar, char_t signchar, const char_t* prefix)
 {
@@ -39,10 +39,10 @@ static int fmt_uintmax (
 		"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ":
 		"0123456789abcdefghijklmnopqrstuvwxyz";
 
-	if ((base_and_flags & HAWK_FMT_INTMAX_NOZERO) && value == 0) 
+	if ((base_and_flags & HAWK_FMT_INTMAX_NOZERO) && value == 0)
 	{
-		p = tmp; 
-		if (base_and_flags & HAWK_FMT_INTMAX_ZEROLEAD) 
+		p = tmp;
+		if (base_and_flags & HAWK_FMT_INTMAX_ZEROLEAD)
 		{
 			/* NOZERO emits no digit, ZEROLEAD emits 1 digit.
 			 * so it emits '0' */
@@ -61,7 +61,7 @@ static int fmt_uintmax (
 		hawk_uintmax_t v = value;
 
 		/* store the resulting numeric string into 'tmp' first */
-		p = tmp; 
+		p = tmp;
 		do
 		{
 			*p++ = xbasestr[v % base];
@@ -71,11 +71,11 @@ static int fmt_uintmax (
 
 		/* reslen is the length of the resulting string without padding. */
 		reslen = (int)(p - tmp);
-	
+
 		/* precision specified the minum number of digits to produce.
-		 * so if the precision is larger that the digits produced, 
+		 * so if the precision is larger that the digits produced,
 		 * reslen should be adjusted to precision */
-		if (prec > reslen) 
+		if (prec > reslen)
 		{
 			/* if the precision is greater than the actual digits
 			 * made from the value, 0 is inserted in front.
@@ -84,12 +84,12 @@ static int fmt_uintmax (
 			preczero = prec - reslen;
 			reslen = prec;
 		}
-		else 
+		else
 		{
 			preczero = 0;
-			if ((base_and_flags & HAWK_FMT_INTMAX_ZEROLEAD) && value != 0) 
+			if ((base_and_flags & HAWK_FMT_INTMAX_ZEROLEAD) && value != 0)
 			{
-				/* if value is zero, 0 is emitted from it. 
+				/* if value is zero, 0 is emitted from it.
 				 * so ZEROLEAD don't need to add another 0. */
 				preczero++;
 				reslen++;
@@ -135,10 +135,10 @@ static int fmt_uintmax (
 			if (prefix) while (*prefix && bp < be) *bp++ = *prefix++;
 
 			/* add 0s for precision */
-			while (preczero > 0 && bp < be) 
-			{ 
+			while (preczero > 0 && bp < be)
+			{
 				*bp++ = '0';
-				preczero--; 
+				preczero--;
 			}
 
 			/* copy the numeric string to the destination buffer */
@@ -167,10 +167,10 @@ static int fmt_uintmax (
 			if (prefix) while (*prefix && bp < be) *bp++ = *prefix++;
 
 			/* add 0s for precision */
-			while (preczero > 0 && bp < be) 
-			{ 
+			while (preczero > 0 && bp < be)
+			{
 				*bp++ = '0';
-				preczero--; 
+				preczero--;
 			}
 
 			/* copy the numeric string to the destination buffer */
@@ -192,10 +192,10 @@ static int fmt_uintmax (
 			if (prefix) while (*prefix && bp < be) *bp++ = *prefix++;
 
 			/* add 0s for precision */
-			while (preczero > 0 && bp < be) 
-			{ 
+			while (preczero > 0 && bp < be)
+			{
 				*bp++ = '0';
-				preczero--; 
+				preczero--;
 			}
 
 			/* copy the numeric string to the destination buffer */
@@ -211,10 +211,10 @@ static int fmt_uintmax (
 		if (prefix) while (*prefix && bp < be) *bp++ = *prefix++;
 
 		/* add 0s for precision */
-		while (preczero > 0 && bp < be) 
-		{ 
+		while (preczero > 0 && bp < be)
+		{
 			*bp++ = '0';
-			preczero--; 
+			preczero--;
 		}
 
 		/* copy the numeric string to the destination buffer */

@@ -45,7 +45,7 @@ typedef struct hawk_mtx_t hawk_mtx_t;
 	typedef hawk_uintptr_t hawk_mtx_hnd_t;
 
 #elif defined(__BEOS__)
-	/* typedef int32 sem_id; 
+	/* typedef int32 sem_id;
 	 * typedef sem_id hawk_mtx_hnd_t; */
 	typdef hawk_int32_t hawk_mtx_hnd_t;
 

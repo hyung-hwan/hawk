@@ -39,7 +39,7 @@
 
 
 
-/* ========================================================================= 
+/* =========================================================================
  * STRING
  * ========================================================================= */
 
@@ -639,7 +639,7 @@ HAWK_EXPORT int hawk_fnmat_bchars_i (
 #define HAWK_BYTE_TO_BCSTR_LOWERCASE HAWK_BYTE_TO_OOCSTR_LOWERCASE
 
 HAWK_EXPORT hawk_oow_t hawk_byte_to_bcstr (
-	hawk_uint8_t   byte,  
+	hawk_uint8_t   byte,
 	hawk_bch_t*    buf,
 	hawk_oow_t     size,
 	int           flagged_radix,
@@ -647,7 +647,7 @@ HAWK_EXPORT hawk_oow_t hawk_byte_to_bcstr (
 );
 
 HAWK_EXPORT hawk_oow_t hawk_byte_to_ucstr (
-	hawk_uint8_t   byte,  
+	hawk_uint8_t   byte,
 	hawk_uch_t*    buf,
 	hawk_oow_t     size,
 	int           flagged_radix,
@@ -663,32 +663,32 @@ HAWK_EXPORT hawk_oow_t hawk_byte_to_ucstr (
 /* ------------------------------------------------------------------------- */
 
 HAWK_EXPORT hawk_oow_t hawk_int_to_ucstr (
-	hawk_int_t     value, 
-	int              radix, 
+	hawk_int_t     value,
+	int              radix,
 	const hawk_uch_t* prefix,
 	hawk_uch_t*       buf,
 	hawk_oow_t        size
 );
 
 HAWK_EXPORT hawk_oow_t hawk_int_to_bcstr (
-	hawk_int_t     value, 
-	int              radix, 
+	hawk_int_t     value,
+	int              radix,
 	const hawk_bch_t* prefix,
 	hawk_bch_t*       buf,
 	hawk_oow_t        size
 );
 
 HAWK_EXPORT hawk_oow_t hawk_uint_to_ucstr (
-	hawk_uint_t     value, 
-	int              radix, 
+	hawk_uint_t     value,
+	int              radix,
 	const hawk_uch_t* prefix,
 	hawk_uch_t*       buf,
 	hawk_oow_t        size
 );
 
 HAWK_EXPORT hawk_oow_t hawk_uint_to_bcstr (
-	hawk_uint_t     value, 
-	int              radix, 
+	hawk_uint_t     value,
+	int              radix,
 	const hawk_bch_t* prefix,
 	hawk_bch_t*       buf,
 	hawk_oow_t        size
@@ -816,7 +816,7 @@ template<typename CHAR_TYPE, typename INT_TYPE, bool(*IS_SPACE)(CHAR_TYPE)>INT_T
 	int digit, negative = 0;
 	int base = HAWK_CHARS_TO_INT_GET_OPTION_BASE(option);
 
-	p = str; 
+	p = str;
 	end = str + len;
 
 	if (HAWK_CHARS_TO_INT_GET_OPTION_LTRIM(option))
@@ -828,7 +828,7 @@ template<typename CHAR_TYPE, typename INT_TYPE, bool(*IS_SPACE)(CHAR_TYPE)>INT_T
 	/* check for a sign */
 	while (p < end)
 	{
-		if (*p == '-') 
+		if (*p == '-')
 		{
 			negative = ~negative;
 			p++;
@@ -839,9 +839,9 @@ template<typename CHAR_TYPE, typename INT_TYPE, bool(*IS_SPACE)(CHAR_TYPE)>INT_T
 
 	/* check for a binary/octal/hexadecimal notation */
 	rem = end - p;
-	if (base == 0) 
+	if (base == 0)
 	{
-		if (rem >= 1 && *p == '0') 
+		if (rem >= 1 && *p == '0')
 		{
 			p++;
 
@@ -849,7 +849,7 @@ template<typename CHAR_TYPE, typename INT_TYPE, bool(*IS_SPACE)(CHAR_TYPE)>INT_T
 			else if (*p == 'x' || *p == 'X')
 			{
 				p++; base = 16;
-			} 
+			}
 			else if (*p == 'b' || *p == 'B')
 			{
 				p++; base = 2;
@@ -857,14 +857,14 @@ template<typename CHAR_TYPE, typename INT_TYPE, bool(*IS_SPACE)(CHAR_TYPE)>INT_T
 			else base = 8;
 		}
 		else base = 10;
-	} 
+	}
 	else if (rem >= 2 && base == 16)
 	{
-		if (*p == '0' && (*(p + 1) == 'x' || *(p + 1) == 'X')) p += 2; 
+		if (*p == '0' && (*(p + 1) == 'x' || *(p + 1) == 'X')) p += 2;
 	}
 	else if (rem >= 2 && base == 2)
 	{
-		if (*p == '0' && (*(p + 1) == 'b' || *(p + 1) == 'B')) p += 2; 
+		if (*p == '0' && (*(p + 1) == 'b' || *(p + 1) == 'B')) p += 2;
 	}
 
 	/* process the digits */
@@ -908,7 +908,7 @@ template<typename CHAR_TYPE, typename INT_TYPE, bool(*IS_SPACE)(CHAR_TYPE)>INT_T
 
 	/* base 8: at least a zero digit has been seen.
 	 * other case: p > pp to be able to have at least 1 meaningful digit. */
-	if (is_sober) *is_sober = (base == 8 || p > pp); 
+	if (is_sober) *is_sober = (base == 8 || p > pp);
 
 	if (HAWK_CHARS_TO_INT_GET_OPTION_RTRIM(option))
 	{
@@ -929,7 +929,7 @@ template<typename CHAR_TYPE, typename UINT_TYPE, bool(*IS_SPACE)(CHAR_TYPE)>UINT
 	int digit;
 	int base = HAWK_CHARS_TO_UINT_GET_OPTION_BASE(option);
 
-	p = str; 
+	p = str;
 	end = str + len;
 
 	if (HAWK_CHARS_TO_UINT_GET_OPTION_LTRIM(option))
@@ -947,9 +947,9 @@ template<typename CHAR_TYPE, typename UINT_TYPE, bool(*IS_SPACE)(CHAR_TYPE)>UINT
 
 	/* check for a binary/octal/hexadecimal notation */
 	rem = end - p;
-	if (base == 0) 
+	if (base == 0)
 	{
-		if (rem >= 1 && *p == '0') 
+		if (rem >= 1 && *p == '0')
 		{
 			p++;
 
@@ -957,7 +957,7 @@ template<typename CHAR_TYPE, typename UINT_TYPE, bool(*IS_SPACE)(CHAR_TYPE)>UINT
 			else if (*p == 'x' || *p == 'X')
 			{
 				p++; base = 16;
-			} 
+			}
 			else if (*p == 'b' || *p == 'B')
 			{
 				p++; base = 2;
@@ -965,14 +965,14 @@ template<typename CHAR_TYPE, typename UINT_TYPE, bool(*IS_SPACE)(CHAR_TYPE)>UINT
 			else base = 8;
 		}
 		else base = 10;
-	} 
+	}
 	else if (rem >= 2 && base == 16)
 	{
-		if (*p == '0' && (*(p + 1) == 'x' || *(p + 1) == 'X')) p += 2; 
+		if (*p == '0' && (*(p + 1) == 'x' || *(p + 1) == 'X')) p += 2;
 	}
 	else if (rem >= 2 && base == 2)
 	{
-		if (*p == '0' && (*(p + 1) == 'b' || *(p + 1) == 'B')) p += 2; 
+		if (*p == '0' && (*(p + 1) == 'b' || *(p + 1) == 'B')) p += 2;
 	}
 
 	/* process the digits */
@@ -1016,7 +1016,7 @@ template<typename CHAR_TYPE, typename UINT_TYPE, bool(*IS_SPACE)(CHAR_TYPE)>UINT
 
 	/* base 8: at least a zero digit has been seen.
 	 * other case: p > pp to be able to have at least 1 meaningful digit. */
-	if (is_sober) *is_sober = (base == 8 || p > pp); 
+	if (is_sober) *is_sober = (base == 8 || p > pp);
 
 	if (HAWK_CHARS_TO_UINT_GET_OPTION_RTRIM(option))
 	{

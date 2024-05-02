@@ -28,13 +28,13 @@
 enum hawk_assop_type_t
 {
 	/* if you change this, you have to change assop_str in tree.c.
-	 * synchronize it wit: 
-	 *   - binop_func in eval_assignment of run.c 
+	 * synchronize it wit:
+	 *   - binop_func in eval_assignment of run.c
 	 *   - assop in assing_to_opcode of parse.c
 	 *   - TOK_XXX_ASSN in tok_t in parse.c
 	 *   - assop_str in tree.c
 	 */
-	HAWK_ASSOP_NONE, 
+	HAWK_ASSOP_NONE,
 	HAWK_ASSOP_PLUS,   /* += */
 	HAWK_ASSOP_MINUS,  /* -= */
 	HAWK_ASSOP_MUL,    /* *= */
@@ -52,8 +52,8 @@ enum hawk_assop_type_t
 
 enum hawk_binop_type_t
 {
-	/* if you change this, you have to change 
-	 * binop_str in tree.c and binop_func in run.c accordingly. */ 
+	/* if you change this, you have to change
+	 * binop_str in tree.c and binop_func in run.c accordingly. */
 	HAWK_BINOP_LOR,
 	HAWK_BINOP_LAND,
 	HAWK_BINOP_IN,
@@ -89,8 +89,8 @@ enum hawk_binop_type_t
 
 enum hawk_unrop_type_t
 {
-	/* if you change this, you have to change 
-	 * __unrop_str in tree.c accordingly. */ 
+	/* if you change this, you have to change
+	 * __unrop_str in tree.c accordingly. */
 	HAWK_UNROP_PLUS,
 	HAWK_UNROP_MINUS,
 	HAWK_UNROP_LNOT,
@@ -99,8 +99,8 @@ enum hawk_unrop_type_t
 
 enum hawk_incop_type_t
 {
-	/* if you change this, you have to change 
-	 * __incop_str in tree.c accordingly. */ 
+	/* if you change this, you have to change
+	 * __incop_str in tree.c accordingly. */
 	HAWK_INCOP_PLUS,
 	HAWK_INCOP_MINUS
 };
@@ -111,23 +111,23 @@ extern "C" {
 
 hawk_ooch_t* hawk_rtx_format (
 	hawk_rtx_t*        rtx,
-	hawk_ooecs_t*      out, 
+	hawk_ooecs_t*      out,
 	hawk_ooecs_t*      fbu,
-	const hawk_ooch_t* fmt, 
-	hawk_oow_t         fmt_len, 
-	hawk_oow_t         nargs_on_stack, 
-	hawk_nde_t*        args, 
+	const hawk_ooch_t* fmt,
+	hawk_oow_t         fmt_len,
+	hawk_oow_t         nargs_on_stack,
+	hawk_nde_t*        args,
 	hawk_oow_t*        len
 );
 
 hawk_bch_t* hawk_rtx_formatmbs (
 	hawk_rtx_t*        rtx,
-	hawk_becs_t*       out, 
+	hawk_becs_t*       out,
 	hawk_becs_t*       fbu,
-	const hawk_bch_t*  fmt, 
-	hawk_oow_t         fmt_len, 
-	hawk_oow_t         nargs_on_stack, 
-	hawk_nde_t*        args, 
+	const hawk_bch_t*  fmt,
+	hawk_oow_t         fmt_len,
+	hawk_oow_t         nargs_on_stack,
+	hawk_nde_t*        args,
 	hawk_oow_t*        len
 );
 
@@ -141,8 +141,8 @@ int hawk_rtx_cmpval (
 
 hawk_val_t* hawk_rtx_evalcall (
 	hawk_rtx_t* rtx,
-	hawk_nde_fncall_t* call, 
-	hawk_fun_t* fun, 
+	hawk_nde_fncall_t* call,
+	hawk_fun_t* fun,
 	hawk_oow_t(*argpusher)(hawk_rtx_t*,hawk_nde_fncall_t*,void*),
 	void* apdata, /* data to argpusher */
 	void(*errhandler)(void*),

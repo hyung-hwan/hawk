@@ -43,7 +43,7 @@ struct hawk_sed_app_t
 typedef struct hawk_sed_cmd_blk_t hawk_sed_cmd_blk_t;
 struct hawk_sed_cmd_blk_t
 {
-	hawk_oow_t         len;	
+	hawk_oow_t         len;
 	hawk_sed_cmd_t      buf[256];
 	hawk_sed_cmd_blk_t* next;
 };
@@ -53,7 +53,7 @@ struct hawk_sed_cmd_blk_t
 typedef struct hawk_sed_cid_t hawk_sed_cid_t;
 struct hawk_sed_cid_t
 {
-	hawk_sed_cid_t* next;		
+	hawk_sed_cid_t* next;
 };
 
 /* special structure to represent an unknown cid
@@ -65,16 +65,16 @@ struct hawk_sed_unknown_cid_t
 	hawk_ooch_t buf[1];
 };
 
-/** 
- * The hawk_sed_t type defines a stream editor 
+/**
+ * The hawk_sed_t type defines a stream editor
  */
 struct hawk_sed_t
 {
 	HAWK_SED_HDR;
 
-	struct 
+	struct
 	{
-		int                   trait;	
+		int                   trait;
 		hawk_sed_tracer_t     tracer;
 		hawk_sed_lformatter_t lformatter;
 
@@ -83,7 +83,7 @@ struct hawk_sed_t
 			struct
 			{
 				hawk_oow_t build;
-				hawk_oow_t match; 
+				hawk_oow_t match;
 			} rex;
 		} depth; /* useful only for rex.h */
 	} opt;
@@ -124,7 +124,7 @@ struct hawk_sed_t
 		} grp;
 
 		/** a table storing labels seen */
-		hawk_map_t labs; 
+		hawk_map_t labs;
 	} tmp;
 
 	/** compiled commands */
@@ -133,8 +133,8 @@ struct hawk_sed_t
 		hawk_sed_cmd_blk_t  fb; /**< the first block is static */
 		hawk_sed_cmd_blk_t* lb; /**< points to the last block */
 
-		hawk_sed_cmd_t      quit; 
-		hawk_sed_cmd_t      quit_quiet; 
+		hawk_sed_cmd_t      quit;
+		hawk_sed_cmd_t      quit_quiet;
 		hawk_sed_cmd_t      again;
 		hawk_sed_cmd_t      over;
 	} cmd;
@@ -205,7 +205,7 @@ struct hawk_sed_t
 			int delimited;
 		} cutf;
 
-		/** indicates if a successful substitution has been made 
+		/** indicates if a successful substitution has been made
 		 *  since the last read on the input stream. */
 		int subst_done;
 		void* last_rex;
@@ -220,7 +220,7 @@ extern "C" {
 #endif
 
 int hawk_sed_init (
-	hawk_sed_t*  sed, 
+	hawk_sed_t*  sed,
 	hawk_mmgr_t* mmgr,
 	hawk_cmgr_t* cmgr
 );

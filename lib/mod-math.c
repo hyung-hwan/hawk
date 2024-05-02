@@ -212,12 +212,12 @@ static hawk_flt_t math_round (hawk_t* hawk, hawk_flt_t x)
 	/* this implementation doesn't keep the signbit for -0.0.
 	 * The signbit() function defined in C99 may get used to
 	 * preserve the sign bit. but this is a fall-back rountine
-	 * for a system without round also defined in C99. 
+	 * for a system without round also defined in C99.
 	 * don't get annoyed by the lost sign bit for the value of 0.0.
 	 */
 
 	return f;
-	
+
 #endif
 }
 
@@ -613,7 +613,7 @@ static int fnc_srand (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		srand (lv);
 	#endif
 	}
-	
+
 	r = hawk_rtx_makeintval (rtx, prev);
 	if (r == HAWK_NULL) return -1;
 
@@ -649,7 +649,7 @@ static hawk_mod_fnc_tab_t fnctab[] =
 };
 
 static int query (hawk_mod_t* mod, hawk_t* hawk, const hawk_ooch_t* name, hawk_mod_sym_t* sym)
-{	
+{
 	return hawk_findmodsymfnc(hawk, fnctab, HAWK_COUNTOF(fnctab), name, sym);
 }
 

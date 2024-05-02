@@ -25,8 +25,8 @@
 #ifndef _HAWK_MAP_H_
 #define _HAWK_MAP_H_
 
-/* 
- * it is a convenience header file to switch easily between a red-black tree 
+/*
+ * it is a convenience header file to switch easily between a red-black tree
  * and a hash table. You must define either HAWK_MAP_IS_HTB or HAWK_MAP_IS_RBT
  * before including this file.
  */
@@ -84,10 +84,10 @@
 #	define HAWK_MAP_VCOPIER(map)                     HAWK_HTB_VCOPIER(map)
 #	define HAWK_MAP_KFREEER(map)                     HAWK_HTB_KFREEER(map)
 #	define HAWK_MAP_VFREEER(map)                     HAWK_HTB_VFREEER(map)
-#	define HAWK_MAP_COMPER(map)                      HAWK_HTB_COMPER(map) 
+#	define HAWK_MAP_COMPER(map)                      HAWK_HTB_COMPER(map)
 #	define HAWK_MAP_KEEPER(map)                      HAWK_HTB_KEEPER(map)
-#	define HAWK_MAP_KSCALE(map)                      HAWK_HTB_KSCALE(map) 
-#	define HAWK_MAP_VSCALE(map)                      HAWK_HTB_VSCALE(map) 
+#	define HAWK_MAP_KSCALE(map)                      HAWK_HTB_KSCALE(map)
+#	define HAWK_MAP_VSCALE(map)                      HAWK_HTB_VSCALE(map)
 #	define HAWK_MAP_KPTL(p)                          HAWK_HTB_KPTL(p)
 #	define HAWK_MAP_VPTL(p)                          HAWK_HTB_VPTL(p)
 #	define HAWK_MAP_KPTR(p)                          HAWK_HTB_KPTR(p)
@@ -147,10 +147,10 @@
 #	define HAWK_MAP_VCOPIER(map)                     HAWK_RBT_VCOPIER(map)
 #	define HAWK_MAP_KFREEER(map)                     HAWK_RBT_KFREEER(map)
 #	define HAWK_MAP_VFREEER(map)                     HAWK_RBT_VFREEER(map)
-#	define HAWK_MAP_COMPER(map)                      HAWK_RBT_COMPER(map) 
+#	define HAWK_MAP_COMPER(map)                      HAWK_RBT_COMPER(map)
 #	define HAWK_MAP_KEEPER(map)                      HAWK_RBT_KEEPER(map)
-#	define HAWK_MAP_KSCALE(map)                      HAWK_RBT_KSCALE(map) 
-#	define HAWK_MAP_VSCALE(map)                      HAWK_RBT_VSCALE(map) 
+#	define HAWK_MAP_KSCALE(map)                      HAWK_RBT_KSCALE(map)
+#	define HAWK_MAP_VSCALE(map)                      HAWK_RBT_VSCALE(map)
 #	define HAWK_MAP_KPTL(p)                          HAWK_RBT_KPTL(p)
 #	define HAWK_MAP_VPTL(p)                          HAWK_RBT_VPTL(p)
 #	define HAWK_MAP_KPTR(p)                          HAWK_RBT_KPTR(p)

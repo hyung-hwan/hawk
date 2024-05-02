@@ -26,10 +26,10 @@
 #include "hawk-prv.h"
 
 /* set ALIGN to twice the pointer size to prevent unaligned memory access by
- * instructions dealing with data larger than the system word size. e.g. movaps on x86_64 
- * 
+ * instructions dealing with data larger than the system word size. e.g. movaps on x86_64
+ *
  * in the following run, movaps tries to write to the address 0x7fffea722f78.
- * since the instruction deals with 16-byte aligned data only, it triggered 
+ * since the instruction deals with 16-byte aligned data only, it triggered
  * the general protection error.
  *
 $ gdb ~/xxx/bin/hawk
@@ -82,7 +82,7 @@ struct hawk_xma_mblk_t
 	hawk_oow_t size: HAWK_XMA_SIZE_BITS;/**< block size */
 };
 
-struct hawk_xma_fblk_t 
+struct hawk_xma_fblk_t
 {
 	hawk_oow_t prev_size;
 	hawk_oow_t free: 1;
@@ -99,7 +99,7 @@ static void DBG_VERIFY (hawk_xma_t* xma, const char* desc)
 {
 	hawk_xma_mblk_t* tmp, * next;
 	hawk_oow_t cnt;
-	hawk_oow_t fsum, asum; 
+	hawk_oow_t fsum, asum;
 #if defined(HAWK_XMA_ENABLE_STAT)
 	hawk_oow_t isum;
 #endif
@@ -133,7 +133,7 @@ static void DBG_VERIFY (hawk_xma_t* xma, const char* desc)
 #define DBG_VERIFY(xma, desc)
 #endif
 
-static HAWK_INLINE hawk_oow_t szlog2 (hawk_oow_t n) 
+static HAWK_INLINE hawk_oow_t szlog2 (hawk_oow_t n)
 {
 	/*
 	 * 2**x = n;
@@ -163,7 +163,7 @@ static HAWK_INLINE hawk_oow_t szlog2 (hawk_oow_t n)
 #if HAWK_SIZEOF_OOW_T >= 8
 	if ((n & (~(hawk_oow_t)0 << (BITS-32))) == 0) { x -= 32; n <<= 32; }
 #endif
-#if HAWK_SIZEOF_OOW_T >= 4 
+#if HAWK_SIZEOF_OOW_T >= 4
 	if ((n & (~(hawk_oow_t)0 << (BITS-16))) == 0) { x -= 16; n <<= 16; }
 #endif
 #if HAWK_SIZEOF_OOW_T >= 2
@@ -179,7 +179,7 @@ static HAWK_INLINE hawk_oow_t szlog2 (hawk_oow_t n)
 #undef BITS
 }
 
-static HAWK_INLINE hawk_oow_t getxfi (hawk_xma_t* xma, hawk_oow_t size) 
+static HAWK_INLINE hawk_oow_t getxfi (hawk_xma_t* xma, hawk_oow_t size)
 {
 	hawk_oow_t xfi = ((size) / ALIGN) - 1;
 	if (xfi >= FIXED) xfi = szlog2(size) - (xma)->bdec + FIXED;
@@ -230,7 +230,7 @@ int hawk_xma_init (hawk_xma_t* xma, hawk_mmgr_t* mmgr, void* zoneptr, hawk_oow_t
 
 		internal = 1;
 	}
-	else if (zonesize < FBLKMINSIZE) 
+	else if (zonesize < FBLKMINSIZE)
 	{
 		/* the zone size is too small for an externally allocated zone. */
 /* TODO: difference error code from memory allocation failure.. this is not really memory shortage */
@@ -255,7 +255,7 @@ int hawk_xma_init (hawk_xma_t* xma, hawk_mmgr_t* mmgr, void* zoneptr, hawk_oow_t
 	/* get the free block index */
 	xfi = getxfi(xma, first->size);
 	/* locate it into an apporopriate slot */
-	xma->xfree[xfi] = first; 
+	xma->xfree[xfi] = first;
 	/* let it be the head, which is natural with only a block */
 	xma->start = (hawk_uint8_t*)first;
 	xma->end = xma->start + zonesize;
@@ -269,7 +269,7 @@ int hawk_xma_init (hawk_xma_t* xma, hawk_mmgr_t* mmgr, void* zoneptr, hawk_oow_t
 	xma->stat.nfree = 1;
 	xma->stat.nused = 0;
 #endif
-	
+
 	return 0;
 }
 
@@ -284,15 +284,15 @@ void hawk_xma_fini (hawk_xma_t* xma)
 
 static HAWK_INLINE void attach_to_freelist (hawk_xma_t* xma, hawk_xma_fblk_t* b)
 {
-	/* 
-	 * attach a block to a free list 
+	/*
+	 * attach a block to a free list
 	 */
 
 	/* get the free list index for the block size */
-	hawk_oow_t xfi = getxfi(xma, b->size); 
+	hawk_oow_t xfi = getxfi(xma, b->size);
 
 	/* let it be the head of the free list doubly-linked */
-	b->free_prev = HAWK_NULL; 
+	b->free_prev = HAWK_NULL;
 	b->free_next = xma->xfree[xfi];
 	if (xma->xfree[xfi]) xma->xfree[xfi]->free_prev = b;
 	xma->xfree[xfi] = b;
@@ -309,11 +309,11 @@ static HAWK_INLINE void detach_from_freelist (hawk_xma_t* xma, hawk_xma_fblk_t* 
 
 	if (p)
 	{
-		/* the previous item exists. let its 'next' pointer point to 
+		/* the previous item exists. let its 'next' pointer point to
 		 * the block's next item. */
 		p->free_next = n;
 	}
-	else 
+	else
 	{
 		/* the previous item does not exist. the block is the first
  		 * item in the free list. */
@@ -324,7 +324,7 @@ static HAWK_INLINE void detach_from_freelist (hawk_xma_t* xma, hawk_xma_fblk_t* 
 		xma->xfree[xfi] = n;
 	}
 
-	/* let the 'prev' pointer of the block's next item point to the 
+	/* let the 'prev' pointer of the block's next item point to the
 	 * block's previous item */
 	if (n) n->free_prev = p;
 }
@@ -346,8 +346,8 @@ static hawk_xma_fblk_t* alloc_from_freelist (hawk_xma_t* xma, hawk_oow_t xfi, ha
 			{
 				hawk_xma_mblk_t* y, * z;
 
-				/* the remaining part is large enough to hold 
-				 * another block. let's split it 
+				/* the remaining part is large enough to hold
+				 * another block. let's split it
 				 */
 
 				/* shrink the size of the 'cand' block */
@@ -478,7 +478,7 @@ static void* _realloc_merge (hawk_xma_t* xma, void* b, hawk_oow_t size)
 	hawk_xma_mblk_t* blk = (hawk_xma_mblk_t*)USR_TO_SYS(b);
 
 	DBG_VERIFY (xma, "realloc merge start");
-	/* rounds up 'size' to be multiples of ALIGN */ 
+	/* rounds up 'size' to be multiples of ALIGN */
 	if (size < MINALLOCSIZE) size = MINALLOCSIZE;
 	size = HAWK_ALIGN_POW2(size, ALIGN);
 
@@ -505,8 +505,8 @@ static void* _realloc_merge (hawk_xma_t* xma, void* b, hawk_oow_t size)
 		rem = (MBLKHDRSIZE + n->size) - req;
 		if (rem >= FBLKMINSIZE)
 		{
-			/* 
-			 * the remaining part of the next block is large enough 
+			/*
+			 * the remaining part of the next block is large enough
 			 * to hold a block. break the next block.
 			 */
 
@@ -549,7 +549,7 @@ static void* _realloc_merge (hawk_xma_t* xma, void* b, hawk_oow_t size)
 	{
 		/* shrink the block */
 		hawk_oow_t rem = blk->size - size;
-		if (rem >= FBLKMINSIZE) 
+		if (rem >= FBLKMINSIZE)
 		{
 			hawk_xma_mblk_t* n;
 
@@ -622,7 +622,7 @@ void* hawk_xma_realloc (hawk_xma_t* xma, void* b, hawk_oow_t size)
 {
 	void* n;
 
-	if (b == HAWK_NULL) 
+	if (b == HAWK_NULL)
 	{
 		/* 'realloc' with NULL is the same as 'alloc' */
 		n = hawk_xma_alloc(xma, size);
@@ -670,20 +670,20 @@ void hawk_xma_free (hawk_xma_t* xma, void* b)
 		/*
 		 * Merge the block with surrounding blocks
 		 *
-		 *                    blk 
+		 *                    blk
 		 *                     |
 		 *                     v
 		 * +------------+------------+------------+------------+
 		 * |     X      |            |     Y      |     Z      |
 		 * +------------+------------+------------+------------+
-		 *         
-		 *  
+		 *
+		 *
 		 * +--------------------------------------+------------+
 		 * |     X                                |     Z      |
 		 * +--------------------------------------+------------+
 		 *
 		 */
-		
+
 		hawk_xma_mblk_t* z = next_mblk(y);
 		hawk_oow_t ns = MBLKHDRSIZE + org_blk_size + MBLKHDRSIZE;
 		hawk_oow_t bs = ns + y->size;
@@ -713,8 +713,8 @@ void hawk_xma_free (hawk_xma_t* xma, void* b)
 		 * +------------+------------+------------+
 		 * |            |     Y      |     Z      |
 		 * +------------+------------+------------+
-		 * 
-		 * 
+		 *
+		 *
 		 *
 		 *   blk
 		 *    |
@@ -722,8 +722,8 @@ void hawk_xma_free (hawk_xma_t* xma, void* b)
 		 * +-------------------------+------------+
 		 * |                         |     Z      |
 		 * +-------------------------+------------+
-		 * 
-		 * 
+		 *
+		 *
 		 */
 		hawk_xma_mblk_t* z = next_mblk(y);
 
@@ -748,7 +748,7 @@ void hawk_xma_free (hawk_xma_t* xma, void* b)
 	else if ((hawk_uint8_t*)x >= xma->start && x->free)
 	{
 		/*
-		 * Merge the block with the previous block 
+		 * Merge the block with the previous block
 		 *
 		 *                 blk
 		 *                 |
@@ -791,7 +791,7 @@ void hawk_xma_free (hawk_xma_t* xma, void* b)
 void hawk_xma_dump (hawk_xma_t* xma, hawk_xma_dumper_t dumper, void* ctx)
 {
 	hawk_xma_mblk_t* tmp;
-	hawk_oow_t fsum, asum; 
+	hawk_oow_t fsum, asum;
 #if defined(HAWK_XMA_ENABLE_STAT)
 	hawk_oow_t isum;
 #endif

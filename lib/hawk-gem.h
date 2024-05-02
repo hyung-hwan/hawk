@@ -75,7 +75,7 @@ struct hawk_ifcfg_t
 
 	/* ---------------- */
 
-	/* TODO: add hwaddr?? */	
+	/* TODO: add hwaddr?? */
 	/* i support ethernet only currently */
 	hawk_uint8_t      ethw[6];  /* out */
 };
@@ -452,8 +452,8 @@ HAWK_EXPORT int hawk_gem_getifcfg (
 static HAWK_INLINE hawk_errnum_t hawk_gem_geterrnum (hawk_gem_t* gem) { return gem->errnum; }
 static HAWK_INLINE const hawk_loc_t* hawk_gem_geterrloc (hawk_gem_t* gem) { return &gem->errloc; }
 #else
-#define hawk_gem_geterrnum(gem) (((hawk_gem_t*)(gem))->errnum) 
-#define hawk_gem_geterrloc(gem) (&((hawk_gem_t*)(gem))->errloc) 
+#define hawk_gem_geterrnum(gem) (((hawk_gem_t*)(gem))->errnum)
+#define hawk_gem_geterrloc(gem) (&((hawk_gem_t*)(gem))->errloc)
 #endif
 
 HAWK_EXPORT void hawk_gem_geterror (

@@ -88,7 +88,7 @@ typedef struct xtn_t
 {
 	struct
 	{
-		struct 
+		struct
 		{
 			hawk_parsestd_t* x;
 			hawk_oow_t       xindex;
@@ -97,7 +97,7 @@ typedef struct xtn_t
 			{
 				/* nothing to maintain here for file */
 
-				struct 
+				struct
 				{
 					const hawk_ooch_t* ptr;
 					const hawk_ooch_t* end;
@@ -124,15 +124,15 @@ typedef struct xtn_t
 				{
 					hawk_sio_t* sio;
 				} file;
-				struct 
+				struct
 				{
 					hawk_ooecs_t* buf;
 				} oocs;
-				struct 
+				struct
 				{
 					hawk_becs_t* buf;
 				} bcs;
-				struct 
+				struct
 				{
 					hawk_uecs_t* buf;
 				} ucs;
@@ -164,14 +164,14 @@ typedef struct rxtn_t
 {
 	struct
 	{
-		struct 
+		struct
 		{
 			hawk_ooch_t** files;
 			hawk_oow_t index;
 			hawk_oow_t count; /* number of files opened so far */
-		} in; 
+		} in;
 
-		struct 
+		struct
 		{
 			hawk_ooch_t** files;
 			hawk_oow_t index;
@@ -275,7 +275,7 @@ int hawk_stdmodstartup (hawk_t* hawk)
 {
 #if defined(USE_LTDL)
 
-	/* lt_dlinit() can be called more than once and 
+	/* lt_dlinit() can be called more than once and
 	 * lt_dlexit() shuts down libltdl if it's called as many times as
 	 * corresponding lt_dlinit(). so it's safe to call lt_dlinit()
 	 * and lt_dlexit() at the library level. */
@@ -324,7 +324,7 @@ void* hawk_stdmodopen (hawk_t* hawk, const hawk_mod_spec_t* spec)
 		static hawk_ooch_t ds[] = { '/', '\0' };
 
 		count = 0;
-		if (spec->libdir) 
+		if (spec->libdir)
 		{
 			hawk_oow_t len;
 
@@ -380,13 +380,13 @@ void* hawk_stdmodopen (hawk_t* hawk, const hawk_mod_spec_t* spec)
 		static hawk_ooch_t ds[][2] = { { '\\', '\0' }, { '/', '\0' } };
 
 		count = 0;
-		if (spec->libdir) 
+		if (spec->libdir)
 		{
 			hawk_oow_t len;
 
 			tmp[count++] = spec->libdir;
 			len = hawk_count_oocstr(spec->libdir);
-			if (len > 0 && (spec->libdir[len - 1] != '/' && spec->libdir[len - 1] != '\\')) 
+			if (len > 0 && (spec->libdir[len - 1] != '/' && spec->libdir[len - 1] != '\\'))
 			{
 				tmp[count++] = ds[hawk_find_oochar_in_oocstr(spec->libdir, '/') != HAWK_NULL];
 			}
@@ -428,7 +428,7 @@ void* hawk_stdmodopen (hawk_t* hawk, const hawk_mod_spec_t* spec)
 		static hawk_ooch_t ds[] = { '\\', '\0' };
 
 		count = 0;
-		if (spec->libdir) 
+		if (spec->libdir)
 		{
 			hawk_oow_t len;
 
@@ -448,10 +448,10 @@ void* hawk_stdmodopen (hawk_t* hawk, const hawk_mod_spec_t* spec)
 		#endif
 		if (HAWK_UNLIKELY(!modpath)) return HAWK_NULL;
 
-		/* DosLoadModule() seems to have severe limitation on 
+		/* DosLoadModule() seems to have severe limitation on
 		 * the file name it can load (max-8-letters.xxx) */
 		rc = DosLoadModule(errbuf, HAWK_COUNTOF(errbuf) - 1, modpath, &h);
-		if (rc != NO_ERROR) 
+		if (rc != NO_ERROR)
 		{
 			h = HAWK_NULL;
 			hawk_seterrnum (hawk, HAWK_NULL, hawk_syserr_to_errnum(rc));
@@ -482,7 +482,7 @@ void* hawk_stdmodopen (hawk_t* hawk, const hawk_mod_spec_t* spec)
 		static hawk_ooch_t ds[] = { '\\', '\0' };
 
 		count = 0;
-		if (spec->libdir) 
+		if (spec->libdir)
 		{
 			hawk_oow_t len;
 
@@ -506,7 +506,7 @@ void* hawk_stdmodopen (hawk_t* hawk, const hawk_mod_spec_t* spec)
 		if (!h) hawk_seterrnum (hawk, HAWK_NULL, HAWK_ESYSERR);
 
 		hawk_freemem (hawk, modpath);
-		
+
 		HAWK_ASSERT (HAWK_SIZEOF(h) <= HAWK_SIZEOF(void*));
 		return h;
 	}
@@ -528,7 +528,7 @@ void* hawk_stdmodopen (hawk_t* hawk, const hawk_mod_spec_t* spec)
 		static hawk_ooch_t ds[] = { '/', '\0' };
 
 		count = 0;
-		if (spec->libdir) 
+		if (spec->libdir)
 		{
 			hawk_oow_t len;
 
@@ -600,7 +600,7 @@ void* hawk_stdmodgetsym (hawk_t* hawk, void* handle, const hawk_ooch_t* name)
 #if defined(USE_LTDL)
 	s = lt_dlsym(handle, mname);
 	if (!s) hawk_seterrfmt (hawk, HAWK_NULL, HAWK_ESYSERR, HAWK_T("%hs"), lt_dlerror());
-	
+
 #elif defined(_WIN32)
 	s = GetProcAddress((HMODULE)handle, mname);
 	if (!s) hawk_seterrnum (hawk, HAWK_NULL, hawk_syserr_to_errnum(GetLastError());
@@ -609,7 +609,7 @@ void* hawk_stdmodgetsym (hawk_t* hawk, void* handle, const hawk_ooch_t* name)
 	{
 		APIRET rc;
 		rc = DosQueryProcAddr((HMODULE)handle, 0, mname, (PFN*)&s);
-		if (rc != NO_ERROR) 
+		if (rc != NO_ERROR)
 		{
 			s = HAWK_NULL;
 			hawk_seterrnum (hawk, HAWK_NULL, hawk_syserr_to_errnum(rc));
@@ -659,7 +659,7 @@ EM_JS(int, write_all, (int, const hawk_bch_t* ptr, hawk_oow_t len), {
 	// Use the heap memory and pass the right portion to UTF8Decoder.
 	//console.log ("%s", UTF8ToString(ptr, len));
 	console.log ("%s", UTF8Decoder.decode(HEAPU8.subarray(ptr, ptr + len)));
-	return 0;	
+	return 0;
 });
 
 #else
@@ -781,7 +781,7 @@ static void log_write (hawk_t* hawk, hawk_bitmask_t mask, const hawk_ooch_t* msg
 	{
 		logfd = xtn->log.fd;
 #if !defined(EMSCRIPTEN)
-		if (logfd <= -1) 
+		if (logfd <= -1)
 		{
 			return;
 		}
@@ -810,18 +810,18 @@ static void log_write (hawk_t* hawk, hawk_bitmask_t mask, const hawk_ooch_t* msg
 		/* %z for strftime() in win32 seems to produce a long non-numeric timezone name.
 		 * i don't use strftime() for time formatting. */
 		GetLocalTime (&now);
-		if (GetTimeZoneInformation(&tzi) != TIME_ZONE_ID_INVALID) 
+		if (GetTimeZoneInformation(&tzi) != TIME_ZONE_ID_INVALID)
 		{
 			tzi.Bias = -tzi.Bias;
-			tslen = sprintf(ts, "%04d-%02d-%02d %02d:%02d:%02d %+02.2d%02.2d ", 
-				(int)now.wYear, (int)now.wMonth, (int)now.wDay, 
+			tslen = sprintf(ts, "%04d-%02d-%02d %02d:%02d:%02d %+02.2d%02.2d ",
+				(int)now.wYear, (int)now.wMonth, (int)now.wDay,
 				(int)now.wHour, (int)now.wMinute, (int)now.wSecond,
 				(int)(tzi.Bias / 60), (int)(tzi.Bias % 60));
 		}
 		else
 		{
 			tslen = sprintf(ts, "%04d-%02d-%02d %02d:%02d:%02d ",
-				(int)now.wYear, (int)now.wMonth, (int)now.wDay, 
+				(int)now.wYear, (int)now.wMonth, (int)now.wDay,
 				(int)now.wHour, (int)now.wMinute, (int)now.wSecond);
 		}
 	#elif defined(__OS2__)
@@ -839,7 +839,7 @@ static void log_write (hawk_t* hawk, hawk_bitmask_t mask, const hawk_ooch_t* msg
 		#else
 		tslen = strftime(ts, sizeof(ts), "%Y-%m-%d %H:%M:%S %z ", tmp);
 		#endif
-		if (tslen == 0) 
+		if (tslen == 0)
 		{
 			tslen = sprintf(ts, "%04d-%02d-%02d %02d:%02d:%02d ", tmp->tm_year + 1900, tmp->tm_mon + 1, tmp->tm_mday, tmp->tm_hour, tmp->tm_min, tmp->tm_sec);
 		}
@@ -860,9 +860,9 @@ static void log_write (hawk_t* hawk, hawk_bitmask_t mask, const hawk_ooch_t* msg
 		#if defined(HAVE_STRFTIME_SMALL_Z)
 		tslen = strftime(ts, sizeof(ts), "%Y-%m-%d %H:%M:%S %z ", tmp);
 		#else
-		tslen = strftime(ts, sizeof(ts), "%Y-%m-%d %H:%M:%S %Z ", tmp); 
+		tslen = strftime(ts, sizeof(ts), "%Y-%m-%d %H:%M:%S %Z ", tmp);
 		#endif
-		if (tslen == 0) 
+		if (tslen == 0)
 		{
 			tslen = sprintf(ts, "%04d-%02d-%02d %02d:%02d:%02d ", tmp->tm_year + 1900, tmp->tm_mon + 1, tmp->tm_mday, tmp->tm_hour, tmp->tm_min, tmp->tm_sec);
 		}
@@ -889,9 +889,9 @@ static void log_write (hawk_t* hawk, hawk_bitmask_t mask, const hawk_ooch_t* msg
 		n = hawk_conv_uchars_to_bchars_with_cmgr(&msg[msgidx], &ucslen, buf, &bcslen, hawk_getcmgr(hawk));
 		if (n == 0 || n == -2)
 		{
-			/* n = 0: 
-			 *   converted all successfully 
-			 * n == -2: 
+			/* n = 0:
+			 *   converted all successfully
+			 * n == -2:
 			 *    buffer not sufficient. not all got converted yet.
 			 *    write what have been converted this round. */
 
@@ -979,7 +979,7 @@ hawk_t* hawk_openstdwithmmgr (hawk_mmgr_t* mmgr, hawk_oow_t xtnsize, hawk_cmgr_t
 
 /*
 #if defined(USE_DLFCN)
-	if (hawk_setopt(hawk, HAWK_OPT_MODPOSTFIX, HAWK_T(".so")) <= -1) 
+	if (hawk_setopt(hawk, HAWK_OPT_MODPOSTFIX, HAWK_T(".so")) <= -1)
 	{
 		if (errnum) *errnum = hawk_geterrnum(hawk);
 		goto oops;
@@ -993,13 +993,13 @@ hawk_t* hawk_openstdwithmmgr (hawk_mmgr_t* mmgr, hawk_oow_t xtnsize, hawk_cmgr_t
 	reset_log_to_default (xtn);
 
 	/* add intrinsic global variables and functions */
-	if (add_globals(hawk) <= -1 || add_functions(hawk) <= -1) 
+	if (add_globals(hawk) <= -1 || add_functions(hawk) <= -1)
 	{
 		if (errnum) *errnum = hawk_geterrnum(hawk);
 		goto oops;
 	}
 
-	if (hawk_stdmodstartup(hawk) <= -1) 
+	if (hawk_stdmodstartup(hawk) <= -1)
 	{
 		xtn->stdmod_up = 0;
 		/* carry on regardless of failure */
@@ -1037,7 +1037,7 @@ static hawk_sio_t* open_sio_rtx (hawk_rtx_t* rtx, const hawk_ooch_t* file, int f
 {
 	hawk_sio_t* sio;
 	sio = hawk_sio_open(hawk_rtx_getgem(rtx), 0, file, flags);
-	if (sio == HAWK_NULL) 
+	if (sio == HAWK_NULL)
 	{
 		const hawk_ooch_t* bem = hawk_rtx_backuperrmsg(rtx);
 		hawk_rtx_seterrfmt (rtx, HAWK_NULL, HAWK_EOPEN, HAWK_T("unable to open %js - %js"), file, bem);
@@ -1056,7 +1056,7 @@ static hawk_sio_t* open_sio_std (hawk_t* hawk, hawk_sio_std_t std, int flags)
 {
 	hawk_sio_t* sio;
 	sio = hawk_sio_openstd(hawk_getgem(hawk), 0, std, flags);
-	if (sio == HAWK_NULL) 
+	if (sio == HAWK_NULL)
 	{
 		const hawk_ooch_t* bem = hawk_backuperrmsg(hawk);
 		hawk_seterrfmt (hawk, HAWK_NULL, HAWK_EOPEN, HAWK_T("unable to open %js - %js"), &sio_std_names[std], bem);
@@ -1069,7 +1069,7 @@ static hawk_sio_t* open_sio_std_rtx (hawk_rtx_t* rtx, hawk_sio_std_t std, int fl
 	hawk_sio_t* sio;
 
 	sio = hawk_sio_openstd(hawk_rtx_getgem(rtx), 0, std, flags);
-	if (sio == HAWK_NULL) 
+	if (sio == HAWK_NULL)
 	{
 		const hawk_ooch_t* bem = hawk_rtx_backuperrmsg(rtx);
 		hawk_rtx_seterrfmt (rtx, HAWK_NULL, HAWK_EOPEN, HAWK_T("unable to open %js - %js"), &sio_std_names[std], bem);
@@ -1435,7 +1435,7 @@ static hawk_ooi_t sf_in_read (hawk_t* hawk, hawk_sio_arg_t* arg, hawk_ooch_t* da
 					const hawk_ooch_t* bem = hawk_backuperrmsg(hawk);
 					const hawk_uch_t* path;
 					path = xtn->s.in.x[xtn->s.in.xindex].u.fileu.path;
-					if (path) 
+					if (path)
 						hawk_seterrfmt (hawk, HAWK_NULL, HAWK_EREAD, HAWK_T("unable to read %ls - %js"), path, bem);
 					else
 						hawk_seterrfmt (hawk, HAWK_NULL, HAWK_EREAD, HAWK_T("unable to read %js - %js"), sio_std_names[HAWK_SIO_STDIN].ptr, bem);
@@ -1453,7 +1453,7 @@ static hawk_ooi_t sf_in_read (hawk_t* hawk, hawk_sio_arg_t* arg, hawk_ooch_t* da
 					const hawk_ooch_t* bem = hawk_backuperrmsg(hawk);
 					const hawk_bch_t* path;
 					path = xtn->s.in.x[xtn->s.in.xindex].u.fileb.path;
-					if (path) 
+					if (path)
 						hawk_seterrfmt (hawk, HAWK_NULL, HAWK_EREAD, HAWK_T("unable to read %hs - %js"), path, bem);
 					else
 						hawk_seterrfmt (hawk, HAWK_NULL, HAWK_EREAD, HAWK_T("unable to read %js - %js"), sio_std_names[HAWK_SIO_STDIN].ptr, bem);
@@ -1532,7 +1532,7 @@ static hawk_ooi_t sf_in_read (hawk_t* hawk, hawk_sio_arg_t* arg, hawk_ooch_t* da
 			{
 				/* open the next stream if available. */
 				if (open_parsestd(hawk, arg, xtn, next) <= -1) n = -1;
-				else 
+				else
 				{
 					xtn->s.in.xindex = next; /* update the next to the current */
 					arg->line = 0; /* reset the line number */
@@ -1557,7 +1557,7 @@ static hawk_ooi_t sf_in_read (hawk_t* hawk, hawk_sio_arg_t* arg, hawk_ooch_t* da
 		if (n <= -1)
 		{
 			const hawk_ooch_t* bem = hawk_backuperrmsg(hawk);
-			hawk_seterrfmt (hawk, HAWK_NULL, HAWK_EREAD, HAWK_T("unable to read %js - %js"), arg->name, bem); 
+			hawk_seterrfmt (hawk, HAWK_NULL, HAWK_EREAD, HAWK_T("unable to read %js - %js"), arg->name, bem);
 		}
 		return n;
 	}
@@ -1715,7 +1715,7 @@ static hawk_ooi_t sf_out (hawk_t* hawk, hawk_sio_cmd_t cmd, hawk_sio_arg_t* arg,
 						const hawk_ooch_t* bem = hawk_backuperrmsg(hawk);
 						ioname = xtn->s.out.x->u.file.path;
 						if (!ioname) ioname = sio_std_names[HAWK_SIO_STDOUT].ptr;
-						hawk_seterrfmt (hawk, HAWK_NULL, HAWK_EWRITE, HAWK_T("unable to write to %js - %js"), ioname, bem); 
+						hawk_seterrfmt (hawk, HAWK_NULL, HAWK_EWRITE, HAWK_T("unable to write to %js - %js"), ioname, bem);
 					}
 					return n;
 				}
@@ -1742,7 +1742,7 @@ static hawk_ooi_t sf_out (hawk_t* hawk, hawk_sio_cmd_t cmd, hawk_sio_arg_t* arg,
 					if (hawk_becs_setlen(xtn->s.out.u.bcs.buf, orglen + mbslen) == (hawk_oow_t)-1) return -1;
 
 					wcslen = size;
-					hawk_convutobchars (hawk, data, &wcslen, HAWK_BECS_CPTR(xtn->s.out.u.bcs.buf, orglen), &mbslen);  
+					hawk_convutobchars (hawk, data, &wcslen, HAWK_BECS_CPTR(xtn->s.out.u.bcs.buf, orglen), &mbslen);
 					size = wcslen;
 
 					return size;
@@ -1795,14 +1795,14 @@ int hawk_parsestd (hawk_t* hawk, hawk_parsestd_t in[], hawk_parsestd_t* out)
 	xtn_t* xtn = GET_XTN(hawk);
 	int n;
 
-	if (in == HAWK_NULL || (in[0].type != HAWK_PARSESTD_FILE && 
-	                        in[0].type != HAWK_PARSESTD_FILEB && 
-	                        in[0].type != HAWK_PARSESTD_FILEU && 
+	if (in == HAWK_NULL || (in[0].type != HAWK_PARSESTD_FILE &&
+	                        in[0].type != HAWK_PARSESTD_FILEB &&
+	                        in[0].type != HAWK_PARSESTD_FILEU &&
 	                        in[0].type != HAWK_PARSESTD_OOCS &&
 	                        in[0].type != HAWK_PARSESTD_BCS &&
 	                        in[0].type != HAWK_PARSESTD_UCS))
 	{
-		/* the input is a must. at least 1 file or 1 string 
+		/* the input is a must. at least 1 file or 1 string
 		 * must be specified */
 		hawk_seterrnum (hawk, HAWK_NULL, HAWK_EINVAL);
 		return -1;
@@ -1908,7 +1908,7 @@ static hawk_ooi_t nwio_handler_open (hawk_rtx_t* rtx, hawk_rio_arg_t* riod, int 
 	hawk_nwio_t* handle;
 
 	handle = hawk_nwio_open (
-		hawk_rtx_getmmgr(rtx), 0, nwad, 
+		hawk_rtx_getmmgr(rtx), 0, nwad,
 		flags | HAWK_NWIO_TEXT | HAWK_NWIO_IGNOREECERR |
 		HAWK_NWIO_REUSEADDR | HAWK_NWIO_READNORETRY | HAWK_NWIO_WRITENORETRY,
 		tmout
@@ -2012,7 +2012,7 @@ static hawk_ooi_t pio_handler_open (hawk_rtx_t* rtx, hawk_rio_arg_t* riod)
 	{
 		flags = HAWK_PIO_READOUT | HAWK_PIO_ERRTOOUT | HAWK_PIO_WRITEIN;
 	}
-	else 
+	else
 	{
 		/* this must not happen */
 		hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EINTERN);
@@ -2021,8 +2021,8 @@ static hawk_ooi_t pio_handler_open (hawk_rtx_t* rtx, hawk_rio_arg_t* riod)
 
 	handle = hawk_pio_open(
 		hawk_rtx_getgem(rtx),
-		0, 
-		riod->name, 
+		0,
+		riod->name,
 		flags | HAWK_PIO_SHELL | HAWK_PIO_TEXT | HAWK_PIO_IGNOREECERR
 	);
 	if (handle == HAWK_NULL) return -1;
@@ -2030,7 +2030,7 @@ static hawk_ooi_t pio_handler_open (hawk_rtx_t* rtx, hawk_rio_arg_t* riod)
 #if defined(HAWK_OOCH_IS_UCH)
 	{
 		hawk_cmgr_t* cmgr = hawk_rtx_getiocmgrstd(rtx, riod->name);
-		if (cmgr)	
+		if (cmgr)
 		{
 			hawk_pio_setcmgr (handle, HAWK_PIO_IN, cmgr);
 			hawk_pio_setcmgr (handle, HAWK_PIO_OUT, cmgr);
@@ -2109,7 +2109,7 @@ static hawk_ooi_t hawk_rio_pipe (hawk_rtx_t* rtx, hawk_rio_cmd_t cmd, hawk_rio_a
 		hawk_nwad_t nwad;
 
 		if (riod->mode != HAWK_RIO_PIPE_RW ||
-		    parse_rwpipe_uri(riod->name, &flags, &nwad) <= -1) 
+		    parse_rwpipe_uri(riod->name, &flags, &nwad) <= -1)
 		{
 			return pio_handler_open (rtx, riod);
 		}
@@ -2149,7 +2149,7 @@ static hawk_ooi_t hawk_rio_pipe (hawk_rtx_t* rtx, hawk_rio_cmd_t cmd, hawk_rio_a
 static void set_rio_error (hawk_rtx_t* rtx, hawk_errnum_t errnum, const hawk_ooch_t* errmsg, const hawk_ooch_t* path)
 {
 	const hawk_ooch_t* bem = hawk_rtx_backuperrmsg(rtx);
-	hawk_rtx_seterrfmt (rtx, HAWK_NULL, errnum, HAWK_T("%js%js%js - %js"), 
+	hawk_rtx_seterrfmt (rtx, HAWK_NULL, errnum, HAWK_T("%js%js%js - %js"),
 		errmsg, (path? HAWK_T(" "): HAWK_T("")), (path? path: HAWK_T("")), bem);
 }
 
@@ -2164,7 +2164,7 @@ static hawk_ooi_t hawk_rio_file (hawk_rtx_t* rtx, hawk_rio_cmd_t cmd, hawk_rio_a
 
 			switch (riod->mode)
 			{
-				case HAWK_RIO_FILE_READ: 
+				case HAWK_RIO_FILE_READ:
 					flags |= HAWK_SIO_READ;
 					break;
 				case HAWK_RIO_FILE_WRITE:
@@ -2176,7 +2176,7 @@ static hawk_ooi_t hawk_rio_file (hawk_rtx_t* rtx, hawk_rio_cmd_t cmd, hawk_rio_a
 				default:
 					/* this must not happen */
 					hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EINTERN);
-					return -1; 
+					return -1;
 			}
 
 			if (riod->name[0] == '-' && riod->name[1] == '\0')
@@ -2190,7 +2190,7 @@ static hawk_ooi_t hawk_rio_file (hawk_rtx_t* rtx, hawk_rio_cmd_t cmd, hawk_rio_a
 			{
 				handle = hawk_sio_open(hawk_rtx_getgem(rtx), 0, riod->name, flags);
 			}
-			if (!handle) 
+			if (!handle)
 			{
 				set_rio_error (rtx, HAWK_EOPEN, HAWK_T("unable to open"), riod->name);
 				return -1;
@@ -2293,17 +2293,17 @@ static int open_rio_console (hawk_rtx_t* rtx, hawk_rio_arg_t* riod)
 		if (hawk_rtx_valtoint(rtx, v_argc, &i_argc) <= -1) return -1;
 
 		/* handle special case when ARGV[x] has been altered.
-		 * so from here down, the file name gotten from 
-		 * rxtn->c.in.files is not important and is overridden 
+		 * so from here down, the file name gotten from
+		 * rxtn->c.in.files is not important and is overridden
 		 * from ARGV.
-		 * 'BEGIN { ARGV[1]="file3"; } 
+		 * 'BEGIN { ARGV[1]="file3"; }
 		 *        { print $0; }' file1 file2
 		 */
 		v_argv = hawk_rtx_getgbl(rtx, xtn->gbl_argv);
 		HAWK_ASSERT (v_argv != HAWK_NULL);
 		if (HAWK_RTX_GETVALTYPE(rtx, v_argv) != HAWK_VAL_MAP)
 		{
-			/* with flexmap on, you can change ARGV to a scalar. 
+			/* with flexmap on, you can change ARGV to a scalar.
 			 *   BEGIN { ARGV="xxx"; }
 			 * you must not do this. */
 			hawk_rtx_seterrfmt (rtx, HAWK_NULL, HAWK_EINVAL, HAWK_T("phony value in ARGV"));
@@ -2332,7 +2332,7 @@ static int open_rio_console (hawk_rtx_t* rtx, hawk_rio_arg_t* riod)
 				return 1;
 			}
 
-			return 0; 
+			return 0;
 		}
 
 		ibuflen = hawk_int_to_oocstr(rxtn->c.in.index + 1, 10, HAWK_NULL, ibuf, HAWK_COUNTOF(ibuf));
@@ -2371,8 +2371,8 @@ static int open_rio_console (hawk_rtx_t* rtx, hawk_rio_arg_t* riod)
 
 		/*
 		 * this is different from the -v option.
-		 * if an argument has a special form of var=val, it is treated specially 
-		 * 
+		 * if an argument has a special form of var=val, it is treated specially
+		 *
 		 * on the command-line
 		 *   hawk -f a.hawk a=20 /etc/passwd
 		 * or via ARGV
@@ -2387,7 +2387,7 @@ static int open_rio_console (hawk_rtx_t* rtx, hawk_rio_arg_t* riod)
 			goto nextfile;
 		}
 
-		/* a temporary variable sio is used here not to change 
+		/* a temporary variable sio is used here not to change
 		 * any fields of riod when the open operation fails */
 		sio = (file[0] == HAWK_T('-') && file[1] == HAWK_T('\0'))?
 			open_sio_std_rtx(rtx, HAWK_SIO_STDIN, HAWK_SIO_READ | HAWK_SIO_IGNOREECERR):
@@ -2415,12 +2415,12 @@ static int open_rio_console (hawk_rtx_t* rtx, hawk_rio_arg_t* riod)
 		rxtn->c.in.index++;
 		return 1;
 	#else
-		/* simple console open implementation. 
+		/* simple console open implementation.
 		 * no var=val handling. no ARGV handling */
 
 		if (!rxtn->c.in.files)
 		{
-			/* if no input files is specified, 
+			/* if no input files is specified,
 			 * open the standard input */
 			HAWK_ASSERT (rxtn->c.in.index == 0);
 
@@ -2441,7 +2441,7 @@ static int open_rio_console (hawk_rtx_t* rtx, hawk_rio_arg_t* riod)
 		}
 		else
 		{
-			/* a temporary variable sio is used here not to change 
+			/* a temporary variable sio is used here not to change
 			 * any fields of riod when the open operation fails */
 			const hawk_ooch_t* file;
 
@@ -2454,7 +2454,7 @@ static int open_rio_console (hawk_rtx_t* rtx, hawk_rio_arg_t* riod)
 				return 0;
 			}
 
-			if (file[0] == '\0') 
+			if (file[0] == '\0')
 			{
 				rxtn->c.in.index++;
 				goto nextfile;
@@ -2507,7 +2507,7 @@ static int open_rio_console (hawk_rtx_t* rtx, hawk_rio_arg_t* riod)
 		}
 		else
 		{
-			/* a temporary variable sio is used here not to change 
+			/* a temporary variable sio is used here not to change
 			 * any fields of riod when the open operation fails */
 			hawk_sio_t* sio;
 			const hawk_ooch_t* file;
@@ -2526,7 +2526,7 @@ static int open_rio_console (hawk_rtx_t* rtx, hawk_rio_arg_t* riod)
 			if (sio == HAWK_NULL) return -1;
 
 			if (rxtn->c.cmgr) hawk_sio_setcmgr (sio, rxtn->c.cmgr);
-			
+
 			if (hawk_rtx_setofilenamewithoochars(rtx, file, hawk_count_oocstr(file)) <= -1)
 			{
 				hawk_sio_close (sio);
@@ -2567,7 +2567,7 @@ static hawk_ooi_t hawk_rio_console (hawk_rtx_t* rtx, hawk_rio_cmd_t cmd, hawk_ri
 				n = open_rio_console(rtx, riod);
 				if (n <= -1) return -1;
 
-				if (n == 0) 
+				if (n == 0)
 				{
 					/* no more input console */
 					return 0;
@@ -2595,7 +2595,7 @@ static hawk_ooi_t hawk_rio_console (hawk_rtx_t* rtx, hawk_rio_cmd_t cmd, hawk_ri
 				n = open_rio_console(rtx, riod);
 				if (n <= -1) return -1;
 
-				if (n == 0) 
+				if (n == 0)
 				{
 					/* no more input console */
 					return 0;
@@ -2648,7 +2648,7 @@ static hawk_ooi_t hawk_rio_console (hawk_rtx_t* rtx, hawk_rio_cmd_t cmd, hawk_ri
 			n = open_rio_console (rtx, riod);
 			if (n <= -1) return -1;
 
-			if (n == 0) 
+			if (n == 0)
 			{
 				/* if there is no more file, keep the previous handle */
 				return 0;
@@ -2713,13 +2713,13 @@ static int build_argcv (hawk_rtx_t* rtx, int argc_id, int argv_id, const hawk_oo
 
 	/* make ARGV[0] */
 	v_tmp = hawk_rtx_makestrvalwithoocstr(rtx, id);
-	if (v_tmp == HAWK_NULL) 
+	if (v_tmp == HAWK_NULL)
 	{
 		hawk_rtx_refdownval (rtx, v_argv);
 		return -1;
 	}
 
-	/* increment reference count of v_tmp in advance as if 
+	/* increment reference count of v_tmp in advance as if
 	 * it has successfully been assigned into ARGV. */
 	hawk_rtx_refupval (rtx, v_tmp);
 
@@ -2739,11 +2739,11 @@ static int build_argcv (hawk_rtx_t* rtx, int argc_id, int argv_id, const hawk_oo
 
 	if (icf)
 	{
-		for (argc = 1, p = icf; *p; p++, argc++) 
+		for (argc = 1, p = icf; *p; p++, argc++)
 		{
 			/* the argument must compose a numeric value if possible */
 			/*v_tmp = hawk_rtx_makenstrvalwithoocstr(rtx, *p); */
-			v_tmp = hawk_rtx_makenumorstrvalwithoochars(rtx, *p, hawk_count_oocstr(*p)); 
+			v_tmp = hawk_rtx_makenumorstrvalwithoochars(rtx, *p, hawk_count_oocstr(*p));
 			if (HAWK_UNLIKELY(!v_tmp))
 			{
 				hawk_rtx_refdownval (rtx, v_argv);
@@ -2837,11 +2837,11 @@ static int build_environ (hawk_rtx_t* rtx, int gbl_id, env_char_t* envarr[])
 
 			*eq = '\0';
 
-			/* dupbtoucstr() may fail for invalid encoding. as the environment 
-			 * variaables are not under control, call mbstowcsalldup() instead 
+			/* dupbtoucstr() may fail for invalid encoding. as the environment
+			 * variaables are not under control, call mbstowcsalldup() instead
 			 * to go on despite encoding failure */
 
-			kptr = hawk_rtx_dupbtoucstr(rtx, envarr[count], &klen, 1); 
+			kptr = hawk_rtx_dupbtoucstr(rtx, envarr[count], &klen, 1);
 			vptr = hawk_rtx_dupbtoucstr(rtx, eq + 1, &vlen, 1);
 			if (HAWK_UNLIKELY(!kptr || !vptr))
 			{
@@ -2872,7 +2872,7 @@ static int build_environ (hawk_rtx_t* rtx, int gbl_id, env_char_t* envarr[])
 		#endif
 
 			/* the string in ENVIRON should be a numeric value if
-			 * it can be converted to a number. 
+			 * it can be converted to a number.
 			 *v_tmp = hawk_rtx_makenstrvalwithoocstr(rtx, vptr);*/
 			v_tmp = hawk_rtx_makenumorstrvalwithoochars(rtx, vptr, vlen);
 			if (HAWK_UNLIKELY(!v_tmp))
@@ -2888,7 +2888,7 @@ static int build_environ (hawk_rtx_t* rtx, int gbl_id, env_char_t* envarr[])
 				return -1;
 			}
 
-			/* increment reference count of v_tmp in advance as if 
+			/* increment reference count of v_tmp in advance as if
 			 * it has successfully been assigned into ARGV. */
 			hawk_rtx_refupval (rtx, v_tmp);
 
@@ -2990,15 +2990,15 @@ static hawk_rtx_t* open_rtx_std (
 
 	/* FILENAME can be set when the input console is opened.
 	 * so we skip setting it here even if an explicit console file
-	 * is specified.  So the value of FILENAME is empty in the 
-	 * BEGIN block unless getline is ever met. 
+	 * is specified.  So the value of FILENAME is empty in the
+	 * BEGIN block unless getline is ever met.
 	 *
 	 * However, OFILENAME is different. The output
-	 * console is treated as if it's already open upon start-up. 
+	 * console is treated as if it's already open upon start-up.
 	 * otherwise, 'BEGIN { print OFILENAME; }' prints an empty
 	 * string regardless of output console files specified.
 	 * That's because OFILENAME is evaluated before the output
-	 * console file is opened. 
+	 * console file is opened.
 	 */
 	if (ocf && ocf[0])
 	{
@@ -3195,7 +3195,7 @@ static HAWK_INLINE void init_ioattr (ioattr_t* ioattr)
 {
 	int i;
 	HAWK_MEMSET (ioattr, 0, HAWK_SIZEOF(*ioattr));
-	for (i = 0; i < HAWK_COUNTOF(ioattr->tmout); i++) 
+	for (i = 0; i < HAWK_COUNTOF(ioattr->tmout); i++)
 	{
 		/* a negative number for no timeout */
 		ioattr->tmout[i].sec = -999;
@@ -3248,7 +3248,7 @@ static int fnc_setioattr (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	{
 		v[i] = hawk_rtx_getarg(rtx, i);
 		ptr[i] = hawk_rtx_getvaloocstr(rtx, v[i], &len[i]);
-		if (ptr[i] == HAWK_NULL) 
+		if (ptr[i] == HAWK_NULL)
 		{
 			ret = -1;
 			goto done;
@@ -3269,13 +3269,13 @@ static int fnc_setioattr (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		hawk_flt_t r;
 		int x;
 
-		/* no error is returned by hawk_rtx_strnum() if the strict option 
+		/* no error is returned by hawk_rtx_strnum() if the strict option
 		 * of the second parameter is 0. so i don't check for an error */
 		x = hawk_oochars_to_num(HAWK_OOCHARS_TO_NUM_MAKE_OPTION(0, 0, HAWK_RTX_IS_STRIPSTRSPC_ON(rtx), 0), ptr[2], len[2], &l, &r);
 		if (x == 0) r = (hawk_flt_t)l;
 
 		ioattr = find_or_make_ioattr(rtx, &rxtn->cmgrtab, ptr[0], len[0]);
-		if (ioattr == HAWK_NULL) 
+		if (ioattr == HAWK_NULL)
 		{
 			ret = -1;
 			goto done;
@@ -3301,14 +3301,14 @@ static int fnc_setioattr (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		ioattr_t* ioattr;
 		hawk_cmgr_t* cmgr;
 
-		if (ptr[2][0] == HAWK_T('\0')) 
+		if (ptr[2][0] == HAWK_T('\0'))
 		{
 			cmgr = HAWK_NULL;
 		}
 		else
 		{
 			cmgr = hawk_get_cmgr_by_name(ptr[2]);
-			if (cmgr == HAWK_NULL) 
+			if (cmgr == HAWK_NULL)
 			{
 				fret = -1;
 				goto done;
@@ -3316,7 +3316,7 @@ static int fnc_setioattr (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		}
 
 		ioattr = find_or_make_ioattr(rtx, &rxtn->cmgrtab, ptr[0], len[0]);
-		if (ioattr == HAWK_NULL) 
+		if (ioattr == HAWK_NULL)
 		{
 			ret = -1;
 			goto done;
@@ -3370,7 +3370,7 @@ static int fnc_getioattr (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	{
 		v[i] = hawk_rtx_getarg (rtx, i);
 		ptr[i] = hawk_rtx_getvaloocstr (rtx, v[i], &len[i]);
-		if (ptr[i] == HAWK_NULL) 
+		if (ptr[i] == HAWK_NULL)
 		{
 			ret = -1;
 			goto done;
@@ -3380,7 +3380,7 @@ static int fnc_getioattr (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	}
 
 	ioattr = get_ioattr(&rxtn->cmgrtab, ptr[0], len[0]);
-	if (ioattr == HAWK_NULL) 
+	if (ioattr == HAWK_NULL)
 	{
 		init_ioattr (&ioattr_buf);
 		ioattr = &ioattr_buf;
@@ -3392,7 +3392,7 @@ static int fnc_getioattr (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			rv = hawk_rtx_makeintval(rtx, ioattr->tmout[tmout].sec);
 		else
 			rv = hawk_rtx_makefltval(rtx, (hawk_flt_t)ioattr->tmout[tmout].sec + HAWK_NSEC_TO_SEC((hawk_flt_t)ioattr->tmout[tmout].nsec));
-		if (rv == HAWK_NULL) 
+		if (rv == HAWK_NULL)
 		{
 			ret = -1;
 			goto done;
@@ -3432,7 +3432,7 @@ done:
 			hawk_rtx_refdownval (rtx, rv);
 			if (ret >= 0) hawk_rtx_setretval (rtx, HAWK_VAL_ZERO);
 		}
-		else 
+		else
 		{
 			hawk_rtx_setretval (rtx, HAWK_VAL_NEGONE);
 		}
@@ -3467,7 +3467,7 @@ static int add_globals (hawk_t* hawk)
 	return (HAWK_UNLIKELY(xtn->gbl_argc <= -1 || xtn->gbl_argv <= -1 || xtn->gbl_environ <= -1))? -1: 0;
 }
 
-struct fnctab_t 
+struct fnctab_t
 {
 	const hawk_ooch_t* name;
 	hawk_fnc_spec_t spec;
@@ -3478,7 +3478,7 @@ static struct fnctab_t fnctab[] =
 	/* additional aliases to module functions */
 	{ HAWK_T("rand"),      { {1, 0, HAWK_T("math")},  HAWK_NULL,      0           } },
 	{ HAWK_T("srand"),     { {1, 0, HAWK_T("math")},  HAWK_NULL,      0           } },
-	{ HAWK_T("system"),    { {1, 0, HAWK_T("sys")},   HAWK_NULL ,     0           } }, 
+	{ HAWK_T("system"),    { {1, 0, HAWK_T("sys")},   HAWK_NULL ,     0           } },
 
 	/* additional functions */
 	{ HAWK_T("setioattr"), { {3, 3, HAWK_NULL},       fnc_setioattr, HAWK_RIO } },

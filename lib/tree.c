@@ -150,7 +150,7 @@ static int print_stmts (hawk_t* hawk, hawk_nde_t* tree, int depth);
 
 static int print_tabs (hawk_t* hawk, int depth)
 {
-	while (depth > 0) 
+	while (depth > 0)
 	{
 		PUT_SRCSTR (hawk, HAWK_T("\t"));
 		depth--;
@@ -163,7 +163,7 @@ static int print_printx (hawk_t* hawk, hawk_nde_print_t* px)
 {
 	hawk_oocs_t kw;
 
-	if (px->type == HAWK_NDE_PRINT) 
+	if (px->type == HAWK_NDE_PRINT)
 	{
 		hawk_getkwname (hawk, HAWK_KWID_PRINT, &kw);
 		PUT_SRCSTRN (hawk, kw.ptr, kw.len);
@@ -194,18 +194,18 @@ static int print_printx (hawk_t* hawk, hawk_nde_print_t* px)
 static int print_expr (hawk_t* hawk, hawk_nde_t* nde)
 {
 	hawk_oocs_t kw;
-	
-	switch (nde->type) 
+
+	switch (nde->type)
 	{
 		case HAWK_NDE_GRP:
-		{	
+		{
 			hawk_nde_t* p = ((hawk_nde_grp_t*)nde)->body;
 
 			PUT_SRCSTR (hawk, HAWK_T("("));
-			while (p != HAWK_NULL) 
+			while (p != HAWK_NULL)
 			{
 				PRINT_EXPR (hawk, p);
-				if (p->next != HAWK_NULL) 
+				if (p->next != HAWK_NULL)
 					PUT_SRCSTR (hawk, HAWK_T(","));
 				p = p->next;
 			}
@@ -239,12 +239,12 @@ static int print_expr (hawk_t* hawk, hawk_nde_t* nde)
 			PUT_SRCSTR (hawk, binop_str[px->opcode][(hawk->opt.trait & HAWK_BLANKCONCAT)? 0: 1]);
 			PUT_SRCSTR (hawk, HAWK_T(" "));
 
-			if (px->right->type == HAWK_NDE_ASS) 
+			if (px->right->type == HAWK_NDE_ASS)
 				PUT_SRCSTR (hawk, HAWK_T("("));
 			PRINT_EXPR (hawk, px->right);
-			if (px->right->type == HAWK_NDE_ASS) 
+			if (px->right->type == HAWK_NDE_ASS)
 				PUT_SRCSTR (hawk, HAWK_T(")"));
-			HAWK_ASSERT (px->right->next == HAWK_NULL); 
+			HAWK_ASSERT (px->right->next == HAWK_NULL);
 			PUT_SRCSTR (hawk, HAWK_T(")"));
 			break;
 		}
@@ -304,7 +304,7 @@ static int print_expr (hawk_t* hawk, hawk_nde_t* nde)
 		case HAWK_NDE_CHAR:
 		{
 			hawk_ooch_t tmp = ((hawk_nde_char_t*)nde)->val;
-			hawk_ooch_t buf[16]; 
+			hawk_ooch_t buf[16];
 
 			PUT_SRCSTR (hawk, HAWK_T("\'"));
 			if (tmp == '\0')
@@ -339,7 +339,7 @@ static int print_expr (hawk_t* hawk, hawk_nde_t* nde)
 		case HAWK_NDE_BCHR:
 		{
 			hawk_bch_t tmp = ((hawk_nde_bchr_t*)nde)->val;
-			hawk_ooch_t buf[16]; 
+			hawk_ooch_t buf[16];
 
 			PUT_SRCSTR (hawk, HAWK_T("@b\'"));
 			if (tmp == '\0')
@@ -369,7 +369,7 @@ static int print_expr (hawk_t* hawk, hawk_nde_t* nde)
 			}
 			else
 			{
-				/* Note that the array sizing fomula is not accurate 
+				/* Note that the array sizing fomula is not accurate
 				 * but should be good enoug consiering the followings.
 				 *
 				 * size minval                               digits  sign
@@ -379,12 +379,12 @@ static int print_expr (hawk_t* hawk, hawk_nde_t* nde)
 				 *   8  -9223372036854775808                     19  1
 				 *  16  -170141183460469231731687303715884105728 39  1
 				 */
-				hawk_ooch_t buf[HAWK_SIZEOF(hawk_int_t) * 3 + 2]; 
+				hawk_ooch_t buf[HAWK_SIZEOF(hawk_int_t) * 3 + 2];
 
 				hawk_fmt_intmax_to_oocstr (
 					buf, HAWK_COUNTOF(buf),
 					((hawk_nde_int_t*)nde)->val,
-					10, 
+					10,
 					-1,
 					HAWK_T('\0'),
 					HAWK_NULL
@@ -542,7 +542,7 @@ static int print_expr (hawk_t* hawk, hawk_nde_t* nde)
 		{
 			PUT_SRCSTR (hawk, HAWK_T("/"));
 			PUT_SRCSTRN (hawk,
-				((hawk_nde_rex_t*)nde)->str.ptr, 
+				((hawk_nde_rex_t*)nde)->str.ptr,
 				((hawk_nde_rex_t*)nde)->str.len);
 			PUT_SRCSTR (hawk, HAWK_T("/"));
 			break;
@@ -570,14 +570,14 @@ static int print_expr (hawk_t* hawk, hawk_nde_t* nde)
 		case HAWK_NDE_FUN:
 		{
 			PUT_SRCSTRN (hawk,
-				((hawk_nde_fun_t*)nde)->name.ptr, 
+				((hawk_nde_fun_t*)nde)->name.ptr,
 				((hawk_nde_fun_t*)nde)->name.len);
 			break;
 		}
 
 		case HAWK_NDE_ARG:
 		{
-			hawk_ooch_t tmp[HAWK_SIZEOF(hawk_int_t)*8+2]; 
+			hawk_ooch_t tmp[HAWK_SIZEOF(hawk_int_t)*8+2];
 			hawk_oow_t n;
 			hawk_nde_var_t* px = (hawk_nde_var_t*)nde;
 			HAWK_ASSERT (px->id.idxa != (hawk_oow_t)-1);
@@ -630,46 +630,9 @@ static int print_expr (hawk_t* hawk, hawk_nde_t* nde)
 		{
 			hawk_nde_var_t* px = (hawk_nde_var_t*)nde;
 
-			if (px->id.idxa != (hawk_oow_t)-1) 
+			if (px->id.idxa != (hawk_oow_t)-1)
 			{
-				/* deparsing is global. so i can't honor hawk->parse.pragma.trait 
-				 * which can change in each input file. let me just check hawk->opt.trait */
-				if (!(hawk->opt.trait & HAWK_IMPLICIT)) 
-				{
-					/* no implicit(named) variable is allowed.
-					 * use the actual name */
-					PUT_SRCSTRN (hawk, px->id.name.ptr, px->id.name.len);
-				}
-				else if (px->id.idxa < hawk->tree.ngbls_base)
-				{
-					/* static global variables */
-					PUT_SRCSTRN (hawk, px->id.name.ptr, px->id.name.len);
-				}
-				else
-				{
-					hawk_ooch_t tmp[HAWK_SIZEOF(hawk_int_t)*8+2]; 
-					hawk_oow_t n;
-
-					PUT_SRCSTR (hawk, HAWK_T("__g"));
-					n = hawk_int_to_oocstr(px->id.idxa, 10, HAWK_NULL, tmp, HAWK_COUNTOF(tmp));
-					PUT_SRCSTRN (hawk, tmp, n);
-				}
-			}
-			else 
-			{
-				PUT_SRCSTRN (hawk, px->id.name.ptr, px->id.name.len);
-			}
-			HAWK_ASSERT (px->idx == HAWK_NULL);
-			break;
-		}
-
-		case HAWK_NDE_GBLIDX:
-		{
-			hawk_nde_var_t* px = (hawk_nde_var_t*)nde;
-
-			if (px->id.idxa != (hawk_oow_t)-1) 
-			{
-				/* deparsing is global. so i can't honor hawk->parse.pragma.trait 
+				/* deparsing is global. so i can't honor hawk->parse.pragma.trait
 				 * which can change in each input file. let me just check hawk->opt.trait */
 				if (!(hawk->opt.trait & HAWK_IMPLICIT))
 				{
@@ -684,7 +647,7 @@ static int print_expr (hawk_t* hawk, hawk_nde_t* nde)
 				}
 				else
 				{
-					hawk_ooch_t tmp[HAWK_SIZEOF(hawk_int_t)*8+2]; 
+					hawk_ooch_t tmp[HAWK_SIZEOF(hawk_int_t)*8+2];
 					hawk_oow_t n;
 
 					PUT_SRCSTR (hawk, HAWK_T("__g"));
@@ -692,7 +655,44 @@ static int print_expr (hawk_t* hawk, hawk_nde_t* nde)
 					PUT_SRCSTRN (hawk, tmp, n);
 				}
 			}
-			else 
+			else
+			{
+				PUT_SRCSTRN (hawk, px->id.name.ptr, px->id.name.len);
+			}
+			HAWK_ASSERT (px->idx == HAWK_NULL);
+			break;
+		}
+
+		case HAWK_NDE_GBLIDX:
+		{
+			hawk_nde_var_t* px = (hawk_nde_var_t*)nde;
+
+			if (px->id.idxa != (hawk_oow_t)-1)
+			{
+				/* deparsing is global. so i can't honor hawk->parse.pragma.trait
+				 * which can change in each input file. let me just check hawk->opt.trait */
+				if (!(hawk->opt.trait & HAWK_IMPLICIT))
+				{
+					/* no implicit(named) variable is allowed.
+					 * use the actual name */
+					PUT_SRCSTRN (hawk, px->id.name.ptr, px->id.name.len);
+				}
+				else if (px->id.idxa < hawk->tree.ngbls_base)
+				{
+					/* static global variables */
+					PUT_SRCSTRN (hawk, px->id.name.ptr, px->id.name.len);
+				}
+				else
+				{
+					hawk_ooch_t tmp[HAWK_SIZEOF(hawk_int_t)*8+2];
+					hawk_oow_t n;
+
+					PUT_SRCSTR (hawk, HAWK_T("__g"));
+					n = hawk_int_to_oocstr(px->id.idxa, 10, HAWK_NULL, tmp, HAWK_COUNTOF(tmp));
+					PUT_SRCSTRN (hawk, tmp, n);
+				}
+			}
+			else
 			{
 				PUT_SRCSTRN (hawk, px->id.name.ptr, px->id.name.len);
 			}
@@ -707,13 +707,13 @@ static int print_expr (hawk_t* hawk, hawk_nde_t* nde)
 			hawk_oow_t n;
 			hawk_nde_var_t* px = (hawk_nde_var_t*)nde;
 
-			if (px->id.idxa != (hawk_oow_t)-1) 
+			if (px->id.idxa != (hawk_oow_t)-1)
 			{
 				PUT_SRCSTR (hawk, HAWK_T("__l"));
 				n = hawk_int_to_oocstr(px->id.idxa, 10, HAWK_NULL, hawk->tmp.fmt, HAWK_COUNTOF(hawk->tmp.fmt));
 				PUT_SRCSTRN (hawk, hawk->tmp.fmt, n);
 			}
-			else 
+			else
 			{
 				PUT_SRCSTRN (hawk, px->id.name.ptr, px->id.name.len);
 			}
@@ -726,13 +726,13 @@ static int print_expr (hawk_t* hawk, hawk_nde_t* nde)
 			hawk_oow_t n;
 			hawk_nde_var_t* px = (hawk_nde_var_t*)nde;
 
-			if (px->id.idxa != (hawk_oow_t)-1) 
+			if (px->id.idxa != (hawk_oow_t)-1)
 			{
 				PUT_SRCSTR (hawk, HAWK_T("__l"));
 				n = hawk_int_to_oocstr(px->id.idxa, 10, HAWK_NULL, hawk->tmp.fmt, HAWK_COUNTOF(hawk->tmp.fmt));
 				PUT_SRCSTRN (hawk, hawk->tmp.fmt, n);
 			}
-			else 
+			else
 			{
 				PUT_SRCSTRN (hawk, px->id.name.ptr, px->id.name.len);
 			}
@@ -807,7 +807,7 @@ static int print_expr (hawk_t* hawk, hawk_nde_t* nde)
 				PUT_SRCSTR (hawk, getline_inop_str[px->in_type]);
 				PUT_SRCSTR (hawk, HAWK_T(" "));
 				PRINT_EXPR (hawk, px->in);
-			}	  
+			}
 
 			PUT_SRCSTR (hawk, HAWK_T(")"));
 			break;
@@ -836,7 +836,7 @@ static int print_expr_list (hawk_t* hawk, hawk_nde_t* tree)
 {
 	hawk_nde_t* p = tree;
 
-	while (p) 
+	while (p)
 	{
 		PRINT_EXPR (hawk, p);
 		p = p->next;
@@ -851,13 +851,13 @@ static int print_expr_list_for_idx (hawk_t* hawk, hawk_nde_t* tree)
 	hawk_nde_t* p = tree;
 
 	PUT_SRCSTR (hawk, HAWK_T("["));
-	while (p) 
+	while (p)
 	{
 		PRINT_EXPR (hawk, p);
 		p = p->next;
-		if (p) 
+		if (p)
 		{
-			if (p->type == HAWK_NDE_NULL) 
+			if (p->type == HAWK_NDE_NULL)
 			{
 				/* the parser injects a HAWK_NDE_NULL node between the true multi-dimensional indices
 				 * if the true multi-dimensional indices are enabled(i.e. HAWK_ENABLE_GC is defined)
@@ -879,7 +879,7 @@ static int print_stmt (hawk_t* hawk, hawk_nde_t* p, int depth)
 	hawk_oow_t i;
 	hawk_oocs_t kw;
 
-	switch (p->type) 
+	switch (p->type)
 	{
 		case HAWK_NDE_NULL:
 		{
@@ -898,7 +898,7 @@ static int print_stmt (hawk_t* hawk, hawk_nde_t* p, int depth)
 			PUT_SRCSTR (hawk, HAWK_T("{"));
 			PUT_NL (hawk);
 
-			if (px->org_nlcls > 0) 
+			if (px->org_nlcls > 0)
 			{
 				PRINT_TABS (hawk, depth + 1);
 
@@ -908,7 +908,7 @@ static int print_stmt (hawk_t* hawk, hawk_nde_t* p, int depth)
 
 				/* though the parser pushed up all local variables to the outer-most level,
 				 * the code here restores the original declarations with org_nlcls and prv_nlcls */
-				for (i = 0; i < px->org_nlcls - 1; i++) 
+				for (i = 0; i < px->org_nlcls - 1; i++)
 				{
 					PUT_SRCSTR (hawk, HAWK_T("__l"));
 					n = hawk_int_to_oocstr(px->outer_nlcls + i, 10, HAWK_NULL, hawk->tmp.fmt, HAWK_COUNTOF(hawk->tmp.fmt));
@@ -923,21 +923,21 @@ static int print_stmt (hawk_t* hawk, hawk_nde_t* p, int depth)
 				PUT_NL (hawk);
 			}
 
-			PRINT_STMTS (hawk, px->body, depth + 1);	
+			PRINT_STMTS (hawk, px->body, depth + 1);
 			PRINT_TABS (hawk, depth);
 			PUT_SRCSTR (hawk, HAWK_T("}"));
 			PUT_NL (hawk);
 			break;
 		}
 
-		case HAWK_NDE_IF: 
+		case HAWK_NDE_IF:
 		{
 			hawk_nde_if_t* px = (hawk_nde_if_t*)p;
 
 			PRINT_TABS (hawk, depth);
 			hawk_getkwname (hawk, HAWK_KWID_IF, &kw);
 			PUT_SRCSTRN (hawk, kw.ptr, kw.len);
-			PUT_SRCSTR (hawk, HAWK_T(" ("));	
+			PUT_SRCSTR (hawk, HAWK_T(" ("));
 			PRINT_EXPR (hawk, px->test);
 			PUT_SRCSTR (hawk, HAWK_T(")"));
 			PUT_NL (hawk);
@@ -948,7 +948,7 @@ static int print_stmt (hawk_t* hawk, hawk_nde_t* p, int depth)
 			else
 				PRINT_STMTS (hawk, px->then_part, depth + 1);
 
-			if (px->else_part != HAWK_NULL) 
+			if (px->else_part != HAWK_NULL)
 			{
 				PRINT_TABS (hawk, depth);
 				hawk_getkwname (hawk, HAWK_KWID_ELSE, &kw);
@@ -962,7 +962,7 @@ static int print_stmt (hawk_t* hawk, hawk_nde_t* p, int depth)
 			break;
 		}
 
-		case HAWK_NDE_WHILE: 
+		case HAWK_NDE_WHILE:
 		{
 			hawk_nde_while_t* px = (hawk_nde_while_t*)p;
 
@@ -973,18 +973,18 @@ static int print_stmt (hawk_t* hawk, hawk_nde_t* p, int depth)
 			PRINT_EXPR (hawk, px->test);
 			PUT_SRCSTR (hawk, HAWK_T(")"));
 			PUT_NL (hawk);
-			if (px->body->type == HAWK_NDE_BLK) 
+			if (px->body->type == HAWK_NDE_BLK)
 			{
 				PRINT_STMTS (hawk, px->body, depth);
 			}
-			else 
+			else
 			{
 				PRINT_STMTS (hawk, px->body, depth + 1);
 			}
 			break;
 		}
 
-		case HAWK_NDE_DOWHILE: 
+		case HAWK_NDE_DOWHILE:
 		{
 			hawk_nde_while_t* px = (hawk_nde_while_t*)p;
 
@@ -992,11 +992,11 @@ static int print_stmt (hawk_t* hawk, hawk_nde_t* p, int depth)
 			hawk_getkwname (hawk, HAWK_KWID_DO, &kw);
 			PUT_SRCSTRN (hawk, kw.ptr, kw.len);
 			PUT_NL (hawk);
-			if (px->body->type == HAWK_NDE_BLK) 
+			if (px->body->type == HAWK_NDE_BLK)
 			{
 				PRINT_STMTS (hawk, px->body, depth);
 			}
-			else 
+			else
 			{
 				PRINT_STMTS (hawk, px->body, depth + 1);
 			}
@@ -1019,28 +1019,28 @@ static int print_stmt (hawk_t* hawk, hawk_nde_t* p, int depth)
 			hawk_getkwname (hawk, HAWK_KWID_FOR, &kw);
 			PUT_SRCSTRN (hawk, kw.ptr, kw.len);
 			PUT_SRCSTR (hawk, HAWK_T(" ("));
-			if (px->init != HAWK_NULL) 
+			if (px->init != HAWK_NULL)
 			{
 				PRINT_EXPR (hawk, px->init);
 			}
 			PUT_SRCSTR (hawk, HAWK_T("; "));
-			if (px->test != HAWK_NULL) 
+			if (px->test != HAWK_NULL)
 			{
 				PRINT_EXPR (hawk, px->test);
 			}
 			PUT_SRCSTR (hawk, HAWK_T("; "));
-			if (px->incr != HAWK_NULL) 
+			if (px->incr != HAWK_NULL)
 			{
 				PRINT_EXPR (hawk, px->incr);
 			}
 			PUT_SRCSTR (hawk, HAWK_T(")"));
 			PUT_NL (hawk);
 
-			if (px->body->type == HAWK_NDE_BLK) 
+			if (px->body->type == HAWK_NDE_BLK)
 			{
 				PRINT_STMTS (hawk, px->body, depth);
 			}
-			else 
+			else
 			{
 				PRINT_STMTS (hawk, px->body, depth + 1);
 			}
@@ -1057,11 +1057,11 @@ static int print_stmt (hawk_t* hawk, hawk_nde_t* p, int depth)
 			PUT_SRCSTR (hawk, HAWK_T(" "));
 			PRINT_EXPR (hawk, px->test);
 			PUT_NL (hawk);
-			if (px->body->type == HAWK_NDE_BLK) 
+			if (px->body->type == HAWK_NDE_BLK)
 			{
 				PRINT_STMTS (hawk, px->body, depth);
 			}
-			else 
+			else
 			{
 				PRINT_STMTS (hawk, px->body, depth + 1);
 			}
@@ -1091,14 +1091,14 @@ static int print_stmt (hawk_t* hawk, hawk_nde_t* p, int depth)
 		case HAWK_NDE_RETURN:
 		{
 			PRINT_TABS (hawk, depth);
-			if (((hawk_nde_return_t*)p)->val == HAWK_NULL) 
+			if (((hawk_nde_return_t*)p)->val == HAWK_NULL)
 			{
 				hawk_getkwname (hawk, HAWK_KWID_RETURN, &kw);
 				PUT_SRCSTRN (hawk, kw.ptr, kw.len);
 				PUT_SRCSTR (hawk, HAWK_T(";"));
 				PUT_NL (hawk);
 			}
-			else 
+			else
 			{
 				hawk_getkwname (hawk, HAWK_KWID_RETURN, &kw);
 				PUT_SRCSTRN (hawk, kw.ptr, kw.len);
@@ -1117,14 +1117,14 @@ static int print_stmt (hawk_t* hawk, hawk_nde_t* p, int depth)
 			hawk_nde_exit_t* px = (hawk_nde_exit_t*)p;
 			PRINT_TABS (hawk, depth);
 
-			if (px->val == HAWK_NULL) 
+			if (px->val == HAWK_NULL)
 			{
 				hawk_getkwname (hawk, (px->abort? HAWK_KWID_XABORT: HAWK_KWID_EXIT), &kw);
 				PUT_SRCSTRN (hawk, kw.ptr, kw.len);
 				PUT_SRCSTR (hawk, HAWK_T(";"));
 				PUT_NL (hawk);
 			}
-			else 
+			else
 			{
 				hawk_getkwname (hawk, (px->abort? HAWK_KWID_XABORT: HAWK_KWID_EXIT), &kw);
 				PUT_SRCSTRN (hawk, kw.ptr, kw.len);
@@ -1212,7 +1212,7 @@ static int print_stmts (hawk_t* hawk, hawk_nde_t* tree, int depth)
 {
 	hawk_nde_t* p = tree;
 
-	while (p) 
+	while (p)
 	{
 		if (print_stmt(hawk, p, depth) <= -1) return -1;
 		p = p->next;
@@ -1252,11 +1252,11 @@ void hawk_clrpt (hawk_t* hawk, hawk_nde_t* tree)
 	hawk_nde_t* p = tree;
 	hawk_nde_t* next;
 
-	while (p) 
+	while (p)
 	{
 		next = p->next;
 
-		switch (p->type) 
+		switch (p->type)
 		{
 			case HAWK_NDE_NULL:
 			{
@@ -1331,7 +1331,7 @@ void hawk_clrpt (hawk_t* hawk, hawk_nde_t* tree)
 
 			case HAWK_NDE_EXIT:
 			{
-				if (((hawk_nde_exit_t*)p)->val != HAWK_NULL) 
+				if (((hawk_nde_exit_t*)p)->val != HAWK_NULL)
 					hawk_clrpt (hawk, ((hawk_nde_exit_t*)p)->val);
 				hawk_freemem (hawk, p);
 				break;

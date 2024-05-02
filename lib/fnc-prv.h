@@ -33,7 +33,7 @@ struct hawk_fnc_t
 		hawk_oow_t  len;
 	} name;
 
-	int dfl0; /* if set, ($0) is assumed if () is missing. 
+	int dfl0; /* if set, ($0) is assumed if () is missing.
 	           * this ia mainly for the weird length() function */
 
 	hawk_fnc_spec_t spec;

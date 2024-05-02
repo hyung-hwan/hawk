@@ -51,7 +51,7 @@ extern "C" {
 HAWK_EXPORT hawk_dir_t* hawk_dir_open (
 	hawk_gem_t*        gem,
 	hawk_oow_t         xtnsize,
-	const hawk_ooch_t* path, 
+	const hawk_ooch_t* path,
 	int                flags
 );
 

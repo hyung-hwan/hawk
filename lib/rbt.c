@@ -525,7 +525,7 @@ static hawk_rbt_pair_t* insert (hawk_rbt_t* rbt, void* kptr, hawk_oow_t klen, vo
 		else /* if (n < 0) */ x_cur = x_cur->left;
 	}
 
-	if (opt == UPDATE) 
+	if (opt == UPDATE)
 	{
 		hawk_gem_seterrnum (rbt->gem, HAWK_NULL, HAWK_ENOENT);
 		return HAWK_NULL;
@@ -848,7 +848,7 @@ static void delete_pair (hawk_rbt_t* rbt, hawk_rbt_pair_t* pair)
 		hawk_rbt_itr_t* itr = rbt->_prot_itr._prot_next;
 		do
 		{
-			if (itr->pair == pair) 
+			if (itr->pair == pair)
 			{
 				hawk_oow_t seqno = itr->_prot_seqno;
 
@@ -1013,7 +1013,7 @@ hawk_rbt_pair_t* hawk_rbt_getfirstpair (hawk_rbt_t* rbt, hawk_rbt_itr_t* itr)
 	itr->_state = 0;
 #if defined(HAWK_ENABLE_RBT_ITR_PROTECTION)
 	itr->_prot_seqno = 0;
-	/* _prot_prev and _prot_next must be left uninitialized because of the way 
+	/* _prot_prev and _prot_next must be left uninitialized because of the way
 	 * this function is called in delete_pair() for protection handling
 	 */
 #endif

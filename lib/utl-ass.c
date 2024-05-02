@@ -69,7 +69,7 @@ static void backtrace_stack_frames (void)
 	unw_init_local(&cursor, &context);
 
 	printf ("[BACKTRACE]\n");
-	for (n = 0; unw_step(&cursor) > 0; n++) 
+	for (n = 0; unw_step(&cursor) > 0; n++)
 	{
 		unw_word_t ip, sp, off;
 		char symbol[256];
@@ -77,13 +77,13 @@ static void backtrace_stack_frames (void)
 		unw_get_reg (&cursor, UNW_REG_IP, &ip);
 		unw_get_reg (&cursor, UNW_REG_SP, &sp);
 
-		if (unw_get_proc_name(&cursor, symbol, HAWK_COUNTOF(symbol), &off)) 
+		if (unw_get_proc_name(&cursor, symbol, HAWK_COUNTOF(symbol), &off))
 		{
 			hawk_copy_bcstr (symbol, HAWK_COUNTOF(symbol), "<unknown>");
 		}
 
 		printf (
-			"#%02d ip=0x%*p sp=0x%*p %s+0x%lu\n", 
+			"#%02d ip=0x%*p sp=0x%*p %s+0x%lu\n",
 			n, HAWK_SIZEOF(void*) * 2, (void*)ip, HAWK_SIZEOF(void*) * 2, (void*)sp, symbol, (unsigned long int)off);
 	}
 }

@@ -252,10 +252,10 @@ typedef enum hawk_cmgr_id_t hawk_cmgr_id_t;
 /**
  * The hawk_sort_comper_t type defines a sort callback function.
  * The callback function is called by sort functions for each comparison
- * performed. It should return 0 if \a ptr1 and \a ptr2 are 
- * euqal, a positive integer if \a ptr1 is greater than \a ptr2, a negative 
- * if \a ptr2 is greater than \a ptr1. Both \a ptr1 and \a ptr2 are 
- * pointers to any two items in the array. \a ctx which is a pointer to 
+ * performed. It should return 0 if \a ptr1 and \a ptr2 are
+ * euqal, a positive integer if \a ptr1 is greater than \a ptr2, a negative
+ * if \a ptr2 is greater than \a ptr1. Both \a ptr1 and \a ptr2 are
+ * pointers to any two items in the array. \a ctx which is a pointer to
  * user-defined data passed to a sort function is passed to the callback
  * with no modification.
  */
@@ -289,9 +289,9 @@ typedef int (*hawk_sort_comperx_t) (
  * and hawk_subst_for_ucstr_to_ucstr() to substitue a new value for an identifier \a ident.
  */
 typedef hawk_uch_t* (*hawk_subst_for_ucs_t) (
-	hawk_uch_t*       buf, 
-	hawk_oow_t        bsz, 
-	const hawk_ucs_t* ident, 
+	hawk_uch_t*       buf,
+	hawk_oow_t        bsz,
+	const hawk_ucs_t* ident,
 	void*             ctx
 );
 
@@ -300,9 +300,9 @@ typedef hawk_uch_t* (*hawk_subst_for_ucs_t) (
  * and hawk_subst_for_bcstr_to_bcstr() to substitue a new value for an identifier \a ident.
  */
 typedef hawk_bch_t* (*hawk_subst_for_bcs_t) (
-	hawk_bch_t*       buf, 
-	hawk_oow_t        bsz, 
-	const hawk_bcs_t* ident, 
+	hawk_bch_t*       buf,
+	hawk_oow_t        bsz,
+	const hawk_bcs_t* ident,
 	void*             ctx
 );
 
@@ -543,7 +543,7 @@ HAWK_EXPORT hawk_int_t hawk_bchars_to_int (
  */
 HAWK_EXPORT hawk_flt_t hawk_uchars_to_flt (
 	const hawk_uch_t*   str,
-	hawk_oow_t          len, 
+	hawk_oow_t          len,
 	const hawk_uch_t**  endptr,
 	int                 stripspc
 );
@@ -554,19 +554,19 @@ HAWK_EXPORT hawk_flt_t hawk_uchars_to_flt (
  */
 HAWK_EXPORT hawk_flt_t hawk_bchars_to_flt (
 	const hawk_bch_t*   str,
-	hawk_oow_t          len, 
+	hawk_oow_t          len,
 	const hawk_bch_t**  endptr,
 	int                 stripspc
 );
 
 /**
  * The hawk_oochars_to_num() function converts a string to a number.
- * A numeric string in the valid decimal, hexadecimal(0x), binary(0b), 
+ * A numeric string in the valid decimal, hexadecimal(0x), binary(0b),
  * octal(0) notation is converted to an integer and it is stored into
- * memory pointed to by \a l; A string containng '.', 'E', or 'e' is 
+ * memory pointed to by \a l; A string containng '.', 'E', or 'e' is
  * converted to a floating-pointer number and it is stored into memory
  * pointed to by \a r. If \a strict is 0, the function takes up to the last
- * valid character and never fails. If \a strict is 1, an invalid 
+ * valid character and never fails. If \a strict is 1, an invalid
  * character causes the function to return an error.
  *
  * \return 0 if converted to an integer,
@@ -654,7 +654,7 @@ HAWK_EXPORT hawk_cmgr_t* hawk_get_cmgr_by_ucstr (
 /* ------------------------------------------------------------------------- */
 
 /**
- * The hawk_conv_uchars_to_utf8() function converts a unicode character string \a ucs 
+ * The hawk_conv_uchars_to_utf8() function converts a unicode character string \a ucs
  * to a UTF8 string and writes it into the buffer pointed to by \a bcs, but
  * not more than \a bcslen bytes including the terminating null.
  *
@@ -703,7 +703,7 @@ HAWK_EXPORT int hawk_conv_uchars_to_utf8 (
  *  n = hawk_conv_utf8_to_uchars (bcs, &bcslen, ucs, &ucslen);
  *  if (n <= -1) { invalid/incomplenete sequence or buffer to small }
  * \endcode
- * 
+ *
  * The resulting \a ucslen can still be greater than 0 even if the return
  * value is negative. The value indiates the number of characters converted
  * before the error has occurred.
@@ -860,9 +860,9 @@ static HAWK_INLINE hawk_uint32_t hawk_bswap32 (hawk_uint32_t x)
 	);
 	return x;
 #else
-	return ((x >> 24)) | 
-	       ((x >>  8) & ((hawk_uint32_t)0xff << 8)) | 
-	       ((x <<  8) & ((hawk_uint32_t)0xff << 16)) | 
+	return ((x >> 24)) |
+	       ((x >>  8) & ((hawk_uint32_t)0xff << 8)) |
+	       ((x <<  8) & ((hawk_uint32_t)0xff << 16)) |
 	       ((x << 24));
 #endif
 }
@@ -880,13 +880,13 @@ static HAWK_INLINE hawk_uint64_t hawk_bswap64 (hawk_uint64_t x)
 	__asm__ /*volatile*/ ("rev %0, %0" : "+r"(x));
 	return x;
 #else
-	return ((x >> 56)) | 
-	       ((x >> 40) & ((hawk_uint64_t)0xff << 8)) | 
-	       ((x >> 24) & ((hawk_uint64_t)0xff << 16)) | 
-	       ((x >>  8) & ((hawk_uint64_t)0xff << 24)) | 
-	       ((x <<  8) & ((hawk_uint64_t)0xff << 32)) | 
-	       ((x << 24) & ((hawk_uint64_t)0xff << 40)) | 
-	       ((x << 40) & ((hawk_uint64_t)0xff << 48)) | 
+	return ((x >> 56)) |
+	       ((x >> 40) & ((hawk_uint64_t)0xff << 8)) |
+	       ((x >> 24) & ((hawk_uint64_t)0xff << 16)) |
+	       ((x >>  8) & ((hawk_uint64_t)0xff << 24)) |
+	       ((x <<  8) & ((hawk_uint64_t)0xff << 32)) |
+	       ((x << 24) & ((hawk_uint64_t)0xff << 40)) |
+	       ((x << 40) & ((hawk_uint64_t)0xff << 48)) |
 	       ((x << 56));
 #endif
 }
@@ -898,7 +898,7 @@ static HAWK_INLINE hawk_uint128_t hawk_bswap128 (hawk_uint128_t x)
 #if defined(HAWK_HAVE_BUILTIN_BSWAP128)
 	return __builtin_bswap128(x);
 #else
-	return ((x >> 120)) | 
+	return ((x >> 120)) |
 	       ((x >> 104) & ((hawk_uint128_t)0xff << 8)) |
 	       ((x >>  88) & ((hawk_uint128_t)0xff << 16)) |
 	       ((x >>  72) & ((hawk_uint128_t)0xff << 24)) |
@@ -923,7 +923,7 @@ static HAWK_INLINE hawk_uint128_t hawk_bswap128 (hawk_uint128_t x)
 #if defined(HAWK_HAVE_UINT16_T)
 #	if defined(HAWK_HAVE_BUILTIN_BSWAP16)
 #	define hawk_bswap16(x) ((hawk_uint16_t)__builtin_bswap16((hawk_uint16_t)(x)))
-#	else 
+#	else
 #	define hawk_bswap16(x) ((hawk_uint16_t)(((hawk_uint16_t)(x)) << 8) | (((hawk_uint16_t)(x)) >> 8))
 #	endif
 #endif
@@ -931,7 +931,7 @@ static HAWK_INLINE hawk_uint128_t hawk_bswap128 (hawk_uint128_t x)
 #if defined(HAWK_HAVE_UINT32_T)
 #	if defined(HAWK_HAVE_BUILTIN_BSWAP32)
 #	define hawk_bswap32(x) ((hawk_uint32_t)__builtin_bswap32((hawk_uint32_t)(x)))
-#	else 
+#	else
 #	define hawk_bswap32(x) ((hawk_uint32_t)(((((hawk_uint32_t)(x)) >> 24)) | \
 	                                      ((((hawk_uint32_t)(x)) >>  8) & ((hawk_uint32_t)0xff << 8)) | \
 	                                      ((((hawk_uint32_t)(x)) <<  8) & ((hawk_uint32_t)0xff << 16)) | \
@@ -942,7 +942,7 @@ static HAWK_INLINE hawk_uint128_t hawk_bswap128 (hawk_uint128_t x)
 #if defined(HAWK_HAVE_UINT64_T)
 #	if defined(HAWK_HAVE_BUILTIN_BSWAP64)
 #	define hawk_bswap64(x) ((hawk_uint64_t)__builtin_bswap64((hawk_uint64_t)(x)))
-#	else 
+#	else
 #	define hawk_bswap64(x) ((hawk_uint64_t)(((((hawk_uint64_t)(x)) >> 56)) | \
 	                                      ((((hawk_uint64_t)(x)) >> 40) & ((hawk_uint64_t)0xff << 8)) | \
 	                                      ((((hawk_uint64_t)(x)) >> 24) & ((hawk_uint64_t)0xff << 16)) | \
@@ -957,7 +957,7 @@ static HAWK_INLINE hawk_uint128_t hawk_bswap128 (hawk_uint128_t x)
 #if defined(HAWK_HAVE_UINT128_T)
 #	if defined(HAWK_HAVE_BUILTIN_BSWAP128)
 #	define hawk_bswap128(x) ((hawk_uint128_t)__builtin_bswap128((hawk_uint128_t)(x)))
-#	else 
+#	else
 #	define hawk_bswap128(x) ((hawk_uint128_t)(((((hawk_uint128_t)(x)) >> 120)) |  \
 	                                        ((((hawk_uint128_t)(x)) >> 104) & ((hawk_uint128_t)0xff << 8)) | \
 	                                        ((((hawk_uint128_t)(x)) >>  88) & ((hawk_uint128_t)0xff << 16)) | \
@@ -1102,7 +1102,7 @@ static HAWK_INLINE int hawk_get_pos_of_msb_set_pow2 (hawk_oow_t x)
 		: "=r"(n) /* output */
 		: "r"(x) /* input */
 	);
-	return (int)(HAWK_OOW_BITS - n - 1); 
+	return (int)(HAWK_OOW_BITS - n - 1);
 	/* TODO: PPC - use cntlz, cntlzw, cntlzd, SPARC - use lzcnt, MIPS clz */
 #else
 	int pos = 0;
@@ -1136,7 +1136,7 @@ static HAWK_INLINE int hawk_get_pos_of_msb_set (hawk_oow_t x)
 		: "=r"(n) /* output */
 		: "r"(x) /* input */
 	);
-	return (int)(HAWK_OOW_BITS - n - 1); 
+	return (int)(HAWK_OOW_BITS - n - 1);
 	/* TODO: PPC - use cntlz, cntlzw, cntlzd, SPARC - use lzcnt, MIPS clz */
 #else
 	int pos = 0;
@@ -1166,7 +1166,7 @@ HAWK_EXPORT int hawk_qsortx (
 );
 
 /* =========================================================================
- * TIME 
+ * TIME
  * ========================================================================= */
 HAWK_EXPORT int hawk_get_ntime (
 	hawk_ntime_t* t
@@ -1177,10 +1177,10 @@ HAWK_EXPORT int hawk_set_ntime (
 );
 
 /**
- * The hawk_add_ntime() adds two time structures pointed to by x and y and 
+ * The hawk_add_ntime() adds two time structures pointed to by x and y and
  * stores the result in z. Upon overflow, it sets z to the largest value
- * the hawk_ntime_t type can represent. Upon underflow, it sets z to the 
- * smallest value. If you don't need this extra range check, you may use 
+ * the hawk_ntime_t type can represent. Upon underflow, it sets z to the
+ * smallest value. If you don't need this extra range check, you may use
  * the HAWK_ADD_NTIME() macro.
  */
 HAWK_EXPORT void hawk_add_ntime (

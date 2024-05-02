@@ -29,8 +29,8 @@
 #include <stdarg.h>
 
 /** string pointer and length as a aggregate */
-#define HAWK_BECS_BCS(s)      (&((s)->val))  
-#define HAWK_BECS_CS(s)       (&((s)->val))  
+#define HAWK_BECS_BCS(s)      (&((s)->val))
+#define HAWK_BECS_CS(s)       (&((s)->val))
 /** string length */
 #define HAWK_BECS_LEN(s)      ((s)->val.len)
 /** string pointer */
@@ -40,13 +40,13 @@
 /** string capacity */
 #define HAWK_BECS_CAPA(s)     ((s)->capa)
 /** character at the given position */
-#define HAWK_BECS_CHAR(s,idx) ((s)->val.ptr[idx]) 
+#define HAWK_BECS_CHAR(s,idx) ((s)->val.ptr[idx])
 /**< last character. unsafe if length <= 0 */
 #define HAWK_BECS_LASTCHAR(s) ((s)->val.ptr[(s)->val.len-1])
 
 /** string pointer and length as a aggregate */
-#define HAWK_UECS_UCS(s)      (&((s)->val))  
-#define HAWK_UECS_CS(s)       (&((s)->val))  
+#define HAWK_UECS_UCS(s)      (&((s)->val))
+#define HAWK_UECS_CS(s)       (&((s)->val))
 /** string length */
 #define HAWK_UECS_LEN(s)      ((s)->val.len)
 /** string pointer */
@@ -56,7 +56,7 @@
 /** string capacity */
 #define HAWK_UECS_CAPA(s)     ((s)->capa)
 /** character at the given position */
-#define HAWK_UECS_CHAR(s,idx) ((s)->val.ptr[idx]) 
+#define HAWK_UECS_CHAR(s,idx) ((s)->val.ptr[idx])
 /**< last character. unsafe if length <= 0 */
 #define HAWK_UECS_LASTCHAR(s) ((s)->val.ptr[(s)->val.len-1])
 
@@ -138,7 +138,7 @@ HAWK_EXPORT void hawk_becs_close (
 
 /**
  * The hawk_becs_init() function initializes a dynamically resizable string
- * If the parameter capa is 0, it doesn't allocate the internal buffer 
+ * If the parameter capa is 0, it doesn't allocate the internal buffer
  * in advance and always succeeds.
  * \return 0 on success, -1 on failure.
  */
@@ -217,7 +217,7 @@ static HAWK_INLINE hawk_oow_t hawk_becs_getcapa (hawk_becs_t* becs) { return HAW
  * The hawk_becs_setcapa() function sets the new capacity. If the new capacity
  * is smaller than the old, the overflowing characters are removed from
  * from the buffer.
- * \return (hawk_oow_t)-1 on failure, new capacity on success 
+ * \return (hawk_oow_t)-1 on failure, new capacity on success
  */
 HAWK_EXPORT hawk_oow_t hawk_becs_setcapa (
 	hawk_becs_t* becs,
@@ -235,7 +235,7 @@ static HAWK_INLINE hawk_oow_t hawk_becs_getlen (hawk_becs_t* becs) { return HAWK
 
 /**
  * The hawk_becs_setlen() function changes the string length.
- * \return (hawk_oow_t)-1 on failure, new length on success 
+ * \return (hawk_oow_t)-1 on failure, new length on success
  */
 HAWK_EXPORT hawk_oow_t hawk_becs_setlen (
 	hawk_becs_t* becs,
@@ -312,25 +312,25 @@ HAWK_EXPORT hawk_oow_t hawk_becs_amend (
 );
 
 HAWK_EXPORT hawk_oow_t hawk_becs_vfcat (
-	hawk_becs_t*       str, 
+	hawk_becs_t*       str,
 	const hawk_bch_t*  fmt,
 	va_list            ap
 );
 
 HAWK_EXPORT hawk_oow_t hawk_becs_fcat (
-	hawk_becs_t*       str, 
+	hawk_becs_t*       str,
 	const hawk_bch_t*  fmt,
 	...
 );
 
 HAWK_EXPORT hawk_oow_t hawk_becs_vfmt (
-	hawk_becs_t*       str, 
+	hawk_becs_t*       str,
 	const hawk_bch_t*  fmt,
 	va_list            ap
 );
 
 HAWK_EXPORT hawk_oow_t hawk_becs_fmt (
-	hawk_becs_t*       str, 
+	hawk_becs_t*       str,
 	const hawk_bch_t*  fmt,
 	...
 );
@@ -352,7 +352,7 @@ HAWK_EXPORT void hawk_uecs_close (
 
 /**
  * The hawk_uecs_init() function initializes a dynamically resizable string
- * If the parameter capa is 0, it doesn't allocate the internal buffer 
+ * If the parameter capa is 0, it doesn't allocate the internal buffer
  * in advance and always succeeds.
  * \return 0 on success, -1 on failure.
  */
@@ -431,7 +431,7 @@ static HAWK_INLINE hawk_oow_t hawk_uecs_getcapa (hawk_uecs_t* uecs) { return HAW
  * The hawk_uecs_setcapa() function sets the new capacity. If the new capacity
  * is smaller than the old, the overflowing characters are removed from
  * from the buffer.
- * \return (hawk_oow_t)-1 on failure, new capacity on success 
+ * \return (hawk_oow_t)-1 on failure, new capacity on success
  */
 HAWK_EXPORT hawk_oow_t hawk_uecs_setcapa (
 	hawk_uecs_t* uecs,
@@ -449,7 +449,7 @@ static HAWK_INLINE hawk_oow_t hawk_uecs_getlen (hawk_uecs_t* uecs) { return HAWK
 
 /**
  * The hawk_uecs_setlen() function changes the string length.
- * \return (hawk_oow_t)-1 on failure, new length on success 
+ * \return (hawk_oow_t)-1 on failure, new length on success
  */
 HAWK_EXPORT hawk_oow_t hawk_uecs_setlen (
 	hawk_uecs_t* uecs,
@@ -527,25 +527,25 @@ HAWK_EXPORT hawk_oow_t hawk_uecs_amend (
 );
 
 HAWK_EXPORT hawk_oow_t hawk_uecs_vfcat (
-	hawk_uecs_t*       str, 
+	hawk_uecs_t*       str,
 	const hawk_uch_t*  fmt,
 	va_list            ap
 );
 
 HAWK_EXPORT hawk_oow_t hawk_uecs_fcat (
-	hawk_uecs_t*       str, 
+	hawk_uecs_t*       str,
 	const hawk_uch_t*  fmt,
 	...
 );
 
 HAWK_EXPORT hawk_oow_t hawk_uecs_vfmt (
-	hawk_uecs_t*       str, 
+	hawk_uecs_t*       str,
 	const hawk_uch_t*  fmt,
 	va_list            ap
 );
 
 HAWK_EXPORT hawk_oow_t hawk_uecs_fmt (
-	hawk_uecs_t*       str, 
+	hawk_uecs_t*       str,
 	const hawk_uch_t*  fmt,
 	...
 );

@@ -82,7 +82,7 @@ hawk_errnum_t hawk_syserr_to_errnum (hawk_intptr_t e) /* actually APIRET */
 		case ERROR_INVALID_NAME:
 			return HAWK_EINVAL;
 		case ERROR_ACCESS_DENIED:
-		case ERROR_SHARING_VIOLATION: 
+		case ERROR_SHARING_VIOLATION:
 			return HAWK_EACCES;
 		case ERROR_FILE_NOT_FOUND:
 		case ERROR_PATH_NOT_FOUND:
@@ -96,7 +96,7 @@ hawk_errnum_t hawk_syserr_to_errnum (hawk_intptr_t e) /* actually APIRET */
 	}
 }
 
-#elif defined(__DOS__) 
+#elif defined(__DOS__)
 
 hawk_errnum_t hawk_syserr_to_errnum (hawk_intptr_t e)
 {
@@ -108,7 +108,7 @@ hawk_errnum_t hawk_syserr_to_errnum (hawk_intptr_t e)
 		case ENOENT: return HAWK_ENOENT;
 		case EEXIST: return HAWK_EEXIST;
 		default:     return HAWK_ESYSERR;
-	} 
+	}
 }
 
 #elif defined(vms) || defined(__vms)
@@ -130,25 +130,25 @@ hawk_errnum_t hawk_syserr_to_errnum (hawk_intptr_t e)
 	switch (e)
 	{
 	#if defined(ENOMEM)
-		case ENOMEM: return HAWK_ENOMEM; 
+		case ENOMEM: return HAWK_ENOMEM;
 	#endif
 	#if defined(EINVAL)
-		case EINVAL: return HAWK_EINVAL; 
+		case EINVAL: return HAWK_EINVAL;
 	#endif
 	#if defined(EBUSY)
-		case EBUSY: return HAWK_EBUSY; 
+		case EBUSY: return HAWK_EBUSY;
 	#endif
 	#if defined(EACCES)
-		case EACCES: return HAWK_EACCES; 
+		case EACCES: return HAWK_EACCES;
 	#endif
 	#if defined(EPERM)
-		case EPERM: return HAWK_EPERM; 
+		case EPERM: return HAWK_EPERM;
 	#endif
 	#if defined(EISDIR)
-		case EISDIR: return HAWK_EISDIR; 
+		case EISDIR: return HAWK_EISDIR;
 	#endif
 	#if defined(ENOTDIR)
-		case ENOTDIR: return HAWK_ENOTDIR; 
+		case ENOTDIR: return HAWK_ENOTDIR;
 	#endif
 	#if defined(ENXIO)
 		case ENXIO: return HAWK_ENOENT; /* ENODEV mapped to ENOENT */
@@ -157,25 +157,25 @@ hawk_errnum_t hawk_syserr_to_errnum (hawk_intptr_t e)
 		case ENODEV: return HAWK_ENOENT; /* ENODEV mapped to ENOENT */
 	#endif
 	#if defined(ENOENT)
-		case ENOENT: return HAWK_ENOENT; 
+		case ENOENT: return HAWK_ENOENT;
 	#endif
 	#if defined(EEXIST)
-		case EEXIST: return HAWK_EEXIST; 
+		case EEXIST: return HAWK_EEXIST;
 	#endif
 	#if defined(EINTR)
-		case EINTR:  return HAWK_EINTR; 
+		case EINTR:  return HAWK_EINTR;
 	#endif
 	#if defined(EPIPE)
-		case EPIPE:  return HAWK_EPIPE; 
+		case EPIPE:  return HAWK_EPIPE;
 	#endif
 	#if defined(EINPROGRESS)
-		case EINPROGRESS: return HAWK_EINPROG; 
+		case EINPROGRESS: return HAWK_EINPROG;
 	#endif
 	#if defined(ECHILD)
-		case ECHILD:  return HAWK_ECHILD; 
+		case ECHILD:  return HAWK_ECHILD;
 	#endif
 	#if defined(ETIMEDOUT)
-		case ETIMEDOUT: return HAWK_ETMOUT; 
+		case ETIMEDOUT: return HAWK_ETMOUT;
 	#endif
 	#if defined(EBADFD)
 		case EBADFD: return HAWK_ESTATE;
@@ -185,16 +185,16 @@ hawk_errnum_t hawk_syserr_to_errnum (hawk_intptr_t e)
 	#endif
 
 	#if defined(EWOULDBLOCK) && defined(EAGAIN) && (EWOULDBLOCK == EAGAIN)
-		case EAGAIN: return HAWK_EAGAIN; 
+		case EAGAIN: return HAWK_EAGAIN;
 	#else
 		#if defined(EWOULDBLOCK)
-		case EWOULDBLOCK: return HAWK_EAGAIN; 
+		case EWOULDBLOCK: return HAWK_EAGAIN;
 		#endif
 		#if defined(EAGAIN)
-		case EAGAIN: return HAWK_EAGAIN; 
+		case EAGAIN: return HAWK_EAGAIN;
 		#endif
 	#endif
-		default:     return HAWK_ESYSERR; 
+		default:     return HAWK_ESYSERR;
 	}
 }
 

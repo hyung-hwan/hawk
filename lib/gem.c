@@ -308,10 +308,10 @@ hawk_uch_t* hawk_gem_dupb2touchars (hawk_gem_t* gem, const hawk_bch_t* bcs1, haw
 	inlen = bcslen2;
 	hawk_gem_convbtouchars (gem, bcs2, &inlen, &ptr[outlen1], &outlen2, all);
 
-	/* hawk_convbtouchars() doesn't null-terminate the target. 
+	/* hawk_convbtouchars() doesn't null-terminate the target.
 	 * but in hawk_dupbtouchars(), i allocate space. so i don't mind
 	 * null-terminating it with 1 extra character overhead */
-	ptr[outlen1 + outlen2] = '\0'; 
+	ptr[outlen1 + outlen2] = '\0';
 	if (ucslen) *ucslen = outlen1 + outlen2;
 	return ptr;
 }
@@ -382,9 +382,9 @@ hawk_uch_t* hawk_gem_dupbtoucharswithcmgr (hawk_gem_t* gem, const hawk_bch_t* bc
 
 	if (!cmgr) cmgr = gem->cmgr;
 
-	bcslen = _bcslen; 
+	bcslen = _bcslen;
 	n = hawk_conv_bchars_to_uchars_with_cmgr(bcs, &bcslen, HAWK_NULL, &ucslen, cmgr, all);
-	if (n <= -1) 
+	if (n <= -1)
 	{
 		/* -1: illegal character, -2: buffer too small, -3: incomplete sequence */
 		hawk_gem_seterrnum (gem, HAWK_NULL, (n == -2)? HAWK_EBUFFULL: HAWK_EECERR);
@@ -412,7 +412,7 @@ hawk_bch_t* hawk_gem_duputobcharswithcmgr (hawk_gem_t* gem, const hawk_uch_t* uc
 
 	ucslen = _ucslen;
 	n = hawk_conv_uchars_to_bchars_with_cmgr(ucs, &ucslen, HAWK_NULL, &bcslen, cmgr);
-	if (n <= -1) 
+	if (n <= -1)
 	{
 		/* -1: illegal character, -2: buffer too small, -3: incomplete sequence */
 		hawk_gem_seterrnum (gem, HAWK_NULL, (n == -2)? HAWK_EBUFFULL: HAWK_EECERR);
@@ -502,9 +502,9 @@ static int fmt_put_bchars_to_uch_buf (hawk_fmtout_t* fmtout, const hawk_bch_t* p
 	ucslen = b->capa - b->len;
 	n = hawk_conv_bchars_to_uchars_with_cmgr(ptr, &bcslen, &b->ptr[b->len], &ucslen, b->gem->cmgr, 1);
 	b->len += ucslen;
-	if (n <= -1) 
+	if (n <= -1)
 	{
-		if (n == -2) 
+		if (n == -2)
 		{
 			return 0; /* buffer full. stop */
 		}
@@ -666,7 +666,7 @@ hawk_oow_t hawk_gem_fmttobcstr (hawk_gem_t* gem, hawk_bch_t* buf, hawk_oow_t buf
 /* ------------------------------------------------------------------------ */
 int hawk_gem_buildrex (hawk_gem_t* gem, const hawk_ooch_t* ptn, hawk_oow_t len, int nobound, hawk_tre_t** code, hawk_tre_t** icode)
 {
-	hawk_tre_t* tre = HAWK_NULL; 
+	hawk_tre_t* tre = HAWK_NULL;
 	hawk_tre_t* itre = HAWK_NULL;
 	int opt = HAWK_TRE_EXTENDED;
 
@@ -684,7 +684,7 @@ int hawk_gem_buildrex (hawk_gem_t* gem, const hawk_ooch_t* ptn, hawk_oow_t len, 
 		}
 	}
 
-	if (icode) 
+	if (icode)
 	{
 		itre = hawk_tre_open(gem, 0);
 		if (itre == HAWK_NULL)

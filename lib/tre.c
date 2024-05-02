@@ -57,7 +57,7 @@ int hawk_tre_init (hawk_tre_t* tre, hawk_gem_t* gem)
 
 void hawk_tre_fini (hawk_tre_t* tre)
 {
-	if (tre->TRE_REGEX_T_FIELD) 
+	if (tre->TRE_REGEX_T_FIELD)
 	{
 		tre_free (tre);
 		tre->TRE_REGEX_T_FIELD = HAWK_NULL;
@@ -68,21 +68,21 @@ int hawk_tre_compx (hawk_tre_t* tre, const hawk_ooch_t* regex, hawk_oow_t n, uns
 {
 	int ret;
 
-	if (tre->TRE_REGEX_T_FIELD) 
+	if (tre->TRE_REGEX_T_FIELD)
 	{
 		tre_free (tre);
 		tre->TRE_REGEX_T_FIELD = HAWK_NULL;
 	}
 
 	ret = tre_compile(tre, regex, n, cflags);
-	if (ret > 0) 
+	if (ret > 0)
 	{
 		tre->TRE_REGEX_T_FIELD = HAWK_NULL; /* just to make sure */
 		hawk_gem_seterrnum (tre->gem, HAWK_NULL, ret);
 		return -1;
 	}
-	
-	if (nsubmat) 
+
+	if (nsubmat)
 	{
 		*nsubmat = ((struct tnfa*)tre->TRE_REGEX_T_FIELD)->num_submatches;
 	}
@@ -226,12 +226,12 @@ int hawk_tre_execx (
 #else
 	ret = tre_match(tre, str, len, STR_BYTE, nmatch, pmatch, eflags);
 #endif
-	if (ret > 0) 
+	if (ret > 0)
 	{
 		hawk_gem_seterrnum ((errgem? errgem: tre->gem), HAWK_NULL, ret);
 		return -1;
 	}
-	
+
 	return 0;
 }
 
@@ -256,12 +256,12 @@ int hawk_tre_execuchars (
 		return -1;
 	}
 	ret = tre_match(tre, str, len, STR_WIDE, nmatch, pmatch, eflags);
-	if (ret > 0) 
+	if (ret > 0)
 	{
 		hawk_gem_seterrnum ((errgem? errgem: tre->gem), HAWK_NULL, ret);
 		return -1;
 	}
-	
+
 	return 0;
 }
 
@@ -278,12 +278,12 @@ int hawk_tre_execbchars (
 		return -1;
 	}
 	ret = tre_match(tre, str, len, STR_BYTE, nmatch, pmatch, eflags);
-	if (ret > 0) 
+	if (ret > 0)
 	{
 		hawk_gem_seterrnum ((errgem? errgem: tre->gem), HAWK_NULL, ret);
 		return -1;
 	}
-	
+
 	return 0;
 }
 

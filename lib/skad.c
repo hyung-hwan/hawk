@@ -49,14 +49,14 @@ static int uchars_to_ipv4 (const hawk_uch_t* str, hawk_oow_t len, struct in_addr
 
 		c = *str++;
 
-		if (c >= '0' && c <= '9') 
+		if (c >= '0' && c <= '9')
 		{
 			if (digits > 0 && acc == 0) return -1;
 			acc = acc * 10 + (c - '0');
 			if (acc > 255) return -1;
 			digits++;
 		}
-		else if (c == '.') 
+		else if (c == '.')
 		{
 			if (dots >= 3 || digits == 0) return -1;
 			addr = (addr << 8) | acc;
@@ -91,14 +91,14 @@ static int bchars_to_ipv4 (const hawk_bch_t* str, hawk_oow_t len, struct in_addr
 
 		c = *str++;
 
-		if (c >= '0' && c <= '9') 
+		if (c >= '0' && c <= '9')
 		{
 			if (digits > 0 && acc == 0) return -1;
 			acc = acc * 10 + (c - '0');
 			if (acc > 255) return -1;
 			digits++;
 		}
-		else if (c == '.') 
+		else if (c == '.')
 		{
 			if (dots >= 3 || digits == 0) return -1;
 			addr = (addr << 8) | acc;
@@ -157,10 +157,10 @@ static int uchars_to_ipv6 (const hawk_uch_t* src, hawk_oow_t len, struct in6_add
 			continue;
 		}
 
-		if (ch == ':') 
+		if (ch == ':')
 		{
 			curtok = src;
-			if (!saw_xdigit) 
+			if (!saw_xdigit)
 			{
 				if (colonp) return -1;
 				colonp = tp;
@@ -180,23 +180,23 @@ static int uchars_to_ipv6 (const hawk_uch_t* src, hawk_oow_t len, struct in6_add
 		}
 
 		if (ch == '.' && ((tp + HAWK_SIZEOF(struct in_addr)) <= endp) &&
-		    uchars_to_ipv4(curtok, src_end - curtok, (struct in_addr*)tp) == 0) 
+		    uchars_to_ipv4(curtok, src_end - curtok, (struct in_addr*)tp) == 0)
 		{
 			tp += HAWK_SIZEOF(struct in_addr*);
 			saw_xdigit = 0;
-			break; 
+			break;
 		}
 
 		return -1;
 	}
 
-	if (saw_xdigit) 
+	if (saw_xdigit)
 	{
 		if (tp + HAWK_SIZEOF(hawk_uint16_t) > endp) return -1;
 		*tp++ = (hawk_uint8_t)(val >> 8) & 0xff;
 		*tp++ = (hawk_uint8_t)val & 0xff;
 	}
-	if (colonp != HAWK_NULL) 
+	if (colonp != HAWK_NULL)
 	{
 		/*
 		 * Since some memmove()'s erroneously fail to handle
@@ -204,8 +204,8 @@ static int uchars_to_ipv6 (const hawk_uch_t* src, hawk_oow_t len, struct in6_add
 		 */
 		hawk_oow_t n = tp - colonp;
 		hawk_oow_t i;
- 
-		for (i = 1; i <= n; i++) 
+
+		for (i = 1; i <= n; i++)
 		{
 			endp[-i] = colonp[n - i];
 			colonp[n - i] = 0;
@@ -261,10 +261,10 @@ static int bchars_to_ipv6 (const hawk_bch_t* src, hawk_oow_t len, struct in6_add
 			continue;
 		}
 
-		if (ch == ':') 
+		if (ch == ':')
 		{
 			curtok = src;
-			if (!saw_xdigit) 
+			if (!saw_xdigit)
 			{
 				if (colonp) return -1;
 				colonp = tp;
@@ -284,23 +284,23 @@ static int bchars_to_ipv6 (const hawk_bch_t* src, hawk_oow_t len, struct in6_add
 		}
 
 		if (ch == '.' && ((tp + HAWK_SIZEOF(struct in_addr)) <= endp) &&
-		    bchars_to_ipv4(curtok, src_end - curtok, (struct in_addr*)tp) == 0) 
+		    bchars_to_ipv4(curtok, src_end - curtok, (struct in_addr*)tp) == 0)
 		{
 			tp += HAWK_SIZEOF(struct in_addr*);
 			saw_xdigit = 0;
-			break; 
+			break;
 		}
 
 		return -1;
 	}
 
-	if (saw_xdigit) 
+	if (saw_xdigit)
 	{
 		if (tp + HAWK_SIZEOF(hawk_uint16_t) > endp) return -1;
 		*tp++ = (hawk_uint8_t)(val >> 8) & 0xff;
 		*tp++ = (hawk_uint8_t)val & 0xff;
 	}
-	if (colonp != HAWK_NULL) 
+	if (colonp != HAWK_NULL)
 	{
 		/*
 		 * Since some memmove()'s erroneously fail to handle
@@ -308,8 +308,8 @@ static int bchars_to_ipv6 (const hawk_bch_t* src, hawk_oow_t len, struct in6_add
 		 */
 		hawk_oow_t n = tp - colonp;
 		hawk_oow_t i;
- 
-		for (i = 1; i <= n; i++) 
+
+		for (i = 1; i <= n; i++)
 		{
 			endp[-i] = colonp[n - i];
 			colonp[n - i] = 0;
@@ -335,14 +335,14 @@ int hawk_gem_ucharstoskad (hawk_gem_t* gem, const hawk_uch_t* str, hawk_oow_t le
 	p = str;
 	end = str + len;
 
-	if (p >= end) 
+	if (p >= end)
 	{
 		hawk_gem_seterrbfmt (gem, HAWK_NULL, HAWK_EINVAL, "blank address");
 		return -1;
 	}
 
 	/* use HAWK_SIZEOF(*_skad) instead of HAWK_SIZEOF(*skad) in case they are different */
-	HAWK_MEMSET (skad, 0, HAWK_SIZEOF(*_skad)); 
+	HAWK_MEMSET (skad, 0, HAWK_SIZEOF(*_skad));
 
 	if (*p == '@' || *p == '/')
 	{
@@ -357,7 +357,7 @@ int hawk_gem_ucharstoskad (hawk_gem_t* gem, const hawk_uch_t* str, hawk_oow_t le
 		return 0;
 #else
 		hawk_gem_seterrbfmt (gem, HAWK_NULL, HAWK_ENOIMPL, "unix address not supported");
-		return -1;	
+		return -1;
 #endif
 	}
 
@@ -386,14 +386,14 @@ int hawk_gem_ucharstoskad (hawk_gem_t* gem, const hawk_uch_t* str, hawk_oow_t le
 				return -1;
 			}
 
-			if (*p >= '0' && *p <= '9') 
+			if (*p >= '0' && *p <= '9')
 			{
 				/* numeric scope id */
 				skad->in6.sin6_scope_id = 0;
 				do
 				{
 					x = skad->in6.sin6_scope_id * 10 + (*p - '0');
-					if (x < skad->in6.sin6_scope_id) 
+					if (x < skad->in6.sin6_scope_id)
 					{
 						hawk_gem_seterrbfmt (gem, HAWK_NULL, HAWK_EINVAL, "scope id too large");
 						return -1; /* overflow */
@@ -431,9 +431,9 @@ int hawk_gem_ucharstoskad (hawk_gem_t* gem, const hawk_uch_t* str, hawk_oow_t le
 		if (uchars_to_ipv4(tmp.ptr, tmp.len, &skad->in4.sin_addr) <= -1)
 		{
 		#if (HAWK_SIZEOF_STRUCT_SOCKADDR_IN6 > 0)
-			/* check if it is an IPv6 address not enclosed in []. 
+			/* check if it is an IPv6 address not enclosed in [].
 			 * the port number can't be specified in this format. */
-			if (p >= end || *p != ':') 
+			if (p >= end || *p != ':')
 			{
 				/* without :, it can't be an ipv6 address */
 				goto unrecog;
@@ -458,14 +458,14 @@ int hawk_gem_ucharstoskad (hawk_gem_t* gem, const hawk_uch_t* str, hawk_oow_t le
 					return -1;
 				}
 
-				if (*p >= '0' && *p <= '9') 
+				if (*p >= '0' && *p <= '9')
 				{
 					/* numeric scope id */
 					skad->in6.sin6_scope_id = 0;
 					do
 					{
 						x = skad->in6.sin6_scope_id * 10 + (*p - '0');
-						if (x < skad->in6.sin6_scope_id) 
+						if (x < skad->in6.sin6_scope_id)
 						{
 							hawk_gem_seterrbfmt (gem, HAWK_NULL, HAWK_EINVAL, "scope id too large");
 							return -1; /* overflow */
@@ -500,7 +500,7 @@ int hawk_gem_ucharstoskad (hawk_gem_t* gem, const hawk_uch_t* str, hawk_oow_t le
 	}
 #endif
 
-	if (p < end && *p == ':') 
+	if (p < end && *p == ':')
 	{
 		/* port number */
 		hawk_uint32_t port = 0;
@@ -515,8 +515,8 @@ int hawk_gem_ucharstoskad (hawk_gem_t* gem, const hawk_uch_t* str, hawk_oow_t le
 		}
 
 		tmp.len = p - tmp.ptr;
-		if (tmp.len <= 0 || tmp.len >= 6 || 
-		    port > HAWK_TYPE_MAX(hawk_uint16_t)) 
+		if (tmp.len <= 0 || tmp.len >= 6 ||
+		    port > HAWK_TYPE_MAX(hawk_uint16_t))
 		{
 			hawk_gem_seterrbfmt (gem, HAWK_NULL, HAWK_EINVAL, "port number blank or too large");
 			return -1;
@@ -537,7 +537,7 @@ int hawk_gem_ucharstoskad (hawk_gem_t* gem, const hawk_uch_t* str, hawk_oow_t le
 unrecog:
 	hawk_gem_seterrbfmt (gem, HAWK_NULL, HAWK_EINVAL, "unrecognized address");
 	return -1;
-	
+
 no_rbrack:
 	hawk_gem_seterrbfmt (gem, HAWK_NULL, HAWK_EINVAL, "missing right bracket");
 	return -1;
@@ -555,7 +555,7 @@ int hawk_gem_bcharstoskad (hawk_gem_t* gem, const hawk_bch_t* str, hawk_oow_t le
 	p = str;
 	end = str + len;
 
-	if (p >= end) 
+	if (p >= end)
 	{
 		hawk_gem_seterrbfmt (gem, HAWK_NULL, HAWK_EINVAL, "blank address");
 		return -1;
@@ -573,7 +573,7 @@ int hawk_gem_bcharstoskad (hawk_gem_t* gem, const hawk_bch_t* str, hawk_oow_t le
 		return 0;
 #else
 		hawk_gem_seterrbfmt (gem, HAWK_NULL, HAWK_ENOIMPL, "unix address not supported");
-		return -1;	
+		return -1;
 #endif
 	}
 
@@ -601,14 +601,14 @@ int hawk_gem_bcharstoskad (hawk_gem_t* gem, const hawk_bch_t* str, hawk_oow_t le
 				return -1;
 			}
 
-			if (*p >= '0' && *p <= '9') 
+			if (*p >= '0' && *p <= '9')
 			{
 				/* numeric scope id */
 				skad->in6.sin6_scope_id = 0;
 				do
 				{
 					x = skad->in6.sin6_scope_id * 10 + (*p - '0');
-					if (x < skad->in6.sin6_scope_id) 
+					if (x < skad->in6.sin6_scope_id)
 					{
 						hawk_gem_seterrbfmt (gem, HAWK_NULL, HAWK_EINVAL, "scope id too large");
 						return -1; /* overflow */
@@ -646,9 +646,9 @@ int hawk_gem_bcharstoskad (hawk_gem_t* gem, const hawk_bch_t* str, hawk_oow_t le
 		if (bchars_to_ipv4(tmp.ptr, tmp.len, &skad->in4.sin_addr) <= -1)
 		{
 		#if (HAWK_SIZEOF_STRUCT_SOCKADDR_IN6 > 0)
-			/* check if it is an IPv6 address not enclosed in []. 
+			/* check if it is an IPv6 address not enclosed in [].
 			 * the port number can't be specified in this format. */
-			if (p >= end || *p != ':') 
+			if (p >= end || *p != ':')
 			{
 				/* without :, it can't be an ipv6 address */
 				goto unrecog;
@@ -674,14 +674,14 @@ int hawk_gem_bcharstoskad (hawk_gem_t* gem, const hawk_bch_t* str, hawk_oow_t le
 					return -1;
 				}
 
-				if (*p >= '0' && *p <= '9') 
+				if (*p >= '0' && *p <= '9')
 				{
 					/* numeric scope id */
 					skad->in6.sin6_scope_id = 0;
 					do
 					{
 						x = skad->in6.sin6_scope_id * 10 + (*p - '0');
-						if (x < skad->in6.sin6_scope_id) 
+						if (x < skad->in6.sin6_scope_id)
 						{
 							hawk_gem_seterrbfmt (gem, HAWK_NULL, HAWK_EINVAL, "scope id too large");
 							return -1; /* overflow */
@@ -716,7 +716,7 @@ int hawk_gem_bcharstoskad (hawk_gem_t* gem, const hawk_bch_t* str, hawk_oow_t le
 	}
 #endif
 
-	if (p < end && *p == ':') 
+	if (p < end && *p == ':')
 	{
 		/* port number */
 		hawk_uint32_t port = 0;
@@ -731,8 +731,8 @@ int hawk_gem_bcharstoskad (hawk_gem_t* gem, const hawk_bch_t* str, hawk_oow_t le
 		}
 
 		tmp.len = p - tmp.ptr;
-		if (tmp.len <= 0 || tmp.len >= 6 || 
-		    port > HAWK_TYPE_MAX(hawk_uint16_t)) 
+		if (tmp.len <= 0 || tmp.len >= 6 ||
+		    port > HAWK_TYPE_MAX(hawk_uint16_t))
 		{
 			hawk_gem_seterrbfmt (gem, HAWK_NULL, HAWK_EINVAL, "port number blank or too large");
 			return -1;
@@ -852,9 +852,9 @@ static hawk_oow_t ip6ad_to_ucstr (const struct in6_addr* ipad, hawk_uch_t* buf, 
 	cur.base = -1;
 	cur.len = 0;
 
-	for (i = 0; i < IP6ADDR_NWORDS; i++) 
+	for (i = 0; i < IP6ADDR_NWORDS; i++)
 	{
-		if (words[i] == 0) 
+		if (words[i] == 0)
 		{
 			if (cur.base == -1)
 			{
@@ -866,16 +866,16 @@ static hawk_oow_t ip6ad_to_ucstr (const struct in6_addr* ipad, hawk_uch_t* buf, 
 				cur.len++;
 			}
 		}
-		else 
+		else
 		{
-			if (cur.base != -1) 
+			if (cur.base != -1)
 			{
 				if (best.base == -1 || cur.len > best.len) best = cur;
 				cur.base = -1;
 			}
 		}
 	}
-	if (cur.base != -1) 
+	if (cur.base != -1)
 	{
 		if (best.base == -1 || cur.len > best.len) best = cur;
 	}
@@ -885,11 +885,11 @@ static hawk_oow_t ip6ad_to_ucstr (const struct in6_addr* ipad, hawk_uch_t* buf, 
 	 * Format the result.
 	 */
 	tp = tmp;
-	for (i = 0; i < IP6ADDR_NWORDS; i++) 
+	for (i = 0; i < IP6ADDR_NWORDS; i++)
 	{
 		/* Are we inside the best run of 0x00's? */
 		if (best.base != -1 && i >= best.base &&
-		    i < (best.base + best.len)) 
+		    i < (best.base + best.len))
 		{
 			if (i == best.base) *tp++ = ':';
 			continue;
@@ -899,7 +899,7 @@ static hawk_oow_t ip6ad_to_ucstr (const struct in6_addr* ipad, hawk_uch_t* buf, 
 		if (i != 0) *tp++ = ':';
 
 		/* Is this address an encapsulated IPv4? ipv4-compatible or ipv4-mapped */
-		if (i == 6 && best.base == 0 && (best.len == 6 || (best.len == 5 && words[5] == 0xffff))) 
+		if (i == 6 && best.base == 0 && (best.len == 6 || (best.len == 5 && words[5] == 0xffff)))
 		{
 			struct in_addr ip4ad;
 			HAWK_MEMCPY (&ip4ad.s_addr, ipad->s6_addr + 12, HAWK_SIZEOF(ip4ad.s_addr));
@@ -992,7 +992,7 @@ hawk_oow_t hawk_gem_skadtoucstr (hawk_gem_t* gem, const hawk_skad_t* _skad, hawk
 
 			if (flags & HAWK_SKAD_TO_BCSTR_PORT)
 			{
-				if (!(flags & HAWK_SKAD_TO_BCSTR_ADDR) || skad->in6.sin6_port != 0) 
+				if (!(flags & HAWK_SKAD_TO_BCSTR_ADDR) || skad->in6.sin6_port != 0)
 				{
 					if (flags & HAWK_SKAD_TO_BCSTR_ADDR)
 					{
@@ -1101,9 +1101,9 @@ static hawk_oow_t ip6ad_to_bcstr (const struct in6_addr* ipad, hawk_bch_t* buf, 
 	cur.base = -1;
 	cur.len = 0;
 
-	for (i = 0; i < IP6ADDR_NWORDS; i++) 
+	for (i = 0; i < IP6ADDR_NWORDS; i++)
 	{
-		if (words[i] == 0) 
+		if (words[i] == 0)
 		{
 			if (cur.base == -1)
 			{
@@ -1115,16 +1115,16 @@ static hawk_oow_t ip6ad_to_bcstr (const struct in6_addr* ipad, hawk_bch_t* buf, 
 				cur.len++;
 			}
 		}
-		else 
+		else
 		{
-			if (cur.base != -1) 
+			if (cur.base != -1)
 			{
 				if (best.base == -1 || cur.len > best.len) best = cur;
 				cur.base = -1;
 			}
 		}
 	}
-	if (cur.base != -1) 
+	if (cur.base != -1)
 	{
 		if (best.base == -1 || cur.len > best.len) best = cur;
 	}
@@ -1134,11 +1134,11 @@ static hawk_oow_t ip6ad_to_bcstr (const struct in6_addr* ipad, hawk_bch_t* buf, 
 	 * Format the result.
 	 */
 	tp = tmp;
-	for (i = 0; i < IP6ADDR_NWORDS; i++) 
+	for (i = 0; i < IP6ADDR_NWORDS; i++)
 	{
 		/* Are we inside the best run of 0x00's? */
 		if (best.base != -1 && i >= best.base &&
-		    i < (best.base + best.len)) 
+		    i < (best.base + best.len))
 		{
 			if (i == best.base) *tp++ = ':';
 			continue;
@@ -1148,7 +1148,7 @@ static hawk_oow_t ip6ad_to_bcstr (const struct in6_addr* ipad, hawk_bch_t* buf, 
 		if (i != 0) *tp++ = ':';
 
 		/* Is this address an encapsulated IPv4? ipv4-compatible or ipv4-mapped */
-		if (i == 6 && best.base == 0 && (best.len == 6 || (best.len == 5 && words[5] == 0xffff))) 
+		if (i == 6 && best.base == 0 && (best.len == 6 || (best.len == 5 && words[5] == 0xffff)))
 		{
 			struct in_addr ip4ad;
 			HAWK_MEMCPY (&ip4ad.s_addr, ipad->s6_addr + 12, HAWK_SIZEOF(ip4ad.s_addr));
@@ -1242,7 +1242,7 @@ hawk_oow_t hawk_gem_skadtobcstr (hawk_gem_t* gem, const hawk_skad_t* _skad, hawk
 
 			if (flags & HAWK_SKAD_TO_BCSTR_PORT)
 			{
-				if (!(flags & HAWK_SKAD_TO_BCSTR_ADDR) || skad->in6.sin6_port != 0) 
+				if (!(flags & HAWK_SKAD_TO_BCSTR_ADDR) || skad->in6.sin6_port != 0)
 				{
 					if (flags & HAWK_SKAD_TO_BCSTR_ADDR)
 					{
@@ -1510,7 +1510,7 @@ int hawk_equal_skads (const hawk_skad_t* addr1, const hawk_skad_t* addr2, int st
 
 	#if defined(AF_INET6) && (HAWK_SIZEOF_STRUCT_SOCKADDR_IN6 > 0)
 		case AF_INET6:
-			
+
 			if (strict)
 			{
 				/* don't care about scope id */
@@ -1659,7 +1659,7 @@ int hawk_ipad_bytes_is_loop_back (const hawk_uint8_t* iptr, hawk_oow_t ilen)
 		{
 			hawk_uint32_t* x = (hawk_uint32_t*)iptr;
 			return (x[0] == 0 && x[1] == 0 && x[2] == 0 && x[3] == HAWK_CONST_HTON32(1)) || /* TODO: is this alignment safe?  */
-			       (hawk_ipad_bytes_is_v4_mapped(iptr, ilen) && (x[3] & HAWK_CONST_HTON32(0xFF000000u)) == HAWK_CONST_HTON32(0x7F000000u)); 
+			       (hawk_ipad_bytes_is_v4_mapped(iptr, ilen) && (x[3] & HAWK_CONST_HTON32(0xFF000000u)) == HAWK_CONST_HTON32(0x7F000000u));
 		}
 
 		default:

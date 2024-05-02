@@ -58,8 +58,8 @@ typedef struct hawk_tio_t hawk_tio_t;
  */
 typedef hawk_ooi_t (*hawk_tio_io_impl_t) (
 	hawk_tio_t*    tio,
-	hawk_tio_cmd_t cmd, 
-	void*         data, 
+	hawk_tio_cmd_t cmd,
+	void*         data,
 	hawk_oow_t    size
 );
 
@@ -117,7 +117,7 @@ HAWK_EXPORT int hawk_tio_close (
 );
 
 /**
- * The hawk_tio_init() function  initialize a statically declared 
+ * The hawk_tio_init() function  initialize a statically declared
  * text stream processor.
  */
 HAWK_EXPORT int hawk_tio_init (
@@ -193,7 +193,7 @@ HAWK_EXPORT int hawk_tio_detachout (
 );
 
 /**
- * The hawk_tio_flush() function flushes the output buffer. It returns the 
+ * The hawk_tio_flush() function flushes the output buffer. It returns the
  * number of bytes written on success, -1 on failure.
  */
 HAWK_EXPORT hawk_ooi_t hawk_tio_flush (
@@ -208,14 +208,14 @@ HAWK_EXPORT void hawk_tio_drain (
 );
 
 HAWK_EXPORT hawk_ooi_t hawk_tio_readbchars (
-	hawk_tio_t*   tio, 
-	hawk_bch_t* buf, 
+	hawk_tio_t*   tio,
+	hawk_bch_t* buf,
 	hawk_oow_t   size
 );
 
 HAWK_EXPORT hawk_ooi_t hawk_tio_readuchars (
-	hawk_tio_t*   tio, 
-	hawk_uch_t* buf, 
+	hawk_tio_t*   tio,
+	hawk_uch_t* buf,
 	hawk_oow_t   size
 );
 
@@ -230,9 +230,9 @@ HAWK_EXPORT hawk_ooi_t hawk_tio_readuchars (
 #endif
 
 /**
- * The hawk_tio_writebchars() function writes the @a size characters 
+ * The hawk_tio_writebchars() function writes the @a size characters
  * from a multibyte string @a str. If @a size is (hawk_oow_t)-1,
- * it writes on until a terminating null is found. It doesn't 
+ * it writes on until a terminating null is found. It doesn't
  * write more than HAWK_TYPE_MAX(hawk_ooi_t) characters.
  * @return number of characters written on success, -1 on failure.
  */
@@ -243,9 +243,9 @@ HAWK_EXPORT hawk_ooi_t hawk_tio_writebchars (
 );
 
 /**
- * The hawk_tio_writebchars() function writes the @a size characters 
+ * The hawk_tio_writebchars() function writes the @a size characters
  * from a wide-character string @a str. If @a size is (hawk_oow_t)-1,
- * it writes on until a terminating null is found. It doesn't write 
+ * it writes on until a terminating null is found. It doesn't write
  * more than HAWK_TYPE_MAX(hawk_ooi_t) characters.
  * @return number of characters written on success, -1 on failure.
  */

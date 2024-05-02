@@ -53,17 +53,17 @@ enum hawk_tre_cflag_t
 	HAWK_TRE_RIGHTASSOC  = (1 << 5),
 	HAWK_TRE_UNGREEDY    = (1 << 6),
 
-	/* Disable {n,m} occrrence specifier 
+	/* Disable {n,m} occrrence specifier
 	 * in the HAWK_TRE_EXTENDED mode.
 	 * it doesn't affect the BRE's \{\}. */
 	HAWK_TRE_NOBOUND     = (1 << 7),
 
 	/* Enable non-standard extensions:
 	 *  - Enable (?:text) for no submatch backreference.
-	 *  - Enable perl-like (?...) extensions like (?i) 
+	 *  - Enable perl-like (?...) extensions like (?i)
 	 *    if HAWK_TRE_EXTENDED is also set.
 	 */
-	HAWK_TRE_NONSTDEXT   = (1 << 8) 
+	HAWK_TRE_NONSTDEXT   = (1 << 8)
 };
 
 enum hawk_tre_eflag_t

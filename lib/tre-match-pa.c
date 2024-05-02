@@ -409,8 +409,8 @@ tre_tnfa_run_parallel(hawk_gem_t* gem, const tre_tnfa_t *tnfa, const void *strin
 				/* Does this transition match the input symbol? */
 				if (trans_i->code_min <= (tre_cint_t)prev_c && trans_i->code_max >= (tre_cint_t)prev_c)
 				{
-					if (trans_i->assertions && 
-					    (CHECK_ASSERTIONS(trans_i->assertions) || 
+					if (trans_i->assertions &&
+					    (CHECK_ASSERTIONS(trans_i->assertions) ||
 					     CHECK_CHAR_CLASSES(trans_i, tnfa, eflags)))
 					{
 						DPRINT(("assertion failed\n"));

@@ -79,4 +79,4 @@ void hawk_tre_mem_destroy(hawk_tre_mem_t mem);
 }
 #endif
 
-#endif 
+#endif

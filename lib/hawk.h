@@ -52,24 +52,24 @@
  *
  * In brief, you need to call APIs with user-defined handlers to run a typical
  * AWK script as shown below:
- * 
+ *
  * \code
  * hawk_t* hawk;
  * hawk_rtx_t* rtx;
  * hawk_sio_cbs_t sio; // need to initialize it with callback functions
  * hawk_rio_cbs_t rio; // need to initialize it with callback functions
  *
- * hawk = hawk_open(mmgr, 0, prm); // create an interpreter 
- * hawk_parse (hawk, &sio);          // parse a script 
- * rtx = hawk_rtx_open(hawk, 0, &rio); // create a runtime context 
- * retv = hawk_rtx_loop(rtx);     // run a standard AWK loop 
+ * hawk = hawk_open(mmgr, 0, prm); // create an interpreter
+ * hawk_parse (hawk, &sio);          // parse a script
+ * rtx = hawk_rtx_open(hawk, 0, &rio); // create a runtime context
+ * retv = hawk_rtx_loop(rtx);     // run a standard AWK loop
  * if (retv) hawk_rtx_refdownval (rtx, retv); // free return value
  * hawk_rtx_close (rtx);           // destroy the runtime context
  * hawk_close (hawk);               // destroy the interpreter
  * \endcode
  *
- * It provides an interface to change the conventional behavior of the 
- * interpreter; most notably, you can call a particular function with 
+ * It provides an interface to change the conventional behavior of the
+ * interpreter; most notably, you can call a particular function with
  * hawk_rtx_call() instead of entering the BEGIN, pattern-action blocks, END
  * loop. By doing this, you may utilize a script in an event-driven way.
  *
@@ -87,15 +87,15 @@ struct hawk_alt_t
 };
 
 /** \struct hawk_rtx_t
- * The #hawk_rtx_t type defines a runtime context. A runtime context 
+ * The #hawk_rtx_t type defines a runtime context. A runtime context
  * maintains runtime state for a running script. You can create multiple
- * runtime contexts out of a single AWK interpreter; in other words, you 
+ * runtime contexts out of a single AWK interpreter; in other words, you
  * can run the same script with different input and output data by providing
- * customized I/O handlers when creating a runtime context with 
+ * customized I/O handlers when creating a runtime context with
  * hawk_rtx_open().
  *
  * I/O handlers are categoriezed into three kinds: console, file, pipe.
- * The #hawk_rio_t type defines as a callback a set of I/O handlers 
+ * The #hawk_rio_t type defines as a callback a set of I/O handlers
  * to handle runtime I/O:
  * - getline piped in from a command reads from a pipe.
  *   ("ls -l" | getline line)
@@ -204,7 +204,7 @@ struct hawk_val_t
 };
 
 /**
- * The hawk_val_nil_t type is a nil value type. The type field is 
+ * The hawk_val_nil_t type is a nil value type. The type field is
  * #HAWK_VAL_NIL.
  */
 struct hawk_val_nil_t
@@ -260,7 +260,7 @@ struct hawk_val_mbs_t
 typedef struct hawk_val_mbs_t hawk_val_mbs_t;
 
 /**
- * The hawk_val_rex_t type is a regular expression type.  The type field 
+ * The hawk_val_rex_t type is a regular expression type.  The type field
  * is #HAWK_VAL_REX.
  */
 struct hawk_val_rex_t
@@ -272,34 +272,34 @@ struct hawk_val_rex_t
 typedef struct hawk_val_rex_t  hawk_val_rex_t;
 
 /**
- * The hawk_val_map_t type defines a map type. The type field is 
+ * The hawk_val_map_t type defines a map type. The type field is
  * #HAWK_VAL_MAP.
  */
 struct hawk_val_map_t
 {
 	HAWK_VAL_HDR;
 
-	/* TODO: make val_map to array if the indices used are all 
-	 *       integers switch to map dynamically once the 
+	/* TODO: make val_map to array if the indices used are all
+	 *       integers switch to map dynamically once the
 	 *       non-integral index is seen.
 	 */
-	hawk_map_t* map; 
+	hawk_map_t* map;
 };
 typedef struct hawk_val_map_t  hawk_val_map_t;
 
 /**
- * The hawk_val_arr_t type defines a arr type. The type field is 
+ * The hawk_val_arr_t type defines a arr type. The type field is
  * #HAWK_VAL_MAP.
  */
 struct hawk_val_arr_t
 {
 	HAWK_VAL_HDR;
 
-	/* TODO: make val_arr to array if the indices used are all 
-	 *       integers switch to arr dynamically once the 
+	/* TODO: make val_arr to array if the indices used are all
+	 *       integers switch to arr dynamically once the
 	 *       non-integral index is seen.
 	 */
-	hawk_arr_t* arr; 
+	hawk_arr_t* arr;
 };
 typedef struct hawk_val_arr_t  hawk_val_arr_t;
 
@@ -326,9 +326,9 @@ struct hawk_val_ref_t
 		HAWK_VAL_REF_POS       /**< positional variable */
 	} id;
 
-	/* if id is HAWK_VAL_REF_POS, adr holds the index of a 
+	/* if id is HAWK_VAL_REF_POS, adr holds the index of a
 	 * positional variable. If id is HAWK_VAL_REF_GBL, adr hold
-	 * the index of a global variable. Otherwise, adr points to the value 
+	 * the index of a global variable. Otherwise, adr points to the value
 	 * directly. */
 	hawk_val_t** adr;
 };
@@ -340,13 +340,13 @@ typedef struct hawk_val_ref_t  hawk_val_ref_t;
 typedef hawk_map_itr_t hawk_val_map_itr_t;
 
 /**
- * The #HAWK_VAL_MAP_ITR_KEY macro get the pointer to the key part 
+ * The #HAWK_VAL_MAP_ITR_KEY macro get the pointer to the key part
  * of a map value.
  */
 #define HAWK_VAL_MAP_ITR_KEY(itr) ((const hawk_oocs_t*)HAWK_MAP_KPTL((itr)->pair))
 
 /**
- * The #HAWK_VAL_MAP_ITR_VAL macro get the pointer to the value part 
+ * The #HAWK_VAL_MAP_ITR_VAL macro get the pointer to the value part
  * of a map value.
  */
 #define HAWK_VAL_MAP_ITR_VAL(itr) ((const hawk_val_t*)HAWK_MAP_VPTR((itr)->pair))
@@ -415,7 +415,7 @@ enum hawk_nde_type_t
 	/* if you change the following values including their order,
 	 * you should change __evaluator of eval_expression0()
 	 * in run.c accordingly */
-	HAWK_NDE_GRP, 
+	HAWK_NDE_GRP,
 	HAWK_NDE_ASS,
 	HAWK_NDE_EXP_BIN,
 	HAWK_NDE_EXP_UNR,
@@ -436,7 +436,7 @@ enum hawk_nde_type_t
 	HAWK_NDE_XARG,
 	HAWK_NDE_FUN,
 
-	/* keep this order for the following items otherwise, you may have 
+	/* keep this order for the following items otherwise, you may have
 	 * to change eval_incpre and eval_incpst in run.c as well as
 	 * HAWK_VAL_REF_XXX in hawk_val_ref_t. also do_assignment_map()
 	 * in run.c converts HAWK_NDE_XXXIDX to HAWK_NDE_XXX by
@@ -505,7 +505,7 @@ typedef hawk_flt_t (*hawk_math1_t) (
 
 typedef hawk_flt_t (*hawk_math2_t) (
 	hawk_t* hawk,
-	hawk_flt_t x, 
+	hawk_flt_t x,
 	hawk_flt_t y
 );
 
@@ -551,7 +551,7 @@ typedef void (*hawk_log_write_t) (
 #if 0
 typedef void* (*hawk_buildrex_t) (
 	hawk_t*            hawk,
-	const hawk_ooch_t* ptn, 
+	const hawk_ooch_t* ptn,
 	hawk_oow_t         len
 );
 
@@ -560,7 +560,7 @@ typedef int (*hawk_matchrex_t) (
 	void*               code,
 	int                 option,
 	const hawk_ooch_t*  str,
-	hawk_oow_t          len, 
+	hawk_oow_t          len,
 	const hawk_ooch_t** mptr,
 	hawk_oow_t*         mlen
 );
@@ -607,17 +607,17 @@ typedef struct hawk_sio_arg_t hawk_sio_arg_t;
  * The hawk_sio_arg_t type defines a structure to describe the source
  * stream.
  */
-struct hawk_sio_arg_t 
+struct hawk_sio_arg_t
 {
-	/** 
-	 * [IN] name of I/O object. 
+	/**
+	 * [IN] name of I/O object.
 	 * It is #HAWK_NULL for the top-level stream. It points to a stream name
 	 * for an included stream.
 	 */
-	const hawk_ooch_t* name;   
+	const hawk_ooch_t* name;
 
-	/** 
-	 * [OUT] I/O handle set by a handler. 
+	/**
+	 * [OUT] I/O handle set by a handler.
 	 * The source stream handler can set this field when it opens a stream.
 	 * All subsequent operations on the stream see this field as set
 	 * during opening.
@@ -637,7 +637,7 @@ struct hawk_sio_arg_t
 
 	/**
 	 * [IN] points to the includer. #HAWK_NULL for the toplevel.
-	 * 
+	 *
 	 */
 	hawk_sio_arg_t* prev;
 
@@ -661,7 +661,7 @@ struct hawk_sio_arg_t
  */
 typedef hawk_ooi_t (*hawk_sio_impl_t) (
 	hawk_t*         hawk,
-	hawk_sio_cmd_t  cmd, 
+	hawk_sio_cmd_t  cmd,
 	hawk_sio_arg_t* arg,
 	hawk_ooch_t*    data,
 	hawk_oow_t      count
@@ -679,7 +679,7 @@ enum hawk_rio_cmd_t
 	HAWK_RIO_CMD_READ_BYTES  = 4,
 	HAWK_RIO_CMD_WRITE_BYTES = 5,
 	HAWK_RIO_CMD_FLUSH       = 6, /**< flush buffered data to a stream */
-	HAWK_RIO_CMD_NEXT        = 7  /**< close the current stream and 
+	HAWK_RIO_CMD_NEXT        = 7  /**< close the current stream and
 	                                open the next stream (only for console) */
 };
 typedef enum hawk_rio_cmd_t hawk_rio_cmd_t;
@@ -705,7 +705,7 @@ enum hawk_rio_mode_t
 typedef enum hawk_rio_mode_t hawk_rio_mode_t;
 
 /*
- * The hawk_rio_rwcmode_t type defines I/O closing modes, especially for 
+ * The hawk_rio_rwcmode_t type defines I/O closing modes, especially for
  * a two-way pipe.
  */
 enum hawk_rio_rwcmode_t
@@ -717,13 +717,13 @@ enum hawk_rio_rwcmode_t
 typedef enum hawk_rio_rwcmode_t hawk_rio_rwcmode_t;
 
 /**
- * The hawk_rio_arg_t defines the data structure passed to a runtime 
- * I/O handler. An I/O handler should inspect the \a mode field and the 
- * \a name field and store an open handle to the \a handle field when 
+ * The hawk_rio_arg_t defines the data structure passed to a runtime
+ * I/O handler. An I/O handler should inspect the \a mode field and the
+ * \a name field and store an open handle to the \a handle field when
  * #HAWK_RIO_CMD_OPEN is requested. For other request type, it can refer
  * to the \a handle field set previously.
  */
-struct hawk_rio_arg_t 
+struct hawk_rio_arg_t
 {
 	/* read-only. a user handler shouldn't change any of these fields */
 	hawk_rio_mode_t    mode;      /**< opening mode */
@@ -735,7 +735,7 @@ struct hawk_rio_arg_t
 	int                uflags;    /**< user-flags set by a handler */
 
 	/*--  from here down, internal use only --*/
-	int type; 
+	int type;
 	int rwcstate;   /* closing state for rwpipe */
 
 	struct
@@ -791,7 +791,7 @@ struct hawk_prm_t
 
 	hawk_log_write_t logwrite;
 #if 0
-	struct 
+	struct
 	{
 		/* TODO: accept regular expression handling functions */
 		hawk_buildrex_t build;
@@ -808,7 +808,7 @@ typedef struct hawk_prm_t hawk_prm_t;
 /**
  * The hawk_sio_cbs_t type defines a script stream handler set.
  * The hawk_parse() function calls the input and output handler to parse
- * a script and optionally deparse it. Typical input and output handlers 
+ * a script and optionally deparse it. Typical input and output handlers
  * are shown below:
  *
  * \code
@@ -837,7 +837,7 @@ typedef struct hawk_prm_t hawk_prm_t;
  * - -1 if it failed to open a stream.
  * - 0 if it has opened a stream but has reached the end.
  * - 1 if it has successfully opened a stream.
- * 
+ *
  * For #HAWK_SIO_CMD_CLOSE, a handler must return:
  * - -1 if it failed to close a stream.
  * - 0 if it has closed a stream.
@@ -888,12 +888,12 @@ typedef int (*hawk_fnc_impl_t) (
 struct hawk_fnc_marg_t
 {
 	/** minimum numbers of argument for a function */
-	hawk_oow_t min; 
+	hawk_oow_t min;
 
 	/** maximum numbers of argument for a function */
-	hawk_oow_t max; 
+	hawk_oow_t max;
 
-	/** 
+	/**
 	 * if min is greater than max, spec points to an external module
 	 * name where the function is found. otherwise, spec can be #HAWK_NULL
 	 * to indicate all arguments are passed by value or point to a
@@ -913,8 +913,8 @@ typedef struct hawk_fnc_marg_t hawk_fnc_marg_t;
  */
 struct hawk_fnc_warg_t
 {
-	hawk_oow_t min; 
-	hawk_oow_t max; 
+	hawk_oow_t min;
+	hawk_oow_t max;
 	const hawk_uch_t* spec;
 };
 typedef struct hawk_fnc_warg_t hawk_fnc_warg_t;
@@ -922,7 +922,7 @@ typedef struct hawk_fnc_warg_t hawk_fnc_warg_t;
 /**
  * The hawk_fnc_mspec_t type defines a structure to hold the specification
  * of an intrinsic function or a module function.
- */ 
+ */
 struct hawk_fnc_mspec_t
 {
 	/** argument descriptor */
@@ -931,22 +931,22 @@ struct hawk_fnc_mspec_t
 	/** pointer to the function implementing this function */
 	hawk_fnc_impl_t impl;
 
-	/** 
-	 * when this field is set to a non-zero value bitwise-ORed of 
-	 * #hawk_trait_t enumerators, the function is available if 
+	/**
+	 * when this field is set to a non-zero value bitwise-ORed of
+	 * #hawk_trait_t enumerators, the function is available if
 	 * this field bitwise-ANDed with the global trait option produces
 	 * this field itself.
-	 * 
+	 *
 	 * this field doesn't take effect for a module function.
 	 */
-	int trait; 
+	int trait;
 };
 typedef struct hawk_fnc_mspec_t hawk_fnc_mspec_t;
 
 /**
  * The hawk_fnc_wspec_t type defines a structure to hold the specification
  * of an intrinsic function or a module function.
- */ 
+ */
 struct hawk_fnc_wspec_t
 {
 	/** argument descriptor */
@@ -955,15 +955,15 @@ struct hawk_fnc_wspec_t
 	/** pointer to the function implementing this function */
 	hawk_fnc_impl_t impl;
 
-	/** 
-	 * when this field is set to a non-zero value bitwise-ORed of 
-	 * #hawk_trait_t enumerators, the function is available if 
+	/**
+	 * when this field is set to a non-zero value bitwise-ORed of
+	 * #hawk_trait_t enumerators, the function is available if
 	 * this field bitwise-ANDed with the global trait option produces
 	 * this field itself.
-	 * 
+	 *
 	 * this field doesn't take effect for a module function.
 	 */
-	int trait; 
+	int trait;
 };
 typedef struct hawk_fnc_wspec_t hawk_fnc_wspec_t;
 
@@ -985,7 +985,7 @@ struct hawk_fnc_info_t
 	hawk_oocs_t name;
 
 	/** #HAWK_NULL if the function is not registered from module */
-	hawk_mod_t* mod; 
+	hawk_mod_t* mod;
 };
 
 
@@ -1029,7 +1029,7 @@ struct hawk_mod_t
 
 enum hawk_mod_sym_type_t
 {
-	HAWK_MOD_FNC = 0, 
+	HAWK_MOD_FNC = 0,
 	HAWK_MOD_INT, /* constant */
 	HAWK_MOD_FLT  /* constant */
 	/*HAWK_MOD_STR,
@@ -1055,7 +1055,7 @@ struct hawk_mod_sym_flt_t
 
 struct hawk_mod_sym_t
 {
-	hawk_mod_sym_type_t type; 
+	hawk_mod_sym_type_t type;
 	const hawk_ooch_t* name;
 	union
 	{
@@ -1107,7 +1107,7 @@ typedef void (*hawk_ecb_close_t) (
  * calls this calllback function before it performs actual clearing.
  */
 typedef void (*hawk_ecb_clear_t) (
-	hawk_t* hawk, 
+	hawk_t* hawk,
 	void*   ctx
 );
 
@@ -1160,7 +1160,7 @@ typedef void (*hawk_rtx_ecb_stmt_t) (
 );
 
 /**
- * The hawk_rtx_ecb_gblset_t type defines the callback function 
+ * The hawk_rtx_ecb_gblset_t type defines the callback function
  * executed when a global variable is set with a value. It is not
  * called when a global variable is changed implicitly. For example,
  * it is not called when FNR is updated for each record read.
@@ -1211,7 +1211,7 @@ struct hawk_rtx_ecb_t
 enum hawk_opt_t
 {
 	/** trait option. 0 or bitwise-ORed of ::hawk_trait_t values */
-	HAWK_OPT_TRAIT,  
+	HAWK_OPT_TRAIT,
 
 	HAWK_OPT_MODLIBDIRS,
 	HAWK_OPT_MODPREFIX,
@@ -1243,7 +1243,7 @@ typedef enum hawk_opt_t hawk_opt_t;
  * of #hawk_t.
  */
 enum hawk_trait_t
-{ 
+{
 	/** allows undeclared variables */
 	HAWK_IMPLICIT = (1 << 0),
 
@@ -1255,7 +1255,7 @@ enum hawk_trait_t
 
 	/** supports \b getline, \b print, \b printf, \b close, \b fflush,
 	 *  piping, and file rediction */
-	HAWK_RIO = (1 << 3), 
+	HAWK_RIO = (1 << 3),
 
 	/** enables the two-way pipe if #HAWK_RIO is on */
 	HAWK_RWPIPE = (1 << 4),
@@ -1263,14 +1263,14 @@ enum hawk_trait_t
 	/** a new line can terminate a statement */
 	HAWK_NEWLINE = (1 << 5),
 
-	/** 
+	/**
 	 * removes leading and trailing blank fields when splitting a record if FS
 	 * is a regular expression and the match is all spaces.
 	 *
 	 * \code
-	 * BEGIN { FS="[[:space:]]+"; } 
-	 * { 
-	 *    print "NF=" NF; 
+	 * BEGIN { FS="[[:space:]]+"; }
+	 * {
+	 *    print "NF=" NF;
 	 *    for (i = 0; i < NF; i++) print i " [" $(i+1) "]";
 	 * }
 	 * \endcode
@@ -1278,14 +1278,14 @@ enum hawk_trait_t
 	 * Otherwise, it is split to [], [a], [b], [c], [].
 	 *
 	 * \code
-	 * BEGIN { 
-	 *   n=split("   oh my  noodle  ", x, /[ o]+/); 
-	 *   for (i=1;i<=n;i++) print "[" x[i] "]"; 
+	 * BEGIN {
+	 *   n=split("   oh my  noodle  ", x, /[ o]+/);
+	 *   for (i=1;i<=n;i++) print "[" x[i] "]";
 	 * }
 	 * \endcode
 	 * This example splits the string to [], [h], [my], [n], [dle]
 	 * if #HAWK_STRIPRECSPC is on. Otherwise, it results in
-	 * [], [h], [my], [n], [dle], []. Note that the first empty field is not 
+	 * [], [h], [my], [n], [dle], []. Note that the first empty field is not
 	 * removed as the field separator is not all spaces. (space + 'o').
 	 */
 	HAWK_STRIPRECSPC = (1 << 6),
@@ -1293,7 +1293,7 @@ enum hawk_trait_t
 	/** strips off leading spaces when converting a string to a number. */
 	HAWK_STRIPSTRSPC = (1 << 7),
 
-	/** enable implicit concatenation. 
+	/** enable implicit concatenation.
 	 *  if this is off, you need %% for concatenation.  */
 	HAWK_BLANKCONCAT = (1 << 8),
 
@@ -1301,8 +1301,8 @@ enum hawk_trait_t
 	HAWK_CRLF = (1 << 10),
 
 	/** treats a map value more flexibly. a function can return
-	 *  a map. you can override a map with a scalar value without 
-	 *  'delete' or '\@reset'. 
+	 *  a map. you can override a map with a scalar value without
+	 *  'delete' or '\@reset'.
 	 */
 	HAWK_FLEXMAP = (1 << 11),
 
@@ -1312,7 +1312,7 @@ enum hawk_trait_t
 	/** allows {n,m} in a regular expression. */
 	HAWK_REXBOUND = (1 << 13),
 
-	/** 
+	/**
 	 * performs numeric comparison when a string convertable
 	 * to a number is compared with a number or vice versa.
 	 *
@@ -1325,7 +1325,7 @@ enum hawk_trait_t
 	/**
 	 * enables the strict naming rule.
 	 * - a parameter name can not be the same as the owning function name.
-	 * - a local variable name can not be the same as the owning 
+	 * - a local variable name can not be the same as the owning
 	 *   function name.
 	 */
 	HAWK_STRICTNAMING = (1 << 15),
@@ -1349,13 +1349,13 @@ enum hawk_trait_t
 	 */
 	HAWK_NUMSTRDETECT = (1 << 18),
 
-	/** 
+	/**
 	 * makes #hawk_t to behave compatibly with classical AWK
 	 * implementations
 	 */
-	HAWK_CLASSIC = 
-		HAWK_IMPLICIT | HAWK_RIO | 
-		HAWK_NEWLINE | HAWK_BLANKCONCAT | HAWK_PABLOCK | 
+	HAWK_CLASSIC =
+		HAWK_IMPLICIT | HAWK_RIO |
+		HAWK_NEWLINE | HAWK_BLANKCONCAT | HAWK_PABLOCK |
 		HAWK_STRIPSTRSPC | HAWK_STRICTNAMING | HAWK_NUMSTRDETECT,
 
 	HAWK_MODERN =
@@ -1373,12 +1373,12 @@ enum hawk_gbl_id_t
 {
 	/* this table should match gtab in parse.c.
 	 *
-	 * in addition, hawk_rtx_setgbl also counts 
+	 * in addition, hawk_rtx_setgbl also counts
 	 * on the order of these values.
-	 * 
-	 * note that set_global() in run.c contains code 
+	 *
+	 * note that set_global() in run.c contains code
 	 * preventing these global variables from being assigned
-	 * with a map value. if you happen to add one that can 
+	 * with a map value. if you happen to add one that can
 	 * be a map, don't forget to change code in set_global().
 	 * but is this check really necessary???
 	 */
@@ -1403,8 +1403,8 @@ enum hawk_gbl_id_t
 	HAWK_GBL_STRIPSTRSPC,
 	HAWK_GBL_SUBSEP,
 
-	/* these are not not the actual IDs and are used internally only 
-	 * Make sure you update these values properly if you add more 
+	/* these are not not the actual IDs and are used internally only
+	 * Make sure you update these values properly if you add more
 	 * ID definitions, however */
 	HAWK_MIN_GBL_ID = HAWK_GBL_CONVFMT,
 	HAWK_MAX_GBL_ID = HAWK_GBL_SUBSEP
@@ -1412,16 +1412,16 @@ enum hawk_gbl_id_t
 typedef enum hawk_gbl_id_t hawk_gbl_id_t;
 
 /**
- * The hawk_val_type_t type defines types of AWK values. Each value 
+ * The hawk_val_type_t type defines types of AWK values. Each value
  * allocated is tagged with a value type in the \a type field.
  * \sa hawk_val_t HAWK_VAL_HDR
  */
 enum hawk_val_type_t
 {
 	/* - the enumerators between HAWK_VAL_NIL and HAWK_VAL_ARR inclusive
-	 *   must be synchronized with an internal table of the __cmp_val 
+	 *   must be synchronized with an internal table of the __cmp_val
 	 *   function in run.c.
-	 * - all enumerators must be in sync with __val_type_name in val.c 
+	 * - all enumerators must be in sync with __val_type_name in val.c
 	 * - all enumerators must be in sync with VAL_XXX defintion in mod-hawk.c */
 	HAWK_VAL_NIL     = 0, /**< nil */
 	HAWK_VAL_CHAR    = 1, /**< character */
@@ -1440,8 +1440,8 @@ enum hawk_val_type_t
 typedef enum hawk_val_type_t hawk_val_type_t;
 
 /**
- * The values defined are used to set the type field of the 
- * #hawk_rtx_valtostr_out_t structure. The field should be one of the 
+ * The values defined are used to set the type field of the
+ * #hawk_rtx_valtostr_out_t structure. The field should be one of the
  * following values:
  *
  * - #HAWK_RTX_VALTOSTR_CPL
@@ -1453,11 +1453,11 @@ typedef enum hawk_val_type_t hawk_val_type_t;
  * and it can optionally be ORed with #HAWK_RTX_VALTOSTR_PRINT.
  */
 enum hawk_rtx_valtostr_type_t
-{ 
+{
 	/** use u.cpl of #hawk_rtx_valtostr_out_t */
-	HAWK_RTX_VALTOSTR_CPL       = 0x00, 
+	HAWK_RTX_VALTOSTR_CPL       = 0x00,
 	/** use u.cplcpy of #hawk_rtx_valtostr_out_t */
-	HAWK_RTX_VALTOSTR_CPLCPY    = 0x01, 
+	HAWK_RTX_VALTOSTR_CPLCPY    = 0x01,
 	/** use u.cpldup of #hawk_rtx_valtostr_out_t */
 	HAWK_RTX_VALTOSTR_CPLDUP    = 0x02,
 	/** use u.strp of #hawk_rtx_valtostr_out_t */
@@ -1465,11 +1465,11 @@ enum hawk_rtx_valtostr_type_t
 	/** use u.strpcat of #hawk_rtx_valtostr_out_t */
 	HAWK_RTX_VALTOSTR_STRPCAT   = 0x04,
 	/** convert for print */
-	HAWK_RTX_VALTOSTR_PRINT     = 0x10   
+	HAWK_RTX_VALTOSTR_PRINT     = 0x10
 };
 
 /**
- * The hawk_rtx_valtostr() function converts a value to a string as 
+ * The hawk_rtx_valtostr() function converts a value to a string as
  * indicated in a parameter of the hawk_rtx_valtostr_out_t type.
  */
 struct hawk_rtx_valtostr_out_t
@@ -1512,11 +1512,11 @@ extern "C" {
 #endif
 
 /**
- * The hawk_open() function creates a new #hawk_t object. The object 
- * created can be passed to other hawk_xxx() functions and is valid until 
- * it is destroyed with the hawk_close() function. The function saves the 
- * memory manager pointer while it copies the contents of the primitive 
- * function structures. Therefore, you should keep the memory manager valid 
+ * The hawk_open() function creates a new #hawk_t object. The object
+ * created can be passed to other hawk_xxx() functions and is valid until
+ * it is destroyed with the hawk_close() function. The function saves the
+ * memory manager pointer while it copies the contents of the primitive
+ * function structures. Therefore, you should keep the memory manager valid
  * during the whole life cycle of an hawk_t object.
  *
  * \code
@@ -1525,21 +1525,21 @@ extern "C" {
  *     hawk_mmgr_t mmgr;
  *     hawk_prm_t prm;
  *     return hawk_open (
- *        &mmgr, // NOT OK because the contents of mmgr is 
- *               // invalidated when dummy() returns. 
- *        0, 
- *        &prm,  // OK 
+ *        &mmgr, // NOT OK because the contents of mmgr is
+ *               // invalidated when dummy() returns.
+ *        0,
+ *        &prm,  // OK
  *        HAWK_NULL
  *     );
  * }
  * \endcode
  *
- * Upon failure, it stores the error number to a variable pointed to 
+ * Upon failure, it stores the error number to a variable pointed to
  * by \a errnum. if \a errnum is #HAWK_NULL, no error number is stored.
  *
  * \return a pointer to a hawk_t object on success, #HAWK_NULL on failure.
  */
-HAWK_EXPORT hawk_t* hawk_open ( 
+HAWK_EXPORT hawk_t* hawk_open (
 	hawk_mmgr_t*      mmgr,    /**< memory manager */
 	hawk_oow_t        xtnsize, /**< extension size in bytes */
 	hawk_cmgr_t*      cmgr,    /**< character conversion manager */
@@ -1570,7 +1570,7 @@ static HAWK_INLINE void hawk_setcmgr (hawk_t* hawk, hawk_cmgr_t* cmgr) { ((hawk_
 
 /**
  * The hawk_getprm() function retrieves primitive functions
- * associated. Actual function pointers are copied into a 
+ * associated. Actual function pointers are copied into a
  * structure specified by \a prm.
  */
 HAWK_EXPORT void hawk_getprm (
@@ -1580,7 +1580,7 @@ HAWK_EXPORT void hawk_getprm (
 
 /**
  * The hawk_setprm() function changes existing primitive
- * functions. 
+ * functions.
  */
 HAWK_EXPORT void hawk_setprm (
 	hawk_t*           hawk,
@@ -1589,13 +1589,13 @@ HAWK_EXPORT void hawk_setprm (
 
 /**
  * The hawk_clear() clears the internal state of \a hawk. If you want to
- * reuse a hawk_t instance that finished being used, you may call 
+ * reuse a hawk_t instance that finished being used, you may call
  * hawk_clear() instead of destroying and creating a new
  * #hawk_t instance using hawk_close() and hawk_open().
 
  */
 HAWK_EXPORT void hawk_clear (
-	hawk_t* hawk 
+	hawk_t* hawk
 );
 
 /**
@@ -1606,7 +1606,7 @@ HAWK_EXPORT hawk_errstr_t hawk_geterrstr (
 );
 
 /**
- * The hawk_geterrnum() function returns the number of the last error 
+ * The hawk_geterrnum() function returns the number of the last error
  * occurred.
  * \return error number
  */
@@ -1618,14 +1618,14 @@ HAWK_EXPORT hawk_errstr_t hawk_geterrstr (
 
 /**
  * The hawk_geterrbmsg() function returns the error message describing
- * the last error occurred. 
+ * the last error occurred.
  *
  * \return error message
  */
 
 /**
  * The hawk_geterrumsg() function returns the error message describing
- * the last error occurred. 
+ * the last error occurred.
  *
  * \return error message
  */
@@ -1660,7 +1660,7 @@ static HAWK_INLINE void hawk_geterruinf (hawk_t* hawk, hawk_erruinf_t* errinf) {
 #endif
 
 /**
- * The hawk_seterrnum() function sets the error information omitting 
+ * The hawk_seterrnum() function sets the error information omitting
  * error location. You must pass a non-NULL for \a errarg if the specified
  * error number \a errnum requires one or more arguments to format an
  * error message.
@@ -1739,7 +1739,7 @@ HAWK_EXPORT int hawk_getopt (
 );
 
 /**
- * The hawk_setopt() function sets the value of an option 
+ * The hawk_setopt() function sets the value of an option
  * specified by \a id to the value pointed to by \a value.
  *
  * \return 0 on success, -1 on failure
@@ -1890,10 +1890,10 @@ HAWK_EXPORT void hawk_clrfnc (
 );
 
 /**
- * The hawk_parse() function parses a source script, and optionally 
- * deparses it back. 
+ * The hawk_parse() function parses a source script, and optionally
+ * deparses it back.
  *
- * It reads a source script by calling \a sio->in as shown in the pseudo code 
+ * It reads a source script by calling \a sio->in as shown in the pseudo code
  * below:
  *
  * \code
@@ -1907,11 +1907,11 @@ HAWK_EXPORT void hawk_clrfnc (
  * \endcode
  *
  * A negative number returned causes hawk_parse() to return failure;
- * 0 returned indicates the end of a stream; A positive number returned 
+ * 0 returned indicates the end of a stream; A positive number returned
  * indicates successful opening of a stream or the length of the text read.
  *
  * If \a sio->out is not #HAWK_NULL, it deparses the internal parse tree
- * composed of a source script and writes back the deparsing result by 
+ * composed of a source script and writes back the deparsing result by
  * calling \a sio->out as shown below:
  *
  * \code
@@ -1923,7 +1923,7 @@ HAWK_EXPORT void hawk_clrfnc (
  *    sio->out (hawk, HAWK_SIO_CMD_CLOSE);
  * }
  * \endcode
- * 
+ *
  * Unlike \a sf->in, the return value of 0 from \a sf->out is treated as
  * premature end of a stream; therefore, it causes hawk_parse() to return
  * failure.
@@ -2120,10 +2120,10 @@ static HAWK_INLINE hawk_oow_t hawk_fmttobcstr (hawk_t* hawk, hawk_bch_t* buf, ha
 /* ----------------------------------------------------------------------- */
 
 HAWK_EXPORT int hawk_buildrex (
-	hawk_t*            hawk, 
+	hawk_t*            hawk,
 	const hawk_ooch_t* ptn,
 	hawk_oow_t         len,
-	hawk_tre_t**       code, 
+	hawk_tre_t**       code,
 	hawk_tre_t**       icode
 );
 
@@ -2215,9 +2215,9 @@ HAWK_EXPORT int hawk_concatoochartosbuf (
 /**
  * The hawk_rtx_open() creates a runtime context associated with \a hawk.
  * It also allocates an extra memory block as large as the \a xtn bytes.
- * You can get the pointer to the beginning of the block with 
+ * You can get the pointer to the beginning of the block with
  * hawk_rtx_getxtn(). The block is destroyed when the runtime context is
- * destroyed. 
+ * destroyed.
  *
  * \return new runtime context on success, #HAWK_NULL on failure
  */
@@ -2252,9 +2252,9 @@ static HAWK_INLINE void hawk_rtx_setcmgr (hawk_rtx_t* rtx, hawk_cmgr_t* cmgr) { 
 
 /**
  * The hawk_rtx_loop() function executes the BEGIN block, pattern-action
- * blocks and the END blocks in an AWK program. It returns the global return 
- * value of which the reference count must be decremented when not necessary. 
- * Multiple invocations of the function for the lifetime of a runtime context 
+ * blocks and the END blocks in an AWK program. It returns the global return
+ * value of which the reference count must be decremented when not necessary.
+ * Multiple invocations of the function for the lifetime of a runtime context
  * is not desirable.
  *
  * The example shows typical usage of the function.
@@ -2275,7 +2275,7 @@ HAWK_EXPORT hawk_val_t* hawk_rtx_loop (
 );
 
 /**
- * The hawk_rtx_findfunwithbcstr() function finds the function structure by 
+ * The hawk_rtx_findfunwithbcstr() function finds the function structure by
  * name and returns the pointer to it if one is found. It returns #HAWK_NULL
  * if it fails to find a function by the \a name.
  */
@@ -2285,7 +2285,7 @@ HAWK_EXPORT hawk_fun_t* hawk_rtx_findfunwithbcstr (
 );
 
 /**
- * The hawk_rtx_findfunwithucstr() function finds the function structure by 
+ * The hawk_rtx_findfunwithucstr() function finds the function structure by
  * name and returns the pointer to it if one is found. It returns #HAWK_NULL
  * if it fails to find a function by the \a name.
  */
@@ -2313,9 +2313,9 @@ HAWK_EXPORT hawk_val_t* hawk_rtx_callfun (
 );
 
 /**
- * The hawk_rtx_callwithucstr() function invokes an AWK function named \a name. 
- * However, it is not able to invoke an intrinsic function such as split(). 
- * The #HAWK_PABLOCK option can be turned off to make illegal the BEGIN 
+ * The hawk_rtx_callwithucstr() function invokes an AWK function named \a name.
+ * However, it is not able to invoke an intrinsic function such as split().
+ * The #HAWK_PABLOCK option can be turned off to make illegal the BEGIN
  * blocks, the pattern-action blocks, and the END blocks.
  *
  * The example shows typical usage of the function.
@@ -2341,9 +2341,9 @@ HAWK_EXPORT hawk_val_t* hawk_rtx_callwithucstr (
 );
 
 /**
- * The hawk_rtx_callwithbcstr() function invokes an AWK function named \a name. 
- * However, it is not able to invoke an intrinsic function such as split(). 
- * The #HAWK_PABLOCK option can be turned off to make illegal the BEGIN 
+ * The hawk_rtx_callwithbcstr() function invokes an AWK function named \a name.
+ * However, it is not able to invoke an intrinsic function such as split().
+ * The #HAWK_PABLOCK option can be turned off to make illegal the BEGIN
  * blocks, the pattern-action blocks, and the END blocks.
  *
  * The example shows typical usage of the function.
@@ -2371,7 +2371,7 @@ HAWK_EXPORT hawk_val_t* hawk_rtx_callwithbcstr (
 /**
  * The hawk_rtx_callwithargarr() function is the same as hawk_rtx_call()
  * except that you pass pointers to null-terminated strings. It creates values
- * from the null-terminated strings and calls hawk_rtx_call() with the 
+ * from the null-terminated strings and calls hawk_rtx_call() with the
  * values created.
  */
 HAWK_EXPORT hawk_val_t* hawk_rtx_callwithucstrarr (
@@ -2444,7 +2444,7 @@ HAWK_EXPORT void hawk_haltall (
 );
 
 /**
- * The hawk_rtx_ishalt() function tests if hawk_rtx_halt() has been 
+ * The hawk_rtx_ishalt() function tests if hawk_rtx_halt() has been
  * called.
  */
 HAWK_EXPORT int hawk_rtx_ishalt (
@@ -2452,8 +2452,8 @@ HAWK_EXPORT int hawk_rtx_ishalt (
 );
 
 /**
- * The hawk_rtx_halt() function causes an active runtime context \a rtx to 
- * be aborted. 
+ * The hawk_rtx_halt() function causes an active runtime context \a rtx to
+ * be aborted.
  */
 HAWK_EXPORT void hawk_rtx_halt (
 	hawk_rtx_t* rtx /**< runtime context */
@@ -2500,7 +2500,7 @@ HAWK_EXPORT void hawk_rtx_pushecb (
 );
 
 /**
- * The hawk_rtx_getnargs() gets the number of arguments passed to an 
+ * The hawk_rtx_getnargs() gets the number of arguments passed to an
  * intrinsic functon.
  */
 HAWK_EXPORT hawk_oow_t hawk_rtx_getnargs (
@@ -2508,7 +2508,7 @@ HAWK_EXPORT hawk_oow_t hawk_rtx_getnargs (
 );
 
 /**
- * The hawk_rtx_getarg() function gets an argument passed to an intrinsic 
+ * The hawk_rtx_getarg() function gets an argument passed to an intrinsic
  * function. it doesn't touch the reference count of the value.
  */
 HAWK_EXPORT hawk_val_t* hawk_rtx_getarg (
@@ -2527,9 +2527,9 @@ HAWK_EXPORT const hawk_oocs_t* hawk_rtx_getsubsep (
 
 /**
  * The hawk_rtx_getgbl() gets the value of a global variable.
- * The global variable ID \a id is one of the predefined global 
+ * The global variable ID \a id is one of the predefined global
  * variable IDs or a value returned by hawk_addgbl().
- * This function never fails so long as the ID is valid. Otherwise, 
+ * This function never fails so long as the ID is valid. Otherwise,
  * you may get into trouble.
  *
  * \return value pointer
@@ -2543,7 +2543,7 @@ HAWK_EXPORT hawk_val_t* hawk_rtx_getgbl (
  * The hawk_rtx_setgbl() sets the value of a global variable.
  */
 HAWK_EXPORT int hawk_rtx_setgbl (
-	hawk_rtx_t* rtx, 
+	hawk_rtx_t* rtx,
 	int         id,
 	hawk_val_t* val
 );
@@ -2557,10 +2557,10 @@ HAWK_EXPORT int hawk_rtx_setgbltostrbyname (
 /**
  * The hawk_rtx_setretval() sets the return value of a function
  * when called from within a function handler. The caller doesn't
- * have to invoke hawk_rtx_refupval() and hawk_rtx_refdownval() 
- * with the value to be passed to hawk_rtx_setretval(). 
+ * have to invoke hawk_rtx_refupval() and hawk_rtx_refdownval()
+ * with the value to be passed to hawk_rtx_setretval().
  * The hawk_rtx_setretval() will update its reference count properly
- * once the return value is set. 
+ * once the return value is set.
  */
 HAWK_EXPORT void hawk_rtx_setretval (
 	hawk_rtx_t* rtx, /**< runtime context */
@@ -2621,7 +2621,7 @@ HAWK_EXPORT int hawk_rtx_setscriptnamewithbchars (
 #endif
 
 /**
- * The hawk_rtx_getnvmap() gets the map of named variables 
+ * The hawk_rtx_getnvmap() gets the map of named variables
  */
 HAWK_EXPORT hawk_htb_t* hawk_rtx_getnvmap (
 	hawk_rtx_t* rtx /**< runtime context */
@@ -2635,18 +2635,18 @@ HAWK_EXPORT hawk_htb_t* hawk_rtx_getnvmap (
 
 /**
  * The hawk_rtx_geterrloc() function gets the location of the last error
- * occurred during runtime. The 
+ * occurred during runtime. The
  * \return error location
  */
 
 /**
- * The hawk_rtx_geterrbmsg() function gets the string describing the last 
+ * The hawk_rtx_geterrbmsg() function gets the string describing the last
  * error occurred during runtime.
  * \return error message
  */
 
 /**
- * The hawk_rtx_geterrumsg() function gets the string describing the last 
+ * The hawk_rtx_geterrumsg() function gets the string describing the last
  * error occurred during runtime.
  * \return error message
  */
@@ -2657,9 +2657,9 @@ HAWK_EXPORT hawk_htb_t* hawk_rtx_getnvmap (
  */
 
 /**
- * The hawk_rtx_geterror() function retrieves error information from a 
+ * The hawk_rtx_geterror() function retrieves error information from a
  * runtime context \a rtx. The error number is stored into memory pointed
- * to by \a errnum; the error message pointer into memory pointed to by 
+ * to by \a errnum; the error message pointer into memory pointed to by
  * \a errmsg; the error line into memory pointed to by \a errlin.
  */
 
@@ -2685,7 +2685,7 @@ static HAWK_INLINE void hawk_rtx_geterror (hawk_rtx_t* rtx, hawk_errnum_t* errnu
 #	define hawk_rtx_geterrmsg hawk_rtx_geterrumsg
 #endif
 
-/** 
+/**
  * The hawk_rtx_seterrinf() function sets error information.
  */
 #if defined(HAWK_HAVE_INLINE)
@@ -2751,16 +2751,16 @@ HAWK_EXPORT void hawk_rtx_errortohawk (
 );
 
 /**
- * The hawk_rtx_clrrec() function clears the input record ($0) 
+ * The hawk_rtx_clrrec() function clears the input record ($0)
  * and fields ($1 to $N).
  */
 HAWK_EXPORT int hawk_rtx_clrrec (
 	hawk_rtx_t*  rtx, /**< runtime context */
-	int          skip_inrec_line 
+	int          skip_inrec_line
 );
 
 /**
- * The hawk_rtx_setrec() function sets the input record ($0) or 
+ * The hawk_rtx_setrec() function sets the input record ($0) or
  * input fields ($1 to $N).
  */
 HAWK_EXPORT int hawk_rtx_setrec (
@@ -2876,7 +2876,7 @@ HAWK_EXPORT hawk_val_t* hawk_rtx_makestrvalwithucs (
 HAWK_EXPORT hawk_val_t* hawk_rtx_makestrvalwithuchars2 (
 	hawk_rtx_t*        rtx,
 	const hawk_uch_t*  str1,
-	hawk_oow_t         len1, 
+	hawk_oow_t         len1,
 	const hawk_uch_t*  str2,
 	hawk_oow_t         len2
 );
@@ -2884,7 +2884,7 @@ HAWK_EXPORT hawk_val_t* hawk_rtx_makestrvalwithuchars2 (
 HAWK_EXPORT hawk_val_t* hawk_rtx_makestrvalwithbchars2 (
 	hawk_rtx_t*        rtx,
 	const hawk_bch_t*  str1,
-	hawk_oow_t         len1, 
+	hawk_oow_t         len1,
 	const hawk_bch_t*  str2,
 	hawk_oow_t         len2
 );
@@ -2918,8 +2918,8 @@ HAWK_EXPORT hawk_val_t* hawk_rtx_makenstrvalwithbchars (
 );
 
 /**
- * The hawk_rtx_makenstrvalwithucstr() function creates a numeric string 
- * value from a null-terminated string. A numeric string is a string value 
+ * The hawk_rtx_makenstrvalwithucstr() function creates a numeric string
+ * value from a null-terminated string. A numeric string is a string value
  * whose one of the header fields \b nstr is 1.
  * \return value on success, #HAWK_NULL on failure
  */
@@ -2934,19 +2934,19 @@ HAWK_EXPORT hawk_val_t* hawk_rtx_makenstrvalwithbcstr (
 );
 
 /**
- * The hawk_rtx_makenstrvalwithucs() function creates a numeric string 
+ * The hawk_rtx_makenstrvalwithucs() function creates a numeric string
  * value. A numeric string is a string value whose one of the header fields
  * \b nstr is 1.
  * \return value on success, #HAWK_NULL on failure
  */
 HAWK_EXPORT hawk_val_t* hawk_rtx_makenstrvalwithucs (
 	hawk_rtx_t*       rtx,
-	const hawk_ucs_t* str 
+	const hawk_ucs_t* str
 );
 
 HAWK_EXPORT hawk_val_t* hawk_rtx_makenstrvalwithbcs (
 	hawk_rtx_t*       rtx,
-	const hawk_bcs_t* str 
+	const hawk_bcs_t* str
 );
 
 #if defined (HAWK_OOCH_IS_UCH)
@@ -3114,7 +3114,7 @@ HAWK_EXPORT hawk_val_t* hawk_rtx_getmapvalfld (
 
 /**
  * The hawk_rtx_getfirstmapvalitr() returns the iterator to the
- * first pair in the map. It returns #HAWK_NULL and sets the pair field of 
+ * first pair in the map. It returns #HAWK_NULL and sets the pair field of
  * \a itr to #HAWK_NULL if the map contains no pair. Otherwise, it returns
  * \a itr pointing to the first pair.
  */
@@ -3126,7 +3126,7 @@ HAWK_EXPORT hawk_val_map_itr_t* hawk_rtx_getfirstmapvalitr (
 
 /**
  * The hawk_rtx_getnextmapvalitr() returns the iterator to the
- * next pair to \a itr in the map. It returns #HAWK_NULL and sets the pair 
+ * next pair to \a itr in the map. It returns #HAWK_NULL and sets the pair
  * field of \a itr to #HAWK_NULL if \a itr points to the last pair.
  * Otherwise, it returns \a itr pointing to the next pair.
  */
@@ -3167,7 +3167,7 @@ HAWK_EXPORT hawk_val_t* hawk_rtx_makefunval (
 
 /**
  * The hawk_rtx_isstaticval() function determines if a value is static.
- * A static value is allocated once and reused until a runtime context @ rtx 
+ * A static value is allocated once and reused until a runtime context @ rtx
  * is closed.
  * \return HAWK_TRUE if \a val is static, HAWK_FALSE if \a val is false
  */
@@ -3192,7 +3192,7 @@ HAWK_EXPORT int hawk_rtx_getintfromval (
 );
 
 /**
- * The hawk_rtx_refupval() function increments a reference count of a 
+ * The hawk_rtx_refupval() function increments a reference count of a
  * value \a val.
  */
 HAWK_EXPORT void hawk_rtx_refupval (
@@ -3211,7 +3211,7 @@ HAWK_EXPORT void hawk_rtx_refdownval (
 
 /**
  * The hawk_rtx_refdownval() function decrements a reference count of
- * a value \a val. It does not destroy the value if it has reached the 
+ * a value \a val. It does not destroy the value if it has reached the
  * count of 0.
  */
 HAWK_EXPORT void hawk_rtx_refdownval_nofree (
@@ -3223,7 +3223,7 @@ HAWK_EXPORT void hawk_rtx_refdownval_nofree (
 #define HAWK_RTX_GC_GEN_FULL (HAWK_TYPE_MAX(int))
 #define HAWK_RTX_GC_GEN_AUTO (-1)
 
-/* 
+/*
  * The hawk_rtx_gc() function triggers garbage collection.
  * It returns the generation number collected and never fails
  */
@@ -3242,8 +3242,8 @@ HAWK_EXPORT int hawk_rtx_valtobool (
 );
 
 /**
- * The hawk_rtx_valtostr() function converts a value \a val to a string as 
- * instructed in the parameter out. Before the call to the function, you 
+ * The hawk_rtx_valtostr() function converts a value \a val to a string as
+ * instructed in the parameter out. Before the call to the function, you
  * should initialize a variable of the #hawk_rtx_valtostr_out_t type.
  *
  * The type field is one of the following hawk_rtx_valtostr_type_t values:
@@ -3256,11 +3256,11 @@ HAWK_EXPORT int hawk_rtx_valtobool (
  *
  * It can optionally be ORed with #HAWK_RTX_VALTOSTR_PRINT. The option
  * causes the function to use OFMT for real number conversion. Otherwise,
- * it uses \b CONVFMT. 
+ * it uses \b CONVFMT.
  *
- * You should initialize or free other fields before and after the call 
+ * You should initialize or free other fields before and after the call
  * depending on the type field as shown below:
- *  
+ *
  * If you have a static buffer, use #HAWK_RTX_VALTOSTR_CPLCPY.
  * the resulting string is copied to the buffer.
  * \code
@@ -3276,7 +3276,7 @@ HAWK_EXPORT int hawk_rtx_valtobool (
  * #HAWK_RTX_VALTOSTR_CPL is different from #HAWK_RTX_VALTOSTR_CPLCPY
  * in that it doesn't copy the string to the buffer if the type of the value
  * is #HAWK_VAL_STR. It copies the resulting string to the buffer if
- * the value type is not #HAWK_VAL_STR. 
+ * the value type is not #HAWK_VAL_STR.
  * \code
  * hawk_rtx_valtostr_out_t out;
  * hawk_ooch_t buf[100];
@@ -3286,7 +3286,7 @@ HAWK_EXPORT int hawk_rtx_valtobool (
  * if (hawk_rtx_valtostr (rtx, v, &out) <= -1) goto oops;
  * hawk_printf (HAWK_T("%.*s\n"), ut.u.cpl.len, out.u.cpl.ptr);
  * \endcode
- * 
+ *
  * When unsure of the size of the string after conversion, you can use
  * #HAWK_RTX_VALTOSTR_CPLDUP. However, you should free the memory block
  * pointed to by the u.cpldup.ptr field after use.
@@ -3310,10 +3310,10 @@ HAWK_EXPORT int hawk_rtx_valtobool (
  * hawk_printf (HAWK_T("%.*s\n"), HAWK_STR_LEN(out.u.strp), HAWK_STR_PTR(out.u.strp));
  * hawk_str_fini (&str);
  * \endcode
- * 
- * If you want to append the converted string to an existing dynamically 
+ *
+ * If you want to append the converted string to an existing dynamically
  * resizable string, #HAWK_RTX_VALTOSTR_STRPCAT is the answer. The usage is
- * the same as #HAWK_RTX_VALTOSTR_STRP except that you have to use the 
+ * the same as #HAWK_RTX_VALTOSTR_STRP except that you have to use the
  * u.strpcat field instead of the u.strp field.
  *
  * In the context where \a val is determined to be of the type
@@ -3375,7 +3375,7 @@ HAWK_EXPORT hawk_uch_t* hawk_rtx_valtoucstrdupwithcmgr (
 
 /**
  * The hawk_rtx_getvaloocstr() function returns a string
- * pointer converted from a value \a val. If the value 
+ * pointer converted from a value \a val. If the value
  * type is #HAWK_VAL_STR, it simply returns the internal
  * pointer without duplication. Otherwise, it calls
  * hawk_rtx_valtooocstrdup(). The length of the returned
@@ -3391,8 +3391,8 @@ HAWK_EXPORT hawk_ooch_t* hawk_rtx_getvaloocstrwithcmgr (
 #define hawk_rtx_getvaloocstr(rtx,val,len) hawk_rtx_getvaloocstrwithcmgr(rtx, val, len, hawk_rtx_getcmgr(rtx))
 
 /**
- * The hawk_rtx_freevaloocstr() function frees the memory pointed 
- * to by \a str if \a val is not of the #HAWK_VAL_STR type. 
+ * The hawk_rtx_freevaloocstr() function frees the memory pointed
+ * to by \a str if \a val is not of the #HAWK_VAL_STR type.
  * This function expects a value pointer and a string pointer
  * passed to and returned by hawk_rtx_getvaloocstr() respectively.
  */
@@ -3419,9 +3419,9 @@ HAWK_EXPORT void hawk_rtx_freevalbcstr (
 );
 
 /**
- * The hawk_rtx_valtonum() function converts a value to a number. 
+ * The hawk_rtx_valtonum() function converts a value to a number.
  * If the value is converted to an integer, it is stored in the memory
- * pointed to by l and 0 is returned. If the value is converted to a real 
+ * pointed to by l and 0 is returned. If the value is converted to a real
  * number, it is stored in the memory pointed to by r and 1 is returned.
  * The function never fails as long as \a val points to a valid value.
  *
@@ -3438,7 +3438,7 @@ HAWK_EXPORT void hawk_rtx_freevalbcstr (
  * else if (n >= 1) print_flt (r);
  * \endcode
  *
- * \return -1 on failure, 0 if converted to an integer, 1 if converted to 
+ * \return -1 on failure, 0 if converted to an integer, 1 if converted to
  *         a floating-point number.
  */
 HAWK_EXPORT int hawk_rtx_valtonum (
@@ -3465,7 +3465,7 @@ HAWK_EXPORT hawk_fun_t* hawk_rtx_valtofun (
 	hawk_val_t* val
 );
 
-/** 
+/**
  * The hawk_rtx_valtofnc() function finds an intrinsic function by the name
  * pointed to by \a val. Unlike hawk_findfncwithoocstr() and the like,
  * it accepts a function name prefixed with a module name and find an intrinsic
@@ -3475,7 +3475,7 @@ HAWK_EXPORT hawk_fun_t* hawk_rtx_valtofun (
  * \return \a fnc on success, #HAWK_NULL on failure
  */
 HAWK_EXPORT hawk_fnc_t* hawk_rtx_valtofnc (
-	hawk_rtx_t*  rtx, 
+	hawk_rtx_t*  rtx,
 	hawk_val_t*  val,
 	hawk_fnc_t*  fnc  /**< buffer to hold the function information */
 );
@@ -3505,7 +3505,7 @@ HAWK_EXPORT hawk_val_t* hawk_rtx_getrefval (
 
 /**
  * The hawk_rtx_setrefval() function changes the value
- * of a variable referenced in \a ref. 
+ * of a variable referenced in \a ref.
  * \return 0 on success, -1 on failure.
  */
 HAWK_EXPORT int hawk_rtx_setrefval (
@@ -3659,10 +3659,10 @@ static HAWK_INLINE hawk_oow_t hawk_rtx_fmttobcstr (hawk_rtx_t* rtx, hawk_bch_t* 
 
 
 HAWK_EXPORT int hawk_rtx_buildrex (
-	hawk_rtx_t*        rtx, 
+	hawk_rtx_t*        rtx,
 	const hawk_ooch_t* ptn,
 	hawk_oow_t         len,
-	hawk_tre_t**       code, 
+	hawk_tre_t**       code,
 	hawk_tre_t**       icode
 );
 
@@ -3677,7 +3677,7 @@ static HAWK_INLINE void hawk_rtx_freerex (hawk_rtx_t* rtx, hawk_tre_t* code, haw
 
 /**
  * The hawk_get_nil_val() function returns the pointer to the predefined
- * nil value. you can call this without creating a runtime context. 
+ * nil value. you can call this without creating a runtime context.
  */
 HAWK_EXPORT hawk_val_t* hawk_get_nil_val (
 	void

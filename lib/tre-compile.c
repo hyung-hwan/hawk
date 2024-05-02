@@ -285,7 +285,7 @@ tre_add_tags(tre_mem_t mem, tre_stack_t *stack, tre_ast_node_t *tree,
 							p[i] = -1;
 						}
 					}
-	
+
 					/* Add end of this submatch to regset after processing this
 							 node. */
 					STACK_PUSHX(stack, int, node->submatch_id);
@@ -351,16 +351,16 @@ tre_add_tags(tre_mem_t mem, tre_stack_t *stack, tre_ast_node_t *tree,
 						tre_ast_node_t *right = cat->right;
 						int reserved_tag = -1;
 						DPRINT(("Catenation, next_tag = %d\n", next_tag));
-		
-		
+
+
 						/* After processing right child. */
 						STACK_PUSHX(stack, voidptr, node);
 						STACK_PUSHX(stack, int, ADDTAGS_AFTER_CAT_RIGHT);
-		
+
 						/* Process right child. */
 						STACK_PUSHX(stack, voidptr, right);
 						STACK_PUSHX(stack, int, ADDTAGS_RECURSE);
-		
+
 						/* After processing left child. */
 						STACK_PUSHX(stack, int, next_tag + left->num_tags);
 						DPRINT(("  Pushing %d for after left\n",
@@ -375,7 +375,7 @@ tre_add_tags(tre_mem_t mem, tre_stack_t *stack, tre_ast_node_t *tree,
 						}
 						STACK_PUSHX(stack, int, reserved_tag);
 						STACK_PUSHX(stack, int, ADDTAGS_AFTER_CAT_LEFT);
-		
+
 						/* Process left child. */
 						STACK_PUSHX(stack, voidptr, left);
 						STACK_PUSHX(stack, int, ADDTAGS_RECURSE);
@@ -387,7 +387,7 @@ tre_add_tags(tre_mem_t mem, tre_stack_t *stack, tre_ast_node_t *tree,
 					{
 						tre_iteration_t *iter = node->obj;
 						DPRINT(("Iteration\n"));
-		
+
 						if (first_pass)
 						{
 							STACK_PUSHX(stack, int, regset[0] >= 0 || iter->minimal);
@@ -399,10 +399,10 @@ tre_add_tags(tre_mem_t mem, tre_stack_t *stack, tre_ast_node_t *tree,
 						}
 						STACK_PUSHX(stack, voidptr, node);
 						STACK_PUSHX(stack, int, ADDTAGS_AFTER_ITERATION);
-		
+
 						STACK_PUSHX(stack, voidptr, iter->arg);
 						STACK_PUSHX(stack, int, ADDTAGS_RECURSE);
-		
+
 						/* Regset is not empty, so add a tag here. */
 						if (regset[0] >= 0 || iter->minimal)
 						{
@@ -426,7 +426,7 @@ tre_add_tags(tre_mem_t mem, tre_stack_t *stack, tre_ast_node_t *tree,
 								}
 								tre_purge_regset(regset, tnfa, tag);
 							}
-		
+
 							DPRINT(("  num_tags++\n"));
 							regset[0] = -1;
 							tag = next_tag;
@@ -444,7 +444,7 @@ tre_add_tags(tre_mem_t mem, tre_stack_t *stack, tre_ast_node_t *tree,
 						tre_ast_node_t *right = uni->right;
 						int left_tag;
 						int right_tag;
-		
+
 						if (regset[0] >= 0)
 						{
 							left_tag = next_tag;
@@ -455,9 +455,9 @@ tre_add_tags(tre_mem_t mem, tre_stack_t *stack, tre_ast_node_t *tree,
 							left_tag = tag;
 							right_tag = next_tag;
 						}
-		
+
 						DPRINT(("Union\n"));
-		
+
 						/* After processing right child. */
 						STACK_PUSHX(stack, int, right_tag);
 						STACK_PUSHX(stack, int, left_tag);
@@ -467,18 +467,18 @@ tre_add_tags(tre_mem_t mem, tre_stack_t *stack, tre_ast_node_t *tree,
 						STACK_PUSHX(stack, voidptr, right);
 						STACK_PUSHX(stack, voidptr, left);
 						STACK_PUSHX(stack, int, ADDTAGS_AFTER_UNION_RIGHT);
-		
+
 						/* Process right child. */
 						STACK_PUSHX(stack, voidptr, right);
 						STACK_PUSHX(stack, int, ADDTAGS_RECURSE);
-		
+
 						/* After processing left child. */
 						STACK_PUSHX(stack, int, ADDTAGS_AFTER_UNION_LEFT);
-		
+
 						/* Process left child. */
 						STACK_PUSHX(stack, voidptr, left);
 						STACK_PUSHX(stack, int, ADDTAGS_RECURSE);
-		
+
 						/* Regset is not empty, so add a tag here. */
 						if (regset[0] >= 0)
 						{
@@ -499,14 +499,14 @@ tre_add_tags(tre_mem_t mem, tre_stack_t *stack, tre_ast_node_t *tree,
 								}
 								tre_purge_regset(regset, tnfa, tag);
 							}
-		
+
 							DPRINT(("  num_tags++\n"));
 							regset[0] = -1;
 							tag = next_tag;
 							num_tags++;
 							next_tag++;
 						}
-		
+
 						if (node->num_submatches > 0)
 						{
 							/* The next two tags are reserved for markers. */
@@ -514,7 +514,7 @@ tre_add_tags(tre_mem_t mem, tre_stack_t *stack, tre_ast_node_t *tree,
 							tag = next_tag;
 							next_tag++;
 						}
-		
+
 						break;
 					}
 				}
@@ -548,7 +548,7 @@ tre_add_tags(tre_mem_t mem, tre_stack_t *stack, tre_ast_node_t *tree,
 					if (minimal)
 						minimal_tag = enter_tag;
 				}
-	
+
 				DPRINT(("After iteration\n"));
 				if (!first_pass)
 				{
@@ -561,7 +561,7 @@ tre_add_tags(tre_mem_t mem, tre_stack_t *stack, tre_ast_node_t *tree,
 				}
 				break;
 			}
-	
+
 			case ADDTAGS_AFTER_CAT_LEFT:
 			{
 				int new_tag = tre_stack_pop_int(stack);
@@ -575,7 +575,7 @@ tre_add_tags(tre_mem_t mem, tre_stack_t *stack, tre_ast_node_t *tree,
 				}
 				break;
 			}
-	
+
 			case ADDTAGS_AFTER_CAT_RIGHT:
 				DPRINT(("After cat right\n"));
 				node = tre_stack_pop_voidptr(stack);
@@ -583,7 +583,7 @@ tre_add_tags(tre_mem_t mem, tre_stack_t *stack, tre_ast_node_t *tree,
 					node->num_tags = ((tre_catenation_t *)node->obj)->left->num_tags
 					                 + ((tre_catenation_t *)node->obj)->right->num_tags;
 				break;
-	
+
 			case ADDTAGS_AFTER_UNION_LEFT:
 				DPRINT(("After union left\n"));
 				/* Lift the bottom of the `regset' array so that when processing
@@ -593,7 +593,7 @@ tre_add_tags(tre_mem_t mem, tre_stack_t *stack, tre_ast_node_t *tree,
 				while (*regset >= 0)
 					regset++;
 				break;
-	
+
 			case ADDTAGS_AFTER_UNION_RIGHT:
 			{
 				int added_tags, tag_left, tag_right;
@@ -611,7 +611,7 @@ tre_add_tags(tre_mem_t mem, tre_stack_t *stack, tre_ast_node_t *tree,
 				regset = tre_stack_pop_voidptr(stack);
 				tag_left = tre_stack_pop_int(stack);
 				tag_right = tre_stack_pop_int(stack);
-	
+
 				/* Add tags after both children, the left child gets a smaller
 				   tag than the right child.  This guarantees that we prefer
 				   the left child over the right child. */
@@ -636,7 +636,7 @@ tre_add_tags(tre_mem_t mem, tre_stack_t *stack, tre_ast_node_t *tree,
 				direction = TRE_TAG_MAXIMIZE;
 				break;
 			}
-	
+
 			default:
 				assert(0);
 				break;
@@ -1874,7 +1874,7 @@ __tre_ast_to_tnfa(hawk_gem_t *gem, tre_stack_t* stack, tre_ast_node_t *node, tre
 
 	STACK_PUSHR(stack, voidptr, node);
 
-	while (tre_stack_num_objects(stack)) 
+	while (tre_stack_num_objects(stack))
 	{
 		node = (tre_ast_node_t*)tre_stack_pop_voidptr(stack);
 
@@ -1908,7 +1908,7 @@ __tre_ast_to_tnfa(hawk_gem_t *gem, tre_stack_t* stack, tre_ast_node_t *node, tre
 					if(!(iter->min == 0 || iter->min == 1)) return REG_BADBR;
 					/* Add a transition from each last position in the iterated expression to each first position. */
 					errcode = tre_make_trans(gem, iter->arg->lastpos, iter->arg->firstpos, transitions, counts, offs);
-					if (errcode != REG_OK) return errcode;	  
+					if (errcode != REG_OK) return errcode;
 				}
 				STACK_PUSHR(stack, voidptr, iter->arg);
 				break;
@@ -1962,9 +1962,9 @@ int tre_compile (regex_t *preg, const tre_char_t *regex, size_t n, int cflags)
 
 	/* Allocate a stack used throughout the compilation process for various
 	   purposes. */
-/* HAWK: deleted limit on the stack size 
+/* HAWK: deleted limit on the stack size
 	stack = tre_stack_new(preg->gem, 512, 10240, 128); */
-	stack = tre_stack_new(preg->gem, 512, -1, 128); 
+	stack = tre_stack_new(preg->gem, 512, -1, 128);
 	if (HAWK_UNLIKELY(!stack)) return REG_ESPACE;
 	/* Allocate a fast memory allocator. */
 	mem = tre_mem_new(preg->gem);
@@ -2017,7 +2017,7 @@ int tre_compile (regex_t *preg, const tre_char_t *regex, size_t n, int cflags)
 
 		/* Figure out how many tags we will need. */
 		/*errcode = tre_add_tags(NULL, stack, tree, tnfa); */
-		errcode = tre_add_tags(mem, stack, tree, tnfa, 1); 
+		errcode = tre_add_tags(mem, stack, tree, tnfa, 1);
 		if (errcode != REG_OK)
 			ERROR_EXIT(errcode);
 #ifdef TRE_DEBUG

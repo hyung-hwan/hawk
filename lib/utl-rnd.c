@@ -24,7 +24,7 @@
 
 #include <hawk-utl.h>
 
-/* Park-Miller "minimal standard" 31 bit 
+/* Park-Miller "minimal standard" 31 bit
  * pseudo-random number generator, implemented
  * with David G. Carta's optimisation: with
  * 32 bit math and without division.

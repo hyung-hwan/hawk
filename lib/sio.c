@@ -88,7 +88,7 @@ hawk_sio_t* hawk_sio_openstd (hawk_gem_t* gem, hawk_oow_t xtnsize, hawk_sio_std_
 	sio = hawk_sio_open(gem, xtnsize, (const hawk_ooch_t*)&hnd, flags | HAWK_SIO_HANDLE | HAWK_SIO_NOCLOSE);
 
 #if defined(_WIN32)
-	if (sio) 
+	if (sio)
 	{
 		DWORD mode;
 		if (GetConsoleMode(sio->file.handle, &mode) == TRUE && GetConsoleOutputCP() == CP_UTF8)
@@ -123,9 +123,9 @@ int hawk_sio_init (hawk_sio_t* sio, hawk_gem_t* gem, const hawk_ooch_t* path, in
 		sio->mtx = hawk_mtx_open(gem, 0);
 		if (!sio->mtx) goto oops00;
 	}
-	/* sio flag enumerators redefines most fio flag enumerators and 
-	 * compose a superset of fio flag enumerators. when a user calls 
-	 * this function, a user can specify a sio flag enumerator not 
+	/* sio flag enumerators redefines most fio flag enumerators and
+	 * compose a superset of fio flag enumerators. when a user calls
+	 * this function, a user can specify a sio flag enumerator not
 	 * present in the fio flag enumerator. mask off such an enumerator. */
 	if (hawk_fio_init(&sio->file, gem, path, (flags & ~HAWK_FIO_RESERVED), mode) <= -1) goto oops01;
 
@@ -192,7 +192,7 @@ int hawk_sio_initstd (hawk_sio_t* sio, hawk_gem_t* gem, hawk_sio_std_t std, int 
 	n = hawk_sio_init(sio, gem, (const hawk_ooch_t*)&hnd, flags | HAWK_SIO_HANDLE | HAWK_SIO_NOCLOSE);
 
 #if defined(_WIN32)
-	if (n >= 0) 
+	if (n >= 0)
 	{
 		DWORD mode;
 		if (GetConsoleMode (sio->file.handle, &mode) == TRUE && GetConsoleOutputCP() == CP_UTF8)
@@ -409,7 +409,7 @@ hawk_ooi_t hawk_sio_putbcstr (hawk_sio_t* sio, const hawk_bch_t* str)
 		LOCK_OUTPUT (sio);
 		for (n = 0; n < HAWK_TYPE_MAX(hawk_ooi_t) && str[n] != '\0'; n++)
 		{
-			if ((n = putbc_no_mutex(sio, str[n])) <= -1) 
+			if ((n = putbc_no_mutex(sio, str[n])) <= -1)
 			{
 				n = -1;
 				break;
@@ -472,14 +472,14 @@ hawk_ooi_t hawk_sio_putucstr (hawk_sio_t* sio, const hawk_uch_t* str)
 
 		for (cur = str, left = hawk_count_ucstr(str); left > 0; cur += count, left -= count)
 		{
-			if (WriteConsoleW(sio->file.handle, cur, left, &count, HAWK_NULL) == FALSE) 
+			if (WriteConsoleW(sio->file.handle, cur, left, &count, HAWK_NULL) == FALSE)
 			{
 				hawk_gem_seterrnum (sio->gem, HAWK_NULL, hawk_syserr_to_errnum(GetLastError()));
 				return -1;
 			}
 			if (count == 0) break;
 
-			if (count > left) 
+			if (count > left)
 			{
 				hawk_gem_seterrnum (sio->gem, HAWK_NULL, HAWK_ESYSERR);
 				return -1;
@@ -516,14 +516,14 @@ hawk_ooi_t hawk_sio_putuchars (hawk_sio_t* sio, const hawk_uch_t* str, hawk_oow_
 
 #if defined(_WIN32)
 	/* DAMN UGLY:
-	 *  WriteFile returns wrong number of bytes written if it is 
-	 *  requested to write a utf8 string on utf8 console (codepage 65001). 
-	 *  it seems to return a number of characters written instead. so 
-	 *  i have to use an alternate API for console output for 
-	 *  wide-character strings. Conversion to either an OEM codepage or 
+	 *  WriteFile returns wrong number of bytes written if it is
+	 *  requested to write a utf8 string on utf8 console (codepage 65001).
+	 *  it seems to return a number of characters written instead. so
+	 *  i have to use an alternate API for console output for
+	 *  wide-character strings. Conversion to either an OEM codepage or
 	 *  the utf codepage is handled by the API. This hack at least
 	 *  lets you do proper utf8 output on utf8 console using wide-character.
-	 * 
+	 *
 	 *  Note that the multibyte functions hawk_sio_putbcstr() and
 	 *  hawk_sio_putbchars() doesn't handle this. So you may still suffer.
 	 */
@@ -536,7 +536,7 @@ hawk_ooi_t hawk_sio_putuchars (hawk_sio_t* sio, const hawk_uch_t* str, hawk_oow_
 
 		for (cur = str, left = size; left > 0; cur += count, left -= count)
 		{
-			if (WriteConsoleW(sio->file.handle, cur, left, &count, HAWK_NULL) == FALSE) 
+			if (WriteConsoleW(sio->file.handle, cur, left, &count, HAWK_NULL) == FALSE)
 			{
 				hawk_gem_seterrnum (sio->gem, HAWK_NULL, hawk_syserr_to_errnum(GetLastError()));
 				return -1;
@@ -545,13 +545,13 @@ hawk_ooi_t hawk_sio_putuchars (hawk_sio_t* sio, const hawk_uch_t* str, hawk_oow_
 
 			/* Note:
 			 * WriteConsoleW() in unicosw.dll on win 9x/me returns
-			 * the number of bytes via 'count'. If a double byte 
+			 * the number of bytes via 'count'. If a double byte
 			 * string is given, 'count' can be greater than 'left'.
 			 * this case is a miserable failure. however, i don't
 			 * think there is CP_UTF8 codepage for console on win9x/me.
 			 * so let me make this function fail if that ever happens.
 			 */
-			if (count > left) 
+			if (count > left)
 			{
 				hawk_gem_seterrnum (sio->gem, HAWK_NULL, HAWK_ESYSERR);
 				return -1;
@@ -560,14 +560,14 @@ hawk_ooi_t hawk_sio_putuchars (hawk_sio_t* sio, const hawk_uch_t* str, hawk_oow_
 		return cur - str;
 	}
 
-#elif defined(__OS2__) 
+#elif defined(__OS2__)
 	if (sio->status & STATUS_LINE_BREAK)
 	{
 		if (size > HAWK_TYPE_MAX(hawk_ooi_t)) size = HAWK_TYPE_MAX(hawk_ooi_t);
 		LOCK_OUTPUT (sio);
 		for (n = 0; n < size; n++)
 		{
-			if (put_uchar_no_mutex(sio, str[n]) <= -1) 
+			if (put_uchar_no_mutex(sio, str[n]) <= -1)
 			{
 				n = -1;
 				break;
@@ -629,7 +629,7 @@ int hawk_sio_seek (hawk_sio_t* sio, hawk_sio_pos_t* pos, hawk_sio_ori_t origin)
 
 static hawk_ooi_t file_input (hawk_tio_t* tio, hawk_tio_cmd_t cmd, void* buf, hawk_oow_t size)
 {
-	if (cmd == HAWK_TIO_DATA) 
+	if (cmd == HAWK_TIO_DATA)
 	{
 		hawk_sio_t* sio;
 
@@ -645,7 +645,7 @@ static hawk_ooi_t file_input (hawk_tio_t* tio, hawk_tio_cmd_t cmd, void* buf, ha
 
 static hawk_ooi_t file_output (hawk_tio_t* tio, hawk_tio_cmd_t cmd, void* buf, hawk_oow_t size)
 {
-	if (cmd == HAWK_TIO_DATA) 
+	if (cmd == HAWK_TIO_DATA)
 	{
 		hawk_sio_t* sio;
 

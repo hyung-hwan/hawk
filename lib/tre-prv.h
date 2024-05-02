@@ -203,9 +203,9 @@ typedef hawk_ooci_t tre_cint_t;
 #define REG_NEWLINE     HAWK_TRE_NEWLINE
 #define REG_NOSUB       HAWK_TRE_NOSUBREG
 /* Extra tre_regcomp() flags. */
-#define REG_LITERAL     HAWK_TRE_LITERAL 
+#define REG_LITERAL     HAWK_TRE_LITERAL
 #define REG_RIGHT_ASSOC HAWK_TRE_RIGHTASSOC
-#define REG_UNGREEDY    HAWK_TRE_UNGREEDY 
+#define REG_UNGREEDY    HAWK_TRE_UNGREEDY
 #define REG_NOBOUND     HAWK_TRE_NOBOUND
 #define REG_NONSTDEXT   HAWK_TRE_NONSTDEXT
 
@@ -219,9 +219,9 @@ typedef hawk_ooci_t tre_cint_t;
 
 
 
-/* use the noseterr version because various tre functions return 
+/* use the noseterr version because various tre functions return
  * REG_ESPACE upon memory shortage and the wrapper functions
- * uses the returned code to set the error number on the 
+ * uses the returned code to set the error number on the
  * hawk_tre_t wrapper object */
 #define xmalloc(gem,size) hawk_gem_allocmem_noseterr(gem,size)
 #define xrealloc(gem,ptr,new_size) hawk_gem_reallocmem_noseterr(gem, ptr, new_size)
@@ -276,7 +276,7 @@ typedef hawk_ooci_t tre_cint_t;
  * however, if int is 2 bytes long,TRE_CHAR_MAX becomes 32767 which is way too small
  * to represent even upper-half of the  UCS-2 codepoints.
  */
-#	if (HAWK_SIZEOF_UCH_T < HAWK_SIZEOF_INT) 
+#	if (HAWK_SIZEOF_UCH_T < HAWK_SIZEOF_INT)
 #		define TRE_CHAR_MAX HAWK_TYPE_MAX(hawk_uch_t)
 #	else
 #		define TRE_CHAR_MAX HAWK_TYPE_MAX(int)
@@ -285,16 +285,16 @@ typedef hawk_ooci_t tre_cint_t;
 /*
 #	ifdef TRE_MULTIBYTE
 #		define TRE_MB_CUR_MAX (hawk_getmbcurmax())
-#	else 
+#	else
 #		define TRE_MB_CUR_MAX 1
-#	endif 
+#	endif
 */
 #else /* !TRE_WCHAR */
 #	define TRE_CHAR_MAX 255
 /*#	define TRE_MB_CUR_MAX 1*/
 #endif /* !TRE_WCHAR */
 
-#define DPRINT(msg) 
+#define DPRINT(msg)
 
 typedef hawk_ooch_prop_t tre_ctype_t;
 #define tre_isctype(c,t) hawk_is_ooch_type(c,t)

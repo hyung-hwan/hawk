@@ -39,7 +39,7 @@ struct hawk_val_chunk_t
 struct hawk_val_ichunk_t
 {
 	hawk_val_chunk_t* next;
-	/* make sure that it has the same fields as 
+	/* make sure that it has the same fields as
 	   hawk_val_chunk_t up to this point */
 
 	hawk_val_int_t slot[HAWK_VAL_CHUNK_SIZE];
@@ -48,21 +48,21 @@ struct hawk_val_ichunk_t
 struct hawk_val_rchunk_t
 {
 	hawk_val_chunk_t* next;
-	/* make sure that it has the same fields as 
+	/* make sure that it has the same fields as
 	   hawk_val_chunk_t up to this point */
 
 	hawk_val_flt_t slot[HAWK_VAL_CHUNK_SIZE];
 };
 
 
-/* 
+/*
  * if shared objects link a static library, statically defined objects
  * in the static library will be instatiated in the multiple shared objects.
  *
  * so equality check with a value pointer doesn't work
  * if the code crosses the library boundaries. instead, i decided to
  * add a field to indicate if a value is static.
- * 
+ *
 
 #define HAWK_IS_STATICVAL(val) ((val) == HAWK_NULL || (val) == hawk_val_nil || (val) == hawk_val_zls || (val) == hawk_val_zlbs)
 */
@@ -77,7 +77,7 @@ struct hawk_val_rchunk_t
  * aligned malloc()? */
 #define HAWK_VTR_NUM_TYPE_BITS_LO        2 /* last 2 bits */
 #define HAWK_VTR_MASK_TYPE_BITS_LO       3 /* 11 - all 1's in the last 2 bits */
-#define HAWK_VTR_NUM_TYPE_BITS_LOHI      4 
+#define HAWK_VTR_NUM_TYPE_BITS_LOHI      4
 #define HAWK_VTR_MASK_TYPE_BITS_LOHI     15 /* 1111 */
 
 
@@ -91,7 +91,7 @@ struct hawk_val_rchunk_t
 #define HAWK_VTR_TYPE_BITS_RESERVED2  15 /* 1111 */
 #define HAWK_VTR_SIGN_BIT ((hawk_uintptr_t)1 << (HAWK_SIZEOF_UINTPTR_T * 8 - 1))
 
-/* shrink the bit range by 1 more bit to ease sign-bit handling. 
+/* shrink the bit range by 1 more bit to ease sign-bit handling.
  * i want abs(max) == abs(min).
  * i don't want abs(max) + 1 == abs(min). e.g min: -32768, max: 32767
  */

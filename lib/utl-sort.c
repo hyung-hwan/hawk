@@ -90,8 +90,8 @@
 			break; \
 	} \
 } while(0)
-	
-	
+
+
 #define vecswap(a,b,n) do {  \
 	if ((n) > 0)  \
 	{ \
@@ -102,12 +102,12 @@
 
 static HAWK_INLINE hawk_oob_t* med3 (hawk_oob_t* a, hawk_oob_t* b, hawk_oob_t* c, hawk_sort_comper_t comper, void* ctx)
 {
-	if (comper(a, b, ctx) < 0) 
+	if (comper(a, b, ctx) < 0)
 	{
 		if (comper(b, c, ctx) < 0) return b;
 		return (comper(a, c, ctx) < 0)? c: a;
 	}
-	else 
+	else
 	{
 		if (comper(b, c, ctx) > 0) return b;
 		return (comper(a, c, ctx) > 0)? c: a;
@@ -127,7 +127,7 @@ static HAWK_INLINE hawk_oob_t* med3x (hawk_oob_t* a, hawk_oob_t* b, hawk_oob_t* 
 		if (comper(a, c, ctx, &n) <= -1) return HAWK_NULL;
 		return (n < 0)? c: a;
 	}
-	else 
+	else
 	{
 		if (comper(b, c, ctx, &n) <= -1) return HAWK_NULL;
 		if (n > 0) return b;
@@ -144,11 +144,11 @@ void hawk_qsort (void* base, hawk_oow_t nmemb, hawk_oow_t size, hawk_sort_comper
 	hawk_oow_t d;
 	register hawk_oob_t* a = (hawk_oob_t*)base;
 
-loop:	
+loop:
 	swaptype = get_swaptype(a, size);
 
 	swap_cnt = 0;
-	if (nmemb < 7) 
+	if (nmemb < 7)
 	{
 		hawk_oob_t* end = (hawk_oob_t*)a + (nmemb * size);
 		for (pm = (hawk_oob_t*)a + size; pm < end; pm += size)
@@ -161,11 +161,11 @@ loop:
 		return;
 	}
 	pm = (hawk_oob_t*)a + (nmemb / 2) * size;
-	if (nmemb > 7) 
+	if (nmemb > 7)
 	{
 		pl = (hawk_oob_t*)a;
 		pn = (hawk_oob_t*)a + (nmemb - 1) * size;
-		if (nmemb > 40) 
+		if (nmemb > 40)
 		{
 			d = (nmemb / 8) * size;
 			pl = med3(pl, pl + d, pl + 2 * d, comper, ctx);
@@ -178,11 +178,11 @@ loop:
 	pa = pb = (hawk_oob_t*)a + size;
 
 	pc = pd = (hawk_oob_t*)a + (nmemb - 1) * size;
-	for (;;) 
+	for (;;)
 	{
-		while (pb <= pc && (r = comper(pb, a, ctx)) <= 0) 
+		while (pb <= pc && (r = comper(pb, a, ctx)) <= 0)
 		{
-			if (r == 0) 
+			if (r == 0)
 			{
 				swap_cnt = 1;
 				swap(pa, pb, size);
@@ -190,9 +190,9 @@ loop:
 			}
 			pb += size;
 		}
-		while (pb <= pc && (r = comper(pc, a, ctx)) >= 0) 
+		while (pb <= pc && (r = comper(pc, a, ctx)) >= 0)
 		{
-			if (r == 0) 
+			if (r == 0)
 			{
 				swap_cnt = 1;
 				swap(pc, pd, size);
@@ -207,10 +207,10 @@ loop:
 		pc -= size;
 	}
 
-	if (swap_cnt == 0) 
+	if (swap_cnt == 0)
 	{
 		 /* switch to insertion sort */
-		for (pm = (hawk_oob_t*)a + size; 
+		for (pm = (hawk_oob_t*)a + size;
 		     pm < (hawk_oob_t*)a + nmemb * size; pm += size)
 		{
 			for (pl = pm; pl > (hawk_oob_t*)a && comper(pl - size, pl, ctx) > 0; pl -= size)
@@ -229,7 +229,7 @@ loop:
 
 	if ((r = pb - pa) > size) hawk_qsort(a, r / size, size, comper, ctx);
 
-	if ((r = pd - pc) > size) 
+	if ((r = pd - pc) > size)
 	{
 		/* Iterate rather than recurse to save stack space */
 		a = pn - r;
@@ -248,11 +248,11 @@ int hawk_qsortx (void* base, hawk_oow_t nmemb, hawk_oow_t size, hawk_sort_comper
 	hawk_oow_t d;
 	register hawk_oob_t* a = (hawk_oob_t*)base;
 
-loop:	
+loop:
 	swaptype = get_swaptype(a, size);
 
 	swap_cnt = 0;
-	if (nmemb < 7) 
+	if (nmemb < 7)
 	{
 		hawk_oob_t* end = (hawk_oob_t*)a + (nmemb * size);
 		for (pm = (hawk_oob_t*)a + size; pm < end; pm += size)
@@ -270,11 +270,11 @@ loop:
 		return 0;
 	}
 	pm = (hawk_oob_t*)a + (nmemb / 2) * size;
-	if (nmemb > 7) 
+	if (nmemb > 7)
 	{
 		pl = (hawk_oob_t*)a;
 		pn = (hawk_oob_t*)a + (nmemb - 1) * size;
-		if (nmemb > 40) 
+		if (nmemb > 40)
 		{
 			d = (nmemb / 8) * size;
 			pl = med3x(pl, pl + d, pl + 2 * d, comper, ctx);
@@ -291,14 +291,14 @@ loop:
 	pa = pb = (hawk_oob_t*)a + size;
 
 	pc = pd = (hawk_oob_t*)a + (nmemb - 1) * size;
-	for (;;) 
+	for (;;)
 	{
 		while (pb <= pc)
 		{
 			if (comper(pb, a, ctx, &n) <= -1) return -1;
 			if (n > 0) break;
 
-			if (n == 0) 
+			if (n == 0)
 			{
 				swap_cnt = 1;
 				swap(pa, pb, size);
@@ -311,7 +311,7 @@ loop:
 			if (comper(pc, a, ctx, &n) <= -1) return -1;
 			if (n < 0) break;
 
-			if (n == 0) 
+			if (n == 0)
 			{
 				swap_cnt = 1;
 				swap(pc, pd, size);
@@ -326,7 +326,7 @@ loop:
 		pc -= size;
 	}
 
-	if (swap_cnt == 0) 
+	if (swap_cnt == 0)
 	{
 		/* switch to insertion sort */
 		hawk_oob_t* end = (hawk_oob_t*)a + (nmemb * size);
@@ -350,12 +350,12 @@ loop:
 	r = qsort_min (pd - pc, pn - pd - size);
 	vecswap (pb, pn - r, r);
 
-	if ((r = pb - pa) > size) 
+	if ((r = pb - pa) > size)
 	{
 		if (hawk_qsortx(a, r / size, size, comper, ctx) <= -1) return -1;
 	}
 
-	if ((r = pd - pc) > size) 
+	if ((r = pd - pc) > size)
 	{
 		/* Iterate rather than recurse to save stack space */
 		a = pn - r;
@@ -369,7 +369,7 @@ loop:
 
 #if 0
 
-/* 
+/*
  * Below is an example of a naive qsort implementation
  */
 
@@ -404,15 +404,15 @@ void hawk_qsort (void* base, hawk_oow_t nmemb, hawk_oow_t size, void* arg,
 	pivot = nmemb >> 1; /* choose the middle as the pivot index */
 	swap (REF(p,pivot), REF(p,nmemb-1), size); /* swap the pivot with the last item */
 
-	start = 0; end = nmemb - 2; 
+	start = 0; end = nmemb - 2;
 
 	while (1) {
 		/* look for the larger value than pivot */
-		while (start <= end && 
+		while (start <= end &&
 		       compar(REF(p,start), REF(p,nmemb-1), arg) <= 0) start++;
 
 		/* look for the less value than pivot. */
-		while (end > start && 
+		while (end > start &&
 		       compar(REF(p,end), REF(p,nmemb-1), arg) >= 0) end--;
 
 		if (start >= end) break; /* no more to swap */
@@ -427,7 +427,7 @@ void hawk_qsort (void* base, hawk_oow_t nmemb, hawk_oow_t size, void* arg,
 	hawk_qsort (REF(p,pivot+1), nmemb - pivot - 1, size, arg, compar);
 }
 
-/* 
+/*
  * For easier understanding, see the following
  */
 
@@ -448,7 +448,7 @@ void qsort (int* x, size_t n)
 	pivot = x[index]; /* store the pivot value */
 	swap (x[index], x[n - 1]); /* swap the pivot with the last item */
 
-	start = 0; end = n - 2; 
+	start = 0; end = n - 2;
 	while (1) {
 		/* look for the larger value than pivot */
 		while (start <= end && x[start] <= pivot) start++;
@@ -457,7 +457,7 @@ void qsort (int* x, size_t n)
 		while (end > start && x[end] >= pivot) end--;
 
 		if (start >= end) {
-			/* less values all on the left, 
+			/* less values all on the left,
 			 * larger values all on the right
 			 */
 			break;

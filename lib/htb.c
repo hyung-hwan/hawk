@@ -76,7 +76,7 @@ HAWK_INLINE pair_t* hawk_htb_allocpair (hawk_htb_t* htb, void* kptr, hawk_oow_t 
 		 * the actual key area */
 		if (kptr) HAWK_MEMCPY (KPTR(n), kptr, KTOB(htb,klen));
 	}
-	else 
+	else
 	{
 		KPTR(n) = kcop(htb, kptr, klen);
 		if (KPTR(n) == HAWK_NULL)
@@ -94,13 +94,13 @@ HAWK_INLINE pair_t* hawk_htb_allocpair (hawk_htb_t* htb, void* kptr, hawk_oow_t 
 	else if (vcop == HAWK_HTB_COPIER_INLINE)
 	{
 		VPTR(n) = n + 1;
-		if (kcop == HAWK_HTB_COPIER_INLINE) 
+		if (kcop == HAWK_HTB_COPIER_INLINE)
 			VPTR(n) = (hawk_uint8_t*)VPTR(n) + HAWK_ALIGN_POW2(KTOB(htb,klen), HAWK_SIZEOF_VOID_P);
 		/* if vptr is HAWK_NULL, the inline copier does not fill
 		 * the actual value area */
 		if (vptr) HAWK_MEMCPY (VPTR(n), vptr, VTOB(htb,vlen));
 	}
-	else 
+	else
 	{
 		VPTR(n) = vcop (htb, vptr, vlen);
 		if (VPTR(n) != HAWK_NULL)
@@ -117,19 +117,19 @@ HAWK_INLINE pair_t* hawk_htb_allocpair (hawk_htb_t* htb, void* kptr, hawk_oow_t 
 
 HAWK_INLINE void hawk_htb_freepair (hawk_htb_t* htb, pair_t* pair)
 {
-	if (htb->style->freeer[HAWK_HTB_KEY] != HAWK_NULL) 
+	if (htb->style->freeer[HAWK_HTB_KEY] != HAWK_NULL)
 		htb->style->freeer[HAWK_HTB_KEY] (htb, KPTR(pair), KLEN(pair));
 	if (htb->style->freeer[HAWK_HTB_VAL] != HAWK_NULL)
 		htb->style->freeer[HAWK_HTB_VAL] (htb, VPTR(pair), VLEN(pair));
-	hawk_gem_freemem (htb->gem, pair);	
+	hawk_gem_freemem (htb->gem, pair);
 }
 
 static HAWK_INLINE pair_t* change_pair_val (hawk_htb_t* htb, pair_t* pair, void* vptr, hawk_oow_t vlen)
 {
-	if (VPTR(pair) == vptr && VLEN(pair) == vlen) 
+	if (VPTR(pair) == vptr && VLEN(pair) == vlen)
 	{
 		/* if the old value and the new value are the same,
-		 * it just calls the handler for this condition. 
+		 * it just calls the handler for this condition.
 		 * No value replacement occurs. */
 		if (htb->style->keeper != HAWK_NULL)
 		{
@@ -163,7 +163,7 @@ static HAWK_INLINE pair_t* change_pair_val (hawk_htb_t* htb, pair_t* pair, void*
 				return p;
 			}
 		}
-		else 
+		else
 		{
 			void* nvptr = vcop(htb, vptr, vlen);
 			if (HAWK_UNLIKELY(!nvptr)) return HAWK_NULL;
@@ -172,7 +172,7 @@ static HAWK_INLINE pair_t* change_pair_val (hawk_htb_t* htb, pair_t* pair, void*
 		}
 
 		/* free up the old value */
-		if (htb->style->freeer[HAWK_HTB_VAL] != HAWK_NULL) 
+		if (htb->style->freeer[HAWK_HTB_VAL] != HAWK_NULL)
 		{
 			htb->style->freeer[HAWK_HTB_VAL] (htb, ovptr, ovlen);
 		}
@@ -278,11 +278,11 @@ void hawk_htb_close (hawk_htb_t* htb)
 
 int hawk_htb_init (hawk_htb_t* htb, hawk_gem_t* gem, hawk_oow_t capa, int factor, int kscale, int vscale)
 {
-	/* The initial capacity should be greater than 0. 
+	/* The initial capacity should be greater than 0.
 	 * Otherwise, it is adjusted to 1 in the release mode */
 	HAWK_ASSERT (capa > 0);
 
-	/* The load factor should be between 0 and 100 inclusive. 
+	/* The load factor should be between 0 and 100 inclusive.
 	 * In the release mode, a value out of the range is adjusted to 100 */
 	HAWK_ASSERT (factor >= 0 && factor <= 100);
 
@@ -351,7 +351,7 @@ pair_t* hawk_htb_search (const hawk_htb_t* htb, const void* kptr, hawk_oow_t kle
 	hc = htb->style->hasher(htb,kptr,klen) % htb->capa;
 	pair = htb->bucket[hc];
 
-	while (pair != HAWK_NULL) 
+	while (pair != HAWK_NULL)
 	{
 		if (htb->style->comper(htb, KPTR(pair), KLEN(pair), kptr, klen) == 0)
 		{
@@ -374,9 +374,9 @@ static HAWK_INLINE int reorganize (hawk_htb_t* htb)
 	{
 		new_capa = htb->style->sizer (htb, htb->capa + 1);
 
-		/* if no change in capacity, return success 
+		/* if no change in capacity, return success
 		 * without reorganization */
-		if (new_capa == htb->capa) return 0; 
+		if (new_capa == htb->capa) return 0;
 
 		/* adjust to 1 if the new capacity is not reasonable */
 		if (new_capa <= 0) new_capa = 1;
@@ -389,7 +389,7 @@ static HAWK_INLINE int reorganize (hawk_htb_t* htb)
 	}
 
 	new_buck = (pair_t**)hawk_gem_allocmem(htb->gem, new_capa * HAWK_SIZEOF(pair_t*));
-	if (HAWK_UNLIKELY(!new_buck)) 
+	if (HAWK_UNLIKELY(!new_buck))
 	{
 		/* reorganization is disabled once it fails */
 		htb->threshold = 0;
@@ -403,7 +403,7 @@ static HAWK_INLINE int reorganize (hawk_htb_t* htb)
 	{
 		pair_t* pair = htb->bucket[i];
 
-		while (pair != HAWK_NULL) 
+		while (pair != HAWK_NULL)
 		{
 			pair_t* next = NEXT(pair);
 
@@ -439,11 +439,11 @@ static HAWK_INLINE pair_t* insert (hawk_htb_t* htb, void* kptr, hawk_oow_t klen,
 	pair = htb->bucket[hc];
 	prev = HAWK_NULL;
 
-	while (pair != HAWK_NULL) 
+	while (pair != HAWK_NULL)
 	{
 		next = NEXT(pair);
 
-		if (htb->style->comper (htb, KPTR(pair), KLEN(pair), kptr, klen) == 0) 
+		if (htb->style->comper (htb, KPTR(pair), KLEN(pair), kptr, klen) == 0)
 		{
 			/* found a pair with a matching key */
 			switch (opt)
@@ -451,25 +451,25 @@ static HAWK_INLINE pair_t* insert (hawk_htb_t* htb, void* kptr, hawk_oow_t klen,
 				case UPSERT:
 				case UPDATE:
 					p = change_pair_val (htb, pair, vptr, vlen);
-					if (p == HAWK_NULL) 
+					if (p == HAWK_NULL)
 					{
 						/* error in changing the value */
-						return HAWK_NULL; 
+						return HAWK_NULL;
 					}
-					if (p != pair) 
+					if (p != pair)
 					{
 						/* old pair destroyed. new pair reallocated.
 						 * relink to include the new pair but to drop
 						 * the old pair. */
 						if (prev == HAWK_NULL) htb->bucket[hc] = p;
 						else NEXT(prev) = p;
-						NEXT(p) = next; 
+						NEXT(p) = next;
 					}
 					return p;
 
 				case ENSERT:
 					/* return existing pair */
-					return pair; 
+					return pair;
 
 				case INSERT:
 					/* return failure */
@@ -482,7 +482,7 @@ static HAWK_INLINE pair_t* insert (hawk_htb_t* htb, void* kptr, hawk_oow_t klen,
 		pair = next;
 	}
 
-	if (opt == UPDATE) 
+	if (opt == UPDATE)
 	{
 		hawk_gem_seterrnum (htb->gem, HAWK_NULL, HAWK_ENOENT);
 		return HAWK_NULL;
@@ -492,7 +492,7 @@ static HAWK_INLINE pair_t* insert (hawk_htb_t* htb, void* kptr, hawk_oow_t klen,
 	{
 		/* ingore reorganization error as it simply means
 		 * more bucket collision and performance penalty. */
-		if (reorganize(htb) == 0) 
+		if (reorganize(htb) == 0)
 		{
 			hc = htb->style->hasher(htb,kptr,klen) % htb->capa;
 		}
@@ -540,27 +540,27 @@ pair_t* hawk_htb_cbsert (hawk_htb_t* htb, void* kptr, hawk_oow_t klen, cbserter_
 	pair = htb->bucket[hc];
 	prev = HAWK_NULL;
 
-	while (pair != HAWK_NULL) 
+	while (pair != HAWK_NULL)
 	{
 		next = NEXT(pair);
 
-		if (htb->style->comper(htb, KPTR(pair), KLEN(pair), kptr, klen) == 0) 
+		if (htb->style->comper(htb, KPTR(pair), KLEN(pair), kptr, klen) == 0)
 		{
 			/* found a pair with a matching key */
 			p = cbserter(htb, pair, kptr, klen, ctx);
-			if (p == HAWK_NULL) 
+			if (p == HAWK_NULL)
 			{
 				/* error returned by the callback function */
-				return HAWK_NULL; 
+				return HAWK_NULL;
 			}
-			if (p != pair) 
+			if (p != pair)
 			{
 				/* old pair destroyed. new pair reallocated.
 				 * relink to include the new pair but to drop
 				 * the old pair. */
 				if (prev == HAWK_NULL) htb->bucket[hc] = p;
 				else NEXT(prev) = p;
-				NEXT(p) = next; 
+				NEXT(p) = next;
 			}
 			return p;
 		}
@@ -600,11 +600,11 @@ int hawk_htb_delete (hawk_htb_t* htb, const void* kptr, hawk_oow_t klen)
 	pair = htb->bucket[hc];
 	prev = HAWK_NULL;
 
-	while (pair != HAWK_NULL) 
+	while (pair != HAWK_NULL)
 	{
-		if (htb->style->comper(htb, KPTR(pair), KLEN(pair), kptr, klen) == 0) 
+		if (htb->style->comper(htb, KPTR(pair), KLEN(pair), kptr, klen) == 0)
 		{
-			if (prev == HAWK_NULL) 
+			if (prev == HAWK_NULL)
 				htb->bucket[hc] = NEXT(pair);
 			else NEXT(prev) = NEXT(pair);
 
@@ -627,11 +627,11 @@ void hawk_htb_clear (hawk_htb_t* htb)
 	hawk_oow_t i;
 	pair_t* pair, * next;
 
-	for (i = 0; i < htb->capa; i++) 
+	for (i = 0; i < htb->capa; i++)
 	{
 		pair = htb->bucket[i];
 
-		while (pair != HAWK_NULL) 
+		while (pair != HAWK_NULL)
 		{
 			next = NEXT(pair);
 			hawk_htb_freepair (htb, pair);
@@ -648,11 +648,11 @@ void hawk_htb_walk (hawk_htb_t* htb, walker_t walker, void* ctx)
 	hawk_oow_t i;
 	pair_t* pair, * next;
 
-	for (i = 0; i < htb->capa; i++) 
+	for (i = 0; i < htb->capa; i++)
 	{
 		pair = htb->bucket[i];
 
-		while (pair != HAWK_NULL) 
+		while (pair != HAWK_NULL)
 		{
 			next = NEXT(pair);
 			if (walker(htb, pair, ctx) == HAWK_HTB_WALK_STOP) return;
@@ -676,7 +676,7 @@ pair_t* hawk_htb_getfirstpair (hawk_htb_t* htb, hawk_htb_itr_t* itr)
 	for (i = 0; i < htb->capa; i++)
 	{
 		pair = htb->bucket[i];
-		if (pair) 
+		if (pair)
 		{
 			itr->buckno = i;
 			itr->pair = pair;
@@ -693,7 +693,7 @@ pair_t* hawk_htb_getnextpair (hawk_htb_t* htb, hawk_htb_itr_t* itr)
 	pair_t* pair;
 
 	pair = NEXT(itr->pair);
-	if (pair) 
+	if (pair)
 	{
 		/* no change in bucket number */
 		itr->pair = pair;
@@ -703,7 +703,7 @@ pair_t* hawk_htb_getnextpair (hawk_htb_t* htb, hawk_htb_itr_t* itr)
 	for (i = itr->buckno + 1; i < htb->capa; i++)
 	{
 		pair = htb->bucket[i];
-		if (pair) 
+		if (pair)
 		{
 			itr->buckno = i;
 			itr->pair = pair;
@@ -718,7 +718,7 @@ hawk_oow_t hawk_htb_dflhash (const hawk_htb_t* htb, const void* kptr, hawk_oow_t
 {
 	hawk_oow_t h;
 	HAWK_HASH_BYTES (h, kptr, klen);
-	return h ; 
+	return h ;
 }
 
 int hawk_htb_dflcomp (const hawk_htb_t* htb, const void* kptr1, hawk_oow_t klen1, const void* kptr2, hawk_oow_t klen2)

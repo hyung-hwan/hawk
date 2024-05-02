@@ -34,7 +34,7 @@ enum io_mask_t
 
 static hawk_rio_type_t in_type_map[] =
 {
-	/* the order should match the order of the 
+	/* the order should match the order of the
 	 * HAWK_IN_XXX values in tree.h */
 	HAWK_RIO_PIPE,
 	HAWK_RIO_PIPE,
@@ -44,7 +44,7 @@ static hawk_rio_type_t in_type_map[] =
 
 static int in_mode_map[] =
 {
-	/* the order should match the order of the 
+	/* the order should match the order of the
 	 * HAWK_IN_XXX values in tree.h */
 	HAWK_RIO_PIPE_READ,
 	HAWK_RIO_PIPE_RW,
@@ -62,7 +62,7 @@ static int in_mask_map[] =
 
 static hawk_rio_type_t out_type_map[] =
 {
-	/* the order should match the order of the 
+	/* the order should match the order of the
 	 * HAWK_OUT_XXX values in tree.h */
 	HAWK_RIO_PIPE,
 	HAWK_RIO_PIPE,
@@ -73,7 +73,7 @@ static hawk_rio_type_t out_type_map[] =
 
 static int out_mode_map[] =
 {
-	/* the order should match the order of the 
+	/* the order should match the order of the
 	 * HAWK_OUT_XXX values in tree.h */
 	HAWK_RIO_PIPE_WRITE,
 	HAWK_RIO_PIPE_RW,
@@ -375,7 +375,7 @@ int hawk_rtx_readio (hawk_rtx_t* rtx, hawk_in_type_t in_type, const hawk_ooch_t*
 
 	if (find_rio_in(rtx, in_type, name, 0, &p, &handler) <= -1) return -1;
 	if (p->in.eos) return 0; /* no more streams left */
-	if (p->in.mbs) 
+	if (p->in.mbs)
 	{
 		if (name[0] == '\0')
 			hawk_rtx_seterrfmt (rtx, HAWK_NULL, HAWK_EPERM, HAWK_T("disallowed mixed mode input"));
@@ -454,12 +454,12 @@ int hawk_rtx_readio (hawk_rtx_t* rtx, hawk_in_type_t in_type, const hawk_ooch_t*
 				}
 				else if (rrs.len >= 2)
 				{
-					/* When RS is multiple characters, it should 
-					 * check for the match at the end of the 
-					 * input stream also because the previous 
+					/* When RS is multiple characters, it should
+					 * check for the match at the end of the
+					 * input stream also because the previous
 					 * match could fail as it didn't end at the
 					 * desired position to be the longest match.
-					 * At EOF, the match at the end is considered 
+					 * At EOF, the match at the end is considered
 					 * the longest as there are no more characters
 					 * left */
 					int n = match_long_rs(rtx, buf, p);
@@ -490,7 +490,7 @@ int hawk_rtx_readio (hawk_rtx_t* rtx, hawk_in_type_t in_type, const hawk_ooch_t*
 
 				/* TODO: handle different line terminator */
 				/* separate by a new line */
-				if (c == HAWK_T('\n')) 
+				if (c == HAWK_T('\n'))
 				{
 					end_pos--;
 					if (pc == HAWK_T('\r'))
@@ -505,7 +505,7 @@ int hawk_rtx_readio (hawk_rtx_t* rtx, hawk_in_type_t in_type, const hawk_ooch_t*
 						else
 						{
 							/* CR must have come from the previous
-							 * read. drop CR that must be found  at 
+							 * read. drop CR that must be found  at
 							 * the end of the record buffer. */
 							HAWK_ASSERT (end_pos == start_pos);
 							HAWK_ASSERT (HAWK_OOECS_LEN(buf) > 0);
@@ -547,8 +547,8 @@ int hawk_rtx_readio (hawk_rtx_t* rtx, hawk_in_type_t in_type, const hawk_ooch_t*
 						HAWK_ASSERT (line_len > 0);
 						line_len--;
 
-						/* we don't drop CR from the record buffer 
-						 * if we're in CRLF mode. POINT-X */	
+						/* we don't drop CR from the record buffer
+						 * if we're in CRLF mode. POINT-X */
 						if (!(rtx->hawk->opt.trait & HAWK_CRLF))
 							HAWK_OOECS_LEN(buf) -= 1;
 					}
@@ -772,12 +772,12 @@ int hawk_rtx_readiobytes (hawk_rtx_t* rtx, hawk_in_type_t in_type, const hawk_oo
 				}
 				else if (rrs.len >= 2)
 				{
-					/* When RS is multiple characters, it should 
-					 * check for the match at the end of the 
-					 * input stream also because the previous 
+					/* When RS is multiple characters, it should
+					 * check for the match at the end of the
+					 * input stream also because the previous
 					 * match could fail as it didn't end at the
 					 * desired position to be the longest match.
-					 * At EOF, the match at the end is considered 
+					 * At EOF, the match at the end is considered
 					 * the longest as there are no more characters
 					 * left */
 					int n = match_long_brs(rtx, buf, p);
@@ -808,7 +808,7 @@ int hawk_rtx_readiobytes (hawk_rtx_t* rtx, hawk_in_type_t in_type, const hawk_oo
 
 				/* TODO: handle different line terminator */
 				/* separate by a new line */
-				if (c == '\n') 
+				if (c == '\n')
 				{
 					end_pos--;
 					if (pc == '\r')
@@ -823,7 +823,7 @@ int hawk_rtx_readiobytes (hawk_rtx_t* rtx, hawk_in_type_t in_type, const hawk_oo
 						else
 						{
 							/* CR must have come from the previous
-							 * read. drop CR that must be found  at 
+							 * read. drop CR that must be found  at
 							 * the end of the record buffer. */
 							HAWK_ASSERT (end_pos == start_pos);
 							HAWK_ASSERT (HAWK_BECS_LEN(buf) > 0);
@@ -865,7 +865,7 @@ int hawk_rtx_readiobytes (hawk_rtx_t* rtx, hawk_in_type_t in_type, const hawk_oo
 						HAWK_ASSERT (line_len > 0);
 						line_len--;
 
-						/* we don't drop CR from the record buffer 
+						/* we don't drop CR from the record buffer
 						 * if we're in CRLF mode. POINT-X */
 						if (!(rtx->hawk->opt.trait & HAWK_CRLF))
 							HAWK_BECS_LEN(buf) -= 1;
@@ -1068,7 +1068,7 @@ static int prepare_for_write_io_data (hawk_rtx_t* rtx, hawk_out_type_t out_type,
 	/* look for the corresponding rio for name */
 	while (p)
 	{
-		/* the file "1.tmp", in the following code snippets, 
+		/* the file "1.tmp", in the following code snippets,
 		 * would be opened by the first print statement, but not by
 		 * the second print statement. this is because
 		 * both HAWK_OUT_FILE and HAWK_OUT_APFILE are
@@ -1144,7 +1144,7 @@ int hawk_rtx_writeiostr (hawk_rtx_t* rtx, hawk_out_type_t out_type, const hawk_o
 		n = wid.handler(rtx, HAWK_RIO_CMD_WRITE, wid.p, str, len);
 		if (n <= -1) return -1;
 
-		if (n == 0) 
+		if (n == 0)
 		{
 			wid.p->out.eof = 1;
 			return 0;
@@ -1171,7 +1171,7 @@ int hawk_rtx_writeiobytes (hawk_rtx_t* rtx, hawk_out_type_t out_type, const hawk
 		n = wid.handler(rtx, HAWK_RIO_CMD_WRITE_BYTES, wid.p, str, len);
 		if (n <= -1) return -1;
 
-		if (n == 0) 
+		if (n == 0)
 		{
 			wid.p->out.eof = 1;
 			return 0;
@@ -1217,7 +1217,7 @@ int hawk_rtx_flushio (hawk_rtx_t* rtx, hawk_out_type_t out_type, const hawk_ooch
 		 * same entry since (io_type | io_mask) has the same value
 		 * for both. */
 		if (p->type == (io_type | io_mask) && p->mode == io_mode &&
-		    (name == HAWK_NULL || hawk_comp_oocstr(p->name, name, 0) == 0)) 
+		    (name == HAWK_NULL || hawk_comp_oocstr(p->name, name, 0) == 0))
 		{
 			n = handler(rtx, HAWK_RIO_CMD_FLUSH, p, HAWK_NULL, 0);
 			if (n <= -1) return -1;
@@ -1238,7 +1238,7 @@ int hawk_rtx_nextio_read (hawk_rtx_t* rtx, hawk_in_type_t in_type, const hawk_oo
 {
 	hawk_rio_arg_t* p = rtx->rio.chain;
 	hawk_rio_impl_t handler;
-	int io_type, /*io_mode,*/ io_mask; 
+	int io_type, /*io_mode,*/ io_mask;
 	hawk_ooi_t n;
 
 	HAWK_ASSERT (in_type >= 0 && in_type <= HAWK_COUNTOF(in_type_map));
@@ -1272,7 +1272,7 @@ int hawk_rtx_nextio_read (hawk_rtx_t* rtx, hawk_in_type_t in_type, const hawk_oo
 		return -1;
 	}
 
-	if (p->in.eos) 
+	if (p->in.eos)
 	{
 		/* no more streams. */
 		return 0;
@@ -1281,15 +1281,15 @@ int hawk_rtx_nextio_read (hawk_rtx_t* rtx, hawk_in_type_t in_type, const hawk_oo
 	n = handler(rtx, HAWK_RIO_CMD_NEXT, p, HAWK_NULL, 0);
 	if (n <= -1) return -1;
 
-	if (n == 0) 
+	if (n == 0)
 	{
-		/* the next stream cannot be opened. 
+		/* the next stream cannot be opened.
 		 * set the EOS flags so that the next call to nextio_read
 		 * will return 0 without executing the handler */
 		p->in.eos = 1;
 		return 0;
 	}
-	else 
+	else
 	{
 		/* as the next stream has been opened successfully,
 		 * the EOF flag should be cleared if set */
@@ -1307,7 +1307,7 @@ int hawk_rtx_nextio_write (hawk_rtx_t* rtx, hawk_out_type_t out_type, const hawk
 {
 	hawk_rio_arg_t* p = rtx->rio.chain;
 	hawk_rio_impl_t handler;
-	int io_type, /*io_mode,*/ io_mask; 
+	int io_type, /*io_mode,*/ io_mask;
 	hawk_ooi_t n;
 
 	HAWK_ASSERT (out_type >= 0 && out_type <= HAWK_COUNTOF(out_type_map));
@@ -1342,7 +1342,7 @@ int hawk_rtx_nextio_write (hawk_rtx_t* rtx, hawk_out_type_t out_type, const hawk
 		return -1;
 	}
 
-	if (p->out.eos) 
+	if (p->out.eos)
 	{
 		/* no more streams. */
 		return 0;
@@ -1351,15 +1351,15 @@ int hawk_rtx_nextio_write (hawk_rtx_t* rtx, hawk_out_type_t out_type, const hawk
 	n = handler(rtx, HAWK_RIO_CMD_NEXT, p, HAWK_NULL, 0);
 	if (n <= -1) return -1;
 
-	if (n == 0) 
+	if (n == 0)
 	{
-		/* the next stream cannot be opened. 
+		/* the next stream cannot be opened.
 		 * set the EOS flags so that the next call to nextio_write
 		 * will return 0 without executing the handler */
 		p->out.eos = 1;
 		return 0;
 	}
-	else 
+	else
 	{
 		/* as the next stream has been opened successfully,
 		 * the EOF flag should be cleared if set */
@@ -1393,7 +1393,7 @@ int hawk_rtx_closio_read (hawk_rtx_t* rtx, hawk_in_type_t in_type, const hawk_oo
 
 	while (p)
 	{
-		if (p->type == (io_type | io_mask) && hawk_comp_oocstr(p->name, name, 0) == 0) 
+		if (p->type == (io_type | io_mask) && hawk_comp_oocstr(p->name, name, 0) == 0)
 		{
 			hawk_rio_impl_t handler;
 
@@ -1450,7 +1450,7 @@ int hawk_rtx_closio_write (hawk_rtx_t* rtx, hawk_out_type_t out_type, const hawk
 
 	while (p)
 	{
-		if (p->type == (io_type | io_mask) && hawk_comp_oocstr(p->name, name, 0) == 0) 
+		if (p->type == (io_type | io_mask) && hawk_comp_oocstr(p->name, name, 0) == 0)
 		{
 			hawk_rio_impl_t handler;
 
@@ -1481,7 +1481,7 @@ int hawk_rtx_closeio (hawk_rtx_t* rtx, const hawk_ooch_t* name, const hawk_ooch_
 	{
 		 /* it handles the first that matches the given name
 		  * regardless of the io type */
-		if (hawk_comp_oocstr(p->name, name, 0) == 0) 
+		if (hawk_comp_oocstr(p->name, name, 0) == 0)
 		{
 			hawk_rio_impl_t handler;
 			hawk_rio_rwcmode_t rwcmode = HAWK_RIO_CMD_CLOSE_FULL;
@@ -1490,7 +1490,7 @@ int hawk_rtx_closeio (hawk_rtx_t* rtx, const hawk_ooch_t* name, const hawk_ooch_
 			{
 				if (opt[0] == HAWK_T('r'))
 				{
-					if (p->type & IO_MASK_RDWR) 
+					if (p->type & IO_MASK_RDWR)
 					{
 						if (p->rwcstate != HAWK_RIO_CMD_CLOSE_WRITE)
 						{
@@ -1509,7 +1509,7 @@ int hawk_rtx_closeio (hawk_rtx_t* rtx, const hawk_ooch_t* name, const hawk_ooch_
 					{
 						if (p->rwcstate != HAWK_RIO_CMD_CLOSE_READ)
 						{
-							/* if the read end is not 
+							/* if the read end is not
 							 * closed, let io handler close
 							 * the write end only. */
 							rwcmode = HAWK_RIO_CMD_CLOSE_WRITE;
@@ -1530,14 +1530,14 @@ int hawk_rtx_closeio (hawk_rtx_t* rtx, const hawk_ooch_t* name, const hawk_ooch_
 				}
 			}
 
-			if (p->type & IO_MASK_RDWR) 
+			if (p->type & IO_MASK_RDWR)
 			{
 				p->rwcmode = rwcmode;
 				if (p->rwcstate == 0 && rwcmode != 0)
 				{
 					/* if either end has not been closed.
-					 * return success without destroying 
-					 * the internal node. rwcstate keeps 
+					 * return success without destroying
+					 * the internal node. rwcstate keeps
 					 * what has been successfully closed */
 					p->rwcstate = rwcmode;
 					return 0;

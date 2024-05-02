@@ -22,11 +22,11 @@
     THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/* 
+/*
  * Do NOT edit utl-str.c. Edit utl-str.c.m4 instead.
- * 
+ *
  * Generate utl-str.c with m4
- *   $ m4 utl-str.c.m4 > utl-str.c  
+ *   $ m4 utl-str.c.m4 > utl-str.c
  */
 
 #include "hawk-prv.h"
@@ -34,57 +34,57 @@
 
 static int match_uch_class (const hawk_uch_t* pp, hawk_uch_t sc, int* matched)
 {
-	if (hawk_comp_ucstr_bcstr_limited(pp, "[:upper:]", 9, 0) == 0) 
+	if (hawk_comp_ucstr_bcstr_limited(pp, "[:upper:]", 9, 0) == 0)
 	{
 		*matched = hawk_is_uch_upper(sc);
 		return 9;
 	}
-	else if (hawk_comp_ucstr_bcstr_limited(pp, "[:lower:]", 9, 0) == 0) 
+	else if (hawk_comp_ucstr_bcstr_limited(pp, "[:lower:]", 9, 0) == 0)
 	{
 		*matched = hawk_is_uch_lower(sc);
 		return 9;
 	}
-	else if (hawk_comp_ucstr_bcstr_limited(pp, "[:alpha:]", 9, 0) == 0) 
+	else if (hawk_comp_ucstr_bcstr_limited(pp, "[:alpha:]", 9, 0) == 0)
 	{
 		*matched = hawk_is_uch_alpha(sc);
 		return 9;
 	}
-	else if (hawk_comp_ucstr_bcstr_limited(pp, "[:digit:]", 9, 0) == 0) 
+	else if (hawk_comp_ucstr_bcstr_limited(pp, "[:digit:]", 9, 0) == 0)
 	{
 		*matched = hawk_is_uch_digit(sc);
 		return 9;
 	}
-	else if (hawk_comp_ucstr_bcstr_limited(pp, "[:xdigit:]", 10, 0) == 0) 
+	else if (hawk_comp_ucstr_bcstr_limited(pp, "[:xdigit:]", 10, 0) == 0)
 	{
 		*matched = hawk_is_uch_xdigit(sc);
 		return 10;
 	}
-	else if (hawk_comp_ucstr_bcstr_limited(pp, "[:alnum:]", 9, 0) == 0) 
+	else if (hawk_comp_ucstr_bcstr_limited(pp, "[:alnum:]", 9, 0) == 0)
 	{
 		*matched = hawk_is_uch_alnum(sc);
 		return 9;
 	}
-	else if (hawk_comp_ucstr_bcstr_limited(pp, "[:space:]", 9, 0) == 0) 
+	else if (hawk_comp_ucstr_bcstr_limited(pp, "[:space:]", 9, 0) == 0)
 	{
 		*matched = hawk_is_uch_space(sc);
 		return 9;
 	}
-	else if (hawk_comp_ucstr_bcstr_limited(pp, "[:print:]", 9, 0) == 0) 
+	else if (hawk_comp_ucstr_bcstr_limited(pp, "[:print:]", 9, 0) == 0)
 	{
 		*matched = hawk_is_uch_print(sc);
 		return 9;
 	}
-	else if (hawk_comp_ucstr_bcstr_limited(pp, "[:graph:]", 9, 0) == 0) 
+	else if (hawk_comp_ucstr_bcstr_limited(pp, "[:graph:]", 9, 0) == 0)
 	{
 		*matched = hawk_is_uch_graph(sc);
 		return 9;
 	}
-	else if (hawk_comp_ucstr_bcstr_limited(pp, "[:cntrl:]", 9, 0) == 0) 
+	else if (hawk_comp_ucstr_bcstr_limited(pp, "[:cntrl:]", 9, 0) == 0)
 	{
 		*matched = hawk_is_uch_cntrl(sc);
 		return 9;
 	}
-	else if (hawk_comp_ucstr_bcstr_limited(pp, "[:punct:]", 9, 0) == 0) 
+	else if (hawk_comp_ucstr_bcstr_limited(pp, "[:punct:]", 9, 0) == 0)
 	{
 		*matched = hawk_is_uch_punct(sc);
 		return 9;
@@ -95,57 +95,57 @@ static int match_uch_class (const hawk_uch_t* pp, hawk_uch_t sc, int* matched)
 
 static int match_bch_class (const hawk_bch_t* pp, hawk_bch_t sc, int* matched)
 {
-	if (hawk_comp_bcstr_limited(pp, "[:upper:]", 9, 0) == 0) 
+	if (hawk_comp_bcstr_limited(pp, "[:upper:]", 9, 0) == 0)
 	{
 		*matched = hawk_is_bch_upper(sc);
 		return 9;
 	}
-	else if (hawk_comp_bcstr_limited(pp, "[:lower:]", 9, 0) == 0) 
+	else if (hawk_comp_bcstr_limited(pp, "[:lower:]", 9, 0) == 0)
 	{
 		*matched = hawk_is_bch_lower(sc);
 		return 9;
 	}
-	else if (hawk_comp_bcstr_limited(pp, "[:alpha:]", 9, 0) == 0) 
+	else if (hawk_comp_bcstr_limited(pp, "[:alpha:]", 9, 0) == 0)
 	{
 		*matched = hawk_is_bch_alpha(sc);
 		return 9;
 	}
-	else if (hawk_comp_bcstr_limited(pp, "[:digit:]", 9, 0) == 0) 
+	else if (hawk_comp_bcstr_limited(pp, "[:digit:]", 9, 0) == 0)
 	{
 		*matched = hawk_is_bch_digit(sc);
 		return 9;
 	}
-	else if (hawk_comp_bcstr_limited(pp, "[:xdigit:]", 10, 0) == 0) 
+	else if (hawk_comp_bcstr_limited(pp, "[:xdigit:]", 10, 0) == 0)
 	{
 		*matched = hawk_is_bch_xdigit(sc);
 		return 10;
 	}
-	else if (hawk_comp_bcstr_limited(pp, "[:alnum:]", 9, 0) == 0) 
+	else if (hawk_comp_bcstr_limited(pp, "[:alnum:]", 9, 0) == 0)
 	{
 		*matched = hawk_is_bch_alnum(sc);
 		return 9;
 	}
-	else if (hawk_comp_bcstr_limited(pp, "[:space:]", 9, 0) == 0) 
+	else if (hawk_comp_bcstr_limited(pp, "[:space:]", 9, 0) == 0)
 	{
 		*matched = hawk_is_bch_space(sc);
 		return 9;
 	}
-	else if (hawk_comp_bcstr_limited(pp, "[:print:]", 9, 0) == 0) 
+	else if (hawk_comp_bcstr_limited(pp, "[:print:]", 9, 0) == 0)
 	{
 		*matched = hawk_is_bch_print(sc);
 		return 9;
 	}
-	else if (hawk_comp_bcstr_limited(pp, "[:graph:]", 9, 0) == 0) 
+	else if (hawk_comp_bcstr_limited(pp, "[:graph:]", 9, 0) == 0)
 	{
 		*matched = hawk_is_bch_graph(sc);
 		return 9;
 	}
-	else if (hawk_comp_bcstr_limited(pp, "[:cntrl:]", 9, 0) == 0) 
+	else if (hawk_comp_bcstr_limited(pp, "[:cntrl:]", 9, 0) == 0)
 	{
 		*matched = hawk_is_bch_cntrl(sc);
 		return 9;
 	}
-	else if (hawk_comp_bcstr_limited(pp, "[:punct:]", 9, 0) == 0) 
+	else if (hawk_comp_bcstr_limited(pp, "[:punct:]", 9, 0) == 0)
 	{
 		*matched = hawk_is_bch_punct(sc);
 		return 9;
@@ -168,7 +168,7 @@ int hawk_comp_uchars (const hawk_uch_t* str1, hawk_oow_t len1, const hawk_uch_t*
 		while (str1 < end1)
 		{
 			c1 = hawk_to_uch_lower(*str1);
-			if (str2 < end2) 
+			if (str2 < end2)
 			{
 				c2 = hawk_to_uch_lower(*str2);
 				if (c1 > c2) return 1;
@@ -183,7 +183,7 @@ int hawk_comp_uchars (const hawk_uch_t* str1, hawk_oow_t len1, const hawk_uch_t*
 		while (str1 < end1)
 		{
 			c1 = *str1;
-			if (str2 < end2) 
+			if (str2 < end2)
 			{
 				c2 = *str2;
 				if (c1 > c2) return 1;
@@ -208,7 +208,7 @@ int hawk_comp_bchars (const hawk_bch_t* str1, hawk_oow_t len1, const hawk_bch_t*
 		while (str1 < end1)
 		{
 			c1 = hawk_to_bch_lower(*str1);
-			if (str2 < end2) 
+			if (str2 < end2)
 			{
 				c2 = hawk_to_bch_lower(*str2);
 				if (c1 > c2) return 1;
@@ -223,7 +223,7 @@ int hawk_comp_bchars (const hawk_bch_t* str1, hawk_oow_t len1, const hawk_bch_t*
 		while (str1 < end1)
 		{
 			c1 = *str1;
-			if (str2 < end2) 
+			if (str2 < end2)
 			{
 				c2 = *str2;
 				if (c1 > c2) return 1;
@@ -341,14 +341,14 @@ int hawk_comp_uchars_ucstr (const hawk_uch_t* str1, hawk_oow_t len, const hawk_u
 {
 	/* for "abc\0" of length 4 vs "abc", the fourth character
 	 * of the first string is equal to the terminating null of
-	 * the second string. the first string is still considered 
+	 * the second string. the first string is still considered
 	 * bigger */
 	if (ignorecase)
 	{
 		const hawk_uch_t* end = str1 + len;
 		hawk_uch_t c1;
 		hawk_uch_t c2;
-		while (str1 < end && *str2 != '\0') 
+		while (str1 < end && *str2 != '\0')
 		{
 			c1 = hawk_to_uch_lower(*str1);
 			c2 = hawk_to_uch_lower(*str2);
@@ -360,7 +360,7 @@ int hawk_comp_uchars_ucstr (const hawk_uch_t* str1, hawk_oow_t len, const hawk_u
 	else
 	{
 		const hawk_uch_t* end = str1 + len;
-		while (str1 < end && *str2 != '\0') 
+		while (str1 < end && *str2 != '\0')
 		{
 			if (*str1 != *str2) return ((hawk_uchu_t)*str1 > (hawk_uchu_t)*str2)? 1: -1;
 			str1++; str2++;
@@ -373,14 +373,14 @@ int hawk_comp_bchars_bcstr (const hawk_bch_t* str1, hawk_oow_t len, const hawk_b
 {
 	/* for "abc\0" of length 4 vs "abc", the fourth character
 	 * of the first string is equal to the terminating null of
-	 * the second string. the first string is still considered 
+	 * the second string. the first string is still considered
 	 * bigger */
 	if (ignorecase)
 	{
 		const hawk_bch_t* end = str1 + len;
 		hawk_bch_t c1;
 		hawk_bch_t c2;
-		while (str1 < end && *str2 != '\0') 
+		while (str1 < end && *str2 != '\0')
 		{
 			c1 = hawk_to_bch_lower(*str1);
 			c2 = hawk_to_bch_lower(*str2);
@@ -392,7 +392,7 @@ int hawk_comp_bchars_bcstr (const hawk_bch_t* str1, hawk_oow_t len, const hawk_b
 	else
 	{
 		const hawk_bch_t* end = str1 + len;
-		while (str1 < end && *str2 != '\0') 
+		while (str1 < end && *str2 != '\0')
 		{
 			if (*str1 != *str2) return ((hawk_bchu_t)*str1 > (hawk_bchu_t)*str2)? 1: -1;
 			str1++; str2++;
@@ -415,7 +415,7 @@ hawk_oow_t hawk_concat_uchars_to_ucstr (hawk_uch_t* buf, hawk_oow_t bsz, const h
 
 	end = str + len;
 
-	while (p < p2) 
+	while (p < p2)
 	{
 		if (str >= end) break;
 		*p++ = *str++;
@@ -439,7 +439,7 @@ hawk_oow_t hawk_concat_bchars_to_bcstr (hawk_bch_t* buf, hawk_oow_t bsz, const h
 
 	end = str + len;
 
-	while (p < p2) 
+	while (p < p2)
 	{
 		if (str >= end) break;
 		*p++ = *str++;
@@ -460,7 +460,7 @@ hawk_oow_t hawk_concat_ucstr (hawk_uch_t* buf, hawk_oow_t bsz, const hawk_uch_t*
 	p = buf + blen;
 	p2 = buf + bsz - 1;
 
-	while (p < p2) 
+	while (p < p2)
 	{
 		if (*str == '\0') break;
 		*p++ = *str++;
@@ -481,7 +481,7 @@ hawk_oow_t hawk_concat_bcstr (hawk_bch_t* buf, hawk_oow_t bsz, const hawk_bch_t*
 	p = buf + blen;
 	p2 = buf + bsz - 1;
 
-	while (p < p2) 
+	while (p < p2)
 	{
 		if (*str == '\0') break;
 		*p++ = *str++;
@@ -742,15 +742,15 @@ hawk_oow_t hawk_copy_fmt_ucses_to_ucstr (hawk_uch_t* buf, hawk_oow_t bsz, const 
 	hawk_uch_t* b = buf;
 	hawk_uch_t* end = buf + bsz - 1;
 	const hawk_uch_t* f = fmt;
- 
+
 	if (bsz <= 0) return 0;
- 
+
 	while (*f != '\0')
 	{
 		if (*f == '\\')
 		{
 			/* get the escaped character and treat it normally.
-			 * if the escaper is the last character, treat it 
+			 * if the escaper is the last character, treat it
 			 * normally also. */
 			if (f[1] != '\0') f++;
 		}
@@ -760,24 +760,24 @@ hawk_oow_t hawk_copy_fmt_ucses_to_ucstr (hawk_uch_t* buf, hawk_oow_t bsz, const 
 			{
 				const hawk_uch_t* tmp, * tmpend;
 				hawk_oow_t idx = 0;
- 
+
 				tmp = f;
 				f += 2;
- 
+
 				do idx = idx * 10 + (*f++ - '0');
 				while (*f >= '0' && *f <= '9');
-	
+
 				if (*f != '}')
 				{
 					f = tmp;
 					goto normal;
 				}
- 
+
 				f++;
-				
+
 				tmp = str[idx].ptr;
 				tmpend = tmp + str[idx].len;
- 
+
 				while (tmp < tmpend)
 				{
 					if (b >= end) goto fini;
@@ -787,12 +787,12 @@ hawk_oow_t hawk_copy_fmt_ucses_to_ucstr (hawk_uch_t* buf, hawk_oow_t bsz, const 
 			}
 			else if (f[1] == '$') f++;
 		}
- 
+
 	normal:
 		if (b >= end) break;
 		*b++ = *f++;
 	}
- 
+
 fini:
 	*b = '\0';
 	return b - buf;
@@ -803,15 +803,15 @@ hawk_oow_t hawk_copy_fmt_bcses_to_bcstr (hawk_bch_t* buf, hawk_oow_t bsz, const 
 	hawk_bch_t* b = buf;
 	hawk_bch_t* end = buf + bsz - 1;
 	const hawk_bch_t* f = fmt;
- 
+
 	if (bsz <= 0) return 0;
- 
+
 	while (*f != '\0')
 	{
 		if (*f == '\\')
 		{
 			/* get the escaped character and treat it normally.
-			 * if the escaper is the last character, treat it 
+			 * if the escaper is the last character, treat it
 			 * normally also. */
 			if (f[1] != '\0') f++;
 		}
@@ -821,24 +821,24 @@ hawk_oow_t hawk_copy_fmt_bcses_to_bcstr (hawk_bch_t* buf, hawk_oow_t bsz, const 
 			{
 				const hawk_bch_t* tmp, * tmpend;
 				hawk_oow_t idx = 0;
- 
+
 				tmp = f;
 				f += 2;
- 
+
 				do idx = idx * 10 + (*f++ - '0');
 				while (*f >= '0' && *f <= '9');
-	
+
 				if (*f != '}')
 				{
 					f = tmp;
 					goto normal;
 				}
- 
+
 				f++;
-				
+
 				tmp = str[idx].ptr;
 				tmpend = tmp + str[idx].len;
- 
+
 				while (tmp < tmpend)
 				{
 					if (b >= end) goto fini;
@@ -848,12 +848,12 @@ hawk_oow_t hawk_copy_fmt_bcses_to_bcstr (hawk_bch_t* buf, hawk_oow_t bsz, const 
 			}
 			else if (f[1] == '$') f++;
 		}
- 
+
 	normal:
 		if (b >= end) break;
 		*b++ = *f++;
 	}
- 
+
 fini:
 	*b = '\0';
 	return b - buf;
@@ -864,14 +864,14 @@ hawk_oow_t hawk_count_ucstr (const hawk_uch_t* str)
 	const hawk_uch_t* ptr = str;
 	while (*ptr != '\0') ptr++;
 	return ptr - str;
-} 
+}
 
 hawk_oow_t hawk_count_bcstr (const hawk_bch_t* str)
 {
 	const hawk_bch_t* ptr = str;
 	while (*ptr != '\0') ptr++;
 	return ptr - str;
-} 
+}
 
 hawk_oow_t hawk_count_ucstr_limited (const hawk_uch_t* str, hawk_oow_t maxlen)
 {
@@ -1047,13 +1047,13 @@ hawk_uch_t* hawk_find_uchars_in_uchars (const hawk_uch_t* str, hawk_oow_t strsz,
 
 	if (subsz == 0) return (hawk_uch_t*)str;
 	if (strsz < subsz) return HAWK_NULL;
-	
+
 	end = str + strsz - subsz;
 	subp = sub + subsz;
 
 	if (HAWK_UNLIKELY(ignorecase))
 	{
-		while (str <= end) 
+		while (str <= end)
 		{
 			const hawk_uch_t* x = str;
 			const hawk_uch_t* y = sub;
@@ -1070,7 +1070,7 @@ hawk_uch_t* hawk_find_uchars_in_uchars (const hawk_uch_t* str, hawk_oow_t strsz,
 	}
 	else
 	{
-		while (str <= end) 
+		while (str <= end)
 		{
 			const hawk_uch_t* x = str;
 			const hawk_uch_t* y = sub;
@@ -1095,13 +1095,13 @@ hawk_bch_t* hawk_find_bchars_in_bchars (const hawk_bch_t* str, hawk_oow_t strsz,
 
 	if (subsz == 0) return (hawk_bch_t*)str;
 	if (strsz < subsz) return HAWK_NULL;
-	
+
 	end = str + strsz - subsz;
 	subp = sub + subsz;
 
 	if (HAWK_UNLIKELY(ignorecase))
 	{
-		while (str <= end) 
+		while (str <= end)
 		{
 			const hawk_bch_t* x = str;
 			const hawk_bch_t* y = sub;
@@ -1118,7 +1118,7 @@ hawk_bch_t* hawk_find_bchars_in_bchars (const hawk_bch_t* str, hawk_oow_t strsz,
 	}
 	else
 	{
-		while (str <= end) 
+		while (str <= end)
 		{
 			const hawk_bch_t* x = str;
 			const hawk_bch_t* y = sub;
@@ -1149,12 +1149,12 @@ hawk_uch_t* hawk_rfind_uchars_in_uchars (const hawk_uch_t* str, hawk_oow_t strsz
 
 	if (HAWK_UNLIKELY(ignorecase))
 	{
-		while (p >= str) 
+		while (p >= str)
 		{
 			const hawk_uch_t* x = p;
 			const hawk_uch_t* y = sub;
 
-			while (1) 
+			while (1)
 			{
 				if (y >= subp) return (hawk_uch_t*)p;
 				if (hawk_to_uch_lower(*x) != hawk_to_uch_lower(*y)) break;
@@ -1166,17 +1166,17 @@ hawk_uch_t* hawk_rfind_uchars_in_uchars (const hawk_uch_t* str, hawk_oow_t strsz
 	}
 	else
 	{
-		while (p >= str) 
+		while (p >= str)
 		{
 			const hawk_uch_t* x = p;
 			const hawk_uch_t* y = sub;
 
-			while (1) 
+			while (1)
 			{
 				if (y >= subp) return (hawk_uch_t*)p;
 				if (*x != *y) break;
 				x++; y++;
-			}	
+			}
 
 			p--;
 		}
@@ -1197,12 +1197,12 @@ hawk_bch_t* hawk_rfind_bchars_in_bchars (const hawk_bch_t* str, hawk_oow_t strsz
 
 	if (HAWK_UNLIKELY(ignorecase))
 	{
-		while (p >= str) 
+		while (p >= str)
 		{
 			const hawk_bch_t* x = p;
 			const hawk_bch_t* y = sub;
 
-			while (1) 
+			while (1)
 			{
 				if (y >= subp) return (hawk_bch_t*)p;
 				if (hawk_to_bch_lower(*x) != hawk_to_bch_lower(*y)) break;
@@ -1214,17 +1214,17 @@ hawk_bch_t* hawk_rfind_bchars_in_bchars (const hawk_bch_t* str, hawk_oow_t strsz
 	}
 	else
 	{
-		while (p >= str) 
+		while (p >= str)
 		{
 			const hawk_bch_t* x = p;
 			const hawk_bch_t* y = sub;
 
-			while (1) 
+			while (1)
 			{
 				if (y >= subp) return (hawk_bch_t*)p;
 				if (*x != *y) break;
 				x++; y++;
-			}	
+			}
 
 			p--;
 		}
@@ -1239,30 +1239,30 @@ hawk_oow_t hawk_compact_uchars (hawk_uch_t* str, hawk_oow_t len)
 	int followed_by_space = 0;
 	int state = 0;
 
-	while (p < end) 
+	while (p < end)
 	{
-		if (state == 0) 
+		if (state == 0)
 		{
-			if (!hawk_is_uch_space(*p)) 
+			if (!hawk_is_uch_space(*p))
 			{
 				*q++ = *p;
 				state = 1;
 			}
 		}
-		else if (state == 1) 
+		else if (state == 1)
 		{
-			if (hawk_is_uch_space(*p)) 
+			if (hawk_is_uch_space(*p))
 			{
-				if (!followed_by_space) 
+				if (!followed_by_space)
 				{
 					followed_by_space = 1;
 					*q++ = *p;
 				}
 			}
-			else 
+			else
 			{
 				followed_by_space = 0;
-				*q++ = *p;	
+				*q++ = *p;
 			}
 		}
 
@@ -1278,30 +1278,30 @@ hawk_oow_t hawk_compact_bchars (hawk_bch_t* str, hawk_oow_t len)
 	int followed_by_space = 0;
 	int state = 0;
 
-	while (p < end) 
+	while (p < end)
 	{
-		if (state == 0) 
+		if (state == 0)
 		{
-			if (!hawk_is_bch_space(*p)) 
+			if (!hawk_is_bch_space(*p))
 			{
 				*q++ = *p;
 				state = 1;
 			}
 		}
-		else if (state == 1) 
+		else if (state == 1)
 		{
-			if (hawk_is_bch_space(*p)) 
+			if (hawk_is_bch_space(*p))
 			{
-				if (!followed_by_space) 
+				if (!followed_by_space)
 				{
 					followed_by_space = 1;
 					*q++ = *p;
 				}
 			}
-			else 
+			else
 			{
 				followed_by_space = 0;
-				*q++ = *p;	
+				*q++ = *p;
 			}
 		}
 
@@ -1400,11 +1400,11 @@ hawk_uch_t* hawk_trim_uchars (const hawk_uch_t* str, hawk_oow_t* len, int flags)
 
 		if (e)
 		{
-			if (flags & HAWK_TRIM_UCHARS_RIGHT) 
+			if (flags & HAWK_TRIM_UCHARS_RIGHT)
 			{
 				*len -= end - e - 1;
 			}
-			if (flags & HAWK_TRIM_UCHARS_LEFT) 
+			if (flags & HAWK_TRIM_UCHARS_LEFT)
 			{
 				*len -= s - str;
 				str = s;
@@ -1413,7 +1413,7 @@ hawk_uch_t* hawk_trim_uchars (const hawk_uch_t* str, hawk_oow_t* len, int flags)
 		else
 		{
 			/* the entire string need to be deleted */
-			if ((flags & HAWK_TRIM_UCHARS_RIGHT) || 
+			if ((flags & HAWK_TRIM_UCHARS_RIGHT) ||
 			    (flags & HAWK_TRIM_UCHARS_LEFT)) *len = 0;
 		}
 	}
@@ -1442,11 +1442,11 @@ hawk_bch_t* hawk_trim_bchars (const hawk_bch_t* str, hawk_oow_t* len, int flags)
 
 		if (e)
 		{
-			if (flags & HAWK_TRIM_BCHARS_RIGHT) 
+			if (flags & HAWK_TRIM_BCHARS_RIGHT)
 			{
 				*len -= end - e - 1;
 			}
-			if (flags & HAWK_TRIM_BCHARS_LEFT) 
+			if (flags & HAWK_TRIM_BCHARS_LEFT)
 			{
 				*len -= s - str;
 				str = s;
@@ -1455,7 +1455,7 @@ hawk_bch_t* hawk_trim_bchars (const hawk_bch_t* str, hawk_oow_t* len, int flags)
 		else
 		{
 			/* the entire string need to be deleted */
-			if ((flags & HAWK_TRIM_BCHARS_RIGHT) || 
+			if ((flags & HAWK_TRIM_BCHARS_RIGHT) ||
 			    (flags & HAWK_TRIM_BCHARS_LEFT)) *len = 0;
 		}
 	}
@@ -1471,35 +1471,35 @@ int hawk_split_ucstr (hawk_uch_t* s, const hawk_uch_t* delim, hawk_uch_t lquote,
 	int cnt = 0;
 
 	if (delim == HAWK_NULL) delim_mode = 0;
-	else 
+	else
 	{
 		delim_mode = 1;
 		for (d = (hawk_uch_t*)delim; *d != '\0'; d++)
 			if (!hawk_is_uch_space(*d)) delim_mode = 2;
 	}
 
-	if (delim_mode == 0) 
+	if (delim_mode == 0)
 	{
 		/* skip preceding space characters */
 		while (hawk_is_uch_space(*p)) p++;
 
 		/* when 0 is given as "delim", it has an effect of cutting
 		   preceding and trailing space characters off "s". */
-		if (lquote != '\0' && *p == lquote) 
+		if (lquote != '\0' && *p == lquote)
 		{
 			hawk_copy_ucstr_unlimited (p, p + 1);
 
-			for (;;) 
+			for (;;)
 			{
 				if (*p == '\0') return -1;
 
-				if (escape != '\0' && *p == escape) 
+				if (escape != '\0' && *p == escape)
 				{
 					hawk_copy_ucstr_unlimited (p, p + 1);
 				}
-				else 
+				else
 				{
-					if (*p == rquote) 
+					if (*p == rquote)
 					{
 						p++;
 						break;
@@ -1514,18 +1514,18 @@ int hawk_split_ucstr (hawk_uch_t* s, const hawk_uch_t* delim, hawk_uch_t lquote,
 			if (*p != '\0') return -1;
 
 			if (sp == 0 && ep == 0) s[0] = '\0';
-			else 
+			else
 			{
 				ep[1] = '\0';
 				if (s != (hawk_uch_t*)sp) hawk_copy_ucstr_unlimited (s, sp);
 				cnt++;
 			}
 		}
-		else 
+		else
 		{
-			while (*p) 
+			while (*p)
 			{
-				if (!hawk_is_uch_space(*p)) 
+				if (!hawk_is_uch_space(*p))
 				{
 					if (sp == 0) sp = p;
 					ep = p;
@@ -1534,7 +1534,7 @@ int hawk_split_ucstr (hawk_uch_t* s, const hawk_uch_t* delim, hawk_uch_t lquote,
 			}
 
 			if (sp == 0 && ep == 0) s[0] = '\0';
-			else 
+			else
 			{
 				ep[1] = '\0';
 				if (s != (hawk_uch_t*)sp) hawk_copy_ucstr_unlimited (s, sp);
@@ -1542,31 +1542,31 @@ int hawk_split_ucstr (hawk_uch_t* s, const hawk_uch_t* delim, hawk_uch_t lquote,
 			}
 		}
 	}
-	else if (delim_mode == 1) 
+	else if (delim_mode == 1)
 	{
 		hawk_uch_t* o;
 
-		while (*p) 
+		while (*p)
 		{
 			o = p;
 			while (hawk_is_uch_space(*p)) p++;
 			if (o != p) { hawk_copy_ucstr_unlimited (o, p); p = o; }
 
-			if (lquote != '\0' && *p == lquote) 
+			if (lquote != '\0' && *p == lquote)
 			{
 				hawk_copy_ucstr_unlimited (p, p + 1);
 
-				for (;;) 
+				for (;;)
 				{
 					if (*p == '\0') return -1;
 
-					if (escape != '\0' && *p == escape) 
+					if (escape != '\0' && *p == escape)
 					{
 						hawk_copy_ucstr_unlimited (p, p + 1);
 					}
-					else 
+					else
 					{
-						if (*p == rquote) 
+						if (*p == rquote)
 						{
 							*p++ = '\0';
 							cnt++;
@@ -1576,17 +1576,17 @@ int hawk_split_ucstr (hawk_uch_t* s, const hawk_uch_t* delim, hawk_uch_t lquote,
 					p++;
 				}
 			}
-			else 
+			else
 			{
 				o = p;
-				for (;;) 
+				for (;;)
 				{
-					if (*p == '\0') 
+					if (*p == '\0')
 					{
 						if (o != p) cnt++;
 						break;
 					}
-					if (hawk_is_uch_space(*p)) 
+					if (hawk_is_uch_space(*p))
 					{
 						*p++ = '\0';
 						cnt++;
@@ -1602,27 +1602,27 @@ int hawk_split_ucstr (hawk_uch_t* s, const hawk_uch_t* delim, hawk_uch_t lquote,
 		hawk_uch_t* o;
 		int ok;
 
-		while (*p != '\0') 
+		while (*p != '\0')
 		{
 			o = p;
 			while (hawk_is_uch_space(*p)) p++;
 			if (o != p) { hawk_copy_ucstr_unlimited (o, p); p = o; }
 
-			if (lquote != '\0' && *p == lquote) 
+			if (lquote != '\0' && *p == lquote)
 			{
 				hawk_copy_ucstr_unlimited (p, p + 1);
 
-				for (;;) 
+				for (;;)
 				{
 					if (*p == '\0') return -1;
 
-					if (escape != '\0' && *p == escape) 
+					if (escape != '\0' && *p == escape)
 					{
 						hawk_copy_ucstr_unlimited (p, p + 1);
 					}
-					else 
+					else
 					{
-						if (*p == rquote) 
+						if (*p == rquote)
 						{
 							*p++ = '\0';
 							cnt++;
@@ -1635,9 +1635,9 @@ int hawk_split_ucstr (hawk_uch_t* s, const hawk_uch_t* delim, hawk_uch_t lquote,
 				ok = 0;
 				while (hawk_is_uch_space(*p)) p++;
 				if (*p == '\0') ok = 1;
-				for (d = (hawk_uch_t*)delim; *d != '\0'; d++) 
+				for (d = (hawk_uch_t*)delim; *d != '\0'; d++)
 				{
-					if (*p == *d) 
+					if (*p == *d)
 					{
 						ok = 1;
 						hawk_copy_ucstr_unlimited (p, p + 1);
@@ -1646,15 +1646,15 @@ int hawk_split_ucstr (hawk_uch_t* s, const hawk_uch_t* delim, hawk_uch_t lquote,
 				}
 				if (ok == 0) return -1;
 			}
-			else 
+			else
 			{
 				o = p; sp = ep = 0;
 
-				for (;;) 
+				for (;;)
 				{
-					if (*p == '\0') 
+					if (*p == '\0')
 					{
-						if (ep) 
+						if (ep)
 						{
 							ep[1] = '\0';
 							p = &ep[1];
@@ -1662,16 +1662,16 @@ int hawk_split_ucstr (hawk_uch_t* s, const hawk_uch_t* delim, hawk_uch_t lquote,
 						cnt++;
 						break;
 					}
-					for (d = (hawk_uch_t*)delim; *d != '\0'; d++) 
+					for (d = (hawk_uch_t*)delim; *d != '\0'; d++)
 					{
-						if (*p == *d)  
+						if (*p == *d)
 						{
-							if (sp == HAWK_NULL) 
+							if (sp == HAWK_NULL)
 							{
 								hawk_copy_ucstr_unlimited (o, p); p = o;
 								*p++ = '\0';
 							}
-							else 
+							else
 							{
 								hawk_copy_ucstr_unlimited (&ep[1], p);
 								hawk_copy_ucstr_unlimited (o, sp);
@@ -1685,7 +1685,7 @@ int hawk_split_ucstr (hawk_uch_t* s, const hawk_uch_t* delim, hawk_uch_t lquote,
 						}
 					}
 
-					if (!hawk_is_uch_space(*p)) 
+					if (!hawk_is_uch_space(*p))
 					{
 						if (sp == HAWK_NULL) sp = p;
 						ep = p;
@@ -1709,35 +1709,35 @@ int hawk_split_bcstr (hawk_bch_t* s, const hawk_bch_t* delim, hawk_bch_t lquote,
 	int cnt = 0;
 
 	if (delim == HAWK_NULL) delim_mode = 0;
-	else 
+	else
 	{
 		delim_mode = 1;
 		for (d = (hawk_bch_t*)delim; *d != '\0'; d++)
 			if (!hawk_is_bch_space(*d)) delim_mode = 2;
 	}
 
-	if (delim_mode == 0) 
+	if (delim_mode == 0)
 	{
 		/* skip preceding space characters */
 		while (hawk_is_bch_space(*p)) p++;
 
 		/* when 0 is given as "delim", it has an effect of cutting
 		   preceding and trailing space characters off "s". */
-		if (lquote != '\0' && *p == lquote) 
+		if (lquote != '\0' && *p == lquote)
 		{
 			hawk_copy_bcstr_unlimited (p, p + 1);
 
-			for (;;) 
+			for (;;)
 			{
 				if (*p == '\0') return -1;
 
-				if (escape != '\0' && *p == escape) 
+				if (escape != '\0' && *p == escape)
 				{
 					hawk_copy_bcstr_unlimited (p, p + 1);
 				}
-				else 
+				else
 				{
-					if (*p == rquote) 
+					if (*p == rquote)
 					{
 						p++;
 						break;
@@ -1752,18 +1752,18 @@ int hawk_split_bcstr (hawk_bch_t* s, const hawk_bch_t* delim, hawk_bch_t lquote,
 			if (*p != '\0') return -1;
 
 			if (sp == 0 && ep == 0) s[0] = '\0';
-			else 
+			else
 			{
 				ep[1] = '\0';
 				if (s != (hawk_bch_t*)sp) hawk_copy_bcstr_unlimited (s, sp);
 				cnt++;
 			}
 		}
-		else 
+		else
 		{
-			while (*p) 
+			while (*p)
 			{
-				if (!hawk_is_bch_space(*p)) 
+				if (!hawk_is_bch_space(*p))
 				{
 					if (sp == 0) sp = p;
 					ep = p;
@@ -1772,7 +1772,7 @@ int hawk_split_bcstr (hawk_bch_t* s, const hawk_bch_t* delim, hawk_bch_t lquote,
 			}
 
 			if (sp == 0 && ep == 0) s[0] = '\0';
-			else 
+			else
 			{
 				ep[1] = '\0';
 				if (s != (hawk_bch_t*)sp) hawk_copy_bcstr_unlimited (s, sp);
@@ -1780,31 +1780,31 @@ int hawk_split_bcstr (hawk_bch_t* s, const hawk_bch_t* delim, hawk_bch_t lquote,
 			}
 		}
 	}
-	else if (delim_mode == 1) 
+	else if (delim_mode == 1)
 	{
 		hawk_bch_t* o;
 
-		while (*p) 
+		while (*p)
 		{
 			o = p;
 			while (hawk_is_bch_space(*p)) p++;
 			if (o != p) { hawk_copy_bcstr_unlimited (o, p); p = o; }
 
-			if (lquote != '\0' && *p == lquote) 
+			if (lquote != '\0' && *p == lquote)
 			{
 				hawk_copy_bcstr_unlimited (p, p + 1);
 
-				for (;;) 
+				for (;;)
 				{
 					if (*p == '\0') return -1;
 
-					if (escape != '\0' && *p == escape) 
+					if (escape != '\0' && *p == escape)
 					{
 						hawk_copy_bcstr_unlimited (p, p + 1);
 					}
-					else 
+					else
 					{
-						if (*p == rquote) 
+						if (*p == rquote)
 						{
 							*p++ = '\0';
 							cnt++;
@@ -1814,17 +1814,17 @@ int hawk_split_bcstr (hawk_bch_t* s, const hawk_bch_t* delim, hawk_bch_t lquote,
 					p++;
 				}
 			}
-			else 
+			else
 			{
 				o = p;
-				for (;;) 
+				for (;;)
 				{
-					if (*p == '\0') 
+					if (*p == '\0')
 					{
 						if (o != p) cnt++;
 						break;
 					}
-					if (hawk_is_bch_space(*p)) 
+					if (hawk_is_bch_space(*p))
 					{
 						*p++ = '\0';
 						cnt++;
@@ -1840,27 +1840,27 @@ int hawk_split_bcstr (hawk_bch_t* s, const hawk_bch_t* delim, hawk_bch_t lquote,
 		hawk_bch_t* o;
 		int ok;
 
-		while (*p != '\0') 
+		while (*p != '\0')
 		{
 			o = p;
 			while (hawk_is_bch_space(*p)) p++;
 			if (o != p) { hawk_copy_bcstr_unlimited (o, p); p = o; }
 
-			if (lquote != '\0' && *p == lquote) 
+			if (lquote != '\0' && *p == lquote)
 			{
 				hawk_copy_bcstr_unlimited (p, p + 1);
 
-				for (;;) 
+				for (;;)
 				{
 					if (*p == '\0') return -1;
 
-					if (escape != '\0' && *p == escape) 
+					if (escape != '\0' && *p == escape)
 					{
 						hawk_copy_bcstr_unlimited (p, p + 1);
 					}
-					else 
+					else
 					{
-						if (*p == rquote) 
+						if (*p == rquote)
 						{
 							*p++ = '\0';
 							cnt++;
@@ -1873,9 +1873,9 @@ int hawk_split_bcstr (hawk_bch_t* s, const hawk_bch_t* delim, hawk_bch_t lquote,
 				ok = 0;
 				while (hawk_is_bch_space(*p)) p++;
 				if (*p == '\0') ok = 1;
-				for (d = (hawk_bch_t*)delim; *d != '\0'; d++) 
+				for (d = (hawk_bch_t*)delim; *d != '\0'; d++)
 				{
-					if (*p == *d) 
+					if (*p == *d)
 					{
 						ok = 1;
 						hawk_copy_bcstr_unlimited (p, p + 1);
@@ -1884,15 +1884,15 @@ int hawk_split_bcstr (hawk_bch_t* s, const hawk_bch_t* delim, hawk_bch_t lquote,
 				}
 				if (ok == 0) return -1;
 			}
-			else 
+			else
 			{
 				o = p; sp = ep = 0;
 
-				for (;;) 
+				for (;;)
 				{
-					if (*p == '\0') 
+					if (*p == '\0')
 					{
-						if (ep) 
+						if (ep)
 						{
 							ep[1] = '\0';
 							p = &ep[1];
@@ -1900,16 +1900,16 @@ int hawk_split_bcstr (hawk_bch_t* s, const hawk_bch_t* delim, hawk_bch_t lquote,
 						cnt++;
 						break;
 					}
-					for (d = (hawk_bch_t*)delim; *d != '\0'; d++) 
+					for (d = (hawk_bch_t*)delim; *d != '\0'; d++)
 					{
-						if (*p == *d)  
+						if (*p == *d)
 						{
-							if (sp == HAWK_NULL) 
+							if (sp == HAWK_NULL)
 							{
 								hawk_copy_bcstr_unlimited (o, p); p = o;
 								*p++ = '\0';
 							}
-							else 
+							else
 							{
 								hawk_copy_bcstr_unlimited (&ep[1], p);
 								hawk_copy_bcstr_unlimited (o, sp);
@@ -1923,7 +1923,7 @@ int hawk_split_bcstr (hawk_bch_t* s, const hawk_bch_t* delim, hawk_bch_t lquote,
 						}
 					}
 
-					if (!hawk_is_bch_space(*p)) 
+					if (!hawk_is_bch_space(*p))
 					{
 						if (sp == HAWK_NULL) sp = p;
 						ep = p;
@@ -1945,7 +1945,7 @@ hawk_uch_t* hawk_tokenize_uchars (const hawk_uch_t* s, hawk_oow_t len, const haw
 	const hawk_uch_t* end = s + len;
 	const hawk_uch_t* sp = HAWK_NULL, * ep = HAWK_NULL;
 	const hawk_uch_t* delim_end = delim + delim_len;
-	hawk_uch_t c; 
+	hawk_uch_t c;
 	int delim_mode;
 
 #define __DELIM_NULL      0
@@ -1954,13 +1954,13 @@ hawk_uch_t* hawk_tokenize_uchars (const hawk_uch_t* s, hawk_oow_t len, const haw
 #define __DELIM_NOSPACES  3
 #define __DELIM_COMPOSITE 4
 	if (delim == HAWK_NULL) delim_mode = __DELIM_NULL;
-	else 
+	else
 	{
 		delim_mode = __DELIM_EMPTY;
 
-		for (d = delim; d < delim_end; d++) 
+		for (d = delim; d < delim_end; d++)
 		{
-			if (hawk_is_uch_space(*d)) 
+			if (hawk_is_uch_space(*d))
 			{
 				if (delim_mode == __DELIM_EMPTY)
 					delim_mode = __DELIM_SPACES;
@@ -1984,20 +1984,20 @@ hawk_uch_t* hawk_tokenize_uchars (const hawk_uch_t* s, hawk_oow_t len, const haw
 
 		/* TODO: verify the following statement... */
 		if (delim_mode == __DELIM_SPACES && delim_len == 1 && delim[0] != ' ') delim_mode = __DELIM_NOSPACES;
-	}		
-	
-	if (delim_mode == __DELIM_NULL) 
-	{ 
-		/* when HAWK_NULL is given as "delim", it trims off the 
+	}
+
+	if (delim_mode == __DELIM_NULL)
+	{
+		/* when HAWK_NULL is given as "delim", it trims off the
 		 * leading and trailing spaces characters off the source
 		 * string "s" eventually. */
 
 		while (p < end && hawk_is_uch_space(*p)) p++;
-		while (p < end) 
+		while (p < end)
 		{
 			c = *p;
 
-			if (!hawk_is_uch_space(c)) 
+			if (!hawk_is_uch_space(c))
 			{
 				if (sp == HAWK_NULL) sp = p;
 				ep = p;
@@ -2015,13 +2015,13 @@ hawk_uch_t* hawk_tokenize_uchars (const hawk_uch_t* s, hawk_oow_t len, const haw
 			ep = p++;
 		}
 	}
-	else if (delim_mode == __DELIM_SPACES) 
+	else if (delim_mode == __DELIM_SPACES)
 	{
 		/* each token is delimited by space characters. all leading
 		 * and trailing spaces are removed. */
 
 		while (p < end && hawk_is_uch_space(*p)) p++;
-		while (p < end) 
+		while (p < end)
 		{
 			c = *p;
 			if (hawk_is_uch_space(c)) break;
@@ -2032,14 +2032,14 @@ hawk_uch_t* hawk_tokenize_uchars (const hawk_uch_t* s, hawk_oow_t len, const haw
 	}
 	else if (delim_mode == __DELIM_NOSPACES)
 	{
-		/* each token is delimited by one of charaters 
+		/* each token is delimited by one of charaters
 		 * in the delimeter set "delim". */
 		if (ignorecase)
 		{
-			while (p < end) 
+			while (p < end)
 			{
 				c = hawk_to_uch_lower(*p);
-				for (d = delim; d < delim_end; d++) 
+				for (d = delim; d < delim_end; d++)
 				{
 					if (c == hawk_to_uch_lower(*d)) goto exit_loop;
 				}
@@ -2050,10 +2050,10 @@ hawk_uch_t* hawk_tokenize_uchars (const hawk_uch_t* s, hawk_oow_t len, const haw
 		}
 		else
 		{
-			while (p < end) 
+			while (p < end)
 			{
 				c = *p;
-				for (d = delim; d < delim_end; d++) 
+				for (d = delim; d < delim_end; d++)
 				{
 					if (c == *d) goto exit_loop;
 				}
@@ -2063,7 +2063,7 @@ hawk_uch_t* hawk_tokenize_uchars (const hawk_uch_t* s, hawk_oow_t len, const haw
 			}
 		}
 	}
-	else /* if (delim_mode == __DELIM_COMPOSITE) */ 
+	else /* if (delim_mode == __DELIM_COMPOSITE) */
 	{
 		/* each token is delimited by one of non-space charaters
 		 * in the delimeter set "delim". however, all space characters
@@ -2071,15 +2071,15 @@ hawk_uch_t* hawk_tokenize_uchars (const hawk_uch_t* s, hawk_oow_t len, const haw
 		while (p < end && hawk_is_uch_space(*p)) p++;
 		if (ignorecase)
 		{
-			while (p < end) 
+			while (p < end)
 			{
 				c = hawk_to_uch_lower(*p);
-				if (hawk_is_uch_space(c)) 
+				if (hawk_is_uch_space(c))
 				{
 					p++;
 					continue;
 				}
-				for (d = delim; d < delim_end; d++) 
+				for (d = delim; d < delim_end; d++)
 				{
 					if (c == hawk_to_uch_lower(*d)) goto exit_loop;
 				}
@@ -2089,15 +2089,15 @@ hawk_uch_t* hawk_tokenize_uchars (const hawk_uch_t* s, hawk_oow_t len, const haw
 		}
 		else
 		{
-			while (p < end) 
+			while (p < end)
 			{
 				c = *p;
-				if (hawk_is_uch_space(c)) 
+				if (hawk_is_uch_space(c))
 				{
 					p++;
 					continue;
 				}
-				for (d = delim; d < delim_end; d++) 
+				for (d = delim; d < delim_end; d++)
 				{
 					if (c == *d) goto exit_loop;
 				}
@@ -2108,12 +2108,12 @@ hawk_uch_t* hawk_tokenize_uchars (const hawk_uch_t* s, hawk_oow_t len, const haw
 	}
 
 exit_loop:
-	if (sp == HAWK_NULL) 
+	if (sp == HAWK_NULL)
 	{
 		tok->ptr = HAWK_NULL;
 		tok->len = (hawk_oow_t)0;
 	}
-	else 
+	else
 	{
 		tok->ptr = (hawk_uch_t*)sp;
 		tok->len = ep - sp + 1;
@@ -2131,7 +2131,7 @@ hawk_bch_t* hawk_tokenize_bchars (const hawk_bch_t* s, hawk_oow_t len, const haw
 	const hawk_bch_t* end = s + len;
 	const hawk_bch_t* sp = HAWK_NULL, * ep = HAWK_NULL;
 	const hawk_bch_t* delim_end = delim + delim_len;
-	hawk_bch_t c; 
+	hawk_bch_t c;
 	int delim_mode;
 
 #define __DELIM_NULL      0
@@ -2140,13 +2140,13 @@ hawk_bch_t* hawk_tokenize_bchars (const hawk_bch_t* s, hawk_oow_t len, const haw
 #define __DELIM_NOSPACES  3
 #define __DELIM_COMPOSITE 4
 	if (delim == HAWK_NULL) delim_mode = __DELIM_NULL;
-	else 
+	else
 	{
 		delim_mode = __DELIM_EMPTY;
 
-		for (d = delim; d < delim_end; d++) 
+		for (d = delim; d < delim_end; d++)
 		{
-			if (hawk_is_bch_space(*d)) 
+			if (hawk_is_bch_space(*d))
 			{
 				if (delim_mode == __DELIM_EMPTY)
 					delim_mode = __DELIM_SPACES;
@@ -2170,20 +2170,20 @@ hawk_bch_t* hawk_tokenize_bchars (const hawk_bch_t* s, hawk_oow_t len, const haw
 
 		/* TODO: verify the following statement... */
 		if (delim_mode == __DELIM_SPACES && delim_len == 1 && delim[0] != ' ') delim_mode = __DELIM_NOSPACES;
-	}		
-	
-	if (delim_mode == __DELIM_NULL) 
-	{ 
-		/* when HAWK_NULL is given as "delim", it trims off the 
+	}
+
+	if (delim_mode == __DELIM_NULL)
+	{
+		/* when HAWK_NULL is given as "delim", it trims off the
 		 * leading and trailing spaces characters off the source
 		 * string "s" eventually. */
 
 		while (p < end && hawk_is_bch_space(*p)) p++;
-		while (p < end) 
+		while (p < end)
 		{
 			c = *p;
 
-			if (!hawk_is_bch_space(c)) 
+			if (!hawk_is_bch_space(c))
 			{
 				if (sp == HAWK_NULL) sp = p;
 				ep = p;
@@ -2201,13 +2201,13 @@ hawk_bch_t* hawk_tokenize_bchars (const hawk_bch_t* s, hawk_oow_t len, const haw
 			ep = p++;
 		}
 	}
-	else if (delim_mode == __DELIM_SPACES) 
+	else if (delim_mode == __DELIM_SPACES)
 	{
 		/* each token is delimited by space characters. all leading
 		 * and trailing spaces are removed. */
 
 		while (p < end && hawk_is_bch_space(*p)) p++;
-		while (p < end) 
+		while (p < end)
 		{
 			c = *p;
 			if (hawk_is_bch_space(c)) break;
@@ -2218,14 +2218,14 @@ hawk_bch_t* hawk_tokenize_bchars (const hawk_bch_t* s, hawk_oow_t len, const haw
 	}
 	else if (delim_mode == __DELIM_NOSPACES)
 	{
-		/* each token is delimited by one of charaters 
+		/* each token is delimited by one of charaters
 		 * in the delimeter set "delim". */
 		if (ignorecase)
 		{
-			while (p < end) 
+			while (p < end)
 			{
 				c = hawk_to_bch_lower(*p);
-				for (d = delim; d < delim_end; d++) 
+				for (d = delim; d < delim_end; d++)
 				{
 					if (c == hawk_to_bch_lower(*d)) goto exit_loop;
 				}
@@ -2236,10 +2236,10 @@ hawk_bch_t* hawk_tokenize_bchars (const hawk_bch_t* s, hawk_oow_t len, const haw
 		}
 		else
 		{
-			while (p < end) 
+			while (p < end)
 			{
 				c = *p;
-				for (d = delim; d < delim_end; d++) 
+				for (d = delim; d < delim_end; d++)
 				{
 					if (c == *d) goto exit_loop;
 				}
@@ -2249,7 +2249,7 @@ hawk_bch_t* hawk_tokenize_bchars (const hawk_bch_t* s, hawk_oow_t len, const haw
 			}
 		}
 	}
-	else /* if (delim_mode == __DELIM_COMPOSITE) */ 
+	else /* if (delim_mode == __DELIM_COMPOSITE) */
 	{
 		/* each token is delimited by one of non-space charaters
 		 * in the delimeter set "delim". however, all space characters
@@ -2257,15 +2257,15 @@ hawk_bch_t* hawk_tokenize_bchars (const hawk_bch_t* s, hawk_oow_t len, const haw
 		while (p < end && hawk_is_bch_space(*p)) p++;
 		if (ignorecase)
 		{
-			while (p < end) 
+			while (p < end)
 			{
 				c = hawk_to_bch_lower(*p);
-				if (hawk_is_bch_space(c)) 
+				if (hawk_is_bch_space(c))
 				{
 					p++;
 					continue;
 				}
-				for (d = delim; d < delim_end; d++) 
+				for (d = delim; d < delim_end; d++)
 				{
 					if (c == hawk_to_bch_lower(*d)) goto exit_loop;
 				}
@@ -2275,15 +2275,15 @@ hawk_bch_t* hawk_tokenize_bchars (const hawk_bch_t* s, hawk_oow_t len, const haw
 		}
 		else
 		{
-			while (p < end) 
+			while (p < end)
 			{
 				c = *p;
-				if (hawk_is_bch_space(c)) 
+				if (hawk_is_bch_space(c))
 				{
 					p++;
 					continue;
 				}
-				for (d = delim; d < delim_end; d++) 
+				for (d = delim; d < delim_end; d++)
 				{
 					if (c == *d) goto exit_loop;
 				}
@@ -2294,12 +2294,12 @@ hawk_bch_t* hawk_tokenize_bchars (const hawk_bch_t* s, hawk_oow_t len, const haw
 	}
 
 exit_loop:
-	if (sp == HAWK_NULL) 
+	if (sp == HAWK_NULL)
 	{
 		tok->ptr = HAWK_NULL;
 		tok->len = (hawk_oow_t)0;
 	}
-	else 
+	else
 	{
 		tok->ptr = (hawk_bch_t*)sp;
 		tok->len = ep - sp + 1;
@@ -2322,7 +2322,7 @@ hawk_oow_t hawk_byte_to_ucstr (hawk_uint8_t byte, hawk_uch_t* buf, hawk_oow_t si
 	radix_char = (flagged_radix & HAWK_BYTE_TO_UCSTR_LOWERCASE)? 'a': 'A';
 	if (radix < 2 || radix > 36 || size <= 0) return 0;
 
-	do 
+	do
 	{
 		hawk_uint8_t digit = byte % radix;
 		if (digit < 10) *p++ = digit + '0';
@@ -2331,9 +2331,9 @@ hawk_oow_t hawk_byte_to_ucstr (hawk_uint8_t byte, hawk_uch_t* buf, hawk_oow_t si
 	}
 	while (byte > 0);
 
-	if (fill != '\0') 
+	if (fill != '\0')
 	{
-		while (size - 1 > p - tmp) 
+		while (size - 1 > p - tmp)
 		{
 			*bp++ = fill;
 			size--;
@@ -2356,7 +2356,7 @@ hawk_oow_t hawk_byte_to_bcstr (hawk_uint8_t byte, hawk_bch_t* buf, hawk_oow_t si
 	radix_char = (flagged_radix & HAWK_BYTE_TO_BCSTR_LOWERCASE)? 'a': 'A';
 	if (radix < 2 || radix > 36 || size <= 0) return 0;
 
-	do 
+	do
 	{
 		hawk_uint8_t digit = byte % radix;
 		if (digit < 10) *p++ = digit + '0';
@@ -2365,9 +2365,9 @@ hawk_oow_t hawk_byte_to_bcstr (hawk_uint8_t byte, hawk_bch_t* buf, hawk_oow_t si
 	}
 	while (byte > 0);
 
-	if (fill != '\0') 
+	if (fill != '\0')
 	{
-		while (size - 1 > p - tmp) 
+		while (size - 1 > p - tmp)
 		{
 			*bp++ = fill;
 			size--;
@@ -2391,14 +2391,14 @@ hawk_oow_t hawk_int_to_ucstr (hawk_int_t value, int radix, const hawk_uch_t* pre
 	if (t == 0)
 	{
 		/* zero */
-		if (buf == HAWK_NULL) 
+		if (buf == HAWK_NULL)
 		{
-			/* if buf is not given, 
+			/* if buf is not given,
 			 * return the number of bytes required */
 			return prefix_len + 1;
 		}
 
-		if (size < prefix_len+1) 
+		if (size < prefix_len+1)
 		{
 			/* buffer too small */
 			return (hawk_oow_t)-1;
@@ -2428,7 +2428,7 @@ hawk_oow_t hawk_int_to_ucstr (hawk_int_t value, int radix, const hawk_uch_t* pre
 	t = value;
 	if (t < 0) t = -t;
 
-	while (t > 0) 
+	while (t > 0)
 	{
 		rem = t % radix;
 		if (rem >= 10)
@@ -2438,9 +2438,9 @@ hawk_oow_t hawk_int_to_ucstr (hawk_int_t value, int radix, const hawk_uch_t* pre
 		t /= radix;
 	}
 
-	if (value < 0) 
+	if (value < 0)
 	{
-		for (i = 1; i <= prefix_len; i++) 
+		for (i = 1; i <= prefix_len; i++)
 		{
 			buf[i] = prefix[i-1];
 			len--;
@@ -2467,14 +2467,14 @@ hawk_oow_t hawk_int_to_bcstr (hawk_int_t value, int radix, const hawk_bch_t* pre
 	if (t == 0)
 	{
 		/* zero */
-		if (buf == HAWK_NULL) 
+		if (buf == HAWK_NULL)
 		{
-			/* if buf is not given, 
+			/* if buf is not given,
 			 * return the number of bytes required */
 			return prefix_len + 1;
 		}
 
-		if (size < prefix_len+1) 
+		if (size < prefix_len+1)
 		{
 			/* buffer too small */
 			return (hawk_oow_t)-1;
@@ -2504,7 +2504,7 @@ hawk_oow_t hawk_int_to_bcstr (hawk_int_t value, int radix, const hawk_bch_t* pre
 	t = value;
 	if (t < 0) t = -t;
 
-	while (t > 0) 
+	while (t > 0)
 	{
 		rem = t % radix;
 		if (rem >= 10)
@@ -2514,9 +2514,9 @@ hawk_oow_t hawk_int_to_bcstr (hawk_int_t value, int radix, const hawk_bch_t* pre
 		t /= radix;
 	}
 
-	if (value < 0) 
+	if (value < 0)
 	{
-		for (i = 1; i <= prefix_len; i++) 
+		for (i = 1; i <= prefix_len; i++)
 		{
 			buf[i] = prefix[i-1];
 			len--;
@@ -2543,14 +2543,14 @@ hawk_oow_t hawk_uint_to_ucstr (hawk_uint_t value, int radix, const hawk_uch_t* p
 	if (t == 0)
 	{
 		/* zero */
-		if (buf == HAWK_NULL) 
+		if (buf == HAWK_NULL)
 		{
-			/* if buf is not given, 
+			/* if buf is not given,
 			 * return the number of bytes required */
 			return prefix_len + 1;
 		}
 
-		if (size < prefix_len+1) 
+		if (size < prefix_len+1)
 		{
 			/* buffer too small */
 			return (hawk_oow_t)-1;
@@ -2580,7 +2580,7 @@ hawk_oow_t hawk_uint_to_ucstr (hawk_uint_t value, int radix, const hawk_uch_t* p
 	t = value;
 	if (t < 0) t = -t;
 
-	while (t > 0) 
+	while (t > 0)
 	{
 		rem = t % radix;
 		if (rem >= 10)
@@ -2590,9 +2590,9 @@ hawk_oow_t hawk_uint_to_ucstr (hawk_uint_t value, int radix, const hawk_uch_t* p
 		t /= radix;
 	}
 
-	if (value < 0) 
+	if (value < 0)
 	{
-		for (i = 1; i <= prefix_len; i++) 
+		for (i = 1; i <= prefix_len; i++)
 		{
 			buf[i] = prefix[i-1];
 			len--;
@@ -2619,14 +2619,14 @@ hawk_oow_t hawk_uint_to_bcstr (hawk_uint_t value, int radix, const hawk_bch_t* p
 	if (t == 0)
 	{
 		/* zero */
-		if (buf == HAWK_NULL) 
+		if (buf == HAWK_NULL)
 		{
-			/* if buf is not given, 
+			/* if buf is not given,
 			 * return the number of bytes required */
 			return prefix_len + 1;
 		}
 
-		if (size < prefix_len+1) 
+		if (size < prefix_len+1)
 		{
 			/* buffer too small */
 			return (hawk_oow_t)-1;
@@ -2656,7 +2656,7 @@ hawk_oow_t hawk_uint_to_bcstr (hawk_uint_t value, int radix, const hawk_bch_t* p
 	t = value;
 	if (t < 0) t = -t;
 
-	while (t > 0) 
+	while (t > 0)
 	{
 		rem = t % radix;
 		if (rem >= 10)
@@ -2666,9 +2666,9 @@ hawk_oow_t hawk_uint_to_bcstr (hawk_uint_t value, int radix, const hawk_bch_t* p
 		t /= radix;
 	}
 
-	if (value < 0) 
+	if (value < 0)
 	{
-		for (i = 1; i <= prefix_len; i++) 
+		for (i = 1; i <= prefix_len; i++)
 		{
 			buf[i] = prefix[i-1];
 			len--;
@@ -2692,7 +2692,7 @@ hawk_int_t hawk_uchars_to_int (const hawk_uch_t* str, hawk_oow_t len, int option
 	int digit, negative = 0;
 	int base = HAWK_UCHARS_TO_INTMAX_GET_OPTION_BASE(option);
 
-	p = str; 
+	p = str;
 	end = str + len;
 
 	if (HAWK_UCHARS_TO_INTMAX_GET_OPTION_LTRIM(option))
@@ -2704,7 +2704,7 @@ hawk_int_t hawk_uchars_to_int (const hawk_uch_t* str, hawk_oow_t len, int option
 	/* check for a sign */
 	while (p < end)
 	{
-		if (*p == '-') 
+		if (*p == '-')
 		{
 			negative = ~negative;
 			p++;
@@ -2715,9 +2715,9 @@ hawk_int_t hawk_uchars_to_int (const hawk_uch_t* str, hawk_oow_t len, int option
 
 	/* check for a binary/octal/hexadecimal notation */
 	rem = end - p;
-	if (base == 0) 
+	if (base == 0)
 	{
-		if (rem >= 1 && *p == '0') 
+		if (rem >= 1 && *p == '0')
 		{
 			p++;
 
@@ -2725,7 +2725,7 @@ hawk_int_t hawk_uchars_to_int (const hawk_uch_t* str, hawk_oow_t len, int option
 			else if (*p == 'x' || *p == 'X')
 			{
 				p++; base = 16;
-			} 
+			}
 			else if (*p == 'b' || *p == 'B')
 			{
 				p++; base = 2;
@@ -2733,14 +2733,14 @@ hawk_int_t hawk_uchars_to_int (const hawk_uch_t* str, hawk_oow_t len, int option
 			else base = 8;
 		}
 		else base = 10;
-	} 
+	}
 	else if (rem >= 2 && base == 16)
 	{
-		if (*p == '0' && (*(p + 1) == 'x' || *(p + 1) == 'X')) p += 2; 
+		if (*p == '0' && (*(p + 1) == 'x' || *(p + 1) == 'X')) p += 2;
 	}
 	else if (rem >= 2 && base == 2)
 	{
-		if (*p == '0' && (*(p + 1) == 'b' || *(p + 1) == 'B')) p += 2; 
+		if (*p == '0' && (*(p + 1) == 'b' || *(p + 1) == 'B')) p += 2;
 	}
 
 	/* process the digits */
@@ -2784,7 +2784,7 @@ hawk_int_t hawk_uchars_to_int (const hawk_uch_t* str, hawk_oow_t len, int option
 
 	/* base 8: at least a zero digit has been seen.
 	 * other case: p > pp to be able to have at least 1 meaningful digit. */
-	if (is_sober) *is_sober = (base == 8 || p > pp); 
+	if (is_sober) *is_sober = (base == 8 || p > pp);
 
 	if (HAWK_UCHARS_TO_INTMAX_GET_OPTION_RTRIM(option))
 	{
@@ -2805,7 +2805,7 @@ hawk_int_t hawk_bchars_to_int (const hawk_bch_t* str, hawk_oow_t len, int option
 	int digit, negative = 0;
 	int base = HAWK_BCHARS_TO_INTMAX_GET_OPTION_BASE(option);
 
-	p = str; 
+	p = str;
 	end = str + len;
 
 	if (HAWK_BCHARS_TO_INTMAX_GET_OPTION_LTRIM(option))
@@ -2817,7 +2817,7 @@ hawk_int_t hawk_bchars_to_int (const hawk_bch_t* str, hawk_oow_t len, int option
 	/* check for a sign */
 	while (p < end)
 	{
-		if (*p == '-') 
+		if (*p == '-')
 		{
 			negative = ~negative;
 			p++;
@@ -2828,9 +2828,9 @@ hawk_int_t hawk_bchars_to_int (const hawk_bch_t* str, hawk_oow_t len, int option
 
 	/* check for a binary/octal/hexadecimal notation */
 	rem = end - p;
-	if (base == 0) 
+	if (base == 0)
 	{
-		if (rem >= 1 && *p == '0') 
+		if (rem >= 1 && *p == '0')
 		{
 			p++;
 
@@ -2838,7 +2838,7 @@ hawk_int_t hawk_bchars_to_int (const hawk_bch_t* str, hawk_oow_t len, int option
 			else if (*p == 'x' || *p == 'X')
 			{
 				p++; base = 16;
-			} 
+			}
 			else if (*p == 'b' || *p == 'B')
 			{
 				p++; base = 2;
@@ -2846,14 +2846,14 @@ hawk_int_t hawk_bchars_to_int (const hawk_bch_t* str, hawk_oow_t len, int option
 			else base = 8;
 		}
 		else base = 10;
-	} 
+	}
 	else if (rem >= 2 && base == 16)
 	{
-		if (*p == '0' && (*(p + 1) == 'x' || *(p + 1) == 'X')) p += 2; 
+		if (*p == '0' && (*(p + 1) == 'x' || *(p + 1) == 'X')) p += 2;
 	}
 	else if (rem >= 2 && base == 2)
 	{
-		if (*p == '0' && (*(p + 1) == 'b' || *(p + 1) == 'B')) p += 2; 
+		if (*p == '0' && (*(p + 1) == 'b' || *(p + 1) == 'B')) p += 2;
 	}
 
 	/* process the digits */
@@ -2897,7 +2897,7 @@ hawk_int_t hawk_bchars_to_int (const hawk_bch_t* str, hawk_oow_t len, int option
 
 	/* base 8: at least a zero digit has been seen.
 	 * other case: p > pp to be able to have at least 1 meaningful digit. */
-	if (is_sober) *is_sober = (base == 8 || p > pp); 
+	if (is_sober) *is_sober = (base == 8 || p > pp);
 
 	if (HAWK_BCHARS_TO_INTMAX_GET_OPTION_RTRIM(option))
 	{
@@ -2918,7 +2918,7 @@ hawk_uint_t hawk_uchars_to_uint (const hawk_uch_t* str, hawk_oow_t len, int opti
 	int digit;
 	int base = HAWK_UCHARS_TO_UINTMAX_GET_OPTION_BASE(option);
 
-	p = str; 
+	p = str;
 	end = str + len;
 
 	if (HAWK_UCHARS_TO_UINTMAX_GET_OPTION_LTRIM(option))
@@ -2936,9 +2936,9 @@ hawk_uint_t hawk_uchars_to_uint (const hawk_uch_t* str, hawk_oow_t len, int opti
 
 	/* check for a binary/octal/hexadecimal notation */
 	rem = end - p;
-	if (base == 0) 
+	if (base == 0)
 	{
-		if (rem >= 1 && *p == '0') 
+		if (rem >= 1 && *p == '0')
 		{
 			p++;
 
@@ -2946,7 +2946,7 @@ hawk_uint_t hawk_uchars_to_uint (const hawk_uch_t* str, hawk_oow_t len, int opti
 			else if (*p == 'x' || *p == 'X')
 			{
 				p++; base = 16;
-			} 
+			}
 			else if (*p == 'b' || *p == 'B')
 			{
 				p++; base = 2;
@@ -2954,14 +2954,14 @@ hawk_uint_t hawk_uchars_to_uint (const hawk_uch_t* str, hawk_oow_t len, int opti
 			else base = 8;
 		}
 		else base = 10;
-	} 
+	}
 	else if (rem >= 2 && base == 16)
 	{
-		if (*p == '0' && (*(p + 1) == 'x' || *(p + 1) == 'X')) p += 2; 
+		if (*p == '0' && (*(p + 1) == 'x' || *(p + 1) == 'X')) p += 2;
 	}
 	else if (rem >= 2 && base == 2)
 	{
-		if (*p == '0' && (*(p + 1) == 'b' || *(p + 1) == 'B')) p += 2; 
+		if (*p == '0' && (*(p + 1) == 'b' || *(p + 1) == 'B')) p += 2;
 	}
 
 	/* process the digits */
@@ -3005,7 +3005,7 @@ hawk_uint_t hawk_uchars_to_uint (const hawk_uch_t* str, hawk_oow_t len, int opti
 
 	/* base 8: at least a zero digit has been seen.
 	 * other case: p > pp to be able to have at least 1 meaningful digit. */
-	if (is_sober) *is_sober = (base == 8 || p > pp); 
+	if (is_sober) *is_sober = (base == 8 || p > pp);
 
 	if (HAWK_UCHARS_TO_UINTMAX_GET_OPTION_RTRIM(option))
 	{
@@ -3026,7 +3026,7 @@ hawk_uint_t hawk_bchars_to_uint (const hawk_bch_t* str, hawk_oow_t len, int opti
 	int digit;
 	int base = HAWK_BCHARS_TO_UINTMAX_GET_OPTION_BASE(option);
 
-	p = str; 
+	p = str;
 	end = str + len;
 
 	if (HAWK_BCHARS_TO_UINTMAX_GET_OPTION_LTRIM(option))
@@ -3044,9 +3044,9 @@ hawk_uint_t hawk_bchars_to_uint (const hawk_bch_t* str, hawk_oow_t len, int opti
 
 	/* check for a binary/octal/hexadecimal notation */
 	rem = end - p;
-	if (base == 0) 
+	if (base == 0)
 	{
-		if (rem >= 1 && *p == '0') 
+		if (rem >= 1 && *p == '0')
 		{
 			p++;
 
@@ -3054,7 +3054,7 @@ hawk_uint_t hawk_bchars_to_uint (const hawk_bch_t* str, hawk_oow_t len, int opti
 			else if (*p == 'x' || *p == 'X')
 			{
 				p++; base = 16;
-			} 
+			}
 			else if (*p == 'b' || *p == 'B')
 			{
 				p++; base = 2;
@@ -3062,14 +3062,14 @@ hawk_uint_t hawk_bchars_to_uint (const hawk_bch_t* str, hawk_oow_t len, int opti
 			else base = 8;
 		}
 		else base = 10;
-	} 
+	}
 	else if (rem >= 2 && base == 16)
 	{
-		if (*p == '0' && (*(p + 1) == 'x' || *(p + 1) == 'X')) p += 2; 
+		if (*p == '0' && (*(p + 1) == 'x' || *(p + 1) == 'X')) p += 2;
 	}
 	else if (rem >= 2 && base == 2)
 	{
-		if (*p == '0' && (*(p + 1) == 'b' || *(p + 1) == 'B')) p += 2; 
+		if (*p == '0' && (*(p + 1) == 'b' || *(p + 1) == 'B')) p += 2;
 	}
 
 	/* process the digits */
@@ -3113,7 +3113,7 @@ hawk_uint_t hawk_bchars_to_uint (const hawk_bch_t* str, hawk_oow_t len, int opti
 
 	/* base 8: at least a zero digit has been seen.
 	 * other case: p > pp to be able to have at least 1 meaningful digit. */
-	if (is_sober) *is_sober = (base == 8 || p > pp); 
+	if (is_sober) *is_sober = (base == 8 || p > pp);
 
 	if (HAWK_BCHARS_TO_UINTMAX_GET_OPTION_RTRIM(option))
 	{
@@ -3133,16 +3133,16 @@ int hawk_fnmat_uchars_i (const hawk_uch_t* str, hawk_oow_t slen, const hawk_uch_
 	const hawk_uch_t* pe = ptn + plen;
 	hawk_uch_t sc, pc, pc2;
 
-	while (1) 
+	while (1)
 	{
-		if (pp < pe && HAWK_FNMAT_IS_ESC(*pp) && !(flags & HAWK_FNMAT_NOESCAPE)) 
+		if (pp < pe && HAWK_FNMAT_IS_ESC(*pp) && !(flags & HAWK_FNMAT_NOESCAPE))
 		{
 			/* pattern is escaped and escaping is allowed. */
 
-			if ((++pp) >= pe) 
+			if ((++pp) >= pe)
 			{
-				/* 
-				 * the last character of the pattern is an WCS_ESC. 
+				/*
+				 * the last character of the pattern is an WCS_ESC.
 				 * matching is performed as if the end of the pattern is
 				 * reached just without an WCS_ESC.
 				 */
@@ -3153,27 +3153,27 @@ int hawk_fnmat_uchars_i (const hawk_uch_t* str, hawk_oow_t slen, const hawk_uch_
 			if (sp >= se) return 0; /* premature string termination */
 
 			sc = *sp; pc = *pp; /* pc is just a normal character */
-			if ((flags & HAWK_FNMAT_IGNORECASE) != 0) 
+			if ((flags & HAWK_FNMAT_IGNORECASE) != 0)
 			{
 				/* make characters to lower-case */
 				sc = hawk_to_uch_lower(sc);
-				pc = hawk_to_uch_lower(pc); 
+				pc = hawk_to_uch_lower(pc);
 			}
 
 			if (sc != pc) return 0;
-			sp++; pp++; 
+			sp++; pp++;
 			continue;
 		}
-		if (pp >= pe) 
+		if (pp >= pe)
 		{
-			/* 
-			 * the end of the pattern has been reached. 
+			/*
+			 * the end of the pattern has been reached.
 			 * the string must terminate too.
 			 */
 			return sp >= se;
 		}
 
-		if (sp >= se) 
+		if (sp >= se)
 		{
 			/* the string terminats prematurely */
 			while (pp < pe && *pp == '*') pp++;
@@ -3182,23 +3182,23 @@ int hawk_fnmat_uchars_i (const hawk_uch_t* str, hawk_oow_t slen, const hawk_uch_
 
 		sc = *sp; pc = *pp;
 
-		if (sc == '.' && (flags & HAWK_FNMAT_PERIOD)) 
+		if (sc == '.' && (flags & HAWK_FNMAT_PERIOD))
 		{
-			/* 
-			 * a leading period in the staring must match 
-			 * a period in the pattern explicitly 
+			/*
+			 * a leading period in the staring must match
+			 * a period in the pattern explicitly
 			 */
-			if ((!no_first_period && sp == str) || 
-			    (HAWK_FNMAT_IS_SEP(sp[-1]) && (flags & HAWK_FNMAT_PATHNAME))) 
+			if ((!no_first_period && sp == str) ||
+			    (HAWK_FNMAT_IS_SEP(sp[-1]) && (flags & HAWK_FNMAT_PATHNAME)))
 			{
 				if (pc != '.') return 0;
 				sp++; pp++;
 				continue;
 			}
 		}
-		else if (HAWK_FNMAT_IS_SEP(sc) && (flags & HAWK_FNMAT_PATHNAME)) 
+		else if (HAWK_FNMAT_IS_SEP(sc) && (flags & HAWK_FNMAT_PATHNAME))
 		{
-			while (pc == '*') 
+			while (pc == '*')
 			{
 				if ((++pp) >= pe) return 0;
 				pc = *pp;
@@ -3211,21 +3211,21 @@ int hawk_fnmat_uchars_i (const hawk_uch_t* str, hawk_oow_t slen, const hawk_uch_
 		}
 
 		/* the handling of special pattern characters begins here */
-		if (pc == '?') 
+		if (pc == '?')
 		{
 			/* match any single character */
-			sp++; pp++; 
-		} 
-		else if (pc == '*') 
-		{ 
+			sp++; pp++;
+		}
+		else if (pc == '*')
+		{
 			/* match zero or more characters */
 
 			/* compact asterisks */
 			do { pp++; } while (pp < pe && *pp == '*');
 
-			if (pp >= pe) 
+			if (pp >= pe)
 			{
-				/* 
+				/*
 				 * if the last character in the pattern is an asterisk,
 				 * the string should not have any directory separators
 				 * when HAWK_FNMAT_PATHNAME is set.
@@ -3240,31 +3240,31 @@ int hawk_fnmat_uchars_i (const hawk_uch_t* str, hawk_oow_t slen, const hawk_uch_
 				}
 				return 1;
 			}
-			else 
+			else
 			{
-				do 
+				do
 				{
 					if (hawk_fnmat_uchars_i(sp, se - sp, pp, pe - pp, flags, 1)) return 1;
 					if (HAWK_FNMAT_IS_SEP(*sp) && (flags & HAWK_FNMAT_PATHNAME)) break;
 					sp++;
-				} 
+				}
 				while (sp < se);
 
 				return 0;
 			}
 		}
-		else if (pc == '[') 
+		else if (pc == '[')
 		{
 			/* match range */
 			int negate = 0;
 			int matched = 0;
 
 			if ((++pp) >= pe) return 0;
-			if (*pp == '!') { negate = 1; pp++; } 
+			if (*pp == '!') { negate = 1; pp++; }
 
-			while (pp < pe && *pp != ']') 
+			while (pp < pe && *pp != ']')
 			{
-				if (*pp == '[') 
+				if (*pp == '[')
 				{
 					hawk_oow_t pl = pe - pp;
 
@@ -3278,9 +3278,9 @@ int hawk_fnmat_uchars_i (const hawk_uch_t* str, hawk_oow_t slen, const hawk_uch_
 						}
 					}
 
-					/* 
-					 * characters in an invalid class name are 
-					 * just treated as normal characters 
+					/*
+					 * characters in an invalid class name are
+					 * just treated as normal characters
 					 */
 				}
 
@@ -3290,44 +3290,44 @@ int hawk_fnmat_uchars_i (const hawk_uch_t* str, hawk_oow_t slen, const hawk_uch_
 				if (pp >= pe) break;
 
 				pc = *pp;
-				if ((flags & HAWK_FNMAT_IGNORECASE) != 0) 
+				if ((flags & HAWK_FNMAT_IGNORECASE) != 0)
 				{
-					sc = hawk_to_uch_lower(sc); 
-					pc = hawk_to_uch_lower(pc); 
+					sc = hawk_to_uch_lower(sc);
+					pc = hawk_to_uch_lower(pc);
 				}
 
-				if (pp + 1 < pe && pp[1] == '-') 
+				if (pp + 1 < pe && pp[1] == '-')
 				{
 					pp += 2; /* move the a character next to a dash */
 
-					if (pp >= pe) 
+					if (pp >= pe)
 					{
 						if (sc >= pc) matched = 1;
 						break;
 					}
 
-					if (HAWK_FNMAT_IS_ESC(*pp) && !(flags & HAWK_FNMAT_NOESCAPE)) 
+					if (HAWK_FNMAT_IS_ESC(*pp) && !(flags & HAWK_FNMAT_NOESCAPE))
 					{
-						if ((++pp) >= pe) 
+						if ((++pp) >= pe)
 						{
 							if (sc >= pc) matched = 1;
 							break;
 						}
 					}
-					else if (*pp == ']') 
+					else if (*pp == ']')
 					{
 						if (sc >= pc) matched = 1;
 						break;
 					}
 
 					pc2 = *pp;
-					if ((flags & HAWK_FNMAT_IGNORECASE) != 0) 
-						pc2 = hawk_to_uch_lower(pc2); 
+					if ((flags & HAWK_FNMAT_IGNORECASE) != 0)
+						pc2 = hawk_to_uch_lower(pc2);
 
 					if (sc >= pc && sc <= pc2) matched = 1;
 					pp++;
 				}
-				else 
+				else
 				{
 					if (sc == pc) matched = 1;
 					pp++;
@@ -3338,13 +3338,13 @@ int hawk_fnmat_uchars_i (const hawk_uch_t* str, hawk_oow_t slen, const hawk_uch_
 			if (!matched) return 0;
 			sp++; if (pp < pe) pp++;
 		}
-		else 
+		else
 		{
 			/* a normal character */
-			if ((flags & HAWK_FNMAT_IGNORECASE) != 0) 
+			if ((flags & HAWK_FNMAT_IGNORECASE) != 0)
 			{
-				sc = hawk_to_uch_lower(sc); 
-				pc = hawk_to_uch_lower(pc); 
+				sc = hawk_to_uch_lower(sc);
+				pc = hawk_to_uch_lower(pc);
 			}
 
 			if (sc != pc) return 0;
@@ -3364,16 +3364,16 @@ int hawk_fnmat_bchars_i (const hawk_bch_t* str, hawk_oow_t slen, const hawk_bch_
 	const hawk_bch_t* pe = ptn + plen;
 	hawk_bch_t sc, pc, pc2;
 
-	while (1) 
+	while (1)
 	{
-		if (pp < pe && HAWK_FNMAT_IS_ESC(*pp) && !(flags & HAWK_FNMAT_NOESCAPE)) 
+		if (pp < pe && HAWK_FNMAT_IS_ESC(*pp) && !(flags & HAWK_FNMAT_NOESCAPE))
 		{
 			/* pattern is escaped and escaping is allowed. */
 
-			if ((++pp) >= pe) 
+			if ((++pp) >= pe)
 			{
-				/* 
-				 * the last character of the pattern is an WCS_ESC. 
+				/*
+				 * the last character of the pattern is an WCS_ESC.
 				 * matching is performed as if the end of the pattern is
 				 * reached just without an WCS_ESC.
 				 */
@@ -3384,27 +3384,27 @@ int hawk_fnmat_bchars_i (const hawk_bch_t* str, hawk_oow_t slen, const hawk_bch_
 			if (sp >= se) return 0; /* premature string termination */
 
 			sc = *sp; pc = *pp; /* pc is just a normal character */
-			if ((flags & HAWK_FNMAT_IGNORECASE) != 0) 
+			if ((flags & HAWK_FNMAT_IGNORECASE) != 0)
 			{
 				/* make characters to lower-case */
 				sc = hawk_to_bch_lower(sc);
-				pc = hawk_to_bch_lower(pc); 
+				pc = hawk_to_bch_lower(pc);
 			}
 
 			if (sc != pc) return 0;
-			sp++; pp++; 
+			sp++; pp++;
 			continue;
 		}
-		if (pp >= pe) 
+		if (pp >= pe)
 		{
-			/* 
-			 * the end of the pattern has been reached. 
+			/*
+			 * the end of the pattern has been reached.
 			 * the string must terminate too.
 			 */
 			return sp >= se;
 		}
 
-		if (sp >= se) 
+		if (sp >= se)
 		{
 			/* the string terminats prematurely */
 			while (pp < pe && *pp == '*') pp++;
@@ -3413,23 +3413,23 @@ int hawk_fnmat_bchars_i (const hawk_bch_t* str, hawk_oow_t slen, const hawk_bch_
 
 		sc = *sp; pc = *pp;
 
-		if (sc == '.' && (flags & HAWK_FNMAT_PERIOD)) 
+		if (sc == '.' && (flags & HAWK_FNMAT_PERIOD))
 		{
-			/* 
-			 * a leading period in the staring must match 
-			 * a period in the pattern explicitly 
+			/*
+			 * a leading period in the staring must match
+			 * a period in the pattern explicitly
 			 */
-			if ((!no_first_period && sp == str) || 
-			    (HAWK_FNMAT_IS_SEP(sp[-1]) && (flags & HAWK_FNMAT_PATHNAME))) 
+			if ((!no_first_period && sp == str) ||
+			    (HAWK_FNMAT_IS_SEP(sp[-1]) && (flags & HAWK_FNMAT_PATHNAME)))
 			{
 				if (pc != '.') return 0;
 				sp++; pp++;
 				continue;
 			}
 		}
-		else if (HAWK_FNMAT_IS_SEP(sc) && (flags & HAWK_FNMAT_PATHNAME)) 
+		else if (HAWK_FNMAT_IS_SEP(sc) && (flags & HAWK_FNMAT_PATHNAME))
 		{
-			while (pc == '*') 
+			while (pc == '*')
 			{
 				if ((++pp) >= pe) return 0;
 				pc = *pp;
@@ -3442,21 +3442,21 @@ int hawk_fnmat_bchars_i (const hawk_bch_t* str, hawk_oow_t slen, const hawk_bch_
 		}
 
 		/* the handling of special pattern characters begins here */
-		if (pc == '?') 
+		if (pc == '?')
 		{
 			/* match any single character */
-			sp++; pp++; 
-		} 
-		else if (pc == '*') 
-		{ 
+			sp++; pp++;
+		}
+		else if (pc == '*')
+		{
 			/* match zero or more characters */
 
 			/* compact asterisks */
 			do { pp++; } while (pp < pe && *pp == '*');
 
-			if (pp >= pe) 
+			if (pp >= pe)
 			{
-				/* 
+				/*
 				 * if the last character in the pattern is an asterisk,
 				 * the string should not have any directory separators
 				 * when HAWK_FNMAT_PATHNAME is set.
@@ -3471,31 +3471,31 @@ int hawk_fnmat_bchars_i (const hawk_bch_t* str, hawk_oow_t slen, const hawk_bch_
 				}
 				return 1;
 			}
-			else 
+			else
 			{
-				do 
+				do
 				{
 					if (hawk_fnmat_bchars_i(sp, se - sp, pp, pe - pp, flags, 1)) return 1;
 					if (HAWK_FNMAT_IS_SEP(*sp) && (flags & HAWK_FNMAT_PATHNAME)) break;
 					sp++;
-				} 
+				}
 				while (sp < se);
 
 				return 0;
 			}
 		}
-		else if (pc == '[') 
+		else if (pc == '[')
 		{
 			/* match range */
 			int negate = 0;
 			int matched = 0;
 
 			if ((++pp) >= pe) return 0;
-			if (*pp == '!') { negate = 1; pp++; } 
+			if (*pp == '!') { negate = 1; pp++; }
 
-			while (pp < pe && *pp != ']') 
+			while (pp < pe && *pp != ']')
 			{
-				if (*pp == '[') 
+				if (*pp == '[')
 				{
 					hawk_oow_t pl = pe - pp;
 
@@ -3509,9 +3509,9 @@ int hawk_fnmat_bchars_i (const hawk_bch_t* str, hawk_oow_t slen, const hawk_bch_
 						}
 					}
 
-					/* 
-					 * characters in an invalid class name are 
-					 * just treated as normal characters 
+					/*
+					 * characters in an invalid class name are
+					 * just treated as normal characters
 					 */
 				}
 
@@ -3521,44 +3521,44 @@ int hawk_fnmat_bchars_i (const hawk_bch_t* str, hawk_oow_t slen, const hawk_bch_
 				if (pp >= pe) break;
 
 				pc = *pp;
-				if ((flags & HAWK_FNMAT_IGNORECASE) != 0) 
+				if ((flags & HAWK_FNMAT_IGNORECASE) != 0)
 				{
-					sc = hawk_to_bch_lower(sc); 
-					pc = hawk_to_bch_lower(pc); 
+					sc = hawk_to_bch_lower(sc);
+					pc = hawk_to_bch_lower(pc);
 				}
 
-				if (pp + 1 < pe && pp[1] == '-') 
+				if (pp + 1 < pe && pp[1] == '-')
 				{
 					pp += 2; /* move the a character next to a dash */
 
-					if (pp >= pe) 
+					if (pp >= pe)
 					{
 						if (sc >= pc) matched = 1;
 						break;
 					}
 
-					if (HAWK_FNMAT_IS_ESC(*pp) && !(flags & HAWK_FNMAT_NOESCAPE)) 
+					if (HAWK_FNMAT_IS_ESC(*pp) && !(flags & HAWK_FNMAT_NOESCAPE))
 					{
-						if ((++pp) >= pe) 
+						if ((++pp) >= pe)
 						{
 							if (sc >= pc) matched = 1;
 							break;
 						}
 					}
-					else if (*pp == ']') 
+					else if (*pp == ']')
 					{
 						if (sc >= pc) matched = 1;
 						break;
 					}
 
 					pc2 = *pp;
-					if ((flags & HAWK_FNMAT_IGNORECASE) != 0) 
-						pc2 = hawk_to_bch_lower(pc2); 
+					if ((flags & HAWK_FNMAT_IGNORECASE) != 0)
+						pc2 = hawk_to_bch_lower(pc2);
 
 					if (sc >= pc && sc <= pc2) matched = 1;
 					pp++;
 				}
-				else 
+				else
 				{
 					if (sc == pc) matched = 1;
 					pp++;
@@ -3569,13 +3569,13 @@ int hawk_fnmat_bchars_i (const hawk_bch_t* str, hawk_oow_t slen, const hawk_bch_
 			if (!matched) return 0;
 			sp++; if (pp < pe) pp++;
 		}
-		else 
+		else
 		{
 			/* a normal character */
-			if ((flags & HAWK_FNMAT_IGNORECASE) != 0) 
+			if ((flags & HAWK_FNMAT_IGNORECASE) != 0)
 			{
-				sc = hawk_to_bch_lower(sc); 
-				pc = hawk_to_bch_lower(pc); 
+				sc = hawk_to_bch_lower(sc);
+				pc = hawk_to_bch_lower(pc);
 			}
 
 			if (sc != pc) return 0;

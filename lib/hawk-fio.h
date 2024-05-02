@@ -29,7 +29,7 @@
 
 enum hawk_fio_flag_t
 {
-	/* (1 << 0) to (1 << 7) reserved for hawk_sio_flag_t. 
+	/* (1 << 0) to (1 << 7) reserved for hawk_sio_flag_t.
 	 * see <hawk/cmn/sio.h>. nerver use this value. */
 	HAWK_FIO_RESERVED      = 0xFF,
 
@@ -44,7 +44,7 @@ enum hawk_fio_flag_t
 	HAWK_FIO_NOCLOSE       = (1 << 10),
 
 	/** treat the path name as a multi-byte string */
-	HAWK_FIO_BCSTRPATH    = (1 << 11), 
+	HAWK_FIO_BCSTRPATH    = (1 << 11),
 
 	/* normal open flags */
 	HAWK_FIO_READ          = (1 << 14),
@@ -55,7 +55,7 @@ enum hawk_fio_flag_t
 	HAWK_FIO_TRUNCATE      = (1 << 18),
 	HAWK_FIO_EXCLUSIVE     = (1 << 19),
 	HAWK_FIO_SYNC          = (1 << 20),
-	
+
 	/* do not follow a symbolic link, only on a supported platform */
 	HAWK_FIO_NOFOLLOW      = (1 << 23),
 
@@ -128,7 +128,7 @@ struct hawk_fio_t
 {
 	hawk_gem_t*       gem;
 	hawk_fio_hnd_t    handle;
-	int               status; 
+	int               status;
 };
 
 struct hawk_fio_lck_t
@@ -153,11 +153,11 @@ extern "C" {
  * If the #HAWK_FIO_HANDLE flag is set, the @a path parameter is interpreted
  * as a pointer to hawk_fio_hnd_t.
  *
- * If the #HAWK_FIO_TEMPORARY flag is set, the @a path parameter is 
+ * If the #HAWK_FIO_TEMPORARY flag is set, the @a path parameter is
  * interpreted as a path name template and an actual file name to open
- * is internally generated using the template. The @a path parameter 
+ * is internally generated using the template. The @a path parameter
  * is filled with the last actual path name attempted when the function
- * returns. So, you must not pass a constant string to the @a path 
+ * returns. So, you must not pass a constant string to the @a path
  * parameter when #HAWK_FIO_TEMPORARY is set.
  */
 HAWK_EXPORT hawk_fio_t* hawk_fio_open (
@@ -187,7 +187,7 @@ HAWK_EXPORT int hawk_fio_init (
 );
 
 /**
- * The hawk_fio_close() function finalizes a file by closing the handle 
+ * The hawk_fio_close() function finalizes a file by closing the handle
  * stored in @a fio.
  */
 HAWK_EXPORT void hawk_fio_fini (
@@ -247,7 +247,7 @@ HAWK_EXPORT hawk_ooi_t hawk_fio_write (
  * The hawk_fio_chmod() function changes the file mode.
  *
  * @note
- * On _WIN32, this function is implemented on the best-effort basis and 
+ * On _WIN32, this function is implemented on the best-effort basis and
  * returns an error on the following conditions:
  * - The file size is 0.
  * - The file is opened without #HAWK_FIO_READ.
@@ -259,15 +259,15 @@ HAWK_EXPORT int hawk_fio_chmod (
 
 /**
  * The hawk_fio_sync() function synchronizes file contents into storage media
- * It is useful in determining the media error, without which hawk_fio_close() 
+ * It is useful in determining the media error, without which hawk_fio_close()
  * may succeed despite such an error.
  */
 HAWK_EXPORT int hawk_fio_sync (
 	hawk_fio_t* fio
 );
 
-HAWK_EXPORT int hawk_fio_lock ( 
-	hawk_fio_t*     fio, 
+HAWK_EXPORT int hawk_fio_lock (
+	hawk_fio_t*     fio,
 	hawk_fio_lck_t* lck,
 	int             flags
 );

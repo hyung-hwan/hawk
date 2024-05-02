@@ -107,7 +107,7 @@ int hawk_tio_attachin (
 {
 	hawk_bch_t* xbufptr;
 
-	if (input == HAWK_NULL || bufcapa < HAWK_TIO_MININBUFCAPA) 
+	if (input == HAWK_NULL || bufcapa < HAWK_TIO_MININBUFCAPA)
 	{
 		hawk_gem_seterrnum (tio->gem, HAWK_NULL, HAWK_EINVAL);
 		return -1;
@@ -124,13 +124,13 @@ int hawk_tio_attachin (
 		if (xbufptr == HAWK_NULL) return -1;
 	}
 
-	if (input(tio, HAWK_TIO_OPEN, HAWK_NULL, 0) <= -1) 
+	if (input(tio, HAWK_TIO_OPEN, HAWK_NULL, 0) <= -1)
 	{
 		if (xbufptr != bufptr) hawk_gem_freemem (tio->gem, xbufptr);
 		return -1;
 	}
 
-	/* if i defined tio->io[2] instead of tio->in and tio-out, 
+	/* if i defined tio->io[2] instead of tio->in and tio-out,
 	 * i would be able to shorten code amount. but fields to initialize
 	 * are not symmetric between input and output.
 	 * so it's just a bit clumsy that i repeat almost the same code
@@ -155,17 +155,17 @@ static int detach_in (hawk_tio_t* tio, int fini)
 
 	if (tio->in.fun)
 	{
-		if (tio->in.fun(tio, HAWK_TIO_CLOSE, HAWK_NULL, 0) <= -1) 
+		if (tio->in.fun(tio, HAWK_TIO_CLOSE, HAWK_NULL, 0) <= -1)
 		{
 			/* returning with an error here allows you to retry detaching */
-			if (!fini) return -1; 
+			if (!fini) return -1;
 
 			/* otherwise, you can't retry since the input handler information
 			 * is reset below */
-			ret = -1; 
+			ret = -1;
 		}
 
-		if (tio->status & STATUS_INPUT_DYNBUF) 
+		if (tio->status & STATUS_INPUT_DYNBUF)
 		{
 			hawk_gem_freemem(tio->gem, tio->in.buf.ptr);
 			tio->status &= ~STATUS_INPUT_DYNBUF;
@@ -175,7 +175,7 @@ static int detach_in (hawk_tio_t* tio, int fini)
 		tio->in.buf.ptr = HAWK_NULL;
 		tio->in.buf.capa = 0;
 	}
-		
+
 	return ret;
 }
 
@@ -185,12 +185,12 @@ int hawk_tio_detachin (hawk_tio_t* tio)
 }
 
 int hawk_tio_attachout (
-	hawk_tio_t* tio, hawk_tio_io_impl_t output, 
+	hawk_tio_t* tio, hawk_tio_io_impl_t output,
 	hawk_bch_t* bufptr, hawk_oow_t bufcapa)
 {
 	hawk_bch_t* xbufptr;
 
-	if (output == HAWK_NULL || bufcapa < HAWK_TIO_MINOUTBUFCAPA)  
+	if (output == HAWK_NULL || bufcapa < HAWK_TIO_MINOUTBUFCAPA)
 	{
 		hawk_gem_seterrnum (tio->gem, HAWK_NULL, HAWK_EINVAL);
 		return -1;
@@ -207,7 +207,7 @@ int hawk_tio_attachout (
 		if (xbufptr == HAWK_NULL) return -1;
 	}
 
-	if (output(tio, HAWK_TIO_OPEN, HAWK_NULL, 0) <= -1) 
+	if (output(tio, HAWK_TIO_OPEN, HAWK_NULL, 0) <= -1)
 	{
 		if (xbufptr != bufptr) hawk_gem_freemem (tio->gem, xbufptr);
 		return -1;
@@ -231,7 +231,7 @@ static int detach_out (hawk_tio_t* tio, int fini)
 	{
 		hawk_tio_flush (tio); /* don't care about the result */
 
-		if (tio->out.fun (tio, HAWK_TIO_CLOSE, HAWK_NULL, 0) <= -1) 
+		if (tio->out.fun (tio, HAWK_TIO_CLOSE, HAWK_NULL, 0) <= -1)
 		{
 			/* returning with an error here allows you to retry detaching */
 			if (!fini) return -1;
@@ -240,8 +240,8 @@ static int detach_out (hawk_tio_t* tio, int fini)
 			 * is reset below */
 			ret = -1;
 		}
-	
-		if (tio->status & STATUS_OUTPUT_DYNBUF) 
+
+		if (tio->status & STATUS_OUTPUT_DYNBUF)
 		{
 			hawk_gem_freemem (tio->gem, tio->out.buf.ptr);
 			tio->status &= ~STATUS_OUTPUT_DYNBUF;
@@ -275,10 +275,10 @@ hawk_ooi_t hawk_tio_flush (hawk_tio_t* tio)
 
 	left = tio->outbuf_len;
 	cur = tio->out.buf.ptr;
-	while (left > 0) 
+	while (left > 0)
 	{
 		n = tio->out.fun(tio, HAWK_TIO_DATA, cur, left);
-		if (n <= -1) 
+		if (n <= -1)
 		{
 			if (cur != tio->out.buf.ptr)
 			{
@@ -287,13 +287,13 @@ hawk_ooi_t hawk_tio_flush (hawk_tio_t* tio)
 			}
 			return -1;
 		}
-		if (n == 0) 
+		if (n == 0)
 		{
 			if (cur != tio->out.buf.ptr)
 				HAWK_MEMCPY (tio->out.buf.ptr, cur, left);
 			break;
 		}
-	
+
 		left -= n;
 		cur += n;
 	}
@@ -321,7 +321,7 @@ hawk_ooi_t hawk_tio_readbchars (hawk_tio_t* tio, hawk_bch_t* buf, hawk_oow_t siz
 	hawk_ooi_t n;
 
 	/*HAWK_ASSERT (tio->in.fun != HAWK_NULL);*/
-	if (tio->in.fun == HAWK_NULL) 
+	if (tio->in.fun == HAWK_NULL)
 	{
 		/* no input function */
 		hawk_gem_seterrnum (tio->gem, HAWK_NULL, HAWK_EINVAL);
@@ -338,7 +338,7 @@ hawk_ooi_t hawk_tio_readbchars (hawk_tio_t* tio, hawk_bch_t* buf, hawk_oow_t siz
 	nread = 0;
 	while (nread < size)
 	{
-		if (tio->inbuf_cur >= tio->inbuf_len) 
+		if (tio->inbuf_cur >= tio->inbuf_len)
 		{
 			n = tio->in.fun(tio, HAWK_TIO_DATA, tio->in.buf.ptr, tio->in.buf.capa);
 			if (n == 0) break;
@@ -368,7 +368,7 @@ static HAWK_INLINE hawk_ooi_t tio_read_uchars (
 	hawk_ooi_t n;
 	int x;
 
-	if (tio->inbuf_cur >= tio->inbuf_len) 
+	if (tio->inbuf_cur >= tio->inbuf_len)
 	{
 		tio->inbuf_cur = 0;
 		tio->inbuf_len = 0;
@@ -379,7 +379,7 @@ static HAWK_INLINE hawk_ooi_t tio_read_uchars (
 		{
 			n = tio->in.fun(tio, HAWK_TIO_DATA, &tio->in.buf.ptr[tio->inbuf_len], tio->in.buf.capa - tio->inbuf_len);
 		}
-		if (n == 0) 
+		if (n == 0)
 		{
 			tio->status |= STATUS_INPUT_EOF;
 
@@ -387,7 +387,7 @@ static HAWK_INLINE hawk_ooi_t tio_read_uchars (
 			{
 				/* no more input from the underlying input handler.
 				 * but some incomplete bytes in the buffer. */
-				if (tio->flags & HAWK_TIO_IGNOREECERR) 
+				if (tio->flags & HAWK_TIO_IGNOREECERR)
 				{
 					goto ignore_illseq;
 				}
@@ -419,11 +419,11 @@ static HAWK_INLINE hawk_ooi_t tio_read_uchars (
 		/* incomplete sequence */
 		if (wlen <= 0)
 		{
-			/* not even a single character was handled. 
+			/* not even a single character was handled.
 			 * shift bytes in the buffer to the head. */
 			HAWK_ASSERT (mlen <= 0);
 			tio->inbuf_len = tio->inbuf_len - tio->inbuf_cur;
-			HAWK_MEMCPY (&tio->in.buf.ptr[0], 
+			HAWK_MEMCPY (&tio->in.buf.ptr[0],
 			            &tio->in.buf.ptr[tio->inbuf_cur],
 			            tio->inbuf_len * HAWK_SIZEOF(tio->in.buf.ptr[0]));
 			tio->inbuf_cur = 0;
@@ -436,9 +436,9 @@ static HAWK_INLINE hawk_ooi_t tio_read_uchars (
 	{
 		/* buffer not large enough */
 		HAWK_ASSERT (wlen > 0);
-		
+
 		/* the wide-character buffer is not just large enough to
-		 * hold the entire conversion result. lets's go on so long as 
+		 * hold the entire conversion result. lets's go on so long as
 		 * 1 wide-character is produced though it may be inefficient.
 		 */
 	}
@@ -465,7 +465,7 @@ static HAWK_INLINE hawk_ooi_t tio_read_uchars (
 			tio->status |= STATUS_INPUT_ILLSEQ;
 		}
 	}
-	
+
 	return wlen;
 }
 
@@ -475,7 +475,7 @@ hawk_ooi_t hawk_tio_readuchars (hawk_tio_t* tio, hawk_uch_t* buf, hawk_oow_t siz
 	hawk_ooi_t n;
 
 	/*HAWK_ASSERT (tio->in.fun != HAWK_NULL);*/
-	if (tio->in.fun == HAWK_NULL) 
+	if (tio->in.fun == HAWK_NULL)
 	{
 		/* no input handler function */
 		hawk_gem_seterrnum (tio->gem, HAWK_NULL, HAWK_EINVAL);
@@ -486,13 +486,13 @@ hawk_ooi_t hawk_tio_readuchars (hawk_tio_t* tio, hawk_uch_t* buf, hawk_oow_t siz
 
 	while (nread < size)
 	{
-		if (tio->status & STATUS_INPUT_ILLSEQ) 
+		if (tio->status & STATUS_INPUT_ILLSEQ)
 		{
 			tio->status &= ~STATUS_INPUT_ILLSEQ;
 			hawk_gem_seterrnum (tio->gem, HAWK_NULL, HAWK_EECERR);
 			return -1;
 		}
-		
+
 		n = tio_read_uchars(tio, &buf[nread], size - nread);
 		if (n == 0) break;
 		if (n <= -1) return -1;
@@ -508,9 +508,9 @@ hawk_ooi_t hawk_tio_readuchars (hawk_tio_t* tio, hawk_uch_t* buf, hawk_oow_t siz
 /* ------------------------------------------------------------- */
 hawk_ooi_t hawk_tio_writebchars (hawk_tio_t* tio, const hawk_bch_t* mptr, hawk_oow_t mlen)
 {
-	if (tio->outbuf_len >= tio->out.buf.capa) 
+	if (tio->outbuf_len >= tio->out.buf.capa)
 	{
-		/* maybe, previous flush operation has failed a few 
+		/* maybe, previous flush operation has failed a few
 		 * times previously. so the buffer is full.
 		 */
 		hawk_gem_seterrnum (tio->gem, HAWK_NULL, HAWK_EBUFFULL);
@@ -523,7 +523,7 @@ hawk_ooi_t hawk_tio_writebchars (hawk_tio_t* tio, const hawk_bch_t* mptr, hawk_o
 
 		if (tio->flags & HAWK_TIO_NOAUTOFLUSH)
 		{
-			while (mptr[pos] != '\0') 
+			while (mptr[pos] != '\0')
 			{
 				tio->out.buf.ptr[tio->outbuf_len++] = mptr[pos++];
 				if (tio->outbuf_len >= tio->out.buf.capa &&
@@ -534,7 +534,7 @@ hawk_ooi_t hawk_tio_writebchars (hawk_tio_t* tio, const hawk_bch_t* mptr, hawk_o
 		else
 		{
 			int nl = 0;
-			while (mptr[pos] != '\0') 
+			while (mptr[pos] != '\0')
 			{
 				tio->out.buf.ptr[tio->outbuf_len++] = mptr[pos];
 				if (tio->outbuf_len >= tio->out.buf.capa)
@@ -542,7 +542,7 @@ hawk_ooi_t hawk_tio_writebchars (hawk_tio_t* tio, const hawk_bch_t* mptr, hawk_o
 					if (hawk_tio_flush(tio) <= -1) return -1;
 					nl = 0;
 				}
-				else if (mptr[pos] == '\n') nl = 1; 
+				else if (mptr[pos] == '\n') nl = 1;
 				/* TODO: different line terminator */
 				if (++pos >= HAWK_TYPE_MAX(hawk_ooi_t)) break;
 			}
@@ -585,7 +585,7 @@ hawk_ooi_t hawk_tio_writebchars (hawk_tio_t* tio, const hawk_bch_t* mptr, hawk_o
 				/* TODO: support different line terminating characeter */
 				if (*xptr == '\n')
 				{
-					nl = 1; 
+					nl = 1;
 					break;
 				}
 
@@ -610,9 +610,9 @@ hawk_ooi_t hawk_tio_writeuchars (hawk_tio_t* tio, const hawk_uch_t* wptr, hawk_o
 	hawk_oow_t capa, wcnt, mcnt, xwlen;
 	int n, nl = 0;
 
-	if (tio->outbuf_len >= tio->out.buf.capa) 
+	if (tio->outbuf_len >= tio->out.buf.capa)
 	{
-		/* maybe, previous flush operation has failed a few 
+		/* maybe, previous flush operation has failed a few
 		 * times previously. so the buffer is full. */
 		hawk_gem_seterrnum (tio->gem, HAWK_NULL, HAWK_EBUFFULL);
 		return -1;
@@ -632,14 +632,14 @@ hawk_ooi_t hawk_tio_writeuchars (hawk_tio_t* tio, const hawk_uch_t* wptr, hawk_o
 
 		if (n == -2)
 		{
-			/* the buffer is not large enough to 
+			/* the buffer is not large enough to
 			 * convert more. so flush now and continue.
-			 * note that the buffer may not be full though 
+			 * note that the buffer may not be full though
 			 * it is not large enough in this case */
 			if (hawk_tio_flush(tio) <= -1) return -1;
 			nl = 0;
 		}
-		else 
+		else
 		{
 			if (tio->outbuf_len >= tio->out.buf.capa)
 			{
@@ -654,7 +654,7 @@ hawk_ooi_t hawk_tio_writeuchars (hawk_tio_t* tio, const hawk_uch_t* wptr, hawk_o
 				/* an invalid wide-character is encountered. */
 				if (tio->flags & HAWK_TIO_IGNOREECERR)
 				{
-					/* insert a question mark for an illegal 
+					/* insert a question mark for an illegal
 					 * character. */
 					HAWK_ASSERT (tio->outbuf_len < tio->out.buf.capa);
 					tio->out.buf.ptr[tio->outbuf_len++] = '?';
@@ -680,10 +680,10 @@ hawk_ooi_t hawk_tio_writeuchars (hawk_tio_t* tio, const hawk_uch_t* wptr, hawk_o
 					{
 						/* scan backward assuming a line terminator
 						 * is typically at the back */
-						if (wptr[--i] == '\n')  
+						if (wptr[--i] == '\n')
 						{
 							/* TOOD: handle different line terminator */
-							nl = 1; 
+							nl = 1;
 							break;
 						}
 					}

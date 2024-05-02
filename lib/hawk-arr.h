@@ -28,7 +28,7 @@
 #include <hawk-cmn.h>
 
 /** @file
- * This file provides a linear dynamic array. It grows dynamically as items 
+ * This file provides a linear dynamic array. It grows dynamically as items
  * are added.
  */
 
@@ -68,7 +68,7 @@ typedef enum   hawk_arr_walk_t hawk_arr_walk_t;
  *  A slot is contructed when a user adds data to an array. The user can
  *  define how the data to add can be maintained in the array. A dynamic
  *  array not specified with any copiers stores the data pointer and
- *  the data length into a slot. A special copier HAWK_ARR_COPIER_INLINE copies 
+ *  the data length into a slot. A special copier HAWK_ARR_COPIER_INLINE copies
  *  the contents of the data a user provided into the slot.
  *
  *  A copier should return the pointer to the copied data. If it fails to copy
@@ -93,20 +93,20 @@ typedef void (*hawk_arr_freeer_t) (
 /**
  * The hawk_arr_comper_t type defines a key comparator that is called when
  * the arry needs to compare data. A linear dynamic array is created with a
- * default comparator that performs bitwise comparison. 
+ * default comparator that performs bitwise comparison.
  *
  * The default comparator compares data in a memcmp-like fashion.
  * It is not suitable when you want to implement a heap of numbers
- * greater than a byte size. You must implement a comparator that 
+ * greater than a byte size. You must implement a comparator that
  * takes the whole element and performs comparison in such a case.
- * 
- * The comparator should return 0 if the data are the same, a negative 
+ *
+ * The comparator should return 0 if the data are the same, a negative
  * integer if the first data is less than the second data, a positive
  * integer otherwise.
  *
  */
 typedef int (*hawk_arr_comper_t) (
-	hawk_arr_t*  arr    /* array */, 
+	hawk_arr_t*  arr    /* array */,
 	const void*  dptr1  /* data pointer */,
 	hawk_oow_t   dlen1  /* data length */,
 	const void*  dptr2  /* data pointer */,
@@ -114,7 +114,7 @@ typedef int (*hawk_arr_comper_t) (
 );
 
 /**
- * The hawk_arr_keeper_t type defines a value keeper that is called when 
+ * The hawk_arr_keeper_t type defines a value keeper that is called when
  * a value is retained in the context that it should be destroyed because
  * it is identical to a new value. Two values are identical if their beginning
  * pointers and their lengths are equal.
@@ -122,12 +122,12 @@ typedef int (*hawk_arr_comper_t) (
 typedef void (*hawk_arr_keeper_t) (
 	hawk_arr_t* arr     /**< array */,
 	void*       vptr    /**< pointer to a value */,
-	hawk_oow_t  vlen    /**< length of a value */	
+	hawk_oow_t  vlen    /**< length of a value */
 );
 
 /**
  * The hawk_arr_sizer_t type defines an array size claculator that is called
- * when the array needs to be resized. 
+ * when the array needs to be resized.
  */
 typedef hawk_oow_t (*hawk_arr_sizer_t) (
 	hawk_arr_t* arr,  /**< array */
@@ -175,7 +175,7 @@ struct hawk_arr_t
 	hawk_gem_t*       gem;
 	const hawk_arr_style_t* style;
 	hawk_uint8_t      scale;  /* scale factor */
-	hawk_oow_t        heap_pos_offset; /* offset in the data element where position 
+	hawk_oow_t        heap_pos_offset; /* offset in the data element where position
 	                                   * is stored when heap operation is performed. */
 	hawk_oow_t        size;   /* number of items */
 	hawk_oow_t        tally;  /* number of items set */
@@ -207,7 +207,7 @@ HAWK_EXPORT const hawk_arr_style_t* hawk_get_arr_style (
  * The hawk_arr_open() function creates a linear dynamic array.
  */
 HAWK_EXPORT hawk_arr_t* hawk_arr_open (
-	hawk_gem_t* gem, 
+	hawk_gem_t* gem,
 	hawk_oow_t  ext,  /**< extension size in bytes */
 	hawk_oow_t  capa  /**< initial array capacity */
 );
@@ -267,7 +267,7 @@ HAWK_EXPORT hawk_arr_copier_t hawk_arr_getcopier (
 
 HAWK_EXPORT void hawk_arr_setstyle (
 	hawk_arr_t*             arr,
-	const hawk_arr_style_t* style  
+	const hawk_arr_style_t* style
 );
 
 HAWK_EXPORT const hawk_arr_style_t* hawk_arr_getstyle (
@@ -303,14 +303,14 @@ HAWK_EXPORT hawk_oow_t hawk_arr_rsearch (
 
 HAWK_EXPORT hawk_oow_t hawk_arr_upsert (
 	hawk_arr_t* arr,
-	hawk_oow_t index, 
+	hawk_oow_t index,
 	void*      dptr,
 	hawk_oow_t dlen
 );
 
 HAWK_EXPORT hawk_oow_t hawk_arr_insert (
 	hawk_arr_t* arr,
-	hawk_oow_t index, 
+	hawk_oow_t index,
 	void*      dptr,
 	hawk_oow_t dlen
 );
@@ -323,7 +323,7 @@ HAWK_EXPORT hawk_oow_t hawk_arr_update (
 );
 
 /**
- * The hawk_arr_delete() function deletes the as many data as the count 
+ * The hawk_arr_delete() function deletes the as many data as the count
  * from the index. It returns the number of data deleted.
  */
 HAWK_EXPORT hawk_oow_t hawk_arr_delete (
@@ -379,14 +379,14 @@ HAWK_EXPORT hawk_oow_t hawk_arr_rwalk (
  */
 HAWK_EXPORT hawk_oow_t hawk_arr_pushstack (
 	hawk_arr_t* arr,
-	void*      dptr, 
+	void*      dptr,
 	hawk_oow_t dlen
 );
 
 /**
  * The hawk_arr_popstack() function deletes the last array data. It is a utility
  * function to allow stack-like operations over an array. To do so, you should
- * not play with other non-stack related functions. 
+ * not play with other non-stack related functions.
  * @note You must not call this function if @a arr is empty.
  */
 HAWK_EXPORT void hawk_arr_popstack (
@@ -410,7 +410,7 @@ HAWK_EXPORT hawk_oow_t hawk_arr_pushheap (
 /**
  * The hawk_arr_popheap() function deletes data at position 0 while keeping
  * the largest data at positon 0. It is a utiltiy funtion to implement a binary
- * max-heap over an array. 
+ * max-heap over an array.
  * @note You must not mess up the array with other non-heap related functions
  *       to keep the heap property.
  */
@@ -435,7 +435,7 @@ HAWK_EXPORT hawk_oow_t hawk_arr_getheapposoffset (
 );
 
 /**
- * The hawk_arr_setheapposoffset() function sets the offset to a position holding 
+ * The hawk_arr_setheapposoffset() function sets the offset to a position holding
  * field within a data element. It assumes that the field is of the hawk_oow_t type.
  *
  * \code
@@ -445,15 +445,15 @@ HAWK_EXPORT hawk_oow_t hawk_arr_getheapposoffset (
  *    hawk_oow_t pos;
  * };
  * struct data_t d;
- * hawk_arr_setheapposoffset (arr, HAWK_OFFSETOF(struct data_t, pos)); 
+ * hawk_arr_setheapposoffset (arr, HAWK_OFFSETOF(struct data_t, pos));
  * d.v = 20;
  * hawk_arr_pushheap (arr, &d, 1);
  * \endcode
- * 
+ *
  * In the code above, the 'pos' field of the first element in the array must be 0.
- * 
- * If it's set to HAWK_ARR_NIL, position is not updated when heapification is 
- * performed.  
+ *
+ * If it's set to HAWK_ARR_NIL, position is not updated when heapification is
+ * performed.
  */
 HAWK_EXPORT void hawk_arr_setheapposoffset (
 	hawk_arr_t* arr,

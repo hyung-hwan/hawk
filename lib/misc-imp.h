@@ -35,7 +35,7 @@ char_t* split_xchars_to_fields (hawk_rtx_t* rtx, char_t* str, hawk_oow_t len, ch
 	while (p < end && is_xch_space(*p)) p++;
 
 	/* initialize token pointers */
-	ts = tp = xp = p; 
+	ts = tp = xp = p;
 
 	while (p < end)
 	{
@@ -65,7 +65,7 @@ char_t* split_xchars_to_fields (hawk_rtx_t* rtx, char_t* str, hawk_oow_t len, ch
 					*tp++ = c; xp = tp; p++;
 				}
 			}
-			else 
+			else
 			{
 				if (c == fs)
 				{
@@ -81,7 +81,7 @@ char_t* split_xchars_to_fields (hawk_rtx_t* rtx, char_t* str, hawk_oow_t len, ch
 
 					return p;
 				}
-		
+
 				if (c == lq)
 				{
 					quoted = 1;
@@ -90,15 +90,15 @@ char_t* split_xchars_to_fields (hawk_rtx_t* rtx, char_t* str, hawk_oow_t len, ch
 				else
 				{
 					*tp++ = c; p++;
-					if (!is_xch_space(c)) xp = tp; 
+					if (!is_xch_space(c)) xp = tp;
 				}
 			}
 		}
 	}
 
-	if (escaped) 
+	if (escaped)
 	{
-		/* if it is still escaped, the last character must be 
+		/* if it is still escaped, the last character must be
 		 * the escaper itself. treat it as a normal character */
 		*xp++ = ec;
 	}
@@ -114,7 +114,7 @@ char_t* tokenize_xchars (hawk_rtx_t* rtx, const char_t* s, hawk_oow_t len, const
 	const char_t* end = s + len;
 	const char_t* sp = HAWK_NULL, * ep = HAWK_NULL;
 	const char_t* delim_end = delim + delim_len;
-	char_t c; 
+	char_t c;
 	int delim_mode;
 
 #define __DELIM_NULL      0
@@ -123,13 +123,13 @@ char_t* tokenize_xchars (hawk_rtx_t* rtx, const char_t* s, hawk_oow_t len, const
 #define __DELIM_NOSPACES  3
 #define __DELIM_COMPOSITE 4
 	if (delim == HAWK_NULL) delim_mode = __DELIM_NULL;
-	else 
+	else
 	{
 		delim_mode = __DELIM_EMPTY;
 
-		for (d = delim; d < delim_end; d++) 
+		for (d = delim; d < delim_end; d++)
 		{
-			if (is_xch_space(*d)) 
+			if (is_xch_space(*d))
 			{
 				if (delim_mode == __DELIM_EMPTY)
 					delim_mode = __DELIM_SPACES;
@@ -152,23 +152,23 @@ char_t* tokenize_xchars (hawk_rtx_t* rtx, const char_t* s, hawk_oow_t len, const
 		}
 
 		/* TODO: verify the following statement... */
-		if (delim_mode == __DELIM_SPACES && 
-		    delim_len == 1 && 
+		if (delim_mode == __DELIM_SPACES &&
+		    delim_len == 1 &&
 		    delim[0] != ' ') delim_mode = __DELIM_NOSPACES;
 	}
 
-	if (delim_mode == __DELIM_NULL) 
-	{ 
-		/* when HAWK_NULL is given as "delim", it trims off the 
+	if (delim_mode == __DELIM_NULL)
+	{
+		/* when HAWK_NULL is given as "delim", it trims off the
 		 * leading and trailing spaces characters off the source
 		 * string "s" eventually. */
 
 		while (p < end && is_xch_space(*p)) p++;
-		while (p < end) 
+		while (p < end)
 		{
 			c = *p;
 
-			if (!is_xch_space(c)) 
+			if (!is_xch_space(c))
 			{
 				if (sp == HAWK_NULL) sp = p;
 				ep = p;
@@ -186,13 +186,13 @@ char_t* tokenize_xchars (hawk_rtx_t* rtx, const char_t* s, hawk_oow_t len, const
 			ep = p++;
 		}
 	}
-	else if (delim_mode == __DELIM_SPACES) 
+	else if (delim_mode == __DELIM_SPACES)
 	{
 		/* each token is delimited by space characters. all leading
 		 * and trailing spaces are removed. */
 
 		while (p < end && is_xch_space(*p)) p++;
-		while (p < end) 
+		while (p < end)
 		{
 			c = *p;
 			if (is_xch_space(c)) break;
@@ -203,14 +203,14 @@ char_t* tokenize_xchars (hawk_rtx_t* rtx, const char_t* s, hawk_oow_t len, const
 	}
 	else if (delim_mode == __DELIM_NOSPACES)
 	{
-		/* each token is delimited by one of charaters 
+		/* each token is delimited by one of charaters
 		 * in the delimeter set "delim". */
 		if (rtx->gbl.ignorecase)
 		{
-			while (p < end) 
+			while (p < end)
 			{
 				c = to_xch_upper(*p);
-				for (d = delim; d < delim_end; d++) 
+				for (d = delim; d < delim_end; d++)
 				{
 					if (c == to_xch_upper(*d)) goto exit_loop;
 				}
@@ -221,10 +221,10 @@ char_t* tokenize_xchars (hawk_rtx_t* rtx, const char_t* s, hawk_oow_t len, const
 		}
 		else
 		{
-			while (p < end) 
+			while (p < end)
 			{
 				c = *p;
-				for (d = delim; d < delim_end; d++) 
+				for (d = delim; d < delim_end; d++)
 				{
 					if (c == *d) goto exit_loop;
 				}
@@ -234,7 +234,7 @@ char_t* tokenize_xchars (hawk_rtx_t* rtx, const char_t* s, hawk_oow_t len, const
 			}
 		}
 	}
-	else /* if (delim_mode == __DELIM_COMPOSITE) */ 
+	else /* if (delim_mode == __DELIM_COMPOSITE) */
 	{
 		/* each token is delimited by one of non-space charaters
 		 * in the delimeter set "delim". however, all space characters
@@ -242,15 +242,15 @@ char_t* tokenize_xchars (hawk_rtx_t* rtx, const char_t* s, hawk_oow_t len, const
 		while (p < end && is_xch_space(*p)) p++;
 		if (rtx->gbl.ignorecase)
 		{
-			while (p < end) 
+			while (p < end)
 			{
 				c = to_xch_upper(*p);
-				if (is_xch_space(c)) 
+				if (is_xch_space(c))
 				{
 					p++;
 					continue;
 				}
-				for (d = delim; d < delim_end; d++) 
+				for (d = delim; d < delim_end; d++)
 				{
 					if (c == to_xch_upper(*d)) goto exit_loop;
 				}
@@ -260,15 +260,15 @@ char_t* tokenize_xchars (hawk_rtx_t* rtx, const char_t* s, hawk_oow_t len, const
 		}
 		else
 		{
-			while (p < end) 
+			while (p < end)
 			{
 				c = *p;
-				if (is_xch_space(c)) 
+				if (is_xch_space(c))
 				{
 					p++;
 					continue;
 				}
-				for (d = delim; d < delim_end; d++) 
+				for (d = delim; d < delim_end; d++)
 				{
 					if (c == *d) goto exit_loop;
 				}
@@ -279,20 +279,20 @@ char_t* tokenize_xchars (hawk_rtx_t* rtx, const char_t* s, hawk_oow_t len, const
 	}
 
 exit_loop:
-	if (sp == HAWK_NULL) 
+	if (sp == HAWK_NULL)
 	{
 		tok->ptr = HAWK_NULL;
 		tok->len = (hawk_oow_t)0;
 	}
-	else 
+	else
 	{
 		tok->ptr = (char_t*)sp;
-		tok->len = ep - sp + 1; 
+		tok->len = ep - sp + 1;
 	}
 
 	/* if HAWK_NULL is returned, this function should not be called again */
 	if (p >= end) return HAWK_NULL;
-	if (delim_mode == __DELIM_EMPTY || 
+	if (delim_mode == __DELIM_EMPTY ||
 	    delim_mode == __DELIM_SPACES) return (char_t*)p;
 	return (char_t*)++p;
 }
@@ -324,7 +324,7 @@ char_t* tokenize_xchars_by_rex (hawk_rtx_t* rtx, const char_t* str, hawk_oow_t l
 			hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_ENOERR); /* reset HAWK_EREXNOMAT to no error */
 			tok->ptr = realsub.ptr;
 			tok->len = realsub.len;
-			return HAWK_NULL; 
+			return HAWK_NULL;
 		}
 
 		HAWK_ASSERT (n == 1);
@@ -338,14 +338,14 @@ char_t* tokenize_xchars_by_rex (hawk_rtx_t* rtx, const char_t* str, hawk_oow_t l
 		else if (HAWK_RTX_IS_STRIPRECSPC_ON(rtx))
 		{
 			/* match at the beginning of the input string */
-			if (match.ptr == substr) 
+			if (match.ptr == substr)
 			{
 				for (i = 0; i < match.len; i++)
 				{
 					if (!is_xch_space(match.ptr[i])) goto exit_loop;
 				}
 
-				/* the match that is all spaces at the 
+				/* the match that is all spaces at the
 				 * beginning of the input string is skipped */
 				cursub.ptr += match.len;
 				cursub.len -= match.len;
@@ -367,7 +367,7 @@ exit_loop:
 	{
 		tok->ptr = realsub.ptr;
 		tok->len = realsub.len;
-		return HAWK_NULL; 
+		return HAWK_NULL;
 	}
 
 	tok->ptr = realsub.ptr;
@@ -391,7 +391,7 @@ exit_loop:
 	}
 	else
 	{
-		/* if the match went beyond the the last character in the input 
+		/* if the match went beyond the the last character in the input
 		 * string, it returns HAWK_NULL to terminate tokenization. */
 		return (match.ptr+match.len > substr+sublen)? HAWK_NULL: ((char_t*)match.ptr+match.len);
 	}

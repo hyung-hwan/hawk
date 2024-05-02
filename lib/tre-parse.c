@@ -188,8 +188,8 @@ tre_expand_ctype(tre_mem_t mem, tre_ctype_t class, tre_ast_node_t ***items,
 	for (j = 0; (j < 256) && (status == REG_OK); j++)
 	{
 		c = j;
-		if (tre_isctype(c, class) || 
-		    ((cflags & REG_ICASE) && (tre_isctype(tre_tolower(c), class) || 
+		if (tre_isctype(c, class) ||
+		    ((cflags & REG_ICASE) && (tre_isctype(tre_tolower(c), class) ||
 		                              tre_isctype(tre_toupper(c), class))))
 		{
 			if (min < 0) min = c;
@@ -319,7 +319,7 @@ tre_parse_bracket_items(tre_parse_ctx_t *ctx, int negate,
 						/* Optimize character classes for 8 bit character sets. */
 #if defined(HAWK_OOCH_IS_BCH)
 						/* HAWK: not possible to count on MB_CUR_MAX since
-						 *      this library is designed to support per-object 
+						 *      this library is designed to support per-object
 						 *      or per-context character encoding using hawk_cmgr_t */
 						/* if (status == REG_OK && TRE_MB_CUR_MAX == 1) */
 						/* END HAWK */
@@ -507,7 +507,7 @@ tre_parse_bracket(tre_parse_ctx_t *ctx, tre_ast_node_t **result)
 		int k;
 		DPRINT(("final: creating %d - %d\n", curr_min, (int)TRE_CHAR_MAX));
 		n = tre_ast_new_literal(ctx->mem, curr_min, TRE_CHAR_MAX, ctx->position);
-		if (n == NULL) 
+		if (n == NULL)
 		{
 			status = REG_ESPACE;
 		}
@@ -622,11 +622,11 @@ tre_parse_bound(tre_parse_ctx_t *ctx, tre_ast_node_t **result)
 	}
 
 	/* Check that the repeat counts are sane. */
-	/*if ((max >= 0 && min > max) || max > RE_DUP_MAX) return REG_BADBR; 
+	/*if ((max >= 0 && min > max) || max > RE_DUP_MAX) return REG_BADBR;
 
 	hyunghwan.chung:
 	this original check still allows something like {100000,}
-	while it does not allow {1,256}. Why is RE_DUP_MAX necessary? 
+	while it does not allow {1,256}. Why is RE_DUP_MAX necessary?
 	*/
 	if ((max >= 0 && min > max)) return REG_BADBR;
 
@@ -820,7 +820,7 @@ tre_parse_bound(tre_parse_ctx_t *ctx, tre_ast_node_t **result)
 			minimal = !(ctx->cflags & REG_UNGREEDY);
 			r++;
 		}
-/* HAWK - commented out for minimal impact on backward compatibility. 
+/* HAWK - commented out for minimal impact on backward compatibility.
  *       X{x,y}* X{x,y}+ */
 #if 0
 		else if (*r == CHAR_STAR || *r == CHAR_PLUS)
@@ -1034,7 +1034,7 @@ reg_errcode_t tre_parse(tre_parse_ctx_t *ctx)
 				STACK_PUSHX(stack, int, PARSE_PIECE);
 			}
 			else
-#endif 
+#endif
 			{ /* REG_RIGHT_ASSOC */
 				/* Default case, left associative concatenation. */
 				STACK_PUSHX(stack, int, PARSE_CATENATION);
@@ -1044,7 +1044,7 @@ reg_errcode_t tre_parse(tre_parse_ctx_t *ctx)
 			}
 			break;
 		}
-	
+
 		case PARSE_POST_CATENATION:
 		{
 			tre_ast_node_t *tree = tre_stack_pop_voidptr(stack);
@@ -1055,7 +1055,7 @@ reg_errcode_t tre_parse(tre_parse_ctx_t *ctx)
 			result = tmp_node;
 			break;
 		}
-	
+
 		case PARSE_UNION:
 			if (ctx->re >= ctx->re_end) break;
 	#ifdef REG_LITERAL
@@ -1072,16 +1072,16 @@ reg_errcode_t tre_parse(tre_parse_ctx_t *ctx)
 				STACK_PUSHX(stack, int, PARSE_BRANCH);
 				ctx->re++;
 				break;
-	
+
 			case CHAR_RPAREN:
 				ctx->re++;
 				break;
-	
+
 			default:
 				break;
 			}
 			break;
-	
+
 		case PARSE_POST_UNION:
 		{
 			tre_ast_node_t *tmp_node;
@@ -1092,7 +1092,7 @@ reg_errcode_t tre_parse(tre_parse_ctx_t *ctx)
 			result = tmp_node;
 			break;
 		}
-	
+
 		case PARSE_POSTFIX:
 			/* Parse postfix operators. */
 			if (ctx->re >= ctx->re_end)
@@ -1119,7 +1119,7 @@ reg_errcode_t tre_parse(tre_parse_ctx_t *ctx)
 	#ifdef TRE_DEBUG
 				const tre_char_t *tmp_re;
 	#endif
-	
+
 				if (*ctx->re == CHAR_PLUS) /* HAWK: case CHAR_PLUS fell through down here */
 					rep_min = 1;
 				if (*ctx->re == CHAR_QUESTIONMARK) /* HAWK: case CHAR_QUESTIONMARK fell though down here */
@@ -1127,7 +1127,7 @@ reg_errcode_t tre_parse(tre_parse_ctx_t *ctx)
 	#ifdef TRE_DEBUG
 				tmp_re = ctx->re;
 	#endif
-	
+
 				if (ctx->re + 1 < ctx->re_end)
 				{
 					if (*(ctx->re + 1) == CHAR_QUESTIONMARK) /* HAWK: +?, ??, *? */
@@ -1148,7 +1148,7 @@ reg_errcode_t tre_parse(tre_parse_ctx_t *ctx)
 					}
 	#endif
 				}
-	
+
 				DPRINT(("tre_parse: %s star: '%.*" STRF "'\n",
 				        minimal ? "  minimal" : "greedy", REST(tmp_re)));
 				ctx->re++;
@@ -1158,10 +1158,10 @@ reg_errcode_t tre_parse(tre_parse_ctx_t *ctx)
 					return REG_ESPACE;
 				result = tmp_node;
 				STACK_PUSHX(stack, int, PARSE_POSTFIX);
-	
+
 				break;
 			}
-	
+
 			case CHAR_BACKSLASH:
 				/* "\{" is special without REG_EXTENDED */
 				/* HAWK  - also handle \+ and \? */
@@ -1178,13 +1178,13 @@ reg_errcode_t tre_parse(tre_parse_ctx_t *ctx)
 				*/
 				if (!(ctx->cflags & REG_EXTENDED) && ctx->re + 1 < ctx->re_end)
 				{
-					if (*(ctx->re + 1) == CHAR_LBRACE) 
+					if (*(ctx->re + 1) == CHAR_LBRACE)
 					{
 						ctx->re++;
 						goto parse_brace;
 					}
-					else if (*(ctx->re + 1) == CHAR_PLUS || 
-					         *(ctx->re + 1) == CHAR_QUESTIONMARK) 
+					else if (*(ctx->re + 1) == CHAR_PLUS ||
+					         *(ctx->re + 1) == CHAR_QUESTIONMARK)
 					{
 						ctx->re++;
 						goto parse_star;
@@ -1192,51 +1192,51 @@ reg_errcode_t tre_parse(tre_parse_ctx_t *ctx)
 				}
 				break;
 				/* END HAWK */
-	
-	
+
+
 			case CHAR_LBRACE:
 				/* "{" is literal without REG_EXTENDED */
 				if (!(ctx->cflags & REG_EXTENDED)) break;
 				/* HAWK */
 				if (ctx->cflags & REG_NOBOUND) break;
 				/* END HAWK */
-	
+
 	parse_brace:
 				DPRINT(("tre_parse:	bound: '%.*" STRF "'\n",
 				        REST(ctx->re)));
 				ctx->re++;
-	
+
 				status = tre_parse_bound(ctx, &result);
 				if (status != REG_OK)
 					return status;
 				STACK_PUSHX(stack, int, PARSE_POSTFIX);
 				break;
 			}
-	
+
 			break;
-	
+
 		case PARSE_ATOM:
-	
+
 			/* Parse an atom.  An atom is a regular expression enclosed in `()',
 			   an empty set of `()', a bracket expression, `.', `^', `$',
 			   a `\' followed by a character, or a single character. */
-	
+
 			/* End of regexp? (empty string). */
 			if (ctx->re >= ctx->re_end) goto parse_literal;
-	
+
 	#ifdef REG_LITERAL
 			if (ctx->cflags & REG_LITERAL) goto parse_literal;
 	#endif /* REG_LITERAL */
-	
+
 			switch (*ctx->re)
 			{
 			case CHAR_LPAREN:  /* parenthesized subexpression */
-	
+
 				/* Handle "(?...)" extensions.  They work in a way similar
 				 to Perls corresponding extensions. */
 				/* HAWK: added ctx->cflags & REG_NONSTDEXT */
 				if ((ctx->cflags & REG_NONSTDEXT) &&
-				    (ctx->cflags & REG_EXTENDED) && 
+				    (ctx->cflags & REG_EXTENDED) &&
 				    *(ctx->re + 1) == CHAR_QUESTIONMARK)
 				{
 					int new_cflags = ctx->cflags;
@@ -1325,7 +1325,7 @@ reg_errcode_t tre_parse(tre_parse_ctx_t *ctx)
 						else
 							return REG_BADPAT;
 					}
-	
+
 					/* Turn on the cflags changes for the rest of the
 					   enclosing group. */
 					STACK_PUSHX(stack, int, ctx->cflags);
@@ -1334,7 +1334,7 @@ reg_errcode_t tre_parse(tre_parse_ctx_t *ctx)
 					ctx->cflags = new_cflags;
 					break;
 				}
-	
+
 				if (ctx->cflags & REG_EXTENDED
 				        || (ctx->re > ctx->re_start
 				            && *(ctx->re - 1) == CHAR_BACKSLASH))
@@ -1342,7 +1342,7 @@ reg_errcode_t tre_parse(tre_parse_ctx_t *ctx)
 					depth++;
 					/* HAWK: added ctx->cflags & REG_NONSTDEXT */
 					if ((ctx->cflags & REG_NONSTDEXT) &&
-					     ctx->re + 2 < ctx->re_end && 
+					     ctx->re + 2 < ctx->re_end &&
 					     *(ctx->re + 1) == CHAR_QUESTIONMARK &&
 					     *(ctx->re + 2) == CHAR_COLON)
 					{
@@ -1370,7 +1370,7 @@ reg_errcode_t tre_parse(tre_parse_ctx_t *ctx)
 				else
 					goto parse_literal;
 				break;
-	
+
 			case CHAR_RPAREN:  /* end of current subexpression */
 				/* HAWK: fixed the condition */
 				/* if ((ctx->cflags & REG_EXTENDED && depth > 0)
@@ -1392,14 +1392,14 @@ reg_errcode_t tre_parse(tre_parse_ctx_t *ctx)
 				else
 					goto parse_literal;
 				break;
-	
+
 			case CHAR_LBRACKET: /* bracket expression */
 				DPRINT(("tre_parse:     bracket: '%.*" STRF "'\n", REST(ctx->re)));
 				ctx->re++;
 				status = tre_parse_bracket(ctx, &result);
 				if (status != REG_OK) return status;
 				break;
-	
+
 			case CHAR_BACKSLASH:
 				/* If this is "\(" or "\)" chew off the backslash and
 				 try again. */
@@ -1412,7 +1412,7 @@ reg_errcode_t tre_parse(tre_parse_ctx_t *ctx)
 					STACK_PUSHX(stack, int, PARSE_ATOM);
 					break;
 				}
-	
+
 				/* If a macro is used, parse the expanded macro recursively. */
 				{
 					tre_char_t buf[64];
@@ -1432,13 +1432,13 @@ reg_errcode_t tre_parse(tre_parse_ctx_t *ctx)
 						break;
 					}
 				}
-	
+
 				if (ctx->re + 1 >= ctx->re_end)
 				{
 					/* Trailing backslash. */
 					return REG_EESCAPE;
 				}
-	
+
 	#ifdef REG_LITERAL
 				if (*(ctx->re + 1) == HAWK_T('Q'))
 				{
@@ -1451,7 +1451,7 @@ reg_errcode_t tre_parse(tre_parse_ctx_t *ctx)
 					break;
 				}
 	#endif /* REG_LITERAL */
-	
+
 				DPRINT(("tre_parse:  bleep: '%.*" STRF "'\n", REST(ctx->re)));
 				ctx->re++;
 				switch (*ctx->re)
@@ -1483,7 +1483,7 @@ reg_errcode_t tre_parse(tre_parse_ctx_t *ctx)
 						long val;
 						DPRINT(("tre_parse:  8 bit hex: '%.*" STRF "'\n",
 						        REST(ctx->re - 2)));
-	
+
 						if (tre_isxdigit(ctx->re[0]) && ctx->re < ctx->re_end)
 						{
 							tmp[0] = (char)ctx->re[0];
@@ -1508,7 +1508,7 @@ reg_errcode_t tre_parse(tre_parse_ctx_t *ctx)
 							val = val * 16 + tmp;
 							ctx->re++;
 						}
-						
+
 						result = tre_ast_new_literal(ctx->mem, (int)val, (int)val, ctx->position);
 						ctx->position++;
 						break;
@@ -1541,7 +1541,7 @@ reg_errcode_t tre_parse(tre_parse_ctx_t *ctx)
 					#endif
 						long val = 0;
 						int tmp;
-	
+
 						ctx->re++;
 						while (ctx->re_end - ctx->re >= 0)
 						{
@@ -1556,13 +1556,13 @@ reg_errcode_t tre_parse(tre_parse_ctx_t *ctx)
 							}
 							return REG_EBRACE;
 						}
-	
+
 						result = tre_ast_new_literal(ctx->mem, (int)val, (int)val, ctx->position);
 						ctx->position++;
 						break;
 					}
 					/*FALLTHROUGH*/
-	
+
 				default:
 					if (tre_isdigit(*ctx->re))
 					{
@@ -1588,7 +1588,7 @@ reg_errcode_t tre_parse(tre_parse_ctx_t *ctx)
 				if (result == NULL)
 					return REG_ESPACE;
 				break;
-	
+
 			case CHAR_PERIOD:	 /* the any-symbol */
 				DPRINT(("tre_parse:	  any: '%.*" STRF "'\n",
 				        REST(ctx->re)));
@@ -1614,7 +1614,7 @@ reg_errcode_t tre_parse(tre_parse_ctx_t *ctx)
 				}
 				ctx->re++;
 				break;
-	
+
 			case CHAR_CARET:	 /* beginning of line assertion */
 				/* '^' has a special meaning everywhere in EREs, and in the
 				 beginning of the RE and after \( is BREs. */
@@ -1633,7 +1633,7 @@ reg_errcode_t tre_parse(tre_parse_ctx_t *ctx)
 				else
 					goto parse_literal;
 				break;
-	
+
 			case CHAR_DOLLAR:	 /* end of line assertion. */
 				/* '$' is special everywhere in EREs, and in the end of the
 				 string and before \) is BREs. */
@@ -1653,10 +1653,10 @@ reg_errcode_t tre_parse(tre_parse_ctx_t *ctx)
 				else
 					goto parse_literal;
 				break;
-	
+
 			default:
 	parse_literal:
-	
+
 				if (temporary_cflags && ctx->re + 1 < ctx->re_end
 				        && *ctx->re == CHAR_BACKSLASH && *(ctx->re + 1) == HAWK_T('E'))
 				{
@@ -1667,8 +1667,8 @@ reg_errcode_t tre_parse(tre_parse_ctx_t *ctx)
 					STACK_PUSHX(stack, int, PARSE_PIECE);
 					break;
 				}
-	
-	
+
+
 				/* We are expecting an atom.  If the subexpression (or the whole
 				 regexp) ends here, we interpret it as an empty expression
 				 (which matches an empty string).  */
@@ -1697,7 +1697,7 @@ reg_errcode_t tre_parse(tre_parse_ctx_t *ctx)
 					if (!result) return REG_ESPACE;
 					break;
 				}
-	
+
 				DPRINT(("tre_parse:     literal: '%.*" STRF "'\n",
 				        REST(ctx->re)));
 				/* Note that we can't use an tre_isalpha() test here, since there
@@ -1707,7 +1707,7 @@ reg_errcode_t tre_parse(tre_parse_ctx_t *ctx)
 				{
 					tre_ast_node_t *tmp1;
 					tre_ast_node_t *tmp2;
-	
+
 					/* XXX - Can there be more than one opposite-case
 					   counterpoints for some character in some locale?  Or
 					   more than two characters which all should be regarded
@@ -1733,11 +1733,11 @@ reg_errcode_t tre_parse(tre_parse_ctx_t *ctx)
 				break;
 			}
 			break;
-	
+
 		case PARSE_MARK_FOR_SUBMATCH:
 		{
 			int submatch_id = tre_stack_pop_int(stack);
-	
+
 			if (result->submatch_id >= 0)
 			{
 				tre_ast_node_t *n, *tmp_node;
@@ -1752,24 +1752,24 @@ reg_errcode_t tre_parse(tre_parse_ctx_t *ctx)
 			result->num_submatches++;
 			break;
 		}
-	
+
 		case PARSE_RESTORE_CFLAGS:
 			ctx->cflags = tre_stack_pop_int(stack);
 			break;
-	
+
 		default:
 			assert(0);
 			break;
 		}
 	}
-	
+
 	/* Check for missing closing parentheses. */
 	if (depth > 0)
 		return REG_EPAREN;
-	
+
 	if (status == REG_OK)
 		ctx->result = result;
-	
+
 	return status;
 }
 

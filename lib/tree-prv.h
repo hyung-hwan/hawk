@@ -28,7 +28,7 @@
 
 enum hawk_in_type_t
 {
-	/* the order of these values match 
+	/* the order of these values match
 	 * __in_type_map and __in_opt_map in rio.c */
 
 	HAWK_IN_PIPE,
@@ -41,7 +41,7 @@ typedef enum hawk_in_type_t hawk_in_type_t;
 
 enum hawk_out_type_t
 {
-	/* the order of these values match 
+	/* the order of these values match
 	 * __out_type_map and __out_opt_map in rio.c */
 
 	HAWK_OUT_PIPE,
@@ -114,7 +114,7 @@ struct hawk_nde_ass_t
 	hawk_nde_t* right;
 };
 
-/* HAWK_NDE_EXP_BIN, HAWK_NDE_EXP_UNR, 
+/* HAWK_NDE_EXP_BIN, HAWK_NDE_EXP_UNR,
  * HAWK_NDE_EXP_INCPRE, HAWK_AW_NDE_EXP_INCPST */
 struct hawk_nde_exp_t
 {
@@ -134,7 +134,7 @@ struct hawk_nde_cnd_t
 };
 
 /* HAWK_NDE_POS - positional - $1, $2, $x, etc */
-struct hawk_nde_pos_t  
+struct hawk_nde_pos_t
 {
 	HAWK_NDE_HDR;
 	hawk_nde_t* val;
@@ -160,7 +160,7 @@ struct hawk_nde_int_t
 {
 	HAWK_NDE_HDR;
 	hawk_int_t val;
-	hawk_ooch_t* str; 
+	hawk_ooch_t* str;
 	hawk_oow_t len;
 };
 
@@ -217,14 +217,14 @@ struct hawk_nde_fun_t
 	hawk_fun_t* funptr; /* HAWK_NULL or actual pointer */
 };
 
-/* HAWK_NDE_NAMED, HAWK_NDE_GBL, 
- * HAWK_NDE_LCL, HAWK_NDE_ARG 
- * HAWK_NDE_NAMEDIDX, HAWK_NDE_GBLIDX, 
+/* HAWK_NDE_NAMED, HAWK_NDE_GBL,
+ * HAWK_NDE_LCL, HAWK_NDE_ARG
+ * HAWK_NDE_NAMEDIDX, HAWK_NDE_GBLIDX,
  * HAWK_NDE_LCLIDX, HAWK_NDE_ARGIDX */
 struct hawk_nde_var_t
 {
 	HAWK_NDE_HDR;
-	struct 
+	struct
 	{
 		hawk_oocs_t name;
 		hawk_oow_t idxa;
@@ -244,7 +244,7 @@ struct hawk_nde_fncall_t
 			hawk_fun_t* fun; /* cache it */
 		} fun;
 
-		/* minimum information of an intrinsic function 
+		/* minimum information of an intrinsic function
 		 * needed during run-time. */
 		struct
 		{
@@ -284,7 +284,7 @@ struct hawk_nde_if_t
 /* HAWK_NDE_WHILE, HAWK_NDE_DOWHILE */
 struct hawk_nde_while_t
 {
-	HAWK_NDE_HDR; 
+	HAWK_NDE_HDR;
 	hawk_nde_t* test;
 	hawk_nde_t* body;
 };
@@ -323,7 +323,7 @@ struct hawk_nde_continue_t
 struct hawk_nde_return_t
 {
 	HAWK_NDE_HDR;
-	hawk_nde_t* val; /* optional (no return code if HAWK_NULL) */	
+	hawk_nde_t* val; /* optional (no return code if HAWK_NULL) */
 };
 
 /* HAWK_NDE_EXIT */
@@ -377,7 +377,7 @@ extern "C" {
 /* print the entire tree */
 int hawk_prnpt (hawk_t* hawk, hawk_nde_t* tree);
 /* print a single top-level node */
-int hawk_prnnde (hawk_t* hawk, hawk_nde_t* node); 
+int hawk_prnnde (hawk_t* hawk, hawk_nde_t* node);
 /* print the pattern part */
 int hawk_prnptnpt (hawk_t* hawk, hawk_nde_t* tree);
 

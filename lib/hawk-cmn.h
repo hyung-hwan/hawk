@@ -25,7 +25,7 @@
 #ifndef _HAWK_CMN_H_
 #define _HAWK_CMN_H_
 
-/* WARNING: NEVER CHANGE/DELETE THE FOLLOWING HAWK_HAVE_CFG_H DEFINITION. 
+/* WARNING: NEVER CHANGE/DELETE THE FOLLOWING HAWK_HAVE_CFG_H DEFINITION.
  *          IT IS USED FOR DEPLOYMENT BY MAKEFILE.AM */
 /*#define HAWK_HAVE_CFG_H*/
 
@@ -50,7 +50,7 @@
 
 #if defined(EMSCRIPTEN)
 #	if defined(HAWK_SIZEOF___INT128)
-#		undef HAWK_SIZEOF___INT128 
+#		undef HAWK_SIZEOF___INT128
 #		define HAWK_SIZEOF___INT128 0
 #	endif
 #	if defined(HAWK_SIZEOF_LONG) && defined(HAWK_SIZEOF_INT) && (HAWK_SIZEOF_LONG > HAWK_SIZEOF_INT)
@@ -90,7 +90,7 @@
 #elif defined(_WIN32) || (defined(__WATCOMC__) && (__WATCOMC__ >= 1000) && !defined(__WINDOWS_386__))
 #	define HAWK_IMPORT __declspec(dllimport)
 #	define HAWK_EXPORT __declspec(dllexport)
-#	define HAWK_PRIVATE 
+#	define HAWK_PRIVATE
 #elif defined(__GNUC__) && ((__GNUC__>= 4) || (__GNUC__ == 3 && __GNUC_MINOR__ >= 3))
 #	define HAWK_IMPORT __attribute__((visibility("default")))
 #	define HAWK_EXPORT __attribute__((visibility("default")))
@@ -107,12 +107,12 @@
 #	define HAWK_INLINE inline
 #	define HAWK_HAVE_INLINE
 #elif defined(__GNUC__) && defined(__GNUC_GNU_INLINE__)
-	/* gcc disables inline when -std=c89 or -ansi is used. 
+	/* gcc disables inline when -std=c89 or -ansi is used.
 	 * so use __inline__ supported by gcc regardless of the options */
 #	define HAWK_INLINE /*extern*/ __inline__
 #	define HAWK_HAVE_INLINE
 #else
-#	define HAWK_INLINE 
+#	define HAWK_INLINE
 #	undef HAWK_HAVE_INLINE
 #endif
 
@@ -370,7 +370,7 @@
 	typedef hawk_int64_t hawk_intptr_t;
 	typedef hawk_uint32_t hawk_ushortptr_t;
 	typedef hawk_int32_t hawk_shortptr_t;
-#elif defined(HAWK_HAVE_UINT128_T) && (HAWK_SIZEOF_VOID_P == 16) 
+#elif defined(HAWK_HAVE_UINT128_T) && (HAWK_SIZEOF_VOID_P == 16)
 	typedef hawk_uint128_t hawk_uintptr_t;
 	typedef hawk_int128_t hawk_intptr_t;
 	typedef hawk_uint64_t hawk_ushortptr_t;
@@ -516,7 +516,7 @@ typedef unsigned char           hawk_bchu_t; /* unsigned version of hawk_bch_t f
 
 	// if the library is compiled with 2-byte wchar_t, and the library user compiles a program with 4-byte wchar_t,
 	// there will be size disparity issue on the hawk_uch_t type.
-	// if this assertion becomes false, you must check if the size of the wchar_t type is the same as the size used 
+	// if this assertion becomes false, you must check if the size of the wchar_t type is the same as the size used
 	// for this library.
 	//   gcc/g++/clang/clang++: -fshort-wchar makes wchar_t to 2 bytes.
 	HAWK_STATIC_ASSERT (HAWK_WIDE_CHAR_SIZE == sizeof(hawk_uch_t));
@@ -755,7 +755,7 @@ struct hawk_ntime_t
 #endif
 
 /* make a bit mask that can mask off low n bits */
-#define HAWK_LBMASK(type,n) (~(~((type)0) << (n))) 
+#define HAWK_LBMASK(type,n) (~(~((type)0) << (n)))
 #define HAWK_LBMASK_SAFE(type,n) (((n) < HAWK_BITSOF(type))? HAWK_LBMASK(type,n): ~(type)0)
 
 /* make a bit mask that can mask off hig n bits */
@@ -779,7 +779,7 @@ struct hawk_ntime_t
 	(value = (((type)(value)) | (((bits) & HAWK_LBMASK(type,length)) << (offset))))
 
 
-/** 
+/**
  * The HAWK_BITS_MAX() macros calculates the maximum value that the 'nbits'
  * bits of an unsigned integer of the given 'type' can hold.
  * \code
@@ -794,12 +794,12 @@ struct hawk_ntime_t
  * ========================================================================= */
 typedef struct hawk_mmgr_t hawk_mmgr_t;
 
-/** 
+/**
  * allocate a memory chunk of the size \a n.
  * \return pointer to a memory chunk on success, #HAWK_NULL on failure.
  */
 typedef void* (*hawk_mmgr_alloc_t)   (hawk_mmgr_t* mmgr, hawk_oow_t n);
-/** 
+/**
  * resize a memory chunk pointed to by \a ptr to the size \a n.
  * \return pointer to a memory chunk on success, #HAWK_NULL on failure.
  */
@@ -812,13 +812,13 @@ typedef void  (*hawk_mmgr_free_t)    (hawk_mmgr_t* mmgr, void* ptr);
 /**
  * The hawk_mmgr_t type defines the memory management interface.
  * As the type is merely a structure, it is just used as a single container
- * for memory management functions with a pointer to user-defined data. 
- * The user-defined data pointer \a ctx is passed to each memory management 
- * function whenever it is called. You can allocate, reallocate, and free 
+ * for memory management functions with a pointer to user-defined data.
+ * The user-defined data pointer \a ctx is passed to each memory management
+ * function whenever it is called. You can allocate, reallocate, and free
  * a memory chunk.
  *
  * For example, a hawk_xxx_open() function accepts a pointer of the hawk_mmgr_t
- * type and the xxx object uses it to manage dynamic data within the object. 
+ * type and the xxx object uses it to manage dynamic data within the object.
  */
 struct hawk_mmgr_t
 {
@@ -835,12 +835,12 @@ struct hawk_mmgr_t
 #define HAWK_MMGR_ALLOC(mmgr,size) ((mmgr)->alloc(mmgr,size))
 
 /**
- * The HAWK_MMGR_REALLOC() macro resizes a memory block pointed to by \a ptr 
+ * The HAWK_MMGR_REALLOC() macro resizes a memory block pointed to by \a ptr
  * to the \a size bytes using the \a mmgr memory manager.
  */
 #define HAWK_MMGR_REALLOC(mmgr,ptr,size) ((mmgr)->realloc(mmgr,ptr,size))
 
-/** 
+/**
  * The HAWK_MMGR_FREE() macro deallocates the memory block pointed to by \a ptr.
  */
 #define HAWK_MMGR_FREE(mmgr,ptr) ((mmgr)->free(mmgr,ptr))
@@ -853,7 +853,7 @@ struct hawk_mmgr_t
 typedef struct hawk_cmgr_t hawk_cmgr_t;
 
 typedef hawk_oow_t (*hawk_cmgr_bctouc_t) (
-	const hawk_bch_t*   mb, 
+	const hawk_bch_t*   mb,
 	hawk_oow_t          size,
 	hawk_uch_t*         wc
 );
@@ -865,8 +865,8 @@ typedef hawk_oow_t (*hawk_cmgr_uctobc_t) (
 );
 
 /**
- * The hawk_cmgr_t type defines the character-level interface to 
- * multibyte/wide-character conversion. This interface doesn't 
+ * The hawk_cmgr_t type defines the character-level interface to
+ * multibyte/wide-character conversion. This interface doesn't
  * provide any facility to store conversion state in a context
  * independent manner. This leads to the limitation that it can
  * handle a stateless multibyte encoding only.
@@ -1262,7 +1262,7 @@ typedef enum hawk_log_mask_t hawk_log_mask_t;
 #endif
 */
 
-#if defined(__has_builtin) 
+#if defined(__has_builtin)
 	#if __has_builtin(__builtin_ctz)
 		#define HAWK_HAVE_BUILTIN_CTZ
 	#endif
@@ -1284,41 +1284,41 @@ typedef enum hawk_log_mask_t hawk_log_mask_t;
 	#endif
 
 	#if __has_builtin(__builtin_uadd_overflow)
-		#define HAWK_HAVE_BUILTIN_UADD_OVERFLOW 
+		#define HAWK_HAVE_BUILTIN_UADD_OVERFLOW
 	#endif
 	#if __has_builtin(__builtin_uaddl_overflow)
-		#define HAWK_HAVE_BUILTIN_UADDL_OVERFLOW 
+		#define HAWK_HAVE_BUILTIN_UADDL_OVERFLOW
 	#endif
 	#if __has_builtin(__builtin_uaddll_overflow)
-		#define HAWK_HAVE_BUILTIN_UADDLL_OVERFLOW 
+		#define HAWK_HAVE_BUILTIN_UADDLL_OVERFLOW
 	#endif
 	#if __has_builtin(__builtin_umul_overflow)
-		#define HAWK_HAVE_BUILTIN_UMUL_OVERFLOW 
+		#define HAWK_HAVE_BUILTIN_UMUL_OVERFLOW
 	#endif
 	#if __has_builtin(__builtin_umull_overflow)
-		#define HAWK_HAVE_BUILTIN_UMULL_OVERFLOW 
+		#define HAWK_HAVE_BUILTIN_UMULL_OVERFLOW
 	#endif
 	#if __has_builtin(__builtin_umulll_overflow)
-		#define HAWK_HAVE_BUILTIN_UMULLL_OVERFLOW 
+		#define HAWK_HAVE_BUILTIN_UMULLL_OVERFLOW
 	#endif
 
 	#if __has_builtin(__builtin_sadd_overflow)
-		#define HAWK_HAVE_BUILTIN_SADD_OVERFLOW 
+		#define HAWK_HAVE_BUILTIN_SADD_OVERFLOW
 	#endif
 	#if __has_builtin(__builtin_saddl_overflow)
-		#define HAWK_HAVE_BUILTIN_SADDL_OVERFLOW 
+		#define HAWK_HAVE_BUILTIN_SADDL_OVERFLOW
 	#endif
 	#if __has_builtin(__builtin_saddll_overflow)
-		#define HAWK_HAVE_BUILTIN_SADDLL_OVERFLOW 
+		#define HAWK_HAVE_BUILTIN_SADDLL_OVERFLOW
 	#endif
 	#if __has_builtin(__builtin_smul_overflow)
-		#define HAWK_HAVE_BUILTIN_SMUL_OVERFLOW 
+		#define HAWK_HAVE_BUILTIN_SMUL_OVERFLOW
 	#endif
 	#if __has_builtin(__builtin_smull_overflow)
-		#define HAWK_HAVE_BUILTIN_SMULL_OVERFLOW 
+		#define HAWK_HAVE_BUILTIN_SMULL_OVERFLOW
 	#endif
 	#if __has_builtin(__builtin_smulll_overflow)
-		#define HAWK_HAVE_BUILTIN_SMULLL_OVERFLOW 
+		#define HAWK_HAVE_BUILTIN_SMULLL_OVERFLOW
 	#endif
 
 	#if __has_builtin(__builtin_expect)
@@ -1358,7 +1358,7 @@ typedef enum hawk_log_mask_t hawk_log_mask_t;
 	#endif
 #elif defined(__GNUC__) && defined(__GNUC_MINOR__)
 
-	#if (__GNUC__ >= 4) 
+	#if (__GNUC__ >= 4)
 		#define HAWK_HAVE_SYNC_LOCK_TEST_AND_SET
 		#define HAWK_HAVE_SYNC_LOCK_RELEASE
 
@@ -1416,7 +1416,7 @@ typedef enum hawk_log_mask_t hawk_log_mask_t;
 #if defined(__GNUC__)
 #	define HAWK_PACKED __attribute__((__packed__))
 #else
-#	define HAWK_PACKED 
+#	define HAWK_PACKED
 #endif
 
 /* =========================================================================

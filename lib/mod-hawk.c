@@ -63,7 +63,7 @@ static hawk_oow_t push_args_from_stack (hawk_rtx_t* rtx, hawk_nde_fncall_t* call
 	}
 
 	org_stack_base = rtx->stack_base;
-	for (i = pasf->start_index, j = 0; i <= pasf->end_index; i++, j++) 
+	for (i = pasf->start_index, j = 0; i <= pasf->end_index; i++, j++)
 	{
 		hawk_ooch_t spec;
 
@@ -78,7 +78,7 @@ static hawk_oow_t push_args_from_stack (hawk_rtx_t* rtx, hawk_nde_fncall_t* call
 		{
 			if (pasf->is_fun)
 			{
-				/* take out the actual value and pass it to the callee 
+				/* take out the actual value and pass it to the callee
 				 * only if the callee is a user-defined function */
 				v = hawk_rtx_getrefval(rtx, (hawk_val_ref_t*)v);
 			}
@@ -113,7 +113,7 @@ static int fnc_call (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	f_nargs = nargs - 1;
 
 	fun = hawk_rtx_valtofun(rtx, hawk_rtx_getarg(rtx, 0));
-	if (fun) 
+	if (fun)
 	{
 		if (f_nargs > fun->nargs)
 		{
@@ -138,7 +138,7 @@ static int fnc_call (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		md = (mod_data_t*)fi->mod->ctx;
 
 		/* hawk_querymodulewithname() called by hawk_rtx_valtofnc()
-		 * may update some shared data under the hawk object. 
+		 * may update some shared data under the hawk object.
 		 * use a mutex for shared data safety */
 		/* TODO: this mutex protection is wrong in that if a call to hawk_querymodulewithname()
 		 *       is made outside this hawk module, the call is not protected under
@@ -148,7 +148,7 @@ static int fnc_call (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		hawk_mtx_unlock (&md->mq_mtx);
 		if (!fncp) return -1; /* hard failure */
 
-		if (f_nargs < fnc.spec.arg.min  || f_nargs > fnc.spec.arg.max) 
+		if (f_nargs < fnc.spec.arg.min  || f_nargs > fnc.spec.arg.max)
 		{
 			hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EARGTM);
 			return -1;
@@ -180,7 +180,7 @@ static int fnc_call (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	return 0;
 }
 
-/* hawk::function_exists("xxxx"); 
+/* hawk::function_exists("xxxx");
  * hawk::function_exists("sys::getpid") */
 static int fnc_function_exists (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
@@ -314,12 +314,12 @@ static int fnc_gc_set_threshold (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 	if (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 1), &threshold) <= -1) threshold = -1;
 
-	if (threshold >= 0) 
+	if (threshold >= 0)
 	{
 		if (threshold >= HAWK_INT_MAX) threshold = HAWK_INT_MAX;
 		rtx->gc.threshold[gen] = threshold; /* update */
 	}
-	else 
+	else
 	{
 		threshold = rtx->gc.threshold[gen]; /* no update. but retrieve the existing value */
 	}

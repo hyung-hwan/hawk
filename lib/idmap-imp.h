@@ -74,7 +74,7 @@ static __IDMAP_NODE_T* __MAKE_IDMAP_NODE (hawk_rtx_t* rtx, __IDMAP_LIST_T* list)
 	node = HAWK_NULL;
 
 #if defined(__IDMAP_AVOID_CIRCULAR_LIST)
-	if (list->free) 
+	if (list->free)
 	{
 		node = list->free;
 		list->free = node->next;
@@ -92,7 +92,7 @@ static __IDMAP_NODE_T* __MAKE_IDMAP_NODE (hawk_rtx_t* rtx, __IDMAP_LIST_T* list)
 	{
 		node = hawk_rtx_callocmem(rtx, HAWK_SIZEOF(*node));
 		if (!node) goto oops;
-		
+
 		if (list->map.high <= list->map.capa)
 		{
 			hawk_oow_t newcapa, inc;
@@ -180,7 +180,7 @@ static void __FREE_IDMAP_NODE (hawk_rtx_t* rtx, __IDMAP_LIST_T* list, __IDMAP_NO
 	/* however, i destroy the whole free list when all the nodes are
 	 * chanined to the free list */
 #if defined(__IDMAP_AVOID_CIRCULAR_LIST)
-	if (list->head == HAWK_NULL) 
+	if (list->head == HAWK_NULL)
 	{
 		__IDMAP_NODE_T* curnode;
 

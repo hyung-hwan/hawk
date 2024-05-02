@@ -88,13 +88,13 @@ static int int_to_str (hawk_oow_t val, hawk_ooch_t* buf, hawk_oow_t buflen)
 	buf[rlen] = HAWK_T('\0');
 
 	t = val;
-	if (t == 0) buf[0] = HAWK_T('0'); 
+	if (t == 0) buf[0] = HAWK_T('0');
 	else
 	{
 		if (t < 0) t = -t;
 
 		/* fill in the buffer with digits */
-		while (t > 0) 
+		while (t > 0)
 		{
 			buf[--rlen] = (hawk_ooch_t)(t % 10) + HAWK_T('0');
 			t /= 10;
@@ -133,7 +133,7 @@ static int verify_iostd_in (hawk_sed_t* sed, hawk_sed_iostd_t in[])
 
 	if (in[0].type == HAWK_SED_IOSTD_NULL)
 	{
-		/* if 'in' is specified, it must contains at least one 
+		/* if 'in' is specified, it must contains at least one
 		 * valid entry */
 		hawk_sed_seterrbfmt (sed, HAWK_NULL, HAWK_EINVAL, "no input handler provided");
 		return -1;
@@ -162,7 +162,7 @@ static hawk_sio_t* open_sio_file (hawk_sed_t* sed, const hawk_ooch_t* file, int 
 	hawk_sio_t* sio;
 
 	sio = hawk_sio_open(hawk_sed_getgem(sed), 0, file, flags);
-	if (sio == HAWK_NULL) 
+	if (sio == HAWK_NULL)
 	{
 		const hawk_ooch_t* bem = hawk_sed_backuperrmsg(sed);
 		hawk_sed_seterrbfmt (sed, HAWK_NULL, HAWK_SED_EIOFIL, "unable to open %js - %js", file, bem);
@@ -262,7 +262,7 @@ static hawk_sio_t* open_sio_std (hawk_sed_t* sed, hawk_sio_std_t std, int flags)
 	hawk_sio_t* sio;
 
 	sio = hawk_sio_openstd(hawk_sed_getgem(sed), 0, std, flags);
-	if (sio == HAWK_NULL) 
+	if (sio == HAWK_NULL)
 	{
 		const hawk_ooch_t* bem = hawk_sed_backuperrmsg(sed);
 		hawk_sed_seterrbfmt (sed, HAWK_NULL, HAWK_SED_EIOFIL, "unable to open %js - %js", &sio_std_names[std], bem);
@@ -352,8 +352,8 @@ static int open_input_stream (hawk_sed_t* sed, hawk_sed_io_arg_t* arg, hawk_sed_
 		{
 			hawk_sio_t* sio;
 			hawk_ooch_t* path;
-			
-			if (io->u.fileb.path == HAWK_NULL || 
+
+			if (io->u.fileb.path == HAWK_NULL ||
 			    (io->u.fileb.path[0] == '-' && io->u.fileb.path[1] == '\0'))
 			{
 				sio = open_sio_std(sed, HAWK_SIO_STDIN, HAWK_SIO_READ | HAWK_SIO_IGNOREECERR);
@@ -381,7 +381,7 @@ static int open_input_stream (hawk_sed_t* sed, hawk_sed_io_arg_t* arg, hawk_sed_
 			hawk_sio_t* sio;
 			hawk_ooch_t* path;
 
-			if (io->u.fileu.path == HAWK_NULL || 
+			if (io->u.fileu.path == HAWK_NULL ||
 			    (io->u.fileu.path[0] == '-' && io->u.fileu.path[1] == '\0'))
 			{
 				sio = open_sio_std(sed, HAWK_SIO_STDIN, HAWK_SIO_READ | HAWK_SIO_IGNOREECERR);
@@ -448,19 +448,19 @@ static int open_input_stream (hawk_sed_t* sed, hawk_sed_io_arg_t* arg, hawk_sed_
 				hawk_ooch_t buf[64];
 
 				/* format an identifier to be something like M#1, S#5 */
-				buf[0] = (io->type == HAWK_SED_IOSTD_OOCS || 
+				buf[0] = (io->type == HAWK_SED_IOSTD_OOCS ||
 						io->type == HAWK_SED_IOSTD_BCS ||
 						io->type == HAWK_SED_IOSTD_UCS)? HAWK_T('M'): HAWK_T('S');
 				buf[1] = HAWK_T('#');
 				int_to_str (io - xtn->s.in.ptr, &buf[2], HAWK_COUNTOF(buf) - 2);
 
-				/* don't care about failure int_to_str() though it's not 
+				/* don't care about failure int_to_str() though it's not
 				 * likely to happen */
-				hawk_sed_setcompid (sed, buf); 
+				hawk_sed_setcompid (sed, buf);
 				break;
 			}
 		}
-		sed->src.loc.line = 1; 
+		sed->src.loc.line = 1;
 		sed->src.loc.colm = 1;
 	}
 	return 0;
@@ -597,7 +597,7 @@ static hawk_ooi_t read_input_stream (hawk_sed_t* sed, hawk_sed_io_arg_t* arg, ha
 	{
 		io = base->cur;
 
-		if (base == &xtn->s.in && xtn->s.newline_squeezed) 
+		if (base == &xtn->s.in && xtn->s.newline_squeezed)
 		{
 			xtn->s.newline_squeezed = 0;
 			goto open_next;
@@ -656,7 +656,7 @@ static hawk_ooi_t read_input_stream (hawk_sed_t* sed, hawk_sed_io_arg_t* arg, ha
 			}
 		#endif
 		}
-		else 
+		else
 		{
 			n = hawk_sio_getoochars(arg->handle, buf, len);
 			if (n <= -1)
@@ -666,7 +666,7 @@ static hawk_ooi_t read_input_stream (hawk_sed_t* sed, hawk_sed_io_arg_t* arg, ha
 			}
 		}
 
-		if (n != 0) 
+		if (n != 0)
 		{
 			if (base == &xtn->s.in)
 			{
@@ -683,7 +683,7 @@ static hawk_ooi_t read_input_stream (hawk_sed_t* sed, hawk_sed_io_arg_t* arg, ha
 		if (base == &xtn->s.in && xtn->s.last != HAWK_T('\n'))
 		{
 			/* TODO: different line termination convension */
-			buf[0] = HAWK_T('\n'); 
+			buf[0] = HAWK_T('\n');
 			n = 1;
 			xtn->s.newline_squeezed = 1;
 			break;
@@ -691,10 +691,10 @@ static hawk_ooi_t read_input_stream (hawk_sed_t* sed, hawk_sed_io_arg_t* arg, ha
 
 	open_next:
 		next = base->cur + 1;
-		if (next->type == HAWK_SED_IOSTD_NULL) 
+		if (next->type == HAWK_SED_IOSTD_NULL)
 		{
 			/* no next stream available - return 0 */
-			break; 
+			break;
 		}
 
 		old = arg->handle;
@@ -769,7 +769,7 @@ static hawk_ooi_t x_in (hawk_sed_t* sed, hawk_sed_io_cmd_t cmd, hawk_sed_io_arg_
 			if (arg->path == HAWK_NULL)
 			{
 				/* main data stream */
-				if (xtn->e.in.ptr == HAWK_NULL) 
+				if (xtn->e.in.ptr == HAWK_NULL)
 				{
 					/* HAWK_NULL passed into hawk_sed_exec() for input. open stdin */
 					sio = open_sio_std(sed, HAWK_SIO_STDIN, HAWK_SIO_READ | HAWK_SIO_IGNOREECERR);
@@ -798,7 +798,7 @@ static hawk_ooi_t x_in (hawk_sed_t* sed, hawk_sed_io_cmd_t cmd, hawk_sed_io_arg_
 			if (arg->path == HAWK_NULL)
 			{
 				/* main data stream */
-				if (xtn->e.in.ptr == HAWK_NULL) 
+				if (xtn->e.in.ptr == HAWK_NULL)
 					hawk_sio_close (arg->handle);
 				else
 					close_main_stream (sed, arg, xtn->e.in.cur);
@@ -820,7 +820,7 @@ static hawk_ooi_t x_in (hawk_sed_t* sed, hawk_sed_io_cmd_t cmd, hawk_sed_io_arg_
 				{
 					hawk_ooi_t n;
 					n = hawk_sio_getoochars(arg->handle, buf, len);
-					if (n <= -1) 
+					if (n <= -1)
 					{
 						const hawk_ooch_t* bem = hawk_sed_backuperrmsg(sed);
 						hawk_sed_seterrbfmt (sed, HAWK_NULL, HAWK_SED_EIOFIL, "unable to read '%js' - %js", &sio_std_names[HAWK_SIO_STDIN], bem);
@@ -867,7 +867,7 @@ static hawk_ooi_t x_out (
 			{
 				/* main data stream */
 
-				if (xtn->e.out.ptr == HAWK_NULL) 
+				if (xtn->e.out.ptr == HAWK_NULL)
 				{
 					/* HAWK_NULL passed into hawk_sed_execstd() for output */
 					sio = open_sio_std(
@@ -907,7 +907,7 @@ static hawk_ooi_t x_out (
 		{
 			if (arg->path == HAWK_NULL)
 			{
-				if (xtn->e.out.ptr == HAWK_NULL) 
+				if (xtn->e.out.ptr == HAWK_NULL)
 					hawk_sio_close (arg->handle);
 				else
 					close_main_stream (sed, arg, xtn->e.out.ptr);
@@ -982,7 +982,7 @@ static hawk_ooi_t x_out (
 				return n;
 			}
 		}
-	
+
 		default:
 			HAWK_ASSERT (!"should never happen - cmd must be one of OPEN,CLOSE,WRITE");
 			hawk_sed_seterrnum (sed, HAWK_NULL, HAWK_EINTERN);
@@ -1002,7 +1002,7 @@ int hawk_sed_compstd (hawk_sed_t* sed, hawk_sed_iostd_t in[], hawk_oow_t* count)
 		if (count) *count = 0;
 		return -1;
 	}
-	if (verify_iostd_in(sed, in) <= -1) 
+	if (verify_iostd_in(sed, in) <= -1)
 	{
 		if (count) *count = 0;
 		return -1;

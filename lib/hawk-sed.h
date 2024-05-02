@@ -31,10 +31,10 @@
 
 /** @file
  * This file defines data types and functions to use for creating a custom
- * stream editor commonly available on many platforms. A stream editor is 
- * a non-interactive text editing tool that reads text from an input stream, 
+ * stream editor commonly available on many platforms. A stream editor is
+ * a non-interactive text editing tool that reads text from an input stream,
  * stores it to pattern space, manipulates the pattern space by applying a set
- * of editing commands, and writes the pattern space to an output stream. 
+ * of editing commands, and writes the pattern space to an output stream.
  * Typically, the input and output streams are a console or a file.
  *
  * @code
@@ -46,7 +46,7 @@
  */
 
 /** @struct hawk_sed_t
- * The hawk_sed_t type defines a stream editor. The structural details are 
+ * The hawk_sed_t type defines a stream editor. The structural details are
  * hidden as it is a relatively complex data type and fragile to external
  * changes. To use a stream editor, you typically can:
  *
@@ -56,7 +56,7 @@
  * - destroy it with hawk_sed_close() when done.
  *
  * The input and output streams needed by hawk_sed_exec() are implemented in
- * the form of callback functions. You should implement two functions 
+ * the form of callback functions. You should implement two functions
  * conforming to the ::hawk_sed_io_impl_t type.
  */
 typedef struct hawk_sed_t hawk_sed_t;
@@ -72,7 +72,7 @@ struct hawk_sed_alt_t
 	HAWK_SED_HDR;
 };
 
-typedef struct hawk_sed_adr_t hawk_sed_adr_t; 
+typedef struct hawk_sed_adr_t hawk_sed_adr_t;
 typedef struct hawk_sed_cmd_t hawk_sed_cmd_t;
 
 struct hawk_sed_adr_t
@@ -88,7 +88,7 @@ struct hawk_sed_adr_t
 		HAWK_SED_ADR_RELLINEM  /* relative line in the multiples - only in second address */
 	} type;
 
-	union 
+	union
 	{
 		hawk_oow_t lno;
 		void*      rex;
@@ -131,14 +131,14 @@ struct hawk_sed_cut_sel_t
 #define HAWK_SED_CMD_HOLD_APPEND     HAWK_T('H')
 #define HAWK_SED_CMD_RELEASE         HAWK_T('g')
 #define HAWK_SED_CMD_RELEASE_APPEND  HAWK_T('G')
-#define HAWK_SED_CMD_EXCHANGE        HAWK_T('x') 
+#define HAWK_SED_CMD_EXCHANGE        HAWK_T('x')
 #define HAWK_SED_CMD_NEXT            HAWK_T('n')
 #define HAWK_SED_CMD_NEXT_APPEND     HAWK_T('N')
 #define HAWK_SED_CMD_READ_FILE       HAWK_T('r')
 #define HAWK_SED_CMD_READ_FILELN     HAWK_T('R')
 #define HAWK_SED_CMD_WRITE_FILE      HAWK_T('w')
 #define HAWK_SED_CMD_WRITE_FILELN    HAWK_T('W')
-#define HAWK_SED_CMD_BRANCH          HAWK_T('b') 
+#define HAWK_SED_CMD_BRANCH          HAWK_T('b')
 #define HAWK_SED_CMD_BRANCH_COND     HAWK_T('t')
 #define HAWK_SED_CMD_SUBSTITUTE      HAWK_T('s')
 #define HAWK_SED_CMD_TRANSLATE       HAWK_T('y')
@@ -160,7 +160,7 @@ struct hawk_sed_cmd_t
 	union
 	{
 		/* text for the a, i, c commands */
-		hawk_oocs_t text;  
+		hawk_oocs_t text;
 
 		/* file name for r, w, R, W */
 		hawk_oocs_t file;
@@ -205,7 +205,7 @@ struct hawk_sed_cmd_t
 			hawk_oow_t         fcount;
 			hawk_oow_t         ccount;
 		} cut;
-	} u;	
+	} u;
 
 	struct
 	{
@@ -214,9 +214,9 @@ struct hawk_sed_cmd_t
 
 		int c_ready;
 
-		/* points to the next command for fast traversal and 
+		/* points to the next command for fast traversal and
 		 * fast random jumps */
-		hawk_sed_cmd_t* next; 
+		hawk_sed_cmd_t* next;
 	} state;
 };
 
@@ -235,7 +235,7 @@ enum hawk_sed_opt_t
 };
 typedef enum hawk_sed_opt_t hawk_sed_opt_t;
 
-/** 
+/**
  * The hawk_sed_trait_t type defines various trait codes for a stream editor.
  * Options can be OR'ed with each other and be passed to a stream editor with
  * the hawk_sed_setopt() function.
@@ -255,7 +255,7 @@ enum hawk_sed_trait_t
 typedef enum hawk_sed_trait_t hawk_sed_trait_t;
 
 /**
- * The hawk_sed_io_cmd_t type defines I/O command codes. The code indicates 
+ * The hawk_sed_io_cmd_t type defines I/O command codes. The code indicates
  * the action to take in an I/O handler.
  */
 enum hawk_sed_io_cmd_t
@@ -268,7 +268,7 @@ enum hawk_sed_io_cmd_t
 typedef enum hawk_sed_io_cmd_t hawk_sed_io_cmd_t;
 
 /**
- * The hawk_sed_io_arg_t type defines a data structure required by 
+ * The hawk_sed_io_arg_t type defines a data structure required by
  * an I/O handler.
  */
 struct hawk_sed_io_arg_t
@@ -278,7 +278,7 @@ struct hawk_sed_io_arg_t
 };
 typedef struct hawk_sed_io_arg_t hawk_sed_io_arg_t;
 
-/** 
+/**
  * The hawk_sed_io_impl_t type defines an I/O handler. I/O handlers are called by
  * hawk_sed_exec().
  */
@@ -345,7 +345,7 @@ typedef void (*hawk_sed_tracer_t) (
 
 /**
  * The hawk_sed_space_t type defines the types of
- * sed bufferspaces. 
+ * sed bufferspaces.
  */
 enum hawk_sed_space_t
 {
@@ -360,8 +360,8 @@ typedef enum hawk_sed_space_t hawk_sed_space_t;
 /**
  * This section defines easier-to-use helper interface for a stream editor.
  * If you don't care about the details of memory management and I/O handling,
- * you can choose to use the helper functions provided here. It is  
- * a higher-level interface that is easier to use as it implements 
+ * you can choose to use the helper functions provided here. It is
+ * a higher-level interface that is easier to use as it implements
  * default handlers for I/O and memory management.
  */
 
@@ -377,7 +377,7 @@ enum hawk_sed_iostd_type_t
 	HAWK_SED_IOSTD_FILEU, /**< file */
 	HAWK_SED_IOSTD_OOCS,  /**< string  */
 	HAWK_SED_IOSTD_BCS,
-	HAWK_SED_IOSTD_UCS, 
+	HAWK_SED_IOSTD_UCS,
 	HAWK_SED_IOSTD_SIO    /**< sio */
 };
 typedef enum hawk_sed_iostd_type_t hawk_sed_iostd_type_t;
@@ -401,7 +401,7 @@ struct hawk_sed_iostd_t
 			/** a stream created with the file path is set with this
 			 * cmgr if it is not #HAWK_NULL. */
 			hawk_cmgr_t* cmgr;
-		} file; 
+		} file;
 
 		struct
 		{
@@ -415,10 +415,10 @@ struct hawk_sed_iostd_t
 			hawk_cmgr_t* cmgr;
 		} fileu;
 
-		/** 
+		/**
 		 * input string or dynamically allocated output string
 		 *
-		 * For input, the ptr and the len field of str indicates the 
+		 * For input, the ptr and the len field of str indicates the
 		 * pointer and the length of a string to read. You must set
 		 * these two fields before calling hawk_sed_execstd().
 		 *
@@ -429,7 +429,7 @@ struct hawk_sed_iostd_t
 		 * set by hawk_sed_execstd() and valid while the relevant sed
 		 * object is alive. You must free the memory chunk pointed to by
 		 * the ptr field with hawk_sed_freemem() once you're done with it
-		 * to avoid memory leaks. 
+		 * to avoid memory leaks.
 		 */
 		hawk_oocs_t        oocs;
 		hawk_bcs_t         bcs;
@@ -454,8 +454,8 @@ extern "C" {
  * data through out its lifetime. An extension area is allocated if an
  * extension size greater than 0 is specified. You can access it with the
  * hawk_sed_getxtn() function and use it to store arbitrary data associated
- * with the object.  When done, you should destroy the object with the 
- * hawk_sed_close() function to avoid any resource leaks including memory. 
+ * with the object.  When done, you should destroy the object with the
+ * hawk_sed_close() function to avoid any resource leaks including memory.
  * @return pointer to a stream editor on success, HAWK_NULL on failure
  */
 HAWK_EXPORT hawk_sed_t* hawk_sed_open (
@@ -482,8 +482,8 @@ HAWK_EXPORT void hawk_sed_close (
 static HAWK_INLINE void* hawk_sed_getxtn (hawk_sed_t* sed) { return (void*)((hawk_uint8_t*)sed + ((hawk_sed_alt_t*)sed)->_instsize); }
 
 /**
- * The hawk_sed_getgem() function gets the pointer to the gem structure of the 
- * sed object. 
+ * The hawk_sed_getgem() function gets the pointer to the gem structure of the
+ * sed object.
  */
 static HAWK_INLINE hawk_gem_t* hawk_sed_getgem (hawk_sed_t* sed) { return &((hawk_sed_alt_t*)sed)->_gem; }
 
@@ -521,7 +521,7 @@ HAWK_EXPORT int hawk_sed_getopt (
 );
 
 /**
- * The hawk_sed_setopt() function sets the value of an option 
+ * The hawk_sed_setopt() function sets the value of an option
  * specified by \a id to the value pointed to by \a value.
  *
  * The \a value field is dependent on \a id:
@@ -538,18 +538,18 @@ HAWK_EXPORT int hawk_sed_setopt (
 );
 
 HAWK_EXPORT hawk_errstr_t hawk_sed_geterrstr (
-	hawk_sed_t* sed   
+	hawk_sed_t* sed
 );
 
 /**
- * The hawk_sed_geterrnum() function returns the number of the last error 
+ * The hawk_sed_geterrnum() function returns the number of the last error
  * occurred.
  * \return error number
  */
 
 /**
- * The hawk_sed_geterror() function gets an error number, an error location, 
- * and an error message. The information is set to the memory area pointed 
+ * The hawk_sed_geterror() function gets an error number, an error location,
+ * and an error message. The information is set to the memory area pointed
  * to by each parameter.
  */
 #if defined(HAWK_HAVE_INLINE)
@@ -580,7 +580,7 @@ static HAWK_INLINE void hawk_sed_geterror (hawk_sed_t* sed, hawk_errnum_t* errnu
 
 
 /**
- * The hawk_sed_seterrnum() function sets the error information omitting 
+ * The hawk_sed_seterrnum() function sets the error information omitting
  * error location. You must pass a non-NULL for \a errarg if the specified
  * error number \a errnum requires one or more arguments to format an
  * error message.
@@ -656,7 +656,7 @@ HAWK_EXPORT void hawk_sed_pushecb (
 
 /**
  * The hawk_sed_comp() function compiles editing commands into an internal form.
- * @return 0 on success, -1 on error 
+ * @return 0 on success, -1 on error
  */
 HAWK_EXPORT int hawk_sed_comp (
 	hawk_sed_t*        sed, /**< stream editor */
@@ -687,10 +687,10 @@ HAWK_EXPORT void hawk_sed_halt (
 HAWK_EXPORT int hawk_sed_ishalt (
 	hawk_sed_t* sed   /**< stream editor */
 );
-	
+
 /**
  * The hawk_sed_getcompid() function returns the latest
- * identifier successfully set with hawk_sed_setcompid(). 
+ * identifier successfully set with hawk_sed_setcompid().
  */
 HAWK_EXPORT const hawk_ooch_t* hawk_sed_getcompid (
 	hawk_sed_t* sed
@@ -699,8 +699,8 @@ HAWK_EXPORT const hawk_ooch_t* hawk_sed_getcompid (
 /**
  * The hawk_sed_setcompid() functions duplicates a string
  * pointed to by @a id and stores it internally to identify
- * the script currently being compiled. The lid field of the 
- * current command being compiled in the script is set to the 
+ * the script currently being compiled. The lid field of the
+ * current command being compiled in the script is set to the
  * lastest identifer successfully set with this function.
  * If this function fails, the location set in the command
  * may be wrong.
@@ -789,7 +789,7 @@ HAWK_EXPORT void hawk_sed_getspace (
 
 /**
  * The hawk_sed_openstd() function creates a stream editor with the default
- * memory manager and initializes it. 
+ * memory manager and initializes it.
  * \return pointer to a stream editor on success, #HAWK_NULL on failure.
  */
 HAWK_EXPORT hawk_sed_t* hawk_sed_openstd (
@@ -798,8 +798,8 @@ HAWK_EXPORT hawk_sed_t* hawk_sed_openstd (
 );
 
 /**
- * The hawk_sed_openstdwithmmgr() function creates a stream editor with a 
- * user-defined memory manager. It is equivalent to hawk_sed_openstd(), 
+ * The hawk_sed_openstdwithmmgr() function creates a stream editor with a
+ * user-defined memory manager. It is equivalent to hawk_sed_openstd(),
  * except that you can specify your own memory manager.
  * \return pointer to a stream editor on success, #HAWK_NULL on failure.
  */
@@ -814,8 +814,8 @@ HAWK_EXPORT hawk_sed_t* hawk_sed_openstdwithmmgr (
  * The hawk_sed_compstd() function compiles sed scripts specified in
  * an array of stream resources. The end of the array is indicated
  * by an element whose type is #HAWK_SED_IOSTD_NULL. However, the type
- * of the first element shall not be #HAWK_SED_IOSTD_NULL. The output 
- * parameter \a count is set to the count of stream resources 
+ * of the first element shall not be #HAWK_SED_IOSTD_NULL. The output
+ * parameter \a count is set to the count of stream resources
  * opened on both success and failure. You can pass #HAWK_NULL to \a
  * count if the count is not needed.
  *
@@ -831,26 +831,26 @@ HAWK_EXPORT int hawk_sed_compstd (
  * The hawk_sed_compstdfile() function compiles a sed script from
  * a single file \a infile.  If \a infile is #HAWK_NULL, it reads
  * the script from the standard input.
- * When #HAWK_OOCH_IS_UCH is defined, it converts the multibyte 
- * sequences in the file \a infile to wide characters via the 
- * #hawk_cmgr_t interface \a cmgr. If \a cmgr is #HAWK_NULL, it uses 
+ * When #HAWK_OOCH_IS_UCH is defined, it converts the multibyte
+ * sequences in the file \a infile to wide characters via the
+ * #hawk_cmgr_t interface \a cmgr. If \a cmgr is #HAWK_NULL, it uses
  * the default interface. It calls cmgr->mbtowc() for conversion.
  * \return 0 on success, -1 on failure
  */
 HAWK_EXPORT int hawk_sed_compstdfile (
-	hawk_sed_t*        sed, 
+	hawk_sed_t*        sed,
 	const hawk_ooch_t* infile,
 	hawk_cmgr_t*       cmgr
 );
 
 HAWK_EXPORT int hawk_sed_compstdfileb (
-	hawk_sed_t*        sed, 
+	hawk_sed_t*        sed,
 	const hawk_bch_t*  infile,
 	hawk_cmgr_t*       cmgr
 );
 
 HAWK_EXPORT int hawk_sed_compstdfileu (
-	hawk_sed_t*        sed, 
+	hawk_sed_t*        sed,
 	const hawk_uch_t*  infile,
 	hawk_cmgr_t*       cmgr
 );
@@ -861,17 +861,17 @@ HAWK_EXPORT int hawk_sed_compstdfileu (
  * \return 0 on success, -1 on failure
  */
 HAWK_EXPORT int hawk_sed_compstdoocstr (
-	hawk_sed_t*        sed, 
+	hawk_sed_t*        sed,
 	const hawk_ooch_t* script
 );
 
 /**
- * The hawk_sed_compstdoocs() function compiles a sed script of the 
+ * The hawk_sed_compstdoocs() function compiles a sed script of the
  * length \a script->len pointed to by \a script->ptr.
  * \return 0 on success, -1 on failure
  */
 HAWK_EXPORT int hawk_sed_compstdoocs (
-	hawk_sed_t*        sed, 
+	hawk_sed_t*        sed,
 	const hawk_oocs_t* script
 );
 
@@ -879,10 +879,10 @@ HAWK_EXPORT int hawk_sed_compstdoocs (
  * The hawk_sed_execstd() function executes a compiled script
  * over input streams \a in and an output stream \a out.
  *
- * If \a in is not #HAWK_NULL, it must point to an array of stream 
+ * If \a in is not #HAWK_NULL, it must point to an array of stream
  * resources whose end is indicated by an element with #HAWK_SED_IOSTD_NULL
  * type. However, the type of the first element \a in[0].type show not
- * be #HAWK_SED_IOSTD_NULL. It requires at least 1 valid resource to be 
+ * be #HAWK_SED_IOSTD_NULL. It requires at least 1 valid resource to be
  * included in the array.
  *
  * If \a in is #HAWK_NULL, the standard console input is used.
@@ -898,7 +898,7 @@ HAWK_EXPORT int hawk_sed_execstd (
 
 /**
  * The hawk_sed_execstdfile() function executes a compiled script
- * over a single input file \a infile and a single output file \a 
+ * over a single input file \a infile and a single output file \a
  * outfile.
  *
  * If \a infile is #HAWK_NULL, the standard console input is used.

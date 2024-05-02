@@ -1701,7 +1701,7 @@ static int __fnc_match (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, int support_
 		n = hawk_rtx_matchvalwithoocs(rtx, a1, &tmp, &tmp, &mat.o, (nargs >= support_start_index + 3? submat.o: HAWK_NULL));
 		hawk_rtx_freevaloocstr (rtx, a0, str0.o);
 
-		if (n <= -1) return -1; 
+		if (n <= -1) return -1;
 
 		/* RSTART: 0 on no match */
 		idx = (n == 0)? 0: ((hawk_int_t)(mat.o.ptr - str0.o) + 1);
