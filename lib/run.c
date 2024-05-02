@@ -163,6 +163,7 @@ static hawk_val_t* eval_str (hawk_rtx_t* rtx, hawk_nde_t* nde);
 static hawk_val_t* eval_mbs (hawk_rtx_t* rtx, hawk_nde_t* nde);
 static hawk_val_t* eval_rex (hawk_rtx_t* rtx, hawk_nde_t* nde);
 static hawk_val_t* eval_xnil (hawk_rtx_t* rtx, hawk_nde_t* nde);
+static hawk_val_t* eval_xarg (hawk_rtx_t* rtx, hawk_nde_t* nde);
 static hawk_val_t* eval_fun (hawk_rtx_t* rtx, hawk_nde_t* nde);
 static hawk_val_t* eval_named (hawk_rtx_t* rtx, hawk_nde_t* nde);
 static hawk_val_t* eval_gbl (hawk_rtx_t* rtx, hawk_nde_t* nde);
@@ -1788,7 +1789,7 @@ hawk_val_t* hawk_rtx_callfun (hawk_rtx_t* rtx, hawk_fun_t* fun, hawk_val_t* args
 	/* keep HAWK_NULL in call.args so that hawk_rtx_evalcall() knows it's a fake call structure */
 
 	/* check if the number of arguments given is more than expected */
-	if (nargs > fun->nargs)
+	if (nargs > fun->nargs && !fun->variadic)
 	{
 		/* TODO: is this correct? what if i want to 
 		 *       allow arbitrary numbers of arguments? */
@@ -3707,6 +3708,7 @@ static hawk_val_t* eval_expression0 (hawk_rtx_t* rtx, hawk_nde_t* nde)
 		eval_mbs,
 		eval_rex,
 		eval_xnil,
+		eval_xarg,
 		eval_fun,
 		eval_named,
 		eval_gbl,
@@ -6667,11 +6669,11 @@ static HAWK_INLINE hawk_val_t* eval_fncall_fun (hawk_rtx_t* rtx, hawk_nde_t* nde
 		fun = call->u.fun.fun;
 	}
 
-	if (call->nargs > fun->nargs)
+	if (call->nargs > fun->nargs && !fun->variadic)
 	{
 		/* TODO: is this correct? what if i want to 
 		 *       allow arbitarary numbers of arguments? */
-		hawk_rtx_seterrnum (rtx, &nde->loc, HAWK_EARGTM);
+		hawk_rtx_seterrfmt (rtx, &nde->loc, HAWK_EARGTM, HAWK_T("too many arguments to '%.*js'"), fun->name.len, fun->name.ptr);
 		return HAWK_NULL;
 	}
 
@@ -6705,11 +6707,11 @@ static hawk_val_t* eval_fncall_var (hawk_rtx_t* rtx, hawk_nde_t* nde)
 		ADJERR_LOC (rtx, &nde->loc);
 		rv = HAWK_NULL;
 	}
-	else if (call->nargs > fun->nargs)
+	else if (call->nargs > fun->nargs && !fun->variadic)
 	{
 		/* TODO: is this correct? what if i want to 
 		*       allow arbitarary numbers of arguments? */
-		hawk_rtx_seterrnum (rtx, &nde->loc, HAWK_EARGTM);
+		hawk_rtx_seterrfmt (rtx, &nde->loc, HAWK_EARGTM, HAWK_T("too many arguments to '%.*js'"), fun->name.len, fun->name.ptr);
 		rv = HAWK_NULL;
 	}
 	else
@@ -7144,10 +7146,24 @@ static hawk_oow_t push_arg_from_nde (hawk_rtx_t* rtx, hawk_nde_fncall_t* call, v
 				break;
 			}
 
+			case 'V':
+				/* the variadic argument marked with ... in the function parameter */
+				if (p->type == HAWK_NDE_LCL)
+				{
+					hawk_nde_var_t* var = (hawk_nde_var_t*)p;
+					v = hawk_rtx_makeintval(rtx,  ((hawk_nde_var_t*)p)->id.idxa);
+				}
+				else
+				{
+					/* THIS IS THE RUNTIME ERROR */
+					/* TODO: */
+				}
+
 			case 'x':
 				/* a regular expression is passed to the function as it is */
 				v = eval_expression0(rtx, p);
 				break;
+
 
 			default:
 			normal_arg:
@@ -7454,10 +7470,41 @@ static hawk_val_t* eval_rex (hawk_rtx_t* rtx, hawk_nde_t* nde)
 
 static hawk_val_t* eval_xnil (hawk_rtx_t* rtx, hawk_nde_t* nde)
 {
-	hawk_val_t* val;
-	val = hawk_rtx_makenilval(rtx);
-	if (HAWK_UNLIKELY(!val)) ADJERR_LOC (rtx, &nde->loc);
-	return val;
+	return hawk_rtx_makenilval(rtx); /* this never fails */
+}
+
+static hawk_val_t* eval_xarg (hawk_rtx_t* rtx, hawk_nde_t* nde)
+{
+	hawk_nde_xarg_t* xarg;
+
+	xarg = (hawk_nde_xarg_t*)nde;
+	if (xarg->opcode == 0)
+	{
+		/* @argv */
+		hawk_val_t* v;
+		hawk_int_t pos;
+		int n;
+
+		v = eval_expression(rtx, xarg->pos);
+		if (HAWK_UNLIKELY(!v)) return HAWK_NULL;
+
+		hawk_rtx_refupval (rtx, v);
+		n = hawk_rtx_valtoint(rtx, v, &pos);
+		hawk_rtx_refdownval (rtx, v);
+		if (n <= -1)
+		{
+			hawk_rtx_seterrnum (rtx, &xarg->pos->loc, HAWK_EPOSIDX);
+			return HAWK_NULL;
+		}
+
+		return (pos < 0 || pos >= hawk_rtx_getnargs(rtx))? hawk_rtx_makenilval(rtx): hawk_rtx_getarg(rtx, pos);
+	}
+	else
+	{
+		/* @argc */
+		hawk_int_t nargs = (hawk_int_t)hawk_rtx_getnargs(rtx);
+		return hawk_rtx_makeintval(rtx, nargs);
+	}
 }
 
 static hawk_val_t* eval_fun (hawk_rtx_t* rtx, hawk_nde_t* nde)

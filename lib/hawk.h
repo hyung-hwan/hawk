@@ -433,6 +433,7 @@ enum hawk_nde_type_t
 	HAWK_NDE_MBS,
 	HAWK_NDE_REX,
 	HAWK_NDE_XNIL,
+	HAWK_NDE_XARG,
 	HAWK_NDE_FUN,
 
 	/* keep this order for the following items otherwise, you may have 
@@ -483,6 +484,7 @@ struct hawk_fun_t
 	hawk_oow_t      nargs;
 	hawk_ooch_t*    argspec; /* similar to  the argument spec of hawk_fnc_arg_t. supports v & r only. neither R nor x is set internally. */
 	hawk_oow_t      argspeclen; /* the length of argspec. it can be different from nargs if there are call-by-value parameters after the last call-by-reference parameter or variadic arguments are supported */
+	int             variadic;
 	hawk_nde_t*     body;
 };
 typedef struct hawk_fun_t hawk_fun_t;

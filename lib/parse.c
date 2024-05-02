@@ -114,15 +114,20 @@ enum tok_t
 	TOK_COLON,
 	TOK_DBLCOLON,
 	TOK_QUEST,
+	TOK_ELLIPSIS,
+	TOK_DBLPERIOD, /* not used yet */
+	TOK_PERIOD, /* not used yet */
 
 	/* ==  begin reserved words == */
 	/* === extended reserved words === */
+	TOK_XARGC,
+	TOK_XARGV,
+	TOK_XABORT,
 	TOK_XGLOBAL,
-	TOK_XLOCAL,
 	TOK_XINCLUDE,
 	TOK_XINCLUDE_ONCE,
+	TOK_XLOCAL,
 	TOK_XPRAGMA,
-	TOK_XABORT,
 	TOK_XRESET,
 
 	/* === normal reserved words === */
@@ -264,6 +269,8 @@ static kwent_t kwtab[] =
 	/* keep this table in sync with the kw_t enums in "parse-prv.h".
 	 * also keep it sorted by the first field for binary search */
 	{ { HAWK_T("@abort"),         6 }, TOK_XABORT,        0 },
+	{ { HAWK_T("@argc"),          5 }, TOK_XARGC,         0 },
+	{ { HAWK_T("@argv"),          5 }, TOK_XARGV,         0 },
 	{ { HAWK_T("@global"),        7 }, TOK_XGLOBAL,       0 },
 	{ { HAWK_T("@include"),       8 }, TOK_XINCLUDE,      0 },
 	{ { HAWK_T("@include_once"), 13 }, TOK_XINCLUDE_ONCE, 0 },
@@ -628,7 +635,7 @@ hawk_ooch_t* hawk_addsionamewithuchars (hawk_t* hawk, const hawk_uch_t* ptr, haw
 
 #if defined(HAWK_OOCH_IS_UCH)
 	link = (hawk_link_t*)hawk_callocmem(hawk, HAWK_SIZEOF(*link) + HAWK_SIZEOF(hawk_uch_t) * (len + 1));
-	if (!link) return HAWK_NULL;
+	if (HAWK_UNLIKELY(!link)) return HAWK_NULL;
 
 	hawk_copy_uchars_to_ucstr_unlimited ((hawk_uch_t*)(link + 1), ptr, len);
 #else
@@ -638,7 +645,7 @@ hawk_ooch_t* hawk_addsionamewithuchars (hawk_t* hawk, const hawk_uch_t* ptr, haw
 	if (hawk_convutobchars(hawk, ptr, &ucslen, HAWK_NULL, &bcslen) <= -1) return HAWK_NULL;
 
 	link = (hawk_link_t*)hawk_callocmem(hawk, HAWK_SIZEOF(*link) + HAWK_SIZEOF(hawk_bch_t) * (bcslen + 1));
-	if (!link) return HAWK_NULL;
+	if (HAWK_UNLIKELY(!link)) return HAWK_NULL;
 
 	ucslen = len;
 	bcslen = bcslen + 1;
@@ -665,7 +672,7 @@ hawk_ooch_t* hawk_addsionamewithbchars (hawk_t* hawk, const hawk_bch_t* ptr, haw
 	if (hawk_convbtouchars (hawk, ptr, &bcslen, HAWK_NULL, &ucslen, 0) <= -1) return HAWK_NULL;
 
 	link = (hawk_link_t*)hawk_callocmem(hawk, HAWK_SIZEOF(*link) + HAWK_SIZEOF(hawk_uch_t) * (ucslen + 1));
-	if (!link) return HAWK_NULL;
+	if (HAWK_UNLIKELY(!link)) return HAWK_NULL;
 
 	bcslen = len;
 	ucslen = ucslen + 1;
@@ -674,7 +681,7 @@ hawk_ooch_t* hawk_addsionamewithbchars (hawk_t* hawk, const hawk_bch_t* ptr, haw
 
 #else
 	link = (hawk_link_t*)hawk_callocmem(hawk, HAWK_SIZEOF(*link) + HAWK_SIZEOF(hawk_bch_t) * (len + 1));
-	if (!link) return HAWK_NULL;
+	if (HAWK_UNLIKELY(!link)) return HAWK_NULL;
 
 	hawk_copy_bchars_to_bcstr_unlimited ((hawk_bch_t*)(link + 1), ptr, len);
 #endif
@@ -829,14 +836,14 @@ static int begin_include (hawk_t* hawk, int once)
 	 * and this list is not deleted after hawk_parse.
 	 * the errinfo.loc.file can point to the file name here. */
 	sio_name = hawk_addsionamewithoochars(hawk, HAWK_OOECS_PTR(hawk->tok.name), HAWK_OOECS_LEN(hawk->tok.name));
-	if (!sio_name)
+	if (HAWK_UNLIKELY(!sio_name))
 	{
 		ADJERR_LOC (hawk, &hawk->ptok.loc);
 		goto oops;
 	}
 
 	arg = (hawk_sio_arg_t*)hawk_callocmem(hawk, HAWK_SIZEOF(*arg));
-	if (!arg)
+	if (HAWK_UNLIKELY(!arg))
 	{
 		ADJERR_LOC (hawk, &hawk->ptok.loc);
 		goto oops;
@@ -1304,6 +1311,7 @@ static hawk_nde_t* parse_function (hawk_t* hawk)
 	hawk_oow_t argspeccapa = 0;
 	hawk_oow_t argspeclen;
 	hawk_oow_t nargs, g;
+	int variadic = 0;
 	hawk_htb_pair_t* pair;
 	hawk_loc_t xloc;
 	int rederr;
@@ -1377,6 +1385,25 @@ static hawk_nde_t* parse_function (hawk_t* hawk)
 			hawk_ooch_t* pa;
 			hawk_oow_t pal;
 
+			if (MATCH(hawk, TOK_ELLIPSIS))
+			{
+				/* this must be the last parameter. the variadic part doesn't support reference */
+				/* this must be the last token before the parenthesis if given.
+				 *   function xxx (...)
+				 *   function xxx (a ...)
+				 *   function xxx (a, b ...)  */
+				if (get_token(hawk) <= -1) goto oops;
+
+				if (!MATCH(hawk,TOK_RPAREN))
+				{
+					hawk_seterrfmt (hawk,  &hawk->tok.loc, HAWK_ERPAREN, FMT_ERPAREN, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
+					goto oops;
+				}
+
+				variadic = 1;
+				break;
+			}
+
 			if (MATCH(hawk, TOK_BAND)) /* &arg */
 			{
 				/* pass-by-reference argument */
@@ -1435,6 +1462,7 @@ static hawk_nde_t* parse_function (hawk_t* hawk)
 
 			if (get_token(hawk) <= -1) goto oops;
 
+			/* no ... present after the variable name */
 			if (MATCH(hawk,TOK_RPAREN)) break;
 
 			if (!MATCH(hawk,TOK_COMMA))
@@ -1508,6 +1536,7 @@ static hawk_nde_t* parse_function (hawk_t* hawk)
 	/*fun->name.ptr = HAWK_NULL;*/ /* function name is set below */
 	fun->name.len = 0;
 	fun->nargs = nargs;
+	fun->variadic = variadic;
 	fun->argspec = argspec;
 	fun->argspeclen = argspeclen;
 	fun->body = body;
@@ -2475,7 +2504,7 @@ static hawk_nde_t* parse_if (hawk_t* hawk, const hawk_loc_t* xloc)
 	}
 
 	nde = (hawk_nde_if_t*)hawk_callocmem(hawk, HAWK_SIZEOF(*nde));
-	if (nde == HAWK_NULL)
+	if (HAWK_UNLIKELY(!nde))
 	{
 		ADJERR_LOC (hawk, xloc);
 		goto oops;
@@ -5087,6 +5116,61 @@ oops:
 }
 
 
+static hawk_nde_t* parse_primary_xarg (hawk_t* hawk, const hawk_loc_t* xloc)
+{
+	hawk_nde_xarg_t* nde = HAWK_NULL;
+	hawk_nde_t* pos = HAWK_NULL;
+	int opcode;
+
+	HAWK_ASSERT (hawk->tok.type == TOK_XARGV || hawk->tok.type == TOK_XARGC);
+
+	opcode = (hawk->tok.type == TOK_XARGC); /* @argv: 1 @argv: 2 */
+
+	if (get_token(hawk) <= -1) goto oops;
+	if (!MATCH(hawk,TOK_LPAREN))
+	{
+		hawk_seterrfmt (hawk,  &hawk->tok.loc, HAWK_ELPAREN, FMT_ELPAREN, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
+		goto oops;
+	}
+	if (get_token(hawk) <= -1) goto oops;
+
+	if (opcode == 0)
+	{
+		/* @argv */
+		hawk_loc_t eloc;
+		eloc = hawk->tok.loc;
+		pos = parse_expr_withdc(hawk, &eloc);
+		if (HAWK_UNLIKELY(!pos)) goto oops;
+	}
+
+	if (!MATCH(hawk,TOK_RPAREN))
+	{
+		hawk_seterrfmt (hawk,  &hawk->tok.loc, HAWK_ERPAREN, FMT_ERPAREN, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
+		goto oops;
+	}
+
+	if (get_token(hawk) <= -1) goto oops;
+
+	nde = (hawk_nde_xarg_t*)hawk_callocmem(hawk, HAWK_SIZEOF(*nde));
+	if (HAWK_UNLIKELY(!nde))
+	{
+		ADJERR_LOC (hawk, xloc);
+		return HAWK_NULL;
+	}
+
+	nde->type = HAWK_NDE_XARG;
+	nde->loc = *xloc;
+	nde->opcode = opcode;
+	nde->pos = pos;
+
+	return (hawk_nde_t*)nde;
+
+oops:
+	if (nde) hawk_freemem (hawk, nde); /* tricky to call hawk_clrpt() on nde due to var and pos */
+	if (pos) hawk_clrpt (hawk, pos);
+	return HAWK_NULL;
+}
+
 static hawk_nde_t* parse_primary_nopipe (hawk_t* hawk, const hawk_loc_t* xloc)
 {
 	switch (hawk->tok.type)
@@ -5131,6 +5215,9 @@ static hawk_nde_t* parse_primary_nopipe (hawk_t* hawk, const hawk_loc_t* xloc)
 		case TOK_XNIL:
 			return parse_primary_xnil(hawk, xloc);
 
+		case TOK_XARGV:
+		case TOK_XARGC:
+			return parse_primary_xarg(hawk, xloc);
 
 		default:
 		{
@@ -5298,7 +5385,7 @@ static hawk_nde_t* parse_variable (hawk_t* hawk, const hawk_loc_t* xloc, hawk_nd
 	}
 
 	nde = (hawk_nde_var_t*)hawk_callocmem(hawk, HAWK_SIZEOF(*nde));
-	if (nde == HAWK_NULL)
+	if (HAWK_UNLIKELY(!nde))
 	{
 		ADJERR_LOC (hawk, xloc);
 		return HAWK_NULL;
@@ -5380,7 +5467,7 @@ static hawk_nde_t* parse_fun_as_value  (hawk_t* hawk, const hawk_oocs_t* name, c
 
 	/* create the node for the literal */
 	nde = (hawk_nde_fun_t*)hawk_callocmem(hawk, HAWK_SIZEOF(*nde));
-	if (nde == HAWK_NULL)
+	if (HAWK_UNLIKELY(!nde))
 	{
 		ADJERR_LOC (hawk, xloc);
 		return HAWK_NULL;
@@ -5531,7 +5618,7 @@ static hawk_nde_t* parse_primary_ident_noseg (hawk_t* hawk, const hawk_loc_t* xl
 				 * as concatention by blanks. so we handle the name as a named
 				 * variable. */
 				tmp = (hawk_nde_var_t*)hawk_callocmem(hawk, HAWK_SIZEOF(*tmp));
-				if (tmp == HAWK_NULL) ADJERR_LOC (hawk, xloc);
+				if (HAWK_UNLIKELY(!tmp)) ADJERR_LOC (hawk, xloc);
 				else
 				{
 					/* collect unique instances of a named variable
@@ -5938,7 +6025,7 @@ static hawk_nde_t* parse_fncall (hawk_t* hawk, const hawk_oocs_t* name, hawk_fnc
 
 make_node:
 	call = (hawk_nde_fncall_t*)hawk_callocmem(hawk, HAWK_SIZEOF(*call));
-	if (!call)
+	if (HAWK_UNLIKELY(!call))
 	{
 		ADJERR_LOC (hawk, xloc);
 		goto oops;
@@ -6588,6 +6675,9 @@ static int get_symbols (hawk_t* hawk, hawk_ooci_t c, hawk_tok_t* tok)
 		{ HAWK_T("::"),  2, TOK_DBLCOLON,     0 },
 		{ HAWK_T(":"),   1, TOK_COLON,        0 },
 		{ HAWK_T("?"),   1, TOK_QUEST,        0 },
+		{ HAWK_T("..."), 3, TOK_ELLIPSIS,     0 },
+		{ HAWK_T(".."),  2, TOK_DBLPERIOD,    0 },
+		{ HAWK_T("."),   1, TOK_PERIOD,       0 },
 		{ HAWK_NULL,     0, 0,                0 }
 	};
 
@@ -7252,6 +7342,8 @@ static hawk_htb_walk_t deparse_func (hawk_htb_t* map, hawk_htb_pair_t* pair, voi
 		if (i >= fun->nargs) break;
 		PUT_S (df, HAWK_T(", "));
 	}
+
+	if (fun->variadic) PUT_S(df, HAWK_T(" ..."));
 
 	PUT_S (df, HAWK_T(")"));
 	if (df->hawk->opt.trait & HAWK_CRLF) PUT_C (df, HAWK_T('\r'));

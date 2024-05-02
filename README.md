@@ -23,6 +23,7 @@
 	- [Control Strucutres](#control-strucutres)
 	- [Function](#function)
 	- [Variable](#variable)
+		- [Built-in Variable](#built-in-variable)
 	- [Pipes](#pipes)
 	- [Garbage Collection](#garbage-collection)
 	- [Modules](#modules)
@@ -296,7 +297,7 @@ You can also pass arguments to the entry point function by defining it with para
 ```awk
 @pragma entry main;
 function main(arg1, arg2) {
-    print "Arguments:", arg1, arg2
+	print "Arguments:", arg1, arg2
 }
 ```
 
@@ -314,6 +315,25 @@ This flexibility in specifying the entry point can be useful in various scenario
 - Command-line Arguments: By defining the entry point function with parameters, you can easily accept and process command-line arguments passed to your script.
 - Testing and Debugging: When working on specific parts of your script, you can temporarily set the entry point to a different function, making it easier to test and debug that particular functionality.
 - Integration with Other Systems: If you need to embed Hawk scripts within a larger application or system, you can use the `@pragma entry` feature to specify the function that should be executed as the entry point, enabling better integration and control over the script execution flow.
+
+If you don't know the number of arguments in advance, you can use the ellipsis `...` in the parameter list and access the varidic arguments using `@argv()` and `@argc()`.
+
+```awk
+@pragma entry main;
+function main(...) {
+	@local i
+	for (i = 0; i < @argc(); i++) printf("%d:", @argv(i))
+	print ""
+}
+```
+
+In this example, the `main` function can accept variable number of arguments.
+
+```sh
+$ hawk -f main.hawk 10 20 30 40 50
+```
+
+The expected output of the above command is `10:20:30:40:50:`.
 
 It's important to note that if you don't define an entry point function using `@pragma entry`, Hawk will default to the standard awk behavior and execute the `BEGIN` block first, followed by the pattern-action blocks, and finally the `END` block.
 

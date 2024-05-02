@@ -498,6 +498,7 @@ static int fnc_typename (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 }
 
 /* -------------------------------------------------------------------------- */
+
 static int fnc_hash (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	hawk_val_t* a0;

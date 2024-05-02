@@ -554,6 +554,19 @@ static int print_expr (hawk_t* hawk, hawk_nde_t* nde)
 			break;
 		}
 
+		case HAWK_NDE_XARG:
+		{
+			static hawk_ooch_t* xarg_str[] =
+			{
+				HAWK_T("@argv("),
+				HAWK_T("@argc("),
+			};
+			PUT_SRCSTR (hawk, xarg_str[((hawk_nde_xarg_t*)nde)->opcode % 2]);
+			if (((hawk_nde_xarg_t*)nde)->pos) PRINT_EXPR (hawk, ((hawk_nde_xarg_t*)nde)->pos);
+			PUT_SRCSTR (hawk, HAWK_T(")"));
+			break;
+		}
+
 		case HAWK_NDE_FUN:
 		{
 			PUT_SRCSTRN (hawk,
@@ -1450,6 +1463,14 @@ void hawk_clrpt (hawk_t* hawk, hawk_nde_t* tree)
 
 			case HAWK_NDE_XNIL:
 			{
+				hawk_freemem (hawk, p);
+				break;
+			}
+
+			case HAWK_NDE_XARG:
+			{
+				if (((hawk_nde_xarg_t*)p)->pos) /* pos is null for @argc */
+					hawk_clrpt (hawk, ((hawk_nde_xarg_t*)p)->pos);
 				hawk_freemem (hawk, p);
 				break;
 			}
