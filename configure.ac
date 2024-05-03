@@ -347,7 +347,10 @@ if test "x$ac_cv_func_connect" = "xno"
 then
 	AC_CHECK_LIB([socket], [connect], [
 		SOCKET_LIBS="$SOCKET_LIBS -lsocket"
-		AC_DEFINE(HAVE_CONNECT, 1)
+		AC_DEFINE(HAVE_CONNECT, 1) ], [
+		AC_CHECK_LIB([network], [connect], [
+			SOCKET_LIBS="$SOCKET_LIBS -lnetwork"
+			AC_DEFINE(HAVE_CONNECT, 1) ])
 	])
 fi
 if test "x${platform_win32}" = "xyes"
