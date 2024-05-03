@@ -322,7 +322,7 @@ If you don't know the number of arguments in advance, you can use the ellipsis `
 @pragma entry main
 function main(...) {
 	@local i
-	for (i = 0; i < @argc(); i++) printf("%d:", @argv(i))
+	for (i = 0; i < @argc; i++) printf("%s:", @argv[i])
 	print ""
 }
 ```
@@ -464,10 +464,13 @@ this line is ignored too.
 The following words are reserved and cannot be used as a variable name, a parameter name, or a function name.
 
  - @abort
+ - @argc
+ - @argv
  - @global
  - @include
  - @include_once
  - @local
+ - @nil
  - @pragma
  - @reset
  - BEGIN
@@ -492,7 +495,7 @@ The following words are reserved and cannot be used as a variable name, a parame
  - return
  - while
 
-However, these words can be used as normal names in the context of a module call. For example, mymod::break. In practice, the predefined names used for built-in commands, functions, and variables are treated as if they are reserved since you can't create another definition with the same name.
+However, some of these words not beginning with `@` can be used as normal names in the context of a module call. For example, `mymod::break`. In practice, the predefined names used for built-in commands, functions, and variables are treated as if they are reserved since you can't create another definition with the same name.
 
 ## Values
 
