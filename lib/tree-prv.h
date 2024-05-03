@@ -68,7 +68,7 @@ typedef struct hawk_nde_mbs_t       hawk_nde_mbs_t;
 typedef struct hawk_nde_rex_t       hawk_nde_rex_t;
 typedef struct hawk_nde_fun_t       hawk_nde_fun_t;
 typedef struct hawk_nde_xnil_t      hawk_nde_xnil_t;
-typedef struct hawk_nde_xarg_t      hawk_nde_xarg_t;
+typedef struct hawk_nde_xargvidx_t  hawk_nde_xargvidx_t;
 
 typedef struct hawk_nde_var_t       hawk_nde_var_t;
 typedef struct hawk_nde_fncall_t    hawk_nde_fncall_t;
@@ -178,7 +178,7 @@ struct hawk_nde_str_t
 {
 	HAWK_NDE_HDR;
 	hawk_ooch_t* ptr;
-	hawk_oow_t len;
+	hawk_oow_t   len;
 };
 
 /* HAWK_NDE_MBS */
@@ -186,15 +186,15 @@ struct hawk_nde_mbs_t
 {
 	HAWK_NDE_HDR;
 	hawk_bch_t* ptr;
-	hawk_oow_t   len;
+	hawk_oow_t  len;
 };
 
 /* HAWK_NDE_REX */
 struct hawk_nde_rex_t
 {
 	HAWK_NDE_HDR;
-	hawk_oocs_t  str;
-	hawk_tre_t*  code[2]; /* [0]: case sensitive, [1]: case insensitive */
+	hawk_oocs_t str;
+	hawk_tre_t* code[2]; /* [0]: case sensitive, [1]: case insensitive */
 };
 
 struct hawk_nde_xnil_t
@@ -202,10 +202,9 @@ struct hawk_nde_xnil_t
 	HAWK_NDE_HDR;
 };
 
-struct hawk_nde_xarg_t
+struct hawk_nde_xargvidx_t
 {
 	HAWK_NDE_HDR;
-	int opcode; /* 0: @argc, 1: @argv  */
 	hawk_nde_t* pos;
 };
 

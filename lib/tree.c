@@ -554,16 +554,23 @@ static int print_expr (hawk_t* hawk, hawk_nde_t* nde)
 			break;
 		}
 
-		case HAWK_NDE_XARG:
+		case HAWK_NDE_XARGC:
 		{
-			static hawk_ooch_t* xarg_str[] =
-			{
-				HAWK_T("@argv("),
-				HAWK_T("@argc("),
-			};
-			PUT_SRCSTR (hawk, xarg_str[((hawk_nde_xarg_t*)nde)->opcode % 2]);
-			if (((hawk_nde_xarg_t*)nde)->pos) PRINT_EXPR (hawk, ((hawk_nde_xarg_t*)nde)->pos);
-			PUT_SRCSTR (hawk, HAWK_T(")"));
+			PUT_SRCSTR (hawk, HAWK_T("@argc"));
+			break;
+		}
+
+		case HAWK_NDE_XARGV:
+		{
+			PUT_SRCSTR (hawk, HAWK_T("@argv"));
+			break;
+		}
+
+		case HAWK_NDE_XARGVIDX:
+		{
+			PUT_SRCSTR (hawk, HAWK_T("@argv["));
+			PRINT_EXPR (hawk, ((hawk_nde_xargvidx_t*)nde)->pos);
+			PUT_SRCSTR (hawk, HAWK_T("]"));
 			break;
 		}
 
@@ -1467,10 +1474,16 @@ void hawk_clrpt (hawk_t* hawk, hawk_nde_t* tree)
 				break;
 			}
 
-			case HAWK_NDE_XARG:
+			case HAWK_NDE_XARGC:
+			case HAWK_NDE_XARGV:
 			{
-				if (((hawk_nde_xarg_t*)p)->pos) /* pos is null for @argc */
-					hawk_clrpt (hawk, ((hawk_nde_xarg_t*)p)->pos);
+				hawk_freemem (hawk, p);
+				break;
+			}
+
+			case HAWK_NDE_XARGVIDX:
+			{
+				hawk_clrpt (hawk, ((hawk_nde_xargvidx_t*)p)->pos);
 				hawk_freemem (hawk, p);
 				break;
 			}

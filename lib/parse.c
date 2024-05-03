@@ -1309,7 +1309,7 @@ static hawk_nde_t* parse_function (hawk_t* hawk)
 	hawk_fun_t* fun = HAWK_NULL;
 	hawk_ooch_t* argspec = HAWK_NULL;
 	hawk_oow_t argspeccapa = 0;
-	hawk_oow_t argspeclen;
+	hawk_oow_t argspeclen = 0;
 	hawk_oow_t nargs, g;
 	int variadic = 0;
 	hawk_htb_pair_t* pair;
@@ -4086,9 +4086,9 @@ static hawk_nde_t* parse_in (hawk_t* hawk, const hawk_loc_t* xloc)
 		if (HAWK_UNLIKELY(!right))  goto oops;
 
 	#if defined(HAWK_ENABLE_GC)
-		if (!is_var(right))
+		if (!is_var(right) && right->type != HAWK_NDE_XARGV)
 	#else
-		if (!is_plain_var(right))
+		if (!is_plain_var(right) && right->type != HAWK_NDE_XARGV)
 	#endif
 		{
 			hawk_seterrnum (hawk, &rloc, HAWK_ENOTVAR);
@@ -5118,55 +5118,84 @@ oops:
 
 static hawk_nde_t* parse_primary_xarg (hawk_t* hawk, const hawk_loc_t* xloc)
 {
-	hawk_nde_xarg_t* nde = HAWK_NULL;
+	hawk_nde_t* nde = HAWK_NULL;
 	hawk_nde_t* pos = HAWK_NULL;
-	int opcode;
+	int nde_type;
+
+	/* @argc, @argv, @argv[] look like the standard ARGC and ARGV but form special constructs
+	 * for function arguments. this is useful when combined with the variadic function arguments.
+	 * it can't be used in assignment, delete, reset, in many other context, however.
+	 * when used in the main entry point function, @argc is the number of arguments to the
+	 * function but ARGC is the number of arguments including the program name so ARGC is greater
+	 * than @argc by 1. */
 
 	HAWK_ASSERT (hawk->tok.type == TOK_XARGV || hawk->tok.type == TOK_XARGC);
 
-	opcode = (hawk->tok.type == TOK_XARGC); /* @argv: 1 @argv: 2 */
-
-	if (get_token(hawk) <= -1) goto oops;
-	if (!MATCH(hawk,TOK_LPAREN))
-	{
-		hawk_seterrfmt (hawk,  &hawk->tok.loc, HAWK_ELPAREN, FMT_ELPAREN, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
-		goto oops;
-	}
-	if (get_token(hawk) <= -1) goto oops;
-
-	if (opcode == 0)
+	if (hawk->tok.type == TOK_XARGV)
 	{
 		/* @argv */
-		hawk_loc_t eloc;
-		eloc = hawk->tok.loc;
-		pos = parse_expr_withdc(hawk, &eloc);
-		if (HAWK_UNLIKELY(!pos)) goto oops;
-	}
+		nde_type = HAWK_NDE_XARGV;
+		if (get_token(hawk) <= -1) goto oops;
 
-	if (!MATCH(hawk,TOK_RPAREN))
+		if (MATCH(hawk,TOK_LBRACK)) /* @argv[, expecting to see @argv[expr] */
+		{
+			hawk_loc_t eloc;
+
+			if (get_token(hawk) <= -1) goto oops;
+
+			eloc = hawk->tok.loc;
+			pos = parse_expr_withdc(hawk, &eloc);
+			if (HAWK_UNLIKELY(!pos)) goto oops;
+
+			if (!MATCH(hawk,TOK_RBRACK))
+			{
+				hawk_seterrfmt (hawk,  &hawk->tok.loc, HAWK_ERBRACK, FMT_ERBRACK, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
+				goto oops;
+			}
+
+			if (get_token(hawk) <= -1) goto oops;
+		}
+	}
+	else
 	{
-		hawk_seterrfmt (hawk,  &hawk->tok.loc, HAWK_ERPAREN, FMT_ERPAREN, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
-		goto oops;
+		nde_type = HAWK_NDE_XARGC;
+		if (get_token(hawk) <= -1) goto oops;
 	}
 
-	if (get_token(hawk) <= -1) goto oops;
-
-	nde = (hawk_nde_xarg_t*)hawk_callocmem(hawk, HAWK_SIZEOF(*nde));
-	if (HAWK_UNLIKELY(!nde))
+	if (pos)
 	{
-		ADJERR_LOC (hawk, xloc);
-		return HAWK_NULL;
-	}
+		hawk_nde_xargvidx_t* xargvidx;
 
-	nde->type = HAWK_NDE_XARG;
-	nde->loc = *xloc;
-	nde->opcode = opcode;
-	nde->pos = pos;
+		xargvidx = (hawk_nde_xargvidx_t*)hawk_callocmem(hawk, HAWK_SIZEOF(*xargvidx));
+		if (HAWK_UNLIKELY(!xargvidx))
+		{
+			ADJERR_LOC (hawk, xloc);
+			return HAWK_NULL;
+		}
+
+		xargvidx->type = HAWK_NDE_XARGVIDX;
+		xargvidx->loc = *xloc;
+		xargvidx->pos = pos;
+
+		nde = (hawk_nde_t*)xargvidx;
+	}
+	else
+	{
+		nde = hawk_callocmem(hawk, HAWK_SIZEOF(*nde));
+		if (HAWK_UNLIKELY(!nde))
+		{
+			ADJERR_LOC (hawk, xloc);
+			return HAWK_NULL;
+		}
+
+		nde->type = nde_type;
+		nde->loc = *xloc;
+	}
 
 	return (hawk_nde_t*)nde;
 
 oops:
-	if (nde) hawk_freemem (hawk, nde); /* tricky to call hawk_clrpt() on nde due to var and pos */
+	if (nde) hawk_freemem (hawk, nde); /* tricky to call hawk_clrpt() on nde due to pos */
 	if (pos) hawk_clrpt (hawk, pos);
 	return HAWK_NULL;
 }
@@ -7343,7 +7372,11 @@ static hawk_htb_walk_t deparse_func (hawk_htb_t* map, hawk_htb_pair_t* pair, voi
 		PUT_S (df, HAWK_T(", "));
 	}
 
-	if (fun->variadic) PUT_S(df, HAWK_T(" ..."));
+	if (fun->variadic)
+	{
+		if (fun->nargs > 0) PUT_S (df, HAWK_T(", "));
+		PUT_S(df, HAWK_T("..."));
+	}
 
 	PUT_S (df, HAWK_T(")"));
 	if (df->hawk->opt.trait & HAWK_CRLF) PUT_C (df, HAWK_T('\r'));

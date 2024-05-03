@@ -530,7 +530,7 @@ static int getoption_byid (hawk_rtx_t* rtx, uctx_list_t* list, hawk_int_t id, ha
 						{
 							int n;
 							hawk_rtx_refupval (rtx, map);
-							n = hawk_rtx_setrefval (rtx, ref, map);
+							n = hawk_rtx_setrefval(rtx, ref, map);
 							hawk_rtx_refdownval (rtx, map);
 							if (n <= -1)
 							{

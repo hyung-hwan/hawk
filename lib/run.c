@@ -163,7 +163,9 @@ static hawk_val_t* eval_str (hawk_rtx_t* rtx, hawk_nde_t* nde);
 static hawk_val_t* eval_mbs (hawk_rtx_t* rtx, hawk_nde_t* nde);
 static hawk_val_t* eval_rex (hawk_rtx_t* rtx, hawk_nde_t* nde);
 static hawk_val_t* eval_xnil (hawk_rtx_t* rtx, hawk_nde_t* nde);
-static hawk_val_t* eval_xarg (hawk_rtx_t* rtx, hawk_nde_t* nde);
+static hawk_val_t* eval_xargc (hawk_rtx_t* rtx, hawk_nde_t* nde);
+static hawk_val_t* eval_xargv (hawk_rtx_t* rtx, hawk_nde_t* nde);
+static hawk_val_t* eval_xargvidx (hawk_rtx_t* rtx, hawk_nde_t* nde);
 static hawk_val_t* eval_fun (hawk_rtx_t* rtx, hawk_nde_t* nde);
 static hawk_val_t* eval_named (hawk_rtx_t* rtx, hawk_nde_t* nde);
 static hawk_val_t* eval_gbl (hawk_rtx_t* rtx, hawk_nde_t* nde);
@@ -3708,7 +3710,9 @@ static hawk_val_t* eval_expression0 (hawk_rtx_t* rtx, hawk_nde_t* nde)
 		eval_mbs,
 		eval_rex,
 		eval_xnil,
-		eval_xarg,
+		eval_xargc,
+		eval_xargv,
+		eval_xargvidx,
 		eval_fun,
 		eval_named,
 		eval_gbl,
@@ -4496,6 +4500,8 @@ static hawk_val_t* eval_binop_in (hawk_rtx_t* rtx, hawk_nde_t* left, hawk_nde_t*
 	hawk_nde_t* remidx;
 	hawk_int_t idxint;
 
+	if (right->type == HAWK_NDE_XARGV) goto rvalue_ok;
+
 #if defined(HAWK_ENABLE_GC)
 	if (right->type < HAWK_NDE_NAMED || right->type > HAWK_NDE_ARGIDX)
 #else
@@ -4508,6 +4514,7 @@ static hawk_val_t* eval_binop_in (hawk_rtx_t* rtx, hawk_nde_t* left, hawk_nde_t*
 		return HAWK_NULL;
 	}
 
+rvalue_ok:
 	/* evaluate the left-hand side of the operator */
 	len = HAWK_COUNTOF(idxbuf);
 	str = (left->type == HAWK_NDE_GRP)? /* it is inefficinet to call idxnde_to_str() for an array. but i don't know if the right hand side is a map or an array yet */
@@ -7473,38 +7480,59 @@ static hawk_val_t* eval_xnil (hawk_rtx_t* rtx, hawk_nde_t* nde)
 	return hawk_rtx_makenilval(rtx); /* this never fails */
 }
 
-static hawk_val_t* eval_xarg (hawk_rtx_t* rtx, hawk_nde_t* nde)
+static hawk_val_t* eval_xargc (hawk_rtx_t* rtx, hawk_nde_t* nde)
 {
-	hawk_nde_xarg_t* xarg;
+	hawk_int_t nargs = (hawk_int_t)hawk_rtx_getnargs(rtx);
+	return hawk_rtx_makeintval(rtx, nargs);
+}
 
-	xarg = (hawk_nde_xarg_t*)nde;
-	if (xarg->opcode == 0)
+static hawk_val_t* eval_xargv (hawk_rtx_t* rtx, hawk_nde_t* nde)
+{
+	/* this create a new array. referencing @argv without a subscript
+	 * slows hawk. TODO: fix this issue */
+	hawk_oow_t nargs, i;
+	hawk_val_t* v;
+
+	nargs = hawk_rtx_getnargs(rtx);
+	v = hawk_rtx_makearrval(rtx, nargs);
+	if (HAWK_UNLIKELY(!v)) return HAWK_NULL;
+
+	hawk_rtx_refupval (rtx,v);
+	for (i = 0; i < nargs; i++)
 	{
-		/* @argv */
-		hawk_val_t* v;
-		hawk_int_t pos;
-		int n;
-
-		v = eval_expression(rtx, xarg->pos);
-		if (HAWK_UNLIKELY(!v)) return HAWK_NULL;
-
-		hawk_rtx_refupval (rtx, v);
-		n = hawk_rtx_valtoint(rtx, v, &pos);
-		hawk_rtx_refdownval (rtx, v);
-		if (n <= -1)
+		if (HAWK_UNLIKELY(!hawk_rtx_setarrvalfld(rtx, v, i, hawk_rtx_getarg(rtx, i))))
 		{
-			hawk_rtx_seterrnum (rtx, &xarg->pos->loc, HAWK_EPOSIDX);
+			hawk_rtx_refdownval (rtx, v);
 			return HAWK_NULL;
 		}
+	}
 
-		return (pos < 0 || pos >= hawk_rtx_getnargs(rtx))? hawk_rtx_makenilval(rtx): hawk_rtx_getarg(rtx, pos);
-	}
-	else
+	hawk_rtx_refdownval_nofree (rtx,v);
+	return v;
+}
+
+static hawk_val_t* eval_xargvidx (hawk_rtx_t* rtx, hawk_nde_t* nde)
+{
+	hawk_nde_xargvidx_t* xarg;
+	hawk_val_t* v;
+	hawk_int_t pos;
+	int n;
+
+	xarg = (hawk_nde_xargvidx_t*)nde;
+
+	v = eval_expression(rtx, xarg->pos);
+	if (HAWK_UNLIKELY(!v)) return HAWK_NULL;
+
+	hawk_rtx_refupval (rtx, v);
+	n = hawk_rtx_valtoint(rtx, v, &pos);
+	hawk_rtx_refdownval (rtx, v);
+	if (n <= -1)
 	{
-		/* @argc */
-		hawk_int_t nargs = (hawk_int_t)hawk_rtx_getnargs(rtx);
-		return hawk_rtx_makeintval(rtx, nargs);
+		hawk_rtx_seterrnum (rtx, &xarg->pos->loc, HAWK_EPOSIDX);
+		return HAWK_NULL;
 	}
+
+	return (pos < 0 || pos >= hawk_rtx_getnargs(rtx))? hawk_rtx_makenilval(rtx): hawk_rtx_getarg(rtx, pos);
 }
 
 static hawk_val_t* eval_fun (hawk_rtx_t* rtx, hawk_nde_t* nde)

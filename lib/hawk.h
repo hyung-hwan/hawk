@@ -433,7 +433,9 @@ enum hawk_nde_type_t
 	HAWK_NDE_MBS,
 	HAWK_NDE_REX,
 	HAWK_NDE_XNIL,
-	HAWK_NDE_XARG,
+	HAWK_NDE_XARGC,
+	HAWK_NDE_XARGV,
+	HAWK_NDE_XARGVIDX,
 	HAWK_NDE_FUN,
 
 	/* keep this order for the following items otherwise, you may have

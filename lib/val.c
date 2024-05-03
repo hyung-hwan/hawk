@@ -1069,7 +1069,7 @@ hawk_val_t* hawk_rtx_makerexval (hawk_rtx_t* rtx, const hawk_oocs_t* str, hawk_t
 
 /* --------------------------------------------------------------------- */
 
-static void free_arrayval (hawk_arr_t* arr, void* dptr, hawk_oow_t dlen)
+static void free_arrval (hawk_arr_t* arr, void* dptr, hawk_oow_t dlen)
 {
 	hawk_rtx_t* rtx = *(hawk_rtx_t**)hawk_arr_getxtn(arr);
 	hawk_val_t* v = (hawk_val_t*)dptr;
@@ -1091,7 +1091,7 @@ static void free_arrayval (hawk_arr_t* arr, void* dptr, hawk_oow_t dlen)
 	hawk_rtx_refdownval (rtx, v);
 }
 
-static void same_arrayval (hawk_arr_t* map, void* dptr, hawk_oow_t dlen)
+static void same_arrval (hawk_arr_t* map, void* dptr, hawk_oow_t dlen)
 {
 	hawk_rtx_t* rtx = *(hawk_rtx_t**)hawk_arr_getxtn(map);
 #if defined(DEBUG_VAL)
@@ -1111,9 +1111,9 @@ hawk_val_t* hawk_rtx_makearrval (hawk_rtx_t* rtx, hawk_ooi_t init_capa)
 	 * freeing the actual value is handled by free_arrval and same_arrval */
 
 		HAWK_ARR_COPIER_DEFAULT,
-		free_arrayval,
+		free_arrval,
 		HAWK_ARR_COMPER_DEFAULT,
-		same_arrayval,
+		same_arrval,
 		HAWK_ARR_SIZER_DEFAULT
 	};
 #if defined(HAWK_ENABLE_GC)
