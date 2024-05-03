@@ -1,0 +1,24 @@
+BEGIN {
+       ##ERROR: unexpected end of input
+---
+
+function abc(x { ##ERROR: comma expected in place of
+}
+
+---
+
+BEGIN {
+	@argv = 10 ##ERROR: invalid assignment statement
+}
+
+---
+
+BEGIN {
+	@argc = 10 ##ERROR: invalid assignment statement
+}
+
+---
+
+BEGIN {
+	@nil = 10 ##ERROR: invalid assignment statement
+}

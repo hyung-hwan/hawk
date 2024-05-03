@@ -14,8 +14,11 @@ LDFLAGS_COMMON=-L$(abs_builddir)/../lib  -L$(libdir)
 LIBADD_COMMON = ../lib/libhawk.la $(LIBM)
 
 check_SCRIPTS = h-001.hawk h-002.hawk h-003.hawk h-004.hawk h-009.hawk
+
+check_ERRORS = e-001.err
+
 ##noinst_SCRIPTS = $(check_SCRIPTS)
-EXTRA_DIST = $(check_SCRIPTS) tap.inc \
+EXTRA_DIST = $(check_SCRIPTS) $(check_ERRORS) tap.inc err.sh \
 	journal-toc.hawk journal-toc.in journal-toc.out journal-toc-html.out \
 	bibtex-to-html.hawk bibtex-to-html.out
 
@@ -55,9 +58,14 @@ t_006_LDFLAGS = $(LDFLAGS_COMMON)
 t_006_LDADD = $(LIBADD_COMMON)
 
 LOG_DRIVER = env AM_TAP_AWK='$(AWK)' $(SHELL) $(top_srcdir)/ac/tap-driver.sh
-TESTS = $(check_PROGRAMS) $(check_SCRIPTS)
+TESTS = $(check_PROGRAMS) $(check_SCRIPTS) $(check_ERRORS)
 
-TEST_EXTENSIONS = .hawk
+TEST_EXTENSIONS = .hawk .err
+
 HAWK_LOG_DRIVER = $(LOG_DRIVER)
 HAWK_LOG_COMPILER = ../bin/hawk
 AM_HAWK_LOG_FLAGS = -vTDIR=${abs_srcdir} --modlibdirs=../lib/.libs:../mod/.libs -f
+
+ERR_LOG_DRIVER = $(SHELL) $(top_srcdir)/ac/test-driver
+ERR_LOG_COMPILER = $(SHELL) $(abs_srcdir)/err.sh ../bin/hawk -vTDIR=${abs_srcdir} --modlibdirs=../lib/.libs:../mod/.libs -f
+AM_ERR_LOG_FLAGS =

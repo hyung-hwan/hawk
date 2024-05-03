@@ -3176,7 +3176,7 @@ as_fn_append ac_header_c_list " sys/types.h sys_types_h HAVE_SYS_TYPES_H"
 as_fn_append ac_header_c_list " unistd.h unistd_h HAVE_UNISTD_H"
 
 # Auxiliary files required by this configure script.
-ac_aux_files="config.guess config.sub ltmain.sh tap-driver.sh compile ar-lib missing install-sh"
+ac_aux_files="config.guess config.sub ltmain.sh test-driver tap-driver.sh compile ar-lib missing install-sh"
 
 # Locations in which to look for auxiliary files.
 ac_aux_dir_candidates="${srcdir}/ac"
@@ -5404,6 +5404,8 @@ unknown)
   as_fn_error $? "could not determine $AR interface" "$LINENO" 5
   ;;
 esac
+
+
 
 
 
