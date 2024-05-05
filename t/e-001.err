@@ -2,7 +2,22 @@ BEGIN {
        ##ERROR: unexpected end of input
 ---
 
-function abc(x { ##ERROR: comma expected in place of
+function abc(x { ##ERROR: comma expected in place of '{'
+}
+
+---
+
+function abc (x, ...,) { ##ERROR:  right parenthesis expected in place of ','
+}
+
+---
+
+function abc (x, ..., a) { ##ERROR:  right parenthesis expected in place of ','
+}
+
+---
+
+function abc (... ...) { ##ERROR:  right parenthesis expected in place of '...'
 }
 
 ---
