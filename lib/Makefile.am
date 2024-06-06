@@ -236,6 +236,10 @@ if ENABLE_MOD_UCI
 libhawk_la_LIBADD += ../mod/libhawk-uci.la
 endif
 
+if ENABLE_MOD_MEMC
+libhawk_la_LIBADD += ../mod/libhawk-memc.la
+endif
+
 else
 ##################################################
 # DYNAMIC MODULES 

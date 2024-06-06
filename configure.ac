@@ -253,7 +253,7 @@ AC_CHECK_HEADERS([netinet/in.h sys/un.h netpacket/packet.h net/if.h net/if_dl.h 
 	#include <sys/types.h>
 	#include <sys/socket.h>])
 AC_CHECK_HEADERS([sys/stropts.h sys/macstat.h linux/ethtool.h linux/sockios.h])
-AC_CHECK_HEADERS([ffi.h libunwind.h quadmath.h crt_externs.h uci.h])
+AC_CHECK_HEADERS([ffi.h libunwind.h quadmath.h crt_externs.h uci.h libmemcached/memcached.h])
 
 dnl check data types
 dnl AC_CHECK_TYPE([wchar_t], 
@@ -383,6 +383,14 @@ dnl libuci (optional)
 AC_CHECK_LIB([uci], [uci_alloc_context], [UCI_LIBS="-luci"])
 AC_SUBST(UCI_LIBS)
 AM_CONDITIONAL(HAVE_LIBUCI, test "x${ac_cv_lib_uci_uci_alloc_context}" = "xyes" -a "x${ac_cv_header_uci_h}" = "xyes")
+
+dnl libmemcachd (optional)
+AC_CHECK_LIB([memcached], [memcached],
+	[
+		MEMCACHED_LIBS="-lmemcached"
+		AC_DEFINE([HAVE_MEMCACHED_LIB], [1], [libmemcached library is available])
+	])
+AC_SUBST(MEMCACHED_LIBS)
 
 AC_MSG_CHECKING([for va_copy])
 AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <stdarg.h>]], [[
@@ -1059,6 +1067,30 @@ then
 fi
 AM_CONDITIONAL(ENABLE_MOD_UCI, test "${enable_mod_uci_is}" = "yes")
 
+dnl ===== enable-mod-memc =====
+AC_ARG_ENABLE([mod-memc],
+	[AS_HELP_STRING([--enable-mod-memc],[enable mod/memc. one of auto, yes, no (default. auto)])],
+	enable_mod_memc_is=$enableval,
+	enable_mod_memc_is=auto
+)
+if test "x${enable_mod_memc_is}" = "xauto"
+then
+	if test "x${ac_cv_header_libmemcached_memcached_h}" != "xyes"
+	then
+		enable_mod_memc_is="no"
+	elif test "x${ac_cv_lib_memcached_memcached}" != "xyes"
+	then
+		enable_mod_memc_is="no"
+	else
+		enable_mod_memc_is="yes"
+	fi
+fi
+if test "x${enable_mod_memc_is}" = "xyes"
+then
+	AC_DEFINE([HAWK_ENABLE_MOD_MEMC],[1],[build mod/memc])
+fi
+AM_CONDITIONAL(ENABLE_MOD_MEMC, test "${enable_mod_memc_is}" = "yes")
+
 
 dnl ==== include pthread options to the default flags ====
 dnl keep this as  the last option as it changes the default compile flags.                                              dnl otherwise, other tests may get affected if this option is on. 
@@ -1112,5 +1144,6 @@ echo "  Math library: ${LIBM}"
 echo "  Socket library: ${SOCKET_LIBS}"
 echo "  Native function call library: ${FFI_LIBS}"
 echo "  Thraed library: ${PTHREAD_LIBS}"
+echo "  Memcached library: ${MEMCACHED_LIBS}"
 echo "-------------------------------------------------------------------------"
 ]
