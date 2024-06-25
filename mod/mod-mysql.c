@@ -337,7 +337,7 @@ BEGIN {
 	while (mysql::fetch_row(result, row) > 0)
 	{
 		ncols = length(row);
-		for (i = 0; i < ncols; i++) print row[i];
+		for (i = 1; i <= ncols; i++) print row[i];
 		print "----";
 	}
 
@@ -1173,6 +1173,7 @@ done:
 }
 
 /* -------------------------------------------------------------------------- */
+
 static int fnc_stmt_init (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	sql_list_t* sql_list;
@@ -1183,7 +1184,7 @@ static int fnc_stmt_init (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 	sql_list = rtx_to_sql_list(rtx, fi);
 	sql_node = get_sql_list_node_with_arg(rtx, sql_list, hawk_rtx_getarg(rtx, 0));
-	if (sql_list)
+	if (sql_node)
 	{
 		stmt_list_t* stmt_list;
 		stmt_node_t* stmt_node;

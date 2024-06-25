@@ -244,6 +244,9 @@
 /* labels as values */
 #undef HAVE_LABELS_AS_VALUES
 
+/* Define to 1 if you have the <libmemcached/memcached.h> header file. */
+#undef HAVE_LIBMEMCACHED_MEMCACHED_H
+
 /* Define to 1 if you have the <libunwind.h> header file. */
 #undef HAVE_LIBUNWIND_H
 
@@ -297,6 +300,9 @@
 
 /* Define to 1 if you have the `makecontext' function. */
 #undef HAVE_MAKECONTEXT
+
+/* libmemcached library is available */
+#undef HAVE_MEMCACHED_LIB
 
 /* Define to 1 if you have the `mmap' function. */
 #undef HAVE_MMAP
@@ -704,6 +710,9 @@
 
 /* build mod/ffi */
 #undef HAWK_ENABLE_MOD_FFI
+
+/* build mod/memc */
+#undef HAWK_ENABLE_MOD_MEMC
 
 /* build mod/mysql */
 #undef HAWK_ENABLE_MOD_MYSQL
