@@ -1859,13 +1859,13 @@ int hawk_fnc_match (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	str::match("abcdefgdefx", "def", 7);
 	------------------------------------
 	str::match("ab\uB098cdefgdefx", /(def)g(.+)/, 1, x);
-	q = length(x) / 2;
-	for (i = 1; i <= q; i++) print x[i,"start"], x[i,"length"];
+	q = length(x) / 3;
+	for (i = 1; i < q; i++) print x[i,"start"], x[i,"length"];
 	print RSTART, RLENGTH;
 	* ------------------------------------
 	str::match(@b"ab\xB0\x98cdefgdefx", /(def)g(.+)/, 1, x);
-	q = length(x) / 2;
-	for (i = 1; i <= q; i++) print x[i,"start"], x[i,"length"];
+	q = length(x) / 3;
+	for (i = 1; i < q; i++) print x[i,"start"], x[i,"length"];
 	print RSTART, RLENGTH;
 	*/
 	return __fnc_match(rtx, fi, 1);
