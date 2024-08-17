@@ -1713,7 +1713,6 @@ static int __fnc_match (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, int support_
 
 	/* RLENGTH: -1 on no match */
 	HAWK_ASSERT (&mat.o.len == &mat.b.len);
-	//x1 = hawk_rtx_makeintval(rtx, ((n == 0)? (hawk_int_t)-1: (hawk_int_t)mat.o.len)); /* just use mat.o.len regardless of a0_type */
 	x1 = hawk_rtx_makeintval(rtx, ((n == 0)? (hawk_int_t)-1: (hawk_int_t)mat.o.len)); /* just use mat.o.len regardless of a0_type */
 	if (!x1) goto oops;
 	hawk_rtx_refupval (rtx, x1);
@@ -1726,13 +1725,53 @@ static int __fnc_match (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, int support_
 		hawk_val_t* tv;
 
 		hawk_ooecs_clear (&rtx->fnc.oout);
+		subsep = hawk_rtx_getsubsep(rtx);
 
 		x2 = hawk_rtx_makemapval(rtx);
 		if (HAWK_UNLIKELY(!x2)) goto oops;
 		hawk_rtx_refupval (rtx, x2);
 
+		/* add the full match value to the array at index "0" */
+		if (hawk_ooecs_fmt(&rtx->fnc.oout, HAWK_T("%d"), 0) == (hawk_oow_t)-1) goto oops;
+		tv = (a0_type == HAWK_VAL_MBS)?
+			hawk_rtx_makembsvalwithbchars(rtx, mat.b.ptr, mat.b.len):
+			hawk_rtx_makestrvalwithoochars(rtx, mat.o.ptr, mat.o.len);
+		if (HAWK_UNLIKELY(!tv)) goto oops;
+		if (!hawk_rtx_setmapvalfld(rtx, x2, HAWK_OOECS_PTR(&rtx->fnc.oout), HAWK_OOECS_LEN(&rtx->fnc.oout), tv))
+		{
+			hawk_rtx_refupval (rtx, tv);
+			hawk_rtx_refdownval (rtx, tv);
+			goto oops;
+		}
+
+		/* 0,start */
+		if (hawk_ooecs_ncat(&rtx->fnc.oout, subsep->ptr, subsep->len) == (hawk_oow_t)-1) goto oops;
+		xlen = HAWK_OOECS_LEN(&rtx->fnc.oout);
+		if (hawk_ooecs_ncat(&rtx->fnc.oout, HAWK_T("start"), 5) == (hawk_oow_t)-1) goto oops;
+
+		tv = hawk_rtx_makeintval(rtx, ((a0_type == HAWK_VAL_MBS)? mat.b.ptr - str0.b + 1: mat.o.ptr - str0.o + 1));
+		if (HAWK_UNLIKELY(!tv)) goto oops;
+		if (!hawk_rtx_setmapvalfld(rtx, x2, HAWK_OOECS_PTR(&rtx->fnc.oout), HAWK_OOECS_LEN(&rtx->fnc.oout), tv))
+		{
+			hawk_rtx_refupval (rtx, tv);
+			hawk_rtx_refdownval (rtx, tv);
+			goto oops;
+		}
+
+		/* 0,length */
+		if (hawk_ooecs_setlen(&rtx->fnc.oout, xlen) == (hawk_oow_t)-1 ||
+		    hawk_ooecs_ncat(&rtx->fnc.oout, HAWK_T("length"), 6) == (hawk_oow_t)-1) goto oops;
+
+		tv = hawk_rtx_makeintval(rtx, ((a0_type == HAWK_VAL_MBS)? mat.b.len: mat.o.len));
+		if (HAWK_UNLIKELY(!tv)) goto oops;
+		if (!hawk_rtx_setmapvalfld(rtx, x2, HAWK_OOECS_PTR(&rtx->fnc.oout), HAWK_OOECS_LEN(&rtx->fnc.oout), tv))
+		{
+			hawk_rtx_refupval (rtx, tv);
+			hawk_rtx_refdownval (rtx, tv);
+			goto oops;
+		}
+
 		submatcount = 0;
-		subsep = hawk_rtx_getsubsep(rtx);
 		for (i = 0; i < HAWK_COUNTOF(submat.o); i++)
 		{
 			HAWK_ASSERT ((void*)&submat.o[i] == (void*)&submat.b[i]);
@@ -1740,13 +1779,25 @@ static int __fnc_match (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, int support_
 
 			submatcount++;
 
-			if (hawk_ooecs_fmt(&rtx->fnc.oout, HAWK_T("%d"), (int)submatcount) == (hawk_oow_t)-1 ||
-			    hawk_ooecs_ncat(&rtx->fnc.oout, subsep->ptr, subsep->len) == (hawk_oow_t)-1) goto oops;
+			if (hawk_ooecs_fmt(&rtx->fnc.oout, HAWK_T("%d"), (int)submatcount) == (hawk_oow_t)-1) goto oops;
+
+			tv = (a0_type == HAWK_VAL_MBS)?
+				hawk_rtx_makembsvalwithbchars(rtx, submat.b[i].ptr, submat.b[i].len):
+				hawk_rtx_makestrvalwithoochars(rtx, submat.o[i].ptr, submat.o[i].len);
+			if (HAWK_UNLIKELY(!tv)) goto oops;
+			if (!hawk_rtx_setmapvalfld(rtx, x2, HAWK_OOECS_PTR(&rtx->fnc.oout), HAWK_OOECS_LEN(&rtx->fnc.oout), tv))
+			{
+				hawk_rtx_refupval (rtx, tv);
+				hawk_rtx_refdownval (rtx, tv);
+				goto oops;
+			}
+
+			if (hawk_ooecs_ncat(&rtx->fnc.oout, subsep->ptr, subsep->len) == (hawk_oow_t)-1) goto oops;
 			xlen = HAWK_OOECS_LEN(&rtx->fnc.oout);
 			if (hawk_ooecs_ncat(&rtx->fnc.oout, HAWK_T("start"), 5) == (hawk_oow_t)-1) goto oops;
 
 			tv = hawk_rtx_makeintval(rtx, ((a0_type == HAWK_VAL_MBS)? submat.b[i].ptr - str0.b + 1: submat.o[i].ptr - str0.o + 1));
-			if (!tv) goto oops;
+			if (HAWK_UNLIKELY(!tv)) goto oops;
 			if (!hawk_rtx_setmapvalfld(rtx, x2, HAWK_OOECS_PTR(&rtx->fnc.oout), HAWK_OOECS_LEN(&rtx->fnc.oout), tv))
 			{
 				hawk_rtx_refupval (rtx, tv);
@@ -1757,8 +1808,8 @@ static int __fnc_match (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, int support_
 			if (hawk_ooecs_setlen(&rtx->fnc.oout, xlen) == (hawk_oow_t)-1 ||
 			    hawk_ooecs_ncat(&rtx->fnc.oout, HAWK_T("length"), 6) == (hawk_oow_t)-1) goto oops;
 
-			tv = hawk_rtx_makeintval(rtx, submat.o[i].len);
-			if (!tv) goto oops;
+			tv = hawk_rtx_makeintval(rtx, ((a0_type == HAWK_VAL_MBS)? submat.b[i].len: submat.o[i].len));
+			if (HAWK_UNLIKELY(!tv)) goto oops;
 			if (!hawk_rtx_setmapvalfld(rtx, x2, HAWK_OOECS_PTR(&rtx->fnc.oout), HAWK_OOECS_LEN(&rtx->fnc.oout), tv))
 			{
 				hawk_rtx_refupval (rtx, tv);
@@ -1794,26 +1845,16 @@ oops:
 
 static int fnc_match (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
-	/*
-	match("abcdefg", "cde");
-	match("abcdefgdefx", "def", 7);
-	------------------------------------
-	match("ab\uB098cdefgdefx", /(def)g(.+)/, x);
-	q = length(x) / 2;
-	for (i = 1; i <= q; i++) print x[i,"start"], x[i,"length"];
-	print RSTART, RLENGTH;
-	* ------------------------------------
-	match(@b"ab\xB0\x98cdefgdefx", /(def)g(.+)/, x);
-	q = length(x) / 2;
-	for (i = 1; i <= q; i++) print x[i,"start"], x[i,"length"];
-	print RSTART, RLENGTH;
-	*/
+	/* this variant supports three parameters only.
+	 * the start index is not supported.
+	 * you must use str::match() for it instead. */
 	return __fnc_match(rtx, fi, 0);
 }
 
 int hawk_fnc_match (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	/*
+	str::match(@b"abcdefg", "cde");
 	str::match("abcdefg", "cde");
 	str::match("abcdefgdefx", "def", 7);
 	------------------------------------
