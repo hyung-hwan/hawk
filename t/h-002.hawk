@@ -610,7 +610,9 @@ function main()
 		tap_ensure (match("hello, world", /(l)lo.*(l)/, a), 3, @SCRIPTNAME, @SCRIPTLINE);
 		tap_ensure (RSTART, 3, @SCRIPTNAME, @SCRIPTLINE);
 		tap_ensure (RLENGTH, 9, @SCRIPTNAME, @SCRIPTLINE);
-		tap_ensure (length(a), 4, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (length(a), 9, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a[0,"start"], RSTART, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a[0,"length"], RLENGTH, @SCRIPTNAME, @SCRIPTLINE);
 		tap_ensure (a[1,"start"], 3, @SCRIPTNAME, @SCRIPTLINE);
 		tap_ensure (a[1,"length"], 1, @SCRIPTNAME, @SCRIPTLINE);
 		tap_ensure (a[2,"start"], 11, @SCRIPTNAME, @SCRIPTLINE);
@@ -621,7 +623,9 @@ function main()
 		tap_ensure (str::match("hello, world", /(l)lo.*(l)/, 1, a), 3, @SCRIPTNAME, @SCRIPTLINE);
 		tap_ensure (RSTART, 3, @SCRIPTNAME, @SCRIPTLINE);
 		tap_ensure (RLENGTH, 9, @SCRIPTNAME, @SCRIPTLINE);
-		tap_ensure (length(a), 4, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (length(a), 9, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a[0,"start"], RSTART, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a[0,"length"], RLENGTH, @SCRIPTNAME, @SCRIPTLINE);
 		tap_ensure (a[1,"start"], 3, @SCRIPTNAME, @SCRIPTLINE);
 		tap_ensure (a[1,"length"], 1, @SCRIPTNAME, @SCRIPTLINE);
 		tap_ensure (a[2,"start"], 11, @SCRIPTNAME, @SCRIPTLINE);
@@ -630,7 +634,9 @@ function main()
 		tap_ensure (str::match("hello, world, hello, world", /(l)lo.*(l)/, 4, a), 17, @SCRIPTNAME, @SCRIPTLINE);
 		tap_ensure (RSTART, 17, @SCRIPTNAME, @SCRIPTLINE);
 		tap_ensure (RLENGTH, 9, @SCRIPTNAME, @SCRIPTLINE);
-		tap_ensure (length(a), 4, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (length(a), 9, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a[0,"start"], RSTART, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a[0,"length"], RLENGTH, @SCRIPTNAME, @SCRIPTLINE);
 		tap_ensure (a[1,"start"], 17, @SCRIPTNAME, @SCRIPTLINE);
 		tap_ensure (a[1,"length"], 1, @SCRIPTNAME, @SCRIPTLINE);
 		tap_ensure (a[2,"start"], 25, @SCRIPTNAME, @SCRIPTLINE);
