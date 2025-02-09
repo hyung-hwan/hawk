@@ -2430,10 +2430,29 @@ static int fnc_gettime (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_val_t* retv;
 	hawk_ntime_t now;
 
+	/*
+		sec = sys::gettime());
+		sec = sys::gettime(&nanosec));
+	*/
+
 	if (hawk_get_ntime(&now) <= -1) now.sec = 0;
 
+	if (hawk_rtx_getnargs(rtx) >= 1)
+	{
+		hawk_val_t* tmp;
+		int x;
+
+		tmp = hawk_rtx_makeintval(rtx, now.nsec);
+		if (HAWK_UNLIKELY(!tmp)) return -1;
+
+		hawk_rtx_refupval (rtx, tmp);
+		x = hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, 0), tmp);
+		hawk_rtx_refdownval (rtx, tmp);
+		if (HAWK_UNLIKELY(x <= -1)) return -1;
+	}
+
 	retv = hawk_rtx_makeintval(rtx, now.sec);
-	if (!retv) return -1;
+	if (HAWK_UNLIKELY(!retv)) return -1;
 
 	hawk_rtx_setretval (rtx, retv);
 	return 0;
@@ -5889,7 +5908,7 @@ static hawk_mod_fnc_tab_t fnctab[] =
 	{ HAWK_T("getpid"),      { { 0, 0, HAWK_NULL       }, fnc_getpid,      0  } },
 	{ HAWK_T("getppid"),     { { 0, 0, HAWK_NULL       }, fnc_getppid,     0  } },
 	{ HAWK_T("gettid"),      { { 0, 0, HAWK_NULL       }, fnc_gettid,      0  } },
-	{ HAWK_T("gettime"),     { { 0, 0, HAWK_NULL       }, fnc_gettime,     0  } },
+	{ HAWK_T("gettime"),     { { 0, 1, HAWK_T("r")     }, fnc_gettime,     0  } },
 	{ HAWK_T("getuid"),      { { 0, 0, HAWK_NULL       }, fnc_getuid,      0  } },
 	{ HAWK_T("kill"),        { { 2, 2, HAWK_NULL       }, fnc_kill,        0  } },
 	{ HAWK_T("listen"),      { { 2, 2, HAWK_NULL       }, fnc_listen,      0  } },
@@ -5920,7 +5939,7 @@ static hawk_mod_fnc_tab_t fnctab[] =
 	{ HAWK_T("strftime"),    { { 2, 3, HAWK_NULL       }, fnc_strftime,    0  } },
 	{ HAWK_T("symlink"),     { { 2, 2, HAWK_NULL       }, fnc_symlink,     0  } },
 	{ HAWK_T("system"),      { { 1, 1, HAWK_NULL       }, fnc_system,      0  } },
-	{ HAWK_T("systime"),     { { 0, 0, HAWK_NULL       }, fnc_gettime,     0  } }, /* alias to gettime() */
+	{ HAWK_T("systime"),     { { 0, 1, HAWK_T("r")     }, fnc_gettime,     0  } }, /* alias to gettime() */
 	{ HAWK_T("tcflush"),     { { 2, 2, HAWK_NULL       }, fnc_tcflush,     0  } },
 	{ HAWK_T("tcgetattr"),   { { 2, 2, HAWK_T("vr")    }, fnc_tcgetattr,   0  } },
 	{ HAWK_T("tcsetattr"),   { { 3, 3, HAWK_NULL       }, fnc_tcsetattr,   0  } },
