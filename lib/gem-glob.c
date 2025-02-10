@@ -424,7 +424,7 @@ entry:
 		if (g->flags & HAWK_GLOB_SKIPSPCDIR) dir_flags |= HAWK_DIR_SKIPSPCDIR;
 		if (HAWK_SIZEOF(hawk_uch_t) == HAWK_SIZEOF(hawk_bch_t)) dir_flags |= HAWK_DIR_BPATH;
 
-		dp = hawk_dir_open(g->gem, 0, (const hawk_uch_t*)HAWK_UECS_PTR(&g->path), dir_flags);
+		dp = hawk_dir_open(g->gem, 0, (const hawk_ooch_t*)HAWK_UECS_PTR(&g->path), dir_flags);
 		if (dp)
 		{
 			tmp = HAWK_UECS_LEN(&g->path);
@@ -872,9 +872,9 @@ entry:
 	{
 		int dir_flags = 0;
 		if (g->flags & HAWK_GLOB_SKIPSPCDIR) dir_flags |= HAWK_DIR_SKIPSPCDIR;
-		if (HAWK_SIZEOF(hawk_bch_t) == HAWK_SIZEOF(hawk_bch_t)) dir_flags |= HAWK_DIR_BPATH;
+		dir_flags |= HAWK_DIR_BPATH;
 
-		dp = hawk_dir_open(g->gem, 0, (const hawk_bch_t*)HAWK_BECS_PTR(&g->path), dir_flags);
+		dp = hawk_dir_open(g->gem, 0, (const hawk_ooch_t*)HAWK_BECS_PTR(&g->path), dir_flags);
 		if (dp)
 		{
 			tmp = HAWK_BECS_LEN(&g->path);

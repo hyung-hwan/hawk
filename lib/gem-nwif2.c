@@ -756,7 +756,7 @@ static void get_moreinfo (int s, hawk_ifcfg_t* cfg, struct ifreq* ifr)
 		struct ethtool_value ev;
 		HAWK_MEMSET (&ev, 0, HAWK_SIZEOF(ev));
 		ev.cmd= ETHTOOL_GLINK;
-		ifr->ifr_data = &ev;
+		ifr->ifr_data = (void*)&ev;
 		if (ioctl(s, SIOCETHTOOL, ifr) >= 0) cfg->flags |= ev.data? HAWK_IFCFG_LINKUP: HAWK_IFCFG_LINKDOWN;
 	}
 #endif

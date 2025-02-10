@@ -7505,10 +7505,10 @@ static struct
 	{ HAWK_T("str"),    hawk_mod_str },
 	{ HAWK_T("sys"),    hawk_mod_sys },
 #if defined(HAWK_ENABLE_MOD_UCI)
-	{ HAWK_T("uci"),    hawk_mod_uci }
+	{ HAWK_T("uci"),    hawk_mod_uci },
 #endif
 #if defined(HAWK_ENABLE_MOD_MEMC)
-	{ HAWK_T("memc"),   hawk_mod_memc }
+	{ HAWK_T("memc"),   hawk_mod_memc },
 #endif
 };
 #endif
