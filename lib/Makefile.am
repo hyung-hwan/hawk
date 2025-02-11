@@ -62,6 +62,7 @@ pkginclude_HEADERS = \
 	hawk-gem.h \
 	hawk-glob.h \
 	hawk-htb.h \
+	hawk-json.h \
 	hawk-map.h \
 	hawk-mtx.h \
 	hawk-rbt.h \
@@ -99,14 +100,15 @@ libhawk_la_SOURCES = \
 	fmt.c \
 	fnc-prv.h \
 	fnc.c \
-	htb.c \
 	gem.c \
 	gem-glob.c \
 	gem-nwif.c \
 	gem-nwif2.c \
 	hawk-prv.h \
 	hawk.c \
+	htb.c \
 	idmap-imp.h \
+	json.c \
 	mb8.c \
 	misc-imp.h \
 	misc-prv.h \
@@ -166,6 +168,7 @@ libhawk_la_SOURCES += \
 	syscall.h \
 	tio.c \
 	std.c  \
+	std-json.c \
 	std-sed.c
 
 libhawk_la_CPPFLAGS = $(CPPFLAGS_ALL_COMMON) $(CPPFLAGS_PFMOD)

@@ -472,8 +472,6 @@ HAWK_EXPORT void hawk_sed_close (
 	hawk_sed_t* sed /**< stream editor */
 );
 
-
-
 #if defined(HAWK_HAVE_INLINE)
 /**
  * The hawk_sed_getxtn() function returns the pointer to the extension area

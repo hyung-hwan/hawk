@@ -22,7 +22,7 @@ EXTRA_DIST = $(check_SCRIPTS) $(check_ERRORS) tap.inc err.sh \
 	journal-toc.hawk journal-toc.in journal-toc.out journal-toc-html.out \
 	bibtex-to-html.hawk bibtex-to-html.out
 
-check_PROGRAMS = t-001 t-002 t-003 t-004 t-005 t-006
+check_PROGRAMS = t-001 t-002 t-003 t-004 t-005 t-006 t-007
 
 t_001_SOURCES = t-001.c tap.h
 t_001_CPPFLAGS = $(CPPFLAGS_COMMON)
@@ -56,6 +56,13 @@ t_006_CPPFLAGS = $(CPPFLAGS_COMMON)
 t_006_CFLAGS = $(CFLAGS_COMMON)
 t_006_LDFLAGS = $(LDFLAGS_COMMON)
 t_006_LDADD = $(LIBADD_COMMON)
+
+t_007_SOURCES = t-007.c tap.h
+t_007_CPPFLAGS = $(CPPFLAGS_COMMON)
+t_007_CFLAGS = $(CFLAGS_COMMON)
+t_007_LDFLAGS = $(LDFLAGS_COMMON)
+t_007_LDADD = $(LIBADD_COMMON)
+
 
 LOG_DRIVER = env AM_TAP_AWK='$(AWK)' $(SHELL) $(top_srcdir)/ac/tap-driver.sh
 TESTS = $(check_PROGRAMS) $(check_SCRIPTS) $(check_ERRORS)

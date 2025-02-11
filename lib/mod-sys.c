@@ -4919,20 +4919,20 @@ Byte-Order
 >	big-endian
 !	network (= big-endian)
 
-b	qse_int8_t
-B	qse_uint8_t
-h	qse_int16_t
-H	qse_uint16_t
-i	qse_int32_t
-I	qse_uint32_t
-l	qse_int64_t
-L	qse_uint64_t
-q	qse_intmax_t
-Q	qse_uintmax_t
-n       qse_intptr_t
-N       qse_uintptr_t
-f	qse_flt_t (32 bits)
-d	qse_flt_t (64 bits)
+b	hawk_int8_t
+B	hawk_uint8_t
+h	hawk_int16_t
+H	hawk_uint16_t
+i	hawk_int32_t
+I	hawk_uint32_t
+l	hawk_int64_t
+L	hawk_uint64_t
+q	hawk_intmax_t
+Q	hawk_uintmax_t
+n	hawk_intptr_t
+N	hawk_uintptr_t
+f	hawk_flt_t (32 bits)
+d	hawk_flt_t (64 bits)
 s	char[]
 p	char[]
 x	pad bytes
