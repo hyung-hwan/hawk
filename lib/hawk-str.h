@@ -614,8 +614,8 @@ HAWK_EXPORT int hawk_fnmat_bchars_i (
 #	define hawk_find_oochars_in_oochars hawk_find_bchars_in_bchars
 #	define hawk_rfind_oochars_in_oochars hawk_rfind_bchars_in_bchars
 
-#	define hawk_compact_oochars hawk_compact_uchars
-#	define hawk_rotate_oochars hawk_rotate_uchars
+#	define hawk_compact_oochars hawk_compact_bchars
+#	define hawk_rotate_oochars hawk_rotate_bchars
 #	define hawk_tokenize_oochars hawk_tokenize_bchars
 #	define hawk_trim_oochars hawk_trim_bchars
 #	define hawk_split_oocstr hawk_split_bcstr

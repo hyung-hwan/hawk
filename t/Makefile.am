@@ -13,7 +13,11 @@ LDFLAGS_COMMON=-L$(abs_builddir)/../lib  -L$(libdir)
 ## for more information.
 LIBADD_COMMON = ../lib/libhawk.la $(LIBM)
 
-check_SCRIPTS = h-001.hawk h-002.hawk h-003.hawk h-004.hawk h-009.hawk
+check_SCRIPTS =
+if ENABLE_WIDE_CHAR
+check_SCRIPTS += h-001.hawk h-002.hawk
+endif
+check_SCRIPTS += h-003.hawk h-004.hawk h-009.hawk
 
 check_ERRORS = e-001.err
 

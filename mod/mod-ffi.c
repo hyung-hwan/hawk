@@ -609,7 +609,7 @@ static HAWK_INLINE int add_ffi_arg (hawk_rtx_t* rtx, ffi_list_t* ffi_list, ffi_n
 
 		case FMTC_STR:
 		{
-			hawk_uch_t* ptr;
+			hawk_ooch_t* ptr;
 			hawk_oow_t len;
 
 			ptr = hawk_rtx_valtooocstrdup(rtx, arg, &len);

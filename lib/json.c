@@ -204,7 +204,7 @@ static int handle_string_value_char (hawk_json_t* json, hawk_ooci_t c)
 				hawk_bch_t bcsbuf[HAWK_MBLEN_MAX];
 				hawk_oow_t n;
 
-				n = json->_cmgr->wctomb(json->state_stack->u.sv.acc, bcsbuf, HAWK_COUNTOF(bcsbuf));
+				n = json->_gem.cmgr->uctobc(json->state_stack->u.sv.acc, bcsbuf, HAWK_COUNTOF(bcsbuf));
 				if (n == 0 || n > HAWK_COUNTOF(bcsbuf))
 				{
 					/* illegal character or buffer to small */

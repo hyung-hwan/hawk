@@ -6942,6 +6942,26 @@ retry:
 				if (HAWK_UNLIKELY(hawk_ooecs_fmt(tok->name, HAWK_T("%zu"), tok->loc.line) == (hawk_oow_t)-1)) return -1;
 				SET_TOKEN_TYPE (hawk, tok, TOK_INT);
 			}
+			else if (hawk_comp_oochars_bcstr(HAWK_OOECS_PTR(tok->name), HAWK_OOECS_LEN(tok->name), "@UCH_ON", 0) == 0)
+			{
+				/* special parser-level word @SCRIPTLINE. subsitute an actual value for it */
+			#if defined(HAWK_OOCH_IS_UCH)
+				if (HAWK_UNLIKELY(hawk_ooecs_fmt(tok->name, HAWK_T("%zu"), 1) == (hawk_oow_t)-1)) return -1;
+			#else
+				if (HAWK_UNLIKELY(hawk_ooecs_fmt(tok->name, HAWK_T("%zu"), 0) == (hawk_oow_t)-1)) return -1;
+			#endif
+				SET_TOKEN_TYPE (hawk, tok, TOK_INT);
+			}
+			else if (hawk_comp_oochars_bcstr(HAWK_OOECS_PTR(tok->name), HAWK_OOECS_LEN(tok->name), "@BCH_ON", 0) == 0)
+			{
+				/* special parser-level word @SCRIPTLINE. subsitute an actual value for it */
+			#if defined(HAWK_OOCH_IS_UCH)
+				if (HAWK_UNLIKELY(hawk_ooecs_fmt(tok->name, HAWK_T("%zu"), 0) == (hawk_oow_t)-1)) return -1;
+			#else
+				if (HAWK_UNLIKELY(hawk_ooecs_fmt(tok->name, HAWK_T("%zu"), 1) == (hawk_oow_t)-1)) return -1;
+			#endif
+				SET_TOKEN_TYPE (hawk, tok, TOK_INT);
+			}
 			else
 			{
 				type = classify_ident(hawk, HAWK_OOECS_OOCS(tok->name));

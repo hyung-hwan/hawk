@@ -87,6 +87,7 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
+@ENABLE_WIDE_CHAR_TRUE@am__append_1 = h-001.hawk h-002.hawk
 check_PROGRAMS = t-001$(EXEEXT) t-002$(EXEEXT) t-003$(EXEEXT) \
 	t-004$(EXEEXT) t-005$(EXEEXT) t-006$(EXEEXT) t-007$(EXEEXT)
 subdir = t
@@ -590,7 +591,7 @@ CPPFLAGS_COMMON = \
 CFLAGS_COMMON = 
 LDFLAGS_COMMON = -L$(abs_builddir)/../lib  -L$(libdir)
 LIBADD_COMMON = ../lib/libhawk.la $(LIBM)
-check_SCRIPTS = h-001.hawk h-002.hawk h-003.hawk h-004.hawk h-009.hawk
+check_SCRIPTS = $(am__append_1) h-003.hawk h-004.hawk h-009.hawk
 check_ERRORS = e-001.err
 EXTRA_DIST = $(check_SCRIPTS) $(check_ERRORS) tap.inc err.sh \
 	journal-toc.hawk journal-toc.in journal-toc.out journal-toc-html.out \

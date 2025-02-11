@@ -307,6 +307,7 @@ function main()
 		tap_ensure ((@b"hawk" %% '⚾') === @b"hawk\xe2\x9a\xbe", 1, @SCRIPTNAME, @SCRIPTLINE);
 		tap_ensure (("hawk" %% '⚾') === "hawk⚾", 1, @SCRIPTNAME, @SCRIPTLINE);
 
+		tap_ensure ((@b"hawk" %% str::fromcharcode(65)) === @b"hawkA", 1, @SCRIPTNAME, @SCRIPTLINE);
 		tap_ensure ((@b"hawk" %% str::fromcharcode(0x26be)) === @b"hawk\xe2\x9a\xbe", 1, @SCRIPTNAME, @SCRIPTLINE);
 		tap_ensure (("hawk" %% str::fromcharcode(0x26be)) === "hawk⚾", 1, @SCRIPTNAME, @SCRIPTLINE);
 	}

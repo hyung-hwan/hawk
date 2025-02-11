@@ -1759,7 +1759,7 @@ static hawk_ooi_t sf_out (hawk_t* hawk, hawk_sio_cmd_t cmd, hawk_sio_arg_t* arg,
 					if (hawk_convbtouchars(hawk, data, &mbslen, HAWK_NULL, &wcslen, 0) <= -1) return -1;
 					if (wcslen > HAWK_TYPE_MAX(hawk_ooi_t)) wcslen = HAWK_TYPE_MAX(hawk_ooi_t);
 
-					orglen = hawk_becs_getlen(xtn->s.out.u.ucs.buf);
+					orglen = hawk_uecs_getlen(xtn->s.out.u.ucs.buf);
 					if (hawk_uecs_setlen(xtn->s.out.u.ucs.buf, orglen + wcslen) == (hawk_oow_t)-1) return -1;
 
 					mbslen = size;
@@ -3070,7 +3070,7 @@ hawk_rtx_t* hawk_rtx_openstdwithbcstr (
 		#if defined(HAWK_OOCH_IS_UCH)
 			xocf[i] = hawk_dupbtoucstr(hawk, ocf[i], &wcslen, 0);
 		#else
-			xocf[i] = hawk_dupucstr(hawk, ocf[i], HAWK_NULL);
+			xocf[i] = hawk_dupbcstr(hawk, ocf[i], HAWK_NULL);
 		#endif
 			if (!xocf[i]) goto done;
 		}
@@ -3149,7 +3149,7 @@ hawk_rtx_t* hawk_rtx_openstdwithucstr (
 		for (i = 0; ocf[i]; i++)
 		{
 		#if defined(HAWK_OOCH_IS_BCH)
-			xocf[i] = hawk_dupbtoucstr(hawk, ocf[i], &mbslen, 0);
+			xocf[i] = hawk_duputobcstr(hawk, ocf[i], &mbslen);
 		#else
 			xocf[i] = hawk_dupucstr(hawk, ocf[i], HAWK_NULL);
 		#endif
