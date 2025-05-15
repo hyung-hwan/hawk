@@ -1114,8 +1114,7 @@ oops:
 	return ret;
 }
 
-
-int main (int argc, hawk_bch_t* argv[])
+int main_sed(int argc, hawk_bch_t* argv[])
 {
 	int ret;
 

@@ -24,6 +24,8 @@
     THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "main.h"
+
 #include <hawk-std.h>
 #include <hawk-utl.h>
 #include <hawk-fmt.h>
@@ -677,6 +679,7 @@ static int process_argv (int argc, hawk_bch_t* argv[], struct arg_t* arg)
 		{ ":field-separator",  'F' },
 		{ ":assign",           'v' },
 		{ ":memory-limit",     'm' },
+		{ ":mode",             'M' },
 
 		{ ":script-encoding",  '\0' },
 		{ ":console-encoding", '\0' },
@@ -1345,7 +1348,7 @@ oops:
 
 /* ---------------------------------------------------------------------- */
 
-int main (int argc, hawk_bch_t* argv[])
+static int main_hawk(int argc, hawk_bch_t* argv[])
 {
 	int ret;
 
@@ -1403,6 +1406,31 @@ int main (int argc, hawk_bch_t* argv[])
 	return ret;
 }
 
+int main(int argc, hawk_bch_t* argv[])
+{
+	const hawk_bch_t* base;
+
+	base = hawk_get_base_name_bcstr(argv[0]);
+	if (hawk_comp_bcstr(base, "sed", 0) == 0 || hawk_comp_bcstr(base, "hawk-sed", 0) == 0)
+	{
+		/* sed ... */
+		/* hawk-sed ... */
+		return main_sed(argc, argv);
+	}
+
+	if (argc >= 2 && hawk_comp_bcstr(argv[1], "sed", 0) == 0)
+	{
+		/* hawk sed ... */
+		return main_sed(argc - 1, &argv[1]);
+	}
+	else if (argc >= 2 && hawk_comp_bcstr(argv[1], "awk", 0) == 0)
+	{
+		/* hawk awk ... */
+		return main_hawk(argc - 1, &argv[1]);
+	}
+
+	return main_hawk(argc, argv);
+}
 
 /* ---------------------------------------------------------------------- */
 

@@ -109,6 +109,7 @@ libhawk_la_SOURCES = \
 	htb.c \
 	idmap-imp.h \
 	json.c \
+	json-prv.h \
 	mb8.c \
 	misc-imp.h \
 	misc-prv.h \
