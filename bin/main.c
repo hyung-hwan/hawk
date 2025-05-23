@@ -24,21 +24,39 @@
     THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _MAIN_H_
-#define _MAIN_H_
+#include "main.h"
 
-#include <hawk.h>
+int main(int argc, hawk_bch_t* argv[])
+{
+	if (argc >= 2 && hawk_comp_bcstr(argv[1], "--sed", 0) == 0)
+	{
+		/* hawk --sed ... */
+		return main_sed(argc - 1, &argv[1], argv[0]);
+	}
+	else if (argc >= 2 && hawk_comp_bcstr(argv[1], "--awk", 0) == 0)
+	{
+		/* hawk --awk ... */
+		/* in this mode, the value ARGV[0] inside a hawk script is "--awk" */
+		return main_hawk(argc - 1, &argv[1], argv[0]);
+	}
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
-
-int main_hawk(int argc, hawk_bch_t* argv[], const hawk_bch_t* real_argv0);
-int main_sed(int argc, hawk_bch_t* argv[], const hawk_bch_t* real_argv0);
-
-
-#if defined(__cplusplus)
+	return main_hawk(argc, argv, HAWK_NULL);
 }
-#endif
 
+/* ---------------------------------------------------------------------- */
+
+#if defined(FAKE_SOCKET)
+socket () {}
+listen () {}
+accept () {}
+recvfrom () {}
+connect () {}
+getsockopt () {}
+recv      () {}
+setsockopt () {}
+send      () {}
+bind     () {}
+shutdown  () {}
+
+void* memmove (void* x, void* y, size_t z) {}
 #endif

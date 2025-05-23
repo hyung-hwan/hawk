@@ -529,13 +529,15 @@ struct opttab_t
 	{ HAWK_NULL,      0,                   HAWK_NULL }
 };
 
-static void print_usage (FILE* out, const hawk_bch_t* argv0)
+static void print_usage (FILE* out, const hawk_bch_t* argv0, const hawk_bch_t* real_argv0)
 {
 	int j;
-	const hawk_bch_t* b = hawk_get_base_name_bcstr(argv0);
+	const hawk_bch_t* b1 = hawk_get_base_name_bcstr(real_argv0? real_argv0: argv0);
+	const hawk_bch_t* b2 = (real_argv0? " ": "");
+	const hawk_bch_t* b3 = (real_argv0? argv0: "");
 
-	fprintf (out, "USAGE: %s [options] -f sourcefile [ -- ] [datafile]*\n", b);
-	fprintf (out, "       %s [options] [ -- ] sourcestring [datafile]*\n", b);
+	fprintf (out, "USAGE: %s%s%s [options] -f sourcefile [ -- ] [datafile]*\n", b1, b2, b3);
+	fprintf (out, "       %s%s%s [options] [ -- ] sourcestring [datafile]*\n", b1, b2, b3);
 	fprintf (out, "Where options are:\n");
 	fprintf (out, " -h/--help                         print this message\n");
 	fprintf (out, " --version                         print version\n");
@@ -650,7 +652,7 @@ static int expand_wildcard (int argc, hawk_bch_t* argv[], int do_glob, xarg_t* x
 
 /* ---------------------------------------------------------------------- */
 
-static int process_argv (int argc, hawk_bch_t* argv[], struct arg_t* arg)
+static int process_argv (int argc, hawk_bch_t* argv[], const hawk_bch_t* real_argv0, struct arg_t* arg)
 {
 	static hawk_bcli_lng_t lng[] =
 	{
@@ -865,7 +867,7 @@ static int process_argv (int argc, hawk_bch_t* argv[], struct arg_t* arg)
 
 				if (hawk_comp_bcstr(opt.lngopt, "version", 0) == 0)
 				{
-					print_version (argv[0]);
+					print_version (real_argv0? real_argv0: argv[0]);
 					oops_ret = 2;
 					goto oops;
 				}
@@ -1123,7 +1125,7 @@ static hawk_mmgr_t debug_mmgr =
 };
 #endif
 
-static HAWK_INLINE int execute_hawk (int argc, hawk_bch_t* argv[])
+static HAWK_INLINE int execute_hawk (int argc, hawk_bch_t* argv[], const hawk_bch_t* real_argv0)
 {
 	hawk_t* hawk = HAWK_NULL;
 	hawk_rtx_t* rtx = HAWK_NULL;
@@ -1146,10 +1148,10 @@ static HAWK_INLINE int execute_hawk (int argc, hawk_bch_t* argv[])
 	hawk_parsestd_t psout;
 	hawk_mmgr_t* mmgr = hawk_get_sys_mmgr();
 
-	i = process_argv(argc, argv, &arg);
+	i = process_argv(argc, argv, real_argv0, &arg);
 	if (i <= 0)
 	{
-		print_usage (((i == 0)? stdout: stderr), argv[0]);
+		print_usage (((i == 0)? stdout: stderr), argv[0], real_argv0);
 		return i;
 	}
 	if (i == 2) return 0;
@@ -1348,7 +1350,7 @@ oops:
 
 /* ---------------------------------------------------------------------- */
 
-static int main_hawk(int argc, hawk_bch_t* argv[])
+int main_hawk(int argc, hawk_bch_t* argv[], const hawk_bch_t* real_argv0)
 {
 	int ret;
 
@@ -1395,7 +1397,7 @@ static int main_hawk(int argc, hawk_bch_t* argv[])
 	else sock_inited = 1;
 #endif
 
-	ret = execute_hawk(argc, argv);
+	ret = execute_hawk(argc, argv, real_argv0);
 
 #if defined(_WIN32)
 	if (sock_inited) WSACleanup ();
@@ -1405,47 +1407,3 @@ static int main_hawk(int argc, hawk_bch_t* argv[])
 
 	return ret;
 }
-
-int main(int argc, hawk_bch_t* argv[])
-{
-	const hawk_bch_t* base;
-
-	base = hawk_get_base_name_bcstr(argv[0]);
-	if (hawk_comp_bcstr(base, "sed", 0) == 0 || hawk_comp_bcstr(base, "hawk-sed", 0) == 0)
-	{
-		/* sed ... */
-		/* hawk-sed ... */
-		return main_sed(argc, argv);
-	}
-
-	if (argc >= 2 && hawk_comp_bcstr(argv[1], "sed", 0) == 0)
-	{
-		/* hawk sed ... */
-		return main_sed(argc - 1, &argv[1]);
-	}
-	else if (argc >= 2 && hawk_comp_bcstr(argv[1], "awk", 0) == 0)
-	{
-		/* hawk awk ... */
-		return main_hawk(argc - 1, &argv[1]);
-	}
-
-	return main_hawk(argc, argv);
-}
-
-/* ---------------------------------------------------------------------- */
-
-#if defined(FAKE_SOCKET)
-socket () {}
-listen () {}
-accept () {}
-recvfrom () {}
-connect () {}
-getsockopt () {}
-recv      () {}
-setsockopt () {}
-send      () {}
-bind     () {}
-shutdown  () {}
-
-void* memmove (void* x, void* y, size_t z) {}
-#endif

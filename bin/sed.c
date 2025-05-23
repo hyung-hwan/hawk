@@ -174,7 +174,7 @@ static hawk_mmgr_t debug_mmgr =
 
 static void print_version (const hawk_bch_t* argv0)
 {
-	fprintf (stdout, "%s (HAWK SED) %s\n", hawk_get_base_name_bcstr(argv0), HAWK_PACKAGE_VERSION);
+	fprintf (stdout, "%s %s\n", hawk_get_base_name_bcstr(argv0), HAWK_PACKAGE_VERSION);
 	fprintf (stdout, "Copyright 2006-2022 Chung, Hyung-Hwan\n");
 }
 
@@ -196,13 +196,15 @@ static void print_warning (const hawk_bch_t* fmt, ...)
         va_end (va);
 }
 
-static void print_usage (FILE* out, int argc, hawk_bch_t* argv[])
+static void print_usage (FILE* out, const hawk_bch_t* argv0, const hawk_bch_t* real_argv0)
 {
-	const hawk_bch_t* b = hawk_get_base_name_bcstr(argv[0]);
+	const hawk_bch_t* b1 = hawk_get_base_name_bcstr(real_argv0? real_argv0: argv0);
+	const hawk_bch_t* b2 = (real_argv0? " ": "");
+	const hawk_bch_t* b3 = (real_argv0? argv0: "");
 
-	fprintf (out, "USAGE: %s [options] script [file]\n", b);
-	fprintf (out, "       %s [options] -f script-file [file]\n", b);
-	fprintf (out, "       %s [options] -e script [file]\n", b);
+	fprintf (out, "USAGE: %s%s%s [options] script [file]\n", b1, b2, b3);
+	fprintf (out, "       %s%s%s [options] -f script-file [file]\n", b1, b2, b3);
+	fprintf (out, "       %s%s%s [options] -e script [file]\n", b1, b2, b3);
 
 	fprintf (out, "options as follows:\n");
 	fprintf (out, " -h/--help                 show this message\n");
@@ -284,7 +286,7 @@ static void free_scripts (void)
 	}
 }
 
-static int handle_args (int argc, hawk_bch_t* argv[], struct arg_t* arg)
+static int handle_args (int argc, hawk_bch_t* argv[], const hawk_bch_t* real_argv0, struct arg_t* arg)
 {
 	static hawk_bcli_lng_t lng[] =
 	{
@@ -314,21 +316,21 @@ static int handle_args (int argc, hawk_bch_t* argv[], struct arg_t* arg)
 		switch (c)
 		{
 			default:
-				print_usage (stderr, argc, argv);
+				print_usage (stderr, argv[0], real_argv0);
 				goto oops;
 
 			case '?':
 				print_error ("bad option - %c\n", opt.opt);
-				print_usage (stderr, argc, argv);
+				print_usage (stderr, argv[0], real_argv0);
 				goto oops;
 
 			case ':':
 				print_error ("bad parameter for %c\n", opt.opt);
-				print_usage (stderr, argc, argv);
+				print_usage (stderr, argv[0], real_argv0);
 				goto oops;
 
 			case 'h':
-				print_usage (stdout, argc, argv);
+				print_usage (stdout, argv[0], real_argv0);
 				goto done;
 
 			case 'n':
@@ -384,7 +386,7 @@ static int handle_args (int argc, hawk_bch_t* argv[], struct arg_t* arg)
 				arg->trace = 1;
 				break;
 			#else
-				print_usage (stderr, argc, argv);
+				print_usage (stderr, argv[0], real_argv0);
 				goto oops;
 			#endif
 
@@ -406,7 +408,7 @@ static int handle_args (int argc, hawk_bch_t* argv[], struct arg_t* arg)
 			{
 				if (hawk_comp_bcstr(opt.lngopt, "version", 0) == 0)
 				{
-					print_version (argv[0]);
+					print_version (real_argv0? real_argv0: argv[0]);
 					goto done;
 				}
 				else if (hawk_comp_bcstr(opt.lngopt, "script-encoding", 0) == 0)
@@ -450,7 +452,7 @@ static int handle_args (int argc, hawk_bch_t* argv[], struct arg_t* arg)
 
 	if (g_script.size <= 0)
 	{
-		print_usage (stderr, argc, argv);
+		print_usage (stderr, argv[0], real_argv0);
 		goto oops;
 	}
 
@@ -791,7 +793,7 @@ static int expand_wildcards (int argc, hawk_bch_t* argv[], int glob, xarg_t* xar
 	return 0;
 }
 
-static HAWK_INLINE int execute_hawk_sed (int argc, hawk_bch_t* argv[])
+static HAWK_INLINE int execute_sed (int argc, hawk_bch_t* argv[], const hawk_bch_t* real_argv0)
 {
 	hawk_sed_t* sed = HAWK_NULL;
 	hawk_oow_t script_count;
@@ -803,7 +805,7 @@ static HAWK_INLINE int execute_hawk_sed (int argc, hawk_bch_t* argv[])
 	hawk_cmgr_t* cmgr = hawk_get_cmgr_by_id(HAWK_CMGR_UTF8);
 
 	memset (&arg, 0, HAWK_SIZEOF(arg));
-	ret = handle_args(argc, argv, &arg);
+	ret = handle_args(argc, argv, real_argv0, &arg);
 	if (ret <= -1) return -1;
 	if (ret == 0) return 0;
 
@@ -1114,7 +1116,7 @@ oops:
 	return ret;
 }
 
-int main_sed(int argc, hawk_bch_t* argv[])
+int main_sed(int argc, hawk_bch_t* argv[], const hawk_bch_t* real_argv0)
 {
 	int ret;
 
@@ -1161,7 +1163,7 @@ int main_sed(int argc, hawk_bch_t* argv[])
 	else sock_inited = 1;
 #endif
 
-	ret = execute_hawk_sed(argc, argv);
+	ret = execute_sed(argc, argv, real_argv0);
 
 #if defined(_WIN32)
 	if (sock_inited) WSACleanup ();

@@ -111,7 +111,8 @@ CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
-am_hawk_OBJECTS = hawk-hawk.$(OBJEXT) hawk-sed.$(OBJEXT)
+am_hawk_OBJECTS = hawk-hawk.$(OBJEXT) hawk-sed.$(OBJEXT) \
+	hawk-main.$(OBJEXT)
 hawk_OBJECTS = $(am_hawk_OBJECTS)
 am__DEPENDENCIES_1 =
 hawk_DEPENDENCIES = $(LIBADD_COMMON) $(am__DEPENDENCIES_1)
@@ -137,7 +138,8 @@ am__v_at_1 =
 DEFAULT_INCLUDES = 
 depcomp = $(SHELL) $(top_srcdir)/ac/depcomp
 am__maybe_remake_depfiles = depfiles
-am__depfiles_remade = ./$(DEPDIR)/hawk-hawk.Po ./$(DEPDIR)/hawk-sed.Po
+am__depfiles_remade = ./$(DEPDIR)/hawk-hawk.Po \
+	./$(DEPDIR)/hawk-main.Po ./$(DEPDIR)/hawk-sed.Po
 am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -354,7 +356,7 @@ LIBADD_COMMON = ../lib/libhawk.la
 ##################################################
 # hawk
 ##################################################
-hawk_SOURCES = hawk.c sed.c main.h
+hawk_SOURCES = hawk.c sed.c main.c main.h
 hawk_CPPFLAGS = $(CPPFLAGS_COMMON)
 hawk_CFLAGS = $(CFLAGS_COMMON)
 hawk_LDFLAGS = $(LDFLAGS_COMMON)
@@ -448,6 +450,7 @@ distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/hawk-hawk.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/hawk-main.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/hawk-sed.Po@am__quote@ # am--include-marker
 
 $(am__depfiles_remade):
@@ -507,6 +510,20 @@ hawk-sed.obj: sed.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='sed.c' object='hawk-sed.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(hawk_CPPFLAGS) $(CPPFLAGS) $(hawk_CFLAGS) $(CFLAGS) -c -o hawk-sed.obj `if test -f 'sed.c'; then $(CYGPATH_W) 'sed.c'; else $(CYGPATH_W) '$(srcdir)/sed.c'; fi`
+
+hawk-main.o: main.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(hawk_CPPFLAGS) $(CPPFLAGS) $(hawk_CFLAGS) $(CFLAGS) -MT hawk-main.o -MD -MP -MF $(DEPDIR)/hawk-main.Tpo -c -o hawk-main.o `test -f 'main.c' || echo '$(srcdir)/'`main.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/hawk-main.Tpo $(DEPDIR)/hawk-main.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='main.c' object='hawk-main.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(hawk_CPPFLAGS) $(CPPFLAGS) $(hawk_CFLAGS) $(CFLAGS) -c -o hawk-main.o `test -f 'main.c' || echo '$(srcdir)/'`main.c
+
+hawk-main.obj: main.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(hawk_CPPFLAGS) $(CPPFLAGS) $(hawk_CFLAGS) $(CFLAGS) -MT hawk-main.obj -MD -MP -MF $(DEPDIR)/hawk-main.Tpo -c -o hawk-main.obj `if test -f 'main.c'; then $(CYGPATH_W) 'main.c'; else $(CYGPATH_W) '$(srcdir)/main.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/hawk-main.Tpo $(DEPDIR)/hawk-main.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='main.c' object='hawk-main.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(hawk_CPPFLAGS) $(CPPFLAGS) $(hawk_CFLAGS) $(CFLAGS) -c -o hawk-main.obj `if test -f 'main.c'; then $(CYGPATH_W) 'main.c'; else $(CYGPATH_W) '$(srcdir)/main.c'; fi`
 
 mostlyclean-libtool:
 	-rm -f *.lo
@@ -641,6 +658,7 @@ clean-am: clean-binPROGRAMS clean-generic clean-libtool mostlyclean-am
 
 distclean: distclean-am
 	-rm -f ./$(DEPDIR)/hawk-hawk.Po
+	-rm -f ./$(DEPDIR)/hawk-main.Po
 	-rm -f ./$(DEPDIR)/hawk-sed.Po
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
@@ -688,6 +706,7 @@ installcheck-am:
 
 maintainer-clean: maintainer-clean-am
 	-rm -f ./$(DEPDIR)/hawk-hawk.Po
+	-rm -f ./$(DEPDIR)/hawk-main.Po
 	-rm -f ./$(DEPDIR)/hawk-sed.Po
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
