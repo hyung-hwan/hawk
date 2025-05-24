@@ -478,12 +478,6 @@ static void on_statement (hawk_rtx_t* rtx, hawk_nde_t* nde)
 }
 #endif
 
-static void print_version (const hawk_bch_t* argv0)
-{
-	printf ("%s %s\n", hawk_get_base_name_bcstr(argv0), HAWK_PACKAGE_VERSION);
-	printf ("Copyright 2006-2022 Chung, Hyung-Hwan\n");
-}
-
 static void print_error (const hawk_bch_t* fmt, ...)
 {
 	va_list va;
@@ -538,9 +532,8 @@ static void print_usage (FILE* out, const hawk_bch_t* argv0, const hawk_bch_t* r
 
 	fprintf (out, "USAGE: %s%s%s [options] -f sourcefile [ -- ] [datafile]*\n", b1, b2, b3);
 	fprintf (out, "       %s%s%s [options] [ -- ] sourcestring [datafile]*\n", b1, b2, b3);
-	fprintf (out, "Where options are:\n");
+	fprintf (out, "Options as follows:\n");
 	fprintf (out, " -h/--help                         print this message\n");
-	fprintf (out, " --version                         print version\n");
 	fprintf (out, " -D                                show extra information\n");
 	fprintf (out, " -c/--call            name         call a function instead of entering\n");
 	fprintf (out, "                                   the pattern-action loop. [datafile]* is\n");
@@ -691,7 +684,6 @@ static int process_argv (int argc, hawk_bch_t* argv[], const hawk_bch_t* real_ar
 		{ "modern",            '\0' },
 		{ "classic",           '\0' },
 
-		{ "version",           '\0' },
 		{ "help",              'h' },
 		{ HAWK_NULL,           '\0' }
 	};
@@ -865,13 +857,7 @@ static int process_argv (int argc, hawk_bch_t* argv[], const hawk_bch_t* real_ar
 				/* a long option with no corresponding short option */
 				hawk_oow_t i;
 
-				if (hawk_comp_bcstr(opt.lngopt, "version", 0) == 0)
-				{
-					print_version (real_argv0? real_argv0: argv[0]);
-					oops_ret = 2;
-					goto oops;
-				}
-				else if (hawk_comp_bcstr(opt.lngopt, "script-encoding", 0) == 0)
+				if (hawk_comp_bcstr(opt.lngopt, "script-encoding", 0) == 0)
 				{
 					arg->script_cmgr = hawk_get_cmgr_by_bcstr(opt.arg);
 					if (arg->script_cmgr == HAWK_NULL)

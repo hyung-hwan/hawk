@@ -25,19 +25,59 @@
  */
 
 #include "main.h"
+#include <hawk.h>
+#include <stdio.h>
+
+static int main_version(int argc, hawk_bch_t* argv[], const hawk_bch_t* real_argv0)
+{
+	printf ("%s %s\n", hawk_get_base_name_bcstr(real_argv0), HAWK_PACKAGE_VERSION);
+	printf ("Copyright 2006-2022 Chung, Hyung-Hwan\n");
+	return 0;
+}
+
+static void print_usage(FILE* out, const hawk_bch_t* real_argv0)
+{
+	const hawk_bch_t* b1 = hawk_get_base_name_bcstr(real_argv0);
+
+	fprintf (out, "USAGE: %s [options] [mode specific options and parameters]\n", b1);
+	fprintf (out, "Options as follows:\n");
+	fprintf (out, " --usage                          print this message\n");
+	fprintf (out, " --version                        print version\n");
+	fprintf (out, " --awk/--hawk                     switch to the awk mode(default)\n");
+	fprintf (out, " --sed                            switch to the sed mode\n");
+}
+
+static int main_usage(int argc, hawk_bch_t* argv[], const hawk_bch_t* real_argv0)
+{
+	print_usage(stdout, real_argv0);
+	return 0;
+}
+
+static struct {
+	const hawk_bch_t* name;
+	int (*main) (int argc, hawk_bch_t* argv[], const hawk_bch_t* real_argv0);
+} entry_funcs[] = {
+	{ "awk",     main_hawk },
+	{ "hawk",    main_hawk },
+	{ "sed",     main_sed },
+	{ "usage",   main_usage },
+	{ "version", main_version }
+};
 
 int main(int argc, hawk_bch_t* argv[])
 {
-	if (argc >= 2 && hawk_comp_bcstr(argv[1], "--sed", 0) == 0)
+	if (argc >= 2)
 	{
-		/* hawk --sed ... */
-		return main_sed(argc - 1, &argv[1], argv[0]);
-	}
-	else if (argc >= 2 && hawk_comp_bcstr(argv[1], "--awk", 0) == 0)
-	{
-		/* hawk --awk ... */
-		/* in this mode, the value ARGV[0] inside a hawk script is "--awk" */
-		return main_hawk(argc - 1, &argv[1], argv[0]);
+		hawk_oow_t i;
+		const hawk_bch_t* first_opt = argv[1];
+		for (i = 0; i < HAWK_COUNTOF(entry_funcs); i++) {
+			if (first_opt[0] == '-' && first_opt[1] == '-' && hawk_comp_bcstr(&first_opt[2], entry_funcs[i].name, 0) == 0) {
+				/* [NOTE]
+				 *  if hawk is invoked via 'hawk --awk' or 'hawk --hawk',
+				 *  the value ARGV[0] inside a hawk script is "--awk" or "--hawk" */
+				return entry_funcs[i].main(argc -1, &argv[1], argv[0]);
+			}
+		}
 	}
 
 	return main_hawk(argc, argv, HAWK_NULL);
