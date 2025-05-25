@@ -949,9 +949,9 @@ AM_CONDITIONAL(ENABLE_LIBUNWIND, test "x${enable_libunwind_is}" = "xyes")
 
 dnl ===== enable-static-module =====
 AC_ARG_ENABLE([static-module],
-	[AS_HELP_STRING([--enable-static-module],[build basic modules statically into the main library(default. no)])],
+	[AS_HELP_STRING([--enable-static-module],[build basic modules statically into the main library(default. yes)])],
 	enable_static_module_is=$enableval,
-	enable_static_module_is=no
+	enable_static_module_is=yes
 )
 if test "x${enable_shared}" = "xno" -a "x${enable_static}" = "xyes"
 then

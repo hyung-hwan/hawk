@@ -1551,7 +1551,7 @@ Optional Features:
   --enable-libltdl        use libltdl(default. no)
   --enable-libunwind      use libunwind(default. no)
   --enable-static-module  build basic modules statically into the main
-                          library(default. no)
+                          library(default. yes)
   --enable-mod-ffi        enable mod/ffi. one of auto, auto:static, yes,
                           yes:static, no (default. auto)
   --enable-mod-memc       enable mod/memc. one of auto, auto:static, yes,
@@ -27999,7 +27999,7 @@ if test ${enable_static_module+y}
 then :
   enableval=$enable_static_module; enable_static_module_is=$enableval
 else case e in #(
-  e) enable_static_module_is=no
+  e) enable_static_module_is=yes
  ;;
 esac
 fi
