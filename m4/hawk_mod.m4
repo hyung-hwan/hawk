@@ -29,6 +29,13 @@ AC_DEFUN([HAWK_MOD],
 		then
 			enable_mod_$1_static_is="yes"
 		fi
+	elif test "x${enable_mod_$1_is}" = "xyes"
+	then
+		if test "x${enable_shared}" = "xno" -a "x${enable_static}" = "xyes"
+		then
+			## not configured to produce shared objects
+			enable_mod_$1_static_is="yes"
+		fi
 	fi
 
 	m4_pushdef([UPNAME], m4_translit([$1], [abcdefghijklmnopqrstuvwxyz], [ABCDEFGHIJKLMNOPQRSTUVWXYZ]))

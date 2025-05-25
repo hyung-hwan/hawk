@@ -28056,6 +28056,13 @@ fi
 		then
 			enable_mod_ffi_static_is="yes"
 		fi
+	elif test "x${enable_mod_ffi_is}" = "xyes"
+	then
+		if test "x${enable_shared}" = "xno" -a "x${enable_static}" = "xyes"
+		then
+			## not configured to produce shared objects
+			enable_mod_ffi_static_is="yes"
+		fi
 	fi
 
 
@@ -28122,6 +28129,13 @@ fi
 		enable_mod_memc_is=yes
 		if test "x${enable_static_module_is}" = "xyes"
 		then
+			enable_mod_memc_static_is="yes"
+		fi
+	elif test "x${enable_mod_memc_is}" = "xyes"
+	then
+		if test "x${enable_shared}" = "xno" -a "x${enable_static}" = "xyes"
+		then
+			## not configured to produce shared objects
 			enable_mod_memc_static_is="yes"
 		fi
 	fi
@@ -28466,6 +28480,13 @@ printf "%s\n" "no" >&6; }
 		then
 			enable_mod_mysql_static_is="yes"
 		fi
+	elif test "x${enable_mod_mysql_is}" = "xyes"
+	then
+		if test "x${enable_shared}" = "xno" -a "x${enable_static}" = "xyes"
+		then
+			## not configured to produce shared objects
+			enable_mod_mysql_static_is="yes"
+		fi
 	fi
 
 
@@ -28808,6 +28829,13 @@ fi
 		then
 			enable_mod_sed_static_is="yes"
 		fi
+	elif test "x${enable_mod_sed_is}" = "xyes"
+	then
+		if test "x${enable_shared}" = "xno" -a "x${enable_static}" = "xyes"
+		then
+			## not configured to produce shared objects
+			enable_mod_sed_static_is="yes"
+		fi
 	fi
 
 
@@ -28874,6 +28902,13 @@ fi
 		enable_mod_uci_is=yes
 		if test "x${enable_static_module_is}" = "xyes"
 		then
+			enable_mod_uci_static_is="yes"
+		fi
+	elif test "x${enable_mod_uci_is}" = "xyes"
+	then
+		if test "x${enable_shared}" = "xno" -a "x${enable_static}" = "xyes"
+		then
+			## not configured to produce shared objects
 			enable_mod_uci_static_is="yes"
 		fi
 	fi
