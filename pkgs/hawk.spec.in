@@ -74,6 +74,17 @@ Requires: mariadb-connector-c%{?_isa}
 This package contains the mysql module file for Hawk.
 %endif
 
+%if %{enable_mod_uci}
+%package uci
+Summary: Hawk uci module
+Group: System Environment/Libraries
+Requires: @PACKAGE_NAME@ = %{version}
+Requires: libuci%{?_isa}
+
+%description uci
+This package contains the uci module file for Hawk.
+%endif
+
 %package devel
 Summary: Development files for Hawk
 Group: System Environment/Libraries
@@ -121,7 +132,11 @@ CFLAGS="${RPM_OPT_FLAGS} -fPIC" CXXFLAGS="${RPM_OPT_FLAGS} -fPIC" ./configure  \
 	--enable-mod-mysql=no \
 %endif
 	--enable-mod-sed=yes:static \
-	--enable-mod-uci=no ##CC=gcc44 CXX=g++44
+%if %{enable_mod_uci}
+	--enable-mod-uci=yes
+%else
+	--enable-mod-uci=no
+%endif
 
 make
 
@@ -163,6 +178,11 @@ rm -rf "%{buildroot}"
 %if %{enable_mod_mysql}
 %files mysql
 %{_libdir}/libhawk-mysql.so*
+%endif
+
+%if %{enable_mod_uci}
+%files uci
+%{_libdir}/libhawk-uci.so*
 %endif
 
 %files devel
