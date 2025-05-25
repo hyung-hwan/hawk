@@ -5,8 +5,8 @@ CPPFLAGS_ALL_COMMON = \
 	-I$(abs_srcdir) \
 	-I$(includedir)
 
-CFLAGS_ALL_COMMON = 
-CXXFLAGS_ALL_COMMON = 
+CFLAGS_ALL_COMMON =
+CXXFLAGS_ALL_COMMON =
 
 if ENABLE_STATIC_MODULE
 LDFLAGS_ALL_COMMON = -L$(abs_builddir)/../mod -L$(abs_builddir) -L$(libdir)
@@ -214,9 +214,9 @@ endif
 
 if ENABLE_STATIC_MODULE
 
-##################################################
-# STATIC MODULES BUILT INTO MAIN LIBRARY
-##################################################
+#######################################################
+# BASIC MODULES STATICALLY BUILT INTO MAIN LIBRARY
+#######################################################
 libhawk_la_SOURCES += \
 	mod-hawk.c mod-hawk.h \
 	mod-math.c mod-math.h \
@@ -224,39 +224,16 @@ libhawk_la_SOURCES += \
 	mod-sys.c mod-sys.h
 libhawk_la_LIBADD += $(SOCKET_LIBS)
 
-if ENABLE_MOD_FFI
-libhawk_la_LIBADD += ../mod/libhawk-ffi.la
-endif
-
-if ENABLE_MOD_MYSQL
-libhawk_la_LIBADD += ../mod/libhawk-mysql.la
-endif
-
-if ENABLE_MOD_SED
-libhawk_la_LIBADD += ../mod/libhawk-sed.la
-endif
-
-if ENABLE_MOD_UCI
-libhawk_la_LIBADD += ../mod/libhawk-uci.la
-endif
-
-if ENABLE_MOD_MEMC
-libhawk_la_LIBADD += ../mod/libhawk-memc.la
-endif
-
 else
-##################################################
-# DYNAMIC MODULES 
-##################################################
+#######################################################
+# BUILD BASIC MODULES AS SHARED OBJECTS
+#######################################################
 
 CPPFLAGS_MOD_COMMON = $(CPPFLAGS_ALL_COMMON)
 CFLAGS_MOD_COMMON = $(CFLAGS_ALL_COMMON)
 CXXFLAGS_MOD_COMMON = $(CXXFLAGS_ALL_COMMON)
 LDFLAGS_MOD_COMMON = $(LDFLAGS_ALL_COMMON)
 LIBADD_MOD_COMMON = libhawk.la
-
-#pkglibdir = $(libdir)
-#pkglib_LTLIBRARIES = 
 
 pkglib_LTLIBRARIES += libhawk-hawk.la
 libhawk_hawk_la_SOURCES = mod-hawk.c mod-hawk.h
@@ -292,6 +269,35 @@ libhawk_sys_la_LIBADD = $(LIBADD_MOD_COMMON) $(SOCKET_LIBS)
 
 endif
 
+#######################################################
+# ADDITIONAL MODULES BUILT STATICALLY INTO MAIN LIBRARY
+#######################################################
+
+if ENABLE_MOD_FFI_STATIC
+libhawk_la_SOURCES += ../mod/mod-ffi.c ../mod/mod-ffi.h
+libhawk_la_LIBADD += $(FFI_LIBS)
+endif
+
+if ENABLE_MOD_MEMC_STATIC
+libhawk_la_SOURCES += ../mod/mod-memc.c ../mod/mod-memc.h
+libhawk_la_LIBADD += $(MEMCACHED_LIBS)
+endif
+
+if ENABLE_MOD_MYSQL_STATIC
+libhawk_la_SOURCES += ../mod/mod-mysql.c ../mod/mod-mysql.h
+libhawk_la_CPPFLAGS += $(MYSQL_CFLAGS) ## put CFLAGS in CPPFLAGS as MYSQL_CFLAGS contains -I options only
+libhawk_la_LDFLAGS += $(MYSQL_LDFLAGS)
+libhawk_la_LIBADD += $(MYSQL_LIBS)
+endif
+
+if ENABLE_MOD_SED_STATIC
+libhawk_la_SOURCES += ../mod/mod-sed.c ../mod/mod-sed.h
+endif
+
+if ENABLE_MOD_UCI_STATIC
+libhawk_la_SOURCES += ../mod/mod-uci.c ../mod/mod-uci.h
+libhawk_la_LIBADD += $(UCI_LIBS)
+endif
 
 ##############################################################
 # installation

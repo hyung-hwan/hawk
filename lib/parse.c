@@ -7479,23 +7479,23 @@ int hawk_putsrcoochars (hawk_t* hawk, const hawk_ooch_t* str, hawk_oow_t len)
 #include "mod-str.h"
 #include "mod-sys.h"
 
-#if defined(HAWK_ENABLE_MOD_FFI)
+#if defined(HAWK_ENABLE_MOD_FFI_STATIC)
 #include "../mod/mod-ffi.h"
 #endif
 
-#if defined(HAWK_ENABLE_MOD_MYSQL)
+#if defined(HAWK_ENABLE_MOD_MYSQL_STATIC)
 #include "../mod/mod-mysql.h"
 #endif
 
-#if defined(HAWK_ENABLE_MOD_SED)
+#if defined(HAWK_ENABLE_MOD_SED_STATIC)
 #include "../mod/mod-sed.h"
 #endif
 
-#if defined(HAWK_ENABLE_MOD_UCI)
+#if defined(HAWK_ENABLE_MOD_UCI_STATIC)
 #include "../mod/mod-uci.h"
 #endif
 
-#if defined(HAWK_ENABLE_MOD_MEMC)
+#if defined(HAWK_ENABLE_MOD_MEMC_STATIC)
 #include "../mod/mod-memc.h"
 #endif
 
@@ -7511,23 +7511,23 @@ static struct
 	int (*modload) (hawk_mod_t* mod, hawk_t* hawk);
 } static_modtab[] =
 {
-#if defined(HAWK_ENABLE_MOD_FFI)
+#if defined(HAWK_ENABLE_MOD_FFI_STATIC)
 	{ HAWK_T("ffi"),    hawk_mod_ffi },
 #endif
 	{ HAWK_T("hawk"),   hawk_mod_hawk },
 	{ HAWK_T("math"),   hawk_mod_math },
-#if defined(HAWK_ENABLE_MOD_MYSQL)
+#if defined(HAWK_ENABLE_MOD_MYSQL_STATIC)
 	{ HAWK_T("mysql"),  hawk_mod_mysql },
 #endif
-#if defined(HAWK_ENABLE_MOD_SED)
+#if defined(HAWK_ENABLE_MOD_SED_STATIC)
 	{ HAWK_T("sed"),    hawk_mod_sed },
 #endif
 	{ HAWK_T("str"),    hawk_mod_str },
 	{ HAWK_T("sys"),    hawk_mod_sys },
-#if defined(HAWK_ENABLE_MOD_UCI)
+#if defined(HAWK_ENABLE_MOD_UCI_STATIC)
 	{ HAWK_T("uci"),    hawk_mod_uci },
 #endif
-#if defined(HAWK_ENABLE_MOD_MEMC)
+#if defined(HAWK_ENABLE_MOD_MEMC_STATIC)
 	{ HAWK_T("memc"),   hawk_mod_memc },
 #endif
 };

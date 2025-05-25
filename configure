@@ -658,12 +658,16 @@ LTLIBOBJS
 LIBOBJS
 HAWK_PROJECT_URL
 HAWK_PROJECT_AUTHOR
-ENABLE_MOD_MEMC_FALSE
-ENABLE_MOD_MEMC_TRUE
+ENABLE_MOD_UCI_STATIC_FALSE
+ENABLE_MOD_UCI_STATIC_TRUE
 ENABLE_MOD_UCI_FALSE
 ENABLE_MOD_UCI_TRUE
+ENABLE_MOD_SED_STATIC_FALSE
+ENABLE_MOD_SED_STATIC_TRUE
 ENABLE_MOD_SED_FALSE
 ENABLE_MOD_SED_TRUE
+ENABLE_MOD_MYSQL_STATIC_FALSE
+ENABLE_MOD_MYSQL_STATIC_TRUE
 ENABLE_MOD_MYSQL_FALSE
 ENABLE_MOD_MYSQL_TRUE
 MYSQL_LIBS
@@ -671,16 +675,20 @@ MYSQL_LDFLAGS
 MYSQL_CFLAGS
 MYSQL_VERSION
 MYSQL_CONFIG
+ENABLE_MOD_MEMC_STATIC_FALSE
+ENABLE_MOD_MEMC_STATIC_TRUE
+ENABLE_MOD_MEMC_FALSE
+ENABLE_MOD_MEMC_TRUE
+ENABLE_MOD_FFI_STATIC_FALSE
+ENABLE_MOD_FFI_STATIC_TRUE
 ENABLE_MOD_FFI_FALSE
 ENABLE_MOD_FFI_TRUE
+ENABLE_STATIC_MODULE_FALSE
+ENABLE_STATIC_MODULE_TRUE
 ENABLE_LIBUNWIND_FALSE
 ENABLE_LIBUNWIND_TRUE
 ENABLE_LIBLTDL_FALSE
 ENABLE_LIBLTDL_TRUE
-ENABLE_STATIC_MODULE_FALSE
-ENABLE_STATIC_MODULE_TRUE
-ENABLE_DYNAMIC_MODULE_FALSE
-ENABLE_DYNAMIC_MODULE_TRUE
 ENABLE_CXX_FALSE
 ENABLE_CXX_TRUE
 BUILD_MODE
@@ -861,16 +869,15 @@ enable_debug
 enable_intmax
 enable_fltmax
 enable_cxx
-enable_dynamic_module
-enable_static_module
 enable_libltdl
 enable_libunwind
+enable_static_module
 enable_mod_ffi
+enable_mod_memc
 enable_mod_mysql
 with_mysql
 enable_mod_sed
 enable_mod_uci
-enable_mod_memc
 enable_pthread_flags
 enable_year2038
 '
@@ -1541,18 +1548,20 @@ Optional Features:
                           (default. no)
   --enable-cxx            build the library for C++ if a C++ compiler is
                           available (default. yes)
-  --enable-dynamic-module enable dynamic module capability(default. yes)
-  --enable-static-module  build modules statically into the main
-                          library(default. no)
   --enable-libltdl        use libltdl(default. no)
   --enable-libunwind      use libunwind(default. no)
-  --enable-mod-ffi        enable mod/ffi. one of auto, yes, no (default. auto)
-  --enable-mod-mysql      enable mod/mysql. one of auto, yes, no (default.
-                          auto)
-  --enable-mod-sed        enable mod/sed. one of yes, no (default. yes)
-  --enable-mod-uci        enable mod/uci. one of auto, yes, no (default. auto)
-  --enable-mod-memc       enable mod/memc. one of auto, yes, no (default.
-                          auto)
+  --enable-static-module  build basic modules statically into the main
+                          library(default. no)
+  --enable-mod-ffi        enable mod/ffi. one of auto, auto:static, yes,
+                          yes:static, no (default. auto)
+  --enable-mod-memc       enable mod/memc. one of auto, auto:static, yes,
+                          yes:static, no (default. auto)
+  --enable-mod-mysql      enable mod/mysql. one of auto, auto:static, yes,
+                          yes:static, no (default. auto)
+  --enable-mod-sed        enable mod/sed. one of auto, auto:static, yes,
+                          yes:static, no (default. yes:static)
+  --enable-mod-uci        enable mod/uci. one of auto, auto:static, yes,
+                          yes:static, no (default. auto)
   --enable-pthread-flags  add thread flags to CFLAGS, CXXFLAGS, LIBS(default.
                           yes)
   --enable-year2038       support timestamps after 2038
@@ -22776,13 +22785,13 @@ printf "%s\n" "$ac_cv_lib_ffi_ffi_call" >&6; }
 if test "x$ac_cv_lib_ffi_ffi_call" = xyes
 then :
 
-		FFI_LIBS="-lffi"
+	FFI_LIBS="-lffi"
 
 printf "%s\n" "#define HAVE_FFI_LIB 1" >>confdefs.h
 
 
-
 fi
+
 
 
 
@@ -22848,7 +22857,6 @@ then :
 			UNWIND_LIBS="-lunwind"
 
 printf "%s\n" "#define HAVE_UNWIND_LIB 1" >>confdefs.h
-
 
 
 fi
@@ -23039,6 +23047,7 @@ then
 fi
 
 
+## check pthread
 ac_ext=c
 ac_cpp='$CPP $CPPFLAGS'
 ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
@@ -24091,6 +24100,8 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
+
+## check other pthread functions
 { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for pthread_mutex_timedlock in -lpthread" >&5
 printf %s "checking for pthread_mutex_timedlock in -lpthread... " >&6; }
 if test ${ac_cv_lib_pthread_pthread_mutex_timedlock+y}
@@ -27923,66 +27934,6 @@ else
 fi
 
 
-# Check whether --enable-dynamic-module was given.
-if test ${enable_dynamic_module+y}
-then :
-  enableval=$enable_dynamic_module; enable_dynamic_module_is=$enableval
-else case e in #(
-  e) enable_dynamic_module_is=yes
- ;;
-esac
-fi
-
-if test "x${enable_shared}" = "xno"
-then
-	enable_dynamic_module_is="no"
-fi
-
-if test "x${enable_dynamic_module_is}" = "xyes"
-then
-
-printf "%s\n" "#define HAWK_ENABLE_DYNAMIC_MODULE 1" >>confdefs.h
-
-fi
- if test "x${enable_dynamic_module_is}" = "xyes"; then
-  ENABLE_DYNAMIC_MODULE_TRUE=
-  ENABLE_DYNAMIC_MODULE_FALSE='#'
-else
-  ENABLE_DYNAMIC_MODULE_TRUE='#'
-  ENABLE_DYNAMIC_MODULE_FALSE=
-fi
-
-
-# Check whether --enable-static-module was given.
-if test ${enable_static_module+y}
-then :
-  enableval=$enable_static_module; enable_static_module_is=$enableval
-else case e in #(
-  e) enable_static_module_is=no
- ;;
-esac
-fi
-
-if test "x${enable_shared}" = "xno" -a "x${enable_static}" = "xyes"
-then
-	enable_static_module_is="yes"
-fi
-
-if test "x${enable_static_module_is}" = "xyes"
-then
-
-printf "%s\n" "#define HAWK_ENABLE_STATIC_MODULE 1" >>confdefs.h
-
-fi
- if test "x${enable_static_module_is}" = "xyes"; then
-  ENABLE_STATIC_MODULE_TRUE=
-  ENABLE_STATIC_MODULE_FALSE='#'
-else
-  ENABLE_STATIC_MODULE_TRUE='#'
-  ENABLE_STATIC_MODULE_FALSE=
-fi
-
-
 # Check whether --enable-libltdl was given.
 if test ${enable_libltdl+y}
 then :
@@ -28043,36 +27994,85 @@ else
 fi
 
 
+# Check whether --enable-static-module was given.
+if test ${enable_static_module+y}
+then :
+  enableval=$enable_static_module; enable_static_module_is=$enableval
+else case e in #(
+  e) enable_static_module_is=no
+ ;;
+esac
+fi
 
-# Check whether --enable-mod-ffi was given.
+if test "x${enable_shared}" = "xno" -a "x${enable_static}" = "xyes"
+then
+	enable_static_module_is="yes"
+fi
+if test "x${enable_static_module_is}" = "xyes"
+then
+
+printf "%s\n" "#define HAWK_ENABLE_STATIC_MODULE 1" >>confdefs.h
+
+fi
+ if test "x${enable_static_module_is}" = "xyes"; then
+  ENABLE_STATIC_MODULE_TRUE=
+  ENABLE_STATIC_MODULE_FALSE='#'
+else
+  ENABLE_STATIC_MODULE_TRUE='#'
+  ENABLE_STATIC_MODULE_FALSE=
+fi
+
+
+
+
+	# Check whether --enable-mod-ffi was given.
 if test ${enable_mod_ffi+y}
 then :
   enableval=$enable_mod_ffi; enable_mod_ffi_is=$enableval
 else case e in #(
   e) enable_mod_ffi_is=auto
- ;;
+	 ;;
 esac
 fi
 
-if test "x${enable_mod_ffi_is}" = "xauto"
-then
-	if test "x${ac_cv_header_ffi_h}" != "xyes"
+	if test "x${enable_mod_ffi_is}" = "xauto" -o "x${enable_mod_ffi_is}" = "xauto:static"
 	then
-		enable_mod_ffi_is="no"
-	elif test "x${ac_cv_lib_ffi_ffi_call}" != "xyes"
-	then
-		enable_mod_ffi_is="no"
-	else
-		enable_mod_ffi_is="yes"
+
+	test "x${ac_cv_header_ffi_h}" = "xyes" -a "x${ac_cv_lib_ffi_ffi_call}" = "xyes"
+
+
+		if test $? -eq 0
+		then
+			enable_mod_ffi_is=`echo "$enable_mod_ffi_is" | sed 's|^auto|yes|g'`
+		else
+			enable_mod_ffi_is=no
+		fi
 	fi
-fi
-if test "x${enable_mod_ffi_is}" = "xyes"
-then
+
+	if test "x${enable_mod_ffi_is}" = "xyes:static"
+	then
+		enable_mod_ffi_is=yes
+		if test "x${enable_static_module_is}" = "xyes"
+		then
+			enable_mod_ffi_static_is="yes"
+		fi
+	fi
+
+
+
+	if test "x${enable_mod_ffi_is}" = "xyes"
+	then
 
 printf "%s\n" "#define HAWK_ENABLE_MOD_FFI 1" >>confdefs.h
 
-fi
- if test "${enable_mod_ffi_is}" = "yes"; then
+	fi
+	if test "x${enable_mod_ffi_static_is}" = "xyes"
+	then
+
+printf "%s\n" "#define HAWK_ENABLE_MOD_FFI_STATIC 1" >>confdefs.h
+
+	fi
+	 if test "${enable_mod_ffi_is}" = "yes"; then
   ENABLE_MOD_FFI_TRUE=
   ENABLE_MOD_FFI_FALSE='#'
 else
@@ -28080,26 +28080,430 @@ else
   ENABLE_MOD_FFI_FALSE=
 fi
 
+	 if test "${enable_mod_ffi_static_is}" = "yes"; then
+  ENABLE_MOD_FFI_STATIC_TRUE=
+  ENABLE_MOD_FFI_STATIC_FALSE='#'
+else
+  ENABLE_MOD_FFI_STATIC_TRUE='#'
+  ENABLE_MOD_FFI_STATIC_FALSE=
+fi
 
-# Check whether --enable-mod-mysql was given.
+
+
+
+
+
+	# Check whether --enable-mod-memc was given.
+if test ${enable_mod_memc+y}
+then :
+  enableval=$enable_mod_memc; enable_mod_memc_is=$enableval
+else case e in #(
+  e) enable_mod_memc_is=auto
+	 ;;
+esac
+fi
+
+	if test "x${enable_mod_memc_is}" = "xauto" -o "x${enable_mod_memc_is}" = "xauto:static"
+	then
+
+	test "x${ac_cv_header_libmemcached_memcached_h}" = "xyes" -a "x${ac_cv_lib_memcached_memcached}" = "xyes"
+
+
+		if test $? -eq 0
+		then
+			enable_mod_memc_is=`echo "$enable_mod_memc_is" | sed 's|^auto|yes|g'`
+		else
+			enable_mod_memc_is=no
+		fi
+	fi
+
+	if test "x${enable_mod_memc_is}" = "xyes:static"
+	then
+		enable_mod_memc_is=yes
+		if test "x${enable_static_module_is}" = "xyes"
+		then
+			enable_mod_memc_static_is="yes"
+		fi
+	fi
+
+
+
+	if test "x${enable_mod_memc_is}" = "xyes"
+	then
+
+printf "%s\n" "#define HAWK_ENABLE_MOD_MEMC 1" >>confdefs.h
+
+	fi
+	if test "x${enable_mod_memc_static_is}" = "xyes"
+	then
+
+printf "%s\n" "#define HAWK_ENABLE_MOD_MEMC_STATIC 1" >>confdefs.h
+
+	fi
+	 if test "${enable_mod_memc_is}" = "yes"; then
+  ENABLE_MOD_MEMC_TRUE=
+  ENABLE_MOD_MEMC_FALSE='#'
+else
+  ENABLE_MOD_MEMC_TRUE='#'
+  ENABLE_MOD_MEMC_FALSE=
+fi
+
+	 if test "${enable_mod_memc_static_is}" = "yes"; then
+  ENABLE_MOD_MEMC_STATIC_TRUE=
+  ENABLE_MOD_MEMC_STATIC_FALSE='#'
+else
+  ENABLE_MOD_MEMC_STATIC_TRUE='#'
+  ENABLE_MOD_MEMC_STATIC_FALSE=
+fi
+
+
+
+
+
+
+	# Check whether --enable-mod-mysql was given.
 if test ${enable_mod_mysql+y}
 then :
   enableval=$enable_mod_mysql; enable_mod_mysql_is=$enableval
 else case e in #(
   e) enable_mod_mysql_is=auto
- ;;
+	 ;;
+esac
+fi
+
+	if test "x${enable_mod_mysql_is}" = "xauto" -o "x${enable_mod_mysql_is}" = "xauto:static"
+	then
+
+	## if --with_mysql not given but the mysql module needs to detect the mysql client library
+	if test -z "${with_mysql}"; then with_mysql=yes; fi
+
+    MYSQL_CONFIG="no"
+
+
+# Check whether --with-mysql was given.
+if test ${with_mysql+y}
+then :
+  withval=$with_mysql;
+        if test "$withval" = "no"; then
+            want_mysql="no"
+        elif test "$withval" = "yes"; then
+            want_mysql="yes"
+        else
+            want_mysql="yes"
+            MYSQL_CONFIG="$withval"
+        fi
+
+else case e in #(
+  e) want_mysql="no"
+     ;;
 esac
 fi
 
 
-if test "x${enable_mod_mysql_is}" = "xauto" || test "x${enable_mod_mysql_is}" = "xyes"
-then
-	if test ${with_mysql+y}
-	then
-		## as if --with-mysql is specified for AX_LIB_MYSQL below
-		with_mysql=yes
+    MYSQL_CFLAGS=""
+    MYSQL_LDFLAGS=""
+    MYSQL_LIBS=""
+    MYSQL_VERSION=""
+
+
+    if test "$want_mysql" = "yes"; then
+
+        for ac_prog in mysql_config mariadb_config
+do
+  # Extract the first word of "$ac_prog", so it can be a program name with args.
+set dummy $ac_prog; ac_word=$2
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+printf %s "checking for $ac_word... " >&6; }
+if test ${ac_cv_path_MYSQL_CONFIG+y}
+then :
+  printf %s "(cached) " >&6
+else case e in #(
+  e) case $MYSQL_CONFIG in
+  [\\/]* | ?:[\\/]*)
+  ac_cv_path_MYSQL_CONFIG="$MYSQL_CONFIG" # Let the user override the test with a path.
+  ;;
+  *)
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  case $as_dir in #(((
+    '') as_dir=./ ;;
+    */) ;;
+    *) as_dir=$as_dir/ ;;
+  esac
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if as_fn_executable_p "$as_dir$ac_word$ac_exec_ext"; then
+    ac_cv_path_MYSQL_CONFIG="$as_dir$ac_word$ac_exec_ext"
+    printf "%s\n" "$as_me:${as_lineno-$LINENO}: found $as_dir$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+  ;;
+esac ;;
+esac
+fi
+MYSQL_CONFIG=$ac_cv_path_MYSQL_CONFIG
+if test -n "$MYSQL_CONFIG"; then
+  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $MYSQL_CONFIG" >&5
+printf "%s\n" "$MYSQL_CONFIG" >&6; }
+else
+  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
+printf "%s\n" "no" >&6; }
+fi
+
+
+  test -n "$MYSQL_CONFIG" && break
+done
+
+
+        if test -x "$MYSQL_CONFIG"; then
+            MYSQL_CFLAGS="`$MYSQL_CONFIG --cflags`"
+            _full_libmysql_libs="`$MYSQL_CONFIG --libs`"
+
+             _save_mysql_ldflags="${LDFLAGS}"
+            _save_mysql_cflags="${CFLAGS}"
+            LDFLAGS="${LDFLAGS} ${_full_libmysql_libs}"
+            CFLAGS="${CFLAGS} ${MYSQL_CFLAGS}"
+
+            for i in $_full_libmysql_libs; do
+                case $i in
+                    -lmysqlclient|-lperconaserverclient|-lmariadbclient|-lmariadb)
+
+                        _lib_name="`echo "$i" | cut -b3-`"
+                        as_ac_Lib=`printf "%s\n" "ac_cv_lib_$_lib_name""_main" | sed "$as_sed_sh"`
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for main in -l$_lib_name" >&5
+printf %s "checking for main in -l$_lib_name... " >&6; }
+if eval test \${$as_ac_Lib+y}
+then :
+  printf %s "(cached) " >&6
+else case e in #(
+  e) ac_check_lib_save_LIBS=$LIBS
+LIBS="-l$_lib_name  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+
+int
+main (void)
+{
+return main ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"
+then :
+  eval "$as_ac_Lib=yes"
+else case e in #(
+  e) eval "$as_ac_Lib=no" ;;
+esac
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.beam \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS ;;
+esac
+fi
+eval ac_res=\$$as_ac_Lib
+	       { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
+printf "%s\n" "$ac_res" >&6; }
+if eval test \"x\$"$as_ac_Lib"\" = x"yes"
+then :
+
+                        	MYSQL_LIBS="-l${_lib_name} ${MYSQL_LIBS}"
+
+else case e in #(
+  e)
+                        	as_fn_error $? "Not found $_lib_name library" "$LINENO" 5
+                        	 ;;
+esac
+fi
+
+                ;;
+                    -L*)
+
+                        MYSQL_LDFLAGS="${MYSQL_LDFLAGS} $i"
+                ;;
+                    -R*)
+
+                        MYSQL_LDFLAGS="${MYSQL_LDFLAGS} -Wl,$i"
+                ;;
+                    -l*)
+
+                        _lib_name="`echo "$i" | cut -b3-`"
+                        as_ac_Lib=`printf "%s\n" "ac_cv_lib_$_lib_name""_main" | sed "$as_sed_sh"`
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for main in -l$_lib_name" >&5
+printf %s "checking for main in -l$_lib_name... " >&6; }
+if eval test \${$as_ac_Lib+y}
+then :
+  printf %s "(cached) " >&6
+else case e in #(
+  e) ac_check_lib_save_LIBS=$LIBS
+LIBS="-l$_lib_name  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+
+int
+main (void)
+{
+return main ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"
+then :
+  eval "$as_ac_Lib=yes"
+else case e in #(
+  e) eval "$as_ac_Lib=no" ;;
+esac
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.beam \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS ;;
+esac
+fi
+eval ac_res=\$$as_ac_Lib
+	       { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
+printf "%s\n" "$ac_res" >&6; }
+if eval test \"x\$"$as_ac_Lib"\" = x"yes"
+then :
+
+                        	MYSQL_LIBS="${MYSQL_LIBS} ${i}"
+
+else case e in #(
+  e)
+                        	as_fn_error $? "Not found $i library" "$LINENO" 5
+                        	 ;;
+esac
+fi
+
+                ;;
+                esac
+            done
+
+            LDFLAGS="${_save_mysql_ldflags}"
+            CFLAGS="${_save_mysql_cflags}"
+            unset _save_mysql_ldflags
+            unset _save_mysql_cflags
+
+            MYSQL_VERSION=`$MYSQL_CONFIG --version`
+
+
+printf "%s\n" "#define HAVE_MYSQL 1" >>confdefs.h
+
+
+            found_mysql="yes"
+        else
+            found_mysql="no"
+        fi
+    fi
+
+
+    mysql_version_req=
+
+    if test "$found_mysql" = "yes" -a -n "$mysql_version_req"; then
+
+        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking if MySQL version is >= $mysql_version_req" >&5
+printf %s "checking if MySQL version is >= $mysql_version_req... " >&6; }
+
+                        mysql_version_req_major=`expr $mysql_version_req : '\([0-9]*\)'`
+        mysql_version_req_minor=`expr $mysql_version_req : '[0-9]*\.\([0-9]*\)'`
+        mysql_version_req_micro=`expr $mysql_version_req : '[0-9]*\.[0-9]*\.\([0-9]*\)'`
+        if test "x$mysql_version_req_micro" = "x"; then
+            mysql_version_req_micro="0"
+        fi
+
+        mysql_version_req_number=`expr $mysql_version_req_major \* 1000000 \
+                                   \+ $mysql_version_req_minor \* 1000 \
+                                   \+ $mysql_version_req_micro`
+
+                        mysql_version_major=`expr $MYSQL_VERSION : '\([0-9]*\)'`
+        mysql_version_minor=`expr $MYSQL_VERSION : '[0-9]*\.\([0-9]*\)'`
+        mysql_version_micro=`expr $MYSQL_VERSION : '[0-9]*\.[0-9]*\.\([0-9]*\)'`
+        if test "x$mysql_version_micro" = "x"; then
+            mysql_version_micro="0"
+        fi
+
+        mysql_version_number=`expr $mysql_version_major \* 1000000 \
+                                   \+ $mysql_version_minor \* 1000 \
+                                   \+ $mysql_version_micro`
+
+        mysql_version_check=`expr $mysql_version_number \>\= $mysql_version_req_number`
+        if test "$mysql_version_check" = "1"; then
+            { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+printf "%s\n" "yes" >&6; }
+        else
+            { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
+printf "%s\n" "no" >&6; }
+        fi
+    fi
+
+
+
+
+
+
+	test "x${found_mysql}" = "xyes"
+
+
+		if test $? -eq 0
+		then
+			enable_mod_mysql_is=`echo "$enable_mod_mysql_is" | sed 's|^auto|yes|g'`
+		else
+			enable_mod_mysql_is=no
+		fi
 	fi
 
+	if test "x${enable_mod_mysql_is}" = "xyes:static"
+	then
+		enable_mod_mysql_is=yes
+		if test "x${enable_static_module_is}" = "xyes"
+		then
+			enable_mod_mysql_static_is="yes"
+		fi
+	fi
+
+
+
+	if test "x${enable_mod_mysql_is}" = "xyes"
+	then
+
+printf "%s\n" "#define HAWK_ENABLE_MOD_MYSQL 1" >>confdefs.h
+
+	fi
+	if test "x${enable_mod_mysql_static_is}" = "xyes"
+	then
+
+printf "%s\n" "#define HAWK_ENABLE_MOD_MYSQL_STATIC 1" >>confdefs.h
+
+	fi
+	 if test "${enable_mod_mysql_is}" = "yes"; then
+  ENABLE_MOD_MYSQL_TRUE=
+  ENABLE_MOD_MYSQL_FALSE='#'
+else
+  ENABLE_MOD_MYSQL_TRUE='#'
+  ENABLE_MOD_MYSQL_FALSE=
+fi
+
+	 if test "${enable_mod_mysql_static_is}" = "yes"; then
+  ENABLE_MOD_MYSQL_STATIC_TRUE=
+  ENABLE_MOD_MYSQL_STATIC_FALSE='#'
+else
+  ENABLE_MOD_MYSQL_STATIC_TRUE='#'
+  ENABLE_MOD_MYSQL_STATIC_FALSE=
+fi
+
+
+
+
+if test "x${enable_mod_mysql_is}" = "xyes"
+then
+	if test -z "${with_mysql}"; then with_mysql=yes; fi
 
     MYSQL_CONFIG="no"
 
@@ -28374,47 +28778,53 @@ printf "%s\n" "no" >&6; }
 
 fi
 
-if test "x${enable_mod_mysql_is}" = "xauto"
-then
-	if test "x${found_mysql}" != "xyes"
-	then
-		enable_mod_mysql_is="no"
-	else
-		enable_mod_mysql_is="yes"
-	fi
-fi
-if test "x${enable_mod_mysql_is}" = "xyes"
-then
 
-printf "%s\n" "#define HAWK_ENABLE_MOD_MYSQL 1" >>confdefs.h
-
-fi
- if test "${enable_mod_mysql_is}" = "yes"; then
-  ENABLE_MOD_MYSQL_TRUE=
-  ENABLE_MOD_MYSQL_FALSE='#'
-else
-  ENABLE_MOD_MYSQL_TRUE='#'
-  ENABLE_MOD_MYSQL_FALSE=
-fi
-
-
-# Check whether --enable-mod-sed was given.
+	# Check whether --enable-mod-sed was given.
 if test ${enable_mod_sed+y}
 then :
   enableval=$enable_mod_sed; enable_mod_sed_is=$enableval
 else case e in #(
-  e) enable_mod_sed_is=yes
- ;;
+  e) enable_mod_sed_is=yes:static
+	 ;;
 esac
 fi
 
-if test "x${enable_mod_sed_is}" = "xyes"
-then
+	if test "x${enable_mod_sed_is}" = "xauto" -o "x${enable_mod_sed_is}" = "xauto:static"
+	then
+		true
+
+		if test $? -eq 0
+		then
+			enable_mod_sed_is=`echo "$enable_mod_sed_is" | sed 's|^auto|yes|g'`
+		else
+			enable_mod_sed_is=no
+		fi
+	fi
+
+	if test "x${enable_mod_sed_is}" = "xyes:static"
+	then
+		enable_mod_sed_is=yes
+		if test "x${enable_static_module_is}" = "xyes"
+		then
+			enable_mod_sed_static_is="yes"
+		fi
+	fi
+
+
+
+	if test "x${enable_mod_sed_is}" = "xyes"
+	then
 
 printf "%s\n" "#define HAWK_ENABLE_MOD_SED 1" >>confdefs.h
 
-fi
- if test "${enable_mod_sed_is}" = "yes"; then
+	fi
+	if test "x${enable_mod_sed_static_is}" = "xyes"
+	then
+
+printf "%s\n" "#define HAWK_ENABLE_MOD_SED_STATIC 1" >>confdefs.h
+
+	fi
+	 if test "${enable_mod_sed_is}" = "yes"; then
   ENABLE_MOD_SED_TRUE=
   ENABLE_MOD_SED_FALSE='#'
 else
@@ -28422,36 +28832,67 @@ else
   ENABLE_MOD_SED_FALSE=
 fi
 
+	 if test "${enable_mod_sed_static_is}" = "yes"; then
+  ENABLE_MOD_SED_STATIC_TRUE=
+  ENABLE_MOD_SED_STATIC_FALSE='#'
+else
+  ENABLE_MOD_SED_STATIC_TRUE='#'
+  ENABLE_MOD_SED_STATIC_FALSE=
+fi
 
-# Check whether --enable-mod-uci was given.
+
+
+
+
+
+	# Check whether --enable-mod-uci was given.
 if test ${enable_mod_uci+y}
 then :
   enableval=$enable_mod_uci; enable_mod_uci_is=$enableval
 else case e in #(
   e) enable_mod_uci_is=auto
- ;;
+	 ;;
 esac
 fi
 
-if test "x${enable_mod_uci_is}" = "xauto"
-then
-	if test "x${ac_cv_header_uci_h}" != "xyes"
+	if test "x${enable_mod_uci_is}" = "xauto" -o "x${enable_mod_uci_is}" = "xauto:static"
 	then
-		enable_mod_uci_is="no"
-	elif test "x${ac_cv_lib_uci_uci_alloc_context}" != "xyes"
-	then
-		enable_mod_uci_is="no"
-	else
-		enable_mod_uci_is="yes"
+
+	test "x${ac_cv_header_uci_h}" = "xyes" -a "x${ac_cv_lib_uci_uci_alloc_context}" = "xyes"
+
+
+		if test $? -eq 0
+		then
+			enable_mod_uci_is=`echo "$enable_mod_uci_is" | sed 's|^auto|yes|g'`
+		else
+			enable_mod_uci_is=no
+		fi
 	fi
-fi
-if test "x${enable_mod_uci_is}" = "xyes"
-then
+
+	if test "x${enable_mod_uci_is}" = "xyes:static"
+	then
+		enable_mod_uci_is=yes
+		if test "x${enable_static_module_is}" = "xyes"
+		then
+			enable_mod_uci_static_is="yes"
+		fi
+	fi
+
+
+
+	if test "x${enable_mod_uci_is}" = "xyes"
+	then
 
 printf "%s\n" "#define HAWK_ENABLE_MOD_UCI 1" >>confdefs.h
 
-fi
- if test "${enable_mod_uci_is}" = "yes"; then
+	fi
+	if test "x${enable_mod_uci_static_is}" = "xyes"
+	then
+
+printf "%s\n" "#define HAWK_ENABLE_MOD_UCI_STATIC 1" >>confdefs.h
+
+	fi
+	 if test "${enable_mod_uci_is}" = "yes"; then
   ENABLE_MOD_UCI_TRUE=
   ENABLE_MOD_UCI_FALSE='#'
 else
@@ -28459,42 +28900,15 @@ else
   ENABLE_MOD_UCI_FALSE=
 fi
 
-
-# Check whether --enable-mod-memc was given.
-if test ${enable_mod_memc+y}
-then :
-  enableval=$enable_mod_memc; enable_mod_memc_is=$enableval
-else case e in #(
-  e) enable_mod_memc_is=auto
- ;;
-esac
-fi
-
-if test "x${enable_mod_memc_is}" = "xauto"
-then
-	if test "x${ac_cv_header_libmemcached_memcached_h}" != "xyes"
-	then
-		enable_mod_memc_is="no"
-	elif test "x${ac_cv_lib_memcached_memcached}" != "xyes"
-	then
-		enable_mod_memc_is="no"
-	else
-		enable_mod_memc_is="yes"
-	fi
-fi
-if test "x${enable_mod_memc_is}" = "xyes"
-then
-
-printf "%s\n" "#define HAWK_ENABLE_MOD_MEMC 1" >>confdefs.h
-
-fi
- if test "${enable_mod_memc_is}" = "yes"; then
-  ENABLE_MOD_MEMC_TRUE=
-  ENABLE_MOD_MEMC_FALSE='#'
+	 if test "${enable_mod_uci_static_is}" = "yes"; then
+  ENABLE_MOD_UCI_STATIC_TRUE=
+  ENABLE_MOD_UCI_STATIC_FALSE='#'
 else
-  ENABLE_MOD_MEMC_TRUE='#'
-  ENABLE_MOD_MEMC_FALSE=
+  ENABLE_MOD_UCI_STATIC_TRUE='#'
+  ENABLE_MOD_UCI_STATIC_FALSE=
 fi
+
+
 
 
 
@@ -28719,14 +29133,6 @@ if test -z "${ENABLE_CXX_TRUE}" && test -z "${ENABLE_CXX_FALSE}"; then
   as_fn_error $? "conditional \"ENABLE_CXX\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
-if test -z "${ENABLE_DYNAMIC_MODULE_TRUE}" && test -z "${ENABLE_DYNAMIC_MODULE_FALSE}"; then
-  as_fn_error $? "conditional \"ENABLE_DYNAMIC_MODULE\" was never defined.
-Usually this means the macro was only invoked conditionally." "$LINENO" 5
-fi
-if test -z "${ENABLE_STATIC_MODULE_TRUE}" && test -z "${ENABLE_STATIC_MODULE_FALSE}"; then
-  as_fn_error $? "conditional \"ENABLE_STATIC_MODULE\" was never defined.
-Usually this means the macro was only invoked conditionally." "$LINENO" 5
-fi
 if test -z "${ENABLE_LIBLTDL_TRUE}" && test -z "${ENABLE_LIBLTDL_FALSE}"; then
   as_fn_error $? "conditional \"ENABLE_LIBLTDL\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
@@ -28735,24 +29141,48 @@ if test -z "${ENABLE_LIBUNWIND_TRUE}" && test -z "${ENABLE_LIBUNWIND_FALSE}"; th
   as_fn_error $? "conditional \"ENABLE_LIBUNWIND\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
+if test -z "${ENABLE_STATIC_MODULE_TRUE}" && test -z "${ENABLE_STATIC_MODULE_FALSE}"; then
+  as_fn_error $? "conditional \"ENABLE_STATIC_MODULE\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
 if test -z "${ENABLE_MOD_FFI_TRUE}" && test -z "${ENABLE_MOD_FFI_FALSE}"; then
   as_fn_error $? "conditional \"ENABLE_MOD_FFI\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${ENABLE_MOD_FFI_STATIC_TRUE}" && test -z "${ENABLE_MOD_FFI_STATIC_FALSE}"; then
+  as_fn_error $? "conditional \"ENABLE_MOD_FFI_STATIC\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${ENABLE_MOD_MEMC_TRUE}" && test -z "${ENABLE_MOD_MEMC_FALSE}"; then
+  as_fn_error $? "conditional \"ENABLE_MOD_MEMC\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${ENABLE_MOD_MEMC_STATIC_TRUE}" && test -z "${ENABLE_MOD_MEMC_STATIC_FALSE}"; then
+  as_fn_error $? "conditional \"ENABLE_MOD_MEMC_STATIC\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${ENABLE_MOD_MYSQL_TRUE}" && test -z "${ENABLE_MOD_MYSQL_FALSE}"; then
   as_fn_error $? "conditional \"ENABLE_MOD_MYSQL\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
+if test -z "${ENABLE_MOD_MYSQL_STATIC_TRUE}" && test -z "${ENABLE_MOD_MYSQL_STATIC_FALSE}"; then
+  as_fn_error $? "conditional \"ENABLE_MOD_MYSQL_STATIC\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
 if test -z "${ENABLE_MOD_SED_TRUE}" && test -z "${ENABLE_MOD_SED_FALSE}"; then
   as_fn_error $? "conditional \"ENABLE_MOD_SED\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${ENABLE_MOD_SED_STATIC_TRUE}" && test -z "${ENABLE_MOD_SED_STATIC_FALSE}"; then
+  as_fn_error $? "conditional \"ENABLE_MOD_SED_STATIC\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${ENABLE_MOD_UCI_TRUE}" && test -z "${ENABLE_MOD_UCI_FALSE}"; then
   as_fn_error $? "conditional \"ENABLE_MOD_UCI\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
-if test -z "${ENABLE_MOD_MEMC_TRUE}" && test -z "${ENABLE_MOD_MEMC_FALSE}"; then
-  as_fn_error $? "conditional \"ENABLE_MOD_MEMC\" was never defined.
+if test -z "${ENABLE_MOD_UCI_STATIC_TRUE}" && test -z "${ENABLE_MOD_UCI_STATIC_FALSE}"; then
+  as_fn_error $? "conditional \"ENABLE_MOD_UCI_STATIC\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 

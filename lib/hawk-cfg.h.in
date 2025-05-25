@@ -699,9 +699,6 @@
 /* configure command */
 #undef HAWK_CONFIGURE_CMD
 
-/* enable dynamic module capability */
-#undef HAWK_ENABLE_DYNAMIC_MODULE
-
 /* use libltdl when loading a dynamic module */
 #undef HAWK_ENABLE_LIBLTDL
 
@@ -711,17 +708,32 @@
 /* build mod/ffi */
 #undef HAWK_ENABLE_MOD_FFI
 
+/* build mod/ffi statically linked into the main library */
+#undef HAWK_ENABLE_MOD_FFI_STATIC
+
 /* build mod/memc */
 #undef HAWK_ENABLE_MOD_MEMC
+
+/* build mod/memc statically linked into the main library */
+#undef HAWK_ENABLE_MOD_MEMC_STATIC
 
 /* build mod/mysql */
 #undef HAWK_ENABLE_MOD_MYSQL
 
+/* build mod/mysql statically linked into the main library */
+#undef HAWK_ENABLE_MOD_MYSQL_STATIC
+
 /* build mod/sed */
 #undef HAWK_ENABLE_MOD_SED
 
+/* build mod/sed statically linked into the main library */
+#undef HAWK_ENABLE_MOD_SED_STATIC
+
 /* build mod/uci */
 #undef HAWK_ENABLE_MOD_UCI
+
+/* build mod/uci statically linked into the main library */
+#undef HAWK_ENABLE_MOD_UCI_STATIC
 
 /* link modules statically into the main library */
 #undef HAWK_ENABLE_STATIC_MODULE

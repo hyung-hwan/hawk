@@ -313,13 +313,12 @@ AC_SEARCH_LIBS([lt_dlopen], [ltdl], [
 LIBS="$save_LIBS"
 AC_SUBST(LTDL_LIBS)
 
-AC_CHECK_LIB([ffi], [ffi_call], 
-	[
-		FFI_LIBS="-lffi"
-		AC_DEFINE([HAVE_FFI_LIB], [1], [libffi library is available])
-	]
-)
+AC_CHECK_LIB([ffi], [ffi_call], [
+	FFI_LIBS="-lffi"
+	AC_DEFINE([HAVE_FFI_LIB], [1], [libffi library is available])
+])
 AC_SUBST(FFI_LIBS)
+
 
 OLDLIBS="$LIBS"
 LIBS="$FFI_LIBS $LIBS"
@@ -328,12 +327,10 @@ LIBS="$OLDLIBS"
 
 if test "x${ac_cv_header_libunwind_h}" = "xyes" 
 then
-	AC_CHECK_LIB([unwind], [unw_backtrace], 
-		[
+	AC_CHECK_LIB([unwind], [unw_backtrace], [
 			UNWIND_LIBS="-lunwind"
 			AC_DEFINE([HAVE_UNWIND_LIB], [1], [libunwind is available])
-		]
-	)
+	])
 	AC_SUBST(UNWIND_LIBS)
 fi
 
@@ -369,8 +366,10 @@ then
 fi
 AC_SUBST(SOCKET_LIBS)
 
-dnl pthread
-AX_PTHREAD()
+## check pthread
+AX_PTHREAD
+
+## check other pthread functions
 AC_CHECK_LIB([pthread], [pthread_mutex_timedlock],  [
 	AC_DEFINE([HAVE_PTHREAD_MUTEX_TIMEDLOCK],1,[pthreads has pthread_mutex_timedlock()])
 ])
@@ -914,40 +913,6 @@ test "${ax_cv_cxx_namespaces}" = "yes" || enable_cxx_is="no"
 
 AM_CONDITIONAL(ENABLE_CXX, test "${enable_cxx_is}" = "yes" )
 
-dnl ===== enable-dynamic-module =====
-AC_ARG_ENABLE([dynamic-module],
-	[AS_HELP_STRING([--enable-dynamic-module],[enable dynamic module capability(default. yes)])],
-	enable_dynamic_module_is=$enableval,
-	enable_dynamic_module_is=yes
-)
-if test "x${enable_shared}" = "xno"
-then
-	enable_dynamic_module_is="no"
-fi
-
-if test "x${enable_dynamic_module_is}" = "xyes"
-then
-	AC_DEFINE([HAWK_ENABLE_DYNAMIC_MODULE],[1],[enable dynamic module capability])
-fi
-AM_CONDITIONAL(ENABLE_DYNAMIC_MODULE, test "x${enable_dynamic_module_is}" = "xyes")
-
-dnl ===== enable-static-module =====
-AC_ARG_ENABLE([static-module],
-	[AS_HELP_STRING([--enable-static-module],[build modules statically into the main library(default. no)])],
-	enable_static_module_is=$enableval,
-	enable_static_module_is=no
-)
-if test "x${enable_shared}" = "xno" -a "x${enable_static}" = "xyes"
-then
-	enable_static_module_is="yes"
-fi
-
-if test "x${enable_static_module_is}" = "xyes"
-then
-	AC_DEFINE([HAWK_ENABLE_STATIC_MODULE],[1],[link modules statically into the main library])
-fi
-AM_CONDITIONAL(ENABLE_STATIC_MODULE, test "x${enable_static_module_is}" = "xyes")
-
 dnl ===== enable-libltdl =====
 AC_ARG_ENABLE([libltdl],
 	[AS_HELP_STRING([--enable-libltdl],[use libltdl(default. no)])],
@@ -982,127 +947,53 @@ then
 fi
 AM_CONDITIONAL(ENABLE_LIBUNWIND, test "x${enable_libunwind_is}" = "xyes")
 
-
-dnl ===== enable-mod-ffi =====
-AC_ARG_ENABLE([mod-ffi],
-	[AS_HELP_STRING([--enable-mod-ffi],[enable mod/ffi. one of auto, yes, no (default. auto)])],
-	enable_mod_ffi_is=$enableval,
-	enable_mod_ffi_is=auto
+dnl ===== enable-static-module =====
+AC_ARG_ENABLE([static-module],
+	[AS_HELP_STRING([--enable-static-module],[build basic modules statically into the main library(default. no)])],
+	enable_static_module_is=$enableval,
+	enable_static_module_is=no
 )
-if test "x${enable_mod_ffi_is}" = "xauto"
+if test "x${enable_shared}" = "xno" -a "x${enable_static}" = "xyes"
 then
-	if test "x${ac_cv_header_ffi_h}" != "xyes"
-	then
-		enable_mod_ffi_is="no"
-	elif test "x${ac_cv_lib_ffi_ffi_call}" != "xyes"
-	then
-		enable_mod_ffi_is="no"
-	else
-		enable_mod_ffi_is="yes"
-	fi
+	enable_static_module_is="yes"
 fi
-if test "x${enable_mod_ffi_is}" = "xyes"
+if test "x${enable_static_module_is}" = "xyes"
 then
-	AC_DEFINE([HAWK_ENABLE_MOD_FFI],[1],[build mod/ffi])
+	AC_DEFINE([HAWK_ENABLE_STATIC_MODULE],[1],[link modules statically into the main library])
 fi
-AM_CONDITIONAL(ENABLE_MOD_FFI, test "${enable_mod_ffi_is}" = "yes")
+AM_CONDITIONAL(ENABLE_STATIC_MODULE, test "x${enable_static_module_is}" = "xyes")
 
-dnl ===== enable-mod-mysql =====
-AC_ARG_ENABLE([mod-mysql],
-	[AS_HELP_STRING([--enable-mod-mysql],[enable mod/mysql. one of auto, yes, no (default. auto)])],
-	enable_mod_mysql_is=$enableval,
-	enable_mod_mysql_is=auto
-)
+dnl ===== enable-mod-xxx options =====
 
-if test "x${enable_mod_mysql_is}" = "xauto" || test "x${enable_mod_mysql_is}" = "xyes" 
+HAWK_MOD([ffi],[auto],[
+	test "x${ac_cv_header_ffi_h}" = "xyes" -a "x${ac_cv_lib_ffi_ffi_call}" = "xyes"
+])
+
+HAWK_MOD([memc],[auto],[
+	test "x${ac_cv_header_libmemcached_memcached_h}" = "xyes" -a "x${ac_cv_lib_memcached_memcached}" = "xyes"
+])
+
+HAWK_MOD([mysql],[auto],[
+	## if --with_mysql not given but the mysql module needs to detect the mysql client library
+	if test -z "${with_mysql}"; then with_mysql=yes; fi
+	AX_LIB_MYSQL()
+	test "x${found_mysql}" = "xyes"
+])
+if test "x${enable_mod_mysql_is}" = "xyes"
 then
-	if test ${with_mysql+y}
-	then
-		## as if --with-mysql is specified for AX_LIB_MYSQL below
-		with_mysql=yes
-	fi
-
+	if test -z "${with_mysql}"; then with_mysql=yes; fi
 	AX_LIB_MYSQL()
 fi
 
-if test "x${enable_mod_mysql_is}" = "xauto"
-then
-	if test "x${found_mysql}" != "xyes"
-	then
-		enable_mod_mysql_is="no"
-	else
-		enable_mod_mysql_is="yes"
-	fi
-fi
-if test "x${enable_mod_mysql_is}" = "xyes"
-then
-	AC_DEFINE([HAWK_ENABLE_MOD_MYSQL],[1],[build mod/mysql])
-fi
-AM_CONDITIONAL(ENABLE_MOD_MYSQL, test "${enable_mod_mysql_is}" = "yes")
+HAWK_MOD([sed],[yes:static],[true])
 
-dnl ===== enable-mod-sed =====
-AC_ARG_ENABLE([mod-sed],
-	[AS_HELP_STRING([--enable-mod-sed],[enable mod/sed. one of yes, no (default. yes)])],
-	enable_mod_sed_is=$enableval,
-	enable_mod_sed_is=yes
-)
-if test "x${enable_mod_sed_is}" = "xyes"
-then
-	AC_DEFINE([HAWK_ENABLE_MOD_SED],[1],[build mod/sed])
-fi
-AM_CONDITIONAL(ENABLE_MOD_SED, test "${enable_mod_sed_is}" = "yes")
-
-dnl ===== enable-mod-uci =====
-AC_ARG_ENABLE([mod-uci],
-	[AS_HELP_STRING([--enable-mod-uci],[enable mod/uci. one of auto, yes, no (default. auto)])],
-	enable_mod_uci_is=$enableval,
-	enable_mod_uci_is=auto
-)
-if test "x${enable_mod_uci_is}" = "xauto"
-then
-	if test "x${ac_cv_header_uci_h}" != "xyes"
-	then
-		enable_mod_uci_is="no"
-	elif test "x${ac_cv_lib_uci_uci_alloc_context}" != "xyes"
-	then
-		enable_mod_uci_is="no"
-	else
-		enable_mod_uci_is="yes"
-	fi
-fi
-if test "x${enable_mod_uci_is}" = "xyes"
-then
-	AC_DEFINE([HAWK_ENABLE_MOD_UCI],[1],[build mod/uci])
-fi
-AM_CONDITIONAL(ENABLE_MOD_UCI, test "${enable_mod_uci_is}" = "yes")
-
-dnl ===== enable-mod-memc =====
-AC_ARG_ENABLE([mod-memc],
-	[AS_HELP_STRING([--enable-mod-memc],[enable mod/memc. one of auto, yes, no (default. auto)])],
-	enable_mod_memc_is=$enableval,
-	enable_mod_memc_is=auto
-)
-if test "x${enable_mod_memc_is}" = "xauto"
-then
-	if test "x${ac_cv_header_libmemcached_memcached_h}" != "xyes"
-	then
-		enable_mod_memc_is="no"
-	elif test "x${ac_cv_lib_memcached_memcached}" != "xyes"
-	then
-		enable_mod_memc_is="no"
-	else
-		enable_mod_memc_is="yes"
-	fi
-fi
-if test "x${enable_mod_memc_is}" = "xyes"
-then
-	AC_DEFINE([HAWK_ENABLE_MOD_MEMC],[1],[build mod/memc])
-fi
-AM_CONDITIONAL(ENABLE_MOD_MEMC, test "${enable_mod_memc_is}" = "yes")
-
+HAWK_MOD([uci],[auto],[
+	test "x${ac_cv_header_uci_h}" = "xyes" -a "x${ac_cv_lib_uci_uci_alloc_context}" = "xyes"
+])
 
 dnl ==== include pthread options to the default flags ====
-dnl keep this as  the last option as it changes the default compile flags.                                              dnl otherwise, other tests may get affected if this option is on. 
+dnl keep this as  the last option as it changes the default compile flags.
+dnl otherwise, other tests may get affected if this option is on.
 AC_ARG_ENABLE([pthread-flags], [AS_HELP_STRING([--enable-pthread-flags],[add thread flags to CFLAGS, CXXFLAGS, LIBS(default. yes)])],
         enable_pthread_flags_is=$enableval,enable_pthread_flags_is=yes)
 if test "$enable_pthread_flags_is" = "yes"

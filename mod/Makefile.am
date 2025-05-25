@@ -9,115 +9,69 @@ CPPFLAGS_COMMON = \
 
 CFLAGS_COMMON =
 
-##################################################
-if ENABLE_STATIC_MODULE
-##################################################
+LDFLAGS_COMMON_STATIC =-L$(libdir)
+LIBADD_COMMON_STATIC =
 
-#-------------------------------------------------
-# STATIC MODULES BUILT INTO MAIN LIBRARY
-#-------------------------------------------------
-LDFLAGS_COMMON =-L$(libdir) 
-LIBADD_COMMON =
-
-noinst_LTLIBRARIES =
-
-if ENABLE_MOD_FFI
-noinst_LTLIBRARIES += libhawk-ffi.la
-endif
-
-if ENABLE_MOD_MYSQL
-noinst_LTLIBRARIES += libhawk-mysql.la
-endif
-
-if ENABLE_MOD_SED
-noinst_LTLIBRARIES += libhawk-sed.la
-endif
-
-if ENABLE_MOD_UCI
-noinst_LTLIBRARIES += libhawk-uci.la
-endif
-
-if ENABLE_MOD_MEMC
-noinst_LTLIBRARIES += libhawk-memc.la
-endif
-
-##################################################
-else
-##################################################
-
-#-------------------------------------------------
-# DYNAMIC MODULES
-#-------------------------------------------------
-LDFLAGS_COMMON = -L../lib -L$(libdir) -version-info 1:0:0 ## -no-undefined
-LIBADD_COMMON = -lhawk
+LDFLAGS_COMMON_DYNAMIC = -L../lib -L$(libdir) -version-info 1:0:0 ## -no-undefined
+LIBADD_COMMON_DYNAMIC = -lhawk
 
 pkgmodexecdir = $(libdir)
 pkgmodexec_LTLIBRARIES =
 
+#-------------------------------------------------
+# ACTUAL MODULES TO BUILD AS SHARED OBJECTS
+#-------------------------------------------------
 if ENABLE_MOD_FFI
+if !ENABLE_MOD_FFI_STATIC
 pkgmodexec_LTLIBRARIES += libhawk-ffi.la
-endif
-
-if ENABLE_MOD_MYSQL
-pkgmodexec_LTLIBRARIES += libhawk-mysql.la
-endif
-
-if ENABLE_MOD_SED
-pkgmodexec_LTLIBRARIES += libhawk-sed.la
-endif
-
-if ENABLE_MOD_UCI
-pkgmodexec_LTLIBRARIES += libhawk-uci.la
-endif
-
-if ENABLE_MOD_MEMC
-pkgmodexec_LTLIBRARIES += libhawk-memc.la
-endif
-
-##################################################
-endif
-##################################################
-
-
-#-------------------------------------------------
-# ACTUAL MODULES
-#-------------------------------------------------
-if ENABLE_MOD_FFI
 libhawk_ffi_la_SOURCES = mod-ffi.c mod-ffi.h
 libhawk_ffi_la_CPPFLAGS = $(CPPFLAGS_COMMON)
 libhawk_ffi_la_CFLAGS = $(CFLAGS_COMMON) 
-libhawk_ffi_la_LDFLAGS = $(LDFLAGS_COMMON)
-libhawk_ffi_la_LIBADD = $(LIBADD_COMMON) $(FFI_LIBS)
+libhawk_ffi_la_LDFLAGS = $(LDFLAGS_COMMON_DYNAMIC)
+libhawk_ffi_la_LIBADD = $(LIBADD_COMMON_DYNAMIC) $(FFI_LIBS)
 endif
-
-if ENABLE_MOD_MYSQL
-libhawk_mysql_la_SOURCES = mod-mysql.c mod-mysql.h
-libhawk_mysql_la_CPPFLAGS = $(CPPFLAGS_COMMON) $(MYSQL_CFLAGS)
-libhawk_mysql_la_CFLAGS = $(CFLAGS_COMMON) 
-libhawk_mysql_la_LDFLAGS = $(LDFLAGS_COMMON) $(MYSQL_LDFLAGS)
-libhawk_mysql_la_LIBADD = $(LIBADD_COMMON) $(MYSQL_LIBS)
-endif
-
-if ENABLE_MOD_SED
-libhawk_sed_la_SOURCES = mod-sed.c mod-sed.h
-libhawk_sed_la_CPPFLAGS = $(CPPFLAGS_COMMON)
-libhawk_sed_la_CFLAGS = $(CFLAGS_COMMON) 
-libhawk_sed_la_LDFLAGS = $(LDFLAGS_COMMON)
-libhawk_sed_la_LIBADD = $(LIBADD_COMMON)
-endif
-
-if ENABLE_MOD_UCI
-libhawk_uci_la_SOURCES = mod-uci.c mod-uci.h
-libhawk_uci_la_CPPFLAGS = $(CPPFLAGS_COMMON)
-libhawk_uci_la_CFLAGS = $(CFLAGS_COMMON) 
-libhawk_uci_la_LDFLAGS = $(LDFLAGS_COMMON)
-libhawk_uci_la_LIBADD = $(LIBADD_COMMON) $(UCI_LIBS)
 endif
 
 if ENABLE_MOD_MEMC
+if !ENABLE_MOD_MEMC_STATIC
+pkgmodexec_LTLIBRARIES += libhawk-memc.la
 libhawk_memc_la_SOURCES = mod-memc.c mod-memc.h
 libhawk_memc_la_CPPFLAGS = $(CPPFLAGS_COMMON) $(MEMCACHED_CFLAGS)
 libhawk_memc_la_CFLAGS = $(CFLAGS_COMMON)
-libhawk_memc_la_LDFLAGS = $(LDFLAGS_COMMON) $(MEMCACHED_LDFLAGS)
-libhawk_memc_la_LIBADD = $(LIBADD_COMMON) $(MEMCACHED_LIBS)
+libhawk_memc_la_LDFLAGS = $(LDFLAGS_COMMON_DYNAMIC) $(MEMCACHED_LDFLAGS)
+libhawk_memc_la_LIBADD = $(LIBADD_COMMON_DYNAMIC) $(MEMCACHED_LIBS)
+endif
+endif
+
+if ENABLE_MOD_MYSQL
+if !ENABLE_MOD_MYSQL_STATIC
+pkgmodexec_LTLIBRARIES += libhawk-mysql.la
+libhawk_mysql_la_SOURCES = mod-mysql.c mod-mysql.h
+libhawk_mysql_la_CPPFLAGS = $(CPPFLAGS_COMMON) $(MYSQL_CFLAGS)
+libhawk_mysql_la_CFLAGS = $(CFLAGS_COMMON) 
+libhawk_mysql_la_LDFLAGS = $(LDFLAGS_COMMON_DYNAMIC) $(MYSQL_LDFLAGS)
+libhawk_mysql_la_LIBADD = $(LIBADD_COMMON_DYNAMIC) $(MYSQL_LIBS)
+endif
+endif
+
+if ENABLE_MOD_SED
+if !ENABLE_MOD_SED_STATIC
+pkgmodexec_LTLIBRARIES += libhawk-sed.la
+libhawk_sed_la_SOURCES = mod-sed.c mod-sed.h
+libhawk_sed_la_CPPFLAGS = $(CPPFLAGS_COMMON)
+libhawk_sed_la_CFLAGS = $(CFLAGS_COMMON) 
+libhawk_sed_la_LDFLAGS = $(LDFLAGS_COMMON_DYNAMIC)
+libhawk_sed_la_LIBADD = $(LIBADD_COMMON_DYNAMIC)
+endif
+endif
+
+if ENABLE_MOD_UCI
+if !ENABLE_MOD_UCI_STATIC
+pkgmodexec_LTLIBRARIES += libhawk-uci.la
+libhawk_uci_la_SOURCES = mod-uci.c mod-uci.h
+libhawk_uci_la_CPPFLAGS = $(CPPFLAGS_COMMON)
+libhawk_uci_la_CFLAGS = $(CFLAGS_COMMON) 
+libhawk_uci_la_LDFLAGS = $(LDFLAGS_COMMON_DYNAMIC)
+libhawk_uci_la_LIBADD = $(LIBADD_COMMON_DYNAMIC) $(UCI_LIBS)
+endif
 endif
