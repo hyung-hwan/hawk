@@ -44,7 +44,7 @@ Hawk Interpreter
 %package ffi
 Summary: Hawk ffi module
 Group: System Environment/Libraries
-Requires: @PACKAGE_NAME@ = %{version}
+Requires: %{name}%{?_isa} = %{version}
 Requires: libffi%{?_isa} >= 3.0.11
 
 %description ffi
@@ -55,7 +55,7 @@ This package contains the ffi module file for Hawk.
 %package memc
 Summary: Hawk memc module
 Group: System Environment/Libraries
-Requires: @PACKAGE_NAME@ = %{version}
+Requires: %{name}%{?_isa} = %{version}
 Requires: libmemcached-libs%{?_isa} >= 1.0.18
 
 %description memc
@@ -66,7 +66,7 @@ This package contains the memc module file for Hawk.
 %package mysql
 Summary: Hawk mysql module
 Group: System Environment/Libraries
-Requires: @PACKAGE_NAME@ = %{version}
+Requires: %{name}%{?_isa} = %{version}
 ## tricky to specify the right mysql/mariadb client library.
 Requires: mariadb-connector-c%{?_isa}
 
@@ -78,7 +78,7 @@ This package contains the mysql module file for Hawk.
 %package uci
 Summary: Hawk uci module
 Group: System Environment/Libraries
-Requires: @PACKAGE_NAME@ = %{version}
+Requires: %{name}%{?_isa} = %{version}
 Requires: libuci%{?_isa}
 
 %description uci
@@ -88,10 +88,18 @@ This package contains the uci module file for Hawk.
 %package devel
 Summary: Development files for Hawk
 Group: System Environment/Libraries
-Requires: @PACKAGE_NAME@ = %{version}
+Requires: %{name}%{?_isa} = %{version}
 
 %description devel
 The header files and libraries for developing applications with Hawk.
+
+%package static
+Summary: Static library files for Hawk
+Group: System Environment/Libraries
+Requires: %{name}-devel%{?_isa} = %{version}
+
+%description static
+The static library files for developing applications with Hawk.
 
 %prep
 %setup -q
@@ -146,7 +154,7 @@ rm -rf %{buildroot}%{_libdir}/pkgconfig
 rm -f %{buildroot}%{_bindir}/uni-case
 rm -f %{buildroot}%{_bindir}/uni-prop
 rm -f %{buildroot}%{_bindir}/hawk[0-9][0-9]  ## delete binaries from the samples directory
-rm -rf %{buildroot}%{_libdir}/libhawk-*.la %{buildroot}%{_libdir}/libhawk-*.a ## delete static libraries of dynamic modules
+rm -f %{buildroot}%{_libdir}/libhawk-*.la %{buildroot}%{_libdir}/libhawk-*.a ## delete static libraries of dynamic modules
 
 %check
 make check
@@ -163,7 +171,7 @@ rm -rf "%{buildroot}"
 %files
 %defattr(-,root,root)
 %{_bindir}/hawk
-%{_libdir}/libhawk.so*
+%{_libdir}/libhawk.so.*
 
 %if %{enable_mod_ffi}
 %files ffi
@@ -188,5 +196,9 @@ rm -rf "%{buildroot}"
 %files devel
 %defattr(-,root,root)
 %{_includedir}/*
+%{_libdir}/libhawk.so
+
+%files static
+%defattr(-,root,root)
 %{_libdir}/libhawk.a
 %{_libdir}/libhawk.la
