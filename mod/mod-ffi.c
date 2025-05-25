@@ -720,7 +720,6 @@ BEGIN {
                 return -1;
         }
 
-        ##t = ffi::call(t, r, "printf", "s|ii>X", "%d  **%%** %d\n", 10, 20);
         x = ffi::call(t, r, "printf", "s|ii>i", "%d  **%%** %d\n", 10, 20);
         if (x <= -1)
         {
