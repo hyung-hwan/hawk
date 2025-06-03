@@ -1013,7 +1013,7 @@ static void print_hawk_rtx_error (hawk_rtx_t* rtx)
 	);
 }
 
-static HAWK_INLINE int execute_hawk (int argc, hawk_bch_t* argv[], const hawk_bch_t* real_argv0)
+int main_hawk(int argc, hawk_bch_t* argv[], const hawk_bch_t* real_argv0)
 {
 	hawk_t* hawk = HAWK_NULL;
 	hawk_rtx_t* rtx = HAWK_NULL;
@@ -1206,7 +1206,7 @@ oops:
 
 	if (arg.memlimit > 0)
 	{
-		if (arg.debug) hawk_xma_dump (xma_mmgr.ctx, main_xma_dumper_without_hawk, HAWK_NULL);
+		if (arg.debug) hawk_xma_dump (xma_mmgr.ctx, hawk_main_print_xma, HAWK_NULL);
 		hawk_fini_xma_mmgr (&xma_mmgr);
 	}
 	freearg (&arg);
@@ -1214,62 +1214,3 @@ oops:
 	return ret;
 }
 
-/* ---------------------------------------------------------------------- */
-
-int main_hawk(int argc, hawk_bch_t* argv[], const hawk_bch_t* real_argv0)
-{
-	int ret;
-
-#if defined(_WIN32)
-	char locale[100];
-	UINT codepage;
-	WSADATA wsadata;
-	int sock_inited = 0;
-#elif defined(__DOS__)
-	extern BOOL _watt_do_exit;
-	int sock_inited = 0;
-#else
-	/* nothing special */
-#endif
-
-#if defined(_WIN32)
-	codepage = GetConsoleOutputCP();
-	if (codepage == CP_UTF8)
-	{
-		/*SetConsoleOUtputCP (CP_UTF8);*/
-		/*hawk_setdflcmgrbyid (HAWK_CMGR_UTF8);*/
-	}
-	else
-	{
-		/* .codepage */
-		hawk_fmt_uintmax_to_bcstr (locale, HAWK_COUNTOF(locale), codepage, 10, -1, '\0', ".");
-		setlocale (LC_ALL, locale);
-		/* hawk_setdflcmgrbyid (HAWK_CMGR_SLMB); */
-	}
-
-#else
-	setlocale (LC_ALL, "");
-	/* hawk_setdflcmgrbyid (HAWK_CMGR_SLMB); */
-#endif
-
-#if defined(_WIN32)
-	if (WSAStartup(MAKEWORD(2,0), &wsadata) != 0)
-		print_warning ("Failed to start up winsock\n");
-	else sock_inited = 1;
-#elif defined(__DOS__)
-	/* TODO: add an option to skip watt-32 */
-	_watt_do_exit = 0; /* prevent sock_init from exiting upon failure */
-	if (sock_init() != 0) print_warning ("Failed to initialize watt-32\n");
-	else sock_inited = 1;
-#endif
-
-	ret = execute_hawk(argc, argv, real_argv0);
-
-#if defined(_WIN32)
-	if (sock_inited) WSACleanup ();
-#elif defined(__DOS__)
-	if (sock_inited) sock_exit ();
-#endif
-
-	return ret;
-}

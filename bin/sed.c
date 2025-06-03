@@ -98,7 +98,7 @@ struct arg_t
 
 /* ------------------------------------------------------------------- */
 
-static void print_error (const hawk_bch_t* fmt, ...)
+static void print_error(const hawk_bch_t* fmt, ...)
 {
         va_list va;
         fprintf (stderr, "ERROR: ");
@@ -164,7 +164,7 @@ static int add_script (const hawk_bch_t* str, int mem)
 		tmp = (hawk_sed_iostd_t*)realloc(g_script.io, HAWK_SIZEOF(*g_script.io) * (g_script.capa + 16 + 1));
 		if (tmp == HAWK_NULL)
 		{
-			print_error ("out of memory while processing %s\n", str);
+			print_error("out of memory while processing %s\n", str);
 			return -1;
 		}
 
@@ -232,12 +232,12 @@ static int handle_args (int argc, hawk_bch_t* argv[], const hawk_bch_t* real_arg
 				goto oops;
 
 			case '?':
-				print_error ("bad option - %c\n", opt.opt);
+				print_error("bad option - %c\n", opt.opt);
 				print_usage (stderr, argv[0], real_argv0);
 				goto oops;
 
 			case ':':
-				print_error ("bad parameter for %c\n", opt.opt);
+				print_error("bad parameter for %c\n", opt.opt);
 				print_usage (stderr, argv[0], real_argv0);
 				goto oops;
 
@@ -321,7 +321,7 @@ static int handle_args (int argc, hawk_bch_t* argv[], const hawk_bch_t* real_arg
 					g_script_cmgr = hawk_get_cmgr_by_bcstr(opt.arg);
 					if (g_script_cmgr == HAWK_NULL)
 					{
-						print_error ("unknown script encoding - %s\n", opt.arg);
+						print_error("unknown script encoding - %s\n", opt.arg);
 						goto oops;
 					}
 				}
@@ -330,7 +330,7 @@ static int handle_args (int argc, hawk_bch_t* argv[], const hawk_bch_t* real_arg
 					g_infile_cmgr = hawk_get_cmgr_by_bcstr(opt.arg);
 					if (g_infile_cmgr == HAWK_NULL)
 					{
-						print_error ("unknown input file encoding - %s\n", opt.arg);
+						print_error("unknown input file encoding - %s\n", opt.arg);
 						goto oops;
 					}
 				}
@@ -339,7 +339,7 @@ static int handle_args (int argc, hawk_bch_t* argv[], const hawk_bch_t* real_arg
 					g_outfile_cmgr = hawk_get_cmgr_by_bcstr(opt.arg);
 					if (g_outfile_cmgr == HAWK_NULL)
 					{
-						print_error ("unknown output file encoding - %s\n", opt.arg);
+						print_error("unknown output file encoding - %s\n", opt.arg);
 						goto oops;
 					}
 				}
@@ -373,17 +373,17 @@ done:
 	return 0;
 }
 
-void print_exec_error (hawk_sed_t* sed)
+void print_exec_error(hawk_sed_t* sed)
 {
 	const hawk_loc_t* errloc = hawk_sed_geterrloc(sed);
 	if (errloc->line > 0 || errloc->colm > 0)
 	{
-		print_error ("cannot execute - %s at line %lu column %lu\n",
+		print_error("cannot execute - %s at line %lu column %lu\n",
 			hawk_sed_geterrbmsg(sed), (unsigned long)errloc->line, (unsigned long)errloc->colm);
 	}
 	else
 	{
-		print_error ("cannot execute - %s\n", hawk_sed_geterrbmsg(sed));
+		print_error("cannot execute - %s\n", hawk_sed_geterrbmsg(sed));
 	}
 }
 
@@ -535,7 +535,7 @@ static void stop_run (int signo)
 	int e = errno;
 #endif
 
-	hawk_sed_halt (g_sed);
+	hawk_sed_halt(g_sed);
 
 #if !defined(_WIN32) && !defined(__OS2__) && !defined(__DOS__)
 	errno = e;
@@ -698,7 +698,7 @@ static int expand_wildcards (int argc, hawk_bch_t* argv[], int glob, xarg_t* xar
 	return 0;
 }
 
-static HAWK_INLINE int execute_sed (int argc, hawk_bch_t* argv[], const hawk_bch_t* real_argv0)
+int main_sed(int argc, hawk_bch_t* argv[], const hawk_bch_t* real_argv0)
 {
 	hawk_sed_t* sed = HAWK_NULL;
 	hawk_oow_t script_count;
@@ -721,7 +721,7 @@ static HAWK_INLINE int execute_sed (int argc, hawk_bch_t* argv[], const hawk_bch
 	{
 		if (hawk_init_xma_mmgr(&xma_mmgr, arg.memlimit) <= -1)
 		{
-			print_error ("cannot open memory heap\n");
+			print_error("cannot open memory heap\n");
 			goto oops;
 		}
 		mmgr = &xma_mmgr;
@@ -731,7 +731,7 @@ static HAWK_INLINE int execute_sed (int argc, hawk_bch_t* argv[], const hawk_bch
 	sed = hawk_sed_openstdwithmmgr(mmgr, 0, cmgr, HAWK_NULL);
 	if (!sed)
 	{
-		print_error ("cannot open stream editor\n");
+		print_error("cannot open stream editor\n");
 		goto oops;
 	}
 
@@ -760,13 +760,13 @@ static HAWK_INLINE int execute_sed (int argc, hawk_bch_t* argv[], const hawk_bch
 
 		if (errloc->line > 0 || errloc->colm > 0)
 		{
-			print_error ("cannot compile %s - %s at line %lu column %lu\n",
+			print_error("cannot compile %s - %s at line %lu column %lu\n",
 				target, hawk_sed_geterrbmsg(sed), (unsigned long)errloc->line, (unsigned long)errloc->colm
 			);
 		}
 		else
 		{
-			print_error ("cannot compile %s - %s\n", target, hawk_sed_geterrbmsg(sed));
+			print_error("cannot compile %s - %s\n", target, hawk_sed_geterrbmsg(sed));
 		}
 		goto oops;
 	}
@@ -805,7 +805,7 @@ static HAWK_INLINE int execute_sed (int argc, hawk_bch_t* argv[], const hawk_bch
 			);
 			if (out_file.u.sio == HAWK_NULL)
 			{
-				print_error ("cannot open %s\n", arg.output_file);
+				print_error("cannot open %s\n", arg.output_file);
 				goto oops;
 			}
 
@@ -816,7 +816,7 @@ static HAWK_INLINE int execute_sed (int argc, hawk_bch_t* argv[], const hawk_bch
 		/* perform wild-card expansions for non-unix platforms */
 		if (expand_wildcards(argc - arg.infile_pos, &argv[arg.infile_pos], arg.wildcard, &xarg) <= -1)
 		{
-			print_error ("out of memory\n");
+			print_error("out of memory\n");
 			goto oops;
 		}
 
@@ -843,7 +843,7 @@ static HAWK_INLINE int execute_sed (int argc, hawk_bch_t* argv[], const hawk_bch
 				tmpl_tmpfile = hawk_gem_dupbcstrarr(hawk_sed_getgem(sed), f, HAWK_NULL);
 				if (tmpl_tmpfile == HAWK_NULL)
 				{
-					print_error ("out of memory\n");
+					print_error("out of memory\n");
 					goto oops;
 				}
 
@@ -864,18 +864,18 @@ static HAWK_INLINE int execute_sed (int argc, hawk_bch_t* argv[], const hawk_bch
 				{
 					if (retried)
 					{
-						print_error ("cannot open %s\n", tmpl_tmpfile);
-						hawk_sed_freemem (sed, tmpl_tmpfile);
+						print_error("cannot open %s\n", tmpl_tmpfile);
+						hawk_sed_freemem(sed, tmpl_tmpfile);
 						goto oops;
 					}
 					else
 					{
 						/* retry to open the file with shorter names */
-						hawk_sed_freemem (sed, tmpl_tmpfile);
+						hawk_sed_freemem(sed, tmpl_tmpfile);
 						tmpl_tmpfile = hawk_gem_dupbcstr(hawk_sed_getgem(sed), "TMP-XXXX", HAWK_NULL);
 						if (tmpl_tmpfile == HAWK_NULL)
 						{
-							print_error ("out of memory\n");
+							print_error("out of memory\n");
 							goto oops;
 						}
 						retried = 1;
@@ -888,38 +888,38 @@ static HAWK_INLINE int execute_sed (int argc, hawk_bch_t* argv[], const hawk_bch
 
 			if (hawk_sed_execstd(sed, in, output) <= -1)
 			{
-				if (output) hawk_sio_close (output->u.sio);
+				if (output) hawk_sio_close(output->u.sio);
 
 				if (tmpl_tmpfile)
 				{
 					unlink (tmpl_tmpfile);
-					hawk_sed_freemem (sed, tmpl_tmpfile);
+					hawk_sed_freemem(sed, tmpl_tmpfile);
 				}
-				print_exec_error (sed);
+				print_exec_error(sed);
 				goto oops;
 			}
 
 			if (tmpl_tmpfile)
 			{
 				HAWK_ASSERT (output == &out_inplace);
-				hawk_sio_close (output->u.sio);
+				hawk_sio_close(output->u.sio);
 				output = output_file;
 
 				if (rename(tmpl_tmpfile, in[0].u.fileb.path) <= -1)
 				{
-					print_error ("cannot rename %s to %s. not deleting %s\n",
+					print_error("cannot rename %s to %s. not deleting %s\n",
 						tmpl_tmpfile, in[0].u.fileb.path, tmpl_tmpfile);
-					hawk_sed_freemem (sed, tmpl_tmpfile);
+					hawk_sed_freemem(sed, tmpl_tmpfile);
 					goto oops;
 				}
 
-				hawk_sed_freemem (sed, tmpl_tmpfile);
+				hawk_sed_freemem(sed, tmpl_tmpfile);
 			}
 
 			if (hawk_sed_ishalt(sed)) break;
 		}
 
-		if (output) hawk_sio_close (output->u.sio);
+		if (output) hawk_sio_close(output->u.sio);
 	}
 	else
 	{
@@ -935,16 +935,16 @@ static HAWK_INLINE int execute_sed (int argc, hawk_bch_t* argv[], const hawk_bch
 			/* input files are specified on the command line */
 
 			/* perform wild-card expansions for non-unix platforms */
-			if (expand_wildcards (argc - arg.infile_pos, &argv[arg.infile_pos], arg.wildcard, &xarg) <= -1)
+			if (expand_wildcards(argc - arg.infile_pos, &argv[arg.infile_pos], arg.wildcard, &xarg) <= -1)
 			{
-				print_error ("out of memory\n");
+				print_error("out of memory\n");
 				goto oops;
 			}
 
 			in = (hawk_sed_iostd_t*)hawk_sed_allocmem(sed, HAWK_SIZEOF(*in) * (xarg.size + 1));
 			if (in == HAWK_NULL)
 			{
-				print_error ("out of memory\n");
+				print_error("out of memory\n");
 				goto oops;
 			}
 
@@ -970,22 +970,22 @@ static HAWK_INLINE int execute_sed (int argc, hawk_bch_t* argv[], const hawk_bch
 			/* arrange to be able to specify cmgr.
 			 * if not for cmgr, i could simply pass HAWK_NULL
 			 * to hawk_sed_execstd() below like
-			 *   xx = hawk_sed_execstd (sed, in, HAWK_NULL); */
+			 *   xx = hawk_sed_execstd(sed, in, HAWK_NULL); */
 			out.type = HAWK_SED_IOSTD_FILEB;
 			out.u.fileb.path = HAWK_NULL;
 			out.u.fileb.cmgr = g_outfile_cmgr;
 		}
 
 		g_sed = sed;
-		set_intr_run ();
+		set_intr_run();
 		xx = hawk_sed_execstd(sed, in, &out);
-		if (in) hawk_sed_freemem (sed, in);
-		unset_intr_run ();
+		if (in) hawk_sed_freemem(sed, in);
+		unset_intr_run();
 		g_sed = HAWK_NULL;
 
 		if (xx <= -1)
 		{
-			print_exec_error (sed);
+			print_exec_error(sed);
 			goto oops;
 		}
 	}
@@ -993,72 +993,15 @@ static HAWK_INLINE int execute_sed (int argc, hawk_bch_t* argv[], const hawk_bch
 	ret = 0;
 
 oops:
-	if (xarg_inited) purge_xarg (&xarg);
-	if (sed) hawk_sed_close (sed);
+	if (xarg_inited) purge_xarg(&xarg);
+	if (sed) hawk_sed_close(sed);
 	if (arg.memlimit > 0)
 	{
-		if (arg.debug) hawk_xma_dump (xma_mmgr.ctx, main_xma_dumper_without_hawk, HAWK_NULL);
-		hawk_fini_xma_mmgr (&xma_mmgr);
+		if (arg.debug) hawk_xma_dump(xma_mmgr.ctx, hawk_main_print_xma, HAWK_NULL);
+		hawk_fini_xma_mmgr(&xma_mmgr);
 	}
-	free_scripts ();
+	free_scripts();
 
 	return ret;
 }
 
-int main_sed(int argc, hawk_bch_t* argv[], const hawk_bch_t* real_argv0)
-{
-	int ret;
-
-#if defined(_WIN32)
-	char locale[100];
-	UINT codepage;
-	WSADATA wsadata;
-	int sock_inited = 0;
-#elif defined(__DOS__)
-	extern BOOL _watt_do_exit;
-	int sock_inited = 0;
-#else
-	/* nothing special */
-#endif
-
-#if defined(_WIN32)
-	codepage = GetConsoleOutputCP();
-	if (codepage == CP_UTF8)
-	{
-		/*SetConsoleOUtputCP (CP_UTF8);*/
-		/*hawk_setdflcmgrbyid (HAWK_CMGR_UTF8);*/
-	}
-	else
-	{
-		/* .codepage */
-		hawk_fmt_uintmax_to_bcstr (locale, HAWK_COUNTOF(locale), codepage, 10, -1, '\0', ".");
-		setlocale (LC_ALL, locale);
-		/* hawk_setdflcmgrbyid (HAWK_CMGR_SLMB); */
-	}
-
-#else
-	setlocale (LC_ALL, "");
-	/* hawk_setdflcmgrbyid (HAWK_CMGR_SLMB); */
-#endif
-
-#if defined(_WIN32)
-	if (WSAStartup(MAKEWORD(2,0), &wsadata) != 0)
-		print_warning ("Failed to start up winsock\n");
-	else sock_inited = 1;
-#elif defined(__DOS__)
-	/* TODO: add an option to skip watt-32 */
-	_watt_do_exit = 0; /* prevent sock_init from exiting upon failure */
-	if (sock_init() != 0) print_warning ("Failed to initialize watt-32\n");
-	else sock_inited = 1;
-#endif
-
-	ret = execute_sed(argc, argv, real_argv0);
-
-#if defined(_WIN32)
-	if (sock_inited) WSACleanup ();
-#elif defined(__DOS__)
-	if (sock_inited) sock_exit ();
-#endif
-
-	return ret;
-}
