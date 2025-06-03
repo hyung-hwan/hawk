@@ -72,9 +72,8 @@
  */
 #include <hawk-cmn.h>
 
-#if defined(HAWK_BUILD_DEBUG)
-#	define HAWK_XMA_ENABLE_STAT
-#endif
+/*#define HAWK_XMA_ENABLE_STAT*/
+#define HAWK_XMA_ENABLE_STAT
 
 /** @struct hawk_xma_t
  * The hawk_xma_t type defines a simple memory allocator over a memory zone.
@@ -109,10 +108,19 @@ struct hawk_xma_t
 	struct
 	{
 		hawk_oow_t total;
-		hawk_oow_t alloc;
-		hawk_oow_t avail;
-		hawk_oow_t nused;
-		hawk_oow_t nfree;
+		hawk_oow_t alloc; /* allocated size */
+		hawk_oow_t avail; /* available size */
+		hawk_oow_t nused; /* nubmer of used blocks */
+		hawk_oow_t nfree; /* number of free blocks */
+		hawk_oow_t alloc_hwmark; /* high watermark - highest total memory ever allocated */
+
+		hawk_oow_t nallocops; /* number of alloc operations */
+		hawk_oow_t nallocgoodops; /* number of successful alloc operations */
+		hawk_oow_t nallocbadops; /* number of failed alloc operations */
+		hawk_oow_t nreallocops; /* number of realloc operations */
+		hawk_oow_t nreallocgoodops; /* number of good realloc operations */
+		hawk_oow_t nreallocbadops; /* number of failed realloc operations - could fall back to normal alloc*/
+		hawk_oow_t nfreeops; /* number of free operations */
 	} stat;
 #endif
 };

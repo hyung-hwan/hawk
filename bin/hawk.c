@@ -30,8 +30,8 @@
 #include <hawk-utl.h>
 #include <hawk-fmt.h>
 #include <hawk-cli.h>
-#include <hawk-xma.h>
 #include <hawk-glob.h>
+#include <hawk-xma.h>
 
 #if !defined(_GNU_SOURCE)
 #	define _GNU_SOURCE
@@ -75,7 +75,6 @@
 #endif
 
 static hawk_rtx_t* app_rtx = HAWK_NULL;
-static int app_debug = 0;
 
 typedef struct gv_t gv_t;
 typedef struct gvm_t gvm_t;
@@ -123,11 +122,9 @@ struct arg_t
 	unsigned int classic: 1;
 	int          opton;
 	int          optoff;
+	int          debug;
 
 	hawk_uintptr_t  memlimit;
-#if defined(HAWK_BUILD_DEBUG)
-	hawk_uintptr_t  failmalloc;
-#endif
 };
 
 
@@ -547,9 +544,6 @@ static void print_usage (FILE* out, const hawk_bch_t* argv0, const hawk_bch_t* r
 	fprintf (out, " -m/--memory-limit    number       limit the memory usage (bytes)\n");
 	fprintf (out, " -w                                expand datafile wildcards\n");
 
-#if defined(HAWK_BUILD_DEBUG)
-	fprintf (out, " -X                   number       fail the number'th memory allocation\n");
-#endif
 #if defined(HAWK_OOCH_IS_UCH)
 	fprintf (out, " --script-encoding    string       specify script file encoding name\n");
 	fprintf (out, " --console-encoding   string       specify console encoding name\n");
@@ -674,7 +668,6 @@ static int process_argv (int argc, hawk_bch_t* argv[], const hawk_bch_t* real_ar
 		{ ":field-separator",  'F' },
 		{ ":assign",           'v' },
 		{ ":memory-limit",     'm' },
-		{ ":mode",             'M' },
 
 		{ ":script-encoding",  '\0' },
 		{ ":console-encoding", '\0' },
@@ -690,11 +683,7 @@ static int process_argv (int argc, hawk_bch_t* argv[], const hawk_bch_t* real_ar
 
 	static hawk_bcli_t opt =
 	{
-#if defined(HAWK_BUILD_DEBUG)
-		"hDc:f:d:t:F:v:m:I:wX:",
-#else
 		"hDc:f:d:t:F:v:m:I:w",
-#endif
 		lng
 	};
 
@@ -726,7 +715,7 @@ static int process_argv (int argc, hawk_bch_t* argv[], const hawk_bch_t* real_ar
 				goto oops;
 
 			case 'D':
-				app_debug = 1;
+				arg->debug = 1;
 				break;
 
 			case 'c':
@@ -842,15 +831,6 @@ static int process_argv (int argc, hawk_bch_t* argv[], const hawk_bch_t* real_ar
 				arg->includedirs = opt.arg;
 				break;
 			}
-
-
-#if defined(HAWK_BUILD_DEBUG)
-			case 'X':
-			{
-				arg->failmalloc = strtoul(opt.arg, HAWK_NULL, 10);
-				break;
-			}
-#endif
 
 			case '\0':
 			{
@@ -1033,89 +1013,12 @@ static void print_hawk_rtx_error (hawk_rtx_t* rtx)
 	);
 }
 
-static void* xma_alloc (hawk_mmgr_t* mmgr, hawk_oow_t size)
-{
-	return hawk_xma_alloc(mmgr->ctx, size);
-}
-
-static void* xma_realloc (hawk_mmgr_t* mmgr, void* ptr, hawk_oow_t size)
-{
-	return hawk_xma_realloc(mmgr->ctx, ptr, size);
-}
-
-static void xma_free (hawk_mmgr_t* mmgr, void* ptr)
-{
-	hawk_xma_free (mmgr->ctx, ptr);
-}
-
-static hawk_mmgr_t xma_mmgr =
-{
-	xma_alloc,
-	xma_realloc,
-	xma_free,
-	HAWK_NULL
-};
-
-static void xma_dumper_without_hawk (void* ctx, const hawk_bch_t* fmt, ...)
-{
-	va_list ap;
-	va_start (ap, fmt);
-	vfprintf (stderr, fmt, ap);
-	va_end (ap);
-}
-
-#if defined(HAWK_BUILD_DEBUG)
-static hawk_uintptr_t debug_mmgr_count = 0;
-static hawk_uintptr_t debug_mmgr_alloc_count = 0;
-static hawk_uintptr_t debug_mmgr_realloc_count = 0;
-static hawk_uintptr_t debug_mmgr_free_count = 0;
-
-static void* debug_mmgr_alloc (hawk_mmgr_t* mmgr, hawk_oow_t size)
-{
-	void* ptr;
-	struct arg_t* arg = (struct arg_t*)mmgr->ctx;
-	debug_mmgr_count++;
-	if (debug_mmgr_count % arg->failmalloc == 0) return HAWK_NULL;
-	ptr = malloc (size);
-	if (ptr) debug_mmgr_alloc_count++;
-	return ptr;
-}
-
-static void* debug_mmgr_realloc (hawk_mmgr_t* mmgr, void* ptr, hawk_oow_t size)
-{
-	void* rptr;
-	struct arg_t* arg = (struct arg_t*)mmgr->ctx;
-	debug_mmgr_count++;
-	if (debug_mmgr_count % arg->failmalloc == 0) return HAWK_NULL;
-	rptr = realloc (ptr, size);
-	if (rptr)
-	{
-		if (ptr) debug_mmgr_realloc_count++;
-		else debug_mmgr_alloc_count++;
-	}
-	return rptr;
-}
-
-static void debug_mmgr_free (hawk_mmgr_t* mmgr, void* ptr)
-{
-	debug_mmgr_free_count++;
-	free (ptr);
-}
-
-static hawk_mmgr_t debug_mmgr =
-{
-	debug_mmgr_alloc,
-	debug_mmgr_realloc,
-	debug_mmgr_free,
-	HAWK_NULL
-};
-#endif
-
 static HAWK_INLINE int execute_hawk (int argc, hawk_bch_t* argv[], const hawk_bch_t* real_argv0)
 {
 	hawk_t* hawk = HAWK_NULL;
 	hawk_rtx_t* rtx = HAWK_NULL;
 	hawk_val_t* retv;
+	hawk_mmgr_t xma_mmgr;
 	int i;
 	struct arg_t arg;
 	int ret = -1;
@@ -1150,18 +1053,9 @@ static HAWK_INLINE int execute_hawk (int argc, hawk_bch_t* argv[], const hawk_bc
 		psout.u.fileb.cmgr = arg.script_cmgr;
 	}
 
-#if defined(HAWK_BUILD_DEBUG)
-	if (arg.failmalloc > 0)
-	{
-		debug_mmgr.ctx = &arg;
-		mmgr = &debug_mmgr;
-	}
-	else
-#endif
 	if (arg.memlimit > 0)
 	{
-		xma_mmgr.ctx = hawk_xma_open(hawk_get_sys_mmgr(), 0, HAWK_NULL, arg.memlimit);
-		if (xma_mmgr.ctx == HAWK_NULL)
+		if (hawk_init_xma_mmgr(&xma_mmgr, arg.memlimit) <= -1)
 		{
 			print_error ("cannot open memory heap\n");
 			goto oops;
@@ -1180,7 +1074,7 @@ static HAWK_INLINE int execute_hawk (int argc, hawk_bch_t* argv[], const hawk_bc
 
 	if (arg.modern) i = HAWK_MODERN;
 	else if (arg.classic) i = HAWK_CLASSIC;
-	else hawk_getopt (hawk, HAWK_OPT_TRAIT, &i);
+	else hawk_getopt(hawk, HAWK_OPT_TRAIT, &i);
 	if (arg.opton) i |= arg.opton;
 	if (arg.optoff) i &= ~arg.optoff;
 	hawk_setopt (hawk, HAWK_OPT_TRAIT, &i);
@@ -1293,7 +1187,7 @@ static HAWK_INLINE int execute_hawk (int argc, hawk_bch_t* argv[], const hawk_bc
 		hawk_int_t tmp;
 
 		hawk_rtx_refdownval (rtx, retv);
-		if (app_debug) dprint_return (rtx, retv);
+		if (arg.debug) dprint_return (rtx, retv);
 
 		ret = 0;
 		if (hawk_rtx_valtoint(rtx, retv, &tmp) >= 0) ret = tmp;
@@ -1310,26 +1204,12 @@ oops:
 
 	unset_intr_pipe ();
 
-	if (xma_mmgr.ctx)
+	if (arg.memlimit > 0)
 	{
-		if (app_debug) hawk_xma_dump (xma_mmgr.ctx, xma_dumper_without_hawk, HAWK_NULL);
-		hawk_xma_close (xma_mmgr.ctx);
+		if (arg.debug) hawk_xma_dump (xma_mmgr.ctx, main_xma_dumper_without_hawk, HAWK_NULL);
+		hawk_fini_xma_mmgr (&xma_mmgr);
 	}
 	freearg (&arg);
-
-#if defined(HAWK_BUILD_DEBUG)
-	/*
-	if (arg.failmalloc > 0)
-	{
-		hawk_fprintf (HAWK_STDERR, HAWK_T("\n"));
-		hawk_fprintf (HAWK_STDERR, HAWK_T("-[MALLOC COUNTS]---------------------------------------\n"));
-		hawk_fprintf (HAWK_STDERR, HAWK_T("ALLOC: %lu FREE: %lu: REALLOC: %lu\n"),
-			(unsigned long)debug_mmgr_alloc_count,
-			(unsigned long)debug_mmgr_free_count,
-			(unsigned long)debug_mmgr_realloc_count);
-		hawk_fprintf (HAWK_STDERR, HAWK_T("-------------------------------------------------------\n"));
-	}*/
-#endif
 
 	return ret;
 }

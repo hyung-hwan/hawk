@@ -34,12 +34,18 @@
 #undef char_t
 #undef cstr_t
 #undef count_chars
+#undef compact_chars
+#undef copy_chars
+#undef trim_chars
 #define FN(verb) _FN(becs,verb)
 #define T(x) HAWK_BT(x)
 #define str_t hawk_becs_t
 #define char_t hawk_bch_t
 #define cstr_t hawk_bcs_t
 #define count_chars(x) hawk_count_bcstr(x)
+#define compact_chars(x,l) hawk_compact_bchars(x,l)
+#define copy_chars(x,y,l) hawk_copy_bchars(x,y,l)
+#define trim_chars(x,l,f) hawk_trim_bchars(x,l,f)
 #define BUILD_BECS
 #include "ecs-imp.h"
 
@@ -51,12 +57,18 @@
 #undef char_t
 #undef cstr_t
 #undef count_chars
+#undef compact_chars
+#undef copy_chars
+#undef trim_chars
 #define FN(verb) _FN(uecs,verb)
 #define T(x) HAWK_UT(x)
 #define str_t hawk_uecs_t
 #define char_t hawk_uch_t
 #define cstr_t hawk_ucs_t
 #define count_chars(x) hawk_count_ucstr(x)
+#define compact_chars(x,l) hawk_compact_uchars(x,l)
+#define copy_chars(x,y,l) hawk_copy_uchars(x,y,l)
+#define trim_chars(x,l,f) hawk_trim_uchars(x,l,f)
 #define BUILD_UECS
 #include "ecs-imp.h"
 

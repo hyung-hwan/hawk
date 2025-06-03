@@ -55,6 +55,7 @@ pkginclude_HEADERS = \
 	hawk-chr.h \
 	hawk-cli.h \
 	hawk-cmn.h \
+	hawk-cut.h \
 	hawk-dir.h \
 	hawk-ecs.h \
 	hawk-fio.h \
@@ -90,6 +91,8 @@ libhawk_la_SOURCES = \
 	$(pkginclude_HEADERS) \
 	arr.c \
 	chr.c \
+	cut-prv.h \
+	cut.c \
 	dir.c \
 	ecs-imp.h \
 	ecs.c \
@@ -169,6 +172,7 @@ libhawk_la_SOURCES += \
 	syscall.h \
 	tio.c \
 	std.c  \
+	std-cut.c \
 	std-json.c \
 	std-sed.c
 

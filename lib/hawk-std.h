@@ -272,8 +272,37 @@ HAWK_EXPORT const hawk_ooch_t* hawk_stdgetfileindirs (
 
 /* ------------------------------------------------------------------------- */
 
+/**
+ *  The hawk_get_sys_mmgr() function returns a pointer to a stock memory manager structure
+ *  that can be used where a custom memory manager is not required. The returned structure
+ *  is managed internally and should not be modified or finalized by the caller.
+ *
+ *  \return Pointer to the system-wide default memory manager.
+ */
 HAWK_EXPORT hawk_mmgr_t* hawk_get_sys_mmgr (
 	void
+);
+
+/**
+ * This hawk_init_xma_mmgr() function initializes the memory manager structure pointed
+ * to by `mmgr` with the specified memory limit `memlimit`. The caller is responsible for
+ * allocating the memory for `mmgr` prior to calling this function.
+ *
+ *  \return 0 on success, or a negative value on failure
+ */
+HAWK_EXPORT int hawk_init_xma_mmgr (
+	hawk_mmgr_t*   mmgr,
+	hawk_oow_t     memlimit
+);
+
+/**
+ * The hawk_fini_xma_mmgr() function cleans up resources associated with the memory
+ * manager structure previously initialized by `hawk_init_xma_mmgr()`. After this call,
+ * the `mmgr` structure should not be used unless it is re-initialized.
+ *
+ */
+HAWK_EXPORT void hawk_fini_xma_mmgr (
+	hawk_mmgr_t*   mmgr
 );
 
 #if defined(__cplusplus)

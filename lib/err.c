@@ -209,6 +209,10 @@ const hawk_ooch_t* hawk_dfl_errstr (hawk_errnum_t errnum)
 		HAWK_T("occurrence specifier too large"),
 		HAWK_T("no previous regular expression"),
 		HAWK_T("cut selector not valid"),
+		HAWK_T("I/O error with file '${0}'"),
+
+		/* cut error messages */
+		HAWK_T("selector not valid"),
 		HAWK_T("I/O error with file '${0}'")
 	};
 

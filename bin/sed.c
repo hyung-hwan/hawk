@@ -23,13 +23,14 @@
     (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
     THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+#include "main.h"
 
 #include <hawk-sed.h>
-#include <hawk-xma.h>
 #include <hawk-cli.h>
 #include <hawk-fmt.h>
 #include <hawk-utl.h>
 #include <hawk-std.h>
+#include <hawk-xma.h>
 
 #if !defined(_GNU_SOURCE)
 #	define _GNU_SOURCE
@@ -87,88 +88,13 @@ struct arg_t
 	int inplace;
 	int wildcard;
 
+	int debug;
 #if defined(HAWK_ENABLE_SEDTRACER)
 	int trace;
 #endif
 
 	hawk_uintptr_t  memlimit;
-#if defined(HAWK_BUILD_DEBUG)
-	hawk_uintptr_t  failmalloc;
-#endif
 };
-
-/* ------------------------------------------------------------------- */
-static void* xma_alloc (hawk_mmgr_t* mmgr, hawk_oow_t size)
-{
-	return hawk_xma_alloc (mmgr->ctx, size);
-}
-
-static void* xma_realloc (hawk_mmgr_t* mmgr, void* ptr, hawk_oow_t size)
-{
-	return hawk_xma_realloc (mmgr->ctx, ptr, size);
-}
-
-static void xma_free (hawk_mmgr_t* mmgr, void* ptr)
-{
-	hawk_xma_free (mmgr->ctx, ptr);
-}
-
-static hawk_mmgr_t xma_mmgr =
-{
-	xma_alloc,
-	xma_realloc,
-	xma_free,
-	HAWK_NULL
-};
-
-/* ------------------------------------------------------------------- */
-
-#if defined(HAWK_BUILD_DEBUG)
-static hawk_uintptr_t debug_mmgr_count = 0;
-static hawk_uintptr_t debug_mmgr_alloc_count = 0;
-static hawk_uintptr_t debug_mmgr_realloc_count = 0;
-static hawk_uintptr_t debug_mmgr_free_count = 0;
-
-static void* debug_mmgr_alloc (hawk_mmgr_t* mmgr, hawk_oow_t size)
-{
-	void* ptr;
-	struct arg_t* arg = (struct arg_t*)mmgr->ctx;
-	debug_mmgr_count++;
-	if (debug_mmgr_count % arg->failmalloc == 0) return HAWK_NULL;
-	ptr = malloc(size);
-	if (ptr) debug_mmgr_alloc_count++;
-	return ptr;
-}
-
-static void* debug_mmgr_realloc (hawk_mmgr_t* mmgr, void* ptr, hawk_oow_t size)
-{
-	void* rptr;
-	struct arg_t* arg = (struct arg_t*)mmgr->ctx;
-	debug_mmgr_count++;
-	if (debug_mmgr_count % arg->failmalloc == 0) return HAWK_NULL;
-	rptr = realloc(ptr, size);
-	if (rptr)
-	{
-		if (ptr) debug_mmgr_realloc_count++;
-		else debug_mmgr_alloc_count++;
-	}
-	return rptr;
-}
-
-static void debug_mmgr_free (hawk_mmgr_t* mmgr, void* ptr)
-{
-	debug_mmgr_free_count++;
-	free (ptr);
-}
-
-static hawk_mmgr_t debug_mmgr =
-{
-	debug_mmgr_alloc,
-	debug_mmgr_realloc,
-	debug_mmgr_free,
-	HAWK_NULL
-};
-#endif
 
 /* ------------------------------------------------------------------- */
 
@@ -201,33 +127,31 @@ static void print_usage (FILE* out, const hawk_bch_t* argv0, const hawk_bch_t* r
 	fprintf (out, "       %s%s%s [options] -e script [file]\n", b1, b2, b3);
 
 	fprintf (out, "Options as follows:\n");
-	fprintf (out, " -h/--help                 show this message\n");
-	fprintf (out, " -n                        disable auto-print\n");
-	fprintf (out, " -e                 script specify a script\n");
-	fprintf (out, " -f                 file   specify a script file\n");
-	fprintf (out, " -o                 file   specify an output file\n");
-	fprintf (out, " -r                        use the extended regular expression\n");
-	fprintf (out, " -R                        enable non-standard extensions to the regular\n");
-	fprintf (out, "                           expression\n");
-	fprintf (out, " -i                        perform in-place editing. imply -s\n");
-	fprintf (out, " -s                        process input files separately\n");
-	fprintf (out, " -a                        perform strict address and label check\n");
-	fprintf (out, " -b                        allow extended address formats\n");
-	fprintf (out, "                           <start~step>,<start,+line>,<start,~line>,<0,/regex/>\n");
-	fprintf (out, " -x                        allow text on the same line as c, a, i\n");
-	fprintf (out, " -y                        ensure a newline at text end\n");
-	fprintf (out, " -m                 number specify the maximum amount of memory to use in bytes\n");
-	fprintf (out, " -w                        expand file wildcards\n");
+	fprintf (out, " -h/--help                  show this message\n");
+	fprintf (out, " -D                         show extra information\n");
+	fprintf (out, " -n                         disable auto-print\n");
+	fprintf (out, " -e                 script  specify a script\n");
+	fprintf (out, " -f                 file    specify a script file\n");
+	fprintf (out, " -o                 file    specify an output file\n");
+	fprintf (out, " -r                         use the extended regular expression\n");
+	fprintf (out, " -R                         enable non-standard extensions to the regular\n");
+	fprintf (out, "                            expression\n");
+	fprintf (out, " -i                         perform in-place editing. imply -s\n");
+	fprintf (out, " -s                         process input files separately\n");
+	fprintf (out, " -a                         perform strict address and label check\n");
+	fprintf (out, " -b                         allow extended address formats\n");
+	fprintf (out, "                            <start~step>,<start,+line>,<start,~line>,<0,/regex/>\n");
+	fprintf (out, " -x                         allow text on the same line as c, a, i\n");
+	fprintf (out, " -y                         ensure a newline at text end\n");
+	fprintf (out, " -m/--memory-limit number   specify the maximum amount of memory to use in bytes\n");
+	fprintf (out, " -w                         expand file wildcards\n");
 #if defined(HAWK_ENABLE_SEDTRACER)
-	fprintf (out, " -t                        print command traces\n");
-#endif
-#if defined(HAWK_BUILD_DEBUG)
-	fprintf (out, " -X                 number fail the number'th memory allocation\n");
+	fprintf (out, " -t                         print command traces\n");
 #endif
 #if defined(HAWK_OOCH_IS_UCH)
-	fprintf (out, " --script-encoding  string specify script file encoding name\n");
-	fprintf (out, " --infile-encoding  string specify input file encoding name\n");
-	fprintf (out, " --outfile-encoding string specify output file encoding name\n");
+	fprintf (out, " --script-encoding  string  specify script file encoding name\n");
+	fprintf (out, " --infile-encoding  string  specify input file encoding name\n");
+	fprintf (out, " --outfile-encoding string  specify output file encoding name\n");
 #endif
 }
 
@@ -288,17 +212,13 @@ static int handle_args (int argc, hawk_bch_t* argv[], const hawk_bch_t* real_arg
 		{ ":infile-encoding",  '\0' },
 		{ ":outfile-encoding", '\0' },
 #endif
-
+		{ ":memory-limit",     'm' },
 		{ "help",              'h' },
 		{ HAWK_NULL,           '\0' }
 	};
 	static hawk_bcli_t opt =
 	{
-#if defined(HAWK_BUILD_DEBUG)
-		"hne:f:o:rRisabxytm:wX:",
-#else
-		"hne:f:o:rRisabxytm:w",
-#endif
+		"hDne:f:o:rRisabxytm:w",
 		lng
 	};
 	hawk_bci_t c;
@@ -324,6 +244,10 @@ static int handle_args (int argc, hawk_bch_t* argv[], const hawk_bch_t* real_arg
 			case 'h':
 				print_usage (stdout, argv[0], real_argv0);
 				goto done;
+
+			case 'D':
+				arg->debug = 1;
+				break;
 
 			case 'n':
 				arg->option |= HAWK_SED_QUIET;
@@ -389,12 +313,6 @@ static int handle_args (int argc, hawk_bch_t* argv[], const hawk_bch_t* real_arg
 			case 'w':
 				arg->wildcard = 1;
 				break;
-
-			#if defined(HAWK_BUILD_DEBUG)
-			case 'X':
-				arg->failmalloc = strtoul(opt.arg, HAWK_NULL, 10);
-				break;
-			#endif
 
 			case '\0':
 			{
@@ -790,6 +708,7 @@ static HAWK_INLINE int execute_sed (int argc, hawk_bch_t* argv[], const hawk_bch
 	int xarg_inited = 0;
 	hawk_mmgr_t* mmgr = hawk_get_sys_mmgr();
 	hawk_cmgr_t* cmgr = hawk_get_cmgr_by_id(HAWK_CMGR_UTF8);
+	hawk_mmgr_t xma_mmgr;
 
 	memset (&arg, 0, HAWK_SIZEOF(arg));
 	ret = handle_args(argc, argv, real_argv0, &arg);
@@ -798,18 +717,9 @@ static HAWK_INLINE int execute_sed (int argc, hawk_bch_t* argv[], const hawk_bch
 
 	ret = -1;
 
-#if defined(HAWK_BUILD_DEBUG)
-	if (arg.failmalloc > 0)
-	{
-		debug_mmgr.ctx = &arg;
-		mmgr = &debug_mmgr;
-	}
-	else
-#endif
 	if (arg.memlimit > 0)
 	{
-		xma_mmgr.ctx = hawk_xma_open(hawk_get_sys_mmgr(), 0, HAWK_NULL, arg.memlimit);
-		if (xma_mmgr.ctx == HAWK_NULL)
+		if (hawk_init_xma_mmgr(&xma_mmgr, arg.memlimit) <= -1)
 		{
 			print_error ("cannot open memory heap\n");
 			goto oops;
@@ -1085,21 +995,13 @@ static HAWK_INLINE int execute_sed (int argc, hawk_bch_t* argv[], const hawk_bch
 oops:
 	if (xarg_inited) purge_xarg (&xarg);
 	if (sed) hawk_sed_close (sed);
-	if (xma_mmgr.ctx) hawk_xma_close (xma_mmgr.ctx);
+	if (arg.memlimit > 0)
+	{
+		if (arg.debug) hawk_xma_dump (xma_mmgr.ctx, main_xma_dumper_without_hawk, HAWK_NULL);
+		hawk_fini_xma_mmgr (&xma_mmgr);
+	}
 	free_scripts ();
 
-#if defined(HAWK_BUILD_DEBUG)
-	if (arg.failmalloc > 0)
-	{
-		fprintf (stderr, "\n");
-		fprintf (stderr, "-[MALLOC COUNTS]---------------------------------------\n");
-		fprintf (stderr, "ALLOC: %lu FREE: %lu: REALLOC: %lu\n",
-			(unsigned long)debug_mmgr_alloc_count,
-			(unsigned long)debug_mmgr_free_count,
-			(unsigned long)debug_mmgr_realloc_count);
-		fprintf (stderr, "-------------------------------------------------------\n");
-	}
-#endif
 	return ret;
 }
 

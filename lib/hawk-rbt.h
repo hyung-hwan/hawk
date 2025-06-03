@@ -463,7 +463,7 @@ HAWK_EXPORT hawk_rbt_pair_t* hawk_rbt_update (
  *   hawk_rbt_t* rbt, hawk_rbt_pair_t* pair,
  *   void* kptr, hawk_oow_t klen, void* ctx)
  * {
- *   hawk_cstr_t* v = (hawk_cstr_t*)ctx;
+ *   hawk_oocs_t* v = (hawk_oocs_t*)ctx;
  *   if (pair == HAWK_NULL)
  *   {
  *     // no existing key for the key
@@ -515,7 +515,7 @@ HAWK_EXPORT hawk_rbt_pair_t* hawk_rbt_update (
  *
  *   for (i = 0; i < HAWK_COUNTOF(vals); i++)
  *   {
- *     hawk_cstr_t ctx;
+ *     hawk_oocs_t ctx;
  *     ctx.ptr = vals[i]; ctx.len = hawk_count_oocstr(vals[i]);
  *     hawk_rbt_cbsert (s1,
  *       keys[i%HAWK_COUNTOF(keys)], hawk_count_oocstr(keys[i%HAWK_COUNTOF(keys)]),

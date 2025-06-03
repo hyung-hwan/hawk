@@ -447,3 +447,26 @@ hawk_oow_t FN(fmt) (str_t* str, const char_t* fmt, ...)
 
 	return x;
 }
+
+hawk_oow_t FN(compact) (str_t* str)
+{
+	if (str->val.ptr)
+	{
+		str->val.len = compact_chars(str->val.ptr, str->val.len);
+		str->val.ptr[str->val.len] = '\0';
+	}
+	return str->val.len;
+}
+
+hawk_oow_t FN(trim) (str_t* str, int flags)
+{
+	if (str->val.ptr)
+	{
+		const char_t* ptr;
+		hawk_oow_t len = str->val.len;
+		ptr =  trim_chars(str->val.ptr, &len, flags);
+		copy_chars(str->val.ptr, ptr, len);
+		str->val.ptr[len] = '\0';
+	}
+	return str->val.len;
+}

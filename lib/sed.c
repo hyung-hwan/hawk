@@ -2050,10 +2050,7 @@ static int read_char (hawk_sed_t* sed, hawk_ooch_t* c)
 	{
 		if (sed->e.in.pos >= sed->e.in.len)
 		{
-			n = sed->e.in.fun (
-				sed, HAWK_SED_IO_READ, &sed->e.in.arg,
-				sed->e.in.buf, HAWK_COUNTOF(sed->e.in.buf)
-			);
+			n = sed->e.in.fun(sed, HAWK_SED_IO_READ, &sed->e.in.arg, sed->e.in.buf, HAWK_COUNTOF(sed->e.in.buf));
 			if (n <= -1) return -1;
 			if (n == 0) return 0; /* end of file */
 
@@ -2127,10 +2124,7 @@ static int flush (hawk_sed_t* sed)
 
 	while (sed->e.out.len > 0)
 	{
-		n = sed->e.out.fun (
-			sed, HAWK_SED_IO_WRITE, &sed->e.out.arg,
-			&sed->e.out.buf[pos], sed->e.out.len);
-
+		n = sed->e.out.fun(sed, HAWK_SED_IO_WRITE, &sed->e.out.arg, &sed->e.out.buf[pos], sed->e.out.len);
 		if (n <= -1) return -1;
 		if (n == 0) return -1; /* reached the end of file - this is also an error */
 
@@ -2144,12 +2138,7 @@ static int flush (hawk_sed_t* sed)
 static int write_char (hawk_sed_t* sed, hawk_ooch_t c)
 {
 	sed->e.out.buf[sed->e.out.len++] = c;
-	if (c == HAWK_T('\n') ||
-	    sed->e.out.len >= HAWK_COUNTOF(sed->e.out.buf))
-	{
-		return flush (sed);
-	}
-
+	if (c == HAWK_T('\n') || sed->e.out.len >= HAWK_COUNTOF(sed->e.out.buf)) return flush (sed);
 	return 0;
 }
 
@@ -3949,6 +3938,21 @@ void hawk_sed_pushecb (hawk_sed_t* sed, hawk_sed_ecb_t* ecb)
 	sed->ecb = ecb;
 }
 
+void hawk_sed_getspace (hawk_sed_t* sed, hawk_sed_space_t space, hawk_oocs_t* str)
+{
+	switch (space)
+	{
+		case HAWK_SED_SPACE_HOLD:
+			str->ptr = HAWK_OOECS_PTR(&sed->e.txt.hold);
+			str->len = HAWK_OOECS_LEN(&sed->e.txt.hold);
+			break;
+		case HAWK_SED_SPACE_PATTERN:
+			str->ptr = HAWK_OOECS_PTR(&sed->e.in.line);
+			str->len = HAWK_OOECS_LEN(&sed->e.in.line);
+			break;
+	}
+}
+
 void* hawk_sed_allocmem (hawk_sed_t* sed, hawk_oow_t size)
 {
 	void* ptr = HAWK_MMGR_ALLOC(hawk_sed_getmmgr(sed), size);
@@ -3974,20 +3978,4 @@ void* hawk_sed_reallocmem (hawk_sed_t* sed, void* ptr, hawk_oow_t size)
 void hawk_sed_freemem (hawk_sed_t* sed, void* ptr)
 {
 	HAWK_MMGR_FREE (hawk_sed_getmmgr(sed), ptr);
-}
-
-
-void hawk_sed_getspace (hawk_sed_t* sed, hawk_sed_space_t space, hawk_oocs_t* str)
-{
-	switch (space)
-	{
-		case HAWK_SED_SPACE_HOLD:
-			str->ptr = HAWK_OOECS_PTR(&sed->e.txt.hold);
-			str->len = HAWK_OOECS_LEN(&sed->e.txt.hold);
-			break;
-		case HAWK_SED_SPACE_PATTERN:
-			str->ptr = HAWK_OOECS_PTR(&sed->e.in.line);
-			str->len = HAWK_OOECS_LEN(&sed->e.in.line);
-			break;
-	}
 }

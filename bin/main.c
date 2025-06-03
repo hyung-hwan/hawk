@@ -26,7 +26,18 @@
 
 #include "main.h"
 #include <hawk.h>
+#include <hawk-xma.h>
 #include <stdio.h>
+
+void main_xma_dumper_without_hawk (void* ctx, const hawk_bch_t* fmt, ...)
+{
+	va_list ap;
+	va_start (ap, fmt);
+	vfprintf (stderr, fmt, ap);
+	va_end (ap);
+}
+
+/* -------------------------------------------------------- */
 
 static int main_version(int argc, hawk_bch_t* argv[], const hawk_bch_t* real_argv0)
 {

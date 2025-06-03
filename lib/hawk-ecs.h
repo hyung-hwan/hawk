@@ -335,6 +335,15 @@ HAWK_EXPORT hawk_oow_t hawk_becs_fmt (
 	...
 );
 
+HAWK_EXPORT hawk_oow_t hawk_becs_compact (
+	hawk_becs_t*       str
+);
+
+HAWK_EXPORT hawk_oow_t hawk_becs_trim (
+	hawk_becs_t*       str,
+	int                flags
+);
+
 /* ------------------------------------------------------------------------ */
 
 /**
@@ -550,6 +559,15 @@ HAWK_EXPORT hawk_oow_t hawk_uecs_fmt (
 	...
 );
 
+HAWK_EXPORT hawk_oow_t hawk_uecs_compact (
+	hawk_uecs_t*       str
+);
+
+HAWK_EXPORT hawk_oow_t hawk_uecs_trim (
+	hawk_uecs_t*       str,
+	int                flags
+);
+
 #if defined(HAWK_OOCH_IS_UCH)
 #	define hawk_ooecs_open hawk_uecs_open
 #	define hawk_ooecs_close hawk_uecs_close
@@ -579,6 +597,8 @@ HAWK_EXPORT hawk_oow_t hawk_uecs_fmt (
 #	define hawk_ooecs_fcat hawk_uecs_fcat
 #	define hawk_ooecs_vfmt hawk_uecs_vfmt
 #	define hawk_ooecs_fmt hawk_uecs_fmt
+#	define hawk_ooecs_compact hawk_uecs_compact
+#	define hawk_ooecs_trim hawk_uecs_trim
 #else
 #	define hawk_ooecs_open hawk_becs_open
 #	define hawk_ooecs_close hawk_becs_close
@@ -608,6 +628,8 @@ HAWK_EXPORT hawk_oow_t hawk_uecs_fmt (
 #	define hawk_ooecs_fcat hawk_becs_fcat
 #	define hawk_ooecs_vfmt hawk_becs_vfmt
 #	define hawk_ooecs_fmt hawk_becs_fmt
+#	define hawk_ooecs_compact hawk_becs_compact
+#	define hawk_ooecs_trim hawk_becs_trim
 #endif
 
 HAWK_EXPORT hawk_oow_t hawk_becs_ncatuchars (

@@ -26,6 +26,7 @@
 #include <hawk-std.h>
 #include <hawk-pio.h>
 #include <hawk-sio.h>
+#include <hawk-xma.h>
 
 #include <stdio.h>
 #include <stdarg.h>
@@ -233,6 +234,47 @@ hawk_mmgr_t* hawk_get_sys_mmgr (void)
 {
 	return &sys_mmgr;
 }
+
+/* ----------------------------------------------------------------------- */
+
+
+static void* xma_alloc (hawk_mmgr_t* mmgr, hawk_oow_t size)
+{
+	return hawk_xma_alloc(mmgr->ctx, size);
+}
+
+static void* xma_realloc (hawk_mmgr_t* mmgr, void* ptr, hawk_oow_t size)
+{
+	return hawk_xma_realloc(mmgr->ctx, ptr, size);
+}
+
+static void xma_free (hawk_mmgr_t* mmgr, void* ptr)
+{
+	hawk_xma_free (mmgr->ctx, ptr);
+}
+
+int hawk_init_xma_mmgr (hawk_mmgr_t* mmgr, hawk_oow_t memlimit)
+{
+	hawk_xma_t* xma;
+
+	xma = hawk_xma_open(hawk_get_sys_mmgr(), 0, HAWK_NULL, memlimit);
+	if (HAWK_UNLIKELY(!xma)) return -1;
+
+	HAWK_MEMSET(mmgr, 0, HAWK_SIZEOF(*mmgr));
+	mmgr->alloc = xma_alloc;
+	mmgr->realloc = xma_realloc;
+	mmgr->free = xma_free;
+	mmgr->ctx = xma;
+
+	return 0;
+}
+
+void hawk_fini_xma_mmgr (hawk_mmgr_t* mmgr)
+{
+	if (mmgr->ctx) hawk_xma_close(mmgr->ctx);
+	mmgr->ctx = HAWK_NULL;
+}
+
 /* ----------------------------------------------------------------------- */
 
 
@@ -2490,14 +2532,13 @@ static int open_rio_console (hawk_rtx_t* rtx, hawk_rio_arg_t* riod)
 
 			if (rxtn->c.out.count == 0)
 			{
-				sio = open_sio_std_rtx (
+				sio = open_sio_std_rtx(
 					rtx, HAWK_SIO_STDOUT,
 					HAWK_SIO_WRITE | HAWK_SIO_IGNOREECERR | HAWK_SIO_LINEBREAK
 				);
 				if (sio == HAWK_NULL) return -1;
 
 				if (rxtn->c.cmgr) hawk_sio_setcmgr (sio, rxtn->c.cmgr);
-
 				riod->handle = sio;
 				rxtn->c.out.count++;
 				return 1;

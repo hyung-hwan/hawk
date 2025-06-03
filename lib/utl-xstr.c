@@ -720,7 +720,7 @@ hawk_flt_t hawk_uchars_to_flt (const hawk_uch_t* str, hawk_oow_t len, const hawk
 	end = str + len;
 
 	/* Strip off leading blanks and check for a sign */
-	/*while (AWK_IS_SPACE(*p)) p++;*/
+	/*while (hawk_is_uch_space(*p)) p++;*/
 	if (stripspc)
 	{
 		/* strip off leading spaces */
@@ -929,7 +929,7 @@ hawk_flt_t hawk_bchars_to_flt (const hawk_bch_t* str, hawk_oow_t len, const hawk
 	end = str + len;
 
 	/* Strip off leading blanks and check for a sign */
-	/*while (AWK_IS_SPACE(*p)) p++;*/
+	/*while (hawk_is_bch_space(*p)) p++;*/
 	if (stripspc)
 	{
 		/* strip off leading spaces */

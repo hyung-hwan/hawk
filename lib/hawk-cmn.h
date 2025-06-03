@@ -1079,6 +1079,10 @@ enum hawk_errnum_t
 	HAWK_SED_ECSLNV,  /**< cut selector not valid */
 	HAWK_SED_EIOFIL,  /**< io error with file '${0}' */
 
+	/* cut errors */
+	HAWK_CUT_ESELNV,  /**< selector not valid */
+        HAWK_CUT_EIOFIL,  /**< io error with file '${0}'*/
+
 	/* the number of error numbers, internal use only */
 	HAWK_NUMERRNUMS
 };

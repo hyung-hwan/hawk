@@ -120,12 +120,13 @@ hawk_sed_t* hawk_sed_openstdwithmmgr (hawk_mmgr_t* mmgr, hawk_oow_t xtnsize, haw
 	if (!cmgr) cmgr = hawk_get_cmgr_by_id(HAWK_CMGR_UTF8);
 
 	sed = hawk_sed_open(mmgr, HAWK_SIZEOF(xtn_t) + xtnsize, cmgr, errnum);
-	if (!sed) return HAWK_NULL;
+	if (HAWK_UNLIKELY(!sed)) return HAWK_NULL;
 
 	sed->_instsize += HAWK_SIZEOF(xtn_t);
-
 	return sed;
 }
+
+/* ------------------------------------------------------------- */
 
 static int verify_iostd_in (hawk_sed_t* sed, hawk_sed_iostd_t in[])
 {
@@ -135,7 +136,7 @@ static int verify_iostd_in (hawk_sed_t* sed, hawk_sed_iostd_t in[])
 	{
 		/* if 'in' is specified, it must contains at least one
 		 * valid entry */
-		hawk_sed_seterrbfmt (sed, HAWK_NULL, HAWK_EINVAL, "no input handler provided");
+		hawk_sed_seterrbfmt(sed, HAWK_NULL, HAWK_EINVAL, "no input handler provided");
 		return -1;
 	}
 
@@ -149,7 +150,7 @@ static int verify_iostd_in (hawk_sed_t* sed, hawk_sed_iostd_t in[])
 		    in[i].type != HAWK_SED_IOSTD_UCS &&
 		    in[i].type != HAWK_SED_IOSTD_SIO)
 		{
-			hawk_sed_seterrbfmt (sed, HAWK_NULL, HAWK_EINVAL, "unsupported input type provided - handler %d type %d", i, in[i].type);
+			hawk_sed_seterrbfmt(sed, HAWK_NULL, HAWK_EINVAL, "unsupported input type provided - handler %d type %d", i, in[i].type);
 			return -1;
 		}
 	}
@@ -165,7 +166,7 @@ static hawk_sio_t* open_sio_file (hawk_sed_t* sed, const hawk_ooch_t* file, int 
 	if (sio == HAWK_NULL)
 	{
 		const hawk_ooch_t* bem = hawk_sed_backuperrmsg(sed);
-		hawk_sed_seterrbfmt (sed, HAWK_NULL, HAWK_SED_EIOFIL, "unable to open %js - %js", file, bem);
+		hawk_sed_seterrbfmt(sed, HAWK_NULL, HAWK_SED_EIOFIL, "unable to open %js - %js", file, bem);
 	}
 	return sio;
 }
@@ -188,7 +189,7 @@ static hawk_ooch_t* add_sio_name_with_uchars (hawk_sed_t* sed, const hawk_uch_t*
 	link = (hawk_link_t*)hawk_sed_callocmem(sed, HAWK_SIZEOF(*link) + HAWK_SIZEOF(hawk_uch_t) * (len + 1));
 	if (!link) return HAWK_NULL;
 
-	hawk_copy_uchars_to_ucstr_unlimited ((hawk_uch_t*)(link + 1), ptr, len);
+	hawk_copy_uchars_to_ucstr_unlimited((hawk_uch_t*)(link + 1), ptr, len);
 #else
 	hawk_oow_t bcslen, ucslen;
 
@@ -200,7 +201,7 @@ static hawk_ooch_t* add_sio_name_with_uchars (hawk_sed_t* sed, const hawk_uch_t*
 
 	ucslen = len;
 	bcslen = bcslen + 1;
-	hawk_gem_convutobchars (hawk_sed_getgem(sed), ptr, &ucslen, (hawk_bch_t*)(link + 1), &bcslen);
+	hawk_gem_convutobchars(hawk_sed_getgem(sed), ptr, &ucslen, (hawk_bch_t*)(link + 1), &bcslen);
 	((hawk_bch_t*)(link + 1))[bcslen] = '\0';
 #endif
 
@@ -228,14 +229,14 @@ static hawk_ooch_t* add_sio_name_with_bchars (hawk_sed_t* sed, const hawk_bch_t*
 
 	bcslen = len;
 	ucslen = ucslen + 1;
-	hawk_gem_convbtouchars (hawk_sed_getgem(sed), ptr, &bcslen, (hawk_uch_t*)(link + 1), &ucslen, 0);
+	hawk_gem_convbtouchars(hawk_sed_getgem(sed), ptr, &bcslen, (hawk_uch_t*)(link + 1), &ucslen, 0);
 	((hawk_uch_t*)(link + 1))[ucslen] = '\0';
 
 #else
 	link = (hawk_link_t*)hawk_sed_callocmem(sed, HAWK_SIZEOF(*link) + HAWK_SIZEOF(hawk_bch_t) * (len + 1));
 	if (!link) return HAWK_NULL;
 
-	hawk_copy_bchars_to_bcstr_unlimited ((hawk_bch_t*)(link + 1), ptr, len);
+	hawk_copy_bchars_to_bcstr_unlimited((hawk_bch_t*)(link + 1), ptr, len);
 #endif
 
 	link->link = xtn->sio_names;
@@ -265,7 +266,7 @@ static hawk_sio_t* open_sio_std (hawk_sed_t* sed, hawk_sio_std_t std, int flags)
 	if (sio == HAWK_NULL)
 	{
 		const hawk_ooch_t* bem = hawk_sed_backuperrmsg(sed);
-		hawk_sed_seterrbfmt (sed, HAWK_NULL, HAWK_SED_EIOFIL, "unable to open %js - %js", &sio_std_names[std], bem);
+		hawk_sed_seterrbfmt(sed, HAWK_NULL, HAWK_SED_EIOFIL, "unable to open %js - %js", &sio_std_names[std], bem);
 	}
 	return sio;
 }
@@ -284,25 +285,25 @@ static void set_eiofil_for_iostd (hawk_sed_t* sed, hawk_sed_iostd_t* io)
 			case HAWK_SED_IOSTD_FILE:
 		#endif
 			case HAWK_SED_IOSTD_FILEB:
-				hawk_sed_seterrbfmt (sed, HAWK_NULL, HAWK_SED_EIOFIL, "I/O error with file '%hs' - %js", io->u.fileb.path, bem);
+				hawk_sed_seterrbfmt(sed, HAWK_NULL, HAWK_SED_EIOFIL, "I/O error with file '%hs' - %js", io->u.fileb.path, bem);
 				break;
 
 		#if defined(HAWK_OOCH_IS_UCH)
 			case HAWK_SED_IOSTD_FILE:
 		#endif
 			case HAWK_SED_IOSTD_FILEU:
-				hawk_sed_seterrbfmt (sed, HAWK_NULL, HAWK_SED_EIOFIL, "I/O error with file '%ls' - %js", io->u.fileu.path, bem);
+				hawk_sed_seterrbfmt(sed, HAWK_NULL, HAWK_SED_EIOFIL, "I/O error with file '%ls' - %js", io->u.fileu.path, bem);
 				break;
 
 			default:
 				HAWK_ASSERT (!"should never happen - unknown file I/O type");
-				hawk_sed_seterrnum (sed, HAWK_NULL, HAWK_EINVAL);
+				hawk_sed_seterrnum(sed, HAWK_NULL, HAWK_EINVAL);
 				break;
 		}
 	}
 	else
 	{
-		hawk_sed_seterrbfmt (sed, HAWK_NULL, HAWK_SED_EIOFIL, "I/O error with file '%js' - %js", &sio_std_names[HAWK_SIO_STDIN], bem);
+		hawk_sed_seterrbfmt(sed, HAWK_NULL, HAWK_SED_EIOFIL, "I/O error with file '%js' - %js", &sio_std_names[HAWK_SIO_STDIN], bem);
 	}
 }
 
@@ -314,7 +315,7 @@ static void close_main_stream (hawk_sed_t* sed, hawk_sed_io_arg_t* arg, hawk_sed
 		case HAWK_SED_IOSTD_FILE:
 		case HAWK_SED_IOSTD_FILEB:
 		case HAWK_SED_IOSTD_FILEU:
-			hawk_sio_close (arg->handle);
+			hawk_sio_close(arg->handle);
 			break;
 
 		case HAWK_SED_IOSTD_OOCS:
@@ -412,7 +413,7 @@ static int open_input_stream (hawk_sed_t* sed, hawk_sed_io_arg_t* arg, hawk_sed_
 
 		default:
 			HAWK_ASSERT (!"should never happen - io-type must be one of SIO,FILE,FILEB,FILEU,STR");
-			hawk_sed_seterrnum (sed, HAWK_NULL, HAWK_EINTERN);
+			hawk_sed_seterrnum(sed, HAWK_NULL, HAWK_EINTERN);
 			return -1;
 	}
 
@@ -576,7 +577,7 @@ static int open_output_stream (hawk_sed_t* sed, hawk_sed_io_arg_t* arg, hawk_sed
 
 		default:
 			HAWK_ASSERT (!"should never happen - io-type must be one of SIO,FILE,FILEB,FILEU,STR");
-			hawk_sed_seterrnum (sed, HAWK_NULL, HAWK_EINTERN);
+			hawk_sed_seterrnum(sed, HAWK_NULL, HAWK_EINTERN);
 			return -1;
 	}
 
@@ -624,7 +625,7 @@ static hawk_ooi_t read_input_stream (hawk_sed_t* sed, hawk_sed_io_arg_t* arg, ha
 			wcslen = len;
 			if ((m = hawk_conv_bchars_to_uchars_with_cmgr(&io->u.bcs.ptr[base->mempos], &mbslen, buf, &wcslen, hawk_sed_getcmgr(sed), 0)) <= -1 && m != -2)
 			{
-				hawk_sed_seterrnum (sed, HAWK_NULL, HAWK_EECERR);
+				hawk_sed_seterrnum(sed, HAWK_NULL, HAWK_EECERR);
 				n = -1;
 			}
 			else
@@ -646,7 +647,7 @@ static hawk_ooi_t read_input_stream (hawk_sed_t* sed, hawk_sed_io_arg_t* arg, ha
 			mbslen = len;
 			if ((m = hawk_conv_uchars_to_bchars_with_cmgr(&io->u.ucs.ptr[base->mempos], &wcslen, buf, &mbslen, hawk_sed_getcmgr(sed))) <= -1 && m != -2)
 			{
-				hawk_sed_seterrnum (sed, HAWK_NULL, HAWK_EECERR);
+				hawk_sed_seterrnum(sed, HAWK_NULL, HAWK_EECERR);
 				n = -1;
 			}
 			else
@@ -714,7 +715,7 @@ static hawk_ooi_t read_input_stream (hawk_sed_t* sed, hawk_sed_io_arg_t* arg, ha
 		arg->handle = old;
 
 		/* close the previous stream */
-		close_main_stream (sed, arg, io);
+		close_main_stream(sed, arg, io);
 
 		arg->handle = new;
 
@@ -739,7 +740,7 @@ static hawk_ooi_t s_in (hawk_sed_t* sed, hawk_sed_io_cmd_t cmd, hawk_sed_io_arg_
 
 		case HAWK_SED_IO_CLOSE:
 		{
-			close_main_stream (sed, arg, xtn->s.in.cur);
+			close_main_stream(sed, arg, xtn->s.in.cur);
 			return 0;
 		}
 
@@ -751,7 +752,7 @@ static hawk_ooi_t s_in (hawk_sed_t* sed, hawk_sed_io_cmd_t cmd, hawk_sed_io_arg_
 		default:
 		{
 			HAWK_ASSERT (!"should never happen - cmd must be one of OPEN,CLOSE,READ");
-			hawk_sed_seterrnum (sed, HAWK_NULL, HAWK_EINTERN);
+			hawk_sed_seterrnum(sed, HAWK_NULL, HAWK_EINTERN);
 			return -1;
 		}
 	}
@@ -799,13 +800,13 @@ static hawk_ooi_t x_in (hawk_sed_t* sed, hawk_sed_io_cmd_t cmd, hawk_sed_io_arg_
 			{
 				/* main data stream */
 				if (xtn->e.in.ptr == HAWK_NULL)
-					hawk_sio_close (arg->handle);
+					hawk_sio_close(arg->handle);
 				else
-					close_main_stream (sed, arg, xtn->e.in.cur);
+					close_main_stream(sed, arg, xtn->e.in.cur);
 			}
 			else
 			{
-				hawk_sio_close (arg->handle);
+				hawk_sio_close(arg->handle);
 			}
 
 			return 0;
@@ -823,7 +824,7 @@ static hawk_ooi_t x_in (hawk_sed_t* sed, hawk_sed_io_cmd_t cmd, hawk_sed_io_arg_
 					if (n <= -1)
 					{
 						const hawk_ooch_t* bem = hawk_sed_backuperrmsg(sed);
-						hawk_sed_seterrbfmt (sed, HAWK_NULL, HAWK_SED_EIOFIL, "unable to read '%js' - %js", &sio_std_names[HAWK_SIO_STDIN], bem);
+						hawk_sed_seterrbfmt(sed, HAWK_NULL, HAWK_SED_EIOFIL, "unable to read '%js' - %js", &sio_std_names[HAWK_SIO_STDIN], bem);
 					}
 					return n;
 				}
@@ -839,7 +840,7 @@ static hawk_ooi_t x_in (hawk_sed_t* sed, hawk_sed_io_cmd_t cmd, hawk_sed_io_arg_
 				if (n <= -1)
 				{
 					const hawk_ooch_t* bem = hawk_sed_backuperrmsg(sed);
-					hawk_sed_seterrbfmt (sed, HAWK_NULL, HAWK_SED_EIOFIL, "unable to read '%js' - %js", arg->path, bem);
+					hawk_sed_seterrbfmt(sed, HAWK_NULL, HAWK_SED_EIOFIL, "unable to read '%js' - %js", arg->path, bem);
 				}
 				return n;
 			}
@@ -847,7 +848,7 @@ static hawk_ooi_t x_in (hawk_sed_t* sed, hawk_sed_io_cmd_t cmd, hawk_sed_io_arg_
 
 		default:
 			HAWK_ASSERT (!"should never happen - cmd must be one of OPEN,CLOSE,READ");
-			hawk_sed_seterrnum (sed, HAWK_NULL, HAWK_EINTERN);
+			hawk_sed_seterrnum(sed, HAWK_NULL, HAWK_EINTERN);
 			return -1;
 	}
 }
@@ -908,13 +909,13 @@ static hawk_ooi_t x_out (
 			if (arg->path == HAWK_NULL)
 			{
 				if (xtn->e.out.ptr == HAWK_NULL)
-					hawk_sio_close (arg->handle);
+					hawk_sio_close(arg->handle);
 				else
-					close_main_stream (sed, arg, xtn->e.out.ptr);
+					close_main_stream(sed, arg, xtn->e.out.ptr);
 			}
 			else
 			{
-				hawk_sio_close (arg->handle);
+				hawk_sio_close(arg->handle);
 			}
 			return 0;
 		}
@@ -977,7 +978,7 @@ static hawk_ooi_t x_out (
 				if (n <= -1)
 				{
 					const hawk_ooch_t* bem = hawk_sed_backuperrmsg(sed);
-					hawk_sed_seterrbfmt (sed, HAWK_NULL, HAWK_SED_EIOFIL, "unable to write '%js' - %js", arg->path, bem);
+					hawk_sed_seterrbfmt(sed, HAWK_NULL, HAWK_SED_EIOFIL, "unable to write '%js' - %js", arg->path, bem);
 				}
 				return n;
 			}
@@ -985,10 +986,12 @@ static hawk_ooi_t x_out (
 
 		default:
 			HAWK_ASSERT (!"should never happen - cmd must be one of OPEN,CLOSE,WRITE");
-			hawk_sed_seterrnum (sed, HAWK_NULL, HAWK_EINTERN);
+			hawk_sed_seterrnum(sed, HAWK_NULL, HAWK_EINTERN);
 			return -1;
 	}
 }
+
+/* ------------------------------------------------------------- */
 
 int hawk_sed_compstd (hawk_sed_t* sed, hawk_sed_iostd_t in[], hawk_oow_t* count)
 {
@@ -998,7 +1001,7 @@ int hawk_sed_compstd (hawk_sed_t* sed, hawk_sed_iostd_t in[], hawk_oow_t* count)
 	if (in == HAWK_NULL)
 	{
 		/* it requires a valid array unlike hawk_sed_execstd(). */
-		hawk_sed_seterrbfmt (sed, HAWK_NULL, HAWK_EINVAL, "no input handler provided");
+		hawk_sed_seterrbfmt(sed, HAWK_NULL, HAWK_EINVAL, "no input handler provided");
 		if (count) *count = 0;
 		return -1;
 	}
@@ -1008,7 +1011,7 @@ int hawk_sed_compstd (hawk_sed_t* sed, hawk_sed_iostd_t in[], hawk_oow_t* count)
 		return -1;
 	}
 
-	HAWK_MEMSET (&xtn->s, 0, HAWK_SIZEOF(xtn->s));
+	HAWK_MEMSET(&xtn->s, 0, HAWK_SIZEOF(xtn->s));
 	xtn->s.in.ptr = in;
 	xtn->s.in.cur = in;
 
@@ -1016,7 +1019,7 @@ int hawk_sed_compstd (hawk_sed_t* sed, hawk_sed_iostd_t in[], hawk_oow_t* count)
 
 	if (count) *count = xtn->s.in.cur - xtn->s.in.ptr;
 
-	clear_sio_names (sed);
+	clear_sio_names(sed);
 	return ret;
 }
 
@@ -1035,12 +1038,12 @@ int hawk_sed_execstd (hawk_sed_t* sed, hawk_sed_iostd_t in[], hawk_sed_iostd_t* 
 		    out->type != HAWK_SED_IOSTD_OOCS &&
 		    out->type != HAWK_SED_IOSTD_SIO)
 		{
-			hawk_sed_seterrnum (sed, HAWK_NULL, HAWK_EINVAL);
+			hawk_sed_seterrnum(sed, HAWK_NULL, HAWK_EINVAL);
 			return -1;
 		}
 	}
 
-	HAWK_MEMSET (&xtn->e, 0, HAWK_SIZEOF(xtn->e));
+	HAWK_MEMSET(&xtn->e, 0, HAWK_SIZEOF(xtn->e));
 	xtn->e.in.ptr = in;
 	xtn->e.in.cur = in;
 	xtn->e.out.ptr = out;
@@ -1060,7 +1063,7 @@ int hawk_sed_execstd (hawk_sed_t* sed, hawk_sed_iostd_t in[], hawk_sed_iostd_t* 
 					HAWK_ASSERT (xtn->e.out.memstr.be != HAWK_NULL);
 					hawk_becs_yield (xtn->e.out.memstr.be, &out->u.bcs, 0);
 				}
-				if (xtn->e.out.memstr.be) hawk_becs_close (xtn->e.out.memstr.be);
+				if (xtn->e.out.memstr.be) hawk_becs_close(xtn->e.out.memstr.be);
 				break;
 
 		#if defined(HAWK_OOCH_IS_UCH)
@@ -1072,7 +1075,7 @@ int hawk_sed_execstd (hawk_sed_t* sed, hawk_sed_iostd_t in[], hawk_sed_iostd_t* 
 					HAWK_ASSERT (xtn->e.out.memstr.ue != HAWK_NULL);
 					hawk_uecs_yield (xtn->e.out.memstr.ue, &out->u.ucs, 0);
 				}
-				if (xtn->e.out.memstr.ue) hawk_uecs_close (xtn->e.out.memstr.ue);
+				if (xtn->e.out.memstr.ue) hawk_uecs_close(xtn->e.out.memstr.ue);
 				break;
 
 			default:
@@ -1082,7 +1085,7 @@ int hawk_sed_execstd (hawk_sed_t* sed, hawk_sed_iostd_t in[], hawk_sed_iostd_t* 
 
 	}
 
-	clear_sio_names (sed);
+	clear_sio_names(sed);
 	return n;
 }
 

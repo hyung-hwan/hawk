@@ -735,6 +735,15 @@ HAWK_EXPORT void hawk_sed_setlinenum (
 	hawk_oow_t num    /**< a line number */
 );
 
+/**
+ * The hawk_sed_getspace() function gets the pointer and the length
+ * to a buffer space specfied by \a space.
+ */
+HAWK_EXPORT void hawk_sed_getspace (
+	hawk_sed_t*      sed,
+	hawk_sed_space_t space,
+	hawk_oocs_t*     str
+);
 
 /**
  * The hawk_sed_allocmem() function allocates a chunk of memory using
@@ -746,7 +755,7 @@ HAWK_EXPORT void* hawk_sed_allocmem (
 );
 
 /**
- * The hawk_sed_allocmem() function allocates a chunk of memory using
+ * The hawk_sed_callocmem() function allocates a chunk of memory using
  * the memory manager of \a sed and clears it to zeros.
  */
 HAWK_EXPORT void* hawk_sed_callocmem (
@@ -755,7 +764,7 @@ HAWK_EXPORT void* hawk_sed_callocmem (
 );
 
 /**
- * The hawk_sed_allocmem() function reallocates a chunk of memory using
+ * The hawk_sed_reallocmem() function reallocates a chunk of memory using
  * the memory manager of \a sed.
  */
 HAWK_EXPORT void* hawk_sed_reallocmem (
@@ -765,22 +774,12 @@ HAWK_EXPORT void* hawk_sed_reallocmem (
 );
 
 /**
- * The hawk_sed_allocmem() function frees a chunk of memory using
+ * The hawk_sed_freemem() function frees a chunk of memory using
  * the memory manager of \a sed.
  */
 HAWK_EXPORT void hawk_sed_freemem (
 	hawk_sed_t* sed,
 	void*      ptr
-);
-
-/**
- * The hawk_sed_getspace() function gets the pointer and the length
- * to a buffer space specfied by \a space.
- */
-HAWK_EXPORT void hawk_sed_getspace (
-	hawk_sed_t*      sed,
-	hawk_sed_space_t space,
-	hawk_oocs_t*     str
 );
 
 /* ------------------------------------------------------------------------ */

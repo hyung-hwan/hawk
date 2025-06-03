@@ -231,7 +231,7 @@ public:
 
 	///
 	/// The getErrorNumber() function gets the number of the last 
-	/// error occurred. It returns HAWK_SED_ENOERR if the stream editor
+	/// error occurred. It returns HAWK_ENOERR if the stream editor
 	/// has not been initialized with the open() function.
 	///
 	hawk_errnum_t getErrorNumber () const;
