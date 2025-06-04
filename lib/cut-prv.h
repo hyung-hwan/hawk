@@ -37,8 +37,8 @@ struct hawk_cut_sel_blk_t
 	{
 		enum
 		{
-			HAWK_SED_SEL_CHAR = HAWK_T('c'),
-			HAWK_SED_SEL_FIELD = HAWK_T('f')
+			HAWK_CUT_SEL_CHAR = HAWK_T('c'),
+			HAWK_CUT_SEL_FIELD = HAWK_T('f')
 		} id;
 		hawk_oow_t start;
 		hawk_oow_t end;
@@ -69,7 +69,25 @@ struct hawk_cut_t
 		hawk_oow_t         count; 
 		hawk_oow_t         fcount; 
 		hawk_oow_t         ccount; 
-        } sel;
+	} sel;
+
+	/** source text pointers */
+	struct
+	{
+		hawk_cut_io_impl_t fun; /**< input stream handler */
+		hawk_cut_io_arg_t  arg;
+		hawk_ooch_t        buf[1024];
+		int                eof;
+
+		//hawk_cut_cid_t*         cid;
+		//hawk_cut_unknown_cid_t  unknown_cid;
+
+		hawk_loc_t         loc; /**< location */
+		hawk_ooci_t        cc;  /**< last character read */
+		const hawk_ooch_t* ptr; /**< beginning of the source text */
+		const hawk_ooch_t* end; /**< end of the source text */
+		const hawk_ooch_t* cur; /**< current source text pointer */
+	} src;
 
 	struct
 	{

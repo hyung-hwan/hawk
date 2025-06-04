@@ -18,7 +18,7 @@ bin_PROGRAMS = hawk
 ##################################################
 # hawk
 ##################################################
-hawk_SOURCES = hawk.c sed.c main.c main.h
+hawk_SOURCES = cut.c hawk.c sed.c main.c main.h
 hawk_CPPFLAGS = $(CPPFLAGS_COMMON)
 hawk_CFLAGS = $(CFLAGS_COMMON)
 hawk_LDFLAGS = $(LDFLAGS_COMMON)

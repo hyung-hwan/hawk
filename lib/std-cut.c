@@ -103,11 +103,6 @@ hawk_cut_t* hawk_cut_openstdwithmmgr (hawk_mmgr_t* mmgr, hawk_oow_t xtnsize, haw
 	return cut;
 }
 
-int hawk_cut_compstd (hawk_cut_t* cut, const hawk_ooch_t* sptr)
-{
-	return hawk_cut_comp(cut, sptr, hawk_count_oocstr(sptr));
-}
-
 #if 0
 
 static hawk_ooi_t xin (hawk_cut_t* cut, hawk_cut_io_cmd_t cmd, hawk_cut_io_arg_t* arg, hawk_ooch_t* buf, hawk_oow_t len)
@@ -1114,6 +1109,61 @@ static hawk_ooi_t x_out (
 }
 
 #endif
+
+/* ------------------------------------------------------------- */
+
+int hawk_cut_compstd (hawk_cut_t* cut, hawk_cut_iostd_t in[], hawk_oow_t* count)
+{
+	xtn_t* xtn = GET_XTN(cut);
+	int ret;
+
+	if (in == HAWK_NULL)
+	{
+		/* it requires a valid array unlike hawk_cut_execstd(). */
+		hawk_cut_seterrbfmt(cut, HAWK_NULL, HAWK_EINVAL, "no input handler provided");
+		if (count) *count = 0;
+		return -1;
+	}
+	if (verify_iostd_in(cut, in) <= -1)
+	{
+		if (count) *count = 0;
+		return -1;
+	}
+
+	HAWK_MEMSET(&xtn->s, 0, HAWK_SIZEOF(xtn->s));
+	xtn->s.in.ptr = in;
+	xtn->s.in.cur = in;
+
+	ret = hawk_cut_comp(cut, s_in);
+
+	if (count) *count = xtn->s.in.cur - xtn->s.in.ptr;
+
+	clear_sio_names(cut);
+	return ret;
+}
+
+int hawk_cut_compstdoocstr (hawk_cut_t* cut, const hawk_ooch_t* script)
+{
+	hawk_cut_iostd_t in[2];
+
+	in[0].type = HAWK_CUT_IOSTD_OOCS;
+	in[0].u.oocs.ptr = (hawk_ooch_t*)script;
+	in[0].u.oocs.len = hawk_count_oocstr(script);
+	in[1].type = HAWK_CUT_IOSTD_NULL;
+
+	return hawk_cut_compstd(cut, in, HAWK_NULL);
+}
+
+int hawk_cut_compstdoocs (hawk_cut_t* cut, const hawk_oocs_t* script)
+{
+	hawk_cut_iostd_t in[2];
+
+	in[0].type = HAWK_CUT_IOSTD_OOCS;
+	in[0].u.oocs = *script;
+	in[1].type = HAWK_CUT_IOSTD_NULL;
+
+	return hawk_cut_compstd(cut, in, HAWK_NULL);
+}
 
 /* ------------------------------------------------------------- */
 

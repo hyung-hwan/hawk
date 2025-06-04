@@ -470,28 +470,9 @@ static void dprint_return (hawk_rtx_t* rtx, hawk_val_t* ret)
 #if defined(ENABLE_CALLBACK)
 static void on_statement (hawk_rtx_t* rtx, hawk_nde_t* nde)
 {
-
 	hawk_logfmt (hawk_rtx_gethawk(rtx), HAWK_LOG_STDERR, HAWK_T("running %d at line %zu\n"), (int)nde->type, (hawk_oow_t)nde->loc.line);
 }
 #endif
-
-static void print_error (const hawk_bch_t* fmt, ...)
-{
-	va_list va;
-	fprintf (stderr, "ERROR: ");
-	va_start (va, fmt);
-	vfprintf (stderr, fmt, va);
-	va_end (va);
-}
-
-static void print_warning (const hawk_bch_t* fmt, ...)
-{
-	va_list va;
-	fprintf (stderr, "WARNING: ");
-	va_start (va, fmt);
-	vfprintf (stderr, fmt, va);
-	va_end (va);
-}
 
 struct opttab_t
 {
@@ -702,7 +683,7 @@ static int process_argv (int argc, hawk_bch_t* argv[], const hawk_bch_t* real_ar
 	isf = (hawk_parsestd_t*)malloc(HAWK_SIZEOF(*isf) * isfc);
 	if (!isf)
 	{
-		print_error ("out of memory\n");
+		hawk_main_print_error("out of memory\n");
 		goto oops;
 	}
 
@@ -730,7 +711,7 @@ static int process_argv (int argc, hawk_bch_t* argv[], const hawk_bch_t* real_ar
 					tmp = (hawk_parsestd_t*)realloc(isf, HAWK_SIZEOF(*isf) * (isfc + 16));
 					if (tmp == HAWK_NULL)
 					{
-						print_error ("out of memory\n");
+						hawk_main_print_error("out of memory\n");
 						goto oops;
 					}
 
@@ -758,7 +739,7 @@ static int process_argv (int argc, hawk_bch_t* argv[], const hawk_bch_t* real_ar
 				tmp.len = hawk_count_bcstr(opt.arg);
 				if (collect_into_xarg(&tmp, &arg->ocf) <= -1)
 				{
-					print_error ("out of memory\n");
+					hawk_main_print_error("out of memory\n");
 					goto oops;
 				}
 				arg->ocf.ptr[arg->ocf.size] = HAWK_NULL;
@@ -779,9 +760,9 @@ static int process_argv (int argc, hawk_bch_t* argv[], const hawk_bch_t* real_ar
 				if (eq == HAWK_NULL)
 				{
 					if (opt.lngopt)
-						print_error ("no value for '%s' in '%s'\n", opt.arg, opt.lngopt);
+						hawk_main_print_error("no value for '%s' in '%s'\n", opt.arg, opt.lngopt);
 					else
-						print_error ("no value for '%s' in '%c'\n", opt.arg, opt.opt);
+						hawk_main_print_error("no value for '%s' in '%c'\n", opt.arg, opt.opt);
 					goto oops;
 				}
 
@@ -796,7 +777,7 @@ static int process_argv (int argc, hawk_bch_t* argv[], const hawk_bch_t* real_ar
 					tmp = realloc(arg->gvm.ptr, HAWK_SIZEOF(*tmp) * newcapa);
 					if (!tmp)
 					{
-						print_error ("out of memory\n");
+						hawk_main_print_error("out of memory\n");
 						goto oops;
 					}
 
@@ -842,7 +823,7 @@ static int process_argv (int argc, hawk_bch_t* argv[], const hawk_bch_t* real_ar
 					arg->script_cmgr = hawk_get_cmgr_by_bcstr(opt.arg);
 					if (arg->script_cmgr == HAWK_NULL)
 					{
-						print_error ("unknown script encoding - %s\n", opt.arg);
+						hawk_main_print_error("unknown script encoding - %s\n", opt.arg);
 						oops_ret = 3;
 						goto oops;
 					}
@@ -852,7 +833,7 @@ static int process_argv (int argc, hawk_bch_t* argv[], const hawk_bch_t* real_ar
 					arg->console_cmgr = hawk_get_cmgr_by_bcstr(opt.arg);
 					if (arg->console_cmgr == HAWK_NULL)
 					{
-						print_error ("unknown console encoding - %s\n", opt.arg);
+						hawk_main_print_error("unknown console encoding - %s\n", opt.arg);
 						oops_ret = 3;
 						goto oops;
 					}
@@ -881,7 +862,7 @@ static int process_argv (int argc, hawk_bch_t* argv[], const hawk_bch_t* real_ar
 								arg->opton |= opttab[i].opt;
 							else
 							{
-								print_error ("invalid value '%s' for '%s' - use 'on' or 'off'\n", opt.arg, opt.lngopt);
+								hawk_main_print_error("invalid value '%s' for '%s' - use 'on' or 'off'\n", opt.arg, opt.lngopt);
 								oops_ret = 3;
 								goto oops;
 							}
@@ -896,9 +877,9 @@ static int process_argv (int argc, hawk_bch_t* argv[], const hawk_bch_t* real_ar
 			case '?':
 			{
 				if (opt.lngopt)
-					print_error ("illegal option - '%s'\n", opt.lngopt);
+					hawk_main_print_error("illegal option - '%s'\n", opt.lngopt);
 				else
-					print_error ("illegal option - '%c'\n", opt.opt);
+					hawk_main_print_error("illegal option - '%c'\n", opt.opt);
 
 				goto oops;
 			}
@@ -906,9 +887,9 @@ static int process_argv (int argc, hawk_bch_t* argv[], const hawk_bch_t* real_ar
 			case ':':
 			{
 				if (opt.lngopt)
-					print_error ("bad argument for '%s'\n", opt.lngopt);
+					hawk_main_print_error("bad argument for '%s'\n", opt.lngopt);
 				else
-					print_error ("bad argument for '%c'\n", opt.opt);
+					hawk_main_print_error("bad argument for '%c'\n", opt.opt);
 
 				goto oops;
 			}
@@ -948,7 +929,7 @@ static int process_argv (int argc, hawk_bch_t* argv[], const hawk_bch_t* real_ar
 		/* the remaining arguments are input console file names */
 		if (expand_wildcard(argc - opt.ind, &argv[opt.ind], do_glob, &arg->icf) <= -1)
 		{
-			print_error ("failed to expand wildcard\n");
+			hawk_main_print_error("failed to expand wildcard\n");
 			goto oops;
 		}
 	}
@@ -1057,7 +1038,7 @@ int main_hawk(int argc, hawk_bch_t* argv[], const hawk_bch_t* real_argv0)
 	{
 		if (hawk_init_xma_mmgr(&xma_mmgr, arg.memlimit) <= -1)
 		{
-			print_error ("cannot open memory heap\n");
+			hawk_main_print_error("cannot open memory heap\n");
 			goto oops;
 		}
 		mmgr = &xma_mmgr;
@@ -1068,7 +1049,7 @@ int main_hawk(int argc, hawk_bch_t* argv[], const hawk_bch_t* real_argv0)
 	hawk = hawk_openstdwithmmgr(mmgr, 0, hawk_get_cmgr_by_id(HAWK_CMGR_UTF8), HAWK_NULL);
 	if (HAWK_UNLIKELY(!hawk))
 	{
-		print_error ("cannot open hawk\n");
+		hawk_main_print_error("cannot open hawk\n");
 		goto oops;
 	}
 

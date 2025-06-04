@@ -136,6 +136,37 @@ static void hawk_cut_fini (hawk_cut_t* cut)
 	hawk_ooecs_fini(&cut->e.in.line);
 }
 
+hawk_errstr_t hawk_cut_geterrstr (hawk_cut_t* cut)
+{
+	return cut->_gem.errstr;
+}
+
+void hawk_cut_seterrbfmt (hawk_cut_t* cut, const hawk_loc_t* errloc, hawk_errnum_t errnum, const hawk_bch_t* fmt, ...)
+{
+	va_list ap;
+	va_start (ap, fmt);
+	hawk_gem_seterrbvfmt (hawk_cut_getgem(cut), errloc, errnum, fmt, ap);
+	va_end (ap);
+}
+
+void hawk_cut_seterrufmt (hawk_cut_t* cut, const hawk_loc_t* errloc, hawk_errnum_t errnum, const hawk_uch_t* fmt, ...)
+{
+	va_list ap;
+	va_start (ap, fmt);
+	hawk_gem_seterruvfmt (hawk_cut_getgem(cut), errloc, errnum, fmt, ap);
+	va_end (ap);
+}
+
+void hawk_cut_seterrbvfmt (hawk_cut_t* cut, const hawk_loc_t* errloc, hawk_errnum_t errnum, const hawk_bch_t* errfmt, va_list ap)
+{
+	hawk_gem_seterrbvfmt (hawk_cut_getgem(cut), errloc, errnum, errfmt, ap);
+}
+
+void hawk_cut_seterruvfmt (hawk_cut_t* cut, const hawk_loc_t* errloc, hawk_errnum_t errnum, const hawk_uch_t* errfmt, va_list ap)
+{
+	hawk_gem_seterruvfmt (hawk_cut_getgem(cut), errloc, errnum, errfmt, ap);
+}
+
 void hawk_cut_setoption (hawk_cut_t* cut, int option)
 {
 	cut->option = option;
@@ -157,46 +188,149 @@ void hawk_cut_clear (hawk_cut_t* cut)
 	hawk_ooecs_setcapa(&cut->e.in.line, DFL_LINE_CAPA);
 }
 
-int hawk_cut_comp (hawk_cut_t* cut, const hawk_ooch_t* str, hawk_oow_t len)
-{
-	const hawk_ooch_t* p = str;
-	const hawk_ooch_t* xnd = str + len;
-	hawk_ooci_t c;
-	int sel = HAWK_SED_SEL_CHAR;
+/* ---------------------------------------------------------------- */
 
-#define CC(x,y) (((x) <= (y))? ((hawk_ooci_t)*(x)): HAWK_OOCI_EOF)
-#define NC(x,y) (((x) < (y))? ((hawk_ooci_t)*(++(x))): HAWK_OOCI_EOF)
+#define CURSC(cut) ((cut)->src.cc)
+#define NXTSC(cut,c,errret) \
+	do { if (getnextsc(cut,&(c)) <= -1) return (errret); } while (0)
+#define NXTSC_GOTO(cut,c,label) \
+	do { if (getnextsc(cut,&(c)) <= -1) goto label; } while (0)
+#define PEEPNXTSC(cut,c,errret) \
+	do { if (peepnextsc(cut,&(c)) <= -1) return (errret); } while (0)
+
+static int open_script_stream (hawk_cut_t* cut)
+{
+	hawk_ooi_t n;
+
+	n = cut->src.fun(cut, HAWK_CUT_IO_OPEN, &cut->src.arg, HAWK_NULL, 0);
+	if (n <= -1) return -1;
+
+	cut->src.cur = cut->src.buf;
+	cut->src.end = cut->src.buf;
+	cut->src.cc  = HAWK_OOCI_EOF;
+	cut->src.loc.line = 1;
+	cut->src.loc.colm = 0;
+
+	cut->src.eof = 0;
+	return 0;
+}
+
+static HAWK_INLINE int close_script_stream (hawk_cut_t* cut)
+{
+	return cut->src.fun(cut, HAWK_CUT_IO_CLOSE, &cut->src.arg, HAWK_NULL, 0);
+}
+
+static int read_script_stream (hawk_cut_t* cut)
+{
+	hawk_ooi_t n;
+
+	n = cut->src.fun(cut, HAWK_CUT_IO_READ, &cut->src.arg, cut->src.buf, HAWK_COUNTOF(cut->src.buf));
+	if (n <= -1) return -1; /* error */
+
+	if (n == 0)
+	{
+		/* don't change cut->src.cur and cut->src.end.
+		 * they remain the same on eof  */
+		cut->src.eof = 1;
+		return 0; /* eof */
+	}
+
+	cut->src.cur = cut->src.buf;
+	cut->src.end = cut->src.buf + n;
+	return 1; /* read something */
+}
+
+static int getnextsc (hawk_cut_t* cut, hawk_ooci_t* c)
+{
+	/* adjust the line and column number of the next
+	 * character bacut on the current character */
+	if (cut->src.cc == HAWK_T('\n'))
+	{
+		/* TODO: support different line end convension */
+		cut->src.loc.line++;
+		cut->src.loc.colm = 1;
+	}
+	else
+	{
+		/* take note that if you keep on calling getnextsc()
+		 * after HAWK_OOCI_EOF is read, this column number
+		 * keeps increasing also. there should be a bug of
+		 * reading more than necessary somewhere in the code
+		 * if this happens. */
+		cut->src.loc.colm++;
+	}
+
+	if (cut->src.cur >= cut->src.end && !cut->src.eof)
+	{
+		/* read in more character if buffer is empty */
+		if (read_script_stream(cut) <= -1) return -1;
+	}
+
+	cut->src.cc = (cut->src.cur < cut->src.end)? (*cut->src.cur++): HAWK_OOCI_EOF;
+
+	*c = cut->src.cc;
+	return 0;
+}
+
+static int peepnextsc (hawk_cut_t* cut, hawk_ooci_t* c)
+{
+	if (cut->src.cur >= cut->src.end && !cut->src.eof)
+	{
+		/* read in more character if buffer is empty.
+		 * it is ok to fill the buffer in the peeping
+		 * function if it doesn't change cut->src.cc. */
+		if (read_script_stream (cut) <= -1) return -1;
+	}
+
+	/* no changes in line nubmers, the 'cur' pointer, and
+	 * most importantly 'cc' unlike getnextsc(). */
+	*c = (cut->src.cur < cut->src.end)?  (*cut->src.cur): HAWK_OOCI_EOF;
+	return 0;
+}
+
+/* ---------------------------------------------------------------- */
+
+int hawk_cut_comp (hawk_cut_t* cut, hawk_cut_io_impl_t inf)
+{
+	hawk_ooci_t c;
+	hawk_ooci_t sel = HAWK_CUT_SEL_CHAR;
+
+	if (inf == HAWK_NULL)
+	{
+		hawk_cut_seterrnum(cut, HAWK_NULL, HAWK_EINVAL);
+		return -1;
+	}
+
 #define EOF(x) ((x) == HAWK_OOCI_EOF)
 #define MASK_START (1 << 1)
 #define MASK_END (1 << 2)
 #define MAX HAWK_TYPE_MAX(hawk_oow_t)
 
 	/* free selector blocks compiled previously */
-	free_all_selector_blocks (cut);
+	free_all_selector_blocks(cut);
 
 	/* set the default delimiters */
 	cut->sel.din = HAWK_T(' ');
 	cut->sel.dout = HAWK_T(' ');
 
-	/* if the selector string is empty, don't need to proceed */
-	if (len <= 0) return 0;
+        /* open script */
+        cut->src.fun = inf;
+        if (open_script_stream(cut) <= -1) return -1;
+        NXTSC_GOTO(cut, c, oops);
 
-	/* compile the selector string */
-	xnd--; c = CC (p, xnd);
 	while (1)
 	{
 		hawk_oow_t start = 0, end = 0;
 		int mask = 0;
 
-		while (hawk_is_ooch_space(c)) c = NC(p, xnd); 
+		while (hawk_is_ooch_space(c)) NXTSC_GOTO(cut, c, oops);
 		if (EOF(c)) 
 		{
 			if (cut->sel.count > 0)
 			{
-				SETERR0 (cut, HAWK_CUT_ESELNV);
+				SETERR0(cut, HAWK_CUT_ESELNV);
 				return -1;
 			}
-
 			break;
 		}
 
@@ -205,46 +339,46 @@ int hawk_cut_comp (hawk_cut_t* cut, const hawk_ooch_t* str, hawk_oow_t len)
 			/* the next character is the input delimiter.
 			 * the output delimiter defaults to the input 
 			 * delimiter. */
-			c = NC(p, xnd);
+			NXTSC_GOTO(cut, c, oops);
 			if (EOF(c))
 			{
-				SETERR0 (cut, HAWK_CUT_ESELNV);
+				SETERR0(cut, HAWK_CUT_ESELNV);
 				return -1;
 			}
 			cut->sel.din = c;
 			cut->sel.dout = c;
 
-			c = NC(p, xnd);
+			NXTSC_GOTO(cut, c, oops);
 		}
 		else if (c == HAWK_T('D'))
 		{
 			/* the next two characters are the input and 
 			 * the output delimiter each. */
-			c = NC(p, xnd);
+			NXTSC_GOTO(cut, c, oops);
 			if (EOF(c))
 			{
-				SETERR0 (cut, HAWK_CUT_ESELNV);
+				SETERR0(cut, HAWK_CUT_ESELNV);
 				return -1;
 			}
 			cut->sel.din = c;
 
-			c = NC(p, xnd);
+			NXTSC_GOTO(cut, c, oops);
 			if (EOF(c))
 			{
-				SETERR0 (cut, HAWK_CUT_ESELNV);
+				SETERR0(cut, HAWK_CUT_ESELNV);
 				return -1;
 			}
 			cut->sel.dout = c;
 
-			c = NC(p, xnd);
+			NXTSC_GOTO(cut, c, oops);
 		}
 		else 
 		{
 			if (c == HAWK_T('c') || c == HAWK_T('f'))
 			{
 				sel = c;
-				c = NC(p, xnd);
-				while (hawk_is_ooch_space(c)) c = NC(p, xnd);
+				NXTSC_GOTO(cut, c, oops);
+				while (hawk_is_ooch_space(c)) NXTSC_GOTO(cut, c, oops);
 			}
 	
 			if (hawk_is_ooch_digit(c))
@@ -252,48 +386,45 @@ int hawk_cut_comp (hawk_cut_t* cut, const hawk_ooch_t* str, hawk_oow_t len)
 				do 
 				{ 
 					start = start * 10 + (c - HAWK_T('0')); 
-					c = NC(p, xnd);
+					NXTSC_GOTO(cut, c, oops);
 				} 
 				while (hawk_is_ooch_digit(c));
 	
-				while (hawk_is_ooch_space(c)) c = NC(p, xnd);
+				while (hawk_is_ooch_space(c)) NXTSC_GOTO(cut, c, oops);
 				mask |= MASK_START;
 			}
 			else start++;
 
 			if (c == HAWK_T('-'))
 			{
-				c = NC(p, xnd);
-				while (hawk_is_ooch_space(c)) c = NC(p, xnd);
+				NXTSC_GOTO(cut, c, oops);
+				while (hawk_is_ooch_space(c)) NXTSC_GOTO(cut, c, oops);
 
 				if (hawk_is_ooch_digit(c))
 				{
 					do 
 					{ 
 						end = end * 10 + (c - HAWK_T('0')); 
-						c = NC(p, xnd);
+						NXTSC_GOTO(cut, c, oops);
 					} 
 					while (hawk_is_ooch_digit(c));
 					mask |= MASK_END;
 				}
 				else end = MAX;
 
-				while (hawk_is_ooch_space(c)) c = NC(p, xnd);
+				while (hawk_is_ooch_space(c)) NXTSC_GOTO(cut, c, oops);
 			}
 			else end = start;
 
 			if (!(mask & (MASK_START | MASK_END)))
 			{
-				SETERR0 (cut, HAWK_CUT_ESELNV);
+				SETERR0(cut, HAWK_CUT_ESELNV);
 				return -1;
 			}
 
 			if (cut->sel.lb->len >= HAWK_COUNTOF(cut->sel.lb->range))
 			{
-				if (add_selector_block (cut) <= -1) 
-				{
-					return -1;
-				}
+				if (add_selector_block(cut) <= -1) return -1;
 			}
 
 			cut->sel.lb->range[cut->sel.lb->len].id = sel;
@@ -301,15 +432,19 @@ int hawk_cut_comp (hawk_cut_t* cut, const hawk_ooch_t* str, hawk_oow_t len)
 			cut->sel.lb->range[cut->sel.lb->len].end = end;
 			cut->sel.lb->len++;
 			cut->sel.count++;
-			if (sel == HAWK_SED_SEL_FIELD) cut->sel.fcount++;
+			if (sel == HAWK_CUT_SEL_FIELD) cut->sel.fcount++;
 			else cut->sel.ccount++;
 		}
 
 		if (EOF(c)) break;
-		if (c == HAWK_T(',')) c = NC(p, xnd);
+		if (c == HAWK_T(',')) NXTSC_GOTO(cut, c, oops);
 	}
 
 	return 0;
+
+oops:
+	close_script_stream(cut);
+	return -1;
 }
 
 static int read_char (hawk_cut_t* cut, hawk_ooch_t* c)
@@ -600,7 +735,7 @@ int hawk_cut_exec (hawk_cut_t* cut, hawk_cut_io_impl_t inf, hawk_cut_io_impl_t o
 		goto done2;
 	}
 
-	n = cut->e.out.fun (cut, HAWK_CUT_IO_OPEN, &cut->e.out.arg, HAWK_NULL, 0);
+	n = cut->e.out.fun(cut, HAWK_CUT_IO_OPEN, &cut->e.out.arg, HAWK_NULL, 0);
 	if (n <= -1)
 	{
 		ret = -1;
@@ -636,7 +771,7 @@ int hawk_cut_exec (hawk_cut_t* cut, hawk_cut_io_impl_t inf, hawk_cut_io_impl_t o
 
 			for (i = 0; i < b->len; i++)
 			{
-				if (b->range[i].id == HAWK_SED_SEL_CHAR)
+				if (b->range[i].id == HAWK_CUT_SEL_CHAR)
 				{
 					n = cut_chars (
 						cut,
@@ -707,9 +842,9 @@ int hawk_cut_exec (hawk_cut_t* cut, hawk_cut_io_impl_t inf, hawk_cut_io_impl_t o
 	}
 
 done:
-	cut->e.out.fun (cut, HAWK_CUT_IO_CLOSE, &cut->e.out.arg, HAWK_NULL, 0);
+	cut->e.out.fun(cut, HAWK_CUT_IO_CLOSE, &cut->e.out.arg, HAWK_NULL, 0);
 done2:
-	cut->e.in.fun (cut, HAWK_CUT_IO_CLOSE, &cut->e.in.arg, HAWK_NULL, 0);
+	cut->e.in.fun(cut, HAWK_CUT_IO_CLOSE, &cut->e.in.arg, HAWK_NULL, 0);
 done3:
 	return ret;
 }

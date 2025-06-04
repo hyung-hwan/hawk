@@ -25,7 +25,7 @@
  */
 #include "main.h"
 
-#include <hawk-sed.h>
+#include <hawk-cut.h>
 #include <hawk-cli.h>
 #include <hawk-fmt.h>
 #include <hawk-utl.h>
@@ -61,7 +61,7 @@
 
 static struct
 {
-	hawk_sed_iostd_t* io;
+	hawk_cut_iostd_t* io;
 	hawk_oow_t capa;
 	hawk_oow_t size;
 } g_script =
@@ -72,7 +72,7 @@ static struct
 };
 
 
-static hawk_sed_t* g_sed = HAWK_NULL;
+static hawk_cut_t* g_cut = HAWK_NULL;
 static hawk_cmgr_t* g_script_cmgr = HAWK_NULL;
 static hawk_cmgr_t* g_infile_cmgr = HAWK_NULL;
 static hawk_cmgr_t* g_outfile_cmgr = HAWK_NULL;
@@ -87,12 +87,7 @@ struct arg_t
 	int separate;
 	int inplace;
 	int wildcard;
-
 	int debug;
-#if defined(HAWK_ENABLE_SEDTRACER)
-	int trace;
-#endif
-
 	hawk_uintptr_t  memlimit;
 };
 
@@ -127,9 +122,6 @@ static void print_usage (FILE* out, const hawk_bch_t* argv0, const hawk_bch_t* r
 	fprintf (out, " -y                         ensure a newline at text end\n");
 	fprintf (out, " -m/--memory-limit number   specify the maximum amount of memory to use in bytes\n");
 	fprintf (out, " -w                         expand file wildcards\n");
-#if defined(HAWK_ENABLE_SEDTRACER)
-	fprintf (out, " -t                         print command traces\n");
-#endif
 #if defined(HAWK_OOCH_IS_UCH)
 	fprintf (out, " --script-encoding  string  specify script file encoding name\n");
 	fprintf (out, " --infile-encoding  string  specify input file encoding name\n");
@@ -141,9 +133,9 @@ static int add_script (const hawk_bch_t* str, int mem)
 {
 	if (g_script.size >= g_script.capa)
 	{
-		hawk_sed_iostd_t* tmp;
+		hawk_cut_iostd_t* tmp;
 
-		tmp = (hawk_sed_iostd_t*)realloc(g_script.io, HAWK_SIZEOF(*g_script.io) * (g_script.capa + 16 + 1));
+		tmp = (hawk_cut_iostd_t*)realloc(g_script.io, HAWK_SIZEOF(*g_script.io) * (g_script.capa + 16 + 1));
 		if (tmp == HAWK_NULL)
 		{
 			hawk_main_print_error("out of memory while processing %s\n", str);
@@ -157,16 +149,16 @@ static int add_script (const hawk_bch_t* str, int mem)
 	if (mem)
 	{
 		/* string */
-		g_script.io[g_script.size].type = HAWK_SED_IOSTD_BCS;
+		g_script.io[g_script.size].type = HAWK_CUT_IOSTD_BCS;
 		/* though its type is not qualified to be const,
-		 * u.mem.ptr is actually const when used for input */
+		 * u.mem.ptr is actually const when ucut for input */
 		g_script.io[g_script.size].u.bcs.ptr = (hawk_bch_t*)str;
 		g_script.io[g_script.size].u.bcs.len = hawk_count_bcstr(str);
 	}
 	else
 	{
 		/* file name */
-		g_script.io[g_script.size].type = HAWK_SED_IOSTD_FILEB;
+		g_script.io[g_script.size].type = HAWK_CUT_IOSTD_FILEB;
 		g_script.io[g_script.size].u.fileb.path = str;
 		g_script.io[g_script.size].u.fileb.cmgr = g_script_cmgr;
 	}
@@ -200,7 +192,7 @@ static int handle_args (int argc, hawk_bch_t* argv[], const hawk_bch_t* real_arg
 	};
 	static hawk_bcli_t opt =
 	{
-		"hDne:f:o:rRisabxytm:w",
+		"hDe:f:o:rRisabxym:w",
 		lng
 	};
 	hawk_bci_t c;
@@ -210,29 +202,25 @@ static int handle_args (int argc, hawk_bch_t* argv[], const hawk_bch_t* real_arg
 		switch (c)
 		{
 			default:
-				print_usage(stderr, argv[0], real_argv0);
+				print_usage (stderr, argv[0], real_argv0);
 				goto oops;
 
 			case '?':
 				hawk_main_print_error("bad option - %c\n", opt.opt);
-				print_usage(stderr, argv[0], real_argv0);
+				print_usage (stderr, argv[0], real_argv0);
 				goto oops;
 
 			case ':':
 				hawk_main_print_error("bad parameter for %c\n", opt.opt);
-				print_usage(stderr, argv[0], real_argv0);
+				print_usage (stderr, argv[0], real_argv0);
 				goto oops;
 
 			case 'h':
-				print_usage(stdout, argv[0], real_argv0);
+				print_usage (stdout, argv[0], real_argv0);
 				goto done;
 
 			case 'D':
 				arg->debug = 1;
-				break;
-
-			case 'n':
-				arg->option |= HAWK_SED_QUIET;
 				break;
 
 			case 'e':
@@ -247,14 +235,6 @@ static int handle_args (int argc, hawk_bch_t* argv[], const hawk_bch_t* real_arg
 				arg->output_file = opt.arg;
 				break;
 
-			case 'r':
-				arg->option |= HAWK_SED_EXTENDEDREX;
-				break;
-
-			case 'R':
-				arg->option |= HAWK_SED_NONSTDEXTREX;
-				break;
-
 			case 'i':
 				/* 'i' implies 's'. */
 				arg->inplace = 1;
@@ -263,30 +243,23 @@ static int handle_args (int argc, hawk_bch_t* argv[], const hawk_bch_t* real_arg
 				arg->separate = 1;
 				break;
 
+#if 0
 			case 'a':
-				arg->option |= HAWK_SED_STRICT;
+				arg->option |= HAWK_CUT_STRICT;
 				break;
 
 			case 'b':
-				arg->option |= HAWK_SED_EXTENDEDADR;
+				arg->option |= HAWK_CUT_EXTENDEDADR;
 				break;
 
 			case 'x':
-				arg->option |= HAWK_SED_SAMELINE;
+				arg->option |= HAWK_CUT_SAMELINE;
 				break;
 
 			case 'y':
-				arg->option |= HAWK_SED_ENSURENL;
+				arg->option |= HAWK_CUT_ENSURENL;
 				break;
-
-			case 't':
-			#if defined(HAWK_ENABLE_SEDTRACER)
-				arg->trace = 1;
-				break;
-			#else
-				print_usage(stderr, argv[0], real_argv0);
-				goto oops;
-			#endif
+#endif
 
 			case 'm':
 				arg->memlimit = strtoul(opt.arg, HAWK_NULL, 10);
@@ -339,11 +312,11 @@ static int handle_args (int argc, hawk_bch_t* argv[], const hawk_bch_t* real_arg
 
 	if (g_script.size <= 0)
 	{
-		print_usage(stderr, argv[0], real_argv0);
+		print_usage (stderr, argv[0], real_argv0);
 		goto oops;
 	}
 
-	g_script.io[g_script.size].type = HAWK_SED_IOSTD_NULL;
+	g_script.io[g_script.size].type = HAWK_CUT_IOSTD_NULL;
 	return 1;
 
 oops:
@@ -355,17 +328,17 @@ done:
 	return 0;
 }
 
-static void print_exec_error(hawk_sed_t* sed)
+static void print_exec_error (hawk_cut_t* cut)
 {
-	const hawk_loc_t* errloc = hawk_sed_geterrloc(sed);
+	const hawk_loc_t* errloc = hawk_cut_geterrloc(cut);
 	if (errloc->line > 0 || errloc->colm > 0)
 	{
 		hawk_main_print_error("cannot execute - %s at line %lu column %lu\n",
-			hawk_sed_geterrbmsg(sed), (unsigned long)errloc->line, (unsigned long)errloc->colm);
+			hawk_cut_geterrbmsg(cut), (unsigned long)errloc->line, (unsigned long)errloc->colm);
 	}
 	else
 	{
-		hawk_main_print_error("cannot execute - %s\n", hawk_sed_geterrbmsg(sed));
+		hawk_main_print_error("cannot execute - %s\n", hawk_cut_geterrbmsg(cut));
 	}
 }
 
@@ -517,14 +490,14 @@ static void stop_run (int signo)
 	int e = errno;
 #endif
 
-	hawk_sed_halt(g_sed);
+	// TODO: hawk_cut_halt(g_cut);
 
 #if !defined(_WIN32) && !defined(__OS2__) && !defined(__DOS__)
 	errno = e;
 #endif
 }
 
-static void do_nothing (int unused)
+static void do_nothing (int unucut)
 {
 }
 
@@ -560,39 +533,6 @@ static void unset_intr_run (void)
 #endif
 }
 
-
-#if defined(HAWK_ENABLE_SEDTRACER)
-static void trace_exec (hawk_sed_t* sed, hawk_sed_tracer_op_t op, const hawk_sed_cmd_t* cmd)
-{
-	switch (op)
-	{
-		case HAWK_SED_TRACER_READ:
-			/*hawk_fprintf (HAWK_STDERR, HAWK_T("reading...\n"));*/
-			break;
-		case HAWK_SED_TRACER_WRITE:
-			/*hawk_fprintf (HAWK_STDERR, HAWK_T("wrting...\n"));*/
-			break;
-
-		/* TODO: use function to get hold space and pattern space and print them */
-
-		case HAWK_SED_TRACER_MATCH:
-			hawk_fprintf (HAWK_STDERR, HAWK_T("%s:%lu [%c] MA\n"),
-				((cmd->lid && cmd->lid[0])? cmd->lid: HAWK_T("<<UNKNOWN>>")),
-				(unsigned long)cmd->loc.line,
-				cmd->type
-			);
-			break;
-
-		case HAWK_SED_TRACER_EXEC:
-			hawk_fprintf (HAWK_STDERR, HAWK_T("%s:%lu [%c] EC\n"),
-				((cmd->lid && cmd->lid[0])? cmd->lid: HAWK_T("<<UNKNOWN>>")),
-				(unsigned long)cmd->loc.line,
-				cmd->type
-			);
-			break;
-	}
-}
-#endif
 
 struct xarg_t
 {
@@ -680,9 +620,9 @@ static int expand_wildcards (int argc, hawk_bch_t* argv[], int glob, xarg_t* xar
 	return 0;
 }
 
-int main_sed(int argc, hawk_bch_t* argv[], const hawk_bch_t* real_argv0)
+int main_cut(int argc, hawk_bch_t* argv[], const hawk_bch_t* real_argv0)
 {
-	hawk_sed_t* sed = HAWK_NULL;
+	hawk_cut_t* cut = HAWK_NULL;
 	hawk_oow_t script_count;
 	int ret = -1;
 	struct arg_t arg;
@@ -710,32 +650,32 @@ int main_sed(int argc, hawk_bch_t* argv[], const hawk_bch_t* real_argv0)
 	}
 
 
-	sed = hawk_sed_openstdwithmmgr(mmgr, 0, cmgr, HAWK_NULL);
-	if (!sed)
+	cut = hawk_cut_openstdwithmmgr(mmgr, 0, cmgr, HAWK_NULL);
+	if (!cut)
 	{
 		hawk_main_print_error("cannot open stream editor\n");
 		goto oops;
 	}
 
-	hawk_sed_setopt (sed, HAWK_SED_TRAIT, &arg.option);
+//TODO	hawk_cut_setopt(cut, HAWK_CUT_TRAIT, &arg.option);
 
-	if (hawk_sed_compstd(sed, g_script.io, &script_count) <= -1)
+	if (hawk_cut_compstd(cut, g_script.io, &script_count) <= -1)
 	{
 		const hawk_loc_t* errloc;
 		const hawk_bch_t* target;
 		hawk_bch_t exprbuf[128];
 
-		errloc = hawk_sed_geterrloc(sed);
+		errloc = hawk_cut_geterrloc(cut);
 
-		if (g_script.io[script_count].type == HAWK_SED_IOSTD_FILEB)
+		if (g_script.io[script_count].type == HAWK_CUT_IOSTD_FILEB)
 		{
 			target = g_script.io[script_count].u.fileb.path;
 		}
 		else
 		{
-			/* i dont' use HAWK_SED_IOSTD_SIO for input */
-			HAWK_ASSERT (g_script.io[script_count].type == HAWK_SED_IOSTD_BCS);
-			hawk_fmt_uintmax_to_bcstr (exprbuf, HAWK_COUNTOF(exprbuf),
+			/* i dont' use HAWK_CUT_IOSTD_SIO for input */
+			HAWK_ASSERT(g_script.io[script_count].type == HAWK_CUT_IOSTD_BCS);
+			hawk_fmt_uintmax_to_bcstr(exprbuf, HAWK_COUNTOF(exprbuf),
 				script_count, 10, -1, '\0', "expression #");
 			target = exprbuf;
 		}
@@ -743,40 +683,36 @@ int main_sed(int argc, hawk_bch_t* argv[], const hawk_bch_t* real_argv0)
 		if (errloc->line > 0 || errloc->colm > 0)
 		{
 			hawk_main_print_error("cannot compile %s - %s at line %lu column %lu\n",
-				target, hawk_sed_geterrbmsg(sed), (unsigned long)errloc->line, (unsigned long)errloc->colm
+				target, hawk_cut_geterrbmsg(cut), (unsigned long)errloc->line, (unsigned long)errloc->colm
 			);
 		}
 		else
 		{
-			hawk_main_print_error("cannot compile %s - %s\n", target, hawk_sed_geterrbmsg(sed));
+			hawk_main_print_error("cannot compile %s - %s\n", target, hawk_cut_geterrbmsg(cut));
 		}
 		goto oops;
 	}
 
-#if defined(HAWK_ENABLE_SEDTRACER)
-	if (g_trace) hawk_sed_setopt (sed, HAWK_SED_TRACER, trace_exec);
-#endif
-
-	memset (&xarg, 0, HAWK_SIZEOF(xarg));
-	xarg.mmgr = hawk_sed_getmmgr(sed);
+	memset(&xarg, 0, HAWK_SIZEOF(xarg));
+	xarg.mmgr = hawk_cut_getmmgr(cut);
 	xarg_inited = 1;
 
 	if (arg.separate && arg.infile_pos > 0)
 	{
 		/* 's' and input files are specified on the command line */
-		hawk_sed_iostd_t out_file;
-		hawk_sed_iostd_t out_inplace;
-		hawk_sed_iostd_t* output_file = HAWK_NULL;
-		hawk_sed_iostd_t* output = HAWK_NULL;
+		hawk_cut_iostd_t out_file;
+		hawk_cut_iostd_t out_inplace;
+		hawk_cut_iostd_t* output_file = HAWK_NULL;
+		hawk_cut_iostd_t* output = HAWK_NULL;
 		int inpos;
 
-		/* a dash is treated specially for HAWK_SED_IOSTD_FILE in
-		 * hawk_sed_execstd(). so make an exception here */
+		/* a dash is treated specially for HAWK_CUT_IOSTD_FILE in
+		 * hawk_cut_execstd(). so make an exception here */
 		if (arg.output_file && hawk_comp_bcstr(arg.output_file, "-", 0) != 0)
 		{
-			out_file.type = HAWK_SED_IOSTD_SIO;
+			out_file.type = HAWK_CUT_IOSTD_SIO;
 			out_file.u.sio = hawk_sio_open(
-				hawk_sed_getgem(sed),
+				hawk_cut_getgem(cut),
 				0,
 				(const hawk_ooch_t*)arg.output_file, /* fake type casting - note HAWK_SIO_BCSTRPATH below */
 				HAWK_SIO_WRITE |
@@ -804,13 +740,13 @@ int main_sed(int argc, hawk_bch_t* argv[], const hawk_bch_t* real_argv0)
 
 		for (inpos = 0; inpos < xarg.size; inpos++)
 		{
-			hawk_sed_iostd_t in[2];
+			hawk_cut_iostd_t in[2];
 			hawk_bch_t* tmpl_tmpfile;
 
-			in[0].type = HAWK_SED_IOSTD_FILEB;
+			in[0].type = HAWK_CUT_IOSTD_FILEB;
 			in[0].u.fileb.path = xarg.ptr[inpos];
 			in[0].u.fileb.cmgr = g_infile_cmgr;
-			in[1].type = HAWK_SED_IOSTD_NULL;
+			in[1].type = HAWK_CUT_IOSTD_NULL;
 
 			tmpl_tmpfile = HAWK_NULL;
 			if (arg.inplace && in[0].u.file.path)
@@ -822,7 +758,7 @@ int main_sed(int argc, hawk_bch_t* argv[], const hawk_bch_t* real_argv0)
 				f[1] = ".XXXX";
 				f[2] = HAWK_NULL;
 
-				tmpl_tmpfile = hawk_gem_dupbcstrarr(hawk_sed_getgem(sed), f, HAWK_NULL);
+				tmpl_tmpfile = hawk_gem_dupbcstrarr(hawk_cut_getgem(cut), f, HAWK_NULL);
 				if (tmpl_tmpfile == HAWK_NULL)
 				{
 					hawk_main_print_error("out of memory\n");
@@ -830,9 +766,9 @@ int main_sed(int argc, hawk_bch_t* argv[], const hawk_bch_t* real_argv0)
 				}
 
 			open_temp:
-				out_inplace.type = HAWK_SED_IOSTD_SIO;
+				out_inplace.type = HAWK_CUT_IOSTD_SIO;
 				out_inplace.u.sio = hawk_sio_open(
-					hawk_sed_getgem(sed),
+					hawk_cut_getgem(cut),
 					0,
 					(const hawk_ooch_t*)tmpl_tmpfile, /* fake type casting - note HAWK_SIO_BCSTRPATH below */
 					HAWK_SIO_WRITE |
@@ -847,14 +783,14 @@ int main_sed(int argc, hawk_bch_t* argv[], const hawk_bch_t* real_argv0)
 					if (retried)
 					{
 						hawk_main_print_error("cannot open %s\n", tmpl_tmpfile);
-						hawk_sed_freemem(sed, tmpl_tmpfile);
+						hawk_cut_freemem(cut, tmpl_tmpfile);
 						goto oops;
 					}
 					else
 					{
 						/* retry to open the file with shorter names */
-						hawk_sed_freemem(sed, tmpl_tmpfile);
-						tmpl_tmpfile = hawk_gem_dupbcstr(hawk_sed_getgem(sed), "TMP-XXXX", HAWK_NULL);
+						hawk_cut_freemem(cut, tmpl_tmpfile);
+						tmpl_tmpfile = hawk_gem_dupbcstr(hawk_cut_getgem(cut), "TMP-XXXX", HAWK_NULL);
 						if (tmpl_tmpfile == HAWK_NULL)
 						{
 							hawk_main_print_error("out of memory\n");
@@ -868,22 +804,22 @@ int main_sed(int argc, hawk_bch_t* argv[], const hawk_bch_t* real_argv0)
 				output = &out_inplace;
 			}
 
-			if (hawk_sed_execstd(sed, in, output) <= -1)
+			if (hawk_cut_execstd(cut, in, output) <= -1)
 			{
 				if (output) hawk_sio_close(output->u.sio);
 
 				if (tmpl_tmpfile)
 				{
-					unlink (tmpl_tmpfile);
-					hawk_sed_freemem(sed, tmpl_tmpfile);
+					unlink(tmpl_tmpfile);
+					hawk_cut_freemem(cut, tmpl_tmpfile);
 				}
-				print_exec_error(sed);
+				print_exec_error(cut);
 				goto oops;
 			}
 
 			if (tmpl_tmpfile)
 			{
-				HAWK_ASSERT (output == &out_inplace);
+				HAWK_ASSERT(output == &out_inplace);
 				hawk_sio_close(output->u.sio);
 				output = output_file;
 
@@ -891,14 +827,14 @@ int main_sed(int argc, hawk_bch_t* argv[], const hawk_bch_t* real_argv0)
 				{
 					hawk_main_print_error("cannot rename %s to %s. not deleting %s\n",
 						tmpl_tmpfile, in[0].u.fileb.path, tmpl_tmpfile);
-					hawk_sed_freemem(sed, tmpl_tmpfile);
+					hawk_cut_freemem(cut, tmpl_tmpfile);
 					goto oops;
 				}
 
-				hawk_sed_freemem(sed, tmpl_tmpfile);
+				hawk_cut_freemem(cut, tmpl_tmpfile);
 			}
 
-			if (hawk_sed_ishalt(sed)) break;
+			// TODO: if (hawk_cut_ishalt(cut)) break;
 		}
 
 		if (output) hawk_sio_close(output->u.sio);
@@ -906,8 +842,8 @@ int main_sed(int argc, hawk_bch_t* argv[], const hawk_bch_t* real_argv0)
 	else
 	{
 		int xx;
-		hawk_sed_iostd_t* in = HAWK_NULL;
-		hawk_sed_iostd_t out;
+		hawk_cut_iostd_t* in = HAWK_NULL;
+		hawk_cut_iostd_t out;
 
 		if (arg.infile_pos > 0)
 		{
@@ -923,7 +859,7 @@ int main_sed(int argc, hawk_bch_t* argv[], const hawk_bch_t* real_argv0)
 				goto oops;
 			}
 
-			in = (hawk_sed_iostd_t*)hawk_sed_allocmem(sed, HAWK_SIZEOF(*in) * (xarg.size + 1));
+			in = (hawk_cut_iostd_t*)hawk_cut_allocmem(cut, HAWK_SIZEOF(*in) * (xarg.size + 1));
 			if (in == HAWK_NULL)
 			{
 				hawk_main_print_error("out of memory\n");
@@ -932,18 +868,18 @@ int main_sed(int argc, hawk_bch_t* argv[], const hawk_bch_t* real_argv0)
 
 			for (i = 0; i < xarg.size; i++)
 			{
-				in[i].type = HAWK_SED_IOSTD_FILEB;
+				in[i].type = HAWK_CUT_IOSTD_FILEB;
 				tmp = xarg.ptr[i];
 				in[i].u.fileb.path = tmp;
 				in[i].u.fileb.cmgr = g_infile_cmgr;
 			}
 
-			in[i].type = HAWK_SED_IOSTD_NULL;
+			in[i].type = HAWK_CUT_IOSTD_NULL;
 		}
 
 		if (arg.output_file)
 		{
-			out.type = HAWK_SED_IOSTD_FILEB;
+			out.type = HAWK_CUT_IOSTD_FILEB;
 			out.u.fileb.path = arg.output_file;
 			out.u.fileb.cmgr = g_outfile_cmgr;
 		}
@@ -951,23 +887,23 @@ int main_sed(int argc, hawk_bch_t* argv[], const hawk_bch_t* real_argv0)
 		{
 			/* arrange to be able to specify cmgr.
 			 * if not for cmgr, i could simply pass HAWK_NULL
-			 * to hawk_sed_execstd() below like
-			 *   xx = hawk_sed_execstd(sed, in, HAWK_NULL); */
-			out.type = HAWK_SED_IOSTD_FILEB;
+			 * to hawk_cut_execstd() below like
+			 *   xx = hawk_cut_execstd (cut, in, HAWK_NULL); */
+			out.type = HAWK_CUT_IOSTD_FILEB;
 			out.u.fileb.path = HAWK_NULL;
 			out.u.fileb.cmgr = g_outfile_cmgr;
 		}
 
-		g_sed = sed;
+		g_cut = cut;
 		set_intr_run();
-		xx = hawk_sed_execstd(sed, in, &out);
-		if (in) hawk_sed_freemem(sed, in);
+		xx = hawk_cut_execstd(cut, in, &out);
+		if (in) hawk_cut_freemem(cut, in);
 		unset_intr_run();
-		g_sed = HAWK_NULL;
+		g_cut = HAWK_NULL;
 
 		if (xx <= -1)
 		{
-			print_exec_error(sed);
+			print_exec_error(cut);
 			goto oops;
 		}
 	}
@@ -976,7 +912,7 @@ int main_sed(int argc, hawk_bch_t* argv[], const hawk_bch_t* real_argv0)
 
 oops:
 	if (xarg_inited) purge_xarg(&xarg);
-	if (sed) hawk_sed_close(sed);
+	if (cut) hawk_cut_close(cut);
 	if (arg.memlimit > 0)
 	{
 		if (arg.debug) hawk_xma_dump(xma_mmgr.ctx, hawk_main_print_xma, HAWK_NULL);
@@ -986,4 +922,3 @@ oops:
 
 	return ret;
 }
-

@@ -372,8 +372,7 @@ HAWK_EXPORT void hawk_cut_clear (
  */
 HAWK_EXPORT int hawk_cut_comp (
 	hawk_cut_t*        cut, /**< text cutter */
-	const hawk_ooch_t* str, /**< selector pointer */
-	hawk_oow_t        len  /**< selector length */ 
+	hawk_cut_io_impl_t inf
 );
 
 /**
@@ -447,12 +446,12 @@ HAWK_EXPORT hawk_cut_t* hawk_cut_openstdwithmmgr (
 );
 
 /**
- * The hawk_cut_compstd() function compiles a null-terminated selector.
- * Call hawk_cut_comp() for a length delimited selector.
+ * The hawk_cut_compstd() function compiles a selector from input streams.
  */
 HAWK_EXPORT int hawk_cut_compstd (
-	hawk_cut_t*        cut,
-	const hawk_ooch_t* str
+	hawk_cut_t*      cut,
+	hawk_cut_iostd_t in[],
+	hawk_oow_t*      count
 );
 
 /**

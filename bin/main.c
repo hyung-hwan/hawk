@@ -106,6 +106,7 @@ static struct {
 	int (*main) (int argc, hawk_bch_t* argv[], const hawk_bch_t* real_argv0);
 } entry_funcs[] = {
 	{ "awk",     main_hawk },
+	{ "cut",     main_cut },
 	{ "hawk",    main_hawk },
 	{ "sed",     main_sed },
 	{ "usage",   main_usage },
@@ -150,12 +151,12 @@ int main(int argc, hawk_bch_t* argv[])
 
 #if defined(_WIN32)
 	if (WSAStartup(MAKEWORD(2,0), &wsadata) != 0)
-		print_warning("Failed to start up winsock\n");
+		hawk_main_print_warning("Failed to start up winsock\n");
 	else sock_inited = 1;
 #elif defined(__DOS__)
 	/* TODO: add an option to skip watt-32 */
 	_watt_do_exit = 0; /* prevent sock_init from exiting upon failure */
-	if (sock_init() != 0) print_warning("Failed to initialize watt-32\n");
+	if (sock_init() != 0) hawk_main_print_warning("Failed to initialize watt-32\n");
 	else sock_inited = 1;
 #endif
 
