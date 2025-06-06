@@ -99,27 +99,21 @@ static void print_usage (FILE* out, const hawk_bch_t* argv0, const hawk_bch_t* r
 	const hawk_bch_t* b2 = (real_argv0? " ": "");
 	const hawk_bch_t* b3 = (real_argv0? argv0: "");
 
-	fprintf (out, "USAGE: %s%s%s [options] script [file]\n", b1, b2, b3);
-	fprintf (out, "       %s%s%s [options] -f script-file [file]\n", b1, b2, b3);
-	fprintf (out, "       %s%s%s [options] -e script [file]\n", b1, b2, b3);
+	fprintf (out, "USAGE: %s%s%s [options] selector [file]\n", b1, b2, b3);
+	fprintf (out, "       %s%s%s [options] -f selector-file [file]\n", b1, b2, b3);
 
+	fprintf (out, "Selector as follows:\n");
+	fprintf (out, " 'd' followed by a delimiter character\n");
+	fprintf (out, " 'D' followed by an input delimiter character and an output delimiter character\n");
+	fprintf (out, " 'f' followed by a field number or field number range\n");
+	fprintf (out, " 'c' followed by a character position or character position range\n");
+	fprintf (out, " for example, 'f3-5 c1-2 f4 D:,'\n");
 	fprintf (out, "Options as follows:\n");
 	fprintf (out, " -h/--help                  show this message\n");
 	fprintf (out, " -D                         show extra information\n");
-	fprintf (out, " -n                         disable auto-print\n");
 	fprintf (out, " -e                 script  specify a script\n");
 	fprintf (out, " -f                 file    specify a script file\n");
 	fprintf (out, " -o                 file    specify an output file\n");
-	fprintf (out, " -r                         use the extended regular expression\n");
-	fprintf (out, " -R                         enable non-standard extensions to the regular\n");
-	fprintf (out, "                            expression\n");
-	fprintf (out, " -i                         perform in-place editing. imply -s\n");
-	fprintf (out, " -s                         process input files separately\n");
-	fprintf (out, " -a                         perform strict address and label check\n");
-	fprintf (out, " -b                         allow extended address formats\n");
-	fprintf (out, "                            <start~step>,<start,+line>,<start,~line>,<0,/regex/>\n");
-	fprintf (out, " -x                         allow text on the same line as c, a, i\n");
-	fprintf (out, " -y                         ensure a newline at text end\n");
 	fprintf (out, " -m/--memory-limit number   specify the maximum amount of memory to use in bytes\n");
 	fprintf (out, " -w                         expand file wildcards\n");
 #if defined(HAWK_OOCH_IS_UCH)
@@ -192,7 +186,7 @@ static int handle_args (int argc, hawk_bch_t* argv[], const hawk_bch_t* real_arg
 	};
 	static hawk_bcli_t opt =
 	{
-		"hDe:f:o:rRisabxym:w",
+		"hDe:f:om:w",
 		lng
 	};
 	hawk_bci_t c;
@@ -234,32 +228,6 @@ static int handle_args (int argc, hawk_bch_t* argv[], const hawk_bch_t* real_arg
 			case 'o':
 				arg->output_file = opt.arg;
 				break;
-
-			case 'i':
-				/* 'i' implies 's'. */
-				arg->inplace = 1;
-
-			case 's':
-				arg->separate = 1;
-				break;
-
-#if 0
-			case 'a':
-				arg->option |= HAWK_CUT_STRICT;
-				break;
-
-			case 'b':
-				arg->option |= HAWK_CUT_EXTENDEDADR;
-				break;
-
-			case 'x':
-				arg->option |= HAWK_CUT_SAMELINE;
-				break;
-
-			case 'y':
-				arg->option |= HAWK_CUT_ENSURENL;
-				break;
-#endif
 
 			case 'm':
 				arg->memlimit = strtoul(opt.arg, HAWK_NULL, 10);

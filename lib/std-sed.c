@@ -662,7 +662,7 @@ static hawk_ooi_t read_input_stream (hawk_sed_t* sed, hawk_sed_io_arg_t* arg, ha
 			n = hawk_sio_getoochars(arg->handle, buf, len);
 			if (n <= -1)
 			{
-				set_eiofil_for_iostd (sed, io);
+				set_eiofil_for_iostd(sed, io);
 				break;
 			}
 		}
@@ -704,7 +704,7 @@ static hawk_ooi_t read_input_stream (hawk_sed_t* sed, hawk_sed_io_arg_t* arg, ha
 		if (open_input_stream(sed, arg, next, base) <= -1)
 		{
 			/* failed to open the next input stream */
-			set_eiofil_for_iostd (sed, next);
+			set_eiofil_for_iostd(sed, next);
 			n = -1;
 			break;
 		}
@@ -965,7 +965,7 @@ static hawk_ooi_t x_out (
 						{
 							hawk_ooi_t n;
 							n = hawk_sio_putoochars(arg->handle, dat, len);
-							if (n <= -1) set_eiofil_for_iostd (sed, io);
+							if (n <= -1) set_eiofil_for_iostd(sed, io);
 							return n;
 						}
 					}

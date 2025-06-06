@@ -779,7 +779,7 @@ static hawk_ooi_t read_input_stream (hawk_cut_t* cut, hawk_cut_io_arg_t* arg, ha
 			n = hawk_sio_getoochars(arg->handle, buf, len);
 			if (n <= -1)
 			{
-				set_eiofil_for_iostd (cut, io);
+				set_eiofil_for_iostd(cut, io);
 				break;
 			}
 		}
@@ -798,6 +798,7 @@ static hawk_ooi_t read_input_stream (hawk_cut_t* cut, hawk_cut_io_arg_t* arg, ha
 		/* == end of file on the current input stream == */
 		/* ============================================= */
 
+#if 0
 		if (base == &xtn->s.in && xtn->s.last != HAWK_T('\n'))
 		{
 			/* TODO: different line termination convension */
@@ -806,6 +807,7 @@ static hawk_ooi_t read_input_stream (hawk_cut_t* cut, hawk_cut_io_arg_t* arg, ha
 			xtn->s.newline_squeezed = 1;
 			break;
 		}
+#endif
 
 	open_next:
 		next = base->cur + 1;
@@ -821,7 +823,7 @@ static hawk_ooi_t read_input_stream (hawk_cut_t* cut, hawk_cut_io_arg_t* arg, ha
 		if (open_input_stream(cut, arg, next, base) <= -1)
 		{
 			/* failed to open the next input stream */
-			set_eiofil_for_iostd (cut, next);
+			set_eiofil_for_iostd(cut, next);
 			n = -1;
 			break;
 		}
@@ -1082,7 +1084,7 @@ static hawk_ooi_t x_out (
 						{
 							hawk_ooi_t n;
 							n = hawk_sio_putoochars(arg->handle, dat, len);
-							if (n <= -1) set_eiofil_for_iostd (cut, io);
+							if (n <= -1) set_eiofil_for_iostd(cut, io);
 							return n;
 						}
 					}

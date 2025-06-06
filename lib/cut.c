@@ -324,15 +324,7 @@ int hawk_cut_comp (hawk_cut_t* cut, hawk_cut_io_impl_t inf)
 		int mask = 0;
 
 		while (hawk_is_ooch_space(c)) NXTSC_GOTO(cut, c, oops);
-		if (EOF(c)) 
-		{
-			if (cut->sel.count > 0)
-			{
-				SETERR0(cut, HAWK_CUT_ESELNV);
-				return -1;
-			}
-			break;
-		}
+		if (EOF(c)) break;
 
 		if (c == HAWK_T('d'))
 		{
