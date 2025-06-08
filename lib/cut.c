@@ -329,7 +329,7 @@ int hawk_cut_comp (hawk_cut_t* cut, hawk_cut_io_impl_t inf)
 		if (c == HAWK_T('d'))
 		{
 			/* the next character is the input delimiter.
-			 * the output delimiter defaults to the input 
+			 * the output delimiter defaults to the input
 			 * delimiter. */
 			NXTSC_GOTO(cut, c, oops);
 			if (EOF(c))
@@ -344,7 +344,7 @@ int hawk_cut_comp (hawk_cut_t* cut, hawk_cut_io_impl_t inf)
 		}
 		else if (c == HAWK_T('D'))
 		{
-			/* the next two characters are the input and 
+			/* the next two characters are the input and
 			 * the output delimiter each. */
 			NXTSC_GOTO(cut, c, oops);
 			if (EOF(c))
@@ -364,7 +364,7 @@ int hawk_cut_comp (hawk_cut_t* cut, hawk_cut_io_impl_t inf)
 
 			NXTSC_GOTO(cut, c, oops);
 		}
-		else 
+		else
 		{
 			if (c == HAWK_T('c') || c == HAWK_T('f'))
 			{
@@ -372,16 +372,16 @@ int hawk_cut_comp (hawk_cut_t* cut, hawk_cut_io_impl_t inf)
 				NXTSC_GOTO(cut, c, oops);
 				while (hawk_is_ooch_space(c)) NXTSC_GOTO(cut, c, oops);
 			}
-	
+
 			if (hawk_is_ooch_digit(c))
 			{
-				do 
-				{ 
-					start = start * 10 + (c - HAWK_T('0')); 
+				do
+				{
+					start = start * 10 + (c - HAWK_T('0'));
 					NXTSC_GOTO(cut, c, oops);
-				} 
+				}
 				while (hawk_is_ooch_digit(c));
-	
+
 				while (hawk_is_ooch_space(c)) NXTSC_GOTO(cut, c, oops);
 				mask |= MASK_START;
 			}
@@ -394,11 +394,11 @@ int hawk_cut_comp (hawk_cut_t* cut, hawk_cut_io_impl_t inf)
 
 				if (hawk_is_ooch_digit(c))
 				{
-					do 
-					{ 
-						end = end * 10 + (c - HAWK_T('0')); 
+					do
+					{
+						end = end * 10 + (c - HAWK_T('0'));
 						NXTSC_GOTO(cut, c, oops);
-					} 
+					}
 					while (hawk_is_ooch_digit(c));
 					mask |= MASK_END;
 				}
@@ -477,7 +477,7 @@ static int read_line (hawk_cut_t* cut)
 			break;
 		}
 
-		if (c == HAWK_T('\n')) 
+		if (c == HAWK_T('\n'))
 		{
 			/* don't include the line terminater to a line */
 			/* TODO: support different line end convension */
@@ -485,14 +485,14 @@ static int read_line (hawk_cut_t* cut)
 		}
 
 		if (hawk_ooecs_ccat(&cut->e.in.line, c) == (hawk_oow_t)-1) return -1;
-		len++;	
+		len++;
 	}
 
 	cut->e.in.num++;
 
 	if (cut->option & HAWK_CUT_TRIMSPACE) hawk_ooecs_trim(&cut->e.in.line, HAWK_TRIM_LEFT | HAWK_TRIM_RIGHT);
 	if (cut->option & HAWK_CUT_NORMSPACE) hawk_ooecs_compact(&cut->e.in.line);
-	return 1;	
+	return 1;
 }
 
 static int flush (hawk_cut_t* cut)
@@ -553,7 +553,7 @@ static int cut_chars (hawk_cut_t* cut, hawk_oow_t start, hawk_oow_t end, int del
 			if (end >= 1) end--;
 
 			if (end >= len) end = len - 1;
-						
+
 			if (delim && write_char(cut, cut->sel.dout) <= -1) return -1;
 			if (write_str(cut, &ptr[start], end-start+1) <= -1) return -1;
 
@@ -621,7 +621,7 @@ static int split_line (hawk_cut_t* cut)
 				nsz = cut->e.in.cflds;
 				if (nsz > 100000) nsz += 100000;
 				else nsz *= 2;
-				
+
 				tmp = hawk_cut_allocmem(cut, HAWK_SIZEOF(*tmp) * nsz);
 				if (HAWK_UNLIKELY(!tmp)) return -1;
 
@@ -707,7 +707,7 @@ int hawk_cut_exec (hawk_cut_t* cut, hawk_cut_io_impl_t inf, hawk_cut_io_impl_t o
 	cut->e.out.fun = outf;
 	cut->e.out.eof = 0;
 	cut->e.out.len = 0;
-	
+
 	cut->e.in.fun = inf;
 	cut->e.in.eof = 0;
 	cut->e.in.len = 0;
@@ -769,9 +769,9 @@ int hawk_cut_exec (hawk_cut_t* cut, hawk_cut_io_impl_t inf, hawk_cut_io_impl_t o
 						cut,
 						b->range[i].start,
 						b->range[i].end,
-						id == 2 
+						id == 2
 					);
-					if (n >= 1) 
+					if (n >= 1)
 					{
 						/* mark a char's been output */
 						id = 1;
@@ -783,9 +783,9 @@ int hawk_cut_exec (hawk_cut_t* cut, hawk_cut_io_impl_t inf, hawk_cut_io_impl_t o
 						cut,
 						b->range[i].start,
 						b->range[i].end,
-						id > 0 
+						id > 0
 					);
-					if (n >= 1) 
+					if (n >= 1)
 					{
 						/* mark a field's been output */
 						id = 2;
@@ -806,7 +806,7 @@ int hawk_cut_exec (hawk_cut_t* cut, hawk_cut_io_impl_t inf, hawk_cut_io_impl_t o
 		{
 			/* if only field selectors are specified */
 
-			if (delimited) 
+			if (delimited)
 			{
 				/* and if the input line is delimited,
 				 * write a line break */
@@ -819,7 +819,7 @@ int hawk_cut_exec (hawk_cut_t* cut, hawk_cut_io_impl_t inf, hawk_cut_io_impl_t o
 				 * on the option set. */
 				if (write_str(cut, HAWK_OOECS_PTR(&cut->e.in.line), HAWK_OOECS_LEN(&cut->e.in.line)) <= -1)
 				{
-					ret = -1; goto done; 	
+					ret = -1; goto done;
 				}
 
 				/* a line break is needed in this case */
@@ -827,9 +827,9 @@ int hawk_cut_exec (hawk_cut_t* cut, hawk_cut_io_impl_t inf, hawk_cut_io_impl_t o
 			}
 		}
 
-		if (linebreak && write_linebreak(cut) <= -1) 
-		{ 
-			ret = -1; goto done; 
+		if (linebreak && write_linebreak(cut) <= -1)
+		{
+			ret = -1; goto done;
 		}
 	}
 

@@ -32,7 +32,7 @@
 #include <stdlib.h>
 #include <sys/stat.h>
 
-// TODO: remove the following definitions and find a way to share the similar definitions in std.c 
+// TODO: remove the following definitions and find a way to share the similar definitions in std.c
 #if defined(HAWK_ENABLE_LIBLTDL)
 #	define USE_LTDL
 #elif defined(HAVE_DLFCN_H)
@@ -131,7 +131,7 @@ static hawk_sio_t* open_sio_std (Hawk* hawk, HawkStd::Run* run, hawk_sio_std_t s
 	return sio;
 }
 
-int HawkStd::open () 
+int HawkStd::open ()
 {
 	int n = Hawk::open();
 	if (HAWK_UNLIKELY(n <= -1)) return n;
@@ -170,9 +170,9 @@ oops:
 	return -1;
 }
 
-void HawkStd::close () 
+void HawkStd::close ()
 {
-	if (this->cmgrtab_inited) 
+	if (this->cmgrtab_inited)
 	{
 		hawk_htb_fini (&this->cmgrtab);
 		this->cmgrtab_inited = false;
@@ -186,7 +186,7 @@ void HawkStd::close ()
 	// but Hawk::close() still needs to call some module's fini and
 	// unload functions. So it must be done in HawkStd::uponClosing()
 	// which is called after modules have been unloaded but while
-	// the underlying hawk object is still alive. 
+	// the underlying hawk object is still alive.
 	//
 	// See HawkStd::uponClosing() below.
 	//
@@ -216,10 +216,10 @@ HawkStd::Run* HawkStd::parse (Source& in, Source& out)
 {
 	Run* run = Hawk::parse(in, out);
 
-	if (this->cmgrtab_inited) 
+	if (this->cmgrtab_inited)
 	{
 		// if cmgrtab has already been initialized,
-		// just clear the contents regardless of 
+		// just clear the contents regardless of
 		// parse() result.
 		hawk_htb_clear (&this->cmgrtab);
 	}
@@ -379,10 +379,10 @@ HawkStd::ioattr_t* HawkStd::find_or_make_ioattr (const hawk_ooch_t* ptr, hawk_oo
 	if (pair == HAWK_NULL)
 	{
 		pair = hawk_htb_insert (
-			&this->cmgrtab, (void*)ptr, len, 
-			(void*)&HawkStd::default_ioattr, 
+			&this->cmgrtab, (void*)ptr, len,
+			(void*)&HawkStd::default_ioattr,
 			HAWK_SIZEOF(HawkStd::default_ioattr));
-		if (pair == HAWK_NULL) 
+		if (pair == HAWK_NULL)
 		{
 			this->setError (HAWK_ENOMEM);
 			return HAWK_NULL;
@@ -419,7 +419,7 @@ int HawkStd::setioattr (
 	{
 		return ret.setInt ((hawk_int_t)-1);
 	}
-	
+
 	int tmout;
 	if ((tmout = timeout_code (ptr[1])) >= 0)
 	{
@@ -460,7 +460,7 @@ int HawkStd::setioattr (
 			cmgr = hawk_get_cmgr_by_name(ptr[2]);
 			if (cmgr == HAWK_NULL) return ret.setInt ((hawk_int_t)-1);
 		}
-		
+
 		ioattr = find_or_make_ioattr(ptr[0], l[0]);
 		if (ioattr == HAWK_NULL) return -1;
 
@@ -554,8 +554,8 @@ int HawkStd::open_nwio (Pipe& io, int flags, void* nwad)
 }
 #endif
 
-int HawkStd::open_pio (Pipe& io) 
-{ 
+int HawkStd::open_pio (Pipe& io)
+{
 	Hawk::Pipe::Mode mode = io.getMode();
 	hawk_pio_t* pio = HAWK_NULL;
 	int flags = HAWK_PIO_TEXT | HAWK_PIO_SHELL | HAWK_PIO_IGNOREECERR;
@@ -581,7 +581,7 @@ int HawkStd::open_pio (Pipe& io)
 
 #if defined(HAWK_OOCH_IS_UCH)
 	hawk_cmgr_t* cmgr = this->getiocmgr(io.getName());
-	if (cmgr) 
+	if (cmgr)
 	{
 		hawk_pio_setcmgr (pio, HAWK_PIO_IN, cmgr);
 		hawk_pio_setcmgr (pio, HAWK_PIO_OUT, cmgr);
@@ -624,8 +624,8 @@ static int parse_rwpipe_uri (const hawk_ooch_t* uri, int* flags, hawk_nwad_t* nw
 }
 #endif
 
-int HawkStd::openPipe (Pipe& io) 
-{ 
+int HawkStd::openPipe (Pipe& io)
+{
 #if defined(ENABLE_NWIO)
 	int flags;
 	hawk_nwad_t nwad;
@@ -644,7 +644,7 @@ int HawkStd::openPipe (Pipe& io)
 #endif
 }
 
-int HawkStd::closePipe (Pipe& io) 
+int HawkStd::closePipe (Pipe& io)
 {
 #if defined(ENABLE_NWIO)
 	if (io.getUflags() > 0)
@@ -675,11 +675,11 @@ int HawkStd::closePipe (Pipe& io)
 #if defined(ENABLE_NWIO)
 	}
 #endif
-	return 0; 
+	return 0;
 }
 
-hawk_ooi_t HawkStd::readPipe (Pipe& io, hawk_ooch_t* buf, hawk_oow_t len) 
-{ 
+hawk_ooi_t HawkStd::readPipe (Pipe& io, hawk_ooch_t* buf, hawk_oow_t len)
+{
 #if defined(ENABLE_NWIO)
 	return (io.getUflags() > 0)?
 		hawk_nwio_read((hawk_nwio_t*)io.getHandle(), buf, len):
@@ -689,8 +689,8 @@ hawk_ooi_t HawkStd::readPipe (Pipe& io, hawk_ooch_t* buf, hawk_oow_t len)
 #endif
 }
 
-hawk_ooi_t HawkStd::readPipeBytes (Pipe& io, hawk_bch_t* buf, hawk_oow_t len) 
-{ 
+hawk_ooi_t HawkStd::readPipeBytes (Pipe& io, hawk_bch_t* buf, hawk_oow_t len)
+{
 #if defined(ENABLE_NWIO)
 	return (io.getUflags() > 0)?
 		hawk_nwio_readbytes((hawk_nwio_t*)io.getHandle(), buf, len):
@@ -700,8 +700,8 @@ hawk_ooi_t HawkStd::readPipeBytes (Pipe& io, hawk_bch_t* buf, hawk_oow_t len)
 #endif
 }
 
-hawk_ooi_t HawkStd::writePipe (Pipe& io, const hawk_ooch_t* buf, hawk_oow_t len) 
-{ 
+hawk_ooi_t HawkStd::writePipe (Pipe& io, const hawk_ooch_t* buf, hawk_oow_t len)
+{
 #if defined(ENABLE_NWIO)
 	return (io.getUflags() > 0)?
 		hawk_nwio_write((hawk_nwio_t*)io.getHandle(), buf, len):
@@ -711,8 +711,8 @@ hawk_ooi_t HawkStd::writePipe (Pipe& io, const hawk_ooch_t* buf, hawk_oow_t len)
 #endif
 }
 
-hawk_ooi_t HawkStd::writePipeBytes (Pipe& io, const hawk_bch_t* buf, hawk_oow_t len) 
-{ 
+hawk_ooi_t HawkStd::writePipeBytes (Pipe& io, const hawk_bch_t* buf, hawk_oow_t len)
+{
 #if defined(ENABLE_NWIO)
 	return (io.getUflags() > 0)?
 		hawk_nwio_writebytes((hawk_nwio_t*)io.getHandle(), buf, len):
@@ -722,8 +722,8 @@ hawk_ooi_t HawkStd::writePipeBytes (Pipe& io, const hawk_bch_t* buf, hawk_oow_t 
 #endif
 }
 
-int HawkStd::flushPipe (Pipe& io) 
-{ 
+int HawkStd::flushPipe (Pipe& io)
+{
 #if defined(ENABLE_NWIO)
 	return (io.getUflags() > 0)?
 		hawk_nwio_flush((hawk_nwio_t*)io.getHandle()):
@@ -733,8 +733,8 @@ int HawkStd::flushPipe (Pipe& io)
 #endif
 }
 
-int HawkStd::openFile (File& io) 
-{ 
+int HawkStd::openFile (File& io)
+{
 	Hawk::File::Mode mode = io.getMode();
 	hawk_sio_t* sio = HAWK_NULL;
 	int flags = HAWK_SIO_IGNOREECERR;
@@ -774,18 +774,18 @@ int HawkStd::openFile (File& io)
 	return 1;
 }
 
-int HawkStd::closeFile (File& io) 
-{ 
+int HawkStd::closeFile (File& io)
+{
 	hawk_sio_close ((hawk_sio_t*)io.getHandle());
-	return 0; 
+	return 0;
 }
 
-hawk_ooi_t HawkStd::readFile (File& io, hawk_ooch_t* buf, hawk_oow_t len) 
+hawk_ooi_t HawkStd::readFile (File& io, hawk_ooch_t* buf, hawk_oow_t len)
 {
 	return hawk_sio_getoochars((hawk_sio_t*)io.getHandle(), buf, len);
 }
 
-hawk_ooi_t HawkStd::readFileBytes (File& io, hawk_bch_t* buf, hawk_oow_t len) 
+hawk_ooi_t HawkStd::readFileBytes (File& io, hawk_bch_t* buf, hawk_oow_t len)
 {
 	return hawk_sio_getbchars((hawk_sio_t*)io.getHandle(), buf, len);
 }
@@ -800,14 +800,14 @@ hawk_ooi_t HawkStd::writeFileBytes (File& io, const hawk_bch_t* buf, hawk_oow_t 
 	return hawk_sio_putbchars((hawk_sio_t*)io.getHandle(), buf, len);
 }
 
-int HawkStd::flushFile (File& io) 
-{ 
+int HawkStd::flushFile (File& io)
+{
 	return hawk_sio_flush((hawk_sio_t*)io.getHandle());
 }
 
 void HawkStd::setConsoleCmgr (const hawk_cmgr_t* cmgr)
 {
-	this->console_cmgr = (hawk_cmgr_t*)cmgr;	
+	this->console_cmgr = (hawk_cmgr_t*)cmgr;
 }
 
 const hawk_cmgr_t* HawkStd::getConsoleCmgr () const
@@ -815,7 +815,7 @@ const hawk_cmgr_t* HawkStd::getConsoleCmgr () const
 	return this->console_cmgr;
 }
 
-int HawkStd::addConsoleOutput (const hawk_uch_t* arg, hawk_oow_t len) 
+int HawkStd::addConsoleOutput (const hawk_uch_t* arg, hawk_oow_t len)
 {
 	HAWK_ASSERT (this->hawk != HAWK_NULL);
 	int n = this->ofile.add(this->hawk, arg, len);
@@ -823,12 +823,12 @@ int HawkStd::addConsoleOutput (const hawk_uch_t* arg, hawk_oow_t len)
 	return n;
 }
 
-int HawkStd::addConsoleOutput (const hawk_uch_t* arg) 
+int HawkStd::addConsoleOutput (const hawk_uch_t* arg)
 {
 	return this->addConsoleOutput(arg, hawk_count_ucstr(arg));
 }
 
-int HawkStd::addConsoleOutput (const hawk_bch_t* arg, hawk_oow_t len) 
+int HawkStd::addConsoleOutput (const hawk_bch_t* arg, hawk_oow_t len)
 {
 	HAWK_ASSERT (this->hawk != HAWK_NULL);
 	int n = this->ofile.add(this->hawk, arg, len);
@@ -836,13 +836,13 @@ int HawkStd::addConsoleOutput (const hawk_bch_t* arg, hawk_oow_t len)
 	return n;
 }
 
-int HawkStd::addConsoleOutput (const hawk_bch_t* arg) 
+int HawkStd::addConsoleOutput (const hawk_bch_t* arg)
 {
 	return this->addConsoleOutput(arg, hawk_count_bcstr(arg));
 }
 
 
-void HawkStd::clearConsoleOutputs () 
+void HawkStd::clearConsoleOutputs ()
 {
 	this->ofile.clear (this->hawk);
 }
@@ -875,8 +875,8 @@ static int check_var_assign (hawk_rtx_t* rtx, const hawk_ooch_t* str)
 	return n;
 }
 
-int HawkStd::open_console_in (Console& io) 
-{ 
+int HawkStd::open_console_in (Console& io)
+{
 	hawk_rtx_t* rtx = (hawk_rtx_t*)io;
 	hawk_sio_t* sio;
 	hawk_val_t* v_argc, * v_argv, * v_pair;
@@ -894,17 +894,17 @@ int HawkStd::open_console_in (Console& io)
 	if (hawk_rtx_valtoint(rtx, v_argc, &i_argc) <= -1) return -1;
 
 	/* handle special case when ARGV[x] has been altered.
-	 * so from here down, the file name gotten from 
-	 * rxtn->c.in.files is not important and is overridden 
+	 * so from here down, the file name gotten from
+	 * rxtn->c.in.files is not important and is overridden
 	 * from ARGV.
-	 * 'BEGIN { ARGV[1]="file3"; } 
+	 * 'BEGIN { ARGV[1]="file3"; }
 	 *        { print $0; }' file1 file2
 	 */
 	v_argv = hawk_rtx_getgbl(rtx, this->gbl_argv);
 	HAWK_ASSERT (v_argv != HAWK_NULL);
 	if (HAWK_RTX_GETVALTYPE(rtx, v_argv) != HAWK_VAL_MAP)
 	{
-		/* with flexmap on, you can change ARGV to a scalar. 
+		/* with flexmap on, you can change ARGV to a scalar.
 		 *   BEGIN { ARGV="xxx"; }
 		 * you must not do this. */
 		hawk_rtx_seterrfmt (rtx, HAWK_NULL, HAWK_EINVAL, HAWK_T("phony value in ARGV"));
@@ -933,12 +933,12 @@ nextfile:
 			return 1;
 		}
 
-		return 0; 
+		return 0;
 	}
 
 	ibuflen = hawk_int_to_oocstr(this->runarg_index + 1, 10, HAWK_NULL, ibuf, HAWK_COUNTOF(ibuf));
 	pair = hawk_map_search(map, ibuf, ibuflen);
-	if (!pair) 
+	if (!pair)
 	{
 		if (this->runarg_count <= 0) goto console_open_stdin;
 		return 0;
@@ -970,8 +970,8 @@ nextfile:
 
 	/*
 	 * this is different from the -v option.
-	 * if an argument has a special form of var=val, it is treated specially 
-	 * 
+	 * if an argument has a special form of var=val, it is treated specially
+	 *
 	 * on the command-line
 	 *   hawk -f a.hawk a=20 /etc/passwd
 	 * or via ARGV
@@ -990,12 +990,12 @@ nextfile:
 		sio = open_sio_std(HAWK_NULL, io, HAWK_SIO_STDIN, HAWK_SIO_READ | HAWK_SIO_IGNOREECERR);
 	else
 		sio = open_sio(HAWK_NULL, io, file, HAWK_SIO_READ | HAWK_SIO_IGNOREECERR);
-	if (sio == HAWK_NULL) 
+	if (sio == HAWK_NULL)
 	{
 		hawk_rtx_freevaloocstr (rtx, v_pair, as.ptr);
 		return -1;
 	}
-	
+
 	if (hawk_rtx_setfilenamewithoochars(rtx, file, hawk_count_oocstr(file)) <= -1)
 	{
 		hawk_sio_close (sio);
@@ -1015,7 +1015,7 @@ nextfile:
 	return 1;
 }
 
-int HawkStd::open_console_out (Console& io) 
+int HawkStd::open_console_out (Console& io)
 {
 	hawk_rtx_t* rtx = (hawk_rtx_t*)io;
 
@@ -1023,7 +1023,7 @@ int HawkStd::open_console_out (Console& io)
 	{
 		HAWK_ASSERT (this->ofile.len == 0 && this->ofile.capa == 0);
 
-		if (this->ofile_count == 0) 
+		if (this->ofile_count == 0)
 		{
 			hawk_sio_t* sio;
 			sio = open_sio_std(
@@ -1042,7 +1042,7 @@ int HawkStd::open_console_out (Console& io)
 	}
 	else
 	{
-		/* a temporary variable sio is used here not to change 
+		/* a temporary variable sio is used here not to change
 		 * any fields of riod when the open operation fails */
 		hawk_sio_t* sio;
 		const hawk_ooch_t* file;
@@ -1056,7 +1056,7 @@ int HawkStd::open_console_out (Console& io)
 		}
 
 		if (hawk_count_oocstr(file) != this->ofile.ptr[this->ofile_index].len)
-		{	
+		{
 			((Run*)io)->formatError (HAWK_EIONMNL, HAWK_NULL, HAWK_T("invalid I/O name of length %zu containing '\\0'"), this->ofile.ptr[this->ofile_index].len);
 			return -1;
 		}
@@ -1066,7 +1066,7 @@ int HawkStd::open_console_out (Console& io)
 		else
 			sio = open_sio(HAWK_NULL, io, file, HAWK_SIO_WRITE | HAWK_SIO_CREATE | HAWK_SIO_TRUNCATE | HAWK_SIO_IGNOREECERR);
 		if (sio == HAWK_NULL) return -1;
-		
+
 		if (hawk_rtx_setofilenamewithoochars(rtx, file, hawk_count_oocstr(file)) == -1)
 		{
 			hawk_sio_close (sio);
@@ -1082,7 +1082,7 @@ int HawkStd::open_console_out (Console& io)
 	}
 }
 
-int HawkStd::openConsole (Console& io) 
+int HawkStd::openConsole (Console& io)
 {
 	Console::Mode mode = io.getMode();
 
@@ -1102,13 +1102,13 @@ int HawkStd::openConsole (Console& io)
 	}
 }
 
-int HawkStd::closeConsole (Console& io) 
-{ 
+int HawkStd::closeConsole (Console& io)
+{
 	hawk_sio_close ((hawk_sio_t*)io.getHandle());
 	return 0;
 }
 
-hawk_ooi_t HawkStd::readConsole (Console& io, hawk_ooch_t* data, hawk_oow_t size) 
+hawk_ooi_t HawkStd::readConsole (Console& io, hawk_ooch_t* data, hawk_oow_t size)
 {
 	hawk_ooi_t nn;
 
@@ -1120,7 +1120,7 @@ hawk_ooi_t HawkStd::readConsole (Console& io, hawk_ooch_t* data, hawk_oow_t size
 		n = open_console_in(io);
 		if (n == -1) return -1;
 
-		if (n == 0) 
+		if (n == 0)
 		{
 			/* no more input console */
 			return 0;
@@ -1133,7 +1133,7 @@ hawk_ooi_t HawkStd::readConsole (Console& io, hawk_ooch_t* data, hawk_oow_t size
 	return nn;
 }
 
-hawk_ooi_t HawkStd::readConsoleBytes (Console& io, hawk_bch_t* data, hawk_oow_t size) 
+hawk_ooi_t HawkStd::readConsoleBytes (Console& io, hawk_bch_t* data, hawk_oow_t size)
 {
 	hawk_ooi_t nn;
 
@@ -1145,7 +1145,7 @@ hawk_ooi_t HawkStd::readConsoleBytes (Console& io, hawk_bch_t* data, hawk_oow_t 
 		n = open_console_in(io);
 		if (n == -1) return -1;
 
-		if (n == 0) 
+		if (n == 0)
 		{
 			/* no more input console */
 			return 0;
@@ -1158,31 +1158,31 @@ hawk_ooi_t HawkStd::readConsoleBytes (Console& io, hawk_bch_t* data, hawk_oow_t 
 	return nn;
 }
 
-hawk_ooi_t HawkStd::writeConsole (Console& io, const hawk_ooch_t* data, hawk_oow_t size) 
+hawk_ooi_t HawkStd::writeConsole (Console& io, const hawk_ooch_t* data, hawk_oow_t size)
 {
 	return hawk_sio_putoochars((hawk_sio_t*)io.getHandle(), data, size);
 }
 
-hawk_ooi_t HawkStd::writeConsoleBytes (Console& io, const hawk_bch_t* data, hawk_oow_t size) 
+hawk_ooi_t HawkStd::writeConsoleBytes (Console& io, const hawk_bch_t* data, hawk_oow_t size)
 {
 	return hawk_sio_putbchars((hawk_sio_t*)io.getHandle(), data, size);
 }
 
-int HawkStd::flushConsole (Console& io) 
-{ 
+int HawkStd::flushConsole (Console& io)
+{
 	return hawk_sio_flush ((hawk_sio_t*)io.getHandle());
 }
 
-int HawkStd::nextConsole (Console& io) 
-{ 
+int HawkStd::nextConsole (Console& io)
+{
 	int n;
 	hawk_sio_t* sio = (hawk_sio_t*)io.getHandle();
 
-	n = (io.getMode() == Console::READ)? 
+	n = (io.getMode() == Console::READ)?
 		open_console_in(io): open_console_out(io);
 	if (n == -1) return -1;
 
-	if (n == 0) 
+	if (n == 0)
 	{
 		/* if there is no more file, keep the previous handle */
 		return 0;
@@ -1193,30 +1193,30 @@ int HawkStd::nextConsole (Console& io)
 }
 
 // memory allocation primitives
-void* HawkStd::allocMem (hawk_oow_t n) 
-{ 
-	return ::malloc (n); 
+void* HawkStd::allocMem (hawk_oow_t n)
+{
+	return ::malloc (n);
 }
 
-void* HawkStd::reallocMem (void* ptr, hawk_oow_t n) 
-{ 
-	return ::realloc (ptr, n); 
+void* HawkStd::reallocMem (void* ptr, hawk_oow_t n)
+{
+	return ::realloc (ptr, n);
 }
 
-void  HawkStd::freeMem (void* ptr) 
-{ 
-	::free (ptr); 
+void  HawkStd::freeMem (void* ptr)
+{
+	::free (ptr);
 }
 
 // miscellaneous primitive
 
-hawk_flt_t HawkStd::pow (hawk_flt_t x, hawk_flt_t y) 
-{ 
+hawk_flt_t HawkStd::pow (hawk_flt_t x, hawk_flt_t y)
+{
 	return hawk_stdmathpow(this->hawk, x, y);
 }
 
-hawk_flt_t HawkStd::mod (hawk_flt_t x, hawk_flt_t y) 
-{ 
+hawk_flt_t HawkStd::mod (hawk_flt_t x, hawk_flt_t y)
+{
 	return hawk_stdmathmod(this->hawk, x, y);
 }
 
@@ -1258,12 +1258,12 @@ int HawkStd::SourceFile::open (Data& io)
 		{
 			if (io.getMode() == READ)
 				sio = open_sio_std(
-					io, HAWK_NULL, HAWK_SIO_STDIN, 
+					io, HAWK_NULL, HAWK_SIO_STDIN,
 					HAWK_SIO_READ | HAWK_SIO_IGNOREECERR);
 			else
 				sio = open_sio_std(
-					io, HAWK_NULL, HAWK_SIO_STDOUT, 
-					HAWK_SIO_WRITE | HAWK_SIO_CREATE | 
+					io, HAWK_NULL, HAWK_SIO_STDOUT,
+					HAWK_SIO_WRITE | HAWK_SIO_CREATE |
 					HAWK_SIO_TRUNCATE | HAWK_SIO_IGNOREECERR | HAWK_SIO_LINEBREAK);
 			if (sio == HAWK_NULL) return -1;
 		}
@@ -1271,8 +1271,8 @@ int HawkStd::SourceFile::open (Data& io)
 		{
 			sio = open_sio(
 				io, HAWK_NULL, xpath,
-				(io.getMode() == READ? 
-					(HAWK_SIO_READ | HAWK_SIO_IGNOREECERR | HAWK_SIO_KEEPPATH): 
+				(io.getMode() == READ?
+					(HAWK_SIO_READ | HAWK_SIO_IGNOREECERR | HAWK_SIO_KEEPPATH):
 					(HAWK_SIO_WRITE | HAWK_SIO_CREATE | HAWK_SIO_TRUNCATE | HAWK_SIO_IGNOREECERR))
 			);
 			if (sio == HAWK_NULL) return -1;
@@ -1284,7 +1284,7 @@ int HawkStd::SourceFile::open (Data& io)
 	}
 	else
 	{
-		// open an included file 
+		// open an included file
 		const hawk_ooch_t* ioname;
 		hawk_ooch_t* xpath;
 
@@ -1351,8 +1351,8 @@ int HawkStd::SourceFile::open (Data& io)
 
 		sio = open_sio(
 			io, HAWK_NULL, xpath,
-			(io.getMode() == READ? 
-				(HAWK_SIO_READ | HAWK_SIO_IGNOREECERR | HAWK_SIO_KEEPPATH): 
+			(io.getMode() == READ?
+				(HAWK_SIO_READ | HAWK_SIO_IGNOREECERR | HAWK_SIO_KEEPPATH):
 				(HAWK_SIO_WRITE | HAWK_SIO_CREATE | HAWK_SIO_TRUNCATE | HAWK_SIO_IGNOREECERR))
 		);
 		if (!sio) return -1;
@@ -1397,7 +1397,7 @@ int HawkStd::SourceString::open (Data& io)
 	if (io.getName() == HAWK_NULL)
 	{
 		// open the main source file.
-		if (io.getMode() == WRITE) 
+		if (io.getMode() == WRITE)
 		{
 			// SourceString does not support writing.
 			((Hawk*)io)->setError (HAWK_ENOIMPL);
@@ -1424,7 +1424,7 @@ int HawkStd::SourceString::open (Data& io)
 				this->str = hawk_dupbcstr(this->_hawk, (const hawk_bch_t*)this->_str, HAWK_NULL);
 			#endif
 			}
-			if (HAWK_UNLIKELY(!this->str)) 
+			if (HAWK_UNLIKELY(!this->str))
 			{
 				this->_hawk = HAWK_NULL;
 				return -1;
@@ -1435,7 +1435,7 @@ int HawkStd::SourceString::open (Data& io)
 	}
 	else
 	{
-		// open an included file 
+		// open an included file
 		const hawk_ooch_t* ioname;
 		hawk_ooch_t* xpath;
 
@@ -1484,8 +1484,8 @@ int HawkStd::SourceString::open (Data& io)
 
 		sio = open_sio(
 			io, HAWK_NULL, xpath,
-			(io.getMode() == READ? 
-				(HAWK_SIO_READ | HAWK_SIO_IGNOREECERR | HAWK_SIO_KEEPPATH): 
+			(io.getMode() == READ?
+				(HAWK_SIO_READ | HAWK_SIO_IGNOREECERR | HAWK_SIO_KEEPPATH):
 				(HAWK_SIO_WRITE | HAWK_SIO_CREATE | HAWK_SIO_TRUNCATE | HAWK_SIO_IGNOREECERR))
 		);
 		if (!sio) return -1;
@@ -1542,7 +1542,7 @@ hawk_ooi_t HawkStd::SourceString::write (Data& io, const hawk_ooch_t* buf, hawk_
 	else
 	{
 		// in fact, this block will never be reached as
-		// there is no included file concept for deparsing 
+		// there is no included file concept for deparsing
 		return hawk_sio_putoochars((hawk_sio_t*)io.getHandle(), buf, len);
 	}
 }

@@ -32,7 +32,7 @@
 
 /// \file
 /// This file defines C++ classes that you can use when you create a stream
-/// editor. The C++ classes encapsulates the C data types and functions in 
+/// editor. The C++ classes encapsulates the C data types and functions in
 /// a more object-oriented manner.
 ///
 /// \todo support sed tracer
@@ -62,7 +62,7 @@ public:
 			WRITE  ///< open for write
 		};
 
-		/// The Data class conveys information need for I/O operations. 
+		/// The Data class conveys information need for I/O operations.
 		class HAWK_EXPORT Data
 		{
 		public:
@@ -77,12 +77,12 @@ public:
 			/// requested.
 			Mode getMode() const { return this->mode; }
 
-			/// The getHandle() function returns the I/O handle 
+			/// The getHandle() function returns the I/O handle
 			/// saved by setHandle().
 			void* getHandle () const { return this->arg->handle; }
 
 			/// The setHandle() function sets an I/O handle
-			/// typically in the Stream::open() function. 
+			/// typically in the Stream::open() function.
 			void setHandle (void* handle) { this->arg->handle = handle; }
 
 			/// The getName() function returns an I/O name.
@@ -93,7 +93,7 @@ public:
 			/// The Sed* operator returns the associated Sed class.
 			operator Sed* () const { return this->sed; }
 
-			/// The hawk_sed_t* operator returns a pointer to the 
+			/// The hawk_sed_t* operator returns a pointer to the
 			/// underlying stream editor.
 			operator hawk_sed_t* () const { return this->sed->getHandle(); }
 
@@ -115,7 +115,7 @@ public:
 		/// to open a stream. It can get the mode requested by calling
 		/// the Data::getMode() function over the I/O parameter \a io.
 		///
-		/// The return value of 0 may look a bit tricky. Easygoers 
+		/// The return value of 0 may look a bit tricky. Easygoers
 		/// can just return 1 on success and never return 0 from open().
 		/// - If 0 is returned for the #READ mode, Sed::execute()
 		///   returns success after having called close() as it has
@@ -125,7 +125,7 @@ public:
 		///   failure after having called close() as it cannot write
 		///   further on EOF.
 		///
-		/// \return -1 on failure, 1 on success, 
+		/// \return -1 on failure, 1 on success,
 		///         0 on success but reached EOF.
 		virtual int open (Data& io) = 0;
 
@@ -147,7 +147,7 @@ public:
 	Sed (Mmgr* mmgr);
 
 	///
-	/// The ~Sed() function destroys a stream editor. 
+	/// The ~Sed() function destroys a stream editor.
 	/// \note The close() function is not called by this destructor.
 	///       To avoid resource leaks, You should call close() before
 	///       a stream editor is destroyed if it has been initialized
@@ -172,7 +172,7 @@ public:
 	void close ();
 
 	///
-	/// The compile() function compiles a script from a stream 
+	/// The compile() function compiles a script from a stream
 	/// \a iostream.
 	/// \return 0 on success, -1 on failure
 	///
@@ -187,7 +187,7 @@ public:
 
 	///
 	/// The halt() function makes a request to break a running loop
-	/// inside execute(). Note that this does not affect blocking 
+	/// inside execute(). Note that this does not affect blocking
 	/// operations in user-defined stream handlers.
 	///
 	void halt ();
@@ -213,7 +213,7 @@ public:
 	);
 
 	///
-	/// The getErrorMessage() function gets the description of the last 
+	/// The getErrorMessage() function gets the description of the last
 	/// error occurred. It returns an empty string if the stream editor
 	/// has not been initialized with the open() function.
 	///
@@ -223,14 +223,14 @@ public:
 
 	///
 	/// The getErrorLocation() function gets the location where
-	/// the last error occurred. The line and the column of the #hawk_loc_t 
-	/// structure retruend are 0 if the stream editor has not been 
+	/// the last error occurred. The line and the column of the #hawk_loc_t
+	/// structure retruend are 0 if the stream editor has not been
 	/// initialized with the open() function.
 	///
 	hawk_loc_t getErrorLocation () const;
 
 	///
-	/// The getErrorNumber() function gets the number of the last 
+	/// The getErrorNumber() function gets the number of the last
 	/// error occurred. It returns HAWK_ENOERR if the stream editor
 	/// has not been initialized with the open() function.
 	///
@@ -268,14 +268,14 @@ public:
 
 	///
 	/// The getConsoleLine() function returns the current line
-	/// number from an input console. 
+	/// number from an input console.
 	/// \return current line number
 	///
 	hawk_oow_t getConsoleLine ();
 
 	///
 	/// The setConsoleLine() function changes the current line
-	/// number from an input console. 
+	/// number from an input console.
 	///
 	void setConsoleLine (
 		hawk_oow_t num ///< a line number
@@ -286,7 +286,7 @@ protected:
 	/// The getErrorString() function returns an error formatting string
 	/// for the error number \a num. A subclass wishing to customize
 	/// an error formatting string may override this function.
-	/// 
+	///
 	virtual const hawk_ooch_t* getErrorString (
 		hawk_errnum_t num ///< an error number
 	) const;
@@ -300,7 +300,7 @@ protected:
 	/// handle to a primitive sed object
 	hawk_sed_t* sed;
 	/// default error formatting string getter
-	hawk_errstr_t dflerrstr; 
+	hawk_errstr_t dflerrstr;
 	/// Stream to read script from
 	Stream* sstream;
 	/// I/O stream to read data from
@@ -408,7 +408,7 @@ public:
 		} out;
 
 		hawk_cmgr_t* cmgr;
-		
+
 
 		static void on_sed_close (hawk_sed_t* sed, void* ctx);
 		void clearInputData ();

@@ -374,35 +374,6 @@ HAWK_EXPORT hawk_oow_t hawk_hash_bytes_ (
  * STRING
  * ========================================================================= */
 
-HAWK_EXPORT int hawk_comp_ucstr_bcstr (
-	const hawk_uch_t* str1,
-	const hawk_bch_t* str2,
-	int               ignorecase
-);
-
-HAWK_EXPORT int hawk_comp_ucstr_bcstr_limited (
-	const hawk_uch_t* str1,
-	const hawk_bch_t* str2,
-	hawk_oow_t        maxlen,
-	int               ignorecase
-);
-
-HAWK_EXPORT int hawk_comp_uchars_bcstr (
-	const hawk_uch_t* str1,
-	hawk_oow_t        len,
-	const hawk_bch_t* str2,
-	int               ignorecase
-);
-
-HAWK_EXPORT int hawk_comp_bchars_ucstr (
-	const hawk_bch_t* str1,
-	hawk_oow_t        len,
-	const hawk_uch_t* str2,
-	int               ignorecase
-);
-
-/* ------------------------------------------------------------------------- */
-
 HAWK_EXPORT hawk_oow_t hawk_subst_for_uchars_to_ucstr (
 	hawk_uch_t*           buf,
 	hawk_oow_t            bsz,

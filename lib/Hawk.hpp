@@ -67,22 +67,22 @@ HAWK_BEGIN_NAMESPACE(HAWK)
 	#define HAWK_CXX_CALL_PLACEMENT_DELETE1(ptr, arg1) (::operator delete((ptr), (arg1)))
 
 #elif (__cplusplus >= 199711L) // C++98
-	#undef HAWK_LANG_CXX11 
+	#undef HAWK_LANG_CXX11
 	#define HAWK_CXX_NOEXCEPT throw()
 
 	#define HAWK_CXX_CALL_DESTRUCTOR(ptr, class_name) ((ptr)->~class_name())
 	#define HAWK_CXX_CALL_PLACEMENT_DELETE1(ptr, arg1) (::operator delete((ptr), (arg1)))
 #else
-	#undef HAWK_LANG_CXX11 
-	#define HAWK_CXX_NOEXCEPT 
+	#undef HAWK_LANG_CXX11
+	#define HAWK_CXX_NOEXCEPT
 
 	#if defined(__BORLANDC__)
 
 		// Explicit destructor call requires a class name depending on the
-		// C++ standard/compiler.  
-		// 
+		// C++ standard/compiler.
+		//
 		//   Node* x;
-		//   x->~Node (); 
+		//   x->~Node ();
 		//
 		// While x->~Node() is ok with modern compilers, some old compilers
 		// like BCC55 required the class name in the call as shown below.
@@ -95,7 +95,7 @@ HAWK_BEGIN_NAMESPACE(HAWK)
 
 	#elif defined(__WATCOMC__)
 		// WATCOM has a problem with this syntax.
-		//    Node* x; x->Node::~Node(). 
+		//    Node* x; x->Node::~Node().
 		// But it doesn't support operator delete overloading.
 
 		#define HAWK_CXX_CALL_DESTRUCTOR(ptr, class_name) ((ptr)->~class_name())
@@ -159,11 +159,11 @@ class HAWK_EXPORT Exception
 {
 public:
 	Exception (
-		const hawk_ooch_t* name, const hawk_ooch_t* msg, 
-		const hawk_ooch_t* file, hawk_oow_t line) HAWK_CXX_NOEXCEPT: 
+		const hawk_ooch_t* name, const hawk_ooch_t* msg,
+		const hawk_ooch_t* file, hawk_oow_t line) HAWK_CXX_NOEXCEPT:
 		name(name), msg(msg)
 #if !defined(HAWK_NO_LOCATION_IN_EXCEPTION)
-		, file(file), line(line) 
+		, file(file), line(line)
 #endif
 	{
 	}
@@ -214,21 +214,21 @@ private:
 
 ///
 /// The Mmgr class defines a memory manager interface that can be inherited
-/// by a class in need of a memory manager as defined in the primitive 
+/// by a class in need of a memory manager as defined in the primitive
 /// #hawk_mmgr_t type. Using the class over the primitive type enables you to
-/// write code in more object-oriented fashion. An inheriting class should 
+/// write code in more object-oriented fashion. An inheriting class should
 /// implement three pure virtual functions.
 ///
 /// You are free to call allocMem(), reallocMem(), and freeMem() in C++ context
-/// where no exception raising is desired. If you want an exception to be 
+/// where no exception raising is desired. If you want an exception to be
 /// raised upon memory allocation errors, you can call allocate(), reallocate(),
 /// dispose() instead.
-/// 
-/// 
+///
+///
 class HAWK_EXPORT Mmgr: public hawk_mmgr_t
 {
 public:
-	/// defines an alias type to #hawk_mmgr_t 
+	/// defines an alias type to #hawk_mmgr_t
 	typedef hawk_mmgr_t mmgr_t;
 
 	HAWK_EXCEPTION (MemoryError);
@@ -268,7 +268,7 @@ public:
 	}
 
 	///
-	/// The callocate() function allocates memory like allocate() and 
+	/// The callocate() function allocates memory like allocate() and
 	/// clears the memory before returning.
 	///
 	void* callocate (hawk_oow_t n, bool raise_exception = true);
@@ -294,13 +294,13 @@ public:
 	}
 
 //protected:
-	/// 
-	/// The allocMem() function allocates a chunk of memory of the 
+	///
+	/// The allocMem() function allocates a chunk of memory of the
 	/// size \a n and return the pointer to the beginning of the chunk.
 	/// If it fails to allocate memory, it should return #HAWK_NULL.
 	///
 	virtual void* allocMem (
-		hawk_oow_t n ///< size of memory chunk to allocate in bytes 
+		hawk_oow_t n ///< size of memory chunk to allocate in bytes
 	) HAWK_CXX_NOEXCEPT = 0;
 
 	///
@@ -319,7 +319,7 @@ public:
 	/// the allocMem() function or resized with the reallocMem() function.
 	///
 	virtual void freeMem (
-		void* ptr ///< pointer to memory chunk to free 
+		void* ptr ///< pointer to memory chunk to free
 	) HAWK_CXX_NOEXCEPT = 0;
 
 protected:
@@ -358,10 +358,10 @@ public:
 	Mmgr* getMmgr () const { return this->_mmgr; }
 
 protected:
-	/// 
+	///
 	/// The setMmgr() function changes the memory manager.
-	/// Changing memory manager requires extra care to be taken 
-	/// especially when you have some data allocated with the previous 
+	/// Changing memory manager requires extra care to be taken
+	/// especially when you have some data allocated with the previous
 	/// manager. for this reason, i put this as a protected function.
 	///
 	void setMmgr(Mmgr* mmgr);
@@ -370,8 +370,8 @@ private:
 	Mmgr* _mmgr;
 };
 
-/// 
-/// The Hawk class implements an AWK interpreter by wrapping around 
+///
+/// The Hawk class implements an AWK interpreter by wrapping around
 /// #hhawk_t and #hawk_rtx_t.
 ///
 class HAWK_EXPORT Hawk: public Uncopyable, public Mmged
@@ -407,7 +407,7 @@ protected:
 	/// different. The example below changes the formatting string for
 	/// #HAWK_ENOENT.
 	/// \code
-	/// const hawk_ooch_t* MyHawk::getErrorString (hawk_errnum_t num) const 
+	/// const hawk_ooch_t* MyHawk::getErrorString (hawk_errnum_t num) const
 	/// {
 	///    if (num == HAWK_ENOENT) return HAWK_T("cannot find '${0}'");
 	///    return Hawk::getErrorString(num);
@@ -426,7 +426,7 @@ public:
 	hawk_errnum_t getErrorNumber () const;
 
 	///
-	/// The getErrorLocation() function returns the location of the 
+	/// The getErrorLocation() function returns the location of the
 	/// last error occurred.
 	///
 	hawk_loc_t getErrorLocation () const;
@@ -462,11 +462,11 @@ public:
 	);
 
 	///
-	/// The clearError() function clears error information 
+	/// The clearError() function clears error information
 	///
 	void clearError ();
 
-//protected: can't make it protected for borland 
+//protected: can't make it protected for borland
 	void retrieveError ();
 	void retrieveError (Run* run);
 	/// \}
@@ -475,7 +475,7 @@ protected:
 	class NoSource;
 
 public:
-	/// 
+	///
 	/// The Source class is an abstract class to encapsulate
 	/// source script I/O. The Hawk::parse function requires a concrete
 	/// object instantiated from its child class.
@@ -494,7 +494,7 @@ public:
 
 		///
 		/// The Data class encapsulates information passed in and out
-		/// for source script I/O. 
+		/// for source script I/O.
 		///
 		class HAWK_EXPORT Data
 		{
@@ -502,7 +502,7 @@ public:
 			friend class Hawk;
 
 		protected:
-			Data (Hawk* hawk, Mode mode, hawk_sio_arg_t* arg): 
+			Data (Hawk* hawk, Mode mode, hawk_sio_arg_t* arg):
 				hawk(hawk), mode(mode), arg(arg)
 			{
 			}
@@ -606,7 +606,7 @@ protected:
 
 public:
 	///
-	/// The RIOBase class is a base class to represent runtime I/O 
+	/// The RIOBase class is a base class to represent runtime I/O
 	/// operations. The Console, File, Pipe classes implement more specific
 	/// I/O operations by inheriting this class.
 	///
@@ -625,10 +625,10 @@ public:
 		void setUflags (int uflags) { this->riod->uflags = uflags; }
 
 		operator Hawk* () const { return this->run->hawk; }
-		operator hawk_t* () const 
+		operator hawk_t* () const
 		{
 			HAWK_ASSERT (hawk_rtx_gethawk(this->run->rtx) == this->run->hawk->getHandle());
-			return this->run->hawk->getHandle(); 
+			return this->run->hawk->getHandle();
 		}
 		operator hawk_rio_arg_t* () const { return this->riod; }
 		operator Run* () const { return this->run; }
@@ -669,14 +669,14 @@ public:
 		enum CloseMode
 		{
 			/// close both read and write ends
-			CLOSE_FULL = HAWK_RIO_CMD_CLOSE_FULL, 
+			CLOSE_FULL = HAWK_RIO_CMD_CLOSE_FULL,
 			/// close the read end only
 			CLOSE_READ = HAWK_RIO_CMD_CLOSE_READ,
 			/// close the write end only
 			CLOSE_WRITE = HAWK_RIO_CMD_CLOSE_WRITE
 		};
 
-		class HAWK_EXPORT Handler 
+		class HAWK_EXPORT Handler
 		{
 		public:
 			virtual ~Handler () {}
@@ -695,14 +695,14 @@ public:
 
 	public:
 		/// The getMode() function returns the opening mode requested.
-		/// You can inspect the opening mode, typically in the 
-		/// openPipe() function, to create a pipe with proper 
+		/// You can inspect the opening mode, typically in the
+		/// openPipe() function, to create a pipe with proper
 		/// access mode. It is harmless to call this function from
 		/// other pipe handling functions.
 		Mode getMode () const;
 
-		/// The getCloseMode() function returns the closing mode 
-		/// requested. The returned value is valid if getMode() 
+		/// The getCloseMode() function returns the closing mode
+		/// requested. The returned value is valid if getMode()
 		/// returns #RW.
 		CloseMode getCloseMode () const;
 	};
@@ -722,7 +722,7 @@ public:
 			APPEND = HAWK_RIO_FILE_APPEND
 		};
 
-		class HAWK_EXPORT Handler 
+		class HAWK_EXPORT Handler
 		{
 		public:
 			virtual ~Handler () {}
@@ -744,7 +744,7 @@ public:
 	};
 
 	///
-	/// The Console class encapsulates the console operations by 
+	/// The Console class encapsulates the console operations by
 	/// inheriting RIOBase.
 	///
 	class HAWK_EXPORT Console: public RIOBase
@@ -759,10 +759,10 @@ public:
 			WRITE = HAWK_RIO_CONSOLE_WRITE ///< open for output
 		};
 
-		/// 
+		///
 		/// The Handler class is an abstract class that can be
 		/// implemented for customized I/O handling.
-		class HAWK_EXPORT Handler 
+		class HAWK_EXPORT Handler
 		{
 		public:
 			virtual ~Handler () {}
@@ -778,8 +778,8 @@ public:
 			virtual int open  (Console& io) = 0;
 
 			/// The close() function is called when the console
-			/// is not needed any more. It must return 0 for success 
-			/// and -1 for failure. 
+			/// is not needed any more. It must return 0 for success
+			/// and -1 for failure.
 			virtual int close (Console& io) = 0;
 
 			/// The read() function is called when the console
@@ -794,19 +794,19 @@ public:
 			/// The write() function is called when the console
 			/// is written for output. It can write upto \a len characters
 			/// available in the buffer \a buf and return the number of
-			/// characters written. It can return 0 to indicate EOF and -1 
+			/// characters written. It can return 0 to indicate EOF and -1
 			/// for failure.
 			virtual hawk_ooi_t write (Console& io, const hawk_ooch_t* buf, hawk_oow_t len) = 0;
 
 			virtual hawk_ooi_t writeBytes (Console& io, const hawk_bch_t* buf, hawk_oow_t len) = 0;
 
-			/// You may choose to buffer the data passed to the write() 
-			/// function and perform actual writing when flush() is called. 
+			/// You may choose to buffer the data passed to the write()
+			/// function and perform actual writing when flush() is called.
 			/// It must return 0 for success and -1 for failure.
 			virtual int flush (Console& io) = 0;
 
-			/// The next() function is called when \b nextfile or 
-			/// \b nextofile is executed. It must return 0 for success 
+			/// The next() function is called when \b nextfile or
+			/// \b nextofile is executed. It must return 0 for success
 			/// and -1 for failure.
 			virtual int next  (Console& io) = 0;
 		};
@@ -829,7 +829,7 @@ public:
 
 
 	///
-	/// The Value class wraps around #hawk_val_t to provide a more 
+	/// The Value class wraps around #hawk_val_t to provide a more
 	/// comprehensive interface.
 	///
 	class HAWK_EXPORT Value
@@ -909,12 +909,12 @@ public:
 		protected:
 			// 2^32: 4294967296
 			// 2^64: 18446744073709551616
-			// 2^128: 340282366920938463463374607431768211456 
+			// 2^128: 340282366920938463463374607431768211456
 			// -(2^32/2): -2147483648
 			// -(2^64/2): -9223372036854775808
 			// -(2^128/2): -170141183460469231731687303715884105728
 		#if HAWK_SIZEOF_LONG_T > 16
-		#	error SIZEOF(hawk_int_t) TOO LARGE. 
+		#	error SIZEOF(hawk_int_t) TOO LARGE.
 		#	error INCREASE THE BUFFER SIZE TO SUPPORT IT.
 		#elif HAWK_SIZEOF_LONG_T == 16
 			hawk_ooch_t buf[41];
@@ -935,13 +935,13 @@ public:
 			friend class Value;
 
 			///
-			/// The END variable is a special variable to 
+			/// The END variable is a special variable to
 			/// represent the end of iteration.
 			///
 			static IndexIterator END;
 
 			///
-			/// The IndexIterator() function creates an iterator 
+			/// The IndexIterator() function creates an iterator
 			/// for an arrayed value.
 			///
 			IndexIterator ()
@@ -967,10 +967,10 @@ public:
 
 		///
 		/// The Value() function creates an empty value associated
-		/// with no runtime context. To set an actual inner value, 
+		/// with no runtime context. To set an actual inner value,
 		/// you must specify a context when calling setXXX() functions.
 		/// i.e., use setInt(run,10) instead of setInt(10).
-		/// 
+		///
 		Value ();
 
 		///
@@ -1020,12 +1020,12 @@ public:
 			const hawk_ooch_t* p;
 			hawk_oow_t l;
 
-			if (this->getStr(&p, &l) <= -1) 
+			if (this->getStr(&p, &l) <= -1)
 			{
 				p = this->getEmptyStr();
 				l = 0;
 			}
-			
+
 			if (len) *len = l;
 			return p;
 		}
@@ -1035,12 +1035,12 @@ public:
 			const hawk_bch_t* p;
 			hawk_oow_t l;
 
-			if (this->getMbs(&p, &l) <= -1) 
+			if (this->getMbs(&p, &l) <= -1)
 			{
 				p = this->getEmptyMbs();
 				l = 0;
 			}
-			
+
 			if (len) *len = l;
 			return p;
 		}
@@ -1104,8 +1104,8 @@ public:
 		///
 		bool isIndexed () const;
 
-		/// 
-		/// The getIndexed() function gets a value at the given 
+		///
+		/// The getIndexed() function gets a value at the given
 		/// index \a idx and sets it to \a val.
 		/// \return 0 on success, -1 on failure
 		///
@@ -1116,7 +1116,7 @@ public:
 
 		///
 		/// The getFirstIndex() function stores the first index of
-		/// an arrayed value into \a idx. 
+		/// an arrayed value into \a idx.
 		/// \return IndexIterator::END if the arrayed value is empty,
 		///         iterator that can be passed to getNextIndex() if not
 		///
@@ -1125,8 +1125,8 @@ public:
 		) const;
 
 		///
-		/// The getNextIndex() function stores into \a idx the next 
-		/// index of an array value from the position indicated by 
+		/// The getNextIndex() function stores into \a idx the next
+		/// index of an array value from the position indicated by
 		/// \a iter.
 		/// \return IndexIterator::END if the arrayed value is empty,
 		///         iterator that can be passed to getNextIndex() if not
@@ -1160,7 +1160,7 @@ public:
 	{
 	protected:
 		friend class Hawk;
-		friend class Value; 
+		friend class Value;
 		friend class RIOBase;
 		friend class Console;
 
@@ -1215,26 +1215,26 @@ public:
 			...
 		);
 
-		/// 
-		/// The setGlobal() function sets the value of a global 
+		///
+		/// The setGlobal() function sets the value of a global
 		/// variable identified by \a id
 		/// to \a v.
 		/// \return 0 on success, -1 on failure
 		///
 		int setGlobal (int id, hawk_int_t v);
 
-		/// 
-		/// The setGlobal() function sets the value of a global 
+		///
+		/// The setGlobal() function sets the value of a global
 		/// variable identified by \a id
 		/// to \a v.
 		/// \return 0 on success, -1 on failure
 		///
-		int setGlobal (int id, hawk_flt_t v); 
+		int setGlobal (int id, hawk_flt_t v);
 
-		/// 
-		/// The setGlobal() function sets the value of a global 
+		///
+		/// The setGlobal() function sets the value of a global
 		/// variable identified by \a id
-		/// to a string as long as \a len characters pointed to by 
+		/// to a string as long as \a len characters pointed to by
 		/// \a ptr.
 		/// \return 0 on success, -1 on failure
 		///
@@ -1243,15 +1243,15 @@ public:
 		int setGlobal (int id, const hawk_uch_t* ptr, bool mbs = false);
 		int setGlobal (int id, const hawk_bch_t* ptr, bool mbs = false);
 
-		/// 
-		/// The setGlobal() function sets a global variable 
+		///
+		/// The setGlobal() function sets a global variable
 		/// identified by \a id to a value \a v.
 		/// \return 0 on success, -1 on failure
-		///	
+		///
 		int setGlobal (int id, const Value& v);
 
 		///
-		/// The getGlobal() function gets the value of a global 
+		/// The getGlobal() function gets the value of a global
 		/// variable identified by \a id and stores it in \a v.
 		/// \return 0 on success, -1 on failure
 		///
@@ -1263,7 +1263,7 @@ public:
 	};
 
 	///
-	/// Returns the primitive handle 
+	/// Returns the primitive handle
 	///
 	operator hawk_t* () const
 	{
@@ -1280,9 +1280,9 @@ public:
 	/// \{
 	///
 
-	/// The Hawk() function creates an interpreter without fully 
+	/// The Hawk() function creates an interpreter without fully
 	/// initializing it. You must call open() for full initialization
-	/// before calling other functions. 
+	/// before calling other functions.
 	Hawk (Mmgr* mmgr = HAWK_NULL);
 
 	/// The ~Hawk() function destroys an interpreter. Make sure to have
@@ -1293,23 +1293,23 @@ public:
 	void setCmgr (hawk_cmgr_t* cmgr);
 
 	///
-	/// The open() function initializes an interpreter. 
+	/// The open() function initializes an interpreter.
 	/// You must call this function before doing anything meaningful.
 	/// \return 0 on success, -1 on failure
 	///
 	int open ();
 
 	///
-	/// The close() function closes the interpreter. 
+	/// The close() function closes the interpreter.
 	///
 	void close ();
 
 	///
-	/// The uponClosing() function is called back after Hawk::close() 
-	/// has cleared most of the internal data but before destroying 
+	/// The uponClosing() function is called back after Hawk::close()
+	/// has cleared most of the internal data but before destroying
 	/// the underlying hawk object. This maps to the close callback
 	/// of #hawk_ecb_t.
-	/// 
+	///
 	virtual void uponClosing ();
 
 	///
@@ -1322,20 +1322,20 @@ public:
 	///
 	/// The parse() function parses the source code read from the input
 	/// stream \a in and writes the parse tree to the output stream \a out.
-	/// To disable deparsing, you may set \a out to Hawk::Source::NONE. 
+	/// To disable deparsing, you may set \a out to Hawk::Source::NONE.
 	/// However, it is not allowed to specify Hawk::Source::NONE for \a in.
 	///
 	/// \return Run object on success, #HAWK_NULL on failure
 	///
 	Hawk::Run* parse (
-		Source& in,  ///< script to parse 
-		Source& out  ///< deparsing target 
+		Source& in,  ///< script to parse
+		Source& out  ///< deparsing target
 	);
 
 	///
-	/// The getRunContext() funciton returns the execution context 
+	/// The getRunContext() funciton returns the execution context
 	/// returned by the parse() function. The returned context
-	/// is valid if parse() has been called. You may call this 
+	/// is valid if parse() has been called. You may call this
 	/// function to get the context if you forgot to store it
 	/// in a call to parse().
 	///
@@ -1345,25 +1345,25 @@ public:
 	}
 
 	///
-	/// The getRunContext() funciton returns the execution context 
+	/// The getRunContext() funciton returns the execution context
 	/// returned by the parse() function. The returned context
-	/// is valid if parse() has been called. You may call this 
+	/// is valid if parse() has been called. You may call this
 	/// function to get the context if you forgot to store it
 	/// in a call to parse().
 	///
-	Hawk::Run* getRunContext () 
+	Hawk::Run* getRunContext ()
 	{
 		return &this->runctx;
 	}
 
 	///
-	/// The resetRunContext() function closes an existing 
+	/// The resetRunContext() function closes an existing
 	/// execution context and creates a new execution context.
 	/// You may want to call this function if you want to
 	/// reset it without calling the parse() function again
-	/// after the first call to it. 
+	/// after the first call to it.
 	Hawk::Run* resetRunContext ();
-	
+
 	///
 	/// The loop() function executes the BEGIN block, pattern-action blocks,
 	/// and the END block. The return value is stored into \a ret.
@@ -1396,7 +1396,7 @@ public:
 	///
 	/// The exec() function is the same as loop() if no @pragma startup
 	/// is specified. It is the same as call() if it is specifed
-	/// 
+	///
 	int exec (
 		Value*             ret,   ///< return value holder
 		const Value*       args,  ///< argument array
@@ -1424,10 +1424,10 @@ public:
 	/// The setTrait() function changes the current traits.
 	///
 	void setTrait (
-		int trait 
+		int trait
 	);
 
-	/// 
+	///
 	/// The setMaxDepth() function sets the maximum processing depth
 	/// for operations identified by \a ids.
 	///
@@ -1448,10 +1448,10 @@ public:
 	int setIncludeDirs (const hawk_bch_t* dirs);
 
 	///
-	/// The addArgument() function adds an ARGV string as long as \a len 
-	/// characters pointed to 
-	/// by \a arg. loop() and call() make a string added available 
-	/// to a script through ARGV. 
+	/// The addArgument() function adds an ARGV string as long as \a len
+	/// characters pointed to
+	/// by \a arg. loop() and call() make a string added available
+	/// to a script through ARGV.
 	/// \return 0 on success, -1 on failure
 	///
 	int addArgument (
@@ -1465,9 +1465,9 @@ public:
 	);
 
 	///
-	/// The addArgument() function adds a null-terminated string \a arg. 
-	/// loop() and call() make a string added available to a script 
-	/// through ARGV. 
+	/// The addArgument() function adds a null-terminated string \a arg.
+	/// loop() and call() make a string added available to a script
+	/// through ARGV.
 	/// \return 0 on success, -1 on failure
 	///
 	int addArgument (
@@ -1484,7 +1484,7 @@ public:
 	void clearArguments ();
 
 	hawk_oow_t getArgumentCount () const
-	{	
+	{
 		return this->runarg.len;
 	}
 
@@ -1495,7 +1495,7 @@ public:
 	}
 
 	///
-	/// The addGlobal() function registers an intrinsic global variable. 
+	/// The addGlobal() function registers an intrinsic global variable.
 	/// \return integer >= 0 on success, -1 on failure.
 	///
 	int addGlobal (
@@ -1507,7 +1507,7 @@ public:
 	);
 
 	///
-	/// The deleteGlobal() function unregisters an intrinsic global 
+	/// The deleteGlobal() function unregisters an intrinsic global
 	/// variable by name.
 	/// \return 0 on success, -1 on failure.
 	///
@@ -1520,8 +1520,8 @@ public:
 	);
 
 	///
-	/// The findGlobal() function returns the numeric ID of an intrinsic 
-	//  global variable. 
+	/// The findGlobal() function returns the numeric ID of an intrinsic
+	//  global variable.
 	/// \return integer >= 0 on success, -1 on failure.
 	///
 	int findGlobal (
@@ -1534,8 +1534,8 @@ public:
 	);
 
 	///
-	/// The setGlobal() function sets the value of a global variable 
-	/// identified by \a id. The \a id is either a value returned by 
+	/// The setGlobal() function sets the value of a global variable
+	/// identified by \a id. The \a id is either a value returned by
 	/// addGlobal() or one of the #hawk_gbl_id_t enumerators. It is not allowed
 	/// to call this function prior to parse().
 	/// \return 0 on success, -1 on failure
@@ -1546,15 +1546,15 @@ public:
 	);
 
 	///
-	/// The getGlobal() function gets the value of a global variable 
-	/// identified by \a id. The \a id is either a value returned by 
+	/// The getGlobal() function gets the value of a global variable
+	/// identified by \a id. The \a id is either a value returned by
 	/// addGlobal() or one of the #hawk_gbl_id_t enumerators. It is not allowed
 	/// to call this function before parse().
 	/// \return 0 on success, -1 on failure
 	///
 	int getGlobal (
-		int    id, ///< numeric identifier 
-		Value& v   ///< value store 
+		int    id, ///< numeric identifier
+		Value& v   ///< value store
 	);
 
 	///
@@ -1564,12 +1564,12 @@ public:
 		Run&              run,
 		Value&            ret,
 		Value*            args,
-		hawk_oow_t        nargs, 
+		hawk_oow_t        nargs,
 		const hawk_fnc_info_t* fi
 	);
 
-	/// 
-	/// The addFunction() function adds a new user-defined intrinsic 
+	///
+	/// The addFunction() function adds a new user-defined intrinsic
 	/// function.
 	///
 	int addFunction (
@@ -1591,7 +1591,7 @@ public:
 	);
 
 	///
-	/// The deleteFunction() function deletes a user-defined intrinsic 
+	/// The deleteFunction() function deletes a user-defined intrinsic
 	/// function by name.
 	///
 	int deleteFunction (
@@ -1615,7 +1615,7 @@ public:
 	/// outside this class without overriding various pipe functions.
 	/// Note that an external pipe handler must outlive an outer
 	/// hawk object.
-	/// 
+	///
 	void setPipeHandler (Pipe::Handler* handler)
 	{
 		this->pipe_handler = handler;
@@ -1637,7 +1637,7 @@ public:
 	/// outside this class without overriding various file functions.
 	/// Note that an external file handler must outlive an outer
 	/// hawk object.
-	/// 
+	///
 	void setFileHandler (File::Handler* handler)
 	{
 		this->file_handler = handler;
@@ -1659,14 +1659,14 @@ public:
 	/// outside this class without overriding various console functions.
 	/// Note that an external console handler must outlive an outer
 	/// hawk object.
-	/// 
+	///
 	void setConsoleHandler (Console::Handler* handler)
 	{
 		this->console_handler = handler;
 	}
 
 protected:
-	/// 
+	///
 	/// \name Pipe I/O handlers
 	/// Pipe operations are achieved through the following functions
 	/// if no external pipe handler is set with setPipeHandler().
@@ -1689,7 +1689,7 @@ protected:
 	virtual int flushPipe (Pipe& io);
 	/// \}
 
-	/// 
+	///
 	/// \name File I/O handlers
 	/// File operations are achieved through the following functions
 	/// if no external file handler is set with setFileHandler().
@@ -1704,7 +1704,7 @@ protected:
 	virtual int flushFile (File& io);
 	/// \}
 
-	/// 
+	///
 	/// \name Console I/O handlers
 	/// Console operations are achieved through the following functions.
 	/// if no external console handler is set with setConsoleHandler().
@@ -1720,7 +1720,7 @@ protected:
 	virtual int nextConsole (Console& io);
 	/// \}
 
-	// primitive handlers 
+	// primitive handlers
 	virtual hawk_flt_t pow (hawk_flt_t x, hawk_flt_t y) = 0;
 	virtual hawk_flt_t mod (hawk_flt_t x, hawk_flt_t y) = 0;
 
@@ -1846,8 +1846,8 @@ public:
 // ----------------------------------------------------------------------------------------
 
 ///
-/// The HawkStd class provides an easier-to-use interface by overriding 
-/// primitive methods, and implementing the file handler, the pipe handler, 
+/// The HawkStd class provides an easier-to-use interface by overriding
+/// primitive methods, and implementing the file handler, the pipe handler,
 /// and common intrinsic functions.
 ///
 class HAWK_EXPORT HawkStd: public Hawk
@@ -1856,17 +1856,17 @@ public:
 	///
 	/// The SourceFile class implements script I/O from and to a file.
 	///
-	class HAWK_EXPORT SourceFile: public Source 
+	class HAWK_EXPORT SourceFile: public Source
 	{
 	public:
 		SourceFile (const hawk_uch_t* name, hawk_cmgr_t* cmgr = HAWK_NULL): _type(NAME_UCH), _name(name), cmgr(cmgr)
 		{
-			dir.ptr = HAWK_NULL; dir.len = 0; 
+			dir.ptr = HAWK_NULL; dir.len = 0;
 		}
 
 		SourceFile (const hawk_bch_t* name, hawk_cmgr_t* cmgr = HAWK_NULL): _type(NAME_BCH), _name(name), cmgr(cmgr)
 		{
-			dir.ptr = HAWK_NULL; dir.len = 0; 
+			dir.ptr = HAWK_NULL; dir.len = 0;
 		}
 
 		~SourceFile () {};
@@ -1888,7 +1888,7 @@ public:
 	};
 
 	///
-	/// The SourceString class implements script input from a string. 
+	/// The SourceString class implements script input from a string.
 	/// Deparsing is not supported.
 	///
 	class HAWK_EXPORT SourceString: public Source
@@ -1917,7 +1917,7 @@ public:
 		hawk_cmgr_t* cmgr; // for reading included files
 	};
 
-	HawkStd (Mmgr* mmgr = HAWK_NULL): Hawk(mmgr), cmgrtab_inited(false), stdmod_up(false), console_cmgr(HAWK_NULL) 
+	HawkStd (Mmgr* mmgr = HAWK_NULL): Hawk(mmgr), cmgrtab_inited(false), stdmod_up(false), console_cmgr(HAWK_NULL)
 	{
 	}
 
@@ -1928,7 +1928,7 @@ public:
 
 	Run* parse (Source& in, Source& out);
 
-	/// The setConsoleCmgr() function sets the encoding type of 
+	/// The setConsoleCmgr() function sets the encoding type of
 	/// the console streams. They include both the input and the output
 	/// streams. It provides no way to specify a different encoding
 	/// type for the input and the output stream.
@@ -1955,13 +1955,13 @@ protected:
 	int build_argcv (Run* run);
 	int build_environ (Run* run, env_char_t* envarr[]);
 
-	// intrinsic functions 
+	// intrinsic functions
 	hawk_cmgr_t* getiocmgr (const hawk_ooch_t* ioname);
 
 	int setioattr (Run& run, Value& ret, Value* args, hawk_oow_t nargs, const hawk_ooch_t* name, hawk_oow_t len);
 	int getioattr (Run& run, Value& ret, Value* args, hawk_oow_t nargs, const hawk_ooch_t* name, hawk_oow_t len);
 
-	// pipe io handlers 
+	// pipe io handlers
 	int openPipe (Pipe& io);
 	int closePipe (Pipe& io);
 	hawk_ooi_t readPipe (Pipe& io, hawk_ooch_t* buf, hawk_oow_t len);
@@ -1970,7 +1970,7 @@ protected:
 	hawk_ooi_t writePipeBytes (Pipe& io, const hawk_bch_t* buf, hawk_oow_t len);
 	int flushPipe (Pipe& io);
 
-	// file io handlers 
+	// file io handlers
 	int openFile (File& io);
 	int closeFile (File& io);
 	hawk_ooi_t readFile (File& io, hawk_ooch_t* buf, hawk_oow_t len);
@@ -1979,7 +1979,7 @@ protected:
 	hawk_ooi_t writeFileBytes (File& io, const hawk_bch_t* buf, hawk_oow_t len);
 	int flushFile (File& io);
 
-	// console io handlers 
+	// console io handlers
 	int openConsole (Console& io);
 	int closeConsole (Console& io);
 	hawk_ooi_t readConsole (Console& io, hawk_ooch_t* buf, hawk_oow_t len);
@@ -1989,7 +1989,7 @@ protected:
 	int flushConsole (Console& io);
 	int nextConsole (Console& io);
 
-	// primitive handlers 
+	// primitive handlers
 	void* allocMem (hawk_oow_t n);
 	void* reallocMem (void* ptr, hawk_oow_t n);
 	void  freeMem (void* ptr);
@@ -2008,16 +2008,16 @@ protected:
 
 	hawk_cmgr_t* console_cmgr;
 
-	// global variables 
+	// global variables
 	int gbl_argc;
 	int gbl_argv;
 	int gbl_environ;
 
-	// standard input console - reuse runarg 
+	// standard input console - reuse runarg
 	hawk_oow_t runarg_index;
 	hawk_oow_t runarg_count;
 
-	// standard output console 
+	// standard output console
 	xstrs_t ofile;
 	hawk_oow_t ofile_index;
 	hawk_oow_t ofile_count;
@@ -2075,7 +2075,7 @@ HAWK_EXPORT void* operator new (hawk_oow_t size, HAWK::Mmgr* mmgr, void* existin
 // the placement new operator. if the array element is an instance
 // of a class, the pointer returned by the new operator call
 // may not be the actual pointer allocated. some compilers
-// seem to put some information about the array at the 
+// seem to put some information about the array at the
 // beginning of the allocated memory and return the pointer
 // off a few bytes from the beginning.
 void* operator new[] (hawk_oow_t size, HAWK::Mmgr* mmgr);
@@ -2086,6 +2086,6 @@ void operator delete[] (void* ptr, HAWK::Mmgr* mmgr);
 	do { \
 		HAWK_CXX_CALL_DESTRUCTOR (ptr, class_name); \
 		HAWK_CXX_CALL_PLACEMENT_DELETE1(ptr, mmgr); \
-	} while(0); 
+	} while(0);
 
 #endif

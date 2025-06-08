@@ -28,7 +28,7 @@
 #include <hawk-cmn.h>
 #include <hawk-gem.h>
 
-/** 
+/**
  * The hawk_json_t type defines a simple json parser.
  */
 typedef struct hawk_json_t hawk_json_t;
@@ -126,12 +126,25 @@ HAWK_EXPORT void hawk_json_reset (
 	hawk_json_t* json
 );
 
-HAWK_EXPORT int hawk_json_feed (
-	hawk_json_t*   json,
-	const void*    ptr,
-	hawk_oow_t     len,
-	hawk_oow_t*    xlen
+HAWK_EXPORT int hawk_json_feedbchars (
+	hawk_json_t*      json,
+	const hawk_bch_t* ptr,
+	hawk_oow_t        len,
+	hawk_oow_t*       xlen
 );
+
+HAWK_EXPORT int hawk_json_feeduchars (
+	hawk_json_t*      json,
+	const hawk_uch_t* ptr,
+	hawk_oow_t        len,
+	hawk_oow_t*       xlen
+);
+
+#if defined(HAWK_OOCH_IS_UCH)
+#	define hawk_json_feed hawk_json_feeduchars
+#else
+#	define hawk_json_feed hawk_json_feedbchars
+#endif
 
 HAWK_EXPORT hawk_json_state_t hawk_json_getstate (
 	hawk_json_t* json
@@ -208,12 +221,12 @@ static HAWK_INLINE void hawk_json_geterror (hawk_json_t* json, hawk_errnum_t* er
 #define hawk_json_geterror(json, errnum, errmsg, errloc) (hawk_gem_geterror(hawk_json_getgem(json), errnum, errmsg, errloc))
 #endif
 
-#if defined(HAWK_OOCH_IS_BCH)
-#	define hawk_json_geterrmsg hawk_json_geterrbmsg
-#	define hawk_json_geterrinf hawk_json_geterrbinf
-#else
+#if defined(HAWK_OOCH_IS_UCH)
 #	define hawk_json_geterrmsg hawk_json_geterrumsg
 #	define hawk_json_geterrinf hawk_json_geterruinf
+#else
+#	define hawk_json_geterrmsg hawk_json_geterrbmsg
+#	define hawk_json_geterrinf hawk_json_geterrbinf
 #endif
 
 

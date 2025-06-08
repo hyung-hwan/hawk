@@ -42,7 +42,7 @@ static HAWK_INLINE xtn_t* GET_XTN(hawk_sed_t* sed) { return (xtn_t*)((hawk_uint8
 #define GET_XTN(sed) ((xtn_t*)((hawk_uint8_t*)hawk_sed_getxtn(sed) - HAWK_SIZEOF(xtn_t)))
 #endif
 
-Sed::Sed (Mmgr* mmgr): Mmged(mmgr), sed(HAWK_NULL), dflerrstr(HAWK_NULL) 
+Sed::Sed (Mmgr* mmgr): Mmged(mmgr), sed(HAWK_NULL), dflerrstr(HAWK_NULL)
 {
 	this->_cmgr = hawk_get_cmgr_by_id(HAWK_CMGR_UTF8);
 }
@@ -62,7 +62,7 @@ int Sed::open ()
 {
 	hawk_errnum_t errnum;
 	this->sed = hawk_sed_open(this->getMmgr(), HAWK_SIZEOF(xtn_t), this->getCmgr(), &errnum);
-	if (!this->sed) 
+	if (!this->sed)
 	{
 		this->setError (errnum);
 		return -1;
@@ -150,10 +150,10 @@ const hawk_bch_t* Sed::getErrorMessageB () const
 
 hawk_loc_t Sed::getErrorLocation () const
 {
-	if (this->sed == HAWK_NULL) 
+	if (this->sed == HAWK_NULL)
 	{
 		hawk_loc_t loc;
-		loc.line = 0; 
+		loc.line = 0;
 		loc.colm = 0;
 		return loc;
 	}

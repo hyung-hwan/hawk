@@ -31,7 +31,7 @@
 
 /** @file
  * This file defines a text cutter utility.
- * 
+ *
  * @todo HAWK_CUT_ORDEREDSEL - A selector 5,3,1 is ordered to 1,3,5
  */
 
@@ -42,7 +42,7 @@
 
 /** @struct hawk_cut_t
  * The hawk_cut_t type defines a text cutter. The details are hidden as it is
- * a large complex structure vulnerable to unintended changes. 
+ * a large complex structure vulnerable to unintended changes.
  */
 typedef struct hawk_cut_t hawk_cut_t;
 
@@ -57,14 +57,14 @@ struct hawk_cut_alt_t
 	HAWK_CUT_HDR;
 };
 
-/** 
+/**
  * The hawk_cut_option_t type defines various option codes for a text cutter.
  * Options can be OR'ed with each other and be passed to a text cutter with
  * the hawk_cut_setoption() function.
  */
 enum hawk_cut_option_t
 {
-	/** show delimited line only. if not set, undelimited lines are 
+	/** show delimited line only. if not set, undelimited lines are
 	 *  shown in its entirety */
 	HAWK_CUT_DELIMONLY    = (1 << 0),
 
@@ -83,7 +83,7 @@ enum hawk_cut_option_t
 typedef enum hawk_cut_option_t hawk_cut_option_t;
 
 /**
- * The hawk_cut_io_cmd_t type defines I/O command codes. The code indicates 
+ * The hawk_cut_io_cmd_t type defines I/O command codes. The code indicates
  * the action to take in an I/O handler.
  */
 enum hawk_cut_io_cmd_t
@@ -96,7 +96,7 @@ enum hawk_cut_io_cmd_t
 typedef enum hawk_cut_io_cmd_t hawk_cut_io_cmd_t;
 
 /**
- * The hawk_cut_io_arg_t type defines a data structure required by 
+ * The hawk_cut_io_arg_t type defines a data structure required by
  * an I/O handler.
  */
 struct hawk_cut_io_arg_t
@@ -106,7 +106,7 @@ struct hawk_cut_io_arg_t
 };
 typedef struct hawk_cut_io_arg_t hawk_cut_io_arg_t;
 
-/** 
+/**
  * The hawk_cut_io_impl_t type defines an I/O handler. hawk_cut_exec() calls
  * I/O handlers to read from and write to a text stream.
  */
@@ -251,7 +251,7 @@ static HAWK_INLINE void hawk_cut_setcmgr (hawk_cut_t* cut, hawk_cmgr_t* cmgr) { 
 /**
  * The hawk_cut_getoption() function retrieves the current options set in
  * a text cutter.
- * @return 0 or a number OR'ed of #hawk_cut_option_t values 
+ * @return 0 or a number OR'ed of #hawk_cut_option_t values
  */
 HAWK_EXPORT int hawk_cut_getoption (
 	hawk_cut_t* cut /**< text cutter */
@@ -368,7 +368,7 @@ HAWK_EXPORT void hawk_cut_clear (
 
 /**
  * The hawk_cut_comp() function compiles a selector into an internal form.
- * @return 0 on success, -1 on error 
+ * @return 0 on success, -1 on error
  */
 HAWK_EXPORT int hawk_cut_comp (
 	hawk_cut_t*        cut, /**< text cutter */

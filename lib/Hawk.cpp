@@ -1,6 +1,6 @@
 /*
  * $Id$
- * 
+ *
     Copyright (c) 2006-2020 Chung, Hyung-Hwan. All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -80,7 +80,7 @@ static MmgrStd __attribute__((init_priority(101))) std_dfl_mmgr; //<- this solve
 #else
 static MmgrStd std_dfl_mmgr; //<-- has an issue for undefined initialization order
 #endif
-Mmgr* Mmgr::dfl_mmgr = &std_dfl_mmgr; 
+Mmgr* Mmgr::dfl_mmgr = &std_dfl_mmgr;
 //Mmgr* Mmgr::dfl_mmgr = MmgrStd::getInstance();  //<--- has an issue as well
 Mmgr* Mmgr::getDFL () HAWK_CXX_NOEXCEPT
 {
@@ -89,7 +89,7 @@ Mmgr* Mmgr::getDFL () HAWK_CXX_NOEXCEPT
 #else
 // C++ initialization order across translation units are not defined.
 // so it's tricky to work around this... the init_priority attribute
-// can solve this problem. but it's compiler dependent. 
+// can solve this problem. but it's compiler dependent.
 // Mmgr::getDFL() resets dfl_mmgr to &std_dfl_mmgr if it's NULL.
 Mmgr* Mmgr::dfl_mmgr = HAWK_NULL;
 
@@ -167,7 +167,7 @@ Hawk::File::Mode Hawk::File::getMode () const
 // Hawk::Console
 //////////////////////////////////////////////////////////////////
 
-Hawk::Console::Console (Run* run, hawk_rio_arg_t* riod): 
+Hawk::Console::Console (Run* run, hawk_rio_arg_t* riod):
 	RIOBase (run, riod), filename (HAWK_NULL)
 {
 }
@@ -283,7 +283,7 @@ void* Hawk::Value::operator new (hawk_oow_t n, Run* run) throw ()
 	return (char*)ptr + HAWK_SIZEOF(run);
 }
 
-void* Hawk::Value::operator new[] (hawk_oow_t n, Run* run) throw () 
+void* Hawk::Value::operator new[] (hawk_oow_t n, Run* run) throw ()
 {
 	void* ptr = hawk_rtx_allocmem (run->rtx, HAWK_SIZEOF(run) + n);
 	if (ptr == HAWK_NULL) return HAWK_NULL;
@@ -293,29 +293,29 @@ void* Hawk::Value::operator new[] (hawk_oow_t n, Run* run) throw ()
 }
 
 #if !defined(__BORLANDC__) && !defined(__WATCOMC__)
-void Hawk::Value::operator delete (void* ptr, Run* run) 
+void Hawk::Value::operator delete (void* ptr, Run* run)
 {
-	// this placement delete is to be called when the constructor 
+	// this placement delete is to be called when the constructor
 	// throws an exception and it's caught by the caller.
 	hawk_rtx_freemem (run->rtx, (char*)ptr - HAWK_SIZEOF(run));
 }
 
-void Hawk::Value::operator delete[] (void* ptr, Run* run) 
+void Hawk::Value::operator delete[] (void* ptr, Run* run)
 {
-	// this placement delete is to be called when the constructor 
+	// this placement delete is to be called when the constructor
 	// throws an exception and it's caught by the caller.
 	hawk_rtx_freemem (run->rtx, (char*)ptr - HAWK_SIZEOF(run));
 }
 #endif
 
-void Hawk::Value::operator delete (void* ptr) 
+void Hawk::Value::operator delete (void* ptr)
 {
 	// this delete is to be called for normal destruction.
 	void* p = (char*)ptr - HAWK_SIZEOF(Run*);
 	hawk_rtx_freemem ((*(Run**)p)->rtx, p);
 }
 
-void Hawk::Value::operator delete[] (void* ptr) 
+void Hawk::Value::operator delete[] (void* ptr)
 {
 	// this delete is to be called for normal destruction.
 	void* p = (char*)ptr - HAWK_SIZEOF(Run*);
@@ -323,7 +323,7 @@ void Hawk::Value::operator delete[] (void* ptr)
 }
 #endif
 
-Hawk::Value::Value (): run(HAWK_NULL), val(hawk_get_nil_val()) 
+Hawk::Value::Value (): run(HAWK_NULL), val(hawk_get_nil_val())
 {
 	this->cached.str.ptr = HAWK_NULL;
 	this->cached.str.len = 0;
@@ -331,7 +331,7 @@ Hawk::Value::Value (): run(HAWK_NULL), val(hawk_get_nil_val())
 	this->cached.mbs.len = 0;
 }
 
-Hawk::Value::Value (Run& run): run(&run), val(hawk_get_nil_val()) 
+Hawk::Value::Value (Run& run): run(&run), val(hawk_get_nil_val())
 {
 	this->cached.str.ptr = HAWK_NULL;
 	this->cached.str.len = 0;
@@ -339,7 +339,7 @@ Hawk::Value::Value (Run& run): run(&run), val(hawk_get_nil_val())
 	this->cached.mbs.len = 0;
 }
 
-Hawk::Value::Value (Run* run): run(run), val(hawk_get_nil_val()) 
+Hawk::Value::Value (Run* run): run(run), val(hawk_get_nil_val())
 {
 	this->cached.str.ptr = HAWK_NULL;
 	this->cached.str.len = 0;
@@ -461,7 +461,7 @@ int Hawk::Value::getInt (hawk_int_t* v) const
 	if (this->run)
 	{
 		int n = hawk_rtx_valtoint(this->run->rtx, this->val, &lv);
-		if (n <= -1) 
+		if (n <= -1)
 		{
 			run->hawk->retrieveError (this->run);
 			return -1;
@@ -601,9 +601,9 @@ int Hawk::Value::getMbs (const hawk_bch_t** str, hawk_oow_t* len) const
 
 int Hawk::Value::setVal (hawk_val_t* v)
 {
-	if (this->run == HAWK_NULL) 
+	if (this->run == HAWK_NULL)
 	{
-		/* no runtime context assoicated. unfortunately, i can't 
+		/* no runtime context assoicated. unfortunately, i can't
 		 * set an error number for the same reason */
 		return -1;
 	}
@@ -641,9 +641,9 @@ int Hawk::Value::setVal (Run* r, hawk_val_t* v)
 
 int Hawk::Value::setInt (hawk_int_t v)
 {
-	if (this->run == HAWK_NULL) 
+	if (this->run == HAWK_NULL)
 	{
-		/* no runtime context assoicated. unfortunately, i can't 
+		/* no runtime context assoicated. unfortunately, i can't
 		 * set an error number for the same reason */
 		return -1;
 	}
@@ -654,7 +654,7 @@ int Hawk::Value::setInt (Run* r, hawk_int_t v)
 {
 	hawk_val_t* tmp;
 	tmp = hawk_rtx_makeintval(r->rtx, v);
-	if (tmp == HAWK_NULL) 
+	if (tmp == HAWK_NULL)
 	{
 		r->hawk->retrieveError (r);
 		return -1;
@@ -667,9 +667,9 @@ int Hawk::Value::setInt (Run* r, hawk_int_t v)
 
 int Hawk::Value::setFlt (hawk_flt_t v)
 {
-	if (this->run == HAWK_NULL) 
+	if (this->run == HAWK_NULL)
 	{
-		/* no runtime context assoicated. unfortunately, i can't 
+		/* no runtime context assoicated. unfortunately, i can't
 		 * set an error number for the same reason */
 		return -1;
 	}
@@ -695,11 +695,11 @@ int Hawk::Value::setFlt (Run* r, hawk_flt_t v)
 
 int Hawk::Value::setStr (const hawk_uch_t* str, hawk_oow_t len, bool numeric)
 {
-	if (this->run == HAWK_NULL) 
+	if (this->run == HAWK_NULL)
 	{
-		/* no runtime context assoicated. unfortunately, i can't 
+		/* no runtime context assoicated. unfortunately, i can't
 		 * set an error number for the same reason */
-		return -1; 
+		return -1;
 	}
 	return this->setStr(this->run, str, len, numeric);
 }
@@ -733,7 +733,7 @@ int Hawk::Value::setStr (Run* r, const hawk_uch_t* str, bool numeric)
 
 	tmp = numeric? hawk_rtx_makenumorstrvalwithuchars(r->rtx, str, hawk_count_ucstr(str)):
 	               hawk_rtx_makestrvalwithucstr(r->rtx, str);
-	if (tmp == HAWK_NULL) 
+	if (tmp == HAWK_NULL)
 	{
 		r->hawk->retrieveError (r);
 		return -1;
@@ -748,11 +748,11 @@ int Hawk::Value::setStr (Run* r, const hawk_uch_t* str, bool numeric)
 
 int Hawk::Value::setStr (const hawk_bch_t* str, hawk_oow_t len, bool numeric)
 {
-	if (this->run == HAWK_NULL) 
+	if (this->run == HAWK_NULL)
 	{
-		/* no runtime context assoicated. unfortunately, i can't 
+		/* no runtime context assoicated. unfortunately, i can't
 		 * set an error number for the same reason */
-		return -1; 
+		return -1;
 	}
 	return this->setStr(this->run, str, len, numeric);
 }
@@ -786,7 +786,7 @@ int Hawk::Value::setStr (Run* r, const hawk_bch_t* str, bool numeric)
 
 	tmp = numeric? hawk_rtx_makenumorstrvalwithbchars(r->rtx, str, hawk_count_bcstr(str)):
 	               hawk_rtx_makestrvalwithbcstr(r->rtx, str);
-	if (tmp == HAWK_NULL) 
+	if (tmp == HAWK_NULL)
 	{
 		r->hawk->retrieveError (r);
 		return -1;
@@ -800,11 +800,11 @@ int Hawk::Value::setStr (Run* r, const hawk_bch_t* str, bool numeric)
 //////////////////////////////////////////////////////////////////
 int Hawk::Value::setMbs (const hawk_bch_t* str, hawk_oow_t len)
 {
-	if (this->run == HAWK_NULL) 
+	if (this->run == HAWK_NULL)
 	{
-		/* no runtime context assoicated. unfortunately, i can't 
+		/* no runtime context assoicated. unfortunately, i can't
 		 * set an error number for the same reason */
-		return -1; 
+		return -1;
 	}
 	return this->setMbs(this->run, str, len);
 }
@@ -839,7 +839,7 @@ int Hawk::Value::setMbs (Run* r, const hawk_bch_t* str)
 {
 	hawk_val_t* tmp;
 	tmp = hawk_rtx_makembsvalwithbchars(r->rtx, str, hawk_count_bcstr(str));
-	if (!tmp) 
+	if (!tmp)
 	{
 		r->hawk->retrieveError (r);
 		return -1;
@@ -862,10 +862,10 @@ int Hawk::Value::setIndexedVal (Run* r, const Index& idx, hawk_val_t* v)
 
 	if (HAWK_RTX_GETVALTYPE(r->rtx, this->val) != HAWK_VAL_MAP)
 	{
-		// the previous value is not a map. 
+		// the previous value is not a map.
 		// a new map value needs to be created first.
 		hawk_val_t* map = hawk_rtx_makemapval(r->rtx);
-		if (map == HAWK_NULL) 
+		if (map == HAWK_NULL)
 		{
 			r->hawk->retrieveError (r);
 			return -1;
@@ -873,7 +873,7 @@ int Hawk::Value::setIndexedVal (Run* r, const Index& idx, hawk_val_t* v)
 
 		hawk_rtx_refupval (r->rtx, map);
 
-		// update the map with a given value 
+		// update the map with a given value
 		if (hawk_rtx_setmapvalfld(r->rtx, map, idx.ptr, idx.len, v) == HAWK_NULL)
 		{
 			hawk_rtx_refdownval (r->rtx, map);
@@ -882,7 +882,7 @@ int Hawk::Value::setIndexedVal (Run* r, const Index& idx, hawk_val_t* v)
 		}
 
 		// free the previous value
-		if (this->run) 
+		if (this->run)
 		{
 			// if val is not nil, this->run can't be NULL
 			hawk_rtx_refdownval (this->run->rtx, this->val);
@@ -895,10 +895,10 @@ int Hawk::Value::setIndexedVal (Run* r, const Index& idx, hawk_val_t* v)
 	{
 		HAWK_ASSERT (run != HAWK_NULL);
 
-		// if the previous value is a map, things are a bit simpler 
+		// if the previous value is a map, things are a bit simpler
 		// however it needs to check if the runtime context matches
 		// with the previous one.
-		if (this->run != r) 
+		if (this->run != r)
 		{
 			// it can't span across multiple runtime contexts
 			this->run->setError (HAWK_EINVAL);
@@ -906,7 +906,7 @@ int Hawk::Value::setIndexedVal (Run* r, const Index& idx, hawk_val_t* v)
 			return -1;
 		}
 
-		// update the map with a given value 
+		// update the map with a given value
 		if (hawk_rtx_setmapvalfld(r->rtx, val, idx.ptr, idx.len, v) == HAWK_NULL)
 		{
 			r->hawk->retrieveError (r);
@@ -926,7 +926,7 @@ int Hawk::Value::setIndexedInt (const Index& idx, hawk_int_t v)
 int Hawk::Value::setIndexedInt (Run* r, const Index& idx, hawk_int_t v)
 {
 	hawk_val_t* tmp = hawk_rtx_makeintval (r->rtx, v);
-	if (tmp == HAWK_NULL) 
+	if (tmp == HAWK_NULL)
 	{
 		r->hawk->retrieveError (r);
 		return -1;
@@ -948,7 +948,7 @@ int Hawk::Value::setIndexedFlt (const Index& idx, hawk_flt_t v)
 int Hawk::Value::setIndexedFlt (Run* r, const Index& idx, hawk_flt_t v)
 {
 	hawk_val_t* tmp = hawk_rtx_makefltval(r->rtx, v);
-	if (tmp == HAWK_NULL) 
+	if (tmp == HAWK_NULL)
 	{
 		r->hawk->retrieveError (r);
 		return -1;
@@ -975,7 +975,7 @@ int Hawk::Value::setIndexedStr (Run* r, const Index& idx, const hawk_uch_t* str,
 
 	tmp = numeric? hawk_rtx_makenumorstrvalwithuchars(r->rtx, str, len):
 	               hawk_rtx_makestrvalwithuchars(r->rtx, str, len);
-	if (HAWK_UNLIKELY(!tmp)) 
+	if (HAWK_UNLIKELY(!tmp))
 	{
 		r->hawk->retrieveError (r);
 		return -1;
@@ -1126,8 +1126,8 @@ int Hawk::Value::getIndexed (const Index& idx, Value* v) const
 {
 	HAWK_ASSERT (val != HAWK_NULL);
 
-	// not a map. v is just nil. not an error 
-	if (HAWK_RTX_GETVALTYPE(this->run->rtx, val) != HAWK_VAL_MAP) 
+	// not a map. v is just nil. not an error
+	if (HAWK_RTX_GETVALTYPE(this->run->rtx, val) != HAWK_VAL_MAP)
 	{
 		v->clear ();
 		return 0;
@@ -1136,14 +1136,14 @@ int Hawk::Value::getIndexed (const Index& idx, Value* v) const
 	// get the value from the map.
 	hawk_val_t* fv = hawk_rtx_getmapvalfld(this->run->rtx, val, (hawk_ooch_t*)idx.ptr, idx.len);
 
-	// the key is not found. it is not an error. v is just nil 
+	// the key is not found. it is not an error. v is just nil
 	if (fv == HAWK_NULL)
 	{
 		v->clear ();
-		return 0; 
+		return 0;
 	}
 
-	// if v.set fails, it should return an error 
+	// if v.set fails, it should return an error
 	return v->setVal (this->run, fv);
 }
 
@@ -1202,7 +1202,7 @@ Hawk::Run::~Run ()
 {
 }
 
-void Hawk::Run::halt () const 
+void Hawk::Run::halt () const
 {
 	HAWK_ASSERT (this->rtx != HAWK_NULL);
 	hawk_rtx_halt (this->rtx);
@@ -1214,19 +1214,19 @@ bool Hawk::Run::isHalt () const
 	return !!hawk_rtx_ishalt(this->rtx);
 }
 
-hawk_errnum_t Hawk::Run::getErrorNumber () const 
+hawk_errnum_t Hawk::Run::getErrorNumber () const
 {
 	HAWK_ASSERT (this->rtx != HAWK_NULL);
 	return hawk_rtx_geterrnum(this->rtx);
 }
 
-hawk_loc_t Hawk::Run::getErrorLocation () const 
+hawk_loc_t Hawk::Run::getErrorLocation () const
 {
 	HAWK_ASSERT (this->rtx != HAWK_NULL);
 	return *hawk_rtx_geterrloc(this->rtx);
 }
 
-const hawk_ooch_t* Hawk::Run::getErrorMessage () const  
+const hawk_ooch_t* Hawk::Run::getErrorMessage () const
 {
 	HAWK_ASSERT (this->rtx != HAWK_NULL);
 	return hawk_rtx_geterrmsg(this->rtx);
@@ -1366,15 +1366,15 @@ int Hawk::Run::getGlobal (int id, Value& g) const
 // Hawk
 //////////////////////////////////////////////////////////////////
 
-Hawk::Hawk (Mmgr* mmgr): 
-	Mmged(mmgr), hawk(HAWK_NULL), 
+Hawk::Hawk (Mmgr* mmgr):
+	Mmged(mmgr), hawk(HAWK_NULL),
 #if defined(HAWK_USE_HTB_FOR_FUNCTION_MAP)
-	functionMap(HAWK_NULL), 
+	functionMap(HAWK_NULL),
 #else
-	functionMap(this), 
+	functionMap(this),
 #endif
 	source_reader(HAWK_NULL), source_writer(HAWK_NULL),
-	pipe_handler(HAWK_NULL), file_handler(HAWK_NULL), 
+	pipe_handler(HAWK_NULL), file_handler(HAWK_NULL),
 	console_handler(HAWK_NULL), runctx(this)
 
 {
@@ -1384,35 +1384,35 @@ Hawk::Hawk (Mmgr* mmgr):
 	this->_cmgr = hawk_get_cmgr_by_id(HAWK_CMGR_UTF8);
 }
 
-const hawk_ooch_t* Hawk::getErrorString (hawk_errnum_t num) const 
+const hawk_ooch_t* Hawk::getErrorString (hawk_errnum_t num) const
 {
 	HAWK_ASSERT (this->hawk != HAWK_NULL);
 	HAWK_ASSERT (this->dflerrstr != HAWK_NULL);
 	return this->dflerrstr(num);
 }
 
-const hawk_ooch_t* Hawk::xerrstr (hawk_t* a, hawk_errnum_t num) 
+const hawk_ooch_t* Hawk::xerrstr (hawk_t* a, hawk_errnum_t num)
 {
 	Hawk* hawk = *(Hawk**)GET_XTN(a);
 	return hawk->getErrorString(num);
 }
 
-hawk_errnum_t Hawk::getErrorNumber () const 
+hawk_errnum_t Hawk::getErrorNumber () const
 {
 	return this->errinf.num;
 }
 
-hawk_loc_t Hawk::getErrorLocation () const 
+hawk_loc_t Hawk::getErrorLocation () const
 {
 	return this->errinf.loc;
 }
 
-const hawk_ooch_t* Hawk::getErrorLocationFile () const 
+const hawk_ooch_t* Hawk::getErrorLocationFile () const
 {
 	return this->errinf.loc.file;
 }
 
-const hawk_uch_t* Hawk::getErrorLocationFileU () const 
+const hawk_uch_t* Hawk::getErrorLocationFileU () const
 {
 #if defined(HAWK_OOCH_IS_UCH)
 	return this->errinf.loc.file;
@@ -1425,7 +1425,7 @@ const hawk_uch_t* Hawk::getErrorLocationFileU () const
 #endif
 }
 
-const hawk_bch_t* Hawk::getErrorLocationFileB () const 
+const hawk_bch_t* Hawk::getErrorLocationFileB () const
 {
 #if defined(HAWK_OOCH_IS_UCH)
 	if (!this->errinf.loc.file) return HAWK_NULL;
@@ -1438,12 +1438,12 @@ const hawk_bch_t* Hawk::getErrorLocationFileB () const
 #endif
 }
 
-const hawk_ooch_t* Hawk::getErrorMessage () const 
+const hawk_ooch_t* Hawk::getErrorMessage () const
 {
 	return this->errinf.msg;
 }
 
-const hawk_uch_t* Hawk::getErrorMessageU () const 
+const hawk_uch_t* Hawk::getErrorMessageU () const
 {
 #if defined(HAWK_OOCH_IS_UCH)
 	return this->errinf.msg;
@@ -1455,7 +1455,7 @@ const hawk_uch_t* Hawk::getErrorMessageU () const
 #endif
 }
 
-const hawk_bch_t* Hawk::getErrorMessageB () const 
+const hawk_bch_t* Hawk::getErrorMessageB () const
 {
 #if defined(HAWK_OOCH_IS_UCH)
 	hawk_oow_t wcslen, mbslen;
@@ -1529,7 +1529,7 @@ void Hawk::clearError ()
 
 void Hawk::retrieveError ()
 {
-	if (this->hawk == HAWK_NULL) 
+	if (this->hawk == HAWK_NULL)
 	{
 		this->clearError ();
 	}
@@ -1558,7 +1558,7 @@ static void clear_xtn (hawk_t* hawk, void* ctx)
 	xtn->hawk->uponClearing ();
 }
 
-int Hawk::open () 
+int Hawk::open ()
 {
 	HAWK_ASSERT (this->hawk == HAWK_NULL);
 #if defined(HAWK_USE_HTB_FOR_FUNCTION_MAP)
@@ -1617,8 +1617,8 @@ int Hawk::open ()
 			HAWK_HTB_COPIER_INLINE   // copy the value into the pair
 		},
 		{
-			HAWK_HTB_FREEER_DEFAULT, // free nothing 
-			HAWK_HTB_FREEER_DEFAULT  // free nothing 
+			HAWK_HTB_FREEER_DEFAULT, // free nothing
+			HAWK_HTB_FREEER_DEFAULT  // free nothing
 		},
 		HAWK_HTB_COMPER_DEFAULT,
 		HAWK_HTB_KEEPER_DEFAULT,
@@ -1626,7 +1626,7 @@ int Hawk::open ()
 		HAWK_HTB_HASHER_DEFAULT
 	};
 	hawk_htb_setstyle (this->functionMap, &style);
-	
+
 #endif
 
 	// push the call back after everything else is ok.
@@ -1634,7 +1634,7 @@ int Hawk::open ()
 	return 0;
 }
 
-void Hawk::close () 
+void Hawk::close ()
 {
 	this->fini_runctx ();
 	this->clearArguments ();
@@ -1649,7 +1649,7 @@ void Hawk::close ()
 	this->functionMap.clear ();
 #endif
 
-	if (this->hawk) 
+	if (this->hawk)
 	{
 		hawk_close (this->hawk);
 		this->hawk = HAWK_NULL;
@@ -1679,11 +1679,11 @@ void Hawk::uponClearing ()
 	// nothing to do
 }
 
-Hawk::Run* Hawk::parse (Source& in, Source& out) 
+Hawk::Run* Hawk::parse (Source& in, Source& out)
 {
 	HAWK_ASSERT (this->hawk != HAWK_NULL);
 
-	if (&in == &Source::NONE) 
+	if (&in == &Source::NONE)
 	{
 		this->setError (HAWK_EINVAL);
 		return HAWK_NULL;
@@ -1699,7 +1699,7 @@ Hawk::Run* Hawk::parse (Source& in, Source& out)
 	sio.out = (source_writer == HAWK_NULL)? HAWK_NULL: Hawk::writeSource;
 
 	int n = hawk_parse(this->hawk, &sio);
-	if (n <= -1) 
+	if (n <= -1)
 	{
 		this->retrieveError ();
 		return HAWK_NULL;
@@ -1726,7 +1726,7 @@ int Hawk::loop (Value* ret)
 	HAWK_ASSERT (this->runctx.rtx != HAWK_NULL);
 
 	hawk_val_t* rv = hawk_rtx_loop (this->runctx.rtx);
-	if (rv == HAWK_NULL) 
+	if (rv == HAWK_NULL)
 	{
 		this->retrieveError (&this->runctx);
 		return -1;
@@ -1734,7 +1734,7 @@ int Hawk::loop (Value* ret)
 
 	ret->setVal (&this->runctx, rv);
 	hawk_rtx_refdownval (this->runctx.rtx, rv);
-	
+
 	return 0;
 }
 
@@ -1767,7 +1767,7 @@ int Hawk::call (const hawk_bch_t* name, Value* ret, const Value* args, hawk_oow_
 
 	if (ptr != HAWK_NULL && ptr != buf) hawk_freemem (this->hawk, ptr);
 
-	if (rv == HAWK_NULL) 
+	if (rv == HAWK_NULL)
 	{
 		this->retrieveError (&this->runctx);
 		return -1;
@@ -1808,7 +1808,7 @@ int Hawk::call (const hawk_uch_t* name, Value* ret, const Value* args, hawk_oow_
 
 	if (ptr != HAWK_NULL && ptr != buf) hawk_freemem (this->hawk, ptr);
 
-	if (rv == HAWK_NULL) 
+	if (rv == HAWK_NULL)
 	{
 		this->retrieveError (&this->runctx);
 		return -1;
@@ -1834,13 +1834,13 @@ int Hawk::exec (Value* ret, const Value* args, hawk_oow_t nargs)
 	return n;
 }
 
-void Hawk::halt () 
+void Hawk::halt ()
 {
 	HAWK_ASSERT (this->hawk != HAWK_NULL);
 	hawk_haltall (this->hawk);
 }
 
-int Hawk::init_runctx () 
+int Hawk::init_runctx ()
 {
 	if (this->runctx.rtx) return 0;
 
@@ -1851,7 +1851,7 @@ int Hawk::init_runctx ()
 	rio.console = consoleHandler;
 
 	hawk_rtx_t* rtx = hawk_rtx_open(this->hawk, HAWK_SIZEOF(rxtn_t), &rio);
-	if (HAWK_UNLIKELY(!rtx)) 
+	if (HAWK_UNLIKELY(!rtx))
 	{
 		this->retrieveError();
 		return -1;
@@ -1866,7 +1866,7 @@ int Hawk::init_runctx ()
 	return 0;
 }
 
-void Hawk::fini_runctx () 
+void Hawk::fini_runctx ()
 {
 	if (this->runctx.rtx)
 	{
@@ -1875,7 +1875,7 @@ void Hawk::fini_runctx ()
 	}
 }
 
-int Hawk::getTrait () const 
+int Hawk::getTrait () const
 {
 	HAWK_ASSERT (this->hawk != HAWK_NULL);
 	int val;
@@ -1883,13 +1883,13 @@ int Hawk::getTrait () const
 	return val;
 }
 
-void Hawk::setTrait (int trait) 
+void Hawk::setTrait (int trait)
 {
 	HAWK_ASSERT (this->hawk != HAWK_NULL);
 	hawk_setopt (this->hawk, HAWK_OPT_TRAIT, &trait);
 }
 
-hawk_oow_t Hawk::getMaxDepth (depth_t id) const 
+hawk_oow_t Hawk::getMaxDepth (depth_t id) const
 {
 	HAWK_ASSERT (this->hawk != HAWK_NULL);
 
@@ -1898,7 +1898,7 @@ hawk_oow_t Hawk::getMaxDepth (depth_t id) const
 	return depth;
 }
 
-void Hawk::setMaxDepth (depth_t id, hawk_oow_t depth) 
+void Hawk::setMaxDepth (depth_t id, hawk_oow_t depth)
 {
 	HAWK_ASSERT (this->hawk != HAWK_NULL);
 	hawk_setopt (this->hawk, (hawk_opt_t)id, &depth);
@@ -1941,12 +1941,12 @@ int Hawk::dispatch_function (Run* run, const hawk_fnc_info_t* fi)
 #if defined(HAWK_USE_HTB_FOR_FUNCTION_MAP)
 	hawk_htb_pair_t* pair;
 	pair = hawk_htb_search(this->functionMap, fi->name.ptr, fi->name.len);
-	if (pair == HAWK_NULL) 
+	if (pair == HAWK_NULL)
 	{
 		run->formatError (HAWK_EFUNNF, HAWK_NULL, HAWK_T("function '%.*js' not defined"), &fi->name.len, &fi->name.ptr);
 		return -1;
 	}
-	
+
 	FunctionHandler handler;
 	handler = *(FunctionHandler*)HAWK_HTB_VPTR(pair);
 #else
@@ -1970,19 +1970,19 @@ int Hawk::dispatch_function (Run* run, const hawk_fnc_info_t* fi)
 	{
 	#if defined(AWK_VALUE_USE_IN_CLASS_PLACEMENT_NEW)
 		args = new(run) Value[nargs];
-		if (args == HAWK_NULL) 
+		if (args == HAWK_NULL)
 		{
 			run->setError (HAWK_ENOMEM);
 			return -1;
 		}
 	#else
-		try 
-		{ 
-			//args = (Value*)::operator new (HAWK_SIZEOF(Value) * nargs, this->getMmgr()); 
+		try
+		{
+			//args = (Value*)::operator new (HAWK_SIZEOF(Value) * nargs, this->getMmgr());
 			args = (Value*)this->getMmgr()->allocate(HAWK_SIZEOF(Value) * nargs);
 		}
 		catch (...) { args = HAWK_NULL; }
-		if (args == HAWK_NULL) 
+		if (args == HAWK_NULL)
 		{
 			run->setError (HAWK_ENOMEM);
 			return -1;
@@ -1990,7 +1990,7 @@ int Hawk::dispatch_function (Run* run, const hawk_fnc_info_t* fi)
 		for (i = 0; i < nargs; i++)
 		{
 			// call the default constructor on the space allocated above.
-			// no exception handling is implemented here as i know 
+			// no exception handling is implemented here as i know
 			// that Value::Value() doesn't throw an exception
 			new((HAWK::Mmgr*)HAWK_NULL, (void*)&args[i]) Value ();
 		}
@@ -2055,7 +2055,7 @@ int Hawk::dispatch_function (Run* run, const hawk_fnc_info_t* fi)
 			return -1;
 		}
 	}
-	
+
 	Value ret (run);
 
 	int n;
@@ -2082,7 +2082,7 @@ int Hawk::dispatch_function (Run* run, const hawk_fnc_info_t* fi)
 		}
 	}
 
-	if (args != buf) 
+	if (args != buf)
 	{
 	#if defined(AWK_VALUE_USE_IN_CLASS_PLACEMENT_NEW)
 		delete[] args;
@@ -2098,9 +2098,9 @@ int Hawk::dispatch_function (Run* run, const hawk_fnc_info_t* fi)
 	#endif
 	}
 
-	if (n <= -1) 
+	if (n <= -1)
 	{
-		/* this is really the handler error. the underlying engine 
+		/* this is really the handler error. the underlying engine
 		 * will take care of the error code. */
 		return -1;
 	}
@@ -2109,7 +2109,7 @@ int Hawk::dispatch_function (Run* run, const hawk_fnc_info_t* fi)
 	return 0;
 }
 
-int Hawk::xstrs_t::add (hawk_t* hawk, const hawk_uch_t* arg, hawk_oow_t len) 
+int Hawk::xstrs_t::add (hawk_t* hawk, const hawk_uch_t* arg, hawk_oow_t len)
 {
 	if (this->len >= this->capa)
 	{
@@ -2170,7 +2170,7 @@ int Hawk::xstrs_t::add (hawk_t* hawk, const hawk_bch_t* arg, hawk_oow_t len)
 	return 0;
 }
 
-void Hawk::xstrs_t::clear (hawk_t* hawk) 
+void Hawk::xstrs_t::clear (hawk_t* hawk)
 {
 	if (this->ptr != HAWK_NULL)
 	{
@@ -2183,7 +2183,7 @@ void Hawk::xstrs_t::clear (hawk_t* hawk)
 	}
 }
 
-int Hawk::addArgument (const hawk_uch_t* arg, hawk_oow_t len) 
+int Hawk::addArgument (const hawk_uch_t* arg, hawk_oow_t len)
 {
 	HAWK_ASSERT (this->hawk != HAWK_NULL);
 	int n = this->runarg.add(this->hawk, arg, len);
@@ -2191,12 +2191,12 @@ int Hawk::addArgument (const hawk_uch_t* arg, hawk_oow_t len)
 	return n;
 }
 
-int Hawk::addArgument (const hawk_uch_t* arg) 
+int Hawk::addArgument (const hawk_uch_t* arg)
 {
 	return this->addArgument(arg, hawk_count_ucstr(arg));
 }
 
-int Hawk::addArgument (const hawk_bch_t* arg, hawk_oow_t len) 
+int Hawk::addArgument (const hawk_bch_t* arg, hawk_oow_t len)
 {
 	HAWK_ASSERT (this->hawk != HAWK_NULL);
 	int n = this->runarg.add(this->hawk, arg, len);
@@ -2204,17 +2204,17 @@ int Hawk::addArgument (const hawk_bch_t* arg, hawk_oow_t len)
 	return n;
 }
 
-int Hawk::addArgument (const hawk_bch_t* arg) 
+int Hawk::addArgument (const hawk_bch_t* arg)
 {
 	return this->addArgument(arg, hawk_count_bcstr(arg));
 }
 
-void Hawk::clearArguments () 
+void Hawk::clearArguments ()
 {
 	this->runarg.clear (this->hawk);
 }
 
-int Hawk::addGlobal(const hawk_bch_t* name) 
+int Hawk::addGlobal(const hawk_bch_t* name)
 {
 	HAWK_ASSERT (this->hawk != HAWK_NULL);
 	int n = hawk_addgblwithbcstr(this->hawk, name);
@@ -2222,7 +2222,7 @@ int Hawk::addGlobal(const hawk_bch_t* name)
 	return n;
 }
 
-int Hawk::addGlobal(const hawk_uch_t* name) 
+int Hawk::addGlobal(const hawk_uch_t* name)
 {
 	HAWK_ASSERT (this->hawk != HAWK_NULL);
 	int n = hawk_addgblwithucstr(this->hawk, name);
@@ -2230,7 +2230,7 @@ int Hawk::addGlobal(const hawk_uch_t* name)
 	return n;
 }
 
-int Hawk::deleteGlobal (const hawk_bch_t* name) 
+int Hawk::deleteGlobal (const hawk_bch_t* name)
 {
 	HAWK_ASSERT (this->hawk != HAWK_NULL);
 	int n = hawk_delgblwithbcstr(this->hawk, name);
@@ -2238,7 +2238,7 @@ int Hawk::deleteGlobal (const hawk_bch_t* name)
 	return n;
 }
 
-int Hawk::deleteGlobal (const hawk_uch_t* name) 
+int Hawk::deleteGlobal (const hawk_uch_t* name)
 {
 	HAWK_ASSERT (this->hawk != HAWK_NULL);
 	int n = hawk_delgblwithucstr(this->hawk, name);
@@ -2247,7 +2247,7 @@ int Hawk::deleteGlobal (const hawk_uch_t* name)
 }
 
 
-int Hawk::findGlobal (const hawk_bch_t* name, bool inc_builtins) 
+int Hawk::findGlobal (const hawk_bch_t* name, bool inc_builtins)
 {
 	HAWK_ASSERT (this->hawk != HAWK_NULL);
 	int n = hawk_findgblwithbcstr(this->hawk, name, inc_builtins);
@@ -2255,7 +2255,7 @@ int Hawk::findGlobal (const hawk_bch_t* name, bool inc_builtins)
 	return n;
 }
 
-int Hawk::findGlobal (const hawk_uch_t* name, bool inc_builtins) 
+int Hawk::findGlobal (const hawk_uch_t* name, bool inc_builtins)
 {
 	HAWK_ASSERT (this->hawk != HAWK_NULL);
 	int n = hawk_findgblwithucstr(this->hawk, name, inc_builtins);
@@ -2263,12 +2263,12 @@ int Hawk::findGlobal (const hawk_uch_t* name, bool inc_builtins)
 	return n;
 }
 
-int Hawk::setGlobal (int id, const Value& v) 
+int Hawk::setGlobal (int id, const Value& v)
 {
 	HAWK_ASSERT (this->hawk != HAWK_NULL);
 	HAWK_ASSERT (this->runctx.rtx != HAWK_NULL);
 
-	if (v.run != &this->runctx) 
+	if (v.run != &this->runctx)
 	{
 		this->setError (HAWK_EINVAL);
 		return -1;
@@ -2279,7 +2279,7 @@ int Hawk::setGlobal (int id, const Value& v)
 	return n;
 }
 
-int Hawk::getGlobal (int id, Value& v) 
+int Hawk::getGlobal (int id, Value& v)
 {
 	HAWK_ASSERT (this->hawk != HAWK_NULL);
 	HAWK_ASSERT (runctx.rtx != HAWK_NULL);
@@ -2290,7 +2290,7 @@ int Hawk::getGlobal (int id, Value& v)
 }
 
 int Hawk::addFunction (
-	const hawk_bch_t* name, hawk_oow_t minArgs, hawk_oow_t maxArgs, 
+	const hawk_bch_t* name, hawk_oow_t minArgs, hawk_oow_t maxArgs,
 	const hawk_bch_t* argSpec, FunctionHandler handler, int validOpts)
 {
 	HAWK_ASSERT (this->hawk != HAWK_NULL);
@@ -2305,14 +2305,14 @@ int Hawk::addFunction (
 	spec.trait = validOpts;
 
 	hawk_fnc_t* fnc = hawk_addfncwithbcstr(this->hawk, name, &spec);
-	if (fnc == HAWK_NULL) 
+	if (fnc == HAWK_NULL)
 	{
 		this->retrieveError ();
 		return -1;
 	}
 
 #if defined(HAWK_USE_HTB_FOR_FUNCTION_MAP)
-	// handler is a pointer to a member function. 
+	// handler is a pointer to a member function.
 	// sizeof(handler) is likely to be greater than sizeof(void*)
 	// copy the handler pointer into the table.
 	//
@@ -2341,7 +2341,7 @@ int Hawk::addFunction (
 }
 
 int Hawk::addFunction (
-	const hawk_uch_t* name, hawk_oow_t minArgs, hawk_oow_t maxArgs, 
+	const hawk_uch_t* name, hawk_oow_t minArgs, hawk_oow_t maxArgs,
 	const hawk_uch_t* argSpec, FunctionHandler handler, int validOpts)
 {
 	HAWK_ASSERT (this->hawk != HAWK_NULL);
@@ -2356,14 +2356,14 @@ int Hawk::addFunction (
 	spec.trait = validOpts;
 
 	hawk_fnc_t* fnc = hawk_addfncwithucstr(this->hawk, name, &spec);
-	if (fnc == HAWK_NULL) 
+	if (fnc == HAWK_NULL)
 	{
 		this->retrieveError ();
 		return -1;
 	}
 
 #if defined(HAWK_USE_HTB_FOR_FUNCTION_MAP)
-	// handler is a pointer to a member function. 
+	// handler is a pointer to a member function.
 	// sizeof(handler) is likely to be greater than sizeof(void*)
 	// copy the handler pointer into the table.
 	//
@@ -2391,12 +2391,12 @@ int Hawk::addFunction (
 	return 0;
 }
 
-int Hawk::deleteFunction (const hawk_ooch_t* name) 
+int Hawk::deleteFunction (const hawk_ooch_t* name)
 {
 	HAWK_ASSERT (this->hawk != HAWK_NULL);
 
 	int n = hawk_delfnc(this->hawk, name);
-	if (n == 0) 
+	if (n == 0)
 	{
 #if defined(HAWK_USE_HTB_FOR_FUNCTION_MAP)
 		hawk_htb_delete (this->functionMap, name, hawk_count_oocstr(name));
@@ -2481,7 +2481,7 @@ hawk_ooi_t Hawk::pipeHandler (hawk_rtx_t* rtx, hawk_rio_cmd_t cmd, hawk_rio_arg_
 
 				case HAWK_RIO_CMD_FLUSH:
 					return hawk->pipe_handler->flush(pipe);
-	
+
 				default:
 					hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EINTERN);
 					return -1;
@@ -2508,10 +2508,10 @@ hawk_ooi_t Hawk::pipeHandler (hawk_rtx_t* rtx, hawk_rio_cmd_t cmd, hawk_rio_arg_
 
 				case HAWK_RIO_CMD_WRITE_BYTES:
 					return hawk->writePipeBytes(pipe, (const hawk_bch_t*)data, count);
-	
+
 				case HAWK_RIO_CMD_FLUSH:
 					return hawk->flushPipe(pipe);
-	
+
 				default:
 					hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EINTERN);
 					return -1;
@@ -2558,7 +2558,7 @@ hawk_ooi_t Hawk::fileHandler (hawk_rtx_t* rtx, hawk_rio_cmd_t cmd, hawk_rio_arg_
 
 				case HAWK_RIO_CMD_FLUSH:
 					return hawk->file_handler->flush(file);
-	
+
 				default:
 					hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EINTERN);
 					return -1;

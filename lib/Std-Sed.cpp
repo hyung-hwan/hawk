@@ -41,7 +41,7 @@ static hawk_sio_t* open_sio (SedStd::Stream::Data& io, const hawk_ooch_t* file, 
 	if (sio == HAWK_NULL)
 	{
 		const hawk_ooch_t* old_errmsg = hawk_sed_backuperrmsg((hawk_sed_t*)io);
-		((Sed*)io)->formatError (HAWK_SED_EIOFIL, HAWK_NULL, "unable to open %js - %js", file, old_errmsg);
+		((Sed*)io)->formatError(HAWK_SED_EIOFIL, HAWK_NULL, "unable to open %js - %js", file, old_errmsg);
 	}
 	return sio;
 }
@@ -60,18 +60,18 @@ static hawk_sio_t* open_sio_std (SedStd::Stream::Data& io, hawk_sio_std_t std, i
 	if (sio == HAWK_NULL)
 	{
 		const hawk_ooch_t* old_errmsg = hawk_sed_backuperrmsg((hawk_sed_t*)io);
-		((Sed*)io)->formatError (HAWK_SED_EIOFIL, HAWK_NULL, "unable to open %js - %js", std_names[std], old_errmsg);
+		((Sed*)io)->formatError(HAWK_SED_EIOFIL, HAWK_NULL, "unable to open %js - %js", std_names[std], old_errmsg);
 	}
 	return sio;
 }
 
-SedStd::FileStream::FileStream (const hawk_uch_t* file, hawk_cmgr_t* cmgr): 
-	_type(NAME_UCH), _file(file), file(HAWK_NULL), cmgr(cmgr) 
+SedStd::FileStream::FileStream (const hawk_uch_t* file, hawk_cmgr_t* cmgr):
+	_type(NAME_UCH), _file(file), file(HAWK_NULL), cmgr(cmgr)
 {
 }
 
 SedStd::FileStream::FileStream (const hawk_bch_t* file, hawk_cmgr_t* cmgr ):
-	_type(NAME_BCH), _file(file), file(HAWK_NULL), cmgr(cmgr) 
+	_type(NAME_BCH), _file(file), file(HAWK_NULL), cmgr(cmgr)
 {
 }
 SedStd::FileStream::~FileStream ()
@@ -103,7 +103,7 @@ int SedStd::FileStream::open (Data& io)
 		//
 		// a normal console is indicated by a null name or a dash
 		//
-		
+
 		if (this->_file)
 		{
 			if (this->_type == NAME_UCH)
@@ -113,7 +113,7 @@ int SedStd::FileStream::open (Data& io)
 			#if defined(HAWK_OOCH_IS_UCH)
 				this->file = hawk_gem_dupucstr(gem, tmp, HAWK_NULL);
 			#else
-				this->file = hawk_duputobcstr(gem, tmp, HAWK_NULL);
+				this->file = hawk_gem_duputobcstr(gem, tmp, HAWK_NULL);
 			#endif
 			}
 			else
@@ -154,7 +154,7 @@ int SedStd::FileStream::close (Data& io)
 {
 	hawk_sio_close ((hawk_sio_t*)io.getHandle());
 
-	// this stream object may get called more than once and is merely a proxy 
+	// this stream object may get called more than once and is merely a proxy
 	// object that has its own lifespan. while io.getHandle() returns a unique
 	// handle value as set by io.setHandle() in the open method, this object
 	// is resued for calls over multiple I/O objects created. When releasing
@@ -163,7 +163,7 @@ int SedStd::FileStream::close (Data& io)
 
 	if (!io.getName())
 	{
-		// for a master stream that's not started by r or w 
+		// for a master stream that's not started by r or w
 		if (this->file)
 		{
 			hawk_gem_freemem ((hawk_gem_t*)io, this->file);
@@ -183,7 +183,7 @@ hawk_ooi_t SedStd::FileStream::read (Data& io, hawk_ooch_t* buf, hawk_oow_t len)
 		if (!io.getName() && this->file)  // io.getMode() must be READ
 		{
 			const hawk_ooch_t* old_errmsg = hawk_sed_backuperrmsg((hawk_sed_t*)io);
-			((Sed*)io)->formatError (HAWK_SED_EIOFIL, HAWK_NULL, "unable to read %js - %js", this->file, old_errmsg);
+			((Sed*)io)->formatError(HAWK_SED_EIOFIL, HAWK_NULL, "unable to read %js - %js", this->file, old_errmsg);
 		}
 	}
 
@@ -199,7 +199,7 @@ hawk_ooi_t SedStd::FileStream::write (Data& io, const hawk_ooch_t* buf, hawk_oow
 		if (!io.getName() && this->file) // io.getMode() must be WRITE
 		{
 			const hawk_ooch_t* old_errmsg = hawk_sed_backuperrmsg((hawk_sed_t*)io);
-			((Sed*)io)->formatError (HAWK_SED_EIOFIL, HAWK_NULL, "unable to read %js - %js", this->file, old_errmsg);
+			((Sed*)io)->formatError(HAWK_SED_EIOFIL, HAWK_NULL, "unable to read %js - %js", this->file, old_errmsg);
 		}
 	}
 
@@ -211,7 +211,7 @@ SedStd::StringStream::StringStream (hawk_cmgr_t* cmgr): _type(STR_UCH) // this t
 	this->cmgr = cmgr;
 
 	this->in._sed = HAWK_NULL;
-	this->in._str = HAWK_NULL; 
+	this->in._str = HAWK_NULL;
 	this->in._end = HAWK_NULL;
 	this->in.str = HAWK_NULL;
 	this->in.end = HAWK_NULL;
@@ -229,7 +229,7 @@ SedStd::StringStream::StringStream (const hawk_uch_t* in, hawk_cmgr_t* cmgr): _t
 	this->cmgr = cmgr;
 
 	this->in._sed = HAWK_NULL;
-	this->in._str = in; 
+	this->in._str = in;
 	this->in._end = in + hawk_count_ucstr(in);
 	this->in.str = HAWK_NULL;
 	this->in.end = HAWK_NULL;
@@ -247,7 +247,7 @@ SedStd::StringStream::StringStream (const hawk_uch_t* in, hawk_oow_t len, hawk_c
 	this->cmgr = cmgr;
 
 	this->in._sed = HAWK_NULL;
-	this->in._str = in; 
+	this->in._str = in;
 	this->in._end = in + len;
 	this->in.str = HAWK_NULL;
 	this->in.end = HAWK_NULL;
@@ -258,7 +258,7 @@ SedStd::StringStream::StringStream (const hawk_uch_t* in, hawk_oow_t len, hawk_c
 	this->out.inited = false;
 	this->out.alt_buf = HAWK_NULL;
 	this->out.alt_sed = HAWK_NULL;
-	
+
 }
 
 SedStd::StringStream::StringStream (const hawk_bch_t* in, hawk_cmgr_t* cmgr): _type(STR_BCH)
@@ -266,7 +266,7 @@ SedStd::StringStream::StringStream (const hawk_bch_t* in, hawk_cmgr_t* cmgr): _t
 	this->cmgr = cmgr;
 
 	this->in._sed = HAWK_NULL;
-	this->in._str = in; 
+	this->in._str = in;
 	this->in._end = in + hawk_count_bcstr(in);
 	this->in.str = HAWK_NULL;
 	this->in.end = HAWK_NULL;
@@ -284,7 +284,7 @@ SedStd::StringStream::StringStream (const hawk_bch_t* in, hawk_oow_t len, hawk_c
 	this->cmgr = cmgr;
 
 	this->in._sed = HAWK_NULL;
-	this->in._str = in; 
+	this->in._str = in;
 	this->in._end = in + len;
 	this->in.str = HAWK_NULL;
 	this->in.end = HAWK_NULL;
@@ -315,17 +315,17 @@ int SedStd::StringStream::open (Data& io)
 	if (ioname == HAWK_NULL)
 	{
 		// open a main data stream
-		if (io.getMode() == READ) 
+		if (io.getMode() == READ)
 		{
 			HAWK_ASSERT (this->in.str == HAWK_NULL);
 
 			if (this->in._str == HAWK_NULL)
 			{
-				// no input data was passed to this object for construction 
+				// no input data was passed to this object for construction
 
 				if (this->out.inited)
 				{
-					// this object is being reused for input after output 
+					// this object is being reused for input after output
 					// use the output data as input
 					hawk_oocs_t out;
 					hawk_ooecs_yield (&this->out.buf, &out, 0);
@@ -336,21 +336,21 @@ int SedStd::StringStream::open (Data& io)
 				}
 				else
 				{
-					((Sed*)io)->formatError (HAWK_EINVAL, HAWK_NULL, "no input data available to open"); 
+					((Sed*)io)->formatError(HAWK_EINVAL, HAWK_NULL, "no input data available to open");
 					return -1;
 				}
 			}
 			else
 			{
 				hawk_oow_t len;
-				hawk_gem_t* gem = hawk_sed_getgem((hawk_sed_t*)io); 
+				hawk_gem_t* gem = hawk_sed_getgem((hawk_sed_t*)io);
 
 				if (this->_type == STR_UCH)
 				{
 				#if defined(HAWK_OOCH_IS_UCH)
 					this->in.str = hawk_gem_dupucstr(gem, (const hawk_uch_t*)this->in._str, &len);
 				#else
-					this->in.str = hawk_duputobcstr(gem, (const hawk_uch_t*)this->in._str, &len);
+					this->in.str = hawk_gem_duputobcstr(gem, (const hawk_uch_t*)this->in._str, &len);
 				#endif
 				}
 				else
@@ -372,10 +372,10 @@ int SedStd::StringStream::open (Data& io)
 		}
 		else
 		{
-			this->clearOutputData (true);  
+			this->clearOutputData (true);
 			// preserving this previous output data is a bit tricky when hawk_ooecs_init() fails.
 			// let's not try to preserve the old output data for now.
-			// full clearing is needed because this object may get passed to different sed objects 
+			// full clearing is needed because this object may get passed to different sed objects
 			// in succession.
 
 			if (hawk_ooecs_init(&this->out.buf, (hawk_gem_t*)io, 256) <= -1) return -1;
@@ -395,7 +395,7 @@ int SedStd::StringStream::open (Data& io)
 		// open files for a r or w command
 		hawk_sio_t* sio;
 		int mode = (io.getMode() == READ)?
-			HAWK_SIO_READ: 
+			HAWK_SIO_READ:
 			(HAWK_SIO_WRITE|HAWK_SIO_CREATE|HAWK_SIO_TRUNCATE);
 
 		sio = hawk_sio_open((hawk_gem_t*)io, 0, ioname, mode);
@@ -489,7 +489,7 @@ const hawk_uch_t* SedStd::StringStream::getOutputU (hawk_oow_t* len)
 	if (this->out.inited)
 	{
 		hawk_uch_t* tmp = hawk_gem_dupbtoucharswithcmgr(hawk_sed_getgem(this->out._sed), HAWK_OOECS_PTR(&this->out.buf), HAWK_OOECS_LEN(&this->out.buf), len, this->cmgr, 1);
-		if (tmp) 
+		if (tmp)
 		{
 			if (this->out.alt_buf) hawk_sed_freemem(this->out._sed, this->out.alt_buf);
 			this->out.alt_buf = (void*)tmp;
@@ -511,7 +511,7 @@ const hawk_bch_t* SedStd::StringStream::getOutputB (hawk_oow_t* len)
 	if (this->out.inited)
 	{
 		hawk_bch_t* tmp = hawk_gem_duputobcharswithcmgr(hawk_sed_getgem(this->out._sed), HAWK_OOECS_PTR(&this->out.buf), HAWK_OOECS_LEN(&this->out.buf), len, this->cmgr);
-		if (tmp) 
+		if (tmp)
 		{
 			if (this->out.alt_buf) hawk_sed_freemem(this->out._sed, this->out.alt_buf);
 			this->out.alt_buf = (void*)tmp;
@@ -543,7 +543,7 @@ void SedStd::StringStream::clearInputData ()
 
 void SedStd::StringStream::clearOutputData (bool kill_ecb)
 {
-	if (this->out.alt_buf) 
+	if (this->out.alt_buf)
 	{
 		HAWK_ASSERT (this->out.alt_sed != HAWK_NULL);
 		hawk_sed_freemem(this->out.alt_sed, this->out.alt_buf);

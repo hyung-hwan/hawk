@@ -66,9 +66,9 @@ struct hawk_cut_t
 		hawk_ooch_t         din; /**< input field delimiter */
 		hawk_ooch_t         dout; /**< output field delimiter */
 
-		hawk_oow_t         count; 
-		hawk_oow_t         fcount; 
-		hawk_oow_t         ccount; 
+		hawk_oow_t         count;
+		hawk_oow_t         fcount;
+		hawk_oow_t         ccount;
 	} sel;
 
 	/** source text pointers */
@@ -101,7 +101,7 @@ struct hawk_cut_t
 			hawk_oow_t len;
 			int        eof;
 		} out;
-		
+
 		/** data needed for input streams */
 		struct
 		{

@@ -236,7 +236,7 @@ static hawk_ooi_t xout (hawk_cut_t* cut, hawk_cut_io_cmd_t cmd, hawk_cut_io_arg_
 
 			return n;
 		}
-	
+
 		default:
 			return -1;
 	}

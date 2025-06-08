@@ -58,7 +58,7 @@ static int add_char_to_token (hawk_json_t* json, hawk_ooch_t ch)
 static int add_chars_to_token (hawk_json_t* json, const hawk_ooch_t* ptr, hawk_oow_t len)
 {
 	hawk_oow_t i;
-	
+
 	if (json->tok_capa - json->tok.len > len)
 	{
 		hawk_ooch_t* tmp;
@@ -72,7 +72,7 @@ static int add_chars_to_token (hawk_json_t* json, const hawk_ooch_t* ptr, hawk_o
 		json->tok.ptr = tmp;
 	}
 
-	for (i = 0; i < len; i++)  
+	for (i = 0; i < len; i++)
 		json->tok.ptr[json->tok.len++] = ptr[i];
 	json->tok.ptr[json->tok.len] = HAWK_T('\0');
 	return 0;
@@ -104,7 +104,7 @@ static int push_state (hawk_json_t* json, hawk_json_state_t state)
 
 	ss->state = state;
 	ss->next = json->state_stack;
-	
+
 	json->state_stack = ss;
 	return 0;
 }
@@ -114,7 +114,7 @@ static void pop_state (hawk_json_t* json)
 	hawk_json_state_node_t* ss;
 
 	ss = json->state_stack;
-	HAWK_ASSERT (ss != HAWK_NULL && ss != &json->state_top);
+	HAWK_ASSERT(ss != HAWK_NULL && ss != &json->state_top);
 	json->state_stack = ss->next;
 
 	if (json->state_stack->state == HAWK_JSON_STATE_IN_ARRAY)
@@ -139,11 +139,11 @@ static void pop_all_states (hawk_json_t* json)
 
 static int invoke_data_inst (hawk_json_t* json, hawk_json_inst_t inst)
 {
-	if (json->state_stack->state == HAWK_JSON_STATE_IN_DIC && json->state_stack->u.id.state == 1) 
+	if (json->state_stack->state == HAWK_JSON_STATE_IN_DIC && json->state_stack->u.id.state == 1)
 	{
 		if (inst != HAWK_JSON_INST_STRING)
 		{
-			hawk_json_seterrbfmt (json, HAWK_NULL, HAWK_EINVAL, "dictionary key not a string - %.*js", json->tok.len, json->tok.ptr);
+			hawk_json_seterrbfmt(json, HAWK_NULL, HAWK_EINVAL, "dictionary key not a string - %.*js", json->tok.len, json->tok.ptr);
 			return -1;
 		}
 
@@ -208,7 +208,7 @@ static int handle_string_value_char (hawk_json_t* json, hawk_ooci_t c)
 				if (n == 0 || n > HAWK_COUNTOF(bcsbuf))
 				{
 					/* illegal character or buffer to small */
-					hawk_json_seterrbfmt (json, HAWK_NULL, HAWK_EECERR, "unable to convert %jc", json->state_stack->u.sv.acc);
+					hawk_json_seterrbfmt(json, HAWK_NULL, HAWK_EECERR, "unable to convert %jc", json->state_stack->u.sv.acc);
 					return -1;
 				}
 
@@ -220,7 +220,7 @@ static int handle_string_value_char (hawk_json_t* json, hawk_ooci_t c)
 	}
 	else if (json->state_stack->u.sv.escaped == 1)
 	{
-		if (c >= '0' && c <= '8') 
+		if (c >= '0' && c <= '8')
 		{
 			json->state_stack->u.sv.escaped = 3;
 			json->state_stack->u.sv.digit_count = 0;
@@ -316,7 +316,7 @@ static int handle_character_value_char (hawk_json_t* json, hawk_ooci_t c)
 	}
 	else if (json->state_stack->u.cv.escaped == 1)
 	{
-		if (c >= '0' && c <= '8') 
+		if (c >= '0' && c <= '8')
 		{
 			json->state_stack->u.cv.escaped = 3;
 			json->state_stack->u.cv.digit_count = 0;
@@ -353,10 +353,10 @@ static int handle_character_value_char (hawk_json_t* json, hawk_ooci_t c)
 	else if (c == '\'')
 	{
 		pop_state (json);
-		
+
 		if (json->tok.len < 1)
 		{
-			hawk_json_seterrbfmt (json, HAWK_NULL, HAWK_EINVAL, "no character in a character literal");
+			hawk_json_seterrbfmt(json, HAWK_NULL, HAWK_EINVAL, "no character in a character literal");
 			return -1;
 		}
 		if (invoke_data_inst(json, HAWK_JSON_INST_CHARACTER) <= -1) return -1;
@@ -366,9 +366,9 @@ static int handle_character_value_char (hawk_json_t* json, hawk_ooci_t c)
 		if (add_char_to_token(json, c) <= -1) return -1;
 	}
 
-	if (json->tok.len > 1) 
+	if (json->tok.len > 1)
 	{
-		hawk_json_seterrbfmt (json, HAWK_NULL, HAWK_EINVAL, "too many characters in a character literal - %.*js", (int)json->tok.len, json->tok.ptr);
+		hawk_json_seterrbfmt(json, HAWK_NULL, HAWK_EINVAL, "too many characters in a character literal - %.*js", (int)json->tok.len, json->tok.ptr);
 		return -1;
 	}
 
@@ -392,10 +392,10 @@ static int handle_numeric_value_char (hawk_json_t* json, hawk_ooci_t c)
 
 	pop_state (json);
 
-	HAWK_ASSERT (json->tok.len > 0);
+	HAWK_ASSERT(json->tok.len > 0);
 	if (!hawk_is_ooch_digit(json->tok.ptr[json->tok.len - 1]))
 	{
-		hawk_json_seterrbfmt (json, HAWK_NULL, HAWK_EINVAL, "invalid numeric value - %.*js", (int)json->tok.len, json->tok.ptr);
+		hawk_json_seterrbfmt(json, HAWK_NULL, HAWK_EINVAL, "invalid numeric value - %.*js", (int)json->tok.len, json->tok.ptr);
 		return -1;
 	}
 	if (invoke_data_inst(json, HAWK_JSON_INST_NUMBER) <= -1) return -1;
@@ -419,7 +419,7 @@ static int handle_word_value_char (hawk_json_t* json, hawk_ooci_t c)
 	else if (hawk_comp_oochars_bcstr(json->tok.ptr, json->tok.len, "false", 0) == 0) inst = HAWK_JSON_INST_FALSE;
 	else
 	{
-		hawk_json_seterrbfmt (json, HAWK_NULL, HAWK_EINVAL, "invalid word value - %.*js", json->tok.len, json->tok.ptr);
+		hawk_json_seterrbfmt(json, HAWK_NULL, HAWK_EINVAL, "invalid word value - %.*js", json->tok.len, json->tok.ptr);
 		return -1;
 	}
 
@@ -445,14 +445,14 @@ static int handle_start_char (hawk_json_t* json, hawk_ooci_t c)
 		if (json->prim.instcb(json, HAWK_JSON_INST_START_DIC, HAWK_NULL) <= -1) return -1;
 		return 1;
 	}
-	else if (hawk_is_ooch_space(c)) 
+	else if (hawk_is_ooch_space(c))
 	{
 		/* do nothing */
 		return 1;
 	}
 	else
 	{
-		hawk_json_seterrbfmt (json, HAWK_NULL, HAWK_EINVAL, "not starting with [ or { - %jc", (hawk_ooch_t)c);
+		hawk_json_seterrbfmt(json, HAWK_NULL, HAWK_EINVAL, "not starting with [ or { - %jc", (hawk_ooch_t)c);
 		return -1;
 	}
 }
@@ -469,7 +469,7 @@ static int handle_char_in_array (hawk_json_t* json, hawk_ooci_t c)
 	{
 		if (!json->state_stack->u.ia.got_value)
 		{
-			hawk_json_seterrbfmt (json, HAWK_NULL, HAWK_EINVAL, "redundant comma in array - %jc", (hawk_ooch_t)c);
+			hawk_json_seterrbfmt(json, HAWK_NULL, HAWK_EINVAL, "redundant comma in array - %jc", (hawk_ooch_t)c);
 			return -1;
 		}
 		json->state_stack->u.ia.got_value = 0;
@@ -484,7 +484,7 @@ static int handle_char_in_array (hawk_json_t* json, hawk_ooci_t c)
 	{
 		if (json->state_stack->u.ia.got_value)
 		{
-			hawk_json_seterrbfmt (json, HAWK_NULL, HAWK_EINVAL, "comma required in array - %jc", (hawk_ooch_t)c);
+			hawk_json_seterrbfmt(json, HAWK_NULL, HAWK_EINVAL, "comma required in array - %jc", (hawk_ooch_t)c);
 			return -1;
 		}
 
@@ -531,7 +531,7 @@ static int handle_char_in_array (hawk_json_t* json, hawk_ooci_t c)
 		}
 		else
 		{
-			hawk_json_seterrbfmt (json, HAWK_NULL, HAWK_EINVAL, "wrong character inside array - %jc[%d]", (hawk_ooch_t)c, (int)c);
+			hawk_json_seterrbfmt(json, HAWK_NULL, HAWK_EINVAL, "wrong character inside array - %jc[%d]", (hawk_ooch_t)c, (int)c);
 			return -1;
 		}
 	}
@@ -549,7 +549,7 @@ static int handle_char_in_dic (hawk_json_t* json, hawk_ooci_t c)
 	{
 		if (json->state_stack->u.id.state != 1)
 		{
-			hawk_json_seterrbfmt (json, HAWK_NULL, HAWK_EINVAL, "redundant colon in dictionary - %jc", (hawk_ooch_t)c);
+			hawk_json_seterrbfmt(json, HAWK_NULL, HAWK_EINVAL, "redundant colon in dictionary - %jc", (hawk_ooch_t)c);
 			return -1;
 		}
 		json->state_stack->u.id.state++;
@@ -559,7 +559,7 @@ static int handle_char_in_dic (hawk_json_t* json, hawk_ooci_t c)
 	{
 		if (json->state_stack->u.id.state != 3)
 		{
-			hawk_json_seterrbfmt (json, HAWK_NULL, HAWK_EINVAL, "redundant comma in dicitonary - %jc", (hawk_ooch_t)c);
+			hawk_json_seterrbfmt(json, HAWK_NULL, HAWK_EINVAL, "redundant comma in dicitonary - %jc", (hawk_ooch_t)c);
 			return -1;
 		}
 		json->state_stack->u.id.state = 0;
@@ -574,12 +574,12 @@ static int handle_char_in_dic (hawk_json_t* json, hawk_ooci_t c)
 	{
 		if (json->state_stack->u.id.state == 1)
 		{
-			hawk_json_seterrbfmt (json, HAWK_NULL, HAWK_EINVAL, "colon required in dicitonary - %jc", (hawk_ooch_t)c);
+			hawk_json_seterrbfmt(json, HAWK_NULL, HAWK_EINVAL, "colon required in dicitonary - %jc", (hawk_ooch_t)c);
 			return -1;
 		}
 		else if (json->state_stack->u.id.state == 3)
 		{
-			hawk_json_seterrbfmt (json, HAWK_NULL, HAWK_EINVAL, "comma required in dicitonary - %jc", (hawk_ooch_t)c);
+			hawk_json_seterrbfmt(json, HAWK_NULL, HAWK_EINVAL, "comma required in dicitonary - %jc", (hawk_ooch_t)c);
 			return -1;
 		}
 
@@ -626,7 +626,7 @@ static int handle_char_in_dic (hawk_json_t* json, hawk_ooci_t c)
 		}
 		else
 		{
-			hawk_json_seterrbfmt (json, HAWK_NULL, HAWK_EINVAL, "wrong character inside dictionary - %jc[%d]", (hawk_ooch_t)c, (int)c);
+			hawk_json_seterrbfmt(json, HAWK_NULL, HAWK_EINVAL, "wrong character inside dictionary - %jc[%d]", (hawk_ooch_t)c, (int)c);
 			return -1;
 		}
 	}
@@ -648,7 +648,7 @@ start_over:
 		}
 		else
 		{
-			hawk_json_seterrnum (json, HAWK_NULL, HAWK_EEOF);
+			hawk_json_seterrnum(json, HAWK_NULL, HAWK_EEOF);
 			return -1;
 		}
 	}
@@ -674,7 +674,7 @@ start_over:
 		case HAWK_JSON_STATE_IN_STRING_VALUE:
 			x = handle_string_value_char(json, c);
 			break;
-			
+
 		case HAWK_JSON_STATE_IN_CHARACTER_VALUE:
 			x = handle_character_value_char(json, c);
 			break;
@@ -684,7 +684,7 @@ start_over:
 			break;
 
 		default:
-			hawk_json_seterrbfmt (json, HAWK_NULL, HAWK_EINTERN, "internal error - must not be called for state %d", (int)json->state_stack->state);
+			hawk_json_seterrbfmt(json, HAWK_NULL, HAWK_EINTERN, "internal error - must not be called for state %d", (int)json->state_stack->state);
 			return -1;
 	}
 
@@ -696,7 +696,7 @@ start_over:
 
 /* ========================================================================= */
 
-static int feed_json_data (hawk_json_t* json, const hawk_bch_t* data, hawk_oow_t len, hawk_oow_t* xlen)
+static int feed_json_data_b (hawk_json_t* json, const hawk_bch_t* data, hawk_oow_t len, hawk_oow_t* xlen)
 {
 	const hawk_bch_t* ptr;
 	const hawk_bch_t* end;
@@ -747,8 +747,50 @@ oops:
 	return -1;
 }
 
+/* ========================================================================= */
+
+static int feed_json_data_u (hawk_json_t* json, const hawk_uch_t* data, hawk_oow_t len, hawk_oow_t* xlen)
+{
+	const hawk_uch_t* ptr;
+	const hawk_uch_t* end;
+
+	ptr = data;
+	end = ptr + len;
+
+	while (ptr < end)
+	{
+		hawk_ooci_t c;
+
+	#if defined(HAWK_OOCH_IS_UCH)
+		c = *ptr++;
+		/* handle a single character */
+		if (handle_char(json, c) <= -1) goto oops;
+	#else
+		hawk_bch_t bcsbuf[HAWK_BCSIZE_MAX];
+		hawk_oow_t mlen = 0;
+		hawk_oow_t n, i;
+
+		n = json->_gem.cmgr->uctobc(*ptr++, bcsbuf, HAWK_COUNTOF(bcsbuf));
+		if (n == 0) goto oops; // illegal character
+
+		for (i = 0; i < n; i++)
+		{
+			if (handle_char(json, bcsbuf[i]) <= -1) goto oops;
+		}
+	#endif
+	}
+
+	*xlen = ptr - data;
+	return 1;
+
+oops:
+	/* TODO: compute the number of processed bytes so far and return it via a parameter??? */
+/*printf ("feed oops....\n");*/
+	return -1;
+}
 
 /* ========================================================================= */
+
 
 hawk_json_t* hawk_json_open (hawk_mmgr_t* mmgr, hawk_oow_t xtnsize, hawk_cmgr_t* cmgr, hawk_json_prim_t* prim, hawk_errnum_t* errnum)
 {
@@ -761,7 +803,7 @@ hawk_json_t* hawk_json_open (hawk_mmgr_t* mmgr, hawk_oow_t xtnsize, hawk_cmgr_t*
 		return HAWK_NULL;
 	}
 
-	HAWK_MEMSET (json, 0, HAWK_SIZEOF(*json) + xtnsize);
+	HAWK_MEMSET(json, 0, HAWK_SIZEOF(*json) + xtnsize);
 	json->_instsize = HAWK_SIZEOF(*json);
 	json->_gem.mmgr = mmgr;
 	json->_gem.cmgr = cmgr;
@@ -784,9 +826,9 @@ hawk_json_t* hawk_json_open (hawk_mmgr_t* mmgr, hawk_oow_t xtnsize, hawk_cmgr_t*
 
 void hawk_json_close (hawk_json_t* json)
 {
-	pop_all_states (json);
-	if (json->tok.ptr) hawk_json_freemem (json, json->tok.ptr);
-	HAWK_MMGR_FREE (hawk_json_getmmgr(json), json);
+	pop_all_states(json);
+	if (json->tok.ptr) hawk_json_freemem(json, json->tok.ptr);
+	HAWK_MMGR_FREE(hawk_json_getmmgr(json), json);
 }
 
 int hawk_json_setoption (hawk_json_t* json, hawk_json_option_t id, const void* value)
@@ -798,7 +840,7 @@ int hawk_json_setoption (hawk_json_t* json, hawk_json_option_t id, const void* v
 			return 0;
 	}
 
-	hawk_json_seterrnum (json, HAWK_NULL, HAWK_EINVAL);
+	hawk_json_seterrnum(json, HAWK_NULL, HAWK_EINVAL);
 	return -1;
 }
 
@@ -811,7 +853,7 @@ int hawk_json_getoption (hawk_json_t* json, hawk_json_option_t id, void* value)
 			return 0;
 	};
 
-	hawk_json_seterrnum (json, HAWK_NULL, HAWK_EINVAL);
+	hawk_json_seterrnum(json, HAWK_NULL, HAWK_EINVAL);
 	return -1;
 }
 
@@ -825,17 +867,17 @@ hawk_errstr_t hawk_json_geterrstr (hawk_json_t* json)
 void hawk_json_seterrbfmt (hawk_json_t* json, const hawk_loc_t* errloc, hawk_errnum_t errnum, const hawk_bch_t* fmt, ...)
 {
 	va_list ap;
-	va_start (ap, fmt);
-	hawk_gem_seterrbvfmt (hawk_json_getgem(json), errloc, errnum, fmt, ap);
-	va_end (ap);
+	va_start(ap, fmt);
+	hawk_gem_seterrbvfmt(hawk_json_getgem(json), errloc, errnum, fmt, ap);
+	va_end(ap);
 }
 
 void hawk_json_seterrufmt (hawk_json_t* json, const hawk_loc_t* errloc, hawk_errnum_t errnum, const hawk_uch_t* fmt, ...)
 {
 	va_list ap;
-	va_start (ap, fmt);
-	hawk_gem_seterruvfmt (hawk_json_getgem(json), errloc, errnum, fmt, ap);
-	va_end (ap);
+	va_start(ap, fmt);
+	hawk_gem_seterruvfmt(hawk_json_getgem(json), errloc, errnum, fmt, ap);
+	va_end(ap);
 }
 
 
@@ -855,7 +897,7 @@ void* hawk_json_allocmem (hawk_json_t* json, hawk_oow_t size)
 	void* ptr;
 
 	ptr = HAWK_MMGR_ALLOC(hawk_json_getmmgr(json), size);
-	if (!ptr) hawk_json_seterrnum (json, HAWK_NULL, HAWK_ENOMEM);
+	if (!ptr) hawk_json_seterrnum(json, HAWK_NULL, HAWK_ENOMEM);
 	return ptr;
 }
 
@@ -864,21 +906,21 @@ void* hawk_json_callocmem (hawk_json_t* json, hawk_oow_t size)
 	void* ptr;
 
 	ptr = HAWK_MMGR_ALLOC(hawk_json_getmmgr(json), size);
-	if (!ptr) hawk_json_seterrnum (json, HAWK_NULL, HAWK_ENOMEM);
-	else HAWK_MEMSET (ptr, 0, size);
+	if (!ptr) hawk_json_seterrnum(json, HAWK_NULL, HAWK_ENOMEM);
+	else HAWK_MEMSET(ptr, 0, size);
 	return ptr;
 }
 
 void* hawk_json_reallocmem (hawk_json_t* json, void* ptr, hawk_oow_t size)
 {
 	ptr = HAWK_MMGR_REALLOC(hawk_json_getmmgr(json), ptr, size);
-	if (!ptr) hawk_json_seterrnum (json, HAWK_NULL, HAWK_ENOMEM);
+	if (!ptr) hawk_json_seterrnum(json, HAWK_NULL, HAWK_ENOMEM);
 	return ptr;
 }
 
 void hawk_json_freemem (hawk_json_t* json, void* ptr)
 {
-	HAWK_MMGR_FREE (hawk_json_getmmgr(json), ptr);
+	HAWK_MMGR_FREE(hawk_json_getmmgr(json), ptr);
 }
 
 /* ========================================================================= */
@@ -892,21 +934,38 @@ void hawk_json_reset (hawk_json_t* json)
 {
 	/* TODO: reset XXXXXXXXXXXXXXXXXXXXXXXXXXXxxxxx */
 	pop_all_states (json);
-	HAWK_ASSERT (json->state_stack == &json->state_top);
+	HAWK_ASSERT(json->state_stack == &json->state_top);
 	json->state_stack->state = HAWK_JSON_STATE_START;
 }
 
-int hawk_json_feed (hawk_json_t* json, const void* ptr, hawk_oow_t len, hawk_oow_t* xlen)
+int hawk_json_feedbchars (hawk_json_t* json, const hawk_bch_t* ptr, hawk_oow_t len, hawk_oow_t* xlen)
 {
 	int x;
 	hawk_oow_t total, ylen;
-	const hawk_bch_t* buf;
 
-	buf = (const hawk_bch_t*)ptr;
 	total = 0;
 	while (total < len)
 	{
-		x = feed_json_data(json, &buf[total], len - total, &ylen);
+		x = feed_json_data_b(json, &ptr[total], len - total, &ylen);
+		if (x <= -1) return -1;
+
+		total += ylen;
+		if (x == 0) break; /* incomplete sequence encountered */
+	}
+
+	*xlen = total;
+	return 0;
+}
+
+int hawk_json_feeduchars (hawk_json_t* json, const hawk_uch_t* ptr, hawk_oow_t len, hawk_oow_t* xlen)
+{
+	int x;
+	hawk_oow_t total, ylen;
+
+	total = 0;
+	while (total < len)
+	{
+		x = feed_json_data_u(json, &ptr[total], len - total, &ylen);
 		if (x <= -1) return -1;
 
 		total += ylen;

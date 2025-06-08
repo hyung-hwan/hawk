@@ -40,15 +40,15 @@ struct hawk_json_state_node_t
 
 		struct
 		{
-			/* 0: ready to get key (at the beginning or got comma), 
+			/* 0: ready to get key (at the beginning or got comma),
 			 * 1: got key, 2: got colon, 3: got value */
-			int state; 
+			int state;
 		} id; /* in dictionary */
 		struct
 		{
 			int escaped;
 			int digit_count;
-			/* acc is always of unicode type to handle \u and \U. 
+			/* acc is always of unicode type to handle \u and \U.
 			 * in the bch mode, it will get converted to a utf8 stream. */
 			hawk_uch_t acc;
 		} sv;
@@ -58,7 +58,7 @@ struct hawk_json_state_node_t
 			int digit_count;
 			/* for a character, no way to support the unicode character
 			 * in the bch mode */
-			hawk_ooch_t acc; 
+			hawk_ooch_t acc;
 		} cv;
 		struct
 		{
