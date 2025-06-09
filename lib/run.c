@@ -338,13 +338,13 @@ static int set_global (hawk_rtx_t* rtx, int idx, hawk_nde_var_t* var, hawk_val_t
 				if (str.ptr[i] == '\0')
 				{
 					/* '\0' is included in the value */
-					hawk_rtx_freemem (rtx, str.ptr);
+					hawk_rtx_freemem(rtx, str.ptr);
 					hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_ECONVFMTCHR);
 					return -1;
 				}
 			}
 
-			if (rtx->gbl.convfmt.ptr) hawk_rtx_freemem (rtx, rtx->gbl.convfmt.ptr);
+			if (rtx->gbl.convfmt.ptr) hawk_rtx_freemem(rtx, rtx->gbl.convfmt.ptr);
 			rtx->gbl.convfmt.ptr = str.ptr;
 			rtx->gbl.convfmt.len = str.len;
 			break;
@@ -503,13 +503,13 @@ static int set_global (hawk_rtx_t* rtx, int idx, hawk_nde_var_t* var, hawk_val_t
 				if (str.ptr[i] == '\0')
 				{
 					/* '\0' is included in the value */
-					hawk_rtx_freemem (rtx, str.ptr);
+					hawk_rtx_freemem(rtx, str.ptr);
 					hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_ECONVFMTCHR);
 					return -1;
 				}
 			}
 
-			if (rtx->gbl.ofmt.ptr) hawk_rtx_freemem (rtx, rtx->gbl.ofmt.ptr);
+			if (rtx->gbl.ofmt.ptr) hawk_rtx_freemem(rtx, rtx->gbl.ofmt.ptr);
 			rtx->gbl.ofmt.ptr = str.ptr;
 			rtx->gbl.ofmt.len = str.len;
 		}
@@ -521,7 +521,7 @@ static int set_global (hawk_rtx_t* rtx, int idx, hawk_nde_var_t* var, hawk_val_t
 			str.ptr = hawk_rtx_valtooocstrdup(rtx, val, &str.len);
 			if (HAWK_UNLIKELY(!str.ptr)) return -1;
 
-			if (rtx->gbl.ofs.ptr) hawk_rtx_freemem (rtx, rtx->gbl.ofs.ptr);
+			if (rtx->gbl.ofs.ptr) hawk_rtx_freemem(rtx, rtx->gbl.ofs.ptr);
 			rtx->gbl.ofs.ptr = str.ptr;
 			rtx->gbl.ofs.len = str.len;
 
@@ -535,7 +535,7 @@ static int set_global (hawk_rtx_t* rtx, int idx, hawk_nde_var_t* var, hawk_val_t
 			str.ptr = hawk_rtx_valtooocstrdup(rtx, val, &str.len);
 			if (HAWK_UNLIKELY(!str.ptr)) return -1;
 
-			if (rtx->gbl.ors.ptr) hawk_rtx_freemem (rtx, rtx->gbl.ors.ptr);
+			if (rtx->gbl.ors.ptr) hawk_rtx_freemem(rtx, rtx->gbl.ors.ptr);
 			rtx->gbl.ors.ptr = str.ptr;
 			rtx->gbl.ors.len = str.len;
 
@@ -619,7 +619,7 @@ static int set_global (hawk_rtx_t* rtx, int idx, hawk_nde_var_t* var, hawk_val_t
 			str.ptr = hawk_rtx_valtooocstrdup(rtx, val, &str.len);
 			if (HAWK_UNLIKELY(!str.ptr)) return -1;
 
-			if (rtx->gbl.subsep.ptr) hawk_rtx_freemem (rtx, rtx->gbl.subsep.ptr);
+			if (rtx->gbl.subsep.ptr) hawk_rtx_freemem(rtx, rtx->gbl.subsep.ptr);
 			rtx->gbl.subsep.ptr = str.ptr;
 			rtx->gbl.subsep.len = str.len;
 
@@ -1142,9 +1142,9 @@ static int init_rtx (hawk_rtx_t* rtx, hawk_t* hawk, hawk_rio_cbs_t* rio)
 	return 0;
 
 oops_14:
-	hawk_rtx_freemem (rtx, rtx->formatmbs.tmp.ptr);
+	hawk_rtx_freemem(rtx, rtx->formatmbs.tmp.ptr);
 oops_13:
-	hawk_rtx_freemem (rtx, rtx->format.tmp.ptr);
+	hawk_rtx_freemem(rtx, rtx->format.tmp.ptr);
 oops_12:
 	hawk_htb_close (rtx->named);
 oops_11:
@@ -1168,7 +1168,7 @@ oops_3:
 oops_2:
 	hawk_ooecs_fini (&rtx->inrec.line);
 oops_1:
-	hawk_rtx_freemem (rtx, rtx->stack);
+	hawk_rtx_freemem(rtx, rtx->stack);
 oops_0:
 	return -1;
 }
@@ -1181,13 +1181,13 @@ static void fini_rtx (hawk_rtx_t* rtx, int fini_globals)
 		{
 			hawk_rtx_refdownval(rtx, rtx->forin.ptr[--rtx->forin.size]);
 		}
-		hawk_rtx_freemem (rtx, rtx->forin.ptr);
+		hawk_rtx_freemem(rtx, rtx->forin.ptr);
 		rtx->forin.ptr = HAWK_NULL;
 		rtx->forin.capa = 0;
 	}
 
 	if (rtx->pattern_range_state)
-		hawk_rtx_freemem (rtx, rtx->pattern_range_state);
+		hawk_rtx_freemem(rtx, rtx->pattern_range_state);
 
 	/* close all pending io's */
 	/* TODO: what if this operation fails? */
@@ -1210,7 +1210,7 @@ static void fini_rtx (hawk_rtx_t* rtx, int fini_globals)
 	if (rtx->gbl.convfmt.ptr != HAWK_NULL &&
 	    rtx->gbl.convfmt.ptr != DEFAULT_CONVFMT)
 	{
-		hawk_rtx_freemem (rtx, rtx->gbl.convfmt.ptr);
+		hawk_rtx_freemem(rtx, rtx->gbl.convfmt.ptr);
 		rtx->gbl.convfmt.ptr = HAWK_NULL;
 		rtx->gbl.convfmt.len = 0;
 	}
@@ -1218,7 +1218,7 @@ static void fini_rtx (hawk_rtx_t* rtx, int fini_globals)
 	if (rtx->gbl.ofmt.ptr != HAWK_NULL &&
 	    rtx->gbl.ofmt.ptr != DEFAULT_OFMT)
 	{
-		hawk_rtx_freemem (rtx, rtx->gbl.ofmt.ptr);
+		hawk_rtx_freemem(rtx, rtx->gbl.ofmt.ptr);
 		rtx->gbl.ofmt.ptr = HAWK_NULL;
 		rtx->gbl.ofmt.len = 0;
 	}
@@ -1226,7 +1226,7 @@ static void fini_rtx (hawk_rtx_t* rtx, int fini_globals)
 	if (rtx->gbl.ofs.ptr != HAWK_NULL &&
 	    rtx->gbl.ofs.ptr != DEFAULT_OFS)
 	{
-		hawk_rtx_freemem (rtx, rtx->gbl.ofs.ptr);
+		hawk_rtx_freemem(rtx, rtx->gbl.ofs.ptr);
 		rtx->gbl.ofs.ptr = HAWK_NULL;
 		rtx->gbl.ofs.len = 0;
 	}
@@ -1235,7 +1235,7 @@ static void fini_rtx (hawk_rtx_t* rtx, int fini_globals)
 	    rtx->gbl.ors.ptr != DEFAULT_ORS &&
 	    rtx->gbl.ors.ptr != DEFAULT_ORS_CRLF)
 	{
-		hawk_rtx_freemem (rtx, rtx->gbl.ors.ptr);
+		hawk_rtx_freemem(rtx, rtx->gbl.ors.ptr);
 		rtx->gbl.ors.ptr = HAWK_NULL;
 		rtx->gbl.ors.len = 0;
 	}
@@ -1243,7 +1243,7 @@ static void fini_rtx (hawk_rtx_t* rtx, int fini_globals)
 	if (rtx->gbl.subsep.ptr != HAWK_NULL &&
 	    rtx->gbl.subsep.ptr != DEFAULT_SUBSEP)
 	{
-		hawk_rtx_freemem (rtx, rtx->gbl.subsep.ptr);
+		hawk_rtx_freemem(rtx, rtx->gbl.subsep.ptr);
 		rtx->gbl.subsep.ptr = HAWK_NULL;
 		rtx->gbl.subsep.len = 0;
 	}
@@ -1251,13 +1251,13 @@ static void fini_rtx (hawk_rtx_t* rtx, int fini_globals)
 	hawk_ooecs_fini (&rtx->fnc.oout);
 	hawk_becs_fini (&rtx->fnc.bout);
 
-	hawk_rtx_freemem (rtx, rtx->formatmbs.tmp.ptr);
+	hawk_rtx_freemem(rtx, rtx->formatmbs.tmp.ptr);
 	rtx->formatmbs.tmp.ptr = HAWK_NULL;
 	rtx->formatmbs.tmp.len = 0;
 	hawk_becs_fini (&rtx->formatmbs.fmt);
 	hawk_becs_fini (&rtx->formatmbs.out);
 
-	hawk_rtx_freemem (rtx, rtx->format.tmp.ptr);
+	hawk_rtx_freemem(rtx, rtx->format.tmp.ptr);
 	rtx->format.tmp.ptr = HAWK_NULL;
 	rtx->format.tmp.len = 0;
 	hawk_ooecs_fini (&rtx->format.fmt);
@@ -1269,7 +1269,7 @@ static void fini_rtx (hawk_rtx_t* rtx, int fini_globals)
 	hawk_rtx_clrrec (rtx, 0);
 	if (rtx->inrec.flds)
 	{
-		hawk_rtx_freemem (rtx, rtx->inrec.flds);
+		hawk_rtx_freemem(rtx, rtx->inrec.flds);
 		rtx->inrec.flds = HAWK_NULL;
 		rtx->inrec.maxflds = 0;
 	}
@@ -1285,7 +1285,7 @@ static void fini_rtx (hawk_rtx_t* rtx, int fini_globals)
 	{
 		HAWK_ASSERT (rtx->stack_top == 0);
 
-		hawk_rtx_freemem (rtx, rtx->stack);
+		hawk_rtx_freemem(rtx, rtx->stack);
 		rtx->stack = HAWK_NULL;
 		rtx->stack_top = 0;
 		rtx->stack_base = 0;
@@ -1729,7 +1729,7 @@ hawk_fun_t* hawk_rtx_findfunwithbcstr (hawk_rtx_t* rtx, const hawk_bch_t* name)
 	wcs.ptr = hawk_rtx_dupbtoucstr(rtx, name, &wcs.len, 0);
 	if (!wcs.ptr) return HAWK_NULL;
 	fun = find_fun(rtx, wcs.ptr);
-	hawk_rtx_freemem (rtx, wcs.ptr);
+	hawk_rtx_freemem(rtx, wcs.ptr);
 	return fun;
 #endif
 }
@@ -1742,7 +1742,7 @@ hawk_fun_t* hawk_rtx_findfunwithucstr (hawk_rtx_t* rtx, const hawk_uch_t* name)
 	mbs.ptr = hawk_rtx_duputobcstr(rtx, name, &mbs.len);
 	if (!mbs.ptr) return HAWK_NULL;
 	fun = find_fun(rtx, mbs.ptr);
-	hawk_rtx_freemem (rtx, mbs.ptr);
+	hawk_rtx_freemem(rtx, mbs.ptr);
 	return fun;
 #else
 	return find_fun(rtx, name);
@@ -1878,7 +1878,7 @@ oops:
 	{
 		hawk_rtx_refdownval(rtx, v[--i]);
 	}
-	hawk_rtx_freemem (rtx, v);
+	hawk_rtx_freemem(rtx, v);
 	return ret;
 }
 
@@ -1909,7 +1909,7 @@ oops:
 	{
 		hawk_rtx_refdownval(rtx, v[--i]);
 	}
-	hawk_rtx_freemem (rtx, v);
+	hawk_rtx_freemem(rtx, v);
 	return ret;
 }
 
@@ -1940,7 +1940,7 @@ oops:
 	{
 		hawk_rtx_refdownval(rtx, v[--i]);
 	}
-	hawk_rtx_freemem (rtx, v);
+	hawk_rtx_freemem(rtx, v);
 	return ret;
 }
 
@@ -1971,7 +1971,7 @@ oops:
 	{
 		hawk_rtx_refdownval(rtx, v[--i]);
 	}
-	hawk_rtx_freemem (rtx, v);
+	hawk_rtx_freemem(rtx, v);
 	return ret;
 }
 
@@ -3123,7 +3123,7 @@ static HAWK_INLINE int delete_indexed (hawk_rtx_t* rtx, hawk_val_t* vv, hawk_nde
 		{
 			case HAWK_VAL_MAP:
 			val_map:
-				if (str && str != idxbuf) hawk_rtx_freemem (rtx, str);
+				if (str && str != idxbuf) hawk_rtx_freemem(rtx, str);
 				len = HAWK_COUNTOF(idxbuf);
 				str = idxnde_to_str(rtx, remidx, idxbuf, &len, &remidx, HAWK_NULL);
 				if (HAWK_UNLIKELY(!str)) goto oops;
@@ -3169,11 +3169,11 @@ static HAWK_INLINE int delete_indexed (hawk_rtx_t* rtx, hawk_val_t* vv, hawk_nde
 	else
 		hawk_arr_uplete (arr, idx,  1); /* no reindexing by compaction. keep the place unset */
 
-	if (str && str != idxbuf) hawk_rtx_freemem (rtx, str);
+	if (str && str != idxbuf) hawk_rtx_freemem(rtx, str);
 	return 0;
 
 oops:
-	if (str && str != idxbuf) hawk_rtx_freemem (rtx, str);
+	if (str && str != idxbuf) hawk_rtx_freemem(rtx, str);
 	return -1;
 }
 
@@ -4128,7 +4128,7 @@ static hawk_val_t* do_assignment_indexed (hawk_rtx_t* rtx, hawk_nde_var_t* var, 
 				{
 					case HAWK_VAL_MAP:
 					val_map:
-						if (str != idxbuf) hawk_rtx_freemem (rtx, str);
+						if (str != idxbuf) hawk_rtx_freemem(rtx, str);
 						len = HAWK_COUNTOF(idxbuf);
 						str = idxnde_to_str(rtx, remidx, idxbuf, &len, &remidx, HAWK_NULL);
 						if (HAWK_UNLIKELY(!str)) goto oops;
@@ -4198,7 +4198,7 @@ static hawk_val_t* do_assignment_indexed (hawk_rtx_t* rtx, hawk_nde_var_t* var, 
 			}
 
 			hawk_rtx_refupval(rtx, val);
-			if (str && str != idxbuf) hawk_rtx_freemem (rtx, str);
+			if (str && str != idxbuf) hawk_rtx_freemem(rtx, str);
 			return val;
 		}
 
@@ -4222,7 +4222,7 @@ static hawk_val_t* do_assignment_indexed (hawk_rtx_t* rtx, hawk_nde_var_t* var, 
 	}
 
 oops:
-	if (str && str != idxbuf) hawk_rtx_freemem (rtx, str);
+	if (str && str != idxbuf) hawk_rtx_freemem(rtx, str);
 	return HAWK_NULL;
 }
 
@@ -4280,7 +4280,7 @@ static hawk_val_t* do_assignment_positional (hawk_rtx_t* rtx, hawk_nde_pos_t* po
 	}
 	else
 	{
-		hawk_rtx_freemem (rtx, str.ptr);
+		hawk_rtx_freemem(rtx, str.ptr);
 	}
 
 	if (n <= -1) return HAWK_NULL;
@@ -4536,7 +4536,7 @@ rvalue_ok:
 	ropv = eval_expression(rtx, right);
 	if (HAWK_UNLIKELY(!ropv))
 	{
-		if (str != idxbuf) hawk_rtx_freemem (rtx, str);
+		if (str != idxbuf) hawk_rtx_freemem(rtx, str);
 		return HAWK_NULL;
 	}
 
@@ -4579,12 +4579,12 @@ rvalue_ok:
 			goto oops;
 	}
 
-	if (str != idxbuf) hawk_rtx_freemem (rtx, str);
+	if (str != idxbuf) hawk_rtx_freemem(rtx, str);
 	hawk_rtx_refdownval(rtx, ropv);
 	return res;
 
 oops:
-	if (str != idxbuf) hawk_rtx_freemem (rtx, str);
+	if (str != idxbuf) hawk_rtx_freemem(rtx, str);
 	hawk_rtx_refdownval(rtx, ropv);
 
 	return HAWK_NULL;
@@ -5295,7 +5295,7 @@ static HAWK_INLINE int __cmp_str_mbs (hawk_rtx_t* rtx, hawk_val_t* left, hawk_va
 	mbsptr = hawk_rtx_duputobchars(rtx, ls->val.ptr, ls->val.len, &mbslen);
 	if (!mbsptr) return CMP_ERROR;
 	n = hawk_comp_bchars(mbsptr, mbslen, (const hawk_bch_t*)rs->val.ptr, rs->val.len, rtx->gbl.ignorecase);
-	hawk_rtx_freemem (rtx, mbsptr);
+	hawk_rtx_freemem(rtx, mbsptr);
 	return n;
 #endif
 }
@@ -7332,7 +7332,7 @@ static hawk_val_t** get_reference_indexed (hawk_rtx_t* rtx, hawk_nde_var_t* var)
 		{
 			case HAWK_VAL_MAP:
 			val_map:
-				if (str && str != idxbuf) hawk_rtx_freemem (rtx, str);
+				if (str && str != idxbuf) hawk_rtx_freemem(rtx, str);
 				len = HAWK_COUNTOF(idxbuf);
 				str = idxnde_to_str(rtx, remidx, idxbuf, &len, &remidx, HAWK_NULL);
 				if (HAWK_UNLIKELY(!str)) goto oops;
@@ -7385,12 +7385,12 @@ static hawk_val_t** get_reference_indexed (hawk_rtx_t* rtx, hawk_nde_var_t* var)
 			hawk_rtx_refupval(rtx, HAWK_MAP_VPTR(pair)); */
 		}
 
-		if (str && str != idxbuf) hawk_rtx_freemem (rtx, str);
+		if (str && str != idxbuf) hawk_rtx_freemem(rtx, str);
 		return (hawk_val_t**)&HAWK_MAP_VPTR(pair);
 	}
 	else
 	{
-		if (str && str != idxbuf) hawk_rtx_freemem (rtx, str);
+		if (str && str != idxbuf) hawk_rtx_freemem(rtx, str);
 		if (idx >= HAWK_ARR_SIZE(arr) || !HAWK_ARR_SLOT(arr, idx))
 		{
 			/* if the value doesn't exist for the given index, insert a nil at that position to create a placeholder for the reference */
@@ -7400,7 +7400,7 @@ static hawk_val_t** get_reference_indexed (hawk_rtx_t* rtx, hawk_nde_var_t* var)
 	}
 
 oops:
-	if (str && str != idxbuf) hawk_rtx_freemem (rtx, str);
+	if (str && str != idxbuf) hawk_rtx_freemem(rtx, str);
 	return HAWK_NULL;
 }
 
@@ -7645,7 +7645,7 @@ static hawk_val_t* eval_indexed (hawk_rtx_t* rtx, hawk_nde_var_t* var)
 		{
 			case HAWK_VAL_MAP:
 			val_map:
-				if (str && str != idxbuf) hawk_rtx_freemem (rtx, str);
+				if (str && str != idxbuf) hawk_rtx_freemem(rtx, str);
 				len = HAWK_COUNTOF(idxbuf);
 				str = idxnde_to_str(rtx, remidx, idxbuf, &len, &remidx, HAWK_NULL);
 				if (HAWK_UNLIKELY(!str)) goto oops;
@@ -7688,19 +7688,19 @@ static hawk_val_t* eval_indexed (hawk_rtx_t* rtx, hawk_nde_var_t* var)
 	{
 		hawk_map_pair_t* pair;
 		pair = hawk_map_search(map, str, len);
-		if (str && str != idxbuf) hawk_rtx_freemem (rtx, str);
+		if (str && str != idxbuf) hawk_rtx_freemem(rtx, str);
 		return pair? (hawk_val_t*)HAWK_MAP_VPTR(pair): hawk_val_nil;
 	}
 	else
 	{
 		/* return nil if the index is out of range or the element at the index is not set.
 		 * no check for a negative index as it's guaranteed to be positive by idxnde_to_int() */
-		if (str && str != idxbuf) hawk_rtx_freemem (rtx, str);
+		if (str && str != idxbuf) hawk_rtx_freemem(rtx, str);
 		return (idx < HAWK_ARR_SIZE(arr) && HAWK_ARR_SLOT(arr, idx))? ((hawk_val_t*)HAWK_ARR_DPTR(arr, idx)): hawk_val_nil;
 	}
 
 oops:
-	if (str && str != idxbuf) hawk_rtx_freemem (rtx, str);
+	if (str && str != idxbuf) hawk_rtx_freemem(rtx, str);
 	return HAWK_NULL;
 
 
@@ -8243,7 +8243,7 @@ hawk_ooch_t* hawk_rtx_format (
 #define GROW(buf) do { \
 	if ((buf)->ptr) \
 	{ \
-		hawk_rtx_freemem (rtx, (buf)->ptr); \
+		hawk_rtx_freemem(rtx, (buf)->ptr); \
 		(buf)->ptr = HAWK_NULL; \
 	} \
 	(buf)->len += (buf)->inc; \
@@ -8258,7 +8258,7 @@ hawk_ooch_t* hawk_rtx_format (
 #define GROW_WITH_INC(buf,incv) do { \
 	if ((buf)->ptr) \
 	{ \
-		hawk_rtx_freemem (rtx, (buf)->ptr); \
+		hawk_rtx_freemem(rtx, (buf)->ptr); \
 		(buf)->ptr = HAWK_NULL; \
 	} \
 	(buf)->len += ((incv) > (buf)->inc)? (incv): (buf)->inc; \
@@ -8992,7 +8992,7 @@ wp_mod_main:
 					{
 						if (hawk_ooecs_ccat(out, HAWK_T(' ')) == (hawk_oow_t)-1)
 						{
-							if (str_free) hawk_rtx_freemem (rtx, str_free);
+							if (str_free) hawk_rtx_freemem(rtx, str_free);
 							hawk_rtx_refdownval(rtx, v);
 							return HAWK_NULL;
 						}
@@ -9051,14 +9051,14 @@ wp_mod_main:
 						if (hawk_ooecs_ccat(out, curc) == (hawk_oow_t)-1)
 						{
 						s_fail:
-							if (str_free) hawk_rtx_freemem (rtx, str_free);
+							if (str_free) hawk_rtx_freemem(rtx, str_free);
 							hawk_rtx_refdownval(rtx, v);
 							return HAWK_NULL;
 						}
 					}
 				}
 
-				if (str_free) hawk_rtx_freemem (rtx, str_free);
+				if (str_free) hawk_rtx_freemem(rtx, str_free);
 
 				if (flags & FLAG_MINUS)
 				{
@@ -9119,7 +9119,7 @@ hawk_bch_t* hawk_rtx_formatmbs (
 #define GROW_MBSBUF(buf) do { \
 	if ((buf)->ptr) \
 	{ \
-		hawk_rtx_freemem (rtx, (buf)->ptr); \
+		hawk_rtx_freemem(rtx, (buf)->ptr); \
 		(buf)->ptr = HAWK_NULL; \
 	} \
 	(buf)->len += (buf)->inc; \
@@ -9134,7 +9134,7 @@ hawk_bch_t* hawk_rtx_formatmbs (
 #define GROW_MBSBUF_WITH_INC(buf,incv) do { \
 	if ((buf)->ptr) \
 	{ \
-		hawk_rtx_freemem (rtx, (buf)->ptr); \
+		hawk_rtx_freemem(rtx, (buf)->ptr); \
 		(buf)->ptr = HAWK_NULL; \
 	} \
 	(buf)->len += ((incv) > (buf)->inc)? (incv): (buf)->inc; \
@@ -9876,7 +9876,7 @@ wp_mod_main:
 					{
 						if (hawk_becs_ccat(out, HAWK_BT(' ')) == (hawk_oow_t)-1)
 						{
-							if (str_free) hawk_rtx_freemem (rtx, str_free);
+							if (str_free) hawk_rtx_freemem(rtx, str_free);
 							hawk_rtx_refdownval(rtx, v);
 							return HAWK_NULL;
 						}
@@ -9934,14 +9934,14 @@ wp_mod_main:
 						if (hawk_becs_ccat(out, curc) == (hawk_oow_t)-1)
 						{
 						s_fail:
-							if (str_free) hawk_rtx_freemem (rtx, str_free);
+							if (str_free) hawk_rtx_freemem(rtx, str_free);
 							hawk_rtx_refdownval(rtx, v);
 							return HAWK_NULL;
 						}
 					}
 				}
 
-				if (str_free) hawk_rtx_freemem (rtx, str_free);
+				if (str_free) hawk_rtx_freemem(rtx, str_free);
 
 				if (flags & FLAG_MINUS)
 				{

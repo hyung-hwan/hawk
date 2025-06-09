@@ -38,7 +38,7 @@ static int fnc_errno (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	retv = hawk_rtx_makeintval (rtx, list->errnum);
 	if (retv == HAWK_NULL) return -1;
 
-	hawk_rtx_setretval (rtx, retv);
+	hawk_rtx_setretval(rtx, retv);
 	return 0;
 }
 
@@ -78,11 +78,14 @@ static int fnc_errstr (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	retv = hawk_rtx_makestrvalwithstr (rtx, errmsg[errnum]);
 	if (retv == HAWK_NULL) return -1;
 
-	hawk_rtx_setretval (rtx, retv);
+	hawk_rtx_setretval(rtx, retv);
 	return 0;
 }
 #endif
 
+/*
+ * sed::file_to_file("s|root|ROOT|g", "/etc/passwd", "/tmp/x");
+ */
 static int fnc_file_to_file (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	hawk_sed_t* sed = HAWK_NULL;
@@ -132,14 +135,18 @@ oops:
 	while (i > 0)
 	{
 		--i;
-		hawk_rtx_freevaloocstr (rtx, a[i], xstr[i].ptr);
+		hawk_rtx_freevaloocstr(rtx, a[i], xstr[i].ptr);
 	}
 
 	if (sed) hawk_sed_close (sed);
-	hawk_rtx_setretval (rtx, retv);
+	hawk_rtx_setretval(rtx, retv);
 	return 0;
 }
 
+/*
+ * sed::str_to_str("s|ab|cd|g", "abcdefg", k);
+ * print k;
+ */
 static int fnc_str_to_str (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	hawk_sed_t* sed = HAWK_NULL;
@@ -149,7 +156,7 @@ static int fnc_str_to_str (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_oocs_t outstr;
 	int i = 0, ret = 0, n;
 
-	sed = hawk_sed_openstdwithmmgr (hawk_rtx_getmmgr(rtx), 0, hawk_rtx_getcmgr(rtx), HAWK_NULL);
+	sed = hawk_sed_openstdwithmmgr(hawk_rtx_getmmgr(rtx), 0, hawk_rtx_getcmgr(rtx), HAWK_NULL);
 	if (sed == HAWK_NULL)
 	{
 		ret = -2;
@@ -174,14 +181,14 @@ static int fnc_str_to_str (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		goto oops;
 	}
 
-	if (hawk_sed_execstdxstr (sed, &xstr[1], &outstr, HAWK_NULL) <= -1)
+	if (hawk_sed_execstdxstr(sed, &xstr[1], &outstr, HAWK_NULL) <= -1)
 	{
 		ret = -4;
 		goto oops;
 	}
 
 	tmp = hawk_rtx_makestrvalwithoocs(rtx, &outstr);
-	hawk_sed_freemem (sed, outstr.ptr);
+	hawk_sed_freemem(sed, outstr.ptr);
 
 	if (!tmp)
 	{
@@ -189,9 +196,9 @@ static int fnc_str_to_str (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		goto oops;
 	}
 
-	hawk_rtx_refupval (rtx, tmp);
+	hawk_rtx_refupval(rtx, tmp);
 	n = hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, 2), tmp);
-	hawk_rtx_refdownval (rtx, tmp);
+	hawk_rtx_refdownval(rtx, tmp);
 	if (n <= -1)
 	{
 		ret = -5;
@@ -205,11 +212,11 @@ oops:
 	while (i > 0)
 	{
 		--i;
-		hawk_rtx_freevaloocstr (rtx, a[i], xstr[i].ptr);
+		hawk_rtx_freevaloocstr(rtx, a[i], xstr[i].ptr);
 	}
 
 	if (sed) hawk_sed_close (sed);
-	hawk_rtx_setretval (rtx, retv);
+	hawk_rtx_setretval(rtx, retv);
 	return 0;
 }
 

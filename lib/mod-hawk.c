@@ -143,9 +143,9 @@ static int fnc_call (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		/* TODO: this mutex protection is wrong in that if a call to hawk_querymodulewithname()
 		 *       is made outside this hawk module, the call is not protected under
 		 *       the same mutex. FIX THIS */
-		hawk_mtx_lock (&md->mq_mtx, HAWK_NULL);
+		hawk_mtx_lock(&md->mq_mtx, HAWK_NULL);
 		fncp = hawk_rtx_valtofnc(rtx, hawk_rtx_getarg(rtx, 0), &fnc);
-		hawk_mtx_unlock (&md->mq_mtx);
+		hawk_mtx_unlock(&md->mq_mtx);
 		if (!fncp) return -1; /* hard failure */
 
 		if (f_nargs < fnc.spec.arg.min  || f_nargs > fnc.spec.arg.max)
@@ -176,7 +176,7 @@ static int fnc_call (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	v = hawk_rtx_evalcall(rtx, &call, fun, push_args_from_stack, (void*)&pafs, HAWK_NULL, HAWK_NULL);
 	if (HAWK_UNLIKELY(!v)) return -1; /* hard failure */
 
-	hawk_rtx_setretval (rtx, v);
+	hawk_rtx_setretval(rtx, v);
 	return 0;
 }
 
@@ -211,16 +211,16 @@ static int fnc_function_exists (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 					md = (mod_data_t*)fi->mod->ctx;
 					/* hawk_query_module_with_name() may update some shared data under
 					 * the hawk object. use a mutex for shared data safety */
-					hawk_mtx_lock (&md->mq_mtx, HAWK_NULL);
+					hawk_mtx_lock(&md->mq_mtx, HAWK_NULL);
 					rx = (hawk_querymodulewithname(hawk_rtx_gethawk(rtx), name.ptr, &sym) != HAWK_NULL);
-					hawk_mtx_unlock (&md->mq_mtx);
+					hawk_mtx_unlock(&md->mq_mtx);
 				}
 			}
 		}
-		hawk_rtx_freevaloocstr (rtx, a0, name.ptr);
+		hawk_rtx_freevaloocstr(rtx, a0, name.ptr);
 	}
 
-	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
+	hawk_rtx_setretval(rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
 /* -------------------------------------------------------------------------- */
@@ -241,10 +241,10 @@ static int fnc_cmgr_exists (hawk_rtx_t* rtx, const hawk_fnc_info_t*  fi)
 	else
 	{
 		rx = (hawk_get_cmgr_by_name(str) != HAWK_NULL);
-		hawk_rtx_freevaloocstr (rtx, a0, str);
+		hawk_rtx_freevaloocstr(rtx, a0, str);
 	}
 
-	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
+	hawk_rtx_setretval(rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
 
@@ -266,8 +266,8 @@ static int fnc_gc (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	gen = hawk_rtx_gc(rtx, gen);
 #endif
 
-	HAWK_ASSERT (HAWK_IN_INT_RANGE(gen));
-	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, gen));
+	HAWK_ASSERT(HAWK_IN_INT_RANGE(gen));
+	hawk_rtx_setretval(rtx, hawk_rtx_makeintval(rtx, gen));
 	return 0;
 }
 
@@ -282,8 +282,8 @@ static int fnc_gc_get_pressure (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 	pressure = rtx->gc.pressure[gen];
 
-	HAWK_ASSERT (HAWK_IN_INT_RANGE(pressure));
-	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, pressure));
+	HAWK_ASSERT(HAWK_IN_INT_RANGE(pressure));
+	hawk_rtx_setretval(rtx, hawk_rtx_makeintval(rtx, pressure));
 	return 0;
 }
 
@@ -298,8 +298,8 @@ static int fnc_gc_get_threshold (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 	threshold = rtx->gc.threshold[gen];
 
-	HAWK_ASSERT (HAWK_IN_INT_RANGE(threshold));
-	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, threshold));
+	HAWK_ASSERT(HAWK_IN_INT_RANGE(threshold));
+	hawk_rtx_setretval(rtx, hawk_rtx_makeintval(rtx, threshold));
 	return 0;
 }
 
@@ -324,8 +324,8 @@ static int fnc_gc_set_threshold (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		threshold = rtx->gc.threshold[gen]; /* no update. but retrieve the existing value */
 	}
 
-	HAWK_ASSERT (HAWK_IN_INT_RANGE(threshold));
-	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, threshold));
+	HAWK_ASSERT(HAWK_IN_INT_RANGE(threshold));
+	hawk_rtx_setretval(rtx, hawk_rtx_makeintval(rtx, threshold));
 	return 0;
 }
 
@@ -333,7 +333,7 @@ static int fnc_gcrefs (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	hawk_val_t* a0;
 	a0 = hawk_rtx_getarg(rtx, 0);
-	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, HAWK_VTR_IS_POINTER(a0)? a0->v_refs: 0));
+	hawk_rtx_setretval(rtx, hawk_rtx_makeintval(rtx, HAWK_VTR_IS_POINTER(a0)? a0->v_refs: 0));
 	return 0;
 }
 
@@ -353,12 +353,12 @@ static int fnc_array (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	{
 		if (HAWK_UNLIKELY(hawk_rtx_setarrvalfld(rtx, tmp, i + 1, hawk_rtx_getarg(rtx, i)) == HAWK_NULL))
 		{
-			hawk_rtx_freeval (rtx, tmp, 0);
+			hawk_rtx_freeval(rtx, tmp, 0);
 			return -1;
 		}
 	}
 
-	hawk_rtx_setretval (rtx, tmp);
+	hawk_rtx_setretval(rtx, tmp);
 	return 0;
 }
 
@@ -387,25 +387,25 @@ static int fnc_map (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			out.type = HAWK_RTX_VALTOSTR_CPLDUP;
 			if (hawk_rtx_valtostr(rtx, v, &out) <= -1)
 			{
-				hawk_rtx_freeval (rtx, tmp, 0);
+				hawk_rtx_freeval(rtx, tmp, 0);
 				return -1;
 			}
 		}
 
 		v = (++i >= nargs)? hawk_val_nil: hawk_rtx_getarg(rtx, i);
 		v = hawk_rtx_setmapvalfld(rtx, tmp, out.u.cpldup.ptr, out.u.cpldup.len, v);
-		if (out.u.cpldup.ptr != idxbuf) hawk_rtx_freemem (rtx, out.u.cpldup.ptr);
+		if (out.u.cpldup.ptr != idxbuf) hawk_rtx_freemem(rtx, out.u.cpldup.ptr);
 
 		if (HAWK_UNLIKELY(!v))
 		{
-			hawk_rtx_freeval (rtx, tmp, 0);
+			hawk_rtx_freeval(rtx, tmp, 0);
 			return -1;
 		}
 
 		/* if (i >= nargs) break;  this check is probably not needed. another i++ in the 3rd segment of the for statement should be mostly harmless. potential overflow issue is not a real issue as the number of arguments can be so high. */
 	}
 
-	hawk_rtx_setretval (rtx, tmp);
+	hawk_rtx_setretval(rtx, tmp);
 	return 0;
 }
 
@@ -421,7 +421,7 @@ static int fnc_isnil (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	r = hawk_rtx_makeintval(rtx, HAWK_RTX_GETVALTYPE(rtx, a0) == HAWK_VAL_NIL);
 	if (HAWK_UNLIKELY(!r)) return -1;
 
-	hawk_rtx_setretval (rtx, r);
+	hawk_rtx_setretval(rtx, r);
 	return 0;
 }
 
@@ -435,7 +435,7 @@ static int fnc_ismap (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	r = hawk_rtx_makeintval(rtx, HAWK_RTX_GETVALTYPE(rtx, a0) == HAWK_VAL_MAP);
 	if (HAWK_UNLIKELY(!r)) return -1;
 
-	hawk_rtx_setretval (rtx, r);
+	hawk_rtx_setretval(rtx, r);
 	return 0;
 }
 
@@ -449,7 +449,7 @@ static int fnc_isarr (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	r = hawk_rtx_makeintval(rtx, HAWK_RTX_GETVALTYPE(rtx, a0) == HAWK_VAL_ARR);
 	if (HAWK_UNLIKELY(!r)) return -1;
 
-	hawk_rtx_setretval (rtx, r);
+	hawk_rtx_setretval(rtx, r);
 	return 0;
 }
 
@@ -461,7 +461,7 @@ static int fnc_modlibdirs (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	r = hawk_rtx_makestrvalwithoocstr(rtx, (hawk->opt.mod[0].len > 0)? (const hawk_ooch_t*)hawk->opt.mod[0].ptr: (const hawk_ooch_t*)HAWK_T(HAWK_DEFAULT_MODLIBDIRS));
 	if (HAWK_UNLIKELY(!r)) return -1;
 
-	hawk_rtx_setretval (rtx, r);
+	hawk_rtx_setretval(rtx, r);
 	return 0;
 }
 
@@ -477,7 +477,7 @@ static int fnc_type (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	r = hawk_rtx_makeintval(rtx, _type);
 	if (HAWK_UNLIKELY(!r)) return -1;
 
-	hawk_rtx_setretval (rtx, r);
+	hawk_rtx_setretval(rtx, r);
 	return 0;
 }
 
@@ -493,7 +493,7 @@ static int fnc_typename (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	r = hawk_rtx_makestrvalwithoocstr(rtx, name);
 	if (HAWK_UNLIKELY(!r)) return -1;
 
-	hawk_rtx_setretval (rtx, r);
+	hawk_rtx_setretval(rtx, r);
 	return 0;
 }
 
@@ -508,7 +508,7 @@ static int fnc_hash (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	a0 = hawk_rtx_getarg(rtx, 0);
 	v = hawk_rtx_hashval(rtx, a0); /* ignore v <= -1 which is an error */
 
-	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, v));
+	hawk_rtx_setretval(rtx, hawk_rtx_makeintval(rtx, v));
 	return 0;
 }
 
@@ -581,8 +581,8 @@ static void unload (hawk_mod_t* mod, hawk_t* hawk)
 {
 	mod_data_t* md = (mod_data_t*)mod->ctx;
 
-	hawk_mtx_fini (&md->mq_mtx);
-	hawk_freemem (hawk, md);
+	hawk_mtx_fini(&md->mq_mtx);
+	hawk_freemem(hawk, md);
 }
 
 int hawk_mod_hawk (hawk_mod_t* mod, hawk_t* hawk)
@@ -592,7 +592,7 @@ int hawk_mod_hawk (hawk_mod_t* mod, hawk_t* hawk)
 	md = hawk_allocmem(hawk, HAWK_SIZEOF(*md));
 	if (HAWK_UNLIKELY(!md)) return -1;
 
-	hawk_mtx_init (&md->mq_mtx, hawk_getgem(hawk));
+	hawk_mtx_init(&md->mq_mtx, hawk_getgem(hawk));
 
 	mod->query = query;
 	mod->unload = unload;

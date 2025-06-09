@@ -7714,7 +7714,6 @@ done:
 	return &mdp->mod;
 }
 
-
 hawk_mod_t* hawk_querymodulewithname (hawk_t* hawk, hawk_ooch_t* name, hawk_mod_sym_t* sym)
 {
 	const hawk_ooch_t* dc;
@@ -7724,7 +7723,6 @@ hawk_mod_t* hawk_querymodulewithname (hawk_t* hawk, hawk_ooch_t* name, hawk_mod_
 	hawk_ooch_t tmp;
 
 /*TOOD: non-module builtin function? fnc? */
-
 	name_len = hawk_count_oocstr(name);
 	dc = hawk_find_oochars_in_oochars(name, name_len, HAWK_T("::"), 2, 0);
 	if (!dc)
