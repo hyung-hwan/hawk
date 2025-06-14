@@ -30,6 +30,7 @@
 #include <hawk-fmt.h>
 #include <hawk-utl.h>
 #include <hawk-std.h>
+#include <hawk-glob.h>
 #include <hawk-xma.h>
 
 #if !defined(_GNU_SOURCE)
@@ -105,8 +106,8 @@ static void print_usage (FILE* out, const hawk_bch_t* argv0, const hawk_bch_t* r
 	fprintf (out, "Selector as follows:\n");
 	fprintf (out, " 'd' followed by a delimiter character\n");
 	fprintf (out, " 'D' followed by an input delimiter character and an output delimiter character\n");
-	fprintf (out, " 'f' followed by a field number or field number range\n");
-	fprintf (out, " 'c' followed by a character position or character position range\n");
+	fprintf (out, " 'f' followed by a field number or a field number range\n");
+	fprintf (out, " 'c' followed by a character position or a character position range\n");
 	fprintf (out, " for example, 'f3-5 c1-2 f4 D:,'\n");
 	fprintf (out, "Options as follows:\n");
 	fprintf (out, " -h/--help                  show this message\n");
@@ -186,7 +187,7 @@ static int handle_args (int argc, hawk_bch_t* argv[], const hawk_bch_t* real_arg
 	};
 	static hawk_bcli_t opt =
 	{
-		"hDe:f:om:w",
+		"hDe:f:o:m:w",
 		lng
 	};
 	hawk_bci_t c;
@@ -549,7 +550,7 @@ static void purge_xarg (xarg_t* xarg)
 	}
 }
 
-static int expand_wildcards (int argc, hawk_bch_t* argv[], int glob, xarg_t* xarg)
+static int expand_wildcard (int argc, hawk_bch_t* argv[], int do_glob, xarg_t* xarg)
 {
 	int i;
 	hawk_bcs_t tmp;
@@ -558,23 +559,22 @@ static int expand_wildcards (int argc, hawk_bch_t* argv[], int glob, xarg_t* xar
 	{
 		int x;
 
-#if 0
-		if (glob)
+		if (do_glob)
 		{
+			int glob_flags;
+			hawk_gem_t fake_gem; /* guly to use this fake gem here */
+
+			glob_flags = HAWK_GLOB_TOLERANT | HAWK_GLOB_PERIOD;
 		#if defined(_WIN32) || defined(__OS2__) || defined(__DOS__)
-			int glob_flags = HAWK_GLOB_TOLERANT | HAWK_GLOB_PERIOD | HAWK_GLOB_NOESCAPE | HAWK_GLOB_IGNORECASE;
-		#else
-			int glob_flags = HAWK_GLOB_TOLERANT | HAWK_GLOB_PERIOD;
+			glob_flags |= HAWK_GLOB_NOESCAPE | HAWK_GLOB_IGNORECASE;
 		#endif
 
-			x = hawk_glob(argv[i], collect_into_xarg, xarg, glob_flags, xarg->mmgr, hawk_getdflcmgr());
-
+			fake_gem.mmgr = hawk_get_sys_mmgr();
+			fake_gem.cmgr = hawk_get_cmgr_by_id(HAWK_CMGR_UTF8); /* TODO: system default? */
+			x = hawk_gem_bglob(&fake_gem, argv[i], collect_into_xarg, xarg, glob_flags);
 			if (x <= -1) return -1;
 		}
 		else x = 0;
-#else
-		x = 0;
-#endif
 
 		if (x == 0)
 		{
@@ -585,6 +585,7 @@ static int expand_wildcards (int argc, hawk_bch_t* argv[], int glob, xarg_t* xar
 		}
 	}
 
+	xarg->ptr[xarg->size] = HAWK_NULL;
 	return 0;
 }
 
@@ -700,7 +701,7 @@ int main_cut(int argc, hawk_bch_t* argv[], const hawk_bch_t* real_argv0)
 		}
 
 		/* perform wild-card expansions for non-unix platforms */
-		if (expand_wildcards(argc - arg.infile_pos, &argv[arg.infile_pos], arg.wildcard, &xarg) <= -1)
+		if (expand_wildcard(argc - arg.infile_pos, &argv[arg.infile_pos], arg.wildcard, &xarg) <= -1)
 		{
 			hawk_main_print_error("out of memory\n");
 			goto oops;
@@ -821,7 +822,7 @@ int main_cut(int argc, hawk_bch_t* argv[], const hawk_bch_t* real_argv0)
 			/* input files are specified on the command line */
 
 			/* perform wild-card expansions for non-unix platforms */
-			if (expand_wildcards(argc - arg.infile_pos, &argv[arg.infile_pos], arg.wildcard, &xarg) <= -1)
+			if (expand_wildcard(argc - arg.infile_pos, &argv[arg.infile_pos], arg.wildcard, &xarg) <= -1)
 			{
 				hawk_main_print_error("out of memory\n");
 				goto oops;
