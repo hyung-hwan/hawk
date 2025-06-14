@@ -6,13 +6,12 @@
 #include "tap.h"
 
 #define NUM_ITERATIONS 1000000
-#define MIN_ALLOC_SIZE 16       // Minimum size of allocation in bytes
-#define MAX_ALLOC_SIZE 1024     // Maximum size of allocation in bytes
+#define MIN_ALLOC_SIZE 16
+#define MAX_ALLOC_SIZE 1024
 				
 #define OK_X(test) OK(test, #test)
 
-
-size_t random_size()
+static size_t random_size()
 {
 	return MIN_ALLOC_SIZE + rand() % (MAX_ALLOC_SIZE - MIN_ALLOC_SIZE + 1);
 }
@@ -22,22 +21,22 @@ int main()
 	int test_bad = 0;
 	hawk_mmgr_t xma_mmgr;
 
+	clock_t start_time, end_time;
+	double malloc_time = 0.0, free_time = 0.0;
+	void **ptr_array;
+
 	no_plan();
 	hawk_init_xma_mmgr(&xma_mmgr, NUM_ITERATIONS * MAX_ALLOC_SIZE);
 
-	srand((unsigned int)time(NULL)); // Seed RNG
+	srand((unsigned int)time(NULL));
 
-	clock_t start_time, end_time;
-	double malloc_time = 0.0, free_time = 0.0;
-
-	void **ptr_array = malloc(NUM_ITERATIONS * sizeof(void *));
+	ptr_array = malloc(NUM_ITERATIONS * sizeof(void *));
 	OK_X (ptr_array != NULL);
 	if (!ptr_array) {
 		fprintf(stderr, "malloc failed for pointer array\n");
 		return -1;
 	}
 
-	// Benchmark malloc
 	start_time = clock();
 	for (size_t i = 0; i < NUM_ITERATIONS; ++i) {
 		size_t size = random_size();
@@ -56,7 +55,6 @@ int main()
 	end_time = clock();
 	malloc_time = (double)(end_time - start_time) / CLOCKS_PER_SEC;
 
-	// Benchmark free
 	start_time = clock();
 	for (size_t i = 0; i < NUM_ITERATIONS; ++i) {
 		/*free(ptr_array[i]);*/
@@ -65,7 +63,7 @@ int main()
 	end_time = clock();
 	free_time = (double)(end_time - start_time) / CLOCKS_PER_SEC;
 
-	free(ptr_array); // Free the pointer array itself
+	free(ptr_array);
 
 	printf("Performed %d allocations and frees\n", NUM_ITERATIONS);
 	printf("Total malloc time: %.6f seconds\n", malloc_time);
