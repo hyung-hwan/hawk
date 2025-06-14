@@ -110,11 +110,11 @@ static void DBG_VERIFY (hawk_xma_t* xma, const char* desc)
 
 		if ((hawk_uint8_t*)tmp == xma->start)
 		{
-			HAWK_ASSERT (tmp->prev_size == 0);
+			HAWK_ASSERT(tmp->prev_size == 0);
 		}
 		if ((hawk_uint8_t*)next < xma->end)
 		{
-			HAWK_ASSERT (next->prev_size == tmp->size);
+			HAWK_ASSERT(next->prev_size == tmp->size);
 		}
 
 		if (tmp->free) fsum += tmp->size;
@@ -123,10 +123,10 @@ static void DBG_VERIFY (hawk_xma_t* xma, const char* desc)
 
 #if defined(HAWK_XMA_ENABLE_STAT)
 	isum = (xma->stat.nfree + xma->stat.nused) * MBLKHDRSIZE;
-	HAWK_ASSERT (asum == xma->stat.alloc);
-	HAWK_ASSERT (fsum == xma->stat.avail);
-	HAWK_ASSERT (isum == xma->stat.total - (xma->stat.alloc + xma->stat.avail));
-	HAWK_ASSERT (asum + fsum + isum == xma->stat.total);
+	HAWK_ASSERT(asum == xma->stat.alloc);
+	HAWK_ASSERT(fsum == xma->stat.avail);
+	HAWK_ASSERT(isum == xma->stat.total - (xma->stat.alloc + xma->stat.avail));
+	HAWK_ASSERT(asum + fsum + isum == xma->stat.total);
 #endif
 }
 #else
@@ -207,7 +207,7 @@ hawk_xma_t* hawk_xma_open (hawk_mmgr_t* mmgr, hawk_oow_t xtnsize, void* zoneptr,
 
 void hawk_xma_close (hawk_xma_t* xma)
 {
-	hawk_xma_fini (xma);
+	hawk_xma_fini(xma);
 	HAWK_MMGR_FREE(xma->_mmgr, xma);
 }
 
@@ -328,7 +328,7 @@ static HAWK_INLINE void detach_from_freelist (hawk_xma_t* xma, hawk_xma_fblk_t* 
  		 * item in the free list. */
 
 		hawk_oow_t xfi = getxfi(xma, b->size);
-		HAWK_ASSERT (b == xma->xfree[xfi]);
+		HAWK_ASSERT(b == xma->xfree[xfi]);
 		/* let's update the free list head */
 		xma->xfree[xfi] = n;
 	}
@@ -348,7 +348,7 @@ static hawk_xma_fblk_t* alloc_from_freelist (hawk_xma_t* xma, hawk_oow_t xfi, ha
 		{
 			hawk_oow_t rem;
 
-			detach_from_freelist (xma, cand);
+			detach_from_freelist(xma, cand);
 
 			rem = cand->size - size;
 			if (rem >= FBLKMINSIZE)
@@ -371,7 +371,7 @@ static hawk_xma_fblk_t* alloc_from_freelist (hawk_xma_t* xma, hawk_oow_t xfi, ha
 				y->prev_size = cand->size;
 
 				/* add the remaining part to the free list */
-				attach_to_freelist (xma, (hawk_xma_fblk_t*)y);
+				attach_to_freelist(xma, (hawk_xma_fblk_t*)y);
 
 				z = next_mblk(y);
 				if ((hawk_uint8_t*)z < xma->end) z->prev_size = y->size;
@@ -414,7 +414,7 @@ void* hawk_xma_alloc (hawk_xma_t* xma, hawk_oow_t size)
 	hawk_xma_fblk_t* cand;
 	hawk_oow_t xfi;
 
-	DBG_VERIFY (xma, "alloc start");
+	DBG_VERIFY(xma, "alloc start");
 
 #if defined(HAWK_XMA_ENABLE_STAT)
 	xma->stat.nallocops++;
@@ -423,7 +423,7 @@ void* hawk_xma_alloc (hawk_xma_t* xma, hawk_oow_t size)
 	if (size < MINALLOCSIZE) size = MINALLOCSIZE;
 	size = HAWK_ALIGN_POW2(size, ALIGN);
 
-	HAWK_ASSERT (size >= ALIGN);
+	HAWK_ASSERT(size >= ALIGN);
 	xfi = getxfi(xma, size);
 
 	/*if (xfi < XFIMAX(xma) && xma->xfree[xfi])*/
@@ -432,10 +432,10 @@ void* hawk_xma_alloc (hawk_xma_t* xma, hawk_oow_t size)
 		/* try the best fit */
 		cand = xma->xfree[xfi];
 
-		HAWK_ASSERT (cand->free != 0);
-		HAWK_ASSERT (cand->size == size);
+		HAWK_ASSERT(cand->free != 0);
+		HAWK_ASSERT(cand->size == size);
 
-		detach_from_freelist (xma, cand);
+		detach_from_freelist(xma, cand);
 		cand->free = 0;
 
 	#if defined(HAWK_XMA_ENABLE_STAT)
@@ -498,7 +498,7 @@ void* hawk_xma_alloc (hawk_xma_t* xma, hawk_oow_t size)
 #if defined(HAWK_XMA_ENABLE_STAT)
 	xma->stat.nallocgoodops++;
 #endif
-	DBG_VERIFY (xma, "alloc end");
+	DBG_VERIFY(xma, "alloc end");
 	return SYS_TO_USR(cand);
 }
 
@@ -506,7 +506,7 @@ static void* _realloc_merge (hawk_xma_t* xma, void* b, hawk_oow_t size)
 {
 	hawk_xma_mblk_t* blk = (hawk_xma_mblk_t*)USR_TO_SYS(b);
 
-	DBG_VERIFY (xma, "realloc merge start");
+	DBG_VERIFY(xma, "realloc merge start");
 	/* rounds up 'size' to be multiples of ALIGN */
 	if (size < MINALLOCSIZE) size = MINALLOCSIZE;
 	size = HAWK_ALIGN_POW2(size, ALIGN);
@@ -526,10 +526,10 @@ static void* _realloc_merge (hawk_xma_t* xma, void* b, hawk_oow_t size)
 /* TODO: check more blocks if the next block is free but small in size.
  *       check the previous adjacent blocks also */
 
-		HAWK_ASSERT (blk->size == n->prev_size);
+		HAWK_ASSERT(blk->size == n->prev_size);
 
 		/* let's merge the current block with the next block */
-		detach_from_freelist (xma, (hawk_xma_fblk_t*)n);
+		detach_from_freelist(xma, (hawk_xma_fblk_t*)n);
 
 		rem = (MBLKHDRSIZE + n->size) - req;
 		if (rem >= FBLKMINSIZE)
@@ -546,7 +546,7 @@ static void* _realloc_merge (hawk_xma_t* xma, void* b, hawk_oow_t size)
 			y->free = 1;
 			y->size = rem - MBLKHDRSIZE;
 			y->prev_size = blk->size;
-			attach_to_freelist (xma, (hawk_xma_fblk_t*)y);
+			attach_to_freelist(xma, (hawk_xma_fblk_t*)y);
 
 			z = next_mblk(y);
 			if ((hawk_uint8_t*)z < xma->end) z->prev_size = y->size;
@@ -593,7 +593,7 @@ static void* _realloc_merge (hawk_xma_t* xma, void* b, hawk_oow_t size)
 
 				/* make the leftover block merge with the next block */
 
-				detach_from_freelist (xma, (hawk_xma_fblk_t*)n);
+				detach_from_freelist(xma, (hawk_xma_fblk_t*)n);
 
 				blk->size = size;
 
@@ -603,7 +603,7 @@ static void* _realloc_merge (hawk_xma_t* xma, void* b, hawk_oow_t size)
 				y->prev_size = blk->size;
 
 				/* add 'y' to the free list */
-				attach_to_freelist (xma, (hawk_xma_fblk_t*)y);
+				attach_to_freelist(xma, (hawk_xma_fblk_t*)y);
 
 				z = next_mblk(y); /* get adjacent block to the merged block */
 				if ((hawk_uint8_t*)z < xma->end) z->prev_size = y->size;
@@ -625,7 +625,7 @@ static void* _realloc_merge (hawk_xma_t* xma, void* b, hawk_oow_t size)
 				y->size = rem - MBLKHDRSIZE;
 				y->prev_size = blk->size;
 
-				attach_to_freelist (xma, (hawk_xma_fblk_t*)y);
+				attach_to_freelist(xma, (hawk_xma_fblk_t*)y);
 				/*n = next_mblk(y);
 				if ((hawk_uint8_t*)n < xma->end)*/ n->prev_size = y->size;
 
@@ -638,7 +638,7 @@ static void* _realloc_merge (hawk_xma_t* xma, void* b, hawk_oow_t size)
 		}
 	}
 
-	DBG_VERIFY (xma, "realloc merge end");
+	DBG_VERIFY(xma, "realloc merge end");
 	return b;
 }
 
@@ -664,7 +664,7 @@ void* hawk_xma_realloc (hawk_xma_t* xma, void* b, hawk_oow_t size)
 		#if defined(HAWK_XMA_ENABLE_STAT)
 			xma->stat.nreallocops++;
 		#endif
-		n = _realloc_merge (xma, b, size);
+		n = _realloc_merge(xma, b, size);
 		if (!n)
 		{
 		#if defined(HAWK_XMA_ENABLE_STAT)
@@ -675,8 +675,8 @@ void* hawk_xma_realloc (hawk_xma_t* xma, void* b, hawk_oow_t size)
 			n = hawk_xma_alloc(xma, size);
 			if (n)
 			{
-				HAWK_MEMCPY (n, b, size);
-				hawk_xma_free (xma, b);
+				HAWK_MEMCPY(n, b, size);
+				hawk_xma_free(xma, b);
 			}
 		}
 		else
@@ -696,7 +696,7 @@ void hawk_xma_free (hawk_xma_t* xma, void* b)
 	hawk_xma_mblk_t* x, * y;
 	hawk_oow_t org_blk_size;
 
-	DBG_VERIFY (xma, "free start");
+	DBG_VERIFY(xma, "free start");
 
 	org_blk_size = blk->size;
 
@@ -732,11 +732,11 @@ void hawk_xma_free (hawk_xma_t* xma, void* b)
 		hawk_oow_t ns = MBLKHDRSIZE + org_blk_size + MBLKHDRSIZE;
 		hawk_oow_t bs = ns + y->size;
 
-		detach_from_freelist (xma, (hawk_xma_fblk_t*)x);
-		detach_from_freelist (xma, (hawk_xma_fblk_t*)y);
+		detach_from_freelist(xma, (hawk_xma_fblk_t*)x);
+		detach_from_freelist(xma, (hawk_xma_fblk_t*)y);
 
 		x->size += bs;
-		attach_to_freelist (xma, (hawk_xma_fblk_t*)x);
+		attach_to_freelist(xma, (hawk_xma_fblk_t*)x);
 
 		z = next_mblk(x);
 		if ((hawk_uint8_t*)z < xma->end) z->prev_size = x->size;
@@ -772,7 +772,7 @@ void hawk_xma_free (hawk_xma_t* xma, void* b)
 		hawk_xma_mblk_t* z = next_mblk(y);
 
 		/* detach y from the free list */
-		detach_from_freelist (xma, (hawk_xma_fblk_t*)y);
+		detach_from_freelist(xma, (hawk_xma_fblk_t*)y);
 
 		/* update the block availability */
 		blk->free = 1;
@@ -783,7 +783,7 @@ void hawk_xma_free (hawk_xma_t* xma, void* b)
 		if ((hawk_uint8_t*)z < xma->end) z->prev_size = blk->size;
 
 		/* attach blk to the free list */
-		attach_to_freelist (xma, (hawk_xma_fblk_t*)blk);
+		attach_to_freelist(xma, (hawk_xma_fblk_t*)blk);
 
 #if defined(HAWK_XMA_ENABLE_STAT)
 		xma->stat.avail += org_blk_size + MBLKHDRSIZE;
@@ -805,14 +805,14 @@ void hawk_xma_free (hawk_xma_t* xma, void* b)
 		 * |     X                   |     Y      |
 		 * +-------------------------+------------+
 		 */
-		detach_from_freelist (xma, (hawk_xma_fblk_t*)x);
+		detach_from_freelist(xma, (hawk_xma_fblk_t*)x);
 
 		x->size += MBLKHDRSIZE + org_blk_size;
 
-		HAWK_ASSERT (y == next_mblk(x));
+		HAWK_ASSERT(y == next_mblk(x));
 		if ((hawk_uint8_t*)y < xma->end) y->prev_size = x->size;
 
-		attach_to_freelist (xma, (hawk_xma_fblk_t*)x);
+		attach_to_freelist(xma, (hawk_xma_fblk_t*)x);
 
 #if defined(HAWK_XMA_ENABLE_STAT)
 		xma->stat.avail += MBLKHDRSIZE + org_blk_size;
@@ -821,7 +821,7 @@ void hawk_xma_free (hawk_xma_t* xma, void* b)
 	else
 	{
 		blk->free = 1;
-		attach_to_freelist (xma, (hawk_xma_fblk_t*)blk);
+		attach_to_freelist(xma, (hawk_xma_fblk_t*)blk);
 
 #if defined(HAWK_XMA_ENABLE_STAT)
 		xma->stat.nfree++;
@@ -829,7 +829,7 @@ void hawk_xma_free (hawk_xma_t* xma, void* b)
 #endif
 	}
 
-	DBG_VERIFY (xma, "free end");
+	DBG_VERIFY(xma, "free end");
 }
 
 void hawk_xma_dump (hawk_xma_t* xma, hawk_xma_dumper_t dumper, void* ctx)
@@ -840,21 +840,21 @@ void hawk_xma_dump (hawk_xma_t* xma, hawk_xma_dumper_t dumper, void* ctx)
 	hawk_oow_t isum;
 #endif
 
-	dumper (ctx, "[XMA DUMP]\n");
+	dumper(ctx, "[XMA DUMP]\n");
 
 #if defined(HAWK_XMA_ENABLE_STAT)
-	dumper (ctx, "== statistics ==\n");
-	dumper (ctx, "Total                = %zu\n", xma->stat.total);
-	dumper (ctx, "Alloc                = %zu\n", xma->stat.alloc);
-	dumper (ctx, "Avail                = %zu\n", xma->stat.avail);
-	dumper (ctx, "Alloc High Watermark = %zu\n", xma->stat.alloc_hwmark);
+	dumper(ctx, "== statistics ==\n");
+	dumper(ctx, "Total                = %zu\n", xma->stat.total);
+	dumper(ctx, "Alloc                = %zu\n", xma->stat.alloc);
+	dumper(ctx, "Avail                = %zu\n", xma->stat.avail);
+	dumper(ctx, "Alloc High Watermark = %zu\n", xma->stat.alloc_hwmark);
 #endif
 
-	dumper (ctx, "== blocks ==\n");
-	dumper (ctx, " size               avail address\n");
+	dumper(ctx, "== blocks ==\n");
+	dumper(ctx, " size               avail address\n");
 	for (tmp = (hawk_xma_mblk_t*)xma->start, fsum = 0, asum = 0; (hawk_uint8_t*)tmp < xma->end; tmp = next_mblk(tmp))
 	{
-		dumper (ctx, " %-18zu %-5u %p\n", tmp->size, (unsigned int)tmp->free, tmp);
+		dumper(ctx, " %-18zu %-5u %p\n", tmp->size, (unsigned int)tmp->free, tmp);
 		if (tmp->free) fsum += tmp->size;
 		else asum += tmp->size;
 	}
@@ -863,28 +863,28 @@ void hawk_xma_dump (hawk_xma_t* xma, hawk_xma_dumper_t dumper, void* ctx)
 	isum = (xma->stat.nfree + xma->stat.nused) * MBLKHDRSIZE;
 #endif
 
-	dumper (ctx, "---------------------------------------\n");
-	dumper (ctx, "Allocated blocks       : %18zu bytes\n", asum);
-	dumper (ctx, "Available blocks       : %18zu bytes\n", fsum);
+	dumper(ctx, "---------------------------------------\n");
+	dumper(ctx, "Allocated blocks       : %18zu bytes\n", asum);
+	dumper(ctx, "Available blocks       : %18zu bytes\n", fsum);
 
 
 #if defined(HAWK_XMA_ENABLE_STAT)
-	dumper (ctx, "Internal use           : %18zu bytes\n", isum);
-	dumper (ctx, "Total                  : %18zu bytes\n", (asum + fsum + isum));
-	dumper (ctx, "Alloc operations       : %18zu\n", xma->stat.nallocops);
-	dumper (ctx, "Good alloc operations  : %18zu\n", xma->stat.nallocgoodops);
-	dumper (ctx, "Bad alloc operations   : %18zu\n", xma->stat.nallocbadops);
-	dumper (ctx, "Realloc operations     : %18zu\n", xma->stat.nreallocops);
-	dumper (ctx, "Good realloc operations: %18zu\n", xma->stat.nreallocgoodops);
-	dumper (ctx, "Bad realloc operations : %18zu\n", xma->stat.nreallocbadops);
-	dumper (ctx, "Free operations        : %18zu\n", xma->stat.nfreeops);
+	dumper(ctx, "Internal use           : %18zu bytes\n", isum);
+	dumper(ctx, "Total                  : %18zu bytes\n", (asum + fsum + isum));
+	dumper(ctx, "Alloc operations       : %18zu\n", xma->stat.nallocops);
+	dumper(ctx, "Good alloc operations  : %18zu\n", xma->stat.nallocgoodops);
+	dumper(ctx, "Bad alloc operations   : %18zu\n", xma->stat.nallocbadops);
+	dumper(ctx, "Realloc operations     : %18zu\n", xma->stat.nreallocops);
+	dumper(ctx, "Good realloc operations: %18zu\n", xma->stat.nreallocgoodops);
+	dumper(ctx, "Bad realloc operations : %18zu\n", xma->stat.nreallocbadops);
+	dumper(ctx, "Free operations        : %18zu\n", xma->stat.nfreeops);
 #endif
 
 #if defined(HAWK_XMA_ENABLE_STAT)
-	HAWK_ASSERT (asum == xma->stat.alloc);
-	HAWK_ASSERT (fsum == xma->stat.avail);
-	HAWK_ASSERT (isum == xma->stat.total - (xma->stat.alloc + xma->stat.avail));
-	HAWK_ASSERT (asum + fsum + isum == xma->stat.total);
+	HAWK_ASSERT(asum == xma->stat.alloc);
+	HAWK_ASSERT(fsum == xma->stat.avail);
+	HAWK_ASSERT(isum == xma->stat.total - (xma->stat.alloc + xma->stat.avail));
+	HAWK_ASSERT(asum + fsum + isum == xma->stat.total);
 #endif
 }
 
