@@ -653,7 +653,7 @@ void* hawk_xma_realloc (hawk_xma_t* xma, void* b, hawk_oow_t size)
 {
 	void* n;
 
-	if (b == HAWK_NULL)
+	if (!b)
 	{
 		/* 'realloc' with NULL is the same as 'alloc' */
 		n = hawk_xma_alloc(xma, size);
@@ -661,9 +661,9 @@ void* hawk_xma_realloc (hawk_xma_t* xma, void* b, hawk_oow_t size)
 	else
 	{
 		/* try reallocation by merging the adjacent continuous blocks */
-		#if defined(HAWK_XMA_ENABLE_STAT)
-			xma->stat.nreallocops++;
-		#endif
+	#if defined(HAWK_XMA_ENABLE_STAT)
+		xma->stat.nreallocops++;
+	#endif
 		n = _realloc_merge(xma, b, size);
 		if (!n)
 		{

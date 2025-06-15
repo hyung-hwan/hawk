@@ -44,7 +44,7 @@ int main()
 	double malloc_time = 0.0, free_time = 0.0;
 
 	no_plan();
-	hawk_init_xma_mmgr(&xma_mmgr, NUM_OPERATIONS * MAX_ALLOC_SIZE);
+	hawk_init_xma_mmgr(&xma_mmgr, 20000000);
 
 	srand((unsigned int)time(NULL));
 	start_time = clock();
