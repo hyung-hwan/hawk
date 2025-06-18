@@ -206,7 +206,7 @@ HAWK_INLINE hawk_val_t* hawk_rtx_getarg (hawk_rtx_t* rtx, hawk_oow_t idx)
 
 HAWK_INLINE hawk_val_t* hawk_rtx_getgbl (hawk_rtx_t* rtx, int id)
 {
-	HAWK_ASSERT (id >= 0 && id < (int)HAWK_ARR_SIZE(rtx->hawk->parse.gbls));
+	HAWK_ASSERT(id >= 0 && id < (int)HAWK_ARR_SIZE(rtx->hawk->parse.gbls));
 	return HAWK_RTX_STACK_GBL(rtx, id);
 }
 
@@ -370,7 +370,7 @@ static int set_global (hawk_rtx_t* rtx, int idx, hawk_nde_var_t* var, hawk_val_t
 
 			/* due to the expression evaluation rule, the
 			 * regular expression can not be an assigned value */
-			HAWK_ASSERT (vtype != HAWK_VAL_REX);
+			HAWK_ASSERT(vtype != HAWK_VAL_REX);
 
 			fs_ptr = hawk_rtx_getvaloocstr(rtx, val, &fs_len);
 			if (HAWK_UNLIKELY(!fs_ptr)) return -1;
@@ -550,7 +550,7 @@ static int set_global (hawk_rtx_t* rtx, int idx, hawk_nde_var_t* var, hawk_val_t
 			/* due to the expression evaluation rule, the
 			 * regular expression can not be an assigned
 			 * value */
-			HAWK_ASSERT (vtype != HAWK_VAL_REX);
+			HAWK_ASSERT(vtype != HAWK_VAL_REX);
 
 			rss.ptr = hawk_rtx_getvaloocstr(rtx, val, &rss.len);
 			if (!rss.ptr) return -1;
@@ -651,7 +651,7 @@ HAWK_INLINE void hawk_rtx_setretval (hawk_rtx_t* rtx, hawk_val_t* val)
 
 HAWK_INLINE int hawk_rtx_setgbl (hawk_rtx_t* rtx, int id, hawk_val_t* val)
 {
-	HAWK_ASSERT (id >= 0 && id < (int)HAWK_ARR_SIZE(rtx->hawk->parse.gbls));
+	HAWK_ASSERT(id >= 0 && id < (int)HAWK_ARR_SIZE(rtx->hawk->parse.gbls));
 	return set_global(rtx, id, HAWK_NULL, val, 0);
 }
 
@@ -660,7 +660,7 @@ int hawk_rtx_setgbltostrbyname (hawk_rtx_t* rtx, const hawk_ooch_t* name, const 
 	int id, n;
 	hawk_val_t* v;
 
-	HAWK_ASSERT (hawk_isvalidident(hawk_rtx_gethawk(rtx), name));
+	HAWK_ASSERT(hawk_isvalidident(hawk_rtx_gethawk(rtx), name));
 
 	id = hawk_findgblwithoocstr(hawk_rtx_gethawk(rtx), name, 1);
 	v = hawk_rtx_makestrvalwithoocstr(rtx, val);
@@ -949,7 +949,7 @@ void hawk_rtx_close (hawk_rtx_t* rtx)
 	}
 
 	do { ecb = hawk_rtx_popecb(rtx); } while (ecb);
-	HAWK_ASSERT (rtx->ecb == (hawk_rtx_ecb_t*)rtx);
+	HAWK_ASSERT(rtx->ecb == (hawk_rtx_ecb_t*)rtx);
 
 	/* NOTE:
 	 *  the close callbacks are called before data in rtx
@@ -1193,7 +1193,7 @@ static void fini_rtx (hawk_rtx_t* rtx, int fini_globals)
 	/* close all pending io's */
 	/* TODO: what if this operation fails? */
 	hawk_rtx_clearallios (rtx);
-	HAWK_ASSERT (rtx->rio.chain == HAWK_NULL);
+	HAWK_ASSERT(rtx->rio.chain == HAWK_NULL);
 
 	if (rtx->gbl.rs[0])
 	{
@@ -1284,7 +1284,7 @@ static void fini_rtx (hawk_rtx_t* rtx, int fini_globals)
 	/* destroy the stack if necessary */
 	if (rtx->stack)
 	{
-		HAWK_ASSERT (rtx->stack_top == 0);
+		HAWK_ASSERT(rtx->stack_top == 0);
 
 		hawk_rtx_freemem(rtx, rtx->stack);
 		rtx->stack = HAWK_NULL;
@@ -1455,7 +1455,7 @@ static int defaultify_globals (hawk_rtx_t* rtx)
 
 		hawk_rtx_refupval(rtx, tmp);
 
-		HAWK_ASSERT (HAWK_RTX_STACK_GBL(rtx,gtab[i].idx) == hawk_val_nil);
+		HAWK_ASSERT(HAWK_RTX_STACK_GBL(rtx,gtab[i].idx) == hawk_val_nil);
 
 		if (hawk_rtx_setgbl(rtx, gtab[i].idx, tmp) == -1)
 		{
@@ -1491,8 +1491,8 @@ static void refdown_globals (hawk_rtx_t* rtx, int pop)
 static int init_globals (hawk_rtx_t* rtx)
 {
 	/* the stack must be clean when this function is invoked */
-	HAWK_ASSERT (rtx->stack_base == 0);
-	HAWK_ASSERT (rtx->stack_top == 0);
+	HAWK_ASSERT(rtx->stack_base == 0);
+	HAWK_ASSERT(rtx->stack_top == 0);
 
 	if (prepare_globals(rtx) <= -1) return -1;
 	if (update_fnr(rtx, 0, 0) <= -1 || defaultify_globals(rtx) <= -1) goto oops;
@@ -1537,7 +1537,7 @@ static hawk_val_t* run_bpae_loop (hawk_rtx_t* rtx)
 		hawk_nde_blk_t* blk;
 
 		blk = (hawk_nde_blk_t*)nde;
-		HAWK_ASSERT (blk->type == HAWK_NDE_BLK);
+		HAWK_ASSERT(blk->type == HAWK_NDE_BLK);
 
 		rtx->active_block = blk;
 		rtx->exit_level = EXIT_NONE;
@@ -1582,7 +1582,7 @@ static hawk_val_t* run_bpae_loop (hawk_rtx_t* rtx)
 		hawk_nde_blk_t* blk;
 
 		blk = (hawk_nde_blk_t*)nde;
-		HAWK_ASSERT (blk->type == HAWK_NDE_BLK);
+		HAWK_ASSERT(blk->type == HAWK_NDE_BLK);
 
 		rtx->active_block = blk;
 		rtx->exit_level = EXIT_NONE;
@@ -1609,7 +1609,7 @@ static hawk_val_t* run_bpae_loop (hawk_rtx_t* rtx)
 	 * pushed to the stack as asserted below. we didn't push any arguments
 	 * for BEGIN/pattern action/END block execution.*/
 	nargs = (hawk_oow_t)HAWK_RTX_STACK_NARGS(rtx);
-	HAWK_ASSERT (nargs == 0);
+	HAWK_ASSERT(nargs == 0);
 	for (i = 0; i < nargs; i++)
 		hawk_rtx_refdownval(rtx, HAWK_RTX_STACK_ARG(rtx,i));
 
@@ -1658,7 +1658,7 @@ hawk_val_t* hawk_rtx_loop (hawk_rtx_t* rtx)
 	retv = run_bpae_loop(rtx);
 
 	/* exit the stack frame */
-	HAWK_ASSERT ((rtx->stack_top - rtx->stack_base) == 4); /* at this point, the current stack frame should have the 4 entries pushed above */
+	HAWK_ASSERT((rtx->stack_top - rtx->stack_base) == 4); /* at this point, the current stack frame should have the 4 entries pushed above */
 	rtx->stack_top = (hawk_oow_t)rtx->stack[rtx->stack_base + 1];
 	rtx->stack_base = (hawk_oow_t)rtx->stack[rtx->stack_base + 0];
 
@@ -1758,7 +1758,7 @@ hawk_val_t* hawk_rtx_callfun (hawk_rtx_t* rtx, hawk_fun_t* fun, hawk_val_t* args
 	struct pafv_t pafv/*= { args, nargs }*/;
 	hawk_nde_fncall_t call;
 
-	HAWK_ASSERT (fun != HAWK_NULL);
+	HAWK_ASSERT(fun != HAWK_NULL);
 
 	pafv.args = args;
 	pafv.nargs = nargs;
@@ -2082,8 +2082,8 @@ static int run_pblock (hawk_rtx_t* rtx, hawk_chain_t* cha, hawk_oow_t bno)
 		else
 		{
 			/* pattern, pattern { ... } */
-			HAWK_ASSERT (ptn->next->next == HAWK_NULL);
-			HAWK_ASSERT (rtx->pattern_range_state != HAWK_NULL);
+			HAWK_ASSERT(ptn->next->next == HAWK_NULL);
+			HAWK_ASSERT(rtx->pattern_range_state != HAWK_NULL);
 
 			if (rtx->pattern_range_state[bno] == 0)
 			{
@@ -2146,7 +2146,7 @@ static HAWK_INLINE int run_block0 (hawk_rtx_t* rtx, hawk_nde_blk_t* nde)
 		return 0;
 	}
 
-	HAWK_ASSERT (nde->type == HAWK_NDE_BLK);
+	HAWK_ASSERT(nde->type == HAWK_NDE_BLK);
 	/*saved_stack_top = rtx->stack_top;*/
 
 #if defined(DEBUG_RUN)
@@ -2286,7 +2286,7 @@ static int run_statement (hawk_rtx_t* rtx, hawk_nde_t* nde)
 
 		case HAWK_NDE_CASE:
 			/* this must never happen - run_swtich must handle this part */
-			HAWK_ASSERT (!"should never happen - HAWK_NDE_CASE must not be fed to run_statement");
+			HAWK_ASSERT(!"should never happen - HAWK_NDE_CASE must not be fed to run_statement");
 			hawk_rtx_seterrnum(rtx, &nde->loc, HAWK_EINTERN);
 			xret = -1;
 			break;
@@ -2371,7 +2371,7 @@ static int run_if (hawk_rtx_t* rtx, hawk_nde_if_t* nde)
 	/* the test expression for the if statement cannot have
 	 * chained expressions. this should not be allowed by the
 	 * parser first of all */
-	HAWK_ASSERT (nde->test->next == HAWK_NULL);
+	HAWK_ASSERT(nde->test->next == HAWK_NULL);
 
 	test = eval_expression(rtx, nde->test);
 	if (HAWK_UNLIKELY(!test)) return -1;
@@ -2399,19 +2399,21 @@ static int run_switch (hawk_rtx_t* rtx, hawk_nde_switch_t* nde)
 	int eval_true = 0;
 	int ret = 0;
 
-	/* the test expression for the if statement cannot have
+	/* the expression for the switch statement cannot have
 	 * chained expressions. this should not be allowed by the
 	 * parser first of all */
-	HAWK_ASSERT (nde->test->next == HAWK_NULL);
+	HAWK_ASSERT(nde->type == HAWK_NDE_SWITCH);
+	HAWK_ASSERT(nde->test->next == HAWK_NULL);
 
 	test = eval_expression(rtx, nde->test);
 	if (HAWK_UNLIKELY(!test)) return -1;
 
 	hawk_rtx_refupval(rtx, test);
 
-	HAWK_ASSERT(nde->type == HAWK_NDE_CASE);
 	case_part = (hawk_nde_case_t*)nde->case_part;
 	default_part = (hawk_nde_case_t*)nde->default_part;
+	HAWK_ASSERT(case_part->type == HAWK_NDE_CASE);
+	HAWK_ASSERT(default_part->type == HAWK_NDE_CASE);
 
 	while (case_part)
 	{
@@ -2511,7 +2513,7 @@ static int run_while (hawk_rtx_t* rtx, hawk_nde_while_t* nde)
 	{
 		/* no chained expressions are allowed for the test
 		 * expression of the while statement */
-		HAWK_ASSERT (nde->test->next == HAWK_NULL);
+		HAWK_ASSERT(nde->test->next == HAWK_NULL);
 
 		while (1)
 		{
@@ -2554,7 +2556,7 @@ static int run_while (hawk_rtx_t* rtx, hawk_nde_while_t* nde)
 	{
 		/* no chained expressions are allowed for the test
 		 * expression of the while statement */
-		HAWK_ASSERT (nde->test->next == HAWK_NULL);
+		HAWK_ASSERT(nde->test->next == HAWK_NULL);
 
 		do
 		{
@@ -2598,7 +2600,7 @@ static int run_for (hawk_rtx_t* rtx, hawk_nde_for_t* nde)
 
 	if (nde->init)
 	{
-		HAWK_ASSERT (nde->init->next == HAWK_NULL);
+		HAWK_ASSERT(nde->init->next == HAWK_NULL);
 
 		ON_STATEMENT (rtx, nde->init);
 		val = eval_expression(rtx,nde->init);
@@ -2616,7 +2618,7 @@ static int run_for (hawk_rtx_t* rtx, hawk_nde_for_t* nde)
 
 			/* no chained expressions for the test expression of
 			 * the for statement are allowed */
-			HAWK_ASSERT (nde->test->next == HAWK_NULL);
+			HAWK_ASSERT(nde->test->next == HAWK_NULL);
 
 			ON_STATEMENT (rtx, nde->test);
 			test = eval_expression(rtx, nde->test);
@@ -2657,7 +2659,7 @@ static int run_for (hawk_rtx_t* rtx, hawk_nde_for_t* nde)
 
 		if (nde->incr != HAWK_NULL)
 		{
-			HAWK_ASSERT (nde->incr->next == HAWK_NULL);
+			HAWK_ASSERT(nde->incr->next == HAWK_NULL);
 
 			ON_STATEMENT (rtx, nde->incr);
 			val = eval_expression(rtx, nde->incr);
@@ -2680,10 +2682,10 @@ static int run_forin (hawk_rtx_t* rtx, hawk_nde_forin_t* nde)
 	int ret;
 
 	test = (hawk_nde_exp_t*)nde->test;
-	HAWK_ASSERT (test->type == HAWK_NDE_EXP_BIN && test->opcode == HAWK_BINOP_IN);
+	HAWK_ASSERT(test->type == HAWK_NDE_EXP_BIN && test->opcode == HAWK_BINOP_IN);
 
 	/* chained expressions should not be allowed by the parser first of all */
-	HAWK_ASSERT (test->right->next == HAWK_NULL);
+	HAWK_ASSERT(test->right->next == HAWK_NULL);
 
 	rv = eval_expression(rtx, test->right);
 	if (HAWK_UNLIKELY(!rv)) return -1;
@@ -2894,7 +2896,7 @@ static int run_return (hawk_rtx_t* rtx, hawk_nde_return_t* nde)
 
 		/* chained expressions should not be allowed
 		 * by the parser first of all */
-		HAWK_ASSERT (nde->val->next == HAWK_NULL);
+		HAWK_ASSERT(nde->val->next == HAWK_NULL);
 
 		val = eval_expression(rtx, nde->val);
 		if (HAWK_UNLIKELY(!val)) return -1;
@@ -2932,7 +2934,7 @@ static int run_exit (hawk_rtx_t* rtx, hawk_nde_exit_t* nde)
 
 		/* chained expressions should not be allowed
 		 * by the parser first of all */
-		HAWK_ASSERT (nde->val->next == HAWK_NULL);
+		HAWK_ASSERT(nde->val->next == HAWK_NULL);
 
 		val = eval_expression(rtx, nde->val);
 		if (HAWK_UNLIKELY(!val)) return -1;
@@ -3058,7 +3060,7 @@ static hawk_val_t* assign_newmapval_in_map (hawk_rtx_t* rtx, hawk_map_t* contain
 		return HAWK_NULL;
 	}
 
-	HAWK_ASSERT (tmp == HAWK_MAP_VPTR(pair));
+	HAWK_ASSERT(tmp == HAWK_MAP_VPTR(pair));
 	return tmp;
 }
 
@@ -3106,7 +3108,7 @@ static hawk_val_t* fetch_topval_from_var (hawk_rtx_t* rtx, hawk_nde_var_t* var)
 			break;
 
 		default:
-			HAWK_ASSERT (var->type == HAWK_NDE_ARG || var->type == HAWK_NDE_ARGIDX);
+			HAWK_ASSERT(var->type == HAWK_NDE_ARG || var->type == HAWK_NDE_ARGIDX);
 			val = HAWK_RTX_STACK_ARG(rtx, var->id.idxa);
 			break;
 	}
@@ -3179,7 +3181,7 @@ static hawk_val_t* assign_newmapval_to_var (hawk_rtx_t* rtx, hawk_nde_var_t* var
 {
 	hawk_val_t* tmp;
 
-	HAWK_ASSERT (var->type >= HAWK_NDE_NAMED && var->type <= HAWK_NDE_ARGIDX);
+	HAWK_ASSERT(var->type >= HAWK_NDE_NAMED && var->type <= HAWK_NDE_ARGIDX);
 
 	tmp = hawk_rtx_makemapval(rtx);
 	if (HAWK_UNLIKELY(!tmp))
@@ -3205,7 +3207,7 @@ static HAWK_INLINE int delete_indexed (hawk_rtx_t* rtx, hawk_val_t* vv, hawk_nde
 	hawk_nde_t* remidx;
 	hawk_val_type_t vtype;
 
-	HAWK_ASSERT (var->idx != HAWK_NULL);
+	HAWK_ASSERT(var->idx != HAWK_NULL);
 
 	/* delete x["abc"];
 	 * delete x[20,"abc"]; */
@@ -3220,7 +3222,7 @@ static HAWK_INLINE int delete_indexed (hawk_rtx_t* rtx, hawk_val_t* vv, hawk_nde
 	}
 	else
 	{
-		HAWK_ASSERT (vtype == HAWK_VAL_ARR);
+		HAWK_ASSERT(vtype == HAWK_VAL_ARR);
 		idx = idxnde_to_int(rtx, var->idx, &remidx);
 		if (HAWK_UNLIKELY(idx <= -1)) goto oops;
 		arr = ((hawk_val_arr_t*)vv)->arr;
@@ -3311,7 +3313,7 @@ static int run_delete (hawk_rtx_t* rtx, hawk_nde_delete_t* nde)
 	var = (hawk_nde_var_t*)nde->var;
 
 	val = fetch_topval_from_var(rtx, var);
-	HAWK_ASSERT (val != HAWK_NULL);
+	HAWK_ASSERT(val != HAWK_NULL);
 
 	vtype = HAWK_RTX_GETVALTYPE(rtx, val);
 	switch (vtype)
@@ -3373,13 +3375,13 @@ static int run_reset (hawk_rtx_t* rtx, hawk_nde_reset_t* nde)
 
 	var = (hawk_nde_var_t*)nde->var;
 
-	HAWK_ASSERT (var->type >= HAWK_NDE_NAMED && var->type <= HAWK_NDE_ARG);
+	HAWK_ASSERT(var->type >= HAWK_NDE_NAMED && var->type <= HAWK_NDE_ARG);
 
 	switch (var->type)
 	{
 		case HAWK_NDE_NAMED:
 			/* if a named variable has an index part, something is definitely wrong */
-			HAWK_ASSERT (var->idx == HAWK_NULL);
+			HAWK_ASSERT(var->idx == HAWK_NULL);
 
 			/* a named variable can be reset if removed from the internal map to manage it */
 			hawk_htb_delete (rtx->named, var->id.name.ptr, var->id.name.len);
@@ -3391,10 +3393,10 @@ static int run_reset (hawk_rtx_t* rtx, hawk_nde_reset_t* nde)
 		{
 			hawk_val_t* val;
 
-			HAWK_ASSERT (var->idx == HAWK_NULL);
+			HAWK_ASSERT(var->idx == HAWK_NULL);
 
 			val = fetch_topval_from_var(rtx, var);
-			HAWK_ASSERT (val != HAWK_NULL);
+			HAWK_ASSERT(val != HAWK_NULL);
 
 			if (HAWK_RTX_GETVALTYPE(rtx, val) != HAWK_VAL_NIL)
 			{
@@ -3405,7 +3407,7 @@ static int run_reset (hawk_rtx_t* rtx, hawk_nde_reset_t* nde)
 
 		default:
 			/* the reset statement can only be called with plain variables */
-			HAWK_ASSERT (!"should never happen - wrong target for @reset");
+			HAWK_ASSERT(!"should never happen - wrong target for @reset");
 			hawk_rtx_seterrnum(rtx, &var->loc, HAWK_EBADARG);
 			return -1;
 	}
@@ -3455,7 +3457,7 @@ static int run_print (hawk_rtx_t* rtx, hawk_nde_print_t* nde)
 	hawk_val_t* out_v = HAWK_NULL;
 	int n, xret = 0;
 
-	HAWK_ASSERT (
+	HAWK_ASSERT(
 		(nde->out_type == HAWK_OUT_PIPE && nde->out != HAWK_NULL) ||
 		(nde->out_type == HAWK_OUT_RWPIPE && nde->out != HAWK_NULL) ||
 		(nde->out_type == HAWK_OUT_FILE && nde->out != HAWK_NULL) ||
@@ -3501,7 +3503,7 @@ static int run_print (hawk_rtx_t* rtx, hawk_nde_print_t* nde)
 		if (nde->args->type == HAWK_NDE_GRP)
 		{
 			/* parenthesized print */
-			HAWK_ASSERT (nde->args->next == HAWK_NULL);
+			HAWK_ASSERT(nde->args->next == HAWK_NULL);
 			head = ((hawk_nde_grp_t*)nde->args)->body;
 		}
 		else head = nde->args;
@@ -3591,7 +3593,7 @@ static int run_printf (hawk_rtx_t* rtx, hawk_nde_print_t* nde)
 	hawk_nde_t* head;
 	int n, xret = 0;
 
-	HAWK_ASSERT (
+	HAWK_ASSERT(
 		(nde->out_type == HAWK_OUT_PIPE && nde->out != HAWK_NULL) ||
 		(nde->out_type == HAWK_OUT_RWPIPE && nde->out != HAWK_NULL) ||
 		(nde->out_type == HAWK_OUT_FILE && nde->out != HAWK_NULL) ||
@@ -3610,18 +3612,18 @@ static int run_printf (hawk_rtx_t* rtx, hawk_nde_print_t* nde)
 	}
 
 	/*( valid printf statement should have at least one argument. the parser must ensure this. */
-	HAWK_ASSERT (nde->args != HAWK_NULL);
+	HAWK_ASSERT(nde->args != HAWK_NULL);
 
 	if (nde->args->type == HAWK_NDE_GRP)
 	{
 		/* parenthesized print */
-		HAWK_ASSERT (nde->args->next == HAWK_NULL);
+		HAWK_ASSERT(nde->args->next == HAWK_NULL);
 		head = ((hawk_nde_grp_t*)nde->args)->body;
 	}
 	else head = nde->args;
 
 	/* valid printf statement should have at least one argument. the parser must ensure this */
-	HAWK_ASSERT (head != HAWK_NULL);
+	HAWK_ASSERT(head != HAWK_NULL);
 
 	v = eval_expression(rtx, head);
 	if (HAWK_UNLIKELY(!v)) goto oops_1;
@@ -3778,7 +3780,7 @@ static hawk_val_t* eval_expression (hawk_rtx_t* rtx, hawk_nde_t* nde)
 		#if 0
 			/* the internal value representing $0 should always be of the string type
 			 * once it has been set/updated. it is nil initially. */
-			HAWK_ASSERT (HAWK_RTX_GETVALTYPE(rtx, rtx->inrec.d0) == HAWK_VAL_STR);
+			HAWK_ASSERT(HAWK_RTX_GETVALTYPE(rtx, rtx->inrec.d0) == HAWK_VAL_STR);
 			vs.ptr = ((hawk_val_str_t*)rtx->inrec.d0)->val.ptr;
 			vs.len = ((hawk_val_str_t*)rtx->inrec.d0)->val.len;
 		#else
@@ -3804,7 +3806,7 @@ static hawk_val_t* eval_expression (hawk_rtx_t* rtx, hawk_nde_t* nde)
 		}
 
 		v = hawk_rtx_makeintval(rtx, (n != 0));
-		HAWK_ASSERT (v != HAWK_NULL); /* this will never fail as the value is 0 or 1 */
+		HAWK_ASSERT(v != HAWK_NULL); /* this will never fail as the value is 0 or 1 */
 	}
 
 	return v;
@@ -3854,7 +3856,7 @@ static hawk_val_t* eval_expression0 (hawk_rtx_t* rtx, hawk_nde_t* nde)
 
 	hawk_val_t* v;
 
-	HAWK_ASSERT (nde->type >= HAWK_NDE_GRP && (nde->type - HAWK_NDE_GRP) < HAWK_COUNTOF(__evaluator));
+	HAWK_ASSERT(nde->type >= HAWK_NDE_GRP && (nde->type - HAWK_NDE_GRP) < HAWK_COUNTOF(__evaluator));
 
 	v = __evaluator[nde->type - HAWK_NDE_GRP](rtx, nde);
 
@@ -3881,7 +3883,7 @@ static hawk_val_t* eval_group (hawk_rtx_t* rtx, hawk_nde_t* nde)
 #if 0
 	/* eval_binop_in evaluates the HAWK_NDE_GRP specially.
 	 * so this function should never be reached. */
-	HAWK_ASSERT (!"should never happen - NDE_GRP only for in");
+	HAWK_ASSERT(!"should never happen - NDE_GRP only for in");
 	hawk_rtx_seterrnum(rtx, &nde->loc, HAWK_EINTERN);
 	return HAWK_NULL;
 #endif
@@ -3901,7 +3903,7 @@ static hawk_val_t* eval_group (hawk_rtx_t* rtx, hawk_nde_t* nde)
 
 	np = ((hawk_nde_grp_t*)nde)->body;
 
-	HAWK_ASSERT (np != HAWK_NULL);
+	HAWK_ASSERT(np != HAWK_NULL);
 
 loop:
 	val = eval_expression(rtx, np);
@@ -3923,10 +3925,10 @@ static hawk_val_t* eval_assignment (hawk_rtx_t* rtx, hawk_nde_t* nde)
 	hawk_val_t* val, * ret;
 	hawk_nde_ass_t* ass = (hawk_nde_ass_t*)nde;
 
-	HAWK_ASSERT (ass->left != HAWK_NULL);
-	HAWK_ASSERT (ass->right != HAWK_NULL);
+	HAWK_ASSERT(ass->left != HAWK_NULL);
+	HAWK_ASSERT(ass->right != HAWK_NULL);
 
-	HAWK_ASSERT (ass->right->next == HAWK_NULL);
+	HAWK_ASSERT(ass->right->next == HAWK_NULL);
 	val = eval_expression(rtx, ass->right);
 	if (HAWK_UNLIKELY(!val)) return HAWK_NULL;
 
@@ -3954,7 +3956,7 @@ static hawk_val_t* eval_assignment (hawk_rtx_t* rtx, hawk_nde_t* nde)
 			eval_binop_bor
 		};
 
-		HAWK_ASSERT (ass->left->next == HAWK_NULL);
+		HAWK_ASSERT(ass->left->next == HAWK_NULL);
 		val2 = eval_expression(rtx, ass->left);
 		if (HAWK_UNLIKELY(!val2))
 		{
@@ -3964,9 +3966,9 @@ static hawk_val_t* eval_assignment (hawk_rtx_t* rtx, hawk_nde_t* nde)
 
 		hawk_rtx_refupval(rtx, val2);
 
-		HAWK_ASSERT (ass->opcode >= 0);
-		HAWK_ASSERT (ass->opcode < HAWK_COUNTOF(binop_func));
-		HAWK_ASSERT (binop_func[ass->opcode] != HAWK_NULL);
+		HAWK_ASSERT(ass->opcode >= 0);
+		HAWK_ASSERT(ass->opcode < HAWK_COUNTOF(binop_func));
+		HAWK_ASSERT(binop_func[ass->opcode] != HAWK_NULL);
 
 		tmp = binop_func[ass->opcode](rtx, val2, val);
 		if (HAWK_UNLIKELY(!tmp))
@@ -4037,7 +4039,7 @@ static hawk_val_t* do_assignment (hawk_rtx_t* rtx, hawk_nde_t* var, hawk_val_t* 
 		}
 
 		default:
-			HAWK_ASSERT (!"should never happen - invalid variable type");
+			HAWK_ASSERT(!"should never happen - invalid variable type");
 			errnum = HAWK_EINTERN;
 			goto exit_on_error;
 	}
@@ -4053,14 +4055,14 @@ static hawk_val_t* do_assignment_nonindexed (hawk_rtx_t* rtx, hawk_nde_var_t* va
 {
 	hawk_val_type_t vtype;
 
-	HAWK_ASSERT (
+	HAWK_ASSERT(
 		var->type == HAWK_NDE_NAMED ||
 		var->type == HAWK_NDE_GBL ||
 		var->type == HAWK_NDE_LCL ||
 		var->type == HAWK_NDE_ARG
 	);
 
-	HAWK_ASSERT (var->idx == HAWK_NULL);
+	HAWK_ASSERT(var->idx == HAWK_NULL);
 	vtype = HAWK_RTX_GETVALTYPE (rtx, val);
 
 	switch (var->type)
@@ -4198,13 +4200,13 @@ static hawk_val_t* do_assignment_indexed (hawk_rtx_t* rtx, hawk_nde_var_t* var, 
 	hawk_val_t* vv; /* existing value pointed to by var */
 	hawk_val_type_t vtype;
 
-	HAWK_ASSERT (
+	HAWK_ASSERT(
 		(var->type == HAWK_NDE_NAMEDIDX ||
 		 var->type == HAWK_NDE_GBLIDX ||
 		 var->type == HAWK_NDE_LCLIDX ||
 		 var->type == HAWK_NDE_ARGIDX) && var->idx != HAWK_NULL);
 #if !defined(HAWK_ENABLE_GC)
-	HAWK_ASSERT (HAWK_RTX_GETVALTYPE(rtx, val) != HAWK_VAL_MAP &&
+	HAWK_ASSERT(HAWK_RTX_GETVALTYPE(rtx, val) != HAWK_VAL_MAP &&
 	             HAWK_RTX_GETVALTYPE(rtx, val) != HAWK_VAL_ARR);
 #endif
 
@@ -4455,7 +4457,7 @@ static hawk_val_t* eval_binary (hawk_rtx_t* rtx, hawk_nde_t* nde)
 	hawk_nde_exp_t* exp = (hawk_nde_exp_t*)nde;
 	hawk_val_t* left, * right, * res;
 
-	HAWK_ASSERT (exp->type == HAWK_NDE_EXP_BIN);
+	HAWK_ASSERT(exp->type == HAWK_NDE_EXP_BIN);
 
 	switch (exp->opcode)
 	{
@@ -4481,13 +4483,13 @@ static hawk_val_t* eval_binary (hawk_rtx_t* rtx, hawk_nde_t* nde)
 			break;
 
 		default:
-			HAWK_ASSERT (exp->left->next == HAWK_NULL);
+			HAWK_ASSERT(exp->left->next == HAWK_NULL);
 			left = eval_expression(rtx, exp->left);
 			if (HAWK_UNLIKELY(!left)) return HAWK_NULL;
 
 			hawk_rtx_refupval(rtx, left);
 
-			HAWK_ASSERT (exp->right->next == HAWK_NULL);
+			HAWK_ASSERT(exp->right->next == HAWK_NULL);
 			right = eval_expression(rtx, exp->right);
 			if (HAWK_UNLIKELY(!right))
 			{
@@ -4497,8 +4499,8 @@ static hawk_val_t* eval_binary (hawk_rtx_t* rtx, hawk_nde_t* nde)
 
 			hawk_rtx_refupval(rtx, right);
 
-			HAWK_ASSERT (exp->opcode >= 0 && exp->opcode < HAWK_COUNTOF(binop_func));
-			HAWK_ASSERT (binop_func[exp->opcode] != HAWK_NULL);
+			HAWK_ASSERT(exp->opcode >= 0 && exp->opcode < HAWK_COUNTOF(binop_func));
+			HAWK_ASSERT(binop_func[exp->opcode] != HAWK_NULL);
 
 			res = binop_func[exp->opcode](rtx, left, right);
 			if (HAWK_UNLIKELY(!res)) ADJERR_LOC(rtx, &nde->loc);
@@ -4532,7 +4534,7 @@ static hawk_val_t* eval_binop_lor (hawk_rtx_t* rtx, hawk_nde_t* left, hawk_nde_t
 	/* short-circuit evaluation required special treatment */
 	hawk_val_t* lv, * rv, * res;
 
-	HAWK_ASSERT (left->next == HAWK_NULL);
+	HAWK_ASSERT(left->next == HAWK_NULL);
 	lv = eval_expression(rtx, left);
 	if (HAWK_UNLIKELY(!lv)) return HAWK_NULL;
 
@@ -4543,7 +4545,7 @@ static hawk_val_t* eval_binop_lor (hawk_rtx_t* rtx, hawk_nde_t* left, hawk_nde_t
 	}
 	else
 	{
-		HAWK_ASSERT (right->next == HAWK_NULL);
+		HAWK_ASSERT(right->next == HAWK_NULL);
 		rv = eval_expression(rtx, right);
 		if (HAWK_UNLIKELY(!rv))
 		{
@@ -4584,7 +4586,7 @@ static hawk_val_t* eval_binop_land (hawk_rtx_t* rtx, hawk_nde_t* left, hawk_nde_
 	/* short-circuit evaluation required special treatment */
 	hawk_val_t* lv, * rv, * res;
 
-	HAWK_ASSERT (left->next == HAWK_NULL);
+	HAWK_ASSERT(left->next == HAWK_NULL);
 	lv = eval_expression(rtx, left);
 	if (HAWK_UNLIKELY(!lv)) return HAWK_NULL;
 
@@ -4595,7 +4597,7 @@ static hawk_val_t* eval_binop_land (hawk_rtx_t* rtx, hawk_nde_t* left, hawk_nde_
 	}
 	else
 	{
-		HAWK_ASSERT (right->next == HAWK_NULL);
+		HAWK_ASSERT(right->next == HAWK_NULL);
 		rv = eval_expression(rtx, right);
 		if (HAWK_UNLIKELY(!rv))
 		{
@@ -4633,7 +4635,7 @@ static hawk_val_t* eval_binop_in (hawk_rtx_t* rtx, hawk_nde_t* left, hawk_nde_t*
 #endif
 	{
 		/* the compiler should have handled this case */
-		HAWK_ASSERT (!"should never happen - it needs a plain variable");
+		HAWK_ASSERT(!"should never happen - it needs a plain variable");
 		hawk_rtx_seterrnum(rtx, &right->loc, HAWK_EINTERN);
 		return HAWK_NULL;
 	}
@@ -4654,10 +4656,10 @@ rvalue_ok:
 	 *
 	 *  '(10, 20) in a' is to test for a[10,20] if 'a' is a map.
 	 */
-	HAWK_ASSERT (remidx == HAWK_NULL);
+	HAWK_ASSERT(remidx == HAWK_NULL);
 
 	/* evaluate the right-hand side of the operator */
-	HAWK_ASSERT (right->next == HAWK_NULL);
+	HAWK_ASSERT(right->next == HAWK_NULL);
 	ropv = eval_expression(rtx, right);
 	if (HAWK_UNLIKELY(!ropv))
 	{
@@ -5362,7 +5364,7 @@ static HAWK_INLINE int __cmp_str_str (hawk_rtx_t* rtx, hawk_val_t* left, hawk_va
 		{
 			hawk_flt_t rr;
 
-			HAWK_ASSERT (rs->v_nstr == 2);
+			HAWK_ASSERT(rs->v_nstr == 2);
 
 			rr = hawk_oochars_to_flt(rs->val.ptr, rs->val.len, HAWK_NULL, stripspc);
 
@@ -5374,7 +5376,7 @@ static HAWK_INLINE int __cmp_str_str (hawk_rtx_t* rtx, hawk_val_t* left, hawk_va
 	{
 		hawk_flt_t ll;
 
-		HAWK_ASSERT (ls->v_nstr == 2);
+		HAWK_ASSERT(ls->v_nstr == 2);
 
 		ll = hawk_oochars_to_flt(ls->val.ptr, ls->val.len, HAWK_NULL, stripspc);
 
@@ -5391,7 +5393,7 @@ static HAWK_INLINE int __cmp_str_str (hawk_rtx_t* rtx, hawk_val_t* left, hawk_va
 		{
 			hawk_flt_t rr;
 
-			HAWK_ASSERT (rs->v_nstr == 2);
+			HAWK_ASSERT(rs->v_nstr == 2);
 
 			rr = hawk_oochars_to_flt(rs->val.ptr, rs->val.len, HAWK_NULL, stripspc);
 
@@ -5743,8 +5745,8 @@ static HAWK_INLINE int __cmp_val (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t*
 		return -1;
 	}
 
-	HAWK_ASSERT (lvtype >= HAWK_VAL_NIL && lvtype <= HAWK_VAL_ARR);
-	HAWK_ASSERT (rvtype >= HAWK_VAL_NIL && rvtype <= HAWK_VAL_ARR);
+	HAWK_ASSERT(lvtype >= HAWK_VAL_NIL && lvtype <= HAWK_VAL_ARR);
+	HAWK_ASSERT(rvtype >= HAWK_VAL_NIL && rvtype <= HAWK_VAL_ARR);
 
 	/* mapping fomula and table layout assume:
 	 *  HAWK_VAL_NIL  = 0
@@ -5953,7 +5955,7 @@ static hawk_val_t* eval_binop_plus (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_
 	1   1   = 3
 	*/
 	n3 = n1 + (n2 << 1);
-	HAWK_ASSERT (n3 >= 0 && n3 <= 3);
+	HAWK_ASSERT(n3 >= 0 && n3 <= 3);
 
 	return (n3 == 0)? hawk_rtx_makeintval(rtx,(hawk_int_t)l1+(hawk_int_t)l2):
 	       (n3 == 1)? hawk_rtx_makefltval(rtx,(hawk_flt_t)r1+(hawk_flt_t)l2):
@@ -5977,7 +5979,7 @@ static hawk_val_t* eval_binop_minus (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val
 	}
 
 	n3 = n1 + (n2 << 1);
-	HAWK_ASSERT (n3 >= 0 && n3 <= 3);
+	HAWK_ASSERT(n3 >= 0 && n3 <= 3);
 	return (n3 == 0)? hawk_rtx_makeintval(rtx,(hawk_int_t)l1-(hawk_int_t)l2):
 	       (n3 == 1)? hawk_rtx_makefltval(rtx,(hawk_flt_t)r1-(hawk_flt_t)l2):
 	       (n3 == 2)? hawk_rtx_makefltval(rtx,(hawk_flt_t)l1-(hawk_flt_t)r2):
@@ -6000,7 +6002,7 @@ static hawk_val_t* eval_binop_mul (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t
 	}
 
 	n3 = n1 + (n2 << 1);
-	HAWK_ASSERT (n3 >= 0 && n3 <= 3);
+	HAWK_ASSERT(n3 >= 0 && n3 <= 3);
 	return (n3 == 0)? hawk_rtx_makeintval(rtx,(hawk_int_t)l1*(hawk_int_t)l2):
 	       (n3 == 1)? hawk_rtx_makefltval(rtx,(hawk_flt_t)r1*(hawk_flt_t)l2):
 	       (n3 == 2)? hawk_rtx_makefltval(rtx,(hawk_flt_t)l1*(hawk_flt_t)r2):
@@ -6120,7 +6122,7 @@ static hawk_val_t* eval_binop_mod (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t
 	hawk_val_t* res;
 
 	/* the mod function must be provided when the hawk object is created to be able to calculate floating-pointer remainder */
-	HAWK_ASSERT (rtx->hawk->prm.math.mod != HAWK_NULL);
+	HAWK_ASSERT(rtx->hawk->prm.math.mod != HAWK_NULL);
 
 	n1 = hawk_rtx_valtonum(rtx, left, &l1, &r1);
 	n2 = hawk_rtx_valtonum(rtx, right, &l2, &r2);
@@ -6329,8 +6331,8 @@ static hawk_val_t* eval_binop_ma (hawk_rtx_t* rtx, hawk_nde_t* left, hawk_nde_t*
 {
 	hawk_val_t* lv, * rv, * res;
 
-	HAWK_ASSERT (left->next == HAWK_NULL);
-	HAWK_ASSERT (right->next == HAWK_NULL);
+	HAWK_ASSERT(left->next == HAWK_NULL);
+	HAWK_ASSERT(right->next == HAWK_NULL);
 
 	lv = eval_expression(rtx, left);
 	if (HAWK_UNLIKELY(!lv)) return HAWK_NULL;
@@ -6358,8 +6360,8 @@ static hawk_val_t* eval_binop_nm (hawk_rtx_t* rtx, hawk_nde_t* left, hawk_nde_t*
 {
 	hawk_val_t* lv, * rv, * res;
 
-	HAWK_ASSERT (left->next == HAWK_NULL);
-	HAWK_ASSERT (right->next == HAWK_NULL);
+	HAWK_ASSERT(left->next == HAWK_NULL);
+	HAWK_ASSERT(right->next == HAWK_NULL);
 
 	lv = eval_expression(rtx, left);
 	if (HAWK_UNLIKELY(!lv)) return HAWK_NULL;
@@ -6391,17 +6393,17 @@ static hawk_val_t* eval_unary (hawk_rtx_t* rtx, hawk_nde_t* nde)
 	hawk_int_t l;
 	hawk_flt_t r;
 
-	HAWK_ASSERT (
+	HAWK_ASSERT(
 		exp->type == HAWK_NDE_EXP_UNR);
-	HAWK_ASSERT (
+	HAWK_ASSERT(
 		exp->left != HAWK_NULL && exp->right == HAWK_NULL);
-	HAWK_ASSERT (
+	HAWK_ASSERT(
 		exp->opcode == HAWK_UNROP_PLUS ||
 		exp->opcode == HAWK_UNROP_MINUS ||
 		exp->opcode == HAWK_UNROP_LNOT ||
 		exp->opcode == HAWK_UNROP_BNOT);
 
-	HAWK_ASSERT (exp->left->next == HAWK_NULL);
+	HAWK_ASSERT(exp->left->next == HAWK_NULL);
 	left = eval_expression(rtx, exp->left);
 	if (HAWK_UNLIKELY(!left)) return HAWK_NULL;
 
@@ -6464,8 +6466,8 @@ static hawk_val_t* eval_incpre (hawk_rtx_t* rtx, hawk_nde_t* nde)
 	hawk_flt_t inc_val_flt;
 	hawk_nde_exp_t* exp = (hawk_nde_exp_t*)nde;
 
-	HAWK_ASSERT (exp->type == HAWK_NDE_EXP_INCPRE);
-	HAWK_ASSERT (exp->left != HAWK_NULL && exp->right == HAWK_NULL);
+	HAWK_ASSERT(exp->type == HAWK_NDE_EXP_INCPRE);
+	HAWK_ASSERT(exp->left != HAWK_NULL && exp->right == HAWK_NULL);
 
 	/* this way of checking if the l-value is assignable is
 	 * ugly as it is dependent on the node types defined in hawk.h
@@ -6490,12 +6492,12 @@ static hawk_val_t* eval_incpre (hawk_rtx_t* rtx, hawk_nde_t* nde)
 	}
 	else
 	{
-		HAWK_ASSERT (!"should never happen - invalid opcode");
+		HAWK_ASSERT(!"should never happen - invalid opcode");
 		hawk_rtx_seterrnum(rtx, &nde->loc, HAWK_EINTERN);
 		return HAWK_NULL;
 	}
 
-	HAWK_ASSERT (exp->left->next == HAWK_NULL);
+	HAWK_ASSERT(exp->left->next == HAWK_NULL);
 	left = eval_expression(rtx, exp->left);
 	if (HAWK_UNLIKELY(!left)) return HAWK_NULL;
 
@@ -6550,7 +6552,7 @@ static hawk_val_t* eval_incpre (hawk_rtx_t* rtx, hawk_nde_t* nde)
 			}
 			else /* if (n == 1) */
 			{
-				HAWK_ASSERT (n == 1);
+				HAWK_ASSERT(n == 1);
 				res = hawk_rtx_makefltval (rtx, v2 + inc_val_flt);
 			}
 
@@ -6583,8 +6585,8 @@ static hawk_val_t* eval_incpst (hawk_rtx_t* rtx, hawk_nde_t* nde)
 	hawk_flt_t inc_val_flt;
 	hawk_nde_exp_t* exp = (hawk_nde_exp_t*)nde;
 
-	HAWK_ASSERT (exp->type == HAWK_NDE_EXP_INCPST);
-	HAWK_ASSERT (exp->left != HAWK_NULL && exp->right == HAWK_NULL);
+	HAWK_ASSERT(exp->type == HAWK_NDE_EXP_INCPST);
+	HAWK_ASSERT(exp->left != HAWK_NULL && exp->right == HAWK_NULL);
 
 	/* this way of checking if the l-value is assignable is
 	 * ugly as it is dependent on the node types defined in hawk.h.
@@ -6609,12 +6611,12 @@ static hawk_val_t* eval_incpst (hawk_rtx_t* rtx, hawk_nde_t* nde)
 	}
 	else
 	{
-		HAWK_ASSERT (!"should never happen - invalid opcode");
+		HAWK_ASSERT(!"should never happen - invalid opcode");
 		hawk_rtx_seterrnum(rtx, &nde->loc, HAWK_EINTERN);
 		return HAWK_NULL;
 	}
 
-	HAWK_ASSERT (exp->left->next == HAWK_NULL);
+	HAWK_ASSERT(exp->left->next == HAWK_NULL);
 	left = eval_expression(rtx, exp->left);
 	if (HAWK_UNLIKELY(!left)) return HAWK_NULL;
 
@@ -6705,7 +6707,7 @@ static hawk_val_t* eval_incpst (hawk_rtx_t* rtx, hawk_nde_t* nde)
 			}
 			else /* if (n == 1) */
 			{
-				HAWK_ASSERT (n == 1);
+				HAWK_ASSERT(n == 1);
 				res = hawk_rtx_makefltval(rtx, v2);
 				if (HAWK_UNLIKELY(!res))
 				{
@@ -6743,14 +6745,14 @@ static hawk_val_t* eval_cnd (hawk_rtx_t* rtx, hawk_nde_t* nde)
 	hawk_val_t* tv, * v;
 	hawk_nde_cnd_t* cnd = (hawk_nde_cnd_t*)nde;
 
-	HAWK_ASSERT (cnd->test->next == HAWK_NULL);
+	HAWK_ASSERT(cnd->test->next == HAWK_NULL);
 
 	tv = eval_expression(rtx, cnd->test);
 	if (HAWK_UNLIKELY(!tv)) return HAWK_NULL;
 
 	hawk_rtx_refupval(rtx, tv);
 
-	HAWK_ASSERT (cnd->left->next == HAWK_NULL && cnd->right->next == HAWK_NULL);
+	HAWK_ASSERT(cnd->left->next == HAWK_NULL && cnd->right->next == HAWK_NULL);
 	v = (hawk_rtx_valtobool(rtx, tv))? eval_expression(rtx, cnd->left): eval_expression(rtx, cnd->right);
 
 	hawk_rtx_refdownval(rtx, tv);
@@ -6762,7 +6764,7 @@ static hawk_val_t* eval_fncall_fnc (hawk_rtx_t* rtx, hawk_nde_t* nde)
 	/* intrinsic function */
 	hawk_nde_fncall_t* call = (hawk_nde_fncall_t*)nde;
 	/* the parser must make sure that the number of arguments is proper */
-	HAWK_ASSERT (call->nargs >= call->u.fnc.spec.arg.min && call->nargs <= call->u.fnc.spec.arg.max);
+	HAWK_ASSERT(call->nargs >= call->u.fnc.spec.arg.min && call->nargs <= call->u.fnc.spec.arg.max);
 	return hawk_rtx_evalcall(rtx, call, HAWK_NULL, push_arg_from_nde, (void*)call->u.fnc.spec.arg.spec, HAWK_NULL, HAWK_NULL);
 }
 
@@ -6789,7 +6791,7 @@ static HAWK_INLINE hawk_val_t* eval_fncall_fun (hawk_rtx_t* rtx, hawk_nde_t* nde
 		}
 
 		fun = (hawk_fun_t*)HAWK_HTB_VPTR(pair);
-		HAWK_ASSERT (fun != HAWK_NULL);
+		HAWK_ASSERT(fun != HAWK_NULL);
 
 		/* cache the search result */
 		call->u.fun.fun = fun;
@@ -6906,8 +6908,8 @@ hawk_val_t* hawk_rtx_evalcall (
 	 * ---------------------
 	 */
 
-	HAWK_ASSERT (HAWK_SIZEOF(void*) >= HAWK_SIZEOF(rtx->stack_top));
-	HAWK_ASSERT (HAWK_SIZEOF(void*) >= HAWK_SIZEOF(rtx->stack_base));
+	HAWK_ASSERT(HAWK_SIZEOF(void*) >= HAWK_SIZEOF(rtx->stack_top));
+	HAWK_ASSERT(HAWK_SIZEOF(void*) >= HAWK_SIZEOF(rtx->stack_base));
 
 	saved_stack_top = rtx->stack_top;
 
@@ -6944,7 +6946,7 @@ hawk_val_t* hawk_rtx_evalcall (
 	nargs = argpusher(rtx, call, apdata);
 	if (nargs == (hawk_oow_t)-1) goto oops_making_stack_frame;
 
-	HAWK_ASSERT (nargs == call->nargs);
+	HAWK_ASSERT(nargs == call->nargs);
 
 	if (fun)
 	{
@@ -6968,7 +6970,7 @@ hawk_val_t* hawk_rtx_evalcall (
 	if (fun)
 	{
 		/* normal hawk function */
-		HAWK_ASSERT (fun->body->type == HAWK_NDE_BLK);
+		HAWK_ASSERT(fun->body->type == HAWK_NDE_BLK);
 		n = run_block(rtx, (hawk_nde_blk_t*)fun->body);
 	}
 	else
@@ -6976,7 +6978,7 @@ hawk_val_t* hawk_rtx_evalcall (
 		n = 0;
 
 		/* intrinsic function */
-		HAWK_ASSERT (call->nargs >= call->u.fnc.spec.arg.min && call->nargs <= call->u.fnc.spec.arg.max);
+		HAWK_ASSERT(call->nargs >= call->u.fnc.spec.arg.min && call->nargs <= call->u.fnc.spec.arg.max);
 
 		if (call->u.fnc.spec.impl)
 		{
@@ -7182,7 +7184,7 @@ oops_making_stack_frame:
 		hawk_rtx_refdownval(rtx, rtx->stack[rtx->stack_top - 1]);
 		HAWK_RTX_STACK_POP (rtx);
 	}
-	HAWK_ASSERT (rtx->stack_top - saved_stack_top == 4);
+	HAWK_ASSERT(rtx->stack_top - saved_stack_top == 4);
 	while (rtx->stack_top > saved_stack_top)
 	{
 		/* the stack frame prologue does not have a reference-counted value
@@ -7296,7 +7298,7 @@ static hawk_oow_t push_arg_from_nde (hawk_rtx_t* rtx, hawk_nde_fncall_t* call, v
 		hawk_rtx_refupval(rtx, v);
 	}
 
-	HAWK_ASSERT (call->nargs == nargs);
+	HAWK_ASSERT(call->nargs == nargs);
 	return nargs;
 }
 
@@ -7403,7 +7405,7 @@ static hawk_val_t** get_reference_indexed (hawk_rtx_t* rtx, hawk_nde_var_t* var)
 	hawk_val_type_t vtype;
 	hawk_nde_t* remidx;
 
-	HAWK_ASSERT (var->idx != HAWK_NULL);
+	HAWK_ASSERT(var->idx != HAWK_NULL);
 
 	v = fetch_topval_from_var(rtx, var);
 	vtype = HAWK_RTX_GETVALTYPE(rtx, v);
@@ -7505,7 +7507,7 @@ static hawk_val_t** get_reference_indexed (hawk_rtx_t* rtx, hawk_nde_var_t* var)
 			/* if the value doesn't exist for the given key, insert a nil for it to create a placeholder for the reference */
 			pair = hawk_map_upsert(map, str, len, hawk_val_nil, 0);
 			if (HAWK_UNLIKELY(!pair)) { ADJERR_LOC(rtx, &var->loc); goto oops; }
-			HAWK_ASSERT (HAWK_MAP_VPTR(pair) == hawk_val_nil);
+			HAWK_ASSERT(HAWK_MAP_VPTR(pair) == hawk_val_nil);
 			/* no reference count increment as hawk_val_nil is upserted
 			hawk_rtx_refupval(rtx, HAWK_MAP_VPTR(pair)); */
 		}
@@ -7671,7 +7673,7 @@ static hawk_val_t* eval_fun (hawk_rtx_t* rtx, hawk_nde_t* nde)
 		}
 
 		fun = (hawk_fun_t*)HAWK_HTB_VPTR(pair);
-		HAWK_ASSERT (fun != HAWK_NULL);
+		HAWK_ASSERT(fun != HAWK_NULL);
 	}
 
 	val = hawk_rtx_makefunval(rtx, fun);
@@ -7719,7 +7721,7 @@ static hawk_val_t* eval_indexed (hawk_rtx_t* rtx, hawk_nde_var_t* var)
 	v = fetch_topval_from_var(rtx, var);
 	vtype = HAWK_RTX_GETVALTYPE(rtx, v);
 
-	HAWK_ASSERT (var->idx != HAWK_NULL);
+	HAWK_ASSERT(var->idx != HAWK_NULL);
 
 	switch (vtype)
 	{
@@ -7897,7 +7899,7 @@ static hawk_val_t* __eval_getline (hawk_rtx_t* rtx, hawk_nde_t* nde)
 
 	p = (hawk_nde_getline_t*)nde;
 
-	HAWK_ASSERT (
+	HAWK_ASSERT(
 		(p->in_type == HAWK_IN_PIPE && p->in != HAWK_NULL) ||
 		(p->in_type == HAWK_IN_RWPIPE && p->in != HAWK_NULL) ||
 		(p->in_type == HAWK_IN_FILE && p->in != HAWK_NULL) ||
@@ -7941,7 +7943,7 @@ read_console_again:
 	{
 		if (p->in_type == HAWK_IN_CONSOLE)
 		{
-			HAWK_ASSERT (p->in == HAWK_NULL);
+			HAWK_ASSERT(p->in == HAWK_NULL);
 			if (rtx->nrflt.limit > 0)
 			{
 				/* record filter based on record number(NR) */
@@ -8004,7 +8006,7 @@ static hawk_val_t* __eval_getbline (hawk_rtx_t* rtx, hawk_nde_t* nde)
 
 	p = (hawk_nde_getline_t*)nde;
 
-	HAWK_ASSERT (
+	HAWK_ASSERT(
 		(p->in_type == HAWK_IN_PIPE && p->in != HAWK_NULL) ||
 		(p->in_type == HAWK_IN_RWPIPE && p->in != HAWK_NULL) ||
 		(p->in_type == HAWK_IN_FILE && p->in != HAWK_NULL) ||
@@ -8048,7 +8050,7 @@ read_console_again:
 	{
 		if (p->in_type == HAWK_IN_CONSOLE)
 		{
-			HAWK_ASSERT (p->in == HAWK_NULL);
+			HAWK_ASSERT(p->in == HAWK_NULL);
 			if (rtx->nrflt.limit > 0)
 			{
 				/* record filter based on record number(NR) */
@@ -8146,7 +8148,7 @@ read_again:
 #endif
 	if (n == 0)
 	{
-		HAWK_ASSERT (HAWK_OOECS_LEN(buf) == 0);
+		HAWK_ASSERT(HAWK_OOECS_LEN(buf) == 0);
 		return 0;
 	}
 
@@ -8171,7 +8173,7 @@ static hawk_ooch_t* idxnde_to_str (hawk_rtx_t* rtx, hawk_nde_t* nde, hawk_ooch_t
 	hawk_val_t* idx;
 	hawk_int_t idxint;
 
-	HAWK_ASSERT (nde != HAWK_NULL);
+	HAWK_ASSERT(nde != HAWK_NULL);
 
 	if (!nde->next)
 	{
@@ -8206,7 +8208,7 @@ static hawk_ooch_t* idxnde_to_str (hawk_rtx_t* rtx, hawk_nde_t* nde, hawk_ooch_t
 			{
 				str = out.u.cplcpy.ptr;
 				*len = out.u.cplcpy.len;
-				HAWK_ASSERT (str == buf);
+				HAWK_ASSERT(str == buf);
 			}
 		}
 
@@ -8396,7 +8398,7 @@ hawk_ooch_t* hawk_rtx_format (
 } while(0)
 
 	/* run->format.tmp.ptr should have been assigned a pointer to a block of memory before this function has been called */
-	HAWK_ASSERT (rtx->format.tmp.ptr != HAWK_NULL);
+	HAWK_ASSERT(rtx->format.tmp.ptr != HAWK_NULL);
 
 	if (nargs_on_stack == (hawk_oow_t)-1)
 	{
@@ -9019,7 +9021,7 @@ wp_mod_main:
 				hawk_flt_t r;
 				int n;
 
-				HAWK_ASSERT (HAWK_RTX_GETVALTYPE(rtx, val) == HAWK_VAL_FLT);
+				HAWK_ASSERT(HAWK_RTX_GETVALTYPE(rtx, val) == HAWK_VAL_FLT);
 
 				hawk_rtx_refupval(rtx, v);
 				n = hawk_rtx_valtoflt(rtx, v, &r);
@@ -9272,7 +9274,7 @@ hawk_bch_t* hawk_rtx_formatmbs (
 } while(0)
 
 	/* run->format.tmp.ptr should have been assigned a pointer to a block of memory before this function has been called */
-	HAWK_ASSERT (rtx->formatmbs.tmp.ptr != HAWK_NULL);
+	HAWK_ASSERT(rtx->formatmbs.tmp.ptr != HAWK_NULL);
 
 	if (nargs_on_stack == (hawk_oow_t)-1)
 	{
@@ -9903,7 +9905,7 @@ wp_mod_main:
 				hawk_flt_t r;
 				int n;
 
-				HAWK_ASSERT (HAWK_RTX_GETVALTYPE(rtx, val) == HAWK_VAL_FLT);
+				HAWK_ASSERT(HAWK_RTX_GETVALTYPE(rtx, val) == HAWK_VAL_FLT);
 
 				hawk_rtx_refupval(rtx, v);
 				n = hawk_rtx_valtoflt(rtx, v, &r);
