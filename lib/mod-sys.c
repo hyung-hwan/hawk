@@ -6394,7 +6394,7 @@ static void unload (hawk_mod_t* mod, hawk_t* hawk)
 	HAWK_ASSERT (HAWK_RBT_SIZE(mctx->rtxtab) == 0);
 	hawk_rbt_close (mctx->rtxtab);
 
-	hawk_freemem (hawk, mctx);
+	hawk_freemem(hawk, mctx);
 }
 
 int hawk_mod_sys (hawk_mod_t* mod, hawk_t* hawk)
@@ -6413,7 +6413,7 @@ int hawk_mod_sys (hawk_mod_t* mod, hawk_t* hawk)
 	rbt = hawk_rbt_open(hawk_getgem(hawk), 0, 1, 1);
 	if (HAWK_UNLIKELY(!rbt))
 	{
-		hawk_freemem (hawk, mod->ctx);
+		hawk_freemem(hawk, mod->ctx);
 		return -1;
 	}
 	hawk_rbt_setstyle (rbt, hawk_get_rbt_style(HAWK_RBT_STYLE_INLINE_COPIERS));

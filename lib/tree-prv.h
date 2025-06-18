@@ -75,6 +75,8 @@ typedef struct hawk_nde_fncall_t    hawk_nde_fncall_t;
 typedef struct hawk_nde_getline_t   hawk_nde_getline_t;
 
 typedef struct hawk_nde_if_t        hawk_nde_if_t;
+typedef struct hawk_nde_switch_t    hawk_nde_switch_t;
+typedef struct hawk_nde_case_t      hawk_nde_case_t;
 typedef struct hawk_nde_while_t     hawk_nde_while_t;
 typedef struct hawk_nde_for_t       hawk_nde_for_t;
 typedef struct hawk_nde_forin_t     hawk_nde_forin_t;
@@ -278,6 +280,23 @@ struct hawk_nde_if_t
 	hawk_nde_t* test;
 	hawk_nde_t* then_part;
 	hawk_nde_t* else_part; /* optional */
+};
+
+/* HAWK_NDE_SWITCH */
+struct hawk_nde_switch_t
+{
+	HAWK_NDE_HDR;
+	hawk_nde_t* test;
+	hawk_nde_t* case_part; /* optional */
+	hawk_nde_t* default_part; /* optional */
+};
+
+/* HAWK_NDE_CASE */
+struct hawk_nde_case_t
+{
+	HAWK_NDE_HDR;
+	hawk_nde_t* val;
+	hawk_nde_t* action;
 };
 
 /* HAWK_NDE_WHILE, HAWK_NDE_DOWHILE */

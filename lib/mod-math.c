@@ -182,7 +182,7 @@ static hawk_flt_t math_round (hawk_t* hawk, hawk_flt_t x)
 
 	hawk_flt_t f, d;
 
-	f = math_floor (hawk, x);
+	f = math_floor(hawk, x);
 	d = x - f; /* get fraction */
 
 	if (d > (hawk_flt_t)0.5)
@@ -670,7 +670,7 @@ static void unload (hawk_mod_t* mod, hawk_t* hawk)
 	modctx_t* modctx;
 
 	modctx = (modctx_t*)mod->ctx;
-	hawk_freemem (hawk, modctx);
+	hawk_freemem(hawk, modctx);
 }
 
 int hawk_mod_math (hawk_mod_t* mod, hawk_t* hawk)

@@ -354,7 +354,7 @@ int hawk_conv_uchars_to_bchars_with_cmgr (const hawk_uch_t* ucs, hawk_oow_t* ucs
 			}
 
 			/* it assumes that bcsbuf is large enough to hold a character */
-			/*HAWK_ASSERT (hawk, n <= HAWK_COUNTOF(bcsbuf));*/
+			/*HAWK_ASSERT(hawk, n <= HAWK_COUNTOF(bcsbuf));*/
 
 			p++; mlen += n;
 		}
@@ -435,7 +435,7 @@ int hawk_conv_ucstr_to_bcstr_with_cmgr (
 			}
 
 			/* it assumes that bcs is large enough to hold a character */
-			/*HAWK_ASSERT (hawk, n <= HAWK_COUNTOF(bcs));*/
+			/*HAWK_ASSERT(hawk, n <= HAWK_COUNTOF(bcs));*/
 
 			p++; mlen += n;
 		}

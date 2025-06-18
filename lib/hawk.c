@@ -30,18 +30,18 @@ static void free_fun (hawk_htb_t* map, void* vptr, hawk_oow_t vlen)
 	hawk_fun_t* f = (hawk_fun_t*)vptr;
 
 	/* f->name doesn't have to be freed */
-	/*hawk_freemem (hawk, f->name);*/
+	/*hawk_freemem(hawk, f->name);*/
 
-	if (f->argspec) hawk_freemem (hawk, f->argspec);
-	hawk_clrpt (hawk, f->body);
-	hawk_freemem (hawk, f);
+	if (f->argspec) hawk_freemem(hawk, f->argspec);
+	hawk_clrpt(hawk, f->body);
+	hawk_freemem(hawk, f);
 }
 
 static void free_fnc (hawk_htb_t* map, void* vptr, hawk_oow_t vlen)
 {
 	hawk_t* hawk = *(hawk_t**)(map + 1);
 	hawk_fnc_t* f = (hawk_fnc_t*)vptr;
-	hawk_freemem (hawk, f);
+	hawk_freemem(hawk, f);
 }
 
 static int init_token (hawk_t* hawk, hawk_tok_t* tok)
@@ -139,7 +139,7 @@ int hawk_init (hawk_t* hawk, hawk_mmgr_t* mmgr, hawk_cmgr_t* cmgr, const hawk_pr
 	};
 
 	/* zero out the object */
-	HAWK_MEMSET (hawk, 0, HAWK_SIZEOF(*hawk));
+	HAWK_MEMSET(hawk, 0, HAWK_SIZEOF(*hawk));
 
 	/* remember the memory manager */
 	hawk->_instsize = HAWK_SIZEOF(*hawk);
@@ -164,7 +164,7 @@ int hawk_init (hawk_t* hawk, hawk_mmgr_t* mmgr, hawk_cmgr_t* cmgr, const hawk_pr
 	    prm->math.pow == HAWK_NULL ||
 	    prm->math.mod == HAWK_NULL)
 	{
-		hawk_seterrnum (hawk, HAWK_NULL, HAWK_EINVAL);
+		hawk_seterrnum(hawk, HAWK_NULL, HAWK_EINVAL);
 		goto oops;
 	}
 	hawk->prm = *prm;
@@ -217,7 +217,7 @@ int hawk_init (hawk_t* hawk, hawk_mmgr_t* mmgr, hawk_cmgr_t* cmgr, const hawk_pr
 	    hawk->fnc.user == HAWK_NULL ||
 	    hawk->modtab == HAWK_NULL)
 	{
-		hawk_seterrnum (hawk, HAWK_NULL, HAWK_ENOMEM);
+		hawk_seterrnum(hawk, HAWK_NULL, HAWK_ENOMEM);
 		goto oops;
 	}
 
@@ -262,7 +262,7 @@ oops:
 	fini_token (&hawk->ntok);
 	fini_token (&hawk->tok);
 	fini_token (&hawk->ptok);
-	if (hawk->log.ptr) hawk_freemem (hawk, hawk->log.ptr);
+	if (hawk->log.ptr) hawk_freemem(hawk, hawk->log.ptr);
 	hawk->log.capa = 0;
 
 	return -1;
@@ -280,14 +280,14 @@ void hawk_fini (hawk_t* hawk)
         {
 		int shuterr = hawk->shuterr;
 		hawk->shuterr = 1;
-		hawk->prm.logwrite (hawk, hawk->log.last_mask, hawk->log.ptr, hawk->log.len);
+		hawk->prm.logwrite(hawk, hawk->log.last_mask, hawk->log.ptr, hawk->log.len);
 		hawk->shuterr = shuterr;
 	}
 
 	for (ecb = hawk->ecb; ecb != (hawk_ecb_t*)hawk; ecb = ecb_next)
 	{
 		ecb_next = ecb->next;
-		if (ecb->close) ecb->close (hawk, ecb->ctx);
+		if (ecb->close) ecb->close(hawk, ecb->ctx);
 	}
 
 	do { ecb = hawk_popecb(hawk); } while (ecb);
@@ -309,23 +309,23 @@ void hawk_fini (hawk_t* hawk)
 	fini_token (&hawk->tok);
 	fini_token (&hawk->ptok);
 
-	if (hawk->parse.incl_hist.ptr) hawk_freemem (hawk, hawk->parse.incl_hist.ptr);
+	if (hawk->parse.incl_hist.ptr) hawk_freemem(hawk, hawk->parse.incl_hist.ptr);
 	hawk_clearsionames (hawk);
 
 	/* destroy dynamically allocated options */
 	for (i = 0; i < HAWK_COUNTOF(hawk->opt.mod); i++)
 	{
-		if (hawk->opt.mod[i].ptr) hawk_freemem (hawk, hawk->opt.mod[i].ptr);
+		if (hawk->opt.mod[i].ptr) hawk_freemem(hawk, hawk->opt.mod[i].ptr);
 	}
 
-	if (hawk->opt.includedirs.ptr) hawk_freemem (hawk, hawk->opt.includedirs.ptr);
+	if (hawk->opt.includedirs.ptr) hawk_freemem(hawk, hawk->opt.includedirs.ptr);
 
 
 	for (i = 0; i < HAWK_COUNTOF(hawk->sbuf); i++)
 	{
 		if (hawk->sbuf[i].ptr)
 		{
-			hawk_freemem (hawk, hawk->sbuf[i].ptr);
+			hawk_freemem(hawk, hawk->sbuf[i].ptr);
 			hawk->sbuf[i].ptr = HAWK_NULL;
 			hawk->sbuf[i].len = 0;
 			hawk->sbuf[i].capa = 0;
@@ -340,13 +340,13 @@ void hawk_fini (hawk_t* hawk)
 		 * logging */
 		int shuterr = hawk->shuterr;
 		hawk->shuterr = 1;
-		hawk->prm.logwrite (hawk, hawk->log.last_mask, hawk->log.ptr, hawk->log.len);
+		hawk->prm.logwrite(hawk, hawk->log.last_mask, hawk->log.ptr, hawk->log.len);
 		hawk->shuterr = shuterr;
 	}
 
 	if (hawk->log.ptr)
 	{
-		hawk_freemem (hawk, hawk->log.ptr);
+		hawk_freemem(hawk, hawk->log.ptr);
 		hawk->log.capa = 0;
 		hawk->log.len = 0;
 	}
@@ -359,7 +359,7 @@ static hawk_rbt_walk_t unload_module (hawk_rbt_t* rbt, hawk_rbt_pair_t* pair, vo
 
 	md = HAWK_RBT_VPTR(pair);
 	if (md->mod.unload) md->mod.unload (&md->mod, hawk);
-	if (md->handle) hawk->prm.modclose (hawk, md->handle);
+	if (md->handle) hawk->prm.modclose(hawk, md->handle);
 
 	return HAWK_RBT_WALK_FORWARD;
 }
@@ -371,7 +371,7 @@ void hawk_clear (hawk_t* hawk)
 	for (ecb = hawk->ecb; ecb != (hawk_ecb_t*)hawk; ecb = ecb_next)
 	{
 		ecb_next = ecb->next;
-		if (ecb->clear) ecb->clear (hawk, ecb->ctx);
+		if (ecb->clear) ecb->clear(hawk, ecb->ctx);
 	}
 	/* hawk_clear() this doesn't pop event callbacks */
 
@@ -418,14 +418,14 @@ void hawk_clear (hawk_t* hawk)
 
 	if (hawk->tree.begin)
 	{
-		hawk_clrpt (hawk, hawk->tree.begin);
+		hawk_clrpt(hawk, hawk->tree.begin);
 		hawk->tree.begin = HAWK_NULL;
 		hawk->tree.begin_tail = HAWK_NULL;
 	}
 
 	if (hawk->tree.end)
 	{
-		hawk_clrpt (hawk, hawk->tree.end);
+		hawk_clrpt(hawk, hawk->tree.end);
 		hawk->tree.end = HAWK_NULL;
 		hawk->tree.end_tail = HAWK_NULL;
 	}
@@ -433,9 +433,9 @@ void hawk_clear (hawk_t* hawk)
 	while (hawk->tree.chain)
 	{
 		hawk_chain_t* next = hawk->tree.chain->next;
-		if (hawk->tree.chain->pattern) hawk_clrpt (hawk, hawk->tree.chain->pattern);
-		if (hawk->tree.chain->action) hawk_clrpt (hawk, hawk->tree.chain->action);
-		hawk_freemem (hawk, hawk->tree.chain);
+		if (hawk->tree.chain->pattern) hawk_clrpt(hawk, hawk->tree.chain->pattern);
+		if (hawk->tree.chain->action) hawk_clrpt(hawk, hawk->tree.chain->action);
+		hawk_freemem(hawk, hawk->tree.chain);
 		hawk->tree.chain = next;
 	}
 
@@ -493,7 +493,7 @@ int hawk_setopt (hawk_t* hawk, hawk_opt_t id, const void* value)
 			if (dup_str_opt(hawk, value, &tmp) <= -1) return -1;
 
 			idx = id - HAWK_OPT_MODLIBDIRS;
-			if (hawk->opt.mod[idx].ptr) hawk_freemem (hawk, hawk->opt.mod[idx].ptr);
+			if (hawk->opt.mod[idx].ptr) hawk_freemem(hawk, hawk->opt.mod[idx].ptr);
 
 			hawk->opt.mod[idx] = tmp;
 			return 0;
@@ -503,7 +503,7 @@ int hawk_setopt (hawk_t* hawk, hawk_opt_t id, const void* value)
 		{
 			hawk_oocs_t tmp;
 			if (dup_str_opt(hawk, value, &tmp) <= -1) return -1;
-			if (hawk->opt.includedirs.ptr) hawk_freemem (hawk, hawk->opt.includedirs.ptr);
+			if (hawk->opt.includedirs.ptr) hawk_freemem(hawk, hawk->opt.includedirs.ptr);
 			hawk->opt.includedirs = tmp;
 			return 0;
 		}
@@ -535,7 +535,7 @@ int hawk_setopt (hawk_t* hawk, hawk_opt_t id, const void* value)
 
 	}
 
-	hawk_seterrnum (hawk, HAWK_NULL, HAWK_EINVAL);
+	hawk_seterrnum(hawk, HAWK_NULL, HAWK_EINVAL);
 	return -1;
 }
 
@@ -581,7 +581,7 @@ int hawk_getopt (hawk_t* hawk, hawk_opt_t id, void* value)
 
 	};
 
-	hawk_seterrnum (hawk, HAWK_NULL, HAWK_EINVAL);
+	hawk_seterrnum(hawk, HAWK_NULL, HAWK_EINVAL);
 	return -1;
 }
 
@@ -728,21 +728,21 @@ int hawk_findmodsymflt_noseterr (hawk_t* hawk, hawk_mod_flt_tab_t* flttab, hawk_
 int hawk_findmodsymfnc (hawk_t* hawk, hawk_mod_fnc_tab_t* fnctab, hawk_oow_t count, const hawk_ooch_t* name, hawk_mod_sym_t* sym)
 {
 	int n = hawk_findmodsymfnc_noseterr(hawk, fnctab, count, name, sym);
-	if (n <= -1) hawk_seterrfmt (hawk, HAWK_NULL, HAWK_ENOENT, HAWK_T("'%js' not found"), name);
+	if (n <= -1) hawk_seterrfmt(hawk, HAWK_NULL, HAWK_ENOENT, HAWK_T("'%js' not found"), name);
 	return n;
 }
 
 int hawk_findmodsymint (hawk_t* hawk, hawk_mod_int_tab_t* inttab, hawk_oow_t count, const hawk_ooch_t* name, hawk_mod_sym_t* sym)
 {
 	int n = hawk_findmodsymint_noseterr(hawk, inttab, count, name, sym);
-	if (n <= -1) hawk_seterrfmt (hawk, HAWK_NULL, HAWK_ENOENT, HAWK_T("'%js' not found"), name);
+	if (n <= -1) hawk_seterrfmt(hawk, HAWK_NULL, HAWK_ENOENT, HAWK_T("'%js' not found"), name);
 	return n;
 }
 
 int hawk_findmodsymflt (hawk_t* hawk, hawk_mod_flt_tab_t* flttab, hawk_oow_t count, const hawk_ooch_t* name, hawk_mod_sym_t* sym)
 {
 	int n = hawk_findmodsymflt_noseterr(hawk, flttab, count, name, sym);
-	if (n <= -1) hawk_seterrfmt (hawk, HAWK_NULL, HAWK_ENOENT, HAWK_T("'%js' not found"), name);
+	if (n <= -1) hawk_seterrfmt(hawk, HAWK_NULL, HAWK_ENOENT, HAWK_T("'%js' not found"), name);
 	return n;
 }
 

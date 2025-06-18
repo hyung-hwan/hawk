@@ -1914,7 +1914,7 @@ int Hawk::setIncludeDirs (const hawk_uch_t* dirs)
 	if (HAWK_UNLIKELY(!tmp)) return -1;
 
 	int n = hawk_setopt(hawk, HAWK_OPT_INCLUDEDIRS, tmp);
-	hawk_freemem (hawk, tmp);
+	hawk_freemem(hawk, tmp);
 	return n;
 #endif
 }
@@ -1927,7 +1927,7 @@ int Hawk::setIncludeDirs (const hawk_bch_t* dirs)
 	if (HAWK_UNLIKELY(!tmp)) return -1;
 
 	int n = hawk_setopt(hawk, HAWK_OPT_INCLUDEDIRS, tmp);
-	hawk_freemem (hawk, tmp);
+	hawk_freemem(hawk, tmp);
 	return n;
 #else
 	return hawk_setopt(this->hawk, HAWK_OPT_INCLUDEDIRS, dirs);
@@ -2175,9 +2175,9 @@ void Hawk::xstrs_t::clear (hawk_t* hawk)
 	if (this->ptr != HAWK_NULL)
 	{
 		while (this->len > 0)
-			hawk_freemem (hawk, this->ptr[--this->len].ptr);
+			hawk_freemem(hawk, this->ptr[--this->len].ptr);
 
-		hawk_freemem (hawk, this->ptr);
+		hawk_freemem(hawk, this->ptr);
 		this->ptr = HAWK_NULL;
 		this->capa = 0;
 	}
@@ -2423,7 +2423,7 @@ hawk_ooi_t Hawk::readSource (hawk_t* hawk, hawk_sio_cmd_t cmd, hawk_sio_arg_t* a
 		case HAWK_SIO_CMD_READ:
 			return xtn->hawk->source_reader->read(sdat, data, count);
 		default:
-			hawk_seterrnum (hawk, HAWK_NULL, HAWK_EINTERN);
+			hawk_seterrnum(hawk, HAWK_NULL, HAWK_EINTERN);
 			return -1;
 	}
 }
@@ -2442,7 +2442,7 @@ hawk_ooi_t Hawk::writeSource (hawk_t* hawk, hawk_sio_cmd_t cmd, hawk_sio_arg_t* 
 		case HAWK_SIO_CMD_WRITE:
 			return xtn->hawk->source_writer->write (sdat, data, count);
 		default:
-			hawk_seterrnum (hawk, HAWK_NULL, HAWK_EINTERN);
+			hawk_seterrnum(hawk, HAWK_NULL, HAWK_EINTERN);
 			return -1;
 	}
 }

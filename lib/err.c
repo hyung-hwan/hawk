@@ -76,6 +76,7 @@ const hawk_ooch_t* hawk_dfl_errstr (hawk_errnum_t errnum)
 		HAWK_T("left brace expected"),
 		HAWK_T("left parenthesis expected"),
 		HAWK_T("right parenthesis expected"),
+		HAWK_T("right brace expected"),
 		HAWK_T("right bracket expected"),
 		HAWK_T("comma expected"),
 		HAWK_T("semicolon expected"),
@@ -88,6 +89,8 @@ const hawk_ooch_t* hawk_dfl_errstr (hawk_errnum_t errnum)
 
 		HAWK_T("keyword 'function' expected"),
 		HAWK_T("keyword 'while' expected"),
+		HAWK_T("keyword 'case' expected"),
+		HAWK_T("multiple 'default' labels"),
 		HAWK_T("invalid assignment statement"),
 		HAWK_T("identifier expected"),
 		HAWK_T("not a valid function name"),

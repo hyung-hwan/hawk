@@ -60,7 +60,7 @@
  * hawk_rio_cbs_t rio; // need to initialize it with callback functions
  *
  * hawk = hawk_open(mmgr, 0, prm); // create an interpreter
- * hawk_parse (hawk, &sio);          // parse a script
+ * hawk_parse(hawk, &sio);          // parse a script
  * rtx = hawk_rtx_open(hawk, 0, &rio); // create a runtime context
  * retv = hawk_rtx_loop(rtx);     // run a standard AWK loop
  * if (retv) hawk_rtx_refdownval (rtx, retv); // free return value
@@ -398,6 +398,8 @@ enum hawk_nde_type_t
 	/* statement */
 	HAWK_NDE_BLK,
 	HAWK_NDE_IF,
+	HAWK_NDE_SWITCH,
+	HAWK_NDE_CASE,
 	HAWK_NDE_WHILE,
 	HAWK_NDE_DOWHILE,
 	HAWK_NDE_FOR,
@@ -1903,8 +1905,8 @@ HAWK_EXPORT void hawk_clrfnc (
  * if (n >= 0)
  * {
  *    while (n > 0)
- *       n = sio->in (hawk, HAWK_SIO_CMD_READ, buf, buf_size);
- *    sio->in (hawk, HAWK_SIO_CMD_CLOSE);
+ *       n = sio->in(hawk, HAWK_SIO_CMD_READ, buf, buf_size);
+ *    sio->in(hawk, HAWK_SIO_CMD_CLOSE);
  * }
  * \endcode
  *
@@ -1917,12 +1919,12 @@ HAWK_EXPORT void hawk_clrfnc (
  * calling \a sio->out as shown below:
  *
  * \code
- * n = sio->out (hawk, HAWK_SIO_CMD_OPEN);
+ * n = sio->out(hawk, HAWK_SIO_CMD_OPEN);
  * if (n >= 0)
  * {
  *    while (n > 0)
- *       n = sio->out (hawk, HAWK_SIO_CMD_WRITE, text, text_size);
- *    sio->out (hawk, HAWK_SIO_CMD_CLOSE);
+ *       n = sio->out(hawk, HAWK_SIO_CMD_WRITE, text, text_size);
+ *    sio->out(hawk, HAWK_SIO_CMD_CLOSE);
  * }
  * \endcode
  *

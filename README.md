@@ -476,7 +476,9 @@ The following words are reserved and cannot be used as a variable name, a parame
  - BEGIN
  - END
  - break
+ - case
  - continue
+ - default
  - delete
  - do
  - else
@@ -494,6 +496,7 @@ The following words are reserved and cannot be used as a variable name, a parame
  - printf
  - return
  - while
+ - switch
 
 However, some of these words not beginning with `@` can be used as normal names in the context of a module call. For example, `mymod::break`. In practice, the predefined names used for built-in commands, functions, and variables are treated as if they are reserved since you can't create another definition with the same name.
 
@@ -633,7 +636,7 @@ BEGIN {
 
 Hawk supports various control structures for flow control and iteration, similar to those found in awk.
 
-The `if` statement in Hawk follows the same syntax as in awk and other programming languages. It allows you to execute a block of code conditionally based on a specified condition.
+The `if` statement follows the same syntax as in awk and other programming languages. It allows you to execute a block of code conditionally based on a specified condition.
 
 ```awk
 if (condition) {
@@ -645,7 +648,18 @@ if (condition) {
 }
 ```
 
-The `while` loop in Hawk is used to repeatedly execute a block of code as long as a specific condition is true.
+The `switch` statement allows the result of an expression to be tested against a list of values.
+```awk
+switch (expression) {
+case value:
+    ## statements
+...
+default:
+    ## statements
+}
+```
+
+The `while` loop is used to repeatedly execute a block of code as long as a specific condition is true.
 ```awk
 while (condition) {
 	# statements
@@ -659,13 +673,13 @@ do {
 } while (condition)
 ```
 
-The `for` loop in Hawk follows the same syntax as in awk and allows you to iterate over a range of values or an array.
+The `for` loop follows the same syntax as in awk and allows you to iterate over a range of values or an array.
 ```awk
 for (initialization; condition; increment/decrement) {
 	## statements
 }
 ```
-You can also use the for loop to iterate over the elements of an array:
+You can also use the `fo`r loop to iterate over the elements of an array:
 ```awk
 for (index in array) {
 	## statements using array[index]

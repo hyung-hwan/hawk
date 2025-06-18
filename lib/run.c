@@ -78,7 +78,7 @@ static int init_rtx (hawk_rtx_t* rtx, hawk_t* hawk, hawk_rio_cbs_t* rio);
 static void fini_rtx (hawk_rtx_t* rtx, int fini_globals);
 
 static int init_globals (hawk_rtx_t* rtx);
-static void refdown_globals (hawk_rtx_t* run, int pop);
+static void refdown_globals (hawk_rtx_t* rtx, int pop);
 
 static int run_pblocks  (hawk_rtx_t* rtx);
 static int run_pblock_chain (hawk_rtx_t* rtx, hawk_chain_t* cha);
@@ -86,6 +86,7 @@ static int run_pblock (hawk_rtx_t* rtx, hawk_chain_t* cha, hawk_oow_t bno);
 static int run_block (hawk_rtx_t* rtx, hawk_nde_blk_t* nde);
 static int run_statement (hawk_rtx_t* rtx, hawk_nde_t* nde);
 static int run_if (hawk_rtx_t* rtx, hawk_nde_if_t* nde);
+static int run_switch (hawk_rtx_t* rtx, hawk_nde_switch_t* nde);
 static int run_while (hawk_rtx_t* rtx, hawk_nde_while_t* nde);
 static int run_for (hawk_rtx_t* rtx, hawk_nde_for_t* nde);
 static int run_forin (hawk_rtx_t* rtx, hawk_nde_forin_t* nde);
@@ -339,7 +340,7 @@ static int set_global (hawk_rtx_t* rtx, int idx, hawk_nde_var_t* var, hawk_val_t
 				{
 					/* '\0' is included in the value */
 					hawk_rtx_freemem(rtx, str.ptr);
-					hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_ECONVFMTCHR);
+					hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_ECONVFMTCHR);
 					return -1;
 				}
 			}
@@ -441,7 +442,7 @@ static int set_global (hawk_rtx_t* rtx, int idx, hawk_nde_var_t* var, hawk_val_t
 				if (hawk_rtx_truncrec(rtx, (hawk_oow_t)lv) <= -1)
 				{
 					/* adjust the error line */
-					/*if (var) ADJERR_LOC (rtx, &var->loc);*/
+					/*if (var) ADJERR_LOC(rtx, &var->loc);*/
 					return -1;
 				}
 			}
@@ -504,7 +505,7 @@ static int set_global (hawk_rtx_t* rtx, int idx, hawk_nde_var_t* var, hawk_val_t
 				{
 					/* '\0' is included in the value */
 					hawk_rtx_freemem(rtx, str.ptr);
-					hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_ECONVFMTCHR);
+					hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_ECONVFMTCHR);
 					return -1;
 				}
 			}
@@ -846,7 +847,7 @@ hawk_rtx_t* hawk_rtx_open (hawk_t* hawk, hawk_oow_t xtnsize, hawk_rio_cbs_t* rio
 	hawk_oow_t i;
 
 	/* clear the hawk error code */
-	hawk_seterrnum (hawk, HAWK_NULL, HAWK_ENOERR);
+	hawk_seterrnum(hawk, HAWK_NULL, HAWK_ENOERR);
 
 	/* check if the code has ever been parsed */
 	if (hawk->tree.ngbls == 0 &&
@@ -855,7 +856,7 @@ hawk_rtx_t* hawk_rtx_open (hawk_t* hawk, hawk_oow_t xtnsize, hawk_rio_cbs_t* rio
 	    hawk->tree.chain_size == 0 &&
 	    hawk_htb_getsize(hawk->tree.funs) == 0)
 	{
-		hawk_seterrnum (hawk, HAWK_NULL, HAWK_EPERM);
+		hawk_seterrnum(hawk, HAWK_NULL, HAWK_EPERM);
 		return HAWK_NULL;
 	}
 
@@ -876,7 +877,7 @@ hawk_rtx_t* hawk_rtx_open (hawk_t* hawk, hawk_oow_t xtnsize, hawk_rio_cbs_t* rio
 		 * it should be ok to copy over rtx error to hawk even if
 		 * rtx initialization fails. */
 		hawk_rtx_errortohawk (rtx, hawk);
-		hawk_freemem (hawk, rtx);
+		hawk_freemem(hawk, rtx);
 		return HAWK_NULL;
 	}
 
@@ -886,7 +887,7 @@ hawk_rtx_t* hawk_rtx_open (hawk_t* hawk, hawk_oow_t xtnsize, hawk_rio_cbs_t* rio
 	{
 		hawk_rtx_errortohawk (rtx, hawk);
 		fini_rtx (rtx, 0);
-		hawk_freemem (hawk, rtx);
+		hawk_freemem(hawk, rtx);
 		return HAWK_NULL;
 	}
 
@@ -904,7 +905,7 @@ hawk_rtx_t* hawk_rtx_open (hawk_t* hawk, hawk_oow_t xtnsize, hawk_rio_cbs_t* rio
 		}
 
 		fini_rtx (rtx, 1);
-		hawk_freemem (hawk, rtx);
+		hawk_freemem(hawk, rtx);
 		return HAWK_NULL;
 	}
 
@@ -1382,7 +1383,7 @@ static int prepare_globals (hawk_rtx_t* rtx)
 
 	if (HAWK_UNLIKELY(HAWK_RTX_STACK_AVAIL(rtx) < ngbls))
 	{
-		hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_ESTACK);
+		hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_ESTACK);
 		return -1;
 	}
 
@@ -1640,7 +1641,7 @@ hawk_val_t* hawk_rtx_loop (hawk_rtx_t* rtx)
 		/* restore the stack top in a cheesy(?) way.
 		 * it is ok to do so as the values pushed are
 		 * nils and binary numbers. */
-		hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_ESTACK);
+		hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_ESTACK);
 		return HAWK_NULL;
 	}
 
@@ -1979,17 +1980,17 @@ static int run_pblocks (hawk_rtx_t* rtx)
 {
 	int n;
 
-#define ADJUST_ERROR(run) \
+#define ADJUST_ERROR(rtx) \
 	if (rtx->hawk->tree.chain != HAWK_NULL) \
 	{ \
 		if (rtx->hawk->tree.chain->pattern != HAWK_NULL) \
-			ADJERR_LOC (rtx, &rtx->hawk->tree.chain->pattern->loc); \
+			ADJERR_LOC(rtx, &rtx->hawk->tree.chain->pattern->loc); \
 		else if (rtx->hawk->tree.chain->action != HAWK_NULL) \
-			ADJERR_LOC (rtx, &rtx->hawk->tree.chain->action->loc); \
+			ADJERR_LOC(rtx, &rtx->hawk->tree.chain->action->loc); \
 	} \
 	else if (rtx->hawk->tree.end != HAWK_NULL) \
 	{ \
-		ADJERR_LOC (run, &rtx->hawk->tree.end->loc); \
+		ADJERR_LOC(rtx, &rtx->hawk->tree.end->loc); \
 	}
 
 	rtx->inrec.buf_pos = 0;
@@ -2129,7 +2130,7 @@ static HAWK_INLINE int run_block0 (hawk_rtx_t* rtx, hawk_nde_blk_t* nde)
 		if (n <= -1)
 		{
 			hawk_rtx_refdownval(rtx, rtx->inrec.d0);
-			ADJERR_LOC (rtx, &nde->loc);
+			ADJERR_LOC(rtx, &nde->loc);
 			return -1;
 		}
 
@@ -2137,7 +2138,7 @@ static HAWK_INLINE int run_block0 (hawk_rtx_t* rtx, hawk_nde_blk_t* nde)
 		if (n <= -1)
 		{
 			hawk_rtx_refdownval(rtx, rtx->inrec.d0);
-			ADJERR_LOC (rtx, &nde->loc);
+			ADJERR_LOC(rtx, &nde->loc);
 			return -1;
 		}
 
@@ -2159,7 +2160,7 @@ static HAWK_INLINE int run_block0 (hawk_rtx_t* rtx, hawk_nde_blk_t* nde)
 		/* ensure sufficient space for local variables */
 		if (HAWK_UNLIKELY(HAWK_RTX_STACK_AVAIL(rtx) < tmp))
 		{
-			hawk_rtx_seterrnum (rtx, &nde->loc, HAWK_ESTACK);
+			hawk_rtx_seterrnum(rtx, &nde->loc, HAWK_ESTACK);
 			return -1;
 		}
 
@@ -2237,7 +2238,7 @@ static int run_block (hawk_rtx_t* rtx, hawk_nde_blk_t* nde)
 	if (rtx->hawk->opt.depth.s.block_run > 0 &&
 	    rtx->depth.block >= rtx->hawk->opt.depth.s.block_run)
 	{
-		hawk_rtx_seterrnum (rtx, &nde->loc, HAWK_EBLKNST);
+		hawk_rtx_seterrnum(rtx, &nde->loc, HAWK_EBLKNST);
 		return -1;;
 	}
 
@@ -2277,6 +2278,17 @@ static int run_statement (hawk_rtx_t* rtx, hawk_nde_t* nde)
 
 		case HAWK_NDE_IF:
 			xret = run_if(rtx, (hawk_nde_if_t*)nde);
+			break;
+
+		case HAWK_NDE_SWITCH:
+			xret = run_switch(rtx, (hawk_nde_switch_t*)nde);
+			break;
+
+		case HAWK_NDE_CASE:
+			/* this must never happen - run_swtich must handle this part */
+			HAWK_ASSERT (!"should never happen - HAWK_NDE_CASE must not be fed to run_statement");
+			hawk_rtx_seterrnum(rtx, &nde->loc, HAWK_EINTERN);
+			xret = -1;
 			break;
 
 		case HAWK_NDE_WHILE:
@@ -2376,6 +2388,119 @@ static int run_if (hawk_rtx_t* rtx, hawk_nde_if_t* nde)
 
 	hawk_rtx_refdownval(rtx, test); /* TODO: is this correct?*/
 	return n;
+}
+
+static int run_switch (hawk_rtx_t* rtx, hawk_nde_switch_t* nde)
+{
+	hawk_val_t* test;
+	hawk_val_t* v;
+	hawk_nde_case_t* case_part;
+	hawk_nde_case_t* default_part;
+	int eval_true = 0;
+	int ret = 0;
+
+	/* the test expression for the if statement cannot have
+	 * chained expressions. this should not be allowed by the
+	 * parser first of all */
+	HAWK_ASSERT (nde->test->next == HAWK_NULL);
+
+	test = eval_expression(rtx, nde->test);
+	if (HAWK_UNLIKELY(!test)) return -1;
+
+	hawk_rtx_refupval(rtx, test);
+
+	HAWK_ASSERT(nde->type == HAWK_NDE_CASE);
+	case_part = (hawk_nde_case_t*)nde->case_part;
+	default_part = (hawk_nde_case_t*)nde->default_part;
+
+	while (case_part)
+	{
+		int x;
+
+		if (eval_true) goto skip_eval;
+		if (case_part->val) // skip the default part.
+		{
+			v = eval_expression(rtx, case_part->val);
+			hawk_rtx_refupval(rtx, v);
+			x = hawk_rtx_cmpval(rtx, test, v, &ret);
+			hawk_rtx_refdownval(rtx, v);
+			if (x <= -1)
+			{
+				hawk_rtx_refdownval(rtx, test);
+				return -1;
+			}
+			if (ret == 0)
+			{
+			skip_eval:
+				eval_true = 1;
+				if (case_part->action)
+				{
+					hawk_nde_t* action;
+
+					action = case_part->action;
+					do
+					{
+						if (run_statement(rtx, action) <= -1)
+						{
+							ret = -1;
+							goto done;
+						}
+
+						if (rtx->exit_level == EXIT_BREAK) /* if 'break' has been executed */
+						{
+							rtx->exit_level = EXIT_NONE;
+							goto done;
+						}
+						else if (rtx->exit_level != EXIT_NONE) goto done;
+
+						action = action->next;
+					}
+					while(action);
+
+				}
+			}
+		}
+
+		case_part = (hawk_nde_case_t*)case_part->next;
+	}
+
+	if (!eval_true && default_part)
+	{
+		case_part = default_part;
+		do
+		{
+			if (case_part->action)
+			{
+				hawk_nde_t* action;
+
+				action = case_part->action;
+				do
+				{
+					if (run_statement(rtx, action) <= -1)
+					{
+						ret = -1;
+						goto done;
+					}
+
+					if (rtx->exit_level == EXIT_BREAK) /* if 'break' has been executed */
+					{
+						rtx->exit_level = EXIT_NONE;
+						goto done;
+					}
+					else if (rtx->exit_level != EXIT_NONE) goto done;
+
+					action = action->next;
+				}
+				while (action);
+			}
+			case_part = (hawk_nde_case_t*)case_part->next;
+		}
+		while (case_part);
+	}
+
+done:
+	hawk_rtx_refdownval(rtx, test);
+	return ret;
 }
 
 static int run_while (hawk_rtx_t* rtx, hawk_nde_while_t* nde)
@@ -2500,7 +2625,7 @@ static int run_for (hawk_rtx_t* rtx, hawk_nde_for_t* nde)
 			hawk_rtx_refupval(rtx, test);
 			if (hawk_rtx_valtobool(rtx, test))
 			{
-				if (run_statement(rtx,nde->body) <= -1)
+				if (run_statement(rtx, nde->body) <= -1)
 				{
 					hawk_rtx_refdownval(rtx, test);
 					return -1;
@@ -2593,7 +2718,7 @@ static int run_forin (hawk_rtx_t* rtx, hawk_nde_forin_t* nde)
 				tmp = hawk_rtx_reallocmem(rtx, rtx->forin.ptr, newcapa * HAWK_SIZEOF(*tmp));
 				if (HAWK_UNLIKELY(!tmp))
 				{
-					ADJERR_LOC (rtx, &test->left->loc);
+					ADJERR_LOC(rtx, &test->left->loc);
 					ret = -1;
 					goto done2;
 				}
@@ -2613,7 +2738,7 @@ static int run_forin (hawk_rtx_t* rtx, hawk_nde_forin_t* nde)
 				str = (hawk_val_t*)hawk_rtx_makenstrvalwithoochars(rtx, HAWK_HTB_KPTR(pair), HAWK_HTB_KLEN(pair));
 				if (HAWK_UNLIKELY(!str))
 				{
-					ADJERR_LOC (rtx, &test->left->loc);
+					ADJERR_LOC(rtx, &test->left->loc);
 					ret = -1;
 					goto done2;
 				}
@@ -2675,7 +2800,7 @@ static int run_forin (hawk_rtx_t* rtx, hawk_nde_forin_t* nde)
 				tmp = hawk_rtx_reallocmem(rtx, rtx->forin.ptr, newcapa * HAWK_SIZEOF(*tmp));
 				if (HAWK_UNLIKELY(!tmp))
 				{
-					ADJERR_LOC (rtx, &test->left->loc);
+					ADJERR_LOC(rtx, &test->left->loc);
 					ret = -1;
 					goto done3;
 				}
@@ -2696,7 +2821,7 @@ static int run_forin (hawk_rtx_t* rtx, hawk_nde_forin_t* nde)
 					tmp = (hawk_val_t*)hawk_rtx_makeintval(rtx, i);
 					if (HAWK_UNLIKELY(!tmp))
 					{
-						ADJERR_LOC (rtx, &test->left->loc);
+						ADJERR_LOC(rtx, &test->left->loc);
 						ret = -1;
 						goto done3;
 					}
@@ -2738,7 +2863,7 @@ static int run_forin (hawk_rtx_t* rtx, hawk_nde_forin_t* nde)
 		}
 
 		default:
-			hawk_rtx_seterrnum (rtx, &test->right->loc, HAWK_EINROP);
+			hawk_rtx_seterrnum(rtx, &test->right->loc, HAWK_EINROP);
 			ret = -1;
 			goto done1;
 	}
@@ -2749,9 +2874,9 @@ done1:
 	return ret;
 }
 
-static int run_break (hawk_rtx_t* run, hawk_nde_break_t* nde)
+static int run_break (hawk_rtx_t* rtx, hawk_nde_break_t* nde)
 {
-	run->exit_level = EXIT_BREAK;
+	rtx->exit_level = EXIT_BREAK;
 	return 0;
 }
 
@@ -2783,7 +2908,7 @@ static int run_return (hawk_rtx_t* rtx, hawk_nde_return_t* nde)
 				/* cannot return a map */
 				hawk_rtx_refupval(rtx, val);
 				hawk_rtx_refdownval(rtx, val);
-				hawk_rtx_seterrnum (rtx, &nde->loc, HAWK_ENONSCARET);
+				hawk_rtx_seterrnum(rtx, &nde->loc, HAWK_ENONSCARET);
 				return -1;
 			}
 		}
@@ -2829,12 +2954,12 @@ static int run_next (hawk_rtx_t* rtx, hawk_nde_next_t* nde)
 	 * check that explicitly */
 	if  (rtx->active_block == (hawk_nde_blk_t*)rtx->hawk->tree.begin)
 	{
-		hawk_rtx_seterrnum (rtx, &nde->loc, HAWK_ERNEXTBEG);
+		hawk_rtx_seterrnum(rtx, &nde->loc, HAWK_ERNEXTBEG);
 		return -1;
 	}
 	else if (rtx->active_block == (hawk_nde_blk_t*)rtx->hawk->tree.end)
 	{
-		hawk_rtx_seterrnum (rtx, &nde->loc, HAWK_ERNEXTEND);
+		hawk_rtx_seterrnum(rtx, &nde->loc, HAWK_ERNEXTEND);
 		return -1;
 	}
 
@@ -2849,19 +2974,19 @@ static int run_nextinfile (hawk_rtx_t* rtx, hawk_nde_nextfile_t* nde)
 	/* normal nextfile statement */
 	if  (rtx->active_block == (hawk_nde_blk_t*)rtx->hawk->tree.begin)
 	{
-		hawk_rtx_seterrnum (rtx, &nde->loc, HAWK_ERNEXTFBEG);
+		hawk_rtx_seterrnum(rtx, &nde->loc, HAWK_ERNEXTFBEG);
 		return -1;
 	}
 	else if (rtx->active_block == (hawk_nde_blk_t*)rtx->hawk->tree.end)
 	{
-		hawk_rtx_seterrnum (rtx, &nde->loc, HAWK_ERNEXTFEND);
+		hawk_rtx_seterrnum(rtx, &nde->loc, HAWK_ERNEXTFEND);
 		return -1;
 	}
 
 	n = hawk_rtx_nextio_read(rtx, HAWK_IN_CONSOLE, HAWK_T(""));
 	if (n <= -1)
 	{
-		ADJERR_LOC (rtx, &nde->loc);
+		ADJERR_LOC(rtx, &nde->loc);
 		return -1;
 	}
 
@@ -2875,7 +3000,7 @@ static int run_nextinfile (hawk_rtx_t* rtx, hawk_nde_nextfile_t* nde)
 	/* FNR resets to 0, NR remains the same */
 	if (update_fnr(rtx, 0, rtx->gbl.nr) <= -1)
 	{
-		ADJERR_LOC (rtx, &nde->loc);
+		ADJERR_LOC(rtx, &nde->loc);
 		return -1;
 	}
 
@@ -2894,7 +3019,7 @@ static int run_nextoutfile (hawk_rtx_t* rtx, hawk_nde_nextfile_t* nde)
 	if (n <= -1)
 	{
 		/* adjust the error line */
-		ADJERR_LOC (rtx, &nde->loc);
+		ADJERR_LOC(rtx, &nde->loc);
 		return -1;
 	}
 
@@ -3003,7 +3128,7 @@ static hawk_val_t* assign_topval_to_var (hawk_rtx_t* rtx, hawk_nde_var_t* var, h
 			if (HAWK_UNLIKELY(hawk_htb_upsert(rtx->named, var->id.name.ptr, var->id.name.len, val, 0) == HAWK_NULL))
 			{
 				hawk_rtx_refdownval(rtx, val);
-				ADJERR_LOC (rtx, &var->loc);
+				ADJERR_LOC(rtx, &var->loc);
 				return HAWK_NULL;
 			}
 			break;
@@ -3019,7 +3144,7 @@ static hawk_val_t* assign_topval_to_var (hawk_rtx_t* rtx, hawk_nde_var_t* var, h
 			hawk_rtx_refdownval(rtx, val);
 			if (HAWK_UNLIKELY(x <= -1))
 			{
-				ADJERR_LOC (rtx, &var->loc);
+				ADJERR_LOC(rtx, &var->loc);
 				return HAWK_NULL;
 			}
 			break;
@@ -3059,7 +3184,7 @@ static hawk_val_t* assign_newmapval_to_var (hawk_rtx_t* rtx, hawk_nde_var_t* var
 	tmp = hawk_rtx_makemapval(rtx);
 	if (HAWK_UNLIKELY(!tmp))
 	{
-		ADJERR_LOC (rtx, &var->loc);
+		ADJERR_LOC(rtx, &var->loc);
 		return HAWK_NULL;
 	}
 
@@ -3237,7 +3362,7 @@ static int run_delete (hawk_rtx_t* rtx, hawk_nde_delete_t* nde)
 	return 0;
 
 oops:
-	ADJERR_LOC (rtx, &var->loc);
+	ADJERR_LOC(rtx, &var->loc);
 	return -1;
 
 }
@@ -3281,7 +3406,7 @@ static int run_reset (hawk_rtx_t* rtx, hawk_nde_reset_t* nde)
 		default:
 			/* the reset statement can only be called with plain variables */
 			HAWK_ASSERT (!"should never happen - wrong target for @reset");
-			hawk_rtx_seterrnum (rtx, &var->loc, HAWK_EBADARG);
+			hawk_rtx_seterrnum(rtx, &var->loc, HAWK_EBADARG);
 			return -1;
 	}
 }
@@ -3445,7 +3570,7 @@ static int run_print (hawk_rtx_t* rtx, hawk_nde_print_t* nde)
 	return xret;
 
 oops:
-	ADJERR_LOC (rtx, &nde->loc);
+	ADJERR_LOC(rtx, &nde->loc);
 
 oops_1:
 	if (out_v)
@@ -3556,7 +3681,7 @@ static int run_printf (hawk_rtx_t* rtx, hawk_nde_print_t* nde)
 	return xret;
 
 oops:
-	ADJERR_LOC (rtx, &nde->loc);
+	ADJERR_LOC(rtx, &nde->loc);
 
 oops_1:
 	if (out_v)
@@ -3660,7 +3785,7 @@ static hawk_val_t* eval_expression (hawk_rtx_t* rtx, hawk_nde_t* nde)
 			vs.ptr = hawk_rtx_getvaloocstr(rtx, rtx->inrec.d0, &vs.len);
 			if (!vs.ptr)
 			{
-				ADJERR_LOC (rtx, &nde->loc);
+				ADJERR_LOC(rtx, &nde->loc);
 				hawk_rtx_refdownval(rtx, v);
 				return HAWK_NULL;
 			}
@@ -3674,7 +3799,7 @@ static hawk_val_t* eval_expression (hawk_rtx_t* rtx, hawk_nde_t* nde)
 		if (free_vs) hawk_rtx_freevaloocstr (rtx, rtx->inrec.d0, vs.ptr);
 		if (n <= -1)
 		{
-			ADJERR_LOC (rtx, &nde->loc);
+			ADJERR_LOC(rtx, &nde->loc);
 			return HAWK_NULL;
 		}
 
@@ -3742,7 +3867,7 @@ static hawk_val_t* eval_expression0 (hawk_rtx_t* rtx, hawk_nde_t* nde)
 		 * clears the error number. run_main will
 		 * detect this condition and treat it as a
 		 * non-error condition.*/
-		hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_ENOERR);
+		hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_ENOERR);
 		return HAWK_NULL;
 	}
 
@@ -3757,7 +3882,7 @@ static hawk_val_t* eval_group (hawk_rtx_t* rtx, hawk_nde_t* nde)
 	/* eval_binop_in evaluates the HAWK_NDE_GRP specially.
 	 * so this function should never be reached. */
 	HAWK_ASSERT (!"should never happen - NDE_GRP only for in");
-	hawk_rtx_seterrnum (rtx, &nde->loc, HAWK_EINTERN);
+	hawk_rtx_seterrnum(rtx, &nde->loc, HAWK_EINTERN);
 	return HAWK_NULL;
 #endif
 
@@ -3920,7 +4045,7 @@ static hawk_val_t* do_assignment (hawk_rtx_t* rtx, hawk_nde_t* var, hawk_val_t* 
 	return ret;
 
 exit_on_error:
-	hawk_rtx_seterrnum (rtx, &var->loc, errnum);
+	hawk_rtx_seterrnum(rtx, &var->loc, errnum);
 	return HAWK_NULL;
 }
 
@@ -3969,7 +4094,7 @@ static hawk_val_t* do_assignment_nonindexed (hawk_rtx_t* rtx, hawk_nde_var_t* va
 
 			if (hawk_htb_upsert(rtx->named, var->id.name.ptr, var->id.name.len, val, 0) == HAWK_NULL)
 			{
-				ADJERR_LOC (rtx, &var->loc);
+				ADJERR_LOC(rtx, &var->loc);
 				return HAWK_NULL;
 			}
 
@@ -3981,7 +4106,7 @@ static hawk_val_t* do_assignment_nonindexed (hawk_rtx_t* rtx, hawk_nde_var_t* va
 		{
 			if (set_global(rtx, var->id.idxa, var, val, 1) == -1)
 			{
-				ADJERR_LOC (rtx, &var->loc);
+				ADJERR_LOC(rtx, &var->loc);
 				return HAWK_NULL;
 			}
 			break;
@@ -4052,7 +4177,7 @@ static hawk_val_t* do_assignment_nonindexed (hawk_rtx_t* rtx, hawk_nde_var_t* va
 		}
 
 		default:
-			hawk_rtx_seterrnum (rtx, &var->loc, HAWK_EINTERN);
+			hawk_rtx_seterrnum(rtx, &var->loc, HAWK_EINTERN);
 			return HAWK_NULL;
 	}
 
@@ -4184,7 +4309,7 @@ static hawk_val_t* do_assignment_indexed (hawk_rtx_t* rtx, hawk_nde_var_t* var, 
 			{
 				if (HAWK_UNLIKELY(hawk_map_upsert(map, str, len, val, 0) == HAWK_NULL))
 				{
-					ADJERR_LOC (rtx, &var->loc);
+					ADJERR_LOC(rtx, &var->loc);
 					goto oops;
 				}
 			}
@@ -4192,7 +4317,7 @@ static hawk_val_t* do_assignment_indexed (hawk_rtx_t* rtx, hawk_nde_var_t* var, 
 			{
 				if (HAWK_UNLIKELY(hawk_arr_upsert(arr, idx, val, 0) == HAWK_ARR_NIL))
 				{
-					ADJERR_LOC (rtx, &var->loc);
+					ADJERR_LOC(rtx, &var->loc);
 					goto oops;
 				}
 			}
@@ -4243,13 +4368,13 @@ static hawk_val_t* do_assignment_positional (hawk_rtx_t* rtx, hawk_nde_pos_t* po
 
 	if (n <= -1)
 	{
-		hawk_rtx_seterrnum (rtx, &pos->loc, HAWK_EPOSIDX);
+		hawk_rtx_seterrnum(rtx, &pos->loc, HAWK_EPOSIDX);
 		return HAWK_NULL;
 	}
 
 	if (!IS_VALID_POSIDX(lv))
 	{
-		hawk_rtx_seterrnum (rtx, &pos->loc, HAWK_EPOSIDX);
+		hawk_rtx_seterrnum(rtx, &pos->loc, HAWK_EPOSIDX);
 		return HAWK_NULL;
 	}
 
@@ -4265,7 +4390,7 @@ static hawk_val_t* do_assignment_positional (hawk_rtx_t* rtx, hawk_nde_pos_t* po
 		out.type = HAWK_RTX_VALTOSTR_CPLDUP;
 		if (hawk_rtx_valtostr(rtx, val, &out) <= -1)
 		{
-			ADJERR_LOC (rtx, &pos->loc);
+			ADJERR_LOC(rtx, &pos->loc);
 			return HAWK_NULL;
 		}
 
@@ -4376,7 +4501,7 @@ static hawk_val_t* eval_binary (hawk_rtx_t* rtx, hawk_nde_t* nde)
 			HAWK_ASSERT (binop_func[exp->opcode] != HAWK_NULL);
 
 			res = binop_func[exp->opcode](rtx, left, right);
-			if (HAWK_UNLIKELY(!res)) ADJERR_LOC (rtx, &nde->loc);
+			if (HAWK_UNLIKELY(!res)) ADJERR_LOC(rtx, &nde->loc);
 
 			hawk_rtx_refdownval(rtx, left);
 			hawk_rtx_refdownval(rtx, right);
@@ -4397,7 +4522,7 @@ static hawk_val_t* eval_binop_lor (hawk_rtx_t* rtx, hawk_nde_t* left, hawk_nde_t
 	);
 	if (res == HAWK_NULL)
 	{
-		ADJERR_LOC (rtx, &left->loc);
+		ADJERR_LOC(rtx, &left->loc);
 		return HAWK_NULL;
 	}
 
@@ -4449,7 +4574,7 @@ static hawk_val_t* eval_binop_land (hawk_rtx_t* rtx, hawk_nde_t* left, hawk_nde_
 	);
 	if (res == HAWK_NULL)
 	{
-		ADJERR_LOC (rtx, &left->loc);
+		ADJERR_LOC(rtx, &left->loc);
 		return HAWK_NULL;
 	}
 
@@ -4509,7 +4634,7 @@ static hawk_val_t* eval_binop_in (hawk_rtx_t* rtx, hawk_nde_t* left, hawk_nde_t*
 	{
 		/* the compiler should have handled this case */
 		HAWK_ASSERT (!"should never happen - it needs a plain variable");
-		hawk_rtx_seterrnum (rtx, &right->loc, HAWK_EINTERN);
+		hawk_rtx_seterrnum(rtx, &right->loc, HAWK_EINTERN);
 		return HAWK_NULL;
 	}
 
@@ -4565,7 +4690,7 @@ rvalue_ok:
 
 			if (left->type == HAWK_NDE_GRP)
 			{
-				hawk_rtx_seterrnum (rtx, &left->loc, HAWK_EARRIDXMULTI);
+				hawk_rtx_seterrnum(rtx, &left->loc, HAWK_EARRIDXMULTI);
 				goto oops;
 			}
 
@@ -4575,7 +4700,7 @@ rvalue_ok:
 		}
 
 		default:
-			hawk_rtx_seterrnum (rtx, &right->loc, HAWK_EINROP);
+			hawk_rtx_seterrnum(rtx, &right->loc, HAWK_EINROP);
 			goto oops;
 	}
 
@@ -4597,7 +4722,7 @@ static hawk_val_t* eval_binop_bor (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t
 	if (hawk_rtx_valtoint(rtx, left, &l1) <= -1 ||
 	    hawk_rtx_valtoint(rtx, right, &l2) <= -1)
 	{
-		hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EOPERAND);
+		hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EOPERAND);
 		return HAWK_NULL;
 	}
 
@@ -4611,7 +4736,7 @@ static hawk_val_t* eval_binop_bxor (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_
 	if (hawk_rtx_valtoint(rtx, left, &l1) <= -1 ||
 	    hawk_rtx_valtoint(rtx, right, &l2) <= -1)
 	{
-		hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EOPERAND);
+		hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EOPERAND);
 		return HAWK_NULL;
 	}
 
@@ -4625,7 +4750,7 @@ static hawk_val_t* eval_binop_band (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_
 	if (hawk_rtx_valtoint(rtx, left, &l1) <= -1 ||
 	    hawk_rtx_valtoint(rtx, right, &l2) <= -1)
 	{
-		hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EOPERAND);
+		hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EOPERAND);
 		return HAWK_NULL;
 	}
 
@@ -4684,7 +4809,7 @@ static HAWK_INLINE int __cmp_ensure_not_equal (hawk_rtx_t* rtx, cmp_op_t op_hint
 			return 1;  /* make LE false by claiming greater */
 
 		default:
-			hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EOPERAND);
+			hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EOPERAND);
 			return -1;
 	}
 }
@@ -5503,14 +5628,14 @@ static HAWK_INLINE int __cmp_map_fun (hawk_rtx_t* rtx, hawk_val_t* left, hawk_va
 static HAWK_INLINE int __cmp_map_map (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t* right, cmp_op_t op_hint)
 {
 	/* can't compare a map with a map */
-	hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EOPERAND);
+	hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EOPERAND);
 	return CMP_ERROR;
 }
 
 static HAWK_INLINE int __cmp_map_arr (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t* right, cmp_op_t op_hint)
 {
 	/* can't compare a map with an array */
-	hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EOPERAND);
+	hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EOPERAND);
 	return CMP_ERROR;
 }
 
@@ -5574,14 +5699,14 @@ static HAWK_INLINE int __cmp_arr_fun (hawk_rtx_t* rtx, hawk_val_t* left, hawk_va
 static HAWK_INLINE int __cmp_arr_map (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t* right, cmp_op_t op_hint)
 {
 	/* can't compare a map with a map */
-	hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EOPERAND);
+	hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EOPERAND);
 	return CMP_ERROR;
 }
 
 static HAWK_INLINE int __cmp_arr_arr (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t* right, cmp_op_t op_hint)
 {
 	/* can't compare a map with an array */
-	hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EOPERAND);
+	hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EOPERAND);
 	return CMP_ERROR;
 }
 
@@ -5614,7 +5739,7 @@ static HAWK_INLINE int __cmp_val (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t*
 	if (!(rtx->hawk->opt.trait & HAWK_FLEXMAP) && (lvtype == HAWK_VAL_MAP || rvtype == HAWK_VAL_MAP || lvtype == HAWK_VAL_ARR || rvtype == HAWK_VAL_ARR))
 	{
 		/* a map can't be compared againt other values in the non-flexible mode. */
-		hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EOPERAND);
+		hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EOPERAND);
 		return -1;
 	}
 
@@ -5785,7 +5910,7 @@ static hawk_val_t* eval_binop_lshift (hawk_rtx_t* rtx, hawk_val_t* left, hawk_va
 	if (hawk_rtx_valtoint(rtx, left, &l1) <= -1 ||
 	    hawk_rtx_valtoint(rtx, right, &l2) <= -1)
 	{
-		hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EOPERAND);
+		hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EOPERAND);
 		return HAWK_NULL;
 	}
 
@@ -5799,7 +5924,7 @@ static hawk_val_t* eval_binop_rshift (hawk_rtx_t* rtx, hawk_val_t* left, hawk_va
 	if (hawk_rtx_valtoint(rtx, left, &l1) <= -1 ||
 	    hawk_rtx_valtoint(rtx, right, &l2) <= -1)
 	{
-		hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EOPERAND);
+		hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EOPERAND);
 		return HAWK_NULL;
 	}
 
@@ -5817,7 +5942,7 @@ static hawk_val_t* eval_binop_plus (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_
 
 	if (n1 <= -1 || n2 <= -1)
 	{
-		hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EOPERAND);
+		hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EOPERAND);
 		return HAWK_NULL;
 	}
 	/*
@@ -5847,7 +5972,7 @@ static hawk_val_t* eval_binop_minus (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val
 
 	if (n1 <= -1 || n2 <= -1)
 	{
-		hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EOPERAND);
+		hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EOPERAND);
 		return HAWK_NULL;
 	}
 
@@ -5870,7 +5995,7 @@ static hawk_val_t* eval_binop_mul (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t
 
 	if (n1 <= -1 || n2 <= -1)
 	{
-		hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EOPERAND);
+		hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EOPERAND);
 		return HAWK_NULL;
 	}
 
@@ -5894,7 +6019,7 @@ static hawk_val_t* eval_binop_div (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t
 
 	if (n1 <= -1 || n2 <= -1)
 	{
-		hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EOPERAND);
+		hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EOPERAND);
 		return HAWK_NULL;
 	}
 
@@ -5904,7 +6029,7 @@ static hawk_val_t* eval_binop_div (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t
 		case 0:
 			if  (l2 == 0)
 			{
-				hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EDIVBY0);
+				hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EDIVBY0);
 				return HAWK_NULL;
 			}
 
@@ -5951,7 +6076,7 @@ static hawk_val_t* eval_binop_idiv (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_
 
 	if (n1 <= -1 || n2 <= -1)
 	{
-		hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EOPERAND);
+		hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EOPERAND);
 		return HAWK_NULL;
 	}
 
@@ -5961,7 +6086,7 @@ static hawk_val_t* eval_binop_idiv (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_
 		case 0:
 			if (l2 == 0)
 			{
-				hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EDIVBY0);
+				hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EDIVBY0);
 				return HAWK_NULL;
 			}
 			res = hawk_rtx_makeintval (
@@ -6002,7 +6127,7 @@ static hawk_val_t* eval_binop_mod (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t
 
 	if (n1 <= -1 || n2 <= -1)
 	{
-		hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EOPERAND);
+		hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EOPERAND);
 		return HAWK_NULL;
 	}
 
@@ -6012,7 +6137,7 @@ static hawk_val_t* eval_binop_mod (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t
 		case 0:
 			if (l2 == 0)
 			{
-				hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EDIVBY0);
+				hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EDIVBY0);
 				return HAWK_NULL;
 			}
 			res = hawk_rtx_makeintval(rtx, (hawk_int_t)l1 % (hawk_int_t)l2);
@@ -6046,7 +6171,7 @@ static hawk_val_t* eval_binop_exp (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t
 
 	if (n1 <= -1 || n2 <= -1)
 	{
-		hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EOPERAND);
+		hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EOPERAND);
 		return HAWK_NULL;
 	}
 
@@ -6063,7 +6188,7 @@ static hawk_val_t* eval_binop_exp (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t
 			}
 			else if (l1 == 0)
 			{
-				hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EDIVBY0);
+				hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EDIVBY0);
 				return HAWK_NULL;
 			}
 			else
@@ -6085,7 +6210,7 @@ static hawk_val_t* eval_binop_exp (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t
 			}
 			else if (r1 == 0.0)
 			{
-				hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EDIVBY0);
+				hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EDIVBY0);
 				return HAWK_NULL;
 			}
 			else
@@ -6186,74 +6311,74 @@ static hawk_val_t* eval_binop_match0 (
 
 	if (HAWK_UNLIKELY(n <= -1))
 	{
-		ADJERR_LOC (rtx, lloc);
+		ADJERR_LOC(rtx, lloc);
 		return HAWK_NULL;
 	}
 
 	res = hawk_rtx_makeintval(rtx, (n == ret));
 	if (HAWK_UNLIKELY(!res))
 	{
-		ADJERR_LOC (rtx, lloc);
+		ADJERR_LOC(rtx, lloc);
 		return HAWK_NULL;
 	}
 
 	return res;
 }
 
-static hawk_val_t* eval_binop_ma (hawk_rtx_t* run, hawk_nde_t* left, hawk_nde_t* right)
+static hawk_val_t* eval_binop_ma (hawk_rtx_t* rtx, hawk_nde_t* left, hawk_nde_t* right)
 {
 	hawk_val_t* lv, * rv, * res;
 
 	HAWK_ASSERT (left->next == HAWK_NULL);
 	HAWK_ASSERT (right->next == HAWK_NULL);
 
-	lv = eval_expression(run, left);
+	lv = eval_expression(rtx, left);
 	if (HAWK_UNLIKELY(!lv)) return HAWK_NULL;
 
-	hawk_rtx_refupval(run, lv);
+	hawk_rtx_refupval(rtx, lv);
 
-	rv = eval_expression0(run, right);
+	rv = eval_expression0(rtx, right);
 	if (HAWK_UNLIKELY(!rv))
 	{
-		hawk_rtx_refdownval(run, lv);
+		hawk_rtx_refdownval(rtx, lv);
 		return HAWK_NULL;
 	}
 
-	hawk_rtx_refupval(run, rv);
+	hawk_rtx_refupval(rtx, rv);
 
-	res = eval_binop_match0(run, lv, rv, &left->loc, &right->loc, 1);
+	res = eval_binop_match0(rtx, lv, rv, &left->loc, &right->loc, 1);
 
-	hawk_rtx_refdownval(run, rv);
-	hawk_rtx_refdownval(run, lv);
+	hawk_rtx_refdownval(rtx, rv);
+	hawk_rtx_refdownval(rtx, lv);
 
 	return res;
 }
 
-static hawk_val_t* eval_binop_nm (hawk_rtx_t* run, hawk_nde_t* left, hawk_nde_t* right)
+static hawk_val_t* eval_binop_nm (hawk_rtx_t* rtx, hawk_nde_t* left, hawk_nde_t* right)
 {
 	hawk_val_t* lv, * rv, * res;
 
 	HAWK_ASSERT (left->next == HAWK_NULL);
 	HAWK_ASSERT (right->next == HAWK_NULL);
 
-	lv = eval_expression(run, left);
+	lv = eval_expression(rtx, left);
 	if (HAWK_UNLIKELY(!lv)) return HAWK_NULL;
 
-	hawk_rtx_refupval(run, lv);
+	hawk_rtx_refupval(rtx, lv);
 
-	rv = eval_expression0(run, right);
+	rv = eval_expression0(rtx, right);
 	if (HAWK_UNLIKELY(!rv))
 	{
-		hawk_rtx_refdownval(run, lv);
+		hawk_rtx_refdownval(rtx, lv);
 		return HAWK_NULL;
 	}
 
-	hawk_rtx_refupval(run, rv);
+	hawk_rtx_refupval(rtx, rv);
 
-	res = eval_binop_match0(run, lv, rv, &left->loc, &right->loc, 0);
+	res = eval_binop_match0(rtx, lv, rv, &left->loc, &right->loc, 0);
 
-	hawk_rtx_refdownval(run, rv);
-	hawk_rtx_refdownval(run, lv);
+	hawk_rtx_refdownval(rtx, rv);
+	hawk_rtx_refdownval(rtx, lv);
 
 	return res;
 }
@@ -6327,7 +6452,7 @@ static hawk_val_t* eval_unary (hawk_rtx_t* rtx, hawk_nde_t* nde)
 
 exit_func:
 	hawk_rtx_refdownval(rtx, left);
-	if (HAWK_UNLIKELY(!res)) ADJERR_LOC (rtx, &nde->loc);
+	if (HAWK_UNLIKELY(!res)) ADJERR_LOC(rtx, &nde->loc);
 	return res;
 }
 
@@ -6349,7 +6474,7 @@ static hawk_val_t* eval_incpre (hawk_rtx_t* rtx, hawk_nde_t* nde)
 	    /*exp->left->type > HAWK_NDE_ARGIDX) XXX */
 	    exp->left->type > HAWK_NDE_POS)
 	{
-		hawk_rtx_seterrnum (rtx, &nde->loc, HAWK_EOPERAND);
+		hawk_rtx_seterrnum(rtx, &nde->loc, HAWK_EOPERAND);
 		return HAWK_NULL;
 	}
 
@@ -6366,7 +6491,7 @@ static hawk_val_t* eval_incpre (hawk_rtx_t* rtx, hawk_nde_t* nde)
 	else
 	{
 		HAWK_ASSERT (!"should never happen - invalid opcode");
-		hawk_rtx_seterrnum (rtx, &nde->loc, HAWK_EINTERN);
+		hawk_rtx_seterrnum(rtx, &nde->loc, HAWK_EINTERN);
 		return HAWK_NULL;
 	}
 
@@ -6386,7 +6511,7 @@ static hawk_val_t* eval_incpre (hawk_rtx_t* rtx, hawk_nde_t* nde)
 			if (HAWK_UNLIKELY(!res))
 			{
 				hawk_rtx_refdownval(rtx, left);
-				ADJERR_LOC (rtx, &nde->loc);
+				ADJERR_LOC(rtx, &nde->loc);
 				return HAWK_NULL;
 			}
 			break;
@@ -6399,7 +6524,7 @@ static hawk_val_t* eval_incpre (hawk_rtx_t* rtx, hawk_nde_t* nde)
 			if (HAWK_UNLIKELY(!res))
 			{
 				hawk_rtx_refdownval(rtx, left);
-				ADJERR_LOC (rtx, &nde->loc);
+				ADJERR_LOC(rtx, &nde->loc);
 				return HAWK_NULL;
 			}
 			break;
@@ -6415,7 +6540,7 @@ static hawk_val_t* eval_incpre (hawk_rtx_t* rtx, hawk_nde_t* nde)
 			if (HAWK_UNLIKELY(n <= -1))
 			{
 				hawk_rtx_refdownval(rtx, left);
-				ADJERR_LOC (rtx, &nde->loc);
+				ADJERR_LOC(rtx, &nde->loc);
 				return HAWK_NULL;
 			}
 
@@ -6432,7 +6557,7 @@ static hawk_val_t* eval_incpre (hawk_rtx_t* rtx, hawk_nde_t* nde)
 			if (HAWK_UNLIKELY(!res))
 			{
 				hawk_rtx_refdownval(rtx, left);
-				ADJERR_LOC (rtx, &nde->loc);
+				ADJERR_LOC(rtx, &nde->loc);
 				return HAWK_NULL;
 			}
 
@@ -6468,7 +6593,7 @@ static hawk_val_t* eval_incpst (hawk_rtx_t* rtx, hawk_nde_t* nde)
 	    /*exp->left->type > HAWK_NDE_ARGIDX) XXX */
 	    exp->left->type > HAWK_NDE_POS)
 	{
-		hawk_rtx_seterrnum (rtx, &nde->loc, HAWK_EOPERAND);
+		hawk_rtx_seterrnum(rtx, &nde->loc, HAWK_EOPERAND);
 		return HAWK_NULL;
 	}
 
@@ -6485,7 +6610,7 @@ static hawk_val_t* eval_incpst (hawk_rtx_t* rtx, hawk_nde_t* nde)
 	else
 	{
 		HAWK_ASSERT (!"should never happen - invalid opcode");
-		hawk_rtx_seterrnum (rtx, &nde->loc, HAWK_EINTERN);
+		hawk_rtx_seterrnum(rtx, &nde->loc, HAWK_EINTERN);
 		return HAWK_NULL;
 	}
 
@@ -6506,7 +6631,7 @@ static hawk_val_t* eval_incpst (hawk_rtx_t* rtx, hawk_nde_t* nde)
 			if (HAWK_UNLIKELY(!res))
 			{
 				hawk_rtx_refdownval(rtx, left);
-				ADJERR_LOC (rtx, &nde->loc);
+				ADJERR_LOC(rtx, &nde->loc);
 				return HAWK_NULL;
 			}
 
@@ -6515,7 +6640,7 @@ static hawk_val_t* eval_incpst (hawk_rtx_t* rtx, hawk_nde_t* nde)
 			{
 				hawk_rtx_refdownval(rtx, left);
 				hawk_rtx_freeval (rtx, res, HAWK_RTX_FREEVAL_CACHE);
-				ADJERR_LOC (rtx, &nde->loc);
+				ADJERR_LOC(rtx, &nde->loc);
 				return HAWK_NULL;
 			}
 
@@ -6529,7 +6654,7 @@ static hawk_val_t* eval_incpst (hawk_rtx_t* rtx, hawk_nde_t* nde)
 			if (HAWK_UNLIKELY(!res))
 			{
 				hawk_rtx_refdownval(rtx, left);
-				ADJERR_LOC (rtx, &nde->loc);
+				ADJERR_LOC(rtx, &nde->loc);
 				return HAWK_NULL;
 			}
 
@@ -6538,7 +6663,7 @@ static hawk_val_t* eval_incpst (hawk_rtx_t* rtx, hawk_nde_t* nde)
 			{
 				hawk_rtx_refdownval(rtx, left);
 				hawk_rtx_freeval (rtx, res, HAWK_RTX_FREEVAL_CACHE);
-				ADJERR_LOC (rtx, &nde->loc);
+				ADJERR_LOC(rtx, &nde->loc);
 				return HAWK_NULL;
 			}
 
@@ -6555,7 +6680,7 @@ static hawk_val_t* eval_incpst (hawk_rtx_t* rtx, hawk_nde_t* nde)
 			if (HAWK_UNLIKELY(n <= -1))
 			{
 				hawk_rtx_refdownval(rtx, left);
-				ADJERR_LOC (rtx, &nde->loc);
+				ADJERR_LOC(rtx, &nde->loc);
 				return HAWK_NULL;
 			}
 
@@ -6565,7 +6690,7 @@ static hawk_val_t* eval_incpst (hawk_rtx_t* rtx, hawk_nde_t* nde)
 				if (HAWK_UNLIKELY(!res))
 				{
 					hawk_rtx_refdownval(rtx, left);
-					ADJERR_LOC (rtx, &nde->loc);
+					ADJERR_LOC(rtx, &nde->loc);
 					return HAWK_NULL;
 				}
 
@@ -6574,7 +6699,7 @@ static hawk_val_t* eval_incpst (hawk_rtx_t* rtx, hawk_nde_t* nde)
 				{
 					hawk_rtx_refdownval(rtx, left);
 					hawk_rtx_freeval (rtx, res, HAWK_RTX_FREEVAL_CACHE);
-					ADJERR_LOC (rtx, &nde->loc);
+					ADJERR_LOC(rtx, &nde->loc);
 					return HAWK_NULL;
 				}
 			}
@@ -6585,7 +6710,7 @@ static hawk_val_t* eval_incpst (hawk_rtx_t* rtx, hawk_nde_t* nde)
 				if (HAWK_UNLIKELY(!res))
 				{
 					hawk_rtx_refdownval(rtx, left);
-					ADJERR_LOC (rtx, &nde->loc);
+					ADJERR_LOC(rtx, &nde->loc);
 					return HAWK_NULL;
 				}
 
@@ -6594,7 +6719,7 @@ static hawk_val_t* eval_incpst (hawk_rtx_t* rtx, hawk_nde_t* nde)
 				{
 					hawk_rtx_refdownval(rtx, left);
 					hawk_rtx_freeval (rtx, res, HAWK_RTX_FREEVAL_CACHE);
-					ADJERR_LOC (rtx, &nde->loc);
+					ADJERR_LOC(rtx, &nde->loc);
 					return HAWK_NULL;
 				}
 			}
@@ -6613,22 +6738,22 @@ static hawk_val_t* eval_incpst (hawk_rtx_t* rtx, hawk_nde_t* nde)
 	return res;
 }
 
-static hawk_val_t* eval_cnd (hawk_rtx_t* run, hawk_nde_t* nde)
+static hawk_val_t* eval_cnd (hawk_rtx_t* rtx, hawk_nde_t* nde)
 {
 	hawk_val_t* tv, * v;
 	hawk_nde_cnd_t* cnd = (hawk_nde_cnd_t*)nde;
 
 	HAWK_ASSERT (cnd->test->next == HAWK_NULL);
 
-	tv = eval_expression(run, cnd->test);
+	tv = eval_expression(rtx, cnd->test);
 	if (HAWK_UNLIKELY(!tv)) return HAWK_NULL;
 
-	hawk_rtx_refupval(run, tv);
+	hawk_rtx_refupval(rtx, tv);
 
 	HAWK_ASSERT (cnd->left->next == HAWK_NULL && cnd->right->next == HAWK_NULL);
-	v = (hawk_rtx_valtobool(run, tv))? eval_expression(run, cnd->left): eval_expression(run, cnd->right);
+	v = (hawk_rtx_valtobool(rtx, tv))? eval_expression(rtx, cnd->left): eval_expression(rtx, cnd->right);
 
-	hawk_rtx_refdownval(run, tv);
+	hawk_rtx_refdownval(rtx, tv);
 	return v;
 }
 
@@ -6710,7 +6835,7 @@ static hawk_val_t* eval_fncall_var (hawk_rtx_t* rtx, hawk_nde_t* nde)
 	{
 		if (hawk_rtx_geterrnum(rtx) == HAWK_EINVAL)
 			hawk_rtx_seterrfmt (rtx, &nde->loc, HAWK_ENOTFUN, HAWK_T("non-function value in %.*js"), call->u.var.var->id.name.len, call->u.var.var->id.name.ptr);
-		ADJERR_LOC (rtx, &nde->loc);
+		ADJERR_LOC(rtx, &nde->loc);
 		rv = HAWK_NULL;
 	}
 	else if (call->nargs > fun->nargs && !fun->variadic)
@@ -6804,7 +6929,7 @@ hawk_val_t* hawk_rtx_evalcall (
 
 	if (HAWK_UNLIKELY(HAWK_RTX_STACK_AVAIL(rtx) < stack_req))
 	{
-		hawk_rtx_seterrnum (rtx, &call->loc, HAWK_ESTACK);
+		hawk_rtx_seterrnum(rtx, &call->loc, HAWK_ESTACK);
 		return HAWK_NULL;
 	}
 
@@ -6856,7 +6981,7 @@ hawk_val_t* hawk_rtx_evalcall (
 		if (call->u.fnc.spec.impl)
 		{
 			n = call->u.fnc.spec.impl(rtx, &call->u.fnc.info);
-			if (HAWK_UNLIKELY(n <= -1)) ADJERR_LOC (rtx, &call->loc);
+			if (HAWK_UNLIKELY(n <= -1)) ADJERR_LOC(rtx, &call->loc);
 		}
 	}
 
@@ -6930,7 +7055,7 @@ hawk_val_t* hawk_rtx_evalcall (
 							if (HAWK_UNLIKELY(hawk_rtx_setrefval(rtx, &refv, av) <= -1))
 							{
 								n = -1;
-								ADJERR_LOC (rtx, &call->loc);
+								ADJERR_LOC(rtx, &call->loc);
 							}
 						}
 					}
@@ -6973,7 +7098,7 @@ hawk_val_t* hawk_rtx_evalcall (
 							if (HAWK_UNLIKELY(hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)v, av) <= -1))
 							{
 								n = -1;
-								ADJERR_LOC (rtx, &call->loc);
+								ADJERR_LOC(rtx, &call->loc);
 							}
 						}
 					}
@@ -7067,7 +7192,7 @@ oops_making_stack_frame:
 		 * after it is set to a reference counted value. here, it never happens */
 		HAWK_RTX_STACK_POP (rtx);
 	}
-	ADJERR_LOC (rtx, &call->loc);
+	ADJERR_LOC(rtx, &call->loc);
 	return HAWK_NULL;
 }
 
@@ -7078,7 +7203,7 @@ static hawk_oow_t push_arg_from_vals (hawk_rtx_t* rtx, hawk_nde_fncall_t* call, 
 
 	if (HAWK_UNLIKELY(HAWK_RTX_STACK_AVAIL(rtx) < pafv->nargs))
 	{
-		hawk_rtx_seterrnum (rtx, &call->loc, HAWK_ESTACK);
+		hawk_rtx_seterrnum(rtx, &call->loc, HAWK_ESTACK);
 		return (hawk_oow_t)-1;
 	}
 
@@ -7093,7 +7218,7 @@ static hawk_oow_t push_arg_from_vals (hawk_rtx_t* rtx, hawk_nde_fncall_t* call, 
 			v = hawk_rtx_makerefval(rtx, HAWK_VAL_REF_LCL, ref); /* this type(HAWK_VAL_REF_LCL) is fake */
 			if (HAWK_UNLIKELY(!v))
 			{
-				ADJERR_LOC (rtx, &call->loc);
+				ADJERR_LOC(rtx, &call->loc);
 				return (hawk_oow_t)-1;
 			}
 
@@ -7120,7 +7245,7 @@ static hawk_oow_t push_arg_from_nde (hawk_rtx_t* rtx, hawk_nde_fncall_t* call, v
 
 	if (HAWK_UNLIKELY(HAWK_RTX_STACK_AVAIL(rtx) < call->nargs))
 	{
-		hawk_rtx_seterrnum (rtx, &call->loc, HAWK_ESTACK);
+		hawk_rtx_seterrnum(rtx, &call->loc, HAWK_ESTACK);
 		return (hawk_oow_t)-1;
 	}
 
@@ -7196,7 +7321,7 @@ static int get_reference (hawk_rtx_t* rtx, hawk_nde_t* nde, hawk_val_t*** ref)
 				pair = hawk_htb_upsert(rtx->named, tgt->id.name.ptr, tgt->id.name.len, hawk_val_nil, 0);
 				if (!pair)
 				{
-					ADJERR_LOC (rtx, &nde->loc);
+					ADJERR_LOC(rtx, &nde->loc);
 					return -1;
 				}
 			}
@@ -7244,13 +7369,13 @@ static int get_reference (hawk_rtx_t* rtx, hawk_nde_t* nde, hawk_val_t*** ref)
 
 			if (HAWK_UNLIKELY(n <= -1))
 			{
-				hawk_rtx_seterrnum (rtx, &nde->loc, HAWK_EPOSIDX);
+				hawk_rtx_seterrnum(rtx, &nde->loc, HAWK_EPOSIDX);
 				return -1;
 			}
 
 			if (!IS_VALID_POSIDX(lv))
 			{
-				hawk_rtx_seterrnum (rtx, &nde->loc, HAWK_EPOSIDX);
+				hawk_rtx_seterrnum(rtx, &nde->loc, HAWK_EPOSIDX);
 				return -1;
 			}
 
@@ -7259,7 +7384,7 @@ static int get_reference (hawk_rtx_t* rtx, hawk_nde_t* nde, hawk_val_t*** ref)
 		}
 
 		default:
-			hawk_rtx_seterrnum (rtx, &nde->loc, HAWK_ENOTREF);
+			hawk_rtx_seterrnum(rtx, &nde->loc, HAWK_ENOTREF);
 			return -1;
 	}
 }
@@ -7306,7 +7431,7 @@ static hawk_val_t** get_reference_indexed (hawk_rtx_t* rtx, hawk_nde_var_t* var)
 			break;
 
 		default:
-			hawk_rtx_seterrnum (rtx, &var->loc, HAWK_ENOTIDXACC);
+			hawk_rtx_seterrnum(rtx, &var->loc, HAWK_ENOTIDXACC);
 			goto oops;
 	}
 
@@ -7352,20 +7477,20 @@ static hawk_val_t** get_reference_indexed (hawk_rtx_t* rtx, hawk_nde_var_t* var)
 					if (container_vtype == HAWK_VAL_MAP)
 					{
 						v = assign_newmapval_in_map(rtx, map, str, len);
-						if (HAWK_UNLIKELY(!v)) { ADJERR_LOC (rtx, &var->loc); goto oops; }
+						if (HAWK_UNLIKELY(!v)) { ADJERR_LOC(rtx, &var->loc); goto oops; }
 						vtype = HAWK_VAL_MAP;
 						goto val_map;
 					}
 					else
 					{
 						v = assign_newarrval_in_arr(rtx, arr, idx);
-						if (HAWK_UNLIKELY(!v)) { ADJERR_LOC (rtx, &var->loc); goto oops; }
+						if (HAWK_UNLIKELY(!v)) { ADJERR_LOC(rtx, &var->loc); goto oops; }
 						vtype = HAWK_VAL_ARR;
 						goto val_arr;
 					}
 				}
 
-				hawk_rtx_seterrnum (rtx, &var->loc, HAWK_ENOTIDXACC);
+				hawk_rtx_seterrnum(rtx, &var->loc, HAWK_ENOTIDXACC);
 				goto oops;
 		}
 	}
@@ -7408,7 +7533,7 @@ static hawk_val_t* eval_char (hawk_rtx_t* rtx, hawk_nde_t* nde)
 {
 	hawk_val_t* val;
 	val = hawk_rtx_makecharval(rtx, ((hawk_nde_char_t*)nde)->val);
-	if (HAWK_UNLIKELY(!val)) ADJERR_LOC (rtx, &nde->loc);
+	if (HAWK_UNLIKELY(!val)) ADJERR_LOC(rtx, &nde->loc);
 	return val;
 }
 
@@ -7416,7 +7541,7 @@ static hawk_val_t* eval_bchr (hawk_rtx_t* rtx, hawk_nde_t* nde)
 {
 	hawk_val_t* val;
 	val = hawk_rtx_makebchrval(rtx, ((hawk_nde_bchr_t*)nde)->val);
-	if (HAWK_UNLIKELY(!val)) ADJERR_LOC (rtx, &nde->loc);
+	if (HAWK_UNLIKELY(!val)) ADJERR_LOC(rtx, &nde->loc);
 	return val;
 }
 
@@ -7424,7 +7549,7 @@ static hawk_val_t* eval_int (hawk_rtx_t* rtx, hawk_nde_t* nde)
 {
 	hawk_val_t* val;
 	val = hawk_rtx_makeintval(rtx, ((hawk_nde_int_t*)nde)->val);
-	if (HAWK_UNLIKELY(!val)) ADJERR_LOC (rtx, &nde->loc);
+	if (HAWK_UNLIKELY(!val)) ADJERR_LOC(rtx, &nde->loc);
 	else if (HAWK_VTR_IS_POINTER(val)) ((hawk_val_int_t*)val)->nde = nde;
 	return val;
 }
@@ -7433,7 +7558,7 @@ static hawk_val_t* eval_flt (hawk_rtx_t* rtx, hawk_nde_t* nde)
 {
 	hawk_val_t* val;
 	val = hawk_rtx_makefltval(rtx, ((hawk_nde_flt_t*)nde)->val);
-	if (HAWK_UNLIKELY(!val)) ADJERR_LOC (rtx, &nde->loc);
+	if (HAWK_UNLIKELY(!val)) ADJERR_LOC(rtx, &nde->loc);
 	else ((hawk_val_flt_t*)val)->nde = nde;
 	return val;
 }
@@ -7442,7 +7567,7 @@ static hawk_val_t* eval_str (hawk_rtx_t* rtx, hawk_nde_t* nde)
 {
 	hawk_val_t* val;
 	val = hawk_rtx_makestrvalwithoochars(rtx, ((hawk_nde_str_t*)nde)->ptr, ((hawk_nde_str_t*)nde)->len);
-	if (HAWK_UNLIKELY(!val)) ADJERR_LOC (rtx, &nde->loc);
+	if (HAWK_UNLIKELY(!val)) ADJERR_LOC(rtx, &nde->loc);
 	return val;
 }
 
@@ -7450,7 +7575,7 @@ static hawk_val_t* eval_mbs (hawk_rtx_t* rtx, hawk_nde_t* nde)
 {
 	hawk_val_t* val;
 	val = hawk_rtx_makembsvalwithbchars(rtx, ((hawk_nde_mbs_t*)nde)->ptr, ((hawk_nde_mbs_t*)nde)->len);
-	if (HAWK_UNLIKELY(!val)) ADJERR_LOC (rtx, &nde->loc);
+	if (HAWK_UNLIKELY(!val)) ADJERR_LOC(rtx, &nde->loc);
 	return val;
 }
 
@@ -7458,7 +7583,7 @@ static hawk_val_t* eval_rex (hawk_rtx_t* rtx, hawk_nde_t* nde)
 {
 	hawk_val_t* val;
 	val = hawk_rtx_makerexval(rtx, &((hawk_nde_rex_t*)nde)->str, ((hawk_nde_rex_t*)nde)->code);
-	if (HAWK_UNLIKELY(!val)) ADJERR_LOC (rtx, &nde->loc);
+	if (HAWK_UNLIKELY(!val)) ADJERR_LOC(rtx, &nde->loc);
 	return val;
 }
 
@@ -7515,7 +7640,7 @@ static hawk_val_t* eval_xargvidx (hawk_rtx_t* rtx, hawk_nde_t* nde)
 	hawk_rtx_refdownval(rtx, v);
 	if (n <= -1)
 	{
-		hawk_rtx_seterrnum (rtx, &xarg->pos->loc, HAWK_EPOSIDX);
+		hawk_rtx_seterrnum(rtx, &xarg->pos->loc, HAWK_EPOSIDX);
 		return HAWK_NULL;
 	}
 
@@ -7550,7 +7675,7 @@ static hawk_val_t* eval_fun (hawk_rtx_t* rtx, hawk_nde_t* nde)
 	}
 
 	val = hawk_rtx_makefunval(rtx, fun);
-	if (HAWK_UNLIKELY(!val)) ADJERR_LOC (rtx, &nde->loc);
+	if (HAWK_UNLIKELY(!val)) ADJERR_LOC(rtx, &nde->loc);
 	return val;
 }
 
@@ -7619,7 +7744,7 @@ static hawk_val_t* eval_indexed (hawk_rtx_t* rtx, hawk_nde_var_t* var)
 			break;
 
 		default:
-			hawk_rtx_seterrnum (rtx, &var->loc, HAWK_ENOTIDXACC);
+			hawk_rtx_seterrnum(rtx, &var->loc, HAWK_ENOTIDXACC);
 			return HAWK_NULL;
 	}
 
@@ -7665,20 +7790,20 @@ static hawk_val_t* eval_indexed (hawk_rtx_t* rtx, hawk_nde_var_t* var)
 					if (container_vtype == HAWK_VAL_MAP)
 					{
 						v = assign_newmapval_in_map(rtx, map, str, len);
-						if (HAWK_UNLIKELY(!v)) { ADJERR_LOC (rtx, &var->loc); goto oops; }
+						if (HAWK_UNLIKELY(!v)) { ADJERR_LOC(rtx, &var->loc); goto oops; }
 						vtype = HAWK_VAL_MAP;
 						goto val_map;
 					}
 					else
 					{
 						v = assign_newarrval_in_arr(rtx, arr, idx);
-						if (HAWK_UNLIKELY(!v)) { ADJERR_LOC (rtx, &var->loc); goto oops; }
+						if (HAWK_UNLIKELY(!v)) { ADJERR_LOC(rtx, &var->loc); goto oops; }
 						vtype = HAWK_VAL_ARR;
 						goto val_arr;
 					}
 				}
 
-				hawk_rtx_seterrnum (rtx, &var->loc, HAWK_ENOTIDXACC);
+				hawk_rtx_seterrnum(rtx, &var->loc, HAWK_ENOTIDXACC);
 				goto oops;
 		}
 	}
@@ -7741,13 +7866,13 @@ static hawk_val_t* eval_pos (hawk_rtx_t* rtx, hawk_nde_t* nde)
 	hawk_rtx_refdownval(rtx, v);
 	if (n <= -1)
 	{
-		hawk_rtx_seterrnum (rtx, &nde->loc, HAWK_EPOSIDX);
+		hawk_rtx_seterrnum(rtx, &nde->loc, HAWK_EPOSIDX);
 		return HAWK_NULL;
 	}
 
 	if (lv < 0)
 	{
-		hawk_rtx_seterrnum (rtx, &nde->loc, HAWK_EPOSIDX);
+		hawk_rtx_seterrnum(rtx, &nde->loc, HAWK_EPOSIDX);
 		return HAWK_NULL;
 	}
 
@@ -7845,7 +7970,7 @@ read_console_again:
 			v = hawk_rtx_makenumorstrvalwithoochars(rtx, HAWK_OOECS_PTR(buf), HAWK_OOECS_LEN(buf));
 			if (HAWK_UNLIKELY(!v))
 			{
-				ADJERR_LOC (rtx, &nde->loc);
+				ADJERR_LOC(rtx, &nde->loc);
 				return HAWK_NULL;
 			}
 
@@ -7865,7 +7990,7 @@ read_console_again:
 
 skip_read:
 	tmp = hawk_rtx_makeintval(rtx, n);
-	if (!tmp) ADJERR_LOC (rtx, &nde->loc);
+	if (!tmp) ADJERR_LOC(rtx, &nde->loc);
 	return tmp;
 }
 
@@ -7955,7 +8080,7 @@ read_console_again:
 			v = hawk_rtx_makenumormbsvalwithbchars(rtx, HAWK_BECS_PTR(buf), HAWK_BECS_LEN(buf));
 			if (v == HAWK_NULL)
 			{
-				ADJERR_LOC (rtx, &nde->loc);
+				ADJERR_LOC(rtx, &nde->loc);
 				return HAWK_NULL;
 			}
 
@@ -7975,7 +8100,7 @@ read_console_again:
 
 skip_read:
 	tmp = hawk_rtx_makeintval(rtx, n);
-	if (!tmp) ADJERR_LOC (rtx, &nde->loc);
+	if (!tmp) ADJERR_LOC(rtx, &nde->loc);
 	return tmp;
 }
 
@@ -7984,20 +8109,20 @@ static hawk_val_t* eval_getline (hawk_rtx_t* rtx, hawk_nde_t* nde)
 	return ((hawk_nde_getline_t*)nde)->mbs? __eval_getbline(rtx, nde): __eval_getline(rtx, nde);
 }
 
-static hawk_val_t* eval_print (hawk_rtx_t* run, hawk_nde_t* nde)
+static hawk_val_t* eval_print (hawk_rtx_t* rtx, hawk_nde_t* nde)
 {
-	int n = run_print(run, (hawk_nde_print_t*)nde);
+	int n = run_print(rtx, (hawk_nde_print_t*)nde);
 	if (n == PRINT_IOERR) n = -1; /* let print return -1 */
 	else if (n <= -1) return HAWK_NULL;
-	return hawk_rtx_makeintval(run, n);
+	return hawk_rtx_makeintval(rtx, n);
 }
 
-static hawk_val_t* eval_printf (hawk_rtx_t* run, hawk_nde_t* nde)
+static hawk_val_t* eval_printf (hawk_rtx_t* rtx, hawk_nde_t* nde)
 {
-	int n = run_printf(run, (hawk_nde_print_t*)nde);
+	int n = run_printf(rtx, (hawk_nde_print_t*)nde);
 	if (n == PRINT_IOERR) n = -1; /* let print return -1 */
 	else if (n <= -1) return HAWK_NULL;
-	return hawk_rtx_makeintval(run, n);
+	return hawk_rtx_makeintval(rtx, n);
 }
 
 static int read_record (hawk_rtx_t* rtx)
@@ -8063,7 +8188,7 @@ static hawk_ooch_t* idxnde_to_str (hawk_rtx_t* rtx, hawk_nde_t* nde, hawk_ooch_t
 			if (hawk_rtx_valtoint(rtx, idx, &idxint) <= -1)
 			{
 				hawk_rtx_refdownval(rtx, idx);
-				ADJERR_LOC (rtx, &nde->loc);
+				ADJERR_LOC(rtx, &nde->loc);
 				return HAWK_NULL;
 			}
 		}
@@ -8093,7 +8218,7 @@ static hawk_ooch_t* idxnde_to_str (hawk_rtx_t* rtx, hawk_nde_t* nde, hawk_ooch_t
 			if (hawk_rtx_valtostr(rtx, idx, &out) <= -1)
 			{
 				hawk_rtx_refdownval(rtx, idx);
-				ADJERR_LOC (rtx, &nde->loc);
+				ADJERR_LOC(rtx, &nde->loc);
 				return HAWK_NULL;
 			}
 
@@ -8118,7 +8243,7 @@ static hawk_ooch_t* idxnde_to_str (hawk_rtx_t* rtx, hawk_nde_t* nde, hawk_ooch_t
 
 		if (hawk_ooecs_init(&idxstr, hawk_rtx_getgem(rtx), DEF_BUF_CAPA) <= -1)
 		{
-			ADJERR_LOC (rtx, &nde->loc);
+			ADJERR_LOC(rtx, &nde->loc);
 			return HAWK_NULL;
 		}
 
@@ -8144,7 +8269,7 @@ static hawk_ooch_t* idxnde_to_str (hawk_rtx_t* rtx, hawk_nde_t* nde, hawk_ooch_t
 				{
 					hawk_rtx_refdownval(rtx, idx);
 					hawk_ooecs_fini (&idxstr);
-					ADJERR_LOC (rtx, &nde->loc);
+					ADJERR_LOC(rtx, &nde->loc);
 					return HAWK_NULL;
 				}
 
@@ -8155,7 +8280,7 @@ static hawk_ooch_t* idxnde_to_str (hawk_rtx_t* rtx, hawk_nde_t* nde, hawk_ooch_t
 			{
 				hawk_rtx_refdownval(rtx, idx);
 				hawk_ooecs_fini (&idxstr);
-				ADJERR_LOC (rtx, &nde->loc);
+				ADJERR_LOC(rtx, &nde->loc);
 				return HAWK_NULL;
 			}
 
@@ -8163,7 +8288,7 @@ static hawk_ooch_t* idxnde_to_str (hawk_rtx_t* rtx, hawk_nde_t* nde, hawk_ooch_t
 			{
 				hawk_rtx_refdownval(rtx, idx);
 				hawk_ooecs_fini (&idxstr);
-				ADJERR_LOC (rtx, &nde->loc);
+				ADJERR_LOC(rtx, &nde->loc);
 				return HAWK_NULL;
 			}
 
@@ -8194,7 +8319,7 @@ static hawk_ooi_t idxnde_to_int (hawk_rtx_t* rtx, hawk_nde_t* nde, hawk_nde_t** 
 	if (nde->next && nde->next->type != HAWK_NDE_NULL)
 	{
 		/* multidimensional indices inside a single brakcet is not allowed for an array */
-		hawk_rtx_seterrnum (rtx, &nde->loc, HAWK_EARRIDXMULTI);
+		hawk_rtx_seterrnum(rtx, &nde->loc, HAWK_EARRIDXMULTI);
 		return -1;
 	}
 
@@ -8206,14 +8331,14 @@ static hawk_ooi_t idxnde_to_int (hawk_rtx_t* rtx, hawk_nde_t* nde, hawk_nde_t** 
 	hawk_rtx_refdownval(rtx, tmp);
 	if (HAWK_UNLIKELY(n <= -1))
 	{
-		ADJERR_LOC (rtx, &nde->loc);
+		ADJERR_LOC(rtx, &nde->loc);
 		return -1;
 	}
 
 	if (v < 0 || v > HAWK_INT_MAX)
 	{
 		/* array index out of permitted range  */
-		hawk_rtx_seterrnum (rtx, &nde->loc, HAWK_EARRIDXRANGE);
+		hawk_rtx_seterrnum(rtx, &nde->loc, HAWK_EARRIDXRANGE);
 		return -1;
 	}
 
@@ -8366,7 +8491,7 @@ wp_mod_main:
 			{
 				if (stack_arg_idx >= nargs_on_stack)
 				{
-					hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EFMTARG);
+					hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EFMTARG);
 					return HAWK_NULL;
 				}
 				v = hawk_rtx_getarg(rtx, stack_arg_idx);
@@ -8377,7 +8502,7 @@ wp_mod_main:
 				{
 					if (stack_arg_idx >= nargs_on_stack)
 					{
-						hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EFMTARG);
+						hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EFMTARG);
 						return HAWK_NULL;
 					}
 					v = val;
@@ -8473,7 +8598,7 @@ wp_mod_main:
 			{
 				if (stack_arg_idx >= nargs_on_stack)
 				{
-					hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EFMTARG);
+					hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EFMTARG);
 					return HAWK_NULL;
 				}
 				v = hawk_rtx_getarg(rtx, stack_arg_idx);
@@ -8484,7 +8609,7 @@ wp_mod_main:
 				{
 					if (stack_arg_idx >= nargs_on_stack)
 					{
-						hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EFMTARG);
+						hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EFMTARG);
 						return HAWK_NULL;
 					}
 					v = val;
@@ -8678,7 +8803,7 @@ wp_mod_main:
 			{
 				if (stack_arg_idx >= nargs_on_stack)
 				{
-					hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EFMTARG);
+					hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EFMTARG);
 					return HAWK_NULL;
 				}
 				v = hawk_rtx_getarg(rtx, stack_arg_idx);
@@ -8689,7 +8814,7 @@ wp_mod_main:
 				{
 					if (stack_arg_idx >= nargs_on_stack)
 					{
-						hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EFMTARG);
+						hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EFMTARG);
 						return HAWK_NULL;
 					}
 					v = val;
@@ -8729,7 +8854,7 @@ wp_mod_main:
 			{
 				if (stack_arg_idx >= nargs_on_stack)
 				{
-					hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EFMTARG);
+					hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EFMTARG);
 					return HAWK_NULL;
 				}
 				v = hawk_rtx_getarg(rtx, stack_arg_idx);
@@ -8740,7 +8865,7 @@ wp_mod_main:
 				{
 					if (stack_arg_idx >= nargs_on_stack)
 					{
-						hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EFMTARG);
+						hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EFMTARG);
 						return HAWK_NULL;
 					}
 					v = val;
@@ -8794,7 +8919,7 @@ wp_mod_main:
 
 				default:
 					hawk_rtx_refdownval(rtx, v);
-					hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EVALTOCHR);
+					hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EVALTOCHR);
 					return HAWK_NULL;
 			}
 
@@ -8852,7 +8977,7 @@ wp_mod_main:
 			{
 				if (stack_arg_idx >= nargs_on_stack)
 				{
-					hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EFMTARG);
+					hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EFMTARG);
 					return HAWK_NULL;
 				}
 				v = hawk_rtx_getarg(rtx, stack_arg_idx);
@@ -8863,7 +8988,7 @@ wp_mod_main:
 				{
 					if (stack_arg_idx >= nargs_on_stack)
 					{
-						hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EFMTARG);
+						hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EFMTARG);
 						return HAWK_NULL;
 					}
 					v = val;
@@ -9242,7 +9367,7 @@ wp_mod_main:
 			{
 				if (stack_arg_idx >= nargs_on_stack)
 				{
-					hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EFMTARG);
+					hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EFMTARG);
 					return HAWK_NULL;
 				}
 				v = hawk_rtx_getarg(rtx, stack_arg_idx);
@@ -9253,7 +9378,7 @@ wp_mod_main:
 				{
 					if (stack_arg_idx >= nargs_on_stack)
 					{
-						hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EFMTARG);
+						hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EFMTARG);
 						return HAWK_NULL;
 					}
 					v = val;
@@ -9350,7 +9475,7 @@ wp_mod_main:
 			{
 				if (stack_arg_idx >= nargs_on_stack)
 				{
-					hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EFMTARG);
+					hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EFMTARG);
 					return HAWK_NULL;
 				}
 				v = hawk_rtx_getarg(rtx, stack_arg_idx);
@@ -9361,7 +9486,7 @@ wp_mod_main:
 				{
 					if (stack_arg_idx >= nargs_on_stack)
 					{
-						hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EFMTARG);
+						hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EFMTARG);
 						return HAWK_NULL;
 					}
 					v = val;
@@ -9552,7 +9677,7 @@ wp_mod_main:
 			{
 				if (stack_arg_idx >= nargs_on_stack)
 				{
-					hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EFMTARG);
+					hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EFMTARG);
 					return HAWK_NULL;
 				}
 				v = hawk_rtx_getarg(rtx, stack_arg_idx);
@@ -9563,7 +9688,7 @@ wp_mod_main:
 				{
 					if (stack_arg_idx >= nargs_on_stack)
 					{
-						hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EFMTARG);
+						hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EFMTARG);
 						return HAWK_NULL;
 					}
 					v = val;
@@ -9603,7 +9728,7 @@ wp_mod_main:
 			{
 				if (stack_arg_idx >= nargs_on_stack)
 				{
-					hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EFMTARG);
+					hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EFMTARG);
 					return HAWK_NULL;
 				}
 				v = hawk_rtx_getarg(rtx, stack_arg_idx);
@@ -9614,7 +9739,7 @@ wp_mod_main:
 				{
 					if (stack_arg_idx >= nargs_on_stack)
 					{
-						hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EFMTARG);
+						hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EFMTARG);
 						return HAWK_NULL;
 					}
 					v = val;
@@ -9678,7 +9803,7 @@ wp_mod_main:
 
 				default:
 					hawk_rtx_refdownval(rtx, v);
-					hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EVALTOCHR);
+					hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EVALTOCHR);
 					return HAWK_NULL;
 			}
 
@@ -9736,7 +9861,7 @@ wp_mod_main:
 			{
 				if (stack_arg_idx >= nargs_on_stack)
 				{
-					hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EFMTARG);
+					hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EFMTARG);
 					return HAWK_NULL;
 				}
 				v = hawk_rtx_getarg(rtx, stack_arg_idx);
@@ -9747,7 +9872,7 @@ wp_mod_main:
 				{
 					if (stack_arg_idx >= nargs_on_stack)
 					{
-						hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EFMTARG);
+						hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EFMTARG);
 						return HAWK_NULL;
 					}
 					v = val;

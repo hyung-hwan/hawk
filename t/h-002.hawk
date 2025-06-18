@@ -665,6 +665,29 @@ function main()
 		f = test10
 		tap_ensure (f(1, 2, 3, 4, 5, 6, 7, 8, 9, 10),  55, @SCRIPTNAME, @SCRIPTLINE);
 	}
+
+
+	{
+		tap_ensure(test12(2,5), -3, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure(test12(3,5), 8, @SCRIPTNAME, @SCRIPTLINE);
+
+		tap_ensure(test13(1), 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure(test13(2), 2, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure(test13(3), 3, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure(test13(4), 4, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure(test13(5), 5, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure(test13(6), 1005, @SCRIPTNAME, @SCRIPTLINE);
+
+		tap_ensure(test14("hello"), "world", @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure(test14("donkey"), "rankey", @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure(test14("speed"), "unknown", @SCRIPTNAME, @SCRIPTLINE);
+
+		tap_ensure(test15("hello"), "world", @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure(test15("donkey"), "[rankey012]", @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure(test15("skunk"), "stinks", @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure(test15("speed"), "unknown", @SCRIPTNAME, @SCRIPTLINE);
+	}
+
 	tap_end ();
 }
 
@@ -709,3 +732,88 @@ function test10(...) {
 function test11(...) {
 	return (3 in @argv);
 }
+
+function test12(...) {
+	switch(@argv[0] * @argv[1]) {
+	case 10:
+		return @argv[0] - @argv[1];
+
+	default:
+		return @argv[0] + @argv[1];
+	}
+}
+
+function test13(x) {
+	@local a;
+
+	a = 0;
+
+	switch(x) {
+	default:
+		a = 1000;
+
+	case 5:
+		a++;
+
+	case 4:
+		a++;
+
+	case 3:
+		a++;
+
+	case 2:
+		a++;
+
+	case 1:
+		a++;
+		break;
+	}
+
+	return a;
+}
+
+function test14(x) {
+	switch(x) {
+	case "hello":
+		return "world";
+
+	case "donkey":
+		return "rankey";
+
+	default:
+		return "unknown";
+	
+	}
+}
+
+
+function test15(x) {
+	@local a, i;
+
+	switch(x) {
+	case "hello":
+		a =  "world";
+		break;
+
+	case "donkey":
+	{
+		@local l;
+		a = "rankey";
+		l = length(a);	
+		for (i = 0; i < l; i++) {
+			if (i == 3) break;
+			a = sprintf("%s%d", a, i);
+		}
+		a = sprintf("[%s]", a);
+		break;
+	}
+
+	default:
+		if (x == "skunk") a = "stinks";
+		else a = "unknown";
+		break;	
+	}
+
+	return a;
+}
+

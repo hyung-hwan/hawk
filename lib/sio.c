@@ -156,7 +156,7 @@ int hawk_sio_init (hawk_sio_t* sio, hawk_gem_t* gem, const hawk_ooch_t* path, in
 	if (hawk_tio_init(&sio->tio.io, gem, topt) <= -1) goto oops03;
 
 	/* store the back-reference to sio in the extension area.*/
-	/*HAWK_ASSERT (hawk, (&sio->tio.io + 1) == &sio->tio.xtn);*/
+	/*HAWK_ASSERT(hawk, (&sio->tio.io + 1) == &sio->tio.xtn);*/
 	*(hawk_sio_t**)(&sio->tio.io + 1) = sio;
 
 	if (hawk_tio_attachin(&sio->tio.io, file_input, sio->inbuf, HAWK_COUNTOF(sio->inbuf)) <= -1 ||

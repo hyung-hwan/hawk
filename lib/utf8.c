@@ -74,8 +74,8 @@ static HAWK_INLINE __utf8_t* get_utf8_slot (hawk_uch_t uc)
 {
 	__utf8_t* cur, * end;
 
-	/*HAWK_ASSERT (hawk, HAWK_SIZEOF(hawk_bch_t) == 1);
-	HAWK_ASSERT (hawk, HAWK_SIZEOF(hawk_uch_t) >= 2);*/
+	/*HAWK_ASSERT(hawk, HAWK_SIZEOF(hawk_bch_t) == 1);
+	HAWK_ASSERT(hawk, HAWK_SIZEOF(hawk_uch_t) >= 2);*/
 
 	end = utf8_table + HAWK_COUNTOF(utf8_table);
 	cur = utf8_table;
@@ -120,10 +120,10 @@ hawk_oow_t hawk_utf8_to_uc (const hawk_bch_t* utf8, hawk_oow_t size, hawk_uch_t*
 {
 	__utf8_t* cur, * end;
 
-	/*HAWK_ASSERT (hawk, utf8 != HAWK_NULL);
-	HAWK_ASSERT (hawk, size > 0);
-	HAWK_ASSERT (hawk, HAWK_SIZEOF(hawk_bch_t) == 1);
-	HAWK_ASSERT (hawk, HAWK_SIZEOF(hawk_uch_t) >= 2);*/
+	/*HAWK_ASSERT(hawk, utf8 != HAWK_NULL);
+	HAWK_ASSERT(hawk, size > 0);
+	HAWK_ASSERT(hawk, HAWK_SIZEOF(hawk_bch_t) == 1);
+	HAWK_ASSERT(hawk, HAWK_SIZEOF(hawk_uch_t) >= 2);*/
 
 	end = utf8_table + HAWK_COUNTOF(utf8_table);
 	cur = utf8_table;

@@ -2778,7 +2778,7 @@ int hawk_rtx_valtonum (hawk_rtx_t* rtx, const hawk_val_t* v, hawk_int_t* l, hawk
 		default:
 		invalid:
 		#if defined(DEBUG_VAL)
-			hawk_logfmt (hawk, HAWK_T(">>WRONG VALUE TYPE [%d] in hawk_rtx_valtonum()\n"), v->type);
+			hawk_logfmt(hawk, HAWK_T(">>WRONG VALUE TYPE [%d] in hawk_rtx_valtonum()\n"), v->type);
 		#endif
 			hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EVALTONUM);
 			return -1; /* error */

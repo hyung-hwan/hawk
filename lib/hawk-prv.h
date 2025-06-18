@@ -278,6 +278,7 @@ struct hawk_t
 			hawk_oow_t loop;
 			hawk_oow_t expr; /* expression */
 			hawk_oow_t incl;
+			hawk_oow_t swtch; /* switch */
 		} depth;
 
 		/* current pragma values */

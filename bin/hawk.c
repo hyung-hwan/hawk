@@ -539,6 +539,15 @@ static void print_usage (FILE* out, const hawk_bch_t* argv0, const hawk_bch_t* r
 	{
 		fprintf (out, " --%-18s on/off       %s\n", opttab[j].name, opttab[j].desc);
 	}
+
+	if (!real_argv0)
+	{
+		fprintf (out, "\n");
+		fprintf (out, "Special mode switching options(must be specified first to take effect):\n");
+		fprintf (out, " --hawk/--awk                      run in the hawk mode\n");
+		fprintf (out, " --cut                             run in the cut  mode\n");
+		fprintf (out, " --sed                             run in the sed mode\n");
+	}
 }
 
 /* ---------------------------------------------------------------------- */

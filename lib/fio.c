@@ -284,7 +284,7 @@ int hawk_fio_init (hawk_fio_t* fio, hawk_gem_t* gem, const hawk_ooch_t* path, in
 	{
 		handle = *(hawk_fio_hnd_t*)path;
 		/* do not specify an invalid handle value */
-		/*HAWK_ASSERT (hawk, handle != INVALID_HANDLE_VALUE);*/
+		/*HAWK_ASSERT(hawk, handle != INVALID_HANDLE_VALUE);*/
 
 		if (handle == GetStdHandle (STD_INPUT_HANDLE))
 			fio->status |= STATUS_WIN32_STDIN;
@@ -573,7 +573,7 @@ int hawk_fio_init (hawk_fio_t* fio, hawk_gem_t* gem, const hawk_ooch_t* path, in
 	{
 		handle = *(hawk_fio_hnd_t*)path;
 		/* do not specify an invalid handle value */
-		/*HAWK_ASSERT (hawk, handle >= 0);*/
+		/*HAWK_ASSERT(hawk, handle >= 0);*/
 	}
 	else
 	{
@@ -784,7 +784,7 @@ int hawk_fio_init (hawk_fio_t* fio, hawk_gem_t* gem, const hawk_ooch_t* path, in
 	{
 		handle = *(hawk_fio_hnd_t*)path;
 		/* do not specify an invalid handle value */
-		/*HAWK_ASSERT (hawk, handle >= 0);*/
+		/*HAWK_ASSERT(hawk, handle >= 0);*/
 	}
 	else
 	{

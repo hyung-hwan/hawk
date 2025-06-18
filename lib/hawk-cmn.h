@@ -940,6 +940,7 @@ enum hawk_errnum_t
 	HAWK_ELBRACE, /**< left brace expected */
 	HAWK_ELPAREN, /**< left parenthesis expected */
 	HAWK_ERPAREN, /**< right parenthesis expected */
+	HAWK_ERBRACE, /**< right brace expected */
 	HAWK_ERBRACK, /**< right bracket expected */
 	HAWK_ECOMMA,  /**< comma expected */
 	HAWK_ESCOLON, /**< semicolon expected */
@@ -952,6 +953,8 @@ enum hawk_errnum_t
 
 	HAWK_EKWFNC,    /**< keyword 'function' expected */
 	HAWK_EKWWHL,    /**< keyword 'while' expected */
+	HAWK_EKWCASE,   /**< keyword 'case' expected */
+	HAWK_EMULDFL,   /**< multiple 'default' labels */
 	HAWK_EASSIGN,   /**< assignment statement expected */
 	HAWK_EIDENT,    /**< identifier expected */
 	HAWK_EFUNNAM,   /**< not a valid function name */

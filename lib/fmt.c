@@ -1218,7 +1218,7 @@ static int fmt_outv (hawk_fmtout_t* fmtout, va_list ap)
 			newcapa = precision + width + 32;
 			if (fltout->capa < newcapa)
 			{
-				HAWK_ASSERT (hawk, fltout->ptr == fltout->buf);
+				HAWK_ASSERT(hawk, fltout->ptr == fltout->buf);
 
 				fltout->ptr = HAWK_MMGR_ALLOC(fmtout->mmgr, HAWK_SIZEOF(char_t) * (newcapa + 1));
 				if (!fltout->ptr) goto oops;
@@ -1583,7 +1583,7 @@ int hawk_ufmt_out (hawk_fmtout_t* fmtout, const hawk_uch_t* fmt, ...)
 #define log_write(hawk,mask,ptr,len) do { \
 	 int shuterr = (hawk)->shuterr; \
 	 (hawk)->shuterr = 1; \
-	 (hawk)->prm.logwrite (hawk, mask, ptr, len); \
+	 (hawk)->prm.logwrite(hawk, mask, ptr, len); \
 	 (hawk)->shuterr = shuterr; \
 } while(0)
 
@@ -1604,7 +1604,7 @@ static int log_oocs (hawk_fmtout_t* fmtout, const hawk_ooch_t* ptr, hawk_oow_t l
 			hawk->log.ptr[hawk->log.len++] = '\n';
 		}
 
-		log_write (hawk, hawk->log.last_mask, hawk->log.ptr, hawk->log.len);
+		log_write(hawk, hawk->log.last_mask, hawk->log.ptr, hawk->log.len);
 		hawk->log.len = 0;
 	}
 
@@ -1648,7 +1648,7 @@ redo:
 					/* no line ending - append a line terminator */
 					hawk->log.ptr[hawk->log.len++] = '\n';
 				}
-				log_write (hawk, hawk->log.last_mask, hawk->log.ptr, hawk->log.len);
+				log_write(hawk, hawk->log.last_mask, hawk->log.ptr, hawk->log.len);
 				hawk->log.len = 0;
 			}
 
@@ -1761,7 +1761,7 @@ hawk_ooi_t hawk_logbfmtv (hawk_t* hawk, hawk_bitmask_t mask, const hawk_bch_t* f
 
 	if (hawk->log.len > 0 && hawk->log.ptr[hawk->log.len - 1] == '\n')
 	{
-		log_write (hawk, hawk->log.last_mask, hawk->log.ptr, hawk->log.len);
+		log_write(hawk, hawk->log.last_mask, hawk->log.ptr, hawk->log.len);
 		hawk->log.len = 0;
 	}
 
@@ -1814,7 +1814,7 @@ hawk_ooi_t hawk_logufmtv (hawk_t* hawk, hawk_bitmask_t mask, const hawk_uch_t* f
 
 	if (hawk->log.len > 0 && hawk->log.ptr[hawk->log.len - 1] == '\n')
 	{
-		log_write (hawk, hawk->log.last_mask, hawk->log.ptr, hawk->log.len);
+		log_write(hawk, hawk->log.last_mask, hawk->log.ptr, hawk->log.len);
 		hawk->log.len = 0;
 	}
 	return (x <= -1)? -1: fo.count;
