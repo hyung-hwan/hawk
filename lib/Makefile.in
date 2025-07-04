@@ -121,11 +121,10 @@ host_triplet = @host@
 @ENABLE_MOD_MEMC_STATIC_TRUE@am__append_15 = $(MEMCACHED_LIBS)
 @ENABLE_MOD_MYSQL_STATIC_TRUE@am__append_16 = ../mod/mod-mysql.c ../mod/mod-mysql.h
 @ENABLE_MOD_MYSQL_STATIC_TRUE@am__append_17 = $(MYSQL_CFLAGS) ## put CFLAGS in CPPFLAGS as MYSQL_CFLAGS contains -I options only
-@ENABLE_MOD_MYSQL_STATIC_TRUE@am__append_18 = $(MYSQL_LDFLAGS)
-@ENABLE_MOD_MYSQL_STATIC_TRUE@am__append_19 = $(MYSQL_LIBS)
-@ENABLE_MOD_SED_STATIC_TRUE@am__append_20 = ../mod/mod-sed.c ../mod/mod-sed.h
-@ENABLE_MOD_UCI_STATIC_TRUE@am__append_21 = ../mod/mod-uci.c ../mod/mod-uci.h
-@ENABLE_MOD_UCI_STATIC_TRUE@am__append_22 = $(UCI_LIBS)
+@ENABLE_MOD_MYSQL_STATIC_TRUE@am__append_18 = $(MYSQL_LDFLAGS) $(MYSQL_LIBS)
+@ENABLE_MOD_SED_STATIC_TRUE@am__append_19 = ../mod/mod-sed.c ../mod/mod-sed.h
+@ENABLE_MOD_UCI_STATIC_TRUE@am__append_20 = ../mod/mod-uci.c ../mod/mod-uci.h
+@ENABLE_MOD_UCI_STATIC_TRUE@am__append_21 = $(UCI_LIBS)
 subdir = lib
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/ax_check_sign.m4 \
@@ -238,6 +237,7 @@ libhawk_sys_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 @ENABLE_MOD_MEMC_STATIC_TRUE@am__DEPENDENCIES_7 =  \
 @ENABLE_MOD_MEMC_STATIC_TRUE@	$(am__DEPENDENCIES_1)
 @ENABLE_MOD_MYSQL_STATIC_TRUE@am__DEPENDENCIES_8 =  \
+@ENABLE_MOD_MYSQL_STATIC_TRUE@	$(am__DEPENDENCIES_1) \
 @ENABLE_MOD_MYSQL_STATIC_TRUE@	$(am__DEPENDENCIES_1)
 @ENABLE_MOD_UCI_STATIC_TRUE@am__DEPENDENCIES_9 =  \
 @ENABLE_MOD_UCI_STATIC_TRUE@	$(am__DEPENDENCIES_1)
@@ -692,17 +692,16 @@ libhawk_la_SOURCES = $(pkginclude_HEADERS) arr.c chr.c cut-prv.h cut.c \
 	cli-imp.h cli.c fio.c mtx.c pio.c sio.c syscall.h tio.c std.c \
 	std-cut.c std-json.c std-sed.c $(am__append_8) $(am__append_9) \
 	$(am__append_12) $(am__append_14) $(am__append_16) \
-	$(am__append_20) $(am__append_21)
+	$(am__append_19) $(am__append_20)
 libhawk_la_CPPFLAGS = $(CPPFLAGS_ALL_COMMON) $(CPPFLAGS_PFMOD) \
 	$(am__append_3) $(am__append_17)
 libhawk_la_CFLAGS = $(CFLAGS_ALL_COMMON)
 libhawk_la_CXXFLAGS = $(CXXFLAGS_ALL_COMMON)
-libhawk_la_LDFLAGS = $(LDFLAGS_ALL_COMMON) -version-info 1:0:0# \
-	$(am__append_18)
+libhawk_la_LDFLAGS = $(LDFLAGS_ALL_COMMON) -version-info 1:0:0 ## -no-undefined
 libhawk_la_LIBADD = $(LIBM) $(SOCKET_LIBS) $(am__append_4) \
 	$(am__append_5) $(am__append_6) $(am__append_10) \
-	$(am__append_13) $(am__append_15) $(am__append_19) \
-	$(am__append_22)
+	$(am__append_13) $(am__append_15) $(am__append_18) \
+	$(am__append_21)
 @ENABLE_CXX_FALSE@libhawk_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 @ENABLE_CXX_FALSE@	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) \
 @ENABLE_CXX_FALSE@	$(CFLAGS) $(libhawk_la_LDFLAGS) $(LDFLAGS) -o $@

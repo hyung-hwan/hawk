@@ -290,8 +290,11 @@ endif
 if ENABLE_MOD_MYSQL_STATIC
 libhawk_la_SOURCES += ../mod/mod-mysql.c ../mod/mod-mysql.h
 libhawk_la_CPPFLAGS += $(MYSQL_CFLAGS) ## put CFLAGS in CPPFLAGS as MYSQL_CFLAGS contains -I options only
-libhawk_la_LDFLAGS += $(MYSQL_LDFLAGS)
-libhawk_la_LIBADD += $(MYSQL_LIBS)
+## $(MYSQL_LDFLAGS) has -L options. If this is not listed in LIBADD, it doesn't enter the result .la file
+## it caused a link failure that is caused by the library not found for this missing path.
+## Let's placs it under LIBADD. The same part in ../mod/Makefile.am still places it under LDFLAGS.
+##libhawk_la_LDFLAGS += $(MYSQL_LDFLAGS)
+libhawk_la_LIBADD += $(MYSQL_LDFLAGS) $(MYSQL_LIBS)
 endif
 
 if ENABLE_MOD_SED_STATIC
