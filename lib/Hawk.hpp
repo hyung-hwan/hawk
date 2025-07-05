@@ -1076,6 +1076,9 @@ public:
 		int setMbs (const hawk_bch_t* str);
 		int setMbs (Run* r, const hawk_bch_t* str);
 
+		int setArrayVal (hawk_ooi_t idx, hawk_val_t* v);
+		int setArrayVal (Run* r, hawk_ooi_t idx, hawk_val_t* v);
+
 		int setIndexedVal (const Index& idx, hawk_val_t* v);
 		int setIndexedVal (Run* r, const Index& idx, hawk_val_t* v);
 		int setIndexedInt (const Index& idx, hawk_int_t v);
