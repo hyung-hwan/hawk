@@ -131,6 +131,11 @@ static hawk_sio_t* open_sio_std (Hawk* hawk, HawkStd::Run* run, hawk_sio_std_t s
 	return sio;
 }
 
+HawkStd::~HawkStd ()
+{
+	this->close();
+}
+
 int HawkStd::open ()
 {
 	int n = Hawk::open();
@@ -182,7 +187,7 @@ void HawkStd::close ()
 
 	//
 	// HawkStd called hawk_stdmodstartup() after Hawk::open().
-	// It's logical to call hawk_stdmodshutdown() Hawk::close().
+	// It's logical to call hawk_stdmodshutdown() in Hawk::close().
 	// but Hawk::close() still needs to call some module's fini and
 	// unload functions. So it must be done in HawkStd::uponClosing()
 	// which is called after modules have been unloaded but while

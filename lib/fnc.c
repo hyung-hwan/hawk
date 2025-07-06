@@ -61,6 +61,7 @@ static hawk_fnc_t sysfnctab[] =
 
 	/* string functions */
 	{ {HAWK_T("gsub"),     4}, 0, { {2,     3, HAWK_T("xvr")},    hawk_fnc_gsub,     0 }, HAWK_NULL},
+/* TODO: gensub */
 	{ {HAWK_T("index"),    5}, 0, { {2,     3, HAWK_NULL},        hawk_fnc_index,    0 }, HAWK_NULL},
 	{ {HAWK_T("length"),   6}, 1, { {0,     1, HAWK_NULL},        fnc_length,        0 }, HAWK_NULL},
 	{ {HAWK_T("match"),    5}, 0, { {2,     3, HAWK_T("vxr")},    fnc_match,         0 }, HAWK_NULL},
@@ -704,36 +705,12 @@ int hawk_fnc_length (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, int mode)
 			case HAWK_VAL_MAP:
 				/* map size */
 				len = HAWK_MAP_SIZE(((hawk_val_map_t*)v)->map);
-				switch (mode)
-				{
-					case 2: /* capacity */
-						len = hawk_map_getcapa(((hawk_val_map_t*)v)->map);
-						break;
-
-					case 1: /* size */
-					case 0: /* length */
-					default:
-						len = HAWK_MAP_SIZE(((hawk_val_map_t*)v)->map);
-						break;
-				}
 				break;
 
-			case HAWK_VAL_ARR: /* returns the number of set items instead of the last index + 1 */
-				switch (mode)
-				{
-					case 2: /* capacity */
-						len = HAWK_ARR_SIZE(((hawk_val_arr_t*)v)->arr);
-						break;
-
-					case 1: /* size */
-						len = HAWK_ARR_SIZE(((hawk_val_arr_t*)v)->arr);
-						break;
-
-					case 0: /* length */
-					default:
-						len = HAWK_ARR_TALLY(((hawk_val_arr_t*)v)->arr);
-						break;
-				}
+			case HAWK_VAL_ARR:
+				/* mode 0 - returns the number of set items instead of the last index + 1 */
+				/* mode 1 - returns the last index + 1 */
+				len = (mode == 0)? HAWK_ARR_TALLY(((hawk_val_arr_t*)v)->arr): HAWK_ARR_SIZE(((hawk_val_arr_t*)v)->arr);
 				break;
 
 			case HAWK_VAL_BCHR:

@@ -28,6 +28,10 @@ EXTRA_DIST = $(check_SCRIPTS) $(check_ERRORS) tap.inc err.sh \
 
 check_PROGRAMS = t-001 t-002 t-003 t-004 t-005 t-006 t-007 t-008 t-009
 
+if ENABLE_CXX
+check_PROGRAMS += t-101
+endif
+
 t_001_SOURCES = t-001.c tap.h
 t_001_CPPFLAGS = $(CPPFLAGS_COMMON)
 
@@ -78,6 +82,14 @@ t_009_CPPFLAGS = $(CPPFLAGS_COMMON)
 t_009_CFLAGS = $(CFLAGS_COMMON)
 t_009_LDFLAGS = $(LDFLAGS_COMMON)
 t_009_LDADD = $(LIBADD_COMMON)
+
+if ENABLE_CXX
+t_101_SOURCES = t-101.cpp tap.h
+t_101_CPPFLAGS = $(CPPFLAGS_COMMON)
+t_101_CFLAGS = $(CFLAGS_COMMON)
+t_101_LDFLAGS = $(LDFLAGS_COMMON)
+t_101_LDADD = $(LIBADD_COMMON)
+endif
 
 
 LOG_DRIVER = env AM_TAP_AWK='$(AWK)' $(SHELL) $(top_srcdir)/ac/tap-driver.sh

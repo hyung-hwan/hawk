@@ -832,6 +832,33 @@ public:
 	/// The Value class wraps around #hawk_val_t to provide a more
 	/// comprehensive interface.
 	///
+	/// An instance of Value must not outlive the associated run-time
+	/// context and its owning hawk instance. If the close() method is
+	/// called explicity on the owning hawk instance, you must ensure
+	/// that the related values are also destroyed before the call to
+	/// close().
+	///
+	/// The following will end up in a segmentation fault or the like.
+	///   HAWK::HawkStd hawk;
+        ///   hawk.open();
+        ///   HAWK::HawkStd::SourceString in("BEGIN{}");
+        ///   hawk.parse(in, HAWK::Hawk::Source::NONE);
+	///   HAWK::Hawk::Value v(rtx);
+        ///   v.setMbs("hello", 5);
+        ///   hawk.close();
+	///
+	/// You don't call hawk.close() and rely on the destructor or
+	/// enclose 'v' in another nested scope.
+	///   HAWK::HawkStd hawk;
+        ///   hawk.open();
+        ///   HAWK::HawkStd::SourceString in("BEGIN{}");
+        ///   hawk.parse(in, HAWK::Hawk::Source::NONE);
+	///   {
+	///       HAWK::Hawk::Value v(rtx);
+        ///       v.setMbs("hello", 5);
+	///   }
+        ///   hawk.close();
+	///
 	class HAWK_EXPORT Value
 	{
 	public:
@@ -1082,6 +1109,9 @@ public:
 		int scaleArrayed (hawk_ooi_t size);
 		int scaleArrayed (Run* r, hawk_ooi_t size);
 
+		hawk_ooi_t getArrayedSize () const; // same value as hawk::size() for an array
+		hawk_ooi_t getArrayedLength () const; // same value as hawk::length() for an array
+
 		bool isArrayed () const;
 		int getArrayed (
 			hawk_ooi_t    idx, ///< array index
@@ -1299,7 +1329,7 @@ public:
 
 	/// The ~Hawk() function destroys an interpreter. Make sure to have
 	/// called close() for finalization before the destructor is executed.
-	virtual ~Hawk () {}
+	virtual ~Hawk ();
 
 	hawk_cmgr_t* getCmgr () const;
 	void setCmgr (hawk_cmgr_t* cmgr);
@@ -1932,6 +1962,8 @@ public:
 	HawkStd (Mmgr* mmgr = HAWK_NULL): Hawk(mmgr), cmgrtab_inited(false), stdmod_up(false), console_cmgr(HAWK_NULL)
 	{
 	}
+
+	~HawkStd();
 
 	int open ();
 	void close ();

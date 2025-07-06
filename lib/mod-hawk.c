@@ -339,12 +339,6 @@ static int fnc_gcrefs (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 /* -------------------------------------------------------------------------- */
 
-static int fnc_cap (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
-{
-	/* capacity */
-	return hawk_fnc_length (rtx, fi, 2);
-}
-
 static int fnc_size (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	/* similar to length, but it returns the ubound + 1 for the array */
@@ -539,7 +533,6 @@ static hawk_mod_fnc_tab_t fnctab[] =
 	/* keep this table sorted for binary search in query(). */
 	{ HAWK_T("array"),            { { 0, A_MAX, HAWK_NULL     },  fnc_array,                 0 } },
 	{ HAWK_T("call"),             { { 1, A_MAX, HAWK_T("vR")  },  fnc_call,                  0 } },
-	{ HAWK_T("cap"),              { { 1, 1,     HAWK_NULL     },  fnc_cap,                   0 } },
 	{ HAWK_T("cmgr_exists"),      { { 1, 1,     HAWK_NULL     },  fnc_cmgr_exists,           0 } },
 	{ HAWK_T("function_exists"),  { { 1, 1,     HAWK_NULL     },  fnc_function_exists,       0 } },
 	{ HAWK_T("gc"),               { { 0, 1,     HAWK_NULL     },  fnc_gc,                    0 } },
