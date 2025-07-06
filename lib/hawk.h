@@ -3129,7 +3129,7 @@ HAWK_EXPORT hawk_val_map_itr_t* hawk_rtx_getfirstmapvalitr (
 );
 
 /**
- * The hawk_rtx_getnextmapvalitr() returns the iterator to the
+ * The hawk_rtx_getnextmapvalitr() function returns the iterator to the
  * next pair to \a itr in the map. It returns #HAWK_NULL and sets the pair
  * field of \a itr to #HAWK_NULL if \a itr points to the last pair.
  * Otherwise, it returns \a itr pointing to the next pair.
@@ -3140,6 +3140,14 @@ HAWK_EXPORT hawk_val_map_itr_t* hawk_rtx_getnextmapvalitr (
 	hawk_val_map_itr_t* itr
 );
 
+/**
+ * The hawk_rtx_scalearrval() function changes the capacity of an array value
+ */
+HAWK_EXPORT int hawk_rtx_scalearrval (
+	hawk_rtx_t* rtx,
+	hawk_val_t* arr,
+	hawk_ooi_t  capa
+);
 
 HAWK_EXPORT hawk_val_t* hawk_rtx_setarrvalfld (
 	hawk_rtx_t* rtx,

@@ -19,6 +19,8 @@ static void test1()
 
 	HAWK::Hawk::Value v(rtx);
 	HAWK::Hawk::Value vi(rtx);
+	HAWK::Hawk::Value vx(rtx);
+	hawk_int_t vvx;
 
 	vi.setInt(1010);
 	OK_X(vi.getType() == HAWK_VAL_INT);
@@ -30,6 +32,22 @@ static void test1()
 	OK_X(v.getType() == HAWK_VAL_ARR);
 	OK_X(v.getArrayedSize() == 5);
 	OK_X(v.getArrayedLength() == 1);
+	// no way to know the capacity as it's internally set
+	OK_X(v.getArrayed(4, &vx) == 0);
+	OK_X(vx.getType() == HAWK_VAL_INT && vx.getInt(&vvx) == 0);
+	OK_X(vvx == 1010);
+
+	OK_X(v.scaleArrayed(10) == 0);
+	OK_X(v.getType() == HAWK_VAL_ARR);
+	OK_X(v.getArrayedSize() == 5);
+	OK_X(v.getArrayedLength() == 1);
+	OK_X(v.getArrayedCapa() == 10); // capacity must be known after it's set explicitly set
+
+	HAWK::Hawk::Value x(rtx);
+	OK_X(x.scaleArrayed(3) == 0);
+	OK_X(x.getArrayedSize() == 0);
+	OK_X(x.getArrayedLength() == 0);
+	OK_X(x.getArrayedCapa() == 3);
 
 	// i must not call hawk.close() to ensure that v is destroyed first.
 	//hawk.close();

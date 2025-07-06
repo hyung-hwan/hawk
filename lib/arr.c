@@ -85,7 +85,7 @@ static HAWK_INLINE slot_t* alloc_slot (hawk_arr_t* arr, void* dptr, hawk_oow_t d
 		DPTR(n) = arr->style->copier(arr, dptr, dlen); /* call the custom copier */
 		if (HAWK_UNLIKELY(!DPTR(n)))
 		{
-			hawk_gem_freemem (arr->gem, n);
+			hawk_gem_freemem(arr->gem, n);
 			return HAWK_NULL;
 		}
 	}
@@ -115,7 +115,7 @@ hawk_arr_t* hawk_arr_open (hawk_gem_t* gem, hawk_oow_t xtnsize, hawk_oow_t capa)
 void hawk_arr_close (hawk_arr_t* arr)
 {
 	hawk_arr_fini (arr);
-	hawk_gem_freemem (arr->gem, arr);
+	hawk_gem_freemem(arr->gem, arr);
 }
 
 
@@ -165,7 +165,7 @@ void hawk_arr_fini (hawk_arr_t* arr)
 
 	if (arr->slot)
 	{
-		hawk_gem_freemem (arr->gem, arr->slot);
+		hawk_gem_freemem(arr->gem, arr->slot);
 		arr->slot = HAWK_NULL;
 		arr->capa = 0;
 		arr->size = 0 ;
@@ -220,8 +220,8 @@ hawk_arr_t* hawk_arr_setcapa (hawk_arr_t* arr, hawk_oow_t capa)
 	if (capa < arr->size)
 	{
 		/* to trigger freeers on the items truncated */
-		hawk_arr_delete (arr, capa, arr->size - capa);
-		HAWK_ASSERT (arr->size <= capa);
+		hawk_arr_delete(arr, capa, arr->size - capa);
+		HAWK_ASSERT(arr->size <= capa);
 	}
 
 	if (capa > 0)
@@ -233,8 +233,8 @@ hawk_arr_t* hawk_arr_setcapa (hawk_arr_t* arr, hawk_oow_t capa)
 	{
 		if (arr->slot)
 		{
-			hawk_arr_clear (arr);
-			hawk_gem_freemem (arr->gem, arr->slot);
+			hawk_arr_clear(arr);
+			hawk_gem_freemem(arr->gem, arr->slot);
 		}
 
 		tmp = HAWK_NULL;
@@ -332,8 +332,8 @@ hawk_oow_t hawk_arr_insert (hawk_arr_t* arr, hawk_oow_t pos, void* dptr, hawk_oo
 
 			if (capa <= mincapa)
 			{
-				if (arr->style->freeer) arr->style->freeer (arr, DPTR(slot), DLEN(slot));
-				hawk_gem_freemem (arr->gem, slot);
+				if (arr->style->freeer) arr->style->freeer(arr, DPTR(slot), DLEN(slot));
+				hawk_gem_freemem(arr->gem, slot);
 				return HAWK_ARR_NIL;
 			}
 
@@ -344,8 +344,8 @@ hawk_oow_t hawk_arr_insert (hawk_arr_t* arr, hawk_oow_t pos, void* dptr, hawk_oo
 		if (pos >= arr->capa || arr->size >= arr->capa)  /* can happen if the sizer() callback isn't good enough */
 		{
 			/* the buffer is not still enough after resizing */
-			if (arr->style->freeer) arr->style->freeer (arr, DPTR(slot), DLEN(slot));
-			hawk_gem_freemem (arr->gem, slot);
+			if (arr->style->freeer) arr->style->freeer(arr, DPTR(slot), DLEN(slot));
+			hawk_gem_freemem(arr->gem, slot);
 			hawk_gem_seterrnum (arr->gem, HAWK_NULL, HAWK_EBUFFULL);
 			return HAWK_ARR_NIL;
 		}
@@ -398,8 +398,8 @@ hawk_oow_t hawk_arr_update (hawk_arr_t* arr, hawk_oow_t pos, void* dptr, hawk_oo
 			slot_t* slot = alloc_slot(arr, dptr, dlen);
 			if (HAWK_UNLIKELY(!slot)) return HAWK_ARR_NIL;
 
-			if (arr->style->freeer) arr->style->freeer (arr, DPTR(c), DLEN(c));
-			hawk_gem_freemem (arr->gem, c);
+			if (arr->style->freeer) arr->style->freeer(arr, DPTR(c), DLEN(c));
+			hawk_gem_freemem(arr->gem, c);
 
 			arr->slot[pos] = slot;
 		}
@@ -422,8 +422,8 @@ hawk_oow_t hawk_arr_delete (hawk_arr_t* arr, hawk_oow_t index, hawk_oow_t count)
 		slot_t* c = arr->slot[i];
 		if (c)
 		{
-			if (arr->style->freeer) arr->style->freeer (arr, DPTR(c), DLEN(c));
-			hawk_gem_freemem (arr->gem, c);
+			if (arr->style->freeer) arr->style->freeer(arr, DPTR(c), DLEN(c));
+			hawk_gem_freemem(arr->gem, c);
 			arr->slot[i] = HAWK_NULL;
 			arr->tally--;
 		}
@@ -453,8 +453,8 @@ hawk_oow_t hawk_arr_uplete (hawk_arr_t* arr, hawk_oow_t index, hawk_oow_t count)
 		slot_t* c = arr->slot[i];
 		if (c)
 		{
-			if (arr->style->freeer) arr->style->freeer (arr, DPTR(c), DLEN(c));
-			hawk_gem_freemem (arr->gem, c);
+			if (arr->style->freeer) arr->style->freeer(arr, DPTR(c), DLEN(c));
+			hawk_gem_freemem(arr->gem, c);
 			arr->slot[i] = HAWK_NULL;
 			arr->tally--;
 		}
@@ -472,8 +472,8 @@ void hawk_arr_clear (hawk_arr_t* arr)
 		slot_t* c = arr->slot[i];
 		if (c != HAWK_NULL)
 		{
-			if (arr->style->freeer) arr->style->freeer (arr, DPTR(c), DLEN(c));
-			hawk_gem_freemem (arr->gem, c);
+			if (arr->style->freeer) arr->style->freeer(arr, DPTR(c), DLEN(c));
+			hawk_gem_freemem(arr->gem, c);
 			arr->slot[i] = HAWK_NULL;
 		}
 	}
@@ -702,8 +702,8 @@ void hawk_arr_deleteheap (hawk_arr_t* arr, hawk_oow_t index)
 	}
 
 	/* destroy the actual item */
-	if (arr->style->freeer) arr->style->freeer (arr, DPTR(tmp), DLEN(tmp));
-	hawk_gem_freemem (arr->gem, tmp);
+	if (arr->style->freeer) arr->style->freeer(arr, DPTR(tmp), DLEN(tmp));
+	hawk_gem_freemem(arr->gem, tmp);
 
 	/* empty the last slot */
 	arr->slot[arr->size] = HAWK_NULL;

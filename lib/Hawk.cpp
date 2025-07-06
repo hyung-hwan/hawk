@@ -865,7 +865,7 @@ int Hawk::Value::scaleArrayed (Run* r, hawk_ooi_t size)
 	{
 		// the previous value is not a arr.
 		// a new arr value needs to be created first.
-		hawk_val_t* arr = hawk_rtx_makearrval(r->rtx, size); // TODO: can we change this to accept the initial value in the constructor
+		hawk_val_t* arr = hawk_rtx_makearrval(r->rtx, size);
 		if (arr == HAWK_NULL)
 		{
 			r->hawk->retrieveError(r);
@@ -899,14 +899,12 @@ int Hawk::Value::scaleArrayed (Run* r, hawk_ooi_t size)
 			return -1;
 		}
 
-/* TODO: RESIZE THE EXISTING ARRAY...
-		// update the arr with a given value
-		if (hawk_rtx_setarrvalfld(r->rtx, val, idx, v) == HAWK_NULL)
+		// update the capacity of an array
+		if (hawk_rtx_scalearrval(r->rtx, this->val, size) <= -1)
 		{
 			r->hawk->retrieveError(r);
 			return -1;
 		}
-*/
 	}
 
 	return 0;
@@ -918,12 +916,16 @@ hawk_ooi_t Hawk::Value::getArrayedLength () const
 	return (hawk_ooi_t)HAWK_ARR_TALLY(((hawk_val_arr_t*)this->val)->arr);
 }
 
-
 hawk_ooi_t Hawk::Value::getArrayedSize () const
 {
 	if (HAWK_RTX_GETVALTYPE(r->rtx, this->val) != HAWK_VAL_ARR) return -1;
 	return (hawk_ooi_t)HAWK_ARR_SIZE(((hawk_val_arr_t*)this->val)->arr);
+}
 
+hawk_ooi_t Hawk::Value::getArrayedCapa () const
+{
+	if (HAWK_RTX_GETVALTYPE(r->rtx, this->val) != HAWK_VAL_ARR) return -1;
+	return (hawk_ooi_t)HAWK_ARR_CAPA(((hawk_val_arr_t*)this->val)->arr);
 }
 
 int Hawk::Value::setArrayedVal (hawk_ooi_t idx, hawk_val_t* v)
@@ -1026,6 +1028,24 @@ int Hawk::Value::getArrayed (hawk_ooi_t idx, Value* v) const
 }
 
 ///////////////////////////////////////////////////////////////////
+
+hawk_ooi_t Hawk::Value::getIndexedLength () const
+{
+	if (HAWK_RTX_GETVALTYPE(r->rtx, this->val) != HAWK_VAL_MAP) return -1;
+	return (hawk_ooi_t)HAWK_MAP_SIZE(((hawk_val_map_t*)this->val)->map);
+}
+
+hawk_ooi_t Hawk::Value::getIndexedSize () const
+{
+	if (HAWK_RTX_GETVALTYPE(r->rtx, this->val) != HAWK_VAL_MAP) return -1;
+	return (hawk_ooi_t)HAWK_MAP_SIZE(((hawk_val_map_t*)this->val)->map);
+}
+
+hawk_ooi_t Hawk::Value::getIndexedCapa () const
+{
+	if (HAWK_RTX_GETVALTYPE(r->rtx, this->val) != HAWK_VAL_MAP) return -1;
+	return (hawk_ooi_t)hawk_map_getcapa(((hawk_val_map_t*)this->val)->map);
+}
 
 int Hawk::Value::setIndexedVal (const Index& idx, hawk_val_t* v)
 {

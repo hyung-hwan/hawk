@@ -1412,6 +1412,13 @@ hawk_val_map_itr_t* hawk_rtx_getnextmapvalitr (hawk_rtx_t* rtx, hawk_val_t* map,
 	return itr->pair? itr: HAWK_NULL;
 }
 
+int hawk_rtx_scalearrval (hawk_rtx_t* rtx, hawk_val_t* arr, hawk_ooi_t capa)
+{
+	HAWK_ASSERT (HAWK_RTX_GETVALTYPE(rtx, arr) == HAWK_VAL_ARR);
+	if (!hawk_arr_setcapa(((hawk_val_arr_t*)arr)->arr, capa)) return -1;
+	return 0;
+}
+
 hawk_val_t* hawk_rtx_setarrvalfld (hawk_rtx_t* rtx, hawk_val_t* arr, hawk_ooi_t index, hawk_val_t* v)
 {
 	HAWK_ASSERT (HAWK_RTX_GETVALTYPE(rtx, arr) == HAWK_VAL_ARR);

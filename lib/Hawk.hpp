@@ -1111,6 +1111,7 @@ public:
 
 		hawk_ooi_t getArrayedSize () const; // same value as hawk::size() for an array
 		hawk_ooi_t getArrayedLength () const; // same value as hawk::length() for an array
+		hawk_ooi_t getArrayedCapa () const;
 
 		bool isArrayed () const;
 		int getArrayed (
@@ -1139,6 +1140,10 @@ public:
 		int setIndexedMbs (Run* r, const Index& idx, const hawk_bch_t* str, hawk_oow_t len);
 		int setIndexedMbs (const Index& idx, const hawk_bch_t* str);
 		int setIndexedMbs (Run* r, const Index&  idx, const hawk_bch_t* str);
+
+		hawk_ooi_t getIndexedSize () const; // same value as hawk::size() for a map
+		hawk_ooi_t getIndexedLength () const; // same value as hawk::length() for a map
+		hawk_ooi_t getIndexedCapa () const;
 
 		///
 		/// The isIndexed() function determines if a value is a map.
