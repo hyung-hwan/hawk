@@ -850,13 +850,76 @@ int Hawk::Value::setMbs (Run* r, const hawk_bch_t* str)
 	return n;
 }
 
-int Hawk::Value::setArrayVal (hawk_ooi_t idx, hawk_val_t* v)
+///////////////////////////////////////////////////////////////////
+int Hawk::Value::scaleArrayed (hawk_ooi_t size)
 {
 	if (HAWK_UNLIKELY(!this->run)) return -1;
-	return this->setArrayVal(this->run, idx, v);
+	return this->scaleArrayed(this->run, size);
 }
 
-int Hawk::Value::setArrayVal (Run* r, hawk_ooi_t idx, hawk_val_t* v)
+int Hawk::Value::scaleArrayed (Run* r, hawk_ooi_t size)
+{
+	HAWK_ASSERT (r != HAWK_NULL);
+
+	if (HAWK_RTX_GETVALTYPE(r->rtx, this->val) != HAWK_VAL_ARR)
+	{
+		// the previous value is not a arr.
+		// a new arr value needs to be created first.
+		hawk_val_t* arr = hawk_rtx_makearrval(r->rtx, size); // TODO: can we change this to accept the initial value in the constructor
+		if (arr == HAWK_NULL)
+		{
+			r->hawk->retrieveError (r);
+			return -1;
+		}
+
+		hawk_rtx_refupval(r->rtx, arr);
+
+		// free the previous value
+		if (this->run)
+		{
+			// if val is not nil, this->run can't be NULL
+			hawk_rtx_refdownval(this->run->rtx, this->val);
+		}
+
+		this->run = r;
+		this->val = arr;
+	}
+	else
+	{
+		HAWK_ASSERT (run != HAWK_NULL);
+
+		// if the previous value is a arr, things are a bit simpler
+		// however it needs to check if the runtime context matches
+		// with the previous one.
+		if (this->run != r)
+		{
+			// it can't span across multiple runtime contexts
+			this->run->setError(HAWK_EINVAL);
+			this->run->hawk->retrieveError (run);
+			return -1;
+		}
+
+/* TODO: RESIZE THE EXISTING ARRAY...
+		// update the arr with a given value
+		if (hawk_rtx_setarrvalfld(r->rtx, val, idx, v) == HAWK_NULL)
+		{
+			r->hawk->retrieveError (r);
+			return -1;
+		}
+*/
+	}
+
+	return 0;
+}
+
+
+int Hawk::Value::setArrayedVal (hawk_ooi_t idx, hawk_val_t* v)
+{
+	if (HAWK_UNLIKELY(!this->run)) return -1;
+	return this->setArrayedVal(this->run, idx, v);
+}
+
+int Hawk::Value::setArrayedVal (Run* r, hawk_ooi_t idx, hawk_val_t* v)
 {
 	HAWK_ASSERT (r != HAWK_NULL);
 
@@ -916,6 +979,40 @@ int Hawk::Value::setArrayVal (Run* r, hawk_ooi_t idx, hawk_val_t* v)
 
 	return 0;
 }
+
+bool Hawk::Value::isArrayed () const
+{
+	HAWK_ASSERT (val != HAWK_NULL);
+	return HAWK_RTX_GETVALTYPE(this->run->rtx, val) == HAWK_VAL_ARR;
+}
+
+
+int Hawk::Value::getArrayed (hawk_ooi_t idx, Value* v) const
+{
+	HAWK_ASSERT (val != HAWK_NULL);
+
+	// not a map. v is just nil. not an error
+	if (HAWK_RTX_GETVALTYPE(this->run->rtx, val) != HAWK_VAL_ARR)
+	{
+		v->clear ();
+		return 0;
+	}
+
+	// get the value from the map.
+	hawk_val_t* fv = hawk_rtx_getarrvalfld(this->run->rtx, val, idx);
+
+	// the key is not found. it is not an error. v is just nil
+	if (fv == HAWK_NULL)
+	{
+		v->clear ();
+		return 0;
+	}
+
+	// if v.set fails, it should return an error
+	return v->setVal(this->run, fv);
+}
+
+///////////////////////////////////////////////////////////////////
 
 int Hawk::Value::setIndexedVal (const Index& idx, hawk_val_t* v)
 {

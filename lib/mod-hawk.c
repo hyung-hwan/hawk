@@ -339,6 +339,24 @@ static int fnc_gcrefs (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 /* -------------------------------------------------------------------------- */
 
+static int fnc_cap (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+{
+	/* capacity */
+	return hawk_fnc_length (rtx, fi, 2);
+}
+
+static int fnc_size (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+{
+	/* similar to length, but it returns the ubound + 1 for the array */
+	return hawk_fnc_length (rtx, fi, 1);
+}
+
+static int fnc_length (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+{
+	return hawk_fnc_length (rtx, fi, 0);
+}
+/* -------------------------------------------------------------------------- */
+
 static int fnc_array (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	hawk_val_t* tmp;
@@ -519,8 +537,9 @@ static int fnc_hash (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 static hawk_mod_fnc_tab_t fnctab[] =
 {
 	/* keep this table sorted for binary search in query(). */
-	{ HAWK_T("array"),            { { 0, A_MAX,  HAWK_NULL    },  fnc_array,                 0 } },
+	{ HAWK_T("array"),            { { 0, A_MAX, HAWK_NULL     },  fnc_array,                 0 } },
 	{ HAWK_T("call"),             { { 1, A_MAX, HAWK_T("vR")  },  fnc_call,                  0 } },
+	{ HAWK_T("cap"),              { { 1, 1,     HAWK_NULL     },  fnc_cap,                   0 } },
 	{ HAWK_T("cmgr_exists"),      { { 1, 1,     HAWK_NULL     },  fnc_cmgr_exists,           0 } },
 	{ HAWK_T("function_exists"),  { { 1, 1,     HAWK_NULL     },  fnc_function_exists,       0 } },
 	{ HAWK_T("gc"),               { { 0, 1,     HAWK_NULL     },  fnc_gc,                    0 } },
@@ -532,8 +551,10 @@ static hawk_mod_fnc_tab_t fnctab[] =
 	{ HAWK_T("isarray"),          { { 1, 1,     HAWK_NULL     },  fnc_isarr,                 0 } },
 	{ HAWK_T("ismap"),            { { 1, 1,     HAWK_NULL     },  fnc_ismap,                 0 } },
 	{ HAWK_T("isnil"),            { { 1, 1,     HAWK_NULL     },  fnc_isnil,                 0 } },
+	{ HAWK_T("length"),           { { 1, 1,     HAWK_NULL     },  fnc_length,                0 } },
 	{ HAWK_T("map"),              { { 0, A_MAX, HAWK_NULL     },  fnc_map,                   0 } },
 	{ HAWK_T("modlibdirs"),       { { 0, 0,     HAWK_NULL     },  fnc_modlibdirs,            0 } },
+	{ HAWK_T("size"),             { { 1, 1,     HAWK_NULL     },  fnc_size,                  0 } },
 	{ HAWK_T("type"),             { { 1, 1,     HAWK_NULL     },  fnc_type,                  0 } },
 	{ HAWK_T("typename"),         { { 1, 1,     HAWK_NULL     },  fnc_typename,              0 } }
 };
@@ -543,7 +564,7 @@ static hawk_mod_int_tab_t inttab[] =
 	/* keep this table sorted for binary search in query(). */
 	{ HAWK_T("GC_NUM_GENS"), { HAWK_GC_NUM_GENS } },
 
-        /* synchronize this table with enum hawk_val_type_t in hawk.h */
+	/* synchronize this table with enum hawk_val_type_t in hawk.h */
 	/* the names follow the val_type_name table in val.c */
 	{ HAWK_T("VAL_ARRAY"),  { HAWK_VAL_ARR } },
 	{ HAWK_T("VAL_BCHAR"),  { HAWK_VAL_BCHR } },

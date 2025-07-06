@@ -25,6 +25,11 @@
 #include "mod-str.h"
 #include "hawk-prv.h"
 
+static int fnc_length (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+{
+	return hawk_fnc_length(rtx, fi, 0);
+}
+
 static int fnc_normspace (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	/* normalize spaces
@@ -763,7 +768,7 @@ static hawk_mod_fnc_tab_t fnctab[] =
 	{ HAWK_T("isspace"),       { { 1, 1, HAWK_NULL },      fnc_isspace,           0 } },
 	{ HAWK_T("isupper"),       { { 1, 1, HAWK_NULL },      fnc_isupper,           0 } },
 	{ HAWK_T("isxdigit"),      { { 1, 1, HAWK_NULL },      fnc_isxdigit,          0 } },
-	{ HAWK_T("length"),        { { 1, 1, HAWK_NULL },      hawk_fnc_length,       0 } },
+	{ HAWK_T("length"),        { { 1, 1, HAWK_NULL },      fnc_length,            0 } },
 	{ HAWK_T("ltrim"),         { { 1, 1, HAWK_NULL },      fnc_ltrim,             0 } },
 	{ HAWK_T("match"),         { { 2, 4, HAWK_T("vxvr") }, hawk_fnc_match,        0 } },
 	{ HAWK_T("normspace"),     { { 1, 1, HAWK_NULL },      fnc_normspace,         0 } }, /* deprecated, use trim("xxx", str::TRIM_PAC_SPACES) */

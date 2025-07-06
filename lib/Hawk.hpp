@@ -1076,8 +1076,17 @@ public:
 		int setMbs (const hawk_bch_t* str);
 		int setMbs (Run* r, const hawk_bch_t* str);
 
-		int setArrayVal (hawk_ooi_t idx, hawk_val_t* v);
-		int setArrayVal (Run* r, hawk_ooi_t idx, hawk_val_t* v);
+		int setArrayedVal (hawk_ooi_t idx, hawk_val_t* v);
+		int setArrayedVal (Run* r, hawk_ooi_t idx, hawk_val_t* v);
+
+		int scaleArrayed (hawk_ooi_t size);
+		int scaleArrayed (Run* r, hawk_ooi_t size);
+
+		bool isArrayed () const;
+		int getArrayed (
+			hawk_ooi_t    idx, ///< array index
+			Value*        val  ///< value holder
+		) const;
 
 		int setIndexedVal (const Index& idx, hawk_val_t* v);
 		int setIndexedVal (Run* r, const Index& idx, hawk_val_t* v);
@@ -1102,7 +1111,7 @@ public:
 		int setIndexedMbs (Run* r, const Index&  idx, const hawk_bch_t* str);
 
 		///
-		/// The isIndexed() function determines if a value is arrayed.
+		/// The isIndexed() function determines if a value is a map.
 		/// \return true if indexed, false if not.
 		///
 		bool isIndexed () const;
@@ -1113,7 +1122,7 @@ public:
 		/// \return 0 on success, -1 on failure
 		///
 		int getIndexed (
-			const Index&  idx, ///< array index
+			const Index&  idx, ///< map index
 			Value*        val  ///< value holder
 		) const;
 
