@@ -561,6 +561,7 @@ static hawk_mod_int_tab_t inttab[] =
 	/* the names follow the val_type_name table in val.c */
 	{ HAWK_T("VAL_ARRAY"),  { HAWK_VAL_ARR } },
 	{ HAWK_T("VAL_BCHAR"),  { HAWK_VAL_BCHR } },
+	{ HAWK_T("VAL_BOB"),    { HAWK_VAL_BOB } },
 	{ HAWK_T("VAL_CHAR"),   { HAWK_VAL_CHAR } },
 	{ HAWK_T("VAL_FLT"),    { HAWK_VAL_FLT } },
 	{ HAWK_T("VAL_FUN"),    { HAWK_VAL_FUN } },

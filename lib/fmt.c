@@ -1059,6 +1059,8 @@ static int fmt_outv (hawk_fmtout_t* fmtout, va_list ap)
 		}
 
 		case 'O': /* object - ignore precision, width, adjustment */
+			/* NOTE: currently, there is no hawk_fmtout_t value that fills the putobj field. */
+			/*       it's kind of reserved for future implementation */
 			if (!fmtout->putobj) goto invalid_format;
 			if (fmtout->putobj(fmtout, va_arg(ap, hawk_val_t*)) <= -1) goto oops;
 			break;

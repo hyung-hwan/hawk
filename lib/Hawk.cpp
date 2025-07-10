@@ -229,6 +229,12 @@ const hawk_bch_t* Hawk::Value::getEmptyMbs()
 	return EMPTY_STRING;
 }
 
+const void* Hawk::Value::getEmptyBob()
+{
+	static const hawk_uint8_t EMPTY_BOB = 0;
+	return &EMPTY_BOB;
+}
+
 Hawk::Value::IntIndex::IntIndex (hawk_int_t x)
 {
 	ptr = buf;
@@ -599,6 +605,30 @@ int Hawk::Value::getMbs (const hawk_bch_t** str, hawk_oow_t* len) const
 	return 0;
 }
 
+int Hawk::Value::getBob (const void** ptr, hawk_oow_t* len) const
+{
+	const void* p = getEmptyBob();
+	hawk_oow_t l = 0;
+
+	HAWK_ASSERT (this->val != HAWK_NULL);
+
+	if (this->run)
+	{
+		if (HAWK_RTX_GETVALTYPE(this->run->rtx, this->val) == HAWK_VAL_BOB)
+		{
+			p = ((hawk_val_bob_t*)this->val)->val.ptr;
+			l = ((hawk_val_bob_t*)this->val)->val.len;
+		}
+	}
+
+	*ptr = p;
+	*len = l;
+
+	return 0;
+}
+
+//////////////////////////////////////////////////////////////////
+
 int Hawk::Value::setVal (hawk_val_t* v)
 {
 	if (this->run == HAWK_NULL)
@@ -839,7 +869,36 @@ int Hawk::Value::setMbs (Run* r, const hawk_bch_t* str)
 {
 	hawk_val_t* tmp;
 	tmp = hawk_rtx_makembsvalwithbchars(r->rtx, str, hawk_count_bcstr(str));
-	if (!tmp)
+	if (HAWK_UNLIKELY(!tmp))
+	{
+		r->hawk->retrieveError(r);
+		return -1;
+	}
+
+	int n = this->setVal(r, tmp);
+	HAWK_ASSERT (n == 0);
+	return n;
+}
+
+///////////////////////////////////////////////////////////////////
+
+int Hawk::Value::setBob (const void* ptr, hawk_oow_t len)
+{
+	if (this->run == HAWK_NULL)
+	{
+		/* no runtime context assoicated. unfortunately, i can't
+		 * set an error number for the same reason */
+		return -1;
+	}
+	return this->setBob(this->run, ptr, len);
+}
+
+int Hawk::Value::setBob (Run* r, const void* ptr, hawk_oow_t len)
+{
+	hawk_val_t* tmp;
+
+	tmp = hawk_rtx_makebobval(r->rtx, ptr, len);
+	if (HAWK_UNLIKELY(!tmp))
 	{
 		r->hawk->retrieveError(r);
 		return -1;

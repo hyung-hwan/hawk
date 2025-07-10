@@ -44,6 +44,7 @@ static int fnc_normspace (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	{
 		case HAWK_VAL_BCHR:
 		case HAWK_VAL_MBS:
+		case HAWK_VAL_BOB:
 		{
 			hawk_bch_t* str0;
 			hawk_oow_t len0;
@@ -86,6 +87,7 @@ static int trim (hawk_rtx_t* rtx, int flags)
 	{
 		case HAWK_VAL_BCHR:
 		case HAWK_VAL_MBS:
+		case HAWK_VAL_BOB:
 		{
 			hawk_bcs_t path;
 			hawk_bch_t* npath;
@@ -154,6 +156,7 @@ static int is_class (hawk_rtx_t* rtx, hawk_ooch_prop_t ctype)
 	{
 		case HAWK_VAL_BCHR:
 		case HAWK_VAL_MBS:
+		case HAWK_VAL_BOB:
 		{
 			hawk_bch_t* str0;
 			hawk_oow_t len0;
@@ -297,7 +300,7 @@ static int fnc_frombcharcode (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		a0 = hawk_rtx_getarg(rtx, 0);
 		if (hawk_rtx_valtoint(rtx, a0, &cc) <= -1) return -1;
 
-		retv = hawk_rtx_makecharval(rtx, (hawk_ooch_t)cc);
+		retv = hawk_rtx_makebchrval(rtx, (hawk_bch_t)cc);
 		if (HAWK_UNLIKELY(!retv)) return -1;
 	}
 	else
@@ -401,6 +404,7 @@ static int fnc_tocharcode (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	{
 		case HAWK_VAL_BCHR:
 		case HAWK_VAL_MBS:
+		case HAWK_VAL_BOB:
 		{
 			hawk_bch_t* str0;
 			hawk_oow_t len0;
@@ -553,6 +557,7 @@ static int fnc_tombs (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			r = a0;
 			break;
 
+		case HAWK_VAL_BOB: /* BOB must fall thru and reach below */
 		default:
 		{
 			hawk_bcs_t str;
@@ -605,6 +610,7 @@ static int fnc_tonum (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			}
 
 			case HAWK_VAL_MBS:
+			case HAWK_VAL_BOB: /* assume hawk_val_mbs_t and hawk_val_bob_t are the same */
 			{
 				/* if the value is known to be a byte string, it supports the optional
 				 * base parameter */
@@ -705,6 +711,7 @@ static int fnc_subchar (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	{
 		case HAWK_VAL_BCHR:
 		case HAWK_VAL_MBS:
+		case HAWK_VAL_BOB:
 		{
 			hawk_bch_t* str;
 			hawk_oow_t len;

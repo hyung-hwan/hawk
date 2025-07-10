@@ -138,6 +138,18 @@ int hawk_init (hawk_t* hawk, hawk_mmgr_t* mmgr, hawk_cmgr_t* cmgr, const hawk_pr
 		HAWK_HTB_HASHER_DEFAULT
 	};
 
+	/* some assertions in case someone breaks the basic assumptions */
+	HAWK_ASSERT (HAWK_SIZEOF(hawk_val_mbs_t) == HAWK_SIZEOF(hawk_val_bob_t));
+	HAWK_ASSERT (HAWK_SIZEOF(hawk_val_str_t) == HAWK_SIZEOF(hawk_val_bob_t));
+	HAWK_ASSERT (HAWK_OFFSETOF(hawk_val_mbs_t, val) == HAWK_OFFSETOF(hawk_val_bob_t, val));
+	HAWK_ASSERT (HAWK_OFFSETOF(hawk_val_str_t, val) == HAWK_OFFSETOF(hawk_val_bob_t, val));
+	HAWK_ASSERT (HAWK_SIZEOF(hawk_bcs_t) == HAWK_SIZEOF(hawk_ptl_t));
+	HAWK_ASSERT (HAWK_SIZEOF(hawk_ucs_t) == HAWK_SIZEOF(hawk_ptl_t));
+	HAWK_ASSERT (HAWK_OFFSETOF(hawk_bcs_t, ptr) == HAWK_OFFSETOF(hawk_ptl_t, ptr));
+	HAWK_ASSERT (HAWK_OFFSETOF(hawk_bcs_t, len) == HAWK_OFFSETOF(hawk_ptl_t, len));
+	HAWK_ASSERT (HAWK_OFFSETOF(hawk_ucs_t, ptr) == HAWK_OFFSETOF(hawk_ptl_t, ptr));
+	HAWK_ASSERT (HAWK_OFFSETOF(hawk_ucs_t, len) == HAWK_OFFSETOF(hawk_ptl_t, len));
+
 	/* zero out the object */
 	HAWK_MEMSET(hawk, 0, HAWK_SIZEOF(*hawk));
 

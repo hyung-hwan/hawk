@@ -503,11 +503,12 @@ However, some of these words not beginning with `@` can be used as normal names 
 ## Values
 
 - uninitialized value
-- character
+- character - 'C'
+- byte character - @b'B'
 - integer
 - floating-point number
-- string
-- byte string
+- string - "string"
+- byte string - @b"byte string"
 - array - light-weight array with numeric index only
 - map - conventional AWK array
 - function

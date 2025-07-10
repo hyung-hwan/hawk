@@ -405,6 +405,16 @@ function main()
 		tap_ensure (str::rindex(@b"\xFFQ\xABX\xABZ", @b"\xAB"),  5, @SCRIPTNAME, @SCRIPTLINE);
 		tap_ensure (str::rindex(@b"\xFFQ\xABX\xABZ", @b"Q\xAB"),  2, @SCRIPTNAME, @SCRIPTLINE);
 		tap_ensure (str::rindex(@b"\xFFQ\xABX\xABZ", @b"Q\xABQ"),  0, @SCRIPTNAME, @SCRIPTLINE);
+
+		tap_ensure (str::index(str::frombcharcode(65), @b"B"), 0, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::index(str::frombcharcode(65), @b"A"), 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::index(str::frombcharcode(65), @b"B"), 0, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::index(str::frombcharcode(65), @b"A"), 1, @SCRIPTNAME, @SCRIPTLINE);
+
+		tap_ensure (str::index(@b'A', @b"B"), 0, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::index(@b'A', @b"A"), 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::index('A', @b"B"), 0, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::index('A', @b"A"), 1, @SCRIPTNAME, @SCRIPTLINE);
 	}
 
 	{

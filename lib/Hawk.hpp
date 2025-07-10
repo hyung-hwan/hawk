@@ -1072,6 +1072,21 @@ public:
 			return p;
 		}
 
+		const void* toBob (hawk_oow_t* len) const
+		{
+			const void* p;
+			hawk_oow_t l;
+
+			if (this->getBob(&p, &l) <= -1)
+			{
+				p = this->getEmptyBob();
+				l = 0;
+			}
+
+			if (len) *len = l;
+			return p;
+		}
+
 		int getType () const { return hawk_get_val_type(this->val); }
 		const hawk_ooch_t* getTypeName () const { return hawk_get_val_type_name(this->val); }
 
@@ -1080,6 +1095,7 @@ public:
 		int getNum (hawk_int_t* lv, hawk_flt_t* fv) const;
 		int getStr (const hawk_ooch_t** str, hawk_oow_t* len) const;
 		int getMbs (const hawk_bch_t** str, hawk_oow_t* len) const;
+		int getBob (const void** str, hawk_oow_t* len) const;
 
 		int setVal (hawk_val_t* v);
 		int setVal (Run* r, hawk_val_t* v);
@@ -1102,6 +1118,9 @@ public:
 		int setMbs (Run* r, const hawk_bch_t* str, hawk_oow_t len);
 		int setMbs (const hawk_bch_t* str);
 		int setMbs (Run* r, const hawk_bch_t* str);
+
+		int setBob (const void* str, hawk_oow_t len);
+		int setBob (Run* r, const void* str, hawk_oow_t len);
 
 		int setArrayedVal (hawk_ooi_t idx, hawk_val_t* v);
 		int setArrayedVal (Run* r, hawk_ooi_t idx, hawk_val_t* v);
@@ -1196,6 +1215,7 @@ public:
 	public:
 		static const hawk_ooch_t* getEmptyStr();
 		static const hawk_bch_t* getEmptyMbs();
+		static const void* getEmptyBob();
 	};
 
 public:
@@ -1621,20 +1641,20 @@ public:
 	///
 	int addFunction (
 		const hawk_bch_t* name,      ///< function name
-		hawk_oow_t minArgs,               ///< minimum numbers of arguments
-		hawk_oow_t maxArgs,               ///< maximum numbers of arguments
+		hawk_oow_t minArgs,          ///< minimum numbers of arguments
+		hawk_oow_t maxArgs,          ///< maximum numbers of arguments
 		const hawk_bch_t* argSpec,   ///< argument specification
-		FunctionHandler handler,      ///< function handler
-		int    validOpts = 0          ///< valid if these options are set
+		FunctionHandler handler,     ///< function handler
+		int validOpts = 0            ///< valid if these options are set
 	);
 
 	int addFunction (
 		const hawk_uch_t* name,      ///< function name
-		hawk_oow_t minArgs,               ///< minimum numbers of arguments
-		hawk_oow_t maxArgs,               ///< maximum numbers of arguments
+		hawk_oow_t minArgs,          ///< minimum numbers of arguments
+		hawk_oow_t maxArgs,          ///< maximum numbers of arguments
 		const hawk_uch_t* argSpec,   ///< argument specification
-		FunctionHandler handler,      ///< function handler
-		int    validOpts = 0          ///< valid if these options are set
+		FunctionHandler handler,     ///< function handler
+		int validOpts = 0            ///< valid if these options are set
 	);
 
 	///

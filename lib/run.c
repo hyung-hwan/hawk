@@ -3654,6 +3654,16 @@ static int run_printf (hawk_rtx_t* rtx, hawk_nde_print_t* nde)
 			}
 			break;
 
+		case HAWK_VAL_BOB:
+			n = output_formatted_bytes(rtx, nde->out_type, out.ptr, ((hawk_val_bob_t*)v)->val.ptr, ((hawk_val_bob_t*)v)->val.len, head->next);
+			hawk_rtx_refdownval(rtx, v);
+			if (n <= -1)
+			{
+				if (n == PRINT_IOERR) xret = n;
+				else goto oops;
+			}
+			break;
+
 		default:
 			/* the remaining arguments are ignored as the format cannot
 			 * contain any % characters. e.g. printf (1, "xxxx") */
@@ -5818,7 +5828,7 @@ static int teq_val (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t* right)
 					break;
 
 				case HAWK_VAL_STR:
-					n = hawk_comp_oochars (
+					n = hawk_comp_oochars(
 						((hawk_val_str_t*)left)->val.ptr,
 						((hawk_val_str_t*)left)->val.len,
 						((hawk_val_str_t*)right)->val.ptr,
@@ -5827,7 +5837,7 @@ static int teq_val (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t* right)
 					break;
 
 				case HAWK_VAL_MBS:
-					n = hawk_comp_bchars (
+					n = hawk_comp_bchars(
 						((hawk_val_mbs_t*)left)->val.ptr,
 						((hawk_val_mbs_t*)left)->val.len,
 						((hawk_val_mbs_t*)right)->val.ptr,
@@ -6267,8 +6277,8 @@ static hawk_val_t* eval_binop_concat (hawk_rtx_t* rtx, hawk_val_t* left, hawk_va
 
 			res = (hawk_val_t*)hawk_rtx_makembsvalwithbchars2(rtx, l.ptr, l.len, r.ptr, r.len);
 
-			hawk_rtx_freevalbcstr (rtx, right, r.ptr);
-			hawk_rtx_freevalbcstr (rtx, left, l.ptr);
+			hawk_rtx_freevalbcstr(rtx, right, r.ptr);
+			hawk_rtx_freevalbcstr(rtx, left, l.ptr);
 			break;
 		}
 
@@ -6288,8 +6298,8 @@ static hawk_val_t* eval_binop_concat (hawk_rtx_t* rtx, hawk_val_t* left, hawk_va
 
 			res = (hawk_val_t*)hawk_rtx_makestrvalwithoochars2(rtx, l.ptr, l.len, r.ptr, r.len);
 
-			hawk_rtx_freevaloocstr (rtx, right, r.ptr);
-			hawk_rtx_freevaloocstr (rtx, left, l.ptr);
+			hawk_rtx_freevaloocstr(rtx, right, r.ptr);
+			hawk_rtx_freevaloocstr(rtx, left, l.ptr);
 			break;
 		}
 	}
@@ -8919,6 +8929,11 @@ wp_mod_main:
 					ch_len = 1;
 					break;
 
+				case HAWK_VAL_BOB:
+					ch = (((hawk_val_bob_t*)v)->val.len > 0)? ((hawk_bch_t*)((hawk_val_bob_t*)v)->val.ptr)[0]: '\0';
+					ch_len = 1;
+					break;
+
 				default:
 					hawk_rtx_refdownval(rtx, v);
 					hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EVALTOCHR);
@@ -9088,6 +9103,17 @@ wp_mod_main:
 						if (fmt[i] == HAWK_T('s')) goto duplicate;
 						str_ptr = (hawk_ooch_t*)((hawk_val_mbs_t*)v)->val.ptr;
 						str_len = ((hawk_val_mbs_t*)v)->val.len;
+					#endif
+						break;
+
+					case HAWK_VAL_BOB:
+					#if defined(HAWK_OOCH_IS_BCH)
+						str_ptr = ((hawk_val_bob_t*)v)->val.ptr;
+						str_len = ((hawk_val_bob_t*)v)->val.len;
+					#else
+						if (fmt[i] == HAWK_T('s')) goto duplicate;
+						str_ptr = (hawk_ooch_t*)((hawk_val_bob_t*)v)->val.ptr;
+						str_len = ((hawk_val_bob_t*)v)->val.len;
 					#endif
 						break;
 
@@ -9803,6 +9829,17 @@ wp_mod_main:
 					else ch = HAWK_BT('\0');
 					break;
 
+				case HAWK_VAL_BOB:
+					ch_len = ((hawk_val_bob_t*)v)->val.len;
+					if (ch_len > 0)
+					{
+						ch = ((hawk_bch_t*)((hawk_val_bob_t*)v)->val.ptr)[0];
+						ch_len = 1;
+					}
+					else ch = 0;
+					break;
+
+
 				default:
 					hawk_rtx_refdownval(rtx, v);
 					hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EVALTOCHR);
@@ -9949,6 +9986,11 @@ wp_mod_main:
 					case HAWK_VAL_MBS:
 						str_ptr = ((hawk_val_mbs_t*)v)->val.ptr;
 						str_len = ((hawk_val_mbs_t*)v)->val.len;
+						break;
+
+					case HAWK_VAL_BOB:
+						str_ptr = (hawk_bch_t*)((hawk_val_bob_t*)v)->val.ptr;
+						str_len = ((hawk_val_bob_t*)v)->val.len;
 						break;
 
 					case HAWK_VAL_CHAR:

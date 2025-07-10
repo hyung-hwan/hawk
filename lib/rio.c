@@ -237,6 +237,11 @@ static HAWK_INLINE int resolve_brs (hawk_rtx_t* rtx, hawk_val_t* brs, hawk_bcs_t
 			rrs->len = ((hawk_val_mbs_t*)brs)->val.len;
 			break;
 
+		case HAWK_VAL_BOB:
+			rrs->ptr = (hawk_bch_t*)((hawk_val_bob_t*)brs)->val.ptr;
+			rrs->len = ((hawk_val_bob_t*)brs)->val.len;
+			break;
+
 		default:
 			rrs->ptr = hawk_rtx_valtobcstrdup(rtx, brs, &rrs->len);
 			if (rrs->ptr == HAWK_NULL) ret = -1;
@@ -1021,6 +1026,9 @@ int hawk_rtx_writeioval (hawk_rtx_t* rtx, hawk_out_type_t out_type, const hawk_o
 
 		case HAWK_VAL_MBS:
 			return hawk_rtx_writeiobytes(rtx, out_type, name, ((hawk_val_mbs_t*)v)->val.ptr, ((hawk_val_mbs_t*)v)->val.len);
+
+		case HAWK_VAL_BOB:
+			return hawk_rtx_writeiobytes(rtx, out_type, name, (hawk_bch_t*)((hawk_val_bob_t*)v)->val.ptr, ((hawk_val_bob_t*)v)->val.len);
 
 		default:
 		{

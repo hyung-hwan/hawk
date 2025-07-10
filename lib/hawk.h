@@ -249,8 +249,11 @@ struct hawk_val_str_t
 typedef struct hawk_val_str_t  hawk_val_str_t;
 
 /**
- * The hawk_val_str_t type is a string type. The type field is
+ * The hawk_val_mbs_t type is a byte string type. The type field is
  * #HAWK_VAL_MBS.
+ *
+ * You must keep the structure of hawk_val_mbs_t and hawk_val_bob_t the same
+ * except the type of the val field;
  */
 struct hawk_val_mbs_t
 {
@@ -333,6 +336,24 @@ struct hawk_val_ref_t
 	hawk_val_t** adr;
 };
 typedef struct hawk_val_ref_t  hawk_val_ref_t;
+
+/**
+ * The hawk_val_bob_t type represents an internal binary object which can contain
+ * arbitrary seqence of byte. The structure is almost identical to #hawk_val_mbs_t
+ * except the type of the val field. The data held is supposed to be private.
+ * You can create a value of this type with hawk_rtx_makebobval() inside a module
+ * function or built-in functions to convey internal data between them. The language
+ * doesn't provide a way to create and/or change the value.
+ * 
+ * You must keep the structure of hawk_val_mbs_t and hawk_val_bob_t the same
+ * except the type of the val field;
+ */
+struct hawk_val_bob_t
+{
+	HAWK_VAL_HDR;
+	hawk_ptl_t val;
+};
+typedef struct hawk_val_bob_t hawk_val_bob_t;
 
 /**
  * The hawk_val_map_itr_t type defines the iterator to map value fields.
@@ -1439,7 +1460,8 @@ enum hawk_val_type_t
 	HAWK_VAL_ARR     = 9, /**< array */
 
 	HAWK_VAL_REX     = 10, /**< regular expression */
-	HAWK_VAL_REF     = 11 /**< reference to other types */
+	HAWK_VAL_REF     = 11, /**< reference to other types */
+	HAWK_VAL_BOB     = 12  /**< internal binary object - access not exposed to normal hawk program */
 };
 typedef enum hawk_val_type_t hawk_val_type_t;
 
@@ -3168,13 +3190,19 @@ HAWK_EXPORT hawk_val_t* hawk_rtx_getarrvalfld (
  */
 HAWK_EXPORT hawk_val_t* hawk_rtx_makerefval (
 	hawk_rtx_t*  rtx,
-	int             id,
+	int          id,
 	hawk_val_t** adr
 );
 
 HAWK_EXPORT hawk_val_t* hawk_rtx_makefunval (
 	hawk_rtx_t*       rtx,
 	const hawk_fun_t* fun
+);
+
+HAWK_EXPORT hawk_val_t* hawk_rtx_makebobval (
+	hawk_rtx_t*       rtx,
+	const void*       ptr,
+	hawk_oow_t        len
 );
 
 /**

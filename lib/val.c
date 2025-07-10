@@ -75,7 +75,8 @@ static const hawk_ooch_t* val_type_name[] =
 	HAWK_T("array"),
 
 	HAWK_T("rex"),
-	HAWK_T("ref")
+	HAWK_T("ref"),
+	HAWK_T("bob")
 };
 
 /* --------------------------------------------------------------------- */
@@ -1478,6 +1479,28 @@ hawk_val_t* hawk_rtx_makefunval (hawk_rtx_t* rtx, const hawk_fun_t* fun)
 	return (hawk_val_t*)val;
 }
 
+hawk_val_t* hawk_rtx_makebobval (hawk_rtx_t* rtx, const void* ptr, hawk_oow_t len)
+{
+	hawk_val_bob_t* val;
+
+	val = (hawk_val_bob_t*)hawk_rtx_callocmem(rtx, HAWK_SIZEOF(hawk_val_bob_t) + len);
+	if (HAWK_UNLIKELY(!val)) return HAWK_NULL;
+
+	val->v_type = HAWK_VAL_BOB;
+	val->v_refs = 0;
+	val->v_static = 0;
+	val->v_nstr = 0;
+	val->v_gc = 0;
+	val->val.len = len;
+	val->val.ptr = (hawk_bch_t*)(val + 1);
+	HAWK_MEMCPY (val + 1, ptr, len);
+
+#if defined(DEBUG_VAL)
+	hawk_logfmt (hawk_rtx_gethawk(rtx), HAWK_LOG_STDERR, HAWK_T("make_bob_val => %p - [%O]\n"), val, val);
+#endif
+	return (hawk_val_t*)val;
+}
+
 int HAWK_INLINE hawk_rtx_isstaticval (hawk_rtx_t* rtx, const hawk_val_t* val)
 {
 	return HAWK_VTR_IS_POINTER(val) && HAWK_IS_STATICVAL(val);
@@ -1653,6 +1676,10 @@ void hawk_rtx_freeval (hawk_rtx_t* rtx, hawk_val_t* val, int flags)
 				}
 				else hawk_rtx_freemem (rtx, val);
 				break;
+
+			case HAWK_VAL_BOB:
+				hawk_rtx_freemem (rtx, val);
+				break;
 		}
 	}
 }
@@ -1810,6 +1837,8 @@ int hawk_rtx_valtobool (hawk_rtx_t* rtx, const hawk_val_t* val)
 			return HAWK_ARR_SIZE(((hawk_val_arr_t*)val)->arr) > 0;
 		case HAWK_VAL_REF:
 			return val_ref_to_bool(rtx, (hawk_val_ref_t*)val);
+		case HAWK_VAL_BOB:
+			return ((hawk_val_bob_t*)val)->val.len > 0;
 	}
 
 	/* the type of a value should be one of HAWK_VAL_XXX enumerators defined in hawk-prv.h */
@@ -2603,6 +2632,7 @@ hawk_bch_t* hawk_rtx_getvalbcstrwithcmgr (hawk_rtx_t* rtx, hawk_val_t* v, hawk_o
 			/* fall through */
 #endif
 
+		case HAWK_VAL_BOB: /* BOB must be duplicated */
 		default:
 		duplicate:
 			return hawk_rtx_valtobcstrdupwithcmgr(rtx, v, len, cmgr);
@@ -2643,6 +2673,7 @@ void hawk_rtx_freevalbcstr (hawk_rtx_t* rtx, hawk_val_t* v, hawk_bch_t* str)
 			/* fall through */
 #endif
 
+		case HAWK_VAL_BOB: /* BOB to MBS is always duplication */
 		default:
 		freemem:
 			hawk_rtx_freemem (rtx, str);
@@ -2782,6 +2813,7 @@ int hawk_rtx_valtonum (hawk_rtx_t* rtx, const hawk_val_t* v, hawk_int_t* l, hawk
 			return val_ref_to_num(rtx, (hawk_val_ref_t*)v, l, r);
 
 		case HAWK_VAL_REX:
+		case HAWK_VAL_BOB: /* never allow reference */
 		default:
 		invalid:
 		#if defined(DEBUG_VAL)
@@ -2835,6 +2867,7 @@ hawk_fun_t* hawk_rtx_valtofun (hawk_rtx_t* rtx, hawk_val_t* v)
 
 		case HAWK_VAL_BCHR:
 		case HAWK_VAL_MBS:
+		case HAWK_VAL_BOB:
 		{
 			hawk_bcs_t x;
 			x.ptr = hawk_rtx_getvalbcstr(rtx, v, &x.len);
@@ -2893,6 +2926,7 @@ hawk_fnc_t* hawk_rtx_valtofnc (hawk_rtx_t* rtx, hawk_val_t* v, hawk_fnc_t* rfnc)
 	{
 		case HAWK_VAL_BCHR:
 		case HAWK_VAL_MBS:
+		case HAWK_VAL_BOB:
 		case HAWK_VAL_CHAR:
 		case HAWK_VAL_STR:
 		{
@@ -3007,6 +3041,13 @@ hawk_int_t hawk_rtx_hashval (hawk_rtx_t* rtx, hawk_val_t* v)
 		case HAWK_VAL_MBS:
 		{
 			hawk_val_mbs_t* dv = (hawk_val_mbs_t*)v;
+			hv = (hawk_int_t)hash((hawk_uint8_t*)dv->val.ptr, dv->val.len * HAWK_SIZEOF(*dv->val.ptr));
+			break;
+		}
+
+		case HAWK_VAL_BOB:
+		{
+			hawk_val_bob_t* dv = (hawk_val_bob_t*)v;
 			hv = (hawk_int_t)hash((hawk_uint8_t*)dv->val.ptr, dv->val.len * HAWK_SIZEOF(*dv->val.ptr));
 			break;
 		}
@@ -3312,11 +3353,11 @@ void hawk_dprintval (hawk_rtx_t* run, hawk_val_t* val)
 			break;
 
 		case HAWK_VAL_STR:
-			hawk_errputstrf (HAWK_T("%s"), ((hawk_val_str_t*)val)->ptr);
+			hawk_errputstrf (HAWK_T("%.*s"), ((hawk_val_str_t*)val)->len, ((hawk_val_str_t*)val)->ptr);
 			break;
 
 		case HAWK_VAL_MBS:
-			hawk_errputstrf (HAWK_T("%hs"), ((hawk_val_mbs_t*)val)->ptr);
+			hawk_errputstrf (HAWK_T("%.*hs"), ((hawk_val_mbs_t*)val)->len, ((hawk_val_mbs_t*)val)->ptr);
 			break;
 
 		case HAWK_VAL_REX:
@@ -3343,6 +3384,10 @@ void hawk_dprintval (hawk_rtx_t* run, hawk_val_t* val)
 			hawk_errputstrf (HAWK_T("REF[id=%d,val="), ((hawk_val_ref_t*)val)->id);
 			hawk_dprintval (run, *((hawk_val_ref_t*)val)->adr);
 			hawk_errputstrf (HAWK_T("]"));
+			break;
+
+		case HAWK_VAL_BOB:
+			hawk_errputstrf (HAWK_T("%.*k"), ((hawk_val_bob_t*)val)->len, ((hawk_val_bob_t*)val)->ptr);
 			break;
 
 		default:

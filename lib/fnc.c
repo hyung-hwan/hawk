@@ -549,6 +549,7 @@ static int index_or_rindex (hawk_rtx_t* rtx, int rindex)
 	hawk_oow_t nargs;
 	hawk_val_t* a0, * a1;
 	hawk_int_t idx, boundary = 1;
+	hawk_val_type_t vtype;
 
 	nargs = hawk_rtx_getnargs(rtx);
 	a0 = hawk_rtx_getarg(rtx, 0);
@@ -569,19 +570,37 @@ static int index_or_rindex (hawk_rtx_t* rtx, int rindex)
 		if (n <= -1) return -1;
 	}
 
-	switch (HAWK_RTX_GETVALTYPE(rtx, a0))
+	vtype = HAWK_RTX_GETVALTYPE(rtx, a0);
+	switch (vtype)
 	{
 		case HAWK_VAL_BCHR:
 		case HAWK_VAL_MBS:
+		case HAWK_VAL_BOB:
 		{
-			hawk_bch_t* str0, * str1, * ptr;
+			hawk_bch_t* str0, * str1, * ptr, bchr;
 			hawk_oow_t len0, len1;
 
-			str0 = ((hawk_val_mbs_t*)a0)->val.ptr;
-			len0 = ((hawk_val_mbs_t*)a0)->val.len;
+			if (vtype == HAWK_VAL_BCHR)
+			{
+				bchr = HAWK_RTX_GETBCHRFROMVAL(rtx, a0);
+				str0 = &bchr;
+				len0 = 1;
+			}
+			/* this part isn't needed because hawk_val_mbs_t and hawk_val_mbs_t
+			 * are almost the same except the type of the val field 
+			else if (vtype == HAWK_VAL_BOB)
+			{
+				str0 = (hawk_bch_t*)((hawk_val_bob_t*)a0)->val.ptr;
+				len0 = ((hawk_val_bob_t*)a0)->val.len;
+			}*/
+			else
+			{
+				str0 = ((hawk_val_mbs_t*)a0)->val.ptr;
+				len0 = ((hawk_val_mbs_t*)a0)->val.len;
+			}
 
 			str1 = hawk_rtx_getvalbcstr(rtx, a1, &len1);
-			if (HAWK_UNLIKELY(!str0)) return -1;
+			if (HAWK_UNLIKELY(!str1)) return -1;
 
 			if (nargs < 3)
 			{
@@ -721,6 +740,10 @@ int hawk_fnc_length (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, int mode)
 				len = ((hawk_val_mbs_t*)v)->val.len;
 				break;
 
+			case HAWK_VAL_BOB:
+				len = ((hawk_val_bob_t*)v)->val.len;
+				break;
+
 			case HAWK_VAL_CHAR:
 				len = 1;
 				break;
@@ -782,6 +805,7 @@ int hawk_fnc_substr (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	{
 		case HAWK_VAL_BCHR:
 		case HAWK_VAL_MBS:
+		case HAWK_VAL_BOB:
 		{
 			hawk_bch_t* str;
 			hawk_oow_t len;
@@ -909,6 +933,7 @@ static int fnc_split (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, int use_array)
 	{
 		case HAWK_VAL_BCHR:
 		case HAWK_VAL_MBS:
+		case HAWK_VAL_BOB:
 			byte_str = 1;
 			str.ptr = do_fld? (hawk_ooch_t*)hawk_rtx_valtobcstrdup(rtx, a0, &str.len):
 			                  (hawk_ooch_t*)hawk_rtx_getvalbcstr(rtx, a0, &str.len);
@@ -1085,7 +1110,7 @@ int hawk_fnc_tolower (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	a0 = hawk_rtx_getarg(rtx, 0);
 	switch (HAWK_RTX_GETVALTYPE(rtx, a0))
 	{
-		case  HAWK_VAL_BCHR:
+		case HAWK_VAL_BCHR:
 		{
 			hawk_bch_t tmp = HAWK_RTX_GETBCHRFROMVAL(rtx, a0);
 			tmp = hawk_to_bch_lower(tmp);
@@ -1095,6 +1120,7 @@ int hawk_fnc_tolower (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		}
 
 		case HAWK_VAL_MBS:
+		case HAWK_VAL_BOB:
 		{
 			hawk_bcs_t str;
 			str.ptr = hawk_rtx_getvalbcstr(rtx, a0, &str.len);
@@ -1108,7 +1134,7 @@ int hawk_fnc_tolower (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			break;
 		}
 
-		case  HAWK_VAL_CHAR:
+		case HAWK_VAL_CHAR:
 		{
 			hawk_ooch_t tmp = HAWK_RTX_GETCHARFROMVAL(rtx, a0);
 			tmp = hawk_to_ooch_lower(tmp);
@@ -1154,6 +1180,7 @@ int hawk_fnc_toupper (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		}
 
 		case HAWK_VAL_MBS:
+		case HAWK_VAL_BOB:
 		{
 			hawk_bcs_t str;
 			str.ptr = hawk_rtx_getvalbcstr(rtx, a0, &str.len);
@@ -1464,6 +1491,7 @@ static int __substitute (hawk_rtx_t* rtx, hawk_oow_t max_count)
 		{
 			case HAWK_VAL_BCHR:
 			case HAWK_VAL_MBS:
+			case HAWK_VAL_BOB:
 				s2.ptr = hawk_rtx_getvalbcstr(rtx, r2, &s2.len);
 				s2_free = 2;
 
@@ -1893,6 +1921,7 @@ int hawk_fnc_sprintf (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	{
 		case HAWK_VAL_BCHR:
 		case HAWK_VAL_MBS:
+		case HAWK_VAL_BOB:
 		{
 			hawk_becs_t fbu;
 			int fbu_inited = 0;
