@@ -2319,14 +2319,20 @@ hawk_bch_t* hawk_rtx_valtobcstrdupwithcmgr (hawk_rtx_t* rtx, const hawk_val_t* v
 		{
 			hawk_bch_t tmp = HAWK_RTX_GETBCHRFROMVAL(rtx, v);
 			mbs = hawk_rtx_dupbchars(rtx, &tmp, 1);
-			if (!mbs) return HAWK_NULL;
+			if (HAWK_UNLIKELY(!mbs)) return HAWK_NULL;
 			if (len) *len = 1;
 			break;
 		}
 
 		case HAWK_VAL_MBS:
 			mbs = hawk_rtx_dupbchars(rtx, ((hawk_val_mbs_t*)v)->val.ptr, ((hawk_val_mbs_t*)v)->val.len);
-			if (!mbs) return HAWK_NULL;
+			if (HAWK_UNLIKELY(!mbs)) return HAWK_NULL;
+			if (len) *len = ((hawk_val_mbs_t*)v)->val.len;
+			break;
+
+		case HAWK_VAL_BOB:
+			mbs = hawk_rtx_dupbchars(rtx, (hawk_bch_t*)((hawk_val_bob_t*)v)->val.ptr, ((hawk_val_bob_t*)v)->val.len);
+			if (HAWK_UNLIKELY(!mbs)) return HAWK_NULL;
 			if (len) *len = ((hawk_val_mbs_t*)v)->val.len;
 			break;
 
@@ -2350,14 +2356,14 @@ hawk_bch_t* hawk_rtx_valtobcstrdupwithcmgr (hawk_rtx_t* rtx, const hawk_val_t* v
 			}
 		#if defined(HAWK_OOCH_IS_BCH)
 			mbs = hawk_rtx_dupbchars(rtx, ptr, slen);
-			if (!mbs) return HAWK_NULL;
+			if (HAWK_UNLIKELY(!mbs)) return HAWK_NULL;
 			if (len) *len = slen;
 		#else
 			{
 				hawk_oow_t mbslen, wcslen;
 				wcslen = slen;
 				mbs = hawk_rtx_duputobcharswithcmgr(rtx, ptr, wcslen, &mbslen, cmgr);
-				if (!mbs) return HAWK_NULL;
+				if (HAWK_UNLIKELY(!mbs)) return HAWK_NULL;
 				if (len) *len = mbslen;
 			}
 		#endif
@@ -2384,7 +2390,7 @@ hawk_bch_t* hawk_rtx_valtobcstrdupwithcmgr (hawk_rtx_t* rtx, const hawk_val_t* v
 
 			mbs = hawk_rtx_duputobcharswithcmgr(rtx, out.u.cpldup.ptr, out.u.cpldup.len, &mbslen, cmgr);
 			hawk_rtx_freemem (rtx, out.u.cpldup.ptr);
-			if (!mbs) return HAWK_NULL;
+			if (HAWK_UNLIKELY(!mbs)) return HAWK_NULL;
 			if (len) *len = mbslen;
 		#endif
 			break;

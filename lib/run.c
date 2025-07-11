@@ -6262,6 +6262,7 @@ static hawk_val_t* eval_binop_concat (hawk_rtx_t* rtx, hawk_val_t* left, hawk_va
 	{
 		case HAWK_VAL_BCHR:
 		case HAWK_VAL_MBS:
+		case HAWK_VAL_BOB:
 		{
 			hawk_bcs_t l, r;
 
