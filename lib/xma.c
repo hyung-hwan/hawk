@@ -643,7 +643,7 @@ static void* _realloc_merge (hawk_xma_t* xma, void* b, hawk_oow_t size)
 				/* link the leftover block to the free list */
 				mblk_size(blk) = size;
 
-				y = next_mblk(blk); /* update y to the leftover block with the new block size set above */
+				y = (hawk_uint8_t*)next_mblk(blk); /* update y to the leftover block with the new block size set above */
 				mblk_free(y) = 1;
 				mblk_size(y) = rem - MBLKHDRSIZE;
 				mblk_prev_size(y) = mblk_size(blk);
@@ -753,7 +753,7 @@ void hawk_xma_free (hawk_xma_t* xma, void* b)
 
 		hawk_uint8_t* z;
 		hawk_oow_t ns = MBLKHDRSIZE + org_blk_size + MBLKHDRSIZE;
-		                /* blk's header  size + blk->size + y's header size */ 
+		                /* blk's header  size + blk->size + y's header size */
 		hawk_oow_t bs = ns + mblk_size(y);
 
 		detach_from_freelist(xma, (hawk_xma_fblk_t*)x);

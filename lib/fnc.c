@@ -587,7 +587,7 @@ static int index_or_rindex (hawk_rtx_t* rtx, int rindex)
 				len0 = 1;
 			}
 			/* this part isn't needed because hawk_val_mbs_t and hawk_val_mbs_t
-			 * are almost the same except the type of the val field 
+			 * are almost the same except the type of the val field
 			else if (vtype == HAWK_VAL_BOB)
 			{
 				str0 = (hawk_bch_t*)((hawk_val_bob_t*)a0)->val.ptr;

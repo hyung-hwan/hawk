@@ -344,7 +344,7 @@ typedef struct hawk_val_ref_t  hawk_val_ref_t;
  * You can create a value of this type with hawk_rtx_makebobval() inside a module
  * function or built-in functions to convey internal data between them. The language
  * doesn't provide a way to create and/or change the value.
- * 
+ *
  * You must keep the structure of hawk_val_mbs_t and hawk_val_bob_t the same
  * except the type of the val field;
  */
