@@ -5,32 +5,40 @@
 #include <time.h>
 #include "tap.h"
 
-#define NUM_ITERATIONS 1000000
+#define NUM_ITERATIONS 10000
 #define MIN_ALLOC_SIZE 16
 #define MAX_ALLOC_SIZE 1024
 				
 #define OK_X(test) OK(test, #test)
 
-static size_t random_size()
+static size_t random_size(hawk_oow_t max_alloc_size)
 {
-	return MIN_ALLOC_SIZE + rand() % (MAX_ALLOC_SIZE - MIN_ALLOC_SIZE + 1);
+	return MIN_ALLOC_SIZE + rand() % (max_alloc_size - MIN_ALLOC_SIZE + 1);
 }
 
-int main()
+int main(int argc, char* argv[])
 {
 	int test_bad = 0;
 	hawk_mmgr_t xma_mmgr;
+	hawk_oow_t num_iterations = NUM_ITERATIONS;
+	hawk_oow_t max_alloc_size = MAX_ALLOC_SIZE;
 
 	clock_t start_time, end_time;
 	double malloc_time = 0.0, free_time = 0.0;
 	void **ptr_array;
 
+	if (argc >= 3)
+	{
+		num_iterations = strtoul(argv[1], NULL, 10);
+		max_alloc_size = strtoul(argv[2], NULL, 10);
+	}
+
 	no_plan();
-	hawk_init_xma_mmgr(&xma_mmgr, NUM_ITERATIONS * MAX_ALLOC_SIZE);
+	hawk_init_xma_mmgr(&xma_mmgr, num_iterations * max_alloc_size);
 
 	srand((unsigned int)time(NULL));
 
-	ptr_array = malloc(NUM_ITERATIONS * sizeof(void *));
+	ptr_array = malloc(num_iterations * sizeof(void *));
 	OK_X (ptr_array != NULL);
 	if (!ptr_array) {
 		fprintf(stderr, "malloc failed for pointer array\n");
@@ -38,8 +46,8 @@ int main()
 	}
 
 	start_time = clock();
-	for (size_t i = 0; i < NUM_ITERATIONS; ++i) {
-		size_t size = random_size();
+	for (size_t i = 0; i < num_iterations; ++i) {
+		size_t size = random_size(max_alloc_size);
 		/*ptr_array[i] = malloc(size);*/
 		ptr_array[i] = HAWK_MMGR_ALLOC(&xma_mmgr, size);
 		if (!ptr_array[i]) {
@@ -56,7 +64,7 @@ int main()
 	malloc_time = (double)(end_time - start_time) / CLOCKS_PER_SEC;
 
 	start_time = clock();
-	for (size_t i = 0; i < NUM_ITERATIONS; ++i) {
+	for (size_t i = 0; i < num_iterations; ++i) {
 		/*free(ptr_array[i]);*/
 		HAWK_MMGR_FREE(&xma_mmgr, ptr_array[i]);
 	}
@@ -65,12 +73,14 @@ int main()
 
 	free(ptr_array);
 
-	printf("Performed %d allocations and frees\n", NUM_ITERATIONS);
+	printf("Performed %lu allocations and frees - min alloc size %lu max_alloc_size %lu\n",
+		(unsigned long)num_iterations, (unsigned long)MIN_ALLOC_SIZE, (unsigned long)max_alloc_size);
 	printf("Total malloc time: %.6f seconds\n", malloc_time);
 	printf("Total free time  : %.6f seconds\n", free_time);
-	printf("Average malloc time: %.9f seconds\n", malloc_time / NUM_ITERATIONS);
-	printf("Average free time  : %.9f seconds\n", free_time / NUM_ITERATIONS);
+	printf("Average malloc time: %.9f seconds\n", malloc_time / num_iterations);
+	printf("Average free time  : %.9f seconds\n", free_time / num_iterations);
 
+	hawk_fini_xma_mmgr(&xma_mmgr);
 	return exit_status();
 }
 

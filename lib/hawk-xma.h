@@ -87,7 +87,7 @@ typedef struct hawk_xma_t hawk_xma_t;
 typedef struct hawk_xma_fblk_t hawk_xma_fblk_t;
 typedef struct hawk_xma_mblk_t hawk_xma_mblk_t;
 
-#define HAWK_XMA_FIXED 32
+#define HAWK_XMA_FIXED (32)
 #define HAWK_XMA_SIZE_BITS ((HAWK_SIZEOF_OOW_T*8)-1)
 
 struct hawk_xma_t
