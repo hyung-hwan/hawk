@@ -283,12 +283,12 @@ static hawk_int_t set_error_on_sys_list (hawk_rtx_t* rtx, sys_list_t* sys_list, 
 	if (errfmt)
 	{
 		va_start (ap, errfmt);
-		hawk_rtx_vfmttooocstr (rtx, sys_list->ctx.errmsg, HAWK_COUNTOF(sys_list->ctx.errmsg), errfmt, ap);
+		hawk_rtx_vfmttooocstr(rtx, sys_list->ctx.errmsg, HAWK_COUNTOF(sys_list->ctx.errmsg), errfmt, ap);
 		va_end (ap);
 	}
 	else
 	{
-		hawk_rtx_fmttooocstr (rtx, sys_list->ctx.errmsg, HAWK_COUNTOF(sys_list->ctx.errmsg), HAWK_T("%js"), hawk_geterrstr(hawk_rtx_gethawk(rtx))(errnum));
+		hawk_rtx_fmttooocstr(rtx, sys_list->ctx.errmsg, HAWK_COUNTOF(sys_list->ctx.errmsg), HAWK_T("%js"), hawk_geterrstr(hawk_rtx_gethawk(rtx))(errnum));
 	}
 	return ERRNUM_TO_RC(errnum);
 }
@@ -298,9 +298,9 @@ static hawk_int_t set_error_on_sys_list_with_errno (hawk_rtx_t* rtx, sys_list_t*
 	int err = errno;
 
 	if (title)
-		hawk_rtx_fmttooocstr (rtx, sys_list->ctx.errmsg, HAWK_COUNTOF(sys_list->ctx.errmsg), HAWK_T("%js - %hs"), title, strerror(err));
+		hawk_rtx_fmttooocstr(rtx, sys_list->ctx.errmsg, HAWK_COUNTOF(sys_list->ctx.errmsg), HAWK_T("%js - %hs"), title, strerror(err));
 	else
-		hawk_rtx_fmttooocstr (rtx, sys_list->ctx.errmsg, HAWK_COUNTOF(sys_list->ctx.errmsg), HAWK_T("%hs"), strerror(err));
+		hawk_rtx_fmttooocstr(rtx, sys_list->ctx.errmsg, HAWK_COUNTOF(sys_list->ctx.errmsg), HAWK_T("%hs"), strerror(err));
 	return ERRNUM_TO_RC(hawk_syserr_to_errnum(err));
 }
 
@@ -310,7 +310,7 @@ static void set_errmsg_on_sys_list (hawk_rtx_t* rtx, sys_list_t* sys_list, const
 	{
 		va_list ap;
 		va_start (ap, errfmt);
-		hawk_rtx_vfmttooocstr (rtx, sys_list->ctx.errmsg, HAWK_COUNTOF(sys_list->ctx.errmsg), errfmt, ap);
+		hawk_rtx_vfmttooocstr(rtx, sys_list->ctx.errmsg, HAWK_COUNTOF(sys_list->ctx.errmsg), errfmt, ap);
 		va_end (ap);
 	}
 	else
@@ -445,7 +445,7 @@ static void purge_mux_members (hawk_rtx_t* rtx, sys_node_t* mux_node)
 {
 	while (mux_node->ctx.u.mux.x_first)
 	{
-		del_from_mux (rtx, mux_node->ctx.u.mux.x_first);
+		del_from_mux(rtx, mux_node->ctx.u.mux.x_first);
 	}
 }
 
@@ -457,8 +457,8 @@ static void free_sys_node (hawk_rtx_t* rtx, sys_list_t* list, sys_node_t* node)
 		case SYS_NODE_DATA_TYPE_SCK:
 			if (node->ctx.u.file.fd >= 0)
 			{
-				del_from_mux (rtx, node);
-				close (node->ctx.u.file.fd);
+				del_from_mux(rtx, node);
+				close(node->ctx.u.file.fd);
 				node->ctx.u.file.fd = -1;
 			}
 			break;
@@ -466,7 +466,7 @@ static void free_sys_node (hawk_rtx_t* rtx, sys_list_t* list, sys_node_t* node)
 		case SYS_NODE_DATA_TYPE_DIR:
 			if (node->ctx.u.dir)
 			{
-				hawk_dir_close (node->ctx.u.dir);
+				hawk_dir_close(node->ctx.u.dir);
 				node->ctx.u.dir = HAWK_NULL;
 			}
 			break;
@@ -476,13 +476,13 @@ static void free_sys_node (hawk_rtx_t* rtx, sys_list_t* list, sys_node_t* node)
 			if (node->ctx.u.mux.fd >= 0)
 			{
 				/* TODO: delete all member FILE and SCK from mux */
-				purge_mux_members (rtx, node);
-				close (node->ctx.u.mux.fd);
+				purge_mux_members(rtx, node);
+				close(node->ctx.u.mux.fd);
 				node->ctx.u.mux.fd = -1;
 
 				if (node->ctx.u.mux.x_evt)
 				{
-					hawk_rtx_freemem (rtx, node->ctx.u.mux.x_evt);
+					hawk_rtx_freemem(rtx, node->ctx.u.mux.x_evt);
 					node->ctx.u.mux.x_evt = HAWK_NULL;
 				}
 				node->ctx.u.mux.x_evt_max = 0;
@@ -491,7 +491,7 @@ static void free_sys_node (hawk_rtx_t* rtx, sys_list_t* list, sys_node_t* node)
 		#endif
 			break;
 	}
-	__free_sys_node (rtx, list, node);
+	__free_sys_node(rtx, list, node);
 }
 
 /* ------------------------------------------------------------------------ */
@@ -526,13 +526,13 @@ static sys_node_t* get_sys_list_node_with_arg (hawk_rtx_t* rtx, sys_list_t* sys_
 	if (hawk_rtx_valtoint(rtx, arg, &id) <= -1)
 	{
 		*rx = ERRNUM_TO_RC(hawk_rtx_geterrnum(rtx));
-		set_errmsg_on_sys_list (rtx, sys_list, HAWK_T("illegal handle value"));
+		set_errmsg_on_sys_list(rtx, sys_list, HAWK_T("illegal handle value"));
 		return HAWK_NULL;
 	}
 	else if (!(sys_node = get_sys_list_node(sys_list, id)))
 	{
 		*rx = ERRNUM_TO_RC(HAWK_EINVAL);
-		set_errmsg_on_sys_list (rtx, sys_list, HAWK_T("invalid handle - %zd"), (hawk_oow_t)id);
+		set_errmsg_on_sys_list(rtx, sys_list, HAWK_T("invalid handle - %zd"), (hawk_oow_t)id);
 		return HAWK_NULL;
 	}
 
@@ -540,7 +540,7 @@ static sys_node_t* get_sys_list_node_with_arg (hawk_rtx_t* rtx, sys_list_t* sys_
 	{
 		/* the handle is found but is not of the desired type */
 		*rx = ERRNUM_TO_RC(HAWK_EINVAL);
-		set_errmsg_on_sys_list (rtx, sys_list, HAWK_T("wrong handle type"));
+		set_errmsg_on_sys_list(rtx, sys_list, HAWK_T("wrong handle type"));
 		return HAWK_NULL;
 	}
 
@@ -558,7 +558,7 @@ static int fnc_errmsg (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	retv = hawk_rtx_makestrvalwithoocstr(rtx, sys_list->ctx.errmsg);
 	if (!retv) return -1;
 
-	hawk_rtx_setretval (rtx, retv);
+	hawk_rtx_setretval(rtx, retv);
 	return 0;
 }
 
@@ -585,10 +585,10 @@ static int fnc_close (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			sys_node->ctx.u.file.fd = -1; /* you may leak the original file descriptor. */
 		}
 
-		free_sys_node (rtx, sys_list, sys_node);
+		free_sys_node(rtx, sys_list, sys_node);
 	}
 
-	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
+	hawk_rtx_setretval(rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
 
@@ -596,7 +596,7 @@ static int fnc_close (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
   BEGIN {
      f = sys::open("/tmp/test.txt", sys::O_RDONLY);
      while (sys::read(f, x, 10) > 0) printf (@b"%s", x);
-     sys::close (f);
+     sys::close(f);
   }
 */
 
@@ -624,7 +624,7 @@ static int fnc_open (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	if (pstr)
 	{
 		fd = open(pstr, oflags, mode);
-		hawk_rtx_freevalbcstr (rtx, a0, pstr);
+		hawk_rtx_freevalbcstr(rtx, a0, pstr);
 
 		if (fd >= 0)
 		{
@@ -633,7 +633,7 @@ static int fnc_open (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			new_node = new_sys_node_fd(rtx, sys_list, fd);
 			if (!new_node)
 			{
-				close (fd);
+				close(fd);
 				goto fail;
 			}
 			rx = new_node->id;
@@ -651,15 +651,15 @@ static int fnc_open (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	}
 
 	HAWK_ASSERT (HAWK_IN_INT_RANGE(rx));
-	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
+	hawk_rtx_setretval(rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
 
 /*
 	a = sys::openfd(1);
-	sys::write (a, @b"let me write something here\n");
-	sys::close (a, sys::C_KEEPFD); ## set C_KEEPFD to release 1 without closing it.
-	##sys::close (a);
+	sys::write(a, @b"let me write something here\n");
+	sys::close(a, sys::C_KEEPFD); ## set C_KEEPFD to release 1 without closing it.
+	##sys::close(a);
 	print "done\n";
 */
 
@@ -694,7 +694,7 @@ static int fnc_openfd (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	}
 
 	HAWK_ASSERT (HAWK_IN_INT_RANGE(rx));
-	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
+	hawk_rtx_setretval(rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
 
@@ -747,7 +747,7 @@ static int fnc_read (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 
 			if (len >= 1) delim = str[0];
-			hawk_rtx_freevalbcstr (rtx, a3, str);
+			hawk_rtx_freevalbcstr(rtx, a3, str);
 		}
 
 		if (sys_list->ctx.readbuf_len > 0 && delim != HAWK_BCI_EOF)
@@ -816,9 +816,9 @@ static int fnc_read (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			}
 			else sys_list->ctx.readbuf_len =  0;
 
-			hawk_rtx_refupval (rtx, sv);
+			hawk_rtx_refupval(rtx, sv);
 			x = hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, 1), sv);
-			hawk_rtx_refdownval (rtx, sv);
+			hawk_rtx_refdownval(rtx, sv);
 			if (x <= -1)
 			{
 				rx = copy_error_to_sys_list(rtx, sys_list);
@@ -830,7 +830,7 @@ static int fnc_read (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 done:
 	/* the value in 'rx' never exceeds HAWK_INT_MAX as 'reqsize' has been limited to
 	 * it before the call to 'read'. so it's safe not to check the result of hawk_rtx_makeintval() */
-	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
+	hawk_rtx_setretval(rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
 
@@ -866,7 +866,7 @@ static int fnc_write (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 			rx = write(sys_node->ctx.u.file.fd, &dptr[startpos], dlen);
 			if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_T("unable to write"));
-			hawk_rtx_freevalbcstr (rtx, a1, dptr);
+			hawk_rtx_freevalbcstr(rtx, a1, dptr);
 		}
 		else
 		{
@@ -876,7 +876,7 @@ static int fnc_write (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 	retv = hawk_rtx_makeintval(rtx, rx);
 	if (!retv) return -1; /* hard failure. unable to make a return value */
-	hawk_rtx_setretval (rtx, retv);
+	hawk_rtx_setretval(rtx, retv);
 	return 0;
 }
 
@@ -895,10 +895,10 @@ static int fnc_write (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 	c = sys::dup(x, b, sys::O_CLOEXEC);
 	## assertion: b == c
-	sys::close (x);
+	sys::close(x);
 
 	while (sys::read(c, abc, 100) > 0) printf (@b"%s", abc);
-	sys::close (c);
+	sys::close(c);
 */
 
 static int fnc_dup (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
@@ -960,7 +960,7 @@ static int fnc_dup (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		#endif
 				/* dup2 or dup3 closes the descriptor sys_node2_.ctx.u.file.fd implicitly
 				 * if it's registered in muxtipler, unregister it as well */
-				del_from_mux (rtx, sys_node2);
+				del_from_mux(rtx, sys_node2);
 				sys_node2->ctx.u.file.fd = fd;
 				sys_node2->ctx.type = sys_node->ctx.type;
 				rx = sys_node2->id;
@@ -985,7 +985,7 @@ static int fnc_dup (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 				}
 				else
 				{
-					close (fd);
+					close(fd);
 					rx = copy_error_to_sys_list(rtx, sys_list);
 				}
 			}
@@ -998,7 +998,7 @@ static int fnc_dup (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 done:
 	HAWK_ASSERT (HAWK_IN_INT_RANGE(rx)); /* assume a file descriptor never gets larger than HAWK_INT_MAX */
-	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
+	hawk_rtx_setretval(rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
 
@@ -1061,7 +1061,7 @@ done:
 	retv = hawk_rtx_makeintval(rtx, rx);
 	if (!retv) return -1; /* hard failure. unable to make a return value */
 
-	hawk_rtx_setretval (rtx, retv);
+	hawk_rtx_setretval(rtx, retv);
 	return 0;
 }
 
@@ -1073,7 +1073,7 @@ done:
         sys::sleep(ARGV[1]);
         sys::flock(f1, sys::FLOCK_UNLOCK | sys::FLOCK_WAIT, 0, 0, sys::SEEK_SET);
         sys::sleep(ARGV[1]);
-        sys::close (f1);
+        sys::close(f1);
  }
  */
 static int fnc_flock (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
@@ -1133,9 +1133,9 @@ static int fnc_flock (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			sv = hawk_rtx_makeintval(rtx, fl.l_pid);
 			if (!sv) goto fail;
 
-			hawk_rtx_refupval (rtx, sv);
+			hawk_rtx_refupval(rtx, sv);
 			x = hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, 5), sv);
-			hawk_rtx_refdownval (rtx, sv);
+			hawk_rtx_refdownval(rtx, sv);
 			if (x <= -1) goto fail;
 
 			rx = fl.l_type; /* for get, it returns the lock type */
@@ -1146,7 +1146,7 @@ done:
 	retv = hawk_rtx_makeintval(rtx, rx);
 	if (!retv) return -1; /* hard failure. unable to make a return value */
 
-	hawk_rtx_setretval (rtx, retv);
+	hawk_rtx_setretval(rtx, retv);
 	return 0;
 }
 
@@ -1182,7 +1182,7 @@ done:
 	retv = hawk_rtx_makeintval(rtx, rx);
 	if (!retv) return -1; /* hard failure. unable to make a return value */
 
-	hawk_rtx_setretval (rtx, retv);
+	hawk_rtx_setretval(rtx, retv);
 	return 0;
 }
 
@@ -1254,9 +1254,9 @@ static int fnc_tcgetattr (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi) /* this is
 		tmp = hawk_rtx_makemapvalwithdata(rtx, md, HAWK_COUNTOF(md));
 		if (!tmp) goto fail;
 
-		hawk_rtx_refupval (rtx, tmp);
+		hawk_rtx_refupval(rtx, tmp);
 		x = hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, 1), tmp);
-		hawk_rtx_refdownval (rtx, tmp);
+		hawk_rtx_refdownval(rtx, tmp);
 		if (x <= -1)
 		{
 		fail:
@@ -1268,7 +1268,7 @@ done:
 	retv = hawk_rtx_makeintval(rtx, rx);
 	if (!retv) return -1; /* hard failure. unable to make a return value */
 
-	hawk_rtx_setretval (rtx, retv);
+	hawk_rtx_setretval(rtx, retv);
 	return 0;
 }
 
@@ -1339,7 +1339,7 @@ static int fnc_tcsetattr (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi) /* this is
 
 				if (len >= HAWK_COUNTOF(t.c_cc)) len = HAWK_COUNTOF(t.c_cc);
 				HAWK_MEMCPY (t.c_cc, ptr, len);
-				hawk_rtx_freevalbcstr (rtx, HAWK_MAP_VPTR(pair), ptr);
+				hawk_rtx_freevalbcstr(rtx, HAWK_MAP_VPTR(pair), ptr);
 			}
 			else
 			{
@@ -1384,7 +1384,7 @@ done:
 	retv = hawk_rtx_makeintval(rtx, rx);
 	if (!retv) return -1; /* hard failure. unable to make a return value */
 
-	hawk_rtx_setretval (rtx, retv);
+	hawk_rtx_setretval(rtx, retv);
 	return 0;
 }
 
@@ -1434,7 +1434,7 @@ done:
 	retv = hawk_rtx_makeintval(rtx, rx);
 	if (!retv) return -1; /* hard failure. unable to make a return value */
 
-	hawk_rtx_setretval (rtx, retv);
+	hawk_rtx_setretval(rtx, retv);
 	return 0;
 }
 
@@ -1465,7 +1465,7 @@ done:
 	retv = hawk_rtx_makeintval(rtx, rx);
 	if (!retv) return -1; /* hard failure. unable to make a return value */
 
-	hawk_rtx_setretval (rtx, retv);
+	hawk_rtx_setretval(rtx, retv);
 	return 0;
 }
 /* ------------------------------------------------------------------------ */
@@ -1481,14 +1481,14 @@ done:
 	if (a <= -1)
 	{
 		print "fork error";
-		sys::close (p0);
-		sys::close (p1);
+		sys::close(p0);
+		sys::close(p1);
 	}
 	else if (a == 0)
 	{
 		## child
 		printf ("child.... %d %d %d\n", sys::getpid(), p0, p1);
-		sys::close (p1);
+		sys::close(p1);
 		while (1)
 		{
 			n = sys::read(p0, k, 3);
@@ -1500,16 +1500,16 @@ done:
 			}
 			print k;
 		}
-		sys::close (p0);
+		sys::close(p0);
 	}
 	else
 	{
 		## parent
 		printf ("parent.... %d %d %d\n", sys::getpid(), p0, p1);
-		sys::close (p0);
-		sys::write (p1, @b"hello");
-		sys::write (p1, @b"world");
-		sys::close (p1);
+		sys::close(p0);
+		sys::write(p1, @b"hello");
+		sys::write(p1, @b"world");
+		sys::close(p1);
 		sys::wait(a);
 	}##if (sys::pipe(p0, p1) <= -1)
 	if (sys::pipe(p0, p1, sys::O_NONBLOCK | sys::O_CLOEXEC) <= -1)
@@ -1521,14 +1521,14 @@ done:
 	if (a <= -1)
 	{
 		print "fork error";
-		sys::close (p0);
-		sys::close (p1);
+		sys::close(p0);
+		sys::close(p1);
 	}
 	else if (a == 0)
 	{
 		## child
 		printf ("child.... %d %d %d\n", sys::getpid(), p0, p1);
-		sys::close (p1);
+		sys::close(p1);
 		while (1)
 		{
 			n = sys::read (p0, k, 3);
@@ -1540,16 +1540,16 @@ done:
 			}
 			print k;
 		}
-		sys::close (p0);
+		sys::close(p0);
 	}
 	else
 	{
 		## parent
 		printf ("parent.... %d %d %d\n", sys::getpid(), p0, p1);
-		sys::close (p0);
-		sys::write (p1, @b"hello");
-		sys::write (p1, @b"world");
-		sys::close (p1);
+		sys::close(p0);
+		sys::write(p1, @b"hello");
+		sys::write(p1, @b"world");
+		sys::close(p1);
 		sys::wait(a);
 	}
 */
@@ -1612,16 +1612,16 @@ static int fnc_pipe (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			v = hawk_rtx_makeintval(rtx, node1->id);
 			if (!v) goto fail;
 
-			hawk_rtx_refupval (rtx, v);
+			hawk_rtx_refupval(rtx, v);
 			x = hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, 0), v);
-			hawk_rtx_refdownval (rtx, v);
+			hawk_rtx_refdownval(rtx, v);
 			if (x <= -1) goto fail;
 
 			v = hawk_rtx_makeintval(rtx, node2->id);
 			if (!v) goto fail;
-			hawk_rtx_refupval (rtx, v);
+			hawk_rtx_refupval(rtx, v);
 			x = hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, 1), v);
-			hawk_rtx_refdownval (rtx, v);
+			hawk_rtx_refdownval(rtx, v);
 			if (x <= -1) goto fail;
 
 			/* successful so far */
@@ -1632,9 +1632,9 @@ static int fnc_pipe (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		fail:
 			rx = copy_error_to_sys_list(rtx, sys_list);
 
-			if (node2) free_sys_node (rtx, sys_list, node2);
+			if (node2) free_sys_node(rtx, sys_list, node2);
 			else close(fds[1]);
-			if (node1) free_sys_node (rtx, sys_list, node1);
+			if (node1) free_sys_node(rtx, sys_list, node1);
 			else close(fds[0]);
 		}
 	}
@@ -1643,7 +1643,7 @@ static int fnc_pipe (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
 	}
 
-	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
+	hawk_rtx_setretval(rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
 
@@ -1674,7 +1674,7 @@ static int fnc_fchown (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		}
 	}
 
-	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
+	hawk_rtx_setretval(rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
 
@@ -1702,7 +1702,7 @@ static int fnc_fchmod (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		}
 	}
 
-	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
+	hawk_rtx_setretval(rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
 
@@ -1753,7 +1753,7 @@ static int fnc_opendir (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	pstr = hawk_rtx_getvaloocstr(rtx, a0, &plen);
 	if (!pstr) goto fail;
 	dir = hawk_dir_open(hawk_rtx_getgem(rtx), 0, pstr, flags);
-	hawk_rtx_freevaloocstr (rtx, a0, pstr);
+	hawk_rtx_freevaloocstr(rtx, a0, pstr);
 
 	if (dir)
 	{
@@ -1775,7 +1775,7 @@ static int fnc_opendir (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	}
 
 	/*HAWK_ASSERT (HAWK_IN_INT_RANGE(rx));*/
-	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
+	hawk_rtx_setretval(rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
 
@@ -1791,10 +1791,10 @@ static int fnc_closedir (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	{
 		/* although free_sys_node() can handle other types, sys::closedir() is allowed to
 		 * close nodes of the SYS_NODE_DATA_TYPE_DIR type only */
-		free_sys_node (rtx, sys_list, sys_node);
+		free_sys_node(rtx, sys_list, sys_node);
 	}
 
-	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
+	hawk_rtx_setretval(rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
 
@@ -1824,14 +1824,14 @@ static int fnc_readdir (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			tmp = hawk_rtx_makestrvalwithoocstr(rtx, ent.name);
 			if (!tmp) goto fail;
 
-			hawk_rtx_refupval (rtx, tmp);
+			hawk_rtx_refupval(rtx, tmp);
 			x = hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, 1), tmp);
-			hawk_rtx_refdownval (rtx, tmp);
+			hawk_rtx_refdownval(rtx, tmp);
 			if (x <= -1) goto fail;
 		}
 	}
 
-	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
+	hawk_rtx_setretval(rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
 
@@ -1854,7 +1854,7 @@ static int fnc_resetdir (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		if (path)
 		{
 			if (hawk_dir_reset(sys_node->ctx.u.dir, path) <= -1) goto fail;
-			hawk_rtx_freevaloocstr (rtx, a1, path);
+			hawk_rtx_freevaloocstr(rtx, a1, path);
 		}
 		else
 		{
@@ -1865,7 +1865,7 @@ static int fnc_resetdir (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 	/* no error check for hawk_rtx_makeintval() here since ret
 	 * is 0 or -1. it will never fail for those numbers */
-	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
+	hawk_rtx_setretval(rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
 
@@ -1894,7 +1894,7 @@ static int fnc_fork (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	retv = hawk_rtx_makeintval(rtx, rx);
 	if (retv == HAWK_NULL) return -1; /* hard failure. unable to create a return value */
 
-	hawk_rtx_setretval (rtx, retv);
+	hawk_rtx_setretval(rtx, retv);
 	return 0;
 }
 
@@ -1940,9 +1940,9 @@ static int fnc_wait (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			sv = hawk_rtx_makeintval(rtx, status);
 			if (!sv) goto fail;
 
-			hawk_rtx_refupval (rtx, sv);
+			hawk_rtx_refupval(rtx, sv);
 			x = hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, 1), sv);
-			hawk_rtx_refdownval (rtx, sv);
+			hawk_rtx_refdownval(rtx, sv);
 			if (x <= -1)
 			{
 			fail:
@@ -1955,7 +1955,7 @@ static int fnc_wait (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	retv = hawk_rtx_makeintval(rtx, rx);
 	if (!retv) return -1; /* hard failure. unable to make a return value */
 
-	hawk_rtx_setretval (rtx, retv);
+	hawk_rtx_setretval(rtx, retv);
 	return 0;
 }
 
@@ -1964,7 +1964,7 @@ static int fnc_wifexited (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_int_t wstatus;
 	int rv;
 	rv = (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 0), &wstatus) <= -1)? 0: !!WIFEXITED(wstatus);
-	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rv));
+	hawk_rtx_setretval(rtx, hawk_rtx_makeintval(rtx, rv));
 	return 0;
 }
 
@@ -1979,7 +1979,7 @@ static int fnc_wexitstatus (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	retv = hawk_rtx_makeintval(rtx, rv);
 	if (!retv) return -1;
 
-	hawk_rtx_setretval (rtx, retv);
+	hawk_rtx_setretval(rtx, retv);
 	return 0;
 }
 
@@ -1988,7 +1988,7 @@ static int fnc_wifsignaled (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_int_t wstatus;
 	int rv;
 	rv = (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 0), &wstatus) <= -1)? 0: !!WIFSIGNALED(wstatus);
-	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rv));
+	hawk_rtx_setretval(rtx, hawk_rtx_makeintval(rtx, rv));
 	return 0;
 }
 
@@ -2003,7 +2003,7 @@ static int fnc_wtermsig (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	retv = hawk_rtx_makeintval(rtx, rv);
 	if (!retv) return -1;
 
-	hawk_rtx_setretval (rtx, retv);
+	hawk_rtx_setretval(rtx, retv);
 	return 0;
 }
 
@@ -2013,7 +2013,7 @@ static int fnc_wcoredump (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_int_t wstatus;
 	int rv;
 	rv = hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 0), &wstatus) <= -1? 0: !!WCOREDUMP(wstatus);
-	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rv));
+	hawk_rtx_setretval(rtx, hawk_rtx_makeintval(rtx, rv));
 	return 0;
 }
 #endif
@@ -2050,7 +2050,7 @@ static int fnc_kill (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	retv = hawk_rtx_makeintval(rtx, rx);
 	if (retv == HAWK_NULL) return -1;
 
-	hawk_rtx_setretval (rtx, retv);
+	hawk_rtx_setretval(rtx, retv);
 	return 0;
 }
 
@@ -2085,7 +2085,7 @@ static int fnc_getpgid (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	retv = hawk_rtx_makeintval(rtx, rx);
 	if (retv == HAWK_NULL) return -1;
 
-	hawk_rtx_setretval (rtx, retv);
+	hawk_rtx_setretval(rtx, retv);
 	return 0;
 }
 
@@ -2126,7 +2126,7 @@ static int fnc_getpid (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	retv = hawk_rtx_makeintval(rtx, rx);
 	if (retv == HAWK_NULL) return -1;
 
-	hawk_rtx_setretval (rtx, retv);
+	hawk_rtx_setretval(rtx, retv);
 	return 0;
 }
 
@@ -2172,7 +2172,7 @@ static int fnc_gettid (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	retv = hawk_rtx_makeintval(rtx, rx);
 	if (retv == HAWK_NULL) return -1;
 
-	hawk_rtx_setretval (rtx, retv);
+	hawk_rtx_setretval(rtx, retv);
 	return 0;
 }
 
@@ -2229,7 +2229,7 @@ static int fnc_getppid (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	retv = hawk_rtx_makeintval(rtx, rx);
 	if (retv == HAWK_NULL) return -1;
 
-	hawk_rtx_setretval (rtx, retv);
+	hawk_rtx_setretval(rtx, retv);
 	return 0;
 }
 
@@ -2258,7 +2258,7 @@ static int fnc_getuid (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	retv = hawk_rtx_makeintval(rtx, rx);
 	if (retv == HAWK_NULL) return -1;
 
-	hawk_rtx_setretval (rtx, retv);
+	hawk_rtx_setretval(rtx, retv);
 	return 0;
 }
 
@@ -2287,7 +2287,7 @@ static int fnc_getgid (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	retv = hawk_rtx_makeintval(rtx, rx);
 	if (retv == HAWK_NULL) return -1;
 
-	hawk_rtx_setretval (rtx, retv);
+	hawk_rtx_setretval(rtx, retv);
 	return 0;
 }
 
@@ -2316,7 +2316,7 @@ static int fnc_geteuid (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	retv = hawk_rtx_makeintval(rtx, rx);
 	if (retv == HAWK_NULL) return -1;
 
-	hawk_rtx_setretval (rtx, retv);
+	hawk_rtx_setretval(rtx, retv);
 	return 0;
 }
 
@@ -2345,7 +2345,7 @@ static int fnc_getegid (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	retv = hawk_rtx_makeintval(rtx, rx);
 	if (retv == HAWK_NULL) return -1;
 
-	hawk_rtx_setretval (rtx, retv);
+	hawk_rtx_setretval(rtx, retv);
 	return 0;
 }
 
@@ -2421,7 +2421,7 @@ done:
 	retv = hawk_rtx_makeintval(rtx, rx);
 	if (!retv) return -1;
 
-	hawk_rtx_setretval (rtx, retv);
+	hawk_rtx_setretval(rtx, retv);
 	return 0;
 }
 
@@ -2445,16 +2445,16 @@ static int fnc_gettime (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		tmp = hawk_rtx_makeintval(rtx, now.nsec);
 		if (HAWK_UNLIKELY(!tmp)) return -1;
 
-		hawk_rtx_refupval (rtx, tmp);
+		hawk_rtx_refupval(rtx, tmp);
 		x = hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, 0), tmp);
-		hawk_rtx_refdownval (rtx, tmp);
+		hawk_rtx_refdownval(rtx, tmp);
 		if (HAWK_UNLIKELY(x <= -1)) return -1;
 	}
 
 	retv = hawk_rtx_makeintval(rtx, now.sec);
 	if (HAWK_UNLIKELY(!retv)) return -1;
 
-	hawk_rtx_setretval (rtx, retv);
+	hawk_rtx_setretval(rtx, retv);
 	return 0;
 }
 
@@ -2478,7 +2478,7 @@ static int fnc_settime (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	retv = hawk_rtx_makeintval(rtx, rx);
 	if (!retv) return -1;
 
-	hawk_rtx_setretval (rtx, retv);
+	hawk_rtx_setretval(rtx, retv);
 	return 0;
 }
 
@@ -2550,7 +2550,7 @@ static int fnc_mktime (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		tm.tm_isdst *= sign;
 		while (p < end && (hawk_is_ooch_space(*p) || *p == '\0')) p++;
 
-		hawk_rtx_freevaloocstr (rtx, a0, str);
+		hawk_rtx_freevaloocstr(rtx, a0, str);
 	#if defined(HAVE_TIMELOCAL)
 		nt.sec = timelocal(&tm);
 	#else
@@ -2566,7 +2566,7 @@ static int fnc_mktime (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	retv = hawk_rtx_makeintval(rtx, nt.sec);
 	if (retv == HAWK_NULL) return -1;
 
-	hawk_rtx_setretval (rtx, retv);
+	hawk_rtx_setretval(rtx, retv);
 	return 0;
 }
 
@@ -2681,7 +2681,7 @@ I use 'count' to limit the maximum number of retries when 0 is returned.
 				{
 					if (count <= 0)
 					{
-						if (tmpptr) hawk_rtx_freemem (rtx, tmpptr);
+						if (tmpptr) hawk_rtx_freemem(rtx, tmpptr);
 						tmpbuf[0] = HAWK_BT('\0');
 						tmpptr = tmpbuf;
 						break;
@@ -2692,7 +2692,7 @@ I use 'count' to limit the maximum number of retries when 0 is returned.
 					tmp = (hawk_bch_t*)hawk_rtx_reallocmem(rtx, tmpptr, tmpcapa * HAWK_SIZEOF(*tmpptr));
 					if (!tmp)
 					{
-						if (tmpptr) hawk_rtx_freemem (rtx, tmpptr);
+						if (tmpptr) hawk_rtx_freemem(rtx, tmpptr);
 						tmpbuf[0] = HAWK_BT('\0');
 						tmpptr = tmpbuf;
 						break;
@@ -2707,17 +2707,17 @@ I use 'count' to limit the maximum number of retries when 0 is returned.
 			{
 				tmpptr = tmpbuf;
 			}
-			hawk_rtx_freemem (rtx, fmt);
+			hawk_rtx_freemem(rtx, fmt);
 
 			retv = hawk_rtx_makestrvalwithbcstr(rtx, tmpptr);
-			if (tmpptr && tmpptr != tmpbuf) hawk_rtx_freemem (rtx, tmpptr);
+			if (tmpptr && tmpptr != tmpbuf) hawk_rtx_freemem(rtx, tmpptr);
 			if (retv == HAWK_NULL) return -1;
 
-			hawk_rtx_setretval (rtx, retv);
+			hawk_rtx_setretval(rtx, retv);
 		}
 		else
 		{
-			hawk_rtx_freemem (rtx, fmt);
+			hawk_rtx_freemem(rtx, fmt);
 		}
 	}
 
@@ -2747,12 +2747,12 @@ static int fnc_getenv (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		if (hawk_find_bchar_in_bchars(var, len, '\0'))
 		{
 			rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_NULL);
-			hawk_rtx_freevalbcstr (rtx, a0, var);
+			hawk_rtx_freevalbcstr(rtx, a0, var);
 		}
 		else
 		{
 			val = getenv(var);
-			hawk_rtx_freevalbcstr (rtx, a0, var);
+			hawk_rtx_freevalbcstr(rtx, a0, var);
 
 			if (val)
 			{
@@ -2762,9 +2762,9 @@ static int fnc_getenv (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 				tmp = hawk_rtx_makestrvalwithbcstr(rtx, val);
 				if (!tmp) goto fail;
 
-				hawk_rtx_refupval (rtx, tmp);
+				hawk_rtx_refupval(rtx, tmp);
 				x = hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, 1), tmp);
-				hawk_rtx_refdownval (rtx, tmp);
+				hawk_rtx_refdownval(rtx, tmp);
 				if (x <= -1) goto fail;
 
 				rx = ERRNUM_TO_RC(HAWK_ENOERR);
@@ -2781,7 +2781,7 @@ static int fnc_getenv (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		rx = copy_error_to_sys_list(rtx, sys_list);
 	}
 
-	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
+	hawk_rtx_setretval(rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
 
@@ -2820,11 +2820,11 @@ static int fnc_setenv (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
 
 done:
-	if (val) hawk_rtx_freevalbcstr (rtx, a1, val);
-	if (var) hawk_rtx_freevalbcstr (rtx, a0, var);
+	if (val) hawk_rtx_freevalbcstr(rtx, a1, val);
+	if (var) hawk_rtx_freevalbcstr(rtx, a0, var);
 
 	HAWK_ASSERT (HAWK_IN_INT_RANGE(rx));
-	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
+	hawk_rtx_setretval(rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
 
@@ -2863,10 +2863,10 @@ static int fnc_unsetenv (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 #endif
 
 done:
-	if (str) hawk_rtx_freevalbcstr (rtx, a0, str);
+	if (str) hawk_rtx_freevalbcstr(rtx, a0, str);
 
 	HAWK_ASSERT (HAWK_IN_INT_RANGE(rx));
-	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
+	hawk_rtx_setretval(rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
 
@@ -2943,7 +2943,7 @@ static int fnc_getifcfg (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		md[4].key.ptr = HAWK_T("ethw");
 		md[4].key.len = 4;
 		md[4].type = HAWK_VAL_MAP_DATA_OOCSTR;
-		hawk_rtx_fmttooocstr (rtx, ethw, HAWK_COUNTOF(ethw), HAWK_T("%02X:%02X:%02X:%02X:%02X:%02X"),
+		hawk_rtx_fmttooocstr(rtx, ethw, HAWK_COUNTOF(ethw), HAWK_T("%02X:%02X:%02X:%02X:%02X:%02X"),
 			cfg.ethw[0], cfg.ethw[1], cfg.ethw[2], cfg.ethw[3], cfg.ethw[4], cfg.ethw[5]);
 		md[4].vptr = ethw;
 		md_count = 5;
@@ -2960,9 +2960,9 @@ static int fnc_getifcfg (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		tmp = hawk_rtx_makemapvalwithdata(rtx, md, md_count);
 		if (!tmp) goto fail;
 
-		hawk_rtx_refupval (rtx, tmp);
+		hawk_rtx_refupval(rtx, tmp);
 		x = hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, 2), tmp);
-		hawk_rtx_refdownval (rtx, tmp);
+		hawk_rtx_refdownval(rtx, tmp);
 		if (x <= -1) goto fail;
 
 		rx = ERRNUM_TO_RC(HAWK_ENOERR);
@@ -2974,7 +2974,7 @@ static int fnc_getifcfg (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	}
 
 	/* no error check for hawk_rtx_makeintval() since ret is 0 or -1 */
-	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
+	hawk_rtx_setretval(rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
 /* ------------------------------------------------------------ */
@@ -3018,7 +3018,7 @@ static int fnc_system (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		if (mbs)
 		{
 			rx = system(mbs);
-			hawk_rtx_freemem (rtx, mbs);
+			hawk_rtx_freemem(rtx, mbs);
 			if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
 		}
 		else
@@ -3030,10 +3030,10 @@ static int fnc_system (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 #endif
 
 done:
-	if (str) hawk_rtx_freevaloocstr (rtx, a0, str);
+	if (str) hawk_rtx_freevaloocstr(rtx, a0, str);
 
 	HAWK_ASSERT (HAWK_IN_INT_RANGE(rx));
-	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
+	hawk_rtx_setretval(rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
 
@@ -3077,12 +3077,12 @@ static int fnc_chroot (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
 
 	done:
-		if (str) hawk_rtx_freevalbcstr (rtx, a0, str);
+		if (str) hawk_rtx_freevalbcstr(rtx, a0, str);
 	}
 #endif
 
 	HAWK_ASSERT (HAWK_IN_INT_RANGE(rx));
-	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
+	hawk_rtx_setretval(rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
 
@@ -3129,12 +3129,12 @@ static int fnc_chmod (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
 
 	done:
-		if (str) hawk_rtx_freevalbcstr (rtx, a0, str);
+		if (str) hawk_rtx_freevalbcstr(rtx, a0, str);
 	}
 #endif
 
 	HAWK_ASSERT (HAWK_IN_INT_RANGE(rx));
-	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
+	hawk_rtx_setretval(rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
 
@@ -3173,7 +3173,7 @@ static int fnc_mkdir (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		rx = (CreateDirectory(str, HAWK_NULL) == FALSE)? set_error_on_sys_list(rtx, sys_list, hawk_syserr_to_errnum(GetLastError()), HAWK_NULL): 0;
 
 	done:
-		if (str) hawk_rtx_freevaloocstr (rtx, a0, str);
+		if (str) hawk_rtx_freevaloocstr(rtx, a0, str);
 	}
 #else
 	{
@@ -3209,12 +3209,12 @@ static int fnc_mkdir (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	#endif
 
 	done:
-		if (str) hawk_rtx_freevalbcstr (rtx, a0, str);
+		if (str) hawk_rtx_freevalbcstr(rtx, a0, str);
 	}
 #endif
 
 	HAWK_ASSERT (HAWK_IN_INT_RANGE(rx));
-	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
+	hawk_rtx_setretval(rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
 
@@ -3249,7 +3249,7 @@ static int fnc_rmdir (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		rx = (RemoveDirectory(str) == FALSE)? set_error_on_sys_list(rtx, sys_list, hawk_syserr_to_errnum(GetLastError()), HAWK_NULL): 0;
 
 	done:
-		if (str) hawk_rtx_freevaloocstr (rtx, a0, str);
+		if (str) hawk_rtx_freevaloocstr(rtx, a0, str);
 	}
 #else
 	{
@@ -3285,12 +3285,12 @@ static int fnc_rmdir (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		#endif
 
 	done:
-		if (str) hawk_rtx_freevalbcstr (rtx, a0, str);
+		if (str) hawk_rtx_freevalbcstr(rtx, a0, str);
 	}
 #endif
 
 	HAWK_ASSERT (HAWK_IN_INT_RANGE(rx));
-	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
+	hawk_rtx_setretval(rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
 
@@ -3327,7 +3327,7 @@ static int fnc_unlink (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		rx = (DeleteFile(str) == FALSE)? set_error_on_sys_list(rtx, sys_list, hawk_syserr_to_errnum(GetLastError()), HAWK_NULL): 0;
 
 	done:
-		if (str) hawk_rtx_freevaloocstr (rtx, a0, str);
+		if (str) hawk_rtx_freevaloocstr(rtx, a0, str);
 	}
 #else
 	{
@@ -3363,12 +3363,12 @@ static int fnc_unlink (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		#endif
 
 	done:
-		if (str) hawk_rtx_freevalbcstr (rtx, a0, str);
+		if (str) hawk_rtx_freevalbcstr(rtx, a0, str);
 	}
 #endif
 
 	HAWK_ASSERT (HAWK_IN_INT_RANGE(rx));
-	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
+	hawk_rtx_setretval(rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
 
@@ -3410,13 +3410,13 @@ static int fnc_symlink (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		rx = HAWK_SYMLINK(str1, str2);
 		if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
 	done:
-		if (str2) hawk_rtx_freevalbcstr (rtx, a0, str2);
-		if (str1) hawk_rtx_freevalbcstr (rtx, a0, str1);
+		if (str2) hawk_rtx_freevalbcstr(rtx, a0, str2);
+		if (str1) hawk_rtx_freevalbcstr(rtx, a0, str1);
 	}
 #endif
 
 	HAWK_ASSERT (HAWK_IN_INT_RANGE(rx));
-	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
+	hawk_rtx_setretval(rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
 
@@ -3456,12 +3456,12 @@ static int fnc_stat (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		if (hawk_find_bchar_in_bchars(str1, len1, '\0'))
 		{
 			rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_NULL);
-			hawk_rtx_freevalbcstr (rtx, a0, str1);
+			hawk_rtx_freevalbcstr(rtx, a0, str1);
 			goto done;
 		}
 
 		rx = HAWK_STAT(str1, &stbuf);
-		hawk_rtx_freevalbcstr (rtx, a0, str1);
+		hawk_rtx_freevalbcstr(rtx, a0, str1);
 		if (rx <= -1)
 		{
 			rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
@@ -3569,9 +3569,9 @@ static int fnc_stat (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		tmp = hawk_rtx_makemapvalwithdata(rtx, md, HAWK_COUNTOF(md));
 		if (!tmp) goto fail;
 
-		hawk_rtx_refupval (rtx, tmp);
+		hawk_rtx_refupval(rtx, tmp);
 		x = hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, 1), tmp);
-		hawk_rtx_refdownval (rtx, tmp);
+		hawk_rtx_refdownval(rtx, tmp);
 		if (x <= -1)
 		{
 		fail:
@@ -3585,7 +3585,7 @@ static int fnc_stat (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 done:
 #endif
 	HAWK_ASSERT (HAWK_IN_INT_RANGE(rx));
-	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
+	hawk_rtx_setretval(rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
 
@@ -3645,12 +3645,12 @@ static int fnc_utime (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	#endif
 
 	done:
-		if (str) hawk_rtx_freevalbcstr (rtx, a0, str);
+		if (str) hawk_rtx_freevalbcstr(rtx, a0, str);
 	}
 #endif
 
 	HAWK_ASSERT (HAWK_IN_INT_RANGE(rx));
-	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
+	hawk_rtx_setretval(rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
 #endif
@@ -3693,7 +3693,7 @@ static int fnc_openmux (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		}
 		else
 		{
-			close (fd);
+			close(fd);
 			rx = copy_error_to_sys_list(rtx, sys_list);
 		}
 	}
@@ -3706,7 +3706,7 @@ static int fnc_openmux (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 #endif
 
 	/*HAWK_ASSERT (HAWK_IN_INT_RANGE(rx));*/
-	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
+	hawk_rtx_setretval(rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
 
@@ -3719,9 +3719,9 @@ static int fnc_closemux (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	sys_list = rtx_to_sys_list(rtx, fi);
 	sys_node = get_sys_list_node_with_arg(rtx, sys_list, hawk_rtx_getarg(rtx, 0), SYS_NODE_DATA_TYPE_MUX, &rx);
 
-	if (sys_node) free_sys_node (rtx, sys_list, sys_node);
+	if (sys_node) free_sys_node(rtx, sys_list, sys_node);
 
-	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
+	hawk_rtx_setretval(rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
 
@@ -3837,7 +3837,7 @@ static HAWK_INLINE int ctl_epoll_for_fnc (hawk_rtx_t* rtx, const hawk_fnc_info_t
 	}
 
 done:
-	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
+	hawk_rtx_setretval(rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
 #endif
@@ -3847,7 +3847,7 @@ static int fnc_addtomux (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 #if defined(USE_EPOLL)
 	return ctl_epoll_for_fnc(rtx, fi, MUX_CTL_ADD);
 #else
-	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, ERRNUM_TO_RC(HAWK_ENOIMPL)));
+	hawk_rtx_setretval(rtx, hawk_rtx_makeintval(rtx, ERRNUM_TO_RC(HAWK_ENOIMPL)));
 	return 0;
 #endif
 }
@@ -3857,7 +3857,7 @@ static int fnc_delfrommux (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 #if defined(USE_EPOLL)
 	return ctl_epoll_for_fnc(rtx, fi, MUX_CTL_DEL);
 #else
-	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, ERRNUM_TO_RC(HAWK_ENOIMPL)));
+	hawk_rtx_setretval(rtx, hawk_rtx_makeintval(rtx, ERRNUM_TO_RC(HAWK_ENOIMPL)));
 	return 0;
 #endif
 }
@@ -3867,7 +3867,7 @@ static int fnc_modinmux (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 #if defined(USE_EPOLL)
 	return ctl_epoll_for_fnc(rtx, fi, MUX_CTL_MOD);
 #else
-	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, ERRNUM_TO_RC(HAWK_ENOIMPL)));
+	hawk_rtx_setretval(rtx, hawk_rtx_makeintval(rtx, ERRNUM_TO_RC(HAWK_ENOIMPL)));
 	return 0;
 #endif
 }
@@ -3919,10 +3919,10 @@ static int fnc_waitonmux (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	}
 
 done:
-	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
+	hawk_rtx_setretval(rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 #else
-	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, ERRNUM_TO_RC(HAWK_ENOIMPL)));
+	hawk_rtx_setretval(rtx, hawk_rtx_makeintval(rtx, ERRNUM_TO_RC(HAWK_ENOIMPL)));
 	return 0;
 #endif
 }
@@ -3954,7 +3954,7 @@ static int fnc_getmuxevt (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		if (index < 0 || index >= mux_data->x_evt_count)
 		{
 			/* invalid index */
-			rx = set_error_on_sys_list (rtx, sys_list, HAWK_EINVAL, HAWK_NULL);
+			rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_NULL);
 			goto done;
 		}
 
@@ -3962,7 +3962,7 @@ static int fnc_getmuxevt (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		if (!file_node)
 		{
 			/* has it been closed before it's retrieved with sys::getmuxevt()? */
-			rx = set_error_on_sys_list (rtx, sys_list, HAWK_ENOENT, HAWK_NULL);
+			rx = set_error_on_sys_list(rtx, sys_list, HAWK_ENOENT, HAWK_NULL);
 			goto done;
 		}
 
@@ -3976,10 +3976,10 @@ static int fnc_getmuxevt (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	}
 
 done:
-	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
+	hawk_rtx_setretval(rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 #else
-	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, ERRNUM_TO_RC(HAWK_ENOIMPL)));
+	hawk_rtx_setretval(rtx, hawk_rtx_makeintval(rtx, ERRNUM_TO_RC(HAWK_ENOIMPL)));
 	return 0;
 #endif
 }
@@ -4010,7 +4010,7 @@ static int fnc_sockaddrdom (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			rx = hawk_skad_get_family(&skad);
 		}
 
-		hawk_rtx_freevaloocstr (rtx, a0, addr);
+		hawk_rtx_freevaloocstr(rtx, a0, addr);
 	}
 	else
 	{
@@ -4018,7 +4018,7 @@ static int fnc_sockaddrdom (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	}
 
 	HAWK_ASSERT (HAWK_IN_INT_RANGE(rx));
-	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
+	hawk_rtx_setretval(rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
 
@@ -4043,7 +4043,7 @@ static int fnc_socket (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		new_node = new_sys_node_fd(rtx, sys_list, fd);
 		if (!new_node)
 		{
-			close (fd);
+			close(fd);
 			rx = copy_error_to_sys_list(rtx, sys_list);
 		}
 		else
@@ -4059,7 +4059,7 @@ static int fnc_socket (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	}
 
 	HAWK_ASSERT (HAWK_IN_INT_RANGE(rx));
-	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
+	hawk_rtx_setretval(rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
 
@@ -4085,11 +4085,11 @@ static int fnc_connect (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			if (hawk_gem_oocharstoskad(hawk_rtx_getgem(rtx), addr, len, &skad) <= -1)
 			{
 				rx = copy_error_to_sys_list(rtx, sys_list);
-				hawk_rtx_freevaloocstr (rtx, a1, addr);
+				hawk_rtx_freevaloocstr(rtx, a1, addr);
 				goto done;
 			}
 
-			hawk_rtx_freevaloocstr (rtx, a1, addr);
+			hawk_rtx_freevaloocstr(rtx, a1, addr);
 			rx = connect(sys_node->ctx.u.file.fd, (struct sockaddr*)&skad, hawk_skad_get_size(&skad));
 			if (rx <= -1)
 			{
@@ -4104,7 +4104,7 @@ static int fnc_connect (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	}
 
 done:
-	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
+	hawk_rtx_setretval(rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
 
@@ -4164,9 +4164,9 @@ static int fnc_recvfrom (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 				goto done;
 			}
 
-			hawk_rtx_refupval (rtx, sv);
+			hawk_rtx_refupval(rtx, sv);
 			x = hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, 1), sv);
-			hawk_rtx_refdownval (rtx, sv);
+			hawk_rtx_refdownval(rtx, sv);
 			if (x <= -1)
 			{
 				rx = copy_error_to_sys_list(rtx, sys_list);
@@ -4183,9 +4183,9 @@ static int fnc_recvfrom (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 					goto done;
 				}
 
-				hawk_rtx_refupval (rtx, sv);
+				hawk_rtx_refupval(rtx, sv);
 				x = hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, 3), sv);
-				hawk_rtx_refdownval (rtx, sv);
+				hawk_rtx_refdownval(rtx, sv);
 				if (x <= -1)
 				{
 					rx = copy_error_to_sys_list(rtx, sys_list);
@@ -4198,7 +4198,7 @@ static int fnc_recvfrom (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 done:
 	/* the value in 'rx' never exceeds HAWK_INT_MAX as 'reqsize' has been limited to
 	 * it before the call to 'read'. so it's safe not to check the result of hawk_rtx_makeintval() */
-	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
+	hawk_rtx_setretval(rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
 
@@ -4238,10 +4238,10 @@ static int fnc_sendto (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			if (hawk_gem_oocharstoskad(hawk_rtx_getgem(rtx), addr, len, &skad) <= -1)
 			{
 				rx = copy_error_to_sys_list(rtx, sys_list);
-				hawk_rtx_freevaloocstr (rtx, a2, addr);
+				hawk_rtx_freevaloocstr(rtx, a2, addr);
 				goto done;
 			}
-			hawk_rtx_freevaloocstr (rtx, a2, addr);
+			hawk_rtx_freevaloocstr(rtx, a2, addr);
 
 			sa = (struct sockaddr*)&skad;
 			salen = hawk_skad_get_size(&skad);
@@ -4253,7 +4253,7 @@ static int fnc_sendto (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		{
 			rx = sendto(sys_node->ctx.u.file.fd, dptr, dlen, 0, sa, salen);
 			if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
-			hawk_rtx_freevalbcstr (rtx, a1, dptr);
+			hawk_rtx_freevalbcstr(rtx, a1, dptr);
 		}
 		else
 		{
@@ -4264,7 +4264,7 @@ static int fnc_sendto (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 done:
 	retv = hawk_rtx_makeintval(rtx, rx);
 	if (!retv) return -1; /* hard failure. unable to make a return value */
-	hawk_rtx_setretval (rtx, retv);
+	hawk_rtx_setretval(rtx, retv);
 	return 0;
 }
 
@@ -4287,7 +4287,7 @@ static int fnc_shutdown (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
 	}
 
-	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
+	hawk_rtx_setretval(rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
 
@@ -4318,17 +4318,17 @@ static int fnc_bind (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		if (hawk_gem_oocharstoskad(hawk_rtx_getgem(rtx), addr, len, &skad) <= -1)
 		{
 			rx = copy_error_to_sys_list(rtx, sys_list);
-			hawk_rtx_freevaloocstr (rtx, a1, addr);
+			hawk_rtx_freevaloocstr(rtx, a1, addr);
 			goto done;
 		}
-		hawk_rtx_freevaloocstr (rtx, a1, addr);
+		hawk_rtx_freevaloocstr(rtx, a1, addr);
 
 		rx = bind(sys_node->ctx.u.file.fd, (struct sockaddr*)&skad, hawk_skad_get_size(&skad));
 		if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
 	}
 
 done:
-	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
+	hawk_rtx_setretval(rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
 
@@ -4350,7 +4350,7 @@ static int fnc_listen (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
 	}
 
-	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
+	hawk_rtx_setretval(rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
 
@@ -4414,9 +4414,9 @@ static int fnc_accept (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 				goto done;
 			}
 
-			hawk_rtx_refupval (rtx, sv);
+			hawk_rtx_refupval(rtx, sv);
 			x = hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, 2), sv);
-			hawk_rtx_refdownval (rtx, sv);
+			hawk_rtx_refdownval(rtx, sv);
 			if (x <= -1)
 			{
 				rx = copy_error_to_sys_list(rtx, sys_list);
@@ -4427,7 +4427,7 @@ static int fnc_accept (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		new_node = new_sys_node_fd(rtx, sys_list, fd);
 		if (!new_node)
 		{
-			close (fd);
+			close(fd);
 			rx = copy_error_to_sys_list(rtx, sys_list);
 			goto done;
 		}
@@ -4438,7 +4438,7 @@ static int fnc_accept (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	}
 
 done:
-	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
+	hawk_rtx_setretval(rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
 
@@ -4512,7 +4512,7 @@ static int fnc_setsockopt (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	}
 
 done:
-	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
+	hawk_rtx_setretval(rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
 /* ------------------------------------------------------------ */
@@ -4652,7 +4652,7 @@ static int fnc_openlog (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		goto done;
 	}
 
-	if (rdp->log.ident) hawk_rtx_freemem (rtx, rdp->log.ident);
+	if (rdp->log.ident) hawk_rtx_freemem(rtx, rdp->log.ident);
 	rdp->log.ident = mbs_ident;
 
 #if defined(ENABLE_SYSLOG)
@@ -4667,7 +4667,7 @@ static int fnc_openlog (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	#if defined(_WIN32)
 		/* TODO: impelement this */
 	#else
-		close (rdp->log.sck);
+		close(rdp->log.sck);
 	#endif
 		rdp->log.sck = -1;
 	}
@@ -4685,7 +4685,7 @@ static int fnc_openlog (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	else if (rdp->log.type == SYSLOG_REMOTE)
 	{
 		rdp->log.skad = skad;
-		if ((opt & LOG_NDELAY) && rdp->log.sck <= -1) open_remote_log_socket (rtx, rdp);
+		if ((opt & LOG_NDELAY) && rdp->log.sck <= -1) open_remote_log_socket(rtx, rdp);
 	}
 
 	rx = ERRNUM_TO_RC(HAWK_ENOERR);
@@ -4693,7 +4693,7 @@ static int fnc_openlog (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 done:
 	if (ident) hawk_rtx_freevaloocstr(rtx, hawk_rtx_getarg(rtx, 0), ident);
 
-	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
+	hawk_rtx_setretval(rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
 
@@ -4721,14 +4721,14 @@ static int fnc_closelog (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			#if defined(_WIN32)
 				/* TODO: impelement this */
 			#else
-				close (rdp->log.sck);
+				close(rdp->log.sck);
 			#endif
 				rdp->log.sck = -1;
 			}
 
 			if (rdp->log.dmsgbuf)
 			{
-				hawk_becs_close (rdp->log.dmsgbuf);
+				hawk_becs_close(rdp->log.dmsgbuf);
 				rdp->log.dmsgbuf = HAWK_NULL;
 			}
 
@@ -4737,7 +4737,7 @@ static int fnc_closelog (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 	if (rdp->log.ident)
 	{
-		hawk_rtx_freemem (rtx, rdp->log.ident);
+		hawk_rtx_freemem(rtx, rdp->log.ident);
 		rdp->log.ident = HAWK_NULL;
 	}
 
@@ -4747,7 +4747,7 @@ static int fnc_closelog (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 	rx = ERRNUM_TO_RC(HAWK_ENOERR);
 
-	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
+	hawk_rtx_setretval(rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
 
@@ -4787,7 +4787,7 @@ static int fnc_writelog (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			mbs = hawk_rtx_duputobcstr(rtx, msg, HAWK_NULL);
 			if (!mbs) goto fail;
 			syslog(pri, "%s", mbs);
-			hawk_rtx_freemem (rtx, mbs);
+			hawk_rtx_freemem(rtx, mbs);
 		}
 		#endif
 	#endif
@@ -4810,7 +4810,7 @@ static int fnc_writelog (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 		if (rdp->log.sck <= -1)
 		{
-			open_remote_log_socket (rtx, rdp);
+			open_remote_log_socket(rtx, rdp);
 			if (rdp->log.sck <= -1)
 			{
 				rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_T("unable to open log socket"));
@@ -4880,7 +4880,7 @@ static int fnc_writelog (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 done:
 	if (msg) hawk_rtx_freevaloocstr(rtx, hawk_rtx_getarg(rtx, 1), msg);
 
-	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
+	hawk_rtx_setretval(rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
 
@@ -5067,7 +5067,7 @@ static hawk_int_t pack_data (hawk_rtx_t* rtx, const hawk_oocs_t* fmt, const hawk
 	int endian = ENDIAN_NATIVE;
 
 #define PACK_CHECK_ARG_AND_BUF(reqarg, reqsz) do { \
-	if (arg_cnt - arg_idx < reqarg) return set_error_on_sys_list (rtx, &rdp->sys_list, HAWK_EARGTF, HAWK_NULL); \
+	if (arg_cnt - arg_idx < reqarg) return set_error_on_sys_list(rtx, &rdp->sys_list, HAWK_EARGTF, HAWK_NULL); \
 	if (ensure_pack_buf(rtx, rdp, reqsz)  <= -1) goto oops_internal; \
 } while(0)
 
@@ -5103,14 +5103,14 @@ static hawk_int_t pack_data (hawk_rtx_t* rtx, const hawk_oocs_t* fmt, const hawk
 				break;
 
 			case 'x': /* zero-padding */
-				PACK_CHECK_ARG_AND_BUF (0, rep_cnt * HAWK_SIZEOF(hawk_uint8_t));
+				PACK_CHECK_ARG_AND_BUF(0, rep_cnt * HAWK_SIZEOF(hawk_uint8_t));
 				for (rc = 0; rc < rep_cnt; rc++) rdp->pack.ptr[rdp->pack.len++] = 0;
 				break;
 
 			case 'b': /* byte, char */
 			{
 				hawk_int_t v;
-				PACK_CHECK_ARG_AND_BUF (rep_cnt, HAWK_SIZEOF(hawk_int8_t) * rep_cnt);
+				PACK_CHECK_ARG_AND_BUF(rep_cnt, HAWK_SIZEOF(hawk_int8_t) * rep_cnt);
 				for (rc = 0; rc < rep_cnt; rc++)
 				{
 					if (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, arg_idx++), &v) <= -1) goto oops_internal;
@@ -5122,7 +5122,7 @@ static hawk_int_t pack_data (hawk_rtx_t* rtx, const hawk_oocs_t* fmt, const hawk
 			case 'B':
 			{
 				hawk_int_t v;
-				PACK_CHECK_ARG_AND_BUF (rep_cnt, HAWK_SIZEOF(hawk_uint8_t) * rep_cnt);
+				PACK_CHECK_ARG_AND_BUF(rep_cnt, HAWK_SIZEOF(hawk_uint8_t) * rep_cnt);
 				for (rc = 0; rc < rep_cnt; rc++)
 				{
 					if (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, arg_idx++), &v) <= -1) goto oops_internal;
@@ -5134,7 +5134,7 @@ static hawk_int_t pack_data (hawk_rtx_t* rtx, const hawk_oocs_t* fmt, const hawk
 			case 'h': /* 2 bytes signed */
 			{
 				hawk_int_t v;
-				PACK_CHECK_ARG_AND_BUF (rep_cnt, HAWK_SIZEOF(hawk_int16_t) * rep_cnt);
+				PACK_CHECK_ARG_AND_BUF(rep_cnt, HAWK_SIZEOF(hawk_int16_t) * rep_cnt);
 				for (rc = 0; rc < rep_cnt; rc++)
 				{
 					if (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, arg_idx++), &v) <= -1) goto oops_internal;
@@ -5146,7 +5146,7 @@ static hawk_int_t pack_data (hawk_rtx_t* rtx, const hawk_oocs_t* fmt, const hawk
 			case 'H': /* 2 bytes unsigned */
 			{
 				hawk_int_t v;
-				PACK_CHECK_ARG_AND_BUF (rep_cnt, HAWK_SIZEOF(hawk_uint16_t) * rep_cnt);
+				PACK_CHECK_ARG_AND_BUF(rep_cnt, HAWK_SIZEOF(hawk_uint16_t) * rep_cnt);
 				for (rc = 0; rc < rep_cnt; rc++)
 				{
 					if (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, arg_idx++), &v) <= -1) goto oops_internal;
@@ -5158,7 +5158,7 @@ static hawk_int_t pack_data (hawk_rtx_t* rtx, const hawk_oocs_t* fmt, const hawk
 			case 'i':
 			{
 				hawk_int_t v;
-				PACK_CHECK_ARG_AND_BUF (rep_cnt, HAWK_SIZEOF(hawk_int32_t) * rep_cnt);
+				PACK_CHECK_ARG_AND_BUF(rep_cnt, HAWK_SIZEOF(hawk_int32_t) * rep_cnt);
 				for (rc = 0; rc < rep_cnt; rc++)
 				{
 					if (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, arg_idx++), &v) <= -1) goto oops_internal;
@@ -5170,11 +5170,11 @@ static hawk_int_t pack_data (hawk_rtx_t* rtx, const hawk_oocs_t* fmt, const hawk
 			case 'I':
 			{
 				hawk_int_t v;
-				PACK_CHECK_ARG_AND_BUF (rep_cnt, HAWK_SIZEOF(hawk_uint32_t) * rep_cnt);
+				PACK_CHECK_ARG_AND_BUF(rep_cnt, HAWK_SIZEOF(hawk_uint32_t) * rep_cnt);
 				for (rc = 0; rc < rep_cnt; rc++)
 				{
 					if (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, arg_idx++), &v) <= -1) goto oops_internal;
-					rdp->pack.len += pack_uint16_t(&rdp->pack.ptr[rdp->pack.len], (hawk_uint32_t)v, endian);
+					rdp->pack.len += pack_uint32_t(&rdp->pack.ptr[rdp->pack.len], (hawk_uint32_t)v, endian);
 				}
 				break;
 			}
@@ -5182,7 +5182,7 @@ static hawk_int_t pack_data (hawk_rtx_t* rtx, const hawk_oocs_t* fmt, const hawk
 			case 'l':
 			{
 				hawk_int_t v;
-				PACK_CHECK_ARG_AND_BUF (rep_cnt, HAWK_SIZEOF(hawk_int64_t) * rep_cnt);
+				PACK_CHECK_ARG_AND_BUF(rep_cnt, HAWK_SIZEOF(hawk_int64_t) * rep_cnt);
 				for (rc = 0; rc < rep_cnt; rc++)
 				{
 					if (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, arg_idx++), &v) <= -1) goto oops_internal;
@@ -5194,7 +5194,7 @@ static hawk_int_t pack_data (hawk_rtx_t* rtx, const hawk_oocs_t* fmt, const hawk
 			case 'L':
 			{
 				hawk_int_t v;
-				PACK_CHECK_ARG_AND_BUF (rep_cnt, HAWK_SIZEOF(hawk_uint64_t) * rep_cnt);
+				PACK_CHECK_ARG_AND_BUF(rep_cnt, HAWK_SIZEOF(hawk_uint64_t) * rep_cnt);
 				for (rc = 0; rc < rep_cnt; rc++)
 				{
 					if (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, arg_idx++), &v) <= -1) goto oops_internal;
@@ -5206,7 +5206,7 @@ static hawk_int_t pack_data (hawk_rtx_t* rtx, const hawk_oocs_t* fmt, const hawk
 			case 'q':
 			{
 				hawk_int_t v;
-				PACK_CHECK_ARG_AND_BUF (rep_cnt, HAWK_SIZEOF(hawk_intmax_t) * rep_cnt);
+				PACK_CHECK_ARG_AND_BUF(rep_cnt, HAWK_SIZEOF(hawk_intmax_t) * rep_cnt);
 				for (rc = 0; rc < rep_cnt; rc++)
 				{
 					if (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, arg_idx++), &v) <= -1) goto oops_internal;
@@ -5218,7 +5218,7 @@ static hawk_int_t pack_data (hawk_rtx_t* rtx, const hawk_oocs_t* fmt, const hawk
 			case 'Q':
 			{
 				hawk_int_t v;
-				PACK_CHECK_ARG_AND_BUF (rep_cnt, HAWK_SIZEOF(hawk_uintmax_t) * rep_cnt);
+				PACK_CHECK_ARG_AND_BUF(rep_cnt, HAWK_SIZEOF(hawk_uintmax_t) * rep_cnt);
 				for (rc = 0; rc < rep_cnt; rc++)
 				{
 					if (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, arg_idx++), &v) <= -1) goto oops_internal;
@@ -5230,7 +5230,7 @@ static hawk_int_t pack_data (hawk_rtx_t* rtx, const hawk_oocs_t* fmt, const hawk
 			case 'n':
 			{
 				hawk_int_t v;
-				PACK_CHECK_ARG_AND_BUF (rep_cnt, HAWK_SIZEOF(hawk_intptr_t) * rep_cnt);
+				PACK_CHECK_ARG_AND_BUF(rep_cnt, HAWK_SIZEOF(hawk_intptr_t) * rep_cnt);
 				for (rc = 0; rc < rep_cnt; rc++)
 				{
 					if (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, arg_idx++), &v) <= -1) goto oops_internal;
@@ -5242,7 +5242,7 @@ static hawk_int_t pack_data (hawk_rtx_t* rtx, const hawk_oocs_t* fmt, const hawk
 			case 'N':
 			{
 				hawk_int_t v;
-				PACK_CHECK_ARG_AND_BUF (rep_cnt, HAWK_SIZEOF(hawk_uintptr_t) * rep_cnt);
+				PACK_CHECK_ARG_AND_BUF(rep_cnt, HAWK_SIZEOF(hawk_uintptr_t) * rep_cnt);
 				for (rc = 0; rc < rep_cnt; rc++)
 				{
 					if (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, arg_idx++), &v) <= -1) goto oops_internal;
@@ -5258,7 +5258,7 @@ static hawk_int_t pack_data (hawk_rtx_t* rtx, const hawk_oocs_t* fmt, const hawk
 				float x;
 				hawk_uint32_t y;
 				HAWK_ASSERT (HAWK_SIZEOF(float) == HAWK_SIZEOF(hawk_uint32_t));
-				PACK_CHECK_ARG_AND_BUF (rep_cnt, HAWK_SIZEOF(hawk_uint32_t) * rep_cnt);
+				PACK_CHECK_ARG_AND_BUF(rep_cnt, HAWK_SIZEOF(hawk_uint32_t) * rep_cnt);
 				for (rc = 0; rc < rep_cnt; rc++)
 				{
 					if (hawk_rtx_valtoflt(rtx, hawk_rtx_getarg(rtx, arg_idx++), &v) <= -1) goto oops_internal;
@@ -5275,7 +5275,7 @@ static hawk_int_t pack_data (hawk_rtx_t* rtx, const hawk_oocs_t* fmt, const hawk
 				double x;
 				hawk_uint64_t y;
 				HAWK_ASSERT (HAWK_SIZEOF(double) == HAWK_SIZEOF(hawk_uint64_t));
-				PACK_CHECK_ARG_AND_BUF (rep_cnt, HAWK_SIZEOF(hawk_uint64_t) * rep_cnt);
+				PACK_CHECK_ARG_AND_BUF(rep_cnt, HAWK_SIZEOF(hawk_uint64_t) * rep_cnt);
 				for (rc = 0; rc < rep_cnt; rc++)
 				{
 					if (hawk_rtx_valtoflt(rtx, hawk_rtx_getarg(rtx, arg_idx++), &v) <= -1) goto oops_internal;
@@ -5291,7 +5291,7 @@ static hawk_int_t pack_data (hawk_rtx_t* rtx, const hawk_oocs_t* fmt, const hawk
 				hawk_val_t* a;
 				hawk_bcs_t tmp;
 
-				PACK_CHECK_ARG_AND_BUF (rep_cnt, HAWK_SIZEOF(hawk_uint8_t) * rep_cnt);
+				PACK_CHECK_ARG_AND_BUF(rep_cnt, HAWK_SIZEOF(hawk_uint8_t) * rep_cnt);
 
 				for (rc = 0; rc < rep_cnt; rc++)
 				{
@@ -5302,11 +5302,11 @@ static hawk_int_t pack_data (hawk_rtx_t* rtx, const hawk_oocs_t* fmt, const hawk
 
 					if (tmp.len < 1)
 					{
-						hawk_rtx_freevalbcstr (rtx, a, tmp.ptr);
-						return set_error_on_sys_list (rtx, &rdp->sys_list, HAWK_EINVAL, HAWK_T("data too short for '%jc'"), *fmtp);
+						hawk_rtx_freevalbcstr(rtx, a, tmp.ptr);
+						return set_error_on_sys_list(rtx, &rdp->sys_list, HAWK_EINVAL, HAWK_T("data too short for '%jc'"), *fmtp);
 					}
 					rdp->pack.ptr[rdp->pack.len++] = tmp.ptr[0];
-					hawk_rtx_freevalbcstr (rtx, a, tmp.ptr);
+					hawk_rtx_freevalbcstr(rtx, a, tmp.ptr);
 				}
 				break;
 			}
@@ -5318,7 +5318,7 @@ static hawk_int_t pack_data (hawk_rtx_t* rtx, const hawk_oocs_t* fmt, const hawk
 				hawk_val_t* a;
 				hawk_bcs_t tmp;
 
-				PACK_CHECK_ARG_AND_BUF (1, HAWK_SIZEOF(hawk_uint8_t) * rep_cnt);
+				PACK_CHECK_ARG_AND_BUF(1, HAWK_SIZEOF(hawk_uint8_t) * rep_cnt);
 
 				a = hawk_rtx_getarg(rtx, arg_idx++);
 
@@ -5327,11 +5327,15 @@ static hawk_int_t pack_data (hawk_rtx_t* rtx, const hawk_oocs_t* fmt, const hawk
 
 				if (rep_cnt > tmp.len)
 				{
-					hawk_rtx_freevalbcstr (rtx, a, tmp.ptr);
-					return set_error_on_sys_list (rtx, &rdp->sys_list, HAWK_EINVAL, HAWK_T("data too short for '%jc'"), *fmtp);
+					hawk_rtx_freevalbcstr(rtx, a, tmp.ptr);
+					return set_error_on_sys_list(rtx, &rdp->sys_list, HAWK_EINVAL, HAWK_T("data too short for '%jc'"), *fmtp);
 				}
-				for (rc = 0; rc < rep_cnt; rc++) rdp->pack.ptr[rdp->pack.len++] = tmp.ptr[rc];
-				hawk_rtx_freevalbcstr (rtx, a, tmp.ptr);
+
+				for (rc = 0; rc < rep_cnt; rc++)
+				{
+					rdp->pack.ptr[rdp->pack.len++] = (hawk_uint8_t)tmp.ptr[rc];
+				}
+				hawk_rtx_freevalbcstr(rtx, a, tmp.ptr);
 				break;
 			}
 
@@ -5347,7 +5351,7 @@ static hawk_int_t pack_data (hawk_rtx_t* rtx, const hawk_oocs_t* fmt, const hawk
 				}
 				else if (!hawk_is_ooch_space(*fmtp))
 				{
-					return set_error_on_sys_list (rtx, &rdp->sys_list, HAWK_EINVAL, HAWK_T("invalid specifier - %jc"), *fmtp);
+					return set_error_on_sys_list(rtx, &rdp->sys_list, HAWK_EINVAL, HAWK_T("invalid specifier - %jc"), *fmtp);
 				}
 				break;
 		}
@@ -5362,7 +5366,7 @@ static hawk_int_t pack_data (hawk_rtx_t* rtx, const hawk_oocs_t* fmt, const hawk
 	return 0;
 
 oops_internal:
-	return copy_error_to_sys_list (rtx, &rdp->sys_list);
+	return copy_error_to_sys_list(rtx, &rdp->sys_list);
 }
 
 static hawk_uint16_t unpack_uint16 (const hawk_uint8_t* binp, int endian)
@@ -5384,7 +5388,7 @@ static hawk_uint16_t unpack_uint16 (const hawk_uint8_t* binp, int endian)
 
 static hawk_int16_t unpack_int16 (const hawk_uint8_t* binp, int endian)
 {
-	hawk_uint16_t v = unpack_uint16 (binp, endian);
+	hawk_uint16_t v = unpack_uint16(binp, endian);
 	return (v <= HAWK_TYPE_MAX(hawk_int16_t))? (hawk_int16_t)v: ((hawk_int16_t)-1 - (hawk_int16_t)(HAWK_TYPE_MAX(hawk_uint16_t) - v));
 }
 
@@ -5764,7 +5768,7 @@ static hawk_int_t unpack_data (hawk_rtx_t* rtx, const hawk_bcs_t* bin, const haw
 				}
 				else if (!hawk_is_ooch_space(*fmtp))
 				{
-					return set_error_on_sys_list (rtx, &rdp->sys_list, HAWK_EINVAL, HAWK_T("invalid specifier - %jc"), *fmtp);
+					return set_error_on_sys_list(rtx, &rdp->sys_list, HAWK_EINVAL, HAWK_T("invalid specifier - %jc"), *fmtp);
 				}
 				break;
 		}
@@ -5779,7 +5783,7 @@ static hawk_int_t unpack_data (hawk_rtx_t* rtx, const hawk_bcs_t* bin, const haw
 	return 0;
 
 oops_internal:
-	return copy_error_to_sys_list (rtx, &rdp->sys_list);
+	return copy_error_to_sys_list(rtx, &rdp->sys_list);
 }
 
 /*
@@ -5798,12 +5802,12 @@ static int fnc_pack (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	if (HAWK_UNLIKELY(!fmt.ptr))
 	{
 	fail:
-		rx = copy_error_to_sys_list (rtx, &rdp->sys_list);
+		rx = copy_error_to_sys_list(rtx, &rdp->sys_list);
 	}
 	else
 	{
 		rx = pack_data(rtx, &fmt, fi, rdp);
-		hawk_rtx_freevaloocstr (rtx, a0, fmt.ptr);
+		hawk_rtx_freevaloocstr(rtx, a0, fmt.ptr);
 
 		if (rx >= 0)
 		{
@@ -5813,14 +5817,14 @@ static int fnc_pack (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			tmp = hawk_rtx_makembsvalwithbchars(rtx, rdp->pack.ptr, rdp->pack.len);
 			if (HAWK_UNLIKELY(!tmp)) goto fail;
 
-			hawk_rtx_refupval (rtx, tmp);
+			hawk_rtx_refupval(rtx, tmp);
 			x = hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, 0), tmp);
-			hawk_rtx_refdownval (rtx, tmp);
+			hawk_rtx_refdownval(rtx, tmp);
 			if (x <= -1) goto fail;
 		}
 	}
 
-	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
+	hawk_rtx_setretval(rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
 
@@ -5849,15 +5853,15 @@ static int fnc_unpack (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 	rx = unpack_data(rtx, &bin, &fmt, fi, rdp);
 
-	hawk_rtx_freevaloocstr (rtx, a1, fmt.ptr); fmt.ptr = HAWK_NULL;
-	hawk_rtx_freevalbcstr (rtx, a0, bin.ptr); bin.ptr = HAWK_NULL;
+	hawk_rtx_freevaloocstr(rtx, a1, fmt.ptr); fmt.ptr = HAWK_NULL;
+	hawk_rtx_freevalbcstr(rtx, a0, bin.ptr); bin.ptr = HAWK_NULL;
 
 done:
-	hawk_rtx_setretval (rtx, hawk_rtx_makeintval(rtx, rx));
+	hawk_rtx_setretval(rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 
 fail:
-	rx = copy_error_to_sys_list (rtx, &rdp->sys_list);
+	rx = copy_error_to_sys_list(rtx, &rdp->sys_list);
 	if (bin.ptr) hawk_rtx_freevalbcstr(rtx, a0, bin.ptr);
 	if (fmt.ptr) hawk_rtx_freevaloocstr(rtx, a1, fmt.ptr);
 	goto done;
@@ -6301,7 +6305,7 @@ static int init (hawk_mod_t* mod, hawk_rtx_t* rtx)
 	if (HAWK_UNLIKELY(!pair)) return -1;
 
 	rdp = (rtx_data_t*)HAWK_RBT_VPTR(pair);
-	__init_sys_list (rtx, &rdp->sys_list);
+	__init_sys_list(rtx, &rdp->sys_list);
 
 	rdp->pack.ptr = rdp->pack.__static_buf;
 	rdp->pack.capa = HAWK_COUNTOF(rdp->pack.__static_buf);
@@ -6334,20 +6338,20 @@ static void __fini_log (hawk_rtx_t* rtx, rtx_data_t* rdp)
 	#if defined(_WIN32)
 		/* TODO: implement this */
 	#else
-		close (rdp->log.sck);
+		close(rdp->log.sck);
 	#endif
 		rdp->log.sck = -1;
 	}
 
 	if (rdp->log.dmsgbuf)
 	{
-		hawk_becs_close (rdp->log.dmsgbuf);
+		hawk_becs_close(rdp->log.dmsgbuf);
 		rdp->log.dmsgbuf = HAWK_NULL;
 	}
 
 	if (rdp->log.ident)
 	{
-		hawk_rtx_freemem (rtx, rdp->log.ident);
+		hawk_rtx_freemem(rtx, rdp->log.ident);
 		rdp->log.ident = HAWK_NULL;
 	}
 }
@@ -6370,20 +6374,20 @@ static void fini (hawk_mod_t* mod, hawk_rtx_t* rtx)
 
 		rdp = (rtx_data_t*)HAWK_RBT_VPTR(pair);
 
-		__fini_log (rtx, rdp);
+		__fini_log(rtx, rdp);
 
-		if (rdp->pack.ptr != rdp->pack.__static_buf) hawk_rtx_freemem (rtx, rdp->pack.ptr);
+		if (rdp->pack.ptr != rdp->pack.__static_buf) hawk_rtx_freemem(rtx, rdp->pack.ptr);
 
 		if (rdp->sys_list.ctx.readbuf)
 		{
-			hawk_rtx_freemem (rtx, rdp->sys_list.ctx.readbuf);
+			hawk_rtx_freemem(rtx, rdp->sys_list.ctx.readbuf);
 			rdp->sys_list.ctx.readbuf = HAWK_NULL;
 			rdp->sys_list.ctx.readbuf_capa = 0;
 		}
 
-		__fini_sys_list (rtx, &rdp->sys_list);
+		__fini_sys_list(rtx, &rdp->sys_list);
 
-		hawk_rbt_delete (mctx->rtxtab, &rtx, HAWK_SIZEOF(rtx));
+		hawk_rbt_delete(mctx->rtxtab, &rtx, HAWK_SIZEOF(rtx));
 	}
 }
 
@@ -6392,7 +6396,7 @@ static void unload (hawk_mod_t* mod, hawk_t* hawk)
 	mod_ctx_t* mctx = (mod_ctx_t*)mod->ctx;
 
 	HAWK_ASSERT (HAWK_RBT_SIZE(mctx->rtxtab) == 0);
-	hawk_rbt_close (mctx->rtxtab);
+	hawk_rbt_close(mctx->rtxtab);
 
 	hawk_freemem(hawk, mctx);
 }
@@ -6416,7 +6420,7 @@ int hawk_mod_sys (hawk_mod_t* mod, hawk_t* hawk)
 		hawk_freemem(hawk, mod->ctx);
 		return -1;
 	}
-	hawk_rbt_setstyle (rbt, hawk_get_rbt_style(HAWK_RBT_STYLE_INLINE_COPIERS));
+	hawk_rbt_setstyle(rbt, hawk_get_rbt_style(HAWK_RBT_STYLE_INLINE_COPIERS));
 
 	((mod_ctx_t*)mod->ctx)->rtxtab = rbt;
 	return 0;
