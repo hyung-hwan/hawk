@@ -572,8 +572,8 @@ function main()
 		sys::pack(a, ">hhl", 1, 2, 3);
 		tap_ensure (a === @b"\x00\x01\x00\x02\x00\x00\x00\x00\x00\x00\x00\x03", 1, @SCRIPTNAME, @SCRIPTLINE);
 
-		sys::pack(a, ">ci", @b'*', 0x12131415);
-		tap_ensure (a === @b"*\x12\x13\x14\x15", 1, @SCRIPTNAME, @SCRIPTLINE);
+		sys::pack(a, ">ciI", @b'*', 0x12131415, 0x22334455);
+		tap_ensure (a === @b"*\x12\x13\x14\x15\x22\x33\x44\x55", 1, @SCRIPTNAME, @SCRIPTLINE);
 
 		sys::pack(a, ">ic", 0x12131415, @b"*+-");
 		tap_ensure (a === @b"\x12\x13\x14\x15*", 1, @SCRIPTNAME, @SCRIPTLINE);
