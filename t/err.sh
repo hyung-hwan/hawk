@@ -3,6 +3,12 @@
 for i in $@; do :; done
 script="$i"
 
+escape_regex() {
+	local str="$1"
+	## escape [, ], {, (, \, $, *, . ^, ), }
+	printf '%s\n' "$str" | sed -r -e 's/[][{(\$*.^)}]/\\&/g'
+}
+
 run_partfile() {
 	l_cmd="";
 	l_nargs=$#
@@ -21,7 +27,9 @@ run_partfile() {
 	l_partfile="$1"
 	l_cmd="$l_cmd $l_partfile"
 
-	l_expected_errinfo=$(grep -n -o -E "##ERROR: .+" "$l_partfile" 2>/dev/null)
+        ## old greps don't support -o. use sed to mimic it.
+	##l_expected_errinfo=$(grep -n -o -E "##ERROR: .+" "$l_partfile" 2>/dev/null)
+        l_expected_errinfo=$(grep -n -E "##ERROR: .+" "$l_partfile" 2>/dev/null | sed -r -n 's/^([0-9]*):.*(##ERROR: .*)/\1:\2/p')
 	[ -z "$l_expected_errinfo" ] && {
 		echo "ERROR: INVALID TESTER - $l_script($l_partno) contains no ERROR information"
 		return 1
@@ -33,8 +41,9 @@ run_partfile() {
 	l_expected_errmsg=$(echo $l_expected_errinfo | cut -c${l_xlen}-)
 	l_output=`$l_cmd 2>&1`
 	## the regular expression is not escaped properly. the error information must not
-	## include specifial regex characters to avoid problems.
-	echo "$l_output" | grep -E "ERROR: .+ LINE ${l_expected_errline} .+ FILE ${l_partfile} - ${l_expected_errmsg}" >/dev/null 2>&1 || {
+	## include special regex characters to avoid problems.
+	l_expected_errmsg_esc=$(escape_regex "${l_expected_errmsg}")
+	echo "$l_output" | grep -E "ERROR: .+ LINE ${l_expected_errline} .+ FILE ${l_partfile} - ${l_expected_errmsg_esc}" >/dev/null 2>&1 || {
 		echo "ERROR: error not raised at line $l_expected_errline - $l_script($l_partno) - $l_output"
 		return 1
 	}
@@ -45,7 +54,10 @@ run_partfile() {
 
 
 ever_failed=0
-partfile=`mktemp`
+## [NOTE]
+##   some old mktemp(e.g mktemp 1.5 on rhel 2.1) always required the template. 
+##   these days, newer ones don't need it.
+partfile=`mktemp tmp.XXXXXXXXXX`
 partno=0
 partlines=0
 > "$partfile"

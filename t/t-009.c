@@ -108,6 +108,7 @@ int main(int argc, char* argv[])
 
 	Allocation* allocations; /* pool of active allocations */
 	size_t num_active = 0;
+	size_t i;
 
 	clock_t start_time, end_time;
 	double malloc_time = 0.0, free_time = 0.0;
@@ -144,7 +145,7 @@ int main(int argc, char* argv[])
 	srand((unsigned int)time(NULL));
 	start_time = clock();
 
-	for (size_t i = 0; i < num_iterations; ++i)
+	for (i = 0; i < num_iterations; ++i)
 	{
 		int do_alloc = (num_active == 0) || (rand() % 2 == 0 && num_active < max_alloc_active);
 
@@ -163,13 +164,14 @@ int main(int argc, char* argv[])
 			++num_active;
 		} else {
 			/* free a random active allocation */
+			clock_t t1, t2;
 			size_t index = rand() % num_active;
 			void *ptr_to_free = allocations[index].ptr;
 
-			clock_t t1 = clock();
+			t1 = clock();
 			/*free(ptr_to_free); */
 			HAWK_MMGR_FREE(&xma_mmgr, ptr_to_free);
-			clock_t t2 = clock();
+			t2 = clock();
 			free_time += (double)(t2 - t1) / CLOCKS_PER_SEC;
 
 			/* replace with last active allocation */
@@ -182,7 +184,7 @@ int main(int argc, char* argv[])
 	/* hawk_xma_dump(xma_mmgr.ctx, print_xma, HAWK_NULL); */
 
 	/* Free remaining allocations */
-	for (size_t i = 0; i < num_active; ++i) {
+	for (i = 0; i < num_active; ++i) {
 		/* free(allocations[i].ptr); */
 		HAWK_MMGR_FREE(&xma_mmgr, allocations[i].ptr);
 	}

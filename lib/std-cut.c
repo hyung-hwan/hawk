@@ -26,14 +26,6 @@
 #include "hawk-prv.h"
 #include "hawk-std.h"
 
-#if 0
-struct xtn_t
-{
-	const hawk_ooch_t* infile;
-	const hawk_ooch_t* outfile;
-};
-#else
-
 typedef struct xtn_in_t xtn_in_t;
 struct xtn_in_t
 {
@@ -70,9 +62,6 @@ struct xtn_t
 
 	hawk_link_t* sio_names;
 };
-#endif
-
-typedef struct xtn_t xtn_t;
 
 #if defined(HAWK_HAVE_INLINE)
 static HAWK_INLINE xtn_t* GET_XTN(hawk_cut_t* cut) { return (xtn_t*)((hawk_uint8_t*)hawk_cut_getxtn(cut) - HAWK_SIZEOF(xtn_t)); }

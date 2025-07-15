@@ -26,6 +26,7 @@ int main(int argc, char* argv[])
 	clock_t start_time, end_time;
 	double malloc_time = 0.0, free_time = 0.0;
 	void **ptr_array;
+	size_t i;
 
 	if (argc >= 3)
 	{
@@ -46,7 +47,7 @@ int main(int argc, char* argv[])
 	}
 
 	start_time = clock();
-	for (size_t i = 0; i < num_iterations; ++i) {
+	for (i = 0; i < num_iterations; ++i) {
 		size_t size = random_size(max_alloc_size);
 		/*ptr_array[i] = malloc(size);*/
 		ptr_array[i] = HAWK_MMGR_ALLOC(&xma_mmgr, size);
@@ -64,7 +65,7 @@ int main(int argc, char* argv[])
 	malloc_time = (double)(end_time - start_time) / CLOCKS_PER_SEC;
 
 	start_time = clock();
-	for (size_t i = 0; i < num_iterations; ++i) {
+	for (i = 0; i < num_iterations; ++i) {
 		/*free(ptr_array[i]);*/
 		HAWK_MMGR_FREE(&xma_mmgr, ptr_array[i]);
 	}
