@@ -167,28 +167,28 @@ static HAWK_INLINE hawk_oow_t szlog2 (hawk_oow_t n)
 #endif
 
 #if HAWK_SIZEOF_OOW_T >= 64
-	if ((n & (~(hawk_oow_t)0 << (BITS-128))) == 0) { x -= 256; n <<= 256; }
+	if ((n & (~(hawk_oow_t)0 << (BITS - 128))) == 0) { x -= 256; n <<= 256; }
 #endif
 #if HAWK_SIZEOF_OOW_T >= 32
-	if ((n & (~(hawk_oow_t)0 << (BITS-128))) == 0) { x -= 128; n <<= 128; }
+	if ((n & (~(hawk_oow_t)0 << (BITS - 128))) == 0) { x -= 128; n <<= 128; }
 #endif
 #if HAWK_SIZEOF_OOW_T >= 16
-	if ((n & (~(hawk_oow_t)0 << (BITS-64))) == 0) { x -= 64; n <<= 64; }
+	if ((n & (~(hawk_oow_t)0 << (BITS - 64))) == 0) { x -= 64; n <<= 64; }
 #endif
 #if HAWK_SIZEOF_OOW_T >= 8
-	if ((n & (~(hawk_oow_t)0 << (BITS-32))) == 0) { x -= 32; n <<= 32; }
+	if ((n & (~(hawk_oow_t)0 << (BITS - 32))) == 0) { x -= 32; n <<= 32; }
 #endif
 #if HAWK_SIZEOF_OOW_T >= 4
-	if ((n & (~(hawk_oow_t)0 << (BITS-16))) == 0) { x -= 16; n <<= 16; }
+	if ((n & (~(hawk_oow_t)0 << (BITS - 16))) == 0) { x -= 16; n <<= 16; }
 #endif
 #if HAWK_SIZEOF_OOW_T >= 2
-	if ((n & (~(hawk_oow_t)0 << (BITS-8))) == 0) { x -= 8; n <<= 8; }
+	if ((n & (~(hawk_oow_t)0 << (BITS - 8))) == 0) { x -= 8; n <<= 8; }
 #endif
 #if HAWK_SIZEOF_OOW_T >= 1
-	if ((n & (~(hawk_oow_t)0 << (BITS-4))) == 0) { x -= 4; n <<= 4; }
+	if ((n & (~(hawk_oow_t)0 << (BITS - 4))) == 0) { x -= 4; n <<= 4; }
 #endif
-	if ((n & (~(hawk_oow_t)0 << (BITS-2))) == 0) { x -= 2; n <<= 2; }
-	if ((n & (~(hawk_oow_t)0 << (BITS-1))) == 0) { x -= 1; }
+	if ((n & (~(hawk_oow_t)0 << (BITS - 2))) == 0) { x -= 2; n <<= 2; }
+	if ((n & (~(hawk_oow_t)0 << (BITS - 1))) == 0) { x -= 1; }
 
 	return x;
 #undef BITS
@@ -196,8 +196,24 @@ static HAWK_INLINE hawk_oow_t szlog2 (hawk_oow_t n)
 
 static HAWK_INLINE hawk_oow_t getxfi (hawk_xma_t* xma, hawk_oow_t size)
 {
+	/* if the aligned size is below the first threshold(FIXED)
+	 * the slot to the xma->xfree field is the aligned size itself.
+	 * For example, assuming ALIGN is 8, size 117 produces xfi 13. ((117 / 8) - 1) */
 	hawk_oow_t xfi = ((size) / ALIGN) - 1;
+
+	/* If the caculated index is greater than or equal to the threshold,
+	 * each slot in the xfree field will span across a wider range of sizes.
+	 * Roughly, like this. but all these values are dependent on ALIGN.
+	 *  Words-1   Size          XFI
+	 *  32~62     264~511    => 32
+	 *  63~126    512~1023   => 33
+	 *  127~254   1024~2047  => 34
+	 *  255~510   2048~4095  => 35
+	 *  ....
+	 */
 	if (xfi >= FIXED) xfi = szlog2(size) - (xma)->bdec + FIXED;
+
+	/* The very large size is place at the last index */
 	if (xfi > XFIMAX(xma)) xfi = XFIMAX(xma);
 	return xfi;
 }

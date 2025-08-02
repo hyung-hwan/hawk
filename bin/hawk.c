@@ -105,7 +105,6 @@ struct xarg_t
 
 struct arg_t
 {
-	int incl_conv;
 	hawk_parsestd_t* psin; /* input source streams */
 	hawk_bch_t*   osf;  /* output source file */
 	xarg_t        icf; /* input console files */
@@ -377,7 +376,7 @@ static int add_gvs_to_hawk (hawk_t* hawk, arg_t* arg)
 	return 0;
 }
 
-static int apply_fs_and_gvs_to_rtx (hawk_rtx_t* rtx, arg_t* arg)
+static int apply_fs_and_gvs_to_rtx (hawk_rtx_t* rtx, const arg_t* arg)
 {
 	hawk_oow_t i;
 
@@ -399,8 +398,6 @@ static int apply_fs_and_gvs_to_rtx (hawk_rtx_t* rtx, arg_t* arg)
 	{
 		/* set the value of user-defined global variables
 		 * to a runtime context */
-		hawk_oow_t i;
-
 		for (i = 0; i < arg->gvm.size; i++)
 		{
 			hawk_val_t* v;
@@ -579,8 +576,8 @@ static void purge_xarg (xarg_t* xarg)
 	{
 		hawk_oow_t i;
 
-		for (i = 0; i < xarg->size; i++) free (xarg->ptr[i]);
-		free (xarg->ptr);
+		for (i = 0; i < xarg->size; i++) free(xarg->ptr[i]);
+		free(xarg->ptr);
 
 		xarg->size = 0;
 		xarg->capa = 0;
@@ -825,8 +822,6 @@ static int process_argv (int argc, hawk_bch_t* argv[], const hawk_bch_t* real_ar
 			case '\0':
 			{
 				/* a long option with no corresponding short option */
-				hawk_oow_t i;
-
 				if (hawk_comp_bcstr(opt.lngopt, "script-encoding", 0) == 0)
 				{
 					arg->script_cmgr = hawk_get_cmgr_by_bcstr(opt.arg);
@@ -946,29 +941,20 @@ static int process_argv (int argc, hawk_bch_t* argv[], const hawk_bch_t* real_ar
 	return 1;
 
 oops:
-	if (arg->gvm.ptr) free (arg->gvm.ptr);
-	purge_xarg (&arg->icf);
-	purge_xarg (&arg->ocf);
-	if (isf)
-	{
-		if (arg->incl_conv) free (isf[0].u.bcs.ptr);
-		free (isf);
-	}
+	if (arg->gvm.ptr) free(arg->gvm.ptr);
+	purge_xarg(&arg->icf);
+	purge_xarg(&arg->ocf);
+	if (isf) free(isf);
 	return oops_ret;
 }
 
 static void freearg (struct arg_t* arg)
 {
-	if (arg->psin)
-	{
-		if (arg->incl_conv) free (arg->psin[0].u.bcs.ptr);
-		free (arg->psin);
-	}
-
-	/*if (arg->osf != HAWK_NULL) free (arg->osf);*/
+	if (arg->psin) free(arg->psin);
+	/*if (arg->osf) free(arg->osf);*/
 	purge_xarg (&arg->icf);
 	purge_xarg (&arg->ocf);
-	if (arg->gvm.ptr) free (arg->gvm.ptr);
+	if (arg->gvm.ptr) free(arg->gvm.ptr);
 }
 
 static void print_hawk_error (hawk_t* hawk)

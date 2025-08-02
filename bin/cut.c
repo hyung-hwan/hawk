@@ -466,8 +466,9 @@ static void stop_run (int signo)
 #endif
 }
 
-static void do_nothing (int unucut)
+static void do_nothing (int unused)
 {
+	/* do nothing */
 }
 
 static void set_intr_run (void)

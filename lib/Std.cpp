@@ -89,13 +89,13 @@ static hawk_sio_t* open_sio (Hawk* hawk, HawkStd::Run* run, const hawk_ooch_t* f
 		{
 			const hawk_ooch_t* bem = hawk_rtx_backuperrmsg((hawk_rtx_t*)*run);
 			//run->formatError (HAWK_EOPEN, HAWK_NULL, HAWK_T("unable to open %js - %js"), file, bem);
-			hawk_rtx_seterrfmt ((hawk_rtx_t*)*run, HAWK_NULL, HAWK_EOPEN, HAWK_T("unable to open %js - %js"), file, bem);
+			hawk_rtx_seterrfmt((hawk_rtx_t*)*run, HAWK_NULL, HAWK_EOPEN, HAWK_T("unable to open %js - %js"), file, bem);
 		}
 		else
 		{
 			const hawk_ooch_t* bem = hawk_backuperrmsg((hawk_t*)*hawk);
 			//hawk->formatError (HAWK_EOPEN, HAWK_NULL, HAWK_T("unable to open %js - %js"), file, bem);
-			hawk_seterrfmt ((hawk_t*)*hawk, HAWK_NULL, HAWK_EOPEN, HAWK_T("unable to open %js - %js"), file, bem);
+			hawk_seterrfmt((hawk_t*)*hawk, HAWK_NULL, HAWK_EOPEN, HAWK_T("unable to open %js - %js"), file, bem);
 		}
 	}
 	return sio;
@@ -119,13 +119,13 @@ static hawk_sio_t* open_sio_std (Hawk* hawk, HawkStd::Run* run, hawk_sio_std_t s
 		{
 			const hawk_ooch_t* bem = hawk_rtx_backuperrmsg((hawk_rtx_t*)*run);
 			//run->formatError (HAWK_EOPEN, HAWK_NULL, HAWK_T("unable to open %js - %js"), std_names[std], bem);
-			hawk_rtx_seterrfmt ((hawk_rtx_t*)*run, HAWK_NULL, HAWK_EOPEN, HAWK_T("unable to open %js - %js"), std_names[std], bem);
+			hawk_rtx_seterrfmt((hawk_rtx_t*)*run, HAWK_NULL, HAWK_EOPEN, HAWK_T("unable to open %js - %js"), std_names[std], bem);
 		}
 		else
 		{
 			const hawk_ooch_t* bem = hawk_backuperrmsg((hawk_t*)*hawk);
 			//hawk->formatError (HAWK_EOPEN, HAWK_NULL, HAWK_T("unable to open %js - %js"), std_names[std], bem);
-			hawk_seterrfmt ((hawk_t*)*hawk, HAWK_NULL, HAWK_EOPEN, HAWK_T("unable to open %js - %js"), std_names[std], bem);
+			hawk_seterrfmt((hawk_t*)*hawk, HAWK_NULL, HAWK_EOPEN, HAWK_T("unable to open %js - %js"), std_names[std], bem);
 		}
 	}
 	return sio;
@@ -294,8 +294,8 @@ int HawkStd::build_environ (Run* run, env_char_t* envarr[])
 			vptr = hawk_rtx_dupbtoucstr(rtx, eq + 1, HAWK_NULL, 1);
 			if (kptr == HAWK_NULL || vptr == HAWK_NULL)
 			{
-				if (kptr) hawk_rtx_freemem (rtx, kptr);
-				if (vptr) hawk_rtx_freemem (rtx, kptr);
+				if (kptr) hawk_rtx_freemem(rtx, kptr);
+				if (vptr) hawk_rtx_freemem(rtx, kptr);
 
 				/* mbstowcsdup() may fail for invalid encoding.
 				 * so setting the error code to ENOMEM may not
@@ -319,8 +319,8 @@ int HawkStd::build_environ (Run* run, env_char_t* envarr[])
 		     (defined(HAWK_STD_ENV_CHAR_IS_UCH) && defined(HAWK_OOCH_IS_UCH)))
 				/* nothing to do */
 		#else
-				if (vptr) hawk_rtx_freemem (rtx, vptr);
-				if (kptr) hawk_rtx_freemem (rtx, kptr);
+				if (vptr) hawk_rtx_freemem(rtx, vptr);
+				if (kptr) hawk_rtx_freemem(rtx, kptr);
 		#endif
 
 				this->setError (HAWK_ENOMEM);
@@ -337,8 +337,8 @@ int HawkStd::build_environ (Run* run, env_char_t* envarr[])
 		     (defined(HAWK_STD_ENV_CHAR_IS_UCH) && defined(HAWK_OOCH_IS_UCH)))
 				/* nothing to do */
 		#else
-			if (vptr) hawk_rtx_freemem (rtx, vptr);
-			if (kptr) hawk_rtx_freemem (rtx, kptr);
+			if (vptr) hawk_rtx_freemem(rtx, vptr);
+			if (kptr) hawk_rtx_freemem(rtx, kptr);
 		#endif
 		}
 	}
@@ -357,7 +357,7 @@ int HawkStd::make_additional_globals (Run* run)
 
 hawk_cmgr_t* HawkStd::getiocmgr (const hawk_ooch_t* ioname)
 {
-	HAWK_ASSERT (this->cmgrtab_inited == true);
+	HAWK_ASSERT(this->cmgrtab_inited == true);
 
 #if defined(HAWK_OOCH_IS_UCH)
 	ioattr_t* ioattr = get_ioattr(ioname, hawk_count_oocstr(ioname));
@@ -410,7 +410,7 @@ int HawkStd::setioattr (
 	Run& run, Value& ret, Value* args, hawk_oow_t nargs,
 	const hawk_ooch_t* name, hawk_oow_t len)
 {
-	HAWK_ASSERT (this->cmgrtab_inited == true);
+	HAWK_ASSERT(this->cmgrtab_inited == true);
 	hawk_oow_t l[3];
 	const hawk_ooch_t* ptr[3];
 
@@ -485,7 +485,7 @@ int HawkStd::getioattr (
 	Run& run, Value& ret, Value* args, hawk_oow_t nargs,
 	const hawk_ooch_t* name, hawk_oow_t len)
 {
-	HAWK_ASSERT (this->cmgrtab_inited == true);
+	HAWK_ASSERT(this->cmgrtab_inited == true);
 	hawk_oow_t l[2];
 	const hawk_ooch_t* ptr[2];
 
@@ -549,7 +549,7 @@ int HawkStd::open_nwio (Pipe& io, int flags, void* nwad)
 
 #if defined(HAWK_OOCH_IS_UCH)
 	hawk_cmgr_t* cmgr = this->getiocmgr(io.getName());
-	if (cmgr) hawk_nwio_setcmgr (handle, cmgr);
+	if (cmgr) hawk_nwio_setcmgr(handle, cmgr);
 #endif
 
 	io.setHandle ((void*)handle);
@@ -588,9 +588,9 @@ int HawkStd::open_pio (Pipe& io)
 	hawk_cmgr_t* cmgr = this->getiocmgr(io.getName());
 	if (cmgr)
 	{
-		hawk_pio_setcmgr (pio, HAWK_PIO_IN, cmgr);
-		hawk_pio_setcmgr (pio, HAWK_PIO_OUT, cmgr);
-		hawk_pio_setcmgr (pio, HAWK_PIO_ERR, cmgr);
+		hawk_pio_setcmgr(pio, HAWK_PIO_IN, cmgr);
+		hawk_pio_setcmgr(pio, HAWK_PIO_OUT, cmgr);
+		hawk_pio_setcmgr(pio, HAWK_PIO_ERR, cmgr);
 	}
 #endif
 	io.setHandle (pio);
@@ -772,7 +772,7 @@ int HawkStd::openFile (File& io)
 	if (!sio) return -1;
 #if defined(HAWK_OOCH_IS_UCH)
 	hawk_cmgr_t* cmgr = this->getiocmgr(ioname);
-	if (cmgr) hawk_sio_setcmgr (sio, cmgr);
+	if (cmgr) hawk_sio_setcmgr(sio, cmgr);
 #endif
 
 	io.setHandle (sio);
@@ -822,7 +822,7 @@ const hawk_cmgr_t* HawkStd::getConsoleCmgr () const
 
 int HawkStd::addConsoleOutput (const hawk_uch_t* arg, hawk_oow_t len)
 {
-	HAWK_ASSERT (this->hawk != HAWK_NULL);
+	HAWK_ASSERT(this->hawk != HAWK_NULL);
 	int n = this->ofile.add(this->hawk, arg, len);
 	if (n <= -1) this->setError (HAWK_ENOMEM);
 	return n;
@@ -835,7 +835,7 @@ int HawkStd::addConsoleOutput (const hawk_uch_t* arg)
 
 int HawkStd::addConsoleOutput (const hawk_bch_t* arg, hawk_oow_t len)
 {
-	HAWK_ASSERT (this->hawk != HAWK_NULL);
+	HAWK_ASSERT(this->hawk != HAWK_NULL);
 	int n = this->ofile.add(this->hawk, arg, len);
 	if (n <= -1) this->setError (HAWK_ENOMEM);
 	return n;
@@ -876,7 +876,7 @@ static int check_var_assign (hawk_rtx_t* rtx, const hawk_ooch_t* str)
 		n = 0;
 	}
 
-	hawk_rtx_freemem (rtx, dstr);
+	hawk_rtx_freemem(rtx, dstr);
 	return n;
 }
 
@@ -895,7 +895,7 @@ int HawkStd::open_console_in (Console& io)
 	int x;
 
 	v_argc = hawk_rtx_getgbl(rtx, this->gbl_argc);
-	HAWK_ASSERT (v_argc != HAWK_NULL);
+	HAWK_ASSERT(v_argc != HAWK_NULL);
 	if (hawk_rtx_valtoint(rtx, v_argc, &i_argc) <= -1) return -1;
 
 	/* handle special case when ARGV[x] has been altered.
@@ -906,18 +906,18 @@ int HawkStd::open_console_in (Console& io)
 	 *        { print $0; }' file1 file2
 	 */
 	v_argv = hawk_rtx_getgbl(rtx, this->gbl_argv);
-	HAWK_ASSERT (v_argv != HAWK_NULL);
+	HAWK_ASSERT(v_argv != HAWK_NULL);
 	if (HAWK_RTX_GETVALTYPE(rtx, v_argv) != HAWK_VAL_MAP)
 	{
 		/* with flexmap on, you can change ARGV to a scalar.
 		 *   BEGIN { ARGV="xxx"; }
 		 * you must not do this. */
-		hawk_rtx_seterrfmt (rtx, HAWK_NULL, HAWK_EINVAL, HAWK_T("phony value in ARGV"));
+		hawk_rtx_seterrfmt(rtx, HAWK_NULL, HAWK_EINVAL, HAWK_T("phony value in ARGV"));
 		return -1;
 	}
 
 	map = ((hawk_val_map_t*)v_argv)->map;
-	HAWK_ASSERT (map != HAWK_NULL);
+	HAWK_ASSERT(map != HAWK_NULL);
 
 nextfile:
 	if ((hawk_int_t)this->runarg_index >= (i_argc - 1))  /* ARGV is a kind of 0-based array unlike other normal arrays or substring indexing scheme */
@@ -931,7 +931,7 @@ nextfile:
 			sio = open_sio_std(HAWK_NULL, io, HAWK_SIO_STDIN, HAWK_SIO_READ | HAWK_SIO_IGNOREECERR);
 			if (sio == HAWK_NULL) return -1;
 
-			if (this->console_cmgr) hawk_sio_setcmgr (sio, this->console_cmgr);
+			if (this->console_cmgr) hawk_sio_setcmgr(sio, this->console_cmgr);
 
 			io.setHandle (sio);
 			this->runarg_count++;
@@ -950,7 +950,7 @@ nextfile:
 	}
 
 	v_pair = (hawk_val_t*)HAWK_HTB_VPTR(pair);
-	HAWK_ASSERT (v_pair != HAWK_NULL);
+	HAWK_ASSERT(v_pair != HAWK_NULL);
 
 	as.ptr = hawk_rtx_getvaloocstr(rtx, v_pair, &as.len);
 	if (HAWK_UNLIKELY(!as.ptr)) return -1;
@@ -1010,7 +1010,7 @@ nextfile:
 
 	hawk_rtx_freevaloocstr (rtx, v_pair, as.ptr);
 
-	if (this->console_cmgr) hawk_sio_setcmgr (sio, this->console_cmgr);
+	if (this->console_cmgr) hawk_sio_setcmgr(sio, this->console_cmgr);
 
 	io.setHandle (sio);
 
@@ -1026,7 +1026,7 @@ int HawkStd::open_console_out (Console& io)
 
 	if (this->ofile.ptr == HAWK_NULL)
 	{
-		HAWK_ASSERT (this->ofile.len == 0 && this->ofile.capa == 0);
+		HAWK_ASSERT(this->ofile.len == 0 && this->ofile.capa == 0);
 
 		if (this->ofile_count == 0)
 		{
@@ -1036,7 +1036,7 @@ int HawkStd::open_console_out (Console& io)
 				HAWK_SIO_WRITE | HAWK_SIO_IGNOREECERR | HAWK_SIO_LINEBREAK);
 			if (sio == HAWK_NULL) return -1;
 
-			if (this->console_cmgr) hawk_sio_setcmgr (sio, this->console_cmgr);
+			if (this->console_cmgr) hawk_sio_setcmgr(sio, this->console_cmgr);
 
 			io.setHandle (sio);
 			this->ofile_count++;
@@ -1078,7 +1078,7 @@ int HawkStd::open_console_out (Console& io)
 			return -1;
 		}
 
-		if (this->console_cmgr) hawk_sio_setcmgr (sio, this->console_cmgr);
+		if (this->console_cmgr) hawk_sio_setcmgr(sio, this->console_cmgr);
 		io.setHandle (sio);
 
 		this->ofile_index++;
@@ -1099,7 +1099,7 @@ int HawkStd::openConsole (Console& io)
 	}
 	else
 	{
-		HAWK_ASSERT (mode == Console::WRITE);
+		HAWK_ASSERT(mode == Console::WRITE);
 
 		this->ofile_count = 0;
 		this->ofile_index = 0;
@@ -1283,7 +1283,7 @@ int HawkStd::SourceFile::open (Data& io)
 			if (sio == HAWK_NULL) return -1;
 		}
 
-		if (this->cmgr) hawk_sio_setcmgr (sio, this->cmgr);
+		if (this->cmgr) hawk_sio_setcmgr(sio, this->cmgr);
 		io.setName (xpath);
 		io.setPath (xpath); // let the parser use this path, especially upon an error
 	}
@@ -1294,7 +1294,7 @@ int HawkStd::SourceFile::open (Data& io)
 		hawk_ooch_t* xpath;
 
 		ioname = io.getName();
-		HAWK_ASSERT (ioname != HAWK_NULL);
+		HAWK_ASSERT(ioname != HAWK_NULL);
 
 		if (io.getPrevHandle())
 		{
@@ -1336,7 +1336,7 @@ int HawkStd::SourceFile::open (Data& io)
 			}
 
 			xpath = hawk_addsionamewithoochars((hawk_t*)io, path, hawk_count_oocstr(path));
-			if (dbuf) hawk_freemem ((hawk_t*)io, dbuf);
+			if (dbuf) hawk_freemem((hawk_t*)io, dbuf);
 		}
 		else
 		{
@@ -1364,7 +1364,7 @@ int HawkStd::SourceFile::open (Data& io)
 
 		io.setPath (xpath);
 		io.setHandle (sio);
-		if (this->cmgr) hawk_sio_setcmgr (sio, this->cmgr);
+		if (this->cmgr) hawk_sio_setcmgr(sio, this->cmgr);
 	}
 
 	io.setHandle (sio);
@@ -1391,8 +1391,8 @@ hawk_ooi_t HawkStd::SourceFile::write (Data& io, const hawk_ooch_t* buf, hawk_oo
 
 HawkStd::SourceString::~SourceString ()
 {
-	HAWK_ASSERT (this->_hawk == HAWK_NULL);
-	HAWK_ASSERT (this->str == HAWK_NULL);
+	HAWK_ASSERT(this->_hawk == HAWK_NULL);
+	HAWK_ASSERT(this->str == HAWK_NULL);
 }
 
 int HawkStd::SourceString::open (Data& io)
@@ -1422,7 +1422,7 @@ int HawkStd::SourceString::open (Data& io)
 			}
 			else
 			{
-				HAWK_ASSERT (this->_type == STR_BCH);
+				HAWK_ASSERT(this->_type == STR_BCH);
 			#if defined(HAWK_OOCH_IS_UCH)
 				this->str = hawk_dupbtoucstr(this->_hawk, (const hawk_bch_t*)this->_str, HAWK_NULL, 0);
 			#else
@@ -1445,7 +1445,7 @@ int HawkStd::SourceString::open (Data& io)
 		hawk_ooch_t* xpath;
 
 		ioname = io.getName();
-		HAWK_ASSERT (ioname != HAWK_NULL);
+		HAWK_ASSERT(ioname != HAWK_NULL);
 
 		if (io.getPrevHandle())
 		{
@@ -1479,7 +1479,7 @@ int HawkStd::SourceString::open (Data& io)
 				}
 			}
 			xpath = hawk_addsionamewithoochars((hawk_t*)io, path, hawk_count_oocstr(path));
-			if (dbuf) hawk_freemem ((hawk_t*)io, dbuf);
+			if (dbuf) hawk_freemem((hawk_t*)io, dbuf);
 		}
 		else
 		{
@@ -1495,9 +1495,9 @@ int HawkStd::SourceString::open (Data& io)
 		);
 		if (!sio) return -1;
 
-		io.setPath (xpath);
-		io.setHandle (sio);
-		if (this->cmgr) hawk_sio_setcmgr (sio, this->cmgr);
+		io.setPath(xpath);
+		io.setHandle(sio);
+		if (this->cmgr) hawk_sio_setcmgr(sio, this->cmgr);
 	}
 
 	return 1;
@@ -1510,9 +1510,9 @@ int HawkStd::SourceString::close (Data& io)
 		// free the resources and nullify this->_hawk in particular
 		// to prevent this object from outliving the hawk instance pointed to
 		// by this->_hawk.
-		HAWK_ASSERT (this->_hawk != HAWK_NULL);
-		HAWK_ASSERT (this->str != HAWK_NULL);
-		hawk_freemem (this->_hawk, this->str);
+		HAWK_ASSERT(this->_hawk != HAWK_NULL);
+		HAWK_ASSERT(this->str != HAWK_NULL);
+		hawk_freemem(this->_hawk, this->str);
 		this->str = HAWK_NULL;
 		this->ptr = HAWK_NULL;
 		this->_hawk = HAWK_NULL;
