@@ -29,6 +29,7 @@
 #include <hawk-xma.h>
 #include <stdio.h>
 #include <locale.h>
+#include <string.h>
 
 #if defined(_WIN32)
 #	include <windows.h>
@@ -44,6 +45,142 @@
 #	include <errno.h>
 #	include <signal.h>
 #endif
+/* ---------------------------------------------------------------------- */
+
+typedef struct sig_state_t sig_state_t;
+struct sig_state_t
+{
+	hawk_uintptr_t handler;
+	hawk_uintptr_t old_handler;
+#if defined(HAVE_SIGACTION)
+	sigset_t  old_sa_mask;
+	int       old_sa_flags;
+#endif
+};
+
+static sig_state_t g_sig_state[HAWK_NSIG];
+
+static int is_signal_handler_set (int sig)
+{
+	return !!g_sig_state[sig].handler;
+}
+
+#if defined(HAVE_SIGACTION)
+static void dispatch_siginfo (int sig, siginfo_t* si, void* ctx)
+{
+	if (g_sig_state[sig].handler != (hawk_uintptr_t)SIG_IGN &&
+	    g_sig_state[sig].handler != (hawk_uintptr_t)SIG_DFL)
+	{
+		((hawk_main_sig_handler_t)g_sig_state[sig].handler) (sig);
+	}
+
+	if (g_sig_state[sig].old_handler &&
+	    g_sig_state[sig].old_handler != (hawk_uintptr_t)SIG_IGN &&
+	    g_sig_state[sig].old_handler != (hawk_uintptr_t)SIG_DFL)
+	{
+		((void(*)(int, siginfo_t*, void*))g_sig_state[sig].old_handler) (sig, si, ctx);
+	}
+}
+#endif
+
+static void dispatch_signal (int sig)
+{
+	if (g_sig_state[sig].handler != (hawk_uintptr_t)SIG_IGN &&
+	    g_sig_state[sig].handler != (hawk_uintptr_t)SIG_DFL)
+	{
+		((hawk_main_sig_handler_t)g_sig_state[sig].handler) (sig);
+	}
+
+	if (g_sig_state[sig].old_handler &&
+	    g_sig_state[sig].old_handler != (hawk_uintptr_t)SIG_IGN &&
+	    g_sig_state[sig].old_handler != (hawk_uintptr_t)SIG_DFL)
+	{
+		((hawk_main_sig_handler_t)g_sig_state[sig].old_handler) (sig);
+	}
+}
+
+int hawk_main_set_signal_handler (int sig, hawk_main_sig_handler_t handler, int extra_flags)
+{
+	if (g_sig_state[sig].handler)
+	{
+		/* already set - allow handler change. ignore extra_flags. */
+		if (g_sig_state[sig].handler == (hawk_uintptr_t)handler) return -1;
+		g_sig_state[sig].handler = (hawk_uintptr_t)handler;
+	}
+	else
+	{
+	#if defined(HAVE_SIGACTION)
+		struct sigaction sa, oldsa;
+
+		if (sigaction(sig, HAWK_NULL, &oldsa) == -1) return -1;
+
+		memset(&sa, 0, HAWK_SIZEOF(sa));
+		if (oldsa.sa_flags & SA_SIGINFO)
+		{
+			sa.sa_sigaction = dispatch_siginfo;
+			sa.sa_flags = SA_SIGINFO;
+		}
+		else
+		{
+			sa.sa_handler = dispatch_signal;
+			sa.sa_flags = 0;
+		}
+		sa.sa_flags |= extra_flags;
+		/*sa.sa_flags |= SA_INTERUPT;
+		sa.sa_flags |= SA_RESTART;*/
+		sigfillset (&sa.sa_mask); /* block all signals while the handler is being executed */
+
+		if (sigaction(sig, &sa, HAWK_NULL) == -1) return -1;
+
+		g_sig_state[sig].handler = (hawk_uintptr_t)handler;
+		if (oldsa.sa_flags & SA_SIGINFO)
+			g_sig_state[sig].old_handler = (hawk_uintptr_t)oldsa.sa_sigaction;
+		else
+			g_sig_state[sig].old_handler = (hawk_uintptr_t)oldsa.sa_handler;
+
+		g_sig_state[sig].old_sa_mask = oldsa.sa_mask;
+		g_sig_state[sig].old_sa_flags = oldsa.sa_flags;
+	#else
+		g_sig_state[sig].old_handler = (hawk_uintptr_t)signal(sig, handler);
+		g_sig_state[sig].handler = (hawk_uintptr_t)dispatch_signal;
+	#endif
+	}
+
+	return 0;
+}
+
+int hawk_main_unset_signal_handler (int sig)
+{
+#if defined(HAVE_SIGACTION)
+	struct sigaction sa;
+#endif
+
+	if (!g_sig_state[sig].handler) return -1; /* not set */
+
+#if defined(HAVE_SIGACTION)
+	memset(&sa, 0, HAWK_SIZEOF(sa));
+	sa.sa_mask = g_sig_state[sig].old_sa_mask;
+	sa.sa_flags = g_sig_state[sig].old_sa_flags;
+
+	if (sa.sa_flags & SA_SIGINFO)
+	{
+		sa.sa_sigaction = (void(*)(int,siginfo_t*,void*))g_sig_state[sig].old_handler;
+	}
+	else
+	{
+		sa.sa_handler = (hawk_main_sig_handler_t)g_sig_state[sig].old_handler;
+	}
+
+	if (sigaction(sig, &sa, HAWK_NULL) == -1) return -1;
+#else
+	signal (sig, (hawk_main_sig_handler_t)g_sig_state[sig].old_handler);
+#endif
+
+	g_sig_state[sig].handler = 0;
+	/* keep other fields untouched */
+
+	return 0;
+}
 
 /* -------------------------------------------------------- */
 

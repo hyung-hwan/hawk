@@ -266,7 +266,7 @@ static hawk_sio_t* open_sio_std (hawk_sed_t* sed, hawk_sio_std_t std, int flags)
 	if (sio == HAWK_NULL)
 	{
 		const hawk_ooch_t* bem = hawk_sed_backuperrmsg(sed);
-		hawk_sed_seterrbfmt(sed, HAWK_NULL, HAWK_SED_EIOFIL, "unable to open %js - %js", &sio_std_names[std], bem);
+		hawk_sed_seterrbfmt(sed, HAWK_NULL, HAWK_SED_EIOFIL, "unable to open %js - %js", sio_std_names[std].ptr, bem);
 	}
 	return sio;
 }
@@ -303,7 +303,7 @@ static void set_eiofil_for_iostd (hawk_sed_t* sed, hawk_sed_iostd_t* io)
 	}
 	else
 	{
-		hawk_sed_seterrbfmt(sed, HAWK_NULL, HAWK_SED_EIOFIL, "I/O error with file '%js' - %js", &sio_std_names[HAWK_SIO_STDIN], bem);
+		hawk_sed_seterrbfmt(sed, HAWK_NULL, HAWK_SED_EIOFIL, "I/O error with file '%js' - %js", sio_std_names[HAWK_SIO_STDIN].ptr, bem);
 	}
 }
 
@@ -824,7 +824,7 @@ static hawk_ooi_t x_in (hawk_sed_t* sed, hawk_sed_io_cmd_t cmd, hawk_sed_io_arg_
 					if (n <= -1)
 					{
 						const hawk_ooch_t* bem = hawk_sed_backuperrmsg(sed);
-						hawk_sed_seterrbfmt(sed, HAWK_NULL, HAWK_SED_EIOFIL, "unable to read '%js' - %js", &sio_std_names[HAWK_SIO_STDIN], bem);
+						hawk_sed_seterrbfmt(sed, HAWK_NULL, HAWK_SED_EIOFIL, "unable to read '%js' - %js", sio_std_names[HAWK_SIO_STDIN].ptr, bem);
 					}
 					return n;
 				}

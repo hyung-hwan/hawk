@@ -250,7 +250,7 @@ static void* xma_realloc (hawk_mmgr_t* mmgr, void* ptr, hawk_oow_t size)
 
 static void xma_free (hawk_mmgr_t* mmgr, void* ptr)
 {
-	hawk_xma_free (mmgr->ctx, ptr);
+	hawk_xma_free(mmgr->ctx, ptr);
 }
 
 int hawk_init_xma_mmgr (hawk_mmgr_t* mmgr, hawk_oow_t memlimit)
@@ -276,7 +276,6 @@ void hawk_fini_xma_mmgr (hawk_mmgr_t* mmgr)
 }
 
 /* ----------------------------------------------------------------------- */
-
 
 hawk_flt_t hawk_stdmathpow (hawk_t* hawk, hawk_flt_t x, hawk_flt_t y)
 {
@@ -763,7 +762,7 @@ static int write_log (hawk_t* hawk, int fd, const hawk_bch_t* ptr, hawk_oow_t le
 			rcapa = HAWK_COUNTOF(xtn->log.out.buf) - xtn->log.out.len;
 			cplen = (len >= rcapa)? rcapa: len;
 
-			HAWK_MEMCPY (&xtn->log.out.buf[xtn->log.out.len], ptr, cplen);
+			HAWK_MEMCPY(&xtn->log.out.buf[xtn->log.out.len], ptr, cplen);
 			xtn->log.out.len += cplen;
 			ptr += cplen;
 			len -= cplen;
@@ -789,7 +788,7 @@ static int write_log (hawk_t* hawk, int fd, const hawk_bch_t* ptr, hawk_oow_t le
 			}
 			else
 			{
-				HAWK_MEMCPY (xtn->log.out.buf, ptr, len);
+				HAWK_MEMCPY(xtn->log.out.buf, ptr, len);
 				xtn->log.out.len += len;
 				ptr += len;
 				len -= len;
@@ -1101,7 +1100,7 @@ static hawk_sio_t* open_sio_std (hawk_t* hawk, hawk_sio_std_t std, int flags)
 	if (sio == HAWK_NULL)
 	{
 		const hawk_ooch_t* bem = hawk_backuperrmsg(hawk);
-		hawk_seterrfmt(hawk, HAWK_NULL, HAWK_EOPEN, HAWK_T("unable to open %js - %js"), &sio_std_names[std], bem);
+		hawk_seterrfmt(hawk, HAWK_NULL, HAWK_EOPEN, HAWK_T("unable to open %js - %js"), sio_std_names[std].ptr, bem);
 	}
 	return sio;
 }
@@ -1114,7 +1113,7 @@ static hawk_sio_t* open_sio_std_rtx (hawk_rtx_t* rtx, hawk_sio_std_t std, int fl
 	if (sio == HAWK_NULL)
 	{
 		const hawk_ooch_t* bem = hawk_rtx_backuperrmsg(rtx);
-		hawk_rtx_seterrfmt (rtx, HAWK_NULL, HAWK_EOPEN, HAWK_T("unable to open %js - %js"), &sio_std_names[std], bem);
+		hawk_rtx_seterrfmt (rtx, HAWK_NULL, HAWK_EOPEN, HAWK_T("unable to open %js - %js"), sio_std_names[std].ptr, bem);
 	}
 	return sio;
 }
@@ -1260,7 +1259,7 @@ static int fill_sio_arg_unique_id (hawk_t* hawk, hawk_sio_arg_t* arg, const hawk
 	tmp.ino = st.st_ino;
 	tmp.dev = st.st_dev;
 
-	HAWK_MEMCPY (arg->unique_id, &tmp, (HAWK_SIZEOF(tmp) > HAWK_SIZEOF(arg->unique_id)? HAWK_SIZEOF(arg->unique_id): HAWK_SIZEOF(tmp)));
+	HAWK_MEMCPY(arg->unique_id, &tmp, (HAWK_SIZEOF(tmp) > HAWK_SIZEOF(arg->unique_id)? HAWK_SIZEOF(arg->unique_id): HAWK_SIZEOF(tmp)));
 	return 0;
 #endif
 }

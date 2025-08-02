@@ -370,7 +370,7 @@ static hawk_sio_t* open_sio_std (hawk_cut_t* cut, hawk_sio_std_t std, int flags)
 	if (sio == HAWK_NULL)
 	{
 		const hawk_ooch_t* bem = hawk_cut_backuperrmsg(cut);
-		hawk_cut_seterrbfmt(cut, HAWK_NULL, HAWK_CUT_EIOFIL, "unable to open %js - %js", &sio_std_names[std], bem);
+		hawk_cut_seterrbfmt(cut, HAWK_NULL, HAWK_CUT_EIOFIL, "unable to open %js - %js", sio_std_names[std].ptr, bem);
 	}
 	return sio;
 }
@@ -407,7 +407,7 @@ static void set_eiofil_for_iostd (hawk_cut_t* cut, hawk_cut_iostd_t* io)
 	}
 	else
 	{
-		hawk_cut_seterrbfmt(cut, HAWK_NULL, HAWK_CUT_EIOFIL, "I/O error with file '%js' - %js", &sio_std_names[HAWK_SIO_STDIN], bem);
+		hawk_cut_seterrbfmt(cut, HAWK_NULL, HAWK_CUT_EIOFIL, "I/O error with file '%js' - %js", sio_std_names[HAWK_SIO_STDIN].ptr, bem);
 	}
 }
 
@@ -932,7 +932,7 @@ static hawk_ooi_t x_in (hawk_cut_t* cut, hawk_cut_io_cmd_t cmd, hawk_cut_io_arg_
 					if (n <= -1)
 					{
 						const hawk_ooch_t* bem = hawk_cut_backuperrmsg(cut);
-						hawk_cut_seterrbfmt(cut, HAWK_NULL, HAWK_CUT_EIOFIL, "unable to read '%js' - %js", &sio_std_names[HAWK_SIO_STDIN], bem);
+						hawk_cut_seterrbfmt(cut, HAWK_NULL, HAWK_CUT_EIOFIL, "unable to read '%js' - %js", sio_std_names[HAWK_SIO_STDIN].ptr, bem);
 					}
 					return n;
 				}

@@ -29,6 +29,8 @@
 
 #include <hawk.h>
 
+typedef void (*hawk_main_sig_handler_t) (int sig);
+
 #if defined(__cplusplus)
 extern "C" {
 #endif
@@ -40,6 +42,10 @@ int main_sed(int argc, hawk_bch_t* argv[], const hawk_bch_t* real_argv0);
 void hawk_main_print_xma (void* ctx, const hawk_bch_t* fmt, ...);
 void hawk_main_print_error (const hawk_bch_t* fmt, ...);
 void hawk_main_print_warning (const hawk_bch_t* fmt, ...);
+
+int hawk_main_set_signal_handler (int sig, hawk_main_sig_handler_t handler, int extra_flags);
+int hawk_main_unset_signal_handler (int sig);
+
 
 #if defined(__cplusplus)
 }
