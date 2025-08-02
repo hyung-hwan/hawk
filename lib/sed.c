@@ -236,7 +236,7 @@ int hawk_sed_getopt (hawk_sed_t* sed, hawk_sed_opt_t  id, void* value)
 		case HAWK_SED_DEPTH_REX_MATCH:
 			*(hawk_oow_t*)value = sed->opt.depth.rex.match;
 			return 0;
-	};
+	}
 
 	hawk_sed_seterrnum(sed, HAWK_NULL, HAWK_EINVAL);
 	return -1;

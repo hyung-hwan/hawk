@@ -443,7 +443,7 @@ static global_t gtab[] =
 #define MATCH_TERMINATOR(hawk) \
 	(MATCH_TERMINATOR_NORMAL(hawk) || MATCH_TERMINATOR_RBRACE(hawk))
 
-#define ADJERR_LOC(hawk,l) do { (hawk)->_gem.errloc = *(l); } while (0)
+#define ADJERR_LOC(hawk,l) do { if (l) (hawk)->_gem.errloc = *(l); } while (0)
 
 #if defined(HAWK_OOCH_IS_BCH)
 static HAWK_INLINE hawk_oow_t uc_to_utf8 (hawk_uch_t uc, hawk_bch_t* buf, hawk_oow_t bsz)
