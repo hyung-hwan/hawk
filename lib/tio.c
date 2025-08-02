@@ -115,7 +115,7 @@ int hawk_tio_attachin (
 
 	if (hawk_tio_detachin(tio) <= -1) return -1;
 
-	HAWK_ASSERT (tio->in.fun == HAWK_NULL);
+	HAWK_ASSERT(tio->in.fun == HAWK_NULL);
 
 	xbufptr = bufptr;
 	if (xbufptr == HAWK_NULL)
@@ -198,7 +198,7 @@ int hawk_tio_attachout (
 
 	if (hawk_tio_detachout(tio) == -1) return -1;
 
-	HAWK_ASSERT (tio->out.fun == HAWK_NULL);
+	HAWK_ASSERT(tio->out.fun == HAWK_NULL);
 
 	xbufptr = bufptr;
 	if (xbufptr == HAWK_NULL)
@@ -282,7 +282,7 @@ hawk_ooi_t hawk_tio_flush (hawk_tio_t* tio)
 		{
 			if (cur != tio->out.buf.ptr)
 			{
-				HAWK_MEMCPY (tio->out.buf.ptr, cur, left);
+				HAWK_MEMCPY(tio->out.buf.ptr, cur, left);
 				tio->outbuf_len = left;
 			}
 			return -1;
@@ -290,7 +290,7 @@ hawk_ooi_t hawk_tio_flush (hawk_tio_t* tio)
 		if (n == 0)
 		{
 			if (cur != tio->out.buf.ptr)
-				HAWK_MEMCPY (tio->out.buf.ptr, cur, left);
+				HAWK_MEMCPY(tio->out.buf.ptr, cur, left);
 			break;
 		}
 
@@ -320,7 +320,7 @@ hawk_ooi_t hawk_tio_readbchars (hawk_tio_t* tio, hawk_bch_t* buf, hawk_oow_t siz
 	hawk_oow_t nread;
 	hawk_ooi_t n;
 
-	/*HAWK_ASSERT (tio->in.fun != HAWK_NULL);*/
+	/*HAWK_ASSERT(tio->in.fun != HAWK_NULL);*/
 	if (tio->in.fun == HAWK_NULL)
 	{
 		/* no input function */
@@ -361,8 +361,7 @@ done:
 	return nread;
 }
 
-static HAWK_INLINE hawk_ooi_t tio_read_uchars (
-	hawk_tio_t* tio, hawk_uch_t* buf, hawk_oow_t bufsize)
+static HAWK_INLINE hawk_ooi_t tio_read_uchars (hawk_tio_t* tio, hawk_uch_t* buf, hawk_oow_t bufsize)
 {
 	hawk_oow_t mlen, wlen;
 	hawk_ooi_t n;
@@ -389,6 +388,7 @@ static HAWK_INLINE hawk_ooi_t tio_read_uchars (
 				 * but some incomplete bytes in the buffer. */
 				if (tio->flags & HAWK_TIO_IGNOREECERR)
 				{
+					wlen = 0;
 					goto ignore_illseq;
 				}
 				else
@@ -421,9 +421,9 @@ static HAWK_INLINE hawk_ooi_t tio_read_uchars (
 		{
 			/* not even a single character was handled.
 			 * shift bytes in the buffer to the head. */
-			HAWK_ASSERT (mlen <= 0);
+			HAWK_ASSERT(mlen <= 0);
 			tio->inbuf_len = tio->inbuf_len - tio->inbuf_cur;
-			HAWK_MEMCPY (&tio->in.buf.ptr[0],
+			HAWK_MEMCPY(&tio->in.buf.ptr[0],
 			            &tio->in.buf.ptr[tio->inbuf_cur],
 			            tio->inbuf_len * HAWK_SIZEOF(tio->in.buf.ptr[0]));
 			tio->inbuf_cur = 0;
@@ -435,7 +435,7 @@ static HAWK_INLINE hawk_ooi_t tio_read_uchars (
 	else if (x == -2)
 	{
 		/* buffer not large enough */
-		HAWK_ASSERT (wlen > 0);
+		HAWK_ASSERT(wlen > 0);
 
 		/* the wide-character buffer is not just large enough to
 		 * hold the entire conversion result. lets's go on so long as
@@ -474,7 +474,7 @@ hawk_ooi_t hawk_tio_readuchars (hawk_tio_t* tio, hawk_uch_t* buf, hawk_oow_t siz
 	hawk_oow_t nread = 0;
 	hawk_ooi_t n;
 
-	/*HAWK_ASSERT (tio->in.fun != HAWK_NULL);*/
+	/*HAWK_ASSERT(tio->in.fun != HAWK_NULL);*/
 	if (tio->in.fun == HAWK_NULL)
 	{
 		/* no input handler function */
@@ -656,7 +656,7 @@ hawk_ooi_t hawk_tio_writeuchars (hawk_tio_t* tio, const hawk_uch_t* wptr, hawk_o
 				{
 					/* insert a question mark for an illegal
 					 * character. */
-					HAWK_ASSERT (tio->outbuf_len < tio->out.buf.capa);
+					HAWK_ASSERT(tio->outbuf_len < tio->out.buf.capa);
 					tio->out.buf.ptr[tio->outbuf_len++] = '?';
 					wcnt++; /* skip this illegal character */
 					/* don't need to increment mcnt since
