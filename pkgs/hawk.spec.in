@@ -6,7 +6,7 @@
 %define source_date_epoch_from_changelog 0
 
 %define enable_mod_ffi 1
-%define enable_mod_memc 1
+%define enable_mod_memc 0
 %define enable_mod_mysql 1
 %define enable_mod_uci 0
 
@@ -29,7 +29,8 @@ BuildRequires: libffi-devel%{?_isa} >= 3.0.11
 BuildRequires: libmemcached-devel%{?_isa} >= 1.0.18
 %endif
 %if %{enable_mod_mysql}
-BuildRequires: mariadb-connector-c-devel%{?_isa}
+##BuildRequires: mariadb-connector-c-devel%{?_isa}
+BuildRequiree: mysql-devel%{?_isa}
 %endif
 %if %{enable_mod_uci}
 BuildRequires: libuci-devel%{?_isa}
@@ -75,7 +76,7 @@ Summary: Hawk mysql module
 Group: System Environment/Libraries
 Requires: %{name}-libs%{?_isa} = %{version}
 ## tricky to specify the right mysql/mariadb client library.
-Requires: mariadb-connector-c%{?_isa}
+##Requires: mariadb-connector-c%{?_isa}
 
 %description mysql
 This package contains the mysql module file for Hawk.
