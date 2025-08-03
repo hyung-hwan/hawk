@@ -456,7 +456,9 @@ typedef hawk_uintptr_t hawk_uint_t;
 #else
 	typedef hawk_fltbas_t hawk_fltmax_t;
 #	define HAWK_SIZEOF_FLTMAX_T HAWK_SIZEOF_FLTBAS_T
+#	if defined(HAWK_FLTMAX_REQUIRE_QUADMATH)
 #	undef HAWK_FLTMAX_REQUIRE_QUADMATH
+#	endif
 #endif
 
 

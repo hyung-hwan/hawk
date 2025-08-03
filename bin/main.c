@@ -26,10 +26,13 @@
 
 #include "main.h"
 #include <hawk.h>
+#include <hawk-glob.h>
 #include <hawk-xma.h>
+#include <hawk-std.h>
 #include <stdio.h>
 #include <locale.h>
 #include <string.h>
+#include <stdlib.h>
 
 #if defined(_WIN32)
 #	include <windows.h>
@@ -179,6 +182,82 @@ int hawk_main_unset_signal_handler (int sig)
 	g_sig_state[sig].handler = 0;
 	/* keep other fields untouched */
 
+	return 0;
+}
+
+/* -------------------------------------------------------- */
+
+int hawk_main_collect_into_xarg (const hawk_bcs_t* path, hawk_main_xarg_t* xarg)
+{
+	if (xarg->size <= xarg->capa)
+	{
+		hawk_bch_t** tmp;
+
+		tmp = (hawk_bch_t**)realloc(xarg->ptr, HAWK_SIZEOF(*tmp) * (xarg->capa + 128 + 1));
+		if (tmp == HAWK_NULL) return -1;
+
+		xarg->ptr = tmp;
+		xarg->capa += 128;
+	}
+
+	xarg->ptr[xarg->size] = strdup(path->ptr);
+	if (xarg->ptr[xarg->size] == HAWK_NULL) return -1;
+	xarg->size++;
+
+	return 0;
+}
+
+void hawk_main_purge_xarg (hawk_main_xarg_t* xarg)
+{
+	if (xarg->ptr)
+	{
+		hawk_oow_t i;
+
+		for (i = 0; i < xarg->size; i++) free(xarg->ptr[i]);
+		free(xarg->ptr);
+
+		xarg->size = 0;
+		xarg->capa = 0;
+		xarg->ptr = HAWK_NULL;
+	}
+}
+
+int hawk_main_expand_wildcard (int argc, hawk_bch_t* argv[], int do_glob, hawk_main_xarg_t* xarg)
+{
+	int i;
+	hawk_bcs_t tmp;
+
+	for (i = 0; i < argc; i++)
+	{
+		int x;
+
+		if (do_glob)
+		{
+			int glob_flags;
+			hawk_gem_t fake_gem; /* guly to use this fake gem here */
+
+			glob_flags = HAWK_GLOB_TOLERANT | HAWK_GLOB_PERIOD;
+		#if defined(_WIN32) || defined(__OS2__) || defined(__DOS__)
+			glob_flags |= HAWK_GLOB_NOESCAPE | HAWK_GLOB_IGNORECASE;
+		#endif
+
+			fake_gem.mmgr = hawk_get_sys_mmgr();
+			fake_gem.cmgr = hawk_get_cmgr_by_id(HAWK_CMGR_UTF8); /* TODO: system default? */
+			x = hawk_gem_bglob(&fake_gem, argv[i], (hawk_gem_bglob_cb_t)hawk_main_collect_into_xarg, xarg, glob_flags);
+			if (x <= -1) return -1;
+		}
+		else x = 0;
+
+		if (x == 0)
+		{
+			/* not expanded. just use it as is */
+			tmp.ptr = argv[i];
+			tmp.len = hawk_count_bcstr(argv[i]);
+			if (hawk_main_collect_into_xarg(&tmp, xarg) <= -1) return -1;
+		}
+	}
+
+	xarg->ptr[xarg->size] = HAWK_NULL;
 	return 0;
 }
 

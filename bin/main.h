@@ -31,6 +31,16 @@
 
 typedef void (*hawk_main_sig_handler_t) (int sig);
 
+
+typedef struct hawk_main_xarg_t hawk_main_xarg_t;
+
+struct hawk_main_xarg_t
+{
+	hawk_bch_t** ptr;
+	hawk_oow_t   size;
+	hawk_oow_t   capa;
+};
+
 #if defined(__cplusplus)
 extern "C" {
 #endif
@@ -46,6 +56,10 @@ void hawk_main_print_warning (const hawk_bch_t* fmt, ...);
 int hawk_main_set_signal_handler (int sig, hawk_main_sig_handler_t handler, int extra_flags);
 int hawk_main_unset_signal_handler (int sig);
 
+
+int hawk_main_collect_into_xarg (const hawk_bcs_t* path, hawk_main_xarg_t* xarg);
+void hawk_main_purge_xarg (hawk_main_xarg_t* xarg);
+int hawk_main_expand_wildcard (int argc, hawk_bch_t* argv[], int do_glob, hawk_main_xarg_t* xarg);
 
 #if defined(__cplusplus)
 }

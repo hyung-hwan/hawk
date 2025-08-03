@@ -30,7 +30,6 @@
 #include <hawk-utl.h>
 #include <hawk-fmt.h>
 #include <hawk-cli.h>
-#include <hawk-glob.h>
 #include <hawk-xma.h>
 
 #if !defined(_GNU_SOURCE)
@@ -79,7 +78,6 @@ static hawk_rtx_t* app_rtx = HAWK_NULL;
 typedef struct gv_t gv_t;
 typedef struct gvm_t gvm_t;
 typedef struct arg_t arg_t;
-typedef struct xarg_t xarg_t;
 
 struct gv_t
 {
@@ -96,34 +94,27 @@ struct gvm_t
 	hawk_oow_t capa;
 };
 
-struct xarg_t
-{
-	hawk_bch_t** ptr;
-	hawk_oow_t   size;
-	hawk_oow_t   capa;
-};
-
 struct arg_t
 {
 	hawk_parsestd_t* psin; /* input source streams */
-	hawk_bch_t*   osf;  /* output source file */
-	xarg_t        icf; /* input console files */
-	xarg_t        ocf; /* output console files */
-	gvm_t         gvm; /* global variable map */
-	hawk_bch_t*   fs;   /* field separator */
-	hawk_bch_t*   call; /* function to call */
-	hawk_cmgr_t*  script_cmgr;
-	hawk_cmgr_t*  console_cmgr;
-	hawk_bch_t*   includedirs;
-	hawk_bch_t*   modlibdirs;
+	hawk_bch_t*      osf;  /* output source file */
+	hawk_main_xarg_t icf; /* input console files */
+	hawk_main_xarg_t ocf; /* output console files */
+	gvm_t            gvm; /* global variable map */
+	hawk_bch_t*      fs;   /* field separator */
+	hawk_bch_t*      call; /* function to call */
+	hawk_cmgr_t*     script_cmgr;
+	hawk_cmgr_t*     console_cmgr;
+	hawk_bch_t*      includedirs;
+	hawk_bch_t*      modlibdirs;
 
-	unsigned int modern: 1;
-	unsigned int classic: 1;
-	int          opton;
-	int          optoff;
-	int          debug;
+	unsigned int     modern: 1;
+	unsigned int     classic: 1;
+	int              opton;
+	int              optoff;
+	int              debug;
 
-	hawk_uintptr_t  memlimit;
+	hawk_uintptr_t   memlimit;
 };
 
 
@@ -238,6 +229,7 @@ static int add_gvs_to_hawk (hawk_t* hawk, arg_t* arg)
 static int apply_fs_and_gvs_to_rtx (hawk_rtx_t* rtx, const arg_t* arg)
 {
 	hawk_oow_t i;
+	int ret;
 
 	if (arg->fs)
 	{
@@ -271,26 +263,28 @@ static int apply_fs_and_gvs_to_rtx (hawk_rtx_t* rtx, const arg_t* arg)
 		}
 	}
 
+	ret = 0;
 	for (i = 0; arg->psin[i].type != HAWK_PARSESTD_NULL; i++)
 	{
+		/* set the first file name as a script name if available */
 		if (arg->psin[i].type == HAWK_PARSESTD_FILE)
 		{
-			if (hawk_rtx_setscriptnamewithoochars(rtx, arg->psin[i].u.file.path, hawk_count_oocstr(arg->psin[i].u.file.path)) <= -1) return -1;
+			ret = hawk_rtx_setscriptnamewithoochars(rtx, arg->psin[i].u.file.path, hawk_count_oocstr(arg->psin[i].u.file.path));
 			break;
 		}
 		else if (arg->psin[i].type == HAWK_PARSESTD_FILEB)
 		{
-			if (hawk_rtx_setscriptnamewithbchars(rtx, arg->psin[i].u.fileb.path, hawk_count_bcstr(arg->psin[i].u.fileb.path)) <= -1) return -1;
+			ret = hawk_rtx_setscriptnamewithbchars(rtx, arg->psin[i].u.fileb.path, hawk_count_bcstr(arg->psin[i].u.fileb.path));
 			break;
 		}
 		else if (arg->psin[i].type == HAWK_PARSESTD_FILEU)
 		{
-			if (hawk_rtx_setscriptnamewithuchars(rtx, arg->psin[i].u.fileu.path, hawk_count_ucstr(arg->psin[i].u.fileu.path)) <= -1) return -1;
+			ret = hawk_rtx_setscriptnamewithuchars(rtx, arg->psin[i].u.fileu.path, hawk_count_ucstr(arg->psin[i].u.fileu.path));
 			break;
 		}
 	}
 
-	return 0;
+	return ret;
 }
 
 static void dprint_return (hawk_rtx_t* rtx, hawk_val_t* ret)
@@ -314,7 +308,7 @@ static void dprint_return (hawk_rtx_t* rtx, hawk_val_t* ret)
 		else
 		{
 			hawk_logfmt (hawk, HAWK_LOG_STDERR, HAWK_T("[RETURN] - [%.*js]\n"), len, str);
-			hawk_freemem (hawk_rtx_gethawk(rtx), str);
+			hawk_freemem(hawk_rtx_gethawk(rtx), str);
 		}
 	}
 
@@ -404,83 +398,6 @@ static void print_usage (FILE* out, const hawk_bch_t* argv0, const hawk_bch_t* r
 		fprintf (out, " --cut                             run in the cut  mode\n");
 		fprintf (out, " --sed                             run in the sed mode\n");
 	}
-}
-
-/* ---------------------------------------------------------------------- */
-static int collect_into_xarg (const hawk_bcs_t* path, void* ctx)
-{
-	xarg_t* xarg = (xarg_t*)ctx;
-
-	if (xarg->size <= xarg->capa)
-	{
-		hawk_bch_t** tmp;
-
-		tmp = (hawk_bch_t**)realloc(xarg->ptr, HAWK_SIZEOF(*tmp) * (xarg->capa + 128 + 1));
-		if (tmp == HAWK_NULL) return -1;
-
-		xarg->ptr = tmp;
-		xarg->capa += 128;
-	}
-
-	xarg->ptr[xarg->size] = strdup(path->ptr);
-	if (xarg->ptr[xarg->size] == HAWK_NULL) return -1;
-	xarg->size++;
-
-	return 0;
-}
-
-static void purge_xarg (xarg_t* xarg)
-{
-	if (xarg->ptr)
-	{
-		hawk_oow_t i;
-
-		for (i = 0; i < xarg->size; i++) free(xarg->ptr[i]);
-		free(xarg->ptr);
-
-		xarg->size = 0;
-		xarg->capa = 0;
-		xarg->ptr = HAWK_NULL;
-	}
-}
-
-static int expand_wildcard (int argc, hawk_bch_t* argv[], int do_glob, xarg_t* xarg)
-{
-	int i;
-	hawk_bcs_t tmp;
-
-	for (i = 0; i < argc; i++)
-	{
-		int x;
-
-		if (do_glob)
-		{
-			int glob_flags;
-			hawk_gem_t fake_gem; /* guly to use this fake gem here */
-
-			glob_flags = HAWK_GLOB_TOLERANT | HAWK_GLOB_PERIOD;
-		#if defined(_WIN32) || defined(__OS2__) || defined(__DOS__)
-			glob_flags |= HAWK_GLOB_NOESCAPE | HAWK_GLOB_IGNORECASE;
-		#endif
-
-			fake_gem.mmgr = hawk_get_sys_mmgr();
-			fake_gem.cmgr = hawk_get_cmgr_by_id(HAWK_CMGR_UTF8); /* TODO: system default? */
-			x = hawk_gem_bglob(&fake_gem, argv[i], collect_into_xarg, xarg, glob_flags);
-			if (x <= -1) return -1;
-		}
-		else x = 0;
-
-		if (x == 0)
-		{
-			/* not expanded. just use it as is */
-			tmp.ptr = argv[i];
-			tmp.len = hawk_count_bcstr(argv[i]);
-			if (collect_into_xarg(&tmp, xarg) <= -1) return -1;
-		}
-	}
-
-	xarg->ptr[xarg->size] = HAWK_NULL;
-	return 0;
 }
 
 /* ---------------------------------------------------------------------- */
@@ -602,7 +519,7 @@ static int process_argv (int argc, hawk_bch_t* argv[], const hawk_bch_t* real_ar
 				hawk_bcs_t tmp;
 				tmp.ptr = opt.arg;
 				tmp.len = hawk_count_bcstr(opt.arg);
-				if (collect_into_xarg(&tmp, &arg->ocf) <= -1)
+				if (hawk_main_collect_into_xarg(&tmp, &arg->ocf) <= -1)
 				{
 					hawk_main_print_error("out of memory\n");
 					goto oops;
@@ -790,7 +707,7 @@ static int process_argv (int argc, hawk_bch_t* argv[], const hawk_bch_t* real_ar
 	if (opt.ind < argc)
 	{
 		/* the remaining arguments are input console file names */
-		if (expand_wildcard(argc - opt.ind, &argv[opt.ind], do_glob, &arg->icf) <= -1)
+		if (hawk_main_expand_wildcard(argc - opt.ind, &argv[opt.ind], do_glob, &arg->icf) <= -1)
 		{
 			hawk_main_print_error("failed to expand wildcard\n");
 			goto oops;
@@ -801,8 +718,8 @@ static int process_argv (int argc, hawk_bch_t* argv[], const hawk_bch_t* real_ar
 
 oops:
 	if (arg->gvm.ptr) free(arg->gvm.ptr);
-	purge_xarg(&arg->icf);
-	purge_xarg(&arg->ocf);
+	hawk_main_purge_xarg(&arg->icf);
+	hawk_main_purge_xarg(&arg->ocf);
 	if (isf) free(isf);
 	return oops_ret;
 }
@@ -811,16 +728,16 @@ static void freearg (struct arg_t* arg)
 {
 	if (arg->psin) free(arg->psin);
 	/*if (arg->osf) free(arg->osf);*/
-	purge_xarg (&arg->icf);
-	purge_xarg (&arg->ocf);
+	hawk_main_purge_xarg(&arg->icf);
+	hawk_main_purge_xarg(&arg->ocf);
 	if (arg->gvm.ptr) free(arg->gvm.ptr);
 }
 
-static void print_hawk_error (hawk_t* hawk)
+static void print_hawk_error(hawk_t* hawk)
 {
 	const hawk_loc_t* loc = hawk_geterrloc(hawk);
 
-	hawk_logfmt (hawk, HAWK_LOG_STDERR,
+	hawk_logfmt(hawk, HAWK_LOG_STDERR,
 		HAWK_T("ERROR: CODE %d LINE %zu COLUMN %zu %js%js%js- %js\n"),
 		(int)hawk_geterrnum(hawk),
 		(hawk_oow_t)loc->line,
@@ -832,11 +749,11 @@ static void print_hawk_error (hawk_t* hawk)
 	);
 }
 
-static void print_hawk_rtx_error (hawk_rtx_t* rtx)
+static void print_hawk_rtx_error(hawk_rtx_t* rtx)
 {
 	const hawk_loc_t* loc = hawk_rtx_geterrloc(rtx);
 
-	hawk_logfmt (hawk_rtx_gethawk(rtx), HAWK_LOG_STDERR,
+	hawk_logfmt(hawk_rtx_gethawk(rtx), HAWK_LOG_STDERR,
 		HAWK_T("ERROR: CODE %d LINE %zu COLUMN %zu %js%js%js- %js\n"),
 		(int)hawk_rtx_geterrnum(rtx),
 		(hawk_oow_t)loc->line,
@@ -912,19 +829,19 @@ int main_hawk(int argc, hawk_bch_t* argv[], const hawk_bch_t* real_argv0)
 	else hawk_getopt(hawk, HAWK_OPT_TRAIT, &i);
 	if (arg.opton) i |= arg.opton;
 	if (arg.optoff) i &= ~arg.optoff;
-	hawk_setopt (hawk, HAWK_OPT_TRAIT, &i);
+	hawk_setopt(hawk, HAWK_OPT_TRAIT, &i);
 
 	/* TODO: get depth from command line */
 	{
 		hawk_oow_t tmp;
 		tmp = 50;
-		hawk_setopt (hawk, HAWK_OPT_DEPTH_BLOCK_PARSE, &tmp);
-		hawk_setopt (hawk, HAWK_OPT_DEPTH_EXPR_PARSE, &tmp);
+		hawk_setopt(hawk, HAWK_OPT_DEPTH_BLOCK_PARSE, &tmp);
+		hawk_setopt(hawk, HAWK_OPT_DEPTH_EXPR_PARSE, &tmp);
 		tmp = 500;
-		hawk_setopt (hawk, HAWK_OPT_DEPTH_BLOCK_RUN, &tmp);
-		hawk_setopt (hawk, HAWK_OPT_DEPTH_EXPR_RUN, &tmp);
+		hawk_setopt(hawk, HAWK_OPT_DEPTH_BLOCK_RUN, &tmp);
+		hawk_setopt(hawk, HAWK_OPT_DEPTH_EXPR_RUN, &tmp);
 		tmp = 64;
-		hawk_setopt (hawk, HAWK_OPT_DEPTH_INCLUDE, &tmp);
+		hawk_setopt(hawk, HAWK_OPT_DEPTH_INCLUDE, &tmp);
 	}
 
 	if (arg.includedirs)
@@ -934,14 +851,14 @@ int main_hawk(int argc, hawk_bch_t* argv[], const hawk_bch_t* real_argv0)
 		tmp = hawk_dupbtoucstr(hawk, arg.includedirs, HAWK_NULL, 1);
 		if (HAWK_UNLIKELY(!tmp))
 		{
-			print_hawk_error (hawk);
+			print_hawk_error(hawk);
 			goto oops;
 		}
 
-		hawk_setopt (hawk, HAWK_OPT_INCLUDEDIRS, tmp);
-		hawk_freemem (hawk, tmp);
+		hawk_setopt(hawk, HAWK_OPT_INCLUDEDIRS, tmp);
+		hawk_freemem(hawk, tmp);
 	#else
-		hawk_setopt (hawk, HAWK_OPT_INCLUDEDIRS, arg.includedirs);
+		hawk_setopt(hawk, HAWK_OPT_INCLUDEDIRS, arg.includedirs);
 	#endif
 	}
 
@@ -952,26 +869,26 @@ int main_hawk(int argc, hawk_bch_t* argv[], const hawk_bch_t* real_argv0)
 		tmp = hawk_dupbtoucstr(hawk, arg.modlibdirs, HAWK_NULL, 1);
 		if (HAWK_UNLIKELY(!tmp))
 		{
-			print_hawk_error (hawk);
+			print_hawk_error(hawk);
 			goto oops;
 		}
 
-		hawk_setopt (hawk, HAWK_OPT_MODLIBDIRS, tmp);
-		hawk_freemem (hawk, tmp);
+		hawk_setopt(hawk, HAWK_OPT_MODLIBDIRS, tmp);
+		hawk_freemem(hawk, tmp);
 	#else
-		hawk_setopt (hawk, HAWK_OPT_MODLIBDIRS, arg.modlibdirs);
+		hawk_setopt(hawk, HAWK_OPT_MODLIBDIRS, arg.modlibdirs);
 	#endif
 	}
 
 	if (add_gvs_to_hawk(hawk, &arg) <= -1)
 	{
-		print_hawk_error (hawk);
+		print_hawk_error(hawk);
 		goto oops;
 	}
 
 	if (hawk_parsestd(hawk, arg.psin, ((arg.osf == HAWK_NULL)? HAWK_NULL: &psout)) <= -1)
 	{
-		print_hawk_error (hawk);
+		print_hawk_error(hawk);
 		goto oops;
 	}
 
@@ -983,22 +900,22 @@ int main_hawk(int argc, hawk_bch_t* argv[], const hawk_bch_t* real_argv0)
 	);
 	if (HAWK_UNLIKELY(!rtx))
 	{
-		print_hawk_error (hawk);
+		print_hawk_error(hawk);
 		goto oops;
 	}
 
 	if (apply_fs_and_gvs_to_rtx(rtx, &arg) <= -1)
 	{
-		print_hawk_rtx_error (rtx);
+		print_hawk_rtx_error(rtx);
 		goto oops;
 	}
 
 	app_rtx = rtx;
 #if defined(ENABLE_CALLBACK)
-	hawk_rtx_pushecb (rtx, &rtx_ecb);
+	hawk_rtx_pushecb(rtx, &rtx_ecb);
 #endif
 
-	set_intr_run ();
+	set_intr_run();
 
 #if 0
 	retv = arg.call?
@@ -1021,30 +938,30 @@ int main_hawk(int argc, hawk_bch_t* argv[], const hawk_bch_t* real_argv0)
 	{
 		hawk_int_t tmp;
 
-		hawk_rtx_refdownval (rtx, retv);
-		if (arg.debug) dprint_return (rtx, retv);
+		hawk_rtx_refdownval(rtx, retv);
+		if (arg.debug) dprint_return(rtx, retv);
 
 		ret = 0;
 		if (hawk_rtx_valtoint(rtx, retv, &tmp) >= 0) ret = tmp;
 	}
 	else
 	{
-		print_hawk_rtx_error (rtx);
+		print_hawk_rtx_error(rtx);
 		goto oops;
 	}
 
 oops:
-	if (rtx) hawk_rtx_close (rtx);
-	if (hawk) hawk_close (hawk);
+	if (rtx) hawk_rtx_close(rtx);
+	if (hawk) hawk_close(hawk);
 
-	unset_intr_pipe ();
+	unset_intr_pipe();
 
 	if (arg.memlimit > 0)
 	{
-		if (arg.debug) hawk_xma_dump (xma_mmgr.ctx, hawk_main_print_xma, HAWK_NULL);
-		hawk_fini_xma_mmgr (&xma_mmgr);
+		if (arg.debug) hawk_xma_dump(xma_mmgr.ctx, hawk_main_print_xma, HAWK_NULL);
+		hawk_fini_xma_mmgr(&xma_mmgr);
 	}
-	freearg (&arg);
+	freearg(&arg);
 
 	return ret;
 }

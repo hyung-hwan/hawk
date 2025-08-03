@@ -30,7 +30,7 @@ BuildRequires: libmemcached-devel%{?_isa} >= 1.0.18
 %endif
 %if %{enable_mod_mysql}
 ##BuildRequires: mariadb-connector-c-devel%{?_isa}
-BuildRequiree: mysql-devel%{?_isa}
+BuildRequires: mysql-devel%{?_isa}
 %endif
 %if %{enable_mod_uci}
 BuildRequires: libuci-devel%{?_isa}
