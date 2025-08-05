@@ -26,10 +26,9 @@ function tap_skip (msg)
 
 function tap_ensure (a, b, desc, line)
 {
-        @local id;
-       
+	@local id;
 	id = sprintf("%s[%d]", desc, line);
-        if (a != b) tap_fail (id);
+	if (a != b) tap_fail (id);
 	else tap_ok (id);
 }
 
