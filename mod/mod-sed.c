@@ -253,8 +253,6 @@ static void unload (hawk_mod_t* mod, hawk_t* hawk)
 
 int hawk_mod_sed (hawk_mod_t* mod, hawk_t* hawk)
 {
-	hawk_ntime_t tv;
-
 	mod->query = query;
 	mod->unload = unload;
 

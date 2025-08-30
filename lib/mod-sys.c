@@ -1248,11 +1248,11 @@ static int fnc_tcgetattr (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi) /* this is
 		md[4].key.len = 2;
 		md[4].type = HAWK_VAL_MAP_DATA_BCS;
 		md[4].vptr = &c_cc;
-		c_cc.ptr = t.c_cc;
+		c_cc.ptr = (hawk_bch_t*)t.c_cc;
 		c_cc.len = HAWK_COUNTOF(t.c_cc);
 
 		tmp = hawk_rtx_makemapvalwithdata(rtx, md, HAWK_COUNTOF(md));
-		if (!tmp) goto fail;
+		if (HAWK_UNLIKELY(!tmp)) goto fail;
 
 		hawk_rtx_refupval(rtx, tmp);
 		x = hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, 1), tmp);
@@ -5749,7 +5749,7 @@ static hawk_int_t unpack_data (hawk_rtx_t* rtx, const hawk_bcs_t* bin, const haw
 			case 'p':
 			{
 				UNPACK_CHECK_ARG_AND_DATA (1, rep_cnt);
-				v = hawk_rtx_makembsvalwithbchars(rtx, binp, rep_cnt);
+				v = hawk_rtx_makembsvalwithbchars(rtx, (const hawk_bch_t*)binp, rep_cnt);
 				binp += rep_cnt;
 				if (HAWK_UNLIKELY(!v)) goto oops_internal;
 				if (hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, arg_idx++), v) <= -1) goto oops_internal;
@@ -5814,7 +5814,7 @@ static int fnc_pack (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			hawk_val_t* tmp;
 			int x;
 
-			tmp = hawk_rtx_makembsvalwithbchars(rtx, rdp->pack.ptr, rdp->pack.len);
+			tmp = hawk_rtx_makembsvalwithbchars(rtx, (const hawk_bch_t*)rdp->pack.ptr, rdp->pack.len);
 			if (HAWK_UNLIKELY(!tmp)) goto fail;
 
 			hawk_rtx_refupval(rtx, tmp);

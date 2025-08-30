@@ -1226,13 +1226,14 @@ static int __substitute_oocs (hawk_rtx_t* rtx, hawk_oow_t* max_count, hawk_tre_t
 {
 	hawk_oocs_t mat, pmat, cur;
 	hawk_oocs_t submat[9];
-	hawk_oow_t sub_count, match_limit;
+	hawk_oow_t sub_count, op_count, match_limit;
 	hawk_ooch_t* s2_end;
 
 	s2_end = s2->ptr + s2->len;
 	cur.ptr = s2->ptr;
 	cur.len = s2->len;
 	sub_count = 0;
+	op_count = 0;
 	match_limit = *max_count;
 
 	pmat.ptr = HAWK_NULL;
@@ -1268,49 +1269,53 @@ static int __substitute_oocs (hawk_rtx_t* rtx, hawk_oow_t* max_count, hawk_tre_t
 
 		if (hawk_ooecs_ncat(new, cur.ptr, mat.ptr - cur.ptr) == (hawk_oow_t)-1) goto oops;
 
-		if (extended)
+		if (extended && op_pos > 0 && (op_pos - 1) != op_count)
 		{
-// TODO: check match occurrence in extended...
+			/* don't perform substitution. just copy the original string to the output */
+			if (hawk_ooecs_ncat(new, mat.ptr, mat.len) == (hawk_oow_t)-1) goto oops;
 		}
-
-		for (i = 0; i < s1->len; i++)
+		else
 		{
-			if (s1->ptr[i] == '\\' && (i + 1) < s1->len)
+			for (i = 0; i < s1->len; i++)
 			{
-				if (extended) /* for gensub */
+				if (s1->ptr[i] == '\\' && (i + 1) < s1->len)
 				{
-					hawk_ooch_t ic = s1->ptr[i + 1];
-					if (ic == '0')
+					if (extended) /* for gensub */
 					{
-						m = hawk_ooecs_ncat(new, mat.ptr, mat.len);
+						hawk_ooch_t ic = s1->ptr[i + 1];
+						if (ic == '0')
+						{
+							m = hawk_ooecs_ncat(new, mat.ptr, mat.len);
+						}
+						else if (ic >= '1' && ic <= '9')
+						{
+							hawk_oow_t idx = (ic - '0') - 1;
+							m = hawk_ooecs_ncat(new, submat[idx].ptr, submat[idx].len);
+						}
+						else goto escape;
 					}
-					else if (ic >= '1' && ic <= '9')
+					else
 					{
-						hawk_oow_t idx = (ic - '0') - 1;
-						m = hawk_ooecs_ncat(new, submat[idx].ptr, submat[idx].len);
+					escape:
+						m = hawk_ooecs_ccat(new, s1->ptr[i + 1]);
 					}
-					else goto escape;
+					i++; /* skip the backslash */
+				}
+				else if (s1->ptr[i] == '&')
+				{
+					m = hawk_ooecs_ncat(new, mat.ptr, mat.len);
 				}
 				else
 				{
-				escape:
-					m = hawk_ooecs_ccat(new, s1->ptr[i + 1]);
+					m = hawk_ooecs_ccat(new, s1->ptr[i]);
 				}
-				i++; /* skip the backslash */
-			}
-			else if (s1->ptr[i] == '&')
-			{
-				m = hawk_ooecs_ncat(new, mat.ptr, mat.len);
-			}
-			else
-			{
-				m = hawk_ooecs_ccat(new, s1->ptr[i]);
+
+				if (HAWK_UNLIKELY(m == (hawk_oow_t)-1)) goto oops;
 			}
 
-			if (HAWK_UNLIKELY(m == (hawk_oow_t)-1)) goto oops;
+			sub_count++; /* number of actual substitutions */
 		}
-
-		sub_count++;
+		op_count++; /* actual susstitutions + skipped substitutions. not needed if extended is false */
 		cur.len = cur.len - ((mat.ptr - cur.ptr) + mat.len);
 		cur.ptr = mat.ptr + mat.len;
 
@@ -1716,6 +1721,7 @@ int hawk_fnc_gensub (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	}
 
 	max_count = 1;
+	op_pos = 0;
 	switch (HAWK_RTX_GETVALTYPE(rtx, a2))
 	{
 		case HAWK_VAL_BCHR:
@@ -1761,16 +1767,17 @@ int hawk_fnc_gensub (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		hawk_int_t l;
 		hawk_flt_t r;
 		int n;
+
 		n = hawk_rtx_valtonum(rtx, a2, &l, &r);
-		if (n == 1)
+		if (n == 0)
 		{
 			if (l > 0)
 			{
-				op_pos = l;
+				op_pos = (hawk_oow_t)l;
 				max_count = 1;
 			}
 		}
-		else if (n > 1)
+		else if (n > 0)
 		{
 			if (r > 0.0)
 			{

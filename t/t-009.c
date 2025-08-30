@@ -194,7 +194,7 @@ int main(int argc, char* argv[])
 
 	malloc_time = (double)(end_time - start_time) / CLOCKS_PER_SEC - free_time;
 
-	printf("Performed %d interleaved malloc/free operations\n", num_iterations);
+	printf("Performed %lu interleaved malloc/free operations\n", (unsigned long)num_iterations);
 	printf("Total malloc time (estimated): %.6f seconds\n", malloc_time);
 	printf("Total free time              : %.6f seconds\n", free_time);
 	printf("Average time per operation   : %.9f seconds\n", (malloc_time + free_time) / num_iterations);
