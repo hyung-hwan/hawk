@@ -305,6 +305,15 @@ HAWK_EXPORT void hawk_fini_xma_mmgr (
 	hawk_mmgr_t*   mmgr
 );
 
+
+HAWK_EXPORT int hawk_init_ama_mmgr (
+	hawk_mmgr_t*   mmgr
+);
+
+HAWK_EXPORT void hawk_fini_ama_mmgr (
+	hawk_mmgr_t*   mmgr
+);
+
 #if defined(__cplusplus)
 }
 #endif

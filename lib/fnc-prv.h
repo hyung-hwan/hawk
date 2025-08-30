@@ -56,6 +56,7 @@ hawk_fnc_t* hawk_findfncwithucs (hawk_t* hawk, const hawk_ucs_t* name);
 #endif
 
 /* EXPORT is required for linking on windows as they are referenced by mod-str.c */
+HAWK_EXPORT int hawk_fnc_gensub  (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi);
 HAWK_EXPORT int hawk_fnc_gsub    (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi);
 HAWK_EXPORT int hawk_fnc_index   (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi);
 HAWK_EXPORT int hawk_fnc_length  (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, int mode);

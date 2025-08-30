@@ -99,8 +99,13 @@ static int matchtre_ucs (hawk_tre_t* tre, int opt, const hawk_ucs_t* str, hawk_u
 		{
 			if (match[i].rm_so != -1)
 			{
-				submat[i-1].ptr = &str->ptr[match[i].rm_so];
-				submat[i-1].len = match[i].rm_eo - match[i].rm_so;
+				submat[i - 1].ptr = &str->ptr[match[i].rm_so];
+				submat[i - 1].len = match[i].rm_eo - match[i].rm_so;
+			}
+			else
+			{
+				submat[i - 1].ptr = HAWK_NULL;
+				submat[i - 1].len = 0;
 			}
 		}
 	}
@@ -132,14 +137,17 @@ static int matchtre_bcs (hawk_tre_t* tre, int opt, const hawk_bcs_t* str, hawk_b
 	{
 		int i;
 
-		/* you must intialize submat before you pass into this
-		 * function because it can abort filling */
 		for (i = 1; i < HAWK_COUNTOF(match); i++)
 		{
 			if (match[i].rm_so != -1)
 			{
-				submat[i-1].ptr = &str->ptr[match[i].rm_so];
-				submat[i-1].len = match[i].rm_eo - match[i].rm_so;
+				submat[i - 1].ptr = &str->ptr[match[i].rm_so];
+				submat[i - 1].len = match[i].rm_eo - match[i].rm_so;
+			}
+			else
+			{
+				submat[i - 1].ptr = HAWK_NULL;
+				submat[i - 1].len = 0;
 			}
 		}
 	}

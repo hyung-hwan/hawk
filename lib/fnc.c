@@ -60,8 +60,8 @@ static hawk_fnc_t sysfnctab[] =
 	{ {HAWK_T("asorti"),   6}, 0, { {1,     3, HAWK_T("rrv")},    fnc_asorti,           0 }, HAWK_NULL},
 
 	/* string functions */
+	{ {HAWK_T("gensub"),   6}, 0, { {3,     4, HAWK_T("xvvv")},   hawk_fnc_gensub,   0 }, HAWK_NULL},
 	{ {HAWK_T("gsub"),     4}, 0, { {2,     3, HAWK_T("xvr")},    hawk_fnc_gsub,     0 }, HAWK_NULL},
-/* TODO: gensub */
 	{ {HAWK_T("index"),    5}, 0, { {2,     3, HAWK_NULL},        hawk_fnc_index,    0 }, HAWK_NULL},
 	{ {HAWK_T("length"),   6}, 1, { {0,     1, HAWK_NULL},        fnc_length,        0 }, HAWK_NULL},
 	{ {HAWK_T("match"),    5}, 0, { {2,     3, HAWK_T("vxr")},    fnc_match,         0 }, HAWK_NULL},
@@ -1222,9 +1222,10 @@ int hawk_fnc_toupper (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	return 0;
 }
 
-static int __substitute_oocs (hawk_rtx_t* rtx, hawk_oow_t* max_count, hawk_tre_t* rex, hawk_oocs_t* s1, hawk_oocs_t* s2, hawk_ooecs_t* new)
+static int __substitute_oocs (hawk_rtx_t* rtx, hawk_oow_t* max_count, hawk_tre_t* rex, hawk_oocs_t* s1, hawk_oocs_t* s2, hawk_ooecs_t* new, int extended, hawk_oow_t op_pos)
 {
 	hawk_oocs_t mat, pmat, cur;
+	hawk_oocs_t submat[9];
 	hawk_oow_t sub_count, match_limit;
 	hawk_ooch_t* s2_end;
 
@@ -1246,7 +1247,7 @@ static int __substitute_oocs (hawk_rtx_t* rtx, hawk_oow_t* max_count, hawk_tre_t
 
 		if (sub_count < match_limit)
 		{
-			n = hawk_rtx_matchrexwithoocs(rtx, rex, s2, &cur, &mat, HAWK_NULL);
+			n = hawk_rtx_matchrexwithoocs(rtx, rex, s2, &cur, &mat, (extended? submat: HAWK_NULL));
 			if (HAWK_UNLIKELY(n <= -1)) goto oops;
 		}
 		else n = 0;
@@ -1267,27 +1268,35 @@ static int __substitute_oocs (hawk_rtx_t* rtx, hawk_oow_t* max_count, hawk_tre_t
 
 		if (hawk_ooecs_ncat(new, cur.ptr, mat.ptr - cur.ptr) == (hawk_oow_t)-1) goto oops;
 
+		if (extended)
+		{
+// TODO: check match occurrence in extended...
+		}
+
 		for (i = 0; i < s1->len; i++)
 		{
-			if ((i + 3) < s1->len && s1->ptr[i] == '\\' && s1->ptr[i+1] == '\\' && s1->ptr[i+2] == '\\' && s1->ptr[i+3] == '&')
+			if (s1->ptr[i] == '\\' && (i + 1) < s1->len)
 			{
-				/* \\\& to produce a literal \& */
-				m = hawk_ooecs_cat(new, HAWK_T("\\&"));
-				i += 3;
-			}
-			else if ((i + 2) < s1->len && s1->ptr[i] == '\\' && s1->ptr[i+1] == '\\' && s1->ptr[i+2] == '&')
-			{
-				/* \\& to produce a literal \ followed by the matched text */
-				m = hawk_ooecs_ccat(new, '\\');
-				if (HAWK_UNLIKELY(m == (hawk_oow_t)-1)) goto oops;
-				m = hawk_ooecs_ncat(new, mat.ptr, mat.len);
-				i += 2;
-			}
-			else if ((i + 1) < s1->len && s1->ptr[i] == '\\' && s1->ptr[i+1] == '&')
-			{
-				/* \& to produce literal '&' */
-				m = hawk_ooecs_ccat(new, '&');
-				i++;
+				if (extended) /* for gensub */
+				{
+					hawk_ooch_t ic = s1->ptr[i + 1];
+					if (ic == '0')
+					{
+						m = hawk_ooecs_ncat(new, mat.ptr, mat.len);
+					}
+					else if (ic >= '1' && ic <= '9')
+					{
+						hawk_oow_t idx = (ic - '0') - 1;
+						m = hawk_ooecs_ncat(new, submat[idx].ptr, submat[idx].len);
+					}
+					else goto escape;
+				}
+				else
+				{
+				escape:
+					m = hawk_ooecs_ccat(new, s1->ptr[i + 1]);
+				}
+				i++; /* skip the backslash */
 			}
 			else if (s1->ptr[i] == '&')
 			{
@@ -1327,9 +1336,10 @@ oops:
 	return -1;
 }
 
-static int __substitute_bcs (hawk_rtx_t* rtx, hawk_oow_t* max_count, hawk_tre_t* rex, hawk_bcs_t* s1, hawk_bcs_t* s2, hawk_becs_t* new)
+static int __substitute_bcs (hawk_rtx_t* rtx, hawk_oow_t* max_count, hawk_tre_t* rex, hawk_bcs_t* s1, hawk_bcs_t* s2, hawk_becs_t* new, int extended, hawk_oow_t op_pos)
 {
 	hawk_bcs_t mat, pmat, cur;
+	hawk_bcs_t submat[9];
 	hawk_oow_t sub_count, match_limit;
 	hawk_bch_t* s2_end;
 
@@ -1351,7 +1361,7 @@ static int __substitute_bcs (hawk_rtx_t* rtx, hawk_oow_t* max_count, hawk_tre_t*
 
 		if (sub_count < match_limit)
 		{
-			n = hawk_rtx_matchrexwithbcs(rtx, rex, s2, &cur, &mat, HAWK_NULL);
+			n = hawk_rtx_matchrexwithbcs(rtx, rex, s2, &cur, &mat, (extended? submat: HAWK_NULL));
 			if (HAWK_UNLIKELY(n <= -1)) goto oops;
 		}
 		else n = 0;
@@ -1374,25 +1384,28 @@ static int __substitute_bcs (hawk_rtx_t* rtx, hawk_oow_t* max_count, hawk_tre_t*
 
 		for (i = 0; i < s1->len; i++)
 		{
-			if ((i + 3) < s1->len && s1->ptr[i] == '\\' && s1->ptr[i+1] == '\\' && s1->ptr[i+2] == '\\' && s1->ptr[i+3] == '&')
+			if (s1->ptr[i] == '\\' && (i + 1) < s1->len)
 			{
-				/* \\\& to produce a literal \& */
-				m = hawk_becs_cat(new, "\\&");
-				i += 3;
-			}
-			else if ((i + 2) < s1->len && s1->ptr[i] == '\\' && s1->ptr[i+1] == '\\' && s1->ptr[i+2] == '&')
-			{
-				/* \\& to produce a literal \ followed by the matched text */
-				m = hawk_becs_ccat(new, '\\');
-				if (HAWK_UNLIKELY(m == (hawk_oow_t)-1)) goto oops;
-				m = hawk_becs_ncat(new, mat.ptr, mat.len);
-				i += 2;
-			}
-			else if ((i + 1) < s1->len && s1->ptr[i] == '\\' && s1->ptr[i+1] == '&')
-			{
-				/* \& to produce literal '&' */
-				m = hawk_becs_ccat(new, '&');
-				i++;
+				if (extended) /* for gensub */
+				{
+					hawk_bch_t ic = s1->ptr[i + 1];
+					if (ic == '0')
+					{
+						m = hawk_becs_ncat(new, mat.ptr, mat.len);
+					}
+					else if (ic >= '1' && ic <= '9')
+					{
+						hawk_oow_t idx = (ic - '0') - 1;
+						m = hawk_becs_ncat(new, submat[idx].ptr, submat[idx].len);
+					}
+					else goto escape;
+				}
+				else
+				{
+				escape:
+					m = hawk_becs_ccat(new, s1->ptr[i + 1]);
+				}
+				i++; /* skip the backslash */
 			}
 			else if (s1->ptr[i] == '&')
 			{
@@ -1529,12 +1542,12 @@ static int __substitute (hawk_rtx_t* rtx, hawk_oow_t max_count)
 	if (s2_free == 2)
 	{
 		hawk_becs_clear(&rtx->fnc.bout);
-		if (__substitute_bcs(rtx, &sub_count, rex, (hawk_bcs_t*)&s1, (hawk_bcs_t*)&s2, &rtx->fnc.bout) <= -1) goto oops;
+		if (__substitute_bcs(rtx, &sub_count, rex, (hawk_bcs_t*)&s1, (hawk_bcs_t*)&s2, &rtx->fnc.bout, 0, 0) <= -1) goto oops;
 	}
 	else
 	{
 		hawk_ooecs_clear(&rtx->fnc.oout);
-		if (__substitute_oocs(rtx, &sub_count, rex, (hawk_oocs_t*)&s1, (hawk_oocs_t*)&s2, &rtx->fnc.oout) <= -1) goto oops;
+		if (__substitute_oocs(rtx, &sub_count, rex, (hawk_oocs_t*)&s1, (hawk_oocs_t*)&s2, &rtx->fnc.oout, 0, 0) <= -1) goto oops;
 	}
 
 	if (rex_free)
@@ -1652,6 +1665,268 @@ int hawk_fnc_sub (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	/* sub(/a/, "#");
 	 * x="abac"; sub(/a/, "#", x); */
 	return __substitute(rtx, 1);
+}
+
+int hawk_fnc_gensub (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+{
+	/* x=gensub(/(abc)/, "\\1\\1", "g");
+	 * x=gensub(/(abc)/, "\\1\\1", "g", $0);
+	 * x=gensub(/(tiger|deer)/, "\\1-\\1", "g", "the tiger pounced on the deer");
+	 */
+
+	hawk_oow_t nargs;
+	hawk_val_t* a0, * a1, * a2, * a3, * v;
+	hawk_val_type_t a0_vtype;
+
+	hawk_oocs_t s0;
+	hawk_ptl_t s1;
+	hawk_ptl_t s2;
+
+	int s1_free = 0;
+	int s2_free = 0;
+
+	hawk_tre_t* rex = HAWK_NULL;
+	hawk_tre_t* rex_free = HAWK_NULL;
+	hawk_oow_t op_pos;
+	hawk_oow_t max_count;
+	hawk_oow_t sub_count;
+
+	s0.ptr = HAWK_NULL;
+	s0.len = 0;
+
+	s1.ptr = HAWK_NULL;
+	s1.len = 0;
+
+	nargs = hawk_rtx_getnargs(rtx);
+	a0 = hawk_rtx_getarg(rtx, 0); /* pattern */
+	a1 = hawk_rtx_getarg(rtx, 1); /* substitute */
+	a2 = hawk_rtx_getarg(rtx, 2); /* mode or position */
+
+	a0_vtype = HAWK_RTX_GETVALTYPE(rtx, a0);
+
+	/* the first argument - pattern */
+	if (a0_vtype == HAWK_VAL_REX)
+	{
+		rex = ((hawk_val_rex_t*)a0)->code[rtx->gbl.ignorecase];
+	}
+	else
+	{
+		s0.ptr = hawk_rtx_getvaloocstr(rtx, a0, &s0.len);
+		if (HAWK_UNLIKELY(!s0.ptr)) goto oops;
+	}
+
+	max_count = 1;
+	switch (HAWK_RTX_GETVALTYPE(rtx, a2))
+	{
+		case HAWK_VAL_BCHR:
+		{
+			hawk_bch_t ch;
+			ch = HAWK_RTX_GETBCHRFROMVAL(rtx, a2);
+			if (ch == 'g' || ch == 'G') max_count = HAWK_TYPE_MAX(hawk_oow_t);
+			break;
+		}
+
+		case HAWK_VAL_MBS:
+		case HAWK_VAL_BOB: /* no separate code as hawk_val_mbs_t and hawk_val_bob_t are similar for the ptr field type */
+		{
+			if (((hawk_val_mbs_t*)a2)->val.len >= 1)
+			{
+				hawk_bch_t ch;
+				ch = ((hawk_val_mbs_t*)a2)->val.ptr[0];
+				if (ch == 'g' || ch == 'G') max_count = HAWK_TYPE_MAX(hawk_oow_t);
+			}
+			break;
+		}
+
+		case HAWK_VAL_CHAR:
+		{
+			hawk_ooch_t ch;
+			ch = HAWK_RTX_GETCHARFROMVAL(rtx, a2);
+			if (ch == 'g' || ch == 'G') max_count = HAWK_TYPE_MAX(hawk_oow_t);
+			break;
+		}
+
+		case HAWK_VAL_STR:
+			if (((hawk_val_str_t*)a2)->val.len >= 1)
+			{
+				hawk_ooch_t ch;
+				ch = ((hawk_val_str_t*)a2)->val.ptr[0];
+				if (ch == 'g' || ch == 'G') max_count = HAWK_TYPE_MAX(hawk_oow_t);
+			}
+			break;
+	}
+
+	if (max_count != HAWK_TYPE_MAX(hawk_oow_t))
+	{
+		hawk_int_t l;
+		hawk_flt_t r;
+		int n;
+		n = hawk_rtx_valtonum(rtx, a2, &l, &r);
+		if (n == 1)
+		{
+			if (l > 0)
+			{
+				op_pos = l;
+				max_count = 1;
+			}
+		}
+		else if (n > 1)
+		{
+			if (r > 0.0)
+			{
+				op_pos = (hawk_oow_t)r;
+				max_count = 1;
+			}
+		}
+	}
+
+	/* the optional fourth argument - string to manipulate */
+	if (nargs < 4)
+	{
+		/* is this correct? any needs to use inrec.d0? */
+		s2.ptr = HAWK_OOECS_PTR(&rtx->inrec.line);
+		s2.len = HAWK_OOECS_LEN(&rtx->inrec.line);
+
+		/* the second argument - substitute */
+		s1.ptr = hawk_rtx_getvaloocstr(rtx, a1, &s1.len);
+		s1_free = 1;
+	}
+	else
+	{
+		a3 = hawk_rtx_getarg(rtx, 3);
+
+		switch (HAWK_RTX_GETVALTYPE(rtx, a3))
+		{
+			case HAWK_VAL_BCHR:
+			case HAWK_VAL_MBS:
+			case HAWK_VAL_BOB:
+				s2.ptr = hawk_rtx_getvalbcstr(rtx, a3, &s2.len);
+				s2_free = 2;
+
+				/* the second argument - substitute */
+				s1.ptr = hawk_rtx_getvalbcstr(rtx, a1, &s1.len);
+				s1_free = 2;
+				break;
+
+			default:
+				s2.ptr = hawk_rtx_getvaloocstr(rtx, a3, &s2.len);
+				s2_free = 1;
+
+				/* the second argument - substituttion */
+				s1.ptr = hawk_rtx_getvaloocstr(rtx, a1, &s1.len);
+				s1_free = 1;
+				break;
+		}
+	}
+
+	if (HAWK_UNLIKELY(!s1.ptr || !s2.ptr)) goto oops;
+
+	if (a0_vtype != HAWK_VAL_REX)
+	{
+		int x;
+
+		x = rtx->gbl.ignorecase?
+			hawk_rtx_buildrex(rtx, s0.ptr, s0.len, HAWK_NULL, &rex):
+			hawk_rtx_buildrex(rtx, s0.ptr, s0.len, &rex, HAWK_NULL);
+		if (HAWK_UNLIKELY(x <= -1)) goto oops;
+
+		rex_free = rex;
+	}
+
+	sub_count = max_count;
+	if (s2_free == 2)
+	{
+		hawk_becs_clear(&rtx->fnc.bout);
+		if (__substitute_bcs(rtx, &sub_count, rex, (hawk_bcs_t*)&s1, (hawk_bcs_t*)&s2, &rtx->fnc.bout, 1, op_pos) <= -1) goto oops;
+	}
+	else
+	{
+		hawk_ooecs_clear(&rtx->fnc.oout);
+		if (__substitute_oocs(rtx, &sub_count, rex, (hawk_oocs_t*)&s1, (hawk_oocs_t*)&s2, &rtx->fnc.oout, 1, op_pos) <= -1) goto oops;
+	}
+
+	if (rex_free)
+	{
+		if (rtx->gbl.ignorecase)
+			hawk_rtx_freerex(rtx, HAWK_NULL, rex_free);
+		else
+			hawk_rtx_freerex(rtx, rex_free, HAWK_NULL);
+		rex_free = HAWK_NULL;
+	}
+
+	switch (s2_free)
+	{
+		case 1:
+			hawk_rtx_freevaloocstr(rtx, a3, s2.ptr);
+			break;
+		case 2:
+			hawk_rtx_freevalbcstr(rtx, a3, s2.ptr);
+			break;
+	}
+	s2.ptr = HAWK_NULL;
+
+	switch (s1_free)
+	{
+		case 1:
+			hawk_rtx_freevaloocstr(rtx, a1, s1.ptr);
+			break;
+		case 2:
+			hawk_rtx_freevalbcstr(rtx, a1, s1.ptr);
+			break;
+	}
+	s1.ptr = HAWK_NULL;
+
+	if (s0.ptr)
+	{
+		hawk_rtx_freevaloocstr(rtx, a0, s0.ptr);
+		s0.ptr = HAWK_NULL;
+	}
+
+	v = (s2_free == 2)?
+		hawk_rtx_makembsvalwithbcs(rtx, HAWK_BECS_BCS(&rtx->fnc.bout)):
+		hawk_rtx_makestrvalwithoocs(rtx, HAWK_OOECS_OOCS(&rtx->fnc.oout));
+	if (HAWK_UNLIKELY(!v)) goto oops;
+
+	hawk_rtx_setretval(rtx, v);
+	return 0;
+
+oops:
+	if (rex_free)
+	{
+		if (rtx->gbl.ignorecase)
+			hawk_rtx_freerex(rtx, HAWK_NULL, rex_free);
+		else
+			hawk_rtx_freerex(rtx, rex_free, HAWK_NULL);
+	}
+
+	if (s2.ptr)
+	{
+		switch (s2_free)
+		{
+			case 1:
+				hawk_rtx_freevaloocstr(rtx, a3, s2.ptr);
+				break;
+			case 2:
+				hawk_rtx_freevalbcstr(rtx, a3, s2.ptr);
+				break;
+		}
+	}
+
+	if (s1.ptr)
+	{
+		switch (s1_free)
+		{
+			case 1:
+				hawk_rtx_freevaloocstr(rtx, a1, s1.ptr);
+				break;
+			case 2:
+				hawk_rtx_freevalbcstr(rtx, a1, s1.ptr);
+				break;
+		}
+	}
+
+	if (s0.ptr) hawk_rtx_freevaloocstr(rtx, a0, s0.ptr);
+	return -1;
 }
 
 static int __fnc_match (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, int support_start_index)
