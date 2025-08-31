@@ -6032,7 +6032,7 @@ static hawk_nde_t* parse_primary_ident (hawk_t* hawk, const hawk_loc_t* xloc)
 	if (nsegs <= 1)
 	{
 		nde = parse_primary_ident_noseg(hawk, xloc, &name[0]);
-		if (!nde) hawk_freemem(hawk, name[0].ptr);
+		if (HAWK_UNLIKELY(!nde)) hawk_freemem(hawk, name[0].ptr);
 	}
 	else
 	{
@@ -6042,7 +6042,7 @@ static hawk_nde_t* parse_primary_ident (hawk_t* hawk, const hawk_loc_t* xloc)
 
 		for (capa = 0, i = 0; i < nsegs; i++) capa += name[i].len + 2; /* +2 for :: */
 		full.ptr = hawk_allocmem(hawk, HAWK_SIZEOF(*full.ptr) * (capa + 1));
-		if (full.ptr)
+		if (HAWK_LIKELY(full.ptr))
 		{
 			capa = hawk_copy_oochars_to_oocstr_unlimited(&full.ptr[0], name[0].ptr, name[0].len);
 			for (i = 1; i < nsegs; i++)

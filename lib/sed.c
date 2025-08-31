@@ -452,7 +452,7 @@ static int add_command_block (hawk_sed_t* sed)
 	hawk_sed_cmd_blk_t* b;
 
 	b = (hawk_sed_cmd_blk_t*)hawk_sed_callocmem(sed, HAWK_SIZEOF(*b));
-	if (b == HAWK_NULL) return -1;
+	if (HAWK_UNLIKELY(!b)) return -1;
 
 	b->next = HAWK_NULL;
 	b->len = 0;
@@ -815,7 +815,7 @@ static hawk_sed_adr_t* get_address (hawk_sed_t* sed, hawk_sed_adr_t* a, int exte
 	else if (c == HAWK_T('/'))
 	{
 		/* /REGEX/ */
-		a->u.rex = compile_rex_address (sed, c);
+		a->u.rex = compile_rex_address(sed, c);
 		if (a->u.rex == HAWK_NULL) return HAWK_NULL;
 		a->type = HAWK_SED_ADR_REX;
 		NXTSC (sed, c, HAWK_NULL);
@@ -830,7 +830,7 @@ static hawk_sed_adr_t* get_address (hawk_sed_t* sed, hawk_sed_adr_t* a, int exte
 			return HAWK_NULL;
 		}
 
-		a->u.rex = compile_rex_address (sed, c);
+		a->u.rex = compile_rex_address(sed, c);
 		if (a->u.rex == HAWK_NULL) return HAWK_NULL;
 		a->type = HAWK_SED_ADR_REX;
 		NXTSC (sed, c, HAWK_NULL);
@@ -886,7 +886,7 @@ do { \
 	hawk_ooecs_t* t = HAWK_NULL;
 
 	t = hawk_ooecs_open(hawk_sed_getgem(sed), 0, 128);
-	if (t == HAWK_NULL) goto oops;
+	if (HAWK_UNLIKELY(!t)) goto oops;
 
 	c = CURSC (sed);
 
@@ -994,7 +994,7 @@ static int get_label (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 			return -1;
 		}
 
-		if (hawk_map_insert (
+		if (hawk_map_insert(
 			&sed->tmp.labs,
 			HAWK_OOECS_PTR(&sed->tmp.lab), HAWK_OOECS_LEN(&sed->tmp.lab),
 			cmd, 0) == HAWK_NULL)
@@ -1062,7 +1062,7 @@ static int get_branch_target (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 	}
 
 	t = hawk_ooecs_open(hawk_sed_getgem(sed), 0, 32);
-	if (t == HAWK_NULL) goto oops;
+	if (HAWK_UNLIKELY(!t)) goto oops;
 
 	while (IS_LABCHAR(c))
 	{
@@ -1072,7 +1072,7 @@ static int get_branch_target (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 
 	if (terminate_command (sed) <= -1) goto oops;
 
-	pair = hawk_map_search (&sed->tmp.labs, HAWK_OOECS_PTR(t), HAWK_OOECS_LEN(t));
+	pair = hawk_map_search(&sed->tmp.labs, HAWK_OOECS_PTR(t), HAWK_OOECS_LEN(t));
 	if (pair == HAWK_NULL)
 	{
 		/* label not resolved yet */
@@ -1111,7 +1111,7 @@ static int get_file (hawk_sed_t* sed, hawk_oocs_t* xstr)
 	}
 
 	t = hawk_ooecs_open(hawk_sed_getgem(sed), 0, 32);
-	if (t == HAWK_NULL) goto oops;
+	if (HAWK_UNLIKELY(!t)) goto oops;
 
 	do
 	{
@@ -1205,7 +1205,7 @@ static int get_subst (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 	hawk_ooecs_clear(t[0]);
 
 	t[1] = hawk_ooecs_open(hawk_sed_getgem(sed), 0, 32);
-	if (t[1] == HAWK_NULL) goto oops;
+	if (HAWK_UNLIKELY(!t[1])) goto oops;
 
 	if (pickup_rex(sed, delim, 0, cmd, t[0]) <= -1) goto oops;
 	if (pickup_rex(sed, delim, 1, cmd, t[1]) <= -1) goto oops;
@@ -1324,7 +1324,7 @@ static int get_transet (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 	}
 
 	t = hawk_ooecs_open(hawk_sed_getgem(sed), 0, 32);
-	if (t == HAWK_NULL) goto oops;
+	if (HAWK_UNLIKELY(!t)) goto oops;
 
 	NXTSC_GOTO(sed, c, oops);
 	while (c != delim)
@@ -1393,7 +1393,7 @@ static int add_cut_selector_block (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 	hawk_sed_cut_sel_t* b;
 
 	b = (hawk_sed_cut_sel_t*)hawk_sed_callocmem(sed, HAWK_SIZEOF(*b));
-	if (b == HAWK_NULL) return -1;
+	if (HAWK_UNLIKELY(!b)) return -1;
 
 	b->next = HAWK_NULL;
 	b->len = 0;
@@ -2137,11 +2137,11 @@ static int write_str (hawk_sed_t* sed, const hawk_ooch_t* str, hawk_oow_t len)
 
 	for (i = 0; i < len; i++)
 	{
-		/*if (write_char (sed, str[i]) <= -1) return -1;*/
+		/*if (write_char(sed, str[i]) <= -1) return -1;*/
 		sed->e.out.buf[sed->e.out.len++] = str[i];
 		if (sed->e.out.len >= HAWK_COUNTOF(sed->e.out.buf))
 		{
-			if (flush (sed) <= -1) return -1;
+			if (flush(sed) <= -1) return -1;
 			flush_needed = 0;
 		}
 		/* TODO: handle different line ending convension... */
@@ -2152,13 +2152,12 @@ static int write_str (hawk_sed_t* sed, const hawk_ooch_t* str, hawk_oow_t len)
 	return 0;
 }
 
-static int write_first_line (
-	hawk_sed_t* sed, const hawk_ooch_t* str, hawk_oow_t len)
+static int write_first_line (hawk_sed_t* sed, const hawk_ooch_t* str, hawk_oow_t len)
 {
 	hawk_oow_t i;
 	for (i = 0; i < len; i++)
 	{
-		if (write_char (sed, str[i]) <= -1) return -1;
+		if (write_char(sed, str[i]) <= -1) return -1;
 		/* TODO: handle different line ending convension... */
 		if (str[i] == HAWK_T('\n')) break;
 	}
@@ -2175,14 +2174,14 @@ static int write_num (hawk_sed_t* sed, hawk_oow_t x, int base, int width)
 
 	HAWK_ASSERT(base >= 2 && base <= 36);
 
-	if (x < 0)
+	/*if (x < 0)
 	{
 		if (write_char(sed, HAWK_T('-')) <= -1) return -1;
 		if (width > 0) width--;
-	}
+	}*/
 
 	x = x / base;
-	if (x < 0) x = -x;
+	/*if (x < 0) x = -x;*/
 
 	while (x > 0)
 	{
@@ -2195,13 +2194,13 @@ static int write_num (hawk_sed_t* sed, hawk_oow_t x, int base, int width)
 	{
 		while (--width > dig)
 		{
-			if (write_char (sed, HAWK_T('0')) <= -1) return -1;
+			if (write_char(sed, HAWK_T('0')) <= -1) return -1;
 		}
 	}
 
 	while (y > 0)
 	{
-		if (write_char (sed, NTOC(y % base)) <= -1) return -1;
+		if (write_char(sed, NTOC(y % base)) <= -1) return -1;
 		y = y / base;
 		dig--;
 	}
@@ -2209,10 +2208,10 @@ static int write_num (hawk_sed_t* sed, hawk_oow_t x, int base, int width)
 	while (dig > 0)
 	{
 		dig--;
-		if (write_char (sed, HAWK_T('0')) <= -1) return -1;
+		if (write_char(sed, HAWK_T('0')) <= -1) return -1;
 	}
-	if (last < 0) last = -last;
-	if (write_char (sed, NTOC(last)) <= -1) return -1;
+	/*if (last < 0) last = -last;*/
+	if (write_char(sed, NTOC(last)) <= -1) return -1;
 
 	return 0;
 }
@@ -2224,8 +2223,7 @@ static int write_num (hawk_sed_t* sed, hawk_oow_t x, int base, int width)
 #define WRITE_NUM(sed,num,base,width) \
 	do { if (write_num(sed,num,base,width) <= -1) return -1; } while (0)
 
-static int write_str_clearly (
-	hawk_sed_t* sed, const hawk_ooch_t* str, hawk_oow_t len)
+static int write_str_clearly (hawk_sed_t* sed, const hawk_ooch_t* str, hawk_oow_t len)
 {
 	const hawk_ooch_t* p = str;
 	const hawk_ooch_t* end = str + len;
@@ -2238,50 +2236,50 @@ static int write_str_clearly (
 		switch (c)
 		{
 			case HAWK_T('\\'):
-				WRITE_STR (sed, HAWK_T("\\\\"), 2);
+				WRITE_STR(sed, HAWK_T("\\\\"), 2);
 				break;
 			/*case HAWK_T('\0'):
-				WRITE_STR (sed, HAWK_T("\\0"), 2);
+				WRITE_STR(sed, HAWK_T("\\0"), 2);
 				break;*/
 			case HAWK_T('\n'):
-				WRITE_STR (sed, HAWK_T("$\n"), 2);
+				WRITE_STR(sed, HAWK_T("$\n"), 2);
 				break;
 			case HAWK_T('\a'):
-				WRITE_STR (sed, HAWK_T("\\a"), 2);
+				WRITE_STR(sed, HAWK_T("\\a"), 2);
 				break;
 			case HAWK_T('\b'):
-				WRITE_STR (sed, HAWK_T("\\b"), 2);
+				WRITE_STR(sed, HAWK_T("\\b"), 2);
 				break;
 			case HAWK_T('\f'):
-				WRITE_STR (sed, HAWK_T("\\f"), 2);
+				WRITE_STR(sed, HAWK_T("\\f"), 2);
 				break;
 			case HAWK_T('\r'):
-				WRITE_STR (sed, HAWK_T("\\r"), 2);
+				WRITE_STR(sed, HAWK_T("\\r"), 2);
 				break;
 			case HAWK_T('\t'):
-				WRITE_STR (sed, HAWK_T("\\t"), 2);
+				WRITE_STR(sed, HAWK_T("\\t"), 2);
 				break;
 			case HAWK_T('\v'):
-				WRITE_STR (sed, HAWK_T("\\v"), 2);
+				WRITE_STR(sed, HAWK_T("\\v"), 2);
 				break;
 			default:
 			{
-				if (hawk_is_ooch_print(c)) WRITE_CHAR (sed, c);
+				if (hawk_is_ooch_print(c)) WRITE_CHAR(sed, c);
 				else
 				{
 				#if defined(HAWK_OOCH_IS_BCH)
-					WRITE_CHAR (sed, HAWK_T('\\'));
-					WRITE_NUM (sed, (unsigned char)c, 8, HAWK_SIZEOF(hawk_ooch_t)*3);
+					WRITE_CHAR(sed, HAWK_T('\\'));
+					WRITE_NUM(sed, (hawk_bchu_t)c, 8, HAWK_SIZEOF(hawk_ooch_t)*3);
 				#else
 					if (HAWK_SIZEOF(hawk_ooch_t) <= 2)
 					{
-						WRITE_STR (sed, HAWK_T("\\u"), 2);
+						WRITE_STR(sed, HAWK_T("\\u"), 2);
 					}
 					else
 					{
-						WRITE_STR (sed, HAWK_T("\\U"), 2);
+						WRITE_STR(sed, HAWK_T("\\U"), 2);
 					}
-					WRITE_NUM (sed, c, 16, HAWK_SIZEOF(hawk_ooch_t)*2);
+					WRITE_NUM(sed, (hawk_oochu_t)c, 16, HAWK_SIZEOF(hawk_ooch_t)*2);
 				#endif
 				}
 			}
@@ -2289,7 +2287,7 @@ static int write_str_clearly (
 	}
 
 	if (len > 1 && end[-1] != HAWK_T('\n'))
-		WRITE_STR (sed, HAWK_T("$\n"), 2);
+		WRITE_STR(sed, HAWK_T("$\n"), 2);
 
 	return 0;
 }
@@ -2394,7 +2392,7 @@ static int write_file (hawk_sed_t* sed, hawk_sed_cmd_t* cmd, int first_line)
 
 			for (i = 0; i < n; i++)
 			{
-				if (write_char (sed, buf[i]) <= -1) return -1;
+				if (write_char(sed, buf[i]) <= -1) return -1;
 
 				/* TODO: support different line end convension */
 				if (buf[i] == HAWK_T('\n')) goto done;
@@ -2424,7 +2422,7 @@ static int link_append (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 
 		/* otherwise, link it using a linked list */
 		app = hawk_sed_allocmem(sed, HAWK_SIZEOF(*app));
-		if (app == HAWK_NULL)
+		if (HAWK_UNLIKELY(!app))
 		{
 			ADJERR_LOC (sed, &cmd->loc);
 			return -1;
@@ -2785,13 +2783,13 @@ static int split_into_fields_for_cut (
 				if (sed->e.cutf.flds == sed->e.cutf.sflds)
 				{
 					tmp = hawk_sed_allocmem(sed, HAWK_SIZEOF(*tmp) * nsz);
-					if (tmp == HAWK_NULL) return -1;
+					if (HAWK_UNLIKELY(!tmp)) return -1;
 					HAWK_MEMCPY (tmp, sed->e.cutf.flds, HAWK_SIZEOF(*tmp) * sed->e.cutf.cflds);
 				}
 				else
 				{
 					tmp = hawk_sed_reallocmem(sed, sed->e.cutf.flds, HAWK_SIZEOF(*tmp) * nsz);
-					if (tmp == HAWK_NULL) return -1;
+					if (HAWK_UNLIKELY(!tmp)) return -1;
 				}
 
 				sed->e.cutf.flds = tmp;
@@ -3718,7 +3716,7 @@ int hawk_sed_exec (hawk_sed_t* sed, hawk_sed_io_impl_t inf, hawk_sed_io_impl_t o
 #if defined(HAWK_ENABLE_SED_TRACER)
 				if (sed->opt.tracer) sed->opt.tracer(sed, HAWK_SED_TRACER_EXEC, c);
 #endif
-				j = exec_cmd (sed, c);
+				j = exec_cmd(sed, c);
 				if (j == HAWK_NULL) { ret = -1; goto done; }
 				if (j == &sed->cmd.quit_quiet) goto done;
 				if (j == &sed->cmd.quit)
@@ -3866,7 +3864,7 @@ const hawk_ooch_t* hawk_sed_setcompidwithucstr (hawk_sed_t* sed, const hawk_uch_
 	len = hawk_count_oocstr(id);
 #endif
 	cid = hawk_sed_allocmem(sed, HAWK_SIZEOF(*cid) + ((len + 1) * HAWK_SIZEOF(hawk_ooch_t)));
-	if (cid == HAWK_NULL)
+	if (HAWK_UNLIKELY(!cid))
 	{
 		/* mark that an error has occurred */
 		sed->src.unknown_cid.buf[0] = HAWK_T('\0');
@@ -3944,7 +3942,7 @@ void hawk_sed_getspace (hawk_sed_t* sed, hawk_sed_space_t space, hawk_oocs_t* st
 void* hawk_sed_allocmem (hawk_sed_t* sed, hawk_oow_t size)
 {
 	void* ptr = HAWK_MMGR_ALLOC(hawk_sed_getmmgr(sed), size);
-	if (ptr == HAWK_NULL) hawk_sed_seterrnum(sed, HAWK_NULL, HAWK_ENOMEM);
+	if (HAWK_UNLIKELY(!ptr)) hawk_sed_seterrnum(sed, HAWK_NULL, HAWK_ENOMEM);
 	return ptr;
 }
 
@@ -3959,7 +3957,7 @@ void* hawk_sed_callocmem (hawk_sed_t* sed, hawk_oow_t size)
 void* hawk_sed_reallocmem (hawk_sed_t* sed, void* ptr, hawk_oow_t size)
 {
 	void* nptr = HAWK_MMGR_REALLOC(hawk_sed_getmmgr(sed), ptr, size);
-	if (nptr == HAWK_NULL) hawk_sed_seterrnum(sed, HAWK_NULL, HAWK_ENOMEM);
+	if (HAWK_UNLIKELY(!nptr)) hawk_sed_seterrnum(sed, HAWK_NULL, HAWK_ENOMEM);
 	return nptr;
 }
 

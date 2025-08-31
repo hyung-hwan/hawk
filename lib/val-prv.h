@@ -137,8 +137,8 @@ struct hawk_val_rchunk_t
 #define HAWK_VTR_TO_INT(p) \
 	(((hawk_uintptr_t)(p) & HAWK_VTR_SIGN_BIT)? HAWK_VTR_TO_INT_NEGATIVE(p): HAWK_VTR_TO_INT_POSITIVE(p))
 
-#define HAWK_VTR_TO_CHAR(p) ((hawk_ooch_t)((hawk_uintptr_t)(p) >> HAWK_VTR_NUM_TYPE_BITS_LO))
-#define HAWK_VTR_TO_BCHR(p) ((hawk_ooch_t)((hawk_uintptr_t)(p) >> HAWK_VTR_NUM_TYPE_BITS_LOHI))
+#define HAWK_VTR_TO_CHAR(p) ((hawk_ooch_t)(hawk_oochu_t)((hawk_uintptr_t)(p) >> HAWK_VTR_NUM_TYPE_BITS_LO))
+#define HAWK_VTR_TO_BCHR(p) ((hawk_bch_t)(hawk_bchu_t)((hawk_uintptr_t)(p) >> HAWK_VTR_NUM_TYPE_BITS_LOHI))
 
 #define HAWK_GET_VAL_TYPE(p) (HAWK_VTR_IS_INT(p)? HAWK_VAL_INT: \
                               HAWK_VTR_IS_CHAR(p)? HAWK_VAL_CHAR: \

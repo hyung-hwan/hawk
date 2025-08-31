@@ -111,6 +111,8 @@ static hawk_sio_t* open_sio_std (Hawk* hawk, HawkStd::Run* run, hawk_sio_std_t s
 		HAWK_T("stderr"),
 	};
 
+	// at least either hawk or run must be non null
+
 	//sio = hawk_sio_openstd ((run? ((Hawk::hawk_t*)*(Hawk*)*run)->mmgr: hawk->getMmgr()), 0, std, flags);
 	sio = hawk_sio_openstd((run? (hawk_gem_t*)*run: (hawk_gem_t*)*hawk), 0, std, flags);
 	if (sio == HAWK_NULL)

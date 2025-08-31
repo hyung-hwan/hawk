@@ -2564,7 +2564,7 @@ hawk_oow_t hawk_uint_to_ucstr (hawk_uint_t value, int radix, const hawk_uch_t* p
 
 	/* non-zero values */
 	len = prefix_len;
-	if (t < 0) { t = -t; len++; }
+	/*if (t < 0) { t = -t; len++; } not needed for an unsigned number */
 	while (t > 0) { len++; t /= radix; }
 
 	if (buf == HAWK_NULL)
@@ -2578,7 +2578,7 @@ hawk_oow_t hawk_uint_to_ucstr (hawk_uint_t value, int radix, const hawk_uch_t* p
 	ret = len;
 
 	t = value;
-	if (t < 0) t = -t;
+	/*if (t < 0) t = -t; not needed for an unsigned number */
 
 	while (t > 0)
 	{
@@ -2590,7 +2590,7 @@ hawk_oow_t hawk_uint_to_ucstr (hawk_uint_t value, int radix, const hawk_uch_t* p
 		t /= radix;
 	}
 
-	if (value < 0)
+	/*if (value < 0)
 	{
 		for (i = 1; i <= prefix_len; i++)
 		{
@@ -2600,9 +2600,9 @@ hawk_oow_t hawk_uint_to_ucstr (hawk_uint_t value, int radix, const hawk_uch_t* p
 		buf[--len] = '-';
 	}
 	else
-	{
+	{*/
 		for (i = 0; i < prefix_len; i++) buf[i] = prefix[i];
-	}
+	/*}*/
 
 	return ret;
 }
@@ -2640,7 +2640,7 @@ hawk_oow_t hawk_uint_to_bcstr (hawk_uint_t value, int radix, const hawk_bch_t* p
 
 	/* non-zero values */
 	len = prefix_len;
-	if (t < 0) { t = -t; len++; }
+	/*if (t < 0) { t = -t; len++; }*/
 	while (t > 0) { len++; t /= radix; }
 
 	if (buf == HAWK_NULL)
@@ -2654,7 +2654,7 @@ hawk_oow_t hawk_uint_to_bcstr (hawk_uint_t value, int radix, const hawk_bch_t* p
 	ret = len;
 
 	t = value;
-	if (t < 0) t = -t;
+	/*if (t < 0) t = -t; */
 
 	while (t > 0)
 	{
@@ -2666,7 +2666,7 @@ hawk_oow_t hawk_uint_to_bcstr (hawk_uint_t value, int radix, const hawk_bch_t* p
 		t /= radix;
 	}
 
-	if (value < 0)
+	/*if (value < 0)
 	{
 		for (i = 1; i <= prefix_len; i++)
 		{
@@ -2676,9 +2676,9 @@ hawk_oow_t hawk_uint_to_bcstr (hawk_uint_t value, int radix, const hawk_bch_t* p
 		buf[--len] = '-';
 	}
 	else
-	{
+	{*/
 		for (i = 0; i < prefix_len; i++) buf[i] = prefix[i];
-	}
+	/*}*/
 
 	return ret;
 }

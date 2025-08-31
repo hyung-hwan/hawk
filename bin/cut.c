@@ -325,40 +325,35 @@ static void stop_run (int signo)
 #endif
 }
 
-static void do_nothing (int unused)
-{
-	/* do nothing */
-}
-
 static void set_intr_run (void)
 {
 #if defined(SIGTERM)
-	hawk_main_set_signal_handler (SIGTERM, stop_run, 0);
+	hawk_main_set_signal_handler(SIGTERM, stop_run, 0);
 #endif
 #if defined(SIGHUP)
-	hawk_main_set_signal_handler (SIGHUP, stop_run, 0);
+	hawk_main_set_signal_handler(SIGHUP, stop_run, 0);
 #endif
 #if defined(SIGINT)
-	hawk_main_set_signal_handler (SIGINT, stop_run, 0);
+	hawk_main_set_signal_handler(SIGINT, stop_run, 0);
 #endif
 #if !defined(_WIN32) && !defined(__OS2__) && !defined(__DOS__) && defined(SIGPIPE)
-	hawk_main_set_signal_handler (SIGPIPE, do_nothing, 0);
+	hawk_main_set_signal_handler(SIGPIPE, hawk_main_do_nothing_on_signal, 0);
 #endif
 }
 
 static void unset_intr_run (void)
 {
 #if defined(SIGTERM)
-	hawk_main_unset_signal_handler (SIGTERM);
+	hawk_main_unset_signal_handler(SIGTERM);
 #endif
 #if defined(SIGHUP)
-	hawk_main_unset_signal_handler (SIGHUP);
+	hawk_main_unset_signal_handler(SIGHUP);
 #endif
 #if defined(SIGINT)
-	hawk_main_unset_signal_handler (SIGINT);
+	hawk_main_unset_signal_handler(SIGINT);
 #endif
 #if !defined(_WIN32) && !defined(__OS2__) && !defined(__DOS__) && defined(SIGPIPE)
-	hawk_main_unset_signal_handler (SIGPIPE);
+	hawk_main_unset_signal_handler(SIGPIPE);
 #endif
 }
 

@@ -2130,7 +2130,7 @@ static HAWK_INLINE int run_block0 (hawk_rtx_t* rtx, hawk_nde_blk_t* nde)
 		if (n <= -1)
 		{
 			hawk_rtx_refdownval(rtx, rtx->inrec.d0);
-			ADJERR_LOC(rtx, &nde->loc);
+			/* ADJERR_LOC(rtx, &nde->loc); - can't adjust error location as nde is null */
 			return -1;
 		}
 
@@ -2138,7 +2138,7 @@ static HAWK_INLINE int run_block0 (hawk_rtx_t* rtx, hawk_nde_blk_t* nde)
 		if (n <= -1)
 		{
 			hawk_rtx_refdownval(rtx, rtx->inrec.d0);
-			ADJERR_LOC(rtx, &nde->loc);
+			/* ADJERR_LOC(rtx, &nde->loc); - can't adjust error location as nde is null */
 			return -1;
 		}
 
@@ -6002,8 +6002,8 @@ static hawk_val_t* eval_binop_mul (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t
 	hawk_int_t l1, l2;
 	hawk_flt_t r1, r2;
 
-	n1 = hawk_rtx_valtonum (rtx, left, &l1, &r1);
-	n2 = hawk_rtx_valtonum (rtx, right, &l2, &r2);
+	n1 = hawk_rtx_valtonum(rtx, left, &l1, &r1);
+	n2 = hawk_rtx_valtonum(rtx, right, &l2, &r2);
 
 	if (n1 <= -1 || n2 <= -1)
 	{
@@ -6026,8 +6026,8 @@ static hawk_val_t* eval_binop_div (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t
 	hawk_flt_t r1, r2;
 	hawk_val_t* res;
 
-	n1 = hawk_rtx_valtonum (rtx, left, &l1, &r1);
-	n2 = hawk_rtx_valtonum (rtx, right, &l2, &r2);
+	n1 = hawk_rtx_valtonum(rtx, left, &l1, &r1);
+	n2 = hawk_rtx_valtonum(rtx, right, &l2, &r2);
 
 	if (n1 <= -1 || n2 <= -1)
 	{
@@ -6047,29 +6047,24 @@ static hawk_val_t* eval_binop_div (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t
 
 			if (((hawk_int_t)l1 % (hawk_int_t)l2) == 0)
 			{
-				res = hawk_rtx_makeintval (
-					rtx, (hawk_int_t)l1 / (hawk_int_t)l2);
+				res = hawk_rtx_makeintval(rtx, (hawk_int_t)l1 / (hawk_int_t)l2);
 			}
 			else
 			{
-				res = hawk_rtx_makefltval (
-					rtx, (hawk_flt_t)l1 / (hawk_flt_t)l2);
+				res = hawk_rtx_makefltval(rtx, (hawk_flt_t)l1 / (hawk_flt_t)l2);
 			}
 			break;
 
 		case 1:
-			res = hawk_rtx_makefltval (
-				rtx, (hawk_flt_t)r1 / (hawk_flt_t)l2);
+			res = hawk_rtx_makefltval(rtx, (hawk_flt_t)r1 / (hawk_flt_t)l2);
 			break;
 
 		case 2:
-			res = hawk_rtx_makefltval (
-				rtx, (hawk_flt_t)l1 / (hawk_flt_t)r2);
+			res = hawk_rtx_makefltval(rtx, (hawk_flt_t)l1 / (hawk_flt_t)r2);
 			break;
 
 		case 3:
-			res = hawk_rtx_makefltval (
-				rtx, (hawk_flt_t)r1 / (hawk_flt_t)r2);
+			res = hawk_rtx_makefltval(rtx, (hawk_flt_t)r1 / (hawk_flt_t)r2);
 			break;
 	}
 
@@ -6083,8 +6078,8 @@ static hawk_val_t* eval_binop_idiv (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_
 	hawk_flt_t r1, r2, quo;
 	hawk_val_t* res;
 
-	n1 = hawk_rtx_valtonum (rtx, left, &l1, &r1);
-	n2 = hawk_rtx_valtonum (rtx, right, &l2, &r2);
+	n1 = hawk_rtx_valtonum(rtx, left, &l1, &r1);
+	n2 = hawk_rtx_valtonum(rtx, right, &l2, &r2);
 
 	if (n1 <= -1 || n2 <= -1)
 	{
@@ -6101,23 +6096,22 @@ static hawk_val_t* eval_binop_idiv (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_
 				hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EDIVBY0);
 				return HAWK_NULL;
 			}
-			res = hawk_rtx_makeintval (
-				rtx, (hawk_int_t)l1 / (hawk_int_t)l2);
+			res = hawk_rtx_makeintval(rtx, (hawk_int_t)l1 / (hawk_int_t)l2);
 			break;
 
 		case 1:
 			quo = (hawk_flt_t)r1 / (hawk_flt_t)l2;
-			res = hawk_rtx_makeintval (rtx, (hawk_int_t)quo);
+			res = hawk_rtx_makeintval(rtx, (hawk_int_t)quo);
 			break;
 
 		case 2:
 			quo = (hawk_flt_t)l1 / (hawk_flt_t)r2;
-			res = hawk_rtx_makeintval (rtx, (hawk_int_t)quo);
+			res = hawk_rtx_makeintval(rtx, (hawk_int_t)quo);
 			break;
 
 		case 3:
 			quo = (hawk_flt_t)r1 / (hawk_flt_t)r2;
-			res = hawk_rtx_makeintval (rtx, (hawk_int_t)quo);
+			res = hawk_rtx_makeintval(rtx, (hawk_int_t)quo);
 			break;
 	}
 
@@ -6178,8 +6172,8 @@ static hawk_val_t* eval_binop_exp (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t
 	hawk_flt_t r1, r2;
 	hawk_val_t* res;
 
-	n1 = hawk_rtx_valtonum (rtx, left, &l1, &r1);
-	n2 = hawk_rtx_valtonum (rtx, right, &l2, &r2);
+	n1 = hawk_rtx_valtonum(rtx, left, &l1, &r1);
+	n2 = hawk_rtx_valtonum(rtx, right, &l2, &r2);
 
 	if (n1 <= -1 || n2 <= -1)
 	{

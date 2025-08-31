@@ -187,6 +187,13 @@ int hawk_main_unset_signal_handler (int sig)
 
 /* -------------------------------------------------------- */
 
+void hawk_main_do_nothing_on_signal (int unused)
+{
+	/* do nothing */
+}
+
+/* -------------------------------------------------------- */
+
 int hawk_main_collect_into_xarg (const hawk_bcs_t* path, hawk_main_xarg_t* xarg)
 {
 	if (xarg->size <= xarg->capa)

@@ -125,56 +125,50 @@ static void stop_run (int signo)
 #if !defined(_WIN32) && !defined(__OS2__) && !defined(__DOS__)
 	int e = errno;
 #endif
-
 	/*hawk_haltall(hawk_rtx_gethawk(app_rtx));*/
-	hawk_rtx_halt (app_rtx);
-
+	hawk_rtx_halt(app_rtx);
 #if !defined(_WIN32) && !defined(__OS2__) && !defined(__DOS__)
 	errno = e;
 #endif
 }
 
-static void do_nothing (int unused)
-{
-}
-
 static void set_intr_pipe (void)
 {
 #if !defined(_WIN32) && !defined(__OS2__) && !defined(__DOS__) && defined(SIGPIPE)
-	hawk_main_set_signal_handler (SIGPIPE, do_nothing, 0);
+	hawk_main_set_signal_handler(SIGPIPE, hawk_main_do_nothing_on_signal, 0);
 #endif
 }
 
 static void unset_intr_pipe (void)
 {
 #if !defined(_WIN32) && !defined(__OS2__) && !defined(__DOS__) && defined(SIGPIPE)
-	hawk_main_unset_signal_handler (SIGPIPE);
+	hawk_main_unset_signal_handler(SIGPIPE);
 #endif
 }
 
 static void set_intr_run (void)
 {
 #if defined(SIGTERM)
-	hawk_main_set_signal_handler (SIGTERM, stop_run, 0);
+	hawk_main_set_signal_handler(SIGTERM, stop_run, 0);
 #endif
 #if defined(SIGHUP)
-	hawk_main_set_signal_handler (SIGHUP, stop_run, 0);
+	hawk_main_set_signal_handler(SIGHUP, stop_run, 0);
 #endif
 #if defined(SIGINT)
-	hawk_main_set_signal_handler (SIGINT, stop_run, 0);
+	hawk_main_set_signal_handler(SIGINT, stop_run, 0);
 #endif
 }
 
 static void unset_intr_run (void)
 {
 #if defined(SIGTERM)
-	hawk_main_unset_signal_handler (SIGTERM);
+	hawk_main_unset_signal_handler(SIGTERM);
 #endif
 #if defined(SIGHUP)
-	hawk_main_unset_signal_handler (SIGHUP);
+	hawk_main_unset_signal_handler(SIGHUP);
 #endif
 #if defined(SIGINT)
-	hawk_main_unset_signal_handler (SIGINT);
+	hawk_main_unset_signal_handler(SIGINT);
 #endif
 }
 

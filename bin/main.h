@@ -55,7 +55,7 @@ void hawk_main_print_warning (const hawk_bch_t* fmt, ...);
 
 int hawk_main_set_signal_handler (int sig, hawk_main_sig_handler_t handler, int extra_flags);
 int hawk_main_unset_signal_handler (int sig);
-
+void hawk_main_do_nothing_on_signal (int sig);
 
 int hawk_main_collect_into_xarg (const hawk_bcs_t* path, hawk_main_xarg_t* xarg);
 void hawk_main_purge_xarg (hawk_main_xarg_t* xarg);

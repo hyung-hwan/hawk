@@ -222,6 +222,10 @@ function main()
 		tap_ensure (x, "the tiger- pounces on the dog-dog", @SCRIPTNAME, @SCRIPTLINE);
 		x = gensub(/(tiger|(dog))/, "[&]", 'g', "the tiger pounces on the dog");
 		tap_ensure (x, "the [tiger] pounces on the [dog]", @SCRIPTNAME, @SCRIPTLINE);
+		x = gensub(/(tiger|(dog))/, "[\\0]", 'g', "the tiger pounces on the dog");
+		tap_ensure (x, "the [tiger] pounces on the [dog]", @SCRIPTNAME, @SCRIPTLINE);
+		x = gensub(/((apple)|(turtle)|(orange)|(tiger)|(dog))/, "[\\6]", 'g', "the tiger pounces on the dog");
+		tap_ensure (x, "the [] pounces on the [dog]", @SCRIPTNAME, @SCRIPTLINE);
 	}
 
 	{
