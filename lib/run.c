@@ -224,10 +224,10 @@ static int set_global (hawk_rtx_t* rtx, int idx, hawk_nde_var_t* var, hawk_val_t
 	hawk_rtx_ecb_t* ecb, * ecb_next;
 	hawk_val_type_t vtype, old_vtype;
 
-	old = HAWK_RTX_STACK_GBL (rtx, idx);
+	old = HAWK_RTX_STACK_GBL(rtx, idx);
 
-	vtype = HAWK_RTX_GETVALTYPE (rtx, val);
-	old_vtype = HAWK_RTX_GETVALTYPE (rtx, old);
+	vtype = HAWK_RTX_GETVALTYPE(rtx, val);
+	old_vtype = HAWK_RTX_GETVALTYPE(rtx, old);
 
 	if (!(rtx->hawk->opt.trait & HAWK_FLEXMAP))
 	{
@@ -282,14 +282,14 @@ static int set_global (hawk_rtx_t* rtx, int idx, hawk_nde_var_t* var, hawk_val_t
 			if (var)
 			{
 				/* global variable */
-				hawk_rtx_seterrfmt (rtx, &var->loc, errnum, errfmt, var->id.name.len, var->id.name.ptr);
+				hawk_rtx_seterrfmt(rtx, &var->loc, errnum, errfmt, var->id.name.len, var->id.name.ptr);
 			}
 			else
 			{
 				/* hawk_rtx_setgbl() has been called */
 				hawk_oocs_t ea;
 				ea.ptr = (hawk_ooch_t*)hawk_getgblname(hawk_rtx_gethawk(rtx), idx, &ea.len);
-				hawk_rtx_seterrfmt (rtx, HAWK_NULL, errnum, errfmt, ea.len, ea.ptr);
+				hawk_rtx_seterrfmt(rtx, HAWK_NULL, errnum, errfmt, ea.len, ea.ptr);
 			}
 
 			return -1;
@@ -309,7 +309,7 @@ static int set_global (hawk_rtx_t* rtx, int idx, hawk_nde_var_t* var, hawk_val_t
 
 			hawk_oocs_t ea;
 			ea.ptr = (hawk_ooch_t*)hawk_getgblname(hawk_rtx_gethawk(rtx), idx, &ea.len);
-			hawk_rtx_seterrfmt (rtx, HAWK_NULL, HAWK_ESCALARTONONSCA, HAWK_T("not allowed to change a scalar value in '%.*js' to a nonscalar value"), ea.len, ea.ptr);
+			hawk_rtx_seterrfmt(rtx, HAWK_NULL, HAWK_ESCALARTONONSCA, HAWK_T("not allowed to change a scalar value in '%.*js' to a nonscalar value"), ea.len, ea.ptr);
 			return -1;
 		}
 	}
@@ -384,17 +384,17 @@ static int set_global (hawk_rtx_t* rtx, int idx, hawk_nde_var_t* var, hawk_val_t
 
 				if (hawk_rtx_buildrex(rtx, fs_ptr, fs_len, &rex, &irex) <= -1)
 				{
-					hawk_rtx_freevaloocstr (rtx, val, fs_ptr);
+					hawk_rtx_freevaloocstr(rtx, val, fs_ptr);
 					return -1;
 				}
 
-				if (rtx->gbl.fs[0]) hawk_rtx_freerex (rtx, rtx->gbl.fs[0], rtx->gbl.fs[1]);
+				if (rtx->gbl.fs[0]) hawk_rtx_freerex(rtx, rtx->gbl.fs[0], rtx->gbl.fs[1]);
 
 				rtx->gbl.fs[0] = rex;
 				rtx->gbl.fs[1] = irex;
 			}
 
-			hawk_rtx_freevaloocstr (rtx, val, fs_ptr);
+			hawk_rtx_freevaloocstr(rtx, val, fs_ptr);
 			break;
 		}
 
@@ -424,7 +424,7 @@ static int set_global (hawk_rtx_t* rtx, int idx, hawk_nde_var_t* var, hawk_val_t
 
 			if (lv < 0)
 			{
-				hawk_rtx_seterrfmt (rtx, HAWK_NULL, HAWK_EINVAL, HAWK_T("negative value into NF"));
+				hawk_rtx_seterrfmt(rtx, HAWK_NULL, HAWK_EINVAL, HAWK_T("negative value into NF"));
 				return -1;
 			}
 
@@ -557,7 +557,7 @@ static int set_global (hawk_rtx_t* rtx, int idx, hawk_nde_var_t* var, hawk_val_t
 
 			if (rtx->gbl.rs[0])
 			{
-				hawk_rtx_freerex (rtx, rtx->gbl.rs[0], rtx->gbl.rs[1]);
+				hawk_rtx_freerex(rtx, rtx->gbl.rs[0], rtx->gbl.rs[1]);
 				rtx->gbl.rs[0] = HAWK_NULL;
 				rtx->gbl.rs[1] = HAWK_NULL;
 			}
@@ -569,7 +569,7 @@ static int set_global (hawk_rtx_t* rtx, int idx, hawk_nde_var_t* var, hawk_val_t
 				/* compile the regular expression */
 				if (hawk_rtx_buildrex(rtx, rss.ptr, rss.len, &rex, &irex) <= -1)
 				{
-					hawk_rtx_freevaloocstr (rtx, val, rss.ptr);
+					hawk_rtx_freevaloocstr(rtx, val, rss.ptr);
 					return -1;
 				}
 
@@ -577,7 +577,7 @@ static int set_global (hawk_rtx_t* rtx, int idx, hawk_nde_var_t* var, hawk_val_t
 				rtx->gbl.rs[1] = irex;
 			}
 
-			hawk_rtx_freevaloocstr (rtx, val, rss.ptr);
+			hawk_rtx_freevaloocstr(rtx, val, rss.ptr);
 			break;
 		}
 
@@ -635,7 +635,7 @@ static int set_global (hawk_rtx_t* rtx, int idx, hawk_nde_var_t* var, hawk_val_t
 	for (ecb = rtx->ecb; ecb != (hawk_rtx_ecb_t*)rtx; ecb = ecb_next)
 	{
 		ecb_next = ecb->next;
-		if (ecb->gblset) ecb->gblset (rtx, idx, val, ecb->ctx);
+		if (ecb->gblset) ecb->gblset(rtx, idx, val, ecb->ctx);
 	}
 
 	return 0;
@@ -869,14 +869,14 @@ hawk_rtx_t* hawk_rtx_open (hawk_t* hawk, hawk_oow_t xtnsize, hawk_rio_cbs_t* rio
 	}
 
 	/* initialize the rtx object */
-	HAWK_MEMSET (rtx, 0, HAWK_SIZEOF(hawk_rtx_t) + xtnsize);
+	HAWK_MEMSET(rtx, 0, HAWK_SIZEOF(hawk_rtx_t) + xtnsize);
 	rtx->_instsize = HAWK_SIZEOF(hawk_rtx_t);
 	if (HAWK_UNLIKELY(init_rtx(rtx, hawk, rio) <= -1))
 	{
 		/* because the error information is in the gem part,
 		 * it should be ok to copy over rtx error to hawk even if
 		 * rtx initialization fails. */
-		hawk_rtx_errortohawk (rtx, hawk);
+		hawk_rtx_errortohawk(rtx, hawk);
 		hawk_freemem(hawk, rtx);
 		return HAWK_NULL;
 	}
@@ -885,8 +885,8 @@ hawk_rtx_t* hawk_rtx_open (hawk_t* hawk, hawk_oow_t xtnsize, hawk_rio_cbs_t* rio
 
 	if (HAWK_UNLIKELY(init_globals(rtx) <= -1))
 	{
-		hawk_rtx_errortohawk (rtx, hawk);
-		fini_rtx (rtx, 0);
+		hawk_rtx_errortohawk(rtx, hawk);
+		fini_rtx(rtx, 0);
 		hawk_freemem(hawk, rtx);
 		return HAWK_NULL;
 	}
@@ -904,7 +904,7 @@ hawk_rtx_t* hawk_rtx_open (hawk_t* hawk, hawk_oow_t xtnsize, hawk_rio_cbs_t* rio
 			hawk_rbt_walk (rtx->hawk->modtab, fini_module, &mfc);
 		}
 
-		fini_rtx (rtx, 1);
+		fini_rtx(rtx, 1);
 		hawk_freemem(hawk, rtx);
 		return HAWK_NULL;
 	}
@@ -945,7 +945,7 @@ void hawk_rtx_close (hawk_rtx_t* rtx)
 	for (ecb = rtx->ecb; ecb != (hawk_rtx_ecb_t*)rtx; ecb = ecb_next)
 	{
 		ecb_next = ecb->next;
-		if (ecb->close) ecb->close (rtx, ecb->ctx);
+		if (ecb->close) ecb->close(rtx, ecb->ctx);
 	}
 
 	do { ecb = hawk_rtx_popecb(rtx); } while (ecb);
@@ -957,7 +957,7 @@ void hawk_rtx_close (hawk_rtx_t* rtx)
 	 *  destroyed by the close callback, something bad
 	 *  will happen.
 	 */
-	fini_rtx (rtx, 1);
+	fini_rtx(rtx, 1);
 
 	hawk_freemem (hawk_rtx_gethawk(rtx), rtx);
 }
@@ -1197,13 +1197,13 @@ static void fini_rtx (hawk_rtx_t* rtx, int fini_globals)
 
 	if (rtx->gbl.rs[0])
 	{
-		hawk_rtx_freerex (rtx, rtx->gbl.rs[0], rtx->gbl.rs[1]);
+		hawk_rtx_freerex(rtx, rtx->gbl.rs[0], rtx->gbl.rs[1]);
 		rtx->gbl.rs[0] = HAWK_NULL;
 		rtx->gbl.rs[1] = HAWK_NULL;
 	}
 	if (rtx->gbl.fs[0])
 	{
-		hawk_rtx_freerex (rtx, rtx->gbl.fs[0], rtx->gbl.fs[1]);
+		hawk_rtx_freerex(rtx, rtx->gbl.fs[0], rtx->gbl.fs[1]);
 		rtx->gbl.fs[0] = HAWK_NULL;
 		rtx->gbl.fs[1] = HAWK_NULL;
 	}
@@ -1267,7 +1267,7 @@ static void fini_rtx (hawk_rtx_t* rtx, int fini_globals)
 	/* destroy input record. hawk_rtx_clrrec() should be called
 	 * before the stack has been destroyed because it may try
 	 * to change the value to HAWK_GBL_NF. */
-	hawk_rtx_clrrec (rtx, 0);
+	hawk_rtx_clrrec(rtx, 0);
 	if (rtx->inrec.flds)
 	{
 		hawk_rtx_freemem(rtx, rtx->inrec.flds);
@@ -1279,7 +1279,7 @@ static void fini_rtx (hawk_rtx_t* rtx, int fini_globals)
 	hawk_ooecs_fini (&rtx->inrec.linew);
 	hawk_ooecs_fini (&rtx->inrec.line);
 
-	if (fini_globals) refdown_globals (rtx, 1);
+	if (fini_globals) refdown_globals(rtx, 1);
 
 	/* destroy the stack if necessary */
 	if (rtx->stack)
@@ -1298,14 +1298,14 @@ static void fini_rtx (hawk_rtx_t* rtx, int fini_globals)
 
 #if defined(HAWK_ENABLE_GC)
 	/* collect garbage after having released global variables and named global variables */
-	hawk_rtx_gc (rtx, HAWK_RTX_GC_GEN_FULL);
+	hawk_rtx_gc(rtx, HAWK_RTX_GC_GEN_FULL);
 #endif
 
 	/* destroy values in free list */
 	while (rtx->rcache_count > 0)
 	{
 		hawk_val_ref_t* tmp = rtx->rcache[--rtx->rcache_count];
-		hawk_rtx_freeval (rtx, (hawk_val_t*)tmp, 0);
+		hawk_rtx_freeval(rtx, (hawk_val_t*)tmp, 0);
 	}
 
 #if defined(HAWK_ENABLE_STR_CACHE)
@@ -1316,7 +1316,7 @@ static void fini_rtx (hawk_rtx_t* rtx, int fini_globals)
 			while (rtx->str_cache_count[i] > 0)
 			{
 				hawk_val_str_t* t = rtx->str_cache[i][--rtx->str_cache_count[i]];
-				hawk_rtx_freeval (rtx, (hawk_val_t*)t, 0);
+				hawk_rtx_freeval(rtx, (hawk_val_t*)t, 0);
 			}
 		}
 	}
@@ -1330,14 +1330,14 @@ static void fini_rtx (hawk_rtx_t* rtx, int fini_globals)
 			while (rtx->mbs_cache_count[i] > 0)
 			{
 				hawk_val_mbs_t* t = rtx->mbs_cache[i][--rtx->mbs_cache_count[i]];
-				hawk_rtx_freeval (rtx, (hawk_val_t*)t, 0);
+				hawk_rtx_freeval(rtx, (hawk_val_t*)t, 0);
 			}
 		}
 	}
 #endif
 
-	hawk_rtx_freevalchunk (rtx, rtx->vmgr.ichunk);
-	hawk_rtx_freevalchunk (rtx, rtx->vmgr.rchunk);
+	hawk_rtx_freevalchunk(rtx, rtx->vmgr.ichunk);
+	hawk_rtx_freevalchunk(rtx, rtx->vmgr.rchunk);
 	rtx->vmgr.ichunk = HAWK_NULL;
 	rtx->vmgr.rchunk = HAWK_NULL;
 }
@@ -1393,7 +1393,7 @@ static int prepare_globals (hawk_rtx_t* rtx)
 	while (ngbls > 0)
 	{
 		--ngbls;
-		HAWK_RTX_STACK_PUSH (rtx, hawk_val_nil);
+		HAWK_RTX_STACK_PUSH(rtx, hawk_val_nil);
 	}
 
 	/* override NF to zero */
@@ -1449,7 +1449,7 @@ static int defaultify_globals (hawk_rtx_t* rtx)
 		}
 		else
 		{
-			tmp = hawk_rtx_makestrvalwithoocstr (rtx, gtab[i].str[stridx]);
+			tmp = hawk_rtx_makestrvalwithoocstr(rtx, gtab[i].str[stridx]);
 			if (tmp == HAWK_NULL) return -1;
 		}
 
@@ -1461,7 +1461,7 @@ static int defaultify_globals (hawk_rtx_t* rtx)
 		{
 			for (j = 0; j < i; j++)
 			{
-				hawk_rtx_setgbl (rtx, gtab[i].idx, hawk_val_nil);
+				hawk_rtx_setgbl(rtx, gtab[i].idx, hawk_val_nil);
 			}
 
 			hawk_rtx_refdownval(rtx, tmp);
@@ -1499,7 +1499,7 @@ static int init_globals (hawk_rtx_t* rtx)
 	return 0;
 
 oops:
-	refdown_globals (rtx, 1);
+	refdown_globals(rtx, 1);
 	return -1;
 }
 
@@ -1646,10 +1646,10 @@ hawk_val_t* hawk_rtx_loop (hawk_rtx_t* rtx)
 	}
 
 	saved_stack_top = rtx->stack_top; 	/* remember the current stack top */
-	HAWK_RTX_STACK_PUSH (rtx, (void*)rtx->stack_base); /* push the current stack base */
-	HAWK_RTX_STACK_PUSH (rtx, (void*)saved_stack_top); /* push the current stack top before push the current stack base */
-	HAWK_RTX_STACK_PUSH (rtx, hawk_val_nil); /* secure space for a return value */
-	HAWK_RTX_STACK_PUSH (rtx, hawk_val_nil); /* secure space for HAWK_RTX_STACK_NARGS */
+	HAWK_RTX_STACK_PUSH(rtx, (void*)rtx->stack_base); /* push the current stack base */
+	HAWK_RTX_STACK_PUSH(rtx, (void*)saved_stack_top); /* push the current stack top before push the current stack base */
+	HAWK_RTX_STACK_PUSH(rtx, hawk_val_nil); /* secure space for a return value */
+	HAWK_RTX_STACK_PUSH(rtx, hawk_val_nil); /* secure space for HAWK_RTX_STACK_NARGS */
 
 	/* enter the new stack frame */
 	rtx->stack_base = saved_stack_top; /* let the stack top remembered be the base of a new stack frame */
@@ -1682,7 +1682,7 @@ hawk_val_t* hawk_rtx_execwithucstrarr (hawk_rtx_t* rtx, const hawk_uch_t* args[]
 #if defined(HAWK_ENABLE_GC)
 	/* i assume this function is a usual hawk program starter.
 	 * call garbage collection after a whole program finishes */
-	hawk_rtx_gc (rtx, HAWK_RTX_GC_GEN_FULL);
+	hawk_rtx_gc(rtx, HAWK_RTX_GC_GEN_FULL);
 #endif
 
 	return v;
@@ -1699,7 +1699,7 @@ hawk_val_t* hawk_rtx_execwithbcstrarr (hawk_rtx_t* rtx, const hawk_bch_t* args[]
 #if defined(HAWK_ENABLE_GC)
 	/* i assume this function is a usual hawk program starter.
 	 * call garbage collection after a whole program finishes */
-	hawk_rtx_gc (rtx, HAWK_RTX_GC_GEN_FULL);
+	hawk_rtx_gc(rtx, HAWK_RTX_GC_GEN_FULL);
 #endif
 
 	return v;
@@ -1713,7 +1713,7 @@ static hawk_fun_t* find_fun (hawk_rtx_t* rtx, const hawk_ooch_t* name)
 	pair = hawk_htb_search(rtx->hawk->tree.funs, name, hawk_count_oocstr(name));
 	if (!pair)
 	{
-		hawk_rtx_seterrfmt (rtx, HAWK_NULL, HAWK_EFUNNF, HAWK_T("unable to find function '%js'"), name);
+		hawk_rtx_seterrfmt(rtx, HAWK_NULL, HAWK_EFUNNF, HAWK_T("unable to find function '%js'"), name);
 		return HAWK_NULL;
 	}
 
@@ -1769,7 +1769,7 @@ hawk_val_t* hawk_rtx_callfun (hawk_rtx_t* rtx, hawk_fun_t* fun, hawk_val_t* args
 	{
 		/* cannot call the function again when exit() is called
 		 * in an AWK program or hawk_rtx_halt() is invoked */
-		hawk_rtx_seterrfmt (rtx, HAWK_NULL, HAWK_EPERM, HAWK_T("now allowed to call '%.*js' after exit"), fun->name.len, fun->name.ptr);
+		hawk_rtx_seterrfmt(rtx, HAWK_NULL, HAWK_EPERM, HAWK_T("now allowed to call '%.*js' after exit"), fun->name.len, fun->name.ptr);
 		return HAWK_NULL;
 	}
 	/*rtx->exit_level = EXIT_NONE;*/
@@ -1779,7 +1779,7 @@ hawk_val_t* hawk_rtx_callfun (hawk_rtx_t* rtx, hawk_fun_t* fun, hawk_val_t* args
 	{
 		/* this function contains pass-by-reference parameters.
 		 * i don't support the call here as it requires variables */
-		hawk_rtx_seterrfmt (rtx, HAWK_NULL, HAWK_EPERM, HAWK_T("not allowed to call '%.*js' with pass-by-reference parameters"), fun->name.len, fun->name.ptr);
+		hawk_rtx_seterrfmt(rtx, HAWK_NULL, HAWK_EPERM, HAWK_T("not allowed to call '%.*js' with pass-by-reference parameters"), fun->name.len, fun->name.ptr);
 		return HAWK_NULL;
 	}
 #endif
@@ -1796,7 +1796,7 @@ hawk_val_t* hawk_rtx_callfun (hawk_rtx_t* rtx, hawk_fun_t* fun, hawk_val_t* args
 	{
 		/* TODO: is this correct? what if i want to
 		 *       allow arbitrary numbers of arguments? */
-		hawk_rtx_seterrfmt (rtx, HAWK_NULL, HAWK_EARGTM, HAWK_T("too many arguments to '%.*js'"), fun->name.len, fun->name.ptr);
+		hawk_rtx_seterrfmt(rtx, HAWK_NULL, HAWK_EARGTM, HAWK_T("too many arguments to '%.*js'"), fun->name.len, fun->name.ptr);
 		return HAWK_NULL;
 	}
 
@@ -2167,7 +2167,7 @@ static HAWK_INLINE int run_block0 (hawk_rtx_t* rtx, hawk_nde_blk_t* nde)
 		do
 		{
 			--tmp;
-			HAWK_RTX_STACK_PUSH (rtx, hawk_val_nil);
+			HAWK_RTX_STACK_PUSH(rtx, hawk_val_nil);
 			/* refupval is not required for hawk_val_nil */
 		}
 		while (tmp > 0);
@@ -2254,7 +2254,7 @@ static int run_block (hawk_rtx_t* rtx, hawk_nde_blk_t* nde)
 	if ((rtx)->hawk->haltall) (rtx)->exit_level = EXIT_ABORT; \
 	for (ecb = (rtx)->ecb; ecb != (hawk_rtx_ecb_t*)(rtx); ecb = ecb_next) { \
 		ecb_next = ecb->next; \
-		if (ecb->stmt) ecb->stmt (rtx, nde, ecb->ctx);  \
+		if (ecb->stmt) ecb->stmt(rtx, nde, ecb->ctx);  \
 	} \
 } while(0)
 
@@ -2263,7 +2263,7 @@ static int run_statement (hawk_rtx_t* rtx, hawk_nde_t* nde)
 	int xret;
 	hawk_val_t* tmp;
 
-	ON_STATEMENT (rtx, nde);
+	ON_STATEMENT(rtx, nde);
 
 	switch (nde->type)
 	{
@@ -2517,7 +2517,7 @@ static int run_while (hawk_rtx_t* rtx, hawk_nde_while_t* nde)
 
 		while (1)
 		{
-			ON_STATEMENT (rtx, nde->test);
+			ON_STATEMENT(rtx, nde->test);
 
 			test = eval_expression(rtx, nde->test);
 			if (HAWK_UNLIKELY(!test)) return -1;
@@ -2573,7 +2573,7 @@ static int run_while (hawk_rtx_t* rtx, hawk_nde_while_t* nde)
 			}
 			else if (rtx->exit_level != EXIT_NONE) break;
 
-			ON_STATEMENT (rtx, nde->test);
+			ON_STATEMENT(rtx, nde->test);
 
 			test = eval_expression(rtx, nde->test);
 			if (HAWK_UNLIKELY(!test)) return -1;
@@ -2602,7 +2602,7 @@ static int run_for (hawk_rtx_t* rtx, hawk_nde_for_t* nde)
 	{
 		HAWK_ASSERT(nde->init->next == HAWK_NULL);
 
-		ON_STATEMENT (rtx, nde->init);
+		ON_STATEMENT(rtx, nde->init);
 		val = eval_expression(rtx,nde->init);
 		if (HAWK_UNLIKELY(!val)) return -1;
 
@@ -2620,7 +2620,7 @@ static int run_for (hawk_rtx_t* rtx, hawk_nde_for_t* nde)
 			 * the for statement are allowed */
 			HAWK_ASSERT(nde->test->next == HAWK_NULL);
 
-			ON_STATEMENT (rtx, nde->test);
+			ON_STATEMENT(rtx, nde->test);
 			test = eval_expression(rtx, nde->test);
 			if (HAWK_UNLIKELY(!test)) return -1;
 
@@ -2661,7 +2661,7 @@ static int run_for (hawk_rtx_t* rtx, hawk_nde_for_t* nde)
 		{
 			HAWK_ASSERT(nde->incr->next == HAWK_NULL);
 
-			ON_STATEMENT (rtx, nde->incr);
+			ON_STATEMENT(rtx, nde->incr);
 			val = eval_expression(rtx, nde->incr);
 			if (HAWK_UNLIKELY(!val)) return -1;
 
@@ -3017,7 +3017,7 @@ static int run_nextoutfile (hawk_rtx_t* rtx, hawk_nde_nextfile_t* nde)
 
 	/* nextofile can be called from BEGIN and END block unlike nextfile */
 
-	n = hawk_rtx_nextio_write (rtx, HAWK_OUT_CONSOLE, HAWK_T(""));
+	n = hawk_rtx_nextio_write(rtx, HAWK_OUT_CONSOLE, HAWK_T(""));
 	if (n <= -1)
 	{
 		/* adjust the error line */
@@ -3284,7 +3284,7 @@ static HAWK_INLINE int delete_indexed (hawk_rtx_t* rtx, hawk_val_t* vv, hawk_nde
 				}
 				else
 				{
-					hawk_rtx_seterrfmt (rtx, &var->loc, HAWK_ENOTDEL, HAWK_T("nested scalar value under '%.*js' not deletable"), var->id.name.len, var->id.name.ptr);
+					hawk_rtx_seterrfmt(rtx, &var->loc, HAWK_ENOTDEL, HAWK_T("nested scalar value under '%.*js' not deletable"), var->id.name.len, var->id.name.ptr);
 					goto oops;
 				}
 		}
@@ -3357,7 +3357,7 @@ static int run_delete (hawk_rtx_t* rtx, hawk_nde_delete_t* nde)
 			break;
 
 		default:
-			hawk_rtx_seterrfmt (rtx, &var->loc, HAWK_ENOTDEL, HAWK_T("'%.*js' not deletable"), var->id.name.len, var->id.name.ptr);
+			hawk_rtx_seterrfmt(rtx, &var->loc, HAWK_ENOTDEL, HAWK_T("'%.*js' not deletable"), var->id.name.len, var->id.name.ptr);
 			goto oops;
 	}
 
@@ -3430,7 +3430,7 @@ static hawk_val_t* io_nde_to_str(hawk_rtx_t* rtx, hawk_nde_t* nde, hawk_oocs_t* 
 
 	if (seterr && dst->len <= 0)
 	{
-		hawk_rtx_seterrfmt (rtx, &nde->loc, HAWK_EIONMEM, HAWK_T("empty I/O name"));
+		hawk_rtx_seterrfmt(rtx, &nde->loc, HAWK_EIONMEM, HAWK_T("empty I/O name"));
 	}
 	else
 	{
@@ -3441,7 +3441,7 @@ static hawk_val_t* io_nde_to_str(hawk_rtx_t* rtx, hawk_nde_t* nde, hawk_oocs_t* 
 		{
 			if (dst->ptr[--len] == '\0')
 			{
-				hawk_rtx_seterrfmt (rtx, &nde->loc, HAWK_EIONMNL, HAWK_T("invalid I/O name of length %zu containing '\\0'"), dst->len);
+				hawk_rtx_seterrfmt(rtx, &nde->loc, HAWK_EIONMNL, HAWK_T("invalid I/O name of length %zu containing '\\0'"), dst->len);
 				dst->len = 0; /* indicate that the name is not valid */
 				break;
 			}
@@ -3565,7 +3565,7 @@ static int run_print (hawk_rtx_t* rtx, hawk_nde_print_t* nde)
 	 * inserts <NL> that triggers auto-flush */
 	if (out_v)
 	{
-		hawk_rtx_freevaloocstr (rtx, out_v, out.ptr);
+		hawk_rtx_freevaloocstr(rtx, out_v, out.ptr);
 		hawk_rtx_refdownval(rtx, out_v);
 	}
 
@@ -3577,7 +3577,7 @@ oops:
 oops_1:
 	if (out_v)
 	{
-		hawk_rtx_freevaloocstr (rtx, out_v, out.ptr);
+		hawk_rtx_freevaloocstr(rtx, out_v, out.ptr);
 		hawk_rtx_refdownval(rtx, out_v);
 	}
 
@@ -3686,7 +3686,7 @@ static int run_printf (hawk_rtx_t* rtx, hawk_nde_print_t* nde)
 
 	if (out_v)
 	{
-		hawk_rtx_freevaloocstr (rtx, out_v, out.ptr);
+		hawk_rtx_freevaloocstr(rtx, out_v, out.ptr);
 		hawk_rtx_refdownval(rtx, out_v);
 	}
 
@@ -3698,7 +3698,7 @@ oops:
 oops_1:
 	if (out_v)
 	{
-		hawk_rtx_freevaloocstr (rtx, out_v, out.ptr);
+		hawk_rtx_freevaloocstr(rtx, out_v, out.ptr);
 		hawk_rtx_refdownval(rtx, out_v);
 	}
 
@@ -3808,7 +3808,7 @@ static hawk_val_t* eval_expression (hawk_rtx_t* rtx, hawk_nde_t* nde)
 
 		n = hawk_rtx_matchvalwithoocs(rtx, v, &vs, &vs, HAWK_NULL, HAWK_NULL);
 		hawk_rtx_refdownval(rtx, v);
-		if (free_vs) hawk_rtx_freevaloocstr (rtx, rtx->inrec.d0, vs.ptr);
+		if (free_vs) hawk_rtx_freevaloocstr(rtx, rtx->inrec.d0, vs.ptr);
 		if (n <= -1)
 		{
 			ADJERR_LOC(rtx, &nde->loc);
@@ -4073,7 +4073,7 @@ static hawk_val_t* do_assignment_nonindexed (hawk_rtx_t* rtx, hawk_nde_var_t* va
 	);
 
 	HAWK_ASSERT(var->idx == HAWK_NULL);
-	vtype = HAWK_RTX_GETVALTYPE (rtx, val);
+	vtype = HAWK_RTX_GETVALTYPE(rtx, val);
 
 	switch (var->type)
 	{
@@ -4090,16 +4090,16 @@ static hawk_val_t* do_assignment_nonindexed (hawk_rtx_t* rtx, hawk_nde_var_t* va
 				{
 					/* old value is a map - it can only be accessed through indexing. */
 					if (vtype == old_vtype)
-						hawk_rtx_seterrfmt (rtx, &var->loc, HAWK_ENONSCATONONSCA, HAWK_T("not allowed to change a nonscalar value in '%.*js' to another nonscalar value"), var->id.name.len, var->id.name.ptr);
+						hawk_rtx_seterrfmt(rtx, &var->loc, HAWK_ENONSCATONONSCA, HAWK_T("not allowed to change a nonscalar value in '%.*js' to another nonscalar value"), var->id.name.len, var->id.name.ptr);
 					else
-						hawk_rtx_seterrfmt (rtx, &var->loc, HAWK_ENONSCATOSCALAR, HAWK_T("not allowed to change a nonscalar value in '%.*js' to a scalar value"), var->id.name.len, var->id.name.ptr);
+						hawk_rtx_seterrfmt(rtx, &var->loc, HAWK_ENONSCATOSCALAR, HAWK_T("not allowed to change a nonscalar value in '%.*js' to a scalar value"), var->id.name.len, var->id.name.ptr);
 					return HAWK_NULL;
 				}
 				else if (vtype == HAWK_VAL_MAP || vtype == HAWK_VAL_ARR)
 				{
 					/* old value is not a map but a new value is a map.
 					 * a map cannot be assigned to a variable if FLEXMAP is off. */
-					hawk_rtx_seterrfmt (rtx, &var->loc, HAWK_ENONSCATOVAR, HAWK_T("not allowed to assign a nonscalar value to a variable '%.*js'"), var->id.name.len, var->id.name.ptr);
+					hawk_rtx_seterrfmt(rtx, &var->loc, HAWK_ENONSCATOVAR, HAWK_T("not allowed to assign a nonscalar value to a variable '%.*js'"), var->id.name.len, var->id.name.ptr);
 					return HAWK_NULL;
 				}
 			}
@@ -4136,16 +4136,16 @@ static hawk_val_t* do_assignment_nonindexed (hawk_rtx_t* rtx, hawk_nde_var_t* va
 				{
 					/* old value is a map - it can only be accessed through indexing. */
 					if (vtype == old_type)
-						hawk_rtx_seterrfmt (rtx, &var->loc, HAWK_ENONSCATONONSCA, HAWK_T("not allowed to change a nonscalar value in '%.*js' to another nonscalar value"), var->id.name.len, var->id.name.ptr);
+						hawk_rtx_seterrfmt(rtx, &var->loc, HAWK_ENONSCATONONSCA, HAWK_T("not allowed to change a nonscalar value in '%.*js' to another nonscalar value"), var->id.name.len, var->id.name.ptr);
 					else
-						hawk_rtx_seterrfmt (rtx, &var->loc, HAWK_ENONSCATOSCALAR, HAWK_T("not allowed to change a nonscalar value in '%.*js' to a scalar value"), var->id.name.len, var->id.name.ptr);
+						hawk_rtx_seterrfmt(rtx, &var->loc, HAWK_ENONSCATOSCALAR, HAWK_T("not allowed to change a nonscalar value in '%.*js' to a scalar value"), var->id.name.len, var->id.name.ptr);
 					return HAWK_NULL;
 				}
 				else if (vtype == HAWK_VAL_MAP || vtype == HAWK_VAL_ARR)
 				{
 					/* old value is not a map but a new value is a map.
 					 * a map cannot be assigned to a variable if FLEXMAP is off. */
-					hawk_rtx_seterrfmt (rtx, &var->loc, HAWK_ENONSCATOVAR, HAWK_T("not allowed to assign a nonscalar value to a variable '%.*js'"), var->id.name.len, var->id.name.ptr);
+					hawk_rtx_seterrfmt(rtx, &var->loc, HAWK_ENONSCATOVAR, HAWK_T("not allowed to assign a nonscalar value to a variable '%.*js'"), var->id.name.len, var->id.name.ptr);
 					return HAWK_NULL;
 				}
 			}
@@ -4168,16 +4168,16 @@ static hawk_val_t* do_assignment_nonindexed (hawk_rtx_t* rtx, hawk_nde_var_t* va
 				{
 					/* old value is a map - it can only be accessed through indexing. */
 					if (vtype == old_type)
-						hawk_rtx_seterrfmt (rtx, &var->loc, HAWK_ENONSCATONONSCA, HAWK_T("not allowed to change a nonscalar value in '%.*js' to another nonscalar value"), var->id.name.len, var->id.name.ptr);
+						hawk_rtx_seterrfmt(rtx, &var->loc, HAWK_ENONSCATONONSCA, HAWK_T("not allowed to change a nonscalar value in '%.*js' to another nonscalar value"), var->id.name.len, var->id.name.ptr);
 					else
-						hawk_rtx_seterrfmt (rtx, &var->loc, HAWK_ENONSCATOSCALAR, HAWK_T("not allowed to change a nonscalar value in '%.*js' to a scalar value"), var->id.name.len, var->id.name.ptr);
+						hawk_rtx_seterrfmt(rtx, &var->loc, HAWK_ENONSCATOSCALAR, HAWK_T("not allowed to change a nonscalar value in '%.*js' to a scalar value"), var->id.name.len, var->id.name.ptr);
 					return HAWK_NULL;
 				}
 				else if (vtype == HAWK_VAL_MAP || vtype == HAWK_VAL_ARR)
 				{
 					/* old value is not a map but a new value is a map.
 					 * a map cannot be assigned to a variable if FLEXMAP is off. */
-					hawk_rtx_seterrfmt (rtx, &var->loc, HAWK_ENONSCATOVAR, HAWK_T("not allowed to assign a nonscalar value to a variable '%.*js'"), var->id.name.len, var->id.name.ptr);
+					hawk_rtx_seterrfmt(rtx, &var->loc, HAWK_ENONSCATOVAR, HAWK_T("not allowed to assign a nonscalar value to a variable '%.*js'"), var->id.name.len, var->id.name.ptr);
 					return HAWK_NULL;
 				}
 			}
@@ -4306,7 +4306,7 @@ static hawk_val_t* do_assignment_indexed (hawk_rtx_t* rtx, hawk_nde_var_t* var, 
 						}
 						else
 						{
-							hawk_rtx_seterrfmt (rtx, &var->loc, HAWK_ESCALARTONONSCA, HAWK_T("not allowed to change a nested scalar value under '%.*js' to a nonscalar value"), var->id.name.len, var->id.name.ptr);
+							hawk_rtx_seterrfmt(rtx, &var->loc, HAWK_ESCALARTONONSCA, HAWK_T("not allowed to change a nested scalar value under '%.*js' to a nonscalar value"), var->id.name.len, var->id.name.ptr);
 							goto oops;
 						}
 				}
@@ -4353,7 +4353,7 @@ static hawk_val_t* do_assignment_indexed (hawk_rtx_t* rtx, hawk_nde_var_t* var, 
 			{
 				/* you can't manipulate a variable pointing to
 				 * a scalar value with an index if FLEXMAP is off. */
-				hawk_rtx_seterrfmt (rtx, &var->loc, HAWK_ESCALARTONONSCA, HAWK_T("not allowed to change a scalar value in '%.*js' to a nonscalar value"), var->id.name.len, var->id.name.ptr);
+				hawk_rtx_seterrfmt(rtx, &var->loc, HAWK_ESCALARTONONSCA, HAWK_T("not allowed to change a scalar value in '%.*js' to a nonscalar value"), var->id.name.len, var->id.name.ptr);
 				goto oops;
 			}
 	}
@@ -4390,7 +4390,7 @@ static hawk_val_t* do_assignment_positional (hawk_rtx_t* rtx, hawk_nde_pos_t* po
 		return HAWK_NULL;
 	}
 
-	vtype = HAWK_RTX_GETVALTYPE (rtx, val);
+	vtype = HAWK_RTX_GETVALTYPE(rtx, val);
 	if (vtype == HAWK_VAL_STR)
 	{
 		str = ((hawk_val_str_t*)val)->val;
@@ -4527,7 +4527,7 @@ static hawk_val_t* eval_binop_lor (hawk_rtx_t* rtx, hawk_nde_t* left, hawk_nde_t
 	/*
 	hawk_val_t* res = HAWK_NULL;
 
-	res = hawk_rtx_makeintval (
+	res = hawk_rtx_makeintval(
 		rtx,
 		hawk_rtx_valtobool(rtx,left) ||
 		hawk_rtx_valtobool(rtx,right)
@@ -4579,7 +4579,7 @@ static hawk_val_t* eval_binop_land (hawk_rtx_t* rtx, hawk_nde_t* left, hawk_nde_
 	/*
 	hawk_val_t* res = HAWK_NULL;
 
-	res = hawk_rtx_makeintval (
+	res = hawk_rtx_makeintval(
 		rtx,
 		hawk_rtx_valtobool(rtx,left) &&
 		hawk_rtx_valtobool(rtx,right)
@@ -4923,7 +4923,7 @@ static HAWK_INLINE int __cmp_char_int (hawk_rtx_t* rtx, hawk_val_t* left, hawk_v
 	str0 = hawk_rtx_getvaloocstr(rtx, right, &len0);
 	if (!str0) return CMP_ERROR;
 	n = hawk_comp_oochars(&v1, 1, str0, len0, rtx->gbl.ignorecase);
-	hawk_rtx_freevaloocstr (rtx, right, str0);
+	hawk_rtx_freevaloocstr(rtx, right, str0);
 	return n;
 }
 
@@ -5009,7 +5009,7 @@ static HAWK_INLINE int __cmp_bchr_int (hawk_rtx_t* rtx, hawk_val_t* left, hawk_v
 	str0 = hawk_rtx_getvalbcstr(rtx, right, &len0);
 	if (!str0) return CMP_ERROR;
 	n = hawk_comp_bchars(&v1, 1, str0, len0, rtx->gbl.ignorecase);
-	hawk_rtx_freevalbcstr (rtx, right, str0);
+	hawk_rtx_freevalbcstr(rtx, right, str0);
 	return n;
 }
 
@@ -5087,7 +5087,7 @@ static HAWK_INLINE int __cmp_int_int (hawk_rtx_t* rtx, hawk_val_t* left, hawk_va
 
 static HAWK_INLINE int __cmp_int_flt (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t* right, cmp_op_t op_hint)
 {
-	hawk_int_t v1 = HAWK_RTX_GETINTFROMVAL (rtx, left);
+	hawk_int_t v1 = HAWK_RTX_GETINTFROMVAL(rtx, left);
 	if (v1 > ((hawk_val_flt_t*)right)->val) return 1;
 	if (v1 < ((hawk_val_flt_t*)right)->val) return -1;
 	return 0;
@@ -5129,7 +5129,7 @@ static HAWK_INLINE int __cmp_int_str (hawk_rtx_t* rtx, hawk_val_t* left, hawk_va
 	str0 = hawk_rtx_getvaloocstr(rtx, left, &len0);
 	if (!str0) return CMP_ERROR;
 	n = hawk_comp_oochars(str0, len0, ((hawk_val_str_t*)right)->val.ptr, ((hawk_val_str_t*)right)->val.len, rtx->gbl.ignorecase);
-	hawk_rtx_freevaloocstr (rtx, left, str0);
+	hawk_rtx_freevaloocstr(rtx, left, str0);
 	return n;
 }
 
@@ -5168,7 +5168,7 @@ static HAWK_INLINE int __cmp_int_mbs (hawk_rtx_t* rtx, hawk_val_t* left, hawk_va
 	str0 = hawk_rtx_getvalbcstr(rtx, left, &len0);
 	if (!str0) return -1;
 	n = hawk_comp_bchars(str0, len0, ((hawk_val_mbs_t*)right)->val.ptr, ((hawk_val_mbs_t*)right)->val.len, rtx->gbl.ignorecase);
-	hawk_rtx_freevalbcstr (rtx, left, str0);
+	hawk_rtx_freevalbcstr(rtx, left, str0);
 	return n;
 }
 
@@ -5251,7 +5251,7 @@ static HAWK_INLINE int __cmp_flt_str (hawk_rtx_t* rtx, hawk_val_t* left, hawk_va
 	str0 = hawk_rtx_getvaloocstr(rtx, left, &len0);
 	if (!str0) return CMP_ERROR;
 	n = hawk_comp_oochars(str0, len0, ((hawk_val_str_t*)right)->val.ptr, ((hawk_val_str_t*)right)->val.len, rtx->gbl.ignorecase);
-	hawk_rtx_freevaloocstr (rtx, left, str0);
+	hawk_rtx_freevaloocstr(rtx, left, str0);
 	return n;
 }
 
@@ -5278,7 +5278,7 @@ static HAWK_INLINE int __cmp_flt_mbs (hawk_rtx_t* rtx, hawk_val_t* left, hawk_va
 	str0 = hawk_rtx_getvalbcstr(rtx, left, &len0);
 	if (HAWK_UNLIKELY(!str0)) return CMP_ERROR;
 	n = hawk_comp_bchars(str0, len0, ((hawk_val_mbs_t*)right)->val.ptr, ((hawk_val_mbs_t*)right)->val.len, rtx->gbl.ignorecase);
-	hawk_rtx_freevalbcstr (rtx, left, str0);
+	hawk_rtx_freevalbcstr(rtx, left, str0);
 	return n;
 }
 
@@ -5940,7 +5940,7 @@ static hawk_val_t* eval_binop_rshift (hawk_rtx_t* rtx, hawk_val_t* left, hawk_va
 		return HAWK_NULL;
 	}
 
-	return hawk_rtx_makeintval (rtx, l1 >> l2);
+	return hawk_rtx_makeintval(rtx, l1 >> l2);
 }
 
 static hawk_val_t* eval_binop_plus (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t* right)
@@ -6045,9 +6045,9 @@ static hawk_val_t* eval_binop_div (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t
 				return HAWK_NULL;
 			}
 
-			if (((hawk_int_t)l1 % (hawk_int_t)l2) == 0)
+			if ((l1 % l2) == 0)
 			{
-				res = hawk_rtx_makeintval(rtx, (hawk_int_t)l1 / (hawk_int_t)l2);
+				res = hawk_rtx_makeintval(rtx, l1 / l2);
 			}
 			else
 			{
@@ -6056,15 +6056,15 @@ static hawk_val_t* eval_binop_div (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t
 			break;
 
 		case 1:
-			res = hawk_rtx_makefltval(rtx, (hawk_flt_t)r1 / (hawk_flt_t)l2);
+			res = hawk_rtx_makefltval(rtx, r1 / (hawk_flt_t)l2);
 			break;
 
 		case 2:
-			res = hawk_rtx_makefltval(rtx, (hawk_flt_t)l1 / (hawk_flt_t)r2);
+			res = hawk_rtx_makefltval(rtx, (hawk_flt_t)l1 / r2);
 			break;
 
 		case 3:
-			res = hawk_rtx_makefltval(rtx, (hawk_flt_t)r1 / (hawk_flt_t)r2);
+			res = hawk_rtx_makefltval(rtx, r1 / r2);
 			break;
 	}
 
@@ -6096,21 +6096,21 @@ static hawk_val_t* eval_binop_idiv (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_
 				hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EDIVBY0);
 				return HAWK_NULL;
 			}
-			res = hawk_rtx_makeintval(rtx, (hawk_int_t)l1 / (hawk_int_t)l2);
+			res = hawk_rtx_makeintval(rtx, l1 / l2);
 			break;
 
 		case 1:
-			quo = (hawk_flt_t)r1 / (hawk_flt_t)l2;
+			quo = r1 / (hawk_flt_t)l2;
 			res = hawk_rtx_makeintval(rtx, (hawk_int_t)quo);
 			break;
 
 		case 2:
-			quo = (hawk_flt_t)l1 / (hawk_flt_t)r2;
+			quo = (hawk_flt_t)l1 / r2;
 			res = hawk_rtx_makeintval(rtx, (hawk_int_t)quo);
 			break;
 
 		case 3:
-			quo = (hawk_flt_t)r1 / (hawk_flt_t)r2;
+			quo = r1 / r2;
 			res = hawk_rtx_makeintval(rtx, (hawk_int_t)quo);
 			break;
 	}
@@ -6146,15 +6146,15 @@ static hawk_val_t* eval_binop_mod (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t
 				hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EDIVBY0);
 				return HAWK_NULL;
 			}
-			res = hawk_rtx_makeintval(rtx, (hawk_int_t)l1 % (hawk_int_t)l2);
+			res = hawk_rtx_makeintval(rtx, l1 % l2);
 			break;
 
 		case 1:
-			res = hawk_rtx_makefltval(rtx, rtx->hawk->prm.math.mod(hawk_rtx_gethawk(rtx), (hawk_flt_t)r1, (hawk_flt_t)l2));
+			res = hawk_rtx_makefltval(rtx, rtx->hawk->prm.math.mod(hawk_rtx_gethawk(rtx), r1, (hawk_flt_t)l2));
 			break;
 
 		case 2:
-			res = hawk_rtx_makefltval(rtx, rtx->hawk->prm.math.mod(hawk_rtx_gethawk(rtx), (hawk_flt_t)l1, (hawk_flt_t)r2));
+			res = hawk_rtx_makefltval(rtx, rtx->hawk->prm.math.mod(hawk_rtx_gethawk(rtx), (hawk_flt_t)l1, r2));
 			break;
 
 		case 3:
@@ -6190,7 +6190,7 @@ static hawk_val_t* eval_binop_exp (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t
 			{
 				hawk_int_t v = 1;
 				while (l2-- > 0) v *= l1;
-				res = hawk_rtx_makeintval (rtx, v);
+				res = hawk_rtx_makeintval(rtx, v);
 			}
 			else if (l1 == 0)
 			{
@@ -6202,7 +6202,7 @@ static hawk_val_t* eval_binop_exp (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t
 				hawk_flt_t v = 1.0;
 				l2 *= -1;
 				while (l2-- > 0) v /= l1;
-				res = hawk_rtx_makefltval (rtx, v);
+				res = hawk_rtx_makefltval(rtx, v);
 			}
 			break;
 
@@ -6212,7 +6212,7 @@ static hawk_val_t* eval_binop_exp (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t
 			{
 				hawk_flt_t v = 1.0;
 				while (l2-- > 0) v *= r1;
-				res = hawk_rtx_makefltval (rtx, v);
+				res = hawk_rtx_makefltval(rtx, v);
 			}
 			else if (r1 == 0.0)
 			{
@@ -6224,23 +6224,23 @@ static hawk_val_t* eval_binop_exp (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t
 				hawk_flt_t v = 1.0;
 				l2 *= -1;
 				while (l2-- > 0) v /= r1;
-				res = hawk_rtx_makefltval (rtx, v);
+				res = hawk_rtx_makefltval(rtx, v);
 			}
 			break;
 
 		case 2:
 			/* left - int, right - real */
-			res = hawk_rtx_makefltval (
+			res = hawk_rtx_makefltval(
 				rtx,
-				rtx->hawk->prm.math.pow(hawk_rtx_gethawk(rtx), (hawk_flt_t)l1, (hawk_flt_t)r2)
+				rtx->hawk->prm.math.pow(hawk_rtx_gethawk(rtx), (hawk_flt_t)l1, r2)
 			);
 			break;
 
 		case 3:
 			/* left - real, right - real */
-			res = hawk_rtx_makefltval (
+			res = hawk_rtx_makefltval(
 				rtx,
-				rtx->hawk->prm.math.pow(hawk_rtx_gethawk(rtx), (hawk_flt_t)r1,(hawk_flt_t)r2)
+				rtx->hawk->prm.math.pow(hawk_rtx_gethawk(rtx), r1, r2)
 			);
 			break;
 	}
@@ -6266,7 +6266,7 @@ static hawk_val_t* eval_binop_concat (hawk_rtx_t* rtx, hawk_val_t* left, hawk_va
 			r.ptr = hawk_rtx_getvalbcstr(rtx, right, &r.len);
 			if (HAWK_UNLIKELY(!r.ptr))
 			{
-				hawk_rtx_freevalbcstr (rtx, left, l.ptr);
+				hawk_rtx_freevalbcstr(rtx, left, l.ptr);
 				return HAWK_NULL;
 			}
 
@@ -6287,7 +6287,7 @@ static hawk_val_t* eval_binop_concat (hawk_rtx_t* rtx, hawk_val_t* left, hawk_va
 			r.ptr = hawk_rtx_getvaloocstr(rtx, right, &r.len);
 			if (HAWK_UNLIKELY(!r.ptr))
 			{
-				hawk_rtx_freevaloocstr (rtx, left, l.ptr);
+				hawk_rtx_freevaloocstr(rtx, left, l.ptr);
 				return HAWK_NULL;
 			}
 
@@ -6314,7 +6314,7 @@ static hawk_val_t* eval_binop_match0 (
 	if (HAWK_UNLIKELY(!out.ptr)) return HAWK_NULL;
 
 	n = hawk_rtx_matchvalwithoocs(rtx, right, &out, &out, HAWK_NULL, HAWK_NULL);
-	hawk_rtx_freevaloocstr (rtx, left, out.ptr);
+	hawk_rtx_freevaloocstr(rtx, left, out.ptr);
 
 	if (HAWK_UNLIKELY(n <= -1))
 	{
@@ -6425,7 +6425,7 @@ static hawk_val_t* eval_unary (hawk_rtx_t* rtx, hawk_nde_t* nde)
 			break;
 
 		case HAWK_UNROP_LNOT:
-			if (HAWK_RTX_GETVALTYPE (rtx, left) == HAWK_VAL_STR)
+			if (HAWK_RTX_GETVALTYPE(rtx, left) == HAWK_VAL_STR)
 			{
 				/* 0 if the string length is greater than 0.
 				 * 1 if it's empty */
@@ -6513,7 +6513,7 @@ static hawk_val_t* eval_incpre (hawk_rtx_t* rtx, hawk_nde_t* nde)
 	{
 		case HAWK_VAL_INT:
 		{
-			hawk_int_t r = HAWK_RTX_GETINTFROMVAL (rtx, left);
+			hawk_int_t r = HAWK_RTX_GETINTFROMVAL(rtx, left);
 			res = hawk_rtx_makeintval(rtx, r + inc_val_int);
 			if (HAWK_UNLIKELY(!res))
 			{
@@ -6553,12 +6553,12 @@ static hawk_val_t* eval_incpre (hawk_rtx_t* rtx, hawk_nde_t* nde)
 
 			if (n == 0)
 			{
-				res = hawk_rtx_makeintval (rtx, v1 + inc_val_int);
+				res = hawk_rtx_makeintval(rtx, v1 + inc_val_int);
 			}
 			else /* if (n == 1) */
 			{
 				HAWK_ASSERT(n == 1);
-				res = hawk_rtx_makefltval (rtx, v2 + inc_val_flt);
+				res = hawk_rtx_makefltval(rtx, v2 + inc_val_flt);
 			}
 
 			if (HAWK_UNLIKELY(!res))
@@ -6627,7 +6627,7 @@ static hawk_val_t* eval_incpst (hawk_rtx_t* rtx, hawk_nde_t* nde)
 
 	hawk_rtx_refupval(rtx, left);
 
-	left_vtype = HAWK_RTX_GETVALTYPE (rtx, left);
+	left_vtype = HAWK_RTX_GETVALTYPE(rtx, left);
 
 	switch (left_vtype)
 	{
@@ -6646,7 +6646,7 @@ static hawk_val_t* eval_incpst (hawk_rtx_t* rtx, hawk_nde_t* nde)
 			if (HAWK_UNLIKELY(!res2))
 			{
 				hawk_rtx_refdownval(rtx, left);
-				hawk_rtx_freeval (rtx, res, HAWK_RTX_FREEVAL_CACHE);
+				hawk_rtx_freeval(rtx, res, HAWK_RTX_FREEVAL_CACHE);
 				ADJERR_LOC(rtx, &nde->loc);
 				return HAWK_NULL;
 			}
@@ -6669,7 +6669,7 @@ static hawk_val_t* eval_incpst (hawk_rtx_t* rtx, hawk_nde_t* nde)
 			if (HAWK_UNLIKELY(!res2))
 			{
 				hawk_rtx_refdownval(rtx, left);
-				hawk_rtx_freeval (rtx, res, HAWK_RTX_FREEVAL_CACHE);
+				hawk_rtx_freeval(rtx, res, HAWK_RTX_FREEVAL_CACHE);
 				ADJERR_LOC(rtx, &nde->loc);
 				return HAWK_NULL;
 			}
@@ -6705,7 +6705,7 @@ static hawk_val_t* eval_incpst (hawk_rtx_t* rtx, hawk_nde_t* nde)
 				if (HAWK_UNLIKELY(!res2))
 				{
 					hawk_rtx_refdownval(rtx, left);
-					hawk_rtx_freeval (rtx, res, HAWK_RTX_FREEVAL_CACHE);
+					hawk_rtx_freeval(rtx, res, HAWK_RTX_FREEVAL_CACHE);
 					ADJERR_LOC(rtx, &nde->loc);
 					return HAWK_NULL;
 				}
@@ -6725,7 +6725,7 @@ static hawk_val_t* eval_incpst (hawk_rtx_t* rtx, hawk_nde_t* nde)
 				if (HAWK_UNLIKELY(!res2))
 				{
 					hawk_rtx_refdownval(rtx, left);
-					hawk_rtx_freeval (rtx, res, HAWK_RTX_FREEVAL_CACHE);
+					hawk_rtx_freeval(rtx, res, HAWK_RTX_FREEVAL_CACHE);
 					ADJERR_LOC(rtx, &nde->loc);
 					return HAWK_NULL;
 				}
@@ -6791,7 +6791,7 @@ static HAWK_INLINE hawk_val_t* eval_fncall_fun (hawk_rtx_t* rtx, hawk_nde_t* nde
 		pair = hawk_htb_search(rtx->hawk->tree.funs, call->u.fun.name.ptr, call->u.fun.name.len);
 		if (!pair)
 		{
-			hawk_rtx_seterrfmt (rtx, &nde->loc, HAWK_EFUNNF, HAWK_T("function '%.*js' not found"), call->u.fun.name.len, call->u.fun.name.ptr);
+			hawk_rtx_seterrfmt(rtx, &nde->loc, HAWK_EFUNNF, HAWK_T("function '%.*js' not found"), call->u.fun.name.len, call->u.fun.name.ptr);
 			return HAWK_NULL;
 		}
 
@@ -6811,7 +6811,7 @@ static HAWK_INLINE hawk_val_t* eval_fncall_fun (hawk_rtx_t* rtx, hawk_nde_t* nde
 	{
 		/* TODO: is this correct? what if i want to
 		 *       allow arbitarary numbers of arguments? */
-		hawk_rtx_seterrfmt (rtx, &nde->loc, HAWK_EARGTM, HAWK_T("too many arguments to '%.*js'"), fun->name.len, fun->name.ptr);
+		hawk_rtx_seterrfmt(rtx, &nde->loc, HAWK_EARGTM, HAWK_T("too many arguments to '%.*js'"), fun->name.len, fun->name.ptr);
 		return HAWK_NULL;
 	}
 
@@ -6841,7 +6841,7 @@ static hawk_val_t* eval_fncall_var (hawk_rtx_t* rtx, hawk_nde_t* nde)
 	if (HAWK_UNLIKELY(!fun))
 	{
 		if (hawk_rtx_geterrnum(rtx) == HAWK_EINVAL)
-			hawk_rtx_seterrfmt (rtx, &nde->loc, HAWK_ENOTFUN, HAWK_T("non-function value in %.*js"), call->u.var.var->id.name.len, call->u.var.var->id.name.ptr);
+			hawk_rtx_seterrfmt(rtx, &nde->loc, HAWK_ENOTFUN, HAWK_T("non-function value in %.*js"), call->u.var.var->id.name.len, call->u.var.var->id.name.ptr);
 		ADJERR_LOC(rtx, &nde->loc);
 		rv = HAWK_NULL;
 	}
@@ -6849,7 +6849,7 @@ static hawk_val_t* eval_fncall_var (hawk_rtx_t* rtx, hawk_nde_t* nde)
 	{
 		/* TODO: is this correct? what if i want to
 		*       allow arbitarary numbers of arguments? */
-		hawk_rtx_seterrfmt (rtx, &nde->loc, HAWK_EARGTM, HAWK_T("too many arguments to '%.*js'"), fun->name.len, fun->name.ptr);
+		hawk_rtx_seterrfmt(rtx, &nde->loc, HAWK_EARGTM, HAWK_T("too many arguments to '%.*js'"), fun->name.len, fun->name.ptr);
 		rv = HAWK_NULL;
 	}
 	else
@@ -6940,10 +6940,10 @@ hawk_val_t* hawk_rtx_evalcall (
 		return HAWK_NULL;
 	}
 
-	HAWK_RTX_STACK_PUSH (rtx, (void*)rtx->stack_base);
-	HAWK_RTX_STACK_PUSH (rtx, (void*)saved_stack_top);
-	HAWK_RTX_STACK_PUSH (rtx, hawk_val_nil); /* space for return value */
-	HAWK_RTX_STACK_PUSH (rtx, hawk_val_nil); /* space for number of arguments */
+	HAWK_RTX_STACK_PUSH(rtx, (void*)rtx->stack_base);
+	HAWK_RTX_STACK_PUSH(rtx, (void*)saved_stack_top);
+	HAWK_RTX_STACK_PUSH(rtx, hawk_val_nil); /* space for return value */
+	HAWK_RTX_STACK_PUSH(rtx, hawk_val_nil); /* space for number of arguments */
 
 	saved_arg_stack_top = rtx->stack_top;
 
@@ -6959,7 +6959,7 @@ hawk_val_t* hawk_rtx_evalcall (
 		while (nargs < fun->nargs)
 		{
 			/* push as many nils as the number of missing actual arguments */
-			HAWK_RTX_STACK_PUSH (rtx, hawk_val_nil);
+			HAWK_RTX_STACK_PUSH(rtx, hawk_val_nil);
 			nargs++;
 		}
 	}
@@ -7168,7 +7168,7 @@ hawk_val_t* hawk_rtx_evalcall (
 		 * reached zero because its reference has been incremented
 		 * in rtx_return or directly by hawk_rtx_setretval()
 		 * regardless of its reference count. */
-		hawk_rtx_refdownval_nofree (rtx, v);
+		hawk_rtx_refdownval_nofree(rtx, v);
 	}
 
 	rtx->stack_top =  (hawk_oow_t)rtx->stack[rtx->stack_base + 1];
@@ -7229,12 +7229,12 @@ static hawk_oow_t push_arg_from_vals (hawk_rtx_t* rtx, hawk_nde_fncall_t* call, 
 				return (hawk_oow_t)-1;
 			}
 
-			HAWK_RTX_STACK_PUSH (rtx, v);
+			HAWK_RTX_STACK_PUSH(rtx, v);
 			hawk_rtx_refupval(rtx, v);
 		}
 		else
 		{
-			HAWK_RTX_STACK_PUSH (rtx, pafv->args[nargs]);
+			HAWK_RTX_STACK_PUSH(rtx, pafv->args[nargs]);
 			hawk_rtx_refupval(rtx, pafv->args[nargs]);
 		}
 	}
@@ -7299,7 +7299,7 @@ static hawk_oow_t push_arg_from_nde (hawk_rtx_t* rtx, hawk_nde_fncall_t* call, v
 
 		if (HAWK_UNLIKELY(!v)) return (hawk_oow_t)-1; /* return -1 without unwinding stack as hawk_rtx_evalcall() does it */
 
-		HAWK_RTX_STACK_PUSH (rtx, v);
+		HAWK_RTX_STACK_PUSH(rtx, v);
 		hawk_rtx_refupval(rtx, v);
 	}
 
@@ -7626,7 +7626,7 @@ static hawk_val_t* eval_xargv (hawk_rtx_t* rtx, hawk_nde_t* nde)
 		}
 	}
 
-	hawk_rtx_refdownval_nofree (rtx,v);
+	hawk_rtx_refdownval_nofree(rtx,v);
 	return v;
 }
 
@@ -7673,7 +7673,7 @@ static hawk_val_t* eval_fun (hawk_rtx_t* rtx, hawk_nde_t* nde)
 		if (!pair)
 		{
 			/* it's unlikely to be not found in the function table for the parser structure. but keep this code in case */
-			hawk_rtx_seterrfmt (rtx, &nde->loc, HAWK_EFUNNF, HAWK_T("function '%.*js' not found"), ((hawk_nde_fun_t*)nde)->name.len, ((hawk_nde_fun_t*)nde)->name.ptr);
+			hawk_rtx_seterrfmt(rtx, &nde->loc, HAWK_EFUNNF, HAWK_T("function '%.*js' not found"), ((hawk_nde_fun_t*)nde)->name.len, ((hawk_nde_fun_t*)nde)->name.ptr);
 			return HAWK_NULL;
 		}
 
@@ -7915,7 +7915,7 @@ static hawk_val_t* __eval_getline (hawk_rtx_t* rtx, hawk_nde_t* nde)
 		v = io_nde_to_str(rtx, p->in, &dst, 0);
 		if (!v || dst.len <= 0)
 		{
-			hawk_rtx_freevaloocstr (rtx, v, dst.ptr);
+			hawk_rtx_freevaloocstr(rtx, v, dst.ptr);
 			hawk_rtx_refdownval(rtx, v);
 			n = -1;
 			goto skip_read;
@@ -7935,7 +7935,7 @@ read_console_again:
 
 	if (v)
 	{
-		hawk_rtx_freevaloocstr (rtx, v, dst.ptr);
+		hawk_rtx_freevaloocstr(rtx, v, dst.ptr);
 		hawk_rtx_refdownval(rtx, v);
 	}
 
@@ -8022,7 +8022,7 @@ static hawk_val_t* __eval_getbline (hawk_rtx_t* rtx, hawk_nde_t* nde)
 		v = io_nde_to_str(rtx, p->in, &dst, 0);
 		if (!v || dst.len <= 0)
 		{
-			hawk_rtx_freevaloocstr (rtx, v, dst.ptr);
+			hawk_rtx_freevaloocstr(rtx, v, dst.ptr);
 			hawk_rtx_refdownval(rtx, v);
 			n = -1;
 			goto skip_read;
@@ -8042,7 +8042,7 @@ read_console_again:
 
 	if (v)
 	{
-		hawk_rtx_freevaloocstr (rtx, v, dst.ptr);
+		hawk_rtx_freevaloocstr(rtx, v, dst.ptr);
 		hawk_rtx_refdownval(rtx, v);
 	}
 
@@ -8144,7 +8144,7 @@ read_again:
 	n = hawk_rtx_readio(rtx, HAWK_IN_CONSOLE, HAWK_T(""), buf);
 	if (n <= -1)
 	{
-		hawk_rtx_clrrec (rtx, 0);
+		hawk_rtx_clrrec(rtx, 0);
 		return -1;
 	}
 
@@ -8161,7 +8161,7 @@ read_again:
 	{
 		if (((rtx->gbl.nr / rtx->nrflt.limit) % rtx->nrflt.size) != rtx->nrflt.rank)
 		{
-			if (update_fnr (rtx, rtx->gbl.fnr + 1, rtx->gbl.nr + 1) <= -1) return -1;
+			if (update_fnr(rtx, rtx->gbl.fnr + 1, rtx->gbl.nr + 1) <= -1) return -1;
 			goto read_again;
 		}
 	}
@@ -9775,7 +9775,7 @@ wp_mod_main:
 			}
 
 			hawk_rtx_refupval(rtx, v);
-			vtype = HAWK_RTX_GETVALTYPE (rtx, v);
+			vtype = HAWK_RTX_GETVALTYPE(rtx, v);
 			switch (vtype)
 			{
 				case HAWK_VAL_NIL:

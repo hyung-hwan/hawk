@@ -210,6 +210,8 @@ function main()
 		tap_ensure (x, "the tiger-tiger pounces on the dog", @SCRIPTNAME, @SCRIPTLINE);
 		x = gensub(/(tiger|dog)/, "\\1-\\1", 2, "the tiger pounces on the dog");
 		tap_ensure (x, "the tiger pounces on the dog-dog", @SCRIPTNAME, @SCRIPTLINE);
+		x = gensub(/(tiger|dog)/, "\\1-\\1", 2, @b"the tiger pounces on the dog");
+		tap_ensure (x, @b"the tiger pounces on the dog-dog", @SCRIPTNAME, @SCRIPTLINE);
 
 		## 0 as the third argument is same as not passing "g"/"G" or a positive occurrence number.
 		x = gensub(/(tiger|dog)/, "\\1-\\1", 0, "the tiger pounces on the dog");
@@ -220,6 +222,8 @@ function main()
 		tap_ensure (x, "the tiger pounces on the dog", @SCRIPTNAME, @SCRIPTLINE);
 		x = gensub(/(tiger|(dog))/, "\\1-\\2", 'g', "the tiger pounces on the dog");
 		tap_ensure (x, "the tiger- pounces on the dog-dog", @SCRIPTNAME, @SCRIPTLINE);
+		x = gensub(/(tiger|(dog))/, "\\1-\\2", 'g', @b"the tiger pounces on the dog");
+		tap_ensure (x, @b"the tiger- pounces on the dog-dog", @SCRIPTNAME, @SCRIPTLINE);
 		x = gensub(/(tiger|(dog))/, "[&]", 'g', "the tiger pounces on the dog");
 		tap_ensure (x, "the [tiger] pounces on the [dog]", @SCRIPTNAME, @SCRIPTLINE);
 		x = gensub(/(tiger|(dog))/, "[\\0]", 'g', "the tiger pounces on the dog");

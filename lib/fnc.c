@@ -861,21 +861,19 @@ static int fnc_split (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, int use_array)
 	hawk_oocs_t tok;
 	hawk_int_t nflds;
 	int is_byte_str;
-	int x, do_fld = 0;
-	int switch_fs_to_bchr = 0;
-
-	str.ptr = HAWK_NULL;
-	str.len = 0;
+	int x;
+	int do_fld;
+	int switch_fs_to_bchr;
 
 	nargs = hawk_rtx_getnargs(rtx);
-	HAWK_ASSERT (nargs >= 2 && nargs <= 3);
-
 	a0 = hawk_rtx_getarg(rtx, 0);
 	a2 = (nargs >= 3)? hawk_rtx_getarg(rtx, 2): HAWK_NULL;
 
+	do_fld = 0;
+	switch_fs_to_bchr = 0;
+	is_byte_str = 0;
 	str.ptr = HAWK_NULL;
 	str.len = 0;
-	is_byte_str = 0;
 
 	/* field seperator */
 	t0 = a2? a2: hawk_rtx_getgbl(rtx, HAWK_GBL_FS); /* if a2 is not available, get the value from FS */
@@ -977,21 +975,25 @@ static int fnc_split (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, int use_array)
 	{
 		if (fs_rex)
 		{
-			p = is_byte_str? (hawk_ooch_t*)hawk_rtx_tokbcharsbyrex(rtx, (hawk_bch_t*)str.ptr, org_len, (hawk_bch_t*)p, str.len, fs_rex, (hawk_bcs_t*)&tok):
-			              hawk_rtx_tokoocharsbyrex(rtx, str.ptr, org_len, p, str.len, fs_rex, &tok);
+			p = is_byte_str?
+				(hawk_ooch_t*)hawk_rtx_tokbcharsbyrex(rtx, (hawk_bch_t*)str.ptr, org_len, (hawk_bch_t*)p, str.len, fs_rex, (hawk_bcs_t*)&tok):
+				hawk_rtx_tokoocharsbyrex(rtx, str.ptr, org_len, p, str.len, fs_rex, &tok);
 			if (p && hawk_rtx_geterrnum(rtx) != HAWK_ENOERR) goto oops;
 		}
 		else if (do_fld)
 		{
 			/* [NOTE] even if is_byte_str is true, the field seperator is of the ooch type.
 			 *        there may be some data truncation and related issues */
-			p = is_byte_str? (hawk_ooch_t*)hawk_rtx_fldbchars(rtx, (hawk_bch_t*)p, str.len, fs.ptr[1], fs.ptr[2], fs.ptr[3], fs.ptr[4], (hawk_bcs_t*)&tok):
-			              hawk_rtx_fldoochars(rtx, p, str.len, fs.ptr[1], fs.ptr[2], fs.ptr[3], fs.ptr[4], &tok);
+			/* ? sep esc lq rq */
+			p = is_byte_str?
+				(hawk_ooch_t*)hawk_rtx_fldbchars(rtx, (hawk_bch_t*)p, str.len, (hawk_bchu_t)fs.ptr[1], (hawk_bchu_t)fs.ptr[2], (hawk_bchu_t)fs.ptr[3], (hawk_bchu_t)fs.ptr[4], (hawk_bcs_t*)&tok):
+				hawk_rtx_fldoochars(rtx, p, str.len, fs.ptr[1], fs.ptr[2], fs.ptr[3], fs.ptr[4], &tok);
 		}
 		else
 		{
-			p = is_byte_str? (hawk_ooch_t*)hawk_rtx_tokbcharswithbchars(rtx, (hawk_bch_t*)p, str.len, (hawk_bch_t*)fs.ptr, fs.len, (hawk_bcs_t*)&tok):
-			              hawk_rtx_tokoocharswithoochars(rtx, p, str.len, fs.ptr, fs.len, &tok);
+			p = is_byte_str?
+				(hawk_ooch_t*)hawk_rtx_tokbcharswithbchars(rtx, (hawk_bch_t*)p, str.len, (hawk_bch_t*)fs.ptr, fs.len, (hawk_bcs_t*)&tok):
+				hawk_rtx_tokoocharswithoochars(rtx, p, str.len, fs.ptr, fs.len, &tok);
 		}
 
 		if (nflds == 0 && !p && tok.len == 0)
@@ -1311,7 +1313,6 @@ static int __substitute_oocs (hawk_rtx_t* rtx, hawk_oow_t* max_count, hawk_tre_t
 				{
 					m = hawk_ooecs_ccat(new, s1->ptr[i]);
 				}
-
 				if (HAWK_UNLIKELY(m == (hawk_oow_t)-1)) goto oops;
 			}
 
@@ -1347,13 +1348,14 @@ static int __substitute_bcs (hawk_rtx_t* rtx, hawk_oow_t* max_count, hawk_tre_t*
 {
 	hawk_bcs_t mat, pmat, cur;
 	hawk_bcs_t submat[9];
-	hawk_oow_t sub_count, match_limit;
+	hawk_oow_t sub_count, op_count, match_limit;
 	hawk_bch_t* s2_end;
 
 	s2_end = s2->ptr + s2->len;
 	cur.ptr = s2->ptr;
 	cur.len = s2->len;
 	sub_count = 0;
+	op_count = 0;
 	match_limit = *max_count;
 
 	pmat.ptr = HAWK_NULL;
@@ -1389,44 +1391,51 @@ static int __substitute_bcs (hawk_rtx_t* rtx, hawk_oow_t* max_count, hawk_tre_t*
 
 		if (hawk_becs_ncat(new, cur.ptr, mat.ptr - cur.ptr) == (hawk_oow_t)-1) goto oops;
 
-		for (i = 0; i < s1->len; i++)
+		if (extended && op_pos > 0 && (op_pos - 1) != op_count)
 		{
-			if (s1->ptr[i] == '\\' && (i + 1) < s1->len)
+			/* don't perform substitution. just copy the original string to the output */
+			if (hawk_becs_ncat(new, mat.ptr, mat.len) == (hawk_oow_t)-1) goto oops;
+		}
+		else
+		{
+			for (i = 0; i < s1->len; i++)
 			{
-				if (extended) /* for gensub */
+				if (s1->ptr[i] == '\\' && (i + 1) < s1->len)
 				{
-					hawk_bch_t ic = s1->ptr[i + 1];
-					if (ic == '0')
+					if (extended) /* for gensub */
 					{
-						m = hawk_becs_ncat(new, mat.ptr, mat.len);
+						hawk_bch_t ic = s1->ptr[i + 1];
+						if (ic == '0')
+						{
+							m = hawk_becs_ncat(new, mat.ptr, mat.len);
+						}
+						else if (ic >= '1' && ic <= '9')
+						{
+							hawk_oow_t idx = (ic - '0') - 1;
+							m = hawk_becs_ncat(new, submat[idx].ptr, submat[idx].len);
+						}
+						else goto escape;
 					}
-					else if (ic >= '1' && ic <= '9')
+					else
 					{
-						hawk_oow_t idx = (ic - '0') - 1;
-						m = hawk_becs_ncat(new, submat[idx].ptr, submat[idx].len);
+					escape:
+						m = hawk_becs_ccat(new, s1->ptr[i + 1]);
 					}
-					else goto escape;
+					i++; /* skip the backslash */
+				}
+				else if (s1->ptr[i] == '&')
+				{
+					m = hawk_becs_ncat(new, mat.ptr, mat.len);
 				}
 				else
 				{
-				escape:
-					m = hawk_becs_ccat(new, s1->ptr[i + 1]);
+					m = hawk_becs_ccat(new, s1->ptr[i]);
 				}
-				i++; /* skip the backslash */
+				if (HAWK_UNLIKELY(m == (hawk_oow_t)-1)) goto oops;
 			}
-			else if (s1->ptr[i] == '&')
-			{
-				m = hawk_becs_ncat(new, mat.ptr, mat.len);
-			}
-			else
-			{
-				m = hawk_becs_ccat(new, s1->ptr[i]);
-			}
-
-			if (HAWK_UNLIKELY(m == (hawk_oow_t)-1)) goto oops;
+			sub_count++;
 		}
-
-		sub_count++;
+		op_count++;
 		cur.len = cur.len - ((mat.ptr - cur.ptr) + mat.len);
 		cur.ptr = mat.ptr + mat.len;
 
