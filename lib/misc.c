@@ -182,7 +182,6 @@ int hawk_rtx_matchvalwithucs (hawk_rtx_t* rtx, hawk_val_t* val, const hawk_ucs_t
 		if (x <= -1) return -1;
 	}
 
-
 	x = matchtre_ucs(
 		code, ((str->ptr == substr->ptr)? opt: (opt | HAWK_TRE_NOTBOL)),
 		substr, match, submat, hawk_rtx_getgem(rtx)

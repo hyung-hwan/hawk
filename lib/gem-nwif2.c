@@ -122,8 +122,9 @@ static int prefix_to_in6 (int prefix, struct in6_addr* in6)
 
 static HAWK_INLINE void copy_to_skad (struct sockaddr* sa, hawk_oow_t sa_size, hawk_skad_t* skad)
 {
-	/* assume *skad is large enough */
-	HAWK_MEMCPY(skad, sa, sa_size);
+	hawk_oow_t len;
+	len = (sa_size <= HAWK_SIZEOF(*skad))? sa_size: HAWK_SIZEOF(*skad);
+	HAWK_MEMCPY(skad, sa, len);
 }
 /*
 
@@ -458,7 +459,7 @@ static int get_ifcfg (hawk_gem_t* gem, int s, hawk_ifcfg_t* cfg, struct ifreq* i
 	if (lifrbuf.lifr_flags & IFF_BROADCAST) cfg->flags |= HAWK_IFCFG_BCAST;
 	if (lifrbuf.lifr_flags & IFF_POINTOPOINT) cfg->flags |= HAWK_IFCFG_PTOP;
 
-	if (ioctl (s, SIOCGLIFMTU, &lifrbuf) <= -1) return -1;
+	if (ioctl(s, SIOCGLIFMTU, &lifrbuf) <= -1) return -1;
 	cfg->mtu = lifrbuf.lifr_mtu;
 
 	hawk_clear_skad(&cfg->addr);
@@ -765,7 +766,7 @@ static void get_moreinfo (int s, hawk_ifcfg_t* cfg, struct ifreq* ifr)
 
 		drvinfo.cmd = ETHTOOL_GDRVINFO;
 		ifr->ifr_data = &drvinfo;
-		if (ioctl (s, SIOCETHTOOL, ifr) >= 0)
+		if (ioctl(s, SIOCETHTOOL, ifr) >= 0)
 		{
 			struct ethtool_stats *stats;
 			hawk_uint8_t buf[1000]; /* TODO: make this dynamic according to drvinfo.n_stats */
@@ -774,7 +775,7 @@ static void get_moreinfo (int s, hawk_ifcfg_t* cfg, struct ifreq* ifr)
 			stats->cmd = ETHTOOL_GSTATS;
 			stats->n_stats = drvinfo.n_stats * HAWK_SIZEOF(stats->data[0]);
 			ifr->ifr_data = (caddr_t) stats;
-			if (ioctl (s, SIOCETHTOOL, ifr) >= 0)
+			if (ioctl(s, SIOCETHTOOL, ifr) >= 0)
 			{
 for (i = 0; i  < drvinfo.n_stats; i++)
 {
