@@ -761,6 +761,7 @@ static hawk_mod_fnc_tab_t fnctab[] =
 	{ HAWK_T("frombcharcode"), { { 0, A_MAX, HAWK_NULL },  fnc_frombcharcode,     0 } },
 	{ HAWK_T("fromcharcode"),  { { 0, A_MAX, HAWK_NULL },  fnc_fromcharcode,      0 } },
 	{ HAWK_T("frommbs"),       { { 1, 2, HAWK_NULL },      fnc_frommbs,           0 } },
+	{ HAWK_T("gensub"),        { { 3, 4, HAWK_T("xvvv")},  hawk_fnc_gensub,       0 } },
 	{ HAWK_T("gsub"),          { { 2, 3, HAWK_T("xvr")},   hawk_fnc_gsub,         0 } },
 	{ HAWK_T("index"),         { { 2, 3, HAWK_NULL },      hawk_fnc_index,        0 } },
 	{ HAWK_T("isalnum"),       { { 1, 1, HAWK_NULL },      fnc_isalnum,           0 } },
