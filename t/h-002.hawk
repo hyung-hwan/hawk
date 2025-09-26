@@ -486,6 +486,14 @@ function main()
 		tap_ensure (a[3] === @b"So]me",                            1, @SCRIPTNAME, @SCRIPTLINE);
 		tap_ensure (a[4] === @b"Da:ta",                            1, @SCRIPTNAME, @SCRIPTLINE);
 
+		## the splitter begins with a question mark and contains 4 characters
+		## (separator, escaper, left-quote, right-qoute) after it.
+		tap_ensure (split(@b"sea of people, brandy, coke, dark\\,age", a, "?,\\\"\""), 4, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a[1] === @b"sea of people",                    1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a[2] === @b"brandy",                           1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a[3] === @b"coke",                             1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a[4] === @b"dark,age",                         1, @SCRIPTNAME, @SCRIPTLINE);
+
 		tap_ensure (split("Here===Is=Some=====Data", a, ""),       23,     @SCRIPTNAME, @SCRIPTLINE);
 		tap_ensure (hawk::typename(a),                             "map",  @SCRIPTNAME, @SCRIPTLINE);
 		tap_ensure (str::splita("Here===Is=Some=====Data", a, ""),  23,    @SCRIPTNAME, @SCRIPTLINE);
@@ -512,25 +520,25 @@ function main()
 		tap_ensure (a[4],               "b\t\tc",       @SCRIPTNAME, @SCRIPTLINE);
 		tap_ensure (a[5],               "d",            @SCRIPTNAME, @SCRIPTLINE);
 
-		tap_ensure  (str::split('a', a, /a/), 2, @SCRIPTNAME, @SCRIPTLINE);
-		tap_ensure  (a[1] === "", 1, @SCRIPTNAME, @SCRIPTLINE);
-		tap_ensure  (a[2] === "", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::split('a', a, /a/), 2, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a[1] === "", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a[2] === "", 1, @SCRIPTNAME, @SCRIPTLINE);
 
-		tap_ensure  (str::split('a', a, 'a'), 2, @SCRIPTNAME, @SCRIPTLINE);
-		tap_ensure  (a[1] === "", 1, @SCRIPTNAME, @SCRIPTLINE);
-		tap_ensure  (a[2] === "", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::split('a', a, 'a'), 2, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a[1] === "", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a[2] === "", 1, @SCRIPTNAME, @SCRIPTLINE);
 
-		tap_ensure  (str::split('a', a, @b'a'), 2, @SCRIPTNAME, @SCRIPTLINE);
-		tap_ensure  (a[1] === "", 1, @SCRIPTNAME, @SCRIPTLINE);
-		tap_ensure  (a[2] === "", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::split('a', a, @b'a'), 2, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a[1] === "", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a[2] === "", 1, @SCRIPTNAME, @SCRIPTLINE);
 
-		tap_ensure  (str::split(@b'a', a, /a/), 2, @SCRIPTNAME, @SCRIPTLINE);
-		tap_ensure  (a[1] === @b"", 1, @SCRIPTNAME, @SCRIPTLINE);
-		tap_ensure  (a[2] === @b"", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::split(@b'a', a, /a/), 2, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a[1] === @b"", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a[2] === @b"", 1, @SCRIPTNAME, @SCRIPTLINE);
 
-		tap_ensure  (str::split(@b'a', a, @b'a'), 2, @SCRIPTNAME, @SCRIPTLINE);
-		tap_ensure  (a[1] === @b"", 1, @SCRIPTNAME, @SCRIPTLINE);
-		tap_ensure  (a[2] === @b"", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::split(@b'a', a, @b'a'), 2, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a[1] === @b"", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a[2] === @b"", 1, @SCRIPTNAME, @SCRIPTLINE);
 	}
 
 
