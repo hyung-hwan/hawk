@@ -494,6 +494,20 @@ function main()
 		tap_ensure (a[3] === @b"coke",                             1, @SCRIPTNAME, @SCRIPTLINE);
 		tap_ensure (a[4] === @b"dark,age",                         1, @SCRIPTNAME, @SCRIPTLINE);
 
+		## escape doubling scheme - useful for csv-like files
+		## if escaper, left-quote, right-quote are the same, escape doubling scheme is turned on
+		tap_ensure (split(@b"sea of people, brandy, coke, \"\"\"dark\"\", age\"", a, "?,\"\"\""), 4, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a[1] === @b"sea of people",                    1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a[2] === @b"brandy",                           1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a[3] === @b"coke",                             1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a[4] === @b"\"dark\", age",                    1, @SCRIPTNAME, @SCRIPTLINE);
+
+		tap_ensure (split(@b"sea of people, brandy, coke, |||dark||, age|", a, "?,|||"), 4, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a[1] === @b"sea of people",                    1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a[2] === @b"brandy",                           1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a[3] === @b"coke",                             1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (a[4] === @b"|dark|, age",                      1, @SCRIPTNAME, @SCRIPTLINE);
+
 		tap_ensure (split("Here===Is=Some=====Data", a, ""),       23,     @SCRIPTNAME, @SCRIPTLINE);
 		tap_ensure (hawk::typename(a),                             "map",  @SCRIPTNAME, @SCRIPTLINE);
 		tap_ensure (str::splita("Here===Is=Some=====Data", a, ""),  23,    @SCRIPTNAME, @SCRIPTLINE);

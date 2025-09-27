@@ -832,7 +832,7 @@ You can pass fewer arguments than the number of declared parameters to a functio
 Here's an example to illustrate this behavior:
 
 ```awk
-@function greet(name, greeting) {
+function greet(name, greeting) {
     if (greeting == "") {
         greeting = "Hello"
     }
@@ -908,8 +908,8 @@ In this example:
 |--------------|-------------|
 | CONVFMT      |             |
 | FILENAME     |             |
-| FNR          | File Number of Records, reset to 1 for each new input file |
-| FS           | Field Separator, specifies the character(s) that separate fields (columns) in an input record. Default is whitespace |
+| FNR          | File Number of Records, It reset to 1 for each new input file |
+| FS           | Field Separator, specifies the character(s) that separate fields (columns) in an input record. The default is whitespace. If `FS` is a string that begins with a question mark(`?`) and 3 characters, the 3 characters define special quoting characters in this order: escaper, left quote and right quote. |
 | IGNORECASE   |             |
 | NF           | Number of Fields (columns) in the current input record |
 | NR           | Number of Records processed so far |
@@ -919,7 +919,7 @@ In this example:
 | OFS          |             |
 | ORS          |             |
 | RLENGTH      |             |
-| RS           | Record Separator, specifies the character(s) that separate input records (lines). Default is newline `"\n"` |
+| RS           | Record Separator, specifies the character(s) that separate input records (lines). The default is a newline `"\n"` |
 | RSTART       |             |
 | SCRIPTNAME   |             |
 | STRIPRECSPC  |             |

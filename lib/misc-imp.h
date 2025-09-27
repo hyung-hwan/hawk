@@ -30,6 +30,10 @@ char_t* split_xchars_to_fields (hawk_rtx_t* rtx, char_t* str, hawk_oow_t len, ch
 	char_t* ts; /* token start */
 	char_t* tp; /* points to one char past the last token char */
 	char_t* xp; /* points to one char past the last effective char */
+	int escape_doubling;
+
+	/* to extract "abc""def" as abc"def */
+	escape_doubling = (ec == lq && ec == rq);
 
 	/* skip leading spaces */
 	while (p < end && is_xch_space(*p)) p++;
@@ -48,8 +52,9 @@ char_t* split_xchars_to_fields (hawk_rtx_t* rtx, char_t* str, hawk_oow_t len, ch
 		}
 		else
 		{
-			if (c == ec)
+			if (!escape_doubling && c == ec)
 			{
+				/* normal escaping is never activated if escaping with two repeated characters is on */
 				escaped = 1;
 				p++;
 			}
@@ -57,11 +62,17 @@ char_t* split_xchars_to_fields (hawk_rtx_t* rtx, char_t* str, hawk_oow_t len, ch
 			{
 				if (c == rq)
 				{
+					if (escape_doubling && (p + 1) < end && *(p + 1) == rq)
+					{
+						p++;
+						goto not_rq;
+					}
 					quoted = 0;
 					p++;
 				}
 				else
 				{
+				not_rq:
 					*tp++ = c; xp = tp; p++;
 				}
 			}

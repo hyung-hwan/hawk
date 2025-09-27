@@ -683,7 +683,6 @@ int hawk_rtx_readio (hawk_rtx_t* rtx, hawk_in_type_t in_type, const hawk_ooch_t*
 	return ret;
 }
 
-
 int hawk_rtx_readiobytes (hawk_rtx_t* rtx, hawk_in_type_t in_type, const hawk_ooch_t* name, hawk_becs_t* buf)
 {
 	hawk_rio_arg_t* p;
