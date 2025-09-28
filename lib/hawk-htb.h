@@ -27,14 +27,14 @@
 
 #include <hawk-cmn.h>
 
-/**@file
+/** \file
  * This file provides a hash table encapsulated in the #hawk_htb_t type that
  * maintains buckets for key/value pairs with the same key hash chained under
  * the same bucket. Its interface is very close to #hawk_rbt_t.
  *
  * This sample code adds a series of keys and values and print them
  * in the randome order.
- * @code
+ * \code
  * #include <hawk-htb.h>
  *
  * static hawk_htb_walk_t walk (hawk_htb_t* htb, hawk_htb_pair_t* pair, void* ctx)
@@ -65,7 +65,7 @@
  *   hawk_close_stdsios ();
  *   return 0;
  * }
- * @endcode
+ * \endcode
  */
 
 typedef struct hawk_htb_t hawk_htb_t;
@@ -174,8 +174,8 @@ typedef hawk_htb_walk_t (*hawk_htb_walker_t) (
 /**
  * The hawk_htb_cbserter_t type defines a callback function for hawk_htb_cbsert().
  * The hawk_htb_cbserter() function calls it to allocate a new pair for the
- * key pointed to by @a kptr of the length @a klen and the callback context
- * @a ctx. The second parameter @a pair is passed the pointer to the existing
+ * key pointed to by \a kptr of the length \a klen and the callback context
+ * \a ctx. The second parameter \a pair is passed the pointer to the existing
  * pair for the key or #HAWK_NULL in case of no existing key. The callback
  * must return a pointer to a new or a reallocated pair. When reallocating the
  * existing pair, this callback must destroy the existing pair and return the
@@ -323,12 +323,12 @@ HAWK_EXPORT const hawk_htb_style_t* hawk_get_htb_style (
  * bucket and a list of values chained. The initial capacity should be larger
  * than 0. The load factor should be between 0 and 100 inclusive and the load
  * factor of 0 disables bucket resizing. If you need extra space associated
- * with hash table, you may pass a non-zero value for @a xtnsize.
+ * with hash table, you may pass a non-zero value for \a xtnsize.
  * The HAWK_HTB_XTN() macro and the hawk_htb_getxtn() function return the
  * pointer to the beginning of the extension.
- * The @a kscale and @a vscale parameters specify the unit of the key and
+ * The \a kscale and \a vscale parameters specify the unit of the key and
  * value size.
- * @return #hawk_htb_t pointer on success, #HAWK_NULL on failure.
+ * \return #hawk_htb_t pointer on success, #HAWK_NULL on failure.
  */
 HAWK_EXPORT hawk_htb_t* hawk_htb_open (
 	hawk_gem_t* gem,
@@ -410,7 +410,7 @@ HAWK_EXPORT hawk_oow_t hawk_htb_getcapa (
  * The hawk_htb_search() function searches a hash table to find a pair with a
  * matching key. It returns the pointer to the pair found. If it fails
  * to find one, it returns HAWK_NULL.
- * @return pointer to the pair with a maching key,
+ * \return pointer to the pair with a maching key,
  *         or #HAWK_NULL if no match is found.
  */
 HAWK_EXPORT hawk_htb_pair_t* hawk_htb_search (
@@ -424,7 +424,7 @@ HAWK_EXPORT hawk_htb_pair_t* hawk_htb_search (
  * matching key. If one is found, it updates the pair. Otherwise, it inserts
  * a new pair with the key and value given. It returns the pointer to the
  * pair updated or inserted.
- * @return pointer to the updated or inserted pair on success,
+ * \return pointer to the updated or inserted pair on success,
  *         #HAWK_NULL on failure.
  */
 HAWK_EXPORT hawk_htb_pair_t* hawk_htb_upsert (
@@ -439,7 +439,7 @@ HAWK_EXPORT hawk_htb_pair_t* hawk_htb_upsert (
  * The hawk_htb_ensert() function inserts a new pair with the key and the value
  * given. If there exists a pair with the key given, the function returns
  * the pair containing the key.
- * @return pointer to a pair on success, #HAWK_NULL on failure.
+ * \return pointer to a pair on success, #HAWK_NULL on failure.
  */
 HAWK_EXPORT hawk_htb_pair_t* hawk_htb_ensert (
 	hawk_htb_t* htb,   /**< hash table */
@@ -453,7 +453,7 @@ HAWK_EXPORT hawk_htb_pair_t* hawk_htb_ensert (
  * The hawk_htb_insert() function inserts a new pair with the key and the value
  * given. If there exists a pair with the key given, the function returns
  * #HAWK_NULL without channging the value.
- * @return pointer to the pair created on success, #HAWK_NULL on failure.
+ * \return pointer to the pair created on success, #HAWK_NULL on failure.
  */
 HAWK_EXPORT hawk_htb_pair_t* hawk_htb_insert (
 	hawk_htb_t* htb,   /**< hash table */
@@ -466,7 +466,7 @@ HAWK_EXPORT hawk_htb_pair_t* hawk_htb_insert (
 /**
  * The hawk_htb_update() function updates the value of an existing pair
  * with a matching key.
- * @return pointer to the pair on success, #HAWK_NULL on no matching pair
+ * \return pointer to the pair on success, #HAWK_NULL on no matching pair
  */
 HAWK_EXPORT hawk_htb_pair_t* hawk_htb_update (
 	hawk_htb_t* htb,   /**< hash table */
@@ -484,7 +484,7 @@ HAWK_EXPORT hawk_htb_pair_t* hawk_htb_update (
  * a new pair if the key is not found and appends the new value to the
  * existing value delimited by a comma if the key is found.
  *
- * @code
+ * \code
  * #include <hawk-htb.h>
  *
  * hawk_htb_walk_t print_map_pair (hawk_htb_t* map, hawk_htb_pair_t* pair, void* ctx)
@@ -565,7 +565,7 @@ HAWK_EXPORT hawk_htb_pair_t* hawk_htb_update (
  *   hawk_close_stdsios ();
  *   return 0;
  * }
- * @endcode
+ * \endcode
  */
 HAWK_EXPORT hawk_htb_pair_t* hawk_htb_cbsert (
 	hawk_htb_t*         htb,      /**< hash table */
@@ -577,7 +577,7 @@ HAWK_EXPORT hawk_htb_pair_t* hawk_htb_cbsert (
 
 /**
  * The hawk_htb_delete() function deletes a pair with a matching key
- * @return 0 on success, -1 on failure
+ * \return 0 on success, -1 on failure
  */
 HAWK_EXPORT int hawk_htb_delete (
 	hawk_htb_t* htb,   /**< hash table */
@@ -616,7 +616,7 @@ HAWK_EXPORT hawk_htb_pair_t* hawk_htb_getfirstpair (
 
 /**
  * The hawk_htb_getnextpair() function returns the pointer to the next pair
- * to the current pair @a pair in a hash table.
+ * to the current pair \a pair in a hash table.
  */
 HAWK_EXPORT hawk_htb_pair_t* hawk_htb_getnextpair (
 	hawk_htb_t*      htb,    /**< hash table */
@@ -625,14 +625,14 @@ HAWK_EXPORT hawk_htb_pair_t* hawk_htb_getnextpair (
 
 /**
  * The hawk_htb_allocpair() function allocates a pair for a key and a value
- * given. But it does not chain the pair allocated into the hash table @a htb.
+ * given. But it does not chain the pair allocated into the hash table \a htb.
  * Use this function at your own risk.
  *
  * Take note of he following special behavior when the copier is
  * #HAWK_HTB_COPIER_INLINE.
- * - If @a kptr is #HAWK_NULL, the key space of the size @a klen is reserved but
+ * - If \a kptr is #HAWK_NULL, the key space of the size \a klen is reserved but
  *   not propagated with any data.
- * - If @a vptr is #HAWK_NULL, the value space of the size @a vlen is reserved
+ * - If \a vptr is #HAWK_NULL, the value space of the size \a vlen is reserved
  *   but not propagated with any data.
  */
 HAWK_EXPORT hawk_htb_pair_t* hawk_htb_allocpair (
@@ -645,7 +645,7 @@ HAWK_EXPORT hawk_htb_pair_t* hawk_htb_allocpair (
 
 /**
  * The hawk_htb_freepair() function destroys a pair. But it does not detach
- * the pair destroyed from the hash table @a htb. Use this function at your
+ * the pair destroyed from the hash table \a htb. Use this function at your
  * own risk.
  */
 HAWK_EXPORT void hawk_htb_freepair (

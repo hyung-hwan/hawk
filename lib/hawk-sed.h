@@ -29,7 +29,7 @@
 #include <hawk-gem.h>
 #include <hawk-sio.h>
 
-/** @file
+/** \file
  * This file defines data types and functions to use for creating a custom
  * stream editor commonly available on many platforms. A stream editor is
  * a non-interactive text editing tool that reads text from an input stream,
@@ -37,15 +37,15 @@
  * of editing commands, and writes the pattern space to an output stream.
  * Typically, the input and output streams are a console or a file.
  *
- * @code
+ * \code
  * sed = hawk_sed_open ();
  * hawk_sed_comp (sed);
  * hawk_sed_exec (sed);
  * hawk_sed_close (sed);
- * @endcode
+ * \endcode
  */
 
-/** @struct hawk_sed_t
+/** \struct hawk_sed_t
  * The hawk_sed_t type defines a stream editor. The structural details are
  * hidden as it is a relatively complex data type and fragile to external
  * changes. To use a stream editor, you typically can:
@@ -456,7 +456,7 @@ extern "C" {
  * hawk_sed_getxtn() function and use it to store arbitrary data associated
  * with the object.  When done, you should destroy the object with the
  * hawk_sed_close() function to avoid any resource leaks including memory.
- * @return pointer to a stream editor on success, HAWK_NULL on failure
+ * \return pointer to a stream editor on success, HAWK_NULL on failure
  */
 HAWK_EXPORT hawk_sed_t* hawk_sed_open (
 	hawk_mmgr_t*   mmgr,    /**< memory manager */
@@ -654,7 +654,7 @@ HAWK_EXPORT void hawk_sed_pushecb (
 
 /**
  * The hawk_sed_comp() function compiles editing commands into an internal form.
- * @return 0 on success, -1 on error
+ * \return 0 on success, -1 on error
  */
 HAWK_EXPORT int hawk_sed_comp (
 	hawk_sed_t*        sed, /**< stream editor */
@@ -663,7 +663,7 @@ HAWK_EXPORT int hawk_sed_comp (
 
 /**
  * The hawk_sed_exec() function executes the compiled commands.
- * @return 0 on success, -1 on error
+ * \return 0 on success, -1 on error
  */
 HAWK_EXPORT int hawk_sed_exec (
 	hawk_sed_t*        sed,  /**< stream editor */
@@ -696,7 +696,7 @@ HAWK_EXPORT const hawk_ooch_t* hawk_sed_getcompid (
 
 /**
  * The hawk_sed_setcompid() functions duplicates a string
- * pointed to by @a id and stores it internally to identify
+ * pointed to by \a id and stores it internally to identify
  * the script currently being compiled. The lid field of the
  * current command being compiled in the script is set to the
  * lastest identifer successfully set with this function.
@@ -721,7 +721,7 @@ HAWK_EXPORT const hawk_ooch_t* hawk_sed_setcompidwithucstr (
 
 /**
  * The hawk_sed_getlinnum() function gets the current input line number.
- * @return current input line number
+ * \return current input line number
  */
 HAWK_EXPORT hawk_oow_t hawk_sed_getlinenum (
 	hawk_sed_t* sed /**< stream editor */
@@ -732,7 +732,7 @@ HAWK_EXPORT hawk_oow_t hawk_sed_getlinenum (
  */
 HAWK_EXPORT void hawk_sed_setlinenum (
 	hawk_sed_t* sed,   /**< stream editor */
-	hawk_oow_t num    /**< a line number */
+	hawk_oow_t  num    /**< a line number */
 );
 
 /**
@@ -751,7 +751,7 @@ HAWK_EXPORT void hawk_sed_getspace (
  */
 HAWK_EXPORT void* hawk_sed_allocmem (
 	hawk_sed_t* sed,
-	hawk_oow_t size
+	hawk_oow_t  size
 );
 
 /**
@@ -760,7 +760,7 @@ HAWK_EXPORT void* hawk_sed_allocmem (
  */
 HAWK_EXPORT void* hawk_sed_callocmem (
 	hawk_sed_t* sed,
-	hawk_oow_t size
+	hawk_oow_t  size
 );
 
 /**
@@ -769,8 +769,8 @@ HAWK_EXPORT void* hawk_sed_callocmem (
  */
 HAWK_EXPORT void* hawk_sed_reallocmem (
 	hawk_sed_t* sed,
-	void*      ptr,
-	hawk_oow_t size
+	void*       ptr,
+	hawk_oow_t  size
 );
 
 /**
@@ -779,7 +779,7 @@ HAWK_EXPORT void* hawk_sed_reallocmem (
  */
 HAWK_EXPORT void hawk_sed_freemem (
 	hawk_sed_t* sed,
-	void*      ptr
+	void*       ptr
 );
 
 /* ------------------------------------------------------------------------ */

@@ -25,6 +25,10 @@
 #ifndef _HAWK_CMN_H_
 #define _HAWK_CMN_H_
 
+/** \file
+ * This file defines common data types and macros.
+ */
+
 /* WARNING: NEVER CHANGE/DELETE THE FOLLOWING HAWK_HAVE_CFG_H DEFINITION.
  *          IT IS USED FOR DEPLOYMENT BY MAKEFILE.AM */
 /*#define HAWK_HAVE_CFG_H*/
@@ -556,8 +560,17 @@ typedef hawk_uint32_t            hawk_ucu_t;
 
 typedef hawk_uint8_t             hawk_oob_t;
 
-/* [NOTE] sizeof(hawk_oop_t) must be equal to sizeof(hawk_oow_t) */
+/**
+ * The hawk_oow_t type represents an unsigned integer type that is guaranteed
+ * to be large enough to hold the value of a data pointer.
+ *
+ * HAWK_SIZE(hawk_oop_t) must be equal to HAWK_SIZEOF(hawk_oow_t).
+ */
 typedef hawk_uintptr_t           hawk_oow_t;
+
+/**
+ * The hawk_ooi_t type represents a signed integer type as large as #hawk_oow_t.
+ */
 typedef hawk_intptr_t            hawk_ooi_t;
 #define HAWK_SIZEOF_OOW_T HAWK_SIZEOF_UINTPTR_T
 #define HAWK_SIZEOF_OOI_T HAWK_SIZEOF_INTPTR_T
@@ -746,6 +759,9 @@ struct hawk_ntime_t
         /*(sizeof(struct { hcl_uint8_t d1; type d2; }) - sizeof(type))*/
 #endif
 
+/**
+ * The HAWK_NULL macro defines a null value.
+ */
 #if defined(__cplusplus)
 #	if (__cplusplus >= 201103L) /* C++11 */
 #		define HAWK_NULL nullptr
@@ -1023,7 +1039,6 @@ enum hawk_errnum_t
 	HAWK_EVALTOCHR,     /**< invalid value to convert to a character */
 	HAWK_EHASHVAL,      /**< invalid value to hash */
 
-
 	HAWK_EARRIDXRANGE,  /**< disallowed array index range */
 	HAWK_EARRIDXMULTI,  /**< single-bracketed multidimensional array indices not allowed */
 	HAWK_ERNEXTBEG,     /**< 'next' called from BEGIN block */
@@ -1086,7 +1101,7 @@ enum hawk_errnum_t
 
 	/* cut errors */
 	HAWK_CUT_ESELNV,  /**< selector not valid */
-        HAWK_CUT_EIOFIL,  /**< io error with file '${0}'*/
+	HAWK_CUT_EIOFIL,  /**< io error with file '${0}'*/
 
 	/* the number of error numbers, internal use only */
 	HAWK_NUMERRNUMS
@@ -1120,7 +1135,6 @@ typedef hawk_bloc_t hawk_loc_t;
 #else
 typedef hawk_uloc_t hawk_loc_t;
 #endif
-
 
 /**
  * The hawk_errinf_t type defines a placeholder for error information.

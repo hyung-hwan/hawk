@@ -25,7 +25,7 @@
 #ifndef _HAWK_XMA_H_
 #define _HAWK_XMA_H_
 
-/** @file
+/** \file
  * This file defines an extravagant memory allocator. Why? It may be so.
  * The memory allocator allows you to maintain memory blocks from a
  * larger memory chunk allocated with an outer memory allocator.
@@ -34,7 +34,7 @@
  *
  * See the example below. Note it omits error handling.
  *
- * @code
+ * \code
  * #include <hawk-xma.h>
  * #include <stdio.h>
  * #include <stdarg.h>
@@ -68,14 +68,14 @@
  *   hawk_xma_close (xma); //  destroy the memory allocator
  *   return 0;
  * }
- * @endcode
+ * \endcode
  */
 #include <hawk-cmn.h>
 
 /*#define HAWK_XMA_ENABLE_STAT*/
 #define HAWK_XMA_ENABLE_STAT
 
-/** @struct hawk_xma_t
+/** \struct hawk_xma_t
  * The hawk_xma_t type defines a simple memory allocator over a memory zone.
  * It can obtain a relatively large zone of memory and manage it.
  */
@@ -141,11 +141,11 @@ extern "C" {
 
 /**
  * The hawk_xma_open() function creates a memory allocator. It obtains a memory
- * zone of the @a zonesize bytes with the memory manager @a mmgr. It also makes
- * available the extension area of the @a xtnsize bytes that you can get the
+ * zone of the \a zonesize bytes with the memory manager \a mmgr. It also makes
+ * available the extension area of the \a xtnsize bytes that you can get the
  * pointer to with hawk_xma_getxtn().
  *
- * @return pointer to a memory allocator on success, #HAWK_NULL on failure
+ * \return pointer to a memory allocator on success, #HAWK_NULL on failure
  */
 HAWK_EXPORT hawk_xma_t* hawk_xma_open (
 	hawk_mmgr_t* mmgr,    /**< memory manager */
@@ -180,9 +180,9 @@ static HAWK_INLINE void* hawk_xma_getxtn (hawk_xma_t* xma) { return (void*)(xma 
  * The hawk_xma_init() initializes a memory allocator. If you have the hawk_xma_t
  * structure statically declared or already allocated, you may pass the pointer
  * to this function instead of calling hawk_xma_open(). It obtains a memory zone
- * of @a zonesize bytes with the memory manager @a mmgr. Unlike hawk_xma_open(),
+ * of \a zonesize bytes with the memory manager \a mmgr. Unlike hawk_xma_open(),
  * it does not accept the extension size, thus not creating an extention area.
- * @return 0 on success, -1 on failure
+ * \return 0 on success, -1 on failure
  */
 HAWK_EXPORT int hawk_xma_init (
 	hawk_xma_t*  xma,     /**< memory allocator */
@@ -200,8 +200,8 @@ HAWK_EXPORT void hawk_xma_fini (
 );
 
 /**
- * The hawk_xma_alloc() function allocates @a size bytes.
- * @return pointer to a memory block on success, #HAWK_NULL on failure
+ * The hawk_xma_alloc() function allocates \a size bytes.
+ * \return pointer to a memory block on success, #HAWK_NULL on failure
  */
 HAWK_EXPORT void* hawk_xma_alloc (
 	hawk_xma_t* xma, /**< memory allocator */
@@ -214,8 +214,8 @@ HAWK_EXPORT void* hawk_xma_calloc (
 );
 
 /**
- * The hawk_xma_alloc() function resizes the memory block @a b to @a size bytes.
- * @return pointer to a resized memory block on success, #HAWK_NULL on failure
+ * The hawk_xma_alloc() function resizes the memory block \a b to \a size bytes.
+ * \return pointer to a resized memory block on success, #HAWK_NULL on failure
  */
 HAWK_EXPORT void* hawk_xma_realloc (
 	hawk_xma_t* xma,  /**< memory allocator */
@@ -224,7 +224,7 @@ HAWK_EXPORT void* hawk_xma_realloc (
 );
 
 /**
- * The hawk_xma_alloc() function frees the memory block @a b.
+ * The hawk_xma_alloc() function frees the memory block \a b.
  */
 HAWK_EXPORT void hawk_xma_free (
 	hawk_xma_t* xma, /**< memory allocator */
@@ -233,7 +233,7 @@ HAWK_EXPORT void hawk_xma_free (
 
 /**
  * The hawk_xma_dump() function dumps the contents of the memory zone
- * with the output function @a dumper provided. The debug build shows
+ * with the output function \a dumper provided. The debug build shows
  * more statistical counters.
  */
 HAWK_EXPORT void hawk_xma_dump (

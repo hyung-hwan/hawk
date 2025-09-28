@@ -29,18 +29,13 @@
 #include <hawk-gem.h>
 #include <hawk-sio.h>
 
-/** @file
+/** \file
  * This file defines a text cutter utility.
  *
- * @todo HAWK_CUT_ORDEREDSEL - A selector 5,3,1 is ordered to 1,3,5
+ * \todo HAWK_CUT_ORDEREDSEL - A selector 5,3,1 is ordered to 1,3,5
  */
 
-/**
- * @example cut.c
- * This example implements a simple cut utility.
- */
-
-/** @struct hawk_cut_t
+/** \struct hawk_cut_t
  * The hawk_cut_t type defines a text cutter. The details are hidden as it is
  * a large complex structure vulnerable to unintended changes.
  */
@@ -102,7 +97,7 @@ typedef enum hawk_cut_io_cmd_t hawk_cut_io_cmd_t;
 struct hawk_cut_io_arg_t
 {
 	void* handle; /**< I/O handle */
-	const hawk_ooch_t* path;   /**< file path. HAWK_NULL for a console */
+	const hawk_ooch_t* path;   /**< file path. #HAWK_NULL for a console */
 };
 typedef struct hawk_cut_io_arg_t hawk_cut_io_arg_t;
 
@@ -151,10 +146,10 @@ struct hawk_cut_iostd_t
 		/** file path with character encoding */
 		struct
 		{
-			/** file path to open. #HAWK_NULL or '-' for stdin/stdout. */
+			/** file path to open. HAWK_NULL or '-' for stdin/stdout. */
 			const hawk_ooch_t* path;
 			/** a stream created with the file path is set with this
-			 * cmgr if it is not #HAWK_NULL. */
+			 * cmgr if it is not HAWK_NULL. */
 			hawk_cmgr_t* cmgr;
 		} file;
 
@@ -203,14 +198,14 @@ extern "C" {
 
 /**
  * The hawk_cut_open() function creates a text cutter.
- * @return A pointer to a text cutter on success, #HAWK_NULL on failure
+ * \return A pointer to a text cutter on success, HAWK_NULL on failure
  */
 
 HAWK_EXPORT hawk_cut_t* hawk_cut_open (
 	hawk_mmgr_t*   mmgr,   /**< memory manager */
 	hawk_oow_t     xtnsize, /**< extension size in bytes */
 	hawk_cmgr_t*   cmgr,
-        hawk_errnum_t* errnum
+	hawk_errnum_t* errnum
 );
 
 /**
@@ -251,7 +246,7 @@ static HAWK_INLINE void hawk_cut_setcmgr (hawk_cut_t* cut, hawk_cmgr_t* cmgr) { 
 /**
  * The hawk_cut_getoption() function retrieves the current options set in
  * a text cutter.
- * @return 0 or a number OR'ed of #hawk_cut_option_t values
+ * \return 0 or a number OR'ed of #hawk_cut_option_t values
  */
 HAWK_EXPORT int hawk_cut_getoption (
 	hawk_cut_t* cut /**< text cutter */
@@ -262,7 +257,7 @@ HAWK_EXPORT int hawk_cut_getoption (
  */
 HAWK_EXPORT void hawk_cut_setoption (
 	hawk_cut_t* cut, /**< text cutter */
-	int        opt  /**< 0 or a number OR'ed of #hawk_cut_option_t values */
+	int         opt  /**< 0 or a number OR'ed of #hawk_cut_option_t values */
 );
 
 HAWK_EXPORT hawk_errstr_t hawk_cut_geterrstr (
@@ -368,7 +363,7 @@ HAWK_EXPORT void hawk_cut_clear (
 
 /**
  * The hawk_cut_comp() function compiles a selector into an internal form.
- * @return 0 on success, -1 on error
+ * \return 0 on success, -1 on error
  */
 HAWK_EXPORT int hawk_cut_comp (
 	hawk_cut_t*        cut, /**< text cutter */
@@ -377,7 +372,7 @@ HAWK_EXPORT int hawk_cut_comp (
 
 /**
  * The hawk_cut_exec() function executes the compiled commands.
- * @return 0 on success, -1 on error
+ * \return 0 on success, -1 on error
  */
 HAWK_EXPORT int hawk_cut_exec (
 	hawk_cut_t*         cut,  /**< text cutter */
@@ -425,7 +420,7 @@ HAWK_EXPORT void hawk_cut_freemem (
 /**
  * The hawk_cut_openstd() function creates a text cutter with the default
  * memory manager and initialized it for other hawk_cut_xxxxstd functions.
- * @return pointer to a text cutter on success, QSE_NULL on failure.
+ * \return pointer to a text cutter on success, #HAWK_NULL on failure.
  */
 HAWK_EXPORT hawk_cut_t* hawk_cut_openstd (
 	hawk_oow_t     xtnsize,  /**< extension size in bytes */
@@ -436,7 +431,7 @@ HAWK_EXPORT hawk_cut_t* hawk_cut_openstd (
  * The hawk_cut_openstdwithmmgr() function creates a text cutter with a
  * user-defined memory manager. It is equivalent to hawk_cut_openstd(),
  * except that you can specify your own memory manager.
- * @return pointer to a text cutter on success, QSE_NULL on failure.
+ * \return pointer to a text cutter on success, #HAWK_NULL on failure.
  */
 HAWK_EXPORT hawk_cut_t* hawk_cut_openstdwithmmgr (
 	hawk_mmgr_t*    mmgr,    /**< memory manager */
@@ -456,9 +451,9 @@ HAWK_EXPORT int hawk_cut_compstd (
 
 /**
  * The hawk_cut_execstd() function executes the compiled script
- * over an input file @a infile and an output file @a outfile.
- * If @a infile is QSE_NULL, the standard console input is used.
- * If @a outfile is QSE_NULL, the standard console output is used..
+ * over an input file \a infile and an output file \a outfile.
+ * If \a infile is #HAWK_NULL, the standard console input is used.
+ * If \a outfile is #HAWK_NULL, the standard console output is used..
  */
 HAWK_EXPORT int hawk_cut_execstd (
 	hawk_cut_t*        cut,

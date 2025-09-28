@@ -238,7 +238,7 @@ struct hawk_t
 
 		union
 		{
-			hawk_oow_t a[7];
+			hawk_oow_t a[7]; /**< to access the elements of the #s field as an array */
 			struct
 			{
 				hawk_oow_t incl;
@@ -248,7 +248,7 @@ struct hawk_t
 				hawk_oow_t expr_run;
 				hawk_oow_t rex_build;
 				hawk_oow_t rex_match;
-			} s;
+			} s; /**< defines the maximum nesting depths */
 		} depth;
 
 		hawk_oow_t rtx_stack_limit;

@@ -95,7 +95,7 @@ int main ()
 	hawk = hawk_openstd(0, HAWK_NULL); /* create a hawk instance */
 	if (!hawk)
 	{
-		fprintf (stderr, "ERROR: cannot open hawk\n");
+		fprintf(stderr, "ERROR: cannot open hawk\n");
 		ret = -1; goto oops;
 	}
 
@@ -109,7 +109,7 @@ int main ()
 	ret = hawk_parsestd(hawk, psin, HAWK_NULL); /* parse the script */
 	if (ret <= -1)
 	{
-		hawk_logbfmt (hawk, HAWK_LOG_STDERR, "ERROR(parse): %js\n", hawk_geterrmsg(hawk));
+		hawk_logbfmt(hawk, HAWK_LOG_STDERR, "ERROR(parse): %js\n", hawk_geterrmsg(hawk));
 		ret = -1; goto oops;
 	}
 
@@ -124,7 +124,7 @@ int main ()
 	);
 	if (!rtx)
 	{
-		hawk_logbfmt (hawk, HAWK_LOG_STDERR, "ERROR(rtx_open): %js\n", hawk_geterrmsg(hawk));
+		hawk_logbfmt(hawk, HAWK_LOG_STDERR, "ERROR(rtx_open): %js\n", hawk_geterrmsg(hawk));
 		ret = -1; goto oops;
 	}
 
@@ -132,17 +132,17 @@ int main ()
 	retv = hawk_rtx_loop(rtx); /* alternatively, hawk_rtx_exec(rtx, HAWK_NULL, 0) */
 	if (!retv)
 	{
-		hawk_logbfmt (hawk, HAWK_LOG_STDERR, "ERROR(rtx_loop): %js\n", hawk_geterrmsg(hawk));
+		hawk_logbfmt(hawk, HAWK_LOG_STDERR, "ERROR(rtx_loop): %js\n", hawk_geterrmsg(hawk));
 		ret = -1; goto oops;
 	}
 
 	/* lowered the reference count of the returned value */
-	hawk_rtx_refdownval (rtx, retv);
+	hawk_rtx_refdownval(rtx, retv);
 	ret = 0;
 
 oops:
-	if (rtx) hawk_rtx_close (rtx); /* destroy the runtime context */
-	if (hawk) hawk_close (hawk); /* destroy the hawk instance */
+	if (rtx) hawk_rtx_close(rtx); /* destroy the runtime context */
+	if (hawk) hawk_close(hawk); /* destroy the hawk instance */
 	return -1;
 }
 ```
@@ -180,22 +180,22 @@ int main ()
 
 	if (hawk.open() <= -1)
 	{
-		fprintf (stderr, "unable to open hawk - %s\n", hawk.getErrorMessageB());
+		fprintf(stderr, "unable to open hawk - %s\n", hawk.getErrorMessageB());
 		return -1;
 	}
 
 	HAWK::HawkStd::SourceString s("BEGIN { print \"hello, world\"; }");
 	if (hawk.parse(s, HAWK::HawkStd::Source::NONE) == HAWK_NULL)
 	{
-		fprintf (stderr, "unable to parse - %s\n", hawk.getErrorMessageB());
-		hawk.close ();
+		fprintf(stderr, "unable to parse - %s\n", hawk.getErrorMessageB());
+		hawk.close();
 		return -1;
 	}
 
 	HAWK::Hawk::Value vr;
-	hawk.loop (&vr);  // alternatively, hawk.exec (&vr, HAWK_NULL, 0);
+	hawk.loop(&vr);  // alternatively, hawk.exec (&vr, HAWK_NULL, 0);
 
-	hawk.close ();
+	hawk.close();
 	return 0;
 }
 ```

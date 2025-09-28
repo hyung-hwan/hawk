@@ -27,7 +27,7 @@
 
 #include <hawk-cmn.h>
 
-/** @file
+/** \file
  * This file provides a linear dynamic array. It grows dynamically as items
  * are added.
  */
@@ -253,7 +253,7 @@ HAWK_EXPORT int hawk_arr_getscale (
  * of a key and a value. A scale factor determines the actual length of
  * a key and a value in bytes. A arr is created with a scale factor of 1.
  * The scale factor should be larger than 0 and less than 256.
- * It is a bad idea to change the scale factor when @a arr is not empty.
+ * It is a bad idea to change the scale factor when \a arr is not empty.
  */
 HAWK_EXPORT void hawk_arr_setscale (
 	hawk_arr_t* arr   /**< array */,
@@ -347,11 +347,11 @@ HAWK_EXPORT void hawk_arr_clear (
 );
 
 /**
- * The hawk_arr_walk() function calls the @a walker function for each
- * element in the array beginning from the first. The @a walker function
+ * The hawk_arr_walk() function calls the \a walker function for each
+ * element in the array beginning from the first. The \a walker function
  * should return one of #HAWK_ARR_WALK_FORWARD, #HAWK_ARR_WALK_BACKWARD,
  * #HAWK_ARR_WALK_STOP.
- * @return number of calls to the @a walker fucntion made
+ * \return number of calls to the \a walker fucntion made
  */
 HAWK_EXPORT hawk_oow_t hawk_arr_walk (
 	hawk_arr_t*       arr,
@@ -360,11 +360,11 @@ HAWK_EXPORT hawk_oow_t hawk_arr_walk (
 );
 
 /**
- * The hawk_arr_rwalk() function calls the @a walker function for each
- * element in the array beginning from the last. The @a walker function
+ * The hawk_arr_rwalk() function calls the \a walker function for each
+ * element in the array beginning from the last. The \a walker function
  * should return one of #HAWK_ARR_WALK_FORWARD, #HAWK_ARR_WALK_BACKWARD,
  * #HAWK_ARR_WALK_STOP.
- * @return number of calls to the @a walker fucntion made
+ * \return number of calls to the \a walker fucntion made
  */
 HAWK_EXPORT hawk_oow_t hawk_arr_rwalk (
 	hawk_arr_t*       arr,
@@ -387,7 +387,7 @@ HAWK_EXPORT hawk_oow_t hawk_arr_pushstack (
  * The hawk_arr_popstack() function deletes the last array data. It is a utility
  * function to allow stack-like operations over an array. To do so, you should
  * not play with other non-stack related functions.
- * @note You must not call this function if @a arr is empty.
+ * \note You must not call this function if \a arr is empty.
  */
 HAWK_EXPORT void hawk_arr_popstack (
 	hawk_arr_t* arr
@@ -397,8 +397,8 @@ HAWK_EXPORT void hawk_arr_popstack (
  * The hawk_arr_pushheap() function inserts data to an array while keeping the
  * largest data at position 0. It is a utiltiy funtion to implement a binary
  * max-heap over an array. Inverse the comparator to implement a min-heap.
- * @return number of array elements
- * @note You must not mess up the array with other non-heap related functions
+ * \return number of array elements
+ * \note You must not mess up the array with other non-heap related functions
  *       to keep the heap property.
  */
 HAWK_EXPORT hawk_oow_t hawk_arr_pushheap (
@@ -411,7 +411,7 @@ HAWK_EXPORT hawk_oow_t hawk_arr_pushheap (
  * The hawk_arr_popheap() function deletes data at position 0 while keeping
  * the largest data at positon 0. It is a utiltiy funtion to implement a binary
  * max-heap over an array.
- * @note You must not mess up the array with other non-heap related functions
+ * \note You must not mess up the array with other non-heap related functions
  *       to keep the heap property.
  */
 HAWK_EXPORT void hawk_arr_popheap (

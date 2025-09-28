@@ -58,14 +58,13 @@
  * hawk_rtx_t* rtx;
  * hawk_sio_cbs_t sio; // need to initialize it with callback functions
  * hawk_rio_cbs_t rio; // need to initialize it with callback functions
- *
- * hawk = hawk_open(mmgr, 0, prm); // create an interpreter
+ * hawk = hawk_open(mmgr, 0, hawk_get_cmgr_by_id(HAWK_CMGR_UTF8), prm, HAWK_NULL); // create an interpreter
  * hawk_parse(hawk, &sio);          // parse a script
  * rtx = hawk_rtx_open(hawk, 0, &rio); // create a runtime context
  * retv = hawk_rtx_loop(rtx);     // run a standard AWK loop
- * if (retv) hawk_rtx_refdownval (rtx, retv); // free return value
- * hawk_rtx_close (rtx);           // destroy the runtime context
- * hawk_close (hawk);               // destroy the interpreter
+ * if (retv) hawk_rtx_refdownval(rtx, retv); // free return value
+ * hawk_rtx_close(rtx);           // destroy the runtime context
+ * hawk_close(hawk);               // destroy the interpreter
  * \endcode
  *
  * It provides an interface to change the conventional behavior of the
@@ -1550,10 +1549,11 @@ extern "C" {
  * {
  *     hawk_mmgr_t mmgr;
  *     hawk_prm_t prm;
- *     return hawk_open (
+ *     return hawk_open(
  *        &mmgr, // NOT OK because the contents of mmgr is
  *               // invalidated when dummy() returns.
  *        0,
+ *        hawk_get_cmgr_by_id(HAWK_CMGR_UTF8),
  *        &prm,  // OK
  *        HAWK_NULL
  *     );
@@ -1961,7 +1961,10 @@ HAWK_EXPORT int hawk_parse (
 	hawk_sio_cbs_t* sio  /**< source script I/O handler */
 );
 
-
+/**
+ * The hawk_isvalidident() function determines if a given string is
+ * a valid identifier.
+ */
 HAWK_EXPORT int hawk_isvalidident (
 	hawk_t*            hawk,
 	const hawk_ooch_t* str
@@ -2236,7 +2239,6 @@ HAWK_EXPORT int hawk_concatoochartosbuf (
 );
 
 /* ----------------------------------------------------------------------- */
-
 
 /**
  * The hawk_rtx_open() creates a runtime context associated with \a hawk.
