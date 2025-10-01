@@ -113,7 +113,7 @@ static int split_record (hawk_rtx_t* rtx, int prefer_number)
 	int how;
 
 	/* inrec should be cleared before split_record is called */
-	HAWK_ASSERT (rtx->inrec.nflds == 0);
+	HAWK_ASSERT(rtx->inrec.nflds == 0);
 
 	/* get FS */
 	fs = hawk_rtx_getgbl(rtx, HAWK_GBL_FS);
@@ -194,7 +194,7 @@ static int split_record (hawk_rtx_t* rtx, int prefer_number)
 			return 0;
 		}
 
-		HAWK_ASSERT ((tok.ptr != HAWK_NULL && tok.len > 0) || tok.len == 0);
+		HAWK_ASSERT((tok.ptr != HAWK_NULL && tok.len > 0) || tok.len == 0);
 
 		nflds++;
 		len = HAWK_OOECS_LEN(&rtx->inrec.line) - (p - HAWK_OOECS_PTR(&rtx->inrec.line));
@@ -273,7 +273,7 @@ static int split_record (hawk_rtx_t* rtx, int prefer_number)
 		}
 #endif
 
-		HAWK_ASSERT ((tok.ptr != HAWK_NULL && tok.len > 0) || tok.len == 0);
+		HAWK_ASSERT((tok.ptr != HAWK_NULL && tok.len > 0) || tok.len == 0);
 
 #if 1
 		if (rtx->inrec.nflds >= rtx->inrec.maxflds)
@@ -348,11 +348,11 @@ int hawk_rtx_clrrec (hawk_rtx_t* rtx, int skip_inrec_line)
 
 	if (rtx->inrec.nflds > 0)
 	{
-		HAWK_ASSERT (rtx->inrec.flds != HAWK_NULL);
+		HAWK_ASSERT(rtx->inrec.flds != HAWK_NULL);
 
 		for (i = 0; i < rtx->inrec.nflds; i++)
 		{
-			HAWK_ASSERT (rtx->inrec.flds[i].val != HAWK_NULL);
+			HAWK_ASSERT(rtx->inrec.flds[i].val != HAWK_NULL);
 			hawk_rtx_refdownval (rtx, rtx->inrec.flds[i].val);
 		}
 		rtx->inrec.nflds = 0;
@@ -366,7 +366,7 @@ int hawk_rtx_clrrec (hawk_rtx_t* rtx, int skip_inrec_line)
 		}
 	}
 
-	HAWK_ASSERT (rtx->inrec.nflds == 0);
+	HAWK_ASSERT(rtx->inrec.nflds == 0);
 	if (!skip_inrec_line) hawk_ooecs_clear (&rtx->inrec.line);
 
 	return n;
@@ -387,7 +387,7 @@ static int recomp_record_fields (hawk_rtx_t* rtx, hawk_oow_t lv, const hawk_oocs
 	 * can use it to make a value for $0.
 	 */
 
-	HAWK_ASSERT (lv > 0);
+	HAWK_ASSERT(lv > 0);
 	max = (lv > rtx->inrec.nflds)? lv: rtx->inrec.nflds;
 
 	nflds = rtx->inrec.nflds;
@@ -467,7 +467,7 @@ static int recomp_record_fields (hawk_rtx_t* rtx, hawk_oow_t lv, const hawk_oocs
 	}
 
 	v = hawk_rtx_getgbl(rtx, HAWK_GBL_NF);
-	HAWK_ASSERT (HAWK_RTX_GETVALTYPE(rtx, v) == HAWK_VAL_INT);
+	HAWK_ASSERT(HAWK_RTX_GETVALTYPE(rtx, v) == HAWK_VAL_INT);
 
 	if (HAWK_RTX_GETINTFROMVAL(rtx, v) != max)
 	{
@@ -495,7 +495,7 @@ int hawk_rtx_truncrec (hawk_rtx_t* rtx, hawk_oow_t nflds)
 	hawk_ooecs_t tmp;
 	int fini_tmp = 0;
 
-	HAWK_ASSERT (nflds <= rtx->inrec.nflds);
+	HAWK_ASSERT(nflds <= rtx->inrec.nflds);
 
 	if (hawk_ooecs_init(&tmp, hawk_rtx_getgem(rtx), HAWK_OOECS_LEN(&rtx->inrec.line)) <= -1) goto oops;
 	fini_tmp = 1;

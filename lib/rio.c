@@ -109,9 +109,9 @@ static int find_rio_in (
 	hawk_rio_impl_t handler;
 	int io_type, io_mode, io_mask;
 
-	HAWK_ASSERT (in_type >= 0 && in_type <= HAWK_COUNTOF(in_type_map));
-	HAWK_ASSERT (in_type >= 0 && in_type <= HAWK_COUNTOF(in_mode_map));
-	HAWK_ASSERT (in_type >= 0 && in_type <= HAWK_COUNTOF(in_mask_map));
+	HAWK_ASSERT(in_type >= 0 && in_type <= HAWK_COUNTOF(in_type_map));
+	HAWK_ASSERT(in_type >= 0 && in_type <= HAWK_COUNTOF(in_mode_map));
+	HAWK_ASSERT(in_type >= 0 && in_type <= HAWK_COUNTOF(in_mask_map));
 
 	/* translate the in_type into the relevant io type and mode */
 	io_type = in_type_map[in_type];
@@ -255,8 +255,8 @@ static HAWK_INLINE int match_long_rs (hawk_rtx_t* rtx, hawk_ooecs_t* buf, hawk_r
 	hawk_oocs_t match;
 	int ret;
 
-	HAWK_ASSERT (rtx->gbl.rs[0] != HAWK_NULL);
-	HAWK_ASSERT (rtx->gbl.rs[1] != HAWK_NULL);
+	HAWK_ASSERT(rtx->gbl.rs[0] != HAWK_NULL);
+	HAWK_ASSERT(rtx->gbl.rs[1] != HAWK_NULL);
 
 	ret = hawk_rtx_matchrexwithoocs(rtx, rtx->gbl.rs[rtx->gbl.ignorecase], HAWK_OOECS_OOCS(buf), HAWK_OOECS_OOCS(buf), &match, HAWK_NULL);
 	if (ret >= 1)
@@ -269,7 +269,7 @@ static HAWK_INLINE int match_long_rs (hawk_rtx_t* rtx, hawk_ooecs_t* buf, hawk_r
 			 * as the previous call to this function.
 			 * A match in this case must end at the end of
 			 * the current record buffer */
-			HAWK_ASSERT (HAWK_OOECS_PTR(buf) + HAWK_OOECS_LEN(buf) == match.ptr + match.len);
+			HAWK_ASSERT(HAWK_OOECS_PTR(buf) + HAWK_OOECS_LEN(buf) == match.ptr + match.len);
 
 			/* drop the RS part. no extra character after RS to drop
 			 * because we're at EOF and the EOF condition didn't
@@ -312,8 +312,8 @@ static HAWK_INLINE int match_long_brs(hawk_rtx_t* rtx, hawk_becs_t* buf, hawk_ri
 	hawk_bcs_t match;
 	int ret;
 
-	HAWK_ASSERT (rtx->gbl.rs[0] != HAWK_NULL);
-	HAWK_ASSERT (rtx->gbl.rs[1] != HAWK_NULL);
+	HAWK_ASSERT(rtx->gbl.rs[0] != HAWK_NULL);
+	HAWK_ASSERT(rtx->gbl.rs[1] != HAWK_NULL);
 
 
 	ret = hawk_rtx_matchrexwithbcs(rtx, rtx->gbl.rs[rtx->gbl.ignorecase], HAWK_BECS_BCS(buf), HAWK_BECS_BCS(buf), &match, HAWK_NULL);
@@ -327,7 +327,7 @@ static HAWK_INLINE int match_long_brs(hawk_rtx_t* rtx, hawk_becs_t* buf, hawk_ri
 			 * as the previous call to this function.
 			 * A match in this case must end at the end of
 			 * the current record buffer */
-			HAWK_ASSERT (HAWK_BECS_PTR(buf) + HAWK_BECS_LEN(buf) == match.ptr + match.len);
+			HAWK_ASSERT(HAWK_BECS_PTR(buf) + HAWK_BECS_LEN(buf) == match.ptr + match.len);
 
 			/* drop the RS part. no extra character after RS to drop
 			 * because we're at EOF and the EOF condition didn't
@@ -370,10 +370,9 @@ int hawk_rtx_readio (hawk_rtx_t* rtx, hawk_in_type_t in_type, const hawk_ooch_t*
 	hawk_rio_arg_t* p;
 	hawk_rio_impl_t handler;
 	int ret;
-#if 0
 	int esc_lq_rq;
+	int quoted;
 	hawk_ooch_t esc, lq, rq;
-#endif
 
 	hawk_val_t* rs;
 	hawk_oocs_t rrs;
@@ -418,18 +417,18 @@ int hawk_rtx_readio (hawk_rtx_t* rtx, hawk_in_type_t in_type, const hawk_ooch_t*
 		return -1;
 	}
 
-#if 0
 	/* RS set to @nil, FS set to a special string starting with ?, followed by esc lq rq */
 	esc_lq_rq = 0;
+	quoted = 0;
 	if (ffs.len == 5 && ffs.ptr[0] == '?' && !rrs.ptr)
 	{
-		esc_lq_rq = 1;
-		esc_lq_rq += (esc == lq && esc == rq);
 		esc = ffs.ptr[2];
 		lq = ffs.ptr[3];
 		rq = ffs.ptr[4];
+
+		esc_lq_rq = 1;
+		esc_lq_rq += (esc == lq && esc == rq);
 	}
-#endif
 
 	ret = 1;
 
@@ -511,13 +510,6 @@ int hawk_rtx_readio (hawk_rtx_t* rtx, hawk_in_type_t in_type, const hawk_ooch_t*
 			p->in.pos = 0;
 		}
 
-#if 0
-		if (esc_lq_rq == 2)
-		{
-/* TODO: */
-		}
-		else
-#endif
 		if (rrs.ptr == HAWK_NULL)
 		{
 			hawk_oow_t start_pos = p->in.pos;
@@ -528,6 +520,27 @@ int hawk_rtx_readio (hawk_rtx_t* rtx, hawk_in_type_t in_type, const hawk_ooch_t*
 				pc = c;
 				c = p->in.u.buf[p->in.pos++];
 				end_pos = p->in.pos;
+
+				if (esc_lq_rq == 2)
+				{
+					/* if FS is something like [?,"""] and RS is @nil,
+					 * it supports multi-line quoted vlaues. */
+					if (quoted == 2)
+					{
+						quoted = (c == rq);
+						/* no continue here as c could be a new line */
+					}
+					else if (quoted == 1)
+					{
+						if (c == rq) quoted = 2;
+						continue;
+					}
+					else if (c == lq)
+					{
+						quoted = 1;
+						continue;
+					}
+				}
 
 				/* TODO: handle different line terminator */
 				/* separate by a new line */
@@ -546,11 +559,11 @@ int hawk_rtx_readio (hawk_rtx_t* rtx, hawk_in_type_t in_type, const hawk_ooch_t*
 						else
 						{
 							/* CR must have come from the previous
-							 * read. drop CR that must be found  at
+							 * read. drop CR that must be found at
 							 * the end of the record buffer. */
-							HAWK_ASSERT (end_pos == start_pos);
-							HAWK_ASSERT (HAWK_OOECS_LEN(buf) > 0);
-							HAWK_ASSERT (HAWK_OOECS_LASTCHAR(buf) == HAWK_T('\r'));
+							HAWK_ASSERT(end_pos == start_pos);
+							HAWK_ASSERT(HAWK_OOECS_LEN(buf) > 0);
+							HAWK_ASSERT(HAWK_OOECS_LASTCHAR(buf) == HAWK_T('\r'));
 							HAWK_OOECS_LEN(buf)--;
 						}
 					}
@@ -585,7 +598,7 @@ int hawk_rtx_readio (hawk_rtx_t* rtx, hawk_in_type_t in_type, const hawk_ooch_t*
 					{
 						/* shrink the line length and the record
 						 * by dropping of CR before NL */
-						HAWK_ASSERT (line_len > 0);
+						HAWK_ASSERT(line_len > 0);
 						line_len--;
 
 						/* we don't drop CR from the record buffer
@@ -865,9 +878,9 @@ int hawk_rtx_readiobytes (hawk_rtx_t* rtx, hawk_in_type_t in_type, const hawk_oo
 							/* CR must have come from the previous
 							 * read. drop CR that must be found  at
 							 * the end of the record buffer. */
-							HAWK_ASSERT (end_pos == start_pos);
-							HAWK_ASSERT (HAWK_BECS_LEN(buf) > 0);
-							HAWK_ASSERT (HAWK_BECS_LASTCHAR(buf) == '\r');
+							HAWK_ASSERT(end_pos == start_pos);
+							HAWK_ASSERT(HAWK_BECS_LEN(buf) > 0);
+							HAWK_ASSERT(HAWK_BECS_LASTCHAR(buf) == '\r');
 							HAWK_BECS_LEN(buf)--;
 						}
 					}
@@ -902,7 +915,7 @@ int hawk_rtx_readiobytes (hawk_rtx_t* rtx, hawk_in_type_t in_type, const hawk_oo
 					{
 						/* shrink the line length and the record
 						 * by dropping of CR before NL */
-						HAWK_ASSERT (line_len > 0);
+						HAWK_ASSERT(line_len > 0);
 						line_len--;
 
 						/* we don't drop CR from the record buffer
@@ -1091,9 +1104,9 @@ static int prepare_for_write_io_data (hawk_rtx_t* rtx, hawk_out_type_t out_type,
 	hawk_rio_impl_t handler;
 	int io_type, io_mode, io_mask, n;
 
-	HAWK_ASSERT (out_type >= 0 && out_type <= HAWK_COUNTOF(out_type_map));
-	HAWK_ASSERT (out_type >= 0 && out_type <= HAWK_COUNTOF(out_mode_map));
-	HAWK_ASSERT (out_type >= 0 && out_type <= HAWK_COUNTOF(out_mask_map));
+	HAWK_ASSERT(out_type >= 0 && out_type <= HAWK_COUNTOF(out_type_map));
+	HAWK_ASSERT(out_type >= 0 && out_type <= HAWK_COUNTOF(out_mode_map));
+	HAWK_ASSERT(out_type >= 0 && out_type <= HAWK_COUNTOF(out_mask_map));
 
 	/* translate the out_type into the relevant io type and mode */
 	io_type = out_type_map[out_type];
@@ -1235,9 +1248,9 @@ int hawk_rtx_flushio (hawk_rtx_t* rtx, hawk_out_type_t out_type, const hawk_ooch
 	hawk_ooi_t n;
 	int ok = 0;
 
-	HAWK_ASSERT (out_type >= 0 && out_type <= HAWK_COUNTOF(out_type_map));
-	HAWK_ASSERT (out_type >= 0 && out_type <= HAWK_COUNTOF(out_mode_map));
-	HAWK_ASSERT (out_type >= 0 && out_type <= HAWK_COUNTOF(out_mask_map));
+	HAWK_ASSERT(out_type >= 0 && out_type <= HAWK_COUNTOF(out_type_map));
+	HAWK_ASSERT(out_type >= 0 && out_type <= HAWK_COUNTOF(out_mode_map));
+	HAWK_ASSERT(out_type >= 0 && out_type <= HAWK_COUNTOF(out_mask_map));
 
 	/* translate the out_type into the relevant I/O type and mode */
 	io_type = out_type_map[out_type];
@@ -1284,9 +1297,9 @@ int hawk_rtx_nextio_read (hawk_rtx_t* rtx, hawk_in_type_t in_type, const hawk_oo
 	int io_type, /*io_mode,*/ io_mask;
 	hawk_ooi_t n;
 
-	HAWK_ASSERT (in_type >= 0 && in_type <= HAWK_COUNTOF(in_type_map));
-	HAWK_ASSERT (in_type >= 0 && in_type <= HAWK_COUNTOF(in_mode_map));
-	HAWK_ASSERT (in_type >= 0 && in_type <= HAWK_COUNTOF(in_mask_map));
+	HAWK_ASSERT(in_type >= 0 && in_type <= HAWK_COUNTOF(in_type_map));
+	HAWK_ASSERT(in_type >= 0 && in_type <= HAWK_COUNTOF(in_mode_map));
+	HAWK_ASSERT(in_type >= 0 && in_type <= HAWK_COUNTOF(in_mask_map));
 
 	/* translate the in_type into the relevant I/O type and mode */
 	io_type = in_type_map[in_type];
@@ -1310,7 +1323,7 @@ int hawk_rtx_nextio_read (hawk_rtx_t* rtx, hawk_in_type_t in_type, const hawk_oo
 	if (!p)
 	{
 		/* something is totally wrong */
-		HAWK_ASSERT (!"should never happen - cannot find the relevant rio entry");
+		HAWK_ASSERT(!"should never happen - cannot find the relevant rio entry");
 		hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EINTERN);
 		return -1;
 	}
@@ -1353,9 +1366,9 @@ int hawk_rtx_nextio_write (hawk_rtx_t* rtx, hawk_out_type_t out_type, const hawk
 	int io_type, /*io_mode,*/ io_mask;
 	hawk_ooi_t n;
 
-	HAWK_ASSERT (out_type >= 0 && out_type <= HAWK_COUNTOF(out_type_map));
-	HAWK_ASSERT (out_type >= 0 && out_type <= HAWK_COUNTOF(out_mode_map));
-	HAWK_ASSERT (out_type >= 0 && out_type <= HAWK_COUNTOF(out_mask_map));
+	HAWK_ASSERT(out_type >= 0 && out_type <= HAWK_COUNTOF(out_type_map));
+	HAWK_ASSERT(out_type >= 0 && out_type <= HAWK_COUNTOF(out_mode_map));
+	HAWK_ASSERT(out_type >= 0 && out_type <= HAWK_COUNTOF(out_mask_map));
 
 	/* translate the out_type into the relevant I/O type and mode */
 	io_type = out_type_map[out_type];
@@ -1379,7 +1392,7 @@ int hawk_rtx_nextio_write (hawk_rtx_t* rtx, hawk_out_type_t out_type, const hawk
 	if (!p)
 	{
 		/* something is totally wrong */
-		HAWK_ASSERT (!"should never happen - cannot find the relevant rio entry");
+		HAWK_ASSERT(!"should never happen - cannot find the relevant rio entry");
 
 		hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EINTERN);
 		return -1;
@@ -1417,9 +1430,9 @@ int hawk_rtx_closio_read (hawk_rtx_t* rtx, hawk_in_type_t in_type, const hawk_oo
 	hawk_rio_impl_t handler;
 	int io_type, /*io_mode,*/ io_mask;
 
-	HAWK_ASSERT (in_type >= 0 && in_type <= HAWK_COUNTOF(in_type_map));
-	HAWK_ASSERT (in_type >= 0 && in_type <= HAWK_COUNTOF(in_mode_map));
-	HAWK_ASSERT (in_type >= 0 && in_type <= HAWK_COUNTOF(in_mask_map));
+	HAWK_ASSERT(in_type >= 0 && in_type <= HAWK_COUNTOF(in_type_map));
+	HAWK_ASSERT(in_type >= 0 && in_type <= HAWK_COUNTOF(in_mode_map));
+	HAWK_ASSERT(in_type >= 0 && in_type <= HAWK_COUNTOF(in_mask_map));
 
 	/* translate the in_type into the relevant I/O type and mode */
 	io_type = in_type_map[in_type];
@@ -1474,9 +1487,9 @@ int hawk_rtx_closio_write (hawk_rtx_t* rtx, hawk_out_type_t out_type, const hawk
 	hawk_rio_impl_t handler;
 	int io_type, /*io_mode,*/ io_mask;
 
-	HAWK_ASSERT (out_type >= 0 && out_type <= HAWK_COUNTOF(out_type_map));
-	HAWK_ASSERT (out_type >= 0 && out_type <= HAWK_COUNTOF(out_mode_map));
-	HAWK_ASSERT (out_type >= 0 && out_type <= HAWK_COUNTOF(out_mask_map));
+	HAWK_ASSERT(out_type >= 0 && out_type <= HAWK_COUNTOF(out_type_map));
+	HAWK_ASSERT(out_type >= 0 && out_type <= HAWK_COUNTOF(out_mode_map));
+	HAWK_ASSERT(out_type >= 0 && out_type <= HAWK_COUNTOF(out_mask_map));
 
 	/* translate the out_type into the relevant io type and mode */
 	io_type = out_type_map[out_type];
@@ -1547,7 +1560,7 @@ int hawk_rtx_closeio (hawk_rtx_t* rtx, const hawk_ooch_t* name, const hawk_ooch_
 				}
 				else
 				{
-					HAWK_ASSERT (opt[0] == HAWK_T('w'));
+					HAWK_ASSERT(opt[0] == HAWK_T('w'));
 					if (p->type & IO_MASK_RDWR)
 					{
 						if (p->rwcstate != HAWK_RIO_CMD_CLOSE_READ)

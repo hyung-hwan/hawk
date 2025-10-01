@@ -43,7 +43,7 @@ char_t* split_xchars_to_fields (hawk_rtx_t* rtx, char_t* str, hawk_oow_t len, ch
 
 	while (p < end)
 	{
-		char c = *p;
+		char_t c = *p;
 
 		if (escaped)
 		{

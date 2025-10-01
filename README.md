@@ -909,7 +909,7 @@ In this example:
 | CONVFMT      |             |
 | FILENAME     |             |
 | FNR          | File Number of Records, It reset to 1 for each new input file |
-| FS           | Field Separator, specifies the character(s) that separate fields (columns) in an input record. The default is whitespace. If `FS` is a string that begins with a question mark(`?`) and 3 characters, the 3 characters define special quoting characters in this order: escaper, left quote and right quote. |
+| FS           | Field Separator, specifies the character(s) that separate fields (columns) in an input record. The default is whitespace. |
 | IGNORECASE   |             |
 | NF           | Number of Fields (columns) in the current input record |
 | NR           | Number of Records processed so far |
@@ -925,6 +925,25 @@ In this example:
 | STRIPRECSPC  |             |
 | STRIPSTRSPC  |             |
 | SUBSPEP      |             |
+
+If `FS` is a string beginning with a question mark(`?`) followed by four characters, those characters define special quoting behavior in this order:
+- Separator
+- Escaper
+- Left quote
+- Right quote
+
+When the escaper, left quote, and right quote are all the same (for example, `?,"""`), you must repeat that character twice to represent it literally.
+
+In this specific case - when `FS` is in quoting form and the escaper, left quote, and right quote are identical - if `RS` is unset or set to `@nil`, then records may span multiple lines. This allows fields enclosed in quotes to contain embedded newlines.
+
+```sh
+$ echo -e 'the tiger, "pounced on\n""me"""' | hawk -v FS='?,"""' '{ for (i = 0; i <= NF; i++) print i, "[" $i "]"; }'
+0 [the tiger, "pounced on
+""me"""]
+1 [the tiger]
+2 [pounced on
+"me"]
+```
 
 ## Pipes
 
