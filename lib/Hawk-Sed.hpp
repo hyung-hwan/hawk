@@ -228,6 +228,8 @@ public:
 	/// initialized with the open() function.
 	///
 	hawk_loc_t getErrorLocation () const;
+	const hawk_uch_t* getErrorLocationFileU () const;
+	const hawk_bch_t* getErrorLocationFileB () const;
 
 	///
 	/// The getErrorNumber() function gets the number of the last
@@ -240,9 +242,9 @@ public:
 	/// The setError() function sets information on an error occurred.
 	///
 	void setError (
-		hawk_errnum_t      num,             ///< error number
+		hawk_errnum_t      code,             ///< error number
 		const hawk_oocs_t* args = HAWK_NULL, ///< string array for formatting
-		                               ///  an error message
+		                                     ///  an error message
 		const hawk_loc_t*  loc = HAWK_NULL   ///< error location
 	);
 
@@ -259,6 +261,9 @@ public:
 		const hawk_uch_t*   fmt,
 		...
 	);
+
+	void clearError ();
+	void retrieveError ();
 
 	const hawk_ooch_t* getCompileId () const;
 
@@ -301,6 +306,17 @@ protected:
 	hawk_sed_t* sed;
 	/// default error formatting string getter
 	hawk_errstr_t dflerrstr;
+	/// error information buffer
+	hawk_errinf_t errinf;
+
+#if defined(HAWK_OOCH_IS_BCH)
+	mutable hawk_uch_t xerrmsg[HAWK_ERRMSG_CAPA];
+	mutable hawk_uch_t xerrlocfile[128];
+#else
+	mutable hawk_bch_t xerrmsg[HAWK_ERRMSG_CAPA * 2];
+	mutable hawk_bch_t xerrlocfile[256];
+#endif
+
 	/// Stream to read script from
 	Stream* sstream;
 	/// I/O stream to read data from

@@ -26,6 +26,7 @@
 
 #include <Hawk-Sed.hpp>
 #include "sed-prv.h"
+#include "hawk-prv.h"
 
 /////////////////////////////////
 HAWK_BEGIN_NAMESPACE(HAWK)
@@ -44,6 +45,8 @@ static HAWK_INLINE xtn_t* GET_XTN(hawk_sed_t* sed) { return (xtn_t*)((hawk_uint8
 
 Sed::Sed (Mmgr* mmgr): Mmged(mmgr), sed(HAWK_NULL), dflerrstr(HAWK_NULL)
 {
+	HAWK_MEMSET (&this->errinf, 0, HAWK_SIZEOF(this->errinf));
+	this->errinf.num = HAWK_ENOERR;
 	this->_cmgr = hawk_get_cmgr_by_id(HAWK_CMGR_UTF8);
 }
 
@@ -61,14 +64,8 @@ void Sed::setCmgr (hawk_cmgr_t* cmgr)
 int Sed::open ()
 {
 // TODO: create this->errinf just like the Hawk class.
-	hawk_errinf_t errinf;
-	this->sed = hawk_sed_open(this->getMmgr(), HAWK_SIZEOF(xtn_t), this->getCmgr(), &errinf);
-	if (HAWK_UNLIKELY(!this->sed))
-	{
-		// TODO: set error information like the Hawk class
-		// can not set error as this->sed is null until I update this class like Hawk.
-		return -1;
-	}
+	this->sed = hawk_sed_open(this->getMmgr(), HAWK_SIZEOF(xtn_t), this->getCmgr(), &this->errinf);
+	if (HAWK_UNLIKELY(!this->sed)) return -1;
 
 	this->sed->_instsize += HAWK_SIZEOF(xtn_t);
 
@@ -86,7 +83,7 @@ void Sed::close ()
 {
 	if (this->sed)
 	{
-		hawk_sed_close (this->sed);
+		hawk_sed_close(this->sed);
 		this->sed = HAWK_NULL;
 	}
 }
@@ -94,24 +91,26 @@ void Sed::close ()
 int Sed::compile (Stream& sstream)
 {
 	HAWK_ASSERT(this->sed != HAWK_NULL);
-
 	this->sstream = &sstream;
-	return hawk_sed_comp(this->sed, Sed::sin);
+	int n = hawk_sed_comp(this->sed, Sed::sin);
+	if (n <= -1) this->retrieveError();
+	return n;
 }
 
 int Sed::execute (Stream& istream, Stream& ostream)
 {
 	HAWK_ASSERT(this->sed != HAWK_NULL);
-
 	this->istream = &istream;
 	this->ostream = &ostream;
-	return hawk_sed_exec(this->sed, Sed::xin, Sed::xout);
+	int n = hawk_sed_exec(this->sed, Sed::xin, Sed::xout);
+	if (n <= -1) this->retrieveError();
+	return n;
 }
 
 void Sed::halt ()
 {
 	HAWK_ASSERT(this->sed != HAWK_NULL);
-	hawk_sed_halt (this->sed);
+	hawk_sed_halt(this->sed);
 }
 
 bool Sed::isHalt () const
@@ -124,7 +123,7 @@ int Sed::getTrait () const
 {
 	HAWK_ASSERT(this->sed != HAWK_NULL);
 	int val;
-	hawk_sed_getopt (this->sed, HAWK_SED_TRAIT, &val);
+	hawk_sed_getopt(this->sed, HAWK_SED_TRAIT, &val);
 	return val;
 }
 
@@ -136,58 +135,139 @@ void Sed::setTrait (int trait)
 
 const hawk_ooch_t* Sed::getErrorMessage () const
 {
-	return (this->sed == HAWK_NULL)? HAWK_T(""): hawk_sed_geterrmsg(this->sed);
+	return this->errinf.msg;
 }
 
 const hawk_uch_t* Sed::getErrorMessageU () const
 {
-	return (this->sed == HAWK_NULL)? HAWK_UT(""): hawk_sed_geterrumsg(this->sed);
+#if defined(HAWK_OOCH_IS_UCH)
+	return this->errinf.msg;
+#else
+	hawk_oow_t wcslen, mbslen;
+	wcslen = HAWK_COUNTOF(this->xerrmsg);
+	hawk_conv_bcstr_to_ucstr_with_cmgr(this->errinf.msg, &mbslen, this->xerrmsg, &wcslen, this->getCmgr(), 1);
+	return this->xerrmsg;
+#endif
 }
 
 const hawk_bch_t* Sed::getErrorMessageB () const
 {
-	return (this->sed == HAWK_NULL)? HAWK_BT(""): hawk_sed_geterrbmsg(this->sed);
+#if defined(HAWK_OOCH_IS_UCH)
+	hawk_oow_t wcslen, mbslen;
+	mbslen = HAWK_COUNTOF(this->xerrmsg);
+	hawk_conv_ucstr_to_bcstr_with_cmgr(this->errinf.msg, &wcslen, this->xerrmsg, &mbslen, this->getCmgr());
+	return this->xerrmsg;
+#else
+	return this->errinf.msg;
+#endif
 }
 
 hawk_loc_t Sed::getErrorLocation () const
 {
-	if (this->sed == HAWK_NULL)
-	{
-		hawk_loc_t loc;
-		loc.line = 0;
-		loc.colm = 0;
-		return loc;
-	}
-	return *hawk_sed_geterrloc(this->sed);
+	return this->errinf.loc;
+}
+
+const hawk_uch_t* Sed::getErrorLocationFileU () const
+{
+#if defined(HAWK_OOCH_IS_UCH)
+	return this->errinf.loc.file;
+#else
+	if (!this->errinf.loc.file) return HAWK_NULL;
+	hawk_oow_t wcslen, mbslen;
+	wcslen = HAWK_COUNTOF(this->xerrlocfile);
+	hawk_conv_bcstr_to_ucstr_with_cmgr(this->errinf.loc.file, &mbslen, this->xerrlocfile, &wcslen, this->getCmgr(), 1);
+	return this->xerrlocfile;
+#endif
+}
+
+const hawk_bch_t* Sed::getErrorLocationFileB () const
+{
+#if defined(HAWK_OOCH_IS_UCH)
+	if (!this->errinf.loc.file) return HAWK_NULL;
+	hawk_oow_t wcslen, mbslen;
+	mbslen = HAWK_COUNTOF(this->xerrlocfile);
+	hawk_conv_ucstr_to_bcstr_with_cmgr(this->errinf.loc.file, &wcslen, this->xerrlocfile, &mbslen, this->getCmgr());
+	return this->xerrlocfile;
+#else
+	return this->errinf.loc.file;
+#endif
 }
 
 hawk_errnum_t Sed::getErrorNumber () const
 {
-	return (this->sed == HAWK_NULL)? HAWK_ENOERR: hawk_sed_geterrnum(this->sed);
+	return this->errinf.num;
 }
 
-void Sed::setError (hawk_errnum_t err, const hawk_oocs_t* args, const hawk_loc_t* loc)
+void Sed::setError (hawk_errnum_t code, const hawk_oocs_t* args, const hawk_loc_t* loc)
 {
-	HAWK_ASSERT(this->sed != HAWK_NULL);
-	hawk_sed_seterror(this->sed, loc, err, args);
+	if (this->sed)
+	{
+		hawk_sed_seterror(this->sed, loc, code, args);
+		this->retrieveError();
+	}
+	else
+	{
+		HAWK_MEMSET(&this->errinf, 0, HAWK_SIZEOF(this->errinf));
+		this->errinf.num = code;
+		if (loc) this->errinf.loc = *loc;
+		hawk_copy_oocstr(this->errinf.msg, HAWK_COUNTOF(this->errinf.msg), hawk_dfl_errstr(code));
+	}
 }
 
 void Sed::formatError (hawk_errnum_t code, const hawk_loc_t* loc, const hawk_bch_t* fmt, ...)
 {
-	HAWK_ASSERT(this->sed != HAWK_NULL);
-	va_list ap;
-	va_start (ap, fmt);
-	hawk_sed_seterrbvfmt(this->sed, loc, code, fmt, ap);
-	va_end (ap);
+	if (this->sed)
+	{
+		va_list ap;
+		va_start(ap, fmt);
+		hawk_sed_seterrbvfmt(this->sed, loc, code, fmt, ap);
+		va_end(ap);
+		this->retrieveError();
+	}
+	else
+	{
+		HAWK_MEMSET(&this->errinf, 0, HAWK_SIZEOF(this->errinf));
+		this->errinf.num = code;
+		if (loc) this->errinf.loc = *loc;
+		hawk_copy_oocstr(this->errinf.msg, HAWK_COUNTOF(this->errinf.msg), hawk_dfl_errstr(code));
+	}
 }
 
 void Sed::formatError (hawk_errnum_t code, const hawk_loc_t* loc, const hawk_uch_t* fmt, ...)
 {
-	HAWK_ASSERT(this->sed != HAWK_NULL);
-	va_list ap;
-	va_start (ap, fmt);
-	hawk_sed_seterruvfmt (this->sed, loc, code, fmt, ap);
-	va_end (ap);
+	if (this->sed)
+	{
+		va_list ap;
+		va_start(ap, fmt);
+		hawk_sed_seterruvfmt(this->sed, loc, code, fmt, ap);
+		va_end(ap);
+		this->retrieveError();
+	}
+	else
+	{
+		HAWK_MEMSET(&this->errinf, 0, HAWK_SIZEOF(this->errinf));
+		this->errinf.num = code;
+		if (loc) this->errinf.loc = *loc;
+		hawk_copy_oocstr(this->errinf.msg, HAWK_COUNTOF(this->errinf.msg), hawk_dfl_errstr(code));
+	}
+}
+
+void Sed::clearError ()
+{
+	HAWK_MEMSET(&this->errinf, 0, HAWK_SIZEOF(this->errinf));
+	this->errinf.num = HAWK_ENOERR;
+}
+
+void Sed::retrieveError()
+{
+	if (this->sed == HAWK_NULL)
+	{
+		this->clearError();
+	}
+	else
+	{
+		hawk_sed_geterrinf(this->sed, &this->errinf);
+	}
 }
 
 const hawk_ooch_t* Sed::getCompileId () const
