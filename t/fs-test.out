@@ -1,0 +1,36 @@
+0 ["Product ID","Product Name","Description","Price","Available Sizes","Notes"]
+1 [Product ID]
+2 [Product Name]
+3 [Description]
+4 [Price]
+5 [Available Sizes]
+6 [Notes]
+0 [101,"Deluxe Widget","A versatile widget for various applications. Features include:
+- Enhanced durability
+- Multi-functional design
+- Easy to use",29.99,"Small,Medium,Large","Customer feedback suggests excellent performance."]
+1 [101]
+2 [Deluxe Widget]
+3 [A versatile widget for various applications. Features include:
+- Enhanced durability
+- Multi-functional design
+- Easy to use]
+4 [29.99]
+5 [Small,Medium,Large]
+6 [Customer feedback suggests excellent performance.]
+0 [102,"Super Gadget","The ultimate gadget for tech enthusiasts.",49.99,"One Size","Limited stock, order soon!"]
+1 [102]
+2 [Super Gadget]
+3 [The ultimate gadget for tech enthusiasts.]
+4 [49.99]
+5 [One Size]
+6 [Limited stock, order soon!]
+0 [103,"Basic Tool Set","A comprehensive set of essential tools, including a hammer, screwdriver, and wrench.
+Perfect for home DIY projects.",35.50,"N/A","Tools are made from high-quality steel."]
+1 [103]
+2 [Basic Tool Set]
+3 [A comprehensive set of essential tools, including a hammer, screwdriver, and wrench.
+Perfect for home DIY projects.]
+4 [35.50]
+5 [N/A]
+6 [Tools are made from high-quality steel.]

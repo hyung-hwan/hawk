@@ -123,7 +123,7 @@ static int find_rio_in (
 	if (handler == HAWK_NULL)
 	{
 		/* no I/O handler provided */
-		hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EIOUSER);
+		hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EIOUSER);
 		return -1;
 	}
 
@@ -388,9 +388,9 @@ int hawk_rtx_readio (hawk_rtx_t* rtx, hawk_in_type_t in_type, const hawk_ooch_t*
 	if (p->in.mbs)
 	{
 		if (name[0] == '\0')
-			hawk_rtx_seterrfmt (rtx, HAWK_NULL, HAWK_EPERM, HAWK_T("disallowed mixed mode input"));
+			hawk_rtx_seterrfmt(rtx, HAWK_NULL, HAWK_EPERM, HAWK_T("disallowed mixed mode input"));
 		else
-			hawk_rtx_seterrfmt (rtx, HAWK_NULL, HAWK_EPERM, HAWK_T("disallowed mixed mode input on %js"), name);
+			hawk_rtx_seterrfmt(rtx, HAWK_NULL, HAWK_EPERM, HAWK_T("disallowed mixed mode input on %js"), name);
 		return -1;
 	}
 
@@ -737,9 +737,15 @@ int hawk_rtx_readiobytes (hawk_rtx_t* rtx, hawk_in_type_t in_type, const hawk_oo
 	hawk_rio_arg_t* p;
 	hawk_rio_impl_t handler;
 	int ret;
+	int esc_lq_rq;
+	int quoted;
+	hawk_bch_t esc, lq, rq;
 
 	hawk_val_t* brs;
 	hawk_bcs_t rrs;
+
+	hawk_val_t* bfs;
+	hawk_bcs_t ffs;
 
 	hawk_oow_t line_len = 0;
 	hawk_bch_t c = '\0', pc;
@@ -749,9 +755,9 @@ int hawk_rtx_readiobytes (hawk_rtx_t* rtx, hawk_in_type_t in_type, const hawk_oo
 	if (!p->in.mbs)
 	{
 		if (name[0] == '\0')
-			hawk_rtx_seterrfmt (rtx, HAWK_NULL, HAWK_EPERM, HAWK_T("disallowed mixed mode input"));
+			hawk_rtx_seterrfmt(rtx, HAWK_NULL, HAWK_EPERM, HAWK_T("disallowed mixed mode input"));
 		else
-			hawk_rtx_seterrfmt (rtx, HAWK_NULL, HAWK_EPERM, HAWK_T("disallowed mixed mode input on %js"), name);
+			hawk_rtx_seterrfmt(rtx, HAWK_NULL, HAWK_EPERM, HAWK_T("disallowed mixed mode input on %js"), name);
 		return -1;
 	}
 
@@ -762,10 +768,33 @@ int hawk_rtx_readiobytes (hawk_rtx_t* rtx, hawk_in_type_t in_type, const hawk_oo
 	brs = hawk_rtx_getgbl(rtx, HAWK_GBL_RS);
 	hawk_rtx_refupval(rtx, brs);
 
+	bfs = hawk_rtx_getgbl(rtx, HAWK_GBL_FS);
+	hawk_rtx_refupval(rtx, bfs);
+
 	if (resolve_brs(rtx, brs, &rrs) <= -1)
 	{
 		hawk_rtx_refdownval(rtx, brs);
 		return -1;
+	}
+
+	if (resolve_brs(rtx, bfs, &ffs) <= -1)
+	{
+		hawk_rtx_refdownval(rtx, bfs);
+		hawk_rtx_refdownval(rtx, brs);
+		return -1;
+	}
+
+	/* RS set to @nil, FS set to a special string starting with ?, followed by esc lq rq */
+	esc_lq_rq = 0;
+	quoted = 0;
+	if (ffs.len == 5 && ffs.ptr[0] == '?' && !rrs.ptr)
+	{
+		esc = ffs.ptr[2];
+		lq = ffs.ptr[3];
+		rq = ffs.ptr[4];
+
+		esc_lq_rq = 1;
+		esc_lq_rq += (esc == lq && esc == rq);
 	}
 
 	ret = 1;
@@ -858,6 +887,27 @@ int hawk_rtx_readiobytes (hawk_rtx_t* rtx, hawk_in_type_t in_type, const hawk_oo
 				pc = c;
 				c = p->in.u.bbuf[p->in.pos++];
 				end_pos = p->in.pos;
+
+				if (esc_lq_rq == 2)
+				{
+					/* if FS is something like [?,"""] and RS is @nil,
+					 * it supports multi-line quoted vlaues. */
+					if (quoted == 2)
+					{
+						quoted = (c == rq);
+						/* no continue here as c could be a new line */
+					}
+					else if (quoted == 1)
+					{
+						if (c == rq) quoted = 2;
+						continue;
+					}
+					else if (c == lq)
+					{
+						quoted = 1;
+						continue;
+					}
+				}
 
 				/* TODO: handle different line terminator */
 				/* separate by a new line */
@@ -1044,6 +1094,7 @@ int hawk_rtx_readiobytes (hawk_rtx_t* rtx, hawk_in_type_t in_type, const hawk_oo
 	}
 
 	if (rrs.ptr && HAWK_RTX_GETVALTYPE(rtx, brs) != HAWK_VAL_MBS) hawk_rtx_freemem(rtx, rrs.ptr);
+	hawk_rtx_refdownval(rtx, bfs);
 	hawk_rtx_refdownval(rtx, brs);
 
 	return ret;
@@ -1117,7 +1168,7 @@ static int prepare_for_write_io_data (hawk_rtx_t* rtx, hawk_out_type_t out_type,
 	if (HAWK_UNLIKELY(!handler))
 	{
 		/* no I/O handler provided */
-		hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EIOUSER);
+		hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EIOUSER);
 		return -1;
 	}
 
@@ -1261,7 +1312,7 @@ int hawk_rtx_flushio (hawk_rtx_t* rtx, hawk_out_type_t out_type, const hawk_ooch
 	if (!handler)
 	{
 		/* no I/O handler provided */
-		hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EIOUSER);
+		hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EIOUSER);
 		return -1;
 	}
 
@@ -1286,7 +1337,7 @@ int hawk_rtx_flushio (hawk_rtx_t* rtx, hawk_out_type_t out_type, const hawk_ooch
 	if (ok) return 0;
 
 	/* there is no corresponding rio for name */
-	hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EIONMNF);
+	hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EIONMNF);
 	return -1;
 }
 
@@ -1310,7 +1361,7 @@ int hawk_rtx_nextio_read (hawk_rtx_t* rtx, hawk_in_type_t in_type, const hawk_oo
 	if (!handler)
 	{
 		/* no I/O handler provided */
-		hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EIOUSER);
+		hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EIOUSER);
 		return -1;
 	}
 
@@ -1324,7 +1375,7 @@ int hawk_rtx_nextio_read (hawk_rtx_t* rtx, hawk_in_type_t in_type, const hawk_oo
 	{
 		/* something is totally wrong */
 		HAWK_ASSERT(!"should never happen - cannot find the relevant rio entry");
-		hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EINTERN);
+		hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EINTERN);
 		return -1;
 	}
 
@@ -1379,7 +1430,7 @@ int hawk_rtx_nextio_write (hawk_rtx_t* rtx, hawk_out_type_t out_type, const hawk
 	if (!handler)
 	{
 		/* no I/O handler provided */
-		hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EIOUSER);
+		hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EIOUSER);
 		return -1;
 	}
 
@@ -1394,7 +1445,7 @@ int hawk_rtx_nextio_write (hawk_rtx_t* rtx, hawk_out_type_t out_type, const hawk
 		/* something is totally wrong */
 		HAWK_ASSERT(!"should never happen - cannot find the relevant rio entry");
 
-		hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EINTERN);
+		hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EINTERN);
 		return -1;
 	}
 
@@ -1443,7 +1494,7 @@ int hawk_rtx_closio_read (hawk_rtx_t* rtx, hawk_in_type_t in_type, const hawk_oo
 	if (!handler)
 	{
 		/* no I/O handler provided */
-		hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EIOUSER);
+		hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EIOUSER);
 		return -1;
 	}
 
@@ -1459,7 +1510,7 @@ int hawk_rtx_closio_read (hawk_rtx_t* rtx, hawk_in_type_t in_type, const hawk_oo
 				if (handler (rtx, HAWK_RIO_CMD_CLOSE, p, HAWK_NULL, 0) <= -1)
 				{
 					/* this is not a rtx-time error.*/
-					hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EIOIMPL);
+					hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EIOIMPL);
 					return -1;
 				}
 			}
@@ -1477,7 +1528,7 @@ int hawk_rtx_closio_read (hawk_rtx_t* rtx, hawk_in_type_t in_type, const hawk_oo
 	}
 
 	/* the name given is not found */
-	hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EIONMNF);
+	hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EIONMNF);
 	return -1;
 }
 
@@ -1500,7 +1551,7 @@ int hawk_rtx_closio_write (hawk_rtx_t* rtx, hawk_out_type_t out_type, const hawk
 	if (HAWK_UNLIKELY(!handler))
 	{
 		/* no io handler provided */
-		hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EIOUSER);
+		hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EIOUSER);
 		return -1;
 	}
 
@@ -1525,7 +1576,7 @@ int hawk_rtx_closio_write (hawk_rtx_t* rtx, hawk_out_type_t out_type, const hawk
 		p = p->next;
 	}
 
-	hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EIONMNF);
+	hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EIONMNF);
 	return -1;
 }
 
@@ -1614,7 +1665,7 @@ int hawk_rtx_closeio (hawk_rtx_t* rtx, const hawk_ooch_t* name, const hawk_ooch_
 		p = p->next;
 	}
 
-	hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EIONMNF);
+	hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EIONMNF);
 	return -1;
 }
 

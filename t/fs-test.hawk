@@ -1,0 +1,9 @@
+BEGIN {
+	## `FS` with a question mark(`?`) followed by four characters. the last three are equal.
+	FS="?,\"\"\"";
+}
+
+{
+	for (i = 0; i <= NF; i++) print i, "[" $i "]";
+}
+

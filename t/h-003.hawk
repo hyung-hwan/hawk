@@ -10,7 +10,7 @@ function are_files_identical(a, b)
 	f1 = sys::open(a, sys::O_RDONLY);
 	if (f1 <= -1)
 	{
-		printf ("ERROR: unable to open %s\n", a);
+		printf("ERROR: unable to open %s\n", a);
 		return -1;
 	}
 
@@ -18,7 +18,7 @@ function are_files_identical(a, b)
 	if (f2 <= -1)
 	{
 		sys::close (a);
-		printf ("ERROR: unable to open %s\n", b);
+		printf("ERROR: unable to open %s\n", b);
 		return -1;
 	}
 
@@ -34,8 +34,8 @@ function are_files_identical(a, b)
 
 	if (sys::read(f2, y, 1) > 0) diff = 1;
 
-	sys::close (f2);
-	sys::close (f1);
+	sys::close(f2);
+	sys::close(f1);
 	return !diff;
 }
 
@@ -66,20 +66,21 @@ function run_test (x, more_opts, in_name, set_out_name, out_name)
 	if (same <= 0)
 	{
 		## don't delete the output file for review.
-		tap_fail (sprintf("%s[%d] %s - %s and %s differ", @SCRIPTNAME, @SCRIPTLINE, x, expf, outf));
+		tap_fail(sprintf("%s[%d] %s - %s and %s differ", @SCRIPTNAME, @SCRIPTLINE, x, expf, outf));
 	}
 	else
 	{
-		tap_ok (sprintf("%s[%d]", @SCRIPTNAME, @SCRIPTLINE));
-		sys::unlink (outf);
+		tap_ok(sprintf("%s[%d]", @SCRIPTNAME, @SCRIPTLINE));
+		sys::unlink(outf);
 	}
 }
 
 function main()
 {
-	run_test ("journal-toc", "", @nil, 0, @nil);
-	run_test ("journal-toc", "-vHTML=1", "journal-toc", 0, "journal-toc-html");
-	run_test ("bibtex-to-html", "", "journal-toc", 1, "bibtex-to-html");
+	run_test("journal-toc", "", @nil, 0, @nil);
+	run_test("journal-toc", "-vHTML=1", "journal-toc", 0, "journal-toc-html");
+	run_test("bibtex-to-html", "", "journal-toc", 1, "bibtex-to-html");
+	run_test("fs-test", "", "fs-test", 0, "fs-test");
 
 	tap_end ();
 }
