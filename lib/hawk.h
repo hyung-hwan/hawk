@@ -1570,7 +1570,7 @@ HAWK_EXPORT hawk_t* hawk_open (
 	hawk_oow_t        xtnsize, /**< extension size in bytes */
 	hawk_cmgr_t*      cmgr,    /**< character conversion manager */
 	const hawk_prm_t* prm,     /**< pointer to a primitive function structure */
-	hawk_errnum_t*    errnum   /**< pointer to an error number varaible */
+	hawk_errinf_t*    errinf   /**< pointer to an error number varaible */
 );
 
 /**
@@ -3565,7 +3565,6 @@ HAWK_EXPORT void hawk_rtx_getnrflt (
 	hawk_rtx_t*         rtx,
 	hawk_nrflt_t*       nrflt
 );
-
 
 #if defined(HAWK_HAVE_INLINE)
 static HAWK_INLINE void* hawk_rtx_allocmem (hawk_rtx_t* rtx, hawk_oow_t size) { return hawk_gem_allocmem(hawk_rtx_getgem(rtx), size); }

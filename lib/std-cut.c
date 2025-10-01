@@ -70,12 +70,12 @@ static HAWK_INLINE xtn_t* GET_XTN(hawk_cut_t* cut) { return (xtn_t*)((hawk_uint8
 #endif
 
 
-hawk_cut_t* hawk_cut_openstd (hawk_oow_t xtnsize, hawk_errnum_t* errnum)
+hawk_cut_t* hawk_cut_openstd (hawk_oow_t xtnsize, hawk_errinf_t* errinf)
 {
-	return hawk_cut_openstdwithmmgr(hawk_get_sys_mmgr(), xtnsize, hawk_get_cmgr_by_id(HAWK_CMGR_UTF8), errnum);
+	return hawk_cut_openstdwithmmgr(hawk_get_sys_mmgr(), xtnsize, hawk_get_cmgr_by_id(HAWK_CMGR_UTF8), errinf);
 }
 
-hawk_cut_t* hawk_cut_openstdwithmmgr (hawk_mmgr_t* mmgr, hawk_oow_t xtnsize, hawk_cmgr_t* cmgr, hawk_errnum_t* errnum)
+hawk_cut_t* hawk_cut_openstdwithmmgr (hawk_mmgr_t* mmgr, hawk_oow_t xtnsize, hawk_cmgr_t* cmgr, hawk_errinf_t* errinf)
 {
 	hawk_cut_t* cut;
 	xtn_t* xtn;
@@ -84,7 +84,7 @@ hawk_cut_t* hawk_cut_openstdwithmmgr (hawk_mmgr_t* mmgr, hawk_oow_t xtnsize, haw
 	if (!cmgr) cmgr = hawk_get_cmgr_by_id(HAWK_CMGR_UTF8);
 
 	/* create an object */
-	cut = hawk_cut_open(mmgr, HAWK_SIZEOF(xtn_t) + xtnsize, cmgr, errnum);
+	cut = hawk_cut_open(mmgr, HAWK_SIZEOF(xtn_t) + xtnsize, cmgr, errinf);
 	if (HAWK_UNLIKELY(!cut)) return HAWK_NULL;
 
 	cut->_instsize += HAWK_SIZEOF(xtn_t);

@@ -115,7 +115,7 @@ HAWK_EXPORT hawk_json_t* hawk_json_open (
 	hawk_oow_t            xtnsize,
 	hawk_cmgr_t*          cmgr,
 	hawk_json_prim_t*     prim,
-	hawk_errnum_t*        errnum
+	hawk_errinf_t*        errinf
 );
 
 HAWK_EXPORT void hawk_json_close (
@@ -314,7 +314,7 @@ HAWK_EXPORT void hawk_json_freemem (
 HAWK_EXPORT hawk_json_t* hawk_json_openstd (
 	hawk_oow_t        xtnsize,  /**< extension size in bytes */
 	hawk_json_prim_t* prim,
-	hawk_errnum_t*    errnum
+	hawk_errinf_t*    errinf
 );
 
 /**
@@ -328,7 +328,7 @@ HAWK_EXPORT hawk_json_t* hawk_json_openstdwithmmgr (
 	hawk_oow_t        xtnsize,  /**< extension size in bytes */
 	hawk_cmgr_t*      cmgr,
 	hawk_json_prim_t* prim,
-	hawk_errnum_t*    errnum
+	hawk_errinf_t*    errinf
 );
 
 #if defined(__cplusplus)

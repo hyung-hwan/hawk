@@ -459,6 +459,7 @@ int main_sed(int argc, hawk_bch_t* argv[], const hawk_bch_t* real_argv0)
 	hawk_mmgr_t* mmgr = hawk_get_sys_mmgr();
 	hawk_cmgr_t* cmgr = hawk_get_cmgr_by_id(HAWK_CMGR_UTF8);
 	hawk_mmgr_t xma_mmgr;
+	hawk_errinf_t errinf;
 
 	memset (&arg, 0, HAWK_SIZEOF(arg));
 	ret = handle_args(argc, argv, real_argv0, &arg);
@@ -478,10 +479,20 @@ int main_sed(int argc, hawk_bch_t* argv[], const hawk_bch_t* real_argv0)
 	}
 
 
-	sed = hawk_sed_openstdwithmmgr(mmgr, 0, cmgr, HAWK_NULL);
+	sed = hawk_sed_openstdwithmmgr(mmgr, 0, cmgr, &errinf);
 	if (!sed)
 	{
-		hawk_main_print_error("cannot open stream editor\n");
+		const hawk_bch_t* msg;
+	#if defined(HAWK_OOCH_IS_UCH)
+		hawk_bch_t msgbuf[HAWK_ERRMSG_CAPA];
+		hawk_oow_t msglen, wcslen;
+		msglen = HAWK_COUNTOF(msgbuf);
+		hawk_conv_ucstr_to_bcstr_with_cmgr(errinf.msg, &wcslen, msgbuf, &msglen, cmgr);
+		msg = msgbuf;
+	#else
+		msg = errinf.msg;
+	#endif
+		hawk_main_print_error("cannot open stream editor - %s\n", msg);
 		goto oops;
 	}
 

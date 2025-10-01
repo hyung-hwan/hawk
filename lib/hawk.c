@@ -75,7 +75,7 @@ static void clear_token (hawk_tok_t* tok)
 	tok->loc.colm = 0;
 }
 
-hawk_t* hawk_open (hawk_mmgr_t* mmgr, hawk_oow_t xtnsize, hawk_cmgr_t* cmgr, const hawk_prm_t* prm, hawk_errnum_t* errnum)
+hawk_t* hawk_open (hawk_mmgr_t* mmgr, hawk_oow_t xtnsize, hawk_cmgr_t* cmgr, const hawk_prm_t* prm, hawk_errinf_t* errinf)
 {
 	hawk_t* hawk;
 
@@ -87,13 +87,18 @@ hawk_t* hawk_open (hawk_mmgr_t* mmgr, hawk_oow_t xtnsize, hawk_cmgr_t* cmgr, con
 		xret = hawk_init(hawk, mmgr, cmgr, prm);
 		if (xret <= -1)
 		{
-			if (errnum) *errnum = hawk_geterrnum(hawk);
-			HAWK_MMGR_FREE (mmgr, hawk);
+			if (errinf) hawk_geterrinf(hawk, errinf);
+			HAWK_MMGR_FREE(mmgr, hawk);
 			hawk = HAWK_NULL;
 		}
-		else HAWK_MEMSET (hawk + 1, 0, xtnsize);
+		else HAWK_MEMSET(hawk + 1, 0, xtnsize);
 	}
-	else if (errnum) *errnum = HAWK_ENOMEM;
+	else if (errinf)
+	{
+		HAWK_MEMSET(errinf, 0, HAWK_SIZEOF(*errinf));
+		errinf->num = HAWK_ENOMEM;
+		hawk_copy_oocstr(errinf->msg, HAWK_COUNTOF(errinf->msg), hawk_dfl_errstr(errinf->num));
+	}
 
 	return hawk;
 }
@@ -101,7 +106,7 @@ hawk_t* hawk_open (hawk_mmgr_t* mmgr, hawk_oow_t xtnsize, hawk_cmgr_t* cmgr, con
 void hawk_close (hawk_t* hawk)
 {
 	hawk_fini (hawk);
-	HAWK_MMGR_FREE (hawk_getmmgr(hawk), hawk);
+	HAWK_MMGR_FREE(hawk_getmmgr(hawk), hawk);
 }
 
 int hawk_init (hawk_t* hawk, hawk_mmgr_t* mmgr, hawk_cmgr_t* cmgr, const hawk_prm_t* prm)

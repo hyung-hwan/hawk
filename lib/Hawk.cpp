@@ -1634,8 +1634,8 @@ Hawk::Hawk (Mmgr* mmgr):
 	console_handler(HAWK_NULL), runctx(this)
 
 {
-	HAWK_MEMSET (&errinf, 0, HAWK_SIZEOF(errinf));
-	errinf.num = HAWK_ENOERR;
+	HAWK_MEMSET (&this->errinf, 0, HAWK_SIZEOF(this->errinf));
+	this->errinf.num = HAWK_ENOERR;
 
 	this->_cmgr = hawk_get_cmgr_by_id(HAWK_CMGR_UTF8);
 }
@@ -1796,7 +1796,7 @@ void Hawk::retrieveError()
 	}
 	else
 	{
-		hawk_geterrinf (this->hawk, &errinf);
+		hawk_geterrinf(this->hawk, &this->errinf);
 	}
 }
 
@@ -1804,7 +1804,7 @@ void Hawk::retrieveError(Run* run)
 {
 	HAWK_ASSERT (run != HAWK_NULL);
 	if (run->rtx == HAWK_NULL) return;
-	hawk_rtx_geterrinf (run->rtx, &errinf);
+	hawk_rtx_geterrinf(run->rtx, &this->errinf);
 }
 
 static void fini_xtn (hawk_t* hawk, void* ctx)
@@ -1835,13 +1835,8 @@ int Hawk::open ()
 	prm.modclose  = &Hawk::modclose;
 	prm.modgetsym = &Hawk::modgetsym;
 
-	hawk_errnum_t errnum;
-	this->hawk = hawk_open(this->getMmgr(), HAWK_SIZEOF(xtn_t), this->getCmgr(), &prm, &errnum);
-	if (!this->hawk)
-	{
-		this->setError(errnum);
-		return -1;
-	}
+	this->hawk = hawk_open(this->getMmgr(), HAWK_SIZEOF(xtn_t), this->getCmgr(), &prm, &this->errinf);
+	if (HAWK_UNLIKELY(!this->hawk)) return -1;
 
 	this->hawk->_instsize += HAWK_SIZEOF(xtn_t);
 

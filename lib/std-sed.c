@@ -107,19 +107,19 @@ static int int_to_str (hawk_oow_t val, hawk_ooch_t* buf, hawk_oow_t buflen)
 	return 0;
 }
 
-hawk_sed_t* hawk_sed_openstd (hawk_oow_t xtnsize, hawk_errnum_t* errnum)
+hawk_sed_t* hawk_sed_openstd (hawk_oow_t xtnsize, hawk_errinf_t* errinf)
 {
-	return hawk_sed_openstdwithmmgr (hawk_get_sys_mmgr(), xtnsize, hawk_get_cmgr_by_id(HAWK_CMGR_UTF8), errnum);
+	return hawk_sed_openstdwithmmgr(hawk_get_sys_mmgr(), xtnsize, hawk_get_cmgr_by_id(HAWK_CMGR_UTF8), errinf);
 }
 
-hawk_sed_t* hawk_sed_openstdwithmmgr (hawk_mmgr_t* mmgr, hawk_oow_t xtnsize, hawk_cmgr_t* cmgr, hawk_errnum_t* errnum)
+hawk_sed_t* hawk_sed_openstdwithmmgr(hawk_mmgr_t* mmgr, hawk_oow_t xtnsize, hawk_cmgr_t* cmgr, hawk_errinf_t* errinf)
 {
 	hawk_sed_t* sed;
 
 	if (!mmgr) mmgr = hawk_get_sys_mmgr();
 	if (!cmgr) cmgr = hawk_get_cmgr_by_id(HAWK_CMGR_UTF8);
 
-	sed = hawk_sed_open(mmgr, HAWK_SIZEOF(xtn_t) + xtnsize, cmgr, errnum);
+	sed = hawk_sed_open(mmgr, HAWK_SIZEOF(xtn_t) + xtnsize, cmgr, errinf);
 	if (HAWK_UNLIKELY(!sed)) return HAWK_NULL;
 
 	sed->_instsize += HAWK_SIZEOF(xtn_t);

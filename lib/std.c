@@ -970,9 +970,9 @@ static void log_write (hawk_t* hawk, hawk_bitmask_t mask, const hawk_ooch_t* msg
 static int add_globals (hawk_t* hawk);
 static int add_functions (hawk_t* hawk);
 
-hawk_t* hawk_openstd (hawk_oow_t xtnsize, hawk_errnum_t* errnum)
+hawk_t* hawk_openstd (hawk_oow_t xtnsize, hawk_errinf_t* errinf)
 {
-	return hawk_openstdwithmmgr(&sys_mmgr, xtnsize, hawk_get_cmgr_by_id(HAWK_CMGR_UTF8), errnum);
+	return hawk_openstdwithmmgr(&sys_mmgr, xtnsize, hawk_get_cmgr_by_id(HAWK_CMGR_UTF8), errinf);
 }
 
 static void fini_xtn (hawk_t* hawk, void* ctx)
@@ -993,7 +993,7 @@ static void clear_xtn (hawk_t* hawk, void* ctx)
 	/* nothing to do */
 }
 
-hawk_t* hawk_openstdwithmmgr (hawk_mmgr_t* mmgr, hawk_oow_t xtnsize, hawk_cmgr_t* cmgr, hawk_errnum_t* errnum)
+hawk_t* hawk_openstdwithmmgr (hawk_mmgr_t* mmgr, hawk_oow_t xtnsize, hawk_cmgr_t* cmgr, hawk_errinf_t* errinf)
 {
 	hawk_t* hawk;
 	hawk_prm_t prm;
@@ -1012,7 +1012,7 @@ hawk_t* hawk_openstdwithmmgr (hawk_mmgr_t* mmgr, hawk_oow_t xtnsize, hawk_cmgr_t
 	if (!cmgr) cmgr = hawk_get_cmgr_by_id(HAWK_CMGR_UTF8);
 
 	/* create an object */
-	hawk = hawk_open(mmgr, HAWK_SIZEOF(xtn_t) + xtnsize, cmgr, &prm, errnum);
+	hawk = hawk_open(mmgr, HAWK_SIZEOF(xtn_t) + xtnsize, cmgr, &prm, errinf);
 	if (HAWK_UNLIKELY(!hawk)) return HAWK_NULL;
 
 	/* adjust the object size by the sizeof xtn_t so that hawk_getxtn() returns the right pointer. */
@@ -1022,7 +1022,7 @@ hawk_t* hawk_openstdwithmmgr (hawk_mmgr_t* mmgr, hawk_oow_t xtnsize, hawk_cmgr_t
 #if defined(USE_DLFCN)
 	if (hawk_setopt(hawk, HAWK_OPT_MODPOSTFIX, HAWK_T(".so")) <= -1)
 	{
-		if (errnum) *errnum = hawk_geterrnum(hawk);
+		if (errinf) hawk_geterrinf(hawk, errinf);
 		goto oops;
 	}
 #endif
@@ -1036,7 +1036,7 @@ hawk_t* hawk_openstdwithmmgr (hawk_mmgr_t* mmgr, hawk_oow_t xtnsize, hawk_cmgr_t
 	/* add intrinsic global variables and functions */
 	if (add_globals(hawk) <= -1 || add_functions(hawk) <= -1)
 	{
-		if (errnum) *errnum = hawk_geterrnum(hawk);
+		if (errinf) hawk_geterrinf(hawk, errinf);
 		goto oops;
 	}
 
@@ -1058,7 +1058,7 @@ hawk_t* hawk_openstdwithmmgr (hawk_mmgr_t* mmgr, hawk_oow_t xtnsize, hawk_cmgr_t
 	return hawk;
 
 oops:
-	if (hawk) hawk_close (hawk);
+	if (hawk) hawk_close(hawk);
 	return HAWK_NULL;
 }
 

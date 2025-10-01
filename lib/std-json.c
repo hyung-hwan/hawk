@@ -37,20 +37,20 @@ static HAWK_INLINE xtn_t* GET_XTN(hawk_json_t* json) { return (xtn_t*)((hawk_uin
 #define GET_XTN(json) ((xtn_t*)((hawk_uint8_t*)hawk_json_getxtn(json) - HAWK_SIZEOF(xtn_t)))
 #endif
 
-hawk_json_t* hawk_json_openstd (hawk_oow_t xtnsize, hawk_json_prim_t* prim, hawk_errnum_t* errnum)
+hawk_json_t* hawk_json_openstd (hawk_oow_t xtnsize, hawk_json_prim_t* prim, hawk_errinf_t* errinf)
 {
-	return hawk_json_openstdwithmmgr (hawk_get_sys_mmgr(), xtnsize, hawk_get_cmgr_by_id(HAWK_CMGR_UTF8), prim, errnum);
+	return hawk_json_openstdwithmmgr (hawk_get_sys_mmgr(), xtnsize, hawk_get_cmgr_by_id(HAWK_CMGR_UTF8), prim, errinf);
 }
 
-hawk_json_t* hawk_json_openstdwithmmgr (hawk_mmgr_t* mmgr, hawk_oow_t xtnsize, hawk_cmgr_t* cmgr, hawk_json_prim_t* prim, hawk_errnum_t* errnum)
+hawk_json_t* hawk_json_openstdwithmmgr (hawk_mmgr_t* mmgr, hawk_oow_t xtnsize, hawk_cmgr_t* cmgr, hawk_json_prim_t* prim, hawk_errinf_t* errinf)
 {
 	hawk_json_t* json;
 
 	if (!mmgr) mmgr = hawk_get_sys_mmgr();
 	if (!cmgr) cmgr = hawk_get_cmgr_by_id(HAWK_CMGR_UTF8);
 
-	json = hawk_json_open(mmgr, HAWK_SIZEOF(xtn_t) + xtnsize, cmgr, prim, errnum);
-	if (!json) return HAWK_NULL;
+	json = hawk_json_open(mmgr, HAWK_SIZEOF(xtn_t) + xtnsize, cmgr, prim, errinf);
+	if (HAWK_UNLIKELY(!json)) return HAWK_NULL;
 
 	json->_instsize += HAWK_SIZEOF(xtn_t);
 

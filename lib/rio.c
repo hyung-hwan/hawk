@@ -147,7 +147,7 @@ static int find_rio_in (
 		p->name = hawk_rtx_dupoocstr(rtx, name, HAWK_NULL);
 		if (p->name == HAWK_NULL)
 		{
-			hawk_rtx_freemem (rtx, p);
+			hawk_rtx_freemem(rtx, p);
 			return -1;
 		}
 
@@ -171,8 +171,8 @@ static int find_rio_in (
 		x = handler(rtx, HAWK_RIO_CMD_OPEN, p, HAWK_NULL, 0);
 		if (x <= -1)
 		{
-			hawk_rtx_freemem (rtx, p->name);
-			hawk_rtx_freemem (rtx, p);
+			hawk_rtx_freemem(rtx, p->name);
+			hawk_rtx_freemem(rtx, p);
 			return -1;
 		}
 
@@ -192,7 +192,6 @@ static HAWK_INLINE int resolve_rs (hawk_rtx_t* rtx, hawk_val_t* rs, hawk_oocs_t*
 	int ret = 0;
 	hawk_val_type_t rs_vtype;
 
-
 	rs_vtype = HAWK_RTX_GETVALTYPE(rtx, rs);
 
 	switch (rs_vtype)
@@ -209,7 +208,7 @@ static HAWK_INLINE int resolve_rs (hawk_rtx_t* rtx, hawk_val_t* rs, hawk_oocs_t*
 
 		default:
 			rrs->ptr = hawk_rtx_valtooocstrdup(rtx, rs, &rrs->len);
-			if (rrs->ptr == HAWK_NULL) ret = -1;
+			if (HAWK_UNLIKELY(!rrs->ptr)) ret = -1;
 			break;
 	}
 
@@ -371,9 +370,16 @@ int hawk_rtx_readio (hawk_rtx_t* rtx, hawk_in_type_t in_type, const hawk_ooch_t*
 	hawk_rio_arg_t* p;
 	hawk_rio_impl_t handler;
 	int ret;
+#if 0
+	int esc_lq_rq;
+	hawk_ooch_t esc, lq, rq;
+#endif
 
 	hawk_val_t* rs;
 	hawk_oocs_t rrs;
+
+	hawk_val_t* fs;
+	hawk_oocs_t ffs;
 
 	hawk_oow_t line_len = 0;
 	hawk_ooch_t c = HAWK_T('\0'), pc;
@@ -390,17 +396,40 @@ int hawk_rtx_readio (hawk_rtx_t* rtx, hawk_in_type_t in_type, const hawk_ooch_t*
 	}
 
 	/* ready to read a record(typically a line). clear the buffer. */
-	hawk_ooecs_clear (buf);
+	hawk_ooecs_clear(buf);
 
 	/* get the record separator */
 	rs = hawk_rtx_getgbl(rtx, HAWK_GBL_RS);
-	hawk_rtx_refupval (rtx, rs);
+	hawk_rtx_refupval(rtx, rs);
 
-	if (resolve_rs(rtx, rs, &rrs) <= -1)
+	fs = hawk_rtx_getgbl(rtx, HAWK_GBL_FS);
+	hawk_rtx_refupval(rtx, fs);
+
+	if (resolve_rs(rtx, rs, &rrs) <= -1) /* TODO: resolve it upon assignment for optimization? */
 	{
-		hawk_rtx_refdownval (rtx, rs);
+		hawk_rtx_refdownval(rtx, rs);
 		return -1;
 	}
+
+	if (resolve_rs(rtx, fs, &ffs) <= -1)
+	{
+		hawk_rtx_refdownval(rtx, fs);
+		hawk_rtx_refdownval(rtx, rs);
+		return -1;
+	}
+
+#if 0
+	/* RS set to @nil, FS set to a special string starting with ?, followed by esc lq rq */
+	esc_lq_rq = 0;
+	if (ffs.len == 5 && ffs.ptr[0] == '?' && !rrs.ptr)
+	{
+		esc_lq_rq = 1;
+		esc_lq_rq += (esc == lq && esc == rq);
+		esc = ffs.ptr[2];
+		lq = ffs.ptr[3];
+		rq = ffs.ptr[4];
+	}
+#endif
 
 	ret = 1;
 
@@ -482,6 +511,13 @@ int hawk_rtx_readio (hawk_rtx_t* rtx, hawk_in_type_t in_type, const hawk_ooch_t*
 			p->in.pos = 0;
 		}
 
+#if 0
+		if (esc_lq_rq == 2)
+		{
+/* TODO: */
+		}
+		else
+#endif
 		if (rrs.ptr == HAWK_NULL)
 		{
 			hawk_oow_t start_pos = p->in.pos;
@@ -610,7 +646,6 @@ int hawk_rtx_readio (hawk_rtx_t* rtx, hawk_in_type_t in_type, const hawk_ooch_t*
 
 				if (hawk_ooecs_ccat(buf, c) == (hawk_oow_t)-1)
 				{
-
 					ret = -1;
 					done = 1;
 					break;
@@ -677,8 +712,9 @@ int hawk_rtx_readio (hawk_rtx_t* rtx, hawk_in_type_t in_type, const hawk_ooch_t*
 		}
 	}
 
-	if (rrs.ptr && HAWK_RTX_GETVALTYPE(rtx, rs) != HAWK_VAL_STR) hawk_rtx_freemem (rtx, rrs.ptr);
-	hawk_rtx_refdownval (rtx, rs);
+	if (rrs.ptr && HAWK_RTX_GETVALTYPE(rtx, rs) != HAWK_VAL_STR) hawk_rtx_freemem(rtx, rrs.ptr);
+	hawk_rtx_refdownval(rtx, fs);
+	hawk_rtx_refdownval(rtx, rs);
 
 	return ret;
 }
@@ -707,15 +743,15 @@ int hawk_rtx_readiobytes (hawk_rtx_t* rtx, hawk_in_type_t in_type, const hawk_oo
 	}
 
 	/* ready to read a record(typically a line). clear the buffer. */
-	hawk_becs_clear (buf);
+	hawk_becs_clear(buf);
 
 	/* get the record separator */
 	brs = hawk_rtx_getgbl(rtx, HAWK_GBL_RS);
-	hawk_rtx_refupval (rtx, brs);
+	hawk_rtx_refupval(rtx, brs);
 
 	if (resolve_brs(rtx, brs, &rrs) <= -1)
 	{
-		hawk_rtx_refdownval (rtx, brs);
+		hawk_rtx_refdownval(rtx, brs);
 		return -1;
 	}
 
@@ -994,8 +1030,8 @@ int hawk_rtx_readiobytes (hawk_rtx_t* rtx, hawk_in_type_t in_type, const hawk_oo
 		}
 	}
 
-	if (rrs.ptr && HAWK_RTX_GETVALTYPE(rtx, brs) != HAWK_VAL_MBS) hawk_rtx_freemem (rtx, rrs.ptr);
-	hawk_rtx_refdownval (rtx, brs);
+	if (rrs.ptr && HAWK_RTX_GETVALTYPE(rtx, brs) != HAWK_VAL_MBS) hawk_rtx_freemem(rtx, rrs.ptr);
+	hawk_rtx_refdownval(rtx, brs);
 
 	return ret;
 }
@@ -1036,7 +1072,7 @@ int hawk_rtx_writeioval (hawk_rtx_t* rtx, hawk_out_type_t out_type, const hawk_o
 			out.type = HAWK_RTX_VALTOSTR_CPLDUP | HAWK_RTX_VALTOSTR_PRINT;
 			if (hawk_rtx_valtostr(rtx, v, &out) <= -1) return -1;
 			n = hawk_rtx_writeiostr(rtx, out_type, name, out.u.cpldup.ptr, out.u.cpldup.len);
-			hawk_rtx_freemem (rtx, out.u.cpldup.ptr);
+			hawk_rtx_freemem(rtx, out.u.cpldup.ptr);
 			return n;
 		}
 	}
@@ -1100,7 +1136,7 @@ static int prepare_for_write_io_data (hawk_rtx_t* rtx, hawk_out_type_t out_type,
 		p->name = hawk_rtx_dupoocstr(rtx, name, HAWK_NULL);
 		if (HAWK_UNLIKELY(!p->name))
 		{
-			hawk_rtx_freemem (rtx, p);
+			hawk_rtx_freemem(rtx, p);
 			return -1;
 		}
 
@@ -1119,8 +1155,8 @@ static int prepare_for_write_io_data (hawk_rtx_t* rtx, hawk_out_type_t out_type,
 		n = handler(rtx, HAWK_RIO_CMD_OPEN, p, HAWK_NULL, 0);
 		if (n <= -1)
 		{
-			hawk_rtx_freemem (rtx, p->name);
-			hawk_rtx_freemem (rtx, p);
+			hawk_rtx_freemem(rtx, p->name);
+			hawk_rtx_freemem(rtx, p);
 			return -1;
 		}
 
@@ -1418,8 +1454,8 @@ int hawk_rtx_closio_read (hawk_rtx_t* rtx, hawk_in_type_t in_type, const hawk_oo
 			if (px) px->next = p->next;
 			else rtx->rio.chain = p->next;
 
-			hawk_rtx_freemem (rtx, p->name);
-			hawk_rtx_freemem (rtx, p);
+			hawk_rtx_freemem(rtx, p->name);
+			hawk_rtx_freemem(rtx, p);
 			return 0;
 		}
 
@@ -1467,8 +1503,8 @@ int hawk_rtx_closio_write (hawk_rtx_t* rtx, hawk_out_type_t out_type, const hawk
 			if (px) px->next = p->next;
 			else rtx->rio.chain = p->next;
 
-			hawk_rtx_freemem (rtx, p->name);
-			hawk_rtx_freemem (rtx, p);
+			hawk_rtx_freemem(rtx, p->name);
+			hawk_rtx_freemem(rtx, p);
 			return 0;
 		}
 
@@ -1554,8 +1590,8 @@ int hawk_rtx_closeio (hawk_rtx_t* rtx, const hawk_ooch_t* name, const hawk_ooch_
 			if (px) px->next = p->next;
 			else rtx->rio.chain = p->next;
 
-			hawk_rtx_freemem (rtx, p->name);
-			hawk_rtx_freemem (rtx, p);
+			hawk_rtx_freemem(rtx, p->name);
+			hawk_rtx_freemem(rtx, p);
 
 			return 0;
 		}
@@ -1605,8 +1641,8 @@ void hawk_rtx_clearallios (hawk_rtx_t* rtx)
 			}
 		}
 
-		hawk_rtx_freemem (rtx, rtx->rio.chain->name);
-		hawk_rtx_freemem (rtx, rtx->rio.chain);
+		hawk_rtx_freemem(rtx, rtx->rio.chain->name);
+		hawk_rtx_freemem(rtx, rtx->rio.chain);
 
 		rtx->rio.chain = next;
 	}

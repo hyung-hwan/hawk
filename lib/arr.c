@@ -145,7 +145,7 @@ const hawk_arr_style_t* hawk_get_arr_style (hawk_arr_style_kind_t kind)
 
 int hawk_arr_init (hawk_arr_t* arr, hawk_gem_t* gem, hawk_oow_t capa)
 {
-	HAWK_MEMSET (arr, 0, HAWK_SIZEOF(*arr));
+	HAWK_MEMSET(arr, 0, HAWK_SIZEOF(*arr));
 
 	arr->gem = gem;
 	arr->size = 0;
@@ -284,7 +284,7 @@ hawk_oow_t hawk_arr_rsearch (hawk_arr_t* arr, hawk_oow_t pos, const void* dptr, 
 
 hawk_oow_t hawk_arr_upsert (hawk_arr_t* arr, hawk_oow_t pos, void* dptr, hawk_oow_t dlen)
 {
-	if (pos < arr->size) return hawk_arr_update (arr, pos, dptr, dlen);
+	if (pos < arr->size) return hawk_arr_update(arr, pos, dptr, dlen);
 	return hawk_arr_insert(arr, pos, dptr, dlen);
 }
 
@@ -390,7 +390,7 @@ hawk_oow_t hawk_arr_update (hawk_arr_t* arr, hawk_oow_t pos, void* dptr, hawk_oo
 		if (dptr == DPTR(c) && dlen == DLEN(c))
 		{
 			/* updated to the same data */
-			if (arr->style->keeper) arr->style->keeper (arr, dptr, dlen);
+			if (arr->style->keeper) arr->style->keeper(arr, dptr, dlen);
 		}
 		else
 		{
@@ -524,9 +524,9 @@ hawk_oow_t hawk_arr_rwalk (hawk_arr_t* arr, walker_t walker, void* ctx)
 
 	while (1)
 	{
-		if (arr->slot[i] != HAWK_NULL)
+		if (arr->slot[i])
 		{
-                	w = walker (arr, i, ctx);
+			w = walker(arr, i, ctx);
 			nwalks++;
 		}
 
@@ -549,13 +549,13 @@ hawk_oow_t hawk_arr_rwalk (hawk_arr_t* arr, walker_t walker, void* ctx)
 
 hawk_oow_t hawk_arr_pushstack (hawk_arr_t* arr, void* dptr, hawk_oow_t dlen)
 {
-	return hawk_arr_insert (arr, arr->size, dptr, dlen);
+	return hawk_arr_insert(arr, arr->size, dptr, dlen);
 }
 
 void hawk_arr_popstack (hawk_arr_t* arr)
 {
-	HAWK_ASSERT (arr->size > 0);
-	hawk_arr_delete (arr, arr->size - 1, 1);
+	HAWK_ASSERT(arr->size > 0);
+	hawk_arr_delete(arr, arr->size - 1, 1);
 }
 
 #define HEAP_PARENT(x) (((x)-1) / 2)
@@ -587,7 +587,7 @@ static hawk_oow_t sift_up (hawk_arr_t* arr, hawk_oow_t index)
 			while (1)
 			{
 				arr->slot[index] = arr->slot[parent];
-				HEAP_UPDATE_POS (arr, index);
+				HEAP_UPDATE_POS(arr, index);
 
 				index = parent;
 				parent = HEAP_PARENT(parent);
@@ -599,7 +599,7 @@ static hawk_oow_t sift_up (hawk_arr_t* arr, hawk_oow_t index)
 			}
 
 			arr->slot[index] = tmp;
-			HEAP_UPDATE_POS (arr, index);
+			HEAP_UPDATE_POS(arr, index);
 		}
 	}
 	return index;
@@ -641,13 +641,13 @@ static hawk_oow_t sift_down (hawk_arr_t* arr, hawk_oow_t index)
 			if (n > 0) break;
 
 			arr->slot[index] = arr->slot[child];
-			HEAP_UPDATE_POS (arr, index);
+			HEAP_UPDATE_POS(arr, index);
 			index = child;
 		}
 		while (index < base);
 
 		arr->slot[index] = tmp;
-		HEAP_UPDATE_POS (arr, index);
+		HEAP_UPDATE_POS(arr, index);
 	}
 
 	return index;
@@ -660,19 +660,19 @@ hawk_oow_t hawk_arr_pushheap (hawk_arr_t* arr, void* dptr, hawk_oow_t dlen)
 	/* add a value at the back of the array  */
 	index = arr->size;
 	if (hawk_arr_insert(arr, index, dptr, dlen) == HAWK_ARR_NIL) return HAWK_ARR_NIL;
-	HEAP_UPDATE_POS (arr, index);
+	HEAP_UPDATE_POS(arr, index);
 
 	HAWK_ASSERT (arr->size == index + 1);
 
 	/* move the item upto the top if it's greater than the parent items */
-	sift_up (arr, index);
+	sift_up(arr, index);
 	return arr->size;
 }
 
 void hawk_arr_popheap (hawk_arr_t* arr)
 {
 	HAWK_ASSERT (arr->size > 0);
-	hawk_arr_deleteheap (arr, 0);
+	hawk_arr_deleteheap(arr, 0);
 }
 
 void hawk_arr_deleteheap (hawk_arr_t* arr, hawk_oow_t index)
@@ -692,13 +692,13 @@ void hawk_arr_deleteheap (hawk_arr_t* arr, hawk_oow_t index)
 
 		/* move the last item to the deleting position */
 		arr->slot[index] = arr->slot[arr->size];
-		HEAP_UPDATE_POS (arr, index);
+		HEAP_UPDATE_POS(arr, index);
 
 		/* move it up if the last item is greater than the item to be deleted,
 		 * move it down otherwise. */
 		n = arr->style->comper(arr, DPTR(arr->slot[index]), DLEN(arr->slot[index]), DPTR(tmp), DLEN(tmp));
-		if (n > 0) sift_up (arr, index);
-		else if (n < 0) sift_down (arr, index);
+		if (n > 0) sift_up(arr, index);
+		else if (n < 0) sift_down(arr, index);
 	}
 
 	/* destroy the actual item */
@@ -722,10 +722,10 @@ hawk_oow_t hawk_arr_updateheap (hawk_arr_t* arr, hawk_oow_t index, void* dptr, h
 	if (n)
 	{
 		if (hawk_arr_update(arr, index, dptr, dlen) == HAWK_ARR_NIL) return HAWK_ARR_NIL;
-		HEAP_UPDATE_POS (arr, index);
+		HEAP_UPDATE_POS(arr, index);
 
-		if (n > 0) sift_up (arr, index);
-		else sift_down (arr, index);
+		if (n > 0) sift_up(arr, index);
+		else sift_down(arr, index);
 	}
 
 	return index;

@@ -462,7 +462,7 @@ HAWK_EXPORT hawk_sed_t* hawk_sed_open (
 	hawk_mmgr_t*   mmgr,    /**< memory manager */
 	hawk_oow_t     xtnsize, /**< extension size in bytes */
 	hawk_cmgr_t*   cmgr,
-	hawk_errnum_t* errnum
+	hawk_errinf_t* errinf
 );
 
 /**
@@ -791,7 +791,7 @@ HAWK_EXPORT void hawk_sed_freemem (
  */
 HAWK_EXPORT hawk_sed_t* hawk_sed_openstd (
 	hawk_oow_t     xtnsize,  /**< extension size in bytes */
-	hawk_errnum_t* errnum
+	hawk_errinf_t* errinf
 );
 
 /**
@@ -804,7 +804,7 @@ HAWK_EXPORT hawk_sed_t* hawk_sed_openstdwithmmgr (
 	hawk_mmgr_t*   mmgr,     /**< memory manager */
 	hawk_oow_t     xtnsize,  /**< extension size in bytes */
 	hawk_cmgr_t*   cmgr,
-	hawk_errnum_t* errnum
+	hawk_errinf_t* errinf
 );
 
 /**

@@ -187,18 +187,18 @@ static hawk_htb_walk_t print_awk_value (hawk_htb_t* map, hawk_htb_pair_t* pair, 
 	{
 		if (hawk_rtx_geterrnum(rtx) == HAWK_EVALTOSTR)
 		{
-			hawk_logfmt (hawk, HAWK_LOG_STDERR, HAWK_T("%.*js = [not printable]\n"), HAWK_HTB_KLEN(pair), HAWK_HTB_KPTR(pair));
-			hawk_rtx_seterrinf (rtx, &oerrinf);
+			hawk_logfmt(hawk, HAWK_LOG_STDERR, HAWK_T("%.*js = [not printable]\n"), HAWK_HTB_KLEN(pair), HAWK_HTB_KPTR(pair));
+			hawk_rtx_seterrinf(rtx, &oerrinf);
 		}
 		else
 		{
-			hawk_logfmt (hawk, HAWK_LOG_STDERR, HAWK_T("***OUT OF MEMORY***\n"));
+			hawk_logfmt(hawk, HAWK_LOG_STDERR, HAWK_T("***OUT OF MEMORY***\n"));
 		}
 	}
 	else
 	{
-		hawk_logfmt (hawk, HAWK_LOG_STDERR, HAWK_T("%.*js = %.*js\n"), HAWK_HTB_KLEN(pair), HAWK_HTB_KPTR(pair), len, str);
-		hawk_rtx_freevaloocstr (rtx, HAWK_HTB_VPTR(pair), str);
+		hawk_logfmt(hawk, HAWK_LOG_STDERR, HAWK_T("%.*js = %.*js\n"), HAWK_HTB_KLEN(pair), HAWK_HTB_KPTR(pair), len, str);
+		hawk_rtx_freevaloocstr(rtx, HAWK_HTB_VPTR(pair), str);
 	}
 
 	return HAWK_HTB_WALK_FORWARD;
@@ -212,8 +212,16 @@ static int add_gvs_to_hawk (hawk_t* hawk, arg_t* arg)
 
 		for (i = 0; i < arg->gvm.size; i++)
 		{
-			arg->gvm.ptr[i].idx = arg->gvm.ptr[i].uc? hawk_addgblwithucstr(hawk, arg->gvm.ptr[i].name):
-			                                          hawk_addgblwithbcstr(hawk, arg->gvm.ptr[i].name);
+			/* search includes the builtin variables in case an existing variable name is given. */
+			arg->gvm.ptr[i].idx = arg->gvm.ptr[i].uc? hawk_findgblwithucstr(hawk, arg->gvm.ptr[i].name, 1):
+			                                          hawk_findgblwithbcstr(hawk, arg->gvm.ptr[i].name, 1);
+			if (arg->gvm.ptr[i].idx <= -1)
+			{
+				/* if it doesn't exist, add it */
+				arg->gvm.ptr[i].idx = arg->gvm.ptr[i].uc? hawk_addgblwithucstr(hawk, arg->gvm.ptr[i].name):
+				                                          hawk_addgblwithbcstr(hawk, arg->gvm.ptr[i].name);
+				if (arg->gvm.ptr[i].idx <= -1) return -1;
+			}
 		}
 	}
 
@@ -234,9 +242,9 @@ static int apply_fs_and_gvs_to_rtx (hawk_rtx_t* rtx, const arg_t* arg)
 		if (HAWK_UNLIKELY(!fs)) return -1;
 
 		/* change FS according to the command line argument */
-		hawk_rtx_refupval (rtx, fs);
-		hawk_rtx_setgbl (rtx, HAWK_GBL_FS, fs);
-		hawk_rtx_refdownval (rtx, fs);
+		hawk_rtx_refupval(rtx, fs);
+		hawk_rtx_setgbl(rtx, HAWK_GBL_FS, fs);
+		hawk_rtx_refdownval(rtx, fs);
 	}
 
 	if (arg->gvm.capa > 0)
@@ -251,9 +259,9 @@ static int apply_fs_and_gvs_to_rtx (hawk_rtx_t* rtx, const arg_t* arg)
 			                          hawk_rtx_makenumorstrvalwithbchars(rtx, arg->gvm.ptr[i].value.ptr, arg->gvm.ptr[i].value.len);
 			if (HAWK_UNLIKELY(!v)) return -1;
 
-			hawk_rtx_refupval (rtx, v);
-			hawk_rtx_setgbl (rtx, arg->gvm.ptr[i].idx, v);
-			hawk_rtx_refdownval (rtx, v);
+			hawk_rtx_refupval(rtx, v);
+			hawk_rtx_setgbl(rtx, arg->gvm.ptr[i].idx, v);
+			hawk_rtx_refdownval(rtx, v);
 		}
 	}
 
@@ -765,6 +773,8 @@ int main_hawk(int argc, hawk_bch_t* argv[], const hawk_bch_t* real_argv0)
 	hawk_rtx_t* rtx = HAWK_NULL;
 	hawk_val_t* retv;
 	hawk_mmgr_t xma_mmgr;
+	hawk_cmgr_t* cmgr;
+	hawk_errinf_t errinf;
 	int i;
 	struct arg_t arg;
 	int ret = -1;
@@ -811,10 +821,21 @@ int main_hawk(int argc, hawk_bch_t* argv[], const hawk_bch_t* real_argv0)
 
 	set_intr_pipe();
 
-	hawk = hawk_openstdwithmmgr(mmgr, 0, hawk_get_cmgr_by_id(HAWK_CMGR_UTF8), HAWK_NULL);
+	cmgr = hawk_get_cmgr_by_id(HAWK_CMGR_UTF8);
+	hawk = hawk_openstdwithmmgr(mmgr, 0, cmgr, &errinf);
 	if (HAWK_UNLIKELY(!hawk))
 	{
-		hawk_main_print_error("cannot open hawk\n");
+		const hawk_bch_t* msg;
+	#if defined(HAWK_OOCH_IS_UCH)
+		hawk_bch_t msgbuf[HAWK_ERRMSG_CAPA];
+		hawk_oow_t msglen, wcslen;
+		msglen = HAWK_COUNTOF(msgbuf);
+		hawk_conv_ucstr_to_bcstr_with_cmgr(errinf.msg, &wcslen, msgbuf, &msglen, cmgr);
+		msg = msgbuf;
+	#else
+		msg = errinf.msg;
+	#endif
+		hawk_main_print_error("cannot open hawk - %s\n", msg);
 		goto oops;
 	}
 
@@ -926,7 +947,7 @@ int main_hawk(int argc, hawk_bch_t* argv[], const hawk_bch_t* real_argv0)
 		hawk_rtx_execwithbcstrarr(rtx, (const hawk_bch_t**)arg.icf.ptr, arg.icf.size);
 #endif
 
-	unset_intr_run ();
+	unset_intr_run();
 
 	if (retv)
 	{

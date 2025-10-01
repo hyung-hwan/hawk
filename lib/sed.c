@@ -46,7 +46,7 @@ do { \
 
 static void free_all_cut_selector_blocks (hawk_sed_t* sed, hawk_sed_cmd_t* cmd);
 
-hawk_sed_t* hawk_sed_open (hawk_mmgr_t* mmgr, hawk_oow_t xtnsize, hawk_cmgr_t* cmgr, hawk_errnum_t* errnum)
+hawk_sed_t* hawk_sed_open (hawk_mmgr_t* mmgr, hawk_oow_t xtnsize, hawk_cmgr_t* cmgr, hawk_errinf_t* errinf)
 {
 	hawk_sed_t* sed;
 
@@ -55,13 +55,18 @@ hawk_sed_t* hawk_sed_open (hawk_mmgr_t* mmgr, hawk_oow_t xtnsize, hawk_cmgr_t* c
 	{
 		if (hawk_sed_init(sed, mmgr, cmgr) <= -1)
 		{
-			if (errnum) *errnum = hawk_sed_geterrnum(sed);
+			if (errinf) hawk_sed_geterrinf(sed, errinf);
 			HAWK_MMGR_FREE (mmgr, sed);
 			sed = HAWK_NULL;
 		}
 		else HAWK_MEMSET(sed + 1, 0, xtnsize);
 	}
-	else if (errnum) *errnum = HAWK_ENOMEM;
+	else if (errinf)
+	{
+		HAWK_MEMSET(errinf, 0, HAWK_SIZEOF(*errinf));
+		errinf->num = HAWK_ENOMEM;
+		hawk_copy_oocstr(errinf->msg, HAWK_COUNTOF(errinf->msg), hawk_dfl_errstr(errinf->num));
+	}
 
 	return sed;
 }

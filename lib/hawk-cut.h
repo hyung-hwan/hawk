@@ -205,7 +205,7 @@ HAWK_EXPORT hawk_cut_t* hawk_cut_open (
 	hawk_mmgr_t*   mmgr,   /**< memory manager */
 	hawk_oow_t     xtnsize, /**< extension size in bytes */
 	hawk_cmgr_t*   cmgr,
-	hawk_errnum_t* errnum
+	hawk_errinf_t* errinf
 );
 
 /**
@@ -424,7 +424,7 @@ HAWK_EXPORT void hawk_cut_freemem (
  */
 HAWK_EXPORT hawk_cut_t* hawk_cut_openstd (
 	hawk_oow_t     xtnsize,  /**< extension size in bytes */
-	hawk_errnum_t* errnum
+	hawk_errinf_t* errinf
 );
 
 /**
@@ -435,9 +435,9 @@ HAWK_EXPORT hawk_cut_t* hawk_cut_openstd (
  */
 HAWK_EXPORT hawk_cut_t* hawk_cut_openstdwithmmgr (
 	hawk_mmgr_t*    mmgr,    /**< memory manager */
-	hawk_oow_t     xtnsize,  /**< extension size in bytes */
-	hawk_cmgr_t*   cmgr,
-	hawk_errnum_t* errnum
+	hawk_oow_t      xtnsize,  /**< extension size in bytes */
+	hawk_cmgr_t*    cmgr,
+	hawk_errinf_t*  errinf
 );
 
 /**

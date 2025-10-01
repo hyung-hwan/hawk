@@ -73,7 +73,7 @@ static void free_all_selector_blocks (hawk_cut_t* cut)
 	cut->sel.ccount = 0;
 }
 
-hawk_cut_t* hawk_cut_open (hawk_mmgr_t* mmgr, hawk_oow_t xtnsize, hawk_cmgr_t* cmgr, hawk_errnum_t* errnum)
+hawk_cut_t* hawk_cut_open (hawk_mmgr_t* mmgr, hawk_oow_t xtnsize, hawk_cmgr_t* cmgr, hawk_errinf_t* errinf)
 {
 	hawk_cut_t* cut;
 
@@ -82,13 +82,18 @@ hawk_cut_t* hawk_cut_open (hawk_mmgr_t* mmgr, hawk_oow_t xtnsize, hawk_cmgr_t* c
 	{
 		if (hawk_cut_init(cut, mmgr, cmgr) <= -1)
 		{
-			if (errnum) *errnum = hawk_cut_geterrnum(cut);
+			if (errinf) hawk_cut_geterrinf(cut, errinf);
 			HAWK_MMGR_FREE (mmgr, cut);
 			cut = HAWK_NULL;
 		}
 		else HAWK_MEMSET(cut + 1, 0, xtnsize);
 	}
-	else if (errnum) *errnum = HAWK_ENOMEM;
+	else if (errinf)
+	{
+		HAWK_MEMSET(errinf, 0, HAWK_SIZEOF(*errinf));
+		errinf->num = HAWK_ENOMEM;
+		hawk_copy_oocstr(errinf->msg, HAWK_COUNTOF(errinf->msg), hawk_dfl_errstr(errinf->num));
+	}
 
 	return cut;
 }

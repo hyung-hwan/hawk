@@ -1972,14 +1972,18 @@ static int add_global (hawk_t* hawk, const hawk_oocs_t* name, hawk_loc_t* xloc, 
 	/* check if it is a keyword */
 	if (classify_ident(hawk, name) != TOK_IDENT)
 	{
-		hawk_seterrfmt(hawk, xloc, HAWK_EKWRED, HAWK_T("keyword '%.*js' redefined"), name->len, name->ptr);
+		hawk_seterrfmt(hawk, xloc, HAWK_EKWRED,
+			HAWK_T("unable to add global '%.*js' - keyword '%.*js' redefined"),
+			name->len, name->ptr, name->len, name->ptr);
 		return -1;
 	}
 
 	/* check if it conflicts with a builtin function name */
 	if (hawk_findfncwithoocs(hawk, name) != HAWK_NULL)
 	{
-		hawk_seterrfmt(hawk, xloc, HAWK_EFNCRED, HAWK_T("intrinsic function '%.*js' redefined"), name->len, name->ptr);
+		hawk_seterrfmt(hawk, xloc, HAWK_EFNCRED,
+			HAWK_T("unable to add global '%.*js' - intrinsic function '%.*js' redefined"),
+			name->len, name->ptr, name->len, name->ptr);
 		return -1;
 	}
 
@@ -1988,14 +1992,18 @@ static int add_global (hawk_t* hawk, const hawk_oocs_t* name, hawk_loc_t* xloc, 
 	/* check if it conflicts with a function name caught in the function call table */
          hawk_htb_search(hawk->parse.funs, name->ptr, name->len) != HAWK_NULL)
 	{
-		hawk_seterrfmt(hawk, xloc, HAWK_EFUNRED, HAWK_T("function '%.*js' redefined"), name->len, name->ptr);
+		hawk_seterrfmt(hawk, xloc, HAWK_EFUNRED,
+			HAWK_T("unable to add global '%.*js' - function '%.*js' redefined"),
+			name->len, name->ptr, name->len, name->ptr);
 		return -1;
 	}
 
 	/* check if it conflicts with other global variable names */
 	if (find_global(hawk, name) != HAWK_ARR_NIL)
 	{
-		hawk_seterrfmt(hawk, xloc, HAWK_EDUPGBL, HAWK_T("duplicate global variable name '%.*js'"), name->len, name->ptr);
+		hawk_seterrfmt(hawk, xloc, HAWK_EDUPGBL,
+			HAWK_T("unable to add global '%.*js' - duplicate global variable name '%.*js'"),
+			name->len, name->ptr, name->len, name->ptr);
 		return -1;
 	}
 
@@ -2016,13 +2024,18 @@ static int add_global (hawk_t* hawk, const hawk_oocs_t* name, hawk_loc_t* xloc, 
 	ngbls = HAWK_ARR_SIZE(hawk->parse.gbls);
 	if (ngbls >= HAWK_MAX_GBLS)
 	{
-		hawk_seterrnum(hawk, xloc, HAWK_EGBLTM);
+		hawk_seterrfmt(hawk, xloc, HAWK_EGBLTM,
+			HAWK_T("unable to add global '%.*js' - too many globals"),
+			name->len, name->ptr);
 		return -1;
 	}
 
 	if (hawk_arr_insert(hawk->parse.gbls, HAWK_ARR_SIZE(hawk->parse.gbls), (hawk_ooch_t*)name->ptr, name->len) == HAWK_ARR_NIL)
 	{
-		ADJERR_LOC(hawk, xloc);
+		const hawk_ooch_t* bem = hawk_backuperrmsg(hawk);
+		hawk_seterrfmt(hawk, xloc, hawk_geterrnum(hawk),
+			HAWK_T("unable to add global '%.*js' - %js"),
+			name->len, name->ptr, bem);
 		return -1;
 	}
 
@@ -2033,7 +2046,7 @@ static int add_global (hawk_t* hawk, const hawk_oocs_t* name, hawk_loc_t* xloc, 
 	if (disabled) HAWK_ARR_DLEN(hawk->parse.gbls,ngbls) = 0;
 
 	hawk->tree.ngbls = HAWK_ARR_SIZE (hawk->parse.gbls);
-	HAWK_ASSERT(ngbls == hawk->tree.ngbls-1);
+	HAWK_ASSERT(ngbls == hawk->tree.ngbls - 1);
 
 	/* return the id which is the index to the gbl table. */
 	return (int)ngbls;
@@ -2046,16 +2059,16 @@ int hawk_addgblwithbcstr (hawk_t* hawk, const hawk_bch_t* name)
 
 	if (hawk->tree.ngbls > hawk->tree.ngbls_base)
 	{
-		/* this function is not allowed after hawk_parse is called */
-		hawk_seterrnum(hawk, HAWK_NULL, HAWK_EPERM);
+		/* this function is not allowed after hawk_parse() is called */
+		hawk_seterrbfmt(hawk, HAWK_NULL, HAWK_EPERM, "not permitted to add global '%hs'", name);
 		return -1;
 	}
 
 	ncs.ptr = (hawk_bch_t*)name;
-	ncs.len = hawk_count_bcstr(name);;
+	ncs.len = hawk_count_bcstr(name);
 	if (ncs.len <= 0)
 	{
-		hawk_seterrnum(hawk, HAWK_NULL, HAWK_EINVAL);
+		hawk_seterrbfmt(hawk, HAWK_NULL, HAWK_EINVAL, "blank global name not permitted");
 		return -1;
 	}
 
@@ -2065,7 +2078,13 @@ int hawk_addgblwithbcstr (hawk_t* hawk, const hawk_bch_t* name)
 	{
 		hawk_ucs_t wcs;
 		wcs.ptr = hawk_dupbtoucstr(hawk, ncs.ptr, &wcs.len, 0);
-		if (!wcs.ptr) return -1;
+		if (HAWK_UNLIKELY(!wcs.ptr))
+		{
+			const hawk_ooch_t* bem = hawk_backuperrmsg(hawk);
+			hawk_seterrfmt(hawk, HAWK_NULL, hawk_geterrnum(hawk),
+				HAWK_T("unable to add global '%hs' - %js"), name, bem);
+			return -1;
+		}
 		n = add_global(hawk, &wcs, HAWK_NULL, 0);
 		hawk_freemem(hawk, wcs.ptr);
 	}
@@ -2086,15 +2105,15 @@ int hawk_addgblwithucstr (hawk_t* hawk, const hawk_uch_t* name)
 	if (hawk->tree.ngbls > hawk->tree.ngbls_base)
 	{
 		/* this function is not allowed after hawk_parse is called */
-		hawk_seterrnum(hawk, HAWK_NULL, HAWK_EPERM);
+		hawk_seterrbfmt(hawk, HAWK_NULL, HAWK_EPERM, "not permitted to add global '%ls'", name);
 		return -1;
 	}
 
 	ncs.ptr = (hawk_uch_t*)name;
-	ncs.len = hawk_count_ucstr(name);;
+	ncs.len = hawk_count_ucstr(name);
 	if (ncs.len <= 0)
 	{
-		hawk_seterrnum(hawk, HAWK_NULL, HAWK_EINVAL);
+		hawk_seterrbfmt(hawk, HAWK_NULL, HAWK_EINVAL, "blank global name not permitted");
 		return -1;
 	}
 
@@ -2102,7 +2121,13 @@ int hawk_addgblwithucstr (hawk_t* hawk, const hawk_uch_t* name)
 	{
 		hawk_bcs_t mbs;
 		mbs.ptr = hawk_duputobcstr(hawk, ncs.ptr, &mbs.len);
-		if (!mbs.ptr) return -1;
+		if (HAWK_UNLIKELY(!mbs.ptr))
+		{
+			const hawk_ooch_t* bem = hawk_backuperrmsg(hawk);
+			hawk_seterrfmt(hawk, HAWK_NULL, hawk_geterrnum(hawk),
+				HAWK_T("unable to add global '%ls' - %js"), name, bem);
+			return -1;
+		}
 		n = add_global(hawk, &mbs, HAWK_NULL, 0);
 		hawk_freemem(hawk, mbs.ptr);
 	}
@@ -2145,7 +2170,7 @@ int hawk_delgblwithbcstr (hawk_t* hawk, const hawk_bch_t* name)
 	}
 #else
 	wcs.ptr = hawk_dupbtoucstr(hawk, ncs.ptr, &wcs.len, 0);
-	if (!wcs.ptr) return -1;
+	if (HAWK_UNLIKELY(!wcs.ptr)) return -1;
 	n = hawk_arr_search(hawk->parse.gbls, HAWK_NUM_STATIC_GBLS, wcs.ptr, wcs.len);
 	if (n == HAWK_ARR_NIL)
 	{
@@ -2189,7 +2214,7 @@ int hawk_delgblwithucstr (hawk_t* hawk, const hawk_uch_t* name)
 
 #if defined(HAWK_OOCH_IS_BCH)
 	mbs.ptr = hawk_duputobcstr(hawk, ncs.ptr, &mbs.len);
-	if (!mbs.ptr) return -1;
+	if (HAWK_UNLIKELY(!mbs.ptr)) return -1;
 	n = hawk_arr_search(hawk->parse.gbls, HAWK_NUM_STATIC_GBLS, mbs.ptr, mbs.len);
 	if (n == HAWK_ARR_NIL)
 	{
@@ -2240,7 +2265,7 @@ int hawk_findgblwithbcstr (hawk_t* hawk, const hawk_bch_t* name, int inc_builtin
 	}
 #else
 	wcs.ptr = hawk_dupbtoucstr(hawk, ncs.ptr, &wcs.len, 0);
-	if (!wcs.ptr) return -1;
+	if (HAWK_UNLIKELY(!wcs.ptr)) return -1;
 	n = hawk_arr_search(hawk->parse.gbls, (inc_builtins? 0: HAWK_NUM_STATIC_GBLS), wcs.ptr, wcs.len);
 	if (n == HAWK_ARR_NIL)
 	{
@@ -2265,7 +2290,7 @@ int hawk_findgblwithucstr (hawk_t* hawk, const hawk_uch_t* name, int inc_builtin
 
 #if defined(HAWK_OOCH_IS_BCH)
 	mbs.ptr = hawk_duputobcstr(hawk, ncs.ptr, &mbs.len);
-	if (!mbs.ptr) return -1;
+	if (HAWK_UNLIKELY(!mbs.ptr)) return -1;
 	n = hawk_arr_search(hawk->parse.gbls, (inc_builtins? 0: HAWK_NUM_STATIC_GBLS), mbs.ptr, mbs.len);
 	if (n == HAWK_ARR_NIL)
 	{

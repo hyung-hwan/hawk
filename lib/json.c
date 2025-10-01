@@ -792,14 +792,19 @@ oops:
 /* ========================================================================= */
 
 
-hawk_json_t* hawk_json_open (hawk_mmgr_t* mmgr, hawk_oow_t xtnsize, hawk_cmgr_t* cmgr, hawk_json_prim_t* prim, hawk_errnum_t* errnum)
+hawk_json_t* hawk_json_open (hawk_mmgr_t* mmgr, hawk_oow_t xtnsize, hawk_cmgr_t* cmgr, hawk_json_prim_t* prim, hawk_errinf_t* errinf)
 {
 	hawk_json_t* json;
 
 	json = (hawk_json_t*)HAWK_MMGR_ALLOC(mmgr, HAWK_SIZEOF(hawk_json_t) + xtnsize);
 	if (!json)
 	{
-		if (errnum) *errnum = HAWK_ENOMEM;
+		if (errinf)
+		{
+			HAWK_MEMSET(errinf, 0, HAWK_SIZEOF(*errinf));
+			errinf->num = HAWK_ENOMEM;
+			hawk_copy_oocstr(errinf->msg, HAWK_COUNTOF(errinf->msg), hawk_dfl_errstr(errinf->num));
+		}
 		return HAWK_NULL;
 	}
 

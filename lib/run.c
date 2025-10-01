@@ -8442,12 +8442,12 @@ hawk_ooch_t* hawk_rtx_format (
 			if (fmt[i] == HAWK_T('%'))
 			{
 				/* add % to format specifier (fbu) */
-				FMT_CHAR (fmt[i]);
+				FMT_CHAR(fmt[i]);
 			}
 			else
 			{
 				/* normal output */
-				OUT_CHAR (fmt[i]);
+				OUT_CHAR(fmt[i]);
 			}
 			continue;
 		}
@@ -8477,7 +8477,7 @@ hawk_ooch_t* hawk_rtx_format (
 					goto wp_mod_init;
 			}
 
-			FMT_CHAR (fmt[i]); i++;
+			FMT_CHAR(fmt[i]); i++;
 		}
 
 wp_mod_init:
@@ -8564,7 +8564,7 @@ wp_mod_main:
 				do
 				{
 					wp[wp_idx] = wp[wp_idx] * 10 + fmt[i] - HAWK_T('0');
-					FMT_CHAR (fmt[i]); i++;
+					FMT_CHAR(fmt[i]); i++;
 				}
 				while (i < fmt_len && hawk_is_ooch_digit(fmt[i]));
 			}
@@ -8572,7 +8572,7 @@ wp_mod_main:
 
 		if (wp_idx == WP_WIDTH && i < fmt_len && fmt[i] == HAWK_T('.'))
 		{
-			FMT_CHAR (fmt[i]); i++;
+			FMT_CHAR(fmt[i]); i++;
 			wp[WP_PRECISION] = 0;
 			wp_idx = WP_PRECISION; /* change index to precision */
 			goto wp_mod_main;
@@ -8839,14 +8839,14 @@ wp_mod_main:
 			if (n <= -1) return HAWK_NULL;
 
 		#if defined(HAWK_USE_FLTMAX)
-			/*FMT_CHAR (HAWK_T('j'));*/
+			/*FMT_CHAR(HAWK_T('j'));*/
 			FMT_STR (HAWK_T("jj"), 2); /* see fmt.c for info on jj */
-			FMT_CHAR (fmt[i]);
+			FMT_CHAR(fmt[i]);
 			/*if (hawk_ooecs_fcat(out, HAWK_OOECS_PTR(fbu), r) == (hawk_oow_t)-1) return HAWK_NULL;*/
 			if (hawk_ooecs_fcat(out, HAWK_OOECS_PTR(fbu), &r) == (hawk_oow_t)-1) return HAWK_NULL;
 		#else
-			FMT_CHAR (HAWK_T('z'));
-			FMT_CHAR (fmt[i]);
+			FMT_CHAR(HAWK_T('z'));
+			FMT_CHAR(fmt[i]);
 			if (hawk_ooecs_fcat(out, HAWK_OOECS_PTR(fbu), r) == (hawk_oow_t)-1) return HAWK_NULL;
 		#endif
 		}
@@ -9228,7 +9228,7 @@ wp_mod_main:
 		else
 		{
 			if (fmt[i] != HAWK_T('%')) OUT_STR (HAWK_OOECS_PTR(fbu), HAWK_OOECS_LEN(fbu));
-			OUT_CHAR (fmt[i]);
+			OUT_CHAR(fmt[i]);
 			goto skip_taking_arg;
 		}
 
@@ -10155,8 +10155,6 @@ void hawk_rtx_getnrflt (hawk_rtx_t* rtx, hawk_nrflt_t* nrflt)
 {
 	*nrflt = rtx->nrflt;
 }
-
-
 
 /* ------------------------------------------------------------------------ */
 

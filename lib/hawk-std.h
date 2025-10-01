@@ -128,7 +128,7 @@ extern "C" {
  */
 HAWK_EXPORT hawk_t* hawk_openstd (
 	hawk_oow_t     xtnsize,  /**< extension size in bytes */
-	hawk_errnum_t* errnum    /**< pointer to an error number variable */
+	hawk_errinf_t* errinf    /**< pointer to an error information variable */
 );
 
 /**
@@ -140,7 +140,7 @@ HAWK_EXPORT hawk_t* hawk_openstdwithmmgr (
 	hawk_mmgr_t*   mmgr,     /**< memory manager */
 	hawk_oow_t     xtnsize,  /**< extension size in bytes */
 	hawk_cmgr_t*   cmgr,     /**< character encoding manager */
-	hawk_errnum_t* errnum    /**< pointer to an error number variable */
+	hawk_errinf_t* errinf    /**< pointer to an error information variable */
 );
 
 /**

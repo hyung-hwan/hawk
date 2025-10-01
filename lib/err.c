@@ -289,7 +289,7 @@ void hawk_rtx_errortohawk (hawk_rtx_t* rtx, hawk_t* hawk)
 	/* copy error information in 'rtx' to the 'hawk' object */
 	hawk->_gem.errnum = rtx->_gem.errnum;
 	hawk->_gem.errloc = rtx->_gem.errloc;
-	hawk_copy_oocstr (hawk->_gem.errmsg, HAWK_COUNTOF(hawk->_gem.errmsg), rtx->_gem.errmsg);
+	hawk_copy_oocstr(hawk->_gem.errmsg, HAWK_COUNTOF(hawk->_gem.errmsg), rtx->_gem.errmsg);
 }
 
 /* ------------------------------------------------------------------------- */
@@ -299,7 +299,7 @@ void hawk_gem_geterrbinf (hawk_gem_t* gem, hawk_errbinf_t* errinf)
 #if defined(HAWK_OOCH_IS_BCH)
 	errinf->num = gem->errnum;
 	errinf->loc = gem->errloc;
-	hawk_copy_oocstr (errinf->msg, HAWK_COUNTOF(errinf->msg), (gem->errmsg[0] == '\0'? gem->errstr(gem->errnum): gem->errmsg));
+	hawk_copy_oocstr(errinf->msg, HAWK_COUNTOF(errinf->msg), (gem->errmsg[0] == '\0'? gem->errstr(gem->errnum): gem->errmsg));
 #else
 	const hawk_ooch_t* msg;
 	hawk_oow_t wcslen, mbslen;
@@ -317,7 +317,7 @@ void hawk_gem_geterrbinf (hawk_gem_t* gem, hawk_errbinf_t* errinf)
 
 	msg = (gem->errmsg[0] == '\0')? gem->errstr(gem->errnum): gem->errmsg;
 	mbslen = HAWK_COUNTOF(errinf->msg);
-	hawk_conv_ucstr_to_bcstr_with_cmgr (msg, &wcslen, errinf->msg, &mbslen, gem->cmgr);
+	hawk_conv_ucstr_to_bcstr_with_cmgr(msg, &wcslen, errinf->msg, &mbslen, gem->cmgr);
 #endif
 }
 
@@ -340,11 +340,11 @@ void hawk_gem_geterruinf (hawk_gem_t* gem, hawk_erruinf_t* errinf)
 
 	msg = (gem->errmsg[0] == '\0')? gem->errstr(gem->errnum): gem->errmsg;
 	wcslen = HAWK_COUNTOF(errinf->msg);
-	hawk_conv_bcstr_to_ucstr_with_cmgr (msg, &mbslen, errinf->msg, &wcslen, gem->cmgr, 1);
+	hawk_conv_bcstr_to_ucstr_with_cmgr(msg, &mbslen, errinf->msg, &wcslen, gem->cmgr, 1);
 #else
 	errinf->num = gem->errnum;
 	errinf->loc = gem->errloc;
-	hawk_copy_oocstr (errinf->msg, HAWK_COUNTOF(errinf->msg), (gem->errmsg[0] == '\0'? gem->errstr(gem->errnum): gem->errmsg));
+	hawk_copy_oocstr(errinf->msg, HAWK_COUNTOF(errinf->msg), (gem->errmsg[0] == '\0'? gem->errstr(gem->errnum): gem->errmsg));
 #endif
 }
 
@@ -366,7 +366,7 @@ const hawk_bch_t* hawk_gem_geterrbmsg (hawk_gem_t* gem)
 	msg = (gem->errmsg[0] == '\0')? gem->errstr(gem->errnum): gem->errmsg;
 
 	mbslen = HAWK_COUNTOF(gem->xerrmsg);
-	hawk_conv_ucstr_to_bcstr_with_cmgr (msg, &wcslen, gem->xerrmsg, &mbslen, gem->cmgr);
+	hawk_conv_ucstr_to_bcstr_with_cmgr(msg, &wcslen, gem->xerrmsg, &mbslen, gem->cmgr);
 
 	return gem->xerrmsg;
 #endif
@@ -381,7 +381,7 @@ const hawk_uch_t* hawk_gem_geterrumsg (hawk_gem_t* gem)
 	msg = (gem->errmsg[0] == '\0')? gem->errstr(gem->errnum): gem->errmsg;
 
 	wcslen = HAWK_COUNTOF(gem->xerrmsg);
-	hawk_conv_bcstr_to_ucstr_with_cmgr (msg, &mbslen, gem->xerrmsg, &wcslen, gem->cmgr, 1);
+	hawk_conv_bcstr_to_ucstr_with_cmgr(msg, &mbslen, gem->xerrmsg, &wcslen, gem->cmgr, 1);
 
 	return gem->xerrmsg;
 #else
@@ -412,7 +412,7 @@ static int gem_err_bchars (hawk_fmtout_t* fmtout, const hawk_bch_t* ptr, hawk_oo
 
 #if defined(HAWK_OOCH_IS_UCH)
 	if (max <= 0) return 1;
-	hawk_conv_bchars_to_uchars_with_cmgr (ptr, &len, &gem->errmsg[gem->errmsg_len], &max, gem->cmgr, 1);
+	hawk_conv_bchars_to_uchars_with_cmgr(ptr, &len, &gem->errmsg[gem->errmsg_len], &max, gem->cmgr, 1);
 	gem->errmsg_len += max;
 #else
 	if (len > max) len = max;
@@ -440,7 +440,7 @@ static int gem_err_uchars (hawk_fmtout_t* fmtout, const hawk_uch_t* ptr, hawk_oo
 	gem->errmsg_len += len;
 #else
 	if (max <= 0) return 1;
-	hawk_conv_uchars_to_bchars_with_cmgr (ptr, &len, &gem->errmsg[gem->errmsg_len], &max, gem->cmgr);
+	hawk_conv_uchars_to_bchars_with_cmgr(ptr, &len, &gem->errmsg[gem->errmsg_len], &max, gem->cmgr);
 	gem->errmsg_len += max;
 #endif
 	gem->errmsg[gem->errmsg_len] = '\0';
@@ -538,7 +538,7 @@ void hawk_gem_seterror (hawk_gem_t* gem, const hawk_loc_t* errloc, hawk_errnum_t
 	errfmt = gem->errstr(gem->errnum);
 	HAWK_ASSERT (errfmt != HAWK_NULL);
 
-	hawk_copy_fmt_oocses_to_oocstr (gem->errmsg, HAWK_COUNTOF(gem->errmsg), errfmt, errarg);
+	hawk_copy_fmt_oocses_to_oocstr(gem->errmsg, HAWK_COUNTOF(gem->errmsg), errfmt, errarg);
 
 	if (errloc != HAWK_NULL) gem->errloc = *errloc;
 	else HAWK_MEMSET (&gem->errloc, 0, HAWK_SIZEOF(gem->errloc));
@@ -546,6 +546,6 @@ void hawk_gem_seterror (hawk_gem_t* gem, const hawk_loc_t* errloc, hawk_errnum_t
 
 const hawk_ooch_t* hawk_gem_backuperrmsg (hawk_gem_t* gem)
 {
-	hawk_copy_oocstr (gem->errmsg_backup, HAWK_COUNTOF(gem->errmsg_backup), hawk_gem_geterrmsg(gem));
+	hawk_copy_oocstr(gem->errmsg_backup, HAWK_COUNTOF(gem->errmsg_backup), hawk_gem_geterrmsg(gem));
 	return gem->errmsg_backup;
 }

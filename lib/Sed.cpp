@@ -60,11 +60,13 @@ void Sed::setCmgr (hawk_cmgr_t* cmgr)
 
 int Sed::open ()
 {
-	hawk_errnum_t errnum;
-	this->sed = hawk_sed_open(this->getMmgr(), HAWK_SIZEOF(xtn_t), this->getCmgr(), &errnum);
-	if (!this->sed)
+// TODO: create this->errinf just like the Hawk class.
+	hawk_errinf_t errinf;
+	this->sed = hawk_sed_open(this->getMmgr(), HAWK_SIZEOF(xtn_t), this->getCmgr(), &errinf);
+	if (HAWK_UNLIKELY(!this->sed))
 	{
-		this->setError (errnum);
+		// TODO: set error information like the Hawk class
+		// can not set error as this->sed is null until I update this class like Hawk.
 		return -1;
 	}
 
@@ -76,7 +78,6 @@ int Sed::open ()
 	this->dflerrstr = hawk_sed_geterrstr(this->sed);
 // TODO: revive this too when hawk_sed_seterrstr is revived()
 //	hawk_sed_seterrstr (this->sed, Sed::xerrstr);
-
 
 	return 0;
 }
@@ -92,7 +93,7 @@ void Sed::close ()
 
 int Sed::compile (Stream& sstream)
 {
-	HAWK_ASSERT (this->sed != HAWK_NULL);
+	HAWK_ASSERT(this->sed != HAWK_NULL);
 
 	this->sstream = &sstream;
 	return hawk_sed_comp(this->sed, Sed::sin);
@@ -100,7 +101,7 @@ int Sed::compile (Stream& sstream)
 
 int Sed::execute (Stream& istream, Stream& ostream)
 {
-	HAWK_ASSERT (this->sed != HAWK_NULL);
+	HAWK_ASSERT(this->sed != HAWK_NULL);
 
 	this->istream = &istream;
 	this->ostream = &ostream;
@@ -109,19 +110,19 @@ int Sed::execute (Stream& istream, Stream& ostream)
 
 void Sed::halt ()
 {
-	HAWK_ASSERT (this->sed != HAWK_NULL);
+	HAWK_ASSERT(this->sed != HAWK_NULL);
 	hawk_sed_halt (this->sed);
 }
 
 bool Sed::isHalt () const
 {
-	HAWK_ASSERT (this->sed != HAWK_NULL);
+	HAWK_ASSERT(this->sed != HAWK_NULL);
 	return hawk_sed_ishalt(this->sed);
 }
 
 int Sed::getTrait () const
 {
-	HAWK_ASSERT (this->sed != HAWK_NULL);
+	HAWK_ASSERT(this->sed != HAWK_NULL);
 	int val;
 	hawk_sed_getopt (this->sed, HAWK_SED_TRAIT, &val);
 	return val;
@@ -129,8 +130,8 @@ int Sed::getTrait () const
 
 void Sed::setTrait (int trait)
 {
-	HAWK_ASSERT (this->sed != HAWK_NULL);
-	hawk_sed_setopt (this->sed, HAWK_SED_TRAIT, &trait);
+	HAWK_ASSERT(this->sed != HAWK_NULL);
+	hawk_sed_setopt(this->sed, HAWK_SED_TRAIT, &trait);
 }
 
 const hawk_ooch_t* Sed::getErrorMessage () const
@@ -167,22 +168,22 @@ hawk_errnum_t Sed::getErrorNumber () const
 
 void Sed::setError (hawk_errnum_t err, const hawk_oocs_t* args, const hawk_loc_t* loc)
 {
-	HAWK_ASSERT (this->sed != HAWK_NULL);
-	hawk_sed_seterror (this->sed, loc, err, args);
+	HAWK_ASSERT(this->sed != HAWK_NULL);
+	hawk_sed_seterror(this->sed, loc, err, args);
 }
 
 void Sed::formatError (hawk_errnum_t code, const hawk_loc_t* loc, const hawk_bch_t* fmt, ...)
 {
-	HAWK_ASSERT (this->sed != HAWK_NULL);
+	HAWK_ASSERT(this->sed != HAWK_NULL);
 	va_list ap;
 	va_start (ap, fmt);
-	hawk_sed_seterrbvfmt (this->sed, loc, code, fmt, ap);
+	hawk_sed_seterrbvfmt(this->sed, loc, code, fmt, ap);
 	va_end (ap);
 }
 
 void Sed::formatError (hawk_errnum_t code, const hawk_loc_t* loc, const hawk_uch_t* fmt, ...)
 {
-	HAWK_ASSERT (this->sed != HAWK_NULL);
+	HAWK_ASSERT(this->sed != HAWK_NULL);
 	va_list ap;
 	va_start (ap, fmt);
 	hawk_sed_seterruvfmt (this->sed, loc, code, fmt, ap);
@@ -201,13 +202,13 @@ const hawk_ooch_t* Sed::setCompileId (const hawk_ooch_t* id)
 
 hawk_oow_t Sed::getConsoleLine ()
 {
-	HAWK_ASSERT (this->sed != HAWK_NULL);
+	HAWK_ASSERT(this->sed != HAWK_NULL);
 	return hawk_sed_getlinenum(this->sed);
 }
 
 void Sed::setConsoleLine (hawk_oow_t num)
 {
-	HAWK_ASSERT (this->sed != HAWK_NULL);
+	HAWK_ASSERT(this->sed != HAWK_NULL);
 	hawk_sed_setlinenum (this->sed, num);
 }
 
@@ -291,7 +292,7 @@ hawk_ooi_t Sed::xout (hawk_sed_t* s, hawk_sed_io_cmd_t cmd, hawk_sed_io_arg_t* a
 
 const hawk_ooch_t* Sed::getErrorString (hawk_errnum_t num) const
 {
-	HAWK_ASSERT (this->dflerrstr != HAWK_NULL);
+	HAWK_ASSERT(this->dflerrstr != HAWK_NULL);
 	return this->dflerrstr(num);
 }
 

@@ -502,41 +502,41 @@ HAWK_EXPORT void hawk_gem_seterror (
 );
 
 HAWK_EXPORT void hawk_gem_seterrnum (
-	hawk_gem_t*       gem,
-	const hawk_loc_t* errloc,
-	hawk_errnum_t     errnum
+	hawk_gem_t*          gem,
+	const hawk_loc_t*    errloc,
+	hawk_errnum_t        errnum
 );
 
 HAWK_EXPORT void hawk_gem_seterrbfmt (
-	hawk_gem_t*         gem,
-	const hawk_loc_t*   errloc,
-	hawk_errnum_t       errnum,
-	const hawk_bch_t*   errfmt,
+	hawk_gem_t*          gem,
+	const hawk_loc_t*    errloc,
+	hawk_errnum_t        errnum,
+	const hawk_bch_t*    errfmt,
 	...
 );
 
 HAWK_EXPORT void hawk_gem_seterrufmt (
-	hawk_gem_t*         gem,
-	const hawk_loc_t*   errloc,
-	hawk_errnum_t       errnum,
-	const hawk_uch_t*   errfmt,
+	hawk_gem_t*          gem,
+	const hawk_loc_t*    errloc,
+	hawk_errnum_t        errnum,
+	const hawk_uch_t*    errfmt,
 	...
 );
 
 HAWK_EXPORT void hawk_gem_seterrbvfmt (
-	hawk_gem_t*         gem,
-	const hawk_loc_t*   errloc,
-	hawk_errnum_t       errnum,
-	const hawk_bch_t*   errfmt,
-	va_list             ap
+	hawk_gem_t*          gem,
+	const hawk_loc_t*    errloc,
+	hawk_errnum_t        errnum,
+	const hawk_bch_t*    errfmt,
+	va_list              ap
 );
 
 HAWK_EXPORT void hawk_gem_seterruvfmt (
-	hawk_gem_t*         gem,
-	const hawk_loc_t*   errloc,
-	hawk_errnum_t       errnum,
-	const hawk_uch_t*   errfmt,
-	va_list             ap
+	hawk_gem_t*          gem,
+	const hawk_loc_t*    errloc,
+	hawk_errnum_t        errnum,
+	const hawk_uch_t*    errfmt,
+	va_list              ap
 );
 
 HAWK_EXPORT const hawk_ooch_t* hawk_gem_backuperrmsg (
