@@ -1,8 +1,13 @@
-# Hawk
+# Hawk - Embeddable AWK Interpreter in C/C++
+
+HAWK is a stable and embeddable **AWK interpreter written in C**.
+It can run AWK scripts inside your own applications or as a standalone AWK engine.
+The library is stable, portable, and designed for projects that need a scripting engine with a small footprint.
 
 ![Hawk](hawk.png)
 
-- [Hawk](#hawk)
+## Table of Contents
+- [Features](#features)
 - [Building Hawk From Source Code](#building-hawk-from-source-code)
 - [Embedding Hawk in C Applications](#embedding-hawk-in-c-applications)
 - [Embedding Hawk in C++ Applications](#embedding-hawk-in-c-applications-1)
@@ -36,24 +41,15 @@
 		- [Parameter passing](#parameter-passing)
 	- [Positional variable expression](#positional-variable-expression)
 
+## Features
 
-`Hawk` is a powerful and embeddable scripting engine inspired by the traditional awk programming language. While it maintains compatibility with awk, Hawk is designed to be seamlessly integrated into other applications, providing a versatile and efficient solution for various scripting and data manipulation tasks.
-
-As an embeddable interpreter, Hawk offers several advantages:
-
-- Highly Portable: Implemented in portable C, Hawk can be easily integrated into applications running on diverse platforms and architectures.
-- Efficient and Lightweight: Hawk provides a lightweight yet capable scripting solution within larger applications.
-- Extensible Architecture: Hawk features an extensible architecture, allowing developers to create and integrate custom extensions tailored to specific application requirements.
-
-While mostly compatible with awk, Hawk introduces several enhancements and extensions, including:
-
-- Improved Variable Handling: Enhanced mechanisms for working with complex data structures and performing advanced data manipulation.
-- Additional Built-in Functions: A rich set of built-in functions that extend the capabilities of awk for string manipulation, array handling, and more.
-- External Modules: Hawk supports external modules that provide additional functionality and extensibility.
-
-Hawk's embeddable nature and extensible design make it a versatile choice for integrating scripting capabilities into a wide range of applications, from system utilities and tools to data processing pipelines and beyond.
-
-In the following sections, we'll explore Hawk's features in detail, covering its embeddable nature, awk compatibility, extensions, and usage examples to help you effectively integrate and leverage this powerful scripting engine within your applications.
+- Full AWK interpreter — mostly POSIX AWK compatible, with additional extensions.
+- Embeddable library — integrate AWK scripting into C or C++ projects as an execution engine.
+- C and C++ APIs — core functions exposed in C, with convenient C++ wrapper classes available.
+- Flexible usage — usable as both a standalone command-line interpreter and a library.
+- Portable core — the base library depends only on the standard C library.
+- Optional extensions — loadable modules (e.g. MySQL access, FFI) can be built in or used via shared objects.
+- Mature and stable — developed and maintained for many years with proven reliability.
 
 # Building Hawk From Source Code
 
