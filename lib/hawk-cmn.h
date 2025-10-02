@@ -1567,5 +1567,14 @@ typedef struct hawk_skad_t hawk_skad_t;
 #endif
 
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
+/* NOTHING HERE */
+
+#if defined(__cplusplus)
+}
+#endif
 
 #endif

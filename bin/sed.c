@@ -29,7 +29,6 @@
 #include <hawk-cli.h>
 #include <hawk-fmt.h>
 #include <hawk-utl.h>
-#include <hawk-std.h>
 #include <hawk-xma.h>
 
 #if !defined(_GNU_SOURCE)

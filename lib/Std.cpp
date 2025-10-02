@@ -27,7 +27,6 @@
 #include <Hawk.hpp>
 #include <hawk-sio.h>
 #include <hawk-pio.h>
-#include <hawk-std.h> // for hawk_stdmodXXX() functions
 #include "hawk-prv.h"
 #include <stdlib.h>
 #include <sys/stat.h>

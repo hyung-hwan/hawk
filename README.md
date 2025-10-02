@@ -1,6 +1,6 @@
 # Hawk - Embeddable AWK Interpreter in C/C++
 
-HAWK is a stable and embeddable **AWK interpreter written in C**.
+`Hawk` is a stable and embeddable **AWK interpreter written in C**.
 It can run AWK scripts inside your own applications or as a standalone AWK engine.
 The library is stable, portable, and designed for projects that need a scripting engine with a small footprint.
 
@@ -43,13 +43,14 @@ The library is stable, portable, and designed for projects that need a scripting
 
 ## Features
 
-- Full AWK interpreter — mostly POSIX AWK compatible, with additional extensions.
-- Embeddable library — integrate AWK scripting into C or C++ projects as an execution engine.
-- C and C++ APIs — core functions exposed in C, with convenient C++ wrapper classes available.
-- Flexible usage — usable as both a standalone command-line interpreter and a library.
-- Portable core — the base library depends only on the standard C library.
-- Optional extensions — loadable modules (e.g. MySQL access, FFI) can be built in or used via shared objects.
-- Mature and stable — developed and maintained for many years with proven reliability.
+- Full AWK interpreter - mostly POSIX AWK compatible, with additional extensions.
+- Embeddable library - integrate AWK scripting into C or C++ projects as an execution engine.
+- C and C++ APIs - core functions exposed in C, with convenient C++ wrapper classes available.
+- Flexible usage - usable as both a standalone command-line interpreter and a library.
+- Portable core - the base library depends only on the standard C library.
+- Optional extensions - loadable modules (e.g. MySQL access, FFI) can be built in or used via shared objects.
+- Mature and stable - developed and maintained for many years with proven reliability.
+- Embedded sed functionality - includes a sed engine that can be used from C/C++ or invoked via the CLI using --sed <options>
 
 # Building Hawk From Source Code
 
@@ -160,7 +161,7 @@ Assuming the above sample code is stored in `hawk02.c` and the built Hawk librar
 $ gcc -Wall -O2 -o hawk02 hawk02.c -lhawk
 ```
 
-The actual command may vary depending on the compiler used and the library `configure` options used.
+The actual command may vary depending on the compiler used and the `configure` options used.
 
 # Embedding Hawk in C++ Applications
 
@@ -208,13 +209,16 @@ The C++ classes are inferior to the C equivalents in that they don't allow creat
 
 # Language
 
-Hawk is an AWK interpreter created by an individual whose name starts with `H`, hence the `H` in the name. It serves a dual purpose: to be an easy-to-embed implementation within other applications and a standalone tool for users. At its core, Hawk largely supports all the fundamental features of AWK, ensuring compatibility with existing AWK programs and scripts. However, it introduces subtle differences in behavior compared to traditional AWK implementations, which will be explained in the [Incompatibility with AWK](#incompatibility-with-awk) section.
+`Hawk` is an AWK interpreter created by an individual whose name starts with H, which inspired the H in the name. It serves a dual purpose: as an embeddable AWK engine for integration into other applications, and as a standalone command-line tool for general use.
 
-In Hawk, as in traditional awk, the execution flow follows a specific order: the `BEGIN` block is executed first, followed by the pattern-action blocks, and finally the `END` block.
+At its core, `Hawk` supports the fundamental features of AWK, ensuring compatibility with most existing AWK programs and scripts. However, it introduces some subtle differences in behavior compared to traditional AWK implementations, which are detailed in the [Incompatibility with AWK](#incompatibility-with-awk) section.
+ section.
 
-1. `BEGIN` Block: The `BEGIN` block is executed before any input is processed. It is typically used for initializations, such as setting variable values or defining functions that will be used later in the script.
-1. Pattern-Action Blocks: After the `BEGIN` block, Hawk reads the input line by line (or record by record, depending on the record separator `RS`). For each input line or record, Hawk checks if it matches the specified pattern. If a match is found, the associated action block is executed.
-1. `END` Block: After processing all input lines or records, the `END` block is executed. It is typically used for performing final operations, such as printing summaries or closing files.
+`Hawk` follows the standard AWK execution flow: the BEGIN block is executed first, followed by pattern-action blocks, and finally the END block.
+
+1. `BEGIN` Block: Executed before any input is processed. It is typically used for initializations, such as setting variable values or defining functions to be used later in the script.
+1. Pattern-Action Blocks: After the BEGIN block, `Hawk` reads input line by line (or record by record, based on the record separator RS). For each input line, `Hawk` checks if it matches the specified pattern. If it does, the associated action block is executed.
+1. `END` Block: Executed after all input has been processed. It is typically used for final operations, such as printing summaries or closing files.
 
 Here's a sample code that demonstrates the basic `BEGIN`, pattern-action, and `END` loop in Hawk:
 
@@ -1351,7 +1355,7 @@ BEGIN {
 There are subtle differences in handling expressions for positional variables. In Hawk, many of the ambiguity issues can be resolved by enclosing the expression in parentheses.
 
 
-| Expression   | HAWK          | AWK             |
+| Expression   | Hawk          | AWK             |
 |--------------|---------------|-----------------|
 | `$++$++i`    | syntax error  | OK              |
 | `$(++$(++i))`| OK            | syntax error    |

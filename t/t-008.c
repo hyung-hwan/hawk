@@ -1,5 +1,5 @@
+#include <hawk.h>
 #include <hawk-xma.h>
-#include <hawk-std.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>

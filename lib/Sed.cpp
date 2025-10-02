@@ -63,7 +63,6 @@ void Sed::setCmgr (hawk_cmgr_t* cmgr)
 
 int Sed::open ()
 {
-// TODO: create this->errinf just like the Hawk class.
 	this->sed = hawk_sed_open(this->getMmgr(), HAWK_SIZEOF(xtn_t), this->getCmgr(), &this->errinf);
 	if (HAWK_UNLIKELY(!this->sed)) return -1;
 

@@ -73,7 +73,6 @@ pkginclude_HEADERS = \
 	hawk-utl.h \
 	hawk-sed.h \
 	hawk-sio.h \
-	hawk-std.h \
 	hawk-str.h \
 	hawk-tio.h \
 	hawk-tre.h \

@@ -23,7 +23,6 @@
  */
 
 #include "hawk-prv.h"
-#include <hawk-std.h>
 #include <hawk-pio.h>
 #include <hawk-sio.h>
 #include <hawk-xma.h>
@@ -228,7 +227,6 @@ static hawk_mmgr_t sys_mmgr =
 	sys_free,
 	HAWK_NULL
 };
-
 
 hawk_mmgr_t* hawk_get_sys_mmgr (void)
 {

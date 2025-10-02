@@ -23,7 +23,7 @@
  */
 
 #include "json-prv.h"
-#include <hawk-std.h>
+#include "hawk-prv.h"
 
 typedef struct xtn_t xtn_t;
 struct xtn_t

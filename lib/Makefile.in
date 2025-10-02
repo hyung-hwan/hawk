@@ -250,27 +250,27 @@ am__libhawk_la_SOURCES_DIST = hawk.h hawk-arr.h hawk-chr.h hawk-cli.h \
 	hawk-cmn.h hawk-cut.h hawk-dir.h hawk-ecs.h hawk-fio.h \
 	hawk-fmt.h hawk-gem.h hawk-glob.h hawk-htb.h hawk-json.h \
 	hawk-map.h hawk-mtx.h hawk-rbt.h hawk-pac1.h hawk-pio.h \
-	hawk-skad.h hawk-utl.h hawk-sed.h hawk-sio.h hawk-std.h \
-	hawk-str.h hawk-tio.h hawk-tre.h hawk-upac.h hawk-xma.h \
-	Hawk.hpp Hawk-Sed.hpp arr.c chr.c cut-prv.h cut.c dir.c \
-	ecs-imp.h ecs.c err-prv.h err.c err-sys.c fmt-imp.h fmt.c \
-	fnc-prv.h fnc.c gem.c gem-glob.c gem-nwif.c gem-nwif2.c \
-	hawk-prv.h hawk.c htb.c idmap-imp.h json.c json-prv.h mb8.c \
-	misc-imp.h misc-prv.h misc.c parse-prv.h parse.c rbt.c rec.c \
-	rio-prv.h rio.c run-prv.h run.c sed-prv.h sed.c skad-prv.h \
-	skad.c tre-prv.h tre-ast.c tre-ast.h tre-compile.c \
-	tre-compile.h tre-match-bt.c tre-match-pa.c tre-match-ut.h \
-	tre-mem.c tre-mem.h tre-parse.c tre-parse.h tre-stack.h \
-	tre-stack.c tre.c tree-prv.h tree.c uch-prop.h uch-case.h \
-	utf16.c utf8.c utl-ass.c utl-cmgr.c utl-rnd.c utl-sort.c \
-	utl-str.c utl-sys.c utl-xstr.c utl.c val-prv.h val.c xma.c \
-	cli-imp.h cli.c fio.c mtx.c pio.c sio.c syscall.h tio.c std.c \
-	std-cut.c std-json.c std-sed.c Hawk.cpp Std.cpp Sed.cpp \
-	Std-Sed.cpp mod-hawk.c mod-hawk.h mod-math.c mod-math.h \
-	mod-str.c mod-str.h mod-sys.c mod-sys.h ../mod/mod-ffi.c \
-	../mod/mod-ffi.h ../mod/mod-memc.c ../mod/mod-memc.h \
-	../mod/mod-mysql.c ../mod/mod-mysql.h ../mod/mod-sed.c \
-	../mod/mod-sed.h ../mod/mod-uci.c ../mod/mod-uci.h
+	hawk-skad.h hawk-utl.h hawk-sed.h hawk-sio.h hawk-str.h \
+	hawk-tio.h hawk-tre.h hawk-upac.h hawk-xma.h Hawk.hpp \
+	Hawk-Sed.hpp arr.c chr.c cut-prv.h cut.c dir.c ecs-imp.h ecs.c \
+	err-prv.h err.c err-sys.c fmt-imp.h fmt.c fnc-prv.h fnc.c \
+	gem.c gem-glob.c gem-nwif.c gem-nwif2.c hawk-prv.h hawk.c \
+	htb.c idmap-imp.h json.c json-prv.h mb8.c misc-imp.h \
+	misc-prv.h misc.c parse-prv.h parse.c rbt.c rec.c rio-prv.h \
+	rio.c run-prv.h run.c sed-prv.h sed.c skad-prv.h skad.c \
+	tre-prv.h tre-ast.c tre-ast.h tre-compile.c tre-compile.h \
+	tre-match-bt.c tre-match-pa.c tre-match-ut.h tre-mem.c \
+	tre-mem.h tre-parse.c tre-parse.h tre-stack.h tre-stack.c \
+	tre.c tree-prv.h tree.c uch-prop.h uch-case.h utf16.c utf8.c \
+	utl-ass.c utl-cmgr.c utl-rnd.c utl-sort.c utl-str.c utl-sys.c \
+	utl-xstr.c utl.c val-prv.h val.c xma.c cli-imp.h cli.c fio.c \
+	mtx.c pio.c sio.c syscall.h tio.c std.c std-cut.c std-json.c \
+	std-sed.c Hawk.cpp Std.cpp Sed.cpp Std-Sed.cpp mod-hawk.c \
+	mod-hawk.h mod-math.c mod-math.h mod-str.c mod-str.h mod-sys.c \
+	mod-sys.h ../mod/mod-ffi.c ../mod/mod-ffi.h ../mod/mod-memc.c \
+	../mod/mod-memc.h ../mod/mod-mysql.c ../mod/mod-mysql.h \
+	../mod/mod-sed.c ../mod/mod-sed.h ../mod/mod-uci.c \
+	../mod/mod-uci.h
 am__objects_1 =
 am__objects_2 = $(am__objects_1)
 @ENABLE_CXX_TRUE@am__objects_3 = libhawk_la-Hawk.lo libhawk_la-Std.lo \
@@ -442,9 +442,9 @@ am__pkginclude_HEADERS_DIST = hawk.h hawk-arr.h hawk-chr.h hawk-cli.h \
 	hawk-cmn.h hawk-cut.h hawk-dir.h hawk-ecs.h hawk-fio.h \
 	hawk-fmt.h hawk-gem.h hawk-glob.h hawk-htb.h hawk-json.h \
 	hawk-map.h hawk-mtx.h hawk-rbt.h hawk-pac1.h hawk-pio.h \
-	hawk-skad.h hawk-utl.h hawk-sed.h hawk-sio.h hawk-std.h \
-	hawk-str.h hawk-tio.h hawk-tre.h hawk-upac.h hawk-xma.h \
-	Hawk.hpp Hawk-Sed.hpp
+	hawk-skad.h hawk-utl.h hawk-sed.h hawk-sio.h hawk-str.h \
+	hawk-tio.h hawk-tre.h hawk-upac.h hawk-xma.h Hawk.hpp \
+	Hawk-Sed.hpp
 HEADERS = $(pkginclude_HEADERS)
 am__tagged_files = $(HEADERS) $(SOURCES) $(TAGS_FILES) $(LISP) \
 	hawk-cfg.h.in
@@ -673,9 +673,8 @@ pkginclude_HEADERS = hawk.h hawk-arr.h hawk-chr.h hawk-cli.h \
 	hawk-cmn.h hawk-cut.h hawk-dir.h hawk-ecs.h hawk-fio.h \
 	hawk-fmt.h hawk-gem.h hawk-glob.h hawk-htb.h hawk-json.h \
 	hawk-map.h hawk-mtx.h hawk-rbt.h hawk-pac1.h hawk-pio.h \
-	hawk-skad.h hawk-utl.h hawk-sed.h hawk-sio.h hawk-std.h \
-	hawk-str.h hawk-tio.h hawk-tre.h hawk-upac.h hawk-xma.h \
-	$(am__append_7)
+	hawk-skad.h hawk-utl.h hawk-sed.h hawk-sio.h hawk-str.h \
+	hawk-tio.h hawk-tre.h hawk-upac.h hawk-xma.h $(am__append_7)
 pkglib_LTLIBRARIES = libhawk.la $(am__append_11)
 libhawk_la_SOURCES = $(pkginclude_HEADERS) arr.c chr.c cut-prv.h cut.c \
 	dir.c ecs-imp.h ecs.c err-prv.h err.c err-sys.c fmt-imp.h \

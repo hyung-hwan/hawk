@@ -28,7 +28,6 @@
 #include <hawk.h>
 #include <hawk-glob.h>
 #include <hawk-xma.h>
-#include <hawk-std.h>
 #include <stdio.h>
 #include <locale.h>
 #include <string.h>

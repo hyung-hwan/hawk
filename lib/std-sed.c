@@ -24,7 +24,6 @@
 
 #include "sed-prv.h"
 #include "hawk-prv.h"
-#include "hawk-std.h"
 
 typedef struct xtn_in_t xtn_in_t;
 struct xtn_in_t
