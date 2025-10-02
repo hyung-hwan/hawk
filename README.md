@@ -67,12 +67,12 @@ $ make install
 Here's an example of how Hawk can be embedded within a C application:
 
 ```c
-#include <hawk-std.h>
+#include <hawk.h>
 #include <stdio.h>
 #include <string.h>
 
 static const hawk_bch_t* src =
-	"BEGIN { print ARGV[0]"
+	"BEGIN { print ARGV[0];"
 	"   for (i=2;i<=9;i++)"
 	"   {"
 	"       for (j=1;j<=9;j++)"
@@ -190,7 +190,7 @@ int main ()
 	}
 
 	HAWK::Hawk::Value vr;
-	hawk.loop(&vr);  // alternatively, hawk.exec (&vr, HAWK_NULL, 0);
+	hawk.loop(&vr);  // alternatively, hawk.exec(&vr, HAWK_NULL, 0);
 
 	hawk.close();
 	return 0;

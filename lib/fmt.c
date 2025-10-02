@@ -665,7 +665,7 @@ static int fmt_outv (hawk_fmtout_t* fmtout, va_list ap)
 		case '5': case '6': case '7': case '8': case '9':
 		{
 			if (flagc & FLAGC_LENMOD) goto invalid_format;
-			for (n = 0;; fmtptr += fmtchsz)
+			for (n = 0; ; fmtptr += fmtchsz)
 			{
 				n = n * 10 + uch - '0';
 				switch (fmtout->fmt_type)

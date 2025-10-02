@@ -2239,7 +2239,7 @@ static int run_block (hawk_rtx_t* rtx, hawk_nde_blk_t* nde)
 	    rtx->depth.block >= rtx->hawk->opt.depth.s.block_run)
 	{
 		hawk_rtx_seterrnum(rtx, &nde->loc, HAWK_EBLKNST);
-		return -1;;
+		return -1;
 	}
 
 	rtx->depth.block++;

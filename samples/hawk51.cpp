@@ -58,7 +58,7 @@ class MyHawk: public HawkStd
 {
 public:
 	MyHawk (HAWK::Mmgr* mmgr = HAWK_NULL): HawkStd(mmgr) { }
-	~MyHawk () { this->close (); }
+	~MyHawk () { this->close(); }
 
 	int open ()
 	{
@@ -67,22 +67,22 @@ public:
 		idLastSleep = this->addGlobal(HAWK_T("LAST_SLEEP"));
 		if (idLastSleep <= -1) goto oops;
 
-		/* this is for demonstration only. 
+		/* this is for demonstration only.
 		 * you can use sys::sleep() instead */
 		if (this->addFunction(HAWK_T("sleep"), 1, 1, HAWK_NULL, (FunctionHandler)&MyHawk::sleep) <= -1 ||
-		    this->addFunction (HAWK_T("sumintarray"), 1, 1, HAWK_NULL, (FunctionHandler)&MyHawk::sumintarray) <= -1 ||
-		    this->addFunction (HAWK_T("arrayindices"), 1, 1, HAWK_NULL, (FunctionHandler)&MyHawk::arrayindices) <= -1) goto oops;
+		    this->addFunction(HAWK_T("sumintarray"), 1, 1, HAWK_NULL, (FunctionHandler)&MyHawk::sumintarray) <= -1 ||
+		    this->addFunction(HAWK_T("arrayindices"), 1, 1, HAWK_NULL, (FunctionHandler)&MyHawk::arrayindices) <= -1) goto oops;
 
 		return 0;
 
 	oops:
-		HawkStd::close ();
+		HawkStd::close();
 		return -1;
 	}
 
 	int sleep (Run& run, Value& ret, Value* args, hawk_oow_t nargs, const hawk_ooch_t* name, hawk_oow_t len)
 	{
-		if (args[0].isIndexed()) 
+		if (args[0].isIndexed())
 		{
 			run.setError (HAWK_EINVAL);
 			return -1;
@@ -92,8 +92,8 @@ public:
 
 		/*Value arg;
 		if (run.getGlobal(idLastSleep, arg) == 0)
-			hawk_printf (HAWK_T("GOOD: [%d]\n"), (int)arg.toInt());
-		else { hawk_printf (HAWK_T("BAD:\n")); }
+			hawk_printf(HAWK_T("GOOD: [%d]\n"), (int)arg.toInt());
+		else { hawk_printf(HAWK_T("BAD:\n")); }
 		*/
 
 		if (run.setGlobal (idLastSleep, x) <= -1) return -1;
@@ -111,13 +111,13 @@ public:
 
 	int sumintarray (Run& run, Value& ret, Value* args, hawk_oow_t nargs, const hawk_ooch_t* name, hawk_oow_t len)
 	{
-		// BEGIN { 
-		//   for(i=0;i<=10;i++) x[i]=i; 
+		// BEGIN {
+		//   for(i=0;i<=10;i++) x[i]=i;
 		//   print sumintarray(x);
 		// }
 		hawk_int_t x = 0;
 
-		if (args[0].isIndexed()) 
+		if (args[0].isIndexed())
 		{
 			Value val(run);
 			Value::Index idx;
@@ -140,10 +140,10 @@ public:
 	int arrayindices (Run& run, Value& ret, Value* args, hawk_oow_t nargs, const hawk_ooch_t* name, hawk_oow_t len)
 	{
 		// create another array composed of array indices
-		// BEGIN { 
-		//   for(i=0;i<=10;i++) x[i]=i; 
-		//   y=arrayindices(x); 
-		//   for (i in y) print y[i]; 
+		// BEGIN {
+		//   for(i=0;i<=10;i++) x[i]=i;
+		//   y=arrayindices(x);
+		//   for (i in y) print y[i];
 		// }
 		if (!args[0].isIndexed()) return 0;
 
@@ -159,10 +159,10 @@ public:
 				iidx, idx.pointer(), idx.length()) <= -1) return -1;
 			ii = args[0].getNextIndex (&idx, ii);
 		}
-	
+
 		return 0;
 	}
-	
+
 private:
 	int idLastSleep;
 };
@@ -173,25 +173,25 @@ static void print_error (const hawk_bch_t* fmt, ...)
 {
 	va_list va;
 
-	fprintf (stderr, "ERROR: ");
+	fprintf(stderr, "ERROR: ");
 
 	va_start (va, fmt);
-	vfprintf (stderr, fmt, va);
+	vfprintf(stderr, fmt, va);
 	va_end (va);
 }
 
-static void print_error (MyHawk& hawk)
+static void print_error(MyHawk& hawk)
 {
 	hawk_errnum_t code = hawk.getErrorNumber();
 	hawk_loc_t loc = hawk.getErrorLocation();
 
 	if (loc.file)
 	{
-		print_error ("code %d line %lu at %s - %s\n", (int)code, (unsigned long int)loc.line, hawk.getErrorLocationFileB(), hawk.getErrorMessageB());
+		print_error("code %d line %lu at %s - %s\n", (int)code, (unsigned long int)loc.line, hawk.getErrorLocationFileB(), hawk.getErrorMessageB());
 	}
 	else
 	{
-		print_error ("code %d line %lu - %s\n", (int)code, (unsigned long int)loc.line, hawk.getErrorMessageB());
+		print_error("code %d line %lu - %s\n", (int)code, (unsigned long int)loc.line, hawk.getErrorMessageB());
 	}
 }
 
@@ -215,7 +215,7 @@ static int setsignal (int sig, void(*handler)(int), int restart)
 
 	sa_int.sa_handler = handler;
 	sigemptyset (&sa_int.sa_mask);
-	
+
 	sa_int.sa_flags = 0;
 
 	if (restart)
@@ -269,15 +269,15 @@ static void unset_signal (void)
 
 static void print_usage (FILE* out, const hawk_bch_t* argv0)
 {
-	fprintf (out, "USAGE: %s [options] -f sourcefile [ -- ] [datafile]*\n", argv0);
-	fprintf (out, "       %s [options] [ -- ] sourcestring [datafile]*\n", argv0);
-	fprintf (out, "Where options are:\n");
-	fprintf (out, " -h                print this message\n");
-	fprintf (out, " -f sourcefile     set the source script file\n");
-	fprintf (out, " -d deparsedfile   set the deparsing output file\n");
-	fprintf (out, " -o outputfile     set the console output file\n");
-	fprintf (out, " -F string         set a field separator(FS)\n");
-	fprintf (out, " -I string         set include directories\n");
+	fprintf(out, "USAGE: %s [options] -f sourcefile [ -- ] [datafile]*\n", argv0);
+	fprintf(out, "       %s [options] [ -- ] sourcestring [datafile]*\n", argv0);
+	fprintf(out, "Where options are:\n");
+	fprintf(out, " -h                print this message\n");
+	fprintf(out, " -f sourcefile     set the source script file\n");
+	fprintf(out, " -d deparsedfile   set the deparsing output file\n");
+	fprintf(out, " -o outputfile     set the console output file\n");
+	fprintf(out, " -F string         set a field separator(FS)\n");
+	fprintf(out, " -I string         set include directories\n");
 
 }
 
@@ -294,7 +294,7 @@ struct cmdline_t
 	int argc;
 };
 
-static int handle_cmdline (MyHawk& awk, int argc, hawk_bch_t* argv[], cmdline_t* cmdline)
+static int handle_cmdline (MyHawk& hawk, int argc, hawk_bch_t* argv[], cmdline_t* cmdline)
 {
 	static hawk_bcli_t opt =
 	{
@@ -309,7 +309,7 @@ static int handle_cmdline (MyHawk& awk, int argc, hawk_bch_t* argv[], cmdline_t*
 		switch (c)
 		{
 			case 'h':
-				print_usage (stdout, argv[0]);
+				print_usage(stdout, argv[0]);
 				return 0;
 
 			case 'F':
@@ -333,15 +333,15 @@ static int handle_cmdline (MyHawk& awk, int argc, hawk_bch_t* argv[], cmdline_t*
 				break;
 
 			case '?':
-				print_error ("illegal option - '%c'\n", opt.opt);
+				print_error("illegal option - '%c'\n", opt.opt);
 				return -1;
 
 			case ':':
-				print_error ("bad argument for '%c'\n", opt.opt);
+				print_error("bad argument for '%c'\n", opt.opt);
 				return -1;
 
 			default:
-				print_usage (stderr, argv[0]);
+				print_usage(stderr, argv[0]);
 				return -1;
 		}
 	}
@@ -351,16 +351,16 @@ static int handle_cmdline (MyHawk& awk, int argc, hawk_bch_t* argv[], cmdline_t*
 	cmdline->argc = 0;
 	while (opt.ind < argc)
 	{
-		if (awk.addArgument(argv[opt.ind++]) <= -1) 
+		if (hawk.addArgument(argv[opt.ind++]) <= -1)
 		{
-			print_error (awk);
+			print_error(hawk);
 			return -1;
 		}
 	}
 
 	if (!cmdline->ins && !cmdline->inf)
 	{
-		print_usage (stderr, argv[0]);
+		print_usage(stderr, argv[0]);
 		return -1;
 	}
 
@@ -388,7 +388,7 @@ static int make_args_for_exec (cmdline_t* cmdline, MyHawk& hawk, MyHawk::Run* ru
 		cmdline->argv = new HAWK::Hawk::Value[count - 1];
 		for (hawk_oow_t i = 1; i < count; i++)
 		{
-			if (cmdline->argv[i - 1].setStr(run, hawk.getArgument(i)) <= -1) 
+			if (cmdline->argv[i - 1].setStr(run, hawk.getArgument(i)) <= -1)
 			{
 				free_args_for_exec (cmdline);
 				return -1;
@@ -418,8 +418,8 @@ static int hawk_main (MyHawk& hawk, int argc, hawk_bch_t* argv[])
 	// ARGV[0]
 	if (hawk.addArgument(HAWK_T("hawk51")) <= -1)
 	{
-		print_error (hawk); 
-		return -1; 
+		print_error(hawk);
+		return -1;
 	}
 
 	if ((n = handle_cmdline(hawk, argc, argv, &cmdline)) <= 0) return n;
@@ -427,45 +427,45 @@ static int hawk_main (MyHawk& hawk, int argc, hawk_bch_t* argv[])
 	if (cmdline.incdirs) hawk.setIncludeDirs (cmdline.incdirs);
 	MyHawk::Source* in, * out;
 	MyHawk::SourceString in_str(cmdline.ins);
-	MyHawk::SourceFile in_file(cmdline.inf); 
+	MyHawk::SourceFile in_file(cmdline.inf);
 	MyHawk::SourceFile out_file(cmdline.outf);
 
 	in = (cmdline.ins)? (MyHawk::Source*)&in_str: (MyHawk::Source*)&in_file;
 	out = (cmdline.outf)? (MyHawk::Source*)&out_file: &MyHawk::Source::NONE;
 	run = hawk.parse(*in, *out);
-	if (!run) 
+	if (!run)
 	{
-		print_error (hawk); 
-		return -1; 
+		print_error(hawk);
+		return -1;
 	}
 
 	if (cmdline.inf && run->setGlobal(HAWK_GBL_SCRIPTNAME, cmdline.inf, hawk_count_bcstr(cmdline.inf)) <= -1)
 	{
-		print_error (hawk); 
-		return -1; 
+		print_error(hawk);
+		return -1;
 	}
 
 	if (cmdline.fs)
 	{
 		MyHawk::Value fs (run);
-		if (fs.setStr(cmdline.fs) <= -1) 
+		if (fs.setStr(cmdline.fs) <= -1)
 		{
-			print_error (hawk); 
-			return -1; 
+			print_error(hawk);
+			return -1;
 		}
-		if (hawk.setGlobal(HAWK_GBL_FS, fs) <= -1) 
+		if (hawk.setGlobal(HAWK_GBL_FS, fs) <= -1)
 		{
-			print_error (hawk); 
-			return -1; 
+			print_error(hawk);
+			return -1;
 		}
 	}
 
-	if (cmdline.outc) 
+	if (cmdline.outc)
 	{
 		if (hawk.addConsoleOutput(cmdline.outc) <= -1)
 		{
-			print_error (hawk); 
-			return -1; 
+			print_error(hawk);
+			return -1;
 		}
 	}
 
@@ -473,18 +473,18 @@ static int hawk_main (MyHawk& hawk, int argc, hawk_bch_t* argv[])
 
 	if (make_args_for_exec(&cmdline, hawk, run) <= -1) // data made here is not uself if hawk.loop() invoked in hawk.exec().
 	{
-		print_error (hawk);
+		print_error(hawk);
 		return -1;
 	}
 
-	//if (hawk.loop(&ret) <= -1) 
-	if (hawk.exec(&ret, cmdline.argv, cmdline.argc) <= -1) 
-	{ 
-		print_error (hawk); 
-		return -1; 
+	//if (hawk.loop(&ret) <= -1)
+	if (hawk.exec(&ret, cmdline.argv, cmdline.argc) <= -1)
+	{
+		print_error(hawk);
+		return -1;
 	}
 
-	free_args_for_exec (&cmdline);
+	free_args_for_exec(&cmdline);
 
 	return 0;
 }
@@ -497,7 +497,7 @@ static HAWK_INLINE int execute_hawk (int argc, hawk_bch_t* argv[])
 
 	if (hawk.open() <= -1)
 	{
-		print_error (hawk);
+		print_error(hawk);
 		return -1;
 	}
 	app_hawk = &hawk;
@@ -507,7 +507,7 @@ static HAWK_INLINE int execute_hawk (int argc, hawk_bch_t* argv[])
 	unset_signal ();
 
 	app_hawk = HAWK_NULL;
-	hawk.close ();
+	hawk.close();
 	return n;
 }
 

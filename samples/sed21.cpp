@@ -16,14 +16,14 @@ static void print_error (HAWK::SedStd& sed)
 {
 	hawk_errnum_t code = sed.getErrorNumber();
 	hawk_loc_t loc = sed.getErrorLocation();
-	print_error ("code %d line %lu column %lu - %s\n", (int)code, (unsigned long int)loc.line, (unsigned long int)loc.colm, sed.getErrorMessageB());
+	print_error("code %d line %lu column %lu - %s\n", (int)code, (unsigned long int)loc.line, (unsigned long int)loc.colm, sed.getErrorMessageB());
 }
 
 int execute_sed (int argc, hawk_bch_t* argv[])
 {
 	if (argc <  2 || argc > 4)
 	{
-		print_error ("USAGE: %s command-string [input-file [output-file]]\n", argv[0]);
+		print_error("USAGE: %s command-string [input-file [output-file]]\n", argv[0]);
 		return -1;
 	}
 
@@ -31,15 +31,15 @@ int execute_sed (int argc, hawk_bch_t* argv[])
 
 	if (sed.open() <= -1)
 	{
-		print_error (sed);
+		print_error(sed);
 		return -1;
 	}
 
-	HAWK::SedStd::StringStream sstream (argv[1]);
+	HAWK::SedStd::StringStream sstream(argv[1]);
 	if (sed.compile(sstream) <= -1)
 	{
-		print_error (sed);
-		sed.close ();
+		print_error(sed);
+		sed.close();
 		return -1;
 	}
 
@@ -50,8 +50,8 @@ int execute_sed (int argc, hawk_bch_t* argv[])
 
 	if (sed.execute(ifstream, ofstream) <= -1)
 	{
-		print_error (sed);
-		sed.close ();
+		print_error(sed);
+		sed.close();
 		return -1;
 	}
 
@@ -60,8 +60,8 @@ int execute_sed (int argc, hawk_bch_t* argv[])
 	HAWK::SedStd::StringStream ostream2;
 	if (sed.execute(istream2, ostream2) <= -1)
 	{
-		print_error (sed);
-		sed.close ();
+		print_error(sed);
+		sed.close();
 		return -1;
 	}
 	hawk_oow_t len;
@@ -72,23 +72,22 @@ int execute_sed (int argc, hawk_bch_t* argv[])
 		HAWK::SedStd::StringStream sstream ("s|CCC|BBBBBBBBBBB|g");
 		if (sed.compile(sstream) <= -1)
 		{
-			print_error (sed);
-			sed.close ();
+			print_error(sed);
+			sed.close();
 			return -1;
 		}
 
 		HAWK::SedStd::FileStream of("/dev/stdout");
 		if (sed.execute(ostream2, of) <= -1)
 		{
-			print_error (sed);
-			sed.close ();
+			print_error(sed);
+			sed.close();
 			return -1;
 		}
 	}
 #endif
 
-
-	sed.close ();
+	sed.close();
 	return 0;
 }
 
