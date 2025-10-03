@@ -1350,12 +1350,16 @@ BEGIN {
 }
 ```
 
-## Positional variable expression
+### Positional variable expression
 
 There are subtle differences in handling expressions for positional variables. In Hawk, many of the ambiguity issues can be resolved by enclosing the expression in parentheses.
-
 
 | Expression   | Hawk          | AWK             |
 |--------------|---------------|-----------------|
 | `$++$++i`    | syntax error  | OK              |
 | `$(++$(++i))`| OK            | syntax error    |
+
+### Return value of getline
+
+### Others
+- `return` is allowed in `BEGIN` blocks, `END` blocks, and pattern-action blocks.

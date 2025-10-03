@@ -649,7 +649,8 @@ check_ERRORS = e-001.err
 EXTRA_DIST = $(check_SCRIPTS) $(check_ERRORS) tap.inc err.sh \
 	journal-toc.hawk journal-toc.in journal-toc.out journal-toc-html.out \
 	bibtex-to-html.hawk bibtex-to-html.out \
-	fs-test.hawk fs-test.in fs-test.out
+	fs-test.hawk fs-test.in fs-test.out \
+	two-way-pipe.hawk two-way-pipe.out
 
 t_001_SOURCES = t-001.c tap.h
 t_001_CPPFLAGS = $(CPPFLAGS_COMMON)

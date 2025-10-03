@@ -1,0 +1,10 @@
+BEGIN {
+	cmd = "sort";
+	data = hawk::array("hello", "world", "two-way pipe", "testing");
+
+	for (i = 1; i <= length(data); i++) print data[i] |& cmd;
+	close(cmd, "to");
+
+	while ((cmd |& getline line) > 0) print line;
+	close(cmd);
+}

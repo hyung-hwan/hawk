@@ -61,7 +61,7 @@ static void fini_token (hawk_tok_t* tok)
 {
 	if (tok->name)
 	{
-		hawk_ooecs_close (tok->name);
+		hawk_ooecs_close(tok->name);
 		tok->name = HAWK_NULL;
 	}
 }
@@ -268,14 +268,14 @@ int hawk_init (hawk_t* hawk, hawk_mmgr_t* mmgr, hawk_cmgr_t* cmgr, const hawk_pr
 	return 0;
 
 oops:
-	if (hawk->modtab) hawk_rbt_close (hawk->modtab);
-	if (hawk->fnc.user) hawk_htb_close (hawk->fnc.user);
-	if (hawk->parse.params) hawk_arr_close (hawk->parse.params);
-	if (hawk->parse.lcls) hawk_arr_close (hawk->parse.lcls);
-	if (hawk->parse.gbls) hawk_arr_close (hawk->parse.gbls);
-	if (hawk->parse.named) hawk_htb_close (hawk->parse.named);
-	if (hawk->parse.funs) hawk_htb_close (hawk->parse.funs);
-	if (hawk->tree.funs) hawk_htb_close (hawk->tree.funs);
+	if (hawk->modtab) hawk_rbt_close(hawk->modtab);
+	if (hawk->fnc.user) hawk_htb_close(hawk->fnc.user);
+	if (hawk->parse.params) hawk_arr_close(hawk->parse.params);
+	if (hawk->parse.lcls) hawk_arr_close(hawk->parse.lcls);
+	if (hawk->parse.gbls) hawk_arr_close(hawk->parse.gbls);
+	if (hawk->parse.named) hawk_htb_close(hawk->parse.named);
+	if (hawk->parse.funs) hawk_htb_close(hawk->parse.funs);
+	if (hawk->tree.funs) hawk_htb_close(hawk->tree.funs);
 	fini_token (&hawk->ntok);
 	fini_token (&hawk->tok);
 	fini_token (&hawk->ptok);
@@ -311,23 +311,23 @@ void hawk_fini (hawk_t* hawk)
 	HAWK_ASSERT (hawk->ecb == (hawk_ecb_t*)hawk);
 
 
-	hawk_rbt_close (hawk->modtab);
-	hawk_htb_close (hawk->fnc.user);
+	hawk_rbt_close(hawk->modtab);
+	hawk_htb_close(hawk->fnc.user);
 
-	hawk_arr_close (hawk->parse.params);
-	hawk_arr_close (hawk->parse.lcls);
-	hawk_arr_close (hawk->parse.gbls);
-	hawk_htb_close (hawk->parse.named);
-	hawk_htb_close (hawk->parse.funs);
+	hawk_arr_close(hawk->parse.params);
+	hawk_arr_close(hawk->parse.lcls);
+	hawk_arr_close(hawk->parse.gbls);
+	hawk_htb_close(hawk->parse.named);
+	hawk_htb_close(hawk->parse.funs);
 
-	hawk_htb_close (hawk->tree.funs);
+	hawk_htb_close(hawk->tree.funs);
 
-	fini_token (&hawk->ntok);
-	fini_token (&hawk->tok);
-	fini_token (&hawk->ptok);
+	fini_token(&hawk->ntok);
+	fini_token(&hawk->tok);
+	fini_token(&hawk->ptok);
 
 	if (hawk->parse.incl_hist.ptr) hawk_freemem(hawk, hawk->parse.incl_hist.ptr);
-	hawk_clearsionames (hawk);
+	hawk_clearsionames(hawk);
 
 	/* destroy dynamically allocated options */
 	for (i = 0; i < HAWK_COUNTOF(hawk->opt.mod); i++)
@@ -375,7 +375,7 @@ static hawk_rbt_walk_t unload_module (hawk_rbt_t* rbt, hawk_rbt_pair_t* pair, vo
 	hawk_mod_data_t* md;
 
 	md = HAWK_RBT_VPTR(pair);
-	if (md->mod.unload) md->mod.unload (&md->mod, hawk);
+	if (md->mod.unload) md->mod.unload(&md->mod, hawk);
 	if (md->handle) hawk->prm.modclose(hawk, md->handle);
 
 	return HAWK_RBT_WALK_FORWARD;
@@ -404,21 +404,21 @@ void hawk_clear (hawk_t* hawk)
 
 	HAWK_ASSERT (HAWK_ARR_SIZE(hawk->parse.gbls) == hawk->tree.ngbls);
 	/* delete all non-builtin global variables */
-	hawk_arr_delete (
+	hawk_arr_delete(
 		hawk->parse.gbls, hawk->tree.ngbls_base,
 		HAWK_ARR_SIZE(hawk->parse.gbls) - hawk->tree.ngbls_base);
 
-	hawk_arr_clear (hawk->parse.lcls);
-	hawk_arr_clear (hawk->parse.params);
-	hawk_htb_clear (hawk->parse.named);
-	hawk_htb_clear (hawk->parse.funs);
+	hawk_arr_clear(hawk->parse.lcls);
+	hawk_arr_clear(hawk->parse.params);
+	hawk_htb_clear(hawk->parse.named);
+	hawk_htb_clear(hawk->parse.funs);
 
 	hawk->parse.nlcls_max = 0;
 	hawk->parse.depth.block = 0;
 	hawk->parse.depth.loop = 0;
 	hawk->parse.depth.expr = 0;
 	hawk->parse.depth.incl = 0;
-	hawk->parse.pragma.trait = (hawk->opt.trait & (HAWK_IMPLICIT | HAWK_MULTILINESTR | HAWK_STRIPRECSPC | HAWK_STRIPSTRSPC)); /* implicit on if you didn't mask it off in hawk->opt.trait with hawk_setopt */
+	hawk->parse.pragma.trait = (hawk->opt.trait & (HAWK_IMPLICIT | HAWK_MULTILINESTR | HAWK_RWPIPE | HAWK_STRIPRECSPC | HAWK_STRIPSTRSPC)); /* implicit on if you didn't mask it off in hawk->opt.trait with hawk_setopt */
 	hawk->parse.pragma.rtx_stack_limit = 0;
 	hawk->parse.pragma.entry[0] = '\0';
 
@@ -431,7 +431,7 @@ void hawk_clear (hawk_t* hawk)
 
 	hawk->tree.cur_fun.ptr = HAWK_NULL;
 	hawk->tree.cur_fun.len = 0;
-	hawk_htb_clear (hawk->tree.funs);
+	hawk_htb_clear(hawk->tree.funs);
 
 	if (hawk->tree.begin)
 	{
@@ -549,7 +549,6 @@ int hawk_setopt (hawk_t* hawk, hawk_opt_t id, const void* value)
 		case HAWK_OPT_LOG_MAXCAPA:
 			hawk->opt.log_maxcapa = *(hawk_oow_t*)value;
 			return 0;
-
 	}
 
 	hawk_seterrnum(hawk, HAWK_NULL, HAWK_EINVAL);

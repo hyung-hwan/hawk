@@ -97,7 +97,7 @@ static const hawk_ooch_t* incop_str[] =
 static const hawk_ooch_t* getline_inop_str[] =
 {
 	HAWK_T("|"),
-	HAWK_T("||"),
+	HAWK_T("|&"),
 	HAWK_T("<"),
 	HAWK_T("")
 };
@@ -105,7 +105,7 @@ static const hawk_ooch_t* getline_inop_str[] =
 static const hawk_ooch_t* print_outop_str[] =
 {
 	HAWK_T("|"),
-	HAWK_T("||"),
+	HAWK_T("|&"),
 	HAWK_T(">"),
 	HAWK_T(">>"),
 	HAWK_T("")

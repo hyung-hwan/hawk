@@ -81,6 +81,7 @@ function main()
 	run_test("journal-toc", "-vHTML=1", "journal-toc", 0, "journal-toc-html");
 	run_test("bibtex-to-html", "", "journal-toc", 1, "bibtex-to-html");
 	run_test("fs-test", "", "fs-test", 0, "fs-test");
+	run_test("two-way-pipe", "", @nil, 0, "two-way-pipe");
 
 	tap_end ();
 }

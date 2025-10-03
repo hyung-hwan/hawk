@@ -25,7 +25,8 @@ check_ERRORS = e-001.err
 EXTRA_DIST = $(check_SCRIPTS) $(check_ERRORS) tap.inc err.sh \
 	journal-toc.hawk journal-toc.in journal-toc.out journal-toc-html.out \
 	bibtex-to-html.hawk bibtex-to-html.out \
-	fs-test.hawk fs-test.in fs-test.out
+	fs-test.hawk fs-test.in fs-test.out \
+	two-way-pipe.hawk two-way-pipe.out
 
 check_PROGRAMS = t-001 t-002 t-003 t-004 t-005 t-006 t-007 t-008 t-009
 

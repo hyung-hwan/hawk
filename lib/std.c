@@ -2101,12 +2101,12 @@ static hawk_ooi_t pio_handler_rest (hawk_rtx_t* rtx, hawk_rio_cmd_t cmd, hawk_ri
 				 * requested. */
 				if (riod->rwcmode == HAWK_RIO_CMD_CLOSE_READ)
 				{
-					hawk_pio_end (pio, HAWK_PIO_IN);
+					hawk_pio_end(pio, HAWK_PIO_IN);
 					return 0;
 				}
 				if (riod->rwcmode == HAWK_RIO_CMD_CLOSE_WRITE)
 				{
-					hawk_pio_end (pio, HAWK_PIO_OUT);
+					hawk_pio_end(pio, HAWK_PIO_OUT);
 					return 0;
 				}
 			}

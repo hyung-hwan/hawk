@@ -69,8 +69,8 @@ enum tok_t
 	TOK_MOD_ASSN,
 	TOK_EXP_ASSN, /* ^ - exponentiation */
 	TOK_CONCAT_ASSN,
-	TOK_RS_ASSN,
-	TOK_LS_ASSN,
+	TOK_RS_ASSN, /* >> */
+	TOK_LS_ASSN, /* << */
 	TOK_BAND_ASSN,
 	TOK_BXOR_ASSN,
 	TOK_BOR_ASSN,
@@ -95,11 +95,12 @@ enum tok_t
 	TOK_DIV,
 	TOK_IDIV,
 	TOK_MOD,
-	TOK_LOR,
-	TOK_LAND,
-	TOK_BOR,
+	TOK_LOR, /* || */
+	TOK_LAND, /* && */
+	TOK_BOR, /* | */
+	TOK_PIPE_BD, /* |& - bidirectional pipe */
 	TOK_BXOR, /* ^^ - bitwise-xor */
-	TOK_BAND,
+	TOK_BAND, /* & */
 	TOK_RS,
 	TOK_LS,
 	TOK_IN,
@@ -1018,12 +1019,18 @@ static int parse_progunit (hawk_t* hawk)
 		}
 		/* NOTE: trait = is an intended assignment */
 		else if (((trait = HAWK_IMPLICIT) && hawk_comp_oochars_oocstr(name.ptr, name.len, HAWK_T("implicit"), 0) == 0) ||
-		         ((trait = HAWK_MULTILINESTR) && hawk_comp_oochars_oocstr(name.ptr, name.len, HAWK_T("multilinestr"), 0) == 0))
+		         ((trait = HAWK_MULTILINESTR) && hawk_comp_oochars_oocstr(name.ptr, name.len, HAWK_T("multilinestr"), 0) == 0) ||
+		         ((trait = HAWK_RWPIPE) && hawk_comp_oochars_oocstr(name.ptr, name.len, HAWK_T("rwpipe"), 0) == 0))
 		{
 			/* @pragma implicit on
 			 * @pragma implicit off
 			 * @pragma multilinestr on
-			 * @pragma multilinestr off */
+			 * @pragma multilinestr off
+			 * @pragma rwpipe on
+			 * @pragma rwpipe off
+			 *
+			 * The initial values of these pragmas are set in hawk_clear()
+			 */
 			hawk_oocs_t value;
 
 			if (get_token(hawk) <= -1) return -1;
@@ -1060,6 +1067,8 @@ static int parse_progunit (hawk_t* hawk)
 			 * @pragma stripstrspc off
 			 * @pragma numstrdetect on
 			 * @pragma numstrdetect off
+			 *
+			 * The initial values of these pragmas are set in hawk_clear()
 			 *
 			 * Take note the global STRIPRECSPC is available for context based change.
 			 * STRIPRECSPC takes precedence over this pragma.
@@ -1272,7 +1281,7 @@ static int parse_progunit (hawk_t* hawk)
 				{
 					/* 'ptn' has been added to the chain.
 					 * it doesn't have to be cleared here
-					 * as hawk_clear does it */
+					 * as hawk_clear() does it */
 					/*hawk_clrpt(hawk, ptn);*/
 					return -1;
 				}
@@ -3290,7 +3299,7 @@ static hawk_nde_t* parse_print (hawk_t* hawk, const hawk_loc_t* xloc)
 	type = (hawk->ptok.type == TOK_PRINT)? HAWK_NDE_PRINT: HAWK_NDE_PRINTF;
 
 	if (!MATCH_TERMINATOR(hawk) && !MATCH(hawk,TOK_GT) &&
-	    !MATCH(hawk,TOK_RS) && !MATCH(hawk,TOK_BOR) && !MATCH(hawk,TOK_LOR))
+	    !MATCH(hawk,TOK_RS) && !MATCH(hawk,TOK_BOR) && !MATCH(hawk,TOK_PIPE_BD))
 	{
 		hawk_nde_t* args_tail;
 		hawk_nde_t* tail_prev;
@@ -3422,11 +3431,13 @@ static hawk_nde_t* parse_print (hawk_t* hawk, const hawk_loc_t* xloc)
 					HAWK_OUT_PIPE,
 					0
 				},
+				/* |& doesn't oeverlap with other binary operators.
 				{
-					HAWK_BINOP_LOR,
+					HAWK_BINOP_PIPE_BD,
 					HAWK_OUT_RWPIPE,
 					HAWK_RWPIPE
 				}
+				*/
 			};
 
 			for (i = 0; i < HAWK_COUNTOF(tab); i++)
@@ -3453,12 +3464,12 @@ static hawk_nde_t* parse_print (hawk_t* hawk, const hawk_loc_t* xloc)
 
 	if (!out)
 	{
-		out_type = MATCH(hawk,TOK_GT)?       HAWK_OUT_FILE:
-		           MATCH(hawk,TOK_RS)?       HAWK_OUT_APFILE:
-		           MATCH(hawk,TOK_BOR)?      HAWK_OUT_PIPE:
+		out_type = MATCH(hawk,TOK_GT)?        HAWK_OUT_FILE:
+		           MATCH(hawk,TOK_RS)?        HAWK_OUT_APFILE:
+		           MATCH(hawk,TOK_BOR)?       HAWK_OUT_PIPE:
 		           ((hawk->opt.trait & HAWK_RWPIPE) &&
-		            MATCH(hawk,TOK_LOR))?    HAWK_OUT_RWPIPE:
-		                                     HAWK_OUT_CONSOLE;
+		            MATCH(hawk,TOK_PIPE_BD))? HAWK_OUT_RWPIPE:
+		                                      HAWK_OUT_CONSOLE;
 
 		if (out_type != HAWK_OUT_CONSOLE)
 		{
@@ -3804,7 +3815,7 @@ static hawk_nde_t* parse_expr (hawk_t* hawk, const hawk_loc_t* xloc)
 	x = parse_expr_basic(hawk, xloc);
 	if (x == HAWK_NULL) return HAWK_NULL;
 
-	opcode = assign_to_opcode (hawk);
+	opcode = assign_to_opcode(hawk);
 	if (opcode <= -1)
 	{
 		/* no assignment operator found. */
@@ -5568,7 +5579,7 @@ static hawk_nde_t* parse_primary (hawk_t* hawk, const hawk_loc_t* xloc)
 			{
 				intype = HAWK_IN_PIPE;
 			}
-			else if (MATCH(hawk,TOK_LOR) && (hawk->opt.trait & HAWK_RWPIPE))
+			else if (MATCH(hawk,TOK_PIPE_BD) && (hawk->parse.pragma.trait & HAWK_RWPIPE))
 			{
 				intype = HAWK_IN_RWPIPE;
 			}
@@ -5617,7 +5628,7 @@ static hawk_nde_t* parse_primary (hawk_t* hawk, const hawk_loc_t* xloc)
 
 			ploc = hawk->tok.loc;
 			var = parse_primary(hawk, &ploc);
-			if (var == HAWK_NULL) goto oops;
+			if (!var) goto oops;
 
 			if (!is_var(var) && var->type != HAWK_NDE_POS)
 			{
@@ -6940,6 +6951,7 @@ static int get_symbols (hawk_t* hawk, hawk_ooci_t c, hawk_tok_t* tok)
 		{ HAWK_T("<<"),  2, TOK_LS,           0 },
 		{ HAWK_T("<="),  2, TOK_LE,           0 },
 		{ HAWK_T("<"),   1, TOK_LT,           0 },
+		{ HAWK_T("|&"),  2, TOK_PIPE_BD,      0 },
 		{ HAWK_T("||"),  2, TOK_LOR,          0 },
 		{ HAWK_T("|="),  2, TOK_BOR_ASSN,     0 },
 		{ HAWK_T("|"),   1, TOK_BOR,          0 },

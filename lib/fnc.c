@@ -352,12 +352,12 @@ static int fnc_close (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	HAWK_ASSERT (a0 != HAWK_NULL);
 
 	name = hawk_rtx_getvaloocstr(rtx, a0, &len);
-	if (!name) return -1;
+	if (HAWK_UNLIKELY(!name)) return -1;
 
 	if (a1)
 	{
 		opt = hawk_rtx_getvaloocstr(rtx, a1, &optlen);
-		if (!opt)
+		if (HAWK_UNLIKELY(!opt))
 		{
 			hawk_rtx_freevaloocstr(rtx, a0, name);
 			return -1;
@@ -391,6 +391,19 @@ static int fnc_close (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 	if (opt)
 	{
+		/* r and w are the input and the output from the child process perspective
+		 * to and from are the intput and the output in terms of main process */
+		if (hawk_comp_oochars_oocstr(opt, optlen, HAWK_T("to"), 0) == 0)
+		{
+			optlen = 1;
+			opt[0] = 'r'; /* close the input to the pipe */
+		}
+		else if (hawk_comp_oochars_oocstr(opt, optlen, HAWK_T("from"), 0) == 0)
+		{
+			optlen = 1;
+			opt[0] = 'w'; /* close the output from the pipe */
+		}
+
 		if (optlen != 1 || (opt[0] != HAWK_T('r') && opt[0] != HAWK_T('w')))
 		{
 			n = -1;
