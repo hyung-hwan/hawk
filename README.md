@@ -15,7 +15,7 @@ The library is stable, portable, and designed for projects that need a scripting
 	- [Pragmas](#pragmas)
 		- [@pragma entry](#pragma-entry)
 		- [@pragma implicit](#pragma-implicit)
-		- [@pragma sriprecspc](#pragma-sriprecspc)
+		- [@pragma striprecspc](#pragma-striprecspc)
 	- [@include and @include\_once](#include-and-include_once)
 	- [Comments](#comments)
 	- [Reserved Words](#reserved-words)
@@ -364,7 +364,7 @@ This feature can be beneficial for catching potential variable misspellings or u
 
 If you don't want to enforce variable declarations, you can simply omit the `@pragma implicit off` directive or specify `@pragma implicit on`, and Hawk will behave like traditional awk, allowing implicit variable declarations.
 
-### @pragma sriprecspc
+### @pragma striprecspc
 
 The `@pragma striprecspc` directive in Hawk controls how the interpreter handles leading and trailing blank fields in input records when using a regular expression as the field separator (FS).
 

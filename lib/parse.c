@@ -6559,7 +6559,17 @@ static int get_string (
 			}
 			else
 			{
-				ADD_TOKEN_UINT32(hawk, tok, c_acc);
+				if (digit_count == 1 && end_char == HAWK_T('/'))
+				{
+					/* inside a regular expression, it's likely a backreference */
+					hawk_ooch_t oc = c_acc + HAWK_T('0');
+					ADD_TOKEN_CHAR(hawk, tok, esc_char);
+					ADD_TOKEN_CHAR(hawk, tok, oc);
+				}
+				else
+				{
+					ADD_TOKEN_UINT32(hawk, tok, c_acc);
+				}
 				escaped = 0;
 			}
 		}
@@ -6600,7 +6610,6 @@ static int get_string (
 			}
 			else
 			{
-
 				if (digit_count == 0)
 				{
 					hawk_ooch_t ec;
@@ -6619,7 +6628,7 @@ static int get_string (
 				else ADD_TOKEN_UINT32(hawk, tok, c_acc);
 
 				escaped = 0;
-				/* carray on to handle the current character  */
+				/* carry on to handle the current character  */
 			}
 		}
 		else if (escaped == 99)
@@ -6671,10 +6680,11 @@ static int get_string (
 			else if (c == HAWK_T('b')) c = HAWK_T('\b');
 			else if (c == HAWK_T('v')) c = HAWK_T('\v');
 			else if (c == HAWK_T('a')) c = HAWK_T('\a');
-			else if (c >= HAWK_T('0') && c <= HAWK_T('7') && end_char != HAWK_T('/'))
+			else if (c >= HAWK_T('0') && c <= HAWK_T('7'))
 			{
-				/* i don't support the octal notation for a regular expression.
-				 * it conflicts with the backreference notation between \1 and \7 inclusive. */
+				/* treat it as an octal notation first and
+				 * check if it's a backreference between \1 and \7 inclusive
+				 * in the `if (escaped == 3)` block. */
 				escaped = 3;
 				digit_count = 1;
 				c_acc = c - HAWK_T('0');

@@ -557,10 +557,11 @@ function main()
 
 
 	{
-		## back reference in a regular expression
-		tap_ensure (("a2b" ~ /(a)\12b/), 0, @SCRIPTNAME, @SCRIPTLINE);
-		tap_ensure (("aa2b" ~ /(a)\12b/), 1, @SCRIPTNAME, @SCRIPTLINE);
-		tap_ensure (("aaa2b" ~ /(a)\12b/), 1, @SCRIPTNAME, @SCRIPTLINE);
+		## back reference in a regular expression - use the character class
+		## notation to avoid escaping - \1[2]
+		tap_ensure (("a2b" ~ /(a)\1[2]b/), 0, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (("aa2b" ~ /(a)\1[2]b/), 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (("aaa2b" ~ /(a)\1[2]b/), 1, @SCRIPTNAME, @SCRIPTLINE);
 	}
 
 
