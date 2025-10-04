@@ -80,7 +80,7 @@ static void fini_rtx (hawk_rtx_t* rtx, int fini_globals);
 static int init_globals (hawk_rtx_t* rtx);
 static void refdown_globals (hawk_rtx_t* rtx, int pop);
 
-static int run_pblocks  (hawk_rtx_t* rtx);
+static int run_pblocks (hawk_rtx_t* rtx);
 static int run_pblock_chain (hawk_rtx_t* rtx, hawk_chain_t* cha);
 static int run_pblock (hawk_rtx_t* rtx, hawk_chain_t* cha, hawk_oow_t bno);
 static int run_block (hawk_rtx_t* rtx, hawk_nde_blk_t* nde);
@@ -7939,12 +7939,19 @@ read_console_again:
 		hawk_rtx_refdownval(rtx, v);
 	}
 
-	if (n <= -1)
+	if (n <= 0)
 	{
 		/* make getline return -1 */
-		n = -1;
+		if (p->var)
+		{
+			/* it's important to call do_assignment(). consider an expression like this:
+			 *   getline x[++j]
+			 * withtout do_assignment(), ++j is skipped when getline returns 0. */
+			tmp = do_assignment(rtx, p->var, hawk_val_zls);
+			if (HAWK_UNLIKELY(!tmp)) return HAWK_NULL;
+		}
 	}
-	else if (n > 0)
+	else /*if (n > 0)*/
 	{
 		if (p->in_type == HAWK_IN_CONSOLE)
 		{
@@ -7962,7 +7969,7 @@ read_console_again:
 			}
 		}
 
-		if (p->var == HAWK_NULL)
+		if (!p->var)
 		{
 			/* set $0 with the input value */
 			x = hawk_rtx_setrec(rtx, 0, HAWK_OOECS_OOCS(buf), 1);
@@ -7984,7 +7991,7 @@ read_console_again:
 			hawk_rtx_refupval(rtx, v);
 			tmp = do_assignment(rtx, p->var, v);
 			hawk_rtx_refdownval(rtx, v);
-			if (tmp == HAWK_NULL) return HAWK_NULL;
+			if (HAWK_UNLIKELY(!tmp)) return HAWK_NULL;
 		}
 
 		/* update FNR & NR if reading from console */
@@ -7997,7 +8004,7 @@ read_console_again:
 
 skip_read:
 	tmp = hawk_rtx_makeintval(rtx, n);
-	if (!tmp) ADJERR_LOC(rtx, &nde->loc);
+	if (HAWK_UNLIKELY(!tmp)) ADJERR_LOC(rtx, &nde->loc);
 	return tmp;
 }
 
@@ -8046,12 +8053,16 @@ read_console_again:
 		hawk_rtx_refdownval(rtx, v);
 	}
 
-	if (n <= -1)
+	if (n <= 0)
 	{
-		/* make getline return -1 */
-		n = -1;
+		/* make getline return -1 or 0*/
+		if (p->var)
+		{
+			tmp = do_assignment(rtx, p->var, v);
+			if (tmp == HAWK_NULL) return HAWK_NULL;
+		}
 	}
-	else if (n > 0)
+	else /*if (n > 0)*/
 	{
 		if (p->in_type == HAWK_IN_CONSOLE)
 		{
