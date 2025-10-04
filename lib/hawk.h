@@ -755,8 +755,9 @@ struct hawk_rio_arg_t
 	hawk_rio_rwcmode_t rwcmode;   /**< closing mode for rwpipe */
 
 	/* read-write. a user handler can do whatever it likes to do with these. */
-	void*              handle;    /**< I/O handle set by a handler */
-	int                uflags;    /**< user-flags set by a handler */
+	void*              handle;     /**< I/O handle set by a handler */
+	hawk_uint16_t      uflags; /**< user-flags set by a handler */
+	hawk_uint16_t      console_switched; /**< set by a console handler if it has opened a new underlying medium and continued reading */
 
 	/*--  from here down, internal use only --*/
 	int type;
@@ -771,15 +772,15 @@ struct hawk_rio_arg_t
 		} u;
 		hawk_oow_t pos;
 		hawk_oow_t len;
-		int        eof;
-		int        eos;
-		int        mbs;
+		unsigned int eof: 2;
+		unsigned int eos: 2;
+		unsigned int mbs: 2;
 	} in;
 
 	struct
 	{
-		int eof;
-		int eos;
+		unsigned int eof: 2;
+		unsigned int eos: 2;
 	} out;
 
 	struct hawk_rio_arg_t* next;

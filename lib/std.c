@@ -2621,6 +2621,7 @@ static hawk_ooi_t hawk_rio_console (hawk_rtx_t* rtx, hawk_rio_cmd_t cmd, hawk_ri
 
 				/* reset FNR to 0 here since the caller doesn't know that the file has changed. */
 				hawk_rtx_setgbl(rtx, HAWK_GBL_FNR, hawk_rtx_makeintval(rtx, 0));
+				riod->console_switched = 1;
 			}
 
 			if (nn <= -1) set_rio_error(rtx, HAWK_EREAD, HAWK_T("unable to read"), hawk_sio_getpath((hawk_sio_t*)riod->handle));
@@ -2646,7 +2647,9 @@ static hawk_ooi_t hawk_rio_console (hawk_rtx_t* rtx, hawk_rio_cmd_t cmd, hawk_ri
 				}
 
 				if (sio) hawk_sio_close(sio);
+
 				hawk_rtx_setgbl(rtx, HAWK_GBL_FNR, hawk_rtx_makeintval(rtx, 0));
+				riod->console_switched = 1;
 			}
 
 			if (nn <= -1) set_rio_error(rtx, HAWK_EREAD, HAWK_T("unable to read"), hawk_sio_getpath((hawk_sio_t*)riod->handle));
@@ -2887,7 +2890,7 @@ static int build_environ (hawk_rtx_t* rtx, int gbl_id, env_char_t* envarr[])
 
 			kptr = hawk_rtx_dupbtoucstr(rtx, envarr[count], &klen, 1);
 			vptr = hawk_rtx_dupbtoucstr(rtx, eq + 1, &vlen, 1);
-			if (HAWK_UNLIKELY(!kptr || !vptr))
+			if (HAWK_UNLIKELY(!kptr) || HAWK_UNLIKELY(!vptr))
 			{
 				if (kptr) hawk_rtx_freemem(rtx, kptr);
 				if (vptr) hawk_rtx_freemem(rtx, vptr);
@@ -2904,7 +2907,7 @@ static int build_environ (hawk_rtx_t* rtx, int gbl_id, env_char_t* envarr[])
 
 			kptr = hawk_rtx_duputobcstr(rtx, envarr[count], &klen);
 			vptr = hawk_rtx_duputobcstr(rtx, eq + 1, &vlen);
-			if (HAWK_UNLIKELY(!kptr || !vptr))
+			if (HAWK_UNLIKELY(!kptr) || HAWK_UNLIKELY(!vptr))
 			{
 				if (kptr) hawk_rtx_freemem(rtx, kptr);
 				if (vptr) hawk_rtx_freeme(rtx, vptr):
@@ -2967,7 +2970,7 @@ static int build_environ (hawk_rtx_t* rtx, int gbl_id, env_char_t* envarr[])
 		}
 	}
 
-	if (hawk_rtx_setgbl(rtx, gbl_id, v_env) == -1)
+	if (hawk_rtx_setgbl(rtx, gbl_id, v_env) <= -1)
 	{
 		hawk_rtx_refdownval(rtx, v_env);
 		return -1;

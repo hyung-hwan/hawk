@@ -621,8 +621,8 @@ public:
 		const void* getHandle () const { return this->riod->handle; }
 		void setHandle (void* handle) { this->riod->handle = handle; }
 
-		int getUflags () const { return this->riod->uflags; }
-		void setUflags (int uflags) { this->riod->uflags = uflags; }
+		hawk_uint16_t getUflags () const { return this->riod->uflags; }
+		void setUflags (hawk_uint16_t uflags) { this->riod->uflags = uflags; }
 
 		operator Hawk* () const { return this->run->hawk; }
 		operator hawk_t* () const
@@ -775,7 +775,7 @@ public:
 			/// The information set here is available in subsequent
 			/// calls to other methods and are accessible with
 			/// getHandle() and getUflags().
-			virtual int open  (Console& io) = 0;
+			virtual int open (Console& io) = 0;
 
 			/// The close() function is called when the console
 			/// is not needed any more. It must return 0 for success
@@ -810,6 +810,9 @@ public:
 			/// and -1 for failure.
 			virtual int next  (Console& io) = 0;
 		};
+
+		bool getSwitched() const { return this->riod->console_switched; }
+		void setSwitched(bool v) { this->riod->console_switched = v; }
 
 	protected:
 		Console (Run* run, hawk_rio_arg_t* riod);

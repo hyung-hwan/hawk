@@ -481,11 +481,11 @@ static int hawk_main (MyHawk& hawk, int argc, hawk_bch_t* argv[])
 	if (hawk.exec(&ret, cmdline.argv, cmdline.argc) <= -1)
 	{
 		print_error(hawk);
+		free_args_for_exec(&cmdline);
 		return -1;
 	}
 
 	free_args_for_exec(&cmdline);
-
 	return 0;
 }
 

@@ -258,8 +258,8 @@ int HawkStd::build_argcv (Run* run)
 		if (argv.setIndexedStr(Value::IntIndex(i), this->runarg.ptr[i].ptr, this->runarg.ptr[i].len, true) <= -1) return -1;
 	}
 
-	run->setGlobal (this->gbl_argc, (hawk_int_t)this->runarg.len);
-	run->setGlobal (this->gbl_argv, argv);
+	run->setGlobal(this->gbl_argc, (hawk_int_t)this->runarg.len);
+	run->setGlobal(this->gbl_argv, argv);
 	return 0;
 }
 
@@ -423,7 +423,7 @@ int HawkStd::setioattr (
 	    hawk_find_oochar_in_oochars(ptr[1], l[1], '\0') ||
 	    hawk_find_oochar_in_oochars(ptr[2], l[2], '\0'))
 	{
-		return ret.setInt ((hawk_int_t)-1);
+		return ret.setInt((hawk_int_t)-1);
 	}
 
 	int tmout;
@@ -451,7 +451,7 @@ int HawkStd::setioattr (
 			nsec = fv - ioattr->tmout[tmout].sec;
 			ioattr->tmout[tmout].nsec = HAWK_SEC_TO_NSEC(nsec);
 		}
-		return ret.setInt ((hawk_int_t)0);
+		return ret.setInt((hawk_int_t)0);
 	}
 #if defined(HAWK_OOCH_IS_UCH)
 	else if (hawk_comp_oocstr(ptr[1], HAWK_T("codepage"), 1) == 0 ||
@@ -464,7 +464,7 @@ int HawkStd::setioattr (
 		else
 		{
 			cmgr = hawk_get_cmgr_by_name(ptr[2]);
-			if (cmgr == HAWK_NULL) return ret.setInt ((hawk_int_t)-1);
+			if (cmgr == HAWK_NULL) return ret.setInt((hawk_int_t)-1);
 		}
 
 		ioattr = find_or_make_ioattr(ptr[0], l[0]);
@@ -478,7 +478,7 @@ int HawkStd::setioattr (
 	else
 	{
 		// unknown attribute name
-		return ret.setInt ((hawk_int_t)-1);
+		return ret.setInt((hawk_int_t)-1);
 	}
 }
 
@@ -506,21 +506,21 @@ int HawkStd::getioattr (
 		if ((tmout = timeout_code(ptr[1])) >= 0)
 		{
 			if (ioattr->tmout[tmout].nsec == 0)
-				xx = args[2].setInt ((hawk_int_t)ioattr->tmout[tmout].sec);
+				xx = args[2].setInt((hawk_int_t)ioattr->tmout[tmout].sec);
 			else
-				xx = args[2].setFlt ((hawk_flt_t)ioattr->tmout[tmout].sec + HAWK_NSEC_TO_SEC((hawk_flt_t)ioattr->tmout[tmout].nsec));
+				xx = args[2].setFlt((hawk_flt_t)ioattr->tmout[tmout].sec + HAWK_NSEC_TO_SEC((hawk_flt_t)ioattr->tmout[tmout].nsec));
 		}
 	#if defined(HAWK_OOCH_IS_UCH)
 		else if (hawk_comp_oocstr(ptr[1], HAWK_T("codepage"), 1) == 0 ||
 		         hawk_comp_oocstr(ptr[1], HAWK_T("encoding"), 1) == 0)
 		{
-			xx = args[2].setStr (ioattr->cmgr_name);
+			xx = args[2].setStr(ioattr->cmgr_name);
 		}
 	#endif
 	}
 
 	// unknown attribute name or errors
-	return ret.setInt ((hawk_int_t)xx);
+	return ret.setInt((hawk_int_t)xx);
 }
 
 #if defined(ENABLE_NWIO)
@@ -782,7 +782,7 @@ int HawkStd::openFile (File& io)
 
 int HawkStd::closeFile (File& io)
 {
-	hawk_sio_close ((hawk_sio_t*)io.getHandle());
+	hawk_sio_close((hawk_sio_t*)io.getHandle());
 	return 0;
 }
 
@@ -946,6 +946,11 @@ nextfile:
 	pair = hawk_map_search(map, ibuf, ibuflen);
 	if (!pair)
 	{
+		if (this->runarg_count < i_argc)
+		{
+			this->runarg_index++;
+			goto nextfile;
+		}
 		if (this->runarg_count <= 0) goto console_open_stdin;
 		return 0;
 	}
@@ -1004,7 +1009,7 @@ nextfile:
 
 	if (hawk_rtx_setfilenamewithoochars(rtx, file, hawk_count_oocstr(file)) <= -1)
 	{
-		hawk_sio_close (sio);
+		hawk_sio_close(sio);
 		hawk_rtx_freevaloocstr (rtx, v_pair, as.ptr);
 		return -1;
 	}
@@ -1075,7 +1080,7 @@ int HawkStd::open_console_out (Console& io)
 
 		if (hawk_rtx_setofilenamewithoochars(rtx, file, hawk_count_oocstr(file)) == -1)
 		{
-			hawk_sio_close (sio);
+			hawk_sio_close(sio);
 			return -1;
 		}
 
@@ -1110,7 +1115,7 @@ int HawkStd::openConsole (Console& io)
 
 int HawkStd::closeConsole (Console& io)
 {
-	hawk_sio_close ((hawk_sio_t*)io.getHandle());
+	hawk_sio_close((hawk_sio_t*)io.getHandle());
 	return 0;
 }
 
@@ -1132,8 +1137,9 @@ hawk_ooi_t HawkStd::readConsole (Console& io, hawk_ooch_t* data, hawk_oow_t size
 			return 0;
 		}
 
-		if (sio) hawk_sio_close (sio);
-		((Run*)io)->setGlobal (HAWK_GBL_FNR, (hawk_int_t)0);
+		if (sio) hawk_sio_close(sio);
+		((Run*)io)->setGlobal(HAWK_GBL_FNR, (hawk_int_t)0);
+		io.setSwitched(true); // indicates that the console medium switched
 	}
 
 	return nn;
@@ -1157,8 +1163,9 @@ hawk_ooi_t HawkStd::readConsoleBytes (Console& io, hawk_bch_t* data, hawk_oow_t 
 			return 0;
 		}
 
-		if (sio) hawk_sio_close (sio);
-		((Run*)io)->setGlobal (HAWK_GBL_FNR, (hawk_int_t)0);
+		if (sio) hawk_sio_close(sio);
+		((Run*)io)->setGlobal(HAWK_GBL_FNR, (hawk_int_t)0);
+		io.setSwitched(true); // indicates that the data comes from a new medium
 	}
 
 	return nn;
@@ -1194,7 +1201,7 @@ int HawkStd::nextConsole (Console& io)
 		return 0;
 	}
 
-	if (sio) hawk_sio_close (sio);
+	if (sio) hawk_sio_close(sio);
 	return n;
 }
 
@@ -1376,7 +1383,7 @@ int HawkStd::SourceFile::close (Data& io)
 {
 	hawk_sio_t* sio = (hawk_sio_t*)io.getHandle();
 	hawk_sio_flush (sio);
-	hawk_sio_close (sio);
+	hawk_sio_close(sio);
 	return 0;
 }
 
@@ -1520,7 +1527,7 @@ int HawkStd::SourceString::close (Data& io)
 	}
 	else
 	{
-		hawk_sio_close ((hawk_sio_t*)io.getHandle());
+		hawk_sio_close((hawk_sio_t*)io.getHandle());
 	}
 	return 0;
 }

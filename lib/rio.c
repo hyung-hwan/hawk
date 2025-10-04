@@ -165,7 +165,7 @@ static int find_rio_in (
 		p->in.eof = 0;
 		p->in.eos = 0;
 		*/
-		p->in.mbs = mbs_if_new;
+		p->in.mbs = !!mbs_if_new;
 
 		/* request to open the stream */
 		x = handler(rtx, HAWK_RIO_CMD_OPEN, p, HAWK_NULL, 0);
@@ -453,14 +453,16 @@ int hawk_rtx_readio (hawk_rtx_t* rtx, hawk_in_type_t in_type, const hawk_ooch_t*
 				break;
 			}
 
+			/* used for console only. but reset it regardless of the stream type.
+			 * it must be faster than checking the type and resetting it */
+			p->console_switched = 0;
 			x = handler(rtx, HAWK_RIO_CMD_READ, p, p->in.u.buf, HAWK_COUNTOF(p->in.u.buf));
 			if (x <= -1)
 			{
 				ret = -1;
 				break;
 			}
-
-			if (x == 0)
+			else if (x == 0)
 			{
 				/* EOF reached */
 				p->in.eof = 1;
@@ -508,6 +510,18 @@ int hawk_rtx_readio (hawk_rtx_t* rtx, hawk_in_type_t in_type, const hawk_ooch_t*
 
 			p->in.len = x;
 			p->in.pos = 0;
+
+			/* the new data is a chunk from a new underlying stream.
+			 * let's end the record even if it didn't match RS yet.
+			 * for example, `hawk -v RS=separator -f script f1.txt f2.txt`
+			 * the console handler is invoked over all the specified files.
+			 * if `separator` is not found when the end of `f1.txt` is reached,
+			 * `f2.txt` is opened and read. When the handler returns the 
+			 * first part of the second file, it must indicate this special
+			 * condition. if it's not indicated, it goes on without breaking
+			 * the record at the end of the first file.
+			 */
+			if (p->console_switched) break;
 		}
 
 		if (rrs.ptr == HAWK_NULL)
@@ -820,6 +834,7 @@ int hawk_rtx_readiobytes (hawk_rtx_t* rtx, hawk_in_type_t in_type, const hawk_oo
 				break;
 			}
 
+			p->console_switched = 0;
 			x = handler(rtx, HAWK_RIO_CMD_READ_BYTES, p, p->in.u.bbuf, HAWK_COUNTOF(p->in.u.bbuf));
 			if (x <= -1)
 			{
@@ -875,6 +890,10 @@ int hawk_rtx_readiobytes (hawk_rtx_t* rtx, hawk_in_type_t in_type, const hawk_oo
 
 			p->in.len = x;
 			p->in.pos = 0;
+
+			/* the new data is a chunk from a new underlying medium.
+			 * let's end the record even if it didn't match RS yet. */
+			if (p->console_switched) break;
 		}
 
 		if (rrs.ptr == HAWK_NULL)
