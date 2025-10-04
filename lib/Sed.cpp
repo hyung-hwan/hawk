@@ -32,15 +32,15 @@
 HAWK_BEGIN_NAMESPACE(HAWK)
 /////////////////////////////////
 
-struct xtn_t
+struct sed_xtn_t
 {
 	Sed* sed;
 };
 
 #if defined(HAWK_HAVE_INLINE)
-static HAWK_INLINE xtn_t* GET_XTN(hawk_sed_t* sed) { return (xtn_t*)((hawk_uint8_t*)hawk_sed_getxtn(sed) - HAWK_SIZEOF(xtn_t)); }
+static HAWK_INLINE sed_xtn_t* GET_XTN(hawk_sed_t* sed) { return (sed_xtn_t*)((hawk_uint8_t*)hawk_sed_getxtn(sed) - HAWK_SIZEOF(sed_xtn_t)); }
 #else
-#define GET_XTN(sed) ((xtn_t*)((hawk_uint8_t*)hawk_sed_getxtn(sed) - HAWK_SIZEOF(xtn_t)))
+#define GET_XTN(sed) ((sed_xtn_t*)((hawk_uint8_t*)hawk_sed_getxtn(sed) - HAWK_SIZEOF(sed_xtn_t)))
 #endif
 
 Sed::Sed (Mmgr* mmgr): Mmged(mmgr), sed(HAWK_NULL), dflerrstr(HAWK_NULL)
@@ -63,12 +63,12 @@ void Sed::setCmgr (hawk_cmgr_t* cmgr)
 
 int Sed::open ()
 {
-	this->sed = hawk_sed_open(this->getMmgr(), HAWK_SIZEOF(xtn_t), this->getCmgr(), &this->errinf);
+	this->sed = hawk_sed_open(this->getMmgr(), HAWK_SIZEOF(sed_xtn_t), this->getCmgr(), &this->errinf);
 	if (HAWK_UNLIKELY(!this->sed)) return -1;
 
-	this->sed->_instsize += HAWK_SIZEOF(xtn_t);
+	this->sed->_instsize += HAWK_SIZEOF(sed_xtn_t);
 
-	xtn_t* xtn = GET_XTN(this->sed);
+	sed_xtn_t* xtn = GET_XTN(this->sed);
 	xtn->sed = this;
 
 	this->dflerrstr = hawk_sed_geterrstr(this->sed);
@@ -293,7 +293,7 @@ void Sed::setConsoleLine (hawk_oow_t num)
 
 hawk_ooi_t Sed::sin (hawk_sed_t* s, hawk_sed_io_cmd_t cmd, hawk_sed_io_arg_t* arg, hawk_ooch_t* buf, hawk_oow_t len)
 {
-	xtn_t* xtn = GET_XTN(s);
+	sed_xtn_t* xtn = GET_XTN(s);
 
 	Stream::Data iodata (xtn->sed, Stream::READ, arg);
 
@@ -319,7 +319,7 @@ hawk_ooi_t Sed::sin (hawk_sed_t* s, hawk_sed_io_cmd_t cmd, hawk_sed_io_arg_t* ar
 
 hawk_ooi_t Sed::xin (hawk_sed_t* s, hawk_sed_io_cmd_t cmd, hawk_sed_io_arg_t* arg, hawk_ooch_t* buf, hawk_oow_t len)
 {
-	xtn_t* xtn = GET_XTN(s);
+	sed_xtn_t* xtn = GET_XTN(s);
 
 	Stream::Data iodata (xtn->sed, Stream::READ, arg);
 
@@ -345,7 +345,7 @@ hawk_ooi_t Sed::xin (hawk_sed_t* s, hawk_sed_io_cmd_t cmd, hawk_sed_io_arg_t* ar
 
 hawk_ooi_t Sed::xout (hawk_sed_t* s, hawk_sed_io_cmd_t cmd, hawk_sed_io_arg_t* arg, hawk_ooch_t* dat, hawk_oow_t len)
 {
-	xtn_t* xtn = GET_XTN(s);
+	sed_xtn_t* xtn = GET_XTN(s);
 
 	Stream::Data iodata (xtn->sed, Stream::WRITE, arg);
 
@@ -377,7 +377,7 @@ const hawk_ooch_t* Sed::getErrorString (hawk_errnum_t num) const
 
 const hawk_ooch_t* Sed::xerrstr (hawk_sed_t* s, hawk_errnum_t num)
 {
-	xtn_t* xtn = GET_XTN(s);
+	sed_xtn_t* xtn = GET_XTN(s);
 	return xtn->sed->getErrorString(num);
 }
 
