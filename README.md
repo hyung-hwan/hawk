@@ -274,6 +274,7 @@ The `@pragma` keyword enables you to modify Hawk’s behavior. You can place a p
 | entry         | global | function name |         | change the program entry point                         |
 | implicit      | file   | on, off       | on      | allow undeclared variables                             |
 | multilinestr  | file   | on, off       | off     | allow a multiline string literal without continuation  |
+| rwpipe        | file   | on, off       | on      | allow the two-way pipe operator `\|&`                  |
 | striprecspc   | global | on, off       | off     | removes leading and trailing blank fields in splitting a record if FS is a regular expression mathcing all spaces |
 | stripstrspc   | global | on, off       | on      | trim leading and trailing spaces when converting a string to a number |
 | numstrdetect  | global | on, off       | on      | trim leading and trailing spaces when converting a string to a number |
