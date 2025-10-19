@@ -97,7 +97,7 @@ int main ()
 	}
 
 	/* set up source script file to read in */
-	memset (&psin, 0, HAWK_SIZEOF(psin));
+	memset(&psin, 0, HAWK_SIZEOF(psin));
 	psin[0].type = HAWK_PARSESTD_BCS;  /* specify the first script path */
 	psin[0].u.bcs.ptr = (hawk_bch_t*)src;
 	psin[0].u.bcs.len = hawk_count_bcstr(src);

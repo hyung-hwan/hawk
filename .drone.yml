@@ -12,7 +12,7 @@ steps:
     commands:
       - find . -exec touch -r {} +
       - mkdir -p bld/rocky9 && cd bld/rocky9
-      - ../../configure && make && make check ##&& make rpm
+      - ../../configure && make && { make check || { cat t/test-suite.log; /bin/false; } }
 
   - name: rocky9-release-rpms
     image: docker.io/plugins/gitea-release:latest
