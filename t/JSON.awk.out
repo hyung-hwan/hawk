@@ -1,0 +1,16 @@
+["first_name"]	"John"
+["last_name"]	"Smith"
+["is_alive"]	true
+["age"]	27
+["address","street_address"]	"21 2nd Street"
+["address","city"]	"New York"
+["address","state"]	"NY"
+["address","postal_code"]	"10021-3100"
+["phone_numbers",0,"type"]	"home"
+["phone_numbers",0,"number"]	"212 555-1234"
+["phone_numbers",1,"type"]	"office"
+["phone_numbers",1,"number"]	"646 555-4567"
+["children",0]	"Catherine"
+["children",1]	"Thomas"
+["children",2]	"Trevor"
+["spouse"]	null
