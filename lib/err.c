@@ -234,7 +234,7 @@ void hawk_seterrbfmt (hawk_t* hawk, const hawk_loc_t* errloc, hawk_errnum_t errn
 {
 	va_list ap;
 	va_start (ap, errfmt);
-	hawk_gem_seterrbvfmt (hawk_getgem(hawk), errloc, errnum, errfmt, ap);
+	hawk_gem_seterrbvfmt(hawk_getgem(hawk), errloc, errnum, errfmt, ap);
 	va_end (ap);
 }
 
@@ -242,18 +242,28 @@ void hawk_seterrufmt (hawk_t* hawk, const hawk_loc_t* errloc, hawk_errnum_t errn
 {
 	va_list ap;
 	va_start (ap, errfmt);
-	hawk_gem_seterruvfmt (hawk_getgem(hawk), errloc, errnum, errfmt, ap);
+	hawk_gem_seterruvfmt(hawk_getgem(hawk), errloc, errnum, errfmt, ap);
 	va_end (ap);
 }
 
 void hawk_seterrbvfmt (hawk_t* hawk, const hawk_loc_t* errloc, hawk_errnum_t errnum, const hawk_bch_t* errfmt, va_list ap)
 {
-	hawk_gem_seterrbvfmt (hawk_getgem(hawk), errloc, errnum, errfmt, ap);
+	hawk_gem_seterrbvfmt(hawk_getgem(hawk), errloc, errnum, errfmt, ap);
 }
 
 void hawk_seterruvfmt (hawk_t* hawk, const hawk_loc_t* errloc, hawk_errnum_t errnum, const hawk_uch_t* errfmt, va_list ap)
 {
-	hawk_gem_seterruvfmt (hawk_getgem(hawk), errloc, errnum, errfmt, ap);
+	hawk_gem_seterruvfmt(hawk_getgem(hawk), errloc, errnum, errfmt, ap);
+}
+
+void hawk_seterrbmsg (hawk_t* hawk, const hawk_loc_t* errloc, hawk_errnum_t errnum, const hawk_bch_t* msg)
+{
+	hawk_seterrbfmt(hawk, errloc, errnum, "%hs", msg);
+}
+
+void hawk_seterrumsg (hawk_t* hawk, const hawk_loc_t* errloc, hawk_errnum_t errnum, const hawk_uch_t* msg)
+{
+	hawk_seterrufmt(hawk, errloc, errnum, "%ls", msg);
 }
 
 /* ------------------------------------------------------------------------- */
@@ -262,7 +272,7 @@ void hawk_rtx_seterrbfmt (hawk_rtx_t* rtx, const hawk_loc_t* errloc, hawk_errnum
 {
 	va_list ap;
 	va_start (ap, errfmt);
-	hawk_gem_seterrbvfmt (hawk_rtx_getgem(rtx), errloc, errnum, errfmt, ap);
+	hawk_gem_seterrbvfmt(hawk_rtx_getgem(rtx), errloc, errnum, errfmt, ap);
 	va_end (ap);
 }
 
@@ -270,18 +280,18 @@ void hawk_rtx_seterrufmt (hawk_rtx_t* rtx, const hawk_loc_t* errloc, hawk_errnum
 {
 	va_list ap;
 	va_start (ap, errfmt);
-	hawk_gem_seterruvfmt (hawk_rtx_getgem(rtx), errloc, errnum, errfmt, ap);
+	hawk_gem_seterruvfmt(hawk_rtx_getgem(rtx), errloc, errnum, errfmt, ap);
 	va_end (ap);
 }
 
 void hawk_rtx_seterrbvfmt (hawk_rtx_t* rtx, const hawk_loc_t* errloc, hawk_errnum_t errnum, const hawk_bch_t* errfmt, va_list ap)
 {
-	hawk_gem_seterrbvfmt (hawk_rtx_getgem(rtx), errloc, errnum, errfmt, ap);
+	hawk_gem_seterrbvfmt(hawk_rtx_getgem(rtx), errloc, errnum, errfmt, ap);
 }
 
 void hawk_rtx_seterruvfmt (hawk_rtx_t* rtx, const hawk_loc_t* errloc, hawk_errnum_t errnum, const hawk_uch_t* errfmt, va_list ap)
 {
-	hawk_gem_seterruvfmt (hawk_rtx_getgem(rtx), errloc, errnum, errfmt, ap);
+	hawk_gem_seterruvfmt(hawk_rtx_getgem(rtx), errloc, errnum, errfmt, ap);
 }
 
 void hawk_rtx_errortohawk (hawk_rtx_t* rtx, hawk_t* hawk)

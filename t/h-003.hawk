@@ -76,13 +76,20 @@ function run_test (x, more_opts, in_name, set_out_name, out_name)
 }
 
 function run_github_step_JSON_awk() {
-	@local url, tgt, tgt_hawk;
+	@local url, tgt, tgt_hawk, st;
 	url = "https://raw.githubusercontent.com/step-/JSON.awk/refs/heads/master/JSON.awk";
 	tgt = sprintf("%s.%d", "JSON.awk", sys::getpid());
 	tgt_hawk = sprintf("%s/%s.hawk", TDIR, tgt);
 
 	system(sprintf("curl -k -o %s %s", tgt_hawk, url));
-	run_test(tgt, "", "JSON.awk", 0, "JSON.awk");
+	if (sys::stat(tgt_hawk, st) <= -1) 
+	{
+		tap_skip("failed to download " %% url);
+	}
+	else
+	{	
+		run_test(tgt, "", "JSON.awk", 0, "JSON.awk");
+	}
 	sys::unlink(tgt_hawk);
 }
 

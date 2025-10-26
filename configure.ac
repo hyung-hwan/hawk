@@ -947,6 +947,10 @@ then
 fi
 AM_CONDITIONAL(ENABLE_LIBUNWIND, test "x${enable_libunwind_is}" = "xyes")
 
+dnl =====  conditionals - ENABLE_STATIC and ENABLE_SHARED =====
+AM_CONDITIONAL(ENABLE_STATIC, test "x${enable_static}" = "xyes")
+AM_CONDITIONAL(ENABLE_SHARED, test "x${enable_shared}" = "xyes")
+
 dnl ===== enable-static-module =====
 AC_ARG_ENABLE([static-module],
 	[AS_HELP_STRING([--enable-static-module],[build basic modules statically into the main library(default. yes)])],
@@ -1002,6 +1006,14 @@ then
 	[CXXFLAGS="$CXXFLAGS $PTHREAD_CFLAGS"]
 	[LIBS="$LIBS $PTHREAD_LIBS"]
 fi
+
+dnl ===== enable-hawkgo =====
+AC_ARG_ENABLE([hawkgo],
+	[AS_HELP_STRING([--enable-hawkgo],[build the go wrapper(default. no)])],
+	enable_hawkgo=$enableval,
+	enable_hawkgo=no
+)
+AM_CONDITIONAL(ENABLE_HAWKGO, test "x${enable_hawkgo}" = "xyes")
 
 dnl ====  subsititution of some key items ====
 AC_SUBST(HAWK_PROJECT_AUTHOR, "${PACKAGE_BUGREPORT}")

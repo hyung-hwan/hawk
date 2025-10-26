@@ -1851,12 +1851,28 @@ HAWK_EXPORT void hawk_seterruvfmt (
 	va_list             ap
 );
 
+void hawk_seterrbmsg (
+	hawk_t*           hawk,
+	const hawk_loc_t* errloc,
+	hawk_errnum_t     errnum,
+	const hawk_bch_t* msg
+);
+
+void hawk_seterrumsg (
+	hawk_t*           hawk,
+	const hawk_loc_t* errloc,
+	hawk_errnum_t     errnum,
+	const hawk_uch_t* msg
+);
+
 #if defined(HAWK_OOCH_IS_UCH)
 #	define hawk_seterrfmt hawk_seterrufmt
 #	define hawk_seterrvfmt hawk_seterruvfmt
+#	define hawk_seterrmsg hawk_seterrumsg
 #else
 #	define hawk_seterrfmt hawk_seterrbfmt
 #	define hawk_seterrvfmt hawk_seterrbvfmt
+#	define hawk_seterrmsg hawk_seterrubmsg
 #endif
 
 /**
