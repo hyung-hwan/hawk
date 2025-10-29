@@ -263,7 +263,7 @@ void hawk_seterrbmsg (hawk_t* hawk, const hawk_loc_t* errloc, hawk_errnum_t errn
 
 void hawk_seterrumsg (hawk_t* hawk, const hawk_loc_t* errloc, hawk_errnum_t errnum, const hawk_uch_t* msg)
 {
-	hawk_seterrufmt(hawk, errloc, errnum, "%ls", msg);
+	hawk_seterrufmt(hawk, errloc, errnum, HAWK_UT("%ls"), msg);
 }
 
 /* ------------------------------------------------------------------------- */
