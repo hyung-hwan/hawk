@@ -19,6 +19,12 @@ static void init_parsestd_for_file_in(hawk_parsestd_t* in, hawk_bch_t* path)
 	in[0].u.fileb.cmgr = HAWK_NULL;
 	in[1].type = HAWK_PARSESTD_NULL;
 }
+
+static hawk_ooch_t* valtostr_out_cpldup(hawk_rtx_valtostr_out_t* out, hawk_oow_t* len)
+{
+	*len =  out->u.cpldup.len;
+	return out->u.cpldup.ptr;
+}
 */
 import "C"
 
@@ -27,8 +33,11 @@ import "runtime"
 import "unsafe"
 
 type Hawk struct {
-	c *C.hawk_t	
+	c *C.hawk_t
 	inst_no int
+
+	rtx_head *Rtx
+	rtx_tail *Rtx
 }
 
 type Ext struct {
@@ -44,14 +53,31 @@ type Err struct {
 
 type Rtx struct {
 	c *C.hawk_rtx_t
+	h *Hawk
+
+	next *Rtx
+	prev *Rtx
+}
+
+type Val struct {
+	c *C.hawk_val_t
+	rtx *Rtx
 }
 
 type BitMask C.hawk_bitmask_t
 
-var inst_table InstanceTable
-
 func deregister_instance(g *Hawk) {
+	for g.rtx_head != nil {
+		g.rtx_head.Close()
+	}
+
+	if g.c != nil {
+fmt.Printf ("CLOSING g.c\n")
+		C.hawk_close(g.c)
+		g.c = nil
+	}
 	if g.inst_no >= 0 {
+fmt.Printf ("DELETING instance g\n")
 		inst_table.delete_instance(g.inst_no)
 		g.inst_no = -1
 	}
@@ -73,7 +99,7 @@ func New() (*Hawk, error) {
 	ext = (*Ext)(unsafe.Pointer(C.hawk_getxtn(c)))
 
 	g = &Hawk{c: c, inst_no: -1}
-	
+
 	runtime.SetFinalizer(g, deregister_instance)
 	g.inst_no = inst_table.add_instance(c, g)
 	ext.inst_no = g.inst_no
@@ -83,13 +109,16 @@ func New() (*Hawk, error) {
 
 func (hawk *Hawk) Close() {
 // TODO: close all rtx?
-	C.hawk_close(hawk.c)
+	//if hawk.c != nil {
+	//	C.hawk_close(hawk.c)
+	//	hawk.c = nil
+	//}
 	deregister_instance(hawk)
 }
 
 func (hawk *Hawk) make_errinfo() *Err {
 /*
-	var errinf C.hawk_erruinf_t 
+	var errinf C.hawk_erruinf_t
 	var err Err
 
 	C.hawk_geterruinf(hawk.c, &errinf)
@@ -174,12 +203,12 @@ func (hawk *Hawk) AddGlobal(name string) error {
 	var x C.int
 	x = C.hawk_addgblwithbcstr(hawk.c, C.CString(name))
 	if x <= -1 { return hawk.make_errinfo() }
-	return nil	
+	return nil
 }
 
 func (hawk *Hawk) ParseFile(text string) error {
 	var x C.int
-	var in [2]C.hawk_parsestd_t 
+	var in [2]C.hawk_parsestd_t
 	C.init_parsestd_for_file_in(&in[0], C.CString(text))
 	x = C.hawk_parsestd(hawk.c, &in[0], nil)
 	if x <= -1 { return hawk.make_errinfo() }
@@ -188,12 +217,41 @@ func (hawk *Hawk) ParseFile(text string) error {
 
 func (hawk *Hawk) ParseText(text string) error {
 	var x C.int
-	var in [2]C.hawk_parsestd_t 
+	var in [2]C.hawk_parsestd_t
 
 	C.init_parsestd_for_text_in(&in[0], C.CString(text), C.hawk_oow_t(len(text)))
 	x = C.hawk_parsestd(hawk.c, &in[0], nil)
 	if x <= -1 { return hawk.make_errinfo() }
 	return nil
+}
+
+func (hawk *Hawk) chain_rtx(rtx *Rtx) {
+	if hawk.rtx_head == nil {
+		rtx.prev = nil
+		hawk.rtx_head = rtx
+	} else {
+		rtx.prev = hawk.rtx_tail
+		hawk.rtx_tail.next = rtx
+	}
+	rtx.next = nil
+	hawk.rtx_tail = rtx
+}
+
+func (hawk *Hawk) unchain_rtx(rtx *Rtx) {
+	if rtx.prev == nil  {
+		hawk.rtx_head = rtx.next
+	} else {
+		rtx.prev.next = rtx.next
+	}
+
+	if rtx.next == nil {
+		hawk.rtx_tail = rtx.prev
+	} else {
+		rtx.next.prev = rtx.prev
+	}
+
+	rtx.next = nil
+	rtx.prev = nil
 }
 
 // -----------------------------------------------------------
@@ -205,13 +263,15 @@ func (hawk *Hawk) NewRtx(id string) (*Rtx, error) {
 	rtx = C.hawk_rtx_openstdwithbcstr(hawk.c, 0, C.CString(id), nil, nil, nil)
 	if rtx == nil { return nil, hawk.make_errinfo() }
 
-	g = &Rtx{c: rtx}
+	g = &Rtx{c: rtx, h: hawk}
+	hawk.chain_rtx(g)
 	return g, nil
 }
 
 func (rtx* Rtx) Close() {
+	rtx.h.unchain_rtx(rtx)
 	C.hawk_rtx_close(rtx.c)
-	// TODO: may need deregister??
+fmt.Printf("RTX CLOSING %p\n", rtx)
 }
 
 func (rtx *Rtx) make_errinfo() *Err {
@@ -234,16 +294,18 @@ func (rtx *Rtx) make_errinfo() *Err {
 	return &err
 }
 
-func (rtx *Rtx) Call(name string) error {
+func (rtx *Rtx) Call(name string) (*Val, error) {
 	var fun *C.hawk_fun_t
 	var val *C.hawk_val_t
 
 	fun = C.hawk_rtx_findfunwithbcstr(rtx.c, C.CString(name))
-	if fun == nil { return rtx.make_errinfo() }
+	if fun == nil { return nil, rtx.make_errinfo() }
 	val = C.hawk_rtx_callfun(rtx.c, fun, nil, 0)
-	if val == nil { return rtx.make_errinfo() }
-// TODO: convert val to Val object
-	return nil
+	if val == nil { return nil, rtx.make_errinfo() }
+
+	// hawk_rtx_callfun() returns a value with the reference count incremented.
+	// i create a Val object without incrementing the reference count of val.
+	return &Val{rtx: rtx, c: val}, nil
 }
 
 // -----------------------------------------------------------
@@ -317,11 +379,70 @@ func c_to_go(c *C.hawk_t) *Hawk {
 
 	ext = (*Ext)(unsafe.Pointer(C.hawk_getxtn(c)))
 	inst = inst_table.slot_to_instance(ext.inst_no)
-	return inst.g
+	return inst.g.Value()
 }
 
 // -----------------------------------------------------------
 
 func (err* Err) Error() string {
 	return fmt.Sprintf("%s[%d,%d] %s", err.File, err.Line, err.Colm, err.Msg)
+}
+
+// -----------------------------------------------------------
+
+func deref_val(v *Val) {
+	C.hawk_rtx_refdownval(v.rtx.c, v.c)
+}
+
+func (rtx *Rtx) NewValFromInt(v int) (*Val, error) {
+	var c *C.hawk_val_t
+	var vv *Val
+
+	c = C.hawk_rtx_makeintval(rtx.c, C.hawk_int_t(v))
+	if c == nil { return nil, rtx.make_errinfo() }
+
+	C.hawk_rtx_refupval(rtx.c, c)
+	vv = &Val{rtx: rtx, c: c}
+	runtime.SetFinalizer(vv, deref_val)
+
+	return vv, nil
+}
+
+func (val* Val) ToInt() (int, error) {
+	var v C.hawk_int_t
+	var x C.int
+
+	x = C.hawk_rtx_valtoint(val.rtx.c, val.c, &v)
+	if x <= -1 { return 0, val.rtx.make_errinfo() }
+
+	return int(v), nil
+}
+
+/*
+func (val* Val) ToFlt() (double, error) {
+	var v C.hawk_flt_t
+	var x C.int
+
+	x = C.hawk_rtx_valtoflt(val.rtx.c, val.c, &v)
+	if x <= -1 { return 0, val.rtx.make_errinfo() }
+
+	return double(v), nil
+}*/
+
+func (val* Val) ToStr() (string, error) {
+	var out C.hawk_rtx_valtostr_out_t
+	var ptr *C.hawk_ooch_t
+	var len C.hawk_oow_t
+	var v string
+	var x C.int
+
+	out._type = C.HAWK_RTX_VALTOSTR_CPLDUP
+	x = C.hawk_rtx_valtostr(val.rtx.c, val.c, &out)
+	if x <= -1 { return "", val.rtx.make_errinfo() }
+
+	ptr = C.valtostr_out_cpldup(&out, &len)
+	v = string(uchars_to_rune_slice(ptr, uintptr(len)))
+	C.hawk_rtx_freemem(val.rtx.c, unsafe.Pointer(ptr))
+
+	return v, nil
 }

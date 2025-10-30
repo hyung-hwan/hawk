@@ -4,29 +4,33 @@ package hawk
 #include <hawk.h>
 */
 import "C"
-import (
-	"sync"
-)
+import "sync"
+import "weak"
 
 type Instance struct {
 	c *C.hawk_t // c object
-	g *Hawk     // go object
+	//g *Hawk     // go object
+	g weak.Pointer[Hawk] // go object
 }
 
 type InstanceTable struct {
 	mtx        sync.Mutex
 	insts      []Instance
 	free_slots []int
+	next       int
 }
 
+var inst_table InstanceTable
+
 func (itab *InstanceTable) add_instance(c *C.hawk_t, g *Hawk) int {
+	var n int
+
 	itab.mtx.Lock()
 	defer itab.mtx.Unlock()
 
-	var n int = len(itab.free_slots)
-
+	n = len(itab.free_slots)
 	if n <= 0 { // no free slots
-		itab.insts = append(itab.insts, Instance{c: c, g: g})
+		itab.insts = append(itab.insts, Instance{c: c, g: weak.Make(g)})
 		return len(itab.insts) - 1
 	} else {
 		var slot int
@@ -39,21 +43,19 @@ func (itab *InstanceTable) add_instance(c *C.hawk_t, g *Hawk) int {
 }
 
 func (itab *InstanceTable) delete_instance(slot int) Instance {
-	var (
-		h Instance
-		n int
-	)
+	var h Instance
+	var n int
 
 	itab.mtx.Lock()
 	defer itab.mtx.Unlock()
 
 	h = itab.insts[slot]
 	itab.insts[slot].c = nil
-	itab.insts[slot].g = nil
+	itab.insts[slot].g = weak.Make((*Hawk)(nil)) // this may not even be necessary as it's a weak pointer
 
 	n = len(itab.insts)
-	if slot == n-1 {
-		itab.insts = itab.insts[:n-1]
+	if slot == n - 1 {
+		itab.insts = itab.insts[:n - 1]
 	} else {
 		itab.free_slots = append(itab.free_slots, slot)
 	}

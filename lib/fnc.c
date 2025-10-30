@@ -2335,7 +2335,7 @@ static HAWK_INLINE int asort_compare_ud (const void* x1, const void* x2, void* c
 	args[0] = *(hawk_val_t**)x1;
 	args[1] = *(hawk_val_t**)x2;
 	r = hawk_rtx_callfun(cud->rtx, cud->fun, args, 2);
-	if (!r) return -1;
+	if (HAWK_UNLIKELY(!r)) return -1;
 	if (hawk_rtx_valtoint(cud->rtx, r,  &rv) <= -1) return -1;
 	*cv = rv;
 	return 0;

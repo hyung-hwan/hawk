@@ -843,24 +843,24 @@ public:
 	///
 	/// The following will end up in a segmentation fault or the like.
 	///   HAWK::HawkStd hawk;
-        ///   hawk.open();
-        ///   HAWK::HawkStd::SourceString in("BEGIN{}");
-        ///   hawk.parse(in, HAWK::Hawk::Source::NONE);
+	///   hawk.open();
+	///   HAWK::HawkStd::SourceString in("BEGIN{}");
+	///   hawk.parse(in, HAWK::Hawk::Source::NONE);
 	///   HAWK::Hawk::Value v(rtx);
-        ///   v.setMbs("hello", 5);
-        ///   hawk.close();
+	///   v.setMbs("hello", 5);
+	///   hawk.close();
 	///
 	/// You don't call hawk.close() and rely on the destructor or
 	/// enclose 'v' in another nested scope.
 	///   HAWK::HawkStd hawk;
-        ///   hawk.open();
-        ///   HAWK::HawkStd::SourceString in("BEGIN{}");
-        ///   hawk.parse(in, HAWK::Hawk::Source::NONE);
+	///   hawk.open();
+	///   HAWK::HawkStd::SourceString in("BEGIN{}");
+	///   hawk.parse(in, HAWK::Hawk::Source::NONE);
 	///   {
 	///       HAWK::Hawk::Value v(rtx);
-        ///       v.setMbs("hello", 5);
+	///       v.setMbs("hello", 5);
 	///   }
-        ///   hawk.close();
+	///   hawk.close();
 	///
 	class HAWK_EXPORT Value
 	{

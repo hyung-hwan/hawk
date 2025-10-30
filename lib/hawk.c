@@ -68,7 +68,7 @@ static void fini_token (hawk_tok_t* tok)
 
 static void clear_token (hawk_tok_t* tok)
 {
-	if (tok->name) hawk_ooecs_clear (tok->name);
+	if (tok->name) hawk_ooecs_clear(tok->name);
 	tok->type = 0;
 	tok->loc.file = HAWK_NULL;
 	tok->loc.line = 0;
@@ -105,7 +105,7 @@ hawk_t* hawk_open (hawk_mmgr_t* mmgr, hawk_oow_t xtnsize, hawk_cmgr_t* cmgr, con
 
 void hawk_close (hawk_t* hawk)
 {
-	hawk_fini (hawk);
+	hawk_fini(hawk);
 	HAWK_MMGR_FREE(hawk_getmmgr(hawk), hawk);
 }
 
@@ -290,11 +290,11 @@ void hawk_fini (hawk_t* hawk)
 	hawk_ecb_t* ecb, * ecb_next;
 	int i;
 
-	hawk_clear (hawk);
-	/*hawk_clrfnc (hawk);*/
+	hawk_clear(hawk);
+	/*hawk_clrfnc(hawk);*/
 
 	if (hawk->log.len >  0)
-        {
+	{
 		int shuterr = hawk->shuterr;
 		hawk->shuterr = 1;
 		hawk->prm.logwrite(hawk, hawk->log.last_mask, hawk->log.ptr, hawk->log.len);
@@ -309,7 +309,6 @@ void hawk_fini (hawk_t* hawk)
 
 	do { ecb = hawk_popecb(hawk); } while (ecb);
 	HAWK_ASSERT (hawk->ecb == (hawk_ecb_t*)hawk);
-
 
 	hawk_rbt_close(hawk->modtab);
 	hawk_htb_close(hawk->fnc.user);
@@ -394,13 +393,13 @@ void hawk_clear (hawk_t* hawk)
 
 	hawk->haltall = 0;
 
-	clear_token (&hawk->tok);
-	clear_token (&hawk->ntok);
-	clear_token (&hawk->ptok);
+	clear_token(&hawk->tok);
+	clear_token(&hawk->ntok);
+	clear_token(&hawk->ptok);
 
 	/* clear all loaded modules */
-	hawk_rbt_walk (hawk->modtab, unload_module, hawk);
-	hawk_rbt_clear (hawk->modtab);
+	hawk_rbt_walk(hawk->modtab, unload_module, hawk);
+	hawk_rbt_clear(hawk->modtab);
 
 	HAWK_ASSERT (HAWK_ARR_SIZE(hawk->parse.gbls) == hawk->tree.ngbls);
 	/* delete all non-builtin global variables */
@@ -462,7 +461,7 @@ void hawk_clear (hawk_t* hawk)
 	/* this table must not be cleared here as there can be a reference
 	 * to an entry of this table from errinf.loc.file when hawk_parse()
 	 * failed. this table is cleared in hawk_parse().
-	 * hawk_claersionames (hawk);
+	 * hawk_claersionames(hawk);
 	 */
 }
 

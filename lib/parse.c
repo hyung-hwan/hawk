@@ -633,7 +633,7 @@ oops:
 	if (hawk->sio.inf(hawk, HAWK_SIO_CMD_CLOSE, hawk->sio.inp, HAWK_NULL, 0) != 0 && ret == 0) ret = -1;
 
 	/* clear the parse tree partially constructed on error */
-	if (ret <= -1) hawk_clear (hawk);
+	if (ret <= -1) hawk_clear(hawk);
 
 	return ret;
 }
@@ -943,7 +943,7 @@ static int parse_progunit (hawk_t* hawk)
 		ngbls = hawk->tree.ngbls;
 		if (collect_globals(hawk) == HAWK_NULL)
 		{
-			hawk_arr_delete (hawk->parse.gbls, ngbls, HAWK_ARR_SIZE(hawk->parse.gbls) - ngbls);
+			hawk_arr_delete(hawk->parse.gbls, ngbls, HAWK_ARR_SIZE(hawk->parse.gbls) - ngbls);
 			hawk->tree.ngbls = ngbls;
 			return -1;
 		}
@@ -1368,11 +1368,12 @@ static hawk_nde_t* parse_function (hawk_t* hawk)
 
 	/* duplicate the name before it's overridden by get_token() */
 	name.ptr = hawk_dupoochars(hawk, name.ptr, name.len);
-	if (!name.ptr)
+	if (HAWK_UNLIKELY(!name.ptr))
 	{
 		ADJERR_LOC(hawk, &hawk->tok.loc);
 		return HAWK_NULL;
 	}
+	/* == from this point, failure must jump to oops to free name.ptr == */
 
 	/* get the next token */
 	if (get_token(hawk) <= -1) goto oops;
@@ -1543,7 +1544,7 @@ static hawk_nde_t* parse_function (hawk_t* hawk)
 	 *       for some reasons - might be needed for better deparsing output */
 	nargs = HAWK_ARR_SIZE(hawk->parse.params);
 	/* parameter names are not required anymore. clear them */
-	hawk_arr_clear (hawk->parse.params);
+	hawk_arr_clear(hawk->parse.params);
 
 	fun = (hawk_fun_t*)hawk_callocmem(hawk, HAWK_SIZEOF(*fun));
 	if (HAWK_UNLIKELY(!fun))
@@ -1577,7 +1578,7 @@ static hawk_nde_t* parse_function (hawk_t* hawk)
 	hawk_freemem(hawk, name.ptr);
 
 	/* remove an undefined function call entry from the parse.fun table */
-	hawk_htb_delete (hawk->parse.funs, fun->name.ptr, name.len);
+	hawk_htb_delete(hawk->parse.funs, fun->name.ptr, name.len);
 	return body;
 
 oops:
@@ -1585,7 +1586,7 @@ oops:
 	if (argspec) hawk_freemem(hawk, argspec);
 	if (fun) hawk_freemem(hawk, fun);
 	hawk_freemem(hawk, name.ptr);
-	hawk_arr_clear (hawk->parse.params);
+	hawk_arr_clear(hawk->parse.params);
 	return HAWK_NULL;
 }
 
@@ -1730,13 +1731,13 @@ static hawk_nde_t* parse_block (hawk_t* hawk, const hawk_loc_t* xloc, int flags)
 			/* @local ... */
 			if (get_token(hawk) <= -1)
 			{
-				hawk_arr_delete (hawk->parse.lcls, nlcls_outer, HAWK_ARR_SIZE(hawk->parse.lcls) - nlcls_outer);
+				hawk_arr_delete(hawk->parse.lcls, nlcls_outer, HAWK_ARR_SIZE(hawk->parse.lcls) - nlcls_outer);
 				return HAWK_NULL;
 			}
 
 			if (collect_locals(hawk, nlcls_outer, flags) == HAWK_NULL)
 			{
-				hawk_arr_delete (hawk->parse.lcls, nlcls_outer, HAWK_ARR_SIZE(hawk->parse.lcls) - nlcls_outer);
+				hawk_arr_delete(hawk->parse.lcls, nlcls_outer, HAWK_ARR_SIZE(hawk->parse.lcls) - nlcls_outer);
 				return HAWK_NULL;
 			}
 		}
@@ -1757,7 +1758,7 @@ static hawk_nde_t* parse_block (hawk_t* hawk, const hawk_loc_t* xloc, int flags)
 		/* if EOF is met before the right brace, this is an error */
 		if (MATCH(hawk,TOK_EOF))
 		{
-			hawk_arr_delete (hawk->parse.lcls, nlcls_outer, HAWK_ARR_SIZE(hawk->parse.lcls) - nlcls_outer);
+			hawk_arr_delete(hawk->parse.lcls, nlcls_outer, HAWK_ARR_SIZE(hawk->parse.lcls) - nlcls_outer);
 			if (head) hawk_clrpt(hawk, head);
 			hawk_seterrnum(hawk, &hawk->tok.loc, HAWK_EEOF);
 			return HAWK_NULL;
@@ -1768,7 +1769,7 @@ static hawk_nde_t* parse_block (hawk_t* hawk, const hawk_loc_t* xloc, int flags)
 		{
 			if (get_token(hawk) <= -1)
 			{
-				hawk_arr_delete (hawk->parse.lcls, nlcls_outer, HAWK_ARR_SIZE(hawk->parse.lcls) - nlcls_outer);
+				hawk_arr_delete(hawk->parse.lcls, nlcls_outer, HAWK_ARR_SIZE(hawk->parse.lcls) - nlcls_outer);
 				if (head) hawk_clrpt(hawk, head);
 				return HAWK_NULL;
 			}
@@ -1808,7 +1809,7 @@ static hawk_nde_t* parse_block (hawk_t* hawk, const hawk_loc_t* xloc, int flags)
 
 			if (HAWK_UNLIKELY(!nde))
 			{
-				hawk_arr_delete (hawk->parse.lcls, nlcls_outer, HAWK_ARR_SIZE(hawk->parse.lcls) - nlcls_outer);
+				hawk_arr_delete(hawk->parse.lcls, nlcls_outer, HAWK_ARR_SIZE(hawk->parse.lcls) - nlcls_outer);
 				if (head) hawk_clrpt(hawk, head);
 				return HAWK_NULL;
 			}
@@ -1835,7 +1836,7 @@ static hawk_nde_t* parse_block (hawk_t* hawk, const hawk_loc_t* xloc, int flags)
 	block = (hawk_nde_blk_t*)hawk_callocmem(hawk, HAWK_SIZEOF(*block));
 	if (HAWK_UNLIKELY(!block))
 	{
-		hawk_arr_delete (hawk->parse.lcls, nlcls_outer, HAWK_ARR_SIZE(hawk->parse.lcls) - nlcls_outer);
+		hawk_arr_delete(hawk->parse.lcls, nlcls_outer, HAWK_ARR_SIZE(hawk->parse.lcls) - nlcls_outer);
 		hawk_clrpt(hawk, head);
 		ADJERR_LOC(hawk, xloc);
 		return HAWK_NULL;
@@ -1845,7 +1846,7 @@ static hawk_nde_t* parse_block (hawk_t* hawk, const hawk_loc_t* xloc, int flags)
 	if (tmp > hawk->parse.nlcls_max) hawk->parse.nlcls_max = tmp;
 
 	/* remove all lcls to move them up to the top level */
-	hawk_arr_delete (hawk->parse.lcls, nlcls_outer, tmp - nlcls_outer);
+	hawk_arr_delete(hawk->parse.lcls, nlcls_outer, tmp - nlcls_outer);
 
 	/* adjust the number of lcls for a block without any statements */
 	/* if (head == HAWK_NULL) tmp = 0; */
@@ -5087,7 +5088,7 @@ static hawk_nde_t* parse_primary_rex (hawk_t* hawk, const hawk_loc_t* xloc)
 	 * of the context-sensitivity of the slash symbol.
 	 * if TOK_DIV is seen as a primary, it tries to compile
 	 * it as a regular expression */
-	hawk_ooecs_clear (hawk->tok.name);
+	hawk_ooecs_clear(hawk->tok.name);
 
 	if (MATCH(hawk,TOK_DIV_ASSN) && hawk_ooecs_ccat(hawk->tok.name, HAWK_T('=')) == (hawk_oow_t)-1)
 	{
@@ -7055,7 +7056,7 @@ retry:
 	}
 	while (n >= 1);
 
-	hawk_ooecs_clear (tok->name);
+	hawk_ooecs_clear(tok->name);
 	tok->flags = 0;
 	tok->loc.file = hawk->sio.last.file;
 	tok->loc.line = hawk->sio.last.line;
@@ -7349,7 +7350,7 @@ static int get_token (hawk_t* hawk)
 	hawk->ptok.loc.file = hawk->tok.loc.file;
 	hawk->ptok.loc.line = hawk->tok.loc.line;
 	hawk->ptok.loc.colm = hawk->tok.loc.colm;
-	hawk_ooecs_swap (hawk->ptok.name, hawk->tok.name);
+	hawk_ooecs_swap(hawk->ptok.name, hawk->tok.name);
 
 	if (HAWK_OOECS_LEN(hawk->ntok.name) > 0)
 	{
@@ -7359,8 +7360,8 @@ static int get_token (hawk_t* hawk)
 		hawk->tok.loc.line = hawk->ntok.loc.line;
 		hawk->tok.loc.colm = hawk->ntok.loc.colm;
 
-		hawk_ooecs_swap (hawk->tok.name, hawk->ntok.name);
-		hawk_ooecs_clear (hawk->ntok.name);
+		hawk_ooecs_swap(hawk->tok.name, hawk->ntok.name);
+		hawk_ooecs_clear(hawk->ntok.name);
 
 		return 0;
 	}
@@ -7562,7 +7563,7 @@ static int deparse (hawk_t* hawk)
 	df.tmp_len = HAWK_COUNTOF(tmp);
 	df.ret = 0;
 
-	hawk_htb_walk (hawk->tree.funs, deparse_func, &df);
+	hawk_htb_walk(hawk->tree.funs, deparse_func, &df);
 	if (df.ret <= -1) EXIT_DEPARSE ();
 
 	for (nde = hawk->tree.begin; nde != HAWK_NULL; nde = nde->next)

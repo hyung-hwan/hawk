@@ -59,12 +59,12 @@
  * hawk_sio_cbs_t sio; // need to initialize it with callback functions
  * hawk_rio_cbs_t rio; // need to initialize it with callback functions
  * hawk = hawk_open(mmgr, 0, hawk_get_cmgr_by_id(HAWK_CMGR_UTF8), prm, HAWK_NULL); // create an interpreter
- * hawk_parse(hawk, &sio);          // parse a script
+ * hawk_parse(hawk, &sio);        // parse a script
  * rtx = hawk_rtx_open(hawk, 0, &rio); // create a runtime context
  * retv = hawk_rtx_loop(rtx);     // run a standard AWK loop
  * if (retv) hawk_rtx_refdownval(rtx, retv); // free return value
  * hawk_rtx_close(rtx);           // destroy the runtime context
- * hawk_close(hawk);               // destroy the interpreter
+ * hawk_close(hawk);              // destroy the interpreter
  * \endcode
  *
  * It provides an interface to change the conventional behavior of the
@@ -2101,8 +2101,8 @@ HAWK_EXPORT int hawk_parse (
  * n = hawk_parsestd(hawk, in, &out);
  * if (n >= 0)
  * {
- *   hawk_printf (HAWK_T("%s\n"), out.u.str.ptr);
- *   HAWK_MMGR_FREE (out.u.str.ptr);
+ *   hawk_printf(HAWK_T("%s\n"), out.u.str.ptr);
+ *   hawk_freemem(hawk, out.u.str.ptr);
  * }
  * \endcode
  */
@@ -2177,7 +2177,7 @@ HAWK_EXPORT int hawk_findmodsymflt (
 static HAWK_INLINE void* hawk_allocmem (hawk_t* hawk, hawk_oow_t size) { return hawk_gem_allocmem(hawk_getgem(hawk), size); }
 static HAWK_INLINE void* hawk_reallocmem (hawk_t* hawk, void* ptr, hawk_oow_t size) { return hawk_gem_reallocmem(hawk_getgem(hawk), ptr, size); }
 static HAWK_INLINE void* hawk_callocmem (hawk_t* hawk, hawk_oow_t size) { return hawk_gem_callocmem(hawk_getgem(hawk), size); }
-static HAWK_INLINE void hawk_freemem (hawk_t* hawk, void* ptr) { hawk_gem_freemem (hawk_getgem(hawk), ptr); }
+static HAWK_INLINE void hawk_freemem (hawk_t* hawk, void* ptr) { hawk_gem_freemem(hawk_getgem(hawk), ptr); }
 #else
 #define hawk_allocmem(hawk, size) hawk_gem_allocmem(hawk_getgem(hawk), size)
 #define hawk_reallocmem(hawk, ptr, size) hawk_gem_reallocmem(hawk_getgem(hawk), ptr, size)
@@ -2477,9 +2477,9 @@ static HAWK_INLINE void hawk_rtx_setcmgr (hawk_rtx_t* rtx, hawk_cmgr_t* cmgr) { 
  * rtx = hawk_rtx_open(hawk, 0, rio);
  * if (rtx)
  * {
- *    retv = hawk_rtx_loop (rtx);
- *    if (retv) hawk_rtx_refdownval (rtx, retv);
- *    hawk_rtx_close (rtx);
+ *    retv = hawk_rtx_loop(rtx);
+ *    if (retv) hawk_rtx_refdownval(rtx, retv);
+ *    hawk_rtx_close(rtx);
  * }
  * \endcode
  *
@@ -2538,11 +2538,11 @@ HAWK_EXPORT hawk_val_t* hawk_rtx_callfun (
  * rtx = hawk_rtx_open(hawk, 0, rio);
  * if (rtx)
  * {
- *     v = hawk_rtx_callwithucstr (rtx, HAWK_UT("init"), HAWK_NULL, 0);
- *     if (v) hawk_rtx_refdownval (rtx, v);
- *     hawk_rtx_callwithucstr (rtx, HAWK_UT("fini"), HAWK_NULL, 0);
- *     if (v) hawk_rtx_refdownval (rtx, v);
- *     hawk_rtx_close (rtx);
+ *     v = hawk_rtx_callwithucstr(rtx, HAWK_UT("init"), HAWK_NULL, 0);
+ *     if (v) hawk_rtx_refdownval(rtx, v);
+ *     hawk_rtx_callwithucstr(rtx, HAWK_UT("fini"), HAWK_NULL, 0);
+ *     if (v) hawk_rtx_refdownval(rtx, v);
+ *     hawk_rtx_close(rtx);
  * }
  * \endcode
  *
@@ -2566,11 +2566,11 @@ HAWK_EXPORT hawk_val_t* hawk_rtx_callwithucstr (
  * rtx = hawk_rtx_open(hawk, 0, rio);
  * if (rtx)
  * {
- *     v = hawk_rtx_callwithbcstr (rtx, HAWK_BT("init"), HAWK_NULL, 0);
- *     if (v) hawk_rtx_refdownval (rtx, v);
- *     hawk_rtx_callwithbcstr (rtx, HAWK_BT("fini"), HAWK_NULL, 0);
- *     if (v) hawk_rtx_refdownval (rtx, v);
- *     hawk_rtx_close (rtx);
+ *     v = hawk_rtx_callwithbcstr(rtx, HAWK_BT("init"), HAWK_NULL, 0);
+ *     if (v) hawk_rtx_refdownval(rtx, v);
+ *     hawk_rtx_callwithbcstr(rtx, HAWK_BT("fini"), HAWK_NULL, 0);
+ *     if (v) hawk_rtx_refdownval(rtx, v);
+ *     hawk_rtx_close(rtx);
  * }
  * \endcode
  *
@@ -3498,8 +3498,8 @@ HAWK_EXPORT int hawk_rtx_valtobool (
  * out.type = HAWK_RTX_VALTOSTR_CPLCPY;
  * out.u.cplcpy.ptr = buf;
  * out.u.cplcpy.len = HAWK_COUNTOF(buf);
- * if (hawk_rtx_valtostr (rtx, v, &out) <= -1) goto oops;
- * hawk_printf (HAWK_T("%.*s\n"), out.u.cplcpy.len, out.u.cplcpy.ptr);
+ * if (hawk_rtx_valtostr(rtx, v, &out) <= -1) goto oops;
+ * hawk_printf(HAWK_T("%.*s\n"), out.u.cplcpy.len, out.u.cplcpy.ptr);
  * \endcode
  *
  * #HAWK_RTX_VALTOSTR_CPL is different from #HAWK_RTX_VALTOSTR_CPLCPY
@@ -3512,8 +3512,8 @@ HAWK_EXPORT int hawk_rtx_valtobool (
  * out.type = HAWK_RTX_VALTOSTR_CPL;
  * out.u.cpl.ptr = buf;
  * out.u.cpl.len = HAWK_COUNTOF(buf);
- * if (hawk_rtx_valtostr (rtx, v, &out) <= -1) goto oops;
- * hawk_printf (HAWK_T("%.*s\n"), ut.u.cpl.len, out.u.cpl.ptr);
+ * if (hawk_rtx_valtostr(rtx, v, &out) <= -1) goto oops;
+ * hawk_printf(HAWK_T("%.*s\n"), ut.u.cpl.len, out.u.cpl.ptr);
  * \endcode
  *
  * When unsure of the size of the string after conversion, you can use
@@ -3522,9 +3522,9 @@ HAWK_EXPORT int hawk_rtx_valtobool (
  * \code
  * hawk_rtx_valtostr_out_t out;
  * out.type = HAWK_RTX_VALTOSTR_CPLDUP;
- * if (hawk_rtx_valtostr (rtx, v, &out) <= -1) goto oops;
- * hawk_printf (HAWK_T("%.*s\n"), out.u.cpldup.len, out.u.cpldup.ptr);
- * hawk_rtx_free (rtx, out.u.cpldup.ptr);
+ * if (hawk_rtx_valtostr(rtx, v, &out) <= -1) goto oops;
+ * hawk_printf(HAWK_T("%.*s\n"), out.u.cpldup.len, out.u.cpldup.ptr);
+ * hawk_rtx_freemem(rtx, out.u.cpldup.ptr);
  * \endcode
  *
  * You may like to store the result in a dynamically resizable string.
@@ -3532,12 +3532,12 @@ HAWK_EXPORT int hawk_rtx_valtobool (
  * \code
  * hawk_rtx_valtostr_out_t out;
  * hawk_ooecs_t str;
- * hawk_str_init (&str, hawk_rtx_getmmgr(rtx), 100);
+ * hawk_str_init(&str, hawk_rtx_getmmgr(rtx), 100);
  * out.type = HAWK_RTX_VALTOSTR_STRP;
  * out.u.strp = str;
- * if (hawk_rtx_valtostr (rtx, v, &out) <= -1) goto oops;
- * hawk_printf (HAWK_T("%.*s\n"), HAWK_STR_LEN(out.u.strp), HAWK_STR_PTR(out.u.strp));
- * hawk_str_fini (&str);
+ * if (hawk_rtx_valtostr(rtx, v, &out) <= -1) goto oops;
+ * hawk_printf(HAWK_T("%.*s\n"), HAWK_STR_LEN(out.u.strp), HAWK_STR_PTR(out.u.strp));
+ * hawk_str_fini(&str);
  * \endcode
  *
  * If you want to append the converted string to an existing dynamically
@@ -3568,8 +3568,8 @@ HAWK_EXPORT int hawk_rtx_valtostr (
  * \code
  * ptr = hawk_rtx_valtoucstrdupwithcmgr(rtx, v, &len, hawk_rtx_getcmgr(rtx));
  * if (!str) handle_error();
- * hawk_printf (HAWK_T("%.*ls\n"), (int)len, ptr);
- * hawk_rtx_free (rtx, ptr);
+ * hawk_printf(HAWK_T("%.*ls\n"), (int)len, ptr);
+ * hawk_rtx_freemem(rtx, ptr);
  * \endcode
  *
  * \return character pointer to a duplicated string on success,

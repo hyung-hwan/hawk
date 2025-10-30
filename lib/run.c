@@ -834,7 +834,7 @@ static hawk_rbt_walk_t fini_module (hawk_rbt_t* rbt, hawk_rbt_pair_t* pair, void
 		return HAWK_RBT_WALK_STOP;
 
 	md = (hawk_mod_data_t*)HAWK_RBT_VPTR(pair);
-	if (md->mod.fini) md->mod.fini (&md->mod, mfc->rtx);
+	if (md->mod.fini) md->mod.fini(&md->mod, mfc->rtx);
 
 	mfc->count++;
 	return HAWK_RBT_WALK_FORWARD;
@@ -893,7 +893,7 @@ hawk_rtx_t* hawk_rtx_open (hawk_t* hawk, hawk_oow_t xtnsize, hawk_rio_cbs_t* rio
 
 	mic.count = 0;
 	mic.rtx = rtx;
-	hawk_rbt_walk (rtx->hawk->modtab, init_module, &mic);
+	hawk_rbt_walk(rtx->hawk->modtab, init_module, &mic);
 	if (mic.count != HAWK_RBT_SIZE(rtx->hawk->modtab))
 	{
 		if (mic.count > 0)
@@ -901,7 +901,7 @@ hawk_rtx_t* hawk_rtx_open (hawk_t* hawk, hawk_oow_t xtnsize, hawk_rio_cbs_t* rio
 			struct module_fini_ctx_t mfc;
 			mfc.limit = mic.count;
 			mfc.count = 0;
-			hawk_rbt_walk (rtx->hawk->modtab, fini_module, &mfc);
+			hawk_rbt_walk(rtx->hawk->modtab, fini_module, &mfc);
 		}
 
 		fini_rtx(rtx, 1);
@@ -940,7 +940,7 @@ void hawk_rtx_close (hawk_rtx_t* rtx)
 	mfc.limit = 0;
 	mfc.count = 0;
 	mfc.rtx = rtx;
-	hawk_rbt_walk (rtx->hawk->modtab, fini_module, &mfc);
+	hawk_rbt_walk(rtx->hawk->modtab, fini_module, &mfc);
 
 	for (ecb = rtx->ecb; ecb != (hawk_rtx_ecb_t*)rtx; ecb = ecb_next)
 	{
@@ -959,7 +959,7 @@ void hawk_rtx_close (hawk_rtx_t* rtx)
 	 */
 	fini_rtx(rtx, 1);
 
-	hawk_freemem (hawk_rtx_gethawk(rtx), rtx);
+	hawk_freemem(hawk_rtx_gethawk(rtx), rtx);
 }
 
 void hawk_rtx_halt (hawk_rtx_t* rtx)
@@ -1023,7 +1023,7 @@ static void free_namedval (hawk_htb_t* map, void* dptr, hawk_oow_t dlen)
 
 static void same_namedval (hawk_htb_t* map, void* dptr, hawk_oow_t dlen)
 {
-	hawk_rtx_refdownval_nofree (*(hawk_rtx_t**)hawk_htb_getxtn(map), dptr);
+	hawk_rtx_refdownval_nofree(*(hawk_rtx_t**)hawk_htb_getxtn(map), dptr);
 }
 
 static int init_rtx (hawk_rtx_t* rtx, hawk_t* hawk, hawk_rio_cbs_t* rio)
@@ -1048,7 +1048,7 @@ static int init_rtx (hawk_rtx_t* rtx, hawk_t* hawk, hawk_rio_cbs_t* rio)
 	rtx->_gem = hawk->_gem;
 	rtx->hawk = hawk;
 
-	CLRERR (rtx);
+	CLRERR(rtx);
 
 	stack_limit = hawk->parse.pragma.rtx_stack_limit > 0? hawk->parse.pragma.rtx_stack_limit: hawk->opt.rtx_stack_limit;
 	if (stack_limit < HAWK_MIN_RTX_STACK_LIMIT) stack_limit = HAWK_MIN_RTX_STACK_LIMIT;
@@ -1147,27 +1147,27 @@ oops_14:
 oops_13:
 	hawk_rtx_freemem(rtx, rtx->format.tmp.ptr);
 oops_12:
-	hawk_htb_close (rtx->named);
+	hawk_htb_close(rtx->named);
 oops_11:
-	hawk_ooecs_fini (&rtx->fnc.oout);
+	hawk_ooecs_fini(&rtx->fnc.oout);
 oops_10:
-	hawk_becs_fini (&rtx->fnc.bout);
+	hawk_becs_fini(&rtx->fnc.bout);
 oops_9:
-	hawk_becs_fini (&rtx->formatmbs.fmt);
+	hawk_becs_fini(&rtx->formatmbs.fmt);
 oops_8:
-	hawk_becs_fini (&rtx->formatmbs.out);
+	hawk_becs_fini(&rtx->formatmbs.out);
 oops_7:
-	hawk_ooecs_fini (&rtx->format.fmt);
+	hawk_ooecs_fini(&rtx->format.fmt);
 oops_6:
-	hawk_ooecs_fini (&rtx->format.out);
+	hawk_ooecs_fini(&rtx->format.out);
 oops_5:
-	hawk_becs_fini (&rtx->inrec.linegb);
+	hawk_becs_fini(&rtx->inrec.linegb);
 oops_4:
-	hawk_ooecs_fini (&rtx->inrec.lineg);
+	hawk_ooecs_fini(&rtx->inrec.lineg);
 oops_3:
-	hawk_ooecs_fini (&rtx->inrec.linew);
+	hawk_ooecs_fini(&rtx->inrec.linew);
 oops_2:
-	hawk_ooecs_fini (&rtx->inrec.line);
+	hawk_ooecs_fini(&rtx->inrec.line);
 oops_1:
 	hawk_rtx_freemem(rtx, rtx->stack);
 oops_0:
@@ -1249,20 +1249,20 @@ static void fini_rtx (hawk_rtx_t* rtx, int fini_globals)
 		rtx->gbl.subsep.len = 0;
 	}
 
-	hawk_ooecs_fini (&rtx->fnc.oout);
-	hawk_becs_fini (&rtx->fnc.bout);
+	hawk_ooecs_fini(&rtx->fnc.oout);
+	hawk_becs_fini(&rtx->fnc.bout);
 
 	hawk_rtx_freemem(rtx, rtx->formatmbs.tmp.ptr);
 	rtx->formatmbs.tmp.ptr = HAWK_NULL;
 	rtx->formatmbs.tmp.len = 0;
-	hawk_becs_fini (&rtx->formatmbs.fmt);
-	hawk_becs_fini (&rtx->formatmbs.out);
+	hawk_becs_fini(&rtx->formatmbs.fmt);
+	hawk_becs_fini(&rtx->formatmbs.out);
 
 	hawk_rtx_freemem(rtx, rtx->format.tmp.ptr);
 	rtx->format.tmp.ptr = HAWK_NULL;
 	rtx->format.tmp.len = 0;
-	hawk_ooecs_fini (&rtx->format.fmt);
-	hawk_ooecs_fini (&rtx->format.out);
+	hawk_ooecs_fini(&rtx->format.fmt);
+	hawk_ooecs_fini(&rtx->format.out);
 
 	/* destroy input record. hawk_rtx_clrrec() should be called
 	 * before the stack has been destroyed because it may try
@@ -1274,10 +1274,10 @@ static void fini_rtx (hawk_rtx_t* rtx, int fini_globals)
 		rtx->inrec.flds = HAWK_NULL;
 		rtx->inrec.maxflds = 0;
 	}
-	hawk_becs_fini (&rtx->inrec.linegb);
-	hawk_ooecs_fini (&rtx->inrec.lineg);
-	hawk_ooecs_fini (&rtx->inrec.linew);
-	hawk_ooecs_fini (&rtx->inrec.line);
+	hawk_becs_fini(&rtx->inrec.linegb);
+	hawk_ooecs_fini(&rtx->inrec.lineg);
+	hawk_ooecs_fini(&rtx->inrec.linew);
+	hawk_ooecs_fini(&rtx->inrec.line);
 
 	if (fini_globals) refdown_globals(rtx, 1);
 
@@ -8275,7 +8275,7 @@ static hawk_ooch_t* idxnde_to_str (hawk_rtx_t* rtx, hawk_nde_t* nde, hawk_ooch_t
 			idx = eval_expression(rtx, nde);
 			if (HAWK_UNLIKELY(!idx))
 			{
-				hawk_ooecs_fini (&idxstr);
+				hawk_ooecs_fini(&idxstr);
 				return HAWK_NULL;
 			}
 
@@ -8286,7 +8286,7 @@ static hawk_ooch_t* idxnde_to_str (hawk_rtx_t* rtx, hawk_nde_t* nde, hawk_ooch_t
 				if (hawk_rtx_valtoint(rtx, idx, &idxint) <= -1)
 				{
 					hawk_rtx_refdownval(rtx, idx);
-					hawk_ooecs_fini (&idxstr);
+					hawk_ooecs_fini(&idxstr);
 					ADJERR_LOC(rtx, &nde->loc);
 					return HAWK_NULL;
 				}
@@ -8297,7 +8297,7 @@ static hawk_ooch_t* idxnde_to_str (hawk_rtx_t* rtx, hawk_nde_t* nde, hawk_ooch_t
 			if (xnde != nde && hawk_ooecs_ncat(&idxstr, rtx->gbl.subsep.ptr, rtx->gbl.subsep.len) == (hawk_oow_t)-1)
 			{
 				hawk_rtx_refdownval(rtx, idx);
-				hawk_ooecs_fini (&idxstr);
+				hawk_ooecs_fini(&idxstr);
 				ADJERR_LOC(rtx, &nde->loc);
 				return HAWK_NULL;
 			}
@@ -8305,7 +8305,7 @@ static hawk_ooch_t* idxnde_to_str (hawk_rtx_t* rtx, hawk_nde_t* nde, hawk_ooch_t
 			if (hawk_rtx_valtostr(rtx, idx, &out) <= -1)
 			{
 				hawk_rtx_refdownval(rtx, idx);
-				hawk_ooecs_fini (&idxstr);
+				hawk_ooecs_fini(&idxstr);
 				ADJERR_LOC(rtx, &nde->loc);
 				return HAWK_NULL;
 			}
@@ -8314,11 +8314,11 @@ static hawk_ooch_t* idxnde_to_str (hawk_rtx_t* rtx, hawk_nde_t* nde, hawk_ooch_t
 			nde = nde->next;
 		}
 
-		hawk_ooecs_yield (&idxstr, &tmp, 0);
+		hawk_ooecs_yield(&idxstr, &tmp, 0);
 		str = tmp.ptr;
 		*len = tmp.len;
 
-		hawk_ooecs_fini (&idxstr);
+		hawk_ooecs_fini(&idxstr);
 
 		/* if nde is not HAWK_NULL, it should be of the HAWK_NDE_NULL type */
 		*remidx = nde? nde->next: nde;
