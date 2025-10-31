@@ -25,17 +25,32 @@ static hawk_ooch_t* valtostr_out_cpldup(hawk_rtx_valtostr_out_t* out, hawk_oow_t
 	*len =  out->u.cpldup.len;
 	return out->u.cpldup.ptr;
 }
+
+static hawk_val_t* make_flt_val(hawk_rtx_t* rtx, double v) {
+	return hawk_rtx_makefltval(rtx, (hawk_flt_t)v);
+}
+
+static int val_to_flt(hawk_rtx_t* rtx, hawk_val_t* v, double* ret) {
+	hawk_flt_t fv;
+	if (hawk_rtx_valtoflt(rtx, v, &fv) <= -1) return -1;
+	*ret = (double)fv;
+	return 0;
+}
 */
 import "C"
 
 import "fmt"
+import "reflect"
 import "runtime"
+import "sync"
 import "unsafe"
 
 type Hawk struct {
 	c *C.hawk_t
 	inst_no int
 
+	rtx_mtx sync.Mutex
+	rtx_count int
 	rtx_head *Rtx
 	rtx_tail *Rtx
 }
@@ -57,30 +72,41 @@ type Rtx struct {
 
 	next *Rtx
 	prev *Rtx
+
+	val_mtx sync.Mutex
+	val_count int
+	val_head *Val
+	val_tail *Val
 }
 
 type Val struct {
 	c *C.hawk_val_t
 	rtx *Rtx
+	next *Val
+	prev *Val
 }
 
 type BitMask C.hawk_bitmask_t
 
-func deregister_instance(g *Hawk) {
-	for g.rtx_head != nil {
-		g.rtx_head.Close()
+func deregister_instance(h *Hawk) {
+fmt.Printf ("DEREGISER INSTANCE %p\n", h)
+	for h.rtx_head != nil {
+//fmt.Printf ("DEREGISER CLOSING RTX %p\n", h.rtx_head)
+		h.rtx_head.Close()
 	}
 
-	if g.c != nil {
-fmt.Printf ("CLOSING g.c\n")
-		C.hawk_close(g.c)
-		g.c = nil
+	if h.c != nil {
+fmt.Printf ("CLOSING h.c\n")
+		C.hawk_close(h.c)
+		h.c = nil
 	}
-	if g.inst_no >= 0 {
-fmt.Printf ("DELETING instance g\n")
-		inst_table.delete_instance(g.inst_no)
-		g.inst_no = -1
+
+	if h.inst_no >= 0 {
+fmt.Printf ("DELETING instance h\n")
+		inst_table.delete_instance(h.inst_no)
+		h.inst_no = -1
 	}
+fmt.Printf ("END DEREGISER INSTANCE %p\n", h)
 }
 
 func New() (*Hawk, error) {
@@ -100,6 +126,10 @@ func New() (*Hawk, error) {
 
 	g = &Hawk{c: c, inst_no: -1}
 
+	g.rtx_count = 0
+	g.rtx_head = nil
+	g.rtx_tail = nil
+
 	runtime.SetFinalizer(g, deregister_instance)
 	g.inst_no = inst_table.add_instance(c, g)
 	ext.inst_no = g.inst_no
@@ -108,11 +138,6 @@ func New() (*Hawk, error) {
 }
 
 func (hawk *Hawk) Close() {
-// TODO: close all rtx?
-	//if hawk.c != nil {
-	//	C.hawk_close(hawk.c)
-	//	hawk.c = nil
-	//}
 	deregister_instance(hawk)
 }
 
@@ -225,7 +250,15 @@ func (hawk *Hawk) ParseText(text string) error {
 	return nil
 }
 
+func (hawk *Hawk) RtxCount() int {
+	hawk.rtx_mtx.Lock()
+	defer hawk.rtx_mtx.Unlock()
+	return hawk.rtx_count
+}
+
 func (hawk *Hawk) chain_rtx(rtx *Rtx) {
+	hawk.rtx_mtx.Lock()
+	rtx.h = hawk
 	if hawk.rtx_head == nil {
 		rtx.prev = nil
 		hawk.rtx_head = rtx
@@ -235,9 +268,12 @@ func (hawk *Hawk) chain_rtx(rtx *Rtx) {
 	}
 	rtx.next = nil
 	hawk.rtx_tail = rtx
+	hawk.rtx_count++
+	hawk.rtx_mtx.Unlock()
 }
 
 func (hawk *Hawk) unchain_rtx(rtx *Rtx) {
+	hawk.rtx_mtx.Lock()
 	if rtx.prev == nil  {
 		hawk.rtx_head = rtx.next
 	} else {
@@ -249,9 +285,13 @@ func (hawk *Hawk) unchain_rtx(rtx *Rtx) {
 	} else {
 		rtx.next.prev = rtx.prev
 	}
+fmt.Printf("head %p tail %p\n", hawk.rtx_tail, hawk.rtx_tail)
 
+	rtx.h = nil
 	rtx.next = nil
 	rtx.prev = nil
+	hawk.rtx_count--
+	hawk.rtx_mtx.Unlock()
 }
 
 // -----------------------------------------------------------
@@ -263,15 +303,30 @@ func (hawk *Hawk) NewRtx(id string) (*Rtx, error) {
 	rtx = C.hawk_rtx_openstdwithbcstr(hawk.c, 0, C.CString(id), nil, nil, nil)
 	if rtx == nil { return nil, hawk.make_errinfo() }
 
-	g = &Rtx{c: rtx, h: hawk}
+	g = &Rtx{c: rtx}
 	hawk.chain_rtx(g)
+
+	// [NOTE]
+	// if the owning hawk is not garbaged-collected, this rtx is never
+	// garbaged collected as a strong pointer to a rtx object is maintained
+	// in the owner. i never set the runtime finalizer on this rtx object.
+
 	return g, nil
 }
 
 func (rtx* Rtx) Close() {
-	rtx.h.unchain_rtx(rtx)
-	C.hawk_rtx_close(rtx.c)
-fmt.Printf("RTX CLOSING %p\n", rtx)
+	if rtx.h != nil {
+//fmt.Printf("RTX CLOSING UNCHAIN %p\n", rtx)
+		rtx.h.unchain_rtx(rtx)
+
+		for rtx.val_head != nil {
+fmt.Printf ("****** DEREGISER CLOSING VAL %p\n", rtx.val_head)
+			rtx.val_head.Close()
+		}
+
+		C.hawk_rtx_close(rtx.c)
+//fmt.Printf("RTX CLOSING %p\n", rtx)
+	}
 }
 
 func (rtx *Rtx) make_errinfo() *Err {
@@ -294,18 +349,74 @@ func (rtx *Rtx) make_errinfo() *Err {
 	return &err
 }
 
-func (rtx *Rtx) Call(name string) (*Val, error) {
+func (rtx *Rtx) Call(name string, args ...*Val) (*Val, error) {
 	var fun *C.hawk_fun_t
 	var val *C.hawk_val_t
+	var nargs int
 
 	fun = C.hawk_rtx_findfunwithbcstr(rtx.c, C.CString(name))
 	if fun == nil { return nil, rtx.make_errinfo() }
-	val = C.hawk_rtx_callfun(rtx.c, fun, nil, 0)
+
+	nargs = len(args)
+	if nargs > 0 {
+		var argv []*C.hawk_val_t
+		var v *Val
+		var i int
+		argv = make([]*C.hawk_val_t, nargs)
+		for i, v = range args { argv[i] = v.c }
+		val = C.hawk_rtx_callfun(rtx.c, fun, &argv[0], C.hawk_oow_t(nargs))
+	} else {
+		val = C.hawk_rtx_callfun(rtx.c, fun, nil, 0)
+	}
 	if val == nil { return nil, rtx.make_errinfo() }
 
 	// hawk_rtx_callfun() returns a value with the reference count incremented.
 	// i create a Val object without incrementing the reference count of val.
 	return &Val{rtx: rtx, c: val}, nil
+}
+
+func (rtx *Rtx) ValCount() int {
+	rtx.val_mtx.Lock()
+	defer rtx.val_mtx.Unlock()
+	return rtx.val_count
+}
+
+func (rtx *Rtx) chain_val(val *Val) {
+	rtx.val_mtx.Lock()
+	val.rtx = rtx
+	if rtx.val_head == nil {
+		val.prev = nil
+		rtx.val_head = val
+	} else {
+		val.prev = rtx.val_tail
+		rtx.val_tail.next = val
+	}
+	val.next = nil
+	rtx.val_tail = val
+	rtx.val_count++
+	rtx.val_mtx.Unlock()
+}
+
+func (rtx *Rtx) unchain_val(val *Val) {
+	rtx.val_mtx.Lock()
+	if val.prev == nil  {
+		rtx.val_head = val.next
+	} else {
+		val.prev.next = val.next
+	}
+
+	if val.next == nil {
+		rtx.val_tail = val.prev
+	} else {
+		val.next.prev = val.prev
+	}
+fmt.Printf("head %p tail %p\n", rtx.val_tail, rtx.val_tail)
+
+	val.rtx = nil
+	val.next = nil
+	val.prev = nil
+	rtx.val_count--
+	rtx.val_mtx.Unlock()
 }
 
 // -----------------------------------------------------------
@@ -323,6 +434,142 @@ func (hawk *Hawk) set_errmsg(num C.hawk_errnum_t, msg string) {
 
 func (rtx *Rtx) get_errmsg() string {
 	return C.GoString(C.hawk_rtx_geterrbmsg(rtx.c))
+}
+
+// -----------------------------------------------------------
+
+func (err* Err) Error() string {
+	return fmt.Sprintf("%s[%d,%d] %s", err.File, err.Line, err.Colm, err.Msg)
+}
+
+// -----------------------------------------------------------
+
+func (rtx *Rtx) NewVal(v interface{}) (*Val, error) {
+	var _type reflect.Type
+	_type = reflect.TypeOf(v)
+	switch _type.Kind() {
+		case reflect.Int:
+			return rtx.NewValFromInt(v.(int))
+		case reflect.Float64:
+			return rtx.NewValFromFlt(v.(float64))
+		case reflect.String:
+			return rtx.NewValFromStr(v.(string))
+
+		case reflect.Array:
+			fallthrough
+		case reflect.Slice:
+			var _kind reflect.Kind
+			_kind = _type.Elem().Kind()
+			if _kind == reflect.Uint8 {
+				return rtx.NewValFromByteArr(v.([]byte))
+			}
+			fallthrough
+
+		default:
+			return nil, fmt.Errorf("invalid argument")
+	}
+}
+
+
+func (rtx *Rtx) NewValFromInt(v int) (*Val, error) {
+	var c *C.hawk_val_t
+	var vv *Val
+
+	c = C.hawk_rtx_makeintval(rtx.c, C.hawk_int_t(v))
+	if c == nil { return nil, rtx.make_errinfo() }
+
+	C.hawk_rtx_refupval(rtx.c, c)
+	vv = &Val{rtx: rtx, c: c}
+	rtx.chain_val(vv)
+	return vv, nil
+}
+
+func (rtx *Rtx) NewValFromFlt(v float64) (*Val, error) {
+	var c *C.hawk_val_t
+	var vv *Val
+
+	c = C.make_flt_val(rtx.c, C.double(v))
+	if c == nil { return nil, rtx.make_errinfo() }
+
+	C.hawk_rtx_refupval(rtx.c, c)
+	vv = &Val{rtx: rtx, c: c}
+	rtx.chain_val(vv)
+	return vv, nil
+}
+
+func (rtx *Rtx) NewValFromStr(v string) (*Val, error) {
+	var c *C.hawk_val_t
+	var vv *Val
+
+	c = C.hawk_rtx_makestrvalwithbchars(rtx.c, C.CString(v), C.hawk_oow_t(len(v)))
+	if c == nil { return nil, rtx.make_errinfo() }
+
+	C.hawk_rtx_refupval(rtx.c, c)
+	vv = &Val{rtx: rtx, c: c}
+	rtx.chain_val(vv)
+	return vv, nil
+}
+
+func (rtx *Rtx) NewValFromByteArr(v []byte) (*Val, error) {
+	var c *C.hawk_val_t
+	var vv *Val
+
+	c = C.hawk_rtx_makembsvalwithbchars(rtx.c, (*C.hawk_bch_t)(unsafe.Pointer(&v[0])), C.hawk_oow_t(len(v)))
+	if c == nil { return nil, rtx.make_errinfo() }
+
+	C.hawk_rtx_refupval(rtx.c, c)
+	vv = &Val{rtx: rtx, c: c}
+	rtx.chain_val(vv)
+	return vv, nil
+}
+
+func (val *Val) Close() {
+	if val.rtx != nil {
+		C.hawk_rtx_refdownval(val.rtx.c, val.c)
+		val.rtx.unchain_val(val)
+	}
+}
+
+func (val* Val) ToInt() (int, error) {
+	var v C.hawk_int_t
+	var x C.int
+
+	x = C.hawk_rtx_valtoint(val.rtx.c, val.c, &v)
+	if x <= -1 { return 0, val.rtx.make_errinfo() }
+
+	return int(v), nil
+}
+
+func (val* Val) ToFlt() (float64, error) {
+	var v float64
+	var x C.int
+
+	//x = C.hawk_rtx_valtoflt(val.rtx.c, val.c, &v)
+	x = C.val_to_flt(val.rtx.c, val.c, (*C.double)(&v))
+	if x <= -1 { return 0, val.rtx.make_errinfo() }
+
+	return v, nil
+}
+
+func (val* Val) ToStr() (string, error) {
+	var out C.hawk_rtx_valtostr_out_t
+	var ptr *C.hawk_ooch_t
+	var len C.hawk_oow_t
+	var v string
+	var x C.int
+
+	out._type = C.HAWK_RTX_VALTOSTR_CPLDUP
+	x = C.hawk_rtx_valtostr(val.rtx.c, val.c, &out)
+	if x <= -1 { return "", val.rtx.make_errinfo() }
+
+	ptr = C.valtostr_out_cpldup(&out, &len)
+	v = string(uchars_to_rune_slice(ptr, uintptr(len)))
+	C.hawk_rtx_freemem(val.rtx.c, unsafe.Pointer(ptr))
+
+	return v, nil
+}
+
+func (val* Val) ToByteArr() ([]byte, error) {
 }
 
 // -----------------------------------------------------------
@@ -382,67 +629,7 @@ func c_to_go(c *C.hawk_t) *Hawk {
 	return inst.g.Value()
 }
 
-// -----------------------------------------------------------
-
-func (err* Err) Error() string {
-	return fmt.Sprintf("%s[%d,%d] %s", err.File, err.Line, err.Colm, err.Msg)
-}
-
-// -----------------------------------------------------------
-
-func deref_val(v *Val) {
-	C.hawk_rtx_refdownval(v.rtx.c, v.c)
-}
-
-func (rtx *Rtx) NewValFromInt(v int) (*Val, error) {
-	var c *C.hawk_val_t
-	var vv *Val
-
-	c = C.hawk_rtx_makeintval(rtx.c, C.hawk_int_t(v))
-	if c == nil { return nil, rtx.make_errinfo() }
-
-	C.hawk_rtx_refupval(rtx.c, c)
-	vv = &Val{rtx: rtx, c: c}
-	runtime.SetFinalizer(vv, deref_val)
-
-	return vv, nil
-}
-
-func (val* Val) ToInt() (int, error) {
-	var v C.hawk_int_t
-	var x C.int
-
-	x = C.hawk_rtx_valtoint(val.rtx.c, val.c, &v)
-	if x <= -1 { return 0, val.rtx.make_errinfo() }
-
-	return int(v), nil
-}
-
-/*
-func (val* Val) ToFlt() (double, error) {
-	var v C.hawk_flt_t
-	var x C.int
-
-	x = C.hawk_rtx_valtoflt(val.rtx.c, val.c, &v)
-	if x <= -1 { return 0, val.rtx.make_errinfo() }
-
-	return double(v), nil
-}*/
-
-func (val* Val) ToStr() (string, error) {
-	var out C.hawk_rtx_valtostr_out_t
-	var ptr *C.hawk_ooch_t
-	var len C.hawk_oow_t
-	var v string
-	var x C.int
-
-	out._type = C.HAWK_RTX_VALTOSTR_CPLDUP
-	x = C.hawk_rtx_valtostr(val.rtx.c, val.c, &out)
-	if x <= -1 { return "", val.rtx.make_errinfo() }
-
-	ptr = C.valtostr_out_cpldup(&out, &len)
-	v = string(uchars_to_rune_slice(ptr, uintptr(len)))
-	C.hawk_rtx_freemem(val.rtx.c, unsafe.Pointer(ptr))
-
-	return v, nil
+func Must[T any](v T, err error) T {
+	if err != nil { panic(err) }
+	return v
 }
