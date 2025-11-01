@@ -965,6 +965,14 @@ clean-local:
 @ENABLE_HAWKGO_TRUE@	CGO_LDFLAGS="-L$(abs_builddir)/lib -L$(abs_builddir)/lib/.libs -lhawk -ldl $(LIBM) $(CGO_LDFLAGS_EXTRA)"  \
 @ENABLE_HAWKGO_TRUE@	go build -C $(srcdir) -ldflags "-X 'main.BINDIR=$(bindir)' -X 'main.SBINDIR=$(sbindir)' -X 'main.LIBDIR=$(libdir)' -X 'main.SYSCONFDIR=$(sysconfdir)'" -x -o $(abs_builddir)/hawkgo.bin -modfile $(abs_builddir)/go.mod
 @ENABLE_HAWKGO_TRUE@	go clean -C $(srcdir) -x -modfile $(abs_builddir)/go.mod
+
+@ENABLE_HAWKGO_TRUE@hawkgo.check:
+@ENABLE_HAWKGO_TRUE@	CC=$(CC) \
+@ENABLE_HAWKGO_TRUE@	CGO_CFLAGS="-I$(abs_srcdir)/lib -I$(abs_builddir)/lib $(CFLAGS) $(CGO_CFLAGS_EXTRA)" \
+@ENABLE_HAWKGO_TRUE@	CGO_LDFLAGS="-L$(abs_builddir)/lib -L$(abs_builddir)/lib/.libs -lhawk -ldl $(LIBM) $(CGO_LDFLAGS_EXTRA)"  \
+@ENABLE_HAWKGO_TRUE@	go test -C $(srcdir) -ldflags "-X 'main.BINDIR=$(bindir)' -X 'main.SBINDIR=$(sbindir)' -X 'main.LIBDIR=$(libdir)' -X 'main.SYSCONFDIR=$(sysconfdir)'" -x -o $(abs_builddir)/hawkgo.bin -modfile $(abs_builddir)/go.mod
+@ENABLE_HAWKGO_TRUE@	go clean -C $(srcdir) -x -modfile $(abs_builddir)/go.mod
+
 # fake recipes to deceive make
 @ENABLE_HAWKGO_TRUE@.go.o:
 @ENABLE_HAWKGO_TRUE@	echo $< > $@

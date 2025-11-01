@@ -9845,7 +9845,6 @@ wp_mod_main:
 					else ch = 0;
 					break;
 
-
 				default:
 					hawk_rtx_refdownval(rtx, v);
 					hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EVALTOCHR);

@@ -450,6 +450,8 @@ func (rtx *Rtx) NewVal(v interface{}) (*Val, error) {
 	switch _type.Kind() {
 		case reflect.Int:
 			return rtx.NewValFromInt(v.(int))
+		case reflect.Float32:
+			return rtx.NewValFromFlt(float64(v.(float32)))
 		case reflect.Float64:
 			return rtx.NewValFromFlt(v.(float64))
 		case reflect.String:
@@ -470,57 +472,71 @@ func (rtx *Rtx) NewVal(v interface{}) (*Val, error) {
 	}
 }
 
-
-func (rtx *Rtx) NewValFromInt(v int) (*Val, error) {
+func (rtx* Rtx) make_val(vmaker func() *C.hawk_val_t) (*Val, error) {
 	var c *C.hawk_val_t
 	var vv *Val
 
-	c = C.hawk_rtx_makeintval(rtx.c, C.hawk_int_t(v))
+	c = vmaker()
 	if c == nil { return nil, rtx.make_errinfo() }
 
 	C.hawk_rtx_refupval(rtx.c, c)
 	vv = &Val{rtx: rtx, c: c}
 	rtx.chain_val(vv)
 	return vv, nil
+}
+
+func (rtx *Rtx) NewValFromByte(v byte) (*Val, error) {
+	return rtx.make_val(func() *C.hawk_val_t {
+		return C.hawk_rtx_makebchrval(rtx.c, C.hawk_bch_t(v))
+	})
+}
+
+func (rtx *Rtx) NewValFromRune(v rune) (*Val, error) {
+	return rtx.make_val(func() *C.hawk_val_t {
+		return C.hawk_rtx_makecharval(rtx.c, C.hawk_ooch_t(v))
+	})
+}
+
+func (rtx *Rtx) NewValFromInt(v int) (*Val, error) {
+	return rtx.make_val(func() *C.hawk_val_t {
+		return C.hawk_rtx_makeintval(rtx.c, C.hawk_int_t(v))
+	})
 }
 
 func (rtx *Rtx) NewValFromFlt(v float64) (*Val, error) {
-	var c *C.hawk_val_t
-	var vv *Val
-
-	c = C.make_flt_val(rtx.c, C.double(v))
-	if c == nil { return nil, rtx.make_errinfo() }
-
-	C.hawk_rtx_refupval(rtx.c, c)
-	vv = &Val{rtx: rtx, c: c}
-	rtx.chain_val(vv)
-	return vv, nil
+	return rtx.make_val(func() *C.hawk_val_t {
+		return C.make_flt_val(rtx.c, C.double(v))
+	})
 }
 
 func (rtx *Rtx) NewValFromStr(v string) (*Val, error) {
-	var c *C.hawk_val_t
-	var vv *Val
-
-	c = C.hawk_rtx_makestrvalwithbchars(rtx.c, C.CString(v), C.hawk_oow_t(len(v)))
-	if c == nil { return nil, rtx.make_errinfo() }
-
-	C.hawk_rtx_refupval(rtx.c, c)
-	vv = &Val{rtx: rtx, c: c}
-	rtx.chain_val(vv)
-	return vv, nil
+	return rtx.make_val(func() *C.hawk_val_t {
+		return C.hawk_rtx_makestrvalwithbchars(rtx.c, C.CString(v), C.hawk_oow_t(len(v)))
+	})
 }
 
 func (rtx *Rtx) NewValFromByteArr(v []byte) (*Val, error) {
-	var c *C.hawk_val_t
-	var vv *Val
+	return rtx.make_val(func() *C.hawk_val_t {
+		return C.hawk_rtx_makembsvalwithbchars(rtx.c, (*C.hawk_bch_t)(unsafe.Pointer(&v[0])), C.hawk_oow_t(len(v)))
+	})
+}
 
-	c = C.hawk_rtx_makembsvalwithbchars(rtx.c, (*C.hawk_bch_t)(unsafe.Pointer(&v[0])), C.hawk_oow_t(len(v)))
-	if c == nil { return nil, rtx.make_errinfo() }
+func (rtx *Rtx) NewBobVal(v []byte) (*Val, error) {
+	return rtx.make_val(func() *C.hawk_val_t {
+		return C.hawk_rtx_makebobval(rtx.c, unsafe.Pointer(&v[0]), C.hawk_oow_t(len(v)))
+	})
+}
 
-	C.hawk_rtx_refupval(rtx.c, c)
-	vv = &Val{rtx: rtx, c: c}
-	rtx.chain_val(vv)
-	return vv, nil
+func (rtx *Rtx) NewMapVal() (*Val, error) {
+	return rtx.make_val(func() *C.hawk_val_t {
+		return C.hawk_rtx_makemapval(rtx.c)
+	})
+}
+
+func (rtx *Rtx) NewArrVal(init_capa int) (*Val, error) {
+	return rtx.make_val(func() *C.hawk_val_t {
+		return C.hawk_rtx_makearrval(rtx.c, C.hawk_ooi_t(init_capa))
+	})
 }
 
 func (val *Val) Close() {
@@ -529,6 +545,12 @@ func (val *Val) Close() {
 		val.rtx.unchain_val(val)
 	}
 }
+
+/*func (val* Val) ToByte() (byte, error) {
+}
+
+func (val* Val) ToRune() (rune, error) {
+}*/
 
 func (val* Val) ToInt() (int, error) {
 	var v C.hawk_int_t
@@ -570,6 +592,17 @@ func (val* Val) ToStr() (string, error) {
 }
 
 func (val* Val) ToByteArr() ([]byte, error) {
+	var ptr *C.hawk_bch_t
+	var len C.hawk_oow_t
+	var v []byte
+
+	ptr = C.hawk_rtx_valtobcstrdupwithcmgr(val.rtx.c, val.c, &len, C.hawk_rtx_getcmgr(val.rtx.c))
+	if ptr == nil { return nil, val.rtx.make_errinfo() }
+
+	v = C.GoBytes(unsafe.Pointer(ptr), C.int(len))
+	C.hawk_rtx_freemem(val.rtx.c, unsafe.Pointer(ptr))
+
+	return v, nil
 }
 
 // -----------------------------------------------------------

@@ -3661,10 +3661,10 @@ HAWK_EXPORT void hawk_rtx_freevalbcstr (
  * hawk_int_t l;
  * hawk_flt_t r;
  * int n;
- * n = hawk_rtx_valtonum (v, &l, &r);
- * if (n <= -1) error ();
- * else if (n == 0) print_int (l);
- * else if (n >= 1) print_flt (r);
+ * n = hawk_rtx_valtonum(v, &l, &r);
+ * if (n <= -1) error();
+ * else if (n == 0) print_int(l);
+ * else if (n >= 1) print_flt(r);
  * \endcode
  *
  * \return -1 on failure, 0 if converted to an integer, 1 if converted to
