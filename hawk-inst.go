@@ -9,7 +9,6 @@ import "weak"
 
 type Instance struct {
 	c *C.hawk_t // c object
-	//g *Hawk     // go object
 	g weak.Pointer[Hawk] // go object
 }
 

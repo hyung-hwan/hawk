@@ -86,7 +86,25 @@ type Val struct {
 	prev *Val
 }
 
+type ValType int
+const (
+	VAL_NIL  ValType = C.HAWK_VAL_NIL
+	VAL_CHAR ValType = C.HAWK_VAL_CHAR
+	VAL_BCHR ValType = C.HAWK_VAL_BCHR
+	VAL_INT  ValType = C.HAWK_VAL_INT
+	VAL_FLT  ValType = C.HAWK_VAL_FLT
+	VAL_STR  ValType = C.HAWK_VAL_STR
+	VAL_MBS  ValType = C.HAWK_VAL_MBS
+	VAL_FUN  ValType = C.HAWK_VAL_FUN
+	VAL_MAP  ValType = C.HAWK_VAL_MAP
+	VAL_ARR  ValType = C.HAWK_VAL_ARR
+	VAL_REX  ValType = C.HAWK_VAL_REX
+	VAL_REF  ValType = C.HAWK_VAL_REF
+	VAL_BOB  ValType = C.HAWK_VAL_BOB
+)
+
 type BitMask C.hawk_bitmask_t
+
 
 func deregister_instance(h *Hawk) {
 fmt.Printf ("DEREGISER INSTANCE %p\n", h)
@@ -269,6 +287,7 @@ func (hawk *Hawk) chain_rtx(rtx *Rtx) {
 	rtx.next = nil
 	hawk.rtx_tail = rtx
 	hawk.rtx_count++
+fmt.Printf(">>>> %d\n", hawk.rtx_count)
 	hawk.rtx_mtx.Unlock()
 }
 
@@ -291,6 +310,7 @@ fmt.Printf("head %p tail %p\n", hawk.rtx_tail, hawk.rtx_tail)
 	rtx.next = nil
 	rtx.prev = nil
 	hawk.rtx_count--
+fmt.Printf(">>>> %d\n", hawk.rtx_count)
 	hawk.rtx_mtx.Unlock()
 }
 
@@ -546,13 +566,19 @@ func (val *Val) Close() {
 	}
 }
 
-/*func (val* Val) ToByte() (byte, error) {
+func (val *Val) Type() ValType {
+	var x C.int
+	x = C.hawk_rtx_getvaltype(val.rtx.c, val.c)
+	return ValType(x)
 }
 
-func (val* Val) ToRune() (rune, error) {
+/*func (val *Val) ToByte() (byte, error) {
+}
+
+func (val *Val) ToRune() (rune, error) {
 }*/
 
-func (val* Val) ToInt() (int, error) {
+func (val *Val) ToInt() (int, error) {
 	var v C.hawk_int_t
 	var x C.int
 
@@ -562,7 +588,7 @@ func (val* Val) ToInt() (int, error) {
 	return int(v), nil
 }
 
-func (val* Val) ToFlt() (float64, error) {
+func (val *Val) ToFlt() (float64, error) {
 	var v float64
 	var x C.int
 
@@ -573,7 +599,7 @@ func (val* Val) ToFlt() (float64, error) {
 	return v, nil
 }
 
-func (val* Val) ToStr() (string, error) {
+func (val *Val) ToStr() (string, error) {
 	var out C.hawk_rtx_valtostr_out_t
 	var ptr *C.hawk_ooch_t
 	var len C.hawk_oow_t
@@ -591,7 +617,7 @@ func (val* Val) ToStr() (string, error) {
 	return v, nil
 }
 
-func (val* Val) ToByteArr() ([]byte, error) {
+func (val *Val) ToByteArr() ([]byte, error) {
 	var ptr *C.hawk_bch_t
 	var len C.hawk_oow_t
 	var v []byte
@@ -603,6 +629,61 @@ func (val* Val) ToByteArr() ([]byte, error) {
 	C.hawk_rtx_freemem(val.rtx.c, unsafe.Pointer(ptr))
 
 	return v, nil
+}
+
+func (val *Val) ArrayTally() int {
+	var v C.hawk_ooi_t
+// TODO: if not array .. panic or return -1 or 0?
+	v = C.hawk_rtx_getarrvaltally(val.rtx.c, val.c)
+	return int(v)
+}
+
+// TODO: function get the first index and last index or the capacity
+//       function to traverse?
+func (val *Val) ArrayField(index int) (*Val, error) {
+	var v *C.hawk_val_t
+	v = C.hawk_rtx_getarrvalfld(val.rtx.c, val.c, C.hawk_ooi_t(index))
+	if v == nil { return nil, val.rtx.make_errinfo() }
+	return val.rtx.make_val(func() *C.hawk_val_t { return v })
+}
+
+func (val *Val) MapField(key string) (*Val, error) {
+	var v *C.hawk_val_t
+	var uc []C.hawk_uch_t
+	uc = string_to_uchars(key)
+	v = C.hawk_rtx_getmapvalfld(val.rtx.c, val.c, &uc[0], C.hawk_oow_t(len(uc)))
+	if v == nil { return nil, val.rtx.make_errinfo() }
+	return val.rtx.make_val(func() *C.hawk_val_t { return v })
+}
+
+//func (val *Val) SetArrayField(index int, val *Val) error {
+//
+//}
+
+// TODO: map traversal..
+//func (val *Val) SetMapField(key string, val *Val) error {
+//}
+
+// -----------------------------------------------------------
+
+var val_type []string = []string{
+	VAL_NIL: "NIL",
+	VAL_CHAR: "CHAR",
+	VAL_BCHR: "BCHR",
+	VAL_INT: "INT",
+	VAL_FLT: "FLT",
+	VAL_STR: "STR",
+	VAL_MBS: "MBS",
+	VAL_FUN: "FUN",
+	VAL_MAP: "MAP",
+	VAL_ARR: "ARR",
+	VAL_REX: "REX",
+	VAL_REF: "REF",
+	VAL_BOB: "BOB",
+}
+
+func (t ValType) String() string {
+	return val_type[t]
 }
 
 // -----------------------------------------------------------

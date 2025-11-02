@@ -1444,6 +1444,14 @@ hawk_val_t* hawk_rtx_getarrvalfld (hawk_rtx_t* rtx, hawk_val_t* arr, hawk_ooi_t 
 	return HAWK_ARR_DPTR(_arr, index);
 }
 
+hawk_ooi_t hawk_rtx_getarrvaltally (hawk_rtx_t* rtx, hawk_val_t* arr)
+{
+	hawk_arr_t* _arr;
+	HAWK_ASSERT (HAWK_RTX_GETVALTYPE(rtx, arr) == HAWK_VAL_ARR);
+	_arr = ((hawk_val_arr_t*)arr)->arr;
+	return HAWK_ARR_TALLY(_arr);
+}
+
 hawk_val_t* hawk_rtx_makerefval (hawk_rtx_t* rtx, int id, hawk_val_t** adr)
 {
 	hawk_val_ref_t* val;

@@ -3373,6 +3373,11 @@ HAWK_EXPORT hawk_val_t* hawk_rtx_getarrvalfld (
 	hawk_ooi_t  index
 );
 
+HAWK_EXPORT hawk_ooi_t hawk_rtx_getarrvaltally (
+	hawk_rtx_t* rtx,
+	hawk_val_t* arr
+);
+
 /**
  * The hawk_rtx_makerefval() function creates a reference value.
  * \return value on success, #HAWK_NULL on failure
