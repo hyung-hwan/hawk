@@ -647,6 +647,20 @@ func (val *Val) ArrayField(index int) (*Val, error) {
 	return val.rtx.make_val(func() *C.hawk_val_t { return v })
 }
 
+/*
+func (val *Val) ArrayFirstField() *Val {
+	var v *C.hawk_val_t
+	var itr C.hawk_val_arr_itr_t
+	v = C.hawk_rtx_getfirstarrvalitr(val.rtx.c, val.c, &itr)
+	if v == nil { return nil, val.rtx.make_errinfo() }
+	return val.rtx.make_val(func() *C.hawk_val_t { return v })
+}
+
+func (val *Val) ArrayNextField(itr ValArrItr) *Val {
+
+}
+*/
+
 func (val *Val) MapField(key string) (*Val, error) {
 	var v *C.hawk_val_t
 	var uc []C.hawk_uch_t

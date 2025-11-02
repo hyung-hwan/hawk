@@ -193,10 +193,16 @@ return x;
 				if f.Type() != hawk.VAL_STR {
 					t.Errorf("the value at the hello field must be a string. but it was %s", f.Type().String())
 				} else {
+					var i int
 					var sv string
+
 					sv = hawk.Must(f.ToStr())
 					if sv != "hawk flieshawk flies" {
 						t.Errorf("the value for the hello field must be 'hawk flieshawk flies'. but it was %s", sv)
+					}
+
+					for i = 1; i <= sz; i++ {
+						fmt.Printf("%d %v\n", i, hawk.Must(v.ArrayField(i)))
 					}
 				}
 			}

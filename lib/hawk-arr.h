@@ -134,7 +134,6 @@ typedef hawk_oow_t (*hawk_arr_sizer_t) (
 	hawk_oow_t  hint  /**< sizing hint */
 );
 
-
 typedef struct hawk_arr_style_t hawk_arr_style_t;
 
 struct hawk_arr_style_t
@@ -160,6 +159,12 @@ enum hawk_arr_style_kind_t
 
 typedef enum hawk_arr_style_kind_t  hawk_arr_style_kind_t;
 
+struct hawk_arr_itr_t
+{
+	hawk_oow_t idx;
+};
+
+typedef struct hawk_arr_itr_t hawk_arr_itr_t;
 
 typedef hawk_arr_walk_t (*hawk_arr_walker_t) (
 	hawk_arr_t*      arr   /* array */,
@@ -347,6 +352,23 @@ HAWK_EXPORT void hawk_arr_clear (
 );
 
 /**
+ * The hawk_arr_getfirstelem() function returns the pointer to the first element holder
+ * in an array.
+ */
+HAWK_EXPORT hawk_ptl_t* hawk_arr_getfirstelem (
+	hawk_arr_t*     arr,   /**< array */
+	hawk_arr_itr_t* itr    /**< iterator*/
+);
+
+/**
+ * The hawk_arr_getnextelem() function returns the pointer to the next element holder.
+ */
+HAWK_EXPORT hawk_ptl_t* hawk_arr_getnextelem (
+	hawk_arr_t*      arr,   /**< array */
+	hawk_arr_itr_t*  itr    /**< iterator*/
+);
+
+/**
  * The hawk_arr_walk() function calls the \a walker function for each
  * element in the array beginning from the first. The \a walker function
  * should return one of #HAWK_ARR_WALK_FORWARD, #HAWK_ARR_WALK_BACKWARD,
@@ -356,7 +378,7 @@ HAWK_EXPORT void hawk_arr_clear (
 HAWK_EXPORT hawk_oow_t hawk_arr_walk (
 	hawk_arr_t*       arr,
 	hawk_arr_walker_t walker,
-	void*            ctx
+	void*             ctx
 );
 
 /**

@@ -371,7 +371,6 @@ typedef hawk_map_itr_t hawk_val_map_itr_t;
  */
 #define HAWK_VAL_MAP_ITR_VAL(itr) ((const hawk_val_t*)HAWK_MAP_VPTR((itr)->pair))
 
-
 /**
  * The hawk_val_map_data_type_t type defines the type of
  * map value data for the #hawk_val_map_data_t structure.
@@ -405,6 +404,16 @@ struct hawk_val_map_data_t
 
 typedef struct hawk_val_map_data_t hawk_val_map_data_t;
 
+/**
+ * The hawk_val_arr_itr_t type defines the iterator to array value fields.
+ */
+typedef struct hawk_val_arr_itr_t hawk_val_arr_itr_t;
+
+struct hawk_val_arr_itr_t
+{
+	hawk_arr_itr_t itr;
+	hawk_ptl_t elem;
+};
 
 /* ------------------------------------------------------------------------ */
 
@@ -3376,6 +3385,18 @@ HAWK_EXPORT hawk_val_t* hawk_rtx_getarrvalfld (
 HAWK_EXPORT hawk_ooi_t hawk_rtx_getarrvaltally (
 	hawk_rtx_t* rtx,
 	hawk_val_t* arr
+);
+
+HAWK_EXPORT hawk_val_arr_itr_t* hawk_rtx_getfirstarrvalitr (
+	hawk_rtx_t*         rtx,
+	hawk_val_t*         arr,
+	hawk_val_arr_itr_t* itr
+);
+
+HAWK_EXPORT hawk_val_arr_itr_t* hawk_rtx_getnextarrvalitr (
+	hawk_rtx_t*         rtx,
+	hawk_val_t*         arr,
+	hawk_val_arr_itr_t* itr
 );
 
 /**

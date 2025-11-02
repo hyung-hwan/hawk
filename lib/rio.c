@@ -516,7 +516,7 @@ int hawk_rtx_readio (hawk_rtx_t* rtx, hawk_in_type_t in_type, const hawk_ooch_t*
 			 * for example, `hawk -v RS=separator -f script f1.txt f2.txt`
 			 * the console handler is invoked over all the specified files.
 			 * if `separator` is not found when the end of `f1.txt` is reached,
-			 * `f2.txt` is opened and read. When the handler returns the 
+			 * `f2.txt` is opened and read. When the handler returns the
 			 * first part of the second file, it must indicate this special
 			 * condition. if it's not indicated, it goes on without breaking
 			 * the record at the end of the first file.

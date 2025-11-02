@@ -361,6 +361,7 @@ static int fnc_array (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	tmp = hawk_rtx_makearrval(rtx, ((nargs > 0)? nargs: -1));
 	if (HAWK_UNLIKELY(!tmp)) return -1; /* hard failure */
 
+	/* 1-based. leave the first slot unassigned */
 	for (i = 0; i < nargs; i++)
 	{
 		if (HAWK_UNLIKELY(hawk_rtx_setarrvalfld(rtx, tmp, i + 1, hawk_rtx_getarg(rtx, i)) == HAWK_NULL))

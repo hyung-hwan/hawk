@@ -33,7 +33,6 @@
 #define keeper_t hawk_arr_keeper_t
 #define walker_t hawk_arr_walker_t
 
-
 #define TOB(arr,len) ((len)*(arr)->scale)
 #define DPTR(slot)   ((slot)->val.ptr)
 #define DLEN(slot)   ((slot)->val.len)
@@ -480,6 +479,38 @@ void hawk_arr_clear (hawk_arr_t* arr)
 
 	arr->size = 0;
 	arr->tally = 0;
+}
+
+hawk_ptl_t* hawk_arr_getfirstelem (hawk_arr_t* arr, hawk_arr_itr_t* itr)
+{
+	hawk_oow_t i;
+
+	for (i = 0; i < arr->size; i++)
+	{
+		if (arr->slot[i])
+		{
+			itr->idx = i;
+			return &arr->slot[i]->val;
+		}
+	}
+
+	return HAWK_NULL;
+}
+
+hawk_ptl_t* hawk_arr_getnextelem (hawk_arr_t* arr, hawk_arr_itr_t* itr)
+{
+	hawk_oow_t i;
+
+	for (i = itr->idx + 1; i < arr->size; i++)
+	{
+		if (arr->slot[i])
+		{
+			itr->idx = i;
+			return &arr->slot[i]->val;
+		}
+	}
+
+	return HAWK_NULL;
 }
 
 hawk_oow_t hawk_arr_walk (hawk_arr_t* arr, walker_t walker, void* ctx)
