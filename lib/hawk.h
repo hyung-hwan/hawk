@@ -412,7 +412,7 @@ typedef struct hawk_val_arr_itr_t hawk_val_arr_itr_t;
 struct hawk_val_arr_itr_t
 {
 	hawk_arr_itr_t itr;
-	hawk_ptl_t elem;
+	hawk_val_t* elem;
 };
 
 /* ------------------------------------------------------------------------ */

@@ -1458,7 +1458,7 @@ hawk_val_arr_itr_t* hawk_rtx_getfirstarrvalitr (hawk_rtx_t* rtx, hawk_val_t* arr
 	HAWK_ASSERT(HAWK_RTX_GETVALTYPE(rtx, arr) == HAWK_VAL_ARR);
 	ptl = hawk_arr_getfirstelem(((hawk_val_arr_t*)arr)->arr, &itr->itr);
 	if (!ptl) return HAWK_NULL;
-	itr->elem = *ptl;
+	itr->elem = ptl->ptr;
 	return itr;
 }
 
@@ -1468,7 +1468,7 @@ hawk_val_arr_itr_t* hawk_rtx_getnextarrvalitr (hawk_rtx_t* rtx, hawk_val_t* arr,
 	HAWK_ASSERT(HAWK_RTX_GETVALTYPE(rtx, arr) == HAWK_VAL_ARR);
 	ptl = hawk_arr_getnextelem(((hawk_val_arr_t*)arr)->arr, &itr->itr);
 	if (!ptl) return HAWK_NULL;
-	itr->elem = *ptl;
+	itr->elem = ptl->ptr;
 	return itr;
 }
 

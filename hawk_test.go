@@ -132,7 +132,8 @@ return x
 }
 function get_arr(s) {
 @local x;
-x = hawk::array(s, (s %% s), 10, 20.99);
+x = hawk::array(s, (s %% s), 10, 20.99, "what the");
+delete(x[3]);
 for (i in x) print i, x[i];
 return x;
 }`)
@@ -193,16 +194,25 @@ return x;
 				if f.Type() != hawk.VAL_STR {
 					t.Errorf("the value at the hello field must be a string. but it was %s", f.Type().String())
 				} else {
-					var i int
+					//var i int
 					var sv string
+					var ff *hawk.Val
+					var itr hawk.ValArrayItr
 
 					sv = hawk.Must(f.ToStr())
 					if sv != "hawk flieshawk flies" {
 						t.Errorf("the value for the hello field must be 'hawk flieshawk flies'. but it was %s", sv)
 					}
 
+					/*
 					for i = 1; i <= sz; i++ {
 						fmt.Printf("%d %v\n", i, hawk.Must(v.ArrayField(i)))
+					}
+					*/
+					ff = v.ArrayFirstField(&itr)
+					for ff != nil {
+						fmt.Printf("%d [%v]\n", itr.Index(), ff.String())
+						ff = v.ArrayNextField(&itr)
 					}
 				}
 			}

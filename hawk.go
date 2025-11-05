@@ -103,8 +103,15 @@ const (
 	VAL_BOB  ValType = C.HAWK_VAL_BOB
 )
 
-type BitMask C.hawk_bitmask_t
+type ValArrayItr struct {
+	c C.hawk_val_arr_itr_t
+}
 
+type ValMapItr struct {
+	c *C.hawk_val_map_itr_t
+}
+
+type BitMask C.hawk_bitmask_t
 
 func deregister_instance(h *Hawk) {
 fmt.Printf ("DEREGISER INSTANCE %p\n", h)
@@ -647,19 +654,27 @@ func (val *Val) ArrayField(index int) (*Val, error) {
 	return val.rtx.make_val(func() *C.hawk_val_t { return v })
 }
 
-/*
-func (val *Val) ArrayFirstField() *Val {
-	var v *C.hawk_val_t
-	var itr C.hawk_val_arr_itr_t
-	v = C.hawk_rtx_getfirstarrvalitr(val.rtx.c, val.c, &itr)
-	if v == nil { return nil, val.rtx.make_errinfo() }
-	return val.rtx.make_val(func() *C.hawk_val_t { return v })
+func (val *Val) ArrayFirstField(itr *ValArrayItr) *Val {
+	var i *C.hawk_val_arr_itr_t
+	var v *Val
+	var err error
+	i = C.hawk_rtx_getfirstarrvalitr(val.rtx.c, val.c, &itr.c)
+	if i == nil { return nil }
+	v, err = val.rtx.make_val(func() *C.hawk_val_t { return itr.c.elem })
+	if err != nil { return nil }
+	return v;
 }
 
-func (val *Val) ArrayNextField(itr ValArrItr) *Val {
-
+func (val *Val) ArrayNextField(itr *ValArrayItr) *Val {
+	var i *C.hawk_val_arr_itr_t
+	var v *Val
+	var err error
+	i = C.hawk_rtx_getnextarrvalitr(val.rtx.c, val.c, &itr.c)
+	if i == nil { return nil }
+	v, err = val.rtx.make_val(func() *C.hawk_val_t { return itr.c.elem })
+	if err != nil { return nil }
+	return v;
 }
-*/
 
 func (val *Val) MapField(key string) (*Val, error) {
 	var v *C.hawk_val_t
@@ -677,6 +692,12 @@ func (val *Val) MapField(key string) (*Val, error) {
 // TODO: map traversal..
 //func (val *Val) SetMapField(key string, val *Val) error {
 //}
+
+func (val *Val) String() string {
+	var s string
+	s, _ = val.ToStr()
+	return s
+}
 
 // -----------------------------------------------------------
 
@@ -698,6 +719,12 @@ var val_type []string = []string{
 
 func (t ValType) String() string {
 	return val_type[t]
+}
+
+// -----------------------------------------------------------
+
+func (itr *ValArrayItr) Index() int {
+	return int(itr.c.itr.idx)
 }
 
 // -----------------------------------------------------------
