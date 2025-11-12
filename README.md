@@ -960,6 +960,18 @@ BEGIN {
 END { close("cat"); print "ENDED"; }
 ```
 
+```awk
+BEGIN {
+	cmd = "sort";
+	data = hawk::array("hello", "world", "two-way pipe", "testing");
+
+	for (i = 1; i <= length(data); i++) print data[i] |& cmd;
+	close(cmd, "to");
+
+	while ((cmd |& getline line) > 0) print line;
+	close(cmd);
+}
+```
 ## Garbage Collection
 
 The primary value management is reference counting based but `map` and `array` values are garbage-collected additionally.

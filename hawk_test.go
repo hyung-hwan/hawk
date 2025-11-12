@@ -156,6 +156,9 @@ return x;
 				t.Errorf("the returned value must be %s. but it was %s", hawk.VAL_MAP.String(), v.Type().String())
 			} else {
 				var f *hawk.Val
+				var kk string
+				var vv *hawk.Val
+				var itr hawk.ValMapItr
 
 				f = hawk.Must(v.MapField("hello"))
 				if f.Type() != hawk.VAL_STR {
@@ -171,6 +174,24 @@ return x;
 				f, err = v.MapField("HELLO")
 				if err == nil {
 					t.Errorf("the value at the HELLO field must not be found. but it was %s", f.Type().String())
+				}
+
+				fmt.Printf("== DUMPING MAP ==\n")
+				kk, vv = v.MapFirstField(&itr)
+				for vv != nil {
+					fmt.Printf("key=[%s] value=[%v]\n", kk, vv.String())
+					kk, vv = v.MapNextField(&itr)
+				}
+
+				fmt.Printf("== CHANGING MAP ==\n")
+				v.MapSetField("666.666", hawk.Must(rtx.NewValFromFlt(66666.66666)))
+				v.MapSetField("hello", hawk.Must(rtx.NewValFromStr("all stars")))
+
+				fmt.Printf("== DUMPING MAP ==\n")
+				kk, vv = v.MapFirstField(&itr)
+				for vv != nil {
+					fmt.Printf("key=[%s] value=[%v]\n", kk, vv.String())
+					kk, vv = v.MapNextField(&itr)
 				}
 			}
 		}
@@ -194,7 +215,7 @@ return x;
 				if f.Type() != hawk.VAL_STR {
 					t.Errorf("the value at the hello field must be a string. but it was %s", f.Type().String())
 				} else {
-					//var i int
+					var i int
 					var sv string
 					var ff *hawk.Val
 					var itr hawk.ValArrayItr
@@ -209,10 +230,14 @@ return x;
 						fmt.Printf("%d %v\n", i, hawk.Must(v.ArrayField(i)))
 					}
 					*/
-					ff = v.ArrayFirstField(&itr)
+					fmt.Printf("== CHANGING ARRAY ==\n")
+					v.ArraySetField(88, hawk.Must(rtx.NewValFromStr("eighty eight")))
+					v.ArraySetField(77, hawk.Must(rtx.NewValFromStr("seventy seventy")))
+					fmt.Printf("== DUMPING ARRAY ==\n")
+					i, ff = v.ArrayFirstField(&itr)
 					for ff != nil {
-						fmt.Printf("%d [%v]\n", itr.Index(), ff.String())
-						ff = v.ArrayNextField(&itr)
+						fmt.Printf("index=[%d] value=[%v]\n", i, ff.String())
+						i, ff = v.ArrayNextField(&itr)
 					}
 				}
 			}

@@ -258,7 +258,7 @@ hawk_oow_t hawk_arr_search (hawk_arr_t* arr, hawk_oow_t pos, const void* dptr, h
 		if (arr->style->comper(arr, DPTR(arr->slot[i]), DLEN(arr->slot[i]), dptr, dlen) == 0) return i;
 	}
 
-	hawk_gem_seterrnum (arr->gem, HAWK_NULL, HAWK_ENOENT);
+	hawk_gem_seterrnum(arr->gem, HAWK_NULL, HAWK_ENOENT);
 	return HAWK_ARR_NIL;
 }
 
@@ -277,7 +277,7 @@ hawk_oow_t hawk_arr_rsearch (hawk_arr_t* arr, hawk_oow_t pos, const void* dptr, 
 		}
 	}
 
-	hawk_gem_seterrnum (arr->gem, HAWK_NULL, HAWK_ENOENT);
+	hawk_gem_seterrnum(arr->gem, HAWK_NULL, HAWK_ENOENT);
 	return HAWK_ARR_NIL;
 }
 
@@ -321,7 +321,6 @@ hawk_oow_t hawk_arr_insert (hawk_arr_t* arr, hawk_oow_t pos, void* dptr, hawk_oo
 			{
 				hawk_oow_t bound = (pos >= arr->size)? pos: arr->size;
 				capa = HAWK_ALIGN_POW2(bound + 1, 64);
-				do { capa = arr->capa * 2; } while (capa <= bound);
 			}
 		}
 
@@ -345,7 +344,7 @@ hawk_oow_t hawk_arr_insert (hawk_arr_t* arr, hawk_oow_t pos, void* dptr, hawk_oo
 			/* the buffer is not still enough after resizing */
 			if (arr->style->freeer) arr->style->freeer(arr, DPTR(slot), DLEN(slot));
 			hawk_gem_freemem(arr->gem, slot);
-			hawk_gem_seterrnum (arr->gem, HAWK_NULL, HAWK_EBUFFULL);
+			hawk_gem_seterrnum(arr->gem, HAWK_NULL, HAWK_EBUFFULL);
 			return HAWK_ARR_NIL;
 		}
 	}
@@ -372,7 +371,7 @@ hawk_oow_t hawk_arr_update (hawk_arr_t* arr, hawk_oow_t pos, void* dptr, hawk_oo
 
 	if (pos >= arr->size)
 	{
-		hawk_gem_seterrnum (arr->gem, HAWK_NULL, HAWK_EINVAL);
+		hawk_gem_seterrnum(arr->gem, HAWK_NULL, HAWK_EINVAL);
 		return HAWK_ARR_NIL;
 	}
 

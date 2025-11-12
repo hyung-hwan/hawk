@@ -81,14 +81,14 @@ HAWK_INLINE hawk_rbt_pair_t* hawk_rbt_allocpair (
 	else if (kcop == HAWK_RBT_COPIER_INLINE)
 	{
 		KPTR(pair) = pair + 1;
-		if (kptr) HAWK_MEMCPY (KPTR(pair), kptr, KTOB(rbt,klen));
+		if (kptr) HAWK_MEMCPY(KPTR(pair), kptr, KTOB(rbt,klen));
 	}
 	else
 	{
 		KPTR(pair) = kcop(rbt, kptr, klen);
 		if (KPTR(pair) == HAWK_NULL)
 		{
-			hawk_gem_freemem (rbt->gem, pair);
+			hawk_gem_freemem(rbt->gem, pair);
 			return HAWK_NULL;
 		}
 	}
@@ -103,7 +103,7 @@ HAWK_INLINE hawk_rbt_pair_t* hawk_rbt_allocpair (
 		VPTR(pair) = pair + 1;
 		if (kcop == HAWK_RBT_COPIER_INLINE)
 			VPTR(pair) = (hawk_oob_t*)VPTR(pair) + HAWK_ALIGN_POW2(KTOB(rbt,klen), HAWK_SIZEOF_VOID_P);
-		if (vptr) HAWK_MEMCPY (VPTR(pair), vptr, VTOB(rbt,vlen));
+		if (vptr) HAWK_MEMCPY(VPTR(pair), vptr, VTOB(rbt,vlen));
 	}
 	else
 	{
@@ -111,8 +111,8 @@ HAWK_INLINE hawk_rbt_pair_t* hawk_rbt_allocpair (
 		if (VPTR(pair) != HAWK_NULL)
 		{
 			if (rbt->style->freeer[HAWK_RBT_KEY])
-				rbt->style->freeer[HAWK_RBT_KEY] (rbt, KPTR(pair), KLEN(pair));
-			hawk_gem_freemem (rbt->gem, pair);
+				rbt->style->freeer[HAWK_RBT_KEY](rbt, KPTR(pair), KLEN(pair));
+			hawk_gem_freemem(rbt->gem, pair);
 			return HAWK_NULL;
 		}
 	}
@@ -123,10 +123,10 @@ HAWK_INLINE hawk_rbt_pair_t* hawk_rbt_allocpair (
 HAWK_INLINE void hawk_rbt_freepair (hawk_rbt_t* rbt, hawk_rbt_pair_t* pair)
 {
 	if (rbt->style->freeer[HAWK_RBT_KEY])
-		rbt->style->freeer[HAWK_RBT_KEY] (rbt, KPTR(pair), KLEN(pair));
+		rbt->style->freeer[HAWK_RBT_KEY](rbt, KPTR(pair), KLEN(pair));
 	if (rbt->style->freeer[HAWK_RBT_VAL])
-		rbt->style->freeer[HAWK_RBT_VAL] (rbt, VPTR(pair), VLEN(pair));
-	hawk_gem_freemem (rbt->gem, pair);
+		rbt->style->freeer[HAWK_RBT_VAL](rbt, VPTR(pair), VLEN(pair));
+	hawk_gem_freemem(rbt->gem, pair);
 }
 
 static hawk_rbt_style_t style[] =
@@ -198,24 +198,24 @@ hawk_rbt_t* hawk_rbt_open (hawk_gem_t* gem, hawk_oow_t xtnsize, int kscale, int 
 
 	if (HAWK_UNLIKELY(hawk_rbt_init(rbt, gem, kscale, vscale) <= -1))
 	{
-		hawk_gem_freemem (gem, rbt);
+		hawk_gem_freemem(gem, rbt);
 		return HAWK_NULL;
 	}
 
-	HAWK_MEMSET (rbt + 1, 0, xtnsize);
+	HAWK_MEMSET(rbt + 1, 0, xtnsize);
 	return rbt;
 }
 
 void hawk_rbt_close (hawk_rbt_t* rbt)
 {
 	hawk_rbt_fini (rbt);
-	hawk_gem_freemem (rbt->gem, rbt);
+	hawk_gem_freemem(rbt->gem, rbt);
 }
 
 int hawk_rbt_init (hawk_rbt_t* rbt, hawk_gem_t* gem, int kscale, int vscale)
 {
 	/* do not zero out the extension */
-	HAWK_MEMSET (rbt, 0, HAWK_SIZEOF(*rbt));
+	HAWK_MEMSET(rbt, 0, HAWK_SIZEOF(*rbt));
 	rbt->gem = gem;
 
 	rbt->scale[HAWK_RBT_KEY] = (kscale < 1)? 1: kscale;
@@ -243,7 +243,7 @@ int hawk_rbt_init (hawk_rbt_t* rbt, hawk_gem_t* gem, int kscale, int vscale)
 
 void hawk_rbt_fini (hawk_rbt_t* rbt)
 {
-	hawk_rbt_clear (rbt);
+	hawk_rbt_clear(rbt);
 }
 
 const hawk_rbt_style_t* hawk_rbt_getstyle (const hawk_rbt_t* rbt)
@@ -400,13 +400,13 @@ static void adjust (hawk_rbt_t* rbt, hawk_rbt_pair_t* pair)
 			if (pair == tmp2)
 			{
 				pair = x_par;
-				rotate (rbt, pair, leftwise);
+				rotate(rbt, pair, leftwise);
 				x_par = pair->parent;
 			}
 
 			x_par->color = HAWK_RBT_BLACK;
 			x_par->parent->color = HAWK_RBT_RED;
-			rotate (rbt, x_par->parent, !leftwise);
+			rotate(rbt, x_par->parent, !leftwise);
 		}
 	}
 }
@@ -420,7 +420,7 @@ static hawk_rbt_pair_t* change_pair_val (hawk_rbt_t* rbt, hawk_rbt_pair_t* pair,
 		 * No value replacement occurs. */
 		if (rbt->style->keeper != HAWK_NULL)
 		{
-			rbt->style->keeper (rbt, vptr, vlen);
+			rbt->style->keeper(rbt, vptr, vlen);
 		}
 	}
 	else
@@ -439,7 +439,7 @@ static hawk_rbt_pair_t* change_pair_val (hawk_rbt_t* rbt, hawk_rbt_pair_t* pair,
 		{
 			if (ovlen == vlen)
 			{
-				if (vptr) HAWK_MEMCPY (VPTR(pair), vptr, VTOB(rbt,vlen));
+				if (vptr) HAWK_MEMCPY(VPTR(pair), vptr, VTOB(rbt,vlen));
 			}
 			else
 			{
@@ -469,7 +469,7 @@ static hawk_rbt_pair_t* change_pair_val (hawk_rbt_t* rbt, hawk_rbt_pair_t* pair,
 
 				if (pair == rbt->root) rbt->root = p;
 
-				hawk_rbt_freepair (rbt, pair);
+				hawk_rbt_freepair(rbt, pair);
 				return p;
 			}
 		}
@@ -484,7 +484,7 @@ static hawk_rbt_pair_t* change_pair_val (hawk_rbt_t* rbt, hawk_rbt_pair_t* pair,
 		/* free up the old value */
 		if (rbt->style->freeer[HAWK_RBT_VAL])
 		{
-			rbt->style->freeer[HAWK_RBT_VAL] (rbt, ovptr, ovlen);
+			rbt->style->freeer[HAWK_RBT_VAL](rbt, ovptr, ovlen);
 		}
 	}
 
@@ -556,7 +556,7 @@ static hawk_rbt_pair_t* insert (hawk_rbt_t* rbt, void* kptr, hawk_oow_t klen, vo
 		}
 
 		x_new->parent = x_par;
-		adjust (rbt, x_new);
+		adjust(rbt, x_new);
 	}
 
 	rbt->root->color = HAWK_RBT_BLACK;
@@ -566,23 +566,23 @@ static hawk_rbt_pair_t* insert (hawk_rbt_t* rbt, void* kptr, hawk_oow_t klen, vo
 
 hawk_rbt_pair_t* hawk_rbt_upsert (hawk_rbt_t* rbt, void* kptr, hawk_oow_t klen, void* vptr, hawk_oow_t vlen)
 {
-	return insert (rbt, kptr, klen, vptr, vlen, UPSERT);
+	return insert(rbt, kptr, klen, vptr, vlen, UPSERT);
 }
 
 hawk_rbt_pair_t* hawk_rbt_ensert (hawk_rbt_t* rbt, void* kptr, hawk_oow_t klen, void* vptr, hawk_oow_t vlen)
 {
-	return insert (rbt, kptr, klen, vptr, vlen, ENSERT);
+	return insert(rbt, kptr, klen, vptr, vlen, ENSERT);
 }
 
 hawk_rbt_pair_t* hawk_rbt_insert (hawk_rbt_t* rbt, void* kptr, hawk_oow_t klen, void* vptr, hawk_oow_t vlen)
 {
-	return insert (rbt, kptr, klen, vptr, vlen, INSERT);
+	return insert(rbt, kptr, klen, vptr, vlen, INSERT);
 }
 
 
 hawk_rbt_pair_t* hawk_rbt_update (hawk_rbt_t* rbt, void* kptr, hawk_oow_t klen, void* vptr, hawk_oow_t vlen)
 {
-	return insert (rbt, kptr, klen, vptr, vlen, UPDATE);
+	return insert(rbt, kptr, klen, vptr, vlen, UPDATE);
 }
 
 hawk_rbt_pair_t* hawk_rbt_cbsert (hawk_rbt_t* rbt, void* kptr, hawk_oow_t klen, cbserter_t cbserter, void* ctx)
@@ -673,7 +673,7 @@ hawk_rbt_pair_t* hawk_rbt_cbsert (hawk_rbt_t* rbt, void* kptr, hawk_oow_t klen, 
 		}
 
 		x_new->parent = x_par;
-		adjust (rbt, x_new);
+		adjust(rbt, x_new);
 	}
 
 	rbt->root->color = HAWK_RBT_BLACK;
@@ -695,7 +695,7 @@ static void adjust_for_delete (hawk_rbt_t* rbt, hawk_rbt_pair_t* pair, hawk_rbt_
 			{
 				tmp->color = HAWK_RBT_BLACK;
 				par->color = HAWK_RBT_RED;
-				rotate_left (rbt, par);
+				rotate_left(rbt, par);
 				tmp = par->right;
 			}
 
@@ -713,7 +713,7 @@ static void adjust_for_delete (hawk_rbt_t* rbt, hawk_rbt_pair_t* pair, hawk_rbt_
 					if (!IS_NIL(rbt,tmp->left))
 						tmp->left->color = HAWK_RBT_BLACK;
 					tmp->color = HAWK_RBT_RED;
-					rotate_right (rbt, tmp);
+					rotate_right(rbt, tmp);
 					tmp = par->right;
 				}
 
@@ -722,7 +722,7 @@ static void adjust_for_delete (hawk_rbt_t* rbt, hawk_rbt_pair_t* pair, hawk_rbt_
 				if (tmp->right->color == HAWK_RBT_RED)
 					tmp->right->color = HAWK_RBT_BLACK;
 
-				rotate_left (rbt, par);
+				rotate_left(rbt, par);
 				pair = rbt->root;
 			}
 		}
@@ -734,7 +734,7 @@ static void adjust_for_delete (hawk_rbt_t* rbt, hawk_rbt_pair_t* pair, hawk_rbt_
 			{
 				tmp->color = HAWK_RBT_BLACK;
 				par->color = HAWK_RBT_RED;
-				rotate_right (rbt, par);
+				rotate_right(rbt, par);
 				tmp = par->left;
 			}
 
@@ -752,7 +752,7 @@ static void adjust_for_delete (hawk_rbt_t* rbt, hawk_rbt_pair_t* pair, hawk_rbt_
 					if (!IS_NIL(rbt,tmp->right))
 						tmp->right->color = HAWK_RBT_BLACK;
 					tmp->color = HAWK_RBT_RED;
-					rotate_left (rbt, tmp);
+					rotate_left(rbt, tmp);
 					tmp = par->left;
 				}
 				tmp->color = par->color;
@@ -760,7 +760,7 @@ static void adjust_for_delete (hawk_rbt_t* rbt, hawk_rbt_pair_t* pair, hawk_rbt_
 				if (tmp->left->color == HAWK_RBT_RED)
 					tmp->left->color = HAWK_RBT_BLACK;
 
-				rotate_right (rbt, par);
+				rotate_right(rbt, par);
 				pair = rbt->root;
 			}
 		}
@@ -806,14 +806,14 @@ static void delete_pair (hawk_rbt_t* rbt, hawk_rbt_pair_t* pair)
 	if (y == pair)
 	{
 		if (y->color == HAWK_RBT_BLACK && !IS_NIL(rbt,x))
-			adjust_for_delete (rbt, x, parent);
+			adjust_for_delete(rbt, x, parent);
 
-		hawk_rbt_freepair (rbt, y);
+		hawk_rbt_freepair(rbt, y);
 	}
 	else
 	{
 		if (y->color == HAWK_RBT_BLACK && !IS_NIL(rbt,x))
-			adjust_for_delete (rbt, x, parent);
+			adjust_for_delete(rbt, x, parent);
 
 		if (pair->parent)
 		{
@@ -833,7 +833,7 @@ static void delete_pair (hawk_rbt_t* rbt, hawk_rbt_pair_t* pair)
 		if (pair->left->parent == pair) pair->left->parent = y;
 		if (pair->right->parent == pair) pair->right->parent = y;
 
-		hawk_rbt_freepair (rbt, pair);
+		hawk_rbt_freepair(rbt, pair);
 	}
 
 	rbt->size--;
@@ -853,10 +853,10 @@ static void delete_pair (hawk_rbt_t* rbt, hawk_rbt_pair_t* pair)
 				hawk_oow_t seqno = itr->_prot_seqno;
 
 				/* TODO: this is slow. devise a way to get the next pair safely without traversal */
-				hawk_rbt_getfirstpair (rbt, itr);
+				hawk_rbt_getfirstpair(rbt, itr);
 				while (itr->pair && itr->_prot_seqno < seqno)
 				{
-					hawk_rbt_getnextpair (rbt, itr);
+					hawk_rbt_getnextpair(rbt, itr);
 				}
 
 				itr->_prot_updated = 1;
@@ -875,14 +875,14 @@ int hawk_rbt_delete (hawk_rbt_t* rbt, const void* kptr, hawk_oow_t klen)
 	pair = hawk_rbt_search(rbt, kptr, klen);
 	if (!pair) return -1;
 
-	delete_pair (rbt, pair);
+	delete_pair(rbt, pair);
 	return 0;
 }
 
 void hawk_rbt_clear (hawk_rbt_t* rbt)
 {
 	/* TODO: improve this */
-	while (!IS_NIL(rbt,rbt->root)) delete_pair (rbt, rbt->root);
+	while (!IS_NIL(rbt,rbt->root)) delete_pair(rbt, rbt->root);
 }
 
 #if 0
@@ -891,15 +891,15 @@ static HAWK_INLINE hawk_rbt_walk_t walk_recursively (
 {
 	if (!IS_NIL(rbt,pair->left))
 	{
-		if (walk_recursively (rbt, walker, ctx, pair->left) == HAWK_RBT_WALK_STOP)
+		if (walk_recursively(rbt, walker, ctx, pair->left) == HAWK_RBT_WALK_STOP)
 			return HAWK_RBT_WALK_STOP;
 	}
 
-	if (walker (rbt, pair, ctx) == HAWK_RBT_WALK_STOP) return HAWK_RBT_WALK_STOP;
+	if (walker(rbt, pair, ctx) == HAWK_RBT_WALK_STOP) return HAWK_RBT_WALK_STOP;
 
 	if (!IS_NIL(rbt,pair->right))
 	{
-		if (walk_recursively (rbt, walker, ctx, pair->right) == HAWK_RBT_WALK_STOP)
+		if (walk_recursively(rbt, walker, ctx, pair->right) == HAWK_RBT_WALK_STOP)
 			return HAWK_RBT_WALK_STOP;
 	}
 

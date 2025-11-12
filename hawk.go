@@ -108,30 +108,30 @@ type ValArrayItr struct {
 }
 
 type ValMapItr struct {
-	c *C.hawk_val_map_itr_t
+	c C.hawk_val_map_itr_t
 }
 
 type BitMask C.hawk_bitmask_t
 
 func deregister_instance(h *Hawk) {
-fmt.Printf ("DEREGISER INSTANCE %p\n", h)
+//fmt.Printf ("DEREGISER INSTANCE %p\n", h)
 	for h.rtx_head != nil {
 //fmt.Printf ("DEREGISER CLOSING RTX %p\n", h.rtx_head)
 		h.rtx_head.Close()
 	}
 
 	if h.c != nil {
-fmt.Printf ("CLOSING h.c\n")
+//fmt.Printf ("CLOSING h.c\n")
 		C.hawk_close(h.c)
 		h.c = nil
 	}
 
 	if h.inst_no >= 0 {
-fmt.Printf ("DELETING instance h\n")
+//fmt.Printf ("DELETING instance h\n")
 		inst_table.delete_instance(h.inst_no)
 		h.inst_no = -1
 	}
-fmt.Printf ("END DEREGISER INSTANCE %p\n", h)
+//fmt.Printf ("END DEREGISER INSTANCE %p\n", h)
 }
 
 func New() (*Hawk, error) {
@@ -294,7 +294,7 @@ func (hawk *Hawk) chain_rtx(rtx *Rtx) {
 	rtx.next = nil
 	hawk.rtx_tail = rtx
 	hawk.rtx_count++
-fmt.Printf(">>>> %d\n", hawk.rtx_count)
+//fmt.Printf(">>>> %d\n", hawk.rtx_count)
 	hawk.rtx_mtx.Unlock()
 }
 
@@ -311,13 +311,13 @@ func (hawk *Hawk) unchain_rtx(rtx *Rtx) {
 	} else {
 		rtx.next.prev = rtx.prev
 	}
-fmt.Printf("head %p tail %p\n", hawk.rtx_tail, hawk.rtx_tail)
+//fmt.Printf("head %p tail %p\n", hawk.rtx_tail, hawk.rtx_tail)
 
 	rtx.h = nil
 	rtx.next = nil
 	rtx.prev = nil
 	hawk.rtx_count--
-fmt.Printf(">>>> %d\n", hawk.rtx_count)
+//fmt.Printf(">>>> %d\n", hawk.rtx_count)
 	hawk.rtx_mtx.Unlock()
 }
 
@@ -347,7 +347,7 @@ func (rtx* Rtx) Close() {
 		rtx.h.unchain_rtx(rtx)
 
 		for rtx.val_head != nil {
-fmt.Printf ("****** DEREGISER CLOSING VAL %p\n", rtx.val_head)
+//fmt.Printf ("****** DEREGISER CLOSING VAL %p\n", rtx.val_head)
 			rtx.val_head.Close()
 		}
 
@@ -437,7 +437,7 @@ func (rtx *Rtx) unchain_val(val *Val) {
 	} else {
 		val.next.prev = val.prev
 	}
-fmt.Printf("head %p tail %p\n", rtx.val_tail, rtx.val_tail)
+//fmt.Printf("head %p tail %p\n", rtx.val_tail, rtx.val_tail)
 
 	val.rtx = nil
 	val.next = nil
@@ -568,8 +568,10 @@ func (rtx *Rtx) NewArrVal(init_capa int) (*Val, error) {
 
 func (val *Val) Close() {
 	if val.rtx != nil {
-		C.hawk_rtx_refdownval(val.rtx.c, val.c)
+		var rtx *C.hawk_rtx_t
+		rtx = val.rtx.c // store this field as unchain_val() resets it to nil
 		val.rtx.unchain_val(val)
+		C.hawk_rtx_refdownval(rtx, val.c)
 	}
 }
 
@@ -654,26 +656,33 @@ func (val *Val) ArrayField(index int) (*Val, error) {
 	return val.rtx.make_val(func() *C.hawk_val_t { return v })
 }
 
-func (val *Val) ArrayFirstField(itr *ValArrayItr) *Val {
+func (val *Val) ArraySetField(index int, v *Val) error {
+	var vv *C.hawk_val_t
+	vv = C.hawk_rtx_setarrvalfld(val.rtx.c, val.c, C.hawk_ooi_t(index), v.c)
+	if vv == nil { return val.rtx.make_errinfo() }
+	return nil
+}
+
+func (val *Val) ArrayFirstField(itr *ValArrayItr) (int, *Val) {
 	var i *C.hawk_val_arr_itr_t
 	var v *Val
 	var err error
 	i = C.hawk_rtx_getfirstarrvalitr(val.rtx.c, val.c, &itr.c)
-	if i == nil { return nil }
+	if i == nil { return -1, nil }
 	v, err = val.rtx.make_val(func() *C.hawk_val_t { return itr.c.elem })
-	if err != nil { return nil }
-	return v;
+	if err != nil { return -1, nil }
+	return int(itr.c.itr.idx), v;
 }
 
-func (val *Val) ArrayNextField(itr *ValArrayItr) *Val {
+func (val *Val) ArrayNextField(itr *ValArrayItr) (int, *Val) {
 	var i *C.hawk_val_arr_itr_t
 	var v *Val
 	var err error
 	i = C.hawk_rtx_getnextarrvalitr(val.rtx.c, val.c, &itr.c)
-	if i == nil { return nil }
+	if i == nil { return -1, nil }
 	v, err = val.rtx.make_val(func() *C.hawk_val_t { return itr.c.elem })
-	if err != nil { return nil }
-	return v;
+	if err != nil { return -1, nil }
+	return int(itr.c.itr.idx), v;
 }
 
 func (val *Val) MapField(key string) (*Val, error) {
@@ -685,13 +694,41 @@ func (val *Val) MapField(key string) (*Val, error) {
 	return val.rtx.make_val(func() *C.hawk_val_t { return v })
 }
 
-//func (val *Val) SetArrayField(index int, val *Val) error {
-//
-//}
+func (val *Val) MapSetField(key string, v *Val) error {
+	var vv *C.hawk_val_t
+	var kk []C.hawk_uch_t
 
-// TODO: map traversal..
-//func (val *Val) SetMapField(key string, val *Val) error {
-//}
+	kk = string_to_uchars(key)
+	vv = C.hawk_rtx_setmapvalfld(val.rtx.c, val.c, &kk[0], C.hawk_oow_t(len(kk)), v.c)
+	if vv == nil { return val.rtx.make_errinfo() }
+	return nil
+}
+
+func (val *Val) MapFirstField(itr *ValMapItr) (string, *Val) {
+	var i *C.hawk_val_map_itr_t
+	var k string
+	var v *Val
+	var err error
+	i = C.hawk_rtx_getfirstmapvalitr(val.rtx.c, val.c, &itr.c)
+	if i == nil { return "", nil }
+	k = string(uchars_to_rune_slice((*C.hawk_uch_t)(itr.c.pair.key.ptr), uintptr(itr.c.pair.key.len)))
+	v, err = val.rtx.make_val(func() *C.hawk_val_t { return (*C.hawk_val_t)(itr.c.pair.val.ptr) })
+	if err != nil { return "", nil }
+	return k, v;
+}
+
+func (val *Val) MapNextField(itr *ValMapItr) (string, *Val) {
+	var i *C.hawk_val_map_itr_t
+	var k string
+	var v *Val
+	var err error
+	i = C.hawk_rtx_getnextmapvalitr(val.rtx.c, val.c, &itr.c)
+	if i == nil { return "", nil }
+	k = string(uchars_to_rune_slice((*C.hawk_uch_t)(itr.c.pair.key.ptr), uintptr(itr.c.pair.key.len)))
+	v, err = val.rtx.make_val(func() *C.hawk_val_t { return (*C.hawk_val_t)(itr.c.pair.val.ptr) })
+	if err != nil { return "", nil }
+	return k, v;
+}
 
 func (val *Val) String() string {
 	var s string
@@ -719,12 +756,6 @@ var val_type []string = []string{
 
 func (t ValType) String() string {
 	return val_type[t]
-}
-
-// -----------------------------------------------------------
-
-func (itr *ValArrayItr) Index() int {
-	return int(itr.c.itr.idx)
 }
 
 // -----------------------------------------------------------

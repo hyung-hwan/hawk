@@ -193,24 +193,26 @@ function main()
 		a[10] = "good";
 		a[0][40] = "bye"
 		a[0][0] = "farewell"
-		tap_ensure (hawk::typename(a), "array", @SCRIPTNAME, @SCRIPTLINE);
-		tap_ensure (hawk::typename(a[0]), "array", @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure(hawk::typename(a), "array", @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure(hawk::typename(a[0]), "array", @SCRIPTNAME, @SCRIPTLINE);
 		call_by_ref_3(a[9]);
-		tap_ensure (a[10], "good", @SCRIPTNAME, @SCRIPTLINE);
-		tap_ensure (a[9], "hello world", @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure(a[10], "good", @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure(a[9], "hello world", @SCRIPTNAME, @SCRIPTLINE);
 		call_by_ref_3(a[10]);
-		tap_ensure (a[10], "hello world", @SCRIPTNAME, @SCRIPTLINE);
-		tap_ensure (a[9], "hello world", @SCRIPTNAME, @SCRIPTLINE);
-		tap_ensure (a[0][40], "bye", @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure(a[10], "hello world", @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure(a[9], "hello world", @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure(a[0][40], "bye", @SCRIPTNAME, @SCRIPTLINE);
 		call_by_ref_3(a[0][40]);
-		tap_ensure (a[0][40], "hello world", @SCRIPTNAME, @SCRIPTLINE);
-		tap_ensure (length(a[0]), 2, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure(a[0][40], "hello world", @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure(length(a[0]), 2, @SCRIPTNAME, @SCRIPTLINE);
 		delete a[0][40];
-		tap_ensure (length(a[0]), 1, @SCRIPTNAME, @SCRIPTLINE);
-		tap_ensure (a[0][0], "farewell", @SCRIPTNAME, @SCRIPTLINE);
-		tap_ensure (a[0][40], nil, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure(length(a[0]), 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure(a[0][0], "farewell", @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure(a[0][40], nil, @SCRIPTNAME, @SCRIPTLINE);
 		#hawk::splice (a[0], 40, 1, @SCRIPTNAME, @SCRIPTLINE);
-		#tap_ensure (length(a[0]), 40, @SCRIPTNAME, @SCRIPTLINE);
+		#tap_ensure(length(a[0]), 40, @SCRIPTNAME, @SCRIPTLINE);
+		a[199] = 9999;
+		tap_ensure(a[199], 9999, @SCRIPTNAME, @SCRIPTLINE);
 	}
 
 

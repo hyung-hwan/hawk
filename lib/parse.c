@@ -173,6 +173,10 @@ enum tok_t
 	TOK_MBS,
 	TOK_REX,
 	TOK_XNIL,
+#if 0
+	TOK_HAWK_ARRAY,
+	TOK_HAWK_MAP,
+#endif
 
 	__TOKEN_COUNT__
 };
@@ -953,7 +957,7 @@ static int parse_progunit (hawk_t* hawk)
 		int once;
 
 		if (hawk->opt.depth.s.incl > 0 &&
-		    hawk->parse.depth.incl >=  hawk->opt.depth.s.incl)
+		    hawk->parse.depth.incl >= hawk->opt.depth.s.incl)
 		{
 			hawk_seterrnum(hawk, &hawk->ptok.loc, HAWK_EINCLTD);
 			return -1;
@@ -5779,7 +5783,7 @@ oops:
 }
 
 #if defined(HAWK_ENABLE_FUN_AS_VALUE)
-static hawk_nde_t* parse_fun_as_value  (hawk_t* hawk, const hawk_oocs_t* name, const hawk_loc_t* xloc, hawk_fun_t* funptr)
+static hawk_nde_t* parse_fun_as_value (hawk_t* hawk, const hawk_oocs_t* name, const hawk_loc_t* xloc, hawk_fun_t* funptr)
 {
 	hawk_nde_fun_t* nde;
 
@@ -7117,15 +7121,26 @@ retry:
 
 		GET_CHAR_TO(hawk, c);
 
-		if (c != HAWK_T('_') && !hawk_is_ooch_alpha(c))
+#if 0
+		if (c == '[' || c == '{') /* syntatic sugar for array/map composition */
+		{
+			int tt;
+			ADD_TOKEN_CHAR(hawk, tok, '@');
+			ADD_TOKEN_CHAR(hawk, tok, c);
+			tt = (c == '['? TOK_HAWK_ARRAY: TOK_HAWK_MAP);
+			SET_TOKEN_TYPE(hawk, tok, tt);
+			GET_CHAR(hawk);
+		}
+		else
+#endif
+		if (c != '_' && !hawk_is_ooch_alpha(c))
 		{
 			/* this extended keyword is empty,
 			 * not followed by a valid word */
 			hawk_seterrnum(hawk, &(hawk)->tok.loc, HAWK_EXKWEM);
 			return -1;
 		}
-
-		if (c == 'B' || c == 'b')
+		else if (c == 'B' || c == 'b')
 		{
 			hawk_sio_lxc_t pc1 = hawk->sio.last;
 			GET_CHAR_TO(hawk, c);

@@ -3292,9 +3292,9 @@ static HAWK_INLINE int delete_indexed (hawk_rtx_t* rtx, hawk_val_t* vv, hawk_nde
 #endif
 
 	if (vtype == HAWK_VAL_MAP)
-		hawk_map_delete (map, str, len);
+		hawk_map_delete(map, str, len);
 	else
-		hawk_arr_uplete (arr, idx,  1); /* no reindexing by compaction. keep the place unset */
+		hawk_arr_uplete(arr, idx,  1); /* no reindexing by compaction. keep the place unset */
 
 	if (str && str != idxbuf) hawk_rtx_freemem(rtx, str);
 	return 0;
@@ -3340,7 +3340,7 @@ static int run_delete (hawk_rtx_t* rtx, hawk_nde_delete_t* nde)
 				  print typename(a), length(a);
 				}
 				*/
-				hawk_map_clear (((hawk_val_map_t*)val)->map);
+				hawk_map_clear(((hawk_val_map_t*)val)->map);
 			}
 			break;
 
@@ -3352,7 +3352,7 @@ static int run_delete (hawk_rtx_t* rtx, hawk_nde_delete_t* nde)
 			}
 			else
 			{
-				hawk_arr_clear (((hawk_val_arr_t*)val)->arr);
+				hawk_arr_clear(((hawk_val_arr_t*)val)->arr);
 			}
 			break;
 
