@@ -33,11 +33,11 @@ hawkgo_DEPENDENCIES = hawkgo.bin
 hawkgo_LINK = cp -pf hawkgo.bin hawkgo$(EXEEXT) || echo "FAILED TO LINK"
 
 if ENABLE_STATIC
-CGO_CFLAGS_EXTRA="-static"
-CGO_LDFLAGS_EXTRA="-static"
+CGO_CFLAGS_ADD=-static
+CGO_LDFLAGS_ADD=-static
 else
-CGO_CFLAGS_EXTRA=""
-CGO_LDFLAGS_EXTRA=""
+CGO_CFLAGS_ADD=
+CGO_LDFLAGS_ADD=
 endif
 
 hawkgo.bin: lib/libhawk.la $(hawkgo_OBJECTS)
@@ -46,16 +46,16 @@ hawkgo.bin: lib/libhawk.la $(hawkgo_OBJECTS)
 	[ -f $(srcdir)/go.sum ] && cp -pf $(srcdir)/go.sum $(builddir)/go.sum >/dev/null 2>&1 || true
 	## ---------------------------------------------------------------
 	CC=$(CC) \
-	CGO_CFLAGS="-I$(abs_srcdir)/lib -I$(abs_builddir)/lib $(CFLAGS) $(CGO_CFLAGS_EXTRA)" \
-	CGO_LDFLAGS="-L$(abs_builddir)/lib -L$(abs_builddir)/lib/.libs -lhawk -ldl $(LIBM) $(CGO_LDFLAGS_EXTRA)"  \
+	CGO_CFLAGS="-I$(abs_srcdir)/lib -I$(abs_builddir)/lib $(CFLAGS) $(CGO_CFLAGS_EXTRA) $(CGO_CFLAGS_ADD)" \
+	CGO_LDFLAGS="-L$(abs_builddir)/lib -L$(abs_builddir)/lib/.libs -lhawk -ldl $(LIBM) $(CGO_LDFLAGS_EXTRA) $(CGO_LDFLAGS_ADD)"  \
 	go build -C $(srcdir) -ldflags "-X 'main.BINDIR=$(bindir)' -X 'main.SBINDIR=$(sbindir)' -X 'main.LIBDIR=$(libdir)' -X 'main.SYSCONFDIR=$(sysconfdir)'" -x -o $(abs_builddir)/hawkgo.bin -modfile $(abs_builddir)/go.mod
 	## ---------------------------------------------------------------
 	go clean -C $(srcdir) -x -modfile $(abs_builddir)/go.mod
 
 hawkgo.check:
 	CC=$(CC) \
-	CGO_CFLAGS="-I$(abs_srcdir)/lib -I$(abs_builddir)/lib $(CFLAGS) $(CGO_CFLAGS_EXTRA)" \
-	CGO_LDFLAGS="-L$(abs_builddir)/lib -L$(abs_builddir)/lib/.libs -lhawk -ldl $(LIBM) $(CGO_LDFLAGS_EXTRA)"  \
+	CGO_CFLAGS="-I$(abs_srcdir)/lib -I$(abs_builddir)/lib $(CFLAGS) $(CGO_CFLAGS_EXTRA) $(CGO_CFLAGS_ADD)" \
+	CGO_LDFLAGS="-L$(abs_builddir)/lib -L$(abs_builddir)/lib/.libs -lhawk -ldl $(LIBM) $(CGO_LDFLAGS_EXTRA) $(CGO_LDFLAGS_ADD)"  \
 	go test -C $(srcdir) -ldflags "-X 'main.BINDIR=$(bindir)' -X 'main.SBINDIR=$(sbindir)' -X 'main.LIBDIR=$(libdir)' -X 'main.SYSCONFDIR=$(sysconfdir)'" -x -o $(abs_builddir)/hawkgo.bin -modfile $(abs_builddir)/go.mod
 	go clean -C $(srcdir) -x -modfile $(abs_builddir)/go.mod
 
