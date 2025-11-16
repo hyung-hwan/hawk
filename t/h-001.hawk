@@ -188,6 +188,16 @@ function main()
 	}
 
 	{
+		@local a;
+		a = @[10, @[20, 30], 40];
+		tap_ensure(a[1], 10, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure(a[2][1], 20, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure(a[2][2], 30, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure(a[3], 40, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure(length(a), 3, @SCRIPTNAME, @SCRIPTLINE);
+	}
+
+	{
 		@local a, nil;
 		a = hawk::array();
 		a[10] = "good";
@@ -259,6 +269,11 @@ function main()
 		c[10,20,30] = "heloo";
 		tap_ensure (((10,20,30) in c), 1, @SCRIPTNAME, @SCRIPTLINE);
 		tap_ensure (((10,30,30) in c), 0, @SCRIPTNAME, @SCRIPTLINE);
+
+
+		c = @{ "abc", 10, "def", 20.9 };
+		tap_ensure (c["abc"], 10, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (c["def"], 20.9, @SCRIPTNAME, @SCRIPTLINE);
 	}
 
 	{

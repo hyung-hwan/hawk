@@ -5028,7 +5028,7 @@ static HAWK_INLINE int __cmp_bchr_str (hawk_rtx_t* rtx, hawk_val_t* left, hawk_v
 {
 	hawk_bchu_t v1 = HAWK_RTX_GETBCHRFROMVAL(rtx, left);
 	hawk_oochu_t oc = v1;
-	return hawk_comp_oochars(&oc, 1, ((hawk_val_str_t*)right)->val.ptr, ((hawk_val_str_t*)right)->val.len, rtx->gbl.ignorecase);
+	return hawk_comp_oochars((const hawk_ooch_t*)&oc, 1, ((hawk_val_str_t*)right)->val.ptr, ((hawk_val_str_t*)right)->val.len, rtx->gbl.ignorecase);
 }
 
 static HAWK_INLINE int __cmp_bchr_mbs (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t* right, cmp_op_t op_hint)

@@ -588,7 +588,7 @@ and represents the value of 0.
 ```awk
 BEGIN {
 	@local x, i;
-	x = hawk::map(); ## you can omit this line
+	x = hawk::map(); ## you can omit this line or use @{}
 	x["one"] = 1;
 	x["two"] = 2;
 	x[199] = 3;
@@ -602,7 +602,7 @@ BEGIN {
 ```awk
 BEGIN {
 	@local x, i
-	x = hawk::array()
+	x = hawk::array() ## you can use @[] instead of hawk::array()
 	for (i = 0; i < 20; i++) x[i] = i;
 	print hawk::isarray(x), hawk::ismap(x)
 	print "--------------";

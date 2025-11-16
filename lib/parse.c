@@ -123,6 +123,8 @@ enum tok_t
 	TOK_ELLIPSIS,
 	TOK_DBLPERIOD, /* not used yet */
 	TOK_PERIOD, /* not used yet */
+	TOK_ATBRACK, /* @[ */
+	TOK_ATBRACE, /* @{ */
 
 	/* ==  begin reserved words == */
 	/* === extended reserved words === */
@@ -173,10 +175,6 @@ enum tok_t
 	TOK_MBS,
 	TOK_REX,
 	TOK_XNIL,
-#if 0
-	TOK_HAWK_ARRAY,
-	TOK_HAWK_MAP,
-#endif
 
 	__TOKEN_COUNT__
 };
@@ -249,7 +247,7 @@ static hawk_nde_t* parse_hashidx (hawk_t* hawk, const hawk_oocs_t* name, const h
 
 #define FNCALL_FLAG_NOARG (1 << 0) /* no argument */
 #define FNCALL_FLAG_VAR   (1 << 1)
-static hawk_nde_t* parse_fncall (hawk_t* hawk, const hawk_oocs_t* name, hawk_fnc_t* fnc, const hawk_loc_t* xloc, int flags);
+static hawk_nde_t* parse_fncall (hawk_t* hawk, const hawk_oocs_t* name, hawk_fnc_t* fnc, const hawk_loc_t* xloc, int flags, int closer_token);
 
 static hawk_nde_t* parse_primary_ident_segs (hawk_t* hawk, const hawk_loc_t* xloc, const hawk_oocs_t* full, const hawk_oocs_t segs[], int nsegs);
 
@@ -585,7 +583,7 @@ static int parse (hawk_t* hawk)
 	if (!(hawk->opt.trait & HAWK_IMPLICIT))
 	{
 		/* ensure that all functions called are defined in the EXPLICIT-only mode.
-		 * otherwise, the error detection will get delay until run-time. */
+		 * otherwise, the error detection will get delayed until run-time. */
 
 		hawk_htb_pair_t* p;
 		hawk_htb_itr_t itr;
@@ -597,8 +595,7 @@ static int parse (hawk_t* hawk)
 			{
 				hawk_nde_t* nde;
 
-				/* see parse_fncall() for what is
-				 * stored into hawk->tree.funs */
+				/* see parse_fncall() for what is stored into hawk->tree.funs */
 				nde = (hawk_nde_t*)HAWK_HTB_VPTR(p);
 				hawk_seterrfmt(hawk, &nde->loc, HAWK_EFUNNF, FMT_EFUNNF, HAWK_HTB_KLEN(p), HAWK_HTB_KPTR(p));
 				goto oops;
@@ -4900,7 +4897,7 @@ static HAWK_INLINE int isfnname (hawk_t* hawk, const hawk_oocs_t* name)
 	return isfunname(hawk, name, HAWK_NULL);
 }
 
-static hawk_nde_t* parse_primary_char  (hawk_t* hawk, const hawk_loc_t* xloc)
+static hawk_nde_t* parse_primary_char (hawk_t* hawk, const hawk_loc_t* xloc)
 {
 	hawk_nde_char_t* nde;
 
@@ -4925,7 +4922,7 @@ oops:
 	return HAWK_NULL;
 }
 
-static hawk_nde_t* parse_primary_bchr  (hawk_t* hawk, const hawk_loc_t* xloc)
+static hawk_nde_t* parse_primary_bchr (hawk_t* hawk, const hawk_loc_t* xloc)
 {
 	hawk_nde_bchr_t* nde;
 
@@ -5008,7 +5005,7 @@ oops:
 	return HAWK_NULL;
 }
 
-static hawk_nde_t* parse_primary_str  (hawk_t* hawk, const hawk_loc_t* xloc)
+static hawk_nde_t* parse_primary_str (hawk_t* hawk, const hawk_loc_t* xloc)
 {
 	hawk_nde_str_t* nde;
 
@@ -5166,6 +5163,93 @@ oops:
 		hawk_freemem(hawk, nde);
 	}
 	return HAWK_NULL;
+}
+
+static hawk_nde_t* _parse_primary_array_or_map (hawk_t* hawk, const hawk_loc_t* xloc, const hawk_oocs_t* full, const hawk_oocs_t segs[], int nsegs, int closer_token)
+{
+	/* treat it as if it's hawk::array() */
+
+	hawk_nde_t* nde = HAWK_NULL;
+	hawk_mod_t* mod;
+	hawk_mod_sym_t sym;
+	hawk_fnc_t fnc;
+
+	mod = query_module(hawk, segs, nsegs, &sym);
+	if (HAWK_UNLIKELY(!mod))
+	{
+		ADJERR_LOC(hawk, xloc);
+		return HAWK_NULL;
+	}
+
+	if (sym.type != HAWK_MOD_FNC || ((hawk->opt.trait & sym.u.fnc_.trait) != sym.u.fnc_.trait))
+	{
+		hawk_seterrfmt(hawk, xloc, HAWK_EUNDEF, FMT_EUNDEF, full->len, full->ptr);
+		return HAWK_NULL;
+	}
+
+	HAWK_MEMSET (&fnc, 0, HAWK_SIZEOF(fnc));
+	fnc.name.ptr = full->ptr;
+	fnc.name.len = full->len;
+	fnc.spec = sym.u.fnc_;
+	fnc.mod = mod;
+
+	return parse_fncall(hawk, full, &fnc, xloc, 0, closer_token);
+}
+
+static hawk_nde_t* parse_primary_array (hawk_t* hawk, const hawk_loc_t* xloc)
+{
+	/* treat it as if it's hawk::array() */
+	hawk_oocs_t segs[2];
+	hawk_oocs_t full;
+	hawk_nde_t* nde;
+
+	segs[0].ptr = HAWK_T("hawk");
+	segs[0].len = 4;
+	segs[1].ptr = HAWK_T("array");
+	segs[1].len = 5;
+
+	full.len = 11;
+	full.ptr = hawk_allocmem(hawk, HAWK_SIZEOF(*full.ptr) * 12);
+	if (HAWK_UNLIKELY(!full.ptr))
+	{
+		const hawk_ooch_t* bem = hawk_backuperrmsg(hawk);
+		hawk_seterrfmt(hawk,  &hawk->tok.loc, HAWK_ENOMEM, HAWK_T("unable to allocate internal name for @[ - %js"), bem);
+		return HAWK_NULL;
+	}
+
+	hawk_copy_oochars_to_oocstr_unlimited(&full.ptr[0], HAWK_T("hawk::array"), 11);
+
+	nde = _parse_primary_array_or_map(hawk, xloc, &full, segs, 2, TOK_RBRACK);
+	if (HAWK_UNLIKELY(!nde)) hawk_freemem(hawk, full.ptr);
+	return nde;
+}
+
+static hawk_nde_t* parse_primary_map (hawk_t* hawk, const hawk_loc_t* xloc)
+{
+	/* treat it as if it's hawk::map() */
+	hawk_oocs_t segs[2];
+	hawk_oocs_t full;
+	hawk_nde_t* nde;
+
+	segs[0].ptr = HAWK_T("hawk");
+	segs[0].len = 4;
+	segs[1].ptr = HAWK_T("map");
+	segs[1].len = 3;
+
+	full.len = 9;
+	full.ptr = hawk_allocmem(hawk, HAWK_SIZEOF(*full.ptr) * 10);
+	if (HAWK_UNLIKELY(!full.ptr))
+	{
+		const hawk_ooch_t* bem = hawk_backuperrmsg(hawk);
+		hawk_seterrfmt(hawk,  &hawk->tok.loc, HAWK_ENOMEM, HAWK_T("unable to allocate internal name for @{ - %js"), bem);
+		return HAWK_NULL;
+	}
+
+	hawk_copy_oochars_to_oocstr_unlimited(&full.ptr[0], HAWK_T("hawk::map"), 9);
+
+	nde = _parse_primary_array_or_map(hawk, xloc, &full, segs, 2, TOK_RBRACE);
+	if (HAWK_UNLIKELY(!nde)) hawk_freemem(hawk, full.ptr);
+	return nde;
 }
 
 static hawk_nde_t* parse_primary_lparen (hawk_t* hawk, const hawk_loc_t* xloc)
@@ -5500,6 +5584,12 @@ static hawk_nde_t* parse_primary_nopipe (hawk_t* hawk, const hawk_loc_t* xloc)
 		case TOK_IDENT:
 			return parse_primary_ident(hawk, xloc);
 
+		case TOK_ATBRACK:
+			return parse_primary_array(hawk, xloc);
+
+		case TOK_ATBRACE:
+			return parse_primary_map(hawk, xloc);
+
 		case TOK_CHAR:
 			return parse_primary_char(hawk, xloc);
 
@@ -5723,7 +5813,7 @@ static hawk_nde_t* parse_variable (hawk_t* hawk, const hawk_loc_t* xloc, hawk_nd
 
 #if defined(HAWK_ENABLE_FUN_AS_VALUE)
 	if (!is_fcv) return (hawk_nde_t*)nde;
-	return parse_fncall(hawk, (const hawk_oocs_t*)nde, HAWK_NULL, xloc, FNCALL_FLAG_VAR);
+	return parse_fncall(hawk, (const hawk_oocs_t*)nde, HAWK_NULL, xloc, FNCALL_FLAG_VAR, TOK_RPAREN);
 #else
 	return (hawk_nde_t*)nde;
 #endif
@@ -5836,9 +5926,8 @@ static hawk_nde_t* parse_primary_ident_noseg (hawk_t* hawk, const hawk_loc_t* xl
 				return parse_primary_ident_segs(hawk, xloc, name, segs, 2);
 			}
 
-			/* fnc->dfl0 means that the function can be called without ().
-			 * i.e. length */
-			nde = parse_fncall(hawk, name, fnc, xloc, ((!MATCH(hawk,TOK_LPAREN) && fnc->dfl0)? FNCALL_FLAG_NOARG: 0));
+			/* fnc->dfl0 means that the function can be called without (). e.g. length */
+			nde = parse_fncall(hawk, name, fnc, xloc, ((!MATCH(hawk,TOK_LPAREN) && fnc->dfl0)? FNCALL_FLAG_NOARG: 0), TOK_RPAREN);
 		}
 		else
 		{
@@ -5881,7 +5970,7 @@ static hawk_nde_t* parse_primary_ident_noseg (hawk_t* hawk, const hawk_loc_t* xl
 			{
 				/* must be a function name */
 				HAWK_ASSERT(hawk_htb_search(hawk->parse.named, name->ptr, name->len) == HAWK_NULL);
-				nde = parse_fncall(hawk, name, HAWK_NULL, xloc, 0);
+				nde = parse_fncall(hawk, name, HAWK_NULL, xloc, 0, TOK_RPAREN);
 			}
 			else
 			{
@@ -5924,7 +6013,7 @@ static hawk_nde_t* parse_primary_ident_noseg (hawk_t* hawk, const hawk_loc_t* xl
 				}
 				else
 				{
-					nde = parse_fncall(hawk, name, HAWK_NULL, xloc, 0);
+					nde = parse_fncall(hawk, name, HAWK_NULL, xloc, 0, TOK_RPAREN);
 				}
 			}
 			else
@@ -5962,7 +6051,7 @@ static hawk_nde_t* parse_primary_ident_noseg (hawk_t* hawk, const hawk_loc_t* xl
 
 			#if defined(HAWK_ENABLE_FUN_AS_VALUE)
 						if (is_fncall_var)
-							nde = parse_fncall(hawk, (const hawk_oocs_t*)nde, HAWK_NULL, xloc, FNCALL_FLAG_VAR);
+							nde = parse_fncall(hawk, (const hawk_oocs_t*)nde, HAWK_NULL, xloc, FNCALL_FLAG_VAR, TOK_RPAREN);
 			#endif
 					}
 				}
@@ -5974,7 +6063,7 @@ static hawk_nde_t* parse_primary_ident_noseg (hawk_t* hawk, const hawk_loc_t* xl
 			{
 				/* it is a function call as the name is followed
 				 * by ( with/without spaces and implicit variables are disabled. */
-				nde = parse_fncall(hawk, name, HAWK_NULL, xloc, 0);
+				nde = parse_fncall(hawk, name, HAWK_NULL, xloc, 0, TOK_RPAREN);
 			}
 			else
 			{
@@ -6019,7 +6108,7 @@ static hawk_nde_t* parse_primary_ident_segs (hawk_t* hawk, const hawk_loc_t* xlo
 					fnc.name.len = full->len;
 					fnc.spec = sym.u.fnc_;
 					fnc.mod = mod;
-					nde = parse_fncall(hawk, full, &fnc, xloc, 0);
+					nde = parse_fncall(hawk, full, &fnc, xloc, 0, TOK_RPAREN);
 				}
 				else
 				{
@@ -6290,7 +6379,7 @@ exit_func:
 	return HAWK_NULL;
 }
 
-static hawk_nde_t* parse_fncall (hawk_t* hawk, const hawk_oocs_t* name, hawk_fnc_t* fnc, const hawk_loc_t* xloc, int flags)
+static hawk_nde_t* parse_fncall (hawk_t* hawk, const hawk_oocs_t* name, hawk_fnc_t* fnc, const hawk_loc_t* xloc, int flags, int closer_token)
 {
 	hawk_nde_t* head, * curr, * nde;
 	hawk_nde_fncall_t* call;
@@ -6304,7 +6393,7 @@ static hawk_nde_t* parse_fncall (hawk_t* hawk, const hawk_oocs_t* name, hawk_fnc
 	if (flags & FNCALL_FLAG_NOARG) goto make_node;
 	if (get_token(hawk) <= -1) goto oops;
 
-	if (MATCH(hawk,TOK_RPAREN))
+	if (MATCH(hawk, closer_token))
 	{
 		/* no parameters to the function call */
 		if (get_token(hawk) <= -1) goto oops;
@@ -6324,13 +6413,13 @@ static hawk_nde_t* parse_fncall (hawk_t* hawk, const hawk_oocs_t* name, hawk_fnc
 
 			nargs++;
 
-			if (MATCH(hawk,TOK_RPAREN))
+			if (MATCH(hawk, closer_token))
 			{
 				if (get_token(hawk) <= -1) goto oops;
 				break;
 			}
 
-			if (!MATCH(hawk,TOK_COMMA))
+			if (!MATCH(hawk, TOK_COMMA))
 			{
 				hawk_seterrfmt(hawk,  &hawk->tok.loc, HAWK_ECOMMA, FMT_ECOMMA, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
 				goto oops;
@@ -7121,19 +7210,16 @@ retry:
 
 		GET_CHAR_TO(hawk, c);
 
-#if 0
 		if (c == '[' || c == '{') /* syntatic sugar for array/map composition */
 		{
 			int tt;
 			ADD_TOKEN_CHAR(hawk, tok, '@');
 			ADD_TOKEN_CHAR(hawk, tok, c);
-			tt = (c == '['? TOK_HAWK_ARRAY: TOK_HAWK_MAP);
+			tt = (c == '['? TOK_ATBRACK: TOK_ATBRACE);
 			SET_TOKEN_TYPE(hawk, tok, tt);
 			GET_CHAR(hawk);
 		}
-		else
-#endif
-		if (c != '_' && !hawk_is_ooch_alpha(c))
+		else if (c != '_' && !hawk_is_ooch_alpha(c))
 		{
 			/* this extended keyword is empty,
 			 * not followed by a valid word */
