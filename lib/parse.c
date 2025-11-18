@@ -247,6 +247,7 @@ static hawk_nde_t* parse_hashidx (hawk_t* hawk, const hawk_oocs_t* name, const h
 
 #define FNCALL_FLAG_NOARG (1 << 0) /* no argument */
 #define FNCALL_FLAG_VAR   (1 << 1)
+#define FNCALL_FLAG_MAP   (1 << 2)
 static hawk_nde_t* parse_fncall (hawk_t* hawk, const hawk_oocs_t* name, hawk_fnc_t* fnc, const hawk_loc_t* xloc, int flags, int closer_token);
 
 static hawk_nde_t* parse_primary_ident_segs (hawk_t* hawk, const hawk_loc_t* xloc, const hawk_oocs_t* full, const hawk_oocs_t segs[], int nsegs);
@@ -5169,7 +5170,6 @@ static hawk_nde_t* _parse_primary_array_or_map (hawk_t* hawk, const hawk_loc_t* 
 {
 	/* treat it as if it's hawk::array() */
 
-	hawk_nde_t* nde = HAWK_NULL;
 	hawk_mod_t* mod;
 	hawk_mod_sym_t sym;
 	hawk_fnc_t fnc;
@@ -5193,7 +5193,7 @@ static hawk_nde_t* _parse_primary_array_or_map (hawk_t* hawk, const hawk_loc_t* 
 	fnc.spec = sym.u.fnc_;
 	fnc.mod = mod;
 
-	return parse_fncall(hawk, full, &fnc, xloc, 0, closer_token);
+	return parse_fncall(hawk, full, &fnc, xloc, (closer_token == TOK_RBRACE? FNCALL_FLAG_MAP: 0), closer_token);
 }
 
 static hawk_nde_t* parse_primary_array (hawk_t* hawk, const hawk_loc_t* xloc)
@@ -6419,10 +6419,20 @@ static hawk_nde_t* parse_fncall (hawk_t* hawk, const hawk_oocs_t* name, hawk_fnc
 				break;
 			}
 
-			if (!MATCH(hawk, TOK_COMMA))
+			if ((flags & FNCALL_FLAG_MAP) && (nargs & 1))
 			{
-				hawk_seterrfmt(hawk,  &hawk->tok.loc, HAWK_ECOMMA, FMT_ECOMMA, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
-				goto oops;
+				if (!MATCH(hawk, TOK_COLON))
+				{
+					hawk_seterrfmt(hawk,  &hawk->tok.loc, HAWK_ECOLON, FMT_ECOLON, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
+					goto oops;
+				}
+			}
+			else {
+				if (!MATCH(hawk, TOK_COMMA))
+				{
+					hawk_seterrfmt(hawk,  &hawk->tok.loc, HAWK_ECOMMA, FMT_ECOMMA, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
+					goto oops;
+				}
 			}
 
 			do

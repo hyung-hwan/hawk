@@ -37,3 +37,10 @@ BEGIN {
 BEGIN {
 	@nil = 10 ##ERROR: invalid assignment statement
 }
+
+---
+
+BEGIN {
+	@{};
+	@{ "hello", "world } ##ERROR: colon expected in place of ','
+}
