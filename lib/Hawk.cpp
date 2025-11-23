@@ -2550,7 +2550,7 @@ int Hawk::addFunction (
 {
 	HAWK_ASSERT(this->hawk != HAWK_NULL);
 
-	hawk_fnc_mspec_t spec;
+	hawk_fnc_bspec_t spec;
 
 	HAWK_MEMSET (&spec, 0, HAWK_SIZEOF(spec));
 	spec.arg.min = minArgs;
@@ -2601,7 +2601,7 @@ int Hawk::addFunction (
 {
 	HAWK_ASSERT(this->hawk != HAWK_NULL);
 
-	hawk_fnc_wspec_t spec;
+	hawk_fnc_uspec_t spec;
 
 	HAWK_MEMSET (&spec, 0, HAWK_SIZEOF(spec));
 	spec.arg.min = minArgs;

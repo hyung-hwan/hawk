@@ -916,10 +916,10 @@ typedef int (*hawk_fnc_impl_t) (
 );
 
 /**
- * The hawk_fnc_marg_t type defines a structure to describe arguments
+ * The hawk_fnc_barg_t type defines a structure to describe arguments
  * to an implicit function.
  */
-struct hawk_fnc_marg_t
+struct hawk_fnc_barg_t
 {
 	/** minimum numbers of argument for a function */
 	hawk_oow_t min;
@@ -939,28 +939,28 @@ struct hawk_fnc_marg_t
 	 */
 	const hawk_bch_t* spec;
 };
-typedef struct hawk_fnc_marg_t hawk_fnc_marg_t;
+typedef struct hawk_fnc_barg_t hawk_fnc_barg_t;
 
 /**
- * The hawk_fnc_warg_t type defines a structure to describe arguments
+ * The hawk_fnc_uarg_t type defines a structure to describe arguments
  * to an implicit function.
  */
-struct hawk_fnc_warg_t
+struct hawk_fnc_uarg_t
 {
 	hawk_oow_t min;
 	hawk_oow_t max;
 	const hawk_uch_t* spec;
 };
-typedef struct hawk_fnc_warg_t hawk_fnc_warg_t;
+typedef struct hawk_fnc_uarg_t hawk_fnc_uarg_t;
 
 /**
- * The hawk_fnc_mspec_t type defines a structure to hold the specification
+ * The hawk_fnc_bspec_t type defines a structure to hold the specification
  * of an intrinsic function or a module function.
  */
-struct hawk_fnc_mspec_t
+struct hawk_fnc_bspec_t
 {
 	/** argument descriptor */
-	hawk_fnc_marg_t arg;
+	hawk_fnc_barg_t arg;
 
 	/** pointer to the function implementing this function */
 	hawk_fnc_impl_t impl;
@@ -975,16 +975,16 @@ struct hawk_fnc_mspec_t
 	 */
 	int trait;
 };
-typedef struct hawk_fnc_mspec_t hawk_fnc_mspec_t;
+typedef struct hawk_fnc_bspec_t hawk_fnc_bspec_t;
 
 /**
- * The hawk_fnc_wspec_t type defines a structure to hold the specification
+ * The hawk_fnc_uspec_t type defines a structure to hold the specification
  * of an intrinsic function or a module function.
  */
-struct hawk_fnc_wspec_t
+struct hawk_fnc_uspec_t
 {
 	/** argument descriptor */
-	hawk_fnc_warg_t arg;
+	hawk_fnc_uarg_t arg;
 
 	/** pointer to the function implementing this function */
 	hawk_fnc_impl_t impl;
@@ -999,14 +999,14 @@ struct hawk_fnc_wspec_t
 	 */
 	int trait;
 };
-typedef struct hawk_fnc_wspec_t hawk_fnc_wspec_t;
+typedef struct hawk_fnc_uspec_t hawk_fnc_uspec_t;
 
 #if defined(HAWK_OOCH_IS_BCH)
-typedef hawk_fnc_marg_t hawk_fnc_arg_t;
-typedef hawk_fnc_mspec_t hawk_fnc_spec_t;
+typedef hawk_fnc_barg_t hawk_fnc_arg_t;
+typedef hawk_fnc_bspec_t hawk_fnc_spec_t;
 #else
-typedef hawk_fnc_warg_t hawk_fnc_arg_t;
-typedef hawk_fnc_wspec_t hawk_fnc_spec_t;
+typedef hawk_fnc_uarg_t hawk_fnc_arg_t;
+typedef hawk_fnc_uspec_t hawk_fnc_spec_t;
 #endif
 
 /* ------------------------------------------------------------------------ */
@@ -2002,7 +2002,7 @@ HAWK_EXPORT int hawk_findgblwithucstr (
 HAWK_EXPORT hawk_fnc_t* hawk_addfncwithbcstr (
 	hawk_t*                 hawk,
 	const hawk_bch_t*       name,
-	const hawk_fnc_mspec_t* spec
+	const hawk_fnc_bspec_t* spec
 );
 
 /**
@@ -2011,7 +2011,7 @@ HAWK_EXPORT hawk_fnc_t* hawk_addfncwithbcstr (
 HAWK_EXPORT hawk_fnc_t* hawk_addfncwithucstr (
 	hawk_t*                 hawk,
 	const hawk_uch_t*       name,
-	const hawk_fnc_wspec_t* spec
+	const hawk_fnc_uspec_t* spec
 );
 
 /**
@@ -2737,7 +2737,7 @@ HAWK_EXPORT hawk_oow_t hawk_rtx_getnargs (
  */
 HAWK_EXPORT hawk_val_t* hawk_rtx_getarg (
 	hawk_rtx_t* rtx,
-	hawk_oow_t     idx
+	hawk_oow_t  idx
 );
 
 /**

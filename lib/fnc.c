@@ -146,66 +146,66 @@ static hawk_fnc_t* add_fnc (hawk_t* hawk, const hawk_ooch_t* name, const hawk_fn
 	return fnc;
 }
 
-hawk_fnc_t* hawk_addfncwithbcstr (hawk_t* hawk, const hawk_bch_t* name, const hawk_fnc_mspec_t* spec)
+hawk_fnc_t* hawk_addfncwithbcstr (hawk_t* hawk, const hawk_bch_t* name, const hawk_fnc_bspec_t* spec)
 {
 #if defined(HAWK_OOCH_IS_BCH)
 	return add_fnc(hawk, name, spec);
 #else
 	hawk_ucs_t wcs;
 	hawk_fnc_t* fnc;
-	hawk_fnc_spec_t wspec;
+	hawk_fnc_spec_t uspec;
 
-	HAWK_STATIC_ASSERT (HAWK_SIZEOF(*spec) == HAWK_SIZEOF(wspec));
+	HAWK_STATIC_ASSERT (HAWK_SIZEOF(*spec) == HAWK_SIZEOF(uspec));
 
-	HAWK_MEMCPY (&wspec, spec, HAWK_SIZEOF(wspec));
+	HAWK_MEMCPY (&uspec, spec, HAWK_SIZEOF(uspec));
 	if (spec->arg.spec)
 	{
 		wcs.ptr = hawk_dupbtoucstr(hawk, spec->arg.spec, &wcs.len, 0);
 		if (HAWK_UNLIKELY(!wcs.ptr)) return HAWK_NULL;
-		wspec.arg.spec = wcs.ptr;
+		uspec.arg.spec = wcs.ptr;
 	}
 
 	wcs.ptr = hawk_dupbtoucstr(hawk, name, &wcs.len, 0);
 	if (HAWK_UNLIKELY(!wcs.ptr))
 	{
-		if (wspec.arg.spec) hawk_freemem(hawk, (hawk_uch_t*)wspec.arg.spec);
+		if (uspec.arg.spec) hawk_freemem(hawk, (hawk_uch_t*)uspec.arg.spec);
 		return HAWK_NULL;
 	}
 
-	fnc = add_fnc(hawk, wcs.ptr, &wspec);
+	fnc = add_fnc(hawk, wcs.ptr, &uspec);
 	hawk_freemem(hawk, wcs.ptr);
-	if (wspec.arg.spec) hawk_freemem(hawk, (hawk_uch_t*)wspec.arg.spec);
+	if (uspec.arg.spec) hawk_freemem(hawk, (hawk_uch_t*)uspec.arg.spec);
 	return fnc;
 #endif
 }
 
-hawk_fnc_t* hawk_addfncwithucstr (hawk_t* hawk, const hawk_uch_t* name, const hawk_fnc_wspec_t* spec)
+hawk_fnc_t* hawk_addfncwithucstr (hawk_t* hawk, const hawk_uch_t* name, const hawk_fnc_uspec_t* spec)
 {
 #if defined(HAWK_OOCH_IS_BCH)
 	hawk_bcs_t mbs;
 	hawk_fnc_t* fnc;
-	hawk_fnc_spec_t mspec;
+	hawk_fnc_spec_t bspec;
 
-	HAWK_STATIC_ASSERT (HAWK_SIZEOF(*spec) == HAWK_SIZEOF(mspec));
+	HAWK_STATIC_ASSERT (HAWK_SIZEOF(*spec) == HAWK_SIZEOF(bspec));
 
-	HAWK_MEMCPY (&mspec, spec, HAWK_SIZEOF(mspec));
+	HAWK_MEMCPY (&bspec, spec, HAWK_SIZEOF(bspec));
 	if (spec->arg.spec)
 	{
 		mbs.ptr = hawk_duputobcstr(hawk, spec->arg.spec, &mbs.len);
 		if (HAWK_UNLIKELY(!mbs.ptr)) return HAWK_NULL;
-		mspec.arg.spec = mbs.ptr;
+		bspec.arg.spec = mbs.ptr;
 	}
 
 	mbs.ptr = hawk_duputobcstr(hawk, name, &mbs.len);
 	if (HAWK_UNLIKELY(!mbs.ptr))
 	{
-		if (mspec.arg.spec) hawk_freemem(hawk, (hawk_bch_t*)mspec.arg.spec);
+		if (bspec.arg.spec) hawk_freemem(hawk, (hawk_bch_t*)bspec.arg.spec);
 		return HAWK_NULL;
 	}
 
-	fnc = add_fnc(hawk, mbs.ptr, &mspec);
+	fnc = add_fnc(hawk, mbs.ptr, &bspec);
 	hawk_freemem(hawk, mbs.ptr);
-	if (mspec.arg.spec) hawk_freemem(hawk, (hawk_bch_t*)mspec.arg.spec);
+	if (bspec.arg.spec) hawk_freemem(hawk, (hawk_bch_t*)bspec.arg.spec);
 	return fnc;
 #else
 	return add_fnc(hawk, name, spec);

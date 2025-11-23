@@ -4,65 +4,75 @@ package hawk
 #include <hawk.h>
 */
 import "C"
+import "fmt"
 import "sync"
 import "weak"
 
-type Instance struct {
-	c *C.hawk_t // c object
-	g weak.Pointer[Hawk] // go object
+type CPtr interface {
+	//~*C.hawk_t | ~*C.hawk_rtx_t
+	*C.hawk_t | *C.hawk_rtx_t
 }
 
-type InstanceTable struct {
+type Instance[CT CPtr, GT interface{}] struct {
+	c CT // c object
+	g weak.Pointer[GT] // go object
+	next_free int
+}
+
+type InstanceTable[CT CPtr, GT interface{}] struct {
+	name       string
 	mtx        sync.Mutex
-	insts      []Instance
-	free_slots []int
-	next       int
+	insts      []Instance[CT, GT]
+	next_free  int
 }
 
-var inst_table InstanceTable
+type HawkInstance = Instance[*C.hawk_t, Hawk]
+type HawkInstanceTable = InstanceTable[*C.hawk_t, Hawk]
 
-func (itab *InstanceTable) add_instance(c *C.hawk_t, g *Hawk) int {
-	var n int
+type RtxInstance = Instance[*C.hawk_rtx_t, Rtx]
+type RtxInstanceTable = InstanceTable[*C.hawk_rtx_t, Rtx]
 
+var inst_table HawkInstanceTable = HawkInstanceTable{ name: "hawk", next_free: -1 }
+var rtx_inst_table RtxInstanceTable = RtxInstanceTable{ name: "rtx", next_free: -1 }
+
+func (itab *InstanceTable[CT, GT]) add_instance(c CT, g *GT) int {
 	itab.mtx.Lock()
 	defer itab.mtx.Unlock()
 
-	n = len(itab.free_slots)
-	if n <= 0 { // no free slots
-		itab.insts = append(itab.insts, Instance{c: c, g: weak.Make(g)})
-		return len(itab.insts) - 1
-	} else {
+	if itab.next_free >= 0 {
 		var slot int
-		n--
-		slot = itab.free_slots[n]
-		itab.free_slots = itab.free_slots[:n]
+		slot = itab.next_free
+		if slot >= 0 { itab.next_free = itab.insts[slot].next_free }
 		itab.insts[slot].c = c
+		itab.insts[slot].g = weak.Make(g)
+		itab.insts[slot].next_free = -1
 		return slot
+	} else { // no free slots
+		itab.insts = append(itab.insts, Instance[CT, GT]{c: c, g: weak.Make(g), next_free: -1})
+		return len(itab.insts) - 1
 	}
 }
 
-func (itab *InstanceTable) delete_instance(slot int) Instance {
-	var h Instance
-	var n int
-
+func (itab *InstanceTable[CT, GT]) delete_instance(slot int) error {
 	itab.mtx.Lock()
 	defer itab.mtx.Unlock()
 
-	h = itab.insts[slot]
-	itab.insts[slot].c = nil
-	itab.insts[slot].g = weak.Make((*Hawk)(nil)) // this may not even be necessary as it's a weak pointer
-
-	n = len(itab.insts)
-	if slot == n - 1 {
-		itab.insts = itab.insts[:n - 1]
-	} else {
-		itab.free_slots = append(itab.free_slots, slot)
+	if slot >= len(itab.insts) || slot < 0 {
+		return fmt.Errorf("index %d out of range", slot)
+	}
+	if itab.insts[slot].next_free >= 0 {
+		return fmt.Errorf("no instance at index %d", slot)
 	}
 
-	return h
+	itab.insts[slot].c = CT(nil)
+	itab.insts[slot].g = weak.Make((*GT)(nil)) // this may not even be necessary as it's a weak pointer
+	itab.insts[slot].next_free = itab.next_free
+	itab.next_free = slot
+
+	return nil
 }
 
-func (itab *InstanceTable) slot_to_instance(slot int) Instance {
+func (itab *InstanceTable[CT, GT]) slot_to_instance(slot int) Instance[CT, GT] {
 	itab.mtx.Lock()
 	defer itab.mtx.Unlock()
 	return itab.insts[slot]

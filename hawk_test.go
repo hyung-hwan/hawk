@@ -30,6 +30,45 @@ func make_hawk(script string) (*hawk.Hawk, error) {
 	return h, nil
 }
 
+func enbase64(rtx *hawk.Rtx) error {
+	fmt.Printf ("*** ENABLE64 RTX %p\n", rtx) // << this is 0 from time to time.. TODO: fix it..
+	fmt.Printf("****ENBASE64 [%d]\n", rtx.GetFuncArgCount())
+
+	var a0 *hawk.Val = hawk.Must(rtx.GetFuncArg(0))
+	var a1 *hawk.Val = hawk.Must(rtx.GetFuncArg(1))
+	var a2 *hawk.Val = hawk.Must(rtx.GetFuncArg(2))
+
+	fmt.Printf("[%s] [%s] [%s]\n", a0.String(), a1.String(), a2.String())
+	rtx.SetFuncRet(hawk.Must(rtx.NewValFromStr("ENBASE64-OUTPUT")))
+	return nil
+}
+
+func debase64(rtx *hawk.Rtx) error {
+	fmt.Printf("****DEBASE64 [%d]\n", rtx.GetFuncArgCount())
+	rtx.SetFuncRet(hawk.Must(rtx.NewValFromFlt(-999.1111)))
+	return nil
+//return fmt.Errorf("what the hell.....")
+}
+
+func make_hawk_extended(script string) (*hawk.Hawk, error) {
+	var h *hawk.Hawk
+	var err error
+
+	h, err = hawk.New()
+	if err != nil { return nil, err }
+
+	h.AddFunc("enbase64", 1, 10, "", enbase64)
+	h.AddFunc("debase64", 1, 1, "", debase64)
+
+	err = h.ParseText(script)
+	if err != nil {
+		h.Close()
+		return nil, err
+	}
+
+	return h, nil
+}
+
 func run_hawk(h *hawk.Hawk, id int, t *testing.T, wg *sync.WaitGroup) {
 	var rtx *hawk.Rtx
 	var v *hawk.Val
@@ -109,7 +148,7 @@ return 1.9923;
 	h.Close()
 
 	h = nil
-fmt.Printf ("== END of run ==\n")
+fmt.Printf ("== END of Test1 ==\n")
 	runtime.GC()
 	runtime.Gosched()
 	time.Sleep(1000 * time.Millisecond) // give finalizer time to print
@@ -239,12 +278,54 @@ return x;
 						fmt.Printf("index=[%d] value=[%v]\n", i, ff.String())
 						i, ff = v.ArrayNextField(&itr)
 					}
+					fmt.Printf("== END OF ARRAY DUMP ==\n")
 				}
 			}
 		}
 	}
 
 	h.Close()
+
+	runtime.GC()
+	runtime.Gosched()
+	time.Sleep(1000 * time.Millisecond) // give finalizer time to print
+}
+
+func Test3(t *testing.T) {
+	var h *hawk.Hawk
+	var rtx *hawk.Rtx
+	var err error
+
+	debug.SetGCPercent(100) // enable normal GC
+
+	fmt.Printf ("BEGINNING OF TEST3\n")
+
+	h, err = make_hawk_extended(`function main(s) {
+print enbase64(s, "hello", 1.289);
+print debase64(s);
+return x
+}`)
+	if err != nil {
+		t.Errorf("Failed to make hawk - %s", err.Error())
+		return
+	}
+
+	rtx, err = h.NewRtx("test3")
+	if err != nil {
+		t.Errorf("failed to create rtx - %s", err.Error())
+	} else  {
+		var v *hawk.Val
+
+		v, err = rtx.Call("main", hawk.Must(rtx.NewValFromStr("this is a test3 string")))
+		if err != nil {
+			t.Errorf("failed to call main - %s", err.Error())
+		} else {
+			fmt.Printf("V=>[%v]\n", v.String())
+		}
+	}
+
+	h.Close()
+	fmt.Printf ("END OF TEST3\n")
 
 	runtime.GC()
 	runtime.Gosched()

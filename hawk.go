@@ -3,6 +3,15 @@ package hawk
 /*
 #include <hawk.h>
 #include <stdlib.h>
+#include <string.h>
+
+struct rtx_xtn_t
+{
+	hawk_oow_t inst_no;
+	hawk_oow_t rtx_inst_no;
+};
+
+typedef struct rtx_xtn_t rtx_xtn_t;
 
 static void init_parsestd_for_text_in(hawk_parsestd_t* in, hawk_bch_t* ptr, hawk_oow_t len)
 {
@@ -36,6 +45,50 @@ static int val_to_flt(hawk_rtx_t* rtx, hawk_val_t* v, double* ret) {
 	*ret = (double)fv;
 	return 0;
 }
+
+extern int hawk_go_fnc_handler(rtx_xtn_t* rtx_xtn, hawk_bch_t* name, hawk_oow_t len);
+
+static int hawk_fnc_handler_for_go(hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+{
+	int n;
+	hawk_oow_t namelen;
+	hawk_bch_t* name;
+	rtx_xtn_t* xtn;
+
+	name = hawk_rtx_duputobchars(rtx, fi->name.ptr, fi->name.len, &namelen);
+	if (!name)
+	{
+		// TODO: set error information
+		return -1;
+	}
+
+	xtn = hawk_rtx_getxtn(rtx);
+	n = hawk_go_fnc_handler(xtn, name, namelen);
+	hawk_rtx_freemem(rtx, name);
+	return n;
+}
+
+static hawk_fnc_t* add_fnc_with_bcstr(hawk_t* hawk, const hawk_bch_t* name, hawk_oow_t min_args, hawk_oow_t max_args, const hawk_bch_t* arg_spec)
+{
+	hawk_fnc_bspec_t spec;
+	memset(&spec, 0, HAWK_SIZEOF(spec));
+	spec.arg.min = min_args;
+	spec.arg.max = max_args;
+	spec.arg.spec = arg_spec;
+	spec.impl = hawk_fnc_handler_for_go;
+	spec.trait = 0;
+	return hawk_addfncwithbcstr(hawk, name, &spec);
+}
+
+static void set_errmsg(hawk_t* hawk, hawk_errnum_t errnum, const hawk_bch_t* msg)
+{
+	hawk_seterrbfmt(hawk, HAWK_NULL, errnum, "%hs", msg);
+}
+
+static void set_rtx_errmsg(hawk_rtx_t* rtx, hawk_errnum_t errnum, const hawk_bch_t* msg)
+{
+	hawk_rtx_seterrbfmt(rtx, HAWK_NULL, errnum, "%hs", msg);
+}
 */
 import "C"
 
@@ -45,19 +98,7 @@ import "runtime"
 import "sync"
 import "unsafe"
 
-type Hawk struct {
-	c *C.hawk_t
-	inst_no int
-
-	rtx_mtx sync.Mutex
-	rtx_count int
-	rtx_head *Rtx
-	rtx_tail *Rtx
-}
-
-type Ext struct {
-	inst_no int
-}
+type Fnc func(rtx *Rtx) error
 
 type Err struct {
 	Line uint
@@ -66,8 +107,24 @@ type Err struct {
 	Msg string
 }
 
+type Hawk struct {
+	c *C.hawk_t
+	inst_no int
+	fnctab map[string]Fnc
+
+	rtx_mtx sync.Mutex
+	rtx_count int
+	rtx_head *Rtx
+	rtx_tail *Rtx
+}
+
+type HawkExt struct {
+	inst_no int
+}
+
 type Rtx struct {
 	c *C.hawk_rtx_t
+	inst_no int
 	h *Hawk
 
 	next *Rtx
@@ -137,7 +194,7 @@ func deregister_instance(h *Hawk) {
 func New() (*Hawk, error) {
 	var c *C.hawk_t
 	var g *Hawk
-	var ext *Ext
+	var ext *HawkExt
 	var errinf C.hawk_errinf_t
 
 	c = C.hawk_openstd(C.hawk_oow_t(unsafe.Sizeof(*ext)), &errinf)
@@ -147,10 +204,11 @@ func New() (*Hawk, error) {
 		return nil, err
 	}
 
-	ext = (*Ext)(unsafe.Pointer(C.hawk_getxtn(c)))
+	ext = (*HawkExt)(unsafe.Pointer(C.hawk_getxtn(c)))
 
 	g = &Hawk{c: c, inst_no: -1}
 
+	g.fnctab = make(map[string]Fnc)
 	g.rtx_count = 0
 	g.rtx_head = nil
 	g.rtx_tail = nil
@@ -256,6 +314,46 @@ func (hawk *Hawk) AddGlobal(name string) error {
 	return nil
 }
 
+//export hawk_go_fnc_handler
+func hawk_go_fnc_handler(rtx_xtn *C.rtx_xtn_t, name *C.hawk_bch_t, namelen C.hawk_oow_t) C.int {
+	var fn Fnc
+	var inst HawkInstance
+	var rtx_inst RtxInstance
+	var rtx *Rtx
+	var fnname string
+	var ok bool
+	var err error
+
+	inst = inst_table.slot_to_instance(int(rtx_xtn.inst_no))
+	rtx_inst = rtx_inst_table.slot_to_instance(int(rtx_xtn.rtx_inst_no))
+	rtx = rtx_inst.g.Value()
+
+	fnname = C.GoStringN(name, C.int(namelen))
+	fn, ok = inst.g.Value().fnctab[fnname]
+	if !ok {
+		rtx.set_errmsg(C.HAWK_ENOENT, fmt.Sprintf("function '%s' not found", fnname))
+		return -1;
+	}
+
+	err = fn(rtx_inst.g.Value())
+	if err != nil {
+		rtx.set_errmsg(C.HAWK_EOTHER, fmt.Sprintf("function '%s' failure - %s", fnname, err.Error()))
+		return -1
+	}
+
+	return 0
+}
+
+func (hawk *Hawk) AddFunc(name string, min_args uint, max_args uint, spec string, fn Fnc) error {
+	var fnc *C.hawk_fnc_t
+
+	fnc = C.add_fnc_with_bcstr(hawk.c, C.CString(name), C.hawk_oow_t(min_args), C.hawk_oow_t(max_args), C.CString(spec));
+	if fnc == nil { return hawk.make_errinfo() }
+
+	hawk.fnctab[name] = fn;
+	return nil
+}
+
 func (hawk *Hawk) ParseFile(text string) error {
 	var x C.int
 	var in [2]C.hawk_parsestd_t
@@ -322,26 +420,7 @@ func (hawk *Hawk) unchain_rtx(rtx *Rtx) {
 }
 
 // -----------------------------------------------------------
-
-func (hawk *Hawk) NewRtx(id string) (*Rtx, error) {
-	var rtx *C.hawk_rtx_t
-	var g *Rtx
-
-	rtx = C.hawk_rtx_openstdwithbcstr(hawk.c, 0, C.CString(id), nil, nil, nil)
-	if rtx == nil { return nil, hawk.make_errinfo() }
-
-	g = &Rtx{c: rtx}
-	hawk.chain_rtx(g)
-
-	// [NOTE]
-	// if the owning hawk is not garbaged-collected, this rtx is never
-	// garbaged collected as a strong pointer to a rtx object is maintained
-	// in the owner. i never set the runtime finalizer on this rtx object.
-
-	return g, nil
-}
-
-func (rtx* Rtx) Close() {
+func deregister_rtx_instance(rtx *Rtx) {
 	if rtx.h != nil {
 //fmt.Printf("RTX CLOSING UNCHAIN %p\n", rtx)
 		rtx.h.unchain_rtx(rtx)
@@ -354,6 +433,41 @@ func (rtx* Rtx) Close() {
 		C.hawk_rtx_close(rtx.c)
 //fmt.Printf("RTX CLOSING %p\n", rtx)
 	}
+
+	if rtx.inst_no >= 0 {
+		rtx_inst_table.delete_instance(rtx.inst_no)
+		rtx.inst_no = -1
+	}
+}
+
+func (hawk *Hawk) NewRtx(id string) (*Rtx, error) {
+	var rtx *C.hawk_rtx_t
+	var g *Rtx
+	var xtn *C.rtx_xtn_t
+
+	rtx = C.hawk_rtx_openstdwithbcstr(hawk.c, C.hawk_oow_t(unsafe.Sizeof(*xtn)), C.CString(id), nil, nil, nil)
+	if rtx == nil { return nil, hawk.make_errinfo() }
+
+	g = &Rtx{c: rtx}
+	hawk.chain_rtx(g)
+
+	// [NOTE]
+	// if the owning hawk is not garbaged-collected, this rtx is never
+	// garbaged collected as a strong pointer to a rtx object is maintained
+	// in the owner.
+
+	runtime.SetFinalizer(g, deregister_rtx_instance)
+	g.inst_no = rtx_inst_table.add_instance(rtx, g)
+
+	xtn = (*C.rtx_xtn_t)(unsafe.Pointer(C.hawk_rtx_getxtn(rtx)))
+	xtn.inst_no = C.hawk_oow_t(hawk.inst_no)
+	xtn.rtx_inst_no = C.hawk_oow_t(g.inst_no)
+
+	return g, nil
+}
+
+func (rtx* Rtx) Close() {
+	deregister_rtx_instance(rtx)
 }
 
 func (rtx *Rtx) make_errinfo() *Err {
@@ -446,6 +560,22 @@ func (rtx *Rtx) unchain_val(val *Val) {
 	rtx.val_mtx.Unlock()
 }
 
+func (rtx *Rtx) GetFuncArgCount() int {
+	var nargs C.hawk_oow_t
+	nargs = C.hawk_rtx_getnargs(rtx.c)
+	return int(nargs)
+}
+
+func (rtx *Rtx) GetFuncArg(idx int) (*Val, error) {
+	return rtx.make_val(func() *C.hawk_val_t {
+		return C.hawk_rtx_getarg(rtx.c, C.hawk_oow_t(idx))
+	})
+}
+
+func (rtx *Rtx) SetFuncRet(v *Val) {
+	C.hawk_rtx_setretval(rtx.c, v.c)
+}
+
 // -----------------------------------------------------------
 
 func (hawk *Hawk) get_errmsg() string {
@@ -456,11 +586,18 @@ func (hawk *Hawk) set_errmsg(num C.hawk_errnum_t, msg string) {
 	var ptr *C.char
 	ptr = C.CString(msg)
 	defer C.free(unsafe.Pointer(ptr))
-	C.hawk_seterrbmsg(hawk.c, nil, num, ptr)
+	C.set_errmsg(hawk.c, num, ptr)
 }
 
 func (rtx *Rtx) get_errmsg() string {
 	return C.GoString(C.hawk_rtx_geterrbmsg(rtx.c))
+}
+
+func (rtx *Rtx) set_errmsg(num C.hawk_errnum_t, msg string) {
+	var ptr *C.char
+	ptr = C.CString(msg)
+	defer C.free(unsafe.Pointer(ptr))
+	C.set_rtx_errmsg(rtx.c, num, ptr)
 }
 
 // -----------------------------------------------------------
@@ -807,11 +944,20 @@ func rune_slice_to_uchars(r []rune) []C.hawk_uch_t {
 }
 
 func c_to_go(c *C.hawk_t) *Hawk {
-	var ext *Ext
-	var inst Instance
+	var ext *HawkExt
+	var inst HawkInstance
 
-	ext = (*Ext)(unsafe.Pointer(C.hawk_getxtn(c)))
+	ext = (*HawkExt)(unsafe.Pointer(C.hawk_getxtn(c)))
 	inst = inst_table.slot_to_instance(ext.inst_no)
+	return inst.g.Value()
+}
+
+func rtx_to_go(rtx *C.hawk_rtx_t) *Rtx {
+	var xtn *C.rtx_xtn_t
+	var inst RtxInstance
+
+	xtn = (*C.rtx_xtn_t)(unsafe.Pointer(C.hawk_rtx_getxtn(rtx)))
+	inst = rtx_inst_table.slot_to_instance(int(xtn.rtx_inst_no))
 	return inst.g.Value()
 }
 
