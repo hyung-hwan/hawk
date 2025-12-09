@@ -125,11 +125,11 @@ am__v_lt_1 =
 hawk_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(hawk_CFLAGS) $(CFLAGS) \
 	$(hawk_LDFLAGS) $(LDFLAGS) -o $@
-am__hawkgo_SOURCES_DIST = ../go.mod ../hawk.go ../hawk-inst.go \
+am__hawkgo_SOURCES_DIST = ../hawk.go ../hawk-inst.go getopt.go \
 	hawkgo.go
 am__dirstamp = $(am__leading_dot)dirstamp
-@ENABLE_HAWKGO_TRUE@am_hawkgo_OBJECTS = ../go.$(OBJEXT) \
-@ENABLE_HAWKGO_TRUE@	../hawk.$(OBJEXT) ../hawk-inst.$(OBJEXT) \
+@ENABLE_HAWKGO_TRUE@am_hawkgo_OBJECTS = ../hawk.$(OBJEXT) \
+@ENABLE_HAWKGO_TRUE@	../hawk-inst.$(OBJEXT) getopt.$(OBJEXT) \
 @ENABLE_HAWKGO_TRUE@	hawkgo.$(OBJEXT)
 hawkgo_OBJECTS = $(am_hawkgo_OBJECTS)
 hawkgo_LDADD = $(LDADD)
@@ -372,9 +372,9 @@ hawk_CFLAGS = $(CFLAGS_COMMON)
 hawk_LDFLAGS = $(LDFLAGS_COMMON)
 hawk_LDADD = $(LIBADD_COMMON) $(LIBM)
 @ENABLE_HAWKGO_TRUE@hawkgo_SOURCES = \
-@ENABLE_HAWKGO_TRUE@	../go.mod \
 @ENABLE_HAWKGO_TRUE@	../hawk.go \
 @ENABLE_HAWKGO_TRUE@	../hawk-inst.go \
+@ENABLE_HAWKGO_TRUE@	getopt.go \
 @ENABLE_HAWKGO_TRUE@	hawkgo.go
 
 @ENABLE_HAWKGO_TRUE@hawkgo_LINK = 
@@ -469,7 +469,6 @@ hawk$(EXEEXT): $(hawk_OBJECTS) $(hawk_DEPENDENCIES) $(EXTRA_hawk_DEPENDENCIES)
 ../$(DEPDIR)/$(am__dirstamp):
 	@$(MKDIR_P) ../$(DEPDIR)
 	@: >>../$(DEPDIR)/$(am__dirstamp)
-../go.$(OBJEXT): ../$(am__dirstamp) ../$(DEPDIR)/$(am__dirstamp)
 ../hawk.$(OBJEXT): ../$(am__dirstamp) ../$(DEPDIR)/$(am__dirstamp)
 ../hawk-inst.$(OBJEXT): ../$(am__dirstamp) \
 	../$(DEPDIR)/$(am__dirstamp)
@@ -802,14 +801,12 @@ uninstall-am: uninstall-binPROGRAMS
 
 
 @ENABLE_HAWKGO_TRUE@hawkgo$(EXEEXT): ../lib/libhawk.la $(hawkgo_OBJECTS)
-@ENABLE_HAWKGO_TRUE@	cp -pf $(top_srcdir)/go.mod $(builddir)/go.mod >/dev/null 2>&1 || true
-@ENABLE_HAWKGO_TRUE@	chmod u+w $(builddir)/go.mod ## with `make distcheck`, the echo's redirection to the file fails without this permission change
 @ENABLE_HAWKGO_TRUE@	[ -f $(srcdir)/go.sum ] && cp -pf $(srcdir)/go.sum $(builddir)/go.sum >/dev/null 2>&1 || true
 @ENABLE_HAWKGO_TRUE@	CC=$(CC) \
 @ENABLE_HAWKGO_TRUE@	CGO_CFLAGS="-I$(abs_top_srcdir)/lib -I$(abs_top_builddir)/lib $(CFLAGS) $(CGO_CFLAGS_EXTRA) $(CGO_CFLAGS_ADD)" \
 @ENABLE_HAWKGO_TRUE@	CGO_LDFLAGS="-L$(abs_top_builddir)/lib -L$(abs_top_builddir)/lib/.libs -lhawk -ldl $(LIBM) $(CGO_LDFLAGS_EXTRA) $(CGO_LDFLAGS_ADD)"  \
-@ENABLE_HAWKGO_TRUE@	go build -C $(srcdir) -ldflags "-X 'main.BINDIR=$(bindir)' -X 'main.SBINDIR=$(sbindir)' -X 'main.LIBDIR=$(libdir)' -X 'main.SYSCONFDIR=$(sysconfdir)'" -x -o $(abs_builddir)/$@ -modfile $(abs_builddir)/go.mod  $(abs_srcdir)/hawkgo.go
-@ENABLE_HAWKGO_TRUE@	go clean -C $(srcdir) -x -modfile $(abs_builddir)/go.mod
+@ENABLE_HAWKGO_TRUE@	go build -C $(srcdir) -ldflags "-X 'main.BINDIR=$(bindir)' -X 'main.SBINDIR=$(sbindir)' -X 'main.LIBDIR=$(libdir)' -X 'main.SYSCONFDIR=$(sysconfdir)'" -x -o $(abs_builddir)/$@ -modfile $(abs_top_srcdir)/go.mod  $(abs_srcdir)/hawkgo.go $(abs_srcdir)/getopt.go
+@ENABLE_HAWKGO_TRUE@	go clean -C $(srcdir) -x -modfile $(abs_top_srcdir)/go.mod
 
 @ENABLE_HAWKGO_TRUE@.go.o:
 @ENABLE_HAWKGO_TRUE@	echo $< > $@

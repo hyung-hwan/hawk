@@ -79,7 +79,7 @@ func run_hawk(h *hawk.Hawk, id int, t *testing.T, wg *sync.WaitGroup) {
 
 	defer wg.Done()
 
-	rtx, err = h.NewRtx(fmt.Sprintf("%d", id))
+	rtx, err = h.NewRtx(fmt.Sprintf("%d", id), nil)
 	if err != nil {
 		t.Errorf("failed to create rtx id[%d] - %s", id, err.Error())
 		return
@@ -181,7 +181,7 @@ return x;
 		return
 	}
 
-	rtx, err = h.NewRtx("test2")
+	rtx, err = h.NewRtx("test2", nil)
 	if err != nil {
 		t.Errorf("failed to create rtx - %s", err.Error())
 	} else  {
@@ -310,7 +310,7 @@ return x
 		return
 	}
 
-	rtx, err = h.NewRtx("test3")
+	rtx, err = h.NewRtx("test3", nil)
 	if err != nil {
 		t.Errorf("failed to create rtx - %s", err.Error())
 	} else  {

@@ -5,31 +5,34 @@ import "flag"
 import "fmt"
 import "io"
 import "os"
+import "path/filepath"
 import "runtime"
 import "runtime/debug"
-//import "sync"
-import "time"
+//import "time"
 
 type Config struct {
 	assign string
 	call string
 	fs string
-	srcstr string
-	srcfile string
+	show_extra_info bool
 
-	files []string
+	srcstr string
+	srcfiles []string
+	datfiles []string
 }
 
 func exit_with_error(msg string, err error) {
-	fmt.Printf("ERROR: %s - %s\n", msg, err.Error())
+	fmt.Fprintf(os.Stderr, "ERROR: %s - %s\n", msg, err.Error())
 	os.Exit(1)
 }
 
 func parse_args_to_config(cfg *Config) bool {
-	var flgs *flag.FlagSet
+	//var flgs *flag.FlagSet
+	var flgs *FlagSet
 	var err error
 
-	flgs = flag.NewFlagSet("", flag.ContinueOnError)
+	//flgs = flag.NewFlagSet("", flag.ContinueOnError)
+	flgs = NewFlagSet("", flag.ContinueOnError)
 	flgs.Func("assign", "set a global variable with a value", func(v string) error {
 		cfg.assign = v
 		return nil
@@ -42,16 +45,33 @@ func parse_args_to_config(cfg *Config) bool {
 		cfg.fs = v
 		return nil
 	})
+	flgs.Func("file", "set the source file", func(v string) error {
+		cfg.srcfiles = append(cfg.srcfiles, v)
+		return nil
+	})
+	flgs.BoolVar(&cfg.show_extra_info, "show-extra-info", false, "show extra information")
+
+	flgs.Alias("c", "call")
+	flgs.Alias("D", "show-extra-info")
+	flgs.Alias("F", "field-separator")
+	flgs.Alias("f", "file")
+	flgs.Alias("v", "assign")
 
 	flgs.SetOutput(io.Discard) // prevent usage output
+	//err = flgs.Parse(os.Args[1:])
 	err = flgs.Parse(os.Args[1:])
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "ERROR: %s\n", err.Error())
 		goto wrong_usage
 	}
 
-	if flgs.NArg() == 0 { goto wrong_usage}
-	cfg.files = flgs.Args()
+	//if flgs.NArg() == 0 { goto wrong_usage}
+	cfg.datfiles = flgs.Args()
+	if len(cfg.srcfiles) <= 0 {
+		if len(cfg.datfiles) == 0 { goto wrong_usage }
+		cfg.srcstr = cfg.datfiles[0]
+		cfg.datfiles = cfg.datfiles[1:]
+	}
 
 	return true
 
@@ -88,34 +108,46 @@ func main() {
 	if parse_args_to_config(&cfg) == false { os.Exit(99) }
 fmt.Printf("config [%+v]\n", cfg)
 
-	h, err = make_hawk(`function main(s) {
-print enbase64(s, "hello", 1.289);
-print debase64(s);
-return x
-}`)
+	h, err = hawk.New()
 	if err != nil {
-		fmt.Printf("ERROR: failed to make hawk - %s\n", err.Error())
+		fmt.Fprintf(os.Stderr, "ERROR: failed to make hawk - %s\n", err.Error())
 		return
 	}
 
-	rtx, err = h.NewRtx("test3")
+	if (len(cfg.srcfiles) > 0) {
+		err = h.ParseFiles(cfg.srcfiles)
+	} else {
+		err = h.ParseText(cfg.srcstr)
+	}
 	if err != nil {
-		fmt.Printf("ERROR: failed to make rtx - %s\n", err.Error())
+		fmt.Fprintf(os.Stderr, "ERROR: failed to make hawk - %s\n", err.Error())
+		h.Close()
+		return
+	}
+
+	rtx, err = h.NewRtx(filepath.Base(os.Args[0]), cfg.datfiles)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "ERROR: failed to make rtx - %s\n", err.Error())
 	} else  {
 		var v *hawk.Val
-		v, err = rtx.Call("main", hawk.Must(rtx.NewValFromStr("this is a test3 string")))
-		if err != nil {
-			fmt.Printf("ERROR: failed to make rtx - %s\n", err.Error())
+		if cfg.call != "" {
+			v, err = rtx.Call(cfg.call/*, cfg.datfiles*/) // TODO: pass arguments.
 		} else {
-			fmt.Printf("V=>[%v]\n", v.String())
+			//v, err = rtx.Loop()
+			v, err = rtx.Exec(cfg.datfiles)
+		}
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "ERROR: failed to run rtx - %s\n", err.Error())
+		} else if cfg.show_extra_info {
+			fmt.Printf("[RETURN] - [%v]\n", v.String())
+			// TODO: print global variables and values
 		}
 	}
 
 	h.Close()
-	fmt.Printf ("END OF TEST3\n")
 
 	runtime.GC()
 	runtime.Gosched()
-	time.Sleep(1000 * time.Millisecond) // give finalizer time to print
+//	time.Sleep(1000 * time.Millisecond) // give finalizer time to print
 }
 

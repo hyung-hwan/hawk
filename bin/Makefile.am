@@ -38,8 +38,6 @@ hawk_LDFLAGS = $(LDFLAGS_COMMON)
 ##
 hawk_LDADD = $(LIBADD_COMMON) $(LIBM)
 
-
-
 if ENABLE_HAWKGO
 
 ## the attempt to compose a proper procedure using a regular compiler failed.
@@ -52,9 +50,9 @@ if ENABLE_HAWKGO
 
 bin_PROGRAMS += hawkgo
 hawkgo_SOURCES = \
-	../go.mod \
 	../hawk.go \
 	../hawk-inst.go \
+	getopt.go \
 	hawkgo.go
 ##hawkgo_DEPENDENCIES = 
 
@@ -71,16 +69,16 @@ CGO_LDFLAGS_ADD=""
 endif
 
 hawkgo$(EXEEXT): ../lib/libhawk.la $(hawkgo_OBJECTS)
-	cp -pf $(top_srcdir)/go.mod $(builddir)/go.mod >/dev/null 2>&1 || true
-	chmod u+w $(builddir)/go.mod ## with `make distcheck`, the echo's redirection to the file fails without this permission change
+	##cp -pf $(top_srcdir)/go.mod $(builddir)/go.mod >/dev/null 2>&1 || true
+	##chmod u+w $(builddir)/go.mod ## with `make distcheck`, the echo's redirection to the file fails without this permission change
 	[ -f $(srcdir)/go.sum ] && cp -pf $(srcdir)/go.sum $(builddir)/go.sum >/dev/null 2>&1 || true
 	## ---------------------------------------------------------------
 	CC=$(CC) \
 	CGO_CFLAGS="-I$(abs_top_srcdir)/lib -I$(abs_top_builddir)/lib $(CFLAGS) $(CGO_CFLAGS_EXTRA) $(CGO_CFLAGS_ADD)" \
 	CGO_LDFLAGS="-L$(abs_top_builddir)/lib -L$(abs_top_builddir)/lib/.libs -lhawk -ldl $(LIBM) $(CGO_LDFLAGS_EXTRA) $(CGO_LDFLAGS_ADD)"  \
-	go build -C $(srcdir) -ldflags "-X 'main.BINDIR=$(bindir)' -X 'main.SBINDIR=$(sbindir)' -X 'main.LIBDIR=$(libdir)' -X 'main.SYSCONFDIR=$(sysconfdir)'" -x -o $(abs_builddir)/$@ -modfile $(abs_builddir)/go.mod  $(abs_srcdir)/hawkgo.go
+	go build -C $(srcdir) -ldflags "-X 'main.BINDIR=$(bindir)' -X 'main.SBINDIR=$(sbindir)' -X 'main.LIBDIR=$(libdir)' -X 'main.SYSCONFDIR=$(sysconfdir)'" -x -o $(abs_builddir)/$@ -modfile $(abs_top_srcdir)/go.mod  $(abs_srcdir)/hawkgo.go $(abs_srcdir)/getopt.go
 	## ---------------------------------------------------------------
-	go clean -C $(srcdir) -x -modfile $(abs_builddir)/go.mod
+	go clean -C $(srcdir) -x -modfile $(abs_top_srcdir)/go.mod
 
 ## the go to o recipe is fake to deceive make
 .go.o:

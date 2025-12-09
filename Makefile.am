@@ -18,7 +18,7 @@ distclean-local:
 
 clean-local:
 	rm -rf $(builddir)/go.mod $(builddir)/go.sum
-	go clean -C $(srcdir) -x -modfile $(abs_builddir)/go.mod -cache
+	go clean -C $(srcdir) -x -modfile $(abs_srcdir)/go.mod -cache
 
 ######################################################################
 if ENABLE_HAWKGO
@@ -35,8 +35,8 @@ hawkgo.check:
 	CC=$(CC) \
 	CGO_CFLAGS="-I$(abs_srcdir)/lib -I$(abs_builddir)/lib $(CFLAGS) $(CGO_CFLAGS_EXTRA) $(CGO_CFLAGS_ADD)" \
 	CGO_LDFLAGS="-L$(abs_builddir)/lib -L$(abs_builddir)/lib/.libs -lhawk -ldl $(LIBM) $(CGO_LDFLAGS_EXTRA) $(CGO_LDFLAGS_ADD)"  \
-	go test -C $(srcdir) -ldflags "-X 'main.BINDIR=$(bindir)' -X 'main.SBINDIR=$(sbindir)' -X 'main.LIBDIR=$(libdir)' -X 'main.SYSCONFDIR=$(sysconfdir)'" -x -modfile $(abs_builddir)/go.mod
-	go clean -C $(srcdir) -x -modfile $(abs_builddir)/go.mod
+	go test -C $(srcdir) -ldflags "-X 'main.BINDIR=$(bindir)' -X 'main.SBINDIR=$(sbindir)' -X 'main.LIBDIR=$(libdir)' -X 'main.SYSCONFDIR=$(sysconfdir)'" -x -modfile $(abs_srcdir)/go.mod
+	go clean -C $(srcdir) -x -modfile $(abs_srcdir)/go.mod
 
 endif
 ######################################################################

@@ -18,7 +18,6 @@ static void init_parsestd_for_text_in(hawk_parsestd_t* in, hawk_bch_t* ptr, hawk
 	in[0].type = HAWK_PARSESTD_BCS;
 	in[0].u.bcs.ptr = ptr;
 	in[0].u.bcs.len = len;
-	in[1].type = HAWK_PARSESTD_NULL;
 }
 
 static void init_parsestd_for_file_in(hawk_parsestd_t* in, hawk_bch_t* path)
@@ -26,7 +25,6 @@ static void init_parsestd_for_file_in(hawk_parsestd_t* in, hawk_bch_t* path)
 	in[0].type = HAWK_PARSESTD_FILEB;
 	in[0].u.fileb.path = path;
 	in[0].u.fileb.cmgr = HAWK_NULL;
-	in[1].type = HAWK_PARSESTD_NULL;
 }
 
 static hawk_ooch_t* valtostr_out_cpldup(hawk_rtx_valtostr_out_t* out, hawk_oow_t* len)
@@ -309,7 +307,10 @@ func (hawk *Hawk) SetLogMask(log_mask BitMask) {
 
 func (hawk *Hawk) AddGlobal(name string) error {
 	var x C.int
-	x = C.hawk_addgblwithbcstr(hawk.c, C.CString(name))
+	var cname *C.hawk_bch_t
+	cname = C.CString(name)
+	x = C.hawk_addgblwithbcstr(hawk.c, cname)
+	C.free(unsafe.Pointer(cname))
 	if x <= -1 { return hawk.make_errinfo() }
 	return nil
 }
@@ -346,29 +347,65 @@ func hawk_go_fnc_handler(rtx_xtn *C.rtx_xtn_t, name *C.hawk_bch_t, namelen C.haw
 
 func (hawk *Hawk) AddFunc(name string, min_args uint, max_args uint, spec string, fn Fnc) error {
 	var fnc *C.hawk_fnc_t
+	var cname *C.hawk_bch_t
+	var cspec *C.hawk_bch_t
 
-	fnc = C.add_fnc_with_bcstr(hawk.c, C.CString(name), C.hawk_oow_t(min_args), C.hawk_oow_t(max_args), C.CString(spec));
+	cname = C.CString(name)
+	cspec = C.CString(spec)
+	fnc = C.add_fnc_with_bcstr(hawk.c, cname, C.hawk_oow_t(min_args), C.hawk_oow_t(max_args), cspec);
+	C.free(unsafe.Pointer(cspec))
+	C.free(unsafe.Pointer(cname))
 	if fnc == nil { return hawk.make_errinfo() }
 
 	hawk.fnctab[name] = fn;
 	return nil
 }
 
-func (hawk *Hawk) ParseFile(text string) error {
+func (hawk *Hawk) ParseFile(file string) error {
 	var x C.int
 	var in [2]C.hawk_parsestd_t
-	C.init_parsestd_for_file_in(&in[0], C.CString(text))
+	var cfile *C.hawk_bch_t
+
+	cfile = C.CString(file)
+	C.init_parsestd_for_file_in(&in[0], cfile)
 	x = C.hawk_parsestd(hawk.c, &in[0], nil)
+	C.free(unsafe.Pointer(cfile))
 	if x <= -1 { return hawk.make_errinfo() }
 	return nil
 }
 
-func (hawk *Hawk) ParseText(text string) error {
+func (hawk *Hawk) ParseFiles(files []string) error {
+	var x C.int
+	var in []C.hawk_parsestd_t
+	var idx int
+	var count int
+	var cfiles []*C.hawk_bch_t
+
+	count = len(files)
+	in = make([]C.hawk_parsestd_t, count + 1)
+	for idx = 0; idx < count; idx++ {
+		cfiles[idx] = C.CString(files[idx])
+		C.init_parsestd_for_file_in(&in[idx], cfiles[idx])
+	}
+	in[idx]._type = C.HAWK_PARSESTD_NULL
+	x = C.hawk_parsestd(hawk.c, &in[0], nil)
+	for idx = 0; idx < count; idx++ {
+		C.free(unsafe.Pointer(cfiles[idx]))
+	}
+	if x <= -1 { return hawk.make_errinfo() }
+	return nil
+}
+
+func (hawk *Hawk) ParseText(file string) error {
 	var x C.int
 	var in [2]C.hawk_parsestd_t
+	var cfile *C.hawk_bch_t
 
-	C.init_parsestd_for_text_in(&in[0], C.CString(text), C.hawk_oow_t(len(text)))
+	cfile = C.CString(file)
+	C.init_parsestd_for_text_in(&in[0], cfile, C.hawk_oow_t(len(file)))
+	in[1]._type = C.HAWK_PARSESTD_NULL
 	x = C.hawk_parsestd(hawk.c, &in[0], nil)
+	C.free(unsafe.Pointer(cfile))
 	if x <= -1 { return hawk.make_errinfo() }
 	return nil
 }
@@ -440,12 +477,32 @@ func deregister_rtx_instance(rtx *Rtx) {
 	}
 }
 
-func (hawk *Hawk) NewRtx(id string) (*Rtx, error) {
+func (hawk *Hawk) NewRtx(id string, in []string) (*Rtx, error) {
 	var rtx *C.hawk_rtx_t
 	var g *Rtx
 	var xtn *C.rtx_xtn_t
+	var cid *C.hawk_bch_t
+	var cin []*C.hawk_bch_t
+	var idx int
+	var in_count int
 
-	rtx = C.hawk_rtx_openstdwithbcstr(hawk.c, C.hawk_oow_t(unsafe.Sizeof(*xtn)), C.CString(id), nil, nil, nil)
+	in_count = len(in)
+	cin = make([]*C.hawk_bch_t, in_count + 1)
+	for idx = 0; idx < in_count; idx++ {
+		cin[idx] = C.CString(in[idx])
+	}
+	cin[idx] = (*C.hawk_bch_t)(nil)
+	cid = C.CString(id)
+	if in_count > 0 {
+		rtx = C.hawk_rtx_openstdwithbcstr(hawk.c, C.hawk_oow_t(unsafe.Sizeof(*xtn)), cid, &cin[0], nil, nil)
+	} else {
+		rtx = C.hawk_rtx_openstdwithbcstr(hawk.c, C.hawk_oow_t(unsafe.Sizeof(*xtn)), cid, nil, nil, nil)
+	}
+	for idx = 0; idx < in_count; idx++ {
+		C.free(unsafe.Pointer(cin[idx]))
+	}
+	C.free(unsafe.Pointer(cid))
+
 	if rtx == nil { return nil, hawk.make_errinfo() }
 
 	g = &Rtx{c: rtx}
@@ -488,6 +545,38 @@ func (rtx *Rtx) make_errinfo() *Err {
 		}
 	}
 	return &err
+}
+
+func (rtx *Rtx) Exec(args []string) (*Val, error) {
+	var val *C.hawk_val_t
+	var cargs []*C.hawk_bch_t
+	var idx int
+	var count int
+
+	count = len(args)
+	cargs = make([]*C.hawk_bch_t, count)
+	for idx = 0; idx < count; idx++ {
+		cargs[idx] = C.CString(args[idx])
+	}
+
+	if count > 0 {
+		val = C.hawk_rtx_execwithbcstrarr(rtx.c, &cargs[0], C.hawk_oow_t(count))
+	} else {
+		val = C.hawk_rtx_execwithbcstrarr(rtx.c, (**C.hawk_bch_t)(nil), C.hawk_oow_t(count))
+	}
+
+	for idx = 0; idx < count; idx++ {
+		C.free(unsafe.Pointer(cargs[idx]))
+	}
+	if val == nil { return nil, rtx.make_errinfo() }
+	return &Val{rtx: rtx, c: val}, nil
+}
+
+func (rtx *Rtx) Loop() (*Val, error) {
+	var val *C.hawk_val_t
+	val = C.hawk_rtx_loop(rtx.c)
+	if val == nil { return nil, rtx.make_errinfo() }
+	return &Val{rtx: rtx, c: val}, nil
 }
 
 func (rtx *Rtx) Call(name string, args ...*Val) (*Val, error) {
@@ -675,7 +764,12 @@ func (rtx *Rtx) NewValFromFlt(v float64) (*Val, error) {
 
 func (rtx *Rtx) NewValFromStr(v string) (*Val, error) {
 	return rtx.make_val(func() *C.hawk_val_t {
-		return C.hawk_rtx_makestrvalwithbchars(rtx.c, C.CString(v), C.hawk_oow_t(len(v)))
+		var vv *C.hawk_val_t
+		var cv *C.hawk_bch_t
+		cv = C.CString(v)
+		vv = C.hawk_rtx_makestrvalwithbchars(rtx.c, cv, C.hawk_oow_t(len(v)))
+		C.free(unsafe.Pointer(cv))
+		return vv
 	})
 }
 
