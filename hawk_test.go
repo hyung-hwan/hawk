@@ -39,13 +39,13 @@ func enbase64(rtx *hawk.Rtx) error {
 	var a2 *hawk.Val = hawk.Must(rtx.GetFuncArg(2))
 
 	fmt.Printf("[%s] [%s] [%s]\n", a0.String(), a1.String(), a2.String())
-	rtx.SetFuncRet(hawk.Must(rtx.NewValFromStr("ENBASE64-OUTPUT")))
+	rtx.SetFuncRet(hawk.Must(rtx.NewStrVal("ENBASE64-OUTPUT")))
 	return nil
 }
 
 func debase64(rtx *hawk.Rtx) error {
 	fmt.Printf("****DEBASE64 [%d]\n", rtx.GetFuncArgCount())
-	rtx.SetFuncRet(hawk.Must(rtx.NewValFromFlt(-999.1111)))
+	rtx.SetFuncRet(hawk.Must(rtx.NewFltVal(-999.1111)))
 	return nil
 //return fmt.Errorf("what the hell.....")
 }
@@ -187,7 +187,7 @@ return x;
 	} else  {
 		var v *hawk.Val
 
-		v, err = rtx.Call("get_map", hawk.Must(rtx.NewValFromStr("hawk flies")))
+		v, err = rtx.Call("get_map", hawk.Must(rtx.NewStrVal("hawk flies")))
 		if err != nil {
 			t.Errorf("failed to call get_map - %s", err.Error())
 		} else {
@@ -223,8 +223,8 @@ return x;
 				}
 
 				fmt.Printf("== CHANGING MAP ==\n")
-				v.MapSetField("666.666", hawk.Must(rtx.NewValFromFlt(66666.66666)))
-				v.MapSetField("hello", hawk.Must(rtx.NewValFromStr("all stars")))
+				v.MapSetField("666.666", hawk.Must(rtx.NewFltVal(66666.66666)))
+				v.MapSetField("hello", hawk.Must(rtx.NewStrVal("all stars")))
 
 				fmt.Printf("== DUMPING MAP ==\n")
 				kk, vv = v.MapFirstField(&itr)
@@ -235,7 +235,7 @@ return x;
 			}
 		}
 
-		v, err = rtx.Call("get_arr", hawk.Must(rtx.NewValFromStr("hawk flies")))
+		v, err = rtx.Call("get_arr", hawk.Must(rtx.NewStrVal("hawk flies")))
 		if err != nil {
 			t.Errorf("failed to call get_arr - %s", err.Error())
 		} else {
@@ -270,8 +270,8 @@ return x;
 					}
 					*/
 					fmt.Printf("== CHANGING ARRAY ==\n")
-					v.ArraySetField(88, hawk.Must(rtx.NewValFromStr("eighty eight")))
-					v.ArraySetField(77, hawk.Must(rtx.NewValFromStr("seventy seventy")))
+					v.ArraySetField(88, hawk.Must(rtx.NewStrVal("eighty eight")))
+					v.ArraySetField(77, hawk.Must(rtx.NewStrVal("seventy seventy")))
 					fmt.Printf("== DUMPING ARRAY ==\n")
 					i, ff = v.ArrayFirstField(&itr)
 					for ff != nil {
@@ -316,7 +316,7 @@ return x
 	} else  {
 		var v *hawk.Val
 
-		v, err = rtx.Call("main", hawk.Must(rtx.NewValFromStr("this is a test3 string")))
+		v, err = rtx.Call("main", hawk.Must(rtx.NewStrVal("this is a test3 string")))
 		if err != nil {
 			t.Errorf("failed to call main - %s", err.Error())
 		} else {

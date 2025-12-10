@@ -8,10 +8,16 @@ import "os"
 import "path/filepath"
 import "runtime"
 import "runtime/debug"
+import "strings"
 //import "time"
 
+type Assign struct {
+	idx int
+	value string
+}
+
 type Config struct {
-	assign string
+	assigns map[string]Assign
 	call string
 	fs string
 	show_extra_info bool
@@ -31,10 +37,16 @@ func parse_args_to_config(cfg *Config) bool {
 	var flgs *FlagSet
 	var err error
 
+	cfg.assigns = make(map[string]Assign)
+
 	//flgs = flag.NewFlagSet("", flag.ContinueOnError)
 	flgs = NewFlagSet("", flag.ContinueOnError)
 	flgs.Func("assign", "set a global variable with a value", func(v string) error {
-		cfg.assign = v
+		var kv []string
+		var vv string
+		kv = strings.SplitN(v, "=", 2)
+		if len(kv) >= 2 { vv = kv[1] }
+		cfg.assigns[kv[0]] = Assign{idx: -1, value: vv}
 		return nil
 	})
 	flgs.Func("call", "call a function instead of the pattern-action block)", func(v string) error {
@@ -58,7 +70,6 @@ func parse_args_to_config(cfg *Config) bool {
 	flgs.Alias("v", "assign")
 
 	flgs.SetOutput(io.Discard) // prevent usage output
-	//err = flgs.Parse(os.Args[1:])
 	err = flgs.Parse(os.Args[1:])
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "ERROR: %s\n", err.Error())
@@ -81,37 +92,49 @@ wrong_usage:
 	return false
 }
 
-func make_hawk(script string) (*hawk.Hawk, error) {
-	var h *hawk.Hawk
-	var err error
-
-	h, err = hawk.New()
-	if err != nil { return nil, err }
-
-	err = h.ParseText(script)
-	if err != nil {
-		h.Close()
-		return nil, err
-	}
-
-	return h, nil
-}
-
 func main() {
 	var h *hawk.Hawk
 	var rtx *hawk.Rtx
 	var cfg Config
+	var fs_idx int = -1
 	var err error
 
 	debug.SetGCPercent(100) // enable normal GC
 
 	if parse_args_to_config(&cfg) == false { os.Exit(99) }
-fmt.Printf("config [%+v]\n", cfg)
 
 	h, err = hawk.New()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "ERROR: failed to make hawk - %s\n", err.Error())
-		return
+		goto oops
+	}
+
+	if len(cfg.assigns) > 0 {
+		var k string
+		var v Assign
+		var idx int
+		for k, v = range cfg.assigns {
+			idx, err = h.FindGlobal(k, true)
+			if err == nil {
+				// existing variable found
+				v.idx = idx
+			} else {
+				v.idx, err = h.AddGlobal(k)
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "ERROR: failed to add global variable '%s' - %s\n", k, err.Error())
+					goto oops
+				}
+			}
+			cfg.assigns[k] = v
+		}
+	}
+
+	if cfg.fs != "" {
+		fs_idx, err = h.FindGlobal("FS", true)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "ERROR: failed to find global variable 'FS' - %s\n", err.Error())
+			goto oops
+		}
 	}
 
 	if (len(cfg.srcfiles) > 0) {
@@ -121,33 +144,101 @@ fmt.Printf("config [%+v]\n", cfg)
 	}
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "ERROR: failed to make hawk - %s\n", err.Error())
-		h.Close()
-		return
+		goto oops
 	}
 
 	rtx, err = h.NewRtx(filepath.Base(os.Args[0]), cfg.datfiles)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "ERROR: failed to make rtx - %s\n", err.Error())
+		goto oops
 	} else  {
-		var v *hawk.Val
+		var k string
+		var v Assign
+		var retv *hawk.Val
+
+		for k, v = range cfg.assigns {
+			if v.idx >= 0  {
+				var vv *hawk.Val
+				vv, err = rtx.NewNumOrStrVal(v.value)
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "ERROR: failed to convert value '%s' for global variable '%s' - %s\n", v.value, k, err.Error())
+					goto oops
+				}
+
+				err = rtx.SetGlobal(v.idx, vv)
+				vv.Close()
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "ERROR: failed to set global variable '%s' - %s\n", k, err.Error())
+					goto oops
+				}
+			}
+		}
+
+		if fs_idx >= 0 {
+			var vv *hawk.Val
+			vv, err = rtx.NewStrVal(cfg.fs)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "ERROR: failed to convert field separator '%s' - %s\n", cfg.fs, err.Error())
+				goto oops
+			}
+
+			rtx.SetGlobal(fs_idx, vv)
+			vv.Close()
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "ERROR: failed to set field separator to '%s' - %s\n", cfg.fs, err.Error())
+				goto oops
+			}
+		}
+
 		if cfg.call != "" {
-			v, err = rtx.Call(cfg.call/*, cfg.datfiles*/) // TODO: pass arguments.
+			var idx int
+			var count int
+			var args []*hawk.Val
+
+			count = len(cfg.datfiles)
+			args = make([]*hawk.Val, count)
+			for idx = 0; idx < count; idx++ {
+				args[idx], err = rtx.NewStrVal(cfg.datfiles[idx])
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "ERROR: failed to convert argument [%s] to value - %s\n", cfg.datfiles[idx], err.Error())
+					goto oops
+				}
+			}
+			retv, err = rtx.Call(cfg.call, args...)
+			for idx = 0; idx < count; idx++ {
+				// it's ok not to call Close() on args as rtx.Close() closes them automatically.
+				// if args are re-created repeatedly, Close() on them is always needed not to
+				// accumulate too many allocated values.
+				args[idx].Close()
+			}
 		} else {
 			//v, err = rtx.Loop()
-			v, err = rtx.Exec(cfg.datfiles)
+			retv, err = rtx.Exec(cfg.datfiles)
 		}
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "ERROR: failed to run rtx - %s\n", err.Error())
-		} else if cfg.show_extra_info {
-			fmt.Printf("[RETURN] - [%v]\n", v.String())
+			goto oops
+		}
+
+		if cfg.show_extra_info {
+			fmt.Printf("[RETURN] - [%v]\n", retv.String())
 			// TODO: print global variables and values
 		}
 	}
 
-	h.Close()
+	// let's not care about closing args or return values
+	// because rtx.Close() will close them automatically
+	if rtx != nil { rtx.Close() }
+	if h != nil { h.Close() }
 
 	runtime.GC()
 	runtime.Gosched()
 //	time.Sleep(1000 * time.Millisecond) // give finalizer time to print
+	return
+
+oops:
+	if rtx != nil { rtx.Close() }
+	if h != nil { h.Close() }
+	os.Exit(255)
 }
 

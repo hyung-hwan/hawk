@@ -305,14 +305,27 @@ func (hawk *Hawk) SetLogMask(log_mask BitMask) {
 	}
 }
 
-func (hawk *Hawk) AddGlobal(name string) error {
+func (hawk *Hawk) FindGlobal(name string, inc_builtins bool) (int, error) {
+	var x C.int
+	var cname *C.hawk_bch_t
+	var cinc C.int
+
+	cname = C.CString(name)
+	if inc_builtins { cinc = 1 }
+	x = C.hawk_findgblwithbcstr(hawk.c, cname, cinc)
+	C.free(unsafe.Pointer(cname))
+	if x <= -1 { return -1, hawk.make_errinfo() }
+	return int(x), nil
+}
+
+func (hawk *Hawk) AddGlobal(name string) (int, error) {
 	var x C.int
 	var cname *C.hawk_bch_t
 	cname = C.CString(name)
 	x = C.hawk_addgblwithbcstr(hawk.c, cname)
 	C.free(unsafe.Pointer(cname))
-	if x <= -1 { return hawk.make_errinfo() }
-	return nil
+	if x <= -1 { return -1, hawk.make_errinfo() }
+	return int(x), nil
 }
 
 //export hawk_go_fnc_handler
@@ -383,6 +396,7 @@ func (hawk *Hawk) ParseFiles(files []string) error {
 
 	count = len(files)
 	in = make([]C.hawk_parsestd_t, count + 1)
+	cfiles = make([]*C.hawk_bch_t, count)
 	for idx = 0; idx < count; idx++ {
 		cfiles[idx] = C.CString(files[idx])
 		C.init_parsestd_for_file_in(&in[idx], cfiles[idx])
@@ -547,6 +561,13 @@ func (rtx *Rtx) make_errinfo() *Err {
 	return &err
 }
 
+func (rtx *Rtx) SetGlobal(idx int, val *Val) error {
+	if C.hawk_rtx_setgbl(rtx.c, C.int(idx), val.c) <= -1 {
+		return rtx.make_errinfo()
+	}
+	return nil
+}
+
 func (rtx *Rtx) Exec(args []string) (*Val, error) {
 	var val *C.hawk_val_t
 	var cargs []*C.hawk_bch_t
@@ -702,13 +723,13 @@ func (rtx *Rtx) NewVal(v interface{}) (*Val, error) {
 	_type = reflect.TypeOf(v)
 	switch _type.Kind() {
 		case reflect.Int:
-			return rtx.NewValFromInt(v.(int))
+			return rtx.NewIntVal(v.(int))
 		case reflect.Float32:
-			return rtx.NewValFromFlt(float64(v.(float32)))
+			return rtx.NewFltVal(float64(v.(float32)))
 		case reflect.Float64:
-			return rtx.NewValFromFlt(v.(float64))
+			return rtx.NewFltVal(v.(float64))
 		case reflect.String:
-			return rtx.NewValFromStr(v.(string))
+			return rtx.NewStrVal(v.(string))
 
 		case reflect.Array:
 			fallthrough
@@ -716,7 +737,7 @@ func (rtx *Rtx) NewVal(v interface{}) (*Val, error) {
 			var _kind reflect.Kind
 			_kind = _type.Elem().Kind()
 			if _kind == reflect.Uint8 {
-				return rtx.NewValFromByteArr(v.([]byte))
+				return rtx.NewByteArrVal(v.([]byte))
 			}
 			fallthrough
 
@@ -738,31 +759,31 @@ func (rtx* Rtx) make_val(vmaker func() *C.hawk_val_t) (*Val, error) {
 	return vv, nil
 }
 
-func (rtx *Rtx) NewValFromByte(v byte) (*Val, error) {
+func (rtx *Rtx) NewByteVal(v byte) (*Val, error) {
 	return rtx.make_val(func() *C.hawk_val_t {
 		return C.hawk_rtx_makebchrval(rtx.c, C.hawk_bch_t(v))
 	})
 }
 
-func (rtx *Rtx) NewValFromRune(v rune) (*Val, error) {
+func (rtx *Rtx) NewCharVal(v rune) (*Val, error) {
 	return rtx.make_val(func() *C.hawk_val_t {
 		return C.hawk_rtx_makecharval(rtx.c, C.hawk_ooch_t(v))
 	})
 }
 
-func (rtx *Rtx) NewValFromInt(v int) (*Val, error) {
+func (rtx *Rtx) NewIntVal(v int) (*Val, error) {
 	return rtx.make_val(func() *C.hawk_val_t {
 		return C.hawk_rtx_makeintval(rtx.c, C.hawk_int_t(v))
 	})
 }
 
-func (rtx *Rtx) NewValFromFlt(v float64) (*Val, error) {
+func (rtx *Rtx) NewFltVal(v float64) (*Val, error) {
 	return rtx.make_val(func() *C.hawk_val_t {
 		return C.make_flt_val(rtx.c, C.double(v))
 	})
 }
 
-func (rtx *Rtx) NewValFromStr(v string) (*Val, error) {
+func (rtx *Rtx) NewStrVal(v string) (*Val, error) {
 	return rtx.make_val(func() *C.hawk_val_t {
 		var vv *C.hawk_val_t
 		var cv *C.hawk_bch_t
@@ -773,7 +794,18 @@ func (rtx *Rtx) NewValFromStr(v string) (*Val, error) {
 	})
 }
 
-func (rtx *Rtx) NewValFromByteArr(v []byte) (*Val, error) {
+func (rtx *Rtx) NewNumOrStrVal(v string) (*Val, error) {
+	return rtx.make_val(func() *C.hawk_val_t {
+		var vv *C.hawk_val_t
+		var cv *C.hawk_bch_t
+		cv = C.CString(v)
+		vv = C.hawk_rtx_makenumorstrvalwithbchars(rtx.c, cv, C.hawk_oow_t(len(v)))
+		C.free(unsafe.Pointer(cv))
+		return vv
+	})
+}
+
+func (rtx *Rtx) NewByteArrVal(v []byte) (*Val, error) {
 	return rtx.make_val(func() *C.hawk_val_t {
 		return C.hawk_rtx_makembsvalwithbchars(rtx.c, (*C.hawk_bch_t)(unsafe.Pointer(&v[0])), C.hawk_oow_t(len(v)))
 	})
