@@ -4,6 +4,8 @@ import "hawk"
 import "flag"
 import "fmt"
 import "io"
+//import "net/http"
+//import _ "net/http/pprof"
 import "os"
 import "path/filepath"
 import "runtime"
@@ -98,6 +100,9 @@ func main() {
 	var cfg Config
 	var fs_idx int = -1
 	var err error
+
+	// for profiling
+	//go http.ListenAndServe("0.0.0.0:6060", nil)
 
 	debug.SetGCPercent(100) // enable normal GC
 
@@ -221,8 +226,20 @@ func main() {
 		}
 
 		if cfg.show_extra_info {
+			var named_vars map[string]*hawk.Val
+			var vn string
+			var vv *hawk.Val
+
 			fmt.Printf("[RETURN] - [%v]\n", retv.String())
-			// TODO: print global variables and values
+
+
+			fmt.Printf("NAMED VARIABLES]\n")
+			named_vars = make(map[string]*hawk.Val)
+			rtx.GetNamedVars(named_vars)
+			for vn, vv = range named_vars {
+				fmt.Printf("%s = %s\n", vn, vv.String())
+			}
+			fmt.Printf("END OF NAMED VARIABLES]\n")
 		}
 	}
 
@@ -233,7 +250,8 @@ func main() {
 
 	runtime.GC()
 	runtime.Gosched()
-//	time.Sleep(1000 * time.Millisecond) // give finalizer time to print
+
+	//time.Sleep(100000 * time.Millisecond)
 	return
 
 oops:

@@ -590,14 +590,21 @@ func (rtx *Rtx) Exec(args []string) (*Val, error) {
 		C.free(unsafe.Pointer(cargs[idx]))
 	}
 	if val == nil { return nil, rtx.make_errinfo() }
-	return &Val{rtx: rtx, c: val}, nil
+
+	// hawk_rtx_exec...() returns a value with the reference count incremented.
+	// create a value without going through rtx.make_val()
+	return rtx.fix_val_with_raw(val), nil
+	//return rtx.make_val(func() *C.hawk_val_t { return val })aAAA
 }
 
 func (rtx *Rtx) Loop() (*Val, error) {
 	var val *C.hawk_val_t
 	val = C.hawk_rtx_loop(rtx.c)
 	if val == nil { return nil, rtx.make_errinfo() }
-	return &Val{rtx: rtx, c: val}, nil
+	// hawk_rtx_loop() returns a value with the reference count incremented.
+	// create a value without going through rtx.make_val()
+	return rtx.fix_val_with_raw(val), nil
+	//return rtx.make_val(func() *C.hawk_val_t { return val })aAAA
 }
 
 func (rtx *Rtx) Call(name string, args ...*Val) (*Val, error) {
@@ -623,7 +630,8 @@ func (rtx *Rtx) Call(name string, args ...*Val) (*Val, error) {
 
 	// hawk_rtx_callfun() returns a value with the reference count incremented.
 	// i create a Val object without incrementing the reference count of val.
-	return &Val{rtx: rtx, c: val}, nil
+	return rtx.fix_val_with_raw(val), nil
+	//return rtx.make_val(func() *C.hawk_val_t { return val })aAAA
 }
 
 func (rtx *Rtx) ValCount() int {
@@ -684,6 +692,21 @@ func (rtx *Rtx) GetFuncArg(idx int) (*Val, error) {
 
 func (rtx *Rtx) SetFuncRet(v *Val) {
 	C.hawk_rtx_setretval(rtx.c, v.c)
+}
+
+func (rtx *Rtx) GetNamedVars(vars map[string]*Val) {
+	var tab *C.hawk_htb_t
+	var itr C.hawk_htb_itr_t
+	var pair *C.hawk_htb_pair_t
+	var k string
+
+	tab = C.hawk_rtx_getnvmap(rtx.c)
+	pair = C.hawk_htb_getfirstpair(tab, &itr)
+	for pair != nil {
+		k = string(uchars_to_rune_slice((*C.hawk_uch_t)(pair.key.ptr), uintptr(pair.key.len)))
+		vars[k], _ = rtx.make_val(func() *C.hawk_val_t { return (*C.hawk_val_t)(pair.val.ptr) })
+		pair = C.hawk_htb_getnextpair(tab, &itr)
+	}
 }
 
 // -----------------------------------------------------------
@@ -757,6 +780,16 @@ func (rtx* Rtx) make_val(vmaker func() *C.hawk_val_t) (*Val, error) {
 	vv = &Val{rtx: rtx, c: c}
 	rtx.chain_val(vv)
 	return vv, nil
+}
+
+func (rtx* Rtx) fix_val_with_raw(val *C.hawk_val_t) *Val {
+	// this function assumes val has the non-zero reference count
+	// the caller must ensure that the reference count has been incremented properly
+	var vv *Val
+	if val.v_refs <= 0 && C.hawk_rtx_isstaticval(rtx.c, val) == 0  { panic("invalid reference count") }
+	vv = &Val{rtx: rtx, c: val}
+	rtx.chain_val(vv)
+	return vv
 }
 
 func (rtx *Rtx) NewByteVal(v byte) (*Val, error) {

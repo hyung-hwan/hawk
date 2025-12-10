@@ -298,25 +298,25 @@ static void dprint_return (hawk_rtx_t* rtx, hawk_val_t* ret)
 
 	if (hawk_rtx_isnilval(rtx, ret))
 	{
-		hawk_logfmt (hawk, HAWK_LOG_STDERR,HAWK_T("[RETURN] - ***nil***\n"));
+		hawk_logfmt(hawk, HAWK_LOG_STDERR,HAWK_T("[RETURN] - ***nil***\n"));
 	}
 	else
 	{
 		str = hawk_rtx_valtooocstrdup(rtx, ret, &len);
 		if (str == HAWK_NULL)
 		{
-			hawk_logfmt (hawk, HAWK_LOG_STDERR,HAWK_T("[RETURN] - ***OUT OF MEMORY***\n"));
+			hawk_logfmt(hawk, HAWK_LOG_STDERR,HAWK_T("[RETURN] - ***OUT OF MEMORY***\n"));
 		}
 		else
 		{
-			hawk_logfmt (hawk, HAWK_LOG_STDERR, HAWK_T("[RETURN] - [%.*js]\n"), len, str);
+			hawk_logfmt(hawk, HAWK_LOG_STDERR, HAWK_T("[RETURN] - [%.*js]\n"), len, str);
 			hawk_freemem(hawk_rtx_gethawk(rtx), str);
 		}
 	}
 
-	hawk_logfmt (hawk, HAWK_LOG_STDERR, HAWK_T("[NAMED VARIABLES]\n"));
-	hawk_htb_walk (hawk_rtx_getnvmap(rtx), print_awk_value, rtx);
-	hawk_logfmt (hawk, HAWK_LOG_STDERR, HAWK_T("[END NAMED VARIABLES]\n"));
+	hawk_logfmt(hawk, HAWK_LOG_STDERR, HAWK_T("[NAMED VARIABLES]\n"));
+	hawk_htb_walk(hawk_rtx_getnvmap(rtx), print_awk_value, rtx);
+	hawk_logfmt(hawk, HAWK_LOG_STDERR, HAWK_T("[END OF NAMED VARIABLES]\n"));
 }
 
 #if defined(ENABLE_CALLBACK)
