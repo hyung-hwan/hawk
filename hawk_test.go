@@ -79,7 +79,7 @@ func run_hawk(h *hawk.Hawk, id int, t *testing.T, wg *sync.WaitGroup) {
 
 	defer wg.Done()
 
-	rtx, err = h.NewRtx(fmt.Sprintf("%d", id), nil)
+	rtx, err = h.NewRtx(fmt.Sprintf("%d", id), nil, nil)
 	if err != nil {
 		t.Errorf("failed to create rtx id[%d] - %s", id, err.Error())
 		return
@@ -103,9 +103,9 @@ func run_hawk(h *hawk.Hawk, id int, t *testing.T, wg *sync.WaitGroup) {
 	}
 	fmt.Printf("RET[%d] => [%v]\n", id, ret)
 
-	// check if ValCount() returns the right number of values created explicitly
+	// check if ValCount() returns the right number of values created. 3 explicitly and 1 return value
 	i = rtx.ValCount()
-	if i != 3 { t.Errorf("the number of val objects for rtx id[%d] must be 3. but %d was returned", id, i) }
+	if i != 4 { t.Errorf("the number of val objects for rtx id[%d] must be 4. but %d was returned", id, i) }
 
 	rtx.Close()
 
@@ -181,7 +181,7 @@ return x;
 		return
 	}
 
-	rtx, err = h.NewRtx("test2", nil)
+	rtx, err = h.NewRtx("test2", nil, nil)
 	if err != nil {
 		t.Errorf("failed to create rtx - %s", err.Error())
 	} else  {
@@ -310,7 +310,7 @@ return x
 		return
 	}
 
-	rtx, err = h.NewRtx("test3", nil)
+	rtx, err = h.NewRtx("test3", nil, nil)
 	if err != nil {
 		t.Errorf("failed to create rtx - %s", err.Error())
 	} else  {

@@ -491,26 +491,43 @@ func deregister_rtx_instance(rtx *Rtx) {
 	}
 }
 
-func (hawk *Hawk) NewRtx(id string, in []string) (*Rtx, error) {
+func (hawk *Hawk) NewRtx(id string, in []string, out []string) (*Rtx, error) {
 	var rtx *C.hawk_rtx_t
 	var g *Rtx
 	var xtn *C.rtx_xtn_t
 	var cid *C.hawk_bch_t
 	var cin []*C.hawk_bch_t
+	var cout []*C.hawk_bch_t
+	var cin_ptr **C.hawk_bch_t
+	var cout_ptr **C.hawk_bch_t
 	var idx int
 	var in_count int
+	var out_count int
 
 	in_count = len(in)
-	cin = make([]*C.hawk_bch_t, in_count + 1)
-	for idx = 0; idx < in_count; idx++ {
-		cin[idx] = C.CString(in[idx])
-	}
-	cin[idx] = (*C.hawk_bch_t)(nil)
-	cid = C.CString(id)
 	if in_count > 0 {
-		rtx = C.hawk_rtx_openstdwithbcstr(hawk.c, C.hawk_oow_t(unsafe.Sizeof(*xtn)), cid, &cin[0], nil, nil)
-	} else {
-		rtx = C.hawk_rtx_openstdwithbcstr(hawk.c, C.hawk_oow_t(unsafe.Sizeof(*xtn)), cid, nil, nil, nil)
+		cin = make([]*C.hawk_bch_t, in_count + 1)
+		for idx = 0; idx < in_count; idx++ {
+			cin[idx] = C.CString(in[idx])
+		}
+		cin[idx] = (*C.hawk_bch_t)(nil)
+		cin_ptr = &cin[0]
+	}
+
+	out_count = len(out)
+	if out_count > 0 {
+		cout = make([]*C.hawk_bch_t, out_count + 1)
+		for idx = 0; idx < out_count; idx++ {
+			cout[idx] = C.CString(out[idx])
+		}
+		cout[idx] = (*C.hawk_bch_t)(nil)
+		cout_ptr = &cout[0]
+	}
+
+	cid = C.CString(id)
+	rtx = C.hawk_rtx_openstdwithbcstr(hawk.c, C.hawk_oow_t(unsafe.Sizeof(*xtn)), cid, cin_ptr, cout_ptr, nil)
+	for idx = 0; idx < out_count; idx++ {
+		C.free(unsafe.Pointer(cout[idx]))
 	}
 	for idx = 0; idx < in_count; idx++ {
 		C.free(unsafe.Pointer(cin[idx]))
