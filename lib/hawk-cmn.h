@@ -1014,6 +1014,7 @@ enum hawk_errnum_t
 	HAWK_EINCLTD,   /**< include level too deep */
 	HAWK_EXKWNR,    /**< word after @ not recognized */
 	HAWK_EXKWEM,    /**< @ not followed by a valid word  */
+	HAWK_EUNUSED,   /**< unused element */
 
 	/* hawk run time error */
 	HAWK_ESTACK,        /**< stack error */

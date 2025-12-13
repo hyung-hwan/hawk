@@ -33,7 +33,7 @@
 #define keeper_t hawk_arr_keeper_t
 #define walker_t hawk_arr_walker_t
 
-#define TOB(arr,len) ((len)*(arr)->scale)
+#define TOB(arr,len) ((len) * (arr)->scale)
 #define DPTR(slot)   ((slot)->val.ptr)
 #define DLEN(slot)   ((slot)->val.len)
 
@@ -71,11 +71,13 @@ static HAWK_INLINE slot_t* alloc_slot (hawk_arr_t* arr, void* dptr, hawk_oow_t d
 	}
 	else if (arr->style->copier == HAWK_ARR_COPIER_INLINE)
 	{
-		n = (slot_t*)hawk_gem_allocmem(arr->gem, HAWK_SIZEOF(slot_t) + TOB(arr,dlen));
+		hawk_oow_t nbytes = TOB(arr, dlen);
+		n = (slot_t*)hawk_gem_allocmem(arr->gem, HAWK_SIZEOF(slot_t) + nbytes + arr->inline_slot_xtnsize);
 		if (HAWK_UNLIKELY(!n)) return HAWK_NULL;
-
-		HAWK_MEMCPY (n + 1, dptr, TOB(arr,dlen)); /* copy data contents */
+		HAWK_MEMCPY(n + 1, dptr, nbytes); /* copy data contents */
 		DPTR(n) = n + 1;
+		if (arr->inline_slot_xtnsize > 0)
+			HAWK_MEMSET((hawk_uint8_t*)DPTR(n) + nbytes, 0, arr->inline_slot_xtnsize);
 	}
 	else
 	{
@@ -103,17 +105,17 @@ hawk_arr_t* hawk_arr_open (hawk_gem_t* gem, hawk_oow_t xtnsize, hawk_oow_t capa)
 
 	if (hawk_arr_init(arr, gem, capa) <= -1)
 	{
-		hawk_gem_freemem (gem, arr);
+		hawk_gem_freemem(gem, arr);
 		return HAWK_NULL;
 	}
 
-	HAWK_MEMSET (arr + 1, 0, xtnsize);
+	HAWK_MEMSET(arr + 1, 0, xtnsize);
 	return arr;
 }
 
 void hawk_arr_close (hawk_arr_t* arr)
 {
-	hawk_arr_fini (arr);
+	hawk_arr_fini(arr);
 	hawk_gem_freemem(arr->gem, arr);
 }
 
@@ -160,7 +162,7 @@ int hawk_arr_init (hawk_arr_t* arr, hawk_gem_t* gem, hawk_oow_t capa)
 
 void hawk_arr_fini (hawk_arr_t* arr)
 {
-	hawk_arr_clear (arr);
+	hawk_arr_clear(arr);
 
 	if (arr->slot)
 	{
@@ -181,7 +183,7 @@ void hawk_arr_setscale (hawk_arr_t* arr, int scale)
 {
 	/* The scale should be larger than 0 and less than or equal to the
 	 * maximum value that the hawk_uint8_t type can hold */
-	HAWK_ASSERT (scale > 0 && scale <= HAWK_TYPE_MAX(hawk_uint8_t));
+	HAWK_ASSERT(scale > 0 && scale <= HAWK_TYPE_MAX(hawk_uint8_t));
 
 	if (scale <= 0) scale = 1;
 	if (scale > HAWK_TYPE_MAX(hawk_uint8_t)) scale = HAWK_TYPE_MAX(hawk_uint8_t);
@@ -196,7 +198,7 @@ const hawk_arr_style_t* hawk_arr_getstyle (hawk_arr_t* arr)
 
 void hawk_arr_setstyle (hawk_arr_t* arr, const hawk_arr_style_t* style)
 {
-	HAWK_ASSERT (style != HAWK_NULL);
+	HAWK_ASSERT(style != HAWK_NULL);
 	arr->style = style;
 }
 
@@ -238,8 +240,8 @@ hawk_arr_t* hawk_arr_setcapa (hawk_arr_t* arr, hawk_oow_t capa)
 
 		tmp = HAWK_NULL;
 
-		HAWK_ASSERT (arr->size == 0);
-		HAWK_ASSERT (arr->tally == 0);
+		HAWK_ASSERT(arr->size == 0);
+		HAWK_ASSERT(arr->tally == 0);
 	}
 
 	arr->slot = tmp;
@@ -287,6 +289,7 @@ hawk_oow_t hawk_arr_upsert (hawk_arr_t* arr, hawk_oow_t pos, void* dptr, hawk_oo
 	return hawk_arr_insert(arr, pos, dptr, dlen);
 }
 
+
 hawk_oow_t hawk_arr_insert (hawk_arr_t* arr, hawk_oow_t pos, void* dptr, hawk_oow_t dlen)
 {
 	hawk_oow_t i;
@@ -314,7 +317,7 @@ hawk_oow_t hawk_arr_insert (hawk_arr_t* arr, hawk_oow_t pos, void* dptr, hawk_oo
 		{
 			if (arr->capa <= 0)
 			{
-				HAWK_ASSERT (arr->size <= 0);
+				HAWK_ASSERT(arr->size <= 0);
 				capa = HAWK_ALIGN_POW2(pos + 1, 64);
 			}
 			else
@@ -692,7 +695,7 @@ hawk_oow_t hawk_arr_pushheap (hawk_arr_t* arr, void* dptr, hawk_oow_t dlen)
 	if (hawk_arr_insert(arr, index, dptr, dlen) == HAWK_ARR_NIL) return HAWK_ARR_NIL;
 	HEAP_UPDATE_POS(arr, index);
 
-	HAWK_ASSERT (arr->size == index + 1);
+	HAWK_ASSERT(arr->size == index + 1);
 
 	/* move the item upto the top if it's greater than the parent items */
 	sift_up(arr, index);
@@ -701,7 +704,7 @@ hawk_oow_t hawk_arr_pushheap (hawk_arr_t* arr, void* dptr, hawk_oow_t dlen)
 
 void hawk_arr_popheap (hawk_arr_t* arr)
 {
-	HAWK_ASSERT (arr->size > 0);
+	HAWK_ASSERT(arr->size > 0);
 	hawk_arr_deleteheap(arr, 0);
 }
 
@@ -709,8 +712,8 @@ void hawk_arr_deleteheap (hawk_arr_t* arr, hawk_oow_t index)
 {
 	slot_t* tmp;
 
-	HAWK_ASSERT (arr->size > 0);
-	HAWK_ASSERT (index < arr->size);
+	HAWK_ASSERT(arr->size > 0);
+	HAWK_ASSERT(index < arr->size);
 
 	/* remember the item to destroy */
 	tmp = arr->slot[index];
@@ -746,7 +749,7 @@ hawk_oow_t hawk_arr_updateheap (hawk_arr_t* arr, hawk_oow_t index, void* dptr, h
 	int n;
 
 	tmp = arr->slot[index];
-	HAWK_ASSERT (tmp != HAWK_NULL);
+	HAWK_ASSERT(tmp != HAWK_NULL);
 
 	n = arr->style->comper(arr, dptr, dlen, DPTR(tmp), DLEN(tmp));
 	if (n)

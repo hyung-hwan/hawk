@@ -606,6 +606,25 @@ static int parse (hawk_t* hawk)
 		}
 	}
 
+	if (hawk->parse.pragma.trait & HAWK_PEDANTIC)
+	{
+		hawk_oow_t i;
+		for (i = hawk->tree.ngbls_base ; i < HAWK_ARR_SIZE(hawk->parse.gbls); i++)
+		{
+			const hawk_ptl_t* ptl;
+			hawk_var_xinfo_t vxi;
+
+			ptl = HAWK_ARR_DPTL(hawk->parse.gbls, i);
+			HAWK_MEMCPY(&vxi, (const hawk_ooch_t*)ptl->ptr + ptl->len, HAWK_SIZEOF(vxi));
+
+			if (!vxi.used)
+			{
+				hawk_seterrbfmt(hawk, &vxi.loc, HAWK_EUNUSED, "unused global variable '%.*js'", ptl->len, ptl->ptr);
+				goto oops;
+			}
+		}
+	}
+
 	HAWK_ASSERT(hawk->tree.ngbls == HAWK_ARR_SIZE(hawk->parse.gbls));
 	HAWK_ASSERT(hawk->sio.inp == &hawk->sio.arg);
 	ret = 0;
@@ -879,7 +898,7 @@ static int begin_include (hawk_t* hawk, int once)
 	arg->pragma_trait = hawk->parse.pragma.trait;
 	/* but don't change hawk->parse.pragma.trait. it means the included file inherits
 	 * the existing progma values.
-	hawk->parse.pragma.trait = (hawk->opt.trait & (HAWK_IMPLICIT | HAWK_MULTILINESTR | HAWK_STRIPRECSPC | HAWK_STRIPSTRSPC));
+	hawk->parse.pragma.trait = (hawk->opt.trait & (HAWK_IMPLICIT | HAWK_MULTILINESTR | HAWK_PEDANTIC | HAWK_RWPIPE | HAWK_STRIPRECSPC | HAWK_STRIPSTRSPC));
 	*/
 
 	/* update the current pointer after opening is successful */
@@ -1022,12 +1041,15 @@ static int parse_progunit (hawk_t* hawk)
 		/* NOTE: trait = is an intended assignment */
 		else if (((trait = HAWK_IMPLICIT) && hawk_comp_oochars_oocstr(name.ptr, name.len, HAWK_T("implicit"), 0) == 0) ||
 		         ((trait = HAWK_MULTILINESTR) && hawk_comp_oochars_oocstr(name.ptr, name.len, HAWK_T("multilinestr"), 0) == 0) ||
+		         ((trait = HAWK_PEDANTIC) && hawk_comp_oochars_oocstr(name.ptr, name.len, HAWK_T("pedantic"), 0) == 0) ||
 		         ((trait = HAWK_RWPIPE) && hawk_comp_oochars_oocstr(name.ptr, name.len, HAWK_T("rwpipe"), 0) == 0))
 		{
 			/* @pragma implicit on
 			 * @pragma implicit off
 			 * @pragma multilinestr on
 			 * @pragma multilinestr off
+			 * @pragma pedantic on
+			 * @pragma pedantic off
 			 * @pragma rwpipe on
 			 * @pragma rwpipe off
 			 *
@@ -1835,6 +1857,27 @@ static hawk_nde_t* parse_block (hawk_t* hawk, const hawk_loc_t* xloc, int flags)
 		}
 	}
 
+	if (hawk->parse.pragma.trait & HAWK_PEDANTIC)
+	{
+		hawk_oow_t i;
+		for (i = nlcls_outer ; i < HAWK_ARR_SIZE(hawk->parse.lcls); i++)
+		{
+			const hawk_ptl_t* ptl;
+			hawk_var_xinfo_t vxi;
+
+			ptl = HAWK_ARR_DPTL(hawk->parse.lcls, i);
+			HAWK_MEMCPY(&vxi, (const hawk_ooch_t*)ptl->ptr + ptl->len, HAWK_SIZEOF(vxi));
+
+			if (!vxi.used)
+			{
+				hawk_seterrbfmt(hawk, &vxi.loc, HAWK_EUNUSED, "unused local variable '%.*js'", ptl->len, ptl->ptr);
+				hawk_arr_delete(hawk->parse.lcls, nlcls_outer, HAWK_ARR_SIZE(hawk->parse.lcls) - nlcls_outer);
+				hawk_clrpt(hawk, head);
+				return HAWK_NULL;
+			}
+		}
+	}
+
 	block = (hawk_nde_blk_t*)hawk_callocmem(hawk, HAWK_SIZEOF(*block));
 	if (HAWK_UNLIKELY(!block))
 	{
@@ -1980,6 +2023,7 @@ static hawk_oow_t find_global (hawk_t* hawk, const hawk_oocs_t* name)
 static int add_global (hawk_t* hawk, const hawk_oocs_t* name, hawk_loc_t* xloc, int disabled)
 {
 	hawk_oow_t ngbls;
+	hawk_oow_t n;
 
 	/* check if it is a keyword */
 	if (classify_ident(hawk, name) != TOK_IDENT)
@@ -2042,13 +2086,24 @@ static int add_global (hawk_t* hawk, const hawk_oocs_t* name, hawk_loc_t* xloc, 
 		return -1;
 	}
 
-	if (hawk_arr_insert(hawk->parse.gbls, HAWK_ARR_SIZE(hawk->parse.gbls), (hawk_ooch_t*)name->ptr, name->len) == HAWK_ARR_NIL)
+	n = hawk_arr_insert(hawk->parse.gbls, HAWK_ARR_SIZE(hawk->parse.gbls), (hawk_ooch_t*)name->ptr, name->len);
+	if (n == HAWK_ARR_NIL)
 	{
 		const hawk_ooch_t* bem = hawk_backuperrmsg(hawk);
 		hawk_seterrfmt(hawk, xloc, hawk_geterrnum(hawk),
 			HAWK_T("unable to add global '%.*js' - %js"),
 			name->len, name->ptr, bem);
 		return -1;
+	}
+	else if (hawk->parse.pragma.trait & HAWK_PEDANTIC) /* a variable collected when pendatic on will xinfo */
+	{
+		const hawk_ptl_t* ptl;
+		hawk_var_xinfo_t* vxi;
+		/* remember location information of each local variable collected */
+		ptl = HAWK_ARR_DPTL(hawk->parse.gbls, n); /* n is the position of the inserted name */
+		vxi = (hawk_var_xinfo_t*)((hawk_ooch_t*)ptl->ptr + ptl->len);
+		if (xloc) vxi->loc = *xloc;
+		else vxi->used = 1; /* if xloc is not given, it's not declared with @global. set used to 1 for simple check */
 	}
 
 	HAWK_ASSERT(ngbls == HAWK_ARR_SIZE(hawk->parse.gbls) - 1);
@@ -2459,10 +2514,20 @@ static hawk_t* collect_locals (hawk_t* hawk, hawk_oow_t nlcls, int flags)
 			return HAWK_NULL;
 		}
 
-		if (hawk_arr_insert(hawk->parse.lcls, HAWK_ARR_SIZE(hawk->parse.lcls), lcl.ptr, lcl.len) == HAWK_ARR_NIL)
+		n = hawk_arr_insert(hawk->parse.lcls, HAWK_ARR_SIZE(hawk->parse.lcls), lcl.ptr, lcl.len);
+		if (n == HAWK_ARR_NIL)
 		{
 			ADJERR_LOC(hawk, &hawk->tok.loc);
 			return HAWK_NULL;
+		}
+		else if (hawk->parse.pragma.trait & HAWK_PEDANTIC)
+		{
+			const hawk_ptl_t* ptl;
+			hawk_var_xinfo_t* vxi;
+			/* remember location information of each local variable collected */
+			ptl = HAWK_ARR_DPTL(hawk->parse.lcls, n); /* n is the position of the inserted name */
+			vxi = (hawk_var_xinfo_t*)((hawk_ooch_t*)ptl->ptr + ptl->len);
+			vxi->loc = hawk->tok.loc;
 		}
 
 		if (get_token(hawk) <= -1) return HAWK_NULL;
@@ -5943,6 +6008,17 @@ static hawk_nde_t* parse_primary_ident_noseg (hawk_t* hawk, const hawk_loc_t* xl
 	else if ((idxa = hawk_arr_rsearch(hawk->parse.lcls, HAWK_ARR_SIZE(hawk->parse.lcls), name->ptr, name->len)) != HAWK_ARR_NIL)
 	{
 		/* local variable */
+		if (hawk->parse.pragma.trait & HAWK_PEDANTIC)
+		{
+			const hawk_ptl_t* ptl;
+			hawk_var_xinfo_t* vxi;
+			/* note an extra space has been reserved in each slot value
+			 * when initializing hawk->parser.lcls */
+			ptl = HAWK_ARR_DPTL(hawk->parse.lcls, idxa);
+			vxi = (hawk_var_xinfo_t*)((hawk_ooch_t*)ptl->ptr + ptl->len);
+			vxi->used = 1; /* mark that the variable has been referenced */
+		}
+
 		nde = parse_variable(hawk, xloc, HAWK_NDE_LCL, name, idxa);
 	}
 	else if ((idxa = hawk_arr_search(hawk->parse.params, 0, name->ptr, name->len)) != HAWK_ARR_NIL)
@@ -5953,6 +6029,17 @@ static hawk_nde_t* parse_primary_ident_noseg (hawk_t* hawk, const hawk_loc_t* xl
 	else if ((idxa = get_global(hawk, name)) != HAWK_ARR_NIL)
 	{
 		/* global variable */
+		if (hawk->parse.pragma.trait & HAWK_PEDANTIC)
+		{
+			const hawk_ptl_t* ptl;
+			hawk_var_xinfo_t* vxi;
+			/* note an extra space has been reserved in each slot value
+			 * when initializing hawk->parser.gbls */
+			ptl = HAWK_ARR_DPTL(hawk->parse.gbls, idxa);
+			vxi = (hawk_var_xinfo_t*)((hawk_ooch_t*)ptl->ptr + ptl->len);
+			vxi->used = 1; /* mark that the variable has been referenced */
+		}
+
 		nde = parse_variable(hawk, xloc, HAWK_NDE_GBL, name, idxa);
 	}
 	else
@@ -6309,6 +6396,16 @@ more_idx:
 		nde->id.idxa = idxa;
 		nde->idx = idx;
 
+		if (hawk->parse.pragma.trait & HAWK_PEDANTIC)
+		{
+			const hawk_ptl_t* ptl;
+			hawk_var_xinfo_t* vxi;
+			ptl = HAWK_ARR_DPTL(hawk->parse.lcls, idxa);
+			vxi = (hawk_var_xinfo_t*)((hawk_ooch_t*)ptl->ptr + ptl->len);
+			vxi->used = 1;
+			if (xloc) vxi->loc = *xloc;
+		}
+
 		return (hawk_nde_t*)nde;
 	}
 
@@ -6338,6 +6435,16 @@ more_idx:
 		nde->id.name.len = name->len;
 		nde->id.idxa = idxa;
 		nde->idx = idx;
+
+		if (hawk->parse.pragma.trait & HAWK_PEDANTIC)
+		{
+			const hawk_ptl_t* ptl;
+			hawk_var_xinfo_t* vxi;
+			ptl = HAWK_ARR_DPTL(hawk->parse.gbls, idxa);
+			vxi = (hawk_var_xinfo_t*)((hawk_ooch_t*)ptl->ptr + ptl->len);
+			vxi->used = 1;
+			if (xloc) vxi->loc = *xloc;
+		}
 
 		return (hawk_nde_t*)nde;
 	}

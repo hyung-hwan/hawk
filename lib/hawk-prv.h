@@ -395,6 +395,14 @@ struct hawk_bctos_b_t
 	hawk_bchu_t c[2]; /* ensure the unsigned type to hold not only a byte character but also a free slot index */
 };
 
+
+typedef struct hawk_var_xinfo_t hawk_var_xinfo_t;
+struct hawk_var_xinfo_t
+{
+	hawk_uint8_t used;
+	hawk_loc_t loc;
+};
+
 struct hawk_rtx_t
 {
 	HAWK_RTX_HDR;

@@ -180,6 +180,7 @@ struct hawk_arr_t
 	hawk_gem_t*       gem;
 	const hawk_arr_style_t* style;
 	hawk_uint8_t      scale;  /* scale factor */
+	hawk_uint16_t     inline_slot_xtnsize;
 	hawk_oow_t        heap_pos_offset; /* offset in the data element where position
 	                                   * is stored when heap operation is performed. */
 	hawk_oow_t        size;   /* number of items */
@@ -262,13 +263,12 @@ HAWK_EXPORT int hawk_arr_getscale (
  */
 HAWK_EXPORT void hawk_arr_setscale (
 	hawk_arr_t* arr   /**< array */,
-	int scale        /**< scale factor - 1 to 255 */
+	int scale         /**< scale factor - 1 to 255 */
 );
 
 HAWK_EXPORT hawk_arr_copier_t hawk_arr_getcopier (
 	hawk_arr_t* arr   /* array */
 );
-
 
 HAWK_EXPORT void hawk_arr_setstyle (
 	hawk_arr_t*             arr,

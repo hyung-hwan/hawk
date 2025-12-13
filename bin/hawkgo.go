@@ -7,7 +7,6 @@ import "io"
 //import "net/http"
 //import _ "net/http/pprof"
 import "os"
-import "path/filepath"
 import "runtime"
 import "runtime/debug"
 import "strconv"
@@ -144,13 +143,13 @@ func run_script(h *hawk.Hawk, fs_idx int, data_idx int, cfg* Config, wg *sync.Wa
 	if wg != nil { defer wg.Done() }
 
 	if data_idx <= -1 {
-		rtx, err = h.NewRtx(filepath.Base(os.Args[0]), cfg.data_in_files, nil)
+		rtx, err = h.NewRtx(os.Args[0], cfg.data_in_files, nil)
 	} else {
 		var out_idx_end int = data_idx
 
 		if cfg.data_out_files[data_idx] != "" { out_idx_end++ }
 		rtx, err = h.NewRtx(
-			fmt.Sprintf("%s.%d", filepath.Base(os.Args[0]), data_idx),
+			fmt.Sprintf("%s.%d", os.Args[0], data_idx),
 			cfg.data_in_files[data_idx: data_idx + 1],
 			cfg.data_out_files[data_idx: out_idx_end],
 		)

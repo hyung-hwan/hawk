@@ -109,7 +109,7 @@ int main ()
 			hawk_uint128_t u128;
 			hawk_uint8_t arr[16];
 		} x;
-		hawk_uint128_t tmp;
+		/*hawk_uint128_t tmp;*/
 
 		x.arr[0] = 0x11;
 		x.arr[1] = 0x22;

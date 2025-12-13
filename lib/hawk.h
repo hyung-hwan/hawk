@@ -38,7 +38,7 @@
 #include <stdarg.h>
 
 /** \file
- * An embeddable AWK interpreter is defined in this header file.
+ * An embeddable HAWK interpreter is defined in this header file.
  *
  * \todo
  * - make enhancement to treat a function as a value
@@ -47,11 +47,11 @@
  */
 
 /** \struct hawk_t
- * The #hawk_t type defines an AWK interpreter. It provides an interface
- * to parse an AWK script and run it to manipulate input and output data.
+ * The #hawk_t type defines an HAWK interpreter. It provides an interface
+ * to parse an HAWK script and run it to manipulate input and output data.
  *
  * In brief, you need to call APIs with user-defined handlers to run a typical
- * AWK script as shown below:
+ * HAWK script as shown below:
  *
  * \code
  * hawk_t* hawk;
@@ -61,7 +61,7 @@
  * hawk = hawk_open(mmgr, 0, hawk_get_cmgr_by_id(HAWK_CMGR_UTF8), prm, HAWK_NULL); // create an interpreter
  * hawk_parse(hawk, &sio);        // parse a script
  * rtx = hawk_rtx_open(hawk, 0, &rio); // create a runtime context
- * retv = hawk_rtx_loop(rtx);     // run a standard AWK loop
+ * retv = hawk_rtx_loop(rtx);     // run a standard HAWK loop
  * if (retv) hawk_rtx_refdownval(rtx, retv); // free return value
  * hawk_rtx_close(rtx);           // destroy the runtime context
  * hawk_close(hawk);              // destroy the interpreter
@@ -88,7 +88,7 @@ struct hawk_alt_t
 /** \struct hawk_rtx_t
  * The #hawk_rtx_t type defines a runtime context. A runtime context
  * maintains runtime state for a running script. You can create multiple
- * runtime contexts out of a single AWK interpreter; in other words, you
+ * runtime contexts out of a single HAWK interpreter; in other words, you
  * can run the same script with different input and output data by providing
  * customized I/O handlers when creating a runtime context with
  * hawk_rtx_open().
@@ -1365,7 +1365,7 @@ enum hawk_trait_t
 	HAWK_STRICTNAMING = (1 << 15),
 
 	/**
-	 * makes AWK more fault-tolerant.
+	 * makes HAWK more fault-tolerant.
 	 * - prevents termination due to print and printf failure.
 	 * - achieves this by handling print and printf as if
 	 *   they are functions like getline.
@@ -1377,11 +1377,17 @@ enum hawk_trait_t
 	 */
 	HAWK_TOLERANT = (1 << 17),
 
-	/*
-	 * detect a numeric string and convert to a numeric type
+	/**
+	 * detects a numeric string and convert to a numeric type
 	 * automatically
 	 */
 	HAWK_NUMSTRDETECT = (1 << 18),
+
+	/**
+	 * makes HAWK more picky about the syntax:
+	 *  - it complains about unused local variables
+	 */
+	HAWK_PEDANTIC = (1 << 19),
 
 	/**
 	 * makes #hawk_t to behave compatibly with classical AWK
@@ -1394,7 +1400,7 @@ enum hawk_trait_t
 
 	HAWK_MODERN =
 		HAWK_CLASSIC | HAWK_FLEXMAP | HAWK_REXBOUND |
-		HAWK_RWPIPE | HAWK_TOLERANT | HAWK_NEXTOFILE  | HAWK_NUMSTRDETECT /*| HAWK_NCMPONSTR*/
+		HAWK_RWPIPE | HAWK_TOLERANT | HAWK_NEXTOFILE | HAWK_NUMSTRDETECT /*| HAWK_NCMPONSTR*/
 };
 typedef enum hawk_trait_t hawk_trait_t;
 
@@ -1446,7 +1452,7 @@ enum hawk_gbl_id_t
 typedef enum hawk_gbl_id_t hawk_gbl_id_t;
 
 /**
- * The hawk_val_type_t type defines types of AWK values. Each value
+ * The hawk_val_type_t type defines types of HAWK values. Each value
  * allocated is tagged with a value type in the \a type field.
  * \sa hawk_val_t HAWK_VAL_HDR
  */
@@ -2476,7 +2482,7 @@ static HAWK_INLINE void hawk_rtx_setcmgr (hawk_rtx_t* rtx, hawk_cmgr_t* cmgr) { 
 
 /**
  * The hawk_rtx_loop() function executes the BEGIN block, pattern-action
- * blocks and the END blocks in an AWK program. It returns the global return
+ * blocks and the END blocks in an HAWK program. It returns the global return
  * value of which the reference count must be decremented when not necessary.
  * Multiple invocations of the function for the lifetime of a runtime context
  * is not desirable.
@@ -2525,7 +2531,7 @@ HAWK_EXPORT hawk_fun_t* hawk_rtx_findfunwithucstr (
 #endif
 
 /**
- * The hawk_rtx_callfun() function invokes an AWK function described by
+ * The hawk_rtx_callfun() function invokes an HAWK function described by
  * the structure pointed to by \a fun.
  * \sa hawk_rtx_call
  */
@@ -2537,7 +2543,7 @@ HAWK_EXPORT hawk_val_t* hawk_rtx_callfun (
 );
 
 /**
- * The hawk_rtx_callwithucstr() function invokes an AWK function named \a name.
+ * The hawk_rtx_callwithucstr() function invokes an HAWK function named \a name.
  * However, it is not able to invoke an intrinsic function such as split().
  * The #HAWK_PABLOCK option can be turned off to make illegal the BEGIN
  * blocks, the pattern-action blocks, and the END blocks.
@@ -2565,7 +2571,7 @@ HAWK_EXPORT hawk_val_t* hawk_rtx_callwithucstr (
 );
 
 /**
- * The hawk_rtx_callwithbcstr() function invokes an AWK function named \a name.
+ * The hawk_rtx_callwithbcstr() function invokes an HAWK function named \a name.
  * However, it is not able to invoke an intrinsic function such as split().
  * The #HAWK_PABLOCK option can be turned off to make illegal the BEGIN
  * blocks, the pattern-action blocks, and the END blocks.

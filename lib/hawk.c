@@ -239,30 +239,32 @@ int hawk_init (hawk_t* hawk, hawk_mmgr_t* mmgr, hawk_cmgr_t* cmgr, const hawk_pr
 	}
 
 	*(hawk_t**)(hawk->tree.funs + 1) = hawk;
-	hawk_htb_setstyle (hawk->tree.funs, &treefuncbs);
+	hawk_htb_setstyle(hawk->tree.funs, &treefuncbs);
 
 	*(hawk_t**)(hawk->parse.funs + 1) = hawk;
-	hawk_htb_setstyle (hawk->parse.funs, hawk_get_htb_style(HAWK_HTB_STYLE_INLINE_KEY_COPIER));
+	hawk_htb_setstyle(hawk->parse.funs, hawk_get_htb_style(HAWK_HTB_STYLE_INLINE_KEY_COPIER));
 
 	*(hawk_t**)(hawk->parse.named + 1) = hawk;
-	hawk_htb_setstyle (hawk->parse.named, hawk_get_htb_style(HAWK_HTB_STYLE_INLINE_KEY_COPIER));
+	hawk_htb_setstyle(hawk->parse.named, hawk_get_htb_style(HAWK_HTB_STYLE_INLINE_KEY_COPIER));
 
 	*(hawk_t**)(hawk->parse.gbls + 1) = hawk;
-	hawk_arr_setscale (hawk->parse.gbls, HAWK_SIZEOF(hawk_ooch_t));
-	hawk_arr_setstyle (hawk->parse.gbls, hawk_get_arr_style(HAWK_ARR_STYLE_INLINE_COPIER));
+	hawk_arr_setscale(hawk->parse.gbls, HAWK_SIZEOF(hawk_ooch_t));
+	hawk_arr_setstyle(hawk->parse.gbls, hawk_get_arr_style(HAWK_ARR_STYLE_INLINE_COPIER));
+	hawk->parse.gbls->inline_slot_xtnsize = HAWK_SIZEOF(hawk_var_xinfo_t);
 
 	*(hawk_t**)(hawk->parse.lcls + 1) = hawk;
-	hawk_arr_setscale (hawk->parse.lcls, HAWK_SIZEOF(hawk_ooch_t));
-	hawk_arr_setstyle (hawk->parse.lcls, hawk_get_arr_style(HAWK_ARR_STYLE_INLINE_COPIER));
+	hawk_arr_setscale(hawk->parse.lcls, HAWK_SIZEOF(hawk_ooch_t));
+	hawk_arr_setstyle(hawk->parse.lcls, hawk_get_arr_style(HAWK_ARR_STYLE_INLINE_COPIER));
+	hawk->parse.lcls->inline_slot_xtnsize = HAWK_SIZEOF(hawk_var_xinfo_t);
 
 	*(hawk_t**)(hawk->parse.params + 1) = hawk;
-	hawk_arr_setscale (hawk->parse.params, HAWK_SIZEOF(hawk_ooch_t));
-	hawk_arr_setstyle (hawk->parse.params, hawk_get_arr_style(HAWK_ARR_STYLE_INLINE_COPIER));
+	hawk_arr_setscale(hawk->parse.params, HAWK_SIZEOF(hawk_ooch_t));
+	hawk_arr_setstyle(hawk->parse.params, hawk_get_arr_style(HAWK_ARR_STYLE_INLINE_COPIER));
 
 	*(hawk_t**)(hawk->fnc.user + 1) = hawk;
-	hawk_htb_setstyle (hawk->fnc.user, &fncusercbs);
+	hawk_htb_setstyle(hawk->fnc.user, &fncusercbs);
 
-	hawk_rbt_setstyle (hawk->modtab, hawk_get_rbt_style(HAWK_RBT_STYLE_INLINE_COPIERS));
+	hawk_rbt_setstyle(hawk->modtab, hawk_get_rbt_style(HAWK_RBT_STYLE_INLINE_COPIERS));
 
 	if (hawk_initgbls(hawk) <= -1) goto oops;
 	return 0;
@@ -417,7 +419,7 @@ void hawk_clear (hawk_t* hawk)
 	hawk->parse.depth.loop = 0;
 	hawk->parse.depth.expr = 0;
 	hawk->parse.depth.incl = 0;
-	hawk->parse.pragma.trait = (hawk->opt.trait & (HAWK_IMPLICIT | HAWK_MULTILINESTR | HAWK_RWPIPE | HAWK_STRIPRECSPC | HAWK_STRIPSTRSPC)); /* implicit on if you didn't mask it off in hawk->opt.trait with hawk_setopt */
+	hawk->parse.pragma.trait = (hawk->opt.trait & (HAWK_IMPLICIT | HAWK_MULTILINESTR | HAWK_PEDANTIC | HAWK_RWPIPE | HAWK_STRIPRECSPC | HAWK_STRIPSTRSPC)); /* implicit on if you didn't mask it off in hawk->opt.trait with hawk_setopt */
 	hawk->parse.pragma.rtx_stack_limit = 0;
 	hawk->parse.pragma.entry[0] = '\0';
 

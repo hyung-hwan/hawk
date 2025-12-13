@@ -129,6 +129,7 @@ const hawk_ooch_t* hawk_dfl_errstr (hawk_errnum_t errnum)
 		HAWK_T("include level too deep"),
 		HAWK_T("word after @ not recognized"),
 		HAWK_T("@ not followed by a valid word"),
+		HAWK_T("unused element"),
 
 		HAWK_T("stack full"),
 		HAWK_T("divide by zero"),
