@@ -373,7 +373,8 @@ struct hawk_t
 	int haltall;
 	hawk_ecb_t* ecb;
 
-	hawk_rbt_t* modtab;
+	hawk_htb_t* static_mods; /* per-instance static modules */
+	hawk_rbt_t* modtab; /* resolved modules for runtime */
 };
 
 struct hawk_chain_t

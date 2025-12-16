@@ -179,7 +179,7 @@ static HAWK_INLINE rtx_data_t* rtx_to_data (hawk_rtx_t* rtx, const hawk_fnc_info
 {
 	hawk_rbt_pair_t* pair;
 	pair = hawk_rbt_search((hawk_rbt_t*)fi->mod->ctx, &rtx, HAWK_SIZEOF(rtx));
-	HAWK_ASSERT (pair != HAWK_NULL);
+	HAWK_ASSERT(pair != HAWK_NULL);
 	return (rtx_data_t*)HAWK_RBT_VPTR(pair);
 }
 
@@ -203,7 +203,7 @@ static ffi_node_t* new_ffi_node (hawk_rtx_t* rtx, ffi_list_t* ffi_list, const ha
 	if (name)
 	{
 		hawk_mod_spec_t spec;
-		HAWK_MEMSET (&spec, 0, HAWK_SIZEOF(spec));
+		HAWK_MEMSET(&spec, 0, HAWK_SIZEOF(spec));
 		spec.name = name;
 		handle = hawk->prm.modopen(hawk, &spec);
 	}
@@ -299,13 +299,13 @@ static ffi_node_t* get_ffi_list_node_with_arg (hawk_rtx_t* rtx, ffi_list_t* ffi_
 	if (hawk_rtx_valtoint(rtx, arg, &id) <= -1)
 	{
 		 *rx = ERRNUM_TO_RC(hawk_rtx_geterrnum(rtx));
-		 set_errmsg_on_ffi_list (rtx, ffi_list, HAWK_T("illegal handle value"));
+		 set_errmsg_on_ffi_list(rtx, ffi_list, HAWK_T("illegal handle value"));
 		 return HAWK_NULL;
 	}
 	else if (!(ffi_node = get_ffi_list_node(ffi_list, id)))
 	{
 		 *rx = ERRNUM_TO_RC(HAWK_EINVAL);
-		 set_errmsg_on_ffi_list (rtx, ffi_list, HAWK_T("invalid handle - %zd"), (hawk_oow_t)id);
+		 set_errmsg_on_ffi_list(rtx, ffi_list, HAWK_T("invalid handle - %zd"), (hawk_oow_t)id);
 		 return HAWK_NULL;
 	}
 
@@ -331,7 +331,7 @@ static int fnc_open (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		name.ptr = hawk_rtx_getvaloocstr(rtx, a0, &name.len);
 		if (HAWK_UNLIKELY(!name.ptr))
 		{
-			ret = copy_error_to_ffi_list (rtx, ffi_list);
+			ret = copy_error_to_ffi_list(rtx, ffi_list);
 			goto done;
 		}
 
@@ -349,7 +349,7 @@ static int fnc_open (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 	ffi_node = new_ffi_node(rtx, ffi_list, name.ptr);
 	if (ffi_node) ret = ffi_node->id;
-	else ret = copy_error_to_ffi_list (rtx, ffi_list);
+	else ret = copy_error_to_ffi_list(rtx, ffi_list);
 
 done:
 	if (name.ptr) hawk_rtx_freevaloocstr (rtx, a0, name.ptr);
@@ -781,7 +781,7 @@ static int fnc_call (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	fun.ptr = hawk_rtx_getvaloocstr(rtx, a2, &fun.len);
 	if (HAWK_UNLIKELY(!fun.ptr))
 	{
-		ret = copy_error_to_ffi_list (rtx, ffi_list);
+		ret = copy_error_to_ffi_list(rtx, ffi_list);
 		goto done;
 	}
 
@@ -795,7 +795,7 @@ static int fnc_call (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	sig.ptr = hawk_rtx_getvaloocstr(rtx, a3, &sig.len);
 	if (HAWK_UNLIKELY(!sig.ptr))
 	{
-		ret = copy_error_to_ffi_list (rtx, ffi_list);
+		ret = copy_error_to_ffi_list(rtx, ffi_list);
 		goto done;
 	}
 
@@ -950,12 +950,12 @@ static int init (hawk_mod_t* mod, hawk_rtx_t* rtx)
 
 	rbt = (hawk_rbt_t*)mod->ctx;
 
-	HAWK_MEMSET (&data, 0, HAWK_SIZEOF(data));
+	HAWK_MEMSET(&data, 0, HAWK_SIZEOF(data));
 	pair = hawk_rbt_insert(rbt, &rtx, HAWK_SIZEOF(rtx), &data, HAWK_SIZEOF(data));
 	if (HAWK_UNLIKELY(!pair)) return -1;
 
 	datap = (rtx_data_t*)HAWK_RBT_VPTR(pair);
-	__init_ffi_list (rtx, &datap->ffi_list);
+	__init_ffi_list(rtx, &datap->ffi_list);
 
 	return 0;
 }
@@ -975,9 +975,9 @@ static void fini (hawk_mod_t* mod, hawk_rtx_t* rtx)
 
 		data = (rtx_data_t*)HAWK_RBT_VPTR(pair);
 
-		__fini_ffi_list (rtx, &data->ffi_list);
+		__fini_ffi_list(rtx, &data->ffi_list);
 
-		hawk_rbt_delete (rbt, &rtx, HAWK_SIZEOF(rtx));
+		hawk_rbt_delete(rbt, &rtx, HAWK_SIZEOF(rtx));
 	}
 }
 
@@ -987,7 +987,7 @@ static void unload (hawk_mod_t* mod, hawk_t* hawk)
 
 	rbt = (hawk_rbt_t*)mod->ctx;
 
-	HAWK_ASSERT (HAWK_RBT_SIZE(rbt) == 0);
+	HAWK_ASSERT(HAWK_RBT_SIZE(rbt) == 0);
 	hawk_rbt_close (rbt);
 }
 
@@ -1003,7 +1003,7 @@ int hawk_mod_ffi (hawk_mod_t* mod, hawk_t* hawk)
 	rbt = hawk_rbt_open(hawk_getgem(hawk), 0, 1, 1);
 	if (HAWK_UNLIKELY(!rbt)) return -1;
 
-	hawk_rbt_setstyle (rbt, hawk_get_rbt_style(HAWK_RBT_STYLE_INLINE_COPIERS));
+	hawk_rbt_setstyle(rbt, hawk_get_rbt_style(HAWK_RBT_STYLE_INLINE_COPIERS));
 	mod->ctx = rbt;
 
 	return 0;

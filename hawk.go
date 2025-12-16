@@ -5,6 +5,8 @@ package hawk
 #include <stdlib.h>
 #include <string.h>
 
+#include <stdio.h>
+
 struct rtx_xtn_t
 {
 	hawk_oow_t inst_no;
@@ -54,11 +56,7 @@ static int hawk_fnc_handler_for_go(hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	rtx_xtn_t* xtn;
 
 	name = hawk_rtx_duputobchars(rtx, fi->name.ptr, fi->name.len, &namelen);
-	if (!name)
-	{
-		// TODO: set error information
-		return -1;
-	}
+	if (!name) return -1;
 
 	xtn = hawk_rtx_getxtn(rtx);
 	n = hawk_go_fnc_handler(xtn, name, namelen);
@@ -87,6 +85,56 @@ static void set_rtx_errmsg(hawk_rtx_t* rtx, hawk_errnum_t errnum, const hawk_bch
 {
 	hawk_rtx_seterrbfmt(rtx, HAWK_NULL, errnum, "%hs", msg);
 }
+
+// -----------------------------------------------
+
+extern int hawk_mod_go_fnc_stats(rtx_xtn_t* rtx_xtn);
+static int fnc_stats(hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+{
+	rtx_xtn_t* xtn;
+	xtn = hawk_rtx_getxtn(rtx);
+	return hawk_mod_go_fnc_stats(xtn);
+}
+
+static hawk_mod_fnc_tab_t fnctab[] =
+{
+	{ HAWK_T("stats"),            { { 0, 0, HAWK_NULL     },  fnc_stats,                 0 } },
+};
+
+static int query(hawk_mod_t* mod, hawk_t* hawk, const hawk_ooch_t* name, hawk_mod_sym_t* sym)
+{
+	//if (hawk_findmodsymfnc_noseterr(hawk, fnctab, HAWK_COUNTOF(fnctab), name, sym) >= 0) return 0;
+	//return hawk_findmodsymint(hawk, inttab, HAWK_COUNTOF(inttab), name, sym);
+	return hawk_findmodsymfnc_noseterr(hawk, fnctab, HAWK_COUNTOF(fnctab), name, sym);
+}
+
+static void unload(hawk_mod_t* mod, hawk_t* hawk)
+{
+}
+
+static int init(hawk_mod_t* mod, hawk_rtx_t* rtx)
+{
+	return 0;
+}
+
+static void fini(hawk_mod_t* mod, hawk_rtx_t* rtx)
+{
+}
+
+static int hawk_mod_go(hawk_mod_t* mod, hawk_t* hawk)
+{
+     mod->query = query;
+     mod->unload = unload;
+     mod->init = init;
+     mod->fini = fini;
+     //mod->ctx = ...;
+     return 0;
+}
+
+static int add_static_mod(hawk_t* hawk, const hawk_bch_t* name)
+{
+	return hawk_addstaticmodwithbcstr(hawk, name, hawk_mod_go);
+}
 */
 import "C"
 
@@ -96,7 +144,7 @@ import "runtime"
 import "sync"
 import "unsafe"
 
-type Fnc func(rtx *Rtx) error
+type Func func(rtx *Rtx) error
 
 type Err struct {
 	Line uint
@@ -108,7 +156,7 @@ type Err struct {
 type Hawk struct {
 	c *C.hawk_t
 	inst_no int
-	fnctab map[string]Fnc
+	fnctab map[string]Func
 
 	rtx_mtx sync.Mutex
 	rtx_count int
@@ -206,7 +254,7 @@ func New() (*Hawk, error) {
 
 	g = &Hawk{c: c, inst_no: -1}
 
-	g.fnctab = make(map[string]Fnc)
+	g.fnctab = make(map[string]Func)
 	g.rtx_count = 0
 	g.rtx_head = nil
 	g.rtx_tail = nil
@@ -223,23 +271,6 @@ func (hawk *Hawk) Close() {
 }
 
 func (hawk *Hawk) make_errinfo() *Err {
-/*
-	var errinf C.hawk_erruinf_t
-	var err Err
-
-	C.hawk_geterruinf(hawk.c, &errinf)
-
-	err.Line = uint(errinf.loc.line)
-	err.Colm = uint(errinf.loc.colm)
-	if errinf.loc.file != nil {
-		err.File = string(ucstr_to_rune_slice(errinf.loc.file))
-	} else {
-		// TODO:
-		//err.File = hawk.io.cci_main
-	}
-	err.Msg = string(ucstr_to_rune_slice(&errinf.msg[0]))
-	return &err
-*/
 	var loc *C.hawk_loc_t
 	var err Err
 
@@ -251,9 +282,6 @@ func (hawk *Hawk) make_errinfo() *Err {
 		err.Colm = uint(loc.colm)
 		if loc.file != nil {
 			err.File = string(ucstr_to_rune_slice(loc.file))
-		} else {
-// TODO:
-//			err.File = hawk.io.cci_main
 		}
 	}
 	return &err
@@ -328,37 +356,17 @@ func (hawk *Hawk) AddGlobal(name string) (int, error) {
 	return int(x), nil
 }
 
-//export hawk_go_fnc_handler
-func hawk_go_fnc_handler(rtx_xtn *C.rtx_xtn_t, name *C.hawk_bch_t, namelen C.hawk_oow_t) C.int {
-	var fn Fnc
-	var inst HawkInstance
-	var rtx_inst RtxInstance
-	var rtx *Rtx
-	var fnname string
-	var ok bool
-	var err error
-
-	inst = inst_table.slot_to_instance(int(rtx_xtn.inst_no))
-	rtx_inst = rtx_inst_table.slot_to_instance(int(rtx_xtn.rtx_inst_no))
-	rtx = rtx_inst.g.Value()
-
-	fnname = C.GoStringN(name, C.int(namelen))
-	fn, ok = inst.g.Value().fnctab[fnname]
-	if !ok {
-		rtx.set_errmsg(C.HAWK_ENOENT, fmt.Sprintf("function '%s' not found", fnname))
-		return -1;
-	}
-
-	err = fn(rtx_inst.g.Value())
-	if err != nil {
-		rtx.set_errmsg(C.HAWK_EOTHER, fmt.Sprintf("function '%s' failure - %s", fnname, err.Error()))
-		return -1
-	}
-
-	return 0
+func (hawk *Hawk) AddMod(name string) error {
+	var cname *C.hawk_bch_t;
+	var n C.int
+	cname = C.CString(name)
+	n = C.add_static_mod(hawk.c, cname)
+	C.free(unsafe.Pointer(cname))
+	if n <= -1 { return hawk.make_errinfo() }
+	return nil
 }
 
-func (hawk *Hawk) AddFunc(name string, min_args uint, max_args uint, spec string, fn Fnc) error {
+func (hawk *Hawk) AddFunc(name string, min_args uint, max_args uint, spec string, fn Func) error {
 	var fnc *C.hawk_fnc_t
 	var cname *C.hawk_bch_t
 	var cspec *C.hawk_bch_t
@@ -471,6 +479,7 @@ func (hawk *Hawk) unchain_rtx(rtx *Rtx) {
 }
 
 // -----------------------------------------------------------
+
 func deregister_rtx_instance(rtx *Rtx) {
 	if rtx.h != nil {
 //fmt.Printf("RTX CLOSING UNCHAIN %p\n", rtx)
@@ -570,9 +579,6 @@ func (rtx *Rtx) make_errinfo() *Err {
 		err.Colm = uint(loc.colm)
 		if loc.file != nil {
 			err.File = string(ucstr_to_rune_slice(loc.file))
-		} else {
-// TODO:
-//			err.File = hawk.io.cci_main
 		}
 	}
 	return &err
@@ -728,6 +734,91 @@ func (rtx *Rtx) GetNamedVars(vars map[string]*Val) {
 
 // -----------------------------------------------------------
 
+//export hawk_go_fnc_handler
+func hawk_go_fnc_handler(rtx_xtn *C.rtx_xtn_t, name *C.hawk_bch_t, namelen C.hawk_oow_t) C.int {
+	var fn Func
+	var inst HawkInstance
+	var rtx_inst RtxInstance
+	var rtx *Rtx
+	var fnname string
+	var ok bool
+	var err error
+
+	inst = inst_table.slot_to_instance(int(rtx_xtn.inst_no))
+	rtx_inst = rtx_inst_table.slot_to_instance(int(rtx_xtn.rtx_inst_no))
+	rtx = rtx_inst.g.Value()
+
+	fnname = C.GoStringN(name, C.int(namelen))
+	fn, ok = inst.g.Value().fnctab[fnname]
+	if !ok {
+		rtx.set_errmsg(C.HAWK_ENOENT, fmt.Sprintf("function '%s' not found", fnname))
+		return -1;
+	}
+
+	err = fn(rtx_inst.g.Value())
+	if err != nil {
+		rtx.set_errmsg(C.HAWK_EOTHER, fmt.Sprintf("function '%s' failure - %s", fnname, err.Error()))
+		return -1
+	}
+
+	return 0
+}
+
+//export hawk_mod_go_fnc_stats
+func hawk_mod_go_fnc_stats(rtx_xtn *C.rtx_xtn_t) C.int {
+	var rtx_inst RtxInstance
+	var rtx *Rtx
+	var v *Val
+
+	rtx_inst = rtx_inst_table.slot_to_instance(int(rtx_xtn.rtx_inst_no))
+	rtx = rtx_inst.g.Value()
+
+// TODO: the memory management of the values created is wrong.
+//       Close() musted be called for each of them...
+	//runtime.ReadMemStats(&mstat)
+	v = Must(rtx.NewMapVal())
+	v.MapSetField("CPUs", Must(rtx.NewIntVal(runtime.NumCPU())))
+	v.MapSetField("Goroutines", Must(rtx.NewIntVal(runtime.NumGoroutine())))
+	v.MapSetField("NumCgoCalls", Must(rtx.NewIntVal(int(runtime.NumCgoCall()))))
+	//v.MapSetField("NumGCs", Must(rtx.NewIntVal(mstat.NumGC)))
+
+	rtx.SetFuncRet(v)
+	v.Close()
+/*
+	stats.CPUs = runtime.NumCPU()
+	stats.Goroutines = runtime.NumGoroutine()
+	stats.NumCgoCalls = runtime.NumCgoCall()
+	stats.NumGCs = mstat.NumGC
+
+	stats.AllocBytes = mstat.Alloc
+	stats.TotalAllocBytes = mstat.TotalAlloc
+	stats.SysBytes = mstat.Sys
+	stats.Lookups = mstat.Lookups
+	stats.MemAllocs = mstat.Mallocs
+	stats.MemFrees = mstat.Frees
+
+	stats.HeapAllocBytes = mstat.HeapAlloc
+	stats.HeapSysBytes = mstat.HeapSys
+	stats.HeapIdleBytes = mstat.HeapIdle
+	stats.HeapInuseBytes = mstat.HeapInuse
+	stats.HeapReleasedBytes = mstat.HeapReleased
+	stats.HeapObjects = mstat.HeapObjects
+	stats.StackInuseBytes = mstat.StackInuse
+	stats.StackSysBytes = mstat.StackSys
+	stats.MSpanInuseBytes = mstat.MSpanInuse
+	stats.MSpanSysBytes = mstat.MSpanSys
+	stats.MCacheInuseBytes = mstat.MCacheInuse
+	stats.MCacheSysBytes = mstat.MCacheSys
+	stats.BuckHashSysBytes = mstat.BuckHashSys
+	stats.GCSysBytes = mstat.GCSys
+	stats.OtherSysBytes = mstat.OtherSys
+*/
+
+	return 0
+}
+
+// -----------------------------------------------------------
+
 func (hawk *Hawk) get_errmsg() string {
 	return C.GoString(C.hawk_geterrbmsg(hawk.c))
 }
@@ -879,6 +970,8 @@ func (rtx *Rtx) NewArrVal(init_capa int) (*Val, error) {
 	})
 }
 
+// -----------------------------------------------------------
+
 func (val *Val) Close() {
 	if val.rtx != nil {
 		var rtx *C.hawk_rtx_t
@@ -960,7 +1053,7 @@ func (val *Val) ArrayTally() int {
 	return int(v)
 }
 
-// TODO: function get the first index and last index or the capacity
+// TODO: function to get the first index and last index or the capacity
 //       function to traverse?
 func (val *Val) ArrayField(index int) (*Val, error) {
 	var v *C.hawk_val_t

@@ -223,6 +223,7 @@ int hawk_init (hawk_t* hawk, hawk_mmgr_t* mmgr, hawk_cmgr_t* cmgr, const hawk_pr
 
 	hawk->fnc.sys = HAWK_NULL;
 	hawk->fnc.user = hawk_htb_open(hawk_getgem(hawk), HAWK_SIZEOF(hawk), 512, 70, HAWK_SIZEOF(hawk_ooch_t), 1);
+	hawk->static_mods = hawk_htb_open(hawk_getgem(hawk), HAWK_SIZEOF(hawk), 128, 70, HAWK_SIZEOF(hawk_ooch_t), 1);
 	hawk->modtab = hawk_rbt_open(hawk_getgem(hawk), 0, HAWK_SIZEOF(hawk_ooch_t), 1);
 
 	if (hawk->tree.funs == HAWK_NULL ||
@@ -232,6 +233,7 @@ int hawk_init (hawk_t* hawk, hawk_mmgr_t* mmgr, hawk_cmgr_t* cmgr, const hawk_pr
 	    hawk->parse.lcls == HAWK_NULL ||
 	    hawk->parse.params == HAWK_NULL ||
 	    hawk->fnc.user == HAWK_NULL ||
+	    hawk->static_mods == HAWK_NULL ||
 	    hawk->modtab == HAWK_NULL)
 	{
 		hawk_seterrnum(hawk, HAWK_NULL, HAWK_ENOMEM);
@@ -264,6 +266,7 @@ int hawk_init (hawk_t* hawk, hawk_mmgr_t* mmgr, hawk_cmgr_t* cmgr, const hawk_pr
 	*(hawk_t**)(hawk->fnc.user + 1) = hawk;
 	hawk_htb_setstyle(hawk->fnc.user, &fncusercbs);
 
+	hawk_htb_setstyle(hawk->static_mods, hawk_get_htb_style(HAWK_HTB_STYLE_INLINE_KEY_COPIER));
 	hawk_rbt_setstyle(hawk->modtab, hawk_get_rbt_style(HAWK_RBT_STYLE_INLINE_COPIERS));
 
 	if (hawk_initgbls(hawk) <= -1) goto oops;
@@ -271,6 +274,7 @@ int hawk_init (hawk_t* hawk, hawk_mmgr_t* mmgr, hawk_cmgr_t* cmgr, const hawk_pr
 
 oops:
 	if (hawk->modtab) hawk_rbt_close(hawk->modtab);
+	if (hawk->static_mods) hawk_htb_close(hawk->static_mods);
 	if (hawk->fnc.user) hawk_htb_close(hawk->fnc.user);
 	if (hawk->parse.params) hawk_arr_close(hawk->parse.params);
 	if (hawk->parse.lcls) hawk_arr_close(hawk->parse.lcls);
@@ -278,9 +282,9 @@ oops:
 	if (hawk->parse.named) hawk_htb_close(hawk->parse.named);
 	if (hawk->parse.funs) hawk_htb_close(hawk->parse.funs);
 	if (hawk->tree.funs) hawk_htb_close(hawk->tree.funs);
-	fini_token (&hawk->ntok);
-	fini_token (&hawk->tok);
-	fini_token (&hawk->ptok);
+	fini_token(&hawk->ntok);
+	fini_token(&hawk->tok);
+	fini_token(&hawk->ptok);
 	if (hawk->log.ptr) hawk_freemem(hawk, hawk->log.ptr);
 	hawk->log.capa = 0;
 
@@ -313,6 +317,7 @@ void hawk_fini (hawk_t* hawk)
 	HAWK_ASSERT (hawk->ecb == (hawk_ecb_t*)hawk);
 
 	hawk_rbt_close(hawk->modtab);
+	hawk_htb_close(hawk->static_mods);
 	hawk_htb_close(hawk->fnc.user);
 
 	hawk_arr_close(hawk->parse.params);
@@ -337,7 +342,6 @@ void hawk_fini (hawk_t* hawk)
 	}
 
 	if (hawk->opt.includedirs.ptr) hawk_freemem(hawk, hawk->opt.includedirs.ptr);
-
 
 	for (i = 0; i < HAWK_COUNTOF(hawk->sbuf); i++)
 	{
@@ -399,7 +403,7 @@ void hawk_clear (hawk_t* hawk)
 	clear_token(&hawk->ntok);
 	clear_token(&hawk->ptok);
 
-	/* clear all loaded modules */
+	/* clear all loaded modules. keep hawk->static_mods untouched */
 	hawk_rbt_walk(hawk->modtab, unload_module, hawk);
 	hawk_rbt_clear(hawk->modtab);
 
@@ -659,13 +663,10 @@ hawk_oow_t hawk_fmttobcstr_ (hawk_t* hawk, hawk_bch_t* buf, hawk_oow_t bufsz, co
 	return n;
 }
 
-
 int hawk_buildrex (hawk_t* hawk, const hawk_ooch_t* ptn, hawk_oow_t len, hawk_tre_t** code, hawk_tre_t** icode)
 {
 	return hawk_gem_buildrex(hawk_getgem(hawk), ptn, len, !(hawk->opt.trait & HAWK_REXBOUND), code, icode);
 }
-
-
 
 /* ------------------------------------------------------------------------ */
 

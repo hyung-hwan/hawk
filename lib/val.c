@@ -2987,14 +2987,20 @@ hawk_fnc_t* hawk_rtx_valtofnc (hawk_rtx_t* rtx, hawk_val_t* v, hawk_fnc_t* rfnc)
 				hawk_mod_sym_t sym;
 
 				mod = hawk_querymodulewithname(hawk, x.ptr, &sym);
-				hawk_rtx_freevaloocstr(rtx, v, x.ptr);
-				if (!mod) return HAWK_NULL;
+				if (!mod)
+				{
+					hawk_rtx_freevaloocstr(rtx, v, x.ptr);
+					return HAWK_NULL;
+				}
 
 				if (sym.type != HAWK_MOD_FNC || (hawk->opt.trait & sym.u.fnc_.trait) != sym.u.fnc_.trait)
 				{
-					hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_ENOENT);
+					hawk_rtx_seterrfmt(rtx, HAWK_NULL, HAWK_ENOENT, HAWK_T("'%.*js' not a function or unsupported"), x.len, x.ptr);
+					hawk_rtx_freevaloocstr(rtx, v, x.ptr);
 					return HAWK_NULL;
 				}
+
+				hawk_rtx_freevaloocstr(rtx, v, x.ptr);
 
 				HAWK_MEMSET(rfnc, 0, HAWK_SIZEOF(*rfnc));
 				rfnc->name.ptr = sym.name;

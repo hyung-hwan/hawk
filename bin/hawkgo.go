@@ -301,13 +301,19 @@ func main() {
 		}
 	}
 
+	err = h.AddMod("go")
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "ERROR: failed to builtin 'go' module - %s\n", err.Error())
+		goto oops
+	}
+
 	if (len(cfg.srcfiles) > 0) {
 		err = h.ParseFiles(cfg.srcfiles)
 	} else {
 		err = h.ParseText(cfg.srcstr)
 	}
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "ERROR: failed to make hawk - %s\n", err.Error())
+		fmt.Fprintf(os.Stderr, "ERROR: failed to parse - %s\n", err.Error())
 		goto oops
 	}
 

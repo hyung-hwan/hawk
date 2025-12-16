@@ -1389,7 +1389,7 @@ int hawk_mod_uci (hawk_mod_t* mod, hawk_t* hawk)
 	rbt = hawk_rbt_open(hawk_getgem(hawk), 0, 1, 1);
 	if (!rbt) return -1;
 
-	hawk_rbt_setstyle (rbt, hawk_get_rbt_style(HAWK_RBT_STYLE_INLINE_COPIERS));
+	hawk_rbt_setstyle(rbt, hawk_get_rbt_style(HAWK_RBT_STYLE_INLINE_COPIERS));
 
 	mod->ctx = rbt;
 	return 0;

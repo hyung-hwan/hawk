@@ -43,8 +43,8 @@
 #define VLEN(p)  HAWK_HTB_VLEN(p)
 #define NEXT(p)  HAWK_HTB_NEXT(p)
 
-#define KTOB(htb,len) ((len)*(htb)->scale[HAWK_HTB_KEY])
-#define VTOB(htb,len) ((len)*(htb)->scale[HAWK_HTB_VAL])
+#define KTOB(htb,len) ((len) * (htb)->scale[HAWK_HTB_KEY])
+#define VTOB(htb,len) ((len) * (htb)->scale[HAWK_HTB_VAL])
 
 HAWK_INLINE pair_t* hawk_htb_allocpair (hawk_htb_t* htb, void* kptr, hawk_oow_t klen, void* vptr, hawk_oow_t vlen)
 {
@@ -272,7 +272,7 @@ hawk_htb_t* hawk_htb_open (hawk_gem_t* gem, hawk_oow_t xtnsize, hawk_oow_t capa,
 
 void hawk_htb_close (hawk_htb_t* htb)
 {
-	hawk_htb_fini (htb);
+	hawk_htb_fini(htb);
 	hawk_gem_freemem(htb->gem, htb);
 }
 
@@ -280,14 +280,14 @@ int hawk_htb_init (hawk_htb_t* htb, hawk_gem_t* gem, hawk_oow_t capa, int factor
 {
 	/* The initial capacity should be greater than 0.
 	 * Otherwise, it is adjusted to 1 in the release mode */
-	HAWK_ASSERT (capa > 0);
+	HAWK_ASSERT(capa > 0);
 
 	/* The load factor should be between 0 and 100 inclusive.
 	 * In the release mode, a value out of the range is adjusted to 100 */
-	HAWK_ASSERT (factor >= 0 && factor <= 100);
+	HAWK_ASSERT(factor >= 0 && factor <= 100);
 
-	HAWK_ASSERT (kscale >= 0 && kscale <= HAWK_TYPE_MAX(hawk_uint8_t));
-	HAWK_ASSERT (vscale >= 0 && vscale <= HAWK_TYPE_MAX(hawk_uint8_t));
+	HAWK_ASSERT(kscale >= 0 && kscale <= HAWK_TYPE_MAX(hawk_uint8_t));
+	HAWK_ASSERT(vscale >= 0 && vscale <= HAWK_TYPE_MAX(hawk_uint8_t));
 
 	/* some initial adjustment */
 	if (capa <= 0) capa = 1;
@@ -329,7 +329,7 @@ const style_t* hawk_htb_getstyle (const hawk_htb_t* htb)
 
 void hawk_htb_setstyle (hawk_htb_t* htb, const style_t* style)
 {
-	HAWK_ASSERT (style != HAWK_NULL);
+	HAWK_ASSERT(style != HAWK_NULL);
 	htb->style = style;
 }
 
@@ -498,7 +498,7 @@ static HAWK_INLINE pair_t* insert (hawk_htb_t* htb, void* kptr, hawk_oow_t klen,
 		}
 	}
 
-	HAWK_ASSERT (pair == HAWK_NULL);
+	HAWK_ASSERT(pair == HAWK_NULL);
 
 	pair = hawk_htb_allocpair(htb, kptr, klen, vptr, vlen);
 	if (HAWK_UNLIKELY(!pair)) return HAWK_NULL; /* error */
@@ -579,7 +579,7 @@ pair_t* hawk_htb_cbsert (hawk_htb_t* htb, void* kptr, hawk_oow_t klen, cbserter_
 		}
 	}
 
-	HAWK_ASSERT (pair == HAWK_NULL);
+	HAWK_ASSERT(pair == HAWK_NULL);
 
 	pair = cbserter(htb, HAWK_NULL, kptr, klen, ctx);
 	if (HAWK_UNLIKELY(!pair)) return HAWK_NULL; /* error */

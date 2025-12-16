@@ -1471,8 +1471,8 @@ static hawk_ooi_t sf_in_read (hawk_t* hawk, hawk_sio_arg_t* arg, hawk_ooch_t* da
 				n = hawk_sio_getoochars(arg->handle, data, size);
 				if (n <= -1)
 				{
-					const hawk_ooch_t* bem = hawk_backuperrmsg(hawk);
 					const hawk_uch_t* path;
+					const hawk_ooch_t* bem = hawk_backuperrmsg(hawk);
 					path = xtn->s.in.x[xtn->s.in.xindex].u.fileu.path;
 					if (path)
 						hawk_seterrfmt(hawk, HAWK_NULL, HAWK_EREAD, HAWK_T("unable to read %ls - %js"), path, bem);
@@ -1489,8 +1489,8 @@ static hawk_ooi_t sf_in_read (hawk_t* hawk, hawk_sio_arg_t* arg, hawk_ooch_t* da
 				n = hawk_sio_getoochars(arg->handle, data, size);
 				if (n <= -1)
 				{
-					const hawk_ooch_t* bem = hawk_backuperrmsg(hawk);
 					const hawk_bch_t* path;
+					const hawk_ooch_t* bem = hawk_backuperrmsg(hawk);
 					path = xtn->s.in.x[xtn->s.in.xindex].u.fileb.path;
 					if (path)
 						hawk_seterrfmt(hawk, HAWK_NULL, HAWK_EREAD, HAWK_T("unable to read %hs - %js"), path, bem);

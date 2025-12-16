@@ -1101,6 +1101,13 @@ struct hawk_mod_sym_t
 
 /* ------------------------------------------------------------------------ */
 
+typedef struct hawk_mod_desc_t hawk_mod_desc_t;
+struct hawk_mod_desc_t
+{
+	const hawk_ooch_t* name;
+	hawk_mod_load_t load;
+};
+
 typedef struct hawk_mod_fnc_tab_t hawk_mod_fnc_tab_t;
 struct hawk_mod_fnc_tab_t
 {
@@ -2052,6 +2059,24 @@ HAWK_EXPORT int hawk_delfncwithucstr (
 HAWK_EXPORT void hawk_clrfnc (
 	hawk_t* hawk /**< hawk */
 );
+
+HAWK_EXPORT int hawk_addstaticmodwithbcstr (
+	hawk_t*            hawk,
+	const hawk_bch_t*  name,
+	hawk_mod_load_t    load
+);
+
+HAWK_EXPORT int hawk_addstaticmodwithucstr (
+	hawk_t*            hawk,
+	const hawk_uch_t*  name,
+	hawk_mod_load_t    load
+);
+
+#if defined(HAWK_OOCH_IS_BCH)
+#	define hawk_addstaticmod hawk_addstaticmodwithbcstr
+#else
+#	define hawk_addstaticmod hawk_addstaticmodwithucstr
+#endif
 
 /**
  * The hawk_parse() function parses a source script, and optionally

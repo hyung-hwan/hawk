@@ -44,3 +44,9 @@ BEGIN {
 	@{};
 	@{ "hello", "world } ##ERROR: colon expected in place of ','
 }
+
+---
+
+BEGIN {
+	hawk::call("sys::SIGTERM", 10 20); ##ERROR: 'sys::SIGTERM' not a function or unsupported
+}

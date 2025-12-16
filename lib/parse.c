@@ -665,12 +665,7 @@ hawk_ooch_t* hawk_addsionamewithuchars (hawk_t* hawk, const hawk_uch_t* ptr, haw
 
 	/* TODO: duplication check? */
 
-#if defined(HAWK_OOCH_IS_UCH)
-	link = (hawk_link_t*)hawk_callocmem(hawk, HAWK_SIZEOF(*link) + HAWK_SIZEOF(hawk_uch_t) * (len + 1));
-	if (HAWK_UNLIKELY(!link)) return HAWK_NULL;
-
-	hawk_copy_uchars_to_ucstr_unlimited ((hawk_uch_t*)(link + 1), ptr, len);
-#else
+#if defined(HAWK_OOCH_IS_BCH)
 	hawk_oow_t bcslen, ucslen;
 
 	ucslen = len;
@@ -683,6 +678,10 @@ hawk_ooch_t* hawk_addsionamewithuchars (hawk_t* hawk, const hawk_uch_t* ptr, haw
 	bcslen = bcslen + 1;
 	hawk_convutobchars(hawk, ptr, &ucslen, (hawk_bch_t*)(link + 1), &bcslen);
 	((hawk_bch_t*)(link + 1))[bcslen] = '\0';
+#else
+	link = (hawk_link_t*)hawk_callocmem(hawk, HAWK_SIZEOF(*link) + HAWK_SIZEOF(hawk_uch_t) * (len + 1));
+	if (HAWK_UNLIKELY(!link)) return HAWK_NULL;
+	hawk_copy_uchars_to_ucstr_unlimited ((hawk_uch_t*)(link + 1), ptr, len);
 #endif
 
 	link->link = hawk->sio_names;
@@ -697,7 +696,11 @@ hawk_ooch_t* hawk_addsionamewithbchars (hawk_t* hawk, const hawk_bch_t* ptr, haw
 
 	/* TODO: duplication check? */
 
-#if defined(HAWK_OOCH_IS_UCH)
+#if defined(HAWK_OOCH_IS_BCH)
+	link = (hawk_link_t*)hawk_callocmem(hawk, HAWK_SIZEOF(*link) + HAWK_SIZEOF(hawk_bch_t) * (len + 1));
+	if (HAWK_UNLIKELY(!link)) return HAWK_NULL;
+	hawk_copy_bchars_to_bcstr_unlimited ((hawk_bch_t*)(link + 1), ptr, len);
+#else
 	hawk_oow_t bcslen, ucslen;
 
 	bcslen = len;
@@ -711,11 +714,6 @@ hawk_ooch_t* hawk_addsionamewithbchars (hawk_t* hawk, const hawk_bch_t* ptr, haw
 	hawk_convbtouchars(hawk, ptr, &bcslen, (hawk_uch_t*)(link + 1), &ucslen, 0);
 	((hawk_uch_t*)(link + 1))[ucslen] = '\0';
 
-#else
-	link = (hawk_link_t*)hawk_callocmem(hawk, HAWK_SIZEOF(*link) + HAWK_SIZEOF(hawk_bch_t) * (len + 1));
-	if (HAWK_UNLIKELY(!link)) return HAWK_NULL;
-
-	hawk_copy_bchars_to_bcstr_unlimited ((hawk_bch_t*)(link + 1), ptr, len);
 #endif
 
 	link->link = hawk->sio_names;
@@ -757,7 +755,7 @@ int hawk_parse (hawk_t* hawk, hawk_sio_cbs_t* sio)
 	hawk_clear(hawk);
 	hawk_clearsionames(hawk);
 
-	HAWK_MEMSET (&hawk->sio, 0, HAWK_SIZEOF(hawk->sio));
+	HAWK_MEMSET(&hawk->sio, 0, HAWK_SIZEOF(hawk->sio));
 	hawk->sio.inf = sio->in;
 	hawk->sio.outf = sio->out;
 	hawk->sio.last.c = HAWK_OOCI_EOF;
@@ -840,7 +838,7 @@ static int record_ever_included (hawk_t* hawk, hawk_sio_arg_t* arg)
 		hawk->parse.incl_hist.capa = newcapa;
 	}
 
-	HAWK_MEMCPY (&hawk->parse.incl_hist.ptr[hawk->parse.incl_hist.count * HAWK_SIZEOF(arg->unique_id)], arg->unique_id, HAWK_SIZEOF(arg->unique_id));
+	HAWK_MEMCPY(&hawk->parse.incl_hist.ptr[hawk->parse.incl_hist.count * HAWK_SIZEOF(arg->unique_id)], arg->unique_id, HAWK_SIZEOF(arg->unique_id));
 	hawk->parse.incl_hist.count++;
 	return 0;
 }
@@ -2267,7 +2265,9 @@ int hawk_delgblwithucstr (hawk_t* hawk, const hawk_uch_t* name)
 {
 	hawk_oow_t n;
 	hawk_ucs_t ncs;
+#if defined(HAWK_OOCH_IS_BCH)
 	hawk_bcs_t mbs;
+#endif
 
 	ncs.ptr = (hawk_uch_t*)name;
 	ncs.len = hawk_count_ucstr(name);
@@ -2350,7 +2350,9 @@ int hawk_findgblwithucstr (hawk_t* hawk, const hawk_uch_t* name, int inc_builtin
 {
 	hawk_oow_t n;
 	hawk_ucs_t ncs;
+#if defined(HAWK_OOCH_IS_BCH)
 	hawk_bcs_t mbs;
+#endif
 
 	ncs.ptr = (hawk_uch_t*)name;
 	ncs.len = hawk_count_ucstr(name);
@@ -5252,7 +5254,7 @@ static hawk_nde_t* _parse_primary_array_or_map (hawk_t* hawk, const hawk_loc_t* 
 		return HAWK_NULL;
 	}
 
-	HAWK_MEMSET (&fnc, 0, HAWK_SIZEOF(fnc));
+	HAWK_MEMSET(&fnc, 0, HAWK_SIZEOF(fnc));
 	fnc.name.ptr = full->ptr;
 	fnc.name.len = full->len;
 	fnc.spec = sym.u.fnc_;
@@ -6190,7 +6192,7 @@ static hawk_nde_t* parse_primary_ident_segs (hawk_t* hawk, const hawk_loc_t* xlo
 
 				if (MATCH(hawk,TOK_LPAREN))
 				{
-					HAWK_MEMSET (&fnc, 0, HAWK_SIZEOF(fnc));
+					HAWK_MEMSET(&fnc, 0, HAWK_SIZEOF(fnc));
 					fnc.name.ptr = full->ptr;
 					fnc.name.len = full->len;
 					fnc.spec = sym.u.fnc_;
@@ -7463,20 +7465,20 @@ retry:
 			else if (hawk_comp_oochars_bcstr(HAWK_OOECS_PTR(tok->name), HAWK_OOECS_LEN(tok->name), "@UCH_ON", 0) == 0)
 			{
 				/* special parser-level word @SCRIPTLINE. subsitute an actual value for it */
-			#if defined(HAWK_OOCH_IS_UCH)
-				if (HAWK_UNLIKELY(hawk_ooecs_fmt(tok->name, HAWK_T("%zu"), 1) == (hawk_oow_t)-1)) return -1;
-			#else
+			#if defined(HAWK_OOCH_IS_BCH)
 				if (HAWK_UNLIKELY(hawk_ooecs_fmt(tok->name, HAWK_T("%zu"), 0) == (hawk_oow_t)-1)) return -1;
+			#else
+				if (HAWK_UNLIKELY(hawk_ooecs_fmt(tok->name, HAWK_T("%zu"), 1) == (hawk_oow_t)-1)) return -1;
 			#endif
 				SET_TOKEN_TYPE(hawk, tok, TOK_INT);
 			}
 			else if (hawk_comp_oochars_bcstr(HAWK_OOECS_PTR(tok->name), HAWK_OOECS_LEN(tok->name), "@BCH_ON", 0) == 0)
 			{
 				/* special parser-level word @SCRIPTLINE. subsitute an actual value for it */
-			#if defined(HAWK_OOCH_IS_UCH)
-				if (HAWK_UNLIKELY(hawk_ooecs_fmt(tok->name, HAWK_T("%zu"), 0) == (hawk_oow_t)-1)) return -1;
-			#else
+			#if defined(HAWK_OOCH_IS_BCH)
 				if (HAWK_UNLIKELY(hawk_ooecs_fmt(tok->name, HAWK_T("%zu"), 1) == (hawk_oow_t)-1)) return -1;
+			#else
+				if (HAWK_UNLIKELY(hawk_ooecs_fmt(tok->name, HAWK_T("%zu"), 0) == (hawk_oow_t)-1)) return -1;
 			#endif
 				SET_TOKEN_TYPE(hawk, tok, TOK_INT);
 			}
@@ -7711,7 +7713,7 @@ static int deparse (hawk_t* hawk)
 
 	HAWK_ASSERT(hawk->sio.outf != HAWK_NULL);
 
-	HAWK_MEMSET (&hawk->sio.arg, 0, HAWK_SIZEOF(hawk->sio.arg));
+	HAWK_MEMSET(&hawk->sio.arg, 0, HAWK_SIZEOF(hawk->sio.arg));
 
 	op = hawk->sio.outf(hawk, HAWK_SIO_CMD_OPEN, &hawk->sio.arg, HAWK_NULL, 0);
 	if (op <= -1) return -1;
@@ -8001,6 +8003,10 @@ int hawk_putsrcoochars (hawk_t* hawk, const hawk_ooch_t* str, hawk_oow_t len)
 #include "../mod/mod-ffi.h"
 #endif
 
+#if defined(HAWK_ENABLE_MOD_MEMC_STATIC)
+#include "../mod/mod-memc.h"
+#endif
+
 #if defined(HAWK_ENABLE_MOD_MYSQL_STATIC)
 #include "../mod/mod-mysql.h"
 #endif
@@ -8013,27 +8019,22 @@ int hawk_putsrcoochars (hawk_t* hawk, const hawk_ooch_t* str, hawk_oow_t len)
 #include "../mod/mod-uci.h"
 #endif
 
-#if defined(HAWK_ENABLE_MOD_MEMC_STATIC)
-#include "../mod/mod-memc.h"
-#endif
-
 /*
  * if modules are linked statically into the main hawk module,
  * this table is used to find the entry point of the modules.
  * you must update this table if you add more modules
  */
 
-static struct
-{
-	hawk_ooch_t* modname;
-	int (*modload) (hawk_mod_t* mod, hawk_t* hawk);
-} static_modtab[] =
+static hawk_mod_desc_t static_modtab[] =
 {
 #if defined(HAWK_ENABLE_MOD_FFI_STATIC)
 	{ HAWK_T("ffi"),    hawk_mod_ffi },
 #endif
 	{ HAWK_T("hawk"),   hawk_mod_hawk },
 	{ HAWK_T("math"),   hawk_mod_math },
+#if defined(HAWK_ENABLE_MOD_MEMC_STATIC)
+	{ HAWK_T("memc"),   hawk_mod_memc },
+#endif
 #if defined(HAWK_ENABLE_MOD_MYSQL_STATIC)
 	{ HAWK_T("mysql"),  hawk_mod_mysql },
 #endif
@@ -8044,9 +8045,6 @@ static struct
 	{ HAWK_T("sys"),    hawk_mod_sys },
 #if defined(HAWK_ENABLE_MOD_UCI_STATIC)
 	{ HAWK_T("uci"),    hawk_mod_uci },
-#endif
-#if defined(HAWK_ENABLE_MOD_MEMC_STATIC)
-	{ HAWK_T("memc"),   hawk_mod_memc },
 #endif
 };
 #endif
@@ -8080,7 +8078,7 @@ static hawk_mod_t* query_module (hawk_t* hawk, const hawk_oocs_t segs[], int nse
 		hawk_ooch_t buf[64 + 12];
 
 		/* the terminating null isn't needed in buf here */
-		HAWK_MEMCPY (buf, HAWK_T("_hawk_mod_"), HAWK_SIZEOF(hawk_ooch_t) * 10);
+		HAWK_MEMCPY(buf, HAWK_T("_hawk_mod_"), HAWK_SIZEOF(hawk_ooch_t) * 10);
 		if (segs[0].len > HAWK_COUNTOF(buf) - 15)
 		{
 			/* module name too long  */
@@ -8094,30 +8092,32 @@ static hawk_mod_t* query_module (hawk_t* hawk, const hawk_oocs_t segs[], int nse
 		/* TODO: binary search ... */
 		for (n = 0; n < HAWK_COUNTOF(static_modtab); n++)
 		{
-			if (hawk_comp_oochars_oocstr(segs[0].ptr, segs[0].len, static_modtab[n].modname, 0) == 0)
+			if (hawk_comp_oochars_oocstr(segs[0].ptr, segs[0].len, static_modtab[n].name, 0) == 0)
 			{
-				load = static_modtab[n].modload;
+				load = static_modtab[n].load;
 				break;
 			}
 		}
+#endif
 
-		/*if (n >= HAWK_COUNTOF(static_modtab))
+		if (!load)
 		{
-			hawk_seterrfmt(hawk, HAWK_NULL, HAWK_ENOENT, HAWK_T("'%.*js' not found"), segs[0].len, segs[0].ptr);
-			return HAWK_NULL;
-		}*/
+			/* check in the user-added static module table */
+			hawk_htb_pair_t* pair;
+			pair = hawk_htb_search(hawk->static_mods, segs[0].ptr, segs[0].len);
+			if (pair) load = (hawk_mod_load_t)pair->val.ptr;
+		}
 
 		if (load)
 		{
 			/* found the module in the staic module table */
-
-			HAWK_MEMSET (&md, 0, HAWK_SIZEOF(md));
+			HAWK_MEMSET(&md, 0, HAWK_SIZEOF(md));
 			/* Note md.handle is HAWK_NULL for a static module */
 
 			/* i copy-insert 'md' into the table before calling 'load'.
 			 * to pass the same address to load(), query(), etc */
 			pair = hawk_rbt_insert(hawk->modtab, segs[0].ptr, segs[0].len, &md, HAWK_SIZEOF(md));
-			if (!pair) return HAWK_NULL;
+			if (HAWK_UNLIKELY(!pair)) return HAWK_NULL;
 
 			mdp = (hawk_mod_data_t*)HAWK_RBT_VPTR(pair);
 			if (load(&mdp->mod, hawk) <= -1)
@@ -8128,9 +8128,10 @@ static hawk_mod_t* query_module (hawk_t* hawk, const hawk_oocs_t segs[], int nse
 
 			goto done;
 		}
-#endif
+
+
 		/* attempt to find an external module */
-		HAWK_MEMSET (&spec, 0, HAWK_SIZEOF(spec));
+		HAWK_MEMSET(&spec, 0, HAWK_SIZEOF(spec));
 		spec.prefix = (hawk->opt.mod[1].len > 0)? (const hawk_ooch_t*)hawk->opt.mod[1].ptr: (const hawk_ooch_t*)HAWK_T(HAWK_DEFAULT_MODPREFIX);
 		spec.postfix = (hawk->opt.mod[2].len > 0)? (const hawk_ooch_t*)hawk->opt.mod[2].ptr: (const hawk_ooch_t*)HAWK_T(HAWK_DEFAULT_MODPOSTFIX);
 		spec.name = segs[0].ptr; /* the caller must ensure that this segment is null-terminated */
@@ -8153,7 +8154,7 @@ static hawk_mod_t* query_module (hawk_t* hawk, const hawk_oocs_t segs[], int nse
 			colon = hawk_find_oochar_in_oocstr(spec.libdir, LIBDIR_SEPARATOR);
 			if (colon) *colon = '\0';
 
-			HAWK_MEMSET (&md, 0, HAWK_SIZEOF(md));
+			HAWK_MEMSET(&md, 0, HAWK_SIZEOF(md));
 			md.handle = hawk->prm.modopen(hawk, &spec);
 			if (!colon) break;
 
@@ -8232,6 +8233,68 @@ done:
 	return &mdp->mod;
 }
 
+int hawk_addstaticmodwithbcstr (hawk_t* hawk, const hawk_bch_t* name, hawk_mod_load_t load)
+{
+	hawk_htb_pair_t* pair;
+
+#if defined(HAWK_OOCH_IS_BCH)
+	pair = hawk_htb_insert(hawk->static_mods, (hawk_bch_t*)name, hawk_count_bcstr(name), load, 0);
+#else
+	{
+		hawk_ucs_t wcs;
+		wcs.ptr = hawk_dupbtoucstr(hawk, name, &wcs.len, 0);
+		if (HAWK_UNLIKELY(!wcs.ptr))
+		{
+			const hawk_ooch_t* bem = hawk_backuperrmsg(hawk);
+			hawk_seterrfmt(hawk, HAWK_NULL, hawk_geterrnum(hawk),
+				HAWK_T("unable to add static module '%hs' - %js"), name, bem);
+			return -1;
+		}
+		pair = hawk_htb_insert(hawk->static_mods, wcs.ptr, wcs.len, load, 0);
+		hawk_freemem(hawk, wcs.ptr);
+	}
+#endif
+	if (HAWK_UNLIKELY(!pair))
+	{
+		const hawk_ooch_t* bem = hawk_backuperrmsg(hawk);
+		hawk_seterrfmt(hawk, HAWK_NULL, hawk_geterrnum(hawk), HAWK_T("unable to add static module '%js' - %js"), name, bem);
+		return -1;
+	}
+
+	return 0;
+}
+
+int hawk_addstaticmodwithucstr (hawk_t* hawk, const hawk_uch_t* name, hawk_mod_load_t load)
+{
+	hawk_htb_pair_t* pair;
+
+#if defined(HAWK_OOCH_IS_BCH)
+	{
+		hawk_bcs_t mbs;
+		mbs.ptr = hawk_duputobcstr(hawk, ncs.ptr, &mbs.len);
+		if (HAWK_UNLIKELY(!mbs.ptr))
+		{
+			const hawk_ooch_t* bem = hawk_backuperrmsg(hawk);
+			hawk_seterrfmt(hawk, HAWK_NULL, hawk_geterrnum(hawk),
+				HAWK_T("unable to add static module '%ls' - %js"), name, bem);
+			return -1;
+		}
+		pair = hawk_htb_insert(hawk->static_mods, mbs.ptr, mbs.len, load, 0);
+		hawk_freemem(hawk, mbs.ptr);
+	}
+#else
+	pair = hawk_htb_insert(hawk->static_mods, (hawk_uch_t*)name, hawk_count_ucstr(name), load, 0);
+#endif
+	if (HAWK_UNLIKELY(!pair))
+	{
+		const hawk_ooch_t* bem = hawk_backuperrmsg(hawk);
+		hawk_seterrfmt(hawk, HAWK_NULL, hawk_geterrnum(hawk), HAWK_T("unable to add static module '%js' - %js"), name, bem);
+		return -1;
+	}
+
+	return 0;
+}
+
 hawk_mod_t* hawk_querymodulewithname (hawk_t* hawk, hawk_ooch_t* name, hawk_mod_sym_t* sym)
 {
 	const hawk_ooch_t* dc;
@@ -8252,13 +8315,13 @@ hawk_mod_t* hawk_querymodulewithname (hawk_t* hawk, hawk_ooch_t* name, hawk_mod_
 	segs[0].len = dc - name;
 	segs[0].ptr = name;
 	tmp = name[segs[0].len];
-	name[segs[0].len] = '\0';
+	name[segs[0].len] = '\0'; /* name is not const hawk_ooch_t* because it's temporarily modifed ... */
 
 	segs[1].len = name_len - segs[0].len - 2;
 	segs[1].ptr = (hawk_ooch_t*)name + segs[0].len + 2;
 
 	mod = query_module(hawk, segs, 2, sym);
 
-	name[segs[0].len] = tmp;
+	name[segs[0].len] = tmp; /* and restored ... */
 	return mod;
 }
