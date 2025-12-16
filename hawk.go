@@ -88,6 +88,14 @@ static void set_rtx_errmsg(hawk_rtx_t* rtx, hawk_errnum_t errnum, const hawk_bch
 
 // -----------------------------------------------
 
+extern int hawk_mod_go_fnc_gc(rtx_xtn_t* rtx_xtn);
+static int fnc_gc(hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+{
+	rtx_xtn_t* xtn;
+	xtn = hawk_rtx_getxtn(rtx);
+	return hawk_mod_go_fnc_gc(xtn);
+}
+
 extern int hawk_mod_go_fnc_stats(rtx_xtn_t* rtx_xtn);
 static int fnc_stats(hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
@@ -98,6 +106,7 @@ static int fnc_stats(hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 static hawk_mod_fnc_tab_t fnctab[] =
 {
+	{ HAWK_T("gc"),               { { 0, 0, HAWK_NULL     },  fnc_gc,                    0 } },
 	{ HAWK_T("stats"),            { { 0, 0, HAWK_NULL     },  fnc_stats,                 0 } },
 };
 
@@ -717,6 +726,39 @@ func (rtx *Rtx) SetFuncRet(v *Val) {
 	C.hawk_rtx_setretval(rtx.c, v.c)
 }
 
+func (rtx *Rtx) SetFuncRetWithInt(v int) error {
+	var vv *C.hawk_val_t
+	vv = C.hawk_rtx_makeintval(rtx.c, C.hawk_int_t(v))
+	if vv == nil { return rtx.make_errinfo() }
+	C.hawk_rtx_refupval(rtx.c, vv)
+	C.hawk_rtx_setretval(rtx.c, vv)
+	C.hawk_rtx_refdownval(rtx.c, vv)
+	return nil
+}
+
+func (rtx *Rtx) SetFuncRetWithFlt(v float64) error {
+	var vv *C.hawk_val_t
+	vv = C.make_flt_val(rtx.c, C.double(v))
+	if vv == nil { return rtx.make_errinfo() }
+	C.hawk_rtx_refupval(rtx.c, vv)
+	C.hawk_rtx_setretval(rtx.c, vv)
+	C.hawk_rtx_refdownval(rtx.c, vv)
+	return nil
+}
+
+func (rtx *Rtx) SetFuncRetWithStr(v string) error {
+	var vv *C.hawk_val_t
+	var cv *C.hawk_bch_t
+	cv = C.CString(v)
+	vv = C.hawk_rtx_makestrvalwithbchars(rtx.c, cv, C.hawk_oow_t(len(v)))
+	C.free(unsafe.Pointer(cv))
+	if vv == nil { return rtx.make_errinfo() }
+	C.hawk_rtx_refupval(rtx.c, vv)
+	C.hawk_rtx_setretval(rtx.c, vv)
+	C.hawk_rtx_refdownval(rtx.c, vv)
+	return nil
+}
+
 func (rtx *Rtx) GetNamedVars(vars map[string]*Val) {
 	var tab *C.hawk_htb_t
 	var itr C.hawk_htb_itr_t
@@ -764,32 +806,49 @@ func hawk_go_fnc_handler(rtx_xtn *C.rtx_xtn_t, name *C.hawk_bch_t, namelen C.haw
 	return 0
 }
 
+//export hawk_mod_go_fnc_gc
+func hawk_mod_go_fnc_gc(rtx_xtn *C.rtx_xtn_t) C.int {
+	var rtx_inst RtxInstance
+	var rtx *Rtx
+
+	rtx_inst = rtx_inst_table.slot_to_instance(int(rtx_xtn.rtx_inst_no))
+	rtx = rtx_inst.g.Value()
+
+	runtime.GC()
+	rtx.SetFuncRetWithInt(0)
+	return 0
+}
+
 //export hawk_mod_go_fnc_stats
 func hawk_mod_go_fnc_stats(rtx_xtn *C.rtx_xtn_t) C.int {
 	var rtx_inst RtxInstance
 	var rtx *Rtx
 	var v *Val
+	var mstat runtime.MemStats
 
 	rtx_inst = rtx_inst_table.slot_to_instance(int(rtx_xtn.rtx_inst_no))
 	rtx = rtx_inst.g.Value()
 
-// TODO: the memory management of the values created is wrong.
-//       Close() musted be called for each of them...
-	//runtime.ReadMemStats(&mstat)
+	runtime.ReadMemStats(&mstat)
 	v = Must(rtx.NewMapVal())
-	v.MapSetField("CPUs", Must(rtx.NewIntVal(runtime.NumCPU())))
-	v.MapSetField("Goroutines", Must(rtx.NewIntVal(runtime.NumGoroutine())))
-	v.MapSetField("NumCgoCalls", Must(rtx.NewIntVal(int(runtime.NumCgoCall()))))
-	//v.MapSetField("NumGCs", Must(rtx.NewIntVal(mstat.NumGC)))
+	v.SetMapFieldWithInt("CPUs", runtime.NumCPU())
+	v.SetMapFieldWithInt("Goroutines", runtime.NumGoroutine())
+	v.SetMapFieldWithInt("NumCgoCalls", int(runtime.NumCgoCall()))
+	v.SetMapFieldWithInt("NumGCs", int(mstat.NumGC))
+	v.SetMapFieldWithInt("AllocBytes", int(mstat.Alloc))
+	v.SetMapFieldWithInt("TotalAllocBytes", int(mstat.TotalAlloc))
+	v.SetMapFieldWithInt("SysBytes", int(mstat.Sys))
+	v.SetMapFieldWithInt("MemAllocs", int(mstat.Mallocs))
+	v.SetMapFieldWithInt("MemFrees", int(mstat.Frees))
+	v.SetMapFieldWithInt("HeapAllocBytes", int(mstat.HeapAlloc))
+	v.SetMapFieldWithInt("HeapSysBytes", int(mstat.HeapSys))
+	v.SetMapFieldWithInt("HeapIdleBytes", int(mstat.HeapIdle))
+	v.SetMapFieldWithInt("HeapInuseBytes", int(mstat.HeapInuse))
+	v.SetMapFieldWithInt("HeapReleasedBytes", int(mstat.HeapReleased))
 
 	rtx.SetFuncRet(v)
 	v.Close()
 /*
-	stats.CPUs = runtime.NumCPU()
-	stats.Goroutines = runtime.NumGoroutine()
-	stats.NumCgoCalls = runtime.NumCgoCall()
-	stats.NumGCs = mstat.NumGC
-
 	stats.AllocBytes = mstat.Alloc
 	stats.TotalAllocBytes = mstat.TotalAlloc
 	stats.SysBytes = mstat.Sys
@@ -1055,21 +1114,57 @@ func (val *Val) ArrayTally() int {
 
 // TODO: function to get the first index and last index or the capacity
 //       function to traverse?
-func (val *Val) ArrayField(index int) (*Val, error) {
+func (val *Val) GetArrayField(index int) (*Val, error) {
 	var v *C.hawk_val_t
 	v = C.hawk_rtx_getarrvalfld(val.rtx.c, val.c, C.hawk_ooi_t(index))
 	if v == nil { return nil, val.rtx.make_errinfo() }
 	return val.rtx.make_val(func() *C.hawk_val_t { return v })
 }
 
-func (val *Val) ArraySetField(index int, v *Val) error {
+func (val *Val) SetArrayField(index int, v *Val) error {
 	var vv *C.hawk_val_t
 	vv = C.hawk_rtx_setarrvalfld(val.rtx.c, val.c, C.hawk_ooi_t(index), v.c)
 	if vv == nil { return val.rtx.make_errinfo() }
 	return nil
 }
 
-func (val *Val) ArrayFirstField(itr *ValArrayItr) (int, *Val) {
+func (val *Val) SetArrayFieldWithInt(index int, v int) error {
+	var vv *C.hawk_val_t
+	vv = C.hawk_rtx_makeintval(val.rtx.c, C.hawk_int_t(v))
+	if vv == nil { return val.rtx.make_errinfo() }
+	C.hawk_rtx_refupval(val.rtx.c, vv)
+	vv = C.hawk_rtx_setarrvalfld(val.rtx.c, val.c, C.hawk_ooi_t(index), vv)
+	C.hawk_rtx_refdownval(val.rtx.c, vv)
+	if vv == nil { return val.rtx.make_errinfo() }
+	return nil
+}
+
+func (val *Val) SetArrayFieldWithFlt(index int, v float64) error {
+	var vv *C.hawk_val_t
+	vv = C.make_flt_val(val.rtx.c, C.double(v))
+	if vv == nil { return val.rtx.make_errinfo() }
+	C.hawk_rtx_refupval(val.rtx.c, vv)
+	vv = C.hawk_rtx_setarrvalfld(val.rtx.c, val.c, C.hawk_ooi_t(index), vv)
+	C.hawk_rtx_refdownval(val.rtx.c, vv)
+	if vv == nil { return val.rtx.make_errinfo() }
+	return nil
+}
+
+func (val *Val) SetArrayFieldWithStr(index int, v string) error {
+	var vv *C.hawk_val_t
+	var cv *C.hawk_bch_t
+	cv = C.CString(v)
+	vv = C.hawk_rtx_makestrvalwithbchars(val.rtx.c, cv, C.hawk_oow_t(len(v)))
+	C.free(unsafe.Pointer(cv))
+	if vv == nil { return val.rtx.make_errinfo() }
+	C.hawk_rtx_refupval(val.rtx.c, vv)
+	vv = C.hawk_rtx_setarrvalfld(val.rtx.c, val.c, C.hawk_ooi_t(index), vv)
+	C.hawk_rtx_refdownval(val.rtx.c, vv)
+	if vv == nil { return val.rtx.make_errinfo() }
+	return nil
+}
+
+func (val *Val) GetFirstArrayField(itr *ValArrayItr) (int, *Val) {
 	var i *C.hawk_val_arr_itr_t
 	var v *Val
 	var err error
@@ -1080,7 +1175,7 @@ func (val *Val) ArrayFirstField(itr *ValArrayItr) (int, *Val) {
 	return int(itr.c.itr.idx), v;
 }
 
-func (val *Val) ArrayNextField(itr *ValArrayItr) (int, *Val) {
+func (val *Val) GetNextArrayField(itr *ValArrayItr) (int, *Val) {
 	var i *C.hawk_val_arr_itr_t
 	var v *Val
 	var err error
@@ -1091,7 +1186,7 @@ func (val *Val) ArrayNextField(itr *ValArrayItr) (int, *Val) {
 	return int(itr.c.itr.idx), v;
 }
 
-func (val *Val) MapField(key string) (*Val, error) {
+func (val *Val) GetMapField(key string) (*Val, error) {
 	var v *C.hawk_val_t
 	var uc []C.hawk_uch_t
 	uc = string_to_uchars(key)
@@ -1100,7 +1195,7 @@ func (val *Val) MapField(key string) (*Val, error) {
 	return val.rtx.make_val(func() *C.hawk_val_t { return v })
 }
 
-func (val *Val) MapSetField(key string, v *Val) error {
+func (val *Val) SetMapField(key string, v *Val) error {
 	var vv *C.hawk_val_t
 	var kk []C.hawk_uch_t
 
@@ -1110,7 +1205,52 @@ func (val *Val) MapSetField(key string, v *Val) error {
 	return nil
 }
 
-func (val *Val) MapFirstField(itr *ValMapItr) (string, *Val) {
+func (val *Val) SetMapFieldWithInt(key string, v int) error {
+	var kk []C.hawk_uch_t
+	var vv *C.hawk_val_t
+
+	kk = string_to_uchars(key)
+	vv = C.hawk_rtx_makeintval(val.rtx.c, C.hawk_int_t(v))
+	if vv == nil { return val.rtx.make_errinfo() }
+	C.hawk_rtx_refupval(val.rtx.c, vv)
+	vv = C.hawk_rtx_setmapvalfld(val.rtx.c, val.c, &kk[0], C.hawk_oow_t(len(kk)), vv)
+	C.hawk_rtx_refdownval(val.rtx.c, vv)
+	if vv == nil { return val.rtx.make_errinfo() }
+	return nil
+}
+
+func (val *Val) SetMapFieldWithFlt(key string, v float64) error {
+	var kk []C.hawk_uch_t
+	var vv *C.hawk_val_t
+
+	kk = string_to_uchars(key)
+	vv = C.make_flt_val(val.rtx.c, C.double(v))
+	if vv == nil { return val.rtx.make_errinfo() }
+	C.hawk_rtx_refupval(val.rtx.c, vv)
+	vv = C.hawk_rtx_setmapvalfld(val.rtx.c, val.c, &kk[0], C.hawk_oow_t(len(kk)), vv)
+	C.hawk_rtx_refdownval(val.rtx.c, vv)
+	if vv == nil { return val.rtx.make_errinfo() }
+	return nil
+}
+
+func (val *Val) SetMapFieldWithStr(key string, v string) error {
+	var kk []C.hawk_uch_t
+	var vv *C.hawk_val_t
+	var cv *C.hawk_bch_t
+
+	kk = string_to_uchars(key)
+	cv = C.CString(v)
+	vv = C.hawk_rtx_makestrvalwithbchars(val.rtx.c, cv, C.hawk_oow_t(len(v)))
+	C.free(unsafe.Pointer(cv))
+	if vv == nil { return val.rtx.make_errinfo() }
+	C.hawk_rtx_refupval(val.rtx.c, vv)
+	vv = C.hawk_rtx_setmapvalfld(val.rtx.c, val.c, &kk[0], C.hawk_oow_t(len(kk)), vv)
+	C.hawk_rtx_refdownval(val.rtx.c, vv)
+	if vv == nil { return val.rtx.make_errinfo() }
+	return nil
+}
+
+func (val *Val) GetFirstMapField(itr *ValMapItr) (string, *Val) {
 	var i *C.hawk_val_map_itr_t
 	var k string
 	var v *Val
@@ -1123,7 +1263,7 @@ func (val *Val) MapFirstField(itr *ValMapItr) (string, *Val) {
 	return k, v;
 }
 
-func (val *Val) MapNextField(itr *ValMapItr) (string, *Val) {
+func (val *Val) GetNextMapField(itr *ValMapItr) (string, *Val) {
 	var i *C.hawk_val_map_itr_t
 	var k string
 	var v *Val

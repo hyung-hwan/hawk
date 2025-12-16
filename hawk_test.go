@@ -199,7 +199,7 @@ return x;
 				var vv *hawk.Val
 				var itr hawk.ValMapItr
 
-				f = hawk.Must(v.MapField("hello"))
+				f = hawk.Must(v.GetMapField("hello"))
 				if f.Type() != hawk.VAL_STR {
 					t.Errorf("the value at the hello field must be a string. but it was %s", f.Type().String())
 				} else {
@@ -210,27 +210,27 @@ return x;
 					}
 				}
 
-				f, err = v.MapField("HELLO")
+				f, err = v.GetMapField("HELLO")
 				if err == nil {
 					t.Errorf("the value at the HELLO field must not be found. but it was %s", f.Type().String())
 				}
 
 				fmt.Printf("== DUMPING MAP ==\n")
-				kk, vv = v.MapFirstField(&itr)
+				kk, vv = v.GetFirstMapField(&itr)
 				for vv != nil {
 					fmt.Printf("key=[%s] value=[%v]\n", kk, vv.String())
-					kk, vv = v.MapNextField(&itr)
+					kk, vv = v.GetNextMapField(&itr)
 				}
 
 				fmt.Printf("== CHANGING MAP ==\n")
-				v.MapSetField("666.666", hawk.Must(rtx.NewFltVal(66666.66666)))
-				v.MapSetField("hello", hawk.Must(rtx.NewStrVal("all stars")))
+				v.SetMapField("666.666", hawk.Must(rtx.NewFltVal(66666.66666)))
+				v.SetMapField("hello", hawk.Must(rtx.NewStrVal("all stars")))
 
 				fmt.Printf("== DUMPING MAP ==\n")
-				kk, vv = v.MapFirstField(&itr)
+				kk, vv = v.GetFirstMapField(&itr)
 				for vv != nil {
 					fmt.Printf("key=[%s] value=[%v]\n", kk, vv.String())
-					kk, vv = v.MapNextField(&itr)
+					kk, vv = v.GetNextMapField(&itr)
 				}
 			}
 		}
@@ -250,7 +250,7 @@ return x;
 					t.Errorf("the returned value must have 4 elements. but it had %d elements", sz)
 				}
 
-				f = hawk.Must(v.ArrayField(2))
+				f = hawk.Must(v.GetArrayField(2))
 				if f.Type() != hawk.VAL_STR {
 					t.Errorf("the value at the hello field must be a string. but it was %s", f.Type().String())
 				} else {
@@ -266,17 +266,17 @@ return x;
 
 					/*
 					for i = 1; i <= sz; i++ {
-						fmt.Printf("%d %v\n", i, hawk.Must(v.ArrayField(i)))
+						fmt.Printf("%d %v\n", i, hawk.Must(v.GetArrayField(i)))
 					}
 					*/
 					fmt.Printf("== CHANGING ARRAY ==\n")
-					v.ArraySetField(88, hawk.Must(rtx.NewStrVal("eighty eight")))
-					v.ArraySetField(77, hawk.Must(rtx.NewStrVal("seventy seventy")))
+					v.SetArrayField(88, hawk.Must(rtx.NewStrVal("eighty eight")))
+					v.SetArrayField(77, hawk.Must(rtx.NewStrVal("seventy seventy")))
 					fmt.Printf("== DUMPING ARRAY ==\n")
-					i, ff = v.ArrayFirstField(&itr)
+					i, ff = v.GetFirstArrayField(&itr)
 					for ff != nil {
 						fmt.Printf("index=[%d] value=[%v]\n", i, ff.String())
-						i, ff = v.ArrayNextField(&itr)
+						i, ff = v.GetNextArrayField(&itr)
 					}
 					fmt.Printf("== END OF ARRAY DUMP ==\n")
 				}
