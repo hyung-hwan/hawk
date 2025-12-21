@@ -273,7 +273,7 @@ enum mux_evt_code_t
 static hawk_int_t copy_error_to_sys_list (hawk_rtx_t* rtx, sys_list_t* sys_list)
 {
 	hawk_errnum_t errnum = hawk_rtx_geterrnum(rtx);
-	hawk_copy_oocstr (sys_list->ctx.errmsg, HAWK_COUNTOF(sys_list->ctx.errmsg), hawk_rtx_geterrmsg(rtx));
+	hawk_copy_oocstr(sys_list->ctx.errmsg, HAWK_COUNTOF(sys_list->ctx.errmsg), hawk_rtx_geterrmsg(rtx));
 	return ERRNUM_TO_RC(errnum);
 }
 
@@ -367,7 +367,7 @@ static void chain_sys_node_to_mux_node (sys_node_t* mux_node, sys_node_t* node)
 	sys_node_data_mux_t* mux_data = &mux_node->ctx.u.mux;
 	sys_node_data_file_t* file_data = &node->ctx.u.file;
 
-	HAWK_ASSERT (!(node->ctx.flags & SYS_NODE_DATA_FLAG_IN_MUX));
+	HAWK_ASSERT(!(node->ctx.flags & SYS_NODE_DATA_FLAG_IN_MUX));
 	node->ctx.flags |= SYS_NODE_DATA_FLAG_IN_MUX;
 
 	file_data->mux = mux_node;
@@ -384,7 +384,7 @@ static void unchain_sys_node_from_mux_node (sys_node_t* mux_node, sys_node_t* no
 	sys_node_data_mux_t* mux_data = &mux_node->ctx.u.mux;
 	sys_node_data_file_t* file_data = &node->ctx.u.file;
 
-	HAWK_ASSERT (node->ctx.flags & SYS_NODE_DATA_FLAG_IN_MUX);
+	HAWK_ASSERT(node->ctx.flags & SYS_NODE_DATA_FLAG_IN_MUX);
 	node->ctx.flags &= ~SYS_NODE_DATA_FLAG_IN_MUX;
 
 	if (file_data->x_prev) ((sys_node_t*)file_data->x_prev)->ctx.u.file.x_next = file_data->x_next;
@@ -501,7 +501,7 @@ static HAWK_INLINE rtx_data_t* rtx_to_data (hawk_rtx_t* rtx, const hawk_fnc_info
         mod_ctx_t* mctx = (mod_ctx_t*)fi->mod->ctx;
         hawk_rbt_pair_t* pair;
         pair = hawk_rbt_search(mctx->rtxtab, &rtx, HAWK_SIZEOF(rtx));
-        HAWK_ASSERT (pair != HAWK_NULL);
+        HAWK_ASSERT(pair != HAWK_NULL);
         return (rtx_data_t*)HAWK_RBT_VPTR(pair);
 }
 
@@ -637,7 +637,7 @@ static int fnc_open (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 				goto fail;
 			}
 			rx = new_node->id;
-			HAWK_ASSERT (rx >= 0);
+			HAWK_ASSERT(rx >= 0);
 		}
 		else
 		{
@@ -650,7 +650,7 @@ static int fnc_open (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		rx = copy_error_to_sys_list(rtx, sys_list);
 	}
 
-	HAWK_ASSERT (HAWK_IN_INT_RANGE(rx));
+	HAWK_ASSERT(HAWK_IN_INT_RANGE(rx));
 	hawk_rtx_setretval(rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
@@ -686,14 +686,14 @@ static int fnc_openfd (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		if (!sys_node) goto fail;
 
 		rx = sys_node->id;
-		HAWK_ASSERT (rx >= 0);
+		HAWK_ASSERT(rx >= 0);
 	}
 	else
 	{
 		rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_T("invalid file descriptor %jd"), (hawk_intmax_t)fd);
 	}
 
-	HAWK_ASSERT (HAWK_IN_INT_RANGE(rx));
+	HAWK_ASSERT(HAWK_IN_INT_RANGE(rx));
 	hawk_rtx_setretval(rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
@@ -997,7 +997,7 @@ static int fnc_dup (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	}
 
 done:
-	HAWK_ASSERT (HAWK_IN_INT_RANGE(rx)); /* assume a file descriptor never gets larger than HAWK_INT_MAX */
+	HAWK_ASSERT(HAWK_IN_INT_RANGE(rx)); /* assume a file descriptor never gets larger than HAWK_INT_MAX */
 	hawk_rtx_setretval(rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
@@ -1083,12 +1083,12 @@ static int fnc_flock (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_int_t rx;
 	hawk_val_t* retv;
 
-	HAWK_STATIC_ASSERT (FLOCK_GET != F_RDLCK);
-	HAWK_STATIC_ASSERT (FLOCK_GET != F_WRLCK);
-	HAWK_STATIC_ASSERT (FLOCK_GET != F_UNLCK);
-	HAWK_STATIC_ASSERT (FLOCK_WAIT != F_RDLCK);
-	HAWK_STATIC_ASSERT (FLOCK_WAIT != F_WRLCK);
-	HAWK_STATIC_ASSERT (FLOCK_WAIT != F_UNLCK);
+	HAWK_STATIC_ASSERT(FLOCK_GET != F_RDLCK);
+	HAWK_STATIC_ASSERT(FLOCK_GET != F_WRLCK);
+	HAWK_STATIC_ASSERT(FLOCK_GET != F_UNLCK);
+	HAWK_STATIC_ASSERT(FLOCK_WAIT != F_RDLCK);
+	HAWK_STATIC_ASSERT(FLOCK_WAIT != F_WRLCK);
+	HAWK_STATIC_ASSERT(FLOCK_WAIT != F_UNLCK);
 
 	sys_list = rtx_to_sys_list(rtx, fi);
 	sys_node = get_sys_list_node_with_arg(rtx, sys_list, hawk_rtx_getarg(rtx, 0), SYS_NODE_DATA_TYPE_FILE, &rx);
@@ -1774,7 +1774,7 @@ static int fnc_opendir (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		rx = copy_error_to_sys_list(rtx, sys_list);
 	}
 
-	/*HAWK_ASSERT (HAWK_IN_INT_RANGE(rx));*/
+	/*HAWK_ASSERT(HAWK_IN_INT_RANGE(rx));*/
 	hawk_rtx_setretval(rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
@@ -2823,7 +2823,7 @@ done:
 	if (val) hawk_rtx_freevalbcstr(rtx, a1, val);
 	if (var) hawk_rtx_freevalbcstr(rtx, a0, var);
 
-	HAWK_ASSERT (HAWK_IN_INT_RANGE(rx));
+	HAWK_ASSERT(HAWK_IN_INT_RANGE(rx));
 	hawk_rtx_setretval(rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
@@ -2865,7 +2865,7 @@ static int fnc_unsetenv (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 done:
 	if (str) hawk_rtx_freevalbcstr(rtx, a0, str);
 
-	HAWK_ASSERT (HAWK_IN_INT_RANGE(rx));
+	HAWK_ASSERT(HAWK_IN_INT_RANGE(rx));
 	hawk_rtx_setretval(rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
@@ -3032,7 +3032,7 @@ static int fnc_system (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 done:
 	if (str) hawk_rtx_freevaloocstr(rtx, a0, str);
 
-	HAWK_ASSERT (HAWK_IN_INT_RANGE(rx));
+	HAWK_ASSERT(HAWK_IN_INT_RANGE(rx));
 	hawk_rtx_setretval(rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
@@ -3081,7 +3081,7 @@ static int fnc_chroot (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	}
 #endif
 
-	HAWK_ASSERT (HAWK_IN_INT_RANGE(rx));
+	HAWK_ASSERT(HAWK_IN_INT_RANGE(rx));
 	hawk_rtx_setretval(rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
@@ -3133,7 +3133,7 @@ static int fnc_chmod (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	}
 #endif
 
-	HAWK_ASSERT (HAWK_IN_INT_RANGE(rx));
+	HAWK_ASSERT(HAWK_IN_INT_RANGE(rx));
 	hawk_rtx_setretval(rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
@@ -3213,7 +3213,7 @@ static int fnc_mkdir (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	}
 #endif
 
-	HAWK_ASSERT (HAWK_IN_INT_RANGE(rx));
+	HAWK_ASSERT(HAWK_IN_INT_RANGE(rx));
 	hawk_rtx_setretval(rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
@@ -3289,7 +3289,7 @@ static int fnc_rmdir (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	}
 #endif
 
-	HAWK_ASSERT (HAWK_IN_INT_RANGE(rx));
+	HAWK_ASSERT(HAWK_IN_INT_RANGE(rx));
 	hawk_rtx_setretval(rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
@@ -3367,7 +3367,7 @@ static int fnc_unlink (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	}
 #endif
 
-	HAWK_ASSERT (HAWK_IN_INT_RANGE(rx));
+	HAWK_ASSERT(HAWK_IN_INT_RANGE(rx));
 	hawk_rtx_setretval(rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
@@ -3415,7 +3415,7 @@ static int fnc_symlink (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	}
 #endif
 
-	HAWK_ASSERT (HAWK_IN_INT_RANGE(rx));
+	HAWK_ASSERT(HAWK_IN_INT_RANGE(rx));
 	hawk_rtx_setretval(rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
@@ -3584,7 +3584,7 @@ static int fnc_stat (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	}
 done:
 #endif
-	HAWK_ASSERT (HAWK_IN_INT_RANGE(rx));
+	HAWK_ASSERT(HAWK_IN_INT_RANGE(rx));
 	hawk_rtx_setretval(rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
@@ -3649,7 +3649,7 @@ static int fnc_utime (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	}
 #endif
 
-	HAWK_ASSERT (HAWK_IN_INT_RANGE(rx));
+	HAWK_ASSERT(HAWK_IN_INT_RANGE(rx));
 	hawk_rtx_setretval(rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
@@ -3705,7 +3705,7 @@ static int fnc_openmux (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	rx = set_error_on_sys_list(rtx, sys_list, HAWK_ENOIMPL, HAWK_NULL);
 #endif
 
-	/*HAWK_ASSERT (HAWK_IN_INT_RANGE(rx));*/
+	/*HAWK_ASSERT(HAWK_IN_INT_RANGE(rx));*/
 	hawk_rtx_setretval(rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
@@ -3966,11 +3966,11 @@ static int fnc_getmuxevt (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			goto done;
 		}
 
-		HAWK_ASSERT (HAWK_IN_INT_RANGE(file_node->id));
+		HAWK_ASSERT(HAWK_IN_INT_RANGE(file_node->id));
 		x = hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, 2), hawk_rtx_makeintval(rtx, file_node->id));
 		if (x <= -1) goto fail;
 
-		HAWK_ASSERT (HAWK_IN_INT_RANGE(mux_data->x_evt[index].events));
+		HAWK_ASSERT(HAWK_IN_INT_RANGE(mux_data->x_evt[index].events));
 		x = hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, 3), hawk_rtx_makeintval(rtx, mux_data->x_evt[index].events));
 		if (x <= -1) goto fail;
 	}
@@ -4017,7 +4017,7 @@ static int fnc_sockaddrdom (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		rx = copy_error_to_sys_list(rtx, sys_list);
 	}
 
-	HAWK_ASSERT (HAWK_IN_INT_RANGE(rx));
+	HAWK_ASSERT(HAWK_IN_INT_RANGE(rx));
 	hawk_rtx_setretval(rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
@@ -4050,7 +4050,7 @@ static int fnc_socket (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		{
 			new_node->ctx.type = SYS_NODE_DATA_TYPE_SCK; /* override the type to socket */
 			rx = new_node->id;
-			HAWK_ASSERT (rx >= 0);
+			HAWK_ASSERT(rx >= 0);
 		}
 	}
 	else
@@ -4058,7 +4058,7 @@ static int fnc_socket (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
 	}
 
-	HAWK_ASSERT (HAWK_IN_INT_RANGE(rx));
+	HAWK_ASSERT(HAWK_IN_INT_RANGE(rx));
 	hawk_rtx_setretval(rtx, hawk_rtx_makeintval(rtx, rx));
 	return 0;
 }
@@ -4434,7 +4434,7 @@ static int fnc_accept (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 		new_node->ctx.type = SYS_NODE_DATA_TYPE_SCK; /* override the type to socket */
 		rx = new_node->id;
-		HAWK_ASSERT (rx >= 0);
+		HAWK_ASSERT(rx >= 0);
 	}
 
 done:
@@ -4536,7 +4536,7 @@ static void open_remote_log_socket (hawk_rtx_t* rtx, rtx_data_t* rdp)
 	int domain = hawk_skad_get_family(&rdp->log.skad);
 	int type = SOCK_DGRAM;
 
-	HAWK_ASSERT (rdp->log.sck <= -1);
+	HAWK_ASSERT(rdp->log.sck <= -1);
 
 #if defined(SOCK_NONBLOCK) && defined(SOCK_CLOEXEC)
 	type |= SOCK_NONBLOCK;
@@ -4618,7 +4618,7 @@ static int fnc_openlog (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		log_type = SYSLOG_REMOTE;
 		actual_ident = ident + pfxlen;
 		actual_ident_len = ident_len - pfxlen;
-		slash = hawk_rfind_oochar_in_oochars(actual_ident, actual_ident_len, '/'); // fine the last slash
+		slash = hawk_rfind_oochar_in_oochars(actual_ident, actual_ident_len, '/'); // find the last slash
 		if (!slash)
 		{
 			rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_T("invalid identifier '%js' with remote address"), ident);
@@ -5257,7 +5257,7 @@ static hawk_int_t pack_data (hawk_rtx_t* rtx, const hawk_oocs_t* fmt, const hawk
 				hawk_flt_t v;
 				float x;
 				hawk_uint32_t y;
-				HAWK_ASSERT (HAWK_SIZEOF(float) == HAWK_SIZEOF(hawk_uint32_t));
+				HAWK_ASSERT(HAWK_SIZEOF(float) == HAWK_SIZEOF(hawk_uint32_t));
 				PACK_CHECK_ARG_AND_BUF(rep_cnt, HAWK_SIZEOF(hawk_uint32_t) * rep_cnt);
 				for (rc = 0; rc < rep_cnt; rc++)
 				{
@@ -5274,7 +5274,7 @@ static hawk_int_t pack_data (hawk_rtx_t* rtx, const hawk_oocs_t* fmt, const hawk
 				hawk_flt_t v;
 				double x;
 				hawk_uint64_t y;
-				HAWK_ASSERT (HAWK_SIZEOF(double) == HAWK_SIZEOF(hawk_uint64_t));
+				HAWK_ASSERT(HAWK_SIZEOF(double) == HAWK_SIZEOF(hawk_uint64_t));
 				PACK_CHECK_ARG_AND_BUF(rep_cnt, HAWK_SIZEOF(hawk_uint64_t) * rep_cnt);
 				for (rc = 0; rc < rep_cnt; rc++)
 				{
@@ -5868,6 +5868,52 @@ fail:
 }
 
 /* ----------------------------------------------------------------------- */
+static int fnc_basename (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+{
+	hawk_val_t* a0, * tmp;
+	hawk_oocs_t path;
+	const hawk_ooch_t* ptr;
+
+	a0 = hawk_rtx_getarg(rtx, 0);
+
+	path.ptr = hawk_rtx_getvaloocstr(rtx, a0, &path.len);
+	if (HAWK_UNLIKELY(!path.ptr)) return -1;
+
+	ptr = hawk_get_base_name_oochars(path.ptr, path.len);
+
+	tmp = hawk_rtx_makestrvalwithoocstr(rtx, ptr);
+	hawk_rtx_freevaloocstr(rtx, a0, path.ptr);
+	if (HAWK_UNLIKELY(!tmp)) return -1;
+
+	hawk_rtx_setretval(rtx, tmp);
+	return 0;
+}
+
+static int fnc_dirname (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+{
+	hawk_val_t* a0, * tmp;
+	hawk_oocs_t path;
+	const hawk_ooch_t* ptr;
+	hawk_oow_t len;
+
+	a0 = hawk_rtx_getarg(rtx, 0);
+
+	path.ptr = hawk_rtx_getvaloocstr(rtx, a0, &path.len);
+	if (HAWK_UNLIKELY(!path.ptr)) return -1;
+
+	ptr = hawk_get_base_name_oochars(path.ptr, path.len);
+
+	len = ptr - path.ptr;
+	if (len > 1) len--;
+	tmp = hawk_rtx_makestrvalwithoochars(rtx, path.ptr, len);
+	hawk_rtx_freevaloocstr(rtx, a0, path.ptr);
+	if (HAWK_UNLIKELY(!tmp)) return -1;
+
+	hawk_rtx_setretval(rtx, tmp);
+	return 0;
+}
+
+/* ----------------------------------------------------------------------- */
 
 #define A_MAX HAWK_TYPE_MAX(hawk_oow_t)
 
@@ -5884,6 +5930,7 @@ static hawk_mod_fnc_tab_t fnctab[] =
 	{ HAWK_T("WTERMSIG"),    { { 1, 1, HAWK_NULL       }, fnc_wtermsig,    0  } },
 	{ HAWK_T("accept"),      { { 1, 3, HAWK_T("vvr")   }, fnc_accept,      0  } },
 	{ HAWK_T("addtomux"),    { { 3, 3, HAWK_NULL       }, fnc_addtomux,    0  } },
+	{ HAWK_T("basename"),    { { 1, 1, HAWK_NULL       }, fnc_basename,    0  } },
 	{ HAWK_T("bind"),        { { 2, 2, HAWK_NULL       }, fnc_bind,        0  } },
 	{ HAWK_T("chmod"),       { { 2, 2, HAWK_NULL       }, fnc_chmod,       0  } },
 	{ HAWK_T("chroot"),      { { 1, 1, HAWK_NULL       }, fnc_chroot,      0  } },
@@ -5893,6 +5940,7 @@ static hawk_mod_fnc_tab_t fnctab[] =
 	{ HAWK_T("closemux"),    { { 1, 1, HAWK_NULL       }, fnc_closemux,    0  } },
 	{ HAWK_T("connect"),     { { 2, 2, HAWK_NULL       }, fnc_connect,     0  } },
 	{ HAWK_T("delfrommux"),  { { 2, 2, HAWK_NULL       }, fnc_delfrommux,  0  } },
+	{ HAWK_T("dirname"),     { { 1, 1, HAWK_NULL       }, fnc_dirname,     0  } },
 	{ HAWK_T("dup"),         { { 1, 3, HAWK_NULL       }, fnc_dup,         0  } },
 	{ HAWK_T("errmsg"),      { { 0, 0, HAWK_NULL       }, fnc_errmsg,      0  } },
 	{ HAWK_T("fchmod"),      { { 2, 2, HAWK_NULL       }, fnc_fchmod,      0  } },
@@ -6395,7 +6443,7 @@ static void unload (hawk_mod_t* mod, hawk_t* hawk)
 {
 	mod_ctx_t* mctx = (mod_ctx_t*)mod->ctx;
 
-	HAWK_ASSERT (HAWK_RBT_SIZE(mctx->rtxtab) == 0);
+	HAWK_ASSERT(HAWK_RBT_SIZE(mctx->rtxtab) == 0);
 	hawk_rbt_close(mctx->rtxtab);
 
 	hawk_freemem(hawk, mctx);

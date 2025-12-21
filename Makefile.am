@@ -1,7 +1,8 @@
 AUTOMAKE_OPTION = foreign
 ACLOCAL_AMFLAGS = -I m4
 
-EXTRA_DIST =
+EXTRA_DIST = go.mod
+
 SUBDIRS =
 
 SUBDIRS += tools lib mod bin samples t

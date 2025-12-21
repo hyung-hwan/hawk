@@ -67,7 +67,7 @@ static hawk_bch_t* wcs_to_mbuf (hawk_gem_t* g, const hawk_uch_t* wcs, hawk_becs_
 	if (hawk_gem_convutobcstr(g, wcs, &wl, HAWK_NULL, &ml) <= -1 ||
 	    hawk_becs_setlen(mbuf, ml) == (hawk_oow_t)-1) return HAWK_NULL;
 
-	hawk_gem_convutobcstr (g, wcs, &wl, HAWK_BECS_PTR(mbuf), &ml);
+	hawk_gem_convutobcstr(g, wcs, &wl, HAWK_BECS_PTR(mbuf), &ml);
 	return HAWK_BECS_PTR(mbuf);
 }
 
@@ -98,7 +98,7 @@ static int upath_exists (hawk_gem_t* g, const hawk_uch_t* name, hawk_becs_t* mbu
 	mptr = wcs_to_mbuf(g, name, mbuf);
 	if (HAWK_UNLIKELY(!mptr)) return -1;
 
-	x = _dos_getfileattr (mptr, &attr);
+	x = _dos_getfileattr(mptr, &attr);
 	return (x == 0)? 1: ((errno == ENOENT)? 0: -1);
 
 #elif defined(macintosh)
@@ -108,10 +108,10 @@ static int upath_exists (hawk_gem_t* g, const hawk_uch_t* name, hawk_becs_t* mbu
 	mptr = wcs_to_mbuf(g, name, mbuf);
 	if (HAWK_UNLIKELY(!mptr)) return -1;
 
-	HAWK_MEMSET (&fpb, 0, HAWK_SIZEOF(fpb));
+	HAWK_MEMSET(&fpb, 0, HAWK_SIZEOF(fpb));
 	fpb.ioNamePtr = (unsigned char*)mptr;
 
-	return (PBGetCatInfoSync ((CInfoPBRec*)&fpb) == noErr)? 1: 0;
+	return (PBGetCatInfoSync((CInfoPBRec*)&fpb) == noErr)? 1: 0;
 #else
 	struct stat st;
 	const hawk_bch_t* mptr;
@@ -147,7 +147,7 @@ static int bpath_exists (hawk_gem_t* g, const hawk_bch_t* name, hawk_becs_t* mbu
 
 #elif defined(macintosh)
 	HFileInfo fpb;
-	HAWK_MEMSET (&fpb, 0, HAWK_SIZEOF(fpb));
+	HAWK_MEMSET(&fpb, 0, HAWK_SIZEOF(fpb));
 	fpb.ioNamePtr = (unsigned char*)name;
 	return (PBGetCatInfoSync((CInfoPBRec*)&fpb) == noErr)? 1: 0;
 #else
@@ -161,9 +161,6 @@ static int bpath_exists (hawk_gem_t* g, const hawk_bch_t* name, hawk_becs_t* mbu
 	return (t == 0);
 #endif
 }
-
-
-
 
 #if defined(NO_RECURSION)
 typedef struct __u_stack_node_t __u_stack_node_t;
@@ -303,7 +300,7 @@ static int __u_get_next_segment (__u_glob_t* g, __u_segment_t* seg)
 	}
 	else
 	{
-		HAWK_ASSERT (seg->type == NORMAL);
+		HAWK_ASSERT(seg->type == NORMAL);
 
 		seg->ptr = &seg->ptr[seg->len + 1];
 		seg->len = 0;
@@ -344,9 +341,9 @@ static int __u_handle_non_wild_segments (__u_glob_t* g, __u_segment_t* seg)
 {
 	while (__u_get_next_segment(g, seg) != NONE && !seg->wild)
 	{
-		HAWK_ASSERT (seg->type != NONE && !seg->wild);
+		HAWK_ASSERT(seg->type != NONE && !seg->wild);
 
-		if (seg->sep && hawk_uecs_ccat (&g->path, seg->sep) == (hawk_oow_t)-1) return -1;
+		if (seg->sep && hawk_uecs_ccat(&g->path, seg->sep) == (hawk_oow_t)-1) return -1;
 		if (seg->esc)
 		{
 			/* if the segment contains escape sequences,
@@ -358,7 +355,7 @@ static int __u_handle_non_wild_segments (__u_glob_t* g, __u_segment_t* seg)
 			int escaped = 0;
 
 			if (HAWK_UECS_CAPA(&g->tbuf) < seg->len &&
-			    hawk_uecs_setcapa (&g->tbuf, seg->len) == (hawk_oow_t)-1) return -1;
+			    hawk_uecs_setcapa(&g->tbuf, seg->len) == (hawk_oow_t)-1) return -1;
 
 			tmp.ptr = HAWK_UECS_PTR(&g->tbuf);
 			tmp.len = 0;
@@ -381,13 +378,13 @@ static int __u_handle_non_wild_segments (__u_glob_t* g, __u_segment_t* seg)
 				}
 			}
 
-			if (hawk_uecs_ncat (&g->path, tmp.ptr, tmp.len) == (hawk_oow_t)-1) return -1;
+			if (hawk_uecs_ncat(&g->path, tmp.ptr, tmp.len) == (hawk_oow_t)-1) return -1;
 		}
 		else
 		{
 			/* if the segment doesn't contain escape sequences,
 			 * append the segment to the path without special handling */
-			if (hawk_uecs_ncat (&g->path, seg->ptr, seg->len) == (hawk_oow_t)-1) return -1;
+			if (hawk_uecs_ncat(&g->path, seg->ptr, seg->len) == (hawk_oow_t)-1) return -1;
 		}
 
 		if (!seg->next && upath_exists(g->gem, HAWK_UECS_PTR(&g->path), &g->mbuf) > 0)
@@ -434,7 +431,7 @@ entry:
 
 			while (1)
 			{
-				hawk_uecs_setlen (&g->path, tmp2);
+				hawk_uecs_setlen(&g->path, tmp2);
 
 				x = hawk_dir_read(dp, &ent);
 				if (x <= -1)
@@ -497,12 +494,12 @@ entry:
 				}
 			}
 
-			hawk_uecs_setlen (&g->path, tmp);
-			hawk_dir_close (dp); dp = HAWK_NULL;
+			hawk_uecs_setlen(&g->path, tmp);
+			hawk_dir_close(dp); dp = HAWK_NULL;
 		}
 	}
 
-	HAWK_ASSERT (dp == HAWK_NULL);
+	HAWK_ASSERT(dp == HAWK_NULL);
 
 #if defined(NO_RECURSION)
 	if (g->stack)
@@ -531,29 +528,29 @@ entry:
 		/* destory the free list */
 		r = g->free;
 		g->free = r->next;
-		hawk_gem_freemem (g->gem, r);
+		hawk_gem_freemem(g->gem, r);
 	}
 #endif
 
 	return 0;
 
 oops:
-	if (dp) hawk_dir_close (dp);
+	if (dp) hawk_dir_close(dp);
 
 #if defined(NO_RECURSION)
 	while (g->stack)
 	{
 		r = g->stack;
 		g->stack = r->next;
-		hawk_dir_close (r->dp);
-		hawk_gem_freemem (g->gem, r);
+		hawk_dir_close(r->dp);
+		hawk_gem_freemem(g->gem, r);
 	}
 
 	while (g->free)
 	{
 		r = g->stack;
 		g->free = r->next;
-		hawk_gem_freemem (g->gem, r);
+		hawk_gem_freemem(g->gem, r);
 	}
 #endif
 	return -1;
@@ -565,7 +562,7 @@ int hawk_gem_uglob (hawk_gem_t* gem, const hawk_uch_t* pattern, hawk_gem_uglob_c
 	__u_glob_t g;
 	int x;
 
-	HAWK_MEMSET (&g, 0, HAWK_SIZEOF(g));
+	HAWK_MEMSET(&g, 0, HAWK_SIZEOF(g));
 	g.gem = gem;
 	g.cbimpl = cbimpl;
 	g.cbctx = cbctx;
@@ -583,7 +580,7 @@ int hawk_gem_uglob (hawk_gem_t* gem, const hawk_uch_t* pattern, hawk_gem_uglob_c
 	if (hawk_uecs_init(&g.path, g.gem, 512) <= -1) return -1;
 	if (hawk_uecs_init(&g.tbuf, g.gem, 256) <= -1)
 	{
-		hawk_uecs_fini (&g.path);
+		hawk_uecs_fini(&g.path);
 		return -1;
 	}
 
@@ -591,22 +588,22 @@ int hawk_gem_uglob (hawk_gem_t* gem, const hawk_uch_t* pattern, hawk_gem_uglob_c
 	{
 		if (hawk_becs_init(&g.mbuf, g.gem, 512) <= -1)
 		{
-			hawk_uecs_fini (&g.path);
-			hawk_uecs_fini (&g.path);
+			hawk_uecs_fini(&g.path);
+			hawk_uecs_fini(&g.path);
 			return -1;
 		}
 	}
 
-	HAWK_MEMSET (&seg, 0, HAWK_SIZEOF(seg));
+	HAWK_MEMSET(&seg, 0, HAWK_SIZEOF(seg));
 	seg.type = NONE;
 	seg.ptr = pattern;
 	seg.len = 0;
 
 	x = __u_search(&g, &seg);
 
-	if (HAWK_SIZEOF(hawk_uch_t) != HAWK_SIZEOF(hawk_uch_t)) hawk_becs_fini (&g.mbuf);
-	hawk_uecs_fini (&g.tbuf);
-	hawk_uecs_fini (&g.path);
+	if (HAWK_SIZEOF(hawk_uch_t) != HAWK_SIZEOF(hawk_uch_t)) hawk_becs_fini(&g.mbuf);
+	hawk_uecs_fini(&g.tbuf);
+	hawk_uecs_fini(&g.path);
 
 	if (x <= -1) return -1;
 	return g.expanded;
@@ -753,7 +750,7 @@ static int __b_get_next_segment (__b_glob_t* g, __b_segment_t* seg)
 	}
 	else
 	{
-		HAWK_ASSERT (seg->type == NORMAL);
+		HAWK_ASSERT(seg->type == NORMAL);
 
 		seg->ptr = &seg->ptr[seg->len + 1];
 		seg->len = 0;
@@ -794,21 +791,20 @@ static int __b_handle_non_wild_segments (__b_glob_t* g, __b_segment_t* seg)
 {
 	while (__b_get_next_segment(g, seg) != NONE && !seg->wild)
 	{
-		HAWK_ASSERT (seg->type != NONE && !seg->wild);
+		HAWK_ASSERT(seg->type != NONE && !seg->wild);
 
-		if (seg->sep && hawk_becs_ccat (&g->path, seg->sep) == (hawk_oow_t)-1) return -1;
+		if (seg->sep && hawk_becs_ccat(&g->path, seg->sep) == (hawk_oow_t)-1) return -1;
 		if (seg->esc)
 		{
 			/* if the segment contains escape sequences,
 			 * strip the escape letters off the segment */
-
 
 			hawk_bcs_t tmp;
 			hawk_oow_t i;
 			int escaped = 0;
 
 			if (HAWK_BECS_CAPA(&g->tbuf) < seg->len &&
-			    hawk_becs_setcapa (&g->tbuf, seg->len) == (hawk_oow_t)-1) return -1;
+			    hawk_becs_setcapa(&g->tbuf, seg->len) == (hawk_oow_t)-1) return -1;
 
 			tmp.ptr = HAWK_BECS_PTR(&g->tbuf);
 			tmp.len = 0;
@@ -831,13 +827,13 @@ static int __b_handle_non_wild_segments (__b_glob_t* g, __b_segment_t* seg)
 				}
 			}
 
-			if (hawk_becs_ncat (&g->path, tmp.ptr, tmp.len) == (hawk_oow_t)-1) return -1;
+			if (hawk_becs_ncat(&g->path, tmp.ptr, tmp.len) == (hawk_oow_t)-1) return -1;
 		}
 		else
 		{
 			/* if the segment doesn't contain escape sequences,
 			 * append the segment to the path without special handling */
-			if (hawk_becs_ncat (&g->path, seg->ptr, seg->len) == (hawk_oow_t)-1) return -1;
+			if (hawk_becs_ncat(&g->path, seg->ptr, seg->len) == (hawk_oow_t)-1) return -1;
 		}
 
 		if (!seg->next && bpath_exists(g->gem, HAWK_BECS_PTR(&g->path), &g->mbuf) > 0)
@@ -884,7 +880,7 @@ entry:
 
 			while (1)
 			{
-				hawk_becs_setlen (&g->path, tmp2);
+				hawk_becs_setlen(&g->path, tmp2);
 
 				x = hawk_dir_read(dp, &ent);
 				if (x <= -1)
@@ -947,12 +943,12 @@ entry:
 				}
 			}
 
-			hawk_becs_setlen (&g->path, tmp);
-			hawk_dir_close (dp); dp = HAWK_NULL;
+			hawk_becs_setlen(&g->path, tmp);
+			hawk_dir_close(dp); dp = HAWK_NULL;
 		}
 	}
 
-	HAWK_ASSERT (dp == HAWK_NULL);
+	HAWK_ASSERT(dp == HAWK_NULL);
 
 #if defined(NO_RECURSION)
 	if (g->stack)
@@ -981,29 +977,29 @@ entry:
 		/* destory the free list */
 		r = g->free;
 		g->free = r->next;
-		hawk_gem_freemem (g->gem, r);
+		hawk_gem_freemem(g->gem, r);
 	}
 #endif
 
 	return 0;
 
 oops:
-	if (dp) hawk_dir_close (dp);
+	if (dp) hawk_dir_close(dp);
 
 #if defined(NO_RECURSION)
 	while (g->stack)
 	{
 		r = g->stack;
 		g->stack = r->next;
-		hawk_dir_close (r->dp);
-		hawk_gem_freemem (g->gem, r);
+		hawk_dir_close(r->dp);
+		hawk_gem_freemem(g->gem, r);
 	}
 
 	while (g->free)
 	{
 		r = g->stack;
 		g->free = r->next;
-		hawk_gem_freemem (g->gem, r);
+		hawk_gem_freemem(g->gem, r);
 	}
 #endif
 	return -1;
@@ -1015,7 +1011,7 @@ int hawk_gem_bglob (hawk_gem_t* gem, const hawk_bch_t* pattern, hawk_gem_bglob_c
 	__b_glob_t g;
 	int x;
 
-	HAWK_MEMSET (&g, 0, HAWK_SIZEOF(g));
+	HAWK_MEMSET(&g, 0, HAWK_SIZEOF(g));
 	g.gem = gem;
 	g.cbimpl = cbimpl;
 	g.cbctx = cbctx;
@@ -1033,7 +1029,7 @@ int hawk_gem_bglob (hawk_gem_t* gem, const hawk_bch_t* pattern, hawk_gem_bglob_c
 	if (hawk_becs_init(&g.path, g.gem, 512) <= -1) return -1;
 	if (hawk_becs_init(&g.tbuf, g.gem, 256) <= -1)
 	{
-		hawk_becs_fini (&g.path);
+		hawk_becs_fini(&g.path);
 		return -1;
 	}
 
@@ -1041,22 +1037,22 @@ int hawk_gem_bglob (hawk_gem_t* gem, const hawk_bch_t* pattern, hawk_gem_bglob_c
 	{
 		if (hawk_becs_init(&g.mbuf, g.gem, 512) <= -1)
 		{
-			hawk_becs_fini (&g.path);
-			hawk_becs_fini (&g.path);
+			hawk_becs_fini(&g.path);
+			hawk_becs_fini(&g.path);
 			return -1;
 		}
 	}
 
-	HAWK_MEMSET (&seg, 0, HAWK_SIZEOF(seg));
+	HAWK_MEMSET(&seg, 0, HAWK_SIZEOF(seg));
 	seg.type = NONE;
 	seg.ptr = pattern;
 	seg.len = 0;
 
 	x = __b_search(&g, &seg);
 
-	if (HAWK_SIZEOF(hawk_bch_t) != HAWK_SIZEOF(hawk_uch_t)) hawk_becs_fini (&g.mbuf);
-	hawk_becs_fini (&g.tbuf);
-	hawk_becs_fini (&g.path);
+	if (HAWK_SIZEOF(hawk_bch_t) != HAWK_SIZEOF(hawk_uch_t)) hawk_becs_fini(&g.mbuf);
+	hawk_becs_fini(&g.tbuf);
+	hawk_becs_fini(&g.path);
 
 	if (x <= -1) return -1;
 	return g.expanded;

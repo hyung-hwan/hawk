@@ -251,7 +251,7 @@ HawkStd::Run* HawkStd::parse (Source& in, Source& out)
 
 int HawkStd::build_argcv (Run* run)
 {
-	Value argv (run);
+	Value argv(run);
 
 	for (hawk_oow_t i = 0; i < this->runarg.len; i++)
 	{

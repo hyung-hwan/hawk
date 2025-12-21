@@ -524,7 +524,7 @@ const hawk_uch_t* hawk_get_base_name_ucstr (const hawk_uch_t* path)
 		if (IS_PATH_SEP(*p)) last = p;
 	}
 
-	return last? (last +1): path;
+	return last? (last + 1): path;
 }
 
 const hawk_bch_t* hawk_get_base_name_bcstr (const hawk_bch_t* path)
@@ -536,6 +536,31 @@ const hawk_bch_t* hawk_get_base_name_bcstr (const hawk_bch_t* path)
 		if (IS_PATH_SEP(*p)) last = p;
 	}
 
-	return last? (last +1): path;
+	return last? (last + 1): path;
 }
 
+const hawk_uch_t* hawk_get_base_name_uchars (const hawk_uch_t* path, hawk_oow_t len)
+{
+	const hawk_uch_t* p, * last = HAWK_NULL;
+	const hawk_uch_t* end = path + len;
+
+	for (p = path; p < end; p++)
+	{
+		if (IS_PATH_SEP(*p)) last = p;
+	}
+
+	return last? (last + 1): path;
+}
+
+const hawk_bch_t* hawk_get_base_name_bchars (const hawk_bch_t* path, hawk_oow_t len)
+{
+	const hawk_bch_t* p, * last = HAWK_NULL;
+	const hawk_bch_t* end = path + len;
+
+	for (p = path; p < end; p++)
+	{
+		if (IS_PATH_SEP(*p)) last = p;
+	}
+
+	return last? (last + 1): path;
+}

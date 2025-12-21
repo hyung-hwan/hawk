@@ -778,10 +778,23 @@ HAWK_EXPORT const hawk_bch_t* hawk_get_base_name_bcstr (
 	const hawk_bch_t* path
 );
 
+HAWK_EXPORT const hawk_uch_t* hawk_get_base_name_uchars (
+	const hawk_uch_t* path,
+	hawk_oow_t        len
+);
+
+HAWK_EXPORT const hawk_bch_t* hawk_get_base_name_bchars (
+	const hawk_bch_t* path,
+	hawk_oow_t        len
+);
+
 #if defined(HAWK_OOCH_IS_UCH)
 #	define hawk_get_base_name_oocstr hawk_get_base_name_ucstr
+#	define hawk_get_base_name_oochars hawk_get_base_name_uchars
 #else
 #	define hawk_get_base_name_oocstr hawk_get_base_name_bcstr
+#	define hawk_get_base_name_ochars hawk_get_base_name_bchars
+
 #endif
 
 /* =========================================================================

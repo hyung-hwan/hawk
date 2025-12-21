@@ -62,7 +62,7 @@ public:
 
 	int open ()
 	{
-		if (HawkStd::open () <= -1) return -1;
+		if (HawkStd::open() <= -1) return -1;
 
 		idLastSleep = this->addGlobal(HAWK_T("LAST_SLEEP"));
 		if (idLastSleep <= -1) goto oops;
@@ -413,7 +413,7 @@ static int hawk_main (MyHawk& hawk, int argc, hawk_bch_t* argv[])
 	cmdline_t cmdline;
 	int n;
 
-	hawk.setTrait (hawk.getTrait() | HAWK_FLEXMAP | HAWK_RWPIPE | HAWK_NEXTOFILE);
+	hawk.setTrait(hawk.getTrait() | HAWK_FLEXMAP | HAWK_RWPIPE | HAWK_NEXTOFILE);
 
 	// ARGV[0]
 	if (hawk.addArgument(HAWK_T("hawk51")) <= -1)
@@ -424,7 +424,7 @@ static int hawk_main (MyHawk& hawk, int argc, hawk_bch_t* argv[])
 
 	if ((n = handle_cmdline(hawk, argc, argv, &cmdline)) <= 0) return n;
 
-	if (cmdline.incdirs) hawk.setIncludeDirs (cmdline.incdirs);
+	if (cmdline.incdirs) hawk.setIncludeDirs(cmdline.incdirs);
 	MyHawk::Source* in, * out;
 	MyHawk::SourceString in_str(cmdline.ins);
 	MyHawk::SourceFile in_file(cmdline.inf);

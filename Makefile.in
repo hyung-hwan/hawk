@@ -374,7 +374,7 @@ top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 AUTOMAKE_OPTION = foreign
 ACLOCAL_AMFLAGS = -I m4
-EXTRA_DIST = 
+EXTRA_DIST = go.mod
 SUBDIRS = tools lib mod bin samples t
 #if ENABLE_STATIC_MODULE
 #SUBDIRS += tools mod lib bin samples t
