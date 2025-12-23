@@ -89,29 +89,29 @@ static int trim (hawk_rtx_t* rtx, int flags)
 		case HAWK_VAL_MBS:
 		case HAWK_VAL_BOB:
 		{
-			hawk_bcs_t path;
-			hawk_bch_t* npath;
-			path.ptr = hawk_rtx_getvalbcstr(rtx, a0, &path.len);
-			if (HAWK_UNLIKELY(!path.ptr)) return -1;
-			npath = hawk_trim_bchars(path.ptr, &path.len, flags);
-			retv = hawk_rtx_makembsvalwithbchars(rtx, npath, path.len);
-			hawk_rtx_freevalbcstr (rtx, a0, path.ptr);
+			hawk_bcs_t str;
+			hawk_bch_t* nstr;
+			str.ptr = hawk_rtx_getvalbcstr(rtx, a0, &str.len);
+			if (HAWK_UNLIKELY(!str.ptr)) return -1;
+			nstr = hawk_trim_bchars(str.ptr, &str.len, flags);
+			retv = hawk_rtx_makembsvalwithbchars(rtx, nstr, str.len);
+			hawk_rtx_freevalbcstr(rtx, a0, str.ptr);
 			break;
 		}
 
 		default:
 		{
-			hawk_oocs_t path;
-			hawk_ooch_t* npath;
-			path.ptr = hawk_rtx_getvaloocstr(rtx, a0, &path.len);
-			if (HAWK_UNLIKELY(!path.ptr)) return -1;
+			hawk_oocs_t str;
+			hawk_ooch_t* nstr;
+			str.ptr = hawk_rtx_getvaloocstr(rtx, a0, &str.len);
+			if (HAWK_UNLIKELY(!str.ptr)) return -1;
 			/* because hawk_trim_oochars() returns the pointer and the length without
 			 * affecting the string given, it's safe to pass the original value.
 			 * hawk_rtx_getvaloocstr() doesn't duplicate the value if it's of
 			 * the string type. */
-			npath = hawk_trim_oochars(path.ptr, &path.len, flags);
-			retv = hawk_rtx_makestrvalwithoochars(rtx, npath, path.len);
-			hawk_rtx_freevaloocstr (rtx, a0, path.ptr);
+			nstr = hawk_trim_oochars(str.ptr, &str.len, flags);
+			retv = hawk_rtx_makestrvalwithoochars(rtx, nstr, str.len);
+			hawk_rtx_freevaloocstr(rtx, a0, str.ptr);
 			break;
 		}
 	}
@@ -457,6 +457,7 @@ static int fnc_frommbs (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	 *
 	 * if you use a supported encoding name, it may look like this:
 	 *   a = str::frommbs(@b"\xC7\xD1\xB1\xDB", "cp949");
+	 *   a = str::frommbs(@b"\xEB\x8F\x99\xEA\xB7\xB8\xEB\x9D\xBC\xEB\xAF\xB8", "utf8");
 	 *   printf ("%K\n", a);
 	 */
 	hawk_val_t* a0, * r;
@@ -467,10 +468,9 @@ static int fnc_frommbs (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		hawk_val_t* a1;
 		hawk_oocs_t enc;
 
-
 		a1 = hawk_rtx_getarg(rtx, 1);
 		enc.ptr = hawk_rtx_getvaloocstr(rtx, a1, &enc.len);
-		if (!enc.ptr) return -1;
+		if (HAWK_UNLIKELY(!enc.ptr)) return -1;
 		/* if encoding name is an empty string, hawk_findcmgr() returns the default cmgr.
 		 * i don't want that behavior. */
 		cmgr = (enc.len > 0 && enc.len == hawk_count_oocstr(enc.ptr))? hawk_get_cmgr_by_name(enc.ptr): HAWK_NULL;
@@ -572,6 +572,146 @@ static int fnc_tombs (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 done:
 	hawk_rtx_setretval (rtx, r);
+	return 0;
+}
+
+static int fnc_fromhex (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+{
+	hawk_val_t* retv;
+	hawk_val_t* a0;
+
+	a0 = hawk_rtx_getarg(rtx, 0);
+
+	switch (HAWK_RTX_GETVALTYPE(rtx, a0))
+	{
+		case HAWK_VAL_BCHR:
+		case HAWK_VAL_MBS:
+		case HAWK_VAL_BOB:
+		{
+			hawk_bcs_t str;
+			hawk_oow_t i;
+			hawk_oow_t len;
+			hawk_uint8_t v;
+			hawk_oow_t x;
+
+			str.ptr = hawk_rtx_getvalbcstr(rtx, a0, &str.len);
+			if (HAWK_UNLIKELY(!str.ptr)) return -1;
+
+			len = str.len >> 1;
+
+			retv = hawk_rtx_makembsvalwithbchars(rtx, HAWK_NULL, len + (str.len & 1));
+			for (i = 0, x = 0; i < len; i++, x++)
+			{
+				if (str.ptr[x] >= '0' && str.ptr[x] <= '9') v = str.ptr[x] - '0';
+				else if (str.ptr[x] >= 'a' && str.ptr[x] <= 'f') v = str.ptr[x] - 'a' + 10;
+				else if (str.ptr[x] >= 'A' && str.ptr[x] <= 'F') v = str.ptr[x] - 'A' + 10;
+				else v = 0;
+
+				x = x + 1;
+				v <<= 4;
+				if (str.ptr[x] >= '0' && str.ptr[x] <= '9') v += str.ptr[x] - '0';
+				else if (str.ptr[x] >= 'a' && str.ptr[x] <= 'f') v += str.ptr[x] - 'a' + 10;
+				else if (str.ptr[x] >= 'A' && str.ptr[x] <= 'F') v += str.ptr[x] - 'A' + 10;
+
+				((hawk_val_mbs_t*)retv)->val.ptr[i] = v;
+			}
+
+			if (str.len & 1)
+			{
+				/* trailing digit */
+				if (str.ptr[x] >= '0' && str.ptr[x] <= '9') v = str.ptr[x] - '0';
+				else if (str.ptr[x] >= 'a' && str.ptr[x] <= 'f') v = str.ptr[x] - 'a' + 10;
+				else if (str.ptr[x] >= 'A' && str.ptr[x] <= 'F') v = str.ptr[x] - 'A' + 10;
+				else v = 0;
+				((hawk_val_mbs_t*)retv)->val.ptr[i] = v;
+			}
+
+			hawk_rtx_freevalbcstr(rtx, a0, str.ptr);
+			break;
+		}
+
+		default:
+		{
+			hawk_oocs_t str;
+			hawk_oow_t i;
+			hawk_oow_t len;
+			hawk_uint8_t v;
+			hawk_oow_t x;
+
+			str.ptr = hawk_rtx_getvaloocstr(rtx, a0, &str.len);
+			if (HAWK_UNLIKELY(!str.ptr)) return -1;
+
+			len = str.len >> 1;
+
+			retv = hawk_rtx_makembsvalwithbchars(rtx, HAWK_NULL, len + (str.len & 1));
+			for (i = 0, x = 0; i < len; i++, x++)
+			{
+				if (str.ptr[x] >= '0' && str.ptr[x] <= '9') v = str.ptr[x] - '0';
+				else if (str.ptr[x] >= 'a' && str.ptr[x] <= 'f') v = str.ptr[x] - 'a' + 10;
+				else if (str.ptr[x] >= 'A' && str.ptr[x] <= 'F') v = str.ptr[x] - 'A' + 10;
+				else v = 0;
+
+				x = x + 1;
+				v <<= 4;
+				if (str.ptr[x] >= '0' && str.ptr[x] <= '9') v += str.ptr[x] - '0';
+				else if (str.ptr[x] >= 'a' && str.ptr[x] <= 'f') v += str.ptr[x] - 'a' + 10;
+				else if (str.ptr[x] >= 'A' && str.ptr[x] <= 'F') v += str.ptr[x] - 'A' + 10;
+
+				((hawk_val_mbs_t*)retv)->val.ptr[i] = v;
+			}
+
+			if (str.len & 1)
+			{
+				/* trailing digit */
+				if (str.ptr[x] >= '0' && str.ptr[x] <= '9') v = str.ptr[x] - '0';
+				else if (str.ptr[x] >= 'a' && str.ptr[x] <= 'f') v = str.ptr[x] - 'a' + 10;
+				else if (str.ptr[x] >= 'A' && str.ptr[x] <= 'F') v = str.ptr[x] - 'A' + 10;
+				else v = 0;
+				((hawk_val_mbs_t*)retv)->val.ptr[i] = v;
+			}
+
+			hawk_rtx_freevaloocstr(rtx, a0, str.ptr);
+			break;
+		}
+	}
+
+	if (HAWK_UNLIKELY(!retv)) return -1;
+	hawk_rtx_setretval (rtx, retv);
+	return 0;
+}
+
+static int fnc_tohex (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+{
+	hawk_val_t* retv;
+	hawk_val_t* a0;
+	hawk_bcs_t str;
+	hawk_oow_t i;
+
+	a0 = hawk_rtx_getarg(rtx, 0);
+
+	/* if the argument is not a multi-byte string, the conversion
+	 * will be performed in the default encoding (utf-8). if you
+	 * want a different encoding, call str::tombs() first.
+	 * - str::tohex(@b"xyz")
+	 * - str::tohex("🤩")
+	 * - str::tohex(str::tombs("🤩"))
+	 * - str::tohex(str::tombs("🤩", "utf8")) */
+	str.ptr = hawk_rtx_getvalbcstr(rtx, a0, &str.len);
+	if (HAWK_UNLIKELY(!str.ptr)) return -1;
+
+	retv = hawk_rtx_makembsvalwithbchars(rtx, HAWK_NULL, str.len * 2);
+	for (i = 0; i < str.len; i++)
+	{
+		hawk_fmt_uintmax_to_bcstr(
+			&((hawk_val_mbs_t*)retv)->val.ptr[i * 2], 2,
+			(hawk_uint8_t)str.ptr[i], 16 | HAWK_FMT_UINTMAX_NONULL,
+			2, '0', HAWK_NULL);
+	}
+
+	hawk_rtx_freevalbcstr(rtx, a0, str.ptr);
+
+	if (HAWK_UNLIKELY(!retv)) return -1;
+	hawk_rtx_setretval (rtx, retv);
 	return 0;
 }
 
@@ -693,7 +833,7 @@ static int fnc_subchar (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	hawk_oow_t nargs;
 	hawk_val_t* a0, * a1, * r;
-	hawk_int_t lindex, lcount;
+	hawk_int_t lindex;
 	int n;
 
 	nargs = hawk_rtx_getnargs(rtx);
@@ -760,6 +900,7 @@ static hawk_mod_fnc_tab_t fnctab[] =
 	/* keep this table sorted for binary search in query(). */
 	{ HAWK_T("frombcharcode"), { { 0, A_MAX, HAWK_NULL },  fnc_frombcharcode,     0 } },
 	{ HAWK_T("fromcharcode"),  { { 0, A_MAX, HAWK_NULL },  fnc_fromcharcode,      0 } },
+	{ HAWK_T("fromhex"),       { { 1, 1, HAWK_NULL },      fnc_fromhex,           0 } },
 	{ HAWK_T("frommbs"),       { { 1, 2, HAWK_NULL },      fnc_frommbs,           0 } },
 	{ HAWK_T("gensub"),        { { 3, 4, HAWK_T("xvvv")},  hawk_fnc_gensub,       0 } },
 	{ HAWK_T("gsub"),          { { 2, 3, HAWK_T("xvr")},   hawk_fnc_gsub,         0 } },
@@ -789,6 +930,7 @@ static hawk_mod_fnc_tab_t fnctab[] =
 	{ HAWK_T("subchar"),       { { 2, 2, HAWK_NULL },      fnc_subchar,           0 } },
 	{ HAWK_T("substr"),        { { 2, 3, HAWK_NULL },      hawk_fnc_substr,       0 } },
 	{ HAWK_T("tocharcode"),    { { 1, 2, HAWK_NULL },      fnc_tocharcode,        0 } },
+	{ HAWK_T("tohex"),         { { 1, 1, HAWK_NULL },      fnc_tohex,             0 } },
 	{ HAWK_T("tolower"),       { { 1, 1, HAWK_NULL },      hawk_fnc_tolower,      0 } },
 	{ HAWK_T("tombs"),         { { 1, 2, HAWK_NULL },      fnc_tombs,             0 } },
 	{ HAWK_T("tonum"),         { { 1, 2, HAWK_NULL },      fnc_tonum,             0 } },

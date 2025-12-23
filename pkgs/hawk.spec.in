@@ -140,9 +140,9 @@ CFLAGS="${RPM_OPT_FLAGS} -fPIC" CXXFLAGS="${RPM_OPT_FLAGS} -fPIC" ./configure  \
 	--enable-mod-ffi=no \
 %endif
 %if %{enable_mod_memc}
-	--enable-mod-memcached=yes \
+	--enable-mod-memc=yes \
 %else
-	--enable-mod-memcached=no \
+	--enable-mod-memc=no \
 %endif
 %if %{enable_mod_mysql}
 	--with-mysql=yes \

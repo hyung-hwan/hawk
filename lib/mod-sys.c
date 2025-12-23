@@ -5498,7 +5498,6 @@ static hawk_intptr_t unpack_intptr (const hawk_uint8_t* binp, int endian)
 	return (v <= HAWK_TYPE_MAX(hawk_intptr_t))? (hawk_intptr_t)v: ((hawk_intptr_t)-1 - (hawk_intptr_t)(HAWK_TYPE_MAX(hawk_uintptr_t) - v));
 }
 
-
 static hawk_int_t unpack_data (hawk_rtx_t* rtx, const hawk_bcs_t* bin, const hawk_oocs_t* fmt, const hawk_fnc_info_t* fi, rtx_data_t* rdp)
 {
 	const hawk_ooch_t* fmtp, * fmte;
@@ -5507,7 +5506,6 @@ static hawk_int_t unpack_data (hawk_rtx_t* rtx, const hawk_bcs_t* bin, const haw
 	hawk_oow_t arg_idx, arg_cnt;
 	int endian = ENDIAN_NATIVE;
 	hawk_val_t* v;
-
 
 #define UNPACK_CHECK_ARG_AND_DATA(reqarg, reqsz) do { \
 	if (arg_cnt - arg_idx < reqarg) return set_error_on_sys_list(rtx, &rdp->sys_list, HAWK_EARGTF, HAWK_NULL); \
@@ -5544,10 +5542,9 @@ static hawk_int_t unpack_data (hawk_rtx_t* rtx, const hawk_bcs_t* bin, const haw
 				binp += rep_cnt;
 				break;
 
-
 			case 'b':
 			{
-				UNPACK_CHECK_ARG_AND_DATA (rep_cnt, rep_cnt * HAWK_SIZEOF(hawk_int8_t));
+				UNPACK_CHECK_ARG_AND_DATA(rep_cnt, rep_cnt * HAWK_SIZEOF(hawk_int8_t));
 				for (rc = 0; rc < rep_cnt; rc++)
 				{
 					v = hawk_rtx_makeintval(rtx, (hawk_int8_t)*binp++);
@@ -5559,7 +5556,7 @@ static hawk_int_t unpack_data (hawk_rtx_t* rtx, const hawk_bcs_t* bin, const haw
 
 			case 'B':
 			{
-				UNPACK_CHECK_ARG_AND_DATA (rep_cnt, rep_cnt * HAWK_SIZEOF(hawk_int8_t));
+				UNPACK_CHECK_ARG_AND_DATA(rep_cnt, rep_cnt * HAWK_SIZEOF(hawk_int8_t));
 				for (rc = 0; rc < rep_cnt; rc++)
 				{
 					v = hawk_rtx_makeintval(rtx, *binp++);
@@ -5571,7 +5568,7 @@ static hawk_int_t unpack_data (hawk_rtx_t* rtx, const hawk_bcs_t* bin, const haw
 
 			case 'h':
 			{
-				UNPACK_CHECK_ARG_AND_DATA (rep_cnt, rep_cnt * HAWK_SIZEOF(hawk_int16_t));
+				UNPACK_CHECK_ARG_AND_DATA(rep_cnt, rep_cnt * HAWK_SIZEOF(hawk_int16_t));
 				for (rc = 0; rc < rep_cnt; rc++)
 				{
 					v = hawk_rtx_makeintval(rtx, unpack_int16(binp, endian));
@@ -5584,7 +5581,7 @@ static hawk_int_t unpack_data (hawk_rtx_t* rtx, const hawk_bcs_t* bin, const haw
 
 			case 'H':
 			{
-				UNPACK_CHECK_ARG_AND_DATA (rep_cnt, rep_cnt * HAWK_SIZEOF(hawk_uint16_t));
+				UNPACK_CHECK_ARG_AND_DATA(rep_cnt, rep_cnt * HAWK_SIZEOF(hawk_uint16_t));
 				for (rc = 0; rc < rep_cnt; rc++)
 				{
 					v = hawk_rtx_makeintval(rtx, unpack_uint16(binp, endian));
@@ -5597,7 +5594,7 @@ static hawk_int_t unpack_data (hawk_rtx_t* rtx, const hawk_bcs_t* bin, const haw
 
 			case 'i':
 			{
-				UNPACK_CHECK_ARG_AND_DATA (rep_cnt, rep_cnt * HAWK_SIZEOF(hawk_int32_t));
+				UNPACK_CHECK_ARG_AND_DATA(rep_cnt, rep_cnt * HAWK_SIZEOF(hawk_int32_t));
 				for (rc = 0; rc < rep_cnt; rc++)
 				{
 					v = hawk_rtx_makeintval(rtx, unpack_int32(binp, endian));
@@ -5610,7 +5607,7 @@ static hawk_int_t unpack_data (hawk_rtx_t* rtx, const hawk_bcs_t* bin, const haw
 
 			case 'I':
 			{
-				UNPACK_CHECK_ARG_AND_DATA (rep_cnt, rep_cnt * HAWK_SIZEOF(hawk_uint32_t));
+				UNPACK_CHECK_ARG_AND_DATA(rep_cnt, rep_cnt * HAWK_SIZEOF(hawk_uint32_t));
 				for (rc = 0; rc < rep_cnt; rc++)
 				{
 					v = hawk_rtx_makeintval(rtx, unpack_uint32(binp, endian));
@@ -5623,7 +5620,7 @@ static hawk_int_t unpack_data (hawk_rtx_t* rtx, const hawk_bcs_t* bin, const haw
 
 			case 'l':
 			{
-				UNPACK_CHECK_ARG_AND_DATA (rep_cnt, rep_cnt * HAWK_SIZEOF(hawk_int64_t));
+				UNPACK_CHECK_ARG_AND_DATA(rep_cnt, rep_cnt * HAWK_SIZEOF(hawk_int64_t));
 				for (rc = 0; rc < rep_cnt; rc++)
 				{
 					v = hawk_rtx_makeintval(rtx, unpack_int64(binp, endian));
@@ -5636,7 +5633,7 @@ static hawk_int_t unpack_data (hawk_rtx_t* rtx, const hawk_bcs_t* bin, const haw
 
 			case 'L':
 			{
-				UNPACK_CHECK_ARG_AND_DATA (rep_cnt, rep_cnt * HAWK_SIZEOF(hawk_uint64_t));
+				UNPACK_CHECK_ARG_AND_DATA(rep_cnt, rep_cnt * HAWK_SIZEOF(hawk_uint64_t));
 				for (rc = 0; rc < rep_cnt; rc++)
 				{
 					v = hawk_rtx_makeintval(rtx, unpack_uint64(binp, endian));
@@ -5649,7 +5646,7 @@ static hawk_int_t unpack_data (hawk_rtx_t* rtx, const hawk_bcs_t* bin, const haw
 
 			case 'q':
 			{
-				UNPACK_CHECK_ARG_AND_DATA (rep_cnt, rep_cnt * HAWK_SIZEOF(hawk_intmax_t));
+				UNPACK_CHECK_ARG_AND_DATA(rep_cnt, rep_cnt * HAWK_SIZEOF(hawk_intmax_t));
 				for (rc = 0; rc < rep_cnt; rc++)
 				{
 					v = hawk_rtx_makeintval(rtx, unpack_intmax(binp, endian));
@@ -5662,7 +5659,7 @@ static hawk_int_t unpack_data (hawk_rtx_t* rtx, const hawk_bcs_t* bin, const haw
 
 			case 'Q':
 			{
-				UNPACK_CHECK_ARG_AND_DATA (rep_cnt, rep_cnt * HAWK_SIZEOF(hawk_uintmax_t));
+				UNPACK_CHECK_ARG_AND_DATA(rep_cnt, rep_cnt * HAWK_SIZEOF(hawk_uintmax_t));
 				for (rc = 0; rc < rep_cnt; rc++)
 				{
 					v = hawk_rtx_makeintval(rtx, unpack_uintmax(binp, endian));
@@ -5675,7 +5672,7 @@ static hawk_int_t unpack_data (hawk_rtx_t* rtx, const hawk_bcs_t* bin, const haw
 
 			case 'n':
 			{
-				UNPACK_CHECK_ARG_AND_DATA (rep_cnt, rep_cnt * HAWK_SIZEOF(hawk_intptr_t));
+				UNPACK_CHECK_ARG_AND_DATA(rep_cnt, rep_cnt * HAWK_SIZEOF(hawk_intptr_t));
 				for (rc = 0; rc < rep_cnt; rc++)
 				{
 					v = hawk_rtx_makeintval(rtx, unpack_intptr(binp, endian));
@@ -5688,7 +5685,7 @@ static hawk_int_t unpack_data (hawk_rtx_t* rtx, const hawk_bcs_t* bin, const haw
 
 			case 'N':
 			{
-				UNPACK_CHECK_ARG_AND_DATA (rep_cnt, rep_cnt * HAWK_SIZEOF(hawk_uintptr_t));
+				UNPACK_CHECK_ARG_AND_DATA(rep_cnt, rep_cnt * HAWK_SIZEOF(hawk_uintptr_t));
 				for (rc = 0; rc < rep_cnt; rc++)
 				{
 					v = hawk_rtx_makeintval(rtx, unpack_uintptr(binp, endian));
@@ -5703,7 +5700,7 @@ static hawk_int_t unpack_data (hawk_rtx_t* rtx, const hawk_bcs_t* bin, const haw
 			{
 				hawk_uint32_t x;
 				float y;
-				UNPACK_CHECK_ARG_AND_DATA (rep_cnt, rep_cnt * HAWK_SIZEOF(hawk_uint32_t));
+				UNPACK_CHECK_ARG_AND_DATA(rep_cnt, rep_cnt * HAWK_SIZEOF(hawk_uint32_t));
 				for (rc = 0; rc < rep_cnt; rc++)
 				{
 					x = unpack_uint32(binp, endian);
@@ -5720,7 +5717,7 @@ static hawk_int_t unpack_data (hawk_rtx_t* rtx, const hawk_bcs_t* bin, const haw
 			{
 				hawk_uint64_t x;
 				double y;
-				UNPACK_CHECK_ARG_AND_DATA (rep_cnt, rep_cnt * HAWK_SIZEOF(hawk_uint64_t));
+				UNPACK_CHECK_ARG_AND_DATA(rep_cnt, rep_cnt * HAWK_SIZEOF(hawk_uint64_t));
 				for (rc = 0; rc < rep_cnt; rc++)
 				{
 					x = unpack_uint64(binp, endian);
@@ -5735,7 +5732,7 @@ static hawk_int_t unpack_data (hawk_rtx_t* rtx, const hawk_bcs_t* bin, const haw
 
 			case 'c':
 			{
-				UNPACK_CHECK_ARG_AND_DATA (rep_cnt, rep_cnt * HAWK_SIZEOF(hawk_uint8_t));
+				UNPACK_CHECK_ARG_AND_DATA(rep_cnt, rep_cnt * HAWK_SIZEOF(hawk_uint8_t));
 				for (rc = 0; rc < rep_cnt; rc++)
 				{
 					v = hawk_rtx_makebchrval(rtx, *binp++);
@@ -5748,7 +5745,7 @@ static hawk_int_t unpack_data (hawk_rtx_t* rtx, const hawk_bcs_t* bin, const haw
 			case 's':
 			case 'p':
 			{
-				UNPACK_CHECK_ARG_AND_DATA (1, rep_cnt);
+				UNPACK_CHECK_ARG_AND_DATA(1, rep_cnt);
 				v = hawk_rtx_makembsvalwithbchars(rtx, (const hawk_bch_t*)binp, rep_cnt);
 				binp += rep_cnt;
 				if (HAWK_UNLIKELY(!v)) goto oops_internal;

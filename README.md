@@ -1004,6 +1004,7 @@ Hawk supports various modules.
 The `str` module provides an extensive set of string manipulation functions.
 
 - str::fromcharcode
+- str::fromhex
 - str::gsub - equivalent to gsub
 - str::index
 - str::isalnum
@@ -1029,6 +1030,7 @@ The `str` module provides an extensive set of string manipulation functions.
 - str::sub - equivalent to sub
 - str::substr - equivalent to substr
 - str::tocharcode - get the numeric value of the first character
+- str::tohex
 - str::tolower - equivalent to tolower
 - str::tonum - convert a string to a number. a numeric value passed as a parameter is returned as it is. the leading prefix of 0b, 0, and 0x specifies the radix of 2, 8, 16 respectively. conversion stops when the end of the string is reached or the first invalid character for conversion is encountered.
 - str::toupper - equivalent to toupper
@@ -1039,9 +1041,11 @@ The `str` module provides an extensive set of string manipulation functions.
 
 The `sys` module provides various functions concerning the underlying operation system.
 
+- sys::basename
 - sys::chmod
 - sys::close
 - sys::closedir
+- sys::dirname
 - sys::dup
 - sys::errmsg
 - sys::fork
@@ -1077,8 +1081,10 @@ You may read the file in raw bytes.
 ```awk
 BEGIN {
 	f = sys::open("/etc/sysctl.conf", sys::O_RDONLY);
-	while (sys::read(f, x, 10) > 0) printf (B"%s", x);
-	sys::close (f);
+	if (f >= 0) {
+		while (sys::read(f, x, 10) > 0) printf (B"%s", x);
+		sys::close(f);
+	}
 }
 ```
 
@@ -1087,9 +1093,9 @@ You can map a raw file descriptor to a handle created by this module and use it.
 ```awk
 BEGIN {
 	a = sys::openfd(1);
-	sys::write (a, B"let me write something here\n");
-	sys::close (a, sys::C_KEEPFD); ## set C_KEEPFD to release 1 without closing it.
-	##sys::close (a);
+	sys::write(a, B"let me write something here\n");
+	sys::close(a, sys::C_KEEPFD); ## set C_KEEPFD to release 1 without closing it.
+	##sys::close(a);
 	print "done\n";
 }
 ```
