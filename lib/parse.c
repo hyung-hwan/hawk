@@ -8015,6 +8015,10 @@ int hawk_putsrcoochars (hawk_t* hawk, const hawk_ooch_t* str, hawk_oow_t len)
 #include "../mod/mod-sed.h"
 #endif
 
+#if defined(HAWK_ENABLE_MOD_SQLITE_STATIC)
+#include "../mod/mod-sqlite.h"
+#endif
+
 #if defined(HAWK_ENABLE_MOD_UCI_STATIC)
 #include "../mod/mod-uci.h"
 #endif
@@ -8040,6 +8044,9 @@ static hawk_mod_desc_t static_modtab[] =
 #endif
 #if defined(HAWK_ENABLE_MOD_SED_STATIC)
 	{ HAWK_T("sed"),    hawk_mod_sed },
+#endif
+#if defined(HAWK_ENABLE_MOD_SQLITE_STATIC)
+	{ HAWK_T("sqlite"), hawk_mod_sqlite },
 #endif
 	{ HAWK_T("str"),    hawk_mod_str },
 	{ HAWK_T("sys"),    hawk_mod_sys },

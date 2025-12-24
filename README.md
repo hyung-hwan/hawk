@@ -1294,7 +1294,7 @@ BEGIN {
 
 	if (mysql::connect(mysql, "localhost", "username", "password", "mysql") <= -1)
 	{
-			print "connect error -", mysql::errmsg();
+		print "connect error -", mysql::errmsg();
 	}
 
 	if (mysql::query(mysql, "select * from user") <= -1)
@@ -1318,6 +1318,71 @@ BEGIN {
 	mysql::free_result(result);
 
 	mysql::close(mysql);
+}
+```
+
+### sqlite
+Assuming `/tmp/test.db` with the following schema,
+
+```
+sqlite> .schema
+CREATE TABLE a(x int, y int);
+```
+
+You can retreive all rows as shown below:
+```
+@pragma entry main
+@pragma implicit off
+
+function main() {
+	@local db, stmt, row, i, sql;
+
+	db = sqlite::open();
+	if (db <= -1) {
+		print "open error -", sqlite::errmsg();
+		return;
+	}
+
+	if (sqlite::connect(db, "/tmp/test.db", sqlite::CONNECT_READWRITE) <= -1) {
+		print "connect error -", sqlite::errmsg();
+		sqlite::close(db);
+		return;
+	}
+
+	sqlite::exec(db, "begin transaction");
+	sqlite::exec(db, "delete from a");
+	for (i = 0; i < 10; i++) {
+		sql=sprintf("insert into a(x,y) values(%d,%d)", math::rand() * 100, math::rand() * 100);
+		print sql;
+		if (sqlite::exec(db, sql) <= -1) {
+			print "exec error -", sqlite::errmsg();
+			sqlite::exec(db, "rollback");
+			sqlite::close(db);
+			return;
+		}
+	}
+	sqlite::exec(db, "commit");
+
+	stmt = sqlite::prepare(db, "select x,y from a where x>?");
+	if (stmt <= -1) {
+		print "prepare error -", sqlite::errmsg();
+		sqlite::close(db);
+		return;
+	}
+
+	if (sqlite::bind(stmt, 1, 10) <= -1) {
+		print "bind error -", sqlite::errmsg();
+		sqlite::finalize(stmt);
+		sqlite::close(db);
+		return;
+	}
+
+	while (sqlite::fetch_row(stmt, row, sqlite::FETCH_ROW_ARRAY) > 0) {
+		print "[id]", row[1], "[name]", row[2];
+	}
+
+	sqlite::finalize(stmt);
+	sqlite::close(db);
 }
 ```
 

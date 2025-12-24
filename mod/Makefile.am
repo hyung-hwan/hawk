@@ -65,6 +65,17 @@ libhawk_sed_la_LIBADD = $(LIBADD_COMMON_DYNAMIC)
 endif
 endif
 
+if ENABLE_MOD_SQLITE
+if !ENABLE_MOD_SQLITE_STATIC
+pkgmodexec_LTLIBRARIES += libhawk-sqlite.la
+libhawk_sqlite_la_SOURCES = mod-sqlite.c mod-sqlite.h
+libhawk_sqlite_la_CPPFLAGS = $(CPPFLAGS_COMMON)
+libhawk_sqlite_la_CFLAGS = $(CFLAGS_COMMON)
+libhawk_sqlite_la_LDFLAGS = $(LDFLAGS_COMMON_DYNAMIC)
+libhawk_sqlite_la_LIBADD = $(LIBADD_COMMON_DYNAMIC) $(SQLITE_LIBS)
+endif
+endif
+
 if ENABLE_MOD_UCI
 if !ENABLE_MOD_UCI_STATIC
 pkgmodexec_LTLIBRARIES += libhawk-uci.la

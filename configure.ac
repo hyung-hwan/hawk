@@ -262,7 +262,7 @@ AC_CHECK_HEADERS([netinet/in.h sys/un.h netpacket/packet.h net/if.h net/if_dl.h 
 	#include <sys/types.h>
 	#include <sys/socket.h>])
 AC_CHECK_HEADERS([sys/stropts.h sys/macstat.h linux/ethtool.h linux/sockios.h])
-AC_CHECK_HEADERS([ffi.h libunwind.h quadmath.h crt_externs.h uci.h libmemcached/memcached.h])
+AC_CHECK_HEADERS([ffi.h libunwind.h quadmath.h crt_externs.h])
 
 dnl check data types
 dnl AC_CHECK_TYPE([wchar_t], 
@@ -388,17 +388,20 @@ AC_CHECK_LIB([rt], [clock_gettime], [LIBS="$LIBS -lrt"])
 
 
 dnl libuci (optional)
+AC_CHECK_HEADER([uci.h])
 AC_CHECK_LIB([uci], [uci_alloc_context], [UCI_LIBS="-luci"])
 AC_SUBST(UCI_LIBS)
 AM_CONDITIONAL(HAVE_LIBUCI, test "x${ac_cv_lib_uci_uci_alloc_context}" = "xyes" -a "x${ac_cv_header_uci_h}" = "xyes")
 
 dnl libmemcachd (optional)
-AC_CHECK_LIB([memcached], [memcached],
-	[
-		MEMCACHED_LIBS="-lmemcached"
-		AC_DEFINE([HAVE_MEMCACHED_LIB], [1], [libmemcached library is available])
-	])
+AC_CHECK_HEADERS([libmemcached/memcached.h])
+AC_CHECK_LIB([memcached], [memcached], [MEMCACHED_LIBS="-lmemcached"])
 AC_SUBST(MEMCACHED_LIBS)
+
+dnl libsqlite3 (optional)
+AC_CHECK_HEADER([sqlite3.h])
+AC_CHECK_LIB([sqlite3], [sqlite3_open], [SQLITE_LIBS="-lsqlite3"])
+AC_SUBST(SQLITE_LIBS)
 
 AC_MSG_CHECKING([for va_copy])
 AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <stdarg.h>]], [[
@@ -991,6 +994,10 @@ fi
 
 HAWK_MOD([sed],[yes:static],[true])
 
+HAWK_MOD([sqlite],[auto],[
+	test "x${ac_cv_header_sqlite3_h}" = "xyes" -a "x${ac_cv_lib_sqlite3_sqlite3_open}" = "xyes"
+])
+
 HAWK_MOD([uci],[auto],[
 	test "x${ac_cv_header_uci_h}" = "xyes" -a "x${ac_cv_lib_uci_uci_alloc_context}" = "xyes"
 ])
@@ -1057,5 +1064,6 @@ echo "  Socket library: ${SOCKET_LIBS}"
 echo "  Native function call library: ${FFI_LIBS}"
 echo "  Thraed library: ${PTHREAD_LIBS}"
 echo "  Memcached library: ${MEMCACHED_LIBS}"
+echo "  SQLite library: ${SQLITE_LIBS}"
 echo "-------------------------------------------------------------------------"
 ]

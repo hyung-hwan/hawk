@@ -98,7 +98,8 @@ host_triplet = @host@
 @ENABLE_MOD_MEMC_STATIC_FALSE@@ENABLE_MOD_MEMC_TRUE@am__append_2 = libhawk-memc.la
 @ENABLE_MOD_MYSQL_STATIC_FALSE@@ENABLE_MOD_MYSQL_TRUE@am__append_3 = libhawk-mysql.la
 @ENABLE_MOD_SED_STATIC_FALSE@@ENABLE_MOD_SED_TRUE@am__append_4 = libhawk-sed.la
-@ENABLE_MOD_UCI_STATIC_FALSE@@ENABLE_MOD_UCI_TRUE@am__append_5 = libhawk-uci.la
+@ENABLE_MOD_SQLITE_STATIC_FALSE@@ENABLE_MOD_SQLITE_TRUE@am__append_5 = libhawk-sqlite.la
+@ENABLE_MOD_UCI_STATIC_FALSE@@ENABLE_MOD_UCI_TRUE@am__append_6 = libhawk-uci.la
 subdir = mod
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/ax_check_sign.m4 \
@@ -197,6 +198,17 @@ libhawk_sed_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 @ENABLE_MOD_SED_STATIC_FALSE@@ENABLE_MOD_SED_TRUE@am_libhawk_sed_la_rpath =  \
 @ENABLE_MOD_SED_STATIC_FALSE@@ENABLE_MOD_SED_TRUE@	-rpath \
 @ENABLE_MOD_SED_STATIC_FALSE@@ENABLE_MOD_SED_TRUE@	$(pkgmodexecdir)
+@ENABLE_MOD_SQLITE_STATIC_FALSE@@ENABLE_MOD_SQLITE_TRUE@libhawk_sqlite_la_DEPENDENCIES = $(am__DEPENDENCIES_1) \
+@ENABLE_MOD_SQLITE_STATIC_FALSE@@ENABLE_MOD_SQLITE_TRUE@	$(am__DEPENDENCIES_1)
+am__libhawk_sqlite_la_SOURCES_DIST = mod-sqlite.c mod-sqlite.h
+@ENABLE_MOD_SQLITE_STATIC_FALSE@@ENABLE_MOD_SQLITE_TRUE@am_libhawk_sqlite_la_OBJECTS = libhawk_sqlite_la-mod-sqlite.lo
+libhawk_sqlite_la_OBJECTS = $(am_libhawk_sqlite_la_OBJECTS)
+libhawk_sqlite_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
+	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
+	$(libhawk_sqlite_la_CFLAGS) $(CFLAGS) \
+	$(libhawk_sqlite_la_LDFLAGS) $(LDFLAGS) -o $@
+@ENABLE_MOD_SQLITE_STATIC_FALSE@@ENABLE_MOD_SQLITE_TRUE@am_libhawk_sqlite_la_rpath = -rpath \
+@ENABLE_MOD_SQLITE_STATIC_FALSE@@ENABLE_MOD_SQLITE_TRUE@	$(pkgmodexecdir)
 @ENABLE_MOD_UCI_STATIC_FALSE@@ENABLE_MOD_UCI_TRUE@libhawk_uci_la_DEPENDENCIES = $(am__DEPENDENCIES_1) \
 @ENABLE_MOD_UCI_STATIC_FALSE@@ENABLE_MOD_UCI_TRUE@	$(am__DEPENDENCIES_1)
 am__libhawk_uci_la_SOURCES_DIST = mod-uci.c mod-uci.h
@@ -228,6 +240,7 @@ am__depfiles_remade = ./$(DEPDIR)/libhawk_ffi_la-mod-ffi.Plo \
 	./$(DEPDIR)/libhawk_memc_la-mod-memc.Plo \
 	./$(DEPDIR)/libhawk_mysql_la-mod-mysql.Plo \
 	./$(DEPDIR)/libhawk_sed_la-mod-sed.Plo \
+	./$(DEPDIR)/libhawk_sqlite_la-mod-sqlite.Plo \
 	./$(DEPDIR)/libhawk_uci_la-mod-uci.Plo
 am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
@@ -250,11 +263,12 @@ am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 = 
 SOURCES = $(libhawk_ffi_la_SOURCES) $(libhawk_memc_la_SOURCES) \
 	$(libhawk_mysql_la_SOURCES) $(libhawk_sed_la_SOURCES) \
-	$(libhawk_uci_la_SOURCES)
+	$(libhawk_sqlite_la_SOURCES) $(libhawk_uci_la_SOURCES)
 DIST_SOURCES = $(am__libhawk_ffi_la_SOURCES_DIST) \
 	$(am__libhawk_memc_la_SOURCES_DIST) \
 	$(am__libhawk_mysql_la_SOURCES_DIST) \
 	$(am__libhawk_sed_la_SOURCES_DIST) \
+	$(am__libhawk_sqlite_la_SOURCES_DIST) \
 	$(am__libhawk_uci_la_SOURCES_DIST)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
@@ -374,6 +388,7 @@ SED = @SED@
 SET_MAKE = @SET_MAKE@
 SHELL = @SHELL@
 SOCKET_LIBS = @SOCKET_LIBS@
+SQLITE_LIBS = @SQLITE_LIBS@
 STRIP = @STRIP@
 UCI_LIBS = @UCI_LIBS@
 UNICOWS_LIBS = @UNICOWS_LIBS@
@@ -451,7 +466,8 @@ LDFLAGS_COMMON_DYNAMIC = -L../lib -L$(libdir) -version-info 1:0:0 ## -no-undefin
 LIBADD_COMMON_DYNAMIC = -lhawk
 pkgmodexecdir = $(libdir)
 pkgmodexec_LTLIBRARIES = $(am__append_1) $(am__append_2) \
-	$(am__append_3) $(am__append_4) $(am__append_5)
+	$(am__append_3) $(am__append_4) $(am__append_5) \
+	$(am__append_6)
 @ENABLE_MOD_FFI_STATIC_FALSE@@ENABLE_MOD_FFI_TRUE@libhawk_ffi_la_SOURCES = mod-ffi.c mod-ffi.h
 @ENABLE_MOD_FFI_STATIC_FALSE@@ENABLE_MOD_FFI_TRUE@libhawk_ffi_la_CPPFLAGS = $(CPPFLAGS_COMMON)
 @ENABLE_MOD_FFI_STATIC_FALSE@@ENABLE_MOD_FFI_TRUE@libhawk_ffi_la_CFLAGS = $(CFLAGS_COMMON) 
@@ -472,6 +488,11 @@ pkgmodexec_LTLIBRARIES = $(am__append_1) $(am__append_2) \
 @ENABLE_MOD_SED_STATIC_FALSE@@ENABLE_MOD_SED_TRUE@libhawk_sed_la_CFLAGS = $(CFLAGS_COMMON) 
 @ENABLE_MOD_SED_STATIC_FALSE@@ENABLE_MOD_SED_TRUE@libhawk_sed_la_LDFLAGS = $(LDFLAGS_COMMON_DYNAMIC)
 @ENABLE_MOD_SED_STATIC_FALSE@@ENABLE_MOD_SED_TRUE@libhawk_sed_la_LIBADD = $(LIBADD_COMMON_DYNAMIC)
+@ENABLE_MOD_SQLITE_STATIC_FALSE@@ENABLE_MOD_SQLITE_TRUE@libhawk_sqlite_la_SOURCES = mod-sqlite.c mod-sqlite.h
+@ENABLE_MOD_SQLITE_STATIC_FALSE@@ENABLE_MOD_SQLITE_TRUE@libhawk_sqlite_la_CPPFLAGS = $(CPPFLAGS_COMMON)
+@ENABLE_MOD_SQLITE_STATIC_FALSE@@ENABLE_MOD_SQLITE_TRUE@libhawk_sqlite_la_CFLAGS = $(CFLAGS_COMMON)
+@ENABLE_MOD_SQLITE_STATIC_FALSE@@ENABLE_MOD_SQLITE_TRUE@libhawk_sqlite_la_LDFLAGS = $(LDFLAGS_COMMON_DYNAMIC)
+@ENABLE_MOD_SQLITE_STATIC_FALSE@@ENABLE_MOD_SQLITE_TRUE@libhawk_sqlite_la_LIBADD = $(LIBADD_COMMON_DYNAMIC) $(SQLITE_LIBS)
 @ENABLE_MOD_UCI_STATIC_FALSE@@ENABLE_MOD_UCI_TRUE@libhawk_uci_la_SOURCES = mod-uci.c mod-uci.h
 @ENABLE_MOD_UCI_STATIC_FALSE@@ENABLE_MOD_UCI_TRUE@libhawk_uci_la_CPPFLAGS = $(CPPFLAGS_COMMON)
 @ENABLE_MOD_UCI_STATIC_FALSE@@ENABLE_MOD_UCI_TRUE@libhawk_uci_la_CFLAGS = $(CFLAGS_COMMON) 
@@ -556,6 +577,9 @@ libhawk-mysql.la: $(libhawk_mysql_la_OBJECTS) $(libhawk_mysql_la_DEPENDENCIES) $
 libhawk-sed.la: $(libhawk_sed_la_OBJECTS) $(libhawk_sed_la_DEPENDENCIES) $(EXTRA_libhawk_sed_la_DEPENDENCIES) 
 	$(AM_V_CCLD)$(libhawk_sed_la_LINK) $(am_libhawk_sed_la_rpath) $(libhawk_sed_la_OBJECTS) $(libhawk_sed_la_LIBADD) $(LIBS)
 
+libhawk-sqlite.la: $(libhawk_sqlite_la_OBJECTS) $(libhawk_sqlite_la_DEPENDENCIES) $(EXTRA_libhawk_sqlite_la_DEPENDENCIES) 
+	$(AM_V_CCLD)$(libhawk_sqlite_la_LINK) $(am_libhawk_sqlite_la_rpath) $(libhawk_sqlite_la_OBJECTS) $(libhawk_sqlite_la_LIBADD) $(LIBS)
+
 libhawk-uci.la: $(libhawk_uci_la_OBJECTS) $(libhawk_uci_la_DEPENDENCIES) $(EXTRA_libhawk_uci_la_DEPENDENCIES) 
 	$(AM_V_CCLD)$(libhawk_uci_la_LINK) $(am_libhawk_uci_la_rpath) $(libhawk_uci_la_OBJECTS) $(libhawk_uci_la_LIBADD) $(LIBS)
 
@@ -569,6 +593,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libhawk_memc_la-mod-memc.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libhawk_mysql_la-mod-mysql.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libhawk_sed_la-mod-sed.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libhawk_sqlite_la-mod-sqlite.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libhawk_uci_la-mod-uci.Plo@am__quote@ # am--include-marker
 
 $(am__depfiles_remade):
@@ -628,6 +653,13 @@ libhawk_sed_la-mod-sed.lo: mod-sed.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='mod-sed.c' object='libhawk_sed_la-mod-sed.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_sed_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_sed_la_CFLAGS) $(CFLAGS) -c -o libhawk_sed_la-mod-sed.lo `test -f 'mod-sed.c' || echo '$(srcdir)/'`mod-sed.c
+
+libhawk_sqlite_la-mod-sqlite.lo: mod-sqlite.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_sqlite_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_sqlite_la_CFLAGS) $(CFLAGS) -MT libhawk_sqlite_la-mod-sqlite.lo -MD -MP -MF $(DEPDIR)/libhawk_sqlite_la-mod-sqlite.Tpo -c -o libhawk_sqlite_la-mod-sqlite.lo `test -f 'mod-sqlite.c' || echo '$(srcdir)/'`mod-sqlite.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libhawk_sqlite_la-mod-sqlite.Tpo $(DEPDIR)/libhawk_sqlite_la-mod-sqlite.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='mod-sqlite.c' object='libhawk_sqlite_la-mod-sqlite.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_sqlite_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_sqlite_la_CFLAGS) $(CFLAGS) -c -o libhawk_sqlite_la-mod-sqlite.lo `test -f 'mod-sqlite.c' || echo '$(srcdir)/'`mod-sqlite.c
 
 libhawk_uci_la-mod-uci.lo: mod-uci.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_uci_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_uci_la_CFLAGS) $(CFLAGS) -MT libhawk_uci_la-mod-uci.lo -MD -MP -MF $(DEPDIR)/libhawk_uci_la-mod-uci.Tpo -c -o libhawk_uci_la-mod-uci.lo `test -f 'mod-uci.c' || echo '$(srcdir)/'`mod-uci.c
@@ -774,6 +806,7 @@ distclean: distclean-am
 	-rm -f ./$(DEPDIR)/libhawk_memc_la-mod-memc.Plo
 	-rm -f ./$(DEPDIR)/libhawk_mysql_la-mod-mysql.Plo
 	-rm -f ./$(DEPDIR)/libhawk_sed_la-mod-sed.Plo
+	-rm -f ./$(DEPDIR)/libhawk_sqlite_la-mod-sqlite.Plo
 	-rm -f ./$(DEPDIR)/libhawk_uci_la-mod-uci.Plo
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
@@ -824,6 +857,7 @@ maintainer-clean: maintainer-clean-am
 	-rm -f ./$(DEPDIR)/libhawk_memc_la-mod-memc.Plo
 	-rm -f ./$(DEPDIR)/libhawk_mysql_la-mod-mysql.Plo
 	-rm -f ./$(DEPDIR)/libhawk_sed_la-mod-sed.Plo
+	-rm -f ./$(DEPDIR)/libhawk_sqlite_la-mod-sqlite.Plo
 	-rm -f ./$(DEPDIR)/libhawk_uci_la-mod-uci.Plo
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic

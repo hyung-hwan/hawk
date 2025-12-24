@@ -115,7 +115,7 @@ static sql_node_t* new_sql_node (hawk_rtx_t* rtx, sql_list_t* sql_list)
 	sql_node_t* sql_node;
 
 	sql_node = __new_sql_node(rtx, sql_list);
-	if (!sql_node) return HAWK_NULL;
+	if (HAWK_UNLIKELY(!sql_node)) return HAWK_NULL;
 
 	sql_node->mysql = mysql_init(HAWK_NULL);
 	if (!sql_node->mysql)
@@ -130,9 +130,9 @@ static sql_node_t* new_sql_node (hawk_rtx_t* rtx, sql_list_t* sql_list)
 
 static void free_sql_node (hawk_rtx_t* rtx, sql_list_t* sql_list, sql_node_t* sql_node)
 {
-	mysql_close (sql_node->mysql);
+	mysql_close(sql_node->mysql);
 	sql_node->mysql = HAWK_NULL;
-	__free_sql_node (rtx, sql_list, sql_node);
+	__free_sql_node(rtx, sql_list, sql_node);
 }
 
 static res_node_t* new_res_node (hawk_rtx_t* rtx, res_list_t* res_list, MYSQL_RES* res)
@@ -140,7 +140,7 @@ static res_node_t* new_res_node (hawk_rtx_t* rtx, res_list_t* res_list, MYSQL_RE
 	res_node_t* res_node;
 
 	res_node = __new_res_node(rtx, res_list);
-	if (!res_node) return HAWK_NULL;
+	if (HAWK_UNLIKELY(!res_node)) return HAWK_NULL;
 
 	res_node->res = res;
 	res_node->num_fields = mysql_num_fields(res);
@@ -398,7 +398,7 @@ static int fnc_open (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	/* ret may not be a statically managed number.
 	 * error checking is required */
 	retv = hawk_rtx_makeintval(rtx, ret);
-	if (retv == HAWK_NULL)
+	if (HAWK_UNLIKELY(!retv))
 	{
 		if (sql_node) free_sql_node(rtx, sql_list, sql_node);
 		return -1;
@@ -1080,6 +1080,9 @@ static int fnc_free_result (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	return 0;
 }
 
+#define FETCH_ROW_ARRAY (1)
+#define FETCH_ROW_MAP (2)
+
 static int fnc_fetch_row (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	sql_list_t* sql_list;
@@ -1087,16 +1090,20 @@ static int fnc_fetch_row (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	res_node_t* res_node;
 	int ret = -1, take_rtx_err = 0;
 	hawk_val_t* row_map = HAWK_NULL;
+	hawk_int_t mode = FETCH_ROW_MAP;
 
 	sql_list = rtx_to_sql_list(rtx, fi);
 	res_list = rtx_to_res_list(rtx, fi);
 	res_node = get_res_list_node_with_arg(rtx, sql_list, res_list, hawk_rtx_getarg(rtx, 0));
 	if (res_node)
 	{
+		hawk_oow_t nargs;
 		MYSQL_ROW row;
 		unsigned int i;
 		hawk_val_t* row_val, * tmp;
 		int x;
+
+		nargs = hawk_rtx_getnargs(rtx);
 
 		row = mysql_fetch_row(res_node->res);
 		if (!row)
@@ -1106,8 +1113,17 @@ static int fnc_fetch_row (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			goto done;
 		}
 
-		row_map = hawk_rtx_makemapval(rtx);
-		if (!row_map)
+		if (nargs >= 3)
+		{
+			if (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 2), &mode) <= -1)
+			{
+				set_error_on_sql_list(rtx, sql_list, HAWK_T("illegal mode"));
+				goto done;
+			}
+		}
+
+		row_map = (mode == FETCH_ROW_MAP? hawk_rtx_makemapval(rtx): hawk_rtx_makearrval(rtx, -1));
+		if (HAWK_UNLIKELY(!row_map))
 		{
 			take_rtx_err = 1;
 			goto done;
@@ -1117,14 +1133,11 @@ static int fnc_fetch_row (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 		for (i = 0; i < res_node->num_fields; )
 		{
-			hawk_ooch_t key_buf[HAWK_SIZEOF(hawk_int_t) * 8 + 2];
-			hawk_oow_t key_len;
-
 			if (row[i])
 			{
 /* TODO: consider using make multi byte string - hawk_rtx_makembsstr depending on user options or depending on column types */
 				row_val = hawk_rtx_makestrvalwithbcstr(rtx, row[i]);
-				if (!row_val)
+				if (HAWK_UNLIKELY(!row_val))
 				{
 					take_rtx_err = 1;
 					goto done;
@@ -1137,14 +1150,27 @@ static int fnc_fetch_row (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 			++i;
 
-			/* put it into the map */
-			key_len = hawk_int_to_oocstr(i, 10, HAWK_NULL, key_buf, HAWK_COUNTOF(key_buf)); /* TOOD: change this function to hawk_rtx_intxxxxx */
-			HAWK_ASSERT (key_len != (hawk_oow_t)-1);
+			if (mode == FETCH_ROW_MAP)
+			{
+				hawk_ooch_t key_buf[HAWK_SIZEOF(hawk_int_t) * 8 + 2];
+				hawk_oow_t key_len;
 
-			hawk_rtx_refupval(rtx, row_val);
-			tmp = hawk_rtx_setmapvalfld(rtx, row_map, key_buf, key_len, row_val);
-			hawk_rtx_refdownval(rtx, row_val);
-			if (!tmp)
+				/* put it into the map */
+				key_len = hawk_int_to_oocstr(i, 10, HAWK_NULL, key_buf, HAWK_COUNTOF(key_buf)); /* TOOD: change this function to hawk_rtx_intxxxxx */
+				HAWK_ASSERT (key_len != (hawk_oow_t)-1);
+
+				hawk_rtx_refupval(rtx, row_val);
+				tmp = hawk_rtx_setmapvalfld(rtx, row_map, key_buf, key_len, row_val);
+				hawk_rtx_refdownval(rtx, row_val);
+			}
+			else
+			{
+				hawk_rtx_refupval(rtx, row_val);
+				tmp = hawk_rtx_setarrvalfld(rtx, row_map, i, row_val);
+				hawk_rtx_refdownval(rtx, row_val);
+			}
+
+			if (HAWK_UNLIKELY(!tmp))
 			{
 				take_rtx_err = 1;
 				goto done;
@@ -1786,7 +1812,7 @@ static hawk_mod_fnc_tab_t fnctab[] =
 	{ HAWK_T("connect"),            { { 4, 7, HAWK_NULL },     fnc_connect,         0 } },
 	{ HAWK_T("errmsg"),             { { 0, 0, HAWK_NULL },     fnc_errmsg,          0 } },
 	{ HAWK_T("escape_string"),      { { 3, 3, HAWK_T("vvr") }, fnc_escape_string,   0 } },
-	{ HAWK_T("fetch_row"),          { { 2, 2, HAWK_T("vr") },  fnc_fetch_row,       0 } },
+	{ HAWK_T("fetch_row"),          { { 2, 3, HAWK_T("vrv") }, fnc_fetch_row,       0 } },
 	{ HAWK_T("free_result"),        { { 1, 1, HAWK_NULL },     fnc_free_result,     0 } },
 	/*{ HAWK_T("get_option"),        { { 3, 3, HAWK_T("vr") },  fnc_get_option,      0 } },*/
 	{ HAWK_T("insert_id"),          { { 2, 2, HAWK_T("vr") },  fnc_insert_id,       0 } },
@@ -1811,6 +1837,9 @@ static hawk_mod_fnc_tab_t fnctab[] =
 static hawk_mod_int_tab_t inttab[] =
 {
 	/* keep this table sorted for binary search in query(). */
+	{ HAWK_T("FETCH_ROW_ARRAY"),      { FETCH_ROW_ARRAY          } },
+	{ HAWK_T("FETCH_ROW_MAP"),        { FETCH_ROW_MAP            } },
+
 	{ HAWK_T("OPT_CONNECT_TIMEOUT"), { MYSQL_OPT_CONNECT_TIMEOUT } },
 	{ HAWK_T("OPT_READ_TIMEOUT"),    { MYSQL_OPT_READ_TIMEOUT    } },
 #if defined(DUMMY_OPT_RECONNECT)

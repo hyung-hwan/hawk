@@ -8,6 +8,7 @@
 %define enable_mod_ffi 1
 %define enable_mod_memc 0
 %define enable_mod_mysql 1
+%define enable_mod_sqlite 1
 %define enable_mod_uci 0
 
 Summary: Hawk Interpreter
@@ -35,6 +36,9 @@ BuildRequires: libmariadb-devel%{?_isa}
 %else
 BuildRequires: mysql-devel%{?_isa}
 %endif
+%endif
+%if %{enable_mod_sqlite}
+BuildRequires: sqlite-devel%{?_isa}
 %endif
 %if %{enable_mod_uci}
 BuildRequires: libuci-devel%{?_isa}
@@ -84,6 +88,17 @@ Requires: %{name}-libs%{?_isa} = %{version}
 
 %description mysql
 This package contains the mysql module file for Hawk.
+%endif
+
+%if %{enable_mod_sqlite}
+%package sqlite
+Summary: Hawk sqlite module
+Group: System Environment/Libraries
+Requires: %{name}-libs%{?_isa} = %{version}
+Requires: sqlite%{?_isa}
+
+%description sqlite
+This package contains the sqlite module file for Hawk.
 %endif
 
 %if %{enable_mod_uci}
@@ -152,6 +167,11 @@ CFLAGS="${RPM_OPT_FLAGS} -fPIC" CXXFLAGS="${RPM_OPT_FLAGS} -fPIC" ./configure  \
 	--enable-mod-mysql=no \
 %endif
 	--enable-mod-sed=yes:static \
+%if %{enable_mod_sqlite}
+	--enable-mod-sqlite=yes \
+%else
+	--enable-mod-sqlite=no \
+%endif
 %if %{enable_mod_uci}
 	--enable-mod-uci=yes
 %else
@@ -201,6 +221,11 @@ rm -rf "%{buildroot}"
 %if %{enable_mod_mysql}
 %files mysql
 %{_libdir}/libhawk-mysql.so*
+%endif
+
+%if %{enable_mod_sqlite}
+%files sqlite
+%{_libdir}/libhawk-sqlite.so*
 %endif
 
 %if %{enable_mod_uci}
