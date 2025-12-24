@@ -618,6 +618,35 @@ function main()
 		tap_ensure (str::fromcharcode(65, 66, 67) === "ABC", 1, @SCRIPTNAME, @SCRIPTLINE);
 		tap_ensure (str::frombcharcode(65, 66, 67) === @b"ABC", 1, @SCRIPTNAME, @SCRIPTLINE);
 
+		tap_ensure (str::tohex(@b"") === @b"", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::tohex(@b"f") === @b"66", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::tohex(@b"fo") === @b"666f", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::tohex(@b"foo") === @b"666f6f", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::tohex(@b"foobar") === @b"666f6f626172", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::tohex(@b"\x00\x01\x02") === @b"000102", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::tohex("hello") === @b"68656c6c6f", 1, @SCRIPTNAME, @SCRIPTLINE);
+
+		tap_ensure (str::fromhex("666f6f626172") === @b"foobar", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::fromhex("66") === @b"f", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::fromhex("666f") === @b"fo", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::fromhex("666f6f") === @b"foo", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::fromhex(str::tohex(@b"hello")) === @b"hello", 1, @SCRIPTNAME, @SCRIPTLINE);
+
+		tap_ensure (str::tobase64(@b"") === @b"", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::tobase64(@b"f") === @b"Zg==", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::tobase64(@b"fo") === @b"Zm8=", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::tobase64(@b"foo") === @b"Zm9v", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::tobase64(@b"foobar") === @b"Zm9vYmFy", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::tobase64(@b"\x00\x01\x02") === @b"AAEC", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::tobase64("hello") === @b"aGVsbG8=", 1, @SCRIPTNAME, @SCRIPTLINE);
+
+		tap_ensure (str::frombase64("Zm9vYmFy") === @b"foobar", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::frombase64("Zg==") === @b"f", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::frombase64("Zm8=") === @b"fo", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::frombase64("Zm9v") === @b"foo", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::frombase64("Zm9v YmFy") === @b"foobar", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::frombase64(str::tobase64(@b"hello")) === @b"hello", 1, @SCRIPTNAME, @SCRIPTLINE);
+
 		tap_ensure (str::trim("  hello  world  ") === "hello  world", 1, @SCRIPTNAME, @SCRIPTLINE);
 		tap_ensure (str::trim("  hello  world  ", str::TRIM_PAC_SPACES) === "hello world", 1, @SCRIPTNAME, @SCRIPTLINE);
 		tap_ensure (str::trim(@b"  hello  world  ") === @b"hello  world", 1, @SCRIPTNAME, @SCRIPTLINE);
@@ -884,4 +913,3 @@ function test15(x) {
 
 	return a;
 }
-

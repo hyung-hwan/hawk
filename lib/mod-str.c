@@ -71,7 +71,7 @@ static int fnc_normspace (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	}
 
 	if (HAWK_UNLIKELY(!retv)) return -1;
-	hawk_rtx_setretval (rtx, retv);
+	hawk_rtx_setretval(rtx, retv);
 
 	return 0;
 }
@@ -117,7 +117,7 @@ static int trim (hawk_rtx_t* rtx, int flags)
 	}
 
 	if (HAWK_UNLIKELY(!retv)) return -1;
-	hawk_rtx_setretval (rtx, retv);
+	hawk_rtx_setretval(rtx, retv);
 	return 0;
 }
 
@@ -215,7 +215,7 @@ static int is_class (hawk_rtx_t* rtx, hawk_ooch_prop_t ctype)
 	a0 = hawk_rtx_makeintval (rtx, tmp);
 	if (HAWK_UNLIKELY(!a0)) return -1;
 
-	hawk_rtx_setretval (rtx, a0);
+	hawk_rtx_setretval(rtx, a0);
 	return 0;
 }
 
@@ -326,7 +326,7 @@ static int fnc_frombcharcode (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		}
 	}
 
-	hawk_rtx_setretval (rtx, retv);
+	hawk_rtx_setretval(rtx, retv);
 	return 0;
 }
 
@@ -377,7 +377,7 @@ static int fnc_fromcharcode (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		}
 	}
 
-	hawk_rtx_setretval (rtx, retv);
+	hawk_rtx_setretval(rtx, retv);
 	return 0;
 }
 
@@ -445,7 +445,7 @@ static int fnc_tocharcode (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	{
 		retv = hawk_rtx_makeintval(rtx, iv);
 		if (HAWK_UNLIKELY(!retv)) return -1;
-		hawk_rtx_setretval (rtx, retv);
+		hawk_rtx_setretval(rtx, retv);
 	}
 
 	return 0;
@@ -504,7 +504,7 @@ static int fnc_frommbs (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	}
 
 done:
-	hawk_rtx_setretval (rtx, r);
+	hawk_rtx_setretval(rtx, r);
 	return 0;
 }
 
@@ -571,7 +571,7 @@ static int fnc_tombs (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	}
 
 done:
-	hawk_rtx_setretval (rtx, r);
+	hawk_rtx_setretval(rtx, r);
 	return 0;
 }
 
@@ -600,6 +600,12 @@ static int fnc_fromhex (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			len = str.len >> 1;
 
 			retv = hawk_rtx_makembsvalwithbchars(rtx, HAWK_NULL, len + (str.len & 1));
+			if (HAWK_UNLIKELY(!retv))
+			{
+				hawk_rtx_freevalbcstr(rtx, a0, str.ptr);
+				return -1;
+			}
+
 			for (i = 0, x = 0; i < len; i++, x++)
 			{
 				if (str.ptr[x] >= '0' && str.ptr[x] <= '9') v = str.ptr[x] - '0';
@@ -644,6 +650,12 @@ static int fnc_fromhex (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			len = str.len >> 1;
 
 			retv = hawk_rtx_makembsvalwithbchars(rtx, HAWK_NULL, len + (str.len & 1));
+			if (HAWK_UNLIKELY(!retv))
+			{
+				hawk_rtx_freevaloocstr(rtx, a0, str.ptr);
+				return -1;
+			}
+
 			for (i = 0, x = 0; i < len; i++, x++)
 			{
 				if (str.ptr[x] >= '0' && str.ptr[x] <= '9') v = str.ptr[x] - '0';
@@ -675,8 +687,7 @@ static int fnc_fromhex (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		}
 	}
 
-	if (HAWK_UNLIKELY(!retv)) return -1;
-	hawk_rtx_setretval (rtx, retv);
+	hawk_rtx_setretval(rtx, retv);
 	return 0;
 }
 
@@ -700,18 +711,248 @@ static int fnc_tohex (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	if (HAWK_UNLIKELY(!str.ptr)) return -1;
 
 	retv = hawk_rtx_makembsvalwithbchars(rtx, HAWK_NULL, str.len * 2);
+	if (HAWK_UNLIKELY(!retv))
+	{
+		hawk_rtx_freevalbcstr(rtx, a0, str.ptr);
+		return -1;
+	}
+
 	for (i = 0; i < str.len; i++)
 	{
 		hawk_fmt_uintmax_to_bcstr(
 			&((hawk_val_mbs_t*)retv)->val.ptr[i * 2], 2,
-			(hawk_uint8_t)str.ptr[i], 16 | HAWK_FMT_UINTMAX_NONULL,
+			(hawk_uint8_t)str.ptr[i],
+			16 | HAWK_FMT_UINTMAX_NONULL,
 			2, '0', HAWK_NULL);
+	}
+	hawk_rtx_freevalbcstr(rtx, a0, str.ptr);
+
+	hawk_rtx_setretval(rtx, retv);
+	return 0;
+}
+
+
+static HAWK_INLINE int b64_value_bch (hawk_bch_t c)
+{
+	if (c >= 'A' && c <= 'Z') return c - 'A';
+	if (c >= 'a' && c <= 'z') return c - 'a' + 26;
+	if (c >= '0' && c <= '9') return c - '0' + 52;
+	if (c == '+') return 62;
+	if (c == '/') return 63;
+	if (c == '=') return 64;
+	return -1;
+}
+
+static HAWK_INLINE int b64_value_ooch (hawk_ooch_t c)
+{
+	if (c >= 'A' && c <= 'Z') return c - 'A';
+	if (c >= 'a' && c <= 'z') return c - 'a' + 26;
+	if (c >= '0' && c <= '9') return c - '0' + 52;
+	if (c == '+') return 62;
+	if (c == '/') return 63;
+	if (c == '=') return 64;
+	return -1;
+}
+
+static int fnc_frombase64 (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+{
+	hawk_val_t* retv;
+	hawk_val_t* a0;
+
+	a0 = hawk_rtx_getarg(rtx, 0);
+
+	switch (HAWK_RTX_GETVALTYPE(rtx, a0))
+	{
+		case HAWK_VAL_BCHR:
+		case HAWK_VAL_MBS:
+		case HAWK_VAL_BOB:
+		{
+			hawk_bcs_t str;
+			hawk_oow_t i;
+			hawk_oow_t nvalid;
+			hawk_oow_t outlen;
+			hawk_oow_t outi;
+			hawk_uint8_t quad[4];
+			int qlen;
+
+			str.ptr = hawk_rtx_getvalbcstr(rtx, a0, &str.len);
+			if (HAWK_UNLIKELY(!str.ptr)) return -1;
+
+			for (i = 0, nvalid = 0; i < str.len; i++)
+			{
+				if (hawk_is_bch_space(str.ptr[i])) continue;
+				nvalid++;
+			}
+
+			outlen = (nvalid / 4) * 3;
+			if (nvalid % 4) outlen += (nvalid % 4) - 1;
+			retv = hawk_rtx_makembsvalwithbchars(rtx, HAWK_NULL, outlen);
+			if (HAWK_UNLIKELY(!retv))
+			{
+				hawk_rtx_freevalbcstr(rtx, a0, str.ptr);
+				return -1;
+			}
+
+			outi = 0;
+			qlen = 0;
+			for (i = 0; i < str.len; i++)
+			{
+				int v;
+
+				if (hawk_is_bch_space(str.ptr[i])) continue;
+				v = b64_value_bch(str.ptr[i]);
+				if (v < 0) v = 0;
+				quad[qlen++] = v;
+				if (qlen == 4)
+				{
+					if (quad[0] == 64 || quad[1] == 64) break;
+					((hawk_val_mbs_t*)retv)->val.ptr[outi++] = (quad[0] << 2) | (quad[1] >> 4);
+					if (quad[2] == 64) break;
+					((hawk_val_mbs_t*)retv)->val.ptr[outi++] = ((quad[1] & 0x0F) << 4) | (quad[2] >> 2);
+					if (quad[3] == 64) break;
+					((hawk_val_mbs_t*)retv)->val.ptr[outi++] = ((quad[2] & 0x03) << 6) | quad[3];
+					qlen = 0;
+				}
+			}
+
+			if (qlen > 0 && qlen < 4)
+			{
+				if (qlen >= 2)
+				{
+					((hawk_val_mbs_t*)retv)->val.ptr[outi++] = (quad[0] << 2) | (quad[1] >> 4);
+					if (qlen == 3)
+					{
+						((hawk_val_mbs_t*)retv)->val.ptr[outi++] = ((quad[1] & 0x0F) << 4) | (quad[2] >> 2);
+					}
+				}
+			}
+
+			((hawk_val_mbs_t*)retv)->val.len = outi;
+			hawk_rtx_freevalbcstr(rtx, a0, str.ptr);
+			break;
+		}
+
+		default:
+		{
+			hawk_oocs_t str;
+			hawk_oow_t i;
+			hawk_oow_t nvalid;
+			hawk_oow_t outlen;
+			hawk_oow_t outi;
+			hawk_uint8_t quad[4];
+			int qlen;
+
+			str.ptr = hawk_rtx_getvaloocstr(rtx, a0, &str.len);
+			if (HAWK_UNLIKELY(!str.ptr)) return -1;
+
+			for (i = 0, nvalid = 0; i < str.len; i++)
+			{
+				if (hawk_is_ooch_space(str.ptr[i])) continue;
+				nvalid++;
+			}
+
+			outlen = (nvalid / 4) * 3;
+			if (nvalid % 4) outlen += (nvalid % 4) - 1;
+			retv = hawk_rtx_makembsvalwithbchars(rtx, HAWK_NULL, outlen);
+			if (HAWK_UNLIKELY(!retv))
+			{
+				hawk_rtx_freevaloocstr(rtx, a0, str.ptr);
+				return -1;
+			}
+
+			outi = 0;
+			qlen = 0;
+			for (i = 0; i < str.len; i++)
+			{
+				int v;
+
+				if (hawk_is_ooch_space(str.ptr[i])) continue;
+				v = b64_value_ooch(str.ptr[i]);
+				if (v < 0) v = 0;
+				quad[qlen++] = v;
+				if (qlen == 4)
+				{
+					if (quad[0] == 64 || quad[1] == 64) break;
+					((hawk_val_mbs_t*)retv)->val.ptr[outi++] = (quad[0] << 2) | (quad[1] >> 4);
+					if (quad[2] == 64) break;
+					((hawk_val_mbs_t*)retv)->val.ptr[outi++] = ((quad[1] & 0x0F) << 4) | (quad[2] >> 2);
+					if (quad[3] == 64) break;
+					((hawk_val_mbs_t*)retv)->val.ptr[outi++] = ((quad[2] & 0x03) << 6) | quad[3];
+					qlen = 0;
+				}
+			}
+
+			if (qlen > 0 && qlen < 4)
+			{
+				if (qlen >= 2)
+				{
+					((hawk_val_mbs_t*)retv)->val.ptr[outi++] = (quad[0] << 2) | (quad[1] >> 4);
+					if (qlen == 3)
+					{
+						((hawk_val_mbs_t*)retv)->val.ptr[outi++] = ((quad[1] & 0x0F) << 4) | (quad[2] >> 2);
+					}
+				}
+			}
+
+			((hawk_val_mbs_t*)retv)->val.len = outi;
+			hawk_rtx_freevaloocstr(rtx, a0, str.ptr);
+			break;
+		}
+	}
+
+	hawk_rtx_setretval(rtx, retv);
+	return 0;
+}
+
+static int fnc_tobase64 (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+{
+	static const hawk_bch_t b64_table[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+	hawk_val_t* retv;
+	hawk_val_t* a0;
+	hawk_bcs_t str;
+	hawk_oow_t i;
+	hawk_oow_t outlen;
+	hawk_oow_t outi;
+
+	a0 = hawk_rtx_getarg(rtx, 0);
+
+	/* if the argument is not a multi-byte string, the conversion
+	 * will be performed in the default encoding (utf-8). if you
+	 * want a different encoding, call str::tombs() first. */
+	str.ptr = hawk_rtx_getvalbcstr(rtx, a0, &str.len);
+	if (HAWK_UNLIKELY(!str.ptr)) return -1;
+
+	outlen = ((str.len + 2) / 3) * 4;
+	retv = hawk_rtx_makembsvalwithbchars(rtx, HAWK_NULL, outlen);
+	if (HAWK_UNLIKELY(!retv))
+	{
+		hawk_rtx_freevalbcstr(rtx, a0, str.ptr);
+		return -1;
+	}
+
+	outi = 0;
+	for (i = 0; i < str.len; i += 3)
+	{
+		hawk_uint8_t b0 = (hawk_uint8_t)str.ptr[i];
+		hawk_uint8_t b1 = (i + 1 < str.len)? (hawk_uint8_t)str.ptr[i + 1]: 0;
+		hawk_uint8_t b2 = (i + 2 < str.len)? (hawk_uint8_t)str.ptr[i + 2]: 0;
+
+		((hawk_val_mbs_t*)retv)->val.ptr[outi++] = b64_table[b0 >> 2];
+		((hawk_val_mbs_t*)retv)->val.ptr[outi++] = b64_table[((b0 & 0x03) << 4) | (b1 >> 4)];
+		if (i + 1 < str.len)
+			((hawk_val_mbs_t*)retv)->val.ptr[outi++] = b64_table[((b1 & 0x0F) << 2) | (b2 >> 6)];
+		else
+			((hawk_val_mbs_t*)retv)->val.ptr[outi++] = '=';
+
+		if (i + 2 < str.len)
+			((hawk_val_mbs_t*)retv)->val.ptr[outi++] = b64_table[b2 & 0x3F];
+		else
+			((hawk_val_mbs_t*)retv)->val.ptr[outi++] = '=';
 	}
 
 	hawk_rtx_freevalbcstr(rtx, a0, str.ptr);
 
-	if (HAWK_UNLIKELY(!retv)) return -1;
-	hawk_rtx_setretval (rtx, retv);
+	hawk_rtx_setretval(rtx, retv);
 	return 0;
 }
 
@@ -825,19 +1066,15 @@ static int fnc_tonum (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 	if (!retv) return -1;
 
-	hawk_rtx_setretval (rtx, retv);
+	hawk_rtx_setretval(rtx, retv);
 	return 0;
 }
 
 static int fnc_subchar (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
-	hawk_oow_t nargs;
 	hawk_val_t* a0, * a1, * r;
 	hawk_int_t lindex;
 	int n;
-
-	nargs = hawk_rtx_getnargs(rtx);
-	HAWK_ASSERT (nargs >= 2 && nargs <= 3);
 
 	a0 = hawk_rtx_getarg(rtx, 0);
 	a1 = hawk_rtx_getarg(rtx, 1);
@@ -887,7 +1124,7 @@ static int fnc_subchar (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	}
 
 	if (HAWK_UNLIKELY(!r)) return -1;
-	hawk_rtx_setretval (rtx, r);
+	hawk_rtx_setretval(rtx, r);
 	return 0;
 }
 
@@ -898,6 +1135,7 @@ static int fnc_subchar (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 static hawk_mod_fnc_tab_t fnctab[] =
 {
 	/* keep this table sorted for binary search in query(). */
+	{ HAWK_T("frombase64"),    { { 1, 1, HAWK_NULL },      fnc_frombase64,        0 } },
 	{ HAWK_T("frombcharcode"), { { 0, A_MAX, HAWK_NULL },  fnc_frombcharcode,     0 } },
 	{ HAWK_T("fromcharcode"),  { { 0, A_MAX, HAWK_NULL },  fnc_fromcharcode,      0 } },
 	{ HAWK_T("fromhex"),       { { 1, 1, HAWK_NULL },      fnc_fromhex,           0 } },
@@ -929,6 +1167,7 @@ static hawk_mod_fnc_tab_t fnctab[] =
 	{ HAWK_T("sub"),           { { 2, 3, HAWK_T("xvr") },  hawk_fnc_sub,          0 } },
 	{ HAWK_T("subchar"),       { { 2, 2, HAWK_NULL },      fnc_subchar,           0 } },
 	{ HAWK_T("substr"),        { { 2, 3, HAWK_NULL },      hawk_fnc_substr,       0 } },
+	{ HAWK_T("tobase64"),      { { 1, 1, HAWK_NULL },      fnc_tobase64,          0 } },
 	{ HAWK_T("tocharcode"),    { { 1, 2, HAWK_NULL },      fnc_tocharcode,        0 } },
 	{ HAWK_T("tohex"),         { { 1, 1, HAWK_NULL },      fnc_tohex,             0 } },
 	{ HAWK_T("tolower"),       { { 1, 1, HAWK_NULL },      hawk_fnc_tolower,      0 } },
@@ -980,4 +1219,3 @@ int hawk_mod_str (hawk_mod_t* mod, hawk_t* hawk)
 
 	return 0;
 }
-

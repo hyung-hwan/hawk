@@ -1003,6 +1003,7 @@ Hawk supports various modules.
 ### String
 The `str` module provides an extensive set of string manipulation functions.
 
+- str::frombase64 - decode a base64-encoded byte string
 - str::fromcharcode
 - str::fromhex
 - str::gsub - equivalent to gsub
@@ -1029,6 +1030,7 @@ The `str` module provides an extensive set of string manipulation functions.
 - str::split - equivalent to split
 - str::sub - equivalent to sub
 - str::substr - equivalent to substr
+- str::tobase64 - encode data to a base64 byte string
 - str::tocharcode - get the numeric value of the first character
 - str::tohex
 - str::tolower - equivalent to tolower
