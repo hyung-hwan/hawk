@@ -854,13 +854,16 @@ static int fnc_column_count (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	stmt_list_t* stmt_list;
 	stmt_node_t* stmt_node;
 	hawk_int_t ret = -1;
+	hawk_val_t* retv;
 
 	sql_list = rtx_to_sql_list(rtx, fi);
 	stmt_list = rtx_to_stmt_list(rtx, fi);
 	stmt_node = get_stmt_list_node_with_arg(rtx, sql_list, stmt_list, hawk_rtx_getarg(rtx, 0));
 	if (stmt_node) ret = stmt_node->col_count;
 
-	hawk_rtx_setretval(rtx, hawk_rtx_makeintval(rtx, ret));
+	retv = hawk_rtx_makeintval(rtx, ret);
+	if (HAWK_UNLIKELY(!retv)) return -1;
+	hawk_rtx_setretval(rtx, retv);
 	return 0;
 }
 

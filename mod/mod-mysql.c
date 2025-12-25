@@ -1080,6 +1080,73 @@ static int fnc_free_result (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	return 0;
 }
 
+static int fnc_column_name (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+{
+	sql_list_t* sql_list;
+	res_list_t* res_list;
+	res_node_t* res_node;
+	hawk_val_t* retv = HAWK_NULL;
+	hawk_int_t index;
+
+	sql_list = rtx_to_sql_list(rtx, fi);
+	res_list = rtx_to_res_list(rtx, fi);
+	res_node = get_res_list_node_with_arg(rtx, sql_list, res_list, hawk_rtx_getarg(rtx, 0));
+	if (res_node)
+	{
+		if (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 1), &index) <= -1)
+		{
+			set_error_on_sql_list(rtx, sql_list, HAWK_T("invalid column index"));
+			retv = hawk_rtx_makenilval(rtx);
+		}
+		else if (index <= 0 || index > (hawk_int_t)res_node->num_fields)
+		{
+			retv = hawk_rtx_makenilval(rtx);
+		}
+		else
+		{
+			MYSQL_FIELD* fields = mysql_fetch_fields(res_node->res);
+			if (!fields)
+			{
+				set_error_on_sql_list(rtx, sql_list, HAWK_T("unable to fetch column metadata"));
+				retv = hawk_rtx_makenilval(rtx);
+			}
+			else
+			{
+				const char* name = fields[index - 1].name;
+				if (name) retv = hawk_rtx_makestrvalwithbcstr(rtx, (const hawk_bch_t*)name);
+				else retv = hawk_rtx_makenilval(rtx);
+			}
+		}
+	}
+	else
+	{
+		retv = hawk_rtx_makenilval(rtx);
+	}
+
+	if (HAWK_UNLIKELY(!retv)) return -1;
+	hawk_rtx_setretval(rtx, retv);
+	return 0;
+}
+
+static int fnc_column_count (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+{
+	sql_list_t* sql_list;
+	res_list_t* res_list;
+	res_node_t* res_node;
+	hawk_int_t ret = -1;
+	hawk_val_t* retv;
+
+	sql_list = rtx_to_sql_list(rtx, fi);
+	res_list = rtx_to_res_list(rtx, fi);
+	res_node = get_res_list_node_with_arg(rtx, sql_list, res_list, hawk_rtx_getarg(rtx, 0));
+	if (res_node) ret = (hawk_int_t)res_node->num_fields;
+
+	retv = hawk_rtx_makeintval(rtx, ret);
+	if (HAWK_UNLIKELY(!retv)) return -1;
+	hawk_rtx_setretval(rtx, retv);
+	return 0;
+}
+
 #define FETCH_ROW_ARRAY (1)
 #define FETCH_ROW_MAP (2)
 
@@ -1808,6 +1875,8 @@ static hawk_mod_fnc_tab_t fnctab[] =
 	{ HAWK_T("affected_rows"),      { { 2, 2, HAWK_T("vr") },  fnc_affected_rows,   0 } },
 	{ HAWK_T("autocommit"),         { { 2, 2, HAWK_NULL },     fnc_autocommit,      0 } },
 	{ HAWK_T("close"),              { { 1, 1, HAWK_NULL },     fnc_close,           0 } },
+	{ HAWK_T("column_count"),       { { 1, 1, HAWK_NULL },     fnc_column_count,    0 } },
+	{ HAWK_T("column_name"),        { { 2, 2, HAWK_NULL },     fnc_column_name,     0 } },
 	{ HAWK_T("commit"),             { { 1, 1, HAWK_NULL },     fnc_commit,          0 } },
 	{ HAWK_T("connect"),            { { 4, 7, HAWK_NULL },     fnc_connect,         0 } },
 	{ HAWK_T("errmsg"),             { { 0, 0, HAWK_NULL },     fnc_errmsg,          0 } },
