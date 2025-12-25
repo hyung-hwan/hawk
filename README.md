@@ -1326,7 +1326,7 @@ Assuming `/tmp/test.db` with the following schema,
 
 ```
 sqlite> .schema
-CREATE TABLE a(x int, y int);
+CREATE TABLE a(x int, y varchar(255));
 ```
 
 You can retreive all rows as shown below:
@@ -1335,7 +1335,7 @@ You can retreive all rows as shown below:
 @pragma implicit off
 
 function main() {
-	@local db, stmt, row, i, sql;
+	@local db, stmt, row, i, ncols;
 
 	db = sqlite::open();
 	if (db <= -1) {
@@ -1352,7 +1352,14 @@ function main() {
 	sqlite::exec(db, "begin transaction");
 	sqlite::exec(db, "delete from a");
 	for (i = 0; i < 10; i++) {
-		sql=sprintf("insert into a(x,y) values(%d,%d)", math::rand() * 100, math::rand() * 100);
+		@local sql, fld;
+		if (sqlite::escape_string(db, ((i % 2)? @b"'STXETX'": "'␂␃'") %% (math::rand() * 100), fld) <= -1) {
+			print "escape_string error -", sqlite::errmsg();
+			sqlite::exec(db, "rollback");
+			sqlite::close(db);
+			return;
+		}
+		sql=sprintf("insert into a(x,y) values(%d,'%s')", math::rand() * 100, fld);
 		print sql;
 		if (sqlite::exec(db, sql) <= -1) {
 			print "exec error -", sqlite::errmsg();
@@ -1377,6 +1384,11 @@ function main() {
 		return;
 	}
 
+	ncols = sqlite::column_count(stmt);
+	printf ("TOTAL %d COLUMNS:\n", ncols);
+	for (i = 1; i <= ncols; i++) {
+		print "-", i, sqlite::column_name(stmt, i);
+	}
 	while (sqlite::fetch_row(stmt, row, sqlite::FETCH_ROW_ARRAY) > 0) {
 		print "[id]", row[1], "[name]", row[2];
 	}

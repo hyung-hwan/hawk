@@ -703,6 +703,7 @@ static int fnc_escape_string (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	if (sql_node)
 	{
 		int n;
+		hawk_val_type_t vtype;
 
 		ENSURE_CONNECT_EVER_ATTEMPTED(rtx, sql_list, sql_node);
 
@@ -717,7 +718,10 @@ static int fnc_escape_string (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			goto done;
 		}
 
-		retv = hawk_rtx_makestrvalwithbcstr(rtx, (hawk_bch_t*)ebuf);
+		vtype = HAWK_RTX_GETVALTYPE(rtx, a1);
+		retv = (vtype == HAWK_VAL_BCHR || vtype == HAWK_VAL_MBS || vtype == HAWK_VAL_BOB)?
+			hawk_rtx_makembsvalwithbcstr(rtx, (hawk_bch_t*)ebuf):
+			hawk_rtx_makestrvalwithbcstr(rtx, (hawk_bch_t*)ebuf);
 		if (HAWK_UNLIKELY(!retv))
 		{
 			take_rtx_err = 1;
@@ -857,6 +861,45 @@ static int fnc_column_count (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	if (stmt_node) ret = stmt_node->col_count;
 
 	hawk_rtx_setretval(rtx, hawk_rtx_makeintval(rtx, ret));
+	return 0;
+}
+
+static int fnc_column_name (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+{
+	sql_list_t* sql_list;
+	stmt_list_t* stmt_list;
+	stmt_node_t* stmt_node;
+	hawk_val_t* retv = HAWK_NULL;
+	hawk_int_t index;
+
+	sql_list = rtx_to_sql_list(rtx, fi);
+	stmt_list = rtx_to_stmt_list(rtx, fi);
+	stmt_node = get_stmt_list_node_with_arg(rtx, sql_list, stmt_list, hawk_rtx_getarg(rtx, 0));
+	if (stmt_node)
+	{
+		if (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 1), &index) <= -1)
+		{
+			set_error_on_sql_list(rtx, sql_list, HAWK_T("invalid column index"));
+			retv = hawk_rtx_makenilval(rtx);
+		}
+		else if (index <= 0 || index > stmt_node->col_count)
+		{
+			retv = hawk_rtx_makenilval(rtx);
+		}
+		else
+		{
+			const char* name = sqlite3_column_name(stmt_node->stmt, (int)index - 1);
+			if (name) retv = hawk_rtx_makestrvalwithbcstr(rtx, (const hawk_bch_t*)name);
+			else retv = hawk_rtx_makenilval(rtx);
+		}
+	}
+	else
+	{
+		retv = hawk_rtx_makenilval(rtx);
+	}
+
+	if (HAWK_UNLIKELY(!retv)) return -1;
+	hawk_rtx_setretval(rtx, retv);
 	return 0;
 }
 
@@ -1063,6 +1106,7 @@ static hawk_mod_fnc_tab_t fnctab[] =
 	{ HAWK_T("changes"),          { { 1, 1, HAWK_NULL },     fnc_changes,          0 } },
 	{ HAWK_T("close"),            { { 1, 1, HAWK_NULL },     fnc_close,            0 } },
 	{ HAWK_T("column_count"),     { { 1, 1, HAWK_NULL },     fnc_column_count,     0 } },
+	{ HAWK_T("column_name"),      { { 2, 2, HAWK_NULL },     fnc_column_name,      0 } },
 	{ HAWK_T("connect"),          { { 2, 4, HAWK_NULL },     fnc_connect,          0 } },
 	{ HAWK_T("errmsg"),           { { 0, 0, HAWK_NULL },     fnc_errmsg,           0 } },
 	{ HAWK_T("escape_string"),    { { 3, 3, HAWK_T("vvr") }, fnc_escape_string,    0 } },
