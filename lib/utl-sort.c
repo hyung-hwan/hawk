@@ -136,7 +136,7 @@ static HAWK_INLINE hawk_oob_t* med3x (hawk_oob_t* a, hawk_oob_t* b, hawk_oob_t* 
 	}
 }
 
-void hawk_qsort (void* base, hawk_oow_t nmemb, hawk_oow_t size, hawk_sort_comper_t comper, void* ctx)
+void hawk_qsort(void* base, hawk_oow_t nmemb, hawk_oow_t size, hawk_sort_comper_t comper, void* ctx)
 {
 	hawk_oob_t* pa, * pb, * pc, * pd, * pl, * pm, * pn;
 	int swaptype, swap_cnt;
@@ -388,7 +388,7 @@ loop:
 
 #define REF(x,i) (&((x)[(i)*size]))
 
-void hawk_qsort (void* base, hawk_oow_t nmemb, hawk_oow_t size, void* arg,
+void hawk_qsort(void* base, hawk_oow_t nmemb, hawk_oow_t size, void* arg,
 	int (*compar)(const void*, const void*, void*))
 {
 	hawk_oow_t pivot, start, end;
@@ -423,8 +423,8 @@ void hawk_qsort (void* base, hawk_oow_t nmemb, hawk_oow_t size, void* arg,
 	swap (REF(p,nmemb-1), REF(p,start), size);
 	pivot = start;  /* adjust the pivot index */
 
-	hawk_qsort (REF(p,0), pivot, size, arg, compar);
-	hawk_qsort (REF(p,pivot+1), nmemb - pivot - 1, size, arg, compar);
+	hawk_qsort(REF(p,0), pivot, size, arg, compar);
+	hawk_qsort(REF(p,pivot+1), nmemb - pivot - 1, size, arg, compar);
 }
 
 /*
@@ -433,7 +433,7 @@ void hawk_qsort (void* base, hawk_oow_t nmemb, hawk_oow_t size, void* arg,
 
 #define swap(a, b) do { a ^= b; b ^= a; a ^= b; } while (0)
 
-void qsort (int* x, size_t n)
+void qsort(int* x, size_t n)
 {
 	size_t index, start, end;
 	int pivot;
@@ -471,8 +471,8 @@ void qsort (int* x, size_t n)
 	x[start] = pivot;
 	index = start;  /* adjust the pivot index */
 
-	qsort (x, index);
-	qsort (&x[index + 1], n - index - 1);
+	qsort(x, index);
+	qsort(&x[index + 1], n - index - 1);
 }
 
 #endif

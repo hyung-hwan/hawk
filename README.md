@@ -12,34 +12,53 @@ The library is stable, portable, and designed for projects that need a scripting
 - [Embedding Hawk in C Applications](#embedding-hawk-in-c-applications)
 - [Embedding Hawk in C++ Applications](#embedding-hawk-in-c-applications-1)
 - [Language](#language)
-	- [Pragmas](#pragmas)
+	- [What Hawk Is](#what-hawk-is)
+	- [Running Hawk](#running-hawk)
+	- [Execution Model](#execution-model)
 		- [@pragma entry](#pragma-entry)
+	- [Values and Types](#values-and-types)
+	- [Expressions and Operators](#expressions-and-operators)
+		- [Arithmetic and Comparison](#arithmetic-and-comparison)
+		- [Strings and Regex](#strings-and-regex)
+		- [Logical Operators](#logical-operators)
+		- [Bitwise Operators](#bitwise-operators)
+	- [Variables and Scope](#variables-and-scope)
+	- [Arrays and Maps](#arrays-and-maps)
+	- [Functions](#functions)
+	- [Control Flow](#control-flow)
+		- [if / else](#if--else)
+		- [while](#while)
+		- [do ... while](#do--while)
+		- [for](#for)
+		- [for (i in array)](#for-i-in-array)
+		- [in operator (key existence)](#in-operator-key-existence)
+		- [switch](#switch)
+		- [break / continue / return / exit](#break--continue--return--exit)
+		- [nextfile / nextofile](#nextfile--nextofile)
+	- [Input, Output, and Pipes](#input-output-and-pipes)
+	- [Built-in Variables](#built-in-variables)
+	- [Built-in Functions](#built-in-functions)
+	- [Pragmas](#pragmas)
+		- [@pragma entry](#pragma-entry-1)
 		- [@pragma implicit](#pragma-implicit)
 		- [@pragma striprecspc](#pragma-striprecspc)
 	- [@include and @include\_once](#include-and-include_once)
 	- [Comments](#comments)
 	- [Reserved Words](#reserved-words)
-	- [Values](#values)
-		- [Numbers](#numbers)
-		- [Map](#map)
-		- [Array](#array)
-		- [Multidimensional Map/Array](#multidimensional-maparray)
-	- [Operators](#operators)
-	- [Control Strucutres](#control-strucutres)
-	- [Function](#function)
-	- [Variable](#variable)
-		- [Built-in Variable](#built-in-variable)
-	- [Pipes](#pipes)
+	- [More Examples](#more-examples)
 	- [Garbage Collection](#garbage-collection)
 	- [Modules](#modules)
-		- [Hawk](#hawk-1)
+		- [Hawk](#hawk)
 		- [String](#string)
 		- [System](#system)
 		- [ffi](#ffi)
 		- [mysql](#mysql)
+		- [sqlite](#sqlite)
 	- [Incompatibility with AWK](#incompatibility-with-awk)
 		- [Parameter passing](#parameter-passing)
-	- [Positional variable expression](#positional-variable-expression)
+		- [Positional variable expression](#positional-variable-expression)
+		- [Return value of getline](#return-value-of-getline)
+		- [Others](#others)
 
 ## Features
 
@@ -209,65 +228,406 @@ The C++ classes are inferior to the C equivalents in that they don't allow creat
 
 # Language
 
-`Hawk` is an AWK interpreter created by an individual whose name starts with H, which inspired the H in the name. It serves a dual purpose: as an embeddable AWK engine for integration into other applications, and as a standalone command-line tool for general use.
+## What Hawk Is
 
-At its core, `Hawk` supports the fundamental features of AWK, ensuring compatibility with most existing AWK programs and scripts. However, it introduces some subtle differences in behavior compared to traditional AWK implementations, which are detailed in the [Incompatibility with AWK](#incompatibility-with-awk) section.
- section.
+Hawk is an embeddable awk interpreter with extensions. It can run awk scripts from the CLI or from C/C++ and provides modules like `str::`, `sys::`, `ffi::`, `mysql::`, and `sqlite::`.
 
-`Hawk` follows the standard AWK execution flow: the BEGIN block is executed first, followed by pattern-action blocks, and finally the END block.
 
-1. `BEGIN` Block: Executed before any input is processed. It is typically used for initializations, such as setting variable values or defining functions to be used later in the script.
-1. Pattern-Action Blocks: After the BEGIN block, `Hawk` reads input line by line (or record by record, based on the record separator RS). For each input line, `Hawk` checks if it matches the specified pattern. If it does, the associated action block is executed.
-1. `END` Block: Executed after all input has been processed. It is typically used for final operations, such as printing summaries or closing files.
+## Running Hawk
 
-Here's a sample code that demonstrates the basic `BEGIN`, pattern-action, and `END` loop in Hawk:
+Run a script file:
+
+```sh
+$ hawk -f script.hawk input.txt
+```
+
+Run an inline program:
+
+```sh
+$ echo "a,b,c" | hawk 'BEGIN{FS=","} {print $2}'
+```
+
+## Execution Model
+
+Hawk follows the awk pipeline:
+
+- Input is read as records (usually lines). `RS` controls record separation.
+- Each record (`$0`) is split into fields `$1`, `$2`, ... by `FS`.
+- A script is a sequence of `pattern { action }` blocks.
+- `BEGIN` runs before input; `END` runs after input.
+
+Example:
+
+```awk
+BEGIN { FS=","; print "start" }
+$3 ~ /ERR/ { print NR, $1, $3 }
+END { print "done", NR }
+```
+
+### @pragma entry
+
+Hawk can override the default `BEGIN`/pattern/`END` flow with a custom entry point:
+
+```awk
+@pragma entry main
+function main(a, b) {
+	print "entry:", a, b
+}
+```
+
+Run:
+
+```sh
+$ hawk -f script.hawk one two
+entry: one two
+```
+
+
+## Values and Types
+
+Hawk is dynamically typed:
+
+- Numbers: integer and floating-point.
+- Strings: Unicode text.
+- Characters can be written with single quotes (e.g., `'A'`) and are Unicode.
+- Byte strings: raw bytes (`@b"..."`).
+- Byte characters use `@b'X'` and must fit in a single byte.
+- Containers: array, map.
+- `@nil` represents null.
+
+Examples:
 
 ```awk
 BEGIN {
-	print "Starting the script..."
-	total = 0
-}
-/^[0-9]+$/ { # Pattern-action block to sum up the numbers
-	total += $0  # Add the current line (which is a number) to the total
-}
-END {
-	print "The sum of all numbers is:", total
+	a = 10
+	b = 3.14
+	s = "hello"
+	c = 'X'
+	bc = @b'x'
+	bs = @b"\x00\x01"
+	m = @{"k": 1}
+	arr = @["x", "y"]
 }
 ```
 
-In this example:
+## Expressions and Operators
 
-1. The `BEGIN` block is executed first, printing the message "Starting the script..." and initializing the total variable to 0.
-1. For each input line, Hawk checks if it matches the regular expression `/^[0-9]+$/` (which matches lines containing only digits). If a match is found, the action block `{ total += $0 }` is executed, adding the current line (treated as a number) to the total variable.
-1. After processing all input lines, the `END` block is executed, printing the final message "The sum of all numbers is: `total`", where `total` is the accumulated sum of all numbers from the input.
+### Arithmetic and Comparison
 
-You can provide input to this script in various ways, such as piping from another command, reading from a file, or entering input interactively. For example:
+- Arithmetic: `+`, `-`, `*`, `/`, `%`, `**` (exponentiation), `++`, `--`.
+- Comparisons: `==`, `!=`, `<`, `<=`, `>`, `>=`.
+- Type-precise compare: `===` and `!==`.
+
+Example:
+
+```awk
+BEGIN {
+	x = 10 + 5 * 2
+	if (x >= 20) print x
+	if ("10" === 10) print "no"
+}
+```
+
+### Strings and Regex
+
+- Concatenation by adjacency: `"a" "b"`.
+- Explicit concatenation: `"a" %% "b"`.
+- Regex match: `~` and `!~`.
+
+Example:
+
+```awk
+BEGIN {
+	print "hi" %% "!"
+	if ("A" ~ /^[A-Z]$/) print "regex ok"
+}
+```
+
+### Logical Operators
+
+- Logical AND/OR: `&&`, `||`.
+- Boolean results are numeric (`0` or `1`).
+
+
+Example:
+
+```awk
+BEGIN {
+	if (1 && 0) print "no"; else print "ok"
+}
+```
+
+### Bitwise Operators
+
+- Bitwise AND/OR: `&`, `|`.
+- `|` also denotes pipes, so use parentheses when you mean bitwise OR.
+
+Bitwise OR vs pipe example:
+
+```awk
+BEGIN {
+	print (1 | 2)  # bitwise OR => 3
+	print 1 | 2    # pipe to external command "2"
+}
+```
+
+## Variables and Scope
+
+- Variables are created on assignment.
+- `@local` and `@global` declare scope explicitly.
+
+Example:
+
+```awk
+@global g
+BEGIN {
+	@local x
+	x = 1
+	g = 2
+}
+```
+
+## Arrays and Maps
+
+Hawk supports arrays and maps.
+
+- Arrays are indexed by numbers.
+- Maps accept string and numeric keys.
+- Constructors: `@[]`, `@{}`, `hawk::array()`, `hawk::map()`.
+- All constructors accept initial values.
+
+Example:
+
+```awk
+BEGIN {
+	arr = @["a", "b", "c"]
+	m = @{"k": "v", 10: "ten"}
+	arr[4] = "d"
+	m["x"] = 99
+	print arr[1], m["k"], m[10]
+}
+```
+
+
+## Functions
+
+Define functions with `function name(...) { ... }`.
+
+- Missing args are `@nil`.
+- Use `&` for call-by-reference.
+- Use `...` for varargs and access them via `@argc` and `@argv`.
+- Functions are first-class values and can be passed as parameters (e.g., a comparator for `asort`).
+
+Example:
+
+```awk
+function inc(&x) { x += 1 }
+function greet(name) { if (name == "") name = "world"; print "hi", name }
+BEGIN { n = 1; inc(n); greet(); greet("hawk"); print n }
+```
+
+Varargs example:
+
+```awk
+function dump(...) {
+	@local i
+	for (i = 0; i < @argc; i++) print @argv[i]
+}
+BEGIN { dump("a", 10, "b") }
+```
+
+Function-parameter example:
+
+```awk
+function desc(a, b) { return b - a }
+BEGIN {
+	@local a, b, i
+	a = @[3, 1, 2]
+	asort(a, b, desc)
+	for (i in b) print i, b[i]
+}
+```
+
+
+## Control Flow
+
+Hawk supports standard awk control flow.
+
+### if / else
+
+```awk
+{ if ($1 > 0) print $1; else print "skip" }
+```
+
+### while
+
+```awk
+BEGIN {
+	i = 1
+	while (i <= 3) { print i; i++ }
+}
+```
+
+### do ... while
+
+```awk
+BEGIN {
+	i = 0
+	do { print i; i++ } while (i < 3)
+}
+```
+
+### for
+
+```awk
+BEGIN {
+	for (i = 1; i <= 3; i++) print i
+}
+```
+
+### for (i in array)
+
+```awk
+BEGIN {
+	arr = @["x", "y"]
+	for (i in arr) print i, arr[i]
+}
+```
+
+### in operator (key existence)
+
+Use `x in b` to test if a key/index exists in a map or array.
+
+```awk
+BEGIN {
+	b = @{"k": 1}
+	if ("k" in b) print "yes"
+}
+```
+
+### switch
+
+```awk
+BEGIN {
+	x = 2
+	switch (x) {
+	case 1: print "one"; break;
+	case 2: print "two"; break;
+	default: print "other";
+	}
+}
+```
+
+### break / continue / return / exit
+
+```awk
+BEGIN {
+	for (i = 1; i <= 5; i++) {
+		if (i == 3) continue
+		if (i == 5) break
+		print i
+	}
+	exit 0
+}
+```
+
+Note: Hawk allows `return` inside `BEGIN` and `END` blocks, in addition to functions.
+
+### nextfile / nextofile
+
+`nextfile` skips the rest of the current input file (standard awk behavior). `nextofile` advances to the next output file specified with `-t`.
+
+Example:
 
 ```sh
-$ echo -e "42\n3.14\n100" | hawk -f sum.hawk
-Starting the script...
-The sum of all numbers is: 142
+$ hawk -t /tmp/1 -t /tmp/2 'BEGIN { print 10; nextofile; print 20 }'
 ```
 
-In this example, the `sum.hawk` file contains the Hawk script that sums up the numbers from the input. The input is provided via the `echo` command, which outputs three lines: 42, 3.14 (ignored because it doesn't match the pattern), and 100. The script sums up the numbers 42 and 100, resulting in a total of 142.
+This writes `10` to `/tmp/1` and `20` to `/tmp/2`.
 
-It's important to note that if there is no action-pattern block or `END` block present in the Hawk script, the interpreter will not wait for input records. In this case, the script will execute only the `BEGIN` block (if present) and then immediately terminate.
 
-However, if an action-pattern block or an END block is present in the script, even if there is no action-pattern block, Hawk will wait for input records or lines. This behavior is consistent with the way awk was designed to operate: it expects input data to process unless the script explicitly indicates that no input is required.
+## Input, Output, and Pipes
 
-For example, consider the following command:
+- `getline` reads records.
+- `getbline` reads records as bytes.
+- `getline`/`getbline` return `1` on success, `0` on EOF, and `-1` on error.
+- Redirection works with `<`, `>`, and `>>`.
+- Pipes: `cmd | getline var` and `print x | "cmd"`.
+- Two-way pipes: `|&` when `@pragma rwpipe on`.
+- CSV-style field splitting is supported when `FS` begins with `?` followed by four characters (separator, escaper, left quote, right quote).
 
-```sh
-$ ls -l | hawk 'END { print NR; }'
+Example:
+
+```awk
+BEGIN { "ls" | getline x; print x }
 ```
 
-In this case, the Hawk script contains only an `END` block that prints the value of the `NR`(Number of Records) variable, which keeps track of the number of input records processed. Since there is an END block present, Hawk will wait for input records from the `ls -l` command, process them (though no action is taken for each record), and finally execute the END block, printing the total number of records processed.
+Two-way pipe example:
 
-Additionally, Hawk introduces the `@pragma entry` feature, which allows you to change the entry point of your script to a custom function instead of the default `BEGIN` block. This feature will be covered in the [Pragmas](#pragmas) section.
+```awk
+@pragma rwpipe on
+BEGIN {
+	cmd = "sort"
+	print "b" |& cmd
+	print "d" |& cmd
+	print "c" |& cmd
+	print "a" |& cmd
+	close(cmd, "to")
+	while ((cmd |& getline line) > 0) print line
+}
+```
+
+Redirection examples:
+
+```awk
+BEGIN {
+	while ((getline line < "input.txt") > 0) print line > "out.txt"
+	print "more" >> "out.txt"
+}
+```
+
+Byte-record example:
+
+```awk
+BEGIN { getbline b < "bin.dat"; print str::tohex(b) }
+```
+
+CSV-style `FS` example:
+
+```awk
+BEGIN {
+	FS = "?," "\"\""
+}
+{ print $1, $2 }
+```
+
+## Built-in Variables
+
+Common built-ins:
+
+- `NR`, `FNR`, `NF`
+- `FS`, `RS`, `OFS`, `ORS`
+- `FILENAME`, `OFILENAME`
+
+Example:
+
+```awk
+{ print NR, NF, $0 }
+```
+
+## Built-in Functions
+
+Hawk includes awk built-ins (e.g., `length`, `substr`, `split`, `index`) plus extensions in modules (see below).
+
+Example:
+
+```awk
+BEGIN { print length("hawk"), substr("hawk", 2, 2) }
+```
 
 ## Pragmas
 
-The `@pragma` keyword enables you to modify Hawk’s behavior. You can place a pragma item at the file scope within any source files. Additionally, a pragma item at the global scope can appear only once across all source files.
+`@pragma` controls parser/runtime behavior. File-scope pragmas apply per file; global-scope pragmas appear once across all files.
 
 | Name          | Scope  | Values        | Default | Description                                            |
 |---------------|--------|---------------|---------|--------------------------------------------------------|
@@ -282,18 +642,14 @@ The `@pragma` keyword enables you to modify Hawk’s behavior. You can place a p
 
 ### @pragma entry
 
-In addition to the standard `BEGIN` and `END` blocks found in awk, Hawk introduces the `@pragma entry` feature, which allows you to specify a custom entry point function. This can be useful when you want to bypass the default `BEGIN` block behavior and instead start executing your script from a specific function.
-
-The `@pragma entry` pragma is used to define the entry point function, like this:
+Sets a custom entry function instead of the default `BEGIN`/pattern/`END` flow.
 
 ```awk
 @pragma entry main;
 function main () { print "hello, world"; }
 ```
 
-In this example, the `main` function is set as the entry point for script execution. When the script is run, Hawk will execute the code inside the main function instead of the `BEGIN` block.
-
-You can also pass arguments to the entry point function by defining it with parameters:
+Arguments passed on the command line are provided to the entry function:
 
 ```awk
 @pragma entry main
@@ -302,22 +658,11 @@ function main(arg1, arg2) {
 }
 ```
 
-In this example, let's assume the script is saved as `main.hawk`. The `main` function is set as the entry point for script execution, and it accepts two arguments, `arg1` and `arg2`. Then, when executing the `main.hawk` script, you can provide the arguments like this:
-
 ```sh
 $ hawk -f main.hawk arg1_value arg2_value
 ```
 
-This will cause Hawk to execute the code inside the main function, passing `arg1_value` and `arg2_value` as the respective values for `arg1` and `arg2`.
-
-This flexibility in specifying the entry point can be useful in various scenarios, such as:
-
-- Modular Script Design: You can organize your script into multiple functions and specify the entry point function, making it easier to manage and maintain your code.
-- Command-line Arguments: By defining the entry point function with parameters, you can easily accept and process command-line arguments passed to your script.
-- Testing and Debugging: When working on specific parts of your script, you can temporarily set the entry point to a different function, making it easier to test and debug that particular functionality.
-- Integration with Other Systems: If you need to embed Hawk scripts within a larger application or system, you can use the `@pragma entry` feature to specify the function that should be executed as the entry point, enabling better integration and control over the script execution flow.
-
-If you don't know the number of arguments in advance, you can use the ellipsis `...` in the parameter list and access the variadic arguments using `@argv()` and `@argc()`.
+If you don't know the number of arguments in advance, use `...` and `@argv`/`@argc`:
 
 ```awk
 @pragma entry main
@@ -328,21 +673,22 @@ function main(...) {
 }
 ```
 
-In this example, the `main` function can accept variable number of arguments.
-
 ```sh
 $ hawk -f main.hawk 10 20 30 40 50
 ```
 
-The expected output of the above command is `10:20:30:40:50:`.
+Named arguments can be combined with `...` to require a minimum number of parameters:
 
-It's important to note that if you don't define an entry point function using `@pragma entry`, Hawk will default to the standard awk behavior and execute the `BEGIN` block first, followed by the pattern-action blocks, and finally the `END` block.
-
-Overall, the @pragma entry feature in Hawk provides you with greater flexibility and control over the execution flow of your scripts, allowing you to tailor the entry point to your specific needs and requirements.
+```awk
+function x(a, b, ...) {
+	print "a=", a, "b=", b, "rest=", (@argc - 2)
+}
+BEGIN { x(1, 2, 3, 4) }
+```
 
 ### @pragma implicit
 
-Hawk also introduces the `@pragma implicit` feature, which allows you to enforce variable declarations. Unlike traditional awk, where local variable declarations are not necessary, Hawk can require you to declare variables before using them. This is controlled by the `@pragma implicit` pragma:
+Controls implicit variable declaration. `off` requires `@local`/`@global`.
 
 ```awk
 @pragma implicit off;
@@ -360,18 +706,10 @@ BEGIN {
     a = 10; ## syntax ok - 'a' is declared before use
 }
 ```
-With the `@local` declaration, the variable `a` is explicitly declared, allowing it to be used without triggering a syntax error.
-This feature can be beneficial for catching potential variable misspellings or unintended uses of global variables, promoting better code quality and maintainability.
-
-If you don't want to enforce variable declarations, you can simply omit the `@pragma implicit off` directive or specify `@pragma implicit on`, and Hawk will behave like traditional awk, allowing implicit variable declarations.
 
 ### @pragma striprecspc
 
-The `@pragma striprecspc` directive in Hawk controls how the interpreter handles leading and trailing blank fields in input records when using a regular expression as the field separator (FS).
-
-When you set `FS` to a regular expression that matches one or more whitespace characters (e.g., FS="[[:space:]]+"), Hawk will split the input records into fields based on that pattern. By default, Hawk follows the behavior of traditional awk, which means that leading and trailing blank fields are preserved.
-
-However, Hawk introduces the `@pragma striprecspc` directive, which allows you to change this behavior. Here's how it works:
+When `FS` is a space-matching regex, this controls whether leading/trailing blank fields are removed.
 
 - @pragma striprecspc on
 ```sh
@@ -387,8 +725,6 @@ NF=4
 2 [c]
 3 [d]
 ```
-
-When `@pragma striprecspc on` is set, Hawk will automatically remove any leading and trailing blank fields from the input records. In the example above, the input string ' a b c d ' has a leading and trailing space, which would normally result in two additional blank fields. However, with `@pragma striprecspc on`, these blank fields are stripped, and the resulting `NF`(number of fields) is 4, corresponding to the fields "a", "b", "c", and "d".
 
 - @pragma striprecspc off
 
@@ -408,38 +744,26 @@ NF=6
 5 []
 ```
 
-When `@pragma striprecspc off` is set (or the directive is omitted, as this is the default behavior), Hawk preserves any leading and trailing blank fields in the input records. In the example above, the input string ' a b c d ' has a leading and trailing space, resulting in two additional blank fields. The `NF`(number of fields) is now 6, with the first and last fields being empty, and the remaining fields containing "a", "b", "c", and "d".
-
 ## @include and @include_once
 
-The `@include` directive inserts the contents of the file specified in the following string as if they appeared in the source stream being processed.
-
-Assuming the `hello.inc` file contains the print_hello() function as shown below,
+`@include` inserts another file at parse time; the semicolon is optional. `@include_once` avoids duplicate inclusion.
 
 ```awk
 function print_hello() { print "hello\n"; }
 ```
-
-You may include the the file and use the function.
 
 ```awk
 @include "hello.inc";
 BEGIN { print_hello(); }
 ```
 
-The semicolon after the included file name is optional. You could write `@include "hello.inc"` without the ending semicolon.
-
-`@include_once` is similar to `@include` except it doesn't include the same file multiple times.
-
 ```awk
 @include_once "hello.inc";
 @include_once "hello.inc";
 BEGIN { print_hello(); }
 ```
 
-In this example, `print_hello()` is not included twice.
-
-You may use @include and @include_once inside a block as well as at the top level.
+You can use them inside a block or at the top level:
 
 ```awk
 BEGIN {
@@ -501,213 +825,7 @@ The following words are reserved and cannot be used as a variable name, a parame
 
 However, some of these words not beginning with `@` can be used as normal names in the context of a module call. For example, `mymod::break`. In practice, the predefined names used for built-in commands, functions, and variables are treated as if they are reserved since you can't create another definition with the same name.
 
-## Values
-
-- uninitialized value
-- character - 'C'
-- byte character - @b'B'
-- integer
-- floating-point number
-- string - "string"
-- byte string - @b"byte string"
-- array - light-weight array with numeric index only
-- map - conventional AWK array
-- function
-- regular expression
-- reference to a value
-
-To know the current type name of a value, call `hawk::typename()`.
-
-```awk
-function f() { return 10; }
-BEGIN { 
-	a="hello";
-	b=12345;
-	print hawk::typename(a), hawk::typename(b), hawk::typename(c), hawk::typename(f), hawk::typename(1.23), hawk::typename(B"world");
-}
-```
-
-`hawk::type()` returns a numeric type code:
-- hawk::VAL_ARRAY
-- hawk::VAL_BCHAR
-- hawk::VAL_CHAR
-- hawk::VAL_FLT
-- hawk::VAL_INT
-- hawk::VAL_MAP
-- hawk::VAL_MBS
-- hawk::VAL_NIL
-- hawk::VAL_STR
-- hawk::VAL_REF
-- hawk::VAL_REX
-
-A regular expression literal is special in that it never appears as an independent value and still entails a match operation against $0 without an match operator.
-
-```awk
-BEGIN { $0="ab"; print /ab/, hawk::typename(/ab/); }
-```
-
-For this reason, there is no way to get the type name of a regular expression literal.
-
-### Numbers
-
-An integer begins with a numeric digit between 0 and 9 inclusive and can be
-followed by more numeric digits. If an integer is immediately followed by a
-floating point, and optionally a series of numeric digits without whitespaces,
-it becomes a floating-point number. An integer or a simple floating-point number
-can be followed by e or E, and optionally a series of numeric digits with a
-optional single sign letter. A floating-point number may begin with a floating
-point with a preceding number.
-
-- `369`   # integer
-- `3.69`  # floating-point number
-- `13.`   # 13.0
-- `.369`  # 0.369
-- `34e-2` # 34 * (10 ** -2)
-- `34e+2` # 34 * (10 ** 2)
-- `34.56e` # 34.56
-- `34.56E3`
-
-An integer can be prefixed with 0x, 0, 0b for a hexa-decimal number, an octal
-number, and a binary number respectively. For a hexa-decimal number, letters
-from A to F can form a number case-insensitively in addition to numeric digits.
-
-- `0xA1`   # 161
-- `0xB0b0` # 45232
-- `020`    # 16
-- `0b101`  # 5
-
-If the prefix is not followed by any numeric digits, it is still a valid token
-and represents the value of 0.
-
-- `0x` # 0x0 but not desirable.
-- `0b` # 0b0 but not desirable.
-
-
-### Map
-
-```awk
-BEGIN {
-	@local x, i;
-	x = hawk::map(); ## you can omit this line or use @{}
-	x["one"] = 1;
-	x["two"] = 2;
-	x[199] = 3;
-	for (i in x) print i, x[i];
-}
-```
-
-
-### Array
-
-```awk
-BEGIN {
-	@local x, i
-	x = hawk::array() ## you can use @[] instead of hawk::array()
-	for (i = 0; i < 20; i++) x[i] = i;
-	print hawk::isarray(x), hawk::ismap(x)
-	print "--------------";
-	for (i in x) print i, x[i];
-}
-```
-
-### Multidimensional Map/Array
-
-```awk
-BEGIN {
-        @local x, i, j, k;
-        k = hawk::array();
-
-        x = hawk::array();
-        k[0] = x;
-        k[1] = x;
-
-        for (i = 0; i < 20; i++) x[i] = i;
-        k[0][0] = 99;
-        for (j in k)
-                for (i in x) print j, i, x[i];
-}
-```
-
-## Operators
-
-- ===, ==, !==, !=
-- +, -, *, %
-- &&, ||, &, |
-
-## Control Structures
-
-Hawk supports various control structures for flow control and iteration, similar to those found in awk.
-
-The `if` statement follows the same syntax as in awk and other programming languages. It allows you to execute a block of code conditionally based on a specified condition.
-
-```awk
-if (condition) {
-	## statements
-} else if (another_condition) {
-	## other statements
-} else {
-	## default statements
-}
-```
-
-The `switch` statement allows the result of an expression to be tested against a list of values.
-```awk
-switch (expression) {
-case value:
-    ## statements
-...
-default:
-    ## statements
-}
-```
-
-The `while` loop is used to repeatedly execute a block of code as long as a specific condition is true.
-```awk
-while (condition) {
-	# statements
-}
-```
-
-The `do`-`while` loop is similar to the `while` loop, but it guarantees that the code block will be executed at least once, as the condition is evaluated after the first iteration.
-```awk
-do {
-	# statements
-} while (condition)
-```
-
-The `for` loop follows the same syntax as in awk and allows you to iterate over a range of values or an array.
-```awk
-for (initialization; condition; increment/decrement) {
-	## statements
-}
-```
-You can also use the `fo`r loop to iterate over the elements of an array:
-```awk
-for (index in array) {
-	## statements using array[index]
-}
-```
-
-Hawk also supports the `break` and `continue` statements, which work the same way as in awk and other programming languages. The `break` statement is used to exit a loop prematurely, while `continue` skips the remaining statements in the current iteration and moves to the next iteration.
-
-TODO:
-`return`
-`exit`
-`nextfile`
-`nextofile`
-
-Here are some examples demonstrating the usage of control structures in Hawk.
-
-- Check if a number is even or odd
-```awk
-{
-	if ($1 % 2 == 0) {
-		print $1, "is an even number"
-	} else {
-		print $1, "is an odd number"
-	}
-}
-```
+## More Examples
 
 - Print the first 10 even numbers
 ```awk
@@ -778,175 +896,6 @@ END {
 }
 ```
 
-The syntax and behavior of these structures are largely consistent with awk, making it easy for awk users to transition to Hawk and leverage their existing knowledge.
-
-## Function
-
-Hawk supports user-defined functions, enabling developers to break down complex logic into modular component for reuse. Hawk also provides a wide range of built-in functions that extend its capabilities for various tasks, such as string manipulation, array handling, and more.
-
-To define a function in Hawk, you use the function keyword followed by the function name and a set of parentheses to enclose the optional function parameters:
-
-```awk
-function function_name(parameter1, parameter2, ...) {
-	## function body
-	## statements
-	return value
-}
-```
-
-Functions in Hawk can accept parameters, perform operations, and optionally return a value using the `return` statement.
-
-Here's an example of a function that calculates the factorial of 10:
-
-```awk
-function factorial(n) {
-	if (n <= 1) {
-		return 1
-	} else {
-		return n * factorial(n - 1)
-	}
-}
-
-BEGIN {
-	num = 10
-	result = factorial(num)
-	print "The factorial of", num, "is", result
-}
-```
-
-If no `return` statement is encountered, the function returns `@nil`, which is Hawk's equivalent of `nil` or `null` in other programming languages.
-
-```awk
-function a() { k=999; }
-BEGIN { k=a(); print k === @nil, k === "", k == ""; }
-```
-
-The expected output of the above example code is `1 0 1`.
-- `k === @nil`: This expression evaluates to 1 (true) because `k` is indeed equal to `@nil` when using the type-precise `===` operator.
-- `k === ""`: This expression evaluates to 0 (false) because `k` is not equal to an empty string when using the type-precise `===` operator.
-- `k == ""`: This expression evaluates to 1 (true) because `@nil` is considered equal to an empty string when using the double equal sign `==` operator.
-
-Functions can be called from various contexts, including `BEGIN`, pattern-action blocks, and `END` blocks, as well as from other functions. They can be defined before or after they are used, as Hawk resolves function references.
-
-You can pass fewer arguments than the number of declared parameters to a function. In such cases, the missing parameters are treated as having `@nil`.
-
-Here's an example to illustrate this behavior:
-
-```awk
-function greet(name, greeting) {
-    if (greeting == "") {
-        greeting = "Hello"
-    }
-    print greeting, name
-}
-
-BEGIN {
-    greet("Alice", "Hi")     ## Output: Hi Alice
-    greet("Bob")             ## Output: Hello Bob
-    greet()                  ## Output: Hello
-}
-```
-
-In the above example:
-
-1. The `greet` function is defined with two parameters: `name` and `greeting`.
-1. In the first function call `greet("Alice", "Hi")`, both arguments are provided, so name is assigned `"Alice"`, and greeting is assigned `"Hi"`.
-1. In the second function call `greet("Bob")`, only one argument is provided. Therefore, name is assigned `"Bob"`, and greeting is assigned `@nil`. The function checks if greeting is empty and assigns the default value `"Hello"`.
-1. In the third function call `greet()`, no arguments are provided. Both `name` and `greeting` are assigned `@nil`. The function then assigns the default value `"Hello"` to greeting and prints `"Hello"`.
-
-However, it's important to note that you cannot pass more arguments than the number of declared parameters in a function. If you attempt to do so, Hawk will raise an error.
-
-## Variable
-
-Variables can be used to store and manipulate data. There are two types of variables:
-
-- Built-in Variables: These are predefined variables provided by the awk language itself. They are used for specific purposes and contain information about the input data or the state of the program.
-- User-defined Variables: These are variables created and used by the programmer to store and manipulate data as needed within the program.
-
-You can declare variables explicitly using the following syntax:
-
-1. Local Variables:
-   - Declared using `@local var_1, var_2, ...`
-   - These variables are scoped within the current block or function.
-1. Global Variables:
-   - Declared using `@global var_1, var_2, ...`
-   - These variables are accessible throughout the entire Hawk program.
-
-While explicit variable declaration is supported, Hawk also maintains compatibility with awk by allowing implicit variable creation and usage. See [@pragma implicit](#pragma-implicit) on how to control this behavior.
-
-```awk
-@global count, total;  # Global variables
-
-BEGIN {
-	@local i, j;  ## Local variables in the BEGIN block
-	count = 0;
-	total = 0;
-}
-
-{
-	@local value;  ## Local variable in the main block
-	value = $1 + $2;
-	count++;
-	total += value;
-}
-
-END {
-	print "Total count:", count;
-	print "Sum of values:", total;
-}
-```
-
-In this example:
-
-- `count` and `total` are global variables declared using `@global`.
-- `i` and `j` are local variables declared in the `BEGIN` block using `@local`.
-- `value` is a local variable declared in the main block using `@local`.
-
-
-### Built-in Variable
-
-| Variable     | Description |
-|--------------|-------------|
-| CONVFMT      |             |
-| FILENAME     |             |
-| FNR          | File Number of Records, It reset to 1 for each new input file |
-| FS           | Field Separator, specifies the character(s) that separate fields (columns) in an input record. The default is whitespace. |
-| IGNORECASE   |             |
-| NF           | Number of Fields (columns) in the current input record |
-| NR           | Number of Records processed so far |
-| NUMSTRDETECT |             |
-| OFILENAME    |             |
-| OFMT         |             |
-| OFS          |             |
-| ORS          |             |
-| RLENGTH      |             |
-| RS           | Record Separator, specifies the character(s) that separate input records (lines). The default is a newline `"\n"` |
-| RSTART       |             |
-| SCRIPTNAME   |             |
-| STRIPRECSPC  |             |
-| STRIPSTRSPC  |             |
-| SUBSPEP      |             |
-
-If `FS` is a string beginning with a question mark(`?`) followed by four characters, those characters define special quoting behavior in this order:
-- Separator
-- Escaper
-- Left quote
-- Right quote
-
-When the escaper, left quote, and right quote are all the same (for example, `?,"""`), you must repeat that character twice to represent it literally.
-
-In this specific case - when `FS` is in quoting form and the escaper, left quote, and right quote are identical - if `RS` is unset or set to `@nil`, then records may span multiple lines. This allows fields enclosed in quotes to contain embedded newlines.
-
-```sh
-$ echo -e 'the tiger, "pounced on\n""me"""' | hawk -v FS='?,"""' '{ for (i = 0; i <= NF; i++) print i, "[" $i "]"; }'
-0 [the tiger, "pounced on
-""me"""]
-1 [the tiger]
-2 [pounced on
-"me"]
-```
-
-## Pipes
 
 ```awk
 BEGIN {
