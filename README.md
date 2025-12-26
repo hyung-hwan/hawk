@@ -314,7 +314,7 @@ BEGIN {
 
 ### Arithmetic and Comparison
 
-- Arithmetic: `+`, `-`, `*`, `/`, `%`, `**` (exponentiation), `++`, `--`.
+- Arithmetic: `+`, `-`, `*`, `/`, `%`, `**` (exponentiation), `++`, `--`, `<<`, `>>`.
 - Comparisons: `==`, `!=`, `<`, `<=`, `>`, `>=`.
 - Type-precise compare: `===` and `!==`.
 
@@ -361,6 +361,7 @@ BEGIN {
 
 - Bitwise AND/OR: `&`, `|`.
 - `|` also denotes pipes, so use parentheses when you mean bitwise OR.
+- `>>` is also used for append redirection; use parentheses when you mean right shift.
 
 Bitwise OR vs pipe example:
 
@@ -553,27 +554,31 @@ This writes `10` to `/tmp/1` and `20` to `/tmp/2`.
 - `getline`/`getbline` return `1` on success, `0` on EOF, and `-1` on error.
 - Redirection works with `<`, `>`, and `>>`.
 - Pipes: `cmd | getline var` and `print x | "cmd"`.
-- Two-way pipes: `|&` when `@pragma rwpipe on`.
+- Two-way pipes: `|&`
 - CSV-style field splitting is supported when `FS` begins with `?` followed by four characters (separator, escaper, left quote, right quote).
 
 Example:
 
 ```awk
-BEGIN { "ls" | getline x; print x }
+BEGIN {
+	while (("ls -laF" | getline x) > 0) print "\t", x;
+	close ("ls -laF");
+}
 ```
 
 Two-way pipe example:
 
+
 ```awk
-@pragma rwpipe on
 BEGIN {
-	cmd = "sort"
-	print "b" |& cmd
-	print "d" |& cmd
-	print "c" |& cmd
-	print "a" |& cmd
-	close(cmd, "to")
-	while ((cmd |& getline line) > 0) print line
+	cmd = "sort";
+	data = hawk::array("hello", "world", "two-way pipe", "testing");
+
+	for (i = 1; i <= length(data); i++) print data[i] |& cmd;
+	close(cmd, "to");
+
+	while ((cmd |& getline line) > 0) print line;
+	close(cmd);
 }
 ```
 
@@ -595,11 +600,16 @@ BEGIN { getbline b < "bin.dat"; print str::tohex(b) }
 CSV-style `FS` example:
 
 ```awk
-BEGIN {
-	FS = "?," "\"\""
-}
-{ print $1, $2 }
+BEGIN { FS="?,\"\"\""; }
+{ for (i = 0; i <= NF; i++) print i, "[" $i "]"; }
 ```
+
+This example splits `hawk,can,read,"a ""CSV"" file",.` to 5 fields.
+- hawk
+- can
+- read
+- a "CSV" file
+- .
 
 ## Built-in Variables
 
@@ -825,7 +835,7 @@ The following words are reserved and cannot be used as a variable name, a parame
 
 However, some of these words not beginning with `@` can be used as normal names in the context of a module call. For example, `mymod::break`. In practice, the predefined names used for built-in commands, functions, and variables are treated as if they are reserved since you can't create another definition with the same name.
 
-## More Examples
+## Some Examples
 
 - Print the first 10 even numbers
 ```awk
@@ -896,31 +906,6 @@ END {
 }
 ```
 
-
-```awk
-BEGIN {
-	while (("ls -laF" | getline x) > 0) print "\t", x;
-	close ("ls -laF");
-}
-```
-
-```awk
-{ print $0 | "cat" }
-END { close("cat"); print "ENDED"; }
-```
-
-```awk
-BEGIN {
-	cmd = "sort";
-	data = hawk::array("hello", "world", "two-way pipe", "testing");
-
-	for (i = 1; i <= length(data); i++) print data[i] |& cmd;
-	close(cmd, "to");
-
-	while ((cmd |& getline line) > 0) print line;
-	close(cmd);
-}
-```
 ## Garbage Collection
 
 The primary value management is reference counting based but `map` and `array` values are garbage-collected additionally.
