@@ -3,6 +3,22 @@
 
 @include "tap.inc";
 
+function run_getline_test()
+{
+	@local x, b;
+
+	b = "stale ...";
+
+	## getlbine must return -1 if the file is not found and reset the variable blank.
+	x = (getbline b < "/non-existent-dir/non-existent-file.dat");
+	tap_ensure(x, -1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(b, "", @SCRIPTNAME, @SCRIPTLINE);
+
+	## getline must return -1 if the file is not found and reset the variable blank.
+	x = (getline b < "/non-existent-dir/non-existent-file.dat");
+	tap_ensure(x, -1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(b, "", @SCRIPTNAME, @SCRIPTLINE);
+}
 
 function run_gc_test ()
 {
@@ -31,6 +47,7 @@ function run_gc_test ()
 
 function main()
 {
+	run_getline_test();
 	run_gc_test();
 	tap_end ();
 }

@@ -136,7 +136,7 @@ static HAWK_INLINE hawk_oob_t* med3x (hawk_oob_t* a, hawk_oob_t* b, hawk_oob_t* 
 	}
 }
 
-void hawk_qsort(void* base, hawk_oow_t nmemb, hawk_oow_t size, hawk_sort_comper_t comper, void* ctx)
+void hawk_qsort (void* base, hawk_oow_t nmemb, hawk_oow_t size, hawk_sort_comper_t comper, void* ctx)
 {
 	hawk_oob_t* pa, * pb, * pc, * pd, * pl, * pm, * pn;
 	int swaptype, swap_cnt;
@@ -388,7 +388,7 @@ loop:
 
 #define REF(x,i) (&((x)[(i)*size]))
 
-void hawk_qsort(void* base, hawk_oow_t nmemb, hawk_oow_t size, void* arg,
+void hawk_qsort (void* base, hawk_oow_t nmemb, hawk_oow_t size, void* arg,
 	int (*compar)(const void*, const void*, void*))
 {
 	hawk_oow_t pivot, start, end;

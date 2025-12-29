@@ -230,7 +230,7 @@ The C++ classes are inferior to the C equivalents in that they don't allow creat
 
 ## What Hawk Is
 
-Hawk is an embeddable awk interpreter with extensions. It can run awk scripts from the CLI or from C/C++ and provides modules like `str::`, `sys::`, `ffi::`, `mysql::`, and `sqlite::`.
+Hawk is an embeddable awk interpreter with extensions. It can run hawk/awk scripts from the CLI or from C/C++ and provides modules like `str::`, `sys::`, `ffi::`, `mysql::`, and `sqlite::`.
 
 
 ## Running Hawk
@@ -282,7 +282,6 @@ $ hawk -f script.hawk one two
 entry: one two
 ```
 
-
 ## Values and Types
 
 Hawk is dynamically typed:
@@ -305,8 +304,9 @@ BEGIN {
 	c = 'X'
 	bc = @b'x'
 	bs = @b"\x00\x01"
-	m = @{"k": 1}
+	m = @{"k": 1, "j": "hello"}
 	arr = @["x", "y"]
+    print hawk::typename(a), hawk::typename(b), hawk::typename(s), hawk::typename(c), hawk::typename(bc), hawk::typename(bs), hawk::typename(m), hawk::typename(arr)
 }
 ```
 
@@ -408,7 +408,6 @@ BEGIN {
 	print arr[1], m["k"], m[10]
 }
 ```
-
 
 ## Functions
 
