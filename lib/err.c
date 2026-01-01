@@ -167,7 +167,7 @@ const hawk_ooch_t* hawk_dfl_errstr (hawk_errnum_t errnum)
 		HAWK_T("no such I/O name found"),
 		HAWK_T("I/O name empty"),
 		HAWK_T("I/O name containing '\\0'"),
-		HAWK_T("not sufficient arguments to formatting sequence"),
+		HAWK_T("insufficient arguments to formatting sequence"),
 		HAWK_T("invalid character in CONVFMT"),
 		HAWK_T("invalid character in OFMT"),
 
@@ -458,6 +458,11 @@ static int gem_err_uchars (hawk_fmtout_t* fmtout, const hawk_uch_t* ptr, hawk_oo
 	return 1; /* success */
 }
 
+static int gem_err_val (hawk_fmtout_t* fmtout, const hawk_val_t* val)
+{
+	return 1;
+}
+
 void hawk_gem_seterrbfmt (hawk_gem_t* gem, const hawk_loc_t* errloc, hawk_errnum_t errnum, const hawk_bch_t* errfmt, ...)
 {
 	va_list ap;
@@ -470,6 +475,7 @@ void hawk_gem_seterrbfmt (hawk_gem_t* gem, const hawk_loc_t* errloc, hawk_errnum
 	fo.mmgr = gem->mmgr;
 	fo.putbchars = gem_err_bchars;
 	fo.putuchars = gem_err_uchars;
+	fo.putval = gem_err_val;
 	fo.ctx = gem;
 
 	va_start (ap, errfmt);
@@ -492,6 +498,7 @@ void hawk_gem_seterrufmt (hawk_gem_t* gem, const hawk_loc_t* errloc, hawk_errnum
 	fo.mmgr = gem->mmgr;
 	fo.putbchars = gem_err_bchars;
 	fo.putuchars = gem_err_uchars;
+	fo.putval = gem_err_val;
 	fo.ctx = gem;
 
 	va_start (ap, errfmt);

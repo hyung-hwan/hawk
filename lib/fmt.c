@@ -437,7 +437,6 @@ static hawk_bch_t* sprintn_upper (hawk_bch_t* nbuf, hawk_uintmax_t num, int base
 
 #define BYTE_PRINTABLE(x) ((x >= 'a' && x <= 'z') || (x >= 'A' &&  x <= 'Z') || (x >= '0' && x <= '9') || (x == ' '))
 
-
 #define PUT_BYTE_IN_HEX(fmtout,byte,extra_flags) do { \
 	hawk_bch_t __xbuf[3]; \
 	hawk_byte_to_bcstr ((byte), __xbuf, HAWK_COUNTOF(__xbuf), (16 | (extra_flags)), '0'); \
@@ -1058,11 +1057,9 @@ static int fmt_outv (hawk_fmtout_t* fmtout, va_list ap)
 			break;
 		}
 
-		case 'O': /* object - ignore precision, width, adjustment */
-			/* NOTE: currently, there is no hawk_fmtout_t value that fills the putobj field. */
-			/*       it's kind of reserved for future implementation */
-			if (!fmtout->putobj) goto invalid_format;
-			if (fmtout->putobj(fmtout, va_arg(ap, hawk_val_t*)) <= -1) goto oops;
+		case 'v': /* value - ignore precision, width, adjustment */
+			if (!fmtout->putval) goto invalid_format;
+			if (fmtout->putval(fmtout, va_arg(ap, hawk_val_t*)) <= -1) goto oops;
 			break;
 
 		case 'e':
@@ -1589,6 +1586,11 @@ int hawk_ufmt_out (hawk_fmtout_t* fmtout, const hawk_uch_t* fmt, ...)
 	 (hawk)->shuterr = shuterr; \
 } while(0)
 
+static int log_val (hawk_fmtout_t* fmtout, const hawk_val_t* val)
+{
+	return 1;
+}
+
 static int log_oocs (hawk_fmtout_t* fmtout, const hawk_ooch_t* ptr, hawk_oow_t len)
 {
 	hawk_t* hawk = (hawk_t*)fmtout->ctx;
@@ -1667,7 +1669,7 @@ redo:
 		}
 	}
 
-	HAWK_MEMCPY (&hawk->log.ptr[hawk->log.len], ptr, len * HAWK_SIZEOF(*ptr));
+	HAWK_MEMCPY(&hawk->log.ptr[hawk->log.len], ptr, len * HAWK_SIZEOF(*ptr));
 	hawk->log.len += len;
 	hawk->log.last_mask = fmtout->mask;
 
@@ -1696,7 +1698,7 @@ static int log_ucs (hawk_fmtout_t* fmtout, const hawk_uch_t* ptr, hawk_oow_t len
 		len = rem;
 		bcslen = HAWK_COUNTOF(bcs);
 		hawk_conv_uchars_to_bchars_with_cmgr (ptr, &len, bcs, &bcslen, hawk_getcmgr(hawk));
-		log_bcs (fmtout, bcs, bcslen);
+		log_bcs(fmtout, bcs, bcslen);
 		rem -= len;
 		ptr += len;
 	}
@@ -1720,7 +1722,7 @@ static int log_bcs (hawk_fmtout_t* fmtout, const hawk_bch_t* ptr, hawk_oow_t len
 		len = rem;
 		ucslen = HAWK_COUNTOF(ucs);
 		hawk_conv_bchars_to_uchars_with_cmgr (ptr, &len, ucs, &ucslen, hawk_getcmgr(hawk), 1);
-		log_ucs (fmtout, ucs, ucslen);
+		log_ucs(fmtout, ucs, ucslen);
 		rem -= len;
 		ptr += len;
 	}
@@ -1751,13 +1753,14 @@ hawk_ooi_t hawk_logbfmtv (hawk_t* hawk, hawk_bitmask_t mask, const hawk_bch_t* f
 		mask |= HAWK_LOG_UNTYPED;
 	}
 
-	HAWK_MEMSET (&fo, 0, HAWK_SIZEOF(fo));
+	HAWK_MEMSET(&fo, 0, HAWK_SIZEOF(fo));
 	fo.fmt_type = HAWK_FMTOUT_FMT_TYPE_BCH;
 	fo.fmt_str = fmt;
 	fo.ctx = hawk;
 	fo.mask = mask;
 	fo.putbchars = log_bcs;
 	fo.putuchars = log_ucs;
+	fo.putval = log_val;
 
 	x = fmt_outv(&fo, ap);
 
@@ -1811,6 +1814,7 @@ hawk_ooi_t hawk_logufmtv (hawk_t* hawk, hawk_bitmask_t mask, const hawk_uch_t* f
 	fo.mask = mask;
 	fo.putbchars = log_bcs;
 	fo.putuchars = log_ucs;
+	fo.putval = log_val;
 
 	x = fmt_outv(&fo, ap);
 
@@ -1871,7 +1875,7 @@ static int sprint_bchars (hawk_fmtout_t* fmtout, const hawk_bch_t* ptr, hawk_oow
 #if defined(HAWK_OOCH_IS_UCH)
 	hawk_conv_bchars_to_uchars_with_cmgr (ptr, &len, &hawk->sprintf.xbuf.ptr[hawk->sprintf.xbuf.len], &oolen, hawk_getcmgr(hawk), 1);
 #else
-	HAWK_MEMCPY (&hawk->sprintf.xbuf.ptr[hawk->sprintf.xbuf.len], ptr, len * HAWK_SIZEOF(*ptr));
+	HAWK_MEMCPY(&hawk->sprintf.xbuf.ptr[hawk->sprintf.xbuf.len], ptr, len * HAWK_SIZEOF(*ptr));
 #endif
 	hawk->sprintf.xbuf.len += oolen;
 
@@ -1908,7 +1912,7 @@ static int sprint_uchars (hawk_fmtout_t* fmtout, const hawk_uch_t* ptr, hawk_oow
 	}
 
 #if defined(HAWK_OOCH_IS_UCH)
-	HAWK_MEMCPY (&hawk->sprintf.xbuf.ptr[hawk->sprintf.xbuf.len], ptr, len * HAWK_SIZEOF(*ptr));
+	HAWK_MEMCPY(&hawk->sprintf.xbuf.ptr[hawk->sprintf.xbuf.len], ptr, len * HAWK_SIZEOF(*ptr));
 #else
 	hawk_conv_uchars_to_bchars_with_cmgr (ptr, &len, &hawk->sprintf.xbuf.ptr[hawk->sprintf.xbuf.len], &oolen, hawk_getcmgr(hawk));
 #endif

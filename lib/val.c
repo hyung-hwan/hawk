@@ -2309,14 +2309,14 @@ int hawk_rtx_valtostr (hawk_rtx_t* rtx, const hawk_val_t* v, hawk_rtx_valtostr_o
 		case HAWK_VAL_MAP:
 			if (rtx->hawk->opt.trait & HAWK_FLEXMAP)
 			{
-				return str_to_str(rtx, HAWK_T("#MAP"), 4, out);
+				return str_to_str(rtx, HAWK_T("<MAP>"), 5, out);
 			}
 			goto invalid;
 
 		case HAWK_VAL_ARR:
 			if (rtx->hawk->opt.trait & HAWK_FLEXMAP)
 			{
-				return str_to_str(rtx, HAWK_T("#ARRAY"), 4, out);
+				return str_to_str(rtx, HAWK_T("<ARRAY>"), 7, out);
 			}
 			goto invalid;
 

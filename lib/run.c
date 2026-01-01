@@ -8376,6 +8376,43 @@ static hawk_ooi_t idxnde_to_int (hawk_rtx_t* rtx, hawk_nde_t* nde, hawk_nde_t** 
 }
 
 /* ========================================================================= */
+static hawk_val_t* get_arg_val_for_format(hawk_rtx_t* rtx, hawk_oow_t stack_arg_idx, hawk_oow_t nargs_on_stack, hawk_nde_t* args, hawk_val_t* val)
+{
+	hawk_val_t* v;
+
+	if (!args)
+	{
+		/* get the argument off the stack */
+		if (stack_arg_idx >= nargs_on_stack)
+		{
+			hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EFMTARG);
+			return HAWK_NULL;
+		}
+		v = hawk_rtx_getarg(rtx, stack_arg_idx);
+	}
+	else
+	{
+		/* get the argument from the given parse tree */
+		if (val)
+		{
+			/* -1 was passed to hawk_rtx_format() for nargs_on_stack. at the beginning
+			 * of the function, the mutation was performed to set val and update nargs_on_stack to 2 */
+			if (stack_arg_idx >= nargs_on_stack)
+			{
+				hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EFMTARG);
+				return HAWK_NULL;
+			}
+			v = val;
+		}
+		else
+		{
+			v = eval_expression(rtx, args);
+			if (HAWK_UNLIKELY(!v)) return HAWK_NULL;
+		}
+	}
+
+	return v;
+}
 
 hawk_ooch_t* hawk_rtx_format (
 	hawk_rtx_t* rtx, hawk_ooecs_t* out, hawk_ooecs_t* fbu,
@@ -8446,6 +8483,8 @@ hawk_ooch_t* hawk_rtx_format (
 
 	for (i = 0; i < fmt_len; i++)
 	{
+		hawk_val_t* vxx;
+		hawk_ooch_t fmtc;
 		hawk_int_t wp[2];
 		int wp_idx;
 #define WP_WIDTH     0
@@ -8516,32 +8555,8 @@ wp_mod_main:
 			hawk_val_t* v;
 			int n;
 
-			if (!args)
-			{
-				if (stack_arg_idx >= nargs_on_stack)
-				{
-					hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EFMTARG);
-					return HAWK_NULL;
-				}
-				v = hawk_rtx_getarg(rtx, stack_arg_idx);
-			}
-			else
-			{
-				if (val)
-				{
-					if (stack_arg_idx >= nargs_on_stack)
-					{
-						hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EFMTARG);
-						return HAWK_NULL;
-					}
-					v = val;
-				}
-				else
-				{
-					v = eval_expression(rtx, args);
-					if (HAWK_UNLIKELY(!v)) return HAWK_NULL;
-				}
-			}
+			v = get_arg_val_for_format(rtx, stack_arg_idx, nargs_on_stack, args, val);
+			if (HAWK_UNLIKELY(!v)) return HAWK_NULL;
 
 			hawk_rtx_refupval(rtx, v);
 			n = hawk_rtx_valtoint(rtx, v, &wp[wp_idx]);
@@ -8563,7 +8578,7 @@ wp_mod_main:
 				{
 					/* -n is the number of characters required
 					 * including terminating null  */
-					GROW_WITH_INC (&rtx->format.tmp, -n);
+					GROW_WITH_INC(&rtx->format.tmp, -n);
 					continue;
 				}
 
@@ -8608,10 +8623,62 @@ wp_mod_main:
 			flags |= FLAG_MINUS;
 		}
 
-		if (fmt[i] == 'd' || fmt[i] == 'i' ||
-		    fmt[i] == 'x' || fmt[i] == 'X' ||
-		    fmt[i] == 'b' || fmt[i] == 'B' ||
-		    fmt[i] == 'o' || fmt[i] == 'u')
+		fmtc = fmt[i]; /* 'i' don't get increment after this */
+		vxx = HAWK_NULL;
+
+		if (fmtc == 'v')
+		{
+			hawk_val_type_t vtype;
+
+			vxx = get_arg_val_for_format(rtx, stack_arg_idx, nargs_on_stack, args, val);
+			if (HAWK_UNLIKELY(!vxx)) return HAWK_NULL;
+
+			/* depending on the value, mutate the formatting specifier */
+			vtype = HAWK_RTX_GETVALTYPE(rtx, vxx);
+			switch (vtype)
+			{
+				case HAWK_VAL_NIL:
+					if (hawk_ooecs_ncat(out, HAWK_T("<@nil>"), 6) == (hawk_oow_t)-1) return HAWK_NULL;
+					goto next_arg;
+
+				case HAWK_VAL_CHAR:
+					fmtc = 'c';
+					break;
+				case HAWK_VAL_BCHR:
+					fmtc = 'c';
+					break;
+				case HAWK_VAL_INT:
+					fmtc = 'd';
+					break;
+				case HAWK_VAL_FLT:
+					fmtc = 'g';
+					break;
+				case HAWK_VAL_STR:
+				case HAWK_VAL_MBS:
+					fmtc = 's';
+					break;
+				case HAWK_VAL_BOB:
+					fmtc = 'k';
+					break;
+
+				case HAWK_VAL_ARR: /* TOOD: */
+					if (hawk_ooecs_ncat(out, HAWK_T("<ARRAY>"), 7) == (hawk_oow_t)-1) return HAWK_NULL;
+					goto next_arg;
+
+				case HAWK_VAL_MAP: /* TOOD: */
+					if (hawk_ooecs_ncat(out, HAWK_T("<MAP>"), 5) == (hawk_oow_t)-1) return HAWK_NULL;
+					goto next_arg;
+
+				default:
+					/* do nothing for now */
+					break;
+			}
+		}
+
+		if (fmtc == 'd' || fmtc == 'i' ||
+		    fmtc == 'x' || fmtc == 'X' ||
+		    fmtc == 'b' || fmtc == 'B' ||
+		    fmtc == 'o' || fmtc == 'u')
 		{
 			hawk_val_t* v;
 			hawk_int_t l;
@@ -8623,31 +8690,11 @@ wp_mod_main:
 			hawk_ooch_t fmt_fill = HAWK_T('\0');
 			const hawk_ooch_t* fmt_prefix = HAWK_NULL;
 
-			if (!args)
-			{
-				if (stack_arg_idx >= nargs_on_stack)
-				{
-					hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EFMTARG);
-					return HAWK_NULL;
-				}
-				v = hawk_rtx_getarg(rtx, stack_arg_idx);
-			}
+			if (vxx) v= vxx;
 			else
 			{
-				if (val)
-				{
-					if (stack_arg_idx >= nargs_on_stack)
-					{
-						hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EFMTARG);
-						return HAWK_NULL;
-					}
-					v = val;
-				}
-				else
-				{
-					v = eval_expression(rtx, args);
-					if (HAWK_UNLIKELY(!v)) return HAWK_NULL;
-				}
+				v = get_arg_val_for_format(rtx, stack_arg_idx, nargs_on_stack, args, val);
+				if (HAWK_UNLIKELY(!v)) return HAWK_NULL;
 			}
 
 			hawk_rtx_refupval(rtx, v);
@@ -8706,7 +8753,7 @@ wp_mod_main:
 				}
 			}
 
-			switch (fmt[i])
+			switch (fmtc)
 			{
 				case 'B':
 				case 'b':
@@ -8759,7 +8806,7 @@ wp_mod_main:
 			if (wp[WP_WIDTH] > 0)
 			{
 				if (wp[WP_WIDTH] > rtx->format.tmp.len)
-					GROW_WITH_INC (&rtx->format.tmp, wp[WP_WIDTH] - rtx->format.tmp.len);
+					GROW_WITH_INC(&rtx->format.tmp, wp[WP_WIDTH] - rtx->format.tmp.len);
 				fmt_width = wp[WP_WIDTH];
 			}
 			else fmt_width = rtx->format.tmp.len;
@@ -8783,7 +8830,7 @@ wp_mod_main:
 					 * to hawk_uintmax_t results in 0xFFFFFFFFFFFFFFFF,
 					 * though 0xFFFFFFF is expected in hexadecimal.
 					 */
-					n = hawk_fmt_uintmax_to_oocstr (
+					n = hawk_fmt_uintmax_to_oocstr(
 						rtx->format.tmp.ptr,
 						fmt_width,
 						(hawk_uint_t)l,
@@ -8795,7 +8842,7 @@ wp_mod_main:
 				}
 				else
 				{
-					n = hawk_fmt_intmax_to_oocstr (
+					n = hawk_fmt_intmax_to_oocstr(
 						rtx->format.tmp.ptr,
 						fmt_width,
 						l,
@@ -8808,7 +8855,7 @@ wp_mod_main:
 				if (n <= -1)
 				{
 					/* -n is the number of characters required */
-					GROW_WITH_INC (&rtx->format.tmp, -n);
+					GROW_WITH_INC(&rtx->format.tmp, -n);
 					fmt_width = -n;
 					continue;
 				}
@@ -8817,42 +8864,22 @@ wp_mod_main:
 			}
 			while (1);
 
-			OUT_STR (rtx->format.tmp.ptr, n);
+			OUT_STR(rtx->format.tmp.ptr, n);
 		}
-		else if (fmt[i] == HAWK_T('e') || fmt[i] == HAWK_T('E') ||
-		         fmt[i] == HAWK_T('g') || fmt[i] == HAWK_T('G') ||
-		         fmt[i] == HAWK_T('f'))
+		else if (fmtc == HAWK_T('e') || fmtc == HAWK_T('E') ||
+		         fmtc == HAWK_T('g') || fmtc == HAWK_T('G') ||
+		         fmtc == HAWK_T('f'))
 		{
 
 			hawk_val_t* v;
 			hawk_flt_t r;
 			int n;
 
-			if (!args)
-			{
-				if (stack_arg_idx >= nargs_on_stack)
-				{
-					hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EFMTARG);
-					return HAWK_NULL;
-				}
-				v = hawk_rtx_getarg(rtx, stack_arg_idx);
-			}
+			if (vxx) v = vxx;
 			else
 			{
-				if (val)  /* nargs_on_stack == (hawk_oow_t)-1 */
-				{
-					if (stack_arg_idx >= nargs_on_stack)
-					{
-						hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EFMTARG);
-						return HAWK_NULL;
-					}
-					v = val;
-				}
-				else
-				{
-					v = eval_expression(rtx, args);
-					if (HAWK_UNLIKELY(!v)) return HAWK_NULL;
-				}
+				v = get_arg_val_for_format(rtx, stack_arg_idx, nargs_on_stack, args, val);
+				if (HAWK_UNLIKELY(!v)) return HAWK_NULL;
 			}
 
 			hawk_rtx_refupval(rtx, v);
@@ -8862,48 +8889,28 @@ wp_mod_main:
 
 		#if defined(HAWK_USE_FLTMAX)
 			/*FMT_CHAR(HAWK_T('j'));*/
-			FMT_STR (HAWK_T("jj"), 2); /* see fmt.c for info on jj */
-			FMT_CHAR(fmt[i]);
+			FMT_STR(HAWK_T("jj"), 2); /* see fmt.c for info on jj */
+			FMT_CHAR(fmtc);
 			/*if (hawk_ooecs_fcat(out, HAWK_OOECS_PTR(fbu), r) == (hawk_oow_t)-1) return HAWK_NULL;*/
 			if (hawk_ooecs_fcat(out, HAWK_OOECS_PTR(fbu), &r) == (hawk_oow_t)-1) return HAWK_NULL;
 		#else
 			FMT_CHAR(HAWK_T('z'));
-			FMT_CHAR(fmt[i]);
+			FMT_CHAR(fmtc);
 			if (hawk_ooecs_fcat(out, HAWK_OOECS_PTR(fbu), r) == (hawk_oow_t)-1) return HAWK_NULL;
 		#endif
 		}
-		else if (fmt[i] == HAWK_T('c'))
+		else if (fmtc == HAWK_T('c'))
 		{
 			hawk_ooch_t ch;
 			hawk_oow_t ch_len;
 			hawk_val_t* v;
 			hawk_val_type_t vtype;
 
-			if (!args)
-			{
-				if (stack_arg_idx >= nargs_on_stack)
-				{
-					hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EFMTARG);
-					return HAWK_NULL;
-				}
-				v = hawk_rtx_getarg(rtx, stack_arg_idx);
-			}
+			if (vxx) v= vxx;
 			else
 			{
-				if (val)
-				{
-					if (stack_arg_idx >= nargs_on_stack)
-					{
-						hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EFMTARG);
-						return HAWK_NULL;
-					}
-					v = val;
-				}
-				else
-				{
-					v = eval_expression(rtx, args);
-					if (HAWK_UNLIKELY(!v)) return HAWK_NULL;
-				}
+				v = get_arg_val_for_format(rtx, stack_arg_idx, nargs_on_stack, args, val);
+				if (HAWK_UNLIKELY(!v)) return HAWK_NULL;
 			}
 
 			hawk_rtx_refupval(rtx, v);
@@ -9003,35 +9010,15 @@ wp_mod_main:
 
 			hawk_rtx_refdownval(rtx, v);
 		}
-		else if (fmt[i] == 's' || fmt[i] == 'k' || fmt[i] == 'K' || fmt[i] == 'w' || fmt[i] == 'W')
+		else if (fmtc == 's' || fmtc == 'k' || fmtc == 'K' || fmtc == 'w' || fmtc == 'W')
 		{
 			hawk_val_t* v;
 
-			if (!args)
-			{
-				if (stack_arg_idx >= nargs_on_stack)
-				{
-					hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EFMTARG);
-					return HAWK_NULL;
-				}
-				v = hawk_rtx_getarg(rtx, stack_arg_idx);
-			}
+			if (vxx) v = vxx;
 			else
 			{
-				if (val)
-				{
-					if (stack_arg_idx >= nargs_on_stack)
-					{
-						hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EFMTARG);
-						return HAWK_NULL;
-					}
-					v = val;
-				}
-				else
-				{
-					v = eval_expression(rtx, args);
-					if (HAWK_UNLIKELY(!v)) return HAWK_NULL;
-				}
+				v = get_arg_val_for_format(rtx, stack_arg_idx, nargs_on_stack, args, val);
+				if (HAWK_UNLIKELY(!v)) return HAWK_NULL;
 			}
 
 			if (val)
@@ -9062,10 +9049,10 @@ wp_mod_main:
 
 				/* format the value as if '%g' is given */
 			#if defined(HAWK_USE_FLTMAX)
-				FMT_STR (HAWK_T("jjg"), 3); /* see fmt.c for info on jj */
+				FMT_STR(HAWK_T("jjg"), 3); /* see fmt.c for info on jj */
 				if (hawk_ooecs_fcat(out, HAWK_OOECS_PTR(fbu), &r) == (hawk_oow_t)-1) return HAWK_NULL;
 			#else
-				FMT_STR (HAWK_T("zg"), 2);
+				FMT_STR(HAWK_T("zg"), 2);
 				if (hawk_ooecs_fcat(out, HAWK_OOECS_PTR(fbu), r) == (hawk_oow_t)-1) return HAWK_NULL;
 			#endif
 			}
@@ -9105,7 +9092,7 @@ wp_mod_main:
 						str_ptr = &ooch_tmp;
 						str_len = 1;
 					#else
-						if (fmt[i] == HAWK_T('s')) goto duplicate;
+						if (fmtc == HAWK_T('s')) goto duplicate;
 						bch_tmp = HAWK_RTX_GETBCHRFROMVAL(rtx, v);
 						str_ptr = (hawk_ooch_t*)&bch_tmp;
 						str_len = 1;
@@ -9117,7 +9104,7 @@ wp_mod_main:
 						str_ptr = ((hawk_val_mbs_t*)v)->val.ptr;
 						str_len = ((hawk_val_mbs_t*)v)->val.len;
 					#else
-						if (fmt[i] == HAWK_T('s')) goto duplicate;
+						if (fmtc == HAWK_T('s')) goto duplicate;
 						str_ptr = (hawk_ooch_t*)((hawk_val_mbs_t*)v)->val.ptr;
 						str_len = ((hawk_val_mbs_t*)v)->val.len;
 					#endif
@@ -9128,7 +9115,7 @@ wp_mod_main:
 						str_ptr = ((hawk_val_bob_t*)v)->val.ptr;
 						str_len = ((hawk_val_bob_t*)v)->val.len;
 					#else
-						if (fmt[i] == HAWK_T('s')) goto duplicate;
+						if (fmtc == HAWK_T('s')) goto duplicate;
 						str_ptr = (hawk_ooch_t*)((hawk_val_bob_t*)v)->val.ptr;
 						str_len = ((hawk_val_bob_t*)v)->val.len;
 					#endif
@@ -9170,7 +9157,7 @@ wp_mod_main:
 					}
 				}
 
-				if (fmt[i] == 'k' || fmt[i] == 'w') bytetostr_flagged_radix |= HAWK_BYTE_TO_BCSTR_LOWERCASE;
+				if (fmtc == 'k' || fmtc == 'w') bytetostr_flagged_radix |= HAWK_BYTE_TO_BCSTR_LOWERCASE;
 
 				for (k = 0; k < wp[WP_PRECISION]; k++)
 				{
@@ -9179,12 +9166,12 @@ wp_mod_main:
 				#if defined(HAWK_OOCH_IS_BCH)
 					curc = str_ptr[k];
 				#else
-					if ((vtype == HAWK_VAL_MBS || vtype == HAWK_VAL_BCHR) && fmt[i] != HAWK_T('s'))
+					if ((vtype == HAWK_VAL_MBS || vtype == HAWK_VAL_BCHR) && fmtc != HAWK_T('s'))
 						curc = (hawk_uint8_t)((hawk_bch_t*)str_ptr)[k];
 					else curc = str_ptr[k];
 				#endif
 
-					if ((fmt[i] != 's' && !HAWK_BYTE_PRINTABLE(curc)) || fmt[i] == 'w' || fmt[i] == 'W')
+					if ((fmtc != 's' && !HAWK_BYTE_PRINTABLE(curc)) || fmtc == 'w' || fmtc == 'W')
 					{
 						hawk_ooch_t xbuf[3];
 						if (curc <= 0xFF)
@@ -9249,11 +9236,18 @@ wp_mod_main:
 		}
 		else
 		{
-			if (fmt[i] != HAWK_T('%')) OUT_STR (HAWK_OOECS_PTR(fbu), HAWK_OOECS_LEN(fbu));
-			OUT_CHAR(fmt[i]);
+			if (vxx)
+			{
+				hawk_rtx_refupval(rtx, vxx);
+				hawk_rtx_refdownval(rtx, vxx);
+			}
+
+			if (fmtc != HAWK_T('%')) OUT_STR(HAWK_OOECS_PTR(fbu), HAWK_OOECS_LEN(fbu));
+			OUT_CHAR(fmtc);
 			goto skip_taking_arg;
 		}
 
+	next_arg:
 		if (!args || val) stack_arg_idx++;
 		else args = args->next;
 	skip_taking_arg:
@@ -9261,7 +9255,7 @@ wp_mod_main:
 	}
 
 	/* flush uncompleted formatting sequence */
-	OUT_STR (HAWK_OOECS_PTR(fbu), HAWK_OOECS_LEN(fbu));
+	OUT_STR(HAWK_OOECS_PTR(fbu), HAWK_OOECS_LEN(fbu));
 
 	*len = HAWK_OOECS_LEN(out);
 	return HAWK_OOECS_PTR(out);
@@ -9278,11 +9272,11 @@ hawk_bch_t* hawk_rtx_formatmbs (
 	hawk_oow_t stack_arg_idx = 1;
 	hawk_val_t* val;
 
-#define OUT_MCHAR(c) do { if (hawk_becs_ccat(out, (c)) == (hawk_oow_t)-1) return HAWK_NULL; } while(0)
+#define OUT_BCHAR(c) do { if (hawk_becs_ccat(out, (c)) == (hawk_oow_t)-1) return HAWK_NULL; } while(0)
 
 #define OUT_MBS(ptr,len) do { if (hawk_becs_ncat(out, (ptr), (len)) == (hawk_oow_t)-1) return HAWK_NULL; } while(0)
 
-#define FMT_MCHAR(c) do {  if (hawk_becs_ccat(fbu, (c)) == (hawk_oow_t)-1) return HAWK_NULL; } while(0)
+#define FMT_BCHAR(c) do {  if (hawk_becs_ccat(fbu, (c)) == (hawk_oow_t)-1) return HAWK_NULL; } while(0)
 
 #define FMT_MBS(ptr,len) do { if (hawk_becs_ncat(fbu, (ptr), (len)) == (hawk_oow_t)-1) return HAWK_NULL; } while(0)
 
@@ -9338,6 +9332,8 @@ hawk_bch_t* hawk_rtx_formatmbs (
 
 	for (i = 0; i < fmt_len; i++)
 	{
+		hawk_val_t* vxx;
+		hawk_bch_t fmtc;
 		hawk_int_t wp[2];
 		int wp_idx;
 #define WP_WIDTH     0
@@ -9356,12 +9352,12 @@ hawk_bch_t* hawk_rtx_formatmbs (
 			if (fmt[i] == HAWK_BT('%'))
 			{
 				/* add % to format specifier (fbu) */
-				FMT_MCHAR (fmt[i]);
+				FMT_BCHAR(fmt[i]);
 			}
 			else
 			{
 				/* normal output */
-				OUT_MCHAR (fmt[i]);
+				OUT_BCHAR(fmt[i]);
 			}
 			continue;
 		}
@@ -9391,7 +9387,7 @@ hawk_bch_t* hawk_rtx_formatmbs (
 					goto wp_mod_init;
 			}
 
-			FMT_MCHAR (fmt[i]); i++;
+			FMT_BCHAR(fmt[i]); i++;
 		}
 
 wp_mod_init:
@@ -9408,32 +9404,8 @@ wp_mod_main:
 			hawk_val_t* v;
 			int n;
 
-			if (!args)
-			{
-				if (stack_arg_idx >= nargs_on_stack)
-				{
-					hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EFMTARG);
-					return HAWK_NULL;
-				}
-				v = hawk_rtx_getarg(rtx, stack_arg_idx);
-			}
-			else
-			{
-				if (val)
-				{
-					if (stack_arg_idx >= nargs_on_stack)
-					{
-						hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EFMTARG);
-						return HAWK_NULL;
-					}
-					v = val;
-				}
-				else
-				{
-					v = eval_expression(rtx, args);
-					if (HAWK_UNLIKELY(!v)) return HAWK_NULL;
-				}
-			}
+			v = get_arg_val_for_format(rtx, stack_arg_idx, nargs_on_stack, args, val);
+			if (HAWK_UNLIKELY(!v)) return HAWK_NULL;
 
 			hawk_rtx_refupval(rtx, v);
 			n = hawk_rtx_valtoint(rtx, v, &wp[wp_idx]);
@@ -9442,7 +9414,7 @@ wp_mod_main:
 
 			do
 			{
-				n = hawk_fmt_intmax_to_bcstr (
+				n = hawk_fmt_intmax_to_bcstr(
 					rtx->formatmbs.tmp.ptr,
 					rtx->formatmbs.tmp.len,
 					wp[wp_idx],
@@ -9455,7 +9427,7 @@ wp_mod_main:
 				{
 					/* -n is the number of characters required
 					 * including terminating null  */
-					GROW_MBSBUF_WITH_INC (&rtx->formatmbs.tmp, -n);
+					GROW_MBSBUF_WITH_INC(&rtx->formatmbs.tmp, -n);
 					continue;
 				}
 
@@ -9478,7 +9450,7 @@ wp_mod_main:
 				do
 				{
 					wp[wp_idx] = wp[wp_idx] * 10 + fmt[i] - HAWK_BT('0');
-					FMT_MCHAR (fmt[i]); i++;
+					FMT_BCHAR(fmt[i]); i++;
 				}
 				while (i < fmt_len && hawk_is_bch_digit(fmt[i]));
 			}
@@ -9486,7 +9458,7 @@ wp_mod_main:
 
 		if (wp_idx == WP_WIDTH && i < fmt_len && fmt[i] == HAWK_BT('.'))
 		{
-			FMT_MCHAR (fmt[i]); i++;
+			FMT_BCHAR(fmt[i]); i++;
 
 			wp[WP_PRECISION] = 0;
 			wp_idx = WP_PRECISION; /* change index to precision */
@@ -9501,10 +9473,62 @@ wp_mod_main:
 			flags |= FLAG_MINUS;
 		}
 
-		if (fmt[i] == HAWK_BT('d') || fmt[i] == HAWK_BT('i') ||
-		    fmt[i] == HAWK_BT('x') || fmt[i] == HAWK_BT('X') ||
-		    fmt[i] == HAWK_BT('b') || fmt[i] == HAWK_BT('B') ||
-		    fmt[i] == HAWK_BT('o'))
+		fmtc = fmt[i]; /* 'i' don't get increment after this */
+		vxx = HAWK_NULL;
+
+		if (fmtc == 'v')
+		{
+			hawk_val_type_t vtype;
+
+			vxx = get_arg_val_for_format(rtx, stack_arg_idx, nargs_on_stack, args, val);
+			if (HAWK_UNLIKELY(!vxx)) return HAWK_NULL;
+
+			/* depending on the value, mutate the formatting specifier */
+			vtype = HAWK_RTX_GETVALTYPE(rtx, vxx);
+			switch (vtype)
+			{
+				case HAWK_VAL_NIL:
+					if (hawk_becs_ncat(out, HAWK_BT("<@nil>"), 6) == (hawk_oow_t)-1) return HAWK_NULL;
+					goto next_arg;
+
+				case HAWK_VAL_CHAR:
+					fmtc = 'c';
+					break;
+				case HAWK_VAL_BCHR:
+					fmtc = 'c';
+					break;
+				case HAWK_VAL_INT:
+					fmtc = 'd';
+					break;
+				case HAWK_VAL_FLT:
+					fmtc = 'g';
+					break;
+				case HAWK_VAL_STR:
+				case HAWK_VAL_MBS:
+					fmtc = 's';
+					break;
+				case HAWK_VAL_BOB:
+					fmtc = 'k';
+					break;
+
+				case HAWK_VAL_ARR: /* TOOD: */
+					if (hawk_becs_ncat(out, HAWK_BT("<ARRAY>"), 7) == (hawk_oow_t)-1) return HAWK_NULL;
+					goto next_arg;
+
+				case HAWK_VAL_MAP: /* TOOD: */
+					if (hawk_becs_ncat(out, HAWK_BT("<MAP>"), 5) == (hawk_oow_t)-1) return HAWK_NULL;
+					goto next_arg;
+
+				default:
+					/* do nothing for now */
+					break;
+			}
+		}
+
+		if (fmtc == HAWK_BT('d') || fmtc == HAWK_BT('i') ||
+		    fmtc == HAWK_BT('x') || fmtc == HAWK_BT('X') ||
+		    fmtc == HAWK_BT('b') || fmtc == HAWK_BT('B') ||
+		    fmtc == HAWK_BT('o'))
 		{
 			hawk_val_t* v;
 			hawk_int_t l;
@@ -9516,31 +9540,11 @@ wp_mod_main:
 			hawk_bch_t fmt_fill = HAWK_BT('\0');
 			const hawk_bch_t* fmt_prefix = HAWK_NULL;
 
-			if (!args)
-			{
-				if (stack_arg_idx >= nargs_on_stack)
-				{
-					hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EFMTARG);
-					return HAWK_NULL;
-				}
-				v = hawk_rtx_getarg(rtx, stack_arg_idx);
-			}
+			if (vxx) v= vxx;
 			else
 			{
-				if (val)
-				{
-					if (stack_arg_idx >= nargs_on_stack)
-					{
-						hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EFMTARG);
-						return HAWK_NULL;
-					}
-					v = val;
-				}
-				else
-				{
-					v = eval_expression(rtx, args);
-					if (HAWK_UNLIKELY(!v)) return HAWK_NULL;
-				}
+				v = get_arg_val_for_format(rtx, stack_arg_idx, nargs_on_stack, args, val);
+				if (HAWK_UNLIKELY(!v)) return HAWK_NULL;
 			}
 
 			hawk_rtx_refupval(rtx, v);
@@ -9599,7 +9603,7 @@ wp_mod_main:
 				}
 			}
 
-			switch (fmt[i])
+			switch (fmtc)
 			{
 				case HAWK_BT('B'):
 				case HAWK_BT('b'):
@@ -9650,7 +9654,7 @@ wp_mod_main:
 			if (wp[WP_WIDTH] > 0)
 			{
 				if (wp[WP_WIDTH] > rtx->formatmbs.tmp.len)
-					GROW_MBSBUF_WITH_INC (&rtx->formatmbs.tmp, wp[WP_WIDTH] - rtx->formatmbs.tmp.len);
+					GROW_MBSBUF_WITH_INC(&rtx->formatmbs.tmp, wp[WP_WIDTH] - rtx->formatmbs.tmp.len);
 				fmt_width = wp[WP_WIDTH];
 			}
 			else fmt_width = rtx->formatmbs.tmp.len;
@@ -9674,7 +9678,7 @@ wp_mod_main:
 					 * to hawk_uintmax_t results in 0xFFFFFFFFFFFFFFFF,
 					 * though 0xFFFFFFF is expected in hexadecimal.
 					 */
-					n = hawk_fmt_uintmax_to_bcstr (
+					n = hawk_fmt_uintmax_to_bcstr(
 						rtx->formatmbs.tmp.ptr,
 						fmt_width,
 						(hawk_uint_t)l,
@@ -9686,7 +9690,7 @@ wp_mod_main:
 				}
 				else
 				{
-					n = hawk_fmt_intmax_to_bcstr (
+					n = hawk_fmt_intmax_to_bcstr(
 						rtx->formatmbs.tmp.ptr,
 						fmt_width,
 						l,
@@ -9699,7 +9703,7 @@ wp_mod_main:
 				if (n <= -1)
 				{
 					/* -n is the number of characters required */
-					GROW_MBSBUF_WITH_INC (&rtx->formatmbs.tmp, -n);
+					GROW_MBSBUF_WITH_INC(&rtx->formatmbs.tmp, -n);
 					fmt_width = -n;
 					continue;
 				}
@@ -9708,41 +9712,21 @@ wp_mod_main:
 			}
 			while (1);
 
-			OUT_MBS (rtx->formatmbs.tmp.ptr, n);
+			OUT_MBS(rtx->formatmbs.tmp.ptr, n);
 		}
-		else if (fmt[i] == HAWK_BT('e') || fmt[i] == HAWK_BT('E') ||
-		         fmt[i] == HAWK_BT('g') || fmt[i] == HAWK_BT('G') ||
-		         fmt[i] == HAWK_BT('f'))
+		else if (fmtc == HAWK_BT('e') || fmtc == HAWK_BT('E') ||
+		         fmtc == HAWK_BT('g') || fmtc == HAWK_BT('G') ||
+		         fmtc == HAWK_BT('f'))
 		{
 			hawk_val_t* v;
 			hawk_flt_t r;
 			int n;
 
-			if (!args)
-			{
-				if (stack_arg_idx >= nargs_on_stack)
-				{
-					hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EFMTARG);
-					return HAWK_NULL;
-				}
-				v = hawk_rtx_getarg(rtx, stack_arg_idx);
-			}
+			if (vxx) v= vxx;
 			else
 			{
-				if (val)
-				{
-					if (stack_arg_idx >= nargs_on_stack)
-					{
-						hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EFMTARG);
-						return HAWK_NULL;
-					}
-					v = val;
-				}
-				else
-				{
-					v = eval_expression(rtx, args);
-					if (HAWK_UNLIKELY(!v)) return HAWK_NULL;
-				}
+				v = get_arg_val_for_format(rtx, stack_arg_idx, nargs_on_stack, args, val);
+				if (HAWK_UNLIKELY(!v)) return HAWK_NULL;
 			}
 
 			hawk_rtx_refupval(rtx, v);
@@ -9751,49 +9735,29 @@ wp_mod_main:
 			if (n <= -1) return HAWK_NULL;
 
 		#if defined(HAWK_USE_FLTMAX)
-			/*FMT_MCHAR (HAWK_BT('j'));*/
-			FMT_MBS (HAWK_BT("jj"), 2); /* see fmt.c for info on jj */
-			FMT_MCHAR (fmt[i]);
+			/*FMT_BCHAR(HAWK_BT('j'));*/
+			FMT_MBS(HAWK_BT("jj"), 2); /* see fmt.c for info on jj */
+			FMT_BCHAR(fmtc);
 			/*if (hawk_becs_fcat(out, HAWK_BECS_PTR(fbu), r) == (hawk_oow_t)-1) return HAWK_NULL;*/
 			if (hawk_becs_fcat(out, HAWK_BECS_PTR(fbu), &r) == (hawk_oow_t)-1) return HAWK_NULL;
 		#else
-			FMT_MCHAR (HAWK_BT('z'));
-			FMT_MCHAR (fmt[i]);
+			FMT_BCHAR(HAWK_BT('z'));
+			FMT_BCHAR(fmtc);
 			if (hawk_becs_fcat(out, HAWK_BECS_PTR(fbu), r) == (hawk_oow_t)-1) return HAWK_NULL;
 		#endif
 		}
-		else if (fmt[i] == HAWK_BT('c'))
+		else if (fmtc == HAWK_BT('c'))
 		{
 			hawk_bch_t ch;
 			hawk_oow_t ch_len;
 			hawk_val_t* v;
 			hawk_val_type_t vtype;
 
-			if (!args)
-			{
-				if (stack_arg_idx >= nargs_on_stack)
-				{
-					hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EFMTARG);
-					return HAWK_NULL;
-				}
-				v = hawk_rtx_getarg(rtx, stack_arg_idx);
-			}
+			if (vxx) v= vxx;
 			else
 			{
-				if (val)
-				{
-					if (stack_arg_idx >= nargs_on_stack)
-					{
-						hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EFMTARG);
-						return HAWK_NULL;
-					}
-					v = val;
-				}
-				else
-				{
-					v = eval_expression(rtx, args);
-					if (HAWK_UNLIKELY(!v)) return HAWK_NULL;
-				}
+				v = get_arg_val_for_format(rtx, stack_arg_idx, nargs_on_stack, args, val);
+				if (HAWK_UNLIKELY(!v)) return HAWK_NULL;
 			}
 
 			hawk_rtx_refupval(rtx, v);
@@ -9908,35 +9872,15 @@ wp_mod_main:
 
 			hawk_rtx_refdownval(rtx, v);
 		}
-		else if (fmt[i] == 's' || fmt[i] == 'k' || fmt[i] == 'K' || fmt[i] == 'w' || fmt[i] == 'W')
+		else if (fmtc == 's' || fmtc == 'k' || fmtc == 'K' || fmtc == 'w' || fmtc == 'W')
 		{
 			hawk_val_t* v;
 
-			if (!args)
-			{
-				if (stack_arg_idx >= nargs_on_stack)
-				{
-					hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EFMTARG);
-					return HAWK_NULL;
-				}
-				v = hawk_rtx_getarg(rtx, stack_arg_idx);
-			}
+			if (vxx) v= vxx;
 			else
 			{
-				if (val)
-				{
-					if (stack_arg_idx >= nargs_on_stack)
-					{
-						hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EFMTARG);
-						return HAWK_NULL;
-					}
-					v = val;
-				}
-				else
-				{
-					v = eval_expression(rtx, args);
-					if (HAWK_UNLIKELY(!v)) return HAWK_NULL;
-				}
+				v = get_arg_val_for_format(rtx, stack_arg_idx, nargs_on_stack, args, val);
+				if (HAWK_UNLIKELY(!v)) return HAWK_NULL;
 			}
 
 			if (val)
@@ -9967,10 +9911,10 @@ wp_mod_main:
 
 				/* format the value as if '%g' is given */
 			#if defined(HAWK_USE_FLTMAX)
-				FMT_MBS (HAWK_BT("jjg"), 3); /* see fmt.c for info on jj */
+				FMT_MBS(HAWK_BT("jjg"), 3); /* see fmt.c for info on jj */
 				if (hawk_becs_fcat(out, HAWK_BECS_PTR(fbu), &r) == (hawk_oow_t)-1) return HAWK_NULL;
 			#else
-				FMT_MBS (HAWK_BT("zg"), 2);
+				FMT_MBS(HAWK_BT("zg"), 2);
 				if (hawk_becs_fcat(out, HAWK_BECS_PTR(fbu), r) == (hawk_oow_t)-1) return HAWK_NULL;
 			#endif
 			}
@@ -10015,7 +9959,7 @@ wp_mod_main:
 						str_ptr = &bchr_tmp;
 						str_len = 1;
 					#else
-						if (fmt[i] == HAWK_BT('s')) goto duplicate;
+						if (fmtc == HAWK_BT('s')) goto duplicate;
 						ooch_tmp = HAWK_RTX_GETCHARFROMVAL(rtx, v);
 						str_ptr = (hawk_bch_t*)&ooch_tmp;
 						str_len = 1 * (HAWK_SIZEOF_OOCH_T / HAWK_SIZEOF_BCH_T);
@@ -10027,7 +9971,7 @@ wp_mod_main:
 						str_ptr = ((hawk_val_str_t*)v)->val.ptr;
 						str_len = ((hawk_val_str_t*)v)->val.len;
 					#else
-						if (fmt[i] == HAWK_BT('s')) goto duplicate;
+						if (fmtc == HAWK_BT('s')) goto duplicate;
 						/* arrange to print the wide character string byte by byte regardless of byte order */
 						str_ptr = (hawk_bch_t*)((hawk_val_str_t*)v)->val.ptr;
 						str_len = ((hawk_val_str_t*)v)->val.len * (HAWK_SIZEOF_OOCH_T / HAWK_SIZEOF_BCH_T);
@@ -10069,7 +10013,7 @@ wp_mod_main:
 					}
 				}
 
-				if (fmt[i] == 'k' || fmt[i] == 'w') bytetombs_flagged_radix |= HAWK_BYTE_TO_BCSTR_LOWERCASE;
+				if (fmtc == 'k' || fmtc == 'w') bytetombs_flagged_radix |= HAWK_BYTE_TO_BCSTR_LOWERCASE;
 
 				for (k = 0; k < wp[WP_PRECISION]; k++)
 				{
@@ -10077,7 +10021,7 @@ wp_mod_main:
 
 					curc = str_ptr[k];
 
-					if ((fmt[i] != 's' && !HAWK_BYTE_PRINTABLE(curc)) || fmt[i] == 'w' || fmt[i] == 'W')
+					if ((fmtc != 's' && !HAWK_BYTE_PRINTABLE(curc)) || fmtc == 'w' || fmtc == 'W')
 					{
 						hawk_bch_t xbuf[3];
 					#if 0 /* the range check isn't needed for hawk_bch_t. it's always <= 0xFF */
@@ -10147,11 +10091,12 @@ wp_mod_main:
 		}
 		else
 		{
-			if (fmt[i] != HAWK_BT('%')) OUT_MBS (HAWK_BECS_PTR(fbu), HAWK_BECS_LEN(fbu));
-			OUT_MCHAR (fmt[i]);
+			if (fmtc != HAWK_BT('%')) OUT_MBS(HAWK_BECS_PTR(fbu), HAWK_BECS_LEN(fbu));
+			OUT_BCHAR(fmtc);
 			goto skip_taking_arg;
 		}
 
+	next_arg:
 		if (!args || val) stack_arg_idx++;
 		else args = args->next;
 	skip_taking_arg:
@@ -10159,7 +10104,7 @@ wp_mod_main:
 	}
 
 	/* flush uncompleted formatting sequence */
-	OUT_MBS (HAWK_BECS_PTR(fbu), HAWK_BECS_LEN(fbu));
+	OUT_MBS(HAWK_BECS_PTR(fbu), HAWK_BECS_LEN(fbu));
 
 	*len = HAWK_BECS_LEN(out);
 	return HAWK_BECS_PTR(out);

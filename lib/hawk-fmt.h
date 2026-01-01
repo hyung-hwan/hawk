@@ -156,9 +156,9 @@ typedef int (*hawk_fmtout_putuchars_t) (
 	hawk_oow_t         len
 );
 
-typedef int (*hawk_fmtout_putobj_t) (
+typedef int (*hawk_fmtout_putval_t) (
 	hawk_fmtout_t*     fmtout,
-	hawk_val_t*        val
+	const hawk_val_t*  val
 );
 
 enum hawk_fmtout_fmt_type_t
@@ -175,7 +175,7 @@ struct hawk_fmtout_t
 	hawk_mmgr_t*            mmgr; /* in */
 	hawk_fmtout_putbchars_t putbchars; /* in */
 	hawk_fmtout_putuchars_t putuchars; /* in */
-	hawk_fmtout_putobj_t    putobj;  /* in - %O is not handled if it's not set. */
+	hawk_fmtout_putval_t    putval;  /* in - %v is not handled if it's not set. */
 	hawk_bitmask_t          mask;   /* in */
 	void*                   ctx;    /* in */
 

@@ -288,9 +288,9 @@ Hawk is dynamically typed:
 
 - Numbers: integer and floating-point.
 - Strings: Unicode text.
-- Characters can be written with single quotes (e.g., `'A'`) and are Unicode.
+- Characters can be written with single quotes (e.g., `'A'`) or with double quotes prefixed with `@c` (e.g. `@c"A"`).
 - Byte strings: raw bytes (`@b"..."`).
-- Byte characters use `@b'X'` and must fit in a single byte.
+- Byte characters use `@b'X'` or `@bc"X"` and must fit in a single byte.
 - Containers: array, map.
 - `@nil` represents null.
 
@@ -302,11 +302,13 @@ BEGIN {
 	b = 3.14
 	s = "hello"
 	c = 'X'
+	c2 = @C"X"
 	bc = @b'x'
+	bc2 = @bc"x"
 	bs = @b"\x00\x01"
 	m = @{"k": 1, "j": "hello"}
 	arr = @["x", "y"]
-    print hawk::typename(a), hawk::typename(b), hawk::typename(s), hawk::typename(c), hawk::typename(bc), hawk::typename(bs), hawk::typename(m), hawk::typename(arr)
+	print hawk::typename(a), hawk::typename(b), hawk::typename(s), hawk::typename(c), hawk::typename(c2), hawk::typename(bc), hawk::typename(bc2), hawk::typename(bs), hawk::typename(m), hawk::typename(arr)
 }
 ```
 
@@ -1263,7 +1265,7 @@ CREATE TABLE a(x int, y varchar(255));
 ```
 
 You can retreive all rows as shown below:
-```
+```awk
 @pragma entry main
 @pragma implicit off
 
@@ -1389,8 +1391,6 @@ There are subtle differences in handling expressions for positional variables. I
 |--------------|---------------|-----------------|
 | `$++$++i`    | syntax error  | OK              |
 | `$(++$(++i))`| OK            | syntax error    |
-
-### Return value of getline
 
 ### Others
 - `return` is allowed in `BEGIN` blocks, `END` blocks, and pattern-action blocks.

@@ -6750,7 +6750,7 @@ static int get_string (
 	#else
 		if (byte_only && c != '\\' && !HAWK_BYTE_PRINTABLE(c))
 		{
-			hawk_seterrfmt(hawk, &hawk->tok.loc, HAWK_EMBSCHR, HAWK_T("invalid mbs character '%jc'"), (hawk_ooch_t)c);
+			hawk_seterrfmt(hawk, &hawk->tok.loc, HAWK_EMBSCHR, HAWK_T("invalid byte character '%jc'"), (hawk_ooch_t)c);
 			return -1;
 		}
 	#endif
@@ -7003,7 +7003,7 @@ static int get_raw_string (hawk_t* hawk, hawk_ooch_t end_char, int byte_only, ha
 	#else
 		if (byte_only && c != '\\' && !HAWK_BYTE_PRINTABLE(c))
 		{
-			hawk_seterrfmt(hawk, &hawk->tok.loc, HAWK_EMBSCHR, HAWK_T("invalid mbs character '%jc'"), (hawk_ooch_t)c);
+			hawk_seterrfmt(hawk, &hawk->tok.loc, HAWK_EMBSCHR, HAWK_T("invalid byte character '%jc'"), (hawk_ooch_t)c);
 			return -1;
 		}
 	#endif
@@ -7349,15 +7349,20 @@ retry:
 		{
 			hawk_sio_lxc_t pc1 = hawk->sio.last;
 			GET_CHAR_TO(hawk, c);
-			if (c == 'R' || c == 'r')
+			if (c == 'C' || c == 'c')
 			{
 				hawk_sio_lxc_t pc2 = hawk->sio.last;
 				GET_CHAR_TO(hawk, c);
-				if (c == '\"')
+				if (c == '\"' || c == '\'')
 				{
-					/* raw byte string */
-					SET_TOKEN_TYPE(hawk, tok, TOK_MBS);
-					if (get_raw_string(hawk, c, 1, tok) <= -1) return -1;
+					/* byte character - @BC"X", @BC"x", @BC'X', @bc'X' */
+					SET_TOKEN_TYPE(hawk, tok, TOK_BCHR);
+					if (get_string(hawk, c, '\\', 0, 1, 0, tok) <= -1) return -1;
+					if (HAWK_OOECS_LEN(tok->name) != 1)
+					{
+						hawk_seterrfmt(hawk, &tok->loc, HAWK_ELXCHR, HAWK_T("invalid byte-character token"));
+						return -1;
+					}
 				}
 				else
 				{
@@ -7393,6 +7398,29 @@ retry:
 				goto process_at_identifier;
 			}
 		}
+		else if (c == 'C' || c == 'c')
+		{
+			hawk_sio_lxc_t pc1 = hawk->sio.last;
+			GET_CHAR_TO(hawk, c);
+			if (c == '\"' || c == '\'')
+			{
+				/* @C"X" @c"x" @C'X' @c'x' - character. alternative notation to 'X' */
+				SET_TOKEN_TYPE(hawk, tok, TOK_CHAR);
+				if (get_string(hawk, c, '\\', 0, 0, 0, tok) <= -1) return -1;
+				if (HAWK_OOECS_LEN(tok->name) != 1)
+				{
+					hawk_seterrfmt(hawk, &tok->loc, HAWK_ELXCHR, HAWK_T("invalid character token"));
+					return -1;
+				}
+			}
+			else
+			{
+				unget_char(hawk, &hawk->sio.last);
+				hawk->sio.last = pc1;
+				c = pc1.c;
+				goto process_at_identifier;
+			}
+		}
 		else if (c == 'R' || c == 'r')
 		{
 			hawk_sio_lxc_t pc1 = hawk->sio.last;
@@ -7401,11 +7429,72 @@ retry:
 			{
 				hawk_sio_lxc_t pc2 = hawk->sio.last;
 				GET_CHAR_TO(hawk, c);
-				if (c == '\"')
+
+				if (c == 'C' || c == 'c')
 				{
-					/* raw byte string */
+					hawk_sio_lxc_t pc3 = hawk->sio.last;
+					GET_CHAR_TO(hawk, c);
+					if (c == '\"' || c == '\'')
+					{
+						/* @rbc"X", @rbc"x" - raw byte character */
+						SET_TOKEN_TYPE(hawk, tok, TOK_BCHR);
+						if (get_raw_string(hawk, c, 1, tok) <= -1) return -1;
+						if (HAWK_OOECS_LEN(tok->name) != 1)
+						{
+							hawk_seterrfmt(hawk, &tok->loc, HAWK_ELXCHR, HAWK_T("invalid raw byte-character token"));
+							return -1;
+						}
+					}
+					else
+					{
+						unget_char(hawk, &hawk->sio.last);
+						unget_char(hawk, &pc3);
+						unget_char(hawk, &pc2);
+						hawk->sio.last = pc1;
+						c = pc1.c;
+						goto process_at_identifier;
+					}
+				}
+				else if (c == '\"')
+				{
+					/* @RB"X" - raw byte string */
 					SET_TOKEN_TYPE(hawk, tok, TOK_MBS);
 					if (get_raw_string(hawk, c, 1, tok) <= -1) return -1;
+				}
+				else if (c == '\'')
+				{
+					/* @RB'X' - raw byte character */
+					SET_TOKEN_TYPE(hawk, tok, TOK_BCHR);
+					if (get_raw_string(hawk, c, 1, tok) <= -1) return -1;
+					if (HAWK_OOECS_LEN(tok->name) != 1)
+					{
+						hawk_seterrfmt(hawk, &tok->loc, HAWK_ELXCHR, HAWK_T("invalid raw byte-character token"));
+						return -1;
+					}
+				}
+				else
+				{
+					unget_char(hawk, &hawk->sio.last);
+					unget_char(hawk, &pc2);
+					hawk->sio.last = pc1;
+					c = pc1.c;
+					goto process_at_identifier;
+				}
+			}
+			else if (c == 'C' || c == 'c')
+			{
+				hawk_sio_lxc_t pc2 = hawk->sio.last;
+				GET_CHAR_TO(hawk, c);
+				if (c == '\"' || c == '\'')
+				{
+					/* @RC"X", @RC"x" - raw character */
+					SET_TOKEN_TYPE(hawk, tok, TOK_CHAR);
+					if (get_raw_string(hawk, c, 0, tok) <= -1) return -1;
+					if (HAWK_OOECS_LEN(tok->name) != 1)
+					{
+						hawk_seterrfmt(hawk, &tok->loc, HAWK_ELXCHR, HAWK_T("invalid raw character token"));
+						return -1;
+					}
 				}
 				else
 				{
@@ -7418,17 +7507,21 @@ retry:
 			}
 			else if (c == '\"')
 			{
-				/* R, r - raw string */
+				/* @R"X", @r"X" - raw string */
 				SET_TOKEN_TYPE(hawk, tok, TOK_STR);
 				if (get_raw_string(hawk, c, 0, tok) <= -1) return -1;
 			}
-	#if 0
-
 			else if (c == '\'')
 			{
-				/* TODO: character literal when I add a character type?? */
+				/* @R"x", @R'x' - raw character */
+				SET_TOKEN_TYPE(hawk, tok, TOK_CHAR);
+				if (get_raw_string(hawk, c, 0, tok) <= -1) return -1;
+				if (HAWK_OOECS_LEN(tok->name) != 1)
+				{
+					hawk_seterrfmt(hawk, &tok->loc, HAWK_ELXCHR, HAWK_T("invalid raw character token"));
+					return -1;
+				}
 			}
-	#endif
 			else
 			{
 				unget_char(hawk, &hawk->sio.last);

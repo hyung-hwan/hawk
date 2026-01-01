@@ -50,3 +50,28 @@ BEGIN {
 BEGIN {
 	hawk::call("sys::SIGTERM", 10 20); ##ERROR: 'sys::SIGTERM' not a function or unsupported
 }
+
+---
+
+BEGIN {
+	printf(@b"hello %s %c\n", "world"); ##ERROR: insufficient arguments to formatting sequence
+}
+
+---
+
+BEGIN {
+	printf("hello %s %c %d\n", "world", 'h'); ##ERROR: insufficient arguments to formatting sequence
+}
+
+---
+
+BEGIN {
+	print @rbc"X";
+	print @rbcd;	##ERROR: '@rbcd' not recognized
+}
+
+---
+
+BEGIN {
+	print @bc'π'; ##ERROR: invalid byte character 'π'
+}

@@ -27,29 +27,29 @@
 void* hawk_gem_allocmem (hawk_gem_t* gem, hawk_oow_t size)
 {
 	void* ptr = HAWK_MMGR_ALLOC(gem->mmgr, size);
-	if (!ptr) hawk_gem_seterrnum (gem, HAWK_NULL, HAWK_ENOMEM);
+	if (!ptr) hawk_gem_seterrnum(gem, HAWK_NULL, HAWK_ENOMEM);
 	return ptr;
 }
 
 void* hawk_gem_callocmem (hawk_gem_t* gem, hawk_oow_t size)
 {
 	void* ptr = HAWK_MMGR_ALLOC(gem->mmgr, size);
-	if (ptr) HAWK_MEMSET (ptr, 0, size);
-	else hawk_gem_seterrnum (gem, HAWK_NULL, HAWK_ENOMEM);
+	if (ptr) HAWK_MEMSET(ptr, 0, size);
+	else hawk_gem_seterrnum(gem, HAWK_NULL, HAWK_ENOMEM);
 	return ptr;
 }
 
 void* hawk_gem_reallocmem (hawk_gem_t* gem, void* ptr, hawk_oow_t size)
 {
 	void* nptr = HAWK_MMGR_REALLOC(gem->mmgr, ptr, size);
-	if (!nptr) hawk_gem_seterrnum (gem, HAWK_NULL, HAWK_ENOMEM);
+	if (!nptr) hawk_gem_seterrnum(gem, HAWK_NULL, HAWK_ENOMEM);
 	return nptr;
 }
 
 void* hawk_gem_callocmem_noseterr (hawk_gem_t* gem, hawk_oow_t size)
 {
 	void* ptr = HAWK_MMGR_ALLOC(gem->mmgr, size);
-	if (ptr) HAWK_MEMSET (ptr, 0, size);
+	if (ptr) HAWK_MEMSET(ptr, 0, size);
 	return ptr;
 }
 
@@ -217,7 +217,7 @@ int hawk_gem_convbtouchars (hawk_gem_t* gem, const hawk_bch_t* bcs, hawk_oow_t* 
 	int n;
 	n = hawk_conv_bchars_to_uchars_with_cmgr(bcs, bcslen, ucs, ucslen, gem->cmgr, all);
 	/* -1: illegal character, -2: buffer too small, -3: incomplete sequence */
-	if (n <= -1) hawk_gem_seterrnum (gem, HAWK_NULL, (n == -2)? HAWK_EBUFFULL: HAWK_EECERR);
+	if (n <= -1) hawk_gem_seterrnum(gem, HAWK_NULL, (n == -2)? HAWK_EBUFFULL: HAWK_EECERR);
 	return n;
 }
 
@@ -226,7 +226,7 @@ int hawk_gem_convutobchars (hawk_gem_t* gem, const hawk_uch_t* ucs, hawk_oow_t* 
 	/* length bound */
 	int n;
 	n = hawk_conv_uchars_to_bchars_with_cmgr(ucs, ucslen, bcs, bcslen, gem->cmgr);
-	if (n <= -1) hawk_gem_seterrnum (gem, HAWK_NULL, (n == -2)? HAWK_EBUFFULL: HAWK_EECERR);
+	if (n <= -1) hawk_gem_seterrnum(gem, HAWK_NULL, (n == -2)? HAWK_EBUFFULL: HAWK_EECERR);
 	return n;
 }
 
@@ -235,7 +235,7 @@ int hawk_gem_convbtoucstr (hawk_gem_t* gem, const hawk_bch_t* bcs, hawk_oow_t* b
 	/* null-terminated. */
 	int n;
 	n = hawk_conv_bcstr_to_ucstr_with_cmgr(bcs, bcslen, ucs, ucslen, gem->cmgr, all);
-	if (n <= -1) hawk_gem_seterrnum (gem, HAWK_NULL, (n == -2)? HAWK_EBUFFULL: HAWK_EECERR);
+	if (n <= -1) hawk_gem_seterrnum(gem, HAWK_NULL, (n == -2)? HAWK_EBUFFULL: HAWK_EECERR);
 	return n;
 }
 
@@ -244,7 +244,7 @@ int hawk_gem_convutobcstr (hawk_gem_t* gem, const hawk_uch_t* ucs, hawk_oow_t* u
 	/* null-terminated */
 	int n;
 	n = hawk_conv_ucstr_to_bcstr_with_cmgr(ucs, ucslen, bcs, bcslen, gem->cmgr);
-	if (n <= -1) hawk_gem_seterrnum (gem, HAWK_NULL, (n == -2)? HAWK_EBUFFULL: HAWK_EECERR);
+	if (n <= -1) hawk_gem_seterrnum(gem, HAWK_NULL, (n == -2)? HAWK_EBUFFULL: HAWK_EECERR);
 	return n;
 }
 
@@ -387,7 +387,7 @@ hawk_uch_t* hawk_gem_dupbtoucharswithcmgr (hawk_gem_t* gem, const hawk_bch_t* bc
 	if (n <= -1)
 	{
 		/* -1: illegal character, -2: buffer too small, -3: incomplete sequence */
-		hawk_gem_seterrnum (gem, HAWK_NULL, (n == -2)? HAWK_EBUFFULL: HAWK_EECERR);
+		hawk_gem_seterrnum(gem, HAWK_NULL, (n == -2)? HAWK_EBUFFULL: HAWK_EECERR);
 		return HAWK_NULL;
 	}
 
@@ -415,7 +415,7 @@ hawk_bch_t* hawk_gem_duputobcharswithcmgr (hawk_gem_t* gem, const hawk_uch_t* uc
 	if (n <= -1)
 	{
 		/* -1: illegal character, -2: buffer too small, -3: incomplete sequence */
-		hawk_gem_seterrnum (gem, HAWK_NULL, (n == -2)? HAWK_EBUFFULL: HAWK_EECERR);
+		hawk_gem_seterrnum(gem, HAWK_NULL, (n == -2)? HAWK_EBUFFULL: HAWK_EECERR);
 		return HAWK_NULL;
 	}
 
@@ -510,7 +510,7 @@ static int fmt_put_bchars_to_uch_buf (hawk_fmtout_t* fmtout, const hawk_bch_t* p
 		}
 		else
 		{
-			hawk_gem_seterrnum (b->gem, HAWK_NULL, HAWK_EECERR);
+			hawk_gem_seterrnum(b->gem, HAWK_NULL, HAWK_EECERR);
 			return -1;
 		}
 	}
@@ -528,11 +528,16 @@ static int fmt_put_uchars_to_uch_buf (hawk_fmtout_t* fmtout, const hawk_uch_t* p
 	b->len += n;
 	if (n < len)
 	{
-		hawk_gem_seterrnum (b->gem, HAWK_NULL, HAWK_EBUFFULL);
+		hawk_gem_seterrnum(b->gem, HAWK_NULL, HAWK_EBUFFULL);
 		return 0; /* stop. insufficient buffer */
 	}
 
 	return 1; /* success */
+}
+
+static int fmt_put_val_to_uch_buf (hawk_fmtout_t* fmtout, const hawk_val_t* val)
+{
+	return 1;
 }
 
 hawk_oow_t hawk_gem_vfmttoucstr (hawk_gem_t* gem, hawk_uch_t* buf, hawk_oow_t bufsz, const hawk_uch_t* fmt, va_list ap)
@@ -542,13 +547,14 @@ hawk_oow_t hawk_gem_vfmttoucstr (hawk_gem_t* gem, hawk_uch_t* buf, hawk_oow_t bu
 
 	if (bufsz <= 0) return 0;
 
-	HAWK_MEMSET (&fo, 0, HAWK_SIZEOF(fo));
+	HAWK_MEMSET(&fo, 0, HAWK_SIZEOF(fo));
 	fo.mmgr = gem->mmgr;
 	fo.putbchars = fmt_put_bchars_to_uch_buf;
 	fo.putuchars = fmt_put_uchars_to_uch_buf;
+	fo.putval = fmt_put_val_to_uch_buf;
 	fo.ctx = &fb;
 
-	HAWK_MEMSET (&fb, 0, HAWK_SIZEOF(fb));
+	HAWK_MEMSET(&fb, 0, HAWK_SIZEOF(fb));
 	fb.gem = gem;
 	fb.ptr = buf;
 	fb.capa = bufsz - 1;
@@ -564,9 +570,9 @@ hawk_oow_t hawk_gem_fmttoucstr (hawk_gem_t* gem, hawk_uch_t* buf, hawk_oow_t buf
 	hawk_oow_t x;
 	va_list ap;
 
-	va_start (ap, fmt);
+	va_start(ap, fmt);
 	x = hawk_gem_vfmttoucstr(gem, buf, bufsz, fmt, ap);
-	va_end (ap);
+	va_end(ap);
 
 	return x;
 }
@@ -593,7 +599,7 @@ static int fmt_put_bchars_to_bch_buf (hawk_fmtout_t* fmtout, const hawk_bch_t* p
 	b->len += n;
 	if (n < len)
 	{
-		hawk_gem_seterrnum (b->gem, HAWK_NULL, HAWK_EBUFFULL);
+		hawk_gem_seterrnum(b->gem, HAWK_NULL, HAWK_EBUFFULL);
 		return 0; /* stop. insufficient buffer */
 	}
 
@@ -619,12 +625,17 @@ static int fmt_put_uchars_to_bch_buf (hawk_fmtout_t* fmtout, const hawk_uch_t* p
 		}
 		else
 		{
-			hawk_gem_seterrnum (b->gem, HAWK_NULL, HAWK_EECERR);
+			hawk_gem_seterrnum(b->gem, HAWK_NULL, HAWK_EECERR);
 			return -1;
 		}
 	}
 
 	return 1; /* success. carry on */
+}
+
+static int fmt_put_val_to_bch_buf (hawk_fmtout_t* fmtout, const hawk_val_t* val)
+{
+	return 1;
 }
 
 hawk_oow_t hawk_gem_vfmttobcstr (hawk_gem_t* gem, hawk_bch_t* buf, hawk_oow_t bufsz, const hawk_bch_t* fmt, va_list ap)
@@ -634,13 +645,14 @@ hawk_oow_t hawk_gem_vfmttobcstr (hawk_gem_t* gem, hawk_bch_t* buf, hawk_oow_t bu
 
 	if (bufsz <= 0) return 0;
 
-	HAWK_MEMSET (&fo, 0, HAWK_SIZEOF(fo));
+	HAWK_MEMSET(&fo, 0, HAWK_SIZEOF(fo));
 	fo.mmgr = gem->mmgr;
 	fo.putbchars = fmt_put_bchars_to_bch_buf;
 	fo.putuchars = fmt_put_uchars_to_bch_buf;
+	fo.putval = fmt_put_val_to_bch_buf;
 	fo.ctx = &fb;
 
-	HAWK_MEMSET (&fb, 0, HAWK_SIZEOF(fb));
+	HAWK_MEMSET(&fb, 0, HAWK_SIZEOF(fb));
 	fb.gem = gem;
 	fb.ptr = buf;
 	fb.capa = bufsz - 1;
@@ -656,9 +668,9 @@ hawk_oow_t hawk_gem_fmttobcstr (hawk_gem_t* gem, hawk_bch_t* buf, hawk_oow_t buf
 	hawk_oow_t x;
 	va_list ap;
 
-	va_start (ap, fmt);
+	va_start(ap, fmt);
 	x = hawk_gem_vfmttobcstr(gem, buf, bufsz, fmt, ap);
-	va_end (ap);
+	va_end(ap);
 
 	return x;
 }
@@ -679,7 +691,7 @@ int hawk_gem_buildrex (hawk_gem_t* gem, const hawk_ooch_t* ptn, hawk_oow_t len, 
 
 		if (hawk_tre_compx(tre, ptn, len, HAWK_NULL, opt) <= -1)
 		{
-			hawk_tre_close (tre);
+			hawk_tre_close(tre);
 			return -1;
 		}
 	}
@@ -689,15 +701,15 @@ int hawk_gem_buildrex (hawk_gem_t* gem, const hawk_ooch_t* ptn, hawk_oow_t len, 
 		itre = hawk_tre_open(gem, 0);
 		if (itre == HAWK_NULL)
 		{
-			if (tre) hawk_tre_close (tre);
+			if (tre) hawk_tre_close(tre);
 			return -1;
 		}
 
 		/* ignorecase is a compile option for TRE */
 		if (hawk_tre_compx(itre, ptn, len, HAWK_NULL, opt | HAWK_TRE_IGNORECASE) <= -1)
 		{
-			hawk_tre_close (itre);
-			if (tre) hawk_tre_close (tre);
+			hawk_tre_close(itre);
+			if (tre) hawk_tre_close(tre);
 			return -1;
 		}
 	}
@@ -709,6 +721,6 @@ int hawk_gem_buildrex (hawk_gem_t* gem, const hawk_ooch_t* ptn, hawk_oow_t len, 
 
 void hawk_gem_freerex (hawk_gem_t* gem, hawk_tre_t* code, hawk_tre_t* icode)
 {
-	if (icode && icode != code) hawk_tre_close (icode);
-	if (code) hawk_tre_close (code);
+	if (icode && icode != code) hawk_tre_close(icode);
+	if (code) hawk_tre_close(code);
 }

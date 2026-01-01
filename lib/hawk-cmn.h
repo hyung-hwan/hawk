@@ -1054,7 +1054,7 @@ enum hawk_errnum_t
 	HAWK_EIONMNF,       /**< no such I/O name found */
 	HAWK_EIONMEM,       /**< I/O name empty */
 	HAWK_EIONMNL,       /**< I/O name containing '\\0' */
-	HAWK_EFMTARG,       /**< not sufficient arguments to formatting sequence */
+	HAWK_EFMTARG,       /**< insufficient arguments to formatting sequence */
 	HAWK_ECONVFMTCHR,   /**< invalid character in CONVFMT */
 	HAWK_EOFMTCHR,      /**< invalid character in OFMT */
 
