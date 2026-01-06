@@ -8414,6 +8414,489 @@ static hawk_val_t* get_arg_val_for_format(hawk_rtx_t* rtx, hawk_oow_t stack_arg_
 	return v;
 }
 
+
+/* for wp_idx */
+#define FMT_WP_WIDTH     (0)
+#define FMT_WP_PRECISION (1)
+
+/* for fmt_flags */
+#define FMT_FLAG_SPACE (1 << 0)
+#define FMT_FLAG_HASH  (1 << 1)
+#define FMT_FLAG_ZERO  (1 << 2)
+#define FMT_FLAG_PLUS  (1 << 3)
+#define FMT_FLAG_MINUS (1 << 4)
+
+#define FMT_V_FLT_TO_STR (1)
+#define FMT_V_CS_TO_STR  (2)
+#define FMT_V_FUN_TO_STR (3)
+
+/* ========================================================================= */
+
+static int format_str(hawk_rtx_t* rtx, hawk_ooecs_t* out, hawk_ooecs_t* fbu, hawk_val_t* v, int fmt_v, hawk_ooch_t fmtc, hawk_int_t wp[2], int wp_idx, int fmt_flags)
+{
+	hawk_ooch_t* str_ptr;
+	hawk_ooch_t* str_free = HAWK_NULL;
+	hawk_oow_t str_len;
+	hawk_val_type_t vtype;
+	int bytetostr_flagged_radix = 16;
+
+	if (fmt_v == FMT_V_CS_TO_STR || fmt_v == FMT_V_FUN_TO_STR)
+	{
+		/* leave str_free as HAWK_NULL and arrange some hakcy values in other variables */
+		str_ptr = ((hawk_oocs_t*)v)->ptr;
+		str_len = ((hawk_oocs_t*)v)->len;
+		vtype = HAWK_VAL_STR; /* this is fake */
+		if (fmt_v == FMT_V_FUN_TO_STR) str_len += 6; /* super hacky - 6 for the length of <FUN:> */
+		goto do_strfmt;
+	}
+
+	if (fmt_v == FMT_V_FLT_TO_STR) /* hacky */
+	{
+		/* val_flt_to_str() in val.c calls hawk_rtx_format() with nargs_on_stack of (hawk_oow_t)-1 and the actual value.
+		 * the actual value is assigned to 'val' at the beginning of hawk_rtx_format().
+		 *
+		 * the following code can drive here.
+		 *     BEGIN { CONVFMT="%s"; a=98.76 ""; }
+		 *
+		 * when the first attempt to convert 98.76 to a textual form invokes this function with %s and 98.76.
+		 * it comes to this part because the format specifier is 's'. since the floating-point type is not
+		 * specially handled, hawk_rtx_valtooocstrdup() is called below. it calls val_flt_to_str() again,
+		 * which eventually creates recursion and stack depletion.
+		 *
+		 * assuming only val_flt_to_str() calls it this way, i must convert the floating point number
+		 * to text in a rather crude way without calling hawk_rtx_valtooocstrdup().
+		 */
+		hawk_flt_t r;
+		int n;
+
+		HAWK_ASSERT(HAWK_RTX_GETVALTYPE(rtx, v) == HAWK_VAL_FLT);
+
+		n = hawk_rtx_valtoflt(rtx, v, &r);
+		if (n <= -1) goto oops;
+
+		/* format the value as if '%g' is given. no flags, precision, width are honored. */
+	#if defined(HAWK_USE_FLTMAX)
+		/* see fmt.c for info on jj */
+		if (hawk_ooecs_ncat(fbu, HAWK_T("jjg"), 3) == (hawk_oow_t)-1) goto oops;
+		if (hawk_ooecs_fcat(out, HAWK_OOECS_PTR(fbu), &r) == (hawk_oow_t)-1) goto oops;
+	#else
+		if (hawk_ooecs_ncat(fbu, HAWK_T("zg"), 2) == (hawk_oow_t)-1) goto oops;
+		if (hawk_ooecs_fcat(out, HAWK_OOECS_PTR(fbu), r) == (hawk_oow_t)-1) goto oops;
+	#endif
+	}
+	else
+	{
+		hawk_ooch_t ooch_tmp;
+		hawk_bch_t bch_tmp;
+		hawk_int_t k;
+
+		vtype = HAWK_RTX_GETVALTYPE(rtx, v);
+		switch (vtype)
+		{
+			case HAWK_VAL_NIL:
+				str_ptr = HAWK_T("");
+				str_len = 0;
+				break;
+
+			case HAWK_VAL_CHAR:
+				ooch_tmp = HAWK_RTX_GETCHARFROMVAL(rtx, v);
+				str_ptr = &ooch_tmp;
+				str_len = 1;
+				break;
+
+			case HAWK_VAL_STR:
+				str_ptr = ((hawk_val_str_t*)v)->val.ptr;
+				str_len = ((hawk_val_str_t*)v)->val.len;
+				break;
+
+			case HAWK_VAL_BCHR:
+			#if defined(HAWK_OOCH_IS_BCH)
+				ooch_tmp = HAWK_RTX_GETBCHRFROMVAL(rtx, v);
+				str_ptr = &ooch_tmp;
+				str_len = 1;
+			#else
+				if (fmtc == HAWK_T('s')) goto duplicate;
+				bch_tmp = HAWK_RTX_GETBCHRFROMVAL(rtx, v);
+				str_ptr = (hawk_ooch_t*)&bch_tmp;
+				str_len = 1;
+			#endif
+				break;
+
+			case HAWK_VAL_MBS:
+			#if defined(HAWK_OOCH_IS_BCH)
+				str_ptr = ((hawk_val_mbs_t*)v)->val.ptr;
+				str_len = ((hawk_val_mbs_t*)v)->val.len;
+			#else
+				if (fmtc == HAWK_T('s')) goto duplicate;
+				str_ptr = (hawk_ooch_t*)((hawk_val_mbs_t*)v)->val.ptr;
+				str_len = ((hawk_val_mbs_t*)v)->val.len;
+			#endif
+				break;
+
+			case HAWK_VAL_BOB:
+			#if defined(HAWK_OOCH_IS_BCH)
+				str_ptr = ((hawk_val_bob_t*)v)->val.ptr;
+				str_len = ((hawk_val_bob_t*)v)->val.len;
+			#else
+				if (fmtc == HAWK_T('s')) goto duplicate;
+				str_ptr = (hawk_ooch_t*)((hawk_val_bob_t*)v)->val.ptr;
+				str_len = ((hawk_val_bob_t*)v)->val.len;
+			#endif
+				break;
+
+			default:
+			duplicate:
+				str_ptr = hawk_rtx_valtooocstrdup(rtx, v, &str_len);
+				if (HAWK_UNLIKELY(!str_ptr)) goto oops;
+				str_free = str_ptr;
+				break;
+		}
+
+	do_strfmt:
+		if (wp_idx != FMT_WP_PRECISION || wp[FMT_WP_PRECISION] <= -1 || wp[FMT_WP_PRECISION] > (hawk_int_t)str_len)
+		{
+			/* precision not specified, or specified to a negative value or greater than the actual length */
+			wp[FMT_WP_PRECISION] = (hawk_int_t)str_len;
+		}
+		if (wp[FMT_WP_PRECISION] > wp[FMT_WP_WIDTH]) wp[FMT_WP_WIDTH] = wp[FMT_WP_PRECISION];
+		/* NOTE the wp array itself was mutated in this function */
+
+		if (!(fmt_flags & FMT_FLAG_MINUS))
+		{
+			/* right align */
+			while (wp[FMT_WP_WIDTH] > wp[FMT_WP_PRECISION])
+			{
+				if (hawk_ooecs_ccat(out, HAWK_T(' ')) == (hawk_oow_t)-1) goto oops;
+				wp[FMT_WP_WIDTH]--;
+			}
+		}
+
+		if (fmtc == 'k' || fmtc == 'w') bytetostr_flagged_radix |= HAWK_BYTE_TO_BCSTR_LOWERCASE;
+
+		k = 0;
+		if (fmt_v == FMT_V_FUN_TO_STR)
+		{
+			/* WARNING - most likely i won't remember how i came out with this ugly code.
+			 *   this is to avoid dynamic memory allocation. but i must find a bettr way
+			 *   to achieve the same thing by refactoring the code.
+			 *   if the precision is not greater than 6, the actual function name is
+			 *   never printed. for example, it produces '<FUN:>' for precision 6. */
+			hawk_oow_t count;
+			count = (wp[FMT_WP_PRECISION] < 5)? wp[FMT_WP_PRECISION]: 5;
+			if (hawk_ooecs_ncat(out, HAWK_T("<FUN:"), count) == (hawk_oow_t)-1) goto oops;
+			k += count;
+			str_ptr -= 5;
+			wp[FMT_WP_PRECISION]--; /* worst code ever - for the trailing > in <FUN:> */
+		}
+
+		for (; k < wp[FMT_WP_PRECISION]; k++)
+		{
+			hawk_ooch_t curc;
+
+		#if defined(HAWK_OOCH_IS_BCH)
+			curc = str_ptr[k];
+		#else
+			if ((vtype == HAWK_VAL_MBS || vtype == HAWK_VAL_BCHR) && fmtc != HAWK_T('s'))
+				curc = (hawk_uint8_t)((hawk_bch_t*)str_ptr)[k];
+			else curc = str_ptr[k];
+		#endif
+
+			if ((fmtc != 's' && !HAWK_BYTE_PRINTABLE(curc)) || fmtc == 'w' || fmtc == 'W')
+			{
+				hawk_ooch_t xbuf[3];
+				if (curc <= 0xFF)
+				{
+					if (hawk_ooecs_ncat(out, HAWK_T("\\x"), 2) == (hawk_oow_t)-1) goto oops;
+					hawk_byte_to_oocstr(curc, xbuf, HAWK_COUNTOF(xbuf), bytetostr_flagged_radix, HAWK_T('0'));
+					if (hawk_ooecs_ncat(out, xbuf, 2) == (hawk_oow_t)-1) goto oops;
+				}
+				else if (curc <= 0xFFFF)
+				{
+					hawk_uint16_t u16 = curc;
+					if (hawk_ooecs_ncat(out, HAWK_T("\\u"), 2) == (hawk_oow_t)-1) goto oops;
+					hawk_byte_to_oocstr((u16 >> 8) & 0xFF, xbuf, HAWK_COUNTOF(xbuf), bytetostr_flagged_radix, HAWK_T('0'));
+					if (hawk_ooecs_ncat(out, xbuf, 2) == (hawk_oow_t)-1) goto oops;
+					hawk_byte_to_oocstr(u16 & 0xFF, xbuf, HAWK_COUNTOF(xbuf), bytetostr_flagged_radix, HAWK_T('0'));
+					if (hawk_ooecs_ncat(out, xbuf, 2) == (hawk_oow_t)-1) goto oops;
+				}
+				else
+				{
+					hawk_uint32_t u32 = curc;
+					if (hawk_ooecs_ncat(out, HAWK_T("\\U"), 2) == (hawk_oow_t)-1) goto oops;
+					hawk_byte_to_oocstr((u32 >> 24) & 0xFF, xbuf, HAWK_COUNTOF(xbuf), bytetostr_flagged_radix, HAWK_T('0'));
+					if (hawk_ooecs_ncat(out, xbuf, 2) == (hawk_oow_t)-1) goto oops;
+					hawk_byte_to_oocstr((u32 >> 16) & 0xFF, xbuf, HAWK_COUNTOF(xbuf), bytetostr_flagged_radix, HAWK_T('0'));
+					if (hawk_ooecs_ncat(out, xbuf, 2) == (hawk_oow_t)-1) goto oops;
+					hawk_byte_to_oocstr((u32 >> 8) & 0xFF, xbuf, HAWK_COUNTOF(xbuf), bytetostr_flagged_radix, HAWK_T('0'));
+					if (hawk_ooecs_ncat(out, xbuf, 2) == (hawk_oow_t)-1) goto oops;
+					hawk_byte_to_oocstr(u32 & 0xFF, xbuf, HAWK_COUNTOF(xbuf), bytetostr_flagged_radix, HAWK_T('0'));
+					if (hawk_ooecs_ncat(out, xbuf, 2) == (hawk_oow_t)-1) goto oops;
+				}
+			}
+			else
+			{
+				if (hawk_ooecs_ccat(out, curc) == (hawk_oow_t)-1) goto oops;
+			}
+		}
+
+		if (fmt_v == FMT_V_FUN_TO_STR)
+		{
+			wp[FMT_WP_PRECISION]++; /* worst code ever - to make up for decrement above */
+			if (k < wp[FMT_WP_PRECISION])
+			{
+				if (hawk_ooecs_ccat(out, HAWK_T('>')) == (hawk_oow_t)-1) goto oops;
+			}
+		}
+
+		if (fmt_flags & FMT_FLAG_MINUS)
+		{
+			/* left align */
+			while (wp[FMT_WP_WIDTH] > wp[FMT_WP_PRECISION])
+			{
+				if (hawk_ooecs_ccat(out, HAWK_T(' ')) == (hawk_oow_t)-1) goto oops;
+				wp[FMT_WP_WIDTH]--;
+			}
+		}
+	}
+
+	if (str_free) hawk_rtx_freemem(rtx, str_free);
+	return 0;
+
+oops:
+	if (str_free) hawk_rtx_freemem(rtx, str_free);
+	return -1;
+}
+
+static int format_mbs (hawk_rtx_t* rtx, hawk_becs_t* out, hawk_becs_t* fbu, hawk_val_t* v, int fmt_v, hawk_ooch_t fmtc, hawk_int_t wp[2], int wp_idx, int fmt_flags)
+{
+	hawk_bch_t* str_ptr;
+	hawk_bch_t* str_free = HAWK_NULL;
+	hawk_oow_t str_len;
+	hawk_val_type_t vtype;
+	int bytetombs_flagged_radix = 16;
+
+	if (fmt_v == FMT_V_CS_TO_STR || fmt_v == FMT_V_FUN_TO_STR)
+	{
+		/* leave str_free as HAWK_NULL and arrange some hakcy values in other variables */
+		str_ptr = ((hawk_bcs_t*)v)->ptr;
+		str_len = ((hawk_bcs_t*)v)->len;
+		vtype = HAWK_VAL_STR; /* this is fake */
+		if (fmt_v == FMT_V_FUN_TO_STR) str_len += 6; /* super hacky - 6 for the length of <FUN:> */
+		goto do_strfmt;
+	}
+
+	if (fmt_v == FMT_V_FLT_TO_STR) /* hacky */
+	{
+		/* val_flt_to_str() in val.c calls hawk_rtx_format() with nargs_on_stack of (hawk_oow_t)-1 and the actual value.
+		 * the actual value is assigned to 'val' at the beginning of this function.
+		 *
+		 * the following code can drive here.
+		 *     BEGIN { CONVFMT="%s"; a=98.76 ""; }
+		 *
+		 * when the first attempt to convert 98.76 to a textual form invokes this function with %s and 98.76.
+		 * it comes to this part because the format specifier is 's'. since the floating-point type is not
+		 * specially handled, hawk_rtx_valtooocstrdup() is called below. it calls val_flt_to_str() again,
+		 * which eventually creates recursion and stack depletion.
+		 *
+		 * assuming only val_flt_to_str() calls it this way, i must convert the floating point number
+		 * to text in a rather crude way without calling hawk_rtx_valtooocstrdup().
+		 */
+		hawk_flt_t r;
+		int n;
+
+		HAWK_ASSERT(HAWK_RTX_GETVALTYPE(rtx, v) == HAWK_VAL_FLT);
+
+		n = hawk_rtx_valtoflt(rtx, v, &r);
+		if (n <= -1) goto oops;
+
+		/* format the value as if '%g' is given */
+	#if defined(HAWK_USE_FLTMAX)
+		/* see fmt.c for info on jj */
+		if (hawk_becs_ncat(fbu, HAWK_BT("jjg"), 3) == (hawk_oow_t)-1) goto oops;
+		if (hawk_becs_fcat(out, HAWK_BECS_PTR(fbu), &r) == (hawk_oow_t)-1) goto oops;
+	#else
+		if (hawk_becs_ncat(fbu, HAWK_BT("zg"), 2) == (hawk_oow_t)-1) goto oops;
+		if (hawk_becs_fcat(out, HAWK_BECS_PTR(fbu), r) == (hawk_oow_t)-1) goto oops;
+	#endif
+	}
+	else
+	{
+		hawk_bch_t bchr_tmp;
+		hawk_ooch_t ooch_tmp;
+		hawk_int_t k;
+
+		vtype = HAWK_RTX_GETVALTYPE(rtx, v);
+		switch (vtype)
+		{
+			case HAWK_VAL_NIL:
+				str_ptr = HAWK_BT("");
+				str_len = 0;
+				break;
+
+			case HAWK_VAL_BCHR:
+				bchr_tmp = HAWK_RTX_GETBCHRFROMVAL(rtx, v);
+				str_ptr = &bchr_tmp;
+				str_len = 1;
+				break;
+
+			case HAWK_VAL_MBS:
+				str_ptr = ((hawk_val_mbs_t*)v)->val.ptr;
+				str_len = ((hawk_val_mbs_t*)v)->val.len;
+				break;
+
+			case HAWK_VAL_BOB:
+				str_ptr = (hawk_bch_t*)((hawk_val_bob_t*)v)->val.ptr;
+				str_len = ((hawk_val_bob_t*)v)->val.len;
+				break;
+
+			case HAWK_VAL_CHAR:
+			#if defined(HAWK_OOCH_IS_BCH)
+				bchr_tmp = HAWK_RTX_GETBCHRFROMVAL(rtx, v);
+				str_ptr = &bchr_tmp;
+				str_len = 1;
+			#else
+				if (fmtc == HAWK_BT('s')) goto duplicate;
+				ooch_tmp = HAWK_RTX_GETCHARFROMVAL(rtx, v);
+				str_ptr = (hawk_bch_t*)&ooch_tmp;
+				str_len = 1 * (HAWK_SIZEOF_OOCH_T / HAWK_SIZEOF_BCH_T);
+			#endif
+				break;
+
+			case HAWK_VAL_STR:
+			#if defined(HAWK_OOCH_IS_BCH)
+				str_ptr = ((hawk_val_str_t*)v)->val.ptr;
+				str_len = ((hawk_val_str_t*)v)->val.len;
+			#else
+				if (fmtc == HAWK_BT('s')) goto duplicate;
+				/* arrange to print the wide character string byte by byte regardless of byte order */
+				str_ptr = (hawk_bch_t*)((hawk_val_str_t*)v)->val.ptr;
+				str_len = ((hawk_val_str_t*)v)->val.len * (HAWK_SIZEOF_OOCH_T / HAWK_SIZEOF_BCH_T);
+			#endif
+				break;
+
+			default:
+			duplicate:
+				str_ptr = hawk_rtx_valtobcstrdup(rtx, v, &str_len);
+				if (!str_ptr) goto oops;
+				str_free = str_ptr;
+				break;
+		}
+
+	do_strfmt:
+		if (wp_idx != FMT_WP_PRECISION || wp[FMT_WP_PRECISION] <= -1 || wp[FMT_WP_PRECISION] > (hawk_int_t)str_len)
+		{
+			/* precision not specified, or specified to a negative value or greater than the actual length */
+			wp[FMT_WP_PRECISION] = (hawk_int_t)str_len;
+		}
+		if (wp[FMT_WP_PRECISION] > wp[FMT_WP_WIDTH]) wp[FMT_WP_WIDTH] = wp[FMT_WP_PRECISION];
+		/* NOTE the wp array itself was mutated in this function */
+
+		if (!(fmt_flags & FMT_FLAG_MINUS))
+		{
+			/* right align */
+			while (wp[FMT_WP_WIDTH] > wp[FMT_WP_PRECISION])
+			{
+				if (hawk_becs_ccat(out, HAWK_BT(' ')) == (hawk_oow_t)-1) goto oops;
+				wp[FMT_WP_WIDTH]--;
+			}
+		}
+
+		if (fmtc == 'k' || fmtc == 'w') bytetombs_flagged_radix |= HAWK_BYTE_TO_BCSTR_LOWERCASE;
+
+		k = 0;
+		if (fmt_v == FMT_V_FUN_TO_STR)
+		{
+			/* WARNING - most likely i won't remember how i came out with this ugly code.
+			 *   this is to avoid dynamic memory allocation. but i must find a bettr way
+			 *   to achieve the same thing by refactoring the code.
+			 *   if the precision is not greater than 6, the actual function name is
+			 *   never printed. for example, it produces '<FUN:>' for precision 6. */
+			hawk_oow_t count;
+			count = (wp[FMT_WP_PRECISION] < 5)? wp[FMT_WP_PRECISION]: 5;
+			if (hawk_becs_ncat(out, HAWK_BT("<FUN:"), count) == (hawk_oow_t)-1) goto oops;
+			k += count;
+			str_ptr -= 5;
+			wp[FMT_WP_PRECISION]--; /* worst code ever - for the trailing > in <FUN:> */
+		}
+
+		for (; k < wp[FMT_WP_PRECISION]; k++)
+		{
+			hawk_bch_t curc;
+
+			curc = str_ptr[k];
+
+			if ((fmtc != 's' && !HAWK_BYTE_PRINTABLE(curc)) || fmtc == 'w' || fmtc == 'W')
+			{
+				hawk_bch_t xbuf[3];
+			#if 0 /* the range check isn't needed for hawk_bch_t. it's always <= 0xFF */
+
+				if (curc <= 0xFF)
+				{
+			#endif
+					if (hawk_becs_ncat(out, HAWK_BT("\\x"), 2) == (hawk_oow_t)-1) goto oops;
+					hawk_byte_to_bcstr(curc, xbuf, HAWK_COUNTOF(xbuf), bytetombs_flagged_radix, HAWK_BT('0'));
+					if (hawk_becs_ncat(out, xbuf, 2) == (hawk_oow_t)-1) goto oops;
+			#if 0
+				}
+				else if (curc <= 0xFFFF)
+				{
+					hawk_uint16_t u16 = curc;
+					if (hawk_becs_ncat(out, HAWK_BT("\\u"), 2) == (hawk_oow_t)-1) goto oops;
+					hawk_byte_to_bcstr((u16 >> 8) & 0xFF, xbuf, HAWK_COUNTOF(xbuf), bytetombs_flagged_radix, HAWK_BT('0'));
+					if (hawk_becs_ncat(out, xbuf, 2) == (hawk_oow_t)-1) goto oops;
+					hawk_byte_to_bcstr(u16 & 0xFF, xbuf, HAWK_COUNTOF(xbuf), bytetombs_flagged_radix, HAWK_BT('0'));
+					if (hawk_becs_ncat(out, xbuf, 2) == (hawk_oow_t)-1) goto oops;
+				}
+				else
+				{
+					hawk_uint32_t u32 = curc;
+					if (hawk_becs_ncat(out, HAWK_BT("\\U"), 2) == (hawk_oow_t)-1) goto oops;
+					hawk_byte_to_bcstr((u32 >> 24) & 0xFF, xbuf, HAWK_COUNTOF(xbuf), bytetombs_flagged_radix, HAWK_BT('0'));
+					if (hawk_becs_ncat(out, xbuf, 2) == (hawk_oow_t)-1) goto oops;
+					hawk_byte_to_bcstr((u32 >> 16) & 0xFF, xbuf, HAWK_COUNTOF(xbuf), bytetombs_flagged_radix, HAWK_BT('0'));
+					if (hawk_becs_ncat(out, xbuf, 2) == (hawk_oow_t)-1) goto oops;
+					hawk_byte_to_bcstr((u32 >> 8) & 0xFF, xbuf, HAWK_COUNTOF(xbuf), bytetombs_flagged_radix, HAWK_BT('0'));
+					if (hawk_becs_ncat(out, xbuf, 2) == (hawk_oow_t)-1) goto oops;
+					hawk_byte_to_bcstr(u32 & 0xFF, xbuf, HAWK_COUNTOF(xbuf), bytetombs_flagged_radix, HAWK_BT('0'));
+					if (hawk_becs_ncat(out, xbuf, 2) == (hawk_oow_t)-1) goto oops;
+				}
+			#endif
+			}
+			else
+			{
+				if (hawk_becs_ccat(out, curc) == (hawk_oow_t)-1) goto oops;
+			}
+		}
+
+		if (fmt_v == FMT_V_FUN_TO_STR)
+		{
+			wp[FMT_WP_PRECISION]++; /* worst code ever - to make up for decrement above */
+			if (k < wp[FMT_WP_PRECISION])
+			{
+				if (hawk_becs_ccat(out, HAWK_BT('>')) == (hawk_oow_t)-1) goto oops;
+			}
+		}
+
+		if (fmt_flags & FMT_FLAG_MINUS)
+		{
+			/* left align */
+			while (wp[FMT_WP_WIDTH] > wp[FMT_WP_PRECISION])
+			{
+				if (hawk_becs_ccat(out, HAWK_BT(' ')) == (hawk_oow_t)-1) goto oops;
+				wp[FMT_WP_WIDTH]--;
+			}
+		}
+	}
+
+	if (str_free) hawk_rtx_freemem(rtx, str_free);
+	return 0;
+
+oops:
+	if (str_free) hawk_rtx_freemem(rtx, str_free);
+	return -1;
+}
+/* ========================================================================= */
+
 hawk_ooch_t* hawk_rtx_format (
 	hawk_rtx_t* rtx, hawk_ooecs_t* out, hawk_ooecs_t* fbu,
 	const hawk_ooch_t* fmt, hawk_oow_t fmt_len,
@@ -8487,15 +8970,8 @@ hawk_ooch_t* hawk_rtx_format (
 		hawk_ooch_t fmtc;
 		hawk_int_t wp[2];
 		int wp_idx;
-#define WP_WIDTH     0
-#define WP_PRECISION 1
 
 		int flags;
-#define FLAG_SPACE (1 << 0)
-#define FLAG_HASH  (1 << 1)
-#define FLAG_ZERO  (1 << 2)
-#define FLAG_PLUS  (1 << 3)
-#define FLAG_MINUS (1 << 4)
 
 		if (HAWK_OOECS_LEN(fbu) == 0)
 		{
@@ -8520,19 +8996,19 @@ hawk_ooch_t* hawk_rtx_format (
 			switch (fmt[i])
 			{
 				case HAWK_T(' '):
-					flags |= FLAG_SPACE;
+					flags |= FMT_FLAG_SPACE;
 					break;
 				case HAWK_T('#'):
-					flags |= FLAG_HASH;
+					flags |= FMT_FLAG_HASH;
 					break;
 				case HAWK_T('0'):
-					flags |= FLAG_ZERO;
+					flags |= FMT_FLAG_ZERO;
 					break;
 				case HAWK_T('+'):
-					flags |= FLAG_PLUS;
+					flags |= FMT_FLAG_PLUS;
 					break;
 				case HAWK_T('-'):
-					flags |= FLAG_MINUS;
+					flags |= FMT_FLAG_MINUS;
 					break;
 				default:
 					goto wp_mod_init;
@@ -8542,9 +9018,9 @@ hawk_ooch_t* hawk_rtx_format (
 		}
 
 wp_mod_init:
-		wp[WP_WIDTH] = 0; /* width */
-		wp[WP_PRECISION] = -1; /* precision */
-		wp_idx = WP_WIDTH; /* width first */
+		wp[FMT_WP_WIDTH] = 0; /* width */
+		wp[FMT_WP_PRECISION] = -1; /* precision */
+		wp_idx = FMT_WP_WIDTH; /* width first */
 
 wp_mod_main:
 		if (i < fmt_len && fmt[i] == HAWK_T('*'))
@@ -8607,20 +9083,20 @@ wp_mod_main:
 			}
 		}
 
-		if (wp_idx == WP_WIDTH && i < fmt_len && fmt[i] == HAWK_T('.'))
+		if (wp_idx == FMT_WP_WIDTH && i < fmt_len && fmt[i] == HAWK_T('.'))
 		{
 			FMT_CHAR(fmt[i]); i++;
-			wp[WP_PRECISION] = 0;
-			wp_idx = WP_PRECISION; /* change index to precision */
+			wp[FMT_WP_PRECISION] = 0;
+			wp_idx = FMT_WP_PRECISION; /* change index to precision */
 			goto wp_mod_main;
 		}
 
 		if (i >= fmt_len) break;
 
-		if (wp[WP_WIDTH] < 0)
+		if (wp[FMT_WP_WIDTH] < 0)
 		{
-			wp[WP_WIDTH] = -wp[WP_WIDTH];
-			flags |= FLAG_MINUS;
+			wp[FMT_WP_WIDTH] = -wp[FMT_WP_WIDTH];
+			flags |= FMT_FLAG_MINUS;
 		}
 
 		fmtc = fmt[i]; /* 'i' don't get increment after this */
@@ -8629,6 +9105,8 @@ wp_mod_main:
 		if (fmtc == 'v')
 		{
 			hawk_val_type_t vtype;
+			hawk_oocs_t fixed_str;
+			int xx;
 
 			vxx = get_arg_val_for_format(rtx, stack_arg_idx, nargs_on_stack, args, val);
 			if (HAWK_UNLIKELY(!vxx)) return HAWK_NULL;
@@ -8638,35 +9116,59 @@ wp_mod_main:
 			switch (vtype)
 			{
 				case HAWK_VAL_NIL:
-					if (hawk_ooecs_ncat(out, HAWK_T("<@nil>"), 6) == (hawk_oow_t)-1) return HAWK_NULL;
+					hawk_rtx_refupval(rtx, vxx);
+					fixed_str.ptr = HAWK_T("<@nil>");
+					fixed_str.len = 6;
+					xx = format_str(rtx, out, fbu, (hawk_val_t*)&fixed_str, FMT_V_CS_TO_STR, fmtc, wp, wp_idx, flags);
+					hawk_rtx_refdownval(rtx, vxx);
+					if (xx <= -1) return HAWK_NULL;
 					goto next_arg;
 
 				case HAWK_VAL_CHAR:
 					fmtc = 'c';
 					break;
 				case HAWK_VAL_BCHR:
-					fmtc = 'c';
+					fmtc = 'k';
 					break;
 				case HAWK_VAL_INT:
 					fmtc = 'd';
 					break;
 				case HAWK_VAL_FLT:
-					fmtc = 'g';
+					fmtc = 'f';
 					break;
 				case HAWK_VAL_STR:
-				case HAWK_VAL_MBS:
 					fmtc = 's';
+					break;
+				case HAWK_VAL_MBS:
+					fmtc = 'k';
 					break;
 				case HAWK_VAL_BOB:
 					fmtc = 'k';
 					break;
 
 				case HAWK_VAL_ARR: /* TOOD: */
-					if (hawk_ooecs_ncat(out, HAWK_T("<ARRAY>"), 7) == (hawk_oow_t)-1) return HAWK_NULL;
+					hawk_rtx_refupval(rtx, vxx);
+					fixed_str.ptr = HAWK_T("<ARRAY>");
+					fixed_str.len = 7;
+					xx = format_str(rtx, out, fbu, (hawk_val_t*)&fixed_str, FMT_V_CS_TO_STR, fmtc, wp, wp_idx, flags);
+					hawk_rtx_refdownval(rtx, vxx);
+					if (xx <= -1) return HAWK_NULL;
 					goto next_arg;
 
 				case HAWK_VAL_MAP: /* TOOD: */
-					if (hawk_ooecs_ncat(out, HAWK_T("<MAP>"), 5) == (hawk_oow_t)-1) return HAWK_NULL;
+					hawk_rtx_refupval(rtx, vxx);
+					fixed_str.ptr = HAWK_T("<MAP>");
+					fixed_str.len = 5;
+					xx = format_str(rtx, out, fbu, (hawk_val_t*)&fixed_str, FMT_V_CS_TO_STR, fmtc, wp, wp_idx, flags);
+					hawk_rtx_refdownval(rtx, vxx);
+					if (xx <= -1) return HAWK_NULL;
+					goto next_arg;
+
+				case HAWK_VAL_FUN:
+					hawk_rtx_refupval(rtx, vxx);
+					xx = format_str(rtx, out, fbu, (hawk_val_t*)&((hawk_val_fun_t*)vxx)->fun->name, FMT_V_FUN_TO_STR, fmtc, wp, wp_idx, flags);
+					hawk_rtx_refdownval(rtx, vxx);
+					if (xx <= -1) return HAWK_NULL;
 					goto next_arg;
 
 				default:
@@ -8690,7 +9192,7 @@ wp_mod_main:
 			hawk_ooch_t fmt_fill = HAWK_T('\0');
 			const hawk_ooch_t* fmt_prefix = HAWK_NULL;
 
-			if (vxx) v= vxx;
+			if (vxx) v = vxx;
 			else
 			{
 				v = get_arg_val_for_format(rtx, stack_arg_idx, nargs_on_stack, args, val);
@@ -8704,24 +9206,24 @@ wp_mod_main:
 
 			fmt_flags = HAWK_FMT_INTMAX_NOTRUNC | HAWK_FMT_INTMAX_NONULL;
 
-			if (l == 0 && wp_idx == WP_PRECISION && wp[WP_PRECISION] == 0)
+			if (l == 0 && wp_idx == FMT_WP_PRECISION && wp[FMT_WP_PRECISION] == 0)
 			{
 				/* printf ("%.d", 0); printf ("%.0d", 0); printf ("%.*d", 0, 0); */
 				/* A zero value with a precision of zero produces no character. */
 				fmt_flags |= HAWK_FMT_INTMAX_NOZERO;
 			}
 
-			if (wp[WP_WIDTH] > 0)
+			if (wp[FMT_WP_WIDTH] > 0)
 			{
 				/* justification for width greater than 0 */
-				if (flags & FLAG_ZERO)
+				if (flags & FMT_FLAG_ZERO)
 				{
-					if (flags & FLAG_MINUS)
+					if (flags & FMT_FLAG_MINUS)
 					{
-						 /* FLAG_MINUS wins if both FLAG_ZERO
-						  * and FLAG_MINUS are specified. */
+						 /* FMT_FLAG_MINUS wins if both FMT_FLAG_ZERO
+						  * and FMT_FLAG_MINUS are specified. */
 						fmt_fill = HAWK_T(' ');
-						if (flags & FLAG_MINUS)
+						if (flags & FMT_FLAG_MINUS)
 						{
 							/* left justification. need to fill the right side */
 							fmt_flags |= HAWK_FMT_INTMAX_FILLRIGHT;
@@ -8729,10 +9231,10 @@ wp_mod_main:
 					}
 					else
 					{
-						if (wp_idx != WP_PRECISION) /* if precision is not specified, wp_idx is at WP_WIDTH */
+						if (wp_idx != FMT_WP_PRECISION) /* if precision is not specified, wp_idx is at FMT_WP_WIDTH */
 						{
 							/* precision not specified.
-							 * FLAG_ZERO can take effect */
+							 * FMT_FLAG_ZERO can take effect */
 							fmt_fill = HAWK_T('0');
 							fmt_flags |= HAWK_FMT_INTMAX_FILLCENTER;
 						}
@@ -8745,7 +9247,7 @@ wp_mod_main:
 				else
 				{
 					fmt_fill = HAWK_T(' ');
-					if (flags & FLAG_MINUS)
+					if (flags & FMT_FLAG_MINUS)
 					{
 						/* left justification. need to fill the right side */
 						fmt_flags |= HAWK_FMT_INTMAX_FILLRIGHT;
@@ -8759,7 +9261,7 @@ wp_mod_main:
 				case 'b':
 					fmt_flags |= 2;
 					fmt_uint = 1;
-					if (l && (flags & FLAG_HASH))
+					if (l && (flags & FMT_FLAG_HASH))
 					{
 						/* A nonzero value is prefixed with 0b */
 						fmt_prefix = HAWK_T("0b");
@@ -8771,7 +9273,7 @@ wp_mod_main:
 				case 'x':
 					fmt_flags |= 16;
 					fmt_uint = 1;
-					if (l && (flags & FLAG_HASH))
+					if (l && (flags & FMT_FLAG_HASH))
 					{
 						/* A nonzero value is prefixed with 0x */
 						fmt_prefix = HAWK_T("0x");
@@ -8781,12 +9283,12 @@ wp_mod_main:
 				case 'o':
 					fmt_flags |= 8;
 					fmt_uint = 1;
-					if (flags & FLAG_HASH)
+					if (flags & FMT_FLAG_HASH)
 					{
 						/* Force a leading zero digit including zero.
-						 * 0 with FLAG_HASH and precision 0 still emits '0'.
+						 * 0 with FMT_FLAG_HASH and precision 0 still emits '0'.
 						 * On the contrary, 'X' and 'x' emit no digits
-						 * for 0 with FLAG_HASH and precision 0. */
+						 * for 0 with FMT_FLAG_HASH and precision 0. */
 						fmt_flags |= HAWK_FMT_INTMAX_ZEROLEAD;
 					}
 					break;
@@ -8795,19 +9297,19 @@ wp_mod_main:
 					fmt_uint = 1;
 				default:
 					fmt_flags |= 10;
-					if (flags & FLAG_PLUS)
+					if (flags & FMT_FLAG_PLUS)
 						fmt_flags |= HAWK_FMT_INTMAX_PLUSSIGN;
-					if (flags & FLAG_SPACE)
+					if (flags & FMT_FLAG_SPACE)
 						fmt_flags |= HAWK_FMT_INTMAX_EMPTYSIGN;
 					break;
 			}
 
 
-			if (wp[WP_WIDTH] > 0)
+			if (wp[FMT_WP_WIDTH] > 0)
 			{
-				if (wp[WP_WIDTH] > rtx->format.tmp.len)
-					GROW_WITH_INC(&rtx->format.tmp, wp[WP_WIDTH] - rtx->format.tmp.len);
-				fmt_width = wp[WP_WIDTH];
+				if (wp[FMT_WP_WIDTH] > rtx->format.tmp.len)
+					GROW_WITH_INC(&rtx->format.tmp, wp[FMT_WP_WIDTH] - rtx->format.tmp.len);
+				fmt_width = wp[FMT_WP_WIDTH];
 			}
 			else fmt_width = rtx->format.tmp.len;
 
@@ -8835,7 +9337,7 @@ wp_mod_main:
 						fmt_width,
 						(hawk_uint_t)l,
 						fmt_flags,
-						wp[WP_PRECISION],
+						wp[FMT_WP_PRECISION],
 						fmt_fill,
 						fmt_prefix
 					);
@@ -8847,7 +9349,7 @@ wp_mod_main:
 						fmt_width,
 						l,
 						fmt_flags,
-						wp[WP_PRECISION],
+						wp[FMT_WP_PRECISION],
 						fmt_fill,
 						fmt_prefix
 					);
@@ -8906,7 +9408,7 @@ wp_mod_main:
 			hawk_val_t* v;
 			hawk_val_type_t vtype;
 
-			if (vxx) v= vxx;
+			if (vxx) v = vxx;
 			else
 			{
 				v = get_arg_val_for_format(rtx, stack_arg_idx, nargs_on_stack, args, val);
@@ -8964,28 +9466,28 @@ wp_mod_main:
 					return HAWK_NULL;
 			}
 
-			if (wp[WP_PRECISION] <= 0 || wp[WP_PRECISION] > (hawk_int_t)ch_len)
+			if (wp[FMT_WP_PRECISION] <= 0 || wp[FMT_WP_PRECISION] > (hawk_int_t)ch_len)
 			{
-				wp[WP_PRECISION] = (hawk_int_t)ch_len;
+				wp[FMT_WP_PRECISION] = (hawk_int_t)ch_len;
 			}
 
-			if (wp[WP_PRECISION] > wp[WP_WIDTH]) wp[WP_WIDTH] = wp[WP_PRECISION];
+			if (wp[FMT_WP_PRECISION] > wp[FMT_WP_WIDTH]) wp[FMT_WP_WIDTH] = wp[FMT_WP_PRECISION];
 
-			if (!(flags & FLAG_MINUS))
+			if (!(flags & FMT_FLAG_MINUS))
 			{
 				/* right align */
-				while (wp[WP_WIDTH] > wp[WP_PRECISION])
+				while (wp[FMT_WP_WIDTH] > wp[FMT_WP_PRECISION])
 				{
 					if (hawk_ooecs_ccat(out, HAWK_T(' ')) == (hawk_oow_t)-1)
 					{
 						hawk_rtx_refdownval(rtx, v);
 						return HAWK_NULL;
 					}
-					wp[WP_WIDTH]--;
+					wp[FMT_WP_WIDTH]--;
 				}
 			}
 
-			if (wp[WP_PRECISION] > 0)
+			if (wp[FMT_WP_PRECISION] > 0)
 			{
 				if (hawk_ooecs_ccat(out, ch) == (hawk_oow_t)-1)
 				{
@@ -8994,17 +9496,17 @@ wp_mod_main:
 				}
 			}
 
-			if (flags & FLAG_MINUS)
+			if (flags & FMT_FLAG_MINUS)
 			{
 				/* left align */
-				while (wp[WP_WIDTH] > wp[WP_PRECISION])
+				while (wp[FMT_WP_WIDTH] > wp[FMT_WP_PRECISION])
 				{
 					if (hawk_ooecs_ccat (out, HAWK_T(' ')) == (hawk_oow_t)-1)
 					{
 						hawk_rtx_refdownval(rtx, v);
 						return HAWK_NULL;
 					}
-					wp[WP_WIDTH]--;
+					wp[FMT_WP_WIDTH]--;
 				}
 			}
 
@@ -9013,235 +9515,23 @@ wp_mod_main:
 		else if (fmtc == 's' || fmtc == 'k' || fmtc == 'K' || fmtc == 'w' || fmtc == 'W')
 		{
 			hawk_val_t* v;
+			int xx;
 
-			if (vxx) v = vxx;
+			if (vxx) v = vxx; /* 'v' mutated to fmtc */
 			else
 			{
 				v = get_arg_val_for_format(rtx, stack_arg_idx, nargs_on_stack, args, val);
 				if (HAWK_UNLIKELY(!v)) return HAWK_NULL;
 			}
 
-			if (val)
-			{
-				/* val_flt_to_str() in val.c calls hawk_rtx_format() with nargs_on_stack of (hawk_oow_t)-1 and the actual value.
-				 * the actual value is assigned to 'val' at the beginning of this function.
-				 *
-				 * the following code can drive here.
-				 *     BEGIN { CONVFMT="%s"; a=98.76 ""; }
-				 *
-				 * when the first attempt to convert 98.76 to a textual form invokes this function with %s and 98.76.
-				 * it comes to this part because the format specifier is 's'. since the floating-point type is not
-				 * specially handled, hawk_rtx_valtooocstrdup() is called below. it calls val_flt_to_str() again,
-				 * which eventually creates recursion and stack depletion.
-				 *
-				 * assuming only val_flt_to_str() calls it this way, i must convert the floating point number
-				 * to text in a rather crude way without calling hawk_rtx_valtooocstrdup().
-				 */
-				hawk_flt_t r;
-				int n;
-
-				HAWK_ASSERT(HAWK_RTX_GETVALTYPE(rtx, val) == HAWK_VAL_FLT);
-
-				hawk_rtx_refupval(rtx, v);
-				n = hawk_rtx_valtoflt(rtx, v, &r);
-				hawk_rtx_refdownval(rtx, v);
-				if (n <= -1) return HAWK_NULL;
-
-				/* format the value as if '%g' is given */
-			#if defined(HAWK_USE_FLTMAX)
-				FMT_STR(HAWK_T("jjg"), 3); /* see fmt.c for info on jj */
-				if (hawk_ooecs_fcat(out, HAWK_OOECS_PTR(fbu), &r) == (hawk_oow_t)-1) return HAWK_NULL;
-			#else
-				FMT_STR(HAWK_T("zg"), 2);
-				if (hawk_ooecs_fcat(out, HAWK_OOECS_PTR(fbu), r) == (hawk_oow_t)-1) return HAWK_NULL;
-			#endif
-			}
-			else
-			{
-				hawk_ooch_t* str_ptr, * str_free = HAWK_NULL, ooch_tmp;
-				hawk_bch_t bch_tmp;
-				hawk_oow_t str_len;
-				hawk_int_t k;
-				hawk_val_type_t vtype;
-				int bytetostr_flagged_radix = 16;
-
-				hawk_rtx_refupval(rtx, v);
-
-				vtype = HAWK_RTX_GETVALTYPE(rtx, v);
-				switch (vtype)
-				{
-					case HAWK_VAL_NIL:
-						str_ptr = HAWK_T("");
-						str_len = 0;
-						break;
-
-					case HAWK_VAL_CHAR:
-						ooch_tmp = HAWK_RTX_GETCHARFROMVAL(rtx, v);
-						str_ptr = &ooch_tmp;
-						str_len = 1;
-						break;
-
-					case HAWK_VAL_STR:
-						str_ptr = ((hawk_val_str_t*)v)->val.ptr;
-						str_len = ((hawk_val_str_t*)v)->val.len;
-						break;
-
-					case HAWK_VAL_BCHR:
-					#if defined(HAWK_OOCH_IS_BCH)
-						ooch_tmp = HAWK_RTX_GETBCHRFROMVAL(rtx, v);
-						str_ptr = &ooch_tmp;
-						str_len = 1;
-					#else
-						if (fmtc == HAWK_T('s')) goto duplicate;
-						bch_tmp = HAWK_RTX_GETBCHRFROMVAL(rtx, v);
-						str_ptr = (hawk_ooch_t*)&bch_tmp;
-						str_len = 1;
-					#endif
-						break;
-
-					case HAWK_VAL_MBS:
-					#if defined(HAWK_OOCH_IS_BCH)
-						str_ptr = ((hawk_val_mbs_t*)v)->val.ptr;
-						str_len = ((hawk_val_mbs_t*)v)->val.len;
-					#else
-						if (fmtc == HAWK_T('s')) goto duplicate;
-						str_ptr = (hawk_ooch_t*)((hawk_val_mbs_t*)v)->val.ptr;
-						str_len = ((hawk_val_mbs_t*)v)->val.len;
-					#endif
-						break;
-
-					case HAWK_VAL_BOB:
-					#if defined(HAWK_OOCH_IS_BCH)
-						str_ptr = ((hawk_val_bob_t*)v)->val.ptr;
-						str_len = ((hawk_val_bob_t*)v)->val.len;
-					#else
-						if (fmtc == HAWK_T('s')) goto duplicate;
-						str_ptr = (hawk_ooch_t*)((hawk_val_bob_t*)v)->val.ptr;
-						str_len = ((hawk_val_bob_t*)v)->val.len;
-					#endif
-						break;
-
-					default:
-					duplicate:
-						str_ptr = hawk_rtx_valtooocstrdup(rtx, v, &str_len);
-						if (!str_ptr)
-						{
-							hawk_rtx_refdownval(rtx, v);
-							return HAWK_NULL;
-						}
-
-						str_free = str_ptr;
-						break;
-
-				}
-
-				if (wp_idx != WP_PRECISION || wp[WP_PRECISION] <= -1 || wp[WP_PRECISION] > (hawk_int_t)str_len)
-				{
-					/* precision not specified, or specified to a negative value or greater than the actual length */
-					wp[WP_PRECISION] = (hawk_int_t)str_len;
-				}
-				if (wp[WP_PRECISION] > wp[WP_WIDTH]) wp[WP_WIDTH] = wp[WP_PRECISION];
-
-				if (!(flags & FLAG_MINUS))
-				{
-					/* right align */
-					while (wp[WP_WIDTH] > wp[WP_PRECISION])
-					{
-						if (hawk_ooecs_ccat(out, HAWK_T(' ')) == (hawk_oow_t)-1)
-						{
-							if (str_free) hawk_rtx_freemem(rtx, str_free);
-							hawk_rtx_refdownval(rtx, v);
-							return HAWK_NULL;
-						}
-						wp[WP_WIDTH]--;
-					}
-				}
-
-				if (fmtc == 'k' || fmtc == 'w') bytetostr_flagged_radix |= HAWK_BYTE_TO_BCSTR_LOWERCASE;
-
-				for (k = 0; k < wp[WP_PRECISION]; k++)
-				{
-					hawk_ooch_t curc;
-
-				#if defined(HAWK_OOCH_IS_BCH)
-					curc = str_ptr[k];
-				#else
-					if ((vtype == HAWK_VAL_MBS || vtype == HAWK_VAL_BCHR) && fmtc != HAWK_T('s'))
-						curc = (hawk_uint8_t)((hawk_bch_t*)str_ptr)[k];
-					else curc = str_ptr[k];
-				#endif
-
-					if ((fmtc != 's' && !HAWK_BYTE_PRINTABLE(curc)) || fmtc == 'w' || fmtc == 'W')
-					{
-						hawk_ooch_t xbuf[3];
-						if (curc <= 0xFF)
-						{
-							if (hawk_ooecs_ncat(out, HAWK_T("\\x"), 2) == (hawk_oow_t)-1) goto s_fail;
-							hawk_byte_to_oocstr(curc, xbuf, HAWK_COUNTOF(xbuf), bytetostr_flagged_radix, HAWK_T('0'));
-							if (hawk_ooecs_ncat(out, xbuf, 2) == (hawk_oow_t)-1) goto s_fail;
-						}
-						else if (curc <= 0xFFFF)
-						{
-							hawk_uint16_t u16 = curc;
-							if (hawk_ooecs_ncat(out, HAWK_T("\\u"), 2) == (hawk_oow_t)-1) goto s_fail;
-							hawk_byte_to_oocstr((u16 >> 8) & 0xFF, xbuf, HAWK_COUNTOF(xbuf), bytetostr_flagged_radix, HAWK_T('0'));
-							if (hawk_ooecs_ncat(out, xbuf, 2) == (hawk_oow_t)-1) goto s_fail;
-							hawk_byte_to_oocstr(u16 & 0xFF, xbuf, HAWK_COUNTOF(xbuf), bytetostr_flagged_radix, HAWK_T('0'));
-							if (hawk_ooecs_ncat(out, xbuf, 2) == (hawk_oow_t)-1) goto s_fail;
-						}
-						else
-						{
-							hawk_uint32_t u32 = curc;
-							if (hawk_ooecs_ncat(out, HAWK_T("\\U"), 2) == (hawk_oow_t)-1) goto s_fail;
-							hawk_byte_to_oocstr((u32 >> 24) & 0xFF, xbuf, HAWK_COUNTOF(xbuf), bytetostr_flagged_radix, HAWK_T('0'));
-							if (hawk_ooecs_ncat(out, xbuf, 2) == (hawk_oow_t)-1) goto s_fail;
-							hawk_byte_to_oocstr((u32 >> 16) & 0xFF, xbuf, HAWK_COUNTOF(xbuf), bytetostr_flagged_radix, HAWK_T('0'));
-							if (hawk_ooecs_ncat(out, xbuf, 2) == (hawk_oow_t)-1) goto s_fail;
-							hawk_byte_to_oocstr((u32 >> 8) & 0xFF, xbuf, HAWK_COUNTOF(xbuf), bytetostr_flagged_radix, HAWK_T('0'));
-							if (hawk_ooecs_ncat(out, xbuf, 2) == (hawk_oow_t)-1) goto s_fail;
-							hawk_byte_to_oocstr(u32 & 0xFF, xbuf, HAWK_COUNTOF(xbuf), bytetostr_flagged_radix, HAWK_T('0'));
-							if (hawk_ooecs_ncat(out, xbuf, 2) == (hawk_oow_t)-1) goto s_fail;
-						}
-					}
-					else
-					{
-						if (hawk_ooecs_ccat(out, curc) == (hawk_oow_t)-1)
-						{
-						s_fail:
-							if (str_free) hawk_rtx_freemem(rtx, str_free);
-							hawk_rtx_refdownval(rtx, v);
-							return HAWK_NULL;
-						}
-					}
-				}
-
-				if (str_free) hawk_rtx_freemem(rtx, str_free);
-
-				if (flags & FLAG_MINUS)
-				{
-					/* left align */
-					while (wp[WP_WIDTH] > wp[WP_PRECISION])
-					{
-						if (hawk_ooecs_ccat(out, HAWK_T(' ')) == (hawk_oow_t)-1)
-						{
-							hawk_rtx_refdownval(rtx, v);
-							return HAWK_NULL;
-						}
-						wp[WP_WIDTH]--;
-					}
-				}
-
-				hawk_rtx_refdownval(rtx, v);
-			}
+			hawk_rtx_refupval(rtx, v);
+			xx = format_str(rtx, out, fbu, v, (val? FMT_V_FLT_TO_STR: 0), fmtc, wp, wp_idx, flags);
+			hawk_rtx_refdownval(rtx, v);
+			if (xx <= -1) return HAWK_NULL;
 		}
 		else
 		{
-			if (vxx)
-			{
-				hawk_rtx_refupval(rtx, vxx);
-				hawk_rtx_refdownval(rtx, vxx);
-			}
-
+			HAWK_ASSERT(vxx == HAWK_NULL); /* vxx is set for 'v'. the 'v' handler never cause the flow to reach here */
 			if (fmtc != HAWK_T('%')) OUT_STR(HAWK_OOECS_PTR(fbu), HAWK_OOECS_LEN(fbu));
 			OUT_CHAR(fmtc);
 			goto skip_taking_arg;
@@ -9336,15 +9626,7 @@ hawk_bch_t* hawk_rtx_formatmbs (
 		hawk_bch_t fmtc;
 		hawk_int_t wp[2];
 		int wp_idx;
-#define WP_WIDTH     0
-#define WP_PRECISION 1
-
 		int flags;
-#define FLAG_SPACE (1 << 0)
-#define FLAG_HASH  (1 << 1)
-#define FLAG_ZERO  (1 << 2)
-#define FLAG_PLUS  (1 << 3)
-#define FLAG_MINUS (1 << 4)
 
 		if (HAWK_BECS_LEN(fbu) == 0)
 		{
@@ -9369,19 +9651,19 @@ hawk_bch_t* hawk_rtx_formatmbs (
 			switch (fmt[i])
 			{
 				case HAWK_BT(' '):
-					flags |= FLAG_SPACE;
+					flags |= FMT_FLAG_SPACE;
 					break;
 				case HAWK_BT('#'):
-					flags |= FLAG_HASH;
+					flags |= FMT_FLAG_HASH;
 					break;
 				case HAWK_BT('0'):
-					flags |= FLAG_ZERO;
+					flags |= FMT_FLAG_ZERO;
 					break;
 				case HAWK_BT('+'):
-					flags |= FLAG_PLUS;
+					flags |= FMT_FLAG_PLUS;
 					break;
 				case HAWK_BT('-'):
-					flags |= FLAG_MINUS;
+					flags |= FMT_FLAG_MINUS;
 					break;
 				default:
 					goto wp_mod_init;
@@ -9391,9 +9673,9 @@ hawk_bch_t* hawk_rtx_formatmbs (
 		}
 
 wp_mod_init:
-		wp[WP_WIDTH] = 0; /* width */
-		wp[WP_PRECISION] = -1; /* precision */
-		wp_idx = WP_WIDTH; /* width first */
+		wp[FMT_WP_WIDTH] = 0; /* width */
+		wp[FMT_WP_PRECISION] = -1; /* precision */
+		wp_idx = FMT_WP_WIDTH; /* width first */
 
 wp_mod_main:
 		if (i < fmt_len && fmt[i] == HAWK_BT('*'))
@@ -9456,21 +9738,21 @@ wp_mod_main:
 			}
 		}
 
-		if (wp_idx == WP_WIDTH && i < fmt_len && fmt[i] == HAWK_BT('.'))
+		if (wp_idx == FMT_WP_WIDTH && i < fmt_len && fmt[i] == HAWK_BT('.'))
 		{
 			FMT_BCHAR(fmt[i]); i++;
 
-			wp[WP_PRECISION] = 0;
-			wp_idx = WP_PRECISION; /* change index to precision */
+			wp[FMT_WP_PRECISION] = 0;
+			wp_idx = FMT_WP_PRECISION; /* change index to precision */
 			goto wp_mod_main;
 		}
 
 		if (i >= fmt_len) break;
 
-		if (wp[WP_WIDTH] < 0)
+		if (wp[FMT_WP_WIDTH] < 0)
 		{
-			wp[WP_WIDTH] = -wp[WP_WIDTH];
-			flags |= FLAG_MINUS;
+			wp[FMT_WP_WIDTH] = -wp[FMT_WP_WIDTH];
+			flags |= FMT_FLAG_MINUS;
 		}
 
 		fmtc = fmt[i]; /* 'i' don't get increment after this */
@@ -9479,6 +9761,8 @@ wp_mod_main:
 		if (fmtc == 'v')
 		{
 			hawk_val_type_t vtype;
+			hawk_bcs_t fixed_str;
+			int xx;
 
 			vxx = get_arg_val_for_format(rtx, stack_arg_idx, nargs_on_stack, args, val);
 			if (HAWK_UNLIKELY(!vxx)) return HAWK_NULL;
@@ -9488,35 +9772,73 @@ wp_mod_main:
 			switch (vtype)
 			{
 				case HAWK_VAL_NIL:
-					if (hawk_becs_ncat(out, HAWK_BT("<@nil>"), 6) == (hawk_oow_t)-1) return HAWK_NULL;
+					hawk_rtx_refupval(rtx, vxx);
+					fixed_str.ptr = HAWK_BT("<@nil>");
+					fixed_str.len = 6;
+					xx = format_mbs(rtx, out, fbu, (hawk_val_t*)&fixed_str, FMT_V_CS_TO_STR, fmtc, wp, wp_idx, flags);
+					hawk_rtx_refdownval(rtx, vxx);
+					if (xx <= -1) return HAWK_NULL;
 					goto next_arg;
 
 				case HAWK_VAL_CHAR:
 					fmtc = 'c';
 					break;
 				case HAWK_VAL_BCHR:
-					fmtc = 'c';
+					fmtc = 'k';
 					break;
 				case HAWK_VAL_INT:
 					fmtc = 'd';
 					break;
 				case HAWK_VAL_FLT:
-					fmtc = 'g';
+					fmtc = 'f';
 					break;
 				case HAWK_VAL_STR:
-				case HAWK_VAL_MBS:
 					fmtc = 's';
+					break;
+				case HAWK_VAL_MBS:
+					fmtc = 'k';
 					break;
 				case HAWK_VAL_BOB:
 					fmtc = 'k';
 					break;
 
 				case HAWK_VAL_ARR: /* TOOD: */
-					if (hawk_becs_ncat(out, HAWK_BT("<ARRAY>"), 7) == (hawk_oow_t)-1) return HAWK_NULL;
+					hawk_rtx_refupval(rtx, vxx);
+					fixed_str.ptr = HAWK_BT("<ARRAY>");
+					fixed_str.len = 7;
+					xx = format_mbs(rtx, out, fbu, (hawk_val_t*)&fixed_str, FMT_V_CS_TO_STR, fmtc, wp, wp_idx, flags);
+					hawk_rtx_refdownval(rtx, vxx);
+					if (xx <= -1) return HAWK_NULL;
 					goto next_arg;
 
 				case HAWK_VAL_MAP: /* TOOD: */
-					if (hawk_becs_ncat(out, HAWK_BT("<MAP>"), 5) == (hawk_oow_t)-1) return HAWK_NULL;
+					hawk_rtx_refupval(rtx, vxx);
+					fixed_str.ptr = HAWK_BT("<MAP>");
+					fixed_str.len = 5;
+					xx = format_mbs(rtx, out, fbu, (hawk_val_t*)&fixed_str, FMT_V_CS_TO_STR, fmtc, wp, wp_idx, flags);
+					hawk_rtx_refdownval(rtx, vxx);
+					if (xx <= -1) return HAWK_NULL;
+					goto next_arg;
+
+				case HAWK_VAL_FUN:
+					hawk_rtx_refupval(rtx, vxx);
+			#if defined(HAWK_OOCH_IS_BCH)
+					xx = format_mbs(rtx, out, fbu, (hawk_val_t*)&((hawk_val_fun_t*)vxx)->fun->name, FMT_V_FUN_TO_STR, fmtc, wp, wp_idx, flags);
+			#else
+					/* the function name is always in oocs.
+					 * I can't pass the name to format_mbs without conversion,
+					 * nor can I use FMT_V_FUN_TO_STR */
+					fixed_str.ptr = hawk_rtx_dupu3tobchars(rtx, HAWK_UT("<FUN:"), 5, ((hawk_val_fun_t*)vxx)->fun->name.ptr, ((hawk_val_fun_t*)vxx)->fun->name.len, HAWK_UT(">"), 1, &fixed_str.len);
+					if (HAWK_UNLIKELY(!fixed_str.ptr))
+					{
+						hawk_rtx_refdownval(rtx, vxx);
+						return HAWK_NULL;
+					}
+					xx = format_mbs(rtx, out, fbu, (hawk_val_t*)&fixed_str, FMT_V_CS_TO_STR, fmtc, wp, wp_idx, flags);
+					hawk_rtx_freemem(rtx, fixed_str.ptr);
+			#endif
+					hawk_rtx_refdownval(rtx, vxx);
+					if (xx <= -1) return HAWK_NULL;
 					goto next_arg;
 
 				default:
@@ -9540,7 +9862,7 @@ wp_mod_main:
 			hawk_bch_t fmt_fill = HAWK_BT('\0');
 			const hawk_bch_t* fmt_prefix = HAWK_NULL;
 
-			if (vxx) v= vxx;
+			if (vxx) v = vxx;
 			else
 			{
 				v = get_arg_val_for_format(rtx, stack_arg_idx, nargs_on_stack, args, val);
@@ -9554,24 +9876,24 @@ wp_mod_main:
 
 			fmt_flags = HAWK_FMT_INTMAX_NOTRUNC | HAWK_FMT_INTMAX_NONULL;
 
-			if (l == 0 && wp_idx == WP_PRECISION && wp[WP_PRECISION] == 0)
+			if (l == 0 && wp_idx == FMT_WP_PRECISION && wp[FMT_WP_PRECISION] == 0)
 			{
 				/* printf ("%.d", 0); printf ("%.0d", 0); printf ("%.*d", 0, 0); */
 				/* A zero value with a precision of zero produces no character. */
 				fmt_flags |= HAWK_FMT_INTMAX_NOZERO;
 			}
 
-			if (wp[WP_WIDTH] > 0)
+			if (wp[FMT_WP_WIDTH] > 0)
 			{
 				/* justification for width greater than 0 */
-				if (flags & FLAG_ZERO)
+				if (flags & FMT_FLAG_ZERO)
 				{
-					if (flags & FLAG_MINUS)
+					if (flags & FMT_FLAG_MINUS)
 					{
-						 /* FLAG_MINUS wins if both FLAG_ZERO
-						  * and FLAG_MINUS are specified. */
+						 /* FMT_FLAG_MINUS wins if both FMT_FLAG_ZERO
+						  * and FMT_FLAG_MINUS are specified. */
 						fmt_fill = HAWK_BT(' ');
-						if (flags & FLAG_MINUS)
+						if (flags & FMT_FLAG_MINUS)
 						{
 							/* left justification. need to fill the right side */
 							fmt_flags |= HAWK_FMT_INTMAX_FILLRIGHT;
@@ -9579,10 +9901,10 @@ wp_mod_main:
 					}
 					else
 					{
-						if (wp_idx != WP_PRECISION) /* if precision is not set, wp_idx is at WP_WIDTH */
+						if (wp_idx != FMT_WP_PRECISION) /* if precision is not set, wp_idx is at FMT_WP_WIDTH */
 						{
 							/* precision not specified.
-							 * FLAG_ZERO can take effect */
+							 * FMT_FLAG_ZERO can take effect */
 							fmt_fill = HAWK_BT('0');
 							fmt_flags |= HAWK_FMT_INTMAX_FILLCENTER;
 						}
@@ -9595,7 +9917,7 @@ wp_mod_main:
 				else
 				{
 					fmt_fill = HAWK_BT(' ');
-					if (flags & FLAG_MINUS)
+					if (flags & FMT_FLAG_MINUS)
 					{
 						/* left justification. need to fill the right side */
 						fmt_flags |= HAWK_FMT_INTMAX_FILLRIGHT;
@@ -9609,7 +9931,7 @@ wp_mod_main:
 				case HAWK_BT('b'):
 					fmt_flags |= 2;
 					fmt_uint = 1;
-					if (l && (flags & FLAG_HASH))
+					if (l && (flags & FMT_FLAG_HASH))
 					{
 						/* A nonzero value is prefixed with 0b */
 						fmt_prefix = HAWK_BT("0b");
@@ -9621,7 +9943,7 @@ wp_mod_main:
 				case HAWK_BT('x'):
 					fmt_flags |= 16;
 					fmt_uint = 1;
-					if (l && (flags & FLAG_HASH))
+					if (l && (flags & FMT_FLAG_HASH))
 					{
 						/* A nonzero value is prefixed with 0x */
 						fmt_prefix = HAWK_BT("0x");
@@ -9631,31 +9953,31 @@ wp_mod_main:
 				case HAWK_BT('o'):
 					fmt_flags |= 8;
 					fmt_uint = 1;
-					if (flags & FLAG_HASH)
+					if (flags & FMT_FLAG_HASH)
 					{
 						/* Force a leading zero digit including zero.
-						 * 0 with FLAG_HASH and precision 0 still emits '0'.
+						 * 0 with FMT_FLAG_HASH and precision 0 still emits '0'.
 						 * On the contrary, 'X' and 'x' emit no digits
-						 * for 0 with FLAG_HASH and precision 0. */
+						 * for 0 with FMT_FLAG_HASH and precision 0. */
 						fmt_flags |= HAWK_FMT_INTMAX_ZEROLEAD;
 					}
 					break;
 
 				default:
 					fmt_flags |= 10;
-					if (flags & FLAG_PLUS)
+					if (flags & FMT_FLAG_PLUS)
 						fmt_flags |= HAWK_FMT_INTMAX_PLUSSIGN;
-					if (flags & FLAG_SPACE)
+					if (flags & FMT_FLAG_SPACE)
 						fmt_flags |= HAWK_FMT_INTMAX_EMPTYSIGN;
 					break;
 			}
 
 
-			if (wp[WP_WIDTH] > 0)
+			if (wp[FMT_WP_WIDTH] > 0)
 			{
-				if (wp[WP_WIDTH] > rtx->formatmbs.tmp.len)
-					GROW_MBSBUF_WITH_INC(&rtx->formatmbs.tmp, wp[WP_WIDTH] - rtx->formatmbs.tmp.len);
-				fmt_width = wp[WP_WIDTH];
+				if (wp[FMT_WP_WIDTH] > rtx->formatmbs.tmp.len)
+					GROW_MBSBUF_WITH_INC(&rtx->formatmbs.tmp, wp[FMT_WP_WIDTH] - rtx->formatmbs.tmp.len);
+				fmt_width = wp[FMT_WP_WIDTH];
 			}
 			else fmt_width = rtx->formatmbs.tmp.len;
 
@@ -9683,7 +10005,7 @@ wp_mod_main:
 						fmt_width,
 						(hawk_uint_t)l,
 						fmt_flags,
-						wp[WP_PRECISION],
+						wp[FMT_WP_PRECISION],
 						fmt_fill,
 						fmt_prefix
 					);
@@ -9695,7 +10017,7 @@ wp_mod_main:
 						fmt_width,
 						l,
 						fmt_flags,
-						wp[WP_PRECISION],
+						wp[FMT_WP_PRECISION],
 						fmt_fill,
 						fmt_prefix
 					);
@@ -9722,7 +10044,7 @@ wp_mod_main:
 			hawk_flt_t r;
 			int n;
 
-			if (vxx) v= vxx;
+			if (vxx) v = vxx;
 			else
 			{
 				v = get_arg_val_for_format(rtx, stack_arg_idx, nargs_on_stack, args, val);
@@ -9753,7 +10075,7 @@ wp_mod_main:
 			hawk_val_t* v;
 			hawk_val_type_t vtype;
 
-			if (vxx) v= vxx;
+			if (vxx) v = vxx;
 			else
 			{
 				v = get_arg_val_for_format(rtx, stack_arg_idx, nargs_on_stack, args, val);
@@ -9826,28 +10148,28 @@ wp_mod_main:
 					return HAWK_NULL;
 			}
 
-			if (wp[WP_PRECISION] <= 0 || wp[WP_PRECISION] > (hawk_int_t)ch_len)
+			if (wp[FMT_WP_PRECISION] <= 0 || wp[FMT_WP_PRECISION] > (hawk_int_t)ch_len)
 			{
-				wp[WP_PRECISION] = (hawk_int_t)ch_len;
+				wp[FMT_WP_PRECISION] = (hawk_int_t)ch_len;
 			}
 
-			if (wp[WP_PRECISION] > wp[WP_WIDTH]) wp[WP_WIDTH] = wp[WP_PRECISION];
+			if (wp[FMT_WP_PRECISION] > wp[FMT_WP_WIDTH]) wp[FMT_WP_WIDTH] = wp[FMT_WP_PRECISION];
 
-			if (!(flags & FLAG_MINUS))
+			if (!(flags & FMT_FLAG_MINUS))
 			{
 				/* right align */
-				while (wp[WP_WIDTH] > wp[WP_PRECISION])
+				while (wp[FMT_WP_WIDTH] > wp[FMT_WP_PRECISION])
 				{
 					if (hawk_becs_ccat(out, HAWK_BT(' ')) == (hawk_oow_t)-1)
 					{
 						hawk_rtx_refdownval(rtx, v);
 						return HAWK_NULL;
 					}
-					wp[WP_WIDTH]--;
+					wp[FMT_WP_WIDTH]--;
 				}
 			}
 
-			if (wp[WP_PRECISION] > 0)
+			if (wp[FMT_WP_PRECISION] > 0)
 			{
 				if (hawk_becs_ccat(out, ch) == (hawk_oow_t)-1)
 				{
@@ -9856,17 +10178,17 @@ wp_mod_main:
 				}
 			}
 
-			if (flags & FLAG_MINUS)
+			if (flags & FMT_FLAG_MINUS)
 			{
 				/* left align */
-				while (wp[WP_WIDTH] > wp[WP_PRECISION])
+				while (wp[FMT_WP_WIDTH] > wp[FMT_WP_PRECISION])
 				{
 					if (hawk_becs_ccat(out, HAWK_BT(' ')) == (hawk_oow_t)-1)
 					{
 						hawk_rtx_refdownval(rtx, v);
 						return HAWK_NULL;
 					}
-					wp[WP_WIDTH]--;
+					wp[FMT_WP_WIDTH]--;
 				}
 			}
 
@@ -9875,222 +10197,23 @@ wp_mod_main:
 		else if (fmtc == 's' || fmtc == 'k' || fmtc == 'K' || fmtc == 'w' || fmtc == 'W')
 		{
 			hawk_val_t* v;
+			int xx;
 
-			if (vxx) v= vxx;
+			if (vxx) v = vxx;
 			else
 			{
 				v = get_arg_val_for_format(rtx, stack_arg_idx, nargs_on_stack, args, val);
 				if (HAWK_UNLIKELY(!v)) return HAWK_NULL;
 			}
 
-			if (val)
-			{
-				/* val_flt_to_str() in val.c calls hawk_rtx_format() with nargs_on_stack of (hawk_oow_t)-1 and the actual value.
-				 * the actual value is assigned to 'val' at the beginning of this function.
-				 *
-				 * the following code can drive here.
-				 *     BEGIN { CONVFMT="%s"; a=98.76 ""; }
-				 *
-				 * when the first attempt to convert 98.76 to a textual form invokes this function with %s and 98.76.
-				 * it comes to this part because the format specifier is 's'. since the floating-point type is not
-				 * specially handled, hawk_rtx_valtooocstrdup() is called below. it calls val_flt_to_str() again,
-				 * which eventually creates recursion and stack depletion.
-				 *
-				 * assuming only val_flt_to_str() calls it this way, i must convert the floating point number
-				 * to text in a rather crude way without calling hawk_rtx_valtooocstrdup().
-				 */
-				hawk_flt_t r;
-				int n;
-
-				HAWK_ASSERT(HAWK_RTX_GETVALTYPE(rtx, val) == HAWK_VAL_FLT);
-
-				hawk_rtx_refupval(rtx, v);
-				n = hawk_rtx_valtoflt(rtx, v, &r);
-				hawk_rtx_refdownval(rtx, v);
-				if (n <= -1) return HAWK_NULL;
-
-				/* format the value as if '%g' is given */
-			#if defined(HAWK_USE_FLTMAX)
-				FMT_MBS(HAWK_BT("jjg"), 3); /* see fmt.c for info on jj */
-				if (hawk_becs_fcat(out, HAWK_BECS_PTR(fbu), &r) == (hawk_oow_t)-1) return HAWK_NULL;
-			#else
-				FMT_MBS(HAWK_BT("zg"), 2);
-				if (hawk_becs_fcat(out, HAWK_BECS_PTR(fbu), r) == (hawk_oow_t)-1) return HAWK_NULL;
-			#endif
-			}
-			else
-			{
-				hawk_bch_t* str_ptr, * str_free = HAWK_NULL, bchr_tmp;
-				hawk_ooch_t ooch_tmp;
-				hawk_oow_t str_len;
-				hawk_int_t k;
-				hawk_val_type_t vtype;
-				int bytetombs_flagged_radix = 16;
-
-				hawk_rtx_refupval(rtx, v);
-
-				vtype = HAWK_RTX_GETVALTYPE(rtx, v);
-				switch (vtype)
-				{
-					case HAWK_VAL_NIL:
-						str_ptr = HAWK_BT("");
-						str_len = 0;
-						break;
-
-					case HAWK_VAL_BCHR:
-						bchr_tmp = HAWK_RTX_GETBCHRFROMVAL(rtx, v);
-						str_ptr = &bchr_tmp;
-						str_len = 1;
-						break;
-
-					case HAWK_VAL_MBS:
-						str_ptr = ((hawk_val_mbs_t*)v)->val.ptr;
-						str_len = ((hawk_val_mbs_t*)v)->val.len;
-						break;
-
-					case HAWK_VAL_BOB:
-						str_ptr = (hawk_bch_t*)((hawk_val_bob_t*)v)->val.ptr;
-						str_len = ((hawk_val_bob_t*)v)->val.len;
-						break;
-
-					case HAWK_VAL_CHAR:
-					#if defined(HAWK_OOCH_IS_BCH)
-						bchr_tmp = HAWK_RTX_GETBCHRFROMVAL(rtx, v);
-						str_ptr = &bchr_tmp;
-						str_len = 1;
-					#else
-						if (fmtc == HAWK_BT('s')) goto duplicate;
-						ooch_tmp = HAWK_RTX_GETCHARFROMVAL(rtx, v);
-						str_ptr = (hawk_bch_t*)&ooch_tmp;
-						str_len = 1 * (HAWK_SIZEOF_OOCH_T / HAWK_SIZEOF_BCH_T);
-					#endif
-						break;
-
-					case HAWK_VAL_STR:
-					#if defined(HAWK_OOCH_IS_BCH)
-						str_ptr = ((hawk_val_str_t*)v)->val.ptr;
-						str_len = ((hawk_val_str_t*)v)->val.len;
-					#else
-						if (fmtc == HAWK_BT('s')) goto duplicate;
-						/* arrange to print the wide character string byte by byte regardless of byte order */
-						str_ptr = (hawk_bch_t*)((hawk_val_str_t*)v)->val.ptr;
-						str_len = ((hawk_val_str_t*)v)->val.len * (HAWK_SIZEOF_OOCH_T / HAWK_SIZEOF_BCH_T);
-					#endif
-						break;
-
-					default:
-					duplicate:
-						str_ptr = hawk_rtx_valtobcstrdup(rtx, v, &str_len);
-						if (!str_ptr)
-						{
-							hawk_rtx_refdownval(rtx, v);
-							return HAWK_NULL;
-						}
-
-						str_free = str_ptr;
-						break;
-				}
-
-				if (wp_idx != WP_PRECISION || wp[WP_PRECISION] <= -1 || wp[WP_PRECISION] > (hawk_int_t)str_len)
-				{
-					/* precision not specified, or specified to a negative value or greater than the actual length */
-					wp[WP_PRECISION] = (hawk_int_t)str_len;
-				}
-				if (wp[WP_PRECISION] > wp[WP_WIDTH]) wp[WP_WIDTH] = wp[WP_PRECISION];
-
-				if (!(flags & FLAG_MINUS))
-				{
-					/* right align */
-					while (wp[WP_WIDTH] > wp[WP_PRECISION])
-					{
-						if (hawk_becs_ccat(out, HAWK_BT(' ')) == (hawk_oow_t)-1)
-						{
-							if (str_free) hawk_rtx_freemem(rtx, str_free);
-							hawk_rtx_refdownval(rtx, v);
-							return HAWK_NULL;
-						}
-						wp[WP_WIDTH]--;
-					}
-				}
-
-				if (fmtc == 'k' || fmtc == 'w') bytetombs_flagged_radix |= HAWK_BYTE_TO_BCSTR_LOWERCASE;
-
-				for (k = 0; k < wp[WP_PRECISION]; k++)
-				{
-					hawk_bch_t curc;
-
-					curc = str_ptr[k];
-
-					if ((fmtc != 's' && !HAWK_BYTE_PRINTABLE(curc)) || fmtc == 'w' || fmtc == 'W')
-					{
-						hawk_bch_t xbuf[3];
-					#if 0 /* the range check isn't needed for hawk_bch_t. it's always <= 0xFF */
-
-						if (curc <= 0xFF)
-						{
-					#endif
-							if (hawk_becs_ncat(out, HAWK_BT("\\x"), 2) == (hawk_oow_t)-1) goto s_fail;
-							hawk_byte_to_bcstr(curc, xbuf, HAWK_COUNTOF(xbuf), bytetombs_flagged_radix, HAWK_BT('0'));
-							if (hawk_becs_ncat(out, xbuf, 2) == (hawk_oow_t)-1) goto s_fail;
-					#if 0
-						}
-						else if (curc <= 0xFFFF)
-						{
-							hawk_uint16_t u16 = curc;
-							if (hawk_becs_ncat(out, HAWK_BT("\\u"), 2) == (hawk_oow_t)-1) goto s_fail;
-							hawk_byte_to_bcstr((u16 >> 8) & 0xFF, xbuf, HAWK_COUNTOF(xbuf), bytetombs_flagged_radix, HAWK_BT('0'));
-							if (hawk_becs_ncat(out, xbuf, 2) == (hawk_oow_t)-1) goto s_fail;
-							hawk_byte_to_bcstr(u16 & 0xFF, xbuf, HAWK_COUNTOF(xbuf), bytetombs_flagged_radix, HAWK_BT('0'));
-							if (hawk_becs_ncat(out, xbuf, 2) == (hawk_oow_t)-1) goto s_fail;
-						}
-						else
-						{
-							hawk_uint32_t u32 = curc;
-							if (hawk_becs_ncat(out, HAWK_BT("\\U"), 2) == (hawk_oow_t)-1) goto s_fail;
-							hawk_byte_to_bcstr((u32 >> 24) & 0xFF, xbuf, HAWK_COUNTOF(xbuf), bytetombs_flagged_radix, HAWK_BT('0'));
-							if (hawk_becs_ncat(out, xbuf, 2) == (hawk_oow_t)-1) goto s_fail;
-							hawk_byte_to_bcstr((u32 >> 16) & 0xFF, xbuf, HAWK_COUNTOF(xbuf), bytetombs_flagged_radix, HAWK_BT('0'));
-							if (hawk_becs_ncat(out, xbuf, 2) == (hawk_oow_t)-1) goto s_fail;
-							hawk_byte_to_bcstr((u32 >> 8) & 0xFF, xbuf, HAWK_COUNTOF(xbuf), bytetombs_flagged_radix, HAWK_BT('0'));
-							if (hawk_becs_ncat(out, xbuf, 2) == (hawk_oow_t)-1) goto s_fail;
-							hawk_byte_to_bcstr(u32 & 0xFF, xbuf, HAWK_COUNTOF(xbuf), bytetombs_flagged_radix, HAWK_BT('0'));
-							if (hawk_becs_ncat(out, xbuf, 2) == (hawk_oow_t)-1) goto s_fail;
-						}
-					#endif
-					}
-					else
-					{
-						if (hawk_becs_ccat(out, curc) == (hawk_oow_t)-1)
-						{
-						s_fail:
-							if (str_free) hawk_rtx_freemem(rtx, str_free);
-							hawk_rtx_refdownval(rtx, v);
-							return HAWK_NULL;
-						}
-					}
-				}
-
-				if (str_free) hawk_rtx_freemem(rtx, str_free);
-
-				if (flags & FLAG_MINUS)
-				{
-					/* left align */
-					while (wp[WP_WIDTH] > wp[WP_PRECISION])
-					{
-						if (hawk_becs_ccat(out, HAWK_BT(' ')) == (hawk_oow_t)-1)
-						{
-							hawk_rtx_refdownval(rtx, v);
-							return HAWK_NULL;
-						}
-						wp[WP_WIDTH]--;
-					}
-				}
-
-				hawk_rtx_refdownval(rtx, v);
-			}
+			hawk_rtx_refupval(rtx, v);
+			xx = format_mbs(rtx, out, fbu, v, (val? FMT_V_FLT_TO_STR: 0), fmtc, wp, wp_idx, flags);
+			hawk_rtx_refdownval(rtx, v);
+			if (xx <= -1) return HAWK_NULL;
 		}
 		else
 		{
+			HAWK_ASSERT(vxx != HAWK_NULL);
 			if (fmtc != HAWK_BT('%')) OUT_MBS(HAWK_BECS_PTR(fbu), HAWK_BECS_LEN(fbu));
 			OUT_BCHAR(fmtc);
 			goto skip_taking_arg;

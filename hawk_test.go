@@ -31,7 +31,7 @@ func make_hawk(script string) (*hawk.Hawk, error) {
 }
 
 func enbase64(rtx *hawk.Rtx) error {
-	fmt.Printf ("*** ENABLE64 RTX %p\n", rtx) // << this is 0 from time to time.. TODO: fix it..
+	fmt.Printf ("*** ENBASE64 RTX %p\n", rtx) // << this is 0 from time to time.. TODO: fix it..
 	fmt.Printf("****ENBASE64 [%d]\n", rtx.GetFuncArgCount())
 
 	var a0 *hawk.Val = hawk.Must(rtx.GetFuncArg(0))

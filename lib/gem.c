@@ -64,7 +64,7 @@ hawk_uch_t* hawk_gem_dupucstr (hawk_gem_t* gem, const hawk_uch_t* ucs, hawk_oow_
 	ptr = (hawk_uch_t*)hawk_gem_allocmem(gem, (ucslen + 1) * HAWK_SIZEOF(hawk_uch_t));
 	if (!ptr) return HAWK_NULL;
 
-	hawk_copy_uchars (ptr, ucs, ucslen);
+	hawk_copy_uchars(ptr, ucs, ucslen);
 	ptr[ucslen] = '\0';
 
 	if (_ucslen) *_ucslen = ucslen;
@@ -80,7 +80,7 @@ hawk_bch_t* hawk_gem_dupbcstr (hawk_gem_t* gem, const hawk_bch_t* bcs, hawk_oow_
 	ptr = (hawk_bch_t*)hawk_gem_allocmem(gem, (bcslen + 1) * HAWK_SIZEOF(hawk_bch_t));
 	if (!ptr) return HAWK_NULL;
 
-	hawk_copy_bchars (ptr, bcs, bcslen);
+	hawk_copy_bchars(ptr, bcs, bcslen);
 	ptr[bcslen] = '\0';
 
 	if (_bcslen) *_bcslen = bcslen;
@@ -95,7 +95,7 @@ hawk_uch_t* hawk_gem_dupuchars (hawk_gem_t* gem, const hawk_uch_t* ucs, hawk_oow
 	ptr = (hawk_uch_t*)hawk_gem_allocmem(gem, (ucslen + 1) * HAWK_SIZEOF(hawk_uch_t));
 	if (!ptr) return HAWK_NULL;
 
-	hawk_copy_uchars (ptr, ucs, ucslen);
+	hawk_copy_uchars(ptr, ucs, ucslen);
 	ptr[ucslen] = '\0';
 	return ptr;
 }
@@ -107,7 +107,7 @@ hawk_bch_t* hawk_gem_dupbchars (hawk_gem_t* gem, const hawk_bch_t* bcs, hawk_oow
 	ptr = (hawk_bch_t*)hawk_gem_allocmem(gem, (bcslen + 1) * HAWK_SIZEOF(hawk_bch_t));
 	if (!ptr) return HAWK_NULL;
 
-	hawk_copy_bchars (ptr, bcs, bcslen);
+	hawk_copy_bchars(ptr, bcs, bcslen);
 	ptr[bcslen] = '\0';
 	return ptr;
 }
@@ -119,7 +119,7 @@ hawk_uch_t* hawk_gem_dupucs (hawk_gem_t* gem, const hawk_ucs_t* ucs)
 	ptr = (hawk_uch_t*)hawk_gem_allocmem(gem, (ucs->len + 1) * HAWK_SIZEOF(hawk_uch_t));
 	if (!ptr) return HAWK_NULL;
 
-	hawk_copy_uchars (ptr, ucs->ptr, ucs->len);
+	hawk_copy_uchars(ptr, ucs->ptr, ucs->len);
 	ptr[ucs->len] = '\0';
 	return ptr;
 }
@@ -131,7 +131,7 @@ hawk_bch_t* hawk_gem_dupbcs (hawk_gem_t* gem, const hawk_bcs_t* bcs)
 	ptr = (hawk_bch_t*)hawk_gem_allocmem(gem, (bcs->len + 1) * HAWK_SIZEOF(hawk_bch_t));
 	if (!ptr) return HAWK_NULL;
 
-	hawk_copy_bchars (ptr, bcs->ptr, bcs->len);
+	hawk_copy_bchars(ptr, bcs->ptr, bcs->len);
 	ptr[bcs->len] = '\0';
 	return ptr;
 }
@@ -262,7 +262,7 @@ hawk_uch_t* hawk_gem_dupbtouchars (hawk_gem_t* gem, const hawk_bch_t* bcs, hawk_
 	if (!ucs) return HAWK_NULL;
 
 	bcslen= _bcslen;
-	hawk_gem_convbtouchars (gem, bcs, &bcslen, ucs, &ucslen, all);
+	hawk_gem_convbtouchars(gem, bcs, &bcslen, ucs, &ucslen, all);
 	ucs[ucslen] = '\0';
 
 	if (_ucslen) *_ucslen = ucslen;
@@ -281,7 +281,7 @@ hawk_bch_t* hawk_gem_duputobchars (hawk_gem_t* gem, const hawk_uch_t* ucs, hawk_
 	if (!bcs) return HAWK_NULL;
 
 	ucslen = _ucslen;
-	hawk_gem_convutobchars (gem, ucs, &ucslen, bcs, &bcslen);
+	hawk_gem_convutobchars(gem, ucs, &ucslen, bcs, &bcslen);
 	bcs[bcslen] = '\0';
 
 	if (_bcslen) *_bcslen = bcslen;
@@ -303,10 +303,10 @@ hawk_uch_t* hawk_gem_dupb2touchars (hawk_gem_t* gem, const hawk_bch_t* bcs1, haw
 	if (!ptr) return HAWK_NULL;
 
 	inlen = bcslen1;
-	hawk_gem_convbtouchars (gem, bcs1, &inlen, &ptr[0], &outlen1, all);
+	hawk_gem_convbtouchars(gem, bcs1, &inlen, &ptr[0], &outlen1, all);
 
 	inlen = bcslen2;
-	hawk_gem_convbtouchars (gem, bcs2, &inlen, &ptr[outlen1], &outlen2, all);
+	hawk_gem_convbtouchars(gem, bcs2, &inlen, &ptr[outlen1], &outlen2, all);
 
 	/* hawk_convbtouchars() doesn't null-terminate the target.
 	 * but in hawk_dupbtouchars(), i allocate space. so i don't mind
@@ -331,13 +331,45 @@ hawk_bch_t* hawk_gem_dupu2tobchars (hawk_gem_t* gem, const hawk_uch_t* ucs1, haw
 	if (!ptr) return HAWK_NULL;
 
 	inlen = ucslen1;
-	hawk_gem_convutobchars (gem, ucs1, &inlen, &ptr[0], &outlen1);
+	hawk_gem_convutobchars(gem, ucs1, &inlen, &ptr[0], &outlen1);
 
 	inlen = ucslen2;
-	hawk_gem_convutobchars (gem, ucs2, &inlen, &ptr[outlen1], &outlen2);
+	hawk_gem_convutobchars(gem, ucs2, &inlen, &ptr[outlen1], &outlen2);
 
 	ptr[outlen1 + outlen2] = '\0';
 	if (bcslen) *bcslen = outlen1 + outlen2;
+
+	return ptr;
+}
+
+hawk_bch_t* hawk_gem_dupu3tobchars (hawk_gem_t* gem, const hawk_uch_t* ucs1, hawk_oow_t ucslen1, const hawk_uch_t* ucs2, hawk_oow_t ucslen2, const hawk_uch_t* ucs3, hawk_oow_t ucslen3, hawk_oow_t* bcslen)
+{
+	hawk_oow_t inlen, outlen1, outlen2, outlen3;
+	hawk_bch_t* ptr;
+
+	inlen = ucslen1;
+	if (hawk_gem_convutobchars(gem, ucs1, &inlen, HAWK_NULL, &outlen1) <= -1) return HAWK_NULL;
+
+	inlen = ucslen2;
+	if (hawk_gem_convutobchars(gem, ucs2, &inlen, HAWK_NULL, &outlen2) <= -1) return HAWK_NULL;
+
+	inlen = ucslen3;
+	if (hawk_gem_convutobchars(gem, ucs3, &inlen, HAWK_NULL, &outlen3) <= -1) return HAWK_NULL;
+
+	ptr = (hawk_bch_t*)hawk_gem_allocmem(gem, (outlen1 + outlen2 + outlen3 + 1) * HAWK_SIZEOF(*ptr));
+	if (HAWK_UNLIKELY(!ptr)) return HAWK_NULL;
+
+	inlen = ucslen1;
+	hawk_gem_convutobchars(gem, ucs1, &inlen, &ptr[0], &outlen1);
+
+	inlen = ucslen2;
+	hawk_gem_convutobchars(gem, ucs2, &inlen, &ptr[outlen1], &outlen2);
+
+	inlen = ucslen3;
+	hawk_gem_convutobchars(gem, ucs3, &inlen, &ptr[outlen1 + outlen2], &outlen3);
+
+	ptr[outlen1 + outlen2 + outlen3] = '\0';
+	if (bcslen) *bcslen = outlen1 + outlen2 + outlen3;
 
 	return ptr;
 }
@@ -353,7 +385,7 @@ hawk_uch_t* hawk_gem_dupbtoucstr (hawk_gem_t* gem, const hawk_bch_t* bcs, hawk_o
 	ucs = hawk_gem_allocmem(gem, HAWK_SIZEOF(*ucs) * ucslen);
 	if (!ucs) return HAWK_NULL;
 
-	hawk_gem_convbtoucstr (gem, bcs, &bcslen, ucs, &ucslen, all);
+	hawk_gem_convbtoucstr(gem, bcs, &bcslen, ucs, &ucslen, all);
 	if (_ucslen) *_ucslen = ucslen;
 	return ucs;
 }
@@ -369,7 +401,7 @@ hawk_bch_t* hawk_gem_duputobcstr (hawk_gem_t* gem, const hawk_uch_t* ucs, hawk_o
 	bcs = hawk_gem_allocmem(gem, HAWK_SIZEOF(*bcs) * bcslen);
 	if (!bcs) return HAWK_NULL;
 
-	hawk_gem_convutobcstr (gem, ucs, &ucslen, bcs, &bcslen);
+	hawk_gem_convutobcstr(gem, ucs, &ucslen, bcs, &bcslen);
 	if (_bcslen) *_bcslen = bcslen;
 	return bcs;
 }
@@ -447,7 +479,7 @@ hawk_uch_t* hawk_gem_dupbcstrarrtoucstr (hawk_gem_t* gem, const hawk_bch_t* bcs[
 	for (pos = 0, i = 0; bcs[i]; i++)
 	{
 		ul = capa - pos + 1;
-		hawk_gem_convbtoucstr (gem, bcs[i], &bl, &ucs[pos], &ul, all);
+		hawk_gem_convbtoucstr(gem, bcs[i], &bl, &ucs[pos], &ul, all);
 		pos += ul;
 	}
 
@@ -472,7 +504,7 @@ hawk_bch_t* hawk_gem_dupucstrarrtobcstr (hawk_gem_t* gem, const hawk_uch_t* ucs[
 	for (pos = 0, i = 0; ucs[i]; i++)
 	{
 		bl = capa - pos + 1;
-		hawk_gem_convutobcstr (gem, ucs[i], &ul, &bcs[pos], &bl);
+		hawk_gem_convutobcstr(gem, ucs[i], &ul, &bcs[pos], &bl);
 		pos += bl;
 	}
 

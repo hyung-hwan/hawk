@@ -267,6 +267,17 @@ HAWK_EXPORT hawk_bch_t* hawk_gem_dupu2tobchars (
 	hawk_oow_t*        bcslen
 );
 
+HAWK_EXPORT hawk_bch_t* hawk_gem_dupu3tobchars (
+	hawk_gem_t*        gem,
+	const hawk_uch_t*  ucs1,
+	hawk_oow_t         ucslen1,
+	const hawk_uch_t*  ucs2,
+	hawk_oow_t         ucslen2,
+	const hawk_uch_t*  ucs3,
+	hawk_oow_t         ucslen3,
+	hawk_oow_t*        bcslen
+);
+
 HAWK_EXPORT hawk_uch_t* hawk_gem_dupbtoucstr (
 	hawk_gem_t*        gem,
 	const hawk_bch_t*  bcs,

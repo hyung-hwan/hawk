@@ -2280,6 +2280,7 @@ static HAWK_INLINE hawk_uch_t* hawk_dupbtouchars (hawk_t* hawk, const hawk_bch_t
 static HAWK_INLINE hawk_bch_t* hawk_duputobchars (hawk_t* hawk, const hawk_uch_t* ucs, hawk_oow_t _ucslen, hawk_oow_t* _bcslen) { return hawk_gem_duputobchars(hawk_getgem(hawk), ucs, _ucslen, _bcslen); }
 static HAWK_INLINE hawk_uch_t* hawk_dupb2touchars (hawk_t* hawk, const hawk_bch_t* bcs1, hawk_oow_t bcslen1, const hawk_bch_t* bcs2, hawk_oow_t bcslen2, hawk_oow_t* ucslen, int all) { return hawk_gem_dupb2touchars(hawk_getgem(hawk), bcs1, bcslen1, bcs2, bcslen2, ucslen, all); }
 static HAWK_INLINE hawk_bch_t* hawk_dupu2tobchars (hawk_t* hawk, const hawk_uch_t* ucs1, hawk_oow_t ucslen1, const hawk_uch_t* ucs2, hawk_oow_t ucslen2, hawk_oow_t* bcslen) { return hawk_gem_dupu2tobchars(hawk_getgem(hawk), ucs1, ucslen1, ucs2, ucslen2, bcslen); }
+static HAWK_INLINE hawk_bch_t* hawk_dupu3tobchars (hawk_t* hawk, const hawk_uch_t* ucs1, hawk_oow_t ucslen1, const hawk_uch_t* ucs2, hawk_oow_t ucslen2, const hawk_uch_t* ucs3, hawk_oow_t ucslen3, hawk_oow_t* bcslen) { return hawk_gem_dupu3tobchars(hawk_getgem(hawk), ucs1, ucslen1, ucs2, ucslen2, ucs3, ucslen3, bcslen); }
 static HAWK_INLINE hawk_uch_t* hawk_dupbtoucstr (hawk_t* hawk, const hawk_bch_t* bcs, hawk_oow_t* _ucslen, int all) { return hawk_gem_dupbtoucstr(hawk_getgem(hawk), bcs, _ucslen, all); }
 static HAWK_INLINE hawk_bch_t* hawk_duputobcstr (hawk_t* hawk, const hawk_uch_t* ucs, hawk_oow_t* _bcslen) { return hawk_gem_duputobcstr(hawk_getgem(hawk), ucs, _bcslen); }
 static HAWK_INLINE hawk_uch_t* hawk_dupbtoucharswithcmgr (hawk_t* hawk, const hawk_bch_t* bcs, hawk_oow_t _bcslen, hawk_oow_t* _ucslen, hawk_cmgr_t* cmgr, int all) { return hawk_gem_dupbtoucharswithcmgr(hawk_getgem(hawk), bcs, _bcslen, _ucslen, cmgr, all); }
@@ -2291,6 +2292,7 @@ static HAWK_INLINE hawk_bch_t* hawk_dupucstrarrtobcstr (hawk_t* hawk, const hawk
 #define hawk_duputobchars(hawk, ucs, _ucslen, _bcslen) hawk_gem_duputobchars(hawk_getgem(hawk), ucs, _ucslen, _bcslen)
 #define hawk_dupb2touchars(hawk, bcs1, bcslen1, bcs2, bcslen2, ucslen, all) hawk_gem_dupb2touchars(hawk_getgem(hawk), bcs1, bcslen1, bcs2, bcslen2, ucslen, all)
 #define hawk_dupu2tobchars(hawk, ucs1, ucslen1, ucs2, ucslen2, bcslen) hawk_gem_dupu2tobchars(hawk_getgem(hawk), ucs1, ucslen1, ucs2, ucslen2, bcslen)
+#define hawk_dupu3tobchars(hawk, ucs1, ucslen1, ucs2, ucslen2, ucs3, ucslen3, bcslen) hawk_gem_dupu3tobchars(hawk_getgem(hawk), ucs1, ucslen1, ucs2, ucslen2, ucs3, ucslen3, bcslen)
 #define hawk_dupbtoucstr(hawk, bcs, _ucslen, all) hawk_gem_dupbtoucstr(hawk_getgem(hawk), bcs, _ucslen, all)
 #define hawk_duputobcstr(hawk, ucs, _bcslen) hawk_gem_duputobcstr(hawk_getgem(hawk), ucs, _bcslen)
 #define hawk_dupbtoucharswithcmgr(hawk, bcs, _bcslen, _ucslen, cmgr, all) hawk_gem_dupbtoucharswithcmgr(hawk_getgem(hawk), bcs, _bcslen, _ucslen, cmgr, all)
@@ -3883,6 +3885,7 @@ static HAWK_INLINE hawk_uch_t* hawk_rtx_dupbtouchars (hawk_rtx_t* rtx, const haw
 static HAWK_INLINE hawk_bch_t* hawk_rtx_duputobchars (hawk_rtx_t* rtx, const hawk_uch_t* ucs, hawk_oow_t _ucslen, hawk_oow_t* _bcslen) { return hawk_gem_duputobchars(hawk_rtx_getgem(rtx), ucs, _ucslen, _bcslen); }
 static HAWK_INLINE hawk_uch_t* hawk_rtx_dupb2touchars (hawk_rtx_t* rtx, const hawk_bch_t* bcs1, hawk_oow_t bcslen1, const hawk_bch_t* bcs2, hawk_oow_t bcslen2, hawk_oow_t* ucslen, int all) { return hawk_gem_dupb2touchars(hawk_rtx_getgem(rtx), bcs1, bcslen1, bcs2, bcslen2, ucslen, all); }
 static HAWK_INLINE hawk_bch_t* hawk_rtx_dupu2tobchars (hawk_rtx_t* rtx, const hawk_uch_t* ucs1, hawk_oow_t ucslen1, const hawk_uch_t* ucs2, hawk_oow_t ucslen2, hawk_oow_t* bcslen) { return hawk_gem_dupu2tobchars(hawk_rtx_getgem(rtx), ucs1, ucslen1, ucs2, ucslen2, bcslen); }
+static HAWK_INLINE hawk_bch_t* hawk_rtx_dupu3tobchars (hawk_rtx_t* rtx, const hawk_uch_t* ucs1, hawk_oow_t ucslen1, const hawk_uch_t* ucs2, hawk_oow_t ucslen2, const hawk_uch_t* ucs3, hawk_oow_t ucslen3, hawk_oow_t* bcslen) { return hawk_gem_dupu3tobchars(hawk_rtx_getgem(rtx), ucs1, ucslen1, ucs2, ucslen2, ucs3, ucslen3, bcslen); }
 static HAWK_INLINE hawk_uch_t* hawk_rtx_dupbtoucstr (hawk_rtx_t* rtx, const hawk_bch_t* bcs, hawk_oow_t* _ucslen, int all) { return hawk_gem_dupbtoucstr(hawk_rtx_getgem(rtx), bcs, _ucslen, all); }
 static HAWK_INLINE hawk_bch_t* hawk_rtx_duputobcstr (hawk_rtx_t* rtx, const hawk_uch_t* ucs, hawk_oow_t* _bcslen) { return hawk_gem_duputobcstr(hawk_rtx_getgem(rtx), ucs, _bcslen); }
 static HAWK_INLINE hawk_uch_t* hawk_rtx_dupbtoucharswithcmgr (hawk_rtx_t* rtx, const hawk_bch_t* bcs, hawk_oow_t _bcslen, hawk_oow_t* _ucslen, hawk_cmgr_t* cmgr, int all) { return hawk_gem_dupbtoucharswithcmgr(hawk_rtx_getgem(rtx), bcs, _bcslen, _ucslen, cmgr, all); }
@@ -3894,6 +3897,7 @@ static HAWK_INLINE hawk_bch_t* hawk_rtx_dupucstrarrtobcstr (hawk_rtx_t* rtx, con
 #define hawk_rtx_duputobchars(rtx, ucs, _ucslen, _bcslen) hawk_gem_duputobchars(hawk_rtx_getgem(rtx), ucs, _ucslen, _bcslen)
 #define hawk_rtx_dupb2touchars(rtx, bcs1, bcslen1, bcs2, bcslen2, ucslen, all) hawk_gem_dupb2touchars(hawk_rtx_getgem(rtx), bcs1, bcslen1, bcs2, bcslen2, ucslen, all)
 #define hawk_rtx_dupu2tobchars(rtx, ucs1, ucslen1, ucs2, ucslen2, bcslen) hawk_gem_dupu2tobchars(hawk_rtx_getgem(rtx), ucs1, ucslen1, ucs2, ucslen2, bcslen)
+#define hawk_rtx_dupu3tobchars(rtx, ucs1, ucslen1, ucs2, ucslen2, ucs3, ucslen3, bcslen) hawk_gem_dupu3tobchars(hawk_rtx_getgem(rtx), ucs1, ucslen1, ucs2, ucslen2, ucs3, ucslen3, bcslen)
 #define hawk_rtx_dupbtoucstr(rtx, bcs, _ucslen, all) hawk_gem_dupbtoucstr(hawk_rtx_getgem(rtx), bcs, _ucslen, all)
 #define hawk_rtx_duputobcstr(rtx, ucs, _bcslen) hawk_gem_duputobcstr(hawk_rtx_getgem(rtx), ucs, _bcslen)
 #define hawk_rtx_dupbtoucharswithcmgr(rtx, bcs, _bcslen, _ucslen, cmgr, all) hawk_gem_dupbtoucharswithcmgr(hawk_rtx_getgem(rtx), bcs, _bcslen, _ucslen, cmgr, all)

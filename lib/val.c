@@ -3405,7 +3405,7 @@ void hawk_dprintval(hawk_rtx_t* run, hawk_val_t* val)
 			break;
 
 		case HAWK_VAL_FUN:
-			hawk_errputstrf(HAWK_T("%.*s"), ((hawk_val_fun_t*)val)->fun->name.len, ((hawk_val_fun_t*)val)->fun->name.ptr);
+			hawk_errputstrf(HAWK_T("<FUN:%.*s>"), ((hawk_val_fun_t*)val)->fun->name.len, ((hawk_val_fun_t*)val)->fun->name.ptr);
 			break;
 
 		case HAWK_VAL_MAP:
