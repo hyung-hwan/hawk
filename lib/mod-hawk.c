@@ -26,7 +26,6 @@
 #include "hawk-prv.h"
 #include <hawk-mtx.h>
 
-
 struct mod_data_t
 {
 	hawk_mtx_t mq_mtx;

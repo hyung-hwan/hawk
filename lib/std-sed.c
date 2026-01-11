@@ -121,7 +121,7 @@ hawk_sed_t* hawk_sed_openstdwithmmgr(hawk_mmgr_t* mmgr, hawk_oow_t xtnsize, hawk
 	sed = hawk_sed_open(mmgr, HAWK_SIZEOF(xtn_t) + xtnsize, cmgr, errinf);
 	if (HAWK_UNLIKELY(!sed)) return HAWK_NULL;
 
-	sed->_instsize += HAWK_SIZEOF(xtn_t);
+	sed->instsize_ += HAWK_SIZEOF(xtn_t);
 	return sed;
 }
 

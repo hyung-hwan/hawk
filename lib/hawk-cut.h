@@ -42,8 +42,8 @@
 typedef struct hawk_cut_t hawk_cut_t;
 
 #define HAWK_CUT_HDR \
-	hawk_oow_t _instsize; \
-	hawk_gem_t _gem
+	hawk_oow_t instsize_; \
+	hawk_gem_t gem_
 
 typedef struct hawk_cut_alt_t hawk_cut_alt_t;
 struct hawk_cut_alt_t
@@ -220,27 +220,27 @@ HAWK_EXPORT void hawk_cut_close (
  * The hawk_cut_getxtn() function returns the pointer to the extension area
  * placed behind the actual cut object.
  */
-static HAWK_INLINE void* hawk_cut_getxtn (hawk_cut_t* cut) { return (void*)((hawk_uint8_t*)cut + ((hawk_cut_alt_t*)cut)->_instsize); }
+static HAWK_INLINE void* hawk_cut_getxtn (hawk_cut_t* cut) { return (void*)((hawk_uint8_t*)cut + ((hawk_cut_alt_t*)cut)->instsize_); }
 
 /**
  * The hawk_cut_getgem() function gets the pointer to the gem structure of the
  * cut object.
  */
-static HAWK_INLINE hawk_gem_t* hawk_cut_getgem (hawk_cut_t* cut) { return &((hawk_cut_alt_t*)cut)->_gem; }
+static HAWK_INLINE hawk_gem_t* hawk_cut_getgem (hawk_cut_t* cut) { return &((hawk_cut_alt_t*)cut)->gem_; }
 
 /**
  * The hawk_cut_getmmgr() function gets the memory manager ucut in
  * hawk_cut_open().
  */
-static HAWK_INLINE hawk_mmgr_t* hawk_cut_getmmgr (hawk_cut_t* cut) { return ((hawk_cut_alt_t*)cut)->_gem.mmgr; }
-static HAWK_INLINE hawk_cmgr_t* hawk_cut_getcmgr (hawk_cut_t* cut) { return ((hawk_cut_alt_t*)cut)->_gem.cmgr; }
-static HAWK_INLINE void hawk_cut_setcmgr (hawk_cut_t* cut, hawk_cmgr_t* cmgr) { ((hawk_cut_alt_t*)cut)->_gem.cmgr = cmgr; }
+static HAWK_INLINE hawk_mmgr_t* hawk_cut_getmmgr (hawk_cut_t* cut) { return ((hawk_cut_alt_t*)cut)->gem_.mmgr; }
+static HAWK_INLINE hawk_cmgr_t* hawk_cut_getcmgr (hawk_cut_t* cut) { return ((hawk_cut_alt_t*)cut)->gem_.cmgr; }
+static HAWK_INLINE void hawk_cut_setcmgr (hawk_cut_t* cut, hawk_cmgr_t* cmgr) { ((hawk_cut_alt_t*)cut)->gem_.cmgr = cmgr; }
 #else
-#define hawk_cut_getxtn(cut) ((void*)((hawk_uint8_t*)cut + ((hawk_cut_alt_t*)cut)->_instsize))
-#define hawk_cut_getgem(cut) (&((hawk_cut_alt_t*)(cut))->_gem)
-#define hawk_cut_getmmgr(cut) (((hawk_cut_alt_t*)(cut))->_gem.mmgr)
-#define hawk_cut_getcmgr(cut) (((hawk_cut_alt_t*)(cut))->_gem.cmgr)
-#define hawk_cut_setcmgr(cut,_cmgr) (((hawk_cut_alt_t*)(cut))->_gem.cmgr = (_cmgr))
+#define hawk_cut_getxtn(cut) ((void*)((hawk_uint8_t*)cut + ((hawk_cut_alt_t*)cut)->instsize_))
+#define hawk_cut_getgem(cut) (&((hawk_cut_alt_t*)(cut))->gem_)
+#define hawk_cut_getmmgr(cut) (((hawk_cut_alt_t*)(cut))->gem_.mmgr)
+#define hawk_cut_getcmgr(cut) (((hawk_cut_alt_t*)(cut))->gem_.cmgr)
+#define hawk_cut_setcmgr(cut,_cmgr) (((hawk_cut_alt_t*)(cut))->gem_.cmgr = (_cmgr))
 #endif /* HAWK_HAVE_INLINE */
 
 /**

@@ -75,8 +75,8 @@
  * \sa hawk_rtx_t hawk_open hawk_close
  */
 #define HAWK_HDR \
-	hawk_oow_t _instsize; \
-	hawk_gem_t _gem
+	hawk_oow_t instsize_; \
+	hawk_gem_t gem_
 
 typedef struct hawk_alt_t hawk_alt_t;
 struct hawk_alt_t
@@ -113,8 +113,8 @@ struct hawk_alt_t
 typedef struct hawk_rtx_t hawk_rtx_t;
 
 #define HAWK_RTX_HDR \
-	hawk_oow_t _instsize; \
-	hawk_gem_t _gem; \
+	hawk_oow_t instsize_; \
+	hawk_gem_t gem_; \
 	int id; \
 	hawk_t* hawk
 
@@ -133,7 +133,7 @@ struct hawk_gch_t
 {
 	hawk_gch_t* gc_prev;
 	hawk_gch_t* gc_next;
-	hawk_uintptr_t  gc_refs;
+	hawk_uintptr_t gc_refs;
 };
 
 #if defined(HAWK_HAVE_INLINE)
@@ -1171,11 +1171,11 @@ struct hawk_ecb_t
 	 */
 	hawk_ecb_clear_t clear;
 
-
+	/* user context */
 	void* ctx;
 
-	/* internal use only. don't touch this field */
-	hawk_ecb_t* next;
+	 /* internal use only. don't touch this field */
+	hawk_ecb_t* next_;
 };
 
 /* ------------------------------------------------------------------------ */
@@ -1214,6 +1214,18 @@ typedef void (*hawk_rtx_ecb_gblset_t) (
 );
 
 /**
+ * The hawk_rtx_ecb_sigset_t type defines the callback function
+ * executed when the sys::signal() function attempts to set or unset
+ * the signal handler for the given signal number. If the \a fun
+ * is #HAWK_NULL, it unsets the signal handler.
+ */
+typedef void (*hawk_rtx_ecb_sigset_t) (
+	hawk_rtx_t*     rtx,
+	int             sig,
+	hawk_fun_t*     fun
+);
+
+/**
  * The hawk_rtx_ecb_t type defines an event callback set for a
  * runtime context. You can register a callback function set with
  * hawk_rtx_pushecb().  The callback functions in the registered
@@ -1238,10 +1250,20 @@ struct hawk_rtx_ecb_t
 	 */
 	hawk_rtx_ecb_gblset_t gblset;
 
+	/**
+	 * called when a signal handler is set/unset with sys::signal().
+	 * you should implement this callback to support OS signal handling.
+	 * because the core hawk library provides the virtual interface
+	 * to signal handling but doesn't deal with the OS signals.
+	 * however, it's still modeled after the unix-style signal handling.
+	 */
+	hawk_rtx_ecb_sigset_t sigset;
+
+	/* user context */
 	void* ctx;
 
 	/* internal use only. don't touch this field */
-	hawk_rtx_ecb_t* next;
+	hawk_rtx_ecb_t* next_;
 };
 
 /* ------------------------------------------------------------------------ */
@@ -1710,17 +1732,17 @@ HAWK_EXPORT void hawk_close (
 );
 
 #if defined(HAWK_HAVE_INLINE)
-static HAWK_INLINE void* hawk_getxtn (hawk_t* hawk) { return (void*)((hawk_uint8_t*)hawk + ((hawk_alt_t*)hawk)->_instsize); }
-static HAWK_INLINE hawk_gem_t* hawk_getgem (hawk_t* hawk) { return &((hawk_alt_t*)hawk)->_gem; }
-static HAWK_INLINE hawk_mmgr_t* hawk_getmmgr (hawk_t* hawk) { return ((hawk_alt_t*)hawk)->_gem.mmgr; }
-static HAWK_INLINE hawk_cmgr_t* hawk_getcmgr (hawk_t* hawk) { return ((hawk_alt_t*)hawk)->_gem.cmgr; }
-static HAWK_INLINE void hawk_setcmgr (hawk_t* hawk, hawk_cmgr_t* cmgr) { ((hawk_alt_t*)hawk)->_gem.cmgr = cmgr; }
+static HAWK_INLINE void* hawk_getxtn (hawk_t* hawk) { return (void*)((hawk_uint8_t*)hawk + ((hawk_alt_t*)hawk)->instsize_); }
+static HAWK_INLINE hawk_gem_t* hawk_getgem (hawk_t* hawk) { return &((hawk_alt_t*)hawk)->gem_; }
+static HAWK_INLINE hawk_mmgr_t* hawk_getmmgr (hawk_t* hawk) { return ((hawk_alt_t*)hawk)->gem_.mmgr; }
+static HAWK_INLINE hawk_cmgr_t* hawk_getcmgr (hawk_t* hawk) { return ((hawk_alt_t*)hawk)->gem_.cmgr; }
+static HAWK_INLINE void hawk_setcmgr (hawk_t* hawk, hawk_cmgr_t* cmgr) { ((hawk_alt_t*)hawk)->gem_.cmgr = cmgr; }
 #else
-#define hawk_getxtn(hawk) ((void*)((hawk_uint8_t*)hawk + ((hawk_alt_t*)hawk)->_instsize))
+#define hawk_getxtn(hawk) ((void*)((hawk_uint8_t*)hawk + ((hawk_alt_t*)hawk)->instsize_))
 #define hawk_getgem(hawk) (&((hawk_alt_t*)(hawk))->_gem)
-#define hawk_getmmgr(hawk) (((hawk_alt_t*)(hawk))->_gem.mmgr)
-#define hawk_getcmgr(hawk) (((hawk_alt_t*)(hawk))->_gem.cmgr)
-#define hawk_setcmgr(hawk,_cmgr) (((hawk_alt_t*)(hawk))->_gem.cmgr = (_cmgr))
+#define hawk_getmmgr(hawk) (((hawk_alt_t*)(hawk))->gem_.mmgr)
+#define hawk_getcmgr(hawk) (((hawk_alt_t*)(hawk))->gem_.cmgr)
+#define hawk_setcmgr(hawk,_cmgr) (((hawk_alt_t*)(hawk))->gem_.cmgr = (_cmgr))
 #endif /* HAWK_HAVE_INLINE */
 
 /**
@@ -1791,14 +1813,14 @@ HAWK_EXPORT hawk_errstr_t hawk_geterrstr (
  */
 
 #if defined(HAWK_HAVE_INLINE)
-static HAWK_INLINE hawk_errnum_t hawk_geterrnum (hawk_t* hawk) { return ((hawk_alt_t*)hawk)->_gem.errnum; }
+static HAWK_INLINE hawk_errnum_t hawk_geterrnum (hawk_t* hawk) { return ((hawk_alt_t*)hawk)->gem_.errnum; }
 static HAWK_INLINE const hawk_loc_t* hawk_geterrloc (hawk_t* hawk) { return hawk_gem_geterrloc(hawk_getgem(hawk)); }
 static HAWK_INLINE const hawk_bch_t* hawk_geterrbmsg (hawk_t* hawk) { return hawk_gem_geterrbmsg(hawk_getgem(hawk)); }
 static HAWK_INLINE const hawk_uch_t* hawk_geterrumsg (hawk_t* hawk) { return hawk_gem_geterrumsg(hawk_getgem(hawk)); }
 static HAWK_INLINE void hawk_geterrbinf (hawk_t* hawk, hawk_errbinf_t* errinf) { return hawk_gem_geterrbinf(hawk_getgem(hawk), errinf); }
 static HAWK_INLINE void hawk_geterruinf (hawk_t* hawk, hawk_erruinf_t* errinf) { return hawk_gem_geterruinf(hawk_getgem(hawk), errinf); }
 #else
-#define hawk_geterrnum(hawk) (((hawk_alt_t*)(hawk))->_gem.errnum)
+#define hawk_geterrnum(hawk) (((hawk_alt_t*)(hawk))->gem_.errnum)
 #define hawk_geterrloc(hawk) (hawk_gem_geterrloc(hawk_getgem(hawk)))
 #define hawk_geterrbmsg(hawk) (hawk_gem_geterrbmsg(hawk_getgem(hawk)))
 #define hawk_geterrumsg(hawk) (hawk_gem_geterrumsg(hawk_getgem(hawk)))
@@ -2493,18 +2515,18 @@ HAWK_EXPORT void hawk_rtx_close (
 
 #if defined(HAWK_HAVE_INLINE)
 static HAWK_INLINE hawk_t* hawk_rtx_gethawk (hawk_rtx_t* rtx) { return ((hawk_rtx_alt_t*)rtx)->hawk; }
-static HAWK_INLINE void* hawk_rtx_getxtn (hawk_rtx_t* rtx) { return (void*)((hawk_uint8_t*)rtx + ((hawk_rtx_alt_t*)rtx)->_instsize); }
-static HAWK_INLINE hawk_gem_t* hawk_rtx_getgem (hawk_rtx_t* rtx) { return &((hawk_rtx_alt_t*)rtx)->_gem; }
-static HAWK_INLINE hawk_mmgr_t* hawk_rtx_getmmgr (hawk_rtx_t* rtx) { return ((hawk_rtx_alt_t*)rtx)->_gem.mmgr; }
-static HAWK_INLINE hawk_cmgr_t* hawk_rtx_getcmgr (hawk_rtx_t* rtx) { return ((hawk_rtx_alt_t*)rtx)->_gem.cmgr; }
-static HAWK_INLINE void hawk_rtx_setcmgr (hawk_rtx_t* rtx, hawk_cmgr_t* cmgr) { ((hawk_rtx_alt_t*)rtx)->_gem.cmgr = cmgr; }
+static HAWK_INLINE void* hawk_rtx_getxtn (hawk_rtx_t* rtx) { return (void*)((hawk_uint8_t*)rtx + ((hawk_rtx_alt_t*)rtx)->instsize_); }
+static HAWK_INLINE hawk_gem_t* hawk_rtx_getgem (hawk_rtx_t* rtx) { return &((hawk_rtx_alt_t*)rtx)->gem_; }
+static HAWK_INLINE hawk_mmgr_t* hawk_rtx_getmmgr (hawk_rtx_t* rtx) { return ((hawk_rtx_alt_t*)rtx)->gem_.mmgr; }
+static HAWK_INLINE hawk_cmgr_t* hawk_rtx_getcmgr (hawk_rtx_t* rtx) { return ((hawk_rtx_alt_t*)rtx)->gem_.cmgr; }
+static HAWK_INLINE void hawk_rtx_setcmgr (hawk_rtx_t* rtx, hawk_cmgr_t* cmgr) { ((hawk_rtx_alt_t*)rtx)->gem_.cmgr = cmgr; }
 #else
 #define hawk_rtx_gethawk(rtx) (((hawk_rtx_alt_t*)(rtx))->hawk)
-#define hawk_rtx_getxtn(rtx) ((void*)((hawk_uint8_t*)rtx + ((hawk_rtx_alt_t*)rtx)->_instsize))
+#define hawk_rtx_getxtn(rtx) ((void*)((hawk_uint8_t*)rtx + ((hawk_rtx_alt_t*)rtx)->instsize_))
 #define hawk_rtx_getgem(rtx) (&((hawk_rtx_alt_t*)(rtx))->_gem)
-#define hawk_rtx_getmmgr(rtx) (((hawk_rtx_alt_t*)(rtx))->_gem.mmgr)
-#define hawk_rtx_getcmgr(rtx) (((hawk_rtx_alt_t*)(rtx))->_gem.cmgr)
-#define hawk_rtx_setcmgr(rtx,_cmgr) (((hawk_rtx_alt_t*)(rtx))->_gem.cmgr = (_cmgr))
+#define hawk_rtx_getmmgr(rtx) (((hawk_rtx_alt_t*)(rtx))->gem_.mmgr)
+#define hawk_rtx_getcmgr(rtx) (((hawk_rtx_alt_t*)(rtx))->gem_.cmgr)
+#define hawk_rtx_setcmgr(rtx,_cmgr) (((hawk_rtx_alt_t*)(rtx))->gem_.cmgr = (_cmgr))
 #endif /* HAWK_HAVE_INLINE */
 
 /**
@@ -2717,6 +2739,14 @@ HAWK_EXPORT void hawk_rtx_halt (
 );
 
 /**
+ * The hawk_rtx_raisesig() function raises a signal to an active runtime context.
+ */
+HAWK_EXPORT int hawk_rtx_raisesig (
+	hawk_rtx_t* rtx,
+	int         sig
+);
+
+/**
  * The hawk_rtx_getrio() function copies runtime I/O handlers
  * to the memory buffer pointed to by \a rio.
  */
@@ -2921,14 +2951,14 @@ HAWK_EXPORT hawk_htb_t* hawk_rtx_getnvmap (
  */
 
 #if defined(HAWK_HAVE_INLINE)
-static HAWK_INLINE hawk_errnum_t hawk_rtx_geterrnum (hawk_rtx_t* rtx) { return ((hawk_rtx_alt_t*)rtx)->_gem.errnum; }
+static HAWK_INLINE hawk_errnum_t hawk_rtx_geterrnum (hawk_rtx_t* rtx) { return ((hawk_rtx_alt_t*)rtx)->gem_.errnum; }
 static HAWK_INLINE const hawk_loc_t* hawk_rtx_geterrloc (hawk_rtx_t* rtx) { return hawk_gem_geterrloc(hawk_rtx_getgem(rtx)); }
 static HAWK_INLINE const hawk_bch_t* hawk_rtx_geterrbmsg (hawk_rtx_t* rtx) { return hawk_gem_geterrbmsg(hawk_rtx_getgem(rtx)); }
 static HAWK_INLINE const hawk_uch_t* hawk_rtx_geterrumsg (hawk_rtx_t* rtx) { return hawk_gem_geterrumsg(hawk_rtx_getgem(rtx)); }
 static HAWK_INLINE void hawk_rtx_geterrinf (hawk_rtx_t* rtx, hawk_errinf_t* errinf) { return hawk_gem_geterrinf(hawk_rtx_getgem(rtx), errinf); }
 static HAWK_INLINE void hawk_rtx_geterror (hawk_rtx_t* rtx, hawk_errnum_t* errnum, const hawk_ooch_t** errmsg, hawk_loc_t* errloc) { return hawk_gem_geterror(hawk_rtx_getgem(rtx), errnum, errmsg, errloc); }
 #else
-#define hawk_rtx_geterrnum(rtx) (((hawk_rtx_alt_t*)(rtx))->_gem.errnum)
+#define hawk_rtx_geterrnum(rtx) (((hawk_rtx_alt_t*)(rtx))->gem_.errnum)
 #define hawk_rtx_geterrloc(rtx) (hawk_gem_geterrloc(hawk_rtx_getgem(rtx)))
 #define hawk_rtx_geterrbmsg(rtx) (hawk_gem_geterrbmsg(hawk_rtx_getgem(rtx)))
 #define hawk_rtx_geterrumsg(rtx) (hawk_gem_geterrumsg(hawk_rtx_getgem(rtx)))

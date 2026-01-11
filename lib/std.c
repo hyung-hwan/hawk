@@ -1014,7 +1014,7 @@ hawk_t* hawk_openstdwithmmgr (hawk_mmgr_t* mmgr, hawk_oow_t xtnsize, hawk_cmgr_t
 	if (HAWK_UNLIKELY(!hawk)) return HAWK_NULL;
 
 	/* adjust the object size by the sizeof xtn_t so that hawk_getxtn() returns the right pointer. */
-	hawk->_instsize += HAWK_SIZEOF(xtn_t);
+	hawk->instsize_ += HAWK_SIZEOF(xtn_t);
 
 /*
 #if defined(USE_DLFCN)
@@ -2738,7 +2738,7 @@ static void fini_rxtn (hawk_rtx_t* rtx, void* ctx)
 
 	if (rxtn->cmgrtab_inited)
 	{
-		hawk_htb_fini (&rxtn->cmgrtab);
+		hawk_htb_fini(&rxtn->cmgrtab);
 		rxtn->cmgrtab_inited = 0;
 	}
 }
@@ -3009,7 +3009,7 @@ static hawk_rtx_t* open_rtx_std (
 	rtx = hawk_rtx_open(hawk, HAWK_SIZEOF(rxtn_t) + xtnsize, &rio);
 	if (HAWK_UNLIKELY(!rtx)) return HAWK_NULL;
 
-	rtx->_instsize += HAWK_SIZEOF(rxtn_t);
+	rtx->instsize_ += HAWK_SIZEOF(rxtn_t);
 
 	rxtn = GET_RXTN(rtx);
 

@@ -35,7 +35,7 @@ static int emit_output (hawk_sed_t* sed, int skipline);
 
 #define EMPTY_REX ((void*)1)
 
-#define ADJERR_LOC(sed,l) do { (sed)->_gem.errloc = *(l); } while (0)
+#define ADJERR_LOC(sed,l) do { (sed)->gem_.errloc = *(l); } while (0)
 
 #define SETERR1(sed,num,argp,argl,loc) \
 do { \
@@ -77,7 +77,7 @@ void hawk_sed_close (hawk_sed_t* sed)
 
 	for (ecb = sed->ecb; ecb != (hawk_sed_ecb_t*)sed; ecb = ecb_next)
 	{
-		ecb_next = ecb->next; /* in case the callback deregisters itself */
+		ecb_next = ecb->next_; /* in case the callback deregisters itself */
 		if (ecb->close) ecb->close (sed, ecb->ctx);
 	}
 
@@ -92,17 +92,17 @@ int hawk_sed_init (hawk_sed_t* sed, hawk_mmgr_t* mmgr, hawk_cmgr_t* cmgr)
 {
 	HAWK_MEMSET(sed, 0, HAWK_SIZEOF(*sed));
 
-	sed->_instsize = HAWK_SIZEOF(*sed);
-	sed->_gem.mmgr = mmgr;
-	sed->_gem.cmgr = cmgr;
+	sed->instsize_ = HAWK_SIZEOF(*sed);
+	sed->gem_.mmgr = mmgr;
+	sed->gem_.cmgr = cmgr;
 
 	/* initialize error handling fields */
-	sed->_gem.errnum = HAWK_ENOERR;
-	sed->_gem.errmsg[0] = '\0';
-	sed->_gem.errloc.line = 0;
-	sed->_gem.errloc.colm = 0;
-	sed->_gem.errloc.file = HAWK_NULL;
-	sed->_gem.errstr = hawk_dfl_errstr;
+	sed->gem_.errnum = HAWK_ENOERR;
+	sed->gem_.errmsg[0] = '\0';
+	sed->gem_.errloc.line = 0;
+	sed->gem_.errloc.colm = 0;
+	sed->gem_.errloc.file = HAWK_NULL;
+	sed->gem_.errstr = hawk_dfl_errstr;
 
 	sed->ecb = (hawk_sed_ecb_t*)sed; /* use this as a special sentinel node */
 
@@ -158,7 +158,7 @@ void hawk_sed_fini(hawk_sed_t* sed)
 
 hawk_errstr_t hawk_sed_geterrstr (hawk_sed_t* sed)
 {
-	return sed->_gem.errstr;
+	return sed->gem_.errstr;
 }
 
 void hawk_sed_seterrbfmt (hawk_sed_t* sed, const hawk_loc_t* errloc, hawk_errnum_t errnum, const hawk_bch_t* fmt, ...)
@@ -3902,13 +3902,13 @@ void hawk_sed_setlinenum (hawk_sed_t* sed, hawk_oow_t num)
 void hawk_sed_killecb (hawk_sed_t* sed, hawk_sed_ecb_t* ecb)
 {
 	hawk_sed_ecb_t* prev, * cur;
-	for (cur = sed->ecb, prev = HAWK_NULL; cur != (hawk_sed_ecb_t*)sed; cur = cur->next)
+	for (cur = sed->ecb, prev = HAWK_NULL; cur != (hawk_sed_ecb_t*)sed; prev = cur, cur = cur->next_)
 	{
 		if (cur == ecb)
 		{
-			if (prev) prev->next = cur->next;
-			else sed->ecb = cur->next;
-			cur->next = HAWK_NULL;
+			if (prev) prev->next_ = cur->next_;
+			else sed->ecb = cur->next_;
+			cur->next_ = HAWK_NULL;
 			break;
 		}
 	}
@@ -3918,14 +3918,14 @@ hawk_sed_ecb_t* hawk_sed_popecb (hawk_sed_t* sed)
 {
 	hawk_sed_ecb_t* top = sed->ecb;
 	if (top == (hawk_sed_ecb_t*)sed) return HAWK_NULL;
-	sed->ecb = top->next;
-	top->next = HAWK_NULL;
+	sed->ecb = top->next_;
+	top->next_ = HAWK_NULL;
 	return top;
 }
 
 void hawk_sed_pushecb (hawk_sed_t* sed, hawk_sed_ecb_t* ecb)
 {
-	ecb->next = sed->ecb;
+	ecb->next_ = sed->ecb;
 	sed->ecb = ecb;
 }
 

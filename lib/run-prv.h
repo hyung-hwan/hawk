@@ -149,6 +149,12 @@ hawk_val_t* hawk_rtx_evalcall (
 	void* eharg
 );
 
+int hawk_rtx_setsighandler (
+	hawk_rtx_t* rtx,
+	int         sig,
+	hawk_fun_t* fun
+);
+
 #if defined(__cplusplus)
 }
 #endif

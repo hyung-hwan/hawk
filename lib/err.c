@@ -227,7 +227,7 @@ const hawk_ooch_t* hawk_dfl_errstr (hawk_errnum_t errnum)
 
 hawk_errstr_t hawk_geterrstr (hawk_t* hawk)
 {
-	return hawk->_gem.errstr;
+	return hawk->gem_.errstr;
 }
 
 /* ------------------------------------------------------------------------- */
@@ -298,9 +298,9 @@ void hawk_rtx_seterruvfmt (hawk_rtx_t* rtx, const hawk_loc_t* errloc, hawk_errnu
 void hawk_rtx_errortohawk (hawk_rtx_t* rtx, hawk_t* hawk)
 {
 	/* copy error information in 'rtx' to the 'hawk' object */
-	hawk->_gem.errnum = rtx->_gem.errnum;
-	hawk->_gem.errloc = rtx->_gem.errloc;
-	hawk_copy_oocstr(hawk->_gem.errmsg, HAWK_COUNTOF(hawk->_gem.errmsg), rtx->_gem.errmsg);
+	hawk->gem_.errnum = rtx->gem_.errnum;
+	hawk->gem_.errloc = rtx->gem_.errloc;
+	hawk_copy_oocstr(hawk->gem_.errmsg, HAWK_COUNTOF(hawk->gem_.errmsg), rtx->gem_.errmsg);
 }
 
 /* ------------------------------------------------------------------------- */

@@ -52,7 +52,7 @@ hawk_json_t* hawk_json_openstdwithmmgr (hawk_mmgr_t* mmgr, hawk_oow_t xtnsize, h
 	json = hawk_json_open(mmgr, HAWK_SIZEOF(xtn_t) + xtnsize, cmgr, prim, errinf);
 	if (HAWK_UNLIKELY(!json)) return HAWK_NULL;
 
-	json->_instsize += HAWK_SIZEOF(xtn_t);
+	json->instsize_ += HAWK_SIZEOF(xtn_t);
 
 	return json;
 }

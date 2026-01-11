@@ -69,7 +69,7 @@ struct pafv_t
 	 (idx) <= HAWK_TYPE_MAX(hawk_oow_t))
 
 #define CLRERR(rtx) hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_ENOERR)
-#define ADJERR_LOC(rtx,l) do { (rtx)->_gem.errloc = *(l); } while (0)
+#define ADJERR_LOC(rtx,l) do { (rtx)->gem_.errloc = *(l); } while (0)
 
 static hawk_oow_t push_arg_from_vals (hawk_rtx_t* rtx, hawk_nde_fncall_t* call, void* data);
 static hawk_oow_t push_arg_from_nde (hawk_rtx_t* rtx, hawk_nde_fncall_t* call, void* data);
@@ -634,7 +634,7 @@ static int set_global (hawk_rtx_t* rtx, int idx, hawk_nde_var_t* var, hawk_val_t
 
 	for (ecb = rtx->ecb; ecb != (hawk_rtx_ecb_t*)rtx; ecb = ecb_next)
 	{
-		ecb_next = ecb->next;
+		ecb_next = ecb->next_;
 		if (ecb->gblset) ecb->gblset(rtx, idx, val, ecb->ctx);
 	}
 
@@ -870,7 +870,7 @@ hawk_rtx_t* hawk_rtx_open (hawk_t* hawk, hawk_oow_t xtnsize, hawk_rio_cbs_t* rio
 
 	/* initialize the rtx object */
 	HAWK_MEMSET(rtx, 0, HAWK_SIZEOF(hawk_rtx_t) + xtnsize);
-	rtx->_instsize = HAWK_SIZEOF(hawk_rtx_t);
+	rtx->instsize_ = HAWK_SIZEOF(hawk_rtx_t);
 	if (HAWK_UNLIKELY(init_rtx(rtx, hawk, rio) <= -1))
 	{
 		/* because the error information is in the gem part,
@@ -929,6 +929,12 @@ hawk_rtx_t* hawk_rtx_open (hawk_t* hawk, hawk_oow_t xtnsize, hawk_rio_cbs_t* rio
 	/* rtx->bctos.b[0] is not used as the free index of 0 indicates the end of the list.
 	 * see hawk_rtx_getvaloocstr(). */
 
+
+	/* initialize signal handling fields */
+	rtx->sig_handling = 0;
+	rtx->sig_raise[0].count = 0;
+	for (i = 0; i < HAWK_COUNTOF(rtx->sig_raise[0].pos); i++) rtx->sig_raise[0].pos[i] = -1;
+
 	return rtx;
 }
 
@@ -944,7 +950,7 @@ void hawk_rtx_close (hawk_rtx_t* rtx)
 
 	for (ecb = rtx->ecb; ecb != (hawk_rtx_ecb_t*)rtx; ecb = ecb_next)
 	{
-		ecb_next = ecb->next;
+		ecb_next = ecb->next_;
 		if (ecb->close) ecb->close(rtx, ecb->ctx);
 	}
 
@@ -988,14 +994,15 @@ void hawk_rtx_setrio (hawk_rtx_t* rtx, const hawk_rio_cbs_t* rio)
 
 void hawk_rtx_killecb (hawk_rtx_t* rtx, hawk_rtx_ecb_t* ecb)
 {
+	/* TODO: make it faster with doubly-linked list? */
 	hawk_rtx_ecb_t* prev, * cur;
-	for (cur = rtx->ecb, prev = HAWK_NULL; cur != (hawk_rtx_ecb_t*)rtx; cur = cur->next)
+	for (cur = rtx->ecb, prev = HAWK_NULL; cur != (hawk_rtx_ecb_t*)rtx; prev = cur, cur = cur->next_)
 	{
 		if (cur == ecb)
 		{
-			if (prev) prev->next = cur->next;
-			else rtx->ecb = cur->next;
-			cur->next = HAWK_NULL;
+			if (prev) prev->next_ = cur->next_;
+			else rtx->ecb = cur->next_;
+			cur->next_ = HAWK_NULL;
 			break;
 		}
 	}
@@ -1005,14 +1012,14 @@ hawk_rtx_ecb_t* hawk_rtx_popecb (hawk_rtx_t* rtx)
 {
 	hawk_rtx_ecb_t* top = rtx->ecb;
 	if (top == (hawk_rtx_ecb_t*)rtx) return HAWK_NULL;
-	rtx->ecb = top->next;
-	top->next = HAWK_NULL;
+	rtx->ecb = top->next_;
+	top->next_ = HAWK_NULL;
 	return top;
 }
 
 void hawk_rtx_pushecb (hawk_rtx_t* rtx, hawk_rtx_ecb_t* ecb)
 {
-	ecb->next = rtx->ecb;
+	ecb->next_ = rtx->ecb;
 	rtx->ecb = ecb;
 }
 
@@ -1045,7 +1052,7 @@ static int init_rtx (hawk_rtx_t* rtx, hawk_t* hawk, hawk_rio_cbs_t* rio)
 	};
 	hawk_oow_t stack_limit, i;
 
-	rtx->_gem = hawk->_gem;
+	rtx->gem_ = hawk->gem_;
 	rtx->hawk = hawk;
 
 	CLRERR(rtx);
@@ -2249,11 +2256,101 @@ static int run_block (hawk_rtx_t* rtx, hawk_nde_blk_t* nde)
 	return n;
 }
 
+/* ========================================================================= */
+
+int hawk_rtx_raisesig(hawk_rtx_t* rtx, int sig)
+{
+	int pos;
+
+	if (sig < 0 || sig >= HAWK_COUNTOF(rtx->sig_handler))
+	{
+		hawk_rtx_seterrbfmt(rtx, HAWK_NULL, HAWK_EINVAL, "invalid signal number %d", sig);
+		return -1;
+	}
+
+/* TODO: some mutext */
+	if (!rtx->sig_handler[sig]) return -1; /* no handler installed */
+	if (rtx->sig_raise[0].pos[sig] >= 0) return 0; /* already raised */
+	pos = rtx->sig_raise[0].count;
+	rtx->sig_raise[0].pos[sig] = pos;
+	rtx->sig_raise[0].tab[pos] = sig;
+	rtx->sig_raise[0].count++;
+/* TODO: end of mutex */
+	return 0;
+}
+
+int hawk_rtx_setsighandler (hawk_rtx_t* rtx, int sig, hawk_fun_t* fun)
+{
+	hawk_rtx_ecb_t* ecb, * ecb_next;
+
+	if (sig < 0 || sig >= HAWK_COUNTOF(rtx->sig_handler))
+	{
+		hawk_rtx_seterrbfmt(rtx, HAWK_NULL, HAWK_EINVAL, "invalid signal number %d", sig);
+		return -1;
+	}
+
+/* TODO: anything for old handler */
+	rtx->sig_handler[sig] = fun;
+
+	for (ecb = rtx->ecb; ecb != (hawk_rtx_ecb_t*)(rtx); ecb = ecb_next)
+	{
+		ecb_next = ecb->next_;
+		if (ecb->sigset) ecb->sigset(rtx, sig, fun);
+	}
+
+	return 0;
+}
+
+static int call_signal_handlers (hawk_rtx_t* rtx)
+{
+	int i;
+
+	rtx->sig_handling = 1; /* TODO: make this atomic? */
+
+/* TODO: mutex between this and raise .. */
+	/* copy the signal raising state */
+	rtx->sig_raise[1] = rtx->sig_raise[0];
+
+	/* reset the signal raising state modified by hawk_rtx_raisesig() */
+	rtx->sig_raise[0].count = 0;
+	for (i = 0; i < HAWK_COUNTOF(rtx->sig_raise[0].pos); i++) rtx->sig_raise[0].pos[i] = -1;
+/* TODO: end of mutex protection */
+
+	for (i = 0; i < rtx->sig_raise[1].count; i++)
+	{
+		int sig;
+		hawk_fun_t* fun;
+
+		sig = rtx->sig_raise[1].tab[i];
+		fun = rtx->sig_handler[sig];
+		if (fun)
+		{
+			hawk_val_t* arg;
+			hawk_val_t* rv;
+
+			arg = hawk_rtx_makeintval(rtx, sig);
+			if (HAWK_UNLIKELY(!arg)) return -1;
+
+			/* hawk_rtx_callfun() can invoke run_statement again().
+			 * if the signal handler is in action, it must not invoke it again */
+			rv = hawk_rtx_callfun(rtx, fun, &arg, 1);
+			if (!rv) return -1;
+
+			hawk_rtx_refdownval(rtx, rv);
+		}
+	}
+
+	rtx->sig_handling = 0; /* TODO: make this atomic? */
+	return 0;
+}
+
+/* ========================================================================= */
+
 #define ON_STATEMENT(rtx,nde) do { \
 	hawk_rtx_ecb_t* ecb, * ecb_next; \
 	if ((rtx)->hawk->haltall) (rtx)->exit_level = EXIT_ABORT; \
 	for (ecb = (rtx)->ecb; ecb != (hawk_rtx_ecb_t*)(rtx); ecb = ecb_next) { \
-		ecb_next = ecb->next; \
+		ecb_next = ecb->next_; \
 		if (ecb->stmt) ecb->stmt(rtx, nde, ecb->ctx);  \
 	} \
 } while(0)
@@ -2265,6 +2362,10 @@ static int run_statement (hawk_rtx_t* rtx, hawk_nde_t* nde)
 
 	ON_STATEMENT(rtx, nde);
 
+	/* run singal handlers if there are raised signals */
+	if (!rtx->sig_handling && rtx->sig_raise[0].count > 0 && call_signal_handlers(rtx) <= -1) return -1;
+
+	/* run the actual statement */
 	switch (nde->type)
 	{
 		case HAWK_NDE_NULL:
@@ -8895,8 +8996,6 @@ oops:
 	if (str_free) hawk_rtx_freemem(rtx, str_free);
 	return -1;
 }
-/* ========================================================================= */
-
 hawk_ooch_t* hawk_rtx_format (
 	hawk_rtx_t* rtx, hawk_ooecs_t* out, hawk_ooecs_t* fbu,
 	const hawk_ooch_t* fmt, hawk_oow_t fmt_len,

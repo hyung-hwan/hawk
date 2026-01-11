@@ -129,6 +129,8 @@ enum syslog_type_t
 	SYSLOG_REMOTE,
 };
 
+typedef struct rtx_data_t rtx_data_t;
+
 struct mod_ctx_t
 {
 	hawk_rbt_t* rtxtab;
@@ -136,6 +138,18 @@ struct mod_ctx_t
 typedef struct mod_ctx_t mod_ctx_t;
 
 /* ------------------------------------------------------------------------ */
+
+#if defined(HAWK_NSIG)
+#	define SYS_NSIG HAWK_NSIG
+#elif defined(NSIG)
+#	define SYS_NSIG NSIG
+#elif defined(SIGRTMAX)
+#	define SYS_NSIG (SIGRTMAX + 1)
+#else
+#	define SYS_NSIG 64
+#endif
+
+typedef void (*hawk_sig_handler_t)(int);
 
 enum sys_node_data_type_t
 {
@@ -212,6 +226,7 @@ typedef struct sys_list_data_t sys_list_data_t;
 struct rtx_data_t
 {
 	sys_list_t sys_list;
+	mod_ctx_t* mctx;
 
 	struct
 	{
@@ -220,7 +235,6 @@ struct rtx_data_t
 		hawk_oow_t capa;
 		hawk_oow_t len;
 	} pack;
-
 
 	/* syslog data */
 	struct
@@ -235,8 +249,6 @@ struct rtx_data_t
 		hawk_becs_t* dmsgbuf;
 	} log;
 };
-typedef struct rtx_data_t rtx_data_t;
-
 enum mux_ctl_cmd_t
 {
 #if defined(USE_EPOLL)
@@ -2048,8 +2060,85 @@ static int fnc_kill (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	}
 
 	retv = hawk_rtx_makeintval(rtx, rx);
-	if (retv == HAWK_NULL) return -1;
+	if (HAWK_UNLIKELY(!retv)) return -1;
+	hawk_rtx_setretval(rtx, retv);
+	return 0;
+}
 
+static int fnc_signal (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+{
+	hawk_int_t sig;
+	hawk_val_t* retv;
+	hawk_val_t* a1;
+	hawk_int_t rx = -1;
+	sys_list_t* sys_list = rtx_to_sys_list(rtx, fi);
+	hawk_fun_t* fun = HAWK_NULL;
+
+	if (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 0), &sig) <= -1)
+	{
+		rx = copy_error_to_sys_list(rtx, sys_list);
+		goto done;
+	}
+
+	if (sig < 0)
+	{
+		rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_T("invalid signal"));
+		goto done;
+	}
+
+	a1 = hawk_rtx_getarg(rtx, 1);
+	if (HAWK_RTX_GETVALTYPE(rtx, a1) == HAWK_VAL_NIL)
+	{
+		fun = HAWK_NULL;
+	}
+	else
+	{
+		fun = hawk_rtx_valtofun(rtx, a1);
+		if (!fun)
+		{
+			rx = copy_error_to_sys_list(rtx, sys_list);
+			goto done;
+		}
+	}
+
+	if (hawk_rtx_setsighandler(rtx, sig, fun) <= -1)
+	{
+		rx = copy_error_to_sys_list(rtx, sys_list);
+		goto done;
+	}
+
+	rx = 0;
+
+done:
+	retv = hawk_rtx_makeintval(rtx, rx);
+	if (HAWK_UNLIKELY(!retv)) return -1;
+	hawk_rtx_setretval(rtx, retv);
+	return 0;
+}
+
+static int fnc_raise (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+{
+	hawk_int_t sig;
+	hawk_val_t* retv;
+	hawk_int_t rx = -1;
+	sys_list_t* sys_list = rtx_to_sys_list(rtx, fi);
+
+	if (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 0), &sig) <= -1)
+	{
+		rx = copy_error_to_sys_list(rtx, sys_list);
+		goto done;
+	}
+
+	if (hawk_rtx_raisesig(rtx, sig) <= -1)
+	{
+		rx = copy_error_to_sys_list(rtx, sys_list);
+		goto done;
+	}
+	rx = 0;
+
+done:
+	retv = hawk_rtx_makeintval(rtx, rx);
+	if (HAWK_UNLIKELY(!retv)) return -1;
 	hawk_rtx_setretval(rtx, retv);
 	return 0;
 }
@@ -2901,7 +2990,6 @@ static int fnc_getifcfg (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	if (hawk_rtx_valtostr(rtx, hawk_rtx_getarg(rtx, 0), &out) >= 0)
 	{
 		hawk_int_t type;
-		hawk_int_t index, mtu;
 		hawk_ooch_t ethw[32];
 		hawk_val_map_data_t md[6];
 		hawk_oow_t md_count;
@@ -3941,7 +4029,7 @@ static int fnc_getmuxevt (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	{
 		sys_node_data_mux_t* mux_data = &sys_node->ctx.u.mux;
 		sys_node_t* file_node;
-		hawk_int_t index, id, evts;
+		hawk_int_t index;
 		int x;
 
 		if (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 1), &index) <= -1)
@@ -4368,7 +4456,11 @@ static int fnc_accept (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		hawk_skad_t skad;
 		socklen_t addrlen;
 		sys_node_t* new_node;
+	#if defined(HAVE_ACCEPT4)
+		int fd;
+	#else
 		int fd, fd_flags;
+	#endif
 		hawk_int_t flags = 0;
 
 		if (hawk_rtx_getnargs(rtx) >= 2 && (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 1), &flags) <= -1 || flags < 0)) flags = 0;
@@ -5971,6 +6063,7 @@ static hawk_mod_fnc_tab_t fnctab[] =
 	{ HAWK_T("openmux"),     { { 0, 0, HAWK_NULL       }, fnc_openmux,     0  } },
 	{ HAWK_T("pack"),        { { 2, A_MAX, HAWK_T("rv")}, fnc_pack,        0 } },
 	{ HAWK_T("pipe"),        { { 2, 3, HAWK_T("rrv")   }, fnc_pipe,        0  } },
+	{ HAWK_T("raise"),       { { 1, 1, HAWK_NULL       }, fnc_raise,       0  } },
 	{ HAWK_T("read"),        { { 2, 4, HAWK_T("vrvv")  }, fnc_read,        0  } },
 	{ HAWK_T("readdir"),     { { 2, 2, HAWK_T("vr")    }, fnc_readdir,     0  } },
 	{ HAWK_T("recvfrom"),    { { 2, 4, HAWK_T("vrvr")  }, fnc_recvfrom,    0  } },
@@ -5981,6 +6074,7 @@ static hawk_mod_fnc_tab_t fnctab[] =
 	{ HAWK_T("setsockopt"),  { { 4, 4, HAWK_NULL       }, fnc_setsockopt,  0  } },
 	{ HAWK_T("settime"),     { { 1, 1, HAWK_NULL       }, fnc_settime,     0  } },
 	{ HAWK_T("shutdown"),    { { 2, 2, HAWK_NULL       }, fnc_shutdown,    0  } },
+	{ HAWK_T("signal"),      { { 2, 2, HAWK_NULL       }, fnc_signal,      0  } },
 	{ HAWK_T("sleep"),       { { 1, 1, HAWK_NULL       }, fnc_sleep,       0  } },
 	{ HAWK_T("sockaddrdom"), { { 1, 1, HAWK_NULL       }, fnc_sockaddrdom, 0  } },
 	{ HAWK_T("socket"),      { { 3, 3, HAWK_NULL       }, fnc_socket,      0  } },
@@ -6351,6 +6445,7 @@ static int init (hawk_mod_t* mod, hawk_rtx_t* rtx)
 
 	rdp = (rtx_data_t*)HAWK_RBT_VPTR(pair);
 	__init_sys_list(rtx, &rdp->sys_list);
+	rdp->mctx = mctx;
 
 	rdp->pack.ptr = rdp->pack.__static_buf;
 	rdp->pack.capa = HAWK_COUNTOF(rdp->pack.__static_buf);
@@ -6441,6 +6536,7 @@ static void unload (hawk_mod_t* mod, hawk_t* hawk)
 	mod_ctx_t* mctx = (mod_ctx_t*)mod->ctx;
 
 	HAWK_ASSERT(HAWK_RBT_SIZE(mctx->rtxtab) == 0);
+	HAWK_ASSERT(mctx->sig_rtx_head == HAWK_NULL);
 	hawk_rbt_close(mctx->rtxtab);
 
 	hawk_freemem(hawk, mctx);
@@ -6449,6 +6545,7 @@ static void unload (hawk_mod_t* mod, hawk_t* hawk)
 int hawk_mod_sys (hawk_mod_t* mod, hawk_t* hawk)
 {
 	hawk_rbt_t* rbt;
+	mod_ctx_t* mctx;
 
 	mod->query = query;
 	mod->unload = unload;
@@ -6456,17 +6553,20 @@ int hawk_mod_sys (hawk_mod_t* mod, hawk_t* hawk)
 	mod->init = init;
 	mod->fini = fini;
 
-	mod->ctx = hawk_callocmem(hawk, HAWK_SIZEOF(mod_ctx_t));
-	if (HAWK_UNLIKELY(!mod->ctx)) return -1;
+	mctx = (mod_ctx_t*)hawk_callocmem(hawk, HAWK_SIZEOF(mod_ctx_t));
+	if (HAWK_UNLIKELY(!mctx)) return -1;
 
 	rbt = hawk_rbt_open(hawk_getgem(hawk), 0, 1, 1);
 	if (HAWK_UNLIKELY(!rbt))
 	{
-		hawk_freemem(hawk, mod->ctx);
+		hawk_freemem(hawk, mctx);
 		return -1;
 	}
 	hawk_rbt_setstyle(rbt, hawk_get_rbt_style(HAWK_RBT_STYLE_INLINE_COPIERS));
 
-	((mod_ctx_t*)mod->ctx)->rtxtab = rbt;
+	mctx->rtxtab = rbt;
+
+	/* attach the context to the module */
+	mod->ctx = mctx;
 	return 0;
 }

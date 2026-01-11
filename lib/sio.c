@@ -62,7 +62,7 @@ hawk_sio_t* hawk_sio_open (hawk_gem_t* gem, hawk_oow_t xtnsize, const hawk_ooch_
 	{
 		if (hawk_sio_init(sio, gem, file, flags) <= -1)
 		{
-			hawk_gem_freemem (gem, sio);
+			hawk_gem_freemem(gem, sio);
 			return HAWK_NULL;
 		}
 		else HAWK_MEMSET (sio + 1, 0, xtnsize);
@@ -105,7 +105,7 @@ hawk_sio_t* hawk_sio_openstd (hawk_gem_t* gem, hawk_oow_t xtnsize, hawk_sio_std_
 void hawk_sio_close (hawk_sio_t* sio)
 {
 	hawk_sio_fini (sio);
-	hawk_gem_freemem (sio->gem, sio);
+	hawk_gem_freemem(sio->gem, sio);
 }
 
 int hawk_sio_init (hawk_sio_t* sio, hawk_gem_t* gem, const hawk_ooch_t* path, int flags)
@@ -156,7 +156,7 @@ int hawk_sio_init (hawk_sio_t* sio, hawk_gem_t* gem, const hawk_ooch_t* path, in
 	if (hawk_tio_init(&sio->tio.io, gem, topt) <= -1) goto oops03;
 
 	/* store the back-reference to sio in the extension area.*/
-	/*HAWK_ASSERT(hawk, (&sio->tio.io + 1) == &sio->tio.xtn);*/
+	/*HAWK_ASSERT((&sio->tio.io + 1) == &sio->tio.xtn);*/
 	*(hawk_sio_t**)(&sio->tio.io + 1) = sio;
 
 	if (hawk_tio_attachin(&sio->tio.io, file_input, sio->inbuf, HAWK_COUNTOF(sio->inbuf)) <= -1 ||
@@ -171,13 +171,13 @@ int hawk_sio_init (hawk_sio_t* sio, hawk_gem_t* gem, const hawk_ooch_t* path, in
 	return 0;
 
 oops04:
-	hawk_tio_fini (&sio->tio.io);
+	hawk_tio_fini(&sio->tio.io);
 oops03:
-	if (sio->path) hawk_gem_freemem (sio->gem, sio->path);
+	if (sio->path) hawk_gem_freemem(sio->gem, sio->path);
 oops02:
-	hawk_fio_fini (&sio->file);
+	hawk_fio_fini(&sio->file);
 oops01:
-	if (sio->mtx) hawk_mtx_close (sio->mtx);
+	if (sio->mtx) hawk_mtx_close(sio->mtx);
 oops00:
 	return -1;
 }
@@ -208,11 +208,11 @@ int hawk_sio_initstd (hawk_sio_t* sio, hawk_gem_t* gem, hawk_sio_std_t std, int 
 void hawk_sio_fini (hawk_sio_t* sio)
 {
 	/*if (hawk_sio_flush (sio) <= -1) return -1;*/
-	hawk_sio_flush (sio);
-	hawk_tio_fini (&sio->tio.io);
-	hawk_fio_fini (&sio->file);
-	if (sio->path) hawk_gem_freemem (sio->gem, sio->path);
-	if (sio->mtx) hawk_mtx_close (sio->mtx);
+	hawk_sio_flush(sio);
+	hawk_tio_fini(&sio->tio.io);
+	hawk_fio_fini(&sio->file);
+	if (sio->path) hawk_gem_freemem(sio->gem, sio->path);
+	if (sio->mtx) hawk_mtx_close(sio->mtx);
 }
 
 hawk_cmgr_t* hawk_sio_getcmgr (hawk_sio_t* sio)
@@ -222,7 +222,7 @@ hawk_cmgr_t* hawk_sio_getcmgr (hawk_sio_t* sio)
 
 void hawk_sio_setcmgr (hawk_sio_t* sio, hawk_cmgr_t* cmgr)
 {
-	hawk_tio_setcmgr (&sio->tio.io, cmgr);
+	hawk_tio_setcmgr(&sio->tio.io, cmgr);
 }
 
 hawk_sio_hnd_t hawk_sio_gethnd (const hawk_sio_t* sio)
@@ -242,34 +242,34 @@ const hawk_ooch_t* hawk_sio_getpath (hawk_sio_t* sio)
 hawk_ooi_t hawk_sio_flush (hawk_sio_t* sio)
 {
 	hawk_ooi_t n;
-	LOCK_OUTPUT (sio);
+	LOCK_OUTPUT(sio);
 	n = hawk_tio_flush(&sio->tio.io);
-	UNLOCK_OUTPUT (sio);
+	UNLOCK_OUTPUT(sio);
 	return n;
 }
 
 void hawk_sio_drain (hawk_sio_t* sio)
 {
-	LOCK_OUTPUT (sio);
+	LOCK_OUTPUT(sio);
 	hawk_tio_drain (&sio->tio.io);
-	UNLOCK_OUTPUT (sio);
+	UNLOCK_OUTPUT(sio);
 }
 
 hawk_ooi_t hawk_sio_getbchar (hawk_sio_t* sio, hawk_bch_t* c)
 {
 	hawk_ooi_t n;
-	LOCK_INPUT (sio);
+	LOCK_INPUT(sio);
 	n = hawk_tio_readbchars(&sio->tio.io, c, 1);
-	UNLOCK_INPUT (sio);
+	UNLOCK_INPUT(sio);
 	return n;
 }
 
 hawk_ooi_t hawk_sio_getuchar (hawk_sio_t* sio, hawk_uch_t* c)
 {
 	hawk_ooi_t n;
-	LOCK_INPUT (sio);
+	LOCK_INPUT(sio);
 	n = hawk_tio_readuchars(&sio->tio.io, c, 1);
-	UNLOCK_INPUT (sio);
+	UNLOCK_INPUT(sio);
 	return n;
 }
 
@@ -284,10 +284,10 @@ hawk_ooi_t hawk_sio_getbcstr (hawk_sio_t* sio, hawk_bch_t* buf, hawk_oow_t size)
 	 * so I don't implement any hack here */
 #endif
 
-	LOCK_INPUT (sio);
+	LOCK_INPUT(sio);
 	n = hawk_tio_readbchars(&sio->tio.io, buf, size - 1);
 	if (n <= -1) return -1;
-	UNLOCK_INPUT (sio);
+	UNLOCK_INPUT(sio);
 
 	buf[n] = '\0';
 	return n;
@@ -301,9 +301,9 @@ hawk_ooi_t hawk_sio_getbchars (hawk_sio_t* sio, hawk_bch_t* buf, hawk_oow_t size
 	 * so I don't implement any hack here */
 #endif
 
-	LOCK_INPUT (sio);
+	LOCK_INPUT(sio);
 	n = hawk_tio_readbchars(&sio->tio.io, buf, size);
-	UNLOCK_INPUT (sio);
+	UNLOCK_INPUT(sio);
 
 	return n;
 }
@@ -319,9 +319,9 @@ hawk_ooi_t hawk_sio_getucstr (hawk_sio_t* sio, hawk_uch_t* buf, hawk_oow_t size)
 	 * so I don't implement any hack here */
 #endif
 
-	LOCK_INPUT (sio);
+	LOCK_INPUT(sio);
 	n = hawk_tio_readuchars(&sio->tio.io, buf, size - 1);
-	UNLOCK_INPUT (sio);
+	UNLOCK_INPUT(sio);
 
 	buf[n] = '\0';
 	return n;
@@ -336,9 +336,9 @@ hawk_ooi_t hawk_sio_getuchars(hawk_sio_t* sio, hawk_uch_t* buf, hawk_oow_t size)
 	 * so I don't implement any hack here */
 #endif
 
-	LOCK_INPUT (sio);
+	LOCK_INPUT(sio);
 	n = hawk_tio_readuchars (&sio->tio.io, buf, size);
-	UNLOCK_INPUT (sio);
+	UNLOCK_INPUT(sio);
 
 	return n;
 }
@@ -362,9 +362,9 @@ static hawk_ooi_t putbc_no_mutex (hawk_sio_t* sio, hawk_bch_t c)
 hawk_ooi_t hawk_sio_putbchar (hawk_sio_t* sio, hawk_bch_t c)
 {
 	hawk_ooi_t n;
-	LOCK_OUTPUT (sio);
+	LOCK_OUTPUT(sio);
 	n = putbc_no_mutex(sio, c);
-	UNLOCK_OUTPUT (sio);
+	UNLOCK_OUTPUT(sio);
 	return n;
 }
 
@@ -390,9 +390,9 @@ static hawk_ooi_t put_uchar_no_mutex (hawk_sio_t* sio, hawk_uch_t c)
 hawk_ooi_t hawk_sio_putuchar (hawk_sio_t* sio, hawk_uch_t c)
 {
 	hawk_ooi_t n;
-	LOCK_OUTPUT (sio);
+	LOCK_OUTPUT(sio);
 	n = put_uchar_no_mutex(sio, c);
-	UNLOCK_OUTPUT (sio);
+	UNLOCK_OUTPUT(sio);
 	return n;
 }
 
@@ -406,7 +406,7 @@ hawk_ooi_t hawk_sio_putbcstr (hawk_sio_t* sio, const hawk_bch_t* str)
 #elif defined(__OS2__)
 	if (sio->status & STATUS_LINE_BREAK)
 	{
-		LOCK_OUTPUT (sio);
+		LOCK_OUTPUT(sio);
 		for (n = 0; n < HAWK_TYPE_MAX(hawk_ooi_t) && str[n] != '\0'; n++)
 		{
 			if ((n = putbc_no_mutex(sio, str[n])) <= -1)
@@ -415,14 +415,14 @@ hawk_ooi_t hawk_sio_putbcstr (hawk_sio_t* sio, const hawk_bch_t* str)
 				break;
 			}
 		}
-		UNLOCK_OUTPUT (sio);
+		UNLOCK_OUTPUT(sio);
 		return n;
 	}
 #endif
 
-	LOCK_OUTPUT (sio);
+	LOCK_OUTPUT(sio);
 	n = hawk_tio_writebchars(&sio->tio.io, str, (hawk_oow_t)-1);
-	UNLOCK_OUTPUT (sio);
+	UNLOCK_OUTPUT(sio);
 	return n;
 }
 
@@ -437,7 +437,7 @@ hawk_ooi_t hawk_sio_putbchars (hawk_sio_t* sio, const hawk_bch_t* str, hawk_oow_
 	if (sio->status & STATUS_LINE_BREAK)
 	{
 		if (size > HAWK_TYPE_MAX(hawk_ooi_t)) size = HAWK_TYPE_MAX(hawk_ooi_t);
-		LOCK_OUTPUT (sio);
+		LOCK_OUTPUT(sio);
 		for (n = 0; n < size; n++)
 		{
 			if (putbc_no_mutex(sio, str[n]) <= -1)
@@ -446,14 +446,14 @@ hawk_ooi_t hawk_sio_putbchars (hawk_sio_t* sio, const hawk_bch_t* str, hawk_oow_
 				break;
 			}
 		}
-		UNLOCK_OUTPUT (sio);
+		UNLOCK_OUTPUT(sio);
 		return n;
 	}
 #endif
 
-	LOCK_OUTPUT (sio);
+	LOCK_OUTPUT(sio);
 	n = hawk_tio_writebchars (&sio->tio.io, str, size);
-	UNLOCK_OUTPUT (sio);
+	UNLOCK_OUTPUT(sio);
 	return n;
 }
 
@@ -490,7 +490,7 @@ hawk_ooi_t hawk_sio_putucstr (hawk_sio_t* sio, const hawk_uch_t* str)
 #elif defined(__OS2__)
 	if (sio->status & STATUS_LINE_BREAK)
 	{
-		LOCK_OUTPUT (sio);
+		LOCK_OUTPUT(sio);
 		for (n = 0; n < HAWK_TYPE_MAX(hawk_ooi_t) && str[n] != '\0'; n++)
 		{
 			if (put_uchar_no_mutex(sio, str[n]) <= -1)
@@ -499,14 +499,14 @@ hawk_ooi_t hawk_sio_putucstr (hawk_sio_t* sio, const hawk_uch_t* str)
 				break;
 			}
 		}
-		UNLOCK_OUTPUT (sio);
+		UNLOCK_OUTPUT(sio);
 		return n;
 	}
 #endif
 
-	LOCK_OUTPUT (sio);
+	LOCK_OUTPUT(sio);
 	n = hawk_tio_writeuchars(&sio->tio.io, str, (hawk_oow_t)-1);
-	UNLOCK_OUTPUT (sio);
+	UNLOCK_OUTPUT(sio);
 	return n;
 }
 
@@ -564,7 +564,7 @@ hawk_ooi_t hawk_sio_putuchars (hawk_sio_t* sio, const hawk_uch_t* str, hawk_oow_
 	if (sio->status & STATUS_LINE_BREAK)
 	{
 		if (size > HAWK_TYPE_MAX(hawk_ooi_t)) size = HAWK_TYPE_MAX(hawk_ooi_t);
-		LOCK_OUTPUT (sio);
+		LOCK_OUTPUT(sio);
 		for (n = 0; n < size; n++)
 		{
 			if (put_uchar_no_mutex(sio, str[n]) <= -1)
@@ -573,14 +573,14 @@ hawk_ooi_t hawk_sio_putuchars (hawk_sio_t* sio, const hawk_uch_t* str, hawk_oow_
 				break;
 			}
 		}
-		UNLOCK_OUTPUT (sio);
+		UNLOCK_OUTPUT(sio);
 		return n;
 	}
 #endif
 
-	LOCK_OUTPUT (sio);
+	LOCK_OUTPUT(sio);
 	n = hawk_tio_writeuchars(&sio->tio.io, str, size);
-	UNLOCK_OUTPUT (sio);
+	UNLOCK_OUTPUT(sio);
 	return n;
 }
 
@@ -634,8 +634,8 @@ static hawk_ooi_t file_input (hawk_tio_t* tio, hawk_tio_cmd_t cmd, void* buf, ha
 		hawk_sio_t* sio;
 
 		sio = *(hawk_sio_t**)(tio + 1);
-		/*HAWK_ASSERT (tio->hawk, sio != HAWK_NULL);
-		HAWK_ASSERT (tio->hawk, tio->hawk == sio->hawk);*/
+		/*HAWK_ASSERT(sio != HAWK_NULL);
+		HAWK_ASSERT(tio->hawk == sio->hawk);*/
 
 		return hawk_fio_read(&sio->file, buf, size);
 	}
@@ -650,8 +650,8 @@ static hawk_ooi_t file_output (hawk_tio_t* tio, hawk_tio_cmd_t cmd, void* buf, h
 		hawk_sio_t* sio;
 
 		sio = *(hawk_sio_t**)(tio + 1);
-		/*HAWK_ASSERT (tio->hawk, sio != HAWK_NULL);
-		HAWK_ASSERT (tio->hawk, tio->hawk == sio->hawk);*/
+		/*HAWK_ASSERT(sio != HAWK_NULL);
+		HAWK_ASSERT(tio->hawk == sio->hawk);*/
 
 		return hawk_fio_write(&sio->file, buf, size);
 	}

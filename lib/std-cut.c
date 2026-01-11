@@ -77,7 +77,6 @@ hawk_cut_t* hawk_cut_openstd (hawk_oow_t xtnsize, hawk_errinf_t* errinf)
 hawk_cut_t* hawk_cut_openstdwithmmgr (hawk_mmgr_t* mmgr, hawk_oow_t xtnsize, hawk_cmgr_t* cmgr, hawk_errinf_t* errinf)
 {
 	hawk_cut_t* cut;
-	xtn_t* xtn;
 
 	if (!mmgr) mmgr = hawk_get_sys_mmgr();
 	if (!cmgr) cmgr = hawk_get_cmgr_by_id(HAWK_CMGR_UTF8);
@@ -86,7 +85,7 @@ hawk_cut_t* hawk_cut_openstdwithmmgr (hawk_mmgr_t* mmgr, hawk_oow_t xtnsize, haw
 	cut = hawk_cut_open(mmgr, HAWK_SIZEOF(xtn_t) + xtnsize, cmgr, errinf);
 	if (HAWK_UNLIKELY(!cut)) return HAWK_NULL;
 
-	cut->_instsize += HAWK_SIZEOF(xtn_t);
+	cut->instsize_ += HAWK_SIZEOF(xtn_t);
 
 	return cut;
 }

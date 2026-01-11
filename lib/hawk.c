@@ -159,17 +159,17 @@ int hawk_init (hawk_t* hawk, hawk_mmgr_t* mmgr, hawk_cmgr_t* cmgr, const hawk_pr
 	HAWK_MEMSET(hawk, 0, HAWK_SIZEOF(*hawk));
 
 	/* remember the memory manager */
-	hawk->_instsize = HAWK_SIZEOF(*hawk);
-	hawk->_gem.mmgr = mmgr;
-	hawk->_gem.cmgr = cmgr;
+	hawk->instsize_ = HAWK_SIZEOF(*hawk);
+	hawk->gem_.mmgr = mmgr;
+	hawk->gem_.cmgr = cmgr;
 
 	/* initialize error handling fields */
-	hawk->_gem.errnum = HAWK_ENOERR;
-	hawk->_gem.errmsg[0] = '\0';
-	hawk->_gem.errloc.line = 0;
-	hawk->_gem.errloc.colm = 0;
-	hawk->_gem.errloc.file = HAWK_NULL;
-	hawk->_gem.errstr = hawk_dfl_errstr;
+	hawk->gem_.errnum = HAWK_ENOERR;
+	hawk->gem_.errmsg[0] = '\0';
+	hawk->gem_.errloc.line = 0;
+	hawk->gem_.errloc.colm = 0;
+	hawk->gem_.errloc.file = HAWK_NULL;
+	hawk->gem_.errstr = hawk_dfl_errstr;
 	hawk->haltall = 0;
 	hawk->ecb = (hawk_ecb_t*)hawk; /* use this as a sentinel node instead of HAWK_NULL */
 
@@ -309,7 +309,7 @@ void hawk_fini (hawk_t* hawk)
 
 	for (ecb = hawk->ecb; ecb != (hawk_ecb_t*)hawk; ecb = ecb_next)
 	{
-		ecb_next = ecb->next;
+		ecb_next = ecb->next_;
 		if (ecb->close) ecb->close(hawk, ecb->ctx);
 	}
 
@@ -392,7 +392,7 @@ void hawk_clear (hawk_t* hawk)
 
 	for (ecb = hawk->ecb; ecb != (hawk_ecb_t*)hawk; ecb = ecb_next)
 	{
-		ecb_next = ecb->next;
+		ecb_next = ecb->next_;
 		if (ecb->clear) ecb->clear(hawk, ecb->ctx);
 	}
 	/* hawk_clear() this doesn't pop event callbacks */
@@ -613,14 +613,15 @@ void hawk_haltall (hawk_t* hawk)
 
 void hawk_killecb (hawk_t* hawk, hawk_ecb_t* ecb)
 {
+	/* TODO: make it faster with doubly-linked list? */
 	hawk_ecb_t* prev, * cur;
-	for (cur = hawk->ecb, prev = HAWK_NULL; cur != (hawk_ecb_t*)hawk; cur = cur->next)
+	for (cur = hawk->ecb, prev = HAWK_NULL; cur != (hawk_ecb_t*)hawk; prev = cur, cur = cur->next_)
 	{
 		if (cur == ecb)
 		{
-			if (prev) prev->next = cur->next;
-			else hawk->ecb = cur->next;
-			cur->next = HAWK_NULL;
+			if (prev) prev->next_ = cur->next_;
+			else hawk->ecb = cur->next_;
+			cur->next_ = HAWK_NULL;
 			break;
 		}
 	}
@@ -630,14 +631,14 @@ hawk_ecb_t* hawk_popecb (hawk_t* hawk)
 {
 	hawk_ecb_t* top = hawk->ecb;
 	if (top == (hawk_ecb_t*)hawk) return HAWK_NULL;
-	hawk->ecb = top->next;
-	top->next = HAWK_NULL;
+	hawk->ecb = top->next_;
+	top->next_ = HAWK_NULL;
 	return top;
 }
 
 void hawk_pushecb (hawk_t* hawk, hawk_ecb_t* ecb)
 {
-	ecb->next = hawk->ecb;
+	ecb->next_ = hawk->ecb;
 	hawk->ecb = ecb;
 }
 

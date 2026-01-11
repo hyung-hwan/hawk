@@ -34,8 +34,8 @@
 typedef struct hawk_json_t hawk_json_t;
 
 #define HAWK_JSON_HDR \
-	hawk_oow_t _instsize; \
-	hawk_gem_t _gem
+	hawk_oow_t instsize_; \
+	hawk_gem_t gem_
 
 typedef struct hawk_json_alt_t hawk_json_alt_t;
 struct hawk_json_alt_t
@@ -169,27 +169,27 @@ HAWK_EXPORT int hawk_json_getoption (
  * The hawk_json_getxtn() function returns the pointer to the extension area
  * placed behind the actual json object.
  */
-static HAWK_INLINE void* hawk_json_getxtn (hawk_json_t* json) { return (void*)((hawk_uint8_t*)json + ((hawk_json_alt_t*)json)->_instsize); }
+static HAWK_INLINE void* hawk_json_getxtn (hawk_json_t* json) { return (void*)((hawk_uint8_t*)json + ((hawk_json_alt_t*)json)->instsize_); }
 
 /**
  * The hawk_json_getgem() function gets the pointer to the gem structure of the
  * json object.
  */
-static HAWK_INLINE hawk_gem_t* hawk_json_getgem (hawk_json_t* json) { return &((hawk_json_alt_t*)json)->_gem; }
+static HAWK_INLINE hawk_gem_t* hawk_json_getgem (hawk_json_t* json) { return &((hawk_json_alt_t*)json)->gem_; }
 
 /**
  * The hawk_json_getmmgr() function gets the memory manager ujson in
  * hawk_json_open().
  */
-static HAWK_INLINE hawk_mmgr_t* hawk_json_getmmgr (hawk_json_t* json) { return ((hawk_json_alt_t*)json)->_gem.mmgr; }
-static HAWK_INLINE hawk_cmgr_t* hawk_json_getcmgr (hawk_json_t* json) { return ((hawk_json_alt_t*)json)->_gem.cmgr; }
-static HAWK_INLINE void hawk_json_setcmgr (hawk_json_t* json, hawk_cmgr_t* cmgr) { ((hawk_json_alt_t*)json)->_gem.cmgr = cmgr; }
+static HAWK_INLINE hawk_mmgr_t* hawk_json_getmmgr (hawk_json_t* json) { return ((hawk_json_alt_t*)json)->gem_.mmgr; }
+static HAWK_INLINE hawk_cmgr_t* hawk_json_getcmgr (hawk_json_t* json) { return ((hawk_json_alt_t*)json)->gem_.cmgr; }
+static HAWK_INLINE void hawk_json_setcmgr (hawk_json_t* json, hawk_cmgr_t* cmgr) { ((hawk_json_alt_t*)json)->gem_.cmgr = cmgr; }
 #else
-#define hawk_json_getxtn(json) ((void*)((hawk_uint8_t*)json + ((hawk_json_alt_t*)json)->_instsize))
-#define hawk_json_getgem(json) (&((hawk_json_alt_t*)(json))->_gem)
-#define hawk_json_getmmgr(json) (((hawk_json_alt_t*)(json))->_gem.mmgr)
-#define hawk_json_getcmgr(json) (((hawk_json_alt_t*)(json))->_gem.cmgr)
-#define hawk_json_setcmgr(json,_cmgr) (((hawk_json_alt_t*)(json))->_gem.cmgr = (_cmgr))
+#define hawk_json_getxtn(json) ((void*)((hawk_uint8_t*)json + ((hawk_json_alt_t*)json)->instsize_))
+#define hawk_json_getgem(json) (&((hawk_json_alt_t*)(json))->gem_)
+#define hawk_json_getmmgr(json) (((hawk_json_alt_t*)(json))->gem_.mmgr)
+#define hawk_json_getcmgr(json) (((hawk_json_alt_t*)(json))->gem_.cmgr)
+#define hawk_json_setcmgr(json,_cmgr) (((hawk_json_alt_t*)(json))->gem_.cmgr = (_cmgr))
 #endif /* HAWK_HAVE_INLINE */
 
 /**

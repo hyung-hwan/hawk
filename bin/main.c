@@ -175,7 +175,7 @@ int hawk_main_unset_signal_handler (int sig)
 
 	if (sigaction(sig, &sa, HAWK_NULL) == -1) return -1;
 #else
-	signal (sig, (hawk_main_sig_handler_t)g_sig_state[sig].old_handler);
+	signal(sig, (hawk_main_sig_handler_t)g_sig_state[sig].old_handler);
 #endif
 
 	g_sig_state[sig].handler = 0;

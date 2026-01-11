@@ -569,6 +569,15 @@ struct hawk_rtx_t
 		hawk_oow_t capa;
 	} forin; /* keys for for (x in y) ... */
 
+	hawk_fun_t* sig_handler[HAWK_NSIG];
+	int sig_handling;
+	struct
+	{
+		int count;
+		int tab[HAWK_NSIG];
+		int pos[HAWK_NSIG];
+	} sig_raise[2];
+
 	hawk_ooch_t errmsg_backup[HAWK_ERRMSG_CAPA];
 	hawk_rtx_ecb_t* ecb;
 };

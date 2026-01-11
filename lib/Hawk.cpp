@@ -1886,7 +1886,7 @@ int Hawk::open ()
 #endif
 
 	// push the call back after everything else is ok.
-	hawk_pushecb (this->hawk, &xtn->ecb);
+	hawk_pushecb(this->hawk, &xtn->ecb);
 	return 0;
 }
 

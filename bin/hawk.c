@@ -46,7 +46,7 @@
 #include <stdlib.h>
 #include <locale.h>
 
-/* #define ENABLE_CALLBACK  TODO: enable this back */
+/* #define ENABLE_STATEMENT_CALLBACK  TODO: enable this back */
 #define ABORT(label) goto label
 
 #if defined(_WIN32)
@@ -125,11 +125,17 @@ static void stop_run (int signo)
 #if !defined(_WIN32) && !defined(__OS2__) && !defined(__DOS__)
 	int e = errno;
 #endif
+	/* signal handler not registered */
 	/*hawk_haltall(hawk_rtx_gethawk(app_rtx));*/
 	hawk_rtx_halt(app_rtx);
 #if !defined(_WIN32) && !defined(__OS2__) && !defined(__DOS__)
 	errno = e;
 #endif
+}
+
+static void relay_signal (int signo)
+{
+	hawk_rtx_raisesig(app_rtx, signo);
 }
 
 static void set_intr_pipe (void)
@@ -319,12 +325,35 @@ static void dprint_return (hawk_rtx_t* rtx, hawk_val_t* ret)
 	hawk_logfmt(hawk, HAWK_LOG_STDERR, HAWK_T("[END OF NAMED VARIABLES]\n"));
 }
 
-#if defined(ENABLE_CALLBACK)
+#if defined(ENABLE_STATEMENT_CALLBACK)
 static void on_statement (hawk_rtx_t* rtx, hawk_nde_t* nde)
 {
 	hawk_logfmt (hawk_rtx_gethawk(rtx), HAWK_LOG_STDERR, HAWK_T("running %d at line %zu\n"), (int)nde->type, (hawk_oow_t)nde->loc.line);
 }
 #endif
+
+static void on_sigset (hawk_rtx_t* rtx, int sig, hawk_fun_t* fun)
+{
+	if (fun)
+	{
+		hawk_main_set_signal_handler(sig, relay_signal, 0);
+	}
+	else
+	{
+		int back_to_stop_run = 0;
+		hawk_main_unset_signal_handler(sig);
+	#if defined(SIGTERM)
+		if (sig == SIGTERM) back_to_stop_run = 1;
+	#endif
+	#if defined(SIGHUP)
+		if (sig == SIGHUP) back_to_stop_run = 1;
+	#endif
+	#if defined(SIGINT)
+		if (sig == SIGINT) back_to_stop_run = 1;
+	#endif
+		if (back_to_stop_run) hawk_main_set_signal_handler(sig, stop_run, 0);
+	}
+}
 
 struct opttab_t
 {
@@ -781,15 +810,18 @@ int main_hawk(int argc, hawk_bch_t* argv[], const hawk_bch_t* real_argv0)
 	struct arg_t arg;
 	int ret = -1;
 
-#if defined(ENABLE_CALLBACK)
 	static hawk_rtx_ecb_t rtx_ecb =
 	{
-		HAWK_FV(.close,  HAWK_NULL),
-		HAWK_FV(.stmt,   on_statement),
-		HAWK_FV(.gblset, HAWK_NULL)
-		HAWK_FV(.ctx,    HAWK_NULL)
+		HAWK_SFN(close)  HAWK_NULL,
+	#if defined(ENABLE_STATEMENT_CALLBACK)
+		HAWK_SFN(stmt)   on_statement,
+	#else
+		HAWK_SFN(stmt)   HAWK_NULL,
+	#endif
+		HAWK_SFN(gblset) HAWK_NULL,
+		HAWK_SFN(sigset) on_sigset,
+		HAWK_SFN(ctx)    HAWK_NULL
 	};
-#endif
 
 	/* TODO: change it to support multiple source files */
 	hawk_parsestd_t psout;
@@ -928,9 +960,7 @@ int main_hawk(int argc, hawk_bch_t* argv[], const hawk_bch_t* real_argv0)
 	}
 
 	app_rtx = rtx;
-#if defined(ENABLE_CALLBACK)
 	hawk_rtx_pushecb(rtx, &rtx_ecb);
-#endif
 
 	set_intr_run();
 
@@ -982,4 +1012,3 @@ oops:
 
 	return ret;
 }
-

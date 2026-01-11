@@ -62,8 +62,8 @@
 typedef struct hawk_sed_t hawk_sed_t;
 
 #define HAWK_SED_HDR \
-	hawk_oow_t _instsize; \
-	hawk_gem_t _gem
+	hawk_oow_t instsize_; \
+	hawk_gem_t gem_
 
 typedef struct hawk_sed_alt_t hawk_sed_alt_t;
 struct hawk_sed_alt_t
@@ -318,14 +318,11 @@ typedef void (*hawk_sed_ecb_close_t) (
 typedef struct hawk_sed_ecb_t hawk_sed_ecb_t;
 struct hawk_sed_ecb_t
 {
-	/**
-	 * called by hawk_sed_close().
-	 */
-	hawk_sed_ecb_close_t close;
-	void* ctx;
+	hawk_sed_ecb_close_t close; /* called by hawk_sed_close() */
 
-	/* internal use only. don't touch this field */
-	hawk_sed_ecb_t* next;
+	void* ctx; /* user context */
+
+	hawk_sed_ecb_t* next_; /* internal use only. don't touch this field */
 };
 
 enum hawk_sed_tracer_op_t
@@ -477,27 +474,27 @@ HAWK_EXPORT void hawk_sed_close (
  * The hawk_sed_getxtn() function returns the pointer to the extension area
  * placed behind the actual sed object.
  */
-static HAWK_INLINE void* hawk_sed_getxtn (hawk_sed_t* sed) { return (void*)((hawk_uint8_t*)sed + ((hawk_sed_alt_t*)sed)->_instsize); }
+static HAWK_INLINE void* hawk_sed_getxtn (hawk_sed_t* sed) { return (void*)((hawk_uint8_t*)sed + ((hawk_sed_alt_t*)sed)->instsize_); }
 
 /**
  * The hawk_sed_getgem() function gets the pointer to the gem structure of the
  * sed object.
  */
-static HAWK_INLINE hawk_gem_t* hawk_sed_getgem (hawk_sed_t* sed) { return &((hawk_sed_alt_t*)sed)->_gem; }
+static HAWK_INLINE hawk_gem_t* hawk_sed_getgem (hawk_sed_t* sed) { return &((hawk_sed_alt_t*)sed)->gem_; }
 
 /**
  * The hawk_sed_getmmgr() function gets the memory manager used in
  * hawk_sed_open().
  */
-static HAWK_INLINE hawk_mmgr_t* hawk_sed_getmmgr (hawk_sed_t* sed) { return ((hawk_sed_alt_t*)sed)->_gem.mmgr; }
-static HAWK_INLINE hawk_cmgr_t* hawk_sed_getcmgr (hawk_sed_t* sed) { return ((hawk_sed_alt_t*)sed)->_gem.cmgr; }
-static HAWK_INLINE void hawk_sed_setcmgr (hawk_sed_t* sed, hawk_cmgr_t* cmgr) { ((hawk_sed_alt_t*)sed)->_gem.cmgr = cmgr; }
+static HAWK_INLINE hawk_mmgr_t* hawk_sed_getmmgr (hawk_sed_t* sed) { return ((hawk_sed_alt_t*)sed)->gem_.mmgr; }
+static HAWK_INLINE hawk_cmgr_t* hawk_sed_getcmgr (hawk_sed_t* sed) { return ((hawk_sed_alt_t*)sed)->gem_.cmgr; }
+static HAWK_INLINE void hawk_sed_setcmgr (hawk_sed_t* sed, hawk_cmgr_t* cmgr) { ((hawk_sed_alt_t*)sed)->gem_.cmgr = cmgr; }
 #else
-#define hawk_sed_getxtn(sed) ((void*)((hawk_uint8_t*)sed + ((hawk_sed_alt_t*)sed)->_instsize))
-#define hawk_sed_getgem(sed) (&((hawk_sed_alt_t*)(sed))->_gem)
-#define hawk_sed_getmmgr(sed) (((hawk_sed_alt_t*)(sed))->_gem.mmgr)
-#define hawk_sed_getcmgr(sed) (((hawk_sed_alt_t*)(sed))->_gem.cmgr)
-#define hawk_sed_setcmgr(sed,_cmgr) (((hawk_sed_alt_t*)(sed))->_gem.cmgr = (_cmgr))
+#define hawk_sed_getxtn(sed) ((void*)((hawk_uint8_t*)sed + ((hawk_sed_alt_t*)sed)->instsize_))
+#define hawk_sed_getgem(sed) (&((hawk_sed_alt_t*)(sed))->gem_)
+#define hawk_sed_getmmgr(sed) (((hawk_sed_alt_t*)(sed))->gem_.mmgr)
+#define hawk_sed_getcmgr(sed) (((hawk_sed_alt_t*)(sed))->gem_.cmgr)
+#define hawk_sed_setcmgr(sed,_cmgr) (((hawk_sed_alt_t*)(sed))->gem_.cmgr = (_cmgr))
 #endif /* HAWK_HAVE_INLINE */
 
 

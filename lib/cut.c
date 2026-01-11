@@ -108,17 +108,17 @@ static int hawk_cut_init (hawk_cut_t* cut, hawk_mmgr_t* mmgr, hawk_cmgr_t* cmgr)
 {
 	HAWK_MEMSET (cut, 0, HAWK_SIZEOF(*cut));
 
-	cut->_instsize = HAWK_SIZEOF(*cut);
-	cut->_gem.mmgr = mmgr;
-	cut->_gem.cmgr = cmgr;
+	cut->instsize_ = HAWK_SIZEOF(*cut);
+	cut->gem_.mmgr = mmgr;
+	cut->gem_.cmgr = cmgr;
 
 	/* initialize error handling fields */
-	cut->_gem.errnum = HAWK_ENOERR;
-	cut->_gem.errmsg[0] = '\0';
-	cut->_gem.errloc.line = 0;
-	cut->_gem.errloc.colm = 0;
-	cut->_gem.errloc.file = HAWK_NULL;
-	cut->_gem.errstr = hawk_dfl_errstr;
+	cut->gem_.errnum = HAWK_ENOERR;
+	cut->gem_.errmsg[0] = '\0';
+	cut->gem_.errloc.line = 0;
+	cut->gem_.errloc.colm = 0;
+	cut->gem_.errloc.file = HAWK_NULL;
+	cut->gem_.errstr = hawk_dfl_errstr;
 
 
 	/* on init, the last points to the first */
@@ -143,7 +143,7 @@ static void hawk_cut_fini (hawk_cut_t* cut)
 
 hawk_errstr_t hawk_cut_geterrstr (hawk_cut_t* cut)
 {
-	return cut->_gem.errstr;
+	return cut->gem_.errstr;
 }
 
 void hawk_cut_seterrbfmt (hawk_cut_t* cut, const hawk_loc_t* errloc, hawk_errnum_t errnum, const hawk_bch_t* fmt, ...)

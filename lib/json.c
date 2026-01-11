@@ -204,7 +204,7 @@ static int handle_string_value_char (hawk_json_t* json, hawk_ooci_t c)
 				hawk_bch_t bcsbuf[HAWK_MBLEN_MAX];
 				hawk_oow_t n;
 
-				n = json->_gem.cmgr->uctobc(json->state_stack->u.sv.acc, bcsbuf, HAWK_COUNTOF(bcsbuf));
+				n = json->gem_.cmgr->uctobc(json->state_stack->u.sv.acc, bcsbuf, HAWK_COUNTOF(bcsbuf));
 				if (n == 0 || n > HAWK_COUNTOF(bcsbuf))
 				{
 					/* illegal character or buffer to small */
@@ -714,7 +714,7 @@ static int feed_json_data_b (hawk_json_t* json, const hawk_bch_t* data, hawk_oow
 		hawk_oow_t n;
 
 		bcslen = end - ptr;
-		n = json->_gem.cmgr->bctouc(ptr, bcslen, &uc);
+		n = json->gem_.cmgr->bctouc(ptr, bcslen, &uc);
 		if (n == 0)
 		{
 			/* invalid sequence */
@@ -770,7 +770,7 @@ static int feed_json_data_u (hawk_json_t* json, const hawk_uch_t* data, hawk_oow
 		hawk_oow_t mlen = 0;
 		hawk_oow_t n, i;
 
-		n = json->_gem.cmgr->uctobc(*ptr++, bcsbuf, HAWK_COUNTOF(bcsbuf));
+		n = json->gem_.cmgr->uctobc(*ptr++, bcsbuf, HAWK_COUNTOF(bcsbuf));
 		if (n == 0) goto oops; // illegal character
 
 		for (i = 0; i < n; i++)
@@ -809,17 +809,17 @@ hawk_json_t* hawk_json_open (hawk_mmgr_t* mmgr, hawk_oow_t xtnsize, hawk_cmgr_t*
 	}
 
 	HAWK_MEMSET(json, 0, HAWK_SIZEOF(*json) + xtnsize);
-	json->_instsize = HAWK_SIZEOF(*json);
-	json->_gem.mmgr = mmgr;
-	json->_gem.cmgr = cmgr;
+	json->instsize_ = HAWK_SIZEOF(*json);
+	json->gem_.mmgr = mmgr;
+	json->gem_.cmgr = cmgr;
 
 	/* initialize error handling fields */
-	json->_gem.errnum = HAWK_ENOERR;
-	json->_gem.errmsg[0] = '\0';
-	json->_gem.errloc.line = 0;
-	json->_gem.errloc.colm = 0;
-	json->_gem.errloc.file = HAWK_NULL;
-	json->_gem.errstr = hawk_dfl_errstr;
+	json->gem_.errnum = HAWK_ENOERR;
+	json->gem_.errmsg[0] = '\0';
+	json->gem_.errloc.line = 0;
+	json->gem_.errloc.colm = 0;
+	json->gem_.errloc.file = HAWK_NULL;
+	json->gem_.errstr = hawk_dfl_errstr;
 
 	json->prim = *prim;
 	json->state_top.state = HAWK_JSON_STATE_START;
@@ -866,7 +866,7 @@ int hawk_json_getoption (hawk_json_t* json, hawk_json_option_t id, void* value)
 
 hawk_errstr_t hawk_json_geterrstr (hawk_json_t* json)
 {
-	return json->_gem.errstr;
+	return json->gem_.errstr;
 }
 
 void hawk_json_seterrbfmt (hawk_json_t* json, const hawk_loc_t* errloc, hawk_errnum_t errnum, const hawk_bch_t* fmt, ...)

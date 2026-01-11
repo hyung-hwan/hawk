@@ -385,7 +385,7 @@ int SedStd::StringStream::open (Data& io)
 			// only if it's not already pushed
 			this->out.sed_ecb.close = this->on_sed_close;
 			this->out.sed_ecb.ctx = this;
-			hawk_sed_pushecb ((hawk_sed_t*)io, &this->out.sed_ecb);
+			hawk_sed_pushecb((hawk_sed_t*)io, &this->out.sed_ecb);
 		}
 
 		io.setHandle (this);
