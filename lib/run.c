@@ -24,11 +24,10 @@
 
 #include "hawk-prv.h"
 
-#define PRINT_IOERR -99
-
-#define CMP_ERROR -99
-#define DEF_BUF_CAPA 256
-#define HAWK_RTX_STACK_INCREMENT 512
+#define PRINT_IOERR (-99)
+#define CMP_ERROR (-99)
+#define DEF_BUF_CAPA (256)
+#define HAWK_RTX_STACK_INCREMENT (512)
 
 enum exit_level_t
 {
@@ -883,6 +882,25 @@ hawk_rtx_t* hawk_rtx_open (hawk_t* hawk, hawk_oow_t xtnsize, hawk_rio_cbs_t* rio
 
 	rtx->ecb = (hawk_rtx_ecb_t*)rtx; /* use this as a special sentinel node */
 
+	/* initialize signal handling fields */
+	rtx->sig_handling = 0; /* indicate call_signal_handlers() is not in progress */
+	rtx->sig_pending_any = 0;
+#if defined(HAWK_ENABLE_ATOMIC_SIG)
+	for (i = 0; i < HAWK_SIG_WORD_COUNT; i++) rtx->sig_pending[i] = 0;
+#else
+	if (HAWK_UNLIKELY(hawk_mtx_init(&rtx->sig_mtx, hawk_rtx_getgem(rtx)) <= -1))
+	{
+		hawk_rtx_errortohawk(rtx, hawk);
+		fini_rtx(rtx, 0);
+		hawk_freemem(hawk, rtx);
+		return HAWK_NULL;
+	}
+	rtx->sig_mtx_inited = 1;
+	rtx->sig_raise[0].count = 0;
+	for (i = 0; i < HAWK_COUNTOF(rtx->sig_raise[0].pos); i++) rtx->sig_raise[0].pos[i] = -1;
+#endif
+
+	/* global variables */
 	if (HAWK_UNLIKELY(init_globals(rtx) <= -1))
 	{
 		hawk_rtx_errortohawk(rtx, hawk);
@@ -928,12 +946,6 @@ hawk_rtx_t* hawk_rtx_open (hawk_t* hawk, hawk_oow_t xtnsize, hawk_rio_cbs_t* rio
 	}
 	/* rtx->bctos.b[0] is not used as the free index of 0 indicates the end of the list.
 	 * see hawk_rtx_getvaloocstr(). */
-
-
-	/* initialize signal handling fields */
-	rtx->sig_handling = 0;
-	rtx->sig_raise[0].count = 0;
-	for (i = 0; i < HAWK_COUNTOF(rtx->sig_raise[0].pos); i++) rtx->sig_raise[0].pos[i] = -1;
 
 	return rtx;
 }
@@ -1183,6 +1195,14 @@ oops_0:
 
 static void fini_rtx (hawk_rtx_t* rtx, int fini_globals)
 {
+#if !defined(HAWK_ENABLE_ATOMIC_SIG)
+	if (rtx->sig_mtx_inited)
+	{
+		hawk_mtx_fini(&rtx->sig_mtx);
+		rtx->sig_mtx_inited = 0;
+	}
+#endif
+
 	if (rtx->forin.ptr)
 	{
 		while (rtx->forin.size > 0)
@@ -2260,22 +2280,48 @@ static int run_block (hawk_rtx_t* rtx, hawk_nde_blk_t* nde)
 
 int hawk_rtx_raisesig(hawk_rtx_t* rtx, int sig)
 {
-	int pos;
-
 	if (sig < 0 || sig >= HAWK_COUNTOF(rtx->sig_handler))
 	{
 		hawk_rtx_seterrbfmt(rtx, HAWK_NULL, HAWK_EINVAL, "invalid signal number %d", sig);
 		return -1;
 	}
 
-/* TODO: some mutext */
+	/* i assume the sys::signal() is called from the same thread as
+	 * the main runtime context. so i don't use atomic or mutex on
+	 * rtx->sig_handler. */
 	if (!rtx->sig_handler[sig]) return -1; /* no handler installed */
-	if (rtx->sig_raise[0].pos[sig] >= 0) return 0; /* already raised */
-	pos = rtx->sig_raise[0].count;
-	rtx->sig_raise[0].pos[sig] = pos;
-	rtx->sig_raise[0].tab[pos] = sig;
-	rtx->sig_raise[0].count++;
-/* TODO: end of mutex */
+
+#if defined(HAWK_ENABLE_ATOMIC_SIG)
+	{
+		hawk_uintptr_t bit;
+		hawk_uintptr_t* word;
+		int widx;
+
+		widx = sig / HAWK_SIG_WORD_BITS;
+		bit = ((hawk_uintptr_t)1) << (sig % HAWK_SIG_WORD_BITS);
+		word = &rtx->sig_pending[widx];
+		(void)__atomic_fetch_or(word, bit, __ATOMIC_RELAXED);
+		__atomic_store_n(&rtx->sig_pending_any, 1, __ATOMIC_RELAXED);
+	}
+#else
+	{
+		int pos;
+		hawk_mtx_lock(&rtx->sig_mtx, HAWK_NULL);
+		if (rtx->sig_raise[0].pos[sig] >= 0)
+		{
+			/* already raised */
+			hawk_mtx_unlock(&rtx->sig_mtx);
+			return 0;
+		}
+		pos = rtx->sig_raise[0].count;
+		rtx->sig_raise[0].pos[sig] = pos;
+		rtx->sig_raise[0].tab[pos] = sig;
+		rtx->sig_raise[0].count++;
+		rtx->sig_pending_any = 1;
+		hawk_mtx_unlock(&rtx->sig_mtx);
+	}
+#endif
+
 	return 0;
 }
 
@@ -2289,7 +2335,11 @@ int hawk_rtx_setsighandler (hawk_rtx_t* rtx, int sig, hawk_fun_t* fun)
 		return -1;
 	}
 
-/* TODO: anything for old handler */
+/* TODO: anything to do for old handler */
+
+	/* i assume the sys::signal() is called from the same thread as
+	 * the runtime context. so i don't use atomic or mutex on
+	 * rtx->sig_handler. */
 	rtx->sig_handler[sig] = fun;
 
 	for (ecb = rtx->ecb; ecb != (hawk_rtx_ecb_t*)(rtx); ecb = ecb_next)
@@ -2301,46 +2351,108 @@ int hawk_rtx_setsighandler (hawk_rtx_t* rtx, int sig, hawk_fun_t* fun)
 	return 0;
 }
 
+#if defined(HAWK_ENABLE_ATOMIC_SIG)
+static HAWK_INLINE int ctz_uintptr (hawk_uintptr_t v)
+{
+	/* precondition - v != 0 */
+#if defined(HAWK_HAVE_BUILTIN_CTZL) && (HAWK_SIZEOF_UINTPTR_T <= HAWK_SIZEOF_LONG)
+	return (int)__builtin_ctzl((unsigned long)v);
+#elif defined(HAWK_HAVE_BUILTIN_CTZLL) && (HAWK_SIZEOF_UINTPTR_T <= HAWK_SIZEOF_LONG_LONG)
+	return (int)__builtin_ctzll((unsigned long long)v);
+#else
+	int c = 0;
+	while ((v & 1) == 0) { v >>= 1; c++; }
+	return c;
+#endif
+}
+#endif
+
 static int call_signal_handlers (hawk_rtx_t* rtx)
 {
 	int i;
 
-	rtx->sig_handling = 1; /* TODO: make this atomic? */
+	rtx->sig_handling = 1;
 
-/* TODO: mutex between this and raise .. */
-	/* copy the signal raising state */
-	rtx->sig_raise[1] = rtx->sig_raise[0];
+#if defined(HAWK_ENABLE_ATOMIC_SIG)
+	__atomic_store_n(&rtx->sig_pending_any, 0, __ATOMIC_RELAXED);
 
-	/* reset the signal raising state modified by hawk_rtx_raisesig() */
-	rtx->sig_raise[0].count = 0;
-	for (i = 0; i < HAWK_COUNTOF(rtx->sig_raise[0].pos); i++) rtx->sig_raise[0].pos[i] = -1;
-/* TODO: end of mutex protection */
-
-	for (i = 0; i < rtx->sig_raise[1].count; i++)
+	for (i = 0; i < HAWK_SIG_WORD_COUNT; i++)
 	{
-		int sig;
-		hawk_fun_t* fun;
+		hawk_uintptr_t bits;
 
-		sig = rtx->sig_raise[1].tab[i];
-		fun = rtx->sig_handler[sig];
-		if (fun)
+		bits = __atomic_exchange_n(&rtx->sig_pending[i], 0, __ATOMIC_ACQ_REL);
+		while (bits)
 		{
+			int sig;
+			hawk_fun_t* fun;
 			hawk_val_t* arg;
 			hawk_val_t* rv;
+			int bitpos;
 
-			arg = hawk_rtx_makeintval(rtx, sig);
-			if (HAWK_UNLIKELY(!arg)) return -1;
+			bitpos = ctz_uintptr(bits);
+			sig = (i * HAWK_SIG_WORD_BITS) + bitpos;
+			if (sig < 0 || sig >= HAWK_NSIG)
+			{
+				bits &= (bits - 1);
+				continue;
+			}
 
-			/* hawk_rtx_callfun() can invoke run_statement again().
-			 * if the signal handler is in action, it must not invoke it again */
-			rv = hawk_rtx_callfun(rtx, fun, &arg, 1);
-			if (!rv) return -1;
+			fun = rtx->sig_handler[sig];
+			if (fun)
+			{
+				arg = hawk_rtx_makeintval(rtx, sig);
+				if (HAWK_UNLIKELY(!arg)) return -1;
 
-			hawk_rtx_refdownval(rtx, rv);
+				rv = hawk_rtx_callfun(rtx, fun, &arg, 1);
+				if (HAWK_UNLIKELY(!rv)) return -1;
+
+				hawk_rtx_refdownval(rtx, rv);
+			}
+
+			bits &= (bits - 1);
 		}
 	}
+#else
+	hawk_mtx_lock(&rtx->sig_mtx, HAWK_NULL);
+	if (rtx->sig_pending_any)
+	{
+		/* copy the signal raising state */
+		rtx->sig_raise[1] = rtx->sig_raise[0];
+		rtx->sig_pending_any = 0;
 
-	rtx->sig_handling = 0; /* TODO: make this atomic? */
+		/* reset the signal raising state modified by hawk_rtx_raisesig() */
+		rtx->sig_raise[0].count = 0;
+		for (i = 0; i < HAWK_COUNTOF(rtx->sig_raise[0].pos); i++) rtx->sig_raise[0].pos[i] = -1;
+
+		hawk_mtx_unlock(&rtx->sig_mtx);
+
+		for (i = 0; i < rtx->sig_raise[1].count; i++)
+		{
+			int sig;
+			hawk_fun_t* fun;
+
+			sig = rtx->sig_raise[1].tab[i];
+			fun = rtx->sig_handler[sig];
+			if (fun)
+			{
+				hawk_val_t* arg;
+				hawk_val_t* rv;
+
+				arg = hawk_rtx_makeintval(rtx, sig);
+				if (HAWK_UNLIKELY(!arg)) return -1;
+
+				/* hawk_rtx_callfun() can invoke run_statement() again. if the signal
+				 * handler is in progress, this function must not be invoked again. */
+				rv = hawk_rtx_callfun(rtx, fun, &arg, 1);
+				if (HAWK_UNLIKELY(!rv)) return -1;
+
+				hawk_rtx_refdownval(rtx, rv);
+			}
+		}
+	}
+#endif
+
+	rtx->sig_handling = 0;
 	return 0;
 }
 
@@ -2362,8 +2474,16 @@ static int run_statement (hawk_rtx_t* rtx, hawk_nde_t* nde)
 
 	ON_STATEMENT(rtx, nde);
 
-	/* run singal handlers if there are raised signals */
-	if (!rtx->sig_handling && rtx->sig_raise[0].count > 0 && call_signal_handlers(rtx) <= -1) return -1;
+	if (!rtx->sig_handling)
+	{
+		/* run singal handlers if there are raised signals */
+	#if defined(HAWK_ENABLE_ATOMIC_SIG)
+		if (__atomic_load_n(&rtx->sig_pending_any, __ATOMIC_RELAXED) != 0 &&
+		    call_signal_handlers(rtx) <= -1) return -1;
+	#else
+		if (rtx->sig_pending_any && call_signal_handlers(rtx) <= -1) return -1;
+	#endif
+	}
 
 	/* run the actual statement */
 	switch (nde->type)

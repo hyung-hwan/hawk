@@ -30,6 +30,7 @@
 #include <hawk-ecs.h>
 #include <hawk-fmt.h>
 #include <hawk-htb.h>
+#include <hawk-mtx.h>
 #include <hawk-rbt.h>
 #include <hawk-utl.h>
 
@@ -64,6 +65,10 @@ typedef struct hawk_tree_t hawk_tree_t;
  *   BEGIN { show(__printer, 10, 20, 30); } ## passing the function value as an argumnet is ok.
  */
 #define HAWK_ENABLE_FUN_AS_VALUE
+
+#if defined(HAWK_HAVE_BUILTIN_ATOMIC_FETCH_OR)
+#define HAWK_ENABLE_ATOMIC_SIG
+#endif
 
 /* ------------------------------------------------------------------------ */
 
@@ -569,14 +574,25 @@ struct hawk_rtx_t
 		hawk_oow_t capa;
 	} forin; /* keys for for (x in y) ... */
 
+#define HAWK_SIG_WORD_BITS (HAWK_SIZEOF_UINTPTR_T * 8)
+#define HAWK_SIG_WORD_COUNT ((HAWK_NSIG + HAWK_SIG_WORD_BITS - 1) / HAWK_SIG_WORD_BITS)
+
 	hawk_fun_t* sig_handler[HAWK_NSIG];
 	int sig_handling;
+#if defined(HAWK_ENABLE_ATOMIC_SIG)
+	hawk_uintptr_t sig_pending[HAWK_SIG_WORD_COUNT];
+	hawk_uintptr_t sig_pending_any;
+#else
+	hawk_mtx_t sig_mtx;
+	int sig_mtx_inited;
+	int sig_pending_any;
 	struct
 	{
 		int count;
 		int tab[HAWK_NSIG];
 		int pos[HAWK_NSIG];
 	} sig_raise[2];
+#endif
 
 	hawk_ooch_t errmsg_backup[HAWK_ERRMSG_CAPA];
 	hawk_rtx_ecb_t* ecb;

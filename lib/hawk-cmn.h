@@ -1310,6 +1310,10 @@ typedef enum hawk_log_mask_t hawk_log_mask_t;
 		#define HAWK_HAVE_BUILTIN_CLZLL
 	#endif
 
+	#if __has_builtin(__atomic_fetch_or)
+		#define HAWK_HAVE_BUILTIN_ATOMIC_FETCH_OR
+	#endif
+
 	#if __has_builtin(__builtin_uadd_overflow)
 		#define HAWK_HAVE_BUILTIN_UADD_OVERFLOW
 	#endif
@@ -1418,6 +1422,10 @@ typedef enum hawk_log_mask_t hawk_log_mask_t;
 		#define HAWK_HAVE_BUILTIN_SMUL_OVERFLOW
 		#define HAWK_HAVE_BUILTIN_SMULL_OVERFLOW
 		#define HAWK_HAVE_BUILTIN_SMULLL_OVERFLOW
+	#endif
+
+	#if (__GNUC__ >= 5) || (__GNUC__ == 4 && __GNUC_MINOR__ >= 7)
+		#define HAWK_HAVE_BUILTIN_ATOMIC_FETCH_OR
 	#endif
 
 	#if (__GNUC__ >= 5) || (__GNUC__ == 4 && __GNUC_MINOR__ >= 8)
