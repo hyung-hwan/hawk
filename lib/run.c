@@ -2289,7 +2289,11 @@ int hawk_rtx_raisesig(hawk_rtx_t* rtx, int sig)
 	/* i assume the sys::signal() is called from the same thread as
 	 * the main runtime context. so i don't use atomic or mutex on
 	 * rtx->sig_handler. */
-	if (!rtx->sig_handler[sig]) return -1; /* no handler installed */
+	if (!rtx->sig_handler[sig])
+	{
+		hawk_rtx_seterrbfmt(rtx, HAWK_NULL, HAWK_EINVAL, "no handler set for signal number %d", sig);
+		return -1; /* no handler installed */
+	}
 
 #if defined(HAWK_ENABLE_ATOMIC_SIG)
 	{

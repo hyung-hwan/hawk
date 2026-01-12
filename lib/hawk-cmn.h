@@ -126,9 +126,6 @@
 #	define HAWK_UNUSED
 #endif
 
-#if !defined(__has_builtin)
-#	define __has_builtin(v) 0
-#endif
 
 /* =========================================================================
  * STATIC ASSERTION
@@ -1449,6 +1446,12 @@ typedef enum hawk_log_mask_t hawk_log_mask_t;
 	#endif
 #endif
 
+#if defined(__has_builtin)
+#	define HAWK_HAS_BUILTIN(v) __has_builtin(v)
+#else
+#	define HAWK_HAS_BUILTIN(v) 0
+#endif
+
 #if defined(HAWK_HAVE_BUILTIN_EXPECT)
 #	define HAWK_LIKELY(x) (__builtin_expect(!!(x),1))
 #	define HAWK_UNLIKELY(x) (__builtin_expect(!!(x),0))
@@ -1463,10 +1466,34 @@ typedef enum hawk_log_mask_t hawk_log_mask_t;
 #	define HAWK_ATOMIC_EXCHANGE(ptr,val,mo) __sync_lock_test_and_set((ptr),(val))
 #endif
 
+#if defined(HAWK_HAVE_ATOMIC_FETCH_ADD)
+#	define HAWK_ATOMIC_FETCH_ADD(ptr,val,mo) __atomic_fetch_add((ptr),(val),(mo))
+#elif defined(HAWK_HAVE_SYNC_FETCH_AND_AND)
+#	define HAWK_ATOMIC_FETCH_ADD(ptr,val,mo) __sync_fetch_and_add((ptr),(val))
+#endif
+
+#if defined(HAWK_HAVE_ATOMIC_FETCH_AND)
+#	define HAWK_ATOMIC_FETCH_AND(ptr,val,mo) __atomic_fetch_and((ptr),(val),(mo))
+#elif defined(HAWK_HAVE_SYNC_FETCH_AND_AND)
+#	define HAWK_ATOMIC_FETCH_AND(ptr,val,mo) __sync_fetch_and_and((ptr),(val))
+#endif
+
 #if defined(HAWK_HAVE_ATOMIC_FETCH_OR)
 #	define HAWK_ATOMIC_FETCH_OR(ptr,val,mo) __atomic_fetch_or((ptr),(val),(mo))
 #elif defined(HAWK_HAVE_SYNC_FETCH_AND_OR)
 #	define HAWK_ATOMIC_FETCH_OR(ptr,val,mo) __sync_fetch_and_or((ptr),(val))
+#endif
+
+#if defined(HAWK_HAVE_ATOMIC_FETCH_SUB)
+#	define HAWK_ATOMIC_FETCH_SUB(ptr,val,mo) __atomic_fetch_sub((ptr),(val),(mo))
+#elif defined(HAWK_HAVE_SYNC_FETCH_AND_AND)
+#	define HAWK_ATOMIC_FETCH_SUB(ptr,val,mo) __sync_fetch_and_sub((ptr),(val))
+#endif
+
+#if defined(HAWK_HAVE_ATOMIC_FETCH_XOR)
+#	define HAWK_ATOMIC_FETCH_XOR(ptr,val,mo) __atomic_fetch_xor((ptr),(val),(mo))
+#elif defined(HAWK_HAVE_SYNC_FETCH_AND_XOR)
+#	define HAWK_ATOMIC_FETCH_XOR(ptr,val,mo) __sync_fetch_and_xor((ptr),(val))
 #endif
 
 #if defined(HAWK_HAVE_ATOMIC_LOAD_N)

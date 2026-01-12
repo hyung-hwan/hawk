@@ -2032,6 +2032,7 @@ static int fnc_wcoredump (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 static int fnc_kill (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
+	/* sys::kill() is to send an OS-level signal */
 	hawk_int_t pid, sig;
 	hawk_val_t* retv;
 	hawk_int_t rx;
@@ -2064,6 +2065,37 @@ static int fnc_kill (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_rtx_setretval(rtx, retv);
 	return 0;
 }
+
+static int fnc_raise (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+{
+	/* sys::raise() is to raise a virtual signal. if a signal handler is not set,
+	 * you can't raise the signal. this behavior is different from sys::kill() which
+	 * deals with OS-level signals */
+	hawk_int_t sig;
+	hawk_val_t* retv;
+	hawk_int_t rx = -1;
+	sys_list_t* sys_list = rtx_to_sys_list(rtx, fi);
+
+	if (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 0), &sig) <= -1)
+	{
+		rx = copy_error_to_sys_list(rtx, sys_list);
+		goto done;
+	}
+
+	if (hawk_rtx_raisesig(rtx, sig) <= -1)
+	{
+		rx = copy_error_to_sys_list(rtx, sys_list);
+		goto done;
+	}
+	rx = 0;
+
+done:
+	retv = hawk_rtx_makeintval(rtx, rx);
+	if (HAWK_UNLIKELY(!retv)) return -1;
+	hawk_rtx_setretval(rtx, retv);
+	return 0;
+}
+
 
 static int fnc_signal (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
@@ -2107,33 +2139,6 @@ static int fnc_signal (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		goto done;
 	}
 
-	rx = 0;
-
-done:
-	retv = hawk_rtx_makeintval(rtx, rx);
-	if (HAWK_UNLIKELY(!retv)) return -1;
-	hawk_rtx_setretval(rtx, retv);
-	return 0;
-}
-
-static int fnc_raise (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
-{
-	hawk_int_t sig;
-	hawk_val_t* retv;
-	hawk_int_t rx = -1;
-	sys_list_t* sys_list = rtx_to_sys_list(rtx, fi);
-
-	if (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 0), &sig) <= -1)
-	{
-		rx = copy_error_to_sys_list(rtx, sys_list);
-		goto done;
-	}
-
-	if (hawk_rtx_raisesig(rtx, sig) <= -1)
-	{
-		rx = copy_error_to_sys_list(rtx, sys_list);
-		goto done;
-	}
 	rx = 0;
 
 done:
