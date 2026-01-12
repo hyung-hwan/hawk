@@ -11,6 +11,7 @@ struct rtx_xtn_t
 {
 	hawk_oow_t inst_no;
 	hawk_oow_t rtx_inst_no;
+	hawk_rtx_ecb_t rtx_ecb;
 };
 
 typedef struct rtx_xtn_t rtx_xtn_t;
@@ -84,6 +85,20 @@ static void set_errmsg(hawk_t* hawk, hawk_errnum_t errnum, const hawk_bch_t* msg
 static void set_rtx_errmsg(hawk_rtx_t* rtx, hawk_errnum_t errnum, const hawk_bch_t* msg)
 {
 	hawk_rtx_seterrbfmt(rtx, HAWK_NULL, errnum, "%hs", msg);
+}
+
+extern void hawk_go_sigset_handler(rtx_xtn_t* rtx_xtn, int sig, int reset);
+
+static void rtx_on_sigset(hawk_rtx_t* rtx, int sig, hawk_fun_t* fun)
+{
+	rtx_xtn_t* xtn;
+	xtn = hawk_rtx_getxtn(rtx);
+	hawk_go_sigset_handler(xtn, sig, fun == HAWK_NULL);
+}
+
+static void init_rtx_xtn_ecb (rtx_xtn_t* xtn)
+{
+	xtn->rtx_ecb.sigset = rtx_on_sigset;
 }
 
 // -----------------------------------------------
@@ -177,10 +192,14 @@ type HawkExt struct {
 	inst_no int
 }
 
+type RtxSigsetHandler func(rtx *Rtx, sig int, reset bool);
+
 type Rtx struct {
 	c *C.hawk_rtx_t
 	inst_no int
 	h *Hawk
+
+	sigset_handler RtxSigsetHandler
 
 	next *Rtx
 	prev *Rtx
@@ -568,7 +587,9 @@ func (hawk *Hawk) NewRtx(id string, in []string, out []string) (*Rtx, error) {
 	xtn = (*C.rtx_xtn_t)(unsafe.Pointer(C.hawk_rtx_getxtn(rtx)))
 	xtn.inst_no = C.hawk_oow_t(hawk.inst_no)
 	xtn.rtx_inst_no = C.hawk_oow_t(g.inst_no)
+	C.init_rtx_xtn_ecb(xtn)
 
+	C.hawk_rtx_pushecb(rtx, &xtn.rtx_ecb);
 	return g, nil
 }
 
@@ -598,6 +619,21 @@ func (rtx *Rtx) SetGlobal(idx int, val *Val) error {
 		return rtx.make_errinfo()
 	}
 	return nil
+}
+
+func (rtx* Rtx) RaiseSignal(sig int) error {
+	if C.hawk_rtx_raisesig(rtx.c, C.int(sig)) <= -1 {
+		return rtx.make_errinfo()
+	}
+	return nil
+}
+
+func (rtx* Rtx) Halt() {
+	C.hawk_rtx_halt(rtx.c)
+}
+
+func (rtx *Rtx) SetSigsetHandler(f RtxSigsetHandler) {
+	rtx.sigset_handler = f
 }
 
 func (rtx *Rtx) Exec(args []string) (*Val, error) {
@@ -772,6 +808,21 @@ func (rtx *Rtx) GetNamedVars(vars map[string]*Val) {
 		vars[k], _ = rtx.make_val(func() *C.hawk_val_t { return (*C.hawk_val_t)(pair.val.ptr) })
 		pair = C.hawk_htb_getnextpair(tab, &itr)
 	}
+}
+
+// -----------------------------------------------------------
+
+//export hawk_go_sigset_handler
+func hawk_go_sigset_handler(rtx_xtn *C.rtx_xtn_t, sig C.int, reset C.int) {
+	//var inst HawkInstance
+	var rtx_inst RtxInstance
+	var rtx *Rtx
+
+	//inst = inst_table.slot_to_instance(int(rtx_xtn.inst_no))
+	rtx_inst = rtx_inst_table.slot_to_instance(int(rtx_xtn.rtx_inst_no))
+	rtx = rtx_inst.g.Value()
+
+	rtx.sigset_handler(rtx, int(sig), reset != 0)
 }
 
 // -----------------------------------------------------------

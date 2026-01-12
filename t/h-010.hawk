@@ -1,0 +1,88 @@
+@pragma entry main
+@pragma implicit off
+
+@include "tap.inc";
+
+@global g_seen, g_count;
+
+function on_sig (sig)
+{
+	g_seen = sig;
+	g_count++;
+}
+
+function main ()
+{
+	@local r;
+	@local badpid;
+
+	g_seen = 0;
+	g_count = 0;
+
+	r = sys::signal(sys::SIGINT, on_sig);
+	tap_ensure (r, 0, @SCRIPTNAME, @SCRIPTLINE);
+
+	r = sys::raise(sys::SIGINT);
+	tap_ensure (r, 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure (g_count, 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure (g_seen, sys::SIGINT, @SCRIPTNAME, @SCRIPTLINE);
+
+	r = sys::raise(sys::SIGINT);
+	tap_ensure (r, 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure (g_count, 2, @SCRIPTNAME, @SCRIPTLINE);
+
+	g_count = 0;
+	g_seen = 0;
+	r = sys::kill(sys::getpid(), sys::SIGINT);
+	if (r < 0)
+	{
+		tap_skip ("sys::kill not supported");
+	}
+	else
+	{
+		@local i;
+		i = 0;
+		while (g_count < 1 && i < 50)
+		{
+			sys::sleep(0.01);
+			i = i + 1;
+		}
+		tap_ensure (g_count, 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (g_seen, sys::SIGINT, @SCRIPTNAME, @SCRIPTLINE);
+	}
+
+	r = sys::signal(sys::SIGTERM, on_sig);
+	tap_ensure (r, 0, @SCRIPTNAME, @SCRIPTLINE);
+
+	g_count = 0;
+	g_seen = 0;
+	r = sys::kill(sys::getpid(), sys::SIGTERM);
+	if (r < 0)
+	{
+		tap_skip ("sys::kill not supported");
+	}
+	else
+	{
+		@local j;
+		j = 0;
+		while (g_count < 1 && j < 50)
+		{
+			sys::sleep(0.01);
+			j = j + 1;
+		}
+		tap_ensure (g_count, 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (g_seen, sys::SIGTERM, @SCRIPTNAME, @SCRIPTLINE);
+	}
+
+	r = sys::signal(sys::SIGINT, @nil);
+	tap_ensure (r, 0, @SCRIPTNAME, @SCRIPTLINE);
+
+	r = sys::raise(sys::SIGINT);
+	tap_ensure (r, sys::RC_EINVAL, @SCRIPTNAME, @SCRIPTLINE);
+
+	badpid = sys::getpid() + 999990; ## hopefully, this doesn't exist during the test run
+	r = sys::kill(badpid, sys::SIGINT);
+	tap_ensure (r, sys::RC_ESYSERR, @SCRIPTNAME, @SCRIPTLINE);
+
+	tap_end ();
+}

@@ -7,11 +7,13 @@ import "io"
 //import "net/http"
 //import _ "net/http/pprof"
 import "os"
+import "os/signal"
 import "runtime"
 import "runtime/debug"
 import "strconv"
 import "strings"
 import "sync"
+import "syscall"
 //import "time"
 
 type Assign struct {
@@ -136,11 +138,9 @@ wrong_usage:
 	return false
 }
 
-func run_script(h *hawk.Hawk, fs_idx int, data_idx int, cfg* Config, wg *sync.WaitGroup) error {
+func run_script(h *hawk.Hawk, fs_idx int, data_idx int, cfg* Config, rtx_chan chan *hawk.Rtx, sig_chan chan os.Signal) error {
 	var rtx *hawk.Rtx
 	var err error
-
-	if wg != nil { defer wg.Done() }
 
 	if data_idx <= -1 {
 		rtx, err = h.NewRtx(os.Args[0], cfg.data_in_files, nil)
@@ -210,6 +210,17 @@ func run_script(h *hawk.Hawk, fs_idx int, data_idx int, cfg* Config, wg *sync.Wa
 					goto oops
 				}
 			}
+
+			rtx.SetSigsetHandler(func(rtx *hawk.Rtx, signo int, reset bool) {
+				var s os.Signal
+				s = syscall.Signal(signo)
+				if reset {
+					signal.Reset(s)
+				} else {
+					signal.Notify(sig_chan, s)
+				}
+			})
+			rtx_chan <- rtx
 			retv, err = rtx.Call(cfg.call, args...)
 			for idx = 0; idx < count; idx++ {
 				// it's ok not to call Close() on args as rtx.Close() closes them automatically.
@@ -218,6 +229,16 @@ func run_script(h *hawk.Hawk, fs_idx int, data_idx int, cfg* Config, wg *sync.Wa
 				args[idx].Close()
 			}
 		} else {
+			rtx.SetSigsetHandler(func(rtx *hawk.Rtx, signo int, reset bool) {
+				var s os.Signal
+				s = syscall.Signal(signo)
+				if reset {
+					signal.Reset(s)
+				} else {
+					signal.Notify(sig_chan, s)
+				}
+			})
+			rtx_chan <- rtx
 			//v, err = rtx.Loop()
 			retv, err = rtx.Exec(cfg.data_in_files)
 		}
@@ -253,11 +274,49 @@ oops:
 	return err
 }
 
+func run_signal_handler(rtx_chan chan *hawk.Rtx, sig_chan chan os.Signal, wg *sync.WaitGroup) {
+	var sig os.Signal
+	var rtx *hawk.Rtx
+	var rtx_bag map[*hawk.Rtx]struct{}
+
+	defer wg.Done()
+	rtx_bag = make(map[*hawk.Rtx]struct{})
+
+	//signal.Notify(sig_chan, syscall.SIGHUP, syscall.SIGTERM, os.Interrupt)
+
+chan_loop:
+	for {
+		select {
+		case rtx = <-rtx_chan:
+			if rtx == nil {
+				// terminate the loop for the value of nil
+				break chan_loop
+			}
+
+			// remember all the rtx object created for signal broadcasting
+			rtx_bag[rtx] = struct{}{}
+
+		case sig = <- sig_chan:
+			var signo syscall.Signal
+			var ok bool
+			signo, ok = sig.(syscall.Signal)
+			if ok {
+				// broadcast the signal
+				for rtx, _ = range rtx_bag {
+					rtx.RaiseSignal(int(signo))
+				}
+			}
+		}
+	}
+}
+
 func main() {
 	var h *hawk.Hawk
 	var cfg Config
 	var fs_idx int = -1
-	var wg sync.WaitGroup
+	var rtx_chan chan *hawk.Rtx
+	var sig_chan chan os.Signal
+	var sig_wg sync.WaitGroup
 	var err error
 
 	// for profiling
@@ -317,15 +376,23 @@ func main() {
 		goto oops
 	}
 
+	rtx_chan = make(chan *hawk.Rtx, 10)
+	sig_chan = make(chan os.Signal, 5)
+	sig_wg.Add(1)
+	go run_signal_handler(rtx_chan, sig_chan, &sig_wg)
+
 	if cfg.concurrent && len(cfg.data_in_files) >= 1 {
 		var n int
 		var i int
+		var wg sync.WaitGroup
+
 		n = len(cfg.data_in_files)
 		for i = 0; i < n; i++ {
 			wg.Add(1)
 			go func(idx int) {
 				var err error
-				err = run_script(h, fs_idx, idx, &cfg, &wg)
+				defer wg.Done()
+				err = run_script(h, fs_idx, idx, &cfg, rtx_chan, sig_chan)
 				if err != nil {
 					fmt.Fprintf(os.Stderr, "ERROR: [%d]%s\n", idx, err.Error())
 				}
@@ -333,14 +400,16 @@ func main() {
 		}
 		wg.Wait()
 	} else {
-		err = run_script(h, fs_idx, -1, &cfg, nil)
+		err = run_script(h, fs_idx, -1, &cfg, rtx_chan, sig_chan)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "ERROR: %s\n", err.Error())
 			goto oops
 		}
 	}
 
-	if h != nil { h.Close() }
+	rtx_chan <- nil // to terminate the signal handler
+	sig_wg.Wait()
+	h.Close()
 
 	runtime.GC()
 	runtime.Gosched()
@@ -350,6 +419,10 @@ func main() {
 
 oops:
 //	if rtx != nil { rtx.Close() }
+	if rtx_chan != nil {
+		rtx_chan <- nil
+		sig_wg.Wait()
+	}
 	if h != nil { h.Close() }
 	os.Exit(255)
 }
