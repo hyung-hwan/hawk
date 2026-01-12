@@ -1881,7 +1881,7 @@ int Hawk::open ()
 		HAWK_HTB_SIZER_DEFAULT,
 		HAWK_HTB_HASHER_DEFAULT
 	};
-	hawk_htb_setstyle (this->functionMap, &style);
+	hawk_htb_setstyle(this->functionMap, &style);
 
 #endif
 
@@ -1981,7 +1981,7 @@ int Hawk::loop (Value* ret)
 	HAWK_ASSERT(this->hawk != HAWK_NULL);
 	HAWK_ASSERT(this->runctx.rtx != HAWK_NULL);
 
-	hawk_val_t* rv = hawk_rtx_loop (this->runctx.rtx);
+	hawk_val_t* rv = hawk_rtx_loop(this->runctx.rtx);
 	if (rv == HAWK_NULL)
 	{
 		this->retrieveError(&this->runctx);
@@ -2010,7 +2010,7 @@ int Hawk::call (const hawk_bch_t* name, Value* ret, const Value* args, hawk_oow_
 			ptr = (hawk_val_t**)hawk_allocmem(this->hawk, HAWK_SIZEOF(hawk_val_t*) * nargs);
 			if (ptr == HAWK_NULL)
 			{
-				this->runctx.setError (HAWK_ENOMEM);
+				this->runctx.setError(HAWK_ENOMEM);
 				this->retrieveError(&this->runctx);
 				return -1;
 			}
@@ -2142,7 +2142,7 @@ int Hawk::getTrait () const
 void Hawk::setTrait (int trait)
 {
 	HAWK_ASSERT(this->hawk != HAWK_NULL);
-	hawk_setopt (this->hawk, HAWK_OPT_TRAIT, &trait);
+	hawk_setopt(this->hawk, HAWK_OPT_TRAIT, &trait);
 }
 
 hawk_oow_t Hawk::getMaxDepth (depth_t id) const
@@ -2157,7 +2157,7 @@ hawk_oow_t Hawk::getMaxDepth (depth_t id) const
 void Hawk::setMaxDepth (depth_t id, hawk_oow_t depth)
 {
 	HAWK_ASSERT(this->hawk != HAWK_NULL);
-	hawk_setopt (this->hawk, (hawk_opt_t)id, &depth);
+	hawk_setopt(this->hawk, (hawk_opt_t)id, &depth);
 }
 
 int Hawk::setIncludeDirs (const hawk_uch_t* dirs)
@@ -2179,11 +2179,11 @@ int Hawk::setIncludeDirs (const hawk_bch_t* dirs)
 {
 #if defined(HAWK_OOCH_IS_UCH)
 	hawk_ooch_t* tmp;
-	tmp = hawk_dupbtoucstr(hawk, dirs, HAWK_NULL, 1);
+	tmp = hawk_dupbtoucstr(this->hawk, dirs, HAWK_NULL, 1);
 	if (HAWK_UNLIKELY(!tmp)) return -1;
 
-	int n = hawk_setopt(hawk, HAWK_OPT_INCLUDEDIRS, tmp);
-	hawk_freemem(hawk, tmp);
+	int n = hawk_setopt(this->hawk, HAWK_OPT_INCLUDEDIRS, tmp);
+	hawk_freemem(this->hawk, tmp);
 	return n;
 #else
 	return hawk_setopt(this->hawk, HAWK_OPT_INCLUDEDIRS, dirs);
@@ -2539,7 +2539,7 @@ int Hawk::getGlobal (int id, Value& v)
 	HAWK_ASSERT(this->hawk != HAWK_NULL);
 	HAWK_ASSERT(runctx.rtx != HAWK_NULL);
 
-	int n = runctx.getGlobal (id, v);
+	int n = runctx.getGlobal(id, v);
 	if (n <= -1) this->retrieveError();
 	return n;
 }
@@ -2576,7 +2576,7 @@ int Hawk::addFunction (
 	hawk_htb_pair_t* pair = hawk_htb_upsert(this->functionMap, (hawk_ooch_t*)fnc->name.ptr, fnc->name.len, &handler, HAWK_SIZEOF(handler));
 	if (!pair)
 	{
-		hawk_delfncwithbcstr (this->hawk, name);
+		hawk_delfncwithbcstr(this->hawk, name);
 		this->retrieveError();
 		return -1;
 	}
@@ -2586,7 +2586,7 @@ int Hawk::addFunction (
 	catch (...) { pair = HAWK_NULL; }
 	if (!pair)
 	{
-		hawk_delfncwithbcstr (this->hawk, name);
+		hawk_delfncwithbcstr(this->hawk, name);
 		this->setError(HAWK_ENOMEM);
 		return -1;
 	}
@@ -2627,7 +2627,7 @@ int Hawk::addFunction (
 	hawk_htb_pair_t* pair = hawk_htb_upsert(this->functionMap, (hawk_ooch_t*)fnc->name.ptr, fnc->name.len, &handler, HAWK_SIZEOF(handler));
 	if (HAWK_UNLIKELY(!pair))
 	{
-		hawk_delfncwithucstr (this->hawk, name);
+		hawk_delfncwithucstr(this->hawk, name);
 		this->retrieveError();
 		return -1;
 	}
@@ -2637,7 +2637,7 @@ int Hawk::addFunction (
 	catch (...) { pair = HAWK_NULL; }
 	if (HAWK_UNLIKELY(!pair))
 	{
-		hawk_delfncwithucstr (this->hawk, name);
+		hawk_delfncwithucstr(this->hawk, name);
 		this->setError(HAWK_ENOMEM);
 		return -1;
 	}

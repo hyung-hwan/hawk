@@ -632,7 +632,7 @@ func (rtx* Rtx) Halt() {
 	C.hawk_rtx_halt(rtx.c)
 }
 
-func (rtx *Rtx) SetSigsetHandler(f RtxSigsetHandler) {
+func (rtx *Rtx) OnSigset(f RtxSigsetHandler) {
 	rtx.sigset_handler = f
 }
 
@@ -814,6 +814,8 @@ func (rtx *Rtx) GetNamedVars(vars map[string]*Val) {
 
 //export hawk_go_sigset_handler
 func hawk_go_sigset_handler(rtx_xtn *C.rtx_xtn_t, sig C.int, reset C.int) {
+	// this handler is called when sys::signal() is invoked in a script.
+
 	//var inst HawkInstance
 	var rtx_inst RtxInstance
 	var rtx *Rtx
@@ -822,7 +824,9 @@ func hawk_go_sigset_handler(rtx_xtn *C.rtx_xtn_t, sig C.int, reset C.int) {
 	rtx_inst = rtx_inst_table.slot_to_instance(int(rtx_xtn.rtx_inst_no))
 	rtx = rtx_inst.g.Value()
 
-	rtx.sigset_handler(rtx, int(sig), reset != 0)
+	if rtx.sigset_handler != nil {
+		rtx.sigset_handler(rtx, int(sig), reset != 0)
+	}
 }
 
 // -----------------------------------------------------------

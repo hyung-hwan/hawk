@@ -211,7 +211,7 @@ func run_script(h *hawk.Hawk, fs_idx int, data_idx int, cfg* Config, rtx_chan ch
 				}
 			}
 
-			rtx.SetSigsetHandler(func(rtx *hawk.Rtx, signo int, reset bool) {
+			rtx.OnSigset(func(rtx *hawk.Rtx, signo int, reset bool) {
 				var s os.Signal
 				s = syscall.Signal(signo)
 				if reset {
@@ -229,7 +229,7 @@ func run_script(h *hawk.Hawk, fs_idx int, data_idx int, cfg* Config, rtx_chan ch
 				args[idx].Close()
 			}
 		} else {
-			rtx.SetSigsetHandler(func(rtx *hawk.Rtx, signo int, reset bool) {
+			rtx.OnSigset(func(rtx *hawk.Rtx, signo int, reset bool) {
 				var s os.Signal
 				s = syscall.Signal(signo)
 				if reset {
