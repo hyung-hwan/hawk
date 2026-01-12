@@ -1723,7 +1723,7 @@ void hawk_rtx_refupval(hawk_rtx_t* rtx, hawk_val_t* val)
 	#endif
 
 	#if defined(USE_ATOMIC_REFCNT) && __has_builtin(__atomic_fetch_add)
-		__atomic_fetch_add(&val->v_refs, 1, __ATOMIC_RELAXED);
+		__atomic_fetch_add(&val->v_refs, 1, HAWK_ATOMIC_RELAXED);
 	#else
 		val->v_refs++;
 	#endif
@@ -1744,7 +1744,7 @@ void hawk_rtx_refdownval(hawk_rtx_t* rtx, hawk_val_t* val)
 		HAWK_ASSERT(val->v_refs > 0);
 
 	#if defined(USE_ATOMIC_REFCNT) && __has_builtin(__atomic_fetch_sub)
-		if (__atomic_fetch_sub(&val->v_refs, 1, __ATOMIC_RELAXED) == 1)
+		if (__atomic_fetch_sub(&val->v_refs, 1, HAWK_ATOMIC_RELAXED) == 1)
 		{
 			hawk_rtx_freeval (rtx, val, HAWK_RTX_FREEVAL_CACHE);
 		}
@@ -1768,7 +1768,7 @@ void hawk_rtx_refdownval_nofree (hawk_rtx_t* rtx, hawk_val_t* val)
 		HAWK_ASSERT(val->v_refs > 0);
 
 	#if defined(USE_ATOMIC_REFCNT) && __has_builtin(__atomic_fetch_sub)
-		__atomic_fetch_sub(&val->v_refs, 1, __ATOMIC_RELAXED);
+		__atomic_fetch_sub(&val->v_refs, 1, HAWK_ATOMIC_RELAXED);
 	#else
 		val->v_refs--;
 	#endif

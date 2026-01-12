@@ -1310,8 +1310,17 @@ typedef enum hawk_log_mask_t hawk_log_mask_t;
 		#define HAWK_HAVE_BUILTIN_CLZLL
 	#endif
 
+	#if __has_builtin(__atomic_exchange_n)
+		#define HAWK_HAVE_ATOMIC_EXCHANGE_N
+	#endif
 	#if __has_builtin(__atomic_fetch_or)
-		#define HAWK_HAVE_BUILTIN_ATOMIC_FETCH_OR
+		#define HAWK_HAVE_ATOMIC_FETCH_OR
+	#endif
+	#if __has_builtin(__atomic_load_n)
+		#define HAWK_HAVE_ATOMIC_LOAD_N
+	#endif
+	#if __has_builtin(__atomic_store_n)
+		#define HAWK_HAVE_ATOMIC_STORE_N
 	#endif
 
 	#if __has_builtin(__builtin_uadd_overflow)
@@ -1356,14 +1365,15 @@ typedef enum hawk_log_mask_t hawk_log_mask_t;
 		#define HAWK_HAVE_BUILTIN_EXPECT
 	#endif
 
-
+	#if __has_builtin(__sync_fetch_and_or)
+		#define HAWK_HAVE_SYNC_FETCH_AND_OR
+	#endif
 	#if __has_builtin(__sync_lock_test_and_set)
 		#define HAWK_HAVE_SYNC_LOCK_TEST_AND_SET
 	#endif
 	#if __has_builtin(__sync_lock_release)
 		#define HAWK_HAVE_SYNC_LOCK_RELEASE
 	#endif
-
 	#if __has_builtin(__sync_synchronize)
 		#define HAWK_HAVE_SYNC_SYNCHRONIZE
 	#endif
@@ -1373,7 +1383,6 @@ typedef enum hawk_log_mask_t hawk_log_mask_t;
 	#if __has_builtin(__sync_val_compare_and_swap)
 		#define HAWK_HAVE_SYNC_VAL_COMPARE_AND_SWAP
 	#endif
-
 
 	#if __has_builtin(__builtin_bswap16)
 		#define HAWK_HAVE_BUILTIN_BSWAP16
@@ -1390,9 +1399,9 @@ typedef enum hawk_log_mask_t hawk_log_mask_t;
 #elif defined(__GNUC__) && defined(__GNUC_MINOR__)
 
 	#if (__GNUC__ >= 4)
+		#define HAWK_HAVE_SYNC_FETCH_AND_OR
 		#define HAWK_HAVE_SYNC_LOCK_TEST_AND_SET
 		#define HAWK_HAVE_SYNC_LOCK_RELEASE
-
 		#define HAWK_HAVE_SYNC_SYNCHRONIZE
 		#define HAWK_HAVE_SYNC_BOOL_COMPARE_AND_SWAP
 		#define HAWK_HAVE_SYNC_VAL_COMPARE_AND_SWAP
@@ -1425,7 +1434,7 @@ typedef enum hawk_log_mask_t hawk_log_mask_t;
 	#endif
 
 	#if (__GNUC__ >= 5) || (__GNUC__ == 4 && __GNUC_MINOR__ >= 7)
-		#define HAWK_HAVE_BUILTIN_ATOMIC_FETCH_OR
+		#define HAWK_HAVE_ATOMIC_FETCH_OR
 	#endif
 
 	#if (__GNUC__ >= 5) || (__GNUC__ == 4 && __GNUC_MINOR__ >= 8)
@@ -1446,6 +1455,42 @@ typedef enum hawk_log_mask_t hawk_log_mask_t;
 #else
 #	define HAWK_LIKELY(x) (x)
 #	define HAWK_UNLIKELY(x) (x)
+#endif
+
+#if defined(HAWK_HAVE_ATOMIC_EXCHANGE_N)
+#	define HAWK_ATOMIC_EXCHANGE(ptr,val,mo) __atomic_exchange_n((ptr),(val),(mo))
+#elif defined(HAWK_HAVE_SYNC_LOCK_TEST_AND_SET)
+#	define HAWK_ATOMIC_EXCHANGE(ptr,val,mo) __sync_lock_test_and_set((ptr),(val))
+#endif
+
+#if defined(HAWK_HAVE_ATOMIC_FETCH_OR)
+#	define HAWK_ATOMIC_FETCH_OR(ptr,val,mo) __atomic_fetch_or((ptr),(val),(mo))
+#elif defined(HAWK_HAVE_SYNC_FETCH_AND_OR)
+#	define HAWK_ATOMIC_FETCH_OR(ptr,val,mo) __sync_fetch_and_or((ptr),(val))
+#endif
+
+#if defined(HAWK_HAVE_ATOMIC_LOAD_N)
+#	define HAWK_ATOMIC_LOAD(ptr,mo) __atomic_load_n((ptr),(mo))
+#elif defined(HAWK_HAVE_SYNC_FETCH_AND_OR)
+#	define HAWK_ATOMIC_LOAD(ptr,mo) __sync_fetch_and_or((ptr),0)
+#endif
+
+#if defined(HAWK_HAVE_ATOMIC_STORE_N)
+#	define HAWK_ATOMIC_STORE(ptr,val,mo) __atomic_store_n((ptr),(val),(mo))
+#elif defined(HAWK_HAVE_SYNC_LOCK_TEST_AND_SET) && defined(HAWK_HAVE_SYNC_SYNCHRONIZE)
+#	define HAWK_ATOMIC_STORE(ptr,val,mo) do { __sync_lock_test_and_set((ptr),(val)); __sync_synchronize(); } while(0)
+#endif
+
+#if defined(__ATOMIC_RELAXED)
+#	define HAWK_ATOMIC_RELAXED __ATOMIC_RELAXED
+#else
+#	define HAWK_ATOMIC_RELAXED 0
+#endif
+
+#if defined(__ATOMIC_ACQ_REL)
+#	define HAWK_ATOMIC_ACQ_REL __ATOMIC_ACQ_REL
+#else
+#	define HAWK_ATOMIC_ACQ_REL 4
 #endif
 
 #if defined(__GNUC__)

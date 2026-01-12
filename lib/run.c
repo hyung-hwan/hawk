@@ -2300,8 +2300,8 @@ int hawk_rtx_raisesig(hawk_rtx_t* rtx, int sig)
 		widx = sig / HAWK_SIG_WORD_BITS;
 		bit = ((hawk_uintptr_t)1) << (sig % HAWK_SIG_WORD_BITS);
 		word = &rtx->sig_pending[widx];
-		(void)__atomic_fetch_or(word, bit, __ATOMIC_RELAXED);
-		__atomic_store_n(&rtx->sig_pending_any, 1, __ATOMIC_RELAXED);
+		(void)HAWK_ATOMIC_FETCH_OR(word, bit, HAWK_ATOMIC_RELAXED);
+		HAWK_ATOMIC_STORE(&rtx->sig_pending_any, 1, HAWK_ATOMIC_RELAXED);
 	}
 #else
 	{
@@ -2317,7 +2317,11 @@ int hawk_rtx_raisesig(hawk_rtx_t* rtx, int sig)
 		rtx->sig_raise[0].pos[sig] = pos;
 		rtx->sig_raise[0].tab[pos] = sig;
 		rtx->sig_raise[0].count++;
+	#if defined(HAWK_ATOMIC_STORE)
+		HAWK_ATOMIC_STORE(&rtx->sig_pending_any, 1, HAWK_ATOMIC_RELAXED);
+	#else
 		rtx->sig_pending_any = 1;
+	#endif
 		hawk_mtx_unlock(&rtx->sig_mtx);
 	}
 #endif
@@ -2374,13 +2378,13 @@ static int call_signal_handlers (hawk_rtx_t* rtx)
 	rtx->sig_handling = 1;
 
 #if defined(HAWK_ENABLE_ATOMIC_SIG)
-	__atomic_store_n(&rtx->sig_pending_any, 0, __ATOMIC_RELAXED);
+	HAWK_ATOMIC_STORE(&rtx->sig_pending_any, 0, HAWK_ATOMIC_RELAXED);
 
 	for (i = 0; i < HAWK_SIG_WORD_COUNT; i++)
 	{
 		hawk_uintptr_t bits;
 
-		bits = __atomic_exchange_n(&rtx->sig_pending[i], 0, __ATOMIC_ACQ_REL);
+		bits = HAWK_ATOMIC_EXCHANGE(&rtx->sig_pending[i], 0, HAWK_ATOMIC_ACQ_REL);
 		while (bits)
 		{
 			int sig;
@@ -2414,11 +2418,19 @@ static int call_signal_handlers (hawk_rtx_t* rtx)
 	}
 #else
 	hawk_mtx_lock(&rtx->sig_mtx, HAWK_NULL);
+	#if defined(HAWK_ATOMIC_LOAD)
+	if (HAWK_ATOMIC_LOAD(&rtx->sig_pending_any, HAWK_ATOMIC_RELAXED) != 0)
+	#else
 	if (rtx->sig_pending_any)
+	#endif
 	{
 		/* copy the signal raising state */
 		rtx->sig_raise[1] = rtx->sig_raise[0];
+	#if defined(HAWK_ATOMIC_STORE)
+		HAWK_ATOMIC_STORE(&rtx->sig_pending_any, 0, HAWK_ATOMIC_RELAXED);
+	#else
 		rtx->sig_pending_any = 0;
+	#endif
 
 		/* reset the signal raising state modified by hawk_rtx_raisesig() */
 		rtx->sig_raise[0].count = 0;
@@ -2477,10 +2489,15 @@ static int run_statement (hawk_rtx_t* rtx, hawk_nde_t* nde)
 	if (!rtx->sig_handling)
 	{
 		/* run singal handlers if there are raised signals */
-	#if defined(HAWK_ENABLE_ATOMIC_SIG)
-		if (__atomic_load_n(&rtx->sig_pending_any, __ATOMIC_RELAXED) != 0 &&
+	#if defined(HAWK_ATOMIC_LOAD)
+		if (HAWK_ATOMIC_LOAD(&rtx->sig_pending_any, HAWK_ATOMIC_RELAXED) != 0 &&
 		    call_signal_handlers(rtx) <= -1) return -1;
 	#else
+		/* NOTE:
+		 *   rtx->sig_pending_any accessed non-atomically without mutex concurrently
+		 *   from multiple threads(e.g. hawk_rtx_raisesig() called from a different
+		 *   thread) is undefined behavior. but ignore this path as i believe most
+		 *   modern compilers should support the atomic primitives. */
 		if (rtx->sig_pending_any && call_signal_handlers(rtx) <= -1) return -1;
 	#endif
 	}

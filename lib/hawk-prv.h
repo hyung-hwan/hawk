@@ -66,7 +66,10 @@ typedef struct hawk_tree_t hawk_tree_t;
  */
 #define HAWK_ENABLE_FUN_AS_VALUE
 
-#if defined(HAWK_HAVE_BUILTIN_ATOMIC_FETCH_OR)
+#if defined(HAWK_ATOMIC_EXCHANGE) && \
+    defined(HAWK_ATOMIC_FETCH_OR) && \
+    defined(HAWK_ATOMIC_LOAD) && \
+    defined(HAWK_ATOMIC_STORE)
 #define HAWK_ENABLE_ATOMIC_SIG
 #endif
 
@@ -668,7 +671,6 @@ static HAWK_INLINE void HAWK_RTX_STACK_POP (hawk_rtx_t* rtx)
 #if !defined(HAWK_DEFAULT_MODPOSTFIX)
 #	define HAWK_DEFAULT_MODPOSTFIX ""
 #endif
-
 
 
 #if defined(__cplusplus)
