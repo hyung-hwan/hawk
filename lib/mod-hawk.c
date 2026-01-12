@@ -515,7 +515,6 @@ static int fnc_hash (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	hawk_val_t* a0;
 	hawk_int_t v;
-	const hawk_ooch_t* name;
 
 	a0 = hawk_rtx_getarg(rtx, 0);
 	v = hawk_rtx_hashval(rtx, a0); /* ignore v <= -1 which is an error */

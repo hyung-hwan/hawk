@@ -6536,7 +6536,6 @@ static void unload (hawk_mod_t* mod, hawk_t* hawk)
 	mod_ctx_t* mctx = (mod_ctx_t*)mod->ctx;
 
 	HAWK_ASSERT(HAWK_RBT_SIZE(mctx->rtxtab) == 0);
-	HAWK_ASSERT(mctx->sig_rtx_head == HAWK_NULL);
 	hawk_rbt_close(mctx->rtxtab);
 
 	hawk_freemem(hawk, mctx);

@@ -296,6 +296,11 @@ libhawk_la_CPPFLAGS += $(MYSQL_CFLAGS) ## put CFLAGS in CPPFLAGS as MYSQL_CFLAGS
 libhawk_la_LIBADD += $(MYSQL_LDFLAGS) $(MYSQL_LIBS)
 endif
 
+if ENABLE_MOD_SQLITE_STATIC
+libhawk_la_SOURCES += ../mod/mod-sqlite.c ../mod/mod-sqlite.h
+libhawk_la_LIBADD += $(SQLITE_LIBS)
+endif
+
 if ENABLE_MOD_SED_STATIC
 libhawk_la_SOURCES += ../mod/mod-sed.c ../mod/mod-sed.h
 endif

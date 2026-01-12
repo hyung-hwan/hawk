@@ -218,7 +218,7 @@ SedStd::StringStream::StringStream (hawk_cmgr_t* cmgr): _type(STR_UCH) // this t
 	this->in.ptr = HAWK_NULL;
 
 	this->out._sed = HAWK_NULL;
-	this->out.sed_ecb.next = HAWK_NULL;
+	this->out.sed_ecb.next_ = HAWK_NULL;
 	this->out.inited = false;
 	this->out.alt_buf = HAWK_NULL;
 	this->out.alt_sed = HAWK_NULL;
@@ -236,7 +236,7 @@ SedStd::StringStream::StringStream (const hawk_uch_t* in, hawk_cmgr_t* cmgr): _t
 	this->in.ptr = HAWK_NULL;
 
 	this->out._sed = HAWK_NULL;
-	this->out.sed_ecb.next = HAWK_NULL;
+	this->out.sed_ecb.next_ = HAWK_NULL;
 	this->out.inited = false;
 	this->out.alt_buf = HAWK_NULL;
 	this->out.alt_sed = HAWK_NULL;
@@ -254,7 +254,7 @@ SedStd::StringStream::StringStream (const hawk_uch_t* in, hawk_oow_t len, hawk_c
 	this->in.ptr = HAWK_NULL;
 
 	this->out._sed = HAWK_NULL;
-	this->out.sed_ecb.next = HAWK_NULL;
+	this->out.sed_ecb.next_ = HAWK_NULL;
 	this->out.inited = false;
 	this->out.alt_buf = HAWK_NULL;
 	this->out.alt_sed = HAWK_NULL;
@@ -273,7 +273,7 @@ SedStd::StringStream::StringStream (const hawk_bch_t* in, hawk_cmgr_t* cmgr): _t
 	this->in.ptr = HAWK_NULL;
 
 	this->out._sed = HAWK_NULL;
-	this->out.sed_ecb.next = HAWK_NULL;
+	this->out.sed_ecb.next_ = HAWK_NULL;
 	this->out.inited = false;
 	this->out.alt_buf = HAWK_NULL;
 	this->out.alt_sed = HAWK_NULL;
@@ -295,7 +295,7 @@ SedStd::StringStream::StringStream (const hawk_bch_t* in, hawk_oow_t len, hawk_c
 	this->out.alt_buf = HAWK_NULL;
 	this->out.alt_sed = HAWK_NULL;
 
-	this->out.sed_ecb.next = HAWK_NULL;
+	this->out.sed_ecb.next_ = HAWK_NULL;
 }
 
 SedStd::StringStream::~StringStream ()
@@ -561,7 +561,7 @@ void SedStd::StringStream::clearOutputData (bool kill_ecb)
 		}
 		this->out.inited = false;
 
-		if (kill_ecb && this->out.sed_ecb.next)
+		if (kill_ecb && this->out.sed_ecb.next_)
 			hawk_sed_killecb (this->out._sed, &this->out.sed_ecb);
 
 		this->out._sed = HAWK_NULL;

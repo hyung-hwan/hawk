@@ -66,7 +66,7 @@ int Sed::open ()
 	this->sed = hawk_sed_open(this->getMmgr(), HAWK_SIZEOF(sed_xtn_t), this->getCmgr(), &this->errinf);
 	if (HAWK_UNLIKELY(!this->sed)) return -1;
 
-	this->sed->_instsize += HAWK_SIZEOF(sed_xtn_t);
+	this->sed->instsize_ += HAWK_SIZEOF(sed_xtn_t);
 
 	sed_xtn_t* xtn = GET_XTN(this->sed);
 	xtn->sed = this;

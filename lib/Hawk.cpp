@@ -1838,7 +1838,7 @@ int Hawk::open ()
 	this->hawk = hawk_open(this->getMmgr(), HAWK_SIZEOF(xtn_t), this->getCmgr(), &prm, &this->errinf);
 	if (HAWK_UNLIKELY(!this->hawk)) return -1;
 
-	this->hawk->_instsize += HAWK_SIZEOF(xtn_t);
+	this->hawk->instsize_ += HAWK_SIZEOF(xtn_t);
 
 	// associate this Hawk object with the underlying hawk object
 	xtn_t* xtn = (xtn_t*)GET_XTN(this->hawk);
@@ -2113,7 +2113,7 @@ int Hawk::init_runctx ()
 		return -1;
 	}
 
-	rtx->_instsize += HAWK_SIZEOF(rxtn_t);
+	rtx->instsize_ += HAWK_SIZEOF(rxtn_t);
 	this->runctx.rtx = rtx;
 
 	rxtn_t* rxtn = GET_RXTN(rtx);
