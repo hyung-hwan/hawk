@@ -182,6 +182,44 @@ $ gcc -Wall -O2 -o hawk02 hawk02.c -lhawk
 
 The actual command may vary depending on the compiler used and the `configure` options used.
 
+## Embedding Signal Handling
+
+Signal handling is provided via a callback hook. The core library does not install OS-level signal handlers; the embedding application must do that and notify the runtime.
+
+- Register a runtime callback with `hawk_rtx_pushecb()` and fill `hawk_rtx_ecb_t.sigset` (type `hawk_rtx_ecb_sigset_t`).
+- Your callback is invoked when `sys::signal()` sets or clears a handler; use it to install or reset the OS signal handler.
+- When the OS handler runs, call `hawk_rtx_raisesig()` on the target runtime.
+
+Example:
+
+```c
+static hawk_rtx_t* g_rtx = HAWK_NULL;
+
+static void on_os_signal (int sig)
+{
+	if (g_rtx) hawk_rtx_raisesig(g_rtx, sig);
+}
+
+static void on_sigset (hawk_rtx_t* rtx, int sig, hawk_fun_t* fun)
+{
+	if (fun)
+	{
+		g_rtx = rtx;
+		signal(sig, on_os_signal);
+	}
+	else
+	{
+		if (g_rtx == rtx) g_rtx = HAWK_NULL;
+		signal(sig, SIG_DFL);
+	}
+}
+
+hawk_rtx_ecb_t ecb;
+HAWK_MEMSET(&ecb, 0, HAWK_SIZEOF(ecb));
+ecb.sigset = on_sigset;
+hawk_rtx_pushecb(rtx, &ecb);
+```
+
 # Embedding Hawk in C++ Applications
 
 Hawk can also be embedded in C++ applications. Here's an example:
@@ -1002,9 +1040,11 @@ The `sys` module provides various functions concerning the underlying operation 
 - sys::opendir
 - sys::openfd
 - sys::pipe
+- sys::raise
 - sys::read
 - sys::readdir
 - sys::setttime
+- sys::signal
 - sys::sleep
 - sys::strftime
 - sys::system
