@@ -341,7 +341,14 @@ static void on_sigset (hawk_rtx_t* rtx, int sig, hawk_fun_t* fun)
 	else
 	{
 		int back_to_stop_run = 0;
-		hawk_main_unset_signal_handler(sig);
+
+	#if defined(SIGPIPE)
+		if (sig == SIGPIPE)
+		{
+			set_intr_pipe(); // to application default. not OS default.
+			return;
+		}
+	#endif
 	#if defined(SIGTERM)
 		if (sig == SIGTERM) back_to_stop_run = 1;
 	#endif
@@ -351,7 +358,10 @@ static void on_sigset (hawk_rtx_t* rtx, int sig, hawk_fun_t* fun)
 	#if defined(SIGINT)
 		if (sig == SIGINT) back_to_stop_run = 1;
 	#endif
-		if (back_to_stop_run) hawk_main_set_signal_handler(sig, stop_run, 0);
+		if (back_to_stop_run)
+			hawk_main_set_signal_handler(sig, stop_run, 0);
+		else
+			hawk_main_unset_signal_handler(sig);
 	}
 }
 

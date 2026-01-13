@@ -132,6 +132,17 @@ static HAWK_INLINE rxtn_t* GET_RXTN(hawk_rtx_t* rtx) { return (rxtn_t*)((hawk_ui
 #define GET_RXTN(rtx) ((rxtn_t*)((hawk_uint8_t*)hawk_rtx_getxtn(rtx) - HAWK_SIZEOF(rxtn_t)))
 #endif
 
+static void rtx_on_sigset (hawk_rtx_t* rtx, int sig, hawk_fun_t* fun)
+{
+	rxtn_t* rxtn = GET_RXTN(rtx);
+	Hawk::Run* run = rxtn->run;
+	if (run)
+	{
+		Hawk* hawk = (Hawk*)*run; // call operator Hawk*
+		if (hawk) hawk->uponSigset(*run, sig, fun == HAWK_NULL);
+	}
+}
+
 //////////////////////////////////////////////////////////////////
 // Hawk::Pipe
 //////////////////////////////////////////////////////////////////
@@ -1935,6 +1946,11 @@ void Hawk::uponClearing ()
 	// nothing to do
 }
 
+void Hawk::uponSigset (Run& run, int sig, bool reset)
+{
+	// nothing to do
+}
+
 Hawk::Run* Hawk::parse (Source& in, Source& out)
 {
 	HAWK_ASSERT(this->hawk != HAWK_NULL);
@@ -2096,6 +2112,12 @@ void Hawk::halt ()
 	hawk_haltall (this->hawk);
 }
 
+int Hawk::raiseSignal (int sig)
+{
+	if (this->runctx.rtx) return hawk_rtx_raisesig(this->runctx.rtx, sig);
+	return -1;
+}
+
 int Hawk::init_runctx ()
 {
 	if (this->runctx.rtx) return 0;
@@ -2118,6 +2140,9 @@ int Hawk::init_runctx ()
 
 	rxtn_t* rxtn = GET_RXTN(rtx);
 	rxtn->run = &this->runctx;
+	HAWK_MEMSET(&this->runctx.rtx_ecb, 0, HAWK_SIZEOF(this->runctx.rtx_ecb));
+	this->runctx.rtx_ecb.sigset = rtx_on_sigset;
+	hawk_rtx_pushecb(rtx, &this->runctx.rtx_ecb);
 
 	return 0;
 }

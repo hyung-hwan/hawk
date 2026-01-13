@@ -54,6 +54,15 @@ typedef HAWK::HawkStd HawkStd;
 typedef HAWK::HawkStd::Run Run;
 typedef HAWK::HawkStd::Value Value;
 
+#ifdef _WIN32
+static BOOL WINAPI stop_run (DWORD ctrl_type);
+#else
+static void stop_run (int sig);
+static void do_nothing (int sig);
+#endif
+static void relay_signal (int sig);
+static int setsignal (int sig, void(*handler)(int), int restart);
+
 class MyHawk: public HawkStd
 {
 public:
@@ -78,6 +87,26 @@ public:
 	oops:
 		HawkStd::close();
 		return -1;
+	}
+
+	void uponSigset (Run& run, int sig, bool reset)
+	{
+		if (reset)
+		{
+			/* this part must be in sync with set_singal() */
+			if (sig == SIGINT)
+				setsignal(sig, stop_run, 0);
+		#if defined(SIGPIPE)
+			else if (sig == SIGPIPE)
+				setsignal(sig, do_nothing, 0);
+		#endif
+			else
+				setsignal(sig, SIG_DFL, 0);
+		}
+		else
+		{
+			setsignal(sig, relay_signal, 0);
+		}
 	}
 
 	int sleep (Run& run, Value& ret, Value* args, hawk_oow_t nargs, const hawk_ooch_t* name, hawk_oow_t len)
@@ -169,6 +198,11 @@ private:
 
 static MyHawk* app_hawk = HAWK_NULL;
 
+static void relay_signal (int sig)
+{
+	if (app_hawk) app_hawk->raiseSignal(sig);
+}
+
 static void print_error (const hawk_bch_t* fmt, ...)
 {
 	va_list va;
@@ -201,7 +235,7 @@ static BOOL WINAPI stop_run (DWORD ctrl_type)
 	if (ctrl_type == CTRL_C_EVENT ||
 	    ctrl_type == CTRL_CLOSE_EVENT)
 	{
-		if (app_hawk) app_hawk->stop ();
+		if (app_hawk) app_hawk->halt();
 		return TRUE;
 	}
 
@@ -214,7 +248,7 @@ static int setsignal (int sig, void(*handler)(int), int restart)
 	struct sigaction sa_int;
 
 	sa_int.sa_handler = handler;
-	sigemptyset (&sa_int.sa_mask);
+	sigemptyset(&sa_int.sa_mask);
 
 	sa_int.sa_flags = 0;
 
@@ -230,13 +264,13 @@ static int setsignal (int sig, void(*handler)(int), int restart)
 		sa_int.sa_flags |= SA_INTERRUPT;
 	#endif
 	}
-	return sigaction (sig, &sa_int, NULL);
+	return sigaction(sig, &sa_int, NULL);
 }
 
 static void stop_run (int sig)
 {
 	int e = errno;
-	if (app_hawk) app_hawk->halt ();
+	if (app_hawk) app_hawk->halt();
 	errno = e;
 }
 
@@ -249,21 +283,21 @@ static void do_nothing (int sig)
 static void set_signal (void)
 {
 #ifdef _WIN32
-	SetConsoleCtrlHandler (stop_run, TRUE);
+	SetConsoleCtrlHandler(stop_run, TRUE);
 #else
-	/*setsignal (SIGINT, stop_run, 1); TO BE MORE COMPATIBLE WITH WIN32*/
-	setsignal (SIGINT, stop_run, 0);
-	setsignal (SIGPIPE, do_nothing, 0);
+	/*setsignal(SIGINT, stop_run, 1); TO BE MORE COMPATIBLE WITH WIN32*/
+	setsignal(SIGINT, stop_run, 0);
+	setsignal(SIGPIPE, do_nothing, 0);
 #endif
 }
 
-static void unset_signal (void)
+static void unset_signal(void)
 {
 #ifdef _WIN32
-	SetConsoleCtrlHandler (stop_run, FALSE);
+	SetConsoleCtrlHandler(stop_run, FALSE);
 #else
-	setsignal (SIGINT, SIG_DFL, 1);
-	setsignal (SIGPIPE, SIG_DFL, 1);
+	setsignal(SIGINT, SIG_DFL, 1);
+	setsignal(SIGPIPE, SIG_DFL, 1);
 #endif
 }
 

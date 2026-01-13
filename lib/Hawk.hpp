@@ -1330,6 +1330,7 @@ public:
 	protected:
 		Hawk* hawk;
 		hawk_rtx_t* rtx;
+		hawk_rtx_ecb_t rtx_ecb;
 	};
 
 	///
@@ -1388,6 +1389,11 @@ public:
 	/// of #hawk_ecb_t.
 	///
 	virtual void uponClearing ();
+
+	/// The uponSigset() function is called back when sys::signal()
+	/// attempts to set or unset a signal handler. This maps to the
+	/// sigset callback of #hawk_rtx_ecb_t.
+	virtual void uponSigset (Run& run, int sig, bool reset);
 
 	///
 	/// The parse() function parses the source code read from the input
@@ -1477,6 +1483,7 @@ public:
 	/// The halt() function makes request to abort execution
 	///
 	void halt ();
+	int raiseSignal (int sig);
 	/// \}
 
 	///

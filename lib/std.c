@@ -1369,7 +1369,7 @@ static hawk_ooi_t sf_in_open (hawk_t* hawk, hawk_sio_arg_t* arg, xtn_t* xtn)
 					else path = fbuf;
 
 					tmplen = hawk_copy_oochars_to_oocstr_unlimited((hawk_ooch_t*)path, outer, dirlen);
-					hawk_copy_oocstr_unlimited ((hawk_ooch_t*)path + tmplen, arg->name);
+					hawk_copy_oocstr_unlimited((hawk_ooch_t*)path + tmplen, arg->name);
 				}
 			}
 
@@ -2021,7 +2021,7 @@ static int parse_rwpipe_uri (const hawk_ooch_t* uri, int* flags, hawk_nwad_t* nw
 
 	for (i = 0; i < HAWK_COUNTOF(x); i++)
 	{
-		if (hawk_strzcmp (uri, x[i].prefix, x[i].len) == 0)
+		if (hawk_strzcmp(uri, x[i].prefix, x[i].len) == 0)
 		{
 			if (hawk_strtonwad (uri + x[i].len, nwad) <= -1) return -1;
 			*flags = x[i].flags;
@@ -2129,7 +2129,7 @@ static hawk_ooi_t pio_handler_rest (hawk_rtx_t* rtx, hawk_rio_cmd_t cmd, hawk_ri
 
 		case HAWK_RIO_CMD_FLUSH:
 			/*if (riod->mode == HAWK_RIO_PIPE_READ) return -1;*/
-			return hawk_pio_flush ((hawk_pio_t*)riod->handle, HAWK_PIO_IN);
+			return hawk_pio_flush((hawk_pio_t*)riod->handle, HAWK_PIO_IN);
 
 		case HAWK_RIO_CMD_NEXT:
 			break;

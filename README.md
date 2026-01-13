@@ -45,7 +45,7 @@ The library is stable, portable, and designed for projects that need a scripting
 	- [@include and @include\_once](#include-and-include_once)
 	- [Comments](#comments)
 	- [Reserved Words](#reserved-words)
-	- [More Examples](#more-examples)
+	- [Some Examples](#some-examples)
 	- [Garbage Collection](#garbage-collection)
 	- [Modules](#modules)
 		- [Hawk](#hawk)
@@ -1012,6 +1012,29 @@ The `sys` module provides various functions concerning the underlying operation 
 - sys::wait
 - sys::write
 
+#### Signals
+
+Use these to register handlers and raise signals from Hawk.
+
+- sys::signal(sig, func) sets a handler function for a signal number. pass nil to clear it.
+- sys::raise(sig) raises a signal to the current runtime.
+- sys::kill(pid, sig) sends a signal to another process or to self.
+
+Example:
+
+```awk
+function on_int(sig) { print "got", sig }
+
+BEGIN {
+	sys::signal(sys::SIGINT, on_int);
+	sys::raise(sys::SIGINT);
+	## sys::kill(sys::getpid(), sys::SIGINT);
+	sys::signal(sys::SIGINT, @nil);
+}
+```
+
+
+#### Raw byte reads
 
 You may read the file in raw bytes.
 
@@ -1025,6 +1048,8 @@ BEGIN {
 }
 ```
 
+#### Wrap a file descriptor
+
 You can map a raw file descriptor to a handle created by this module and use it.
 
 ```awk
@@ -1036,6 +1061,8 @@ BEGIN {
 	print "done\n";
 }
 ```
+
+#### Pipe to a child process
 
 Creating pipes and sharing them with a child process is not big an issue.
 
@@ -1091,6 +1118,8 @@ BEGIN {
 }
 ```
 
+#### Read child stdout
+
 You can read standard output of a child process in a parent process.
 
 ```awk
@@ -1142,6 +1171,8 @@ BEGIN {
 }
 ```
 
+#### Duplicate file handles
+
 You can duplicate file handles as necessary.
 
 ```awk
@@ -1165,6 +1196,8 @@ BEGIN {
 }
 ```
 
+#### Directory traversal
+
 Directory traversal is easy.
 
 ```awk
@@ -1183,6 +1216,8 @@ BEGIN {
 }
 ```
 
+#### Network interface info
+
 You can get information of a network interface.
 
 ```awk
@@ -1193,6 +1228,8 @@ BEGIN {
 		for (i in x) print i, x[i]; 
 }
 ```
+
+#### Sockets
 
 Socket functions are available.
 

@@ -172,7 +172,7 @@ int HawkStd::open ()
 	return 0;
 
 oops:
-	Hawk::close ();
+	Hawk::close();
 	return -1;
 }
 
@@ -180,11 +180,11 @@ void HawkStd::close ()
 {
 	if (this->cmgrtab_inited)
 	{
-		hawk_htb_fini (&this->cmgrtab);
+		hawk_htb_fini(&this->cmgrtab);
 		this->cmgrtab_inited = false;
 	}
 
-	clearConsoleOutputs ();
+	clearConsoleOutputs();
 
 	//
 	// HawkStd called hawk_stdmodstartup() after Hawk::open().
@@ -198,12 +198,12 @@ void HawkStd::close ()
 	//
 	//if (this->stdmod_up)
 	//{
-	//	hawk_stdmodshutdown (this->hawk);
+	//	hawk_stdmodshutdown(this->hawk);
 	//	this->stdmod_up = false;
 	//}
 	//
 
-	Hawk::close ();
+	Hawk::close();
 }
 
 void HawkStd::uponClosing ()
@@ -215,7 +215,7 @@ void HawkStd::uponClosing ()
 	}
 
 	// chain up
-	Hawk::uponClosing ();
+	Hawk::uponClosing();
 }
 
 HawkStd::Run* HawkStd::parse (Source& in, Source& out)
@@ -227,7 +227,7 @@ HawkStd::Run* HawkStd::parse (Source& in, Source& out)
 		// if cmgrtab has already been initialized,
 		// just clear the contents regardless of
 		// parse() result.
-		hawk_htb_clear (&this->cmgrtab);
+		hawk_htb_clear(&this->cmgrtab);
 	}
 	else if (run && (this->getTrait() & HAWK_RIO))
 	{
@@ -240,11 +240,11 @@ HawkStd::Run* HawkStd::parse (Source& in, Source& out)
 			this->setError (HAWK_ENOMEM);
 			return HAWK_NULL;
 		}
-		hawk_htb_setstyle (&this->cmgrtab, hawk_get_htb_style(HAWK_HTB_STYLE_INLINE_KEY_COPIER));
+		hawk_htb_setstyle(&this->cmgrtab, hawk_get_htb_style(HAWK_HTB_STYLE_INLINE_KEY_COPIER));
 		this->cmgrtab_inited = true;
 	}
 
-	if (run && make_additional_globals(run) <= -1) return HAWK_NULL;
+	if (run && this->make_additional_globals(run) <= -1) return HAWK_NULL;
 
 	return run;
 }
@@ -553,8 +553,8 @@ int HawkStd::open_nwio (Pipe& io, int flags, void* nwad)
 	if (cmgr) hawk_nwio_setcmgr(handle, cmgr);
 #endif
 
-	io.setHandle ((void*)handle);
-	io.setUflags (1);
+	io.setHandle((void*)handle);
+	io.setUflags(1);
 
 	return 1;
 }
@@ -594,8 +594,8 @@ int HawkStd::open_pio (Pipe& io)
 		hawk_pio_setcmgr(pio, HAWK_PIO_ERR, cmgr);
 	}
 #endif
-	io.setHandle (pio);
-	io.setUflags (0);
+	io.setHandle(pio);
+	io.setUflags(0);
 	return 1;
 }
 
@@ -618,7 +618,7 @@ static int parse_rwpipe_uri (const hawk_ooch_t* uri, int* flags, hawk_nwad_t* nw
 
 	for (i = 0; i < HAWK_COUNTOF(x); i++)
 	{
-		if (hawk_strzcmp (uri, x[i].prefix, x[i].len) == 0)
+		if (hawk_strzcmp(uri, x[i].prefix, x[i].len) == 0)
 		{
 			if (hawk_strtonwad (uri + x[i].len, nwad) <= -1) return -1;
 			*flags = x[i].flags;
@@ -656,7 +656,7 @@ int HawkStd::closePipe (Pipe& io)
 	if (io.getUflags() > 0)
 	{
 		/* nwio can't honor partical close */
-		hawk_nwio_close ((hawk_nwio_t*)io.getHandle());
+		hawk_nwio_close((hawk_nwio_t*)io.getHandle());
 	}
 	else
 	{
@@ -677,7 +677,7 @@ int HawkStd::closePipe (Pipe& io)
 			}
 		}
 
-		hawk_pio_close (pio);
+		hawk_pio_close(pio);
 #if defined(ENABLE_NWIO)
 	}
 #endif
@@ -850,7 +850,7 @@ int HawkStd::addConsoleOutput (const hawk_bch_t* arg)
 
 void HawkStd::clearConsoleOutputs ()
 {
-	this->ofile.clear (this->hawk);
+	this->ofile.clear(this->hawk);
 }
 
 static int check_var_assign (hawk_rtx_t* rtx, const hawk_ooch_t* str)
@@ -1243,7 +1243,7 @@ void* HawkStd::modopen (const hawk_mod_spec_t* spec)
 
 void HawkStd::modclose (void* handle)
 {
-	hawk_stdmodclose (this->hawk, handle);
+	hawk_stdmodclose(this->hawk, handle);
 }
 
 void* HawkStd::modgetsym (void* handle, const hawk_ooch_t* name)
@@ -1326,13 +1326,13 @@ int HawkStd::SourceFile::open (Data& io)
 					if (totlen >= HAWK_COUNTOF(fbuf))
 					{
 						dbuf = (hawk_ooch_t*)hawk_allocmem((hawk_t*)io, HAWK_SIZEOF(hawk_ooch_t) * (totlen + 1));
-						if (!dbuf) return -1;
+						if (HAWK_UNLIKELY(!dbuf)) return -1;
 						path = dbuf;
 					}
 					else path = fbuf;
 
 					tmplen = hawk_copy_oochars_to_oocstr_unlimited((hawk_ooch_t*)path, outer, dirlen);
-					hawk_copy_oocstr_unlimited ((hawk_ooch_t*)path + tmplen, ioname);
+					hawk_copy_oocstr_unlimited((hawk_ooch_t*)path + tmplen, ioname);
 				}
 			}
 
@@ -1370,8 +1370,8 @@ int HawkStd::SourceFile::open (Data& io)
 		);
 		if (!sio) return -1;
 
-		io.setPath (xpath);
-		io.setHandle (sio);
+		io.setPath(xpath);
+		io.setHandle(sio);
 		if (this->cmgr) hawk_sio_setcmgr(sio, this->cmgr);
 	}
 
@@ -1382,7 +1382,7 @@ int HawkStd::SourceFile::open (Data& io)
 int HawkStd::SourceFile::close (Data& io)
 {
 	hawk_sio_t* sio = (hawk_sio_t*)io.getHandle();
-	hawk_sio_flush (sio);
+	hawk_sio_flush(sio);
 	hawk_sio_close(sio);
 	return 0;
 }
@@ -1483,7 +1483,7 @@ int HawkStd::SourceString::open (Data& io)
 					else path = fbuf;
 
 					tmplen = hawk_copy_oochars_to_oocstr_unlimited((hawk_ooch_t*)path, outer, dirlen);
-					hawk_copy_oocstr_unlimited ((hawk_ooch_t*)path + tmplen, ioname);
+					hawk_copy_oocstr_unlimited((hawk_ooch_t*)path + tmplen, ioname);
 				}
 			}
 			xpath = hawk_addsionamewithoochars((hawk_t*)io, path, hawk_count_oocstr(path));
