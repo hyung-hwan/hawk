@@ -5,11 +5,11 @@
 %define __brp_remove_la_files /bin/true
 %define source_date_epoch_from_changelog 0
 
-%define enable_mod_ffi 1
-%define enable_mod_memc 0
-%define enable_mod_mysql 1
-%define enable_mod_sqlite 1
-%define enable_mod_uci 0
+%{!?enable_mod_ffi:%define enable_mod_ffi 1}
+%{!?enable_mod_memc:%define enable_mod_memc 0}
+%{!?enable_mod_mysql:%define enable_mod_mysql 1}
+%{!?enable_mod_sqlite:%define enable_mod_sqlite 1}
+%{!?enable_mod_uci:%define enable_mod_uci 0}
 
 Summary: Hawk Interpreter
 Name: @PACKAGE_NAME@
@@ -26,20 +26,31 @@ Requires: %{name}-libs%{?_isa}
 ## prep_cif_var() available since 3.0.11
 BuildRequires: libffi-devel%{?_isa} >= 3.0.11
 %endif
+
 %if %{enable_mod_memc}
 BuildRequires: libmemcached-devel%{?_isa} >= 1.0.18
 %endif
+
 %if %{enable_mod_mysql}
-##BuildRequires: mariadb-connector-c-devel%{?_isa}
+
+%if 0%{?fedora} > 22
+BuildRequires: mariadb-connector-c-devel%{?_isa}
+%else
+
 %if 0%{?suse_version} > 0
 BuildRequires: libmariadb-devel%{?_isa}
 %else
 BuildRequires: mysql-devel%{?_isa}
 %endif
+
 %endif
+
+%endif
+
 %if %{enable_mod_sqlite}
 BuildRequires: sqlite-devel%{?_isa}
 %endif
+
 %if %{enable_mod_uci}
 BuildRequires: libuci-devel%{?_isa}
 %endif
@@ -83,8 +94,19 @@ This package contains the memc module file for Hawk.
 Summary: Hawk mysql module
 Group: System Environment/Libraries
 Requires: %{name}-libs%{?_isa} = %{version}
+
+%if 0%{?fedora} > 22
+Requires: mariadb-connector-c%{?_isa}
+%else
+
+%if 0%{?suse_version} > 0
+Requires: libmariadb%{?_isa}
+%else
 ## tricky to specify the right mysql/mariadb client library.
-##Requires: mariadb-connector-c%{?_isa}
+Requires:
+%endif
+
+%endif
 
 %description mysql
 This package contains the mysql module file for Hawk.

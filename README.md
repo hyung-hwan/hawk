@@ -215,7 +215,7 @@ static void on_sigset (hawk_rtx_t* rtx, int sig, hawk_fun_t* fun)
 }
 
 hawk_rtx_ecb_t ecb;
-HAWK_MEMSET(&ecb, 0, HAWK_SIZEOF(ecb));
+memset(&ecb, 0, HAWK_SIZEOF(ecb));
 ecb.sigset = on_sigset;
 hawk_rtx_pushecb(rtx, &ecb);
 ```
