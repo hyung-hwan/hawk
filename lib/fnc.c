@@ -1297,26 +1297,40 @@ static int __substitute_oocs (hawk_rtx_t* rtx, hawk_oow_t* max_count, hawk_tre_t
 			{
 				if (s1->ptr[i] == '\\' && (i + 1) < s1->len)
 				{
+					hawk_ooch_t ic = s1->ptr[i + 1];
 					if (extended) /* for gensub */
 					{
-						hawk_ooch_t ic = s1->ptr[i + 1];
 						if (ic == '0')
 						{
 							m = hawk_ooecs_ncat(new, mat.ptr, mat.len);
+							i++; /* skip the backslash */
 						}
 						else if (ic >= '1' && ic <= '9')
 						{
 							hawk_oow_t idx = (ic - '0') - 1;
 							m = hawk_ooecs_ncat(new, submat[idx].ptr, submat[idx].len);
+							i++; /* skip the backslash */
 						}
-						else goto escape;
+						else
+						{
+							goto literal;
+						}
 					}
 					else
 					{
-					escape:
-						m = hawk_ooecs_ccat(new, s1->ptr[i + 1]);
+					literal:
+						if (ic == '&' || ic == '\\')
+						{
+							/* \& for a literal &, \\ for a literal \ */
+							m = hawk_ooecs_ccat(new, ic);
+							i++; /* skip the backslash and consume & */
+						}
+						else
+						{
+							/* add the backslash literally */
+							m = hawk_ooecs_ccat(new, s1->ptr[i]);
+						}
 					}
-					i++; /* skip the backslash */
 				}
 				else if (s1->ptr[i] == '&')
 				{
@@ -1415,26 +1429,40 @@ static int __substitute_bcs (hawk_rtx_t* rtx, hawk_oow_t* max_count, hawk_tre_t*
 			{
 				if (s1->ptr[i] == '\\' && (i + 1) < s1->len)
 				{
+					hawk_bch_t ic = s1->ptr[i + 1];
 					if (extended) /* for gensub */
 					{
-						hawk_bch_t ic = s1->ptr[i + 1];
 						if (ic == '0')
 						{
 							m = hawk_becs_ncat(new, mat.ptr, mat.len);
+							i++; /* skip the backslash */
 						}
 						else if (ic >= '1' && ic <= '9')
 						{
 							hawk_oow_t idx = (ic - '0') - 1;
 							m = hawk_becs_ncat(new, submat[idx].ptr, submat[idx].len);
+							i++; /* skip the backslash */
 						}
-						else goto escape;
+						else
+						{
+							goto literal;
+						}
 					}
 					else
 					{
-					escape:
-						m = hawk_becs_ccat(new, s1->ptr[i + 1]);
+					literal:
+						if (ic == '&' || ic == '\\')
+						{
+							/* \& for a literal &, \\ for a literal \ */
+							m = hawk_becs_ccat(new, ic);
+							i += 2; /* skip the backslash and consume & */
+						}
+						else
+						{
+							/* add the backslash literally */
+							m = hawk_becs_ccat(new, s1->ptr[i]);
+						}
 					}
-					i++; /* skip the backslash */
 				}
 				else if (s1->ptr[i] == '&')
 				{

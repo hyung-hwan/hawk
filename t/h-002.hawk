@@ -96,6 +96,12 @@ function main()
 		gsub("\\\\", @b'A', y);
 		tap_ensure (x === @b"A", 1, @SCRIPTNAME, @SCRIPTLINE);
 		tap_ensure (y === @b"A", 1, @SCRIPTNAME, @SCRIPTLINE);
+
+		x = y = @b'\\';
+		gsub(/\\/, "\\A", x);
+		gsub("\\\\","\\A", y);
+		tap_ensure (x === @b"\\A", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (y === @b"\\A", 1, @SCRIPTNAME, @SCRIPTLINE);
 	}
 
 	## gsub - POSIX rule for &, \&, \\&, \\\&
@@ -194,6 +200,11 @@ function main()
 		tap_ensure (x, "x&ax", @SCRIPTNAME, @SCRIPTLINE);
 		tap_ensure (y, @r"x\aax", @SCRIPTNAME, @SCRIPTLINE);
 		tap_ensure (z, @r"x\&ax", @SCRIPTNAME, @SCRIPTLINE);
+
+
+		w = "abc - def";
+		sub(/ - /, @r"\A\B", w);
+		tap_ensure (w, @r"abc\A\Bdef", @SCRIPTNAME, @SCRIPTLINE);
 	}
 
 	## gensub
@@ -230,6 +241,15 @@ function main()
 		tap_ensure (x, "the [tiger] pounces on the [dog]", @SCRIPTNAME, @SCRIPTLINE);
 		x = gensub(/((apple)|(turtle)|(orange)|(tiger)|(dog))/, "[\\6]", 'g', "the tiger pounces on the dog");
 		tap_ensure (x, "the [] pounces on the [dog]", @SCRIPTNAME, @SCRIPTLINE);
+
+		x = gensub(/ - /, @r"\A\B", 'g', "abc - def");
+		tap_ensure (x, @r"abc\A\Bdef", @SCRIPTNAME, @SCRIPTLINE);
+
+		x = gensub(/ - /, "&&", 'g', "abc - def");
+		tap_ensure (x, @r"abc -  - def", @SCRIPTNAME, @SCRIPTLINE);
+
+		x = gensub(/ - /, "\\&\\&", 'g', "abc - def");
+		tap_ensure (x, @r"abc&&def", @SCRIPTNAME, @SCRIPTLINE);
 	}
 
 	{
