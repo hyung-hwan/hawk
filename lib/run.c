@@ -109,7 +109,7 @@ static hawk_val_t* eval_expression0 (hawk_rtx_t* rtx, hawk_nde_t* nde);
 static hawk_val_t* eval_group (hawk_rtx_t* rtx, hawk_nde_t* nde);
 
 static hawk_val_t* eval_assignment (hawk_rtx_t* rtx, hawk_nde_t* nde);
-static hawk_val_t* do_assignment (hawk_rtx_t* rtx, hawk_nde_t* var, hawk_val_t* val);
+static hawk_val_t* do_assignment (hawk_rtx_t* rtx, hawk_nde_t* var, hawk_val_t* val, int is_init);
 static hawk_val_t* do_assignment_nonindexed (hawk_rtx_t* rtx, hawk_nde_var_t* var, hawk_val_t* val);
 static hawk_val_t* do_assignment_indexed (hawk_rtx_t* rtx, hawk_nde_var_t* var, hawk_val_t* val);
 static hawk_val_t* do_assignment_positional (hawk_rtx_t* rtx, hawk_nde_pos_t* pos, hawk_val_t* val);
@@ -850,6 +850,7 @@ hawk_rtx_t* hawk_rtx_open (hawk_t* hawk, hawk_oow_t xtnsize, hawk_rio_cbs_t* rio
 
 	/* check if the code has ever been parsed */
 	if (hawk->tree.ngbls == 0 &&
+	    hawk->tree.init == HAWK_NULL &&
 	    hawk->tree.begin == HAWK_NULL &&
 	    hawk->tree.end == HAWK_NULL &&
 	    hawk->tree.chain_size == 0 &&
@@ -1545,21 +1546,14 @@ static void capture_retval_on_exit (void* arg)
 	hawk_rtx_refupval(data->rtx, data->val);
 }
 
-static hawk_val_t* run_bpae_loop (hawk_rtx_t* rtx)
+static int run_blocks_for_bpae_loop (hawk_rtx_t* rtx, hawk_nde_t* blk_head, int top_exit_level, int ret)
 {
 	hawk_nde_t* nde;
-	hawk_oow_t nargs, i;
-	hawk_val_t* retv;
-	int ret = 0;
 
-	/* set nargs to zero */
-	nargs = 0;
-	HAWK_RTX_STACK_NARGS(rtx) = (void*)nargs;
-
-	/* execute the BEGIN block */
-	for (nde = rtx->hawk->tree.begin;
-	     ret == 0 && nde != HAWK_NULL && rtx->exit_level < EXIT_GLOBAL;
-	     nde = nde->next)
+	/* top_exit_level
+	 *   init/BEGIN - not called if `exit[EXIT_GLOBAL]` has been called
+	 *   END - not called if `@abort[EXIT_ABORT]` has been called. */
+	for (nde = blk_head; ret == 0 && nde && rtx->exit_level < top_exit_level; nde = nde->next)
 	{
 		hawk_nde_blk_t* blk;
 
@@ -1569,54 +1563,10 @@ static hawk_val_t* run_bpae_loop (hawk_rtx_t* rtx)
 		rtx->active_block = blk;
 		rtx->exit_level = EXIT_NONE;
 		if (run_block(rtx, blk) <= -1) ret = -1;
-	}
-
-	if (ret <= -1 && hawk_rtx_geterrnum(rtx) == HAWK_ENOERR)
-	{
-		/* an error is returned with no error number set.
-		 * this trait is used by eval_expression() to
-		 * abort the evaluation when exit() is executed
-		 * during function evaluation */
-		ret = 0;
-		CLRERR (rtx); /* clear it just in case */
-	}
-
-	/* run pattern block loops */
-	if (ret == 0 &&
-	    (rtx->hawk->tree.chain != HAWK_NULL ||
-	     rtx->hawk->tree.end != HAWK_NULL) &&
-	     rtx->exit_level < EXIT_GLOBAL)
-	{
-		if (run_pblocks(rtx) <= -1) ret = -1;
-	}
-
-	if (ret <= -1 && hawk_rtx_geterrnum(rtx) == HAWK_ENOERR)
-	{
-		/* an error is returned with no error number set.
-		 * this trait is used by eval_expression() to
-		 * abort the evaluation when exit() is executed
-		 * during function evaluation */
-		ret = 0;
-		CLRERR (rtx); /* clear it just in case */
-	}
-
-	/* execute END blocks. the first END block is executed if the
-	 * program is not explicitly aborted with hawk_rtx_halt().*/
-	for (nde = rtx->hawk->tree.end;
-	     ret == 0 && nde != HAWK_NULL && rtx->exit_level < EXIT_ABORT;
-	     nde = nde->next)
-	{
-		hawk_nde_blk_t* blk;
-
-		blk = (hawk_nde_blk_t*)nde;
-		HAWK_ASSERT(blk->type == HAWK_NDE_BLK);
-
-		rtx->active_block = blk;
-		rtx->exit_level = EXIT_NONE;
-		if (run_block(rtx, blk) <= -1) ret = -1;
-		else if (rtx->exit_level >= EXIT_GLOBAL)
+		else if (top_exit_level == EXIT_ABORT && rtx->exit_level >= EXIT_GLOBAL)
 		{
-			/* once exit is called inside one of END blocks,
+			/* top_exit_level is EXIT_ABORT for END bloacks.
+			 * once `exit` is called inside one of END blocks,
 			 * subsequent END blocks must not be executed */
 			break;
 		}
@@ -1629,7 +1579,62 @@ static hawk_val_t* run_bpae_loop (hawk_rtx_t* rtx)
 		 * abort the evaluation when exit() is executed
 		 * during function evaluation */
 		ret = 0;
-		CLRERR (rtx); /* clear it just in case */
+		CLRERR(rtx); /* clear it just in case */
+	}
+
+	return ret;
+}
+
+static hawk_val_t* run_bpae_loop (hawk_rtx_t* rtx)
+{
+	hawk_nde_t* nde;
+	hawk_oow_t nargs, i;
+	hawk_val_t* retv;
+	int ret = 0;
+
+	/* set nargs to zero */
+	nargs = 0;
+	HAWK_RTX_STACK_NARGS(rtx) = (void*)nargs;
+
+	if (!rtx->init_called)
+	{
+		rtx->init_called = 1;
+		if (rtx->hawk->tree.init) /* execute @global/@const initialization */
+		{
+			HAWK_ASSERT(rtx->hawk->tree.init->next == HAWK_NULL); /* there must exist only 1 init block */
+			ret = run_blocks_for_bpae_loop(rtx, rtx->hawk->tree.init, EXIT_GLOBAL, ret);
+		}
+	}
+	if (rtx->hawk->tree.begin) /* the begin blocks */
+	{
+		/* there may be multiple BEGIN blocks */
+		ret = run_blocks_for_bpae_loop(rtx, rtx->hawk->tree.begin, EXIT_GLOBAL, ret);
+	}
+
+	/* run pattern block loops */
+	if (ret == 0 &&
+	    (rtx->hawk->tree.chain != HAWK_NULL || rtx->hawk->tree.end != HAWK_NULL) &&
+	    rtx->exit_level < EXIT_GLOBAL)
+	{
+		if (run_pblocks(rtx) <= -1) ret = -1;
+	}
+
+	if (ret <= -1 && hawk_rtx_geterrnum(rtx) == HAWK_ENOERR)
+	{
+		/* an error is returned with no error number set.
+		 * this trait is used by eval_expression() to
+		 * abort the evaluation when exit() is executed
+		 * during function evaluation */
+		ret = 0;
+		CLRERR(rtx); /* clear it just in case */
+	}
+
+	/* execute END blocks. the first END block is executed if the
+	 * program is not explicitly aborted with hawk_rtx_halt().*/
+	if (rtx->hawk->tree.end)
+	{
+		/* there may be multiple END blocks */
+		ret = run_blocks_for_bpae_loop(rtx, rtx->hawk->tree.end, EXIT_ABORT, ret);
 	}
 
 	/* derefrence all arguments. however, there should be no arguments
@@ -1637,8 +1642,7 @@ static hawk_val_t* run_bpae_loop (hawk_rtx_t* rtx)
 	 * for BEGIN/pattern action/END block execution.*/
 	nargs = (hawk_oow_t)HAWK_RTX_STACK_NARGS(rtx);
 	HAWK_ASSERT(nargs == 0);
-	for (i = 0; i < nargs; i++)
-		hawk_rtx_refdownval(rtx, HAWK_RTX_STACK_ARG(rtx,i));
+	for (i = 0; i < nargs; i++) hawk_rtx_refdownval(rtx, HAWK_RTX_STACK_ARG(rtx,i)); // just in case
 
 	/* get the return value in the current stack frame */
 	retv = HAWK_RTX_STACK_RETVAL(rtx);
@@ -1787,16 +1791,11 @@ hawk_val_t* hawk_rtx_callfun (hawk_rtx_t* rtx, hawk_fun_t* fun, hawk_val_t* args
 
 	HAWK_ASSERT(fun != HAWK_NULL);
 
-	pafv.args = args;
-	pafv.nargs = nargs;
-	pafv.argspec = fun->argspec;
-	pafv.argspeclen = fun->argspeclen;
-
 	if (HAWK_UNLIKELY(rtx->exit_level >= EXIT_GLOBAL))
 	{
 		/* cannot call the function again when exit() is called
 		 * in an AWK program or hawk_rtx_halt() is invoked */
-		hawk_rtx_seterrfmt(rtx, HAWK_NULL, HAWK_EPERM, HAWK_T("now allowed to call '%.*js' after exit"), fun->name.len, fun->name.ptr);
+		hawk_rtx_seterrfmt(rtx, HAWK_NULL, HAWK_EPERM, HAWK_T("not allowed to call '%.*js' after termination"), fun->name.len, fun->name.ptr);
 		return HAWK_NULL;
 	}
 	/*rtx->exit_level = EXIT_NONE;*/
@@ -1811,13 +1810,6 @@ hawk_val_t* hawk_rtx_callfun (hawk_rtx_t* rtx, hawk_fun_t* fun, hawk_val_t* args
 	}
 #endif
 
-	/* forge a fake node containing a function call */
-	HAWK_MEMSET(&call, 0, HAWK_SIZEOF(call));
-	call.type = HAWK_NDE_FNCALL_FUN;
-	call.u.fun.name = fun->name;
-	call.nargs = nargs;
-	/* keep HAWK_NULL in call.args so that hawk_rtx_evalcall() knows it's a fake call structure */
-
 	/* check if the number of arguments given is more than expected */
 	if (nargs > fun->nargs && !fun->variadic)
 	{
@@ -1827,13 +1819,82 @@ hawk_val_t* hawk_rtx_callfun (hawk_rtx_t* rtx, hawk_fun_t* fun, hawk_val_t* args
 		return HAWK_NULL;
 	}
 
-	/* now that the function is found and ok, let's execute it */
+	if (HAWK_UNLIKELY(!rtx->init_called))
+	{
+		/* set this before actual execution of the init block.
+		 * this is to make init_called 1 in both cases shown below:
+		 *  - if the init block doesn't exist
+		 *  - when it's really executed.
+		 */
+		rtx->init_called = 1;
 
+		if (rtx->hawk->tree.init)
+		{
+			int ret;
+			hawk_oow_t saved_stack_top;
+			hawk_oow_t nargs, i;
+			hawk_val_t* retv;
+
+			/* prepare the stack frame in the same way as hawk_rtx_loop() + run_bpae_loop() */
+			saved_stack_top = rtx->stack_top; 	/* remember the current stack top */
+			HAWK_RTX_STACK_PUSH(rtx, (void*)rtx->stack_base); /* push the current stack base */
+			HAWK_RTX_STACK_PUSH(rtx, (void*)saved_stack_top); /* push the current stack top before push the current stack base */
+			HAWK_RTX_STACK_PUSH(rtx, hawk_val_nil); /* secure space for a return value */
+			HAWK_RTX_STACK_PUSH(rtx, hawk_val_nil); /* secure space for HAWK_RTX_STACK_NARGS */
+
+			/* enter the new stack frame */
+			rtx->stack_base = saved_stack_top; /* let the stack top remembered be the base of a new stack frame */
+
+			/* zero arguments */
+			nargs = 0;
+			HAWK_RTX_STACK_NARGS(rtx) = (void*)nargs;
+
+			ret = run_blocks_for_bpae_loop(rtx, rtx->hawk->tree.init, EXIT_GLOBAL, 0);
+
+			nargs = (hawk_oow_t)HAWK_RTX_STACK_NARGS(rtx);
+			HAWK_ASSERT(nargs == 0); /* nargs on the stack must be 0 without pollution */
+			for (i = 0; i < nargs; i++) hawk_rtx_refdownval(rtx, HAWK_RTX_STACK_ARG(rtx,i)); /* this is unnecessary, but in case */
+
+			/* get the return value in the current stack frame */
+			retv = HAWK_RTX_STACK_RETVAL(rtx);
+			hawk_rtx_refdownval(rtx, retv);  /* throw it away */
+
+			/* exit the stack frame */
+			HAWK_ASSERT((rtx->stack_top - rtx->stack_base) == 4); /* at this point, the current stack frame should have the 4 entries pushed above */
+			rtx->stack_top = (hawk_oow_t)rtx->stack[rtx->stack_base + 1];
+			rtx->stack_base = (hawk_oow_t)rtx->stack[rtx->stack_base + 0];
+
+			if (ret <= -1) return HAWK_NULL;
+			if (rtx->exit_level >= EXIT_GLOBAL)
+			{
+				/* `exit` or `@abort` has been called in the init block.
+				 * this check is unique to hawk_rtx_callfun(). hawk_rtx_loop()
+				 * doesn't have this check as invocation points of each block
+				 * (begin, end, pattern-action) know how to deal with the
+				 * exit level of the previous phase */
+				hawk_rtx_seterrfmt(rtx, HAWK_NULL, HAWK_EPERM, HAWK_T("terminated before actual call to '%.*js'"), fun->name.len, fun->name.ptr);
+				return HAWK_NULL;
+			}
+		}
+	}
+
+	pafv.args = args;
+	pafv.nargs = nargs;
+	pafv.argspec = fun->argspec;
+	pafv.argspeclen = fun->argspeclen;
+
+	/* forge a fake node containing a function call */
+	HAWK_MEMSET(&call, 0, HAWK_SIZEOF(call));
+	call.type = HAWK_NDE_FNCALL_FUN;
+	call.u.fun.name = fun->name;
+	call.nargs = nargs;
+	/* keep HAWK_NULL in call.args so that hawk_rtx_evalcall() knows it's a fake call structure */
+
+	/* now that the function is found and ok, let's execute it */
 	crdata.rtx = rtx;
 	crdata.val = HAWK_NULL;
 
 	v = hawk_rtx_evalcall(rtx, &call, fun, push_arg_from_vals, (void*)&pafv, capture_retval_on_exit, &crdata);
-
 	if (HAWK_UNLIKELY(!v))
 	{
 		/* an error occurred. let's check if it is caused by exit().
@@ -1851,7 +1912,7 @@ hawk_val_t* hawk_rtx_callfun (hawk_rtx_t* rtx, hawk_fun_t* fun, hawk_val_t* args
 	}
 
 	/* flush all buffered io data */
-	hawk_rtx_flushallios (rtx);
+	hawk_rtx_flushallios(rtx);
 
 	/* return the return value with its reference count at least 1.
 	 * the caller of this function should count down its reference. */
@@ -1874,7 +1935,7 @@ hawk_val_t* hawk_rtx_callwithbcstr (hawk_rtx_t* rtx, const hawk_bch_t* name, haw
 	hawk_fun_t* fun;
 
 	fun = hawk_rtx_findfunwithbcstr(rtx, name);
-	if (!fun) return HAWK_NULL;
+	if (HAWK_UNLIKELY(!fun)) return HAWK_NULL;
 
 	return hawk_rtx_callfun(rtx, fun, args, nargs);
 }
@@ -1902,10 +1963,7 @@ hawk_val_t* hawk_rtx_callwithucstrarr (hawk_rtx_t* rtx, const hawk_uch_t* name, 
 	ret = hawk_rtx_callwithucstr(rtx, name, v, nargs);
 
 oops:
-	while (i > 0)
-	{
-		hawk_rtx_refdownval(rtx, v[--i]);
-	}
+	while (i > 0) hawk_rtx_refdownval(rtx, v[--i]);
 	hawk_rtx_freemem(rtx, v);
 	return ret;
 }
@@ -1933,10 +1991,7 @@ hawk_val_t* hawk_rtx_callwithbcstrarr (hawk_rtx_t* rtx, const hawk_bch_t* name, 
 	ret = hawk_rtx_callwithbcstr(rtx, name, v, nargs);
 
 oops:
-	while (i > 0)
-	{
-		hawk_rtx_refdownval(rtx, v[--i]);
-	}
+	while (i > 0) hawk_rtx_refdownval(rtx, v[--i]);
 	hawk_rtx_freemem(rtx, v);
 	return ret;
 }
@@ -1964,10 +2019,7 @@ hawk_val_t* hawk_rtx_callwithooucstrarr (hawk_rtx_t* rtx, const hawk_ooch_t* nam
 	ret = hawk_rtx_callwithoocstr(rtx, name, v, nargs);
 
 oops:
-	while (i > 0)
-	{
-		hawk_rtx_refdownval(rtx, v[--i]);
-	}
+	while (i > 0) hawk_rtx_refdownval(rtx, v[--i]);
 	hawk_rtx_freemem(rtx, v);
 	return ret;
 }
@@ -1995,10 +2047,7 @@ hawk_val_t* hawk_rtx_callwithoobcstrarr (hawk_rtx_t* rtx, const hawk_ooch_t* nam
 	ret = hawk_rtx_callwithoocstr(rtx, name, v, nargs);
 
 oops:
-	while (i > 0)
-	{
-		hawk_rtx_refdownval(rtx, v[--i]);
-	}
+	while (i > 0) hawk_rtx_refdownval(rtx, v[--i]);
 	hawk_rtx_freemem(rtx, v);
 	return ret;
 }
@@ -2177,7 +2226,7 @@ static HAWK_INLINE int run_block0 (hawk_rtx_t* rtx, hawk_nde_blk_t* nde)
 	/*saved_stack_top = rtx->stack_top;*/
 
 #if defined(DEBUG_RUN)
-	hawk_logbfmt (hawk_rtx_gethawk(rtx), "securing space for local variables nlcls = %d\n", (int)nde->nlcls);
+	hawk_logbfmt(hawk_rtx_gethawk(rtx), "securing space for local variables nlcls = %d\n", (int)nde->nlcls);
 #endif
 
 	if (nde->nlcls > 0)
@@ -2223,7 +2272,7 @@ static HAWK_INLINE int run_block0 (hawk_rtx_t* rtx, hawk_nde_blk_t* nde)
 	}
 
 #if defined(DEBUG_RUN)
-	hawk_logbfmt (hawk_rtx_gethawk(rtx), "executing block statements\n");
+	hawk_logbfmt(hawk_rtx_gethawk(rtx), "executing block statements\n");
 #endif
 
 	p = nde->body;
@@ -2239,7 +2288,7 @@ static HAWK_INLINE int run_block0 (hawk_rtx_t* rtx, hawk_nde_blk_t* nde)
 
 	/* pop off local variables */
 #if defined(DEBUG_RUN)
-	hawk_logbfmt (hawk_rtx_gethawk(rtx), "popping off local variables\n");
+	hawk_logbfmt(hawk_rtx_gethawk(rtx), "popping off local variables\n");
 #endif
 
 	if (nde->nlcls > 0)
@@ -2996,7 +3045,7 @@ static int run_forin (hawk_rtx_t* rtx, hawk_nde_forin_t* nde)
 			/* iterate over the keys in the snapshot */
 			for (i = old_forin_size;  i < rtx->forin.size; i++)
 			{
-				if (HAWK_UNLIKELY(!do_assignment(rtx, test->left, rtx->forin.ptr[i])) || HAWK_UNLIKELY(run_statement(rtx, nde->body) <= -1))
+				if (HAWK_UNLIKELY(!do_assignment(rtx, test->left, rtx->forin.ptr[i], 0)) || HAWK_UNLIKELY(run_statement(rtx, nde->body) <= -1))
 				{
 					ret = -1;
 					goto done2;
@@ -3078,7 +3127,7 @@ static int run_forin (hawk_rtx_t* rtx, hawk_nde_forin_t* nde)
 			/* iterate over the keys in the snapshot */
 			for (i = old_forin_size;  i < rtx->forin.size; i++)
 			{
-				if (HAWK_UNLIKELY(!do_assignment(rtx, test->left, rtx->forin.ptr[i])) || HAWK_UNLIKELY(run_statement(rtx, nde->body) <= -1))
+				if (HAWK_UNLIKELY(!do_assignment(rtx, test->left, rtx->forin.ptr[i], 0)) || HAWK_UNLIKELY(run_statement(rtx, nde->body) <= -1))
 				{
 					ret = -1;
 					goto done3;
@@ -3194,8 +3243,13 @@ static int run_exit (hawk_rtx_t* rtx, hawk_nde_exit_t* nde)
 static int run_next (hawk_rtx_t* rtx, hawk_nde_next_t* nde)
 {
 	/* the parser checks if next has been called in the begin/end
-	 * block or whereever inappropriate. so the rtxtime doesn't
+	 * block or whereever inappropriate. so the tuntime doesn't
 	 * check that explicitly */
+	if  (rtx->active_block == (hawk_nde_blk_t*)rtx->hawk->tree.init)
+	{
+		hawk_rtx_seterrnum(rtx, &nde->loc, HAWK_ERNEXTINIT);
+		return -1;
+	}
 	if  (rtx->active_block == (hawk_nde_blk_t*)rtx->hawk->tree.begin)
 	{
 		hawk_rtx_seterrnum(rtx, &nde->loc, HAWK_ERNEXTBEG);
@@ -3216,6 +3270,11 @@ static int run_nextinfile (hawk_rtx_t* rtx, hawk_nde_nextfile_t* nde)
 	int n;
 
 	/* normal nextfile statement */
+	if  (rtx->active_block == (hawk_nde_blk_t*)rtx->hawk->tree.init)
+	{
+		hawk_rtx_seterrnum(rtx, &nde->loc, HAWK_ERNEXTFINIT);
+		return -1;
+	}
 	if  (rtx->active_block == (hawk_nde_blk_t*)rtx->hawk->tree.begin)
 	{
 		hawk_rtx_seterrnum(rtx, &nde->loc, HAWK_ERNEXTFBEG);
@@ -3553,6 +3612,12 @@ static int run_delete (hawk_rtx_t* rtx, hawk_nde_delete_t* nde)
 	hawk_val_type_t vtype;
 
 	var = (hawk_nde_var_t*)nde->var;
+	if (var->is_const)
+	{
+		hawk_rtx_seterrfmt(rtx, &var->loc, HAWK_EPERM,
+			HAWK_T("cannot modify constant '%.*js'"), var->id.name.len, var->id.name.ptr);
+		return -1;
+	}
 
 	val = fetch_topval_from_var(rtx, var);
 	HAWK_ASSERT(val != HAWK_NULL);
@@ -3616,6 +3681,12 @@ static int run_reset (hawk_rtx_t* rtx, hawk_nde_reset_t* nde)
 	hawk_nde_var_t* var;
 
 	var = (hawk_nde_var_t*)nde->var;
+	if (var->is_const)
+	{
+		hawk_rtx_seterrfmt(rtx, &var->loc, HAWK_EPERM,
+			HAWK_T("cannot modify constant '%.*js'"), var->id.name.len, var->id.name.ptr);
+		return -1;
+	}
 
 	HAWK_ASSERT(var->type >= HAWK_NDE_NAMED && var->type <= HAWK_NDE_ARG);
 
@@ -4237,16 +4308,27 @@ static hawk_val_t* eval_assignment (hawk_rtx_t* rtx, hawk_nde_t* nde)
 		hawk_rtx_refupval(rtx, val);
 	}
 
-	ret = do_assignment(rtx, ass->left, val);
+	ret = do_assignment(rtx, ass->left, val, ass->is_init);
 	hawk_rtx_refdownval(rtx, val);
 
 	return ret;
 }
 
-static hawk_val_t* do_assignment (hawk_rtx_t* rtx, hawk_nde_t* var, hawk_val_t* val)
+static hawk_val_t* do_assignment (hawk_rtx_t* rtx, hawk_nde_t* var, hawk_val_t* val, int is_init)
 {
 	hawk_val_t* ret;
 	hawk_errnum_t errnum;
+
+	if (var->type >= HAWK_NDE_NAMED && var->type <= HAWK_NDE_ARGIDX)
+	{
+		hawk_nde_var_t* v = (hawk_nde_var_t*)var;
+		if (v->is_const && !is_init)
+		{
+			hawk_rtx_seterrfmt(rtx, &v->loc, HAWK_EPERM,
+				HAWK_T("cannot assign to constant '%.*js'"), v->id.name.len, v->id.name.ptr);
+			return HAWK_NULL;
+		}
+	}
 
 	switch (var->type)
 	{
@@ -4556,7 +4638,7 @@ static hawk_val_t* do_assignment_indexed (hawk_rtx_t* rtx, hawk_nde_var_t* var, 
 		#endif
 
 		#if defined(DEBUG_RUN)
-			hawk_logbfmt (hawk_rtx_gethawk(rtx), "**** index str=>%js, map->ref=%d, map->type=%d\n", str, (int)v->ref, (int)v->type);
+			hawk_logbfmt(hawk_rtx_gethawk(rtx), "**** index str=>%js, map->ref=%d, map->type=%d\n", str, (int)v->ref, (int)v->type);
 		#endif
 
 			if (vtype == HAWK_VAL_MAP)
@@ -6814,7 +6896,7 @@ static hawk_val_t* eval_incpre (hawk_rtx_t* rtx, hawk_nde_t* nde)
 		}
 	}
 
-	if (HAWK_UNLIKELY(do_assignment(rtx, exp->left, res) == HAWK_NULL))
+	if (HAWK_UNLIKELY(do_assignment(rtx, exp->left, res, 0) == HAWK_NULL))
 	{
 		hawk_rtx_refdownval(rtx, left);
 		return HAWK_NULL;
@@ -6977,7 +7059,7 @@ static hawk_val_t* eval_incpst (hawk_rtx_t* rtx, hawk_nde_t* nde)
 		}
 	}
 
-	if (HAWK_UNLIKELY(do_assignment(rtx, exp->left, res2) == HAWK_NULL))
+	if (HAWK_UNLIKELY(do_assignment(rtx, exp->left, res2, 0) == HAWK_NULL))
 	{
 		hawk_rtx_refdownval(rtx, left);
 		return HAWK_NULL;
@@ -7161,7 +7243,7 @@ hawk_val_t* hawk_rtx_evalcall (
 	saved_stack_top = rtx->stack_top;
 
 #if defined(DEBUG_RUN)
-	hawk_logbfmt (hawk_rtx_gethawk(rtx), "setting up function stack frame top=%zd base=%zd\n", (hawk_oow_t)rtx->stack_top, (hawk_oow_t)rtx->stack_base);
+	hawk_logbfmt(hawk_rtx_gethawk(rtx), "setting up function stack frame top=%zd base=%zd\n", (hawk_oow_t)rtx->stack_top, (hawk_oow_t)rtx->stack_base);
 #endif
 
 	/* make a new stack frame */
@@ -7211,7 +7293,7 @@ hawk_val_t* hawk_rtx_evalcall (
 	HAWK_RTX_STACK_NARGS(rtx) = (void*)nargs;
 
 #if defined(DEBUG_RUN)
-	hawk_logbfmt (hawk_rtx_gethawk(rtx), "running function body\n");
+	hawk_logbfmt(hawk_rtx_gethawk(rtx), "running function body\n");
 #endif
 
 	if (fun)
@@ -7237,7 +7319,7 @@ hawk_val_t* hawk_rtx_evalcall (
 	/* refdown args in the rtx.stack */
 	nargs = (hawk_oow_t)HAWK_RTX_STACK_NARGS(rtx);
 #if defined(DEBUG_RUN)
-	hawk_logbfmt (hawk_rtx_gethawk(rtx), "block rtx complete nargs = %d\n", (int)nargs);
+	hawk_logbfmt(hawk_rtx_gethawk(rtx), "block rtx complete nargs = %d\n", (int)nargs);
 #endif
 
 	i = 0;
@@ -7364,7 +7446,7 @@ hawk_val_t* hawk_rtx_evalcall (
 	}
 
 #if defined(DEBUG_RUN)
-	hawk_logbfmt (hawk_rtx_gethawk(rtx), "got return value\n");
+	hawk_logbfmt(hawk_rtx_gethawk(rtx), "got return value\n");
 #endif
 
 	v = HAWK_RTX_STACK_RETVAL(rtx);
@@ -7419,7 +7501,7 @@ hawk_val_t* hawk_rtx_evalcall (
 	if (rtx->exit_level == EXIT_FUNCTION) rtx->exit_level = EXIT_NONE;
 
 #if defined(DEBUG_RUN)
-	hawk_logbfmt (hawk_rtx_gethawk(rtx), "returning from function top=%zd, base=%zd\n", (hawk_oow_t)rtx->stack_top, (hawk_oow_t)rtx->stack_base);
+	hawk_logbfmt(hawk_rtx_gethawk(rtx), "returning from function top=%zd, base=%zd\n", (hawk_oow_t)rtx->stack_top, (hawk_oow_t)rtx->stack_base);
 #endif
 	return (n <= -1)? HAWK_NULL: v;
 
@@ -8181,7 +8263,7 @@ read_console_again:
 			/* it's important to call do_assignment(). consider an expression like this:
 			 *   getline x[++j]
 			 * withtout do_assignment(), ++j is skipped when getline returns 0. */
-			tmp = do_assignment(rtx, p->var, hawk_val_zls);
+			tmp = do_assignment(rtx, p->var, hawk_val_zls, 0);
 			if (HAWK_UNLIKELY(!tmp)) goto oops;
 		}
 	}
@@ -8223,7 +8305,7 @@ read_console_again:
 			}
 
 			hawk_rtx_refupval(rtx, vv);
-			tmp = do_assignment(rtx, p->var, vv);
+			tmp = do_assignment(rtx, p->var, vv, 0);
 			hawk_rtx_refdownval(rtx, vv);
 			if (HAWK_UNLIKELY(!tmp)) goto oops;
 		}
@@ -8298,7 +8380,7 @@ read_console_again:
 		/* make getline return -1 or 0*/
 		if (p->var)
 		{
-			tmp = do_assignment(rtx, p->var, hawk_val_zls);
+			tmp = do_assignment(rtx, p->var, hawk_val_zls, 0);
 			if (HAWK_UNLIKELY(!tmp)) goto oops;
 		}
 	}
@@ -8343,7 +8425,7 @@ read_console_again:
 			}
 
 			hawk_rtx_refupval(rtx, vv);
-			tmp = do_assignment(rtx, p->var, vv);
+			tmp = do_assignment(rtx, p->var, vv, 0);
 			hawk_rtx_refdownval(rtx, vv);
 			if (tmp == HAWK_NULL) goto oops;
 		}
@@ -8413,7 +8495,7 @@ read_again:
 	}
 
 #if defined(DEBUG_RUN)
-	hawk_logbfmt (hawk_rtx_gethawk(rtx), "record len = %d str=[%.*js]\n", (int)HAWK_OOECS_LEN(buf), HAWK_OOECS_LEN(buf), HAWK_OOECS_PTR(buf));
+	hawk_logbfmt(hawk_rtx_gethawk(rtx), "record len = %d str=[%.*js]\n", (int)HAWK_OOECS_LEN(buf), HAWK_OOECS_LEN(buf), HAWK_OOECS_PTR(buf));
 #endif
 	if (n == 0)
 	{

@@ -75,3 +75,48 @@ BEGIN {
 BEGIN {
 	print @bc'π'; ##ERROR: invalid byte character 'π'
 }
+
+---
+
+@const X = 20
+
+BEGIN {
+	@local Y = 20
+	Y = 99
+	X = 40  ##ERROR: cannot assign to constant 'X'
+}
+
+---
+
+@const X = 20
+
+BEGIN {
+	@const Y = 20
+	Y = 99 ##ERROR: cannot assign to constant 'Y'
+	X = 40
+}
+
+---
+
+@pragma implicit off
+
+@const X = 20
+
+BEGIN {
+	@const Y = 20, Z ##ERROR: assignment expression expected in place of '<NL>'
+	Y = 99
+	X = 40
+}
+
+
+---
+@pragma implicit off
+@pragma pedantic on
+
+@global A = 30
+@global B
+@global X ##ERROR: unused global variable 'X'
+
+BEGIN {
+	B = 30
+}

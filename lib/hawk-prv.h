@@ -199,6 +199,9 @@ struct hawk_tree_t
 	hawk_oocs_t cur_fun;
 	hawk_htb_t* funs; /* hawk function map */
 
+	hawk_nde_t* init; /* internally generated block made of @global/@const initilization */
+	hawk_nde_t* init_tail;
+
 	hawk_nde_t* begin;
 	hawk_nde_t* begin_tail;
 
@@ -409,6 +412,7 @@ typedef struct hawk_var_xinfo_t hawk_var_xinfo_t;
 struct hawk_var_xinfo_t
 {
 	hawk_uint8_t used;
+	hawk_uint8_t is_const;
 	hawk_loc_t loc;
 };
 
@@ -423,6 +427,7 @@ struct hawk_rtx_t
 	hawk_oow_t stack_base;
 	hawk_oow_t stack_limit;
 	int exit_level;
+	int init_called;
 
 	hawk_val_ref_t* rcache[128];
 	hawk_oow_t rcache_count;

@@ -28,15 +28,16 @@
 /* these enums should match kwtab in parse.c */
 enum hawk_kwid_t
 {
-	HAWK_KWID_XABORT,
+	HAWK_KWID_XABORT, /* @abort */
 	HAWK_KWID_XARGC,
 	HAWK_KWID_XARGV,
-	HAWK_KWID_XGLOBAL,
+	HAWK_KWID_XCONST, /* @const */
+	HAWK_KWID_XGLOBAL, /* @global */
 	HAWK_KWID_XINCLUDE,
 	HAWK_KWID_XINCLUDE_ONCE,
-	HAWK_KWID_XLOCAL,
+	HAWK_KWID_XLOCAL, /* @local */
 	HAWK_KWID_XNIL,
-	HAWK_KWID_XPRAGMA,
+	HAWK_KWID_XPRAGMA, /* @pragma */
 	HAWK_KWID_XRESET,
 	HAWK_KWID_BEGIN,
 	HAWK_KWID_END,

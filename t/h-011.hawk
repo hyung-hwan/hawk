@@ -1,0 +1,54 @@
+@pragma implicit off
+
+@include "tap.inc";
+
+@const C = 2 + 3;
+@global g = 10 + 20, h;
+@global g2 = g + C, g3;
+
+@const ARGC1 = @argc;
+@const ARGV1 = @argv;
+@const ARGC2 = ARGC;
+@const ARGV2 = ARGV;
+@const DONKEY = donkey() %% " fast";
+@const K1 = C * 2;
+@const K2 = "hi" %% " there";
+
+BEGIN {
+	@local x = g + C, y;
+	@local m = g2 + 1;
+	@const LOCAL = x * x;
+
+	tap_ensure(ARGC1, 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(ARGC2, 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(length(ARGV1), 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(length(ARGV2), 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(hawk::type(ARGV1), hawk::VAL_ARRAY, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(hawk::type(ARGV2), hawk::VAL_MAP, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(C, 5, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(g, 30, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(g2, 35, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(hawk::isnil(g3), 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(x, 35, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(DONKEY, "donkey runs fast", @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(LOCAL, 1225, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(K1, 10, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(K2, "hi there", @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(m, 36, @SCRIPTNAME, @SCRIPTLINE);
+
+	{
+		@local n = 4;
+		@const N2 = n * 2;
+		tap_ensure(n, 4, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure(N2, 8, @SCRIPTNAME, @SCRIPTLINE);
+	}
+
+	y = 1;
+	h = 2;
+
+	tap_end ();
+}
+
+function donkey() {
+	return "donkey" %% " runs"
+}

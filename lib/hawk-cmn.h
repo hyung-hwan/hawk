@@ -1001,8 +1001,10 @@ enum hawk_errnum_t
 	HAWK_ENOARG,    /**< no argument */
 	HAWK_EBREAK,    /**< 'break' outside a loop */
 	HAWK_ECONTINUE, /**< 'continue' outside a loop */
+	HAWK_ENEXTINIT,  /**< 'next' illegal in initialization*/
 	HAWK_ENEXTBEG,  /**< 'next' illegal in BEGIN block */
 	HAWK_ENEXTEND,  /**< 'next' illegal in END block */
+	HAWK_ENEXTFINIT, /**< 'nextfile' illegal in initialization */
 	HAWK_ENEXTFBEG, /**< 'nextfile' illegal in BEGIN block */
 	HAWK_ENEXTFEND, /**< 'nextfile' illegal in END block */
 	HAWK_EPREPST,   /**< both prefix and postfix incr/decr operator present */
@@ -1042,8 +1044,10 @@ enum hawk_errnum_t
 
 	HAWK_EARRIDXRANGE,  /**< disallowed array index range */
 	HAWK_EARRIDXMULTI,  /**< single-bracketed multidimensional array indices not allowed */
+	HAWK_ERNEXTINIT,    /**< 'next' called during initialization */
 	HAWK_ERNEXTBEG,     /**< 'next' called from BEGIN block */
 	HAWK_ERNEXTEND,     /**< 'next' called from END block */
+	HAWK_ERNEXTFINIT,   /**< 'nextfile' called during initialization */
 	HAWK_ERNEXTFBEG,    /**< 'nextfile' called from BEGIN block */
 	HAWK_ERNEXTFEND,    /**< 'nextfile' called from END block */
 	HAWK_EIOUSER,       /**< wrong user io handler implementation */

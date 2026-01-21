@@ -33,7 +33,7 @@ The library is stable, portable, and designed for projects that need a scripting
 		- [for (i in array)](#for-i-in-array)
 		- [in operator (key existence)](#in-operator-key-existence)
 		- [switch](#switch)
-		- [break / continue / return / exit](#break--continue--return--exit)
+		- [break / continue / return / exit / @abort](#break--continue--return--exit--abort)
 		- [nextfile / nextofile](#nextfile--nextofile)
 	- [Input, Output, and Pipes](#input-output-and-pipes)
 	- [Built-in Variables](#built-in-variables)
@@ -558,7 +558,7 @@ BEGIN {
 }
 ```
 
-### break / continue / return / exit
+### break / continue / return / exit / @abort
 
 ```awk
 BEGIN {
@@ -568,6 +568,30 @@ BEGIN {
 		print i
 	}
 	exit 0
+}
+```
+
+`exit` terminates a script, but `END` blocks are still executed if it's not called from an `END` block.
+
+```awk
+BEGIN {
+	print "BEGIN"
+	exit 99
+}
+END {
+	print "END" ## this is executed
+}
+```
+
+`@abort` terminates a script immediately, skipping `END` blocks if it's not called from an `END` block.
+
+```awk
+BEGIN {
+	print "BEGIN"
+	@abort 99
+}
+END {
+	print "END" ## this is not executed
 }
 ```
 

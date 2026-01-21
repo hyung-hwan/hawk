@@ -204,6 +204,8 @@ int hawk_init (hawk_t* hawk, hawk_mmgr_t* mmgr, hawk_cmgr_t* cmgr, const hawk_pr
 
 	hawk->tree.ngbls = 0;
 	hawk->tree.ngbls_base = 0;
+	hawk->tree.init = HAWK_NULL;
+	hawk->tree.init_tail = HAWK_NULL;
 	hawk->tree.begin = HAWK_NULL;
 	hawk->tree.begin_tail = HAWK_NULL;
 	hawk->tree.end = HAWK_NULL;
@@ -437,6 +439,13 @@ void hawk_clear (hawk_t* hawk)
 	hawk->tree.cur_fun.ptr = HAWK_NULL;
 	hawk->tree.cur_fun.len = 0;
 	hawk_htb_clear(hawk->tree.funs);
+
+	if (hawk->tree.init)
+	{
+		hawk_clrpt(hawk, hawk->tree.init);
+		hawk->tree.init = HAWK_NULL;
+		hawk->tree.init_tail = HAWK_NULL;
+	}
 
 	if (hawk->tree.begin)
 	{

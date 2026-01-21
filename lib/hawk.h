@@ -1666,8 +1666,8 @@ extern "C" {
 
 /**
  * The hawk_open() function creates a new #hawk_t object. The object
- * created can be passed to other hawk_xxx() functions and is valid until
- * it is destroyed with the hawk_close() function. The function saves the
+ * created can be passed to other functions and is valid until it is
+ * destroyed with the hawk_close() function. The function saves the
  * memory manager pointer while it copies the contents of the primitive
  * function structures. Therefore, you should keep the memory manager valid
  * during the whole life cycle of an hawk_t object.

@@ -114,6 +114,7 @@ struct hawk_nde_ass_t
 	int opcode;
 	hawk_nde_t* left;
 	hawk_nde_t* right;
+	hawk_uint8_t is_init;
 };
 
 /* HAWK_NDE_EXP_BIN, HAWK_NDE_EXP_UNR,
@@ -231,6 +232,7 @@ struct hawk_nde_var_t
 		hawk_oow_t idxa;
 	} id;
 	hawk_nde_t* idx; /* HAWK_NULL for non-XXXXIDX */
+	hawk_uint8_t is_const;
 };
 
 /* HAWK_NDE_FNCALL_FNC, HAWK_NDE_FNCALL_FUN, HAWK_NDE_FNCALL_VAR */
