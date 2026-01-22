@@ -296,6 +296,10 @@ libhawk_la_CPPFLAGS += $(MYSQL_CFLAGS) ## put CFLAGS in CPPFLAGS as MYSQL_CFLAGS
 libhawk_la_LIBADD += $(MYSQL_LDFLAGS) $(MYSQL_LIBS)
 endif
 
+if ENABLE_MOD_JSON_STATIC
+libhawk_la_SOURCES += ../mod/mod-json.c ../mod/mod-json.h
+endif
+
 if ENABLE_MOD_SQLITE_STATIC
 libhawk_la_SOURCES += ../mod/mod-sqlite.c ../mod/mod-sqlite.h
 libhawk_la_LIBADD += $(SQLITE_LIBS)
@@ -332,4 +336,3 @@ hawk-str.h: utl-str.m4 hawk-str.h.m4
 
 utl-str.c: utl-str.m4 utl-str.c.m4
 	m4 -I$(srcdir) $(srcdir)/utl-str.c.m4 > $(srcdir)/utl-str.c
-

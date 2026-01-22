@@ -705,6 +705,12 @@
 /* build mod/ffi statically linked into the main library */
 #undef HAWK_ENABLE_MOD_FFI_STATIC
 
+/* build mod/json */
+#undef HAWK_ENABLE_MOD_JSON
+
+/* build mod/json statically linked into the main library */
+#undef HAWK_ENABLE_MOD_JSON_STATIC
+
 /* build mod/memc */
 #undef HAWK_ENABLE_MOD_MEMC
 

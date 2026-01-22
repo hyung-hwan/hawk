@@ -54,6 +54,17 @@ libhawk_mysql_la_LIBADD = $(LIBADD_COMMON_DYNAMIC) $(MYSQL_LIBS)
 endif
 endif
 
+if ENABLE_MOD_JSON
+if !ENABLE_MOD_JSON_STATIC
+pkgmodexec_LTLIBRARIES += libhawk-json.la
+libhawk_json_la_SOURCES = mod-json.c mod-json.h
+libhawk_json_la_CPPFLAGS = $(CPPFLAGS_COMMON)
+libhawk_json_la_CFLAGS = $(CFLAGS_COMMON)
+libhawk_json_la_LDFLAGS = $(LDFLAGS_COMMON_DYNAMIC)
+libhawk_json_la_LIBADD = $(LIBADD_COMMON_DYNAMIC)
+endif
+endif
+
 if ENABLE_MOD_SED
 if !ENABLE_MOD_SED_STATIC
 pkgmodexec_LTLIBRARIES += libhawk-sed.la

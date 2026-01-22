@@ -672,6 +672,10 @@ ENABLE_MOD_SED_STATIC_FALSE
 ENABLE_MOD_SED_STATIC_TRUE
 ENABLE_MOD_SED_FALSE
 ENABLE_MOD_SED_TRUE
+ENABLE_MOD_JSON_STATIC_FALSE
+ENABLE_MOD_JSON_STATIC_TRUE
+ENABLE_MOD_JSON_FALSE
+ENABLE_MOD_JSON_TRUE
 ENABLE_MOD_MYSQL_STATIC_FALSE
 ENABLE_MOD_MYSQL_STATIC_TRUE
 ENABLE_MOD_MYSQL_FALSE
@@ -887,6 +891,7 @@ enable_mod_ffi
 enable_mod_memc
 enable_mod_mysql
 with_mysql
+enable_mod_json
 enable_mod_sed
 enable_mod_sqlite
 enable_mod_uci
@@ -1571,6 +1576,8 @@ Optional Features:
                           yes:static, no (default. auto)
   --enable-mod-mysql      enable mod/mysql. one of auto, auto:static, yes,
                           yes:static, no (default. auto)
+  --enable-mod-json       enable mod/json. one of auto, auto:static, yes,
+                          yes:static, no (default. yes:static)
   --enable-mod-sed        enable mod/sed. one of auto, auto:static, yes,
                           yes:static, no (default. yes:static)
   --enable-mod-sqlite     enable mod/sqlite. one of auto, auto:static, yes,
@@ -29021,6 +29028,79 @@ printf "%s\n" "no" >&6; }
 fi
 
 
+	# Check whether --enable-mod-json was given.
+if test ${enable_mod_json+y}
+then :
+  enableval=$enable_mod_json; enable_mod_json_is=$enableval
+else case e in #(
+  e) enable_mod_json_is=yes:static
+	 ;;
+esac
+fi
+
+	if test "x${enable_mod_json_is}" = "xauto" -o "x${enable_mod_json_is}" = "xauto:static"
+	then
+		true
+
+		if test $? -eq 0
+		then
+			enable_mod_json_is=`echo "$enable_mod_json_is" | sed 's|^auto|yes|g'`
+		else
+			enable_mod_json_is=no
+		fi
+	fi
+
+	if test "x${enable_mod_json_is}" = "xyes:static"
+	then
+		enable_mod_json_is=yes
+		if test "x${enable_static_module_is}" = "xyes"
+		then
+			enable_mod_json_static_is="yes"
+		fi
+	elif test "x${enable_mod_json_is}" = "xyes"
+	then
+		if test "x${enable_shared}" = "xno" -a "x${enable_static}" = "xyes"
+		then
+			## not configured to produce shared objects
+			enable_mod_json_static_is="yes"
+		fi
+	fi
+
+
+
+	if test "x${enable_mod_json_is}" = "xyes"
+	then
+
+printf "%s\n" "#define HAWK_ENABLE_MOD_JSON 1" >>confdefs.h
+
+	fi
+	if test "x${enable_mod_json_static_is}" = "xyes"
+	then
+
+printf "%s\n" "#define HAWK_ENABLE_MOD_JSON_STATIC 1" >>confdefs.h
+
+	fi
+	 if test "${enable_mod_json_is}" = "yes"; then
+  ENABLE_MOD_JSON_TRUE=
+  ENABLE_MOD_JSON_FALSE='#'
+else
+  ENABLE_MOD_JSON_TRUE='#'
+  ENABLE_MOD_JSON_FALSE=
+fi
+
+	 if test "${enable_mod_json_static_is}" = "yes"; then
+  ENABLE_MOD_JSON_STATIC_TRUE=
+  ENABLE_MOD_JSON_STATIC_FALSE='#'
+else
+  ENABLE_MOD_JSON_STATIC_TRUE='#'
+  ENABLE_MOD_JSON_STATIC_FALSE=
+fi
+
+
+
+
+
+
 	# Check whether --enable-mod-sed was given.
 if test ${enable_mod_sed+y}
 then :
@@ -29525,6 +29605,14 @@ Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${ENABLE_MOD_MYSQL_STATIC_TRUE}" && test -z "${ENABLE_MOD_MYSQL_STATIC_FALSE}"; then
   as_fn_error $? "conditional \"ENABLE_MOD_MYSQL_STATIC\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${ENABLE_MOD_JSON_TRUE}" && test -z "${ENABLE_MOD_JSON_FALSE}"; then
+  as_fn_error $? "conditional \"ENABLE_MOD_JSON\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${ENABLE_MOD_JSON_STATIC_TRUE}" && test -z "${ENABLE_MOD_JSON_STATIC_FALSE}"; then
+  as_fn_error $? "conditional \"ENABLE_MOD_JSON_STATIC\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${ENABLE_MOD_SED_TRUE}" && test -z "${ENABLE_MOD_SED_FALSE}"; then

@@ -18,8 +18,10 @@ distclean-local:
 	@rm -rf $(top_srcdir)/autom4te.cache
 
 clean-local:
+if ENABLE_HAWKGO
 	rm -rf $(builddir)/go.mod $(builddir)/go.sum
 	go clean -C $(srcdir) -x -modfile $(abs_srcdir)/go.mod -cache
+endif
 
 ######################################################################
 if ENABLE_HAWKGO

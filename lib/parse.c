@@ -8440,6 +8440,10 @@ int hawk_putsrcoochars (hawk_t* hawk, const hawk_ooch_t* str, hawk_oow_t len)
 #include "../mod/mod-mysql.h"
 #endif
 
+#if defined(HAWK_ENABLE_MOD_JSON_STATIC)
+#include "../mod/mod-json.h"
+#endif
+
 #if defined(HAWK_ENABLE_MOD_SED_STATIC)
 #include "../mod/mod-sed.h"
 #endif
@@ -8470,6 +8474,9 @@ static hawk_mod_desc_t static_modtab[] =
 #endif
 #if defined(HAWK_ENABLE_MOD_MYSQL_STATIC)
 	{ HAWK_T("mysql"),  hawk_mod_mysql },
+#endif
+#if defined(HAWK_ENABLE_MOD_JSON_STATIC)
+	{ HAWK_T("json"),   hawk_mod_json },
 #endif
 #if defined(HAWK_ENABLE_MOD_SED_STATIC)
 	{ HAWK_T("sed"),    hawk_mod_sed },

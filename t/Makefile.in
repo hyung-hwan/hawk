@@ -645,7 +645,8 @@ CPPFLAGS_COMMON = \
 CFLAGS_COMMON = 
 LDFLAGS_COMMON = -L$(abs_builddir)/../lib  -L$(libdir)
 LIBADD_COMMON = ../lib/libhawk.la $(LIBM)
-check_SCRIPTS = $(am__append_1) h-003.hawk h-004.hawk h-009.hawk h-010.hawk h-011.hawk
+check_SCRIPTS = $(am__append_1) h-003.hawk h-004.hawk h-009.hawk \
+	h-010.hawk h-011.hawk
 check_ERRORS = e-001.err
 EXTRA_DIST = $(check_SCRIPTS) $(check_ERRORS) tap.inc err.sh \
 	journal-toc.hawk journal-toc.in journal-toc.out journal-toc-html.out \

@@ -877,8 +877,8 @@ distclean-local:
 	@rm -rf $(top_srcdir)/autom4te.cache
 
 clean-local:
-	rm -rf $(builddir)/go.mod $(builddir)/go.sum
-	go clean -C $(srcdir) -x -modfile $(abs_srcdir)/go.mod -cache
+@ENABLE_HAWKGO_TRUE@	rm -rf $(builddir)/go.mod $(builddir)/go.sum
+@ENABLE_HAWKGO_TRUE@	go clean -C $(srcdir) -x -modfile $(abs_srcdir)/go.mod -cache
 
 @ENABLE_HAWKGO_TRUE@hawkgo.check:
 @ENABLE_HAWKGO_TRUE@	CC=$(CC) \
