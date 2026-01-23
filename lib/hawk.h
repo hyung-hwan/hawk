@@ -1429,7 +1429,7 @@ enum hawk_trait_t
 
 	HAWK_MODERN =
 		HAWK_CLASSIC | HAWK_FLEXMAP | HAWK_REXBOUND |
-		HAWK_RWPIPE | HAWK_TOLERANT | HAWK_NEXTOFILE | HAWK_NUMSTRDETECT /*| HAWK_NCMPONSTR*/
+		HAWK_RWPIPE | HAWK_TOLERANT | HAWK_NEXTOFILE /*| HAWK_NCMPONSTR*/
 };
 typedef enum hawk_trait_t hawk_trait_t;
 
@@ -3181,13 +3181,15 @@ HAWK_EXPORT hawk_val_t* hawk_rtx_makestrvalwithbchars2 (
 HAWK_EXPORT hawk_val_t* hawk_rtx_makenumorstrvalwithuchars (
 	hawk_rtx_t*       rtx,
 	const hawk_uch_t* ptr,
-	hawk_oow_t        len
+	hawk_oow_t        len,
+	int               mode
 );
 
 HAWK_EXPORT hawk_val_t* hawk_rtx_makenumorstrvalwithbchars (
 	hawk_rtx_t*       rtx,
 	const hawk_bch_t* ptr,
-	hawk_oow_t        len
+	hawk_oow_t        len,
+	int               mode
 );
 
 /* -------------------------------------------------------------------------- */
@@ -3320,13 +3322,15 @@ HAWK_EXPORT hawk_val_t* hawk_rtx_makembsvalwithbchars2 (
 HAWK_EXPORT hawk_val_t* hawk_rtx_makenumormbsvalwithuchars (
 	hawk_rtx_t*       rtx,
 	const hawk_uch_t* ptr,
-	hawk_oow_t        len
+	hawk_oow_t        len,
+	int               mode
 );
 
 HAWK_EXPORT hawk_val_t* hawk_rtx_makenumormbsvalwithbchars (
 	hawk_rtx_t*       rtx,
 	const hawk_bch_t* ptr,
-	hawk_oow_t        len
+	hawk_oow_t        len,
+	int               mode
 );
 
 

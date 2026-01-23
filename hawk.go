@@ -1049,12 +1049,12 @@ func (rtx *Rtx) NewStrVal(v string) (*Val, error) {
 	})
 }
 
-func (rtx *Rtx) NewNumOrStrVal(v string) (*Val, error) {
+func (rtx *Rtx) NewNumOrStrVal(v string, mode int) (*Val, error) {
 	return rtx.make_val(func() *C.hawk_val_t {
 		var vv *C.hawk_val_t
 		var cv *C.hawk_bch_t
 		cv = C.CString(v)
-		vv = C.hawk_rtx_makenumorstrvalwithbchars(rtx.c, cv, C.hawk_oow_t(len(v)))
+		vv = C.hawk_rtx_makenumorstrvalwithbchars(rtx.c, cv, C.hawk_oow_t(len(v)), C.int(mode))
 		C.free(unsafe.Pointer(cv))
 		return vv
 	})

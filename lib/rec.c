@@ -46,7 +46,7 @@ int hawk_rtx_setrec (hawk_rtx_t* rtx, hawk_oow_t idx, const hawk_oocs_t* str, in
 
 		if (split_record(rtx, prefer_number) <= -1) goto oops;
 
-		v = prefer_number? hawk_rtx_makenumorstrvalwithoochars(rtx, HAWK_OOECS_PTR(&rtx->inrec.line), HAWK_OOECS_LEN(&rtx->inrec.line)):  /* number or string */
+		v = prefer_number? hawk_rtx_makenumorstrvalwithoochars(rtx, HAWK_OOECS_PTR(&rtx->inrec.line), HAWK_OOECS_LEN(&rtx->inrec.line), 0):  /* number or string */
 		                   hawk_rtx_makenstrvalwithoochars(rtx, HAWK_OOECS_PTR(&rtx->inrec.line), HAWK_OOECS_LEN(&rtx->inrec.line));  /* str with nstr flag */
 
 		if (HAWK_UNLIKELY(!v)) goto oops;
@@ -305,7 +305,7 @@ static int split_record (hawk_rtx_t* rtx, int prefer_number)
 		rtx->inrec.flds[rtx->inrec.nflds].len = tok.len;
 		/*rtx->inrec.flds[rtx->inrec.nflds].val = hawk_rtx_makenstrvalwithoocs(rtx, &tok);*/
 		rtx->inrec.flds[rtx->inrec.nflds].val =
-			prefer_number? hawk_rtx_makenumorstrvalwithoochars(rtx, tok.ptr, tok.len):
+			prefer_number? hawk_rtx_makenumorstrvalwithoochars(rtx, tok.ptr, tok.len, 0):
 			               hawk_rtx_makestrvalwithoochars(rtx, tok.ptr, tok.len);
 		if (HAWK_UNLIKELY(!rtx->inrec.flds[rtx->inrec.nflds].val))
 		{
@@ -426,7 +426,7 @@ static int recomp_record_fields (hawk_rtx_t* rtx, hawk_oow_t lv, const hawk_oocs
 
 			if (hawk_ooecs_ncat(&rtx->inrec.line, str->ptr, str->len) == (hawk_oow_t)-1) return -1;
 
-			tmp = prefer_number? hawk_rtx_makenumorstrvalwithoochars(rtx, str->ptr, str->len):
+			tmp = prefer_number? hawk_rtx_makenumorstrvalwithoochars(rtx, str->ptr, str->len, 0):
 			                     hawk_rtx_makestrvalwithoochars(rtx, str->ptr, str->len);
 			if (HAWK_UNLIKELY(!tmp)) return -1;
 

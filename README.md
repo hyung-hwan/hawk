@@ -710,7 +710,7 @@ BEGIN { print length("hawk"), substr("hawk", 2, 2) }
 | rwpipe        | file   | on, off       | on      | allow the two-way pipe operator `\|&`                  |
 | striprecspc   | global | on, off       | off     | removes leading and trailing blank fields in splitting a record if FS is a regular expression mathcing all spaces |
 | stripstrspc   | global | on, off       | on      | trim leading and trailing spaces when converting a string to a number |
-| numstrdetect  | global | on, off       | on      | trim leading and trailing spaces when converting a string to a number |
+| numstrdetect  | global | on, off       | off     | trim leading and trailing spaces when converting a string to a number |
 | stack_limit   | global | number        | 5120    | specify the runtime stack size measured in the number of values |
 
 ### @pragma entry

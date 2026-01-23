@@ -261,8 +261,8 @@ static int apply_fs_and_gvs_to_rtx (hawk_rtx_t* rtx, const arg_t* arg)
 		{
 			hawk_val_t* v;
 
-			v = (arg->gvm.ptr[i].uc)? hawk_rtx_makenumorstrvalwithuchars(rtx, arg->gvm.ptr[i].value.ptr, arg->gvm.ptr[i].value.len):
-			                          hawk_rtx_makenumorstrvalwithbchars(rtx, arg->gvm.ptr[i].value.ptr, arg->gvm.ptr[i].value.len);
+			v = (arg->gvm.ptr[i].uc)? hawk_rtx_makenumorstrvalwithuchars(rtx, arg->gvm.ptr[i].value.ptr, arg->gvm.ptr[i].value.len, 1):
+			                          hawk_rtx_makenumorstrvalwithbchars(rtx, arg->gvm.ptr[i].value.ptr, arg->gvm.ptr[i].value.len, 1);
 			if (HAWK_UNLIKELY(!v)) return -1;
 
 			hawk_rtx_refupval(rtx, v);

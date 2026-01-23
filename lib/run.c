@@ -8297,7 +8297,7 @@ read_console_again:
 
 			/* treat external input numerically if it can compose a number. */
 			/*vv = hawk_rtx_makestrvalwithoocs(rtx, HAWK_OOECS_OOCS(buf));*/
-			vv = hawk_rtx_makenumorstrvalwithoochars(rtx, HAWK_OOECS_PTR(buf), HAWK_OOECS_LEN(buf));
+			vv = hawk_rtx_makenumorstrvalwithoochars(rtx, HAWK_OOECS_PTR(buf), HAWK_OOECS_LEN(buf), 0);
 			if (HAWK_UNLIKELY(!vv))
 			{
 				ADJERR_LOC(rtx, &nde->loc);
@@ -8417,7 +8417,7 @@ read_console_again:
 
 			/* treat external input numerically if it can compose a number. */
 			/*vv = hawk_rtx_makembsvalwithbcs(rtx, HAWK_BECS_BCS(buf));*/
-			vv = hawk_rtx_makenumormbsvalwithbchars(rtx, HAWK_BECS_PTR(buf), HAWK_BECS_LEN(buf));
+			vv = hawk_rtx_makenumormbsvalwithbchars(rtx, HAWK_BECS_PTR(buf), HAWK_BECS_LEN(buf), 0);
 			if (vv == HAWK_NULL)
 			{
 				ADJERR_LOC(rtx, &nde->loc);

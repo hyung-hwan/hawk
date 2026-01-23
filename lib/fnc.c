@@ -1021,8 +1021,8 @@ static int fnc_split (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, int use_array)
 		 * create a numeric value if the string is a number */
 		/*t2 = hawk_rtx_makestrvalwithoocs(rtx, &tok);*/
 		/*t2 = hawk_rtx_makenstrvalwithoocs(rtx, &tok); */
-		t2 = is_byte_str? hawk_rtx_makenumormbsvalwithbchars(rtx, (hawk_bch_t*)tok.ptr, tok.len):
-		                  hawk_rtx_makenumorstrvalwithoochars(rtx, tok.ptr, tok.len);
+		t2 = is_byte_str? hawk_rtx_makenumormbsvalwithbchars(rtx, (hawk_bch_t*)tok.ptr, tok.len, 0):
+		                  hawk_rtx_makenumorstrvalwithoochars(rtx, tok.ptr, tok.len, 0);
 		if (HAWK_UNLIKELY(!t2)) goto oops;
 
 		if (use_array)

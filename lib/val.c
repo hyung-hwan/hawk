@@ -780,7 +780,7 @@ hawk_val_t* hawk_rtx_makestrvalwithbchars2 (hawk_rtx_t* rtx, const hawk_bch_t* b
 
 /* --------------------------------------------------------------------- */
 
-hawk_val_t* hawk_rtx_makenumorstrvalwithuchars (hawk_rtx_t* rtx, const hawk_uch_t* ptr, hawk_oow_t len)
+hawk_val_t* hawk_rtx_makenumorstrvalwithuchars (hawk_rtx_t* rtx, const hawk_uch_t* ptr, hawk_oow_t len, int mode)
 {
 	int x;
 	hawk_int_t l;
@@ -788,8 +788,9 @@ hawk_val_t* hawk_rtx_makenumorstrvalwithuchars (hawk_rtx_t* rtx, const hawk_uch_
 
 	if (len == 1 && ptr[0] == '.') goto make_str;
 
-	if (HAWK_RTX_IS_NUMSTRDETECT_ON(rtx))
+	if (mode > 0 || (mode == 0 && HAWK_RTX_IS_NUMSTRDETECT_ON(rtx)))
 	{
+		// always on or auto detect
 		x = hawk_uchars_to_num(HAWK_OOCHARS_TO_NUM_MAKE_OPTION(1, 1, HAWK_RTX_IS_STRIPSTRSPC_ON(rtx), 0), ptr, len, &l, &r);
 		if (x == 0) return hawk_rtx_makeintval(rtx, l);
 		else if (x >= 1) return hawk_rtx_makefltval(rtx, r);
@@ -799,7 +800,7 @@ make_str:
 	return hawk_rtx_makestrvalwithuchars(rtx, ptr, len);
 }
 
-hawk_val_t* hawk_rtx_makenumorstrvalwithbchars (hawk_rtx_t* rtx, const hawk_bch_t* ptr, hawk_oow_t len)
+hawk_val_t* hawk_rtx_makenumorstrvalwithbchars (hawk_rtx_t* rtx, const hawk_bch_t* ptr, hawk_oow_t len, int mode)
 {
 	int x;
 	hawk_int_t l;
@@ -807,8 +808,10 @@ hawk_val_t* hawk_rtx_makenumorstrvalwithbchars (hawk_rtx_t* rtx, const hawk_bch_
 
 	if (len == 1 && ptr[0] == '.') goto make_str;
 
-	if (HAWK_RTX_IS_NUMSTRDETECT_ON(rtx))
+
+	if (mode > 0 || (mode == 0 && HAWK_RTX_IS_NUMSTRDETECT_ON(rtx)))
 	{
+		// always on or auto detect
 		x = hawk_bchars_to_num(HAWK_OOCHARS_TO_NUM_MAKE_OPTION(1, 1, HAWK_RTX_IS_STRIPSTRSPC_ON(rtx), 0), ptr, len, &l, &r);
 		if (x == 0) return hawk_rtx_makeintval(rtx, l);
 		else if (x >= 1) return hawk_rtx_makefltval(rtx, r);
@@ -817,7 +820,6 @@ hawk_val_t* hawk_rtx_makenumorstrvalwithbchars (hawk_rtx_t* rtx, const hawk_bch_
 make_str:
 	return hawk_rtx_makestrvalwithbchars(rtx, ptr, len);
 }
-
 
 /* --------------------------------------------------------------------- */
 
@@ -998,7 +1000,7 @@ hawk_val_t* hawk_rtx_makembsvalwithbchars2 (hawk_rtx_t* rtx, const hawk_bch_t* b
 
 /* --------------------------------------------------------------------- */
 
-hawk_val_t* hawk_rtx_makenumormbsvalwithuchars (hawk_rtx_t* rtx, const hawk_uch_t* ptr, hawk_oow_t len)
+hawk_val_t* hawk_rtx_makenumormbsvalwithuchars (hawk_rtx_t* rtx, const hawk_uch_t* ptr, hawk_oow_t len, int mode)
 {
 	int x;
 	hawk_int_t l;
@@ -1006,7 +1008,7 @@ hawk_val_t* hawk_rtx_makenumormbsvalwithuchars (hawk_rtx_t* rtx, const hawk_uch_
 
 	if (len == 1 && ptr[0] == '.') goto make_str;
 
-	if (HAWK_RTX_IS_NUMSTRDETECT_ON(rtx))
+	if (mode > 0 || (mode == 0 && HAWK_RTX_IS_NUMSTRDETECT_ON(rtx)))
 	{
 		x = hawk_uchars_to_num(HAWK_OOCHARS_TO_NUM_MAKE_OPTION(1, 1, HAWK_RTX_IS_STRIPSTRSPC_ON(rtx), 0), ptr, len, &l, &r);
 		if (x == 0) return hawk_rtx_makeintval(rtx, l);
@@ -1017,7 +1019,7 @@ make_str:
 	return hawk_rtx_makembsvalwithuchars(rtx, ptr, len);
 }
 
-hawk_val_t* hawk_rtx_makenumormbsvalwithbchars (hawk_rtx_t* rtx, const hawk_bch_t* ptr, hawk_oow_t len)
+hawk_val_t* hawk_rtx_makenumormbsvalwithbchars (hawk_rtx_t* rtx, const hawk_bch_t* ptr, hawk_oow_t len, int mode)
 {
 	int x;
 	hawk_int_t l;
@@ -1025,7 +1027,7 @@ hawk_val_t* hawk_rtx_makenumormbsvalwithbchars (hawk_rtx_t* rtx, const hawk_bch_
 
 	if (len == 1 && ptr[0] == '.') goto make_str;
 
-	if (HAWK_RTX_IS_NUMSTRDETECT_ON(rtx))
+	if (mode > 0 || (mode == 0 && HAWK_RTX_IS_NUMSTRDETECT_ON(rtx)))
 	{
 		x = hawk_bchars_to_num(HAWK_OOCHARS_TO_NUM_MAKE_OPTION(1, 1, HAWK_RTX_IS_STRIPSTRSPC_ON(rtx), 0), ptr, len, &l, &r);
 		if (x == 0) return hawk_rtx_makeintval(rtx, l);

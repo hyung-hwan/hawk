@@ -2790,7 +2790,7 @@ static int build_argcv (hawk_rtx_t* rtx, int argc_id, int argv_id, const hawk_oo
 		{
 			/* the argument must compose a numeric value if possible */
 			/*v_tmp = hawk_rtx_makenstrvalwithoocstr(rtx, *p); */
-			v_tmp = hawk_rtx_makenumorstrvalwithoochars(rtx, *p, hawk_count_oocstr(*p));
+			v_tmp = hawk_rtx_makenumorstrvalwithoochars(rtx, *p, hawk_count_oocstr(*p), 1);
 			if (HAWK_UNLIKELY(!v_tmp))
 			{
 				hawk_rtx_refdownval(rtx, v_argv);
@@ -2921,7 +2921,7 @@ static int build_environ (hawk_rtx_t* rtx, int gbl_id, env_char_t* envarr[])
 			/* the string in ENVIRON should be a numeric value if
 			 * it can be converted to a number.
 			 *v_tmp = hawk_rtx_makenstrvalwithoocstr(rtx, vptr);*/
-			v_tmp = hawk_rtx_makenumorstrvalwithoochars(rtx, vptr, vlen);
+			v_tmp = hawk_rtx_makenumorstrvalwithoochars(rtx, vptr, vlen, 1);
 			if (HAWK_UNLIKELY(!v_tmp))
 			{
 		#if ((defined(ENV_CHAR_IS_BCH) && defined(HAWK_OOCH_IS_BCH)) || \

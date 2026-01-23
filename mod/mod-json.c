@@ -146,7 +146,7 @@ static int build_value (hawk_json_t* json, hawk_json_inst_t inst, const hawk_ooc
 			break;
 
 		case HAWK_JSON_INST_NUMBER:
-			val = hawk_rtx_makenumorstrvalwithoochars(rtx, str->ptr, str->len);
+			val = hawk_rtx_makenumorstrvalwithoochars(rtx, str->ptr, str->len, 1);
 			if (!val) goto oops;
 			break;
 

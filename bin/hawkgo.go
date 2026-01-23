@@ -165,7 +165,7 @@ func run_script(h *hawk.Hawk, fs_idx int, data_idx int, cfg* Config, rtx_chan ch
 		for k, v = range cfg.assigns {
 			if v.idx >= 0  {
 				var vv *hawk.Val
-				vv, err = rtx.NewNumOrStrVal(v.value)
+				vv, err = rtx.NewNumOrStrVal(v.value, 1)
 				if err != nil {
 					err = fmt.Errorf("failed to convert value '%s' for global variable '%s' - %s", v.value, k, err.Error())
 					goto oops
