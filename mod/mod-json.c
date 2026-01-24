@@ -277,7 +277,7 @@ static int fnc_parse (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	x = hawk_json_feed(json, ptr, len, &xlen);
 	hawk_rtx_freevaloocstr(rtx, arg, ptr);
 
-	if (x <= -1 || x == 0 || xlen != len || hawk_json_getstate(json) != HAWK_JSON_STATE_START || ctx->top)
+	if (x <= -1 || xlen != len || hawk_json_getstate(json) != HAWK_JSON_STATE_START || ctx->top)
 	{
 		hawk_errnum_t errnum;
 		const hawk_ooch_t* errmsg;

@@ -416,15 +416,21 @@ BEGIN {
 
 - Variables are created on assignment.
 - `@local` and `@global` declare scope explicitly.
+- `@const` defines a compile-time constant evaluated at parse time.
+
+You can initialize `@global` and `@local` at declaration time. Initializers are expressions and can reference earlier constants and globals. `@const` values are fixed and cannot be reassigned.
 
 Example:
 
 ```awk
-@global g
+@const C = 5
+@global g = 10 + C, h
 BEGIN {
-	@local x
+	@local x = g + 1, y
+	print x, g
 	x = 1
 	g = 2
+	print x, g
 }
 ```
 
@@ -864,6 +870,7 @@ The following words are reserved and cannot be used as a variable name, a parame
  - @abort
  - @argc
  - @argv
+ - @const
  - @global
  - @include
  - @include_once

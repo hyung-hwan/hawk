@@ -1,0 +1,45 @@
+@pragma implicit off
+
+@include "tap.inc";
+
+BEGIN {
+	@local v, v2,  m, m2, js;
+
+
+	v = json::parse("{\"a\":1,\"b\":true,\"c\":null,\"d\":[2,3],\"e\":{\"x\":\"y\"}}");
+
+	tap_ensure(hawk::type(v), hawk::VAL_MAP, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(v.a, 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(v.b, 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(hawk::isnil(v.c), 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(hawk::type(v.d), hawk::VAL_ARRAY, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(v.d[1], 2, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(v.d[2], 3, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(v.e.x, "y", @SCRIPTNAME, @SCRIPTLINE);
+
+	m = hawk::map();
+	m["name"] = "hawk";
+	m["count"] = 3;
+	m["flags"] = hawk::array();
+	m["flags"][1] = "fast";
+	m["flags"][2] = "small";
+	m["nested"] = hawk::map();
+	m["nested"]["ok"] = 1;
+	m["nested"]["note"] = "hello\n\"world\"";
+
+	js = json::stringify(m);
+	m2 = json::parse(js);
+
+	tap_ensure(m2.name, "hawk", @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(m2.count, 3, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(m2.flags[1], "fast", @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(m2.flags[2], "small", @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(m2.nested.ok, 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(m2.nested.note, "hello\n\"world\"", @SCRIPTNAME, @SCRIPTLINE);
+
+	v2 = json::parse("{\"a\":{\"b\":{\"c\":1}}}");
+	tap_ensure(v2.a.b.c, 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(v2["a"].b["c"], 1, @SCRIPTNAME, @SCRIPTLINE);
+
+	tap_end();
+}

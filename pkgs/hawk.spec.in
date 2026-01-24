@@ -33,7 +33,7 @@ BuildRequires: libmemcached-devel%{?_isa} >= 1.0.18
 
 %if %{enable_mod_mysql}
 
-%if 0%{?fedora} > 22
+%if 0%{?fedora} >= 23 || 0%{?rhel} >= 8
 BuildRequires: mariadb-connector-c-devel%{?_isa}
 %else
 
@@ -95,7 +95,7 @@ Summary: Hawk mysql module
 Group: System Environment/Libraries
 Requires: %{name}-libs%{?_isa} = %{version}
 
-%if 0%{?fedora} > 22
+%if 0%{?fedora} >= 23 || 0%{?rhel} >= 8
 Requires: mariadb-connector-c%{?_isa}
 %else
 
@@ -103,7 +103,7 @@ Requires: mariadb-connector-c%{?_isa}
 Requires: libmariadb%{?_isa}
 %else
 ## tricky to specify the right mysql/mariadb client library.
-Requires:
+##Requires:
 %endif
 
 %endif

@@ -122,7 +122,7 @@ enum tok_t
 	TOK_QUEST,
 	TOK_ELLIPSIS,
 	TOK_DBLPERIOD, /* not used yet */
-	TOK_PERIOD, /* not used yet */
+	TOK_PERIOD,
 	TOK_ATBRACK, /* @[ */
 	TOK_ATBRACE, /* @{ */
 
@@ -207,8 +207,8 @@ struct binmap_t
 	int binop;
 };
 
-typedef struct init_chain_t init_chain_t;
-struct init_chain_t
+typedef struct nde_chain_t nde_chain_t;
+struct nde_chain_t
 {
 	hawk_nde_t* head;
 	hawk_nde_t* tail;
@@ -217,9 +217,9 @@ struct init_chain_t
 static int parse_progunit (hawk_t* hawk);
 static void adjust_static_globals (hawk_t* hawk);
 static hawk_oow_t find_global (hawk_t* hawk, const hawk_oocs_t* name);
-static hawk_t* collect_globals (hawk_t* hawk, init_chain_t* init, int is_const);
-static hawk_t* collect_locals (hawk_t* hawk, hawk_oow_t nlcls, int flags, init_chain_t* init, int is_const);
-static int append_init_stmts_to_init_tree (hawk_t* hawk, init_chain_t* init, const hawk_loc_t* xloc);
+static hawk_t* collect_globals (hawk_t* hawk, nde_chain_t* init, int is_const);
+static hawk_t* collect_locals (hawk_t* hawk, hawk_oow_t nlcls, int flags, nde_chain_t* init, int is_const);
+static int append_init_stmts_to_init_tree (hawk_t* hawk, nde_chain_t* init, const hawk_loc_t* xloc);
 
 static hawk_nde_t* parse_function (hawk_t* hawk);
 static hawk_nde_t* parse_begin (hawk_t* hawk);
@@ -253,6 +253,7 @@ static hawk_nde_t* parse_primary (hawk_t* hawk, const hawk_loc_t* xloc);
 static hawk_nde_t* parse_primary_ident (hawk_t* hawk, const hawk_loc_t* xloc);
 static hawk_nde_t* parse_primary_literal (hawk_t* hawk, const hawk_loc_t* xloc);
 static hawk_nde_t* parse_hashidx (hawk_t* hawk, const hawk_oocs_t* name, const hawk_loc_t* xloc);
+static hawk_nde_t* parse_dotidx (hawk_t* hawk, const hawk_oocs_t* name, const hawk_loc_t* xloc);
 
 #define FNCALL_FLAG_NOARG (1 << 0) /* no argument */
 #define FNCALL_FLAG_VAR   (1 << 1)
@@ -964,7 +965,7 @@ static int parse_progunit (hawk_t* hawk)
 	{
 		hawk_oow_t ngbls;
 		hawk_loc_t gloc;
-		init_chain_t init = { HAWK_NULL, HAWK_NULL };
+		nde_chain_t init = { HAWK_NULL, HAWK_NULL };
 
 		hawk->parse.id.block = PARSE_GBL;
 		gloc = hawk->tok.loc;
@@ -993,7 +994,7 @@ static int parse_progunit (hawk_t* hawk)
 	{
 		hawk_oow_t ngbls;
 		hawk_loc_t cloc;
-		init_chain_t init = { HAWK_NULL, HAWK_NULL };
+		nde_chain_t init = { HAWK_NULL, HAWK_NULL };
 
 		hawk->parse.id.block = PARSE_GBL;
 		cloc = hawk->tok.loc;
@@ -1744,9 +1745,9 @@ static hawk_chain_t* parse_action_block (hawk_t* hawk, hawk_nde_t* ptn, int bloc
 	return chain;
 }
 
-static int parse_block_head (hawk_t* hawk, int flags, init_chain_t* inits)
+static int parse_block_head (hawk_t* hawk, int flags, nde_chain_t* inits)
 {
-	init_chain_t local_inits = { HAWK_NULL, HAWK_NULL };
+	nde_chain_t local_inits = { HAWK_NULL, HAWK_NULL };
 	hawk_oow_t nlcls_outer;
 
 	nlcls_outer = HAWK_ARR_SIZE(hawk->parse.lcls);
@@ -1785,7 +1786,7 @@ static int parse_block_head (hawk_t* hawk, int flags, init_chain_t* inits)
 		}
 		else if (MATCH(hawk,TOK_XLOCAL))
 		{
-			init_chain_t init = { HAWK_NULL, HAWK_NULL };
+			nde_chain_t init = { HAWK_NULL, HAWK_NULL };
 
 			/* @local ... */
 			if (get_token(hawk) <= -1)
@@ -1809,7 +1810,7 @@ static int parse_block_head (hawk_t* hawk, int flags, init_chain_t* inits)
 		}
 		else if (MATCH(hawk,TOK_XCONST))
 		{
-			init_chain_t init = { HAWK_NULL, HAWK_NULL };
+			nde_chain_t init = { HAWK_NULL, HAWK_NULL };
 
 			/* @const ... */
 			if (get_token(hawk) <= -1)
@@ -1847,7 +1848,7 @@ static hawk_nde_t* parse_block (hawk_t* hawk, const hawk_loc_t* xloc, int flags)
 	hawk_nde_t* head, * curr, * nde;
 	hawk_nde_blk_t* block;
 	hawk_oow_t nlcls_outer, nlcls_max, tmp;
-	init_chain_t local_inits = { HAWK_NULL, HAWK_NULL };
+	nde_chain_t local_inits = { HAWK_NULL, HAWK_NULL };
 
 	nlcls_outer = HAWK_ARR_SIZE(hawk->parse.lcls);
 	nlcls_max = hawk->parse.nlcls_max;
@@ -2525,7 +2526,7 @@ static hawk_nde_t* make_init_assignment (
 	return (hawk_nde_t*)ass;
 }
 
-static int append_init_stmt_to_init_chain (init_chain_t* init, hawk_nde_t* stmt)
+static int append_init_stmt_to_init_chain (nde_chain_t* init, hawk_nde_t* stmt)
 {
 	/* append a single init assignment statement to the given list */
 	HAWK_ASSERT(stmt != HAWK_NULL);
@@ -2538,7 +2539,7 @@ static int append_init_stmt_to_init_chain (init_chain_t* init, hawk_nde_t* stmt)
 	return 0;
 }
 
-static int append_init_stmts_to_init_tree (hawk_t* hawk, init_chain_t* init, const hawk_loc_t* xloc)
+static int append_init_stmts_to_init_tree (hawk_t* hawk, nde_chain_t* init, const hawk_loc_t* xloc)
 {
 	HAWK_ASSERT(init->head != HAWK_NULL);
 
@@ -2576,9 +2577,9 @@ static int append_init_stmts_to_init_tree (hawk_t* hawk, init_chain_t* init, con
 }
 
 
-static hawk_t* collect_globals (hawk_t* hawk, init_chain_t* init, int is_const)
+static hawk_t* collect_globals (hawk_t* hawk, nde_chain_t* init, int is_const)
 {
-	init_chain_t new_init = { HAWK_NULL, HAWK_NULL };
+	nde_chain_t new_init = { HAWK_NULL, HAWK_NULL };
 
 	if (MATCH(hawk,TOK_NEWLINE))
 	{
@@ -2679,9 +2680,9 @@ oops:
 	return HAWK_NULL;
 }
 
-static hawk_t* collect_locals (hawk_t* hawk, hawk_oow_t nlcls, int flags, init_chain_t* init, int is_const)
+static hawk_t* collect_locals (hawk_t* hawk, hawk_oow_t nlcls, int flags, nde_chain_t* init, int is_const)
 {
-	init_chain_t new_init = { HAWK_NULL, HAWK_NULL };
+	nde_chain_t new_init = { HAWK_NULL, HAWK_NULL };
 
 	if (MATCH(hawk,TOK_NEWLINE))
 	{
@@ -6323,6 +6324,10 @@ static hawk_nde_t* parse_primary_ident_noseg (hawk_t* hawk, const hawk_loc_t* xl
 	{
 		nde = parse_hashidx(hawk, name, xloc);
 	}
+	else if (MATCH(hawk,TOK_PERIOD))
+	{
+		nde = parse_dotidx(hawk, name, xloc);
+	}
 	else if ((idxa = hawk_arr_rsearch(hawk->parse.lcls, HAWK_ARR_SIZE(hawk->parse.lcls), name->ptr, name->len)) != HAWK_ARR_NIL)
 	{
 		/* local variable */
@@ -6607,90 +6612,104 @@ static hawk_nde_t* parse_primary_ident (hawk_t* hawk, const hawk_loc_t* xloc)
 	return nde;
 }
 
-static hawk_nde_t* parse_hashidx (hawk_t* hawk, const hawk_oocs_t* name, const hawk_loc_t* xloc)
+static hawk_nde_t* make_str_node_from_ident (hawk_t* hawk, const hawk_ooecs_t* name, const hawk_loc_t* xloc)
 {
-	hawk_nde_t* idx, * tmp, * last;
-	hawk_nde_var_t* nde;
-	hawk_oow_t idxa;
+	hawk_nde_str_t* nde;
 
-	idx = HAWK_NULL;
-	last = HAWK_NULL;
-
-#if defined(HAWK_ENABLE_GC)
-more_idx:
-#endif
-	do
+	nde = (hawk_nde_str_t*)hawk_callocmem(hawk, HAWK_SIZEOF(*nde));
+	if (HAWK_UNLIKELY(!nde))
 	{
-		if (get_token(hawk) <= -1)
-		{
-			if (idx) hawk_clrpt(hawk, idx);
-			return HAWK_NULL;
-		}
+		ADJERR_LOC(hawk, xloc);
+		return HAWK_NULL;
+	}
 
+	nde->type = HAWK_NDE_STR;
+	nde->loc = *xloc;
+	nde->len = HAWK_OOECS_LEN(name);
+	nde->ptr = hawk_dupoocs(hawk, HAWK_OOECS_OOCS(name));
+	if (HAWK_UNLIKELY(!nde->ptr))
+	{
+		hawk_freemem(hawk, nde);
+		return HAWK_NULL;
+	}
+
+	return (hawk_nde_t*)nde;
+}
+
+static int parse_single_idx (hawk_t* hawk, nde_chain_t* idx)
+{
+	nde_chain_t newidx = { HAWK_NULL, HAWK_NULL };
+
+	if (MATCH(hawk, TOK_LBRACK))
+	{
+		hawk_nde_t* tmp;
+		hawk_loc_t eloc;
+
+		/* [] may contain a grouped index separated by a comma.
+		 * for example, a[1,3,"kk"]. looping is required */
+		do
 		{
-			hawk_loc_t eloc;
+			if (get_token(hawk) <= -1) goto oops;
+
 			eloc = hawk->tok.loc;
 			tmp = parse_expr_withdc(hawk, &eloc);
-		}
-		if (HAWK_UNLIKELY(!tmp))
-		{
-			if (idx) hawk_clrpt(hawk, idx);
-			return HAWK_NULL;
-		}
+			if (HAWK_UNLIKELY(!tmp)) goto oops;
 
-		if (!idx)
-		{
-			/* this is the first item */
-			HAWK_ASSERT(last == HAWK_NULL);
-			idx = tmp;
-			last = tmp;
+			if (!newidx.head) newidx.head = tmp;
+			else newidx.tail->next = tmp;
+			newidx.tail = tmp;
 		}
-		else
+		while (MATCH(hawk, TOK_COMMA));
+
+		if (!MATCH(hawk, TOK_RBRACK))
 		{
-			/* not the first item. append it */
-			last->next = tmp;
-			last = tmp;
+			hawk_seterrfmt(hawk,  &hawk->tok.loc, HAWK_ERBRACK, FMT_ERBRACK, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
+			goto oops;
 		}
 	}
-	while (MATCH(hawk,TOK_COMMA));
-
-	HAWK_ASSERT(idx != HAWK_NULL);
-
-	if (!MATCH(hawk,TOK_RBRACK))
+	else
 	{
-		hawk_clrpt(hawk, idx);
-		hawk_seterrfmt(hawk,  &hawk->tok.loc, HAWK_ERBRACK, FMT_ERBRACK, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
-		return HAWK_NULL;
-	}
+		hawk_nde_t* tmp;
+		hawk_loc_t eloc;
 
-	if (get_token(hawk) <= -1)
-	{
-		hawk_clrpt(hawk, idx);
-		return HAWK_NULL;
-	}
+		HAWK_ASSERT(MATCH(hawk, TOK_PERIOD));
 
-#if defined(HAWK_ENABLE_GC)
-	if (MATCH(hawk,TOK_LBRACK))
-	{
-		/* additional index - a[10][20] ...
-		 * use the NULL node as a splitter */
-		tmp = (hawk_nde_t*)hawk_callocmem(hawk, HAWK_SIZEOF(*tmp));
-		if (HAWK_UNLIKELY(!tmp))
+		if (get_token(hawk) <= -1) goto oops;
+		eloc = hawk->tok.loc;
+
+		if (!MATCH(hawk, TOK_IDENT))
 		{
-			hawk_clrpt(hawk, idx);
-			ADJERR_LOC(hawk, xloc);
-			return HAWK_NULL;
+			hawk_seterrfmt(hawk,  &hawk->tok.loc, HAWK_EIDENT, FMT_EIDENT, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
+			goto oops;
 		}
-		tmp->type = HAWK_NDE_NULL;
 
-		HAWK_ASSERT(idx != HAWK_NULL);
-		HAWK_ASSERT(last != HAWK_NULL);
+		tmp = make_str_node_from_ident(hawk, hawk->tok.name, &eloc);
+		if (HAWK_UNLIKELY(!tmp)) goto oops;
 
-		last->next = tmp;
-		last = tmp;
-		goto more_idx;
+		if (!newidx.head) newidx.head = tmp;
+		else newidx.tail->next = tmp;
+		newidx.tail = tmp;
+
 	}
-#endif
+
+	if (get_token(hawk) <= -1) goto oops;
+
+	/* append it the outer index chain */
+	if (!idx->head) idx->head = newidx.head;
+	else idx->tail->next = newidx.head;
+	idx->tail = newidx.tail;
+
+	return 0;
+
+oops:
+	if (newidx.head) hawk_clrpt(hawk, newidx.head);
+	return -1;
+}
+
+static hawk_nde_t* finalize_hashidx (hawk_t* hawk, const hawk_oocs_t* name, const hawk_loc_t* xloc, hawk_nde_t* idx)
+{
+	hawk_nde_var_t* nde;
+	hawk_oow_t idxa;
 
 	nde = (hawk_nde_var_t*)hawk_callocmem(hawk, HAWK_SIZEOF(*nde));
 	if (HAWK_UNLIKELY(!nde))
@@ -6806,6 +6825,57 @@ exit_func:
 	hawk_freemem(hawk, nde);
 
 	return HAWK_NULL;
+}
+
+static hawk_nde_t* parse_hashidx_common (hawk_t* hawk, const hawk_oocs_t* name, const hawk_loc_t* xloc)
+{
+	nde_chain_t idx = { HAWK_NULL, HAWK_NULL };
+
+	if (parse_single_idx(hawk, &idx) <= -1) goto oops;
+
+	HAWK_ASSERT(idx.head != HAWK_NULL);
+
+#if defined(HAWK_ENABLE_GC)
+	while (MATCH(hawk, TOK_LBRACK) || MATCH(hawk, TOK_PERIOD))
+	{
+		hawk_nde_t* tmp;
+
+		/* additional index - a[10][20] or a.b.c ...
+		 * use the NULL node as a splitter */
+		tmp = (hawk_nde_t*)hawk_callocmem(hawk, HAWK_SIZEOF(*tmp));
+		if (HAWK_UNLIKELY(!tmp))
+		{
+			ADJERR_LOC(hawk, xloc);
+			goto oops;
+		}
+
+		tmp->type = HAWK_NDE_NULL;
+
+		HAWK_ASSERT(idx.tail != HAWK_NULL);
+		idx.tail->next = tmp;
+		idx.tail = tmp;
+
+		if (parse_single_idx(hawk, &idx) <= -1) goto oops;
+	}
+#endif
+
+	return finalize_hashidx(hawk, name, xloc, idx.head);
+
+oops:
+	if (idx.head) hawk_clrpt(hawk, idx.head);
+	return HAWK_NULL;
+}
+
+static hawk_nde_t* parse_hashidx (hawk_t* hawk, const hawk_oocs_t* name, const hawk_loc_t* xloc)
+{
+	HAWK_ASSERT(MATCH(hawk, TOK_LBRACK));
+	return parse_hashidx_common(hawk, name, xloc);
+}
+
+static hawk_nde_t* parse_dotidx (hawk_t* hawk, const hawk_oocs_t* name, const hawk_loc_t* xloc)
+{
+	HAWK_ASSERT(MATCH(hawk, TOK_PERIOD));
+	return parse_hashidx_common(hawk, name, xloc);
 }
 
 static hawk_nde_t* parse_fncall (hawk_t* hawk, const hawk_oocs_t* name, hawk_fnc_t* fnc, const hawk_loc_t* xloc, int flags, int closer_token)

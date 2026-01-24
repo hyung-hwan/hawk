@@ -127,12 +127,12 @@ static void pop_state (hawk_json_t* json)
 	}
 
 /* TODO: don't free this. move it to the free list? */
-	hawk_json_freemem (json, ss);
+	hawk_json_freemem(json, ss);
 }
 
 static void pop_all_states (hawk_json_t* json)
 {
-	while (json->state_stack != &json->state_top) pop_state (json);
+	while (json->state_stack != &json->state_top) pop_state(json);
 }
 
 /* ========================================================================= */
@@ -256,7 +256,7 @@ static int handle_string_value_char (hawk_json_t* json, hawk_ooci_t c)
 	}
 	else if (c == '\"')
 	{
-		pop_state (json);
+		pop_state(json);
 		if (invoke_data_inst(json, HAWK_JSON_INST_STRING) <= -1) return -1;
 	}
 	else
@@ -352,7 +352,7 @@ static int handle_character_value_char (hawk_json_t* json, hawk_ooci_t c)
 	}
 	else if (c == '\'')
 	{
-		pop_state (json);
+		pop_state(json);
 
 		if (json->tok.len < 1)
 		{
@@ -390,7 +390,7 @@ static int handle_numeric_value_char (hawk_json_t* json, hawk_ooci_t c)
 		return 1;
 	}
 
-	pop_state (json);
+	pop_state(json);
 
 	HAWK_ASSERT(json->tok.len > 0);
 	if (!hawk_is_ooch_digit(json->tok.ptr[json->tok.len - 1]))
@@ -412,7 +412,7 @@ static int handle_word_value_char (hawk_json_t* json, hawk_ooci_t c)
 		return 1;
 	}
 
-	pop_state (json);
+	pop_state(json);
 
 	if (hawk_comp_oochars_bcstr(json->tok.ptr, json->tok.len, "null", 0) == 0) inst = HAWK_JSON_INST_NIL;
 	else if (hawk_comp_oochars_bcstr(json->tok.ptr, json->tok.len, "true", 0) == 0) inst = HAWK_JSON_INST_TRUE;
@@ -462,7 +462,7 @@ static int handle_char_in_array (hawk_json_t* json, hawk_ooci_t c)
 	if (c == ']')
 	{
 		if (json->prim.instcb(json, HAWK_JSON_INST_END_ARRAY, HAWK_NULL) <= -1) return -1;
-		pop_state (json);
+		pop_state(json);
 		return 1;
 	}
 	else if (c == ',')
@@ -491,13 +491,13 @@ static int handle_char_in_array (hawk_json_t* json, hawk_ooci_t c)
 		if (c == '\"')
 		{
 			if (push_state(json, HAWK_JSON_STATE_IN_STRING_VALUE) <= -1) return -1;
-			clear_token (json);
+			clear_token(json);
 			return 1;
 		}
 		else if (c == '\'')
 		{
 			if (push_state(json, HAWK_JSON_STATE_IN_CHARACTER_VALUE) <= -1) return -1;
-			clear_token (json);
+			clear_token(json);
 			return 1;
 		}
 		/* TOOD: else if (c == '#') HCL radixed number
@@ -505,14 +505,14 @@ static int handle_char_in_array (hawk_json_t* json, hawk_ooci_t c)
 		else if (hawk_is_ooch_digit(c) || c == '+' || c == '-')
 		{
 			if (push_state(json, HAWK_JSON_STATE_IN_NUMERIC_VALUE) <= -1) return -1;
-			clear_token (json);
+			clear_token(json);
 			json->state_stack->u.nv.dotted = 0;
 			return 0; /* start over */
 		}
 		else if (hawk_is_ooch_alpha(c))
 		{
 			if (push_state(json, HAWK_JSON_STATE_IN_WORD_VALUE) <= -1) return -1;
-			clear_token (json);
+			clear_token(json);
 			return 0; /* start over */
 		}
 		else if (c == '[')
@@ -542,7 +542,7 @@ static int handle_char_in_dic (hawk_json_t* json, hawk_ooci_t c)
 	if (c == '}')
 	{
 		if (json->prim.instcb(json, HAWK_JSON_INST_END_DIC, HAWK_NULL) <= -1) return -1;
-		pop_state (json);
+		pop_state(json);
 		return 1;
 	}
 	else if (c == ':')
@@ -586,13 +586,13 @@ static int handle_char_in_dic (hawk_json_t* json, hawk_ooci_t c)
 		if (c == '\"')
 		{
 			if (push_state(json, HAWK_JSON_STATE_IN_STRING_VALUE) <= -1) return -1;
-			clear_token (json);
+			clear_token(json);
 			return 1;
 		}
 		else if (c == '\'')
 		{
 			if (push_state(json, HAWK_JSON_STATE_IN_CHARACTER_VALUE) <= -1) return -1;
-			clear_token (json);
+			clear_token(json);
 			return 1;
 		}
 		/* TOOD: else if (c == '#') HCL radixed number
@@ -600,14 +600,14 @@ static int handle_char_in_dic (hawk_json_t* json, hawk_ooci_t c)
 		else if (hawk_is_ooch_digit(c) || c == '+' || c == '-')
 		{
 			if (push_state(json, HAWK_JSON_STATE_IN_NUMERIC_VALUE) <= -1) return -1;
-			clear_token (json);
+			clear_token(json);
 			json->state_stack->u.nv.dotted = 0;
 			return 0; /* start over */
 		}
 		else if (hawk_is_ooch_alpha(c))
 		{
 			if (push_state(json, HAWK_JSON_STATE_IN_WORD_VALUE) <= -1) return -1;
-			clear_token (json);
+			clear_token(json);
 			return 0; /* start over */
 		}
 		else if (c == '[')
@@ -938,7 +938,7 @@ hawk_json_state_t hawk_json_getstate (hawk_json_t* json)
 void hawk_json_reset (hawk_json_t* json)
 {
 	/* TODO: reset XXXXXXXXXXXXXXXXXXXXXXXXXXXxxxxx */
-	pop_all_states (json);
+	pop_all_states(json);
 	HAWK_ASSERT(json->state_stack == &json->state_top);
 	json->state_stack->state = HAWK_JSON_STATE_START;
 }

@@ -2058,11 +2058,17 @@ static hawk_ooi_t pio_handler_open (hawk_rtx_t* rtx, hawk_rio_arg_t* riod)
 		return -1;
 	}
 
+	/* specify HAWK_PIO_NOCLOEXEC by default so that open file descriptors are inherited to
+	 * child processes. i saw some shell scripts and awk scripts relying on inherited file
+	 * descriptors.
+	 *   { hawk 'BEGIN { print "hello" | "cat >&3" }'; }  3>/tmp/x.log
+	 * To keep this kind of behavior, i arrange to keep file descriptors open upon exec.
+	 */
 	handle = hawk_pio_open(
 		hawk_rtx_getgem(rtx),
 		0,
 		riod->name,
-		flags | HAWK_PIO_SHELL | HAWK_PIO_TEXT | HAWK_PIO_IGNOREECERR
+		flags | HAWK_PIO_SHELL | HAWK_PIO_TEXT | HAWK_PIO_IGNOREECERR | HAWK_PIO_NOCLOEXEC
 	);
 	if (handle == HAWK_NULL) return -1;
 
