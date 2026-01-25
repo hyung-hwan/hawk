@@ -1,0 +1,53 @@
+@pragma entry main
+@pragma implicit off
+@pragma pedantic on
+
+@include "tap.inc";
+
+function read_file(path)
+{
+	@local f, data, buf;
+
+	data = "";
+	f = sys::open(path, sys::O_RDONLY);
+	if (f <= -1) return @nil;
+
+	while (sys::read(f, buf, 4096) > 0) data = data %% buf;
+	sys::close(f);
+	return data;
+}
+
+function run_pipe_test(label, prog, expect)
+{
+	@local out, cmd, data;
+
+	out = sprintf("/tmp/hawk-pipecloexec-%s-%d.log", label, sys::getpid());
+	cmd = sprintf("%s '%s' 3>%s 2>/dev/null", ARGV[0], prog, out);
+	system(cmd);
+
+	data = read_file(out);
+	if (hawk::isnil(data)) data = "";
+
+	if (data === expect)
+	{
+		tap_ok(sprintf("%s[%d] %s", @SCRIPTNAME, @SCRIPTLINE, label));
+	}
+	else
+	{
+		tap_fail(sprintf("%s[%d] %s expected '%s' got '%s'", @SCRIPTNAME, @SCRIPTLINE, label, expect, data));
+	}
+
+	sys::unlink(out);
+}
+
+function main()
+{
+	## if PIPCLOEXEC is turned on, the file descriptor created by the shell (3> in run_pipe_test)
+	## doesn't get inherited to the 'cat' commands in the following text
+
+	run_pipe_test("inherit-default", "BEGIN { print \"hello\" | \"cat >&3\" }", "hello\n");
+	run_pipe_test("cloexec-global", "BEGIN { PIPECLOEXEC = 1; print \"hello\" | \"cat >&3\" }", "");
+	run_pipe_test("cloexec-pragma", "@pragma pipecloexec on\nBEGIN { print \"hello\" | \"cat >&3\" }", "");
+
+	tap_end();
+}

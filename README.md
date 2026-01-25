@@ -708,15 +708,16 @@ BEGIN { print length("hawk"), substr("hawk", 2, 2) }
 
 `@pragma` controls parser/runtime behavior. File-scope pragmas apply per file; global-scope pragmas appear once across all files.
 
-| Name          | Scope  | Values        | Default | Description                                            |
-|---------------|--------|---------------|---------|--------------------------------------------------------|
-| entry         | global | function name |         | change the program entry point                         |
-| implicit      | file   | on, off       | on      | allow undeclared variables                             |
-| multilinestr  | file   | on, off       | off     | allow a multiline string literal without continuation  |
-| rwpipe        | file   | on, off       | on      | allow the two-way pipe operator `\|&`                  |
+| Name          | Scope  | Values        | Default | Description                                             |
+|---------------|--------|---------------|---------|---------------------------------------------------------|
+| entry         | global | function name |         | change the program entry point                          |
+| implicit      | file   | on, off       | on      | allow undeclared variables                              |
+| multilinestr  | file   | on, off       | off     | allow a multiline string literal without continuation   |
+| pipecloexec   | global | on, off       | off     | set CLOEXEC when running an external command for piping |
+| rwpipe        | file   | on, off       | on      | allow the two-way pipe operator `\|&`                   |
 | striprecspc   | global | on, off       | off     | removes leading and trailing blank fields in splitting a record if FS is a regular expression mathcing all spaces |
 | stripstrspc   | global | on, off       | on      | trim leading and trailing spaces when converting a string to a number |
-| numstrdetect  | global | on, off       | off     | trim leading and trailing spaces when converting a string to a number |
+| numstrdetect  | global | on, off       | off     | convert a numeric string to a value of a numeric type automatically |
 | stack_limit   | global | number        | 5120    | specify the runtime stack size measured in the number of values |
 
 ### @pragma entry

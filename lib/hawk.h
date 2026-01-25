@@ -1419,6 +1419,12 @@ enum hawk_trait_t
 	HAWK_PEDANTIC = (1 << 19),
 
 	/**
+	 * before executing an external program for piping, arrange
+	 * to close unneeded file descriptors in a child process
+	 */
+	HAWK_PIPECLOEXEC = (1 << 20),
+
+	/**
 	 * makes #hawk_t to behave compatibly with classical AWK
 	 * implementations
 	 */
@@ -1464,6 +1470,7 @@ enum hawk_gbl_id_t
 	HAWK_GBL_OFMT,
 	HAWK_GBL_OFS,
 	HAWK_GBL_ORS,
+	HAWK_GBL_PIPECLOEXEC,
 	HAWK_GBL_RLENGTH,
 	HAWK_GBL_RS,
 	HAWK_GBL_RSTART,

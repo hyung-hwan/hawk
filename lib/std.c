@@ -2063,12 +2063,15 @@ static hawk_ooi_t pio_handler_open (hawk_rtx_t* rtx, hawk_rio_arg_t* riod)
 	 * descriptors.
 	 *   { hawk 'BEGIN { print "hello" | "cat >&3" }'; }  3>/tmp/x.log
 	 * To keep this kind of behavior, i arrange to keep file descriptors open upon exec.
+	 * If you don't want any files descriptors to be inherited to an external child process,
+	 * set the global variable PIPECLOEXEC to non-zero positive number, or use @pragma pipecloexec on
 	 */
+	if (!HAWK_RTX_IS_PIPECLOEXEC_ON(rtx)) flags |= HAWK_PIO_NOCLOEXEC;
 	handle = hawk_pio_open(
 		hawk_rtx_getgem(rtx),
 		0,
 		riod->name,
-		flags | HAWK_PIO_SHELL | HAWK_PIO_TEXT | HAWK_PIO_IGNOREECERR | HAWK_PIO_NOCLOEXEC
+		flags | HAWK_PIO_SHELL | HAWK_PIO_TEXT | HAWK_PIO_IGNOREECERR
 	);
 	if (handle == HAWK_NULL) return -1;
 

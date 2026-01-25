@@ -425,7 +425,7 @@ void hawk_clear (hawk_t* hawk)
 	hawk->parse.depth.loop = 0;
 	hawk->parse.depth.expr = 0;
 	hawk->parse.depth.incl = 0;
-	hawk->parse.pragma.trait = (hawk->opt.trait & (HAWK_IMPLICIT | HAWK_MULTILINESTR | HAWK_PEDANTIC | HAWK_RWPIPE | HAWK_STRIPRECSPC | HAWK_STRIPSTRSPC)); /* implicit on if you didn't mask it off in hawk->opt.trait with hawk_setopt */
+	hawk->parse.pragma.trait = (hawk->opt.trait & (HAWK_IMPLICIT | HAWK_MULTILINESTR | HAWK_PEDANTIC | HAWK_RWPIPE | HAWK_PIPECLOEXEC | HAWK_STRIPRECSPC | HAWK_STRIPSTRSPC)); /* implicit on if you didn't mask it off in hawk->opt.trait with hawk_setopt */
 	hawk->parse.pragma.rtx_stack_limit = 0;
 	hawk->parse.pragma.entry[0] = '\0';
 

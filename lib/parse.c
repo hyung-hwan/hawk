@@ -311,6 +311,7 @@ static kwent_t kwtab[] =
 	{ { HAWK_T("else"),           4 }, TOK_ELSE,          0 },
 	{ { HAWK_T("exit"),           4 }, TOK_EXIT,          0 },
 	{ { HAWK_T("for"),            3 }, TOK_FOR,           0 },
+	{ { HAWK_T("func"),           4 }, TOK_FUNCTION,      0 },
 	{ { HAWK_T("function"),       8 }, TOK_FUNCTION,      0 },
 	{ { HAWK_T("getbline"),       8 }, TOK_GETBLINE,      HAWK_RIO },
 	{ { HAWK_T("getline"),        7 }, TOK_GETLINE,       HAWK_RIO },
@@ -378,6 +379,9 @@ static global_t gtab[] =
 
 	/* output record separator. used for 'print' and blockless output */
 	{ HAWK_T("ORS"),          3,  HAWK_RIO },
+
+	/* deterimines whether to set CLOEXEC when invoking an external program via a pipe */
+	{ HAWK_T("PIPECLOEXEC"),  11, HAWK_RIO },
 
 	{ HAWK_T("RLENGTH"),      7,  0 },
 
@@ -1133,14 +1137,17 @@ static int parse_progunit (hawk_t* hawk)
 		/* NOTE: trait = is an intended assignment */
 		else if (((trait = HAWK_STRIPRECSPC) && hawk_comp_oochars_oocstr(name.ptr, name.len, HAWK_T("striprecspc"), 0) == 0) ||
 		         ((trait = HAWK_STRIPSTRSPC) && hawk_comp_oochars_oocstr(name.ptr, name.len, HAWK_T("stripstrspc"), 0) == 0) ||
+		         ((trait = HAWK_PIPECLOEXEC) && hawk_comp_oochars_oocstr(name.ptr, name.len, HAWK_T("pipecloexec"), 0) == 0) ||
 		         ((trait = HAWK_NUMSTRDETECT) && hawk_comp_oochars_oocstr(name.ptr, name.len, HAWK_T("numstrdetect"), 0) == 0))
 		{
-			/* @pragma striprecspc on
+			/* @pragma numstrdetect on
+			 * @pragma numstrdetect off
+			 * @pragma pipecloexec on
+			 * @pragma pipecloexec off
+			 * @pragma striprecspc on
 			 * @pragma striprecspc off
 			 * @pragma stripstrspc on
 			 * @pragma stripstrspc off
-			 * @pragma numstrdetect on
-			 * @pragma numstrdetect off
 			 *
 			 * The initial values of these pragmas are set in hawk_clear()
 			 *
@@ -7248,7 +7255,7 @@ static int get_string (
 			{
 				/* terminating quote */
 				/*GET_CHAR_TO(hawk, c);*/
-				GET_CHAR (hawk);
+				GET_CHAR(hawk);
 				break;
 			}
 			else if (c == esc_char)
@@ -7350,7 +7357,7 @@ static int get_rexstr (hawk_t* hawk, hawk_tok_t* tok)
 		 * the token type is set to TOK_REX, this function can
 		 * just return after reading the next character.
 		 * see parse_primary_rex(). */
-		GET_CHAR (hawk);
+		GET_CHAR(hawk);
 		return 0;
 	}
 	else
@@ -7401,7 +7408,7 @@ static int get_raw_string (hawk_t* hawk, hawk_ooch_t end_char, int byte_only, ha
 		if (c == end_char)
 		{
 			/* terminating quote */
-			GET_CHAR (hawk);
+			GET_CHAR(hawk);
 			break;
 		}
 
@@ -7476,7 +7483,7 @@ static int skip_comment (hawk_t* hawk)
 		do { GET_CHAR_TO(hawk, c); }
 		while (c != HAWK_T('\n') && c != HAWK_OOCI_EOF);
 
-		if (!(hawk->opt.trait & HAWK_NEWLINE)) GET_CHAR (hawk);
+		if (!(hawk->opt.trait & HAWK_NEWLINE)) GET_CHAR(hawk);
 		return 1; /* comment by # */
 	}
 
@@ -7519,7 +7526,7 @@ static int skip_comment (hawk_t* hawk)
 				if (c == HAWK_T('/'))
 				{
 					/*GET_CHAR_TO(hawk, c);*/
-					GET_CHAR (hawk);
+					GET_CHAR(hawk);
 					break;
 				}
 			}
@@ -7686,7 +7693,7 @@ retry:
 		/*ADD_TOKEN_CHAR(hawk, tok, HAWK_T('\n'));*/
 		ADD_TOKEN_STR(hawk, tok, HAWK_T("<NL>"), 4);
 		SET_TOKEN_TYPE(hawk, tok, TOK_NEWLINE);
-		GET_CHAR (hawk);
+		GET_CHAR(hawk);
 	}
 	else if (hawk_is_ooch_digit(c)/*|| c == HAWK_T('.')*/)
 	{
