@@ -331,6 +331,8 @@ Hawk is dynamically typed:
 - Byte characters use `@b'X'` or `@bc"X"` and must fit in a single byte.
 - Containers: array, map.
 - `@nil` represents null.
+- `@true` represents true.
+- `@false` represents false.
 
 Examples:
 
@@ -872,6 +874,7 @@ The following words are reserved and cannot be used as a variable name, a parame
  - @argc
  - @argv
  - @const
+ - @false
  - @global
  - @include
  - @include_once
@@ -879,6 +882,7 @@ The following words are reserved and cannot be used as a variable name, a parame
  - @nil
  - @pragma
  - @reset
+ - @true
  - BEGIN
  - END
  - break

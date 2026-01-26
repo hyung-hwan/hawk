@@ -132,12 +132,14 @@ enum tok_t
 	TOK_XARGV,
 	TOK_XABORT,
 	TOK_XCONST,
+	TOK_XFALSE,
 	TOK_XGLOBAL,
 	TOK_XINCLUDE,
 	TOK_XINCLUDE_ONCE,
 	TOK_XLOCAL,
 	TOK_XPRAGMA,
 	TOK_XRESET,
+	TOK_XTRUE,
 
 	/* === normal reserved words === */
 	TOK_BEGIN,
@@ -293,6 +295,7 @@ static kwent_t kwtab[] =
 	{ { HAWK_T("@argc"),          5 }, TOK_XARGC,         0 },
 	{ { HAWK_T("@argv"),          5 }, TOK_XARGV,         0 },
 	{ { HAWK_T("@const"),         6 }, TOK_XCONST,        0 },
+	{ { HAWK_T("@false"),         6 }, TOK_XFALSE,        0 },
 	{ { HAWK_T("@global"),        7 }, TOK_XGLOBAL,       0 },
 	{ { HAWK_T("@include"),       8 }, TOK_XINCLUDE,      0 },
 	{ { HAWK_T("@include_once"), 13 }, TOK_XINCLUDE_ONCE, 0 },
@@ -300,6 +303,7 @@ static kwent_t kwtab[] =
 	{ { HAWK_T("@nil"),           4 }, TOK_XNIL,          0 },
 	{ { HAWK_T("@pragma"),        7 }, TOK_XPRAGMA,       0 },
 	{ { HAWK_T("@reset"),         6 }, TOK_XRESET,        0 },
+	{ { HAWK_T("@true"),          5 }, TOK_XTRUE,         0 },
 	{ { HAWK_T("BEGIN"),          5 }, TOK_BEGIN,         HAWK_PABLOCK },
 	{ { HAWK_T("END"),            3 }, TOK_END,           HAWK_PABLOCK },
 	{ { HAWK_T("break"),          5 }, TOK_BREAK,         0 },
@@ -5849,6 +5853,54 @@ oops:
 	return HAWK_NULL;
 }
 
+static hawk_nde_t* parse_primary_xtrue (hawk_t* hawk, const hawk_loc_t* xloc)
+{
+	hawk_nde_xnil_t* nde;
+
+	nde = (hawk_nde_xnil_t*)hawk_callocmem(hawk, HAWK_SIZEOF(*nde));
+	if (HAWK_UNLIKELY(!nde))
+	{
+		ADJERR_LOC(hawk, xloc);
+		return HAWK_NULL;
+	}
+
+	nde->type = HAWK_NDE_XTRUE;
+	nde->loc = *xloc;
+
+	if (get_token(hawk) <= -1) goto oops;
+
+	return (hawk_nde_t*)nde;
+
+oops:
+	HAWK_ASSERT(nde != HAWK_NULL);
+	hawk_freemem(hawk, nde);
+	return HAWK_NULL;
+}
+
+static hawk_nde_t* parse_primary_xfalse (hawk_t* hawk, const hawk_loc_t* xloc)
+{
+	hawk_nde_xnil_t* nde;
+
+	nde = (hawk_nde_xnil_t*)hawk_callocmem(hawk, HAWK_SIZEOF(*nde));
+	if (HAWK_UNLIKELY(!nde))
+	{
+		ADJERR_LOC(hawk, xloc);
+		return HAWK_NULL;
+	}
+
+	nde->type = HAWK_NDE_XFALSE;
+	nde->loc = *xloc;
+
+	if (get_token(hawk) <= -1) goto oops;
+
+	return (hawk_nde_t*)nde;
+
+oops:
+	HAWK_ASSERT(nde != HAWK_NULL);
+	hawk_freemem(hawk, nde);
+	return HAWK_NULL;
+}
+
 
 static hawk_nde_t* parse_primary_xarg (hawk_t* hawk, const hawk_loc_t* xloc)
 {
@@ -6016,6 +6068,12 @@ static hawk_nde_t* parse_primary_nopipe (hawk_t* hawk, const hawk_loc_t* xloc)
 
 		case TOK_XNIL:
 			return parse_primary_xnil(hawk, xloc);
+
+		case TOK_XTRUE:
+			return parse_primary_xtrue(hawk, xloc);
+
+		case TOK_XFALSE:
+			return parse_primary_xfalse(hawk, xloc);
 
 		case TOK_XARGV:
 		case TOK_XARGC:

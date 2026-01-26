@@ -81,6 +81,10 @@ struct hawk_val_rchunk_t
 #define HAWK_VTR_MASK_TYPE_BITS_LOHI     15 /* 1111 */
 
 
+/* @nil, @true, @false are kind of fixed.
+ * as for the bool type, there are only two fixed instances @true and @false.
+ * encoding it in a pointer is unlikely to benefit much. only a type that
+ * can represents many different values are encoded in a pointer */
 #define HAWK_VTR_TYPE_BITS_POINTER    0 /* 00 */
 #define HAWK_VTR_TYPE_BITS_INT   1 /* 01 */
 #define HAWK_VTR_TYPE_BITS_CHAR  2 /* 10 */
@@ -164,6 +168,12 @@ extern "C" {
 
 /* represents a nil value */
 extern hawk_val_t* hawk_val_nil;
+
+/* represents a true boolean value */
+extern hawk_val_t* hawk_val_true;
+
+/* represents a false boolean value */
+extern hawk_val_t* hawk_val_false;
 
 /* represents an empty string  */
 extern hawk_val_t* hawk_val_zls;

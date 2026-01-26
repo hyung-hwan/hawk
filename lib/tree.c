@@ -554,6 +554,18 @@ static int print_expr (hawk_t* hawk, hawk_nde_t* nde)
 			break;
 		}
 
+		case HAWK_NDE_XTRUE:
+		{
+			PUT_SRCSTR(hawk, HAWK_T("@true"));
+			break;
+		}
+
+		case HAWK_NDE_XFALSE:
+		{
+			PUT_SRCSTR(hawk, HAWK_T("@false"));
+			break;
+		}
+
 		case HAWK_NDE_XARGC:
 		{
 			PUT_SRCSTR(hawk, HAWK_T("@argc"));
@@ -1533,6 +1545,8 @@ void hawk_clrpt (hawk_t* hawk, hawk_nde_t* tree)
 			}
 
 			case HAWK_NDE_XNIL:
+			case HAWK_NDE_XTRUE:
+			case HAWK_NDE_XFALSE:
 			{
 				hawk_freemem(hawk, p);
 				break;

@@ -561,6 +561,7 @@ static hawk_mod_int_tab_t inttab[] =
 	{ HAWK_T("VAL_ARRAY"),  { HAWK_VAL_ARR } },
 	{ HAWK_T("VAL_BCHAR"),  { HAWK_VAL_BCHR } },
 	{ HAWK_T("VAL_BOB"),    { HAWK_VAL_BOB } },
+	{ HAWK_T("VAL_BOOL"),   { HAWK_VAL_BOOL } },
 	{ HAWK_T("VAL_CHAR"),   { HAWK_VAL_CHAR } },
 	{ HAWK_T("VAL_FLT"),    { HAWK_VAL_FLT } },
 	{ HAWK_T("VAL_FUN"),    { HAWK_VAL_FUN } },
@@ -568,10 +569,9 @@ static hawk_mod_int_tab_t inttab[] =
 	{ HAWK_T("VAL_MAP"),    { HAWK_VAL_MAP } },
 	{ HAWK_T("VAL_MBS"),    { HAWK_VAL_MBS } },
 	{ HAWK_T("VAL_NIL"),    { HAWK_VAL_NIL } },
-	{ HAWK_T("VAL_STR"),    { HAWK_VAL_STR } },
-
 	{ HAWK_T("VAL_REF"),    { HAWK_VAL_REF } },
-	{ HAWK_T("VAL_REX"),    { HAWK_VAL_REX } }
+	{ HAWK_T("VAL_REX"),    { HAWK_VAL_REX } },
+	{ HAWK_T("VAL_STR"),    { HAWK_VAL_STR } }
 };
 
 static int query (hawk_mod_t* mod, hawk_t* hawk, const hawk_ooch_t* name, hawk_mod_sym_t* sym)

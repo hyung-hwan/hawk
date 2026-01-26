@@ -37,6 +37,25 @@ static hawk_val_nil_t hawk_nil = {
 	HAWK_SFN(v_nstr)   0,
 	HAWK_SFN(v_gc)     0
 };
+
+static hawk_val_bool_t hawk_true = {
+	HAWK_SFN(v_refs)   0,
+	HAWK_SFN(v_type)   HAWK_VAL_BOOL,
+	HAWK_SFN(v_static) 1,
+	HAWK_SFN(v_nstr)   0,
+	HAWK_SFN(v_gc)     0,
+	HAWK_SFN(val)      1
+};
+
+static hawk_val_bool_t hawk_false = {
+	HAWK_SFN(v_refs)   0,
+	HAWK_SFN(v_type)   HAWK_VAL_BOOL,
+	HAWK_SFN(v_static) 1,
+	HAWK_SFN(v_nstr)   0,
+	HAWK_SFN(v_gc)     0,
+	HAWK_SFN(val)      0
+};
+
 /* zero-length string */
 static hawk_val_str_t hawk_zls = {
 	HAWK_SFN(v_refs)   0,
@@ -57,6 +76,8 @@ static hawk_val_mbs_t hawk_zlbs = {
 };
 
 hawk_val_t* hawk_val_nil = (hawk_val_t*)&hawk_nil;
+hawk_val_t* hawk_val_true = (hawk_val_t*)&hawk_true;
+hawk_val_t* hawk_val_false = (hawk_val_t*)&hawk_false;
 hawk_val_t* hawk_val_zls = (hawk_val_t*)&hawk_zls;
 hawk_val_t* hawk_val_zlbs = (hawk_val_t*)&hawk_zlbs;
 
@@ -64,6 +85,7 @@ static const hawk_ooch_t* val_type_name[] =
 {
 	/* synchronize this table with enum hawk_val_type_t in hawk.h */
 	HAWK_T("nil"),
+	HAWK_T("bool"),
 	HAWK_T("char"),
 	HAWK_T("bchar"),
 	HAWK_T("int"),
@@ -534,6 +556,16 @@ int hawk_rtx_isnilval (hawk_rtx_t* rtx, const hawk_val_t* val)
 hawk_val_t* hawk_rtx_makenilval (hawk_rtx_t* rtx)
 {
 	return (hawk_val_t*)&hawk_nil;
+}
+
+hawk_val_t* hawk_rtx_makebooltrueval (hawk_rtx_t* rtx)
+{
+	return (hawk_val_t*)&hawk_true;
+}
+
+hawk_val_t* hawk_rtx_makeboolfalseval (hawk_rtx_t* rtx)
+{
+	return (hawk_val_t*)&hawk_false;
 }
 
 hawk_val_t* hawk_rtx_makecharval (hawk_rtx_t* rtx, hawk_ooch_t v)
@@ -1567,6 +1599,7 @@ void hawk_rtx_freeval (hawk_rtx_t* rtx, hawk_val_t* val, int flags)
 		switch (vtype)
 		{
 			case HAWK_VAL_NIL:
+			case HAWK_VAL_BOOL:
 			{
 				hawk_rtx_freemem(rtx, val);
 				break;
@@ -1841,6 +1874,9 @@ int hawk_rtx_valtobool (hawk_rtx_t* rtx, const hawk_val_t* val)
 	{
 		case HAWK_VAL_NIL:
 			return 0;
+
+		case HAWK_VAL_BOOL:
+			return ((hawk_val_bool_t*)val)->val != 0;
 
 		case HAWK_VAL_BCHR:
 		case HAWK_VAL_CHAR:
@@ -2267,6 +2303,9 @@ int hawk_rtx_valtostr (hawk_rtx_t* rtx, const hawk_val_t* v, hawk_rtx_valtostr_o
 		case HAWK_VAL_NIL:
 			return str_to_str(rtx, HAWK_T(""), 0, out);
 
+		case HAWK_VAL_BOOL:
+			return str_to_str(rtx, (((hawk_val_bool_t*)v)->val?  HAWK_T("1"): HAWK_T("0")), 1, out);
+
 		case HAWK_VAL_BCHR:
 		{
 			hawk_bch_t tmp = HAWK_RTX_GETBCHRFROMVAL(rtx, v);
@@ -2538,6 +2577,10 @@ hawk_ooch_t* hawk_rtx_getvaloocstrwithcmgr (hawk_rtx_t* rtx, hawk_val_t* v, hawk
 			c = '\0';
 			l = 0;
 			goto ctos;
+		case HAWK_VAL_BOOL:
+			c = ((hawk_val_bool_t*)v)->val? '1': '0';
+			l = 1;
+			goto ctos;
 		case HAWK_VAL_CHAR:
 			c = HAWK_RTX_GETCHARFROMVAL(rtx, v);
 			l = 1;
@@ -2585,6 +2628,7 @@ void hawk_rtx_freevaloocstr(hawk_rtx_t* rtx, hawk_val_t* v, hawk_ooch_t* str)
 	switch (HAWK_RTX_GETVALTYPE(rtx, v))
 	{
 		case HAWK_VAL_NIL:
+		case HAWK_VAL_BOOL:
 		case HAWK_VAL_CHAR:
 		{
 			hawk_ctos_b_t* b = (hawk_ctos_b_t*)str;
@@ -2632,6 +2676,12 @@ hawk_bch_t* hawk_rtx_getvalbcstrwithcmgr (hawk_rtx_t* rtx, hawk_val_t* v, hawk_o
 			c = '\0';
 			l = 0;
 			goto bctos;
+
+		case HAWK_VAL_BOOL:
+			c = ((hawk_val_bool_t*)v)->val? '1': '0';
+			l = 1;
+			goto bctos;
+
 		case HAWK_VAL_BCHR:
 			c = HAWK_RTX_GETBCHRFROMVAL(rtx, v);
 			l = 1;
@@ -2680,6 +2730,7 @@ void hawk_rtx_freevalbcstr (hawk_rtx_t* rtx, hawk_val_t* v, hawk_bch_t* str)
 	switch (HAWK_RTX_GETVALTYPE(rtx, v))
 	{
 		case HAWK_VAL_NIL:
+		case HAWK_VAL_BOOL:
 		case HAWK_VAL_BCHR:
 		{
 			hawk_bctos_b_t* b = (hawk_bctos_b_t*)str;
@@ -2781,6 +2832,10 @@ int hawk_rtx_valtonum (hawk_rtx_t* rtx, const hawk_val_t* v, hawk_int_t* l, hawk
 		case HAWK_VAL_NIL:
 			*l = 0;
 			return 0;
+
+		case HAWK_VAL_BOOL:
+			*l = ((hawk_val_bool_t*)v)->val;
+			return 0; /* long */
 
 		case HAWK_VAL_BCHR:
 		{
@@ -3043,6 +3098,13 @@ hawk_int_t hawk_rtx_hashval (hawk_rtx_t* rtx, hawk_val_t* v)
 		case HAWK_VAL_NIL:
 			hv = 0;
 			break;
+
+		case HAWK_VAL_BOOL:
+		{
+			hawk_val_bool_t* bv = (hawk_val_bool_t*)v;
+			hv = (hawk_int_t)hash((hawk_uint8_t*)&bv->val, HAWK_SIZEOF(bv->val));
+			break;
+		}
 
 		case HAWK_VAL_BCHR:
 		{
@@ -3352,7 +3414,11 @@ void hawk_dprintval(hawk_rtx_t* run, hawk_val_t* val)
 			hawk_errputstrf(HAWK_T("@nil"));
 			break;
 
-		case HAWK_VAL_NIL:
+		case HAWK_VAL_BOOL:
+			hawk_errputstrf(((hawk_val_bool_t*)val)->val? HAWK_T("@true"): HAWK_T("@false"));
+			break;
+
+		case HAWK_VAL_CHAR:
 		{
 			hawk_ooch_t tmp = HAWK_RTX_GETCHARFROMVAL(rtx, val);
 			if (tmp == '\'')

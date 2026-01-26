@@ -155,13 +155,11 @@ static int build_value (hawk_json_t* json, hawk_json_inst_t inst, const hawk_ooc
 			break;
 
 		case HAWK_JSON_INST_TRUE:
-			val = hawk_rtx_makeintval(rtx, 1);
-			if (!val) goto oops;
+			val = hawk_val_true;
 			break;
 
 		case HAWK_JSON_INST_FALSE:
-			val = hawk_rtx_makeintval(rtx, 0);
-			if (!val) goto oops;
+			val = hawk_val_false;
 			break;
 
 		default:
@@ -171,7 +169,7 @@ static int build_value (hawk_json_t* json, hawk_json_inst_t inst, const hawk_ooc
 
 	return attach_value(json, ctx, val);
 
-	oops:
+oops:
 	hawk_json_seterrnum(json, HAWK_NULL, hawk_rtx_geterrnum(rtx));
 	return -1;
 }
