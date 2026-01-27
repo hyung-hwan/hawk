@@ -7422,14 +7422,12 @@ static hawk_val_t* eval_fncall_var (hawk_rtx_t* rtx, hawk_nde_t* nde)
 	if (HAWK_UNLIKELY(!fun))
 	{
 		if (hawk_rtx_geterrnum(rtx) == HAWK_EINVAL)
-			hawk_rtx_seterrfmt(rtx, &nde->loc, HAWK_ENOTFUN, HAWK_T("non-function value in %.*js"), call->u.var.var->id.name.len, call->u.var.var->id.name.ptr);
+			hawk_rtx_seterrfmt(rtx, &nde->loc, HAWK_ENOTFUN, HAWK_T("non-function value in '%.*js'"), call->u.var.var->id.name.len, call->u.var.var->id.name.ptr);
 		ADJERR_LOC(rtx, &nde->loc);
 		rv = HAWK_NULL;
 	}
 	else if (call->nargs > fun->nargs && !fun->variadic)
 	{
-		/* TODO: is this correct? what if i want to
-		*       allow arbitarary numbers of arguments? */
 		hawk_rtx_seterrfmt(rtx, &nde->loc, HAWK_EARGTM, HAWK_T("too many arguments to '%.*js'"), fun->name.len, fun->name.ptr);
 		rv = HAWK_NULL;
 	}

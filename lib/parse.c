@@ -290,7 +290,11 @@ struct kwent_t
 static kwent_t kwtab[] =
 {
 	/* keep this table in sync with the kw_t enums in "parse-prv.h".
-	 * also keep it sorted by the first field for binary search */
+	 * also keep it sorted by the first field for binary search.
+	 * there are extra keywords that are alias to the main entries
+	 * in classify_ident. e.g. "func". such aliases are not placed
+	 * here because of direct access by index in hawk_getkwname() */
+
 	{ { HAWK_T("@abort"),         6 }, TOK_XABORT,        0 },
 	{ { HAWK_T("@argc"),          5 }, TOK_XARGC,         0 },
 	{ { HAWK_T("@argv"),          5 }, TOK_XARGV,         0 },
@@ -315,7 +319,6 @@ static kwent_t kwtab[] =
 	{ { HAWK_T("else"),           4 }, TOK_ELSE,          0 },
 	{ { HAWK_T("exit"),           4 }, TOK_EXIT,          0 },
 	{ { HAWK_T("for"),            3 }, TOK_FOR,           0 },
-	{ { HAWK_T("func"),           4 }, TOK_FUNCTION,      0 },
 	{ { HAWK_T("function"),       8 }, TOK_FUNCTION,      0 },
 	{ { HAWK_T("getbline"),       8 }, TOK_GETBLINE,      HAWK_RIO },
 	{ { HAWK_T("getline"),        7 }, TOK_GETLINE,       HAWK_RIO },
@@ -5562,8 +5565,8 @@ oops:
 
 static hawk_nde_t* _parse_primary_array_or_map (hawk_t* hawk, const hawk_loc_t* xloc, const hawk_oocs_t* full, const hawk_oocs_t segs[], int nsegs, int closer_token)
 {
-	/* treat it as if it's hawk::array() */
-
+	/* called for @[ or @{ handling. the caller of this function passes "hawk::array" or
+	 * "hawk:map" via "full'. */
 	hawk_mod_t* mod;
 	hawk_mod_sym_t sym;
 	hawk_fnc_t fnc;
@@ -5587,6 +5590,7 @@ static hawk_nde_t* _parse_primary_array_or_map (hawk_t* hawk, const hawk_loc_t* 
 	fnc.spec = sym.u.fnc_;
 	fnc.mod = mod;
 
+	/* convert it to a function call */
 	return parse_fncall(hawk, full, &fnc, xloc, (closer_token == TOK_RBRACE? FNCALL_FLAG_MAP: 0), closer_token);
 }
 
@@ -6464,7 +6468,7 @@ static hawk_nde_t* parse_primary_ident_noseg (hawk_t* hawk, const hawk_loc_t* xl
 			 *
 			 * it is a function call so long as it's followed
 			 * by a left parenthesis if concatenation by blanks
-			 * is not allowed.
+			 * (HAWK_BLANKCONCAT) is not allowed.
 			 */
 			int is_fncall_var = 0;
 
@@ -7018,6 +7022,8 @@ make_node:
 
 	if (flags & FNCALL_FLAG_VAR)
 	{
+		/* special case. "name" is not of the const hawk_oocs_t* type.
+		 * it points to the node directly */
 		call->type = HAWK_NDE_FNCALL_VAR;
 		call->loc = *xloc;
 		call->u.var.var = (hawk_nde_var_t*)name; /* name is a pointer to a variable node */
@@ -8187,7 +8193,14 @@ static int classify_ident (hawk_t* hawk, const hawk_oocs_t* name)
 
 	/* declaring left, right, mid to be the int type is ok
 	 * because we know kwtab is small enough. */
-	int left = 0, right = HAWK_COUNTOF(kwtab) - 1, mid;
+	int left, right, mid;
+
+	/* extra alias keywords which are not part of the main kwtab */
+	if (hawk_comp_oochars_bcstr(name->ptr, name->len, "func", 0) == 0) return TOK_FUNCTION;
+
+	/* search in the main kwtab */
+	left = 0;
+	right = HAWK_COUNTOF(kwtab) - 1;
 
 	while (left <= right)
 	{
