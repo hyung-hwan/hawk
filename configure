@@ -617,7 +617,7 @@ PACKAGE_TARNAME='hawk'
 PACKAGE_VERSION='1.0.0'
 PACKAGE_STRING='hawk 1.0.0'
 PACKAGE_BUGREPORT='Chung, Hyung-Hwan (hyunghwan.chung@gmail.com)'
-PACKAGE_URL='https://code.miflux.net/hyung-hwan/hawk'
+PACKAGE_URL='https://code.miflux.com/hyung-hwan/hawk'
 
 # Factoring default headers for most tests.
 ac_includes_default="\
@@ -1617,7 +1617,7 @@ Use these variables to override the choices made by 'configure' or to help
 it to find libraries and programs with nonstandard names/locations.
 
 Report bugs to <Chung, Hyung-Hwan (hyunghwan.chung@gmail.com)>.
-hawk home page: <https://code.miflux.net/hyung-hwan/hawk>.
+hawk home page: <https://code.miflux.com/hyung-hwan/hawk>.
 _ACEOF
 ac_status=$?
 fi
@@ -30097,7 +30097,7 @@ Configuration commands:
 $config_commands
 
 Report bugs to <Chung, Hyung-Hwan (hyunghwan.chung@gmail.com)>.
-hawk home page: <https://code.miflux.net/hyung-hwan/hawk>."
+hawk home page: <https://code.miflux.com/hyung-hwan/hawk>."
 
 _ACEOF
 ac_cs_config=`printf "%s\n" "$ac_configure_args" | sed "$ac_safe_unquote"`

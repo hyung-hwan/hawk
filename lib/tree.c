@@ -788,10 +788,10 @@ static int print_expr (hawk_t* hawk, hawk_nde_t* nde)
 			break;
 		}
 
-		case HAWK_NDE_FNCALL_VAR:
+		case HAWK_NDE_FNCALL_EXPR:
 		{
 			hawk_nde_fncall_t* px = (hawk_nde_fncall_t*)nde;
-			PRINT_EXPR(hawk, (hawk_nde_t*)px->u.var.var);
+			PRINT_EXPR(hawk, (hawk_nde_t*)px->u.expr.callable);
 			PUT_SRCSTR(hawk, HAWK_T("("));
 			PRINT_EXPR_LIST(hawk, px->args);
 			PUT_SRCSTR(hawk, HAWK_T(")"));
@@ -1624,10 +1624,10 @@ void hawk_clrpt (hawk_t* hawk, hawk_nde_t* tree)
 				break;
 			}
 
-			case HAWK_NDE_FNCALL_VAR:
+			case HAWK_NDE_FNCALL_EXPR:
 			{
 				hawk_nde_fncall_t* px = (hawk_nde_fncall_t*)p;
-				hawk_clrpt(hawk, (hawk_nde_t*)px->u.var.var);
+				hawk_clrpt(hawk, (hawk_nde_t*)px->u.expr.callable);
 				hawk_clrpt(hawk, px->args);
 				hawk_freemem(hawk, p);
 				break;

@@ -1,6 +1,6 @@
 dnl AC_PREREQ([2.71])
 
-AC_INIT([hawk],[1.0.0],[Chung, Hyung-Hwan (hyunghwan.chung@gmail.com)],[],[https://code.miflux.net/hyung-hwan/hawk])
+AC_INIT([hawk],[1.0.0],[Chung, Hyung-Hwan (hyunghwan.chung@gmail.com)],[],[https://code.miflux.com/hyung-hwan/hawk])
 
 AC_CONFIG_HEADERS([lib/hawk-cfg.h])
 AC_CONFIG_AUX_DIR([ac])

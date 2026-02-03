@@ -235,7 +235,7 @@ struct hawk_nde_var_t
 	hawk_uint8_t is_const;
 };
 
-/* HAWK_NDE_FNCALL_FNC, HAWK_NDE_FNCALL_FUN, HAWK_NDE_FNCALL_VAR */
+/* HAWK_NDE_FNCALL_FNC, HAWK_NDE_FNCALL_FUN, HAWK_NDE_FNCALL_EXPR */
 struct hawk_nde_fncall_t
 {
 	HAWK_NDE_HDR;
@@ -257,8 +257,8 @@ struct hawk_nde_fncall_t
 
 		struct
 		{
-			hawk_nde_var_t* var;
-		} var;
+			hawk_nde_t* callable;
+		} expr;
 	} u;
 	hawk_nde_t* args;
 	hawk_oow_t nargs;

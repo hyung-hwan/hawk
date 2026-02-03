@@ -2726,6 +2726,10 @@ hawk_int_t hawk_uchars_to_int (const hawk_uch_t* str, hawk_oow_t len, int option
 			{
 				p++; base = 16;
 			}
+			else if (*p == 'o' || *p == 'O')
+			{
+				p++; base = 8;
+			}
 			else if (*p == 'b' || *p == 'B')
 			{
 				p++; base = 2;
@@ -2737,6 +2741,10 @@ hawk_int_t hawk_uchars_to_int (const hawk_uch_t* str, hawk_oow_t len, int option
 	else if (rem >= 2 && base == 16)
 	{
 		if (*p == '0' && (*(p + 1) == 'x' || *(p + 1) == 'X')) p += 2;
+	}
+	else if (rem >= 2 && base == 8)
+	{
+		if (*p == '0' && (*(p + 1) == 'o' || *(p + 1) == 'O')) p += 2;
 	}
 	else if (rem >= 2 && base == 2)
 	{
@@ -2947,6 +2955,10 @@ hawk_uint_t hawk_uchars_to_uint (const hawk_uch_t* str, hawk_oow_t len, int opti
 			{
 				p++; base = 16;
 			}
+			else if (*p == 'o' || *p == 'O')
+			{
+				p++; base = 8;
+			}
 			else if (*p == 'b' || *p == 'B')
 			{
 				p++; base = 2;
@@ -2958,6 +2970,10 @@ hawk_uint_t hawk_uchars_to_uint (const hawk_uch_t* str, hawk_oow_t len, int opti
 	else if (rem >= 2 && base == 16)
 	{
 		if (*p == '0' && (*(p + 1) == 'x' || *(p + 1) == 'X')) p += 2;
+	}
+	else if (rem >= 2 && base == 8)
+	{
+		if (*p == '0' && (*(p + 1) == 'o' || *(p + 1) == 'O')) p += 2;
 	}
 	else if (rem >= 2 && base == 2)
 	{

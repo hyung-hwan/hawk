@@ -7408,13 +7408,35 @@ static HAWK_INLINE hawk_val_t* eval_fncall_fun (hawk_rtx_t* rtx, hawk_nde_t* nde
 	return hawk_rtx_evalcall(rtx, call, fun, push_arg_from_nde, HAWK_NULL/*fun->argspec*/, HAWK_NULL, HAWK_NULL);
 }
 
+static HAWK_INLINE int nde_is_var (const hawk_nde_t* nde)
+{
+	switch (nde->type)
+	{
+		case HAWK_NDE_NAMED:
+		case HAWK_NDE_GBL:
+		case HAWK_NDE_LCL:
+		case HAWK_NDE_ARG:
+		case HAWK_NDE_NAMEDIDX:
+		case HAWK_NDE_GBLIDX:
+		case HAWK_NDE_LCLIDX:
+		case HAWK_NDE_ARGIDX:
+			return 1;
+
+		default:
+			return 0;
+	}
+}
+
 static hawk_val_t* eval_fncall_var (hawk_rtx_t* rtx, hawk_nde_t* nde)
 {
 	hawk_nde_fncall_t* call = (hawk_nde_fncall_t*)nde;
+	hawk_nde_t* callee;
 	hawk_val_t* fv, * rv;
 	hawk_fun_t* fun;
 
-	fv = eval_expression(rtx, (hawk_nde_t*)call->u.var.var);
+	callee = call->u.expr.callable;
+
+	fv = eval_expression(rtx, callee);
 	if (HAWK_UNLIKELY(!fv)) return HAWK_NULL;
 
 	hawk_rtx_refupval(rtx, fv);
@@ -7422,7 +7444,19 @@ static hawk_val_t* eval_fncall_var (hawk_rtx_t* rtx, hawk_nde_t* nde)
 	if (HAWK_UNLIKELY(!fun))
 	{
 		if (hawk_rtx_geterrnum(rtx) == HAWK_EINVAL)
-			hawk_rtx_seterrfmt(rtx, &nde->loc, HAWK_ENOTFUN, HAWK_T("non-function value in '%.*js'"), call->u.var.var->id.name.len, call->u.var.var->id.name.ptr);
+		{
+			if (nde_is_var(callee))
+			{
+				hawk_nde_var_t* v = (hawk_nde_var_t*)callee;
+				hawk_rtx_seterrfmt(rtx, &nde->loc, HAWK_ENOTFUN,
+					HAWK_T("non-function value in '%.*js'"),
+					v->id.name.len, v->id.name.ptr);
+			}
+			else
+			{
+				hawk_rtx_seterrnum(rtx, &nde->loc, HAWK_ENOTFUN);
+			}
+		}
 		ADJERR_LOC(rtx, &nde->loc);
 		rv = HAWK_NULL;
 	}

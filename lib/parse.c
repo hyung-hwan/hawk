@@ -258,7 +258,7 @@ static hawk_nde_t* parse_hashidx (hawk_t* hawk, const hawk_oocs_t* name, const h
 static hawk_nde_t* parse_dotidx (hawk_t* hawk, const hawk_oocs_t* name, const hawk_loc_t* xloc);
 
 #define FNCALL_FLAG_NOARG (1 << 0) /* no argument */
-#define FNCALL_FLAG_VAR   (1 << 1)
+#define FNCALL_FLAG_EXPR  (1 << 1)
 #define FNCALL_FLAG_MAP   (1 << 2)
 static hawk_nde_t* parse_fncall (hawk_t* hawk, const hawk_oocs_t* name, hawk_fnc_t* fnc, const hawk_loc_t* xloc, int flags, int closer_token);
 
@@ -1105,16 +1105,18 @@ static int parse_progunit (hawk_t* hawk)
 		         ((trait = HAWK_PEDANTIC) && hawk_comp_oochars_oocstr(name.ptr, name.len, HAWK_T("pedantic"), 0) == 0) ||
 		         ((trait = HAWK_RWPIPE) && hawk_comp_oochars_oocstr(name.ptr, name.len, HAWK_T("rwpipe"), 0) == 0))
 		{
-			/* @pragma implicit on
+			/* @pragma implicit on (default)
 			 * @pragma implicit off
 			 * @pragma multilinestr on
-			 * @pragma multilinestr off
+			 * @pragma multilinestr off (defualt)
 			 * @pragma pedantic on
-			 * @pragma pedantic off
-			 * @pragma rwpipe on
+			 * @pragma pedantic off (default)
+			 * @pragma rwpipe on (default)
 			 * @pragma rwpipe off
 			 *
 			 * The initial values of these pragmas are set in hawk_clear()
+			 * The pragma items defined in this block is compile-time only unlike
+			 * the items defined in the next block.
 			 */
 			hawk_oocs_t value;
 
@@ -1158,8 +1160,15 @@ static int parse_progunit (hawk_t* hawk)
 			 *
 			 * The initial values of these pragmas are set in hawk_clear()
 			 *
-			 * Take note the global STRIPRECSPC is available for context based change.
-			 * STRIPRECSPC takes precedence over this pragma.
+			 * The effect of the pragma items listed here are modified at runtime
+			 * with corresponding globals values. The interpreter uses these
+			 * macros to detemine the actual effect as defined in hawk-prv.h.
+			 *  - HAWK_RTX_IS_NUMSTRDETECT_ON(rtx)
+			 *  - HAWK_RTX_IS_PIPECLOEXEC_ON(rtx)
+			 *  - HAWK_RTX_IS_STRIPRECSPC_ON(rtx)
+			 *  - HAWK_RTX_IS_STRIPSTRSPC_ON(rtx)
+			 * In general, the runtime global variable value takes precedence
+			 * over the compile-time pragma specifier value.
 			 */
 			int is_on;
 			hawk_oocs_t value;
@@ -4013,7 +4022,9 @@ static hawk_nde_t* parse_statement_nb (hawk_t* hawk, const hawk_loc_t* xloc)
 	else
 	{
 		if (nde) hawk_clrpt(hawk, nde);
-		hawk_seterrnum(hawk, &hawk->ptok.loc, HAWK_ESTMEND);
+		hawk_seterrbfmt(hawk, &hawk->tok.loc, HAWK_ESTMEND,
+			"statement not ending with a semicolon and got '%.*js'",
+		        HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
 		return HAWK_NULL;
 	}
 
@@ -6030,10 +6041,10 @@ static hawk_nde_t* parse_primary_nopipe (hawk_t* hawk, const hawk_loc_t* xloc)
 		case TOK_IDENT:
 			return parse_primary_ident(hawk, xloc);
 
-		case TOK_ATBRACK:
+		case TOK_ATBRACK: /* @[ */
 			return parse_primary_array(hawk, xloc);
 
-		case TOK_ATBRACE:
+		case TOK_ATBRACE: /* @{ */
 			return parse_primary_map(hawk, xloc);
 
 		case TOK_CHAR:
@@ -6266,7 +6277,7 @@ static hawk_nde_t* parse_variable (hawk_t* hawk, const hawk_loc_t* xloc, hawk_nd
 
 #if defined(HAWK_ENABLE_FUN_AS_VALUE)
 	if (!is_fcv) return (hawk_nde_t*)nde;
-	return parse_fncall(hawk, (const hawk_oocs_t*)nde, HAWK_NULL, xloc, FNCALL_FLAG_VAR, TOK_RPAREN);
+	return parse_fncall(hawk, (const hawk_oocs_t*)nde, HAWK_NULL, xloc, FNCALL_FLAG_EXPR, TOK_RPAREN);
 #else
 	return (hawk_nde_t*)nde;
 #endif
@@ -6306,7 +6317,7 @@ static int dup_ident_and_get_next (hawk_t* hawk, const hawk_loc_t* xloc, hawk_oo
 		 * TOK_XGLOBAL to TOK_XRESET are excuded from the check for that reason. */
 		if (!MATCH(hawk, TOK_IDENT) && !(MATCH_RANGE(hawk, TOK_BEGIN, TOK_GETLINE)))
 		{
-			hawk_seterrfmt(hawk,  &hawk->tok.loc, HAWK_EIDENT, FMT_EIDENT, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
+			hawk_seterrfmt(hawk, &hawk->tok.loc, HAWK_EIDENT, FMT_EIDENT, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
 			goto oops;
 		}
 
@@ -6528,7 +6539,7 @@ static hawk_nde_t* parse_primary_ident_noseg (hawk_t* hawk, const hawk_loc_t* xl
 
 			#if defined(HAWK_ENABLE_FUN_AS_VALUE)
 						if (is_fncall_var)
-							nde = parse_fncall(hawk, (const hawk_oocs_t*)nde, HAWK_NULL, xloc, FNCALL_FLAG_VAR, TOK_RPAREN);
+							nde = parse_fncall(hawk, (const hawk_oocs_t*)nde, HAWK_NULL, xloc, FNCALL_FLAG_EXPR, TOK_RPAREN);
 			#endif
 					}
 				}
@@ -6775,7 +6786,7 @@ oops:
 	return -1;
 }
 
-static hawk_nde_t* finalize_hashidx (hawk_t* hawk, const hawk_oocs_t* name, const hawk_loc_t* xloc, hawk_nde_t* idx)
+static hawk_nde_t* make_hashidx_access_node (hawk_t* hawk, const hawk_oocs_t* name, const hawk_loc_t* xloc, hawk_nde_t* idx)
 {
 	hawk_nde_var_t* nde;
 	hawk_oow_t idxa;
@@ -6783,7 +6794,6 @@ static hawk_nde_t* finalize_hashidx (hawk_t* hawk, const hawk_oocs_t* name, cons
 	nde = (hawk_nde_var_t*)hawk_callocmem(hawk, HAWK_SIZEOF(*nde));
 	if (HAWK_UNLIKELY(!nde))
 	{
-		hawk_clrpt(hawk, idx);
 		ADJERR_LOC(hawk, xloc);
 		return HAWK_NULL;
 	}
@@ -6886,17 +6896,19 @@ static hawk_nde_t* finalize_hashidx (hawk_t* hawk, const hawk_oocs_t* name, cons
 		return (hawk_nde_t*)nde;
 	}
 
+	/* -- ERROR down here -- */
+
 	/* undefined variable */
 	hawk_seterrfmt(hawk, xloc, HAWK_EUNDEF, FMT_EUNDEF, name->len, name->ptr);
 
 exit_func:
-	hawk_clrpt(hawk, idx);
+	/* didn't take over 'name' and 'idx'. just free the node structure
+	 * using hawk_freemem(). no call to hawk_clrpt() */
 	hawk_freemem(hawk, nde);
-
 	return HAWK_NULL;
 }
 
-static hawk_nde_t* parse_hashidx_common (hawk_t* hawk, const hawk_oocs_t* name, const hawk_loc_t* xloc)
+static hawk_nde_t* parse_idx_chain (hawk_t* hawk, const hawk_loc_t* xloc)
 {
 	nde_chain_t idx = { HAWK_NULL, HAWK_NULL };
 
@@ -6907,32 +6919,45 @@ static hawk_nde_t* parse_hashidx_common (hawk_t* hawk, const hawk_oocs_t* name, 
 #if defined(HAWK_ENABLE_GC)
 	while (MATCH(hawk, TOK_LBRACK) || MATCH(hawk, TOK_PERIOD))
 	{
-		hawk_nde_t* tmp;
+		hawk_nde_t* splitter;
 
 		/* additional index - a[10][20] or a.b.c ...
 		 * use the NULL node as a splitter */
-		tmp = (hawk_nde_t*)hawk_callocmem(hawk, HAWK_SIZEOF(*tmp));
-		if (HAWK_UNLIKELY(!tmp))
+		splitter = (hawk_nde_t*)hawk_callocmem(hawk, HAWK_SIZEOF(*splitter));
+		if (HAWK_UNLIKELY(!splitter))
 		{
 			ADJERR_LOC(hawk, xloc);
 			goto oops;
 		}
 
-		tmp->type = HAWK_NDE_NULL;
+		splitter->type = HAWK_NDE_NULL;
 
 		HAWK_ASSERT(idx.tail != HAWK_NULL);
-		idx.tail->next = tmp;
-		idx.tail = tmp;
+		idx.tail->next = splitter;
+		idx.tail = splitter;
 
 		if (parse_single_idx(hawk, &idx) <= -1) goto oops;
 	}
 #endif
 
-	return finalize_hashidx(hawk, name, xloc, idx.head);
+	return idx.head;
 
 oops:
 	if (idx.head) hawk_clrpt(hawk, idx.head);
 	return HAWK_NULL;
+}
+
+static hawk_nde_t* parse_hashidx_common (hawk_t* hawk, const hawk_oocs_t* name, const hawk_loc_t* xloc)
+{
+	hawk_nde_t* idx;
+	hawk_nde_t* h;
+
+	idx = parse_idx_chain(hawk, xloc);
+	if (HAWK_UNLIKELY(!idx)) return HAWK_NULL;
+
+	h = make_hashidx_access_node(hawk, name, xloc, idx);
+	if (HAWK_UNLIKELY(!h)) hawk_clrpt(hawk, idx);
+	return h;
 }
 
 static hawk_nde_t* parse_hashidx (hawk_t* hawk, const hawk_oocs_t* name, const hawk_loc_t* xloc)
@@ -6983,19 +7008,29 @@ static hawk_nde_t* parse_fncall (hawk_t* hawk, const hawk_oocs_t* name, hawk_fnc
 
 			if (MATCH(hawk, closer_token))
 			{
+				if ((flags & FNCALL_FLAG_MAP) && (nargs & 1))
+				{
+					/* a value part is missing after colon inside @{} */
+					goto colon_expected;
+				}
 				if (get_token(hawk) <= -1) goto oops;
 				break;
 			}
 
 			if ((flags & FNCALL_FLAG_MAP) && (nargs & 1))
 			{
+				/* inside @{},
+				 *   - it expects a colon after each key
+				 *   - after value, a comma is expected */
 				if (!MATCH(hawk, TOK_COLON))
 				{
+				colon_expected:
 					hawk_seterrfmt(hawk,  &hawk->tok.loc, HAWK_ECOLON, FMT_ECOLON, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
 					goto oops;
 				}
 			}
-			else {
+			else
+			{
 				if (!MATCH(hawk, TOK_COMMA))
 				{
 					hawk_seterrfmt(hawk,  &hawk->tok.loc, HAWK_ECOMMA, FMT_ECOMMA, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
@@ -7009,7 +7044,6 @@ static hawk_nde_t* parse_fncall (hawk_t* hawk, const hawk_oocs_t* name, hawk_fnc
 			}
 			while (MATCH(hawk,TOK_NEWLINE));
 		}
-
 	}
 
 make_node:
@@ -7020,13 +7054,13 @@ make_node:
 		goto oops;
 	}
 
-	if (flags & FNCALL_FLAG_VAR)
+	if (flags & FNCALL_FLAG_EXPR)
 	{
 		/* special case. "name" is not of the const hawk_oocs_t* type.
 		 * it points to the node directly */
-		call->type = HAWK_NDE_FNCALL_VAR;
+		call->type = HAWK_NDE_FNCALL_EXPR;
 		call->loc = *xloc;
-		call->u.var.var = (hawk_nde_var_t*)name; /* name is a pointer to a variable node */
+		call->u.expr.callable = (hawk_nde_t*)name; /* name is a pointer to a callable expression node */
 		call->args = head;
 		call->nargs = nargs;
 	}
@@ -7074,8 +7108,8 @@ make_node:
 	return (hawk_nde_t*)call;
 
 oops:
-	if (call) hawk_freemem(hawk, call);
-	if (head) hawk_clrpt(hawk, head);
+	if (call) hawk_freemem(hawk, call); /* destroy the call node itself */
+	if (head) hawk_clrpt(hawk, head); /* clear the argument list separately from the call node */
 	return HAWK_NULL;
 }
 
@@ -7105,6 +7139,13 @@ static int get_number (hawk_t* hawk, hawk_tok_t* tok)
 
 			return 0;
 		}
+		else if (c == 'o' || c == 'O')
+		{
+			/* octal number */
+			ADD_TOKEN_CHAR(hawk, tok, c);
+			GET_CHAR_TO(hawk, c);
+			goto octal;
+		}
 		else if (c == 'b' || c == 'B')
 		{
 			/* binary number */
@@ -7120,6 +7161,7 @@ static int get_number (hawk_t* hawk, hawk_tok_t* tok)
 		else if (c != '.')
 		{
 			/* octal number */
+		octal:
 			while (c >= '0' && c <= '7')
 			{
 				ADD_TOKEN_CHAR(hawk, tok, c);
