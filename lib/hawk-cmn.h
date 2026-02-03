@@ -1043,7 +1043,7 @@ enum hawk_errnum_t
 	HAWK_EHASHVAL,      /**< invalid value to hash */
 
 	HAWK_EARRIDXRANGE,  /**< disallowed array index range */
-	HAWK_EARRIDXMULTI,  /**< single-bracketed multidimensional array indices not allowed */
+	HAWK_EARRIDXMULTI,  /**< single-bracketed multidimensional indices not allowed for array */
 	HAWK_ERNEXTINIT,    /**< 'next' called during initialization */
 	HAWK_ERNEXTBEG,     /**< 'next' called from BEGIN block */
 	HAWK_ERNEXTEND,     /**< 'next' called from END block */

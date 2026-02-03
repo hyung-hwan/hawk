@@ -1,0 +1,57 @@
+@pragma implicit off
+@pragma pedantic on
+@pragma entry main
+@pragma xcall on
+
+@include "tap.inc";
+
+func mul(a, b) {
+	return a * b;
+}
+
+func add(a, b) {
+	return a + b;
+}
+
+func make_map() {
+	@local m;
+	m = @{};
+	m["f"] = mul;
+	m["g"] = add;
+	return m;
+}
+
+func main() {
+	@local a, m, r;
+
+	a.b.c = mul;
+	tap_ensure(a.b.c(6, 7), 42, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(a["b"]["c"](3, 4), 12, @SCRIPTNAME, @SCRIPTLINE);
+
+	# should be treated as concatenation, not a second call
+	tap_ensure(sprintf("%s", a.b.c(2, 3)(4)), "64", @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sprintf("%s", a["b"]["c"](2, 3)(4)), "64", @SCRIPTNAME, @SCRIPTLINE);
+
+	a = @[ @[mul] ];
+	tap_ensure(a[1][1](8, 9), 72, @SCRIPTNAME, @SCRIPTLINE);
+
+	a = @{};
+	a[10,20] = mul;
+	tap_ensure(a[10,20](11, 12), 132, @SCRIPTNAME, @SCRIPTLINE);
+
+	m = make_map();
+	tap_ensure(m.f(5, 6), 30, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(m["g"](1, 2), 3, @SCRIPTNAME, @SCRIPTLINE);
+
+	# normal variable call should still work
+	r = mul(2, 5);
+	tap_ensure(r, 10, @SCRIPTNAME, @SCRIPTLINE);
+
+	# mixed dot/bracket chain before call
+	a = @{};
+	a["k"] = @{};
+	a["k"].fn = mul;
+	tap_ensure(a["k"].fn(4, 4), 16, @SCRIPTNAME, @SCRIPTLINE);
+
+	tap_end();
+}

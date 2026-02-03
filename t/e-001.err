@@ -108,8 +108,18 @@ BEGIN {
 	X = 40
 }
 
+---
+
+@pragma implicit off
+@pragma pedantic on
+
+BEGIN {
+	@local x = @[1,2,3]
+	print x[1,2] ##ERROR: single-bracketed multidimensional indices not allowed for array
+}
 
 ---
+
 @pragma implicit off
 @pragma pedantic on
 

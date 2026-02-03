@@ -159,7 +159,7 @@ const hawk_ooch_t* hawk_dfl_errstr (hawk_errnum_t errnum)
 		HAWK_T("invalid value to a character"),
 		HAWK_T("invalid value for hashing"),
 		HAWK_T("array index out of allowed range"),
-		HAWK_T("single-bracketed multidimensional array indices not allowed"),
+		HAWK_T("single-bracketed multidimensional indices not allowed for array"),
 		HAWK_T("'next' called during initialization"),
 		HAWK_T("'next' called from BEGIN block"),
 		HAWK_T("'next' called from END block"),

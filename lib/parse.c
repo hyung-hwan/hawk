@@ -256,6 +256,7 @@ static hawk_nde_t* parse_primary_ident (hawk_t* hawk, const hawk_loc_t* xloc);
 static hawk_nde_t* parse_primary_literal (hawk_t* hawk, const hawk_loc_t* xloc);
 static hawk_nde_t* parse_hashidx (hawk_t* hawk, const hawk_oocs_t* name, const hawk_loc_t* xloc);
 static hawk_nde_t* parse_dotidx (hawk_t* hawk, const hawk_oocs_t* name, const hawk_loc_t* xloc);
+static hawk_nde_t* parse_xcall_postfix_on_expr (hawk_t* hawk, hawk_nde_t* base, const hawk_loc_t* xloc);
 
 #define FNCALL_FLAG_NOARG (1 << 0) /* no argument */
 #define FNCALL_FLAG_EXPR  (1 << 1)
@@ -498,6 +499,19 @@ static HAWK_INLINE int is_var (hawk_nde_t* nde)
 	       nde->type == HAWK_NDE_LCLIDX ||
 	       nde->type == HAWK_NDE_ARGIDX ||
 	       nde->type == HAWK_NDE_NAMEDIDX;
+}
+
+static HAWK_INLINE hawk_oow_t tok_len_for_nospace (const hawk_tok_t* tok)
+{
+	hawk_oow_t len = HAWK_OOECS_LEN(tok->name);
+	return (len > 0)? len: 1;
+}
+
+static HAWK_INLINE int is_nospace_lparen (hawk_t* hawk)
+{
+	if (!MATCH(hawk, TOK_LPAREN)) return 0;
+	return (hawk->tok.loc.line == hawk->ptok.loc.line &&
+	        hawk->tok.loc.colm == hawk->ptok.loc.colm + tok_len_for_nospace(&hawk->ptok));
 }
 
 static int get_char (hawk_t* hawk)
@@ -1103,7 +1117,8 @@ static int parse_progunit (hawk_t* hawk)
 		else if (((trait = HAWK_IMPLICIT) && hawk_comp_oochars_oocstr(name.ptr, name.len, HAWK_T("implicit"), 0) == 0) ||
 		         ((trait = HAWK_MULTILINESTR) && hawk_comp_oochars_oocstr(name.ptr, name.len, HAWK_T("multilinestr"), 0) == 0) ||
 		         ((trait = HAWK_PEDANTIC) && hawk_comp_oochars_oocstr(name.ptr, name.len, HAWK_T("pedantic"), 0) == 0) ||
-		         ((trait = HAWK_RWPIPE) && hawk_comp_oochars_oocstr(name.ptr, name.len, HAWK_T("rwpipe"), 0) == 0))
+		         ((trait = HAWK_RWPIPE) && hawk_comp_oochars_oocstr(name.ptr, name.len, HAWK_T("rwpipe"), 0) == 0) ||
+		         ((trait = HAWK_XCALL) && hawk_comp_oochars_oocstr(name.ptr, name.len, HAWK_T("xcall"), 0) == 0))
 		{
 			/* @pragma implicit on (default)
 			 * @pragma implicit off
@@ -1113,6 +1128,8 @@ static int parse_progunit (hawk_t* hawk)
 			 * @pragma pedantic off (default)
 			 * @pragma rwpipe on (default)
 			 * @pragma rwpipe off
+			 * @pragma xcall on
+			 * @pragma xcall off (default)
 			 *
 			 * The initial values of these pragmas are set in hawk_clear()
 			 * The pragma items defined in this block is compile-time only unlike
@@ -6561,6 +6578,36 @@ static hawk_nde_t* parse_primary_ident_noseg (hawk_t* hawk, const hawk_loc_t* xl
 		}
 	}
 
+#if defined(HAWK_ENABLE_FUN_AS_VALUE)
+	/*
+	 * Traditionally, a(10)(20) is concatenation of the return value of 'a(10)' and '20'.
+	 * If the 'xcall' pragma is on, the parser changes the behavior to treated it as
+	 * chained function call. although the parser doesn't allow the general chains of
+	 * array/map index notation and function call notation (e.g. a()[20](1)[1][1](20, 30)),
+	 * this part is mainly to support at least one-level function call to a map element
+	 * in the dot notation(e.g. a.b.c(20, 30) )
+	 */
+	if ((hawk->parse.pragma.trait & HAWK_XCALL) && nde)
+	{
+		hawk_nde_t* xcall;
+		xcall = parse_xcall_postfix_on_expr(hawk, nde, xloc);
+		if (!xcall) hawk_clrpt(hawk, nde); /* OWNERSHIP COMPLEXITY - SEE comments below */
+		return xcall;
+	}
+#endif
+
+	if (!nde)
+	{
+		/* the caller of this function(parse_primary_ident), originally, freed the name
+		 * if this function returned failure. after adding parse_call_postfix_on_expr()
+		 * there arised a ownership issue because the intermediate nde is already complete
+		 * before parse_xcall_postfix_on_expr() fails. so if the xcall post fix is not
+		 * involved, this function frees the name pointer. when xcall is involved,
+		 * another return path above marked OWNERSHIP COMPLEXITY frees the entire
+		 * intermediate parse tree pointed to by nde and returns there, not coming here. */
+		hawk_freemem(hawk, name->ptr);
+	}
+
 	return nde;
 }
 
@@ -6633,6 +6680,13 @@ static hawk_nde_t* parse_primary_ident_segs (hawk_t* hawk, const hawk_loc_t* xlo
 		}
 	}
 
+
+	/* LIMITATION
+	 *   xcall doesn't apply here for now.
+	 *   not only here, it doesn't apply after @[] and @{}, also.
+	 *   TODO: general xcall.. function call or array/map indexing after any expressions/statements
+	 */
+
 	return nde;
 }
 
@@ -6650,7 +6704,13 @@ static hawk_nde_t* parse_primary_ident (hawk_t* hawk, const hawk_loc_t* xloc)
 	if (nsegs <= 1)
 	{
 		nde = parse_primary_ident_noseg(hawk, xloc, &name[0]);
+		/*
+		 * it must free the name upon failure as shown below. but it
+		 * is freed inside parse_primary_ident_noseg() for ownership issues.
+		 * parse_primary_ident() and parase_primary_ident_noseg() are
+		 * tightly coupled in this regards.
 		if (HAWK_UNLIKELY(!nde)) hawk_freemem(hawk, name[0].ptr);
+		*/
 	}
 	else
 	{
@@ -6945,6 +7005,35 @@ static hawk_nde_t* parse_idx_chain (hawk_t* hawk, const hawk_loc_t* xloc)
 oops:
 	if (idx.head) hawk_clrpt(hawk, idx.head);
 	return HAWK_NULL;
+}
+
+static hawk_nde_t* parse_xcall_postfix_on_expr (hawk_t* hawk, hawk_nde_t* base, const hawk_loc_t* xloc)
+{
+	if (is_nospace_lparen(hawk) && (hawk->ptok.type == TOK_IDENT || hawk->ptok.type == TOK_RBRACK))
+	{
+		/* it isn't nice for a parser to check if the previous token is an identifier or the
+		 * right bracket. but due to some weird concatenation by blank, it performs parsing
+		 * in this dirty way, rather than support general expression before () or [].
+		 *
+		 * the parser supports one-level function call notation after an array/map element
+		 *
+		 *  - (a.b.c)(1) is concatenation of a.b.c and 1
+		 *  - a.b.c(1) is a valid xcall
+		 *  - a["b"]["c"](1) is a valid xcall also
+		 *  - a.b.c(1)(2) is concatenation of a.b.c(1) and 2
+		 *  - a(20)(10) is concatenation of a(20) and 10
+		 */
+		hawk_loc_t cloc;
+		hawk_nde_t* call;
+
+		cloc = base->loc;
+		call = parse_fncall(hawk, (const hawk_oocs_t*)base, HAWK_NULL, &cloc, FNCALL_FLAG_EXPR, TOK_RPAREN);
+		if (!call) return HAWK_NULL;
+
+		base = call;
+	}
+
+	return base;
 }
 
 static hawk_nde_t* parse_hashidx_common (hawk_t* hawk, const hawk_oocs_t* name, const hawk_loc_t* xloc)

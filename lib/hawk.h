@@ -1437,6 +1437,13 @@ enum hawk_trait_t
 	 */
 	HAWK_PIPECLOEXEC = (1 << 20),
 
+
+	/**
+	 * Allows a function call like 'a.b.c()'
+	 */
+	HAWK_XCALL = (1 << 21),
+
+
 	/**
 	 * makes #hawk_t to behave compatibly with classical AWK
 	 * implementations
