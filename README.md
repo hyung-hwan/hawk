@@ -504,7 +504,6 @@ You can assign them to `@global`, `@local`, implicit/plain variables, and indexe
 
 - Function literals do not capture outer local state (no closure).
 - They behave like normal user-defined functions used as values.
-- To call a function value obtained via index or dot access (for example, `m["f"](...)` or `m.f(...)`), enable `@pragma xcall on`.
 
 Example:
 
@@ -749,6 +748,7 @@ BEGIN { print length("hawk"), substr("hawk", 2, 2) }
 | stripstrspc   | global | on, off       | on      | trim leading and trailing spaces when converting a string to a number |
 | numstrdetect  | global | on, off       | off     | convert a numeric string to a value of a numeric type automatically |
 | stack_limit   | global | number        | 5120    | specify the runtime stack size measured in the number of values |
+| xcall         | file   | on, off       | off     | allow one-level function call after dot or bracket index access (e.g. `m.f(...)`, `m["f"](...)`) |
 
 ### @pragma entry
 
