@@ -39,12 +39,15 @@ BEGIN {
 	{
 		@local n = 4;
 		@const N2 = n * 2;
+		@local LOCAL = 32;
 		tap_ensure(n, 4, @SCRIPTNAME, @SCRIPTLINE);
 		tap_ensure(N2, 8, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure(LOCAL, 32, @SCRIPTNAME, @SCRIPTLINE);
 	}
 
 	y = 1;
 	h = 2;
+	tap_ensure(LOCAL, 1225, @SCRIPTNAME, @SCRIPTLINE);
 
 	tap_end ();
 }

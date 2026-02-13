@@ -26,11 +26,21 @@
 
 static void free_fun (hawk_htb_t* map, void* vptr, hawk_oow_t vlen)
 {
-	hawk_t* hawk = *(hawk_t**)(map + 1);
+	hawk_t* hawk = *(hawk_t**)hawk_htb_getxtn(map);
 	hawk_fun_t* f = (hawk_fun_t*)vptr;
 
 	/* f->name doesn't have to be freed */
 	/*hawk_freemem(hawk, f->name);*/
+
+	if (f->argspec) hawk_freemem(hawk, f->argspec);
+	hawk_clrpt(hawk, f->body);
+	hawk_freemem(hawk, f);
+}
+
+static void free_ifun (hawk_arr_t* arr, void* dptr, hawk_oow_t dlen)
+{
+	hawk_t* hawk = *(hawk_t**)hawk_arr_getxtn(arr);
+	hawk_fun_t* f = (hawk_fun_t*)dptr;
 
 	if (f->argspec) hawk_freemem(hawk, f->argspec);
 	hawk_clrpt(hawk, f->body);
@@ -143,17 +153,26 @@ int hawk_init (hawk_t* hawk, hawk_mmgr_t* mmgr, hawk_cmgr_t* cmgr, const hawk_pr
 		HAWK_HTB_HASHER_DEFAULT
 	};
 
+	static hawk_arr_style_t treeifuncbs =
+	{
+		HAWK_ARR_COPIER_DEFAULT,
+		free_ifun,
+		HAWK_ARR_COMPER_DEFAULT,
+		HAWK_ARR_KEEPER_DEFAULT,
+		HAWK_ARR_SIZER_DEFAULT
+	};
+
 	/* some assertions in case someone breaks the basic assumptions */
-	HAWK_ASSERT (HAWK_SIZEOF(hawk_val_mbs_t) == HAWK_SIZEOF(hawk_val_bob_t));
-	HAWK_ASSERT (HAWK_SIZEOF(hawk_val_str_t) == HAWK_SIZEOF(hawk_val_bob_t));
-	HAWK_ASSERT (HAWK_OFFSETOF(hawk_val_mbs_t, val) == HAWK_OFFSETOF(hawk_val_bob_t, val));
-	HAWK_ASSERT (HAWK_OFFSETOF(hawk_val_str_t, val) == HAWK_OFFSETOF(hawk_val_bob_t, val));
-	HAWK_ASSERT (HAWK_SIZEOF(hawk_bcs_t) == HAWK_SIZEOF(hawk_ptl_t));
-	HAWK_ASSERT (HAWK_SIZEOF(hawk_ucs_t) == HAWK_SIZEOF(hawk_ptl_t));
-	HAWK_ASSERT (HAWK_OFFSETOF(hawk_bcs_t, ptr) == HAWK_OFFSETOF(hawk_ptl_t, ptr));
-	HAWK_ASSERT (HAWK_OFFSETOF(hawk_bcs_t, len) == HAWK_OFFSETOF(hawk_ptl_t, len));
-	HAWK_ASSERT (HAWK_OFFSETOF(hawk_ucs_t, ptr) == HAWK_OFFSETOF(hawk_ptl_t, ptr));
-	HAWK_ASSERT (HAWK_OFFSETOF(hawk_ucs_t, len) == HAWK_OFFSETOF(hawk_ptl_t, len));
+	HAWK_ASSERT(HAWK_SIZEOF(hawk_val_mbs_t) == HAWK_SIZEOF(hawk_val_bob_t));
+	HAWK_ASSERT(HAWK_SIZEOF(hawk_val_str_t) == HAWK_SIZEOF(hawk_val_bob_t));
+	HAWK_ASSERT(HAWK_OFFSETOF(hawk_val_mbs_t, val) == HAWK_OFFSETOF(hawk_val_bob_t, val));
+	HAWK_ASSERT(HAWK_OFFSETOF(hawk_val_str_t, val) == HAWK_OFFSETOF(hawk_val_bob_t, val));
+	HAWK_ASSERT(HAWK_SIZEOF(hawk_bcs_t) == HAWK_SIZEOF(hawk_ptl_t));
+	HAWK_ASSERT(HAWK_SIZEOF(hawk_ucs_t) == HAWK_SIZEOF(hawk_ptl_t));
+	HAWK_ASSERT(HAWK_OFFSETOF(hawk_bcs_t, ptr) == HAWK_OFFSETOF(hawk_ptl_t, ptr));
+	HAWK_ASSERT(HAWK_OFFSETOF(hawk_bcs_t, len) == HAWK_OFFSETOF(hawk_ptl_t, len));
+	HAWK_ASSERT(HAWK_OFFSETOF(hawk_ucs_t, ptr) == HAWK_OFFSETOF(hawk_ptl_t, ptr));
+	HAWK_ASSERT(HAWK_OFFSETOF(hawk_ucs_t, len) == HAWK_OFFSETOF(hawk_ptl_t, len));
 
 	/* zero out the object */
 	HAWK_MEMSET(hawk, 0, HAWK_SIZEOF(*hawk));
@@ -174,9 +193,9 @@ int hawk_init (hawk_t* hawk, hawk_mmgr_t* mmgr, hawk_cmgr_t* cmgr, const hawk_pr
 	hawk->ecb = (hawk_ecb_t*)hawk; /* use this as a sentinel node instead of HAWK_NULL */
 
 	/* progagate the primitive functions */
-	HAWK_ASSERT (prm           != HAWK_NULL);
-	HAWK_ASSERT (prm->math.pow != HAWK_NULL);
-	HAWK_ASSERT (prm->math.mod != HAWK_NULL);
+	HAWK_ASSERT(prm           != HAWK_NULL);
+	HAWK_ASSERT(prm->math.pow != HAWK_NULL);
+	HAWK_ASSERT(prm->math.mod != HAWK_NULL);
 	if (prm           == HAWK_NULL ||
 	    prm->math.pow == HAWK_NULL ||
 	    prm->math.mod == HAWK_NULL)
@@ -216,6 +235,7 @@ int hawk_init (hawk_t* hawk, hawk_mmgr_t* mmgr, hawk_cmgr_t* cmgr, const hawk_pr
 
 	/* TODO: initial map size?? */
 	hawk->tree.funs = hawk_htb_open(hawk_getgem(hawk), HAWK_SIZEOF(hawk), 512, 70, HAWK_SIZEOF(hawk_ooch_t), 1);
+	hawk->tree.ifuns = hawk_arr_open(hawk_getgem(hawk), HAWK_SIZEOF(hawk), 64);
 	hawk->parse.funs = hawk_htb_open(hawk_getgem(hawk), HAWK_SIZEOF(hawk), 256, 70, HAWK_SIZEOF(hawk_ooch_t), 1);
 	hawk->parse.named = hawk_htb_open(hawk_getgem(hawk), HAWK_SIZEOF(hawk), 256, 70, HAWK_SIZEOF(hawk_ooch_t), 1);
 
@@ -223,12 +243,17 @@ int hawk_init (hawk_t* hawk, hawk_mmgr_t* mmgr, hawk_cmgr_t* cmgr, const hawk_pr
 	hawk->parse.lcls = hawk_arr_open(hawk_getgem(hawk), HAWK_SIZEOF(hawk), 64);
 	hawk->parse.params = hawk_arr_open(hawk_getgem(hawk), HAWK_SIZEOF(hawk), 32);
 
+	hawk->parse.fun_level = -1;
+	hawk->parse.lcl_base = 0;
+	hawk->parse.param_base = 0;
+
 	hawk->fnc.sys = HAWK_NULL;
 	hawk->fnc.user = hawk_htb_open(hawk_getgem(hawk), HAWK_SIZEOF(hawk), 512, 70, HAWK_SIZEOF(hawk_ooch_t), 1);
 	hawk->static_mods = hawk_htb_open(hawk_getgem(hawk), HAWK_SIZEOF(hawk), 128, 70, HAWK_SIZEOF(hawk_ooch_t), 1);
 	hawk->modtab = hawk_rbt_open(hawk_getgem(hawk), 0, HAWK_SIZEOF(hawk_ooch_t), 1);
 
 	if (hawk->tree.funs == HAWK_NULL ||
+	    hawk->tree.ifuns == HAWK_NULL ||
 	    hawk->parse.funs == HAWK_NULL ||
 	    hawk->parse.named == HAWK_NULL ||
 	    hawk->parse.gbls == HAWK_NULL ||
@@ -244,6 +269,9 @@ int hawk_init (hawk_t* hawk, hawk_mmgr_t* mmgr, hawk_cmgr_t* cmgr, const hawk_pr
 
 	*(hawk_t**)(hawk->tree.funs + 1) = hawk;
 	hawk_htb_setstyle(hawk->tree.funs, &treefuncbs);
+
+	*(hawk_t**)hawk_arr_getxtn(hawk->tree.ifuns) = hawk;
+	hawk_arr_setstyle(hawk->tree.ifuns, &treeifuncbs);
 
 	*(hawk_t**)(hawk->parse.funs + 1) = hawk;
 	hawk_htb_setstyle(hawk->parse.funs, hawk_get_htb_style(HAWK_HTB_STYLE_INLINE_KEY_COPIER));
@@ -283,6 +311,7 @@ oops:
 	if (hawk->parse.gbls) hawk_arr_close(hawk->parse.gbls);
 	if (hawk->parse.named) hawk_htb_close(hawk->parse.named);
 	if (hawk->parse.funs) hawk_htb_close(hawk->parse.funs);
+	if (hawk->tree.ifuns) hawk_arr_close(hawk->tree.ifuns);
 	if (hawk->tree.funs) hawk_htb_close(hawk->tree.funs);
 	fini_token(&hawk->ntok);
 	fini_token(&hawk->tok);
@@ -316,7 +345,7 @@ void hawk_fini (hawk_t* hawk)
 	}
 
 	do { ecb = hawk_popecb(hawk); } while (ecb);
-	HAWK_ASSERT (hawk->ecb == (hawk_ecb_t*)hawk);
+	HAWK_ASSERT(hawk->ecb == (hawk_ecb_t*)hawk);
 
 	hawk_rbt_close(hawk->modtab);
 	hawk_htb_close(hawk->static_mods);
@@ -328,6 +357,7 @@ void hawk_fini (hawk_t* hawk)
 	hawk_htb_close(hawk->parse.named);
 	hawk_htb_close(hawk->parse.funs);
 
+	hawk_arr_close(hawk->tree.ifuns);
 	hawk_htb_close(hawk->tree.funs);
 
 	fini_token(&hawk->ntok);
@@ -409,7 +439,7 @@ void hawk_clear (hawk_t* hawk)
 	hawk_rbt_walk(hawk->modtab, unload_module, hawk);
 	hawk_rbt_clear(hawk->modtab);
 
-	HAWK_ASSERT (HAWK_ARR_SIZE(hawk->parse.gbls) == hawk->tree.ngbls);
+	HAWK_ASSERT(HAWK_ARR_SIZE(hawk->parse.gbls) == hawk->tree.ngbls);
 	/* delete all non-builtin global variables */
 	hawk_arr_delete(
 		hawk->parse.gbls, hawk->tree.ngbls_base,
@@ -419,6 +449,10 @@ void hawk_clear (hawk_t* hawk)
 	hawk_arr_clear(hawk->parse.params);
 	hawk_htb_clear(hawk->parse.named);
 	hawk_htb_clear(hawk->parse.funs);
+
+	hawk->parse.fun_level = -1;
+	hawk->parse.lcl_base = 0;
+	hawk->parse.param_base = 0;
 
 	hawk->parse.nlcls_max = 0;
 	hawk->parse.depth.block = 0;
@@ -438,6 +472,7 @@ void hawk_clear (hawk_t* hawk)
 
 	hawk->tree.cur_fun.ptr = HAWK_NULL;
 	hawk->tree.cur_fun.len = 0;
+	hawk_arr_clear(hawk->tree.ifuns);
 	hawk_htb_clear(hawk->tree.funs);
 
 	if (hawk->tree.init)

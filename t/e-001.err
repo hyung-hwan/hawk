@@ -119,6 +119,15 @@ BEGIN {
 }
 
 ---
+@pragma implicit off
+@pragma pedantic on
+
+BEGIN {
+	@local x = @[ ##ERROR: unexpected newline after '@['
+		1, 2, 3]
+}
+
+---
 
 @pragma implicit off
 @pragma pedantic on
@@ -129,4 +138,36 @@ BEGIN {
 
 BEGIN {
 	B = 30
+}
+
+---
+
+@pragma implicit off
+@pragma pedantic on
+
+BEGIN {
+	@local a, b ##ERROR: unused local variable 'b'
+	{
+		@local b
+		b = 20
+		a = 20
+	}
+}
+
+---
+
+@global x = 20
+
+function x(a, b) { ##ERROR: global variable 'x' redefined
+	return a + b
+}
+
+---
+
+function x(a, b) {
+	@local x, y = 20; ##ERROR: function 'x' redefined
+
+	{
+		@local y = 40;
+	}
 }

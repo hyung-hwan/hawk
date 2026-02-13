@@ -283,48 +283,61 @@ HAWK_EXPORT hawk_oow_t hawk_arr_getsize (
 	hawk_arr_t* arr
 );
 
+/**
+ * The hawk_arr_setsize() function can remove some elements from the tail
+ * where 'size' is the number of the elements to retain. If 'size' is greater
+ * than the current size, it returns #HAWK_NULL and the error code is set
+ * to #HAWK_EINVAL.
+ */
+HAWK_EXPORT hawk_arr_t* hawk_arr_setsize (
+	hawk_arr_t* arr,
+	hawk_oow_t size
+);
+
 HAWK_EXPORT hawk_oow_t hawk_arr_getcapa (
 	hawk_arr_t* arr
 );
 
 HAWK_EXPORT hawk_arr_t* hawk_arr_setcapa (
 	hawk_arr_t* arr,
-	hawk_oow_t capa
+	hawk_oow_t  capa
 );
 
 HAWK_EXPORT hawk_oow_t hawk_arr_search (
 	hawk_arr_t*  arr,
-	hawk_oow_t  pos,
-	const void* dptr,
-	hawk_oow_t  dlen
+	hawk_oow_t   lpos, /* search starts at index 'lpos' */
+	hawk_oow_t   rpos, /* search ends at index 'rpos - 1' */
+	const void*  dptr,
+	hawk_oow_t   dlen
 );
 
 HAWK_EXPORT hawk_oow_t hawk_arr_rsearch (
 	hawk_arr_t*  arr,
-	hawk_oow_t  pos,
-	const void* dptr,
-	hawk_oow_t  dlen
+	hawk_oow_t   lpos, /* search ends at index 'lpos' */
+	hawk_oow_t   rpos, /* search starts at index 'rpos - 1' */
+	const void*  dptr,
+	hawk_oow_t   dlen
 );
 
 HAWK_EXPORT hawk_oow_t hawk_arr_upsert (
 	hawk_arr_t* arr,
-	hawk_oow_t index,
-	void*      dptr,
-	hawk_oow_t dlen
+	hawk_oow_t  index,
+	void*       dptr,
+	hawk_oow_t  dlen
 );
 
 HAWK_EXPORT hawk_oow_t hawk_arr_insert (
 	hawk_arr_t* arr,
-	hawk_oow_t index,
-	void*      dptr,
-	hawk_oow_t dlen
+	hawk_oow_t  index,
+	void*       dptr,
+	hawk_oow_t  dlen
 );
 
 HAWK_EXPORT hawk_oow_t hawk_arr_update (
 	hawk_arr_t* arr,
-	hawk_oow_t pos,
-	void*      dptr,
-	hawk_oow_t dlen
+	hawk_oow_t  pos,
+	void*       dptr,
+	hawk_oow_t  dlen
 );
 
 /**

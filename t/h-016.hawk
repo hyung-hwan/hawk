@@ -1,0 +1,132 @@
+@pragma implicit on
+@pragma pedantic on
+@pragma xcall on
+@pragma entry main
+
+@include "tap.inc";
+
+@global g;
+@global G = func(a, b) {
+	return a * b
+}
+
+@global H = @[ \
+	func(a, b) { return a - b }, \
+	func(a, b) { return a + b }  \
+]
+
+func x(a1, a2, a3, a, b) {
+	@local y;
+
+	y.a = func(a, b) { return a * b }
+	y.b = func(a) { return a * 4 }
+
+	return y
+}
+
+func y(f, v) {
+	return f(v)
+}
+
+func xx(a1, a2, a3, a) {
+	@local y, m, d, q1, q2, q3, q4, q5, q6,q7, q8, q9;
+
+	m = 10
+	d = 20
+
+	{
+		@local q4, q5;
+		q4 = 10;
+		q5 = 20;
+
+		q1 =  1
+		q2 =  1
+		q3 =  1
+		q6 =  1
+		q7 =  1
+		q8 =  1
+		q9 =  1
+	}
+	q4 = 2
+	q5 = 2
+
+
+	y.a = func(a, b) {
+		@local t = 99;
+		@local t2;
+		@local t3 = 88;
+		@local t4 = 88;
+
+		t = 88;
+		t2 = 999;
+		{ @local q1, q2; q2 = 44;
+			q1 = func(t, c) {
+				return t + c + t * c
+			};
+			q1(777, 8888)
+		}
+
+		return a * b + t
+	}
+	y.b = func(a) {
+		@local x , y, a1
+
+		{
+			@local x = 1 , y = 2, a1 = 3;
+			@local a2 = 4 , a3 = 5, a4 = 6;
+			@local a5 = 7, a6 = 8, a7 = 9, a8 = 10, a9 = 11, a10 = 12,a11 = 13, a12
+
+			a12=9999
+		}
+		x = 10
+		y = 20
+		a1 = 40
+		return a * 4
+	};
+
+	{
+		@local q4, q5 = 887;
+		q4 = 10;
+		q5 = 20;
+	}
+
+	return y
+}
+
+
+func main() {
+	@local l, m, t;
+
+	g = func(x, y) { return x + y; };
+	l = func(x) { return x * 2; };
+	n = func(z) { return z - 1; };
+
+	tap_ensure(g(2, 3), 5, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(l(4), 8, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(n(10), 9, @SCRIPTNAME, @SCRIPTLINE);
+
+	m = @{};
+	m.f = func(a, b) { return a * b; };
+	tap_ensure(m.f(3, 4), 12, @SCRIPTNAME, @SCRIPTLINE);
+
+	t = x(10, 20)
+	tap_ensure(t.a(90, 10), 900, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(t.b(90), 360, @SCRIPTNAME, @SCRIPTLINE);
+
+	tap_ensure(y(func(a) { @local t = a * a; return t + t }, 30), 1800, @SCRIPTNAME, @SCRIPTLINE);
+
+	m = @[ \
+		func(a, b) { return a - b }, \
+		func(a, b) { return a + b }  \
+	]
+	tap_ensure(m[1](10,20), -10, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(m[2](10,20), 30, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(H[1](5,20), -15, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(H[2](5,20), 25, @SCRIPTNAME, @SCRIPTLINE);
+
+	m = xx(10, 20)
+	tap_ensure(m.a(90, 10), 988, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(m.b(90), 360, @SCRIPTNAME, @SCRIPTLINE);
+
+	tap_end();
+}

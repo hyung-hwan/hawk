@@ -114,9 +114,9 @@ void bbb (const char* fmt, va_list ap)
 void aaa (const char* fmt, ...)
 {
         va_list ap;
-        va_start (ap, fmt);
+        va_start(ap, fmt);
         bbb (fmt, ap);
-        va_end (ap);
+        va_end(ap);
 }
 int main ()
 {
@@ -1542,9 +1542,9 @@ int hawk_bfmt_out (hawk_fmtout_t* fmtout, const hawk_bch_t* fmt, ...)
 	fmtout->fmt_type = HAWK_FMTOUT_FMT_TYPE_BCH;
 	fmtout->fmt_str = fmt;
 
-	va_start (ap, fmt);
+	va_start(ap, fmt);
 	n = fmt_outv(fmtout, ap);
-	va_end (ap);
+	va_end(ap);
 
 	fmtout->fmt_str = fmt_str;
 	fmtout->fmt_type = fmt_type;
@@ -1564,9 +1564,9 @@ int hawk_ufmt_out (hawk_fmtout_t* fmtout, const hawk_uch_t* fmt, ...)
 	fmtout->fmt_type = HAWK_FMTOUT_FMT_TYPE_UCH;
 	fmtout->fmt_str = fmt;
 
-	va_start (ap, fmt);
+	va_start(ap, fmt);
 	n = fmt_outv(fmtout, ap);
-	va_end (ap);
+	va_end(ap);
 
 	fmtout->fmt_str = fmt_str;
 	fmtout->fmt_type = fmt_type;
@@ -1582,7 +1582,7 @@ int hawk_ufmt_out (hawk_fmtout_t* fmtout, const hawk_uch_t* fmt, ...)
 #define log_write(hawk,mask,ptr,len) do { \
 	 int shuterr = (hawk)->shuterr; \
 	 (hawk)->shuterr = 1; \
-	 (hawk)->prm.logwrite(hawk, mask, ptr, len); \
+	 if ((hawk)->prm.logwrite) (hawk)->prm.logwrite(hawk, mask, ptr, len); \
 	 (hawk)->shuterr = shuterr; \
 } while(0)
 
@@ -1778,9 +1778,9 @@ hawk_ooi_t hawk_logbfmt (hawk_t* hawk, hawk_bitmask_t mask, const hawk_bch_t* fm
 	hawk_ooi_t x;
 	va_list ap;
 
-	va_start (ap, fmt);
+	va_start(ap, fmt);
 	x = hawk_logbfmtv(hawk, mask, fmt, ap);
-	va_end (ap);
+	va_end(ap);
 
 	return x;
 }
@@ -1831,9 +1831,9 @@ hawk_ooi_t hawk_logufmt (hawk_t* hawk, hawk_bitmask_t mask, const hawk_uch_t* fm
 	hawk_ooi_t x;
 	va_list ap;
 
-	va_start (ap, fmt);
+	va_start(ap, fmt);
 	x = hawk_logufmtv(hawk, mask, fmt, ap);
-	va_end (ap);
+	va_end(ap);
 
 	return x;
 }

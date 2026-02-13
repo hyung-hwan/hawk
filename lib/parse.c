@@ -223,7 +223,7 @@ static hawk_t* collect_globals (hawk_t* hawk, nde_chain_t* init, int is_const);
 static hawk_t* collect_locals (hawk_t* hawk, hawk_oow_t nlcls, int flags, nde_chain_t* init, int is_const);
 static int append_init_stmts_to_init_tree (hawk_t* hawk, nde_chain_t* init, const hawk_loc_t* xloc);
 
-static hawk_nde_t* parse_function (hawk_t* hawk);
+static hawk_nde_t* parse_function (hawk_t* hawk, int named);
 static hawk_nde_t* parse_begin (hawk_t* hawk);
 static hawk_nde_t* parse_end (hawk_t* hawk);
 static hawk_chain_t* parse_action_block (hawk_t* hawk, hawk_nde_t* ptn, int blockless);
@@ -256,7 +256,9 @@ static hawk_nde_t* parse_primary_ident (hawk_t* hawk, const hawk_loc_t* xloc);
 static hawk_nde_t* parse_primary_literal (hawk_t* hawk, const hawk_loc_t* xloc);
 static hawk_nde_t* parse_hashidx (hawk_t* hawk, const hawk_oocs_t* name, const hawk_loc_t* xloc);
 static hawk_nde_t* parse_dotidx (hawk_t* hawk, const hawk_oocs_t* name, const hawk_loc_t* xloc);
+#if defined(HAWK_ENABLE_FUN_AS_VALUE)
 static hawk_nde_t* parse_xcall_postfix_on_expr (hawk_t* hawk, hawk_nde_t* base, const hawk_loc_t* xloc);
+#endif
 
 #define FNCALL_FLAG_NOARG (1 << 0) /* no argument */
 #define FNCALL_FLAG_EXPR  (1 << 1)
@@ -1247,7 +1249,7 @@ static int parse_progunit (hawk_t* hawk)
 	else if (MATCH(hawk, TOK_FUNCTION))
 	{
 		hawk->parse.id.block = PARSE_FUNCTION;
-		if (parse_function(hawk) == HAWK_NULL) return -1;
+		if (parse_function(hawk, 1) == HAWK_NULL) return -1;
 	}
 	else if (MATCH(hawk, TOK_BEGIN))
 	{
@@ -1435,11 +1437,15 @@ static int parse_progunit (hawk_t* hawk)
 	return 0;
 }
 
-static hawk_nde_t* parse_function (hawk_t* hawk)
+static hawk_nde_t* parse_function (hawk_t* hawk, int named)
 {
-	hawk_oocs_t name;
+	hawk_oocs_t name = { HAWK_NULL, 0 };
+	hawk_oocs_t saved_fun_name;
 	hawk_nde_t* body = HAWK_NULL;
 	hawk_fun_t* fun = HAWK_NULL;
+	hawk_ooi_t org_fun_level;
+	hawk_oow_t lcl_base;
+	hawk_oow_t param_base;
 	hawk_ooch_t* argspec = HAWK_NULL;
 	hawk_oow_t argspeccapa = 0;
 	hawk_oow_t argspeclen = 0;
@@ -1449,62 +1455,89 @@ static hawk_nde_t* parse_function (hawk_t* hawk)
 	hawk_loc_t xloc;
 	int rederr;
 	const hawk_ooch_t* redobj;
+	hawk_loc_t fun_loc;
+
+	fun_loc = hawk->tok.loc;
+
+	/* make sure that parameter table is empty */
+	/* remember the number of parameters when parse_function is called.
+	 * this base number may not be 0 if parse_function has been called for a function literal
+	 * while the outer functions have at least one argument in total */
+	/*HAWK_ASSERT(HAWK_ARR_SIZE(hawk->parse.params) == 0); this assertion is not valid any more*/
+	lcl_base = HAWK_ARR_SIZE(hawk->parse.lcls);
+	param_base = HAWK_ARR_SIZE(hawk->parse.params);
+	org_fun_level = hawk->parse.fun_level++;
+	if (hawk->parse.fun_level >= HAWK_COUNTOF(hawk->parse.param_bases))
+	{
+		/* this may happen for function literals */
+		hawk_seterrfmt(hawk, &hawk->tok.loc, HAWK_EBLKNST, HAWK_T("function nesting too deep"));
+		goto oops;
+	}
+	hawk->parse.lcl_bases[hawk->parse.fun_level] = lcl_base;
+	hawk->parse.param_bases[hawk->parse.fun_level] = param_base;
+	hawk->parse.lcl_base = lcl_base;
+	hawk->parse.param_base = param_base;
 
 	/* eat up the keyword 'function' and get the next token */
 	HAWK_ASSERT(MATCH(hawk,TOK_FUNCTION));
-	if (get_token(hawk) <= -1) return HAWK_NULL;
-
-	/* check if an identifier is in place */
-	if (!MATCH(hawk,TOK_IDENT))
-	{
-		/* cannot find a valid identifier for a function name */
-		hawk_seterrfmt(hawk, &hawk->tok.loc, HAWK_EFUNNAM, HAWK_T("'%.*js' not a valid function name"), HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
-		return HAWK_NULL;
-	}
-
-	name.len = HAWK_OOECS_LEN(hawk->tok.name);
-	name.ptr = HAWK_OOECS_PTR(hawk->tok.name);
-
-	/* note that i'm assigning to rederr in the 'if' conditions below.
- 	 * i'm not checking equality */
-	    /* check if it is a builtin function */
-	if ((hawk_findfncwithoocs(hawk, &name) != HAWK_NULL && (rederr = HAWK_EFNCRED, redobj = HAWK_T("intrinsic function"))) ||
-	    /* check if it has already been defined as a function */
-	    (hawk_htb_search(hawk->tree.funs, name.ptr, name.len) != HAWK_NULL && (rederr = HAWK_EFUNRED, redobj = HAWK_T("function"))) ||
-	    /* check if it conflicts with a named variable */
-	    (hawk_htb_search(hawk->parse.named, name.ptr, name.len) != HAWK_NULL && (rederr = HAWK_EVARRED, redobj = HAWK_T("variable"))) ||
-	    /* check if it coincides to be a global variable name */
-	    (((g = find_global(hawk, &name)) != HAWK_ARR_NIL) && (rederr = HAWK_EGBLRED, redobj = HAWK_T("global variable"))))
-	{
-		hawk_seterrfmt(hawk, &hawk->tok.loc, rederr, HAWK_T("%js '%.*js' redefined"), redobj, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
-		return HAWK_NULL;
-	}
-
-	/* duplicate the name before it's overridden by get_token() */
-	name.ptr = hawk_dupoochars(hawk, name.ptr, name.len);
-	if (HAWK_UNLIKELY(!name.ptr))
-	{
-		ADJERR_LOC(hawk, &hawk->tok.loc);
-		return HAWK_NULL;
-	}
-	/* == from this point, failure must jump to oops to free name.ptr == */
-
-	/* get the next token */
 	if (get_token(hawk) <= -1) goto oops;
+
+	if (named)
+	{
+		hawk_oocs_t fnt; /* file name token */
+
+		fnt.ptr = HAWK_OOECS_PTR(hawk->tok.name);
+		fnt.len = HAWK_OOECS_LEN(hawk->tok.name);
+
+		/* check if an identifier is in place */
+		if (!MATCH(hawk,TOK_IDENT))
+		{
+			/* cannot find a valid identifier for a function name */
+			hawk_seterrfmt(hawk, &hawk->tok.loc, HAWK_EFUNNAM,
+				HAWK_T("'%.*js' not a valid function name"), fnt.len, fnt.ptr);
+			goto oops;
+		}
+
+		/* note that i'm assigning to rederr in the 'if' conditions below.
+		 * i'm not checking equality */
+		    /* check if it is a builtin function */
+		if ((hawk_findfncwithoocs(hawk, &fnt) != HAWK_NULL && (rederr = HAWK_EFNCRED, redobj = HAWK_T("intrinsic function"))) ||
+		    /* check if it has already been defined as a function */
+		    (hawk_htb_search(hawk->tree.funs, fnt.ptr, fnt.len) != HAWK_NULL && (rederr = HAWK_EFUNRED, redobj = HAWK_T("function"))) ||
+		    /* check if it conflicts with a named variable */
+		    (hawk_htb_search(hawk->parse.named, fnt.ptr, fnt.len) != HAWK_NULL && (rederr = HAWK_EVARRED, redobj = HAWK_T("variable"))) ||
+		    /* check if it coincides to be a global variable name */
+		    (((g = find_global(hawk, &fnt)) != HAWK_ARR_NIL) && (rederr = HAWK_EGBLRED, redobj = HAWK_T("global variable"))))
+		{
+			hawk_seterrfmt(hawk, &hawk->tok.loc, rederr, HAWK_T("%js '%.*js' redefined"), redobj, fnt.len, fnt.ptr);
+			goto oops;
+		}
+
+		/* duplicate the name before it's overridden by get_token() */
+		name.ptr = hawk_dupoochars(hawk, fnt.ptr, fnt.len);
+		if (HAWK_UNLIKELY(!name.ptr))
+		{
+			ADJERR_LOC(hawk, &hawk->tok.loc);
+			goto oops;
+		}
+		name.len = fnt.len;
+
+		/* get the next token */
+		if (get_token(hawk) <= -1) goto oops;
+	}
 
 	/* match a left parenthesis */
 	if (!MATCH(hawk,TOK_LPAREN))
 	{
-		/* a function name is not followed by a left parenthesis */
-		hawk_seterrfmt(hawk,  &hawk->tok.loc, HAWK_ELPAREN, FMT_ELPAREN, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
+		/* named - a function name is not followed by a left parenthesis.
+		 * unnamed - the function keyword is not followed by a left parenthesis*/
+		hawk_seterrfmt(hawk,  &hawk->tok.loc, HAWK_ELPAREN, FMT_ELPAREN,
+			HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
 		goto oops;
 	}
 
 	/* get the next token */
 	if (get_token(hawk) <= -1) goto oops;
-
-	/* make sure that parameter table is empty */
-	HAWK_ASSERT(HAWK_ARR_SIZE(hawk->parse.params) == 0);
 
 	/* read parameter list */
 	if (MATCH(hawk,TOK_RPAREN))
@@ -1530,7 +1563,8 @@ static hawk_nde_t* parse_function (hawk_t* hawk)
 
 				if (!MATCH(hawk,TOK_RPAREN))
 				{
-					hawk_seterrfmt(hawk,  &hawk->tok.loc, HAWK_ERPAREN, FMT_ERPAREN, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
+					hawk_seterrfmt(hawk, &hawk->tok.loc, HAWK_ERPAREN, FMT_ERPAREN,
+						HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
 					goto oops;
 				}
 
@@ -1538,10 +1572,10 @@ static hawk_nde_t* parse_function (hawk_t* hawk)
 				break;
 			}
 
+			nargs = HAWK_ARR_SIZE(hawk->parse.params) - hawk->parse.param_base;
 			if (MATCH(hawk, TOK_BAND)) /* &arg */
 			{
 				/* pass-by-reference argument */
-				nargs = HAWK_ARR_SIZE(hawk->parse.params);
 				if (nargs >= argspeccapa)
 				{
 					hawk_oow_t i, newcapa = HAWK_ALIGN_POW2(nargs + 2, 64);
@@ -1556,7 +1590,9 @@ static hawk_nde_t* parse_function (hawk_t* hawk)
 
 			if (!MATCH(hawk,TOK_IDENT))
 			{
-				hawk_seterrfmt(hawk, &hawk->tok.loc, HAWK_EBADPAR, HAWK_T("'%.*js' not a valid parameter name"), HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
+				hawk_seterrfmt(hawk, &hawk->tok.loc, HAWK_EBADPAR,
+					HAWK_T("'%.*js' not a valid parameter name"),
+					HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
 				goto oops;
 			}
 
@@ -1571,23 +1607,32 @@ static hawk_nde_t* parse_function (hawk_t* hawk)
 			 *  x in print x is a parameter
 			 */
 
-			/* check if a parameter conflicts with the function
-			 * name or other parameters */
-			if (((hawk->opt.trait & HAWK_STRICTNAMING) &&
-			     hawk_comp_oochars(pa, pal, name.ptr, name.len, 0) == 0) ||
-			    hawk_arr_search(hawk->parse.params, 0, pa, pal) != HAWK_ARR_NIL)
+			if (name.ptr) /* named */
+			{
+				/* check if a parameter conflicts with the function
+				 * name or other parameters */
+				if ((hawk->opt.trait & HAWK_STRICTNAMING) && hawk_comp_oochars(pa, pal, name.ptr, name.len, 0) == 0)
+				{
+					hawk_seterrfmt(hawk, &hawk->tok.loc, HAWK_EDUPPAR, HAWK_T("conflicting parameter name '%.*js' with function name"), pal, pa);
+					goto oops;
+				}
+			}
+
+			if (hawk_arr_search(hawk->parse.params, hawk->parse.param_base, HAWK_ARR_SIZE(hawk->parse.params), pa, pal) != HAWK_ARR_NIL)
 			{
 				hawk_seterrfmt(hawk, &hawk->tok.loc, HAWK_EDUPPAR, HAWK_T("duplicate parameter name '%.*js'"), pal, pa);
 				goto oops;
 			}
 
 			/* push the parameter to the parameter list */
-			if (HAWK_ARR_SIZE(hawk->parse.params) >= HAWK_MAX_PARAMS)
+			if (nargs >= HAWK_MAX_PARAMS)
 			{
 				hawk_seterrnum(hawk, &hawk->tok.loc, HAWK_EPARTM);
 				goto oops;
 			}
 
+			/* the insertion position is HAWK_ARR_SIZE(hawk->parse.params).
+			 * it must not be nargs which is relative to outer functions defined */
 			if (hawk_arr_insert(hawk->parse.params, HAWK_ARR_SIZE(hawk->parse.params), pa, pal) == HAWK_ARR_NIL)
 			{
 				ADJERR_LOC(hawk, &hawk->tok.loc);
@@ -1601,7 +1646,8 @@ static hawk_nde_t* parse_function (hawk_t* hawk)
 
 			if (!MATCH(hawk,TOK_COMMA))
 			{
-				hawk_seterrfmt(hawk,  &hawk->tok.loc, HAWK_ECOMMA, FMT_ECOMMA, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
+				hawk_seterrfmt(hawk, &hawk->tok.loc, HAWK_ECOMMA, FMT_ECOMMA,
+					HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
 				goto oops;
 			}
 
@@ -1614,7 +1660,10 @@ static hawk_nde_t* parse_function (hawk_t* hawk)
 
 		if (argspec)
 		{
-			/* nargs is the number taken before the current argument word was added to the parse.params array.
+			/* argspec is set to a non-null value if there is a least 1 reference parameter encountered.
+			 * when it's set, nargs is also updated.
+			 *
+			 * nargs is the number taken before the current argument word was added to the parse.params array.
 			 * so the actual number of arguments is nargs + 1 */
 			argspeclen = nargs + 1;
 			argspec[argspeclen] = '\0';
@@ -1634,31 +1683,43 @@ static hawk_nde_t* parse_function (hawk_t* hawk)
 	/* check if the function body starts with a left brace */
 	if (!MATCH(hawk,TOK_LBRACE))
 	{
-		hawk_seterrfmt(hawk,  &hawk->tok.loc, HAWK_ELBRACE, FMT_ELBRACE, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
+		hawk_seterrfmt(hawk, &hawk->tok.loc, HAWK_ELBRACE, FMT_ELBRACE,
+			HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
 		goto oops;
 	}
 	if (get_token(hawk) <= -1) goto oops;
 
 	/* remember the current function name so that the body parser
 	 * can know the name of the current function being parsed */
-	hawk->tree.cur_fun.ptr = name.ptr;
-	hawk->tree.cur_fun.len = name.len;
+	saved_fun_name = hawk->tree.cur_fun;
+	hawk->tree.cur_fun = name;
 
 	/* actual function body */
 	xloc = hawk->ptok.loc;
 	body = parse_block_dc(hawk, &xloc, 1);
 
 	/* clear the current function name remembered */
-	hawk->tree.cur_fun.ptr = HAWK_NULL;
-	hawk->tree.cur_fun.len = 0;
+	hawk->tree.cur_fun = saved_fun_name;
 
 	if (!body) goto oops;
 
 	/* TODO: study furthur if the parameter names should be saved
 	 *       for some reasons - might be needed for better deparsing output */
-	nargs = HAWK_ARR_SIZE(hawk->parse.params);
+	nargs = HAWK_ARR_SIZE(hawk->parse.params) - param_base;
 	/* parameter names are not required anymore. clear them */
-	hawk_arr_clear(hawk->parse.params);
+	/*hawk_arr_clear(hawk->parse.params);*/
+	hawk_arr_setsize(hawk->parse.params, param_base);
+	hawk->parse.fun_level--;
+	if (hawk->parse.fun_level >= 0)
+	{
+		hawk->parse.lcl_base = hawk->parse.lcl_bases[hawk->parse.fun_level];
+		hawk->parse.param_base = hawk->parse.param_bases[hawk->parse.fun_level];
+	}
+	else
+	{
+		hawk->parse.lcl_base = 0;
+		hawk->parse.param_base = 0;
+	}
 
 	fun = (hawk_fun_t*)hawk_callocmem(hawk, HAWK_SIZEOF(*fun));
 	if (HAWK_UNLIKELY(!fun))
@@ -1673,34 +1734,84 @@ static hawk_nde_t* parse_function (hawk_t* hawk)
 	fun->variadic = variadic;
 	fun->argspec = argspec;
 	fun->argspeclen = argspeclen;
-	fun->body = body;
+	fun->body = (hawk_nde_t*)body;
 
-	pair = hawk_htb_insert(hawk->tree.funs, name.ptr, name.len, fun, 0);
-	if (HAWK_UNLIKELY(!pair))
+	if (name.ptr) /* named */
 	{
-		/* if hawk_htb_insert() fails for other reasons than memory
-		 * shortage, there should be implementaion errors as duplicate
-		 * functions are detected earlier in this function */
-		ADJERR_LOC(hawk, &hawk->tok.loc);
-		goto oops;
+		pair = hawk_htb_insert(hawk->tree.funs, name.ptr, name.len, fun, 0);
+		if (HAWK_UNLIKELY(!pair))
+		{
+			/* if hawk_htb_insert() fails for other reasons than memory
+			 * shortage, there should be implementaion errors as duplicate
+			 * functions are detected earlier in this function */
+			ADJERR_LOC(hawk, &hawk->tok.loc);
+			goto oops;
+		}
+
+		/* do some trick to save a string. make it back-point at the key part
+		 * of the pair */
+		fun->name.ptr = HAWK_HTB_KPTR(pair);
+		fun->name.len = HAWK_HTB_KLEN(pair);
+		hawk_freemem(hawk, name.ptr);
+
+		/* remove an undefined function call entry from the parse.fun table */
+		hawk_htb_delete(hawk->parse.funs, fun->name.ptr, name.len);
+	}
+	else /* unnamed */
+	{
+		hawk_nde_fun_t* funval = HAWK_NULL;
+
+		/*fun->name.ptr = HAWK_T(""); TODO: is this needed? */
+
+		funval = (hawk_nde_fun_t*)hawk_callocmem(hawk, HAWK_SIZEOF(*funval));
+		if (HAWK_UNLIKELY(!funval))
+		{
+			ADJERR_LOC(hawk, &hawk->tok.loc);
+			goto oops;
+		}
+		funval->type = HAWK_NDE_FUN;
+		funval->loc = fun_loc;
+		funval->name.ptr = HAWK_NULL;
+		funval->name.len = 0;
+		funval->funptr = fun;
+
+		if (hawk_arr_pushstack(hawk->tree.ifuns, fun, 0) == HAWK_ARR_NIL)
+		{
+			ADJERR_LOC(hawk, &hawk->tok.loc);
+			/* since i'm limiting funval within this 'else' block,
+			 * i need to free it here, not after the 'oops' label */
+			hawk_freemem(hawk, funval);
+			goto oops;
+		}
+
+		body = (hawk_nde_t*)funval;
 	}
 
-	/* do some trick to save a string. make it back-point at the key part
-	 * of the pair */
-	fun->name.ptr = HAWK_HTB_KPTR(pair);
-	fun->name.len = HAWK_HTB_KLEN(pair);
-	hawk_freemem(hawk, name.ptr);
-
-	/* remove an undefined function call entry from the parse.fun table */
-	hawk_htb_delete(hawk->parse.funs, fun->name.ptr, name.len);
 	return body;
 
 oops:
 	if (body) hawk_clrpt(hawk, body);
 	if (argspec) hawk_freemem(hawk, argspec);
 	if (fun) hawk_freemem(hawk, fun);
-	hawk_freemem(hawk, name.ptr);
-	hawk_arr_clear(hawk->parse.params);
+	if (name.ptr) hawk_freemem(hawk, name.ptr);
+
+	if (hawk->parse.fun_level > org_fun_level)
+	{
+		/* NOTE there is no setsize on hawk->parse.lcls because
+		 *      it's handled by parse_blocks as necessary */
+		hawk_arr_setsize(hawk->parse.params, param_base);
+		hawk->parse.fun_level--;
+		if (hawk->parse.fun_level >= 0)
+		{
+			hawk->parse.lcl_base = hawk->parse.lcl_bases[hawk->parse.fun_level];
+			hawk->parse.param_base = hawk->parse.param_bases[hawk->parse.fun_level];
+		}
+		else
+		{
+			hawk->parse.lcl_base = 0;
+			hawk->parse.param_base = 0;
+		}
+	}
 	return HAWK_NULL;
 }
 
@@ -1738,6 +1849,7 @@ static hawk_nde_t* parse_end (hawk_t* hawk)
 	if (!hawk->tree.end) hawk->tree.end = nde;
 	else hawk->tree.end_tail->next = nde;
 	hawk->tree.end_tail = nde;
+
 	return nde;
 }
 
@@ -1905,28 +2017,20 @@ static hawk_nde_t* parse_block (hawk_t* hawk, const hawk_loc_t* xloc, int flags)
 		/* skip new lines within a block */
 		while (MATCH(hawk,TOK_NEWLINE))
 		{
-			if (get_token(hawk) <= -1) return HAWK_NULL;
+			if (get_token(hawk) <= -1) goto oops;
 		}
 
 		/* if EOF is met before the right brace, this is an error */
 		if (MATCH(hawk,TOK_EOF))
 		{
-			hawk_arr_delete(hawk->parse.lcls, nlcls_outer, HAWK_ARR_SIZE(hawk->parse.lcls) - nlcls_outer);
-			if (head) hawk_clrpt(hawk, head);
 			hawk_seterrnum(hawk, &hawk->tok.loc, HAWK_EEOF);
-			return HAWK_NULL;
+			goto oops;
 		}
 
 		/* end the block when the right brace is met */
 		if (MATCH(hawk,TOK_RBRACE))
 		{
-			if (get_token(hawk) <= -1)
-			{
-				hawk_arr_delete(hawk->parse.lcls, nlcls_outer, HAWK_ARR_SIZE(hawk->parse.lcls) - nlcls_outer);
-				if (head) hawk_clrpt(hawk, head);
-				return HAWK_NULL;
-			}
-
+			if (get_token(hawk) <= -1) goto oops;
 			break;
 		}
 
@@ -1937,35 +2041,28 @@ static hawk_nde_t* parse_block (hawk_t* hawk, const hawk_loc_t* xloc, int flags)
 			if (hawk->opt.depth.s.incl > 0 && hawk->parse.depth.incl >=  hawk->opt.depth.s.incl)
 			{
 				hawk_seterrnum(hawk, &hawk->ptok.loc, HAWK_EINCLTD);
-				return HAWK_NULL;
+				goto oops;
 			}
 
 			once = MATCH(hawk, TOK_XINCLUDE_ONCE);
-			if (get_token(hawk) <= -1) return HAWK_NULL;
+			if (get_token(hawk) <= -1) goto oops;
 
 			if (!MATCH(hawk,TOK_STR))
 			{
 				hawk_seterrnum(hawk, &hawk->ptok.loc, HAWK_EINCLSTR);
-				return HAWK_NULL;
+				goto oops;
 			}
 
-			if (begin_include(hawk, once) <= -1) return HAWK_NULL;
+			if (begin_include(hawk, once) <= -1) goto oops;
 		}
 		else
 		{
 			/* parse an actual statement in a block */
-			{
-				hawk_loc_t sloc;
-				sloc = hawk->tok.loc;
-				nde = parse_statement(hawk, &sloc);
-			}
+			hawk_loc_t sloc;
+			sloc = hawk->tok.loc;
+			nde = parse_statement(hawk, &sloc);
 
-			if (HAWK_UNLIKELY(!nde))
-			{
-				hawk_arr_delete(hawk->parse.lcls, nlcls_outer, HAWK_ARR_SIZE(hawk->parse.lcls) - nlcls_outer);
-				if (head) hawk_clrpt(hawk, head);
-				return HAWK_NULL;
-			}
+			if (HAWK_UNLIKELY(!nde)) goto oops;
 
 			/* remove unnecessary statements such as adjacent
 			 * null statements */
@@ -2000,9 +2097,7 @@ static hawk_nde_t* parse_block (hawk_t* hawk, const hawk_loc_t* xloc, int flags)
 			if (!vxi.used)
 			{
 				hawk_seterrbfmt(hawk, &vxi.loc, HAWK_EUNUSED, "unused local variable '%.*js'", ptl->len, ptl->ptr);
-				hawk_arr_delete(hawk->parse.lcls, nlcls_outer, HAWK_ARR_SIZE(hawk->parse.lcls) - nlcls_outer);
-				hawk_clrpt(hawk, head);
-				return HAWK_NULL;
+				goto oops;
 			}
 		}
 	}
@@ -2010,10 +2105,8 @@ static hawk_nde_t* parse_block (hawk_t* hawk, const hawk_loc_t* xloc, int flags)
 	block = (hawk_nde_blk_t*)hawk_callocmem(hawk, HAWK_SIZEOF(*block));
 	if (HAWK_UNLIKELY(!block))
 	{
-		hawk_arr_delete(hawk->parse.lcls, nlcls_outer, HAWK_ARR_SIZE(hawk->parse.lcls) - nlcls_outer);
-		hawk_clrpt(hawk, head);
 		ADJERR_LOC(hawk, xloc);
-		return HAWK_NULL;
+		goto oops;
 	}
 
 	tmp = HAWK_ARR_SIZE(hawk->parse.lcls);
@@ -2030,7 +2123,7 @@ static hawk_nde_t* parse_block (hawk_t* hawk, const hawk_loc_t* xloc, int flags)
 	block->body = head;
 
 	block->org_nlcls = tmp - nlcls_outer; /* number of locals defined in this block */
-	block->outer_nlcls = nlcls_outer; /* number of locals defined in outer blocks */
+	block->outer_nlcls = nlcls_outer - hawk->parse.lcl_base; /* number of locals defined in outer blocks */
 
 #if 1
 	/* TODO: not only local variables but also nested blocks,
@@ -2040,7 +2133,10 @@ static hawk_nde_t* parse_block (hawk_t* hawk, const hawk_loc_t* xloc, int flags)
 	/* migrate all block-local variables to the outermost block */
 	if (flags & PARSE_BLOCK_FLAG_IS_TOP)
 	{
+		/* if there is no nested function literals, the following condition must be true.
 		HAWK_ASSERT(nlcls_outer == 0 && nlcls_max == 0);
+		with the intruduction of function literlas, it isn't true any more.
+		*/
 		block->nlcls = hawk->parse.nlcls_max - nlcls_outer;
 		hawk->parse.nlcls_max = nlcls_max; /* restore */
 	}
@@ -2054,6 +2150,11 @@ static hawk_nde_t* parse_block (hawk_t* hawk, const hawk_loc_t* xloc, int flags)
 #endif
 
 	return (hawk_nde_t*)block;
+
+oops:
+	hawk_arr_delete(hawk->parse.lcls, nlcls_outer, HAWK_ARR_SIZE(hawk->parse.lcls) - nlcls_outer);
+	hawk_clrpt(hawk, head);
+	return HAWK_NULL;
 }
 
 static hawk_nde_t* parse_block_dc (hawk_t* hawk, const hawk_loc_t* xloc, int flags)
@@ -2358,7 +2459,7 @@ int hawk_delgblwithbcstr (hawk_t* hawk, const hawk_bch_t* name)
 	}
 
 #if defined(HAWK_OOCH_IS_BCH)
-	n = hawk_arr_search(hawk->parse.gbls, HAWK_NUM_STATIC_GBLS, ncs.ptr, ncs.len);
+	n = hawk_arr_search(hawk->parse.gbls, HAWK_NUM_STATIC_GBLS, HAWK_ARR_SIZE(hawk->parse.gbls), ncs.ptr, ncs.len);
 	if (n == HAWK_ARR_NIL)
 	{
 		hawk_seterrfmt(hawk, HAWK_NULL, HAWK_ENOENT, FMT_ENOENT_GBL_HS, ncs.len, ncs.ptr);
@@ -2367,7 +2468,7 @@ int hawk_delgblwithbcstr (hawk_t* hawk, const hawk_bch_t* name)
 #else
 	wcs.ptr = hawk_dupbtoucstr(hawk, ncs.ptr, &wcs.len, 0);
 	if (HAWK_UNLIKELY(!wcs.ptr)) return -1;
-	n = hawk_arr_search(hawk->parse.gbls, HAWK_NUM_STATIC_GBLS, wcs.ptr, wcs.len);
+	n = hawk_arr_search(hawk->parse.gbls, HAWK_NUM_STATIC_GBLS, HAWK_ARR_SIZE(hawk->parse.gbls), wcs.ptr, wcs.len);
 	if (n == HAWK_ARR_NIL)
 	{
 		hawk_seterrfmt(hawk, HAWK_NULL, HAWK_ENOENT, FMT_ENOENT_GBL_LS, wcs.len, wcs.ptr);
@@ -2413,7 +2514,7 @@ int hawk_delgblwithucstr (hawk_t* hawk, const hawk_uch_t* name)
 #if defined(HAWK_OOCH_IS_BCH)
 	mbs.ptr = hawk_duputobcstr(hawk, ncs.ptr, &mbs.len);
 	if (HAWK_UNLIKELY(!mbs.ptr)) return -1;
-	n = hawk_arr_search(hawk->parse.gbls, HAWK_NUM_STATIC_GBLS, mbs.ptr, mbs.len);
+	n = hawk_arr_search(hawk->parse.gbls, HAWK_NUM_STATIC_GBLS, HAWK_ARR_SIZE(hawk->parse.gbls), mbs.ptr, mbs.len);
 	if (n == HAWK_ARR_NIL)
 	{
 		hawk_seterrfmt(hawk, HAWK_NULL, HAWK_ENOENT, FMT_ENOENT_GBL_HS, mbs.len, mbs.ptr);
@@ -2422,7 +2523,7 @@ int hawk_delgblwithucstr (hawk_t* hawk, const hawk_uch_t* name)
 	}
 	hawk_freemem(hawk, mbs.ptr);
 #else
-	n = hawk_arr_search(hawk->parse.gbls, HAWK_NUM_STATIC_GBLS, ncs.ptr, ncs.len);
+	n = hawk_arr_search(hawk->parse.gbls, HAWK_NUM_STATIC_GBLS, HAWK_ARR_SIZE(hawk->parse.gbls), ncs.ptr, ncs.len);
 	if (n == HAWK_ARR_NIL)
 	{
 		hawk_seterrfmt(hawk, HAWK_NULL, HAWK_ENOENT, FMT_ENOENT_GBL_LS, ncs.len, ncs.ptr);
@@ -2455,7 +2556,7 @@ int hawk_findgblwithbcstr (hawk_t* hawk, const hawk_bch_t* name, int inc_builtin
 	ncs.len = hawk_count_bcstr(name);
 
 #if defined(HAWK_OOCH_IS_BCH)
-	n = hawk_arr_search(hawk->parse.gbls, (inc_builtins? 0: HAWK_NUM_STATIC_GBLS), ncs.ptr, ncs.len);
+	n = hawk_arr_search(hawk->parse.gbls, (inc_builtins? 0: HAWK_NUM_STATIC_GBLS), HAWK_ARR_SIZE(hawk->parse.gbls), ncs.ptr, ncs.len);
 	if (n == HAWK_ARR_NIL)
 	{
 		hawk_seterrfmt(hawk, HAWK_NULL, HAWK_ENOENT, FMT_ENOENT_GBL_HS, ncs.len, ncs.ptr);
@@ -2464,7 +2565,7 @@ int hawk_findgblwithbcstr (hawk_t* hawk, const hawk_bch_t* name, int inc_builtin
 #else
 	wcs.ptr = hawk_dupbtoucstr(hawk, ncs.ptr, &wcs.len, 0);
 	if (HAWK_UNLIKELY(!wcs.ptr)) return -1;
-	n = hawk_arr_search(hawk->parse.gbls, (inc_builtins? 0: HAWK_NUM_STATIC_GBLS), wcs.ptr, wcs.len);
+	n = hawk_arr_search(hawk->parse.gbls, (inc_builtins? 0: HAWK_NUM_STATIC_GBLS), HAWK_ARR_SIZE(hawk->parse.gbls), wcs.ptr, wcs.len);
 	if (n == HAWK_ARR_NIL)
 	{
 		hawk_seterrfmt(hawk, HAWK_NULL, HAWK_ENOENT, FMT_ENOENT_GBL_LS, wcs.len, wcs.ptr);
@@ -2491,7 +2592,7 @@ int hawk_findgblwithucstr (hawk_t* hawk, const hawk_uch_t* name, int inc_builtin
 #if defined(HAWK_OOCH_IS_BCH)
 	mbs.ptr = hawk_duputobcstr(hawk, ncs.ptr, &mbs.len);
 	if (HAWK_UNLIKELY(!mbs.ptr)) return -1;
-	n = hawk_arr_search(hawk->parse.gbls, (inc_builtins? 0: HAWK_NUM_STATIC_GBLS), mbs.ptr, mbs.len);
+	n = hawk_arr_search(hawk->parse.gbls, (inc_builtins? 0: HAWK_NUM_STATIC_GBLS), HAWK_ARR_SIZE(hawk->parse.gbls), mbs.ptr, mbs.len);
 	if (n == HAWK_ARR_NIL)
 	{
 		hawk_seterrfmt(hawk, HAWK_NULL, HAWK_ENOENT, FMT_ENOENT_GBL_HS, mbs.len, mbs.ptr);
@@ -2500,7 +2601,7 @@ int hawk_findgblwithucstr (hawk_t* hawk, const hawk_uch_t* name, int inc_builtin
 	}
 	hawk_freemem(hawk, mbs.ptr);
 #else
-	n = hawk_arr_search(hawk->parse.gbls, (inc_builtins? 0: HAWK_NUM_STATIC_GBLS), ncs.ptr, ncs.len);
+	n = hawk_arr_search(hawk->parse.gbls, (inc_builtins? 0: HAWK_NUM_STATIC_GBLS), HAWK_ARR_SIZE(hawk->parse.gbls), ncs.ptr, ncs.len);
 	if (n == HAWK_ARR_NIL)
 	{
 		hawk_seterrfmt(hawk, HAWK_NULL, HAWK_ENOENT, FMT_ENOENT_GBL_LS, ncs.len, ncs.ptr);
@@ -2761,7 +2862,7 @@ static hawk_t* collect_locals (hawk_t* hawk, hawk_oow_t nlcls, int flags, nde_ch
 			/* check if it conflicts with a parameter name.
 			 * the first level declaration is treated as the same
 			 * scope as the parameter list */
-			n = hawk_arr_search(hawk->parse.params, 0, lcl.ptr, lcl.len);
+			n = hawk_arr_search(hawk->parse.params, hawk->parse.param_base, HAWK_ARR_SIZE(hawk->parse.params), lcl.ptr, lcl.len);
 			if (n != HAWK_ARR_NIL)
 			{
 				hawk_seterrfmt(hawk, &hawk->tok.loc, HAWK_EPARRED, HAWK_T("parameter '%.*js' redefined"), lcl.len, lcl.ptr);
@@ -2783,7 +2884,7 @@ static hawk_t* collect_locals (hawk_t* hawk, hawk_oow_t nlcls, int flags, nde_ch
 		}
 
 		/* check if it conflicts with other local variable names */
-		n = hawk_arr_search(hawk->parse.lcls, nlcls, lcl.ptr, lcl.len);
+		n = hawk_arr_search(hawk->parse.lcls, nlcls, HAWK_ARR_SIZE(hawk->parse.lcls), lcl.ptr, lcl.len);
 		if (n != HAWK_ARR_NIL)
 		{
 			hawk_seterrfmt(hawk, &hawk->tok.loc, HAWK_EDUPLCL, FMT_EDUPLCL, lcl.len, lcl.ptr);
@@ -2840,7 +2941,7 @@ static hawk_t* collect_locals (hawk_t* hawk, hawk_oow_t nlcls, int flags, nde_ch
 			init = parse_expr_basic_withdc(hawk, &eloc);
 			if (HAWK_UNLIKELY(!init)) goto oops;
 
-			ass = make_init_assignment(hawk, &lcl, HAWK_NDE_LCL, idxa, init, &vloc, is_const);
+			ass = make_init_assignment(hawk, &lcl, HAWK_NDE_LCL, idxa - hawk->parse.lcl_base, init, &vloc, is_const);
 			if (HAWK_UNLIKELY(!ass))
 			{
 				hawk_clrpt(hawk, init);
@@ -3118,7 +3219,7 @@ static hawk_nde_t* parse_switch (hawk_t* hawk, const hawk_loc_t* xloc)
 			}
 
 			vv = alloc_nde_case(hawk, &eloc);
-			if (!vv)
+			if (HAWK_UNLIKELY(!vv))
 			{
 				if (action_first) hawk_clrpt(hawk, action_first);
 				goto oops;
@@ -6098,6 +6199,14 @@ static hawk_nde_t* parse_primary_nopipe (hawk_t* hawk, const hawk_loc_t* xloc)
 		case TOK_GETLINE:
 			return parse_primary_getline(hawk, xloc, 0);
 
+		case TOK_FUNCTION:
+#if defined(HAWK_ENABLE_FUN_AS_VALUE)
+			return parse_function(hawk, 0);
+#else
+			hawk_seterrfmt(hawk, xloc, HAWK_EFUNNAM, HAWK_T("function literal not supported"));
+			return HAWK_NULL;
+#endif
+
 		case TOK_XNIL:
 			return parse_primary_xnil(hawk, xloc);
 
@@ -6113,8 +6222,6 @@ static hawk_nde_t* parse_primary_nopipe (hawk_t* hawk, const hawk_loc_t* xloc)
 
 		default:
 		{
-			hawk_tok_t* xtok;
-
 			/* in the tolerant mode, we treat print and printf
 			 * as a function like getline */
 			if ((hawk->opt.trait & HAWK_TOLERANT) &&
@@ -6125,8 +6232,18 @@ static hawk_nde_t* parse_primary_nopipe (hawk_t* hawk, const hawk_loc_t* xloc)
 			}
 
 			/* valid expression introducer is expected */
-			xtok = MATCH(hawk,TOK_NEWLINE)? &hawk->ptok: &hawk->tok;
-			hawk_seterrfmt(hawk, &xtok->loc, HAWK_EEXPRNR, HAWK_T("expression not recognized around '%.*js'"), HAWK_OOECS_LEN(xtok->name),  HAWK_OOECS_PTR(xtok->name));
+			if (MATCH(hawk,TOK_NEWLINE))
+			{
+				hawk_seterrfmt(hawk, &hawk->ptok.loc, HAWK_EEXPRNR,
+					HAWK_T("unexpected newline after '%.*js'"),
+					HAWK_OOECS_LEN(hawk->ptok.name), HAWK_OOECS_PTR(hawk->ptok.name));
+			}
+			else
+			{
+				hawk_seterrfmt(hawk, &hawk->tok.loc, HAWK_EEXPRNR,
+					HAWK_T("expression not recognized around '%.*js'"),
+					HAWK_OOECS_LEN(hawk->tok.name),  HAWK_OOECS_PTR(hawk->tok.name));
+			}
 			return HAWK_NULL;
 		}
 	}
@@ -6374,6 +6491,7 @@ static hawk_nde_t* parse_fun_as_value (hawk_t* hawk, const hawk_oocs_t* name, co
 
 	return (hawk_nde_t*)nde;
 }
+
 #endif
 
 static hawk_nde_t* parse_primary_ident_noseg (hawk_t* hawk, const hawk_loc_t* xloc, const hawk_oocs_t* name)
@@ -6425,7 +6543,7 @@ static hawk_nde_t* parse_primary_ident_noseg (hawk_t* hawk, const hawk_loc_t* xl
 	{
 		nde = parse_dotidx(hawk, name, xloc);
 	}
-	else if ((idxa = hawk_arr_rsearch(hawk->parse.lcls, HAWK_ARR_SIZE(hawk->parse.lcls), name->ptr, name->len)) != HAWK_ARR_NIL)
+	else if ((idxa = hawk_arr_rsearch(hawk->parse.lcls, hawk->parse.lcl_base, HAWK_ARR_SIZE(hawk->parse.lcls), name->ptr, name->len)) != HAWK_ARR_NIL)
 	{
 		/* local variable */
 		const hawk_ptl_t* ptl;
@@ -6438,12 +6556,12 @@ static hawk_nde_t* parse_primary_ident_noseg (hawk_t* hawk, const hawk_loc_t* xl
 		vxi = (hawk_var_xinfo_t*)((hawk_ooch_t*)ptl->ptr + ptl->len);
 		if (hawk->parse.pragma.trait & HAWK_PEDANTIC) vxi->used = 1;
 
-		nde = parse_variable(hawk, xloc, HAWK_NDE_LCL, name, idxa, vxi->is_const);
+		nde = parse_variable(hawk, xloc, HAWK_NDE_LCL, name, idxa - hawk->parse.lcl_base, vxi->is_const);
 	}
-	else if ((idxa = hawk_arr_search(hawk->parse.params, 0, name->ptr, name->len)) != HAWK_ARR_NIL)
+	else if ((idxa = hawk_arr_search(hawk->parse.params, hawk->parse.param_base, HAWK_ARR_SIZE(hawk->parse.params), name->ptr, name->len)) != HAWK_ARR_NIL)
 	{
 		/* parameter */
-		nde = parse_variable(hawk, xloc, HAWK_NDE_ARG, name, idxa, 0);
+		nde = parse_variable(hawk, xloc, HAWK_NDE_ARG, name, idxa - hawk->parse.param_base, 0);
 	}
 	else if ((idxa = get_global(hawk, name)) != HAWK_ARR_NIL)
 	{
@@ -6859,7 +6977,7 @@ static hawk_nde_t* make_hashidx_access_node (hawk_t* hawk, const hawk_oocs_t* na
 	}
 
 	/* search the local variable list */
-	idxa = hawk_arr_rsearch(hawk->parse.lcls, HAWK_ARR_SIZE(hawk->parse.lcls), name->ptr, name->len);
+	idxa = hawk_arr_rsearch(hawk->parse.lcls, hawk->parse.lcl_base, HAWK_ARR_SIZE(hawk->parse.lcls), name->ptr, name->len);
 	if (idxa != HAWK_ARR_NIL)
 	{
 		nde->type = HAWK_NDE_LCLIDX;
@@ -6867,7 +6985,7 @@ static hawk_nde_t* make_hashidx_access_node (hawk_t* hawk, const hawk_oocs_t* na
 		/*nde->id.name = HAWK_NULL; */
 		nde->id.name.ptr = name->ptr;
 		nde->id.name.len = name->len;
-		nde->id.idxa = idxa;
+		nde->id.idxa = idxa - hawk->parse.lcl_base;
 		nde->idx = idx;
 
 		{
@@ -6887,7 +7005,7 @@ static hawk_nde_t* make_hashidx_access_node (hawk_t* hawk, const hawk_oocs_t* na
 	}
 
 	/* search the parameter name list */
-	idxa = hawk_arr_search(hawk->parse.params, 0, name->ptr, name->len);
+	idxa = hawk_arr_search(hawk->parse.params, hawk->parse.param_base, HAWK_ARR_SIZE(hawk->parse.params), name->ptr, name->len);
 	if (idxa != HAWK_ARR_NIL)
 	{
 		nde->type = HAWK_NDE_ARGIDX;
@@ -6895,7 +7013,7 @@ static hawk_nde_t* make_hashidx_access_node (hawk_t* hawk, const hawk_oocs_t* na
 		/*nde->id.name = HAWK_NULL; */
 		nde->id.name.ptr = name->ptr;
 		nde->id.name.len = name->len;
-		nde->id.idxa = idxa;
+		nde->id.idxa = idxa - hawk->parse.param_base;
 		nde->idx = idx;
 
 		return (hawk_nde_t*)nde;
@@ -7007,6 +7125,7 @@ oops:
 	return HAWK_NULL;
 }
 
+#if defined(HAWK_ENABLE_FUN_AS_VALUE)
 static hawk_nde_t* parse_xcall_postfix_on_expr (hawk_t* hawk, hawk_nde_t* base, const hawk_loc_t* xloc)
 {
 	if (is_nospace_lparen(hawk) && (hawk->ptok.type == TOK_IDENT || hawk->ptok.type == TOK_RBRACK))
@@ -7035,6 +7154,7 @@ static hawk_nde_t* parse_xcall_postfix_on_expr (hawk_t* hawk, hawk_nde_t* base, 
 
 	return base;
 }
+#endif
 
 static hawk_nde_t* parse_hashidx_common (hawk_t* hawk, const hawk_oocs_t* name, const hawk_loc_t* xloc)
 {
@@ -8489,8 +8609,8 @@ static int deparse (hawk_t* hawk)
 
 			if (i == 0)
 			{
-				// @__init is not a real name.
-				// it's for display only.
+				/* @__init is not a real name.
+				 * it's for display only. */
 				if (hawk_putsrcoochars(hawk, HAWK_T("@__init"), 7) <= -1) EXIT_DEPARSE();
 			}
 			else
@@ -8602,13 +8722,16 @@ static hawk_htb_walk_t deparse_func (hawk_htb_t* map, hawk_htb_pair_t* pair, voi
 		x->ret = -1; return HAWK_HTB_WALK_STOP; \
 	}
 
+	/* the keyword 'function' */
 	hawk_getkwname (df->hawk, HAWK_KWID_FUNCTION, &kw);
 	PUT_SX(df, kw.ptr, kw.len);
 
+	/* function name */
 	PUT_C(df, HAWK_T(' '));
 	PUT_SX(df, fun->name.ptr, fun->name.len);
-	PUT_S(df, HAWK_T(" ("));
+	PUT_S(df, HAWK_T("("));
 
+	/* argument list */
 	for (i = 0; i < fun->nargs; )
 	{
 		if (fun->argspec && i < fun->argspeclen && fun->argspec[i] == 'r') PUT_S(df, HAWK_T("&"));
@@ -8626,10 +8749,7 @@ static hawk_htb_walk_t deparse_func (hawk_htb_t* map, hawk_htb_pair_t* pair, voi
 		PUT_S(df, HAWK_T("..."));
 	}
 
-	PUT_S(df, HAWK_T(")"));
-	if (df->hawk->opt.trait & HAWK_CRLF) PUT_C(df, HAWK_T('\r'));
-
-	PUT_C(df, HAWK_T('\n'));
+	PUT_S(df, HAWK_T(") "));
 
 	if (hawk_prnpt(df->hawk, fun->body) <= -1) return -1;
 	if (df->hawk->opt.trait & HAWK_CRLF)

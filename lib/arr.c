@@ -212,6 +212,25 @@ hawk_oow_t hawk_arr_getcapa (hawk_arr_t* arr)
 	return arr->capa;
 }
 
+
+hawk_arr_t* hawk_arr_setsize (hawk_arr_t* arr, hawk_oow_t size)
+{
+	if (size == arr->size) return arr;
+
+	if (size < arr->size)
+	{
+		/* to trigger freeers on the items truncated */
+		hawk_arr_delete(arr, size, arr->size - size);
+		HAWK_ASSERT(arr->size <= size);
+		return arr;
+	}
+
+	/* size can't be larger than the current size,
+	 * you must use hawk_arr_setcapa() because you can increase the capacity only */
+	hawk_gem_seterrnum(arr->gem, HAWK_NULL, HAWK_EINVAL);
+	return HAWK_NULL;
+}
+
 hawk_arr_t* hawk_arr_setcapa (hawk_arr_t* arr, hawk_oow_t capa)
 {
 	void* tmp;
@@ -250,11 +269,13 @@ hawk_arr_t* hawk_arr_setcapa (hawk_arr_t* arr, hawk_oow_t capa)
 	return arr;
 }
 
-hawk_oow_t hawk_arr_search (hawk_arr_t* arr, hawk_oow_t pos, const void* dptr, hawk_oow_t dlen)
+hawk_oow_t hawk_arr_search (hawk_arr_t* arr, hawk_oow_t lpos, hawk_oow_t rpos, const void* dptr, hawk_oow_t dlen)
 {
 	hawk_oow_t i;
 
-	for (i = pos; i < arr->size; i++)
+	/* 'rpos' is one slot past the actual end.
+	 * the search is performed in the range between 'lpos' and 'rpos - 1' inclusive. */
+	for (i = lpos; i < rpos; i++)
 	{
 		if (arr->slot[i] == HAWK_NULL) continue;
 		if (arr->style->comper(arr, DPTR(arr->slot[i]), DLEN(arr->slot[i]), dptr, dlen) == 0) return i;
@@ -264,15 +285,17 @@ hawk_oow_t hawk_arr_search (hawk_arr_t* arr, hawk_oow_t pos, const void* dptr, h
 	return HAWK_ARR_NIL;
 }
 
-hawk_oow_t hawk_arr_rsearch (hawk_arr_t* arr, hawk_oow_t pos, const void* dptr, hawk_oow_t dlen)
+hawk_oow_t hawk_arr_rsearch (hawk_arr_t* arr, hawk_oow_t lpos, hawk_oow_t rpos, const void* dptr, hawk_oow_t dlen)
 {
 	hawk_oow_t i;
 
+	/* 'rpos' is supposed to be one slot past the actual search start.
+	 * the search is performed in the range between 'rpos - 1' and 'lpos' inclusive. */
 	if (arr->size > 0)
 	{
-		if (pos >= arr->size) pos = arr->size - 1;
+		if (rpos >= arr->size) rpos = arr->size - 1;
 
-		for (i = pos + 1; i-- > 0; )
+		for (i = rpos + 1; i-- > lpos; )
 		{
 			if (arr->slot[i] == HAWK_NULL) continue;
 			if (arr->style->comper(arr, DPTR(arr->slot[i]), DLEN(arr->slot[i]), dptr, dlen) == 0) return i;

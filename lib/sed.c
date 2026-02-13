@@ -1831,7 +1831,7 @@ int hawk_sed_comp (hawk_sed_t* sed, hawk_sed_io_impl_t inf)
 {
 	hawk_ooci_t c;
 	hawk_sed_cmd_t* cmd = HAWK_NULL;
-	hawk_loc_t a1_loc;
+	/*hawk_loc_t a1_loc;*/
 
 	if (inf == HAWK_NULL)
 	{
@@ -1889,7 +1889,7 @@ int hawk_sed_comp (hawk_sed_t* sed, hawk_sed_io_impl_t inf)
 		HAWK_MEMSET(cmd, 0, HAWK_SIZEOF(*cmd));
 
 		/* process the first address */
-		a1_loc = sed->src.loc;
+		/*a1_loc = sed->src.loc;*/
 		if (get_address(sed, &cmd->a1, 0) == HAWK_NULL)
 		{
 			cmd = HAWK_NULL;

@@ -23,11 +23,12 @@ The library is stable, portable, and designed for projects that need a scripting
 		- [Logical Operators](#logical-operators)
 		- [Bitwise Operators](#bitwise-operators)
 	- [Variables and Scope](#variables-and-scope)
-	- [Arrays and Maps](#arrays-and-maps)
-	- [Functions](#functions)
-	- [Control Flow](#control-flow)
-		- [if / else](#if--else)
-		- [while](#while)
+		- [Arrays and Maps](#arrays-and-maps)
+		- [Functions](#functions)
+			- [Function Literals](#function-literals)
+		- [Control Flow](#control-flow)
+			- [if / else](#if--else)
+			- [while](#while)
 		- [do ... while](#do--while)
 		- [for](#for)
 		- [for (i in array)](#for-i-in-array)
@@ -493,6 +494,33 @@ BEGIN {
 	a = @[3, 1, 2]
 	asort(a, b, desc)
 	for (i in b) print i, b[i]
+}
+```
+
+### Function Literals
+
+Hawk supports unnamed function literals with `func(...) { ... }`.
+You can assign them to `@global`, `@local`, implicit/plain variables, and indexed elements.
+
+- Function literals do not capture outer local state (no closure).
+- They behave like normal user-defined functions used as values.
+- To call a function value obtained via index or dot access (for example, `m["f"](...)` or `m.f(...)`), enable `@pragma xcall on`.
+
+Example:
+
+```awk
+@pragma xcall on
+
+@global gf = func(a, b) { return a + b }
+
+BEGIN {
+	@local lf = func(x) { return x * 2 }
+	pf = func(z) { return z - 1 }      # plain/implicit variable
+	m = @{}
+	m["call"] = func(v) { return v * v }  # indexed assignment
+	m.call2 = func(v) { return v + 100 }  # dot-notation indexed assignment
+
+	print gf(10, 20), lf(7), pf(9), m["call"](5), m.call2(5)
 }
 ```
 

@@ -89,9 +89,10 @@ typedef struct hawk_tree_t hawk_tree_t;
 #define HAWK_MBS_CACHE_BLOCK_SIZE (128)
 
 /* maximum number of globals, locals, parameters allowed in parsing */
-#define HAWK_MAX_GBLS    (9999)
-#define HAWK_MAX_LCLS    (9999)
-#define HAWK_MAX_PARAMS  (9999)
+#define HAWK_MAX_GBLS      (9999)
+#define HAWK_MAX_LCLS      (9999)
+#define HAWK_MAX_PARAMS    (9999)
+#define HAWK_MAX_FUN_LEVEL (1024)
 
 
 /* runtime stack limit */
@@ -198,6 +199,7 @@ struct hawk_tree_t
 	hawk_oow_t ngbls_base; /* number of intrinsic globals */
 	hawk_oocs_t cur_fun;
 	hawk_htb_t* funs; /* hawk function map */
+	hawk_arr_t* ifuns; /* inline function list */
 
 	hawk_nde_t* init; /* internally generated block made of @global/@const initilization */
 	hawk_nde_t* init_tail;
@@ -314,6 +316,13 @@ struct hawk_t
 
 		/* parameters to a function */
 		hawk_arr_t* params;
+
+		/* some information required to handle nested function literals */
+		hawk_ooi_t fun_level;
+		hawk_oow_t lcl_bases[HAWK_MAX_FUN_LEVEL];
+		hawk_oow_t param_bases[HAWK_MAX_FUN_LEVEL];
+		hawk_oow_t lcl_base;
+		hawk_oow_t param_base;
 
 		/* maximum number of local variables */
 		hawk_oow_t nlcls_max;
