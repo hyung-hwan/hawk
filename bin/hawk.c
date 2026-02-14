@@ -898,7 +898,7 @@ int main_hawk(int argc, hawk_bch_t* argv[], const hawk_bch_t* real_argv0)
 		tmp = 50;
 		hawk_setopt(hawk, HAWK_OPT_DEPTH_BLOCK_PARSE, &tmp);
 		hawk_setopt(hawk, HAWK_OPT_DEPTH_EXPR_PARSE, &tmp);
-		tmp = 500;
+		tmp = 1000;
 		hawk_setopt(hawk, HAWK_OPT_DEPTH_BLOCK_RUN, &tmp);
 		hawk_setopt(hawk, HAWK_OPT_DEPTH_EXPR_RUN, &tmp);
 		tmp = 64;

@@ -1071,7 +1071,7 @@ The `str` module provides an extensive set of string manipulation functions.
 - str::tocharcode - get the numeric value of the first character
 - str::tohex
 - str::tolower - equivalent to tolower
-- str::tonum - convert a string to a number. a numeric value passed as a parameter is returned as it is. the leading prefix of 0b, 0, and 0x specifies the radix of 2, 8, 16 respectively. conversion stops when the end of the string is reached or the first invalid character for conversion is encountered.
+- str::tonum - convert a string to a number. a numeric value passed as a parameter is returned as it is. the leading prefix of `0b`, `0` or `0o`, and `0x` specifies the radix of 2, 8, 16 respectively. conversion stops when the end of the string is reached or the first invalid character for conversion is encountered.
 - str::toupper - equivalent to toupper
 - str::trim
 

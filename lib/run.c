@@ -1430,7 +1430,9 @@ static int prepare_globals (hawk_rtx_t* rtx)
 
 	if (HAWK_UNLIKELY(HAWK_RTX_STACK_AVAIL(rtx) < ngbls))
 	{
-		hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_ESTACK);
+		hawk_rtx_seterrbfmt(rtx, HAWK_NULL, HAWK_ESTACK,
+			"stack full(avail=%zu, limit=%zu) for %zu global variables",
+			HAWK_RTX_STACK_AVAIL(rtx), rtx->stack_limit, ngbls);
 		return -1;
 	}
 
@@ -1691,7 +1693,9 @@ hawk_val_t* hawk_rtx_loop (hawk_rtx_t* rtx)
 		/* restore the stack top in a cheesy(?) way.
 		 * it is ok to do so as the values pushed are
 		 * nils and binary numbers. */
-		hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_ESTACK);
+		hawk_rtx_seterrbfmt(rtx, HAWK_NULL, HAWK_ESTACK,
+			"stack full(avail=%zu, limit=%zu) in preparing call frame",
+			HAWK_RTX_STACK_AVAIL(rtx), rtx->stack_limit);
 		return HAWK_NULL;
 	}
 
@@ -2255,7 +2259,9 @@ static HAWK_INLINE int run_block0 (hawk_rtx_t* rtx, hawk_nde_blk_t* nde)
 		/* ensure sufficient space for local variables */
 		if (HAWK_UNLIKELY(HAWK_RTX_STACK_AVAIL(rtx) < tmp))
 		{
-			hawk_rtx_seterrnum(rtx, &nde->loc, HAWK_ESTACK);
+			hawk_rtx_seterrbfmt(rtx, &nde->loc, HAWK_ESTACK,
+				"stack full(avail=%zu, limit=%zu) for %zu local variables",
+				HAWK_RTX_STACK_AVAIL(rtx), rtx->stack_limit, tmp);
 			return -1;
 		}
 
@@ -2333,7 +2339,9 @@ static int run_block (hawk_rtx_t* rtx, hawk_nde_blk_t* nde)
 	if (rtx->hawk->opt.depth.s.block_run > 0 &&
 	    rtx->depth.block >= rtx->hawk->opt.depth.s.block_run)
 	{
-		hawk_rtx_seterrnum(rtx, &nde->loc, HAWK_EBLKNST);
+		hawk_rtx_seterrbfmt(rtx, &nde->loc, HAWK_EBLKNST,
+			"run-time block depth(%zu) reached limit(%zu)",
+			rtx->depth.block, rtx->hawk->opt.depth.s.block_run);
 		return -1;
 	}
 
@@ -7549,7 +7557,9 @@ hawk_val_t* hawk_rtx_evalcall (
 
 	if (HAWK_UNLIKELY(HAWK_RTX_STACK_AVAIL(rtx) < stack_req))
 	{
-		hawk_rtx_seterrnum(rtx, &call->loc, HAWK_ESTACK);
+		hawk_rtx_seterrbfmt(rtx, &call->loc, HAWK_ESTACK,
+			"stack full(avail=%zu, limit=%zu) for call frame with %zu arguments",
+			HAWK_RTX_STACK_AVAIL(rtx), rtx->stack_limit, call->nargs);
 		return HAWK_NULL;
 	}
 
@@ -7823,7 +7833,9 @@ static hawk_oow_t push_arg_from_vals (hawk_rtx_t* rtx, hawk_nde_fncall_t* call, 
 
 	if (HAWK_UNLIKELY(HAWK_RTX_STACK_AVAIL(rtx) < pafv->nargs))
 	{
-		hawk_rtx_seterrnum(rtx, &call->loc, HAWK_ESTACK);
+		hawk_rtx_seterrbfmt(rtx, &call->loc, HAWK_ESTACK,
+			"stack full(avail=%zu, limit=%zu) in pushing %zu arguments from values",
+			HAWK_RTX_STACK_AVAIL(rtx), rtx->stack_limit, pafv->nargs);
 		return (hawk_oow_t)-1;
 	}
 
@@ -7865,7 +7877,9 @@ static hawk_oow_t push_arg_from_nde (hawk_rtx_t* rtx, hawk_nde_fncall_t* call, v
 
 	if (HAWK_UNLIKELY(HAWK_RTX_STACK_AVAIL(rtx) < call->nargs))
 	{
-		hawk_rtx_seterrnum(rtx, &call->loc, HAWK_ESTACK);
+		hawk_rtx_seterrbfmt(rtx, &call->loc, HAWK_ESTACK,
+			"stack full(avail=%zu, limit=%zu) in push %zu arguments",
+			HAWK_RTX_STACK_AVAIL(rtx), rtx->stack_limit, call->nargs);
 		return (hawk_oow_t)-1;
 	}
 

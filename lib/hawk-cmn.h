@@ -1016,7 +1016,7 @@ enum hawk_errnum_t
 	HAWK_EUNUSED,   /**< unused element */
 
 	/* hawk run time error */
-	HAWK_ESTACK,        /**< stack error */
+	HAWK_ESTACK,        /**< stack full */
 	HAWK_EDIVBY0,       /**< divide by zero */
 	HAWK_EOPERAND,      /**< invalid operand */
 	HAWK_EPOSIDX,       /**< wrong position index */

@@ -78,6 +78,9 @@
 #	endif
 #endif
 
+#define IO_UFLAG_PIPE_IS_NWIO (1 << 0)
+#define IO_UFLAG_CONSOLE_PENDING_NEXT (1 << 1)
+
 enum logfd_flag_t
 {
 	LOGFD_TTY = (1 << 0),
@@ -201,7 +204,6 @@ static HAWK_INLINE rxtn_t* GET_RXTN(hawk_rtx_t* rtx) { return (rxtn_t*)((hawk_ui
 #define GET_XTN(hawk) ((xtn_t*)((hawk_uint8_t*)hawk_getxtn(hawk) - HAWK_SIZEOF(xtn_t)))
 #define GET_RXTN(rtx) ((rxtn_t*)((hawk_uint8_t*)hawk_rtx_getxtn(rtx) - HAWK_SIZEOF(rxtn_t)))
 #endif
-
 
 /* ========================================================================= */
 
@@ -1962,7 +1964,7 @@ static hawk_ooi_t nwio_handler_open (hawk_rtx_t* rtx, hawk_rio_arg_t* riod, int 
 #endif
 
 	riod->handle = (void*)handle;
-	riod->uflags = 1; /* nwio indicator */
+	riod->uflags |= IO_UFLAG_PIPE_IS_NWIO; /* nwio indicator */
 	return 1;
 }
 
@@ -2023,7 +2025,7 @@ static int parse_rwpipe_uri (const hawk_ooch_t* uri, int* flags, hawk_nwad_t* nw
 	{
 		if (hawk_strzcmp(uri, x[i].prefix, x[i].len) == 0)
 		{
-			if (hawk_strtonwad (uri + x[i].len, nwad) <= -1) return -1;
+			if (hawk_strtonwad(uri + x[i].len, nwad) <= -1) return -1;
 			*flags = x[i].flags;
 			return 0;
 		}
@@ -2088,7 +2090,7 @@ static hawk_ooi_t pio_handler_open (hawk_rtx_t* rtx, hawk_rio_arg_t* riod)
 #endif
 
 	riod->handle = (void*)handle;
-	riod->uflags = 0; /* pio indicator */
+	riod->uflags &= ~IO_UFLAG_PIPE_IS_NWIO; /* pio indicator */
 	return 1;
 }
 
@@ -2187,7 +2189,7 @@ static hawk_ooi_t hawk_rio_pipe (hawk_rtx_t* rtx, hawk_rio_cmd_t cmd, hawk_rio_a
 	#endif
 	}
 	#if defined(ENABLE_NWIO)
-	else if (riod->uflags > 0)
+	else if (riod->uflags & IO_UFLAG_PIPE_IS_NWIO)
 		return nwio_handler_rest(rtx, cmd, riod, data, size);
 	#endif
 	else
@@ -2302,7 +2304,7 @@ static hawk_ooi_t hawk_rio_file (hawk_rtx_t* rtx, hawk_rio_cmd_t cmd, hawk_rio_a
 				/* if flushing fails, discard the buffered data
 				 * keeping the unflushed data causes causes subsequent write or close() to
 				 * flush again and again */
-				hawk_sio_drain ((hawk_sio_t*)riod->handle);
+				hawk_sio_drain((hawk_sio_t*)riod->handle);
 			}
 			return n;
 		}
@@ -2454,12 +2456,11 @@ static int open_rio_console (hawk_rtx_t* rtx, hawk_rio_arg_t* riod)
 
 		if (rxtn->c.cmgr) hawk_sio_setcmgr(sio, rxtn->c.cmgr);
 
-		if (hawk_rtx_setfilenamewithoochars(rtx, file, hawk_count_oocstr(file)) <= -1)
-		{
-			hawk_sio_close(sio);
-			hawk_rtx_freevaloocstr(rtx, v_pair, as.ptr);
-			return -1;
-		}
+		/* i don't set FILENAME(hawk_rtx_setfilenamewithoochars(file)), FNR, etc here.
+		 * set some flags to delay such work until the actual
+		 * read operation is requested. */
+		riod->uflags |= IO_UFLAG_CONSOLE_PENDING_NEXT;
+		riod->console_switched = 1;
 
 		hawk_rtx_freevaloocstr(rtx, v_pair, as.ptr);
 		riod->handle = sio;
@@ -2516,17 +2517,13 @@ static int open_rio_console (hawk_rtx_t* rtx, hawk_rio_arg_t* riod)
 
 			sio = (file[0] == '-' && file[1] == '\0')?
 				open_sio_std_rtx(rtx, HAWK_SIO_STDIN, HAWK_SIO_READ | HAWK_SIO_IGNOREECERR):
-				open_sio_rtx(rtx, file, HAWK_SIO_READ | HAWK_SIO_IGNOREECERR);
+				open_sio_rtx(rtx, file, HAWK_SIO_READ | HAWK_SIO_IGNOREECERR | HAWK_SIO_KEEPPATH);
 			if (HAWK_UNLIKELY(!sio)) return -1;
 
 			if (rxtn->c.cmgr) hawk_sio_setcmgr(sio, rxtn->c.cmgr);
 
-			if (hawk_rtx_setfilenamewithoochars(rtx, file, hawk_count_oocstr(file)) <= -1)
-			{
-				hawk_sio_close(sio);
-				return -1;
-			}
-
+			riod->uflags |= IO_UFLAG_CONSOLE_PENDING_NEXT;
+			riod->console_switched = 1;
 			riod->handle = sio;
 
 			/* increment the counter of files successfully opened */
@@ -2612,6 +2609,15 @@ static hawk_ooi_t hawk_rio_console (hawk_rtx_t* rtx, hawk_rio_cmd_t cmd, hawk_ri
 		{
 			hawk_ooi_t nn;
 
+			if (riod->uflags & IO_UFLAG_CONSOLE_PENDING_NEXT)
+			{
+				const hawk_ooch_t* curpath = hawk_sio_getpath((hawk_sio_t*)riod->handle);
+				if (!curpath) curpath = HAWK_T("-"); /* TODO: remember the actual special file name also and use it? */
+				if (hawk_rtx_setfilenamewithoochars(rtx, curpath, hawk_count_oocstr(curpath)) <= -1) return -1;
+				riod->uflags &= ~IO_UFLAG_CONSOLE_PENDING_NEXT;
+				hawk_rtx_setgbl(rtx, HAWK_GBL_FNR, hawk_rtx_makeintval(rtx, 0));
+			}
+
 			while ((nn = hawk_sio_getoochars((hawk_sio_t*)riod->handle, data, size)) == 0)
 			{
 				int n;
@@ -2619,18 +2625,17 @@ static hawk_ooi_t hawk_rio_console (hawk_rtx_t* rtx, hawk_rio_cmd_t cmd, hawk_ri
 
 				n = open_rio_console(rtx, riod);
 				if (n <= -1) return -1;
-
-				if (n == 0)
-				{
-					/* no more input console */
-					return 0;
-				}
-
+				if (n == 0) return 0; /* no more input console */
 				if (sio) hawk_sio_close(sio);
 
-				/* reset FNR to 0 here since the caller doesn't know that the file has changed. */
-				hawk_rtx_setgbl(rtx, HAWK_GBL_FNR, hawk_rtx_makeintval(rtx, 0));
-				riod->console_switched = 1;
+				/* there are more files to read and the next file has been opened.
+				 * but i need to inform the caller of the end of the current file. */
+				HAWK_ASSERT(riod->uflags & IO_UFLAG_CONSOLE_PENDING_NEXT);
+				HAWK_ASSERT(riod->console_switched != 0);
+				break;
+				/* TODO:
+				 *  add an option to treat multiple files as a single stream.
+				 *  when the option is set, it must not break above */
 			}
 
 			if (nn <= -1) set_rio_error(rtx, HAWK_EREAD, HAWK_T("unable to read"), hawk_sio_getpath((hawk_sio_t*)riod->handle));
@@ -2641,6 +2646,15 @@ static hawk_ooi_t hawk_rio_console (hawk_rtx_t* rtx, hawk_rio_cmd_t cmd, hawk_ri
 		{
 			hawk_ooi_t nn;
 
+			if (riod->uflags & IO_UFLAG_CONSOLE_PENDING_NEXT)
+			{
+				const hawk_ooch_t* curpath = hawk_sio_getpath((hawk_sio_t*)riod->handle);
+				if (!curpath) curpath = HAWK_T("-");
+				if (hawk_rtx_setfilenamewithoochars(rtx, curpath, hawk_count_oocstr(curpath)) <= -1) return -1;
+				riod->uflags &= ~IO_UFLAG_CONSOLE_PENDING_NEXT;
+				hawk_rtx_setgbl(rtx, HAWK_GBL_FNR, hawk_rtx_makeintval(rtx, 0));
+			}
+
 			while ((nn = hawk_sio_getbchars((hawk_sio_t*)riod->handle, data, size)) == 0)
 			{
 				int n;
@@ -2648,17 +2662,17 @@ static hawk_ooi_t hawk_rio_console (hawk_rtx_t* rtx, hawk_rio_cmd_t cmd, hawk_ri
 
 				n = open_rio_console(rtx, riod);
 				if (n <= -1) return -1;
-
-				if (n == 0)
-				{
-					/* no more input console */
-					return 0;
-				}
-
+				if (n == 0) return 0; /* no more input console */
 				if (sio) hawk_sio_close(sio);
 
-				hawk_rtx_setgbl(rtx, HAWK_GBL_FNR, hawk_rtx_makeintval(rtx, 0));
-				riod->console_switched = 1;
+				/* there are more files to read and the next file has been opened.
+				 * but i need to inform the caller of the end of the current file. */
+				HAWK_ASSERT(riod->uflags & IO_UFLAG_CONSOLE_PENDING_NEXT);
+				HAWK_ASSERT(riod->console_switched != 0);
+				break;
+				/* TODO:
+				 *  add an option to treat multiple files as a single stream.
+				 *  when the option is set, it must not break above */
 			}
 
 			if (nn <= -1) set_rio_error(rtx, HAWK_EREAD, HAWK_T("unable to read"), hawk_sio_getpath((hawk_sio_t*)riod->handle));
@@ -2691,7 +2705,7 @@ static hawk_ooi_t hawk_rio_console (hawk_rtx_t* rtx, hawk_rio_cmd_t cmd, hawk_ri
 				/* if flushing fails, discard the buffered data
 				 * keeping the unflushed data causes causes subsequent write or close() to
 				 * flush again and again */
-				hawk_sio_drain ((hawk_sio_t*)riod->handle);
+				hawk_sio_drain((hawk_sio_t*)riod->handle);
 			}
 			return n;
 		}
@@ -2700,6 +2714,19 @@ static hawk_ooi_t hawk_rio_console (hawk_rtx_t* rtx, hawk_rio_cmd_t cmd, hawk_ri
 		{
 			int n;
 			hawk_sio_t* sio = (hawk_sio_t*)riod->handle;
+
+			if (riod->uflags & IO_UFLAG_CONSOLE_PENDING_NEXT)
+			{
+				/* already reached the end of file in handling HAWK_RIO_CMD_READ
+				 * and a new console strea has been already opened and never
+				 * read yet. but nextfile has been called */
+				const hawk_ooch_t* curpath = hawk_sio_getpath((hawk_sio_t*)riod->handle);
+				if (!curpath) curpath = HAWK_T("-");
+				if (hawk_rtx_setfilenamewithoochars(rtx, curpath, hawk_count_oocstr(curpath)) <= -1) return -1;
+				riod->uflags &= ~IO_UFLAG_CONSOLE_PENDING_NEXT;
+				hawk_rtx_setgbl(rtx, HAWK_GBL_FNR, hawk_rtx_makeintval(rtx, 0));
+				return 1; /* unlike in HAWK_RIO_CMD_READ, it must return 1 to indicate that there is a new file ready */
+			}
 
 			n = open_rio_console(rtx, riod);
 			if (n <= -1) return -1;
@@ -3552,4 +3579,3 @@ static int add_functions (hawk_t* hawk)
 
 	return 0;
 }
-

@@ -575,10 +575,10 @@ int hawk_setopt (hawk_t* hawk, hawk_opt_t id, const void* value)
 		}
 
 		case HAWK_OPT_DEPTH_INCLUDE:
-		case HAWK_OPT_DEPTH_BLOCK_PARSE:
-		case HAWK_OPT_DEPTH_BLOCK_RUN:
-		case HAWK_OPT_DEPTH_EXPR_PARSE:
-		case HAWK_OPT_DEPTH_EXPR_RUN:
+		case HAWK_OPT_DEPTH_BLOCK_PARSE: /* s.block_parse */
+		case HAWK_OPT_DEPTH_BLOCK_RUN: /* s.block_run */
+		case HAWK_OPT_DEPTH_EXPR_PARSE: /* s.expr_parse */
+		case HAWK_OPT_DEPTH_EXPR_RUN: /* s.expr_run */
 		case HAWK_OPT_DEPTH_REX_BUILD:
 		case HAWK_OPT_DEPTH_REX_MATCH:
 			hawk->opt.depth.a[id - HAWK_OPT_DEPTH_INCLUDE] = *(const hawk_oow_t*)value;

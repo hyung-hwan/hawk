@@ -472,9 +472,11 @@ am__test_logs2 = $(am__test_logs1:@EXEEXT@.log=.log)
 am__test_logs3 = $(am__test_logs2:.hawk.log=.log)
 HAWK_LOG_COMPILE = $(HAWK_LOG_COMPILER) $(AM_HAWK_LOG_FLAGS) \
 	$(HAWK_LOG_FLAGS)
-TEST_LOGS = $(am__test_logs3:.err.log=.log)
+am__test_logs4 = $(am__test_logs3:.err.log=.log)
 ERR_LOG_COMPILE = $(ERR_LOG_COMPILER) $(AM_ERR_LOG_FLAGS) \
 	$(ERR_LOG_FLAGS)
+TEST_LOGS = $(am__test_logs4:.sh.log=.log)
+SH_LOG_COMPILE = $(SH_LOG_COMPILER) $(AM_SH_LOG_FLAGS) $(SH_LOG_FLAGS)
 am__DIST_COMMON = $(srcdir)/Makefile.in $(top_srcdir)/ac/depcomp
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 ACLOCAL = @ACLOCAL@
@@ -646,7 +648,9 @@ CFLAGS_COMMON =
 LDFLAGS_COMMON = -L$(abs_builddir)/../lib  -L$(libdir)
 LIBADD_COMMON = ../lib/libhawk.la $(LIBM)
 check_SCRIPTS = $(am__append_1) h-003.hawk h-004.hawk h-009.hawk \
-	h-010.hawk h-011.hawk h-012.hawk h-013.hawk h-014.hawk h-015.hawk h-016.hawk
+	h-010.hawk h-011.hawk h-012.hawk h-013.hawk h-014.hawk \
+	h-015.hawk h-016.hawk h-017.hawk h-018.hawk \
+	regress-filename.sh
 check_ERRORS = e-001.err
 EXTRA_DIST = $(check_SCRIPTS) $(check_ERRORS) tap.inc err.sh \
 	journal-toc.hawk journal-toc.in journal-toc.out journal-toc-html.out \
@@ -704,17 +708,20 @@ t_009_LDADD = $(LIBADD_COMMON)
 @ENABLE_CXX_TRUE@t_101_LDADD = $(LIBADD_COMMON)
 LOG_DRIVER = env AM_TAP_AWK='$(AWK)' $(SHELL) $(top_srcdir)/ac/tap-driver.sh
 TESTS = $(check_PROGRAMS) $(check_SCRIPTS) $(check_ERRORS)
-TEST_EXTENSIONS = .hawk .err
+TEST_EXTENSIONS = .hawk .err .sh
 HAWK_LOG_DRIVER = $(LOG_DRIVER)
 HAWK_LOG_COMPILER = ../bin/hawk
 AM_HAWK_LOG_FLAGS = -vTDIR=${abs_srcdir} --modlibdirs=../lib/.libs:../mod/.libs -f
 ERR_LOG_DRIVER = $(SHELL) $(top_srcdir)/ac/test-driver
 ERR_LOG_COMPILER = $(SHELL) $(abs_srcdir)/err.sh ../bin/hawk -vTDIR=${abs_srcdir} --modlibdirs=../lib/.libs:../mod/.libs -f
 AM_ERR_LOG_FLAGS = 
+SH_LOG_DRIVER = $(LOG_DRIVER)
+SH_LOG_COMPILER = env HAWK_BIN=../bin/hawk $(SHELL)
+AM_SH_LOG_FLAGS = 
 all: all-am
 
 .SUFFIXES:
-.SUFFIXES: .c .cpp .err .err$(EXEEXT) .hawk .hawk$(EXEEXT) .lo .log .o .obj .trs
+.SUFFIXES: .c .cpp .err .err$(EXEEXT) .hawk .hawk$(EXEEXT) .lo .log .o .obj .sh .sh$(EXEEXT) .trs
 $(srcdir)/Makefile.in:  $(srcdir)/Makefile.am  $(am__configure_deps)
 	@for dep in $?; do \
 	  case '$(am__configure_deps)' in \
@@ -1321,6 +1328,20 @@ t-101.log: t-101$(EXEEXT)
 @am__EXEEXT_TRUE@	$(am__check_pre) $(ERR_LOG_DRIVER) --test-name "$$f" \
 @am__EXEEXT_TRUE@	--log-file $$b.log --trs-file $$b.trs \
 @am__EXEEXT_TRUE@	$(am__common_driver_flags) $(AM_ERR_LOG_DRIVER_FLAGS) $(ERR_LOG_DRIVER_FLAGS) -- $(ERR_LOG_COMPILE) \
+@am__EXEEXT_TRUE@	"$$tst" $(AM_TESTS_FD_REDIRECT)
+.sh.log:
+	@p='$<'; \
+	$(am__set_b); \
+	$(am__check_pre) $(SH_LOG_DRIVER) --test-name "$$f" \
+	--log-file $$b.log --trs-file $$b.trs \
+	$(am__common_driver_flags) $(AM_SH_LOG_DRIVER_FLAGS) $(SH_LOG_DRIVER_FLAGS) -- $(SH_LOG_COMPILE) \
+	"$$tst" $(AM_TESTS_FD_REDIRECT)
+@am__EXEEXT_TRUE@.sh$(EXEEXT).log:
+@am__EXEEXT_TRUE@	@p='$<'; \
+@am__EXEEXT_TRUE@	$(am__set_b); \
+@am__EXEEXT_TRUE@	$(am__check_pre) $(SH_LOG_DRIVER) --test-name "$$f" \
+@am__EXEEXT_TRUE@	--log-file $$b.log --trs-file $$b.trs \
+@am__EXEEXT_TRUE@	$(am__common_driver_flags) $(AM_SH_LOG_DRIVER_FLAGS) $(SH_LOG_DRIVER_FLAGS) -- $(SH_LOG_COMPILE) \
 @am__EXEEXT_TRUE@	"$$tst" $(AM_TESTS_FD_REDIRECT)
 
 distdir: $(BUILT_SOURCES)

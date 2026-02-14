@@ -167,7 +167,7 @@ static int find_rio_in (
 		*/
 		p->in.mbs = !!mbs_if_new;
 
-		/* request to open the stream */
+		/* request to open a stream */
 		x = handler(rtx, HAWK_RIO_CMD_OPEN, p, HAWK_NULL, 0);
 		if (x <= -1)
 		{
@@ -453,8 +453,8 @@ int hawk_rtx_readio (hawk_rtx_t* rtx, hawk_in_type_t in_type, const hawk_ooch_t*
 				break;
 			}
 
-			/* used for console only. but reset it regardless of the stream type.
-			 * it must be faster than checking the type and resetting it */
+			/* 'console_switched' used for console only. but reset it regardless of
+			 * the stream type. it must be faster than checking the type and resetting it */
 			p->console_switched = 0;
 			x = handler(rtx, HAWK_RIO_CMD_READ, p, p->in.u.buf, HAWK_COUNTOF(p->in.u.buf));
 			if (x <= -1)
@@ -464,7 +464,16 @@ int hawk_rtx_readio (hawk_rtx_t* rtx, hawk_in_type_t in_type, const hawk_ooch_t*
 			}
 			else if (x == 0)
 			{
-				/* EOF reached */
+				if (p->console_switched)
+				{
+					/* EOF on the previous stream. A new stream is opened but not read yet.
+					 * there is nothing to add to 'buf'. At the end of each file,
+					 * it should still terminate a record regardless of RS match. */
+					if (HAWK_OOECS_LEN(buf) == 0) continue;
+					break;
+				}
+
+				/* real EOF reached after having read all streams */
 				p->in.eof = 1;
 
 				if (HAWK_OOECS_LEN(buf) == 0)
@@ -700,7 +709,7 @@ int hawk_rtx_readio (hawk_rtx_t* rtx, hawk_in_type_t in_type, const hawk_ooch_t*
 			while (p->in.pos < p->in.len);
 
 			tmp = hawk_ooecs_ncat(buf, &p->in.u.buf[start_pos], end_pos - start_pos);
-			if (tmp == (hawk_oow_t)-1)
+			if (HAWK_UNLIKELY(tmp == (hawk_oow_t)-1))
 			{
 				ret = -1;
 				break;
@@ -722,7 +731,7 @@ int hawk_rtx_readio (hawk_rtx_t* rtx, hawk_in_type_t in_type, const hawk_ooch_t*
 			 */
 
 			tmp = hawk_ooecs_ncat(buf, &p->in.u.buf[p->in.pos], p->in.len - p->in.pos);
-			if (tmp == (hawk_oow_t)-1)
+			if (HAWK_UNLIKELY(tmp == (hawk_oow_t)-1))
 			{
 				ret = -1;
 				break;
@@ -844,7 +853,16 @@ int hawk_rtx_readiobytes (hawk_rtx_t* rtx, hawk_in_type_t in_type, const hawk_oo
 
 			if (x == 0)
 			{
-				/* EOF reached */
+				if (p->console_switched)
+				{
+					/* EOF on the previous stream. A new stream is opened but not read yet.
+					 * there is nothing to add to 'buf'. At the end of each file,
+					 * it should still terminate a record regardless of RS match. */
+					if (HAWK_BECS_LEN(buf) == 0) continue;
+					break;
+				}
+
+				/* real EOF reached after having read all streams */
 				p->in.eof = 1;
 
 				if (HAWK_BECS_LEN(buf) == 0)
@@ -1235,6 +1253,7 @@ static int prepare_for_write_io_data (hawk_rtx_t* rtx, hawk_out_type_t out_type,
 		p->out.eos = 0;
 		*/
 
+		/* request to open a stream */
 		n = handler(rtx, HAWK_RIO_CMD_OPEN, p, HAWK_NULL, 0);
 		if (n <= -1)
 		{

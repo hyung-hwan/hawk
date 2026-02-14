@@ -1,0 +1,57 @@
+@pragma implicit off
+@pragma pedantic on
+
+@include "tap.inc";
+
+@global p1;
+@global p2;
+@global rec_no;
+
+BEGIN {
+	p1 = sprintf("/tmp/h-017-a.%d.tmp", sys::getpid());
+	p2 = sprintf("/tmp/h-017-b.%d.tmp", sys::getpid());
+
+	print "A1" > p1;
+	print "A2" >> p1;
+	close(p1);
+
+	print "B1" > p2;
+	print "B2" >> p2;
+	close(p2);
+
+	RS = "x"; /* delimiter not present in either file */
+
+	ARGV[1] = p1;
+	ARGV[2] = p2;
+	ARGC = 3;
+
+	rec_no = 0;
+}
+
+{
+	rec_no++;
+
+	if (rec_no == 1)
+	{
+		tap_ensure(FILENAME, p1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure(FNR, 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure($0, "A1\nA2\n", @SCRIPTNAME, @SCRIPTLINE);
+	}
+	else if (rec_no == 2)
+	{
+		tap_ensure(FILENAME, p2, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure(FNR, 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure($0, "B1\nB2\n", @SCRIPTNAME, @SCRIPTLINE);
+	}
+	else
+	{
+		tap_fail(sprintf("%s[%d]", @SCRIPTNAME, @SCRIPTLINE));
+	}
+}
+
+END {
+	tap_ensure(rec_no, 2, @SCRIPTNAME, @SCRIPTLINE);
+	tap_end();
+	sys::unlink(p1);
+	sys::unlink(p2);
+}

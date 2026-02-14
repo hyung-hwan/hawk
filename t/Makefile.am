@@ -17,7 +17,9 @@ check_SCRIPTS =
 if ENABLE_WIDE_CHAR
 check_SCRIPTS += h-001.hawk h-002.hawk
 endif
-check_SCRIPTS += h-003.hawk h-004.hawk h-009.hawk h-010.hawk h-011.hawk h-012.hawk h-013.hawk h-014.hawk h-015.hawk h-016.hawk
+check_SCRIPTS += h-003.hawk h-004.hawk h-009.hawk h-010.hawk h-011.hawk h-012.hawk h-013.hawk h-014.hawk h-015.hawk h-016.hawk h-017.hawk h-018.hawk
+
+check_SCRIPTS += regress-filename.sh
 
 check_ERRORS = e-001.err
 
@@ -94,11 +96,10 @@ t_101_LDFLAGS = $(LDFLAGS_COMMON)
 t_101_LDADD = $(LIBADD_COMMON)
 endif
 
-
 LOG_DRIVER = env AM_TAP_AWK='$(AWK)' $(SHELL) $(top_srcdir)/ac/tap-driver.sh
 TESTS = $(check_PROGRAMS) $(check_SCRIPTS) $(check_ERRORS)
 
-TEST_EXTENSIONS = .hawk .err
+TEST_EXTENSIONS = .hawk .err .sh
 
 HAWK_LOG_DRIVER = $(LOG_DRIVER)
 HAWK_LOG_COMPILER = ../bin/hawk
@@ -107,3 +108,7 @@ AM_HAWK_LOG_FLAGS = -vTDIR=${abs_srcdir} --modlibdirs=../lib/.libs:../mod/.libs 
 ERR_LOG_DRIVER = $(SHELL) $(top_srcdir)/ac/test-driver
 ERR_LOG_COMPILER = $(SHELL) $(abs_srcdir)/err.sh ../bin/hawk -vTDIR=${abs_srcdir} --modlibdirs=../lib/.libs:../mod/.libs -f
 AM_ERR_LOG_FLAGS =
+
+SH_LOG_DRIVER = $(LOG_DRIVER)
+SH_LOG_COMPILER = env HAWK_BIN=../bin/hawk $(SHELL)
+AM_SH_LOG_FLAGS =
