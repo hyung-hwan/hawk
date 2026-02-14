@@ -31,6 +31,9 @@
 #include <stdlib.h>
 #include <sys/stat.h>
 
+#define IO_UFLAG_PIPE_IS_NWIO (((hawk_uint16_t)1) << 0)
+#define IO_UFLAG_CONSOLE_PENDING_NEXT (((hawk_uint16_t)1) << 1)
+
 // TODO: remove the following definitions and find a way to share the similar definitions in std.c
 #if defined(HAWK_ENABLE_LIBLTDL)
 #	define USE_LTDL
@@ -51,6 +54,31 @@
 /////////////////////////////////
 HAWK_BEGIN_NAMESPACE(HAWK)
 /////////////////////////////////
+
+static int set_pending_console_state (HawkStd::Console& io)
+{
+	hawk_uint16_t uflags = io.getUflags();
+	uflags |= IO_UFLAG_CONSOLE_PENDING_NEXT;
+	io.setUflags(uflags);
+	io.setSwitched(true);
+	return 0;
+}
+
+static int apply_pending_console_state (HawkStd::Console& io)
+{
+	const hawk_ooch_t* curpath = hawk_sio_getpath((hawk_sio_t*)io.getHandle());
+	hawk_uint16_t uflags;
+
+	if (!curpath) curpath = HAWK_T("-");
+	if (io.setFileName(curpath) <= -1) return -1;
+
+	uflags = io.getUflags();
+	uflags &= ~IO_UFLAG_CONSOLE_PENDING_NEXT;
+	io.setUflags(uflags);
+	((HawkStd::Run*)io)->setGlobal(HAWK_GBL_FNR, (hawk_int_t)0);
+
+	return 0;
+}
 
 //////////////////////////////////////////////////////////////////////////////
 // MmgrStd
@@ -554,7 +582,7 @@ int HawkStd::open_nwio (Pipe& io, int flags, void* nwad)
 #endif
 
 	io.setHandle((void*)handle);
-	io.setUflags(1);
+	io.setUflags(io.getUflags() | IO_UFLAG_PIPE_IS_NWIO);
 
 	return 1;
 }
@@ -595,7 +623,7 @@ int HawkStd::open_pio (Pipe& io)
 	}
 #endif
 	io.setHandle(pio);
-	io.setUflags(0);
+	io.setUflags(io.getUflags() & ~IO_UFLAG_PIPE_IS_NWIO);
 	return 1;
 }
 
@@ -653,7 +681,7 @@ int HawkStd::openPipe (Pipe& io)
 int HawkStd::closePipe (Pipe& io)
 {
 #if defined(ENABLE_NWIO)
-	if (io.getUflags() > 0)
+	if (io.getUflags() & IO_UFLAG_PIPE_IS_NWIO)
 	{
 		/* nwio can't honor partical close */
 		hawk_nwio_close((hawk_nwio_t*)io.getHandle());
@@ -687,7 +715,7 @@ int HawkStd::closePipe (Pipe& io)
 hawk_ooi_t HawkStd::readPipe (Pipe& io, hawk_ooch_t* buf, hawk_oow_t len)
 {
 #if defined(ENABLE_NWIO)
-	return (io.getUflags() > 0)?
+	return (io.getUflags() & IO_UFLAG_PIPE_IS_NWIO)?
 		hawk_nwio_read((hawk_nwio_t*)io.getHandle(), buf, len):
 		hawk_pio_read((hawk_pio_t*)io.getHandle(), HAWK_PIO_OUT, buf, len);
 #else
@@ -698,7 +726,7 @@ hawk_ooi_t HawkStd::readPipe (Pipe& io, hawk_ooch_t* buf, hawk_oow_t len)
 hawk_ooi_t HawkStd::readPipeBytes (Pipe& io, hawk_bch_t* buf, hawk_oow_t len)
 {
 #if defined(ENABLE_NWIO)
-	return (io.getUflags() > 0)?
+	return (io.getUflags() & IO_UFLAG_PIPE_IS_NWIO)?
 		hawk_nwio_readbytes((hawk_nwio_t*)io.getHandle(), buf, len):
 		hawk_pio_readbytes((hawk_pio_t*)io.getHandle(), HAWK_PIO_OUT, buf, len);
 #else
@@ -709,7 +737,7 @@ hawk_ooi_t HawkStd::readPipeBytes (Pipe& io, hawk_bch_t* buf, hawk_oow_t len)
 hawk_ooi_t HawkStd::writePipe (Pipe& io, const hawk_ooch_t* buf, hawk_oow_t len)
 {
 #if defined(ENABLE_NWIO)
-	return (io.getUflags() > 0)?
+	return (io.getUflags() & IO_UFLAG_PIPE_IS_NWIO)?
 		hawk_nwio_write((hawk_nwio_t*)io.getHandle(), buf, len):
 		hawk_pio_write((hawk_pio_t*)io.getHandle(), HAWK_PIO_IN, buf, len);
 #else
@@ -720,7 +748,7 @@ hawk_ooi_t HawkStd::writePipe (Pipe& io, const hawk_ooch_t* buf, hawk_oow_t len)
 hawk_ooi_t HawkStd::writePipeBytes (Pipe& io, const hawk_bch_t* buf, hawk_oow_t len)
 {
 #if defined(ENABLE_NWIO)
-	return (io.getUflags() > 0)?
+	return (io.getUflags() & IO_UFLAG_PIPE_IS_NWIO)?
 		hawk_nwio_writebytes((hawk_nwio_t*)io.getHandle(), buf, len):
 		hawk_pio_writebytes((hawk_pio_t*)io.getHandle(), HAWK_PIO_IN, buf, len);
 #else
@@ -731,7 +759,7 @@ hawk_ooi_t HawkStd::writePipeBytes (Pipe& io, const hawk_bch_t* buf, hawk_oow_t 
 int HawkStd::flushPipe (Pipe& io)
 {
 #if defined(ENABLE_NWIO)
-	return (io.getUflags() > 0)?
+	return (io.getUflags() & IO_UFLAG_PIPE_IS_NWIO)?
 		hawk_nwio_flush((hawk_nwio_t*)io.getHandle()):
 		hawk_pio_flush((hawk_pio_t*)io.getHandle(), HAWK_PIO_IN);
 #else
@@ -1000,16 +1028,9 @@ nextfile:
 	if (file[0] == HAWK_T('-') && file[1] == HAWK_T('\0'))
 		sio = open_sio_std(HAWK_NULL, io, HAWK_SIO_STDIN, HAWK_SIO_READ | HAWK_SIO_IGNOREECERR);
 	else
-		sio = open_sio(HAWK_NULL, io, file, HAWK_SIO_READ | HAWK_SIO_IGNOREECERR);
+		sio = open_sio(HAWK_NULL, io, file, HAWK_SIO_READ | HAWK_SIO_IGNOREECERR | HAWK_SIO_KEEPPATH);
 	if (sio == HAWK_NULL)
 	{
-		hawk_rtx_freevaloocstr (rtx, v_pair, as.ptr);
-		return -1;
-	}
-
-	if (hawk_rtx_setfilenamewithoochars(rtx, file, hawk_count_oocstr(file)) <= -1)
-	{
-		hawk_sio_close(sio);
 		hawk_rtx_freevaloocstr (rtx, v_pair, as.ptr);
 		return -1;
 	}
@@ -1018,6 +1039,7 @@ nextfile:
 
 	if (this->console_cmgr) hawk_sio_setcmgr(sio, this->console_cmgr);
 
+	set_pending_console_state(io);
 	io.setHandle (sio);
 
 	/* increment the counter of files successfully opened */
@@ -1123,6 +1145,11 @@ hawk_ooi_t HawkStd::readConsole (Console& io, hawk_ooch_t* data, hawk_oow_t size
 {
 	hawk_ooi_t nn;
 
+	if (io.getUflags() & IO_UFLAG_CONSOLE_PENDING_NEXT)
+	{
+		if (apply_pending_console_state(io) <= -1) return -1;
+	}
+
 	while ((nn = hawk_sio_getoochars((hawk_sio_t*)io.getHandle(), data, size)) == 0)
 	{
 		int n;
@@ -1138,8 +1165,9 @@ hawk_ooi_t HawkStd::readConsole (Console& io, hawk_ooch_t* data, hawk_oow_t size
 		}
 
 		if (sio) hawk_sio_close(sio);
-		((Run*)io)->setGlobal(HAWK_GBL_FNR, (hawk_int_t)0);
-		io.setSwitched(true); // indicates that the console medium switched
+		HAWK_ASSERT(io.getUflags() & IO_UFLAG_CONSOLE_PENDING_NEXT);
+		HAWK_ASSERT(io.getSwitched());
+		break;
 	}
 
 	return nn;
@@ -1148,6 +1176,11 @@ hawk_ooi_t HawkStd::readConsole (Console& io, hawk_ooch_t* data, hawk_oow_t size
 hawk_ooi_t HawkStd::readConsoleBytes (Console& io, hawk_bch_t* data, hawk_oow_t size)
 {
 	hawk_ooi_t nn;
+
+	if (io.getUflags() & IO_UFLAG_CONSOLE_PENDING_NEXT)
+	{
+		if (apply_pending_console_state(io) <= -1) return -1;
+	}
 
 	while ((nn = hawk_sio_getbchars((hawk_sio_t*)io.getHandle(), data, size)) == 0)
 	{
@@ -1164,8 +1197,9 @@ hawk_ooi_t HawkStd::readConsoleBytes (Console& io, hawk_bch_t* data, hawk_oow_t 
 		}
 
 		if (sio) hawk_sio_close(sio);
-		((Run*)io)->setGlobal(HAWK_GBL_FNR, (hawk_int_t)0);
-		io.setSwitched(true); // indicates that the data comes from a new medium
+		HAWK_ASSERT(io.getUflags() & IO_UFLAG_CONSOLE_PENDING_NEXT);
+		HAWK_ASSERT(io.getSwitched());
+		break;
 	}
 
 	return nn;
@@ -1190,6 +1224,13 @@ int HawkStd::nextConsole (Console& io)
 {
 	int n;
 	hawk_sio_t* sio = (hawk_sio_t*)io.getHandle();
+
+	if (io.getMode() == Console::READ &&
+	    (io.getUflags() & IO_UFLAG_CONSOLE_PENDING_NEXT))
+	{
+		if (apply_pending_console_state(io) <= -1) return -1;
+		return 1;
+	}
 
 	n = (io.getMode() == Console::READ)?
 		open_console_in(io): open_console_out(io);
@@ -1563,4 +1604,3 @@ hawk_ooi_t HawkStd::SourceString::write (Data& io, const hawk_ooch_t* buf, hawk_
 /////////////////////////////////
 HAWK_END_NAMESPACE(HAWK)
 /////////////////////////////////
-

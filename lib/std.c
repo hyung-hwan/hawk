@@ -78,8 +78,8 @@
 #	endif
 #endif
 
-#define IO_UFLAG_PIPE_IS_NWIO (1 << 0)
-#define IO_UFLAG_CONSOLE_PENDING_NEXT (1 << 1)
+#define IO_UFLAG_PIPE_IS_NWIO (((hawk_uint16_t)1) << 0)
+#define IO_UFLAG_CONSOLE_PENDING_NEXT (((hawk_uint16_t)1) << 1)
 
 enum logfd_flag_t
 {
@@ -2594,6 +2594,16 @@ static int open_rio_console (hawk_rtx_t* rtx, hawk_rio_arg_t* riod)
 	return -1;
 }
 
+static int apply_pending_rio_console_state(hawk_rtx_t* rtx, hawk_rio_arg_t* riod)
+{
+	const hawk_ooch_t* curpath = hawk_sio_getpath((hawk_sio_t*)riod->handle);
+	if (!curpath) curpath = HAWK_T("-"); /* TODO: remember the actual special file name and use it? */
+	if (hawk_rtx_setfilenamewithoochars(rtx, curpath, hawk_count_oocstr(curpath)) <= -1) return -1;
+	riod->uflags &= ~IO_UFLAG_CONSOLE_PENDING_NEXT;
+	hawk_rtx_setgbl(rtx, HAWK_GBL_FNR, hawk_rtx_makeintval(rtx, 0)); /* this won't fail as the int value is 0 */
+	return 0;
+}
+
 static hawk_ooi_t hawk_rio_console (hawk_rtx_t* rtx, hawk_rio_cmd_t cmd, hawk_rio_arg_t* riod, void* data, hawk_oow_t size)
 {
 	switch (cmd)
@@ -2611,11 +2621,7 @@ static hawk_ooi_t hawk_rio_console (hawk_rtx_t* rtx, hawk_rio_cmd_t cmd, hawk_ri
 
 			if (riod->uflags & IO_UFLAG_CONSOLE_PENDING_NEXT)
 			{
-				const hawk_ooch_t* curpath = hawk_sio_getpath((hawk_sio_t*)riod->handle);
-				if (!curpath) curpath = HAWK_T("-"); /* TODO: remember the actual special file name also and use it? */
-				if (hawk_rtx_setfilenamewithoochars(rtx, curpath, hawk_count_oocstr(curpath)) <= -1) return -1;
-				riod->uflags &= ~IO_UFLAG_CONSOLE_PENDING_NEXT;
-				hawk_rtx_setgbl(rtx, HAWK_GBL_FNR, hawk_rtx_makeintval(rtx, 0));
+				if (apply_pending_rio_console_state(rtx, riod) <= -1) return -1;
 			}
 
 			while ((nn = hawk_sio_getoochars((hawk_sio_t*)riod->handle, data, size)) == 0)
@@ -2648,11 +2654,7 @@ static hawk_ooi_t hawk_rio_console (hawk_rtx_t* rtx, hawk_rio_cmd_t cmd, hawk_ri
 
 			if (riod->uflags & IO_UFLAG_CONSOLE_PENDING_NEXT)
 			{
-				const hawk_ooch_t* curpath = hawk_sio_getpath((hawk_sio_t*)riod->handle);
-				if (!curpath) curpath = HAWK_T("-");
-				if (hawk_rtx_setfilenamewithoochars(rtx, curpath, hawk_count_oocstr(curpath)) <= -1) return -1;
-				riod->uflags &= ~IO_UFLAG_CONSOLE_PENDING_NEXT;
-				hawk_rtx_setgbl(rtx, HAWK_GBL_FNR, hawk_rtx_makeintval(rtx, 0));
+				if (apply_pending_rio_console_state(rtx, riod) <= -1) return -1;
 			}
 
 			while ((nn = hawk_sio_getbchars((hawk_sio_t*)riod->handle, data, size)) == 0)
@@ -2720,11 +2722,7 @@ static hawk_ooi_t hawk_rio_console (hawk_rtx_t* rtx, hawk_rio_cmd_t cmd, hawk_ri
 				/* already reached the end of file in handling HAWK_RIO_CMD_READ
 				 * and a new console strea has been already opened and never
 				 * read yet. but nextfile has been called */
-				const hawk_ooch_t* curpath = hawk_sio_getpath((hawk_sio_t*)riod->handle);
-				if (!curpath) curpath = HAWK_T("-");
-				if (hawk_rtx_setfilenamewithoochars(rtx, curpath, hawk_count_oocstr(curpath)) <= -1) return -1;
-				riod->uflags &= ~IO_UFLAG_CONSOLE_PENDING_NEXT;
-				hawk_rtx_setgbl(rtx, HAWK_GBL_FNR, hawk_rtx_makeintval(rtx, 0));
+				if (apply_pending_rio_console_state(rtx, riod) <= -1) return -1;
 				return 1; /* unlike in HAWK_RIO_CMD_READ, it must return 1 to indicate that there is a new file ready */
 			}
 

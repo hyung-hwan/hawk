@@ -311,29 +311,95 @@ static void print_usage (FILE* out, const hawk_bch_t* argv0)
 	fprintf(out, " -d deparsedfile   set the deparsing output file\n");
 	fprintf(out, " -o outputfile     set the console output file\n");
 	fprintf(out, " -F string         set a field separator(FS)\n");
+	fprintf(out, " -v name=value     add a global variable assignment\n");
 	fprintf(out, " -I string         set include directories\n");
-
+	fprintf(out, " --modlibdirs str  set module library directories\n");
 }
 
 struct cmdline_t
 {
+	struct gv_t
+	{
+		int id;
+		hawk_bch_t* name;
+		hawk_bch_t* value;
+	};
+
 	hawk_bch_t* ins;
 	hawk_bch_t* inf;
 	hawk_bch_t* outf;
 	hawk_bch_t* outc;
 	hawk_bch_t* fs;
 	hawk_bch_t* incdirs;
+	hawk_bch_t* modlibdirs;
+
+	gv_t* gvm;
+	int gvcapa;
+	int gvsize;
 
 	HAWK::Hawk::Value* argv;
 	int argc;
 };
 
+static void free_cmdline (cmdline_t* cmdline)
+{
+	if (cmdline->gvm)
+	{
+		free(cmdline->gvm);
+		cmdline->gvm = HAWK_NULL;
+	}
+
+	cmdline->gvcapa = 0;
+	cmdline->gvsize = 0;
+}
+
+static int add_var_assign (cmdline_t* cmdline, hawk_bch_t* name, hawk_bch_t* value, int argc)
+{
+	if (cmdline->gvsize >= cmdline->gvcapa)
+	{
+		int newcapa = cmdline->gvcapa + argc + 1;
+		cmdline_t::gv_t* tmp = (cmdline_t::gv_t*)realloc(cmdline->gvm, HAWK_SIZEOF(*tmp) * newcapa);
+		if (!tmp) return -1;
+		cmdline->gvm = tmp;
+		cmdline->gvcapa = newcapa;
+	}
+
+	cmdline->gvm[cmdline->gvsize].id = -1;
+	cmdline->gvm[cmdline->gvsize].name = name;
+	cmdline->gvm[cmdline->gvsize].value = value;
+	cmdline->gvsize++;
+	return 0;
+}
+
+static int set_modlibdirs (MyHawk& hawk, const hawk_bch_t* dirs)
+{
+#if defined(HAWK_OOCH_IS_UCH)
+	hawk_uch_t* tmp;
+	int n;
+
+	tmp = hawk_dupbtoucstr((hawk_t*)hawk, dirs, HAWK_NULL, 1);
+	if (!tmp) return -1;
+
+	n = hawk_setopt((hawk_t*)hawk, HAWK_OPT_MODLIBDIRS, tmp);
+	hawk_freemem((hawk_t*)hawk, tmp);
+	return n;
+#else
+	return hawk_setopt((hawk_t*)hawk, HAWK_OPT_MODLIBDIRS, dirs);
+#endif
+}
+
 static int handle_cmdline (MyHawk& hawk, int argc, hawk_bch_t* argv[], cmdline_t* cmdline)
 {
+	static hawk_bcli_lng_t lng[] =
+	{
+		{ ":modlibdirs", '\0' },
+		{ HAWK_NULL, '\0' }
+	};
+
 	static hawk_bcli_t opt =
 	{
-		"hF:f:d:o:I:",
-		HAWK_NULL
+		"hF:f:d:o:I:v:",
+		lng
 	};
 	hawk_bci_t c;
 
@@ -366,12 +432,42 @@ static int handle_cmdline (MyHawk& hawk, int argc, hawk_bch_t* argv[], cmdline_t
 				cmdline->incdirs = opt.arg;
 				break;
 
+			case 'v':
+			{
+				hawk_bch_t* eq = hawk_find_bchar_in_bcstr(opt.arg, HAWK_T('='));
+				if (!eq)
+				{
+					print_error("no value for '%s' in 'v'\n", opt.arg);
+					return -1;
+				}
+
+				*eq = '\0';
+				if (add_var_assign(cmdline, opt.arg, eq + 1, argc) <= -1)
+				{
+					print_error("out of memory\n");
+					return -1;
+				}
+				break;
+			}
+
+			case '\0':
+				if (hawk_comp_bcstr(opt.lngopt, "modlibdirs", 0) == 0)
+					cmdline->modlibdirs = opt.arg;
+				else
+				{
+					print_error("illegal option - '%s'\n", opt.lngopt);
+					return -1;
+				}
+				break;
+
 			case '?':
-				print_error("illegal option - '%c'\n", opt.opt);
+				if (opt.lngopt) print_error("illegal option - '%s'\n", opt.lngopt);
+				else print_error("illegal option - '%c'\n", opt.opt);
 				return -1;
 
 			case ':':
-				print_error("bad argument for '%c'\n", opt.opt);
+				if (opt.lngopt) print_error("bad argument for '%s'\n", opt.lngopt);
+				else print_error("bad argument for '%c'\n", opt.opt);
 				return -1;
 
 			default:
@@ -456,9 +552,30 @@ static int hawk_main (MyHawk& hawk, int argc, hawk_bch_t* argv[])
 		return -1;
 	}
 
-	if ((n = handle_cmdline(hawk, argc, argv, &cmdline)) <= 0) return n;
+	if ((n = handle_cmdline(hawk, argc, argv, &cmdline)) <= 0)
+	{
+		free_cmdline(&cmdline);
+		return n;
+	}
 
 	if (cmdline.incdirs) hawk.setIncludeDirs(cmdline.incdirs);
+	if (cmdline.modlibdirs && set_modlibdirs(hawk, cmdline.modlibdirs) <= -1)
+	{
+		print_error(hawk);
+		free_cmdline(&cmdline);
+		return -1;
+	}
+	for (int i = 0; i < cmdline.gvsize; i++)
+	{
+		cmdline.gvm[i].id = hawk.addGlobal(cmdline.gvm[i].name);
+		if (cmdline.gvm[i].id <= -1)
+		{
+			print_error(hawk);
+			free_cmdline(&cmdline);
+			return -1;
+		}
+	}
+
 	MyHawk::Source* in, * out;
 	MyHawk::SourceString in_str(cmdline.ins);
 	MyHawk::SourceFile in_file(cmdline.inf);
@@ -470,13 +587,25 @@ static int hawk_main (MyHawk& hawk, int argc, hawk_bch_t* argv[])
 	if (!run)
 	{
 		print_error(hawk);
+		free_cmdline(&cmdline);
 		return -1;
 	}
 
 	if (cmdline.inf && run->setGlobal(HAWK_GBL_SCRIPTNAME, cmdline.inf, hawk_count_bcstr(cmdline.inf)) <= -1)
 	{
 		print_error(hawk);
+		free_cmdline(&cmdline);
 		return -1;
+	}
+
+	for (int i = 0; i < cmdline.gvsize; i++)
+	{
+		if (run->setGlobal(cmdline.gvm[i].id, cmdline.gvm[i].value) <= -1)
+		{
+			print_error(hawk);
+			free_cmdline(&cmdline);
+			return -1;
+		}
 	}
 
 	if (cmdline.fs)
@@ -485,11 +614,13 @@ static int hawk_main (MyHawk& hawk, int argc, hawk_bch_t* argv[])
 		if (fs.setStr(cmdline.fs) <= -1)
 		{
 			print_error(hawk);
+			free_cmdline(&cmdline);
 			return -1;
 		}
 		if (hawk.setGlobal(HAWK_GBL_FS, fs) <= -1)
 		{
 			print_error(hawk);
+			free_cmdline(&cmdline);
 			return -1;
 		}
 	}
@@ -499,6 +630,7 @@ static int hawk_main (MyHawk& hawk, int argc, hawk_bch_t* argv[])
 		if (hawk.addConsoleOutput(cmdline.outc) <= -1)
 		{
 			print_error(hawk);
+			free_cmdline(&cmdline);
 			return -1;
 		}
 	}
@@ -508,6 +640,7 @@ static int hawk_main (MyHawk& hawk, int argc, hawk_bch_t* argv[])
 	if (make_args_for_exec(&cmdline, hawk, run) <= -1) // data made here is not uself if hawk.loop() invoked in hawk.exec().
 	{
 		print_error(hawk);
+		free_cmdline(&cmdline);
 		return -1;
 	}
 
@@ -516,10 +649,12 @@ static int hawk_main (MyHawk& hawk, int argc, hawk_bch_t* argv[])
 	{
 		print_error(hawk);
 		free_args_for_exec(&cmdline);
+		free_cmdline(&cmdline);
 		return -1;
 	}
 
 	free_args_for_exec(&cmdline);
+	free_cmdline(&cmdline);
 	return 0;
 }
 

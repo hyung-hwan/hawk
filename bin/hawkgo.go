@@ -25,6 +25,7 @@ type Config struct {
 	assigns map[string]Assign
 	call string
 	fs string
+	modlibdirs string
 	show_extra_info bool
 	concurrent bool
 	suffix string
@@ -80,6 +81,10 @@ func parse_args_to_config(cfg *Config) bool {
 		cfg.srcfiles = append(cfg.srcfiles, v)
 		return nil
 	})
+	flgs.Func("modlibdirs", "set module library directories", func(v string) error {
+		cfg.modlibdirs = v
+		return nil
+	})
 	flgs.BoolVar(&cfg.show_extra_info, "show-extra-info", false, "show extra information")
 
 	flgs.Alias("c", "call")
@@ -129,6 +134,7 @@ wrong_usage:
 	fmt.Fprintf(os.Stderr, " -v, --assign          name=value set global variable value\n")
 	fmt.Fprintf(os.Stderr, " -c, --call            string     call a named function instead of running the\n")
 	fmt.Fprintf(os.Stderr, "                                  normal loop\n")
+	fmt.Fprintf(os.Stderr, "     --modlibdirs      string     set module library directories\n")
 	fmt.Fprintf(os.Stderr, "     --concurrent=[suffix]        process multiple data files concurrently\n")
 	fmt.Fprintf(os.Stderr, "                                  if datafile has two parts delimited by a colon,\n")
 	fmt.Fprintf(os.Stderr, "                                  the second part specifies the output file (e.g.\n")
@@ -332,6 +338,14 @@ func main() {
 		goto oops
 	}
 
+	if cfg.modlibdirs != "" {
+		err = h.SetModLibDirs(cfg.modlibdirs)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "ERROR: failed to set module library directories '%s' - %s\n", cfg.modlibdirs, err.Error())
+			goto oops
+		}
+	}
+
 	if len(cfg.assigns) > 0 {
 		var k string
 		var v Assign
@@ -426,4 +440,3 @@ oops:
 	if h != nil { h.Close() }
 	os.Exit(255)
 }
-

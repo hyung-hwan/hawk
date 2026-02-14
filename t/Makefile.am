@@ -101,14 +101,20 @@ TESTS = $(check_PROGRAMS) $(check_SCRIPTS) $(check_ERRORS)
 
 TEST_EXTENSIONS = .hawk .err .sh
 
+# override these from environment when needed.
+# e.g.
+#   make check HAWK_TEST_COMPILER=../samples/hawk51 HAWK_TEST_MODLIBDIRS_OPT=
+HAWK_TEST_COMPILER ?= ../bin/hawk
+HAWK_TEST_MODLIBDIRS_OPT ?= --modlibdirs=../lib/.libs:../mod/.libs
+
 HAWK_LOG_DRIVER = $(LOG_DRIVER)
-HAWK_LOG_COMPILER = ../bin/hawk
-AM_HAWK_LOG_FLAGS = -vTDIR=${abs_srcdir} --modlibdirs=../lib/.libs:../mod/.libs -f
+HAWK_LOG_COMPILER = $(HAWK_TEST_COMPILER)
+AM_HAWK_LOG_FLAGS = -vTDIR=${abs_srcdir} $(HAWK_TEST_MODLIBDIRS_OPT) -f
 
 ERR_LOG_DRIVER = $(SHELL) $(top_srcdir)/ac/test-driver
 ERR_LOG_COMPILER = $(SHELL) $(abs_srcdir)/err.sh ../bin/hawk -vTDIR=${abs_srcdir} --modlibdirs=../lib/.libs:../mod/.libs -f
 AM_ERR_LOG_FLAGS =
 
 SH_LOG_DRIVER = $(LOG_DRIVER)
-SH_LOG_COMPILER = env HAWK_BIN=../bin/hawk $(SHELL)
+SH_LOG_COMPILER = env HAWK_BIN=$(HAWK_TEST_COMPILER) $(SHELL)
 AM_SH_LOG_FLAGS =

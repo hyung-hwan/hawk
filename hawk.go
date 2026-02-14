@@ -159,6 +159,23 @@ static int add_static_mod(hawk_t* hawk, const hawk_bch_t* name)
 {
 	return hawk_addstaticmodwithbcstr(hawk, name, hawk_mod_go);
 }
+
+static int set_modlibdirs_with_bcstr(hawk_t* hawk, const hawk_bch_t* dirs)
+{
+#if defined(HAWK_OOCH_IS_UCH)
+	hawk_uch_t* tmp;
+	int n;
+
+	tmp = hawk_dupbtoucstr(hawk, dirs, HAWK_NULL, 1);
+	if (!tmp) return -1;
+
+	n = hawk_setopt(hawk, HAWK_OPT_MODLIBDIRS, tmp);
+	hawk_freemem(hawk, tmp);
+	return n;
+#else
+	return hawk_setopt(hawk, HAWK_OPT_MODLIBDIRS, dirs);
+#endif
+}
 */
 import "C"
 
@@ -390,6 +407,17 @@ func (hawk *Hawk) AddMod(name string) error {
 	cname = C.CString(name)
 	n = C.add_static_mod(hawk.c, cname)
 	C.free(unsafe.Pointer(cname))
+	if n <= -1 { return hawk.make_errinfo() }
+	return nil
+}
+
+func (hawk *Hawk) SetModLibDirs(dirs string) error {
+	var cdirs *C.hawk_bch_t
+	var n C.int
+
+	cdirs = C.CString(dirs)
+	n = C.set_modlibdirs_with_bcstr(hawk.c, cdirs)
+	C.free(unsafe.Pointer(cdirs))
 	if n <= -1 { return hawk.make_errinfo() }
 	return nil
 }
