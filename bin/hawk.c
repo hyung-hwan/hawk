@@ -372,7 +372,9 @@ struct opttab_t
 	const hawk_bch_t* desc;
 } opttab[] =
 {
+	/* the values must be present in the "lng" table in process_argv[] */
 	{ "blankconcat",  HAWK_BLANKCONCAT,    "enable concatenation by blanks" },
+	{ "buildbc",      HAWK_BUILDBC,        "enable byte-code building" },
 	{ "crlf",         HAWK_CRLF,           "use CRLF for a newline" },
 	{ "flexmap",      HAWK_FLEXMAP,        "allow a map to be assigned or returned" },
 	{ "implicit",     HAWK_IMPLICIT,       "allow undeclared variables" },
@@ -391,6 +393,7 @@ struct opttab_t
 	{ "striprecspc",  HAWK_STRIPRECSPC,    "strip spaces in splitting a record" },
 	{ "stripstrspc",  HAWK_STRIPSTRSPC,    "strip spaces in string-to-number conversion" },
 	{ "tolerant",     HAWK_TOLERANT,       "make more fault-tolerant" },
+	{ "xcall",        HAWK_XCALL,          "enable the extended call syntax" },
 	{ HAWK_NULL,      0,                   HAWK_NULL }
 };
 
@@ -450,6 +453,7 @@ static int process_argv (int argc, hawk_bch_t* argv[], const hawk_bch_t* real_ar
 	static hawk_bcli_lng_t lng[] =
 	{
 		{ ":blankconcat",      '\0' },
+		{ ":buildbc",          '\0' },
 		{ ":crlf",             '\0' },
 		{ ":flexmap",          '\0' },
 		{ ":implicit",         '\0' },
@@ -468,6 +472,7 @@ static int process_argv (int argc, hawk_bch_t* argv[], const hawk_bch_t* real_ar
 		{ ":striprecspc",      '\0' },
 		{ ":stripstrspc",      '\0' },
 		{ ":tolerant",         '\0' },
+		{ ":xcall",            '\0' },
 
 		{ ":call",             'c' },
 		{ ":file",             'f' },

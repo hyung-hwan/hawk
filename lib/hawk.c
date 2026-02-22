@@ -24,6 +24,12 @@
 
 #include "hawk-prv.h"
 
+static void free_funbc (hawk_t* hawk, hawk_fbc_t* bc)
+{
+	if (bc->code) hawk_freemem(hawk, bc->code);
+	hawk_freemem(hawk, bc);
+}
+
 static void free_fun (hawk_htb_t* map, void* vptr, hawk_oow_t vlen)
 {
 	hawk_t* hawk = *(hawk_t**)hawk_htb_getxtn(map);
@@ -33,6 +39,7 @@ static void free_fun (hawk_htb_t* map, void* vptr, hawk_oow_t vlen)
 	/*hawk_freemem(hawk, f->name);*/
 
 	if (f->argspec) hawk_freemem(hawk, f->argspec);
+	if (f->bc) free_funbc(hawk, f->bc);
 	hawk_clrpt(hawk, f->body);
 	hawk_freemem(hawk, f);
 }
@@ -43,6 +50,7 @@ static void free_ifun (hawk_arr_t* arr, void* dptr, hawk_oow_t dlen)
 	hawk_fun_t* f = (hawk_fun_t*)dptr;
 
 	if (f->argspec) hawk_freemem(hawk, f->argspec);
+	if (f->bc) free_funbc(hawk, f->bc);
 	hawk_clrpt(hawk, f->body);
 	hawk_freemem(hawk, f);
 }
@@ -459,7 +467,15 @@ void hawk_clear (hawk_t* hawk)
 	hawk->parse.depth.loop = 0;
 	hawk->parse.depth.expr = 0;
 	hawk->parse.depth.incl = 0;
-	hawk->parse.pragma.trait = (hawk->opt.trait & (HAWK_IMPLICIT | HAWK_MULTILINESTR | HAWK_PEDANTIC | HAWK_RWPIPE | HAWK_PIPECLOEXEC | HAWK_STRIPRECSPC | HAWK_STRIPSTRSPC)); /* implicit on if you didn't mask it off in hawk->opt.trait with hawk_setopt */
+
+	/* hawk initializes hawk->opt.trait to HAWK_MODERN.
+	 * the options beloning to HAWK_MODERN are on if you don't
+	 * mask them off with hawk_setopt(). the listed options
+	 * here affected the compile-time pragma. */
+	hawk->parse.pragma.trait = hawk->opt.trait &
+		(HAWK_BUILDBC | HAWK_IMPLICIT | HAWK_MULTILINESTR | HAWK_PEDANTIC | HAWK_RWPIPE |
+		 HAWK_PIPECLOEXEC | HAWK_STRIPRECSPC | HAWK_STRIPSTRSPC | HAWK_XCALL);
+
 	hawk->parse.pragma.rtx_stack_limit = 0;
 	hawk->parse.pragma.entry[0] = '\0';
 

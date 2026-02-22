@@ -524,6 +524,8 @@ struct hawk_nde_t
  * The hawk_fun_t type defines a structure to maintain functions
  * defined with the keyword 'function'.
  */
+typedef struct hawk_fbc_t hawk_fbc_t;
+
 struct hawk_fun_t
 {
 	hawk_oocs_t     name;
@@ -532,6 +534,7 @@ struct hawk_fun_t
 	hawk_oow_t      argspeclen; /* the length of argspec. it can be different from nargs if there are call-by-value parameters after the last call-by-reference parameter or variadic arguments are supported */
 	int             variadic;
 	hawk_nde_t*     body;
+	hawk_fbc_t*     bc; /* function bytecode */
 };
 typedef struct hawk_fun_t hawk_fun_t;
 
@@ -1442,6 +1445,12 @@ enum hawk_trait_t
 	 * Allows a function call like 'a.b.c()'
 	 */
 	HAWK_XCALL = (1 << 21),
+
+	/**
+	 * enables experimental function-body bytecode build/run path
+	 * for selected functions.
+	 */
+	HAWK_BUILDBC = (1 << 22),
 
 
 	/**

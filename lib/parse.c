@@ -588,6 +588,299 @@ void hawk_getkwname (hawk_t* hawk, hawk_kwid_t id, hawk_oocs_t* s)
 	*s = kwtab[id].name;
 }
 
+static void free_funbc (hawk_t* hawk, hawk_fbc_t* bc)
+{
+	if (bc->code) hawk_freemem(hawk, bc->code);
+	hawk_freemem(hawk, bc);
+}
+
+static int reserve_funbc_ins (hawk_t* hawk, hawk_fbc_t* bc, hawk_oow_t n, hawk_loc_t* loc)
+{
+	hawk_fbc_ins_t* tmp;
+	hawk_oow_t req, capa;
+
+	req = bc->len + n;
+	if (req <= bc->len) goto oops_eoverflow;
+	if (req <= bc->capa) return 0;
+
+	capa = HAWK_ALIGN_POW2(req, 128);
+	if (capa < req) goto oops_eoverflow;
+	if (capa > HAWK_TYPE_MAX(hawk_oow_t) / HAWK_SIZEOF(*tmp)) goto oops_eoverflow;
+
+	tmp = (hawk_fbc_ins_t*)hawk_reallocmem(hawk, bc->code, capa * HAWK_SIZEOF(*tmp));
+	if (HAWK_UNLIKELY(!tmp))
+	{
+		const hawk_ooch_t* bem = hawk_backuperrmsg(hawk);
+		hawk_seterrbfmt(hawk, loc, hawk_geterrnum(hawk), "unable to reserve space for function byte codes - %js", bem);
+		return -1;
+	}
+
+	bc->code = tmp;
+	bc->capa = capa;
+	return 0;
+
+oops_eoverflow:
+	hawk_seterrbfmt(hawk, loc, HAWK_ENOMEM, "unable to reserve space for function byte codes - excessively large");
+	return -1;
+}
+
+static int emit_funbc_ins_nde (hawk_t* hawk, hawk_fbc_t* bc, hawk_fbc_opcode_t opcode, hawk_nde_t* nde, hawk_loc_t* loc)
+{
+	if (reserve_funbc_ins(hawk, bc, 1, loc) <= -1) return -1;
+	bc->code[bc->len].opcode = opcode;
+	bc->code[bc->len].u.nde = nde;
+	bc->len++;
+	return 0;
+}
+
+static int emit_funbc_ins_int (hawk_t* hawk, hawk_fbc_t* bc, hawk_fbc_opcode_t opcode, hawk_int_t ival, hawk_loc_t* loc)
+{
+	if (reserve_funbc_ins(hawk, bc, 1, loc) <= -1) return -1;
+	bc->code[bc->len].opcode = opcode;
+	bc->code[bc->len].u.iv = ival;
+	bc->len++;
+	return 0;
+}
+
+static int emit_funbc_ins_plain (hawk_t* hawk, hawk_fbc_t* bc, hawk_fbc_opcode_t opcode, hawk_loc_t* loc)
+{
+	return emit_funbc_ins_nde(hawk, bc, opcode, HAWK_NULL, loc);
+}
+
+static int compile_funbc_expr (hawk_t* hawk, hawk_fbc_t* bc, hawk_nde_t* nde, int* done)
+{
+	*done = 0;
+
+	switch (nde->type)
+	{
+		case HAWK_NDE_INT:
+		{
+			hawk_nde_int_t* x = (hawk_nde_int_t*)nde;
+			if (emit_funbc_ins_int(hawk, bc, HAWK_FBC_OP_LOAD_CONST_INT, x->val, &nde->loc) <= -1) return -1;
+			*done = 1;
+			return 0;
+		}
+
+		case HAWK_NDE_XNIL:
+			if (emit_funbc_ins_plain(hawk, bc, HAWK_FBC_OP_LOAD_CONST_NIL, &nde->loc) <= -1) return -1;
+			*done = 1;
+			return 0;
+
+		case HAWK_NDE_XTRUE:
+			if (emit_funbc_ins_plain(hawk, bc, HAWK_FBC_OP_LOAD_CONST_TRUE, &nde->loc) <= -1) return -1;
+			*done = 1;
+			return 0;
+
+		case HAWK_NDE_XFALSE:
+			if (emit_funbc_ins_plain(hawk, bc, HAWK_FBC_OP_LOAD_CONST_FALSE, &nde->loc) <= -1) return -1;
+			*done = 1;
+			return 0;
+
+		case HAWK_NDE_GRP:
+		{
+			hawk_nde_t* body = ((hawk_nde_grp_t*)nde)->body;
+			if (!body || body->next) return 0;
+			return compile_funbc_expr(hawk, bc, body, done);
+		}
+
+		case HAWK_NDE_EXP_UNR:
+		{
+			hawk_nde_exp_t* x = (hawk_nde_exp_t*)nde;
+			int done_left;
+
+			if (x->opcode != HAWK_UNROP_MINUS) return 0;
+			if (!x->left || x->right) return 0;
+			if (compile_funbc_expr(hawk, bc, x->left, &done_left) <= -1) return -1;
+			if (!done_left) return 0;
+			if (emit_funbc_ins_plain(hawk, bc, HAWK_FBC_OP_NEG, &nde->loc) <= -1) return -1;
+			*done = 1;
+			return 0;
+		}
+
+		case HAWK_NDE_EXP_BIN:
+		{
+			hawk_nde_exp_t* x = (hawk_nde_exp_t*)nde;
+			hawk_fbc_opcode_t op;
+			hawk_oow_t rollback;
+			int done_left, done_right;
+
+			switch (x->opcode)
+			{
+				case HAWK_BINOP_PLUS: op = HAWK_FBC_OP_ADD; break;
+				case HAWK_BINOP_MINUS: op = HAWK_FBC_OP_SUB; break;
+				case HAWK_BINOP_MUL: op = HAWK_FBC_OP_MUL; break;
+				case HAWK_BINOP_DIV: op = HAWK_FBC_OP_DIV; break;
+				case HAWK_BINOP_IDIV: op = HAWK_FBC_OP_IDIV; break;
+				default: return 0;
+			}
+
+			rollback = bc->len;
+
+			if (!x->left || !x->right) return 0;
+			if (compile_funbc_expr(hawk, bc, x->left, &done_left) <= -1) return -1;
+			if (!done_left)
+			{
+				bc->len = rollback;
+				return 0;
+			}
+
+			if (compile_funbc_expr(hawk, bc, x->right, &done_right) <= -1)
+			{
+				bc->len = rollback;
+				return -1;
+			}
+			if (!done_right)
+			{
+				bc->len = rollback;
+				return 0;
+			}
+
+			if (emit_funbc_ins_plain(hawk, bc, op, &x->loc) <= -1)
+			{
+				bc->len = rollback;
+				return -1;
+			}
+
+			*done = 1;
+			return 0;
+		}
+	}
+
+	return 0;
+}
+
+static int compile_funbc_stmt (hawk_t* hawk, hawk_fbc_t* bc, hawk_nde_t* stmt, int* terminal)
+{
+	hawk_oow_t rollback;
+	int done = 0;
+
+	*terminal = 0;
+
+	switch (stmt->type)
+	{
+		case HAWK_NDE_RETURN:
+		{
+			hawk_nde_return_t* r = (hawk_nde_return_t*)stmt;
+			*terminal = 1;
+			if (r->val)
+			{
+				hawk_oow_t rollback = bc->len;
+				int done = 0;
+
+				if (compile_funbc_expr(hawk, bc, r->val, &done) <= -1)
+				{
+					bc->len = rollback;
+					return -1;
+				}
+
+				if (done)
+				{
+					if (emit_funbc_ins_plain(hawk, bc, HAWK_FBC_OP_RET, &r->loc) <= -1)
+					{
+						bc->len = rollback;
+						return -1;
+					}
+					return 0;
+				}
+
+				bc->len = rollback;
+				return emit_funbc_ins_nde(hawk, bc, HAWK_FBC_OP_RET_AST_EXPR, r->val, &r->loc);
+			}
+
+			return emit_funbc_ins_nde(hawk, bc, HAWK_FBC_OP_RET_NIL, HAWK_NULL, &r->loc);
+		}
+
+		case HAWK_NDE_EXIT:
+			*terminal = 1;
+			return emit_funbc_ins_nde(hawk, bc, HAWK_FBC_OP_RUN_AST_STMT, stmt, &stmt->loc);
+	}
+
+	rollback = bc->len;
+	if (compile_funbc_expr(hawk, bc, stmt, &done) <= -1)
+	{
+		bc->len = rollback;
+		return -1;
+	}
+
+	if (done)
+	{
+		if (emit_funbc_ins_plain(hawk, bc, HAWK_FBC_OP_POP, &stmt->loc) <= -1)
+		{
+			bc->len = rollback;
+			return -1;
+		}
+		return 0;
+	}
+
+	bc->len = rollback;
+	return emit_funbc_ins_nde(hawk, bc, HAWK_FBC_OP_RUN_AST_STMT, stmt, &stmt->loc);
+}
+
+static int compile_funbc (hawk_t* hawk, hawk_fun_t* fun)
+{
+	hawk_fbc_t* bc;
+	hawk_nde_t* p;
+	int terminal = 0;
+
+	if (fun->bc)
+	{
+		free_funbc(hawk, fun->bc);
+		fun->bc = HAWK_NULL;
+	}
+
+	if (!fun->body || fun->body->type != HAWK_NDE_BLK) return 0;
+
+	bc = (hawk_fbc_t*)hawk_callocmem(hawk, HAWK_SIZEOF(*bc));
+	if (HAWK_UNLIKELY(!bc)) return -1;
+
+	bc->nargs = fun->nargs;
+
+	for (p = ((hawk_nde_blk_t*)fun->body)->body; p; p = p->next)
+	{
+		if (compile_funbc_stmt(hawk, bc, p, &terminal) <= -1)
+		{
+			free_funbc(hawk, bc);
+			return -1;
+		}
+		if (terminal) break;
+	}
+
+	if (!terminal && emit_funbc_ins_nde(hawk, bc, HAWK_FBC_OP_RET_NIL, HAWK_NULL, &fun->body->loc) <= -1)
+	{
+		free_funbc(hawk, bc);
+		return -1;
+	}
+
+	fun->bc = bc;
+	return 0;
+}
+
+static int compile_all_funbcs (hawk_t* hawk)
+{
+	hawk_htb_pair_t* p;
+	hawk_htb_itr_t itr;
+	hawk_oow_t i;
+
+	p = hawk_htb_getfirstpair(hawk->tree.funs, &itr);
+	while (p)
+	{
+		hawk_fun_t* fun = (hawk_fun_t*)HAWK_HTB_VPTR(p);
+		if (compile_funbc(hawk, fun) <= -1) return -1;
+		p = hawk_htb_getnextpair(hawk->tree.funs, &itr);
+	}
+
+	for (i = 0; i < HAWK_ARR_SIZE(hawk->tree.ifuns); i++)
+	{
+		hawk_fun_t* fun;
+
+		if (!HAWK_ARR_SLOT(hawk->tree.ifuns, i)) continue;
+		fun = (hawk_fun_t*)HAWK_ARR_DPTR(hawk->tree.ifuns, i);
+		if (compile_funbc(hawk, fun) <= -1) return -1;
+	}
+
+	return 0;
+}
+
 static int parse (hawk_t* hawk)
 {
 	int ret = -1;
@@ -664,6 +957,9 @@ static int parse (hawk_t* hawk)
 	}
 
 	HAWK_ASSERT(hawk->tree.ngbls == HAWK_ARR_SIZE(hawk->parse.gbls));
+
+	if ((hawk->opt.trait & HAWK_BUILDBC) && compile_all_funbcs(hawk) <= -1) goto oops;
+
 	HAWK_ASSERT(hawk->sio.inp == &hawk->sio.arg);
 	ret = 0;
 

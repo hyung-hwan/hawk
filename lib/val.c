@@ -185,7 +185,7 @@ static HAWK_INLINE void gc_chain_gch (hawk_gch_t* list, hawk_gch_t* gch)
 
 static HAWK_INLINE void gc_chain_val (hawk_gch_t* list, hawk_val_t* v)
 {
-	gc_chain_gch (list, hawk_val_to_gch(v));
+	gc_chain_gch(list, hawk_val_to_gch(v));
 }
 
 static HAWK_INLINE void gc_move_all_gchs (hawk_gch_t* src, hawk_gch_t* dst)
@@ -213,7 +213,7 @@ static HAWK_INLINE void gc_unchain_gch (hawk_gch_t* gch)
 
 static HAWK_INLINE void gc_unchain_val (hawk_val_t* v)
 {
-	gc_unchain_gch (hawk_val_to_gch(v));
+	gc_unchain_gch(hawk_val_to_gch(v));
 }
 
 static void gc_trace_refs (hawk_gch_t* list)
@@ -307,8 +307,8 @@ static void gc_move_reachables (hawk_gch_t* list, hawk_gch_t* reachable_list)
 		tmp = gch->gc_next;
 		if (gch->gc_refs > 0)
 		{
-			gc_unchain_gch (gch);
-			gc_chain_gch (reachable_list, gch);
+			gc_unchain_gch(gch);
+			gc_chain_gch(reachable_list, gch);
 			gch->gc_refs = GCH_MOVED;
 		}
 		gch = tmp;
@@ -336,8 +336,8 @@ static void gc_move_reachables (hawk_gch_t* list, hawk_gch_t* reachable_list)
 					tmp = hawk_val_to_gch(iv);
 					if (tmp->gc_refs != GCH_MOVED)
 					{
-						gc_unchain_gch (tmp);
-						gc_chain_gch (reachable_list, tmp);
+						gc_unchain_gch(tmp);
+						gc_chain_gch(reachable_list, tmp);
 						tmp->gc_refs = GCH_MOVED;
 					}
 				}
@@ -363,8 +363,8 @@ static void gc_move_reachables (hawk_gch_t* list, hawk_gch_t* reachable_list)
 						tmp = hawk_val_to_gch(iv);
 						if (tmp->gc_refs != GCH_MOVED)
 						{
-							gc_unchain_gch (tmp);
-							gc_chain_gch (reachable_list, tmp);
+							gc_unchain_gch(tmp);
+							gc_chain_gch(reachable_list, tmp);
 							tmp->gc_refs = GCH_MOVED;
 						}
 					}
@@ -403,7 +403,7 @@ static void gc_free_unreachables (hawk_rtx_t* rtx, hawk_gch_t* list)
 	gch = list->gc_next;
 	while (gch != list)
 	{
-		hawk_rtx_freeval (rtx, hawk_gch_to_val(gch), HAWK_RTX_FREEVAL_GC_PRESERVE);
+		hawk_rtx_freeval(rtx, hawk_gch_to_val(gch), HAWK_RTX_FREEVAL_GC_PRESERVE);
 		gch = gch->gc_next;
 	}
 
@@ -416,8 +416,8 @@ static void gc_free_unreachables (hawk_rtx_t* rtx, hawk_gch_t* list)
 		hawk_logbfmt(hawk_rtx_gethawk(rtx), HAWK_LOG_STDERR, "[GC] FREEING UNREACHABLE GCH %p gc_refs %zu v_refs %zu\n", gch, gch->gc_refs, hawk_gch_to_val(gch)->v_refs);
 	#endif
 		/* do what hawk_rtx_freeval() would do without HAWK_RTX_FREEVAL_GC_PRESERVE */
-		gc_unchain_gch (gch);
-		gc_free_val (rtx, hawk_gch_to_val(gch));
+		gc_unchain_gch(gch);
+		gc_free_val(rtx, hawk_gch_to_val(gch));
 	}
 }
 
@@ -447,9 +447,9 @@ static HAWK_INLINE void gc_collect_garbage_in_generation (hawk_rtx_t* rtx, int g
 
 		/* only unreachables are left in rtx->gc.g[0] */
 	#if defined(DEBUG_GC)
-	/*gc_dump_refs (rtx, &rtx->gc.g[0]);*/
+	/*gc_dump_refs(rtx, &rtx->gc.g[0]);*/
 	#endif
-		gc_free_unreachables (rtx, &rtx->gc.g[gen]);
+		gc_free_unreachables(rtx, &rtx->gc.g[gen]);
 		HAWK_ASSERT(rtx->gc.g[gen].gc_next == &rtx->gc.g[gen]);
 
 		/* move all reachables back to the main list */
@@ -478,12 +478,12 @@ static HAWK_INLINE int gc_collect_garbage_auto (hawk_rtx_t* rtx)
 		--i;
 		if (rtx->gc.pressure[i] >= rtx->gc.threshold[i])
 		{
-			gc_collect_garbage_in_generation (rtx, i);
+			gc_collect_garbage_in_generation(rtx, i);
 			return i;
 		}
 	}
 
-	gc_collect_garbage_in_generation (rtx, 0);
+	gc_collect_garbage_in_generation(rtx, 0);
 	return 0;
 }
 
@@ -496,7 +496,7 @@ int hawk_rtx_gc (hawk_rtx_t* rtx, int gen)
 	else
 	{
 		if (gen >= HAWK_COUNTOF(rtx->gc.g)) gen = HAWK_COUNTOF(rtx->gc.g) - 1;
-		gc_collect_garbage_in_generation (rtx, gen);
+		gc_collect_garbage_in_generation(rtx, gen);
 		return gen;
 	}
 }
@@ -519,7 +519,7 @@ static HAWK_INLINE hawk_val_t* gc_calloc_val (hawk_rtx_t* rtx, hawk_oow_t size)
 		if (gc_gen < HAWK_COUNTOF(rtx->gc.g) - 1)
 		{
 			/* perform full gc if full gc has not been triggerred at the beginning of this function */
-			hawk_rtx_gc (rtx, HAWK_COUNTOF(rtx->gc.g) - 1);
+			hawk_rtx_gc(rtx, HAWK_COUNTOF(rtx->gc.g) - 1);
 		}
 		gch = (hawk_gch_t*)hawk_rtx_callocmem(rtx, HAWK_SIZEOF(*gch) + size);
 		if (HAWK_UNLIKELY(!gch)) return HAWK_NULL;
@@ -1132,7 +1132,7 @@ static void same_arrval (hawk_arr_t* map, void* dptr, hawk_oow_t dlen)
 #if defined(DEBUG_VAL)
 	hawk_logfmt (hawk_rtx_gethawk(rtx), HAWK_LOG_STDERR, HAWK_T("refdown nofree in arr free - [%O]\n"), dptr);
 #endif
-	hawk_rtx_refdownval_nofree (rtx, dptr);
+	hawk_rtx_refdownval_nofree(rtx, dptr);
 }
 
 
@@ -1155,6 +1155,7 @@ hawk_val_t* hawk_rtx_makearrval (hawk_rtx_t* rtx, hawk_ooi_t init_capa)
 	int retried = 0;
 #endif
 	hawk_val_arr_t* val;
+	int x;
 
 #if defined(HAWK_ENABLE_GC)
 retry:
@@ -1172,15 +1173,16 @@ retry:
 	val->arr = (hawk_arr_t*)(val + 1);
 
 	if (init_capa < 0) init_capa = 64; /* TODO: what is the best initial value? */
-	if (HAWK_UNLIKELY(hawk_arr_init(val->arr, hawk_rtx_getgem(rtx), init_capa) <= -1))
+	x = hawk_arr_init(val->arr, hawk_rtx_getgem(rtx), init_capa);
+	if (HAWK_UNLIKELY(x <= -1))
 	{
 #if defined(HAWK_ENABLE_GC)
-		gc_free_val (rtx, (hawk_val_t*)val);
+		gc_free_val(rtx, (hawk_val_t*)val);
 		if (HAWK_LIKELY(!retried))
 		{
 			/* this arr involves non-gc allocatinon, which happens outside gc_calloc_val().
 			 * reattempt to allocate after full gc like gc_calloc_val() */
-			hawk_rtx_gc (rtx, HAWK_COUNTOF(rtx->gc.g) - 1);
+			hawk_rtx_gc(rtx, HAWK_COUNTOF(rtx->gc.g) - 1);
 			retried = 1;
 			goto retry;
 		}
@@ -1233,7 +1235,7 @@ static void same_mapval (hawk_map_t* map, void* dptr, hawk_oow_t dlen)
 #if defined(DEBUG_VAL)
 	hawk_logfmt (hawk_rtx_gethawk(rtx), HAWK_LOG_STDERR, HAWK_T("refdown nofree in map free - [%O]\n"), dptr);
 #endif
-	hawk_rtx_refdownval_nofree (rtx, dptr);
+	hawk_rtx_refdownval_nofree(rtx, dptr);
 }
 
 hawk_val_t* hawk_rtx_makemapval (hawk_rtx_t* rtx)
@@ -1263,6 +1265,7 @@ hawk_val_t* hawk_rtx_makemapval (hawk_rtx_t* rtx)
 	int retried = 0;
 #endif
 	hawk_val_map_t* val;
+	int x;
 
 #if defined(HAWK_ENABLE_GC)
 retry:
@@ -1279,15 +1282,16 @@ retry:
 	val->v_gc = 0;
 	val->map = (hawk_map_t*)(val + 1);
 
-	if (HAWK_UNLIKELY(hawk_map_init(val->map, hawk_rtx_getgem(rtx), 256, 70, HAWK_SIZEOF(hawk_ooch_t), 1) <= -1))
+	x = hawk_map_init(val->map, hawk_rtx_getgem(rtx), 256, 70, HAWK_SIZEOF(hawk_ooch_t), 1);
+	if (HAWK_UNLIKELY(x <= -1))
 	{
 #if defined(HAWK_ENABLE_GC)
-		gc_free_val (rtx, (hawk_val_t*)val);
+		gc_free_val(rtx, (hawk_val_t*)val);
 		if (HAWK_LIKELY(!retried))
 		{
 			/* this map involves non-gc allocatinon, which happens outside gc_calloc_val().
 			 * reattempt to allocate after full gc like gc_calloc_val() */
-			hawk_rtx_gc (rtx, HAWK_COUNTOF(rtx->gc.g) - 1);
+			hawk_rtx_gc(rtx, HAWK_COUNTOF(rtx->gc.g) - 1);
 			retried = 1;
 			goto retry;
 		}
@@ -1297,10 +1301,10 @@ retry:
 		return HAWK_NULL;
 	}
 	*(hawk_rtx_t**)hawk_map_getxtn(val->map) = rtx;
-	hawk_map_setstyle (val->map, &style);
+	hawk_map_setstyle(val->map, &style);
 
 #if defined(HAWK_ENABLE_GC)
-	gc_chain_val (&rtx->gc.g[0], (hawk_val_t*)val);
+	gc_chain_val(&rtx->gc.g[0], (hawk_val_t*)val);
 	val->v_gc = 1; /* only array and map are to be garbaged collected as of now */
 	#if defined(DEBUG_GC)
 	hawk_logbfmt(hawk_rtx_gethawk(rtx), HAWK_LOG_STDERR, "[GC] MADE GCH %p VAL(MAP) %p\n", hawk_val_to_gch(val), val);
@@ -1385,14 +1389,14 @@ hawk_val_t* hawk_rtx_makemapvalwithdata (hawk_rtx_t* rtx, hawk_val_map_data_t da
 
 		if (tmp == HAWK_NULL || hawk_rtx_setmapvalfld(rtx, map, p->key.ptr, p->key.len, tmp) == HAWK_NULL)
 		{
-			if (tmp) hawk_rtx_freeval (rtx, tmp, HAWK_RTX_FREEVAL_CACHE);
+			if (tmp) hawk_rtx_freeval(rtx, tmp, HAWK_RTX_FREEVAL_CACHE);
 			hawk_rtx_refdownval(rtx, map);
 			return HAWK_NULL;
 		}
 	}
 
 
-	hawk_rtx_refdownval_nofree (rtx, map);
+	hawk_rtx_refdownval_nofree(rtx, map);
 	return map;
 }
 
@@ -1595,7 +1599,7 @@ void hawk_rtx_freeval (hawk_rtx_t* rtx, hawk_val_t* val, int flags)
 		hawk_logfmt(hawk_rtx_gethawk(rtx), HAWK_LOG_STDERR, HAWK_T("freeing [cache=%d] - [%O]\n"), cache, val);
 	#endif
 
-		vtype = HAWK_RTX_GETVALTYPE (rtx, val);
+		vtype = HAWK_RTX_GETVALTYPE(rtx, val);
 		switch (vtype)
 		{
 			case HAWK_VAL_NIL:
@@ -1705,7 +1709,7 @@ void hawk_rtx_freeval (hawk_rtx_t* rtx, hawk_val_t* val, int flags)
 				if (!(flags & HAWK_RTX_FREEVAL_GC_PRESERVE))
 				{
 					gc_unchain_val (val);
-					gc_free_val (rtx, val);
+					gc_free_val(rtx, val);
 				}
 			#else
 				hawk_map_fini(((hawk_val_map_t*)val)->map);
@@ -1724,7 +1728,7 @@ void hawk_rtx_freeval (hawk_rtx_t* rtx, hawk_val_t* val, int flags)
 				if (!(flags & HAWK_RTX_FREEVAL_GC_PRESERVE))
 				{
 					gc_unchain_val (val);
-					gc_free_val (rtx, val);
+					gc_free_val(rtx, val);
 				}
 			#else
 				hawk_arr_fini(((hawk_val_arr_t*)val)->arr);
@@ -1781,13 +1785,13 @@ void hawk_rtx_refdownval(hawk_rtx_t* rtx, hawk_val_t* val)
 	#if defined(USE_ATOMIC_REFCNT) && defined(HAWK_ATOMIC_FETCH_SUB)
 		if (HAWK_ATOMIC_FETCH_SUB(&val->v_refs, 1, HAWK_ATOMIC_RELAXED) == 1)
 		{
-			hawk_rtx_freeval (rtx, val, HAWK_RTX_FREEVAL_CACHE);
+			hawk_rtx_freeval(rtx, val, HAWK_RTX_FREEVAL_CACHE);
 		}
 	#else
 		val->v_refs--;
 		if (val->v_refs <= 0)
 		{
-			hawk_rtx_freeval (rtx, val, HAWK_RTX_FREEVAL_CACHE);
+			hawk_rtx_freeval(rtx, val, HAWK_RTX_FREEVAL_CACHE);
 		}
 	#endif
 	}
@@ -1855,7 +1859,7 @@ static int val_ref_to_bool (hawk_rtx_t* rtx, const hawk_val_ref_t* ref)
 			/* A reference value is not able to point to another
 			 * refernce value for the way values are represented
 			 * in HAWK */
-			HAWK_ASSERT(HAWK_RTX_GETVALTYPE (rtx, *xref)!= HAWK_VAL_REF);
+			HAWK_ASSERT(HAWK_RTX_GETVALTYPE(rtx, *xref)!= HAWK_VAL_REF);
 
 			/* make a recursive call back to the caller */
 			return hawk_rtx_valtobool(rtx, *xref);
@@ -2037,7 +2041,7 @@ static int val_int_to_str (hawk_rtx_t* rtx, const hawk_val_int_t* v, hawk_rtx_va
 	hawk_ooch_t* tmp;
 	hawk_oow_t rlen = 0;
 	int type = out->type & ~HAWK_RTX_VALTOSTR_PRINT;
-	hawk_int_t orgval = HAWK_RTX_GETINTFROMVAL (rtx, v);
+	hawk_int_t orgval = HAWK_RTX_GETINTFROMVAL(rtx, v);
 	hawk_uint_t t;
 
 	if (orgval == 0) rlen++;
@@ -2286,7 +2290,7 @@ static int val_ref_to_str (hawk_rtx_t* rtx, const hawk_val_ref_t* ref, hawk_rtx_
 			/* A reference value is not able to point to another
 			 * refernce value for the way values are represented
 			 * in HAWK */
-			HAWK_ASSERT(HAWK_RTX_GETVALTYPE (rtx, *xref) != HAWK_VAL_REF);
+			HAWK_ASSERT(HAWK_RTX_GETVALTYPE(rtx, *xref) != HAWK_VAL_REF);
 
 			/* make a recursive call back to the caller */
 			return hawk_rtx_valtostr(rtx, *xref, out);
@@ -2965,11 +2969,11 @@ hawk_fun_t* hawk_rtx_valtofun (hawk_rtx_t* rtx, hawk_val_t* v)
 			if (HAWK_UNLIKELY(!x.ptr)) return HAWK_NULL;
 			if (hawk_count_bcstr(x.ptr) != x.len)
 			{
-				hawk_rtx_freevalbcstr (rtx, v, x.ptr);
+				hawk_rtx_freevalbcstr(rtx, v, x.ptr);
 				goto error_inval;
 			}
 			fun = hawk_rtx_findfunwithbcstr(rtx, x.ptr);
-			hawk_rtx_freevalbcstr (rtx, v, x.ptr);
+			hawk_rtx_freevalbcstr(rtx, v, x.ptr);
 			if (!fun) return HAWK_NULL;
 			break;
 		}

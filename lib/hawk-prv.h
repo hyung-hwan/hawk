@@ -192,6 +192,52 @@ typedef struct hawk_tree_t hawk_tree_t;
 
 #endif
 
+enum hawk_fbc_opcode_t
+{
+	HAWK_FBC_OP_NOP = 0,
+	HAWK_FBC_OP_LOAD_CONST_INT,
+	HAWK_FBC_OP_LOAD_CONST_NIL,
+	HAWK_FBC_OP_LOAD_CONST_TRUE,
+	HAWK_FBC_OP_LOAD_CONST_FALSE,
+	HAWK_FBC_OP_ADD,
+	HAWK_FBC_OP_SUB,
+	HAWK_FBC_OP_MUL,
+	HAWK_FBC_OP_DIV,
+	HAWK_FBC_OP_IDIV,
+	HAWK_FBC_OP_NEG,
+	HAWK_FBC_OP_JMP,
+	HAWK_FBC_OP_JZ,
+	HAWK_FBC_OP_CALL,
+	HAWK_FBC_OP_RET,
+	HAWK_FBC_OP_POP,
+	HAWK_FBC_OP_RUN_AST_STMT,
+	HAWK_FBC_OP_RET_AST_EXPR,
+	HAWK_FBC_OP_RET_NIL
+};
+typedef enum hawk_fbc_opcode_t hawk_fbc_opcode_t;
+
+typedef struct hawk_fbc_ins_t hawk_fbc_ins_t;
+struct hawk_fbc_ins_t
+{
+	hawk_fbc_opcode_t opcode;
+	union
+	{
+		hawk_nde_t* nde;
+		hawk_int_t iv;
+		hawk_oow_t idx;
+	} u;
+};
+
+struct hawk_fbc_t
+{
+	hawk_fbc_ins_t* code;
+	hawk_oow_t len;
+	hawk_oow_t capa;
+
+	hawk_oow_t nargs;
+	hawk_oow_t nlocals;
+	hawk_oow_t stack_max;
+};
 
 struct hawk_tree_t
 {

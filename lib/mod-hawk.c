@@ -57,7 +57,7 @@ static hawk_oow_t push_args_from_stack (hawk_rtx_t* rtx, hawk_nde_fncall_t* call
 
 	if (HAWK_RTX_STACK_AVAIL(rtx) < pasf->end_index - pasf->start_index + 1)
 	{
-		hawk_rtx_seterrnum (rtx, &call->loc, HAWK_ESTACK);
+		hawk_rtx_seterrnum(rtx, &call->loc, HAWK_ESTACK);
 		return (hawk_oow_t)-1;
 	}
 
@@ -86,13 +86,13 @@ static hawk_oow_t push_args_from_stack (hawk_rtx_t* rtx, hawk_nde_fncall_t* call
 		{
 			if (spec == 'r') /* 'R' allows a normal value. so only checking 'r' here */
 			{
-				hawk_rtx_seterrnum (rtx, &call->loc, HAWK_ENOTREF);
+				hawk_rtx_seterrnum(rtx, &call->loc, HAWK_ENOTREF);
 				return (hawk_oow_t)-1;
 			}
 		}
 
-		HAWK_RTX_STACK_PUSH (rtx, v);
-		hawk_rtx_refupval (rtx, v);
+		HAWK_RTX_STACK_PUSH(rtx, v);
+		hawk_rtx_refupval(rtx, v);
 	}
 
 	return pasf->end_index - pasf->start_index + 1;
@@ -116,7 +116,7 @@ static int fnc_call (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	{
 		if (f_nargs > fun->nargs)
 		{
-			hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EARGTM);
+			hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EARGTM);
 			return -1; /* hard failure */
 		}
 
@@ -149,7 +149,7 @@ static int fnc_call (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 		if (f_nargs < fnc.spec.arg.min  || f_nargs > fnc.spec.arg.max)
 		{
-			hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_EARGTM);
+			hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EARGTM);
 			return -1;
 		}
 
@@ -341,12 +341,12 @@ static int fnc_gcrefs (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 static int fnc_size (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	/* similar to length, but it returns the ubound + 1 for the array */
-	return hawk_fnc_length (rtx, fi, 1);
+	return hawk_fnc_length(rtx, fi, 1);
 }
 
 static int fnc_length (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
-	return hawk_fnc_length (rtx, fi, 0);
+	return hawk_fnc_length(rtx, fi, 0);
 }
 /* -------------------------------------------------------------------------- */
 

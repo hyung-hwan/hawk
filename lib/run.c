@@ -99,6 +99,7 @@ static int run_delete (hawk_rtx_t* rtx, hawk_nde_delete_t* nde);
 static int run_reset (hawk_rtx_t* rtx, hawk_nde_reset_t* nde);
 static int run_print (hawk_rtx_t* rtx, hawk_nde_print_t* nde);
 static int run_printf (hawk_rtx_t* rtx, hawk_nde_print_t* nde);
+static int run_funbc (hawk_rtx_t* rtx, hawk_fun_t* fun);
 
 static int output_formatted (hawk_rtx_t* rtx, hawk_out_type_t out_type, const hawk_ooch_t* dst, const hawk_ooch_t* fmt, hawk_oow_t fmt_len, hawk_nde_t* args);
 static int output_formatted_bytes (hawk_rtx_t* rtx, hawk_out_type_t out_type, const hawk_ooch_t* dst, const hawk_bch_t* fmt, hawk_oow_t fmt_len, hawk_nde_t* args);
@@ -7484,6 +7485,290 @@ static hawk_val_t* eval_fncall_var (hawk_rtx_t* rtx, hawk_nde_t* nde)
 	return rv;
 }
 
+typedef struct fbc_eval_stack_t fbc_eval_stack_t;
+struct fbc_eval_stack_t
+{
+	hawk_val_t** ptr;
+	hawk_oow_t len;
+	hawk_oow_t capa;
+};
+
+static void fbc_eval_stack_fini (hawk_rtx_t* rtx, fbc_eval_stack_t* stack)
+{
+	while (stack->len > 0)
+	{
+		hawk_rtx_refdownval(rtx, stack->ptr[--stack->len]);
+	}
+
+	if (stack->ptr) hawk_rtx_freemem(rtx, stack->ptr);
+	stack->ptr = HAWK_NULL;
+	stack->len = 0;
+	stack->capa = 0;
+}
+
+static int fbc_eval_stack_reserve (hawk_rtx_t* rtx, fbc_eval_stack_t* stack, hawk_oow_t n)
+{
+	hawk_val_t** tmp;
+	hawk_oow_t req, capa;
+
+	req = stack->len + n;
+	if (req <= stack->len) goto oops_eoverflow;
+	if (req <= stack->capa) return 0;
+
+	capa = HAWK_ALIGN_POW2(req, 16);
+	if (capa < req) goto oops_eoverflow;
+	if (capa > HAWK_TYPE_MAX(hawk_oow_t) / HAWK_SIZEOF(*tmp)) goto oops_eoverflow;
+
+	tmp = (hawk_val_t**)hawk_rtx_reallocmem(rtx, stack->ptr, capa * HAWK_SIZEOF(*tmp));
+	if (HAWK_UNLIKELY(!tmp)) return -1;
+
+	stack->ptr = tmp;
+	stack->capa = capa;
+	return 0;
+
+oops_eoverflow:
+	hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_ENOMEM);
+	return -1;
+}
+
+static int fbc_eval_stack_push (hawk_rtx_t* rtx, fbc_eval_stack_t* stack, hawk_val_t* val)
+{
+	if (fbc_eval_stack_reserve(rtx, stack, 1) <= -1) return -1;
+	stack->ptr[stack->len++] = val;
+	hawk_rtx_refupval(rtx, val);
+	return 0;
+}
+
+static hawk_val_t* fbc_eval_stack_pop (fbc_eval_stack_t* stack)
+{
+	return (stack->len <= 0)? HAWK_NULL: stack->ptr[--stack->len];
+}
+
+static int fbc_eval_binop (
+	hawk_rtx_t* rtx,
+	fbc_eval_stack_t* stack,
+	hawk_val_t* (*evalfn)(hawk_rtx_t*,hawk_val_t*,hawk_val_t*))
+{
+	hawk_val_t* right;
+	hawk_val_t* left;
+	hawk_val_t* res;
+
+	if (stack->len < 2)
+	{
+		hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EINTERN);
+		return -1;
+	}
+
+	right = fbc_eval_stack_pop(stack);
+	left = fbc_eval_stack_pop(stack);
+	HAWK_ASSERT(right != HAWK_NULL && left != HAWK_NULL);
+
+	res = evalfn(rtx, left, right);
+	hawk_rtx_refdownval(rtx, right);
+	hawk_rtx_refdownval(rtx, left);
+	if (HAWK_UNLIKELY(!res)) return -1;
+
+	if (fbc_eval_stack_push(rtx, stack, res) <= -1) return -1;
+	return 0;
+}
+
+static int run_funbc (hawk_rtx_t* rtx, hawk_fun_t* fun)
+{
+	hawk_fbc_t* bc;
+	hawk_nde_blk_t* blk;
+	hawk_oow_t pc;
+	fbc_eval_stack_t stack;
+	int n = 0;
+
+	HAWK_ASSERT(fun != HAWK_NULL);
+	HAWK_MEMSET(&stack, 0, HAWK_SIZEOF(stack));
+
+	bc = fun->bc;
+	if (!bc || bc->len <= 0)
+	{
+		HAWK_ASSERT(fun->body->type == HAWK_NDE_BLK);
+		return run_block(rtx, (hawk_nde_blk_t*)fun->body);
+	}
+	HAWK_ASSERT(fun->body->type == HAWK_NDE_BLK);
+	blk = (hawk_nde_blk_t*)fun->body;
+
+	if (blk->nlcls > 0)
+	{
+		hawk_oow_t tmp = blk->nlcls;
+
+		if (HAWK_UNLIKELY(HAWK_RTX_STACK_AVAIL(rtx) < tmp))
+		{
+			hawk_rtx_seterrbfmt(rtx, &blk->loc, HAWK_ESTACK,
+				"stack full(avail=%zu, limit=%zu) for %zu local variables",
+				HAWK_RTX_STACK_AVAIL(rtx), rtx->stack_limit, tmp);
+			goto oops;
+		}
+
+		do
+		{
+			--tmp;
+			HAWK_RTX_STACK_PUSH(rtx, hawk_val_nil);
+		}
+		while (tmp > 0);
+	}
+
+	for (pc = 0; pc < bc->len && rtx->exit_level == EXIT_NONE; pc++)
+	{
+		hawk_fbc_ins_t* ins = &bc->code[pc];
+		hawk_val_t* val;
+
+		switch (ins->opcode)
+		{
+			case HAWK_FBC_OP_NOP:
+				break;
+
+			case HAWK_FBC_OP_LOAD_CONST_INT:
+				val = hawk_rtx_makeintval(rtx, ins->u.iv);
+				if (HAWK_UNLIKELY(!val)) goto oops;
+				if (fbc_eval_stack_push(rtx, &stack, val) <= -1) goto oops;
+				break;
+
+			case HAWK_FBC_OP_LOAD_CONST_NIL:
+				if (fbc_eval_stack_push(rtx, &stack, hawk_val_nil) <= -1) goto oops;
+				break;
+
+			case HAWK_FBC_OP_LOAD_CONST_TRUE:
+				if (fbc_eval_stack_push(rtx, &stack, HAWK_VAL_ONE) <= -1) goto oops;
+				break;
+
+			case HAWK_FBC_OP_LOAD_CONST_FALSE:
+				if (fbc_eval_stack_push(rtx, &stack, HAWK_VAL_ZERO) <= -1) goto oops;
+				break;
+
+			case HAWK_FBC_OP_ADD:
+				if (HAWK_UNLIKELY(fbc_eval_binop(rtx, &stack, eval_binop_plus) <= -1)) goto oops;
+				break;
+
+			case HAWK_FBC_OP_SUB:
+				if (HAWK_UNLIKELY(fbc_eval_binop(rtx, &stack, eval_binop_minus) <= -1)) goto oops;
+				break;
+
+			case HAWK_FBC_OP_MUL:
+				if (HAWK_UNLIKELY(fbc_eval_binop(rtx, &stack, eval_binop_mul) <= -1)) goto oops;
+				break;
+
+			case HAWK_FBC_OP_DIV:
+				if (HAWK_UNLIKELY(fbc_eval_binop(rtx, &stack, eval_binop_div) <= -1)) goto oops;
+				break;
+
+			case HAWK_FBC_OP_IDIV:
+				if (HAWK_UNLIKELY(fbc_eval_binop(rtx, &stack, eval_binop_idiv) <= -1)) goto oops;
+				break;
+
+			case HAWK_FBC_OP_NEG:
+			{
+				int n;
+				hawk_int_t l;
+				hawk_flt_t r;
+				hawk_val_t* res;
+
+				val = fbc_eval_stack_pop(&stack);
+				if (!val)
+				{
+					hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EINTERN);
+					goto oops;
+				}
+
+				n = hawk_rtx_valtonum(rtx, val, &l, &r);
+				if (HAWK_UNLIKELY(n <= -1))
+				{
+					hawk_rtx_refdownval(rtx, val);
+					goto oops;
+				}
+
+				res = (n == 0)? hawk_rtx_makeintval(rtx, -l): hawk_rtx_makefltval(rtx, -r);
+				hawk_rtx_refdownval(rtx, val);
+				if (HAWK_UNLIKELY(!res)) goto oops;
+				if (fbc_eval_stack_push(rtx, &stack, res) <= -1) goto oops;
+				break;
+			}
+
+			case HAWK_FBC_OP_RET:
+				val = fbc_eval_stack_pop(&stack);
+				if (!val)
+				{
+					hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EINTERN);
+					goto oops;
+				}
+				hawk_rtx_refdownval(rtx, HAWK_RTX_STACK_RETVAL(rtx));
+				HAWK_RTX_STACK_RETVAL(rtx) = val;
+				hawk_rtx_refupval(rtx, val);
+				hawk_rtx_refdownval(rtx, val);
+				rtx->exit_level = EXIT_FUNCTION;
+				goto done;
+
+			case HAWK_FBC_OP_POP:
+				val = fbc_eval_stack_pop(&stack);
+				if (!val)
+				{
+					hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EINTERN);
+					goto oops;
+				}
+				hawk_rtx_refdownval(rtx, val);
+				break;
+
+			case HAWK_FBC_OP_RUN_AST_STMT:
+				if (HAWK_UNLIKELY(run_statement(rtx, ins->u.nde) <= -1)) goto oops;
+				break;
+
+			case HAWK_FBC_OP_RET_AST_EXPR:
+				val = eval_expression(rtx, ins->u.nde);
+				if (HAWK_UNLIKELY(!val)) goto oops;
+
+				hawk_rtx_refdownval(rtx, HAWK_RTX_STACK_RETVAL(rtx));
+				HAWK_RTX_STACK_RETVAL(rtx) = val;
+				hawk_rtx_refupval(rtx, val);
+
+				rtx->exit_level = EXIT_FUNCTION;
+				goto done;
+
+			case HAWK_FBC_OP_RET_NIL:
+				rtx->exit_level = EXIT_FUNCTION;
+				goto done;
+
+			default:
+				hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_ENOIMPL);
+				goto oops;
+		}
+	}
+
+done:
+	if (blk->nlcls > 0)
+	{
+		hawk_oow_t tmp = blk->nlcls;
+		do
+		{
+			--tmp;
+			hawk_rtx_refdownval(rtx, HAWK_RTX_STACK_LCL(rtx, tmp));
+			HAWK_RTX_STACK_POP(rtx);
+		}
+		while (tmp > 0);
+	}
+	fbc_eval_stack_fini(rtx, &stack);
+	return n;
+
+oops:
+	n = -1;
+	if (blk->nlcls > 0)
+	{
+		hawk_oow_t tmp = blk->nlcls;
+		do
+		{
+			--tmp;
+			hawk_rtx_refdownval(rtx, HAWK_RTX_STACK_LCL(rtx, tmp));
+			HAWK_RTX_STACK_POP(rtx);
+		}
+		while (tmp > 0);
+	}
+	fbc_eval_stack_fini(rtx, &stack);
+	return n;
+}
+
 hawk_val_t* hawk_rtx_evalcall (
 	hawk_rtx_t* rtx, hawk_nde_fncall_t* call, hawk_fun_t* fun,
 	hawk_oow_t(*argpusher)(hawk_rtx_t*,hawk_nde_fncall_t*,void*), void* apdata,
@@ -7540,7 +7825,7 @@ hawk_val_t* hawk_rtx_evalcall (
 	saved_stack_top = rtx->stack_top;
 
 #if defined(DEBUG_RUN)
-	hawk_logbfmt(hawk_rtx_gethawk(rtx), "setting up function stack frame top=%zd base=%zd\n", (hawk_oow_t)rtx->stack_top, (hawk_oow_t)rtx->stack_base);
+	hawk_logbfmt(hawk_rtx_gethawk(rtx), HAWK_LOG_DEBUG, "setting up function stack frame top=%zd base=%zd\n", (hawk_oow_t)rtx->stack_top, (hawk_oow_t)rtx->stack_base);
 #endif
 
 	/* make a new stack frame */
@@ -7592,14 +7877,21 @@ hawk_val_t* hawk_rtx_evalcall (
 	HAWK_RTX_STACK_NARGS(rtx) = (void*)nargs;
 
 #if defined(DEBUG_RUN)
-	hawk_logbfmt(hawk_rtx_gethawk(rtx), "running function body\n");
+	hawk_logbfmt(hawk_rtx_gethawk(rtx), HAWK_LOG_DEBUG, "running function body\n");
 #endif
 
 	if (fun)
 	{
 		/* normal hawk function */
-		HAWK_ASSERT(fun->body->type == HAWK_NDE_BLK);
-		n = run_block(rtx, (hawk_nde_blk_t*)fun->body);
+		if ((rtx->hawk->opt.trait & HAWK_BUILDBC) && fun->bc)
+		{
+			n = run_funbc(rtx, fun);
+		}
+		else
+		{
+			HAWK_ASSERT(fun->body->type == HAWK_NDE_BLK);
+			n = run_block(rtx, (hawk_nde_blk_t*)fun->body);
+		}
 	}
 	else
 	{
@@ -7618,7 +7910,7 @@ hawk_val_t* hawk_rtx_evalcall (
 	/* refdown args in the rtx.stack */
 	nargs = (hawk_oow_t)HAWK_RTX_STACK_NARGS(rtx);
 #if defined(DEBUG_RUN)
-	hawk_logbfmt(hawk_rtx_gethawk(rtx), "block rtx complete nargs = %d\n", (int)nargs);
+	hawk_logbfmt(hawk_rtx_gethawk(rtx), HAWK_LOG_DEBUG, "block rtx complete nargs = %d\n", (int)nargs);
 #endif
 
 	i = 0;
@@ -7745,7 +8037,7 @@ hawk_val_t* hawk_rtx_evalcall (
 	}
 
 #if defined(DEBUG_RUN)
-	hawk_logbfmt(hawk_rtx_gethawk(rtx), "got return value\n");
+	hawk_logbfmt(hawk_rtx_gethawk(rtx), HAWK_LOG_DEBUG, "got return value\n");
 #endif
 
 	v = HAWK_RTX_STACK_RETVAL(rtx);
@@ -7800,7 +8092,7 @@ hawk_val_t* hawk_rtx_evalcall (
 	if (rtx->exit_level == EXIT_FUNCTION) rtx->exit_level = EXIT_NONE;
 
 #if defined(DEBUG_RUN)
-	hawk_logbfmt(hawk_rtx_gethawk(rtx), "returning from function top=%zd, base=%zd\n", (hawk_oow_t)rtx->stack_top, (hawk_oow_t)rtx->stack_base);
+	hawk_logbfmt(hawk_rtx_gethawk(rtx), HAWK_LOG_DEBUG, "returning from function top=%zd, base=%zd\n", (hawk_oow_t)rtx->stack_top, (hawk_oow_t)rtx->stack_base);
 #endif
 	return (n <= -1)? HAWK_NULL: v;
 

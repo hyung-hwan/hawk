@@ -103,10 +103,10 @@ static int fnc_math_1 (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, hawk_math1_t 
 	n = hawk_rtx_valtoflt(rtx, a0, &rv);
 	if (n <= -1) return -1;
 
-	r = hawk_rtx_makefltval (rtx, f(hawk_rtx_gethawk(rtx), rv));
+	r = hawk_rtx_makefltval(rtx, f(hawk_rtx_gethawk(rtx), rv));
 	if (r == HAWK_NULL) return -1;
 
-	hawk_rtx_setretval (rtx, r);
+	hawk_rtx_setretval(rtx, r);
 	return 0;
 }
 
@@ -127,13 +127,13 @@ static int fnc_math_2 (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, hawk_math2_t 
 	n = hawk_rtx_valtoflt(rtx, a0, &rv0);
 	if (n <= -1) return -1;
 
-	n = hawk_rtx_valtoflt (rtx, a1, &rv1);
+	n = hawk_rtx_valtoflt(rtx, a1, &rv1);
 	if (n <= -1) return -1;
 
-	r = hawk_rtx_makefltval (rtx, f(hawk_rtx_gethawk(rtx), rv0, rv1));
+	r = hawk_rtx_makefltval(rtx, f(hawk_rtx_gethawk(rtx), rv0, rv1));
 	if (r == HAWK_NULL) return -1;
 
-	hawk_rtx_setretval (rtx, r);
+	hawk_rtx_setretval(rtx, r);
 	return 0;
 }
 
@@ -453,42 +453,42 @@ static hawk_flt_t math_sqrt (hawk_t* hawk, hawk_flt_t x)
 
 static int fnc_ceil (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
-	return fnc_math_1 (rtx, fi, math_ceil);
+	return fnc_math_1(rtx, fi, math_ceil);
 }
 
 static int fnc_floor (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
-	return fnc_math_1 (rtx, fi, math_floor);
+	return fnc_math_1(rtx, fi, math_floor);
 }
 
 static int fnc_round (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
-	return fnc_math_1 (rtx, fi, math_round);
+	return fnc_math_1(rtx, fi, math_round);
 }
 
 static int fnc_sinh (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
-	return fnc_math_1 (rtx, fi, math_sinh);
+	return fnc_math_1(rtx, fi, math_sinh);
 }
 
 static int fnc_cosh (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
-	return fnc_math_1 (rtx, fi, math_cosh);
+	return fnc_math_1(rtx, fi, math_cosh);
 }
 
 static int fnc_tanh (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
-	return fnc_math_1 (rtx, fi, math_tanh);
+	return fnc_math_1(rtx, fi, math_tanh);
 }
 
 static int fnc_asin (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
-	return fnc_math_1 (rtx, fi, math_asin);
+	return fnc_math_1(rtx, fi, math_asin);
 }
 
 static int fnc_acos (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
-	return fnc_math_1 (rtx, fi, math_acos);
+	return fnc_math_1(rtx, fi, math_acos);
 }
 
 
@@ -496,52 +496,52 @@ static int fnc_acos (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 static int fnc_sin (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
-	return fnc_math_1 (rtx, fi, math_sin);
+	return fnc_math_1(rtx, fi, math_sin);
 }
 
 static int fnc_cos (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
-	return fnc_math_1 (rtx, fi, math_cos);
+	return fnc_math_1(rtx, fi, math_cos);
 }
 
 static int fnc_tan (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
-	return fnc_math_1 (rtx, fi, math_tan);
+	return fnc_math_1(rtx, fi, math_tan);
 }
 
 static int fnc_atan (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
-	return fnc_math_1 (rtx, fi, math_atan);
+	return fnc_math_1(rtx, fi, math_atan);
 }
 
 static int fnc_atan2 (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
-	return fnc_math_2 (rtx, fi, math_atan2);
+	return fnc_math_2(rtx, fi, math_atan2);
 }
 
 static int fnc_log (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
-	return fnc_math_1 (rtx, fi, math_log);
+	return fnc_math_1(rtx, fi, math_log);
 }
 
 static int fnc_log2 (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
-	return fnc_math_1 (rtx, fi, math_log2);
+	return fnc_math_1(rtx, fi, math_log2);
 }
 
 static int fnc_log10 (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
-	return fnc_math_1 (rtx, fi, math_log10);
+	return fnc_math_1(rtx, fi, math_log10);
 }
 
 static int fnc_exp (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
-	return fnc_math_1 (rtx, fi, math_exp);
+	return fnc_math_1(rtx, fi, math_exp);
 }
 
 static int fnc_sqrt (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
-	return fnc_math_1 (rtx, fi, math_sqrt);
+	return fnc_math_1(rtx, fi, math_sqrt);
 }
 
 /* ----------------------------------------------------------------------- */
@@ -566,7 +566,7 @@ static int fnc_rand (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	r = hawk_rtx_makefltval(rtx, (hawk_flt_t)randv / RANDV_MAX);
 	if (r == HAWK_NULL) return -1;
 
-	hawk_rtx_setretval (rtx, r);
+	hawk_rtx_setretval(rtx, r);
 	return 0;
 #undef RANDV_MAX
 }
@@ -614,10 +614,10 @@ static int fnc_srand (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	#endif
 	}
 
-	r = hawk_rtx_makeintval (rtx, prev);
+	r = hawk_rtx_makeintval(rtx, prev);
 	if (r == HAWK_NULL) return -1;
 
-	hawk_rtx_setretval (rtx, r);
+	hawk_rtx_setretval(rtx, r);
 	return 0;
 }
 

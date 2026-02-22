@@ -178,7 +178,7 @@ int hawk_rtx_matchvalwithucs (hawk_rtx_t* rtx, hawk_val_t* val, const hawk_ucs_t
 
 		x = ignorecase? hawk_rtx_buildrex(rtx, tmp.ptr, tmp.len, HAWK_NULL, &code):
 		                hawk_rtx_buildrex(rtx, tmp.ptr, tmp.len, &code, HAWK_NULL);
-		hawk_rtx_freevaloocstr (rtx, val, tmp.ptr);
+		hawk_rtx_freevaloocstr(rtx, val, tmp.ptr);
 		if (x <= -1) return -1;
 	}
 
@@ -224,7 +224,7 @@ int hawk_rtx_matchvalwithbcs (hawk_rtx_t* rtx, hawk_val_t* val, const hawk_bcs_t
 
 		x = ignorecase? hawk_rtx_buildrex(rtx, tmp.ptr, tmp.len, HAWK_NULL, &code):
 		                hawk_rtx_buildrex(rtx, tmp.ptr, tmp.len, &code, HAWK_NULL);
-		hawk_rtx_freevaloocstr (rtx, val, tmp.ptr);
+		hawk_rtx_freevaloocstr(rtx, val, tmp.ptr);
 		if (x <= -1) return -1;
 	}
 

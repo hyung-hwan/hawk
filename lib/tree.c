@@ -635,7 +635,7 @@ static int print_expr (hawk_t* hawk, hawk_nde_t* nde, int depth)
 					if (fun->argspec && i < fun->argspeclen && fun->argspec[i] == 'r') PUT_SRCSTR(hawk, HAWK_T("&"));
 					n = hawk_int_to_oocstr(i++, 10, HAWK_T("__p"), tmp, HAWK_COUNTOF(tmp));
 					HAWK_ASSERT(n != (hawk_oow_t)-1);
-					PUT_SRCSTRN (hawk, tmp, n);
+					PUT_SRCSTRN(hawk, tmp, n);
 
 					if (i >= fun->nargs) break;
 					PUT_SRCSTR(hawk, HAWK_T(", "));

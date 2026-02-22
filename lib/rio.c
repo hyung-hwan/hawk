@@ -1141,7 +1141,7 @@ int hawk_rtx_readiobytes (hawk_rtx_t* rtx, hawk_in_type_t in_type, const hawk_oo
 int hawk_rtx_writeioval (hawk_rtx_t* rtx, hawk_out_type_t out_type, const hawk_ooch_t* name, hawk_val_t* v)
 {
 	hawk_val_type_t vtype;
-	vtype = HAWK_RTX_GETVALTYPE (rtx, v);
+	vtype = HAWK_RTX_GETVALTYPE(rtx, v);
 
 	switch (vtype)
 	{
@@ -1545,7 +1545,7 @@ int hawk_rtx_closio_read (hawk_rtx_t* rtx, hawk_in_type_t in_type, const hawk_oo
 			handler = rtx->rio.handler[p->type & IO_MASK_CLEAR];
 			if (handler)
 			{
-				if (handler (rtx, HAWK_RIO_CMD_CLOSE, p, HAWK_NULL, 0) <= -1)
+				if (handler(rtx, HAWK_RIO_CMD_CLOSE, p, HAWK_NULL, 0) <= -1)
 				{
 					/* this is not a rtx-time error.*/
 					hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EIOIMPL);
@@ -1717,7 +1717,7 @@ void hawk_rtx_flushallios (hawk_rtx_t* rtx)
 		handler = rtx->rio.handler[rio->type & IO_MASK_CLEAR];
 		if (handler)
 		{
-			handler (rtx, HAWK_RIO_CMD_FLUSH, rio, HAWK_NULL, 0);
+			handler(rtx, HAWK_RIO_CMD_FLUSH, rio, HAWK_NULL, 0);
 		}
 	}
 }

@@ -53,7 +53,7 @@ static int fnc_normspace (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			if (HAWK_UNLIKELY(!str0)) return -1;
 			len0 = hawk_compact_bchars(str0, len0);
 			retv = hawk_rtx_makembsvalwithbchars(rtx, str0, len0);
-			hawk_rtx_freemem (rtx, str0);
+			hawk_rtx_freemem(rtx, str0);
 			break;
 		}
 
@@ -66,7 +66,7 @@ static int fnc_normspace (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			if (HAWK_UNLIKELY(!str0)) return -1;
 			len0 = hawk_compact_oochars(str0, len0);
 			retv = hawk_rtx_makestrvalwithoochars(rtx, str0, len0);
-			hawk_rtx_freemem (rtx, str0);
+			hawk_rtx_freemem(rtx, str0);
 		}
 	}
 
@@ -180,7 +180,7 @@ static int is_class (hawk_rtx_t* rtx, hawk_ooch_prop_t ctype)
 				while (len0 > 0);
 			}
 
-			hawk_rtx_freevalbcstr (rtx, a0, str0);
+			hawk_rtx_freevalbcstr(rtx, a0, str0);
 			break;
 		}
 
@@ -207,12 +207,12 @@ static int is_class (hawk_rtx_t* rtx, hawk_ooch_prop_t ctype)
 				}
 				while (len0 > 0);
 			}
-			hawk_rtx_freevaloocstr (rtx, a0, str0);
+			hawk_rtx_freevaloocstr(rtx, a0, str0);
 			break;
 		}
 	}
 
-	a0 = hawk_rtx_makeintval (rtx, tmp);
+	a0 = hawk_rtx_makeintval(rtx, tmp);
 	if (HAWK_UNLIKELY(!a0)) return -1;
 
 	hawk_rtx_setretval(rtx, a0);
@@ -318,7 +318,7 @@ static int fnc_frombcharcode (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			a0 = hawk_rtx_getarg(rtx, i);
 			if (hawk_rtx_valtoint(rtx, a0, &cc) <= -1)
 			{
-				hawk_rtx_freeval (rtx, retv, 0);
+				hawk_rtx_freeval(rtx, retv, 0);
 				return -1;
 			}
 
@@ -369,7 +369,7 @@ static int fnc_fromcharcode (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			a0 = hawk_rtx_getarg(rtx, i);
 			if (hawk_rtx_valtoint(rtx, a0, &cc) <= -1)
 			{
-				hawk_rtx_freeval (rtx, retv, 0);
+				hawk_rtx_freeval(rtx, retv, 0);
 				return -1;
 			}
 
@@ -474,7 +474,7 @@ static int fnc_frommbs (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		/* if encoding name is an empty string, hawk_findcmgr() returns the default cmgr.
 		 * i don't want that behavior. */
 		cmgr = (enc.len > 0 && enc.len == hawk_count_oocstr(enc.ptr))? hawk_get_cmgr_by_name(enc.ptr): HAWK_NULL;
-		hawk_rtx_freevaloocstr (rtx, a1, enc.ptr);
+		hawk_rtx_freevaloocstr(rtx, a1, enc.ptr);
 
 		if (!cmgr)
 		{
@@ -497,7 +497,7 @@ static int fnc_frommbs (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			str.ptr = hawk_rtx_getvaloocstrwithcmgr(rtx, a0, &str.len, cmgr);
 			if (!str.ptr) return -1;
 			r = hawk_rtx_makestrvalwithoocs(rtx, &str);
-			hawk_rtx_freevaloocstr (rtx, a0, str.ptr);
+			hawk_rtx_freevaloocstr(rtx, a0, str.ptr);
 			if (!r) return -1;
 			break;
 		}
@@ -530,7 +530,7 @@ static int fnc_tombs (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		/* if encoding name is an empty string, hawk_findcmgr() returns the default cmgr.
 		 * i don't want that behavior. */
 		cmgr = (enc.len > 0 && enc.len == hawk_count_oocstr(enc.ptr))? hawk_get_cmgr_by_name(enc.ptr): HAWK_NULL;
-		hawk_rtx_freevaloocstr (rtx, a1, enc.ptr);
+		hawk_rtx_freevaloocstr(rtx, a1, enc.ptr);
 
 		if (!cmgr)
 		{
@@ -564,7 +564,7 @@ static int fnc_tombs (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			str.ptr = hawk_rtx_getvalbcstrwithcmgr(rtx, a0, &str.len, cmgr);
 			if (HAWK_UNLIKELY(!str.ptr)) return -1;
 			r = hawk_rtx_makembsvalwithbcs(rtx, &str);
-			hawk_rtx_freevalbcstr (rtx, a0, str.ptr);
+			hawk_rtx_freevalbcstr(rtx, a0, str.ptr);
 			if (HAWK_UNLIKELY(!r)) return -1;
 			break;
 		}
@@ -1101,7 +1101,7 @@ static int fnc_subchar (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			else
 				r = hawk_rtx_makenilval(rtx);
 
-			hawk_rtx_freevalbcstr (rtx, a0, str);
+			hawk_rtx_freevalbcstr(rtx, a0, str);
 			break;
 		}
 
@@ -1118,7 +1118,7 @@ static int fnc_subchar (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			else
 				r = hawk_rtx_makenilval(rtx);
 
-			hawk_rtx_freevaloocstr (rtx, a0, str);
+			hawk_rtx_freevaloocstr(rtx, a0, str);
 			break;
 		}
 	}
