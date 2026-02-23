@@ -697,6 +697,46 @@ static int assop_to_fbc_opcode (int assop, hawk_fbc_opcode_t* op)
 	}
 }
 
+static int var_to_fbc_load_store (hawk_nde_t* nde, hawk_fbc_opcode_t* load_op, hawk_fbc_opcode_t* store_op)
+{
+	hawk_nde_var_t* var;
+
+	if (nde->type != HAWK_NDE_GBL && nde->type != HAWK_NDE_LCL && nde->type != HAWK_NDE_ARG) return -1;
+
+	var = (hawk_nde_var_t*)nde;
+	if (var->idx) return -1;
+
+	switch (nde->type)
+	{
+		case HAWK_NDE_GBL:
+			if (load_op) *load_op = HAWK_FBC_OP_LOAD_GBL;
+			if (store_op) *store_op = HAWK_FBC_OP_STORE_GBL;
+			break;
+
+		case HAWK_NDE_LCL:
+			if (load_op) *load_op = HAWK_FBC_OP_LOAD_LCL;
+			if (store_op) *store_op = HAWK_FBC_OP_STORE_LCL;
+			break;
+
+		default:
+			if (load_op) *load_op = HAWK_FBC_OP_LOAD_ARG;
+			if (store_op) *store_op = HAWK_FBC_OP_STORE_ARG;
+			break;
+	}
+
+	return 0;
+}
+
+static int incop_to_fbc_opcode (int incop, hawk_fbc_opcode_t* op)
+{
+	switch (incop)
+	{
+		case HAWK_INCOP_PLUS: *op = HAWK_FBC_OP_ADD; return 0;
+		case HAWK_INCOP_MINUS: *op = HAWK_FBC_OP_SUB; return 0;
+		default: return -1;
+	}
+}
+
 static int compile_funbc_expr (hawk_t* hawk, hawk_fbc_t* bc, hawk_nde_t* nde, int* done)
 {
 	hawk_oow_t rollback;
@@ -734,16 +774,7 @@ static int compile_funbc_expr (hawk_t* hawk, hawk_fbc_t* bc, hawk_nde_t* nde, in
 		case HAWK_NDE_ARG:
 		{
 			hawk_fbc_opcode_t op;
-			hawk_nde_var_t* var = (hawk_nde_var_t*)nde;
-
-			if (var->idx) goto unsupported;
-
-			switch (nde->type)
-			{
-				case HAWK_NDE_GBL: op = HAWK_FBC_OP_LOAD_GBL; break;
-				case HAWK_NDE_LCL: op = HAWK_FBC_OP_LOAD_LCL; break;
-				default:           op = HAWK_FBC_OP_LOAD_ARG; break;
-			}
+			if (var_to_fbc_load_store(nde, &op, HAWK_NULL) <= -1) goto unsupported;
 
 			if (emit_funbc_ins_nde(hawk, bc, op, nde, &nde->loc) <= -1) goto oops_rollback;
 			*done = 1;
@@ -761,26 +792,7 @@ static int compile_funbc_expr (hawk_t* hawk, hawk_fbc_t* bc, hawk_nde_t* nde, in
 			if (ass->left->next || ass->right->next) goto unsupported;
 			if (ass->is_init) goto unsupported;
 
-			switch (ass->left->type)
-			{
-				case HAWK_NDE_GBL:
-					if (((hawk_nde_var_t*)ass->left)->idx) goto unsupported;
-					store_op = HAWK_FBC_OP_STORE_GBL;
-					break;
-
-				case HAWK_NDE_LCL:
-					if (((hawk_nde_var_t*)ass->left)->idx) goto unsupported;
-					store_op = HAWK_FBC_OP_STORE_LCL;
-					break;
-
-				case HAWK_NDE_ARG:
-					if (((hawk_nde_var_t*)ass->left)->idx) goto unsupported;
-					store_op = HAWK_FBC_OP_STORE_ARG;
-					break;
-
-				default:
-					goto unsupported;
-			}
+			if (var_to_fbc_load_store(ass->left, HAWK_NULL, &store_op) <= -1) goto unsupported;
 
 			if (compile_funbc_expr(hawk, bc, ass->right, &done_right) <= -1) goto oops_rollback;
 			if (!done_right) goto unsupported;
@@ -803,6 +815,37 @@ static int compile_funbc_expr (hawk_t* hawk, hawk_fbc_t* bc, hawk_nde_t* nde, in
 			break;
 		}
 
+		case HAWK_NDE_EXP_INCPRE:
+		case HAWK_NDE_EXP_INCPST:
+		{
+			hawk_nde_exp_t* x = (hawk_nde_exp_t*)nde;
+			hawk_fbc_opcode_t store_op, op;
+			int done_left;
+
+			HAWK_ASSERT(x->left != HAWK_NULL && x->right == HAWK_NULL);
+			/*if (!x->left || x->right) goto unsupported;*/
+
+			if (var_to_fbc_load_store(x->left, HAWK_NULL, &store_op) <= -1) goto unsupported;
+			if (incop_to_fbc_opcode(x->opcode, &op) <= -1) goto unsupported;
+
+			if (compile_funbc_expr(hawk, bc, x->left, &done_left) <= -1) goto oops_rollback;
+			if (!done_left) goto unsupported;
+
+			/* keep the original value for postfix form */
+			if (x->type == HAWK_NDE_EXP_INCPST &&
+			    emit_funbc_ins_plain(hawk, bc, HAWK_FBC_OP_DUP, &x->loc) <= -1) goto oops_rollback;
+
+			if (emit_funbc_ins_int(hawk, bc, HAWK_FBC_OP_LOAD_CONST_INT, 1, &x->loc) <= -1) goto oops_rollback;
+			if (emit_funbc_ins_plain(hawk, bc, op, &x->loc) <= -1) goto oops_rollback;
+			if (emit_funbc_ins_nde(hawk, bc, store_op, x->left, &x->loc) <= -1) goto oops_rollback;
+
+			if (x->type == HAWK_NDE_EXP_INCPST &&
+			    emit_funbc_ins_plain(hawk, bc, HAWK_FBC_OP_POP, &x->loc) <= -1) goto oops_rollback;
+
+			*done = 1;
+			break;
+		}
+
 		case HAWK_NDE_GRP:
 		{
 			hawk_nde_t* body = ((hawk_nde_grp_t*)nde)->body;
@@ -817,7 +860,8 @@ static int compile_funbc_expr (hawk_t* hawk, hawk_fbc_t* bc, hawk_nde_t* nde, in
 			int done_left;
 
 			if (x->opcode != HAWK_UNROP_MINUS) goto unsupported;
-			if (!x->left || x->right) goto unsupported;
+			HAWK_ASSERT(x->left != HAWK_NULL && x->right == HAWK_NULL);
+			/*if (!x->left || x->right) goto unsupported;*/
 
 			if (compile_funbc_expr(hawk, bc, x->left, &done_left) <= -1) goto oops_rollback;
 			if (!done_left) goto unsupported;
@@ -833,7 +877,9 @@ static int compile_funbc_expr (hawk_t* hawk, hawk_fbc_t* bc, hawk_nde_t* nde, in
 			int done_left, done_right;
 
 			if (binop_to_fbc_opcode(x->opcode, &op) <= -1) goto unsupported;
-			if (!x->left || !x->right) goto unsupported;
+
+			HAWK_ASSERT(x->left != HAWK_NULL && x->right != HAWK_NULL);
+			/*if (!x->left || !x->right) goto unsupported;*/
 
 			if (compile_funbc_expr(hawk, bc, x->left, &done_left) <= -1) goto oops_rollback;
 			if (!done_left) goto unsupported;
@@ -8932,6 +8978,7 @@ static const hawk_ooch_t* funbc_opcode_to_name (hawk_fbc_opcode_t opcode)
 		case HAWK_FBC_OP_BOR: return HAWK_T("BOR");
 		case HAWK_FBC_OP_NEG: return HAWK_T("NEG");
 		case HAWK_FBC_OP_SWAP: return HAWK_T("SWAP");
+		case HAWK_FBC_OP_DUP: return HAWK_T("DUP");
 		case HAWK_FBC_OP_JMP: return HAWK_T("JMP");
 		case HAWK_FBC_OP_JZ: return HAWK_T("JZ");
 		case HAWK_FBC_OP_CALL: return HAWK_T("CALL");

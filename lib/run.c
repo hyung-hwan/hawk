@@ -7795,6 +7795,15 @@ static int run_funbc (hawk_rtx_t* rtx, hawk_fun_t* fun)
 				}
 				break;
 
+			case HAWK_FBC_OP_DUP:
+				if (stack.len <= 0)
+				{
+					hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EINTERN);
+					goto oops;
+				}
+				if (fbc_eval_stack_push(rtx, &stack, stack.ptr[stack.len - 1]) <= -1) goto oops;
+				break;
+
 			case HAWK_FBC_OP_RET:
 				val = fbc_eval_stack_pop(&stack);
 				if (!val)
