@@ -737,6 +737,27 @@ static int incop_to_fbc_opcode (int incop, hawk_fbc_opcode_t* op)
 	}
 }
 
+static int store_to_store_pop_opcode (hawk_fbc_opcode_t store_op, hawk_fbc_opcode_t* store_pop_op)
+{
+	switch (store_op)
+	{
+		case HAWK_FBC_OP_STORE_GBL:
+			*store_pop_op = HAWK_FBC_OP_STORE_POP_GBL;
+			return 0;
+
+		case HAWK_FBC_OP_STORE_LCL:
+			*store_pop_op = HAWK_FBC_OP_STORE_POP_LCL;
+			return 0;
+
+		case HAWK_FBC_OP_STORE_ARG:
+			*store_pop_op = HAWK_FBC_OP_STORE_POP_ARG;
+			return 0;
+
+		default:
+			return -1;
+	}
+}
+
 static int compile_funbc_expr (hawk_t* hawk, hawk_fbc_t* bc, hawk_nde_t* nde, int* done)
 {
 	hawk_oow_t rollback;
@@ -952,7 +973,15 @@ static int compile_funbc_stmt (hawk_t* hawk, hawk_fbc_t* bc, hawk_nde_t* stmt, i
 		return emit_funbc_ins_nde(hawk, bc, HAWK_FBC_OP_RUN_AST_STMT, stmt, &stmt->loc);
 	}
 
-	/* the value from the expression needs to get discarded */
+	/* the value on the stack needs to get discard */
+	if (bc->len > rollback)
+	{
+		hawk_fbc_ins_t* tail = &bc->code[bc->len - 1];
+		/* if the last instruction is the STORE, convert it to STORE_POP */
+		if (store_to_store_pop_opcode(tail->opcode, &tail->opcode) >= 0) return 0;
+	}
+
+	/* emit the POP instruction */
 	if (emit_funbc_ins_plain(hawk, bc, HAWK_FBC_OP_POP, &stmt->loc) <= -1) goto oops_rollback;
 	return 0;
 
@@ -8963,6 +8992,9 @@ static const hawk_ooch_t* funbc_opcode_to_name (hawk_fbc_opcode_t opcode)
 		case HAWK_FBC_OP_STORE_GBL: return HAWK_T("STORE_GBL");
 		case HAWK_FBC_OP_STORE_LCL: return HAWK_T("STORE_LCL");
 		case HAWK_FBC_OP_STORE_ARG: return HAWK_T("STORE_ARG");
+		case HAWK_FBC_OP_STORE_POP_GBL: return HAWK_T("STORE_POP_GBL");
+		case HAWK_FBC_OP_STORE_POP_LCL: return HAWK_T("STORE_POP_LCL");
+		case HAWK_FBC_OP_STORE_POP_ARG: return HAWK_T("STORE_POP_ARG");
 		case HAWK_FBC_OP_ADD: return HAWK_T("ADD");
 		case HAWK_FBC_OP_SUB: return HAWK_T("SUB");
 		case HAWK_FBC_OP_MUL: return HAWK_T("MUL");
@@ -9042,6 +9074,9 @@ static int dump_funbc_ins (hawk_t* hawk, hawk_oow_t pc, const hawk_fbc_ins_t* in
 		case HAWK_FBC_OP_STORE_GBL:
 		case HAWK_FBC_OP_STORE_LCL:
 		case HAWK_FBC_OP_STORE_ARG:
+		case HAWK_FBC_OP_STORE_POP_GBL:
+		case HAWK_FBC_OP_STORE_POP_LCL:
+		case HAWK_FBC_OP_STORE_POP_ARG:
 		{
 			hawk_nde_var_t* var = (hawk_nde_var_t*)ins->u.nde;
 

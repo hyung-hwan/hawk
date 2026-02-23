@@ -7667,9 +7667,13 @@ static int run_funbc (hawk_rtx_t* rtx, hawk_fun_t* fun)
 			case HAWK_FBC_OP_STORE_GBL:
 			case HAWK_FBC_OP_STORE_LCL:
 			case HAWK_FBC_OP_STORE_ARG:
+			case HAWK_FBC_OP_STORE_POP_GBL:
+			case HAWK_FBC_OP_STORE_POP_LCL:
+			case HAWK_FBC_OP_STORE_POP_ARG:
 			{
 				hawk_nde_var_t* var = (hawk_nde_var_t*)ins->u.nde;
 				hawk_val_t* res;
+				int keep_result;
 
 				val = fbc_eval_stack_pop(&stack);
 				if (!val)
@@ -7685,6 +7689,11 @@ static int run_funbc (hawk_rtx_t* rtx, hawk_fun_t* fun)
 					goto oops;
 				}
 
+				keep_result =
+					(ins->opcode == HAWK_FBC_OP_STORE_GBL ||
+					 ins->opcode == HAWK_FBC_OP_STORE_LCL ||
+					 ins->opcode == HAWK_FBC_OP_STORE_ARG);
+
 				res = do_assignment(rtx, (hawk_nde_t*)var, val, 0);
 				if (HAWK_UNLIKELY(!res))
 				{
@@ -7692,7 +7701,7 @@ static int run_funbc (hawk_rtx_t* rtx, hawk_fun_t* fun)
 					goto oops;
 				}
 
-				if (fbc_eval_stack_push(rtx, &stack, res) <= -1)
+				if (keep_result && fbc_eval_stack_push(rtx, &stack, res) <= -1)
 				{
 					hawk_rtx_refdownval(rtx, val);
 					goto oops;
