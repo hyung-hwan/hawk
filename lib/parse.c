@@ -818,6 +818,87 @@ enum
 	COMPILE_FUNBC_EXPR_UNSUPPORTED = 1
 };
 
+static int compile_funbc_expr (hawk_t* hawk, hawk_fbc_t* bc, hawk_nde_t* nde);
+
+static int compile_funbc_expr_bin_lor (hawk_t* hawk, hawk_fbc_t* bc, hawk_nde_exp_t* x)
+{
+	hawk_oow_t jz_rhs_at;
+	hawk_oow_t jz_false_at;
+	hawk_oow_t jmp_end1_at;
+	hawk_oow_t jmp_end2_at;
+	int n;
+
+	n = compile_funbc_expr(hawk, bc, x->left);
+	if (n <= -1) return -1;
+	if (n == COMPILE_FUNBC_EXPR_UNSUPPORTED) return COMPILE_FUNBC_EXPR_UNSUPPORTED;
+
+	/* if left is false, evaluate the right expression */
+	jz_rhs_at = bc->len;
+	if (emit_funbc_ins_idx(hawk, bc, HAWK_FBC_OP_JZ, 0, &x->loc) <= -1) return -1;
+
+	/* left is true -> result is 1 */
+	if (emit_funbc_ins_int(hawk, bc, HAWK_FBC_OP_LOAD_CONST_INT, 1, &x->loc) <= -1) return -1;
+	jmp_end1_at = bc->len;
+	if (emit_funbc_ins_idx(hawk, bc, HAWK_FBC_OP_JMP, 0, &x->loc) <= -1) return -1;
+
+	/* right evaluation path */
+	bc->code[jz_rhs_at].u.idx = bc->len;
+	n = compile_funbc_expr(hawk, bc, x->right);
+	if (n <= -1) return -1;
+	if (n == COMPILE_FUNBC_EXPR_UNSUPPORTED) return COMPILE_FUNBC_EXPR_UNSUPPORTED;
+
+	/* right true -> 1, right false -> 0 */
+	jz_false_at = bc->len;
+	if (emit_funbc_ins_idx(hawk, bc, HAWK_FBC_OP_JZ, 0, &x->loc) <= -1) return -1;
+	if (emit_funbc_ins_int(hawk, bc, HAWK_FBC_OP_LOAD_CONST_INT, 1, &x->loc) <= -1) return -1;
+	jmp_end2_at = bc->len;
+	if (emit_funbc_ins_idx(hawk, bc, HAWK_FBC_OP_JMP, 0, &x->loc) <= -1) return -1;
+
+	bc->code[jz_false_at].u.idx = bc->len;
+	if (emit_funbc_ins_int(hawk, bc, HAWK_FBC_OP_LOAD_CONST_INT, 0, &x->loc) <= -1) return -1;
+
+	bc->code[jmp_end1_at].u.idx = bc->len;
+	bc->code[jmp_end2_at].u.idx = bc->len;
+	return COMPILE_FUNBC_EXPR_OK;
+}
+
+static int compile_funbc_expr_bin_land (hawk_t* hawk, hawk_fbc_t* bc, hawk_nde_exp_t* x)
+{
+	hawk_oow_t jz_false1_at;
+	hawk_oow_t jz_false2_at;
+	hawk_oow_t jmp_end_at;
+	int n;
+
+	n = compile_funbc_expr(hawk, bc, x->left);
+	if (n <= -1) return -1;
+	if (n == COMPILE_FUNBC_EXPR_UNSUPPORTED) return COMPILE_FUNBC_EXPR_UNSUPPORTED;
+
+	/* if left is false, result is false */
+	jz_false1_at = bc->len;
+	if (emit_funbc_ins_idx(hawk, bc, HAWK_FBC_OP_JZ, 0, &x->loc) <= -1) return -1;
+
+	n = compile_funbc_expr(hawk, bc, x->right);
+	if (n <= -1) return -1;
+	if (n == COMPILE_FUNBC_EXPR_UNSUPPORTED) return COMPILE_FUNBC_EXPR_UNSUPPORTED;
+
+	/* if right is false, result is false */
+	jz_false2_at = bc->len;
+	if (emit_funbc_ins_idx(hawk, bc, HAWK_FBC_OP_JZ, 0, &x->loc) <= -1) return -1;
+
+	/* both true */
+	if (emit_funbc_ins_int(hawk, bc, HAWK_FBC_OP_LOAD_CONST_INT, 1, &x->loc) <= -1) return -1;
+	jmp_end_at = bc->len;
+	if (emit_funbc_ins_idx(hawk, bc, HAWK_FBC_OP_JMP, 0, &x->loc) <= -1) return -1;
+
+	/* false path */
+	bc->code[jz_false1_at].u.idx = bc->len;
+	bc->code[jz_false2_at].u.idx = bc->len;
+	if (emit_funbc_ins_int(hawk, bc, HAWK_FBC_OP_LOAD_CONST_INT, 0, &x->loc) <= -1) return -1;
+
+	bc->code[jmp_end_at].u.idx = bc->len;
+	return COMPILE_FUNBC_EXPR_OK;
+}
+
 static int compile_funbc_expr (hawk_t* hawk, hawk_fbc_t* bc, hawk_nde_t* nde)
 {
 	hawk_oow_t rollback;
@@ -948,16 +1029,67 @@ static int compile_funbc_expr (hawk_t* hawk, hawk_fbc_t* bc, hawk_nde_t* nde)
 			return COMPILE_FUNBC_EXPR_OK;
 		}
 
+		case HAWK_NDE_CND:
+		{
+			hawk_nde_cnd_t* cnd = (hawk_nde_cnd_t*)nde;
+			hawk_oow_t jz_right_at;
+			hawk_oow_t jmp_end_at;
+			int n;
+
+			if (!cnd->test || !cnd->left || !cnd->right) goto unsupported;
+			if (cnd->test->next || cnd->left->next || cnd->right->next) goto unsupported;
+
+			n = compile_funbc_expr(hawk, bc, cnd->test);
+			if (n <= -1) goto oops_rollback;
+			if (n == COMPILE_FUNBC_EXPR_UNSUPPORTED) goto unsupported;
+
+			/* if false, jump to the right branch */
+			jz_right_at = bc->len;
+			if (emit_funbc_ins_idx(hawk, bc, HAWK_FBC_OP_JZ, 0, &cnd->loc) <= -1) goto oops_rollback;
+
+			n = compile_funbc_expr(hawk, bc, cnd->left);
+			if (n <= -1) goto oops_rollback;
+			if (n == COMPILE_FUNBC_EXPR_UNSUPPORTED) goto unsupported;
+
+			jmp_end_at = bc->len;
+			if (emit_funbc_ins_idx(hawk, bc, HAWK_FBC_OP_JMP, 0, &cnd->loc) <= -1) goto oops_rollback;
+
+			bc->code[jz_right_at].u.idx = bc->len;
+
+			n = compile_funbc_expr(hawk, bc, cnd->right);
+			if (n <= -1) goto oops_rollback;
+			if (n == COMPILE_FUNBC_EXPR_UNSUPPORTED) goto unsupported;
+
+			bc->code[jmp_end_at].u.idx = bc->len;
+			return COMPILE_FUNBC_EXPR_OK;
+		}
+
 		case HAWK_NDE_EXP_BIN:
 		{
 			hawk_nde_exp_t* x = (hawk_nde_exp_t*)nde;
 			hawk_fbc_opcode_t op;
 			int n;
 
-			if (binop_to_fbc_opcode(x->opcode, &op) <= -1) goto unsupported;
-
 			HAWK_ASSERT(x->left != HAWK_NULL && x->right != HAWK_NULL);
 			/*if (!x->left || !x->right) goto unsupported;*/
+			if (x->left->next || x->right->next) goto unsupported;
+
+			if (x->opcode == HAWK_BINOP_LOR)
+			{
+				n = compile_funbc_expr_bin_lor(hawk, bc, x);
+				if (n <= -1) goto oops_rollback;
+				if (n == COMPILE_FUNBC_EXPR_UNSUPPORTED) goto unsupported;
+				return COMPILE_FUNBC_EXPR_OK;
+			}
+			else if (x->opcode == HAWK_BINOP_LAND)
+			{
+				n = compile_funbc_expr_bin_land(hawk, bc, x);
+				if (n <= -1) goto oops_rollback;
+				if (n == COMPILE_FUNBC_EXPR_UNSUPPORTED) goto unsupported;
+				return COMPILE_FUNBC_EXPR_OK;
+			}
+
+			if (binop_to_fbc_opcode(x->opcode, &op) <= -1) goto unsupported;
 
 			n = compile_funbc_expr(hawk, bc, x->left);
 			if (n <= -1) goto oops_rollback;

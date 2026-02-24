@@ -1,0 +1,46 @@
+@pragma implicit off
+@pragma pedantic on
+@pragma entry main
+
+@include "tap.inc";
+
+@global i;
+
+function t(v)
+{
+	i += 1;
+	return v;
+}
+
+func main() {
+	@local a, b, c, d, e, f, g, h, j, k, l;
+
+	i = 0;
+
+	a = (0 || t(0));
+	b = i;
+	c = (1 || t(1));
+	d = i;
+	e = (1 && t(0));
+	f = i;
+	g = (0 && t(1));
+	h = i;
+	j = (1? t(10): t(20));
+	k = (0? t(30): t(40));
+	l = i;
+
+	tap_ensure(a, 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(b, 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(c, 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(d, 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(e, 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(f, 2, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(g, 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(h, 2, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(j, 10, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(k, 40, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(l, 4, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(i, 4, @SCRIPTNAME, @SCRIPTLINE);
+
+	tap_end();
+}
