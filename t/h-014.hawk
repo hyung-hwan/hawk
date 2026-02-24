@@ -11,7 +11,7 @@ function dummy()
 
 function main()
 {
-	@local m, a;
+	@local m, a, tmp;
 
 	m = hawk::map();
 	a = hawk::array();
@@ -38,6 +38,11 @@ function main()
 	tap_ensure(@true === 1, 0, @SCRIPTNAME, @SCRIPTLINE);
 	tap_ensure(@false === 0, 0, @SCRIPTNAME, @SCRIPTLINE);
 	tap_ensure(@true !== 1, 1, @SCRIPTNAME, @SCRIPTLINE);
+
+	tmp = (@false === 0)
+	tap_ensure(tmp, 0, @SCRIPTNAME, @SCRIPTLINE);
+	tmp = (@true === 1)
+	tap_ensure(tmp, 0, @SCRIPTNAME, @SCRIPTLINE);
 
 	tap_ensure(@true == 1.0, 1, @SCRIPTNAME, @SCRIPTLINE);
 	tap_ensure(@false == 0.0, 1, @SCRIPTNAME, @SCRIPTLINE);
@@ -133,7 +138,6 @@ function main()
 	tap_ensure(sprintf("%v", a), "<ARRAY>", @SCRIPTNAME, @SCRIPTLINE);
 	tap_ensure(sprintf("%v", dummy), "<FUN:dummy>", @SCRIPTNAME, @SCRIPTLINE);
 
-print "AAAAAAA";
 	tap_ensure(@true - 20, -19, @SCRIPTNAME, @SCRIPTLINE);
 	tap_ensure(@false - 20, -20, @SCRIPTNAME, @SCRIPTLINE);
 	tap_ensure(@true + 20, 21, @SCRIPTNAME, @SCRIPTLINE);

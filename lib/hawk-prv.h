@@ -221,6 +221,16 @@ enum hawk_fbc_opcode_t
 	HAWK_FBC_OP_BAND,
 	HAWK_FBC_OP_BXOR,
 	HAWK_FBC_OP_BOR,
+
+	HAWK_FBC_OP_TEQ,
+	HAWK_FBC_OP_TNE,
+	HAWK_FBC_OP_EQ,
+	HAWK_FBC_OP_NE,
+	HAWK_FBC_OP_GT,
+	HAWK_FBC_OP_GE,
+	HAWK_FBC_OP_LT,
+	HAWK_FBC_OP_LE,
+
 	HAWK_FBC_OP_NEG,
 	HAWK_FBC_OP_SWAP,
 	HAWK_FBC_OP_DUP,
@@ -490,6 +500,14 @@ struct hawk_var_xinfo_t
 	hawk_loc_t loc;
 };
 
+typedef struct hawk_fbc_eval_stack_t hawk_fbc_eval_stack_t;
+struct hawk_fbc_eval_stack_t
+{
+	hawk_val_t** ptr;
+	hawk_oow_t len;
+	hawk_oow_t capa;
+};
+
 struct hawk_rtx_t
 {
 	HAWK_RTX_HDR;
@@ -500,6 +518,9 @@ struct hawk_rtx_t
 	hawk_oow_t stack_top;
 	hawk_oow_t stack_base;
 	hawk_oow_t stack_limit;
+
+	hawk_fbc_eval_stack_t fbc_eval_stack;
+
 	int exit_level;
 	int init_called;
 
