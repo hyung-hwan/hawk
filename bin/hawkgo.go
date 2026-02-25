@@ -36,6 +36,11 @@ type Config struct {
 	data_out_files []string
 }
 
+type RtxEvent struct {
+	rtx *hawk.Rtx
+	added bool
+}
+
 func exit_with_error(msg string, err error) {
 	fmt.Fprintf(os.Stderr, "ERROR: %s - %s\n", msg, err.Error())
 	os.Exit(1)
@@ -144,7 +149,7 @@ wrong_usage:
 	return false
 }
 
-func run_script(h *hawk.Hawk, fs_idx int, data_idx int, cfg* Config, rtx_chan chan *hawk.Rtx, sig_chan chan os.Signal) error {
+func run_script(h *hawk.Hawk, fs_idx int, data_idx int, cfg* Config, rtx_chan chan RtxEvent, sig_chan chan os.Signal) error {
 	var rtx *hawk.Rtx
 	var err error
 
@@ -226,7 +231,7 @@ func run_script(h *hawk.Hawk, fs_idx int, data_idx int, cfg* Config, rtx_chan ch
 					signal.Notify(sig_chan, s)
 				}
 			})
-			rtx_chan <- rtx
+			rtx_chan <- RtxEvent{rtx: rtx, added: true}
 			retv, err = rtx.Call(cfg.call, args...)
 			for idx = 0; idx < count; idx++ {
 				// it's ok not to call Close() on args as rtx.Close() closes them automatically.
@@ -244,7 +249,7 @@ func run_script(h *hawk.Hawk, fs_idx int, data_idx int, cfg* Config, rtx_chan ch
 					signal.Notify(sig_chan, s)
 				}
 			})
-			rtx_chan <- rtx
+			rtx_chan <- RtxEvent{rtx: rtx, added: true}
 			//v, err = rtx.Loop()
 			retv, err = rtx.Exec(cfg.data_in_files)
 		}
@@ -272,17 +277,24 @@ func run_script(h *hawk.Hawk, fs_idx int, data_idx int, cfg* Config, rtx_chan ch
 
 	// let's not care about closing args or return values
 	// because rtx.Close() will close them automatically
-	if rtx != nil { rtx.Close() }
+	if rtx != nil {
+		rtx_chan <- RtxEvent{rtx: rtx, added: false}
+		rtx.Close()
+	}
 	return nil
 
 oops:
-	if rtx != nil { rtx.Close() }
+	if rtx != nil {
+		rtx_chan <- RtxEvent{rtx: rtx, added: false}
+		rtx.Close()
+	}
 	return err
 }
 
-func run_signal_handler(rtx_chan chan *hawk.Rtx, sig_chan chan os.Signal, wg *sync.WaitGroup) {
+func run_signal_handler(rtx_chan chan RtxEvent, sig_chan chan os.Signal, wg *sync.WaitGroup) {
 	var sig os.Signal
 	var rtx *hawk.Rtx
+	var ev RtxEvent
 	var rtx_bag map[*hawk.Rtx]struct{}
 
 	defer wg.Done()
@@ -293,14 +305,18 @@ func run_signal_handler(rtx_chan chan *hawk.Rtx, sig_chan chan os.Signal, wg *sy
 chan_loop:
 	for {
 		select {
-		case rtx = <-rtx_chan:
-			if rtx == nil {
+		case ev = <-rtx_chan:
+			if ev.rtx == nil {
 				// terminate the loop for the value of nil
 				break chan_loop
 			}
 
-			// remember all the rtx object created for signal broadcasting
-			rtx_bag[rtx] = struct{}{}
+			if ev.added {
+				// remember all the rtx object created for signal broadcasting
+				rtx_bag[ev.rtx] = struct{}{}
+			} else {
+				delete(rtx_bag, ev.rtx)
+			}
 
 		case sig = <- sig_chan:
 			var signo syscall.Signal
@@ -320,7 +336,7 @@ func main() {
 	var h *hawk.Hawk
 	var cfg Config
 	var fs_idx int = -1
-	var rtx_chan chan *hawk.Rtx
+	var rtx_chan chan RtxEvent
 	var sig_chan chan os.Signal
 	var sig_wg sync.WaitGroup
 	var err error
@@ -390,7 +406,7 @@ func main() {
 		goto oops
 	}
 
-	rtx_chan = make(chan *hawk.Rtx, 10)
+	rtx_chan = make(chan RtxEvent, 10)
 	sig_chan = make(chan os.Signal, 5)
 	sig_wg.Add(1)
 	go run_signal_handler(rtx_chan, sig_chan, &sig_wg)
@@ -421,7 +437,7 @@ func main() {
 		}
 	}
 
-	rtx_chan <- nil // to terminate the signal handler
+	rtx_chan <- RtxEvent{ rtx: nil, added: false } // to terminate the signal handler
 	sig_wg.Wait()
 	h.Close()
 
@@ -434,7 +450,7 @@ func main() {
 oops:
 //	if rtx != nil { rtx.Close() }
 	if rtx_chan != nil {
-		rtx_chan <- nil
+		rtx_chan <- RtxEvent{rtx: nil, added: false}
 		sig_wg.Wait()
 	}
 	if h != nil { h.Close() }

@@ -706,9 +706,12 @@ func (rtx *Rtx) Loop() (*Val, error) {
 func (rtx *Rtx) Call(name string, args ...*Val) (*Val, error) {
 	var fun *C.hawk_fun_t
 	var val *C.hawk_val_t
+	var cv *C.hawk_bch_t
 	var nargs int
 
-	fun = C.hawk_rtx_findfunwithbcstr(rtx.c, C.CString(name))
+	cv = C.CString(name)
+	fun = C.hawk_rtx_findfunwithbcstr(rtx.c, cv)
+	C.free(unsafe.Pointer(cv))
 	if fun == nil { return nil, rtx.make_errinfo() }
 
 	nargs = len(args)
@@ -968,8 +971,8 @@ func (hawk *Hawk) get_errmsg() string {
 func (hawk *Hawk) set_errmsg(num C.hawk_errnum_t, msg string) {
 	var ptr *C.char
 	ptr = C.CString(msg)
-	defer C.free(unsafe.Pointer(ptr))
 	C.set_errmsg(hawk.c, num, ptr)
+	C.free(unsafe.Pointer(ptr))
 }
 
 func (rtx *Rtx) get_errmsg() string {
@@ -979,8 +982,8 @@ func (rtx *Rtx) get_errmsg() string {
 func (rtx *Rtx) set_errmsg(num C.hawk_errnum_t, msg string) {
 	var ptr *C.char
 	ptr = C.CString(msg)
-	defer C.free(unsafe.Pointer(ptr))
 	C.set_rtx_errmsg(rtx.c, num, ptr)
+	C.free(unsafe.Pointer(ptr))
 }
 
 // -----------------------------------------------------------
@@ -1213,12 +1216,13 @@ func (val *Val) SetArrayField(index int, v *Val) error {
 
 func (val *Val) SetArrayFieldWithInt(index int, v int) error {
 	var vv *C.hawk_val_t
+	var ww *C.hawk_val_t
 	vv = C.hawk_rtx_makeintval(val.rtx.c, C.hawk_int_t(v))
 	if vv == nil { return val.rtx.make_errinfo() }
 	C.hawk_rtx_refupval(val.rtx.c, vv)
-	vv = C.hawk_rtx_setarrvalfld(val.rtx.c, val.c, C.hawk_ooi_t(index), vv)
+	ww = C.hawk_rtx_setarrvalfld(val.rtx.c, val.c, C.hawk_ooi_t(index), vv)
 	C.hawk_rtx_refdownval(val.rtx.c, vv)
-	if vv == nil { return val.rtx.make_errinfo() }
+	if ww == nil { return val.rtx.make_errinfo() }
 	return nil
 }
 
@@ -1291,34 +1295,37 @@ func (val *Val) SetMapField(key string, v *Val) error {
 func (val *Val) SetMapFieldWithInt(key string, v int) error {
 	var kk []C.hawk_uch_t
 	var vv *C.hawk_val_t
+	var ww *C.hawk_val_t
 
 	kk = string_to_uchars(key)
 	vv = C.hawk_rtx_makeintval(val.rtx.c, C.hawk_int_t(v))
 	if vv == nil { return val.rtx.make_errinfo() }
 	C.hawk_rtx_refupval(val.rtx.c, vv)
-	vv = C.hawk_rtx_setmapvalfld(val.rtx.c, val.c, &kk[0], C.hawk_oow_t(len(kk)), vv)
+	ww = C.hawk_rtx_setmapvalfld(val.rtx.c, val.c, &kk[0], C.hawk_oow_t(len(kk)), vv)
 	C.hawk_rtx_refdownval(val.rtx.c, vv)
-	if vv == nil { return val.rtx.make_errinfo() }
+	if ww == nil { return val.rtx.make_errinfo() }
 	return nil
 }
 
 func (val *Val) SetMapFieldWithFlt(key string, v float64) error {
 	var kk []C.hawk_uch_t
 	var vv *C.hawk_val_t
+	var ww *C.hawk_val_t
 
 	kk = string_to_uchars(key)
 	vv = C.make_flt_val(val.rtx.c, C.double(v))
 	if vv == nil { return val.rtx.make_errinfo() }
 	C.hawk_rtx_refupval(val.rtx.c, vv)
-	vv = C.hawk_rtx_setmapvalfld(val.rtx.c, val.c, &kk[0], C.hawk_oow_t(len(kk)), vv)
+	ww = C.hawk_rtx_setmapvalfld(val.rtx.c, val.c, &kk[0], C.hawk_oow_t(len(kk)), vv)
 	C.hawk_rtx_refdownval(val.rtx.c, vv)
-	if vv == nil { return val.rtx.make_errinfo() }
+	if ww == nil { return val.rtx.make_errinfo() }
 	return nil
 }
 
 func (val *Val) SetMapFieldWithStr(key string, v string) error {
 	var kk []C.hawk_uch_t
 	var vv *C.hawk_val_t
+	var ww *C.hawk_val_t
 	var cv *C.hawk_bch_t
 
 	kk = string_to_uchars(key)
@@ -1327,9 +1334,9 @@ func (val *Val) SetMapFieldWithStr(key string, v string) error {
 	C.free(unsafe.Pointer(cv))
 	if vv == nil { return val.rtx.make_errinfo() }
 	C.hawk_rtx_refupval(val.rtx.c, vv)
-	vv = C.hawk_rtx_setmapvalfld(val.rtx.c, val.c, &kk[0], C.hawk_oow_t(len(kk)), vv)
+	ww = C.hawk_rtx_setmapvalfld(val.rtx.c, val.c, &kk[0], C.hawk_oow_t(len(kk)), vv)
 	C.hawk_rtx_refdownval(val.rtx.c, vv)
-	if vv == nil { return val.rtx.make_errinfo() }
+	if ww == nil { return val.rtx.make_errinfo() }
 	return nil
 }
 
