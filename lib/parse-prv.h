@@ -124,9 +124,15 @@ void hawk_clearsionames (
 
 
 hawk_mod_t* hawk_querymodulewithname (
-	hawk_t*          hawk,
-	hawk_ooch_t*     name, /* this must be a mutable null-terminated string */
-	hawk_mod_sym_t*  sym
+	hawk_t*            hawk,
+	const hawk_ooch_t* name,
+	hawk_mod_sym_t*    sym
+);
+
+hawk_mod_t* hawk_querymodulewithoocs (
+	hawk_t*            hawk,
+	const hawk_oocs_t* name,
+	hawk_mod_sym_t*    sym
 );
 
 #if defined(__cplusplus)

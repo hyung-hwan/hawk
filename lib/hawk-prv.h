@@ -196,6 +196,11 @@ enum hawk_fbc_opcode_t
 {
 	HAWK_FBC_OP_NOP = 0,
 	HAWK_FBC_OP_LOAD_CONST_INT,
+	HAWK_FBC_OP_LOAD_CONST_FLT,
+	HAWK_FBC_OP_LOAD_CONST_STR,
+	HAWK_FBC_OP_LOAD_CONST_MBS,
+	HAWK_FBC_OP_LOAD_CONST_CHAR,
+	HAWK_FBC_OP_LOAD_CONST_BCHR,
 	HAWK_FBC_OP_LOAD_CONST_NIL,
 	HAWK_FBC_OP_LOAD_CONST_TRUE,
 	HAWK_FBC_OP_LOAD_CONST_FALSE,
@@ -470,6 +475,7 @@ struct hawk_t
 
 	hawk_htb_t* static_mods; /* per-instance static modules */
 	hawk_rbt_t* modtab; /* resolved modules for runtime */
+	hawk_mtx_t* modmtx;
 };
 
 struct hawk_chain_t

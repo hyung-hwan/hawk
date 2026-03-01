@@ -24,11 +24,10 @@
 
 #include "mod-hawk.h"
 #include "hawk-prv.h"
-#include <hawk-mtx.h>
 
 struct mod_data_t
 {
-	hawk_mtx_t mq_mtx;
+	int _unused;
 };
 typedef struct mod_data_t mod_data_t;
 /* ----------------------------------------------------------------- */
@@ -139,12 +138,7 @@ static int fnc_call (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		/* hawk_querymodulewithname() called by hawk_rtx_valtofnc()
 		 * may update some shared data under the hawk object.
 		 * use a mutex for shared data safety */
-		/* TODO: this mutex protection is wrong in that if a call to hawk_querymodulewithname()
-		 *       is made outside this hawk module, the call is not protected under
-		 *       the same mutex. FIX THIS */
-		hawk_mtx_lock(&md->mq_mtx, HAWK_NULL);
 		fncp = hawk_rtx_valtofnc(rtx, hawk_rtx_getarg(rtx, 0), &fnc);
-		hawk_mtx_unlock(&md->mq_mtx);
 		if (!fncp) return -1; /* hard failure */
 
 		if (f_nargs < fnc.spec.arg.min  || f_nargs > fnc.spec.arg.max)
@@ -210,9 +204,7 @@ static int fnc_function_exists (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 					md = (mod_data_t*)fi->mod->ctx;
 					/* hawk_query_module_with_name() may update some shared data under
 					 * the hawk object. use a mutex for shared data safety */
-					hawk_mtx_lock(&md->mq_mtx, HAWK_NULL);
 					rx = (hawk_querymodulewithname(hawk_rtx_gethawk(rtx), name.ptr, &sym) != HAWK_NULL);
-					hawk_mtx_unlock(&md->mq_mtx);
 				}
 			}
 		}
@@ -595,7 +587,6 @@ static void unload (hawk_mod_t* mod, hawk_t* hawk)
 {
 	mod_data_t* md = (mod_data_t*)mod->ctx;
 
-	hawk_mtx_fini(&md->mq_mtx);
 	hawk_freemem(hawk, md);
 }
 
@@ -605,8 +596,6 @@ int hawk_mod_hawk (hawk_mod_t* mod, hawk_t* hawk)
 
 	md = hawk_allocmem(hawk, HAWK_SIZEOF(*md));
 	if (HAWK_UNLIKELY(!md)) return -1;
-
-	hawk_mtx_init(&md->mq_mtx, hawk_getgem(hawk));
 
 	mod->query = query;
 	mod->unload = unload;

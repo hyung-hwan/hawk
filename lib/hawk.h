@@ -2591,6 +2591,23 @@ HAWK_EXPORT hawk_val_t* hawk_rtx_loop (
 	hawk_rtx_t* rtx /**< runtime context */
 );
 
+
+/**
+ * The hawk_rtx_querymodulewithname() function finds information
+ * about a named module.
+ */
+hawk_mod_t* hawk_rtx_querymodulewithname (
+	hawk_rtx_t*        rtx,
+	const hawk_ooch_t* name,
+	hawk_mod_sym_t*    sym
+);
+
+hawk_mod_t* hawk_rtx_querymodulewithoocs (
+	hawk_rtx_t*        rtx,
+	const hawk_oocs_t* name,
+	hawk_mod_sym_t*    sym
+);
+
 /**
  * The hawk_rtx_findfunwithbcstr() function finds the function structure by
  * name and returns the pointer to it if one is found. It returns #HAWK_NULL

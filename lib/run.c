@@ -1394,6 +1394,24 @@ static void fini_rtx (hawk_rtx_t* rtx, int fini_globals)
 	rtx->vmgr.rchunk = HAWK_NULL;
 }
 
+hawk_mod_t* hawk_rtx_querymodulewithoocs (hawk_rtx_t* rtx, const hawk_oocs_t* name, hawk_mod_sym_t* sym)
+{
+	hawk_mod_t* m;
+	hawk_mtx_lock(rtx->hawk->modmtx, HAWK_NULL);
+	m = hawk_querymodulewithoocs(rtx->hawk, name, sym);
+	hawk_mtx_unlock(rtx->hawk->modmtx);
+	return m;
+}
+
+hawk_mod_t* hawk_rtx_querymodulewithname (hawk_rtx_t* rtx, const hawk_ooch_t* name, hawk_mod_sym_t* sym)
+{
+	hawk_mod_t* m;
+	hawk_mtx_lock(rtx->hawk->modmtx, HAWK_NULL);
+	m = hawk_querymodulewithname(rtx->hawk, name, sym);
+	hawk_mtx_unlock(rtx->hawk->modmtx);
+	return m;
+}
+
 static int update_fnr (hawk_rtx_t* rtx, hawk_int_t fnr, hawk_int_t nr)
 {
 	hawk_val_t* tmp1, * tmp2;
@@ -7635,6 +7653,57 @@ static int run_funbc (hawk_rtx_t* rtx, hawk_fun_t* fun)
 				if (HAWK_UNLIKELY(!val)) goto oops;
 				if (fbc_eval_stack_push(rtx, evstk, val) <= -1) goto oops;
 				break;
+
+			case HAWK_FBC_OP_LOAD_CONST_FLT:
+			case HAWK_FBC_OP_LOAD_CONST_STR:
+			case HAWK_FBC_OP_LOAD_CONST_MBS:
+			case HAWK_FBC_OP_LOAD_CONST_CHAR:
+			case HAWK_FBC_OP_LOAD_CONST_BCHR:
+			{
+				hawk_nde_t* nde = ins->u.nde;
+
+				if (!nde)
+				{
+					hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EINTERN);
+					goto oops;
+				}
+
+				switch (ins->opcode)
+				{
+					case HAWK_FBC_OP_LOAD_CONST_FLT:
+						if (nde->type != HAWK_NDE_FLT) goto bad_literal_node;
+						val = eval_flt(rtx, nde);
+						break;
+
+					case HAWK_FBC_OP_LOAD_CONST_STR:
+						if (nde->type != HAWK_NDE_STR) goto bad_literal_node;
+						val = eval_str(rtx, nde);
+						break;
+
+					case HAWK_FBC_OP_LOAD_CONST_MBS:
+						if (nde->type != HAWK_NDE_MBS) goto bad_literal_node;
+						val = eval_mbs(rtx, nde);
+						break;
+
+					case HAWK_FBC_OP_LOAD_CONST_CHAR:
+						if (nde->type != HAWK_NDE_CHAR) goto bad_literal_node;
+						val = eval_char(rtx, nde);
+						break;
+
+					default:
+						if (nde->type != HAWK_NDE_BCHR) goto bad_literal_node;
+						val = eval_bchr(rtx, nde);
+						break;
+				}
+
+				if (HAWK_UNLIKELY(!val)) goto oops;
+				if (fbc_eval_stack_push(rtx, evstk, val) <= -1) goto oops;
+				break;
+
+			bad_literal_node:
+				hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EINTERN);
+				goto oops;
+			}
 
 			case HAWK_FBC_OP_LOAD_CONST_NIL:
 				if (fbc_eval_stack_push(rtx, evstk, hawk_val_nil) <= -1) goto oops;

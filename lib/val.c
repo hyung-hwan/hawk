@@ -3009,7 +3009,7 @@ hawk_fnc_t* hawk_rtx_valtofnc (hawk_rtx_t* rtx, hawk_val_t* v, hawk_fnc_t* rfnc)
 	/* this function looks for intrinsic functions as well as module functions.
 	 * it combines the functionality of the following two functions.
 	 *   hawk_findfncwithoocs() - finds an intrisic function
-	 *   hawk_querymodulewithname() - finds a function defined in a module
+	 *   hawk_rtx_querymodulewithoocs() - finds a function defined in a module
 	 */
 
 	hawk_t* hawk = hawk_rtx_gethawk(rtx);
@@ -3047,7 +3047,7 @@ hawk_fnc_t* hawk_rtx_valtofnc (hawk_rtx_t* rtx, hawk_val_t* v, hawk_fnc_t* rfnc)
 				hawk_mod_t* mod;
 				hawk_mod_sym_t sym;
 
-				mod = hawk_querymodulewithname(hawk, x.ptr, &sym);
+				mod = hawk_rtx_querymodulewithoocs(rtx, &x, &sym);
 				if (!mod)
 				{
 					hawk_rtx_freevaloocstr(rtx, v, x.ptr);

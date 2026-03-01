@@ -259,6 +259,7 @@ int hawk_init (hawk_t* hawk, hawk_mmgr_t* mmgr, hawk_cmgr_t* cmgr, const hawk_pr
 	hawk->fnc.user = hawk_htb_open(hawk_getgem(hawk), HAWK_SIZEOF(hawk), 512, 70, HAWK_SIZEOF(hawk_ooch_t), 1);
 	hawk->static_mods = hawk_htb_open(hawk_getgem(hawk), HAWK_SIZEOF(hawk), 128, 70, HAWK_SIZEOF(hawk_ooch_t), 1);
 	hawk->modtab = hawk_rbt_open(hawk_getgem(hawk), 0, HAWK_SIZEOF(hawk_ooch_t), 1);
+	hawk->modmtx = hawk_mtx_open(hawk_getgem(hawk), 0);
 
 	if (hawk->tree.funs == HAWK_NULL ||
 	    hawk->tree.ifuns == HAWK_NULL ||
@@ -269,7 +270,8 @@ int hawk_init (hawk_t* hawk, hawk_mmgr_t* mmgr, hawk_cmgr_t* cmgr, const hawk_pr
 	    hawk->parse.params == HAWK_NULL ||
 	    hawk->fnc.user == HAWK_NULL ||
 	    hawk->static_mods == HAWK_NULL ||
-	    hawk->modtab == HAWK_NULL)
+	    hawk->modtab == HAWK_NULL ||
+	    hawk->modmtx == HAWK_NULL)
 	{
 		hawk_seterrnum(hawk, HAWK_NULL, HAWK_ENOMEM);
 		goto oops;
@@ -311,6 +313,7 @@ int hawk_init (hawk_t* hawk, hawk_mmgr_t* mmgr, hawk_cmgr_t* cmgr, const hawk_pr
 	return 0;
 
 oops:
+	if (hawk->modmtx) hawk_mtx_close(hawk->modmtx);
 	if (hawk->modtab) hawk_rbt_close(hawk->modtab);
 	if (hawk->static_mods) hawk_htb_close(hawk->static_mods);
 	if (hawk->fnc.user) hawk_htb_close(hawk->fnc.user);
@@ -355,6 +358,7 @@ void hawk_fini (hawk_t* hawk)
 	do { ecb = hawk_popecb(hawk); } while (ecb);
 	HAWK_ASSERT(hawk->ecb == (hawk_ecb_t*)hawk);
 
+	hawk_mtx_close(hawk->modmtx);
 	hawk_rbt_close(hawk->modtab);
 	hawk_htb_close(hawk->static_mods);
 	hawk_htb_close(hawk->fnc.user);
@@ -444,8 +448,10 @@ void hawk_clear (hawk_t* hawk)
 	clear_token(&hawk->ptok);
 
 	/* clear all loaded modules. keep hawk->static_mods untouched */
+	hawk_mtx_lock(hawk->modmtx, HAWK_NULL);
 	hawk_rbt_walk(hawk->modtab, unload_module, hawk);
 	hawk_rbt_clear(hawk->modtab);
+	hawk_mtx_unlock(hawk->modmtx);
 
 	HAWK_ASSERT(HAWK_ARR_SIZE(hawk->parse.gbls) == hawk->tree.ngbls);
 	/* delete all non-builtin global variables */

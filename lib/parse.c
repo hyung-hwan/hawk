@@ -53,6 +53,8 @@
 
 #define PARSE_BLOCK_FLAG_IS_TOP (1 << 0)
 
+#define MAX_MOD_NAME_LEN (64)
+
 enum tok_t
 {
 	TOK_EOF,
@@ -913,6 +915,26 @@ static int compile_funbc_expr (hawk_t* hawk, hawk_fbc_t* bc, hawk_nde_t* nde)
 			if (emit_funbc_ins_int(hawk, bc, HAWK_FBC_OP_LOAD_CONST_INT, x->val, &nde->loc) <= -1) goto oops_rollback;
 			return COMPILE_FUNBC_EXPR_OK;
 		}
+
+		case HAWK_NDE_FLT:
+			if (emit_funbc_ins_nde(hawk, bc, HAWK_FBC_OP_LOAD_CONST_FLT, nde, &nde->loc) <= -1) goto oops_rollback;
+			return COMPILE_FUNBC_EXPR_OK;
+
+		case HAWK_NDE_STR:
+			if (emit_funbc_ins_nde(hawk, bc, HAWK_FBC_OP_LOAD_CONST_STR, nde, &nde->loc) <= -1) goto oops_rollback;
+			return COMPILE_FUNBC_EXPR_OK;
+
+		case HAWK_NDE_MBS:
+			if (emit_funbc_ins_nde(hawk, bc, HAWK_FBC_OP_LOAD_CONST_MBS, nde, &nde->loc) <= -1) goto oops_rollback;
+			return COMPILE_FUNBC_EXPR_OK;
+
+		case HAWK_NDE_CHAR:
+			if (emit_funbc_ins_nde(hawk, bc, HAWK_FBC_OP_LOAD_CONST_CHAR, nde, &nde->loc) <= -1) goto oops_rollback;
+			return COMPILE_FUNBC_EXPR_OK;
+
+		case HAWK_NDE_BCHR:
+			if (emit_funbc_ins_nde(hawk, bc, HAWK_FBC_OP_LOAD_CONST_BCHR, nde, &nde->loc) <= -1) goto oops_rollback;
+			return COMPILE_FUNBC_EXPR_OK;
 
 		case HAWK_NDE_XNIL:
 			if (emit_funbc_ins_plain(hawk, bc, HAWK_FBC_OP_LOAD_CONST_NIL, &nde->loc) <= -1) goto oops_rollback;
@@ -9420,6 +9442,11 @@ static const hawk_ooch_t* funbc_opcode_to_name (hawk_fbc_opcode_t opcode)
 	{
 		case HAWK_FBC_OP_NOP: return HAWK_T("NOP");
 		case HAWK_FBC_OP_LOAD_CONST_INT: return HAWK_T("LOAD_CONST_INT");
+		case HAWK_FBC_OP_LOAD_CONST_FLT: return HAWK_T("LOAD_CONST_FLT");
+		case HAWK_FBC_OP_LOAD_CONST_STR: return HAWK_T("LOAD_CONST_STR");
+		case HAWK_FBC_OP_LOAD_CONST_MBS: return HAWK_T("LOAD_CONST_MBS");
+		case HAWK_FBC_OP_LOAD_CONST_CHAR: return HAWK_T("LOAD_CONST_CHAR");
+		case HAWK_FBC_OP_LOAD_CONST_BCHR: return HAWK_T("LOAD_CONST_BCHR");
 		case HAWK_FBC_OP_LOAD_CONST_NIL: return HAWK_T("LOAD_CONST_NIL");
 		case HAWK_FBC_OP_LOAD_CONST_TRUE: return HAWK_T("LOAD_CONST_TRUE");
 		case HAWK_FBC_OP_LOAD_CONST_FALSE: return HAWK_T("LOAD_CONST_FALSE");
@@ -9513,6 +9540,28 @@ static int dump_funbc_ins (hawk_t* hawk, hawk_oow_t pc, const hawk_fbc_ins_t* in
 			if (hawk_putsrcoocstr(hawk, HAWK_T(" ")) <= -1 ||
 			    put_int_as_dec(hawk, ins->u.iv) <= -1) return -1;
 			break;
+
+		case HAWK_FBC_OP_LOAD_CONST_FLT:
+		case HAWK_FBC_OP_LOAD_CONST_STR:
+		case HAWK_FBC_OP_LOAD_CONST_MBS:
+		case HAWK_FBC_OP_LOAD_CONST_CHAR:
+		case HAWK_FBC_OP_LOAD_CONST_BCHR:
+		{
+			hawk_nde_t* nde = ins->u.nde;
+
+			if (!nde)
+			{
+				if (hawk_putsrcoocstr(hawk, HAWK_T(" <null-lit>")) <= -1) return -1;
+			}
+			else
+			{
+				if (hawk_putsrcoocstr(hawk, HAWK_T(" @")) <= -1 ||
+				    put_oow_as_dec(hawk, nde->loc.line) <= -1 ||
+				    hawk_putsrcoocstr(hawk, HAWK_T(":")) <= -1 ||
+				    put_oow_as_dec(hawk, nde->loc.colm) <= -1) return -1;
+			}
+			break;
+		}
 
 		case HAWK_FBC_OP_LOAD_GBL:
 		case HAWK_FBC_OP_LOAD_LCL:
@@ -10074,14 +10123,14 @@ static hawk_mod_t* query_module (hawk_t* hawk, const hawk_oocs_t segs[], int nse
 		hawk_mod_load_t load = HAWK_NULL;
 		hawk_mod_spec_t spec;
 		hawk_oow_t buflen;
-		/*hawk_ooch_t buf[64 + 12] = HAWK_T("_hawk_mod_");*/
+		/*hawk_ooch_t buf[MAX_MOD_NAME_LEN + 12] = HAWK_T("_hawk_mod_");*/
 
 		/* maximum module name length is 64. 15 is decomposed to 13 + 1 + 1.
 		 * 10 for _hawk_mod_
 		 * 1 for _ at the end when hawk_mod_xxx_ is attempted.
 		 * 1 for the terminating '\0'
 		 */
-		hawk_ooch_t buf[64 + 12];
+		hawk_ooch_t buf[MAX_MOD_NAME_LEN + 12];
 
 		/* the terminating null isn't needed in buf here */
 		HAWK_MEMCPY(buf, HAWK_T("_hawk_mod_"), HAWK_SIZEOF(hawk_ooch_t) * 10);
@@ -10301,33 +10350,34 @@ int hawk_addstaticmodwithucstr (hawk_t* hawk, const hawk_uch_t* name, hawk_mod_l
 	return 0;
 }
 
-hawk_mod_t* hawk_querymodulewithname (hawk_t* hawk, hawk_ooch_t* name, hawk_mod_sym_t* sym)
+hawk_mod_t* hawk_querymodulewithoocs (hawk_t* hawk, const hawk_oocs_t* name, hawk_mod_sym_t* sym)
 {
 	const hawk_ooch_t* dc;
 	hawk_oocs_t segs[2];
-	hawk_mod_t* mod;
-	hawk_oow_t name_len;
-	hawk_ooch_t tmp;
+	hawk_ooch_t modname[MAX_MOD_NAME_LEN + 1];
 
 /*TOOD: non-module builtin function? fnc? */
-	name_len = hawk_count_oocstr(name);
-	dc = hawk_find_oochars_in_oochars(name, name_len, HAWK_T("::"), 2, 0);
+	dc = hawk_find_oochars_in_oochars(name->ptr, name->len, HAWK_T("::"), 2, 0);
 	if (!dc)
 	{
-		hawk_seterrfmt(hawk, HAWK_NULL, HAWK_EINVAL, HAWK_T("invalid module name -  %js"), name);
+		hawk_seterrfmt(hawk, HAWK_NULL, HAWK_EINVAL, HAWK_T("invalid module name -  %.*js"), name->len, name->ptr);
 		return HAWK_NULL;
 	}
 
-	segs[0].len = dc - name;
-	segs[0].ptr = name;
-	tmp = name[segs[0].len];
-	name[segs[0].len] = '\0'; /* name is not const hawk_ooch_t* because it's temporarily modifed ... */
+	segs[0].len = dc - name->ptr;
+	segs[0].ptr = modname;
+	hawk_copy_oochars_to_oocstr(modname, HAWK_COUNTOF(modname), name->ptr, segs[0].len);
 
-	segs[1].len = name_len - segs[0].len - 2;
-	segs[1].ptr = (hawk_ooch_t*)name + segs[0].len + 2;
+	segs[1].len = name->len - segs[0].len - 2;
+	segs[1].ptr = (hawk_ooch_t*)name->ptr + segs[0].len + 2;
 
-	mod = query_module(hawk, segs, 2, sym);
+	return query_module(hawk, segs, 2, sym);
+}
 
-	name[segs[0].len] = tmp; /* and restored ... */
-	return mod;
+hawk_mod_t* hawk_querymodulewithname (hawk_t* hawk, const hawk_ooch_t* name, hawk_mod_sym_t* sym)
+{
+	hawk_oocs_t oocs;
+	oocs.ptr = (hawk_ooch_t*)name;
+	oocs.len = hawk_count_oocstr(name);
+	return hawk_querymodulewithoocs(hawk, &oocs, sym);
 }
