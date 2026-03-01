@@ -1314,8 +1314,20 @@ typedef enum hawk_log_mask_t hawk_log_mask_t;
 	#if __has_builtin(__atomic_exchange_n)
 		#define HAWK_HAVE_ATOMIC_EXCHANGE_N
 	#endif
+	#if __has_builtin(__atomic_fetch_add)
+		#define HAWK_HAVE_ATOMIC_FETCH_ADD
+	#endif
+	#if __has_builtin(__atomic_fetch_and)
+		#define HAWK_HAVE_ATOMIC_FETCH_AND
+	#endif
 	#if __has_builtin(__atomic_fetch_or)
 		#define HAWK_HAVE_ATOMIC_FETCH_OR
+	#endif
+	#if __has_builtin(__atomic_fetch_sub)
+		#define HAWK_HAVE_ATOMIC_FETCH_SUB
+	#endif
+	#if __has_builtin(__atomic_fetch_xor)
+		#define HAWK_HAVE_ATOMIC_FETCH_XOR
 	#endif
 	#if __has_builtin(__atomic_load_n)
 		#define HAWK_HAVE_ATOMIC_LOAD_N
@@ -1366,8 +1378,20 @@ typedef enum hawk_log_mask_t hawk_log_mask_t;
 		#define HAWK_HAVE_BUILTIN_EXPECT
 	#endif
 
+	#if __has_builtin(__sync_fetch_and_add)
+		#define HAWK_HAVE_SYNC_FETCH_AND_ADD
+	#endif
+	#if __has_builtin(__sync_fetch_and_and)
+		#define HAWK_HAVE_SYNC_FETCH_AND_AND
+	#endif
 	#if __has_builtin(__sync_fetch_and_or)
 		#define HAWK_HAVE_SYNC_FETCH_AND_OR
+	#endif
+	#if __has_builtin(__sync_fetch_and_sub)
+		#define HAWK_HAVE_SYNC_FETCH_AND_SUB
+	#endif
+	#if __has_builtin(__sync_fetch_and_xor)
+		#define HAWK_HAVE_SYNC_FETCH_AND_XOR
 	#endif
 	#if __has_builtin(__sync_lock_test_and_set)
 		#define HAWK_HAVE_SYNC_LOCK_TEST_AND_SET
@@ -1400,7 +1424,11 @@ typedef enum hawk_log_mask_t hawk_log_mask_t;
 #elif defined(__GNUC__) && defined(__GNUC_MINOR__)
 
 	#if (__GNUC__ >= 4)
+		#define HAWK_HAVE_SYNC_FETCH_AND_ADD
+		#define HAWK_HAVE_SYNC_FETCH_AND_AND
 		#define HAWK_HAVE_SYNC_FETCH_AND_OR
+		#define HAWK_HAVE_SYNC_FETCH_AND_SUB
+		#define HAWK_HAVE_SYNC_FETCH_AND_XOR
 		#define HAWK_HAVE_SYNC_LOCK_TEST_AND_SET
 		#define HAWK_HAVE_SYNC_LOCK_RELEASE
 		#define HAWK_HAVE_SYNC_SYNCHRONIZE
@@ -1435,7 +1463,11 @@ typedef enum hawk_log_mask_t hawk_log_mask_t;
 	#endif
 
 	#if (__GNUC__ >= 5) || (__GNUC__ == 4 && __GNUC_MINOR__ >= 7)
+		#define HAWK_HAVE_ATOMIC_FETCH_ADD
+		#define HAWK_HAVE_ATOMIC_FETCH_AND
 		#define HAWK_HAVE_ATOMIC_FETCH_OR
+		#define HAWK_HAVE_ATOMIC_FETCH_SUB
+		#define HAWK_HAVE_ATOMIC_FETCH_XOR
 	#endif
 
 	#if (__GNUC__ >= 5) || (__GNUC__ == 4 && __GNUC_MINOR__ >= 8)
@@ -1472,7 +1504,7 @@ typedef enum hawk_log_mask_t hawk_log_mask_t;
 
 #if defined(HAWK_HAVE_ATOMIC_FETCH_ADD)
 #	define HAWK_ATOMIC_FETCH_ADD(ptr,val,mo) __atomic_fetch_add((ptr),(val),(mo))
-#elif defined(HAWK_HAVE_SYNC_FETCH_AND_AND)
+#elif defined(HAWK_HAVE_SYNC_FETCH_AND_ADD)
 #	define HAWK_ATOMIC_FETCH_ADD(ptr,val,mo) __sync_fetch_and_add((ptr),(val))
 #endif
 
@@ -1490,7 +1522,7 @@ typedef enum hawk_log_mask_t hawk_log_mask_t;
 
 #if defined(HAWK_HAVE_ATOMIC_FETCH_SUB)
 #	define HAWK_ATOMIC_FETCH_SUB(ptr,val,mo) __atomic_fetch_sub((ptr),(val),(mo))
-#elif defined(HAWK_HAVE_SYNC_FETCH_AND_AND)
+#elif defined(HAWK_HAVE_SYNC_FETCH_AND_SUB)
 #	define HAWK_ATOMIC_FETCH_SUB(ptr,val,mo) __sync_fetch_and_sub((ptr),(val))
 #endif
 
