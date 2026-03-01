@@ -523,11 +523,11 @@ static int fmt_outv (hawk_fmtout_t* fmtout, va_list ap)
 			{
 				if (bch == '\0')
 				{
-					PUT_BCS (fmtout, start, end - start - 1);
+					PUT_BCS(fmtout, start, end - start - 1);
 					goto done;
 				}
 			}
-			PUT_BCS (fmtout, start, end - start - 1);
+			PUT_BCS(fmtout, start, end - start - 1);
 			fmtptr = (const hawk_uint8_t*)end;
 			percent = (const hawk_uint8_t*)(end - 1);
 		}
@@ -541,11 +541,11 @@ static int fmt_outv (hawk_fmtout_t* fmtout, va_list ap)
 			{
 				if (uch == '\0')
 				{
-					PUT_UCS (fmtout, start, end - start - 1);
+					PUT_UCS(fmtout, start, end - start - 1);
 					goto done;
 				}
 			}
-			PUT_UCS (fmtout, start, end - start - 1);
+			PUT_UCS(fmtout, start, end - start - 1);
 			fmtptr = (const hawk_uint8_t*)end;
 			percent = (const hawk_uint8_t*)(end - 1);
 		}
@@ -872,7 +872,7 @@ static int fmt_outv (hawk_fmtout_t* fmtout, va_list ap)
 			width -= n;
 
 			if (!(flagc & FLAGC_LEFTADJ) && width > 0) PUT_BCH (fmtout, padc, width);
-			PUT_BCS (fmtout, bsp, n);
+			PUT_BCS(fmtout, bsp, n);
 			if ((flagc & FLAGC_LEFTADJ) && width > 0) PUT_BCH (fmtout, padc, width);
 			break;
 		}
@@ -904,7 +904,7 @@ static int fmt_outv (hawk_fmtout_t* fmtout, va_list ap)
 			width -= n;
 
 			if (!(flagc & FLAGC_LEFTADJ) && width > 0) PUT_UCH (fmtout, padc, width);
-			PUT_UCS (fmtout, usp, n);
+			PUT_UCS(fmtout, usp, n);
 			if ((flagc & FLAGC_LEFTADJ) && width > 0) PUT_UCH (fmtout, padc, width);
 
 			break;
@@ -977,8 +977,8 @@ static int fmt_outv (hawk_fmtout_t* fmtout, va_list ap)
 				{
 					hawk_bch_t xbuf[3];
 					hawk_byte_to_bcstr (*bsp, xbuf, HAWK_COUNTOF(xbuf), (16 | (uch == 'k'? HAWK_BYTE_TO_BCSTR_LOWERCASE: 0)), '0');
-					if (lm_flag & (LF_H | LF_L)) PUT_BCS (fmtout, "\\x", 2);
-					PUT_BCS (fmtout, xbuf, 2);
+					if (lm_flag & (LF_H | LF_L)) PUT_BCS(fmtout, "\\x", 2);
+					PUT_BCS(fmtout, xbuf, 2);
 				}
 				bsp++;
 			}
@@ -1211,20 +1211,24 @@ static int fmt_outv (hawk_fmtout_t* fmtout, va_list ap)
 
 		#if defined(HAVE_SNPRINTF)
 			/* nothing special here */
+			/* snprintf() doesn't write beyond the provided the buffer size.
+			 * use the current static buffer first and decide what to do
+			 * depending on the return value of snprintf() */
 		#else
 			/* best effort to avoid buffer overflow when no snprintf is available.
 			 * i really can't do much if it happens. */
-			newcapa = precision + width + 32;
-			if (fltout->capa < newcapa)
+			newcapa = precision + width + 32; /* make it large enough */
+			if (fb.out.capa < newcapa)
 			{
-				HAWK_ASSERT(hawk, fltout->ptr == fltout->buf);
-
-				fltout->ptr = HAWK_MMGR_ALLOC(fmtout->mmgr, HAWK_SIZEOF(char_t) * (newcapa + 1));
-				if (!fltout->ptr) goto oops;
-				fltout->capa = newcapa;
+				HAWK_ASSERT(fb.out.ptr == fb.out.sbuf);
+				fb.out.ptr = HAWK_MMGR_ALLOC(fmtout->mmgr, HAWK_SIZEOF(char_t) * (newcapa + 1));
+				if (HAWK_UNLIKELY(!fb.out.ptr)) goto oops;
+				fb.out.capa = newcapa;
 			}
 		#endif
 
+			/* fb.fmt has the actual format.
+			 * fb.out will have the formatted output */
 			while (1)
 			{
 				if (dtype == LF_LD)
@@ -1258,13 +1262,13 @@ static int fmt_outv (hawk_fmtout_t* fmtout, va_list ap)
 				if (fb.out.ptr == fb.out.sbuf)
 				{
 					fb.out.ptr = (hawk_bch_t*)HAWK_MMGR_ALLOC(fmtout->mmgr, HAWK_SIZEOF(char_t) * (newcapa + 1));
-					if (!fb.out.ptr) goto oops;
+					if (HAWK_UNLIKELY(!fb.out.ptr)) goto oops;
 				}
 				else
 				{
 					hawk_bch_t* tmpptr;
 					tmpptr = (hawk_bch_t*)HAWK_MMGR_REALLOC(fmtout->mmgr, fb.out.ptr, HAWK_SIZEOF(char_t) * (newcapa + 1));
-					if (!tmpptr) goto oops;
+					if (HAWK_UNLIKELY(!tmpptr)) goto oops;
 					fb.out.ptr = tmpptr;
 				}
 				fb.out.capa = newcapa;
@@ -1282,7 +1286,7 @@ static int fmt_outv (hawk_fmtout_t* fmtout, va_list ap)
 
 			bsp = fb.out.ptr;
 			n = 0; while (bsp[n] != '\0') n++;
-			PUT_BCS (fmtout, bsp, n);
+			PUT_BCS(fmtout, bsp, n);
 			break;
 		}
 		handle_nosign:
@@ -1451,10 +1455,10 @@ static int fmt_outv (hawk_fmtout_t* fmtout, va_list ap)
 			switch (fmtout->fmt_type)
 			{
 				case HAWK_FMTOUT_FMT_TYPE_BCH:
-					PUT_BCS (fmtout, (const hawk_bch_t*)percent, (fmtptr - percent) / fmtchsz);
+					PUT_BCS(fmtout, (const hawk_bch_t*)percent, (fmtptr - percent) / fmtchsz);
 					break;
 				case HAWK_FMTOUT_FMT_TYPE_UCH:
-					PUT_UCS (fmtout, (const hawk_uch_t*)percent, (fmtptr - percent) / fmtchsz);
+					PUT_UCS(fmtout, (const hawk_uch_t*)percent, (fmtptr - percent) / fmtchsz);
 					break;
 			}
 			break;
@@ -1463,10 +1467,10 @@ static int fmt_outv (hawk_fmtout_t* fmtout, va_list ap)
 			switch (fmtout->fmt_type)
 			{
 				case HAWK_FMTOUT_FMT_TYPE_BCH:
-					PUT_BCS (fmtout, (const hawk_bch_t*)percent, (fmtptr - percent) / fmtchsz);
+					PUT_BCS(fmtout, (const hawk_bch_t*)percent, (fmtptr - percent) / fmtchsz);
 					break;
 				case HAWK_FMTOUT_FMT_TYPE_UCH:
-					PUT_UCS (fmtout, (const hawk_uch_t*)percent, (fmtptr - percent) / fmtchsz);
+					PUT_UCS(fmtout, (const hawk_uch_t*)percent, (fmtptr - percent) / fmtchsz);
 					break;
 			}
 			/*
@@ -1697,7 +1701,7 @@ static int log_ucs (hawk_fmtout_t* fmtout, const hawk_uch_t* ptr, hawk_oow_t len
 	{
 		len = rem;
 		bcslen = HAWK_COUNTOF(bcs);
-		hawk_conv_uchars_to_bchars_with_cmgr (ptr, &len, bcs, &bcslen, hawk_getcmgr(hawk));
+		hawk_conv_uchars_to_bchars_with_cmgr(ptr, &len, bcs, &bcslen, hawk_getcmgr(hawk));
 		log_bcs(fmtout, bcs, bcslen);
 		rem -= len;
 		ptr += len;
@@ -1721,7 +1725,7 @@ static int log_bcs (hawk_fmtout_t* fmtout, const hawk_bch_t* ptr, hawk_oow_t len
 	{
 		len = rem;
 		ucslen = HAWK_COUNTOF(ucs);
-		hawk_conv_bchars_to_uchars_with_cmgr (ptr, &len, ucs, &ucslen, hawk_getcmgr(hawk), 1);
+		hawk_conv_bchars_to_uchars_with_cmgr(ptr, &len, ucs, &ucslen, hawk_getcmgr(hawk), 1);
 		log_ucs(fmtout, ucs, ucslen);
 		rem -= len;
 		ptr += len;
@@ -1852,7 +1856,7 @@ static int sprint_bchars (hawk_fmtout_t* fmtout, const hawk_bch_t* ptr, hawk_oow
 
 #if defined(HAWK_OOCH_IS_UCH)
 	blen = len;
-	hawk_conv_bchars_to_uchars_with_cmgr (ptr, &blen, HAWK_NULL, &oolen, hawk_getcmgr(hawk), 1);
+	hawk_conv_bchars_to_uchars_with_cmgr(ptr, &blen, HAWK_NULL, &oolen, hawk_getcmgr(hawk), 1);
 #else
 	oolen = len;
 #endif
@@ -1873,7 +1877,7 @@ static int sprint_bchars (hawk_fmtout_t* fmtout, const hawk_bch_t* ptr, hawk_oow
 	}
 
 #if defined(HAWK_OOCH_IS_UCH)
-	hawk_conv_bchars_to_uchars_with_cmgr (ptr, &len, &hawk->sprintf.xbuf.ptr[hawk->sprintf.xbuf.len], &oolen, hawk_getcmgr(hawk), 1);
+	hawk_conv_bchars_to_uchars_with_cmgr(ptr, &len, &hawk->sprintf.xbuf.ptr[hawk->sprintf.xbuf.len], &oolen, hawk_getcmgr(hawk), 1);
 #else
 	HAWK_MEMCPY(&hawk->sprintf.xbuf.ptr[hawk->sprintf.xbuf.len], ptr, len * HAWK_SIZEOF(*ptr));
 #endif
@@ -1893,7 +1897,7 @@ static int sprint_uchars (hawk_fmtout_t* fmtout, const hawk_uch_t* ptr, hawk_oow
 	oolen = len;
 #else
 	ulen = len;
-	hawk_conv_uchars_to_bchars_with_cmgr (ptr, &ulen, HAWK_NULL, &oolen, hawk_getcmgr(hawk));
+	hawk_conv_uchars_to_bchars_with_cmgr(ptr, &ulen, HAWK_NULL, &oolen, hawk_getcmgr(hawk));
 #endif
 
 	if (oolen > unused)
@@ -1914,7 +1918,7 @@ static int sprint_uchars (hawk_fmtout_t* fmtout, const hawk_uch_t* ptr, hawk_oow
 #if defined(HAWK_OOCH_IS_UCH)
 	HAWK_MEMCPY(&hawk->sprintf.xbuf.ptr[hawk->sprintf.xbuf.len], ptr, len * HAWK_SIZEOF(*ptr));
 #else
-	hawk_conv_uchars_to_bchars_with_cmgr (ptr, &len, &hawk->sprintf.xbuf.ptr[hawk->sprintf.xbuf.len], &oolen, hawk_getcmgr(hawk));
+	hawk_conv_uchars_to_bchars_with_cmgr(ptr, &len, &hawk->sprintf.xbuf.ptr[hawk->sprintf.xbuf.len], &oolen, hawk_getcmgr(hawk));
 #endif
 	hawk->sprintf.xbuf.len += oolen;
 
