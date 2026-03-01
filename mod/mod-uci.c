@@ -135,6 +135,7 @@ static uctx_node_t* new_uctx_node (hawk_rtx_t* rtx, uctx_list_t* list)
 oops:
 	if (node)
 	{
+		if (node->ctx) uci_free_context(node->ctx);
 		if (from_free)
 		{
 			/* place it back to the free list */
@@ -144,7 +145,6 @@ oops:
 		}
 		else
 		{ 
-			if (node->ctx) uci_free_context(node->ctx);
 			hawk_rtx_freemem(rtx, node);
 		}
 	}
@@ -236,7 +236,6 @@ static int unload_byid (hawk_rtx_t* rtx, uctx_list_t* list, hawk_int_t id)
 	if (id >= 0 && id < list->map.high && list->map.tab[id])
 	{
 		x = uci_unload(list->map.tab[id]->ctx, HAWK_NULL);
-		return 0;
 	}
 
 	return -x;

@@ -408,7 +408,7 @@ int hawk_fio_init (hawk_fio_t* fio, hawk_gem_t* gem, const hawk_ooch_t* path, in
 				}
 				if (handle == INVALID_HANDLE_VALUE)
 				{
-				i	if (flags & HAWK_FIO_TEMPORARY) goto retry_temporary;
+					if (flags & HAWK_FIO_TEMPORARY) goto retry_temporary;
 					hawk_gem_seterrnum (fio->gem, HAWK_NULL, hawk_syserr_to_errnum(GetLastError()));
 					return -1;
 				}

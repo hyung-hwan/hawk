@@ -272,7 +272,7 @@ entry:
 		if (g->flags & HAWK_GLOB_SKIPSPCDIR) dir_flags |= HAWK_DIR_SKIPSPCDIR;
 		if (HAWK_SIZEOF(_char_type_) == HAWK_SIZEOF(hawk_bch_t)) dir_flags |= HAWK_DIR_BPATH;
 
-		dp = hawk_dir_open(g->gem, 0, (const _char_type_*)_ECS_PREFIX_()_PTR(&g->path), dir_flags);
+		dp = hawk_dir_open(g->gem, 0, (const hawk_ooch_t*)_ECS_PREFIX_()_PTR(&g->path), dir_flags);
 		if (dp)
 		{
 			tmp = _ECS_PREFIX_()_LEN(&g->path);
