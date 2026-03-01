@@ -67,7 +67,7 @@ static hawk_bch_t* wcs_to_mbuf (hawk_gem_t* g, const hawk_uch_t* wcs, hawk_becs_
 	if (hawk_gem_convutobcstr(g, wcs, &wl, HAWK_NULL, &ml) <= -1 ||
 	    hawk_becs_setlen(mbuf, ml) == (hawk_oow_t)-1) return HAWK_NULL;
 
-	hawk_gem_convutobcstr (g, wcs, &wl, HAWK_BECS_PTR(mbuf), &ml);
+	hawk_gem_convutobcstr(g, wcs, &wl, HAWK_BECS_PTR(mbuf), &ml);
 	return HAWK_BECS_PTR(mbuf);
 }
 
@@ -98,7 +98,7 @@ static int upath_exists (hawk_gem_t* g, const hawk_uch_t* name, hawk_becs_t* mbu
 	mptr = wcs_to_mbuf(g, name, mbuf);
 	if (HAWK_UNLIKELY(!mptr)) return -1;
 
-	x = _dos_getfileattr (mptr, &attr);
+	x = _dos_getfileattr(mptr, &attr);
 	return (x == 0)? 1: ((errno == ENOENT)? 0: -1);
 
 #elif defined(macintosh)
@@ -108,7 +108,7 @@ static int upath_exists (hawk_gem_t* g, const hawk_uch_t* name, hawk_becs_t* mbu
 	mptr = wcs_to_mbuf(g, name, mbuf);
 	if (HAWK_UNLIKELY(!mptr)) return -1;
 
-	HAWK_MEMSET (&fpb, 0, HAWK_SIZEOF(fpb));
+	HAWK_MEMSET(&fpb, 0, HAWK_SIZEOF(fpb));
 	fpb.ioNamePtr = (unsigned char*)mptr;
 
 	return (PBGetCatInfoSync ((CInfoPBRec*)&fpb) == noErr)? 1: 0;

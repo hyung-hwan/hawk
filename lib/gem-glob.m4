@@ -28,7 +28,7 @@ struct _g_prefix_()_glob_t
 	_ecs_prefix_()_t path;
 	_ecs_prefix_()_t tbuf; /* temporary buffer */
 
-	hawk_becs_t mbuf; /* not used if the base character type is hawk_bch_t */
+	hawk_becs_t bbuf; /* not used if the base character type is hawk_bch_t */
 
 	int expanded;
 	int fnmat_flags;
@@ -238,7 +238,7 @@ static int _g_prefix_()_handle_non_wild_segments (_g_prefix_()_glob_t* g, _g_pre
 			if (_ecs_prefix_()_ncat (&g->path, seg->ptr, seg->len) == (hawk_oow_t)-1) return -1;
 		}
 
-		if (!seg->next && _path_exists_()(g->gem, _ECS_PREFIX_()_PTR(&g->path), &g->mbuf) > 0)
+		if (!seg->next && _path_exists_()(g->gem, _ECS_PREFIX_()_PTR(&g->path), &g->bbuf) > 0)
 		{
 			/* reached the last segment. match if the path exists */
 			if (g->cbimpl(_ECS_PREFIX_()_CS(&g->path), g->cbctx) <= -1) return -1;
@@ -399,7 +399,7 @@ oops:
 
 	while (g->free)
 	{
-		r = g->stack;
+		r = g->free;
 		g->free = r->next;
 		hawk_gem_freemem (g->gem, r);
 	}
@@ -431,16 +431,16 @@ int _fn_name_ (hawk_gem_t* gem, const _char_type_* pattern, _cb_type_ cbimpl, vo
 	if (_ecs_prefix_()_init(&g.path, g.gem, 512) <= -1) return -1;
 	if (_ecs_prefix_()_init(&g.tbuf, g.gem, 256) <= -1) 
 	{
-		_ecs_prefix_()_fini (&g.path);
+		_ecs_prefix_()_fini(&g.path);
 		return -1;
 	}
 
 	if (HAWK_SIZEOF(_char_type_) != HAWK_SIZEOF(hawk_bch_t)) 
 	{
-		if (hawk_becs_init(&g.mbuf, g.gem, 512) <= -1) 
+		if (hawk_becs_init(&g.bbuf, g.gem, 512) <= -1) 
 		{
-			_ecs_prefix_()_fini (&g.path);
-			_ecs_prefix_()_fini (&g.path);
+			_ecs_prefix_()_fini(&g.tbuf);
+			_ecs_prefix_()_fini(&g.path);
 			return -1;
 		}
 	}
@@ -452,9 +452,9 @@ int _fn_name_ (hawk_gem_t* gem, const _char_type_* pattern, _cb_type_ cbimpl, vo
 
 	x = _g_prefix_()_search(&g, &seg);
 
-	if (HAWK_SIZEOF(_char_type_) != HAWK_SIZEOF(hawk_uch_t)) hawk_becs_fini (&g.mbuf);
-	_ecs_prefix_()_fini (&g.tbuf);
-	_ecs_prefix_()_fini (&g.path);
+	if (HAWK_SIZEOF(_char_type_) != HAWK_SIZEOF(hawk_bch_t)) hawk_becs_fini(&g.bbuf);
+	_ecs_prefix_()_fini(&g.tbuf);
+	_ecs_prefix_()_fini(&g.path);
 
 	if (x <= -1) return -1;
 	return g.expanded;

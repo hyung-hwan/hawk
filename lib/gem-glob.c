@@ -67,7 +67,7 @@ static hawk_bch_t* wcs_to_mbuf (hawk_gem_t* g, const hawk_uch_t* wcs, hawk_becs_
 	if (hawk_gem_convutobcstr(g, wcs, &wl, HAWK_NULL, &ml) <= -1 ||
 	    hawk_becs_setlen(mbuf, ml) == (hawk_oow_t)-1) return HAWK_NULL;
 
-	hawk_gem_convutobcstr (g, wcs, &wl, HAWK_BECS_PTR(mbuf), &ml);
+	hawk_gem_convutobcstr(g, wcs, &wl, HAWK_BECS_PTR(mbuf), &ml);
 	return HAWK_BECS_PTR(mbuf);
 }
 
@@ -98,7 +98,7 @@ static int upath_exists (hawk_gem_t* g, const hawk_uch_t* name, hawk_becs_t* mbu
 	mptr = wcs_to_mbuf(g, name, mbuf);
 	if (HAWK_UNLIKELY(!mptr)) return -1;
 
-	x = _dos_getfileattr (mptr, &attr);
+	x = _dos_getfileattr(mptr, &attr);
 	return (x == 0)? 1: ((errno == ENOENT)? 0: -1);
 
 #elif defined(macintosh)
@@ -108,7 +108,7 @@ static int upath_exists (hawk_gem_t* g, const hawk_uch_t* name, hawk_becs_t* mbu
 	mptr = wcs_to_mbuf(g, name, mbuf);
 	if (HAWK_UNLIKELY(!mptr)) return -1;
 
-	HAWK_MEMSET (&fpb, 0, HAWK_SIZEOF(fpb));
+	HAWK_MEMSET(&fpb, 0, HAWK_SIZEOF(fpb));
 	fpb.ioNamePtr = (unsigned char*)mptr;
 
 	return (PBGetCatInfoSync ((CInfoPBRec*)&fpb) == noErr)? 1: 0;
@@ -180,7 +180,7 @@ struct __u_glob_t
 	hawk_uecs_t path;
 	hawk_uecs_t tbuf; /* temporary buffer */
 
-	hawk_becs_t mbuf; /* not used if the base character type is hawk_bch_t */
+	hawk_becs_t bbuf; /* not used if the base character type is hawk_bch_t */
 
 	int expanded;
 	int fnmat_flags;
@@ -390,7 +390,7 @@ static int __u_handle_non_wild_segments (__u_glob_t* g, __u_segment_t* seg)
 			if (hawk_uecs_ncat (&g->path, seg->ptr, seg->len) == (hawk_oow_t)-1) return -1;
 		}
 
-		if (!seg->next && upath_exists(g->gem, HAWK_UECS_PTR(&g->path), &g->mbuf) > 0)
+		if (!seg->next && upath_exists(g->gem, HAWK_UECS_PTR(&g->path), &g->bbuf) > 0)
 		{
 			/* reached the last segment. match if the path exists */
 			if (g->cbimpl(HAWK_UECS_CS(&g->path), g->cbctx) <= -1) return -1;
@@ -551,7 +551,7 @@ oops:
 
 	while (g->free)
 	{
-		r = g->stack;
+		r = g->free;
 		g->free = r->next;
 		hawk_gem_freemem (g->gem, r);
 	}
@@ -583,16 +583,16 @@ int hawk_gem_uglob (hawk_gem_t* gem, const hawk_uch_t* pattern, hawk_gem_uglob_c
 	if (hawk_uecs_init(&g.path, g.gem, 512) <= -1) return -1;
 	if (hawk_uecs_init(&g.tbuf, g.gem, 256) <= -1) 
 	{
-		hawk_uecs_fini (&g.path);
+		hawk_uecs_fini(&g.path);
 		return -1;
 	}
 
 	if (HAWK_SIZEOF(hawk_uch_t) != HAWK_SIZEOF(hawk_bch_t)) 
 	{
-		if (hawk_becs_init(&g.mbuf, g.gem, 512) <= -1) 
+		if (hawk_becs_init(&g.bbuf, g.gem, 512) <= -1) 
 		{
-			hawk_uecs_fini (&g.path);
-			hawk_uecs_fini (&g.path);
+			hawk_uecs_fini(&g.tbuf);
+			hawk_uecs_fini(&g.path);
 			return -1;
 		}
 	}
@@ -604,9 +604,9 @@ int hawk_gem_uglob (hawk_gem_t* gem, const hawk_uch_t* pattern, hawk_gem_uglob_c
 
 	x = __u_search(&g, &seg);
 
-	if (HAWK_SIZEOF(hawk_uch_t) != HAWK_SIZEOF(hawk_uch_t)) hawk_becs_fini (&g.mbuf);
-	hawk_uecs_fini (&g.tbuf);
-	hawk_uecs_fini (&g.path);
+	if (HAWK_SIZEOF(hawk_uch_t) != HAWK_SIZEOF(hawk_bch_t)) hawk_becs_fini(&g.bbuf);
+	hawk_uecs_fini(&g.tbuf);
+	hawk_uecs_fini(&g.path);
 
 	if (x <= -1) return -1;
 	return g.expanded;
@@ -630,7 +630,7 @@ struct __b_glob_t
 	hawk_becs_t path;
 	hawk_becs_t tbuf; /* temporary buffer */
 
-	hawk_becs_t mbuf; /* not used if the base character type is hawk_bch_t */
+	hawk_becs_t bbuf; /* not used if the base character type is hawk_bch_t */
 
 	int expanded;
 	int fnmat_flags;
@@ -840,7 +840,7 @@ static int __b_handle_non_wild_segments (__b_glob_t* g, __b_segment_t* seg)
 			if (hawk_becs_ncat (&g->path, seg->ptr, seg->len) == (hawk_oow_t)-1) return -1;
 		}
 
-		if (!seg->next && bpath_exists(g->gem, HAWK_BECS_PTR(&g->path), &g->mbuf) > 0)
+		if (!seg->next && bpath_exists(g->gem, HAWK_BECS_PTR(&g->path), &g->bbuf) > 0)
 		{
 			/* reached the last segment. match if the path exists */
 			if (g->cbimpl(HAWK_BECS_CS(&g->path), g->cbctx) <= -1) return -1;
@@ -1001,7 +1001,7 @@ oops:
 
 	while (g->free)
 	{
-		r = g->stack;
+		r = g->free;
 		g->free = r->next;
 		hawk_gem_freemem (g->gem, r);
 	}
@@ -1033,16 +1033,16 @@ int hawk_gem_bglob (hawk_gem_t* gem, const hawk_bch_t* pattern, hawk_gem_bglob_c
 	if (hawk_becs_init(&g.path, g.gem, 512) <= -1) return -1;
 	if (hawk_becs_init(&g.tbuf, g.gem, 256) <= -1) 
 	{
-		hawk_becs_fini (&g.path);
+		hawk_becs_fini(&g.path);
 		return -1;
 	}
 
 	if (HAWK_SIZEOF(hawk_bch_t) != HAWK_SIZEOF(hawk_bch_t)) 
 	{
-		if (hawk_becs_init(&g.mbuf, g.gem, 512) <= -1) 
+		if (hawk_becs_init(&g.bbuf, g.gem, 512) <= -1) 
 		{
-			hawk_becs_fini (&g.path);
-			hawk_becs_fini (&g.path);
+			hawk_becs_fini(&g.tbuf);
+			hawk_becs_fini(&g.path);
 			return -1;
 		}
 	}
@@ -1054,9 +1054,9 @@ int hawk_gem_bglob (hawk_gem_t* gem, const hawk_bch_t* pattern, hawk_gem_bglob_c
 
 	x = __b_search(&g, &seg);
 
-	if (HAWK_SIZEOF(hawk_bch_t) != HAWK_SIZEOF(hawk_uch_t)) hawk_becs_fini (&g.mbuf);
-	hawk_becs_fini (&g.tbuf);
-	hawk_becs_fini (&g.path);
+	if (HAWK_SIZEOF(hawk_bch_t) != HAWK_SIZEOF(hawk_bch_t)) hawk_becs_fini(&g.bbuf);
+	hawk_becs_fini(&g.tbuf);
+	hawk_becs_fini(&g.path);
 
 	if (x <= -1) return -1;
 	return g.expanded;
