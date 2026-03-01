@@ -2596,13 +2596,13 @@ HAWK_EXPORT hawk_val_t* hawk_rtx_loop (
  * The hawk_rtx_querymodulewithname() function finds information
  * about a named module.
  */
-hawk_mod_t* hawk_rtx_querymodulewithname (
+HAWK_EXPORT hawk_mod_t* hawk_rtx_querymodulewithname (
 	hawk_rtx_t*        rtx,
 	const hawk_ooch_t* name,
 	hawk_mod_sym_t*    sym
 );
 
-hawk_mod_t* hawk_rtx_querymodulewithoocs (
+HAWK_EXPORT hawk_mod_t* hawk_rtx_querymodulewithoocs (
 	hawk_rtx_t*        rtx,
 	const hawk_oocs_t* name,
 	hawk_mod_sym_t*    sym

@@ -10356,15 +10356,19 @@ hawk_mod_t* hawk_querymodulewithoocs (hawk_t* hawk, const hawk_oocs_t* name, haw
 	hawk_oocs_t segs[2];
 	hawk_ooch_t modname[MAX_MOD_NAME_LEN + 1];
 
-/*TOOD: non-module builtin function? fnc? */
 	dc = hawk_find_oochars_in_oochars(name->ptr, name->len, HAWK_T("::"), 2, 0);
 	if (!dc)
 	{
-		hawk_seterrfmt(hawk, HAWK_NULL, HAWK_EINVAL, HAWK_T("invalid module name -  %.*js"), name->len, name->ptr);
+		hawk_seterrfmt(hawk, HAWK_NULL, HAWK_EINVAL, HAWK_T("invalid module name - %.*js"), name->len, name->ptr);
 		return HAWK_NULL;
 	}
 
 	segs[0].len = dc - name->ptr;
+	if (segs[0].len >= HAWK_COUNTOF(modname))
+	{
+		hawk_seterrfmt(hawk, HAWK_NULL, HAWK_EINVAL, HAWK_T("module name too long -  %.*js"), name->len, name->ptr);
+		return HAWK_NULL;
+	}
 	segs[0].ptr = modname;
 	hawk_copy_oochars_to_oocstr(modname, HAWK_COUNTOF(modname), name->ptr, segs[0].len);
 

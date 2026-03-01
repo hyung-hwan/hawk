@@ -135,9 +135,8 @@ static int fnc_call (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 		md = (mod_data_t*)fi->mod->ctx;
 
-		/* hawk_querymodulewithname() called by hawk_rtx_valtofnc()
-		 * may update some shared data under the hawk object.
-		 * use a mutex for shared data safety */
+		/* hawk_rtx_querymodulewithname() called by hawk_rtx_valtofnc()
+		 * may update some shared data under the hawk object. */
 		fncp = hawk_rtx_valtofnc(rtx, hawk_rtx_getarg(rtx, 0), &fnc);
 		if (!fncp) return -1; /* hard failure */
 
@@ -202,9 +201,9 @@ static int fnc_function_exists (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 					mod_data_t* md;
 
 					md = (mod_data_t*)fi->mod->ctx;
-					/* hawk_query_module_with_name() may update some shared data under
+					/* hawk_rtx_querymodulewithname() may update some shared data under
 					 * the hawk object. use a mutex for shared data safety */
-					rx = (hawk_querymodulewithname(hawk_rtx_gethawk(rtx), name.ptr, &sym) != HAWK_NULL);
+					rx = (hawk_rtx_querymodulewithoocs(rtx, &name, &sym) != HAWK_NULL);
 				}
 			}
 		}
