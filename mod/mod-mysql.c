@@ -1712,13 +1712,19 @@ static int fnc_stmt_fetch (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		if (n == MYSQL_NO_DATA) ret = 0; /* no more data */
 		else if (n == 0)
 		{
-			hawk_oow_t i, j, nargs;
+			hawk_oow_t i, j, nargs, nrefs, ncols;
 			MYSQL_BIND* bind;
 			res_data_t* data;
 			/* there is data */
 
 			nargs = hawk_rtx_getnargs(rtx);
-/* TODO: argument count check */
+			nrefs = nargs - 1;
+			ncols = mysql_stmt_field_count(stmt_node->stmt);
+			if (!stmt_node->res_binds || !stmt_node->res_data || nrefs > ncols || nrefs > stmt_node->res_capa)
+			{
+				set_error_on_sql_list(rtx, sql_list, HAWK_T("invalid number of output variables"));
+				goto done;
+			}
 
 			for (i = 1; i < nargs; i++)
 			{

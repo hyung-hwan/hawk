@@ -64,6 +64,7 @@ static sig_state_t g_sig_state[HAWK_NSIG];
 
 static int is_signal_handler_set (int sig)
 {
+	if (sig < 0 || sig >= HAWK_COUNTOF(g_sig_state)) return 0;
 	return !!g_sig_state[sig].handler;
 }
 
@@ -143,8 +144,11 @@ int hawk_main_set_signal_handler (int sig, hawk_main_sig_handler_t handler, int 
 		g_sig_state[sig].old_sa_mask = oldsa.sa_mask;
 		g_sig_state[sig].old_sa_flags = oldsa.sa_flags;
 	#else
-		g_sig_state[sig].old_handler = (hawk_uintptr_t)signal(sig, handler);
-		g_sig_state[sig].handler = (hawk_uintptr_t)dispatch_signal;
+		hawk_main_sig_handler_t oh;
+		oh = signal(sig, dispatch_signal);
+		if (oh == SIG_ERR) return -1;
+		g_sig_state[sig].old_handler = (hawk_uintptr_t)oh;
+		g_sig_state[sig].handler = (hawk_uintptr_t)handler;
 	#endif
 	}
 
