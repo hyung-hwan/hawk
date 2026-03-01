@@ -1435,6 +1435,12 @@ static int fnc_stmt_execute (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		hawk_oow_t param_count;
 
 		nargs = hawk_rtx_getnargs(rtx);
+		if (nargs < 1 || ((nargs - 1) % 2) != 0)
+		{
+			set_error_on_sql_list(rtx, sql_list, HAWK_T("invalid statement parameter pairs"));
+			goto done;
+		}
+
 		nparams = (nargs - 1) / 2;
 		param_count = mysql_stmt_param_count(stmt_node->stmt);
 		if (nparams != param_count)
@@ -1479,7 +1485,7 @@ static int fnc_stmt_execute (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		HAWK_MEMSET(stmt_node->param_binds, 0, HAWK_SIZEOF(MYSQL_BIND)* stmt_node->param_capa);
 		HAWK_MEMSET(stmt_node->param_data, 0, HAWK_SIZEOF(param_data_t)* stmt_node->param_capa);
 
-		for (i = 1; i < nargs; i += 2)
+		for (i = 0; i < nparams; i++)
 		{
 			hawk_val_t* ta, * va;
 			hawk_oow_t j;
@@ -1487,14 +1493,14 @@ static int fnc_stmt_execute (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			MYSQL_BIND* bind;
 			param_data_t* data;
 
-			ta = hawk_rtx_getarg(rtx, i);
-			va = hawk_rtx_getarg(rtx, i + 1);
-			j = (i >> 1);
+			j = 1 + (i * 2);
+			ta = hawk_rtx_getarg(rtx, j);
+			va = hawk_rtx_getarg(rtx, j + 1);
 
 			if (hawk_rtx_valtoint(rtx, ta, &type) <= -1) { take_rtx_err = 1; goto done; }
 
-			bind = &stmt_node->param_binds[j];
-			data = &stmt_node->param_data[j];
+			bind = &stmt_node->param_binds[i];
+			data = &stmt_node->param_data[i];
 
 			switch (type)
 			{
