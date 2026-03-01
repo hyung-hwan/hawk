@@ -104,6 +104,8 @@ static void dispatch_signal (int sig)
 
 int hawk_main_set_signal_handler (int sig, hawk_main_sig_handler_t handler, int extra_flags)
 {
+	if (sig < 0 || sig >= HAWK_COUNTOF(g_sig_state)) return -1; /* invalid signal */
+
 	if (g_sig_state[sig].handler)
 	{
 		/* already set - allow handler change. ignore extra_flags. */
@@ -161,6 +163,7 @@ int hawk_main_unset_signal_handler (int sig)
 	struct sigaction sa;
 #endif
 
+	if (sig < 0 || sig >= HAWK_COUNTOF(g_sig_state)) return -1; /* invalid signal */
 	if (!g_sig_state[sig].handler) return -1; /* not set */
 
 #if defined(HAVE_SIGACTION)

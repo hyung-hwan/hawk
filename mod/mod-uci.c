@@ -85,7 +85,7 @@ static uctx_node_t* new_uctx_node (hawk_rtx_t* rtx, uctx_list_t* list)
 	}
 	else
 	{
-		node = hawk_rtx_callocmem (rtx, HAWK_SIZEOF(*node));
+		node = hawk_rtx_callocmem(rtx, HAWK_SIZEOF(*node));
 		if (!node) goto oops;
 	}
 
@@ -143,7 +143,8 @@ oops:
 			list->free = node;
 		}
 		else
-		{
+		{ 
+			if (node->ctx) uci_free_context(node->ctx);
 			hawk_rtx_freemem(rtx, node);
 		}
 	}
