@@ -671,7 +671,7 @@ HAWK_EXPORT hawk_oow_t hawk_byte_to_bcstr (
 	hawk_uint8_t   byte,
 	hawk_bch_t*    buf,
 	hawk_oow_t     size,
-	int           flagged_radix,
+	int            flagged_radix,
 	hawk_bch_t     fill
 );
 
@@ -679,7 +679,7 @@ HAWK_EXPORT hawk_oow_t hawk_byte_to_ucstr (
 	hawk_uint8_t   byte,
 	hawk_uch_t*    buf,
 	hawk_oow_t     size,
-	int           flagged_radix,
+	int            flagged_radix,
 	hawk_uch_t     fill
 );
 
@@ -692,32 +692,32 @@ HAWK_EXPORT hawk_oow_t hawk_byte_to_ucstr (
 /* ------------------------------------------------------------------------- */
 
 HAWK_EXPORT hawk_oow_t hawk_int_to_ucstr (
-	hawk_int_t     value,
-	int              radix,
+	hawk_int_t        value,
+	int               radix,
 	const hawk_uch_t* prefix,
 	hawk_uch_t*       buf,
 	hawk_oow_t        size
 );
 
 HAWK_EXPORT hawk_oow_t hawk_int_to_bcstr (
-	hawk_int_t     value,
-	int              radix,
+	hawk_int_t        value,
+	int               radix,
 	const hawk_bch_t* prefix,
 	hawk_bch_t*       buf,
 	hawk_oow_t        size
 );
 
 HAWK_EXPORT hawk_oow_t hawk_uint_to_ucstr (
-	hawk_uint_t     value,
-	int              radix,
+	hawk_uint_t       value,
+	int               radix,
 	const hawk_uch_t* prefix,
 	hawk_uch_t*       buf,
 	hawk_oow_t        size
 );
 
 HAWK_EXPORT hawk_oow_t hawk_uint_to_bcstr (
-	hawk_uint_t     value,
-	int              radix,
+	hawk_uint_t       value,
+	int               radix,
 	const hawk_bch_t* prefix,
 	hawk_bch_t*       buf,
 	hawk_oow_t        size
@@ -785,33 +785,33 @@ HAWK_EXPORT hawk_oow_t hawk_uint_to_bcstr (
 HAWK_EXPORT hawk_int_t hawk_uchars_to_int (
 	const hawk_uch_t*  str,
 	hawk_oow_t         len,
-	int               option,
+	int                option,
 	const hawk_uch_t** endptr,
-	int*              is_sober
+	int*               is_sober
 );
 
 HAWK_EXPORT hawk_int_t hawk_bchars_to_int (
 	const hawk_bch_t*  str,
 	hawk_oow_t         len,
-	int               option,
+	int                option,
 	const hawk_bch_t** endptr,
-	int*              is_sober
+	int*               is_sober
 );
 
 HAWK_EXPORT hawk_uint_t hawk_uchars_to_uint (
 	const hawk_uch_t*  str,
 	hawk_oow_t         len,
-	int               option,
+	int                option,
 	const hawk_uch_t** endptr,
-	int*              is_sober
+	int*               is_sober
 );
 
 HAWK_EXPORT hawk_uint_t hawk_bchars_to_uint (
 	const hawk_bch_t*  str,
 	hawk_oow_t         len,
-	int               option,
+	int                option,
 	const hawk_bch_t** endptr,
-	int*              is_sober
+	int*               is_sober
 );
 #if defined(HAWK_OOCH_IS_UCH)
 #	define hawk_oochars_to_int hawk_uchars_to_int
@@ -879,6 +879,10 @@ template<typename CHAR_TYPE, typename INT_TYPE, bool(*IS_SPACE)(CHAR_TYPE)>INT_T
 			{
 				p++; base = 16;
 			}
+			else if (*p == 'o' || *p == 'O')
+			{
+				p++; base = 8;
+			}
 			else if (*p == 'b' || *p == 'B')
 			{
 				p++; base = 2;
@@ -890,6 +894,10 @@ template<typename CHAR_TYPE, typename INT_TYPE, bool(*IS_SPACE)(CHAR_TYPE)>INT_T
 	else if (rem >= 2 && base == 16)
 	{
 		if (*p == '0' && (*(p + 1) == 'x' || *(p + 1) == 'X')) p += 2;
+	}
+	else if (rem >= 2 && base == 8)
+	{
+		if (*p == '0' && (*(p + 1) == 'o' || *(p + 1) == 'O')) p += 2;
 	}
 	else if (rem >= 2 && base == 2)
 	{
@@ -987,6 +995,10 @@ template<typename CHAR_TYPE, typename UINT_TYPE, bool(*IS_SPACE)(CHAR_TYPE)>UINT
 			{
 				p++; base = 16;
 			}
+			else if (*p == 'o' || *p == 'O')
+			{
+				p++; base = 8;
+			}
 			else if (*p == 'b' || *p == 'B')
 			{
 				p++; base = 2;
@@ -998,6 +1010,10 @@ template<typename CHAR_TYPE, typename UINT_TYPE, bool(*IS_SPACE)(CHAR_TYPE)>UINT
 	else if (rem >= 2 && base == 16)
 	{
 		if (*p == '0' && (*(p + 1) == 'x' || *(p + 1) == 'X')) p += 2;
+	}
+	else if (rem >= 2 && base == 8)
+	{
+		if (*p == '0' && (*(p + 1) == 'o' || *(p + 1) == 'O')) p += 2;
 	}
 	else if (rem >= 2 && base == 2)
 	{

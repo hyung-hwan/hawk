@@ -13,7 +13,7 @@ int _fn_name_ (const _char_type_* str1, hawk_oow_t len1, const _char_type_* str2
 		while (str1 < end1)
 		{
 			c1 = _to_lower_()(*str1);
-			if (str2 < end2) 
+			if (str2 < end2)
 			{
 				c2 = _to_lower_()(*str2);
 				if (c1 > c2) return 1;
@@ -28,7 +28,7 @@ int _fn_name_ (const _char_type_* str1, hawk_oow_t len1, const _char_type_* str2
 		while (str1 < end1)
 		{
 			c1 = *str1;
-			if (str2 < end2) 
+			if (str2 < end2)
 			{
 				c2 = *str2;
 				if (c1 > c2) return 1;
@@ -105,14 +105,14 @@ int _fn_name_ (const _char_type_* str1, hawk_oow_t len, const _char_type_* str2,
 {
 	/* for "abc\0" of length 4 vs "abc", the fourth character
 	 * of the first string is equal to the terminating null of
-	 * the second string. the first string is still considered 
+	 * the second string. the first string is still considered
 	 * bigger */
 	if (ignorecase)
 	{
 		const _char_type_* end = str1 + len;
 		_char_type_ c1;
 		_char_type_ c2;
-		while (str1 < end && *str2 != '\0') 
+		while (str1 < end && *str2 != '\0')
 		{
 			c1 = _to_lower_()(*str1);
 			c2 = _to_lower_()(*str2);
@@ -124,7 +124,7 @@ int _fn_name_ (const _char_type_* str1, hawk_oow_t len, const _char_type_* str2,
 	else
 	{
 		const _char_type_* end = str1 + len;
-		while (str1 < end && *str2 != '\0') 
+		while (str1 < end && *str2 != '\0')
 		{
 			if (*str1 != *str2) return ((_chau_type_)*str1 > (_chau_type_)*str2)? 1: -1;
 			str1++; str2++;
@@ -150,7 +150,7 @@ hawk_oow_t _fn_name_ (_char_type_* buf, hawk_oow_t bsz, const _char_type_* str, 
 
 	end = str + len;
 
-	while (p < p2) 
+	while (p < p2)
 	{
 		if (str >= end) break;
 		*p++ = *str++;
@@ -175,7 +175,7 @@ hawk_oow_t _fn_name_ (_char_type_* buf, hawk_oow_t bsz, const _char_type_* str)
 	p = buf + blen;
 	p2 = buf + bsz - 1;
 
-	while (p < p2) 
+	while (p < p2)
 	{
 		if (*str == '\0') break;
 		*p++ = *str++;
@@ -337,15 +337,15 @@ hawk_oow_t _fn_name_ (_char_type_* buf, hawk_oow_t bsz, const _char_type_* fmt, 
 	_char_type_* b = buf;
 	_char_type_* end = buf + bsz - 1;
 	const _char_type_* f = fmt;
- 
+
 	if (bsz <= 0) return 0;
- 
+
 	while (*f != '\0')
 	{
 		if (*f == '\\')
 		{
 			/* get the escaped character and treat it normally.
-			 * if the escaper is the last character, treat it 
+			 * if the escaper is the last character, treat it
 			 * normally also. */
 			if (f[1] != '\0') f++;
 		}
@@ -355,24 +355,24 @@ hawk_oow_t _fn_name_ (_char_type_* buf, hawk_oow_t bsz, const _char_type_* fmt, 
 			{
 				const _char_type_* tmp, * tmpend;
 				hawk_oow_t idx = 0;
- 
+
 				tmp = f;
 				f += 2;
- 
+
 				do idx = idx * 10 + (*f++ - '0');
 				while (*f >= '0' && *f <= '9');
-	
+
 				if (*f != '}')
 				{
 					f = tmp;
 					goto normal;
 				}
- 
+
 				f++;
-				
+
 				tmp = str[idx].ptr;
 				tmpend = tmp + str[idx].len;
- 
+
 				while (tmp < tmpend)
 				{
 					if (b >= end) goto fini;
@@ -382,12 +382,12 @@ hawk_oow_t _fn_name_ (_char_type_* buf, hawk_oow_t bsz, const _char_type_* fmt, 
 			}
 			else if (f[1] == '$') f++;
 		}
- 
+
 	normal:
 		if (b >= end) break;
 		*b++ = *f++;
 	}
- 
+
 fini:
 	*b = '\0';
 	return b - buf;
@@ -401,7 +401,7 @@ hawk_oow_t _fn_name_ (const _char_type_* str)
 	const _char_type_* ptr = str;
 	while (*ptr != '\0') ptr++;
 	return ptr - str;
-} 
+}
 popdef([[_fn_name_]])popdef([[_char_type_]])dnl
 ]])dnl
 dnl ---------------------------------------------------------------------------
@@ -517,13 +517,13 @@ _char_type_* _fn_name_ (const _char_type_* str, hawk_oow_t strsz, const _char_ty
 
 	if (subsz == 0) return (_char_type_*)str;
 	if (strsz < subsz) return HAWK_NULL;
-	
+
 	end = str + strsz - subsz;
 	subp = sub + subsz;
 
 	if (HAWK_UNLIKELY(ignorecase))
 	{
-		while (str <= end) 
+		while (str <= end)
 		{
 			const _char_type_* x = str;
 			const _char_type_* y = sub;
@@ -540,7 +540,7 @@ _char_type_* _fn_name_ (const _char_type_* str, hawk_oow_t strsz, const _char_ty
 	}
 	else
 	{
-		while (str <= end) 
+		while (str <= end)
 		{
 			const _char_type_* x = str;
 			const _char_type_* y = sub;
@@ -574,12 +574,12 @@ _char_type_* _fn_name_ (const _char_type_* str, hawk_oow_t strsz, const _char_ty
 
 	if (HAWK_UNLIKELY(ignorecase))
 	{
-		while (p >= str) 
+		while (p >= str)
 		{
 			const _char_type_* x = p;
 			const _char_type_* y = sub;
 
-			while (1) 
+			while (1)
 			{
 				if (y >= subp) return (_char_type_*)p;
 				if (_to_lower_()(*x) != _to_lower_()(*y)) break;
@@ -591,17 +591,17 @@ _char_type_* _fn_name_ (const _char_type_* str, hawk_oow_t strsz, const _char_ty
 	}
 	else
 	{
-		while (p >= str) 
+		while (p >= str)
 		{
 			const _char_type_* x = p;
 			const _char_type_* y = sub;
 
-			while (1) 
+			while (1)
 			{
 				if (y >= subp) return (_char_type_*)p;
 				if (*x != *y) break;
 				x++; y++;
-			}	
+			}
 
 			p--;
 		}
@@ -619,30 +619,30 @@ hawk_oow_t _fn_name_ (_char_type_* str, hawk_oow_t len)
 	int followed_by_space = 0;
 	int state = 0;
 
-	while (p < end) 
+	while (p < end)
 	{
-		if (state == 0) 
+		if (state == 0)
 		{
-			if (!_is_space_()(*p)) 
+			if (!_is_space_()(*p))
 			{
 				*q++ = *p;
 				state = 1;
 			}
 		}
-		else if (state == 1) 
+		else if (state == 1)
 		{
-			if (_is_space_()(*p)) 
+			if (_is_space_()(*p))
 			{
-				if (!followed_by_space) 
+				if (!followed_by_space)
 				{
 					followed_by_space = 1;
 					*q++ = *p;
 				}
 			}
-			else 
+			else
 			{
 				followed_by_space = 0;
-				*q++ = *p;	
+				*q++ = *p;
 			}
 		}
 
@@ -713,11 +713,11 @@ _char_type_* _fn_name_ (const _char_type_* str, hawk_oow_t* len, int flags)
 
 		if (e)
 		{
-			if (flags & _prefix_()_RIGHT) 
+			if (flags & _prefix_()_RIGHT)
 			{
 				*len -= end - e - 1;
 			}
-			if (flags & _prefix_()_LEFT) 
+			if (flags & _prefix_()_LEFT)
 			{
 				*len -= s - str;
 				str = s;
@@ -726,7 +726,7 @@ _char_type_* _fn_name_ (const _char_type_* str, hawk_oow_t* len, int flags)
 		else
 		{
 			/* the entire string need to be deleted */
-			if ((flags & _prefix_()_RIGHT) || 
+			if ((flags & _prefix_()_RIGHT) ||
 			    (flags & _prefix_()_LEFT)) *len = 0;
 		}
 	}
@@ -745,35 +745,35 @@ int _fn_name_ (_char_type_* s, const _char_type_* delim, _char_type_ lquote, _ch
 	int cnt = 0;
 
 	if (delim == HAWK_NULL) delim_mode = 0;
-	else 
+	else
 	{
 		delim_mode = 1;
 		for (d = (_char_type_*)delim; *d != '\0'; d++)
 			if (!_is_space_()(*d)) delim_mode = 2;
 	}
 
-	if (delim_mode == 0) 
+	if (delim_mode == 0)
 	{
 		/* skip preceding space characters */
 		while (_is_space_()(*p)) p++;
 
 		/* when 0 is given as "delim", it has an effect of cutting
 		   preceding and trailing space characters off "s". */
-		if (lquote != '\0' && *p == lquote) 
+		if (lquote != '\0' && *p == lquote)
 		{
 			_copy_str_unlimited_ (p, p + 1);
 
-			for (;;) 
+			for (;;)
 			{
 				if (*p == '\0') return -1;
 
-				if (escape != '\0' && *p == escape) 
+				if (escape != '\0' && *p == escape)
 				{
 					_copy_str_unlimited_ (p, p + 1);
 				}
-				else 
+				else
 				{
-					if (*p == rquote) 
+					if (*p == rquote)
 					{
 						p++;
 						break;
@@ -788,18 +788,18 @@ int _fn_name_ (_char_type_* s, const _char_type_* delim, _char_type_ lquote, _ch
 			if (*p != '\0') return -1;
 
 			if (sp == 0 && ep == 0) s[0] = '\0';
-			else 
+			else
 			{
 				ep[1] = '\0';
 				if (s != (_char_type_*)sp) _copy_str_unlimited_ (s, sp);
 				cnt++;
 			}
 		}
-		else 
+		else
 		{
-			while (*p) 
+			while (*p)
 			{
-				if (!_is_space_()(*p)) 
+				if (!_is_space_()(*p))
 				{
 					if (sp == 0) sp = p;
 					ep = p;
@@ -808,7 +808,7 @@ int _fn_name_ (_char_type_* s, const _char_type_* delim, _char_type_ lquote, _ch
 			}
 
 			if (sp == 0 && ep == 0) s[0] = '\0';
-			else 
+			else
 			{
 				ep[1] = '\0';
 				if (s != (_char_type_*)sp) _copy_str_unlimited_ (s, sp);
@@ -816,31 +816,31 @@ int _fn_name_ (_char_type_* s, const _char_type_* delim, _char_type_ lquote, _ch
 			}
 		}
 	}
-	else if (delim_mode == 1) 
+	else if (delim_mode == 1)
 	{
 		_char_type_* o;
 
-		while (*p) 
+		while (*p)
 		{
 			o = p;
 			while (_is_space_()(*p)) p++;
 			if (o != p) { _copy_str_unlimited_ (o, p); p = o; }
 
-			if (lquote != '\0' && *p == lquote) 
+			if (lquote != '\0' && *p == lquote)
 			{
 				_copy_str_unlimited_ (p, p + 1);
 
-				for (;;) 
+				for (;;)
 				{
 					if (*p == '\0') return -1;
 
-					if (escape != '\0' && *p == escape) 
+					if (escape != '\0' && *p == escape)
 					{
 						_copy_str_unlimited_ (p, p + 1);
 					}
-					else 
+					else
 					{
-						if (*p == rquote) 
+						if (*p == rquote)
 						{
 							*p++ = '\0';
 							cnt++;
@@ -850,17 +850,17 @@ int _fn_name_ (_char_type_* s, const _char_type_* delim, _char_type_ lquote, _ch
 					p++;
 				}
 			}
-			else 
+			else
 			{
 				o = p;
-				for (;;) 
+				for (;;)
 				{
-					if (*p == '\0') 
+					if (*p == '\0')
 					{
 						if (o != p) cnt++;
 						break;
 					}
-					if (_is_space_()(*p)) 
+					if (_is_space_()(*p))
 					{
 						*p++ = '\0';
 						cnt++;
@@ -876,27 +876,27 @@ int _fn_name_ (_char_type_* s, const _char_type_* delim, _char_type_ lquote, _ch
 		_char_type_* o;
 		int ok;
 
-		while (*p != '\0') 
+		while (*p != '\0')
 		{
 			o = p;
 			while (_is_space_()(*p)) p++;
 			if (o != p) { _copy_str_unlimited_ (o, p); p = o; }
 
-			if (lquote != '\0' && *p == lquote) 
+			if (lquote != '\0' && *p == lquote)
 			{
 				_copy_str_unlimited_ (p, p + 1);
 
-				for (;;) 
+				for (;;)
 				{
 					if (*p == '\0') return -1;
 
-					if (escape != '\0' && *p == escape) 
+					if (escape != '\0' && *p == escape)
 					{
 						_copy_str_unlimited_ (p, p + 1);
 					}
-					else 
+					else
 					{
-						if (*p == rquote) 
+						if (*p == rquote)
 						{
 							*p++ = '\0';
 							cnt++;
@@ -909,9 +909,9 @@ int _fn_name_ (_char_type_* s, const _char_type_* delim, _char_type_ lquote, _ch
 				ok = 0;
 				while (_is_space_()(*p)) p++;
 				if (*p == '\0') ok = 1;
-				for (d = (_char_type_*)delim; *d != '\0'; d++) 
+				for (d = (_char_type_*)delim; *d != '\0'; d++)
 				{
-					if (*p == *d) 
+					if (*p == *d)
 					{
 						ok = 1;
 						_copy_str_unlimited_ (p, p + 1);
@@ -920,15 +920,15 @@ int _fn_name_ (_char_type_* s, const _char_type_* delim, _char_type_ lquote, _ch
 				}
 				if (ok == 0) return -1;
 			}
-			else 
+			else
 			{
 				o = p; sp = ep = 0;
 
-				for (;;) 
+				for (;;)
 				{
-					if (*p == '\0') 
+					if (*p == '\0')
 					{
-						if (ep) 
+						if (ep)
 						{
 							ep[1] = '\0';
 							p = &ep[1];
@@ -936,16 +936,16 @@ int _fn_name_ (_char_type_* s, const _char_type_* delim, _char_type_ lquote, _ch
 						cnt++;
 						break;
 					}
-					for (d = (_char_type_*)delim; *d != '\0'; d++) 
+					for (d = (_char_type_*)delim; *d != '\0'; d++)
 					{
-						if (*p == *d)  
+						if (*p == *d)
 						{
-							if (sp == HAWK_NULL) 
+							if (sp == HAWK_NULL)
 							{
 								_copy_str_unlimited_ (o, p); p = o;
 								*p++ = '\0';
 							}
-							else 
+							else
 							{
 								_copy_str_unlimited_ (&ep[1], p);
 								_copy_str_unlimited_ (o, sp);
@@ -959,7 +959,7 @@ int _fn_name_ (_char_type_* s, const _char_type_* delim, _char_type_ lquote, _ch
 						}
 					}
 
-					if (!_is_space_()(*p)) 
+					if (!_is_space_()(*p))
 					{
 						if (sp == HAWK_NULL) sp = p;
 						ep = p;
@@ -983,7 +983,7 @@ _char_type_* _fn_name_ (const _char_type_* s, hawk_oow_t len, const _char_type_*
 	const _char_type_* end = s + len;
 	const _char_type_* sp = HAWK_NULL, * ep = HAWK_NULL;
 	const _char_type_* delim_end = delim + delim_len;
-	_char_type_ c; 
+	_char_type_ c;
 	int delim_mode;
 
 #define __DELIM_NULL      0
@@ -992,13 +992,13 @@ _char_type_* _fn_name_ (const _char_type_* s, hawk_oow_t len, const _char_type_*
 #define __DELIM_NOSPACES  3
 #define __DELIM_COMPOSITE 4
 	if (delim == HAWK_NULL) delim_mode = __DELIM_NULL;
-	else 
+	else
 	{
 		delim_mode = __DELIM_EMPTY;
 
-		for (d = delim; d < delim_end; d++) 
+		for (d = delim; d < delim_end; d++)
 		{
-			if (_is_space_()(*d)) 
+			if (_is_space_()(*d))
 			{
 				if (delim_mode == __DELIM_EMPTY)
 					delim_mode = __DELIM_SPACES;
@@ -1022,20 +1022,20 @@ _char_type_* _fn_name_ (const _char_type_* s, hawk_oow_t len, const _char_type_*
 
 		/* TODO: verify the following statement... */
 		if (delim_mode == __DELIM_SPACES && delim_len == 1 && delim[0] != ' ') delim_mode = __DELIM_NOSPACES;
-	}		
-	
-	if (delim_mode == __DELIM_NULL) 
-	{ 
-		/* when HAWK_NULL is given as "delim", it trims off the 
+	}
+
+	if (delim_mode == __DELIM_NULL)
+	{
+		/* when HAWK_NULL is given as "delim", it trims off the
 		 * leading and trailing spaces characters off the source
 		 * string "s" eventually. */
 
 		while (p < end && _is_space_()(*p)) p++;
-		while (p < end) 
+		while (p < end)
 		{
 			c = *p;
 
-			if (!_is_space_()(c)) 
+			if (!_is_space_()(c))
 			{
 				if (sp == HAWK_NULL) sp = p;
 				ep = p;
@@ -1053,13 +1053,13 @@ _char_type_* _fn_name_ (const _char_type_* s, hawk_oow_t len, const _char_type_*
 			ep = p++;
 		}
 	}
-	else if (delim_mode == __DELIM_SPACES) 
+	else if (delim_mode == __DELIM_SPACES)
 	{
 		/* each token is delimited by space characters. all leading
 		 * and trailing spaces are removed. */
 
 		while (p < end && _is_space_()(*p)) p++;
-		while (p < end) 
+		while (p < end)
 		{
 			c = *p;
 			if (_is_space_()(c)) break;
@@ -1070,14 +1070,14 @@ _char_type_* _fn_name_ (const _char_type_* s, hawk_oow_t len, const _char_type_*
 	}
 	else if (delim_mode == __DELIM_NOSPACES)
 	{
-		/* each token is delimited by one of charaters 
+		/* each token is delimited by one of charaters
 		 * in the delimeter set "delim". */
 		if (ignorecase)
 		{
-			while (p < end) 
+			while (p < end)
 			{
 				c = _to_lower_()(*p);
-				for (d = delim; d < delim_end; d++) 
+				for (d = delim; d < delim_end; d++)
 				{
 					if (c == _to_lower_()(*d)) goto exit_loop;
 				}
@@ -1088,10 +1088,10 @@ _char_type_* _fn_name_ (const _char_type_* s, hawk_oow_t len, const _char_type_*
 		}
 		else
 		{
-			while (p < end) 
+			while (p < end)
 			{
 				c = *p;
-				for (d = delim; d < delim_end; d++) 
+				for (d = delim; d < delim_end; d++)
 				{
 					if (c == *d) goto exit_loop;
 				}
@@ -1101,7 +1101,7 @@ _char_type_* _fn_name_ (const _char_type_* s, hawk_oow_t len, const _char_type_*
 			}
 		}
 	}
-	else /* if (delim_mode == __DELIM_COMPOSITE) */ 
+	else /* if (delim_mode == __DELIM_COMPOSITE) */
 	{
 		/* each token is delimited by one of non-space charaters
 		 * in the delimeter set "delim". however, all space characters
@@ -1109,15 +1109,15 @@ _char_type_* _fn_name_ (const _char_type_* s, hawk_oow_t len, const _char_type_*
 		while (p < end && _is_space_()(*p)) p++;
 		if (ignorecase)
 		{
-			while (p < end) 
+			while (p < end)
 			{
 				c = _to_lower_()(*p);
-				if (_is_space_()(c)) 
+				if (_is_space_()(c))
 				{
 					p++;
 					continue;
 				}
-				for (d = delim; d < delim_end; d++) 
+				for (d = delim; d < delim_end; d++)
 				{
 					if (c == _to_lower_()(*d)) goto exit_loop;
 				}
@@ -1127,15 +1127,15 @@ _char_type_* _fn_name_ (const _char_type_* s, hawk_oow_t len, const _char_type_*
 		}
 		else
 		{
-			while (p < end) 
+			while (p < end)
 			{
 				c = *p;
-				if (_is_space_()(c)) 
+				if (_is_space_()(c))
 				{
 					p++;
 					continue;
 				}
-				for (d = delim; d < delim_end; d++) 
+				for (d = delim; d < delim_end; d++)
 				{
 					if (c == *d) goto exit_loop;
 				}
@@ -1146,12 +1146,12 @@ _char_type_* _fn_name_ (const _char_type_* s, hawk_oow_t len, const _char_type_*
 	}
 
 exit_loop:
-	if (sp == HAWK_NULL) 
+	if (sp == HAWK_NULL)
 	{
 		tok->ptr = HAWK_NULL;
 		tok->len = (hawk_oow_t)0;
 	}
-	else 
+	else
 	{
 		tok->ptr = (_char_type_*)sp;
 		tok->len = ep - sp + 1;
@@ -1177,7 +1177,7 @@ hawk_oow_t _fn_name_ (hawk_uint8_t byte, _char_type_* buf, hawk_oow_t size, int 
 	radix_char = (flagged_radix & _prefix_()_LOWERCASE)? 'a': 'A';
 	if (radix < 2 || radix > 36 || size <= 0) return 0;
 
-	do 
+	do
 	{
 		hawk_uint8_t digit = byte % radix;
 		if (digit < 10) *p++ = digit + '0';
@@ -1186,9 +1186,9 @@ hawk_oow_t _fn_name_ (hawk_uint8_t byte, _char_type_* buf, hawk_oow_t size, int 
 	}
 	while (byte > 0);
 
-	if (fill != '\0') 
+	if (fill != '\0')
 	{
-		while (size - 1 > p - tmp) 
+		while (size - 1 > p - tmp)
 		{
 			*bp++ = fill;
 			size--;
@@ -1215,14 +1215,14 @@ hawk_oow_t _fn_name_ (_int_type_ value, int radix, const _char_type_* prefix, _c
 	if (t == 0)
 	{
 		/* zero */
-		if (buf == HAWK_NULL) 
+		if (buf == HAWK_NULL)
 		{
-			/* if buf is not given, 
+			/* if buf is not given,
 			 * return the number of bytes required */
 			return prefix_len + 1;
 		}
 
-		if (size < prefix_len+1) 
+		if (size < prefix_len+1)
 		{
 			/* buffer too small */
 			return (hawk_oow_t)-1;
@@ -1252,7 +1252,7 @@ hawk_oow_t _fn_name_ (_int_type_ value, int radix, const _char_type_* prefix, _c
 	t = value;
 	if (t < 0) t = -t;
 
-	while (t > 0) 
+	while (t > 0)
 	{
 		rem = t % radix;
 		if (rem >= 10)
@@ -1262,9 +1262,9 @@ hawk_oow_t _fn_name_ (_int_type_ value, int radix, const _char_type_* prefix, _c
 		t /= radix;
 	}
 
-	if (value < 0) 
+	if (value < 0)
 	{
-		for (i = 1; i <= prefix_len; i++) 
+		for (i = 1; i <= prefix_len; i++)
 		{
 			buf[i] = prefix[i-1];
 			len--;
@@ -1291,7 +1291,7 @@ _int_type_ _fn_name_ (const _char_type_* str, hawk_oow_t len, int option, const 
 	int digit, negative = 0;
 	int base = _prefix_()_GET_OPTION_BASE(option);
 
-	p = str; 
+	p = str;
 	end = str + len;
 
 	if (_prefix_()_GET_OPTION_LTRIM(option))
@@ -1303,7 +1303,7 @@ _int_type_ _fn_name_ (const _char_type_* str, hawk_oow_t len, int option, const 
 	/* check for a sign */
 	while (p < end)
 	{
-		if (*p == '-') 
+		if (*p == '-')
 		{
 			negative = ~negative;
 			p++;
@@ -1314,9 +1314,9 @@ _int_type_ _fn_name_ (const _char_type_* str, hawk_oow_t len, int option, const 
 
 	/* check for a binary/octal/hexadecimal notation */
 	rem = end - p;
-	if (base == 0) 
+	if (base == 0)
 	{
-		if (rem >= 1 && *p == '0') 
+		if (rem >= 1 && *p == '0')
 		{
 			p++;
 
@@ -1324,7 +1324,11 @@ _int_type_ _fn_name_ (const _char_type_* str, hawk_oow_t len, int option, const 
 			else if (*p == 'x' || *p == 'X')
 			{
 				p++; base = 16;
-			} 
+			}
+			else if (*p == 'o' || *p == 'O')
+			{
+				p++; base = 8;
+			}
 			else if (*p == 'b' || *p == 'B')
 			{
 				p++; base = 2;
@@ -1332,14 +1336,18 @@ _int_type_ _fn_name_ (const _char_type_* str, hawk_oow_t len, int option, const 
 			else base = 8;
 		}
 		else base = 10;
-	} 
+	}
 	else if (rem >= 2 && base == 16)
 	{
-		if (*p == '0' && (*(p + 1) == 'x' || *(p + 1) == 'X')) p += 2; 
+		if (*p == '0' && (*(p + 1) == 'x' || *(p + 1) == 'X')) p += 2;
+	}
+	else if (rem >= 2 && base == 8)
+	{
+		if (*p == '0' && (*(p + 1) == 'o' || *(p + 1) == 'O')) p += 2;
 	}
 	else if (rem >= 2 && base == 2)
 	{
-		if (*p == '0' && (*(p + 1) == 'b' || *(p + 1) == 'B')) p += 2; 
+		if (*p == '0' && (*(p + 1) == 'b' || *(p + 1) == 'B')) p += 2;
 	}
 
 	/* process the digits */
@@ -1383,7 +1391,7 @@ _int_type_ _fn_name_ (const _char_type_* str, hawk_oow_t len, int option, const 
 
 	/* base 8: at least a zero digit has been seen.
 	 * other case: p > pp to be able to have at least 1 meaningful digit. */
-	if (is_sober) *is_sober = (base == 8 || p > pp); 
+	if (is_sober) *is_sober = (base == 8 || p > pp);
 
 	if (_prefix_()_GET_OPTION_RTRIM(option))
 	{
@@ -1407,7 +1415,7 @@ _int_type_ _fn_name_ (const _char_type_* str, hawk_oow_t len, int option, const 
 	int digit;
 	int base = _prefix_()_GET_OPTION_BASE(option);
 
-	p = str; 
+	p = str;
 	end = str + len;
 
 	if (_prefix_()_GET_OPTION_LTRIM(option))
@@ -1425,9 +1433,9 @@ _int_type_ _fn_name_ (const _char_type_* str, hawk_oow_t len, int option, const 
 
 	/* check for a binary/octal/hexadecimal notation */
 	rem = end - p;
-	if (base == 0) 
+	if (base == 0)
 	{
-		if (rem >= 1 && *p == '0') 
+		if (rem >= 1 && *p == '0')
 		{
 			p++;
 
@@ -1435,7 +1443,11 @@ _int_type_ _fn_name_ (const _char_type_* str, hawk_oow_t len, int option, const 
 			else if (*p == 'x' || *p == 'X')
 			{
 				p++; base = 16;
-			} 
+			}
+			else if (*p == 'o' || *p == 'O')
+			{
+				p++; base = 8;
+			}
 			else if (*p == 'b' || *p == 'B')
 			{
 				p++; base = 2;
@@ -1443,14 +1455,18 @@ _int_type_ _fn_name_ (const _char_type_* str, hawk_oow_t len, int option, const 
 			else base = 8;
 		}
 		else base = 10;
-	} 
+	}
 	else if (rem >= 2 && base == 16)
 	{
-		if (*p == '0' && (*(p + 1) == 'x' || *(p + 1) == 'X')) p += 2; 
+		if (*p == '0' && (*(p + 1) == 'x' || *(p + 1) == 'X')) p += 2;
+	}
+	else if (rem >= 2 && base == 8)
+	{
+		if (*p == '0' && (*(p + 1) == 'o' || *(p + 1) == 'O')) p += 2;
 	}
 	else if (rem >= 2 && base == 2)
 	{
-		if (*p == '0' && (*(p + 1) == 'b' || *(p + 1) == 'B')) p += 2; 
+		if (*p == '0' && (*(p + 1) == 'b' || *(p + 1) == 'B')) p += 2;
 	}
 
 	/* process the digits */
@@ -1494,7 +1510,7 @@ _int_type_ _fn_name_ (const _char_type_* str, hawk_oow_t len, int option, const 
 
 	/* base 8: at least a zero digit has been seen.
 	 * other case: p > pp to be able to have at least 1 meaningful digit. */
-	if (is_sober) *is_sober = (base == 8 || p > pp); 
+	if (is_sober) *is_sober = (base == 8 || p > pp);
 
 	if (_prefix_()_GET_OPTION_RTRIM(option))
 	{
@@ -1517,16 +1533,16 @@ int _fn_name_ (const _char_type_* str, hawk_oow_t slen, const _char_type_* ptn, 
 	const _char_type_* pe = ptn + plen;
 	_char_type_ sc, pc, pc2;
 
-	while (1) 
+	while (1)
 	{
-		if (pp < pe && HAWK_FNMAT_IS_ESC(*pp) && !(flags & HAWK_FNMAT_NOESCAPE)) 
+		if (pp < pe && HAWK_FNMAT_IS_ESC(*pp) && !(flags & HAWK_FNMAT_NOESCAPE))
 		{
 			/* pattern is escaped and escaping is allowed. */
 
-			if ((++pp) >= pe) 
+			if ((++pp) >= pe)
 			{
-				/* 
-				 * the last character of the pattern is an WCS_ESC. 
+				/*
+				 * the last character of the pattern is an WCS_ESC.
 				 * matching is performed as if the end of the pattern is
 				 * reached just without an WCS_ESC.
 				 */
@@ -1537,27 +1553,27 @@ int _fn_name_ (const _char_type_* str, hawk_oow_t slen, const _char_type_* ptn, 
 			if (sp >= se) return 0; /* premature string termination */
 
 			sc = *sp; pc = *pp; /* pc is just a normal character */
-			if ((flags & HAWK_FNMAT_IGNORECASE) != 0) 
+			if ((flags & HAWK_FNMAT_IGNORECASE) != 0)
 			{
 				/* make characters to lower-case */
 				sc = _to_lower_()(sc);
-				pc = _to_lower_()(pc); 
+				pc = _to_lower_()(pc);
 			}
 
 			if (sc != pc) return 0;
-			sp++; pp++; 
+			sp++; pp++;
 			continue;
 		}
-		if (pp >= pe) 
+		if (pp >= pe)
 		{
-			/* 
-			 * the end of the pattern has been reached. 
+			/*
+			 * the end of the pattern has been reached.
 			 * the string must terminate too.
 			 */
 			return sp >= se;
 		}
 
-		if (sp >= se) 
+		if (sp >= se)
 		{
 			/* the string terminats prematurely */
 			while (pp < pe && *pp == '*') pp++;
@@ -1566,23 +1582,23 @@ int _fn_name_ (const _char_type_* str, hawk_oow_t slen, const _char_type_* ptn, 
 
 		sc = *sp; pc = *pp;
 
-		if (sc == '.' && (flags & HAWK_FNMAT_PERIOD)) 
+		if (sc == '.' && (flags & HAWK_FNMAT_PERIOD))
 		{
-			/* 
-			 * a leading period in the staring must match 
-			 * a period in the pattern explicitly 
+			/*
+			 * a leading period in the staring must match
+			 * a period in the pattern explicitly
 			 */
-			if ((!no_first_period && sp == str) || 
-			    (HAWK_FNMAT_IS_SEP(sp[-1]) && (flags & HAWK_FNMAT_PATHNAME))) 
+			if ((!no_first_period && sp == str) ||
+			    (HAWK_FNMAT_IS_SEP(sp[-1]) && (flags & HAWK_FNMAT_PATHNAME)))
 			{
 				if (pc != '.') return 0;
 				sp++; pp++;
 				continue;
 			}
 		}
-		else if (HAWK_FNMAT_IS_SEP(sc) && (flags & HAWK_FNMAT_PATHNAME)) 
+		else if (HAWK_FNMAT_IS_SEP(sc) && (flags & HAWK_FNMAT_PATHNAME))
 		{
-			while (pc == '*') 
+			while (pc == '*')
 			{
 				if ((++pp) >= pe) return 0;
 				pc = *pp;
@@ -1595,21 +1611,21 @@ int _fn_name_ (const _char_type_* str, hawk_oow_t slen, const _char_type_* ptn, 
 		}
 
 		/* the handling of special pattern characters begins here */
-		if (pc == '?') 
+		if (pc == '?')
 		{
 			/* match any single character */
-			sp++; pp++; 
-		} 
-		else if (pc == '*') 
-		{ 
+			sp++; pp++;
+		}
+		else if (pc == '*')
+		{
 			/* match zero or more characters */
 
 			/* compact asterisks */
 			do { pp++; } while (pp < pe && *pp == '*');
 
-			if (pp >= pe) 
+			if (pp >= pe)
 			{
-				/* 
+				/*
 				 * if the last character in the pattern is an asterisk,
 				 * the string should not have any directory separators
 				 * when HAWK_FNMAT_PATHNAME is set.
@@ -1624,31 +1640,31 @@ int _fn_name_ (const _char_type_* str, hawk_oow_t slen, const _char_type_* ptn, 
 				}
 				return 1;
 			}
-			else 
+			else
 			{
-				do 
+				do
 				{
 					if (_fn_name_()(sp, se - sp, pp, pe - pp, flags, 1)) return 1;
 					if (HAWK_FNMAT_IS_SEP(*sp) && (flags & HAWK_FNMAT_PATHNAME)) break;
 					sp++;
-				} 
+				}
 				while (sp < se);
 
 				return 0;
 			}
 		}
-		else if (pc == '[') 
+		else if (pc == '[')
 		{
 			/* match range */
 			int negate = 0;
 			int matched = 0;
 
 			if ((++pp) >= pe) return 0;
-			if (*pp == '!') { negate = 1; pp++; } 
+			if (*pp == '!') { negate = 1; pp++; }
 
-			while (pp < pe && *pp != ']') 
+			while (pp < pe && *pp != ']')
 			{
-				if (*pp == '[') 
+				if (*pp == '[')
 				{
 					hawk_oow_t pl = pe - pp;
 
@@ -1662,9 +1678,9 @@ int _fn_name_ (const _char_type_* str, hawk_oow_t slen, const _char_type_* ptn, 
 						}
 					}
 
-					/* 
-					 * characters in an invalid class name are 
-					 * just treated as normal characters 
+					/*
+					 * characters in an invalid class name are
+					 * just treated as normal characters
 					 */
 				}
 
@@ -1674,44 +1690,44 @@ int _fn_name_ (const _char_type_* str, hawk_oow_t slen, const _char_type_* ptn, 
 				if (pp >= pe) break;
 
 				pc = *pp;
-				if ((flags & HAWK_FNMAT_IGNORECASE) != 0) 
+				if ((flags & HAWK_FNMAT_IGNORECASE) != 0)
 				{
-					sc = _to_lower_()(sc); 
-					pc = _to_lower_()(pc); 
+					sc = _to_lower_()(sc);
+					pc = _to_lower_()(pc);
 				}
 
-				if (pp + 1 < pe && pp[1] == '-') 
+				if (pp + 1 < pe && pp[1] == '-')
 				{
 					pp += 2; /* move the a character next to a dash */
 
-					if (pp >= pe) 
+					if (pp >= pe)
 					{
 						if (sc >= pc) matched = 1;
 						break;
 					}
 
-					if (HAWK_FNMAT_IS_ESC(*pp) && !(flags & HAWK_FNMAT_NOESCAPE)) 
+					if (HAWK_FNMAT_IS_ESC(*pp) && !(flags & HAWK_FNMAT_NOESCAPE))
 					{
-						if ((++pp) >= pe) 
+						if ((++pp) >= pe)
 						{
 							if (sc >= pc) matched = 1;
 							break;
 						}
 					}
-					else if (*pp == ']') 
+					else if (*pp == ']')
 					{
 						if (sc >= pc) matched = 1;
 						break;
 					}
 
 					pc2 = *pp;
-					if ((flags & HAWK_FNMAT_IGNORECASE) != 0) 
-						pc2 = _to_lower_()(pc2); 
+					if ((flags & HAWK_FNMAT_IGNORECASE) != 0)
+						pc2 = _to_lower_()(pc2);
 
 					if (sc >= pc && sc <= pc2) matched = 1;
 					pp++;
 				}
-				else 
+				else
 				{
 					if (sc == pc) matched = 1;
 					pp++;
@@ -1722,13 +1738,13 @@ int _fn_name_ (const _char_type_* str, hawk_oow_t slen, const _char_type_* ptn, 
 			if (!matched) return 0;
 			sp++; if (pp < pe) pp++;
 		}
-		else 
+		else
 		{
 			/* a normal character */
-			if ((flags & HAWK_FNMAT_IGNORECASE) != 0) 
+			if ((flags & HAWK_FNMAT_IGNORECASE) != 0)
 			{
-				sc = _to_lower_()(sc); 
-				pc = _to_lower_()(pc); 
+				sc = _to_lower_()(sc);
+				pc = _to_lower_()(pc);
 			}
 
 			if (sc != pc) return 0;

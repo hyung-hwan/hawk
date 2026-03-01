@@ -22,11 +22,11 @@
     THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/* 
+/*
  * Do NOT edit utl-str.c. Edit utl-str.c.m4 instead.
- * 
+ *
  * Generate utl-str.c with m4
- *   $ m4 utl-str.c.m4 > utl-str.c  
+ *   $ m4 utl-str.c.m4 > utl-str.c
  */
 
 #include "hawk-prv.h"
@@ -34,57 +34,57 @@
 
 static int match_uch_class (const hawk_uch_t* pp, hawk_uch_t sc, int* matched)
 {
-	if (hawk_comp_ucstr_bcstr_limited(pp, "[:upper:]", 9, 0) == 0) 
+	if (hawk_comp_ucstr_bcstr_limited(pp, "[:upper:]", 9, 0) == 0)
 	{
 		*matched = hawk_is_uch_upper(sc);
 		return 9;
 	}
-	else if (hawk_comp_ucstr_bcstr_limited(pp, "[:lower:]", 9, 0) == 0) 
+	else if (hawk_comp_ucstr_bcstr_limited(pp, "[:lower:]", 9, 0) == 0)
 	{
 		*matched = hawk_is_uch_lower(sc);
 		return 9;
 	}
-	else if (hawk_comp_ucstr_bcstr_limited(pp, "[:alpha:]", 9, 0) == 0) 
+	else if (hawk_comp_ucstr_bcstr_limited(pp, "[:alpha:]", 9, 0) == 0)
 	{
 		*matched = hawk_is_uch_alpha(sc);
 		return 9;
 	}
-	else if (hawk_comp_ucstr_bcstr_limited(pp, "[:digit:]", 9, 0) == 0) 
+	else if (hawk_comp_ucstr_bcstr_limited(pp, "[:digit:]", 9, 0) == 0)
 	{
 		*matched = hawk_is_uch_digit(sc);
 		return 9;
 	}
-	else if (hawk_comp_ucstr_bcstr_limited(pp, "[:xdigit:]", 10, 0) == 0) 
+	else if (hawk_comp_ucstr_bcstr_limited(pp, "[:xdigit:]", 10, 0) == 0)
 	{
 		*matched = hawk_is_uch_xdigit(sc);
 		return 10;
 	}
-	else if (hawk_comp_ucstr_bcstr_limited(pp, "[:alnum:]", 9, 0) == 0) 
+	else if (hawk_comp_ucstr_bcstr_limited(pp, "[:alnum:]", 9, 0) == 0)
 	{
 		*matched = hawk_is_uch_alnum(sc);
 		return 9;
 	}
-	else if (hawk_comp_ucstr_bcstr_limited(pp, "[:space:]", 9, 0) == 0) 
+	else if (hawk_comp_ucstr_bcstr_limited(pp, "[:space:]", 9, 0) == 0)
 	{
 		*matched = hawk_is_uch_space(sc);
 		return 9;
 	}
-	else if (hawk_comp_ucstr_bcstr_limited(pp, "[:print:]", 9, 0) == 0) 
+	else if (hawk_comp_ucstr_bcstr_limited(pp, "[:print:]", 9, 0) == 0)
 	{
 		*matched = hawk_is_uch_print(sc);
 		return 9;
 	}
-	else if (hawk_comp_ucstr_bcstr_limited(pp, "[:graph:]", 9, 0) == 0) 
+	else if (hawk_comp_ucstr_bcstr_limited(pp, "[:graph:]", 9, 0) == 0)
 	{
 		*matched = hawk_is_uch_graph(sc);
 		return 9;
 	}
-	else if (hawk_comp_ucstr_bcstr_limited(pp, "[:cntrl:]", 9, 0) == 0) 
+	else if (hawk_comp_ucstr_bcstr_limited(pp, "[:cntrl:]", 9, 0) == 0)
 	{
 		*matched = hawk_is_uch_cntrl(sc);
 		return 9;
 	}
-	else if (hawk_comp_ucstr_bcstr_limited(pp, "[:punct:]", 9, 0) == 0) 
+	else if (hawk_comp_ucstr_bcstr_limited(pp, "[:punct:]", 9, 0) == 0)
 	{
 		*matched = hawk_is_uch_punct(sc);
 		return 9;
@@ -95,57 +95,57 @@ static int match_uch_class (const hawk_uch_t* pp, hawk_uch_t sc, int* matched)
 
 static int match_bch_class (const hawk_bch_t* pp, hawk_bch_t sc, int* matched)
 {
-	if (hawk_comp_bcstr_limited(pp, "[:upper:]", 9, 0) == 0) 
+	if (hawk_comp_bcstr_limited(pp, "[:upper:]", 9, 0) == 0)
 	{
 		*matched = hawk_is_bch_upper(sc);
 		return 9;
 	}
-	else if (hawk_comp_bcstr_limited(pp, "[:lower:]", 9, 0) == 0) 
+	else if (hawk_comp_bcstr_limited(pp, "[:lower:]", 9, 0) == 0)
 	{
 		*matched = hawk_is_bch_lower(sc);
 		return 9;
 	}
-	else if (hawk_comp_bcstr_limited(pp, "[:alpha:]", 9, 0) == 0) 
+	else if (hawk_comp_bcstr_limited(pp, "[:alpha:]", 9, 0) == 0)
 	{
 		*matched = hawk_is_bch_alpha(sc);
 		return 9;
 	}
-	else if (hawk_comp_bcstr_limited(pp, "[:digit:]", 9, 0) == 0) 
+	else if (hawk_comp_bcstr_limited(pp, "[:digit:]", 9, 0) == 0)
 	{
 		*matched = hawk_is_bch_digit(sc);
 		return 9;
 	}
-	else if (hawk_comp_bcstr_limited(pp, "[:xdigit:]", 10, 0) == 0) 
+	else if (hawk_comp_bcstr_limited(pp, "[:xdigit:]", 10, 0) == 0)
 	{
 		*matched = hawk_is_bch_xdigit(sc);
 		return 10;
 	}
-	else if (hawk_comp_bcstr_limited(pp, "[:alnum:]", 9, 0) == 0) 
+	else if (hawk_comp_bcstr_limited(pp, "[:alnum:]", 9, 0) == 0)
 	{
 		*matched = hawk_is_bch_alnum(sc);
 		return 9;
 	}
-	else if (hawk_comp_bcstr_limited(pp, "[:space:]", 9, 0) == 0) 
+	else if (hawk_comp_bcstr_limited(pp, "[:space:]", 9, 0) == 0)
 	{
 		*matched = hawk_is_bch_space(sc);
 		return 9;
 	}
-	else if (hawk_comp_bcstr_limited(pp, "[:print:]", 9, 0) == 0) 
+	else if (hawk_comp_bcstr_limited(pp, "[:print:]", 9, 0) == 0)
 	{
 		*matched = hawk_is_bch_print(sc);
 		return 9;
 	}
-	else if (hawk_comp_bcstr_limited(pp, "[:graph:]", 9, 0) == 0) 
+	else if (hawk_comp_bcstr_limited(pp, "[:graph:]", 9, 0) == 0)
 	{
 		*matched = hawk_is_bch_graph(sc);
 		return 9;
 	}
-	else if (hawk_comp_bcstr_limited(pp, "[:cntrl:]", 9, 0) == 0) 
+	else if (hawk_comp_bcstr_limited(pp, "[:cntrl:]", 9, 0) == 0)
 	{
 		*matched = hawk_is_bch_cntrl(sc);
 		return 9;
 	}
-	else if (hawk_comp_bcstr_limited(pp, "[:punct:]", 9, 0) == 0) 
+	else if (hawk_comp_bcstr_limited(pp, "[:punct:]", 9, 0) == 0)
 	{
 		*matched = hawk_is_bch_punct(sc);
 		return 9;

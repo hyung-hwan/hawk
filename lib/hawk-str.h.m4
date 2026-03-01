@@ -39,7 +39,7 @@ dnl include utl-str.m4 for c++ template functions far below
 include(`utl-str.m4')
 dnl ---------------------------------------------------------------------------
 
-/* ========================================================================= 
+/* =========================================================================
  * STRING
  * ========================================================================= */
 
@@ -643,8 +643,8 @@ HAWK_EXPORT int hawk_fnmat_bchars_i (
 #	define hawk_find_oochars_in_oochars hawk_find_bchars_in_bchars
 #	define hawk_rfind_oochars_in_oochars hawk_rfind_bchars_in_bchars
 
-#	define hawk_compact_oochars hawk_compact_uchars
-#	define hawk_rotate_oochars hawk_rotate_uchars
+#	define hawk_compact_oochars hawk_compact_bchars
+#	define hawk_rotate_oochars hawk_rotate_bchars
 #	define hawk_tokenize_oochars hawk_tokenize_bchars
 #	define hawk_trim_oochars hawk_trim_bchars
 #	define hawk_split_oocstr hawk_split_bcstr
@@ -668,18 +668,18 @@ HAWK_EXPORT int hawk_fnmat_bchars_i (
 #define HAWK_BYTE_TO_BCSTR_LOWERCASE HAWK_BYTE_TO_OOCSTR_LOWERCASE
 
 HAWK_EXPORT hawk_oow_t hawk_byte_to_bcstr (
-	hawk_uint8_t   byte,  
+	hawk_uint8_t   byte,
 	hawk_bch_t*    buf,
 	hawk_oow_t     size,
-	int           flagged_radix,
+	int            flagged_radix,
 	hawk_bch_t     fill
 );
 
 HAWK_EXPORT hawk_oow_t hawk_byte_to_ucstr (
-	hawk_uint8_t   byte,  
+	hawk_uint8_t   byte,
 	hawk_uch_t*    buf,
 	hawk_oow_t     size,
-	int           flagged_radix,
+	int            flagged_radix,
 	hawk_uch_t     fill
 );
 
@@ -692,32 +692,32 @@ HAWK_EXPORT hawk_oow_t hawk_byte_to_ucstr (
 /* ------------------------------------------------------------------------- */
 
 HAWK_EXPORT hawk_oow_t hawk_int_to_ucstr (
-	hawk_int_t     value, 
-	int              radix, 
+	hawk_int_t        value,
+	int               radix,
 	const hawk_uch_t* prefix,
 	hawk_uch_t*       buf,
 	hawk_oow_t        size
 );
 
 HAWK_EXPORT hawk_oow_t hawk_int_to_bcstr (
-	hawk_int_t     value, 
-	int              radix, 
+	hawk_int_t        value,
+	int               radix,
 	const hawk_bch_t* prefix,
 	hawk_bch_t*       buf,
 	hawk_oow_t        size
 );
 
 HAWK_EXPORT hawk_oow_t hawk_uint_to_ucstr (
-	hawk_uint_t     value, 
-	int              radix, 
+	hawk_uint_t       value,
+	int               radix,
 	const hawk_uch_t* prefix,
 	hawk_uch_t*       buf,
 	hawk_oow_t        size
 );
 
 HAWK_EXPORT hawk_oow_t hawk_uint_to_bcstr (
-	hawk_uint_t     value, 
-	int              radix, 
+	hawk_uint_t       value,
+	int               radix,
 	const hawk_bch_t* prefix,
 	hawk_bch_t*       buf,
 	hawk_oow_t        size
@@ -785,33 +785,33 @@ HAWK_EXPORT hawk_oow_t hawk_uint_to_bcstr (
 HAWK_EXPORT hawk_int_t hawk_uchars_to_int (
 	const hawk_uch_t*  str,
 	hawk_oow_t         len,
-	int               option,
+	int                option,
 	const hawk_uch_t** endptr,
-	int*              is_sober
+	int*               is_sober
 );
 
 HAWK_EXPORT hawk_int_t hawk_bchars_to_int (
 	const hawk_bch_t*  str,
 	hawk_oow_t         len,
-	int               option,
+	int                option,
 	const hawk_bch_t** endptr,
-	int*              is_sober
+	int*               is_sober
 );
 
 HAWK_EXPORT hawk_uint_t hawk_uchars_to_uint (
 	const hawk_uch_t*  str,
 	hawk_oow_t         len,
-	int               option,
+	int                option,
 	const hawk_uch_t** endptr,
-	int*              is_sober
+	int*               is_sober
 );
 
 HAWK_EXPORT hawk_uint_t hawk_bchars_to_uint (
 	const hawk_bch_t*  str,
 	hawk_oow_t         len,
-	int               option,
+	int                option,
 	const hawk_bch_t** endptr,
-	int*              is_sober
+	int*               is_sober
 );
 #if defined(HAWK_OOCH_IS_UCH)
 #	define hawk_oochars_to_int hawk_uchars_to_int

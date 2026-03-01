@@ -935,7 +935,6 @@ hawk_rtx_t* hawk_rtx_open (hawk_t* hawk, hawk_oow_t xtnsize, hawk_rio_cbs_t* rio
 	mic.rtx = rtx;
 	hawk_mtx_lock(rtx->hawk->modmtx, HAWK_NULL);
 	hawk_rbt_walk(rtx->hawk->modtab, init_module, &mic);
-	hawk_mtx_unlock(rtx->hawk->modmtx);
 	if (mic.count != HAWK_RBT_SIZE(rtx->hawk->modtab))
 	{
 		if (mic.count > 0)
@@ -943,15 +942,15 @@ hawk_rtx_t* hawk_rtx_open (hawk_t* hawk, hawk_oow_t xtnsize, hawk_rio_cbs_t* rio
 			struct module_fini_ctx_t mfc;
 			mfc.limit = mic.count;
 			mfc.count = 0;
-			hawk_mtx_lock(rtx->hawk->modmtx, HAWK_NULL);
 			hawk_rbt_walk(rtx->hawk->modtab, fini_module, &mfc);
-			hawk_mtx_unlock(rtx->hawk->modmtx);
 		}
 
+		hawk_mtx_unlock(rtx->hawk->modmtx);
 		fini_rtx(rtx, 1);
 		hawk_freemem(hawk, rtx);
 		return HAWK_NULL;
 	}
+	hawk_mtx_unlock(rtx->hawk->modmtx);
 
 	/* chain the ctos slots */
 	rtx->ctos.fi = HAWK_COUNTOF(rtx->ctos.b) - 1;

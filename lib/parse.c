@@ -10326,7 +10326,7 @@ int hawk_addstaticmodwithucstr (hawk_t* hawk, const hawk_uch_t* name, hawk_mod_l
 #if defined(HAWK_OOCH_IS_BCH)
 	{
 		hawk_bcs_t mbs;
-		mbs.ptr = hawk_duputobcstr(hawk, ncs.ptr, &mbs.len);
+		mbs.ptr = hawk_duputobcstr(hawk, name, &mbs.len);
 		if (HAWK_UNLIKELY(!mbs.ptr))
 		{
 			const hawk_ooch_t* bem = hawk_backuperrmsg(hawk);
