@@ -191,7 +191,7 @@ int hawk_mtx_lock (hawk_mtx_t* mtx, const hawk_ntime_t* waiting_time)
 	 */
 	hawk_uintptr_t tid;
 
-	tid = GetCurrentThreadId()
+	tid = GetCurrentThreadId();
 	if (!(mtx->flags & HAWK_MTX_FLAG_RECURSIVE) && mtx->owner_tid == tid && mtx->owner_count > 0)
 	{
 		hawk_gem_seterrbfmt(mtx->gem, HAWK_NULL, HAWK_EBUSY, "multiple lock attempts on non-recursive mutex");
@@ -234,7 +234,7 @@ int hawk_mtx_lock (hawk_mtx_t* mtx, const hawk_ntime_t* waiting_time)
 #elif defined(__OS2__)
 	hawk_uintptr_t tid;
 
-	tid = os2_get_current_tid()
+	tid = os2_get_current_tid();
 	if (!(mtx->flags & HAWK_MTX_FLAG_RECURSIVE) && mtx->owner_tid == tid && mtx->owner_count > 0)
 	{
 		hawk_gem_seterrbfmt(mtx->gem, HAWK_NULL, HAWK_EBUSY, "multiple lock attempts on non-recursive mutex");
@@ -321,7 +321,7 @@ int hawk_mtx_unlock (hawk_mtx_t* mtx)
 #if defined(_WIN32)
 	hawk_uintptr_t tid;
 
-	tid = GetCurrentThreadId()
+	tid = GetCurrentThreadId();
 	if (mtx->owner_tid != tid || mtx->owner_count == 0)
 	{
 		hawk_gem_seterrbfmt(mtx->gem, HAWK_NULL, HAWK_EPERM, "prohibited unlock attempt by non-owner");
@@ -341,7 +341,7 @@ int hawk_mtx_unlock (hawk_mtx_t* mtx)
 	APIRET rc;
 	hawk_uintptr_t tid;
 
-	tid = os2_get_current_tid()
+	tid = os2_get_current_tid();
 	if (mtx->owner_tid != tid || mtx->owner_count == 0)
 	{
 		hawk_gem_seterrbfmt(mtx->gem, HAWK_NULL, HAWK_EPERM, "prohibited unlock attempt by non-owner");

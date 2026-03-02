@@ -910,7 +910,7 @@ hawk_rtx_t* hawk_rtx_open (hawk_t* hawk, hawk_oow_t xtnsize, hawk_rio_cbs_t* rio
 #if defined(HAWK_ENABLE_ATOMIC_SIG)
 	for (i = 0; i < HAWK_SIG_WORD_COUNT; i++) rtx->sig_pending[i] = 0;
 #else
-	if (HAWK_UNLIKELY(hawk_mtx_init(&rtx->sig_mtx, hawk_rtx_getgem(rtx)) <= -1))
+	if (HAWK_UNLIKELY(hawk_mtx_init(&rtx->sig_mtx, hawk_rtx_getgem(rtx), 0) <= -1))
 	{
 		hawk_rtx_errortohawk(rtx, hawk);
 		fini_rtx(rtx, 0);
