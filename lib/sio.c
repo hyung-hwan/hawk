@@ -120,7 +120,7 @@ int hawk_sio_init (hawk_sio_t* sio, hawk_gem_t* gem, const hawk_ooch_t* path, in
 
 	if (flags & HAWK_SIO_REENTRANT)
 	{
-		sio->mtx = hawk_mtx_open(gem, 0);
+		sio->mtx = hawk_mtx_open(gem, 0, 0);
 		if (!sio->mtx) goto oops00;
 	}
 	/* sio flag enumerators redefines most fio flag enumerators and

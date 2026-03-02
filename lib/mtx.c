@@ -33,6 +33,7 @@
 
 #elif defined(__OS2__)
 #	define INCL_DOSSEMAPHORES
+#	define INCL_DOSPROCESS
 #	define INCL_DOSERRORS
 #	include <os2.h>
 
@@ -49,21 +50,26 @@
 		typedef unsigned int class_id_t;
 #	endif
 #	include <pthread.h>
+#	if defined(PTHREAD_RECURSIVE_MUTEX_INITIALIZER) || defined(PTHREAD_MUTEX_RECURSIVE)
+#		define HAWK_PTHREAD_MUTEX_RECURSIVE PTHREAD_MUTEX_RECURSIVE
+#	elif defined(PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP) || defined(PTHREAD_MUTEX_RECURSIVE_NP)
+#		define HAWK_PTHREAD_MUTEX_RECURSIVE PTHREAD_MUTEX_RECURSIVE_NP
+#	endif
 #endif
 
-hawk_mtx_t* hawk_mtx_open (hawk_gem_t* gem, hawk_oow_t xtnsize)
+hawk_mtx_t* hawk_mtx_open (hawk_gem_t* gem, hawk_oow_t xtnsize, int flags)
 {
 	hawk_mtx_t* mtx;
 
 	mtx = (hawk_mtx_t*)hawk_gem_allocmem(gem, HAWK_SIZEOF(hawk_mtx_t) + xtnsize);
 	if (mtx)
 	{
-		if (hawk_mtx_init(mtx, gem) <= -1)
+		if (hawk_mtx_init(mtx, gem, flags) <= -1)
 		{
-			hawk_gem_freemem (gem, mtx);
+			hawk_gem_freemem(gem, mtx);
 			return HAWK_NULL;
 		}
-		else HAWK_MEMSET (mtx + 1, 0, xtnsize);
+		else HAWK_MEMSET(mtx + 1, 0, xtnsize);
 	}
 
 	return mtx;
@@ -71,20 +77,21 @@ hawk_mtx_t* hawk_mtx_open (hawk_gem_t* gem, hawk_oow_t xtnsize)
 
 void hawk_mtx_close (hawk_mtx_t* mtx)
 {
-	hawk_mtx_fini (mtx);
-	hawk_gem_freemem (mtx->gem, mtx);
+	hawk_mtx_fini(mtx);
+	hawk_gem_freemem(mtx->gem, mtx);
 }
 
-int hawk_mtx_init (hawk_mtx_t* mtx, hawk_gem_t* gem)
+int hawk_mtx_init (hawk_mtx_t* mtx, hawk_gem_t* gem, int flags)
 {
-	HAWK_MEMSET (mtx, 0, HAWK_SIZEOF(*mtx));
+	HAWK_MEMSET(mtx, 0, HAWK_SIZEOF(*mtx));
 	mtx->gem = gem;
+	mtx->flags = flags;
 
 #if defined(_WIN32)
 	mtx->hnd = CreateMutex(HAWK_NULL, FALSE, HAWK_NULL);
 	if (mtx->hnd == HAWK_NULL)
 	{
-		hawk_gem_seterrnum (mtx->gem, HAWK_NULL, hawk_syserr_to_errnum(GetLastError()));
+		hawk_gem_seterrnum(mtx->gem, HAWK_NULL, hawk_syserr_to_errnum(GetLastError()));
 		return -1;
 	}
 
@@ -97,7 +104,7 @@ int hawk_mtx_init (hawk_mtx_t* mtx, hawk_gem_t* gem)
 		rc = DosCreateMutexSem(HAWK_NULL, &m, DC_SEM_SHARED, FALSE);
 		if (rc != NO_ERROR)
 		{
-			hawk_gem_seterrnum (mtx->gem, HAWK_NULL, hawk_syserr_to_errnum(rc));
+			hawk_gem_seterrnum(mtx->gem, HAWK_NULL, hawk_syserr_to_errnum(rc));
 			return -1;
 		}
 
@@ -111,30 +118,24 @@ int hawk_mtx_init (hawk_mtx_t* mtx, hawk_gem_t* gem)
 	#if (HAWK_SIZEOF_PTHREAD_MUTEX_T <= 0)
 		/* nothing to initialize as there is no actual mutex support */
 	#else
-
-	/*
-	hawk_ensure (pthread_mutexattr_init (&attr) == 0);
-	if (pthread_mutexattr_settype (&attr, type) != 0)
-	{
-		int num = hawk_geterrno();
-		pthread_mutexattr_destroy (&attr);
-		if (mtx->__dynamic) hawk_free (mtx);
-		hawk_seterrno (num);
-		return HAWK_NULL;
-	}
-	hawk_ensure (pthread_mutex_init (&mtx->hnd, &attr) == 0);
-	hawk_ensure (pthread_mutexattr_destroy (&attr) == 0);
-	*/
 	{
 		int n;
-		n = pthread_mutex_init((pthread_mutex_t*)&mtx->hnd, HAWK_NULL);
+		pthread_mutexattr_t attr;
+
+		pthread_mutexattr_init(&attr);
+	#if defined(HAWK_PTHREAD_MUTEX_RECURSIVE)
+		if (flags & HAWK_MTX_FLAG_RECURSIVE)
+			pthread_mutexattr_settype(&attr, HAWK_PTHREAD_MUTEX_RECURSIVE);
+		/* TODO: implement recursive mutex where it's not supported natively */
+	#endif
+		n = pthread_mutex_init((pthread_mutex_t*)&mtx->hnd, &attr);
+		pthread_mutexattr_destroy(&attr);
 		if (n != 0)
 		{
-			hawk_gem_seterrnum (mtx->gem, HAWK_NULL, hawk_syserr_to_errnum(n));
+			hawk_gem_seterrnum(mtx->gem, HAWK_NULL, hawk_syserr_to_errnum(n));
 			return -1;
 		}
 	}
-
 	#endif
 #endif
 
@@ -144,10 +145,10 @@ int hawk_mtx_init (hawk_mtx_t* mtx, hawk_gem_t* gem)
 void hawk_mtx_fini (hawk_mtx_t* mtx)
 {
 #if defined(_WIN32)
-	CloseHandle (mtx->hnd);
+	CloseHandle(mtx->hnd);
 
 #elif defined(__OS2__)
-	DosCloseMutexSem (mtx->hnd);
+	DosCloseMutexSem(mtx->hnd);
 
 #elif defined(__DOS__)
 	/* nothing to destroy as there is no mutex support */
@@ -156,10 +157,22 @@ void hawk_mtx_fini (hawk_mtx_t* mtx)
 	#if (HAWK_SIZEOF_PTHREAD_MUTEX_T <= 0)
 	/* nothing to destroy as there is no actual mutex support */
 	#else
-	pthread_mutex_destroy ((pthread_mutex_t*)&mtx->hnd);
+	pthread_mutex_destroy((pthread_mutex_t*)&mtx->hnd);
 	#endif
 #endif
 }
+
+
+#if defined(__OS2__)
+static HAWK_INLINE hawk_uintptr_t os2_get_current_tid (void)
+{
+	PTIB ptib;
+	PPIB ppib;
+	if (DosGetInfoBlocks(&ptib, &ppib) == NO_ERROR && ptib && ptib->tib_ptib2)
+		return (hawk_uintptr_t)ptib->tib_ptib2->tib2_ultid;
+	return 0;
+}
+#endif
 
 int hawk_mtx_lock (hawk_mtx_t* mtx, const hawk_ntime_t* waiting_time)
 {
@@ -176,6 +189,15 @@ int hawk_mtx_lock (hawk_mtx_t* mtx, const hawk_ntime_t* waiting_time)
 	 *                  state is nonsignaled.
 	 *   WAIT_FAILED    An error occurred
 	 */
+	hawk_uintptr_t tid;
+
+	tid = GetCurrentThreadId()
+	if (!(mtx->flags & HAWK_MTX_FLAG_RECURSIVE) && mtx->owner_tid == tid && mtx->owner_count > 0)
+	{
+		hawk_gem_seterrbfmt(mtx->gem, HAWK_NULL, HAWK_EBUSY, "multiple lock attempts on non-recursive mutex");
+		return -1;
+	}
+
 	if (waiting_time)
 	{
 		DWORD msec, ret;
@@ -183,17 +205,17 @@ int hawk_mtx_lock (hawk_mtx_t* mtx, const hawk_ntime_t* waiting_time)
 		ret = WaitForSingleObject(mtx->hnd, msec);
 		if (ret == WAIT_TIMEOUT)
 		{
-			hawk_gem_seterrnum (mtx->gem, HAWK_NULL, HAWK_ETMOUT);
+			hawk_gem_seterrnum(mtx->gem, HAWK_NULL, HAWK_ETMOUT);
 			return -1;
 		}
 		else if (ret == WAIT_ABANDONED)
 		{
-			hawk_gem_seterrnum (mtx->gem, HAWK_NULL, HAWK_ESYSERR);
+			hawk_gem_seterrnum(mtx->gem, HAWK_NULL, HAWK_ESYSERR);
 			return -1;
 		}
 		else if (ret != WAIT_OBJECT_0)
 		{
-			hawk_gem_seterrnum (mtx->gem, HAWK_NULL, hawk_syserr_to_errnum(GetLastError()));
+			hawk_gem_seterrnum(mtx->gem, HAWK_NULL, hawk_syserr_to_errnum(GetLastError()));
 			return -1;
 		}
 	}
@@ -201,12 +223,24 @@ int hawk_mtx_lock (hawk_mtx_t* mtx, const hawk_ntime_t* waiting_time)
 	{
 		if (WaitForSingleObject(mtx->hnd, INFINITE) == WAIT_FAILED)
 		{
-			hawk_gem_seterrnum (mtx->gem, HAWK_NULL, hawk_syserr_to_errnum(GetLastError()));
+			hawk_gem_seterrnum(mtx->gem, HAWK_NULL, hawk_syserr_to_errnum(GetLastError()));
 			return -1;
 		}
 	}
 
+	if (mtx->owner_tid == tid) { mtx->owner_count++; }
+	else { mtx->owner_tid = tid; mtx->owner_count = 1; }
+
 #elif defined(__OS2__)
+	hawk_uintptr_t tid;
+
+	tid = os2_get_current_tid()
+	if (!(mtx->flags & HAWK_MTX_FLAG_RECURSIVE) && mtx->owner_tid == tid && mtx->owner_count > 0)
+	{
+		hawk_gem_seterrbfmt(mtx->gem, HAWK_NULL, HAWK_EBUSY, "multiple lock attempts on non-recursive mutex");
+		return -1;
+	}
+
 	if (waiting_time)
 	{
 		ULONG msec;
@@ -215,7 +249,7 @@ int hawk_mtx_lock (hawk_mtx_t* mtx, const hawk_ntime_t* waiting_time)
 		rc = DosRequestMutexSem(mtx->hnd, msec);
 		if (rc != NO_ERROR)
 		{
-			hawk_gem_seterrnum (mtx->gem, HAWK_NULL, hawk_syserr_to_errnum(rc));
+			hawk_gem_seterrnum(mtx->gem, HAWK_NULL, hawk_syserr_to_errnum(rc));
 			return -1;
 		}
 	}
@@ -225,10 +259,13 @@ int hawk_mtx_lock (hawk_mtx_t* mtx, const hawk_ntime_t* waiting_time)
 		rc = DosRequestMutexSem(mtx->hnd, SEM_INDEFINITE_WAIT);
 		if (rc != NO_ERROR)
 		{
-			hawk_gem_seterrnum (mtx->gem, HAWK_NULL, hawk_syserr_to_errnum(rc));
+			hawk_gem_seterrnum(mtx->gem, HAWK_NULL, hawk_syserr_to_errnum(rc));
 			return -1;
 		}
 	}
+
+	if (mtx->owner_tid == tid) { mtx->owner_count++; }
+	else { mtx->owner_tid = tid; mtx->owner_count = 1; }
 
 #elif defined(__DOS__)
 
@@ -255,7 +292,7 @@ int hawk_mtx_lock (hawk_mtx_t* mtx, const hawk_ntime_t* waiting_time)
 		n = pthread_mutex_timedlock((pthread_mutex_t*)&mtx->hnd, &ts);
 		if (n != 0)
 		{
-			hawk_gem_seterrnum (mtx->gem, HAWK_NULL, hawk_syserr_to_errnum(n));
+			hawk_gem_seterrnum(mtx->gem, HAWK_NULL, hawk_syserr_to_errnum(n));
 			return -1;
 		}
 	}
@@ -266,7 +303,7 @@ int hawk_mtx_lock (hawk_mtx_t* mtx, const hawk_ntime_t* waiting_time)
 		n = pthread_mutex_lock((pthread_mutex_t*)&mtx->hnd);
 		if (n != 0)
 		{
-			hawk_gem_seterrnum (mtx->gem, HAWK_NULL, hawk_syserr_to_errnum(n));
+			hawk_gem_seterrnum(mtx->gem, HAWK_NULL, hawk_syserr_to_errnum(n));
 			return -1;
 		}
 	#if defined(HAVE_PTHREAD_MUTEX_TIMEDLOCK)
@@ -282,20 +319,44 @@ int hawk_mtx_lock (hawk_mtx_t* mtx, const hawk_ntime_t* waiting_time)
 int hawk_mtx_unlock (hawk_mtx_t* mtx)
 {
 #if defined(_WIN32)
-	if (ReleaseMutex(mtx->hnd) == FALSE)
+	hawk_uintptr_t tid;
+
+	tid = GetCurrentThreadId()
+	if (mtx->owner_tid != tid || mtx->owner_count == 0)
 	{
-		hawk_gem_seterrnum (mtx->gem, HAWK_NULL, hawk_syserr_to_errnum(GetLastError()));
+		hawk_gem_seterrbfmt(mtx->gem, HAWK_NULL, HAWK_EPERM, "prohibited unlock attempt by non-owner");
 		return -1;
 	}
 
+	if (ReleaseMutex(mtx->hnd) == FALSE)
+	{
+		hawk_gem_seterrnum(mtx->gem, HAWK_NULL, hawk_syserr_to_errnum(GetLastError()));
+		return -1;
+	}
+
+	mtx->owner_count--;
+	if (mtx->owner_count == 0) mtx->owner_tid = 0;
+
 #elif defined(__OS2__)
 	APIRET rc;
+	hawk_uintptr_t tid;
+
+	tid = os2_get_current_tid()
+	if (mtx->owner_tid != tid || mtx->owner_count == 0)
+	{
+		hawk_gem_seterrbfmt(mtx->gem, HAWK_NULL, HAWK_EPERM, "prohibited unlock attempt by non-owner");
+		return -1;
+	}
+
 	rc = DosReleaseMutexSem(mtx->hnd);
 	if (rc != NO_ERROR)
 	{
-		hawk_gem_seterrnum (mtx->gem, HAWK_NULL, hawk_syserr_to_errnum(rc));
+		hawk_gem_seterrnum(mtx->gem, HAWK_NULL, hawk_syserr_to_errnum(rc));
 		return -1;
 	}
+
+	mtx->owner_count--;
+	if (mtx->owner_count == 0) mtx->owner_tid = 0;
 
 #elif defined(__DOS__)
 
@@ -310,7 +371,7 @@ int hawk_mtx_unlock (hawk_mtx_t* mtx)
 	n = pthread_mutex_unlock((pthread_mutex_t*)&mtx->hnd);
 	if (n != 0)
 	{
-		hawk_gem_seterrnum (mtx->gem, HAWK_NULL, hawk_syserr_to_errnum(n));
+		hawk_gem_seterrnum(mtx->gem, HAWK_NULL, hawk_syserr_to_errnum(n));
 		return -1;
 	}
 
@@ -322,20 +383,61 @@ int hawk_mtx_unlock (hawk_mtx_t* mtx)
 int hawk_mtx_trylock (hawk_mtx_t* mtx)
 {
 #if defined(_WIN32)
-	if (WaitForSingleObject(mtx->hnd, 0) != WAIT_OBJECT_0)
+	hawk_uintptr_t tid;
+	DWORD ret;
+
+	tid = GetCurrentThreadId();
+	if (!(mtx->flags & HAWK_MTX_FLAG_RECURSIVE) && mtx->owner_tid == tid && mtx->owner_count > 0)
 	{
-		hawk_gem_seterrnum (mtx->gem, HAWK_NULL, hawk_syserr_to_errnum(GetLastError()));
-		return -1;
-	}
-#elif defined(__OS2__)
-	APIRET rc;
-	rc = DosRequestMutexSem(mtx->hnd, 0);
-	if (rc != NO_ERROR)
-	{
-		hawk_gem_seterrnum (mtx->gem, HAWK_NULL, hawk_syserr_to_errnum(rc));
+		hawk_gem_seterrnum (mtx->gem, HAWK_NULL, HAWK_EBUSY);
 		return -1;
 	}
 
+	ret = WaitForSingleObject(mtx->hnd, 0);
+	if (ret == WAIT_TIMEOUT)
+	{
+		hawk_gem_seterrnum(mtx->gem, HAWK_NULL, HAWK_EBUSY);
+		return -1;
+	}
+	else if (ret == WAIT_ABANDONED)
+	{
+		hawk_gem_seterrnum(mtx->gem, HAWK_NULL, HAWK_ESYSERR);
+		return -1;
+	}
+	else if (ret != WAIT_OBJECT_0)
+	{
+		hawk_gem_seterrnum(mtx->gem, HAWK_NULL, hawk_syserr_to_errnum(GetLastError()));
+		return -1;
+	}
+
+	if (mtx->owner_tid == tid) { mtx->owner_count++; }
+	else { mtx->owner_tid = tid; mtx->owner_count = 1; }
+
+#elif defined(__OS2__)
+	hawk_uintptr_t tid;
+	APIRET rc;
+
+	tid = os2_get_current_tid();
+	if (!(mtx->flags & HAWK_MTX_FLAG_RECURSIVE) && mtx->owner_tid == tid && mtx->owner_count > 0)
+	{
+		hawk_gem_seterrnum (mtx->gem, HAWK_NULL, HAWK_EBUSY);
+		return -1;
+	}
+
+	rc = DosRequestMutexSem(mtx->hnd, 0);
+	if (rc == ERROR_TIMEOUT)
+	{
+		hawk_gem_seterrnum(mtx->gem, HAWK_NULL, HAWK_EBUSY);
+		return -1;
+	}
+	else if (rc != NO_ERROR)
+	{
+		hawk_gem_seterrnum(mtx->gem, HAWK_NULL, hawk_syserr_to_errnum(rc));
+		return -1;
+	}
+
+	if (mtx->owner_tid == tid) { mtx->owner_count++; }
+	else { mtx->owner_tid = tid; mtx->owner_count = 1; }
 #elif defined(__DOS__)
 	/* nothing to do */
 
@@ -361,7 +463,7 @@ int hawk_mtx_trylock (hawk_mtx_t* mtx)
 	#endif
 	if (n != 0)
 	{
-		hawk_gem_seterrnum (mtx->gem, HAWK_NULL, hawk_syserr_to_errnum(n));
+		hawk_gem_seterrnum(mtx->gem, HAWK_NULL, hawk_syserr_to_errnum(n));
 		return -1;
 	}
 	/* -------------------------------------------------- */

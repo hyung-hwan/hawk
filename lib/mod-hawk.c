@@ -131,9 +131,11 @@ static int fnc_call (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	{
 		/* find the name in the modules */
 		hawk_fnc_t fnc, * fncp;
+	#if 0
 		mod_data_t* md;
 
 		md = (mod_data_t*)fi->mod->ctx;
+	#endif
 
 		/* hawk_rtx_querymodulewithname() called by hawk_rtx_valtofnc()
 		 * may update some shared data under the hawk object. */
@@ -198,9 +200,11 @@ static int fnc_function_exists (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 				if (!rx)
 				{
 					hawk_mod_sym_t sym;
+				#if 0
 					mod_data_t* md;
 
 					md = (mod_data_t*)fi->mod->ctx;
+				#endif
 					/* hawk_rtx_querymodulewithname() may update some shared data under
 					 * the hawk object. use a mutex for shared data safety */
 					rx = (hawk_rtx_querymodulewithoocs(rtx, &name, &sym) != HAWK_NULL);

@@ -83,7 +83,15 @@ struct hawk_mtx_t
 {
 	hawk_gem_t* gem;
 	hawk_mtx_hnd_t hnd;
+
+	int flags;
+#if defined(_WIN32) || defined(__OS2__)
+	hawk_uintptr_t owner_tid; /* set to a valid id if owner_count > 0, set to 0 otherwise */
+	hawk_uintptr_t owner_count;
+#endif
 };
+
+#define HAWK_MTX_FLAG_RECURSIVE (1 << 0)
 
 #ifdef __cplusplus
 extern "C" {
@@ -91,7 +99,8 @@ extern "C" {
 
 HAWK_EXPORT hawk_mtx_t* hawk_mtx_open (
 	hawk_gem_t*  gem,
-	hawk_oow_t   xtnsize
+	hawk_oow_t   xtnsize,
+	int          flags
 );
 
 HAWK_EXPORT void hawk_mtx_close (
@@ -100,7 +109,8 @@ HAWK_EXPORT void hawk_mtx_close (
 
 HAWK_EXPORT int hawk_mtx_init (
 	hawk_mtx_t*  mtx,
-	hawk_gem_t*  gem
+	hawk_gem_t*  gem,
+	int          flags
 );
 
 HAWK_EXPORT void hawk_mtx_fini (

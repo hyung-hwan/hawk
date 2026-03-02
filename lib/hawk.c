@@ -259,7 +259,7 @@ int hawk_init (hawk_t* hawk, hawk_mmgr_t* mmgr, hawk_cmgr_t* cmgr, const hawk_pr
 	hawk->fnc.user = hawk_htb_open(hawk_getgem(hawk), HAWK_SIZEOF(hawk), 512, 70, HAWK_SIZEOF(hawk_ooch_t), 1);
 	hawk->static_mods = hawk_htb_open(hawk_getgem(hawk), HAWK_SIZEOF(hawk), 128, 70, HAWK_SIZEOF(hawk_ooch_t), 1);
 	hawk->modtab = hawk_rbt_open(hawk_getgem(hawk), 0, HAWK_SIZEOF(hawk_ooch_t), 1);
-	hawk->modmtx = hawk_mtx_open(hawk_getgem(hawk), 0);
+	hawk->modmtx = hawk_mtx_open(hawk_getgem(hawk), 0, HAWK_MTX_FLAG_RECURSIVE);
 
 	if (hawk->tree.funs == HAWK_NULL ||
 	    hawk->tree.ifuns == HAWK_NULL ||
@@ -273,7 +273,8 @@ int hawk_init (hawk_t* hawk, hawk_mmgr_t* mmgr, hawk_cmgr_t* cmgr, const hawk_pr
 	    hawk->modtab == HAWK_NULL ||
 	    hawk->modmtx == HAWK_NULL)
 	{
-		hawk_seterrnum(hawk, HAWK_NULL, HAWK_ENOMEM);
+		/* the error info set on hawk_getgem(hawk) is on the hawk.
+		 * no error setting is required here */
 		goto oops;
 	}
 
