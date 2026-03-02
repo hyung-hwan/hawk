@@ -250,6 +250,30 @@ enum hawk_fbc_opcode_t
 };
 typedef enum hawk_fbc_opcode_t hawk_fbc_opcode_t;
 
+enum hawk_fbc_lit_type_t
+{
+	HAWK_FBC_LIT_FLT = 0,
+	HAWK_FBC_LIT_STR,
+	HAWK_FBC_LIT_MBS,
+	HAWK_FBC_LIT_CHAR,
+	HAWK_FBC_LIT_BCHR
+};
+typedef enum hawk_fbc_lit_type_t hawk_fbc_lit_type_t;
+
+typedef struct hawk_fbc_lit_t hawk_fbc_lit_t;
+struct hawk_fbc_lit_t
+{
+	hawk_fbc_lit_type_t type;
+	union
+	{
+		hawk_flt_t fv;
+		hawk_oocs_t str;
+		hawk_bcs_t mbs;
+		hawk_ooch_t ch;
+		hawk_bch_t bch;
+	} u;
+};
+
 typedef struct hawk_fbc_ins_t hawk_fbc_ins_t;
 struct hawk_fbc_ins_t
 {
@@ -258,6 +282,8 @@ struct hawk_fbc_ins_t
 	{
 		hawk_nde_t* nde;
 		hawk_int_t iv;
+		hawk_ooch_t ch;
+		hawk_bch_t bch;
 		hawk_oow_t idx;
 	} u;
 };
@@ -267,6 +293,10 @@ struct hawk_fbc_t
 	hawk_fbc_ins_t* code;
 	hawk_oow_t len;
 	hawk_oow_t capa;
+
+	hawk_fbc_lit_t* lit;
+	hawk_oow_t lit_len;
+	hawk_oow_t lit_capa;
 
 	hawk_oow_t nargs;
 	hawk_oow_t nlocals;

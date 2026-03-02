@@ -122,6 +122,10 @@ void hawk_clearsionames (
 	hawk_t* hawk
 );
 
+void hawk_freefunbc (
+	hawk_t*     hawk,
+	hawk_fbc_t* bc
+);
 
 hawk_mod_t* hawk_querymodulewithname (
 	hawk_t*            hawk,

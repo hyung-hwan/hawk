@@ -24,12 +24,6 @@
 
 #include "hawk-prv.h"
 
-static void free_funbc (hawk_t* hawk, hawk_fbc_t* bc)
-{
-	if (bc->code) hawk_freemem(hawk, bc->code);
-	hawk_freemem(hawk, bc);
-}
-
 static void free_fun (hawk_htb_t* map, void* vptr, hawk_oow_t vlen)
 {
 	hawk_t* hawk = *(hawk_t**)hawk_htb_getxtn(map);
@@ -39,7 +33,7 @@ static void free_fun (hawk_htb_t* map, void* vptr, hawk_oow_t vlen)
 	/*hawk_freemem(hawk, f->name);*/
 
 	if (f->argspec) hawk_freemem(hawk, f->argspec);
-	if (f->bc) free_funbc(hawk, f->bc);
+	if (f->bc) hawk_freefunbc(hawk, f->bc);
 	hawk_clrpt(hawk, f->body);
 	hawk_freemem(hawk, f);
 }
@@ -50,7 +44,7 @@ static void free_ifun (hawk_arr_t* arr, void* dptr, hawk_oow_t dlen)
 	hawk_fun_t* f = (hawk_fun_t*)dptr;
 
 	if (f->argspec) hawk_freemem(hawk, f->argspec);
-	if (f->bc) free_funbc(hawk, f->bc);
+	if (f->bc) hawk_freefunbc(hawk, f->bc);
 	hawk_clrpt(hawk, f->body);
 	hawk_freemem(hawk, f);
 }

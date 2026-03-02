@@ -280,10 +280,15 @@ static int classify_ident (hawk_t* hawk, const hawk_oocs_t* name);
 static int deparse (hawk_t* hawk);
 static hawk_htb_walk_t deparse_func (hawk_htb_t* map, hawk_htb_pair_t* pair, void* arg);
 static const hawk_ooch_t* funbc_opcode_to_name (hawk_fbc_opcode_t opcode);
+static const hawk_ooch_t* funbc_lit_type_to_name (hawk_fbc_lit_type_t type);
 static int put_oow_as_dec (hawk_t* hawk, hawk_oow_t v);
 static int put_int_as_dec (hawk_t* hawk, hawk_int_t v);
+static int put_flt_as_str (hawk_t* hawk, hawk_flt_t v);
+static int put_escaped_oochars (hawk_t* hawk, const hawk_ooch_t* ptr, hawk_oow_t len);
+static int put_escaped_bchars (hawk_t* hawk, const hawk_bch_t* ptr, hawk_oow_t len);
 static int put_newline (hawk_t* hawk);
 static int dump_funbc_ins (hawk_t* hawk, hawk_oow_t pc, const hawk_fbc_ins_t* ins);
+static int dump_funbc_lit (hawk_t* hawk, hawk_oow_t idx, const hawk_fbc_lit_t* lit);
 static int dump_funbc (hawk_t* hawk, const hawk_oocs_t* name, hawk_fun_t* fun);
 static hawk_htb_walk_t dump_funbc_func (hawk_htb_t* map, hawk_htb_pair_t* pair, void* arg);
 static int dump_all_funbcs (hawk_t* hawk);
@@ -598,8 +603,32 @@ void hawk_getkwname (hawk_t* hawk, hawk_kwid_t id, hawk_oocs_t* s)
 	*s = kwtab[id].name;
 }
 
-static void free_funbc (hawk_t* hawk, hawk_fbc_t* bc)
+void hawk_freefunbc (hawk_t* hawk, hawk_fbc_t* bc)
 {
+	if (bc->lit)
+	{
+		hawk_oow_t i;
+
+		for (i = 0; i < bc->lit_len; i++)
+		{
+			switch (bc->lit[i].type)
+			{
+				case HAWK_FBC_LIT_STR:
+					if (bc->lit[i].u.str.ptr) hawk_freemem(hawk, bc->lit[i].u.str.ptr);
+					break;
+
+				case HAWK_FBC_LIT_MBS:
+					if (bc->lit[i].u.mbs.ptr) hawk_freemem(hawk, bc->lit[i].u.mbs.ptr);
+					break;
+
+				default:
+					break;
+			}
+		}
+
+		hawk_freemem(hawk, bc->lit);
+	}
+
 	if (bc->code) hawk_freemem(hawk, bc->code);
 	hawk_freemem(hawk, bc);
 }
@@ -634,6 +663,147 @@ oops_eoverflow:
 	return -1;
 }
 
+static void rollback_funbc_lit (hawk_t* hawk, hawk_fbc_t* bc, hawk_oow_t rollback)
+{
+	HAWK_ASSERT(rollback <= bc->lit_len);
+
+	while (bc->lit_len > rollback)
+	{
+		hawk_fbc_lit_t* lit;
+
+		bc->lit_len--;
+		lit = &bc->lit[bc->lit_len];
+
+		switch (lit->type)
+		{
+			case HAWK_FBC_LIT_STR:
+				if (lit->u.str.ptr) hawk_freemem(hawk, lit->u.str.ptr);
+				break;
+
+			case HAWK_FBC_LIT_MBS:
+				if (lit->u.mbs.ptr) hawk_freemem(hawk, lit->u.mbs.ptr);
+				break;
+
+			default:
+				break;
+		}
+	}
+}
+
+static int reserve_funbc_lit (hawk_t* hawk, hawk_fbc_t* bc, hawk_oow_t n, hawk_loc_t* loc)
+{
+	hawk_fbc_lit_t* tmp;
+	hawk_oow_t req, capa;
+
+	req = bc->lit_len + n;
+	if (req <= bc->lit_len) goto oops_eoverflow;
+	if (req <= bc->lit_capa) return 0;
+
+	capa = HAWK_ALIGN_POW2(req, 32);
+	if (capa < req) goto oops_eoverflow;
+	if (capa > HAWK_TYPE_MAX(hawk_oow_t) / HAWK_SIZEOF(*tmp)) goto oops_eoverflow;
+
+	tmp = (hawk_fbc_lit_t*)hawk_reallocmem(hawk, bc->lit, capa * HAWK_SIZEOF(*tmp));
+	if (HAWK_UNLIKELY(!tmp))
+	{
+		const hawk_ooch_t* bem = hawk_backuperrmsg(hawk);
+		hawk_seterrbfmt(hawk, loc, hawk_geterrnum(hawk), "unable to reserve space for function constant pool - %js", bem);
+		return -1;
+	}
+
+	bc->lit = tmp;
+	bc->lit_capa = capa;
+	return 0;
+
+oops_eoverflow:
+	hawk_seterrbfmt(hawk, loc, HAWK_ENOMEM, "unable to reserve space for function constant pool - excessively large");
+	return -1;
+}
+
+static int is_same_funbc_lit (const hawk_fbc_lit_t* lit, hawk_nde_t* nde)
+{
+	switch (lit->type)
+	{
+		case HAWK_FBC_LIT_FLT:
+			return (nde->type == HAWK_NDE_FLT &&
+			        HAWK_MEMCMP(&lit->u.fv, &((hawk_nde_flt_t*)nde)->val, HAWK_SIZEOF(lit->u.fv)) == 0);
+
+		case HAWK_FBC_LIT_STR:
+			if (nde->type != HAWK_NDE_STR || lit->u.str.len != ((hawk_nde_str_t*)nde)->len) return 0;
+			if (lit->u.str.len <= 0) return 1;
+			return HAWK_MEMCMP(lit->u.str.ptr, ((hawk_nde_str_t*)nde)->ptr, lit->u.str.len * HAWK_SIZEOF(hawk_ooch_t)) == 0;
+
+		case HAWK_FBC_LIT_MBS:
+			if (nde->type != HAWK_NDE_MBS || lit->u.mbs.len != ((hawk_nde_mbs_t*)nde)->len) return 0;
+			if (lit->u.mbs.len <= 0) return 1;
+			return HAWK_MEMCMP(lit->u.mbs.ptr, ((hawk_nde_mbs_t*)nde)->ptr, lit->u.mbs.len * HAWK_SIZEOF(hawk_bch_t)) == 0;
+
+		case HAWK_FBC_LIT_CHAR:
+			return (nde->type == HAWK_NDE_CHAR && lit->u.ch == ((hawk_nde_char_t*)nde)->val);
+
+		default:
+			return (nde->type == HAWK_NDE_BCHR && lit->u.bch == ((hawk_nde_bchr_t*)nde)->val);
+	}
+}
+
+static int add_funbc_lit (hawk_t* hawk, hawk_fbc_t* bc, hawk_nde_t* nde, hawk_oow_t* idx)
+{
+	hawk_oow_t i;
+	hawk_fbc_lit_t* lit;
+
+	for (i = 0; i < bc->lit_len; i++)
+	{
+		if (is_same_funbc_lit(&bc->lit[i], nde))
+		{
+			*idx = i;
+			return 0;
+		}
+	}
+
+	if (reserve_funbc_lit(hawk, bc, 1, &nde->loc) <= -1) return -1;
+
+	lit = &bc->lit[bc->lit_len];
+
+	switch (nde->type)
+	{
+		case HAWK_NDE_FLT:
+			lit->type = HAWK_FBC_LIT_FLT;
+			lit->u.fv = ((hawk_nde_flt_t*)nde)->val;
+			break;
+
+		case HAWK_NDE_STR:
+			lit->type = HAWK_FBC_LIT_STR;
+			lit->u.str.len = ((hawk_nde_str_t*)nde)->len;
+			lit->u.str.ptr = hawk_dupoochars(hawk, ((hawk_nde_str_t*)nde)->ptr, lit->u.str.len);
+			if (HAWK_UNLIKELY(!lit->u.str.ptr)) return -1;
+			break;
+
+		case HAWK_NDE_MBS:
+			lit->type = HAWK_FBC_LIT_MBS;
+			lit->u.mbs.len = ((hawk_nde_mbs_t*)nde)->len;
+			lit->u.mbs.ptr = hawk_dupbchars(hawk, ((hawk_nde_mbs_t*)nde)->ptr, lit->u.mbs.len);
+			if (HAWK_UNLIKELY(!lit->u.mbs.ptr)) return -1;
+			break;
+
+		case HAWK_NDE_CHAR:
+			lit->type = HAWK_FBC_LIT_CHAR;
+			lit->u.ch = ((hawk_nde_char_t*)nde)->val;
+			break;
+
+		case HAWK_NDE_BCHR:
+			lit->type = HAWK_FBC_LIT_BCHR;
+			lit->u.bch = ((hawk_nde_bchr_t*)nde)->val;
+			break;
+
+		default:
+			hawk_seterrnum(hawk, &nde->loc, HAWK_EINTERN);
+			return -1;
+	}
+
+	*idx = bc->lit_len++;
+	return 0;
+}
+
 static int emit_funbc_ins_nde (hawk_t* hawk, hawk_fbc_t* bc, hawk_fbc_opcode_t opcode, hawk_nde_t* nde, hawk_loc_t* loc)
 {
 	if (reserve_funbc_ins(hawk, bc, 1, loc) <= -1) return -1;
@@ -648,6 +818,24 @@ static int emit_funbc_ins_int (hawk_t* hawk, hawk_fbc_t* bc, hawk_fbc_opcode_t o
 	if (reserve_funbc_ins(hawk, bc, 1, loc) <= -1) return -1;
 	bc->code[bc->len].opcode = opcode;
 	bc->code[bc->len].u.iv = ival;
+	bc->len++;
+	return 0;
+}
+
+static int emit_funbc_ins_char (hawk_t* hawk, hawk_fbc_t* bc, hawk_fbc_opcode_t opcode, hawk_ooch_t ch, hawk_loc_t* loc)
+{
+	if (reserve_funbc_ins(hawk, bc, 1, loc) <= -1) return -1;
+	bc->code[bc->len].opcode = opcode;
+	bc->code[bc->len].u.ch = ch;
+	bc->len++;
+	return 0;
+}
+
+static int emit_funbc_ins_bchr (hawk_t* hawk, hawk_fbc_t* bc, hawk_fbc_opcode_t opcode, hawk_bch_t bch, hawk_loc_t* loc)
+{
+	if (reserve_funbc_ins(hawk, bc, 1, loc) <= -1) return -1;
+	bc->code[bc->len].opcode = opcode;
+	bc->code[bc->len].u.bch = bch;
 	bc->len++;
 	return 0;
 }
@@ -904,8 +1092,10 @@ static int compile_funbc_expr_bin_land (hawk_t* hawk, hawk_fbc_t* bc, hawk_nde_e
 static int compile_funbc_expr (hawk_t* hawk, hawk_fbc_t* bc, hawk_nde_t* nde)
 {
 	hawk_oow_t rollback;
+	hawk_oow_t lit_rollback;
 
 	rollback = bc->len;
+	lit_rollback = bc->lit_len;
 
 	switch (nde->type)
 	{
@@ -917,24 +1107,42 @@ static int compile_funbc_expr (hawk_t* hawk, hawk_fbc_t* bc, hawk_nde_t* nde)
 		}
 
 		case HAWK_NDE_FLT:
-			if (emit_funbc_ins_nde(hawk, bc, HAWK_FBC_OP_LOAD_CONST_FLT, nde, &nde->loc) <= -1) goto oops_rollback;
+		{
+			hawk_oow_t lit_idx;
+			if (add_funbc_lit(hawk, bc, nde, &lit_idx) <= -1) goto oops_rollback;
+			if (emit_funbc_ins_idx(hawk, bc, HAWK_FBC_OP_LOAD_CONST_FLT, lit_idx, &nde->loc) <= -1) goto oops_rollback;
 			return COMPILE_FUNBC_EXPR_OK;
+		}
 
 		case HAWK_NDE_STR:
-			if (emit_funbc_ins_nde(hawk, bc, HAWK_FBC_OP_LOAD_CONST_STR, nde, &nde->loc) <= -1) goto oops_rollback;
+		{
+			hawk_oow_t lit_idx;
+			if (add_funbc_lit(hawk, bc, nde, &lit_idx) <= -1) goto oops_rollback;
+			if (emit_funbc_ins_idx(hawk, bc, HAWK_FBC_OP_LOAD_CONST_STR, lit_idx, &nde->loc) <= -1) goto oops_rollback;
 			return COMPILE_FUNBC_EXPR_OK;
+		}
 
 		case HAWK_NDE_MBS:
-			if (emit_funbc_ins_nde(hawk, bc, HAWK_FBC_OP_LOAD_CONST_MBS, nde, &nde->loc) <= -1) goto oops_rollback;
+		{
+			hawk_oow_t lit_idx;
+			if (add_funbc_lit(hawk, bc, nde, &lit_idx) <= -1) goto oops_rollback;
+			if (emit_funbc_ins_idx(hawk, bc, HAWK_FBC_OP_LOAD_CONST_MBS, lit_idx, &nde->loc) <= -1) goto oops_rollback;
 			return COMPILE_FUNBC_EXPR_OK;
+		}
 
 		case HAWK_NDE_CHAR:
-			if (emit_funbc_ins_nde(hawk, bc, HAWK_FBC_OP_LOAD_CONST_CHAR, nde, &nde->loc) <= -1) goto oops_rollback;
+		{
+			hawk_nde_char_t* x = (hawk_nde_char_t*)nde;
+			if (emit_funbc_ins_char(hawk, bc, HAWK_FBC_OP_LOAD_CONST_CHAR, x->val, &nde->loc) <= -1) goto oops_rollback;
 			return COMPILE_FUNBC_EXPR_OK;
+		}
 
 		case HAWK_NDE_BCHR:
-			if (emit_funbc_ins_nde(hawk, bc, HAWK_FBC_OP_LOAD_CONST_BCHR, nde, &nde->loc) <= -1) goto oops_rollback;
+		{
+			hawk_nde_bchr_t* x = (hawk_nde_bchr_t*)nde;
+			if (emit_funbc_ins_bchr(hawk, bc, HAWK_FBC_OP_LOAD_CONST_BCHR, x->val, &nde->loc) <= -1) goto oops_rollback;
 			return COMPILE_FUNBC_EXPR_OK;
+		}
 
 		case HAWK_NDE_XNIL:
 			if (emit_funbc_ins_plain(hawk, bc, HAWK_FBC_OP_LOAD_CONST_NIL, &nde->loc) <= -1) goto oops_rollback;
@@ -1128,10 +1336,12 @@ static int compile_funbc_expr (hawk_t* hawk, hawk_fbc_t* bc, hawk_nde_t* nde)
 
 unsupported:
 	bc->len = rollback;
+	rollback_funbc_lit(hawk, bc, lit_rollback);
 	return COMPILE_FUNBC_EXPR_UNSUPPORTED;
 
 oops_rollback:
 	bc->len = rollback;
+	rollback_funbc_lit(hawk, bc, lit_rollback);
 	return -1;
 }
 
@@ -1146,8 +1356,10 @@ static int compile_funbc_stmt_internal (
 	funbc_loop_ctx_t* loop_ctx, int allow_ast_fallback, int* terminal)
 {
 	hawk_oow_t rollback;
+	hawk_oow_t lit_rollback;
 
 	rollback = bc->len;
+	lit_rollback = bc->lit_len;
 	*terminal = 0;
 
 	switch (stmt->type)
@@ -1392,11 +1604,12 @@ static int compile_funbc_stmt_internal (
 					return COMPILE_FUNBC_STMT_OK;
 				}
 
-				/* the return value expression contains some byte-code unsupported stuff yet */
-				bc->len = rollback; /* rollback the byte code buffer */
-				if (emit_funbc_ins_nde(hawk, bc, HAWK_FBC_OP_RET_AST_EXPR, r->val, &r->loc) <= -1) goto oops_rollback;
-				return COMPILE_FUNBC_STMT_OK;
-			}
+					/* the return value expression contains some byte-code unsupported stuff yet */
+					bc->len = rollback; /* rollback the byte code buffer */
+					rollback_funbc_lit(hawk, bc, lit_rollback);
+					if (emit_funbc_ins_nde(hawk, bc, HAWK_FBC_OP_RET_AST_EXPR, r->val, &r->loc) <= -1) goto oops_rollback;
+					return COMPILE_FUNBC_STMT_OK;
+				}
 
 			if (emit_funbc_ins_nde(hawk, bc, HAWK_FBC_OP_RET_NIL, HAWK_NULL, &r->loc) <= -1) goto oops_rollback;
 			return COMPILE_FUNBC_STMT_OK;
@@ -1421,6 +1634,7 @@ static int compile_funbc_stmt_internal (
 
 unsupported:
 	bc->len = rollback;
+	rollback_funbc_lit(hawk, bc, lit_rollback);
 	if (!allow_ast_fallback) return COMPILE_FUNBC_STMT_UNSUPPORTED;
 
 	if (emit_funbc_ins_nde(hawk, bc, HAWK_FBC_OP_RUN_AST_STMT, stmt, &stmt->loc) <= -1)
@@ -1432,6 +1646,7 @@ unsupported:
 
 oops_rollback:
 	bc->len = rollback;
+	rollback_funbc_lit(hawk, bc, lit_rollback);
 	return -1;
 }
 
@@ -1457,7 +1672,7 @@ static int compile_funbc (hawk_t* hawk, hawk_fun_t* fun)
 
 	if (fun->bc)
 	{
-		free_funbc(hawk, fun->bc);
+		hawk_freefunbc(hawk, fun->bc);
 		fun->bc = HAWK_NULL;
 	}
 
@@ -1472,7 +1687,7 @@ static int compile_funbc (hawk_t* hawk, hawk_fun_t* fun)
 	{
 		if (compile_funbc_stmt(hawk, bc, p, &terminal) <= -1)
 		{
-			free_funbc(hawk, bc);
+			hawk_freefunbc(hawk, bc);
 			return -1;
 		}
 
@@ -1482,7 +1697,7 @@ static int compile_funbc (hawk_t* hawk, hawk_fun_t* fun)
 
 	if (!terminal && emit_funbc_ins_nde(hawk, bc, HAWK_FBC_OP_RET_NIL, HAWK_NULL, &fun->body->loc) <= -1)
 	{
-		free_funbc(hawk, bc);
+		hawk_freefunbc(hawk, bc);
 		return -1;
 	}
 
@@ -9497,6 +9712,20 @@ static const hawk_ooch_t* funbc_opcode_to_name (hawk_fbc_opcode_t opcode)
 	return HAWK_T("UNKNOWN");
 }
 
+static const hawk_ooch_t* funbc_lit_type_to_name (hawk_fbc_lit_type_t type)
+{
+	switch (type)
+	{
+		case HAWK_FBC_LIT_FLT: return HAWK_T("FLT");
+		case HAWK_FBC_LIT_STR: return HAWK_T("STR");
+		case HAWK_FBC_LIT_MBS: return HAWK_T("MBS");
+		case HAWK_FBC_LIT_CHAR: return HAWK_T("CHAR");
+		case HAWK_FBC_LIT_BCHR: return HAWK_T("BCHR");
+	}
+
+	return HAWK_T("UNKNOWN");
+}
+
 static int put_oow_as_dec (hawk_t* hawk, hawk_oow_t v)
 {
 	hawk_ooch_t tmp[HAWK_SIZEOF(v) * 8 + 2];
@@ -9515,6 +9744,140 @@ static int put_int_as_dec (hawk_t* hawk, hawk_int_t v)
 	n = hawk_int_to_oocstr(v, 10, HAWK_NULL, tmp, HAWK_COUNTOF(tmp));
 	if (HAWK_UNLIKELY(n == (hawk_oow_t)-1)) return -1;
 	return hawk_putsrcoochars(hawk, tmp, n);
+}
+
+static int put_flt_as_str (hawk_t* hawk, hawk_flt_t v)
+{
+	hawk_ooch_t tmp[96];
+	hawk_oow_t n;
+
+#if defined(HAWK_USE_FLTMAX)
+	n = hawk_fmttooocstr(hawk, tmp, HAWK_COUNTOF(tmp), HAWK_T("%jjf"), &v);
+#else
+	n = hawk_fmttooocstr(hawk, tmp, HAWK_COUNTOF(tmp), HAWK_T("%zf"), v);
+#endif
+
+	if (HAWK_UNLIKELY(n == (hawk_oow_t)-1)) return -1;
+	return hawk_putsrcoochars(hawk, tmp, n);
+}
+
+static int put_escaped_oochars (hawk_t* hawk, const hawk_ooch_t* ptr, hawk_oow_t len)
+{
+	hawk_oow_t i;
+
+	for (i = 0; i < len; i++)
+	{
+		switch (ptr[i])
+		{
+			case HAWK_T('\n'):
+				if (hawk_putsrcoocstr(hawk, HAWK_T("\\n")) <= -1) return -1;
+				break;
+			case HAWK_T('\r'):
+				if (hawk_putsrcoocstr(hawk, HAWK_T("\\r")) <= -1) return -1;
+				break;
+			case HAWK_T('\t'):
+				if (hawk_putsrcoocstr(hawk, HAWK_T("\\t")) <= -1) return -1;
+				break;
+			case HAWK_T('\f'):
+				if (hawk_putsrcoocstr(hawk, HAWK_T("\\f")) <= -1) return -1;
+				break;
+			case HAWK_T('\b'):
+				if (hawk_putsrcoocstr(hawk, HAWK_T("\\b")) <= -1) return -1;
+				break;
+			case HAWK_T('\v'):
+				if (hawk_putsrcoocstr(hawk, HAWK_T("\\v")) <= -1) return -1;
+				break;
+			case HAWK_T('\a'):
+				if (hawk_putsrcoocstr(hawk, HAWK_T("\\a")) <= -1) return -1;
+				break;
+			case HAWK_T('\0'):
+				if (hawk_putsrcoocstr(hawk, HAWK_T("\\0")) <= -1) return -1;
+				break;
+			case HAWK_T('\"'):
+				if (hawk_putsrcoocstr(hawk, HAWK_T("\\\"")) <= -1) return -1;
+				break;
+			case HAWK_T('\\'):
+				if (hawk_putsrcoocstr(hawk, HAWK_T("\\\\")) <= -1) return -1;
+				break;
+			default:
+				if (hawk_putsrcoochars(hawk, &ptr[i], 1) <= -1) return -1;
+				break;
+		}
+	}
+
+	return 0;
+}
+
+static int put_escaped_bchars (hawk_t* hawk, const hawk_bch_t* ptr, hawk_oow_t len)
+{
+	hawk_oow_t i;
+
+	for (i = 0; i < len; i++)
+	{
+		switch (ptr[i])
+		{
+			case HAWK_BT('\n'):
+				if (hawk_putsrcoocstr(hawk, HAWK_T("\\n")) <= -1) return -1;
+				break;
+			case HAWK_BT('\r'):
+				if (hawk_putsrcoocstr(hawk, HAWK_T("\\r")) <= -1) return -1;
+				break;
+			case HAWK_BT('\t'):
+				if (hawk_putsrcoocstr(hawk, HAWK_T("\\t")) <= -1) return -1;
+				break;
+			case HAWK_BT('\f'):
+				if (hawk_putsrcoocstr(hawk, HAWK_T("\\f")) <= -1) return -1;
+				break;
+			case HAWK_BT('\b'):
+				if (hawk_putsrcoocstr(hawk, HAWK_T("\\b")) <= -1) return -1;
+				break;
+			case HAWK_BT('\v'):
+				if (hawk_putsrcoocstr(hawk, HAWK_T("\\v")) <= -1) return -1;
+				break;
+			case HAWK_BT('\a'):
+				if (hawk_putsrcoocstr(hawk, HAWK_T("\\a")) <= -1) return -1;
+				break;
+			case HAWK_BT('\0'):
+				if (hawk_putsrcoocstr(hawk, HAWK_T("\\0")) <= -1) return -1;
+				break;
+			case HAWK_BT('\"'):
+				if (hawk_putsrcoocstr(hawk, HAWK_T("\\\"")) <= -1) return -1;
+				break;
+			case HAWK_BT('\\'):
+				if (hawk_putsrcoocstr(hawk, HAWK_T("\\\\")) <= -1) return -1;
+				break;
+
+			default:
+			{
+#if defined(HAWK_OOCH_IS_BCH)
+				hawk_ooch_t oc = (hawk_bchu_t)ptr[i];
+				if (hawk_putsrcoochars(hawk, &oc, 1) <= -1) return -1;
+#else
+				hawk_ooch_t oc = (hawk_bchu_t)ptr[i];
+				if (HAWK_BYTE_PRINTABLE((hawk_bchu_t)ptr[i]))
+				{
+					if (hawk_putsrcoochars(hawk, &oc, 1) <= -1) return -1;
+				}
+				else
+				{
+					hawk_bch_t xbuf[3];
+					hawk_ooch_t xc;
+
+					hawk_byte_to_bcstr((hawk_bchu_t)ptr[i], xbuf, HAWK_COUNTOF(xbuf), 16, '0');
+					if (hawk_putsrcoocstr(hawk, HAWK_T("\\x")) <= -1) return -1;
+
+					xc = (hawk_bchu_t)xbuf[0];
+					if (hawk_putsrcoochars(hawk, &xc, 1) <= -1) return -1;
+					xc = (hawk_bchu_t)xbuf[1];
+					if (hawk_putsrcoochars(hawk, &xc, 1) <= -1) return -1;
+				}
+#endif
+				break;
+			}
+		}
+	}
+
+	return 0;
 }
 
 static int put_newline (hawk_t* hawk)
@@ -9541,27 +9904,25 @@ static int dump_funbc_ins (hawk_t* hawk, hawk_oow_t pc, const hawk_fbc_ins_t* in
 			    put_int_as_dec(hawk, ins->u.iv) <= -1) return -1;
 			break;
 
+
+		case HAWK_FBC_OP_LOAD_CONST_CHAR:
+			if (hawk_putsrcoocstr(hawk, HAWK_T(" @c\"")) <= -1 ||
+			    put_escaped_oochars(hawk, &ins->u.ch, 1) <= -1 ||
+			    hawk_putsrcoocstr(hawk, HAWK_T("\"")) <= -1) return -1;
+			break;
+
+		case HAWK_FBC_OP_LOAD_CONST_BCHR:
+			if (hawk_putsrcoocstr(hawk, HAWK_T(" @bc\"")) <= -1 ||
+			    put_escaped_bchars(hawk, &ins->u.bch, 1) <= -1 ||
+			    hawk_putsrcoocstr(hawk, HAWK_T("\"")) <= -1) return -1;
+			break;
+
 		case HAWK_FBC_OP_LOAD_CONST_FLT:
 		case HAWK_FBC_OP_LOAD_CONST_STR:
 		case HAWK_FBC_OP_LOAD_CONST_MBS:
-		case HAWK_FBC_OP_LOAD_CONST_CHAR:
-		case HAWK_FBC_OP_LOAD_CONST_BCHR:
-		{
-			hawk_nde_t* nde = ins->u.nde;
-
-			if (!nde)
-			{
-				if (hawk_putsrcoocstr(hawk, HAWK_T(" <null-lit>")) <= -1) return -1;
-			}
-			else
-			{
-				if (hawk_putsrcoocstr(hawk, HAWK_T(" @")) <= -1 ||
-				    put_oow_as_dec(hawk, nde->loc.line) <= -1 ||
-				    hawk_putsrcoocstr(hawk, HAWK_T(":")) <= -1 ||
-				    put_oow_as_dec(hawk, nde->loc.colm) <= -1) return -1;
-			}
+			if (hawk_putsrcoocstr(hawk, HAWK_T(" ")) <= -1 ||
+			    put_oow_as_dec(hawk, ins->u.idx) <= -1) return -1;
 			break;
-		}
 
 		case HAWK_FBC_OP_LOAD_GBL:
 		case HAWK_FBC_OP_LOAD_LCL:
@@ -9620,9 +9981,56 @@ static int dump_funbc_ins (hawk_t* hawk, hawk_oow_t pc, const hawk_fbc_ins_t* in
 	return put_newline(hawk);
 }
 
+static int dump_funbc_lit (hawk_t* hawk, hawk_oow_t idx, const hawk_fbc_lit_t* lit)
+{
+	if (hawk_putsrcoocstr(hawk, HAWK_T("# [")) <= -1 ||
+	    put_oow_as_dec(hawk, idx) <= -1 ||
+	    hawk_putsrcoocstr(hawk, HAWK_T("] ")) <= -1 ||
+	    hawk_putsrcoocstr(hawk, funbc_lit_type_to_name(lit->type)) <= -1) return -1;
+
+	switch (lit->type)
+	{
+		case HAWK_FBC_LIT_FLT:
+			if (hawk_putsrcoocstr(hawk, HAWK_T(" ")) <= -1 ||
+			    put_flt_as_str(hawk, lit->u.fv) <= -1) return -1;
+			break;
+
+		case HAWK_FBC_LIT_STR:
+			if (hawk_putsrcoocstr(hawk, HAWK_T(" \"")) <= -1 ||
+			    put_escaped_oochars(hawk, lit->u.str.ptr, lit->u.str.len) <= -1 ||
+			    hawk_putsrcoocstr(hawk, HAWK_T("\"")) <= -1) return -1;
+			break;
+
+		case HAWK_FBC_LIT_MBS:
+			if (hawk_putsrcoocstr(hawk, HAWK_T(" @b\"")) <= -1 ||
+			    put_escaped_bchars(hawk, lit->u.mbs.ptr, lit->u.mbs.len) <= -1 ||
+			    hawk_putsrcoocstr(hawk, HAWK_T("\"")) <= -1) return -1;
+			break;
+
+		case HAWK_FBC_LIT_CHAR:
+			if (hawk_putsrcoocstr(hawk, HAWK_T(" @c\"")) <= -1 ||
+			    put_escaped_oochars(hawk, &lit->u.ch, 1) <= -1 ||
+			    hawk_putsrcoocstr(hawk, HAWK_T("\"")) <= -1) return -1;
+			break;
+
+		case HAWK_FBC_LIT_BCHR:
+			if (hawk_putsrcoocstr(hawk, HAWK_T(" @bc\"")) <= -1 ||
+			    put_escaped_bchars(hawk, &lit->u.bch, 1) <= -1 ||
+			    hawk_putsrcoocstr(hawk, HAWK_T("\"")) <= -1) return -1;
+			break;
+
+		default:
+			if (hawk_putsrcoocstr(hawk, HAWK_T(" <invalid>")) <= -1) return -1;
+			break;
+	}
+
+	return put_newline(hawk);
+}
+
 static int dump_funbc (hawk_t* hawk, const hawk_oocs_t* name, hawk_fun_t* fun)
 {
 	hawk_oow_t pc;
+	hawk_oow_t i;
 	hawk_fbc_t* bc;
 
 	bc = fun? fun->bc: HAWK_NULL;
@@ -9643,6 +10051,8 @@ static int dump_funbc (hawk_t* hawk, const hawk_oocs_t* name, hawk_fun_t* fun)
 	    put_oow_as_dec(hawk, fun->variadic) <= -1 ||
 	    hawk_putsrcoocstr(hawk, HAWK_T(", len=")) <= -1 ||
 	    put_oow_as_dec(hawk, bc->len) <= -1 ||
+	    hawk_putsrcoocstr(hawk, HAWK_T(", lit=")) <= -1 ||
+	    put_oow_as_dec(hawk, bc->lit_len) <= -1 ||
 	    hawk_putsrcoocstr(hawk, HAWK_T(")")) <= -1) return -1;
 	if (put_newline(hawk) <= -1) return -1;
 
@@ -9650,6 +10060,18 @@ static int dump_funbc (hawk_t* hawk, const hawk_oocs_t* name, hawk_fun_t* fun)
 	{
 		if (dump_funbc_ins(hawk, pc, &bc->code[pc]) <= -1) return -1;
 	}
+
+	if (bc->lit_len > 0)
+	{
+		if (hawk_putsrcoocstr(hawk, HAWK_T("# --- literal pool")) <= -1) return -1;
+		if (put_newline(hawk) <= -1) return -1;
+
+		for (i = 0; i < bc->lit_len; i++)
+		{
+			if (dump_funbc_lit(hawk, i, &bc->lit[i]) <= -1) return -1;
+		}
+	}
+
 
 	return put_newline(hawk);
 }

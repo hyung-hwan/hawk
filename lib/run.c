@@ -7673,45 +7673,48 @@ static int run_funbc (hawk_rtx_t* rtx, hawk_fun_t* fun)
 				if (fbc_eval_stack_push(rtx, evstk, val) <= -1) goto oops;
 				break;
 
+			case HAWK_FBC_OP_LOAD_CONST_CHAR:
+				val = hawk_rtx_makecharval(rtx, ins->u.ch);
+				if (HAWK_UNLIKELY(!val)) goto oops;
+				if (fbc_eval_stack_push(rtx, evstk, val) <= -1) goto oops;
+				break;
+
+			case HAWK_FBC_OP_LOAD_CONST_BCHR:
+				val = hawk_rtx_makebchrval(rtx, ins->u.bch);
+				if (HAWK_UNLIKELY(!val)) goto oops;
+				if (fbc_eval_stack_push(rtx, evstk, val) <= -1) goto oops;
+				break;
+
 			case HAWK_FBC_OP_LOAD_CONST_FLT:
 			case HAWK_FBC_OP_LOAD_CONST_STR:
 			case HAWK_FBC_OP_LOAD_CONST_MBS:
-			case HAWK_FBC_OP_LOAD_CONST_CHAR:
-			case HAWK_FBC_OP_LOAD_CONST_BCHR:
 			{
-				hawk_nde_t* nde = ins->u.nde;
+				hawk_fbc_lit_t* lit;
 
-				if (!nde)
+				if (ins->u.idx >= bc->lit_len)
 				{
 					hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EINTERN);
 					goto oops;
 				}
 
+				lit = &bc->lit[ins->u.idx];
+
 				switch (ins->opcode)
 				{
 					case HAWK_FBC_OP_LOAD_CONST_FLT:
-						if (nde->type != HAWK_NDE_FLT) goto bad_literal_node;
-						val = eval_flt(rtx, nde);
+						if (lit->type != HAWK_FBC_LIT_FLT) goto bad_literal_node;
+						val = hawk_rtx_makefltval(rtx, lit->u.fv);
 						break;
 
 					case HAWK_FBC_OP_LOAD_CONST_STR:
-						if (nde->type != HAWK_NDE_STR) goto bad_literal_node;
-						val = eval_str(rtx, nde);
+						if (lit->type != HAWK_FBC_LIT_STR) goto bad_literal_node;
+						val = hawk_rtx_makestrvalwithoochars(rtx, lit->u.str.ptr, lit->u.str.len);
 						break;
 
-					case HAWK_FBC_OP_LOAD_CONST_MBS:
-						if (nde->type != HAWK_NDE_MBS) goto bad_literal_node;
-						val = eval_mbs(rtx, nde);
-						break;
-
-					case HAWK_FBC_OP_LOAD_CONST_CHAR:
-						if (nde->type != HAWK_NDE_CHAR) goto bad_literal_node;
-						val = eval_char(rtx, nde);
-						break;
-
+					/*case HAWK_FBC_OP_LOAD_CONST_MBS:*/
 					default:
-						if (nde->type != HAWK_NDE_BCHR) goto bad_literal_node;
-						val = eval_bchr(rtx, nde);
+						if (lit->type != HAWK_FBC_LIT_MBS) goto bad_literal_node;
+						val = hawk_rtx_makembsvalwithbchars(rtx, lit->u.mbs.ptr, lit->u.mbs.len);
 						break;
 				}
 
