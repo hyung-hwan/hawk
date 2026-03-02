@@ -2592,6 +2592,11 @@ HAWK_EXPORT hawk_val_t* hawk_rtx_loop (
 );
 
 
+/* When init/fini/unload of a module is invoked, hawk->modmtx is
+ * in the locked state. If you ever need to call hawk_rtx_querymodulewithname/oocs(),
+ * you should pass HAWK_RTX_QUERYMODULE_NOLOCK as a flag bit value */
+#define HAWK_RTX_QUERYMODULE_NOLOCK (1 << 0)
+
 /**
  * The hawk_rtx_querymodulewithname() function finds information
  * about a named module.
@@ -2599,13 +2604,15 @@ HAWK_EXPORT hawk_val_t* hawk_rtx_loop (
 HAWK_EXPORT hawk_mod_t* hawk_rtx_querymodulewithname (
 	hawk_rtx_t*        rtx,
 	const hawk_ooch_t* name,
-	hawk_mod_sym_t*    sym
+	hawk_mod_sym_t*    sym,
+	int                flags
 );
 
 HAWK_EXPORT hawk_mod_t* hawk_rtx_querymodulewithoocs (
 	hawk_rtx_t*        rtx,
 	const hawk_oocs_t* name,
-	hawk_mod_sym_t*    sym
+	hawk_mod_sym_t*    sym,
+	int                flags
 );
 
 /**

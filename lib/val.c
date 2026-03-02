@@ -3047,7 +3047,7 @@ hawk_fnc_t* hawk_rtx_valtofnc (hawk_rtx_t* rtx, hawk_val_t* v, hawk_fnc_t* rfnc)
 				hawk_mod_t* mod;
 				hawk_mod_sym_t sym;
 
-				mod = hawk_rtx_querymodulewithoocs(rtx, &x, &sym);
+				mod = hawk_rtx_querymodulewithoocs(rtx, &x, &sym, 0);
 				if (!mod)
 				{
 					hawk_rtx_freevaloocstr(rtx, v, x.ptr);

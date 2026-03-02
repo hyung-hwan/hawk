@@ -1399,21 +1399,35 @@ static void fini_rtx (hawk_rtx_t* rtx, int fini_globals)
 	rtx->vmgr.rchunk = HAWK_NULL;
 }
 
-hawk_mod_t* hawk_rtx_querymodulewithoocs (hawk_rtx_t* rtx, const hawk_oocs_t* name, hawk_mod_sym_t* sym)
+hawk_mod_t* hawk_rtx_querymodulewithoocs (hawk_rtx_t* rtx, const hawk_oocs_t* name, hawk_mod_sym_t* sym, int flags)
 {
 	hawk_mod_t* m;
-	hawk_mtx_lock(rtx->hawk->modmtx, HAWK_NULL);
-	m = hawk_querymodulewithoocs(rtx->hawk, name, sym);
-	hawk_mtx_unlock(rtx->hawk->modmtx);
+	if (flags & HAWK_RTX_QUERYMODULE_NOLOCK)
+	{
+		m = hawk_querymodulewithoocs(rtx->hawk, name, sym);
+	}
+	else
+	{
+		hawk_mtx_lock(rtx->hawk->modmtx, HAWK_NULL);
+		m = hawk_querymodulewithoocs(rtx->hawk, name, sym);
+		hawk_mtx_unlock(rtx->hawk->modmtx);
+	}
 	return m;
 }
 
-hawk_mod_t* hawk_rtx_querymodulewithname (hawk_rtx_t* rtx, const hawk_ooch_t* name, hawk_mod_sym_t* sym)
+hawk_mod_t* hawk_rtx_querymodulewithname (hawk_rtx_t* rtx, const hawk_ooch_t* name, hawk_mod_sym_t* sym, int flags)
 {
 	hawk_mod_t* m;
-	hawk_mtx_lock(rtx->hawk->modmtx, HAWK_NULL);
-	m = hawk_querymodulewithname(rtx->hawk, name, sym);
-	hawk_mtx_unlock(rtx->hawk->modmtx);
+	if (flags & HAWK_RTX_QUERYMODULE_NOLOCK)
+	{
+		m = hawk_querymodulewithname(rtx->hawk, name, sym);
+	}
+	else
+	{
+		hawk_mtx_lock(rtx->hawk->modmtx, HAWK_NULL);
+		m = hawk_querymodulewithname(rtx->hawk, name, sym);
+		hawk_mtx_unlock(rtx->hawk->modmtx);
+	}
 	return m;
 }
 
