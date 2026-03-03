@@ -1,0 +1,70 @@
+@pragma entry main
+@pragma implicit off
+
+@include "tap.inc";
+
+function run_test_001 ()
+{
+	@local sid, stmt, row, rc, rid, msg;
+
+	if (!hawk::function_exists("sqlite::open"))
+	{
+		tap_skip (sprintf("sqlite module unavailable - %s[%d]", @SCRIPTNAME, @SCRIPTLINE));
+		return;
+	}
+
+	sid = sqlite::open();
+	tap_ensure ((sid >= 0), 1, @SCRIPTNAME, @SCRIPTLINE);
+
+	tap_ensure (sqlite::connect(sid, ":memory:"), 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure (sqlite::exec(sid, "create table t (id integer primary key autoincrement, name text, score real)"), 0, @SCRIPTNAME, @SCRIPTLINE);
+
+	stmt = sqlite::prepare(sid, "insert into t(name, score) values(?, ?)");
+	tap_ensure ((stmt >= 0), 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure (sqlite::bind_str(stmt, 1, "alice"), 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure (sqlite::bind_flt(stmt, 2, 1.5), 0, @SCRIPTNAME, @SCRIPTLINE);
+	row = @nil;
+	tap_ensure (sqlite::fetch_row(stmt, row), 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure (sqlite::changes(sid), 1, @SCRIPTNAME, @SCRIPTLINE);
+	rid = sqlite::last_insert_rowid(sid);
+	tap_ensure ((rid >= 1), 1, @SCRIPTNAME, @SCRIPTLINE);
+
+	tap_ensure (sqlite::reset(stmt), 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure (sqlite::bind_str(stmt, 1, "bob"), 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure (sqlite::bind_int(stmt, 2, 2), 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure (sqlite::fetch_row(stmt, row), 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure (sqlite::changes(sid), 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure (sqlite::finalize(stmt), 0, @SCRIPTNAME, @SCRIPTLINE);
+
+	stmt = sqlite::prepare(sid, "select id, name, score from t order by id");
+	tap_ensure ((stmt >= 0), 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure (sqlite::column_count(stmt), 3, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure (sqlite::column_name(stmt, 1), "id", @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure (sqlite::column_name(stmt, 2), "name", @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure (sqlite::column_name(stmt, 3), "score", @SCRIPTNAME, @SCRIPTLINE);
+
+	row = @nil;
+	rc = sqlite::fetch_row(stmt, row);
+	tap_ensure (rc, 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure (row["2"], "alice", @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure (row["3"], 1.5, @SCRIPTNAME, @SCRIPTLINE);
+
+	rc = sqlite::fetch_row(stmt, row);
+	tap_ensure (rc, 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure (row["2"], "bob", @SCRIPTNAME, @SCRIPTLINE);
+
+	rc = sqlite::fetch_row(stmt, row);
+	tap_ensure (rc, 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure (sqlite::finalize(stmt), 0, @SCRIPTNAME, @SCRIPTLINE);
+
+	tap_ensure (sqlite::close(sid), 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure ((sqlite::exec(sid, "select 1") < 0), 1, @SCRIPTNAME, @SCRIPTLINE);
+	msg = sqlite::errmsg();
+	tap_ensure ((length(msg) > 0), 1, @SCRIPTNAME, @SCRIPTLINE);
+}
+
+function main ()
+{
+	run_test_001 ();
+	tap_end ();
+}
