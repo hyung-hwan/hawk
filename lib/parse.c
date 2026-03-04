@@ -269,6 +269,7 @@ static hawk_nde_t* parse_xcall_postfix_on_expr (hawk_t* hawk, hawk_nde_t* base, 
 static hawk_nde_t* parse_fncall (hawk_t* hawk, const hawk_oocs_t* name, hawk_fnc_t* fnc, const hawk_loc_t* xloc, int flags, int closer_token);
 
 static hawk_nde_t* parse_primary_ident_segs (hawk_t* hawk, const hawk_loc_t* xloc, const hawk_oocs_t* full, const hawk_oocs_t segs[], int nsegs);
+static hawk_nde_t* make_deferred_modsym_node (hawk_t* hawk, const hawk_loc_t* xloc, const hawk_oocs_t* name);
 
 static int get_token (hawk_t* hawk);
 static int preget_token (hawk_t* hawk);
@@ -7879,6 +7880,24 @@ static hawk_nde_t* parse_primary_ident_noseg (hawk_t* hawk, const hawk_loc_t* xl
 	return nde;
 }
 
+static hawk_nde_t* make_deferred_modsym_node (hawk_t* hawk, const hawk_loc_t* xloc, const hawk_oocs_t* name)
+{
+	hawk_nde_modsym_t* nde;
+
+	nde = (hawk_nde_modsym_t*)hawk_callocmem(hawk, HAWK_SIZEOF(*nde));
+	if (HAWK_UNLIKELY(!nde))
+	{
+		ADJERR_LOC(hawk, xloc);
+		return HAWK_NULL;
+	}
+
+	nde->type = HAWK_NDE_MODSYM;
+	nde->loc = *xloc;
+	nde->name.ptr = name->ptr;
+	nde->name.len = name->len;
+	return (hawk_nde_t*)nde;
+}
+
 static hawk_nde_t* parse_primary_ident_segs (hawk_t* hawk, const hawk_loc_t* xloc, const hawk_oocs_t* full, const hawk_oocs_t segs[], int nsegs)
 {
 	/* parse xxx::yyy */
@@ -7887,7 +7906,7 @@ static hawk_nde_t* parse_primary_ident_segs (hawk_t* hawk, const hawk_loc_t* xlo
 	 * heap memory block. this function passes the pointer as is to the fnc node.
 	 * when the fnc node is freed, the data block pointed to by it is freed.
 	 * the caller must free it if this function returns failure or the returned
-	 * node type is not fnc as the ownership doesn't get tranferred. */
+	 * node type is neither fnc nor deferred modsym as the ownership doesn't get tranferred. */
 
 	hawk_nde_t* nde = HAWK_NULL;
 	hawk_mod_t* mod;
@@ -7899,10 +7918,15 @@ static hawk_nde_t* parse_primary_ident_segs (hawk_t* hawk, const hawk_loc_t* xlo
 	{
 		if (hawk->parse.pragma.trait & HAWK_DEFER_MODSYM)
 		{
-			HAWK_MEMSET(&fnc, 0, HAWK_SIZEOF(fnc));
-			fnc.name.ptr = full->ptr;
-			fnc.name.len = full->len;
-			return parse_fncall(hawk, full, &fnc, xloc, FNCALL_FLAG_DEFER_MODFNC, TOK_RPAREN);
+			if (MATCH(hawk, TOK_LPAREN))
+			{
+				HAWK_MEMSET(&fnc, 0, HAWK_SIZEOF(fnc));
+				fnc.name.ptr = full->ptr;
+				fnc.name.len = full->len;
+				return parse_fncall(hawk, full, &fnc, xloc, FNCALL_FLAG_DEFER_MODFNC, TOK_RPAREN);
+			}
+
+			return make_deferred_modsym_node(hawk, xloc, full);
 		}
 
 		ADJERR_LOC(hawk, xloc);
@@ -8014,9 +8038,9 @@ static hawk_nde_t* parse_primary_ident (hawk_t* hawk, const hawk_loc_t* xloc)
 			full.len = capa;
 
 			nde = parse_primary_ident_segs(hawk, xloc, &full, name, nsegs);
-			if (!nde || nde->type != HAWK_NDE_FNCALL_FNC)
+			if (!nde || (nde->type != HAWK_NDE_FNCALL_FNC && nde->type != HAWK_NDE_MODSYM))
 			{
-				/* the FNC node takes the full name but other
+				/* the FNC and deferred MODSYM nodes take the full name but other
 				 * nodes don't. so i need to free it. i know it's ugly. */
 				hawk_freemem(hawk, full.ptr);
 			}

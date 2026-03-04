@@ -180,3 +180,10 @@ BEGIN {
         nosuchmod::nosuchfnc(); ##ERROR: unable to resolve 'nosuchmod::nosuchfnc' at runtime
 }
 
+---
+
+@pragma defermodsym on
+
+BEGIN {
+        print nosuchmod::nosuchconst; ##ERROR: unable to resolve 'nosuchmod::nosuchconst' at runtime
+}

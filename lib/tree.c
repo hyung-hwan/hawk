@@ -858,6 +858,13 @@ static int print_expr (hawk_t* hawk, hawk_nde_t* nde, int depth)
 			break;
 		}
 
+		case HAWK_NDE_MODSYM:
+		{
+			hawk_nde_modsym_t* px = (hawk_nde_modsym_t*)nde;
+			PUT_SRCSTRN(hawk, px->name.ptr, px->name.len);
+			break;
+		}
+
 		case HAWK_NDE_GETLINE:
 		{
 			hawk_nde_getline_t* px = (hawk_nde_getline_t*)nde;
@@ -1646,6 +1653,14 @@ void hawk_clrpt (hawk_t* hawk, hawk_nde_t* tree)
 				hawk_nde_fncall_t* px = (hawk_nde_fncall_t*)p;
 				hawk_clrpt(hawk, (hawk_nde_t*)px->u.expr.callable);
 				hawk_clrpt(hawk, px->args);
+				hawk_freemem(hawk, p);
+				break;
+			}
+
+			case HAWK_NDE_MODSYM:
+			{
+				hawk_nde_modsym_t* px = (hawk_nde_modsym_t*)p;
+				hawk_freemem(hawk, px->name.ptr);
 				hawk_freemem(hawk, p);
 				break;
 			}

@@ -42,6 +42,7 @@ The library is stable, portable, and designed for projects that need a scripting
 	- [Pragmas](#pragmas)
 		- [@pragma entry](#pragma-entry-1)
 		- [@pragma implicit](#pragma-implicit)
+		- [@pragma defermodsym](#pragma-defermodsym)
 		- [@pragma striprecspc](#pragma-striprecspc)
 	- [@include and @include\_once](#include-and-include_once)
 	- [Comments](#comments)
@@ -741,6 +742,7 @@ BEGIN { print length("hawk"), substr("hawk", 2, 2) }
 |---------------|--------|---------------|---------|---------------------------------------------------------|
 | entry         | global | function name |         | change the program entry point                          |
 | implicit      | file   | on, off       | on      | allow undeclared variables                              |
+| defermodsym   | file   | on, off       | off     | defer resolving `mod::symbol` references to runtime     |
 | multilinestr  | file   | on, off       | off     | allow a multiline string literal without continuation   |
 | pipecloexec   | global | on, off       | off     | set CLOEXEC when running an external command for piping |
 | rwpipe        | file   | on, off       | on      | allow the two-way pipe operator `\|&`                   |
@@ -815,6 +817,27 @@ BEGIN {
     @local a;
     a = 10; ## syntax ok - 'a' is declared before use
 }
+```
+
+### @pragma defermodsym
+
+Defers module symbol resolution to runtime.
+This is useful when a script can reference optional modules that may not exist in every deployment.
+
+```awk
+@pragma defermodsym on
+BEGIN {
+	if (0) optionalmod::setup();
+	print "startup complete";
+}
+```
+
+For module functions and non-function symbols, unresolved names like `mymod::fn(...)` and `mymod::CONST` are checked when executed, not when parsed.
+
+Use the CLI option to set the initial mode without editing scripts:
+
+```sh
+$ hawk --defermodsym on -f script.hawk
 ```
 
 ### @pragma striprecspc

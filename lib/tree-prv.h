@@ -69,6 +69,7 @@ typedef struct hawk_nde_rex_t       hawk_nde_rex_t;
 typedef struct hawk_nde_fun_t       hawk_nde_fun_t;
 typedef struct hawk_nde_xnil_t      hawk_nde_xnil_t;
 typedef struct hawk_nde_xargvidx_t  hawk_nde_xargvidx_t;
+typedef struct hawk_nde_modsym_t    hawk_nde_modsym_t;
 
 typedef struct hawk_nde_var_t       hawk_nde_var_t;
 typedef struct hawk_nde_fncall_t    hawk_nde_fncall_t;
@@ -217,6 +218,13 @@ struct hawk_nde_fun_t
 	HAWK_NDE_HDR;
 	hawk_oocs_t name; /* function name */
 	hawk_fun_t* funptr; /* HAWK_NULL or actual pointer */
+};
+
+/* HAWK_NDE_MODSYM - deferred module symbol */
+struct hawk_nde_modsym_t
+{
+	HAWK_NDE_HDR;
+	hawk_oocs_t name;
 };
 
 /* HAWK_NDE_NAMED, HAWK_NDE_GBL,

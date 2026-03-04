@@ -172,6 +172,7 @@ static hawk_val_t* eval_xargc (hawk_rtx_t* rtx, hawk_nde_t* nde);
 static hawk_val_t* eval_xargv (hawk_rtx_t* rtx, hawk_nde_t* nde);
 static hawk_val_t* eval_xargvidx (hawk_rtx_t* rtx, hawk_nde_t* nde);
 static hawk_val_t* eval_fun (hawk_rtx_t* rtx, hawk_nde_t* nde);
+static hawk_val_t* eval_modsym (hawk_rtx_t* rtx, hawk_nde_t* nde);
 static hawk_val_t* eval_named (hawk_rtx_t* rtx, hawk_nde_t* nde);
 static hawk_val_t* eval_gbl (hawk_rtx_t* rtx, hawk_nde_t* nde);
 static hawk_val_t* eval_lcl (hawk_rtx_t* rtx, hawk_nde_t* nde);
@@ -4220,6 +4221,7 @@ static hawk_val_t* eval_expression0 (hawk_rtx_t* rtx, hawk_nde_t* nde)
 		eval_fncall_fnc,
 		eval_fncall_fun,
 		eval_fncall_var,
+		eval_modsym,
 		eval_char,
 		eval_bchr,
 		eval_int,
@@ -8932,6 +8934,59 @@ static hawk_val_t* eval_fun (hawk_rtx_t* rtx, hawk_nde_t* nde)
 	val = hawk_rtx_makefunval(rtx, fun);
 	if (HAWK_UNLIKELY(!val)) ADJERR_LOC(rtx, &nde->loc);
 	return val;
+}
+
+static hawk_val_t* eval_modsym (hawk_rtx_t* rtx, hawk_nde_t* nde)
+{
+	hawk_nde_modsym_t* symnde;
+	hawk_mod_t* mod;
+	hawk_mod_sym_t sym;
+	hawk_val_t* v = HAWK_NULL;
+
+	symnde = (hawk_nde_modsym_t*)nde;
+
+	mod = hawk_rtx_querymodulewithoocs(rtx, &symnde->name, &sym, 0);
+	if (HAWK_UNLIKELY(!mod))
+	{
+		const hawk_ooch_t* olderrmsg = hawk_backuperrmsg(rtx->hawk);
+		hawk_rtx_seterrfmt(rtx, &nde->loc, hawk_geterrnum(rtx->hawk),
+			HAWK_T("unable to resolve '%.*js' at runtime - %js"),
+			symnde->name.len, symnde->name.ptr, olderrmsg);
+		return HAWK_NULL;
+	}
+
+	switch (sym.type)
+	{
+		case HAWK_MOD_INT:
+			if ((rtx->hawk->opt.trait & sym.u.int_.trait) != sym.u.int_.trait) break;
+			v = hawk_rtx_makeintval(rtx, sym.u.int_.val);
+			break;
+
+		case HAWK_MOD_FLT:
+			if ((rtx->hawk->opt.trait & sym.u.flt_.trait) != sym.u.flt_.trait) break;
+			v = hawk_rtx_makefltval(rtx, sym.u.flt_.val);
+			break;
+
+		default:
+			break;
+	}
+
+	if (HAWK_UNLIKELY(!v))
+	{
+		if (hawk_rtx_geterrnum(rtx) == HAWK_ENOERR || hawk_rtx_geterrnum(rtx) == HAWK_ENOENT)
+		{
+			hawk_rtx_seterrfmt(rtx, &nde->loc, HAWK_ENOENT,
+				HAWK_T("'%.*js' not a scalar module symbol or unsupported"),
+				symnde->name.len, symnde->name.ptr);
+		}
+		else
+		{
+			ADJERR_LOC(rtx, &nde->loc);
+		}
+		return HAWK_NULL;
+	}
+
+	return v;
 }
 
 static hawk_val_t* eval_named (hawk_rtx_t* rtx, hawk_nde_t* nde)
