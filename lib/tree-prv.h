@@ -235,6 +235,8 @@ struct hawk_nde_var_t
 	hawk_uint8_t is_const;
 };
 
+#define HAWK_NDE_FNCALL_FNC_DEFERRED_MODFNC (1 << 0)
+
 /* HAWK_NDE_FNCALL_FNC, HAWK_NDE_FNCALL_FUN, HAWK_NDE_FNCALL_EXPR */
 struct hawk_nde_fncall_t
 {
@@ -253,6 +255,7 @@ struct hawk_nde_fncall_t
 		{
 			hawk_fnc_info_t info;
 			hawk_fnc_spec_t spec;
+			hawk_uint8_t flags;
 		} fnc;
 
 		struct

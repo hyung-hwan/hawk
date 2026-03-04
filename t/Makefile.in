@@ -650,8 +650,7 @@ LIBADD_COMMON = ../lib/libhawk.la $(LIBM)
 check_SCRIPTS = $(am__append_1) h-003.hawk h-004.hawk h-009.hawk \
 	h-010.hawk h-011.hawk h-012.hawk h-013.hawk h-014.hawk \
 	h-015.hawk h-016.hawk h-017.hawk h-018.hawk h-019.hawk \
-	h-020.hawk \
-	regress-filename.sh
+	h-020.hawk h-021.hawk regress-filename.sh
 check_ERRORS = e-001.err
 EXTRA_DIST = $(check_SCRIPTS) $(check_ERRORS) tap.inc err.sh \
 	journal-toc.hawk journal-toc.in journal-toc.out journal-toc-html.out \
@@ -710,9 +709,6 @@ t_009_LDADD = $(LIBADD_COMMON)
 LOG_DRIVER = env AM_TAP_AWK='$(AWK)' $(SHELL) $(top_srcdir)/ac/tap-driver.sh
 TESTS = $(check_PROGRAMS) $(check_SCRIPTS) $(check_ERRORS)
 TEST_EXTENSIONS = .hawk .err .sh
-HAWK_TEST_COMPILER ?= ../bin/hawk
-HAWK_TEST_MODLIBDIRS_OPT ?= --modlibdirs=../lib/.libs:../mod/.libs
-HAWK_TEST_OPTS ?= --modlibdirs=../lib/.libs:../mod/.libs
 HAWK_LOG_DRIVER = $(LOG_DRIVER)
 HAWK_LOG_COMPILER = $(HAWK_TEST_COMPILER)
 AM_HAWK_LOG_FLAGS = -vTDIR=${abs_srcdir} $(HAWK_TEST_MODLIBDIRS_OPT) $(HAWK_TEST_OPTS) -f
@@ -1527,6 +1523,13 @@ uninstall-am:
 
 .PRECIOUS: Makefile
 
+
+# override these from environment when needed.
+# e.g.
+#   make check HAWK_TEST_COMPILER=../samples/hawk51 HAWK_TEST_OPTS=
+HAWK_TEST_COMPILER ?= ../bin/hawk
+HAWK_TEST_MODLIBDIRS_OPT ?= --modlibdirs=../lib/.libs:../mod/.libs
+HAWK_TEST_OPTS ?=
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

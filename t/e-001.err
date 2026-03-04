@@ -171,3 +171,12 @@ function x(a, b) {
 		@local y = 40;
 	}
 }
+
+---
+
+@pragma defermodsym on
+
+BEGIN {
+        nosuchmod::nosuchfnc(); ##ERROR: unable to resolve 'nosuchmod::nosuchfnc' at runtime
+}
+

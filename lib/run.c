@@ -7399,6 +7399,48 @@ static hawk_val_t* eval_fncall_fnc (hawk_rtx_t* rtx, hawk_nde_t* nde)
 {
 	/* intrinsic function */
 	hawk_nde_fncall_t* call = (hawk_nde_fncall_t*)nde;
+
+	if (call->u.fnc.flags & HAWK_NDE_FNCALL_FNC_DEFERRED_MODFNC)
+	{
+		hawk_mod_t* mod;
+		hawk_mod_sym_t sym;
+		hawk_nde_fncall_t tmp;
+
+		/* resolve a deferred module function */
+		mod = hawk_rtx_querymodulewithoocs(rtx, &call->u.fnc.info.name, &sym, 0);
+		if (!mod)
+		{
+			const hawk_ooch_t* olderrmsg = hawk_backuperrmsg(rtx->hawk);
+			hawk_rtx_seterrfmt(rtx, &nde->loc, hawk_geterrnum(rtx->hawk),
+				HAWK_T("unable to resolve '%.*js' at runtime - %js"),
+				call->u.fnc.info.name.len, call->u.fnc.info.name.ptr, olderrmsg);
+			return HAWK_NULL;
+		}
+
+		if (sym.type != HAWK_MOD_FNC || ((rtx->hawk->opt.trait & sym.u.fnc_.trait) != sym.u.fnc_.trait))
+		{
+			hawk_rtx_seterrfmt(rtx, &nde->loc, HAWK_ENOENT, HAWK_T("'%.*js' not a function or unsupported"), call->u.fnc.info.name.len, call->u.fnc.info.name.ptr);
+			return HAWK_NULL;
+		}
+
+		if (call->nargs > sym.u.fnc_.arg.max)
+		{
+			hawk_rtx_seterrnum(rtx, &nde->loc, HAWK_EARGTM);
+			return HAWK_NULL;
+		}
+		else if (call->nargs < sym.u.fnc_.arg.min)
+		{
+			hawk_rtx_seterrnum(rtx, &nde->loc, HAWK_EARGTF);
+			return HAWK_NULL;
+		}
+
+		tmp = *call;
+		tmp.u.fnc.info.mod = mod;
+		tmp.u.fnc.spec = sym.u.fnc_;
+		tmp.u.fnc.flags = 0;
+		return hawk_rtx_evalcall(rtx, &tmp, HAWK_NULL, push_arg_from_nde, (void*)tmp.u.fnc.spec.arg.spec, HAWK_NULL, HAWK_NULL);
+	}
+
 	/* the parser must make sure that the number of arguments is proper */
 	HAWK_ASSERT(call->nargs >= call->u.fnc.spec.arg.min && call->nargs <= call->u.fnc.spec.arg.max);
 	return hawk_rtx_evalcall(rtx, call, HAWK_NULL, push_arg_from_nde, (void*)call->u.fnc.spec.arg.spec, HAWK_NULL, HAWK_NULL);

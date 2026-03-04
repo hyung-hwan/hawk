@@ -1,0 +1,14 @@
+@pragma implicit off
+@pragma defermodsym on
+
+@include "tap.inc";
+
+BEGIN {
+	if (0)
+	{
+		nosuchmod::nosuchfnc(1, 2);
+	}
+
+	tap_ok(sprintf("%s[%d]", @SCRIPTNAME, @SCRIPTLINE));
+	tap_end();
+}

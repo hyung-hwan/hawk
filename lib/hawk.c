@@ -473,9 +473,9 @@ void hawk_clear (hawk_t* hawk)
 	/* hawk initializes hawk->opt.trait to HAWK_MODERN.
 	 * the options beloning to HAWK_MODERN are on if you don't
 	 * mask them off with hawk_setopt(). the listed options
-	 * here affected the compile-time pragma. */
+	 * here affect the compile-time pragma. */
 	hawk->parse.pragma.trait = hawk->opt.trait &
-		(HAWK_BUILDBC | HAWK_IMPLICIT | HAWK_MULTILINESTR | HAWK_PEDANTIC | HAWK_RWPIPE |
+		(HAWK_BUILDBC | HAWK_DEFER_MODSYM | HAWK_IMPLICIT | HAWK_MULTILINESTR | HAWK_PEDANTIC | HAWK_RWPIPE |
 		 HAWK_PIPECLOEXEC | HAWK_STRIPRECSPC | HAWK_STRIPSTRSPC | HAWK_XCALL);
 
 	hawk->parse.pragma.rtx_stack_limit = 0;

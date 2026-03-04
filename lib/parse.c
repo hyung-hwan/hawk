@@ -262,9 +262,10 @@ static hawk_nde_t* parse_dotidx (hawk_t* hawk, const hawk_oocs_t* name, const ha
 static hawk_nde_t* parse_xcall_postfix_on_expr (hawk_t* hawk, hawk_nde_t* base, const hawk_loc_t* xloc);
 #endif
 
-#define FNCALL_FLAG_NOARG (1 << 0) /* no argument */
-#define FNCALL_FLAG_EXPR  (1 << 1)
-#define FNCALL_FLAG_MAP   (1 << 2)
+#define FNCALL_FLAG_NOARG        (1 << 0) /* no argument */
+#define FNCALL_FLAG_EXPR         (1 << 1)
+#define FNCALL_FLAG_MAP          (1 << 2)
+#define FNCALL_FLAG_DEFER_MODFNC (1 << 3)
 static hawk_nde_t* parse_fncall (hawk_t* hawk, const hawk_oocs_t* name, hawk_fnc_t* fnc, const hawk_loc_t* xloc, int flags, int closer_token);
 
 static hawk_nde_t* parse_primary_ident_segs (hawk_t* hawk, const hawk_loc_t* xloc, const hawk_oocs_t* full, const hawk_oocs_t segs[], int nsegs);
@@ -2263,6 +2264,7 @@ static int parse_progunit (hawk_t* hawk)
 		}
 		/* NOTE: trait = is an intended assignment */
 		else if (((trait = HAWK_IMPLICIT) && hawk_comp_oochars_oocstr(name.ptr, name.len, HAWK_T("implicit"), 0) == 0) ||
+		         ((trait = HAWK_DEFER_MODSYM) && hawk_comp_oochars_oocstr(name.ptr, name.len, HAWK_T("defermodsym"), 0) == 0) ||
 		         ((trait = HAWK_MULTILINESTR) && hawk_comp_oochars_oocstr(name.ptr, name.len, HAWK_T("multilinestr"), 0) == 0) ||
 		         ((trait = HAWK_PEDANTIC) && hawk_comp_oochars_oocstr(name.ptr, name.len, HAWK_T("pedantic"), 0) == 0) ||
 		         ((trait = HAWK_RWPIPE) && hawk_comp_oochars_oocstr(name.ptr, name.len, HAWK_T("rwpipe"), 0) == 0) ||
@@ -2270,6 +2272,8 @@ static int parse_progunit (hawk_t* hawk)
 		{
 			/* @pragma implicit on (default)
 			 * @pragma implicit off
+			 * @pragma defermodsym on
+			 * @pragma defermodsym off (defualt)
 			 * @pragma multilinestr on
 			 * @pragma multilinestr off (defualt)
 			 * @pragma pedantic on
@@ -6841,7 +6845,7 @@ oops:
 static hawk_nde_t* _parse_primary_array_or_map (hawk_t* hawk, const hawk_loc_t* xloc, const hawk_oocs_t* full, const hawk_oocs_t segs[], int nsegs, int closer_token)
 {
 	/* called for @[ or @{ handling. the caller of this function passes "hawk::array" or
-	 * "hawk:map" via "full'. */
+	 * "hawk::map" via "full'. */
 	hawk_mod_t* mod;
 	hawk_mod_sym_t sym;
 	hawk_fnc_t fnc;
@@ -7879,6 +7883,12 @@ static hawk_nde_t* parse_primary_ident_segs (hawk_t* hawk, const hawk_loc_t* xlo
 {
 	/* parse xxx::yyy */
 
+	/* the caller must ensure that full->ptr points to an allocated(or duplicated)
+	 * heap memory block. this function passes the pointer as is to the fnc node.
+	 * when the fnc node is freed, the data block pointed to by it is freed.
+	 * the caller must free it if this function returns failure or the returned
+	 * node type is not fnc as the ownership doesn't get tranferred. */
+
 	hawk_nde_t* nde = HAWK_NULL;
 	hawk_mod_t* mod;
 	hawk_mod_sym_t sym;
@@ -7887,6 +7897,14 @@ static hawk_nde_t* parse_primary_ident_segs (hawk_t* hawk, const hawk_loc_t* xlo
 	mod = query_module(hawk, segs, nsegs, &sym);
 	if (!mod)
 	{
+		if (hawk->parse.pragma.trait & HAWK_DEFER_MODSYM)
+		{
+			HAWK_MEMSET(&fnc, 0, HAWK_SIZEOF(fnc));
+			fnc.name.ptr = full->ptr;
+			fnc.name.len = full->len;
+			return parse_fncall(hawk, full, &fnc, xloc, FNCALL_FLAG_DEFER_MODFNC, TOK_RPAREN);
+		}
+
 		ADJERR_LOC(hawk, xloc);
 	}
 	else
@@ -8428,18 +8446,25 @@ make_node:
 		call->u.fnc.info.name.len = name->len;
 		call->u.fnc.info.mod = fnc->mod;
 		call->u.fnc.spec = fnc->spec;
+		call->u.fnc.flags = 0;
 
 		call->args = head;
 		call->nargs = nargs;
 
-		if (nargs > call->u.fnc.spec.arg.max)
+		if (flags & FNCALL_FLAG_DEFER_MODFNC)
 		{
-			hawk_seterrnum(hawk, xloc, HAWK_EARGTM);
+			call->u.fnc.flags |= HAWK_NDE_FNCALL_FNC_DEFERRED_MODFNC;
+			/* when deferred, the argument count check isn't possible.
+			 * we join the argument count check blocks with "else if" below. */
+		}
+		else if (nargs > call->u.fnc.spec.arg.max)
+		{
+			hawk_seterrbfmt(hawk, xloc, HAWK_EARGTM, "too many arguments to %.*js", name->len, name->ptr);
 			goto oops;
 		}
 		else if (nargs < call->u.fnc.spec.arg.min)
 		{
-			hawk_seterrnum(hawk, xloc, HAWK_EARGTF);
+			hawk_seterrbfmt(hawk, xloc, HAWK_EARGTF, "too few arguments to %.*js", name->len, name->ptr);
 			goto oops;
 		}
 	}

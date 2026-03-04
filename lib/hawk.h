@@ -1452,6 +1452,11 @@ enum hawk_trait_t
 	 */
 	HAWK_BUILDBC = (1 << 22),
 
+	/**
+	 * allows unresolved module symbol references like 'mod::fn()' at parse-time.
+	 * if enabled, they are resolved when executed and can fail at runtime.
+	 */
+	HAWK_DEFER_MODSYM = (1 << 23),
 
 	/**
 	 * makes #hawk_t to behave compatibly with classical AWK
