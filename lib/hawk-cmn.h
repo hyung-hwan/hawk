@@ -1311,6 +1311,10 @@ typedef enum hawk_log_mask_t hawk_log_mask_t;
 		#define HAWK_HAVE_BUILTIN_CLZLL
 	#endif
 
+	#if __has_builtin(__atomic_compare_exchange_n)
+		#define HAWK_HAVE_ATOMIC_COMPARE_EXCHANGE_N
+	#endif
+
 	#if __has_builtin(__atomic_exchange_n)
 		#define HAWK_HAVE_ATOMIC_EXCHANGE_N
 	#endif
@@ -1615,6 +1619,15 @@ typedef enum hawk_log_mask_t hawk_log_mask_t;
 #	define HAWK_ATOMIC_STORE(ptr,val,mo) __atomic_store_n((ptr),(val),(mo))
 #elif defined(HAWK_HAVE_SYNC_LOCK_TEST_AND_SET) && defined(HAWK_HAVE_SYNC_SYNCHRONIZE)
 #	define HAWK_ATOMIC_STORE(ptr,val,mo) do { __sync_lock_test_and_set((ptr),(val)); __sync_synchronize(); } while(0)
+#endif
+
+#if defined(HAWK_HAVE_ATOMIC_COMPARE_EXCHANGE_N)
+#	define HAWK_ATOMIC_CAS_BOOL(ptr, expected_ptr, desired, memmod_succ, memmod_fail) \
+		__atomic_compare_exchange_n((ptr), (expected_ptr), (desired), 0, (memmod_succ), (memmod_fail))
+#	define HAWK_ATOMIC_CAS_BOOL_YIELD_OLDVAL
+#elif defined(HAWK_HAVE_SYNC_BOOL_COMPARE_AND_SWAP)
+#	define HAWK_ATOMIC_CAS_BOOL(ptr, expected_ptr, desired, memmod_succ, memmod_fail) \
+		__sync_bool_compare_and_swap((ptr), *(expected_ptr), (desired))
 #endif
 
 #if defined(__ATOMIC_RELAXED)

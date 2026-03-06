@@ -7453,9 +7453,17 @@ static HAWK_INLINE hawk_val_t* eval_fncall_fun (hawk_rtx_t* rtx, hawk_nde_t* nde
 	/* user-defined function */
 	hawk_nde_fncall_t* call = (hawk_nde_fncall_t*)nde;
 	hawk_fun_t* fun;
+#if defined(HAWK_ATOMIC_CAS_BOOL)
+	hawk_fun_t* expected;
+#endif
 	hawk_htb_pair_t* pair;
 
-	if (!call->u.fun.fun)
+#if defined(HAWK_ATOMIC_LOAD)
+	fun = HAWK_ATOMIC_LOAD(&call->u.fun.fun, HAWK_ATOMIC_RELAXED);
+#else
+	fun = call->u.fun.fun;
+#endif
+	if (!fun)
 	{
 		/* there can be multiple runtime instances for a single hawk object.
 		 * changing the parse tree from one runtime instance can affect
@@ -7472,9 +7480,29 @@ static HAWK_INLINE hawk_val_t* eval_fncall_fun (hawk_rtx_t* rtx, hawk_nde_t* nde
 
 		fun = (hawk_fun_t*)HAWK_HTB_VPTR(pair);
 		HAWK_ASSERT(fun != HAWK_NULL);
-
+	#if defined(HAWK_ATOMIC_CAS_BOOL)
+		expected = HAWK_NULL; /* if no thread published the cache slot, it must be HAWK_NULL */
+		if (!HAWK_ATOMIC_CAS_BOOL(&call->u.fun.fun, &expected, fun, HAWK_ATOMIC_RELAXED, HAWK_ATOMIC_RELAXED))
+		{
+			/* another thread must have cached a value
+			 * we don't need to do anything */
+		#if 0
+		#if defined(HAWK_ATOMIC_CAS_BOOL_YIELD_OLDVAL)
+			/* exchange failed. expected has the value published by another thread */
+			fun = expected;
+		#else
+			/* exchange failed. i need to load the value published by another thread */
+			expected = HAWK_ATOMIC_LOAD(&call->u.fun.fun, HAWK_ATOMIC_RELAXED);
+			if (expected) fun = expected; /* to be more defensive */
+		#endif
+		#endif
+		}
+	#elif defined(HAWK_ATOMIC_STORE)
+		HAWK_ATOMIC_STORE(&call->u.fun.fun, fun, HAWK_ATOMIC_RELAXED);
+	#else
 		/* cache the search result */
 		call->u.fun.fun = fun;
+	#endif
 	}
 	else
 	{
@@ -8320,7 +8348,7 @@ hawk_val_t* hawk_rtx_evalcall (
 			 * one stack frame up.
 			 *
 			 *  f1(1, 2) is an error as 2 is not referenceable.
-			 *  hakw::call(r, "f1", 1, 2) is not an error but can't capture changes made inside f1.
+			 *  hawk::call(r, "f1", 1, 2) is not an error but can't capture changes made inside f1.
 			 */
 			for (; i < call->nargs; i++)
 			{
@@ -8942,50 +8970,89 @@ static hawk_val_t* eval_modsym (hawk_rtx_t* rtx, hawk_nde_t* nde)
 	hawk_mod_t* mod;
 	hawk_mod_sym_t sym;
 	hawk_val_t* v = HAWK_NULL;
+	int cache_type;
+
+	/* this function is unlikely to be reached for resolved symbols at compile time.
+	 * the parser attempts to resolve a symbol first and create a modsym node
+	 * only if it fails to resolve it. so virtually all symbols evaluated here must
+	 * be unresolvable if not for module availability change between compile-time and
+	 * run-time.
+	 *
+	 * but if the compiler/parser changes the behavior to always defer module resolution
+	 * to runtime, the seemingly redundant code here will become more useful. */
 
 	symnde = (hawk_nde_modsym_t*)nde;
 
-	mod = hawk_rtx_querymodulewithoocs(rtx, &symnde->name, &sym, 0);
-	if (HAWK_UNLIKELY(!mod))
+#if defined(HAWK_ATOMIC_LOAD)
+	cache_type = (&symnde->cache_type, HAWK_ATOMIC_RELAXED);
+#else
+	cache_type = symnde->cache_type;
+#endif
+	if (cache_type == HAWK_MOD_INT)
 	{
-		const hawk_ooch_t* olderrmsg = hawk_backuperrmsg(rtx->hawk);
-		hawk_rtx_seterrfmt(rtx, &nde->loc, hawk_geterrnum(rtx->hawk),
-			HAWK_T("unable to resolve '%.*js' at runtime - %js"),
-			symnde->name.len, symnde->name.ptr, olderrmsg);
-		return HAWK_NULL;
+		/* settings the fields used by code after the jump position 'mod_int' only.
+		 * be careful whening updating code there if it happens to use different fields as well */
+		sym.u.int_.trait = symnde->cache_trait;
+		sym.u.int_.val = symnde->cache.i;
+		goto mod_int;
+	}
+	else if (cache_type == HAWK_MOD_FLT)
+	{
+		/* settings the fields used by code after the jump position 'mod_flt' only.
+		 * be careful whening updating code there if it happens to use different fields as well */
+		sym.u.flt_.trait = symnde->cache_trait;
+		sym.u.flt_.val = symnde->cache.f;
+		goto mod_flt;
+	}
+	else
+	{
+		mod = hawk_rtx_querymodulewithoocs(rtx, &symnde->name, &sym, 0);
+		if (HAWK_UNLIKELY(!mod))
+		{
+			const hawk_ooch_t* olderrmsg = hawk_backuperrmsg(rtx->hawk);
+			hawk_rtx_seterrfmt(rtx, &nde->loc, hawk_geterrnum(rtx->hawk),
+				HAWK_T("unable to resolve '%.*js' at runtime - %js"),
+				symnde->name.len, symnde->name.ptr, olderrmsg);
+			return HAWK_NULL;
+		}
 	}
 
 	switch (sym.type)
 	{
 		case HAWK_MOD_INT:
+			symnde->cache.i = sym.u.int_.val;
+			symnde->cache_trait = sym.u.int_.trait;
+#if defined(HAWK_ATOMIC_STORE)
+			HAWK_ATOMIC_STORE(&symnde->cache_type, &sym.type, HAWK_ATOMIC_RELAXED);
+#else
+			symnde->cache_type = sym.type; /* set cache_type after all other fields */
+#endif
+		mod_int:
 			if ((rtx->hawk->opt.trait & sym.u.int_.trait) != sym.u.int_.trait) break;
 			v = hawk_rtx_makeintval(rtx, sym.u.int_.val);
 			break;
 
 		case HAWK_MOD_FLT:
+			symnde->cache.f = sym.u.flt_.val;
+			symnde->cache_trait = sym.u.flt_.trait;
+#if defined(HAWK_ATOMIC_STORE)
+			HAWK_ATOMIC_STORE(&symnde->cache_type, &sym.type, HAWK_ATOMIC_RELAXED);
+#else
+			symnde->cache_type = sym.type; /* set cache_type after all other fields */
+#endif
+		mod_flt:
 			if ((rtx->hawk->opt.trait & sym.u.flt_.trait) != sym.u.flt_.trait) break;
 			v = hawk_rtx_makefltval(rtx, sym.u.flt_.val);
 			break;
 
 		default:
-			break;
-	}
-
-	if (HAWK_UNLIKELY(!v))
-	{
-		if (hawk_rtx_geterrnum(rtx) == HAWK_ENOERR || hawk_rtx_geterrnum(rtx) == HAWK_ENOENT)
-		{
-			hawk_rtx_seterrfmt(rtx, &nde->loc, HAWK_ENOENT,
+			hawk_rtx_seterrfmt(rtx, &symnde->loc, HAWK_ENOENT,
 				HAWK_T("'%.*js' not a scalar module symbol or unsupported"),
 				symnde->name.len, symnde->name.ptr);
-		}
-		else
-		{
-			ADJERR_LOC(rtx, &nde->loc);
-		}
-		return HAWK_NULL;
+			return HAWK_NULL;
 	}
 
+	if (HAWK_UNLIKELY(!v)) ADJERR_LOC(rtx, &symnde->loc);
 	return v;
 }
 

@@ -225,6 +225,14 @@ struct hawk_nde_modsym_t
 {
 	HAWK_NDE_HDR;
 	hawk_oocs_t name;
+
+	int cache_trait;
+	int cache_type;
+	union
+	{
+		hawk_int_t i;
+		hawk_flt_t f;
+	} cache;
 };
 
 /* HAWK_NDE_NAMED, HAWK_NDE_GBL,

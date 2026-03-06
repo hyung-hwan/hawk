@@ -7895,6 +7895,7 @@ static hawk_nde_t* make_deferred_modsym_node (hawk_t* hawk, const hawk_loc_t* xl
 	nde->loc = *xloc;
 	nde->name.ptr = name->ptr;
 	nde->name.len = name->len;
+	nde->cache_type = -1; /* not cached */
 	return (hawk_nde_t*)nde;
 }
 
@@ -7926,6 +7927,9 @@ static hawk_nde_t* parse_primary_ident_segs (hawk_t* hawk, const hawk_loc_t* xlo
 				return parse_fncall(hawk, full, &fnc, xloc, FNCALL_FLAG_DEFER_MODFNC, TOK_RPAREN);
 			}
 
+			/* since query_module() is executed first, in most cases, the deferred symbol
+			 * must end up unresolved at run-time if ever evaluated. but this is to not break
+			 * programs referencing unresolved symbols at compile time */
 			return make_deferred_modsym_node(hawk, xloc, full);
 		}
 
