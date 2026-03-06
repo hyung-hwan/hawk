@@ -9031,7 +9031,7 @@ static hawk_val_t* eval_modsym (hawk_rtx_t* rtx, hawk_nde_t* nde)
 			symnde->cache.f = sym.u.flt_.val;
 			symnde->cache_trait = sym.u.flt_.trait;
 #if defined(HAWK_ATOMIC_STORE)
-			HAWK_ATOMIC_STORE(&symnde->cache_type, &sym.type, HAWK_ATOMIC_RELAXED);
+			HAWK_ATOMIC_STORE(&symnde->cache_type, sym.type, HAWK_ATOMIC_RELAXED);
 #else
 			symnde->cache_type = sym.type; /* set cache_type after all other fields */
 #endif
