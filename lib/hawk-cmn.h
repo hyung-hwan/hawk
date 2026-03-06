@@ -1636,6 +1636,18 @@ typedef enum hawk_log_mask_t hawk_log_mask_t;
 #	define HAWK_ATOMIC_RELAXED 0
 #endif
 
+#if defined(__ATOMIC_ACQUIRE)
+#	define HAWK_ATOMIC_ACQUIRE __ATOMIC_ACQUIRE
+#else
+#	define HAWK_ATOMIC_ACQUIRE 2
+#endif
+
+#if defined(__ATOMIC_RELEASE)
+#	define HAWK_ATOMIC_RELEASE __ATOMIC_RELEASE
+#else
+#	define HAWK_ATOMIC_RELEASE 3
+#endif
+
 #if defined(__ATOMIC_ACQ_REL)
 #	define HAWK_ATOMIC_ACQ_REL __ATOMIC_ACQ_REL
 #else
