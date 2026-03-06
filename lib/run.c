@@ -8965,6 +8965,7 @@ static hawk_val_t* eval_modsym (hawk_rtx_t* rtx, hawk_nde_t* nde)
 	hawk_mod_t* mod;
 	hawk_mod_sym_t sym;
 	hawk_val_t* v = HAWK_NULL;
+	int expected = -1;
 	int cache_type;
 
 	/* this function is unlikely to be reached for resolved symbols at compile time.
@@ -9001,6 +9002,9 @@ static hawk_val_t* eval_modsym (hawk_rtx_t* rtx, hawk_nde_t* nde)
 	}
 	else
 	{
+		/* TODO: if i spin here while cache_type is -2,
+		 *       i can skip calling hawk_rtx_querymodulewithoocs() more than once */
+
 		mod = hawk_rtx_querymodulewithoocs(rtx, &symnde->name, &sym, 0);
 		if (HAWK_UNLIKELY(!mod))
 		{
@@ -9015,12 +9019,19 @@ static hawk_val_t* eval_modsym (hawk_rtx_t* rtx, hawk_nde_t* nde)
 	switch (sym.type)
 	{
 		case HAWK_MOD_INT:
-			symnde->cache.i = sym.u.int_.val;
-			symnde->cache_trait = sym.u.int_.trait;
+#if defined(HAWK_ATOMIC_CAS_BOOL)
+			if (HAWK_ATOMIC_CAS_BOOL(&symnde->cache_type, &expected, -2, HAWK_ATOMIC_ACQ_REL, HAWK_ATOMIC_ACQUIRE))
+			{
+#endif
+				symnde->cache.i = sym.u.int_.val;
+				symnde->cache_trait = sym.u.int_.trait;
 #if defined(HAWK_ATOMIC_STORE)
-			HAWK_ATOMIC_STORE(&symnde->cache_type, sym.type, HAWK_ATOMIC_RELEASE);
+				HAWK_ATOMIC_STORE(&symnde->cache_type, sym.type, HAWK_ATOMIC_RELEASE);
 #else
-			symnde->cache_type = sym.type; /* set cache_type after all other fields */
+				symnde->cache_type = sym.type; /* set cache_type after all other fields */
+#endif
+#if defined(HAWK_ATOMIC_CAS_BOOL)
+			}
 #endif
 		mod_int:
 			if ((rtx->hawk->opt.trait & sym.u.int_.trait) != sym.u.int_.trait) goto unsupported;
@@ -9028,12 +9039,19 @@ static hawk_val_t* eval_modsym (hawk_rtx_t* rtx, hawk_nde_t* nde)
 			break;
 
 		case HAWK_MOD_FLT:
-			symnde->cache.f = sym.u.flt_.val;
-			symnde->cache_trait = sym.u.flt_.trait;
+#if defined(HAWK_ATOMIC_CAS_BOOL)
+			if (HAWK_ATOMIC_CAS_BOOL(&symnde->cache_type, &expected, -2, HAWK_ATOMIC_ACQ_REL, HAWK_ATOMIC_ACQUIRE))
+			{
+#endif
+				symnde->cache.f = sym.u.flt_.val;
+				symnde->cache_trait = sym.u.flt_.trait;
 #if defined(HAWK_ATOMIC_STORE)
-			HAWK_ATOMIC_STORE(&symnde->cache_type, sym.type, HAWK_ATOMIC_RELEASE);
+				HAWK_ATOMIC_STORE(&symnde->cache_type, sym.type, HAWK_ATOMIC_RELEASE);
 #else
-			symnde->cache_type = sym.type; /* set cache_type after all other fields */
+				symnde->cache_type = sym.type; /* set cache_type after all other fields */
+#endif
+#if defined(HAWK_ATOMIC_CAS_BOOL)
+			}
 #endif
 		mod_flt:
 			if ((rtx->hawk->opt.trait & sym.u.flt_.trait) != sym.u.flt_.trait) goto unsupported;
