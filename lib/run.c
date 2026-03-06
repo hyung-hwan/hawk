@@ -7504,11 +7504,6 @@ static HAWK_INLINE hawk_val_t* eval_fncall_fun (hawk_rtx_t* rtx, hawk_nde_t* nde
 		call->u.fun.fun = fun;
 	#endif
 	}
-	else
-	{
-		/* use the cached function */
-		fun = call->u.fun.fun;
-	}
 
 	if (call->nargs > fun->nargs && !fun->variadic)
 	{
@@ -8984,7 +8979,7 @@ static hawk_val_t* eval_modsym (hawk_rtx_t* rtx, hawk_nde_t* nde)
 	symnde = (hawk_nde_modsym_t*)nde;
 
 #if defined(HAWK_ATOMIC_LOAD)
-	cache_type = (&symnde->cache_type, HAWK_ATOMIC_RELAXED);
+	cache_type = HAWK_ATOMIC_LOAD(&symnde->cache_type, HAWK_ATOMIC_RELAXED);
 #else
 	cache_type = symnde->cache_type;
 #endif
@@ -9023,12 +9018,12 @@ static hawk_val_t* eval_modsym (hawk_rtx_t* rtx, hawk_nde_t* nde)
 			symnde->cache.i = sym.u.int_.val;
 			symnde->cache_trait = sym.u.int_.trait;
 #if defined(HAWK_ATOMIC_STORE)
-			HAWK_ATOMIC_STORE(&symnde->cache_type, &sym.type, HAWK_ATOMIC_RELAXED);
+			HAWK_ATOMIC_STORE(&symnde->cache_type, sym.type, HAWK_ATOMIC_RELAXED);
 #else
 			symnde->cache_type = sym.type; /* set cache_type after all other fields */
 #endif
 		mod_int:
-			if ((rtx->hawk->opt.trait & sym.u.int_.trait) != sym.u.int_.trait) break;
+			if ((rtx->hawk->opt.trait & sym.u.int_.trait) != sym.u.int_.trait) goto unsupported;
 			v = hawk_rtx_makeintval(rtx, sym.u.int_.val);
 			break;
 
@@ -9041,11 +9036,12 @@ static hawk_val_t* eval_modsym (hawk_rtx_t* rtx, hawk_nde_t* nde)
 			symnde->cache_type = sym.type; /* set cache_type after all other fields */
 #endif
 		mod_flt:
-			if ((rtx->hawk->opt.trait & sym.u.flt_.trait) != sym.u.flt_.trait) break;
+			if ((rtx->hawk->opt.trait & sym.u.flt_.trait) != sym.u.flt_.trait) goto unsupported;
 			v = hawk_rtx_makefltval(rtx, sym.u.flt_.val);
 			break;
 
 		default:
+		unsupported:
 			hawk_rtx_seterrfmt(rtx, &symnde->loc, HAWK_ENOENT,
 				HAWK_T("'%.*js' not a scalar module symbol or unsupported"),
 				symnde->name.len, symnde->name.ptr);
