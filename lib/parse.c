@@ -7914,11 +7914,13 @@ static hawk_nde_t* parse_primary_ident_segs (hawk_t* hawk, const hawk_loc_t* xlo
 	hawk_mod_sym_t sym;
 	hawk_fnc_t fnc;
 
+/*if (hawk->parse.pragma.trait & HAWK_DEFER_MODSYM) goto defer;*/
 	mod = query_module(hawk, segs, nsegs, &sym);
 	if (!mod)
 	{
 		if (hawk->parse.pragma.trait & HAWK_DEFER_MODSYM)
 		{
+/*defer:*/
 			if (MATCH(hawk, TOK_LPAREN))
 			{
 				HAWK_MEMSET(&fnc, 0, HAWK_SIZEOF(fnc));

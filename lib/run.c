@@ -24,6 +24,10 @@
 
 #include "hawk-prv.h"
 
+#if defined(HAWK_ATOMIC_CAS_BOOL) && defined(HAWK_ATOMIC_LOAD) &&  defined(HAWK_ATOMIC_STORE)
+#define ATOMIC_EVAL_MODSYM
+#endif
+
 #define PRINT_IOERR (-99)
 #define CMP_ERROR (-99)
 #define DEF_BUF_CAPA (256)
@@ -932,6 +936,7 @@ hawk_rtx_t* hawk_rtx_open (hawk_t* hawk, hawk_oow_t xtnsize, hawk_rio_cbs_t* rio
 		return HAWK_NULL;
 	}
 
+	/* call init() on all the modules loaded at compile-time for this rtx object */
 	mic.count = 0;
 	mic.rtx = rtx;
 	hawk_mtx_lock(rtx->hawk->modmtx, HAWK_NULL);
@@ -1405,10 +1410,16 @@ hawk_mod_t* hawk_rtx_querymodulewithoocs (hawk_rtx_t* rtx, const hawk_oocs_t* na
 	hawk_mod_t* m;
 	if (flags & HAWK_RTX_QUERYMODULE_NOLOCK)
 	{
+		 /* init/fini/unload is also called in the locked context. for example, see
+		  * hawk_rtx_open() which calls the init method of a module. if you want to
+		  * avoid recursive locking, the caller must specify HAWK_RTX_QUERYMODULE_NOLOCK
+		  * when calling this function from such a context */
 		m = hawk_querymodulewithoocs(rtx->hawk, name, sym);
 	}
 	else
 	{
+		/* in a multi-threaded application where you have a rtx in different threads over
+		 * the same hawk object, the mutex blow protects the commonly used hawk->modtab. */
 		hawk_mtx_lock(rtx->hawk->modmtx, HAWK_NULL);
 		m = hawk_querymodulewithoocs(rtx->hawk, name, sym);
 		hawk_mtx_unlock(rtx->hawk->modmtx);
@@ -7408,21 +7419,52 @@ static hawk_val_t* eval_fncall_fnc (hawk_rtx_t* rtx, hawk_nde_t* nde)
 		hawk_mod_sym_t sym;
 		hawk_nde_fncall_t tmp;
 
-		/* resolve a deferred module function */
-		mod = hawk_rtx_querymodulewithoocs(rtx, &call->u.fnc.info.name, &sym, 0);
+#if defined(ATOMIC_EVAL_MODSYM)
+		mod = HAWK_ATOMIC_LOAD(&call->u.fnc.info.mod, HAWK_ATOMIC_ACQUIRE);
+#else
+		mod = call->u.fnc.info.mod;
+#endif
 		if (!mod)
 		{
-			const hawk_ooch_t* olderrmsg = hawk_backuperrmsg(rtx->hawk);
-			hawk_rtx_seterrfmt(rtx, &nde->loc, hawk_geterrnum(rtx->hawk),
-				HAWK_T("unable to resolve '%.*js' at runtime - %js"),
-				call->u.fnc.info.name.len, call->u.fnc.info.name.ptr, olderrmsg);
-			return HAWK_NULL;
-		}
+			/* resolve a deferred module function */
+			mod = hawk_rtx_querymodulewithoocs(rtx, &call->u.fnc.info.name, &sym, 0);
+			if (!mod)
+			{
+				const hawk_ooch_t* olderrmsg = hawk_backuperrmsg(rtx->hawk);
+				hawk_rtx_seterrfmt(rtx, &nde->loc, hawk_geterrnum(rtx->hawk),
+					HAWK_T("unable to resolve '%.*js' at runtime - %js"),
+					call->u.fnc.info.name.len, call->u.fnc.info.name.ptr, olderrmsg);
+				return HAWK_NULL;
+			}
 
-		if (sym.type != HAWK_MOD_FNC || ((rtx->hawk->opt.trait & sym.u.fnc_.trait) != sym.u.fnc_.trait))
+			if (sym.type != HAWK_MOD_FNC || ((rtx->hawk->opt.trait & sym.u.fnc_.trait) != sym.u.fnc_.trait))
+			{
+				hawk_rtx_seterrfmt(rtx, &nde->loc, HAWK_ENOENT, HAWK_T("'%.*js' not a function or unsupported"), call->u.fnc.info.name.len, call->u.fnc.info.name.ptr);
+				return HAWK_NULL;
+			}
+
+			/* cache it */
+#if 0
+#if defined(ATOMIC_EVAL_MODSYM)
+			call->u.fnc.spec = sym.u.fnc_;
+			HAWK_ATOMIC_STORE(&call->u.fnc.info.mod, mod, HAWK_ATOMIC_RELEASE);
+#else
+			call->u.fnc.spec = sym.u.fnc_;
+			call->u.fnc.info.mod = mod;
+#endif
+#endif
+hawk_logbfmt(rtx->hawk, HAWK_LOG_STDERR, "NOT REUSING...\n");
+		}
+		else
 		{
-			hawk_rtx_seterrfmt(rtx, &nde->loc, HAWK_ENOENT, HAWK_T("'%.*js' not a function or unsupported"), call->u.fnc.info.name.len, call->u.fnc.info.name.ptr);
-			return HAWK_NULL;
+			/* reuse the cached info */
+		#if 0
+			/* these two fields are not used below. so skip setting them */
+			sym.type = HAWK_MOD_FNC;
+			sym.name = call->u.fnc.info.name.ptr;
+		#endif
+hawk_logbfmt(rtx->hawk, HAWK_LOG_STDERR, "REUSING...\n");
+			sym.u.fnc_ = call->u.fnc.spec;
 		}
 
 		if (call->nargs > sym.u.fnc_.arg.max)
@@ -8965,7 +9007,9 @@ static hawk_val_t* eval_modsym (hawk_rtx_t* rtx, hawk_nde_t* nde)
 	hawk_mod_t* mod;
 	hawk_mod_sym_t sym;
 	hawk_val_t* v = HAWK_NULL;
+#if defined(ATOMIC_EVAL_MODSYM)
 	int expected = -1;
+#endif
 	int cache_type;
 
 	/* this function is unlikely to be reached for resolved symbols at compile time.
@@ -8979,7 +9023,7 @@ static hawk_val_t* eval_modsym (hawk_rtx_t* rtx, hawk_nde_t* nde)
 
 	symnde = (hawk_nde_modsym_t*)nde;
 
-#if defined(HAWK_ATOMIC_LOAD)
+#if defined(ATOMIC_EVAL_MODSYM)
 	cache_type = HAWK_ATOMIC_LOAD(&symnde->cache_type, HAWK_ATOMIC_ACQUIRE);
 #else
 	cache_type = symnde->cache_type;
@@ -9019,18 +9063,18 @@ static hawk_val_t* eval_modsym (hawk_rtx_t* rtx, hawk_nde_t* nde)
 	switch (sym.type)
 	{
 		case HAWK_MOD_INT:
-#if defined(HAWK_ATOMIC_CAS_BOOL)
+#if defined(ATOMIC_EVAL_MODSYM)
 			if (HAWK_ATOMIC_CAS_BOOL(&symnde->cache_type, &expected, -2, HAWK_ATOMIC_ACQ_REL, HAWK_ATOMIC_ACQUIRE))
 			{
 #endif
 				symnde->cache.i = sym.u.int_.val;
 				symnde->cache_trait = sym.u.int_.trait;
-#if defined(HAWK_ATOMIC_STORE)
+#if defined(ATOMIC_EVAL_MODSYM)
 				HAWK_ATOMIC_STORE(&symnde->cache_type, sym.type, HAWK_ATOMIC_RELEASE);
 #else
 				symnde->cache_type = sym.type; /* set cache_type after all other fields */
 #endif
-#if defined(HAWK_ATOMIC_CAS_BOOL)
+#if defined(ATOMIC_EVAL_MODSYM)
 			}
 #endif
 		mod_int:
@@ -9039,18 +9083,18 @@ static hawk_val_t* eval_modsym (hawk_rtx_t* rtx, hawk_nde_t* nde)
 			break;
 
 		case HAWK_MOD_FLT:
-#if defined(HAWK_ATOMIC_CAS_BOOL)
+#if defined(ATOMIC_EVAL_MODSYM)
 			if (HAWK_ATOMIC_CAS_BOOL(&symnde->cache_type, &expected, -2, HAWK_ATOMIC_ACQ_REL, HAWK_ATOMIC_ACQUIRE))
 			{
 #endif
 				symnde->cache.f = sym.u.flt_.val;
 				symnde->cache_trait = sym.u.flt_.trait;
-#if defined(HAWK_ATOMIC_STORE)
+#if defined(ATOMIC_EVAL_MODSYM)
 				HAWK_ATOMIC_STORE(&symnde->cache_type, sym.type, HAWK_ATOMIC_RELEASE);
 #else
 				symnde->cache_type = sym.type; /* set cache_type after all other fields */
 #endif
-#if defined(HAWK_ATOMIC_CAS_BOOL)
+#if defined(ATOMIC_EVAL_MODSYM)
 			}
 #endif
 		mod_flt:
