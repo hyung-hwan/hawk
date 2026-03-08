@@ -946,9 +946,13 @@ hawk_rtx_t* hawk_rtx_open (hawk_t* hawk, hawk_oow_t xtnsize, hawk_rio_cbs_t* rio
 		if (mic.count > 0)
 		{
 			struct module_fini_ctx_t mfc;
+
 			mfc.limit = mic.count;
 			mfc.count = 0;
 			hawk_rbt_walk(rtx->hawk->modtab, fini_module, &mfc);
+
+			/* call unload on the runtime loaded modules */
+			hawk_rbt_walk(rtx->modtab, hawk_modtab_unload_module, rtx->hawk);
 		}
 
 		hawk_mtx_unlock(rtx->hawk->modmtx);
@@ -986,12 +990,22 @@ void hawk_rtx_close (hawk_rtx_t* rtx)
 	hawk_rtx_ecb_t* ecb, * ecb_next;
 	struct module_fini_ctx_t mfc;
 
+	/* call fini() over the runtime loaded/inited modules */
+	mfc.limit = 0;
+	mfc.count = 0;
+	mfc.rtx = rtx;
+	hawk_rbt_walk(rtx->modtab, fini_module, &mfc); /* don't care how many succeeded and failed */
+
+	/* call unload on the runtime loaded modules */
+	hawk_rbt_walk(rtx->modtab, hawk_modtab_unload_module, rtx->hawk);
+
+	/* call fini() over the compiled-loaded and runtime-inited modules */
 	mfc.limit = 0;
 	mfc.count = 0;
 	mfc.rtx = rtx;
 	hawk_mtx_lock(rtx->hawk->modmtx, HAWK_NULL);
 	hawk_rbt_walk(rtx->hawk->modtab, fini_module, &mfc);
-	hawk_mtx_unlock(rtx->hawk->modmtx);
+	hawk_mtx_unlock(rtx->hawk->modmtx); /* don't care how many succeeded and failed*/
 
 	for (ecb = rtx->ecb; ecb != (hawk_rtx_ecb_t*)rtx; ecb = ecb_next)
 	{
@@ -1151,7 +1165,6 @@ static int init_rtx (hawk_rtx_t* rtx, hawk_t* hawk, hawk_rio_cbs_t* rio)
 	if (HAWK_UNLIKELY(hawk_becs_init(&rtx->fnc.bout, hawk_rtx_getgem(rtx), 256) <= -1)) goto oops_9;
 	if (HAWK_UNLIKELY(hawk_ooecs_init(&rtx->fnc.oout, hawk_rtx_getgem(rtx), 256) <= -1)) goto oops_10;
 
-
 	rtx->named = hawk_htb_open(hawk_rtx_getgem(rtx), HAWK_SIZEOF(rtx), 1024, 70, HAWK_SIZEOF(hawk_ooch_t), 1);
 	if (HAWK_UNLIKELY(!rtx->named)) goto oops_11;
 	*(hawk_rtx_t**)hawk_htb_getxtn(rtx->named) = rtx;
@@ -1175,6 +1188,10 @@ static int init_rtx (hawk_rtx_t* rtx, hawk_t* hawk, hawk_rio_cbs_t* rio)
 	}
 	else rtx->pattern_range_state = HAWK_NULL;
 
+     rtx->modtab = hawk_rbt_open(hawk_getgem(hawk), 0, HAWK_SIZEOF(hawk_ooch_t), 1);
+	if (HAWK_UNLIKELY(!rtx->modtab)) goto oops_15;
+	hawk_rbt_setstyle(rtx->modtab, hawk_get_rbt_style(HAWK_RBT_STYLE_INLINE_COPIERS));
+
 	if (rio)
 	{
 		rtx->rio.handler[HAWK_RIO_PIPE] = rio->pipe;
@@ -1195,6 +1212,8 @@ static int init_rtx (hawk_rtx_t* rtx, hawk_t* hawk, hawk_rio_cbs_t* rio)
 
 	return 0;
 
+oops_15:
+	if (rtx->pattern_range_state) hawk_rtx_freemem(rtx, rtx->pattern_range_state);
 oops_14:
 	hawk_rtx_freemem(rtx, rtx->formatmbs.tmp.ptr);
 oops_13:
@@ -1248,12 +1267,15 @@ static void fini_rtx (hawk_rtx_t* rtx, int fini_globals)
 		rtx->forin.capa = 0;
 	}
 
+	HAWK_ASSERT(rtx->modtab != HAWK_NULL);
+	hawk_rbt_close(rtx->modtab);
+
 	if (rtx->pattern_range_state)
 		hawk_rtx_freemem(rtx, rtx->pattern_range_state);
 
 	/* close all pending io's */
 	/* TODO: what if this operation fails? */
-	hawk_rtx_clearallios (rtx);
+	hawk_rtx_clearallios(rtx);
 	HAWK_ASSERT(rtx->rio.chain == HAWK_NULL);
 
 	if (rtx->gbl.rs[0])
@@ -1408,38 +1430,66 @@ static void fini_rtx (hawk_rtx_t* rtx, int fini_globals)
 hawk_mod_t* hawk_rtx_querymodulewithoocs (hawk_rtx_t* rtx, const hawk_oocs_t* name, hawk_mod_sym_t* sym, int flags)
 {
 	hawk_mod_t* m;
+	hawk_oow_t old_size;
+
+	old_size = HAWK_RBT_SIZE(rtx->modtab);
 	if (flags & HAWK_RTX_QUERYMODULE_NOLOCK)
 	{
 		 /* init/fini/unload is also called in the locked context. for example, see
 		  * hawk_rtx_open() which calls the init method of a module. if you want to
 		  * avoid recursive locking, the caller must specify HAWK_RTX_QUERYMODULE_NOLOCK
 		  * when calling this function from such a context */
-		m = hawk_querymodulewithoocs(rtx->hawk, name, sym);
+		m = hawk_querymodulewithoocs(rtx->hawk, name, sym, rtx->modtab);
 	}
 	else
 	{
 		/* in a multi-threaded application where you have a rtx in different threads over
 		 * the same hawk object, the mutex blow protects the commonly used hawk->modtab. */
 		hawk_mtx_lock(rtx->hawk->modmtx, HAWK_NULL);
-		m = hawk_querymodulewithoocs(rtx->hawk, name, sym);
+		m = hawk_querymodulewithoocs(rtx->hawk, name, sym, rtx->modtab);
 		hawk_mtx_unlock(rtx->hawk->modmtx);
 	}
+
+	if (m && old_size != HAWK_RBT_SIZE(rtx->modtab))
+	{
+		/* a new module must have been added to the runtime module table */
+		if (m->init && m->init(m, rtx) <= -1)
+		{
+/* TODO: call m->unload on the pair containing m like hawk_modtab_unload_module?, remove the pair containing the value m from the table,  and return failure... */
+/* TODO: can we resolve back to the pair from m? or do i need to modify hawk_querymodulewithoocs() to return the pair? */
+		}
+	}
+
 	return m;
 }
 
 hawk_mod_t* hawk_rtx_querymodulewithname (hawk_rtx_t* rtx, const hawk_ooch_t* name, hawk_mod_sym_t* sym, int flags)
 {
 	hawk_mod_t* m;
+	hawk_oow_t old_size;
+
+	old_size = HAWK_RBT_SIZE(rtx->modtab);
 	if (flags & HAWK_RTX_QUERYMODULE_NOLOCK)
 	{
-		m = hawk_querymodulewithname(rtx->hawk, name, sym);
+		m = hawk_querymodulewithname(rtx->hawk, name, sym, rtx->modtab);
 	}
 	else
 	{
 		hawk_mtx_lock(rtx->hawk->modmtx, HAWK_NULL);
-		m = hawk_querymodulewithname(rtx->hawk, name, sym);
+		m = hawk_querymodulewithname(rtx->hawk, name, sym, rtx->modtab);
 		hawk_mtx_unlock(rtx->hawk->modmtx);
 	}
+
+	if (m && old_size != HAWK_RBT_SIZE(rtx->modtab))
+	{
+		/* a new module must have been added to the runtime module table */
+		if (m->init && m->init(m, rtx) <= -1)
+		{
+/* TODO: call m->unload on the pair containing m like hawk_modtab_unload_module?, remove the pair containing the value m from the table,  and return failure... */
+/* TODO: can we resolve back to the pair from m? or do i need to modify hawk_querymodulewithoocs() to return the pair? */
+		}
+	}
+
 	return m;
 }
 
@@ -1586,7 +1636,7 @@ static void refdown_globals (hawk_rtx_t* rtx, int pop)
 	{
 		--ngbls;
 		hawk_rtx_refdownval(rtx, HAWK_RTX_STACK_GBL(rtx,ngbls));
-		if (pop) HAWK_RTX_STACK_POP (rtx);
+		if (pop) HAWK_RTX_STACK_POP(rtx);
 		else HAWK_RTX_STACK_GBL(rtx,ngbls) = hawk_val_nil;
 	}
 }
@@ -1774,7 +1824,7 @@ hawk_val_t* hawk_rtx_loop (hawk_rtx_t* rtx)
 	rtx->exit_level = EXIT_NONE;
 
 	/* flush all buffered io data */
-	hawk_rtx_flushallios (rtx);
+	hawk_rtx_flushallios(rtx);
 
 	return retv;
 }
@@ -2158,7 +2208,7 @@ static int run_pblocks (hawk_rtx_t* rtx)
 		n = read_record(rtx);
 		if (n <= -1)
 		{
-			ADJUST_ERROR (rtx);
+			ADJUST_ERROR(rtx);
 			return -1; /* error */
 		}
 		if (n == 0) break; /* end of input */
@@ -2378,7 +2428,7 @@ static HAWK_INLINE int run_block0 (hawk_rtx_t* rtx, hawk_nde_blk_t* nde)
 		{
 			--tmp;
 			hawk_rtx_refdownval(rtx, HAWK_RTX_STACK_LCL(rtx, tmp));
-			HAWK_RTX_STACK_POP (rtx);
+			HAWK_RTX_STACK_POP(rtx);
 		}
 		while (tmp > 0);
 	}
@@ -8488,7 +8538,7 @@ oops_making_stack_frame:
 		/* call hawk_rtx_refdownval() for all arguments.
 		 * it is safe because nil or quickint is immune to excessive hawk_rtx_refdownval() calls */
 		hawk_rtx_refdownval(rtx, rtx->stack[rtx->stack_top - 1]);
-		HAWK_RTX_STACK_POP (rtx);
+		HAWK_RTX_STACK_POP(rtx);
 	}
 	HAWK_ASSERT(rtx->stack_top - saved_stack_top == 4);
 	while (rtx->stack_top > saved_stack_top)
@@ -8498,7 +8548,7 @@ oops_making_stack_frame:
 		 * three slots contains raw integers for internal use.. only one
 		 * slot that contains the return value would be reference counted
 		 * after it is set to a reference counted value. here, it never happens */
-		HAWK_RTX_STACK_POP (rtx);
+		HAWK_RTX_STACK_POP(rtx);
 	}
 	ADJERR_LOC(rtx, &call->loc);
 	return HAWK_NULL;

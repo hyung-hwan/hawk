@@ -504,7 +504,7 @@ struct hawk_t
 	hawk_ecb_t* ecb;
 
 	hawk_htb_t* static_mods; /* per-instance static modules */
-	hawk_rbt_t* modtab; /* resolved modules for runtime */
+	hawk_rbt_t* modtab; /* resolved modules at compile-time. rtx specific one is at rtx->modtab */
 	hawk_mtx_t* modmtx;
 };
 
@@ -736,6 +736,8 @@ struct hawk_rtx_t
 
 	hawk_ooch_t errmsg_backup[HAWK_ERRMSG_CAPA];
 	hawk_rtx_ecb_t* ecb;
+
+	hawk_rbt_t* modtab; /* rtx-specifi module table in addition to hawk->modtab */
 };
 
 typedef struct hawk_mod_data_t hawk_mod_data_t;
@@ -817,6 +819,8 @@ extern "C" {
 
 int hawk_init (hawk_t* hawk, hawk_mmgr_t* mmgr, hawk_cmgr_t* cmgr, const hawk_prm_t* prm);
 void hawk_fini (hawk_t* hawk);
+
+hawk_rbt_walk_t hawk_modtab_unload_module (hawk_rbt_t* rbt, hawk_rbt_pair_t* pair, void* ctx);
 
 #if defined(__cplusplus)
 }

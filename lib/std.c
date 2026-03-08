@@ -3191,7 +3191,10 @@ hawk_rtx_t* hawk_rtx_openstdwithucstr (
 	hawk_cmgr_t*      cmgr)
 {
 	hawk_rtx_t* rtx = HAWK_NULL;
-	hawk_oow_t mbslen, i;
+#if defined(HAWK_OOCH_IS_BCH)
+	hawk_oow_t mbslen;
+#endif
+	hawk_oow_t i;
 	hawk_ooch_t* xid, ** xicf = HAWK_NULL, ** xocf = HAWK_NULL;
 
 #if defined(HAWK_OOCH_IS_BCH)

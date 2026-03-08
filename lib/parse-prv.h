@@ -130,13 +130,15 @@ void hawk_freefunbc (
 hawk_mod_t* hawk_querymodulewithname (
 	hawk_t*            hawk,
 	const hawk_ooch_t* name,
-	hawk_mod_sym_t*    sym
+	hawk_mod_sym_t*    sym,
+	hawk_rbt_t*        sectab
 );
 
 hawk_mod_t* hawk_querymodulewithoocs (
 	hawk_t*            hawk,
 	const hawk_oocs_t* name,
-	hawk_mod_sym_t*    sym
+	hawk_mod_sym_t*    sym,
+	hawk_rbt_t*        sectab
 );
 
 #if defined(__cplusplus)

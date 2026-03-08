@@ -7,26 +7,31 @@ function run_test_001 ()
 {
 	@local tmp, out;
 
-	tap_ensure (hawk::function_exists(111), 0, @SCRIPTNAME, @SCRIPTLINE);
-	tap_ensure (hawk::function_exists(1.69), 0, @SCRIPTNAME, @SCRIPTLINE);
-	tap_ensure (hawk::function_exists("111"), 0, @SCRIPTNAME, @SCRIPTLINE);
-	tap_ensure (hawk::function_exists(@b"111"), 0, @SCRIPTNAME, @SCRIPTLINE);
-	tap_ensure (hawk::function_exists("length"), 1, @SCRIPTNAME, @SCRIPTLINE);
-	tap_ensure (hawk::function_exists(@b"length"), 1, @SCRIPTNAME, @SCRIPTLINE);
-	tap_ensure (hawk::function_exists(@b"hawk::function_exists"), 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(hawk::function_exists(111), 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(hawk::function_exists(1.69), 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(hawk::function_exists("111"), 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(hawk::function_exists(@b"111"), 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(hawk::function_exists("length"), 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(hawk::function_exists(@b"length"), 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(hawk::function_exists(@b"hawk::function_exists"), 1, @SCRIPTNAME, @SCRIPTLINE);
 
-	tap_ensure (hawk::call(@b"length", "hawk"), 4, @SCRIPTNAME, @SCRIPTLINE);
-	tap_ensure (hawk::call("length", @b"hawk"), 4, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(hawk::call(@b"length", "hawk"), 4, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(hawk::call("length", @b"hawk"), 4, @SCRIPTNAME, @SCRIPTLINE);
 
 	if (hawk::function_exists("sed::str_to_str"))
 	{
 		tmp = hawk::call("sed::str_to_str", "s/a/j/g", "aaabbbaaacccaaaddd", out);
-		tap_ensure (out === "jjjbbbjjjcccjjjddd", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure(out === "jjjbbbjjjcccjjjddd", 1, @SCRIPTNAME, @SCRIPTLINE);
 	}
 	else
 	{
 		tap_skip (sprintf("sed::str_to_str() is unavailable - %s[%d]", @SCRIPTNAME, @SCRIPTLINE));
 	}
+
+	## the sys module was never referenced at compile time. but it's accessed the first time at run-time via call.
+	## in this case file, never access the sys module directly. otherwise, this test becomes invalid.
+	tap_ensure(hawk::call("sys::getpid") >= 0, 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(hawk::call("sys::getppid") >= 0, 1, @SCRIPTNAME, @SCRIPTLINE);
 }
 
 function main()

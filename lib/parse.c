@@ -297,7 +297,7 @@ static int dump_all_funbcs (hawk_t* hawk);
 static int put_char (hawk_t* hawk, hawk_ooch_t c);
 static int flush_out (hawk_t* hawk);
 
-static hawk_mod_t* query_module (hawk_t* hawk, const hawk_oocs_t segs[], int nsegs, hawk_mod_sym_t* sym);
+static hawk_mod_t* query_module (hawk_t* hawk, const hawk_oocs_t segs[], int nsegs, hawk_mod_sym_t* sym, hawk_rbt_t* sectab);
 
 typedef struct kwent_t kwent_t;
 struct kwent_t
@@ -6851,7 +6851,7 @@ static hawk_nde_t* _parse_primary_array_or_map (hawk_t* hawk, const hawk_loc_t* 
 	hawk_mod_sym_t sym;
 	hawk_fnc_t fnc;
 
-	mod = query_module(hawk, segs, nsegs, &sym);
+	mod = query_module(hawk, segs, nsegs, &sym, HAWK_NULL);
 	if (HAWK_UNLIKELY(!mod))
 	{
 		ADJERR_LOC(hawk, xloc);
@@ -7914,13 +7914,19 @@ static hawk_nde_t* parse_primary_ident_segs (hawk_t* hawk, const hawk_loc_t* xlo
 	hawk_mod_sym_t sym;
 	hawk_fnc_t fnc;
 
-/*if (hawk->parse.pragma.trait & HAWK_DEFER_MODSYM) goto defer;*/
-	mod = query_module(hawk, segs, nsegs, &sym);
+/*#define TEST_DEFER_MODSYM */
+#if defined(TEST_DEFER_MODSYM)
+	/* uncondition defer for easier debugging/testing */
+	if (hawk->parse.pragma.trait & HAWK_DEFER_MODSYM) goto defer;
+#endif
+	mod = query_module(hawk, segs, nsegs, &sym, HAWK_NULL);
 	if (!mod)
 	{
 		if (hawk->parse.pragma.trait & HAWK_DEFER_MODSYM)
 		{
-/*defer:*/
+#if defined(TEST_DEFER_MODSYM)
+		defer:
+#endif
 			if (MATCH(hawk, TOK_LPAREN))
 			{
 				HAWK_MEMSET(&fnc, 0, HAWK_SIZEOF(fnc));
@@ -10581,18 +10587,41 @@ static hawk_mod_desc_t static_modtab[] =
 };
 #endif
 
-static hawk_mod_t* query_module (hawk_t* hawk, const hawk_oocs_t segs[], int nsegs, hawk_mod_sym_t* sym)
+static hawk_mod_t* query_module (hawk_t* hawk, const hawk_oocs_t segs[], int nsegs, hawk_mod_sym_t* sym, hawk_rbt_t* sectab)
 {
 	hawk_rbt_pair_t* pair;
 	hawk_mod_data_t* mdp;
+	hawk_rbt_t* modtab;
 	int n;
 
 	HAWK_ASSERT(nsegs == 2);
 
+	modtab = hawk->modtab;
+
+	if (sectab)
+	{
+		/* search in the secondary table first */
+		pair = hawk_rbt_search(sectab, segs[0].ptr, segs[0].len);
+		if (pair)
+		{
+			mdp = (hawk_mod_data_t*)HAWK_RBT_VPTR(pair);
+			goto done;
+		}
+
+		/* when a module is loaded for the first time,
+		 * the information must be stored in the secondary table
+		 * when it's not HAWK_NULL */
+		modtab = sectab;
+	}
+
+	/* find in the shared table. note that it searches in hawk->modtab explicitly.
+	 * it's wrong to search in modtab because it can get changed to sectab when it
+	 * is given */
 	pair = hawk_rbt_search(hawk->modtab, segs[0].ptr, segs[0].len);
 	if (pair)
 	{
 		mdp = (hawk_mod_data_t*)HAWK_RBT_VPTR(pair);
+		/* this flows to the done lable */
 	}
 	else
 	{
@@ -10648,19 +10677,18 @@ static hawk_mod_t* query_module (hawk_t* hawk, const hawk_oocs_t segs[], int nse
 
 			/* i copy-insert 'md' into the table before calling 'load'.
 			 * to pass the same address to load(), query(), etc */
-			pair = hawk_rbt_insert(hawk->modtab, segs[0].ptr, segs[0].len, &md, HAWK_SIZEOF(md));
+			pair = hawk_rbt_insert(modtab, segs[0].ptr, segs[0].len, &md, HAWK_SIZEOF(md));
 			if (HAWK_UNLIKELY(!pair)) return HAWK_NULL;
 
 			mdp = (hawk_mod_data_t*)HAWK_RBT_VPTR(pair);
 			if (load(&mdp->mod, hawk) <= -1)
 			{
-				hawk_rbt_delete(hawk->modtab, segs[0].ptr, segs[0].len);
+				hawk_rbt_delete(modtab, segs[0].ptr, segs[0].len);
 				return HAWK_NULL;
 			}
 
 			goto done;
 		}
-
 
 		/* attempt to find an external module */
 		HAWK_MEMSET(&spec, 0, HAWK_SIZEOF(spec));
@@ -10737,8 +10765,8 @@ static hawk_mod_t* query_module (hawk_t* hawk, const hawk_oocs_t segs[], int nse
 
 		/* i copy-insert 'md' into the table before calling 'load'.
 		 * to pass the same address to load(), query(), etc */
-		pair = hawk_rbt_insert(hawk->modtab, segs[0].ptr, segs[0].len, &md, HAWK_SIZEOF(md));
-		if (pair == HAWK_NULL)
+		pair = hawk_rbt_insert(modtab, segs[0].ptr, segs[0].len, &md, HAWK_SIZEOF(md));
+		if (HAWK_UNLIKELY(!pair))
 		{
 			hawk->prm.modclose(hawk, md.handle);
 			return HAWK_NULL;
@@ -10747,7 +10775,7 @@ static hawk_mod_t* query_module (hawk_t* hawk, const hawk_oocs_t segs[], int nse
 		mdp = (hawk_mod_data_t*)HAWK_RBT_VPTR(pair);
 		if (load(&mdp->mod, hawk) <= -1)
 		{
-			hawk_rbt_delete(hawk->modtab, segs[0].ptr, segs[0].len);
+			hawk_rbt_delete(modtab, segs[0].ptr, segs[0].len);
 			hawk->prm.modclose(hawk, mdp->handle);
 			return HAWK_NULL;
 		}
@@ -10827,7 +10855,7 @@ int hawk_addstaticmodwithucstr (hawk_t* hawk, const hawk_uch_t* name, hawk_mod_l
 	return 0;
 }
 
-hawk_mod_t* hawk_querymodulewithoocs (hawk_t* hawk, const hawk_oocs_t* name, hawk_mod_sym_t* sym)
+hawk_mod_t* hawk_querymodulewithoocs (hawk_t* hawk, const hawk_oocs_t* name, hawk_mod_sym_t* sym, hawk_rbt_t* sectab)
 {
 	const hawk_ooch_t* dc;
 	hawk_oocs_t segs[2];
@@ -10852,13 +10880,13 @@ hawk_mod_t* hawk_querymodulewithoocs (hawk_t* hawk, const hawk_oocs_t* name, haw
 	segs[1].len = name->len - segs[0].len - 2;
 	segs[1].ptr = (hawk_ooch_t*)name->ptr + segs[0].len + 2;
 
-	return query_module(hawk, segs, 2, sym);
+	return query_module(hawk, segs, 2, sym, sectab);
 }
 
-hawk_mod_t* hawk_querymodulewithname (hawk_t* hawk, const hawk_ooch_t* name, hawk_mod_sym_t* sym)
+hawk_mod_t* hawk_querymodulewithname (hawk_t* hawk, const hawk_ooch_t* name, hawk_mod_sym_t* sym, hawk_rbt_t* sectab)
 {
 	hawk_oocs_t oocs;
 	oocs.ptr = (hawk_ooch_t*)name;
 	oocs.len = hawk_count_oocstr(name);
-	return hawk_querymodulewithoocs(hawk, &oocs, sym);
+	return hawk_querymodulewithoocs(hawk, &oocs, sym, sectab);
 }

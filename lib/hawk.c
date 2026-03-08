@@ -414,7 +414,7 @@ void hawk_fini (hawk_t* hawk)
 	}
 }
 
-static hawk_rbt_walk_t unload_module (hawk_rbt_t* rbt, hawk_rbt_pair_t* pair, void* ctx)
+hawk_rbt_walk_t hawk_modtab_unload_module (hawk_rbt_t* rbt, hawk_rbt_pair_t* pair, void* ctx)
 {
 	hawk_t* hawk = (hawk_t*)ctx;
 	hawk_mod_data_t* md;
@@ -445,7 +445,7 @@ void hawk_clear (hawk_t* hawk)
 
 	/* clear all loaded modules. keep hawk->static_mods untouched */
 	hawk_mtx_lock(hawk->modmtx, HAWK_NULL);
-	hawk_rbt_walk(hawk->modtab, unload_module, hawk);
+	hawk_rbt_walk(hawk->modtab, hawk_modtab_unload_module, hawk);
 	hawk_rbt_clear(hawk->modtab);
 	hawk_mtx_unlock(hawk->modmtx);
 
