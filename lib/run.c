@@ -7118,32 +7118,16 @@ static hawk_val_t* eval_unary (hawk_rtx_t* rtx, hawk_nde_t* nde)
 		case HAWK_UNROP_MINUS:
 			n = hawk_rtx_valtonum(rtx, left, &l, &r);
 			if (HAWK_UNLIKELY(n <= -1)) goto exit_func;
-
-			res = (n == 0)? hawk_rtx_makeintval(rtx, -l):
-			                hawk_rtx_makefltval(rtx, -r);
+			res = (n == 0)? hawk_rtx_makeintval(rtx, -l): hawk_rtx_makefltval(rtx, -r);
 			break;
 
 		case HAWK_UNROP_LNOT:
-			if (HAWK_RTX_GETVALTYPE(rtx, left) == HAWK_VAL_STR)
-			{
-				/* 0 if the string length is greater than 0.
-				 * 1 if it's empty */
-				res = hawk_rtx_makeintval(rtx, !(((hawk_val_str_t*)left)->val.len > 0));
-			}
-			else
-			{
-				n = hawk_rtx_valtonum(rtx, left, &l, &r);
-				if (HAWK_UNLIKELY(n <= -1)) goto exit_func;
-
-				res = (n == 0)? hawk_rtx_makeintval(rtx, !l):
-				                hawk_rtx_makefltval(rtx, !r);
-			}
+			res = hawk_rtx_makeboolval(rtx, !hawk_rtx_valtobool(rtx, left));
 			break;
 
 		case HAWK_UNROP_BNOT:
 			n = hawk_rtx_valtoint(rtx, left, &l);
 			if (HAWK_UNLIKELY(n <= -1)) goto exit_func;
-
 			res = hawk_rtx_makeintval(rtx, ~l);
 			break;
 
@@ -8053,7 +8037,7 @@ static int run_funbc (hawk_rtx_t* rtx, hawk_fun_t* fun)
 				if (HAWK_UNLIKELY(fbc_eval_binop(rtx, evstk, eval_binop_le) <= -1)) goto oops;
 				break;
 
-			case HAWK_FBC_OP_NEG:
+			case HAWK_FBC_OP_NEG: /* unary minus */
 			{
 				int n;
 				hawk_int_t l;
@@ -8075,6 +8059,25 @@ static int run_funbc (hawk_rtx_t* rtx, hawk_fun_t* fun)
 				}
 
 				res = (n == 0)? hawk_rtx_makeintval(rtx, -l): hawk_rtx_makefltval(rtx, -r);
+				hawk_rtx_refdownval(rtx, val);
+				if (HAWK_UNLIKELY(!res)) goto oops;
+				if (fbc_eval_stack_push(rtx, evstk, res) <= -1) goto oops;
+				break;
+			}
+
+			case HAWK_FBC_OP_LNOT:
+			{
+				hawk_val_t* res;
+
+				val = fbc_eval_stack_pop(evstk);
+				if (!val)
+				{
+					hawk_rtx_seterrbfmt(rtx, HAWK_NULL, HAWK_EINTERN, "eval stack underflow");
+					goto oops;
+				}
+
+				res = hawk_rtx_makeboolval(rtx, !hawk_rtx_valtobool(rtx, val));
+
 				hawk_rtx_refdownval(rtx, val);
 				if (HAWK_UNLIKELY(!res)) goto oops;
 				if (fbc_eval_stack_push(rtx, evstk, res) <= -1) goto oops;

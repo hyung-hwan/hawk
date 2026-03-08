@@ -1249,15 +1249,18 @@ static int compile_funbc_expr (hawk_t* hawk, hawk_fbc_t* bc, hawk_nde_t* nde)
 		{
 			hawk_nde_exp_t* x = (hawk_nde_exp_t*)nde;
 			int n;
+			hawk_fbc_opcode_t ins;
 
-			if (x->opcode != HAWK_UNROP_MINUS) goto unsupported;
+			if (x->opcode == HAWK_UNROP_MINUS) ins = HAWK_FBC_OP_NEG;
+			else if (x->opcode == HAWK_UNROP_LNOT) ins = HAWK_FBC_OP_LNOT;
+			else goto unsupported;
 			HAWK_ASSERT(x->left != HAWK_NULL && x->right == HAWK_NULL);
 			/*if (!x->left || x->right) goto unsupported;*/
 
 			n = compile_funbc_expr(hawk, bc, x->left);
 			if (n <= -1) goto oops_rollback;
 			if (n == COMPILE_FUNBC_EXPR_UNSUPPORTED) goto unsupported;
-			if (emit_funbc_ins_plain(hawk, bc, HAWK_FBC_OP_NEG, &nde->loc) <= -1) goto oops_rollback;
+			if (emit_funbc_ins_plain(hawk, bc, ins, &nde->loc) <= -1) goto oops_rollback;
 			return COMPILE_FUNBC_EXPR_OK;
 		}
 
@@ -1271,6 +1274,15 @@ static int compile_funbc_expr (hawk_t* hawk, hawk_fbc_t* bc, hawk_nde_t* nde)
 			if (!cnd->test || !cnd->left || !cnd->right) goto unsupported;
 			if (cnd->test->next || cnd->left->next || cnd->right->next) goto unsupported;
 
+			/* do test
+			 * jz to [1]
+			 * do left
+			 * jmp to [2]
+			 *       <---- [1]
+			 * do right
+			 *       <---- [2]
+			 */
+
 			n = compile_funbc_expr(hawk, bc, cnd->test);
 			if (n <= -1) goto oops_rollback;
 			if (n == COMPILE_FUNBC_EXPR_UNSUPPORTED) goto unsupported;
@@ -1283,15 +1295,18 @@ static int compile_funbc_expr (hawk_t* hawk, hawk_fbc_t* bc, hawk_nde_t* nde)
 			if (n <= -1) goto oops_rollback;
 			if (n == COMPILE_FUNBC_EXPR_UNSUPPORTED) goto unsupported;
 
+			/* instruction to jump to the end */
 			jmp_end_at = bc->len;
 			if (emit_funbc_ins_idx(hawk, bc, HAWK_FBC_OP_JMP, 0, &cnd->loc) <= -1) goto oops_rollback;
 
+			/* patch the jump position for the 'false' test result */
 			bc->code[jz_right_at].u.idx = bc->len;
 
 			n = compile_funbc_expr(hawk, bc, cnd->right);
 			if (n <= -1) goto oops_rollback;
 			if (n == COMPILE_FUNBC_EXPR_UNSUPPORTED) goto unsupported;
 
+			/* patch the instruction to the end */
 			bc->code[jmp_end_at].u.idx = bc->len;
 			return COMPILE_FUNBC_EXPR_OK;
 		}
@@ -1748,7 +1763,7 @@ static int parse (hawk_t* hawk)
 		return -1;
 	}
 
-	adjust_static_globals (hawk);
+	adjust_static_globals(hawk);
 
 	/* get the first character and the first token */
 	if (get_char(hawk) <= -1 || get_token(hawk)) goto oops;
@@ -2091,7 +2106,7 @@ static int begin_include (hawk_t* hawk, int once)
 
 	if (once && ever_included(hawk, arg))
 	{
-		end_include (hawk);
+		end_include(hawk);
 		/* it has been included previously. don't include this file again. */
 		if (get_token(hawk) <= -1) return -1; /* skip the include file name */
 		if (MATCH(hawk, TOK_SEMICOLON) || MATCH(hawk, TOK_NEWLINE))
@@ -2106,7 +2121,7 @@ static int begin_include (hawk_t* hawk, int once)
 		 * from this file. */
 		if (record_ever_included(hawk, arg) <= -1 || get_char(hawk) <= -1 || get_token(hawk) <= -1)
 		{
-			end_include (hawk);
+			end_include(hawk);
 			/* i don't jump to oops since i've called
 			 * end_include() where hawk->sio.inp/arg is freed. */
 			return -1;
@@ -6097,8 +6112,8 @@ static hawk_nde_t* parse_equality (hawk_t* hawk, const hawk_loc_t* xloc)
 	{
 		{ TOK_TEQ, HAWK_BINOP_TEQ },
 		{ TOK_TNE, HAWK_BINOP_TNE },
-		{ TOK_EQ, HAWK_BINOP_EQ },
-		{ TOK_NE, HAWK_BINOP_NE },
+		{ TOK_EQ,  HAWK_BINOP_EQ },
+		{ TOK_NE,  HAWK_BINOP_NE },
 		{ TOK_EOF, 0 }
 	};
 
@@ -6109,10 +6124,10 @@ static hawk_nde_t* parse_relational (hawk_t* hawk, const hawk_loc_t* xloc)
 {
 	static binmap_t map[] =
 	{
-		{ TOK_GT, HAWK_BINOP_GT },
-		{ TOK_GE, HAWK_BINOP_GE },
-		{ TOK_LT, HAWK_BINOP_LT },
-		{ TOK_LE, HAWK_BINOP_LE },
+		{ TOK_GT,  HAWK_BINOP_GT },
+		{ TOK_GE,  HAWK_BINOP_GE },
+		{ TOK_LT,  HAWK_BINOP_LT },
+		{ TOK_LE,  HAWK_BINOP_LE },
 		{ TOK_EOF, 0 }
 	};
 
@@ -6123,8 +6138,8 @@ static hawk_nde_t* parse_shift (hawk_t* hawk, const hawk_loc_t* xloc)
 {
 	static binmap_t map[] =
 	{
-		{ TOK_LS, HAWK_BINOP_LS },
-		{ TOK_RS, HAWK_BINOP_RS },
+		{ TOK_LS,  HAWK_BINOP_LS },
+		{ TOK_RS,  HAWK_BINOP_RS },
 		{ TOK_EOF, 0 }
 	};
 
@@ -6213,7 +6228,7 @@ static hawk_nde_t* parse_multiplicative (hawk_t* hawk, const hawk_loc_t* xloc)
 		{ TOK_IDIV, HAWK_BINOP_IDIV },
 		{ TOK_MOD,  HAWK_BINOP_MOD },
 		/* { TOK_EXP, HAWK_BINOP_EXP }, */
-		{ TOK_EOF, 0 }
+		{ TOK_EOF,  0 }
 	};
 
 	return parse_binary(hawk, xloc, 0, map, parse_unary);
@@ -9758,6 +9773,7 @@ static const hawk_ooch_t* funbc_opcode_to_name (hawk_fbc_opcode_t opcode)
 		case HAWK_FBC_OP_LE: return HAWK_T("LE");
 
 		case HAWK_FBC_OP_NEG: return HAWK_T("NEG");
+		case HAWK_FBC_OP_LNOT: return HAWK_T("LNOT");
 		case HAWK_FBC_OP_SWAP: return HAWK_T("SWAP");
 		case HAWK_FBC_OP_DUP: return HAWK_T("DUP");
 		case HAWK_FBC_OP_JMP: return HAWK_T("JMP");

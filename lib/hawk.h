@@ -3152,6 +3152,11 @@ HAWK_EXPORT hawk_val_t* hawk_rtx_makenilval (
 	hawk_rtx_t* rtx
 );
 
+HAWK_EXPORT hawk_val_t* hawk_rtx_makeboolval (
+	hawk_rtx_t* rtx,
+	int         bv
+);
+
 HAWK_EXPORT hawk_val_t* hawk_rtx_makebooltrueval (
 	hawk_rtx_t* rtx
 );

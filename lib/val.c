@@ -568,6 +568,11 @@ hawk_val_t* hawk_rtx_makeboolfalseval (hawk_rtx_t* rtx)
 	return (hawk_val_t*)&hawk_false;
 }
 
+hawk_val_t* hawk_rtx_makeboolval (hawk_rtx_t* rtx, int bv)
+{
+	return bv? (hawk_val_t*)&hawk_true: (hawk_val_t*)&hawk_false;
+}
+
 hawk_val_t* hawk_rtx_makecharval (hawk_rtx_t* rtx, hawk_ooch_t v)
 {
 	return HAWK_CHAR_TO_VTR((hawk_oochu_t)v);
