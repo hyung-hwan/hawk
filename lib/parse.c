@@ -7914,8 +7914,8 @@ static hawk_nde_t* parse_primary_ident_segs (hawk_t* hawk, const hawk_loc_t* xlo
 	hawk_mod_sym_t sym;
 	hawk_fnc_t fnc;
 
-/*#define TEST_DEFER_MODSYM */
-#if defined(TEST_DEFER_MODSYM)
+/*#define DEBUG_DEFER_MODSYM*/
+#if defined(DEBUG_DEFER_MODSYM)
 	/* uncondition defer for easier debugging/testing */
 	if (hawk->parse.pragma.trait & HAWK_DEFER_MODSYM) goto defer;
 #endif
@@ -7924,7 +7924,7 @@ static hawk_nde_t* parse_primary_ident_segs (hawk_t* hawk, const hawk_loc_t* xlo
 	{
 		if (hawk->parse.pragma.trait & HAWK_DEFER_MODSYM)
 		{
-#if defined(TEST_DEFER_MODSYM)
+#if defined(DEBUG_DEFER_MODSYM)
 		defer:
 #endif
 			if (MATCH(hawk, TOK_LPAREN))
@@ -10861,6 +10861,7 @@ hawk_mod_t* hawk_querymodulewithoocs (hawk_t* hawk, const hawk_oocs_t* name, haw
 	hawk_oocs_t segs[2];
 	hawk_ooch_t modname[MAX_MOD_NAME_LEN + 1];
 
+	/* the logic here must match hawk_rtx_querymodulewithoocs() in run.c */
 	dc = hawk_find_oochars_in_oochars(name->ptr, name->len, HAWK_T("::"), 2, 0);
 	if (!dc)
 	{

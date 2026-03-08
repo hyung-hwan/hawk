@@ -949,6 +949,7 @@ hawk_rtx_t* hawk_rtx_open (hawk_t* hawk, hawk_oow_t xtnsize, hawk_rio_cbs_t* rio
 
 			mfc.limit = mic.count;
 			mfc.count = 0;
+			mfc.rtx = rtx;
 			hawk_rbt_walk(rtx->hawk->modtab, fini_module, &mfc);
 
 			/* call unload on the runtime loaded modules */
@@ -1455,8 +1456,33 @@ hawk_mod_t* hawk_rtx_querymodulewithoocs (hawk_rtx_t* rtx, const hawk_oocs_t* na
 		/* a new module must have been added to the runtime module table */
 		if (m->init && m->init(m, rtx) <= -1)
 		{
-/* TODO: call m->unload on the pair containing m like hawk_modtab_unload_module?, remove the pair containing the value m from the table,  and return failure... */
-/* TODO: can we resolve back to the pair from m? or do i need to modify hawk_querymodulewithoocs() to return the pair? */
+			const hawk_ooch_t* ptr;
+			hawk_oow_t len;
+			hawk_rbt_pair_t* pair;
+
+			/* the logic here must match hawk_querymodulewithoocs() in parse.c */
+			ptr = hawk_find_oochars_in_oochars(name->ptr, name->len, HAWK_T("::"), 2, 0);
+			HAWK_ASSERT(ptr != HAWK_NULL);
+			if (HAWK_UNLIKELY(!ptr)) goto internal_error_unrolling;
+			len = ptr - name->ptr;
+
+			pair = hawk_rbt_search(rtx->modtab, ptr, len);
+			HAWK_ASSERT(pair != HAWK_NULL);
+			if (HAWK_UNLIKELY(!pair))
+			{
+			internal_error_unrolling:
+				hawk_rtx_seterrbfmt(rtx, HAWK_NULL, HAWK_EINTERN,
+					"internal runtime error - failed to unroll '%.*js' after initialization failure",
+					name->len, name->ptr);
+			}
+			else
+			{
+				/* skip the fini callback because the init callback returned failure. not calling m->fini().
+				 * invoke the unload() callback if needed and unload the module itself. */
+				hawk_modtab_unload_module(rtx->modtab, pair, rtx->hawk);
+			}
+
+			hawk_rbt_delete(rtx->modtab, ptr, len);
 		}
 	}
 
@@ -1465,32 +1491,10 @@ hawk_mod_t* hawk_rtx_querymodulewithoocs (hawk_rtx_t* rtx, const hawk_oocs_t* na
 
 hawk_mod_t* hawk_rtx_querymodulewithname (hawk_rtx_t* rtx, const hawk_ooch_t* name, hawk_mod_sym_t* sym, int flags)
 {
-	hawk_mod_t* m;
-	hawk_oow_t old_size;
-
-	old_size = HAWK_RBT_SIZE(rtx->modtab);
-	if (flags & HAWK_RTX_QUERYMODULE_NOLOCK)
-	{
-		m = hawk_querymodulewithname(rtx->hawk, name, sym, rtx->modtab);
-	}
-	else
-	{
-		hawk_mtx_lock(rtx->hawk->modmtx, HAWK_NULL);
-		m = hawk_querymodulewithname(rtx->hawk, name, sym, rtx->modtab);
-		hawk_mtx_unlock(rtx->hawk->modmtx);
-	}
-
-	if (m && old_size != HAWK_RBT_SIZE(rtx->modtab))
-	{
-		/* a new module must have been added to the runtime module table */
-		if (m->init && m->init(m, rtx) <= -1)
-		{
-/* TODO: call m->unload on the pair containing m like hawk_modtab_unload_module?, remove the pair containing the value m from the table,  and return failure... */
-/* TODO: can we resolve back to the pair from m? or do i need to modify hawk_querymodulewithoocs() to return the pair? */
-		}
-	}
-
-	return m;
+	hawk_oocs_t oocs;
+	oocs.ptr = name;
+	oocs.len = hawk_count_oocstr(name);
+	return hawk_rtx_querymodulewithoocs(rtx, &oocs, sym, flags);
 }
 
 static int update_fnr (hawk_rtx_t* rtx, hawk_int_t fnr, hawk_int_t nr)
@@ -7494,7 +7498,6 @@ static hawk_val_t* eval_fncall_fnc (hawk_rtx_t* rtx, hawk_nde_t* nde)
 			}
 
 			/* cache it */
-#if 0
 #if defined(ATOMIC_EVAL_MODSYM)
 			call->u.fnc.spec = sym.u.fnc_;
 			HAWK_ATOMIC_STORE(&call->u.fnc.info.mod, mod, HAWK_ATOMIC_RELEASE);
@@ -7502,8 +7505,6 @@ static hawk_val_t* eval_fncall_fnc (hawk_rtx_t* rtx, hawk_nde_t* nde)
 			call->u.fnc.spec = sym.u.fnc_;
 			call->u.fnc.info.mod = mod;
 #endif
-#endif
-hawk_logbfmt(rtx->hawk, HAWK_LOG_STDERR, "NOT REUSING...\n");
 		}
 		else
 		{
@@ -7513,7 +7514,6 @@ hawk_logbfmt(rtx->hawk, HAWK_LOG_STDERR, "NOT REUSING...\n");
 			sym.type = HAWK_MOD_FNC;
 			sym.name = call->u.fnc.info.name.ptr;
 		#endif
-hawk_logbfmt(rtx->hawk, HAWK_LOG_STDERR, "REUSING...\n");
 			sym.u.fnc_ = call->u.fnc.spec;
 		}
 

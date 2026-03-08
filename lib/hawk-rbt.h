@@ -381,7 +381,7 @@ HAWK_EXPORT hawk_oow_t hawk_rbt_getsize (
  */
 HAWK_EXPORT hawk_rbt_pair_t* hawk_rbt_search (
 	const hawk_rbt_t* rbt,   /**< red-black tree */
-	const void*      kptr,  /**< key pointer */
+	const void*       kptr,  /**< key pointer */
 	hawk_oow_t        klen   /**< the size of the key */
 );
 
