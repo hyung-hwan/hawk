@@ -1456,17 +1456,17 @@ hawk_mod_t* hawk_rtx_querymodulewithoocs (hawk_rtx_t* rtx, const hawk_oocs_t* na
 		/* a new module must have been added to the runtime module table */
 		if (m->init && m->init(m, rtx) <= -1)
 		{
-			const hawk_ooch_t* ptr;
+			const hawk_ooch_t* dc;
 			hawk_oow_t len;
 			hawk_rbt_pair_t* pair;
 
 			/* the logic here must match hawk_querymodulewithoocs() in parse.c */
-			ptr = hawk_find_oochars_in_oochars(name->ptr, name->len, HAWK_T("::"), 2, 0);
-			HAWK_ASSERT(ptr != HAWK_NULL);
-			if (HAWK_UNLIKELY(!ptr)) goto internal_error_unrolling;
-			len = ptr - name->ptr;
+			dc = hawk_find_oochars_in_oochars(name->ptr, name->len, HAWK_T("::"), 2, 0);
+			HAWK_ASSERT(dc != HAWK_NULL);
+			if (HAWK_UNLIKELY(!dc)) goto internal_error_unrolling;
+			len = dc - name->ptr;
 
-			pair = hawk_rbt_search(rtx->modtab, ptr, len);
+			pair = hawk_rbt_search(rtx->modtab, name->ptr, len);
 			HAWK_ASSERT(pair != HAWK_NULL);
 			if (HAWK_UNLIKELY(!pair))
 			{
@@ -1482,7 +1482,8 @@ hawk_mod_t* hawk_rtx_querymodulewithoocs (hawk_rtx_t* rtx, const hawk_oocs_t* na
 				hawk_modtab_unload_module(rtx->modtab, pair, rtx->hawk);
 			}
 
-			hawk_rbt_delete(rtx->modtab, ptr, len);
+			hawk_rbt_delete(rtx->modtab, name->ptr, len);
+			m = HAWK_NULL; /* indicate failure */
 		}
 	}
 
