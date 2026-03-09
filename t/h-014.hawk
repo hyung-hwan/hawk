@@ -121,6 +121,13 @@ function main()
 	tap_ensure(hawk::bool(""), @false, @SCRIPTNAME, @SCRIPTLINE);
 	tap_ensure(hawk::bool("0"), @true, @SCRIPTNAME, @SCRIPTLINE);
 	tap_ensure(hawk::bool('0'), @true, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(hawk::bool(@nil), @false, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(hawk::bool(0), @false, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(hawk::bool(1), @true, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(hawk::bool(0.0), @false, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(hawk::bool(0.5), @true, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(hawk::bool(@b""), @false, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(hawk::bool(@b"0"), @true, @SCRIPTNAME, @SCRIPTLINE);
 	tap_ensure(hawk::bool(@[]), @false, @SCRIPTNAME, @SCRIPTLINE);
 	tap_ensure(hawk::bool(@[0]), @true, @SCRIPTNAME, @SCRIPTLINE);
 	tap_ensure(hawk::bool(@{}), @false, @SCRIPTNAME, @SCRIPTLINE);

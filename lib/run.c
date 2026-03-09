@@ -8413,7 +8413,7 @@ hawk_val_t* hawk_rtx_evalcall (
 						 * if argspec is 'R', it may fail. if it happens, don't copy the value */
 						if (HAWK_LIKELY(r >= 0))
 						{
-							HAWK_RTX_INIT_REF_VAL (&refv, p->type - HAWK_NDE_NAMED, ref, 9); /* initialize a fake reference variable. 9 chosen randomly */
+							HAWK_RTX_INIT_REF_VAL(&refv, p->type - HAWK_NDE_NAMED, ref, 9); /* initialize a fake reference variable. 9 chosen randomly */
 							if (HAWK_UNLIKELY(hawk_rtx_setrefval(rtx, &refv, av) <= -1))
 							{
 								n = -1;
