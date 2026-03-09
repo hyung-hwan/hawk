@@ -392,7 +392,6 @@ BEGIN {
 - Logical AND/OR: `&&`, `||`.
 - Boolean results are numeric (`0` or `1`).
 
-
 Example:
 
 ```awk
@@ -403,7 +402,8 @@ BEGIN {
 
 ### Bitwise Operators
 
-- Bitwise AND/OR: `&`, `|`.
+- Bitwise AND/OR/XOR: `&`, `|`, ^^
+- Unary bitwise negation: ~
 - `|` also denotes pipes, so use parentheses when you mean bitwise OR.
 - `>>` is also used for append redirection; use parentheses when you mean right shift.
 

@@ -86,7 +86,7 @@ enum tok_t
 	TOK_LT,
 	TOK_GE,
 	TOK_GT,
-	TOK_TILDE,   /* ~ - match or bitwise negation */
+	TOK_TILDE,  /* ~ - match or bitwise negation */
 	TOK_NM,   /* !~ -  not match */
 	TOK_LNOT, /* ! - logical negation */
 	TOK_PLUS,
@@ -1252,6 +1252,7 @@ static int compile_funbc_expr (hawk_t* hawk, hawk_fbc_t* bc, hawk_nde_t* nde)
 			hawk_fbc_opcode_t ins;
 
 			if (x->opcode == HAWK_UNROP_MINUS) ins = HAWK_FBC_OP_NEG;
+			else if (x->opcode == HAWK_UNROP_BNOT) ins = HAWK_FBC_OP_BNOT;
 			else if (x->opcode == HAWK_UNROP_LNOT) ins = HAWK_FBC_OP_LNOT;
 			else goto unsupported;
 			HAWK_ASSERT(x->left != HAWK_NULL && x->right == HAWK_NULL);
@@ -6066,8 +6067,8 @@ static hawk_nde_t* parse_regex_match (hawk_t* hawk, const hawk_loc_t* xloc)
 	static binmap_t map[] =
 	{
 		{ TOK_TILDE,  HAWK_BINOP_MA },
-		{ TOK_NM,  HAWK_BINOP_NM },
-		{ TOK_EOF, 0 },
+		{ TOK_NM,     HAWK_BINOP_NM },
+		{ TOK_EOF,    0 },
 	};
 
 	return parse_binary(hawk, xloc, 0, map, parse_bitwise_or);
@@ -6175,7 +6176,7 @@ static hawk_nde_t* parse_concat (hawk_t* hawk, const hawk_loc_t* xloc)
 			if (MATCH(hawk,TOK_LPAREN) || MATCH(hawk,TOK_DOLLAR) ||
 			   /* unary operators */
 			   MATCH(hawk,TOK_PLUS) || MATCH(hawk,TOK_MINUS) ||
-			   MATCH(hawk,TOK_LNOT) ||/* MATCH(hawk,TOK_TILDE) ||*/
+			   MATCH(hawk,TOK_LNOT) || /* MATCH(hawk,TOK_TILDE) ||*/
 			   /* increment operators */
 			   MATCH(hawk,TOK_PLUSPLUS) || MATCH(hawk,TOK_MINUSMINUS) ||
 			   ((hawk->opt.trait & HAWK_TOLERANT) &&
@@ -9774,6 +9775,7 @@ static const hawk_ooch_t* funbc_opcode_to_name (hawk_fbc_opcode_t opcode)
 
 		case HAWK_FBC_OP_NEG: return HAWK_T("NEG");
 		case HAWK_FBC_OP_LNOT: return HAWK_T("LNOT");
+		case HAWK_FBC_OP_BNOT: return HAWK_T("BNOT");
 		case HAWK_FBC_OP_SWAP: return HAWK_T("SWAP");
 		case HAWK_FBC_OP_DUP: return HAWK_T("DUP");
 		case HAWK_FBC_OP_JMP: return HAWK_T("JMP");

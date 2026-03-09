@@ -8084,6 +8084,33 @@ static int run_funbc (hawk_rtx_t* rtx, hawk_fun_t* fun)
 				break;
 			}
 
+			case HAWK_FBC_OP_BNOT:
+			{
+				hawk_val_t* res;
+				hawk_int_t l;
+				int n;
+
+				val = fbc_eval_stack_pop(evstk);
+				if (!val)
+				{
+					hawk_rtx_seterrbfmt(rtx, HAWK_NULL, HAWK_EINTERN, "eval stack underflow");
+					goto oops;
+				}
+
+				n = hawk_rtx_valtoint(rtx, val, &l);
+				if (HAWK_UNLIKELY(n <= -1))
+				{
+					hawk_rtx_refdownval(rtx, val);
+					goto oops;
+				}
+				res = hawk_rtx_makeintval(rtx, ~l);
+				hawk_rtx_refdownval(rtx, val);
+
+				if (HAWK_UNLIKELY(!res)) goto oops;
+				if (fbc_eval_stack_push(rtx, evstk, res) <= -1) goto oops;
+				break;
+			}
+
 			case HAWK_FBC_OP_SWAP:
 				if (evstk->len < 2)
 				{
