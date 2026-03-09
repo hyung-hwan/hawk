@@ -28,7 +28,6 @@ static int fnc_asort (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi);
 static int fnc_asorti (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi);
 static int fnc_close (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi);
 static int fnc_fflush (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi);
-static int fnc_int (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi);
 static int fnc_length (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi);
 static int fnc_match (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi);
 
@@ -50,14 +49,14 @@ static hawk_fnc_t sysfnctab[] =
 {
 	/* io functions */
 	{ {HAWK_T("close"),    5}, 0, { {1,     2, HAWK_NULL},        fnc_close,  HAWK_RIO }, HAWK_NULL},
-	{ {HAWK_T("fflush"),   6}, 0, { {0,     1, HAWK_NULL},        fnc_fflush,  HAWK_RIO }, HAWK_NULL},
+	{ {HAWK_T("fflush"),   6}, 0, { {0,     1, HAWK_NULL},        fnc_fflush, HAWK_RIO }, HAWK_NULL},
 
 	/* type info/conversion */
-	{ {HAWK_T("int"),      3}, 0, { {1,     1, HAWK_NULL},        fnc_int,              0 }, HAWK_NULL},
+	{ {HAWK_T("int"),      3}, 0, { {1,     1, HAWK_NULL},        hawk_fnc_int,      0 }, HAWK_NULL},
 
 	/* map(array) sort */
-	{ {HAWK_T("asort"),    5}, 0, { {1,     3, HAWK_T("rrv")},    fnc_asort,            0 }, HAWK_NULL},
-	{ {HAWK_T("asorti"),   6}, 0, { {1,     3, HAWK_T("rrv")},    fnc_asorti,           0 }, HAWK_NULL},
+	{ {HAWK_T("asort"),    5}, 0, { {1,     3, HAWK_T("rrv")},    fnc_asort,         0 }, HAWK_NULL},
+	{ {HAWK_T("asorti"),   6}, 0, { {1,     3, HAWK_T("rrv")},    fnc_asorti,        0 }, HAWK_NULL},
 
 	/* string functions */
 	{ {HAWK_T("gensub"),   6}, 0, { {3,     4, HAWK_T("xvvv")},   hawk_fnc_gensub,   0 }, HAWK_NULL},
@@ -2321,7 +2320,7 @@ int hawk_fnc_sprintf (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	}
 }
 
-static int fnc_int (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+int hawk_fnc_int (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	hawk_val_t* a0;
 	hawk_int_t lv;

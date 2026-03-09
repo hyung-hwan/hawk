@@ -113,6 +113,25 @@ function main()
 	tap_ensure(hawk::typename(m), "map", @SCRIPTNAME, @SCRIPTLINE);
 	tap_ensure(hawk::type(a), hawk::VAL_ARRAY, @SCRIPTNAME, @SCRIPTLINE);
 	tap_ensure(hawk::typename(a), "array", @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(hawk::type(!@[]), hawk::VAL_BOOL, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(hawk::typename(!@[]), "bool", @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(hawk::type(!!dummy), hawk::VAL_BOOL, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(hawk::typename(!dummy), "bool", @SCRIPTNAME, @SCRIPTLINE);
+
+	tap_ensure(hawk::bool(""), @false, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(hawk::bool("0"), @true, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(hawk::bool('0'), @true, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(hawk::bool(@[]), @false, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(hawk::bool(@[0]), @true, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(hawk::bool(@{}), @false, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(hawk::bool(@{1:1}), @true, @SCRIPTNAME, @SCRIPTLINE);
+
+	tap_ensure(!@[], @true, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(!!@[], @false, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(!@[1], @false, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(!!@[1], @true, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(!dummy, @false, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(!!dummy, @true, @SCRIPTNAME, @SCRIPTLINE);
 
 	tap_ensure(sprintf("%d", @true), "1", @SCRIPTNAME, @SCRIPTLINE);
 	tap_ensure(sprintf("%d", @false), "0", @SCRIPTNAME, @SCRIPTLINE);
@@ -164,6 +183,7 @@ function main()
 	tap_ensure(@false %% @b"ABC", @b"0ABC", @SCRIPTNAME, @SCRIPTLINE);
 	tap_ensure(@b"ABC" %% @true, @b"ABC1", @SCRIPTNAME, @SCRIPTLINE);
 	tap_ensure(@b"ABC" %% @false, @b"ABC0", @SCRIPTNAME, @SCRIPTLINE);
+
 
 	tap_end();
 }

@@ -97,6 +97,20 @@ static hawk_oow_t push_args_from_stack (hawk_rtx_t* rtx, hawk_nde_fncall_t* call
 	return pasf->end_index - pasf->start_index + 1;
 }
 
+static int fnc_bool (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+{
+	hawk_val_t* a0;
+	hawk_val_t* r;
+
+	a0 = hawk_rtx_getarg(rtx, 0);
+
+	r = hawk_rtx_makeboolval(rtx, hawk_rtx_valtobool(rtx, a0));
+	if (!r) return -1;
+
+	hawk_rtx_setretval(rtx, r);
+	return 0;
+}
+
 static int fnc_call (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	hawk_fun_t* fun;
@@ -526,6 +540,7 @@ static hawk_mod_fnc_tab_t fnctab[] =
 {
 	/* keep this table sorted for binary search in query(). */
 	{ HAWK_T("array"),            { { 0, A_MAX, HAWK_NULL     },  fnc_array,                 0 } },
+	{ HAWK_T("bool"),             { { 1, 1,     HAWK_NULL     },  fnc_bool,                  0 } },
 	{ HAWK_T("call"),             { { 1, A_MAX, HAWK_T("vR")  },  fnc_call,                  0 } },
 	{ HAWK_T("cmgr_exists"),      { { 1, 1,     HAWK_NULL     },  fnc_cmgr_exists,           0 } },
 	{ HAWK_T("function_exists"),  { { 1, 1,     HAWK_NULL     },  fnc_function_exists,       0 } },
@@ -535,6 +550,7 @@ static hawk_mod_fnc_tab_t fnctab[] =
 	{ HAWK_T("gc_set_threshold"), { { 2, 2,     HAWK_NULL     },  fnc_gc_set_threshold,      0 } },
 	{ HAWK_T("gcrefs"),           { { 1, 1,     HAWK_NULL     },  fnc_gcrefs,                0 } },
 	{ HAWK_T("hash"),             { { 1, 1,     HAWK_NULL     },  fnc_hash,                  0 } },
+	{ HAWK_T("int"),              { { 1, 1,     HAWK_NULL     },  hawk_fnc_int,              0 } },
 	{ HAWK_T("isarray"),          { { 1, 1,     HAWK_NULL     },  fnc_isarr,                 0 } },
 	{ HAWK_T("ismap"),            { { 1, 1,     HAWK_NULL     },  fnc_ismap,                 0 } },
 	{ HAWK_T("isnil"),            { { 1, 1,     HAWK_NULL     },  fnc_isnil,                 0 } },
