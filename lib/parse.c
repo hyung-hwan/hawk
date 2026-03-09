@@ -1392,7 +1392,11 @@ static int compile_funbc_stmt_internal (
 			hawk_nde_blk_t* x = (hawk_nde_blk_t*)stmt;
 			hawk_nde_t* p;
 
-			if (x->nlcls > 0 || x->org_nlcls > 0) goto unsupported;
+			/* The parser migrates nested block locals to the function-level
+			 * local frame. Emit an explicit block-entry initializer so reused
+			 * slots become nil whenever the nested block is entered. */
+			if (x->nlcls > 0) goto unsupported;
+			if (x->org_nlcls > 0 && emit_funbc_ins_nde(hawk, bc, HAWK_FBC_OP_INIT_BLK, stmt, &stmt->loc) <= -1) goto oops_rollback;
 
 			for (p = x->body; p; p = p->next)
 			{
@@ -9783,6 +9787,7 @@ static const hawk_ooch_t* funbc_opcode_to_name (hawk_fbc_opcode_t opcode)
 		case HAWK_FBC_OP_CALL: return HAWK_T("CALL");
 		case HAWK_FBC_OP_RET: return HAWK_T("RET");
 		case HAWK_FBC_OP_POP: return HAWK_T("POP");
+		case HAWK_FBC_OP_INIT_BLK: return HAWK_T("INIT_BLK");
 		case HAWK_FBC_OP_RUN_AST_STMT: return HAWK_T("RUN_AST_STMT");
 		case HAWK_FBC_OP_RET_AST_EXPR: return HAWK_T("RET_AST_EXPR");
 		case HAWK_FBC_OP_RET_NIL: return HAWK_T("RET_NIL");
@@ -10034,6 +10039,7 @@ static int dump_funbc_ins (hawk_t* hawk, hawk_oow_t pc, const hawk_fbc_ins_t* in
 			    put_oow_as_dec(hawk, ins->u.idx) <= -1) return -1;
 			break;
 
+		case HAWK_FBC_OP_INIT_BLK:
 		case HAWK_FBC_OP_RUN_AST_STMT:
 		case HAWK_FBC_OP_RET_AST_EXPR:
 		{

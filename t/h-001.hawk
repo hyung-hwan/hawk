@@ -33,7 +33,8 @@ function main()
 
 		tmp = !99;
 		tap_ensure(!99, 0, @SCRIPTNAME, @SCRIPTLINE);
-		tmp = ~0xFFFF;
+		tmp = 0xFFFF;
+		tmp = ~tmp;
 		tap_ensure(tmp, ~(~(~0xFFFF)), @SCRIPTNAME, @SCRIPTLINE);
 		tmp = ~0xFFFF;
 		tap_ensure(tmp, ~~~0xFFFF, @SCRIPTNAME, @SCRIPTLINE);

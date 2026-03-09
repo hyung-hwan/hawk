@@ -8189,6 +8189,28 @@ static int run_funbc (hawk_rtx_t* rtx, hawk_fun_t* fun)
 				hawk_rtx_refdownval(rtx, val);
 				break;
 
+			case HAWK_FBC_OP_INIT_BLK:
+			{
+				hawk_nde_blk_t* blk = (hawk_nde_blk_t*)ins->u.nde;
+				if (!blk || blk->type != HAWK_NDE_BLK)
+				{
+					hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EINTERN);
+					goto oops;
+				}
+
+				if (blk->nlcls != blk->org_nlcls)
+				{
+					hawk_oow_t i, end;
+					end = blk->outer_nlcls + blk->org_nlcls;
+					for (i = blk->outer_nlcls; i < end; i++)
+					{
+						hawk_rtx_refdownval(rtx, HAWK_RTX_STACK_LCL(rtx, i));
+						HAWK_RTX_STACK_LCL(rtx, i) = hawk_val_nil;
+					}
+				}
+				break;
+			}
+
 			case HAWK_FBC_OP_RUN_AST_STMT:
 				if (HAWK_UNLIKELY(run_statement(rtx, ins->u.nde) <= -1)) goto oops;
 				break;
