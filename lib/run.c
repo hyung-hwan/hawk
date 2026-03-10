@@ -8191,6 +8191,7 @@ static int run_funbc (hawk_rtx_t* rtx, hawk_fun_t* fun)
 
 			case HAWK_FBC_OP_INIT_BLK:
 			{
+			#if 0
 				hawk_nde_blk_t* blk = (hawk_nde_blk_t*)ins->u.nde;
 				if (!blk || blk->type != HAWK_NDE_BLK)
 				{
@@ -8208,6 +8209,18 @@ static int run_funbc (hawk_rtx_t* rtx, hawk_fun_t* fun)
 						HAWK_RTX_STACK_LCL(rtx, i) = hawk_val_nil;
 					}
 				}
+			#else
+				hawk_oow_t start, end, i;
+
+				start = ins->u.oow >> HAWK_OOHW_BITS;
+				end = ins->u.oow & HAWK_LBMASK(hawk_oow_t, HAWK_OOHW_BITS);
+
+				for (i = start; i <= end; i++)
+				{
+					hawk_rtx_refdownval(rtx, HAWK_RTX_STACK_LCL(rtx, i));
+					HAWK_RTX_STACK_LCL(rtx, i) = hawk_val_nil;
+				}
+			#endif
 				break;
 			}
 

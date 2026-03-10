@@ -94,7 +94,6 @@ typedef struct hawk_tree_t hawk_tree_t;
 #define HAWK_MAX_PARAMS    (9999)
 #define HAWK_MAX_FUN_LEVEL (1024)
 
-
 /* runtime stack limit */
 #define HAWK_DFL_RTX_STACK_LIMIT (5120)
 #define HAWK_MIN_RTX_STACK_LIMIT (512)
@@ -288,6 +287,7 @@ struct hawk_fbc_ins_t
 		hawk_ooch_t ch;
 		hawk_bch_t bch;
 		hawk_oow_t idx;
+		hawk_oow_t oow;
 	} u;
 };
 

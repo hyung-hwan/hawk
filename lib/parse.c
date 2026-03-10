@@ -856,6 +856,15 @@ static int emit_funbc_ins_idx (hawk_t* hawk, hawk_fbc_t* bc, hawk_fbc_opcode_t o
 	return 0;
 }
 
+static int emit_funbc_ins_oow (hawk_t* hawk, hawk_fbc_t* bc, hawk_fbc_opcode_t opcode, hawk_oow_t oow, hawk_loc_t* loc)
+{
+	if (reserve_funbc_ins(hawk, bc, 1, loc) <= -1) return -1;
+	bc->code[bc->len].opcode = opcode;
+	bc->code[bc->len].u.oow = oow;
+	bc->len++;
+	return 0;
+}
+
 #define FUNBC_JUMP_CHAIN_END HAWK_TYPE_MAX(hawk_oow_t)
 
 typedef struct funbc_loop_ctx_t funbc_loop_ctx_t;
@@ -1396,7 +1405,14 @@ static int compile_funbc_stmt_internal (
 			 * local frame. Emit an explicit block-entry initializer so reused
 			 * slots become nil whenever the nested block is entered. */
 			if (x->nlcls > 0) goto unsupported;
-			if (x->org_nlcls > 0 && emit_funbc_ins_nde(hawk, bc, HAWK_FBC_OP_INIT_BLK, stmt, &stmt->loc) <= -1) goto oops_rollback;
+			if (x->org_nlcls > 0)
+			{
+				hawk_oow_t oow;
+				HAWK_STATIC_ASSERT((HAWK_MAX_LCLS - 1) <= HAWK_TYPE_MAX(hawk_oohw_t));
+				/* this part requires HAWK_MAX_LCLS must be small enough to be held in a half-word */
+				oow = (x->outer_nlcls << HAWK_OOHW_BITS) | ((x->outer_nlcls + x->org_nlcls) - 1);
+				if (emit_funbc_ins_oow(hawk, bc, HAWK_FBC_OP_INIT_BLK, oow, &stmt->loc) <= -1) goto oops_rollback;
+			}
 
 			for (p = x->body; p; p = p->next)
 			{
@@ -10040,6 +10056,21 @@ static int dump_funbc_ins (hawk_t* hawk, hawk_oow_t pc, const hawk_fbc_ins_t* in
 			break;
 
 		case HAWK_FBC_OP_INIT_BLK:
+		{
+			hawk_oow_t start, end;
+
+			start = ins->u.oow >> HAWK_OOHW_BITS;
+			end = ins->u.oow & HAWK_LBMASK(hawk_oow_t, HAWK_OOHW_BITS);
+
+			/* INIT_BLK start, end */
+			if (hawk_putsrcoocstr(hawk, HAWK_T(" ")) <= -1 ||
+			    put_oow_as_dec(hawk, start) <= -1 ||
+			    hawk_putsrcoocstr(hawk, HAWK_T(", ")) <= -1 ||
+			    put_oow_as_dec(hawk, end) <= -1) return -1;
+
+			break;
+		}
+
 		case HAWK_FBC_OP_RUN_AST_STMT:
 		case HAWK_FBC_OP_RET_AST_EXPR:
 		{
