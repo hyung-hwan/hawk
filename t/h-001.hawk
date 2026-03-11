@@ -50,9 +50,79 @@ function test_print_bytecode()
 	sys::unlink("/tmp/hawk-fbc-print.tmp");
 }
 
+function test_unary_bytecode()
+{
+	@local s, bs, n, tmp;
+
+	s = "10";
+	tmp = +s;
+	tap_ensure(tmp === 10, 1, @SCRIPTNAME, @SCRIPTLINE);
+
+	s = "10.5";
+	tmp = +s;
+	tap_ensure(tmp === 10.5, 1, @SCRIPTNAME, @SCRIPTLINE);
+
+	bs = @b"10";
+	tmp = +bs;
+	tap_ensure(tmp === 10, 1, @SCRIPTNAME, @SCRIPTLINE);
+
+	bs = @b"10.5";
+	tmp = +bs;
+	tap_ensure(tmp === 10.5, 1, @SCRIPTNAME, @SCRIPTLINE);
+
+	s = "10";
+	tmp = -s;
+	tap_ensure(tmp === (0 - 10), 1, @SCRIPTNAME, @SCRIPTLINE);
+
+	s = "10.5";
+	tmp = -s;
+	tap_ensure(tmp === (0.0 - 10.5), 1, @SCRIPTNAME, @SCRIPTLINE);
+
+	bs = @b"10";
+	tmp = -bs;
+	tap_ensure(tmp === (0 - 10), 1, @SCRIPTNAME, @SCRIPTLINE);
+
+	bs = @b"10.5";
+	tmp = -bs;
+	tap_ensure(tmp === (0.0 - 10.5), 1, @SCRIPTNAME, @SCRIPTLINE);
+
+	s = "";
+	tmp = !s;
+	tap_ensure(tmp === @true, 1, @SCRIPTNAME, @SCRIPTLINE);
+
+	s = "x";
+	tmp = !s;
+	tap_ensure(tmp === @false, 1, @SCRIPTNAME, @SCRIPTLINE);
+
+	n = 0;
+	tmp = !n;
+	tap_ensure(tmp === @true, 1, @SCRIPTNAME, @SCRIPTLINE);
+
+	n = 1;
+	tmp = !n;
+	tap_ensure(tmp === @false, 1, @SCRIPTNAME, @SCRIPTLINE);
+
+	bs = @b"";
+	tmp = !bs;
+	tap_ensure(tmp === @true, 1, @SCRIPTNAME, @SCRIPTLINE);
+
+	bs = @b"x";
+	tmp = !bs;
+	tap_ensure(tmp === @false, 1, @SCRIPTNAME, @SCRIPTLINE);
+
+	s = "10";
+	tmp = ~s;
+	tap_ensure(tmp === (0 - 11), 1, @SCRIPTNAME, @SCRIPTLINE);
+
+	bs = @b"10";
+	tmp = ~bs;
+	tap_ensure(tmp === (0 - 11), 1, @SCRIPTNAME, @SCRIPTLINE);
+}
+
 function main()
 {
 	test_print_bytecode();
+	test_unary_bytecode();
 
 	{
 		@local tmp;
