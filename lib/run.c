@@ -7515,6 +7515,8 @@ static hawk_val_t* eval_cnd (hawk_rtx_t* rtx, hawk_nde_t* nde)
 	return v;
 }
 
+#define MOD_CAS_FNC_WINNER ((hawk_mod_t*)1)
+
 static hawk_val_t* eval_fncall_fnc (hawk_rtx_t* rtx, hawk_nde_t* nde)
 {
 	/* intrinsic function */
@@ -7531,8 +7533,11 @@ static hawk_val_t* eval_fncall_fnc (hawk_rtx_t* rtx, hawk_nde_t* nde)
 #else
 		mod = call->u.fnc.info.mod;
 #endif
-		if (!mod)
+		if (!mod || mod == MOD_CAS_FNC_WINNER)
 		{
+#if defined(ATOMIC_EVAL_MODSYM)
+			hawk_mod_t* expected;
+#endif
 			/* resolve a deferred module function */
 			mod = hawk_rtx_querymodulewithoocs(rtx, &call->u.fnc.info.name, &sym, 0);
 			if (!mod)
@@ -7552,8 +7557,12 @@ static hawk_val_t* eval_fncall_fnc (hawk_rtx_t* rtx, hawk_nde_t* nde)
 
 			/* cache it */
 #if defined(ATOMIC_EVAL_MODSYM)
-			call->u.fnc.spec = sym.u.fnc_; /* TODO: make this atomic or use CAS to acquire ownership before assigning */
-			HAWK_ATOMIC_STORE(&call->u.fnc.info.mod, mod, HAWK_ATOMIC_RELEASE);
+			expected = HAWK_NULL;
+			if (HAWK_ATOMIC_CAS_BOOL(&call->u.fnc.info.mod, &expected, MOD_CAS_FNC_WINNER, HAWK_ATOMIC_ACQ_REL, HAWK_ATOMIC_ACQUIRE))
+			{
+				call->u.fnc.spec = sym.u.fnc_;
+				HAWK_ATOMIC_STORE(&call->u.fnc.info.mod, mod, HAWK_ATOMIC_RELEASE);
+			}
 #else
 			call->u.fnc.spec = sym.u.fnc_;
 			call->u.fnc.info.mod = mod;
@@ -9311,6 +9320,7 @@ static hawk_val_t* eval_fun (hawk_rtx_t* rtx, hawk_nde_t* nde)
 	return val;
 }
 
+#define MOD_CAS_CONST_WINNER ((int)-2)
 static hawk_val_t* eval_modsym (hawk_rtx_t* rtx, hawk_nde_t* nde)
 {
 	hawk_nde_modsym_t* symnde;
@@ -9356,8 +9366,7 @@ static hawk_val_t* eval_modsym (hawk_rtx_t* rtx, hawk_nde_t* nde)
 	}
 	else
 	{
-		/* TODO: if i spin here while cache_type is -2,
-		 *       i can skip calling hawk_rtx_querymodulewithoocs() more than once */
+		/* TODO: cache optimization. skip calling hawk_rtx_querymodulewithoocs() more than once */
 
 		mod = hawk_rtx_querymodulewithoocs(rtx, &symnde->name, &sym, 0);
 		if (HAWK_UNLIKELY(!mod))
@@ -9374,7 +9383,7 @@ static hawk_val_t* eval_modsym (hawk_rtx_t* rtx, hawk_nde_t* nde)
 	{
 		case HAWK_MOD_INT:
 #if defined(ATOMIC_EVAL_MODSYM)
-			if (HAWK_ATOMIC_CAS_BOOL(&symnde->cache_type, &expected, -2, HAWK_ATOMIC_ACQ_REL, HAWK_ATOMIC_ACQUIRE))
+			if (HAWK_ATOMIC_CAS_BOOL(&symnde->cache_type, &expected, MOD_CAS_CONST_WINNER, HAWK_ATOMIC_ACQ_REL, HAWK_ATOMIC_ACQUIRE))
 			{
 #endif
 				symnde->cache.i = sym.u.int_.val;
