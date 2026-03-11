@@ -1260,7 +1260,8 @@ static int compile_funbc_expr (hawk_t* hawk, hawk_fbc_t* bc, hawk_nde_t* nde)
 			int n;
 			hawk_fbc_opcode_t ins;
 
-			if (x->opcode == HAWK_UNROP_MINUS) ins = HAWK_FBC_OP_NEG;
+			if (x->opcode == HAWK_UNROP_PLUS) ins = HAWK_FBC_OP_PLUS;
+			else if (x->opcode == HAWK_UNROP_MINUS) ins = HAWK_FBC_OP_MINUS;
 			else if (x->opcode == HAWK_UNROP_BNOT) ins = HAWK_FBC_OP_BNOT;
 			else if (x->opcode == HAWK_UNROP_LNOT) ins = HAWK_FBC_OP_LNOT;
 			else goto unsupported;
@@ -9848,7 +9849,8 @@ static const hawk_ooch_t* funbc_opcode_to_name (hawk_fbc_opcode_t opcode)
 		case HAWK_FBC_OP_LT: return HAWK_T("LT");
 		case HAWK_FBC_OP_LE: return HAWK_T("LE");
 
-		case HAWK_FBC_OP_NEG: return HAWK_T("NEG");
+		case HAWK_FBC_OP_PLUS: return HAWK_T("PLUS");
+		case HAWK_FBC_OP_MINUS: return HAWK_T("MINUS");
 		case HAWK_FBC_OP_LNOT: return HAWK_T("LNOT");
 		case HAWK_FBC_OP_BNOT: return HAWK_T("BNOT");
 		case HAWK_FBC_OP_SWAP: return HAWK_T("SWAP");

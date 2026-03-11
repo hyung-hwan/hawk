@@ -236,9 +236,10 @@ enum hawk_fbc_opcode_t
 	HAWK_FBC_OP_LT,
 	HAWK_FBC_OP_LE,
 
-	HAWK_FBC_OP_NEG,
-	HAWK_FBC_OP_LNOT,
-	HAWK_FBC_OP_BNOT,
+	HAWK_FBC_OP_PLUS, /* unary plus */
+	HAWK_FBC_OP_MINUS, /* unary minus */
+	HAWK_FBC_OP_LNOT, /* unary logical negation */
+	HAWK_FBC_OP_BNOT, /* unary bitwise negation */
 	HAWK_FBC_OP_SWAP,
 	HAWK_FBC_OP_DUP,
 	HAWK_FBC_OP_JMP,

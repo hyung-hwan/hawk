@@ -8114,7 +8114,8 @@ static int run_funbc (hawk_rtx_t* rtx, hawk_fun_t* fun)
 				if (HAWK_UNLIKELY(fbc_eval_binop(rtx, evstk, eval_binop_le) <= -1)) goto oops;
 				break;
 
-			case HAWK_FBC_OP_NEG: /* unary minus */
+			case HAWK_FBC_OP_PLUS: /* unary plus */
+			case HAWK_FBC_OP_MINUS: /* unary minus */
 			{
 				int n;
 				hawk_int_t l;
@@ -8135,7 +8136,16 @@ static int run_funbc (hawk_rtx_t* rtx, hawk_fun_t* fun)
 					goto oops;
 				}
 
-				res = (n == 0)? hawk_rtx_makeintval(rtx, -l): hawk_rtx_makefltval(rtx, -r);
+				if (n == 0)
+				{
+					if (ins->opcode == HAWK_FBC_OP_MINUS) l = -l;
+					res = hawk_rtx_makeintval(rtx, l);
+				}
+				else
+				{
+					if (ins->opcode == HAWK_FBC_OP_MINUS) r = -r;
+					res = hawk_rtx_makefltval(rtx, r);
+				}
 				hawk_rtx_refdownval(rtx, val);
 				if (HAWK_UNLIKELY(!res)) goto oops;
 				if (fbc_eval_stack_push(rtx, evstk, res) <= -1) goto oops;
