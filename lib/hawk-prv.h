@@ -88,7 +88,8 @@ typedef struct hawk_tree_t hawk_tree_t;
 #define HAWK_MBS_CACHE_BLOCK_UNIT (16)
 #define HAWK_MBS_CACHE_BLOCK_SIZE (128)
 
-/* maximum number of globals, locals, parameters allowed in parsing */
+/* maximum number of globals, locals, parameters allowed in parsing.
+ * HAWK_MAX_LCLS must not exceed HAWK_TYPE_MAX(hawk_oohw_t) */
 #define HAWK_MAX_GBLS      (9999)
 #define HAWK_MAX_LCLS      (9999)
 #define HAWK_MAX_PARAMS    (9999)
@@ -246,6 +247,10 @@ enum hawk_fbc_opcode_t
 	HAWK_FBC_OP_RET,
 	HAWK_FBC_OP_POP,
 	HAWK_FBC_OP_INIT_BLK,
+	HAWK_FBC_OP_PRINT_REC,
+	HAWK_FBC_OP_PRINT_SEP,
+	HAWK_FBC_OP_PRINT_VAL,
+	HAWK_FBC_OP_PRINT_END,
 	HAWK_FBC_OP_RUN_AST_STMT,
 	HAWK_FBC_OP_RET_AST_EXPR,
 	HAWK_FBC_OP_RET_NIL

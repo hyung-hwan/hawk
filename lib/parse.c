@@ -1653,6 +1653,61 @@ static int compile_funbc_stmt_internal (
 			return COMPILE_FUNBC_STMT_OK;
 		}
 
+		case HAWK_NDE_PRINT:
+		{
+			hawk_nde_print_t* x = (hawk_nde_print_t*)stmt;
+			int n;
+
+			if (x->out)
+			{
+				HAWK_ASSERT(x->out->next == HAWK_NULL);
+				if (x->out->next) goto unsupported; /* this must not happen */
+				n = compile_funbc_expr(hawk, bc, x->out);
+				if (n <= -1) goto oops_rollback;
+				if (n == COMPILE_FUNBC_EXPR_UNSUPPORTED) goto unsupported;
+			}
+
+
+			if (!x->args)
+			{
+				/* no argument after print - same as print $0 */
+				if (emit_funbc_ins_nde(hawk, bc, HAWK_FBC_OP_PRINT_REC, stmt, &stmt->loc) <= -1) goto oops_rollback;
+			}
+			else
+			{
+				hawk_nde_t* head;
+				hawk_nde_t* np;
+
+				head = x->args;
+				if (head->type == HAWK_NDE_GRP)
+				{
+		                        /* parenthesized print with a least two items. e.g. print(1,2)
+					 * print(1) is the same as print 1. so the argument is not held in a HAWK_NDE_GRP node. */
+					HAWK_ASSERT(head->next == HAWK_NULL);
+					head = ((hawk_nde_grp_t*)head)->body;
+				}
+
+				HAWK_ASSERT(head != HAWK_NULL);
+				np = head;
+				while (1)
+				{
+					n = compile_funbc_expr(hawk, bc, np);
+					if (n <= -1) goto oops_rollback;
+					if (n == COMPILE_FUNBC_EXPR_UNSUPPORTED) goto unsupported;
+
+					if (emit_funbc_ins_nde(hawk, bc, HAWK_FBC_OP_PRINT_VAL, stmt, &stmt->loc) <= -1) goto oops_rollback;
+
+					np = np->next;
+					if (!np) break;
+
+					if (emit_funbc_ins_nde(hawk, bc, HAWK_FBC_OP_PRINT_SEP, stmt, &stmt->loc) <= -1) goto oops_rollback;
+				}
+			}
+
+			if (emit_funbc_ins_nde(hawk, bc, HAWK_FBC_OP_PRINT_END, stmt, &stmt->loc) <= -1) goto oops_rollback;
+			return COMPILE_FUNBC_STMT_OK;
+		}
+
 		case HAWK_NDE_EXIT:
 			*terminal = 1;
 			if (emit_funbc_ins_nde(hawk, bc, HAWK_FBC_OP_RUN_AST_STMT, stmt, &stmt->loc) <= -1) goto oops_rollback;
@@ -9804,6 +9859,10 @@ static const hawk_ooch_t* funbc_opcode_to_name (hawk_fbc_opcode_t opcode)
 		case HAWK_FBC_OP_RET: return HAWK_T("RET");
 		case HAWK_FBC_OP_POP: return HAWK_T("POP");
 		case HAWK_FBC_OP_INIT_BLK: return HAWK_T("INIT_BLK");
+		case HAWK_FBC_OP_PRINT_REC: return HAWK_T("PRINT_REC");
+		case HAWK_FBC_OP_PRINT_SEP: return HAWK_T("PRINT_SEP");
+		case HAWK_FBC_OP_PRINT_VAL: return HAWK_T("PRINT_VAL");
+		case HAWK_FBC_OP_PRINT_END: return HAWK_T("PRINT_END");
 		case HAWK_FBC_OP_RUN_AST_STMT: return HAWK_T("RUN_AST_STMT");
 		case HAWK_FBC_OP_RET_AST_EXPR: return HAWK_T("RET_AST_EXPR");
 		case HAWK_FBC_OP_RET_NIL: return HAWK_T("RET_NIL");
@@ -10071,6 +10130,10 @@ static int dump_funbc_ins (hawk_t* hawk, hawk_oow_t pc, const hawk_fbc_ins_t* in
 			break;
 		}
 
+		case HAWK_FBC_OP_PRINT_REC:
+		case HAWK_FBC_OP_PRINT_SEP:
+		case HAWK_FBC_OP_PRINT_VAL:
+		case HAWK_FBC_OP_PRINT_END:
 		case HAWK_FBC_OP_RUN_AST_STMT:
 		case HAWK_FBC_OP_RET_AST_EXPR:
 		{

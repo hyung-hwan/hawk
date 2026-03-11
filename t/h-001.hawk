@@ -26,8 +26,34 @@ function call_by_ref_3(&x)
 	x = "hello world";
 }
 
+function test_print_bytecode()
+{
+	@local line;
+	@local rc;
+
+	sys::unlink("/tmp/hawk-fbc-print.tmp");
+
+	OFS = ",";
+	print 1, (OFS = ":"), 3 > "/tmp/hawk-fbc-print.tmp";
+	print "" >> "/tmp/hawk-fbc-print.tmp";
+	close("/tmp/hawk-fbc-print.tmp");
+
+	rc = (getline line < "/tmp/hawk-fbc-print.tmp");
+	tap_ensure(rc, 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(line, "1,::3", @SCRIPTNAME, @SCRIPTLINE);
+
+	rc = (getline line < "/tmp/hawk-fbc-print.tmp");
+	tap_ensure(rc, 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(line, "", @SCRIPTNAME, @SCRIPTLINE);
+
+	close("/tmp/hawk-fbc-print.tmp");
+	sys::unlink("/tmp/hawk-fbc-print.tmp");
+}
+
 function main()
 {
+	test_print_bytecode();
+
 	{
 		@local tmp;
 

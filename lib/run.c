@@ -3862,24 +3862,17 @@ static int run_reset (hawk_rtx_t* rtx, hawk_nde_reset_t* nde)
 	}
 }
 
-static hawk_val_t* io_nde_to_str(hawk_rtx_t* rtx, hawk_nde_t* nde, hawk_oocs_t* dst, int seterr)
+static int io_val_to_str (
+	hawk_rtx_t* rtx, hawk_val_t* v, const hawk_loc_t* loc,
+	hawk_oocs_t* dst, int seterr)
 {
-	hawk_val_t* v;
-
-	v = eval_expression(rtx, nde);
-	if (HAWK_UNLIKELY(!v)) return HAWK_NULL;
-
-	hawk_rtx_refupval(rtx, v);
 	dst->ptr = hawk_rtx_getvaloocstr(rtx, v, &dst->len);
-	if (HAWK_UNLIKELY(!dst))
-	{
-		hawk_rtx_refdownval(rtx, v);
-		return HAWK_NULL;
-	}
+	if (HAWK_UNLIKELY(!dst->ptr)) return -1;
 
 	if (seterr && dst->len <= 0)
 	{
-		hawk_rtx_seterrfmt(rtx, &nde->loc, HAWK_EIONMEM, HAWK_T("empty I/O name"));
+		hawk_rtx_seterrfmt(rtx, loc, HAWK_EIONMEM, HAWK_T("empty I/O name"));
+		return -1;
 	}
 	else
 	{
@@ -3890,14 +3883,89 @@ static hawk_val_t* io_nde_to_str(hawk_rtx_t* rtx, hawk_nde_t* nde, hawk_oocs_t* 
 		{
 			if (dst->ptr[--len] == '\0')
 			{
-				hawk_rtx_seterrfmt(rtx, &nde->loc, HAWK_EIONMNL, HAWK_T("invalid I/O name of length %zu containing '\\0'"), dst->len);
-				dst->len = 0; /* indicate that the name is not valid */
-				break;
+				hawk_rtx_seterrfmt(rtx, loc, HAWK_EIONMNL, HAWK_T("invalid I/O name of length %zu containing '\\0'"), dst->len);
+				dst->len = 0;
+				return -1;
 			}
 		}
 	}
 
+	return 0;
+}
+
+static hawk_val_t* io_nde_to_str(hawk_rtx_t* rtx, hawk_nde_t* nde, hawk_oocs_t* dst, int seterr)
+{
+	hawk_val_t* v;
+
+	v = eval_expression(rtx, nde);
+	if (HAWK_UNLIKELY(!v)) return HAWK_NULL;
+
+	hawk_rtx_refupval(rtx, v);
+	if (HAWK_UNLIKELY(io_val_to_str(rtx, v, &nde->loc, dst, seterr) <= -1))
+	{
+		hawk_rtx_refdownval(rtx, v);
+		return HAWK_NULL;
+	}
+
 	return v;
+}
+
+static int fbc_write_print_str (
+	hawk_rtx_t* rtx, hawk_nde_print_t* nde, const hawk_ooch_t* ptr, hawk_oow_t len,
+	hawk_val_t* out_v)
+{
+	hawk_oocs_t out;
+	int n;
+
+	if (out_v)
+	{
+		if (io_val_to_str(rtx, out_v, &nde->loc, &out, 1) <= -1) return -1;
+	}
+	else
+	{
+		out.ptr = (hawk_ooch_t*)HAWK_T("");
+		out.len = 0;
+	}
+
+	n = hawk_rtx_writeiostr(rtx, nde->out_type, out.ptr, ptr, len);
+	if (out_v) hawk_rtx_freevaloocstr(rtx, out_v, out.ptr);
+
+	if (n <= -1)
+	{
+		if (rtx->hawk->opt.trait & HAWK_TOLERANT) return 0;
+		ADJERR_LOC(rtx, &nde->loc);
+		return -1;
+	}
+
+	return 0;
+}
+
+static int fbc_write_print_val (hawk_rtx_t* rtx, hawk_nde_print_t* nde, hawk_val_t* val, hawk_val_t* out_v)
+{
+	hawk_oocs_t out;
+	int n;
+
+	if (out_v)
+	{
+		if (io_val_to_str(rtx, out_v, &nde->loc, &out, 1) <= -1) return -1;
+	}
+	else
+	{
+		out.ptr = (hawk_ooch_t*)HAWK_T("");
+		out.len = 0;
+	}
+
+	n = hawk_rtx_writeioval(rtx, nde->out_type, out.ptr, val);
+	if (out_v) hawk_rtx_freevaloocstr(rtx, out_v, out.ptr);
+
+	if (n <= -1)
+	{
+		if (rtx->hawk->opt.trait & HAWK_TOLERANT) return 0;
+		ADJERR_LOC(rtx, &nde->loc);
+		return -1;
+	}
+
+	return 0;
 }
 
 static int run_print (hawk_rtx_t* rtx, hawk_nde_print_t* nde)
@@ -7484,7 +7552,7 @@ static hawk_val_t* eval_fncall_fnc (hawk_rtx_t* rtx, hawk_nde_t* nde)
 
 			/* cache it */
 #if defined(ATOMIC_EVAL_MODSYM)
-			call->u.fnc.spec = sym.u.fnc_;
+			call->u.fnc.spec = sym.u.fnc_; /* TODO: make this atomic or use CAS to acquire ownership before assigning */
 			HAWK_ATOMIC_STORE(&call->u.fnc.info.mod, mod, HAWK_ATOMIC_RELEASE);
 #else
 			call->u.fnc.spec = sym.u.fnc_;
@@ -8221,6 +8289,132 @@ static int run_funbc (hawk_rtx_t* rtx, hawk_fun_t* fun)
 					HAWK_RTX_STACK_LCL(rtx, i) = hawk_val_nil;
 				}
 			#endif
+
+				break;
+			}
+
+			case HAWK_FBC_OP_PRINT_REC:
+			{
+				hawk_nde_print_t* px = (hawk_nde_print_t*)ins->u.nde;
+				hawk_val_t* out_v = HAWK_NULL;
+
+				if (!px || px->type != HAWK_NDE_PRINT)
+				{
+					hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EINTERN);
+					goto oops;
+				}
+
+				if (px->out)
+				{
+					if (evstk->len <= 0)
+					{
+						hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EINTERN);
+						goto oops;
+					}
+					out_v = evstk->ptr[evstk->len - 1];
+				}
+
+				if (fbc_write_print_str(rtx, px, HAWK_OOECS_PTR(&rtx->inrec.line), HAWK_OOECS_LEN(&rtx->inrec.line), out_v) <= -1) goto oops;
+				break;
+			}
+
+			case HAWK_FBC_OP_PRINT_SEP:
+			{
+				hawk_nde_print_t* px = (hawk_nde_print_t*)ins->u.nde;
+				hawk_val_t* out_v = HAWK_NULL;
+
+				if (!px || px->type != HAWK_NDE_PRINT)
+				{
+					hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EINTERN);
+					goto oops;
+				}
+
+				if (px->out)
+				{
+					if (evstk->len <= 0)
+					{
+						hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EINTERN);
+						goto oops;
+					}
+					out_v = evstk->ptr[evstk->len - 1];
+				}
+
+				if (fbc_write_print_str(rtx, px, rtx->gbl.ofs.ptr, rtx->gbl.ofs.len, out_v) <= -1) goto oops;
+				break;
+			}
+
+			case HAWK_FBC_OP_PRINT_VAL:
+			{
+				hawk_nde_print_t* px = (hawk_nde_print_t*)ins->u.nde;
+				hawk_val_t* out_v = HAWK_NULL;
+
+				if (!px || px->type != HAWK_NDE_PRINT)
+				{
+					hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EINTERN);
+					goto oops;
+				}
+
+				val = fbc_eval_stack_pop(evstk);
+				if (!val)
+				{
+					hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EINTERN);
+					goto oops;
+				}
+
+				if (px->out)
+				{
+					if (evstk->len <= 0)
+					{
+						hawk_rtx_refdownval(rtx, val);
+						hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EINTERN);
+						goto oops;
+					}
+					out_v = evstk->ptr[evstk->len - 1];
+				}
+
+				if (fbc_write_print_val(rtx, px, val, out_v) <= -1)
+				{
+					hawk_rtx_refdownval(rtx, val);
+					goto oops;
+				}
+
+				hawk_rtx_refdownval(rtx, val);
+				break;
+			}
+
+			case HAWK_FBC_OP_PRINT_END:
+			{
+				hawk_nde_print_t* px = (hawk_nde_print_t*)ins->u.nde;
+				hawk_val_t* out_v = HAWK_NULL;
+
+				if (!px || px->type != HAWK_NDE_PRINT)
+				{
+					hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EINTERN);
+					goto oops;
+				}
+
+				if (px->out)
+				{
+					if (evstk->len <= 0)
+					{
+						hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EINTERN);
+						goto oops;
+					}
+					out_v = evstk->ptr[evstk->len - 1];
+				}
+
+				if (fbc_write_print_str(rtx, px, rtx->gbl.ors.ptr, rtx->gbl.ors.len, out_v) <= -1) goto oops;
+
+				if (out_v)
+				{
+					val = fbc_eval_stack_pop(evstk);
+					if (!val)
+					{
+						hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EINTERN);
+						goto oops;
+					}
+					hawk_rtx_refdownval(rtx, val);
+				}
 				break;
 			}
 
