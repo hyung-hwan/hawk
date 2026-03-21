@@ -20,7 +20,7 @@ endif
 check_SCRIPTS += h-003.hawk h-004.hawk h-009.hawk h-010.hawk \
 	h-011.hawk h-012.hawk h-013.hawk h-014.hawk h-015.hawk \
 	h-016.hawk h-017.hawk h-018.hawk h-019.hawk h-020.hawk \
-	h-021.hawk
+	h-021.hawk h-022.hawk
 
 check_SCRIPTS += regress-filename.sh
 

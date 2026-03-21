@@ -1,0 +1,58 @@
+@pragma implicit off
+@pragma pedantic on
+@pragma entry main
+@pragma xcall on
+
+@include "tap.inc";
+
+@global G = func(a, b) {
+	return a + b
+}
+
+@global seq;
+
+function mark(v)
+{
+	seq = seq sprintf("%d", v);
+	return v;
+}
+
+function pair(a, b)
+{
+	return a * 10 + b;
+}
+
+function zero()
+{
+	return 7;
+}
+
+function bump(&x)
+{
+	x += 1;
+	return x;
+}
+
+function main()
+{
+	@local v, s, f;
+
+	seq = "";
+	tap_ensure(pair(mark(1), mark(2)), 12, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(seq, "12", @SCRIPTNAME, @SCRIPTLINE);
+
+	tap_ensure(zero(), 7, @SCRIPTNAME, @SCRIPTLINE);
+
+	s = sprintf("%d/%d", pair(3, 4), zero());
+	tap_ensure(s, "34/7", @SCRIPTNAME, @SCRIPTLINE);
+
+	tap_ensure(G(5, 6), 11, @SCRIPTNAME, @SCRIPTLINE);
+	f = G;
+	tap_ensure(f(7, 8), 15, @SCRIPTNAME, @SCRIPTLINE);
+
+	v = 9;
+	tap_ensure(bump(v), 10, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(v, 10, @SCRIPTNAME, @SCRIPTLINE);
+
+	tap_end();
+}

@@ -54,15 +54,15 @@ int hawk_rtx_readiobytes (
 
 int hawk_rtx_writeioval (
 	hawk_rtx_t* rtx, hawk_out_type_t out_type,
-	const hawk_ooch_t* name, hawk_val_t* v);
+	const hawk_ooch_t* name, const hawk_val_t* v);
 
 int hawk_rtx_writeiostr (
 	hawk_rtx_t* rtx, hawk_out_type_t out_type,
-	const hawk_ooch_t* name, hawk_ooch_t* str, hawk_oow_t len);
+	const hawk_ooch_t* name, const hawk_ooch_t* str, hawk_oow_t len);
 
 int hawk_rtx_writeiobytes (
 	hawk_rtx_t* rtx, hawk_out_type_t out_type,
-	const hawk_ooch_t* name, hawk_bch_t* str, hawk_oow_t len);
+	const hawk_ooch_t* name, const hawk_bch_t* str, hawk_oow_t len);
 
 int hawk_rtx_flushio (
 	hawk_rtx_t* rtx, hawk_out_type_t out_type, const hawk_ooch_t* name);

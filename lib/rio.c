@@ -1138,7 +1138,7 @@ int hawk_rtx_readiobytes (hawk_rtx_t* rtx, hawk_in_type_t in_type, const hawk_oo
 }
 
 
-int hawk_rtx_writeioval (hawk_rtx_t* rtx, hawk_out_type_t out_type, const hawk_ooch_t* name, hawk_val_t* v)
+int hawk_rtx_writeioval (hawk_rtx_t* rtx, hawk_out_type_t out_type, const hawk_ooch_t* name, const hawk_val_t* v)
 {
 	hawk_val_type_t vtype;
 	vtype = HAWK_RTX_GETVALTYPE(rtx, v);
@@ -1275,7 +1275,7 @@ static int prepare_for_write_io_data (hawk_rtx_t* rtx, hawk_out_type_t out_type,
 	return 1;
 }
 
-int hawk_rtx_writeiostr (hawk_rtx_t* rtx, hawk_out_type_t out_type, const hawk_ooch_t* name, hawk_ooch_t* str, hawk_oow_t len)
+int hawk_rtx_writeiostr (hawk_rtx_t* rtx, hawk_out_type_t out_type, const hawk_ooch_t* name, const hawk_ooch_t* str, hawk_oow_t len)
 {
 	int x;
 	write_io_data_t wid;
@@ -1286,7 +1286,7 @@ int hawk_rtx_writeiostr (hawk_rtx_t* rtx, hawk_out_type_t out_type, const hawk_o
 	{
 		hawk_ooi_t n;
 
-		n = wid.handler(rtx, HAWK_RIO_CMD_WRITE, wid.p, str, len);
+		n = wid.handler(rtx, HAWK_RIO_CMD_WRITE, wid.p, (void*)str, len);
 		if (n <= -1) return -1;
 
 		if (n == 0)
@@ -1302,7 +1302,7 @@ int hawk_rtx_writeiostr (hawk_rtx_t* rtx, hawk_out_type_t out_type, const hawk_o
 	return 1;
 }
 
-int hawk_rtx_writeiobytes (hawk_rtx_t* rtx, hawk_out_type_t out_type, const hawk_ooch_t* name, hawk_bch_t* str, hawk_oow_t len)
+int hawk_rtx_writeiobytes (hawk_rtx_t* rtx, hawk_out_type_t out_type, const hawk_ooch_t* name, const hawk_bch_t* str, hawk_oow_t len)
 {
 	int x;
 	write_io_data_t wid;
@@ -1313,7 +1313,7 @@ int hawk_rtx_writeiobytes (hawk_rtx_t* rtx, hawk_out_type_t out_type, const hawk
 	{
 		hawk_ooi_t n;
 
-		n = wid.handler(rtx, HAWK_RIO_CMD_WRITE_BYTES, wid.p, str, len);
+		n = wid.handler(rtx, HAWK_RIO_CMD_WRITE_BYTES, wid.p, (void*)str, len);
 		if (n <= -1) return -1;
 
 		if (n == 0)

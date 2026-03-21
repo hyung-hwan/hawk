@@ -84,6 +84,7 @@ static int init_globals (hawk_rtx_t* rtx);
 static void refdown_globals (hawk_rtx_t* rtx, int pop);
 
 static void fbc_eval_stack_fini (hawk_rtx_t* rtx, hawk_fbc_eval_stack_t* stack);
+static hawk_val_t* fbc_eval_stack_pop (hawk_fbc_eval_stack_t* stack);
 
 static int run_pblocks (hawk_rtx_t* rtx);
 static int run_pblock_chain (hawk_rtx_t* rtx, hawk_chain_t* cha);
@@ -1463,12 +1464,12 @@ hawk_mod_t* hawk_rtx_querymodulewithoocs (hawk_rtx_t* rtx, const hawk_oocs_t* na
 			/* the logic here must match hawk_querymodulewithoocs() in parse.c */
 			dc = hawk_find_oochars_in_oochars(name->ptr, name->len, HAWK_T("::"), 2, 0);
 			HAWK_ASSERT(dc != HAWK_NULL);
-			if (HAWK_UNLIKELY(!dc)) goto internal_error_unrolling;
+			if (HAWK_UNLIKELY(!dc)) goto internal_error_unrolling; /* this must not happend but .. */
 			len = dc - name->ptr;
 
 			pair = hawk_rbt_search(rtx->modtab, name->ptr, len);
 			HAWK_ASSERT(pair != HAWK_NULL);
-			if (HAWK_UNLIKELY(!pair))
+			if (HAWK_UNLIKELY(!pair)) /* this must not happen but .. */
 			{
 			internal_error_unrolling:
 				hawk_rtx_seterrbfmt(rtx, HAWK_NULL, HAWK_EINTERN,
@@ -1480,9 +1481,9 @@ hawk_mod_t* hawk_rtx_querymodulewithoocs (hawk_rtx_t* rtx, const hawk_oocs_t* na
 				/* skip the fini callback because the init callback returned failure. not calling m->fini().
 				 * invoke the unload() callback if needed and unload the module itself. */
 				hawk_modtab_unload_module(rtx->modtab, pair, rtx->hawk);
+				hawk_rbt_delete(rtx->modtab, name->ptr, len);
 			}
 
-			hawk_rbt_delete(rtx->modtab, name->ptr, len);
 			m = HAWK_NULL; /* indicate failure */
 		}
 	}
@@ -1493,7 +1494,7 @@ hawk_mod_t* hawk_rtx_querymodulewithoocs (hawk_rtx_t* rtx, const hawk_oocs_t* na
 hawk_mod_t* hawk_rtx_querymodulewithname (hawk_rtx_t* rtx, const hawk_ooch_t* name, hawk_mod_sym_t* sym, int flags)
 {
 	hawk_oocs_t oocs;
-	oocs.ptr = name;
+	oocs.ptr = (hawk_ooch_t*)name;
 	oocs.len = hawk_count_oocstr(name);
 	return hawk_rtx_querymodulewithoocs(rtx, &oocs, sym, flags);
 }
@@ -1717,7 +1718,6 @@ static int run_blocks_for_bpae_loop (hawk_rtx_t* rtx, hawk_nde_t* blk_head, int 
 
 static hawk_val_t* run_bpae_loop (hawk_rtx_t* rtx)
 {
-	hawk_nde_t* nde;
 	hawk_oow_t nargs, i;
 	hawk_val_t* retv;
 	int ret = 0;
@@ -2668,28 +2668,33 @@ static int call_signal_handlers (hawk_rtx_t* rtx)
 	} \
 } while(0)
 
+static HAWK_INLINE int run_pending_signal_handlers (hawk_rtx_t* rtx)
+{
+	if (rtx->sig_handling) return 0;
+
+	/* run singal handlers if there are raised signals */
+#if defined(HAWK_ATOMIC_LOAD)
+	if (HAWK_ATOMIC_LOAD(&rtx->sig_pending_any, HAWK_ATOMIC_RELAXED) != 0 &&
+	    call_signal_handlers(rtx) <= -1) return -1;
+#else
+	/* NOTE:
+	 *   rtx->sig_pending_any accessed non-atomically without mutex concurrently
+	 *   from multiple threads(e.g. hawk_rtx_raisesig() called from a different
+	 *   thread) is undefined behavior. but ignore this path as i believe most
+	 *   modern compilers should support the atomic primitives. */
+	if (rtx->sig_pending_any && call_signal_handlers(rtx) <= -1) return -1;
+#endif
+
+	return 0;
+}
+
 static int run_statement (hawk_rtx_t* rtx, hawk_nde_t* nde)
 {
 	int xret;
 	hawk_val_t* tmp;
 
 	ON_STATEMENT(rtx, nde);
-
-	if (!rtx->sig_handling)
-	{
-		/* run singal handlers if there are raised signals */
-	#if defined(HAWK_ATOMIC_LOAD)
-		if (HAWK_ATOMIC_LOAD(&rtx->sig_pending_any, HAWK_ATOMIC_RELAXED) != 0 &&
-		    call_signal_handlers(rtx) <= -1) return -1;
-	#else
-		/* NOTE:
-		 *   rtx->sig_pending_any accessed non-atomically without mutex concurrently
-		 *   from multiple threads(e.g. hawk_rtx_raisesig() called from a different
-		 *   thread) is undefined behavior. but ignore this path as i believe most
-		 *   modern compilers should support the atomic primitives. */
-		if (rtx->sig_pending_any && call_signal_handlers(rtx) <= -1) return -1;
-	#endif
-	}
+	if (run_pending_signal_handlers(rtx) <= -1) return -1;
 
 	/* run the actual statement */
 	switch (nde->type)
@@ -3862,9 +3867,7 @@ static int run_reset (hawk_rtx_t* rtx, hawk_nde_reset_t* nde)
 	}
 }
 
-static int io_val_to_str (
-	hawk_rtx_t* rtx, hawk_val_t* v, const hawk_loc_t* loc,
-	hawk_oocs_t* dst, int seterr)
+static int io_val_to_str (hawk_rtx_t* rtx, hawk_val_t* v, const hawk_loc_t* loc, hawk_oocs_t* dst, int seterr)
 {
 	dst->ptr = hawk_rtx_getvaloocstr(rtx, v, &dst->len);
 	if (HAWK_UNLIKELY(!dst->ptr)) return -1;
@@ -3893,7 +3896,7 @@ static int io_val_to_str (
 	return 0;
 }
 
-static hawk_val_t* io_nde_to_str(hawk_rtx_t* rtx, hawk_nde_t* nde, hawk_oocs_t* dst, int seterr)
+static hawk_val_t* io_nde_to_str (hawk_rtx_t* rtx, hawk_nde_t* nde, hawk_oocs_t* dst, int seterr)
 {
 	hawk_val_t* v;
 
@@ -3910,9 +3913,7 @@ static hawk_val_t* io_nde_to_str(hawk_rtx_t* rtx, hawk_nde_t* nde, hawk_oocs_t* 
 	return v;
 }
 
-static int fbc_write_print_str (
-	hawk_rtx_t* rtx, hawk_nde_print_t* nde, const hawk_ooch_t* ptr, hawk_oow_t len,
-	hawk_val_t* out_v)
+static int fbc_write_print_str (hawk_rtx_t* rtx, hawk_nde_print_t* nde, const hawk_ooch_t* ptr, hawk_oow_t len, hawk_val_t* out_v)
 {
 	hawk_oocs_t out;
 	int n;
@@ -7602,10 +7603,8 @@ static hawk_val_t* eval_fncall_fnc (hawk_rtx_t* rtx, hawk_nde_t* nde)
 	return hawk_rtx_evalcall(rtx, call, HAWK_NULL, push_arg_from_nde, (void*)call->u.fnc.spec.arg.spec, HAWK_NULL, HAWK_NULL);
 }
 
-static HAWK_INLINE hawk_val_t* eval_fncall_fun (hawk_rtx_t* rtx, hawk_nde_t* nde)
+static HAWK_INLINE hawk_fun_t* resolve_fncall_fun (hawk_rtx_t* rtx, hawk_nde_fncall_t* call)
 {
-	/* user-defined function */
-	hawk_nde_fncall_t* call = (hawk_nde_fncall_t*)nde;
 	hawk_fun_t* fun;
 #if defined(HAWK_ATOMIC_CAS_BOOL)
 	hawk_fun_t* expected;
@@ -7628,7 +7627,7 @@ static HAWK_INLINE hawk_val_t* eval_fncall_fun (hawk_rtx_t* rtx, hawk_nde_t* nde
 		pair = hawk_htb_search(rtx->hawk->tree.funs, call->u.fun.name.ptr, call->u.fun.name.len);
 		if (!pair)
 		{
-			hawk_rtx_seterrfmt(rtx, &nde->loc, HAWK_EFUNNF, HAWK_T("function '%.*js' not found"), call->u.fun.name.len, call->u.fun.name.ptr);
+			hawk_rtx_seterrfmt(rtx, &call->loc, HAWK_EFUNNF, HAWK_T("function '%.*js' not found"), call->u.fun.name.len, call->u.fun.name.ptr);
 			return HAWK_NULL;
 		}
 
@@ -7661,11 +7660,21 @@ static HAWK_INLINE hawk_val_t* eval_fncall_fun (hawk_rtx_t* rtx, hawk_nde_t* nde
 
 	if (call->nargs > fun->nargs && !fun->variadic)
 	{
-		/* TODO: is this correct? what if i want to
-		 *       allow arbitarary numbers of arguments? */
-		hawk_rtx_seterrfmt(rtx, &nde->loc, HAWK_EARGTM, HAWK_T("too many arguments to '%.*js'"), fun->name.len, fun->name.ptr);
+		hawk_rtx_seterrfmt(rtx, &call->loc, HAWK_EARGTM, HAWK_T("too many arguments to '%.*js'"), fun->name.len, fun->name.ptr);
 		return HAWK_NULL;
 	}
+
+	return fun;
+}
+
+static HAWK_INLINE hawk_val_t* eval_fncall_fun (hawk_rtx_t* rtx, hawk_nde_t* nde)
+{
+	/* user-defined function */
+	hawk_nde_fncall_t* call = (hawk_nde_fncall_t*)nde;
+	hawk_fun_t* fun;
+
+	fun = resolve_fncall_fun(rtx, call);
+	if (!fun) return HAWK_NULL;
 
 	/* push_arg_from_nde() has special handling for references when the function
 	 * argument spec contains 'r' or 'R'.
@@ -7744,6 +7753,114 @@ static hawk_val_t* eval_fncall_var (hawk_rtx_t* rtx, hawk_nde_t* nde)
 	}
 	hawk_rtx_refdownval(rtx, fv);
 
+	return rv;
+}
+
+static hawk_val_t* fbc_eval_call (hawk_rtx_t* rtx, hawk_fbc_eval_stack_t* evstk, hawk_nde_fncall_t* call)
+{
+	hawk_val_t* args_fixed[8];
+	hawk_val_t** args = args_fixed;
+	hawk_val_t* callee_val = HAWK_NULL;
+	hawk_val_t* rv = HAWK_NULL;
+	hawk_fun_t* fun = HAWK_NULL;
+	struct pafv_t pafv;
+	hawk_oow_t i;
+
+	if (!call)
+	{
+		hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EINTERN);
+		return HAWK_NULL;
+	}
+
+	if (call->nargs > HAWK_COUNTOF(args_fixed))
+	{
+		args = (hawk_val_t**)hawk_rtx_allocmem(rtx, call->nargs * HAWK_SIZEOF(*args));
+		if (HAWK_UNLIKELY(!args)) return HAWK_NULL;
+	}
+
+	for (i = 0; i < call->nargs; i++) args[i] = HAWK_NULL;
+	for (i = call->nargs; i > 0; i--)
+	{
+		args[i - 1] = fbc_eval_stack_pop(evstk);
+		if (!args[i - 1])
+		{
+			hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EINTERN);
+			goto oops;
+		}
+	}
+
+	/* this function combines the subset of these three functions:
+	 *  eval_fncall_fnc(), eval_fncall_fun(), eval_fncall_var() */
+	switch (call->type)
+	{
+		case HAWK_NDE_FNCALL_FNC: /* builtin function */
+			if (call->u.fnc.flags & HAWK_NDE_FNCALL_FNC_DEFERRED_MODFNC)
+			{
+				hawk_rtx_seterrnum(rtx, &call->loc, HAWK_EINTERN);
+				goto oops;
+			}
+			HAWK_ASSERT(call->nargs >= call->u.fnc.spec.arg.min && call->nargs <= call->u.fnc.spec.arg.max);
+			break;
+
+		case HAWK_NDE_FNCALL_FUN: /* pure hawk function */
+			fun = resolve_fncall_fun(rtx, call);
+			if (!fun) goto oops;
+			break;
+
+		case HAWK_NDE_FNCALL_EXPR: /* function pointed to by another variable or a return value of another call, etc */
+			callee_val = fbc_eval_stack_pop(evstk); /* the stack top has the callee expression result */
+			if (!callee_val)
+			{
+				hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EINTERN);
+				goto oops;
+			}
+
+			fun = hawk_rtx_valtofun(rtx, callee_val);
+			if (!fun)
+			{
+				if (hawk_rtx_geterrnum(rtx) == HAWK_EINVAL)
+				{
+					if (nde_is_var(call->u.expr.callable))
+					{
+						hawk_nde_var_t* v = (hawk_nde_var_t*)call->u.expr.callable;
+						hawk_rtx_seterrfmt(rtx, &call->loc, HAWK_ENOTFUN, HAWK_T("non-function value in '%.*js'"), v->id.name.len, v->id.name.ptr);
+					}
+					else
+					{
+						hawk_rtx_seterrnum(rtx, &call->loc, HAWK_ENOTFUN);
+					}
+				}
+				ADJERR_LOC(rtx, &call->loc);
+				goto oops;
+			}
+
+			if (call->nargs > fun->nargs && !fun->variadic)
+			{
+				hawk_rtx_seterrfmt(rtx, &call->loc, HAWK_EARGTM, HAWK_T("too many arguments to '%.*js'"), fun->name.len, fun->name.ptr);
+				goto oops;
+			}
+			break;
+
+		default:
+			hawk_rtx_seterrnum(rtx, &call->loc, HAWK_EINTERN);
+			goto oops;
+	}
+
+/* TODO: this implementation is extremely inefficient... we must be able to call hawk_rtx_evalcall without push_arg_from_vals... */
+	pafv.args = args;
+	pafv.nargs = call->nargs;
+	pafv.argspec = HAWK_NULL;
+	pafv.argspeclen = 0;
+
+	rv = hawk_rtx_evalcall(rtx, call, fun, push_arg_from_vals, (void*)&pafv, HAWK_NULL, HAWK_NULL);
+
+oops:
+	if (callee_val) hawk_rtx_refdownval(rtx, callee_val);
+	for (i = 0; i < call->nargs; i++)
+	{
+		if (args[i]) hawk_rtx_refdownval(rtx, args[i]);
+	}
+	if (args != args_fixed) hawk_rtx_freemem(rtx, args);
 	return rv;
 }
 
@@ -7881,6 +7998,8 @@ static int run_funbc (hawk_rtx_t* rtx, hawk_fun_t* fun)
 	{
 		hawk_fbc_ins_t* ins = &bc->code[pc];
 		hawk_val_t* val;
+
+		if (HAWK_UNLIKELY(run_pending_signal_handlers(rtx) <= -1)) goto oops;
 
 /*hawk_logbfmt(rtx->hawk, HAWK_LOG_STDERR, "opcode = 0x%x [%d]\n", ins->opcode, ins->opcode);*/
 		switch (ins->opcode)
@@ -8250,6 +8369,12 @@ static int run_funbc (hawk_rtx_t* rtx, hawk_fun_t* fun)
 				}
 
 				hawk_rtx_refdownval(rtx, val);
+				break;
+
+			case HAWK_FBC_OP_CALL:
+				val = fbc_eval_call(rtx, evstk, (hawk_nde_fncall_t*)ins->u.nde);
+				if (HAWK_UNLIKELY(!val)) goto oops;
+				if (fbc_eval_stack_push(rtx, evstk, val) <= -1) goto oops;
 				break;
 
 			case HAWK_FBC_OP_RET:

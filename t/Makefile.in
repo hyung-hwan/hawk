@@ -650,7 +650,7 @@ LIBADD_COMMON = ../lib/libhawk.la $(LIBM)
 check_SCRIPTS = $(am__append_1) h-003.hawk h-004.hawk h-009.hawk \
 	h-010.hawk h-011.hawk h-012.hawk h-013.hawk h-014.hawk \
 	h-015.hawk h-016.hawk h-017.hawk h-018.hawk h-019.hawk \
-	h-020.hawk h-021.hawk regress-filename.sh
+	h-020.hawk h-021.hawk h-022.hawk regress-filename.sh
 check_ERRORS = e-001.err
 EXTRA_DIST = $(check_SCRIPTS) $(check_ERRORS) tap.inc err.sh \
 	journal-toc.hawk journal-toc.in journal-toc.out journal-toc-html.out \

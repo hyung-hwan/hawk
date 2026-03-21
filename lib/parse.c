@@ -1100,6 +1100,56 @@ static int compile_funbc_expr_bin_land (hawk_t* hawk, hawk_fbc_t* bc, hawk_nde_e
 	return COMPILE_FUNBC_EXPR_OK;
 }
 
+static int is_lowerable_funbc_fnc_argspec (const hawk_ooch_t* arg_spec)
+{
+	if (!arg_spec) return 1;
+
+	do
+	{
+		if (*arg_spec == HAWK_T('r') || *arg_spec == HAWK_T('R') || *arg_spec == HAWK_T('x')) return 0;
+	}
+	while (*arg_spec++);
+
+	return 1;
+}
+
+static int compile_funbc_expr_fncall (hawk_t* hawk, hawk_fbc_t* bc, hawk_nde_fncall_t* call)
+{
+	hawk_nde_t* p;
+	int n;
+
+	switch (call->type)
+	{
+		case HAWK_NDE_FNCALL_FNC:
+			if (call->u.fnc.flags & HAWK_NDE_FNCALL_FNC_DEFERRED_MODFNC) return COMPILE_FUNBC_EXPR_UNSUPPORTED;
+			if (!is_lowerable_funbc_fnc_argspec(call->u.fnc.spec.arg.spec)) return COMPILE_FUNBC_EXPR_UNSUPPORTED;
+			break;
+
+		case HAWK_NDE_FNCALL_EXPR:
+			HAWK_ASSERT(call->u.expr.callable != HAWK_NULL);
+			n = compile_funbc_expr(hawk, bc, call->u.expr.callable);
+			if (n <= -1) return -1;
+			if (n == COMPILE_FUNBC_EXPR_UNSUPPORTED) return COMPILE_FUNBC_EXPR_UNSUPPORTED;
+			break;
+
+		case HAWK_NDE_FNCALL_FUN:
+			break;
+
+		default:
+			return COMPILE_FUNBC_EXPR_UNSUPPORTED;
+	}
+
+	for (p = call->args; p; p = p->next)
+	{
+		n = compile_funbc_expr(hawk, bc, p);
+		if (n <= -1) return -1;
+		if (n == COMPILE_FUNBC_EXPR_UNSUPPORTED) return COMPILE_FUNBC_EXPR_UNSUPPORTED;
+	}
+
+	if (emit_funbc_ins_nde(hawk, bc, HAWK_FBC_OP_CALL, (hawk_nde_t*)call, &call->loc) <= -1) return -1;
+	return COMPILE_FUNBC_EXPR_OK;
+}
+
 static int compile_funbc_expr (hawk_t* hawk, hawk_fbc_t* bc, hawk_nde_t* nde)
 {
 	hawk_oow_t rollback;
@@ -1175,6 +1225,18 @@ static int compile_funbc_expr (hawk_t* hawk, hawk_fbc_t* bc, hawk_nde_t* nde)
 			if (var_to_fbc_load_store(nde, &op, HAWK_NULL) <= -1) goto unsupported;
 
 			if (emit_funbc_ins_nde(hawk, bc, op, nde, &nde->loc) <= -1) goto oops_rollback;
+			return COMPILE_FUNBC_EXPR_OK;
+		}
+
+		case HAWK_NDE_FNCALL_FNC:
+		case HAWK_NDE_FNCALL_FUN:
+		case HAWK_NDE_FNCALL_EXPR:
+		{
+			int n;
+
+			n = compile_funbc_expr_fncall(hawk, bc, (hawk_nde_fncall_t*)nde);
+			if (n <= -1) goto oops_rollback;
+			if (n == COMPILE_FUNBC_EXPR_UNSUPPORTED) goto unsupported;
 			return COMPILE_FUNBC_EXPR_OK;
 		}
 
@@ -10111,10 +10173,39 @@ static int dump_funbc_ins (hawk_t* hawk, hawk_oow_t pc, const hawk_fbc_ins_t* in
 
 		case HAWK_FBC_OP_JMP:
 		case HAWK_FBC_OP_JZ:
-		case HAWK_FBC_OP_CALL:
 			if (hawk_putsrcoocstr(hawk, HAWK_T(" ")) <= -1 ||
 			    put_oow_as_dec(hawk, ins->u.idx) <= -1) return -1;
 			break;
+
+		case HAWK_FBC_OP_CALL:
+		{
+			hawk_nde_fncall_t* call = (hawk_nde_fncall_t*)ins->u.nde;
+			const hawk_ooch_t* kind = HAWK_T("?");
+
+			if (!call)
+			{
+				if (hawk_putsrcoocstr(hawk, HAWK_T(" <null-call>")) <= -1) return -1;
+				break;
+			}
+
+			switch (call->type)
+			{
+				case HAWK_NDE_FNCALL_FNC: kind = HAWK_T("fnc"); break;
+				case HAWK_NDE_FNCALL_FUN: kind = HAWK_T("fun"); break;
+				case HAWK_NDE_FNCALL_EXPR: kind = HAWK_T("expr"); break;
+				default: break;
+			}
+
+			if (hawk_putsrcoocstr(hawk, HAWK_T(" ")) <= -1 ||
+			    hawk_putsrcoocstr(hawk, kind) <= -1 ||
+			    hawk_putsrcoocstr(hawk, HAWK_T(" nargs=")) <= -1 ||
+			    put_oow_as_dec(hawk, call->nargs) <= -1 ||
+			    hawk_putsrcoocstr(hawk, HAWK_T(" @")) <= -1 ||
+			    put_oow_as_dec(hawk, call->loc.line) <= -1 ||
+			    hawk_putsrcoocstr(hawk, HAWK_T(":")) <= -1 ||
+			    put_oow_as_dec(hawk, call->loc.colm) <= -1) return -1;
+			break;
+		}
 
 		case HAWK_FBC_OP_INIT_BLK:
 		{
