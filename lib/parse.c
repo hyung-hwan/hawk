@@ -4307,6 +4307,35 @@ oops:
 	return HAWK_NULL;
 }
 
+static int is_nde_hard_false (hawk_t* hawk, hawk_nde_t* nde)
+{
+	/* check if a given node represents the boolean false.
+	 * it should match hawk_rtx_valtobool(), or at least its subset */
+
+#if 0
+	/* a groupd node (e.g. (10, 0)) may be determined here.
+	 * the following loop is to check something like ((0)), but
+	 * the other part of the parser never create a grouped node
+	 * with a single element only. a real grouped node with more
+	 * than one element is a bit tricky unless all elements are
+	 * literal expressions. so let's comment out this part for now
+	 * until i can some out with improved determing code.*/
+	while (nde->type == HAWK_NDE_GRP)
+	{
+		hawk_nde_t* body = ((hawk_nde_grp_t*)nde)->body;
+		if (!body || body->next) break;
+		nde = body;
+	}
+#endif
+
+	return (nde->type == HAWK_NDE_XFALSE || nde->type == HAWK_NDE_XNIL ||
+	        (nde->type == HAWK_NDE_INT && ((hawk_nde_int_t*)nde)->val == 0) ||
+	        (nde->type == HAWK_NDE_FLT && ((hawk_nde_flt_t*)nde)->val == 0.0) ||
+	        (nde->type == HAWK_NDE_STR && ((hawk_nde_str_t*)nde)->len == 0) ||
+	        (nde->type == HAWK_NDE_MBS && ((hawk_nde_mbs_t*)nde)->len == 0)
+	);
+}
+
 static hawk_nde_t* parse_if (hawk_t* hawk, const hawk_loc_t* xloc)
 {
 	hawk_nde_t* test = HAWK_NULL;
@@ -4357,6 +4386,34 @@ static hawk_nde_t* parse_if (hawk_t* hawk, const hawk_loc_t* xloc)
 			eloc = hawk->tok.loc;
 			else_part = parse_statement(hawk, &eloc);
 			if (else_part == HAWK_NULL) goto oops;
+		}
+	}
+
+	if (is_nde_hard_false(hawk, test))
+	{
+		if (else_part)
+		{
+			hawk_clrpt(hawk, test); test = HAWK_NULL;
+			hawk_clrpt(hawk, then_part); then_part = HAWK_NULL;
+			return else_part;
+		}
+		else
+		{
+			hawk_nde_t* null_nde;
+
+			null_nde = (hawk_nde_t*)hawk_callocmem(hawk, HAWK_SIZEOF(*null_nde));
+			if (HAWK_UNLIKELY(!null_nde))
+			{
+				ADJERR_LOC(hawk, xloc);
+				goto oops;
+			}
+
+			hawk_clrpt(hawk, test); test = HAWK_NULL;
+			hawk_clrpt(hawk, then_part); then_part = HAWK_NULL;
+
+			null_nde->type = HAWK_NDE_NULL;
+			null_nde->loc = *xloc;
+			return null_nde;
 		}
 	}
 
@@ -4619,6 +4676,27 @@ static hawk_nde_t* parse_while (hawk_t* hawk, const hawk_loc_t* xloc)
 	ploc = hawk->tok.loc;
 	body = parse_statement(hawk, &ploc);
 	if (HAWK_UNLIKELY(!body)) goto oops;
+
+	if (is_nde_hard_false(hawk, test))
+	{
+		/* fold while(0) and while(@false) into a null statement.
+		 * unwrap a single grouped literal too, such as while((0)). */
+		hawk_nde_t* null_nde;
+
+		null_nde = (hawk_nde_t*)hawk_callocmem(hawk, HAWK_SIZEOF(*null_nde));
+		if (HAWK_UNLIKELY(!null_nde))
+		{
+			ADJERR_LOC(hawk, xloc);
+			goto oops;
+		}
+
+		hawk_clrpt(hawk, body); body = HAWK_NULL;
+		hawk_clrpt(hawk, test); test = HAWK_NULL;
+
+		null_nde->type = HAWK_NDE_NULL;
+		null_nde->loc = *xloc;
+		return null_nde;
+	}
 
 	nde = (hawk_nde_while_t*)hawk_callocmem(hawk, HAWK_SIZEOF(*nde));
 	if (HAWK_UNLIKELY(!nde))
