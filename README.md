@@ -358,7 +358,8 @@ BEGIN {
 
 ### Arithmetic and Comparison
 
-- Arithmetic: `+`, `-`, `*`, `/`, `%`, `**` (exponentiation), `++`, `--`, `<<`, `>>`.
+- Arithmetic: `+`, `-`, `*`, `/`, `\`(integer division), `%`(modulo), `**` or '^'(exponentiation), `++`, `--`, `<<`, `>>`.
+- Compound assignment: `=`, `+=`, `-=`, `*=`, `/=`, `\=`, `%=`, `^=` or `**=`, `%%=`.
 - Comparisons: `==`, `!=`, `<`, `<=`, `>`, `>=`.
 - Type-precise compare: `===` and `!==`.
 
@@ -367,7 +368,11 @@ Example:
 ```awk
 BEGIN {
 	x = 10 + 5 * 2
+	x += 3
+	s = "ha"
+	s %%= "wk"
 	if (x >= 20) print x
+	print s
 	if ("10" === 10) print "no"
 }
 ```
@@ -404,6 +409,7 @@ BEGIN {
 
 - Bitwise AND/OR/XOR: `&`, `|`, ^^
 - Unary bitwise negation: ~
+- Compound bitwise assignment: `&=`, `|=`, `^^=`, `<<=`, `>>=`
 - `|` also denotes pipes, so use parentheses when you mean bitwise OR.
 - `>>` is also used for append redirection; use parentheses when you mean right shift.
 

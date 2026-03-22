@@ -66,6 +66,26 @@ function main ()
 	tap_ensure(q, 0, @SCRIPTNAME, @SCRIPTLINE);
 	tap_ensure(r, 0, @SCRIPTNAME, @SCRIPTLINE);
 
+	tap_ensure(2 ^ 10, 1024, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(2 ^ -3, 0.125, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(7.5 \ 2, 3, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(8.5 / 2, 4.25, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(17 % 5, 2, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(17.5 % 5, 2.5, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(6 & 3, 2, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(6 ^^ 3, 5, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(6 | 3, 7, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(3 << 4, 48, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(48 >> 4, 3, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(6.9 & 3, 2, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(8 >> 1.9, 4, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(2 == 2.0, 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(2 != 2.0, 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(2 < 2.5, 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(2.5 >= 2, 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(2 === 2.0, 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(2 !== 2.0, 1, @SCRIPTNAME, @SCRIPTLINE);
+
 	g_calls = 0;
 	if ((tick(1), 0))
 		m = 10;

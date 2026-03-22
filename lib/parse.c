@@ -5905,194 +5905,234 @@ union folded_t
 };
 typedef union folded_t folded_t;
 
-static int fold_constants_for_binop (
-	hawk_t* hawk, hawk_nde_t* left, hawk_nde_t* right,
-	int opcode, folded_t* folded)
+static HAWK_INLINE int is_nde_numeric_literal (hawk_nde_t* nde)
 {
-	int fold = -1;
+	return nde->type == HAWK_NDE_INT || nde->type == HAWK_NDE_FLT;
+}
 
-	/* TODO: can i shorten various comparisons below?
- 	 *       i hate to repeat similar code just for type difference */
+static HAWK_INLINE hawk_int_t get_nde_literal_as_int (hawk_nde_t* nde)
+{
+	return (nde->type == HAWK_NDE_INT)?  ((hawk_nde_int_t*)nde)->val: (hawk_int_t)((hawk_nde_flt_t*)nde)->val;
+}
 
-	if (left->type == HAWK_NDE_INT && right->type == HAWK_NDE_INT)
+static HAWK_INLINE hawk_flt_t get_nde_literal_as_flt (hawk_nde_t* nde)
+{
+	return (nde->type == HAWK_NDE_INT)?  (hawk_flt_t)((hawk_nde_int_t*)nde)->val: ((hawk_nde_flt_t*)nde)->val;
+}
+
+static HAWK_INLINE int is_safe_shift_count (hawk_int_t n)
+{
+	return n >= 0 && n < HAWK_BITSOF(hawk_int_t);
+}
+
+static int fold_constants_for_binop (hawk_t* hawk, hawk_nde_t* left, hawk_nde_t* right, int opcode, folded_t* folded)
+{
+	hawk_int_t li, ri;
+	hawk_flt_t lf, rf;
+	int both_int;
+
+	if (!is_nde_numeric_literal(left) || !is_nde_numeric_literal(right)) return -1;
+
+	li = get_nde_literal_as_int(left);
+	ri = get_nde_literal_as_int(right);
+	lf = get_nde_literal_as_flt(left);
+	rf = get_nde_literal_as_flt(right);
+	both_int = (left->type == HAWK_NDE_INT && right->type == HAWK_NDE_INT);
+
+	switch (opcode)
 	{
-		fold = HAWK_NDE_INT;
-		switch (opcode)
-		{
-			case HAWK_BINOP_PLUS:
-				folded->l = INT_BINOP_INT(left,+,right);
-				break;
+		case HAWK_BINOP_PLUS:
+			if (both_int)
+			{
+				folded->l = li + ri;
+				return HAWK_NDE_INT;
+			}
+			folded->r = lf + rf;
+			return HAWK_NDE_FLT;
 
-			case HAWK_BINOP_MINUS:
-				folded->l = INT_BINOP_INT(left,-,right);
-				break;
+		case HAWK_BINOP_MINUS:
+			if (both_int)
+			{
+				folded->l = li - ri;
+				return HAWK_NDE_INT;
+			}
+			folded->r = lf - rf;
+			return HAWK_NDE_FLT;
 
-			case HAWK_BINOP_MUL:
-				folded->l = INT_BINOP_INT(left,*,right);
-				break;
+		case HAWK_BINOP_MUL:
+			if (both_int)
+			{
+				folded->l = li * ri;
+				return HAWK_NDE_INT;
+			}
+			folded->r = lf * rf;
+			return HAWK_NDE_FLT;
 
-			case HAWK_BINOP_DIV:
-				if (((hawk_nde_int_t*)right)->val == 0)
+		case HAWK_BINOP_DIV:
+			if (both_int)
+			{
+				if (ri == 0)
 				{
 					hawk_seterrnum(hawk, HAWK_NULL, HAWK_EDIVBY0);
-					fold = -2; /* error */
+					return -2;
 				}
-				else if (INT_BINOP_INT(left,%,right))
-				{
-					folded->r = (hawk_flt_t)((hawk_nde_int_t*)left)->val /
-					            (hawk_flt_t)((hawk_nde_int_t*)right)->val;
-					fold = HAWK_NDE_FLT;
-				}
-				else
-				{
-					folded->l = INT_BINOP_INT(left,/,right);
-				}
-				break;
 
-			case HAWK_BINOP_IDIV:
-				if (((hawk_nde_int_t*)right)->val == 0)
+				if ((li % ri) == 0)
+				{
+					folded->l = li / ri;
+					return HAWK_NDE_INT;
+				}
+
+				folded->r = (hawk_flt_t)li / (hawk_flt_t)ri;
+				return HAWK_NDE_FLT;
+			}
+
+			folded->r = lf / rf;
+			return HAWK_NDE_FLT;
+
+		case HAWK_BINOP_IDIV:
+			if (both_int && ri == 0)
+			{
+				hawk_seterrnum(hawk, HAWK_NULL, HAWK_EDIVBY0);
+				return -2;
+			}
+
+			folded->l = (both_int)? (li / ri): (hawk_int_t)(lf / rf);
+			return HAWK_NDE_INT;
+
+		case HAWK_BINOP_MOD:
+			if (both_int)
+			{
+				if (ri == 0)
 				{
 					hawk_seterrnum(hawk, HAWK_NULL, HAWK_EDIVBY0);
-					fold = -2; /* error */
+					return -2;
 				}
-				else
+
+				folded->l = li % ri;
+				return HAWK_NDE_INT;
+			}
+
+			folded->r = hawk->prm.math.mod(hawk, lf, rf);
+			return HAWK_NDE_FLT;
+
+		case HAWK_BINOP_EXP:
+			if (both_int)
+			{
+				if (ri >= 0)
 				{
-					folded->l = INT_BINOP_INT(left,/,right);
+					hawk_int_t v = 1;
+					hawk_int_t n = ri;
+					while (n-- > 0) v *= li;
+					folded->l = v;
+					return HAWK_NDE_INT;
 				}
-				break;
 
-			case HAWK_BINOP_MOD:
-				folded->l = INT_BINOP_INT(left,%,right);
-				break;
+				if (li == 0)
+				{
+					hawk_seterrnum(hawk, HAWK_NULL, HAWK_EDIVBY0);
+					return -2;
+				}
 
-			default:
-				fold = -1; /* no folding */
-				break;
-		}
+				{
+					hawk_flt_t v = 1.0;
+					hawk_int_t n = -ri;
+					while (n-- > 0) v /= li;
+					folded->r = v;
+					return HAWK_NDE_FLT;
+				}
+			}
+
+			if (right->type == HAWK_NDE_INT)
+			{
+				if (ri >= 0)
+				{
+					hawk_flt_t v = 1.0;
+					hawk_int_t n = ri;
+					while (n-- > 0) v *= lf;
+					folded->r = v;
+					return HAWK_NDE_FLT;
+				}
+
+				if (lf == 0.0)
+				{
+					hawk_seterrnum(hawk, HAWK_NULL, HAWK_EDIVBY0);
+					return -2;
+				}
+
+				{
+					hawk_flt_t v = 1.0;
+					hawk_int_t n = -ri;
+					while (n-- > 0) v /= lf;
+					folded->r = v;
+					return HAWK_NDE_FLT;
+				}
+			}
+
+			folded->r = hawk->prm.math.pow(hawk, lf, rf);
+			return HAWK_NDE_FLT;
+
+		case HAWK_BINOP_LS:
+			if (!is_safe_shift_count(ri)) return -1;
+			folded->l = li << ri;
+			return HAWK_NDE_INT;
+
+		case HAWK_BINOP_RS:
+			if (!is_safe_shift_count(ri)) return -1;
+			folded->l = li >> ri;
+			return HAWK_NDE_INT;
+
+		case HAWK_BINOP_BAND:
+			folded->l = li & ri;
+			return HAWK_NDE_INT;
+
+		case HAWK_BINOP_BXOR:
+			folded->l = li ^ ri;
+			return HAWK_NDE_INT;
+
+		case HAWK_BINOP_BOR:
+			folded->l = li | ri;
+			return HAWK_NDE_INT;
+
+		case HAWK_BINOP_TEQ:
+			if (left->type != right->type) folded->l = 0;
+			else if (both_int) folded->l = (li == ri);
+			else folded->l = (lf == rf);
+			return HAWK_NDE_INT;
+
+		case HAWK_BINOP_TNE:
+			if (left->type != right->type) folded->l = 1;
+			else if (both_int) folded->l = (li != ri);
+			else folded->l = (lf != rf);
+			return HAWK_NDE_INT;
+
+		case HAWK_BINOP_EQ:
+			folded->l = (both_int)? (li == ri): (lf == rf);
+			return HAWK_NDE_INT;
+
+		case HAWK_BINOP_NE:
+			folded->l = (both_int)? (li != ri): (lf != rf);
+			return HAWK_NDE_INT;
+
+		case HAWK_BINOP_GT:
+			folded->l = (both_int)? (li > ri): (lf > rf);
+			return HAWK_NDE_INT;
+
+		case HAWK_BINOP_GE:
+			folded->l = (both_int)? (li >= ri): (lf >= rf);
+			return HAWK_NDE_INT;
+
+		case HAWK_BINOP_LT:
+			folded->l = (both_int)? (li < ri): (lf < rf);
+			return HAWK_NDE_INT;
+
+		case HAWK_BINOP_LE:
+			folded->l = (both_int)? (li <= ri): (lf <= rf);
+			return HAWK_NDE_INT;
+
+		default:
+			return -1;
 	}
-	else if (left->type == HAWK_NDE_FLT && right->type == HAWK_NDE_FLT)
-	{
-		fold = HAWK_NDE_FLT;
-		switch (opcode)
-		{
-			case HAWK_BINOP_PLUS:
-				folded->r = FLT_BINOP_FLT(left,+,right);
-				break;
-
-			case HAWK_BINOP_MINUS:
-				folded->r = FLT_BINOP_FLT(left,-,right);
-				break;
-
-			case HAWK_BINOP_MUL:
-				folded->r = FLT_BINOP_FLT(left,*,right);
-				break;
-
-			case HAWK_BINOP_DIV:
-				folded->r = FLT_BINOP_FLT(left,/,right);
-				break;
-
-			case HAWK_BINOP_IDIV:
-				folded->l = (hawk_int_t)FLT_BINOP_FLT(left,/,right);
-				fold = HAWK_NDE_INT;
-				break;
-
-			case HAWK_BINOP_MOD:
-				folded->r = hawk->prm.math.mod(
-					hawk,
-					((hawk_nde_flt_t*)left)->val,
-					((hawk_nde_flt_t*)right)->val
-				);
-				break;
-
-			default:
-				fold = -1;
-				break;
-		}
-	}
-	else if (left->type == HAWK_NDE_INT && right->type == HAWK_NDE_FLT)
-	{
-		fold = HAWK_NDE_FLT;
-		switch (opcode)
-		{
-			case HAWK_BINOP_PLUS:
-				folded->r = INT_BINOP_FLT(left,+,right);
-				break;
-
-			case HAWK_BINOP_MINUS:
-				folded->r = INT_BINOP_FLT(left,-,right);
-				break;
-
-			case HAWK_BINOP_MUL:
-				folded->r = INT_BINOP_FLT(left,*,right);
-				break;
-
-			case HAWK_BINOP_DIV:
-				folded->r = INT_BINOP_FLT(left,/,right);
-				break;
-
-			case HAWK_BINOP_IDIV:
-				folded->l = (hawk_int_t)
-					((hawk_flt_t)((hawk_nde_int_t*)left)->val /
-					 ((hawk_nde_flt_t*)right)->val);
-				fold = HAWK_NDE_INT;
-				break;
-
-			case HAWK_BINOP_MOD:
-				folded->r = hawk->prm.math.mod(
-					hawk,
-					(hawk_flt_t)((hawk_nde_int_t*)left)->val,
-					((hawk_nde_flt_t*)right)->val
-				);
-				break;
-
-			default:
-				fold = -1;
-				break;
-		}
-	}
-	else if (left->type == HAWK_NDE_FLT && right->type == HAWK_NDE_INT)
-	{
-		fold = HAWK_NDE_FLT;
-		switch (opcode)
-		{
-			case HAWK_BINOP_PLUS:
-				folded->r = FLT_BINOP_INT(left,+,right);
-				break;
-
-			case HAWK_BINOP_MINUS:
-				folded->r = FLT_BINOP_INT(left,-,right);
-				break;
-
-			case HAWK_BINOP_MUL:
-				folded->r = FLT_BINOP_INT(left,*,right);
-				break;
-
-			case HAWK_BINOP_DIV:
-				folded->r = FLT_BINOP_INT(left,/,right);
-				break;
-
-			case HAWK_BINOP_IDIV:
-				folded->l = (hawk_int_t)
-					(((hawk_nde_int_t*)left)->val /
-					 (hawk_flt_t)((hawk_nde_int_t*)right)->val);
-				fold = HAWK_NDE_INT;
-				break;
-
-			case HAWK_BINOP_MOD:
-				folded->r = hawk->prm.math.mod(
-					hawk,
-					((hawk_nde_flt_t*)left)->val,
-					(hawk_flt_t)((hawk_nde_int_t*)right)->val
-				);
-				break;
-
-			default:
-				fold = -1;
-				break;
-		}
-	}
-
-	return fold;
 }
 
 static hawk_nde_t* new_exp_bin_node (
