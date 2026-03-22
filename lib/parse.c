@@ -6187,6 +6187,21 @@ static hawk_nde_t* new_flt_node (hawk_t* hawk, hawk_flt_t rv, const hawk_loc_t* 
 	return (hawk_nde_t*)tmp;
 }
 
+static hawk_nde_t* new_xbool_node (hawk_t* hawk, int bv, const hawk_loc_t* loc)
+{
+	hawk_nde_xnil_t* tmp;
+
+	tmp = (hawk_nde_xnil_t*)hawk_callocmem(hawk, HAWK_SIZEOF(*tmp));
+	if (HAWK_LIKELY(tmp))
+	{
+		tmp->type = bv? HAWK_NDE_XTRUE: HAWK_NDE_XFALSE;
+		tmp->loc = *loc;
+	}
+	else ADJERR_LOC(hawk, loc);
+
+	return (hawk_nde_t*)tmp;
+}
+
 static HAWK_INLINE void update_int_node (hawk_t* hawk, hawk_nde_int_t* node, hawk_int_t lv)
 {
 	node->val = lv;
@@ -6610,6 +6625,19 @@ static hawk_nde_t* parse_unary (hawk_t* hawk, const hawk_loc_t* xloc)
 	hawk->parse.depth.expr--;
 	if (left == HAWK_NULL) return HAWK_NULL;
 
+	if (opcode == HAWK_UNROP_LNOT)
+	{
+		/* handle the logical negation operator(!) first */
+		nde_hard_bool_t hb;
+
+		hb = classify_nde_hard_bool(left);
+		if (hb != NDE_HARD_BOOL_UNKNOWN)
+		{
+			hawk_clrpt(hawk, left);
+			return new_xbool_node(hawk, hb == NDE_HARD_BOOL_FALSE, xloc);
+		}
+	}
+
 	fold = -1;
 	if (left->type == HAWK_NDE_INT)
 	{
@@ -6624,9 +6652,11 @@ static hawk_nde_t* parse_unary (hawk_t* hawk, const hawk_loc_t* xloc)
 				folded.l = -((hawk_nde_int_t*)left)->val;
 				break;
 
+		#if 0
 			case HAWK_UNROP_LNOT:
 				folded.l = !((hawk_nde_int_t*)left)->val;
 				break;
+		#endif
 
 			case HAWK_UNROP_BNOT:
 				folded.l = ~((hawk_nde_int_t*)left)->val;
@@ -6650,9 +6680,12 @@ static hawk_nde_t* parse_unary (hawk_t* hawk, const hawk_loc_t* xloc)
 				folded.r = -((hawk_nde_flt_t*)left)->val;
 				break;
 
+		#if 0
 			case HAWK_UNROP_LNOT:
-				folded.r = !((hawk_nde_flt_t*)left)->val;
+				folded.l = !((hawk_nde_flt_t*)left)->val;
+				fold = HAWK_NDE_INT;
 				break;
+		#endif
 
 			case HAWK_UNROP_BNOT:
 				folded.l = ~((hawk_int_t)((hawk_nde_flt_t*)left)->val);

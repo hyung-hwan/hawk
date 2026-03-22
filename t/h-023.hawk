@@ -85,6 +85,15 @@ function main ()
 	tap_ensure(2.5 >= 2, 1, @SCRIPTNAME, @SCRIPTLINE);
 	tap_ensure(2 === 2.0, 0, @SCRIPTNAME, @SCRIPTLINE);
 	tap_ensure(2 !== 2.0, 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(!@true === @false, 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(!@false === @true, 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(!@nil === @true, 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(!"" === @true, 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(!"x" === @false, 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(!@b"" === @true, 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(!@b"x" === @false, 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(!((1, 0)) === @true, 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(!((1, 2, "x")) === @false, 1, @SCRIPTNAME, @SCRIPTLINE);
 
 	g_calls = 0;
 	if ((tick(1), 0))
@@ -105,6 +114,10 @@ function main ()
 	g_calls = 0;
 	while ((tick(1), 0)) { o = o + 1; }
 	tap_ensure(o, 2, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(g_calls, 1, @SCRIPTNAME, @SCRIPTLINE);
+
+	g_calls = 0;
+	tap_ensure(!(tick(1), 0) === @true, 1, @SCRIPTNAME, @SCRIPTLINE);
 	tap_ensure(g_calls, 1, @SCRIPTNAME, @SCRIPTLINE);
 
 	tap_end ();
