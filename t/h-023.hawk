@@ -3,14 +3,28 @@
 
 @include "tap.inc";
 
+@global g_calls = 0;
+
+function tick (v)
+{
+	g_calls = g_calls + 1;
+	return v;
+}
+
 function main ()
 {
-	@local i, j, k, l;
+	@local i, j, k, l, m, n, o, p, q, r;
 
 	i = 0;
 	j = 0;
 	k = 0;
 	l = 0;
+	m = 0;
+	n = 0;
+	o = 0;
+	p = 0;
+	q = 0;
+	r = 0;
 
 	while (0) { i = i + 1; }
 	while (@false) { j = j + 1; }
@@ -21,6 +35,57 @@ function main ()
 	tap_ensure(j, 0, @SCRIPTNAME, @SCRIPTLINE);
 	tap_ensure(k, 0, @SCRIPTNAME, @SCRIPTLINE);
 	tap_ensure(l, 0, @SCRIPTNAME, @SCRIPTLINE);
+
+	if ((1, 0))
+		m = 1;
+	else
+		m = 2;
+
+	if (((0, "", 5)))
+		n = 1;
+	else
+		n = 2;
+
+	if (((1, 2, @false)))
+		o = 1;
+	else
+		o = 2;
+
+	if ((((1, 2), (3, 4), 0)))
+		p = 1;
+	else
+		p = 2;
+
+	while ((1, 0)) { q = q + 1; }
+	while ((((1, 2), (3, 4), 0))) { r = r + 1; }
+
+	tap_ensure(m, 2, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(n, 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(o, 2, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(p, 2, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(q, 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(r, 0, @SCRIPTNAME, @SCRIPTLINE);
+
+	g_calls = 0;
+	if ((tick(1), 0))
+		m = 10;
+	else
+		m = 20;
+	tap_ensure(m, 20, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(g_calls, 1, @SCRIPTNAME, @SCRIPTLINE);
+
+	g_calls = 0;
+	if ((((1, tick(0))), 1))
+		n = 10;
+	else
+		n = 20;
+	tap_ensure(n, 10, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(g_calls, 1, @SCRIPTNAME, @SCRIPTLINE);
+
+	g_calls = 0;
+	while ((tick(1), 0)) { o = o + 1; }
+	tap_ensure(o, 2, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(g_calls, 1, @SCRIPTNAME, @SCRIPTLINE);
 
 	tap_end ();
 }

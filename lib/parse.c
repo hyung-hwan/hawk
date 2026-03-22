@@ -218,6 +218,15 @@ struct nde_chain_t
 	hawk_nde_t* tail;
 };
 
+enum nde_hard_bool_t
+{
+	NDE_HARD_BOOL_UNKNOWN = -1,
+	NDE_HARD_BOOL_FALSE = 0,
+	NDE_HARD_BOOL_TRUE = 1
+};
+typedef enum nde_hard_bool_t nde_hard_bool_t;
+
+
 static int parse_progunit (hawk_t* hawk);
 static void adjust_static_globals (hawk_t* hawk);
 static hawk_oow_t find_global (hawk_t* hawk, const hawk_oocs_t* name);
@@ -1744,7 +1753,7 @@ static int compile_funbc_stmt_internal (
 				head = x->args;
 				if (head->type == HAWK_NDE_GRP)
 				{
-		                        /* parenthesized print with a least two items. e.g. print(1,2)
+					/* parenthesized print with a least two items. e.g. print(1,2)
 					 * print(1) is the same as print 1. so the argument is not held in a HAWK_NDE_GRP node. */
 					HAWK_ASSERT(head->next == HAWK_NULL);
 					head = ((hawk_nde_grp_t*)head)->body;
@@ -2577,7 +2586,7 @@ static int parse_progunit (hawk_t* hawk)
 
 		if (!MATCH(hawk, TOK_LBRACE))
 		{
-			hawk_seterrfmt(hawk,  &hawk->tok.loc, HAWK_ELBRACE, FMT_ELBRACE, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
+			hawk_seterrfmt(hawk, &hawk->tok.loc, HAWK_ELBRACE, FMT_ELBRACE, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
 			return -1;
 		}
 
@@ -2608,7 +2617,7 @@ static int parse_progunit (hawk_t* hawk)
 
 		if (!MATCH(hawk, TOK_LBRACE))
 		{
-			hawk_seterrfmt(hawk,  &hawk->tok.loc, HAWK_ELBRACE, FMT_ELBRACE, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
+			hawk_seterrfmt(hawk, &hawk->tok.loc, HAWK_ELBRACE, FMT_ELBRACE, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
 			return -1;
 		}
 
@@ -2723,7 +2732,7 @@ static int parse_progunit (hawk_t* hawk)
 			if (!MATCH(hawk,TOK_LBRACE))
 			{
 				hawk_clrpt(hawk, ptn);
-				hawk_seterrfmt(hawk,  &hawk->tok.loc, HAWK_ELBRACE, FMT_ELBRACE, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
+				hawk_seterrfmt(hawk, &hawk->tok.loc, HAWK_ELBRACE, FMT_ELBRACE, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
 				return -1;
 			}
 
@@ -2836,7 +2845,7 @@ static hawk_nde_t* parse_function (hawk_t* hawk, int named)
 	{
 		/* named - a function name is not followed by a left parenthesis.
 		 * unnamed - the function keyword is not followed by a left parenthesis*/
-		hawk_seterrfmt(hawk,  &hawk->tok.loc, HAWK_ELPAREN, FMT_ELPAREN,
+		hawk_seterrfmt(hawk, &hawk->tok.loc, HAWK_ELPAREN, FMT_ELPAREN,
 			HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
 		goto oops;
 	}
@@ -4101,7 +4110,7 @@ static hawk_t* collect_globals (hawk_t* hawk, nde_chain_t* init, int is_const)
 
 		if (!MATCH(hawk,TOK_COMMA))
 		{
-			hawk_seterrfmt(hawk,  &hawk->tok.loc, HAWK_ECOMMA, FMT_ECOMMA, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
+			hawk_seterrfmt(hawk, &hawk->tok.loc, HAWK_ECOMMA, FMT_ECOMMA, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
 			goto oops;
 		}
 
@@ -4282,7 +4291,7 @@ static hawk_t* collect_locals (hawk_t* hawk, hawk_oow_t nlcls, int flags, nde_ch
 
 		if (!MATCH(hawk,TOK_COMMA))
 		{
-			hawk_seterrfmt(hawk,  &hawk->tok.loc, HAWK_ECOMMA, FMT_ECOMMA, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
+			hawk_seterrfmt(hawk, &hawk->tok.loc, HAWK_ECOMMA, FMT_ECOMMA, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
 			goto oops;
 		}
 
@@ -4307,43 +4316,102 @@ oops:
 	return HAWK_NULL;
 }
 
-static int is_nde_hard_false (hawk_t* hawk, hawk_nde_t* nde)
+static int is_nde_bool_literal_atom (hawk_nde_t* nde)
 {
-	/* check if a given node represents the boolean false.
-	 * it should match hawk_rtx_valtobool(), or at least its subset */
-
-#if 0
-	/* a groupd node (e.g. (10, 0)) may be unwrapped here.
-	 * the following loop is to check something like ((0)), but
-	 * other parts of the parser never create a grouped node
-	 * with a single element only. a real grouped node with more
-	 * than one element is a bit tricky to unwrap unless all elements
-	 * are literal expressions. so let's comment out this part for now
-	 * until i can sort it out with improved unwrapping code.*/
-	while (nde->type == HAWK_NDE_GRP)
+	switch (nde->type)
 	{
-		hawk_nde_t* body = ((hawk_nde_grp_t*)nde)->body;
-		if (!body || body->next) break;
-		nde = body;
+		case HAWK_NDE_XFALSE:
+		case HAWK_NDE_XTRUE:
+		case HAWK_NDE_XNIL:
+		case HAWK_NDE_INT:
+		case HAWK_NDE_FLT:
+		case HAWK_NDE_STR:
+		case HAWK_NDE_MBS:
+			return 1;
+		default:
+			return 0;
 	}
-#endif
-
-	return (nde->type == HAWK_NDE_XFALSE || nde->type == HAWK_NDE_XNIL ||
-	        (nde->type == HAWK_NDE_INT && ((hawk_nde_int_t*)nde)->val == 0) ||
-	        (nde->type == HAWK_NDE_FLT && ((hawk_nde_flt_t*)nde)->val == 0.0) ||
-	        (nde->type == HAWK_NDE_STR && ((hawk_nde_str_t*)nde)->len == 0) ||
-	        (nde->type == HAWK_NDE_MBS && ((hawk_nde_mbs_t*)nde)->len == 0)
-	);
 }
 
-static int is_nde_hard_true (hawk_t* hawk, hawk_nde_t* nde)
+/* return the effective literal node for boolean decision.
+ * if nde is a grouped node, every grouped element must be literal.
+ * the returned node is the last literal element in the group.
+ *
+ * examples:
+ *   (1, 0)         -> INT(0)
+ *   ((1, 0))       -> INT(0)
+ *   ("x", @false)  -> XFALSE
+ *   (abc(), 0)     -> HAWK_NULL
+ */
+static hawk_nde_t* get_nde_bool_literal_tail (hawk_nde_t* nde, int depth)
 {
-	return (nde->type == HAWK_NDE_XTRUE ||
-	        (nde->type == HAWK_NDE_INT && ((hawk_nde_int_t*)nde)->val != 0) ||
-	        (nde->type == HAWK_NDE_FLT && ((hawk_nde_flt_t*)nde)->val != 0.0) ||
-	        (nde->type == HAWK_NDE_STR && ((hawk_nde_str_t*)nde)->len > 0) ||
-	        (nde->type == HAWK_NDE_MBS && ((hawk_nde_mbs_t*)nde)->len > 0)
-	);
+	if (depth >= 256) return HAWK_NULL; /* i don't wawnt to support to deep recursion. TODO: remove hard-coded value or remove recursion? */
+
+	if (nde->type == HAWK_NDE_GRP)
+	{
+		hawk_nde_t* cur, * last;
+
+		cur = ((hawk_nde_grp_t*)nde)->body;
+		HAWK_ASSERT(cur != HAWK_NULL);
+
+		last = HAWK_NULL;
+		do
+		{
+			last = get_nde_bool_literal_tail(cur, depth + 1);
+			if (!last) return HAWK_NULL;
+			cur = cur->next;
+		}
+		while (cur);
+
+		return last;
+	}
+
+	return is_nde_bool_literal_atom(nde)? nde: HAWK_NULL;
+}
+
+static nde_hard_bool_t classify_nde_hard_bool (hawk_nde_t* nde)
+{
+	nde = get_nde_bool_literal_tail(nde, 0);
+	if (!nde) return NDE_HARD_BOOL_UNKNOWN;
+
+	switch (nde->type)
+	{
+		case HAWK_NDE_XFALSE:
+		case HAWK_NDE_XNIL:
+			return NDE_HARD_BOOL_FALSE;
+
+		case HAWK_NDE_XTRUE:
+			return NDE_HARD_BOOL_TRUE;
+
+		case HAWK_NDE_INT:
+			return (((hawk_nde_int_t*)nde)->val == 0)?
+				NDE_HARD_BOOL_FALSE: NDE_HARD_BOOL_TRUE;
+
+		case HAWK_NDE_FLT:
+			return (((hawk_nde_flt_t*)nde)->val == 0.0)?
+				NDE_HARD_BOOL_FALSE: NDE_HARD_BOOL_TRUE;
+
+		case HAWK_NDE_STR:
+			return (((hawk_nde_str_t*)nde)->len == 0)?
+				NDE_HARD_BOOL_FALSE: NDE_HARD_BOOL_TRUE;
+
+		case HAWK_NDE_MBS:
+			return (((hawk_nde_mbs_t*)nde)->len == 0)?
+				NDE_HARD_BOOL_FALSE: NDE_HARD_BOOL_TRUE;
+
+		default:
+			return NDE_HARD_BOOL_UNKNOWN;
+	}
+}
+
+static HAWK_INLINE int is_nde_hard_false (hawk_nde_t* nde)
+{
+	return classify_nde_hard_bool(nde) == NDE_HARD_BOOL_FALSE;
+}
+
+static HAWK_INLINE int is_nde_hard_true (hawk_nde_t* nde)
+{
+	return classify_nde_hard_bool(nde) == NDE_HARD_BOOL_TRUE;
 }
 
 static hawk_nde_t* parse_if (hawk_t* hawk, const hawk_loc_t* xloc)
@@ -4356,7 +4424,7 @@ static hawk_nde_t* parse_if (hawk_t* hawk, const hawk_loc_t* xloc)
 
 	if (!MATCH(hawk,TOK_LPAREN))
 	{
-		hawk_seterrfmt(hawk,  &hawk->tok.loc, HAWK_ELPAREN, FMT_ELPAREN, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
+		hawk_seterrfmt(hawk, &hawk->tok.loc, HAWK_ELPAREN, FMT_ELPAREN, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
 		return HAWK_NULL;
 	}
 	if (get_token(hawk) <= -1) return HAWK_NULL;
@@ -4367,7 +4435,7 @@ static hawk_nde_t* parse_if (hawk_t* hawk, const hawk_loc_t* xloc)
 
 	if (!MATCH(hawk,TOK_RPAREN))
 	{
-		hawk_seterrfmt(hawk,  &hawk->tok.loc, HAWK_ERPAREN, FMT_ERPAREN, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
+		hawk_seterrfmt(hawk, &hawk->tok.loc, HAWK_ERPAREN, FMT_ERPAREN, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
 		goto oops;
 	}
 
@@ -4399,7 +4467,7 @@ static hawk_nde_t* parse_if (hawk_t* hawk, const hawk_loc_t* xloc)
 		}
 	}
 
-	if (is_nde_hard_false(hawk, test))
+	if (is_nde_hard_false(test))
 	{
 		/* fold if (0) or if (@false) or its variants */
 		if (else_part)
@@ -4430,7 +4498,7 @@ static hawk_nde_t* parse_if (hawk_t* hawk, const hawk_loc_t* xloc)
 			return null_nde;
 		}
 	}
-	else if (is_nde_hard_true(hawk, test))
+	else if (is_nde_hard_true(test))
 	{
 		/* fold the else part for if (1) or if (@true) or its variants */
 		hawk_clrpt(hawk, test);
@@ -4494,7 +4562,7 @@ static hawk_nde_t* parse_switch (hawk_t* hawk, const hawk_loc_t* xloc)
 
 	if (!MATCH(hawk,TOK_LPAREN))
 	{
-		hawk_seterrfmt(hawk,  &hawk->tok.loc, HAWK_ELPAREN, FMT_ELPAREN, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
+		hawk_seterrfmt(hawk, &hawk->tok.loc, HAWK_ELPAREN, FMT_ELPAREN, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
 		return HAWK_NULL;
 	}
 	if (get_token(hawk) <= -1) return HAWK_NULL;
@@ -4505,7 +4573,7 @@ static hawk_nde_t* parse_switch (hawk_t* hawk, const hawk_loc_t* xloc)
 
 	if (!MATCH(hawk,TOK_RPAREN))
 	{
-		hawk_seterrfmt(hawk,  &hawk->tok.loc, HAWK_ERPAREN, FMT_ERPAREN, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
+		hawk_seterrfmt(hawk, &hawk->tok.loc, HAWK_ERPAREN, FMT_ERPAREN, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
 		goto oops;
 	}
 
@@ -4517,7 +4585,7 @@ static hawk_nde_t* parse_switch (hawk_t* hawk, const hawk_loc_t* xloc)
 	}
 	if (!MATCH(hawk,TOK_LBRACE))
 	{
-		hawk_seterrfmt(hawk,  &hawk->tok.loc, HAWK_ELBRACE, FMT_ELBRACE, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
+		hawk_seterrfmt(hawk, &hawk->tok.loc, HAWK_ELBRACE, FMT_ELBRACE, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
 		goto oops;
 	}
 
@@ -4677,7 +4745,7 @@ static hawk_nde_t* parse_while (hawk_t* hawk, const hawk_loc_t* xloc)
 
 	if (!MATCH(hawk,TOK_LPAREN))
 	{
-		hawk_seterrfmt(hawk,  &hawk->tok.loc, HAWK_ELPAREN, FMT_ELPAREN, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
+		hawk_seterrfmt(hawk, &hawk->tok.loc, HAWK_ELPAREN, FMT_ELPAREN, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
 		goto oops;
 	}
 	if (get_token(hawk) <= -1) goto oops;
@@ -4688,7 +4756,7 @@ static hawk_nde_t* parse_while (hawk_t* hawk, const hawk_loc_t* xloc)
 
 	if (!MATCH(hawk,TOK_RPAREN))
 	{
-		hawk_seterrfmt(hawk,  &hawk->tok.loc, HAWK_ERPAREN, FMT_ERPAREN, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
+		hawk_seterrfmt(hawk, &hawk->tok.loc, HAWK_ERPAREN, FMT_ERPAREN, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
 		goto oops;
 	}
 
@@ -4698,7 +4766,7 @@ static hawk_nde_t* parse_while (hawk_t* hawk, const hawk_loc_t* xloc)
 	body = parse_statement(hawk, &ploc);
 	if (HAWK_UNLIKELY(!body)) goto oops;
 
-	if (is_nde_hard_false(hawk, test))
+	if (is_nde_hard_false(test))
 	{
 		/* fold while(0) and while(@false) into a null statement. */
 		hawk_nde_t* null_nde;
@@ -4748,7 +4816,7 @@ static hawk_nde_t* parse_for (hawk_t* hawk, const hawk_loc_t* xloc)
 
 	if (!MATCH(hawk,TOK_LPAREN))
 	{
-		hawk_seterrfmt(hawk,  &hawk->tok.loc, HAWK_ELPAREN, FMT_ELPAREN, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
+		hawk_seterrfmt(hawk, &hawk->tok.loc, HAWK_ELPAREN, FMT_ELPAREN, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
 		return HAWK_NULL;
 	}
 	if (get_token(hawk) <= -1) return HAWK_NULL;
@@ -4776,7 +4844,7 @@ static hawk_nde_t* parse_for (hawk_t* hawk, const hawk_loc_t* xloc)
 
 			if (!MATCH(hawk,TOK_RPAREN))
 			{
-				hawk_seterrfmt(hawk,  &hawk->tok.loc, HAWK_ERPAREN, FMT_ERPAREN, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
+				hawk_seterrfmt(hawk, &hawk->tok.loc, HAWK_ERPAREN, FMT_ERPAREN, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
 				goto oops;
 			}
 
@@ -4803,7 +4871,7 @@ static hawk_nde_t* parse_for (hawk_t* hawk, const hawk_loc_t* xloc)
 
 		if (!MATCH(hawk,TOK_SEMICOLON))
 		{
-			hawk_seterrfmt(hawk,  &hawk->tok.loc, HAWK_ESCOLON, FMT_ESCOLON, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
+			hawk_seterrfmt(hawk, &hawk->tok.loc, HAWK_ESCOLON, FMT_ESCOLON, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
 			goto oops;
 		}
 	}
@@ -4823,7 +4891,7 @@ static hawk_nde_t* parse_for (hawk_t* hawk, const hawk_loc_t* xloc)
 
 		if (!MATCH(hawk,TOK_SEMICOLON))
 		{
-			hawk_seterrfmt(hawk,  &hawk->tok.loc, HAWK_ESCOLON, FMT_ESCOLON, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
+			hawk_seterrfmt(hawk, &hawk->tok.loc, HAWK_ESCOLON, FMT_ESCOLON, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
 			goto oops;
 		}
 	}
@@ -4846,7 +4914,7 @@ static hawk_nde_t* parse_for (hawk_t* hawk, const hawk_loc_t* xloc)
 
 		if (!MATCH(hawk,TOK_RPAREN))
 		{
-			hawk_seterrfmt(hawk,  &hawk->tok.loc, HAWK_ERPAREN, FMT_ERPAREN, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
+			hawk_seterrfmt(hawk, &hawk->tok.loc, HAWK_ERPAREN, FMT_ERPAREN, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
 			goto oops;
 		}
 	}
@@ -4901,7 +4969,7 @@ static hawk_nde_t* parse_dowhile (hawk_t* hawk, const hawk_loc_t* xloc)
 
 	if (!MATCH(hawk,TOK_WHILE))
 	{
-		hawk_seterrfmt(hawk,  &hawk->tok.loc, HAWK_EKWWHL, FMT_EKWWHL, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
+		hawk_seterrfmt(hawk, &hawk->tok.loc, HAWK_EKWWHL, FMT_EKWWHL, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
 		goto oops;
 	}
 
@@ -4909,7 +4977,7 @@ static hawk_nde_t* parse_dowhile (hawk_t* hawk, const hawk_loc_t* xloc)
 
 	if (!MATCH(hawk,TOK_LPAREN))
 	{
-		hawk_seterrfmt(hawk,  &hawk->tok.loc, HAWK_ELPAREN, FMT_ELPAREN, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
+		hawk_seterrfmt(hawk, &hawk->tok.loc, HAWK_ELPAREN, FMT_ELPAREN, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
 		goto oops;
 	}
 
@@ -4921,7 +4989,7 @@ static hawk_nde_t* parse_dowhile (hawk_t* hawk, const hawk_loc_t* xloc)
 
 	if (!MATCH(hawk,TOK_RPAREN))
 	{
-		hawk_seterrfmt(hawk,  &hawk->tok.loc, HAWK_ERPAREN, FMT_ERPAREN, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
+		hawk_seterrfmt(hawk, &hawk->tok.loc, HAWK_ERPAREN, FMT_ERPAREN, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
 		goto oops;
 	}
 
@@ -5153,7 +5221,7 @@ static hawk_nde_t* parse_delete (hawk_t* hawk, const hawk_loc_t* xloc)
 
 	if (!MATCH(hawk,TOK_IDENT))
 	{
-		hawk_seterrfmt(hawk,  &hawk->tok.loc, HAWK_EIDENT, FMT_EIDENT, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
+		hawk_seterrfmt(hawk, &hawk->tok.loc, HAWK_EIDENT, FMT_EIDENT, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
 		goto oops;
 	}
 
@@ -5172,7 +5240,7 @@ static hawk_nde_t* parse_delete (hawk_t* hawk, const hawk_loc_t* xloc)
 	{
 		if (!MATCH(hawk,TOK_RPAREN))
 		{
-			hawk_seterrfmt(hawk,  &hawk->tok.loc, HAWK_ERPAREN, FMT_ERPAREN, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
+			hawk_seterrfmt(hawk, &hawk->tok.loc, HAWK_ERPAREN, FMT_ERPAREN, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
 			goto oops;
 		}
 
@@ -5678,7 +5746,7 @@ static hawk_nde_t* parse_expr_basic (hawk_t* hawk, const hawk_loc_t* xloc)
 		{
 			hawk_clrpt(hawk, nde);
 			hawk_clrpt(hawk, n1);
-			hawk_seterrfmt(hawk,  &hawk->tok.loc, HAWK_ECOLON, FMT_ECOLON, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
+			hawk_seterrfmt(hawk, &hawk->tok.loc, HAWK_ECOLON, FMT_ECOLON, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
 			return HAWK_NULL;
 		}
 		if (get_token(hawk) <= -1)
@@ -7143,7 +7211,7 @@ static hawk_nde_t* parse_primary_array (hawk_t* hawk, const hawk_loc_t* xloc)
 	if (HAWK_UNLIKELY(!full.ptr))
 	{
 		const hawk_ooch_t* bem = hawk_backuperrmsg(hawk);
-		hawk_seterrfmt(hawk,  &hawk->tok.loc, HAWK_ENOMEM, HAWK_T("unable to allocate internal name for @[ - %js"), bem);
+		hawk_seterrfmt(hawk, &hawk->tok.loc, HAWK_ENOMEM, HAWK_T("unable to allocate internal name for @[ - %js"), bem);
 		return HAWK_NULL;
 	}
 
@@ -7171,7 +7239,7 @@ static hawk_nde_t* parse_primary_map (hawk_t* hawk, const hawk_loc_t* xloc)
 	if (HAWK_UNLIKELY(!full.ptr))
 	{
 		const hawk_ooch_t* bem = hawk_backuperrmsg(hawk);
-		hawk_seterrfmt(hawk,  &hawk->tok.loc, HAWK_ENOMEM, HAWK_T("unable to allocate internal name for @{ - %js"), bem);
+		hawk_seterrfmt(hawk, &hawk->tok.loc, HAWK_ENOMEM, HAWK_T("unable to allocate internal name for @{ - %js"), bem);
 		return HAWK_NULL;
 	}
 
@@ -7226,7 +7294,7 @@ static hawk_nde_t* parse_primary_lparen (hawk_t* hawk, const hawk_loc_t* xloc)
 	/* check for the closing parenthesis */
 	if (!MATCH(hawk,TOK_RPAREN))
 	{
-		hawk_seterrfmt(hawk,  &hawk->tok.loc, HAWK_ERPAREN, FMT_ERPAREN, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
+		hawk_seterrfmt(hawk, &hawk->tok.loc, HAWK_ERPAREN, FMT_ERPAREN, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
 		goto oops;
 	}
 
@@ -7249,7 +7317,7 @@ static hawk_nde_t* parse_primary_lparen (hawk_t* hawk, const hawk_loc_t* xloc)
 		{
 			if (!(hawk->opt.trait & HAWK_TOLERANT) && !MATCH(hawk,TOK_IN))
 			{
-				hawk_seterrfmt(hawk,  &hawk->tok.loc, HAWK_EKWIN, FMT_EKWIN, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
+				hawk_seterrfmt(hawk, &hawk->tok.loc, HAWK_EKWIN, FMT_EKWIN, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
 				goto oops;
 			}
 		}
@@ -7471,7 +7539,7 @@ static hawk_nde_t* parse_primary_xarg (hawk_t* hawk, const hawk_loc_t* xloc)
 
 			if (!MATCH(hawk,TOK_RBRACK))
 			{
-				hawk_seterrfmt(hawk,  &hawk->tok.loc, HAWK_ERBRACK, FMT_ERBRACK, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
+				hawk_seterrfmt(hawk, &hawk->tok.loc, HAWK_ERBRACK, FMT_ERBRACK, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
 				goto oops;
 			}
 
@@ -7934,7 +8002,7 @@ static hawk_nde_t* parse_primary_ident_noseg (hawk_t* hawk, const hawk_loc_t* xl
 		else
 		{
 			/* an intrinsic function should be in the form of the function call */
-			hawk_seterrfmt(hawk,  &hawk->tok.loc, HAWK_ELPAREN, FMT_ELPAREN, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
+			hawk_seterrfmt(hawk, &hawk->tok.loc, HAWK_ELPAREN, FMT_ELPAREN, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
 		}
 	}
 	/* now we know that name is a normal identifier. */
@@ -8217,7 +8285,7 @@ static hawk_nde_t* parse_primary_ident_segs (hawk_t* hawk, const hawk_loc_t* xlo
 				}
 				else
 				{
-					hawk_seterrfmt(hawk,  &hawk->tok.loc, HAWK_ELPAREN, FMT_ELPAREN, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
+					hawk_seterrfmt(hawk, &hawk->tok.loc, HAWK_ELPAREN, FMT_ELPAREN, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
 				}
 				break;
 
@@ -8373,7 +8441,7 @@ static int parse_single_idx (hawk_t* hawk, nde_chain_t* idx)
 
 		if (!MATCH(hawk, TOK_RBRACK))
 		{
-			hawk_seterrfmt(hawk,  &hawk->tok.loc, HAWK_ERBRACK, FMT_ERBRACK, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
+			hawk_seterrfmt(hawk, &hawk->tok.loc, HAWK_ERBRACK, FMT_ERBRACK, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
 			goto oops;
 		}
 	}
@@ -8389,7 +8457,7 @@ static int parse_single_idx (hawk_t* hawk, nde_chain_t* idx)
 
 		if (!MATCH(hawk, TOK_IDENT))
 		{
-			hawk_seterrfmt(hawk,  &hawk->tok.loc, HAWK_EIDENT, FMT_EIDENT, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
+			hawk_seterrfmt(hawk, &hawk->tok.loc, HAWK_EIDENT, FMT_EIDENT, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
 			goto oops;
 		}
 
@@ -8686,7 +8754,7 @@ static hawk_nde_t* parse_fncall (hawk_t* hawk, const hawk_oocs_t* name, hawk_fnc
 				if (!MATCH(hawk, TOK_COLON))
 				{
 				colon_expected:
-					hawk_seterrfmt(hawk,  &hawk->tok.loc, HAWK_ECOLON, FMT_ECOLON, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
+					hawk_seterrfmt(hawk, &hawk->tok.loc, HAWK_ECOLON, FMT_ECOLON, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
 					goto oops;
 				}
 			}
@@ -8694,7 +8762,7 @@ static hawk_nde_t* parse_fncall (hawk_t* hawk, const hawk_oocs_t* name, hawk_fnc
 			{
 				if (!MATCH(hawk, TOK_COMMA))
 				{
-					hawk_seterrfmt(hawk,  &hawk->tok.loc, HAWK_ECOMMA, FMT_ECOMMA, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
+					hawk_seterrfmt(hawk, &hawk->tok.loc, HAWK_ECOMMA, FMT_ECOMMA, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
 					goto oops;
 				}
 			}
@@ -9751,7 +9819,7 @@ retry:
 				type = classify_ident(hawk, HAWK_OOECS_OOCS(tok->name));
 				if (type == TOK_IDENT)
 				{
-					hawk_seterrfmt(hawk,  &hawk->tok.loc, HAWK_EXKWNR, FMT_EXKWNR, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
+					hawk_seterrfmt(hawk, &hawk->tok.loc, HAWK_EXKWNR, FMT_EXKWNR, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
 					return -1;
 				}
 				SET_TOKEN_TYPE(hawk, tok, type);
