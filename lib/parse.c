@@ -4313,13 +4313,13 @@ static int is_nde_hard_false (hawk_t* hawk, hawk_nde_t* nde)
 	 * it should match hawk_rtx_valtobool(), or at least its subset */
 
 #if 0
-	/* a groupd node (e.g. (10, 0)) may be determined here.
+	/* a groupd node (e.g. (10, 0)) may be unwrapped here.
 	 * the following loop is to check something like ((0)), but
-	 * the other part of the parser never create a grouped node
+	 * other parts of the parser never create a grouped node
 	 * with a single element only. a real grouped node with more
-	 * than one element is a bit tricky unless all elements are
-	 * literal expressions. so let's comment out this part for now
-	 * until i can some out with improved determing code.*/
+	 * than one element is a bit tricky to unwrap unless all elements
+	 * are literal expressions. so let's comment out this part for now
+	 * until i can sort it out with improved unwrapping code.*/
 	while (nde->type == HAWK_NDE_GRP)
 	{
 		hawk_nde_t* body = ((hawk_nde_grp_t*)nde)->body;
@@ -4333,6 +4333,16 @@ static int is_nde_hard_false (hawk_t* hawk, hawk_nde_t* nde)
 	        (nde->type == HAWK_NDE_FLT && ((hawk_nde_flt_t*)nde)->val == 0.0) ||
 	        (nde->type == HAWK_NDE_STR && ((hawk_nde_str_t*)nde)->len == 0) ||
 	        (nde->type == HAWK_NDE_MBS && ((hawk_nde_mbs_t*)nde)->len == 0)
+	);
+}
+
+static int is_nde_hard_true (hawk_t* hawk, hawk_nde_t* nde)
+{
+	return (nde->type == HAWK_NDE_XTRUE ||
+	        (nde->type == HAWK_NDE_INT && ((hawk_nde_int_t*)nde)->val != 0) ||
+	        (nde->type == HAWK_NDE_FLT && ((hawk_nde_flt_t*)nde)->val != 0.0) ||
+	        (nde->type == HAWK_NDE_STR && ((hawk_nde_str_t*)nde)->len > 0) ||
+	        (nde->type == HAWK_NDE_MBS && ((hawk_nde_mbs_t*)nde)->len > 0)
 	);
 }
 
@@ -4391,10 +4401,11 @@ static hawk_nde_t* parse_if (hawk_t* hawk, const hawk_loc_t* xloc)
 
 	if (is_nde_hard_false(hawk, test))
 	{
+		/* fold if (0) or if (@false) or its variants */
 		if (else_part)
 		{
-			hawk_clrpt(hawk, test); test = HAWK_NULL;
-			hawk_clrpt(hawk, then_part); then_part = HAWK_NULL;
+			hawk_clrpt(hawk, test);
+			hawk_clrpt(hawk, then_part);
 			return else_part;
 		}
 		else
@@ -4408,13 +4419,23 @@ static hawk_nde_t* parse_if (hawk_t* hawk, const hawk_loc_t* xloc)
 				goto oops;
 			}
 
-			hawk_clrpt(hawk, test); test = HAWK_NULL;
-			hawk_clrpt(hawk, then_part); then_part = HAWK_NULL;
+			/* [BE CAREFUL]
+			 * Don't forget reset test and then_part to HAWK_NULL if the control
+			 * skips the immediate return below and reaches further down */
+			hawk_clrpt(hawk, test);
+			hawk_clrpt(hawk, then_part);
 
 			null_nde->type = HAWK_NDE_NULL;
 			null_nde->loc = *xloc;
 			return null_nde;
 		}
+	}
+	else if (is_nde_hard_true(hawk, test))
+	{
+		/* fold the else part for if (1) or if (@true) or its variants */
+		hawk_clrpt(hawk, test);
+		if (else_part) hawk_clrpt(hawk, else_part);
+		return then_part;
 	}
 
 	nde = (hawk_nde_if_t*)hawk_callocmem(hawk, HAWK_SIZEOF(*nde));
@@ -4679,8 +4700,7 @@ static hawk_nde_t* parse_while (hawk_t* hawk, const hawk_loc_t* xloc)
 
 	if (is_nde_hard_false(hawk, test))
 	{
-		/* fold while(0) and while(@false) into a null statement.
-		 * unwrap a single grouped literal too, such as while((0)). */
+		/* fold while(0) and while(@false) into a null statement. */
 		hawk_nde_t* null_nde;
 
 		null_nde = (hawk_nde_t*)hawk_callocmem(hawk, HAWK_SIZEOF(*null_nde));

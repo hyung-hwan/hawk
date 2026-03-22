@@ -1,0 +1,26 @@
+@pragma entry main
+@pragma implicit off
+
+@include "tap.inc";
+
+function main ()
+{
+	@local i, j, k, l;
+
+	i = 0;
+	j = 0;
+	k = 0;
+	l = 0;
+
+	while (0) { i = i + 1; }
+	while (@false) { j = j + 1; }
+	while ((0)) { k = k + 1; }
+	while ((@false)) { l = l + 1; }
+
+	tap_ensure(i, 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(j, 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(k, 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(l, 0, @SCRIPTNAME, @SCRIPTLINE);
+
+	tap_end ();
+}
