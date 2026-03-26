@@ -43,7 +43,7 @@ run_partfile() {
 	## the regular expression is not escaped properly. the error information must not
 	## include special regex characters to avoid problems.
 	l_expected_errmsg_esc=$(escape_regex "${l_expected_errmsg}")
-	echo "$l_output" | grep -E "ERROR: .+ LINE ${l_expected_errline} .+ FILE ${l_partfile} - ${l_expected_errmsg_esc}" >/dev/null 2>&1 || {
+	echo "$l_output" | grep -E "ERROR: Line ${l_expected_errline} .+ File ${l_partfile} - ${l_expected_errmsg_esc}" >/dev/null 2>&1 || {
 		echo "ERROR: error not raised at line $l_expected_errline - $l_script($l_partno) - $l_output"
 		return 1
 	}

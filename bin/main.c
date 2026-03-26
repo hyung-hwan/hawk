@@ -307,8 +307,8 @@ void hawk_main_print_warning (const hawk_bch_t* fmt, ...)
 
 static int main_version(int argc, hawk_bch_t* argv[], const hawk_bch_t* real_argv0)
 {
-	printf ("%s %s\n", hawk_get_base_name_bcstr(real_argv0), HAWK_PACKAGE_VERSION);
-	printf ("Copyright 2006-2022 Chung, Hyung-Hwan\n");
+	printf("%s %s\n", hawk_get_base_name_bcstr(real_argv0), HAWK_PACKAGE_VERSION);
+	printf("Copyright 2006-2022 Chung, Hyung-Hwan\n");
 	return 0;
 }
 
@@ -316,12 +316,13 @@ static void print_usage(FILE* out, const hawk_bch_t* real_argv0)
 {
 	const hawk_bch_t* b1 = hawk_get_base_name_bcstr(real_argv0);
 
-	fprintf (out, "USAGE: %s [options] [mode specific options and parameters]\n", b1);
-	fprintf (out, "Options as follows:\n");
-	fprintf (out, " --usage                          print this message\n");
-	fprintf (out, " --version                        print version\n");
-	fprintf (out, " --awk/--hawk                     switch to the awk mode(default)\n");
-	fprintf (out, " --sed                            switch to the sed mode\n");
+	fprintf(out, "USAGE: %s [options] [mode specific options and parameters]\n", b1);
+	fprintf(out, "Options as follows:\n");
+	fprintf(out, " --usage                          print this message\n");
+	fprintf(out, " --version                        print version\n");
+	fprintf(out, " --awk/--hawk                     switch to the awk mode(default)\n");
+	fprintf(out, " --cut                            switch to the cut mode\n");
+	fprintf(out, " --sed                            switch to the sed mode\n");
 }
 
 static int main_usage(int argc, hawk_bch_t* argv[], const hawk_bch_t* real_argv0)

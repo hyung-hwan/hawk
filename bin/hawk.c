@@ -193,17 +193,17 @@ static hawk_htb_walk_t print_awk_value (hawk_htb_t* map, hawk_htb_pair_t* pair, 
 	{
 		if (hawk_rtx_geterrnum(rtx) == HAWK_EVALTOSTR)
 		{
-			hawk_logfmt(hawk, HAWK_LOG_STDERR, HAWK_T("%.*js = [not printable]\n"), HAWK_HTB_KLEN(pair), HAWK_HTB_KPTR(pair));
+			hawk_logbfmt(hawk, HAWK_LOG_STDERR, "%.*js = [not printable]\n", HAWK_HTB_KLEN(pair), HAWK_HTB_KPTR(pair));
 			hawk_rtx_seterrinf(rtx, &oerrinf);
 		}
 		else
 		{
-			hawk_logfmt(hawk, HAWK_LOG_STDERR, HAWK_T("***OUT OF MEMORY***\n"));
+			hawk_logbfmt(hawk, HAWK_LOG_STDERR, "***OUT OF MEMORY***\n");
 		}
 	}
 	else
 	{
-		hawk_logfmt(hawk, HAWK_LOG_STDERR, HAWK_T("%.*js = %.*js\n"), HAWK_HTB_KLEN(pair), HAWK_HTB_KPTR(pair), len, str);
+		hawk_logbfmt(hawk, HAWK_LOG_STDERR, "%.*js = %.*js\n", HAWK_HTB_KLEN(pair), HAWK_HTB_KPTR(pair), len, str);
 		hawk_rtx_freevaloocstr(rtx, HAWK_HTB_VPTR(pair), str);
 	}
 
@@ -301,34 +301,33 @@ static void dprint_return (hawk_rtx_t* rtx, hawk_val_t* ret)
 	hawk_oow_t len;
 	hawk_ooch_t* str;
 
-
 	if (hawk_rtx_isnilval(rtx, ret))
 	{
-		hawk_logfmt(hawk, HAWK_LOG_STDERR,HAWK_T("[RETURN] - ***nil***\n"));
+		hawk_logbfmt(hawk, HAWK_LOG_STDERR, "[RETURN] - ***nil***\n");
 	}
 	else
 	{
 		str = hawk_rtx_valtooocstrdup(rtx, ret, &len);
 		if (str == HAWK_NULL)
 		{
-			hawk_logfmt(hawk, HAWK_LOG_STDERR,HAWK_T("[RETURN] - ***OUT OF MEMORY***\n"));
+			hawk_logbfmt(hawk, HAWK_LOG_STDERR, "[RETURN] - ***OUT OF MEMORY***\n");
 		}
 		else
 		{
-			hawk_logfmt(hawk, HAWK_LOG_STDERR, HAWK_T("[RETURN] - [%.*js]\n"), len, str);
+			hawk_logbfmt(hawk, HAWK_LOG_STDERR, "[RETURN] - [%.*js]\n", len, str);
 			hawk_freemem(hawk_rtx_gethawk(rtx), str);
 		}
 	}
 
-	hawk_logfmt(hawk, HAWK_LOG_STDERR, HAWK_T("[NAMED VARIABLES]\n"));
+	hawk_logbfmt(hawk, HAWK_LOG_STDERR, "[NAMED VARIABLES]\n");
 	hawk_htb_walk(hawk_rtx_getnvmap(rtx), print_awk_value, rtx);
-	hawk_logfmt(hawk, HAWK_LOG_STDERR, HAWK_T("[END OF NAMED VARIABLES]\n"));
+	hawk_logbfmt(hawk, HAWK_LOG_STDERR, "[END OF NAMED VARIABLES]\n");
 }
 
 #if defined(ENABLE_STATEMENT_CALLBACK)
 static void on_statement (hawk_rtx_t* rtx, hawk_nde_t* nde)
 {
-	hawk_logfmt (hawk_rtx_gethawk(rtx), HAWK_LOG_STDERR, HAWK_T("running %d at line %zu\n"), (int)nde->type, (hawk_oow_t)nde->loc.line);
+	hawk_logbfmt(hawk_rtx_gethawk(rtx), HAWK_LOG_STDERR, "running %d at line %zu\n", (int)nde->type, (hawk_oow_t)nde->loc.line);
 }
 #endif
 
@@ -442,7 +441,7 @@ static void print_usage (FILE* out, const hawk_bch_t* argv0, const hawk_bch_t* r
 		fprintf (out, "\n");
 		fprintf (out, "Special mode switching options(must be specified first to take effect):\n");
 		fprintf (out, " --hawk/--awk                      run in the hawk mode\n");
-		fprintf (out, " --cut                             run in the cut  mode\n");
+		fprintf (out, " --cut                             run in the cut mode\n");
 		fprintf (out, " --sed                             run in the sed mode\n");
 	}
 }
@@ -789,12 +788,12 @@ static void print_hawk_error(hawk_t* hawk)
 {
 	const hawk_loc_t* loc = hawk_geterrloc(hawk);
 
-	hawk_logfmt(hawk, HAWK_LOG_STDERR,
-		HAWK_T("ERROR: CODE %d LINE %zu COLUMN %zu %js%js%js- %js\n"),
-		(int)hawk_geterrnum(hawk),
+	hawk_logbfmt(hawk, HAWK_LOG_STDERR,
+		"ERROR: Line %zu Column %zu Code %d %js%js%js- %js\n",
 		(hawk_oow_t)loc->line,
 		(hawk_oow_t)loc->colm,
-		((loc->file == HAWK_NULL)? HAWK_T(""): HAWK_T("FILE ")),
+		(int)hawk_geterrnum(hawk),
+		((loc->file == HAWK_NULL)? HAWK_T(""): HAWK_T("File ")),
 		((loc->file == HAWK_NULL)? HAWK_T(""): loc->file),
 		((loc->file == HAWK_NULL)? HAWK_T(""): HAWK_T(" ")),
 		hawk_geterrmsg(hawk)
@@ -805,12 +804,12 @@ static void print_hawk_rtx_error(hawk_rtx_t* rtx)
 {
 	const hawk_loc_t* loc = hawk_rtx_geterrloc(rtx);
 
-	hawk_logfmt(hawk_rtx_gethawk(rtx), HAWK_LOG_STDERR,
-		HAWK_T("ERROR: CODE %d LINE %zu COLUMN %zu %js%js%js- %js\n"),
-		(int)hawk_rtx_geterrnum(rtx),
+	hawk_logbfmt(hawk_rtx_gethawk(rtx), HAWK_LOG_STDERR,
+		"ERROR: Line %zu Column %zu Code %d %js%js%js- %js\n",
 		(hawk_oow_t)loc->line,
 		(hawk_oow_t)loc->colm,
-		((loc->file == HAWK_NULL)? HAWK_T(""): HAWK_T("FILE ")),
+		(int)hawk_rtx_geterrnum(rtx),
+		((loc->file == HAWK_NULL)? HAWK_T(""): HAWK_T("File ")),
 		((loc->file == HAWK_NULL)? HAWK_T(""): loc->file),
 		((loc->file == HAWK_NULL)? HAWK_T(""): HAWK_T(" ")),
 		hawk_rtx_geterrmsg(rtx)
