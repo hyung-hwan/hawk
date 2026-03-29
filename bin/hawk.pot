@@ -1,0 +1,968 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-03-29 21:45+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../bin/hawk.c:375
+msgid "enable concatenation by blanks"
+msgstr ""
+
+#: ../../bin/hawk.c:376
+msgid "enable byte-code building"
+msgstr ""
+
+#: ../../bin/hawk.c:377
+msgid "use CRLF for a newline"
+msgstr ""
+
+#: ../../bin/hawk.c:378
+msgid "defer resolving module symbols(mod::symbol) to runtime"
+msgstr ""
+
+#: ../../bin/hawk.c:379
+msgid "allow a map to be assigned or returned"
+msgstr ""
+
+#: ../../bin/hawk.c:380
+msgid "allow undeclared variables"
+msgstr ""
+
+#: ../../bin/hawk.c:381
+msgid "allow raw multiline string and regular expression literals"
+msgstr ""
+
+#: ../../bin/hawk.c:382
+msgid "perform numeric comparsion on numeric strings"
+msgstr ""
+
+#: ../../bin/hawk.c:383
+msgid "enable a newline to terminate a statement"
+msgstr ""
+
+#: ../../bin/hawk.c:384
+msgid "enable nextofile & OFILENAME"
+msgstr ""
+
+#: ../../bin/hawk.c:385
+msgid "detect a numeric string and convert it to a number"
+msgstr ""
+
+#: ../../bin/hawk.c:386
+msgid "enable pattern-action loop"
+msgstr ""
+
+#: ../../bin/hawk.c:387
+msgid "enable pedantic mode"
+msgstr ""
+
+#: ../../bin/hawk.c:388
+msgid "set CLOEXEC before executing an external program for piping"
+msgstr ""
+
+#: ../../bin/hawk.c:389
+msgid "enable {n,m} in a regular expression"
+msgstr ""
+
+#: ../../bin/hawk.c:390
+msgid "enable builtin I/O including getline & print"
+msgstr ""
+
+#: ../../bin/hawk.c:391
+msgid "allow a dual-directional pipe"
+msgstr ""
+
+#: ../../bin/hawk.c:392
+msgid "enable the strict naming rule"
+msgstr ""
+
+#: ../../bin/hawk.c:393
+msgid "strip spaces in splitting a record"
+msgstr ""
+
+#: ../../bin/hawk.c:394
+msgid "strip spaces in string-to-number conversion"
+msgstr ""
+
+#: ../../bin/hawk.c:395
+msgid "make more fault-tolerant"
+msgstr ""
+
+#: ../../bin/hawk.c:396
+msgid "enable the extended call syntax"
+msgstr ""
+
+#: ../../bin/hawk.c:407 ../../bin/main.c:371
+msgid "USAGE"
+msgstr ""
+
+#: ../../bin/hawk.c:407
+msgid "[options] -f sourcefile [ -- ] [datafile]*"
+msgstr ""
+
+#: ../../bin/hawk.c:408
+msgid "     "
+msgstr ""
+
+#: ../../bin/hawk.c:408
+msgid "[options] [ -- ] sourcestring [datafile]*"
+msgstr ""
+
+#: ../../bin/hawk.c:409 ../../bin/main.c:372
+msgid "Options as follows:"
+msgstr ""
+
+#: ../../bin/hawk.c:410
+msgid " -h/--help                         print this message"
+msgstr ""
+
+#: ../../bin/hawk.c:411
+msgid " -D                                show extra information"
+msgstr ""
+
+#: ../../bin/hawk.c:412
+msgid " -c/--call            name         call a function instead of entering"
+msgstr ""
+
+#: ../../bin/hawk.c:413
+msgid ""
+"                                   the pattern-action loop. [datafile]* is"
+msgstr ""
+
+#: ../../bin/hawk.c:414
+msgid "                                   passed to the function as parameters"
+msgstr ""
+
+#: ../../bin/hawk.c:415
+msgid " -f/--file            file         set the source script file"
+msgstr ""
+
+#: ../../bin/hawk.c:416
+msgid ""
+" -d/--deparsed-file   file         set the deparsed script file to produce"
+msgstr ""
+
+#: ../../bin/hawk.c:417
+msgid " -t/--console-output  file         set the console output file"
+msgstr ""
+
+#: ../../bin/hawk.c:418
+msgid "                                   multiple -t options are allowed"
+msgstr ""
+
+#: ../../bin/hawk.c:419
+msgid " -F/--field-separator string       set a field separator(FS)"
+msgstr ""
+
+#: ../../bin/hawk.c:420
+msgid " -v/--assign          var=value    add a global variable with a value"
+msgstr ""
+
+#: ../../bin/hawk.c:421
+msgid " -m/--memory-limit    number       limit the memory usage (bytes)"
+msgstr ""
+
+#: ../../bin/hawk.c:422
+msgid " -w                                expand datafile wildcards"
+msgstr ""
+
+#: ../../bin/hawk.c:425
+msgid " --script-encoding    string       specify script file encoding name"
+msgstr ""
+
+#: ../../bin/hawk.c:426
+msgid " --console-encoding   string       specify console encoding name"
+msgstr ""
+
+#: ../../bin/hawk.c:429
+msgid ""
+" -I/--includedirs     string       specify directories to look for include "
+"files in"
+msgstr ""
+
+#: ../../bin/hawk.c:430
+msgid ""
+" --modlibdirs         string       specify directories to look for module "
+"files in"
+msgstr ""
+
+#: ../../bin/hawk.c:431
+msgid " --modern                          run in the modern mode(default)"
+msgstr ""
+
+#: ../../bin/hawk.c:432
+msgid " --classic                         run in the classic mode"
+msgstr ""
+
+#: ../../bin/hawk.c:442
+msgid "Special mode switching options(must be specified first to take effect):"
+msgstr ""
+
+#: ../../bin/hawk.c:443 ../../bin/main.c:375
+msgid " --awk/--hawk                      switch to the awk mode(default)"
+msgstr ""
+
+#: ../../bin/hawk.c:444 ../../bin/main.c:376
+msgid " --cut                             switch to the cut mode"
+msgstr ""
+
+#: ../../bin/hawk.c:445 ../../bin/main.c:377
+msgid " --sed                             switch to the sed mode"
+msgstr ""
+
+#: ../../bin/hawk.c:793 ../../bin/hawk.c:810
+msgid "ERROR"
+msgstr ""
+
+#: ../../bin/hawk.c:794 ../../bin/hawk.c:811
+msgid "Line"
+msgstr ""
+
+#: ../../bin/hawk.c:795 ../../bin/hawk.c:812
+msgid "Column"
+msgstr ""
+
+#: ../../bin/hawk.c:796 ../../bin/hawk.c:813
+msgid "Code"
+msgstr ""
+
+#: ../../bin/hawk.c:797 ../../bin/hawk.c:814
+msgid "File "
+msgstr ""
+
+#: ../../bin/main.c:371
+msgid "[options] [mode specific options and parameters]"
+msgstr ""
+
+#: ../../bin/main.c:373
+msgid " --usage                           print this message"
+msgstr ""
+
+#: ../../bin/main.c:374
+msgid " --version                         print version"
+msgstr ""
+
+#: ../../lib/err.c:33
+msgid "no error"
+msgstr ""
+
+#: ../../lib/err.c:34
+msgid "other error"
+msgstr ""
+
+#: ../../lib/err.c:35
+msgid "not implemented"
+msgstr ""
+
+#: ../../lib/err.c:36
+msgid "subsystem error"
+msgstr ""
+
+#: ../../lib/err.c:37
+msgid "internal error that should never have happened"
+msgstr ""
+
+#: ../../lib/err.c:39
+msgid "insufficient memory"
+msgstr ""
+
+#: ../../lib/err.c:40
+msgid "invalid parameter or data"
+msgstr ""
+
+#: ../../lib/err.c:41
+msgid "access denied"
+msgstr ""
+
+#: ../../lib/err.c:42
+msgid "system busy"
+msgstr ""
+
+#: ../../lib/err.c:43
+msgid "operation not allowed"
+msgstr ""
+
+#: ../../lib/err.c:44
+msgid "not supported"
+msgstr ""
+
+#: ../../lib/err.c:45
+msgid "not found"
+msgstr ""
+
+#: ../../lib/err.c:46
+msgid "already exists"
+msgstr ""
+
+#: ../../lib/err.c:47
+msgid "I/O error"
+msgstr ""
+
+#: ../../lib/err.c:48
+msgid "buffer full"
+msgstr ""
+
+#: ../../lib/err.c:49
+msgid "encoding conversion error"
+msgstr ""
+
+#: ../../lib/err.c:50
+msgid "is a directory"
+msgstr ""
+
+#: ../../lib/err.c:51
+msgid "not a directory"
+msgstr ""
+
+#: ../../lib/err.c:52
+msgid "resource temporarily unavailable"
+msgstr ""
+
+#: ../../lib/err.c:53
+msgid "interrupted"
+msgstr ""
+
+#: ../../lib/err.c:54
+msgid "broken pipe"
+msgstr ""
+
+#: ../../lib/err.c:55
+msgid "in progress"
+msgstr ""
+
+#: ../../lib/err.c:56
+msgid "no handle"
+msgstr ""
+
+#: ../../lib/err.c:57
+msgid "no child process"
+msgstr ""
+
+#: ../../lib/err.c:58
+msgid "timed out"
+msgstr ""
+
+#: ../../lib/err.c:59
+msgid "in bad state"
+msgstr ""
+
+#: ../../lib/err.c:61
+msgid "cannot open"
+msgstr ""
+
+#: ../../lib/err.c:62
+msgid "cannot read"
+msgstr ""
+
+#: ../../lib/err.c:63
+msgid "cannot write"
+msgstr ""
+
+#: ../../lib/err.c:64
+msgid "cannot close"
+msgstr ""
+
+#: ../../lib/err.c:66
+msgid "block nested too deeply"
+msgstr ""
+
+#: ../../lib/err.c:67
+msgid "expression nested too deeply"
+msgstr ""
+
+#: ../../lib/err.c:69
+msgid "invalid character"
+msgstr ""
+
+#: ../../lib/err.c:70
+msgid "invalid digit"
+msgstr ""
+
+#: ../../lib/err.c:72
+msgid "unexpected end of input"
+msgstr ""
+
+#: ../../lib/err.c:73
+msgid "comment not closed properly"
+msgstr ""
+
+#: ../../lib/err.c:74
+msgid "string or regular expression not closed"
+msgstr ""
+
+#: ../../lib/err.c:75
+msgid "invalid mbs character"
+msgstr ""
+
+#: ../../lib/err.c:76
+msgid "left brace expected"
+msgstr ""
+
+#: ../../lib/err.c:77
+msgid "left parenthesis expected"
+msgstr ""
+
+#: ../../lib/err.c:78
+msgid "right parenthesis expected"
+msgstr ""
+
+#: ../../lib/err.c:79
+msgid "right brace expected"
+msgstr ""
+
+#: ../../lib/err.c:80
+msgid "right bracket expected"
+msgstr ""
+
+#: ../../lib/err.c:81
+msgid "comma expected"
+msgstr ""
+
+#: ../../lib/err.c:82 ../../lib/err.c:206
+msgid "semicolon expected"
+msgstr ""
+
+#: ../../lib/err.c:83
+msgid "colon expected"
+msgstr ""
+
+#: ../../lib/err.c:84
+msgid "integer literal expected"
+msgstr ""
+
+#: ../../lib/err.c:85
+msgid "statement not ending with a semicolon"
+msgstr ""
+
+#: ../../lib/err.c:86
+msgid "keyword 'in' expected"
+msgstr ""
+
+#: ../../lib/err.c:87
+msgid "right-hand side of 'in' not a variable"
+msgstr ""
+
+#: ../../lib/err.c:88
+msgid "expression not recognized"
+msgstr ""
+
+#: ../../lib/err.c:90
+msgid "keyword 'function' expected"
+msgstr ""
+
+#: ../../lib/err.c:91
+msgid "keyword 'while' expected"
+msgstr ""
+
+#: ../../lib/err.c:92
+msgid "keyword 'case' expected"
+msgstr ""
+
+#: ../../lib/err.c:93
+msgid "multiple 'default' labels"
+msgstr ""
+
+#: ../../lib/err.c:94
+msgid "invalid assignment statement"
+msgstr ""
+
+#: ../../lib/err.c:95
+msgid "identifier expected"
+msgstr ""
+
+#: ../../lib/err.c:96
+msgid "not a valid function name"
+msgstr ""
+
+#: ../../lib/err.c:97
+msgid "BEGIN not followed by left bracket on the same line"
+msgstr ""
+
+#: ../../lib/err.c:98
+msgid "END not followed by left bracket on the same line"
+msgstr ""
+
+#: ../../lib/err.c:99
+msgid "keyword redefined"
+msgstr ""
+
+#: ../../lib/err.c:100
+msgid "intrinsic function redefined"
+msgstr ""
+
+#: ../../lib/err.c:101
+msgid "function redefined"
+msgstr ""
+
+#: ../../lib/err.c:102
+msgid "global variable redefined"
+msgstr ""
+
+#: ../../lib/err.c:103
+msgid "parameter redefined"
+msgstr ""
+
+#: ../../lib/err.c:104
+msgid "variable redefined"
+msgstr ""
+
+#: ../../lib/err.c:105
+msgid "duplicate parameter name"
+msgstr ""
+
+#: ../../lib/err.c:106
+msgid "duplicate global variable"
+msgstr ""
+
+#: ../../lib/err.c:107
+msgid "duplicate local variable"
+msgstr ""
+
+#: ../../lib/err.c:108
+msgid "not a valid parameter name"
+msgstr ""
+
+#: ../../lib/err.c:109
+msgid "not a valid variable name"
+msgstr ""
+
+#: ../../lib/err.c:110
+msgid "variable name missing"
+msgstr ""
+
+#: ../../lib/err.c:111
+msgid "undefined identifier"
+msgstr ""
+
+#: ../../lib/err.c:112
+msgid "l-value required"
+msgstr ""
+
+#: ../../lib/err.c:113
+msgid "too many global variables"
+msgstr ""
+
+#: ../../lib/err.c:114
+msgid "too many local variables"
+msgstr ""
+
+#: ../../lib/err.c:115
+msgid "too many parameters"
+msgstr ""
+
+#: ../../lib/err.c:116
+msgid "too many segments"
+msgstr ""
+
+#: ../../lib/err.c:117
+msgid "segment too long"
+msgstr ""
+
+#: ../../lib/err.c:118
+msgid "bad argument"
+msgstr ""
+
+#: ../../lib/err.c:119
+msgid "no argument provided"
+msgstr ""
+
+#: ../../lib/err.c:120
+msgid "'break' outside a loop"
+msgstr ""
+
+#: ../../lib/err.c:121
+msgid "'continue' outside a loop"
+msgstr ""
+
+#: ../../lib/err.c:122
+msgid "'next' illegal in initialization"
+msgstr ""
+
+#: ../../lib/err.c:123
+msgid "'next' illegal in the BEGIN block"
+msgstr ""
+
+#: ../../lib/err.c:124
+msgid "'next' illegal in the END block"
+msgstr ""
+
+#: ../../lib/err.c:125
+msgid "'nextfile' illegal in initialization"
+msgstr ""
+
+#: ../../lib/err.c:126
+msgid "'nextfile' illegal in the BEGIN block"
+msgstr ""
+
+#: ../../lib/err.c:127
+msgid "'nextfile' illegal in the END block"
+msgstr ""
+
+#: ../../lib/err.c:128
+msgid "both prefix and postfix increment/decrement operator present"
+msgstr ""
+
+#: ../../lib/err.c:129
+msgid "illegal operand for increment/decrement operator"
+msgstr ""
+
+#: ../../lib/err.c:130
+msgid "'@include' not followed by a string"
+msgstr ""
+
+#: ../../lib/err.c:131
+msgid "include level too deep"
+msgstr ""
+
+#: ../../lib/err.c:132
+msgid "word after @ not recognized"
+msgstr ""
+
+#: ../../lib/err.c:133
+msgid "@ not followed by a valid word"
+msgstr ""
+
+#: ../../lib/err.c:134
+msgid "unused element"
+msgstr ""
+
+#: ../../lib/err.c:136
+msgid "stack full"
+msgstr ""
+
+#: ../../lib/err.c:137
+msgid "divide by zero"
+msgstr ""
+
+#: ../../lib/err.c:138
+msgid "invalid operand"
+msgstr ""
+
+#: ../../lib/err.c:139
+msgid "wrong position index"
+msgstr ""
+
+#: ../../lib/err.c:140
+msgid "too few arguments"
+msgstr ""
+
+#: ../../lib/err.c:141
+msgid "too many arguments"
+msgstr ""
+
+#: ../../lib/err.c:142
+msgid "function not found"
+msgstr ""
+
+#: ../../lib/err.c:143
+msgid "non-function value"
+msgstr ""
+
+#: ../../lib/err.c:144
+msgid "not deletable"
+msgstr ""
+
+#: ../../lib/err.c:145
+msgid "value not a map"
+msgstr ""
+
+#: ../../lib/err.c:146
+msgid "value not an array"
+msgstr ""
+
+#: ../../lib/err.c:147
+msgid "value not accessible with index"
+msgstr ""
+
+#: ../../lib/err.c:148
+msgid "value not referenceable"
+msgstr ""
+
+#: ../../lib/err.c:149
+msgid "wrong operand in right-hand side of 'in'"
+msgstr ""
+
+#: ../../lib/err.c:150
+msgid "cannot return a nonscalar value"
+msgstr ""
+
+#: ../../lib/err.c:151
+msgid "cannot assign a nonscalar value to a positional"
+msgstr ""
+
+#: ../../lib/err.c:152
+msgid "cannot assign a nonscalar value to an indexed variable"
+msgstr ""
+
+#: ../../lib/err.c:153
+msgid "cannot assign a nonscalar value to a variable"
+msgstr ""
+
+#: ../../lib/err.c:154
+msgid "cannot change a nonscalar value to a scalar value"
+msgstr ""
+
+#: ../../lib/err.c:155
+msgid "cannot change a nonscalar value to another nonscalar value"
+msgstr ""
+
+#: ../../lib/err.c:156
+msgid "cannot change a scalar value to a nonscalar value"
+msgstr ""
+
+#: ../../lib/err.c:157
+msgid "invalid value to convert to a string"
+msgstr ""
+
+#: ../../lib/err.c:158
+msgid "invalid value to convert to a number"
+msgstr ""
+
+#: ../../lib/err.c:159
+msgid "invalid value to a character"
+msgstr ""
+
+#: ../../lib/err.c:160
+msgid "invalid value for hashing"
+msgstr ""
+
+#: ../../lib/err.c:161
+msgid "array index out of allowed range"
+msgstr ""
+
+#: ../../lib/err.c:162
+msgid "single-bracketed multidimensional indices not allowed for array"
+msgstr ""
+
+#: ../../lib/err.c:163
+msgid "'next' called during initialization"
+msgstr ""
+
+#: ../../lib/err.c:164
+msgid "'next' called from BEGIN block"
+msgstr ""
+
+#: ../../lib/err.c:165
+msgid "'next' called from END block"
+msgstr ""
+
+#: ../../lib/err.c:166
+msgid "'nextfile' called during initialization"
+msgstr ""
+
+#: ../../lib/err.c:167
+msgid "'nextfile' called from BEGIN block"
+msgstr ""
+
+#: ../../lib/err.c:168
+msgid "'nextfile' called from END block"
+msgstr ""
+
+#: ../../lib/err.c:169
+msgid "wrong implementation of user-defined I/O handler"
+msgstr ""
+
+#: ../../lib/err.c:170
+msgid "I/O handler returned an error"
+msgstr ""
+
+#: ../../lib/err.c:171
+msgid "no such I/O name found"
+msgstr ""
+
+#: ../../lib/err.c:172
+msgid "I/O name empty"
+msgstr ""
+
+#: ../../lib/err.c:173
+msgid "I/O name containing '\\0'"
+msgstr ""
+
+#: ../../lib/err.c:174
+msgid "insufficient arguments to formatting sequence"
+msgstr ""
+
+#: ../../lib/err.c:175
+msgid "invalid character in CONVFMT"
+msgstr ""
+
+#: ../../lib/err.c:176
+msgid "invalid character in OFMT"
+msgstr ""
+
+#: ../../lib/err.c:178 ../../lib/err.c:197
+msgid "failed to match regular expression"
+msgstr ""
+
+#: ../../lib/err.c:179
+msgid "invalid regular expression in regular expression"
+msgstr ""
+
+#: ../../lib/err.c:180
+msgid "unknown collating element in regular expression"
+msgstr ""
+
+#: ../../lib/err.c:181
+msgid "unknown character clas name in regular expression"
+msgstr ""
+
+#: ../../lib/err.c:182
+msgid "trailing backslash in regular expression"
+msgstr ""
+
+#: ../../lib/err.c:183
+msgid "invalid backreference in regular expression"
+msgstr ""
+
+#: ../../lib/err.c:184
+msgid "imbalanced bracket in regular expression"
+msgstr ""
+
+#: ../../lib/err.c:185
+msgid "imbalanced parenthesis in regular expression"
+msgstr ""
+
+#: ../../lib/err.c:186
+msgid "imbalanced brace in regular expression"
+msgstr ""
+
+#: ../../lib/err.c:187
+msgid "invalid content inside braces in regular expression"
+msgstr ""
+
+#: ../../lib/err.c:188
+msgid "invalid use of range operator in regular expression"
+msgstr ""
+
+#: ../../lib/err.c:189
+msgid "invalid use of repetition operator in regular expression"
+msgstr ""
+
+#: ../../lib/err.c:192
+msgid "command '${0}' not recognized"
+msgstr ""
+
+#: ../../lib/err.c:193
+msgid "command code missing"
+msgstr ""
+
+#: ../../lib/err.c:194
+msgid "command '${0}' incomplete"
+msgstr ""
+
+#: ../../lib/err.c:195
+msgid "regular expression '${0}' incomplete"
+msgstr ""
+
+#: ../../lib/err.c:196
+msgid "failed to compile regular expression '${0}'"
+msgstr ""
+
+#: ../../lib/err.c:198
+msgid "address 1 prohibited for '${0}'"
+msgstr ""
+
+#: ../../lib/err.c:199
+msgid "address 1 missing or invalid"
+msgstr ""
+
+#: ../../lib/err.c:200
+msgid "address 2 prohibited for '${0}'"
+msgstr ""
+
+#: ../../lib/err.c:201
+msgid "address 2 missing or invalid"
+msgstr ""
+
+#: ../../lib/err.c:202
+msgid "newline expected"
+msgstr ""
+
+#: ../../lib/err.c:203
+msgid "backslash expected"
+msgstr ""
+
+#: ../../lib/err.c:204
+msgid "backslash used as delimiter"
+msgstr ""
+
+#: ../../lib/err.c:205
+msgid "garbage after backslash"
+msgstr ""
+
+#: ../../lib/err.c:207
+msgid "empty label name"
+msgstr ""
+
+#: ../../lib/err.c:208
+msgid "duplicate label name '${0}'"
+msgstr ""
+
+#: ../../lib/err.c:209
+msgid "label '${0}' not found"
+msgstr ""
+
+#: ../../lib/err.c:210
+msgid "empty file name"
+msgstr ""
+
+#: ../../lib/err.c:211
+msgid "illegal file name"
+msgstr ""
+
+#: ../../lib/err.c:212
+msgid "strings in translation set not the same length"
+msgstr ""
+
+#: ../../lib/err.c:213
+msgid "group brackets not balanced"
+msgstr ""
+
+#: ../../lib/err.c:214
+msgid "group nesting too deep"
+msgstr ""
+
+#: ../../lib/err.c:215
+msgid "multiple occurrence specifiers"
+msgstr ""
+
+#: ../../lib/err.c:216
+msgid "occurrence specifier zero"
+msgstr ""
+
+#: ../../lib/err.c:217
+msgid "occurrence specifier too large"
+msgstr ""
+
+#: ../../lib/err.c:218
+msgid "no previous regular expression"
+msgstr ""
+
+#: ../../lib/err.c:219
+msgid "cut selector not valid"
+msgstr ""
+
+#: ../../lib/err.c:220 ../../lib/err.c:224
+msgid "I/O error with file '${0}'"
+msgstr ""
+
+#: ../../lib/err.c:223
+msgid "selector not valid"
+msgstr ""
+
+#: ../../lib/err.c:227
+msgid "unknown error"
+msgstr ""

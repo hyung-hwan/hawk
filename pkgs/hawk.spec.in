@@ -225,6 +225,7 @@ rm -rf "%{buildroot}"
 %files
 %defattr(-,root,root)
 %{_bindir}/hawk
+%{_datadir}/hawk/lang/*.po
 
 %files libs
 %defattr(-,root,root)

@@ -52,6 +52,9 @@ run_partfile() {
 	return 0
 }
 
+## the errors messages in the error test files are all in english
+## hawk must not load a language file for proper checks.
+export LANG=C
 
 ever_failed=0
 ## [NOTE]

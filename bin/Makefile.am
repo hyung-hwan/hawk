@@ -5,7 +5,11 @@ CPPFLAGS_COMMON = \
 	-I$(abs_builddir)/../lib  \
 	-I$(abs_srcdir) \
 	-I$(abs_srcdir)/../lib \
-	-I$(includedir)
+	-I$(includedir) \
+	-DLANGDIR=\"$(LANGDIR)\" \
+	-DHOMELANGDIR=\"$(HOMELANGDIR)\" \
+	-DSYSCONFDIR=\"$(SYSCONFDIR)\"
+
 CFLAGS_COMMON =
 LDFLAGS_COMMON = -L$(abs_builddir)/../lib -L$(libdir)
 
@@ -14,6 +18,11 @@ LDFLAGS_COMMON = -L$(abs_builddir)/../lib -L$(libdir)
 LIBADD_COMMON = ../lib/libhawk.la
 
 bin_PROGRAMS = hawk
+
+langdir = $(LANGDIR)
+lang_DATA = $(srcdir)/hawk-ko.po  $(srcdir)/hawk-zh_CN.po
+
+EXTRA_DIST = hawk.pot hawk-ko.po hawk-zh_CN.po
 
 ##################################################
 # hawk
@@ -37,6 +46,18 @@ hawk_LDFLAGS = $(LDFLAGS_COMMON)
 ## of different behavior depending on the libtool tag.
 ##
 hawk_LDADD = $(LIBADD_COMMON) $(LIBM)
+hawk_DEPENDENCIES = $(srcdir)/hawk.pot $(srcdir)/hawk-ko.po $(srcdir)/hawk-zh_CN.po
+
+
+$(srcdir)/hawk.pot: $(hawk_SOURCES)
+	xgettext --keyword=_ --keyword=__ -o $@ $^
+	xgettext --keyword=HAWK_T -o $@ -j $(top_srcdir)/lib/err.c
+
+$(srcdir)/hawk-ko.po: $(srcdir)/hawk.pot
+	if [ -f $@ ]; then msgmerge --update $@ $<; else msginit --input=$< --locale=ko --output=$@; fi
+
+$(srcdir)/hawk-zh_CN.po: $(srcdir)/hawk.pot
+	if [ -f $@ ]; then msgmerge --update $@ $<; else msginit --input=$< --locale=zh_CN --output=$@; fi
 
 if ENABLE_HAWKGO
 

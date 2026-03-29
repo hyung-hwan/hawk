@@ -727,6 +727,8 @@ UNWIND_LIBS
 FFI_LIBS
 LTDL_LIBS
 DL_LIBS
+HOMELANGDIR
+LANGDIR
 ENABLE_WIDE_CHAR_FALSE
 ENABLE_WIDE_CHAR_TRUE
 LIBM
@@ -880,6 +882,8 @@ with_sysroot
 enable_libtool_lock
 enable_largefile
 enable_wide_char
+with_langdir
+with_homelangdir
 enable_debug
 enable_intmax
 enable_fltmax
@@ -1595,6 +1599,11 @@ Optional Packages:
   --with-gnu-ld           assume the C compiler uses GNU ld [default=no]
   --with-sysroot[=DIR]    Search for dependent libraries within DIR (or the
                           compiler's sysroot if not specified).
+  --with-langdir=DIR      Specify the location of the language files (default.
+                          DATADIR/PACKAGE/lang)
+  --with-homelangdir=DIR  Specify the location of the user-specific language
+                          files parked under the home directory (default.
+                          /.local/PACKAGE/lang)
   --with-mysql[=ARG]      use MySQL client library [default=no], optionally
                           specify path to mysql_config
 
@@ -21545,6 +21554,32 @@ fi
 
 	;;
 esac
+
+
+# Check whether --with-langdir was given.
+if test ${with_langdir+y}
+then :
+  withval=$with_langdir; LANGDIR=$withval
+else case e in #(
+  e) LANGDIR="${datadir}/${PACKAGE}/lang"
+ ;;
+esac
+fi
+
+
+
+
+# Check whether --with-homelangdir was given.
+if test ${with_homelangdir+y}
+then :
+  withval=$with_homelangdir; HOMELANGDIR=$withval
+else case e in #(
+  e) HOMELANGDIR="/.local/share/${PACKAGE}/lang"
+ ;;
+esac
+fi
+
+
 
 { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for char16_t literal" >&5
 printf %s "checking for char16_t literal... " >&6; }

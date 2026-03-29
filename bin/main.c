@@ -27,6 +27,7 @@
 #include "main.h"
 #include <hawk.h>
 #include <hawk-glob.h>
+#include <hawk-po.h>
 #include <hawk-xma.h>
 #include <stdio.h>
 #include <locale.h>
@@ -47,6 +48,18 @@
 #	include <errno.h>
 #	include <signal.h>
 #endif
+
+#if !defined(LANGDIR)
+#define LANGDIR "/usr/share/hawk/lang"
+#endif
+
+#if !defined(HOMELANGDIR)
+#define HOMELANGDIR "/.local/share/hawk/lang"
+#endif
+
+/* ---------------------------------------------------------------------- */
+PoCatalog pocat;
+
 /* ---------------------------------------------------------------------- */
 
 typedef struct sig_state_t sig_state_t;
@@ -276,6 +289,45 @@ int hawk_main_expand_wildcard (int argc, hawk_bch_t* argv[], int do_glob, hawk_m
 
 /* -------------------------------------------------------- */
 
+int hawk_main_load_lang (PoCatalog* pc, const char* basedir, const char* subbasedir, const char* prefix, const char* suffix, const char* locale)
+{
+	char path[HAWK_PATH_MAX];
+	const char* marker;
+	const char markers[] = { '@', '_' };
+	hawk_oow_t len, xlen, zlen, i;
+
+	len = 0;
+	if (basedir) len += hawk_copy_bcstr(&path[len], HAWK_COUNTOF(path) - len, basedir);
+	if (subbasedir) len += hawk_copy_bcstr(&path[len], HAWK_COUNTOF(path) - len, subbasedir);
+	if (prefix) len += hawk_copy_bcstr(&path[len], HAWK_COUNTOF(path) - len, prefix);
+	xlen = len;
+
+	marker = hawk_rfind_bchar_in_bcstr(locale, '.');
+	zlen = marker? (marker - locale): hawk_count_bcstr(locale);
+
+	for (i = 0; i < HAWK_COUNTOF(markers); i++)
+	{
+		marker = hawk_rfind_bchar_in_bchars(locale, zlen, markers[i]);
+		if (marker)
+		{
+			len = xlen;
+			len += hawk_copy_bchars_to_bcstr(&path[len], HAWK_COUNTOF(path) - len, locale, zlen);
+			if (suffix) len += hawk_copy_bcstr(&path[len], HAWK_COUNTOF(path) - len, suffix);
+			if (po_cat_load_file(pc, path, HAWK_NULL, 0) >= 0) return 0;
+			zlen = marker - locale;
+		}
+	}
+
+	len = xlen;
+	len += hawk_copy_bchars_to_bcstr(&path[len], HAWK_COUNTOF(path) - len, locale, zlen);
+	len += hawk_copy_bcstr(&path[len], HAWK_COUNTOF(path) - len, suffix);
+	if (po_cat_load_file(pc, path, HAWK_NULL, 0) >= 0) return 0;
+
+	return -1;
+}
+
+/* -------------------------------------------------------- */
+
 void hawk_main_print_xma (void* ctx, const hawk_bch_t* fmt, ...)
 {
 	va_list ap;
@@ -316,13 +368,13 @@ static void print_usage(FILE* out, const hawk_bch_t* real_argv0)
 {
 	const hawk_bch_t* b1 = hawk_get_base_name_bcstr(real_argv0);
 
-	fprintf(out, "USAGE: %s [options] [mode specific options and parameters]\n", b1);
-	fprintf(out, "Options as follows:\n");
-	fprintf(out, " --usage                          print this message\n");
-	fprintf(out, " --version                        print version\n");
-	fprintf(out, " --awk/--hawk                     switch to the awk mode(default)\n");
-	fprintf(out, " --cut                            switch to the cut mode\n");
-	fprintf(out, " --sed                            switch to the sed mode\n");
+	fprintf(out, "%s: %s %s\n", _("USAGE"), b1, _("[options] [mode specific options and parameters]"));
+	fprintf(out, "%s\n", _("Options as follows:"));
+	fprintf(out, "%s\n", _(" --usage                           print this message"));
+	fprintf(out, "%s\n", _(" --version                         print version"));
+	fprintf(out, "%s\n", _(" --awk/--hawk                      switch to the awk mode(default)"));
+	fprintf(out, "%s\n", _(" --cut                             switch to the cut mode"));
+	fprintf(out, "%s\n", _(" --sed                             switch to the sed mode"));
 }
 
 static int main_usage(int argc, hawk_bch_t* argv[], const hawk_bch_t* real_argv0)
@@ -345,7 +397,8 @@ static struct {
 
 int main(int argc, hawk_bch_t* argv[])
 {
-	int ret;
+	int ret = -1;
+	int pocat_inited = 0;
 
 #if defined(_WIN32)
 	char locale[100];
@@ -378,6 +431,25 @@ int main(int argc, hawk_bch_t* argv[])
 	setlocale(LC_ALL, "");
 	/* hawk_setdflcmgrbyid(HAWK_CMGR_SLMB); */
 #endif
+	if (po_cat_init(&pocat) >= 0)
+	{
+		const char* homedir;
+		const char* xdgdatahome;
+		const char* lang;
+		pocat_inited = 1;
+
+		homedir = getenv("HOME"); /* TODO: get it from user entry? */
+		xdgdatahome = getenv("XDG_DATA_HOME");
+		lang = getenv("LANG");
+
+		if (!lang) goto lang_load_exit;
+		if (xdgdatahome && hawk_main_load_lang(&pocat, xdgdatahome, "/hawk/lang", "/hawk-", ".po", lang) >= 0) goto lang_load_exit;
+		if (!xdgdatahome && homedir && hawk_main_load_lang(&pocat, homedir, HOMELANGDIR, "/hawk-", ".po", lang) >= 0) goto lang_load_exit;
+		if (hawk_main_load_lang(&pocat, LANGDIR, HAWK_NULL, "/hawk-", ".po", lang) >= 0) goto lang_load_exit;
+
+	lang_load_exit:
+		/* nothing */ ;
+	}
 
 #if defined(_WIN32)
 	if (WSAStartup(MAKEWORD(2,0), &wsadata) != 0)
@@ -414,6 +486,7 @@ done:
 	if (sock_inited) sock_exit();
 #endif
 
+	if (pocat_inited) po_cat_fini(&pocat);
 	return ret;
 }
 

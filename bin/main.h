@@ -28,6 +28,7 @@
 #define _MAIN_H_
 
 #include <hawk.h>
+#include <hawk-po.h>
 
 typedef void (*hawk_main_sig_handler_t) (int sig);
 
@@ -40,6 +41,14 @@ struct hawk_main_xarg_t
 	hawk_oow_t   size;
 	hawk_oow_t   capa;
 };
+
+extern PoCatalog pocat;
+
+/* use _("something") if you want the string for pot extraction and message lookup */
+#define _(x) po_cat_gettext(&pocat, HAWK_NULL, x)
+
+/* use __("something") for extraction to the pot file only */
+#define __(x) x
 
 #if defined(__cplusplus)
 extern "C" {

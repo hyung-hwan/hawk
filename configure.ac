@@ -183,6 +183,20 @@ yes*)
 	;;
 esac
 
+AC_ARG_WITH([langdir],
+	[AS_HELP_STRING([--with-langdir=DIR], [Specify the location of the language files (default. DATADIR/PACKAGE/lang)])],
+	[LANGDIR=$withval],
+	[LANGDIR="${datadir}/${PACKAGE}/lang"]
+)
+AC_SUBST(LANGDIR)
+
+AC_ARG_WITH([homelangdir],
+	[AS_HELP_STRING([--with-homelangdir=DIR], [Specify the location of the user-specific language files parked under the home directory (default. /.local/PACKAGE/lang)])],
+	[HOMELANGDIR=$withval],
+	[HOMELANGDIR="/.local/share/${PACKAGE}/lang"]
+)
+AC_SUBST(HOMELANGDIR)
+
 AC_MSG_CHECKING([for char16_t literal])
 AC_LINK_IFELSE(
 	[AC_LANG_PROGRAM([], [const void* x = u"ab cd ef gh";])],

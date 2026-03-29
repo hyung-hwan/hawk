@@ -69,6 +69,7 @@ pkginclude_HEADERS = \
 	hawk-rbt.h \
 	hawk-pac1.h \
 	hawk-pio.h \
+	hawk-po.h \
 	hawk-skad.h \
 	hawk-utl.h \
 	hawk-sed.h \
@@ -118,6 +119,7 @@ libhawk_la_SOURCES = \
 	misc.c \
 	parse-prv.h \
 	parse.c \
+	po-cat.c \
 	rbt.c \
 	rec.c \
 	rio-prv.h \

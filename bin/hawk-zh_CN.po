@@ -1,0 +1,969 @@
+# Chinese (Simplified) translations for hawk package.
+# Copyright (C) 2026 THE hawk'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the hawk package.
+#  <author@hawk>, 2026.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: hawk 1.0.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-03-29 21:30+0900\n"
+"PO-Revision-Date: 2026-03-28 17:00+0800\n"
+"Last-Translator:  <author@hawk>\n"
+"Language-Team: Chinese (Simplified) <translation-team-"
+"zh_CN@hawk>\n"
+"Language: zh_CN\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+
+#: ../../bin/hawk.c:375
+msgid "enable concatenation by blanks"
+msgstr "启用空白拼接"
+
+#: ../../bin/hawk.c:376
+msgid "enable byte-code building"
+msgstr "启用字节码构建"
+
+#: ../../bin/hawk.c:377
+msgid "use CRLF for a newline"
+msgstr "换行使用 CRLF"
+
+#: ../../bin/hawk.c:378
+msgid "defer resolving module symbols(mod::symbol) to runtime"
+msgstr "将模块符号(mod::symbol)解析延迟到运行时"
+
+#: ../../bin/hawk.c:379
+msgid "allow a map to be assigned or returned"
+msgstr "允许对映射进行赋值或返回"
+
+#: ../../bin/hawk.c:380
+msgid "allow undeclared variables"
+msgstr "局部变量过多"
+
+#: ../../bin/hawk.c:381
+msgid "allow raw multiline string and regular expression literals"
+msgstr "字符串或正则表达式未结束"
+
+#: ../../bin/hawk.c:382
+msgid "perform numeric comparsion on numeric strings"
+msgstr "对数字字符串执行数值比较"
+
+#: ../../bin/hawk.c:383
+msgid "enable a newline to terminate a statement"
+msgstr "启用以换行结束语句"
+
+#: ../../bin/hawk.c:384
+msgid "enable nextofile & OFILENAME"
+msgstr "启用 nextofile 和 OFILENAME"
+
+#: ../../bin/hawk.c:385
+msgid "detect a numeric string and convert it to a number"
+msgstr "检测数字字符串并将其转换为数字"
+
+#: ../../bin/hawk.c:386
+msgid "enable pattern-action loop"
+msgstr "启用模式-动作循环"
+
+#: ../../bin/hawk.c:387
+msgid "enable pedantic mode"
+msgstr "启用严格模式"
+
+#: ../../bin/hawk.c:388
+msgid "set CLOEXEC before executing an external program for piping"
+msgstr "在执行用于管道的外部程序前设置 CLOEXEC"
+
+#: ../../bin/hawk.c:389
+msgid "enable {n,m} in a regular expression"
+msgstr "在正则表达式中启用 {n,m}"
+
+#: ../../bin/hawk.c:390
+msgid "enable builtin I/O including getline & print"
+msgstr "启用内建 I/O，包括 getline 和 print"
+
+#: ../../bin/hawk.c:391
+msgid "allow a dual-directional pipe"
+msgstr "允许双向管道"
+
+#: ../../bin/hawk.c:392
+msgid "enable the strict naming rule"
+msgstr "启用严格命名规则"
+
+#: ../../bin/hawk.c:393
+msgid "strip spaces in splitting a record"
+msgstr "在分割记录时去除空格"
+
+#: ../../bin/hawk.c:394
+msgid "strip spaces in string-to-number conversion"
+msgstr "在字符串转数字时去除空格"
+
+#: ../../bin/hawk.c:395
+msgid "make more fault-tolerant"
+msgstr "提高容错性"
+
+#: ../../bin/hawk.c:396
+msgid "enable the extended call syntax"
+msgstr "启用扩展调用语法"
+
+#: ../../bin/hawk.c:407 ../../bin/main.c:371
+msgid "USAGE"
+msgstr "用法"
+
+#: ../../bin/hawk.c:407
+msgid "[options] -f sourcefile [ -- ] [datafile]*"
+msgstr "[选项] -f 源文件 [ -- ] [数据文件]*"
+
+#: ../../bin/hawk.c:408
+msgid "     "
+msgstr "    "
+
+#: ../../bin/hawk.c:408
+msgid "[options] [ -- ] sourcestring [datafile]*"
+msgstr "[选项] [ -- ] 源字符串 [数据文件]*"
+
+#: ../../bin/hawk.c:409 ../../bin/main.c:372
+msgid "Options as follows:"
+msgstr "选项如下:"
+
+#: ../../bin/hawk.c:410
+msgid " -h/--help                         print this message"
+msgstr " -h/--help                         打印此信息"
+
+#: ../../bin/hawk.c:411
+msgid " -D                                show extra information"
+msgstr " -D                                显示更多信息"
+
+#: ../../bin/hawk.c:412
+msgid " -c/--call            name         call a function instead of entering"
+msgstr " -c/--call            名称         调用函数而不是进入模式-动作循环"
+
+#: ../../bin/hawk.c:413
+msgid ""
+"                                   the pattern-action loop. [datafile]* is"
+msgstr "                                   模式-动作循环。[数据文件]*"
+
+#: ../../bin/hawk.c:414
+msgid "                                   passed to the function as parameters"
+msgstr "                                   将作为参数传递给函数"
+
+#: ../../bin/hawk.c:415
+msgid " -f/--file            file         set the source script file"
+msgstr " -f/--file            文件         设置脚本源文件"
+
+#: ../../bin/hawk.c:416
+msgid ""
+" -d/--deparsed-file   file         set the deparsed script file to produce"
+msgstr " -d/--deparsed-file   文件         指定反解析脚本输出文件"
+
+#: ../../bin/hawk.c:417
+msgid " -t/--console-output  file         set the console output file"
+msgstr " -t/--console-output  文件         设置控制台输出文件"
+
+#: ../../bin/hawk.c:418
+msgid "                                   multiple -t options are allowed"
+msgstr "                                   可以指定多个 -t 选项"
+
+#: ../../bin/hawk.c:419
+msgid " -F/--field-separator string       set a field separator(FS)"
+msgstr " -F/--field-separator 字符串       设置字段分隔符（FS）"
+
+#: ../../bin/hawk.c:420
+msgid " -v/--assign          var=value    add a global variable with a value"
+msgstr " -v/--assign          变量=值      添加具有值的全局变量"
+
+#: ../../bin/hawk.c:421
+msgid " -m/--memory-limit    number       limit the memory usage (bytes)"
+msgstr " -m/--memory-limit    数值         限制内存用量（字节）"
+
+#: ../../bin/hawk.c:422
+msgid " -w                                expand datafile wildcards"
+msgstr " -w                                扩展数据文件通配符"
+
+#: ../../bin/hawk.c:425
+msgid " --script-encoding    string       specify script file encoding name"
+msgstr " --script-encoding    字符串       指定脚本文件编码名"
+
+#: ../../bin/hawk.c:426
+msgid " --console-encoding   string       specify console encoding name"
+msgstr " --console-encoding   字符串       指定控制台编码名"
+
+#: ../../bin/hawk.c:429
+msgid ""
+" -I/--includedirs     string       specify directories to look for include "
+"files in"
+msgstr " -I/--includedirs     字符串       指定查找 include 文件的目录"
+
+#: ../../bin/hawk.c:430
+msgid ""
+" --modlibdirs         string       specify directories to look for module "
+"files in"
+msgstr " --modlibdirs         字符串       指定查找模块文件的目录"
+
+#: ../../bin/hawk.c:431
+msgid " --modern                          run in the modern mode(default)"
+msgstr " --modern                          以现代模式运行（默认）"
+
+#: ../../bin/hawk.c:432
+msgid " --classic                         run in the classic mode"
+msgstr " --classic                         以经典模式运行"
+
+#: ../../bin/hawk.c:442
+msgid "Special mode switching options(must be specified first to take effect):"
+msgstr "特殊模式切换选项（必须先指定才能生效）："
+
+#: ../../bin/hawk.c:443 ../../bin/main.c:375
+msgid " --awk/--hawk                      switch to the awk mode(default)"
+msgstr " --awk/--hawk                      切换到 awk 模式（默认）"
+
+#: ../../bin/hawk.c:444 ../../bin/main.c:376
+msgid " --cut                             switch to the cut mode"
+msgstr " --cut                             切换到 cut 模式"
+
+#: ../../bin/hawk.c:445 ../../bin/main.c:377
+msgid " --sed                             switch to the sed mode"
+msgstr " --sed                             切换到 sed 模式"
+
+#: ../../bin/hawk.c:793 ../../bin/hawk.c:810
+msgid "ERROR"
+msgstr "错误"
+
+#: ../../bin/hawk.c:794 ../../bin/hawk.c:811
+msgid "Line"
+msgstr "行"
+
+#: ../../bin/hawk.c:795 ../../bin/hawk.c:812
+msgid "Column"
+msgstr "列"
+
+#: ../../bin/hawk.c:796 ../../bin/hawk.c:813
+msgid "Code"
+msgstr "代码"
+
+#: ../../bin/hawk.c:797 ../../bin/hawk.c:814
+msgid "File "
+msgstr "文件 "
+
+#: ../../bin/main.c:371
+msgid "[options] [mode specific options and parameters]"
+msgstr "用法：%s [选项] [模式特定选项与参数]"
+
+#: ../../bin/main.c:373
+msgid " --usage                           print this message"
+msgstr " --usage                           显示此信息"
+
+#: ../../bin/main.c:374
+msgid " --version                         print version"
+msgstr " --version                         显示版本"
+
+#: ../../lib/err.c:33
+msgid "no error"
+msgstr "无错误"
+
+#: ../../lib/err.c:34
+msgid "other error"
+msgstr "其他错误"
+
+#: ../../lib/err.c:35
+msgid "not implemented"
+msgstr "尚未实现"
+
+#: ../../lib/err.c:36
+msgid "subsystem error"
+msgstr "子系统错误"
+
+#: ../../lib/err.c:37
+msgid "internal error that should never have happened"
+msgstr "本不应发生的内部错误"
+
+#: ../../lib/err.c:39
+msgid "insufficient memory"
+msgstr "内存不足"
+
+#: ../../lib/err.c:40
+msgid "invalid parameter or data"
+msgstr "无效参数或数据"
+
+#: ../../lib/err.c:41
+msgid "access denied"
+msgstr "访问被拒绝"
+
+#: ../../lib/err.c:42
+msgid "system busy"
+msgstr "系统忙"
+
+#: ../../lib/err.c:43
+msgid "operation not allowed"
+msgstr "不允许该操作"
+
+#: ../../lib/err.c:44
+msgid "not supported"
+msgstr "不支持"
+
+#: ../../lib/err.c:45
+msgid "not found"
+msgstr "未找到"
+
+#: ../../lib/err.c:46
+msgid "already exists"
+msgstr "已存在"
+
+#: ../../lib/err.c:47
+msgid "I/O error"
+msgstr "I/O 错误"
+
+#: ../../lib/err.c:48
+msgid "buffer full"
+msgstr "缓冲区已满"
+
+#: ../../lib/err.c:49
+msgid "encoding conversion error"
+msgstr "编码转换错误"
+
+#: ../../lib/err.c:50
+msgid "is a directory"
+msgstr "是目录"
+
+#: ../../lib/err.c:51
+msgid "not a directory"
+msgstr "不是目录"
+
+#: ../../lib/err.c:52
+msgid "resource temporarily unavailable"
+msgstr "资源暂时不可用"
+
+#: ../../lib/err.c:53
+msgid "interrupted"
+msgstr "被中断"
+
+#: ../../lib/err.c:54
+msgid "broken pipe"
+msgstr "管道断开"
+
+#: ../../lib/err.c:55
+msgid "in progress"
+msgstr "进行中"
+
+#: ../../lib/err.c:56
+msgid "no handle"
+msgstr "无句柄"
+
+#: ../../lib/err.c:57
+msgid "no child process"
+msgstr "无子进程"
+
+#: ../../lib/err.c:58
+msgid "timed out"
+msgstr "超时"
+
+#: ../../lib/err.c:59
+msgid "in bad state"
+msgstr "处于错误状态"
+
+#: ../../lib/err.c:61
+msgid "cannot open"
+msgstr "无法打开"
+
+#: ../../lib/err.c:62
+msgid "cannot read"
+msgstr "无法读取"
+
+#: ../../lib/err.c:63
+msgid "cannot write"
+msgstr "无法写入"
+
+#: ../../lib/err.c:64
+msgid "cannot close"
+msgstr "无法关闭"
+
+#: ../../lib/err.c:66
+msgid "block nested too deeply"
+msgstr "代码块嵌套过深"
+
+#: ../../lib/err.c:67
+msgid "expression nested too deeply"
+msgstr "表达式嵌套过深"
+
+#: ../../lib/err.c:69
+msgid "invalid character"
+msgstr "无效字符"
+
+#: ../../lib/err.c:70
+msgid "invalid digit"
+msgstr "无效数字字符"
+
+#: ../../lib/err.c:72
+msgid "unexpected end of input"
+msgstr "输入意外结束"
+
+#: ../../lib/err.c:73
+msgid "comment not closed properly"
+msgstr "注释未正确结束"
+
+#: ../../lib/err.c:74
+msgid "string or regular expression not closed"
+msgstr "字符串或正则表达式未结束"
+
+#: ../../lib/err.c:75
+msgid "invalid mbs character"
+msgstr "无效多字节字符"
+
+#: ../../lib/err.c:76
+msgid "left brace expected"
+msgstr "需要左花括号"
+
+#: ../../lib/err.c:77
+msgid "left parenthesis expected"
+msgstr "需要左圆括号"
+
+#: ../../lib/err.c:78
+msgid "right parenthesis expected"
+msgstr "需要右圆括号"
+
+#: ../../lib/err.c:79
+msgid "right brace expected"
+msgstr "需要右花括号"
+
+#: ../../lib/err.c:80
+msgid "right bracket expected"
+msgstr "需要右方括号"
+
+#: ../../lib/err.c:81
+msgid "comma expected"
+msgstr "需要逗号"
+
+#: ../../lib/err.c:82 ../../lib/err.c:206
+msgid "semicolon expected"
+msgstr "需要分号"
+
+#: ../../lib/err.c:83
+msgid "colon expected"
+msgstr "需要冒号"
+
+#: ../../lib/err.c:84
+msgid "integer literal expected"
+msgstr "需要整数字面量"
+
+#: ../../lib/err.c:85
+msgid "statement not ending with a semicolon"
+msgstr "语句未以分号结束"
+
+#: ../../lib/err.c:86
+msgid "keyword 'in' expected"
+msgstr "需要关键字 'in'"
+
+#: ../../lib/err.c:87
+msgid "right-hand side of 'in' not a variable"
+msgstr "'in' 右侧不是变量"
+
+#: ../../lib/err.c:88
+msgid "expression not recognized"
+msgstr "无法识别表达式"
+
+#: ../../lib/err.c:90
+msgid "keyword 'function' expected"
+msgstr "需要关键字 'function'"
+
+#: ../../lib/err.c:91
+msgid "keyword 'while' expected"
+msgstr "需要关键字 'while'"
+
+#: ../../lib/err.c:92
+msgid "keyword 'case' expected"
+msgstr "需要关键字 'case'"
+
+#: ../../lib/err.c:93
+msgid "multiple 'default' labels"
+msgstr "存在多个 'default' 标签"
+
+#: ../../lib/err.c:94
+msgid "invalid assignment statement"
+msgstr "无效赋值语句"
+
+#: ../../lib/err.c:95
+msgid "identifier expected"
+msgstr "需要标识符"
+
+#: ../../lib/err.c:96
+msgid "not a valid function name"
+msgstr "不是有效的函数名"
+
+#: ../../lib/err.c:97
+msgid "BEGIN not followed by left bracket on the same line"
+msgstr "BEGIN 后同一行未跟左花括号"
+
+#: ../../lib/err.c:98
+msgid "END not followed by left bracket on the same line"
+msgstr "END 后同一行未跟左花括号"
+
+#: ../../lib/err.c:99
+msgid "keyword redefined"
+msgstr "关键字被重新定义"
+
+#: ../../lib/err.c:100
+msgid "intrinsic function redefined"
+msgstr "内建函数被重新定义"
+
+#: ../../lib/err.c:101
+msgid "function redefined"
+msgstr "函数被重新定义"
+
+#: ../../lib/err.c:102
+msgid "global variable redefined"
+msgstr "全局变量被重新定义"
+
+#: ../../lib/err.c:103
+msgid "parameter redefined"
+msgstr "参数被重新定义"
+
+#: ../../lib/err.c:104
+msgid "variable redefined"
+msgstr "变量被重新定义"
+
+#: ../../lib/err.c:105
+msgid "duplicate parameter name"
+msgstr "重复的参数名"
+
+#: ../../lib/err.c:106
+msgid "duplicate global variable"
+msgstr "重复的全局变量"
+
+#: ../../lib/err.c:107
+msgid "duplicate local variable"
+msgstr "重复的局部变量"
+
+#: ../../lib/err.c:108
+msgid "not a valid parameter name"
+msgstr "不是有效的参数名"
+
+#: ../../lib/err.c:109
+msgid "not a valid variable name"
+msgstr "不是有效的变量名"
+
+#: ../../lib/err.c:110
+msgid "variable name missing"
+msgstr "缺少变量名"
+
+#: ../../lib/err.c:111
+msgid "undefined identifier"
+msgstr "未定义标识符"
+
+#: ../../lib/err.c:112
+msgid "l-value required"
+msgstr "需要左值"
+
+#: ../../lib/err.c:113
+msgid "too many global variables"
+msgstr "全局变量过多"
+
+#: ../../lib/err.c:114
+msgid "too many local variables"
+msgstr "局部变量过多"
+
+#: ../../lib/err.c:115
+msgid "too many parameters"
+msgstr "参数过多"
+
+#: ../../lib/err.c:116
+msgid "too many segments"
+msgstr "段过多"
+
+#: ../../lib/err.c:117
+msgid "segment too long"
+msgstr "段过长"
+
+#: ../../lib/err.c:118
+msgid "bad argument"
+msgstr "错误参数"
+
+#: ../../lib/err.c:119
+msgid "no argument provided"
+msgstr "未提供参数"
+
+#: ../../lib/err.c:120
+msgid "'break' outside a loop"
+msgstr "在循环外使用 'break'"
+
+#: ../../lib/err.c:121
+msgid "'continue' outside a loop"
+msgstr "在循环外使用 'continue'"
+
+#: ../../lib/err.c:122
+msgid "'next' illegal in initialization"
+msgstr "初始化阶段不允许使用 'next'"
+
+#: ../../lib/err.c:123
+msgid "'next' illegal in the BEGIN block"
+msgstr "BEGIN 块中不允许使用 'next'"
+
+#: ../../lib/err.c:124
+msgid "'next' illegal in the END block"
+msgstr "END 块中不允许使用 'next'"
+
+#: ../../lib/err.c:125
+msgid "'nextfile' illegal in initialization"
+msgstr "初始化阶段不允许使用 'nextfile'"
+
+#: ../../lib/err.c:126
+msgid "'nextfile' illegal in the BEGIN block"
+msgstr "BEGIN 块中不允许使用 'nextfile'"
+
+#: ../../lib/err.c:127
+msgid "'nextfile' illegal in the END block"
+msgstr "END 块中不允许使用 'nextfile'"
+
+#: ../../lib/err.c:128
+msgid "both prefix and postfix increment/decrement operator present"
+msgstr "同时出现前置与后置自增/自减运算符"
+
+#: ../../lib/err.c:129
+msgid "illegal operand for increment/decrement operator"
+msgstr "自增/自减运算符操作数非法"
+
+#: ../../lib/err.c:130
+msgid "'@include' not followed by a string"
+msgstr "'@include' 后未跟字符串"
+
+#: ../../lib/err.c:131
+msgid "include level too deep"
+msgstr "include 层级过深"
+
+#: ../../lib/err.c:132
+msgid "word after @ not recognized"
+msgstr "无法识别 @ 后的单词"
+
+#: ../../lib/err.c:133
+msgid "@ not followed by a valid word"
+msgstr "@ 后未跟有效单词"
+
+#: ../../lib/err.c:134
+msgid "unused element"
+msgstr "未使用的元素"
+
+#: ../../lib/err.c:136
+msgid "stack full"
+msgstr "栈已满"
+
+#: ../../lib/err.c:137
+msgid "divide by zero"
+msgstr "除以零"
+
+#: ../../lib/err.c:138
+msgid "invalid operand"
+msgstr "无效操作数"
+
+#: ../../lib/err.c:139
+msgid "wrong position index"
+msgstr "位置索引错误"
+
+#: ../../lib/err.c:140
+msgid "too few arguments"
+msgstr "参数过少"
+
+#: ../../lib/err.c:141
+msgid "too many arguments"
+msgstr "参数过多"
+
+#: ../../lib/err.c:142
+msgid "function not found"
+msgstr "未找到函数"
+
+#: ../../lib/err.c:143
+msgid "non-function value"
+msgstr "非函数值"
+
+#: ../../lib/err.c:144
+msgid "not deletable"
+msgstr "不可删除"
+
+#: ../../lib/err.c:145
+msgid "value not a map"
+msgstr "该值不是映射"
+
+#: ../../lib/err.c:146
+msgid "value not an array"
+msgstr "该值不是数组"
+
+#: ../../lib/err.c:147
+msgid "value not accessible with index"
+msgstr "该值不能通过索引访问"
+
+#: ../../lib/err.c:148
+msgid "value not referenceable"
+msgstr "该值不可引用"
+
+#: ../../lib/err.c:149
+msgid "wrong operand in right-hand side of 'in'"
+msgstr "'in' 右侧操作数错误"
+
+#: ../../lib/err.c:150
+msgid "cannot return a nonscalar value"
+msgstr "不能返回非标量值"
+
+#: ../../lib/err.c:151
+msgid "cannot assign a nonscalar value to a positional"
+msgstr "不能将非标量值赋给位置变量"
+
+#: ../../lib/err.c:152
+msgid "cannot assign a nonscalar value to an indexed variable"
+msgstr "不能将非标量值赋给索引变量"
+
+#: ../../lib/err.c:153
+msgid "cannot assign a nonscalar value to a variable"
+msgstr "不能将非标量值赋给变量"
+
+#: ../../lib/err.c:154
+msgid "cannot change a nonscalar value to a scalar value"
+msgstr "不能将非标量值改为标量值"
+
+#: ../../lib/err.c:155
+msgid "cannot change a nonscalar value to another nonscalar value"
+msgstr "不能将非标量值改为另一种非标量值"
+
+#: ../../lib/err.c:156
+msgid "cannot change a scalar value to a nonscalar value"
+msgstr "不能将标量值改为非标量值"
+
+#: ../../lib/err.c:157
+msgid "invalid value to convert to a string"
+msgstr "无法转换为字符串的值"
+
+#: ../../lib/err.c:158
+msgid "invalid value to convert to a number"
+msgstr "无法转换为数字的值"
+
+#: ../../lib/err.c:159
+msgid "invalid value to a character"
+msgstr "无法转换为字符的值"
+
+#: ../../lib/err.c:160
+msgid "invalid value for hashing"
+msgstr "该值无法用于哈希"
+
+#: ../../lib/err.c:161
+msgid "array index out of allowed range"
+msgstr "数组索引超出允许范围"
+
+#: ../../lib/err.c:162
+msgid "single-bracketed multidimensional indices not allowed for array"
+msgstr "数组不允许使用单层方括号的多维索引"
+
+#: ../../lib/err.c:163
+msgid "'next' called during initialization"
+msgstr "初始化期间调用了 'next'"
+
+#: ../../lib/err.c:164
+msgid "'next' called from BEGIN block"
+msgstr "在 BEGIN 块中调用了 'next'"
+
+#: ../../lib/err.c:165
+msgid "'next' called from END block"
+msgstr "在 END 块中调用了 'next'"
+
+#: ../../lib/err.c:166
+msgid "'nextfile' called during initialization"
+msgstr "初始化期间调用了 'nextfile'"
+
+#: ../../lib/err.c:167
+msgid "'nextfile' called from BEGIN block"
+msgstr "在 BEGIN 块中调用了 'nextfile'"
+
+#: ../../lib/err.c:168
+msgid "'nextfile' called from END block"
+msgstr "在 END 块中调用了 'nextfile'"
+
+#: ../../lib/err.c:169
+msgid "wrong implementation of user-defined I/O handler"
+msgstr "用户自定义 I/O 处理器实现错误"
+
+#: ../../lib/err.c:170
+msgid "I/O handler returned an error"
+msgstr "I/O 处理器返回错误"
+
+#: ../../lib/err.c:171
+msgid "no such I/O name found"
+msgstr "未找到该 I/O 名称"
+
+#: ../../lib/err.c:172
+msgid "I/O name empty"
+msgstr "I/O 名称为空"
+
+#: ../../lib/err.c:173
+msgid "I/O name containing '\\0'"
+msgstr "I/O 名称包含 '\\0'"
+
+#: ../../lib/err.c:174
+msgid "insufficient arguments to formatting sequence"
+msgstr "格式序列参数不足"
+
+#: ../../lib/err.c:175
+msgid "invalid character in CONVFMT"
+msgstr "CONVFMT 中有无效字符"
+
+#: ../../lib/err.c:176
+msgid "invalid character in OFMT"
+msgstr "OFMT 中有无效字符"
+
+#: ../../lib/err.c:178 ../../lib/err.c:197
+msgid "failed to match regular expression"
+msgstr "正则表达式匹配失败"
+
+#: ../../lib/err.c:179
+msgid "invalid regular expression in regular expression"
+msgstr "正则表达式中包含无效正则"
+
+#: ../../lib/err.c:180
+msgid "unknown collating element in regular expression"
+msgstr "正则表达式中有未知排序元素"
+
+#: ../../lib/err.c:181
+msgid "unknown character clas name in regular expression"
+msgstr "正则表达式中有未知字符类名"
+
+#: ../../lib/err.c:182
+msgid "trailing backslash in regular expression"
+msgstr "正则表达式末尾有反斜杠"
+
+#: ../../lib/err.c:183
+msgid "invalid backreference in regular expression"
+msgstr "正则表达式中有无效反向引用"
+
+#: ../../lib/err.c:184
+msgid "imbalanced bracket in regular expression"
+msgstr "正则表达式中方括号不平衡"
+
+#: ../../lib/err.c:185
+msgid "imbalanced parenthesis in regular expression"
+msgstr "正则表达式中圆括号不平衡"
+
+#: ../../lib/err.c:186
+msgid "imbalanced brace in regular expression"
+msgstr "正则表达式中花括号不平衡"
+
+#: ../../lib/err.c:187
+msgid "invalid content inside braces in regular expression"
+msgstr "正则表达式花括号内内容无效"
+
+#: ../../lib/err.c:188
+msgid "invalid use of range operator in regular expression"
+msgstr "正则表达式中范围运算符使用无效"
+
+#: ../../lib/err.c:189
+msgid "invalid use of repetition operator in regular expression"
+msgstr "正则表达式中重复运算符使用无效"
+
+#: ../../lib/err.c:192
+msgid "command '${0}' not recognized"
+msgstr "无法识别命令 '${0}'"
+
+#: ../../lib/err.c:193
+msgid "command code missing"
+msgstr "缺少命令代码"
+
+#: ../../lib/err.c:194
+msgid "command '${0}' incomplete"
+msgstr "命令 '${0}' 不完整"
+
+#: ../../lib/err.c:195
+msgid "regular expression '${0}' incomplete"
+msgstr "正则表达式 '${0}' 不完整"
+
+#: ../../lib/err.c:196
+msgid "failed to compile regular expression '${0}'"
+msgstr "编译正则表达式 '${0}' 失败"
+
+#: ../../lib/err.c:198
+msgid "address 1 prohibited for '${0}'"
+msgstr "'${0}' 禁止使用地址 1"
+
+#: ../../lib/err.c:199
+msgid "address 1 missing or invalid"
+msgstr "地址 1 缺失或无效"
+
+#: ../../lib/err.c:200
+msgid "address 2 prohibited for '${0}'"
+msgstr "'${0}' 禁止使用地址 2"
+
+#: ../../lib/err.c:201
+msgid "address 2 missing or invalid"
+msgstr "地址 2 缺失或无效"
+
+#: ../../lib/err.c:202
+msgid "newline expected"
+msgstr "需要换行"
+
+#: ../../lib/err.c:203
+msgid "backslash expected"
+msgstr "需要反斜杠"
+
+#: ../../lib/err.c:204
+msgid "backslash used as delimiter"
+msgstr "反斜杠被用作分隔符"
+
+#: ../../lib/err.c:205
+msgid "garbage after backslash"
+msgstr "反斜杠后有无效内容"
+
+#: ../../lib/err.c:207
+msgid "empty label name"
+msgstr "标签名为空"
+
+#: ../../lib/err.c:208
+msgid "duplicate label name '${0}'"
+msgstr "重复的标签名 '${0}'"
+
+#: ../../lib/err.c:209
+msgid "label '${0}' not found"
+msgstr "未找到标签 '${0}'"
+
+#: ../../lib/err.c:210
+msgid "empty file name"
+msgstr "文件名为空"
+
+#: ../../lib/err.c:211
+msgid "illegal file name"
+msgstr "非法文件名"
+
+#: ../../lib/err.c:212
+msgid "strings in translation set not the same length"
+msgstr "转换集合中的字符串长度不一致"
+
+#: ../../lib/err.c:213
+msgid "group brackets not balanced"
+msgstr "分组括号不平衡"
+
+#: ../../lib/err.c:214
+msgid "group nesting too deep"
+msgstr "分组嵌套过深"
+
+#: ../../lib/err.c:215
+msgid "multiple occurrence specifiers"
+msgstr "出现次数说明符有多个"
+
+#: ../../lib/err.c:216
+msgid "occurrence specifier zero"
+msgstr "出现次数说明符为 0"
+
+#: ../../lib/err.c:217
+msgid "occurrence specifier too large"
+msgstr "出现次数说明符过大"
+
+#: ../../lib/err.c:218
+msgid "no previous regular expression"
+msgstr "没有前一个正则表达式"
+
+#: ../../lib/err.c:219
+msgid "cut selector not valid"
+msgstr "cut 选择器无效"
+
+#: ../../lib/err.c:220 ../../lib/err.c:224
+msgid "I/O error with file '${0}'"
+msgstr "文件 '${0}' 的 I/O 错误"
+
+#: ../../lib/err.c:223
+msgid "selector not valid"
+msgstr "选择器无效"
+
+#: ../../lib/err.c:227
+msgid "unknown error"
+msgstr "未知错误"

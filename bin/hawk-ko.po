@@ -1,0 +1,969 @@
+# Korean translations for hawk package.
+# Copyright (C) 2026 THE hawk'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the hawk package.
+#  <author@hawk>, 2026.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: hawk 1.0.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-03-29 21:30+0900\n"
+"PO-Revision-Date: 2026-03-28 16:29+0800\n"
+"Last-Translator:  <author@hawk>\n"
+"Language-Team: Korean <translation-team-ko@hawk>\n"
+"Language: ko\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+
+#: ../../bin/hawk.c:375
+msgid "enable concatenation by blanks"
+msgstr "공백에 의한 연결을 활성화"
+
+#: ../../bin/hawk.c:376
+msgid "enable byte-code building"
+msgstr "바이트코드 생성을 활성화"
+
+#: ../../bin/hawk.c:377
+msgid "use CRLF for a newline"
+msgstr "줄바꿈에 CRLF를 사용"
+
+#: ../../bin/hawk.c:378
+msgid "defer resolving module symbols(mod::symbol) to runtime"
+msgstr "모듈 심볼(mod::symbol) 해석을 실행 시간으로 연기"
+
+#: ../../bin/hawk.c:379
+msgid "allow a map to be assigned or returned"
+msgstr "맵의 대입 또는 반환을 허용"
+
+#: ../../bin/hawk.c:380
+msgid "allow undeclared variables"
+msgstr "지역 변수가 너무 많음"
+
+#: ../../bin/hawk.c:381
+msgid "allow raw multiline string and regular expression literals"
+msgstr "문자열 또는 정규식이 닫히지 않음"
+
+#: ../../bin/hawk.c:382
+msgid "perform numeric comparsion on numeric strings"
+msgstr "숫자 문자열에 대해 숫자 비교를 수행"
+
+#: ../../bin/hawk.c:383
+msgid "enable a newline to terminate a statement"
+msgstr "줄바꿈으로 문장을 끝낼 수 있게 함"
+
+#: ../../bin/hawk.c:384
+msgid "enable nextofile & OFILENAME"
+msgstr "nextofile 및 OFILENAME을 활성화"
+
+#: ../../bin/hawk.c:385
+msgid "detect a numeric string and convert it to a number"
+msgstr "숫자형의 문자열을 감지하여 숫자로 변환"
+
+#: ../../bin/hawk.c:386
+msgid "enable pattern-action loop"
+msgstr "패턴-동작 루프를 활성화"
+
+#: ../../bin/hawk.c:387
+msgid "enable pedantic mode"
+msgstr "엄격 모드를 활성화"
+
+#: ../../bin/hawk.c:388
+msgid "set CLOEXEC before executing an external program for piping"
+msgstr "파이프용 외부 프로그램 실행 전에 CLOEXEC를 설정"
+
+#: ../../bin/hawk.c:389
+msgid "enable {n,m} in a regular expression"
+msgstr "정규식 일치에서 {n,m}을 표현을 활성화"
+
+#: ../../bin/hawk.c:390
+msgid "enable builtin I/O including getline & print"
+msgstr "getline 및 print를 포함한 내장 I/O를 활성화"
+
+#: ../../bin/hawk.c:391
+msgid "allow a dual-directional pipe"
+msgstr "양방향 파이프를 허용"
+
+#: ../../bin/hawk.c:392
+msgid "enable the strict naming rule"
+msgstr "엄격한 이름 규칙을 활성화"
+
+#: ../../bin/hawk.c:393
+msgid "strip spaces in splitting a record"
+msgstr "레코드 분리 시 공백을 제거"
+
+#: ../../bin/hawk.c:394
+msgid "strip spaces in string-to-number conversion"
+msgstr "문자열을 숫자로 변환할 때 공백을 제거"
+
+#: ../../bin/hawk.c:395
+msgid "make more fault-tolerant"
+msgstr "오류 허용성을 높임"
+
+#: ../../bin/hawk.c:396
+msgid "enable the extended call syntax"
+msgstr "확장 호출 문법을 활성화"
+
+#: ../../bin/hawk.c:407 ../../bin/main.c:371
+msgid "USAGE"
+msgstr "사용법"
+
+#: ../../bin/hawk.c:407
+msgid "[options] -f sourcefile [ -- ] [datafile]*"
+msgstr "[옵션] -f 소스파일 [ -- ] [자료파일]*"
+
+#: ../../bin/hawk.c:408
+msgid "     "
+msgstr "      "
+
+#: ../../bin/hawk.c:408
+msgid "[options] [ -- ] sourcestring [datafile]*"
+msgstr "[옵션] [ -- ] 소스문자열 [자료파일]*"
+
+#: ../../bin/hawk.c:409 ../../bin/main.c:372
+msgid "Options as follows:"
+msgstr "옵션은 다음과 같습니다:"
+
+#: ../../bin/hawk.c:410
+msgid " -h/--help                         print this message"
+msgstr " -h/--help                         이 메시지를 출력"
+
+#: ../../bin/hawk.c:411
+msgid " -D                                show extra information"
+msgstr " -D                                추가 정보를 표시"
+
+#: ../../bin/hawk.c:412
+msgid " -c/--call            name         call a function instead of entering"
+msgstr " -c/--call            이름         패턴-동작 루프 대신 함수를 호출"
+
+#: ../../bin/hawk.c:413
+msgid ""
+"                                   the pattern-action loop. [datafile]* is"
+msgstr "                                   [자료파일]* 을 함수 인자로 전달"
+
+#: ../../bin/hawk.c:414
+msgid "                                   passed to the function as parameters"
+msgstr "                                   합니다."
+
+#: ../../bin/hawk.c:415
+msgid " -f/--file            file         set the source script file"
+msgstr " -f/--file            파일         소스 스크립트 파일을 지정"
+
+#: ../../bin/hawk.c:416
+msgid ""
+" -d/--deparsed-file   file         set the deparsed script file to produce"
+msgstr ""
+" -d/--deparsed-file   파일         디파싱한 스크립트를 저장할 파일을 지정"
+
+#: ../../bin/hawk.c:417
+msgid " -t/--console-output  file         set the console output file"
+msgstr " -t/--console-output  파일         콘솔 출력 파일을 지정"
+
+#: ../../bin/hawk.c:418
+msgid "                                   multiple -t options are allowed"
+msgstr "                                   -t 옵션은 여러 번 지정할 수 있음"
+
+#: ../../bin/hawk.c:419
+msgid " -F/--field-separator string       set a field separator(FS)"
+msgstr " -F/--field-separator 문자열       필드 구분자(FS)를 지정"
+
+#: ../../bin/hawk.c:420
+msgid " -v/--assign          var=value    add a global variable with a value"
+msgstr " -v/--assign          변수=값      값을 가진 전역 변수를 추가"
+
+#: ../../bin/hawk.c:421
+msgid " -m/--memory-limit    number       limit the memory usage (bytes)"
+msgstr " -m/--memory-limit    숫자         메모리 사용량을 제한(바이트)"
+
+#: ../../bin/hawk.c:422
+msgid " -w                                expand datafile wildcards"
+msgstr " -w                                자료 파일 와일드카드를 확장"
+
+#: ../../bin/hawk.c:425
+msgid " --script-encoding    string       specify script file encoding name"
+msgstr " --script-encoding    문자열       스크립트 파일 인코딩 이름을 지정"
+
+#: ../../bin/hawk.c:426
+msgid " --console-encoding   string       specify console encoding name"
+msgstr " --console-encoding   문자열       콘솔 인코딩 이름을 지정"
+
+#: ../../bin/hawk.c:429
+msgid ""
+" -I/--includedirs     string       specify directories to look for include "
+"files in"
+msgstr " -I/--includedirs     문자열       include 파일을 찾을 디렉토리를 지정"
+
+#: ../../bin/hawk.c:430
+msgid ""
+" --modlibdirs         string       specify directories to look for module "
+"files in"
+msgstr " --modlibdirs         문자열       모듈 파일을 찾을 디렉토리를 지정"
+
+#: ../../bin/hawk.c:431
+msgid " --modern                          run in the modern mode(default)"
+msgstr " --modern                          현대화 모드로 실행(기본값)"
+
+#: ../../bin/hawk.c:432
+msgid " --classic                         run in the classic mode"
+msgstr " --classic                         고전 모드로 실행"
+
+#: ../../bin/hawk.c:442
+msgid "Special mode switching options(must be specified first to take effect):"
+msgstr "모드 전환 옵션(처음에 지정해야 적용됨):"
+
+#: ../../bin/hawk.c:443 ../../bin/main.c:375
+msgid " --awk/--hawk                      switch to the awk mode(default)"
+msgstr " --awk/--hawk                      awk 모드로 전환(기본값)"
+
+#: ../../bin/hawk.c:444 ../../bin/main.c:376
+msgid " --cut                             switch to the cut mode"
+msgstr " --cut                             cut 모드로 전환"
+
+#: ../../bin/hawk.c:445 ../../bin/main.c:377
+msgid " --sed                             switch to the sed mode"
+msgstr " --sed                             sed 모드로 전환"
+
+#: ../../bin/hawk.c:793 ../../bin/hawk.c:810
+msgid "ERROR"
+msgstr "오류"
+
+#: ../../bin/hawk.c:794 ../../bin/hawk.c:811
+msgid "Line"
+msgstr "줄"
+
+#: ../../bin/hawk.c:795 ../../bin/hawk.c:812
+msgid "Column"
+msgstr "열"
+
+#: ../../bin/hawk.c:796 ../../bin/hawk.c:813
+msgid "Code"
+msgstr "코드"
+
+#: ../../bin/hawk.c:797 ../../bin/hawk.c:814
+msgid "File "
+msgstr "파일 "
+
+#: ../../bin/main.c:371
+msgid "[options] [mode specific options and parameters]"
+msgstr "사용법: %s [옵션] [모드별 옵션과 인자]"
+
+#: ../../bin/main.c:373
+msgid " --usage                           print this message"
+msgstr " --usage                           이 메시지를 출력"
+
+#: ../../bin/main.c:374
+msgid " --version                         print version"
+msgstr " --version                         버전을 출력"
+
+#: ../../lib/err.c:33
+msgid "no error"
+msgstr "오류 없음"
+
+#: ../../lib/err.c:34
+msgid "other error"
+msgstr "기타 오류"
+
+#: ../../lib/err.c:35
+msgid "not implemented"
+msgstr "구현되지 않음"
+
+#: ../../lib/err.c:36
+msgid "subsystem error"
+msgstr "하위 시스템 오류"
+
+#: ../../lib/err.c:37
+msgid "internal error that should never have happened"
+msgstr "절대 발생하면 안 되는 내부 오류"
+
+#: ../../lib/err.c:39
+msgid "insufficient memory"
+msgstr "메모리 부족"
+
+#: ../../lib/err.c:40
+msgid "invalid parameter or data"
+msgstr "잘못된 매개변수 또는 데이터"
+
+#: ../../lib/err.c:41
+msgid "access denied"
+msgstr "접근 거부됨"
+
+#: ../../lib/err.c:42
+msgid "system busy"
+msgstr "시스템 사용 중"
+
+#: ../../lib/err.c:43
+msgid "operation not allowed"
+msgstr "작업이 허용되지 않음"
+
+#: ../../lib/err.c:44
+msgid "not supported"
+msgstr "지원되지 않음"
+
+#: ../../lib/err.c:45
+msgid "not found"
+msgstr "찾을 수 없음"
+
+#: ../../lib/err.c:46
+msgid "already exists"
+msgstr "이미 존재함"
+
+#: ../../lib/err.c:47
+msgid "I/O error"
+msgstr "입출력 오류"
+
+#: ../../lib/err.c:48
+msgid "buffer full"
+msgstr "버퍼가 가득 참"
+
+#: ../../lib/err.c:49
+msgid "encoding conversion error"
+msgstr "인코딩 변환 오류"
+
+#: ../../lib/err.c:50
+msgid "is a directory"
+msgstr "디렉터리임"
+
+#: ../../lib/err.c:51
+msgid "not a directory"
+msgstr "디렉터리가 아님"
+
+#: ../../lib/err.c:52
+msgid "resource temporarily unavailable"
+msgstr "리소스를 일시적으로 사용할 수 없음"
+
+#: ../../lib/err.c:53
+msgid "interrupted"
+msgstr "인터럽트됨"
+
+#: ../../lib/err.c:54
+msgid "broken pipe"
+msgstr "깨진 파이프"
+
+#: ../../lib/err.c:55
+msgid "in progress"
+msgstr "진행 중"
+
+#: ../../lib/err.c:56
+msgid "no handle"
+msgstr "핸들이 없음"
+
+#: ../../lib/err.c:57
+msgid "no child process"
+msgstr "자식 프로세스가 없음"
+
+#: ../../lib/err.c:58
+msgid "timed out"
+msgstr "시간 초과"
+
+#: ../../lib/err.c:59
+msgid "in bad state"
+msgstr "잘못된 상태임"
+
+#: ../../lib/err.c:61
+msgid "cannot open"
+msgstr "열 수 없음"
+
+#: ../../lib/err.c:62
+msgid "cannot read"
+msgstr "읽을 수 없음"
+
+#: ../../lib/err.c:63
+msgid "cannot write"
+msgstr "쓸 수 없음"
+
+#: ../../lib/err.c:64
+msgid "cannot close"
+msgstr "닫을 수 없음"
+
+#: ../../lib/err.c:66
+msgid "block nested too deeply"
+msgstr "블록 중첩이 너무 깊음"
+
+#: ../../lib/err.c:67
+msgid "expression nested too deeply"
+msgstr "식 중첩이 너무 깊음"
+
+#: ../../lib/err.c:69
+msgid "invalid character"
+msgstr "잘못된 문자"
+
+#: ../../lib/err.c:70
+msgid "invalid digit"
+msgstr "잘못된 숫자 문자"
+
+#: ../../lib/err.c:72
+msgid "unexpected end of input"
+msgstr "예상치 못한 입력 끝"
+
+#: ../../lib/err.c:73
+msgid "comment not closed properly"
+msgstr "주석이 올바르게 닫히지 않음"
+
+#: ../../lib/err.c:74
+msgid "string or regular expression not closed"
+msgstr "문자열 또는 정규식이 닫히지 않음"
+
+#: ../../lib/err.c:75
+msgid "invalid mbs character"
+msgstr "잘못된 MBS 문자"
+
+#: ../../lib/err.c:76
+msgid "left brace expected"
+msgstr "여는 중괄호가 필요함"
+
+#: ../../lib/err.c:77
+msgid "left parenthesis expected"
+msgstr "여는 괄호가 필요함"
+
+#: ../../lib/err.c:78
+msgid "right parenthesis expected"
+msgstr "닫는 괄호가 필요함"
+
+#: ../../lib/err.c:79
+msgid "right brace expected"
+msgstr "닫는 중괄호가 필요함"
+
+#: ../../lib/err.c:80
+msgid "right bracket expected"
+msgstr "닫는 대괄호가 필요함"
+
+#: ../../lib/err.c:81
+msgid "comma expected"
+msgstr "쉼표가 필요함"
+
+#: ../../lib/err.c:82 ../../lib/err.c:206
+msgid "semicolon expected"
+msgstr "세미콜론이 필요함"
+
+#: ../../lib/err.c:83
+msgid "colon expected"
+msgstr "콜론이 필요함"
+
+#: ../../lib/err.c:84
+msgid "integer literal expected"
+msgstr "정수 리터럴이 필요함"
+
+#: ../../lib/err.c:85
+msgid "statement not ending with a semicolon"
+msgstr "문장이 세미콜론으로 끝나지 않음"
+
+#: ../../lib/err.c:86
+msgid "keyword 'in' expected"
+msgstr "'in' 키워드가 필요함"
+
+#: ../../lib/err.c:87
+msgid "right-hand side of 'in' not a variable"
+msgstr "'in' 오른쪽 피연산자가 변수가 아님"
+
+#: ../../lib/err.c:88
+msgid "expression not recognized"
+msgstr "식을 인식할 수 없음"
+
+#: ../../lib/err.c:90
+msgid "keyword 'function' expected"
+msgstr "'function' 키워드가 필요함"
+
+#: ../../lib/err.c:91
+msgid "keyword 'while' expected"
+msgstr "'while' 키워드가 필요함"
+
+#: ../../lib/err.c:92
+msgid "keyword 'case' expected"
+msgstr "'case' 키워드가 필요함"
+
+#: ../../lib/err.c:93
+msgid "multiple 'default' labels"
+msgstr "'default' 레이블이 여러 개임"
+
+#: ../../lib/err.c:94
+msgid "invalid assignment statement"
+msgstr "잘못된 대입문"
+
+#: ../../lib/err.c:95
+msgid "identifier expected"
+msgstr "식별자가 필요함"
+
+#: ../../lib/err.c:96
+msgid "not a valid function name"
+msgstr "올바른 함수 이름이 아님"
+
+#: ../../lib/err.c:97
+msgid "BEGIN not followed by left bracket on the same line"
+msgstr "BEGIN 뒤에 같은 줄의 여는 중괄호가 없음"
+
+#: ../../lib/err.c:98
+msgid "END not followed by left bracket on the same line"
+msgstr "END 뒤에 같은 줄의 여는 중괄호가 없음"
+
+#: ../../lib/err.c:99
+msgid "keyword redefined"
+msgstr "키워드를 재정의함"
+
+#: ../../lib/err.c:100
+msgid "intrinsic function redefined"
+msgstr "내장 함수를 재정의함"
+
+#: ../../lib/err.c:101
+msgid "function redefined"
+msgstr "함수를 재정의함"
+
+#: ../../lib/err.c:102
+msgid "global variable redefined"
+msgstr "전역 변수를 재정의함"
+
+#: ../../lib/err.c:103
+msgid "parameter redefined"
+msgstr "매개변수를 재정의함"
+
+#: ../../lib/err.c:104
+msgid "variable redefined"
+msgstr "변수를 재정의함"
+
+#: ../../lib/err.c:105
+msgid "duplicate parameter name"
+msgstr "중복된 매개변수 이름"
+
+#: ../../lib/err.c:106
+msgid "duplicate global variable"
+msgstr "중복된 전역 변수"
+
+#: ../../lib/err.c:107
+msgid "duplicate local variable"
+msgstr "중복된 지역 변수"
+
+#: ../../lib/err.c:108
+msgid "not a valid parameter name"
+msgstr "올바른 매개변수 이름이 아님"
+
+#: ../../lib/err.c:109
+msgid "not a valid variable name"
+msgstr "올바른 변수 이름이 아님"
+
+#: ../../lib/err.c:110
+msgid "variable name missing"
+msgstr "변수 이름이 없음"
+
+#: ../../lib/err.c:111
+msgid "undefined identifier"
+msgstr "정의되지 않은 식별자"
+
+#: ../../lib/err.c:112
+msgid "l-value required"
+msgstr "l-value가 필요함"
+
+#: ../../lib/err.c:113
+msgid "too many global variables"
+msgstr "전역 변수가 너무 많음"
+
+#: ../../lib/err.c:114
+msgid "too many local variables"
+msgstr "지역 변수가 너무 많음"
+
+#: ../../lib/err.c:115
+msgid "too many parameters"
+msgstr "매개변수가 너무 많음"
+
+#: ../../lib/err.c:116
+msgid "too many segments"
+msgstr "세그먼트가 너무 많음"
+
+#: ../../lib/err.c:117
+msgid "segment too long"
+msgstr "세그먼트가 너무 김"
+
+#: ../../lib/err.c:118
+msgid "bad argument"
+msgstr "잘못된 인자"
+
+#: ../../lib/err.c:119
+msgid "no argument provided"
+msgstr "인자가 제공되지 않음"
+
+#: ../../lib/err.c:120
+msgid "'break' outside a loop"
+msgstr "루프 밖에서 'break' 사용"
+
+#: ../../lib/err.c:121
+msgid "'continue' outside a loop"
+msgstr "루프 밖에서 'continue' 사용"
+
+#: ../../lib/err.c:122
+msgid "'next' illegal in initialization"
+msgstr "초기화 구문에서 'next' 사용 불가"
+
+#: ../../lib/err.c:123
+msgid "'next' illegal in the BEGIN block"
+msgstr "BEGIN 블록에서 'next' 사용 불가"
+
+#: ../../lib/err.c:124
+msgid "'next' illegal in the END block"
+msgstr "END 블록에서 'next' 사용 불가"
+
+#: ../../lib/err.c:125
+msgid "'nextfile' illegal in initialization"
+msgstr "초기화 구문에서 'nextfile' 사용 불가"
+
+#: ../../lib/err.c:126
+msgid "'nextfile' illegal in the BEGIN block"
+msgstr "BEGIN 블록에서 'nextfile' 사용 불가"
+
+#: ../../lib/err.c:127
+msgid "'nextfile' illegal in the END block"
+msgstr "END 블록에서 'nextfile' 사용 불가"
+
+#: ../../lib/err.c:128
+msgid "both prefix and postfix increment/decrement operator present"
+msgstr "증가/감소 연산자의 전위와 후위가 함께 존재함"
+
+#: ../../lib/err.c:129
+msgid "illegal operand for increment/decrement operator"
+msgstr "증가/감소 연산자에 잘못된 피연산자"
+
+#: ../../lib/err.c:130
+msgid "'@include' not followed by a string"
+msgstr "'@include' 뒤에 문자열이 오지 않음"
+
+#: ../../lib/err.c:131
+msgid "include level too deep"
+msgstr "include 수준이 너무 깊음"
+
+#: ../../lib/err.c:132
+msgid "word after @ not recognized"
+msgstr "@ 뒤의 단어를 인식할 수 없음"
+
+#: ../../lib/err.c:133
+msgid "@ not followed by a valid word"
+msgstr "@ 뒤에 올바른 단어가 오지 않음"
+
+#: ../../lib/err.c:134
+msgid "unused element"
+msgstr "사용되지 않은 요소"
+
+#: ../../lib/err.c:136
+msgid "stack full"
+msgstr "스택이 가득 참"
+
+#: ../../lib/err.c:137
+msgid "divide by zero"
+msgstr "0으로 나눔"
+
+#: ../../lib/err.c:138
+msgid "invalid operand"
+msgstr "잘못된 피연산자"
+
+#: ../../lib/err.c:139
+msgid "wrong position index"
+msgstr "잘못된 위치 인덱스"
+
+#: ../../lib/err.c:140
+msgid "too few arguments"
+msgstr "인자가 너무 적음"
+
+#: ../../lib/err.c:141
+msgid "too many arguments"
+msgstr "인자가 너무 많음"
+
+#: ../../lib/err.c:142
+msgid "function not found"
+msgstr "함수를 찾을 수 없음"
+
+#: ../../lib/err.c:143
+msgid "non-function value"
+msgstr "함수가 아닌 값"
+
+#: ../../lib/err.c:144
+msgid "not deletable"
+msgstr "삭제할 수 없음"
+
+#: ../../lib/err.c:145
+msgid "value not a map"
+msgstr "값이 맵이 아님"
+
+#: ../../lib/err.c:146
+msgid "value not an array"
+msgstr "값이 배열이 아님"
+
+#: ../../lib/err.c:147
+msgid "value not accessible with index"
+msgstr "인덱스로 접근할 수 없는 값"
+
+#: ../../lib/err.c:148
+msgid "value not referenceable"
+msgstr "참조할 수 없는 값"
+
+#: ../../lib/err.c:149
+msgid "wrong operand in right-hand side of 'in'"
+msgstr "'in' 오른쪽의 피연산자가 잘못됨"
+
+#: ../../lib/err.c:150
+msgid "cannot return a nonscalar value"
+msgstr "비스칼라 값을 반환할 수 없음"
+
+#: ../../lib/err.c:151
+msgid "cannot assign a nonscalar value to a positional"
+msgstr "위치 변수에 비스칼라 값을 대입할 수 없음"
+
+#: ../../lib/err.c:152
+msgid "cannot assign a nonscalar value to an indexed variable"
+msgstr "인덱스 변수에 비스칼라 값을 대입할 수 없음"
+
+#: ../../lib/err.c:153
+msgid "cannot assign a nonscalar value to a variable"
+msgstr "변수에 비스칼라 값을 대입할 수 없음"
+
+#: ../../lib/err.c:154
+msgid "cannot change a nonscalar value to a scalar value"
+msgstr "비스칼라 값을 스칼라 값으로 바꿀 수 없음"
+
+#: ../../lib/err.c:155
+msgid "cannot change a nonscalar value to another nonscalar value"
+msgstr "비스칼라 값을 다른 비스칼라 값으로 바꿀 수 없음"
+
+#: ../../lib/err.c:156
+msgid "cannot change a scalar value to a nonscalar value"
+msgstr "스칼라 값을 비스칼라 값으로 바꿀 수 없음"
+
+#: ../../lib/err.c:157
+msgid "invalid value to convert to a string"
+msgstr "문자열로 변환할 수 없는 값"
+
+#: ../../lib/err.c:158
+msgid "invalid value to convert to a number"
+msgstr "숫자로 변환할 수 없는 값"
+
+#: ../../lib/err.c:159
+msgid "invalid value to a character"
+msgstr "문자로 변환할 수 없는 값"
+
+#: ../../lib/err.c:160
+msgid "invalid value for hashing"
+msgstr "해시할 수 없는 값"
+
+#: ../../lib/err.c:161
+msgid "array index out of allowed range"
+msgstr "배열 인덱스가 허용 범위를 벗어남"
+
+#: ../../lib/err.c:162
+msgid "single-bracketed multidimensional indices not allowed for array"
+msgstr "단일 대괄호 다차원 인덱스는 배열에 허용되지 않음"
+
+#: ../../lib/err.c:163
+msgid "'next' called during initialization"
+msgstr "초기화 중 'next' 호출됨"
+
+#: ../../lib/err.c:164
+msgid "'next' called from BEGIN block"
+msgstr "BEGIN 블록에서 'next' 호출됨"
+
+#: ../../lib/err.c:165
+msgid "'next' called from END block"
+msgstr "END 블록에서 'next' 호출됨"
+
+#: ../../lib/err.c:166
+msgid "'nextfile' called during initialization"
+msgstr "초기화 중 'nextfile' 호출됨"
+
+#: ../../lib/err.c:167
+msgid "'nextfile' called from BEGIN block"
+msgstr "BEGIN 블록에서 'nextfile' 호출됨"
+
+#: ../../lib/err.c:168
+msgid "'nextfile' called from END block"
+msgstr "END 블록에서 'nextfile' 호출됨"
+
+#: ../../lib/err.c:169
+msgid "wrong implementation of user-defined I/O handler"
+msgstr "사용자 정의 I/O 핸들러 구현이 잘못됨"
+
+#: ../../lib/err.c:170
+msgid "I/O handler returned an error"
+msgstr "I/O 핸들러가 오류를 반환함"
+
+#: ../../lib/err.c:171
+msgid "no such I/O name found"
+msgstr "해당 I/O 이름을 찾을 수 없음"
+
+#: ../../lib/err.c:172
+msgid "I/O name empty"
+msgstr "I/O 이름이 비어 있음"
+
+#: ../../lib/err.c:173
+msgid "I/O name containing '\\0'"
+msgstr "I/O 이름에 '\\0' 포함"
+
+#: ../../lib/err.c:174
+msgid "insufficient arguments to formatting sequence"
+msgstr "서식 시퀀스에 필요한 인자가 부족함"
+
+#: ../../lib/err.c:175
+msgid "invalid character in CONVFMT"
+msgstr "CONVFMT에 잘못된 문자"
+
+#: ../../lib/err.c:176
+msgid "invalid character in OFMT"
+msgstr "OFMT에 잘못된 문자"
+
+#: ../../lib/err.c:178 ../../lib/err.c:197
+msgid "failed to match regular expression"
+msgstr "정규식 일치 실패"
+
+#: ../../lib/err.c:179
+msgid "invalid regular expression in regular expression"
+msgstr "정규식 안에 잘못된 정규식"
+
+#: ../../lib/err.c:180
+msgid "unknown collating element in regular expression"
+msgstr "정규식에서 알 수 없는 정렬 요소"
+
+#: ../../lib/err.c:181
+msgid "unknown character clas name in regular expression"
+msgstr "정규식에서 알 수 없는 문자 클래스 이름"
+
+#: ../../lib/err.c:182
+msgid "trailing backslash in regular expression"
+msgstr "정규식 끝에 백슬래시가 있음"
+
+#: ../../lib/err.c:183
+msgid "invalid backreference in regular expression"
+msgstr "정규식에 잘못된 역참조"
+
+#: ../../lib/err.c:184
+msgid "imbalanced bracket in regular expression"
+msgstr "정규식의 대괄호 짝이 맞지 않음"
+
+#: ../../lib/err.c:185
+msgid "imbalanced parenthesis in regular expression"
+msgstr "정규식의 괄호 짝이 맞지 않음"
+
+#: ../../lib/err.c:186
+msgid "imbalanced brace in regular expression"
+msgstr "정규식의 중괄호 짝이 맞지 않음"
+
+#: ../../lib/err.c:187
+msgid "invalid content inside braces in regular expression"
+msgstr "정규식의 중괄호 안 내용이 잘못됨"
+
+#: ../../lib/err.c:188
+msgid "invalid use of range operator in regular expression"
+msgstr "정규식에서 범위 연산자 사용이 잘못됨"
+
+#: ../../lib/err.c:189
+msgid "invalid use of repetition operator in regular expression"
+msgstr "정규식에서 반복 연산자 사용이 잘못됨"
+
+#: ../../lib/err.c:192
+msgid "command '${0}' not recognized"
+msgstr "명령 '${0}'을(를) 인식할 수 없음"
+
+#: ../../lib/err.c:193
+msgid "command code missing"
+msgstr "명령 코드가 없음"
+
+#: ../../lib/err.c:194
+msgid "command '${0}' incomplete"
+msgstr "명령 '${0}'이(가) 불완전함"
+
+#: ../../lib/err.c:195
+msgid "regular expression '${0}' incomplete"
+msgstr "정규식 '${0}'이(가) 불완전함"
+
+#: ../../lib/err.c:196
+msgid "failed to compile regular expression '${0}'"
+msgstr "정규식 '${0}' 컴파일 실패"
+
+#: ../../lib/err.c:198
+msgid "address 1 prohibited for '${0}'"
+msgstr "'${0}'에 대해 주소 1 사용 금지"
+
+#: ../../lib/err.c:199
+msgid "address 1 missing or invalid"
+msgstr "주소 1이 없거나 잘못됨"
+
+#: ../../lib/err.c:200
+msgid "address 2 prohibited for '${0}'"
+msgstr "'${0}'에 대해 주소 2 사용 금지"
+
+#: ../../lib/err.c:201
+msgid "address 2 missing or invalid"
+msgstr "주소 2가 없거나 잘못됨"
+
+#: ../../lib/err.c:202
+msgid "newline expected"
+msgstr "줄바꿈이 필요함"
+
+#: ../../lib/err.c:203
+msgid "backslash expected"
+msgstr "백슬래시가 필요함"
+
+#: ../../lib/err.c:204
+msgid "backslash used as delimiter"
+msgstr "백슬래시가 구분자로 사용됨"
+
+#: ../../lib/err.c:205
+msgid "garbage after backslash"
+msgstr "백슬래시 뒤에 잘못된 문자가 있음"
+
+#: ../../lib/err.c:207
+msgid "empty label name"
+msgstr "레이블 이름이 비어 있음"
+
+#: ../../lib/err.c:208
+msgid "duplicate label name '${0}'"
+msgstr "중복된 레이블 이름 '${0}'"
+
+#: ../../lib/err.c:209
+msgid "label '${0}' not found"
+msgstr "레이블 '${0}'을(를) 찾을 수 없음"
+
+#: ../../lib/err.c:210
+msgid "empty file name"
+msgstr "파일 이름이 비어 있음"
+
+#: ../../lib/err.c:211
+msgid "illegal file name"
+msgstr "잘못된 파일 이름"
+
+#: ../../lib/err.c:212
+msgid "strings in translation set not the same length"
+msgstr "변환 집합의 문자열 길이가 서로 다름"
+
+#: ../../lib/err.c:213
+msgid "group brackets not balanced"
+msgstr "그룹 괄호의 짝이 맞지 않음"
+
+#: ../../lib/err.c:214
+msgid "group nesting too deep"
+msgstr "그룹 중첩이 너무 깊음"
+
+#: ../../lib/err.c:215
+msgid "multiple occurrence specifiers"
+msgstr "반복 지정자가 여러 개임"
+
+#: ../../lib/err.c:216
+msgid "occurrence specifier zero"
+msgstr "반복 지정자가 0임"
+
+#: ../../lib/err.c:217
+msgid "occurrence specifier too large"
+msgstr "반복 지정자가 너무 큼"
+
+#: ../../lib/err.c:218
+msgid "no previous regular expression"
+msgstr "이전 정규식이 없음"
+
+#: ../../lib/err.c:219
+msgid "cut selector not valid"
+msgstr "cut 선택자가 유효하지 않음"
+
+#: ../../lib/err.c:220 ../../lib/err.c:224
+msgid "I/O error with file '${0}'"
+msgstr "파일 '${0}'에 대한 I/O 오류"
+
+#: ../../lib/err.c:223
+msgid "selector not valid"
+msgstr "선택자가 유효하지 않음"
+
+#: ../../lib/err.c:227
+msgid "unknown error"
+msgstr "알 수 없는 오류"

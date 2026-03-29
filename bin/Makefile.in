@@ -14,6 +14,7 @@
 
 @SET_MAKE@
 
+
 VPATH = @srcdir@
 am__is_gnu_make = { \
   if test -z '$(MAKELEVEL)'; then \
@@ -111,13 +112,12 @@ CONFIG_HEADER = $(top_builddir)/lib/hawk-cfg.h
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 @ENABLE_HAWKGO_TRUE@am__EXEEXT_1 = hawkgo$(EXEEXT)
-am__installdirs = "$(DESTDIR)$(bindir)"
+am__installdirs = "$(DESTDIR)$(bindir)" "$(DESTDIR)$(langdir)"
 PROGRAMS = $(bin_PROGRAMS)
 am_hawk_OBJECTS = hawk-cut.$(OBJEXT) hawk-hawk.$(OBJEXT) \
 	hawk-sed.$(OBJEXT) hawk-main.$(OBJEXT)
 hawk_OBJECTS = $(am_hawk_OBJECTS)
 am__DEPENDENCIES_1 =
-hawk_DEPENDENCIES = $(LIBADD_COMMON) $(am__DEPENDENCIES_1)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
 am__v_lt_0 = --silent
@@ -176,6 +176,33 @@ am__can_run_installinfo = \
     n|no|NO) false;; \
     *) (install-info --version) >/dev/null 2>&1;; \
   esac
+am__vpath_adj_setup = srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`;
+am__vpath_adj = case $$p in \
+    $(srcdir)/*) f=`echo "$$p" | sed "s|^$$srcdirstrip/||"`;; \
+    *) f=$$p;; \
+  esac;
+am__strip_dir = f=`echo $$p | sed -e 's|^.*/||'`;
+am__install_max = 40
+am__nobase_strip_setup = \
+  srcdirstrip=`echo "$(srcdir)" | sed 's/[].[^$$\\*|]/\\\\&/g'`
+am__nobase_strip = \
+  for p in $$list; do echo "$$p"; done | sed -e "s|$$srcdirstrip/||"
+am__nobase_list = $(am__nobase_strip_setup); \
+  for p in $$list; do echo "$$p $$p"; done | \
+  sed "s| $$srcdirstrip/| |;"' / .*\//!s/ .*/ ./; s,\( .*\)/[^/]*$$,\1,' | \
+  $(AWK) 'BEGIN { files["."] = "" } { files[$$2] = files[$$2] " " $$1; \
+    if (++n[$$2] == $(am__install_max)) \
+      { print $$2, files[$$2]; n[$$2] = 0; files[$$2] = "" } } \
+    END { for (dir in files) print dir, files[dir] }'
+am__base_list = \
+  sed '$$!N;$$!N;$$!N;$$!N;$$!N;$$!N;$$!N;s/\n/ /g' | \
+  sed '$$!N;$$!N;$$!N;$$!N;s/\n/ /g'
+am__uninstall_files_from_dir = { \
+  { test ! -d "$$dir" && test ! -f "$$dir" && test ! -r "$$dir"; } \
+  || { echo " ( cd '$$dir' && rm -f" $$files ")"; \
+       $(am__cd) "$$dir" && echo $$files | $(am__xargs_n) 40 $(am__rm_f); }; \
+  }
+DATA = $(lang_DATA)
 am__tagged_files = $(HEADERS) $(SOURCES) $(TAGS_FILES) $(LISP)
 # Read a list of newline-separated strings from the standard input,
 # and print each of them once, without duplicates.  Input order is
@@ -236,11 +263,13 @@ HAVE_CXX = @HAVE_CXX@
 HAVE_CXX11 = @HAVE_CXX11@
 HAWK_PROJECT_AUTHOR = @HAWK_PROJECT_AUTHOR@
 HAWK_PROJECT_URL = @HAWK_PROJECT_URL@
+HOMELANGDIR = @HOMELANGDIR@
 INSTALL = @INSTALL@
 INSTALL_DATA = @INSTALL_DATA@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
 INSTALL_SCRIPT = @INSTALL_SCRIPT@
 INSTALL_STRIP_PROGRAM = @INSTALL_STRIP_PROGRAM@
+LANGDIR = @LANGDIR@
 LD = @LD@
 LDFLAGS = @LDFLAGS@
 LIBM = @LIBM@
@@ -358,11 +387,17 @@ CPPFLAGS_COMMON = \
 	-I$(abs_builddir)/../lib  \
 	-I$(abs_srcdir) \
 	-I$(abs_srcdir)/../lib \
-	-I$(includedir)
+	-I$(includedir) \
+	-DLANGDIR=\"$(LANGDIR)\" \
+	-DHOMELANGDIR=\"$(HOMELANGDIR)\" \
+	-DSYSCONFDIR=\"$(SYSCONFDIR)\"
 
 CFLAGS_COMMON = 
 LDFLAGS_COMMON = -L$(abs_builddir)/../lib -L$(libdir)
 LIBADD_COMMON = ../lib/libhawk.la
+langdir = $(LANGDIR)
+lang_DATA = $(srcdir)/hawk-ko.po  $(srcdir)/hawk-zh_CN.po
+EXTRA_DIST = hawk.pot hawk-ko.po hawk-zh_CN.po
 
 ##################################################
 # hawk
@@ -372,6 +407,7 @@ hawk_CPPFLAGS = $(CPPFLAGS_COMMON)
 hawk_CFLAGS = $(CFLAGS_COMMON)
 hawk_LDFLAGS = $(LDFLAGS_COMMON)
 hawk_LDADD = $(LIBADD_COMMON) $(LIBM)
+hawk_DEPENDENCIES = $(srcdir)/hawk.pot $(srcdir)/hawk-ko.po $(srcdir)/hawk-zh_CN.po
 @ENABLE_HAWKGO_TRUE@hawkgo_SOURCES = \
 @ENABLE_HAWKGO_TRUE@	../hawk.go \
 @ENABLE_HAWKGO_TRUE@	../hawk-inst.go \
@@ -581,6 +617,27 @@ mostlyclean-libtool:
 
 clean-libtool:
 	-rm -rf .libs _libs
+install-langDATA: $(lang_DATA)
+	@$(NORMAL_INSTALL)
+	@list='$(lang_DATA)'; test -n "$(langdir)" || list=; \
+	if test -n "$$list"; then \
+	  echo " $(MKDIR_P) '$(DESTDIR)$(langdir)'"; \
+	  $(MKDIR_P) "$(DESTDIR)$(langdir)" || exit 1; \
+	fi; \
+	for p in $$list; do \
+	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
+	  echo "$$d$$p"; \
+	done | $(am__base_list) | \
+	while read files; do \
+	  echo " $(INSTALL_DATA) $$files '$(DESTDIR)$(langdir)'"; \
+	  $(INSTALL_DATA) $$files "$(DESTDIR)$(langdir)" || exit $$?; \
+	done
+
+uninstall-langDATA:
+	@$(NORMAL_UNINSTALL)
+	@list='$(lang_DATA)'; test -n "$(langdir)" || list=; \
+	files=`for p in $$list; do echo $$p; done | sed -e 's|^.*/||'`; \
+	dir='$(DESTDIR)$(langdir)'; $(am__uninstall_files_from_dir)
 
 ID: $(am__tagged_files)
 	$(am__define_uniq_tagged_files); mkid -fID $$unique
@@ -669,9 +726,9 @@ distdir-am: $(DISTFILES)
 	done
 check-am: all-am
 check: check-am
-all-am: Makefile $(PROGRAMS)
+all-am: Makefile $(PROGRAMS) $(DATA)
 installdirs:
-	for dir in "$(DESTDIR)$(bindir)"; do \
+	for dir in "$(DESTDIR)$(bindir)" "$(DESTDIR)$(langdir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
 install: install-am
@@ -731,7 +788,7 @@ info: info-am
 
 info-am:
 
-install-data-am:
+install-data-am: install-langDATA
 
 install-dvi: install-dvi-am
 
@@ -780,7 +837,7 @@ ps: ps-am
 
 ps-am:
 
-uninstall-am: uninstall-binPROGRAMS
+uninstall-am: uninstall-binPROGRAMS uninstall-langDATA
 
 .MAKE: install-am install-strip
 
@@ -791,15 +848,26 @@ uninstall-am: uninstall-binPROGRAMS
 	html-am info info-am install install-am install-binPROGRAMS \
 	install-data install-data-am install-dvi install-dvi-am \
 	install-exec install-exec-am install-html install-html-am \
-	install-info install-info-am install-man install-pdf \
-	install-pdf-am install-ps install-ps-am install-strip \
-	installcheck installcheck-am installdirs maintainer-clean \
-	maintainer-clean-generic mostlyclean mostlyclean-compile \
-	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
-	tags tags-am uninstall uninstall-am uninstall-binPROGRAMS
+	install-info install-info-am install-langDATA install-man \
+	install-pdf install-pdf-am install-ps install-ps-am \
+	install-strip installcheck installcheck-am installdirs \
+	maintainer-clean maintainer-clean-generic mostlyclean \
+	mostlyclean-compile mostlyclean-generic mostlyclean-libtool \
+	pdf pdf-am ps ps-am tags tags-am uninstall uninstall-am \
+	uninstall-binPROGRAMS uninstall-langDATA
 
 .PRECIOUS: Makefile
 
+
+$(srcdir)/hawk.pot: $(hawk_SOURCES)
+	xgettext --keyword=_ --keyword=__ -o $@ $^
+	xgettext --keyword=HAWK_T -o $@ -j $(top_srcdir)/lib/err.c
+
+$(srcdir)/hawk-ko.po: $(srcdir)/hawk.pot
+	if [ -f $@ ]; then msgmerge --update $@ $<; else msginit --input=$< --locale=ko --output=$@; fi
+
+$(srcdir)/hawk-zh_CN.po: $(srcdir)/hawk.pot
+	if [ -f $@ ]; then msgmerge --update $@ $<; else msginit --input=$< --locale=zh_CN --output=$@; fi
 
 @ENABLE_HAWKGO_TRUE@hawkgo$(EXEEXT): ../lib/libhawk.la $(hawkgo_OBJECTS)
 @ENABLE_HAWKGO_TRUE@	[ -f $(srcdir)/go.sum ] && cp -pf $(srcdir)/go.sum $(builddir)/go.sum >/dev/null 2>&1 || true

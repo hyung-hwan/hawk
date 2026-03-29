@@ -372,28 +372,28 @@ struct opttab_t
 } opttab[] =
 {
 	/* the values must be present in the "lng" table in process_argv[] */
-	{ "blankconcat",  HAWK_BLANKCONCAT,    "enable concatenation by blanks" },
-	{ "buildbc",      HAWK_BUILDBC,        "enable byte-code building" },
-	{ "crlf",         HAWK_CRLF,           "use CRLF for a newline" },
-	{ "defermodsym",  HAWK_DEFER_MODSYM,   "defer resolving module symbols(mod::symbol) to runtime" },
-	{ "flexmap",      HAWK_FLEXMAP,        "allow a map to be assigned or returned" },
-	{ "implicit",     HAWK_IMPLICIT,       "allow undeclared variables" },
-	{ "multilinestr", HAWK_MULTILINESTR,   "allow raw multiline string and regular expression literals" },
-	{ "ncmponstr",    HAWK_NCMPONSTR,      "perform numeric comparsion on numeric strings" },
-	{ "newline",      HAWK_NEWLINE,        "enable a newline to terminate a statement" },
-	{ "nextofile",    HAWK_NEXTOFILE,      "enable nextofile & OFILENAME" },
-	{ "numstrdetect", HAWK_NUMSTRDETECT,   "detect a numeric string and convert it to a number" },
-	{ "pablock",      HAWK_PABLOCK,        "enable pattern-action loop" },
-	{ "pedantic",     HAWK_PEDANTIC,       "enable pedantic mode" },
-	{ "pipecloexec",  HAWK_PIPECLOEXEC,    "set CLOEXEC before executing an external program for piping" },
-	{ "rexbound",     HAWK_REXBOUND,       "enable {n,m} in a regular expression" },
-	{ "rio",          HAWK_RIO,            "enable builtin I/O including getline & print" },
-	{ "rwpipe",       HAWK_RWPIPE,         "allow a dual-directional pipe" },
-	{ "strictnaming", HAWK_STRICTNAMING,   "enable the strict naming rule" },
-	{ "striprecspc",  HAWK_STRIPRECSPC,    "strip spaces in splitting a record" },
-	{ "stripstrspc",  HAWK_STRIPSTRSPC,    "strip spaces in string-to-number conversion" },
-	{ "tolerant",     HAWK_TOLERANT,       "make more fault-tolerant" },
-	{ "xcall",        HAWK_XCALL,          "enable the extended call syntax" },
+	{ "blankconcat",  HAWK_BLANKCONCAT,    __("enable concatenation by blanks") },
+	{ "buildbc",      HAWK_BUILDBC,        __("enable byte-code building") },
+	{ "crlf",         HAWK_CRLF,           __("use CRLF for a newline") },
+	{ "defermodsym",  HAWK_DEFER_MODSYM,   __("defer resolving module symbols(mod::symbol) to runtime") },
+	{ "flexmap",      HAWK_FLEXMAP,        __("allow a map to be assigned or returned") },
+	{ "implicit",     HAWK_IMPLICIT,       __("allow undeclared variables") },
+	{ "multilinestr", HAWK_MULTILINESTR,   __("allow raw multiline string and regular expression literals") },
+	{ "ncmponstr",    HAWK_NCMPONSTR,      __("perform numeric comparsion on numeric strings") },
+	{ "newline",      HAWK_NEWLINE,        __("enable a newline to terminate a statement") },
+	{ "nextofile",    HAWK_NEXTOFILE,      __("enable nextofile & OFILENAME") },
+	{ "numstrdetect", HAWK_NUMSTRDETECT,   __("detect a numeric string and convert it to a number") },
+	{ "pablock",      HAWK_PABLOCK,        __("enable pattern-action loop") },
+	{ "pedantic",     HAWK_PEDANTIC,       __("enable pedantic mode") },
+	{ "pipecloexec",  HAWK_PIPECLOEXEC,    __("set CLOEXEC before executing an external program for piping") },
+	{ "rexbound",     HAWK_REXBOUND,       __("enable {n,m} in a regular expression") },
+	{ "rio",          HAWK_RIO,            __("enable builtin I/O including getline & print") },
+	{ "rwpipe",       HAWK_RWPIPE,         __("allow a dual-directional pipe") },
+	{ "strictnaming", HAWK_STRICTNAMING,   __("enable the strict naming rule") },
+	{ "striprecspc",  HAWK_STRIPRECSPC,    __("strip spaces in splitting a record") },
+	{ "stripstrspc",  HAWK_STRIPSTRSPC,    __("strip spaces in string-to-number conversion") },
+	{ "tolerant",     HAWK_TOLERANT,       __("make more fault-tolerant") },
+	{ "xcall",        HAWK_XCALL,          __("enable the extended call syntax") },
 	{ HAWK_NULL,      0,                   HAWK_NULL }
 };
 
@@ -404,45 +404,45 @@ static void print_usage (FILE* out, const hawk_bch_t* argv0, const hawk_bch_t* r
 	const hawk_bch_t* b2 = (real_argv0? " ": "");
 	const hawk_bch_t* b3 = (real_argv0? argv0: "");
 
-	fprintf (out, "USAGE: %s%s%s [options] -f sourcefile [ -- ] [datafile]*\n", b1, b2, b3);
-	fprintf (out, "       %s%s%s [options] [ -- ] sourcestring [datafile]*\n", b1, b2, b3);
-	fprintf (out, "Options as follows:\n");
-	fprintf (out, " -h/--help                         print this message\n");
-	fprintf (out, " -D                                show extra information\n");
-	fprintf (out, " -c/--call            name         call a function instead of entering\n");
-	fprintf (out, "                                   the pattern-action loop. [datafile]* is\n");
-	fprintf (out, "                                   passed to the function as parameters\n");
-	fprintf (out, " -f/--file            file         set the source script file\n");
-	fprintf (out, " -d/--deparsed-file   file         set the deparsed script file to produce\n");
-	fprintf (out, " -t/--console-output  file         set the console output file\n");
-	fprintf (out, "                                   multiple -t options are allowed\n");
-	fprintf (out, " -F/--field-separator string       set a field separator(FS)\n");
-	fprintf (out, " -v/--assign          var=value    add a global variable with a value\n");
-	fprintf (out, " -m/--memory-limit    number       limit the memory usage (bytes)\n");
-	fprintf (out, " -w                                expand datafile wildcards\n");
+	fprintf(out, "%s: %s%s%s %s\n", _("USAGE"), b1, b2, b3, _("[options] -f sourcefile [ -- ] [datafile]*"));
+	fprintf(out, "%s  %s%s%s %s\n", _("     "), b1, b2, b3, _("[options] [ -- ] sourcestring [datafile]*"));
+	fprintf(out, "%s\n", _("Options as follows:"));
+	fprintf(out, "%s\n", _(" -h/--help                         print this message"));
+	fprintf(out, "%s\n", _(" -D                                show extra information"));
+	fprintf(out, "%s\n", _(" -c/--call            name         call a function instead of entering"));
+	fprintf(out, "%s\n", _("                                   the pattern-action loop. [datafile]* is"));
+	fprintf(out, "%s\n", _("                                   passed to the function as parameters"));
+	fprintf(out, "%s\n", _(" -f/--file            file         set the source script file"));
+	fprintf(out, "%s\n", _(" -d/--deparsed-file   file         set the deparsed script file to produce"));
+	fprintf(out, "%s\n", _(" -t/--console-output  file         set the console output file"));
+	fprintf(out, "%s\n", _("                                   multiple -t options are allowed"));
+	fprintf(out, "%s\n", _(" -F/--field-separator string       set a field separator(FS)"));
+	fprintf(out, "%s\n", _(" -v/--assign          var=value    add a global variable with a value"));
+	fprintf(out, "%s\n", _(" -m/--memory-limit    number       limit the memory usage (bytes)"));
+	fprintf(out, "%s\n", _(" -w                                expand datafile wildcards"));
 
 #if defined(HAWK_OOCH_IS_UCH)
-	fprintf (out, " --script-encoding    string       specify script file encoding name\n");
-	fprintf (out, " --console-encoding   string       specify console encoding name\n");
+	fprintf(out, "%s\n", _(" --script-encoding    string       specify script file encoding name"));
+	fprintf(out, "%s\n", _(" --console-encoding   string       specify console encoding name"));
 #endif
 
-	fprintf (out, " -I/--includedirs     string       specify directories to look for includes files in\n");
-	fprintf (out, " --modlibdirs         string       specify directories to look for module files in\n");
-	fprintf (out, " --modern                          run in the modern mode(default)\n");
-	fprintf (out, " --classic                         run in the classic mode\n");
+	fprintf(out, "%s\n", _(" -I/--includedirs     string       specify directories to look for include files in"));
+	fprintf(out, "%s\n", _(" --modlibdirs         string       specify directories to look for module files in"));
+	fprintf(out, "%s\n", _(" --modern                          run in the modern mode(default)"));
+	fprintf(out, "%s\n", _(" --classic                         run in the classic mode"));
 
 	for (j = 0; opttab[j].name; j++)
 	{
-		fprintf (out, " --%-18s on/off       %s\n", opttab[j].name, opttab[j].desc);
+		fprintf(out, " --%-18s on/off       %s\n", opttab[j].name, _(opttab[j].desc));
 	}
 
 	if (!real_argv0)
 	{
-		fprintf (out, "\n");
-		fprintf (out, "Special mode switching options(must be specified first to take effect):\n");
-		fprintf (out, " --hawk/--awk                      run in the hawk mode\n");
-		fprintf (out, " --cut                             run in the cut mode\n");
-		fprintf (out, " --sed                             run in the sed mode\n");
+		fprintf(out, "\n");
+		fprintf(out, "%s\n", _("Special mode switching options(must be specified first to take effect):"));
+		fprintf(out, "%s\n", _(" --awk/--hawk                      switch to the awk mode(default)"));
+		fprintf(out, "%s\n", _(" --cut                             switch to the cut mode"));
+		fprintf(out, "%s\n", _(" --sed                             switch to the sed mode"));
 	}
 }
 
@@ -789,14 +789,15 @@ static void print_hawk_error(hawk_t* hawk)
 	const hawk_loc_t* loc = hawk_geterrloc(hawk);
 
 	hawk_logbfmt(hawk, HAWK_LOG_STDERR,
-		"ERROR: Line %zu Column %zu Code %d %js%js%js- %js\n",
-		(hawk_oow_t)loc->line,
-		(hawk_oow_t)loc->colm,
-		(int)hawk_geterrnum(hawk),
-		((loc->file == HAWK_NULL)? HAWK_T(""): HAWK_T("File ")),
+		"%hs: %hs %zu %hs %zu %hs %d %hs%js%hs- %hs\n",
+		_("ERROR"),
+		_("Line"),   (hawk_oow_t)loc->line,
+		_("Column"), (hawk_oow_t)loc->colm,
+		_("Code"),   (int)hawk_geterrnum(hawk),
+		((loc->file == HAWK_NULL)? "": _("File ")),
 		((loc->file == HAWK_NULL)? HAWK_T(""): loc->file),
-		((loc->file == HAWK_NULL)? HAWK_T(""): HAWK_T(" ")),
-		hawk_geterrmsg(hawk)
+		((loc->file == HAWK_NULL)? "": " "),
+		_(hawk_geterrbmsg(hawk))
 	);
 }
 
@@ -805,14 +806,15 @@ static void print_hawk_rtx_error(hawk_rtx_t* rtx)
 	const hawk_loc_t* loc = hawk_rtx_geterrloc(rtx);
 
 	hawk_logbfmt(hawk_rtx_gethawk(rtx), HAWK_LOG_STDERR,
-		"ERROR: Line %zu Column %zu Code %d %js%js%js- %js\n",
-		(hawk_oow_t)loc->line,
-		(hawk_oow_t)loc->colm,
-		(int)hawk_rtx_geterrnum(rtx),
-		((loc->file == HAWK_NULL)? HAWK_T(""): HAWK_T("File ")),
+		"%hs: %hs %zu %hs %zu %hs %d %hs%js%hs- %hs\n",
+		_("ERROR"),
+		_("Line"),   (hawk_oow_t)loc->line,
+		_("Column"), (hawk_oow_t)loc->colm,
+		_("Code"),   (int)hawk_rtx_geterrnum(rtx),
+		((loc->file == HAWK_NULL)? "": _("File ")),
 		((loc->file == HAWK_NULL)? HAWK_T(""): loc->file),
-		((loc->file == HAWK_NULL)? HAWK_T(""): HAWK_T(" ")),
-		hawk_rtx_geterrmsg(rtx)
+		((loc->file == HAWK_NULL)? "": " "),
+		_(hawk_rtx_geterrbmsg(rtx))
 	);
 }
 
