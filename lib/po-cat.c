@@ -1,4 +1,5 @@
 #include <hawk-po.h>
+#include "hawk-prv.h"
 
 #include <ctype.h>
 #include <errno.h>
@@ -6,364 +7,475 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define PO_CTX_SEP '\004'
+#define HAWK_POCTX_SEP '\004'
 
-typedef struct {
+typedef struct hawk_pocat_strbuf_t hawk_pocat_strbuf_t;
+typedef struct hawk_pocat_expr_parser_t hawk_pocat_expr_parser_t;
+typedef struct hawk_poparser_t hawk_poparser_t;
+
+enum hawk_pofld_t
+{
+	HAWK_POFLD_NONE,
+	HAWK_POFLD_MSGCTXT,
+	HAWK_POFLD_MSGID,
+	HAWK_POFLD_MSGID_PLURAL,
+	HAWK_POFLD_MSGSTR
+};
+typedef enum hawk_pofld_t hawk_pofld_t;
+
+struct hawk_pocat_strbuf_t
+{
+	hawk_gem_t* gem;
 	char* data;
 	hawk_oow_t len;
-	hawk_oow_t cap;
-} StrBuf;
+	hawk_oow_t capa;
+};
 
-typedef enum {
-	PF_NONE,
-	PF_MSGCTXT,
-	PF_MSGID,
-	PF_MSGID_PLURAL,
-	PF_MSGSTR
-} PoField;
-
-typedef struct {
-	PoEntry cur;
-	PoField active_field;
-	int active_msgstr_index;
-} PoParser;
-
-typedef struct {
+struct hawk_pocat_expr_parser_t
+{
 	const char* s;
 	unsigned long n;
-} ExprParser;
+};
 
-static void die_oom(void) {
-	fprintf(stderr, "out of memory\n");
-	exit(1);
+struct hawk_poparser_t
+{
+	hawk_poent_t cur;
+	hawk_pofld_t active_field;
+	int active_msgstr_index;
+};
+
+static void* hawk_pocat_allocmem (hawk_gem_t* gem, hawk_oow_t size)
+{
+	return hawk_gem_allocmem(gem, (size > 0)? size: 1);
 }
 
-static void *xmalloc(hawk_oow_t n)
+static void* hawk_pocat_callocmem (hawk_gem_t* gem, hawk_oow_t size)
 {
-	void *p = malloc(n ? n : 1);
-	if (!p) die_oom();
-	return p;
+	return hawk_gem_callocmem(gem, (size > 0)? size: 1);
 }
 
-static void *xcalloc(hawk_oow_t nmemb, hawk_oow_t size)
+static void* hawk_pocat_reallocmem (hawk_gem_t* gem, void* ptr, hawk_oow_t size)
 {
-	void *p = calloc(nmemb ? nmemb : 1, size ? size : 1);
-	if (!p) die_oom();
-	return p;
+	return hawk_gem_reallocmem(gem, ptr, (size > 0)? size: 1);
 }
 
-static void *xrealloc(void *ptr, hawk_oow_t n)
+static char* hawk_pocat_dupstr (hawk_gem_t* gem, const char* s)
 {
-	void *p = realloc(ptr, n ? n : 1);
-	if (!p) die_oom();
-	return p;
-}
-
-static char* xstrdup0(const char* s)
-{
-	hawk_oow_t n = strlen(s) + 1;
-	char* out = (char* )xmalloc(n);
-	memcpy(out, s, n);
+	hawk_oow_t n = hawk_count_bcstr(s) + 1;
+	char* out = (char*)hawk_pocat_allocmem(gem, n);
+	if (!out) return HAWK_NULL;
+	HAWK_MEMCPY(out, s, n);
 	return out;
 }
 
-static char* xstrndup0(const char* s, hawk_oow_t n)
+static char* hawk_pocat_dupstrn (hawk_gem_t* gem, const char* s, hawk_oow_t n)
 {
-	char* out = (char* )xmalloc(n + 1);
-	memcpy(out, s, n);
+	char* out = (char*)hawk_pocat_allocmem(gem, n + 1);
+	if (!out) return HAWK_NULL;
+	HAWK_MEMCPY(out, s, n);
 	out[n] = '\0';
 	return out;
 }
 
-static const char* skip_ws(const char* s)
+static void hawk_pocat_strbuf_init (hawk_pocat_strbuf_t* sb, hawk_gem_t* gem)
 {
-	while (*s && isspace((unsigned char)*s)) s++;
-	return s;
-}
-
-static int is_blank_line(const char* s)
-{
-	s = skip_ws(s);
-	return *s == '\0';
-}
-
-static void trim_eol(char* s)
-{
-	hawk_oow_t n = strlen(s);
-	while (n > 0 && (s[n - 1] == '\n' || s[n - 1] == '\r')) s[--n] = '\0';
-}
-
-static int starts_with_kw(const char* s, const char* kw)
-{
-	hawk_oow_t n = strlen(kw);
-	if (strncmp(s, kw, n) != 0) return 0;
-	if (s[n] == '\0') return 1;
-	return isspace((unsigned char)s[n]);
-}
-
-static void sb_init(StrBuf *sb) {
+	sb->gem = gem;
 	sb->data = HAWK_NULL;
 	sb->len = 0;
-	sb->cap = 0;
+	sb->capa = 0;
 }
 
-static void sb_reserve(StrBuf *sb, hawk_oow_t extra) {
-	hawk_oow_t need = sb->len + extra + 1;
-	if (need <= sb->cap) return;
-	hawk_oow_t cap = sb->cap ? sb->cap : 32;
-	while (cap < need) cap *= 2;
-	sb->data = (char* )xrealloc(sb->data, cap);
-	sb->cap = cap;
+static int hawk_pocat_strbuf_reserve (hawk_pocat_strbuf_t* sb, hawk_oow_t extra)
+{
+	hawk_oow_t req;
+	hawk_oow_t capa;
+	char* tmp;
+
+	req = sb->len + extra + 1;
+	if (req <= sb->capa) return 0;
+
+	capa = (sb->capa > 0)? sb->capa: 32;
+	while (capa < req) capa *= 2;
+
+	tmp = (char*)hawk_pocat_reallocmem(sb->gem, sb->data, capa);
+	if (!tmp) return -1;
+
+	sb->data = tmp;
+	sb->capa = capa;
+	return 0;
 }
 
-static void sb_append_char(StrBuf *sb, char c) {
-	sb_reserve(sb, 1);
+static int hawk_pocat_strbuf_append_char (hawk_pocat_strbuf_t* sb, char c)
+{
+	if (hawk_pocat_strbuf_reserve(sb, 1) <= -1) return -1;
 	sb->data[sb->len++] = c;
 	sb->data[sb->len] = '\0';
+	return 0;
 }
 
-static char* sb_take(StrBuf *sb) {
-	char* out;
-	if (!sb->data) return xstrdup0("");
-	out = sb->data;
+static char* hawk_pocat_strbuf_yield (hawk_pocat_strbuf_t* sb)
+{
+	char* ptr;
+
+	if (!sb->data) return hawk_pocat_dupstr(sb->gem, "");
+
+	ptr = sb->data;
 	sb->data = HAWK_NULL;
 	sb->len = 0;
-	sb->cap = 0;
-	return out;
+	sb->capa = 0;
+	return ptr;
 }
 
-static void sb_free(StrBuf *sb) {
-	free(sb->data);
+static void hawk_pocat_strbuf_fini (hawk_pocat_strbuf_t* sb)
+{
+	if (sb->data) hawk_gem_freemem(sb->gem, sb->data);
 	sb->data = HAWK_NULL;
 	sb->len = 0;
-	sb->cap = 0;
+	sb->capa = 0;
 }
 
-static int read_line_dyn(FILE *fp, char* *line_out) {
-	StrBuf sb;
+static int hawk_pocat_read_line (hawk_gem_t* gem, FILE* fp, char** line)
+{
+	hawk_pocat_strbuf_t sb;
 	int ch;
 	int got = 0;
 
-	sb_init(&sb);
+	hawk_pocat_strbuf_init(&sb, gem);
+
 	while ((ch = fgetc(fp)) != EOF)
 	{
 		got = 1;
-		sb_append_char(&sb, (char)ch);
+		if (hawk_pocat_strbuf_append_char(&sb, (char)ch) <= -1)
+		{
+			hawk_pocat_strbuf_fini(&sb);
+			return -1;
+		}
 		if (ch == '\n') break;
 	}
 
 	if (!got)
 	{
-		sb_free(&sb);
+		hawk_pocat_strbuf_fini(&sb);
+		return 0;
+	}
+
+	*line = hawk_pocat_strbuf_yield(&sb);
+	if (!*line)
+	{
+		hawk_pocat_strbuf_fini(&sb);
 		return -1;
 	}
 
-	*line_out = sb_take(&sb);
+	return 1;
+}
+
+static const char* hawk_pocat_skip_ws (const char* s)
+{
+	while (*s && isspace((unsigned char)*s)) s++;
+	return s;
+}
+
+static int hawk_pocat_is_blank_line (const char* s)
+{
+	s = hawk_pocat_skip_ws(s);
+	return (*s == '\0');
+}
+
+static void hawk_pocat_trim_eol (char* s)
+{
+	hawk_oow_t n = hawk_count_bcstr(s);
+	while (n > 0 && (s[n - 1] == '\n' || s[n - 1] == '\r')) s[--n] = '\0';
+}
+
+static int hawk_pocat_starts_with_kw (const char* s, const char* kw)
+{
+	hawk_oow_t n = hawk_count_bcstr(kw);
+	if (hawk_comp_bchars_bcstr(s, n, kw, 0) != 0) return 0;
+	return (s[n] == '\0' || isspace((unsigned char)s[n]));
+}
+
+static void hawk_poent_init (hawk_poent_t* poent)
+{
+	HAWK_MEMSET(poent, 0, HAWK_SIZEOF(*poent));
+}
+
+static void hawk_poent_fini (hawk_poent_t* poent, hawk_gem_t* gem)
+{
+	int i;
+
+	if (poent->msgctx) hawk_gem_freemem(gem, poent->msgctx);
+	if (poent->msgid) hawk_gem_freemem(gem, poent->msgid);
+	if (poent->msgid_plural) hawk_gem_freemem(gem, poent->msgid_plural);
+
+	for (i = 0; i < poent->msgstr_count; i++)
+	{
+		if (poent->msgstr[i]) hawk_gem_freemem(gem, poent->msgstr[i]);
+	}
+	if (poent->msgstr) hawk_gem_freemem(gem, poent->msgstr);
+
+	HAWK_MEMSET(poent, 0, HAWK_SIZEOF(*poent));
+}
+
+static int hawk_poent_ensure_msgstr (hawk_poent_t* poent, hawk_gem_t* gem, int index)
+{
+	int old_count;
+	char** tmp;
+
+	if (index < 0) return -1;
+	if (index < poent->msgstr_count) return 0;
+
+	old_count = poent->msgstr_count;
+	tmp = (char**)hawk_pocat_reallocmem(gem, poent->msgstr, HAWK_SIZEOF(*tmp) * (index + 1));
+	if (!tmp) return -1;
+
+	poent->msgstr = tmp;
+	poent->msgstr_count = index + 1;
+	while (old_count < poent->msgstr_count) poent->msgstr[old_count++] = HAWK_NULL;
 	return 0;
 }
 
-static void po_entry_init(PoEntry *e)
+static char** hawk_poent_target_msgstr (hawk_poent_t* poent, hawk_gem_t* gem, int index)
 {
-	memset(e, 0, sizeof(*e));
+	if (hawk_poent_ensure_msgstr(poent, gem, index) <= -1) return HAWK_NULL;
+	return &poent->msgstr[index];
 }
 
-static void po_entry_free(PoEntry *e)
+static const char* hawk_pocat_find_header_line_value (const char* header, const char* key)
 {
-	int i;
-	free(e->msgctx);
-	free(e->msgid);
-	free(e->msgid_plural);
-	for (i = 0; i < e->msgstr_count; i++) free(e->msgstr[i]);
-	free(e->msgstr);
-	memset(e, 0, sizeof(*e));
-}
-
-static void po_entry_ensure_msgstr(PoEntry *e, int idx)
-{
-	int old;
-	if (idx < 0) return;
-	if (idx < e->msgstr_count) return;
-	old = e->msgstr_count;
-	e->msgstr_count = idx + 1;
-	e->msgstr = (char* *)xrealloc(e->msgstr, sizeof(char* ) * (hawk_oow_t)e->msgstr_count);
-	while (old < e->msgstr_count) e->msgstr[old++] = HAWK_NULL;
-}
-
-static char* *po_entry_target_msgstr(PoEntry *e, int idx)
-{
-	po_entry_ensure_msgstr(e, idx);
-	return &e->msgstr[idx];
-}
-
-static void po_cat_add_entry(PoCatalog *cat, const PoEntry *src)
-{
-	PoEntry *dst;
-	int i;
-
-	if (cat->count == cat->capacity)
-	{
-		cat->capacity = cat->capacity ? cat->capacity * 2 : 32;
-		cat->entries = (PoEntry *)xrealloc(cat->entries, cat->capacity * sizeof(PoEntry));
-	}
-
-	dst = &cat->entries[cat->count++];
-	po_entry_init(dst);
-
-	dst->msgctx = src->msgctx ? xstrdup0(src->msgctx) : HAWK_NULL;
-	dst->msgid = src->msgid ? xstrdup0(src->msgid) : HAWK_NULL;
-	dst->msgid_plural = src->msgid_plural ? xstrdup0(src->msgid_plural) : HAWK_NULL;
-	dst->fuzzy = src->fuzzy;
-	dst->obsolete = src->obsolete;
-	dst->msgstr_count = src->msgstr_count;
-
-	if (src->msgstr_count > 0)
-   {
-		dst->msgstr = (char* *)xcalloc((hawk_oow_t)src->msgstr_count, sizeof(char* ));
-		for (i = 0; i < src->msgstr_count; i++)
-			dst->msgstr[i] = src->msgstr[i] ? xstrdup0(src->msgstr[i]) : HAWK_NULL;
-	}
-}
-
-static const char* find_header_line_value(const char* header, const char* key)
-{
-	hawk_oow_t key_len = strlen(key);
+	hawk_oow_t key_len = hawk_count_bcstr(key);
 	const char* p = header;
 
 	while (*p)
 	{
 		const char* line = p;
-		const char* nl = strchr(p, '\n');
-		hawk_oow_t len = nl ? (hawk_oow_t)(nl - line) : strlen(line);
+		const char* nl = hawk_find_bchar_in_bcstr(p, '\n');
+		hawk_oow_t len = nl? (hawk_oow_t)(nl - line): hawk_count_bcstr(line);
 
-		if (len >= key_len && strncmp(line, key, key_len) == 0) return line + key_len;
+		if (len >= key_len && hawk_comp_bchars_bcstr(line, key_len, key, 0) == 0) return line + key_len;
 
-		p = nl ? nl + 1 : line + len;
+		p = nl? (nl + 1): (line + len);
 		if (!nl) break;
 	}
+
 	return HAWK_NULL;
 }
 
-static char* dup_header_value_line(const char* header, const char* key)
+static char* hawk_pocat_dup_header_value_line (hawk_gem_t* gem, const char* header, const char* key)
 {
-	const char* v = find_header_line_value(header, key);
+	const char* v;
 	const char* end;
+
+	v = hawk_pocat_find_header_line_value(header, key);
 	if (!v) return HAWK_NULL;
+
 	while (*v == ' ' || *v == '\t') v++;
-	end = strchr(v, '\n');
-	if (!end) end = v + strlen(v);
-	return xstrndup0(v, (hawk_oow_t)(end - v));
+	end = hawk_find_bchar_in_bcstr(v, '\n');
+	if (!end) end = v + hawk_count_bcstr(v);
+
+	return hawk_pocat_dupstrn(gem, v, end - v);
 }
 
-static int parse_nplurals_from_plural_forms(const char* s)
+static int hawk_pocat_parse_nplurals (const char* s)
 {
-	const char* p = strstr(s, "nplurals=");
+	const char* p;
 	int n = 2;
 
+	p = strstr(s, "nplurals=");
 	if (!p) return 2;
+
 	p += 9;
 	while (*p && isspace((unsigned char)*p)) p++;
+
 	if (isdigit((unsigned char)*p))
 	{
 		n = 0;
 		while (isdigit((unsigned char)*p))
-	{
+		{
 			n = n * 10 + (*p - '0');
 			p++;
 		}
 	}
-	return n > 0 ? n : 2;
+
+	return (n > 0)? n: 2;
 }
 
-static char* parse_plural_expr_from_plural_forms(const char* s)
+static char* hawk_pocat_parse_plural_expr (hawk_gem_t* gem, const char* s)
 {
-	const char* p = strstr(s, "plural=");
+	const char* p;
 	const char* end;
-	if (!p) return xstrdup0("(n != 1)");
+
+	p = strstr(s, "plural=");
+	if (!p) return hawk_pocat_dupstr(gem, "(n != 1)");
+
 	p += 7;
 	while (*p && isspace((unsigned char)*p)) p++;
-	end = strchr(p, ';');
-	if (!end) end = p + strlen(p);
-	return xstrndup0(p, (hawk_oow_t)(end - p));
+	end = hawk_find_bchar_in_bcstr(p, ';');
+	if (!end) end = p + hawk_count_bcstr(p);
+
+	return hawk_pocat_dupstrn(gem, p, end - p);
 }
 
-static void po_cat_parse_header(PoCatalog *cat, const PoEntry *e)
+static int hawk_pocat_parse_header (hawk_pocat_t* pocat, const hawk_poent_t* poent)
 {
 	char* content_type;
-	char* charset;
+	char* charset = HAWK_NULL;
+	char* plural_forms_raw = HAWK_NULL;
+	char* plural_expr = HAWK_NULL;
 
-	if (!e->msgid || e->msgid[0] != '\0') return;
-	if (e->msgstr_count < 1 || !e->msgstr || !e->msgstr[0]) return;
+	if (!poent->msgid || poent->msgid[0] != '\0') return 0;
+	if (poent->msgstr_count < 1 || !poent->msgstr || !poent->msgstr[0]) return 0;
 
-	free(cat->charset);
-	free(cat->plural_forms_raw);
-	free(cat->plural_expr);
-	cat->charset = HAWK_NULL;
-	cat->plural_forms_raw = HAWK_NULL;
-	cat->plural_expr = HAWK_NULL;
-	cat->nplurals = 2;
-
-	content_type = dup_header_value_line(e->msgstr[0], "Content-Type:");
+	content_type = hawk_pocat_dup_header_value_line(pocat->gem, poent->msgstr[0], "Content-Type:");
 	if (content_type)
 	{
 		const char* p = strstr(content_type, "charset=");
 		if (p)
-	{
+		{
 			p += 8;
-			charset = xstrdup0(p);
-			free(cat->charset);
-			cat->charset = charset;
+			charset = hawk_pocat_dupstr(pocat->gem, p);
+			if (!charset)
+			{
+				hawk_gem_freemem(pocat->gem, content_type);
+				return -1;
+			}
 		}
-		free(content_type);
+		hawk_gem_freemem(pocat->gem, content_type);
 	}
 
-	cat->plural_forms_raw = dup_header_value_line(e->msgstr[0], "Plural-Forms:");
-	if (cat->plural_forms_raw)
+	plural_forms_raw = hawk_pocat_dup_header_value_line(pocat->gem, poent->msgstr[0], "Plural-Forms:");
+	if (plural_forms_raw)
 	{
-		cat->nplurals = parse_nplurals_from_plural_forms(cat->plural_forms_raw);
-		cat->plural_expr = parse_plural_expr_from_plural_forms(cat->plural_forms_raw);
+		plural_expr = hawk_pocat_parse_plural_expr(pocat->gem, plural_forms_raw);
+		if (!plural_expr)
+		{
+			if (charset) hawk_gem_freemem(pocat->gem, charset);
+			hawk_gem_freemem(pocat->gem, plural_forms_raw);
+			return -1;
+		}
 	}
 	else
 	{
-		cat->plural_expr = xstrdup0("(n != 1)");
+		plural_expr = hawk_pocat_dupstr(pocat->gem, "(n != 1)");
+		if (!plural_expr)
+		{
+			if (charset) hawk_gem_freemem(pocat->gem, charset);
+			return -1;
+		}
 	}
+
+	if (pocat->charset) hawk_gem_freemem(pocat->gem, pocat->charset);
+	if (pocat->plural_forms_raw) hawk_gem_freemem(pocat->gem, pocat->plural_forms_raw);
+	if (pocat->plural_expr) hawk_gem_freemem(pocat->gem, pocat->plural_expr);
+
+	pocat->charset = charset;
+	pocat->plural_forms_raw = plural_forms_raw;
+	pocat->plural_expr = plural_expr;
+	pocat->nplurals = plural_forms_raw? hawk_pocat_parse_nplurals(plural_forms_raw): 2;
+
+	return 0;
 }
 
-static char* po_parse_quoted(const char* s, int *ok_out) {
-	StrBuf sb;
-	*ok_out = 0;
+static int hawk_pocat_add_entry (hawk_pocat_t* pocat, const hawk_poent_t* src)
+{
+	hawk_poent_t* dst;
+	hawk_poent_t tmp;
+	hawk_poent_t* entries;
+	int i;
 
-	s = skip_ws(s);
-	if (*s != '"') return HAWK_NULL;
+	if (pocat->count >= pocat->capa)
+	{
+		hawk_oow_t new_capa = (pocat->capa > 0)? (pocat->capa * 2): 32;
+		entries = (hawk_poent_t*)hawk_pocat_reallocmem(pocat->gem, pocat->entries, HAWK_SIZEOF(*entries) * new_capa);
+		if (!entries) return -1;
+		pocat->entries = entries;
+		pocat->capa = new_capa;
+	}
+
+	hawk_poent_init(&tmp);
+
+	if (src->msgctx)
+	{
+		tmp.msgctx = hawk_pocat_dupstr(pocat->gem, src->msgctx);
+		if (!tmp.msgctx) goto oops;
+	}
+
+	if (src->msgid)
+	{
+		tmp.msgid = hawk_pocat_dupstr(pocat->gem, src->msgid);
+		if (!tmp.msgid) goto oops;
+	}
+
+	if (src->msgid_plural)
+	{
+		tmp.msgid_plural = hawk_pocat_dupstr(pocat->gem, src->msgid_plural);
+		if (!tmp.msgid_plural) goto oops;
+	}
+
+	tmp.fuzzy = src->fuzzy;
+	tmp.obsolete = src->obsolete;
+	tmp.msgstr_count = src->msgstr_count;
+
+	if (src->msgstr_count > 0)
+	{
+		tmp.msgstr = (char**)hawk_pocat_callocmem(pocat->gem, HAWK_SIZEOF(*tmp.msgstr) * src->msgstr_count);
+		if (!tmp.msgstr) goto oops;
+
+		for (i = 0; i < src->msgstr_count; i++)
+		{
+			if (src->msgstr[i])
+			{
+				tmp.msgstr[i] = hawk_pocat_dupstr(pocat->gem, src->msgstr[i]);
+				if (!tmp.msgstr[i]) goto oops;
+			}
+		}
+	}
+
+	dst = &pocat->entries[pocat->count++];
+	*dst = tmp;
+	return 0;
+
+oops:
+	hawk_poent_fini(&tmp, pocat->gem);
+	return -1;
+}
+
+static int hawk_pocat_parse_quoted (hawk_gem_t* gem, const char* s, char** out)
+{
+	hawk_pocat_strbuf_t sb;
+
+	*out = HAWK_NULL;
+	s = hawk_pocat_skip_ws(s);
+	if (*s != '"') return 0;
 	s++;
 
-	sb_init(&sb);
+	hawk_pocat_strbuf_init(&sb, gem);
 
 	while (*s && *s != '"')
 	{
 		unsigned char c = (unsigned char)*s++;
 		if (c == '\\')
-	{
+		{
 			unsigned char e = (unsigned char)*s++;
 			switch (e)
-	    {
-				case 'a': sb_append_char(&sb, '\a'); break;
-				case 'b': sb_append_char(&sb, '\b'); break;
-				case 'f': sb_append_char(&sb, '\f'); break;
-				case 'n': sb_append_char(&sb, '\n'); break;
-				case 'r': sb_append_char(&sb, '\r'); break;
-				case 't': sb_append_char(&sb, '\t'); break;
-				case 'v': sb_append_char(&sb, '\v'); break;
-				case '\\': sb_append_char(&sb, '\\'); break;
-				case '"': sb_append_char(&sb, '"'); break;
-				case '\'': sb_append_char(&sb, '\''); break;
-				case '?': sb_append_char(&sb, '?'); break;
+			{
+				case 'a': if (hawk_pocat_strbuf_append_char(&sb, '\a') <= -1) goto oops; break;
+				case 'b': if (hawk_pocat_strbuf_append_char(&sb, '\b') <= -1) goto oops; break;
+				case 'f': if (hawk_pocat_strbuf_append_char(&sb, '\f') <= -1) goto oops; break;
+				case 'n': if (hawk_pocat_strbuf_append_char(&sb, '\n') <= -1) goto oops; break;
+				case 'r': if (hawk_pocat_strbuf_append_char(&sb, '\r') <= -1) goto oops; break;
+				case 't': if (hawk_pocat_strbuf_append_char(&sb, '\t') <= -1) goto oops; break;
+				case 'v': if (hawk_pocat_strbuf_append_char(&sb, '\v') <= -1) goto oops; break;
+				case '\\': if (hawk_pocat_strbuf_append_char(&sb, '\\') <= -1) goto oops; break;
+				case '"': if (hawk_pocat_strbuf_append_char(&sb, '"') <= -1) goto oops; break;
+				case '\'': if (hawk_pocat_strbuf_append_char(&sb, '\'') <= -1) goto oops; break;
+				case '?': if (hawk_pocat_strbuf_append_char(&sb, '?') <= -1) goto oops; break;
 
 				case 'x':
-		{
+				{
 					int val = 0;
 					int digits = 0;
 					while (isxdigit((unsigned char)*s))
-		    {
+					{
 						int d;
 						unsigned char h = (unsigned char)*s++;
 						if (isdigit(h)) d = h - '0';
@@ -372,80 +484,76 @@ static char* po_parse_quoted(const char* s, int *ok_out) {
 						val = (val << 4) | d;
 						digits++;
 					}
-					if (digits == 0)
-		    {
-						sb_free(&sb);
-						return HAWK_NULL;
-					}
-					sb_append_char(&sb, (char)val);
+					if (digits <= 0) goto syntax_error;
+					if (hawk_pocat_strbuf_append_char(&sb, (char)val) <= -1) goto oops;
 					break;
 				}
 
 				case '0': case '1': case '2': case '3':
 				case '4': case '5': case '6': case '7':
-		{
+				{
 					int val = e - '0';
 					int count = 1;
 					while (count < 3 && *s >= '0' && *s <= '7')
-		    {
+					{
 						val = (val * 8) + (*s - '0');
 						s++;
 						count++;
 					}
-					sb_append_char(&sb, (char)val);
+					if (hawk_pocat_strbuf_append_char(&sb, (char)val) <= -1) goto oops;
 					break;
 				}
 
 				case '\0':
-					sb_free(&sb);
-					return HAWK_NULL;
+					goto syntax_error;
 
 				default:
-					sb_append_char(&sb, (char)e);
+					if (hawk_pocat_strbuf_append_char(&sb, (char)e) <= -1) goto oops;
 					break;
 			}
 		}
-	else
-	{
-			sb_append_char(&sb, (char)c);
+		else
+		{
+			if (hawk_pocat_strbuf_append_char(&sb, (char)c) <= -1) goto oops;
 		}
 	}
 
-	if (*s != '"')
-	{
-		sb_free(&sb);
-		return HAWK_NULL;
-	}
-
+	if (*s != '"') goto syntax_error;
 	s++;
-	s = skip_ws(s);
-	if (*s != '\0')
-	{
-		sb_free(&sb);
-		return HAWK_NULL;
-	}
+	s = hawk_pocat_skip_ws(s);
+	if (*s != '\0') goto syntax_error;
 
-	*ok_out = 1;
-	return sb_take(&sb);
+	*out = hawk_pocat_strbuf_yield(&sb);
+	if (!*out) goto oops;
+	return 1;
+
+syntax_error:
+	hawk_pocat_strbuf_fini(&sb);
+	return 0;
+
+oops:
+	hawk_pocat_strbuf_fini(&sb);
+	return -1;
 }
 
-static void expr_skip_ws(ExprParser *p)
+static void hawk_pocat_expr_skip_ws (hawk_pocat_expr_parser_t* p)
 {
 	while (*p->s && isspace((unsigned char)*p->s)) p->s++;
 }
 
-static long expr_parse_ternary(ExprParser *p);
+static long hawk_pocat_expr_parse_ternary (hawk_pocat_expr_parser_t* p);
 
-static long expr_parse_primary(ExprParser *p)
+static long hawk_pocat_expr_parse_primary (hawk_pocat_expr_parser_t* p)
 {
 	long v = 0;
-	expr_skip_ws(p);
+
+	hawk_pocat_expr_skip_ws(p);
 
 	if (*p->s == '(')
 	{
 		p->s++;
-		v = expr_parse_ternary(p);
-		expr_skip_ws(p);
+		v = hawk_pocat_expr_parse_ternary(p);
+		hawk_pocat_expr_skip_ws(p);
 		if (*p->s == ')') p->s++;
 		return v;
 	}
@@ -462,7 +570,7 @@ static long expr_parse_primary(ExprParser *p)
 		errno = 0;
 		v = strtol(p->s, &end, 10);
 		if (end != p->s)
-	{
+		{
 			p->s = end;
 			return v;
 		}
@@ -471,550 +579,646 @@ static long expr_parse_primary(ExprParser *p)
 	return 0;
 }
 
-static long expr_parse_unary(ExprParser *p)
+static long hawk_pocat_expr_parse_unary (hawk_pocat_expr_parser_t* p)
 {
-	expr_skip_ws(p);
+	hawk_pocat_expr_skip_ws(p);
 	if (*p->s == '!')
 	{
 		p->s++;
-		return !expr_parse_unary(p);
+		return !hawk_pocat_expr_parse_unary(p);
 	}
 	if (*p->s == '+')
 	{
 		p->s++;
-		return +expr_parse_unary(p);
+		return +hawk_pocat_expr_parse_unary(p);
 	}
 	if (*p->s == '-')
 	{
 		p->s++;
-		return -expr_parse_unary(p);
+		return -hawk_pocat_expr_parse_unary(p);
 	}
-	return expr_parse_primary(p);
+	return hawk_pocat_expr_parse_primary(p);
 }
 
-static long expr_parse_mul(ExprParser *p)
+static long hawk_pocat_expr_parse_mul (hawk_pocat_expr_parser_t* p)
 {
-	long v = expr_parse_unary(p);
+	long v = hawk_pocat_expr_parse_unary(p);
+
 	for (;;)
 	{
 		long rhs;
-		expr_skip_ws(p);
+
+		hawk_pocat_expr_skip_ws(p);
 		if (*p->s == '*')
-	{
+		{
 			p->s++;
-			rhs = expr_parse_unary(p);
+			rhs = hawk_pocat_expr_parse_unary(p);
 			v = v * rhs;
 		}
-	else if (*p->s == '/')
-	{
+		else if (*p->s == '/')
+		{
 			p->s++;
-			rhs = expr_parse_unary(p);
-			v = (rhs == 0) ? 0 : (v / rhs);
+			rhs = hawk_pocat_expr_parse_unary(p);
+			v = (rhs == 0)? 0: (v / rhs);
 		}
-	else if (*p->s == '%')
-	{
+		else if (*p->s == '%')
+		{
 			p->s++;
-			rhs = expr_parse_unary(p);
-			v = (rhs == 0) ? 0 : (v % rhs);
+			rhs = hawk_pocat_expr_parse_unary(p);
+			v = (rhs == 0)? 0: (v % rhs);
 		}
-	else
-	{
-			break;
-		}
+		else break;
 	}
+
 	return v;
 }
 
-static long expr_parse_add(ExprParser *p)
+static long hawk_pocat_expr_parse_add (hawk_pocat_expr_parser_t* p)
 {
-	long v = expr_parse_mul(p);
+	long v = hawk_pocat_expr_parse_mul(p);
+
 	for (;;)
 	{
 		long rhs;
-		expr_skip_ws(p);
+
+		hawk_pocat_expr_skip_ws(p);
 		if (*p->s == '+')
-	{
+		{
 			p->s++;
-			rhs = expr_parse_mul(p);
+			rhs = hawk_pocat_expr_parse_mul(p);
 			v = v + rhs;
 		}
-	else if (*p->s == '-')
-	{
+		else if (*p->s == '-')
+		{
 			p->s++;
-			rhs = expr_parse_mul(p);
+			rhs = hawk_pocat_expr_parse_mul(p);
 			v = v - rhs;
 		}
-	else
-	{
-			break;
-		}
+		else break;
 	}
+
 	return v;
 }
 
-static long expr_parse_rel(ExprParser *p) {
-	long v = expr_parse_add(p);
+static long hawk_pocat_expr_parse_rel (hawk_pocat_expr_parser_t* p)
+{
+	long v = hawk_pocat_expr_parse_add(p);
+
 	for (;;)
 	{
 		long rhs;
-		expr_skip_ws(p);
-		if (strncmp(p->s, "<=", 2) == 0)
-	{
+
+		hawk_pocat_expr_skip_ws(p);
+		if (hawk_comp_bcstr_limited(p->s, "<=", 2, 0) == 0)
+		{
 			p->s += 2;
-			rhs = expr_parse_add(p);
+			rhs = hawk_pocat_expr_parse_add(p);
 			v = (v <= rhs);
 		}
-	else if (strncmp(p->s, ">=", 2) == 0)
-	{
+		else if (hawk_comp_bcstr_limited(p->s, ">=", 2, 0) == 0)
+		{
 			p->s += 2;
-			rhs = expr_parse_add(p);
+			rhs = hawk_pocat_expr_parse_add(p);
 			v = (v >= rhs);
 		}
-	else if (*p->s == '<')
-	{
+		else if (*p->s == '<')
+		{
 			p->s++;
-			rhs = expr_parse_add(p);
+			rhs = hawk_pocat_expr_parse_add(p);
 			v = (v < rhs);
 		}
-	else if (*p->s == '>')
-	{
+		else if (*p->s == '>')
+		{
 			p->s++;
-			rhs = expr_parse_add(p);
+			rhs = hawk_pocat_expr_parse_add(p);
 			v = (v > rhs);
 		}
-	else
-	{
-			break;
-		}
+		else break;
 	}
+
 	return v;
 }
 
-static long expr_parse_eq(ExprParser *p) {
-	long v = expr_parse_rel(p);
+static long hawk_pocat_expr_parse_eq (hawk_pocat_expr_parser_t* p)
+{
+	long v = hawk_pocat_expr_parse_rel(p);
+
 	for (;;)
 	{
 		long rhs;
-		expr_skip_ws(p);
-		if (strncmp(p->s, "==", 2) == 0)
-	{
+
+		hawk_pocat_expr_skip_ws(p);
+		if (hawk_comp_bcstr_limited(p->s, "==", 2, 0) == 0)
+		{
 			p->s += 2;
-			rhs = expr_parse_rel(p);
+			rhs = hawk_pocat_expr_parse_rel(p);
 			v = (v == rhs);
 		}
-	else if (strncmp(p->s, "!=", 2) == 0)
-	{
+		else if (hawk_comp_bcstr_limited(p->s, "!=", 2, 0) == 0)
+		{
 			p->s += 2;
-			rhs = expr_parse_rel(p);
+			rhs = hawk_pocat_expr_parse_rel(p);
 			v = (v != rhs);
 		}
-	else
-	{
-			break;
-		}
+		else break;
 	}
+
 	return v;
 }
 
-static long expr_parse_and(ExprParser *p)
+static long hawk_pocat_expr_parse_and (hawk_pocat_expr_parser_t* p)
 {
-	long v = expr_parse_eq(p);
+	long v = hawk_pocat_expr_parse_eq(p);
+
 	for (;;)
 	{
 		long rhs;
-		expr_skip_ws(p);
-		if (strncmp(p->s, "&&", 2) == 0)
-	{
-			p->s += 2;
-			rhs = expr_parse_eq(p);
-			v = (v && rhs);
-		}
-	else
-	{
-			break;
-		}
+
+		hawk_pocat_expr_skip_ws(p);
+		if (hawk_comp_bcstr_limited(p->s, "&&", 2, 0) != 0) break;
+		p->s += 2;
+		rhs = hawk_pocat_expr_parse_eq(p);
+		v = (v && rhs);
 	}
+
 	return v;
 }
 
-static long expr_parse_or(ExprParser *p)
+static long hawk_pocat_expr_parse_or (hawk_pocat_expr_parser_t* p)
 {
-	long v = expr_parse_and(p);
+	long v = hawk_pocat_expr_parse_and(p);
+
 	for (;;)
 	{
 		long rhs;
-		expr_skip_ws(p);
-		if (strncmp(p->s, "||", 2) == 0)
-	{
-			p->s += 2;
-			rhs = expr_parse_and(p);
-			v = (v || rhs);
-		}
-	else
-	{
-			break;
-		}
+
+		hawk_pocat_expr_skip_ws(p);
+		if (hawk_comp_bcstr_limited(p->s, "||", 2, 0) != 0) break;
+		p->s += 2;
+		rhs = hawk_pocat_expr_parse_and(p);
+		v = (v || rhs);
 	}
+
 	return v;
 }
 
-static long expr_parse_ternary(ExprParser *p)
+static long hawk_pocat_expr_parse_ternary (hawk_pocat_expr_parser_t* p)
 {
-	long cond = expr_parse_or(p);
-	expr_skip_ws(p);
+	long cond = hawk_pocat_expr_parse_or(p);
+
+	hawk_pocat_expr_skip_ws(p);
 	if (*p->s == '?')
 	{
-		long a, b;
+		long a;
+		long b;
+
 		p->s++;
-		a = expr_parse_ternary(p);
-		expr_skip_ws(p);
+		a = hawk_pocat_expr_parse_ternary(p);
+		hawk_pocat_expr_skip_ws(p);
 		if (*p->s == ':') p->s++;
-		b = expr_parse_ternary(p);
-		return cond ? a : b;
+		b = hawk_pocat_expr_parse_ternary(p);
+		return cond? a: b;
 	}
+
 	return cond;
 }
 
-static int po_eval_plural_index(const PoCatalog *cat, unsigned long n)
+static int hawk_pocat_eval_plural_index (const hawk_pocat_t* pocat, unsigned long n)
 {
-	ExprParser p;
-	long idx;
+	hawk_pocat_expr_parser_t p;
+	long index;
 
-	if (!cat->plural_expr || !*cat->plural_expr) return (n != 1) ? 1 : 0;
+	if (!pocat->plural_expr || !pocat->plural_expr[0]) return (n != 1)? 1: 0;
 
-	p.s = cat->plural_expr;
+	p.s = pocat->plural_expr;
 	p.n = n;
-	idx = expr_parse_ternary(&p);
+	index = hawk_pocat_expr_parse_ternary(&p);
 
-	if (idx < 0) idx = 0;
-	if (cat->nplurals > 0 && idx >= cat->nplurals) idx = cat->nplurals - 1;
-	return (int)idx;
+	if (index < 0) index = 0;
+	if (pocat->nplurals > 0 && index >= pocat->nplurals) index = pocat->nplurals - 1;
+
+	return (int)index;
 }
 
-static void parser_init(PoParser *p)
+static void hawk_poparser_init (hawk_poparser_t* parser)
 {
-	po_entry_init(&p->cur);
-	p->active_field = PF_NONE;
-	p->active_msgstr_index = 0;
+	hawk_poent_init(&parser->cur);
+	parser->active_field = HAWK_POFLD_NONE;
+	parser->active_msgstr_index = 0;
 }
 
-static void parser_reset_current(PoParser *p)
+static void hawk_poparser_reset_current (hawk_poparser_t* parser, hawk_gem_t* gem)
 {
-	po_entry_free(&p->cur);
-	po_entry_init(&p->cur);
-	p->active_field = PF_NONE;
-	p->active_msgstr_index = 0;
+	hawk_poent_fini(&parser->cur, gem);
+	hawk_poent_init(&parser->cur);
+	parser->active_field = HAWK_POFLD_NONE;
+	parser->active_msgstr_index = 0;
 }
 
-static int parser_has_current_content(const PoParser *p)
+static int hawk_poparser_has_current_content (const hawk_poparser_t* parser)
 {
-	return p->cur.msgctx || p->cur.msgid || p->cur.msgid_plural ||
-		   p->cur.msgstr_count > 0 || p->cur.fuzzy || p->cur.obsolete;
+	return !!(parser->cur.msgctx || parser->cur.msgid || parser->cur.msgid_plural ||
+	          parser->cur.msgstr_count > 0 || parser->cur.fuzzy || parser->cur.obsolete);
 }
 
-static void append_to_string(char* *dst, const char* frag)
+static int hawk_poparser_append_to_string (hawk_gem_t* gem, char** dst, const char* frag)
 {
-	hawk_oow_t old_len = *dst ? strlen(*dst) : 0;
-	hawk_oow_t add_len = strlen(frag);
-	*dst = (char* )xrealloc(*dst, old_len + add_len + 1);
-	memcpy(*dst + old_len, frag, add_len + 1);
-}
+	hawk_oow_t old_len = (*dst)? hawk_count_bcstr(*dst): 0;
+	hawk_oow_t add_len = hawk_count_bcstr(frag);
+	char* tmp;
 
-static void parser_append_fragment(PoParser *p, const char* frag)
-{
-	switch (p->active_field) {
-		case PF_MSGCTXT:
-			if (!p->cur.msgctx) p->cur.msgctx = xstrdup0("");
-			append_to_string(&p->cur.msgctx, frag);
-			break;
-		case PF_MSGID:
-			if (!p->cur.msgid) p->cur.msgid = xstrdup0("");
-			append_to_string(&p->cur.msgid, frag);
-			break;
-		case PF_MSGID_PLURAL:
-			if (!p->cur.msgid_plural) p->cur.msgid_plural = xstrdup0("");
-			append_to_string(&p->cur.msgid_plural, frag);
-			break;
-		case PF_MSGSTR:
-	{
-			char* *slot = po_entry_target_msgstr(&p->cur, p->active_msgstr_index);
-			if (!*slot) *slot = xstrdup0("");
-			append_to_string(slot, frag);
-			break;
-		}
-		default:
-			break;
-	}
-}
+	tmp = (char*)hawk_pocat_reallocmem(gem, *dst, old_len + add_len + 1);
+	if (!tmp) return -1;
 
-static int parse_msgstr_index_line(const char* s, int *idx_out, const char* *after_out)
-{
-	int idx = 0;
-	if (strncmp(s, "msgstr[", 7) != 0) return 0;
-	s += 7;
-	if (!isdigit((unsigned char)*s)) return 0;
-	while (isdigit((unsigned char)*s))
-	{
-		idx = idx * 10 + (*s - '0');
-		s++;
-	}
-	if (*s != ']') return 0;
-	s++;
-	*idx_out = idx;
-	*after_out = s;
-	return 1;
-}
-
-static int parser_finalize_entry(PoCatalog *cat, PoParser *p)
-{
-	if (!parser_has_current_content(p)) return 1;
-	if (!p->cur.msgid) p->cur.msgid = xstrdup0("");
-	po_cat_add_entry(cat, &p->cur);
-	if (p->cur.msgid[0] == '\0') po_cat_parse_header(cat, &p->cur);
-	parser_reset_current(p);
-	return 1;
-}
-
-int po_cat_init (PoCatalog *cat)
-{
-	if (!cat) return -1;
-	memset(cat, 0, sizeof(*cat));
-	cat->nplurals = 2;
+	*dst = tmp;
+	HAWK_MEMCPY(&(*dst)[old_len], frag, add_len + 1);
 	return 0;
 }
 
-void po_cat_fini (PoCatalog *cat)
+static int hawk_poparser_append_fragment (hawk_poparser_t* parser, hawk_gem_t* gem, const char* frag)
+{
+	switch (parser->active_field)
+	{
+		case HAWK_POFLD_MSGCTXT:
+			if (!parser->cur.msgctx)
+			{
+				parser->cur.msgctx = hawk_pocat_dupstr(gem, "");
+				if (!parser->cur.msgctx) return -1;
+			}
+			return hawk_poparser_append_to_string(gem, &parser->cur.msgctx, frag);
+
+		case HAWK_POFLD_MSGID:
+			if (!parser->cur.msgid)
+			{
+				parser->cur.msgid = hawk_pocat_dupstr(gem, "");
+				if (!parser->cur.msgid) return -1;
+			}
+			return hawk_poparser_append_to_string(gem, &parser->cur.msgid, frag);
+
+		case HAWK_POFLD_MSGID_PLURAL:
+			if (!parser->cur.msgid_plural)
+			{
+				parser->cur.msgid_plural = hawk_pocat_dupstr(gem, "");
+				if (!parser->cur.msgid_plural) return -1;
+			}
+			return hawk_poparser_append_to_string(gem, &parser->cur.msgid_plural, frag);
+
+		case HAWK_POFLD_MSGSTR:
+		{
+			char** slot = hawk_poent_target_msgstr(&parser->cur, gem, parser->active_msgstr_index);
+			if (!slot) return -1;
+
+			if (!*slot)
+			{
+				*slot = hawk_pocat_dupstr(gem, "");
+				if (!*slot) return -1;
+			}
+			return hawk_poparser_append_to_string(gem, slot, frag);
+		}
+
+		default:
+			return 0;
+	}
+}
+
+static int hawk_poparser_parse_msgstr_index_line (const char* s, int* index, const char** after)
+{
+	int n = 0;
+
+	if (hawk_comp_bcstr_limited(s, "msgstr[", 7, 0) != 0) return 0;
+
+	s += 7;
+	if (!isdigit((unsigned char)*s)) return 0;
+
+	while (isdigit((unsigned char)*s))
+	{
+		n = n * 10 + (*s - '0');
+		s++;
+	}
+
+	if (*s != ']') return 0;
+	s++;
+
+	*index = n;
+	*after = s;
+	return 1;
+}
+
+static int hawk_poparser_finalize_entry (hawk_pocat_t* pocat, hawk_poparser_t* parser)
+{
+	if (!hawk_poparser_has_current_content(parser)) return 0;
+
+	if (!parser->cur.msgid)
+	{
+		parser->cur.msgid = hawk_pocat_dupstr(pocat->gem, "");
+		if (!parser->cur.msgid) return -1;
+	}
+
+	if (hawk_pocat_add_entry(pocat, &parser->cur) <= -1) return -1;
+	if (parser->cur.msgid[0] == '\0' && hawk_pocat_parse_header(pocat, &parser->cur) <= -1) return -1;
+
+	hawk_poparser_reset_current(parser, pocat->gem);
+	return 0;
+}
+
+hawk_pocat_t* hawk_pocat_open (hawk_gem_t* gem, hawk_oow_t xtnsize)
+{
+	hawk_pocat_t* pocat;
+
+	pocat = (hawk_pocat_t*)hawk_gem_allocmem(gem, HAWK_SIZEOF(*pocat) + xtnsize);
+	if (!pocat) return HAWK_NULL;
+
+	if (hawk_pocat_init(pocat, gem) <= -1)
+	{
+		hawk_gem_freemem(gem, pocat);
+		return HAWK_NULL;
+	}
+
+	HAWK_MEMSET(pocat + 1, 0, xtnsize);
+	return pocat;
+}
+
+void hawk_pocat_close (hawk_pocat_t* pocat)
+{
+	hawk_gem_t* gem;
+
+	gem = pocat->gem;
+	hawk_pocat_fini(pocat);
+	hawk_gem_freemem(gem, pocat);
+}
+
+int hawk_pocat_init (hawk_pocat_t* pocat, hawk_gem_t* gem)
+{
+	if (!pocat || !gem) return -1;
+	HAWK_MEMSET(pocat, 0, HAWK_SIZEOF(*pocat));
+	pocat->gem = gem;
+	pocat->nplurals = 2;
+	return 0;
+}
+
+void hawk_pocat_fini (hawk_pocat_t* pocat)
 {
 	hawk_oow_t i;
 
-	if (!cat) return;
-	for (i = 0; i < cat->count; i++) po_entry_free(&cat->entries[i]);
-	free(cat->entries);
-	free(cat->charset);
-	free(cat->plural_forms_raw);
-	free(cat->plural_expr);
-	memset(cat, 0, sizeof(*cat));
+	if (!pocat) return;
+
+	for (i = 0; i < pocat->count; i++) hawk_poent_fini(&pocat->entries[i], pocat->gem);
+	if (pocat->entries) hawk_gem_freemem(pocat->gem, pocat->entries);
+	if (pocat->charset) hawk_gem_freemem(pocat->gem, pocat->charset);
+	if (pocat->plural_forms_raw) hawk_gem_freemem(pocat->gem, pocat->plural_forms_raw);
+	if (pocat->plural_expr) hawk_gem_freemem(pocat->gem, pocat->plural_expr);
+
+	HAWK_MEMSET(pocat, 0, HAWK_SIZEOF(*pocat));
 }
 
-int po_cat_load_file (PoCatalog *cat, const char* path, char* errbuf, hawk_oow_t errbuf_sz)
+int hawk_pocat_load_file (hawk_pocat_t* pocat, const char* path, char* errbuf, hawk_oow_t errbuf_sz)
 {
-	FILE *fp = fopen(path, "rb");
-	PoParser p;
+	FILE* fp;
+	hawk_poparser_t parser;
 	char* line = HAWK_NULL;
 	unsigned long line_no = 0;
-	int ok = 1;
+	int status = 0;
 
-	if (!cat || !path)
+	if (!pocat || !path)
 	{
-		if (errbuf && errbuf_sz) snprintf(errbuf, errbuf_sz, "invalid arguments");
+		if (errbuf && errbuf_sz > 0) snprintf(errbuf, errbuf_sz, "invalid arguments");
 		return -1;
 	}
 
+	fp = fopen(path, "rb");
 	if (!fp)
 	{
-		if (errbuf && errbuf_sz) snprintf(errbuf, errbuf_sz, "cannot open %s", path);
+		if (errbuf && errbuf_sz > 0) snprintf(errbuf, errbuf_sz, "cannot open %s", path);
 		return -1;
 	}
 
-	parser_init(&p);
+	hawk_poparser_init(&parser);
 
-	while (read_line_dyn(fp, &line) >= 0)
+	for (;;)
 	{
 		const char* s;
 		char* frag;
-		int qok;
+		int x;
+
+		x = hawk_pocat_read_line(pocat->gem, fp, &line);
+		if (x == 0) break;
+		if (x <= -1)
+		{
+			if (errbuf && errbuf_sz > 0) snprintf(errbuf, errbuf_sz, "%s: out of memory", path);
+			status = -1;
+			goto done;
+		}
 
 		line_no++;
-		trim_eol(line);
-		s = skip_ws(line);
+		hawk_pocat_trim_eol(line);
+		s = hawk_pocat_skip_ws(line);
 
-		if (is_blank_line(s))
+		if (hawk_pocat_is_blank_line(s))
 		{
-			if (!parser_finalize_entry(cat, &p))
+			if (hawk_poparser_finalize_entry(pocat, &parser) <= -1)
 			{
-				ok = 0;
-				break;
+				if (errbuf && errbuf_sz > 0) snprintf(errbuf, errbuf_sz, "%s: out of memory", path);
+				status = -1;
+				goto done;
 			}
-			free(line);
+
+			hawk_gem_freemem(pocat->gem, line);
 			line = HAWK_NULL;
 			continue;
 		}
 
-		if (strncmp(s, "#~", 2) == 0)
+		if (hawk_comp_bcstr_limited(s, "#~", 2, 0) == 0)
 		{
-			p.cur.obsolete = 1;
+			parser.cur.obsolete = 1;
 			s += 2;
-			s = skip_ws(s);
-			if (*s == '\0') {
-				free(line);
+			s = hawk_pocat_skip_ws(s);
+			if (*s == '\0')
+			{
+				hawk_gem_freemem(pocat->gem, line);
 				line = HAWK_NULL;
 				continue;
 			}
 		}
 		else if (*s == '#')
 		{
-			if (strncmp(s, "#,", 2) == 0 && strstr(s + 2, "fuzzy")) p.cur.fuzzy = 1;
-			free(line);
+			if (hawk_comp_bcstr_limited(s, "#,", 2, 0) == 0 && strstr(s + 2, "fuzzy")) parser.cur.fuzzy = 1;
+			hawk_gem_freemem(pocat->gem, line);
 			line = HAWK_NULL;
 			continue;
 		}
 
-		if (starts_with_kw(s, "msgctx"))
+		if (hawk_pocat_starts_with_kw(s, "msgctx"))
 		{
-			frag = po_parse_quoted(s + 7, &qok);
-			if (!qok) goto syntax_error;
-			free(p.cur.msgctx);
-			p.cur.msgctx = frag;
-			p.active_field = PF_MSGCTXT;
-			free(line);
+			x = hawk_pocat_parse_quoted(pocat->gem, s + 7, &frag);
+			if (x == 0) goto syntax_error;
+			if (x <= -1) goto nomem_error;
+			if (parser.cur.msgctx) hawk_gem_freemem(pocat->gem, parser.cur.msgctx);
+			parser.cur.msgctx = frag;
+			parser.active_field = HAWK_POFLD_MSGCTXT;
+			hawk_gem_freemem(pocat->gem, line);
 			line = HAWK_NULL;
 			continue;
 		}
 
-		if (starts_with_kw(s, "msgid_plural"))
+		if (hawk_pocat_starts_with_kw(s, "msgid_plural"))
 		{
-			frag = po_parse_quoted(s + 12, &qok);
-			if (!qok) goto syntax_error;
-			free(p.cur.msgid_plural);
-			p.cur.msgid_plural = frag;
-			p.active_field = PF_MSGID_PLURAL;
-			free(line);
+			x = hawk_pocat_parse_quoted(pocat->gem, s + 12, &frag);
+			if (x == 0) goto syntax_error;
+			if (x <= -1) goto nomem_error;
+			if (parser.cur.msgid_plural) hawk_gem_freemem(pocat->gem, parser.cur.msgid_plural);
+			parser.cur.msgid_plural = frag;
+			parser.active_field = HAWK_POFLD_MSGID_PLURAL;
+			hawk_gem_freemem(pocat->gem, line);
 			line = HAWK_NULL;
 			continue;
 		}
 
-		if (starts_with_kw(s, "msgid"))
+		if (hawk_pocat_starts_with_kw(s, "msgid"))
 		{
-			if (p.cur.msgid && (p.cur.msgstr_count > 0 || p.cur.msgctx || p.cur.msgid_plural))
+			if (parser.cur.msgid && (parser.cur.msgstr_count > 0 || parser.cur.msgctx || parser.cur.msgid_plural))
 			{
-				if (!parser_finalize_entry(cat, &p))
-				{
-					ok = 0;
-					break;
-				}
+				if (hawk_poparser_finalize_entry(pocat, &parser) <= -1) goto nomem_error;
 			}
-			frag = po_parse_quoted(s + 5, &qok);
-			if (!qok) goto syntax_error;
-			free(p.cur.msgid);
-			p.cur.msgid = frag;
-			p.active_field = PF_MSGID;
-			free(line);
+
+			x = hawk_pocat_parse_quoted(pocat->gem, s + 5, &frag);
+			if (x == 0) goto syntax_error;
+			if (x <= -1) goto nomem_error;
+			if (parser.cur.msgid) hawk_gem_freemem(pocat->gem, parser.cur.msgid);
+			parser.cur.msgid = frag;
+			parser.active_field = HAWK_POFLD_MSGID;
+			hawk_gem_freemem(pocat->gem, line);
 			line = HAWK_NULL;
 			continue;
 		}
 
-		if (starts_with_kw(s, "msgstr"))
+		if (hawk_pocat_starts_with_kw(s, "msgstr"))
 		{
-			int idx = 0;
+			int index = 0;
 			const char* after = HAWK_NULL;
 
-			if (parse_msgstr_index_line(s, &idx, &after))
+			if (hawk_poparser_parse_msgstr_index_line(s, &index, &after)) x = hawk_pocat_parse_quoted(pocat->gem, after, &frag);
+			else x = hawk_pocat_parse_quoted(pocat->gem, s + 6, &frag);
+
+			if (x == 0) goto syntax_error;
+			if (x <= -1) goto nomem_error;
+
+			if (hawk_poent_ensure_msgstr(&parser.cur, pocat->gem, index) <= -1)
 			{
-				frag = po_parse_quoted(after, &qok);
-			}
-			else
-			{
-				idx = 0;
-				frag = po_parse_quoted(s + 6, &qok);
+				hawk_gem_freemem(pocat->gem, frag);
+				goto nomem_error;
 			}
 
-			if (!qok) goto syntax_error;
-
-			po_entry_ensure_msgstr(&p.cur, idx);
-			free(p.cur.msgstr[idx]);
-			p.cur.msgstr[idx] = frag;
-			p.active_field = PF_MSGSTR;
-			p.active_msgstr_index = idx;
-
-			free(line);
+			if (parser.cur.msgstr[index]) hawk_gem_freemem(pocat->gem, parser.cur.msgstr[index]);
+			parser.cur.msgstr[index] = frag;
+			parser.active_field = HAWK_POFLD_MSGSTR;
+			parser.active_msgstr_index = index;
+			hawk_gem_freemem(pocat->gem, line);
 			line = HAWK_NULL;
 			continue;
 		}
 
 		if (*s == '"')
 		{
-			frag = po_parse_quoted(s, &qok);
-			if (!qok) goto syntax_error;
-			parser_append_fragment(&p, frag);
-			free(frag);
-			free(line);
+			x = hawk_pocat_parse_quoted(pocat->gem, s, &frag);
+			if (x == 0) goto syntax_error;
+			if (x <= -1) goto nomem_error;
+
+			if (hawk_poparser_append_fragment(&parser, pocat->gem, frag) <= -1)
+			{
+				hawk_gem_freemem(pocat->gem, frag);
+				goto nomem_error;
+			}
+
+			hawk_gem_freemem(pocat->gem, frag);
+			hawk_gem_freemem(pocat->gem, line);
 			line = HAWK_NULL;
 			continue;
 		}
 
 syntax_error:
-		if (errbuf && errbuf_sz) snprintf(errbuf, errbuf_sz, "%s:%lu: syntax error", path, line_no);
-		ok = 0;
-		free(line);
-		line = HAWK_NULL;
-		break;
+		if (errbuf && errbuf_sz > 0) snprintf(errbuf, errbuf_sz, "%s:%lu: syntax error", path, line_no);
+		status = -1;
+		goto done;
+
+nomem_error:
+		if (errbuf && errbuf_sz > 0) snprintf(errbuf, errbuf_sz, "%s: out of memory", path);
+		status = -1;
+		goto done;
 	}
 
-	if (ok) ok = parser_finalize_entry(cat, &p);
+	if (hawk_poparser_finalize_entry(pocat, &parser) <= -1)
+	{
+		if (errbuf && errbuf_sz > 0) snprintf(errbuf, errbuf_sz, "%s: out of memory", path);
+		status = -1;
+		goto done;
+	}
 
-	free(line);
-	parser_reset_current(&p);
+	status = 0;
+
+done:
+	if (line) hawk_gem_freemem(pocat->gem, line);
+	hawk_poparser_reset_current(&parser, pocat->gem);
 	fclose(fp);
-
-	return ok? 0: -1;
+	return status;
 }
 
-static int po_entry_matches (const PoEntry *e, const char* msgctx, const char* msgid)
+static int hawk_poent_matches (const hawk_poent_t* poent, const char* msgctx, const char* msgid)
 {
-	if (!e->msgid || !msgid) return 0;
-	if (e->obsolete) return 0;
-	if (strcmp(e->msgid, msgid) != 0) return 0;
+	if (!poent->msgid || !msgid) return 0;
+	if (poent->obsolete) return 0;
+	if (hawk_comp_bcstr(poent->msgid, msgid, 0) != 0) return 0;
 
-	if (msgctx == HAWK_NULL && e->msgctx == HAWK_NULL) return 1;
-
-	/* match the context as well */
-	if (msgctx != HAWK_NULL && e->msgctx != HAWK_NULL && strcmp(e->msgctx, msgctx) == 0) return 1;
+	if (msgctx == HAWK_NULL && poent->msgctx == HAWK_NULL) return 1;
+	if (msgctx != HAWK_NULL && poent->msgctx != HAWK_NULL && hawk_comp_bcstr(poent->msgctx, msgctx, 0) == 0) return 1;
 	return 0;
 }
 
-static const PoEntry *po_cat_find (const PoCatalog *cat, const char* msgctx, const char* msgid)
+static const hawk_poent_t* hawk_pocat_find (const hawk_pocat_t* pocat, const char* msgctx, const char* msgid)
 {
 	hawk_oow_t i;
-	/* TODO: this serial match is slow... */
-	for (i = 0; i < cat->count; i++)
+
+	for (i = 0; i < pocat->count; i++)
 	{
-		if (po_entry_matches(&cat->entries[i], msgctx, msgid)) return &cat->entries[i];
+		if (hawk_poent_matches(&pocat->entries[i], msgctx, msgid)) return &pocat->entries[i];
 	}
+
 	return HAWK_NULL;
 }
 
-const char* po_cat_get (const PoCatalog *cat, const char* msgctx, const char* msgid)
+const char* hawk_pocat_get (const hawk_pocat_t* pocat, const char* msgctx, const char* msgid)
 {
-	const PoEntry *e;
-	if (!cat || !msgid) return HAWK_NULL;
+	const hawk_poent_t* poent;
 
-	e = po_cat_find(cat, msgctx, msgid);
-	if (!e) return HAWK_NULL;
-	if (e->fuzzy) return HAWK_NULL;
-	if (e->msgstr_count < 1 || !e->msgstr || !e->msgstr[0] || !e->msgstr[0][0]) return HAWK_NULL;
-	return e->msgstr[0];
+	if (!pocat || !msgid) return HAWK_NULL;
+
+	poent = hawk_pocat_find(pocat, msgctx, msgid);
+	if (!poent) return HAWK_NULL;
+	if (poent->fuzzy) return HAWK_NULL;
+	if (poent->msgstr_count < 1 || !poent->msgstr || !poent->msgstr[0] || !poent->msgstr[0][0]) return HAWK_NULL;
+
+	return poent->msgstr[0];
 }
 
-const char* po_cat_gettext (const PoCatalog *cat, const char* msgctx, const char* msgid)
+const char* hawk_pocat_gettext (const hawk_pocat_t* pocat, const char* msgctx, const char* msgid)
 {
 	const char* text;
-	text = po_cat_get(cat, msgctx, msgid);
-	if (!text) text = msgid;
-	return text;
+
+	text = hawk_pocat_get(pocat, msgctx, msgid);
+	return text? text: msgid;
 }
 
-const char* po_cat_nget (const PoCatalog *cat, const char* msgctx, const char* msgid, const char* msgid_plural, unsigned long n)
+const char* hawk_pocat_nget (const hawk_pocat_t* pocat, const char* msgctx, const char* msgid, const char* msgid_plural, unsigned long n)
 {
-	const PoEntry *e;
-	int idx;
+	const hawk_poent_t* poent;
+	int index;
 
-	if (!cat || !msgid || !msgid_plural) return (n == 1)? msgid : msgid_plural;
+	if (!pocat || !msgid || !msgid_plural) return (n == 1)? msgid: msgid_plural;
 
-	e = po_cat_find(cat, msgctx, msgid);
-	if (!e || e->fuzzy) return (n == 1)? msgid : msgid_plural;
+	poent = hawk_pocat_find(pocat, msgctx, msgid);
+	if (!poent || poent->fuzzy) return (n == 1)? msgid: msgid_plural;
 
-	idx = po_eval_plural_index(cat, n);
-	if (idx >= 0 && idx < e->msgstr_count && e->msgstr[idx] && e->msgstr[idx][0]) return e->msgstr[idx];
+	index = hawk_pocat_eval_plural_index(pocat, n);
+	if (index >= 0 && index < poent->msgstr_count && poent->msgstr[index] && poent->msgstr[index][0]) return poent->msgstr[index];
 
-	return (n == 1) ? msgid : msgid_plural;
+	return (n == 1)? msgid: msgid_plural;
 }

@@ -58,7 +58,8 @@
 #endif
 
 /* ---------------------------------------------------------------------- */
-PoCatalog pocat;
+hawk_pocat_t* main_pocat = HAWK_NULL;
+static hawk_gem_t main_pocat_gem;
 
 /* ---------------------------------------------------------------------- */
 
@@ -289,7 +290,7 @@ int hawk_main_expand_wildcard (int argc, hawk_bch_t* argv[], int do_glob, hawk_m
 
 /* -------------------------------------------------------- */
 
-int hawk_main_load_lang (PoCatalog* pc, const char* basedir, const char* subbasedir, const char* prefix, const char* suffix, const char* locale)
+int hawk_main_load_lang (hawk_pocat_t* pc, const char* basedir, const char* subbasedir, const char* prefix, const char* suffix, const char* locale)
 {
 	char path[HAWK_PATH_MAX];
 	const char* marker;
@@ -313,7 +314,7 @@ int hawk_main_load_lang (PoCatalog* pc, const char* basedir, const char* subbase
 			len = xlen;
 			len += hawk_copy_bchars_to_bcstr(&path[len], HAWK_COUNTOF(path) - len, locale, zlen);
 			if (suffix) len += hawk_copy_bcstr(&path[len], HAWK_COUNTOF(path) - len, suffix);
-			if (po_cat_load_file(pc, path, HAWK_NULL, 0) >= 0) return 0;
+			if (hawk_pocat_load_file(pc, path, HAWK_NULL, 0) >= 0) return 0;
 			zlen = marker - locale;
 		}
 	}
@@ -321,9 +322,47 @@ int hawk_main_load_lang (PoCatalog* pc, const char* basedir, const char* subbase
 	len = xlen;
 	len += hawk_copy_bchars_to_bcstr(&path[len], HAWK_COUNTOF(path) - len, locale, zlen);
 	len += hawk_copy_bcstr(&path[len], HAWK_COUNTOF(path) - len, suffix);
-	if (po_cat_load_file(pc, path, HAWK_NULL, 0) >= 0) return 0;
+	if (hawk_pocat_load_file(pc, path, HAWK_NULL, 0) >= 0) return 0;
 
 	return -1;
+}
+
+static void load_lang (void)
+{
+	memset(&main_pocat_gem, 0, sizeof(main_pocat_gem));
+	main_pocat_gem.mmgr = hawk_get_sys_mmgr();
+	main_pocat_gem.cmgr = hawk_get_cmgr_by_id(HAWK_CMGR_UTF8);
+
+	main_pocat = hawk_pocat_open(&main_pocat_gem, 0);
+	if (main_pocat)
+	{
+		const char* homedir;
+		const char* xdgdatahome;
+		const char* lang;
+
+		homedir = getenv("HOME"); /* TODO: get it from user entry? */
+		xdgdatahome = getenv("XDG_DATA_HOME");
+		lang = getenv("LANG");
+
+		if (!lang) goto lang_load_exit;
+		if (xdgdatahome && hawk_main_load_lang(main_pocat, xdgdatahome, "/hawk/lang", "/hawk-", ".po", lang) >= 0) goto lang_load_exit;
+		if (!xdgdatahome && homedir && hawk_main_load_lang(main_pocat, homedir, HOMELANGDIR, "/hawk-", ".po", lang) >= 0) goto lang_load_exit;
+		if (hawk_main_load_lang(main_pocat, LANGDIR, HAWK_NULL, "/hawk-", ".po", lang) >= 0) goto lang_load_exit;
+
+	lang_load_exit:
+		/* nothing */ ;
+	}
+}
+
+static void unload_lang (void)
+{
+	if (main_pocat)
+	{
+		hawk_pocat_close(main_pocat);
+		main_pocat = HAWK_NULL;
+	}
+
+	memset(&main_pocat_gem, 0, sizeof(main_pocat_gem));
 }
 
 /* -------------------------------------------------------- */
@@ -398,7 +437,6 @@ static struct {
 int main(int argc, hawk_bch_t* argv[])
 {
 	int ret = -1;
-	int pocat_inited = 0;
 
 #if defined(_WIN32)
 	char locale[100];
@@ -431,25 +469,8 @@ int main(int argc, hawk_bch_t* argv[])
 	setlocale(LC_ALL, "");
 	/* hawk_setdflcmgrbyid(HAWK_CMGR_SLMB); */
 #endif
-	if (po_cat_init(&pocat) >= 0)
-	{
-		const char* homedir;
-		const char* xdgdatahome;
-		const char* lang;
-		pocat_inited = 1;
 
-		homedir = getenv("HOME"); /* TODO: get it from user entry? */
-		xdgdatahome = getenv("XDG_DATA_HOME");
-		lang = getenv("LANG");
-
-		if (!lang) goto lang_load_exit;
-		if (xdgdatahome && hawk_main_load_lang(&pocat, xdgdatahome, "/hawk/lang", "/hawk-", ".po", lang) >= 0) goto lang_load_exit;
-		if (!xdgdatahome && homedir && hawk_main_load_lang(&pocat, homedir, HOMELANGDIR, "/hawk-", ".po", lang) >= 0) goto lang_load_exit;
-		if (hawk_main_load_lang(&pocat, LANGDIR, HAWK_NULL, "/hawk-", ".po", lang) >= 0) goto lang_load_exit;
-
-	lang_load_exit:
-		/* nothing */ ;
-	}
+	load_lang();
 
 #if defined(_WIN32)
 	if (WSAStartup(MAKEWORD(2,0), &wsadata) != 0)
@@ -486,7 +507,7 @@ done:
 	if (sock_inited) sock_exit();
 #endif
 
-	if (pocat_inited) po_cat_fini(&pocat);
+	unload_lang();
 	return ret;
 }
 

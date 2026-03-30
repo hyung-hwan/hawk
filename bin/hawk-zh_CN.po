@@ -7,11 +7,10 @@ msgid ""
 msgstr ""
 "Project-Id-Version: hawk 1.0.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-03-29 21:30+0900\n"
+"POT-Creation-Date: 2026-03-30 22:29+0800\n"
 "PO-Revision-Date: 2026-03-28 17:00+0800\n"
 "Last-Translator:  <author@hawk>\n"
-"Language-Team: Chinese (Simplified) <translation-team-"
-"zh_CN@hawk>\n"
+"Language-Team: Chinese (Simplified) <translation-team-zh_CN@hawk>\n"
 "Language: zh_CN\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -106,7 +105,7 @@ msgstr "提高容错性"
 msgid "enable the extended call syntax"
 msgstr "启用扩展调用语法"
 
-#: ../../bin/hawk.c:407 ../../bin/main.c:371
+#: ../../bin/hawk.c:407 ../../bin/main.c:410
 msgid "USAGE"
 msgstr "用法"
 
@@ -122,7 +121,7 @@ msgstr "    "
 msgid "[options] [ -- ] sourcestring [datafile]*"
 msgstr "[选项] [ -- ] 源字符串 [数据文件]*"
 
-#: ../../bin/hawk.c:409 ../../bin/main.c:372
+#: ../../bin/hawk.c:409 ../../bin/main.c:411
 msgid "Options as follows:"
 msgstr "选项如下:"
 
@@ -212,15 +211,15 @@ msgstr " --classic                         以经典模式运行"
 msgid "Special mode switching options(must be specified first to take effect):"
 msgstr "特殊模式切换选项（必须先指定才能生效）："
 
-#: ../../bin/hawk.c:443 ../../bin/main.c:375
+#: ../../bin/hawk.c:443 ../../bin/main.c:414
 msgid " --awk/--hawk                      switch to the awk mode(default)"
 msgstr " --awk/--hawk                      切换到 awk 模式（默认）"
 
-#: ../../bin/hawk.c:444 ../../bin/main.c:376
+#: ../../bin/hawk.c:444 ../../bin/main.c:415
 msgid " --cut                             switch to the cut mode"
 msgstr " --cut                             切换到 cut 模式"
 
-#: ../../bin/hawk.c:445 ../../bin/main.c:377
+#: ../../bin/hawk.c:445 ../../bin/main.c:416
 msgid " --sed                             switch to the sed mode"
 msgstr " --sed                             切换到 sed 模式"
 
@@ -244,15 +243,15 @@ msgstr "代码"
 msgid "File "
 msgstr "文件 "
 
-#: ../../bin/main.c:371
+#: ../../bin/main.c:410
 msgid "[options] [mode specific options and parameters]"
-msgstr "用法：%s [选项] [模式特定选项与参数]"
+msgstr "[选项] [模式特定选项与参数]"
 
-#: ../../bin/main.c:373
+#: ../../bin/main.c:412
 msgid " --usage                           print this message"
 msgstr " --usage                           显示此信息"
 
-#: ../../bin/main.c:374
+#: ../../bin/main.c:413
 msgid " --version                         print version"
 msgstr " --version                         显示版本"
 

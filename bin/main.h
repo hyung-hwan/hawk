@@ -42,10 +42,10 @@ struct hawk_main_xarg_t
 	hawk_oow_t   capa;
 };
 
-extern PoCatalog pocat;
+extern hawk_pocat_t* main_pocat;
 
 /* use _("something") if you want the string for pot extraction and message lookup */
-#define _(x) po_cat_gettext(&pocat, HAWK_NULL, x)
+#define _(x) hawk_pocat_gettext(main_pocat, HAWK_NULL, x)
 
 /* use __("something") for extraction to the pot file only */
 #define __(x) x
