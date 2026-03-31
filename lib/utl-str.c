@@ -1137,6 +1137,26 @@ hawk_bch_t* hawk_find_bchars_in_bchars (const hawk_bch_t* str, hawk_oow_t strsz,
 	return HAWK_NULL;
 }
 
+hawk_uch_t* hawk_find_uchars_in_ucstr (const hawk_uch_t* str, const hawk_uch_t* sub, hawk_oow_t subsz, int ignorecase)
+{
+	return hawk_find_uchars_in_uchars(str, hawk_count_ucstr(str), sub, subsz, ignorecase);
+}
+
+hawk_bch_t* hawk_find_bchars_in_bcstr (const hawk_bch_t* str, const hawk_bch_t* sub, hawk_oow_t subsz, int ignorecase)
+{
+	return hawk_find_bchars_in_bchars(str, hawk_count_bcstr(str), sub, subsz, ignorecase);
+}
+
+hawk_uch_t* hawk_find_ucstr_in_uchars (const hawk_uch_t* str, hawk_oow_t strsz, const hawk_uch_t* sub, int ignorecase)
+{
+	return hawk_find_uchars_in_uchars(str, strsz, sub, hawk_count_ucstr(sub), ignorecase);
+}
+
+hawk_bch_t* hawk_find_bcstr_in_bchars (const hawk_bch_t* str, hawk_oow_t strsz, const hawk_bch_t* sub, int ignorecase)
+{
+	return hawk_find_bchars_in_bchars(str, strsz, sub, hawk_count_bcstr(sub), ignorecase);
+}
+
 hawk_uch_t* hawk_rfind_uchars_in_uchars (const hawk_uch_t* str, hawk_oow_t strsz, const hawk_uch_t* sub, hawk_oow_t subsz, int ignorecase)
 {
 	const hawk_uch_t* p = str + strsz;
@@ -1231,6 +1251,26 @@ hawk_bch_t* hawk_rfind_bchars_in_bchars (const hawk_bch_t* str, hawk_oow_t strsz
 	}
 
 	return HAWK_NULL;
+}
+
+hawk_uch_t* hawk_rfind_uchars_in_ucstr (const hawk_uch_t* str, const hawk_uch_t* sub, hawk_oow_t subsz, int ignorecase)
+{
+	return hawk_rfind_uchars_in_uchars(str, hawk_count_ucstr(str), sub, subsz, ignorecase);
+}
+
+hawk_bch_t* hawk_rfind_bchars_in_bcstr (const hawk_bch_t* str, const hawk_bch_t* sub, hawk_oow_t subsz, int ignorecase)
+{
+	return hawk_rfind_bchars_in_bchars(str, hawk_count_bcstr(str), sub, subsz, ignorecase);
+}
+
+hawk_uch_t* hawk_rfind_ucstr_in_uchars (const hawk_uch_t* str, hawk_oow_t strsz, const hawk_uch_t* sub, int ignorecase)
+{
+	return hawk_rfind_uchars_in_uchars(str, strsz, sub, hawk_count_ucstr(sub), ignorecase);
+}
+
+hawk_bch_t* hawk_rfind_bcstr_in_bchars (const hawk_bch_t* str, hawk_oow_t strsz, const hawk_bch_t* sub, int ignorecase)
+{
+	return hawk_rfind_bchars_in_bchars(str, strsz, sub, hawk_count_bcstr(sub), ignorecase);
 }
 
 hawk_oow_t hawk_compact_uchars (hawk_uch_t* str, hawk_oow_t len)

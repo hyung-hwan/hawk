@@ -612,6 +612,38 @@ _char_type_* _fn_name_ (const _char_type_* str, hawk_oow_t strsz, const _char_ty
 popdef([[_fn_name_]])popdef([[_char_type_]])popdef([[_to_lower_]])dnl
 ]])dnl
 dnl ---------------------------------------------------------------------------
+define([[fn_find_chars_in_cstr]], [[pushdef([[_fn_name_]], $1)pushdef([[_char_type_]], $2)pushdef([[_count_str_]], $3)pushdef([[_find_chars_in_chars_]], $4)dnl
+_char_type_* _fn_name_ (const _char_type_* str, const _char_type_* sub, hawk_oow_t subsz, int ignorecase)
+{
+	return _find_chars_in_chars_()(str, _count_str_()(str), sub, subsz, ignorecase);
+}
+popdef([[_fn_name_]])popdef([[_char_type_]])popdef([[_count_str_]])popdef([[_find_chars_in_chars_]])dnl
+]])dnl
+dnl ---------------------------------------------------------------------------
+define([[fn_find_cstr_in_chars]], [[pushdef([[_fn_name_]], $1)pushdef([[_char_type_]], $2)pushdef([[_count_str_]], $3)pushdef([[_find_chars_in_chars_]], $4)dnl
+_char_type_* _fn_name_ (const _char_type_* str, hawk_oow_t strsz, const _char_type_* sub, int ignorecase)
+{
+	return _find_chars_in_chars_()(str, strsz, sub, _count_str_()(sub), ignorecase);
+}
+popdef([[_fn_name_]])popdef([[_char_type_]])popdef([[_count_str_]])popdef([[_find_chars_in_chars_]])dnl
+]])dnl
+dnl ---------------------------------------------------------------------------
+define([[fn_rfind_chars_in_cstr]], [[pushdef([[_fn_name_]], $1)pushdef([[_char_type_]], $2)pushdef([[_count_str_]], $3)pushdef([[_rfind_chars_in_chars_]], $4)dnl
+_char_type_* _fn_name_ (const _char_type_* str, const _char_type_* sub, hawk_oow_t subsz, int ignorecase)
+{
+	return _rfind_chars_in_chars_()(str, _count_str_()(str), sub, subsz, ignorecase);
+}
+popdef([[_fn_name_]])popdef([[_char_type_]])popdef([[_count_str_]])popdef([[_rfind_chars_in_chars_]])dnl
+]])dnl
+dnl ---------------------------------------------------------------------------
+define([[fn_rfind_cstr_in_chars]], [[pushdef([[_fn_name_]], $1)pushdef([[_char_type_]], $2)pushdef([[_count_str_]], $3)pushdef([[_rfind_chars_in_chars_]], $4)dnl
+_char_type_* _fn_name_ (const _char_type_* str, hawk_oow_t strsz, const _char_type_* sub, int ignorecase)
+{
+	return _rfind_chars_in_chars_()(str, strsz, sub, _count_str_()(sub), ignorecase);
+}
+popdef([[_fn_name_]])popdef([[_char_type_]])popdef([[_count_str_]])popdef([[_rfind_chars_in_chars_]])dnl
+]])dnl
+dnl ---------------------------------------------------------------------------
 define([[fn_compact_chars]], [[pushdef([[_fn_name_]], $1)pushdef([[_char_type_]], $2)pushdef([[_is_space_]], $3)dnl
 hawk_oow_t _fn_name_ (_char_type_* str, hawk_oow_t len)
 {

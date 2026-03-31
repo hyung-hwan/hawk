@@ -90,7 +90,7 @@ HAWK_EXPORT int hawk_comp_uchars (
 	hawk_oow_t        len1,
 	const hawk_uch_t* str2,
 	hawk_oow_t        len2,
-	int               ignorecase
+	int              ignorecase
 );
 
 HAWK_EXPORT int hawk_comp_bchars (
@@ -98,47 +98,47 @@ HAWK_EXPORT int hawk_comp_bchars (
 	hawk_oow_t        len1,
 	const hawk_bch_t* str2,
 	hawk_oow_t        len2,
-	int               ignorecase
+	int              ignorecase
 );
 
 HAWK_EXPORT int hawk_comp_ucstr (
 	const hawk_uch_t* str1,
 	const hawk_uch_t* str2,
-	int               ignorecase
+	int              ignorecase
 );
 
 HAWK_EXPORT int hawk_comp_bcstr (
 	const hawk_bch_t* str1,
 	const hawk_bch_t* str2,
-	int               ignorecase
+	int              ignorecase
 );
 
 HAWK_EXPORT int hawk_comp_ucstr_limited (
 	const hawk_uch_t* str1,
 	const hawk_uch_t* str2,
 	hawk_oow_t        maxlen,
-	int               ignorecase
+	int              ignorecase
 );
 
 HAWK_EXPORT int hawk_comp_bcstr_limited (
 	const hawk_bch_t* str1,
 	const hawk_bch_t* str2,
 	hawk_oow_t        maxlen,
-	int               ignorecase
+	int              ignorecase
 );
 
 HAWK_EXPORT int hawk_comp_uchars_ucstr (
 	const hawk_uch_t* str1,
 	hawk_oow_t        len,
 	const hawk_uch_t* str2,
-	int               ignorecase
+	int              ignorecase
 );
 
 HAWK_EXPORT int hawk_comp_bchars_bcstr (
 	const hawk_bch_t* str1,
 	hawk_oow_t        len,
 	const hawk_bch_t* str2,
-	int               ignorecase
+	int              ignorecase
 );
 
 /* ------------------------------------ */
@@ -366,6 +366,20 @@ HAWK_EXPORT void hawk_fill_bchars (
 
 /* ------------------------------------ */
 
+HAWK_EXPORT const hawk_bch_t* hawk_find_bcstr_word_in_bcstr (
+	const hawk_bch_t* str,
+	const hawk_bch_t* word,
+	hawk_bch_t        extra_delim,
+	int              ignorecase
+);
+
+HAWK_EXPORT const hawk_uch_t* hawk_find_ucstr_word_in_ucstr (
+	const hawk_uch_t* str,
+	const hawk_uch_t* word,
+	hawk_uch_t        extra_delim,
+	int              ignorecase
+);
+
 HAWK_EXPORT hawk_uch_t* hawk_find_uchar_in_uchars (
 	const hawk_uch_t* ptr,
 	hawk_oow_t        len,
@@ -426,6 +440,34 @@ HAWK_EXPORT hawk_bch_t* hawk_find_bchars_in_bchars (
 	int              inorecase
 );
 
+HAWK_EXPORT hawk_uch_t* hawk_find_uchars_in_ucstr (
+	const hawk_uch_t* str,
+	const hawk_uch_t* sub,
+	hawk_oow_t        subsz,
+	int               ignorecase
+);
+
+HAWK_EXPORT hawk_bch_t* hawk_find_bchars_in_bcstr (
+	const hawk_bch_t* str,
+	const hawk_bch_t* sub,
+	hawk_oow_t        subsz,
+	int               ignorecase
+);
+
+HAWK_EXPORT hawk_uch_t* hawk_find_ucstr_in_uchars (
+	const hawk_uch_t* str,
+	hawk_oow_t        strsz,
+	const hawk_uch_t* sub,
+	int               ignorecase
+);
+
+HAWK_EXPORT hawk_bch_t* hawk_find_bcstr_in_bchars (
+	const hawk_bch_t* str,
+	hawk_oow_t        strsz,
+	const hawk_bch_t* sub,
+	int               ignorecase
+);
+
 HAWK_EXPORT hawk_uch_t* hawk_rfind_uchars_in_uchars (
 	const hawk_uch_t* str,
 	hawk_oow_t        strsz,
@@ -440,6 +482,34 @@ HAWK_EXPORT hawk_bch_t* hawk_rfind_bchars_in_bchars (
 	const hawk_bch_t* sub,
 	hawk_oow_t        subsz,
 	int              inorecase
+);
+
+HAWK_EXPORT hawk_uch_t* hawk_rfind_uchars_in_ucstr (
+	const hawk_uch_t* str,
+	const hawk_uch_t* sub,
+	hawk_oow_t        subsz,
+	int               ignorecase
+);
+
+HAWK_EXPORT hawk_bch_t* hawk_rfind_bchars_in_bcstr (
+	const hawk_bch_t* str,
+	const hawk_bch_t* sub,
+	hawk_oow_t        subsz,
+	int               ignorecase
+);
+
+HAWK_EXPORT hawk_uch_t* hawk_rfind_ucstr_in_uchars (
+	const hawk_uch_t* str,
+	hawk_oow_t        strsz,
+	const hawk_uch_t* sub,
+	int               ignorecase
+);
+
+HAWK_EXPORT hawk_bch_t* hawk_rfind_bcstr_in_bchars (
+	const hawk_bch_t* str,
+	hawk_oow_t        strsz,
+	const hawk_bch_t* sub,
+	int               ignorecase
 );
 
 /* ------------------------------------ */
@@ -574,11 +644,16 @@ HAWK_EXPORT int hawk_fnmat_bchars_i (
 #	define hawk_concat_oocstr hawk_concat_ucstr
 
 #	define hawk_fill_oochars hawk_fill_uchars
+#	define hawk_find_oocstr_word_in_oocstr hawk_find_ucstr_word_in_ucstr
 #	define hawk_find_oochar_in_oochars hawk_find_uchar_in_uchars
 #	define hawk_rfind_oochar_in_oochars hawk_rfind_uchar_in_uchars
 #	define hawk_find_oochar_in_oocstr hawk_find_uchar_in_ucstr
 #	define hawk_find_oochars_in_oochars hawk_find_uchars_in_uchars
+#	define hawk_find_oochars_in_oocstr hawk_find_uchars_in_ucstr
+#	define hawk_find_oocstr_in_oochars hawk_find_ucstr_in_uchars
 #	define hawk_rfind_oochars_in_oochars hawk_rfind_uchars_in_uchars
+#	define hawk_rfind_oochars_in_oocstr hawk_rfind_uchars_in_ucstr
+#	define hawk_rfind_oocstr_in_oochars hawk_rfind_ucstr_in_uchars
 
 #	define hawk_compact_oochars hawk_compact_uchars
 #	define hawk_rotate_oochars hawk_rotate_uchars
@@ -621,11 +696,16 @@ HAWK_EXPORT int hawk_fnmat_bchars_i (
 #	define hawk_concat_oocstr hawk_concat_bcstr
 
 #	define hawk_fill_oochars hawk_fill_bchars
+#	define hawk_find_oocstr_word_in_oocstr hawk_find_bcstr_word_in_bcstr
 #	define hawk_find_oochar_in_oochars hawk_find_bchar_in_bchars
 #	define hawk_rfind_oochar_in_oochars hawk_rfind_bchar_in_bchars
 #	define hawk_find_oochar_in_oocstr hawk_find_bchar_in_bcstr
 #	define hawk_find_oochars_in_oochars hawk_find_bchars_in_bchars
+#	define hawk_find_oochars_in_oocstr hawk_find_bchars_in_bcstr
+#	define hawk_find_oocstr_in_oochars hawk_find_bcstr_in_bchars
 #	define hawk_rfind_oochars_in_oochars hawk_rfind_bchars_in_bchars
+#	define hawk_rfind_oochars_in_oocstr hawk_rfind_bchars_in_bcstr
+#	define hawk_rfind_oocstr_in_oochars hawk_rfind_bcstr_in_bchars
 
 #	define hawk_compact_oochars hawk_compact_bchars
 #	define hawk_rotate_oochars hawk_rotate_bchars

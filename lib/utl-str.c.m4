@@ -228,8 +228,20 @@ dnl --
 fn_find_chars_in_chars(hawk_find_uchars_in_uchars, hawk_uch_t, hawk_to_uch_lower)
 fn_find_chars_in_chars(hawk_find_bchars_in_bchars, hawk_bch_t, hawk_to_bch_lower)
 dnl --
+fn_find_chars_in_cstr(hawk_find_uchars_in_ucstr, hawk_uch_t, hawk_count_ucstr, hawk_find_uchars_in_uchars)
+fn_find_chars_in_cstr(hawk_find_bchars_in_bcstr, hawk_bch_t, hawk_count_bcstr, hawk_find_bchars_in_bchars)
+dnl --
+fn_find_cstr_in_chars(hawk_find_ucstr_in_uchars, hawk_uch_t, hawk_count_ucstr, hawk_find_uchars_in_uchars)
+fn_find_cstr_in_chars(hawk_find_bcstr_in_bchars, hawk_bch_t, hawk_count_bcstr, hawk_find_bchars_in_bchars)
+dnl --
 fn_rfind_chars_in_chars(hawk_rfind_uchars_in_uchars, hawk_uch_t, hawk_to_uch_lower)
 fn_rfind_chars_in_chars(hawk_rfind_bchars_in_bchars, hawk_bch_t, hawk_to_bch_lower)
+dnl --
+fn_rfind_chars_in_cstr(hawk_rfind_uchars_in_ucstr, hawk_uch_t, hawk_count_ucstr, hawk_rfind_uchars_in_uchars)
+fn_rfind_chars_in_cstr(hawk_rfind_bchars_in_bcstr, hawk_bch_t, hawk_count_bcstr, hawk_rfind_bchars_in_bchars)
+dnl --
+fn_rfind_cstr_in_chars(hawk_rfind_ucstr_in_uchars, hawk_uch_t, hawk_count_ucstr, hawk_rfind_uchars_in_uchars)
+fn_rfind_cstr_in_chars(hawk_rfind_bcstr_in_bchars, hawk_bch_t, hawk_count_bcstr, hawk_rfind_bchars_in_bchars)
 dnl --
 fn_compact_chars(hawk_compact_uchars, hawk_uch_t, hawk_is_uch_space)
 fn_compact_chars(hawk_compact_bchars, hawk_bch_t, hawk_is_bch_space)
