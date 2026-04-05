@@ -2529,6 +2529,16 @@ HAWK_EXPORT hawk_rtx_t* hawk_rtx_openstdwithbcstr (
 	hawk_cmgr_t*      cmgr
 );
 
+HAWK_EXPORT hawk_rtx_t* hawk_rtx_openstdwithbcstrandcmgrs (
+	hawk_t*           hawk,
+	hawk_oow_t        xtnsize,
+	const hawk_bch_t* id,
+	hawk_bch_t*       icf[],
+	hawk_bch_t*       ocf[],
+	hawk_cmgr_t*      cmgr_in,
+	hawk_cmgr_t*      cmgr_out
+);
+
 /**
  * The hawk_rtx_openstdwithucstr() function creates a standard runtime context.
  * The caller should keep the contents of \a icf and \a ocf valid throughout
@@ -2544,10 +2554,22 @@ HAWK_EXPORT hawk_rtx_t* hawk_rtx_openstdwithucstr (
 	hawk_cmgr_t*      cmgr
 );
 
+HAWK_EXPORT hawk_rtx_t* hawk_rtx_openstdwithucstrandcmgrs (
+	hawk_t*           hawk,
+	hawk_oow_t        xtnsize,
+	const hawk_uch_t* id,
+	hawk_uch_t*       icf[],
+	hawk_uch_t*       ocf[],
+	hawk_cmgr_t*      cmgr_in,
+	hawk_cmgr_t*      cmgr_out
+);
+
 #if defined(HAWK_OOCH_IS_BCH)
 #	define hawk_rtx_openstd hawk_rtx_openstdwithbcstr
+#	define hawk_rtx_openstdwithcmgrs hawk_rtx_openstdwithbcstrandcmgrs
 #else
 #	define hawk_rtx_openstd hawk_rtx_openstdwithucstr
+#	define hawk_rtx_openstdwithcmgrs hawk_rtx_openstdwithucstrandcmgrs
 #endif
 
 /**

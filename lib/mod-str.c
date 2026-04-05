@@ -562,7 +562,16 @@ static int fnc_tombs (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		{
 			hawk_bcs_t str;
 			str.ptr = hawk_rtx_getvalbcstrwithcmgr(rtx, a0, &str.len, cmgr);
-			if (HAWK_UNLIKELY(!str.ptr)) return -1;
+			if (HAWK_UNLIKELY(!str.ptr))
+			{
+				if (hawk_rtx_geterrnum(rtx) == HAWK_EECERR)
+				{
+					/* for conversion error, return an empty string */
+					r = hawk_rtx_makembsvalwithbchars(rtx, HAWK_NULL, 0); /* this never fails for length 0 */
+					goto done;
+				}
+				return -1;
+			}
 			r = hawk_rtx_makembsvalwithbcs(rtx, &str);
 			hawk_rtx_freevalbcstr(rtx, a0, str.ptr);
 			if (HAWK_UNLIKELY(!r)) return -1;

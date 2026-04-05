@@ -30,9 +30,10 @@
 static hawk_cmgr_t builtin_cmgr[] =
 {
 	/* keep the order aligned with hawk_cmgr_id_t values in <hawk-utl.h> */
-	{ hawk_utf8_to_uc,  hawk_uc_to_utf8 },
-	{ hawk_utf16_to_uc, hawk_uc_to_utf16 },
-	{ hawk_mb8_to_uc,   hawk_uc_to_mb8 }
+	{ hawk_utf8_to_uc,    hawk_uc_to_utf8 },
+	{ hawk_utf16_to_uc,   hawk_uc_to_utf16 },
+	{ hawk_mb8_to_uc,     hawk_uc_to_mb8 },
+	{ hawk_ksc5601_to_uc, hawk_uc_to_ksc5601 },
 };
 
 hawk_cmgr_t* hawk_get_cmgr_by_id (hawk_cmgr_id_t id)
@@ -48,7 +49,8 @@ static struct
 {
 	{ "utf8",    HAWK_CMGR_UTF8 },
 	{ "utf16",   HAWK_CMGR_UTF16 },
-	{ "mb8",     HAWK_CMGR_MB8 }
+	{ "mb8",     HAWK_CMGR_MB8 },
+	{ "ksc5601", HAWK_CMGR_KSC5601 }
 };
 
 hawk_cmgr_t* hawk_get_cmgr_by_bcstr (const hawk_bch_t* name)

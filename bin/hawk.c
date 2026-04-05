@@ -104,7 +104,8 @@ struct arg_t
 	hawk_bch_t*      fs;   /* field separator */
 	hawk_bch_t*      call; /* function to call */
 	hawk_cmgr_t*     script_cmgr;
-	hawk_cmgr_t*     console_cmgr;
+	hawk_cmgr_t*     conin_cmgr;
+	hawk_cmgr_t*     conout_cmgr;
 	hawk_bch_t*      includedirs;
 	hawk_bch_t*      modlibdirs;
 
@@ -423,7 +424,8 @@ static void print_usage (FILE* out, const hawk_bch_t* argv0, const hawk_bch_t* r
 
 #if defined(HAWK_OOCH_IS_UCH)
 	fprintf(out, "%s\n", _(" --script-encoding    string       specify script file encoding name"));
-	fprintf(out, "%s\n", _(" --console-encoding   string       specify console encoding name"));
+	fprintf(out, "%s\n", _(" --conout-encoding   string        specify console input encoding name"));
+	fprintf(out, "%s\n", _(" --conin-encoding   string         specify console output encoding name"));
 #endif
 
 	fprintf(out, "%s\n", _(" -I/--includedirs     string       specify directories to look for include files in"));
@@ -484,7 +486,8 @@ static int process_argv (int argc, hawk_bch_t* argv[], const hawk_bch_t* real_ar
 		{ ":memory-limit",     'm' },
 
 		{ ":script-encoding",  '\0' },
-		{ ":console-encoding", '\0' },
+		{ ":conin-encoding",   '\0' },
+		{ ":conout-encoding",  '\0' },
 		{ ":includedirs",      'I' },
 		{ ":modlibdirs",       '\0' },
 
@@ -659,12 +662,22 @@ static int process_argv (int argc, hawk_bch_t* argv[], const hawk_bch_t* real_ar
 						goto oops;
 					}
 				}
-				else if (hawk_comp_bcstr(opt.lngopt, "console-encoding", 0) == 0)
+				else if (hawk_comp_bcstr(opt.lngopt, "conin-encoding", 0) == 0)
 				{
-					arg->console_cmgr = hawk_get_cmgr_by_bcstr(opt.arg);
-					if (arg->console_cmgr == HAWK_NULL)
+					arg->conin_cmgr = hawk_get_cmgr_by_bcstr(opt.arg);
+					if (arg->conin_cmgr == HAWK_NULL)
 					{
-						hawk_main_print_error("unknown console encoding - %s\n", opt.arg);
+						hawk_main_print_error("unknown console input encoding - %s\n", opt.arg);
+						oops_ret = 3;
+						goto oops;
+					}
+				}
+				else if (hawk_comp_bcstr(opt.lngopt, "conout-encoding", 0) == 0)
+				{
+					arg->conout_cmgr = hawk_get_cmgr_by_bcstr(opt.arg);
+					if (arg->conout_cmgr == HAWK_NULL)
+					{
+						hawk_main_print_error("unknown console output encoding - %s\n", opt.arg);
 						oops_ret = 3;
 						goto oops;
 					}
@@ -961,11 +974,12 @@ int main_hawk(int argc, hawk_bch_t* argv[], const hawk_bch_t* real_argv0)
 		goto oops;
 	}
 
-	rtx = hawk_rtx_openstdwithbcstr(
+	rtx = hawk_rtx_openstdwithbcstrandcmgrs(
 		hawk, 0, argv[0],
 		(arg.call? HAWK_NULL: arg.icf.ptr), /* console input */
 		arg.ocf.ptr, /* console output */
-		arg.console_cmgr
+		arg.conin_cmgr,
+		arg.conout_cmgr
 	);
 	if (HAWK_UNLIKELY(!rtx))
 	{

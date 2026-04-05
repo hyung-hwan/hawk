@@ -372,6 +372,19 @@ HAWK_EXPORT hawk_oow_t hawk_mb8_to_uc (
 	hawk_uch_t*       uc
 );
 
+/* ------------------------------------------------------------------------- */
+
+HAWK_EXPORT hawk_oow_t hawk_uc_to_ksc5601 (
+	hawk_uch_t    uc,
+	hawk_bch_t*   ksc5601,
+	hawk_oow_t    size
+);
+
+HAWK_EXPORT hawk_oow_t hawk_ksc5601_to_uc (
+	const hawk_bch_t* ksc5601,
+	hawk_oow_t        size,
+	hawk_uch_t*       uc
+);
 
 #if defined(__cplusplus)
 }

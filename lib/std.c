@@ -181,7 +181,8 @@ typedef struct rxtn_t
 			hawk_oow_t count;
 		} out;
 
-		hawk_cmgr_t* cmgr;
+		hawk_cmgr_t* cmgr_in;
+		hawk_cmgr_t* cmgr_out;
 	} c;  /* console */
 
 	int cmgrtab_inited;
@@ -2374,7 +2375,7 @@ static int open_rio_console (hawk_rtx_t* rtx, hawk_rio_arg_t* riod)
 				sio = open_sio_std_rtx(rtx, HAWK_SIO_STDIN, HAWK_SIO_READ | HAWK_SIO_IGNOREECERR);
 				if (HAWK_UNLIKELY(!sio)) return -1;
 
-				if (rxtn->c.cmgr) hawk_sio_setcmgr(sio, rxtn->c.cmgr);
+				if (rxtn->c.cmgr_in) hawk_sio_setcmgr(sio, rxtn->c.cmgr_in);
 
 				riod->handle = sio;
 				rxtn->c.in.count++;
@@ -2454,7 +2455,7 @@ static int open_rio_console (hawk_rtx_t* rtx, hawk_rio_arg_t* riod)
 			return -1;
 		}
 
-		if (rxtn->c.cmgr) hawk_sio_setcmgr(sio, rxtn->c.cmgr);
+		if (rxtn->c.cmgr_in) hawk_sio_setcmgr(sio, rxtn->c.cmgr_in);
 
 		/* i don't set FILENAME(hawk_rtx_setfilenamewithoochars(file)), FNR, etc here.
 		 * set some flags to delay such work until the actual
@@ -2485,7 +2486,7 @@ static int open_rio_console (hawk_rtx_t* rtx, hawk_rio_arg_t* riod)
 				sio = open_sio_std_rtx(rtx, HAWK_SIO_STDIN, HAWK_SIO_READ | HAWK_SIO_IGNOREECERR);
 				if (sio == HAWK_NULL) return -1;
 
-				if (rxtn->c.cmgr) hawk_sio_setcmgr(sio, rxtn->c.cmgr);
+				if (rxtn->c.cmgr_in) hawk_sio_setcmgr(sio, rxtn->c.cmgr_in);
 
 				riod->handle = sio;
 				rxtn->c.in.count++;
@@ -2520,7 +2521,7 @@ static int open_rio_console (hawk_rtx_t* rtx, hawk_rio_arg_t* riod)
 				open_sio_rtx(rtx, file, HAWK_SIO_READ | HAWK_SIO_IGNOREECERR | HAWK_SIO_KEEPPATH);
 			if (HAWK_UNLIKELY(!sio)) return -1;
 
-			if (rxtn->c.cmgr) hawk_sio_setcmgr(sio, rxtn->c.cmgr);
+			if (rxtn->c.cmgr_in) hawk_sio_setcmgr(sio, rxtn->c.cmgr_in);
 
 			riod->uflags |= IO_UFLAG_CONSOLE_PENDING_NEXT;
 			riod->console_switched = 1;
@@ -2547,7 +2548,7 @@ static int open_rio_console (hawk_rtx_t* rtx, hawk_rio_arg_t* riod)
 				);
 				if (sio == HAWK_NULL) return -1;
 
-				if (rxtn->c.cmgr) hawk_sio_setcmgr(sio, rxtn->c.cmgr);
+				if (rxtn->c.cmgr_out) hawk_sio_setcmgr(sio, rxtn->c.cmgr_out);
 				riod->handle = sio;
 				rxtn->c.out.count++;
 				return 1;
@@ -2575,7 +2576,7 @@ static int open_rio_console (hawk_rtx_t* rtx, hawk_rio_arg_t* riod)
 				open_sio_rtx(rtx, file, HAWK_SIO_WRITE | HAWK_SIO_CREATE | HAWK_SIO_TRUNCATE | HAWK_SIO_IGNOREECERR);
 			if (sio == HAWK_NULL) return -1;
 
-			if (rxtn->c.cmgr) hawk_sio_setcmgr(sio, rxtn->c.cmgr);
+			if (rxtn->c.cmgr_out) hawk_sio_setcmgr(sio, rxtn->c.cmgr_out);
 
 			if (hawk_rtx_setofilenamewithoochars(rtx, file, hawk_count_oocstr(file)) <= -1)
 			{
@@ -3027,7 +3028,8 @@ static hawk_rtx_t* open_rtx_std (
 	const hawk_ooch_t* id,
 	hawk_ooch_t*       icf[],
 	hawk_ooch_t*       ocf[],
-	hawk_cmgr_t*       cmgr)
+	hawk_cmgr_t*       cmgr_in,
+	hawk_cmgr_t*       cmgr_out)
 {
 	hawk_rtx_t* rtx;
 	hawk_rio_cbs_t rio;
@@ -3067,7 +3069,8 @@ static hawk_rtx_t* open_rtx_std (
 	rxtn->c.out.files = ocf;
 	rxtn->c.out.index = 0;
 	rxtn->c.out.count = 0;
-	rxtn->c.cmgr = cmgr;
+	rxtn->c.cmgr_in = cmgr_in;
+	rxtn->c.cmgr_out = cmgr_out;
 
 	/* FILENAME can be set when the input console is opened.
 	 * so we skip setting it here even if an explicit console file
@@ -3108,6 +3111,18 @@ hawk_rtx_t* hawk_rtx_openstdwithbcstr (
 	hawk_bch_t*       icf[],
 	hawk_bch_t*       ocf[],
 	hawk_cmgr_t*      cmgr)
+{
+	return hawk_rtx_openstdwithbcstrandcmgrs(hawk, xtnsize, id, icf, ocf, cmgr, cmgr);
+}
+
+hawk_rtx_t* hawk_rtx_openstdwithbcstrandcmgrs (
+	hawk_t*           hawk,
+	hawk_oow_t        xtnsize,
+	const hawk_bch_t* id,
+	hawk_bch_t*       icf[],
+	hawk_bch_t*       ocf[],
+	hawk_cmgr_t*      cmgr_in,
+	hawk_cmgr_t*      cmgr_out)
 {
 	hawk_rtx_t* rtx = HAWK_NULL;
 	hawk_oow_t wcslen, i;
@@ -3158,7 +3173,7 @@ hawk_rtx_t* hawk_rtx_openstdwithbcstr (
 		xocf[i] = HAWK_NULL;
 	}
 
-	rtx = open_rtx_std(hawk, xtnsize, xid, xicf, xocf, cmgr);
+	rtx = open_rtx_std(hawk, xtnsize, xid, xicf, xocf, cmgr_in, cmgr_out);
 
 done:
 	if (!rtx)
@@ -3190,6 +3205,18 @@ hawk_rtx_t* hawk_rtx_openstdwithucstr (
 	hawk_uch_t*       ocf[],
 	hawk_cmgr_t*      cmgr)
 {
+	return hawk_rtx_openstdwithucstrandcmgrs(hawk, xtnsize, id, icf, ocf, cmgr, cmgr);
+}
+
+hawk_rtx_t* hawk_rtx_openstdwithucstrandcmgrs (
+	hawk_t*           hawk,
+	hawk_oow_t        xtnsize,
+	const hawk_uch_t* id,
+	hawk_uch_t*       icf[],
+	hawk_uch_t*       ocf[],
+	hawk_cmgr_t*      cmgr_in,
+	hawk_cmgr_t*      cmgr_out)
+{
 	hawk_rtx_t* rtx = HAWK_NULL;
 #if defined(HAWK_OOCH_IS_BCH)
 	hawk_oow_t mbslen;
@@ -3199,7 +3226,7 @@ hawk_rtx_t* hawk_rtx_openstdwithucstr (
 
 #if defined(HAWK_OOCH_IS_BCH)
 	xid = hawk_duputobcstr(hawk, id, &mbslen);
-	if (!xid) return HAWK_NULL;
+	if (HAWK_UNLIKELY(!xid)) return HAWK_NULL;
 #else
 	xid = (hawk_ooch_t*)id;
 #endif
@@ -3242,7 +3269,7 @@ hawk_rtx_t* hawk_rtx_openstdwithucstr (
 		xocf[i] = HAWK_NULL;
 	}
 
-	rtx = open_rtx_std(hawk, xtnsize, xid, xicf, xocf, cmgr);
+	rtx = open_rtx_std(hawk, xtnsize, xid, xicf, xocf, cmgr_in, cmgr_out);
 
 done:
 	if (!rtx)

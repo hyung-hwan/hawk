@@ -241,7 +241,8 @@ enum hawk_cmgr_id_t
 {
 	HAWK_CMGR_UTF8,
 	HAWK_CMGR_UTF16,
-	HAWK_CMGR_MB8
+	HAWK_CMGR_MB8,
+	HAWK_CMGR_KSC5601,
 };
 typedef enum hawk_cmgr_id_t hawk_cmgr_id_t;
 
@@ -621,6 +622,7 @@ HAWK_EXPORT hawk_cmgr_t* hawk_get_cmgr_by_ucstr (
 #define hawk_get_utf8_cmgr() hawk_get_cmgr_by_id(HAWK_CMGR_UTF8)
 #define hawk_get_utf16_cmgr() hawk_get_cmgr_by_id(HAWK_CMGR_UTF16)
 #define hawk_get_mb8_cmgr() hawk_get_cmgr_by_id(HAWK_CMGR_MB8)
+#define hawk_get_ksc5601_cmgr() hawk_get_cmgr_by_id(HAWK_CMGR_KSC5601)
 
 /* ------------------------------------------------------------------------- */
 
