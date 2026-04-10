@@ -90,6 +90,8 @@ pkglib_LTLIBRARIES = libhawk.la
 libhawk_la_SOURCES = \
 	$(pkginclude_HEADERS) \
 	arr.c \
+	big5.c \
+	big5.h \
 	chr.c \
 	cut-prv.h \
 	cut.c \
@@ -103,6 +105,8 @@ libhawk_la_SOURCES = \
 	fmt.c \
 	fnc-prv.h \
 	fnc.c \
+	gbk.c \
+	gbk.h \
 	gem.c \
 	gem-glob.c \
 	gem-nwif.c \

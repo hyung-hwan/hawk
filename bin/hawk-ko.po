@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: hawk 1.0.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-04-04 15:11+0900\n"
+"POT-Creation-Date: 2026-04-10 23:03+0900\n"
 "PO-Revision-Date: 2026-03-28 16:29+0800\n"
 "Last-Translator:  <author@hawk>\n"
 "Language-Team: Korean <translation-team-ko@hawk>\n"
@@ -186,12 +186,12 @@ msgstr " --script-encoding    문자열       스크립트 파일 인코딩 이�
 
 #: ../../bin/hawk.c:427
 #, fuzzy
-msgid " --conout-encoding   string        specify console input encoding name"
+msgid " --conin-encoding     string       specify console input encoding name"
 msgstr " --console-encoding   문자열       콘솔 인코딩 이름을 지정"
 
 #: ../../bin/hawk.c:428
 #, fuzzy
-msgid " --conin-encoding   string         specify console output encoding name"
+msgid " --conout-encoding    string       specify console output encoding name"
 msgstr " --console-encoding   문자열       콘솔 인코딩 이름을 지정"
 
 #: ../../bin/hawk.c:431
@@ -973,3 +973,8 @@ msgstr "선택자가 유효하지 않음"
 #: ../../lib/err.c:227
 msgid "unknown error"
 msgstr "알 수 없는 오류"
+
+#, fuzzy
+#~ msgid ""
+#~ " --conin-encoding   string         specify console output encoding name"
+#~ msgstr " --console-encoding   문자열       콘솔 인코딩 이름을 지정"

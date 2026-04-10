@@ -27,13 +27,40 @@
 
 /* ------------------------------------------------------------------------ */
 
+static hawk_oow_t uc_to_unsupp (hawk_uch_t wc, hawk_bch_t* mb8, hawk_oow_t size)
+{
+	return 0; /* illegal character */
+}
+
+static hawk_oow_t unsupp_to_uc (const hawk_bch_t* mb8, hawk_oow_t size, hawk_uch_t* wc)
+{
+	return 0; /* illegal sequence */
+}
+
+
 static hawk_cmgr_t builtin_cmgr[] =
 {
 	/* keep the order aligned with hawk_cmgr_id_t values in <hawk-utl.h> */
 	{ hawk_utf8_to_uc,    hawk_uc_to_utf8 },
 	{ hawk_utf16_to_uc,   hawk_uc_to_utf16 },
 	{ hawk_mb8_to_uc,     hawk_uc_to_mb8 },
+#if defined(HAWK_ENABLE_CMGR_ALL) || defined(HAWK_ENABLE_CMGR_KSC5601)
 	{ hawk_ksc5601_to_uc, hawk_uc_to_ksc5601 },
+#else
+	/* id is always defined even when disabled.
+	 * we map to the unsupported convert functions */
+	{ unsupp_to_uc,       uc_to_unsupp },
+#endif
+#if defined(HAWK_ENABLE_CMGR_ALL) || defined(HAWK_ENABLE_CMGR_GBK)
+	{ hawk_gbk_to_uc,     hawk_uc_to_gbk },
+#else
+	{ unsupp_to_uc,       uc_to_unsupp },
+#endif
+#if defined(HAWK_ENABLE_CMGR_ALL) || defined(HAWK_ENABLE_CMGR_BIG5)
+	{ hawk_big5_to_uc,    hawk_uc_to_big5 },
+#else
+	{ unsupp_to_uc,       uc_to_unsupp },
+#endif
 };
 
 hawk_cmgr_t* hawk_get_cmgr_by_id (hawk_cmgr_id_t id)
@@ -50,7 +77,15 @@ static struct
 	{ "utf8",    HAWK_CMGR_UTF8 },
 	{ "utf16",   HAWK_CMGR_UTF16 },
 	{ "mb8",     HAWK_CMGR_MB8 },
-	{ "ksc5601", HAWK_CMGR_KSC5601 }
+#if defined(HAWK_ENABLE_CMGR_ALL) || defined(HAWK_ENABLE_CMGR_KSC5601)
+	{ "ksc5601", HAWK_CMGR_KSC5601 },
+#endif
+#if defined(HAWK_ENABLE_CMGR_ALL) || defined(HAWK_ENABLE_CMGR_GBK)
+	{ "gbk",     HAWK_CMGR_GBK },
+#endif
+#if defined(HAWK_ENABLE_CMGR_ALL) || defined(HAWK_ENABLE_CMGR_BIG5)
+	{ "big5",    HAWK_CMGR_BIG5 }
+#endif
 };
 
 hawk_cmgr_t* hawk_get_cmgr_by_bcstr (const hawk_bch_t* name)

@@ -22,7 +22,11 @@
     THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+
 #include "hawk-prv.h"
+
+#if defined(HAWK_ENABLE_CMGR_ALL) || defined(HAWK_ENABLE_CMGR_KSC5601)
+
 #include "ksc5601.h"
 
 hawk_oow_t hawk_uc_to_ksc5601 (hawk_uch_t uc, hawk_bch_t* bc, hawk_oow_t size)
@@ -102,3 +106,5 @@ hawk_oow_t hawk_ksc5601_to_uc (const hawk_bch_t* bc, hawk_oow_t size, hawk_uch_t
 
 	return 0; /* not convertable */
 }
+
+#endif

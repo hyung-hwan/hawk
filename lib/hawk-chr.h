@@ -374,6 +374,7 @@ HAWK_EXPORT hawk_oow_t hawk_mb8_to_uc (
 
 /* ------------------------------------------------------------------------- */
 
+#if defined(HAWK_ENABLE_CMGR_ALL) || defined(HAWK_ENABLE_CMGR_KSC5601)
 HAWK_EXPORT hawk_oow_t hawk_uc_to_ksc5601 (
 	hawk_uch_t    uc,
 	hawk_bch_t*   ksc5601,
@@ -385,6 +386,39 @@ HAWK_EXPORT hawk_oow_t hawk_ksc5601_to_uc (
 	hawk_oow_t        size,
 	hawk_uch_t*       uc
 );
+#endif
+
+/* ------------------------------------------------------------------------- */
+
+#if defined(HAWK_ENABLE_CMGR_ALL) || defined(HAWK_ENABLE_CMGR_GBK)
+HAWK_EXPORT hawk_oow_t hawk_uc_to_gbk (
+	hawk_uch_t    uc,
+	hawk_bch_t*   gbk,
+	hawk_oow_t    size
+);
+
+HAWK_EXPORT hawk_oow_t hawk_gbk_to_uc (
+	const hawk_bch_t* gbk,
+	hawk_oow_t        size,
+	hawk_uch_t*       uc
+);
+#endif
+
+/* ------------------------------------------------------------------------- */
+
+#if defined(HAWK_ENABLE_CMGR_ALL) || defined(HAWK_ENABLE_CMGR_BIG5)
+HAWK_EXPORT hawk_oow_t hawk_uc_to_big5 (
+	hawk_uch_t    uc,
+	hawk_bch_t*   big5,
+	hawk_oow_t    size
+);
+
+HAWK_EXPORT hawk_oow_t hawk_big5_to_uc (
+	const hawk_bch_t* big5,
+	hawk_oow_t        size,
+	hawk_uch_t*       uc
+);
+#endif
 
 #if defined(__cplusplus)
 }

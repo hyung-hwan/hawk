@@ -882,6 +882,7 @@ with_sysroot
 enable_libtool_lock
 enable_largefile
 enable_wide_char
+enable_cmgrs
 with_langdir
 with_homelangdir
 enable_debug
@@ -1564,6 +1565,9 @@ Optional Features:
   --enable-wide-char      Use the wide-character type as the default character
                           type. one of yes, no, yes:2, yes:2w, yes:4, yes:4w,
                           no:2, no:2w, no:4, no:4w (default. yes)
+  --enable-cmgrs          Enable selected text encodings (yes for all or
+                          yes:comma-separated-encoding-names(e.g.
+                          yes:big5,ksc5601,gbx) (default. yes)
   --enable-debug          compile the code in the debug mode (default. no)
   --enable-intmax         use hawk_intmax_t for integers (default. no)
   --enable-fltmax         use hawk_fltmax_t for floating-point numbers
@@ -21555,6 +21559,61 @@ fi
 	;;
 esac
 
+# Check whether --enable-cmgrs was given.
+if test ${enable_cmgrs+y}
+then :
+  enableval=$enable_cmgrs; enable_cmgrs=$enableval
+else case e in #(
+  e) enable_cmgrs=yes
+ ;;
+esac
+fi
+
+
+cmgr_header_defines=""
+case "${enable_cmgrs}" in
+yes)
+
+printf "%s\n" "#define HAWK_ENABLE_CMGR_ALL 1" >>confdefs.h
+
+	;;
+yes:*)
+	cmgr_list=`expr "x${enable_cmgrs}" : 'xyes:\(.*\)'`
+	if test -z "${cmgr_list}"
+	then
+		as_fn_error $? "--enable-cmgrs=yes: requires a comma-separated list after ':'" "$LINENO" 5
+	fi
+
+	cmgr_save_ifs=$IFS
+	IFS=','
+	for cmgr_item in ${cmgr_list}
+	do
+		IFS=$cmgr_save_ifs
+		if test -z "${cmgr_item}"
+		then
+			as_fn_error $? "--enable-cmgrs contains an empty name" "$LINENO" 5
+		fi
+
+		cmgr_uc=`echo "${cmgr_item}" | tr 'abcdefghijklmnopqrstuvwxyz-' 'ABCDEFGHIJKLMNOPQRSTUVWXYZ_'`
+		case "${cmgr_uc}" in
+		*!A-Z0-9_*)
+			as_fn_error $? "invalid cmgr name '${cmgr_item}' in --enable-cmgrs" "$LINENO" 5
+			;;
+		esac
+
+		cmgr_header_defines="${cmgr_header_defines}
+#define HAWK_ENABLE_CMGR_${cmgr_uc} 1"
+		IFS=','
+	done
+	IFS=$cmgr_save_ifs
+	;;
+no)
+	;;
+*)
+	as_fn_error $? "unsupported value '${enable_cmgrs}' for --enable-cmgrs" "$LINENO" 5
+	;;
+esac
+
 
 # Check whether --with-langdir was given.
 if test ${with_langdir+y}
@@ -29411,6 +29470,9 @@ printf "%s\n" "#define HAWK_CONFIGURE_ARGS \"$ac_configure_args\"" >>confdefs.h
 printf "%s\n" "#define HAWK_CONFIGURE_CMD \"$hawk_configure_cmd\"" >>confdefs.h
 
 
+ac_config_commands="$ac_config_commands cmgr-defines"
+
+
 
 ac_config_files="$ac_config_files Makefile tools/Makefile lib/Makefile mod/Makefile bin/Makefile samples/Makefile t/Makefile pkgs/hawk.spec"
 
@@ -30643,6 +30705,7 @@ fi
 
 
 
+cmgr_header_defines="$cmgr_header_defines"
 
 _ACEOF
 
@@ -30655,6 +30718,7 @@ do
     "lib/hawk-cfg.h") CONFIG_HEADERS="$CONFIG_HEADERS lib/hawk-cfg.h" ;;
     "depfiles") CONFIG_COMMANDS="$CONFIG_COMMANDS depfiles" ;;
     "libtool") CONFIG_COMMANDS="$CONFIG_COMMANDS libtool" ;;
+    "cmgr-defines") CONFIG_COMMANDS="$CONFIG_COMMANDS cmgr-defines" ;;
     "Makefile") CONFIG_FILES="$CONFIG_FILES Makefile" ;;
     "tools/Makefile") CONFIG_FILES="$CONFIG_FILES tools/Makefile" ;;
     "lib/Makefile") CONFIG_FILES="$CONFIG_FILES lib/Makefile" ;;
@@ -32069,6 +32133,12 @@ compiler_lib_search_path=$lt_compiler_lib_search_path_CXX
 # ### END LIBTOOL TAG CONFIG: CXX
 _LT_EOF
 
+ ;;
+    "cmgr-defines":C)
+	if test -n "$cmgr_header_defines"
+	then
+		printf '%s\n' "$cmgr_header_defines" >> lib/hawk-cfg.h
+	fi
  ;;
 
   esac

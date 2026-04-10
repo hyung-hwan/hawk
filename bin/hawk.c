@@ -424,8 +424,8 @@ static void print_usage (FILE* out, const hawk_bch_t* argv0, const hawk_bch_t* r
 
 #if defined(HAWK_OOCH_IS_UCH)
 	fprintf(out, "%s\n", _(" --script-encoding    string       specify script file encoding name"));
-	fprintf(out, "%s\n", _(" --conout-encoding   string        specify console input encoding name"));
-	fprintf(out, "%s\n", _(" --conin-encoding   string         specify console output encoding name"));
+	fprintf(out, "%s\n", _(" --conin-encoding     string       specify console input encoding name"));
+	fprintf(out, "%s\n", _(" --conout-encoding    string       specify console output encoding name"));
 #endif
 
 	fprintf(out, "%s\n", _(" -I/--includedirs     string       specify directories to look for include files in"));

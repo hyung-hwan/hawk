@@ -693,6 +693,9 @@
 /* configure command */
 #undef HAWK_CONFIGURE_CMD
 
+/* enable all character manager tables */
+#undef HAWK_ENABLE_CMGR_ALL
+
 /* use libltdl when loading a dynamic module */
 #undef HAWK_ENABLE_LIBLTDL
 

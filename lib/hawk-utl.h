@@ -242,7 +242,13 @@ enum hawk_cmgr_id_t
 	HAWK_CMGR_UTF8,
 	HAWK_CMGR_UTF16,
 	HAWK_CMGR_MB8,
+
+	/* the items below may not be available depending on compile-time
+	 * options. however, these enumerators are retained regarless of
+	 * the options because i want these to remain stable */
 	HAWK_CMGR_KSC5601,
+	HAWK_CMGR_GBK,
+	HAWK_CMGR_BIG5,
 };
 typedef enum hawk_cmgr_id_t hawk_cmgr_id_t;
 
@@ -623,6 +629,8 @@ HAWK_EXPORT hawk_cmgr_t* hawk_get_cmgr_by_ucstr (
 #define hawk_get_utf16_cmgr() hawk_get_cmgr_by_id(HAWK_CMGR_UTF16)
 #define hawk_get_mb8_cmgr() hawk_get_cmgr_by_id(HAWK_CMGR_MB8)
 #define hawk_get_ksc5601_cmgr() hawk_get_cmgr_by_id(HAWK_CMGR_KSC5601)
+#define hawk_get_gbk_cmgr() hawk_get_cmgr_by_id(HAWK_CMGR_GBK)
+#define hawk_get_big5_cmgr() hawk_get_cmgr_by_id(HAWK_CMGR_BIG5)
 
 /* ------------------------------------------------------------------------- */
 

@@ -183,6 +183,56 @@ yes*)
 	;;
 esac
 
+dnl ===== enable-cmgrs =====
+AC_ARG_ENABLE([cmgrs],
+	[AS_HELP_STRING([--enable-cmgrs],[Enable selected text encodings (yes for all or yes:comma-separated-encoding-names(e.g. yes:big5,ksc5601,gbx) (default. yes)])],
+	enable_cmgrs=$enableval,
+	enable_cmgrs=yes
+)
+
+cmgr_header_defines=""
+case "${enable_cmgrs}" in
+yes)
+	AC_DEFINE([HAWK_ENABLE_CMGR_ALL], [1], [enable all character manager tables])
+	;;
+yes:*)
+	cmgr_list=`expr "x${enable_cmgrs}" : 'xyes:\(.*\)'`
+	if test -z "${cmgr_list}"
+	then
+		AC_MSG_ERROR([--enable-cmgrs=yes: requires a comma-separated list after ':'])
+	fi
+
+	cmgr_save_ifs=$IFS
+	IFS=','
+	for cmgr_item in ${cmgr_list}
+	do
+		IFS=$cmgr_save_ifs
+		if test -z "${cmgr_item}"
+		then
+			AC_MSG_ERROR([--enable-cmgrs contains an empty name])
+		fi
+
+		cmgr_uc=`echo "${cmgr_item}" | tr 'abcdefghijklmnopqrstuvwxyz-' 'ABCDEFGHIJKLMNOPQRSTUVWXYZ_'`
+		case "${cmgr_uc}" in
+		*[!A-Z0-9_]*)
+			AC_MSG_ERROR([invalid cmgr name '${cmgr_item}' in --enable-cmgrs])
+			;;
+		esac
+
+		cmgr_header_defines="${cmgr_header_defines}
+#define HAWK_ENABLE_CMGR_${cmgr_uc} 1"
+		IFS=','
+	done
+	IFS=$cmgr_save_ifs
+	;;
+no)
+	;;
+*)
+	AC_MSG_ERROR([unsupported value '${enable_cmgrs}' for --enable-cmgrs])
+	;;
+esac
+
+dnl ===== with-langdir =====
 AC_ARG_WITH([langdir],
 	[AS_HELP_STRING([--with-langdir=DIR], [Specify the location of the language files (default. DATADIR/PACKAGE/lang)])],
 	[LANGDIR=$withval],
@@ -190,6 +240,7 @@ AC_ARG_WITH([langdir],
 )
 AC_SUBST(LANGDIR)
 
+dnl ===== with-homelangdir =====
 AC_ARG_WITH([homelangdir],
 	[AS_HELP_STRING([--with-homelangdir=DIR], [Specify the location of the user-specific language files parked under the home directory (default. /.local/PACKAGE/lang)])],
 	[HOMELANGDIR=$withval],
@@ -1051,6 +1102,13 @@ fi
 
 AC_DEFINE_UNQUOTED(HAWK_CONFIGURE_ARGS, ["$ac_configure_args"], [configure arguments])
 AC_DEFINE_UNQUOTED(HAWK_CONFIGURE_CMD, ["$hawk_configure_cmd"], [configure command])
+
+AC_CONFIG_COMMANDS([cmgr-defines], [
+	if test -n "$cmgr_header_defines"
+	then
+		printf '%s\n' "$cmgr_header_defines" >> lib/hawk-cfg.h
+	fi
+], [cmgr_header_defines="$cmgr_header_defines"])
 
 
 AC_CONFIG_FILES([
