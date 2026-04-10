@@ -165,6 +165,7 @@ CFLAGS="${RPM_OPT_FLAGS} -fPIC" CXXFLAGS="${RPM_OPT_FLAGS} -fPIC" ./configure  \
 	--enable-shared=yes \
 	--enable-static-module=yes \
 	--enable-wide-char="yes:2w" \
+	--enable-cmgrs=yes \
 	--enable-intmax=no \
 	--enable-fltmax=no \
 	--enable-cxx=yes \

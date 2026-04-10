@@ -420,6 +420,22 @@ HAWK_EXPORT hawk_oow_t hawk_big5_to_uc (
 );
 #endif
 
+/* ------------------------------------------------------------------------- */
+
+#if defined(HAWK_ENABLE_CMGR_ALL) || defined(HAWK_ENABLE_CMGR_JIS0208)
+HAWK_EXPORT hawk_oow_t hawk_uc_to_jis0208 (
+	hawk_uch_t    uc,
+	hawk_bch_t*   jis0208,
+	hawk_oow_t    size
+);
+
+HAWK_EXPORT hawk_oow_t hawk_jis0208_to_uc (
+	const hawk_bch_t* jis0208,
+	hawk_oow_t        size,
+	hawk_uch_t*       uc
+);
+#endif
+
 #if defined(__cplusplus)
 }
 #endif

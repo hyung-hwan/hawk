@@ -22,16 +22,15 @@
     THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 #include "hawk-prv.h"
 
-#if defined(HAWK_ENABLE_CMGR_ALL) || defined(HAWK_ENABLE_CMGR_GBK)
+#if defined(HAWK_ENABLE_CMGR_ALL) || defined(HAWK_ENABLE_CMGR_JIS0208)
 
-#include "gbk.h"
+#include "jis0208.h"
 
-hawk_oow_t hawk_uc_to_gbk (hawk_uch_t uc, hawk_bch_t* bc, hawk_oow_t size)
+hawk_oow_t hawk_uc_to_jis0208 (hawk_uch_t uc, hawk_bch_t* bc, hawk_oow_t size)
 {
-	hawk_uint16_t gc;
+	hawk_uint16_t jc;
 
 	if (size <= 0) return size + 1; /* buffer too small */
 
@@ -41,59 +40,65 @@ hawk_oow_t hawk_uc_to_gbk (hawk_uch_t uc, hawk_bch_t* bc, hawk_oow_t size)
 		return 1;
 	}
 
-	if (uc == 0x20AC)
-	{
-		bc[0] = 0x80;
-		return 1;
-	}
+	if (uc >= 0x00A1 && uc <= 0x00FF)
+		jc = uc_to_jis0208_0[uc - 0x00A1];
+	else if (uc >= 0x0391 && uc <= 0x0451)
+		jc = uc_to_jis0208_1[uc - 0x0391];
+	else if (uc >= 0x2010 && uc <= 0x2FFF)
+		jc = uc_to_jis0208_2[uc - 0x2010];
+	else if (uc >= 0x3000 && uc <= 0x3FFF)
+		jc = uc_to_jis0208_3[uc - 0x3000];
+	else if (uc >= 0x4E00 && uc <= 0x5FFF)
+		jc = uc_to_jis0208_4[uc - 0x4E00];
+	else if (uc >= 0x6000 && uc <= 0x6FFF)
+		jc = uc_to_jis0208_5[uc - 0x6000];
+	else if (uc >= 0x7000 && uc <= 0x7FFF)
+		jc = uc_to_jis0208_6[uc - 0x7000];
+	else if (uc >= 0x8000 && uc <= 0x8FFF)
+		jc = uc_to_jis0208_7[uc - 0x8000];
+	else if (uc >= 0x9000 && uc <= 0x9FA0)
+		jc = uc_to_jis0208_8[uc - 0x9000];
+	else if (uc >= 0xFF01 && uc <= 0xFFE5)
+		jc = uc_to_jis0208_9[uc - 0xFF01];
+	else
+		return 0; /* not convertable */
 
-	if (uc < 0x00A4 || uc > 0xFFE5) return 0;
-
-	gc = uc_to_gbk_0[uc - 0x00A4];
-	if (gc == 0) return 0;
-
-	if (gc <= 0x00FF)
-	{
-		bc[0] = (hawk_bchu_t)gc;
-		return 1;
-	}
-
+	if (jc == 0) return 0;
 	if (size <= 1) return size + 1; /* buffer too small */
 
-	bc[0] = (hawk_bchu_t)(gc >> 8);
-	bc[1] = (hawk_bchu_t)(gc & 0xFF);
+	bc[0] = (hawk_bchu_t)(jc >> 8);
+	bc[1] = (hawk_bchu_t)(jc & 0xFF);
 	return 2;
 }
 
-hawk_oow_t hawk_gbk_to_uc (const hawk_bch_t* bc, hawk_oow_t size, hawk_uch_t* uc)
+hawk_oow_t hawk_jis0208_to_uc (const hawk_bch_t* bc, hawk_oow_t size, hawk_uch_t* uc)
 {
-	hawk_uint16_t gc, xc;
+	hawk_uint16_t jc, xc;
 
 	if (size <= 0) return 0; /* input too small */
 
-	gc = (hawk_bchu_t)bc[0];
-	if (gc < 0x80)
+	if (size >= 2)
 	{
-		*uc = gc;
+		jc = ((hawk_bchu_t)bc[0] << 8) | (hawk_bchu_t)bc[1];
+		if (jc >= 0x2121 && jc <= 0x7426)
+		{
+			xc = jis0208_to_uc_0[jc - 0x2121];
+			if (xc != 0)
+			{
+				*uc = xc;
+				return 2;
+			}
+		}
+	}
+
+	jc = (hawk_bchu_t)bc[0];
+	if (jc < 0x80)
+	{
+		*uc = jc;
 		return 1;
 	}
 
-	if (gc == 0x80)
-	{
-		*uc = 0x20AC;
-		return 1;
-	}
-
-	if (size <= 1) return 0; /* insufficient input */
-
-	gc = (gc << 8) | (hawk_bchu_t)bc[1];
-	if (gc < 0x8140 || gc > 0xFE4F) return 0;
-
-	xc = gbk_to_uc_0[gc - 0x8140];
-	if (xc == 0) return 0;
-
-	*uc = xc;
-	return 2;
+	return 0; /* not convertable */
 }
 
 #endif

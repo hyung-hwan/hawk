@@ -61,6 +61,11 @@ static hawk_cmgr_t builtin_cmgr[] =
 #else
 	{ unsupp_to_uc,       uc_to_unsupp },
 #endif
+#if defined(HAWK_ENABLE_CMGR_ALL) || defined(HAWK_ENABLE_CMGR_JIS0208)
+	{ hawk_jis0208_to_uc, hawk_uc_to_jis0208 },
+#else
+	{ unsupp_to_uc,       uc_to_unsupp },
+#endif
 };
 
 hawk_cmgr_t* hawk_get_cmgr_by_id (hawk_cmgr_id_t id)
@@ -84,7 +89,10 @@ static struct
 	{ "gbk",     HAWK_CMGR_GBK },
 #endif
 #if defined(HAWK_ENABLE_CMGR_ALL) || defined(HAWK_ENABLE_CMGR_BIG5)
-	{ "big5",    HAWK_CMGR_BIG5 }
+	{ "big5",    HAWK_CMGR_BIG5 },
+#endif
+#if defined(HAWK_ENABLE_CMGR_ALL) || defined(HAWK_ENABLE_CMGR_JIS0208)
+	{ "jis0208", HAWK_CMGR_JIS0208 },
 #endif
 };
 

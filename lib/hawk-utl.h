@@ -249,6 +249,7 @@ enum hawk_cmgr_id_t
 	HAWK_CMGR_KSC5601,
 	HAWK_CMGR_GBK,
 	HAWK_CMGR_BIG5,
+	HAWK_CMGR_JIS0208,
 };
 typedef enum hawk_cmgr_id_t hawk_cmgr_id_t;
 
@@ -631,6 +632,7 @@ HAWK_EXPORT hawk_cmgr_t* hawk_get_cmgr_by_ucstr (
 #define hawk_get_ksc5601_cmgr() hawk_get_cmgr_by_id(HAWK_CMGR_KSC5601)
 #define hawk_get_gbk_cmgr() hawk_get_cmgr_by_id(HAWK_CMGR_GBK)
 #define hawk_get_big5_cmgr() hawk_get_cmgr_by_id(HAWK_CMGR_BIG5)
+#define hawk_get_jis0208_cmgr() hawk_get_cmgr_by_id(HAWK_CMGR_JIS0208)
 
 /* ------------------------------------------------------------------------- */
 

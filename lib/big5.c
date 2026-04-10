@@ -32,7 +32,7 @@ hawk_oow_t hawk_uc_to_big5 (hawk_uch_t uc, hawk_bch_t* bc, hawk_oow_t size)
 {
 	hawk_uint16_t xc;
 
-	if (size <= 0) return 0;
+	if (size <= 0) return size + 1;
 
 	if (uc <= 0x7F)
 	{
@@ -66,7 +66,7 @@ hawk_oow_t hawk_uc_to_big5 (hawk_uch_t uc, hawk_bch_t* bc, hawk_oow_t size)
 		return 0;
 
 	if (xc == 0) return 0;
-	if (size <= 1) return 0;
+	if (size <= 1) return size + 1;
 
 	bc[0] = (hawk_bchu_t)(xc >> 8);
 	bc[1] = (hawk_bchu_t)(xc & 0xFF);

@@ -33,7 +33,7 @@ hawk_oow_t hawk_uc_to_ksc5601 (hawk_uch_t uc, hawk_bch_t* bc, hawk_oow_t size)
 {
 	hawk_uint16_t kc;
 
-	if (size <= 0) return 0; /* buffer too small */
+	if (size <= 0) return size + 1; /* buffer too small */
 
 	if (uc <= 0x80) /* 7-bit ascii */
 	{
@@ -66,7 +66,7 @@ hawk_oow_t hawk_uc_to_ksc5601 (hawk_uch_t uc, hawk_bch_t* bc, hawk_oow_t size)
 	else
 		return 0; /* not convertable */
 
-	if (size <= 1) return 0; /* buffer too small */
+	if (size <= 1) return size + 1; /* buffer too small */
 
 	bc[0] = (hawk_bchu_t)(kc >> 8);
 	bc[1] = (hawk_bchu_t)(kc & 0xff);
