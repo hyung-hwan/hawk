@@ -48,7 +48,7 @@ struct pafs_t
 	hawk_oow_t end_index;
 };
 
-static hawk_oow_t push_args_from_stack (hawk_rtx_t* rtx, hawk_nde_fncall_t* call, void* data)
+static hawk_oow_t push_args_from_stack (hawk_rtx_t* rtx, const hawk_loc_t* call_loc, void* data)
 {
 	struct pafs_t* pasf = (struct pafs_t*)data;
 	hawk_oow_t org_stack_base, i, j;
@@ -56,7 +56,7 @@ static hawk_oow_t push_args_from_stack (hawk_rtx_t* rtx, hawk_nde_fncall_t* call
 
 	if (HAWK_RTX_STACK_AVAIL(rtx) < pasf->end_index - pasf->start_index + 1)
 	{
-		hawk_rtx_seterrnum(rtx, &call->loc, HAWK_ESTACK);
+		hawk_rtx_seterrnum(rtx, call_loc, HAWK_ESTACK);
 		return (hawk_oow_t)-1;
 	}
 
@@ -85,7 +85,7 @@ static hawk_oow_t push_args_from_stack (hawk_rtx_t* rtx, hawk_nde_fncall_t* call
 		{
 			if (spec == 'r') /* 'R' allows a normal value. so only checking 'r' here */
 			{
-				hawk_rtx_seterrnum(rtx, &call->loc, HAWK_ENOTREF);
+				hawk_rtx_seterrnum(rtx, call_loc, HAWK_ENOTREF);
 				return (hawk_oow_t)-1;
 			}
 		}

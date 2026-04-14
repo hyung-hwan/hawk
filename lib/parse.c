@@ -271,6 +271,8 @@ static hawk_nde_t* parse_dotidx (hawk_t* hawk, const hawk_oocs_t* name, const ha
 static hawk_nde_t* parse_xcall_postfix_on_expr (hawk_t* hawk, hawk_nde_t* base, const hawk_loc_t* xloc);
 #endif
 
+static void rollback_funbc_call_info (hawk_t* hawk, hawk_fbc_t* bc, hawk_fbc_call_info_t* rollback);
+
 #define FNCALL_FLAG_NOARG        (1 << 0) /* no argument */
 #define FNCALL_FLAG_EXPR         (1 << 1)
 #define FNCALL_FLAG_MAP          (1 << 2)
@@ -616,6 +618,8 @@ void hawk_getkwname (hawk_t* hawk, hawk_kwid_t id, hawk_oocs_t* s)
 
 void hawk_freefunbc (hawk_t* hawk, hawk_fbc_t* bc)
 {
+	rollback_funbc_call_info(hawk, bc, HAWK_NULL); /* let's reuse rollback for destruction */
+
 	if (bc->lit)
 	{
 		hawk_oow_t i;
@@ -698,6 +702,17 @@ static void rollback_funbc_lit (hawk_t* hawk, hawk_fbc_t* bc, hawk_oow_t rollbac
 			default:
 				break;
 		}
+	}
+}
+
+static void rollback_funbc_call_info (hawk_t* hawk, hawk_fbc_t* bc, hawk_fbc_call_info_t* rollback)
+{
+	hawk_fbc_call_info_t* ci;
+	while (bc->call_info_top != rollback)
+	{
+		ci = bc->call_info_top;
+		bc->call_info_top = ci->next;
+		hawk_freemem(hawk, ci);
 	}
 }
 
@@ -871,6 +886,61 @@ static int emit_funbc_ins_oow (hawk_t* hawk, hawk_fbc_t* bc, hawk_fbc_opcode_t o
 	bc->code[bc->len].opcode = opcode;
 	bc->code[bc->len].u.oow = oow;
 	bc->len++;
+	return 0;
+}
+
+static int emit_funbc_ins_call_fun (hawk_t* hawk, hawk_fbc_t* bc, const hawk_oocs_t* name, hawk_oow_t nargs, const hawk_loc_t* loc)
+{
+	hawk_fbc_call_fun_t* payload;
+
+	payload = hawk_callocmem(hawk, HAWK_SIZEOF(*payload) + HAWK_SIZEOF(*name->ptr) * (name->len + 1));
+	if (HAWK_UNLIKELY(!payload)) return -1;
+
+	payload->name.ptr = (hawk_ooch_t*)(payload + 1);
+	payload->name.len = hawk_copy_oochars_to_oocstr_unlimited(payload->name.ptr, name->ptr, name->len);
+	payload->flags = HAWK_FBC_CALL_FLAG_NONE;
+	payload->nargs = nargs;
+	payload->loc = *loc;
+
+	if (reserve_funbc_ins(hawk, bc, 1, loc) <= -1)
+	{
+		hawk_freemem(hawk, payload);
+		return -1;
+	}
+
+	bc->code[bc->len].opcode = HAWK_FBC_OP_CALL_FUN;
+	bc->code[bc->len].u.call_fun = payload;
+	bc->len++;
+
+	payload->next = bc->call_info_top;
+	bc->call_info_top = (hawk_fbc_call_info_t*)payload;
+	return 0;
+}
+
+static int emit_funbc_ins_call_expr (hawk_t* hawk, hawk_fbc_t* bc, hawk_oow_t nargs, const hawk_loc_t* loc)
+{
+	hawk_fbc_call_expr_t* payload;
+
+	payload = hawk_callocmem(hawk, HAWK_SIZEOF(*payload));
+	if (HAWK_UNLIKELY(!payload)) return -1;
+
+	payload->flags = HAWK_FBC_CALL_FLAG_NONE;
+	payload->nargs = nargs;
+	payload->loc = *loc;
+	/* TODO: payload->diag_name? */
+
+	if (reserve_funbc_ins(hawk, bc, 1, loc) <= -1)
+	{
+		hawk_freemem(hawk, payload);
+		return -1;
+	}
+
+	bc->code[bc->len].opcode = HAWK_FBC_OP_CALL_EXPR;
+	bc->code[bc->len].u.call_expr = payload;
+	bc->len++;
+
+	payload->next = bc->call_info_top;
+	bc->call_info_top = (hawk_fbc_call_info_t*)payload;
 	return 0;
 }
 
@@ -1155,7 +1225,20 @@ static int compile_funbc_expr_fncall (hawk_t* hawk, hawk_fbc_t* bc, hawk_nde_fnc
 		if (n == COMPILE_FUNBC_EXPR_UNSUPPORTED) return COMPILE_FUNBC_EXPR_UNSUPPORTED;
 	}
 
+	switch (call->type)
+	{
+		case HAWK_NDE_FNCALL_EXPR:
+			if (emit_funbc_ins_call_expr(hawk, bc, call->nargs, &call->loc) <= -1) return -1;
+			goto done;
+
+		case HAWK_NDE_FNCALL_FUN:
+			if (emit_funbc_ins_call_fun(hawk, bc, &call->u.fun.name, call->nargs, &call->loc) <= -1) return -1;
+			goto done;
+	}
+
 	if (emit_funbc_ins_nde(hawk, bc, HAWK_FBC_OP_CALL, (hawk_nde_t*)call, &call->loc) <= -1) return -1;
+
+done:
 	return COMPILE_FUNBC_EXPR_OK;
 }
 
@@ -1163,9 +1246,11 @@ static int compile_funbc_expr (hawk_t* hawk, hawk_fbc_t* bc, hawk_nde_t* nde)
 {
 	hawk_oow_t rollback;
 	hawk_oow_t lit_rollback;
+	hawk_fbc_call_info_t* call_info_rollback;
 
 	rollback = bc->len;
 	lit_rollback = bc->lit_len;
+	call_info_rollback = bc->call_info_top;
 
 	switch (nde->type)
 	{
@@ -1436,11 +1521,13 @@ static int compile_funbc_expr (hawk_t* hawk, hawk_fbc_t* bc, hawk_nde_t* nde)
 unsupported:
 	bc->len = rollback;
 	rollback_funbc_lit(hawk, bc, lit_rollback);
+	rollback_funbc_call_info(hawk, bc, call_info_rollback);
 	return COMPILE_FUNBC_EXPR_UNSUPPORTED;
 
 oops_rollback:
 	bc->len = rollback;
 	rollback_funbc_lit(hawk, bc, lit_rollback);
+	rollback_funbc_call_info(hawk, bc, call_info_rollback);
 	return -1;
 }
 
@@ -10159,6 +10246,8 @@ static const hawk_ooch_t* funbc_opcode_to_name (hawk_fbc_opcode_t opcode)
 		case HAWK_FBC_OP_JMP: return HAWK_T("JMP");
 		case HAWK_FBC_OP_JZ: return HAWK_T("JZ");
 		case HAWK_FBC_OP_CALL: return HAWK_T("CALL");
+		case HAWK_FBC_OP_CALL_FUN: return HAWK_T("CALL_FUN");
+		case HAWK_FBC_OP_CALL_EXPR: return HAWK_T("CALL_EXPR");
 		case HAWK_FBC_OP_RET: return HAWK_T("RET");
 		case HAWK_FBC_OP_POP: return HAWK_T("POP");
 		case HAWK_FBC_OP_INIT_BLK: return HAWK_T("INIT_BLK");
@@ -10421,12 +10510,6 @@ static int dump_funbc_ins (hawk_t* hawk, hawk_oow_t pc, const hawk_fbc_ins_t* in
 			hawk_nde_fncall_t* call = (hawk_nde_fncall_t*)ins->u.nde;
 			const hawk_ooch_t* kind = HAWK_T("?");
 
-			if (!call)
-			{
-				if (hawk_putsrcoocstr(hawk, HAWK_T(" <null-call>")) <= -1) return -1;
-				break;
-			}
-
 			switch (call->type)
 			{
 				case HAWK_NDE_FNCALL_FNC: kind = HAWK_T("fnc"); break;
@@ -10438,6 +10521,34 @@ static int dump_funbc_ins (hawk_t* hawk, hawk_oow_t pc, const hawk_fbc_ins_t* in
 			if (hawk_putsrcoocstr(hawk, HAWK_T(" ")) <= -1 ||
 			    hawk_putsrcoocstr(hawk, kind) <= -1 ||
 			    hawk_putsrcoocstr(hawk, HAWK_T(" nargs=")) <= -1 ||
+			    put_oow_as_dec(hawk, call->nargs) <= -1 ||
+			    hawk_putsrcoocstr(hawk, HAWK_T(" @")) <= -1 ||
+			    put_oow_as_dec(hawk, call->loc.line) <= -1 ||
+			    hawk_putsrcoocstr(hawk, HAWK_T(":")) <= -1 ||
+			    put_oow_as_dec(hawk, call->loc.colm) <= -1) return -1;
+			break;
+		}
+
+		case HAWK_FBC_OP_CALL_FUN:
+		{
+			hawk_fbc_call_fun_t* call = (hawk_fbc_call_fun_t*)ins->u.call_fun;
+
+			if (hawk_putsrcoocstr(hawk, HAWK_T(" ")) <= -1 ||
+			    hawk_putsrcoochars(hawk, call->name.ptr, call->name.len) <= -1 ||
+				hawk_putsrcoocstr(hawk, HAWK_T(" nargs=")) <= -1 ||
+			    put_oow_as_dec(hawk, call->nargs) <= -1 ||
+			    hawk_putsrcoocstr(hawk, HAWK_T(" @")) <= -1 ||
+			    put_oow_as_dec(hawk, call->loc.line) <= -1 ||
+			    hawk_putsrcoocstr(hawk, HAWK_T(":")) <= -1 ||
+			    put_oow_as_dec(hawk, call->loc.colm) <= -1) return -1;
+			break;
+		}
+
+		case HAWK_FBC_OP_CALL_EXPR:
+		{
+			hawk_fbc_call_expr_t* call = (hawk_fbc_call_expr_t*)ins->u.call_fun;
+
+			if ( hawk_putsrcoocstr(hawk, HAWK_T(" nargs=")) <= -1 ||
 			    put_oow_as_dec(hawk, call->nargs) <= -1 ||
 			    hawk_putsrcoocstr(hawk, HAWK_T(" @")) <= -1 ||
 			    put_oow_as_dec(hawk, call->loc.line) <= -1 ||

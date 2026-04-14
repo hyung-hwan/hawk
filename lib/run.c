@@ -51,6 +51,23 @@ struct pafv_t
 	const hawk_ooch_t* argspec;
 	hawk_oow_t         argspeclen;
 };
+typedef struct pafv_t pafv_t;
+
+struct pafn_t
+{
+	hawk_nde_t* args;
+	hawk_oow_t  nargs;
+	const hawk_ooch_t* argspec;
+};
+typedef struct pafn_t pafn_t;
+
+struct paffes_t
+{
+	hawk_oow_t nargs;
+	hawk_fbc_eval_stack_t* evstk;
+	hawk_fun_t* fun;
+};
+typedef struct paffes_t paffes_t;
 
 #define DEFAULT_CONVFMT  HAWK_T("%.6g")
 #define DEFAULT_OFMT     HAWK_T("%.6g")
@@ -74,8 +91,10 @@ struct pafv_t
 #define CLRERR(rtx) hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_ENOERR)
 #define ADJERR_LOC(rtx,l) do { (rtx)->gem_.errloc = *(l); } while (0)
 
-static hawk_oow_t push_arg_from_vals (hawk_rtx_t* rtx, hawk_nde_fncall_t* call, void* data);
-static hawk_oow_t push_arg_from_nde (hawk_rtx_t* rtx, hawk_nde_fncall_t* call, void* data);
+
+static hawk_oow_t push_arg_from_vals (hawk_rtx_t* rtx, const hawk_loc_t* call_loc, void* data);
+static hawk_oow_t push_arg_from_nde (hawk_rtx_t* rtx, const hawk_loc_t* call_loc, void* data);
+static hawk_oow_t push_arg_from_fbc_eval_stack (hawk_rtx_t* rtx, const  hawk_loc_t* call_loc, void* data);
 
 static int init_rtx (hawk_rtx_t* rtx, hawk_t* hawk, hawk_rio_cbs_t* rio);
 static void fini_rtx (hawk_rtx_t* rtx, int fini_globals);
@@ -1918,7 +1937,7 @@ hawk_val_t* hawk_rtx_callfun (hawk_rtx_t* rtx, hawk_fun_t* fun, hawk_val_t* args
 {
 	struct capture_retval_data_t crdata;
 	hawk_val_t* v;
-	struct pafv_t pafv/*= { args, nargs }*/;
+	pafv_t pafv/*= { args, nargs }*/;
 	hawk_nde_fncall_t call;
 
 	HAWK_ASSERT(fun != HAWK_NULL);
@@ -7522,6 +7541,7 @@ static hawk_val_t* eval_fncall_fnc (hawk_rtx_t* rtx, hawk_nde_t* nde)
 {
 	/* intrinsic function */
 	hawk_nde_fncall_t* call = (hawk_nde_fncall_t*)nde;
+	pafn_t pafn;
 
 	if (call->u.fnc.flags & HAWK_NDE_FNCALL_FNC_DEFERRED_MODFNC)
 	{
@@ -7595,12 +7615,19 @@ static hawk_val_t* eval_fncall_fnc (hawk_rtx_t* rtx, hawk_nde_t* nde)
 		tmp.u.fnc.info.mod = mod;
 		tmp.u.fnc.spec = sym.u.fnc_;
 		tmp.u.fnc.flags = 0;
-		return hawk_rtx_evalcall(rtx, &tmp, HAWK_NULL, push_arg_from_nde, (void*)tmp.u.fnc.spec.arg.spec, HAWK_NULL, HAWK_NULL);
+
+		pafn.args = call->args;
+		pafn.nargs = call->nargs;
+		pafn.argspec = sym.u.fnc_.arg.spec;
+		return hawk_rtx_evalcall(rtx, &tmp, HAWK_NULL, push_arg_from_nde, (void*)&pafn, HAWK_NULL, HAWK_NULL);
 	}
 
 	/* the parser must make sure that the number of arguments is proper */
 	HAWK_ASSERT(call->nargs >= call->u.fnc.spec.arg.min && call->nargs <= call->u.fnc.spec.arg.max);
-	return hawk_rtx_evalcall(rtx, call, HAWK_NULL, push_arg_from_nde, (void*)call->u.fnc.spec.arg.spec, HAWK_NULL, HAWK_NULL);
+	pafn.args = call->args;
+	pafn.nargs = call->nargs;
+	pafn.argspec = call->u.fnc.spec.arg.spec;
+	return hawk_rtx_evalcall(rtx, call, HAWK_NULL, push_arg_from_nde, (void*)&pafn, HAWK_NULL, HAWK_NULL);
 }
 
 static HAWK_INLINE hawk_fun_t* resolve_fncall_fun (hawk_rtx_t* rtx, hawk_nde_fncall_t* call)
@@ -7672,6 +7699,7 @@ static HAWK_INLINE hawk_val_t* eval_fncall_fun (hawk_rtx_t* rtx, hawk_nde_t* nde
 	/* user-defined function */
 	hawk_nde_fncall_t* call = (hawk_nde_fncall_t*)nde;
 	hawk_fun_t* fun;
+	pafn_t pafn;
 
 	fun = resolve_fncall_fun(rtx, call);
 	if (!fun) return HAWK_NULL;
@@ -7685,7 +7713,10 @@ static HAWK_INLINE hawk_val_t* eval_fncall_fun (hawk_rtx_t* rtx, hawk_nde_t* nde
 	 * reflected by hawk_rtx_evalcall() specially whereas a built-in function must
 	 * call hawk_rtx_setrefval() to update the reference.
 	 */
-	return hawk_rtx_evalcall(rtx, call, fun, push_arg_from_nde, HAWK_NULL/*fun->argspec*/, HAWK_NULL, HAWK_NULL);
+	pafn.args = call->args;
+	pafn.nargs = call->nargs;
+	pafn.argspec = HAWK_NULL; /* fun->argspec */
+	return hawk_rtx_evalcall(rtx, call, fun, push_arg_from_nde, (void*)&pafn, HAWK_NULL, HAWK_NULL);
 }
 
 static HAWK_INLINE int nde_is_var (const hawk_nde_t* nde)
@@ -7747,9 +7778,13 @@ static hawk_val_t* eval_fncall_var (hawk_rtx_t* rtx, hawk_nde_t* nde)
 	}
 	else
 	{
+		pafn_t pafn;
 		/* pass HAWK_NULL for the argument spec regardless of the actual spec.
 		 * see comments in eval_fncall_fun() for more */
-		rv = hawk_rtx_evalcall(rtx, call, fun, push_arg_from_nde, HAWK_NULL/*fun->argspec*/, HAWK_NULL, HAWK_NULL);
+		pafn.args = call->args;
+		pafn.nargs = call->nargs;
+		pafn.argspec = HAWK_NULL; /* fun->argspec */
+		rv = hawk_rtx_evalcall(rtx, call, fun, push_arg_from_nde, &pafn, HAWK_NULL, HAWK_NULL);
 	}
 	hawk_rtx_refdownval(rtx, fv);
 
@@ -7763,7 +7798,7 @@ static hawk_val_t* fbc_eval_call (hawk_rtx_t* rtx, hawk_fbc_eval_stack_t* evstk,
 	hawk_val_t* callee_val = HAWK_NULL;
 	hawk_val_t* rv = HAWK_NULL;
 	hawk_fun_t* fun = HAWK_NULL;
-	struct pafv_t pafv;
+	pafv_t pafv;
 	hawk_oow_t i;
 
 	if (!call)
@@ -7861,6 +7896,87 @@ oops:
 		if (args[i]) hawk_rtx_refdownval(rtx, args[i]);
 	}
 	if (args != args_fixed) hawk_rtx_freemem(rtx, args);
+	return rv;
+}
+
+static hawk_val_t* fbc_eval_call_fun (hawk_rtx_t* rtx, hawk_fbc_eval_stack_t* evstk, hawk_fbc_call_fun_t* call)
+{
+	hawk_fun_t* fun;
+	hawk_val_t* rv = HAWK_NULL;
+	paffes_t paffes;
+	hawk_nde_fncall_t fncall;
+	hawk_htb_pair_t* pair;
+
+	HAWK_ASSERT (call != HAWK_NULL);
+
+// TODO: caching in some global table??
+	pair = hawk_htb_search(rtx->hawk->tree.funs, call->name.ptr, call->name.len);
+	if (!pair)
+	{
+		hawk_rtx_seterrfmt(rtx, &call->loc, HAWK_EFUNNF,
+			HAWK_T("function '%.*js' not found"), call->name.len, call->name.ptr);
+		return HAWK_NULL;
+	}
+
+	fun = (hawk_fun_t*)HAWK_HTB_VPTR(pair);
+	if (call->nargs > fun->nargs && !fun->variadic)
+	{
+		hawk_rtx_seterrfmt(rtx, &call->loc, HAWK_EARGTM,
+			HAWK_T("too many arguments to '%.*js'"), fun->name.len, fun->name.ptr);
+		return HAWK_NULL;
+	}
+
+	paffes.nargs = call->nargs;
+	paffes.evstk = evstk;
+	paffes.fun = fun;
+
+	HAWK_MEMSET(&fncall, 0, HAWK_SIZEOF(fncall)); /* this is fake */
+	fncall.nargs = call->nargs;
+
+	rv = hawk_rtx_evalcall(rtx, &fncall, fun, push_arg_from_fbc_eval_stack, &paffes, HAWK_NULL, HAWK_NULL);
+// how to handle referneces...
+// TODO: how do i know if the arguments and the call_val has all been popped?
+// especially if hawk_Rtx_evalcall failed somehow...
+	evstk->len -= call->nargs;
+
+	return rv;
+}
+
+static hawk_val_t* fbc_eval_call_expr (hawk_rtx_t* rtx, hawk_fbc_eval_stack_t* evstk, hawk_fbc_call_expr_t* call)
+{
+	hawk_val_t* callee_val;
+	hawk_fun_t* fun;
+	hawk_val_t* rv = HAWK_NULL;
+	paffes_t paffes;
+	hawk_nde_fncall_t fncall;
+
+	HAWK_ASSERT (call != HAWK_NULL);
+
+	/* the eval stack has argn, argn-1, argn-2, arg1, callee_val from top to bottom */
+	callee_val = evstk->ptr[evstk->len - call->nargs - 1]; /* access the calle below all the arguments */
+	HAWK_ASSERT(callee_val != HAWK_NULL);
+
+	fun = hawk_rtx_valtofun(rtx, callee_val);
+	if (!fun)
+	{
+		hawk_rtx_seterrfmt(rtx, &call->loc, HAWK_EARGTM,
+			HAWK_T("too many arguments to '%.*js'"), fun->name.len, fun->name.ptr);
+		goto oops;
+	}
+
+	paffes.nargs = call->nargs;
+	paffes.evstk = evstk;
+	paffes.fun = fun;
+
+	HAWK_MEMSET(&fncall, 0, HAWK_SIZEOF(fncall)); /* this is fake */
+	fncall.nargs = call->nargs;
+
+	rv = hawk_rtx_evalcall(rtx, &fncall, fun, push_arg_from_fbc_eval_stack, &paffes, HAWK_NULL, HAWK_NULL);
+// TODO: how do i know if the arguments and the call_val has all been popped?
+	evstk->len -= call->nargs + 1;
+
+oops:
+	hawk_rtx_refdownval(rtx, callee_val);
 	return rv;
 }
 
@@ -8377,6 +8493,18 @@ static int run_funbc (hawk_rtx_t* rtx, hawk_fun_t* fun)
 				if (fbc_eval_stack_push(rtx, evstk, val) <= -1) goto oops;
 				break;
 
+			case HAWK_FBC_OP_CALL_FUN:
+				val = fbc_eval_call_fun(rtx, evstk, ins->u.call_fun);
+				if (HAWK_UNLIKELY(!val)) goto oops;
+				if (fbc_eval_stack_push(rtx, evstk, val) <= -1) goto oops;
+				break;
+
+			case HAWK_FBC_OP_CALL_EXPR:
+				val = fbc_eval_call_expr(rtx, evstk, ins->u.call_expr);
+				if (HAWK_UNLIKELY(!val)) goto oops;
+				if (fbc_eval_stack_push(rtx, evstk, val) <= -1) goto oops;
+				break;
+
 			case HAWK_FBC_OP_RET:
 				val = fbc_eval_stack_pop(evstk);
 				if (!val)
@@ -8609,9 +8737,10 @@ oops:
 	goto done;
 }
 
+#include <stdio.h>
 hawk_val_t* hawk_rtx_evalcall (
 	hawk_rtx_t* rtx, hawk_nde_fncall_t* call, hawk_fun_t* fun,
-	hawk_oow_t(*argpusher)(hawk_rtx_t*,hawk_nde_fncall_t*,void*), void* apdata,
+	hawk_oow_t(*argpusher)(hawk_rtx_t*,const hawk_loc_t*,void*), void* apdata,
 	void(*errhandler)(void*), void* eharg)
 {
 	hawk_oow_t saved_stack_top, saved_arg_stack_top;
@@ -8661,6 +8790,7 @@ hawk_val_t* hawk_rtx_evalcall (
 
 	HAWK_ASSERT(HAWK_SIZEOF(void*) >= HAWK_SIZEOF(rtx->stack_top));
 	HAWK_ASSERT(HAWK_SIZEOF(void*) >= HAWK_SIZEOF(rtx->stack_base));
+	HAWK_ASSERT(call != HAWK_NULL);
 
 	saved_stack_top = rtx->stack_top;
 
@@ -8696,7 +8826,7 @@ hawk_val_t* hawk_rtx_evalcall (
 	saved_arg_stack_top = rtx->stack_top;
 
 	/* push all arguments onto the stack */
-	nargs = argpusher(rtx, call, apdata);
+	nargs = argpusher(rtx, &call->loc, apdata);
 	if (nargs == (hawk_oow_t)-1) goto oops_making_stack_frame;
 
 	HAWK_ASSERT(nargs == call->nargs);
@@ -8827,6 +8957,53 @@ hawk_val_t* hawk_rtx_evalcall (
 				p = p->next;
 			}
 		}
+		else if (argpusher == push_arg_from_fbc_eval_stack)
+		{
+			/* TODO: transitional. i will change to use a different field or struct */
+			/* the arguments are on the fbc eval stack */
+			paffes_t* paffes = (paffes_t*)apdata;
+			hawk_fbc_eval_stack_t* evstk;
+
+			evstk = paffes->evstk;
+			for (; i < call->nargs; i++)
+			{
+				if (n >= 0 && (fun->argspec[i] == 'r' || fun->argspec[i] == 'R'))
+				{
+					hawk_val_t* v, * av;
+
+					av = HAWK_RTX_STACK_ARG(rtx, i);
+					if (HAWK_RTX_GETVALTYPE(rtx, av) == HAWK_VAL_REF)
+					{
+						/* ---- DO NOTHING ---- */
+					}
+					else
+					{
+						/* original arguments are in another stack frame */
+						v = evstk->ptr[evstk->len - call->nargs + i]; /* direct access to the fbc eval stack */
+printf ("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX evstk->len [%d] [%d] [%d]\n", (int)evstk->len, (int)i, (int)(evstk->len - call->nargs + i));
+{
+hawk_val_t* v;
+for (int x = 0; x < evstk->len; x++)
+{
+	v = evstk->ptr[x]; /* direct access to the fbc eval stack */
+	printf ("[%d] XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX [%d]\n", x, HAWK_GET_VAL_TYPE(v));
+}
+}
+						if (HAWK_RTX_GETVALTYPE(rtx, v) == HAWK_VAL_REF)
+						{
+printf ("JJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJ [%d] [%d]\n", (int)i, (int)(evstk->len - call->nargs + i));
+							if (HAWK_UNLIKELY(hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)v, av) <= -1))
+							{
+								n = -1;
+								ADJERR_LOC(rtx, &call->loc);
+							}
+						}
+					}
+				}
+
+				hawk_rtx_refdownval(rtx, HAWK_RTX_STACK_ARG(rtx,i));
+			}
+		}
 		else if (call->arg_base > 0) /* special case. set by hawk::call() */
 		{
 			/*
@@ -8854,6 +9031,7 @@ hawk_val_t* hawk_rtx_evalcall (
 					}
 					else
 					{
+						/* original arguments are in another stack frame */
 						v = rtx->stack[call->arg_base + i]; /* UGLY */
 						if (HAWK_RTX_GETVALTYPE(rtx, v) == HAWK_VAL_REF)
 						{
@@ -8906,7 +9084,7 @@ hawk_val_t* hawk_rtx_evalcall (
 			 * This way, the return value is preserved upon
 			 * termination by exit() out to the caller.
 			 */
-			errhandler (eharg);
+			errhandler(eharg);
 		}
 
 		/* if the earlier operations failed and this function
@@ -8958,14 +9136,14 @@ oops_making_stack_frame:
 	return HAWK_NULL;
 }
 
-static hawk_oow_t push_arg_from_vals (hawk_rtx_t* rtx, hawk_nde_fncall_t* call, void* data)
+static hawk_oow_t push_arg_from_vals (hawk_rtx_t* rtx, const hawk_loc_t* call_loc, void* data)
 {
-	struct pafv_t* pafv = (struct pafv_t*)data;
+	pafv_t* pafv = (struct pafv_t*)data;
 	hawk_oow_t nargs = 0;
 
 	if (HAWK_UNLIKELY(HAWK_RTX_STACK_AVAIL(rtx) < pafv->nargs))
 	{
-		hawk_rtx_seterrbfmt(rtx, &call->loc, HAWK_ESTACK,
+		hawk_rtx_seterrbfmt(rtx, call_loc, HAWK_ESTACK,
 			"stack full(avail=%zu, limit=%zu) in pushing %zu arguments from values",
 			HAWK_RTX_STACK_AVAIL(rtx), rtx->stack_limit, pafv->nargs);
 		return (hawk_oow_t)-1;
@@ -8982,7 +9160,7 @@ static hawk_oow_t push_arg_from_vals (hawk_rtx_t* rtx, hawk_nde_fncall_t* call, 
 			v = hawk_rtx_makerefval(rtx, HAWK_VAL_REF_LCL, ref); /* this type(HAWK_VAL_REF_LCL) is fake */
 			if (HAWK_UNLIKELY(!v))
 			{
-				ADJERR_LOC(rtx, &call->loc);
+				ADJERR_LOC(rtx, call_loc);
 				return (hawk_oow_t)-1;
 			}
 
@@ -8999,33 +9177,33 @@ static hawk_oow_t push_arg_from_vals (hawk_rtx_t* rtx, hawk_nde_fncall_t* call, 
 	return nargs;
 }
 
-static hawk_oow_t push_arg_from_nde (hawk_rtx_t* rtx, hawk_nde_fncall_t* call, void* data)
+static hawk_oow_t push_arg_from_nde (hawk_rtx_t* rtx, const hawk_loc_t* call_loc, void* data)
 {
+	pafn_t* pafn = (pafn_t*)data;
 	hawk_nde_t* p;
 	hawk_val_t* v;
 	hawk_oow_t nargs;
-	const hawk_ooch_t* arg_spec = (const hawk_ooch_t*)data;
 	hawk_oow_t spec_len;
 
-	if (HAWK_UNLIKELY(HAWK_RTX_STACK_AVAIL(rtx) < call->nargs))
+	if (HAWK_UNLIKELY(HAWK_RTX_STACK_AVAIL(rtx) < pafn->nargs))
 	{
-		hawk_rtx_seterrbfmt(rtx, &call->loc, HAWK_ESTACK,
+		hawk_rtx_seterrbfmt(rtx, call_loc, HAWK_ESTACK,
 			"stack full(avail=%zu, limit=%zu) in push %zu arguments",
-			HAWK_RTX_STACK_AVAIL(rtx), rtx->stack_limit, call->nargs);
+			HAWK_RTX_STACK_AVAIL(rtx), rtx->stack_limit, pafn->nargs);
 		return (hawk_oow_t)-1;
 	}
 
 	/* in practice, this function gets NULL for a user-defined function regardless of its actual spec.
 	 * it may get a non-NULL arg_spec for builtin/module functions */
-	spec_len = arg_spec? hawk_count_oocstr(arg_spec): 0;
-	for (p = call->args, nargs = 0; p; p = p->next, nargs++)
+	spec_len = pafn->argspec? hawk_count_oocstr(pafn->argspec): 0;
+	for (p = pafn->args, nargs = 0; p; p = p->next, nargs++)
 	{
 		hawk_ooch_t spec;
 
 		/* if not sufficient number of spec characters given, take the last value and use it.
 		 * as said above, arg_spec is provided for the implicit functions only.
 		 * so the logic taking the last value at run-time is elsewhere (e.g hawk_rtx_evalcall()). */
-		spec = (spec_len <= 0)? '\0': arg_spec[((nargs < spec_len)? nargs: spec_len - 1)];
+		spec = (spec_len <= 0)? '\0': pafn->argspec[((nargs < spec_len)? nargs: spec_len - 1)];
 
 		switch (spec)
 		{
@@ -9062,7 +9240,43 @@ static hawk_oow_t push_arg_from_nde (hawk_rtx_t* rtx, hawk_nde_fncall_t* call, v
 		hawk_rtx_refupval(rtx, v);
 	}
 
-	HAWK_ASSERT(call->nargs == nargs);
+	HAWK_ASSERT(pafn->nargs == nargs);
+	return nargs;
+}
+
+static hawk_oow_t push_arg_from_fbc_eval_stack (hawk_rtx_t* rtx, const hawk_loc_t* call_loc, void* data)
+{
+	paffes_t* paffes = (paffes_t*)data;
+	hawk_fbc_eval_stack_t* evstk;
+	hawk_oow_t i, nargs;
+
+	evstk = paffes->evstk;
+	nargs = paffes->nargs;
+	HAWK_ASSERT(evstk->len >= nargs);
+
+	if (HAWK_UNLIKELY(HAWK_RTX_STACK_AVAIL(rtx) < nargs))
+	{
+		hawk_rtx_seterrbfmt(rtx, call_loc, HAWK_ESTACK,
+			"stack full(avail=%zu, limit=%zu) in push %zu arguments",
+			HAWK_RTX_STACK_AVAIL(rtx), rtx->stack_limit, nargs);
+		return (hawk_oow_t)-1;
+	}
+
+	for (i = nargs; i > 0; i--)
+	{
+		hawk_val_t* v;
+
+		/* i can't use fbc_eval_stack_pop() because i have to push the arguments
+		 * to the call stack in the reverser order of the pop order */
+		v = evstk->ptr[evstk->len - i];
+		HAWK_ASSERT(v != HAWK_NULL);
+
+		HAWK_RTX_STACK_PUSH(rtx, v);
+		/* the value in the fbc eval stack retain the reference count increment.
+		 * i skip incrementing it again */
+	}
+
+	/* [NOTE] this function doesn't pop arguments (and a callee if exists) off the fbc eval stack */
 	return nargs;
 }
 

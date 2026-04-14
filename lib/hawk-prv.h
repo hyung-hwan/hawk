@@ -245,6 +245,8 @@ enum hawk_fbc_opcode_t
 	HAWK_FBC_OP_JMP,
 	HAWK_FBC_OP_JZ,
 	HAWK_FBC_OP_CALL,
+	HAWK_FBC_OP_CALL_FUN,
+	HAWK_FBC_OP_CALL_EXPR,
 	HAWK_FBC_OP_RET,
 	HAWK_FBC_OP_POP,
 	HAWK_FBC_OP_INIT_BLK,
@@ -282,6 +284,46 @@ struct hawk_fbc_lit_t
 	} u;
 };
 
+enum hawk_fbc_call_flag_t
+{
+	HAWK_FBC_CALL_FLAG_NONE = 0,
+
+	/* actual enumerators start here */
+	HAWK_FBC_CALL_FLAG_VARIADIC = (1 << 0),
+};
+typedef enum hawk_fbc_call_flag_t  hawk_fbc_call_flag_t;
+
+/* pseudo structure to keep the chain of hawk_fbc_call_fun_t and hawk_fbc_call_expr_t */
+typedef struct hawk_fbc_call_info_t hawk_fbc_call_info_t;
+struct hawk_fbc_call_info_t
+{
+	hawk_fbc_call_info_t *next;
+};
+
+typedef struct hawk_fbc_call_fun_t hawk_fbc_call_fun_t;
+struct hawk_fbc_call_fun_t
+{
+	hawk_fbc_call_info_t *next;
+
+	hawk_uint16_t nargs; /* actual argument count */
+	hawk_uint16_t flags; /* 0 or bitwise-ORed of hawk_fbc_call_flag_t enumerators */
+	hawk_loc_t    loc; /* for error reporting */
+	hawk_oocs_t   name; /* fallback lookup key if fun is not cached yet */
+	hawk_fun_t*   fun;  /* cached resolved function if available */
+};
+
+/* the callee is on the stack */
+typedef struct hawk_fbc_call_expr_t hawk_fbc_call_expr_t;
+struct hawk_fbc_call_expr_t
+{
+	hawk_fbc_call_info_t *next;
+
+	hawk_uint16_t nargs; /* actual argument count */
+	hawk_uint16_t flags; /* variadic-related or future use */
+	hawk_loc_t    loc; /* for error reporting */
+	hawk_oocs_t   diag_name; /* optional; len=0 if absent */
+};
+
 typedef struct hawk_fbc_ins_t hawk_fbc_ins_t;
 struct hawk_fbc_ins_t
 {
@@ -289,6 +331,10 @@ struct hawk_fbc_ins_t
 	union
 	{
 		hawk_nde_t* nde;
+
+		hawk_fbc_call_fun_t* call_fun;
+		hawk_fbc_call_expr_t* call_expr;
+
 		hawk_int_t iv;
 		hawk_ooch_t ch;
 		hawk_bch_t bch;
@@ -306,6 +352,8 @@ struct hawk_fbc_t
 	hawk_fbc_lit_t* lit;
 	hawk_oow_t lit_len;
 	hawk_oow_t lit_capa;
+
+	hawk_fbc_call_info_t* call_info_top;
 
 	hawk_oow_t nargs;
 	hawk_oow_t nlocals;
