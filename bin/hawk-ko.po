@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: hawk 1.0.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-04-10 23:03+0900\n"
+"POT-Creation-Date: 2026-04-15 01:55+0900\n"
 "PO-Revision-Date: 2026-03-28 16:29+0800\n"
 "Last-Translator:  <author@hawk>\n"
 "Language-Team: Korean <translation-team-ko@hawk>\n"
@@ -22,231 +22,227 @@ msgid "enable concatenation by blanks"
 msgstr "공백에 의한 연결을 활성화"
 
 #: ../../bin/hawk.c:377
-msgid "enable byte-code building"
-msgstr "바이트코드 생성을 활성화"
-
-#: ../../bin/hawk.c:378
 msgid "use CRLF for a newline"
 msgstr "줄바꿈에 CRLF를 사용"
 
-#: ../../bin/hawk.c:379
+#: ../../bin/hawk.c:378
 msgid "defer resolving module symbols(mod::symbol) to runtime"
 msgstr "모듈 심볼(mod::symbol) 해석을 실행 시간으로 연기"
 
-#: ../../bin/hawk.c:380
+#: ../../bin/hawk.c:379
 msgid "allow a map to be assigned or returned"
 msgstr "맵의 대입 또는 반환을 허용"
 
-#: ../../bin/hawk.c:381
+#: ../../bin/hawk.c:380
 msgid "allow undeclared variables"
 msgstr "지역 변수가 너무 많음"
 
-#: ../../bin/hawk.c:382
+#: ../../bin/hawk.c:381
 msgid "allow raw multiline string and regular expression literals"
 msgstr "문자열 또는 정규식이 닫히지 않음"
 
-#: ../../bin/hawk.c:383
+#: ../../bin/hawk.c:382
 msgid "perform numeric comparsion on numeric strings"
 msgstr "숫자 문자열에 대해 숫자 비교를 수행"
 
-#: ../../bin/hawk.c:384
+#: ../../bin/hawk.c:383
 msgid "enable a newline to terminate a statement"
 msgstr "줄바꿈으로 문장을 끝낼 수 있게 함"
 
-#: ../../bin/hawk.c:385
+#: ../../bin/hawk.c:384
 msgid "enable nextofile & OFILENAME"
 msgstr "nextofile 및 OFILENAME을 활성화"
 
-#: ../../bin/hawk.c:386
+#: ../../bin/hawk.c:385
 msgid "detect a numeric string and convert it to a number"
 msgstr "숫자형의 문자열을 감지하여 숫자로 변환"
 
-#: ../../bin/hawk.c:387
+#: ../../bin/hawk.c:386
 msgid "enable pattern-action loop"
 msgstr "패턴-동작 루프를 활성화"
 
-#: ../../bin/hawk.c:388
+#: ../../bin/hawk.c:387
 msgid "enable pedantic mode"
 msgstr "엄격 모드를 활성화"
 
-#: ../../bin/hawk.c:389
+#: ../../bin/hawk.c:388
 msgid "set CLOEXEC before executing an external program for piping"
 msgstr "파이프용 외부 프로그램 실행 전에 CLOEXEC를 설정"
 
-#: ../../bin/hawk.c:390
+#: ../../bin/hawk.c:389
 msgid "enable {n,m} in a regular expression"
 msgstr "정규식 일치에서 {n,m}을 표현을 활성화"
 
-#: ../../bin/hawk.c:391
+#: ../../bin/hawk.c:390
 msgid "enable builtin I/O including getline & print"
 msgstr "getline 및 print를 포함한 내장 I/O를 활성화"
 
-#: ../../bin/hawk.c:392
+#: ../../bin/hawk.c:391
 msgid "allow a dual-directional pipe"
 msgstr "양방향 파이프를 허용"
 
-#: ../../bin/hawk.c:393
+#: ../../bin/hawk.c:392
 msgid "enable the strict naming rule"
 msgstr "엄격한 이름 규칙을 활성화"
 
-#: ../../bin/hawk.c:394
+#: ../../bin/hawk.c:393
 msgid "strip spaces in splitting a record"
 msgstr "레코드 분리 시 공백을 제거"
 
-#: ../../bin/hawk.c:395
+#: ../../bin/hawk.c:394
 msgid "strip spaces in string-to-number conversion"
 msgstr "문자열을 숫자로 변환할 때 공백을 제거"
 
-#: ../../bin/hawk.c:396
+#: ../../bin/hawk.c:395
 msgid "make more fault-tolerant"
 msgstr "오류 허용성을 높임"
 
-#: ../../bin/hawk.c:397
+#: ../../bin/hawk.c:396
 msgid "enable the extended call syntax"
 msgstr "확장 호출 문법을 활성화"
 
-#: ../../bin/hawk.c:408 ../../bin/main.c:410
+#: ../../bin/hawk.c:407 ../../bin/main.c:410
 msgid "USAGE"
 msgstr "사용법"
 
-#: ../../bin/hawk.c:408
+#: ../../bin/hawk.c:407
 msgid "[options] -f sourcefile [ -- ] [datafile]*"
 msgstr "[옵션] -f 소스파일 [ -- ] [자료파일]*"
 
-#: ../../bin/hawk.c:409
+#: ../../bin/hawk.c:408
 msgid "     "
 msgstr "      "
 
-#: ../../bin/hawk.c:409
+#: ../../bin/hawk.c:408
 msgid "[options] [ -- ] sourcestring [datafile]*"
 msgstr "[옵션] [ -- ] 소스문자열 [자료파일]*"
 
-#: ../../bin/hawk.c:410 ../../bin/main.c:411
+#: ../../bin/hawk.c:409 ../../bin/main.c:411
 msgid "Options as follows:"
 msgstr "옵션은 다음과 같습니다:"
 
-#: ../../bin/hawk.c:411
+#: ../../bin/hawk.c:410
 msgid " -h/--help                         print this message"
 msgstr " -h/--help                         이 메시지를 출력"
 
-#: ../../bin/hawk.c:412
+#: ../../bin/hawk.c:411
 msgid " -D                                show extra information"
 msgstr " -D                                추가 정보를 표시"
 
-#: ../../bin/hawk.c:413
+#: ../../bin/hawk.c:412
 msgid " -c/--call            name         call a function instead of entering"
 msgstr " -c/--call            이름         패턴-동작 루프 대신 함수를 호출"
 
-#: ../../bin/hawk.c:414
+#: ../../bin/hawk.c:413
 msgid ""
 "                                   the pattern-action loop. [datafile]* is"
 msgstr "                                   [자료파일]* 을 함수 인자로 전달"
 
-#: ../../bin/hawk.c:415
+#: ../../bin/hawk.c:414
 msgid "                                   passed to the function as parameters"
 msgstr "                                   합니다."
 
-#: ../../bin/hawk.c:416
+#: ../../bin/hawk.c:415
 msgid " -f/--file            file         set the source script file"
 msgstr " -f/--file            파일         소스 스크립트 파일을 지정"
 
-#: ../../bin/hawk.c:417
+#: ../../bin/hawk.c:416
 msgid ""
 " -d/--deparsed-file   file         set the deparsed script file to produce"
 msgstr ""
 " -d/--deparsed-file   파일         디파싱한 스크립트를 저장할 파일을 지정"
 
-#: ../../bin/hawk.c:418
+#: ../../bin/hawk.c:417
 msgid " -t/--console-output  file         set the console output file"
 msgstr " -t/--console-output  파일         콘솔 출력 파일을 지정"
 
-#: ../../bin/hawk.c:419
+#: ../../bin/hawk.c:418
 msgid "                                   multiple -t options are allowed"
 msgstr "                                   -t 옵션은 여러 번 지정할 수 있음"
 
-#: ../../bin/hawk.c:420
+#: ../../bin/hawk.c:419
 msgid " -F/--field-separator string       set a field separator(FS)"
 msgstr " -F/--field-separator 문자열       필드 구분자(FS)를 지정"
 
-#: ../../bin/hawk.c:421
+#: ../../bin/hawk.c:420
 msgid " -v/--assign          var=value    add a global variable with a value"
 msgstr " -v/--assign          변수=값      값을 가진 전역 변수를 추가"
 
-#: ../../bin/hawk.c:422
+#: ../../bin/hawk.c:421
 msgid " -m/--memory-limit    number       limit the memory usage (bytes)"
 msgstr " -m/--memory-limit    숫자         메모리 사용량을 제한(바이트)"
 
-#: ../../bin/hawk.c:423
+#: ../../bin/hawk.c:422
 msgid " -w                                expand datafile wildcards"
 msgstr " -w                                자료 파일 와일드카드를 확장"
 
-#: ../../bin/hawk.c:426
+#: ../../bin/hawk.c:425
 msgid " --script-encoding    string       specify script file encoding name"
 msgstr " --script-encoding    문자열       스크립트 파일 인코딩 이름을 지정"
 
-#: ../../bin/hawk.c:427
+#: ../../bin/hawk.c:426
 #, fuzzy
 msgid " --conin-encoding     string       specify console input encoding name"
 msgstr " --console-encoding   문자열       콘솔 인코딩 이름을 지정"
 
-#: ../../bin/hawk.c:428
+#: ../../bin/hawk.c:427
 #, fuzzy
 msgid " --conout-encoding    string       specify console output encoding name"
 msgstr " --console-encoding   문자열       콘솔 인코딩 이름을 지정"
 
-#: ../../bin/hawk.c:431
+#: ../../bin/hawk.c:430
 msgid ""
 " -I/--includedirs     string       specify directories to look for include "
 "files in"
 msgstr " -I/--includedirs     문자열       include 파일을 찾을 디렉토리를 지정"
 
-#: ../../bin/hawk.c:432
+#: ../../bin/hawk.c:431
 msgid ""
 " --modlibdirs         string       specify directories to look for module "
 "files in"
 msgstr " --modlibdirs         문자열       모듈 파일을 찾을 디렉토리를 지정"
 
-#: ../../bin/hawk.c:433
+#: ../../bin/hawk.c:432
 msgid " --modern                          run in the modern mode(default)"
 msgstr " --modern                          현대화 모드로 실행(기본값)"
 
-#: ../../bin/hawk.c:434
+#: ../../bin/hawk.c:433
 msgid " --classic                         run in the classic mode"
 msgstr " --classic                         고전 모드로 실행"
 
-#: ../../bin/hawk.c:444
+#: ../../bin/hawk.c:443
 msgid "Special mode switching options(must be specified first to take effect):"
 msgstr "모드 전환 옵션(처음에 지정해야 적용됨):"
 
-#: ../../bin/hawk.c:445 ../../bin/main.c:414
+#: ../../bin/hawk.c:444 ../../bin/main.c:414
 msgid " --awk/--hawk                      switch to the awk mode(default)"
 msgstr " --awk/--hawk                      awk 모드로 전환(기본값)"
 
-#: ../../bin/hawk.c:446 ../../bin/main.c:415
+#: ../../bin/hawk.c:445 ../../bin/main.c:415
 msgid " --cut                             switch to the cut mode"
 msgstr " --cut                             cut 모드로 전환"
 
-#: ../../bin/hawk.c:447 ../../bin/main.c:416
+#: ../../bin/hawk.c:446 ../../bin/main.c:416
 msgid " --sed                             switch to the sed mode"
 msgstr " --sed                             sed 모드로 전환"
 
-#: ../../bin/hawk.c:806 ../../bin/hawk.c:823
+#: ../../bin/hawk.c:804 ../../bin/hawk.c:821
 msgid "ERROR"
 msgstr "오류"
 
-#: ../../bin/hawk.c:807 ../../bin/hawk.c:824
+#: ../../bin/hawk.c:805 ../../bin/hawk.c:822
 msgid "Line"
 msgstr "줄"
 
-#: ../../bin/hawk.c:808 ../../bin/hawk.c:825
+#: ../../bin/hawk.c:806 ../../bin/hawk.c:823
 msgid "Column"
 msgstr "열"
 
-#: ../../bin/hawk.c:809 ../../bin/hawk.c:826
+#: ../../bin/hawk.c:807 ../../bin/hawk.c:824
 msgid "Code"
 msgstr "코드"
 
-#: ../../bin/hawk.c:810 ../../bin/hawk.c:827
+#: ../../bin/hawk.c:808 ../../bin/hawk.c:825
 msgid "File "
 msgstr "파일 "
 
@@ -973,6 +969,9 @@ msgstr "선택자가 유효하지 않음"
 #: ../../lib/err.c:227
 msgid "unknown error"
 msgstr "알 수 없는 오류"
+
+#~ msgid "enable byte-code building"
+#~ msgstr "바이트코드 생성을 활성화"
 
 #, fuzzy
 #~ msgid ""

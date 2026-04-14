@@ -33,7 +33,6 @@ static void free_fun (hawk_htb_t* map, void* vptr, hawk_oow_t vlen)
 	/*hawk_freemem(hawk, f->name);*/
 
 	if (f->argspec) hawk_freemem(hawk, f->argspec);
-	if (f->bc) hawk_freefunbc(hawk, f->bc);
 	hawk_clrpt(hawk, f->body);
 	hawk_freemem(hawk, f);
 }
@@ -44,7 +43,6 @@ static void free_ifun (hawk_arr_t* arr, void* dptr, hawk_oow_t dlen)
 	hawk_fun_t* f = (hawk_fun_t*)dptr;
 
 	if (f->argspec) hawk_freemem(hawk, f->argspec);
-	if (f->bc) hawk_freefunbc(hawk, f->bc);
 	hawk_clrpt(hawk, f->body);
 	hawk_freemem(hawk, f);
 }
@@ -475,7 +473,7 @@ void hawk_clear (hawk_t* hawk)
 	 * mask them off with hawk_setopt(). the listed options
 	 * here affect the compile-time pragma. */
 	hawk->parse.pragma.trait = hawk->opt.trait &
-		(HAWK_BUILDBC | HAWK_DEFER_MODSYM | HAWK_IMPLICIT | HAWK_MULTILINESTR | HAWK_PEDANTIC | HAWK_RWPIPE |
+		(HAWK_DEFER_MODSYM | HAWK_IMPLICIT | HAWK_MULTILINESTR | HAWK_PEDANTIC | HAWK_RWPIPE |
 		 HAWK_PIPECLOEXEC | HAWK_STRIPRECSPC | HAWK_STRIPSTRSPC | HAWK_XCALL);
 
 	hawk->parse.pragma.rtx_stack_limit = 0;

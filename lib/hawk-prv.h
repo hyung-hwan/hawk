@@ -192,174 +192,6 @@ typedef struct hawk_tree_t hawk_tree_t;
 
 #endif
 
-enum hawk_fbc_opcode_t
-{
-	HAWK_FBC_OP_NOP = 0,
-	HAWK_FBC_OP_LOAD_CONST_INT,
-	HAWK_FBC_OP_LOAD_CONST_FLT,
-	HAWK_FBC_OP_LOAD_CONST_STR,
-	HAWK_FBC_OP_LOAD_CONST_MBS,
-	HAWK_FBC_OP_LOAD_CONST_CHAR,
-	HAWK_FBC_OP_LOAD_CONST_BCHR,
-	HAWK_FBC_OP_LOAD_CONST_NIL,
-	HAWK_FBC_OP_LOAD_CONST_TRUE,
-	HAWK_FBC_OP_LOAD_CONST_FALSE,
-	HAWK_FBC_OP_LOAD_GBL,
-	HAWK_FBC_OP_LOAD_LCL,
-	HAWK_FBC_OP_LOAD_ARG,
-	HAWK_FBC_OP_STORE_GBL,
-	HAWK_FBC_OP_STORE_LCL,
-	HAWK_FBC_OP_STORE_ARG,
-	HAWK_FBC_OP_STORE_POP_GBL,
-	HAWK_FBC_OP_STORE_POP_LCL,
-	HAWK_FBC_OP_STORE_POP_ARG,
-	HAWK_FBC_OP_ADD,
-	HAWK_FBC_OP_SUB,
-	HAWK_FBC_OP_MUL,
-	HAWK_FBC_OP_DIV,
-	HAWK_FBC_OP_IDIV,
-	HAWK_FBC_OP_MOD,
-	HAWK_FBC_OP_EXP,
-	HAWK_FBC_OP_CONCAT,
-	HAWK_FBC_OP_RSHIFT,
-	HAWK_FBC_OP_LSHIFT,
-	HAWK_FBC_OP_BAND,
-	HAWK_FBC_OP_BXOR,
-	HAWK_FBC_OP_BOR,
-
-	HAWK_FBC_OP_TEQ,
-	HAWK_FBC_OP_TNE,
-	HAWK_FBC_OP_EQ,
-	HAWK_FBC_OP_NE,
-	HAWK_FBC_OP_GT,
-	HAWK_FBC_OP_GE,
-	HAWK_FBC_OP_LT,
-	HAWK_FBC_OP_LE,
-
-	HAWK_FBC_OP_PLUS, /* unary plus */
-	HAWK_FBC_OP_MINUS, /* unary minus */
-	HAWK_FBC_OP_LNOT, /* unary logical negation */
-	HAWK_FBC_OP_BNOT, /* unary bitwise negation */
-	HAWK_FBC_OP_SWAP,
-	HAWK_FBC_OP_DUP,
-	HAWK_FBC_OP_JMP,
-	HAWK_FBC_OP_JZ,
-	HAWK_FBC_OP_CALL,
-	HAWK_FBC_OP_CALL_FUN,
-	HAWK_FBC_OP_CALL_EXPR,
-	HAWK_FBC_OP_RET,
-	HAWK_FBC_OP_POP,
-	HAWK_FBC_OP_INIT_BLK,
-	HAWK_FBC_OP_PRINT_REC,
-	HAWK_FBC_OP_PRINT_SEP,
-	HAWK_FBC_OP_PRINT_VAL,
-	HAWK_FBC_OP_PRINT_END,
-	HAWK_FBC_OP_RUN_AST_STMT,
-	HAWK_FBC_OP_RET_AST_EXPR,
-	HAWK_FBC_OP_RET_NIL
-};
-typedef enum hawk_fbc_opcode_t hawk_fbc_opcode_t;
-
-enum hawk_fbc_lit_type_t
-{
-	HAWK_FBC_LIT_FLT = 0,
-	HAWK_FBC_LIT_STR,
-	HAWK_FBC_LIT_MBS,
-	HAWK_FBC_LIT_CHAR,
-	HAWK_FBC_LIT_BCHR
-};
-typedef enum hawk_fbc_lit_type_t hawk_fbc_lit_type_t;
-
-typedef struct hawk_fbc_lit_t hawk_fbc_lit_t;
-struct hawk_fbc_lit_t
-{
-	hawk_fbc_lit_type_t type;
-	union
-	{
-		hawk_flt_t fv;
-		hawk_oocs_t str;
-		hawk_bcs_t mbs;
-		hawk_ooch_t ch;
-		hawk_bch_t bch;
-	} u;
-};
-
-enum hawk_fbc_call_flag_t
-{
-	HAWK_FBC_CALL_FLAG_NONE = 0,
-
-	/* actual enumerators start here */
-	HAWK_FBC_CALL_FLAG_VARIADIC = (1 << 0),
-};
-typedef enum hawk_fbc_call_flag_t  hawk_fbc_call_flag_t;
-
-/* pseudo structure to keep the chain of hawk_fbc_call_fun_t and hawk_fbc_call_expr_t */
-typedef struct hawk_fbc_call_info_t hawk_fbc_call_info_t;
-struct hawk_fbc_call_info_t
-{
-	hawk_fbc_call_info_t *next;
-};
-
-typedef struct hawk_fbc_call_fun_t hawk_fbc_call_fun_t;
-struct hawk_fbc_call_fun_t
-{
-	hawk_fbc_call_info_t *next;
-
-	hawk_uint16_t nargs; /* actual argument count */
-	hawk_uint16_t flags; /* 0 or bitwise-ORed of hawk_fbc_call_flag_t enumerators */
-	hawk_loc_t    loc; /* for error reporting */
-	hawk_oocs_t   name; /* fallback lookup key if fun is not cached yet */
-	hawk_fun_t*   fun;  /* cached resolved function if available */
-};
-
-/* the callee is on the stack */
-typedef struct hawk_fbc_call_expr_t hawk_fbc_call_expr_t;
-struct hawk_fbc_call_expr_t
-{
-	hawk_fbc_call_info_t *next;
-
-	hawk_uint16_t nargs; /* actual argument count */
-	hawk_uint16_t flags; /* variadic-related or future use */
-	hawk_loc_t    loc; /* for error reporting */
-	hawk_oocs_t   diag_name; /* optional; len=0 if absent */
-};
-
-typedef struct hawk_fbc_ins_t hawk_fbc_ins_t;
-struct hawk_fbc_ins_t
-{
-	hawk_fbc_opcode_t opcode;
-	union
-	{
-		hawk_nde_t* nde;
-
-		hawk_fbc_call_fun_t* call_fun;
-		hawk_fbc_call_expr_t* call_expr;
-
-		hawk_int_t iv;
-		hawk_ooch_t ch;
-		hawk_bch_t bch;
-		hawk_oow_t idx;
-		hawk_oow_t oow;
-	} u;
-};
-
-struct hawk_fbc_t
-{
-	hawk_fbc_ins_t* code;
-	hawk_oow_t len;
-	hawk_oow_t capa;
-
-	hawk_fbc_lit_t* lit;
-	hawk_oow_t lit_len;
-	hawk_oow_t lit_capa;
-
-	hawk_fbc_call_info_t* call_info_top;
-
-	hawk_oow_t nargs;
-	hawk_oow_t nlocals;
-	hawk_oow_t stack_max;
-};
-
 struct hawk_tree_t
 {
 	hawk_oow_t ngbls; /* total number of globals */
@@ -593,14 +425,6 @@ struct hawk_var_xinfo_t
 	hawk_loc_t loc;
 };
 
-typedef struct hawk_fbc_eval_stack_t hawk_fbc_eval_stack_t;
-struct hawk_fbc_eval_stack_t
-{
-	hawk_val_t** ptr;
-	hawk_oow_t len;
-	hawk_oow_t capa;
-};
-
 struct hawk_rtx_t
 {
 	HAWK_RTX_HDR;
@@ -611,8 +435,6 @@ struct hawk_rtx_t
 	hawk_oow_t stack_top;
 	hawk_oow_t stack_base;
 	hawk_oow_t stack_limit;
-
-	hawk_fbc_eval_stack_t fbc_eval_stack;
 
 	int exit_level;
 	int init_called;

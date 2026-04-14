@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-04-10 23:03+0900\n"
+"POT-Creation-Date: 2026-04-15 01:55+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -22,228 +22,224 @@ msgid "enable concatenation by blanks"
 msgstr ""
 
 #: ../../bin/hawk.c:377
-msgid "enable byte-code building"
-msgstr ""
-
-#: ../../bin/hawk.c:378
 msgid "use CRLF for a newline"
 msgstr ""
 
-#: ../../bin/hawk.c:379
+#: ../../bin/hawk.c:378
 msgid "defer resolving module symbols(mod::symbol) to runtime"
 msgstr ""
 
-#: ../../bin/hawk.c:380
+#: ../../bin/hawk.c:379
 msgid "allow a map to be assigned or returned"
 msgstr ""
 
-#: ../../bin/hawk.c:381
+#: ../../bin/hawk.c:380
 msgid "allow undeclared variables"
 msgstr ""
 
-#: ../../bin/hawk.c:382
+#: ../../bin/hawk.c:381
 msgid "allow raw multiline string and regular expression literals"
 msgstr ""
 
-#: ../../bin/hawk.c:383
+#: ../../bin/hawk.c:382
 msgid "perform numeric comparsion on numeric strings"
 msgstr ""
 
-#: ../../bin/hawk.c:384
+#: ../../bin/hawk.c:383
 msgid "enable a newline to terminate a statement"
 msgstr ""
 
-#: ../../bin/hawk.c:385
+#: ../../bin/hawk.c:384
 msgid "enable nextofile & OFILENAME"
 msgstr ""
 
-#: ../../bin/hawk.c:386
+#: ../../bin/hawk.c:385
 msgid "detect a numeric string and convert it to a number"
 msgstr ""
 
-#: ../../bin/hawk.c:387
+#: ../../bin/hawk.c:386
 msgid "enable pattern-action loop"
 msgstr ""
 
-#: ../../bin/hawk.c:388
+#: ../../bin/hawk.c:387
 msgid "enable pedantic mode"
 msgstr ""
 
-#: ../../bin/hawk.c:389
+#: ../../bin/hawk.c:388
 msgid "set CLOEXEC before executing an external program for piping"
 msgstr ""
 
-#: ../../bin/hawk.c:390
+#: ../../bin/hawk.c:389
 msgid "enable {n,m} in a regular expression"
 msgstr ""
 
-#: ../../bin/hawk.c:391
+#: ../../bin/hawk.c:390
 msgid "enable builtin I/O including getline & print"
 msgstr ""
 
-#: ../../bin/hawk.c:392
+#: ../../bin/hawk.c:391
 msgid "allow a dual-directional pipe"
 msgstr ""
 
-#: ../../bin/hawk.c:393
+#: ../../bin/hawk.c:392
 msgid "enable the strict naming rule"
 msgstr ""
 
-#: ../../bin/hawk.c:394
+#: ../../bin/hawk.c:393
 msgid "strip spaces in splitting a record"
 msgstr ""
 
-#: ../../bin/hawk.c:395
+#: ../../bin/hawk.c:394
 msgid "strip spaces in string-to-number conversion"
 msgstr ""
 
-#: ../../bin/hawk.c:396
+#: ../../bin/hawk.c:395
 msgid "make more fault-tolerant"
 msgstr ""
 
-#: ../../bin/hawk.c:397
+#: ../../bin/hawk.c:396
 msgid "enable the extended call syntax"
 msgstr ""
 
-#: ../../bin/hawk.c:408 ../../bin/main.c:410
+#: ../../bin/hawk.c:407 ../../bin/main.c:410
 msgid "USAGE"
 msgstr ""
 
-#: ../../bin/hawk.c:408
+#: ../../bin/hawk.c:407
 msgid "[options] -f sourcefile [ -- ] [datafile]*"
 msgstr ""
 
-#: ../../bin/hawk.c:409
+#: ../../bin/hawk.c:408
 msgid "     "
 msgstr ""
 
-#: ../../bin/hawk.c:409
+#: ../../bin/hawk.c:408
 msgid "[options] [ -- ] sourcestring [datafile]*"
 msgstr ""
 
-#: ../../bin/hawk.c:410 ../../bin/main.c:411
+#: ../../bin/hawk.c:409 ../../bin/main.c:411
 msgid "Options as follows:"
 msgstr ""
 
-#: ../../bin/hawk.c:411
+#: ../../bin/hawk.c:410
 msgid " -h/--help                         print this message"
 msgstr ""
 
-#: ../../bin/hawk.c:412
+#: ../../bin/hawk.c:411
 msgid " -D                                show extra information"
 msgstr ""
 
-#: ../../bin/hawk.c:413
+#: ../../bin/hawk.c:412
 msgid " -c/--call            name         call a function instead of entering"
 msgstr ""
 
-#: ../../bin/hawk.c:414
+#: ../../bin/hawk.c:413
 msgid ""
 "                                   the pattern-action loop. [datafile]* is"
 msgstr ""
 
-#: ../../bin/hawk.c:415
+#: ../../bin/hawk.c:414
 msgid "                                   passed to the function as parameters"
 msgstr ""
 
-#: ../../bin/hawk.c:416
+#: ../../bin/hawk.c:415
 msgid " -f/--file            file         set the source script file"
 msgstr ""
 
-#: ../../bin/hawk.c:417
+#: ../../bin/hawk.c:416
 msgid ""
 " -d/--deparsed-file   file         set the deparsed script file to produce"
 msgstr ""
 
-#: ../../bin/hawk.c:418
+#: ../../bin/hawk.c:417
 msgid " -t/--console-output  file         set the console output file"
 msgstr ""
 
-#: ../../bin/hawk.c:419
+#: ../../bin/hawk.c:418
 msgid "                                   multiple -t options are allowed"
 msgstr ""
 
-#: ../../bin/hawk.c:420
+#: ../../bin/hawk.c:419
 msgid " -F/--field-separator string       set a field separator(FS)"
 msgstr ""
 
-#: ../../bin/hawk.c:421
+#: ../../bin/hawk.c:420
 msgid " -v/--assign          var=value    add a global variable with a value"
 msgstr ""
 
-#: ../../bin/hawk.c:422
+#: ../../bin/hawk.c:421
 msgid " -m/--memory-limit    number       limit the memory usage (bytes)"
 msgstr ""
 
-#: ../../bin/hawk.c:423
+#: ../../bin/hawk.c:422
 msgid " -w                                expand datafile wildcards"
 msgstr ""
 
-#: ../../bin/hawk.c:426
+#: ../../bin/hawk.c:425
 msgid " --script-encoding    string       specify script file encoding name"
 msgstr ""
 
-#: ../../bin/hawk.c:427
+#: ../../bin/hawk.c:426
 msgid " --conin-encoding     string       specify console input encoding name"
 msgstr ""
 
-#: ../../bin/hawk.c:428
+#: ../../bin/hawk.c:427
 msgid " --conout-encoding    string       specify console output encoding name"
 msgstr ""
 
-#: ../../bin/hawk.c:431
+#: ../../bin/hawk.c:430
 msgid ""
 " -I/--includedirs     string       specify directories to look for include "
 "files in"
 msgstr ""
 
-#: ../../bin/hawk.c:432
+#: ../../bin/hawk.c:431
 msgid ""
 " --modlibdirs         string       specify directories to look for module "
 "files in"
 msgstr ""
 
-#: ../../bin/hawk.c:433
+#: ../../bin/hawk.c:432
 msgid " --modern                          run in the modern mode(default)"
 msgstr ""
 
-#: ../../bin/hawk.c:434
+#: ../../bin/hawk.c:433
 msgid " --classic                         run in the classic mode"
 msgstr ""
 
-#: ../../bin/hawk.c:444
+#: ../../bin/hawk.c:443
 msgid "Special mode switching options(must be specified first to take effect):"
 msgstr ""
 
-#: ../../bin/hawk.c:445 ../../bin/main.c:414
+#: ../../bin/hawk.c:444 ../../bin/main.c:414
 msgid " --awk/--hawk                      switch to the awk mode(default)"
 msgstr ""
 
-#: ../../bin/hawk.c:446 ../../bin/main.c:415
+#: ../../bin/hawk.c:445 ../../bin/main.c:415
 msgid " --cut                             switch to the cut mode"
 msgstr ""
 
-#: ../../bin/hawk.c:447 ../../bin/main.c:416
+#: ../../bin/hawk.c:446 ../../bin/main.c:416
 msgid " --sed                             switch to the sed mode"
 msgstr ""
 
-#: ../../bin/hawk.c:806 ../../bin/hawk.c:823
+#: ../../bin/hawk.c:804 ../../bin/hawk.c:821
 msgid "ERROR"
 msgstr ""
 
-#: ../../bin/hawk.c:807 ../../bin/hawk.c:824
+#: ../../bin/hawk.c:805 ../../bin/hawk.c:822
 msgid "Line"
 msgstr ""
 
-#: ../../bin/hawk.c:808 ../../bin/hawk.c:825
+#: ../../bin/hawk.c:806 ../../bin/hawk.c:823
 msgid "Column"
 msgstr ""
 
-#: ../../bin/hawk.c:809 ../../bin/hawk.c:826
+#: ../../bin/hawk.c:807 ../../bin/hawk.c:824
 msgid "Code"
 msgstr ""
 
-#: ../../bin/hawk.c:810 ../../bin/hawk.c:827
+#: ../../bin/hawk.c:808 ../../bin/hawk.c:825
 msgid "File "
 msgstr ""
 

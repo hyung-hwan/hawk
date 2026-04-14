@@ -374,7 +374,6 @@ struct opttab_t
 {
 	/* the values must be present in the "lng" table in process_argv[] */
 	{ "blankconcat",  HAWK_BLANKCONCAT,    __("enable concatenation by blanks") },
-	{ "buildbc",      HAWK_BUILDBC,        __("enable byte-code building") },
 	{ "crlf",         HAWK_CRLF,           __("use CRLF for a newline") },
 	{ "defermodsym",  HAWK_DEFER_MODSYM,   __("defer resolving module symbols(mod::symbol) to runtime") },
 	{ "flexmap",      HAWK_FLEXMAP,        __("allow a map to be assigned or returned") },
@@ -455,7 +454,6 @@ static int process_argv (int argc, hawk_bch_t* argv[], const hawk_bch_t* real_ar
 	static hawk_bcli_lng_t lng[] =
 	{
 		{ ":blankconcat",      '\0' },
-		{ ":buildbc",          '\0' },
 		{ ":crlf",             '\0' },
 		{ ":defermodsym",      '\0' },
 		{ ":flexmap",          '\0' },
