@@ -1126,7 +1126,7 @@ static int is_nde_unconditional_terminator (hawk_nde_t* nde)
 	}
 }
 
-static int does_nde_have_side_effect (hawk_nde_t* nde)
+static int is_nde_safe_to_erase (hawk_nde_t* nde)
 {
 	HAWK_ASSERT(nde != HAWK_NULL);
 
@@ -1146,68 +1146,54 @@ static int does_nde_have_side_effect (hawk_nde_t* nde)
 		case HAWK_NDE_XARGC:
 		case HAWK_NDE_XARGV:
 		case HAWK_NDE_FUN:
-		case HAWK_NDE_MODSYM:
 		case HAWK_NDE_NAMED:
 		case HAWK_NDE_GBL:
 		case HAWK_NDE_LCL:
 		case HAWK_NDE_ARG:
-			return 0;
-
-		case HAWK_NDE_NAMEDIDX:
-		case HAWK_NDE_GBLIDX:
-		case HAWK_NDE_LCLIDX:
-		case HAWK_NDE_ARGIDX:
-			return does_nde_have_side_effect(((hawk_nde_var_t*)nde)->idx);
-
-		case HAWK_NDE_XARGVIDX:
-			return does_nde_have_side_effect(((hawk_nde_xargvidx_t*)nde)->pos);
+			return 1;
 
 		case HAWK_NDE_POS:
-			return does_nde_have_side_effect(((hawk_nde_pos_t*)nde)->val);
+		{
+			/* only $0, $1, $2, ... are erasable.
+			 * $i, $"abc", $-1, ... are not erasable */
+			hawk_nde_t* idx = ((hawk_nde_pos_t*)nde)->val;
+			return idx->type == HAWK_NDE_INT && ((hawk_nde_int_t*)idx)->val >= 0;
+		}
+
+		case HAWK_NDE_XARGVIDX:
+		{
+			/* erasable if @argv is accessed with a literal positive integer index only */
+			hawk_nde_t* idx = ((hawk_nde_xargvidx_t*)nde)->pos;
+			return idx->type == HAWK_NDE_INT && ((hawk_nde_int_t*)idx)->val >= 0;
+		}
+
+		case HAWK_NDE_EXP_UNR:
+			return ((hawk_nde_exp_t*)nde)->opcode == HAWK_UNROP_LNOT &&
+			       is_nde_safe_to_erase(((hawk_nde_exp_t*)nde)->left);
+
+		case HAWK_NDE_EXP_BIN:
+			return ((((hawk_nde_exp_t*)nde)->opcode == HAWK_BINOP_LOR) ||
+			        (((hawk_nde_exp_t*)nde)->opcode == HAWK_BINOP_LAND)) &&
+			       is_nde_safe_to_erase(((hawk_nde_exp_t*)nde)->left) &&
+			       is_nde_safe_to_erase(((hawk_nde_exp_t*)nde)->right);
+
+		case HAWK_NDE_CND:
+			return is_nde_safe_to_erase(((hawk_nde_cnd_t*)nde)->test) &&
+			       is_nde_safe_to_erase(((hawk_nde_cnd_t*)nde)->left) &&
+			       is_nde_safe_to_erase(((hawk_nde_cnd_t*)nde)->right);
 
 		case HAWK_NDE_GRP:
 		{
 			hawk_nde_t* p;
 			for (p = ((hawk_nde_grp_t*)nde)->body; p; p = p->next)
 			{
-				if (does_nde_have_side_effect(p)) return 1;
+				if (!is_nde_safe_to_erase(p)) return 0;
 			}
-			return 0;
-		}
-
-		case HAWK_NDE_EXP_BIN:
-			return does_nde_have_side_effect(((hawk_nde_exp_t*)nde)->left) ||
-			       does_nde_have_side_effect(((hawk_nde_exp_t*)nde)->right);
-
-		case HAWK_NDE_EXP_UNR:
-			return does_nde_have_side_effect(((hawk_nde_exp_t*)nde)->left);
-
-		case HAWK_NDE_BLK:
-		{
-			hawk_nde_t* p;
-			for (p = ((hawk_nde_blk_t*)nde)->body; p; p = p->next)
-			{
-				if (does_nde_have_side_effect(p)) return 1;
-			}
-			return 0;
-		}
-
-		case HAWK_NDE_CND:
-			return does_nde_have_side_effect(((hawk_nde_cnd_t*)nde)->test) ||
-			       does_nde_have_side_effect(((hawk_nde_cnd_t*)nde)->left) ||
-			       does_nde_have_side_effect(((hawk_nde_cnd_t*)nde)->right);
-
-		case HAWK_NDE_IF:
-		{
-			hawk_nde_if_t* p = (hawk_nde_if_t*)nde;
-			return does_nde_have_side_effect(p->test) ||
-			       does_nde_have_side_effect(p->then_part) ||
-			       (p->else_part && does_nde_have_side_effect(p->else_part));
-		}
-
-		/* all other nodes */
-		default:
 			return 1;
+		}
+
+		default:
+			return 0;
 	}
 }
 
@@ -3650,8 +3636,8 @@ static hawk_nde_t* parse_for (hawk_t* hawk, const hawk_loc_t* xloc)
 {
 	hawk_nde_t* init = HAWK_NULL, * test = HAWK_NULL;
 	hawk_nde_t* incr = HAWK_NULL, * body = HAWK_NULL;
-	hawk_nde_for_t* nde_for;
 	hawk_nde_forin_t* nde_forin;
+	hawk_nde_for_t* nde_for;
 	hawk_loc_t ploc;
 
 	if (!MATCH(hawk,TOK_LPAREN))
@@ -3764,6 +3750,35 @@ static hawk_nde_t* parse_for (hawk_t* hawk, const hawk_loc_t* xloc)
 	ploc = hawk->tok.loc;
 	body = parse_statement(hawk, &ploc);
 	if (body == HAWK_NULL) goto oops;
+
+	if (test)
+	{
+		if (is_nde_hard_false(test))
+		{
+			if (test) hawk_clrpt(hawk, test);
+			if (incr) hawk_clrpt(hawk, incr);
+			if (body) hawk_clrpt(hawk, body);
+			if (init) return init;
+			return make_null_nde(hawk, xloc);
+		}
+		else if (is_nde_hard_true(test))
+		{
+			hawk_clrpt(hawk, test);
+			test = HAWK_NULL;
+		}
+	}
+
+	if (init && is_nde_safe_to_erase(init))
+	{
+		hawk_clrpt(hawk, init);
+		init = HAWK_NULL;
+	}
+
+	if (incr && is_nde_safe_to_erase(incr))
+	{
+		hawk_clrpt(hawk, incr);
+		incr = HAWK_NULL;
+	}
 
 	nde_for = (hawk_nde_for_t*)hawk_callocmem(hawk, HAWK_SIZEOF(*nde_for));
 	if (HAWK_UNLIKELY(!nde_for))
@@ -4515,7 +4530,7 @@ static hawk_nde_t* parse_statement (hawk_t* hawk, const hawk_loc_t* xloc)
 		hawk->parse.id.stmt = old_id;
 	}
 
-	if (nde && !does_nde_have_side_effect(nde))
+	if (nde && is_nde_safe_to_erase(nde))
 	{
 		hawk_nde_t* tmp;
 		tmp = make_null_nde(hawk, &nde->loc);
