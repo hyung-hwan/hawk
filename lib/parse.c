@@ -994,6 +994,138 @@ oops:
 	return -1;
 }
 
+static int is_nde_bool_literal_atom (hawk_nde_t* nde)
+{
+	switch (nde->type)
+	{
+		case HAWK_NDE_XFALSE:
+		case HAWK_NDE_XTRUE:
+		case HAWK_NDE_XNIL:
+		case HAWK_NDE_INT:
+		case HAWK_NDE_FLT:
+		case HAWK_NDE_STR:
+		case HAWK_NDE_MBS:
+			return 1;
+		default:
+			return 0;
+	}
+}
+
+/* return the effective literal node for boolean decision.
+ * if nde is a grouped node, every grouped element must be literal.
+ * the returned node is the last literal element in the group.
+ *
+ * examples:
+ *   (1, 0)         -> INT(0)
+ *   ((1, 0))       -> INT(0)
+ *   ("x", @false)  -> XFALSE
+ *   (abc(), 0)     -> HAWK_NULL
+ */
+static hawk_nde_t* get_nde_bool_literal_tail (hawk_nde_t* nde, int depth)
+{
+	if (depth >= 256) return HAWK_NULL; /* i don't wawnt to support to deep recursion. TODO: remove hard-coded value or remove recursion? */
+
+	if (nde->type == HAWK_NDE_GRP)
+	{
+		hawk_nde_t* cur, * last;
+
+		cur = ((hawk_nde_grp_t*)nde)->body;
+		HAWK_ASSERT(cur != HAWK_NULL);
+
+		last = HAWK_NULL;
+		do
+		{
+			last = get_nde_bool_literal_tail(cur, depth + 1);
+			if (!last) return HAWK_NULL;
+			cur = cur->next;
+		}
+		while (cur);
+
+		return last;
+	}
+
+	return is_nde_bool_literal_atom(nde)? nde: HAWK_NULL;
+}
+
+static nde_hard_bool_t classify_nde_hard_bool (hawk_nde_t* nde)
+{
+	nde = get_nde_bool_literal_tail(nde, 0);
+	if (!nde) return NDE_HARD_BOOL_UNKNOWN;
+
+	switch (nde->type)
+	{
+		case HAWK_NDE_XFALSE:
+		case HAWK_NDE_XNIL:
+			return NDE_HARD_BOOL_FALSE;
+
+		case HAWK_NDE_XTRUE:
+			return NDE_HARD_BOOL_TRUE;
+
+		case HAWK_NDE_INT:
+			return (((hawk_nde_int_t*)nde)->val == 0)?
+				NDE_HARD_BOOL_FALSE: NDE_HARD_BOOL_TRUE;
+
+		case HAWK_NDE_FLT:
+			return (((hawk_nde_flt_t*)nde)->val == 0.0)?
+				NDE_HARD_BOOL_FALSE: NDE_HARD_BOOL_TRUE;
+
+		case HAWK_NDE_STR:
+			return (((hawk_nde_str_t*)nde)->len == 0)?
+				NDE_HARD_BOOL_FALSE: NDE_HARD_BOOL_TRUE;
+
+		case HAWK_NDE_MBS:
+			return (((hawk_nde_mbs_t*)nde)->len == 0)?
+				NDE_HARD_BOOL_FALSE: NDE_HARD_BOOL_TRUE;
+
+		default:
+			return NDE_HARD_BOOL_UNKNOWN;
+	}
+}
+
+static HAWK_INLINE int is_nde_hard_false (hawk_nde_t* nde)
+{
+	return classify_nde_hard_bool(nde) == NDE_HARD_BOOL_FALSE;
+}
+
+static HAWK_INLINE int is_nde_hard_true (hawk_nde_t* nde)
+{
+	return classify_nde_hard_bool(nde) == NDE_HARD_BOOL_TRUE;
+}
+
+static int is_nde_unconditional_terminator (hawk_nde_t* nde)
+{
+	switch (nde->type)
+	{
+		case HAWK_NDE_EXIT: /* exit or @abort */
+		case HAWK_NDE_RETURN: /* return */
+		case HAWK_NDE_NEXT:
+		case HAWK_NDE_NEXTFILE:
+			return 1;
+
+/* TODO: recursion depth check? */
+		case HAWK_NDE_BLK:
+		{
+			hawk_nde_t* p;
+			for (p = ((hawk_nde_blk_t*)nde)->body; p && p->next; p = p->next)
+			{
+				if (is_nde_unconditional_terminator(p)) return 1;
+			}
+			return 0;
+		}
+
+		case HAWK_NDE_IF:
+		{
+			hawk_nde_if_t* p = (hawk_nde_if_t*)nde;
+			return p->else_part &&
+			       is_nde_unconditional_terminator(p->else_part) &&
+			       is_nde_unconditional_terminator(p->then_part);
+		}
+
+		default:
+			return 0;
+	}
+}
+
 static int parse_progunit (hawk_t* hawk)
 {
 	/*
@@ -2024,6 +2156,7 @@ static hawk_nde_t* parse_block (hawk_t* hawk, const hawk_loc_t* xloc, int flags)
 	hawk_nde_blk_t* block;
 	hawk_oow_t nlcls_outer, nlcls_max, tmp;
 	nde_chain_t local_inits = { HAWK_NULL, HAWK_NULL };
+	int dead_code;
 
 	nlcls_outer = HAWK_ARR_SIZE(hawk->parse.lcls);
 	nlcls_max = hawk->parse.nlcls_max;
@@ -2034,6 +2167,7 @@ static hawk_nde_t* parse_block (hawk_t* hawk, const hawk_loc_t* xloc, int flags)
 	/* block body */
 	head = local_inits.head;
 	curr = local_inits.tail;
+	dead_code = 0;
 
 	while (1)
 	{
@@ -2100,9 +2234,17 @@ static hawk_nde_t* parse_block (hawk_t* hawk, const hawk_loc_t* xloc, int flags)
 				continue;
 			}
 
+			if (dead_code)
+			{
+				hawk_clrpt(hawk, nde);
+				continue;
+			}
+
 			if (curr == HAWK_NULL) head = nde;
 			else curr->next = nde;
 			curr = nde;
+
+			if (is_nde_unconditional_terminator(nde)) dead_code = 1;
 		}
 	}
 
@@ -3023,104 +3165,6 @@ static hawk_t* collect_locals (hawk_t* hawk, hawk_oow_t nlcls, int flags, nde_ch
 oops:
 	if (new_init.head) hawk_clrpt(hawk, new_init.head);
 	return HAWK_NULL;
-}
-
-static int is_nde_bool_literal_atom (hawk_nde_t* nde)
-{
-	switch (nde->type)
-	{
-		case HAWK_NDE_XFALSE:
-		case HAWK_NDE_XTRUE:
-		case HAWK_NDE_XNIL:
-		case HAWK_NDE_INT:
-		case HAWK_NDE_FLT:
-		case HAWK_NDE_STR:
-		case HAWK_NDE_MBS:
-			return 1;
-		default:
-			return 0;
-	}
-}
-
-/* return the effective literal node for boolean decision.
- * if nde is a grouped node, every grouped element must be literal.
- * the returned node is the last literal element in the group.
- *
- * examples:
- *   (1, 0)         -> INT(0)
- *   ((1, 0))       -> INT(0)
- *   ("x", @false)  -> XFALSE
- *   (abc(), 0)     -> HAWK_NULL
- */
-static hawk_nde_t* get_nde_bool_literal_tail (hawk_nde_t* nde, int depth)
-{
-	if (depth >= 256) return HAWK_NULL; /* i don't wawnt to support to deep recursion. TODO: remove hard-coded value or remove recursion? */
-
-	if (nde->type == HAWK_NDE_GRP)
-	{
-		hawk_nde_t* cur, * last;
-
-		cur = ((hawk_nde_grp_t*)nde)->body;
-		HAWK_ASSERT(cur != HAWK_NULL);
-
-		last = HAWK_NULL;
-		do
-		{
-			last = get_nde_bool_literal_tail(cur, depth + 1);
-			if (!last) return HAWK_NULL;
-			cur = cur->next;
-		}
-		while (cur);
-
-		return last;
-	}
-
-	return is_nde_bool_literal_atom(nde)? nde: HAWK_NULL;
-}
-
-static nde_hard_bool_t classify_nde_hard_bool (hawk_nde_t* nde)
-{
-	nde = get_nde_bool_literal_tail(nde, 0);
-	if (!nde) return NDE_HARD_BOOL_UNKNOWN;
-
-	switch (nde->type)
-	{
-		case HAWK_NDE_XFALSE:
-		case HAWK_NDE_XNIL:
-			return NDE_HARD_BOOL_FALSE;
-
-		case HAWK_NDE_XTRUE:
-			return NDE_HARD_BOOL_TRUE;
-
-		case HAWK_NDE_INT:
-			return (((hawk_nde_int_t*)nde)->val == 0)?
-				NDE_HARD_BOOL_FALSE: NDE_HARD_BOOL_TRUE;
-
-		case HAWK_NDE_FLT:
-			return (((hawk_nde_flt_t*)nde)->val == 0.0)?
-				NDE_HARD_BOOL_FALSE: NDE_HARD_BOOL_TRUE;
-
-		case HAWK_NDE_STR:
-			return (((hawk_nde_str_t*)nde)->len == 0)?
-				NDE_HARD_BOOL_FALSE: NDE_HARD_BOOL_TRUE;
-
-		case HAWK_NDE_MBS:
-			return (((hawk_nde_mbs_t*)nde)->len == 0)?
-				NDE_HARD_BOOL_FALSE: NDE_HARD_BOOL_TRUE;
-
-		default:
-			return NDE_HARD_BOOL_UNKNOWN;
-	}
-}
-
-static HAWK_INLINE int is_nde_hard_false (hawk_nde_t* nde)
-{
-	return classify_nde_hard_bool(nde) == NDE_HARD_BOOL_FALSE;
-}
-
-static HAWK_INLINE int is_nde_hard_true (hawk_nde_t* nde)
-{
-	return classify_nde_hard_bool(nde) == NDE_HARD_BOOL_TRUE;
 }
 
 static hawk_nde_t* parse_if (hawk_t* hawk, const hawk_loc_t* xloc)
