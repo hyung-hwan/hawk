@@ -1106,7 +1106,7 @@ static int is_nde_unconditional_terminator (hawk_nde_t* nde)
 		case HAWK_NDE_BLK:
 		{
 			hawk_nde_t* p;
-			for (p = ((hawk_nde_blk_t*)nde)->body; p && p->next; p = p->next)
+			for (p = ((hawk_nde_blk_t*)nde)->body; p; p = p->next)
 			{
 				if (is_nde_unconditional_terminator(p)) return 1;
 			}
@@ -1123,6 +1123,91 @@ static int is_nde_unconditional_terminator (hawk_nde_t* nde)
 
 		default:
 			return 0;
+	}
+}
+
+static int does_nde_have_side_effect (hawk_nde_t* nde)
+{
+	HAWK_ASSERT(nde != HAWK_NULL);
+
+	switch (nde->type)
+	{
+		case HAWK_NDE_NULL:
+		case HAWK_NDE_CHAR:
+		case HAWK_NDE_BCHR:
+		case HAWK_NDE_INT:
+		case HAWK_NDE_FLT:
+		case HAWK_NDE_STR:
+		case HAWK_NDE_MBS:
+		case HAWK_NDE_REX:
+		case HAWK_NDE_XNIL:
+		case HAWK_NDE_XTRUE:
+		case HAWK_NDE_XFALSE:
+		case HAWK_NDE_XARGC:
+		case HAWK_NDE_XARGV:
+		case HAWK_NDE_FUN:
+		case HAWK_NDE_MODSYM:
+		case HAWK_NDE_NAMED:
+		case HAWK_NDE_GBL:
+		case HAWK_NDE_LCL:
+		case HAWK_NDE_ARG:
+			return 0;
+
+		case HAWK_NDE_NAMEDIDX:
+		case HAWK_NDE_GBLIDX:
+		case HAWK_NDE_LCLIDX:
+		case HAWK_NDE_ARGIDX:
+			return does_nde_have_side_effect(((hawk_nde_var_t*)nde)->idx);
+
+		case HAWK_NDE_XARGVIDX:
+			return does_nde_have_side_effect(((hawk_nde_xargvidx_t*)nde)->pos);
+
+		case HAWK_NDE_POS:
+			return does_nde_have_side_effect(((hawk_nde_pos_t*)nde)->val);
+
+		case HAWK_NDE_GRP:
+		{
+			hawk_nde_t* p;
+			for (p = ((hawk_nde_grp_t*)nde)->body; p; p = p->next)
+			{
+				if (does_nde_have_side_effect(p)) return 1;
+			}
+			return 0;
+		}
+
+		case HAWK_NDE_EXP_BIN:
+			return does_nde_have_side_effect(((hawk_nde_exp_t*)nde)->left) ||
+			       does_nde_have_side_effect(((hawk_nde_exp_t*)nde)->right);
+
+		case HAWK_NDE_EXP_UNR:
+			return does_nde_have_side_effect(((hawk_nde_exp_t*)nde)->left);
+
+		case HAWK_NDE_BLK:
+		{
+			hawk_nde_t* p;
+			for (p = ((hawk_nde_blk_t*)nde)->body; p; p = p->next)
+			{
+				if (does_nde_have_side_effect(p)) return 1;
+			}
+			return 0;
+		}
+
+		case HAWK_NDE_CND:
+			return does_nde_have_side_effect(((hawk_nde_cnd_t*)nde)->test) ||
+			       does_nde_have_side_effect(((hawk_nde_cnd_t*)nde)->left) ||
+			       does_nde_have_side_effect(((hawk_nde_cnd_t*)nde)->right);
+
+		case HAWK_NDE_IF:
+		{
+			hawk_nde_if_t* p = (hawk_nde_if_t*)nde;
+			return does_nde_have_side_effect(p->test) ||
+			       does_nde_have_side_effect(p->then_part) ||
+			       (p->else_part && does_nde_have_side_effect(p->else_part));
+		}
+
+		/* all other nodes */
+		default:
+			return 1;
 	}
 }
 
@@ -3167,6 +3252,24 @@ oops:
 	return HAWK_NULL;
 }
 
+static hawk_nde_t* make_null_nde (hawk_t* hawk, const hawk_loc_t* xloc)
+{
+	hawk_nde_t* null_nde;
+
+	null_nde = (hawk_nde_t*)hawk_callocmem(hawk, HAWK_SIZEOF(*null_nde));
+	if (HAWK_UNLIKELY(!null_nde))
+	{
+		ADJERR_LOC(hawk, xloc);
+		return HAWK_NULL;
+	}
+
+	null_nde->type = HAWK_NDE_NULL;
+	if (xloc) null_nde->loc = *xloc;
+	null_nde->next = HAWK_NULL;
+
+	return null_nde;
+}
+
 static hawk_nde_t* parse_if (hawk_t* hawk, const hawk_loc_t* xloc)
 {
 	hawk_nde_t* test = HAWK_NULL;
@@ -3191,10 +3294,6 @@ static hawk_nde_t* parse_if (hawk_t* hawk, const hawk_loc_t* xloc)
 		hawk_seterrfmt(hawk, &hawk->tok.loc, HAWK_ERPAREN, FMT_ERPAREN, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
 		goto oops;
 	}
-
-/* TODO: optimization. if you know 'test' evaluates to true or false,
- *       you can drop the 'if' statement and take either the 'then_part'
- *       or 'else_part'. */
 
 	if (get_token(hawk) <= -1) goto oops;
 
@@ -3233,12 +3332,8 @@ static hawk_nde_t* parse_if (hawk_t* hawk, const hawk_loc_t* xloc)
 		{
 			hawk_nde_t* null_nde;
 
-			null_nde = (hawk_nde_t*)hawk_callocmem(hawk, HAWK_SIZEOF(*null_nde));
-			if (HAWK_UNLIKELY(!null_nde))
-			{
-				ADJERR_LOC(hawk, xloc);
-				goto oops;
-			}
+			null_nde = make_null_nde(hawk, xloc);
+			if (HAWK_UNLIKELY(!null_nde)) goto oops;
 
 			/* [BE CAREFUL]
 			 * Don't forget reset test and then_part to HAWK_NULL if the control
@@ -3246,8 +3341,6 @@ static hawk_nde_t* parse_if (hawk_t* hawk, const hawk_loc_t* xloc)
 			hawk_clrpt(hawk, test);
 			hawk_clrpt(hawk, then_part);
 
-			null_nde->type = HAWK_NDE_NULL;
-			null_nde->loc = *xloc;
 			return null_nde;
 		}
 	}
@@ -3524,18 +3617,12 @@ static hawk_nde_t* parse_while (hawk_t* hawk, const hawk_loc_t* xloc)
 		/* fold while(0) and while(@false) into a null statement. */
 		hawk_nde_t* null_nde;
 
-		null_nde = (hawk_nde_t*)hawk_callocmem(hawk, HAWK_SIZEOF(*null_nde));
-		if (HAWK_UNLIKELY(!null_nde))
-		{
-			ADJERR_LOC(hawk, xloc);
-			goto oops;
-		}
+		null_nde = make_null_nde(hawk, xloc);
+		if (HAWK_UNLIKELY(!null_nde)) goto oops;
 
 		hawk_clrpt(hawk, body); body = HAWK_NULL;
 		hawk_clrpt(hawk, test); test = HAWK_NULL;
 
-		null_nde->type = HAWK_NDE_NULL;
-		null_nde->loc = *xloc;
 		return null_nde;
 	}
 
@@ -4386,20 +4473,12 @@ static hawk_nde_t* parse_statement (hawk_t* hawk, const hawk_loc_t* xloc)
 	if (MATCH(hawk,TOK_SEMICOLON))
 	{
 		/* null statement */
-		nde = (hawk_nde_t*)hawk_callocmem(hawk, HAWK_SIZEOF(*nde));
-		if (HAWK_UNLIKELY(!nde))
-		{
-			ADJERR_LOC(hawk, xloc);
-			return HAWK_NULL;
-		}
-
-		nde->type = HAWK_NDE_NULL;
-		nde->loc = *xloc;
-		nde->next = HAWK_NULL;
+		nde = make_null_nde(hawk, xloc);
+		if (HAWK_UNLIKELY(!nde)) return HAWK_NULL;
 
 		if (get_token(hawk) <= -1)
 		{
-			hawk_freemem(hawk, nde);
+			hawk_clrpt(hawk, nde);
 			return HAWK_NULL;
 		}
 	}
@@ -4434,6 +4513,15 @@ static hawk_nde_t* parse_statement (hawk_t* hawk, const hawk_loc_t* xloc)
 
 		/* restore the statement id saved previously */
 		hawk->parse.id.stmt = old_id;
+	}
+
+	if (nde && !does_nde_have_side_effect(nde))
+	{
+		hawk_nde_t* tmp;
+		tmp = make_null_nde(hawk, &nde->loc);
+		hawk_clrpt(hawk, nde);
+		if (HAWK_UNLIKELY(!tmp)) return HAWK_NULL;
+		nde = tmp;
 	}
 
 	return nde;
@@ -4474,7 +4562,7 @@ static hawk_nde_t* parse_expr_basic (hawk_t* hawk, const hawk_loc_t* xloc)
 	hawk_nde_t* nde, * n1, * n2;
 
 	nde = parse_logical_or(hawk, xloc);
-	if (nde == HAWK_NULL) return HAWK_NULL;
+	if (!nde) return HAWK_NULL;
 
 	if (MATCH(hawk,TOK_QUEST))
 	{
@@ -4489,7 +4577,7 @@ static hawk_nde_t* parse_expr_basic (hawk_t* hawk, const hawk_loc_t* xloc)
 
 		eloc = hawk->tok.loc;
 		n1 = parse_expr_withdc(hawk, &eloc);
-		if (n1 == HAWK_NULL)
+		if (!n1)
 		{
 			hawk_clrpt(hawk, nde);
 			return HAWK_NULL;
@@ -4511,7 +4599,7 @@ static hawk_nde_t* parse_expr_basic (hawk_t* hawk, const hawk_loc_t* xloc)
 
 		eloc = hawk->tok.loc;
 		n2 = parse_expr_withdc(hawk, &eloc);
-		if (n2 == HAWK_NULL)
+		if (!n2)
 		{
 			hawk_clrpt(hawk, nde);
 			hawk_clrpt(hawk, n1);
@@ -4519,7 +4607,7 @@ static hawk_nde_t* parse_expr_basic (hawk_t* hawk, const hawk_loc_t* xloc)
 		}
 
 		cnd = (hawk_nde_cnd_t*)hawk_callocmem(hawk, HAWK_SIZEOF(*cnd));
-		if (cnd == HAWK_NULL)
+		if (HAWK_UNLIKELY(!cnd))
 		{
 			hawk_clrpt(hawk, nde);
 			hawk_clrpt(hawk, n1);
@@ -7447,18 +7535,14 @@ static hawk_nde_t* parse_idx_chain (hawk_t* hawk, const hawk_loc_t* xloc)
 
 		/* additional index - a[10][20] or a.b.c ...
 		 * use the NULL node as a splitter */
-		splitter = (hawk_nde_t*)hawk_callocmem(hawk, HAWK_SIZEOF(*splitter));
-		if (HAWK_UNLIKELY(!splitter))
-		{
-			ADJERR_LOC(hawk, xloc);
-			goto oops;
-		}
 
-		splitter->type = HAWK_NDE_NULL;
+		splitter = make_null_nde(hawk, xloc);
+		if (HAWK_UNLIKELY(!splitter)) goto oops;
 
 		HAWK_ASSERT(idx.tail != HAWK_NULL);
 		idx.tail->next = splitter;
 		idx.tail = splitter;
+		/* splitter is already chained. no need seperate clearing upon failure */
 
 		if (parse_single_idx(hawk, &idx) <= -1) goto oops;
 	}
