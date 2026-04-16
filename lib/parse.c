@@ -994,66 +994,34 @@ oops:
 	return -1;
 }
 
-static int is_nde_bool_literal_atom (hawk_nde_t* nde)
+static nde_hard_bool_t classify_nde_hard_bool_with_depth (hawk_nde_t* nde, int depth)
 {
+	if (depth >= 256) return NDE_HARD_BOOL_UNKNOWN; /* i don't want to allow deep recursion. TODO: remove hard-coded value or remove recursion? */
+
 	switch (nde->type)
 	{
-		case HAWK_NDE_XFALSE:
-		case HAWK_NDE_XTRUE:
-		case HAWK_NDE_XNIL:
-		case HAWK_NDE_INT:
-		case HAWK_NDE_FLT:
-		case HAWK_NDE_STR:
-		case HAWK_NDE_MBS:
-			return 1;
-		default:
-			return 0;
-	}
-}
-
-/* return the effective literal node for boolean decision.
- * if nde is a grouped node, every grouped element must be literal.
- * the returned node is the last literal element in the group.
- *
- * examples:
- *   (1, 0)         -> INT(0)
- *   ((1, 0))       -> INT(0)
- *   ("x", @false)  -> XFALSE
- *   (abc(), 0)     -> HAWK_NULL
- */
-static hawk_nde_t* get_nde_bool_literal_tail (hawk_nde_t* nde, int depth)
-{
-	if (depth >= 256) return HAWK_NULL; /* i don't wawnt to support to deep recursion. TODO: remove hard-coded value or remove recursion? */
-
-	if (nde->type == HAWK_NDE_GRP)
-	{
-		hawk_nde_t* cur, * last;
-
-		cur = ((hawk_nde_grp_t*)nde)->body;
-		HAWK_ASSERT(cur != HAWK_NULL);
-
-		last = HAWK_NULL;
-		do
+		case HAWK_NDE_GRP:
 		{
-			last = get_nde_bool_literal_tail(cur, depth + 1);
-			if (!last) return HAWK_NULL;
-			cur = cur->next;
+			hawk_nde_t* cur;
+			nde_hard_bool_t hb, last;
+
+			cur = ((hawk_nde_grp_t*)nde)->body;
+			HAWK_ASSERT(cur != HAWK_NULL);
+
+			last = NDE_HARD_BOOL_UNKNOWN;
+			do
+			{
+				hb = classify_nde_hard_bool_with_depth(cur, depth + 1);
+				if (hb == NDE_HARD_BOOL_UNKNOWN) return NDE_HARD_BOOL_UNKNOWN;
+
+				last = hb;
+				cur = cur->next;
+			}
+			while (cur);
+
+			return last;
 		}
-		while (cur);
 
-		return last;
-	}
-
-	return is_nde_bool_literal_atom(nde)? nde: HAWK_NULL;
-}
-
-static nde_hard_bool_t classify_nde_hard_bool (hawk_nde_t* nde)
-{
-	nde = get_nde_bool_literal_tail(nde, 0);
-	if (!nde) return NDE_HARD_BOOL_UNKNOWN;
-
-	switch (nde->type)
-	{
 		case HAWK_NDE_XFALSE:
 		case HAWK_NDE_XNIL:
 			return NDE_HARD_BOOL_FALSE;
@@ -1062,20 +1030,50 @@ static nde_hard_bool_t classify_nde_hard_bool (hawk_nde_t* nde)
 			return NDE_HARD_BOOL_TRUE;
 
 		case HAWK_NDE_INT:
-			return (((hawk_nde_int_t*)nde)->val == 0)?
-				NDE_HARD_BOOL_FALSE: NDE_HARD_BOOL_TRUE;
+			return (((hawk_nde_int_t*)nde)->val == 0)? NDE_HARD_BOOL_FALSE: NDE_HARD_BOOL_TRUE;
 
 		case HAWK_NDE_FLT:
-			return (((hawk_nde_flt_t*)nde)->val == 0.0)?
-				NDE_HARD_BOOL_FALSE: NDE_HARD_BOOL_TRUE;
+			return (((hawk_nde_flt_t*)nde)->val == 0.0)? NDE_HARD_BOOL_FALSE: NDE_HARD_BOOL_TRUE;
 
 		case HAWK_NDE_STR:
-			return (((hawk_nde_str_t*)nde)->len == 0)?
-				NDE_HARD_BOOL_FALSE: NDE_HARD_BOOL_TRUE;
+			return (((hawk_nde_str_t*)nde)->len == 0)? NDE_HARD_BOOL_FALSE: NDE_HARD_BOOL_TRUE;
 
 		case HAWK_NDE_MBS:
-			return (((hawk_nde_mbs_t*)nde)->len == 0)?
-				NDE_HARD_BOOL_FALSE: NDE_HARD_BOOL_TRUE;
+			return (((hawk_nde_mbs_t*)nde)->len == 0)? NDE_HARD_BOOL_FALSE: NDE_HARD_BOOL_TRUE;
+
+		case HAWK_NDE_EXP_UNR:
+			if (((hawk_nde_exp_t*)nde)->opcode == HAWK_UNROP_LNOT)
+			{
+				nde_hard_bool_t hb;
+
+				hb = classify_nde_hard_bool_with_depth(((hawk_nde_exp_t*)nde)->left, depth + 1);
+				if (hb == NDE_HARD_BOOL_UNKNOWN) return NDE_HARD_BOOL_UNKNOWN;
+				return (hb == NDE_HARD_BOOL_TRUE)? NDE_HARD_BOOL_FALSE: NDE_HARD_BOOL_TRUE;
+			}
+			return NDE_HARD_BOOL_UNKNOWN;
+
+		case HAWK_NDE_EXP_BIN:
+			if (((hawk_nde_exp_t*)nde)->opcode == HAWK_BINOP_LOR ||
+			    ((hawk_nde_exp_t*)nde)->opcode == HAWK_BINOP_LAND)
+			{
+				nde_hard_bool_t lh, rh;
+
+				lh = classify_nde_hard_bool_with_depth(((hawk_nde_exp_t*)nde)->left, depth + 1);
+				if (lh == NDE_HARD_BOOL_UNKNOWN) return NDE_HARD_BOOL_UNKNOWN;
+
+				rh = classify_nde_hard_bool_with_depth(((hawk_nde_exp_t*)nde)->right, depth + 1);
+				if (rh == NDE_HARD_BOOL_UNKNOWN) return NDE_HARD_BOOL_UNKNOWN;
+
+				if (((hawk_nde_exp_t*)nde)->opcode == HAWK_BINOP_LOR)
+				{
+					return (lh == NDE_HARD_BOOL_TRUE || rh == NDE_HARD_BOOL_TRUE)?
+						NDE_HARD_BOOL_TRUE: NDE_HARD_BOOL_FALSE;
+				}
+
+				return (lh == NDE_HARD_BOOL_TRUE && rh == NDE_HARD_BOOL_TRUE)?
+					NDE_HARD_BOOL_TRUE: NDE_HARD_BOOL_FALSE;
+			}
+			return NDE_HARD_BOOL_UNKNOWN;
 
 		default:
 			return NDE_HARD_BOOL_UNKNOWN;
@@ -1084,12 +1082,12 @@ static nde_hard_bool_t classify_nde_hard_bool (hawk_nde_t* nde)
 
 static HAWK_INLINE int is_nde_hard_false (hawk_nde_t* nde)
 {
-	return classify_nde_hard_bool(nde) == NDE_HARD_BOOL_FALSE;
+	return classify_nde_hard_bool_with_depth(nde, 0) == NDE_HARD_BOOL_FALSE;
 }
 
 static HAWK_INLINE int is_nde_hard_true (hawk_nde_t* nde)
 {
-	return classify_nde_hard_bool(nde) == NDE_HARD_BOOL_TRUE;
+	return classify_nde_hard_bool_with_depth(nde, 0) == NDE_HARD_BOOL_TRUE;
 }
 
 static int is_nde_unconditional_terminator (hawk_nde_t* nde)
@@ -5094,9 +5092,44 @@ static HAWK_INLINE void update_flt_node (hawk_t* hawk, hawk_nde_flt_t* node, haw
 	}
 }
 
+static hawk_nde_t* new_or_fold_logical_bin_node (
+	hawk_t* hawk, const hawk_loc_t* loc, int opcode, hawk_nde_t* left, hawk_nde_t* right)
+{
+	nde_hard_bool_t lh, rh;
+	int lv;
+	hawk_nde_t* tmp;
+
+	lh = classify_nde_hard_bool_with_depth(left, 0);
+	if (opcode == HAWK_BINOP_LAND && lh == NDE_HARD_BOOL_FALSE) lv = 0;
+	else if (opcode == HAWK_BINOP_LOR && lh == NDE_HARD_BOOL_TRUE) lv = 1;
+	else
+	{
+		rh = classify_nde_hard_bool_with_depth(right, 0);
+		if (lh != NDE_HARD_BOOL_UNKNOWN && rh != NDE_HARD_BOOL_UNKNOWN)
+		{
+			lv = (opcode == HAWK_BINOP_LAND)?
+			     (lh == NDE_HARD_BOOL_TRUE && rh == NDE_HARD_BOOL_TRUE):
+			     (lh == NDE_HARD_BOOL_TRUE || rh == NDE_HARD_BOOL_TRUE);
+		}
+		else
+		{
+			tmp = new_exp_bin_node(hawk, loc, opcode, left, right);
+			if (HAWK_UNLIKELY(!tmp))
+			{
+				hawk_clrpt(hawk, right);
+				hawk_clrpt(hawk, left);
+			}
+			return tmp;
+		}
+	}
+
+	hawk_clrpt(hawk, right);
+	hawk_clrpt(hawk, left);
+	return new_xbool_node(hawk, lv, loc);
+}
+
 static hawk_nde_t* parse_binary (
-	hawk_t* hawk, const hawk_loc_t* xloc,
-	int skipnl, const binmap_t* binmap,
+	hawk_t* hawk, const hawk_loc_t* xloc, int skipnl, const binmap_t* binmap,
 	hawk_nde_t*(*next_level_func)(hawk_t*,const hawk_loc_t*))
 {
 	hawk_nde_t* left = HAWK_NULL;
@@ -5214,24 +5247,86 @@ oops:
 
 static hawk_nde_t* parse_logical_or (hawk_t* hawk, const hawk_loc_t* xloc)
 {
-	static binmap_t map[] =
-	{
-		{ TOK_LOR, HAWK_BINOP_LOR },
-		{ TOK_EOF, 0 }
-	};
+	hawk_nde_t* left = HAWK_NULL;
+	hawk_nde_t* right = HAWK_NULL;
+	hawk_nde_t* tmp;
+	hawk_loc_t rloc;
 
-	return parse_binary(hawk, xloc, 1, map, parse_logical_and);
+	left = parse_logical_and(hawk, xloc);
+	if (HAWK_UNLIKELY(!left)) goto oops;
+
+	while (MATCH(hawk, TOK_LOR))
+	{
+		do
+		{
+			if (get_token(hawk) <= -1) goto oops;
+		}
+		while (MATCH(hawk, TOK_NEWLINE));
+
+		rloc = hawk->tok.loc;
+		right = parse_logical_and(hawk, &rloc);
+		if (HAWK_UNLIKELY(!right)) goto oops;
+
+		tmp = new_or_fold_logical_bin_node(hawk, xloc, HAWK_BINOP_LOR, left, right);
+		if (HAWK_UNLIKELY(!tmp))
+		{
+			left = HAWK_NULL;
+			right = HAWK_NULL;
+			goto oops;
+		}
+
+		left = tmp;
+		right = HAWK_NULL;
+	}
+
+	return left;
+
+oops:
+	if (right) hawk_clrpt(hawk, right);
+	if (left) hawk_clrpt(hawk, left);
+	return HAWK_NULL;
 }
 
 static hawk_nde_t* parse_logical_and (hawk_t* hawk, const hawk_loc_t* xloc)
 {
-	static binmap_t map[] =
-	{
-		{ TOK_LAND, HAWK_BINOP_LAND },
-		{ TOK_EOF,  0 }
-	};
+	hawk_nde_t* left = HAWK_NULL;
+	hawk_nde_t* right = HAWK_NULL;
+	hawk_nde_t* tmp;
+	hawk_loc_t rloc;
 
-	return parse_binary(hawk, xloc, 1, map, parse_in);
+	left = parse_in(hawk, xloc);
+	if (HAWK_UNLIKELY(!left)) goto oops;
+
+	while (MATCH(hawk, TOK_LAND))
+	{
+		do
+		{
+			if (get_token(hawk) <= -1) goto oops;
+		}
+		while (MATCH(hawk, TOK_NEWLINE));
+
+		rloc = hawk->tok.loc;
+		right = parse_in(hawk, &rloc);
+		if (HAWK_UNLIKELY(!right)) goto oops;
+
+		tmp = new_or_fold_logical_bin_node(hawk, xloc, HAWK_BINOP_LAND, left, right);
+		if (HAWK_UNLIKELY(!tmp))
+		{
+			left = HAWK_NULL;
+			right = HAWK_NULL;
+			goto oops;
+		}
+
+		left = tmp;
+		right = HAWK_NULL;
+	}
+
+	return left;
+
+oops:
+	if (right) hawk_clrpt(hawk, right);
+	if (left) hawk_clrpt(hawk, left);
+	return HAWK_NULL;
 }
 
 static hawk_nde_t* parse_in (hawk_t* hawk, const hawk_loc_t* xloc)
@@ -5500,7 +5595,7 @@ static hawk_nde_t* parse_unary (hawk_t* hawk, const hawk_loc_t* xloc)
 		/* handle the logical negation operator(!) first */
 		nde_hard_bool_t hb;
 
-		hb = classify_nde_hard_bool(left);
+		hb = classify_nde_hard_bool_with_depth(left, 0);
 		if (hb != NDE_HARD_BOOL_UNKNOWN)
 		{
 			hawk_clrpt(hawk, left);

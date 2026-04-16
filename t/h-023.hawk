@@ -13,7 +13,7 @@ function tick (v)
 
 function main ()
 {
-	@local i, j, k, l, m, n, o, p, q, r;
+	@local i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z;
 
 	i = 0;
 	j = 0;
@@ -119,6 +119,81 @@ function main ()
 	g_calls = 0;
 	tap_ensure(!(tick(1), 0) === @true, 1, @SCRIPTNAME, @SCRIPTLINE);
 	tap_ensure(g_calls, 1, @SCRIPTNAME, @SCRIPTLINE);
+
+	if ((!0 && (1 || 0)))
+		s = 1;
+	else
+		s = 2;
+
+	if ((!1 || (0 && 1)))
+		t = 1;
+	else
+		t = 2;
+
+	if (!(0 || (1 && 0)))
+		u = 1;
+	else
+		u = 2;
+
+	v = 0;
+	w = 0;
+	x = 0;
+	while ((!1 || (1 && 0))) { v = v + 1; }
+	while ((1 && (1 || 0) && 0)) { w = w + 1; }
+	while (!(0 || 1 || 0)) { x = x + 1; }
+
+	tap_ensure(s, 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(t, 2, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(u, 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(v, 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(w, 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(x, 0, @SCRIPTNAME, @SCRIPTLINE);
+
+	y = ((!0 && (1 || 0)) ? 10 : 20);
+	z = ((!1 || (0 && 1)) ? 10 : 20);
+	tap_ensure(y, 10, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(z, 20, @SCRIPTNAME, @SCRIPTLINE);
+
+	g_calls = 0;
+	y = ((!0 && (1 || 0)) ? tick(10) : tick(20));
+	tap_ensure(y, 10, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(g_calls, 1, @SCRIPTNAME, @SCRIPTLINE);
+
+	g_calls = 0;
+	z = ((!1 || (0 && 1)) ? tick(10) : tick(20));
+	tap_ensure(z, 20, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(g_calls, 1, @SCRIPTNAME, @SCRIPTLINE);
+
+	tap_ensure(0 && 1, 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(1 && 9, 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(0 || 0 || 1 || 0, 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(1 && 1 && 0 && 1, 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(!0 && (1 || 0), 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(!1 || (0 && 1), 0, @SCRIPTNAME, @SCRIPTLINE);
+
+	g_calls = 0;
+	tap_ensure(0 && tick(1), 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(g_calls, 0, @SCRIPTNAME, @SCRIPTLINE);
+
+	g_calls = 0;
+	tap_ensure(1 || tick(1), 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(g_calls, 0, @SCRIPTNAME, @SCRIPTLINE);
+
+	g_calls = 0;
+	tap_ensure(1 && tick(1), 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(g_calls, 1, @SCRIPTNAME, @SCRIPTLINE);
+
+	g_calls = 0;
+	tap_ensure(0 || tick(1), 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(g_calls, 1, @SCRIPTNAME, @SCRIPTLINE);
+
+	g_calls = 0;
+	tap_ensure(0 && tick(1) && tick(2), 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(g_calls, 0, @SCRIPTNAME, @SCRIPTLINE);
+
+	g_calls = 0;
+	tap_ensure(1 || tick(1) || tick(2), 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(g_calls, 0, @SCRIPTNAME, @SCRIPTLINE);
 
 	tap_end ();
 }
