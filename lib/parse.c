@@ -237,7 +237,7 @@ static int append_init_stmts_to_init_tree (hawk_t* hawk, nde_chain_t* init, cons
 static hawk_nde_t* parse_function (hawk_t* hawk, int named);
 static hawk_nde_t* parse_begin (hawk_t* hawk);
 static hawk_nde_t* parse_end (hawk_t* hawk);
-static hawk_chain_t* parse_action_block (hawk_t* hawk, hawk_nde_t* ptn, int blockless);
+static int parse_action_block (hawk_t* hawk, hawk_nde_t* ptn, int blockless);
 
 static hawk_nde_t* parse_block_dc (hawk_t* hawk, const hawk_loc_t* xloc, int flags);
 static hawk_nde_t* parse_statement (hawk_t* hawk, const hawk_loc_t* xloc);
@@ -1178,6 +1178,8 @@ static int is_nde_safe_to_erase (hawk_nde_t* nde)
 			       is_nde_safe_to_erase(((hawk_nde_exp_t*)nde)->right);
 
 		case HAWK_NDE_CND:
+			/* parse_basic_expr() has ternary expression folding if the test is hard true/false.
+			 * this part is still be reached if the test is not hard true/false */
 			return is_nde_safe_to_erase(((hawk_nde_cnd_t*)nde)->test) &&
 			       is_nde_safe_to_erase(((hawk_nde_cnd_t*)nde)->left) &&
 			       is_nde_safe_to_erase(((hawk_nde_cnd_t*)nde)->right);
@@ -1549,7 +1551,7 @@ static int parse_progunit (hawk_t* hawk)
 		}
 
 		hawk->parse.id.block = PARSE_ACTION_BLOCK;
-		if (parse_action_block(hawk, HAWK_NULL, 0) == HAWK_NULL) return -1;
+		if (parse_action_block(hawk, HAWK_NULL, 0) <= -1) return -1;
 
 		/* skip a semicolon after an action block if any */
 		if (MATCH(hawk, TOK_SEMICOLON) && get_token(hawk) <= -1) return -1;
@@ -1606,12 +1608,11 @@ static int parse_progunit (hawk_t* hawk)
 			int eof;
 			hawk_loc_t ploc;
 
-
 			eof = MATCH(hawk,TOK_EOF);
 			ploc  = hawk->ptok.loc;
 
 			hawk->parse.id.block = PARSE_ACTION_BLOCK;
-			if (parse_action_block(hawk, ptn, 1) == HAWK_NULL)
+			if (parse_action_block(hawk, ptn, 1) <= -1)
 			{
 				hawk_clrpt(hawk, ptn);
 				return -1;
@@ -1649,7 +1650,7 @@ static int parse_progunit (hawk_t* hawk)
 			}
 
 			hawk->parse.id.block = PARSE_ACTION_BLOCK;
-			if (parse_action_block(hawk, ptn, 0) == HAWK_NULL)
+			if (parse_action_block(hawk, ptn, 0) <= -1)
 			{
 				hawk_clrpt(hawk, ptn);
 				return -1;
@@ -2079,7 +2080,7 @@ static hawk_nde_t* parse_end (hawk_t* hawk)
 	return nde;
 }
 
-static hawk_chain_t* parse_action_block (hawk_t* hawk, hawk_nde_t* ptn, int blockless)
+static int parse_action_block (hawk_t* hawk, hawk_nde_t* ptn, int blockless)
 {
 	hawk_nde_t* nde;
 	hawk_chain_t* chain;
@@ -2090,9 +2091,9 @@ static hawk_chain_t* parse_action_block (hawk_t* hawk, hawk_nde_t* ptn, int bloc
 	else
 	{
 		HAWK_ASSERT(MATCH(hawk,TOK_LBRACE));
-		if (get_token(hawk) <= -1) return HAWK_NULL;
+		if (get_token(hawk) <= -1) return -1;
 		nde = parse_block_dc(hawk, &xloc, 1);
-		if (HAWK_UNLIKELY(!nde)) return HAWK_NULL;
+		if (HAWK_UNLIKELY(!nde)) return -1;
 	}
 
 	chain = (hawk_chain_t*)hawk_callocmem(hawk, HAWK_SIZEOF(*chain));
@@ -2100,7 +2101,7 @@ static hawk_chain_t* parse_action_block (hawk_t* hawk, hawk_nde_t* ptn, int bloc
 	{
 		hawk_clrpt(hawk, nde);
 		ADJERR_LOC(hawk, &xloc);
-		return HAWK_NULL;
+		return -1;
 	}
 
 	chain->pattern = ptn;
@@ -2120,7 +2121,7 @@ static hawk_chain_t* parse_action_block (hawk_t* hawk, hawk_nde_t* ptn, int bloc
 		hawk->tree.chain_size++;
 	}
 
-	return chain;
+	return 0;
 }
 
 static int parse_block_head (hawk_t* hawk, int flags, nde_chain_t* inits)
@@ -2436,7 +2437,7 @@ int hawk_initgbls (hawk_t* hawk)
 		hawk->tree.ngbls++;
 	}
 
-	HAWK_ASSERT(hawk->tree.ngbls_base == HAWK_MAX_GBL_ID-HAWK_MIN_GBL_ID+1);
+	HAWK_ASSERT(hawk->tree.ngbls_base == HAWK_MAX_GBL_ID - HAWK_MIN_GBL_ID + 1);
 	return 0;
 }
 
@@ -4579,7 +4580,7 @@ static hawk_nde_t* parse_expr_basic (hawk_t* hawk, const hawk_loc_t* xloc)
 	nde = parse_logical_or(hawk, xloc);
 	if (!nde) return HAWK_NULL;
 
-	if (MATCH(hawk,TOK_QUEST))
+	if (MATCH(hawk,TOK_QUEST)) /* ternary operator */
 	{
 		hawk_loc_t eloc;
 		hawk_nde_cnd_t* cnd;
@@ -4619,6 +4620,19 @@ static hawk_nde_t* parse_expr_basic (hawk_t* hawk, const hawk_loc_t* xloc)
 			hawk_clrpt(hawk, nde);
 			hawk_clrpt(hawk, n1);
 			return HAWK_NULL;
+		}
+
+		if (is_nde_hard_true(nde))
+		{
+			hawk_clrpt(hawk, nde);
+			hawk_clrpt(hawk, n2);
+			return n1;
+		}
+		else if (is_nde_hard_false(nde))
+		{
+			hawk_clrpt(hawk, nde);
+			hawk_clrpt(hawk, n1);
+			return n2;
 		}
 
 		cnd = (hawk_nde_cnd_t*)hawk_callocmem(hawk, HAWK_SIZEOF(*cnd));
