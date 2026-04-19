@@ -915,6 +915,7 @@ hawk_rtx_t* hawk_rtx_open (hawk_t* hawk, hawk_oow_t xtnsize, hawk_rio_cbs_t* rio
 	}
 
 	rtx->ecb = (hawk_rtx_ecb_t*)rtx; /* use this as a special sentinel node */
+	rtx->ecb_stmt_count = 0;
 
 	/* initialize signal handling fields */
 	rtx->sig_handling = 0; /* indicate call_signal_handlers() is not in progress */
@@ -1023,6 +1024,7 @@ void hawk_rtx_close (hawk_rtx_t* rtx)
 
 	do { ecb = hawk_rtx_popecb(rtx); } while (ecb);
 	HAWK_ASSERT(rtx->ecb == (hawk_rtx_ecb_t*)rtx);
+	HAWK_ASSERT(rtx->ecb_stmt_count == 0);
 
 	/* NOTE:
 	 *  the close callbacks are called before data in rtx
@@ -1067,6 +1069,7 @@ void hawk_rtx_killecb (hawk_rtx_t* rtx, hawk_rtx_ecb_t* ecb)
 	{
 		if (cur == ecb)
 		{
+			if (ecb->stmt) rtx->ecb_stmt_count--;
 			if (prev) prev->next_ = cur->next_;
 			else rtx->ecb = cur->next_;
 			cur->next_ = HAWK_NULL;
@@ -1079,6 +1082,7 @@ hawk_rtx_ecb_t* hawk_rtx_popecb (hawk_rtx_t* rtx)
 {
 	hawk_rtx_ecb_t* top = rtx->ecb;
 	if (top == (hawk_rtx_ecb_t*)rtx) return HAWK_NULL;
+	if (top->stmt) rtx->ecb_stmt_count--;
 	rtx->ecb = top->next_;
 	top->next_ = HAWK_NULL;
 	return top;
@@ -1088,6 +1092,7 @@ void hawk_rtx_pushecb (hawk_rtx_t* rtx, hawk_rtx_ecb_t* ecb)
 {
 	ecb->next_ = rtx->ecb;
 	rtx->ecb = ecb;
+	if (ecb->stmt) rtx->ecb_stmt_count++;
 }
 
 static void free_namedval (hawk_htb_t* map, void* dptr, hawk_oow_t dlen)
@@ -2664,11 +2669,13 @@ static int call_signal_handlers (hawk_rtx_t* rtx)
 /* ========================================================================= */
 
 #define ON_STATEMENT(rtx,nde) do { \
-	hawk_rtx_ecb_t* ecb, * ecb_next; \
 	if ((rtx)->hawk->haltall) (rtx)->exit_level = EXIT_ABORT; \
-	for (ecb = (rtx)->ecb; ecb != (hawk_rtx_ecb_t*)(rtx); ecb = ecb_next) { \
-		ecb_next = ecb->next_; \
-		if (ecb->stmt) ecb->stmt(rtx, nde, ecb->ctx);  \
+	if (rtx->ecb_stmt_count > 0) { \
+		hawk_rtx_ecb_t* ecb, * ecb_next; \
+		for (ecb = (rtx)->ecb; ecb != (hawk_rtx_ecb_t*)(rtx); ecb = ecb_next) { \
+			ecb_next = ecb->next_; \
+			if (ecb->stmt) ecb->stmt(rtx, nde, ecb->ctx);  \
+		} \
 	} \
 } while(0)
 

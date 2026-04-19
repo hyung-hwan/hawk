@@ -615,6 +615,7 @@ struct hawk_rtx_t
 
 	hawk_ooch_t errmsg_backup[HAWK_ERRMSG_CAPA];
 	hawk_rtx_ecb_t* ecb;
+	hawk_oow_t ecb_stmt_count;
 
 	hawk_rbt_t* modtab; /* rtx-specifi module table in addition to hawk->modtab */
 };
