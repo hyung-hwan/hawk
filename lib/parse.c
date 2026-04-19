@@ -5070,6 +5070,54 @@ static hawk_nde_t* new_xbool_node (hawk_t* hawk, int bv, const hawk_loc_t* loc)
 	return (hawk_nde_t*)tmp;
 }
 
+static hawk_nde_t* new_str_node_with_oocsarr (hawk_t* hawk, const hawk_oocs_t* oocsarr, const hawk_loc_t* loc)
+{
+	hawk_nde_str_t* tmp;
+
+	tmp = (hawk_nde_str_t*)hawk_callocmem(hawk, HAWK_SIZEOF(*tmp));
+	if (HAWK_UNLIKELY(!tmp))
+	{
+		ADJERR_LOC(hawk, loc);
+		return HAWK_NULL;
+	}
+
+	tmp->type = HAWK_NDE_STR;
+	tmp->loc = *loc;
+	tmp->ptr = hawk_dupoocsarr(hawk, oocsarr, &tmp->len);
+	if (!HAWK_UNLIKELY(tmp))
+	{
+		hawk_freemem(hawk, tmp);
+		ADJERR_LOC(hawk, loc);
+		return HAWK_NULL;
+	}
+
+	return (hawk_nde_t*)tmp;
+}
+
+static hawk_nde_t* new_mbs_node_with_bcsarr (hawk_t* hawk, const hawk_bcs_t* bcsarr, const hawk_loc_t* loc)
+{
+	hawk_nde_mbs_t* tmp;
+
+	tmp = (hawk_nde_mbs_t*)hawk_callocmem(hawk, HAWK_SIZEOF(*tmp));
+	if (!HAWK_UNLIKELY(tmp))
+	{
+		ADJERR_LOC(hawk, loc);
+		return HAWK_NULL;
+	}
+
+	tmp->type = HAWK_NDE_MBS;
+	tmp->loc = *loc;
+	tmp->ptr = hawk_dupbcsarr(hawk, bcsarr, &tmp->len);
+	if (!HAWK_UNLIKELY(tmp))
+	{
+		hawk_freemem(hawk, tmp);
+		ADJERR_LOC(hawk, loc);
+		return HAWK_NULL;
+	}
+
+	return (hawk_nde_t*)tmp;
+}
+
 static HAWK_INLINE void update_int_node (hawk_t* hawk, hawk_nde_int_t* node, hawk_int_t lv)
 {
 	node->val = lv;
@@ -5090,6 +5138,88 @@ static HAWK_INLINE void update_flt_node (hawk_t* hawk, hawk_nde_flt_t* node, haw
 		node->str = HAWK_NULL;
 		node->len = 0;
 	}
+}
+
+static int get_nde_wide_concat_literal (hawk_nde_t* nde, hawk_oocs_t* str, hawk_ooch_t* ch)
+{
+	switch (nde->type)
+	{
+		case HAWK_NDE_CHAR:
+			*ch = ((hawk_nde_char_t*)nde)->val;
+			str->ptr = ch;
+			str->len = 1;
+			return 1;
+
+		case HAWK_NDE_STR:
+			str->ptr = ((hawk_nde_str_t*)nde)->ptr;
+			str->len = ((hawk_nde_str_t*)nde)->len;
+			return 1;
+
+		default:
+			return 0;
+	}
+}
+
+static int get_nde_mbs_concat_literal (hawk_nde_t* nde, hawk_bcs_t* str, hawk_bch_t* ch)
+{
+	switch (nde->type)
+	{
+		case HAWK_NDE_BCHR:
+			*ch = ((hawk_nde_bchr_t*)nde)->val;
+			str->ptr = ch;
+			str->len = 1;
+			return 1;
+
+		case HAWK_NDE_MBS:
+			str->ptr = ((hawk_nde_mbs_t*)nde)->ptr;
+			str->len = ((hawk_nde_mbs_t*)nde)->len;
+			return 1;
+
+		default:
+			return 0;
+	}
+}
+
+static int fold_constants_for_concat (
+	hawk_t* hawk, hawk_nde_t* left, hawk_nde_t* right,
+	const hawk_loc_t* loc, hawk_nde_t** folded)
+{
+	hawk_ooch_t lwch[1], rwch[1];
+	hawk_bch_t lbch[1], rbch[1];
+	hawk_oocs_t wstr[3];
+	hawk_bcs_t bstr[3];
+
+	*folded = HAWK_NULL;
+
+	if (get_nde_wide_concat_literal(left, &wstr[0], lwch) &&
+	    get_nde_wide_concat_literal(right, &wstr[1], rwch))
+	{
+		hawk_nde_t* nx;
+
+		wstr[2].ptr = HAWK_NULL;
+		wstr[2].len = 0;
+		nx = new_str_node_with_oocsarr(hawk, wstr, loc);
+		if (HAWK_UNLIKELY(!nx)) return -1;
+
+		*folded = nx;
+		return 1;
+	}
+
+	if (get_nde_mbs_concat_literal(left, &bstr[0], lbch) &&
+	    get_nde_mbs_concat_literal(right, &bstr[1], rbch))
+	{
+		hawk_nde_t* nx;
+
+		bstr[2].ptr = HAWK_NULL;
+		bstr[2].len = 0;
+		nx = new_mbs_node_with_bcsarr(hawk, bstr, loc);
+		if (HAWK_UNLIKELY(!nx)) return -1;
+
+		*folded = nx;
+		return 1;
+	}
+
+	return 0; /* not folded */
 }
 
 static hawk_nde_t* new_or_fold_logical_bin_node (
@@ -5475,6 +5605,7 @@ static hawk_nde_t* parse_concat (hawk_t* hawk, const hawk_loc_t* xloc)
 {
 	hawk_nde_t* left = HAWK_NULL;
 	hawk_nde_t* right = HAWK_NULL;
+	hawk_nde_t* folded = HAWK_NULL;
 	hawk_loc_t rloc;
 
 	left = parse_additive(hawk, xloc);
@@ -5518,8 +5649,24 @@ static hawk_nde_t* parse_concat (hawk_t* hawk, const hawk_loc_t* xloc)
 		right = parse_additive(hawk, &rloc);
 		if (HAWK_UNLIKELY(!right)) goto oops;
 
-		tmp = new_exp_bin_node(hawk, xloc, HAWK_BINOP_CONCAT, left, right);
-		if (HAWK_UNLIKELY(!tmp)) goto oops;
+		switch (fold_constants_for_concat(hawk, left, right, xloc, &folded))
+		{
+			case 1:
+				hawk_clrpt(hawk, right);
+				hawk_clrpt(hawk, left);
+				tmp = folded;
+				folded = HAWK_NULL;
+				break;
+
+			case 0:
+				tmp = new_exp_bin_node(hawk, xloc, HAWK_BINOP_CONCAT, left, right);
+				if (HAWK_UNLIKELY(!tmp)) goto oops;
+				break;
+
+			default:
+				goto oops;
+		}
+
 		left = tmp; right = HAWK_NULL;
 	}
 	while (1);
@@ -5527,6 +5674,7 @@ static hawk_nde_t* parse_concat (hawk_t* hawk, const hawk_loc_t* xloc)
 	return left;
 
 oops:
+	if (folded) hawk_clrpt(hawk, folded);
 	if (right) hawk_clrpt(hawk, right);
 	if (left) hawk_clrpt(hawk, left);
 	return HAWK_NULL;

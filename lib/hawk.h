@@ -2293,6 +2293,8 @@ static HAWK_INLINE hawk_uch_t* hawk_dupucs (hawk_t* hawk, const hawk_ucs_t* ucs)
 static HAWK_INLINE hawk_bch_t* hawk_dupbcs (hawk_t* hawk, const hawk_bcs_t* bcs) { return hawk_gem_dupbcs(hawk_getgem(hawk), bcs); }
 static HAWK_INLINE hawk_uch_t* hawk_dupucstrarr (hawk_t* hawk, const hawk_uch_t* strs[], hawk_oow_t* len) { return hawk_gem_dupucstrarr(hawk_getgem(hawk), strs, len); }
 static HAWK_INLINE hawk_bch_t* hawk_dupbcstrarr (hawk_t* hawk, const hawk_bch_t* strs[], hawk_oow_t* len) { return hawk_gem_dupbcstrarr(hawk_getgem(hawk), strs, len); }
+static HAWK_INLINE hawk_uch_t* hawk_dupucsarr (hawk_t* hawk, const hawk_ucs_t* strs, hawk_oow_t* len) { return hawk_gem_dupucsarr(hawk_getgem(hawk), strs, len); }
+static HAWK_INLINE hawk_bch_t* hawk_dupbcsarr (hawk_t* hawk, const hawk_bcs_t* strs, hawk_oow_t* len) { return hawk_gem_dupbcsarr(hawk_getgem(hawk), strs, len); }
 #else
 #define hawk_dupucstr(hawk, ucs, ucslen) hawk_gem_dupucstr(hawk_getgem(hawk), ucs, ucslen)
 #define hawk_dupbcstr(hawk, bcs, bcslen) hawk_gem_dupbcstr(hawk_getgem(hawk), bcs, bcslen)
@@ -2302,6 +2304,8 @@ static HAWK_INLINE hawk_bch_t* hawk_dupbcstrarr (hawk_t* hawk, const hawk_bch_t*
 #define hawk_dupbcs(hawk, bcs) hawk_gem_dupbcs(hawk_getgem(hawk), bcs)
 #define hawk_dupucstrarr(hawk, strs, len) hawk_gem_dupucstrarr(hawk_getgem(hawk), strs, len)
 #define hawk_dupbcstrarr(hawk, strs, len) hawk_gem_dupbcstrarr(hawk_getgem(hawk), strs, len)
+#define hawk_dupucsarr(hawk, strs, len) hawk_gem_dupucsarr(hawk_getgem(hawk), strs, len)
+#define hawk_dupbcsarr(hawk, strs, len) hawk_gem_dupbcsarr(hawk_getgem(hawk), strs, len)
 #endif
 
 #if defined(HAWK_OOCH_IS_UCH)
@@ -2309,11 +2313,13 @@ static HAWK_INLINE hawk_bch_t* hawk_dupbcstrarr (hawk_t* hawk, const hawk_bch_t*
 #	define hawk_dupoochars    hawk_dupuchars
 #	define hawk_dupoocs       hawk_dupucs
 #	define hawk_dupoocstrarr  hawk_dupucstrarr
+#	define hawk_dupoocsarr    hawk_dupucsarr
 #else
 #	define hawk_dupoocstr     hawk_dupbcstr
 #	define hawk_dupoochars    hawk_dupbchars
 #	define hawk_dupoocs       hawk_dupbcs
 #	define hawk_dupoocstrarr  hawk_dupbcstrarr
+#	define hawk_dupoocsarr    hawk_dupbcsarr
 #endif
 
 /* ----------------------------------------------------------------------- */

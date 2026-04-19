@@ -195,5 +195,17 @@ function main ()
 	tap_ensure(1 || tick(1) || tick(2), 1, @SCRIPTNAME, @SCRIPTLINE);
 	tap_ensure(g_calls, 0, @SCRIPTNAME, @SCRIPTLINE);
 
+	tap_ensure("A" %% "B" %% "C", "ABC", @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure('A' %% "BC", "ABC", @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure("AB" %% 'C', "ABC", @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure('A' %% 'B' %% "C", "ABC", @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(hawk::type('A' %% "B"), hawk::VAL_STR, @SCRIPTNAME, @SCRIPTLINE);
+
+	tap_ensure(@b"A" %% @b"B" %% @b"C", @b"ABC", @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(@b'A' %% @b"BC", @b"ABC", @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(@b"AB" %% @b'C', @b"ABC", @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(@b'A' %% @b'B' %% @b"C", @b"ABC", @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(hawk::type(@b'A' %% @b"B"), hawk::VAL_MBS, @SCRIPTNAME, @SCRIPTLINE);
+
 	tap_end ();
 }
