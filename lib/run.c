@@ -1171,6 +1171,8 @@ static int init_rtx (hawk_rtx_t* rtx, hawk_t* hawk, hawk_rio_cbs_t* rio)
 	if (HAWK_UNLIKELY(hawk_becs_init(&rtx->inrec.linegb, hawk_rtx_getgem(rtx), DEF_BUF_CAPA) <= -1)) goto oops_4;
 	if (HAWK_UNLIKELY(hawk_ooecs_init(&rtx->format.out, hawk_rtx_getgem(rtx), 256) <= -1)) goto oops_5;
 	if (HAWK_UNLIKELY(hawk_ooecs_init(&rtx->format.fmt, hawk_rtx_getgem(rtx), 256) <= -1)) goto oops_6;
+	if (HAWK_UNLIKELY(hawk_ooecs_init(&rtx->format.fltout, hawk_rtx_getgem(rtx), 256) <= -1)) goto oops_6_1;
+	if (HAWK_UNLIKELY(hawk_ooecs_init(&rtx->format.fltfmt, hawk_rtx_getgem(rtx), 256) <= -1)) goto oops_6_2;
 
 	if (HAWK_UNLIKELY(hawk_becs_init(&rtx->formatmbs.out, hawk_rtx_getgem(rtx), 256) <= -1)) goto oops_7;
 	if (HAWK_UNLIKELY(hawk_becs_init(&rtx->formatmbs.fmt, hawk_rtx_getgem(rtx), 256) <= -1)) goto oops_8;
@@ -1242,6 +1244,10 @@ oops_9:
 oops_8:
 	hawk_becs_fini(&rtx->formatmbs.out);
 oops_7:
+	hawk_ooecs_fini(&rtx->format.fltfmt);
+oops_6_2:
+	hawk_ooecs_fini(&rtx->format.fltout);
+oops_6_1:
 	hawk_ooecs_fini(&rtx->format.fmt);
 oops_6:
 	hawk_ooecs_fini(&rtx->format.out);
@@ -1357,6 +1363,8 @@ static void fini_rtx (hawk_rtx_t* rtx, int fini_globals)
 	hawk_rtx_freemem(rtx, rtx->format.tmp.ptr);
 	rtx->format.tmp.ptr = HAWK_NULL;
 	rtx->format.tmp.len = 0;
+	hawk_ooecs_fini(&rtx->format.fltfmt);
+	hawk_ooecs_fini(&rtx->format.fltout);
 	hawk_ooecs_fini(&rtx->format.fmt);
 	hawk_ooecs_fini(&rtx->format.out);
 

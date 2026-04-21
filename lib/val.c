@@ -2153,8 +2153,7 @@ static int val_flt_to_str (hawk_rtx_t* rtx, const hawk_val_flt_t* v, hawk_rtx_va
 {
 	hawk_ooch_t* tmp;
 	hawk_oow_t tmp_len;
-	hawk_ooecs_t buf, fbu;
-	int buf_inited = 0, fbu_inited = 0;
+	hawk_ooecs_t* buf, * fbu;
 	int type = out->type & ~HAWK_RTX_VALTOSTR_PRINT;
 
 	if (out->type & HAWK_RTX_VALTOSTR_PRINT)
@@ -2168,17 +2167,12 @@ static int val_flt_to_str (hawk_rtx_t* rtx, const hawk_val_flt_t* v, hawk_rtx_va
 		tmp_len = rtx->gbl.convfmt.len;
 	}
 
-	if (hawk_ooecs_init(&buf, hawk_rtx_getgem(rtx), 256) <= -1) return -1;
-	buf_inited = 1;
+	buf = &rtx->format.fltout;
+	fbu = &rtx->format.fltfmt;
+	hawk_ooecs_clear(buf);
+	hawk_ooecs_clear(fbu);
 
-	if (hawk_ooecs_init(&fbu, hawk_rtx_getgem(rtx), 256) <= -1)
-	{
-		hawk_ooecs_fini(&buf);
-		return -1;
-	}
-	fbu_inited = 1;
-
-	tmp = hawk_rtx_format(rtx, &buf, &fbu, tmp, tmp_len, (hawk_oow_t)-1, (hawk_nde_t*)v, &tmp_len);
+	tmp = hawk_rtx_format(rtx, buf, fbu, tmp, tmp_len, (hawk_oow_t)-1, (hawk_nde_t*)v, &tmp_len);
 	if (HAWK_UNLIKELY(!tmp)) goto oops;
 
 	switch (type)
@@ -2206,8 +2200,8 @@ static int val_flt_to_str (hawk_rtx_t* rtx, const hawk_val_flt_t* v, hawk_rtx_va
 
 		case HAWK_RTX_VALTOSTR_CPLDUP:
 		{
-			hawk_ooecs_yield (&buf, HAWK_NULL, 0);
-			out->u.cpldup.ptr = tmp;
+			out->u.cpldup.ptr = hawk_rtx_dupoochars(rtx, tmp, tmp_len);
+			if (HAWK_UNLIKELY(!out->u.cpldup.ptr)) goto oops;
 			out->u.cpldup.len = tmp_len;
 			break;
 		}
@@ -2236,13 +2230,9 @@ static int val_flt_to_str (hawk_rtx_t* rtx, const hawk_val_flt_t* v, hawk_rtx_va
 		}
 	}
 
-	hawk_ooecs_fini(&fbu);
-	hawk_ooecs_fini(&buf);
 	return 0;
 
 oops:
-	if (fbu_inited) hawk_ooecs_fini(&fbu);
-	if (buf_inited) hawk_ooecs_fini(&buf);
 	return -1;
 }
 

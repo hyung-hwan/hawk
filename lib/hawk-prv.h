@@ -553,6 +553,10 @@ struct hawk_rtx_t
 		hawk_ooecs_t fmt;
 		hawk_ooecs_t out;
 
+		/* some buffers used by val_flt_to_str() */
+		hawk_ooecs_t fltfmt;
+		hawk_ooecs_t fltout;
+
 		struct
 		{
 			hawk_ooch_t* ptr;
