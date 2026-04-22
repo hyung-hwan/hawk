@@ -120,6 +120,24 @@
 #	undef HAWK_HAVE_INLINE
 #endif
 
+#if defined(__has_attribute) && __has_attribute(always_inline)
+#	define HAWK_INLINE_ALWAYS __inline__ __attribute__((always_inline))
+#	define HAWK_HAVE_INLINE_ALWAYS
+#endif
+
+#if !defined(HAWK_HAVE_INLINE_ALWAYS)
+#	if defined(__GNUC__) && (__GNUC__ > 3 || (__GNUC__ == 3 && __GNUC_MINOR__ > 0))
+#		define HAWK_INLINE_ALWAYS __inline__ __attribute__((__always_inline__))
+#		define HAWK_HAVE_INLINE_ALWAYS
+#	elif defined(_MSC_VER) || defined(__CC_ARM) || defined(__ARMCC__)
+#		define HAWK_INLINE_ALWAYS __forceinline
+#		define HAWK_HAVE_INLINE_ALWAYS
+#	else
+		/* fallback to normal inline */
+#		define HAWK_INLINE_ALWAYS HAWK_INLINE
+#	endif
+#endif
+
 #if defined(__GNUC__) && (__GNUC__ > 2 || (__GNUC__ == 2 && __GNUC_MINOR__ > 4))
 #	define HAWK_UNUSED __attribute__((__unused__))
 #else

@@ -2601,7 +2601,7 @@ static int apply_pending_rio_console_state(hawk_rtx_t* rtx, hawk_rio_arg_t* riod
 	if (!curpath) curpath = HAWK_T("-"); /* TODO: remember the actual special file name and use it? */
 	if (hawk_rtx_setfilenamewithoochars(rtx, curpath, hawk_count_oocstr(curpath)) <= -1) return -1;
 	riod->uflags &= ~IO_UFLAG_CONSOLE_PENDING_NEXT;
-	hawk_rtx_setgbl(rtx, HAWK_GBL_FNR, hawk_rtx_makeintval(rtx, 0)); /* this won't fail as the int value is 0 */
+	hawk_rtx_setgbl(rtx, HAWK_GBL_FNR, hawk_rtx_makeintval_inline(rtx, 0)); /* this won't fail as the int value is 0 */
 	return 0;
 }
 
@@ -2791,30 +2791,30 @@ static int build_argcv (hawk_rtx_t* rtx, int argc_id, int argv_id, const hawk_oo
 	v_argv = hawk_rtx_makemapval(rtx);
 	if (v_argv == HAWK_NULL) return -1;
 
-	hawk_rtx_refupval(rtx, v_argv);
+	hawk_rtx_refupval_inline(rtx, v_argv);
 
 	/* make ARGV[0] */
 	v_tmp = hawk_rtx_makestrvalwithoocstr(rtx, id);
 	if (v_tmp == HAWK_NULL)
 	{
-		hawk_rtx_refdownval(rtx, v_argv);
+		hawk_rtx_refdownval_inline(rtx, v_argv);
 		return -1;
 	}
 
 	/* increment reference count of v_tmp in advance as if
 	 * it has successfully been assigned into ARGV. */
-	hawk_rtx_refupval(rtx, v_tmp);
+	hawk_rtx_refupval_inline(rtx, v_tmp);
 
 	key_len = hawk_copy_oocstr(key, HAWK_COUNTOF(key), HAWK_T("0"));
 	if (hawk_map_upsert(((hawk_val_map_t*)v_argv)->map, key, key_len, v_tmp, 0) == HAWK_NULL)
 	{
 		/* if the assignment operation fails, decrements
 		 * the reference of v_tmp to free it */
-		hawk_rtx_refdownval(rtx, v_tmp);
+		hawk_rtx_refdownval_inline(rtx, v_tmp);
 
 		/* the values previously assigned into the
 		 * map will be freeed when v_argv is freed */
-		hawk_rtx_refdownval(rtx, v_argv);
+		hawk_rtx_refdownval_inline(rtx, v_argv);
 
 		return -1;
 	}
@@ -2828,50 +2828,50 @@ static int build_argcv (hawk_rtx_t* rtx, int argc_id, int argv_id, const hawk_oo
 			v_tmp = hawk_rtx_makenumorstrvalwithoochars(rtx, *p, hawk_count_oocstr(*p), 1);
 			if (HAWK_UNLIKELY(!v_tmp))
 			{
-				hawk_rtx_refdownval(rtx, v_argv);
+				hawk_rtx_refdownval_inline(rtx, v_argv);
 				return -1;
 			}
 
 			key_len = hawk_int_to_oocstr(argc, 10, HAWK_NULL, key, HAWK_COUNTOF(key));
 			HAWK_ASSERT(key_len != (hawk_oow_t)-1);
 
-			hawk_rtx_refupval(rtx, v_tmp);
+			hawk_rtx_refupval_inline(rtx, v_tmp);
 
 			if (hawk_map_upsert(((hawk_val_map_t*)v_argv)->map, key, key_len, v_tmp, 0) == HAWK_NULL)
 			{
-				hawk_rtx_refdownval(rtx, v_tmp);
-				hawk_rtx_refdownval(rtx, v_argv);
+				hawk_rtx_refdownval_inline(rtx, v_tmp);
+				hawk_rtx_refdownval_inline(rtx, v_argv);
 				return -1;
 			}
 		}
 	}
 	else argc = 1;
 
-	v_argc = hawk_rtx_makeintval(rtx, (hawk_int_t)argc);
+	v_argc = hawk_rtx_makeintval_inline(rtx, (hawk_int_t)argc);
 	if (v_argc == HAWK_NULL)
 	{
-		hawk_rtx_refdownval(rtx, v_argv);
+		hawk_rtx_refdownval_inline(rtx, v_argv);
 		return -1;
 	}
 
-	hawk_rtx_refupval(rtx, v_argc);
+	hawk_rtx_refupval_inline(rtx, v_argc);
 
 	if (hawk_rtx_setgbl(rtx, argc_id, v_argc) <= -1)
 	{
-		hawk_rtx_refdownval(rtx, v_argc);
-		hawk_rtx_refdownval(rtx, v_argv);
+		hawk_rtx_refdownval_inline(rtx, v_argc);
+		hawk_rtx_refdownval_inline(rtx, v_argv);
 		return -1;
 	}
 
 	if (hawk_rtx_setgbl(rtx, argv_id, v_argv) <= -1)
 	{
-		hawk_rtx_refdownval(rtx, v_argc);
-		hawk_rtx_refdownval(rtx, v_argv);
+		hawk_rtx_refdownval_inline(rtx, v_argc);
+		hawk_rtx_refdownval_inline(rtx, v_argv);
 		return -1;
 	}
 
-	hawk_rtx_refdownval(rtx, v_argc);
-	hawk_rtx_refdownval(rtx, v_argv);
+	hawk_rtx_refdownval_inline(rtx, v_argc);
+	hawk_rtx_refdownval_inline(rtx, v_argv);
 
 	return 0;
 }
@@ -2894,7 +2894,7 @@ static int build_environ (hawk_rtx_t* rtx, int gbl_id, env_char_t* envarr[])
 	v_env = hawk_rtx_makemapval(rtx);
 	if (v_env == HAWK_NULL) return -1;
 
-	hawk_rtx_refupval(rtx, v_env);
+	hawk_rtx_refupval_inline(rtx, v_env);
 
 	if (envarr)
 	{
@@ -2929,7 +2929,7 @@ static int build_environ (hawk_rtx_t* rtx, int gbl_id, env_char_t* envarr[])
 			{
 				if (kptr) hawk_rtx_freemem(rtx, kptr);
 				if (vptr) hawk_rtx_freemem(rtx, vptr);
-				hawk_rtx_refdownval(rtx, v_env);
+				hawk_rtx_refdownval_inline(rtx, v_env);
 				return -1;
 			}
 
@@ -2946,7 +2946,7 @@ static int build_environ (hawk_rtx_t* rtx, int gbl_id, env_char_t* envarr[])
 			{
 				if (kptr) hawk_rtx_freemem(rtx, kptr);
 				if (vptr) hawk_rtx_freeme(rtx, vptr):
-				hawk_rtx_refdownval(rtx, v_env);
+				hawk_rtx_refdownval_inline(rtx, v_env);
 				return -1;
 			}
 
@@ -2966,19 +2966,19 @@ static int build_environ (hawk_rtx_t* rtx, int gbl_id, env_char_t* envarr[])
 				if (vptr) hawk_rtx_freemem(rtx, vptr);
 				if (kptr) hawk_rtx_freemem(rtx, kptr);
 		#endif
-				hawk_rtx_refdownval(rtx, v_env);
+				hawk_rtx_refdownval_inline(rtx, v_env);
 				return -1;
 			}
 
 			/* increment reference count of v_tmp in advance as if
 			 * it has successfully been assigned into ARGV. */
-			hawk_rtx_refupval(rtx, v_tmp);
+			hawk_rtx_refupval_inline(rtx, v_tmp);
 
 			if (hawk_map_upsert(((hawk_val_map_t*)v_env)->map, kptr, klen, v_tmp, 0) == HAWK_NULL)
 			{
 				/* if the assignment operation fails, decrements
 				 * the reference of v_tmp to free it */
-				hawk_rtx_refdownval(rtx, v_tmp);
+				hawk_rtx_refdownval_inline(rtx, v_tmp);
 
 		#if ((defined(ENV_CHAR_IS_BCH) && defined(HAWK_OOCH_IS_BCH)) || \
 		     (defined(ENV_CHAR_IS_UCH) && defined(HAWK_OOCH_IS_UCH)))
@@ -2990,7 +2990,7 @@ static int build_environ (hawk_rtx_t* rtx, int gbl_id, env_char_t* envarr[])
 
 				/* the values previously assigned into the
 				 * map will be freeed when v_env is freed */
-				hawk_rtx_refdownval(rtx, v_env);
+				hawk_rtx_refdownval_inline(rtx, v_env);
 
 				return -1;
 			}
@@ -3007,11 +3007,11 @@ static int build_environ (hawk_rtx_t* rtx, int gbl_id, env_char_t* envarr[])
 
 	if (hawk_rtx_setgbl(rtx, gbl_id, v_env) <= -1)
 	{
-		hawk_rtx_refdownval(rtx, v_env);
+		hawk_rtx_refdownval_inline(rtx, v_env);
 		return -1;
 	}
 
-	hawk_rtx_refdownval(rtx, v_env);
+	hawk_rtx_refdownval_inline(rtx, v_env);
 	return 0;
 }
 
@@ -3453,7 +3453,7 @@ done:
 
 	if (ret >= 0)
 	{
-		v[0] = hawk_rtx_makeintval(rtx, (hawk_int_t)fret);
+		v[0] = hawk_rtx_makeintval_inline(rtx, (hawk_int_t)fret);
 		if (v[0] == HAWK_NULL) return -1;
 		hawk_rtx_setretval(rtx, v[0]);
 	}
@@ -3500,7 +3500,7 @@ static int fnc_getioattr (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	if ((tmout = timeout_code (ptr[1])) >= 0)
 	{
 		if (ioattr->tmout[tmout].nsec == 0)
-			rv = hawk_rtx_makeintval(rtx, ioattr->tmout[tmout].sec);
+			rv = hawk_rtx_makeintval_inline(rtx, ioattr->tmout[tmout].sec);
 		else
 			rv = hawk_rtx_makefltval(rtx, (hawk_flt_t)ioattr->tmout[tmout].sec + HAWK_NSEC_TO_SEC((hawk_flt_t)ioattr->tmout[tmout].nsec));
 		if (rv == HAWK_NULL)
@@ -3538,9 +3538,9 @@ done:
 	{
 		if (rv)
 		{
-			hawk_rtx_refupval(rtx, rv);
+			hawk_rtx_refupval_inline(rtx, rv);
 			ret = hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, 2), rv);
-			hawk_rtx_refdownval(rtx, rv);
+			hawk_rtx_refdownval_inline(rtx, rv);
 			if (ret >= 0) hawk_rtx_setretval(rtx, HAWK_VAL_ZERO);
 		}
 		else

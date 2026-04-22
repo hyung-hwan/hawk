@@ -614,7 +614,7 @@ static int fnc_srand (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	#endif
 	}
 
-	r = hawk_rtx_makeintval(rtx, prev);
+	r = hawk_rtx_makeintval_inline(rtx, prev);
 	if (r == HAWK_NULL) return -1;
 
 	hawk_rtx_setretval(rtx, r);

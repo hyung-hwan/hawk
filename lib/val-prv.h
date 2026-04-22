@@ -27,6 +27,11 @@
 
 #define HAWK_VAL_CHUNK_SIZE 100
 
+/* this has been commented out and isn't necessary as the implemenation is
+ * context(rtx)-centric. I'll leave it here for experiment for those who like
+ * to turn it on.
+#define HAWK_USE_ATOMIC_REFCNT */
+
 typedef struct hawk_val_chunk_t hawk_val_chunk_t;
 typedef struct hawk_val_ichunk_t hawk_val_ichunk_t;
 typedef struct hawk_val_rchunk_t hawk_val_rchunk_t;
@@ -181,6 +186,19 @@ extern hawk_val_t* hawk_val_zls;
 /* represents an empty byte string */
 extern hawk_val_t* hawk_val_zlbs;
 
+hawk_val_t* hawk_rtx_makeintval_full (
+	hawk_rtx_t* rtx,
+	hawk_int_t  v
+);
+
+#if defined(HAWK_HAVE_INLINE)
+static HAWK_INLINE_ALWAYS hawk_val_t* hawk_rtx_makeintval_inline (hawk_rtx_t* rtx, hawk_int_t v)
+{
+	return HAWK_IN_INT_RANGE(v)? HAWK_INT_TO_VTR(v): hawk_rtx_makeintval_full(rtx, v);
+}
+#else
+#define hawk_rtx_makeintval_inline(rtx, v) (HAWK_IN_INT_RANGE(v)? HAWK_INT_TO_VTR(v): hawk_rtx_makeintval_full(rtx, v))
+#endif
 
 void hawk_rtx_freeval (
 	hawk_rtx_t* rtx,
@@ -192,6 +210,96 @@ void hawk_rtx_freevalchunk (
 	hawk_rtx_t*       rtx,
 	hawk_val_chunk_t* chunk
 );
+
+#if defined(HAWK_HAVE_INLINE)
+static HAWK_INLINE_ALWAYS void hawk_rtx_refupval_inline (hawk_rtx_t* rtx, hawk_val_t* val)
+{
+	if (HAWK_VTR_IS_POINTER(val) && !HAWK_IS_STATICVAL(val))
+	{
+	#if defined(HAWK_USE_ATOMIC_REFCNT) && defined(HAWK_ATOMIC_FETCH_ADD)
+		HAWK_ATOMIC_FETCH_ADD(&val->v_refs, 1, HAWK_ATOMIC_RELAXED);
+	#else
+		val->v_refs++;
+	#endif
+	}
+}
+#elif defined(HAWK_USE_ATOMIC_REFCNT) && defined(HAWK_ATOMIC_FETCH_ADD)
+#define hawk_rtx_refupval_inline(rtx, val) do { \
+	if (HAWK_VTR_IS_POINTER(val) && !HAWK_IS_STATICVAL(val)) { \
+		HAWK_ATOMIC_FETCH_ADD(&(val)->v_refs, 1, HAWK_ATOMIC_RELAXED); \
+	} \
+} while(0)
+#else
+#define hawk_rtx_refupval_inline(rtx, val) do { \
+	if (HAWK_VTR_IS_POINTER(val) && !HAWK_IS_STATICVAL(val)) (val)->v_refs++; \
+} while(0)
+#endif
+
+#if defined(HAWK_HAVE_INLINE)
+static HAWK_INLINE_ALWAYS void hawk_rtx_refdownval_inline (hawk_rtx_t* rtx, hawk_val_t* val)
+{
+	if (HAWK_VTR_IS_POINTER(val) && !HAWK_IS_STATICVAL(val))
+	{
+		HAWK_ASSERT(val->v_refs > 0);
+	#if defined(HAWK_USE_ATOMIC_REFCNT) && defined(HAWK_ATOMIC_FETCH_SUB)
+		if (HAWK_ATOMIC_FETCH_SUB(&val->v_refs, 1, HAWK_ATOMIC_RELAXED) == 1)
+			hawk_rtx_freeval(rtx, val, HAWK_RTX_FREEVAL_CACHE);
+	#else
+		val->v_refs--;
+		if (val->v_refs <= 0) hawk_rtx_freeval(rtx, val, HAWK_RTX_FREEVAL_CACHE);
+	#endif
+	}
+}
+#elif defined(HAWK_USE_ATOMIC_REFCNT) && defined(HAWK_ATOMIC_FETCH_SUB)
+#define hawk_rtx_refdownval_inline(rtx, val) do { \
+	if (HAWK_VTR_IS_POINTER(val) && !HAWK_IS_STATICVAL(val)) \
+	{ \
+		HAWK_ASSERT(val->v_refs > 0); \
+		if (HAWK_ATOMIC_FETCH_SUB(&(val)->v_refs, 1, HAWK_ATOMIC_RELAXED) == 1) \
+			hawk_rtx_freeval(rtx, val, HAWK_RTX_FREEVAL_CACHE); \
+	} \
+} while(0)
+#else
+#define hawk_rtx_refdownval_inline(rtx, val) do { \
+	if (HAWK_VTR_IS_POINTER(val) && !HAWK_IS_STATICVAL(val)) \
+	{ \
+		HAWK_ASSERT(val->v_refs > 0); \
+		(val)->v_refs--; \
+		if ((val)->v_refs <= 0) hawk_rtx_freeval(rtx, val, HAWK_RTX_FREEVAL_CACHE); \
+	} \
+} while(0)
+#endif
+
+#if defined(HAWK_HAVE_INLINE)
+static HAWK_INLINE_ALWAYS void hawk_rtx_refdownval_nofree_inline (hawk_rtx_t* rtx, hawk_val_t* val)
+{
+	if (HAWK_VTR_IS_POINTER(val) && !HAWK_IS_STATICVAL(val))
+	{
+		HAWK_ASSERT(val->v_refs > 0);
+	#if defined(HAWK_USE_ATOMIC_REFCNT) && defined(HAWK_ATOMIC_FETCH_SUB)
+		HAWK_ATOMIC_FETCH_SUB(&val->v_refs, 1, HAWK_ATOMIC_RELAXED);
+	#else
+		val->v_refs--;
+	#endif
+	}
+}
+#elif defined(HAWK_USE_ATOMIC_REFCNT) && defined(HAWK_ATOMIC_FETCH_SUB)
+#define hawk_rtx_refdownval_nofree_inline(rtx, val) do { \
+	if (HAWK_VTR_IS_POINTER(val) && !HAWK_IS_STATICVAL(val)) \
+	{ \
+		HAWK_ASSERT(val->v_refs > 0); \
+		HAWK_ATOMIC_FETCH_SUB(&(val)->v_refs, 1, HAWK_ATOMIC_RELAXED);
+	} \
+} while(0)
+#else
+#define hawk_rtx_refdownval_nofree_inline(rtx, val) do { \
+	if (HAWK_VTR_IS_POINTER(val) && !HAWK_IS_STATICVAL(val)) \
+	{ \
+		HAWK_ASSERT(val->v_refs > 0); \
+		(val)->v_refs--; \
+	} \
+} while(0)
+#endif
 
 #if defined(__cplusplus)
 }

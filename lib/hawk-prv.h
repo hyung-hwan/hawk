@@ -25,6 +25,7 @@
 #ifndef _HAWK_PRV_H_
 #define _HAWK_PRV_H_
 
+#include <hawk-cmn.h>
 #include <hawk-arr.h>
 #include <hawk-chr.h>
 #include <hawk-ecs.h>
@@ -430,6 +431,7 @@ struct hawk_rtx_t
 	HAWK_RTX_HDR;
 
 	hawk_htb_t* named;
+	hawk_oow_t named_gen;
 
 	void** stack;
 	hawk_oow_t stack_top;

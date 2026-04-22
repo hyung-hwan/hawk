@@ -399,21 +399,21 @@ int hawk_rtx_readio (hawk_rtx_t* rtx, hawk_in_type_t in_type, const hawk_ooch_t*
 
 	/* get the record separator */
 	rs = hawk_rtx_getgbl(rtx, HAWK_GBL_RS);
-	hawk_rtx_refupval(rtx, rs);
+	hawk_rtx_refupval_inline(rtx, rs);
 
 	fs = hawk_rtx_getgbl(rtx, HAWK_GBL_FS);
-	hawk_rtx_refupval(rtx, fs);
+	hawk_rtx_refupval_inline(rtx, fs);
 
 	if (resolve_rs(rtx, rs, &rrs) <= -1) /* TODO: resolve it upon assignment for optimization? */
 	{
-		hawk_rtx_refdownval(rtx, rs);
+		hawk_rtx_refdownval_inline(rtx, rs);
 		return -1;
 	}
 
 	if (resolve_rs(rtx, fs, &ffs) <= -1)
 	{
-		hawk_rtx_refdownval(rtx, fs);
-		hawk_rtx_refdownval(rtx, rs);
+		hawk_rtx_refdownval_inline(rtx, fs);
+		hawk_rtx_refdownval_inline(rtx, rs);
 		return -1;
 	}
 
@@ -749,8 +749,8 @@ int hawk_rtx_readio (hawk_rtx_t* rtx, hawk_in_type_t in_type, const hawk_ooch_t*
 	}
 
 	if (rrs.ptr && HAWK_RTX_GETVALTYPE(rtx, rs) != HAWK_VAL_STR) hawk_rtx_freemem(rtx, rrs.ptr);
-	hawk_rtx_refdownval(rtx, fs);
-	hawk_rtx_refdownval(rtx, rs);
+	hawk_rtx_refdownval_inline(rtx, fs);
+	hawk_rtx_refdownval_inline(rtx, rs);
 
 	return ret;
 }
@@ -789,21 +789,21 @@ int hawk_rtx_readiobytes (hawk_rtx_t* rtx, hawk_in_type_t in_type, const hawk_oo
 
 	/* get the record separator */
 	brs = hawk_rtx_getgbl(rtx, HAWK_GBL_RS);
-	hawk_rtx_refupval(rtx, brs);
+	hawk_rtx_refupval_inline(rtx, brs);
 
 	bfs = hawk_rtx_getgbl(rtx, HAWK_GBL_FS);
-	hawk_rtx_refupval(rtx, bfs);
+	hawk_rtx_refupval_inline(rtx, bfs);
 
 	if (resolve_brs(rtx, brs, &rrs) <= -1)
 	{
-		hawk_rtx_refdownval(rtx, brs);
+		hawk_rtx_refdownval_inline(rtx, brs);
 		return -1;
 	}
 
 	if (resolve_brs(rtx, bfs, &ffs) <= -1)
 	{
-		hawk_rtx_refdownval(rtx, bfs);
-		hawk_rtx_refdownval(rtx, brs);
+		hawk_rtx_refdownval_inline(rtx, bfs);
+		hawk_rtx_refdownval_inline(rtx, brs);
 		return -1;
 	}
 
@@ -1131,8 +1131,8 @@ int hawk_rtx_readiobytes (hawk_rtx_t* rtx, hawk_in_type_t in_type, const hawk_oo
 	}
 
 	if (rrs.ptr && HAWK_RTX_GETVALTYPE(rtx, brs) != HAWK_VAL_MBS) hawk_rtx_freemem(rtx, rrs.ptr);
-	hawk_rtx_refdownval(rtx, bfs);
-	hawk_rtx_refdownval(rtx, brs);
+	hawk_rtx_refdownval_inline(rtx, bfs);
+	hawk_rtx_refdownval_inline(rtx, brs);
 
 	return ret;
 }

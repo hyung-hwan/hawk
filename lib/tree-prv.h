@@ -249,6 +249,14 @@ struct hawk_nde_var_t
 	} id;
 	hawk_nde_t* idx; /* HAWK_NULL for non-XXXXIDX */
 	hawk_uint8_t is_const;
+	struct
+	{
+		hawk_rtx_t* rtx;
+		hawk_htb_pair_t* pair;
+		hawk_oow_t gen;
+		hawk_uint8_t valid;
+		hawk_uint8_t found;
+	} ncache;
 };
 
 #define HAWK_NDE_FNCALL_FNC_DEFERRED_MODFNC (1 << 0)

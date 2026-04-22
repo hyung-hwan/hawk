@@ -91,7 +91,7 @@ static hawk_oow_t push_args_from_stack (hawk_rtx_t* rtx, const hawk_loc_t* call_
 		}
 
 		HAWK_RTX_STACK_PUSH(rtx, v);
-		hawk_rtx_refupval(rtx, v);
+		hawk_rtx_refupval_inline(rtx, v);
 	}
 
 	return pasf->end_index - pasf->start_index + 1;
@@ -228,7 +228,7 @@ static int fnc_function_exists (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		hawk_rtx_freevaloocstr(rtx, a0, name.ptr);
 	}
 
-	hawk_rtx_setretval(rtx, hawk_rtx_makeintval(rtx, rx));
+	hawk_rtx_setretval(rtx, hawk_rtx_makeintval_inline(rtx, rx));
 	return 0;
 }
 /* -------------------------------------------------------------------------- */
@@ -252,7 +252,7 @@ static int fnc_cmgr_exists (hawk_rtx_t* rtx, const hawk_fnc_info_t*  fi)
 		hawk_rtx_freevaloocstr(rtx, a0, str);
 	}
 
-	hawk_rtx_setretval(rtx, hawk_rtx_makeintval(rtx, rx));
+	hawk_rtx_setretval(rtx, hawk_rtx_makeintval_inline(rtx, rx));
 	return 0;
 }
 
@@ -275,7 +275,7 @@ static int fnc_gc (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 #endif
 
 	HAWK_ASSERT(HAWK_IN_INT_RANGE(gen));
-	hawk_rtx_setretval(rtx, hawk_rtx_makeintval(rtx, gen));
+	hawk_rtx_setretval(rtx, hawk_rtx_makeintval_inline(rtx, gen));
 	return 0;
 }
 
@@ -291,7 +291,7 @@ static int fnc_gc_get_pressure (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	pressure = rtx->gc.pressure[gen];
 
 	HAWK_ASSERT(HAWK_IN_INT_RANGE(pressure));
-	hawk_rtx_setretval(rtx, hawk_rtx_makeintval(rtx, pressure));
+	hawk_rtx_setretval(rtx, hawk_rtx_makeintval_inline(rtx, pressure));
 	return 0;
 }
 
@@ -307,7 +307,7 @@ static int fnc_gc_get_threshold (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	threshold = rtx->gc.threshold[gen];
 
 	HAWK_ASSERT(HAWK_IN_INT_RANGE(threshold));
-	hawk_rtx_setretval(rtx, hawk_rtx_makeintval(rtx, threshold));
+	hawk_rtx_setretval(rtx, hawk_rtx_makeintval_inline(rtx, threshold));
 	return 0;
 }
 
@@ -333,7 +333,7 @@ static int fnc_gc_set_threshold (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	}
 
 	HAWK_ASSERT(HAWK_IN_INT_RANGE(threshold));
-	hawk_rtx_setretval(rtx, hawk_rtx_makeintval(rtx, threshold));
+	hawk_rtx_setretval(rtx, hawk_rtx_makeintval_inline(rtx, threshold));
 	return 0;
 }
 
@@ -341,7 +341,7 @@ static int fnc_gcrefs (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	hawk_val_t* a0;
 	a0 = hawk_rtx_getarg(rtx, 0);
-	hawk_rtx_setretval(rtx, hawk_rtx_makeintval(rtx, HAWK_VTR_IS_POINTER(a0)? a0->v_refs: 0));
+	hawk_rtx_setretval(rtx, hawk_rtx_makeintval_inline(rtx, HAWK_VTR_IS_POINTER(a0)? a0->v_refs: 0));
 	return 0;
 }
 
@@ -439,7 +439,7 @@ static int fnc_isnil (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 	a0 = hawk_rtx_getarg(rtx, 0);
 
-	r = hawk_rtx_makeintval(rtx, HAWK_RTX_GETVALTYPE(rtx, a0) == HAWK_VAL_NIL);
+	r = hawk_rtx_makeintval_inline(rtx, HAWK_RTX_GETVALTYPE(rtx, a0) == HAWK_VAL_NIL);
 	if (HAWK_UNLIKELY(!r)) return -1;
 
 	hawk_rtx_setretval(rtx, r);
@@ -453,7 +453,7 @@ static int fnc_ismap (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 	a0 = hawk_rtx_getarg(rtx, 0);
 
-	r = hawk_rtx_makeintval(rtx, HAWK_RTX_GETVALTYPE(rtx, a0) == HAWK_VAL_MAP);
+	r = hawk_rtx_makeintval_inline(rtx, HAWK_RTX_GETVALTYPE(rtx, a0) == HAWK_VAL_MAP);
 	if (HAWK_UNLIKELY(!r)) return -1;
 
 	hawk_rtx_setretval(rtx, r);
@@ -467,7 +467,7 @@ static int fnc_isarr (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 	a0 = hawk_rtx_getarg(rtx, 0);
 
-	r = hawk_rtx_makeintval(rtx, HAWK_RTX_GETVALTYPE(rtx, a0) == HAWK_VAL_ARR);
+	r = hawk_rtx_makeintval_inline(rtx, HAWK_RTX_GETVALTYPE(rtx, a0) == HAWK_VAL_ARR);
 	if (HAWK_UNLIKELY(!r)) return -1;
 
 	hawk_rtx_setretval(rtx, r);
@@ -495,7 +495,7 @@ static int fnc_type (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	a0 = hawk_rtx_getarg(rtx, 0);
 	_type = hawk_rtx_getvaltype(rtx, a0);
 
-	r = hawk_rtx_makeintval(rtx, _type);
+	r = hawk_rtx_makeintval_inline(rtx, _type);
 	if (HAWK_UNLIKELY(!r)) return -1;
 
 	hawk_rtx_setretval(rtx, r);
@@ -528,7 +528,7 @@ static int fnc_hash (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	a0 = hawk_rtx_getarg(rtx, 0);
 	v = hawk_rtx_hashval(rtx, a0); /* ignore v <= -1 which is an error */
 
-	hawk_rtx_setretval(rtx, hawk_rtx_makeintval(rtx, v));
+	hawk_rtx_setretval(rtx, hawk_rtx_makeintval_inline(rtx, v));
 	return 0;
 }
 

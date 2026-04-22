@@ -212,7 +212,7 @@ static int is_class (hawk_rtx_t* rtx, hawk_ooch_prop_t ctype)
 		}
 	}
 
-	a0 = hawk_rtx_makeintval(rtx, tmp);
+	a0 = hawk_rtx_makeintval_inline(rtx, tmp);
 	if (HAWK_UNLIKELY(!a0)) return -1;
 
 	hawk_rtx_setretval(rtx, a0);
@@ -443,7 +443,7 @@ static int fnc_tocharcode (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 	if (iv >= 0)
 	{
-		retv = hawk_rtx_makeintval(rtx, iv);
+		retv = hawk_rtx_makeintval_inline(rtx, iv);
 		if (HAWK_UNLIKELY(!retv)) return -1;
 		hawk_rtx_setretval(rtx, retv);
 	}
@@ -1062,7 +1062,7 @@ static int fnc_tonum (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 	if (rx == 0)
 	{
-		retv = hawk_rtx_makeintval(rtx, lv);
+		retv = hawk_rtx_makeintval_inline(rtx, lv);
 	}
 	else if (rx >= 1)
 	{
@@ -1070,7 +1070,7 @@ static int fnc_tonum (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	}
 	else
 	{
-		retv = hawk_rtx_makeintval(rtx, 0);
+		retv = hawk_rtx_makeintval_inline(rtx, 0);
 	}
 
 	if (!retv) return -1;

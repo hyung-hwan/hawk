@@ -33,9 +33,9 @@ static int fnc_errno (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	uctx_list_t* list;
 	hawk_val_t* retv;
 
-	list = rtx_to_list (rtx, fi);
+	list = rtx_to_list(rtx, fi);
 
-	retv = hawk_rtx_makeintval (rtx, list->errnum);
+	retv = hawk_rtx_makeintval(rtx, list->errnum);
 	if (retv == HAWK_NULL) return -1;
 
 	hawk_rtx_setretval(rtx, retv);
