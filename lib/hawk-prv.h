@@ -39,18 +39,21 @@ typedef struct hawk_chain_t hawk_chain_t;
 typedef struct hawk_tree_t hawk_tree_t;
 
 #include <hawk.h>
-#include "tree-prv.h"
-#include "fnc-prv.h"
-#include "parse-prv.h"
-#include "run-prv.h"
-#include "rio-prv.h"
-#include "val-prv.h"
-#include "err-prv.h"
-#include "misc-prv.h"
+
+/* ------------------------------------------------------------------------ */
 
 #define HAWK_ENABLE_GC
 #define HAWK_ENABLE_STR_CACHE
 #define HAWK_ENABLE_MBS_CACHE
+
+/*
+ * keep this off as the implementation in run.c is still not thread-safe
+ * in proper implementation, cacheing must be maintained per rtx basis.
+ * keeping the cached data in hawk_nde_var_t is wrong
+#define HAWK_ENABLE_NAMED_LOOKUP_CACHE
+*/
+
+
 /* [NOTE] the function value support implemented is very limited.
  *        it supports very primitive way to call a function via a variable.
  *        only user-defined functions are supported. neither builtin functions
@@ -73,6 +76,18 @@ typedef struct hawk_tree_t hawk_tree_t;
     defined(HAWK_ATOMIC_STORE)
 #define HAWK_ENABLE_ATOMIC_SIG
 #endif
+
+/* ------------------------------------------------------------------------ */
+
+/* private headers. some files are affected by feature macros above */
+#include "tree-prv.h"
+#include "fnc-prv.h"
+#include "parse-prv.h"
+#include "run-prv.h"
+#include "rio-prv.h"
+#include "val-prv.h"
+#include "err-prv.h"
+#include "misc-prv.h"
 
 /* ------------------------------------------------------------------------ */
 
@@ -431,7 +446,9 @@ struct hawk_rtx_t
 	HAWK_RTX_HDR;
 
 	hawk_htb_t* named;
+#if defined(HAWK_ENABLE_NAMED_LOOKUP_CACHE)
 	hawk_oow_t named_gen;
+#endif
 
 	void** stack;
 	hawk_oow_t stack_top;

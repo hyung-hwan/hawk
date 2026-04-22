@@ -1185,6 +1185,10 @@ static int init_rtx (hawk_rtx_t* rtx, hawk_t* hawk, hawk_rio_cbs_t* rio)
 	*(hawk_rtx_t**)hawk_htb_getxtn(rtx->named) = rtx;
 	hawk_htb_setstyle (rtx->named, &style_for_named);
 
+#if defined(HAWK_ENABLE_NAMED_LOOKUP_CACHE)
+	rtx->named_gen = 0;
+#endif
+
 	rtx->format.tmp.ptr = (hawk_ooch_t*)hawk_rtx_allocmem(rtx, 4096 * HAWK_SIZEOF(hawk_ooch_t));
 	if (HAWK_UNLIKELY(!rtx->format.tmp.ptr)) goto oops_12; /* the error is set on the hawk object after this jump is made */
 	rtx->format.tmp.len = 4096;
@@ -3542,6 +3546,7 @@ static hawk_val_t* assign_newarrval_in_arr (hawk_rtx_t* rtx, hawk_arr_t* contain
 	return tmp;
 }
 
+#if defined(HAWK_ENABLE_NAMED_LOOKUP_CACHE)
 static HAWK_INLINE hawk_htb_pair_t* lookup_named_pair_cached (hawk_rtx_t* rtx, hawk_nde_var_t* var)
 {
 	HAWK_ASSERT(var->type == HAWK_NDE_NAMED || var->type == HAWK_NDE_NAMEDIDX);
@@ -3564,6 +3569,7 @@ static HAWK_INLINE void invalidate_named_lookup_cache (hawk_rtx_t* rtx)
 {
 	rtx->named_gen++;
 }
+#endif
 
 static hawk_val_t* fetch_topval_from_var (hawk_rtx_t* rtx, hawk_nde_var_t* var)
 {
@@ -3576,7 +3582,11 @@ static hawk_val_t* fetch_topval_from_var (hawk_rtx_t* rtx, hawk_nde_var_t* var)
 		case HAWK_NDE_NAMEDIDX:
 		{
 			hawk_htb_pair_t* pair;
+		#if defined(HAWK_ENABLE_NAMED_LOOKUP_CACHE)
 			pair = lookup_named_pair_cached(rtx, var);
+		#else
+			pair = hawk_htb_search(rtx->named, var->id.name.ptr, var->id.name.len);
+		#endif
 			val = pair? (hawk_val_t*)HAWK_HTB_VPTR(pair): hawk_val_nil;
 			break;
 		}
@@ -3617,7 +3627,9 @@ static hawk_val_t* assign_topval_to_var (hawk_rtx_t* rtx, hawk_nde_var_t* var, h
 				ADJERR_LOC(rtx, &var->loc);
 				return HAWK_NULL;
 			}
+		#if defined(HAWK_ENABLE_NAMED_LOOKUP_CACHE)
 			invalidate_named_lookup_cache(rtx);
+		#endif
 			break;
 		}
 
@@ -3883,7 +3895,9 @@ static int run_reset (hawk_rtx_t* rtx, hawk_nde_reset_t* nde)
 			/* a named variable can be reset if removed from the internal map to manage it */
 			if (hawk_htb_delete(rtx->named, var->id.name.ptr, var->id.name.len) >= 0)
 			{
+			#if defined(HAWK_ENABLE_NAMED_LOOKUP_CACHE)
 				invalidate_named_lookup_cache(rtx);
+			#endif
 			}
 			return 0;
 
@@ -4603,7 +4617,11 @@ static hawk_val_t* do_assignment_nonindexed (hawk_rtx_t* rtx, hawk_nde_var_t* va
 		{
 			hawk_htb_pair_t* pair;
 
+		#if defined(HAWK_ENABLE_NAMED_LOOKUP_CACHE)
 			pair = lookup_named_pair_cached(rtx, var);
+		#else
+			pair = hawk_htb_search(rtx->named, var->id.name.ptr, var->id.name.len);
+		#endif
 
 			if (!(rtx->hawk->opt.trait & HAWK_FLEXMAP))
 			{
@@ -4632,7 +4650,9 @@ static hawk_val_t* do_assignment_nonindexed (hawk_rtx_t* rtx, hawk_nde_var_t* va
 				return HAWK_NULL;
 			}
 
+		#if defined(HAWK_ENABLE_NAMED_LOOKUP_CACHE)
 			invalidate_named_lookup_cache(rtx);
+		#endif
 			hawk_rtx_refupval_inline(rtx, val);
 			break;
 		}
@@ -8228,7 +8248,11 @@ static int get_reference (hawk_rtx_t* rtx, hawk_nde_t* nde, hawk_val_t*** ref)
 		{
 			hawk_htb_pair_t* pair;
 
+		#if defined(HAWK_ENABLE_NAMED_LOOKUP_CACHE)
 			pair = lookup_named_pair_cached(rtx, tgt);
+		#else
+			pair = hawk_htb_search(rtx->named, tgt->id.name.ptr, tgt->id.name.len);
+		#endif
 			if (pair == HAWK_NULL)
 			{
 				/* it is bad that the named variable has to be created here.
@@ -8239,7 +8263,9 @@ static int get_reference (hawk_rtx_t* rtx, hawk_nde_t* nde, hawk_val_t*** ref)
 					ADJERR_LOC(rtx, &nde->loc);
 					return -1;
 				}
+			#if defined(HAWK_ENABLE_NAMED_LOOKUP_CACHE)
 				invalidate_named_lookup_cache(rtx);
+			#endif
 			}
 
 			*ref = (hawk_val_t**)&HAWK_HTB_VPTR(pair);
@@ -8721,7 +8747,11 @@ static hawk_val_t* eval_modsym (hawk_rtx_t* rtx, hawk_nde_t* nde)
 static hawk_val_t* eval_named (hawk_rtx_t* rtx, hawk_nde_t* nde)
 {
 	hawk_htb_pair_t* pair;
+#if defined(HAWK_ENABLE_NAMED_LOOKUP_CACHE)
 	pair = lookup_named_pair_cached(rtx, (hawk_nde_var_t*)nde);
+#else
+	pair = hawk_htb_search(rtx->named, ((hawk_nde_var_t*)nde)->id.name.ptr, ((hawk_nde_var_t*)nde)->id.name.len);
+#endif
 	return (pair == HAWK_NULL)? hawk_val_nil: HAWK_HTB_VPTR(pair);
 }
 

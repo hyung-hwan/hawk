@@ -249,6 +249,7 @@ struct hawk_nde_var_t
 	} id;
 	hawk_nde_t* idx; /* HAWK_NULL for non-XXXXIDX */
 	hawk_uint8_t is_const;
+#if defined(HAWK_ENABLE_NAMED_LOOKUP_CACHE)
 	struct
 	{
 		hawk_rtx_t* rtx;
@@ -257,6 +258,7 @@ struct hawk_nde_var_t
 		hawk_uint8_t valid;
 		hawk_uint8_t found;
 	} ncache;
+#endif
 };
 
 #define HAWK_NDE_FNCALL_FNC_DEFERRED_MODFNC (1 << 0)
