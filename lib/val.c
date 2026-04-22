@@ -2868,6 +2868,13 @@ int hawk_rtx_valtonum (hawk_rtx_t* rtx, const hawk_val_t* v, hawk_int_t* l, hawk
 
 int hawk_rtx_valtoint (hawk_rtx_t* rtx, const hawk_val_t* v, hawk_int_t* l)
 {
+#if defined(HAWK_HAVE_INLINE)
+	return hawk_rtx_valtoint_inline(rtx, v, l);
+#else
+	/* i can't call hawk_rtx_valtoint() in case HAWK_HAVE_INLINE is not defined
+	 * because the macro hawk_rtx_valtoint_inline() is defined to be hawk_rtx_valtoint().
+	 * repeat the same code here */
+
 	int n;
 	hawk_flt_t r;
 
@@ -2879,6 +2886,7 @@ int hawk_rtx_valtoint (hawk_rtx_t* rtx, const hawk_val_t* v, hawk_int_t* l)
 	}
 
 	return n;
+#endif
 }
 
 int hawk_rtx_valtoflt (hawk_rtx_t* rtx, const hawk_val_t* v, hawk_flt_t* r)

@@ -301,6 +301,26 @@ static HAWK_INLINE_ALWAYS void hawk_rtx_refdownval_nofree_inline (hawk_rtx_t* rt
 } while(0)
 #endif
 
+
+
+#if defined(HAWK_HAVE_INLINE)
+static HAWK_INLINE int hawk_rtx_valtoint_inline (hawk_rtx_t* rtx, const hawk_val_t* v, hawk_int_t* l)
+{
+	int n;
+	hawk_flt_t r;
+	n = hawk_rtx_valtonum(rtx, v, l, &r);
+	if (n == 1)
+	{
+		*l = (hawk_int_t)r;
+		n = 0;
+	}
+        return n;
+}
+#else
+/* i can't easily inlinde this function without using compiler extentions or changing the return value to a parameter */
+#define hawk_rtx_valtoint_inline(rtx, v, l) hawk_rtx_valtoint(rtx, v, l)
+#endif
+
 #if defined(__cplusplus)
 }
 #endif

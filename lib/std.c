@@ -2341,7 +2341,7 @@ static int open_rio_console (hawk_rtx_t* rtx, hawk_rio_arg_t* riod)
 
 		v_argc = hawk_rtx_getgbl(rtx, xtn->gbl_argc);
 		HAWK_ASSERT(v_argc != HAWK_NULL);
-		if (hawk_rtx_valtoint(rtx, v_argc, &i_argc) <= -1) return -1;
+		if (hawk_rtx_valtoint_inline(rtx, v_argc, &i_argc) <= -1) return -1;
 
 		/* handle special case when ARGV[x] has been altered.
 		 * so from here down, the file name gotten from

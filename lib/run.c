@@ -188,6 +188,7 @@ static hawk_val_t* eval_named (hawk_rtx_t* rtx, hawk_nde_t* nde);
 static hawk_val_t* eval_gbl (hawk_rtx_t* rtx, hawk_nde_t* nde);
 static hawk_val_t* eval_lcl (hawk_rtx_t* rtx, hawk_nde_t* nde);
 static hawk_val_t* eval_arg (hawk_rtx_t* rtx, hawk_nde_t* nde);
+static hawk_val_t* eval_indexed (hawk_rtx_t* rtx, hawk_nde_var_t* var);
 static hawk_val_t* eval_namedidx (hawk_rtx_t* rtx, hawk_nde_t* nde);
 static hawk_val_t* eval_gblidx (hawk_rtx_t* rtx, hawk_nde_t* nde);
 static hawk_val_t* eval_lclidx (hawk_rtx_t* rtx, hawk_nde_t* nde);
@@ -372,7 +373,7 @@ static int set_global (hawk_rtx_t* rtx, int idx, hawk_nde_var_t* var, hawk_val_t
 			int n;
 			hawk_int_t lv;
 
-			n = hawk_rtx_valtoint(rtx, val, &lv);
+			n = hawk_rtx_valtoint_inline(rtx, val, &lv);
 			if (HAWK_UNLIKELY(n <= -1)) return -1;
 
 			rtx->gbl.fnr = lv;
@@ -435,7 +436,7 @@ static int set_global (hawk_rtx_t* rtx, int idx, hawk_nde_var_t* var, hawk_val_t
 			int n;
 			hawk_int_t lv;
 
-			n = hawk_rtx_valtoint(rtx, val, &lv);
+			n = hawk_rtx_valtoint_inline(rtx, val, &lv);
 			if (n <= -1) return -1;
 
 			if (lv < 0)
@@ -484,7 +485,7 @@ static int set_global (hawk_rtx_t* rtx, int idx, hawk_nde_var_t* var, hawk_val_t
 			int n;
 			hawk_int_t lv;
 
-			n = hawk_rtx_valtoint(rtx, val, &lv);
+			n = hawk_rtx_valtoint_inline(rtx, val, &lv);
 			if (n <= -1) return -1;
 
 			rtx->gbl.nr = lv;
@@ -4376,9 +4377,9 @@ static hawk_val_t* eval_expression0 (hawk_rtx_t* rtx, hawk_nde_t* nde)
 		eval_xargvidx,
 		eval_fun,
 		eval_named,
-		eval_gbl,
-		eval_lcl,
-		eval_arg,
+		eval_gbl, /* not used for switch below */
+		eval_lcl, /* not used for switch below */
+		eval_arg, /* not used for switch below */
 		eval_namedidx,
 		eval_gblidx,
 		eval_lclidx,
@@ -4393,9 +4394,77 @@ static hawk_val_t* eval_expression0 (hawk_rtx_t* rtx, hawk_nde_t* nde)
 
 	HAWK_ASSERT(nde->type >= HAWK_NDE_GRP && (nde->type - HAWK_NDE_GRP) < HAWK_COUNTOF(__evaluator));
 
-	v = __evaluator[nde->type - HAWK_NDE_GRP](rtx, nde);
+	switch(nde->type)
+	{
+		case HAWK_NDE_ARG:
+			v = HAWK_RTX_STACK_ARG(rtx, ((hawk_nde_var_t*)nde)->id.idxa);
+			goto done; /* exit_level can never change. so skip to done */
 
-	if (HAWK_UNLIKELY(v && rtx->exit_level >= EXIT_GLOBAL))
+		case HAWK_NDE_GBL:
+			v = HAWK_RTX_STACK_GBL(rtx, ((hawk_nde_var_t*)nde)->id.idxa);
+			goto done; /* exit_level can never change. so skip to done */
+
+		case HAWK_NDE_LCL:
+			v = HAWK_RTX_STACK_LCL(rtx, ((hawk_nde_var_t*)nde)->id.idxa);
+			goto done; /* exit_level can never change. so skip to done */
+
+		case HAWK_NDE_NAMED:
+		{
+			hawk_htb_pair_t* pair;
+		#if defined(HAWK_ENABLE_NAMED_LOOKUP_CACHE)
+			pair = lookup_named_pair_cached(rtx, (hawk_nde_var_t*)nde);
+		#else
+			pair = hawk_htb_search(rtx->named, ((hawk_nde_var_t*)nde)->id.name.ptr, ((hawk_nde_var_t*)nde)->id.name.len);
+		#endif
+			v = pair? HAWK_HTB_VPTR(pair): hawk_val_nil;
+			goto done; /* exit_level can never change. so skip to done */
+		}
+
+		case HAWK_NDE_ARGIDX:
+		case HAWK_NDE_GBLIDX:
+		case HAWK_NDE_LCLIDX:
+		case HAWK_NDE_NAMEDIDX:
+			v = eval_indexed(rtx, (hawk_nde_var_t*)nde);
+			break;
+
+		case HAWK_NDE_CHAR:
+			v = hawk_rtx_makecharval(rtx, ((hawk_nde_char_t*)nde)->val);
+			if (HAWK_UNLIKELY(!v)) goto oops;
+			goto done; /* exit_level can never change. so skip to done */
+
+		case HAWK_NDE_BCHR:
+			v = hawk_rtx_makebchrval(rtx, ((hawk_nde_bchr_t*)nde)->val);
+			if (HAWK_UNLIKELY(!v)) goto oops;
+			goto done; /* exit_level can never change. so skip to done */
+
+		case HAWK_NDE_INT:
+			v = hawk_rtx_makeintval_inline(rtx, ((hawk_nde_int_t*)nde)->val);
+			if (HAWK_UNLIKELY(!v)) goto oops;
+			if (HAWK_VTR_IS_POINTER(v)) ((hawk_val_int_t*)v)->nde = nde;
+			goto done; /* exit_level can never change. so skip to done */
+
+		case HAWK_NDE_FLT:
+			v = hawk_rtx_makefltval(rtx, ((hawk_nde_flt_t*)nde)->val);
+			if (HAWK_UNLIKELY(!v)) goto oops;
+			((hawk_val_flt_t*)v)->nde = nde;
+			goto done; /* exit_level can never change. so skip to done */
+
+		case HAWK_NDE_STR:
+			v = hawk_rtx_makestrvalwithoochars(rtx, ((hawk_nde_str_t*)nde)->ptr, ((hawk_nde_str_t*)nde)->len);
+			if (HAWK_UNLIKELY(!v)) goto oops;
+			goto done; /* exit_level can never change. so skip to done */
+
+		case HAWK_NDE_MBS:
+			v = hawk_rtx_makembsvalwithbchars(rtx, ((hawk_nde_mbs_t*)nde)->ptr, ((hawk_nde_mbs_t*)nde)->len);
+			if (HAWK_UNLIKELY(!v)) goto oops;
+			goto done; /* exit_level can never change. so skip to done */
+
+		default:
+			v = __evaluator[nde->type - HAWK_NDE_GRP](rtx, nde);
+			break;
+	}
+
+	if (HAWK_LIKELY(v) && HAWK_UNLIKELY(rtx->exit_level >= EXIT_GLOBAL))
 	{
 		hawk_rtx_refupval_inline(rtx, v);
 		hawk_rtx_refdownval_inline(rtx, v);
@@ -4408,9 +4477,14 @@ static hawk_val_t* eval_expression0 (hawk_rtx_t* rtx, hawk_nde_t* nde)
 		return HAWK_NULL;
 	}
 
+done:
 	/* this function returns a regular expression without further mathiching.
 	 * it is done in eval_expression(). */
 	return v;
+
+oops:
+	ADJERR_LOC(rtx, &nde->loc);
+	return HAWK_NULL;
 }
 
 static hawk_val_t* eval_group (hawk_rtx_t* rtx, hawk_nde_t* nde)
@@ -4918,7 +4992,7 @@ static hawk_val_t* do_assignment_positional (hawk_rtx_t* rtx, hawk_nde_pos_t* po
 	if (HAWK_UNLIKELY(!v)) return HAWK_NULL;
 
 	hawk_rtx_refupval_inline(rtx, v);
-	n = hawk_rtx_valtoint(rtx, v, &lv);
+	n = hawk_rtx_valtoint_inline(rtx, v, &lv);
 	hawk_rtx_refdownval_inline(rtx, v);
 
 	if (n <= -1)
@@ -5274,8 +5348,8 @@ static hawk_val_t* eval_binop_bor (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t
 {
 	hawk_int_t l1, l2;
 
-	if (hawk_rtx_valtoint(rtx, left, &l1) <= -1 ||
-	    hawk_rtx_valtoint(rtx, right, &l2) <= -1)
+	if (hawk_rtx_valtoint_inline(rtx, left, &l1) <= -1 ||
+	    hawk_rtx_valtoint_inline(rtx, right, &l2) <= -1)
 	{
 		hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EOPERAND);
 		return HAWK_NULL;
@@ -5288,8 +5362,8 @@ static hawk_val_t* eval_binop_bxor (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_
 {
 	hawk_int_t l1, l2;
 
-	if (hawk_rtx_valtoint(rtx, left, &l1) <= -1 ||
-	    hawk_rtx_valtoint(rtx, right, &l2) <= -1)
+	if (hawk_rtx_valtoint_inline(rtx, left, &l1) <= -1 ||
+	    hawk_rtx_valtoint_inline(rtx, right, &l2) <= -1)
 	{
 		hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EOPERAND);
 		return HAWK_NULL;
@@ -5302,8 +5376,8 @@ static hawk_val_t* eval_binop_band (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_
 {
 	hawk_int_t l1, l2;
 
-	if (hawk_rtx_valtoint(rtx, left, &l1) <= -1 ||
-	    hawk_rtx_valtoint(rtx, right, &l2) <= -1)
+	if (hawk_rtx_valtoint_inline(rtx, left, &l1) <= -1 ||
+	    hawk_rtx_valtoint_inline(rtx, right, &l2) <= -1)
 	{
 		hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EOPERAND);
 		return HAWK_NULL;
@@ -6698,8 +6772,8 @@ static hawk_val_t* eval_binop_lshift (hawk_rtx_t* rtx, hawk_val_t* left, hawk_va
 {
 	hawk_int_t l1, l2;
 
-	if (hawk_rtx_valtoint(rtx, left, &l1) <= -1 ||
-	    hawk_rtx_valtoint(rtx, right, &l2) <= -1)
+	if (hawk_rtx_valtoint_inline(rtx, left, &l1) <= -1 ||
+	    hawk_rtx_valtoint_inline(rtx, right, &l2) <= -1)
 	{
 		hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EOPERAND);
 		return HAWK_NULL;
@@ -6712,8 +6786,8 @@ static hawk_val_t* eval_binop_rshift (hawk_rtx_t* rtx, hawk_val_t* left, hawk_va
 {
 	hawk_int_t l1, l2;
 
-	if (hawk_rtx_valtoint(rtx, left, &l1) <= -1 ||
-	    hawk_rtx_valtoint(rtx, right, &l2) <= -1)
+	if (hawk_rtx_valtoint_inline(rtx, left, &l1) <= -1 ||
+	    hawk_rtx_valtoint_inline(rtx, right, &l2) <= -1)
 	{
 		hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EOPERAND);
 		return HAWK_NULL;
@@ -7206,7 +7280,7 @@ static hawk_val_t* eval_unary (hawk_rtx_t* rtx, hawk_nde_t* nde)
 			break;
 
 		case HAWK_UNROP_BNOT:
-			n = hawk_rtx_valtoint(rtx, left, &l);
+			n = hawk_rtx_valtoint_inline(rtx, left, &l);
 			if (HAWK_UNLIKELY(n <= -1)) goto exit_func;
 			res = hawk_rtx_makeintval_inline(rtx, ~l);
 			break;
@@ -8306,7 +8380,7 @@ static int get_reference (hawk_rtx_t* rtx, hawk_nde_t* nde, hawk_val_t*** ref)
 			if (HAWK_UNLIKELY(!v)) return -1;
 
 			hawk_rtx_refupval_inline(rtx, v);
-			n = hawk_rtx_valtoint(rtx, v, &lv);
+			n = hawk_rtx_valtoint_inline(rtx, v, &lv);
 			hawk_rtx_refdownval_inline(rtx, v);
 
 			if (HAWK_UNLIKELY(n <= -1))
@@ -8588,7 +8662,7 @@ static hawk_val_t* eval_xargvidx (hawk_rtx_t* rtx, hawk_nde_t* nde)
 	if (HAWK_UNLIKELY(!v)) return HAWK_NULL;
 
 	hawk_rtx_refupval_inline(rtx, v);
-	n = hawk_rtx_valtoint(rtx, v, &pos);
+	n = hawk_rtx_valtoint_inline(rtx, v, &pos);
 	hawk_rtx_refdownval_inline(rtx, v);
 	if (n <= -1)
 	{
@@ -8896,8 +8970,6 @@ static hawk_val_t* eval_indexed (hawk_rtx_t* rtx, hawk_nde_var_t* var)
 oops:
 	if (str && str != idxbuf) hawk_rtx_freemem(rtx, str);
 	return HAWK_NULL;
-
-
 }
 
 static hawk_val_t* eval_namedidx (hawk_rtx_t* rtx, hawk_nde_t* nde)
@@ -8931,7 +9003,7 @@ static hawk_val_t* eval_pos (hawk_rtx_t* rtx, hawk_nde_t* nde)
 	if (HAWK_UNLIKELY(!v)) return HAWK_NULL;
 
 	hawk_rtx_refupval_inline(rtx, v);
-	n = hawk_rtx_valtoint(rtx, v, &lv);
+	n = hawk_rtx_valtoint_inline(rtx, v, &lv);
 	hawk_rtx_refdownval_inline(rtx, v);
 	if (n <= -1)
 	{
@@ -9276,7 +9348,7 @@ static hawk_ooch_t* idxnde_to_str (hawk_rtx_t* rtx, hawk_nde_t* nde, hawk_ooch_t
 
 		if (firstidxint)
 		{
-			if (hawk_rtx_valtoint(rtx, idx, &idxint) <= -1)
+			if (hawk_rtx_valtoint_inline(rtx, idx, &idxint) <= -1)
 			{
 				hawk_rtx_refdownval_inline(rtx, idx);
 				ADJERR_LOC(rtx, &nde->loc);
@@ -9356,7 +9428,7 @@ static hawk_ooch_t* idxnde_to_str (hawk_rtx_t* rtx, hawk_nde_t* nde, hawk_ooch_t
 
 			if (firstidxint && first)
 			{
-				if (hawk_rtx_valtoint(rtx, idx, &idxint) <= -1)
+				if (hawk_rtx_valtoint_inline(rtx, idx, &idxint) <= -1)
 				{
 					hawk_rtx_refdownval_inline(rtx, idx);
 					hawk_ooecs_fini(&idxstr);
@@ -9418,7 +9490,7 @@ static hawk_ooi_t idxnde_to_int (hawk_rtx_t* rtx, hawk_nde_t* nde, hawk_nde_t** 
 	if (HAWK_UNLIKELY(!tmp)) return -1;
 
 	hawk_rtx_refupval_inline(rtx, tmp);
-	n = hawk_rtx_valtoint(rtx, tmp, &v);
+	n = hawk_rtx_valtoint_inline(rtx, tmp, &v);
 	hawk_rtx_refdownval_inline(rtx, tmp);
 	if (HAWK_UNLIKELY(n <= -1))
 	{
@@ -10095,7 +10167,7 @@ wp_mod_main:
 			if (HAWK_UNLIKELY(!v)) return HAWK_NULL;
 
 			hawk_rtx_refupval_inline(rtx, v);
-			n = hawk_rtx_valtoint(rtx, v, &wp[wp_idx]);
+			n = hawk_rtx_valtoint_inline(rtx, v, &wp[wp_idx]);
 			hawk_rtx_refdownval_inline(rtx, v);
 			if (HAWK_UNLIKELY(n <= -1)) return HAWK_NULL;
 
@@ -10278,7 +10350,7 @@ wp_mod_main:
 			}
 
 			hawk_rtx_refupval_inline(rtx, v);
-			n = hawk_rtx_valtoint(rtx, v, &l);
+			n = hawk_rtx_valtoint_inline(rtx, v, &l);
 			hawk_rtx_refdownval_inline(rtx, v);
 			if (HAWK_UNLIKELY(n <= -1)) return HAWK_NULL;
 
@@ -10768,7 +10840,7 @@ wp_mod_main:
 			if (HAWK_UNLIKELY(!v)) return HAWK_NULL;
 
 			hawk_rtx_refupval_inline(rtx, v);
-			n = hawk_rtx_valtoint(rtx, v, &wp[wp_idx]);
+			n = hawk_rtx_valtoint_inline(rtx, v, &wp[wp_idx]);
 			hawk_rtx_refdownval_inline(rtx, v);
 			if (HAWK_UNLIKELY(n <= -1)) return HAWK_NULL;
 
@@ -10948,7 +11020,7 @@ wp_mod_main:
 			}
 
 			hawk_rtx_refupval_inline(rtx, v);
-			n = hawk_rtx_valtoint(rtx, v, &l);
+			n = hawk_rtx_valtoint_inline(rtx, v, &l);
 			hawk_rtx_refdownval_inline(rtx, v);
 			if (HAWK_UNLIKELY(n <= -1)) return HAWK_NULL;
 

@@ -578,7 +578,7 @@ static int index_or_rindex (hawk_rtx_t* rtx, int rindex)
 		int n;
 
 		a2 = hawk_rtx_getarg(rtx, 2);
-		n = hawk_rtx_valtoint(rtx, a2, &boundary);
+		n = hawk_rtx_valtoint_inline(rtx, a2, &boundary);
 		if (n <= -1) return -1;
 	}
 
@@ -799,12 +799,12 @@ int hawk_fnc_substr (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	a1 = hawk_rtx_getarg(rtx, 1);
 	a2 = (nargs >= 3)? hawk_rtx_getarg(rtx, 2): HAWK_NULL;
 
-	n = hawk_rtx_valtoint(rtx, a1, &lindex);
+	n = hawk_rtx_valtoint_inline(rtx, a1, &lindex);
 	if (n <= -1) return -1;
 
 	if (a2)
 	{
-		n = hawk_rtx_valtoint(rtx, a2, &lcount);
+		n = hawk_rtx_valtoint_inline(rtx, a2, &lcount);
 		if (n <= -1) return -1;
 		if (lcount < 0) lcount = 0;
 	}
@@ -2032,7 +2032,7 @@ static int __fnc_match (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, int support_
 	{
 		hawk_val_t* a2;
 		a2 = hawk_rtx_getarg(rtx, 2); /* when start index is support, this is the thrid argument */
-		if (hawk_rtx_valtoint(rtx, a2, &start) <= -1) return -1;
+		if (hawk_rtx_valtoint_inline(rtx, a2, &start) <= -1) return -1;
 	}
 
 	HAWK_MEMSET (&submat, 0, HAWK_SIZEOF(submat));
@@ -2329,7 +2329,7 @@ int hawk_fnc_int (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 	a0 = hawk_rtx_getarg(rtx, 0);
 
-	n = hawk_rtx_valtoint(rtx, a0, &lv);
+	n = hawk_rtx_valtoint_inline(rtx, a0, &lv);
 	if (n <= -1) return -1;
 
 	r = hawk_rtx_makeintval_inline(rtx, lv);
@@ -2363,7 +2363,7 @@ static HAWK_INLINE int asort_compare_ud (const void* x1, const void* x2, void* c
 	args[1] = *(hawk_val_t**)x2;
 	r = hawk_rtx_callfun(cud->rtx, cud->fun, args, 2);
 	if (HAWK_UNLIKELY(!r)) return -1;
-	if (hawk_rtx_valtoint(cud->rtx, r,  &rv) <= -1) return -1;
+	if (hawk_rtx_valtoint_inline(cud->rtx, r,  &rv) <= -1) return -1;
 	*cv = rv;
 	return 0;
 }

@@ -130,7 +130,7 @@ static int fnc_trim (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	if (hawk_rtx_getnargs(rtx) >= 2)
 	{
 		hawk_int_t iv;
-		if (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 1), &iv) <= -1) return -1;
+		if (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 1), &iv) <= -1) return -1;
 		if (iv & TRIM_FLAG_PAC_SPACES) return fnc_normspace(rtx, fi);
 	}
 
@@ -298,7 +298,7 @@ static int fnc_frombcharcode (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		hawk_int_t cc;
 
 		a0 = hawk_rtx_getarg(rtx, 0);
-		if (hawk_rtx_valtoint(rtx, a0, &cc) <= -1) return -1;
+		if (hawk_rtx_valtoint_inline(rtx, a0, &cc) <= -1) return -1;
 
 		retv = hawk_rtx_makebchrval(rtx, (hawk_bch_t)cc);
 		if (HAWK_UNLIKELY(!retv)) return -1;
@@ -316,7 +316,7 @@ static int fnc_frombcharcode (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			hawk_int_t cc;
 
 			a0 = hawk_rtx_getarg(rtx, i);
-			if (hawk_rtx_valtoint(rtx, a0, &cc) <= -1)
+			if (hawk_rtx_valtoint_inline(rtx, a0, &cc) <= -1)
 			{
 				hawk_rtx_freeval(rtx, retv, 0);
 				return -1;
@@ -349,7 +349,7 @@ static int fnc_fromcharcode (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		hawk_int_t cc;
 
 		a0 = hawk_rtx_getarg(rtx, 0);
-		if (hawk_rtx_valtoint(rtx, a0, &cc) <= -1) return -1;
+		if (hawk_rtx_valtoint_inline(rtx, a0, &cc) <= -1) return -1;
 
 		retv = hawk_rtx_makecharval(rtx, (hawk_ooch_t)cc);
 		if (HAWK_UNLIKELY(!retv)) return -1;
@@ -367,7 +367,7 @@ static int fnc_fromcharcode (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			hawk_int_t cc;
 
 			a0 = hawk_rtx_getarg(rtx, i);
-			if (hawk_rtx_valtoint(rtx, a0, &cc) <= -1)
+			if (hawk_rtx_valtoint_inline(rtx, a0, &cc) <= -1)
 			{
 				hawk_rtx_freeval(rtx, retv, 0);
 				return -1;
@@ -396,7 +396,7 @@ static int fnc_tocharcode (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		/* optional index. must be between 1 and the string length inclusive */
 		hawk_val_t* a1;
 		a1 = hawk_rtx_getarg(rtx, 1);
-		if (hawk_rtx_valtoint(rtx, a1, &pos) <= -1) return -1;
+		if (hawk_rtx_valtoint_inline(rtx, a1, &pos) <= -1) return -1;
 		pos--; /* 1 based indexing. range check to be done before accessing below */
 	}
 
@@ -991,7 +991,7 @@ static int fnc_tonum (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 				hawk_int_t base;
 				hawk_bch_t tmp = HAWK_RTX_GETBCHRFROMVAL(rtx, a0);
 
-				if (hawk_rtx_valtoint(rtx, a1, &base) <= -1) return -1;
+				if (hawk_rtx_valtoint_inline(rtx, a1, &base) <= -1) return -1;
 				rx = hawk_bchars_to_num(
 					HAWK_OOCHARS_TO_NUM_MAKE_OPTION(0, 0, HAWK_RTX_IS_STRIPSTRSPC_ON(rtx), base),
 					&tmp, 1, &lv, &rv
@@ -1007,7 +1007,7 @@ static int fnc_tonum (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 				hawk_val_t* a1 = hawk_rtx_getarg(rtx, 1);
 				hawk_int_t base;
 
-				if (hawk_rtx_valtoint(rtx, a1, &base) <= -1) return -1;
+				if (hawk_rtx_valtoint_inline(rtx, a1, &base) <= -1) return -1;
 				rx = hawk_bchars_to_num(
 					HAWK_OOCHARS_TO_NUM_MAKE_OPTION(0, 0, HAWK_RTX_IS_STRIPSTRSPC_ON(rtx), base),
 					((hawk_val_mbs_t*)a0)->val.ptr,
@@ -1025,7 +1025,7 @@ static int fnc_tonum (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 				hawk_int_t base;
 				hawk_ooch_t tmp = HAWK_RTX_GETCHARFROMVAL(rtx, a0);
 
-				if (hawk_rtx_valtoint(rtx, a1, &base) <= -1) return -1;
+				if (hawk_rtx_valtoint_inline(rtx, a1, &base) <= -1) return -1;
 				rx = hawk_oochars_to_num(
 					HAWK_OOCHARS_TO_NUM_MAKE_OPTION(0, 0, HAWK_RTX_IS_STRIPSTRSPC_ON(rtx), base),
 					&tmp, 1, &lv, &rv
@@ -1040,7 +1040,7 @@ static int fnc_tonum (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 				hawk_val_t* a1 = hawk_rtx_getarg(rtx, 1);
 				hawk_int_t base;
 
-				if (hawk_rtx_valtoint(rtx, a1, &base) <= -1) return -1;
+				if (hawk_rtx_valtoint_inline(rtx, a1, &base) <= -1) return -1;
 				rx = hawk_oochars_to_num(
 					HAWK_OOCHARS_TO_NUM_MAKE_OPTION(0, 0, HAWK_RTX_IS_STRIPSTRSPC_ON(rtx), base),
 					((hawk_val_str_t*)a0)->val.ptr,
@@ -1088,7 +1088,7 @@ static int fnc_subchar (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	a0 = hawk_rtx_getarg(rtx, 0);
 	a1 = hawk_rtx_getarg(rtx, 1);
 
-	n = hawk_rtx_valtoint(rtx, a1, &lindex);
+	n = hawk_rtx_valtoint_inline(rtx, a1, &lindex);
 	if (n <= -1) return -1;
 
 	lindex = lindex - 1;

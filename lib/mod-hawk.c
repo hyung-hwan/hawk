@@ -270,7 +270,7 @@ static int fnc_gc (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_int_t gen = -1;
 
 #if defined(HAWK_ENABLE_GC)
-	if (hawk_rtx_getnargs(rtx) >= 1 && hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 0), &gen) <= -1) gen = -1;
+	if (hawk_rtx_getnargs(rtx) >= 1 && hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 0), &gen) <= -1) gen = -1;
 	gen = hawk_rtx_gc(rtx, gen);
 #endif
 
@@ -284,7 +284,7 @@ static int fnc_gc_get_pressure (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_int_t gen;
 	hawk_int_t pressure;
 
-	if (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 0), &gen) <= -1) gen = 0;
+	if (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 0), &gen) <= -1) gen = 0;
 	if (gen < 0) gen = 0;
 	else if (gen >= HAWK_COUNTOF(rtx->gc.g)) gen = HAWK_COUNTOF(rtx->gc.g) - 1;
 
@@ -300,7 +300,7 @@ static int fnc_gc_get_threshold (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_int_t gen;
 	hawk_int_t threshold;
 
-	if (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 0), &gen) <= -1) gen = 0;
+	if (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 0), &gen) <= -1) gen = 0;
 	if (gen < 0) gen = 0;
 	else if (gen >= HAWK_COUNTOF(rtx->gc.g)) gen = HAWK_COUNTOF(rtx->gc.g) - 1;
 
@@ -316,11 +316,11 @@ static int fnc_gc_set_threshold (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_int_t gen;
 	hawk_int_t threshold;
 
-	if (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 0), &gen) <= -1) gen = 0;
+	if (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 0), &gen) <= -1) gen = 0;
 	if (gen < 0) gen = 0;
 	else if (gen >= HAWK_COUNTOF(rtx->gc.g)) gen = HAWK_COUNTOF(rtx->gc.g) - 1;
 
-	if (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 1), &threshold) <= -1) threshold = -1;
+	if (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 1), &threshold) <= -1) threshold = -1;
 
 	if (threshold >= 0)
 	{

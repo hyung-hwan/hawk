@@ -603,7 +603,7 @@ static int fnc_srand (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	else
 	{
 		a0 = hawk_rtx_getarg(rtx, 0);
-		n = hawk_rtx_valtoint(rtx, a0, &lv);
+		n = hawk_rtx_valtoint_inline(rtx, a0, &lv);
 		if (n <= -1) return -1;
 	#if defined(HAVE_INITSTATE_R) && defined(HAVE_SRANDOM_R) && defined(HAVE_RANDOM_R)
 		srandom_r (lv, &modctx->prand);
