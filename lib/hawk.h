@@ -33,6 +33,7 @@
 
 #include <hawk-htb.h> /* for rtx->named */
 #define HAWK_MAP_IS_RBT
+/*#define HAWK_MAP_IS_HTB*/
 #include <hawk-map.h>
 #include <hawk-arr.h>
 #include <stdarg.h>

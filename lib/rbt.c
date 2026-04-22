@@ -1046,7 +1046,7 @@ void hawk_rbt_walk (hawk_rbt_t* rbt, walker_t walker, void* ctx)
 	hawk_rbt_itr_t itr;
 	hawk_rbt_pair_t* pair;
 
-	hawk_init_map_itr (&itr, 0);
+	hawk_init_rbt_itr(&itr, 0);
 	pair = hawk_rbt_getfirstpair(rbt, &itr);
 	while (pair)
 	{
@@ -1060,7 +1060,7 @@ void hawk_rbt_rwalk (hawk_rbt_t* rbt, walker_t walker, void* ctx)
 	hawk_rbt_itr_t itr;
 	hawk_rbt_pair_t* pair;
 
-	hawk_init_map_itr (&itr, 1);
+	hawk_init_rbt_itr(&itr, 1);
 	pair = hawk_rbt_getfirstpair(rbt, &itr);
 	while (pair)
 	{
