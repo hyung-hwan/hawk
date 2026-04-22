@@ -4396,37 +4396,6 @@ static hawk_val_t* eval_expression0 (hawk_rtx_t* rtx, hawk_nde_t* nde)
 
 	switch(nde->type)
 	{
-		case HAWK_NDE_ARG:
-			v = HAWK_RTX_STACK_ARG(rtx, ((hawk_nde_var_t*)nde)->id.idxa);
-			goto done; /* exit_level can never change. so skip to done */
-
-		case HAWK_NDE_GBL:
-			v = HAWK_RTX_STACK_GBL(rtx, ((hawk_nde_var_t*)nde)->id.idxa);
-			goto done; /* exit_level can never change. so skip to done */
-
-		case HAWK_NDE_LCL:
-			v = HAWK_RTX_STACK_LCL(rtx, ((hawk_nde_var_t*)nde)->id.idxa);
-			goto done; /* exit_level can never change. so skip to done */
-
-		case HAWK_NDE_NAMED:
-		{
-			hawk_htb_pair_t* pair;
-		#if defined(HAWK_ENABLE_NAMED_LOOKUP_CACHE)
-			pair = lookup_named_pair_cached(rtx, (hawk_nde_var_t*)nde);
-		#else
-			pair = hawk_htb_search(rtx->named, ((hawk_nde_var_t*)nde)->id.name.ptr, ((hawk_nde_var_t*)nde)->id.name.len);
-		#endif
-			v = pair? HAWK_HTB_VPTR(pair): hawk_val_nil;
-			goto done; /* exit_level can never change. so skip to done */
-		}
-
-		case HAWK_NDE_ARGIDX:
-		case HAWK_NDE_GBLIDX:
-		case HAWK_NDE_LCLIDX:
-		case HAWK_NDE_NAMEDIDX:
-			v = eval_indexed(rtx, (hawk_nde_var_t*)nde);
-			break;
-
 		case HAWK_NDE_CHAR:
 			v = hawk_rtx_makecharval(rtx, ((hawk_nde_char_t*)nde)->val);
 			if (HAWK_UNLIKELY(!v)) goto oops;
@@ -4458,6 +4427,38 @@ static hawk_val_t* eval_expression0 (hawk_rtx_t* rtx, hawk_nde_t* nde)
 			v = hawk_rtx_makembsvalwithbchars(rtx, ((hawk_nde_mbs_t*)nde)->ptr, ((hawk_nde_mbs_t*)nde)->len);
 			if (HAWK_UNLIKELY(!v)) goto oops;
 			goto done; /* exit_level can never change. so skip to done */
+
+
+		case HAWK_NDE_ARG:
+			v = HAWK_RTX_STACK_ARG(rtx, ((hawk_nde_var_t*)nde)->id.idxa);
+			goto done; /* exit_level can never change. so skip to done */
+
+		case HAWK_NDE_GBL:
+			v = HAWK_RTX_STACK_GBL(rtx, ((hawk_nde_var_t*)nde)->id.idxa);
+			goto done; /* exit_level can never change. so skip to done */
+
+		case HAWK_NDE_LCL:
+			v = HAWK_RTX_STACK_LCL(rtx, ((hawk_nde_var_t*)nde)->id.idxa);
+			goto done; /* exit_level can never change. so skip to done */
+
+		case HAWK_NDE_NAMED:
+		{
+			hawk_htb_pair_t* pair;
+		#if defined(HAWK_ENABLE_NAMED_LOOKUP_CACHE)
+			pair = lookup_named_pair_cached(rtx, (hawk_nde_var_t*)nde);
+		#else
+			pair = hawk_htb_search(rtx->named, ((hawk_nde_var_t*)nde)->id.name.ptr, ((hawk_nde_var_t*)nde)->id.name.len);
+		#endif
+			v = pair? HAWK_HTB_VPTR(pair): hawk_val_nil;
+			goto done; /* exit_level can never change. so skip to done */
+		}
+
+		case HAWK_NDE_ARGIDX:
+		case HAWK_NDE_GBLIDX:
+		case HAWK_NDE_LCLIDX:
+		case HAWK_NDE_NAMEDIDX:
+			v = eval_indexed(rtx, (hawk_nde_var_t*)nde);
+			break;
 
 		default:
 			v = __evaluator[nde->type - HAWK_NDE_GRP](rtx, nde);
