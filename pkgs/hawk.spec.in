@@ -154,10 +154,10 @@ The static library files for developing applications with Hawk.
 %setup -q
 
 %build
-RPM_OPT_FLAGS="$(echo $RPM_OPT_FLAGS | %{__sed} 's/-O2/-O3/')"
+RPM_CFLAGS="$(echo $RPM_OPT_FLAGS | %{__sed} 's/-O2/-O3/') -fPIC -fno-strict-aliasing"
 
-##CFLAGS="${RPM_OPT_FLAGS} -fPIC" CXXFLAGS="${RPM_OPT_FLAGS} -fPIC -std=c++11" ./configure  \
-CFLAGS="${RPM_OPT_FLAGS} -fPIC" CXXFLAGS="${RPM_OPT_FLAGS} -fPIC" ./configure  \
+##CFLAGS="${RPM_CFLAGS}" CXXFLAGS="${RPM_CFLAGS} -std=c++11" ./configure  \
+CFLAGS="${RPM_CFLAGS}" CXXFLAGS="${RPM_CFLAGS}" ./configure  \
 	--prefix=%{_prefix} \
 	--libdir=%{_libdir} \
 	--sysconfdir=%{_sysconfdir} \

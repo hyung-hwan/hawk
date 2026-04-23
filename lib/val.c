@@ -714,8 +714,8 @@ init:
 	val->v_gc = 0;
 	val->val.len = len1 + len2;
 	val->val.ptr = (hawk_ooch_t*)(val + 1);
-	if (HAWK_LIKELY(str1)) hawk_copy_oochars_to_oocstr_unlimited (&val->val.ptr[0], str1, len1);
-	if (str2) hawk_copy_oochars_to_oocstr_unlimited (&val->val.ptr[len1], str2, len2);
+	if (HAWK_LIKELY(str1)) hawk_copy_oochars_to_oocstr_unlimited(&val->val.ptr[0], str1, len1);
+	if (str2) hawk_copy_oochars_to_oocstr_unlimited(&val->val.ptr[len1], str2, len2);
 	val->val.ptr[val->val.len] = '\0';
 
 #if defined(DEBUG_VAL)
@@ -964,8 +964,8 @@ init:
 	val->v_gc = 0;
 	val->val.len = len1 + len2;
 	val->val.ptr = (hawk_bch_t*)(val + 1);
-	if (HAWK_LIKELY(mbs1)) hawk_copy_bchars_to_bcstr_unlimited (&val->val.ptr[0], mbs1, len1);
-	if (mbs2) hawk_copy_bchars_to_bcstr_unlimited (&val->val.ptr[len1], mbs2, len2);
+	if (HAWK_LIKELY(mbs1)) hawk_copy_bchars_to_bcstr_unlimited(&val->val.ptr[0], mbs1, len1);
+	if (mbs2) hawk_copy_bchars_to_bcstr_unlimited(&val->val.ptr[len1], mbs2, len2);
 	val->val.ptr[val->val.len] = '\0';
 
 #if defined(DEBUG_VAL)
@@ -1100,7 +1100,7 @@ hawk_val_t* hawk_rtx_makerexval (hawk_rtx_t* rtx, const hawk_oocs_t* str, hawk_t
 	val->str.len = str->len;
 
 	val->str.ptr = (hawk_ooch_t*)(val + 1);
-	hawk_copy_oochars_to_oocstr_unlimited (val->str.ptr, str->ptr, str->len);
+	hawk_copy_oochars_to_oocstr_unlimited(val->str.ptr, str->ptr, str->len);
 
 	val->code[0] = code[0];
 	val->code[1] = code[1];
@@ -2146,7 +2146,7 @@ static int val_flt_to_str (hawk_rtx_t* rtx, const hawk_val_flt_t* v, hawk_rtx_va
 				goto oops;
 			}
 
-			hawk_copy_oochars_to_oocstr_unlimited (out->u.cplcpy.ptr, tmp, tmp_len);
+			hawk_copy_oochars_to_oocstr_unlimited(out->u.cplcpy.ptr, tmp, tmp_len);
 			out->u.cplcpy.len = tmp_len;
 			break;
 

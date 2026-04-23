@@ -256,7 +256,6 @@ struct hawk_nde_var_t
 		hawk_htb_pair_t* pair;
 		hawk_oow_t gen;
 		hawk_uint8_t valid;
-		hawk_uint8_t found;
 	} ncache;
 #endif
 };

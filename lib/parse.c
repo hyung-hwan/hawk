@@ -771,7 +771,6 @@ hawk_ooch_t* hawk_addsionamewithbchars (hawk_t* hawk, const hawk_bch_t* ptr, haw
 	ucslen = ucslen + 1;
 	hawk_convbtouchars(hawk, ptr, &bcslen, (hawk_uch_t*)(link + 1), &ucslen, 0);
 	((hawk_uch_t*)(link + 1))[ucslen] = '\0';
-
 #endif
 
 	link->link = hawk->sio_names;

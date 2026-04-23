@@ -44,6 +44,18 @@ enum exit_level_t
 	EXIT_ABORT
 };
 
+enum cmp_op_t
+{
+	CMP_OP_NONE = 0,
+	CMP_OP_EQ = 1,
+	CMP_OP_NE = 2,
+	CMP_OP_GT = 3,
+	CMP_OP_GE = 4,
+	CMP_OP_LT = 5,
+	CMP_OP_LE = 6
+};
+typedef enum cmp_op_t cmp_op_t;
+
 struct pafv_t
 {
 	hawk_val_t**       args;
@@ -163,7 +175,10 @@ static hawk_val_t* eval_incpst (hawk_rtx_t* rtx, hawk_nde_t* nde);
 static hawk_val_t* eval_cnd (hawk_rtx_t* rtx, hawk_nde_t* nde);
 
 static hawk_val_t* eval_fncall_fnc (hawk_rtx_t* rtx, hawk_nde_t* nde);
-static hawk_val_t* eval_fncall_fun (hawk_rtx_t* rtx, hawk_nde_t* nde);
+#define KEEP_EVAL_FNCALL_FUN
+#if defined(KEEP_EVAL_FNCALL_FUN)
+static HAWK_INLINE hawk_val_t* eval_fncall_fun (hawk_rtx_t* rtx, hawk_nde_t* nde);
+#endif
 static hawk_val_t* eval_fncall_var (hawk_rtx_t* rtx, hawk_nde_t* nde);
 
 static int get_reference (hawk_rtx_t* rtx, hawk_nde_t* nde, hawk_val_t*** ref);
@@ -197,6 +212,8 @@ static hawk_val_t* eval_pos (hawk_rtx_t* rtx, hawk_nde_t* nde);
 static hawk_val_t* eval_getline (hawk_rtx_t* rtx, hawk_nde_t* nde);
 static hawk_val_t* eval_print (hawk_rtx_t* rtx, hawk_nde_t* nde);
 static hawk_val_t* eval_printf (hawk_rtx_t* rtx, hawk_nde_t* nde);
+
+static HAWK_INLINE_ALWAYS hawk_fun_t* resolve_fncall_fun (hawk_rtx_t* rtx, hawk_nde_fncall_t* call);
 
 static int read_record (hawk_rtx_t* rtx);
 
@@ -1185,10 +1202,6 @@ static int init_rtx (hawk_rtx_t* rtx, hawk_t* hawk, hawk_rio_cbs_t* rio)
 	if (HAWK_UNLIKELY(!rtx->named)) goto oops_11;
 	*(hawk_rtx_t**)hawk_htb_getxtn(rtx->named) = rtx;
 	hawk_htb_setstyle (rtx->named, &style_for_named);
-
-#if defined(HAWK_ENABLE_NAMED_LOOKUP_CACHE)
-	rtx->named_gen = 0;
-#endif
 
 	rtx->format.tmp.ptr = (hawk_ooch_t*)hawk_rtx_allocmem(rtx, 4096 * HAWK_SIZEOF(hawk_ooch_t));
 	if (HAWK_UNLIKELY(!rtx->format.tmp.ptr)) goto oops_12; /* the error is set on the hawk object after this jump is made */
@@ -3508,7 +3521,6 @@ static int run_nextfile (hawk_rtx_t* rtx, hawk_nde_nextfile_t* nde)
 	return (nde->out)? run_nextoutfile(rtx, nde): run_nextinfile(rtx, nde);
 }
 
-
 static hawk_val_t* assign_newmapval_in_map (hawk_rtx_t* rtx, hawk_map_t* container, hawk_ooch_t* idxptr, hawk_oow_t idxlen)
 {
 	hawk_val_t* tmp;
@@ -3547,47 +3559,17 @@ static hawk_val_t* assign_newarrval_in_arr (hawk_rtx_t* rtx, hawk_arr_t* contain
 	return tmp;
 }
 
-#if defined(HAWK_ENABLE_NAMED_LOOKUP_CACHE)
-static HAWK_INLINE hawk_htb_pair_t* lookup_named_pair_cached (hawk_rtx_t* rtx, hawk_nde_var_t* var)
-{
-	HAWK_ASSERT(var->type == HAWK_NDE_NAMED || var->type == HAWK_NDE_NAMEDIDX);
-
-	if (var->ncache.valid && var->ncache.rtx == rtx && var->ncache.gen == rtx->named_gen)
-	{
-		return var->ncache.found? var->ncache.pair: HAWK_NULL;
-	}
-
-	var->ncache.pair = hawk_htb_search(rtx->named, var->id.name.ptr, var->id.name.len);
-	var->ncache.rtx = rtx;
-	var->ncache.gen = rtx->named_gen;
-	var->ncache.valid = 1;
-	var->ncache.found = (var->ncache.pair != HAWK_NULL);
-
-	return var->ncache.pair;
-}
-
-static HAWK_INLINE void invalidate_named_lookup_cache (hawk_rtx_t* rtx)
-{
-	rtx->named_gen++;
-}
-#endif
-
 static hawk_val_t* fetch_topval_from_var (hawk_rtx_t* rtx, hawk_nde_var_t* var)
 {
 	hawk_val_t* val;
 
 	switch (var->type)
 	{
-
 		case HAWK_NDE_NAMED:
 		case HAWK_NDE_NAMEDIDX:
 		{
 			hawk_htb_pair_t* pair;
-		#if defined(HAWK_ENABLE_NAMED_LOOKUP_CACHE)
-			pair = lookup_named_pair_cached(rtx, var);
-		#else
 			pair = hawk_htb_search(rtx->named, var->id.name.ptr, var->id.name.len);
-		#endif
 			val = pair? (hawk_val_t*)HAWK_HTB_VPTR(pair): hawk_val_nil;
 			break;
 		}
@@ -3628,9 +3610,6 @@ static hawk_val_t* assign_topval_to_var (hawk_rtx_t* rtx, hawk_nde_var_t* var, h
 				ADJERR_LOC(rtx, &var->loc);
 				return HAWK_NULL;
 			}
-		#if defined(HAWK_ENABLE_NAMED_LOOKUP_CACHE)
-			invalidate_named_lookup_cache(rtx);
-		#endif
 			break;
 		}
 
@@ -3894,12 +3873,7 @@ static int run_reset (hawk_rtx_t* rtx, hawk_nde_reset_t* nde)
 			HAWK_ASSERT(var->idx == HAWK_NULL);
 
 			/* a named variable can be reset if removed from the internal map to manage it */
-			if (hawk_htb_delete(rtx->named, var->id.name.ptr, var->id.name.len) >= 0)
-			{
-			#if defined(HAWK_ENABLE_NAMED_LOOKUP_CACHE)
-				invalidate_named_lookup_cache(rtx);
-			#endif
-			}
+			hawk_htb_delete(rtx->named, var->id.name.ptr, var->id.name.len);
 			return 0;
 
 		case HAWK_NDE_GBL:
@@ -4359,7 +4333,11 @@ static hawk_val_t* eval_expression0 (hawk_rtx_t* rtx, hawk_nde_t* nde)
 		eval_incpst,
 		eval_cnd,
 		eval_fncall_fnc,
+#if defined(KEEP_EVAL_FNCALL_FUN)
 		eval_fncall_fun,
+#else
+		HAWK_NULL /*eval_fncall_fun*/,
+#endif
 		eval_fncall_var,
 		eval_modsym,
 		eval_char,
@@ -4396,6 +4374,34 @@ static hawk_val_t* eval_expression0 (hawk_rtx_t* rtx, hawk_nde_t* nde)
 
 	switch(nde->type)
 	{
+#if !defined(KEEP_EVAL_FNCALL_FUN)
+		case HAWK_NDE_FNCALL_FUN:
+		{
+			/* user-defined function */
+			hawk_nde_fncall_t* call = (hawk_nde_fncall_t*)nde;
+			hawk_fun_t* fun;
+			pafn_t pafn;
+
+			fun = resolve_fncall_fun(rtx, call);
+			if (!fun) goto oops;
+
+			/* push_arg_from_nde() has special handling for references when the function
+			 * argument spec contains 'r' or 'R'.
+			 * a reference is passed to a built-in function as a reference value
+			 * but its evaluation result is passed to user-defined function.
+			 * I pass HAWK_NULL to prevent special handling.
+			 * the value change for a reference variable inside a user-defined function is
+			 * reflected by hawk_rtx_evalcall() specially whereas a built-in function must
+			 * call hawk_rtx_setrefval() to update the reference.
+			 */
+			pafn.args = call->args;
+			pafn.nargs = call->nargs;
+			pafn.argspec = HAWK_NULL; /* fun->argspec */
+			v = hawk_rtx_evalcall(rtx, call, fun, push_arg_from_nde, (void*)&pafn, HAWK_NULL, HAWK_NULL);
+			break;
+		}
+#endif
+
 		case HAWK_NDE_CHAR:
 			v = hawk_rtx_makecharval(rtx, ((hawk_nde_char_t*)nde)->val);
 			if (HAWK_UNLIKELY(!v)) goto oops;
@@ -4444,11 +4450,7 @@ static hawk_val_t* eval_expression0 (hawk_rtx_t* rtx, hawk_nde_t* nde)
 		case HAWK_NDE_NAMED:
 		{
 			hawk_htb_pair_t* pair;
-		#if defined(HAWK_ENABLE_NAMED_LOOKUP_CACHE)
-			pair = lookup_named_pair_cached(rtx, (hawk_nde_var_t*)nde);
-		#else
 			pair = hawk_htb_search(rtx->named, ((hawk_nde_var_t*)nde)->id.name.ptr, ((hawk_nde_var_t*)nde)->id.name.len);
-		#endif
 			v = pair? HAWK_HTB_VPTR(pair): hawk_val_nil;
 			goto done; /* exit_level can never change. so skip to done */
 		}
@@ -4692,11 +4694,7 @@ static hawk_val_t* do_assignment_nonindexed (hawk_rtx_t* rtx, hawk_nde_var_t* va
 		{
 			hawk_htb_pair_t* pair;
 
-		#if defined(HAWK_ENABLE_NAMED_LOOKUP_CACHE)
-			pair = lookup_named_pair_cached(rtx, var);
-		#else
 			pair = hawk_htb_search(rtx->named, var->id.name.ptr, var->id.name.len);
-		#endif
 
 			if (!(rtx->hawk->opt.trait & HAWK_FLEXMAP))
 			{
@@ -4725,9 +4723,6 @@ static hawk_val_t* do_assignment_nonindexed (hawk_rtx_t* rtx, hawk_nde_var_t* va
 				return HAWK_NULL;
 			}
 
-		#if defined(HAWK_ENABLE_NAMED_LOOKUP_CACHE)
-			invalidate_named_lookup_cache(rtx);
-		#endif
 			hawk_rtx_refupval_inline(rtx, val);
 			break;
 		}
@@ -5128,13 +5123,14 @@ static hawk_val_t* eval_binary (hawk_rtx_t* rtx, hawk_nde_t* nde)
 			hawk_rtx_refupval_inline(rtx, right);
 
 			HAWK_ASSERT(exp->opcode >= 0 && exp->opcode < HAWK_COUNTOF(binop_func));
-			HAWK_ASSERT(binop_func[exp->opcode] != HAWK_NULL);
 
+			HAWK_ASSERT(binop_func[exp->opcode] != HAWK_NULL);
 			res = binop_func[exp->opcode](rtx, left, right);
 			if (HAWK_UNLIKELY(!res)) ADJERR_LOC(rtx, &nde->loc);
 
 			hawk_rtx_refdownval_inline(rtx, left);
 			hawk_rtx_refdownval_inline(rtx, right);
+			break;
 	}
 
 	return res;
@@ -5142,23 +5138,6 @@ static hawk_val_t* eval_binary (hawk_rtx_t* rtx, hawk_nde_t* nde)
 
 static hawk_val_t* eval_binop_lor (hawk_rtx_t* rtx, hawk_nde_t* left, hawk_nde_t* right)
 {
-	/*
-	hawk_val_t* res = HAWK_NULL;
-
-	res = hawk_rtx_makeintval_inline(
-		rtx,
-		hawk_rtx_valtobool(rtx,left) ||
-		hawk_rtx_valtobool(rtx,right)
-	);
-	if (res == HAWK_NULL)
-	{
-		ADJERR_LOC(rtx, &left->loc);
-		return HAWK_NULL;
-	}
-
-	return res;
-	*/
-
 	/* short-circuit evaluation required special treatment */
 	hawk_val_t* lv, * rv, * res;
 
@@ -5169,7 +5148,7 @@ static hawk_val_t* eval_binop_lor (hawk_rtx_t* rtx, hawk_nde_t* left, hawk_nde_t
 	hawk_rtx_refupval_inline(rtx, lv);
 	if (hawk_rtx_valtobool(rtx, lv))
 	{
-		res = HAWK_VAL_ONE;
+		res = hawk_val_true;
 	}
 	else
 	{
@@ -5182,8 +5161,7 @@ static hawk_val_t* eval_binop_lor (hawk_rtx_t* rtx, hawk_nde_t* left, hawk_nde_t
 		}
 		hawk_rtx_refupval_inline(rtx, rv);
 
-		res = hawk_rtx_valtobool(rtx,rv)?
-			HAWK_VAL_ONE: HAWK_VAL_ZERO;
+		res = hawk_rtx_valtobool(rtx,rv)? hawk_val_true: hawk_val_false;
 		hawk_rtx_refdownval_inline(rtx, rv);
 	}
 
@@ -5194,23 +5172,6 @@ static hawk_val_t* eval_binop_lor (hawk_rtx_t* rtx, hawk_nde_t* left, hawk_nde_t
 
 static hawk_val_t* eval_binop_land (hawk_rtx_t* rtx, hawk_nde_t* left, hawk_nde_t* right)
 {
-	/*
-	hawk_val_t* res = HAWK_NULL;
-
-	res = hawk_rtx_makeintval_inline(
-		rtx,
-		hawk_rtx_valtobool(rtx,left) &&
-		hawk_rtx_valtobool(rtx,right)
-	);
-	if (res == HAWK_NULL)
-	{
-		ADJERR_LOC(rtx, &left->loc);
-		return HAWK_NULL;
-	}
-
-	return res;
-	*/
-
 	/* short-circuit evaluation required special treatment */
 	hawk_val_t* lv, * rv, * res;
 
@@ -5221,7 +5182,7 @@ static hawk_val_t* eval_binop_land (hawk_rtx_t* rtx, hawk_nde_t* left, hawk_nde_
 	hawk_rtx_refupval_inline(rtx, lv);
 	if (!hawk_rtx_valtobool(rtx, lv))
 	{
-		res = HAWK_VAL_ZERO;
+		res = hawk_val_false;
 	}
 	else
 	{
@@ -5234,7 +5195,7 @@ static hawk_val_t* eval_binop_land (hawk_rtx_t* rtx, hawk_nde_t* left, hawk_nde_
 		}
 		hawk_rtx_refupval_inline(rtx, rv);
 
-		res = hawk_rtx_valtobool(rtx,rv)? HAWK_VAL_ONE: HAWK_VAL_ZERO;
+		res = hawk_rtx_valtobool(rtx,rv)? hawk_val_true: hawk_val_false;
 		hawk_rtx_refdownval_inline(rtx, rv);
 	}
 
@@ -5301,16 +5262,14 @@ rvalue_ok:
 	switch (ropvtype)
 	{
 		case HAWK_VAL_NIL:
-			res = HAWK_VAL_ZERO;
+			res = hawk_val_false;
 			break;
 
 		case HAWK_VAL_MAP:
 		{
-
 			hawk_map_t* map;
-
 			map = ((hawk_val_map_t*)ropv)->map;
-			res = (hawk_map_search(map, str, len) == HAWK_NULL)? HAWK_VAL_ZERO: HAWK_VAL_ONE;
+			res = (hawk_map_search(map, str, len) == HAWK_NULL)? hawk_val_false: hawk_val_true;
 			break;
 		}
 
@@ -5325,7 +5284,7 @@ rvalue_ok:
 			}
 
 			arr = ((hawk_val_arr_t*)ropv)->arr;
-			res = (idxint < 0 || idxint >= HAWK_ARR_SIZE(arr) || !HAWK_ARR_SLOT(arr, idxint))? HAWK_VAL_ZERO: HAWK_VAL_ONE;
+			res = (idxint < 0 || idxint >= HAWK_ARR_SIZE(arr) || !HAWK_ARR_SLOT(arr, idxint))? hawk_val_false: hawk_val_true;
 			break;
 		}
 
@@ -5388,18 +5347,6 @@ static hawk_val_t* eval_binop_band (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_
 }
 
 /* -------------------------------------------------------------------- */
-
-enum cmp_op_t
-{
-	CMP_OP_NONE = 0,
-	CMP_OP_EQ = 1,
-	CMP_OP_NE = 2,
-	CMP_OP_GT = 3,
-	CMP_OP_GE = 4,
-	CMP_OP_LT = 5,
-	CMP_OP_LE = 6
-};
-typedef enum cmp_op_t cmp_op_t;
 
 static HAWK_INLINE cmp_op_t inverse_cmp_op (cmp_op_t op)
 {
@@ -6571,8 +6518,7 @@ static HAWK_INLINE int __cmp_arr_arr (hawk_rtx_t* rtx, hawk_val_t* left, hawk_va
 
 /* -------------------------------------------------------------------- */
 
-
-static HAWK_INLINE int __cmp_val (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t* right, cmp_op_t op_hint, int* ret)
+static int HAWK_INLINE cmp_val (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t* right, cmp_op_t op_hint, int* ret)
 {
 	int n;
 	hawk_val_type_t lvtype, rvtype;
@@ -6634,7 +6580,7 @@ static HAWK_INLINE int __cmp_val (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t*
 
 int hawk_rtx_cmpval (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t* right, int* ret)
 {
-	return __cmp_val(rtx, left, right, CMP_OP_NONE, ret);
+	return cmp_val(rtx, left, right, CMP_OP_NONE, ret);
 }
 
 static int teq_val (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t* right)
@@ -6719,54 +6665,54 @@ static int teq_val (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t* right)
 
 static hawk_val_t* eval_binop_teq (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t* right)
 {
-	return teq_val(rtx, left, right)? HAWK_VAL_ONE: HAWK_VAL_ZERO;
+	return teq_val(rtx, left, right)? hawk_val_true: hawk_val_false;
 }
 
 static hawk_val_t* eval_binop_tne (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t* right)
 {
-	return teq_val(rtx, left, right)? HAWK_VAL_ZERO: HAWK_VAL_ONE;
+	return teq_val(rtx, left, right)? hawk_val_false: hawk_val_true;
 }
 
 static hawk_val_t* eval_binop_eq (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t* right)
 {
 	int n;
-	if (__cmp_val(rtx, left, right, CMP_OP_EQ, &n) <= -1) return HAWK_NULL;
-	return (n == 0)? HAWK_VAL_ONE: HAWK_VAL_ZERO;
+	if (cmp_val(rtx, left, right, CMP_OP_EQ, &n) <= -1) return HAWK_NULL;
+	return (n == 0)? hawk_val_true: hawk_val_false;
 }
 
 static hawk_val_t* eval_binop_ne (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t* right)
 {
 	int n;
-	if (__cmp_val(rtx, left, right, CMP_OP_NE, &n) <= -1) return HAWK_NULL;
-	return (n != 0)? HAWK_VAL_ONE: HAWK_VAL_ZERO;
+	if (cmp_val(rtx, left, right, CMP_OP_NE, &n) <= -1) return HAWK_NULL;
+	return (n != 0)? hawk_val_true: hawk_val_false;
 }
 
 static hawk_val_t* eval_binop_gt (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t* right)
 {
 	int n;
-	if (__cmp_val(rtx, left, right, CMP_OP_GT, &n) <= -1) return HAWK_NULL;
-	return (n > 0)? HAWK_VAL_ONE: HAWK_VAL_ZERO;
+	if (cmp_val(rtx, left, right, CMP_OP_GT, &n) <= -1) return HAWK_NULL;
+	return (n > 0)? hawk_val_true: hawk_val_false;
 }
 
 static hawk_val_t* eval_binop_ge (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t* right)
 {
 	int n;
-	if (__cmp_val(rtx, left, right, CMP_OP_GE, &n) <= -1) return HAWK_NULL;
-	return (n >= 0)? HAWK_VAL_ONE: HAWK_VAL_ZERO;
+	if (cmp_val(rtx, left, right, CMP_OP_GE, &n) <= -1) return HAWK_NULL;
+	return (n >= 0)? hawk_val_true: hawk_val_false;
 }
 
 static hawk_val_t* eval_binop_lt (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t* right)
 {
 	int n;
-	if (__cmp_val(rtx, left, right, CMP_OP_LT, &n) <= -1) return HAWK_NULL;
-	return (n < 0)? HAWK_VAL_ONE: HAWK_VAL_ZERO;
+	if (cmp_val(rtx, left, right, CMP_OP_LT, &n) <= -1) return HAWK_NULL;
+	return (n < 0)? hawk_val_true: hawk_val_false;
 }
 
 static hawk_val_t* eval_binop_le (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t* right)
 {
 	int n;
-	if (__cmp_val(rtx, left, right, CMP_OP_LE, &n) <= -1) return HAWK_NULL;
-	return (n <= 0)? HAWK_VAL_ONE: HAWK_VAL_ZERO;
+	if (cmp_val(rtx, left, right, CMP_OP_LE, &n) <= -1) return HAWK_NULL;
+	return (n <= 0)? hawk_val_true: hawk_val_false;
 }
 
 static hawk_val_t* eval_binop_lshift (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t* right)
@@ -7697,7 +7643,7 @@ static hawk_val_t* eval_fncall_fnc (hawk_rtx_t* rtx, hawk_nde_t* nde)
 	return hawk_rtx_evalcall(rtx, call, HAWK_NULL, push_arg_from_nde, (void*)&pafn, HAWK_NULL, HAWK_NULL);
 }
 
-static HAWK_INLINE hawk_fun_t* resolve_fncall_fun (hawk_rtx_t* rtx, hawk_nde_fncall_t* call)
+static HAWK_INLINE_ALWAYS hawk_fun_t* resolve_fncall_fun (hawk_rtx_t* rtx, hawk_nde_fncall_t* call)
 {
 	hawk_fun_t* fun;
 #if defined(HAWK_ATOMIC_CAS_BOOL)
@@ -7761,6 +7707,7 @@ static HAWK_INLINE hawk_fun_t* resolve_fncall_fun (hawk_rtx_t* rtx, hawk_nde_fnc
 	return fun;
 }
 
+#if defined(KEEP_EVAL_FNCALL_FUN)
 static HAWK_INLINE hawk_val_t* eval_fncall_fun (hawk_rtx_t* rtx, hawk_nde_t* nde)
 {
 	/* user-defined function */
@@ -7785,6 +7732,7 @@ static HAWK_INLINE hawk_val_t* eval_fncall_fun (hawk_rtx_t* rtx, hawk_nde_t* nde
 	pafn.argspec = HAWK_NULL; /* fun->argspec */
 	return hawk_rtx_evalcall(rtx, call, fun, push_arg_from_nde, (void*)&pafn, HAWK_NULL, HAWK_NULL);
 }
+#endif
 
 static HAWK_INLINE int nde_is_var (const hawk_nde_t* nde)
 {
@@ -8323,11 +8271,7 @@ static int get_reference (hawk_rtx_t* rtx, hawk_nde_t* nde, hawk_val_t*** ref)
 		{
 			hawk_htb_pair_t* pair;
 
-		#if defined(HAWK_ENABLE_NAMED_LOOKUP_CACHE)
-			pair = lookup_named_pair_cached(rtx, tgt);
-		#else
 			pair = hawk_htb_search(rtx->named, tgt->id.name.ptr, tgt->id.name.len);
-		#endif
 			if (pair == HAWK_NULL)
 			{
 				/* it is bad that the named variable has to be created here.
@@ -8338,9 +8282,6 @@ static int get_reference (hawk_rtx_t* rtx, hawk_nde_t* nde, hawk_val_t*** ref)
 					ADJERR_LOC(rtx, &nde->loc);
 					return -1;
 				}
-			#if defined(HAWK_ENABLE_NAMED_LOOKUP_CACHE)
-				invalidate_named_lookup_cache(rtx);
-			#endif
 			}
 
 			*ref = (hawk_val_t**)&HAWK_HTB_VPTR(pair);
@@ -8822,11 +8763,7 @@ static hawk_val_t* eval_modsym (hawk_rtx_t* rtx, hawk_nde_t* nde)
 static hawk_val_t* eval_named (hawk_rtx_t* rtx, hawk_nde_t* nde)
 {
 	hawk_htb_pair_t* pair;
-#if defined(HAWK_ENABLE_NAMED_LOOKUP_CACHE)
-	pair = lookup_named_pair_cached(rtx, (hawk_nde_var_t*)nde);
-#else
 	pair = hawk_htb_search(rtx->named, ((hawk_nde_var_t*)nde)->id.name.ptr, ((hawk_nde_var_t*)nde)->id.name.len);
-#endif
 	return (pair == HAWK_NULL)? hawk_val_nil: HAWK_HTB_VPTR(pair);
 }
 

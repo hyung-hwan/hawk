@@ -46,14 +46,6 @@ typedef struct hawk_tree_t hawk_tree_t;
 #define HAWK_ENABLE_STR_CACHE
 #define HAWK_ENABLE_MBS_CACHE
 
-/*
- * keep this off as the implementation in run.c is still not thread-safe
- * in proper implementation, cacheing must be maintained per rtx basis.
- * keeping the cached data in hawk_nde_var_t is wrong
-#define HAWK_ENABLE_NAMED_LOOKUP_CACHE
-*/
-
-
 /* [NOTE] the function value support implemented is very limited.
  *        it supports very primitive way to call a function via a variable.
  *        only user-defined functions are supported. neither builtin functions
@@ -446,9 +438,6 @@ struct hawk_rtx_t
 	HAWK_RTX_HDR;
 
 	hawk_htb_t* named;
-#if defined(HAWK_ENABLE_NAMED_LOOKUP_CACHE)
-	hawk_oow_t named_gen;
-#endif
 
 	void** stack;
 	hawk_oow_t stack_top;
