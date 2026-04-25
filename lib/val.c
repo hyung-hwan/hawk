@@ -1828,7 +1828,7 @@ int hawk_rtx_valtobool (hawk_rtx_t* rtx, const hawk_val_t* val)
 {
 	hawk_val_type_t vtype;
 
-	if (val == HAWK_NULL) return 0;
+	HAWK_ASSERT(val != HAWK_NULL);
 
 	vtype = HAWK_RTX_GETVALTYPE(rtx, val);
 	switch (vtype)
