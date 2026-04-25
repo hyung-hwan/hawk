@@ -46,5 +46,8 @@ function main()
 	run_case(9, "-va=11 -vbb=22 -vccc=33", "dummy", "11 22 33 44 alpha");
 	run_case(10, "-vqqq=20 -va=11 -vbb=22", "dummy1 dummy2 dummy3", "20 20 30 40 alpha");
 	run_case(11, "-vqqq=20 -vrrr=30 -vsss=40", "dummy1 dummy2", "20 300 40 500 alpha");
+	run_case(12, "", "dummy", "1");
+	run_case(13, "", "dummy", "1");
+	run_case(14, "", "dummy", "1");
 	tap_end();
 }

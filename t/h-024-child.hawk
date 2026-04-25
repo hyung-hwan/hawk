@@ -52,6 +52,28 @@ BEGIN {
 		ARGV[1] = "rrr=300";
 		ARGV[2] = "ttt=500";
 	}
+	else if (CASE == 12)
+	{
+		x["abc"] = "donkey";
+		@reset x;
+		print (x === @nil);
+		exit;
+	}
+	else if (CASE == 13)
+	{
+		ARGV[1] = "x=20";
+		@reset x;
+		print (x === @nil);
+		exit;
+	}
+	else if (CASE == 14)
+	{
+		ARGV[1] = "x=20";
+		x["abc"] = "donkey";
+		@reset x;
+		print (x === @nil);
+		exit;
+	}
 }
 
 {

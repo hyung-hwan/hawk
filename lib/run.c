@@ -4061,10 +4061,11 @@ static int run_reset (hawk_rtx_t* rtx, hawk_nde_reset_t* nde)
 			HAWK_ASSERT(var->idx == HAWK_NULL);
 
 			HAWK_ASSERT(var->id.idxa < rtx->named_slot_count);
-#if defined(QQQQ)
-			hawk_htb_delete(rtx->named, var->id.name.ptr, var->id.name.len);
-#endif
-			HAWK_RTX_STACK_NAMED(rtx, var->id.idxa) = hawk_val_nil;
+			if (hawk_rtx_setnamedval(rtx, var->id.idxa, hawk_val_nil) <= -1)
+			{
+				ADJERR_LOC(rtx, &var->loc);
+				return -1;
+			}
 
 			/* a named variable can be reset if removed from the internal map to manage it */
 			return 0;
