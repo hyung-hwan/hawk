@@ -92,7 +92,7 @@ host_triplet = @host@
 @ENABLE_WIDE_CHAR_TRUE@am__append_1 = h-001.hawk h-002.hawk
 check_PROGRAMS = t-001$(EXEEXT) t-002$(EXEEXT) t-003$(EXEEXT) \
 	t-004$(EXEEXT) t-005$(EXEEXT) t-006$(EXEEXT) t-007$(EXEEXT) \
-	t-008$(EXEEXT) t-009$(EXEEXT) $(am__EXEEXT_1)
+	t-008$(EXEEXT) t-009$(EXEEXT) t-010$(EXEEXT) $(am__EXEEXT_1)
 @ENABLE_CXX_TRUE@am__append_2 = t-101
 subdir = t
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -170,6 +170,12 @@ t_009_DEPENDENCIES = $(am__DEPENDENCIES_2)
 t_009_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(t_009_CFLAGS) $(CFLAGS) \
 	$(t_009_LDFLAGS) $(LDFLAGS) -o $@
+am_t_010_OBJECTS = t_010-t-010.$(OBJEXT)
+t_010_OBJECTS = $(am_t_010_OBJECTS)
+t_010_DEPENDENCIES = $(am__DEPENDENCIES_2)
+t_010_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(t_010_CFLAGS) $(CFLAGS) \
+	$(t_010_LDFLAGS) $(LDFLAGS) -o $@
 am__t_101_SOURCES_DIST = t-101.cpp tap.h
 @ENABLE_CXX_TRUE@am_t_101_OBJECTS = t_101-t-101.$(OBJEXT)
 t_101_OBJECTS = $(am_t_101_OBJECTS)
@@ -197,7 +203,7 @@ am__depfiles_remade = ./$(DEPDIR)/t_001-t-001.Po \
 	./$(DEPDIR)/t_004-t-004.Po ./$(DEPDIR)/t_005-t-005.Po \
 	./$(DEPDIR)/t_006-t-006.Po ./$(DEPDIR)/t_007-t-007.Po \
 	./$(DEPDIR)/t_008-t-008.Po ./$(DEPDIR)/t_009-t-009.Po \
-	./$(DEPDIR)/t_101-t-101.Po
+	./$(DEPDIR)/t_010-t-010.Po ./$(DEPDIR)/t_101-t-101.Po
 am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -238,11 +244,11 @@ am__v_CXXLD_1 =
 SOURCES = $(t_001_SOURCES) $(t_002_SOURCES) $(t_003_SOURCES) \
 	$(t_004_SOURCES) $(t_005_SOURCES) $(t_006_SOURCES) \
 	$(t_007_SOURCES) $(t_008_SOURCES) $(t_009_SOURCES) \
-	$(t_101_SOURCES)
+	$(t_010_SOURCES) $(t_101_SOURCES)
 DIST_SOURCES = $(t_001_SOURCES) $(t_002_SOURCES) $(t_003_SOURCES) \
 	$(t_004_SOURCES) $(t_005_SOURCES) $(t_006_SOURCES) \
 	$(t_007_SOURCES) $(t_008_SOURCES) $(t_009_SOURCES) \
-	$(am__t_101_SOURCES_DIST)
+	$(t_010_SOURCES) $(am__t_101_SOURCES_DIST)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -653,7 +659,7 @@ check_SCRIPTS = $(am__append_1) h-003.hawk h-004.hawk h-009.hawk \
 	h-010.hawk h-011.hawk h-012.hawk h-013.hawk h-014.hawk \
 	h-015.hawk h-016.hawk h-017.hawk h-018.hawk h-019.hawk \
 	h-020.hawk h-021.hawk h-022.hawk h-023.hawk h-024.hawk \
-	regress-filename.sh
+	regress-filename.sh regress-extra-info.sh
 check_ERRORS = e-001.err
 EXTRA_DIST = $(check_SCRIPTS) $(check_ERRORS) tap.inc err.sh \
 	journal-toc.hawk journal-toc.in journal-toc.out journal-toc-html.out \
@@ -661,7 +667,7 @@ EXTRA_DIST = $(check_SCRIPTS) $(check_ERRORS) tap.inc err.sh \
 	fs-test.hawk fs-test.in fs-test.out \
 	JSON.awk.in JSON.awk.out \
 	h-024-child.hawk h-024.in \
-	run-hawk-test.sh \
+	run-hawk-test.sh regress-extra-info.sh \
 	two-way-pipe.hawk two-way-pipe.out
 
 t_001_SOURCES = t-001.c tap.h
@@ -706,6 +712,11 @@ t_009_CPPFLAGS = $(CPPFLAGS_COMMON)
 t_009_CFLAGS = $(CFLAGS_COMMON)
 t_009_LDFLAGS = $(LDFLAGS_COMMON)
 t_009_LDADD = $(LIBADD_COMMON)
+t_010_SOURCES = t-010.c tap.h
+t_010_CPPFLAGS = $(CPPFLAGS_COMMON)
+t_010_CFLAGS = $(CFLAGS_COMMON)
+t_010_LDFLAGS = $(LDFLAGS_COMMON)
+t_010_LDADD = $(LIBADD_COMMON)
 @ENABLE_CXX_TRUE@t_101_SOURCES = t-101.cpp tap.h
 @ENABLE_CXX_TRUE@t_101_CPPFLAGS = $(CPPFLAGS_COMMON)
 @ENABLE_CXX_TRUE@t_101_CFLAGS = $(CFLAGS_COMMON)
@@ -804,6 +815,10 @@ t-009$(EXEEXT): $(t_009_OBJECTS) $(t_009_DEPENDENCIES) $(EXTRA_t_009_DEPENDENCIE
 	@rm -f t-009$(EXEEXT)
 	$(AM_V_CCLD)$(t_009_LINK) $(t_009_OBJECTS) $(t_009_LDADD) $(LIBS)
 
+t-010$(EXEEXT): $(t_010_OBJECTS) $(t_010_DEPENDENCIES) $(EXTRA_t_010_DEPENDENCIES) 
+	@rm -f t-010$(EXEEXT)
+	$(AM_V_CCLD)$(t_010_LINK) $(t_010_OBJECTS) $(t_010_LDADD) $(LIBS)
+
 t-101$(EXEEXT): $(t_101_OBJECTS) $(t_101_DEPENDENCIES) $(EXTRA_t_101_DEPENDENCIES) 
 	@rm -f t-101$(EXEEXT)
 	$(AM_V_CXXLD)$(t_101_LINK) $(t_101_OBJECTS) $(t_101_LDADD) $(LIBS)
@@ -823,6 +838,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/t_007-t-007.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/t_008-t-008.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/t_009-t-009.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/t_010-t-010.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/t_101-t-101.Po@am__quote@ # am--include-marker
 
 $(am__depfiles_remade):
@@ -980,6 +996,20 @@ t_009-t-009.obj: t-009.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='t-009.c' object='t_009-t-009.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(t_009_CPPFLAGS) $(CPPFLAGS) $(t_009_CFLAGS) $(CFLAGS) -c -o t_009-t-009.obj `if test -f 't-009.c'; then $(CYGPATH_W) 't-009.c'; else $(CYGPATH_W) '$(srcdir)/t-009.c'; fi`
+
+t_010-t-010.o: t-010.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(t_010_CPPFLAGS) $(CPPFLAGS) $(t_010_CFLAGS) $(CFLAGS) -MT t_010-t-010.o -MD -MP -MF $(DEPDIR)/t_010-t-010.Tpo -c -o t_010-t-010.o `test -f 't-010.c' || echo '$(srcdir)/'`t-010.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/t_010-t-010.Tpo $(DEPDIR)/t_010-t-010.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='t-010.c' object='t_010-t-010.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(t_010_CPPFLAGS) $(CPPFLAGS) $(t_010_CFLAGS) $(CFLAGS) -c -o t_010-t-010.o `test -f 't-010.c' || echo '$(srcdir)/'`t-010.c
+
+t_010-t-010.obj: t-010.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(t_010_CPPFLAGS) $(CPPFLAGS) $(t_010_CFLAGS) $(CFLAGS) -MT t_010-t-010.obj -MD -MP -MF $(DEPDIR)/t_010-t-010.Tpo -c -o t_010-t-010.obj `if test -f 't-010.c'; then $(CYGPATH_W) 't-010.c'; else $(CYGPATH_W) '$(srcdir)/t-010.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/t_010-t-010.Tpo $(DEPDIR)/t_010-t-010.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='t-010.c' object='t_010-t-010.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(t_010_CPPFLAGS) $(CPPFLAGS) $(t_010_CFLAGS) $(CFLAGS) -c -o t_010-t-010.obj `if test -f 't-010.c'; then $(CYGPATH_W) 't-010.c'; else $(CYGPATH_W) '$(srcdir)/t-010.c'; fi`
 
 .cpp.o:
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.o$$||'`;\
@@ -1306,6 +1336,13 @@ t-009.log: t-009$(EXEEXT)
 	--log-file $$b.log --trs-file $$b.trs \
 	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
 	"$$tst" $(AM_TESTS_FD_REDIRECT)
+t-010.log: t-010$(EXEEXT)
+	@p='t-010$(EXEEXT)'; \
+	b='t-010'; \
+	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
+	--log-file $$b.log --trs-file $$b.trs \
+	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
+	"$$tst" $(AM_TESTS_FD_REDIRECT)
 t-101.log: t-101$(EXEEXT)
 	@p='t-101$(EXEEXT)'; \
 	b='t-101'; \
@@ -1443,6 +1480,7 @@ distclean: distclean-am
 	-rm -f ./$(DEPDIR)/t_007-t-007.Po
 	-rm -f ./$(DEPDIR)/t_008-t-008.Po
 	-rm -f ./$(DEPDIR)/t_009-t-009.Po
+	-rm -f ./$(DEPDIR)/t_010-t-010.Po
 	-rm -f ./$(DEPDIR)/t_101-t-101.Po
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
@@ -1498,6 +1536,7 @@ maintainer-clean: maintainer-clean-am
 	-rm -f ./$(DEPDIR)/t_007-t-007.Po
 	-rm -f ./$(DEPDIR)/t_008-t-008.Po
 	-rm -f ./$(DEPDIR)/t_009-t-009.Po
+	-rm -f ./$(DEPDIR)/t_010-t-010.Po
 	-rm -f ./$(DEPDIR)/t_101-t-101.Po
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic

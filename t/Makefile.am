@@ -22,7 +22,7 @@ check_SCRIPTS += h-003.hawk h-004.hawk h-009.hawk h-010.hawk \
 	h-016.hawk h-017.hawk h-018.hawk h-019.hawk h-020.hawk \
 	h-021.hawk h-022.hawk h-023.hawk h-024.hawk
 
-check_SCRIPTS += regress-filename.sh
+check_SCRIPTS += regress-filename.sh regress-extra-info.sh
 
 check_ERRORS = e-001.err
 
@@ -33,10 +33,10 @@ EXTRA_DIST = $(check_SCRIPTS) $(check_ERRORS) tap.inc err.sh \
 	fs-test.hawk fs-test.in fs-test.out \
 	JSON.awk.in JSON.awk.out \
 	h-024-child.hawk h-024.in \
-	run-hawk-test.sh \
+	run-hawk-test.sh regress-extra-info.sh \
 	two-way-pipe.hawk two-way-pipe.out
 
-check_PROGRAMS = t-001 t-002 t-003 t-004 t-005 t-006 t-007 t-008 t-009
+check_PROGRAMS = t-001 t-002 t-003 t-004 t-005 t-006 t-007 t-008 t-009 t-010
 
 if ENABLE_CXX
 check_PROGRAMS += t-101
@@ -92,6 +92,12 @@ t_009_CPPFLAGS = $(CPPFLAGS_COMMON)
 t_009_CFLAGS = $(CFLAGS_COMMON)
 t_009_LDFLAGS = $(LDFLAGS_COMMON)
 t_009_LDADD = $(LIBADD_COMMON)
+
+t_010_SOURCES = t-010.c tap.h
+t_010_CPPFLAGS = $(CPPFLAGS_COMMON)
+t_010_CFLAGS = $(CFLAGS_COMMON)
+t_010_LDFLAGS = $(LDFLAGS_COMMON)
+t_010_LDADD = $(LIBADD_COMMON)
 
 if ENABLE_CXX
 t_101_SOURCES = t-101.cpp tap.h
