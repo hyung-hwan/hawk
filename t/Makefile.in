@@ -718,6 +718,7 @@ HAWK_LOG_DRIVER = $(LOG_DRIVER)
 HAWK_LOG_COMPILER = env \
 	VALGRIND='$(VALGRIND)' \
 	VALGRIND_CMD='$(VALGRIND_CMD)' \
+	VALGRIND_ERROR_EXITCODE='$(VALGRIND_ERROR_EXITCODE)' \
 	VALGRIND_FLAGS='$(VALGRIND_FLAGS)' \
 	HAWK_TEST_COMPILER='$(HAWK_TEST_COMPILER)' \
 	$(SHELL) $(abs_srcdir)/run-hawk-test.sh
@@ -1544,6 +1545,7 @@ HAWK_TEST_MODLIBDIRS_OPT ?= --modlibdirs=../lib/.libs:../mod/.libs
 HAWK_CHECK_OPTS ?=
 VALGRIND ?= 0
 VALGRIND_CMD ?= valgrind
+VALGRIND_ERROR_EXITCODE ?= 99
 VALGRIND_FLAGS ?= --leak-check=full --show-leak-kinds=all --errors-for-leak-kinds=all --error-exitcode=99 --num-callers=20
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.

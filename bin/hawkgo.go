@@ -110,16 +110,19 @@ func print_hawk_rtx_error(rtx *hawk.Rtx) {
 }
 
 func print_hawk_errinfo(err *hawk.Err) {
+	fmt.Fprintf(os.Stderr, "%s\n", format_hawk_errinfo(err))
+}
+
+func format_hawk_errinfo(err *hawk.Err) string {
 	if err == nil {
-		fmt.Fprintf(os.Stderr, "ERROR: unknown error\n")
-		return
+		return "ERROR: unknown error"
 	}
 
 	if err.File != "" {
-		fmt.Fprintf(os.Stderr, "ERROR: Line %d Column %d Code %d File %s - %s\n",
+		return fmt.Sprintf("ERROR: Line %d Column %d Code %d File %s - %s",
 			err.Line, err.Colm, err.Num, err.File, err.Msg)
 	} else {
-		fmt.Fprintf(os.Stderr, "ERROR: Line %d Column %d Code %d - %s\n",
+		return fmt.Sprintf("ERROR: Line %d Column %d Code %d - %s",
 			err.Line, err.Colm, err.Num, err.Msg)
 	}
 }
@@ -284,7 +287,7 @@ func run_script(h *hawk.Hawk, fs_idx int, data_idx int, cfg *Config, rtx_chan ch
 				goto oops
 			}
 
-			rtx.SetGlobal(fs_idx, vv)
+			err = rtx.SetGlobal(fs_idx, vv)
 			vv.Close()
 			if err != nil {
 				err = fmt.Errorf("failed to set field separator to '%s' - %s", cfg.fs, err.Error())
@@ -500,8 +503,7 @@ func main() {
 				err = run_script(h, fs_idx, idx, &cfg, rtx_chan, sig_chan)
 				if err != nil {
 					if herr, ok := err.(*hawk.Err); ok {
-						fmt.Fprintf(os.Stderr, "[%d] ", idx)
-						print_hawk_errinfo(herr)
+						fmt.Fprintf(os.Stderr, "[%d] %s\n", idx, format_hawk_errinfo(herr))
 					} else {
 						fmt.Fprintf(os.Stderr, "ERROR: [%d]%s\n", idx, err.Error())
 					}
