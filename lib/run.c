@@ -705,37 +705,92 @@ HAWK_INLINE int hawk_rtx_setgbl (hawk_rtx_t* rtx, int id, hawk_val_t* val)
 	return set_global(rtx, id, HAWK_NULL, val, 0);
 }
 
+static HAWK_INLINE hawk_oow_t find_named_slot_by_oocs (hawk_rtx_t* rtx, const hawk_oocs_t* name)
+{
+	hawk_htb_pair_t* pair;
+	hawk_oow_t idx;
+
+	pair = hawk_htb_search(rtx->named, name->ptr, name->len);
+	if (!pair)
+	{
+		pair = hawk_htb_search(rtx->hawk->parse.named, name->ptr, name->len);
+		if (!pair) return (hawk_oow_t)-1;
+	}
+
+	idx = (hawk_oow_t)HAWK_HTB_VPTR(pair);
+	return idx;
+}
+
+static HAWK_INLINE hawk_oow_t find_named_slot_by_oocstr (hawk_rtx_t* rtx, const hawk_ooch_t* name)
+{
+	hawk_oocs_t tmp;
+	tmp.ptr = (hawk_ooch_t*)name;
+	tmp.len = hawk_count_oocstr(name);
+	return find_named_slot_by_oocs(rtx, &tmp);
+}
+
+static int ensure_named_slots (hawk_rtx_t* rtx, hawk_oow_t newcapa)
+{
+	if (newcapa > rtx->named_slot_capa)
+	{
+		hawk_val_t** tmp;
+		hawk_oow_t i;
+
+		newcapa = HAWK_ALIGN_POW2(newcapa, 32);
+		tmp = hawk_rtx_reallocmem(rtx, rtx->named_slots, newcapa * HAWK_SIZEOF(*tmp));
+		if (HAWK_UNLIKELY(!tmp)) return -1;
+
+		for (i = rtx->named_slot_capa; i < newcapa; i++) tmp[i] = hawk_val_nil;
+		rtx->named_slot_capa = newcapa;
+		rtx->named_slots = tmp;
+	}
+
+	return 0;
+}
+
+
 int hawk_rtx_setgbltostrbyname (hawk_rtx_t* rtx, const hawk_ooch_t* name, const hawk_ooch_t* val)
 {
 	int id, n;
 	hawk_val_t* v;
 
+	/* find a a gloval variable by name and set its value to a string.
+	 * this function is mainly to support -v on the command line
+	 * or the arguments in the "x=y" format.
+	 * hawk  -v qqq=20 'BEGIN { ARGV[1] = "a=20"; } { print a, $1; }' dummy /etc/hosts */
 	HAWK_ASSERT(hawk_isvalidident(hawk_rtx_gethawk(rtx), name));
 
 	id = hawk_findgblwithoocstr(hawk_rtx_gethawk(rtx), name, 1);
 	v = hawk_rtx_makestrvalwithoocstr(rtx, val);
-	if (!v) return -1;
+	if (HAWK_UNLIKELY(!v)) return -1;
 
 	hawk_rtx_refupval_inline(rtx, v);
 	if (id <= -1)
 	{
+		hawk_oow_t named_id;
+
 		/* not found. it's not a builtin/declared global variable */
-		hawk_nde_var_t var;
+		named_id = find_named_slot_by_oocstr(rtx, name);
+		if (named_id == (hawk_oow_t)-1)
+		{
+			/* not one of the existing named variables either */
+			named_id = rtx->named_slot_count;
+			if (ensure_named_slots(rtx, named_id + 1) <= -1 ||
+			    hawk_htb_upsert(rtx->named, (void*)name, hawk_count_oocstr(name), (void*)named_id, 0) == HAWK_NULL)
+			{
+				n = -1;
+				goto done;
+			}
+			rtx->named_slot_count++;
+		}
 
-		/* make a fake variable node for assignment and use it */
-		HAWK_MEMSET(&var, 0, HAWK_SIZEOF(var));
-		var.type = HAWK_NDE_NAMED;
-		var.id.name.ptr = (hawk_ooch_t*)name;
-		var.id.name.len = hawk_count_oocstr(name);
-		var.id.idxa = (hawk_oow_t)-1;
-		var.idx = HAWK_NULL;
-
-		n = do_assignment_nonindexed(rtx, &var, v)? 0: -1;
+		n = (hawk_rtx_setnamedval(rtx, named_id, v) <= -1)? -1: 0;
 	}
 	else
 	{
 		n = set_global(rtx, id, HAWK_NULL, v, 0);
 	}
+done:
 	hawk_rtx_refdownval_inline(rtx, v);
 
 	return n;
@@ -840,10 +895,144 @@ int hawk_rtx_setofilenamewithbchars (hawk_rtx_t* rtx, const hawk_bch_t* name, ha
 	return n;
 }
 
-hawk_htb_t* hawk_rtx_getnvmap (hawk_rtx_t* rtx)
+int hawk_rtx_setnamedval (hawk_rtx_t* rtx, hawk_oow_t id, hawk_val_t* val)
 {
-	return rtx->named;
+	hawk_val_t* oldval;
+
+	if (HAWK_UNLIKELY(id >= rtx->named_slot_count))
+	{
+		hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EINVAL);
+		return -1;
+	}
+
+	oldval = HAWK_RTX_STACK_NAMED(rtx, id);
+	if (oldval != val)
+	{
+		hawk_rtx_refdownval_inline(rtx, oldval);
+		hawk_rtx_refupval_inline(rtx, val);
+		HAWK_RTX_STACK_NAMED(rtx, id) = val;
+	}
+	return 0;
 }
+
+static HAWK_INLINE hawk_val_t* set_nv_itr_pair (hawk_rtx_t* rtx, hawk_rtx_nv_itr_t* itr, hawk_htb_pair_t* pair, int source)
+{
+	hawk_oow_t slot_id;
+
+	slot_id = (hawk_oow_t)HAWK_HTB_VPTR(pair);
+	if (HAWK_UNLIKELY(slot_id >= rtx->named_slot_count))
+	{
+		itr->name.ptr = HAWK_NULL;
+		itr->name.len = 0;
+		itr->slot_id = (hawk_oow_t)-1;
+		itr->source = 0;
+		hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EINTERN);
+		return HAWK_NULL;
+	}
+
+	itr->name.ptr = (hawk_ooch_t*)HAWK_HTB_KPTR(pair);
+	itr->name.len = HAWK_HTB_KLEN(pair);
+	itr->slot_id = slot_id;
+	itr->source = source;
+	return HAWK_RTX_STACK_NAMED(rtx, slot_id);
+}
+
+void hawk_init_rtx_nv_itr (hawk_rtx_nv_itr_t* itr)
+{
+	hawk_init_htb_itr(&itr->parse_itr);
+	hawk_init_htb_itr(&itr->runtime_itr);
+	itr->name.ptr = HAWK_NULL;
+	itr->name.len = 0;
+	itr->slot_id = (hawk_oow_t)-1;
+	itr->source = 0;
+}
+
+hawk_val_t* hawk_rtx_getfirstnv (hawk_rtx_t* rtx, hawk_rtx_nv_itr_t* itr)
+{
+	hawk_htb_pair_t* pair;
+
+	hawk_init_rtx_nv_itr(itr);
+
+	pair = hawk_htb_getfirstpair(rtx->hawk->parse.named, &itr->parse_itr);
+	if (pair) return set_nv_itr_pair(rtx, itr, pair, 1);
+
+	pair = hawk_htb_getfirstpair(rtx->named, &itr->runtime_itr);
+	if (pair) return set_nv_itr_pair(rtx, itr, pair, 2);
+
+	return HAWK_NULL;
+}
+
+hawk_val_t* hawk_rtx_getnextnv (hawk_rtx_t* rtx, hawk_rtx_nv_itr_t* itr)
+{
+	hawk_htb_pair_t* pair;
+
+	switch (itr->source)
+	{
+		case 1:
+			pair = hawk_htb_getnextpair(rtx->hawk->parse.named, &itr->parse_itr);
+			if (pair) return set_nv_itr_pair(rtx, itr, pair, 1);
+
+			pair = hawk_htb_getfirstpair(rtx->named, &itr->runtime_itr);
+			if (pair) return set_nv_itr_pair(rtx, itr, pair, 2);
+			break;
+
+		case 2:
+			pair = hawk_htb_getnextpair(rtx->named, &itr->runtime_itr);
+			if (pair) return set_nv_itr_pair(rtx, itr, pair, 2);
+			break;
+	}
+
+	itr->name.ptr = HAWK_NULL;
+	itr->name.len = 0;
+	itr->slot_id = (hawk_oow_t)-1;
+	itr->source = 0;
+	return HAWK_NULL;
+}
+
+hawk_val_t* hawk_rtx_findnvbyucstr (hawk_rtx_t* rtx, const hawk_uch_t* name)
+{
+	hawk_oocs_t tmp;
+	hawk_oow_t slot_id;
+
+#if defined(HAWK_OOCH_IS_UCH)
+	tmp.ptr = (hawk_ooch_t*)name;
+	tmp.len = hawk_count_ucstr(name);
+	slot_id = find_named_slot_by_oocs(rtx, &tmp);
+#else
+	hawk_bch_t* bcs;
+
+	bcs = hawk_rtx_duputobcstr(rtx, name, &tmp.len);
+	if (HAWK_UNLIKELY(!bcs)) return HAWK_NULL;
+	tmp.ptr = (hawk_ooch_t*)bcs;
+	slot_id = find_named_slot_by_oocs(rtx, &tmp);
+	hawk_rtx_freemem(rtx, bcs);
+#endif
+
+	return (slot_id == (hawk_oow_t)-1)? HAWK_NULL: HAWK_RTX_STACK_NAMED(rtx, slot_id);
+}
+
+hawk_val_t* hawk_rtx_findnvbybcstr (hawk_rtx_t* rtx, const hawk_bch_t* name)
+{
+	hawk_oocs_t tmp;
+	hawk_oow_t slot_id;
+
+#if defined(HAWK_OOCH_IS_UCH)
+	hawk_uch_t* ucs;
+
+	ucs = hawk_rtx_dupbtoucstr(rtx, name, &tmp.len, 0);
+	if (HAWK_UNLIKELY(!ucs)) return HAWK_NULL;
+	tmp.ptr = (hawk_ooch_t*)ucs;
+	slot_id = find_named_slot_by_oocs(rtx, &tmp);
+	hawk_rtx_freemem(rtx, ucs);
+#else
+	tmp.ptr = (hawk_ooch_t*)name;
+	tmp.len = hawk_count_bcstr(name);
+	slot_id = find_named_slot_by_oocs(rtx, &tmp);
+#endif
+
+	return (slot_id == (hawk_oow_t)-1)? HAWK_NULL: HAWK_RTX_STACK_NAMED(rtx, slot_id);
+}
+
 
 struct module_init_ctx_t
 {
@@ -1113,33 +1302,8 @@ void hawk_rtx_pushecb (hawk_rtx_t* rtx, hawk_rtx_ecb_t* ecb)
 	if (ecb->stmt) rtx->ecb_stmt_count++;
 }
 
-static void free_namedval (hawk_htb_t* map, void* dptr, hawk_oow_t dlen)
-{
-	hawk_rtx_refdownval_inline(*(hawk_rtx_t**)hawk_htb_getxtn(map), dptr);
-}
-
-static void same_namedval (hawk_htb_t* map, void* dptr, hawk_oow_t dlen)
-{
-	hawk_rtx_refdownval_nofree_inline(*(hawk_rtx_t**)hawk_htb_getxtn(map), dptr);
-}
-
 static int init_rtx (hawk_rtx_t* rtx, hawk_t* hawk, hawk_rio_cbs_t* rio)
 {
-	static hawk_htb_style_t style_for_named =
-	{
-		{
-			HAWK_HTB_COPIER_INLINE,
-			HAWK_HTB_COPIER_DEFAULT
-		},
-		{
-			HAWK_HTB_FREEER_DEFAULT,
-			free_namedval
-		},
-		HAWK_HTB_COMPER_DEFAULT,
-		same_namedval,
-		HAWK_HTB_SIZER_DEFAULT,
-		HAWK_HTB_HASHER_DEFAULT
-	};
 	hawk_oow_t stack_limit, i;
 
 	rtx->gem_ = hawk->gem_;
@@ -1201,7 +1365,20 @@ static int init_rtx (hawk_rtx_t* rtx, hawk_t* hawk, hawk_rio_cbs_t* rio)
 	rtx->named = hawk_htb_open(hawk_rtx_getgem(rtx), HAWK_SIZEOF(rtx), 1024, 70, HAWK_SIZEOF(hawk_ooch_t), 1);
 	if (HAWK_UNLIKELY(!rtx->named)) goto oops_11;
 	*(hawk_rtx_t**)hawk_htb_getxtn(rtx->named) = rtx;
-	hawk_htb_setstyle (rtx->named, &style_for_named);
+	hawk_htb_setstyle(rtx->named, hawk_get_htb_style(HAWK_HTB_STYLE_INLINE_KEY_COPIER));
+
+	rtx->named_slot_capa = HAWK_HTB_SIZE(hawk->parse.named);
+	rtx->named_slot_count = HAWK_HTB_SIZE(hawk->parse.named);
+	if (rtx->named_slot_count > 0)
+	{
+		rtx->named_slots = (hawk_val_t**)hawk_rtx_allocmem(rtx, rtx->named_slot_capa * HAWK_SIZEOF(*rtx->named_slots));
+		if (HAWK_UNLIKELY(!rtx->named_slots)) goto oops_12_named_slots;
+		for (i = 0; i < rtx->named_slot_count; i++) rtx->named_slots[i] = hawk_val_nil;
+	}
+	else
+	{
+		rtx->named_slots = HAWK_NULL;
+	}
 
 	rtx->format.tmp.ptr = (hawk_ooch_t*)hawk_rtx_allocmem(rtx, 4096 * HAWK_SIZEOF(hawk_ooch_t));
 	if (HAWK_UNLIKELY(!rtx->format.tmp.ptr)) goto oops_12; /* the error is set on the hawk object after this jump is made */
@@ -1221,7 +1398,7 @@ static int init_rtx (hawk_rtx_t* rtx, hawk_t* hawk, hawk_rio_cbs_t* rio)
 	}
 	else rtx->pattern_range_state = HAWK_NULL;
 
-     rtx->modtab = hawk_rbt_open(hawk_getgem(hawk), 0, HAWK_SIZEOF(hawk_ooch_t), 1);
+	rtx->modtab = hawk_rbt_open(hawk_getgem(hawk), 0, HAWK_SIZEOF(hawk_ooch_t), 1);
 	if (HAWK_UNLIKELY(!rtx->modtab)) goto oops_15;
 	hawk_rbt_setstyle(rtx->modtab, hawk_get_rbt_style(HAWK_RBT_STYLE_INLINE_COPIERS));
 
@@ -1252,6 +1429,8 @@ oops_14:
 oops_13:
 	hawk_rtx_freemem(rtx, rtx->format.tmp.ptr);
 oops_12:
+	if (rtx->named_slots) hawk_rtx_freemem(rtx, rtx->named_slots);
+oops_12_named_slots:
 	hawk_htb_close(rtx->named);
 oops_11:
 	hawk_ooecs_fini(&rtx->fnc.oout);
@@ -1417,6 +1596,24 @@ static void fini_rtx (hawk_rtx_t* rtx, int fini_globals)
 
 	/* destroy named variables */
 	hawk_htb_close(rtx->named);
+	if (rtx->named_slots)
+	{
+		hawk_oow_t i;
+
+		/* decrement refrence count of all names variable values */
+		for (i = 0; i < rtx->named_slot_count; i++)
+		{
+			HAWK_ASSERT(
+				!HAWK_VTR_IS_POINTER(rtx->named_slots[i]) ||
+				HAWK_IS_STATICVAL(rtx->named_slots[i]) ||
+				rtx->named_slots[i]->v_refs == 1);
+			hawk_rtx_refdownval_inline(rtx, rtx->named_slots[i]);
+		}
+
+		hawk_rtx_freemem(rtx, rtx->named_slots);
+		rtx->named_slots = HAWK_NULL;
+		rtx->named_slot_count = 0;
+	}
 
 #if defined(HAWK_ENABLE_GC)
 	/* collect garbage after having released global variables and named global variables */
@@ -3567,12 +3764,9 @@ static hawk_val_t* fetch_topval_from_var (hawk_rtx_t* rtx, hawk_nde_var_t* var)
 	{
 		case HAWK_NDE_NAMED:
 		case HAWK_NDE_NAMEDIDX:
-		{
-			hawk_htb_pair_t* pair;
-			pair = hawk_htb_search(rtx->named, var->id.name.ptr, var->id.name.len);
-			val = pair? (hawk_val_t*)HAWK_HTB_VPTR(pair): hawk_val_nil;
+			HAWK_ASSERT(var->id.idxa < rtx->named_slot_count);
+			val = HAWK_RTX_STACK_NAMED(rtx, var->id.idxa);
 			break;
-		}
 
 		case HAWK_NDE_GBL:
 		case HAWK_NDE_GBLIDX:
@@ -3599,19 +3793,12 @@ static hawk_val_t* assign_topval_to_var (hawk_rtx_t* rtx, hawk_nde_var_t* var, h
 	{
 		case HAWK_NDE_NAMED:
 		case HAWK_NDE_NAMEDIDX:
-		{
-			/* doesn't have to decrease the reference count
-			 * of the previous value here as it is done by
-			 * hawk_htb_upsert */
-			hawk_rtx_refupval_inline(rtx, val);
-			if (HAWK_UNLIKELY(hawk_htb_upsert(rtx->named, var->id.name.ptr, var->id.name.len, val, 0) == HAWK_NULL))
+			if (HAWK_UNLIKELY(hawk_rtx_setnamedval(rtx, var->id.idxa, val) <= -1))
 			{
-				hawk_rtx_refdownval_inline(rtx, val);
 				ADJERR_LOC(rtx, &var->loc);
 				return HAWK_NULL;
 			}
 			break;
-		}
 
 		case HAWK_NDE_GBL:
 		case HAWK_NDE_GBLIDX:
@@ -3872,8 +4059,13 @@ static int run_reset (hawk_rtx_t* rtx, hawk_nde_reset_t* nde)
 			/* if a named variable has an index part, something is definitely wrong */
 			HAWK_ASSERT(var->idx == HAWK_NULL);
 
-			/* a named variable can be reset if removed from the internal map to manage it */
+			HAWK_ASSERT(var->id.idxa < rtx->named_slot_count);
+#if defined(QQQQ)
 			hawk_htb_delete(rtx->named, var->id.name.ptr, var->id.name.len);
+#endif
+			HAWK_RTX_STACK_NAMED(rtx, var->id.idxa) = hawk_val_nil;
+
+			/* a named variable can be reset if removed from the internal map to manage it */
 			return 0;
 
 		case HAWK_NDE_GBL:
@@ -4434,7 +4626,6 @@ static hawk_val_t* eval_expression0 (hawk_rtx_t* rtx, hawk_nde_t* nde)
 			if (HAWK_UNLIKELY(!v)) goto oops;
 			goto done; /* exit_level can never change. so skip to done */
 
-
 		case HAWK_NDE_ARG:
 			v = HAWK_RTX_STACK_ARG(rtx, ((hawk_nde_var_t*)nde)->id.idxa);
 			goto done; /* exit_level can never change. so skip to done */
@@ -4448,12 +4639,9 @@ static hawk_val_t* eval_expression0 (hawk_rtx_t* rtx, hawk_nde_t* nde)
 			goto done; /* exit_level can never change. so skip to done */
 
 		case HAWK_NDE_NAMED:
-		{
-			hawk_htb_pair_t* pair;
-			pair = hawk_htb_search(rtx->named, ((hawk_nde_var_t*)nde)->id.name.ptr, ((hawk_nde_var_t*)nde)->id.name.len);
-			v = pair? HAWK_HTB_VPTR(pair): hawk_val_nil;
+			HAWK_ASSERT(((hawk_nde_var_t*)nde)->id.idxa < rtx->named_slot_count);
+			v = HAWK_RTX_STACK_NAMED(rtx, ((hawk_nde_var_t*)nde)->id.idxa);
 			goto done; /* exit_level can never change. so skip to done */
-		}
 
 		case HAWK_NDE_ARGIDX:
 		case HAWK_NDE_GBLIDX:
@@ -4692,14 +4880,15 @@ static hawk_val_t* do_assignment_nonindexed (hawk_rtx_t* rtx, hawk_nde_var_t* va
 	{
 		case HAWK_NDE_NAMED:
 		{
-			hawk_htb_pair_t* pair;
+			hawk_val_t* old;
 
-			pair = hawk_htb_search(rtx->named, var->id.name.ptr, var->id.name.len);
+			HAWK_ASSERT(var->id.idxa < rtx->named_slot_count);
+			old = HAWK_RTX_STACK_NAMED(rtx, var->id.idxa);
 
 			if (!(rtx->hawk->opt.trait & HAWK_FLEXMAP))
 			{
 				hawk_val_type_t old_vtype;
-				if (pair && ((old_vtype = HAWK_RTX_GETVALTYPE(rtx, (hawk_val_t*)HAWK_HTB_VPTR(pair))) == HAWK_VAL_MAP || old_vtype == HAWK_VAL_ARR))
+				if ((old_vtype = HAWK_RTX_GETVALTYPE(rtx, old)) == HAWK_VAL_MAP || old_vtype == HAWK_VAL_ARR)
 				{
 					/* old value is a map - it can only be accessed through indexing. */
 					if (vtype == old_vtype)
@@ -4717,13 +4906,11 @@ static hawk_val_t* do_assignment_nonindexed (hawk_rtx_t* rtx, hawk_nde_var_t* va
 				}
 			}
 
-			if (hawk_htb_upsert(rtx->named, var->id.name.ptr, var->id.name.len, val, 0) == HAWK_NULL)
+			if (hawk_rtx_setnamedval(rtx, var->id.idxa, val) <= -1)
 			{
 				ADJERR_LOC(rtx, &var->loc);
 				return HAWK_NULL;
 			}
-
-			hawk_rtx_refupval_inline(rtx, val);
 			break;
 		}
 
@@ -8268,25 +8455,9 @@ static int get_reference (hawk_rtx_t* rtx, hawk_nde_t* nde, hawk_val_t*** ref)
 	switch (nde->type)
 	{
 		case HAWK_NDE_NAMED:
-		{
-			hawk_htb_pair_t* pair;
-
-			pair = hawk_htb_search(rtx->named, tgt->id.name.ptr, tgt->id.name.len);
-			if (pair == HAWK_NULL)
-			{
-				/* it is bad that the named variable has to be created here.
-				 * would there be any better ways to avoid this? */
-				pair = hawk_htb_upsert(rtx->named, tgt->id.name.ptr, tgt->id.name.len, hawk_val_nil, 0);
-				if (!pair)
-				{
-					ADJERR_LOC(rtx, &nde->loc);
-					return -1;
-				}
-			}
-
-			*ref = (hawk_val_t**)&HAWK_HTB_VPTR(pair);
+			HAWK_ASSERT(tgt->id.idxa < rtx->named_slot_count);
+			*ref = (hawk_val_t**)((hawk_oow_t)tgt->id.idxa);
 			return 0;
-		}
 
 		case HAWK_NDE_GBL:
 			/* *ref = (hawk_val_t**)&HAWK_RTX_STACK_GBL(rtx,tgt->id.idxa); */
@@ -8762,9 +8933,8 @@ static hawk_val_t* eval_modsym (hawk_rtx_t* rtx, hawk_nde_t* nde)
 
 static hawk_val_t* eval_named (hawk_rtx_t* rtx, hawk_nde_t* nde)
 {
-	hawk_htb_pair_t* pair;
-	pair = hawk_htb_search(rtx->named, ((hawk_nde_var_t*)nde)->id.name.ptr, ((hawk_nde_var_t*)nde)->id.name.len);
-	return (pair == HAWK_NULL)? hawk_val_nil: HAWK_HTB_VPTR(pair);
+	HAWK_ASSERT(((hawk_nde_var_t*)nde)->id.idxa < rtx->named_slot_count);
+	return HAWK_RTX_STACK_NAMED(rtx, ((hawk_nde_var_t*)nde)->id.idxa);
 }
 
 static hawk_val_t* eval_gbl (hawk_rtx_t* rtx, hawk_nde_t* nde)

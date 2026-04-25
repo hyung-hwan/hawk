@@ -687,7 +687,9 @@ static int print_expr (hawk_t* hawk, hawk_nde_t* nde, int depth)
 		case HAWK_NDE_NAMED:
 		{
 			hawk_nde_var_t* px = (hawk_nde_var_t*)nde;
-			HAWK_ASSERT (px->id.idxa == (hawk_oow_t)-1);
+			/*HAWK_ASSERT (px->id.idxa == (hawk_oow_t)-1);
+			 *  commented out the above assertion because
+			 *  id.idxa field holds an index to the rtx->named_slots. */
 			HAWK_ASSERT (px->idx == HAWK_NULL);
 
 			PUT_SRCSTRN(hawk, px->id.name.ptr, px->id.name.len);

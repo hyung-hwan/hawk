@@ -2471,6 +2471,26 @@ static hawk_oow_t get_global (hawk_t* hawk, const hawk_oocs_t* name)
 	return HAWK_ARR_NIL;
 }
 
+static hawk_oow_t get_or_add_named (hawk_t* hawk, const hawk_oocs_t* name)
+{
+	hawk_htb_pair_t* pair;
+	hawk_oow_t idx;
+
+	pair = hawk_htb_search(hawk->parse.named, name->ptr, name->len);
+	if (pair)
+	{
+		idx = (hawk_oow_t)HAWK_HTB_VPTR(pair);
+		return idx;
+	}
+
+	idx = HAWK_HTB_SIZE(hawk->parse.named);
+
+	pair = hawk_htb_upsert(hawk->parse.named, name->ptr, name->len, (void*)idx, 0);
+	if (!pair) return (hawk_oow_t)-1;
+
+	return idx;
+}
+
 static hawk_oow_t find_global (hawk_t* hawk, const hawk_oocs_t* name)
 {
 	hawk_oow_t i;
@@ -7311,9 +7331,12 @@ static hawk_nde_t* parse_primary_ident_noseg (hawk_t* hawk, const hawk_loc_t* xl
 				if (HAWK_UNLIKELY(!tmp)) ADJERR_LOC(hawk, xloc);
 				else
 				{
+					hawk_oow_t named_idxa;
+
 					/* collect unique instances of a named variable
 					 * for reference */
-					if (hawk_htb_upsert(hawk->parse.named, name->ptr, name->len, HAWK_NULL, 0) == HAWK_NULL)
+					named_idxa = get_or_add_named(hawk, name);
+					if (named_idxa == (hawk_oow_t)-1)
 					{
 						ADJERR_LOC(hawk, xloc);
 						hawk_freemem(hawk, tmp);
@@ -7324,7 +7347,7 @@ static hawk_nde_t* parse_primary_ident_noseg (hawk_t* hawk, const hawk_loc_t* xl
 						tmp->loc = *xloc;
 						tmp->id.name.ptr = name->ptr;
 						tmp->id.name.len = name->len;
-						tmp->id.idxa = (hawk_oow_t)-1;
+						tmp->id.idxa = named_idxa;
 						tmp->idx = HAWK_NULL;
 						nde = (hawk_nde_t*)tmp;
 
@@ -7773,7 +7796,12 @@ static hawk_nde_t* make_hashidx_access_node (hawk_t* hawk, const hawk_oocs_t* na
 		nde->loc = *xloc;
 		nde->id.name.ptr = name->ptr;
 		nde->id.name.len = name->len;
-		nde->id.idxa = (hawk_oow_t)-1;
+		nde->id.idxa = get_or_add_named(hawk, name);
+		if (nde->id.idxa == (hawk_oow_t)-1)
+		{
+			ADJERR_LOC(hawk, xloc);
+			goto exit_func;
+		}
 		nde->idx = idx;
 
 		return (hawk_nde_t*)nde;

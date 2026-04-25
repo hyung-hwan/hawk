@@ -407,7 +407,7 @@ hawk_CPPFLAGS = $(CPPFLAGS_COMMON)
 hawk_CFLAGS = $(CFLAGS_COMMON)
 hawk_LDFLAGS = $(LDFLAGS_COMMON)
 hawk_LDADD = $(LIBADD_COMMON) $(LIBM)
-hawk_DEPENDENCIES = $(srcdir)/hawk.pot $(srcdir)/hawk-ko.po $(srcdir)/hawk-zh_CN.po
+hawk_DEPENDENCIES = $(srcdir)/hawk.pot $(srcdir)/hawk-ko.po $(srcdir)/hawk-zh_CN.po $(LIBADD_COMMON)
 @ENABLE_HAWKGO_TRUE@hawkgo_SOURCES = \
 @ENABLE_HAWKGO_TRUE@	../hawk.go \
 @ENABLE_HAWKGO_TRUE@	../hawk-inst.go \

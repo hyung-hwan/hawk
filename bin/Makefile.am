@@ -46,7 +46,7 @@ hawk_LDFLAGS = $(LDFLAGS_COMMON)
 ## of different behavior depending on the libtool tag.
 ##
 hawk_LDADD = $(LIBADD_COMMON) $(LIBM)
-hawk_DEPENDENCIES = $(srcdir)/hawk.pot $(srcdir)/hawk-ko.po $(srcdir)/hawk-zh_CN.po
+hawk_DEPENDENCIES = $(srcdir)/hawk.pot $(srcdir)/hawk-ko.po $(srcdir)/hawk-zh_CN.po $(LIBADD_COMMON)
 
 
 $(srcdir)/hawk.pot: $(hawk_SOURCES)

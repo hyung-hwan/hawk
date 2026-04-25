@@ -1,0 +1,50 @@
+@pragma entry main
+@pragma implicit off
+
+@include "tap.inc";
+
+function slurp(path,    line, out, first)
+{
+	out = "";
+	first = 1;
+
+	while ((getline line < path) > 0)
+	{
+		if (!first) out = out "\n";
+		out = out line;
+		first = 0;
+	}
+
+	close(path);
+	return out;
+}
+
+function run_case(caseno, vopts, userargs, expected,    cmd, inf, outf, got)
+{
+	inf = sprintf("%s/%s", TDIR, "h-024.in");
+	outf = sprintf("/tmp/%s.%d.%d.out", "h-024", sys::getpid(), caseno);
+
+	cmd = sprintf("%s -vCASE=%d %s -f %s/%s --modlibdirs=%s %s %s > %s",
+		ARGV[0], caseno, vopts, TDIR, "h-024-child.hawk", hawk::modlibdirs(), userargs, inf, outf);
+
+	system(cmd);
+	got = slurp(outf);
+	tap_ensure(got, expected, @SCRIPTNAME, @SCRIPTLINE);
+	system(sprintf("rm -f %s", outf));
+}
+
+function main()
+{
+	run_case(1, "-vqqq=20", "dummy", "20 20 alpha");
+	run_case(2, "-vqqq=20", "dummy", "20 20 alpha");
+	run_case(3, "-vqqq=20", "dummy", "20 20 hello world alpha");
+	run_case(4, "-vqqq=20", "dummy", "20 hello world 20 alpha");
+	run_case(5, "-vqqq=20 -vrrr=30 -vsss=forty", "dummy", "20 30 forty 20 alpha");
+	run_case(6, "-vqqq=20 -vrrr=30", "dummy", "20 30 20 alpha");
+	run_case(7, "-vqqq=20", "dummy1 dummy2", "20 20 30 alpha");
+	run_case(8, "-vqqq=20", "dummy1 dummy2", "99 20 alpha");
+	run_case(9, "-va=11 -vbb=22 -vccc=33", "dummy", "11 22 33 44 alpha");
+	run_case(10, "-vqqq=20 -va=11 -vbb=22", "dummy1 dummy2 dummy3", "20 20 30 40 alpha");
+	run_case(11, "-vqqq=20 -vrrr=30 -vsss=40", "dummy1 dummy2", "20 300 40 500 alpha");
+	tap_end();
+}

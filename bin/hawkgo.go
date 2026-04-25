@@ -4,46 +4,95 @@ import "hawk"
 import "flag"
 import "fmt"
 import "io"
+
 //import "net/http"
 //import _ "net/http/pprof"
 import "os"
 import "os/signal"
 import "runtime"
 import "runtime/debug"
+import "sort"
 import "strconv"
 import "strings"
 import "sync"
 import "syscall"
+
 //import "time"
 
 type Assign struct {
-	idx int
+	idx   int
 	value string
 }
 
 type Config struct {
-	assigns map[string]Assign
-	call string
-	fs string
-	modlibdirs string
+	assigns         map[string]Assign
+	call            string
+	fs              string
+	modlibdirs      string
 	show_extra_info bool
-	concurrent bool
-	suffix string
+	concurrent      bool
+	suffix          string
 
-	srcstr string
-	srcfiles []string
-	data_in_files []string
+	srcstr         string
+	srcfiles       []string
+	data_in_files  []string
 	data_out_files []string
 }
 
 type RtxEvent struct {
-	rtx *hawk.Rtx
+	rtx   *hawk.Rtx
 	added bool
 }
 
 func exit_with_error(msg string, err error) {
 	fmt.Fprintf(os.Stderr, "ERROR: %s - %s\n", msg, err.Error())
 	os.Exit(1)
+}
+
+func dprint_hawk_value(name string, val *hawk.Val) {
+	var s string
+	var err error
+
+	s, err = val.ToStr()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%s = [not printable]\n", name)
+		return
+	}
+
+	fmt.Fprintf(os.Stderr, "%s = %s\n", name, s)
+}
+
+func dprint_return(rtx *hawk.Rtx, retv *hawk.Val) {
+	var named_vars map[string]*hawk.Val
+	var names []string
+	var name string
+
+	if retv == nil || retv.Type() == hawk.VAL_NIL {
+		fmt.Fprintf(os.Stderr, "[RETURN] - ***nil***\n")
+	} else {
+		var s string
+		var err error
+
+		s, err = retv.ToStr()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "[RETURN] - [not printable]\n")
+		} else {
+			fmt.Fprintf(os.Stderr, "[RETURN] - [%s]\n", s)
+		}
+	}
+
+	fmt.Fprintf(os.Stderr, "[NAMED VARIABLES]\n")
+	named_vars = make(map[string]*hawk.Val)
+	rtx.GetNamedVars(named_vars)
+	names = make([]string, 0, len(named_vars))
+	for name = range named_vars {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	for _, name = range names {
+		dprint_hawk_value(name, named_vars[name])
+	}
+	fmt.Fprintf(os.Stderr, "[END OF NAMED VARIABLES]\n")
 }
 
 func parse_args_to_config(cfg *Config) bool {
@@ -59,7 +108,9 @@ func parse_args_to_config(cfg *Config) bool {
 		var kv []string
 		var vv string
 		kv = strings.SplitN(v, "=", 2)
-		if len(kv) >= 2 { vv = kv[1] }
+		if len(kv) >= 2 {
+			vv = kv[1]
+		}
 		cfg.assigns[kv[0]] = Assign{idx: -1, value: vv}
 		return nil
 	})
@@ -108,7 +159,9 @@ func parse_args_to_config(cfg *Config) bool {
 	//if flgs.NArg() == 0 { goto wrong_usage}
 	cfg.data_in_files = flgs.Args()
 	if len(cfg.srcfiles) <= 0 {
-		if len(cfg.data_in_files) == 0 { goto wrong_usage }
+		if len(cfg.data_in_files) == 0 {
+			goto wrong_usage
+		}
 		cfg.srcstr = cfg.data_in_files[0]
 		cfg.data_in_files = cfg.data_in_files[1:]
 	}
@@ -135,6 +188,7 @@ wrong_usage:
 	fmt.Fprintf(os.Stderr, "USAGE: %s [options] sourcestring [datafile]*\n", os.Args[0])
 	fmt.Fprintf(os.Stderr, "       %s [options] -f sourcefile [datafile]*\n", os.Args[0])
 	fmt.Fprintf(os.Stderr, "Options are:\n")
+	fmt.Fprintf(os.Stderr, " -D, --show-extra-info            show extra information\n")
 	fmt.Fprintf(os.Stderr, " -F, --field-separator string     specify the field seperator\n")
 	fmt.Fprintf(os.Stderr, " -v, --assign          name=value set global variable value\n")
 	fmt.Fprintf(os.Stderr, " -c, --call            string     call a named function instead of running the\n")
@@ -149,7 +203,7 @@ wrong_usage:
 	return false
 }
 
-func run_script(h *hawk.Hawk, fs_idx int, data_idx int, cfg* Config, rtx_chan chan RtxEvent, sig_chan chan os.Signal) error {
+func run_script(h *hawk.Hawk, fs_idx int, data_idx int, cfg *Config, rtx_chan chan RtxEvent, sig_chan chan os.Signal) error {
 	var rtx *hawk.Rtx
 	var err error
 
@@ -158,23 +212,25 @@ func run_script(h *hawk.Hawk, fs_idx int, data_idx int, cfg* Config, rtx_chan ch
 	} else {
 		var out_idx_end int = data_idx
 
-		if cfg.data_out_files[data_idx] != "" { out_idx_end++ }
+		if cfg.data_out_files[data_idx] != "" {
+			out_idx_end++
+		}
 		rtx, err = h.NewRtx(
 			fmt.Sprintf("%s.%d", os.Args[0], data_idx),
-			cfg.data_in_files[data_idx: data_idx + 1],
-			cfg.data_out_files[data_idx: out_idx_end],
+			cfg.data_in_files[data_idx:data_idx+1],
+			cfg.data_out_files[data_idx:out_idx_end],
 		)
 	}
 	if err != nil {
 		err = fmt.Errorf("failed to make rtx - %s", err.Error())
 		goto oops
-	} else  {
+	} else {
 		var k string
 		var v Assign
 		var retv *hawk.Val
 
 		for k, v = range cfg.assigns {
-			if v.idx >= 0  {
+			if v.idx >= 0 {
 				var vv *hawk.Val
 				vv, err = rtx.NewNumOrStrVal(v.value, 1)
 				if err != nil {
@@ -259,19 +315,7 @@ func run_script(h *hawk.Hawk, fs_idx int, data_idx int, cfg* Config, rtx_chan ch
 		}
 
 		if cfg.show_extra_info {
-			var named_vars map[string]*hawk.Val
-			var vn string
-			var vv *hawk.Val
-
-			fmt.Printf("[RETURN] - [%v]\n", retv.String())
-
-			fmt.Printf("NAMED VARIABLES]\n")
-			named_vars = make(map[string]*hawk.Val)
-			rtx.GetNamedVars(named_vars)
-			for vn, vv = range named_vars {
-				fmt.Printf("%s = %s\n", vn, vv.String())
-			}
-			fmt.Printf("END OF NAMED VARIABLES]\n")
+			dprint_return(rtx, retv)
 		}
 	}
 
@@ -318,7 +362,7 @@ chan_loop:
 				delete(rtx_bag, ev.rtx)
 			}
 
-		case sig = <- sig_chan:
+		case sig = <-sig_chan:
 			var signo syscall.Signal
 			var ok bool
 			signo, ok = sig.(syscall.Signal)
@@ -346,7 +390,9 @@ func main() {
 
 	debug.SetGCPercent(100) // enable normal GC
 
-	if parse_args_to_config(&cfg) == false { os.Exit(99) }
+	if parse_args_to_config(&cfg) == false {
+		os.Exit(99)
+	}
 
 	h, err = hawk.New()
 	if err != nil {
@@ -396,7 +442,7 @@ func main() {
 		goto oops
 	}
 
-	if (len(cfg.srcfiles) > 0) {
+	if len(cfg.srcfiles) > 0 {
 		err = h.ParseFiles(cfg.srcfiles)
 	} else {
 		err = h.ParseText(cfg.srcstr)
@@ -437,7 +483,7 @@ func main() {
 		}
 	}
 
-	rtx_chan <- RtxEvent{ rtx: nil, added: false } // to terminate the signal handler
+	rtx_chan <- RtxEvent{rtx: nil, added: false} // to terminate the signal handler
 	sig_wg.Wait()
 	h.Close()
 
@@ -448,11 +494,13 @@ func main() {
 	return
 
 oops:
-//	if rtx != nil { rtx.Close() }
+	//	if rtx != nil { rtx.Close() }
 	if rtx_chan != nil {
 		rtx_chan <- RtxEvent{rtx: nil, added: false}
 		sig_wg.Wait()
 	}
-	if h != nil { h.Close() }
+	if h != nil {
+		h.Close()
+	}
 	os.Exit(255)
 }

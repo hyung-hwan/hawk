@@ -20,7 +20,7 @@ endif
 check_SCRIPTS += h-003.hawk h-004.hawk h-009.hawk h-010.hawk \
 	h-011.hawk h-012.hawk h-013.hawk h-014.hawk h-015.hawk \
 	h-016.hawk h-017.hawk h-018.hawk h-019.hawk h-020.hawk \
-	h-021.hawk h-022.hawk h-023.hawk
+	h-021.hawk h-022.hawk h-023.hawk h-024.hawk
 
 check_SCRIPTS += regress-filename.sh
 
@@ -32,6 +32,7 @@ EXTRA_DIST = $(check_SCRIPTS) $(check_ERRORS) tap.inc err.sh \
 	bibtex-to-html.hawk bibtex-to-html.out \
 	fs-test.hawk fs-test.in fs-test.out \
 	JSON.awk.in JSON.awk.out \
+	h-024-child.hawk h-024.in \
 	two-way-pipe.hawk two-way-pipe.out
 
 check_PROGRAMS = t-001 t-002 t-003 t-004 t-005 t-006 t-007 t-008 t-009

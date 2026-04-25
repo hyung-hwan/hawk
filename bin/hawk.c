@@ -179,22 +179,21 @@ static void unset_intr_run (void)
 #endif
 }
 
-static hawk_htb_walk_t print_awk_value (hawk_htb_t* map, hawk_htb_pair_t* pair, void* arg)
+static void print_awk_value (hawk_rtx_t* rtx, const hawk_oocs_t* name, hawk_val_t* val)
 {
-	hawk_rtx_t* rtx = (hawk_rtx_t*)arg;
 	hawk_t* hawk = hawk_rtx_gethawk(rtx);
 	hawk_ooch_t* str;
 	hawk_oow_t len;
 	hawk_errinf_t oerrinf;
 
-	hawk_rtx_geterrinf (rtx, &oerrinf);
+	hawk_rtx_geterrinf(rtx, &oerrinf);
 
-	str = hawk_rtx_getvaloocstr(rtx, HAWK_HTB_VPTR(pair), &len);
+	str = hawk_rtx_getvaloocstr(rtx, val, &len);
 	if (HAWK_UNLIKELY(!str))
 	{
 		if (hawk_rtx_geterrnum(rtx) == HAWK_EVALTOSTR)
 		{
-			hawk_logbfmt(hawk, HAWK_LOG_STDERR, "%.*js = [not printable]\n", HAWK_HTB_KLEN(pair), HAWK_HTB_KPTR(pair));
+			hawk_logbfmt(hawk, HAWK_LOG_STDERR, "%.*js = [not printable]\n", name->len, name->ptr);
 			hawk_rtx_seterrinf(rtx, &oerrinf);
 		}
 		else
@@ -204,11 +203,9 @@ static hawk_htb_walk_t print_awk_value (hawk_htb_t* map, hawk_htb_pair_t* pair, 
 	}
 	else
 	{
-		hawk_logbfmt(hawk, HAWK_LOG_STDERR, "%.*js = %.*js\n", HAWK_HTB_KLEN(pair), HAWK_HTB_KPTR(pair), len, str);
-		hawk_rtx_freevaloocstr(rtx, HAWK_HTB_VPTR(pair), str);
+		hawk_logbfmt(hawk, HAWK_LOG_STDERR, "%.*js = %.*js\n", name->len, name->ptr, len, str);
+		hawk_rtx_freevaloocstr(rtx, val, str);
 	}
-
-	return HAWK_HTB_WALK_FORWARD;
 }
 
 static int add_gvs_to_hawk (hawk_t* hawk, arg_t* arg)
@@ -301,6 +298,8 @@ static void dprint_return (hawk_rtx_t* rtx, hawk_val_t* ret)
 	hawk_t* hawk = hawk_rtx_gethawk(rtx);
 	hawk_oow_t len;
 	hawk_ooch_t* str;
+	hawk_rtx_nv_itr_t itr;
+	hawk_val_t* nv;
 
 	if (hawk_rtx_isnilval(rtx, ret))
 	{
@@ -321,7 +320,10 @@ static void dprint_return (hawk_rtx_t* rtx, hawk_val_t* ret)
 	}
 
 	hawk_logbfmt(hawk, HAWK_LOG_STDERR, "[NAMED VARIABLES]\n");
-	hawk_htb_walk(hawk_rtx_getnvmap(rtx), print_awk_value, rtx);
+	for (nv = hawk_rtx_getfirstnv(rtx, &itr); nv; nv = hawk_rtx_getnextnv(rtx, &itr))
+	{
+		print_awk_value(rtx, &itr.name, nv);
+	}
 	hawk_logbfmt(hawk, HAWK_LOG_STDERR, "[END OF NAMED VARIABLES]\n");
 }
 

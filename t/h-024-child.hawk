@@ -1,0 +1,82 @@
+BEGIN {
+	if (CASE == 1)
+	{
+		ARGV[1] = "a=20";
+	}
+	else if (CASE == 2)
+	{
+		a = "hello world";
+		ARGV[1] = "a=20";
+	}
+	else if (CASE == 3)
+	{
+		x = "hello world";
+		ARGV[1] = "a=20";
+	}
+	else if (CASE == 4)
+	{
+		qa = "hello world";
+		ARGV[1] = "a=20";
+	}
+	else if (CASE == 5)
+	{
+		ARGV[1] = "a=20";
+	}
+	else if (CASE == 6)
+	{
+		a = "hello world";
+		ARGV[1] = "a=20";
+	}
+	else if (CASE == 7)
+	{
+		ARGV[1] = "a=20";
+		ARGV[2] = "bb=30";
+	}
+	else if (CASE == 8)
+	{
+		ARGV[1] = "a=20";
+		ARGV[2] = "qqq=99";
+	}
+	else if (CASE == 9)
+	{
+		ARGV[1] = "ddd=44";
+	}
+	else if (CASE == 10)
+	{
+		ARGV[1] = "a=20";
+		ARGV[2] = "bb=30";
+		ARGV[3] = "ccc=40";
+	}
+	else if (CASE == 11)
+	{
+		ARGV[1] = "rrr=300";
+		ARGV[2] = "ttt=500";
+	}
+}
+
+{
+	if (CASE == 1)
+		print qqq, a, $1;
+	else if (CASE == 2)
+		print qqq, a, $1;
+	else if (CASE == 3)
+		print qqq, a, x, $1;
+	else if (CASE == 4)
+		print qqq, qa, a, $1;
+	else if (CASE == 5)
+		print qqq, rrr, sss, a, $1;
+	else if (CASE == 6)
+		print qqq, rrr, a, $1;
+	else if (CASE == 7)
+		print qqq, a, bb, $1;
+	else if (CASE == 8)
+		print qqq, a, $1;
+	else if (CASE == 9)
+		print a, bb, ccc, ddd, $1;
+	else if (CASE == 10)
+		print qqq, a, bb, ccc, $1;
+	else if (CASE == 11)
+		print qqq, rrr, sss, ttt, $1;
+
+	exit;
+}

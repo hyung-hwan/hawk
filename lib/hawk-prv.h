@@ -315,6 +315,9 @@ struct hawk_t
 		/* named variables */
 		hawk_htb_t* named;
 
+		/* parser-known named variables in slot order */
+		hawk_arr_t* nameds;
+
 		/* global variables */
 		hawk_arr_t* gbls;
 
@@ -438,6 +441,9 @@ struct hawk_rtx_t
 	HAWK_RTX_HDR;
 
 	hawk_htb_t* named;
+	hawk_val_t** named_slots;
+	hawk_oow_t named_slot_count;
+	hawk_oow_t named_slot_capa;
 
 	void** stack;
 	hawk_oow_t stack_top;
@@ -646,6 +652,7 @@ struct hawk_mod_data_t
 #define HAWK_RTX_STACK_LCL(rtx,n) HAWK_RTX_STACK_AT(rtx,3+(hawk_oow_t)HAWK_RTX_STACK_NARGS(rtx)+1+(n))
 #define HAWK_RTX_STACK_RETVAL(rtx) HAWK_RTX_STACK_AT(rtx,2)
 #define HAWK_RTX_STACK_GBL(rtx,n) ((rtx)->stack[(n)])
+#define HAWK_RTX_STACK_NAMED(rtx,n) ((rtx)->named_slots[(n)])
 #define HAWK_RTX_STACK_RETVAL_GBL(rtx) ((rtx)->stack[(rtx)->hawk->tree.ngbls+2])
 
 #define HAWK_RTX_STACK_AVAIL(rtx) ((rtx)->stack_limit - (rtx)->stack_top)
@@ -713,6 +720,7 @@ int hawk_init (hawk_t* hawk, hawk_mmgr_t* mmgr, hawk_cmgr_t* cmgr, const hawk_pr
 void hawk_fini (hawk_t* hawk);
 
 hawk_rbt_walk_t hawk_modtab_unload_module (hawk_rbt_t* rbt, hawk_rbt_pair_t* pair, void* ctx);
+int hawk_rtx_setnamedval (hawk_rtx_t* rtx, hawk_oow_t id, hawk_val_t* val);
 
 #if defined(__cplusplus)
 }

@@ -827,17 +827,20 @@ func (rtx *Rtx) SetFuncRetWithStr(v string) error {
 }
 
 func (rtx *Rtx) GetNamedVars(vars map[string]*Val) {
-	var tab *C.hawk_htb_t
-	var itr C.hawk_htb_itr_t
-	var pair *C.hawk_htb_pair_t
+	var itr C.hawk_rtx_nv_itr_t
+	var val *C.hawk_val_t
 	var k string
+	var err error
 
-	tab = C.hawk_rtx_getnvmap(rtx.c)
-	pair = C.hawk_htb_getfirstpair(tab, &itr)
-	for pair != nil {
-		k = string(uchars_to_rune_slice((*C.hawk_uch_t)(pair.key.ptr), uintptr(pair.key.len)))
-		vars[k], _ = rtx.make_val(func() *C.hawk_val_t { return (*C.hawk_val_t)(pair.val.ptr) })
-		pair = C.hawk_htb_getnextpair(tab, &itr)
+	C.hawk_init_rtx_nv_itr(&itr)
+	val = C.hawk_rtx_getfirstnv(rtx.c, &itr)
+	for val != nil {
+		k = string(uchars_to_rune_slice((*C.hawk_uch_t)(itr.name.ptr), uintptr(itr.name.len)))
+		vars[k], err = rtx.make_val(func() *C.hawk_val_t { return val })
+		if err != nil {
+			return
+		}
+		val = C.hawk_rtx_getnextnv(rtx.c, &itr)
 	}
 }
 

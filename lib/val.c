@@ -3206,6 +3206,14 @@ hawk_val_t* hawk_rtx_getrefval (hawk_rtx_t* rtx, hawk_val_ref_t* ref)
 			return HAWK_RTX_STACK_GBL(rtx, idx);
 		}
 
+		case HAWK_VAL_REF_NAMED:
+		{
+			hawk_oow_t idx;
+			idx = (hawk_oow_t)ref->adr;
+			HAWK_ASSERT(idx < rtx->named_slot_count);
+			return HAWK_RTX_STACK_NAMED(rtx, idx);
+		}
+
 		default:
 		{
 			hawk_val_t** xref = (hawk_val_t**)ref->adr;
@@ -3270,6 +3278,42 @@ int hawk_rtx_setrefval (hawk_rtx_t* rtx, hawk_val_ref_t* ref, hawk_val_t* val)
 		case HAWK_VAL_REF_GBL:
 			/* ref->adr is the index to the global variables, not a real pointer address for HAWK_VAL_REF_GBL */
 			return hawk_rtx_setgbl(rtx, (int)ref->adr, val);
+
+		case HAWK_VAL_REF_NAMED:
+		{
+			hawk_val_t* old;
+			hawk_val_type_t old_vtype;
+
+			HAWK_ASSERT((hawk_oow_t)ref->adr < rtx->named_slot_count);
+			old = HAWK_RTX_STACK_NAMED(rtx, (hawk_oow_t)ref->adr);
+			old_vtype = HAWK_RTX_GETVALTYPE(rtx, old);
+
+			if (vtype == HAWK_VAL_MAP || vtype == HAWK_VAL_ARR)
+			{
+				if (old_vtype != HAWK_VAL_NIL && old_vtype != vtype)
+				{
+					if (!(rtx->hawk->opt.trait & HAWK_FLEXMAP))
+					{
+						hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_ESCALARTONONSCA);
+						return -1;
+					}
+				}
+			}
+			else
+			{
+				if (old_vtype == HAWK_VAL_MAP || old_vtype == HAWK_VAL_ARR)
+				{
+					if (!(rtx->hawk->opt.trait & HAWK_FLEXMAP))
+					{
+						hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_ENONSCATOSCALAR);
+						return -1;
+					}
+				}
+			}
+
+			if (old != val) return hawk_rtx_setnamedval(rtx, (hawk_oow_t)ref->adr, val);
+			return 0;
+		}
 
 		case HAWK_VAL_REF_NAMEDIDX:
 		case HAWK_VAL_REF_GBLIDX:

@@ -1696,6 +1696,21 @@ typedef struct hawk_parsestd_t hawk_parsestd_t;
 
 /* ----------------------------------------------------------------------- */
 
+struct hawk_rtx_nv_itr_t
+{
+	/* you can access this */
+	hawk_oocs_t name;
+
+	/* private fields */
+	hawk_htb_itr_t parse_itr;
+	hawk_htb_itr_t runtime_itr;
+	hawk_oow_t slot_id;
+	int source;
+};
+typedef struct hawk_rtx_nv_itr_t hawk_rtx_nv_itr_t;
+
+/* ----------------------------------------------------------------------- */
+
 #if defined(__cplusplus)
 extern "C" {
 #endif
@@ -2894,7 +2909,7 @@ HAWK_EXPORT hawk_val_t* hawk_rtx_getarg (
 /**
  * The hawk_rtx_getsubsep() function returns the
  * pointer to the internal value of SUBSEP. It's a specialized
- * version of hawk_rtx_getgbl (rtx, HAWK_GBL_SUBSEP).
+ * version of hawk_rtx_getgbl(rtx, HAWK_GBL_SUBSEP).
  */
 HAWK_EXPORT const hawk_oocs_t* hawk_rtx_getsubsep (
 	hawk_rtx_t* rtx  /**< runtime context */
@@ -2911,7 +2926,7 @@ HAWK_EXPORT const hawk_oocs_t* hawk_rtx_getsubsep (
  */
 HAWK_EXPORT hawk_val_t* hawk_rtx_getgbl (
 	hawk_rtx_t* rtx, /**< runtime context */
-	int            id   /**< global variable ID */
+	int         id   /**< global variable ID */
 );
 
 /**
@@ -2995,12 +3010,30 @@ HAWK_EXPORT int hawk_rtx_setscriptnamewithbchars (
 #	define hawk_rtx_setscriptnamewithoochars hawk_rtx_setscriptnamewithbchars
 #endif
 
-/**
- * The hawk_rtx_getnvmap() gets the map of named variables
- */
-HAWK_EXPORT hawk_htb_t* hawk_rtx_getnvmap (
-	hawk_rtx_t* rtx /**< runtime context */
+HAWK_EXPORT void hawk_init_rtx_nv_itr (
+	hawk_rtx_nv_itr_t* itr
 );
+
+HAWK_EXPORT hawk_val_t* hawk_rtx_getfirstnv (
+	hawk_rtx_t*        rtx,
+	hawk_rtx_nv_itr_t* itr
+);
+
+HAWK_EXPORT hawk_val_t* hawk_rtx_getnextnv (
+	hawk_rtx_t*        rtx,
+	hawk_rtx_nv_itr_t* itr
+);
+
+HAWK_EXPORT hawk_val_t* hawk_rtx_findnvbyucstr (
+	hawk_rtx_t*       rtx,
+	const hawk_uch_t* name
+);
+
+HAWK_EXPORT hawk_val_t* hawk_rtx_findnvbybcstr (
+	hawk_rtx_t*       rtx,
+	const hawk_bch_t* name
+);
+
 
 /**
  * The hawk_rtx_geterrnum() function gets the number of the last error
