@@ -95,6 +95,35 @@ func dprint_return(rtx *hawk.Rtx, retv *hawk.Val) {
 	fmt.Fprintf(os.Stderr, "[END OF NAMED VARIABLES]\n")
 }
 
+func print_hawk_error(h *hawk.Hawk) {
+	var err *hawk.Err
+
+	err = h.GetErrInfo()
+	print_hawk_errinfo(err)
+}
+
+func print_hawk_rtx_error(rtx *hawk.Rtx) {
+	var err *hawk.Err
+
+	err = rtx.GetErrInfo()
+	print_hawk_errinfo(err)
+}
+
+func print_hawk_errinfo(err *hawk.Err) {
+	if err == nil {
+		fmt.Fprintf(os.Stderr, "ERROR: unknown error\n")
+		return
+	}
+
+	if err.File != "" {
+		fmt.Fprintf(os.Stderr, "ERROR: Line %d Column %d Code %d File %s - %s\n",
+			err.Line, err.Colm, err.Num, err.File, err.Msg)
+	} else {
+		fmt.Fprintf(os.Stderr, "ERROR: Line %d Column %d Code %d - %s\n",
+			err.Line, err.Colm, err.Num, err.Msg)
+	}
+}
+
 func parse_args_to_config(cfg *Config) bool {
 	//var flgs *flag.FlagSet
 	var flgs *FlagSet
@@ -310,7 +339,7 @@ func run_script(h *hawk.Hawk, fs_idx int, data_idx int, cfg *Config, rtx_chan ch
 			retv, err = rtx.Exec(cfg.data_in_files)
 		}
 		if err != nil {
-			err = fmt.Errorf("failed to run - %s", err.Error())
+			err = rtx.GetErrInfo()
 			goto oops
 		}
 
@@ -448,7 +477,7 @@ func main() {
 		err = h.ParseText(cfg.srcstr)
 	}
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "ERROR: failed to parse - %s\n", err.Error())
+		print_hawk_error(h)
 		goto oops
 	}
 
@@ -470,7 +499,12 @@ func main() {
 				defer wg.Done()
 				err = run_script(h, fs_idx, idx, &cfg, rtx_chan, sig_chan)
 				if err != nil {
-					fmt.Fprintf(os.Stderr, "ERROR: [%d]%s\n", idx, err.Error())
+					if herr, ok := err.(*hawk.Err); ok {
+						fmt.Fprintf(os.Stderr, "[%d] ", idx)
+						print_hawk_errinfo(herr)
+					} else {
+						fmt.Fprintf(os.Stderr, "ERROR: [%d]%s\n", idx, err.Error())
+					}
 				}
 			}(i)
 		}
@@ -478,7 +512,11 @@ func main() {
 	} else {
 		err = run_script(h, fs_idx, -1, &cfg, rtx_chan, sig_chan)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "ERROR: %s\n", err.Error())
+			if herr, ok := err.(*hawk.Err); ok {
+				print_hawk_errinfo(herr)
+			} else {
+				fmt.Fprintf(os.Stderr, "ERROR: %s\n", err.Error())
+			}
 			goto oops
 		}
 	}

@@ -33,6 +33,7 @@ EXTRA_DIST = $(check_SCRIPTS) $(check_ERRORS) tap.inc err.sh \
 	fs-test.hawk fs-test.in fs-test.out \
 	JSON.awk.in JSON.awk.out \
 	h-024-child.hawk h-024.in \
+	run-hawk-test.sh \
 	two-way-pipe.hawk two-way-pipe.out
 
 check_PROGRAMS = t-001 t-002 t-003 t-004 t-005 t-006 t-007 t-008 t-009
@@ -108,18 +109,27 @@ TEST_EXTENSIONS = .hawk .err .sh
 # override these from environment when needed.
 # e.g.
 #   make check HAWK_TEST_COMPILER=../samples/hawk51 HAWK_CHECK_OPTS=
+#   make check VALGRIND=1
 HAWK_TEST_COMPILER ?= ../bin/hawk
 HAWK_TEST_MODLIBDIRS_OPT ?= --modlibdirs=../lib/.libs:../mod/.libs
 HAWK_CHECK_OPTS ?=
+VALGRIND ?= 0
+VALGRIND_CMD ?= valgrind
+VALGRIND_FLAGS ?= --leak-check=full --show-leak-kinds=all --errors-for-leak-kinds=all --error-exitcode=99 --num-callers=20
 
 HAWK_LOG_DRIVER = $(LOG_DRIVER)
-HAWK_LOG_COMPILER = $(HAWK_TEST_COMPILER)
+HAWK_LOG_COMPILER = env \
+	VALGRIND='$(VALGRIND)' \
+	VALGRIND_CMD='$(VALGRIND_CMD)' \
+	VALGRIND_FLAGS='$(VALGRIND_FLAGS)' \
+	HAWK_TEST_COMPILER='$(HAWK_TEST_COMPILER)' \
+	$(SHELL) $(abs_srcdir)/run-hawk-test.sh
 AM_HAWK_LOG_FLAGS = -vTDIR=${abs_srcdir} $(HAWK_TEST_MODLIBDIRS_OPT) $(HAWK_CHECK_OPTS) -f
 
 ERR_LOG_DRIVER = $(SHELL) $(top_srcdir)/ac/test-driver
-ERR_LOG_COMPILER = $(SHELL) $(abs_srcdir)/err.sh ../bin/hawk -vTDIR=${abs_srcdir} --modlibdirs=../lib/.libs:../mod/.libs -f
+ERR_LOG_COMPILER = $(SHELL) $(abs_srcdir)/err.sh $(HAWK_TEST_COMPILER) -vTDIR=${abs_srcdir} $(HAWK_TEST_MODLIBDIRS_OPT) -f
 AM_ERR_LOG_FLAGS =
 
 SH_LOG_DRIVER = $(LOG_DRIVER)
-SH_LOG_COMPILER = env HAWK_BIN=$(HAWK_TEST_COMPILER) $(SHELL)
+SH_LOG_COMPILER = env HAWK_BIN='$(HAWK_TEST_COMPILER)' $(SHELL)
 AM_SH_LOG_FLAGS =

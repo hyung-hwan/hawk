@@ -188,6 +188,7 @@ import "unsafe"
 type Func func(rtx *Rtx) error
 
 type Err struct {
+	Num uint
 	Line uint
 	Colm uint
 	File string
@@ -319,6 +320,7 @@ func (hawk *Hawk) make_errinfo() *Err {
 	var loc *C.hawk_loc_t
 	var err Err
 
+	err.Num = uint(C.hawk_geterrnum(hawk.c))
 	err.Msg = hawk.get_errmsg()
 
 	loc = C.hawk_geterrloc(hawk.c)
@@ -330,6 +332,10 @@ func (hawk *Hawk) make_errinfo() *Err {
 		}
 	}
 	return &err
+}
+
+func (hawk *Hawk) GetErrInfo() *Err {
+	return hawk.make_errinfo()
 }
 
 func (hawk *Hawk) GetTrait() BitMask {
@@ -629,6 +635,7 @@ func (rtx *Rtx) make_errinfo() *Err {
 	var loc *C.hawk_loc_t
 	var err Err
 
+	err.Num = uint(C.hawk_rtx_geterrnum(rtx.c))
 	err.Msg = rtx.get_errmsg()
 
 	loc = C.hawk_rtx_geterrloc(rtx.c)
@@ -640,6 +647,10 @@ func (rtx *Rtx) make_errinfo() *Err {
 		}
 	}
 	return &err
+}
+
+func (rtx *Rtx) GetErrInfo() *Err {
+	return rtx.make_errinfo()
 }
 
 func (rtx *Rtx) SetGlobal(idx int, val *Val) error {

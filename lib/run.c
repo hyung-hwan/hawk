@@ -1600,19 +1600,20 @@ static void fini_rtx (hawk_rtx_t* rtx, int fini_globals)
 	{
 		hawk_oow_t i;
 
-		/* decrement refrence count of all names variable values */
+		/* refdown all named variables */
 		for (i = 0; i < rtx->named_slot_count; i++)
 		{
 			HAWK_ASSERT(
 				!HAWK_VTR_IS_POINTER(rtx->named_slots[i]) ||
 				HAWK_IS_STATICVAL(rtx->named_slots[i]) ||
 				rtx->named_slots[i]->v_refs == 1);
-			hawk_rtx_refdownval_inline(rtx, rtx->named_slots[i]);
+			hawk_rtx_refdownval_inline(rtx, rtx->named_slots[i]); /* TODO: it is better to disable caching? */
 		}
 
 		hawk_rtx_freemem(rtx, rtx->named_slots);
 		rtx->named_slots = HAWK_NULL;
 		rtx->named_slot_count = 0;
+		rtx->named_slot_capa = 0;
 	}
 
 #if defined(HAWK_ENABLE_GC)
