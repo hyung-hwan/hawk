@@ -1675,6 +1675,7 @@ static hawk_nde_t* parse_function (hawk_t* hawk, int named)
 	hawk_oow_t argspeclen = 0;
 	hawk_oow_t nargs, g;
 	int variadic = 0;
+	int has_ref_arg = 0;
 	hawk_htb_pair_t* pair;
 	hawk_loc_t xloc;
 	int rederr;
@@ -1810,6 +1811,7 @@ static hawk_nde_t* parse_function (hawk_t* hawk, int named)
 				}
 				argspec[nargs] = 'r';
 				if (get_token(hawk) <= -1) goto oops;
+				has_ref_arg = 1;
 			}
 
 			if (!MATCH(hawk,TOK_IDENT))
@@ -1956,6 +1958,7 @@ static hawk_nde_t* parse_function (hawk_t* hawk, int named)
 	fun->name.len = 0;
 	fun->nargs = nargs;
 	fun->variadic = variadic;
+	fun->hasrefarg = has_ref_arg;
 	fun->argspec = argspec;
 	fun->argspeclen = argspeclen;
 	fun->body = (hawk_nde_t*)body;

@@ -8146,59 +8146,70 @@ hawk_val_t* hawk_rtx_evalcall (
 			hawk_oow_t prev_stack_base = (hawk_oow_t)rtx->stack[rtx->stack_base + 0];
 			hawk_nde_t* p = call->args;
 
-			for (; i < call->nargs; i++)
+			if (fun->hasrefarg) /* just for optimization */
 			{
-				if (n >= 0 && i < fun->argspeclen && (fun->argspec[i] == 'r' || fun->argspec[i] == 'R'))
+				for (; i < call->nargs; i++)
 				{
-					/* if the function call is successful, update the call-by-reference arguments
-					 * with hawk_rtx_setrefval() */
-
-					hawk_val_t** ref;
-					hawk_val_ref_t refv;
-					hawk_val_t* av;
-					int r;
-
-					av = HAWK_RTX_STACK_ARG(rtx, i);
-					if (HAWK_RTX_GETVALTYPE(rtx, av) == HAWK_VAL_REF)
+					if (n >= 0 && i < fun->argspeclen && (fun->argspec[i] == 'r' || fun->argspec[i] == 'R'))
 					{
-						/* the argument still has the reference type.
-						 * this means, the argument has not been set.
-						 *
-						 *   function f1(&a, &b) { b = 20 }
-						 *
-						 * since a is not set in f1, the value for a is still the pushed value which is a reference
-						 */
+						/* if the function call is successful, update the call-by-reference arguments
+						 * with hawk_rtx_setrefval() */
 
-						/* ---- DO NOTHING ---- */
-					}
-					else
-					{
-						/* if an argument passed is a local variable or a parameter to the previous caller,
-						 * the argument node information stored is relative to the previous stack frame.
-						 * i revert rtx->stack_base to the previous stack frame base before calling
-						 * get_reference() and restors it back to the current base. this tactic
-						 * is very ugly because the assumption for this is dependent on get_reference()
-						 * implementation */
-						rtx->stack_base = prev_stack_base; /* UGLY */
-						r = get_reference(rtx, p, &ref);
-						rtx->stack_base = cur_stack_base; /* UGLY */
+						hawk_val_t** ref;
+						hawk_val_ref_t refv;
+						hawk_val_t* av;
+						int r;
 
-						/* if argspec is 'r', get_reference() must succeed all the time.
-						 * if argspec is 'R', it may fail. if it happens, don't copy the value */
-						if (HAWK_LIKELY(r >= 0))
+						av = HAWK_RTX_STACK_ARG(rtx, i);
+						if (HAWK_RTX_GETVALTYPE(rtx, av) == HAWK_VAL_REF)
 						{
-							HAWK_RTX_INIT_REF_VAL(&refv, p->type - HAWK_NDE_NAMED, ref, 9); /* initialize a fake reference variable. 9 chosen randomly */
-							if (HAWK_UNLIKELY(hawk_rtx_setrefval(rtx, &refv, av) <= -1))
+						/* the argument still has the reference type.
+								 * this means, the argument has not been set.
+							 *
+							 *   function f1(&a, &b) { b = 20 }
+							 *
+							 * since a is not set in f1, the value for a is still the pushed value which is a reference
+							 */
+
+							/* ---- DO NOTHING ---- */
+						}
+						else
+						{
+							/* if an argument passed is a local variable or a parameter to the previous caller,
+							 * the argument node information stored is relative to the previous stack frame.
+							 * i revert rtx->stack_base to the previous stack frame base before calling
+							 * get_reference() and restors it back to the current base. this tactic
+							 * is very ugly because the assumption for this is dependent on get_reference()
+							 * implementation */
+							rtx->stack_base = prev_stack_base; /* UGLY */
+							r = get_reference(rtx, p, &ref);
+							rtx->stack_base = cur_stack_base; /* UGLY */
+
+							/* if argspec is 'r', get_reference() must succeed all the time.
+							 * if argspec is 'R', it may fail. if it happens, don't copy the value */
+							if (HAWK_LIKELY(r >= 0))
 							{
-								n = -1;
-								ADJERR_LOC(rtx, &call->loc);
+								HAWK_RTX_INIT_REF_VAL(&refv, p->type - HAWK_NDE_NAMED, ref, 9); /* initialize a fake reference variable. 9 chosen randomly */
+								if (HAWK_UNLIKELY(hawk_rtx_setrefval(rtx, &refv, av) <= -1))
+								{
+									n = -1;
+									ADJERR_LOC(rtx, &call->loc);
+								}
 							}
 						}
 					}
-				}
 
-				hawk_rtx_refdownval_inline(rtx, HAWK_RTX_STACK_ARG(rtx,i));
-				p = p->next;
+					hawk_rtx_refdownval_inline(rtx, HAWK_RTX_STACK_ARG(rtx,i));
+					p = p->next;
+				}
+			}
+			else
+			{
+				for (; i < call->nargs; i++)
+				{
+					hawk_rtx_refdownval_inline(rtx, HAWK_RTX_STACK_ARG(rtx,i));
+					p = p->next;
+				}
 			}
 		}
 		else if (call->arg_base > 0) /* special case. set by hawk::call() */
@@ -8215,33 +8226,43 @@ hawk_val_t* hawk_rtx_evalcall (
 			 *  f1(1, 2) is an error as 2 is not referenceable.
 			 *  hawk::call(r, "f1", 1, 2) is not an error but can't capture changes made inside f1.
 			 */
-			for (; i < call->nargs; i++)
+			if (fun->hasrefarg) /* just for optimization */
 			{
-				if (n >= 0 && (fun->argspec[i] == 'r' || fun->argspec[i] == 'R'))
+				for (; i < call->nargs; i++)
 				{
-					hawk_val_t* v, * av;
+					if (n >= 0 && i < fun->argspeclen && (fun->argspec[i] == 'r' || fun->argspec[i] == 'R'))
+					{
+						hawk_val_t* v, * av;
 
-					av = HAWK_RTX_STACK_ARG(rtx, i);
-					if (HAWK_RTX_GETVALTYPE(rtx, av) == HAWK_VAL_REF)
-					{
-						/* ---- DO NOTHING ---- */
-					}
-					else
-					{
-						/* original arguments are in another stack frame */
-						v = rtx->stack[call->arg_base + i]; /* UGLY */
-						if (HAWK_RTX_GETVALTYPE(rtx, v) == HAWK_VAL_REF)
+						av = HAWK_RTX_STACK_ARG(rtx, i);
+						if (HAWK_RTX_GETVALTYPE(rtx, av) == HAWK_VAL_REF)
 						{
-							if (HAWK_UNLIKELY(hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)v, av) <= -1))
+							/* ---- DO NOTHING ---- */
+						}
+						else
+						{
+							/* original arguments are in another stack frame */
+							v = rtx->stack[call->arg_base + i]; /* UGLY */
+							if (HAWK_RTX_GETVALTYPE(rtx, v) == HAWK_VAL_REF)
 							{
-								n = -1;
-								ADJERR_LOC(rtx, &call->loc);
+								if (HAWK_UNLIKELY(hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)v, av) <= -1))
+								{
+									n = -1;
+									ADJERR_LOC(rtx, &call->loc);
+								}
 							}
 						}
 					}
-				}
 
-				hawk_rtx_refdownval_inline(rtx, HAWK_RTX_STACK_ARG(rtx,i));
+					hawk_rtx_refdownval_inline(rtx, HAWK_RTX_STACK_ARG(rtx,i));
+				}
+			}
+			else
+			{
+				for (; i < call->nargs; i++)
+				{
+					hawk_rtx_refdownval_inline(rtx, HAWK_RTX_STACK_ARG(rtx,i));
+				}
 			}
 		}
 	}
