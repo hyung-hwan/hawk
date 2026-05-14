@@ -120,9 +120,11 @@
 #	undef HAWK_HAVE_INLINE
 #endif
 
-#if defined(__has_attribute) && __has_attribute(always_inline)
-#	define HAWK_INLINE_ALWAYS __inline__ __attribute__((always_inline))
-#	define HAWK_HAVE_INLINE_ALWAYS
+#if defined(__has_attribute)
+#	if __has_attribute(always_inline)
+#		define HAWK_INLINE_ALWAYS __inline__ __attribute__((always_inline))
+#		define HAWK_HAVE_INLINE_ALWAYS
+#	endif
 #endif
 
 #if !defined(HAWK_HAVE_INLINE_ALWAYS)
@@ -508,7 +510,7 @@ typedef unsigned char           hawk_bchu_t; /* unsigned version of hawk_bch_t f
 #define HAWK_SIZEOF_BCI_T HAWK_SIZEOF_INT
 
 /* You may specify -DHAWK_USE_CXX_CHAR16_T in CXXFLAGS to force char16_t with c++. */
-#if (defined(__cplusplus) && (defined(HAWK_USE_CXX_CHAR16_T) || (__cplusplus >= 201103L) || (defined(_MSC_VER) && _MSC_VER >= 1900))) /* user chosen or C++11 or later */
+#if defined(__cplusplus) && (defined(HAWK_USE_CXX_CHAR16_T) || (__cplusplus >= 201103L) || (defined(_MSC_VER) && _MSC_VER >= 1900)) /* user chosen or C++11 or later */
 #	if defined(HAWK_WIDE_CHAR_SIZE) && (HAWK_WIDE_CHAR_SIZE == 4)
 		typedef char32_t           hawk_uch_t;  /* char32_t is an unsigned integer type used for 32-bit wide characters */
 		typedef char32_t           hawk_uchu_t; /* same as hawk_uch_t as it is already unsigned */
@@ -525,8 +527,8 @@ typedef unsigned char           hawk_bchu_t; /* unsigned version of hawk_bch_t f
 	typedef hawk_uint32_t     hawk_uchu_t;
 #	define HAWK_SIZEOF_UCH_T 4
 
-	// if this assertion becomes false, you must check if the size of the wchar_t type is the same as the size used
-	// for this library.
+	/* if this assertion becomes false, you must check if the size of the wchar_t type is the same as the size used
+	 * for this library. */
 	HAWK_STATIC_ASSERT (HAWK_WIDE_CHAR_SIZE == sizeof(hawk_uch_t));
 
 #elif defined(__cplusplus) && defined(HAWK_WIDE_CHAR_SIZE) && (HAWK_WIDE_CHAR_SIZE == 2) && (HAWK_WIDE_CHAR_SIZE == HAWK_SIZEOF_WCHAR_T)
@@ -534,16 +536,22 @@ typedef unsigned char           hawk_bchu_t; /* unsigned version of hawk_bch_t f
 	typedef hawk_uint16_t     hawk_uchu_t;
 #	define HAWK_SIZEOF_UCH_T 2
 
-	// if the library is compiled with 2-byte wchar_t, and the library user compiles a program with 4-byte wchar_t,
-	// there will be size disparity issue on the hawk_uch_t type.
-	// if this assertion becomes false, you must check if the size of the wchar_t type is the same as the size used
-	// for this library.
-	//   gcc/g++/clang/clang++: -fshort-wchar makes wchar_t to 2 bytes.
+	/* if the library is compiled with 2-byte wchar_t, and the library user compiles a program with 4-byte wchar_t,
+	 * there will be size disparity issue on the hawk_uch_t type.
+	 * if this assertion becomes false, you must check if the size of the wchar_t type is the same as the size used
+	 * for this library.
+	 *   gcc/g++/clang/clang++: -fshort-wchar makes wchar_t to 2 bytes. */
 	HAWK_STATIC_ASSERT (HAWK_WIDE_CHAR_SIZE == sizeof(hawk_uch_t));
 
 #elif defined(HAWK_WIDE_CHAR_SIZE) && (HAWK_WIDE_CHAR_SIZE == 4) && (HAWK_WIDE_CHAR_SIZE == HAWK_SIZEOF_WCHAR_T) && defined(__WCHAR_TYPE__) && defined(HAWK_PREFER_PREFIX_L)
 	typedef __WCHAR_TYPE__     hawk_uch_t;
 	typedef hawk_uint32_t      hawk_uchu_t;
+#	define HAWK_SIZEOF_UCH_T 4
+
+#elif defined(HAWK_WIDE_CHAR_SIZE) && (HAWK_WIDE_CHAR_SIZE == 4) && (HAWK_WIDE_CHAR_SIZE == HAWK_SIZEOF_WCHAR_T) && defined(HAWK_PREFER_PREFIX_L) && defined(_SCO_DS)
+	/* to handle the picky old sco cc */
+	typedef long          hawk_uch_t;
+	typedef hawk_uint32_t hawk_uchu_t;
 #	define HAWK_SIZEOF_UCH_T 4
 
 #elif defined(HAWK_WIDE_CHAR_SIZE) && (HAWK_WIDE_CHAR_SIZE == 4) && defined(__CHAR32_TYPE__) && defined(HAWK_HAVE_PREFIX_BIG_U)

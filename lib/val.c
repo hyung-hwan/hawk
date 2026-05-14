@@ -3043,7 +3043,7 @@ hawk_fnc_t* hawk_rtx_valtofnc (hawk_rtx_t* rtx, hawk_val_t* v, hawk_fnc_t* rfnc)
 static HAWK_INLINE hawk_uint_t hash (hawk_uint8_t* ptr, hawk_oow_t len)
 {
 	hawk_uint_t h;
-	HAWK_HASH_BYTES (h, ptr, len);
+	HAWK_HASH_BYTES(h, ptr, len);
 	return h;
 }
 
@@ -3111,7 +3111,7 @@ hawk_int_t hawk_rtx_hashval (hawk_rtx_t* rtx, hawk_val_t* v)
 		case HAWK_VAL_BOB:
 		{
 			hawk_val_bob_t* dv = (hawk_val_bob_t*)v;
-			hv = (hawk_int_t)hash((hawk_uint8_t*)dv->val.ptr, dv->val.len * HAWK_SIZEOF(*dv->val.ptr));
+			hv = (hawk_int_t)hash((hawk_uint8_t*)dv->val.ptr, dv->val.len);
 			break;
 		}
 

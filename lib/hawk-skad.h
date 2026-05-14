@@ -103,6 +103,23 @@ struct HAWK_PACKED hawk_ip6ad_t
 typedef struct hawk_ip6ad_t hawk_ip6ad_t;
 #include <hawk-upac.h>
 
+
+#if defined(HAWK_SIZEOF_SOCKLEN_T) && (HAWK_SIZEOF_SOCKLEN_T == HAWK_SIZEOF_INT)
+#	if defined(HAWK_SOCKLEN_T_IS_SIGNED)
+		typedef int hawk_sklen_t;
+#	else
+		typedef unsigned int hawk_sklen_t;
+#	endif
+#elif defined(HAWK_SIZEOF_SOCKLEN_T) && (HAWK_SIZEOF_SOCKLEN_T == HAWK_SIZEOF_LONG)
+#	if defined(HAWK_SOCKLEN_T_IS_SIGNED)
+		typedef long hawk_sklen_t;
+#	else
+		typedef unsigned long hawk_sklen_t;
+#	endif
+#else
+	typedef int hawk_sklen_t;
+#endif
+
 #if defined(__cplusplus)
 extern "C" {
 #endif

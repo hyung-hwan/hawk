@@ -290,6 +290,10 @@ int hawk_main_expand_wildcard (int argc, hawk_bch_t* argv[], int do_glob, hawk_m
 
 /* -------------------------------------------------------- */
 
+#if !defined(HAWK_PATH_MAX)
+#define HAWK_PATH_MAX (4096)
+#endif
+
 int hawk_main_load_lang (hawk_pocat_t* pc, const char* basedir, const char* subbasedir, const char* prefix, const char* suffix, const char* locale)
 {
 	char path[HAWK_PATH_MAX];

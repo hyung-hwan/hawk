@@ -29,6 +29,7 @@ typedef struct xtn_t xtn_t;
 struct xtn_t
 {
 	/* empty. nothing at the moment */
+	int reserved_;
 };
 
 #if defined(HAWK_HAVE_INLINE)

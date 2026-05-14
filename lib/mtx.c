@@ -25,8 +25,6 @@
 #include <hawk-mtx.h>
 #include "hawk-prv.h"
 
-#if (!defined(__unix__) && !defined(__unix)) || defined(HAVE_PTHREAD)
-
 #if defined(_WIN32)
 #	include <windows.h>
 #	include <process.h>
@@ -40,7 +38,7 @@
 #elif defined(__DOS__)
 	/* implement this */
 
-#else
+#elif defined(HAVE_PTHREAD)
 #	if !defined(_GNU_SOURCE)
 #		define _GNU_SOURCE
 #	endif
@@ -113,7 +111,8 @@ int hawk_mtx_init (hawk_mtx_t* mtx, hawk_gem_t* gem, int flags)
 
 #elif defined(__DOS__)
 	/* nothing to implement */
-#else
+
+#elif defined(HAVE_PTHREAD)
 
 	#if (HAWK_SIZEOF_PTHREAD_MUTEX_T <= 0)
 		/* nothing to initialize as there is no actual mutex support */
@@ -153,7 +152,7 @@ void hawk_mtx_fini (hawk_mtx_t* mtx)
 #elif defined(__DOS__)
 	/* nothing to destroy as there is no mutex support */
 
-#else
+#elif defined(HAVE_PTHREAD)
 	#if (HAWK_SIZEOF_PTHREAD_MUTEX_T <= 0)
 	/* nothing to destroy as there is no actual mutex support */
 	#else
@@ -293,7 +292,7 @@ int hawk_mtx_lock (hawk_mtx_t* mtx, const hawk_ntime_t* waiting_time)
 
 	/* nothing to do */
 
-#else
+#elif defined(HAVE_PTHREAD)
 	#if (HAWK_SIZEOF_PTHREAD_MUTEX_T <= 0)
 		/* nothing to do as there is no actual mutex support */
 	#else
@@ -390,7 +389,7 @@ int hawk_mtx_unlock (hawk_mtx_t* mtx)
 
 	/* nothing to do */
 
-#else
+#elif defined(HAVE_PTHREAD)
 	#if (HAWK_SIZEOF_PTHREAD_MUTEX_T <= 0)
 		/* nothing to do as there is no actual mutex support */
 	#else
@@ -486,7 +485,7 @@ int hawk_mtx_trylock (hawk_mtx_t* mtx)
 #elif defined(__DOS__)
 	/* nothing to do */
 
-#else
+#elif defined(HAVE_PTHREAD)
 
 	#if (HAWK_SIZEOF_PTHREAD_MUTEX_T <= 0)
 		/* nothing to do as there is no actual mutex support */
@@ -517,5 +516,3 @@ int hawk_mtx_trylock (hawk_mtx_t* mtx)
 #endif
 	return 0;
 }
-
-#endif

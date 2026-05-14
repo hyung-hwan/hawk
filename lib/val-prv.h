@@ -71,8 +71,11 @@ struct hawk_val_rchunk_t
 
 #define HAWK_IS_STATICVAL(val) ((val) == HAWK_NULL || (val) == hawk_val_nil || (val) == hawk_val_zls || (val) == hawk_val_zlbs)
 */
-#define HAWK_IS_STATICVAL(val) ((val)->v_static)
-
+#if defined(HAWK_HAVE_INLINE)
+static HAWK_INLINE_ALWAYS int HAWK_IS_STATICVAL (const hawk_val_t* val) { return val->v_static; }
+#else
+#define HAWK_IS_STATICVAL(val) (((hawk_val_t*)(val))->v_static)
+#endif
 
 /* hawk_val_t pointer encoding assumes the pointer is an even number.
  * i shift an integer within a certain range and set bit 0 to 1 to
@@ -254,8 +257,8 @@ static HAWK_INLINE_ALWAYS void hawk_rtx_refdownval_inline (hawk_rtx_t* rtx, hawk
 #define hawk_rtx_refdownval_inline(rtx, val) do { \
 	if (HAWK_VTR_IS_POINTER(val) && !HAWK_IS_STATICVAL(val)) \
 	{ \
-		HAWK_ASSERT(val->v_refs > 0); \
-		if (HAWK_ATOMIC_FETCH_SUB(&(val)->v_refs, 1, HAWK_ATOMIC_RELAXED) == 1) \
+		HAWK_ASSERT(((hawk_val_t*)(val))->v_refs > 0); \
+		if (HAWK_ATOMIC_FETCH_SUB(&((hawk_val_t*)(val))->v_refs, 1, HAWK_ATOMIC_RELAXED) == 1) \
 			hawk_rtx_freeval(rtx, val, HAWK_RTX_FREEVAL_CACHE); \
 	} \
 } while(0)
@@ -263,9 +266,9 @@ static HAWK_INLINE_ALWAYS void hawk_rtx_refdownval_inline (hawk_rtx_t* rtx, hawk
 #define hawk_rtx_refdownval_inline(rtx, val) do { \
 	if (HAWK_VTR_IS_POINTER(val) && !HAWK_IS_STATICVAL(val)) \
 	{ \
-		HAWK_ASSERT(val->v_refs > 0); \
-		(val)->v_refs--; \
-		if ((val)->v_refs <= 0) hawk_rtx_freeval(rtx, val, HAWK_RTX_FREEVAL_CACHE); \
+		HAWK_ASSERT(((hawk_val_t*)(val))->v_refs > 0); \
+		((hawk_val_t*)(val))->v_refs--; \
+		if (((hawk_val_t*)(val))->v_refs <= 0) hawk_rtx_freeval(rtx, val, HAWK_RTX_FREEVAL_CACHE); \
 	} \
 } while(0)
 #endif
@@ -287,21 +290,19 @@ static HAWK_INLINE_ALWAYS void hawk_rtx_refdownval_nofree_inline (hawk_rtx_t* rt
 #define hawk_rtx_refdownval_nofree_inline(rtx, val) do { \
 	if (HAWK_VTR_IS_POINTER(val) && !HAWK_IS_STATICVAL(val)) \
 	{ \
-		HAWK_ASSERT(val->v_refs > 0); \
-		HAWK_ATOMIC_FETCH_SUB(&(val)->v_refs, 1, HAWK_ATOMIC_RELAXED);
+		HAWK_ASSERT(((hawk_val_t*)(val))->v_refs > 0); \
+		HAWK_ATOMIC_FETCH_SUB(&((hawk_val_t*)(val))->v_refs, 1, HAWK_ATOMIC_RELAXED);
 	} \
 } while(0)
 #else
 #define hawk_rtx_refdownval_nofree_inline(rtx, val) do { \
 	if (HAWK_VTR_IS_POINTER(val) && !HAWK_IS_STATICVAL(val)) \
 	{ \
-		HAWK_ASSERT(val->v_refs > 0); \
-		(val)->v_refs--; \
+		HAWK_ASSERT(((hawk_val_t*)(val))->v_refs > 0); \
+		((hawk_val_t*)(val))->v_refs--; \
 	} \
 } while(0)
 #endif
-
-
 
 #if defined(HAWK_HAVE_INLINE)
 static HAWK_INLINE int hawk_rtx_valtoint_inline (hawk_rtx_t* rtx, const hawk_val_t* v, hawk_int_t* l)

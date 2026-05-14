@@ -716,7 +716,7 @@ static int get_ifcfg (hawk_gem_t* gem, int s, hawk_ifcfg_t* cfg, struct ifreq* i
 		int strfd;
 		hawk_bch_t devname[HAWK_COUNTOF(ifr->ifr_name) + 5 + 1];
 
-		hawk_copy_bcstr_unlimited(devname, HAWK_MT("/dev/"));
+		hawk_copy_bcstr_unlimited(devname, HAWK_BT("/dev/"));
 		hawk_copy_bcstr_unlimited(&devname[5], ifr->ifr_name);
 		if ((strfd = HAWK_OPEN(devname, O_RDONLY, 0)) >= 0)
 		{

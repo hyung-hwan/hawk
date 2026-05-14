@@ -732,6 +732,8 @@ LANGDIR
 ENABLE_WIDE_CHAR_FALSE
 ENABLE_WIDE_CHAR_TRUE
 LIBM
+SCODS_FALSE
+SCODS_TRUE
 MACOSX_FALSE
 MACOSX_TRUE
 WIN32_FALSE
@@ -21252,14 +21254,22 @@ case "$host" in
 	#CFLAGS="$CFLAGS -D_WIN32_WINNT=0x0400"
 	platform_win32=yes
 	platform_macosx=no
+	platform_scods=no
 	;;
 *-*-darwin*)
 	platform_win32=no
 	platform_macosx=yes
+	platform_scods=no
+	;;
+*-*-sco3.2v*)
+	platform_win32=no
+	platform_macosx=no
+	platform_scods=yes
 	;;
 *)
 	platform_win32=no
 	platform_macosx=no
+	platform_scods=no
 	;;
 esac
  if test "x${platform_win32}" = "xyes" ; then
@@ -21276,6 +21286,14 @@ fi
 else
   MACOSX_TRUE='#'
   MACOSX_FALSE=
+fi
+
+ if test "x${platform_scods}" = "xyes" ; then
+  SCODS_TRUE=
+  SCODS_FALSE='#'
+else
+  SCODS_TRUE='#'
+  SCODS_FALSE=
 fi
 
 
@@ -21448,7 +21466,7 @@ else case e in #(
 esac
 fi
 
-if test "${enable_wide_char}" = "yes:4" -o "${enable_wide_char}" = "yes:4w"
+if test "${enable_wide_char}" = "yes:4" -o "${enable_wide_char}" = "yes:4w" -o \( "${enable_wide_char}" = "yes" -a "${platform_scods}" = "yes" \)
 then
 
 printf "%s\n" "#define HAWK_WIDE_CHAR_SIZE 4" >>confdefs.h
@@ -21467,7 +21485,7 @@ printf "%s\n" "#define HAWK_ENABLE_WIDE_CHAR 1" >>confdefs.h
 		CFLAGS="$CFLAGS -fno-short-wchar"
 		CXXFLAGS="$CXXFLAGS -fno-short-wchar"
 	fi
-	if test "${enable_wide_char}" = "yes:4w"
+	if test "${enable_wide_char}" != "yes:4"
 	then
 
 printf "%s\n" "#define HAWK_PREFER_PREFIX_L 1" >>confdefs.h
@@ -29641,6 +29659,10 @@ Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${MACOSX_TRUE}" && test -z "${MACOSX_FALSE}"; then
   as_fn_error $? "conditional \"MACOSX\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${SCODS_TRUE}" && test -z "${SCODS_FALSE}"; then
+  as_fn_error $? "conditional \"SCODS\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${ENABLE_WIDE_CHAR_TRUE}" && test -z "${ENABLE_WIDE_CHAR_FALSE}"; then

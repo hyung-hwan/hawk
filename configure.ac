@@ -80,18 +80,27 @@ case "$host" in
 	#CFLAGS="$CFLAGS -D_WIN32_WINNT=0x0400"
 	platform_win32=yes
 	platform_macosx=no
+	platform_scods=no
 	;;
 *-*-darwin*)
 	platform_win32=no
 	platform_macosx=yes
+	platform_scods=no
+	;;
+*-*-sco3.2v*)
+	platform_win32=no
+	platform_macosx=no
+	platform_scods=yes
 	;;
 *)
 	platform_win32=no
 	platform_macosx=no
+	platform_scods=no
 	;;
 esac
 AM_CONDITIONAL(WIN32, test "x${platform_win32}" = "xyes" )
 AM_CONDITIONAL(MACOSX, test "x${platform_macosx}" = "xyes" )
+AM_CONDITIONAL(SCODS, test "x${platform_scods}" = "xyes" )
 
 dnl check the math library (check if -lm is needed)
 LT_LIB_M
@@ -105,7 +114,7 @@ AC_ARG_ENABLE([wide-char],
 	enable_wide_char=$enableval,
 	enable_wide_char=yes
 )
-if test "${enable_wide_char}" = "yes:4" -o "${enable_wide_char}" = "yes:4w"
+if test "${enable_wide_char}" = "yes:4" -o "${enable_wide_char}" = "yes:4w" -o \( "${enable_wide_char}" = "yes" -a "${platform_scods}" = "yes" \)
 then
 	AC_DEFINE([HAWK_WIDE_CHAR_SIZE],[4],[Wide-character type size])
 	AC_DEFINE([HAWK_ENABLE_WIDE_CHAR],[1],[Use the wide-character type as the default character type])
@@ -120,7 +129,9 @@ then
 		[CFLAGS="$CFLAGS -fno-short-wchar"]
 		[CXXFLAGS="$CXXFLAGS -fno-short-wchar"]
 	fi
-	if test "${enable_wide_char}" = "yes:4w"
+
+	dnl prefer L if yes:4w is specified or just sco cc is used.
+	if test "${enable_wide_char}" != "yes:4"
 	then
 		AC_DEFINE([HAWK_PREFER_PREFIX_L],[1],[Prefix wide-character literals with L])
 	fi

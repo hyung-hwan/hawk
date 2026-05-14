@@ -1045,10 +1045,10 @@ typedef int (*hawk_mod_load_t) (
 );
 
 typedef int (*hawk_mod_query_t) (
-	hawk_mod_t*     mod,
-	hawk_t*         hawk,
-	const hawk_ooch_t*  name,
-	hawk_mod_sym_t* sym
+	hawk_mod_t*        mod,
+	hawk_t*            hawk,
+	const hawk_ooch_t* name,
+	hawk_mod_sym_t*    sym
 );
 
 typedef void (*hawk_mod_unload_t) (
@@ -1791,7 +1791,7 @@ static HAWK_INLINE hawk_cmgr_t* hawk_getcmgr (hawk_t* hawk) { return ((hawk_alt_
 static HAWK_INLINE void hawk_setcmgr (hawk_t* hawk, hawk_cmgr_t* cmgr) { ((hawk_alt_t*)hawk)->gem_.cmgr = cmgr; }
 #else
 #define hawk_getxtn(hawk) ((void*)((hawk_uint8_t*)hawk + ((hawk_alt_t*)hawk)->instsize_))
-#define hawk_getgem(hawk) (&((hawk_alt_t*)(hawk))->_gem)
+#define hawk_getgem(hawk) (&((hawk_alt_t*)(hawk))->gem_)
 #define hawk_getmmgr(hawk) (((hawk_alt_t*)(hawk))->gem_.mmgr)
 #define hawk_getcmgr(hawk) (((hawk_alt_t*)(hawk))->gem_.cmgr)
 #define hawk_setcmgr(hawk,_cmgr) (((hawk_alt_t*)(hawk))->gem_.cmgr = (_cmgr))
@@ -2603,7 +2603,7 @@ static HAWK_INLINE void hawk_rtx_setcmgr (hawk_rtx_t* rtx, hawk_cmgr_t* cmgr) { 
 #else
 #define hawk_rtx_gethawk(rtx) (((hawk_rtx_alt_t*)(rtx))->hawk)
 #define hawk_rtx_getxtn(rtx) ((void*)((hawk_uint8_t*)rtx + ((hawk_rtx_alt_t*)rtx)->instsize_))
-#define hawk_rtx_getgem(rtx) (&((hawk_rtx_alt_t*)(rtx))->_gem)
+#define hawk_rtx_getgem(rtx) (&((hawk_rtx_alt_t*)(rtx))->gem_)
 #define hawk_rtx_getmmgr(rtx) (((hawk_rtx_alt_t*)(rtx))->gem_.mmgr)
 #define hawk_rtx_getcmgr(rtx) (((hawk_rtx_alt_t*)(rtx))->gem_.cmgr)
 #define hawk_rtx_setcmgr(rtx,_cmgr) (((hawk_rtx_alt_t*)(rtx))->gem_.cmgr = (_cmgr))
