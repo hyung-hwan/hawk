@@ -1212,7 +1212,7 @@ typedef void (*hawk_rtx_ecb_close_t) (
  */
 typedef void (*hawk_rtx_ecb_stmt_t) (
 	hawk_rtx_t* rtx, /**< runtime context */
-	hawk_nde_t* nde,  /**< node */
+	hawk_nde_t* nde, /**< node */
 	void*       ctx
 );
 

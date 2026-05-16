@@ -121,7 +121,7 @@ enum hawk_pio_hid_t
 typedef enum hawk_pio_hid_t hawk_pio_hid_t;
 
 
-typedef int (*hawk_pio_fncptr_t) (void* ctx);
+typedef int (*hawk_pio_fncptr_t) (void* ctx, char** envp);
 
 /**
  * The hawk_pio_fnc_t type defines a structure to point to the function

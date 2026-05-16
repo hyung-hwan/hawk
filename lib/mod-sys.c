@@ -2882,13 +2882,14 @@ static int fnc_getenv (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 #if defined(_SCO_DS)
 static int setenv(const char *name, const char* val, int overwrite);
 static int unsetenv(const char *name);
+static void clearenv(void);
 #endif
 
 static int fnc_clearenv (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
-/* TODO: clearenv, unsetenv, setenv must cause the engine to refresh ENVIRON.
- *       the issue is it must affect all rtx instances... */
+	hawk_mtx_lock(rtx->hawk->modmtx, HAWK_NULL);
 	clearenv();
+	hawk_mtx_unlock(rtx->hawk->modmtx);
 	return 0;
 }
 
@@ -2923,7 +2924,9 @@ static int fnc_setenv (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 	if (hawk_rtx_getnargs(rtx) >= 3 && (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 2), &overwrite) <= -1)) overwrite = 0;
 
+	hawk_mtx_lock(rtx->hawk->modmtx, HAWK_NULL);
 	rx = setenv(var, val, overwrite);
+	hawk_mtx_unlock(rtx->hawk->modmtx);
 	if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
 
 done:
@@ -2962,10 +2965,14 @@ static int fnc_unsetenv (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	}
 
 #if defined(UNSETENV_RETURNS_VOID)
+	hawk_mtx_lock(rtx->hawk->modmtx, HAWK_NULL);
 	unsetenv(str);
+	hawk_mtx_unlock(rtx->hawk->modmtx);
 	rx = 0;
 #else
+	hawk_mtx_lock(rtx->hawk->modmtx, HAWK_NULL);
 	rx = unsetenv(str);
+	hawk_mtx_unlock(rtx->hawk->modmtx);
 	if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
 #endif
 
@@ -6631,11 +6638,7 @@ int hawk_mod_sys (hawk_mod_t* mod, hawk_t* hawk)
 /* ----------------------------------------------  */
 
 #if defined(_SCO_DS)
-#include <stdlib.h>
-#include <string.h>
-#include <errno.h>
-
-// Declare the external environment array
+/* declare the external environment array */
 extern char **environ;
 
 static int setenv (const char *name, const char *value, int overwrite)
@@ -6644,71 +6647,68 @@ static int setenv (const char *name, const char *value, int overwrite)
 	hawk_oow_t value_len;
 	char* env_str;
 
-	if (!name || !value)
+	if (name[0] == '\0')
 	{
 		errno = EINVAL;
 		return -1;
 	}
 
-	// Check if it exists
-	if (!overwrite && getenv(name) != NULL) return 0; // Succeed without changing
+	/* check if it exists */
+	if (!overwrite && getenv(name)) return 0; /* succeed without changing */
 
-	// Create "NAME=VALUE" string
-	name_len = strlen(name);
-	value_len = strlen(value);
+	/* create "NAME=VALUE" string */
+	name_len = hawk_count_bcstr(name);
+	value_len = hawk_count_bcstr(value);
 	env_str = (char *)malloc(name_len + value_len + 2);
-	if (!env_str)
-	{
-		errno = ENOMEM;
-		return -1;
-	}
+	if (!env_str) return -1;
 
 	HAWK_MEMCPY(env_str, name, name_len);
 	env_str[name_len] = '=';
 	HAWK_MEMCPY(env_str + name_len + 1, value, value_len);
 	env_str[name_len + value_len + 1] = '\0';
 
-	// putenv() takes ownership of the string memory
+	/* putenv() takes ownership of the string memory */
 	if (putenv(env_str) != 0)
 	{
-		free(env_str); // Free only if putenv failed
+		free(env_str); /* free only if putenv failed */
 		return -1;
 	}
 
 	return 0;
 }
 
-static int unsetenv(const char *name) {
-	char** ep = environ;
+static int unsetenv(const char *name)
+{
+	char** ep;
 	hawk_oow_t len;
 
-	if (!name || !strchr(name, '=') == NULL) {
-		errno = EINVAL;
-		return -1;
-	}
-
-	len = strlen(name);
-
-	while (*ep != NULL)
+	len = hawk_count_bcstr(name);
+	for (ep = environ; *ep; ep++)
 	{
-		// Check if the entry starts with name + '='
-		if (strncmp(*ep, name, len) == 0 && (*ep)[len] == '=')
+		/* check if the entry starts with name + '=' */
+		if (hawk_comp_bcstr_limited(*ep, name, len, 0) == 0 && (*ep)[len] == '=')
 		{
-			// Found it. Shift remaining pointers down.
+			/* found it. shift remaining pointers down. */
 			char** next = ep;
-			while (*next != NULL)
+			while (*next)
 			{
 				*next = *(next + 1);
 				next++;
 			}
-			// Note: This does not free the memory of the removed string,
-			// which can cause a small memory leak in long-running programs.
-			// A perfect implementation requires maintaining a custom
-			// environment copy.
-		} else {
-			ep++;
+
+			free(*ep);
+			break;
 		}
 	}
+
 	return 0;
 }
+
+static int clearenv(void)
+{
+	char** ep;
+	for (ep = environ; *ep; ep++) free(*ep);
+	environ = HAWK_NULL;
+}
+
 #endif

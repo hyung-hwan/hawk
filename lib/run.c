@@ -272,7 +272,7 @@ static int set_global (hawk_rtx_t* rtx, int idx, hawk_nde_var_t* var, hawk_val_t
 		{
 			if (old_vtype == HAWK_VAL_NIL)
 			{
-				/* a nil valul can be overridden with any values */
+				/* a nil value can be overridden with any values */
 				/* ok. no error */
 			}
 			else if (!assign && old_vtype == vtype)
@@ -682,10 +682,13 @@ static int set_global (hawk_rtx_t* rtx, int idx, hawk_nde_var_t* var, hawk_val_t
 	HAWK_RTX_STACK_GBL(rtx,idx) = val;
 	hawk_rtx_refupval_inline(rtx, val);
 
-	for (ecb = rtx->ecb; ecb != (hawk_rtx_ecb_t*)rtx; ecb = ecb_next)
+	if (rtx->ecb_gblset_count > 0)
 	{
-		ecb_next = ecb->next_;
-		if (ecb->gblset) ecb->gblset(rtx, idx, val, ecb->ctx);
+		for (ecb = rtx->ecb; ecb != (hawk_rtx_ecb_t*)rtx; ecb = ecb_next)
+		{
+			ecb_next = ecb->next_;
+			if (ecb->gblset) ecb->gblset(rtx, idx, val, ecb->ctx);
+		}
 	}
 
 	return 0;
@@ -1123,6 +1126,7 @@ hawk_rtx_t* hawk_rtx_open (hawk_t* hawk, hawk_oow_t xtnsize, hawk_rio_cbs_t* rio
 
 	rtx->ecb = (hawk_rtx_ecb_t*)rtx; /* use this as a special sentinel node */
 	rtx->ecb_stmt_count = 0;
+	rtx->ecb_gblset_count = 0;
 
 	/* initialize signal handling fields */
 	rtx->sig_handling = 0; /* indicate call_signal_handlers() is not in progress */
@@ -1232,6 +1236,7 @@ void hawk_rtx_close (hawk_rtx_t* rtx)
 	do { ecb = hawk_rtx_popecb(rtx); } while (ecb);
 	HAWK_ASSERT(rtx->ecb == (hawk_rtx_ecb_t*)rtx);
 	HAWK_ASSERT(rtx->ecb_stmt_count == 0);
+	HAWK_ASSERT(rtx->ecb_gblset_count == 0);
 
 	/* NOTE:
 	 *  the close callbacks are called before data in rtx
@@ -1277,6 +1282,7 @@ void hawk_rtx_killecb (hawk_rtx_t* rtx, hawk_rtx_ecb_t* ecb)
 		if (cur == ecb)
 		{
 			if (ecb->stmt) rtx->ecb_stmt_count--;
+			if (ecb->gblset) rtx->ecb_gblset_count--;
 			if (prev) prev->next_ = cur->next_;
 			else rtx->ecb = cur->next_;
 			cur->next_ = HAWK_NULL;
@@ -1290,6 +1296,7 @@ hawk_rtx_ecb_t* hawk_rtx_popecb (hawk_rtx_t* rtx)
 	hawk_rtx_ecb_t* top = rtx->ecb;
 	if (top == (hawk_rtx_ecb_t*)rtx) return HAWK_NULL;
 	if (top->stmt) rtx->ecb_stmt_count--;
+	if (top->gblset) rtx->ecb_gblset_count--;
 	rtx->ecb = top->next_;
 	top->next_ = HAWK_NULL;
 	return top;
@@ -1300,6 +1307,7 @@ void hawk_rtx_pushecb (hawk_rtx_t* rtx, hawk_rtx_ecb_t* ecb)
 	ecb->next_ = rtx->ecb;
 	rtx->ecb = ecb;
 	if (ecb->stmt) rtx->ecb_stmt_count++;
+	if (ecb->gblset) rtx->ecb_gblset_count++;
 }
 
 static int init_rtx (hawk_rtx_t* rtx, hawk_t* hawk, hawk_rio_cbs_t* rio)

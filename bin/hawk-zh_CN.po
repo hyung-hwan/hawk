@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: hawk 1.0.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-04-25 12:33+0900\n"
+"POT-Creation-Date: 2026-05-14 23:00+0900\n"
 "PO-Revision-Date: 2026-03-28 17:00+0800\n"
 "Last-Translator:  <author@hawk>\n"
 "Language-Team: Chinese (Simplified) <translation-team-zh_CN@hawk>\n"
@@ -101,7 +101,7 @@ msgstr "提高容错性"
 msgid "enable the extended call syntax"
 msgstr "启用扩展调用语法"
 
-#: ../../bin/hawk.c:409 ../../bin/main.c:410
+#: ../../bin/hawk.c:409 ../../bin/main.c:414
 msgid "USAGE"
 msgstr "用法"
 
@@ -117,7 +117,7 @@ msgstr "    "
 msgid "[options] [ -- ] sourcestring [datafile]*"
 msgstr "[选项] [ -- ] 源字符串 [数据文件]*"
 
-#: ../../bin/hawk.c:411 ../../bin/main.c:411
+#: ../../bin/hawk.c:411 ../../bin/main.c:415
 msgid "Options as follows:"
 msgstr "选项如下:"
 
@@ -213,15 +213,15 @@ msgstr " --classic                         以经典模式运行"
 msgid "Special mode switching options(must be specified first to take effect):"
 msgstr "特殊模式切换选项（必须先指定才能生效）："
 
-#: ../../bin/hawk.c:446 ../../bin/main.c:414
+#: ../../bin/hawk.c:446 ../../bin/main.c:418
 msgid " --awk/--hawk                      switch to the awk mode(default)"
 msgstr " --awk/--hawk                      切换到 awk 模式（默认）"
 
-#: ../../bin/hawk.c:447 ../../bin/main.c:415
+#: ../../bin/hawk.c:447 ../../bin/main.c:419
 msgid " --cut                             switch to the cut mode"
 msgstr " --cut                             切换到 cut 模式"
 
-#: ../../bin/hawk.c:448 ../../bin/main.c:416
+#: ../../bin/hawk.c:448 ../../bin/main.c:420
 msgid " --sed                             switch to the sed mode"
 msgstr " --sed                             切换到 sed 模式"
 
@@ -245,15 +245,15 @@ msgstr "代码"
 msgid "File "
 msgstr "文件 "
 
-#: ../../bin/main.c:410
+#: ../../bin/main.c:414
 msgid "[options] [mode specific options and parameters]"
 msgstr "[选项] [模式特定选项与参数]"
 
-#: ../../bin/main.c:412
+#: ../../bin/main.c:416
 msgid " --usage                           print this message"
 msgstr " --usage                           显示此信息"
 
-#: ../../bin/main.c:413
+#: ../../bin/main.c:417
 msgid " --version                         print version"
 msgstr " --version                         显示版本"
 

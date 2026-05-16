@@ -35,13 +35,13 @@
 #	include "syscall.h"
 #endif
 
-#define LOCK_OUTPUT(sio) do { if ((sio)->mtx) hawk_mtx_lock ((sio)->mtx, HAWK_NULL); } while(0)
-#define UNLOCK_OUTPUT(sio) do { if ((sio)->mtx) hawk_mtx_unlock ((sio)->mtx); } while(0)
+#define LOCK_OUTPUT(sio) do { if ((sio)->mtx) hawk_mtx_lock((sio)->mtx, HAWK_NULL); } while(0)
+#define UNLOCK_OUTPUT(sio) do { if ((sio)->mtx) hawk_mtx_unlock((sio)->mtx); } while(0)
 
 /* TODO: currently, LOCK_INPUT and LOCK_OUTPUT don't have difference.
  *       can i just use two difference mutex objects to differentiate? */
-#define LOCK_INPUT(sio) do { if ((sio)->mtx) hawk_mtx_lock ((sio)->mtx, HAWK_NULL); } while(0)
-#define UNLOCK_INPUT(sio) do { if ((sio)->mtx) hawk_mtx_unlock ((sio)->mtx); } while(0)
+#define LOCK_INPUT(sio) do { if ((sio)->mtx) hawk_mtx_lock((sio)->mtx, HAWK_NULL); } while(0)
+#define UNLOCK_INPUT(sio) do { if ((sio)->mtx) hawk_mtx_unlock((sio)->mtx); } while(0)
 
 /* internal status codes */
 enum
