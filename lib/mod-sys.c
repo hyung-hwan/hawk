@@ -6688,15 +6688,17 @@ static int unsetenv(const char *name)
 		/* check if the entry starts with name + '=' */
 		if (hawk_comp_bcstr_limited(*ep, name, len, 0) == 0 && (*ep)[len] == '=')
 		{
+			char* old;
 			/* found it. shift remaining pointers down. */
 			char** next = ep;
+			old = *ep;
 			while (*next)
 			{
 				*next = *(next + 1);
 				next++;
 			}
 
-			free(*ep);
+			free(old);
 			break;
 		}
 	}

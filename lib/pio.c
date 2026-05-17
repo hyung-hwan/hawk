@@ -101,7 +101,7 @@ static int get_highest_fd (hawk_pio_t* pio)
 			}
 		}
 
-		HAWK_CLOSEDIR (d);
+		HAWK_CLOSEDIR(d);
 		return maxfd;
 	}
 
@@ -175,7 +175,7 @@ static int close_open_fds_using_proc (hawk_pio_t* pio, int* excepts, hawk_oow_t 
 						if (fd == excepts[i]) goto skip_close;
 					}
 
-					HAWK_CLOSE (fd);
+					HAWK_CLOSE(fd);
 
 				skip_close:
 					;
@@ -183,7 +183,7 @@ static int close_open_fds_using_proc (hawk_pio_t* pio, int* excepts, hawk_oow_t 
 			}
 		}
 
-		HAWK_CLOSEDIR (d);
+		HAWK_CLOSEDIR(d);
 		return 0;
 	}
 
@@ -200,10 +200,10 @@ hawk_pio_t* hawk_pio_open (hawk_gem_t* gem, hawk_oow_t xtnsize, const hawk_ooch_
 	{
 		if (hawk_pio_init(pio, gem, cmd, flags) <= -1)
 		{
-			hawk_gem_freemem (gem, pio);
+			hawk_gem_freemem(gem, pio);
 			pio = HAWK_NULL;
 		}
-		else HAWK_MEMSET (pio + 1, 0, xtnsize);
+		else HAWK_MEMSET(pio + 1, 0, xtnsize);
 	}
 
 	return pio;
@@ -212,7 +212,7 @@ hawk_pio_t* hawk_pio_open (hawk_gem_t* gem, hawk_oow_t xtnsize, const hawk_ooch_
 void hawk_pio_close (hawk_pio_t* pio)
 {
 	hawk_pio_fini (pio);
-	hawk_gem_freemem (pio->gem, pio);
+	hawk_gem_freemem(pio->gem, pio);
 }
 
 #if !defined(_WIN32) && !defined(__OS2__) && !defined(__DOS__)
@@ -233,8 +233,8 @@ typedef struct param_t param_t;
 static void free_param (hawk_pio_t* pio, param_t* param)
 {
 	if (param->argv && param->argv != param->fixed_argv)
-		hawk_gem_freemem (pio->gem, param->argv);
-	if (param->mcmd) hawk_gem_freemem (pio->gem, param->mcmd);
+		hawk_gem_freemem(pio->gem, param->argv);
+	if (param->mcmd) hawk_gem_freemem(pio->gem, param->mcmd);
 }
 
 static int make_param (hawk_pio_t* pio, const hawk_ooch_t* cmd, int flags, param_t* param)
@@ -247,7 +247,7 @@ static int make_param (hawk_pio_t* pio, const hawk_ooch_t* cmd, int flags, param
 #endif
 	int fcnt = 0;
 
-	HAWK_MEMSET (param, 0, HAWK_SIZEOF(*param));
+	HAWK_MEMSET(param, 0, HAWK_SIZEOF(*param));
 
 #if defined(HAWK_OOCH_IS_BCH)
 	if (flags & HAWK_PIO_SHELL) mcmd = (hawk_ooch_t*)cmd;
@@ -357,7 +357,7 @@ static int make_param (hawk_pio_t* pio, const hawk_ooch_t* cmd, int flags, param
 			/* hawk_wcsntombsn() doesn't null-terminate mcmd */
 			mcmd[mn] = '\0';
 
-			hawk_gem_freemem (pio->gem, wcmd);
+			hawk_gem_freemem(pio->gem, wcmd);
 			wcmd = HAWK_NULL;
 		}
 	}
@@ -407,11 +407,11 @@ static int make_param (hawk_pio_t* pio, const hawk_ooch_t* cmd, int flags, param
 
 oops:
 #if defined(HAWK_OOCH_IS_BCH)
-	if (mcmd && mcmd != cmd) hawk_gem_freemem (pio->gem, mcmd);
+	if (mcmd && mcmd != cmd) hawk_gem_freemem(pio->gem, mcmd);
 #else
 	if (mcmd && mcmd != (hawk_bch_t*)cmd &&
-	    mcmd != param->fixed_mbuf) hawk_gem_freemem (pio->gem, mcmd);
-	if (wcmd) hawk_gem_freemem (pio->gem, wcmd);
+	    mcmd != param->fixed_mbuf) hawk_gem_freemem(pio->gem, mcmd);
+	if (wcmd) hawk_gem_freemem(pio->gem, wcmd);
 #endif
 	return -1;
 }
@@ -461,12 +461,6 @@ static HAWK_INLINE int is_fd_valid_and_nocloexec (int fd)
 static hawk_pio_pid_t standard_fork_and_exec (hawk_pio_t* pio, int pipes[], param_t* param, char** envp)
 {
 	hawk_pio_pid_t pid;
-
-#if defined(HAVE_CRT_EXTERNS_H)
-#	define environ (*(_NSGetEnviron()))
-#else
-	extern char** environ;
-#endif
 
 	pid = HAWK_FORK();
 	if (pid <= -1)
@@ -523,7 +517,7 @@ static hawk_pio_pid_t standard_fork_and_exec (hawk_pio_t* pio, int pipes[], para
 				if (HAWK_DUP2(pipes[3], 2) <= -1) goto child_oops;
 			}
 
-			HAWK_CLOSE (pipes[3]);
+			HAWK_CLOSE(pipes[3]);
 			pipes[3] = HAWK_PIO_HND_NIL;
 		}
 
@@ -698,7 +692,7 @@ int hawk_pio_init (hawk_pio_t* pio, hawk_gem_t* gem, const hawk_ooch_t* cmd, int
 	#endif
 #endif
 
-	HAWK_MEMSET (pio, 0, HAWK_SIZEOF(*pio));
+	HAWK_MEMSET(pio, 0, HAWK_SIZEOF(*pio));
 	pio->gem = gem;
 	pio->flags = flags;
 
@@ -819,8 +813,8 @@ int hawk_pio_init (hawk_pio_t* pio, hawk_gem_t* gem, const hawk_ooch_t* cmd, int
 		}
 	}
 
-	HAWK_MEMSET (&procinfo, 0, HAWK_SIZEOF(procinfo));
-	HAWK_MEMSET (&startup, 0, HAWK_SIZEOF(startup));
+	HAWK_MEMSET(&procinfo, 0, HAWK_SIZEOF(procinfo));
+	HAWK_MEMSET(&startup, 0, HAWK_SIZEOF(startup));
 
 	startup.cb = HAWK_SIZEOF(startup);
 
@@ -942,7 +936,7 @@ create_process:
 		&procinfo /* LPPROCESS_INFORMATION lpProcessInformation */
 	);
 
-	hawk_gem_freemem (pio->gem, dupcmd);
+	hawk_gem_freemem(pio->gem, dupcmd);
 	if (apiret == FALSE)
 	{
 		DWORD e = GetLastError();
@@ -1117,15 +1111,15 @@ create_process:
 	if (rc != NO_ERROR)
 	{
 		hawk_gem_seterrnum(pio->gem, HAWK_NULL, hawk_syserr_to_errnum(rc));
-		DosClose (old_in); old_in = HAWK_PIO_HND_NIL;
+		DosClose(old_in); old_in = HAWK_PIO_HND_NIL;
 		goto oops;
 	}
 	rc = DosDupHandle(std_err, &old_err);
 	if (rc != NO_ERROR)
 	{
 		hawk_gem_seterrnum(pio->gem, HAWK_NULL, hawk_syserr_to_errnum(rc));
-		DosClose (old_out); old_out = HAWK_PIO_HND_NIL;
-		DosClose (old_in); old_in = HAWK_PIO_HND_NIL;
+		DosClose(old_out); old_out = HAWK_PIO_HND_NIL;
+		DosClose(old_in); old_in = HAWK_PIO_HND_NIL;
 		goto oops;
 	}
 
@@ -1143,7 +1137,7 @@ create_process:
 
 		/* the parent writes to handle[1] but does not read from handle[0].
 		 * so we close it */
-		DosClose (handle[0]); handle[0] = HAWK_PIO_HND_NIL;
+		DosClose(handle[0]); handle[0] = HAWK_PIO_HND_NIL;
 	}
 
 	if (flags & HAWK_PIO_READOUT)
@@ -1154,14 +1148,14 @@ create_process:
 		if (flags & HAWK_PIO_ERRTOOUT) DOS_DUP_HANDLE (handle[3], &std_err);
 		/* the parent reads from handle[2] but does not write to handle[3].
 		 * so we close it */
-		DosClose (handle[3]); handle[3] = HAWK_PIO_HND_NIL;
+		DosClose(handle[3]); handle[3] = HAWK_PIO_HND_NIL;
 	}
 
 	if (flags & HAWK_PIO_READERR)
 	{
 		DOS_DUP_HANDLE (handle[5], &std_err);
 		if (flags & HAWK_PIO_OUTTOERR) DOS_DUP_HANDLE (handle[5], &std_out);
-		DosClose (handle[5]); handle[5] = HAWK_PIO_HND_NIL;
+		DosClose(handle[5]); handle[5] = HAWK_PIO_HND_NIL;
 	}
 
 	if (flags & HAWK_PIO_INTONUL) DOS_DUP_HANDLE (os2devnul, &std_in);
@@ -1171,16 +1165,16 @@ create_process:
 	if (os2devnul != HAWK_PIO_HND_NIL)
 	{
 	    	/* close NUL early as we've duplicated it already */
-		DosClose (os2devnul);
+		DosClose(os2devnul);
 		os2devnul = HAWK_PIO_HND_NIL;
 	}
 
 	/* at this moment, stdin/out/err are already redirected to pipes
 	 * if proper flags have been set. we close them selectively if
 	 * dropping is requested */
-	if (flags & HAWK_PIO_DROPIN) DosClose (std_in);
-	if (flags & HAWK_PIO_DROPOUT) DosClose (std_out);
-	if (flags & HAWK_PIO_DROPERR) DosClose (std_err);
+	if (flags & HAWK_PIO_DROPIN) DosClose(std_in);
+	if (flags & HAWK_PIO_DROPOUT) DosClose(std_out);
+	if (flags & HAWK_PIO_DROPERR) DosClose(std_err);
 
 	if (flags & HAWK_PIO_SHELL)
 	{
@@ -1276,7 +1270,7 @@ create_process:
 		HAWK_SIZEOF(load_error),
 		EXEC_ASYNCRESULT,
 		cmd_line,
-		HAWK_NULL,
+		HAWK_NULL, /* environment - e.g. "PATH=/bin\0HOME=/tmp\0FOO=bar\0\0" */
 		&child_rc,
 		cmd_file
 	);
@@ -1730,7 +1724,7 @@ create_process:
 		 * X
 		 * WRITE => 1
 		 */
-		HAWK_CLOSE (handle[0]);
+		HAWK_CLOSE(handle[0]);
 		handle[0] = HAWK_PIO_HND_NIL;
 	}
 
@@ -1742,7 +1736,7 @@ create_process:
 		 *    X
 		 * READ => 2
 		 */
-		HAWK_CLOSE (handle[3]);
+		HAWK_CLOSE(handle[3]);
 		handle[3] = HAWK_PIO_HND_NIL;
 	}
 
@@ -1754,7 +1748,7 @@ create_process:
 		 *      X
 		 * READ => 4
 		 */
-		HAWK_CLOSE (handle[5]);
+		HAWK_CLOSE(handle[5]);
 		handle[5] = HAWK_PIO_HND_NIL;
 	}
 #endif
@@ -1810,23 +1804,23 @@ oops:
 	if (windevnul != INVALID_HANDLE_VALUE) CloseHandle (windevnul);
 
 #elif defined(__OS2__)
-	if (cmd_line) hawk_gem_freemem (pio->gem, cmd_line);
+	if (cmd_line) hawk_gem_freemem(pio->gem, cmd_line);
 	if (old_in != HAWK_PIO_HND_NIL)
 	{
-		DosDupHandle (old_in, &std_in);
-		DosClose (old_in);
+		DosDupHandle(old_in, &std_in);
+		DosClose(old_in);
 	}
 	if (old_out != HAWK_PIO_HND_NIL)
 	{
-		DosDupHandle (old_out, &std_out);
-		DosClose (old_out);
+		DosDupHandle(old_out, &std_out);
+		DosClose(old_out);
 	}
 	if (old_err != HAWK_PIO_HND_NIL)
 	{
-		DosDupHandle (old_err, &std_err);
-		DosClose (old_err);
+		DosDupHandle(old_err, &std_err);
+		DosClose(old_err);
 	}
-	if (os2devnul != HAWK_PIO_HND_NIL) DosClose (os2devnul);
+	if (os2devnul != HAWK_PIO_HND_NIL) DosClose(os2devnul);
 #endif
 
 	for (i = 0; i < HAWK_COUNTOF(tio); i++)
@@ -1839,7 +1833,7 @@ oops:
 #elif defined(__OS2__)
 	for (i = minidx; i < maxidx; i++)
 	{
-		if (handle[i] != HAWK_PIO_HND_NIL) DosClose (handle[i]);
+		if (handle[i] != HAWK_PIO_HND_NIL) DosClose(handle[i]);
 	}
 #elif defined(__DOS__)
 
@@ -1852,17 +1846,17 @@ oops:
 	}
 	for (i = minidx; i < maxidx; i++)
 	{
-		if (handle[i] != HAWK_PIO_HND_NIL) HAWK_CLOSE (handle[i]);
+		if (handle[i] != HAWK_PIO_HND_NIL) HAWK_CLOSE(handle[i]);
 	}
 #elif defined(HAWK_SYSCALL0) && defined(SYS_vfork)
 	for (i = minidx; i < maxidx; i++)
 	{
-		if (handle[i] != HAWK_PIO_HND_NIL) HAWK_CLOSE (handle[i]);
+		if (handle[i] != HAWK_PIO_HND_NIL) HAWK_CLOSE(handle[i]);
 	}
 #else
 	for (i = minidx; i < maxidx; i++)
 	{
-		if (handle[i] != HAWK_PIO_HND_NIL) HAWK_CLOSE (handle[i]);
+		if (handle[i] != HAWK_PIO_HND_NIL) HAWK_CLOSE(handle[i]);
 	}
 #endif
 
@@ -2117,11 +2111,11 @@ void hawk_pio_end (hawk_pio_t* pio, hawk_pio_hid_t hid)
 #if defined(_WIN32)
 		CloseHandle (pio->pin[hid].handle);
 #elif defined(__OS2__)
-		DosClose (pio->pin[hid].handle);
+		DosClose(pio->pin[hid].handle);
 #elif defined(__DOS__)
 		close (pio->pin[hid].handle);
 #else
-		HAWK_CLOSE (pio->pin[hid].handle);
+		HAWK_CLOSE(pio->pin[hid].handle);
 #endif
 		pio->pin[hid].handle = HAWK_PIO_HND_NIL;
 	}
@@ -2213,7 +2207,7 @@ int hawk_pio_wait (hawk_pio_t* pio)
 	}
 
 	/* close handle here to emulate waitpid() as much as possible. */
-	/*DosClose (pio->child);*/
+	/*DosClose(pio->child);*/
 	pio->child = HAWK_PIO_PID_NIL;
 
 	return (child_rc.codeTerminate == TC_EXIT)?
