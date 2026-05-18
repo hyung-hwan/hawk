@@ -191,14 +191,14 @@ static int close_open_fds_using_proc (hawk_pio_t* pio, int* excepts, hawk_oow_t 
 }
 #endif
 
-hawk_pio_t* hawk_pio_open (hawk_gem_t* gem, hawk_oow_t xtnsize, const hawk_ooch_t* cmd, int flags)
+hawk_pio_t* hawk_pio_open (hawk_gem_t* gem, hawk_oow_t xtnsize, const hawk_ooch_t* cmd, int flags, hawk_pio_env_mk_t env_mk, void* env_ctx)
 {
 	hawk_pio_t* pio;
 
 	pio = (hawk_pio_t*)hawk_gem_allocmem(gem, HAWK_SIZEOF(hawk_pio_t) + xtnsize);
 	if (pio)
 	{
-		if (hawk_pio_init(pio, gem, cmd, flags) <= -1)
+		if (hawk_pio_init(pio, gem, cmd, flags, env_mk, env_ctx) <= -1)
 		{
 			hawk_gem_freemem(gem, pio);
 			pio = HAWK_NULL;
@@ -444,12 +444,12 @@ static int assert_executable (hawk_pio_t* pio, const hawk_bch_t* path)
 
 static HAWK_INLINE int is_fd_valid (int fd)
 {
-	return HAWK_FCNTL (fd, F_GETFD, 0) != -1 || errno != EBADF;
+	return HAWK_FCNTL(fd, F_GETFD, 0) != -1 || errno != EBADF;
 }
 
 static HAWK_INLINE int is_fd_valid_and_nocloexec (int fd)
 {
-	int flags = HAWK_FCNTL (fd, F_GETFD, 0);
+	int flags = HAWK_FCNTL(fd, F_GETFD, 0);
 	if (flags == -1)
 	{
 		if (errno == EBADF) return 0; /* invalid. return false */
@@ -458,7 +458,7 @@ static HAWK_INLINE int is_fd_valid_and_nocloexec (int fd)
 	return !(flags & FD_CLOEXEC)? 1: 0;
 }
 
-static hawk_pio_pid_t standard_fork_and_exec (hawk_pio_t* pio, int pipes[], param_t* param, char** envp)
+static hawk_pio_pid_t standard_fork_and_exec (hawk_pio_t* pio, int pipes[], param_t* param, char*const* envp)
 {
 	hawk_pio_pid_t pid;
 
@@ -568,7 +568,6 @@ static hawk_pio_pid_t standard_fork_and_exec (hawk_pio_t* pio, int pipes[], para
 		if (pio->flags & HAWK_PIO_DROPOUT) HAWK_CLOSE(1);
 		if (pio->flags & HAWK_PIO_DROPERR) HAWK_CLOSE(2);
 
-
 		if (pio->flags & HAWK_PIO_FNCCMD)
 		{
 			/* -----------------------------------------------
@@ -577,7 +576,10 @@ static hawk_pio_pid_t standard_fork_and_exec (hawk_pio_t* pio, int pipes[], para
 			hawk_pio_fnc_t* fnc = (hawk_pio_fnc_t*)param;
 			int retx;
 
-			retx = fnc->ptr(fnc->ctx, envp);
+			/* when the function pointer is a worker function,
+			 * the function must use the context(fnc->ctx) passed
+			 * in as a paramter to find out actual environmen values (e.g. ENVIRON) */
+			retx = fnc->ptr(fnc->ctx);
 			if (devnull >= 0) HAWK_CLOSE(devnull);
 			HAWK_EXIT(retx);
 		}
@@ -613,7 +615,7 @@ static int set_pipe_nonblock (hawk_pio_t* pio, hawk_pio_hnd_t fd, int enabled)
 }
 
 
-int hawk_pio_init (hawk_pio_t* pio, hawk_gem_t* gem, const hawk_ooch_t* cmd, int flags)
+int hawk_pio_init (hawk_pio_t* pio, hawk_gem_t* gem, const hawk_ooch_t* cmd, int flags, hawk_pio_env_mk_t env_mk, void* env_ctx)
 {
 	hawk_pio_hnd_t handle[6] /*=
 	{
@@ -667,29 +669,14 @@ int hawk_pio_init (hawk_pio_t* pio, hawk_gem_t* gem, const hawk_ooch_t* cmd, int
 	posix_spawnattr_t psattr;
 	hawk_pio_pid_t pid;
 	param_t param;
-	#if defined(HAVE_CRT_EXTERNS_H)
-	#define environ (*(_NSGetEnviron()))
-	#else
-	extern char** environ;
-	#endif
 #elif defined(HAWK_SYSCALL0) && defined(SYS_vfork)
 	hawk_pio_pid_t pid;
 	param_t param;
-	#if defined(HAVE_CRT_EXTERNS_H)
-	#define environ (*(_NSGetEnviron()))
-	#else
-	extern char** environ;
-	#endif
 	int highest_fd;
 	int dummy;
 #else
 	hawk_pio_pid_t pid;
 	param_t param;
-	#if defined(HAVE_CRT_EXTERNS_H)
-	#define environ (*(_NSGetEnviron()))
-	#else
-	extern char** environ;
-	#endif
 #endif
 
 	HAWK_MEMSET(pio, 0, HAWK_SIZEOF(*pio));
@@ -956,27 +943,27 @@ create_process:
 
 	if (windevnul != INVALID_HANDLE_VALUE)
 	{
-		CloseHandle (windevnul);
+		CloseHandle(windevnul);
 		windevnul = INVALID_HANDLE_VALUE;
 	}
 
 	if (flags & HAWK_PIO_WRITEIN)
 	{
-		CloseHandle (handle[0]);
+		CloseHandle(handle[0]);
 		handle[0] = HAWK_PIO_HND_NIL;
 	}
 	if (flags & HAWK_PIO_READOUT)
 	{
-		CloseHandle (handle[3]);
+		CloseHandle(handle[3]);
 		handle[3] = HAWK_PIO_HND_NIL;
 	}
 	if (flags & HAWK_PIO_READERR)
 	{
-		CloseHandle (handle[5]);
+		CloseHandle(handle[5]);
 		handle[5] = HAWK_PIO_HND_NIL;
 	}
 
-	CloseHandle (procinfo.hThread);
+	CloseHandle(procinfo.hThread);
 	pio->child = procinfo.hProcess;
 
 #elif defined(__OS2__)
@@ -1301,7 +1288,6 @@ create_process:
 	return -1;
 
 #else
-
 	if (flags & HAWK_PIO_WRITEIN)
 	{
 		if (HAWK_PIPE(&handle[0]) <= -1)
@@ -1344,12 +1330,32 @@ create_process:
 	{
 		/* i know i'm abusing typecasting here.
 		 * cmd is supposed to be hawk_pio_fnc_t*, anyway */
-		pid = standard_fork_and_exec(pio, handle, (param_t*)cmd, environ);
+		pid = standard_fork_and_exec(pio, handle, (param_t*)cmd, HAWK_NULL);
 		if (pid <= -1) goto oops;
 		pio->child = pid;
 	}
 	else
 	{
+		char*const* envp;
+
+		if (env_mk)
+		{
+			envp = (char*const*)env_mk(HAWK_PIO_ENV_MK_BCH_PP, env_ctx);
+			if (HAWK_UNLIKELY(!envp)) goto oops;
+			/* pio doesn't free the memory block returned by the callback function.
+			 * there is no callback triggered for dealloction either.
+			 * the caller side must do track heap memory chunks allocated for this environment */
+		}
+		else
+		{
+		#if defined(HAVE_CRT_EXTERNS_H)
+			#define environ (*(_NSGetEnviron()))
+		#else
+			extern char** environ;
+		#endif
+			envp = environ;
+		}
+
 	#if defined(HAVE_POSIX_SPAWN) && !(defined(HAWK_SYSCALL0) && defined(SYS_vfork))
 
 		if ((pserr = posix_spawn_file_actions_init(&fa)) != 0)
@@ -1525,7 +1531,7 @@ create_process:
 		posix_spawnattr_setflags (&psattr, POSIX_SPAWN_USEVFORK);
 		#endif
 
-		pserr = posix_spawn(&pid, param.argv[0], &fa, &psattr, param.argv, environ);
+		pserr = posix_spawn(&pid, param.argv[0], &fa, &psattr, param.argv, envp);
 
 		#if defined(__linux)
 		posix_spawnattr_destroy (&psattr);
@@ -1677,7 +1683,7 @@ create_process:
 			if (flags & HAWK_PIO_DROPOUT) HAWK_SYSCALL1(dummy, SYS_close, 1);
 			if (flags & HAWK_PIO_DROPERR) HAWK_SYSCALL1(dummy, SYS_close, 2);
 
-			HAWK_SYSCALL3(dummy, SYS_execve, param.argv[0], param.argv, environ);
+			HAWK_SYSCALL3(dummy, SYS_execve, param.argv[0], param.argv, envp);
 			/*free_param(pio, &param); don't free this in the vfork version */
 
 		child_oops:
@@ -1690,7 +1696,6 @@ create_process:
 		pio->child = pid;
 
 	#else
-
 		if (make_param(pio, cmd, flags, &param) <= -1) goto oops;
 
 		/* check if the command(the command requested or /bin/sh) is
@@ -1702,7 +1707,7 @@ create_process:
 			goto oops;
 		}
 
-		pid = standard_fork_and_exec(pio, handle, &param, environ);
+		pid = standard_fork_and_exec(pio, handle, &param, envp);
 		if (pid <= -1)
 		{
 			free_param(pio, &param);
@@ -1713,7 +1718,6 @@ create_process:
 		free_param(pio, &param);
 		pio->child = pid;
 	#endif
-
 	}
 
 	if (flags & HAWK_PIO_WRITEIN)
@@ -1801,7 +1805,7 @@ create_process:
 
 oops:
 #if defined(_WIN32)
-	if (windevnul != INVALID_HANDLE_VALUE) CloseHandle (windevnul);
+	if (windevnul != INVALID_HANDLE_VALUE) CloseHandle(windevnul);
 
 #elif defined(__OS2__)
 	if (cmd_line) hawk_gem_freemem(pio->gem, cmd_line);
@@ -1825,11 +1829,11 @@ oops:
 
 	for (i = 0; i < HAWK_COUNTOF(tio); i++)
 	{
-		if (tio[i]) hawk_tio_close (tio[i]);
+		if (tio[i]) hawk_tio_close(tio[i]);
 	}
 
 #if defined(_WIN32)
-	for (i = minidx; i < maxidx; i++) CloseHandle (handle[i]);
+	for (i = minidx; i < maxidx; i++) CloseHandle(handle[i]);
 #elif defined(__OS2__)
 	for (i = minidx; i < maxidx; i++)
 	{
@@ -2109,7 +2113,7 @@ void hawk_pio_end (hawk_pio_t* pio, hawk_pio_hid_t hid)
 	if (pio->pin[hid].handle != HAWK_PIO_HND_NIL)
 	{
 #if defined(_WIN32)
-		CloseHandle (pio->pin[hid].handle);
+		CloseHandle(pio->pin[hid].handle);
 #elif defined(__OS2__)
 		DosClose(pio->pin[hid].handle);
 #elif defined(__DOS__)
@@ -2155,13 +2159,13 @@ int hawk_pio_wait (hawk_pio_t* pio)
 		/* close the handle anyway to prevent further
 		 * errors when this function is called again */
 		hawk_gem_seterrnum(pio->gem, HAWK_NULL, hawk_syserr_to_errnum(GetLastError()));
-		CloseHandle (pio->child);
+		CloseHandle(pio->child);
 		pio->child = HAWK_PIO_PID_NIL;
 		return -1;
 	}
 
 	/* close handle here to emulate waitpid() as much as possible. */
-	CloseHandle (pio->child);
+	CloseHandle(pio->child);
 	pio->child = HAWK_PIO_PID_NIL;
 
 	if (ecode == STILL_ACTIVE)

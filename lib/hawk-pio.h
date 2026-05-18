@@ -120,8 +120,21 @@ enum hawk_pio_hid_t
 };
 typedef enum hawk_pio_hid_t hawk_pio_hid_t;
 
+enum hawk_pio_env_mk_type_t
+{
+	HAWK_PIO_ENV_MK_BCH_PP, /* P1 ... PN HAWK_NUL where P1 .. PN points to K=V */
+	HAWK_PIO_ENV_MK_BCH_PN, /* K1=V\0K2=V\0\0 */
+	HAWK_PIO_ENV_MK_UCH_PP,
+};
 
-typedef int (*hawk_pio_fncptr_t) (void* ctx, char** envp);
+typedef enum hawk_pio_env_mk_type_t hawk_pio_env_mk_type_t;
+
+typedef void* (*hawk_pio_env_mk_t) (
+	hawk_pio_env_mk_type_t type,
+	void*                  ctx
+);
+
+typedef int (*hawk_pio_fncptr_t) (void* ctx);
 
 /**
  * The hawk_pio_fnc_t type defines a structure to point to the function
@@ -170,7 +183,6 @@ struct hawk_pio_pin_t
 	hawk_pio_t*    self;
 };
 
-
 /**
  * The hawk_pio_t type defines a structure to store status for piped I/O
  * to a child process. The hawk_pio_xxx() funtions are written around this
@@ -198,18 +210,17 @@ extern "C" {
  * pipes to it. #HAWK_PIO_SHELL causes the function to execute \a cmd via
  * the default shell of an underlying system: /bin/sh on *nix, cmd.exe on win32.
  * On *nix systems, a full path to the command is needed if it is not specified.
- * If \a env is #HAWK_NULL, the environment of \a cmd inherits that of the
- * calling process. If you want to pass an empty environment, you can pass
- * an empty \a env object with no items inserted. If #HAWK_PIO_BCSTRCMD is
- * specified in \a flags, \a cmd is treated as a multi-byte string whose
- * character type is #hawk_bch_t.
+ * If #HAWK_PIO_BCSTRCMD is specified in \a flags, \a cmd is treated as a
+ * multi-byte string whose character type is #hawk_bch_t.
  * \return #hawk_pio_t object on success, #HAWK_NULL on failure
  */
 HAWK_EXPORT hawk_pio_t* hawk_pio_open (
 	hawk_gem_t*        gem,    /**< gem */
 	hawk_oow_t         ext,    /**< extension size */
 	const hawk_ooch_t* cmd,    /**< command to execute */
-	int                flags   /**< 0 or a number OR'ed of the #hawk_pio_flag_t enumerators*/
+	int                flags,  /**< 0 or a number OR'ed of the #hawk_pio_flag_t enumerators*/
+	hawk_pio_env_mk_t  env_mk,
+	void*              env_cx
 );
 
 /**
@@ -230,7 +241,9 @@ HAWK_EXPORT int hawk_pio_init (
 	hawk_pio_t*        pio,    /**< pio object */
 	hawk_gem_t*        gem,    /**< gem */
 	const hawk_ooch_t* cmd,    /**< command to execute */
-	int                flags   /**< 0 or a number OR'ed of the #hawk_pio_flag_t enumerators*/
+	int                flags,  /**< 0 or a number OR'ed of the #hawk_pio_flag_t enumerators*/
+	hawk_pio_env_mk_t  env_mk,
+	void*              env_cx
 );
 
 /**

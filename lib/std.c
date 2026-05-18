@@ -189,6 +189,9 @@ typedef struct rxtn_t
 	hawk_htb_t cmgrtab;
 
 	hawk_rtx_ecb_t ecb;
+
+	void* envp; /* cached environment value */
+	int env_changed;
 } rxtn_t;
 
 typedef struct ioattr_t
@@ -206,6 +209,14 @@ static HAWK_INLINE rxtn_t* GET_RXTN(hawk_rtx_t* rtx) { return (rxtn_t*)((hawk_ui
 #define GET_RXTN(rtx) ((rxtn_t*)((hawk_uint8_t*)hawk_rtx_getxtn(rtx) - HAWK_SIZEOF(rxtn_t)))
 #endif
 
+/* ========================================================================= */
+
+/* TODO: use wenviron where it's available */
+typedef hawk_bch_t env_char_t;
+#define ENV_CHAR_IS_BCH
+
+
+static env_char_t** commit_environ (hawk_rtx_t* rtx, int gbl_id);
 /* ========================================================================= */
 
 static void* sys_alloc (hawk_mmgr_t* mmgr, hawk_oow_t size)
@@ -992,6 +1003,14 @@ static void fini_xtn (hawk_t* hawk, void* ctx)
 static void clear_xtn (hawk_t* hawk, void* ctx)
 {
 	/* nothing to do */
+}
+
+static void watch_gblset (hawk_rtx_t* rtx, hawk_oow_t id, hawk_val_t* val, void* ctx)
+{
+	hawk_t* hawk = hawk_rtx_gethawk(rtx);
+	rxtn_t* rxtn = GET_RXTN(rtx);
+	xtn_t* xtn = GET_XTN(hawk);
+	if (id == xtn->gbl_environ) rxtn->env_changed = 1;
 }
 
 hawk_t* hawk_openstdwithmmgr (hawk_mmgr_t* mmgr, hawk_oow_t xtnsize, hawk_cmgr_t* cmgr, hawk_errinf_t* errinf)
@@ -2036,6 +2055,38 @@ static int parse_rwpipe_uri (const hawk_ooch_t* uri, int* flags, hawk_nwad_t* nw
 }
 #endif
 
+static void* envp_maker (hawk_pio_env_mk_type_t env_mk_type, void* ctx)
+{
+	hawk_rtx_t* rtx = ctx;
+	hawk_t* hawk = hawk_rtx_gethawk(rtx);
+
+	if (env_mk_type == HAWK_PIO_ENV_MK_BCH_PP)
+	{
+		env_char_t** envp;
+		xtn_t* xtn;
+		rxtn_t* rxtn;
+
+		xtn = GET_XTN(hawk);
+		rxtn = GET_RXTN(rtx);
+
+		if (!rxtn->envp || rxtn->env_changed)
+		{
+			envp = commit_environ(rtx, xtn->gbl_environ);
+			if (!envp) return HAWK_NULL;
+
+			if (rxtn->envp) hawk_rtx_freemem(rtx, rxtn->envp);
+			rxtn->envp = envp;
+			rxtn->env_changed = 0;
+		}
+
+		return rxtn->envp;
+	}
+
+/* TODO: support more types */
+	/* unsupported env_mk_type */
+	return HAWK_NULL;
+}
+
 static hawk_ooi_t pio_handler_open (hawk_rtx_t* rtx, hawk_rio_arg_t* riod)
 {
 	hawk_pio_t* handle;
@@ -2074,9 +2125,11 @@ static hawk_ooi_t pio_handler_open (hawk_rtx_t* rtx, hawk_rio_arg_t* riod)
 		hawk_rtx_getgem(rtx),
 		0,
 		riod->name,
-		flags | HAWK_PIO_SHELL | HAWK_PIO_TEXT | HAWK_PIO_IGNOREECERR
+		flags | HAWK_PIO_SHELL | HAWK_PIO_TEXT | HAWK_PIO_IGNOREECERR,
+		envp_maker,
+		rtx
 	);
-	if (handle == HAWK_NULL) return -1;
+	if (!handle) return -1;
 
 #if defined(HAWK_OOCH_IS_UCH)
 	{
@@ -2776,6 +2829,12 @@ static void fini_rxtn (hawk_rtx_t* rtx, void* ctx)
 		hawk_htb_fini(&rxtn->cmgrtab);
 		rxtn->cmgrtab_inited = 0;
 	}
+
+	if (rxtn->envp)
+	{
+		hawk_rtx_freemem(rtx, rxtn->envp);
+		rxtn->envp = HAWK_NULL;
+	}
 }
 
 static int build_argcv (hawk_rtx_t* rtx, int argc_id, int argv_id, const hawk_ooch_t* id, hawk_ooch_t* icf[])
@@ -2875,10 +2934,6 @@ static int build_argcv (hawk_rtx_t* rtx, int argc_id, int argv_id, const hawk_oo
 
 	return 0;
 }
-
-/* TODO: use wenviron where it's available */
-typedef hawk_bch_t env_char_t;
-#define ENV_CHAR_IS_BCH
 
 static int build_environ (hawk_rtx_t* rtx, int gbl_id, env_char_t* envarr[])
 {
@@ -3009,7 +3064,7 @@ static int build_environ (hawk_rtx_t* rtx, int gbl_id, env_char_t* envarr[])
 	return 0;
 }
 
-static env_char_t** commit_environ (hawk_rtx_t* rtx, xtn_t* xtn)
+static env_char_t** commit_environ (hawk_rtx_t* rtx, int gbl_id)
 {
 	hawk_val_t* v_env;
 	hawk_map_t* map;
@@ -3019,14 +3074,17 @@ static env_char_t** commit_environ (hawk_rtx_t* rtx, xtn_t* xtn)
 	env_char_t* ptr;
 	hawk_oow_t count, ptr_bytes, str_bytes;
 
-	v_env = hawk_rtx_getgbl(rtx, xtn->gbl_environ);
+	v_env = hawk_rtx_getgbl(rtx, gbl_id);
 	HAWK_ASSERT(v_env != HAWK_NULL);
 
 	if (HAWK_RTX_GETVALTYPE(rtx, v_env) != HAWK_VAL_MAP)
 	{
-/* TODO: return HAWK_NULL without an error??? */
-		hawk_rtx_seterrfmt(rtx, HAWK_NULL, HAWK_EINVAL, HAWK_T("phony value in ENVIRON"));
-		return HAWK_NULL;
+		/* it may be nil. but we can't prevent ENVIRON from being set to
+		 * other scalar types, we should handle this case gracefully */
+		envp = (env_char_t**)hawk_rtx_allocmem(rtx, HAWK_SIZEOF(*envp) * 1);
+		if (HAWK_UNLIKELY(!envp)) return HAWK_NULL;
+		envp[0] = HAWK_NULL;
+		return envp;
 	}
 
 	map = ((hawk_val_map_t*)v_env)->map;
@@ -3223,6 +3281,7 @@ static hawk_rtx_t* open_rtx_std (
 	}
 
 	rxtn->ecb.close = fini_rxtn;
+	rxtn->ecb.gblset = watch_gblset;
 	hawk_rtx_pushecb(rtx, &rxtn->ecb);
 
 	rxtn->c.in.files = icf;

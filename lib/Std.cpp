@@ -610,7 +610,7 @@ int HawkStd::open_pio (Pipe& io)
 			break;
 	}
 
-	pio = hawk_pio_open((hawk_gem_t*)*this, 0, io.getName(), flags);
+	pio = hawk_pio_open((hawk_gem_t*)*this, 0, io.getName(), flags, HAWK_NULL, HAWK_NULL);
 	if (!pio) return -1;
 
 #if defined(HAWK_OOCH_IS_UCH)
