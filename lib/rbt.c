@@ -221,6 +221,7 @@ int hawk_rbt_init (hawk_rbt_t* rbt, hawk_gem_t* gem, int kscale, int vscale)
 	rbt->scale[HAWK_RBT_KEY] = (kscale < 1)? 1: kscale;
 	rbt->scale[HAWK_RBT_VAL] = (vscale < 1)? 1: vscale;
 	rbt->size = 0;
+	rbt->rev = 0;
 
 	rbt->style = &style[0];
 
@@ -260,6 +261,11 @@ void hawk_rbt_setstyle (hawk_rbt_t* rbt, const hawk_rbt_style_t* style)
 hawk_oow_t hawk_rbt_getsize (const hawk_rbt_t* rbt)
 {
 	return rbt->size;
+}
+
+hawk_oow_t hawk_rbt_getrev (const hawk_rbt_t* rbt)
+{
+	return rbt->rev;
 }
 
 hawk_rbt_pair_t* hawk_rbt_search (const hawk_rbt_t* rbt, const void* kptr, hawk_oow_t klen)
@@ -497,7 +503,7 @@ static hawk_rbt_pair_t* insert (hawk_rbt_t* rbt, void* kptr, hawk_oow_t klen, vo
 	hawk_rbt_pair_t* x_par = HAWK_NULL;
 	hawk_rbt_pair_t* x_new;
 
-	while (!IS_NIL(rbt,x_cur))
+	while (!IS_NIL(rbt, x_cur))
 	{
 		int n = rbt->style->comper(rbt, kptr, klen, KPTR(x_cur), KLEN(x_cur));
 		if (n == 0)
@@ -506,7 +512,9 @@ static hawk_rbt_pair_t* insert (hawk_rbt_t* rbt, void* kptr, hawk_oow_t klen, vo
 			{
 				case UPSERT:
 				case UPDATE:
-					return change_pair_val(rbt, x_cur, vptr, vlen);
+					x_cur = change_pair_val(rbt, x_cur, vptr, vlen);
+					if (HAWK_LIKELY(x_cur)) rbt->rev++;
+					return x_cur;
 
 				case ENSERT:
 					/* return existing pair */
@@ -561,6 +569,7 @@ static hawk_rbt_pair_t* insert (hawk_rbt_t* rbt, void* kptr, hawk_oow_t klen, vo
 
 	rbt->root->color = HAWK_RBT_BLACK;
 	rbt->size++;
+	rbt->rev++;
 	return x_new;
 }
 
@@ -639,6 +648,7 @@ hawk_rbt_pair_t* hawk_rbt_cbsert (hawk_rbt_t* rbt, void* kptr, hawk_oow_t klen, 
 				if (x_cur == rbt->root) rbt->root = x_new;
 			}
 
+			rbt->rev++;
 			return x_new;
 		}
 
@@ -678,6 +688,7 @@ hawk_rbt_pair_t* hawk_rbt_cbsert (hawk_rbt_t* rbt, void* kptr, hawk_oow_t klen, 
 
 	rbt->root->color = HAWK_RBT_BLACK;
 	rbt->size++;
+	rbt->rev++;
 	return x_new;
 }
 
@@ -837,6 +848,7 @@ static void delete_pair (hawk_rbt_t* rbt, hawk_rbt_pair_t* pair)
 	}
 
 	rbt->size--;
+	rbt->rev++;
 
 #if defined(HAWK_ENABLE_RBT_ITR_PROTECTION)
 	/* an iterator set by hawk_rbt_getfirstpair() or hawk_rbt_getnextpair(), if deleted, gets invalidated.

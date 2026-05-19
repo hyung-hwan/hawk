@@ -250,6 +250,7 @@ struct hawk_htb_t
 	hawk_oow_t       size;
 	hawk_oow_t       capa;
 	hawk_oow_t       threshold;
+	hawk_oow_t       rev;
 
 	hawk_htb_pair_t** bucket;
 };
@@ -284,13 +285,15 @@ typedef struct hawk_htb_itr_t hawk_htb_itr_t;
 /**
  * The HAWK_HTB_SIZE() macro returns the number of pairs in a hash table.
  */
-#define HAWK_HTB_SIZE(m) (*(const hawk_oow_t*)&(m)->size)
+#define HAWK_HTB_SIZE(m) ((const hawk_oow_t)(m)->size)
 
 /**
  * The HAWK_HTB_CAPA() macro returns the maximum number of pairs that can be
  * stored in a hash table without further reorganization.
  */
-#define HAWK_HTB_CAPA(m) (*(const hawk_oow_t*)&(m)->capa)
+#define HAWK_HTB_CAPA(m) ((const hawk_oow_t)(m)->capa)
+
+#define HAWK_HTB_REV(m) ((const hawk_oow_t)(m)->rev)
 
 #define HAWK_HTB_FACTOR(m) (*(const int*)&(m)->factor)
 #define HAWK_HTB_KSCALE(m) (*(const int*)&(m)->scale[HAWK_HTB_KEY])
@@ -403,6 +406,10 @@ HAWK_EXPORT hawk_oow_t hawk_htb_getsize (
  * in a hash bucket.
  */
 HAWK_EXPORT hawk_oow_t hawk_htb_getcapa (
+	const hawk_htb_t* htb /**< hash table */
+);
+
+HAWK_EXPORT hawk_oow_t hawk_htb_getrev (
 	const hawk_htb_t* htb /**< hash table */
 );
 

@@ -191,7 +191,8 @@ typedef struct rxtn_t
 	hawk_rtx_ecb_t ecb;
 
 	void* envp; /* cached environment value */
-	int env_changed;
+	hawk_map_t* env_map;
+	hawk_oow_t env_map_rev;
 } rxtn_t;
 
 typedef struct ioattr_t
@@ -1003,14 +1004,6 @@ static void fini_xtn (hawk_t* hawk, void* ctx)
 static void clear_xtn (hawk_t* hawk, void* ctx)
 {
 	/* nothing to do */
-}
-
-static void watch_gblset (hawk_rtx_t* rtx, hawk_oow_t id, hawk_val_t* val, void* ctx)
-{
-	hawk_t* hawk = hawk_rtx_gethawk(rtx);
-	rxtn_t* rxtn = GET_RXTN(rtx);
-	xtn_t* xtn = GET_XTN(hawk);
-	if (id == xtn->gbl_environ) rxtn->env_changed = 1;
 }
 
 hawk_t* hawk_openstdwithmmgr (hawk_mmgr_t* mmgr, hawk_oow_t xtnsize, hawk_cmgr_t* cmgr, hawk_errinf_t* errinf)
@@ -2062,21 +2055,41 @@ static void* envp_maker (hawk_pio_env_mk_type_t env_mk_type, void* ctx)
 
 	if (env_mk_type == HAWK_PIO_ENV_MK_BCH_PP)
 	{
+		hawk_val_t* v_env;
+		hawk_map_t* env_map;
+		hawk_oow_t env_map_rev;
 		env_char_t** envp;
 		xtn_t* xtn;
 		rxtn_t* rxtn;
 
 		xtn = GET_XTN(hawk);
 		rxtn = GET_RXTN(rtx);
+		v_env = hawk_rtx_getgbl(rtx, xtn->gbl_environ);
+		HAWK_ASSERT(v_env != HAWK_NULL);
 
-		if (!rxtn->envp || rxtn->env_changed)
+		if (HAWK_RTX_GETVALTYPE(rtx, v_env) == HAWK_VAL_MAP)
+		{
+			env_map = ((hawk_val_map_t*)v_env)->map;
+			HAWK_ASSERT(env_map != HAWK_NULL);
+			env_map_rev = HAWK_MAP_REV(env_map);
+		}
+		else
+		{
+			env_map = HAWK_NULL;
+			env_map_rev = 0;
+		}
+
+		if (!rxtn->envp ||
+		    rxtn->env_map != env_map ||
+		    (env_map && rxtn->env_map_rev != env_map_rev))
 		{
 			envp = commit_environ(rtx, xtn->gbl_environ);
 			if (!envp) return HAWK_NULL;
 
 			if (rxtn->envp) hawk_rtx_freemem(rtx, rxtn->envp);
 			rxtn->envp = envp;
-			rxtn->env_changed = 0;
+			rxtn->env_map = env_map;
+			rxtn->env_map_rev = env_map_rev;
 		}
 
 		return rxtn->envp;
@@ -2835,6 +2848,8 @@ static void fini_rxtn (hawk_rtx_t* rtx, void* ctx)
 		hawk_rtx_freemem(rtx, rxtn->envp);
 		rxtn->envp = HAWK_NULL;
 	}
+	rxtn->env_map = HAWK_NULL;
+	rxtn->env_map_rev = 0;
 }
 
 static int build_argcv (hawk_rtx_t* rtx, int argc_id, int argv_id, const hawk_ooch_t* id, hawk_ooch_t* icf[])
@@ -3281,7 +3296,6 @@ static hawk_rtx_t* open_rtx_std (
 	}
 
 	rxtn->ecb.close = fini_rxtn;
-	rxtn->ecb.gblset = watch_gblset;
 	hawk_rtx_pushecb(rtx, &rxtn->ecb);
 
 	rxtn->c.in.files = icf;

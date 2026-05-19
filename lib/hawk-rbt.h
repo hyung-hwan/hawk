@@ -254,6 +254,7 @@ struct hawk_rbt_t
 	hawk_rbt_pair_t         xnil;      /**< internal nil node */
 	hawk_oow_t              size;      /**< number of pairs */
 	hawk_rbt_pair_t*        root;      /**< root pair */
+	hawk_oow_t              rev;       /**< revision */
 #if defined(HAWK_ENABLE_RBT_ITR_PROTECTION)
 	hawk_rbt_itr_t          _prot_itr; /**< protected iterators */
 #endif
@@ -280,6 +281,7 @@ struct hawk_rbt_t
  * The HAWK_RBT_SIZE() macro returns the number of pairs in red-black tree.
  */
 #define HAWK_RBT_SIZE(m)   ((const hawk_oow_t)(m)->size)
+#define HAWK_RBT_REV(m)    ((const hawk_oow_t)(m)->rev)
 #define HAWK_RBT_KSCALE(m) ((const int)(m)->scale[HAWK_RBT_KEY])
 #define HAWK_RBT_VSCALE(m) ((const int)(m)->scale[HAWK_RBT_VAL])
 

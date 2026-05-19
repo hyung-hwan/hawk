@@ -311,6 +311,7 @@ int hawk_htb_init (hawk_htb_t* htb, hawk_gem_t* gem, hawk_oow_t capa, int factor
 	htb->capa = capa;
 	htb->threshold = htb->capa * htb->factor / 100;
 	if (htb->capa > 0 && htb->threshold <= 0) htb->threshold = 1;
+	htb->rev = 0;
 
 	htb->style = &style[0];
 	return 0;
@@ -341,6 +342,11 @@ hawk_oow_t hawk_htb_getsize (const hawk_htb_t* htb)
 hawk_oow_t hawk_htb_getcapa (const hawk_htb_t* htb)
 {
 	return htb->capa;
+}
+
+hawk_oow_t hawk_htb_getrev (const hawk_htb_t* htb)
+{
+	return htb->rev;
 }
 
 pair_t* hawk_htb_search (const hawk_htb_t* htb, const void* kptr, hawk_oow_t klen)
@@ -451,7 +457,7 @@ static HAWK_INLINE pair_t* insert (hawk_htb_t* htb, void* kptr, hawk_oow_t klen,
 				case UPSERT:
 				case UPDATE:
 					p = change_pair_val(htb, pair, vptr, vlen);
-					if (p == HAWK_NULL)
+					if (!p)
 					{
 						/* error in changing the value */
 						return HAWK_NULL;
@@ -465,6 +471,7 @@ static HAWK_INLINE pair_t* insert (hawk_htb_t* htb, void* kptr, hawk_oow_t klen,
 						else NEXT(prev) = p;
 						NEXT(p) = next;
 					}
+					htb->rev++;
 					return p;
 
 				case ENSERT:
@@ -507,6 +514,7 @@ static HAWK_INLINE pair_t* insert (hawk_htb_t* htb, void* kptr, hawk_oow_t klen,
 	htb->bucket[hc] = pair;
 	htb->size++;
 
+	htb->rev++;
 	return pair; /* new key added */
 }
 
@@ -524,7 +532,6 @@ pair_t* hawk_htb_insert (hawk_htb_t* htb, void* kptr, hawk_oow_t klen, void* vpt
 {
 	return insert(htb, kptr, klen, vptr, vlen, INSERT);
 }
-
 
 pair_t* hawk_htb_update (hawk_htb_t* htb, void* kptr, hawk_oow_t klen, void* vptr, hawk_oow_t vlen)
 {
@@ -548,7 +555,7 @@ pair_t* hawk_htb_cbsert (hawk_htb_t* htb, void* kptr, hawk_oow_t klen, cbserter_
 		{
 			/* found a pair with a matching key */
 			p = cbserter(htb, pair, kptr, klen, ctx);
-			if (p == HAWK_NULL)
+			if (!p)
 			{
 				/* error returned by the callback function */
 				return HAWK_NULL;
@@ -562,6 +569,7 @@ pair_t* hawk_htb_cbsert (hawk_htb_t* htb, void* kptr, hawk_oow_t klen, cbserter_
 				else NEXT(prev) = p;
 				NEXT(p) = next;
 			}
+			htb->rev++;
 			return p;
 		}
 
@@ -587,6 +595,7 @@ pair_t* hawk_htb_cbsert (hawk_htb_t* htb, void* kptr, hawk_oow_t klen, cbserter_
 	NEXT(pair) = htb->bucket[hc];
 	htb->bucket[hc] = pair;
 	htb->size++;
+	htb->rev++;
 
 	return pair; /* new key added */
 }
@@ -610,6 +619,7 @@ int hawk_htb_delete (hawk_htb_t* htb, const void* kptr, hawk_oow_t klen)
 
 			hawk_htb_freepair(htb, pair);
 			htb->size--;
+			htb->rev++;
 
 			return 0;
 		}
@@ -624,14 +634,15 @@ int hawk_htb_delete (hawk_htb_t* htb, const void* kptr, hawk_oow_t klen)
 
 void hawk_htb_clear (hawk_htb_t* htb)
 {
-	hawk_oow_t i;
+	hawk_oow_t i, sz;
 	pair_t* pair, * next;
 
+	sz = htb->size;
 	for (i = 0; i < htb->capa; i++)
 	{
 		pair = htb->bucket[i];
 
-		while (pair != HAWK_NULL)
+		while (pair)
 		{
 			next = NEXT(pair);
 			hawk_htb_freepair(htb, pair);
@@ -641,6 +652,9 @@ void hawk_htb_clear (hawk_htb_t* htb)
 
 		htb->bucket[i] = HAWK_NULL;
 	}
+
+	HAWK_ASSERT(htb->size == 0);
+	if (sz) htb->rev++;
 }
 
 void hawk_htb_walk (hawk_htb_t* htb, walker_t walker, void* ctx)
