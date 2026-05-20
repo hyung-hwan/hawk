@@ -1456,11 +1456,11 @@ Hawk::Value::IndexIterator Hawk::Value::getNextIndex (Index* idx, const IndexIte
 // Hawk::Run
 //////////////////////////////////////////////////////////////////
 
-Hawk::Run::Run (Hawk* hawk): hawk(hawk), rtx (HAWK_NULL)
+Hawk::Run::Run (Hawk* hawk): hawk(hawk), rtx(HAWK_NULL), envp(HAWK_NULL), env_map(HAWK_NULL), env_map_rev(0)
 {
 }
 
-Hawk::Run::Run (Hawk* hawk, hawk_rtx_t* rtx): hawk(hawk), rtx (rtx)
+Hawk::Run::Run (Hawk* hawk, hawk_rtx_t* rtx): hawk(hawk), rtx(rtx), envp(HAWK_NULL), env_map(HAWK_NULL), env_map_rev(0)
 {
 	HAWK_ASSERT(this->rtx != HAWK_NULL);
 }
@@ -2123,10 +2123,12 @@ int Hawk::init_runctx ()
 	if (this->runctx.rtx) return 0;
 
 	hawk_rio_cbs_t rio;
+	HAWK_MEMSET(&rio, 0, HAWK_SIZEOF(rio));
 
 	rio.pipe    = pipeHandler;
 	rio.file    = fileHandler;
 	rio.console = consoleHandler;
+	rio.env_mk  = HAWK_NULL;
 
 	hawk_rtx_t* rtx = hawk_rtx_open(this->hawk, HAWK_SIZEOF(rxtn_t), &rio);
 	if (HAWK_UNLIKELY(!rtx))
@@ -2151,6 +2153,14 @@ void Hawk::fini_runctx ()
 {
 	if (this->runctx.rtx)
 	{
+		if (this->runctx.envp)
+		{
+			hawk_rtx_freemem(this->runctx.rtx, this->runctx.envp);
+			this->runctx.envp = HAWK_NULL;
+			this->runctx.env_map = HAWK_NULL;
+			this->runctx.env_map_rev = 0;
+		}
+
 		hawk_rtx_close(this->runctx.rtx);
 		this->runctx.rtx = HAWK_NULL;
 	}

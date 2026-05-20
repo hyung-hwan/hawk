@@ -1,12 +1,32 @@
 #!/bin/sh
 
+hawk_bin="${HAWK_TEST_COMPILER:-../bin/hawk}"
+hawk_lib_path="${LD_LIBRARY_PATH-}"
+
+case "$hawk_bin" in
+*/.libs/*)
+	libdir=$(cd "$(dirname "$hawk_bin")/../../lib/.libs" 2>/dev/null && pwd)
+	if [ -n "${libdir-}" ]
+	then
+		if [ -n "$hawk_lib_path" ]
+		then
+			hawk_lib_path="$libdir:$hawk_lib_path"
+		else
+			hawk_lib_path="$libdir"
+		fi
+	fi
+	;;
+esac
+
+export LD_LIBRARY_PATH="$hawk_lib_path"
+
 if [ "${VALGRIND:-0}" = "1" ]
 then
 	vglog="/tmp/hawk-valgrind-$$.log"
 	vgerr="${VALGRIND_ERROR_EXITCODE:-99}"
 	trap 'rm -f "$vglog"' EXIT
 
-	${VALGRIND_CMD:-valgrind} ${VALGRIND_FLAGS:-} --log-file="$vglog" "${HAWK_TEST_COMPILER:-../bin/hawk}" "$@"
+	${VALGRIND_CMD:-valgrind} ${VALGRIND_FLAGS:-} --log-file="$vglog" "$hawk_bin" "$@"
 	status=$?
 
 	if [ -f "$vglog" ]
@@ -31,5 +51,5 @@ then
 
 	exit "$status"
 else
-	exec "${HAWK_TEST_COMPILER:-../bin/hawk}" "$@"
+	exec "$hawk_bin" "$@"
 fi

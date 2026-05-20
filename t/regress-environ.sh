@@ -5,6 +5,22 @@
 
 set -u
 
+hawk_lib_path="${LD_LIBRARY_PATH-}"
+case "$HAWK_BIN" in
+*/.libs/*)
+	libdir=$(cd "$(dirname "$HAWK_BIN")/../../lib/.libs" 2>/dev/null && pwd)
+	if [ -n "${libdir-}" ]
+	then
+		if [ -n "$hawk_lib_path" ]
+		then
+			hawk_lib_path="$libdir:$hawk_lib_path"
+		else
+			hawk_lib_path="$libdir"
+		fi
+	fi
+	;;
+esac
+
 tmp_prog="/tmp/hawk-regress-environ-$$.hawk"
 tmp_pipe="/tmp/hawk-regress-environ-$$.pipe"
 tmp_sys="/tmp/hawk-regress-environ-$$.sys"
@@ -103,6 +119,10 @@ check_eq() {
 echo "1..28"
 
 if out=$(env -i \
+	LD_LIBRARY_PATH="${hawk_lib_path-}" \
+	DYLD_LIBRARY_PATH="${DYLD_LIBRARY_PATH-}" \
+	SHLIB_PATH="${SHLIB_PATH-}" \
+	LIBPATH="${LIBPATH-}" \
 	HAWK_TEST_ENV_INT=123 \
 	HAWK_TEST_ENV_NEG=-7 \
 	HAWK_TEST_ENV_FLT=1.25 \

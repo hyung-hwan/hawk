@@ -212,14 +212,6 @@ static HAWK_INLINE rxtn_t* GET_RXTN(hawk_rtx_t* rtx) { return (rxtn_t*)((hawk_ui
 
 /* ========================================================================= */
 
-/* TODO: use wenviron where it's available */
-typedef hawk_bch_t env_char_t;
-#define ENV_CHAR_IS_BCH
-
-static env_char_t** commit_environ (hawk_rtx_t* rtx, int gbl_id);
-
-/* ========================================================================= */
-
 static void* sys_alloc (hawk_mmgr_t* mmgr, hawk_oow_t size)
 {
 	return malloc(size);
@@ -2057,7 +2049,7 @@ static void* rtx_env_maker (hawk_rtx_t* rtx, hawk_rtx_env_mk_type_t env_mk_type)
 		hawk_val_t* v_env;
 		hawk_map_t* env_map;
 		hawk_oow_t env_map_rev;
-		env_char_t** envp;
+		hawk_env_char_t** envp;
 		xtn_t* xtn;
 		rxtn_t* rxtn;
 
@@ -2081,7 +2073,7 @@ static void* rtx_env_maker (hawk_rtx_t* rtx, hawk_rtx_env_mk_type_t env_mk_type)
 		if (!rxtn->envp || rxtn->env_map != env_map ||
 		    (env_map && rxtn->env_map_rev != env_map_rev))
 		{
-			envp = commit_environ(rtx, xtn->gbl_environ);
+			envp = hawk_rtx_commit_environ(rtx, xtn->gbl_environ);
 			if (HAWK_UNLIKELY(!envp)) return HAWK_NULL;
 
 			if (rxtn->envp) hawk_rtx_freemem(rtx, rxtn->envp);
@@ -2957,7 +2949,7 @@ static int build_argcv (hawk_rtx_t* rtx, int argc_id, int argv_id, const hawk_oo
 	return 0;
 }
 
-static int build_environ (hawk_rtx_t* rtx, int gbl_id, env_char_t* envarr[])
+static int build_environ (hawk_rtx_t* rtx, int gbl_id, hawk_env_char_t* envarr[])
 {
 	hawk_val_t* v_env;
 	hawk_val_t* v_tmp;
@@ -2969,14 +2961,14 @@ static int build_environ (hawk_rtx_t* rtx, int gbl_id, env_char_t* envarr[])
 
 	if (envarr)
 	{
-		env_char_t* eq;
+		hawk_env_char_t* eq;
 		hawk_ooch_t* kptr, * vptr;
 		hawk_oow_t klen, vlen, count;
 
 		for (count = 0; envarr[count]; count++)
 		{
-		#if ((defined(ENV_CHAR_IS_BCH) && defined(HAWK_OOCH_IS_BCH)) || \
-		     (defined(ENV_CHAR_IS_UCH) && defined(HAWK_OOCH_IS_UCH)))
+		#if ((defined(HAWK_ENV_CHAR_IS_BCH) && defined(HAWK_OOCH_IS_BCH)) || \
+		     (defined(HAWK_ENV_CHAR_IS_UCH) && defined(HAWK_OOCH_IS_UCH)))
 			eq = hawk_find_oochar_in_oocstr(envarr[count], '=');
 			if (HAWK_UNLIKELY(!eq || eq == envarr[count])) continue;
 
@@ -2984,7 +2976,7 @@ static int build_environ (hawk_rtx_t* rtx, int gbl_id, env_char_t* envarr[])
 			klen = eq - envarr[count];
 			vptr = eq + 1;
 			vlen = hawk_count_oocstr(vptr);
-		#elif defined(ENV_CHAR_IS_BCH)
+		#elif defined(HAWK_ENV_CHAR_IS_BCH)
 			eq = hawk_find_bchar_in_bcstr(envarr[count], '=');
 			if (HAWK_UNLIKELY(!eq || eq == envarr[count])) continue;
 
@@ -3030,8 +3022,8 @@ static int build_environ (hawk_rtx_t* rtx, int gbl_id, env_char_t* envarr[])
 			v_tmp = hawk_rtx_makenumorstrvalwithoochars(rtx, vptr, vlen, 1);
 			if (HAWK_UNLIKELY(!v_tmp))
 			{
-		#if ((defined(ENV_CHAR_IS_BCH) && defined(HAWK_OOCH_IS_BCH)) || \
-		     (defined(ENV_CHAR_IS_UCH) && defined(HAWK_OOCH_IS_UCH)))
+		#if ((defined(HAWK_ENV_CHAR_IS_BCH) && defined(HAWK_OOCH_IS_BCH)) || \
+		     (defined(HAWK_ENV_CHAR_IS_UCH) && defined(HAWK_OOCH_IS_UCH)))
 				/* nothing to do */
 		#else
 				if (vptr) hawk_rtx_freemem(rtx, vptr);
@@ -3051,8 +3043,8 @@ static int build_environ (hawk_rtx_t* rtx, int gbl_id, env_char_t* envarr[])
 				 * the reference of v_tmp to free it */
 				hawk_rtx_refdownval_inline(rtx, v_tmp);
 
-		#if ((defined(ENV_CHAR_IS_BCH) && defined(HAWK_OOCH_IS_BCH)) || \
-		     (defined(ENV_CHAR_IS_UCH) && defined(HAWK_OOCH_IS_UCH)))
+		#if ((defined(HAWK_ENV_CHAR_IS_BCH) && defined(HAWK_OOCH_IS_BCH)) || \
+		     (defined(HAWK_ENV_CHAR_IS_UCH) && defined(HAWK_OOCH_IS_UCH)))
 				/* nothing to do */
 		#else
 				if (vptr) hawk_rtx_freemem(rtx, vptr);
@@ -3066,8 +3058,8 @@ static int build_environ (hawk_rtx_t* rtx, int gbl_id, env_char_t* envarr[])
 				return -1;
 			}
 
-		#if ((defined(ENV_CHAR_IS_BCH) && defined(HAWK_OOCH_IS_BCH)) || \
-		     (defined(ENV_CHAR_IS_UCH) && defined(HAWK_OOCH_IS_UCH)))
+		#if ((defined(HAWK_ENV_CHAR_IS_BCH) && defined(HAWK_OOCH_IS_BCH)) || \
+		     (defined(HAWK_ENV_CHAR_IS_UCH) && defined(HAWK_OOCH_IS_UCH)))
 				/* nothing to do */
 		#else
 			if (vptr) hawk_rtx_freemem(rtx, vptr);
@@ -3086,14 +3078,14 @@ static int build_environ (hawk_rtx_t* rtx, int gbl_id, env_char_t* envarr[])
 	return 0;
 }
 
-static env_char_t** commit_environ (hawk_rtx_t* rtx, int gbl_id)
+hawk_bch_t** hawk_rtx_commit_environ (hawk_rtx_t* rtx, int gbl_id)
 {
 	hawk_val_t* v_env;
 	hawk_map_t* map;
 	hawk_map_itr_t itr;
 	hawk_map_pair_t* pair;
-	env_char_t** envp;
-	env_char_t* ptr;
+	hawk_env_char_t** envp;
+	hawk_env_char_t* ptr;
 	hawk_oow_t count, ptr_bytes, str_bytes;
 
 	v_env = hawk_rtx_getgbl(rtx, gbl_id);
@@ -3103,7 +3095,7 @@ static env_char_t** commit_environ (hawk_rtx_t* rtx, int gbl_id)
 	{
 		/* it may be nil. but we can't prevent ENVIRON from being set to
 		 * other scalar types, we should handle this case gracefully */
-		envp = (env_char_t**)hawk_rtx_allocmem(rtx, HAWK_SIZEOF(*envp) * 1);
+		envp = (hawk_env_char_t**)hawk_rtx_allocmem(rtx, HAWK_SIZEOF(*envp) * 1);
 		if (HAWK_UNLIKELY(!envp)) return HAWK_NULL;
 		envp[0] = HAWK_NULL;
 		return envp;
@@ -3122,14 +3114,14 @@ static env_char_t** commit_environ (hawk_rtx_t* rtx, int gbl_id)
 		hawk_oow_t klen, vlen;
 
 		klen = HAWK_MAP_KLEN(pair);
-#if defined(ENV_CHAR_IS_BCH) && defined(HAWK_OOCH_IS_UCH)
+#if defined(HAWK_ENV_CHAR_IS_BCH) && defined(HAWK_OOCH_IS_UCH)
 		{
 			hawk_oow_t tmp_ulen, tmp_blen;
 			tmp_ulen = klen;
 			if (hawk_rtx_convutobchars(rtx, HAWK_MAP_KPTR(pair), &tmp_ulen, HAWK_NULL, &tmp_blen) <= -1) return HAWK_NULL;
 			klen = tmp_blen;
 		}
-#elif defined(ENV_CHAR_IS_UCH) && defined(HAWK_OOCH_IS_BCH)
+#elif defined(HAWK_ENV_CHAR_IS_UCH) && defined(HAWK_OOCH_IS_BCH)
 		{
 			hawk_oow_t tmp_blen, tmp_ulen;
 			tmp_blen = klen;
@@ -3138,7 +3130,7 @@ static env_char_t** commit_environ (hawk_rtx_t* rtx, int gbl_id)
 		}
 #endif
 
-#if defined(ENV_CHAR_IS_BCH)
+#if defined(HAWK_ENV_CHAR_IS_BCH)
 		{
 			hawk_bch_t* vptr;
 			vptr = hawk_rtx_getvalbcstr(rtx, HAWK_MAP_VPTR(pair), &vlen);
@@ -3160,10 +3152,10 @@ static env_char_t** commit_environ (hawk_rtx_t* rtx, int gbl_id)
 	}
 
 	ptr_bytes = HAWK_SIZEOF(*envp) * (count + 1);
-	envp = (env_char_t**)hawk_rtx_allocmem(rtx, ptr_bytes + (str_bytes * HAWK_SIZEOF(*ptr)));
+	envp = (hawk_env_char_t**)hawk_rtx_allocmem(rtx, ptr_bytes + (str_bytes * HAWK_SIZEOF(*ptr)));
 	if (HAWK_UNLIKELY(!envp)) return HAWK_NULL;
 
-	ptr = (env_char_t*)((hawk_uint8_t*)envp + ptr_bytes);
+	ptr = (hawk_env_char_t*)((hawk_uint8_t*)envp + ptr_bytes);
 	count = 0;
 
 	hawk_init_map_itr(&itr, 0);
@@ -3175,11 +3167,11 @@ static env_char_t** commit_environ (hawk_rtx_t* rtx, int gbl_id)
 		envp[count++] = ptr;
 		klen = HAWK_MAP_KLEN(pair);
 
-#if ((defined(ENV_CHAR_IS_BCH) && defined(HAWK_OOCH_IS_BCH)) || \
-     (defined(ENV_CHAR_IS_UCH) && defined(HAWK_OOCH_IS_UCH)))
+#if ((defined(HAWK_ENV_CHAR_IS_BCH) && defined(HAWK_OOCH_IS_BCH)) || \
+     (defined(HAWK_ENV_CHAR_IS_UCH) && defined(HAWK_OOCH_IS_UCH)))
 		HAWK_MEMCPY(ptr, HAWK_MAP_KPTR(pair), klen);
 		ptr += klen;
-#elif defined(ENV_CHAR_IS_BCH)
+#elif defined(HAWK_ENV_CHAR_IS_BCH)
 		{
 			hawk_oow_t tmp_ulen, tmp_blen;
 
@@ -3211,7 +3203,7 @@ static env_char_t** commit_environ (hawk_rtx_t* rtx, int gbl_id)
 
 		*ptr++ = '=';
 
-#if defined(ENV_CHAR_IS_BCH)
+#if defined(HAWK_ENV_CHAR_IS_BCH)
 		{
 			hawk_bch_t* vptr;
 

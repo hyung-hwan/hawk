@@ -81,6 +81,7 @@ typedef struct hawk_tree_t hawk_tree_t;
 #include "err-prv.h"
 #include "misc-prv.h"
 
+
 /* ------------------------------------------------------------------------ */
 
 /* gc configuration */
@@ -713,7 +714,6 @@ static HAWK_INLINE void HAWK_RTX_STACK_POP (hawk_rtx_t* rtx)
 #	define HAWK_DEFAULT_MODPOSTFIX ""
 #endif
 
-
 #if defined(__cplusplus)
 extern "C" {
 #endif
@@ -723,6 +723,11 @@ void hawk_fini (hawk_t* hawk);
 
 hawk_rbt_walk_t hawk_modtab_unload_module (hawk_rbt_t* rbt, hawk_rbt_pair_t* pair, void* ctx);
 int hawk_rtx_setnamedval (hawk_rtx_t* rtx, hawk_oow_t id, hawk_val_t* val);
+
+hawk_bch_t** hawk_rtx_commit_environ (
+	hawk_rtx_t* rtx,
+	int         gbl_id
+);
 
 #if defined(__cplusplus)
 }

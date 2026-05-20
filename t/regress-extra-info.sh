@@ -5,6 +5,23 @@
 
 set -u
 
+hawk_lib_path="${LD_LIBRARY_PATH-}"
+case "$HAWK_BIN" in
+*/.libs/*)
+	libdir=$(cd "$(dirname "$HAWK_BIN")/../../lib/.libs" 2>/dev/null && pwd)
+	if [ -n "${libdir-}" ]
+	then
+		if [ -n "$hawk_lib_path" ]
+		then
+			hawk_lib_path="$libdir:$hawk_lib_path"
+		else
+			hawk_lib_path="$libdir"
+		fi
+	fi
+	;;
+esac
+export LD_LIBRARY_PATH="$hawk_lib_path"
+
 test_no=0
 failed=0
 

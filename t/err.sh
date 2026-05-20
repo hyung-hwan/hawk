@@ -1,5 +1,26 @@
 #!/bin/sh
 
+hawk_bin="$1"
+shift
+
+hawk_lib_path="${LD_LIBRARY_PATH-}"
+case "$hawk_bin" in
+*/.libs/*)
+	libdir=$(cd "$(dirname "$hawk_bin")/../../lib/.libs" 2>/dev/null && pwd)
+	if [ -n "${libdir-}" ]
+	then
+		if [ -n "$hawk_lib_path" ]
+		then
+			hawk_lib_path="$libdir:$hawk_lib_path"
+		else
+			hawk_lib_path="$libdir"
+		fi
+	fi
+	;;
+esac
+export LD_LIBRARY_PATH="$hawk_lib_path"
+set -- "$hawk_bin" "$@"
+
 for i in $@; do :; done
 script="$i"
 
@@ -89,4 +110,3 @@ done < "$script"
 
 rm -f "$partfile"
 exit $ever_failed
-

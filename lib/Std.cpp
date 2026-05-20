@@ -55,6 +55,79 @@
 HAWK_BEGIN_NAMESPACE(HAWK)
 /////////////////////////////////
 
+struct std_rxtn_t
+{
+	Hawk::Run* run;
+};
+
+#if defined(HAWK_HAVE_INLINE)
+static HAWK_INLINE std_rxtn_t* GET_STD_RXTN(hawk_rtx_t* rtx)
+{
+	return (std_rxtn_t*)((hawk_uint8_t*)hawk_rtx_getxtn(rtx) - HAWK_SIZEOF(std_rxtn_t));
+}
+#else
+#	define GET_STD_RXTN(rtx) ((std_rxtn_t*)((hawk_uint8_t*)hawk_rtx_getxtn(rtx) - HAWK_SIZEOF(std_rxtn_t)))
+#endif
+
+static void* rtx_env_maker (hawk_rtx_t* rtx, hawk_rtx_env_mk_type_t env_mk_type)
+{
+	HawkStd* hawk;
+	Hawk::Run* run;
+	hawk_val_t* v_env;
+	hawk_map_t* env_map;
+	hawk_oow_t env_map_rev;
+	int gbl_id;
+
+	if (env_mk_type != HAWK_RTX_ENV_MK_BPP) return HAWK_NULL;
+
+	run = GET_STD_RXTN(rtx)->run;
+	if (HAWK_UNLIKELY(run == HAWK_NULL)) return HAWK_NULL;
+	hawk = (HawkStd*)(Hawk*)*run;
+	HAWK_ASSERT(hawk != HAWK_NULL);
+
+	gbl_id = hawk->getEnvironGlobalId();
+	if (HAWK_UNLIKELY(gbl_id <= -1)) return HAWK_NULL;
+
+	v_env = hawk_rtx_getgbl(rtx, gbl_id);
+	HAWK_ASSERT(v_env != HAWK_NULL);
+
+	if (HAWK_RTX_GETVALTYPE(rtx, v_env) == HAWK_VAL_MAP)
+	{
+		env_map = ((hawk_val_map_t*)v_env)->map;
+		HAWK_ASSERT(env_map != HAWK_NULL);
+		env_map_rev = HAWK_MAP_REV(env_map);
+	}
+	else
+	{
+		env_map = HAWK_NULL;
+		env_map_rev = 0;
+	}
+
+	if (!run->getEnvp() || run->getEnvMap() != env_map ||
+	    (env_map && run->getEnvMapRev() != env_map_rev))
+	{
+		hawk_bch_t** envp;
+
+		envp = hawk_rtx_commit_environ(rtx, gbl_id);
+		if (HAWK_UNLIKELY(!envp)) return HAWK_NULL;
+
+		if (run->getEnvp()) hawk_rtx_freemem(rtx, run->getEnvp());
+		run->setEnvCache(envp, env_map, env_map_rev);
+	}
+
+	return run->getEnvp();
+}
+
+static void* pio_env_maker (hawk_pio_env_mk_type_t env_mk_type, void* ctx)
+{
+	hawk_rtx_t* rtx = (hawk_rtx_t*)ctx;
+	hawk_rio_cbs_t rio;
+
+	hawk_rtx_getrio(rtx, &rio);
+	HAWK_ASSERT(rio.env_mk != HAWK_NULL);
+	return rio.env_mk(rtx, (hawk_rtx_env_mk_type_t)env_mk_type);
+}
+
 static int set_pending_console_state (HawkStd::Console& io)
 {
 	hawk_uint16_t uflags = io.getUflags();
@@ -249,6 +322,13 @@ void HawkStd::uponClosing ()
 HawkStd::Run* HawkStd::parse (Source& in, Source& out)
 {
 	Run* run = Hawk::parse(in, out);
+	if (run)
+	{
+		hawk_rio_cbs_t rio;
+		hawk_rtx_getrio(*run, &rio);
+		rio.env_mk = rtx_env_maker;
+		hawk_rtx_setrio(*run, &rio);
+	}
 
 	if (this->cmgrtab_inited)
 	{
@@ -292,39 +372,40 @@ int HawkStd::build_argcv (Run* run)
 }
 
 
-int HawkStd::build_environ (Run* run, env_char_t* envarr[])
+int HawkStd::build_environ (Run* run, hawk_env_char_t* envarr[])
 {
 	Value v_env (run);
+	hawk_rtx_t* rtx = *run;
 
 	if (envarr)
 	{
-		env_char_t* eq;
+		hawk_env_char_t* eq;
 		hawk_ooch_t* kptr, * vptr;
-		hawk_oow_t klen, count;
-		hawk_rtx_t* rtx = *run;
+		hawk_oow_t klen, vlen, count;
 
 		for (count = 0; envarr[count]; count++)
 		{
-		#if ((defined(HAWK_STD_ENV_CHAR_IS_BCH) && defined(HAWK_OOCH_IS_BCH)) || \
-		     (defined(HAWK_STD_ENV_CHAR_IS_UCH) && defined(HAWK_OOCH_IS_UCH)))
+		#if ((defined(HAWK_ENV_CHAR_IS_BCH) && defined(HAWK_OOCH_IS_BCH)) || \
+		     (defined(HAWK_ENV_CHAR_IS_UCH) && defined(HAWK_OOCH_IS_UCH)))
 			eq = hawk_find_oochar_in_oocstr(envarr[count], HAWK_T('='));
 			if (eq == HAWK_NULL || eq == envarr[count]) continue;
 
 			kptr = envarr[count];
 			klen = eq - envarr[count];
 			vptr = eq + 1;
-		#elif defined(HAWK_STD_ENV_CHAR_IS_BCH)
+			vlen = hawk_count_oocstr(vptr);
+		#elif defined(HAWK_ENV_CHAR_IS_BCH)
 			eq = hawk_find_bchar_in_bcstr(envarr[count], HAWK_BT('='));
 			if (eq == HAWK_NULL || eq == envarr[count]) continue;
 
 			*eq = HAWK_BT('\0');
 
 			kptr = hawk_rtx_dupbtoucstr(rtx, envarr[count], &klen, 1);
-			vptr = hawk_rtx_dupbtoucstr(rtx, eq + 1, HAWK_NULL, 1);
+			vptr = hawk_rtx_dupbtoucstr(rtx, eq + 1, &vlen, 1);
 			if (kptr == HAWK_NULL || vptr == HAWK_NULL)
 			{
 				if (kptr) hawk_rtx_freemem(rtx, kptr);
-				if (vptr) hawk_rtx_freemem(rtx, kptr);
+				if (vptr) hawk_rtx_freemem(rtx, vptr);
 
 				/* mbstowcsdup() may fail for invalid encoding.
 				 * so setting the error code to ENOMEM may not
@@ -341,11 +422,11 @@ int HawkStd::build_environ (Run* run, env_char_t* envarr[])
 			*eq = HAWK_UT('\0');
 
 			kptr = hawk_rtx_duputobcstr(rtx, envarr[count], &klen);
-			vptr = hawk_rtx_duputobcstr(rtx, eq + 1, HAWK_NULL);
+			vptr = hawk_rtx_duputobcstr(rtx, eq + 1, &vlen);
 			if (kptr == HAWK_NULL || vptr == HAWK_NULL)
 			{
-		#if ((defined(HAWK_STD_ENV_CHAR_IS_BCH) && defined(HAWK_OOCH_IS_BCH)) || \
-		     (defined(HAWK_STD_ENV_CHAR_IS_UCH) && defined(HAWK_OOCH_IS_UCH)))
+		#if ((defined(HAWK_ENV_CHAR_IS_BCH) && defined(HAWK_OOCH_IS_BCH)) || \
+		     (defined(HAWK_ENV_CHAR_IS_UCH) && defined(HAWK_OOCH_IS_UCH)))
 				/* nothing to do */
 		#else
 				if (vptr) hawk_rtx_freemem(rtx, vptr);
@@ -359,11 +440,33 @@ int HawkStd::build_environ (Run* run, env_char_t* envarr[])
 			*eq = HAWK_UT('=');
 		#endif
 
-			// numeric string
-			v_env.setIndexedStr (Value::Index(kptr, klen), vptr, true);
+			hawk_val_t* tmp = hawk_rtx_makenumorstrvalwithoochars(rtx, vptr, vlen, 1);
+			if (tmp == HAWK_NULL)
+			{
+		#if ((defined(HAWK_ENV_CHAR_IS_BCH) && defined(HAWK_OOCH_IS_BCH)) || \
+		     (defined(HAWK_ENV_CHAR_IS_UCH) && defined(HAWK_OOCH_IS_UCH)))
+				/* nothing to do */
+		#else
+				if (vptr) hawk_rtx_freemem(rtx, vptr);
+				if (kptr) hawk_rtx_freemem(rtx, kptr);
+		#endif
+				return -1;
+			}
 
-		#if ((defined(HAWK_STD_ENV_CHAR_IS_BCH) && defined(HAWK_OOCH_IS_BCH)) || \
-		     (defined(HAWK_STD_ENV_CHAR_IS_UCH) && defined(HAWK_OOCH_IS_UCH)))
+			if (v_env.setIndexedVal(Value::Index(kptr, klen), tmp) <= -1)
+			{
+		#if ((defined(HAWK_ENV_CHAR_IS_BCH) && defined(HAWK_OOCH_IS_BCH)) || \
+		     (defined(HAWK_ENV_CHAR_IS_UCH) && defined(HAWK_OOCH_IS_UCH)))
+				/* nothing to do */
+		#else
+				if (vptr) hawk_rtx_freemem(rtx, vptr);
+				if (kptr) hawk_rtx_freemem(rtx, kptr);
+		#endif
+				return -1;
+			}
+
+		#if ((defined(HAWK_ENV_CHAR_IS_BCH) && defined(HAWK_OOCH_IS_BCH)) || \
+		     (defined(HAWK_ENV_CHAR_IS_UCH) && defined(HAWK_OOCH_IS_UCH)))
 				/* nothing to do */
 		#else
 			if (vptr) hawk_rtx_freemem(rtx, vptr);
@@ -592,6 +695,7 @@ int HawkStd::open_pio (Pipe& io)
 {
 	Hawk::Pipe::Mode mode = io.getMode();
 	hawk_pio_t* pio = HAWK_NULL;
+	hawk_rio_cbs_t rio;
 	int flags = HAWK_PIO_TEXT | HAWK_PIO_SHELL | HAWK_PIO_IGNOREECERR;
 
 	switch (mode)
@@ -610,7 +714,9 @@ int HawkStd::open_pio (Pipe& io)
 			break;
 	}
 
-	pio = hawk_pio_open((hawk_gem_t*)*this, 0, io.getName(), flags, HAWK_NULL, HAWK_NULL);
+	if (!HAWK_RTX_IS_PIPECLOEXEC_ON((hawk_rtx_t*)io)) flags |= HAWK_PIO_NOCLOEXEC;
+	hawk_rtx_getrio((hawk_rtx_t*)io, &rio);
+	pio = hawk_pio_open((hawk_gem_t*)*this, 0, io.getName(), flags, (rio.env_mk? pio_env_maker: HAWK_NULL), (hawk_rtx_t*)io);
 	if (!pio) return -1;
 
 #if defined(HAWK_OOCH_IS_UCH)

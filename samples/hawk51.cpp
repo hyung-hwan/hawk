@@ -62,6 +62,7 @@ static void do_nothing (int sig);
 #endif
 static void relay_signal (int sig);
 static int setsignal (int sig, void(*handler)(int), int restart);
+static void print_debug_return (hawk_rtx_t* rtx, hawk_val_t* ret);
 
 class MyHawk: public HawkStd
 {
@@ -221,11 +222,20 @@ static void print_error(MyHawk& hawk)
 
 	if (loc.file)
 	{
-		print_error("code %d line %lu at %s - %s\n", (int)code, (unsigned long int)loc.line, hawk.getErrorLocationFileB(), hawk.getErrorMessageB());
+		print_error("Line %lu Column %lu Code %d File %s - %s\n",
+			(unsigned long int)loc.line,
+			(unsigned long int)loc.colm,
+			(int)code,
+			hawk.getErrorLocationFileB(),
+			hawk.getErrorMessageB());
 	}
 	else
 	{
-		print_error("code %d line %lu - %s\n", (int)code, (unsigned long int)loc.line, hawk.getErrorMessageB());
+		print_error("Line %lu Column %lu Code %d - %s\n",
+			(unsigned long int)loc.line,
+			(unsigned long int)loc.colm,
+			(int)code,
+			hawk.getErrorMessageB());
 	}
 }
 
@@ -307,6 +317,7 @@ static void print_usage (FILE* out, const hawk_bch_t* argv0)
 	fprintf(out, "       %s [options] [ -- ] sourcestring [datafile]*\n", argv0);
 	fprintf(out, "Where options are:\n");
 	fprintf(out, " -h                print this message\n");
+	fprintf(out, " -D                show extra information\n");
 	fprintf(out, " -f sourcefile     set the source script file\n");
 	fprintf(out, " -d deparsedfile   set the deparsing output file\n");
 	fprintf(out, " -o outputfile     set the console output file\n");
@@ -339,7 +350,98 @@ struct cmdline_t
 
 	HAWK::Hawk::Value* argv;
 	int argc;
+	int debug;
 };
+
+static void print_awk_value (hawk_rtx_t* rtx, const hawk_oocs_t* name, hawk_val_t* val)
+{
+	hawk_t* hawk = hawk_rtx_gethawk(rtx);
+	hawk_bch_t* str;
+	hawk_oow_t len;
+	hawk_errinf_t oerrinf;
+#if defined(HAWK_OOCH_IS_UCH)
+	hawk_bch_t* bcname = HAWK_NULL;
+#endif
+
+	hawk_rtx_geterrinf(rtx, &oerrinf);
+
+	str = hawk_rtx_valtobcstrdup(rtx, val, &len);
+	if (!str)
+	{
+		if (hawk_rtx_geterrnum(rtx) == HAWK_EVALTOSTR)
+		{
+		#if defined(HAWK_OOCH_IS_UCH)
+			bcname = hawk_rtx_duputobchars(rtx, name->ptr, name->len, HAWK_NULL);
+			if (bcname)
+			{
+				fprintf(stderr, "%s = [not printable]\n", bcname);
+				hawk_rtx_freemem(rtx, bcname);
+			}
+			else
+			{
+				fprintf(stderr, "***OUT OF MEMORY***\n");
+			}
+		#else
+			fprintf(stderr, "%.*s = [not printable]\n", (int)name->len, name->ptr);
+		#endif
+			hawk_rtx_seterrinf(rtx, &oerrinf);
+		}
+		else
+		{
+			fprintf(stderr, "***OUT OF MEMORY***\n");
+		}
+	}
+	else
+	{
+	#if defined(HAWK_OOCH_IS_UCH)
+		bcname = hawk_rtx_duputobchars(rtx, name->ptr, name->len, HAWK_NULL);
+		if (!bcname)
+		{
+			fprintf(stderr, "***OUT OF MEMORY***\n");
+			hawk_freemem(hawk, str);
+			return;
+		}
+		fprintf(stderr, "%s = %.*s\n", bcname, (int)len, str);
+		hawk_rtx_freemem(rtx, bcname);
+	#else
+		fprintf(stderr, "%.*s = %.*s\n", (int)name->len, name->ptr, (int)len, str);
+	#endif
+		hawk_freemem(hawk, str);
+	}
+}
+
+static void print_debug_return (hawk_rtx_t* rtx, hawk_val_t* ret)
+{
+	hawk_oow_t len;
+	hawk_bch_t* str;
+	hawk_rtx_nv_itr_t itr;
+	hawk_val_t* nv;
+
+	if (hawk_rtx_isnilval(rtx, ret))
+	{
+		fprintf(stderr, "[RETURN] - ***nil***\n");
+	}
+	else
+	{
+		str = hawk_rtx_valtobcstrdup(rtx, ret, &len);
+		if (!str)
+		{
+			fprintf(stderr, "[RETURN] - ***OUT OF MEMORY***\n");
+		}
+		else
+		{
+			fprintf(stderr, "[RETURN] - [%.*s]\n", (int)len, str);
+			hawk_freemem(hawk_rtx_gethawk(rtx), str);
+		}
+	}
+
+	fprintf(stderr, "[NAMED VARIABLES]\n");
+	for (nv = hawk_rtx_getfirstnv(rtx, &itr); nv; nv = hawk_rtx_getnextnv(rtx, &itr))
+	{
+		print_awk_value(rtx, &itr.name, nv);
+	}
+	fprintf(stderr, "[END OF NAMED VARIABLES]\n");
+}
 
 static void free_cmdline (cmdline_t* cmdline)
 {
@@ -398,7 +500,7 @@ static int handle_cmdline (MyHawk& hawk, int argc, hawk_bch_t* argv[], cmdline_t
 
 	static hawk_bcli_t opt =
 	{
-		"hF:f:d:o:I:v:",
+		"hDF:f:d:o:I:v:",
 		lng
 	};
 	hawk_bci_t c;
@@ -411,6 +513,10 @@ static int handle_cmdline (MyHawk& hawk, int argc, hawk_bch_t* argv[], cmdline_t
 			case 'h':
 				print_usage(stdout, argv[0]);
 				return 0;
+
+			case 'D':
+				cmdline->debug = 1;
+				break;
 
 			case 'F':
 				cmdline->fs = opt.arg;
@@ -546,7 +652,7 @@ static int hawk_main (MyHawk& hawk, int argc, hawk_bch_t* argv[])
 	hawk.setTrait(hawk.getTrait() | HAWK_FLEXMAP | HAWK_RWPIPE | HAWK_NEXTOFILE);
 
 	// ARGV[0]
-	if (hawk.addArgument(HAWK_T("hawk51")) <= -1)
+	if (hawk.addArgument(argv[0]) <= -1)
 	{
 		print_error(hawk);
 		return -1;
@@ -652,6 +758,8 @@ static int hawk_main (MyHawk& hawk, int argc, hawk_bch_t* argv[])
 		free_cmdline(&cmdline);
 		return -1;
 	}
+
+	if (cmdline.debug) print_debug_return(*run, ret);
 
 	free_args_for_exec(&cmdline);
 	free_cmdline(&cmdline);

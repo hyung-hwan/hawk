@@ -1327,10 +1327,35 @@ public:
 		///
 		int getGlobal (int id, Value& v) const;
 
+		void* getEnvp () const
+		{
+			return this->envp;
+		}
+
+		hawk_map_t* getEnvMap () const
+		{
+			return this->env_map;
+		}
+
+		hawk_oow_t getEnvMapRev () const
+		{
+			return this->env_map_rev;
+		}
+
+		void setEnvCache (void* envp, hawk_map_t* env_map, hawk_oow_t env_map_rev)
+		{
+			this->envp = envp;
+			this->env_map = env_map;
+			this->env_map_rev = env_map_rev;
+		}
+
 	protected:
 		Hawk* hawk;
 		hawk_rtx_t* rtx;
 		hawk_rtx_ecb_t rtx_ecb;
+		void* envp;
+		hawk_map_t* env_map;
+		hawk_oow_t env_map_rev;
 	};
 
 	///
@@ -2026,13 +2051,12 @@ public:
 
 	void clearConsoleOutputs ();
 
-protected:
-	#define HAWK_STD_ENV_CHAR_IS_BCH
-	typedef hawk_bch_t env_char_t;
+	int getEnvironGlobalId () const { return this->gbl_environ; }
 
+protected:
 	int make_additional_globals (Run* run);
 	int build_argcv (Run* run);
-	int build_environ (Run* run, env_char_t* envarr[]);
+	int build_environ (Run* run, hawk_env_char_t* envarr[]);
 
 	// intrinsic functions
 	hawk_cmgr_t* getiocmgr (const hawk_ooch_t* ioname);

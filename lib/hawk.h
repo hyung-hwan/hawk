@@ -1726,6 +1726,11 @@ struct hawk_rtx_nv_itr_t
 };
 typedef struct hawk_rtx_nv_itr_t hawk_rtx_nv_itr_t;
 
+
+/* TODO: use wenviron where it's available */
+#define HAWK_ENV_CHAR_IS_BCH
+typedef hawk_bch_t hawk_env_char_t;
+
 /* ----------------------------------------------------------------------- */
 
 #if defined(__cplusplus)
