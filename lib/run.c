@@ -1264,6 +1264,7 @@ void hawk_rtx_getrio (hawk_rtx_t* rtx, hawk_rio_cbs_t* rio)
 	rio->pipe = rtx->rio.handler[HAWK_RIO_PIPE];
 	rio->file = rtx->rio.handler[HAWK_RIO_FILE];
 	rio->console = rtx->rio.handler[HAWK_RIO_CONSOLE];
+	rio->env_mk = rtx->rio.env_mk;
 }
 
 void hawk_rtx_setrio (hawk_rtx_t* rtx, const hawk_rio_cbs_t* rio)
@@ -1271,6 +1272,7 @@ void hawk_rtx_setrio (hawk_rtx_t* rtx, const hawk_rio_cbs_t* rio)
 	rtx->rio.handler[HAWK_RIO_PIPE] = rio->pipe;
 	rtx->rio.handler[HAWK_RIO_FILE] = rio->file;
 	rtx->rio.handler[HAWK_RIO_CONSOLE] = rio->console;
+	rtx->rio.env_mk = rio->env_mk;
 }
 
 void hawk_rtx_killecb (hawk_rtx_t* rtx, hawk_rtx_ecb_t* ecb)
@@ -1415,6 +1417,7 @@ static int init_rtx (hawk_rtx_t* rtx, hawk_t* hawk, hawk_rio_cbs_t* rio)
 		rtx->rio.handler[HAWK_RIO_PIPE] = rio->pipe;
 		rtx->rio.handler[HAWK_RIO_FILE] = rio->file;
 		rtx->rio.handler[HAWK_RIO_CONSOLE] = rio->console;
+		rtx->rio.env_mk = rio->env_mk;
 		rtx->rio.chain = HAWK_NULL;
 	}
 

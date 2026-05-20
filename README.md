@@ -1111,7 +1111,6 @@ The `sys` module provides various functions concerning the underlying operation 
 
 - sys::basename
 - sys::chmod
-- sys::clearenv
 - sys::close
 - sys::closedir
 - sys::dirname
@@ -1137,14 +1136,12 @@ The `sys` module provides various functions concerning the underlying operation 
 - sys::raise
 - sys::read
 - sys::readdir
-- sys::setenv
 - sys::setttime
 - sys::signal
 - sys::sleep
 - sys::strftime
 - sys::system
 - sys::unlink
-- sys::unsetenv
 - sys::wait
 - sys::write
 

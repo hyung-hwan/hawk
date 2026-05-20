@@ -216,8 +216,8 @@ static HAWK_INLINE rxtn_t* GET_RXTN(hawk_rtx_t* rtx) { return (rxtn_t*)((hawk_ui
 typedef hawk_bch_t env_char_t;
 #define ENV_CHAR_IS_BCH
 
-
 static env_char_t** commit_environ (hawk_rtx_t* rtx, int gbl_id);
+
 /* ========================================================================= */
 
 static void* sys_alloc (hawk_mmgr_t* mmgr, hawk_oow_t size)
@@ -2048,12 +2048,11 @@ static int parse_rwpipe_uri (const hawk_ooch_t* uri, int* flags, hawk_nwad_t* nw
 }
 #endif
 
-static void* envp_maker (hawk_pio_env_mk_type_t env_mk_type, void* ctx)
+static void* rtx_env_maker (hawk_rtx_t* rtx, hawk_rtx_env_mk_type_t env_mk_type)
 {
-	hawk_rtx_t* rtx = ctx;
 	hawk_t* hawk = hawk_rtx_gethawk(rtx);
 
-	if (env_mk_type == HAWK_PIO_ENV_MK_BCH_PP)
+	if (env_mk_type == HAWK_RTX_ENV_MK_BPP)
 	{
 		hawk_val_t* v_env;
 		hawk_map_t* env_map;
@@ -2079,12 +2078,11 @@ static void* envp_maker (hawk_pio_env_mk_type_t env_mk_type, void* ctx)
 			env_map_rev = 0;
 		}
 
-		if (!rxtn->envp ||
-		    rxtn->env_map != env_map ||
+		if (!rxtn->envp || rxtn->env_map != env_map ||
 		    (env_map && rxtn->env_map_rev != env_map_rev))
 		{
 			envp = commit_environ(rtx, xtn->gbl_environ);
-			if (!envp) return HAWK_NULL;
+			if (HAWK_UNLIKELY(!envp)) return HAWK_NULL;
 
 			if (rxtn->envp) hawk_rtx_freemem(rtx, rxtn->envp);
 			rxtn->envp = envp;
@@ -2098,6 +2096,15 @@ static void* envp_maker (hawk_pio_env_mk_type_t env_mk_type, void* ctx)
 /* TODO: support more types */
 	/* unsupported env_mk_type */
 	return HAWK_NULL;
+}
+
+static void* pio_env_maker (hawk_pio_env_mk_type_t env_mk_type, void* ctx)
+{
+	hawk_rtx_t* rtx = (hawk_rtx_t*)ctx;
+	/* pio_handler_open passes pio_env_maker to hawk_pio_open
+	 * only if rtx->rio.env_make is not HAWK_NULL */
+	HAWK_ASSERT(rtx->rio.env_mk != HAWK_NULL);
+	return rtx->rio.env_mk(rtx, env_mk_type);
 }
 
 static hawk_ooi_t pio_handler_open (hawk_rtx_t* rtx, hawk_rio_arg_t* riod)
@@ -2139,7 +2146,7 @@ static hawk_ooi_t pio_handler_open (hawk_rtx_t* rtx, hawk_rio_arg_t* riod)
 		0,
 		riod->name,
 		flags | HAWK_PIO_SHELL | HAWK_PIO_TEXT | HAWK_PIO_IGNOREECERR,
-		envp_maker,
+		(rtx->rio.env_mk? pio_env_maker: HAWK_NULL),
 		rtx
 	);
 	if (!handle) return -1;
@@ -3251,7 +3258,6 @@ static int make_additional_globals (hawk_rtx_t* rtx, xtn_t* xtn, const hawk_ooch
 #else
 	extern char** environ;
 #endif
-
 	if (build_argcv(rtx, xtn->gbl_argc, xtn->gbl_argv, id, icf) <= -1 ||
 	    build_environ(rtx, xtn->gbl_environ, environ) <= -1) return -1;
 	return 0;
@@ -3276,6 +3282,7 @@ static hawk_rtx_t* open_rtx_std (
 	rio.pipe = hawk_rio_pipe;
 	rio.file = hawk_rio_file;
 	rio.console = hawk_rio_console;
+	rio.env_mk = rtx_env_maker;
 
 	rtx = hawk_rtx_open(hawk, HAWK_SIZEOF(rxtn_t) + xtnsize, &rio);
 	if (HAWK_UNLIKELY(!rtx)) return HAWK_NULL;
@@ -3527,6 +3534,8 @@ done:
 
 	return rtx;
 }
+
+/* ------------------------------------------------------- */
 
 static int timeout_code (const hawk_ooch_t* name)
 {

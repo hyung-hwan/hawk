@@ -24,6 +24,7 @@
 
 #include "mod-sys.h"
 #include "hawk-prv.h"
+#include <hawk-pio.h>
 #include <hawk-dir.h>
 
 #if defined(_WIN32)
@@ -2819,8 +2820,15 @@ I use 'count' to limit the maximum number of retries when 0 is returned.
 }
 
 /*
-	if (sys::getenv("PATH", v) <= -1) print "error -", sys::errmsg();
-	else print v;
+if (sys::getenv("PATH", v) <= -1) print "error -", sys::errmsg();
+else print v;
+
+for normal operations related to environment variables,
+the script must use the global variable ENVIRON. internally,
+libc's getenv/setenv/unsetenv/clearenv are not thread-safe.
+
+however, this function is provided for convenience and doesn't
+reflect the changes in ENVIRON.
 */
 static int fnc_getenv (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
@@ -2875,111 +2883,6 @@ static int fnc_getenv (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		rx = copy_error_to_sys_list(rtx, sys_list);
 	}
 
-	hawk_rtx_setretval(rtx, hawk_rtx_makeintval_inline(rtx, rx));
-	return 0;
-}
-
-#if defined(_SCO_DS)
-static int setenv(const char *name, const char* val, int overwrite);
-static int unsetenv(const char *name);
-static void clearenv(void);
-#endif
-
-static int fnc_clearenv (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
-{
-	hawk_mtx_lock(rtx->hawk->modmtx, HAWK_NULL);
-	clearenv();
-	hawk_mtx_unlock(rtx->hawk->modmtx);
-	return 0;
-}
-
-static int fnc_setenv (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
-{
-	sys_list_t* sys_list;
-	hawk_val_t* a0, * a1;
-	hawk_bch_t* var = HAWK_NULL, * val = HAWK_NULL;
-	hawk_oow_t var_len, val_len;
-	hawk_int_t rx;
-	hawk_int_t overwrite = 1;
-
-	sys_list = rtx_to_sys_list(rtx, fi);
-	a0 = hawk_rtx_getarg(rtx, 0);
-	a1 = hawk_rtx_getarg(rtx, 1);
-
-	var = hawk_rtx_getvalbcstr(rtx, a0, &var_len);
-	val = hawk_rtx_getvalbcstr(rtx, a1, &val_len);
-	if (!var || !val)
-	{
-		rx = copy_error_to_sys_list(rtx, sys_list);
-		goto done;
-	}
-
-	/* the target name contains a null character. */
-	if (hawk_find_bchar_in_bchars(var, var_len, '\0') ||
-	    hawk_find_bchar_in_bchars(val, val_len, '\0'))
-	{
-		rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_NULL);
-		goto done;
-	}
-
-	if (hawk_rtx_getnargs(rtx) >= 3 && (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 2), &overwrite) <= -1)) overwrite = 0;
-
-	hawk_mtx_lock(rtx->hawk->modmtx, HAWK_NULL);
-	rx = setenv(var, val, overwrite);
-	hawk_mtx_unlock(rtx->hawk->modmtx);
-	if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
-
-done:
-	if (val) hawk_rtx_freevalbcstr(rtx, a1, val);
-	if (var) hawk_rtx_freevalbcstr(rtx, a0, var);
-
-	HAWK_ASSERT(HAWK_IN_INT_RANGE(rx));
-	hawk_rtx_setretval(rtx, hawk_rtx_makeintval_inline(rtx, rx));
-	return 0;
-}
-
-
-static int fnc_unsetenv (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
-{
-	sys_list_t* sys_list;
-	hawk_val_t* a0;
-	hawk_bch_t* str;
-	hawk_oow_t len;
-	hawk_int_t rx;
-
-	sys_list = rtx_to_sys_list(rtx, fi);
-	a0 = hawk_rtx_getarg(rtx, 0);
-
-	str = hawk_rtx_getvalbcstr(rtx, a0, &len);
-	if (!str)
-	{
-		rx = copy_error_to_sys_list(rtx, sys_list);
-		goto done;
-	}
-
-	/* the target name contains a null character. */
-	if (hawk_find_bchar_in_bchars(str, len, '\0'))
-	{
-		rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_NULL);
-		goto done;
-	}
-
-#if defined(UNSETENV_RETURNS_VOID)
-	hawk_mtx_lock(rtx->hawk->modmtx, HAWK_NULL);
-	unsetenv(str);
-	hawk_mtx_unlock(rtx->hawk->modmtx);
-	rx = 0;
-#else
-	hawk_mtx_lock(rtx->hawk->modmtx, HAWK_NULL);
-	rx = unsetenv(str);
-	hawk_mtx_unlock(rtx->hawk->modmtx);
-	if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
-#endif
-
-done:
-	if (str) hawk_rtx_freevalbcstr(rtx, a0, str);
-
-	HAWK_ASSERT(HAWK_IN_INT_RANGE(rx));
 	hawk_rtx_setretval(rtx, hawk_rtx_makeintval_inline(rtx, rx));
 	return 0;
 }
@@ -3092,11 +2995,21 @@ static int fnc_getifcfg (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 }
 /* ------------------------------------------------------------ */
 
+static void* pio_env_maker (hawk_pio_env_mk_type_t env_mk_type, void* ctx)
+{
+	hawk_rtx_t* rtx = (hawk_rtx_t*)ctx;
+	/* fnc_system() passes this function to hawk_pio_open only if
+	 * rtx->rio.env_mk is not HAWK_NULL */
+	HAWK_ASSERT(rtx->rio.env_mk != HAWK_NULL);
+	return rtx->rio.env_mk(rtx, env_mk_type);
+}
+
 static int fnc_system (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	sys_list_t* sys_list;
 	hawk_val_t* a0;
 	hawk_ooch_t* str;
+	hawk_pio_t* pio = HAWK_NULL;
 	hawk_oow_t len;
 	hawk_int_t rx;
 
@@ -3117,32 +3030,26 @@ static int fnc_system (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		goto done;
 	}
 
-#if defined(_WIN32)
-	rx = _tsystem(str);
-	if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
-#elif defined(HAWK_OOCH_IS_BCH)
-	rx = system(str);
-	if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
-#else
+	pio = hawk_pio_open(
+		hawk_rtx_getgem(rtx),
+		0,
+		str,
+		HAWK_PIO_SHELL | HAWK_PIO_NOCLOEXEC,
+		(rtx->rio.env_mk? pio_env_maker: HAWK_NULL),
+		rtx
+	);
 
+	if (!pio)
 	{
-		hawk_bch_t* mbs;
-		mbs = hawk_rtx_duputobcstr(rtx, str, HAWK_NULL);
-		if (mbs)
-		{
-			rx = system(mbs);
-			hawk_rtx_freemem(rtx, mbs);
-			if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
-		}
-		else
-		{
-			rx = copy_error_to_sys_list(rtx, sys_list);
-		}
+		rx = copy_error_to_sys_list(rtx, sys_list);
+		goto done;
 	}
 
-#endif
+	rx = hawk_pio_wait(pio);
+	if (rx <= -1) rx = copy_error_to_sys_list(rtx, sys_list);
 
 done:
+	if (pio) hawk_pio_close(pio);
 	if (str) hawk_rtx_freevaloocstr(rtx, a0, str);
 
 	HAWK_ASSERT(HAWK_IN_INT_RANGE(rx));
@@ -6066,7 +5973,6 @@ static hawk_mod_fnc_tab_t fnctab[] =
 	{ HAWK_T("bind"),        { { 2, 2, HAWK_NULL       }, fnc_bind,        0  } },
 	{ HAWK_T("chmod"),       { { 2, 2, HAWK_NULL       }, fnc_chmod,       0  } },
 	{ HAWK_T("chroot"),      { { 1, 1, HAWK_NULL       }, fnc_chroot,      0  } },
-	{ HAWK_T("clearenv"),    { { 0, 0, HAWK_NULL       }, fnc_clearenv,    0  } },
 	{ HAWK_T("close"),       { { 1, 2, HAWK_NULL       }, fnc_close,       0  } },
 	{ HAWK_T("closedir"),    { { 1, 1, HAWK_NULL       }, fnc_closedir,    0  } },
 	{ HAWK_T("closelog"),    { { 0, 0, HAWK_NULL       }, fnc_closelog,    0  } },
@@ -6114,7 +6020,6 @@ static hawk_mod_fnc_tab_t fnctab[] =
 	{ HAWK_T("resetdir"),    { { 2, 2, HAWK_NULL       }, fnc_resetdir,    0  } },
 	{ HAWK_T("rmdir"),       { { 1, 1, HAWK_NULL       }, fnc_rmdir,       0  } },
 	{ HAWK_T("sendto"),      { { 2, 3, HAWK_NULL       }, fnc_sendto,      0  } },
-	{ HAWK_T("setenv"),      { { 2, 3, HAWK_NULL       }, fnc_setenv,      0  } },
 	{ HAWK_T("setsockopt"),  { { 4, 4, HAWK_NULL       }, fnc_setsockopt,  0  } },
 	{ HAWK_T("settime"),     { { 1, 1, HAWK_NULL       }, fnc_settime,     0  } },
 	{ HAWK_T("shutdown"),    { { 2, 2, HAWK_NULL       }, fnc_shutdown,    0  } },
@@ -6133,7 +6038,6 @@ static hawk_mod_fnc_tab_t fnctab[] =
 	{ HAWK_T("tcsetraw"),    { { 1, 1, HAWK_NULL       }, fnc_tcsetraw,    0  } },
 	{ HAWK_T("unlink"),      { { 1, 1, HAWK_NULL       }, fnc_unlink,      0  } },
 	{ HAWK_T("unpack"),      { { 2, A_MAX, HAWK_T("vvr")  }, fnc_unpack,   0  } },
-	{ HAWK_T("unsetenv"),    { { 1, 1, HAWK_NULL       }, fnc_unsetenv,    0  } },
 	{ HAWK_T("wait"),        { { 1, 3, HAWK_T("vrv")   }, fnc_wait,        0  } },
 	{ HAWK_T("waitonmux"),   { { 2, 2, HAWK_T("vv")    }, fnc_waitonmux,   0  } },
 	{ HAWK_T("write"),       { { 2, 4, HAWK_NULL       }, fnc_write,       0  } },
@@ -6633,84 +6537,3 @@ int hawk_mod_sys (hawk_mod_t* mod, hawk_t* hawk)
 	mod->ctx = mctx;
 	return 0;
 }
-
-
-/* ----------------------------------------------  */
-
-#if defined(_SCO_DS)
-/* declare the external environment array */
-extern char **environ;
-
-static int setenv (const char *name, const char *value, int overwrite)
-{
-	hawk_oow_t name_len;
-	hawk_oow_t value_len;
-	char* env_str;
-
-	if (name[0] == '\0')
-	{
-		errno = EINVAL;
-		return -1;
-	}
-
-	/* check if it exists */
-	if (!overwrite && getenv(name)) return 0; /* succeed without changing */
-
-	/* create "NAME=VALUE" string */
-	name_len = hawk_count_bcstr(name);
-	value_len = hawk_count_bcstr(value);
-	env_str = (char *)malloc(name_len + value_len + 2);
-	if (!env_str) return -1;
-
-	HAWK_MEMCPY(env_str, name, name_len);
-	env_str[name_len] = '=';
-	HAWK_MEMCPY(env_str + name_len + 1, value, value_len);
-	env_str[name_len + value_len + 1] = '\0';
-
-	/* putenv() takes ownership of the string memory */
-	if (putenv(env_str) != 0)
-	{
-		free(env_str); /* free only if putenv failed */
-		return -1;
-	}
-
-	return 0;
-}
-
-static int unsetenv(const char *name)
-{
-	char** ep;
-	hawk_oow_t len;
-
-	len = hawk_count_bcstr(name);
-	for (ep = environ; *ep; ep++)
-	{
-		/* check if the entry starts with name + '=' */
-		if (hawk_comp_bcstr_limited(*ep, name, len, 0) == 0 && (*ep)[len] == '=')
-		{
-			char* old;
-			/* found it. shift remaining pointers down. */
-			char** next = ep;
-			old = *ep;
-			while (*next)
-			{
-				*next = *(next + 1);
-				next++;
-			}
-
-			free(old);
-			break;
-		}
-	}
-
-	return 0;
-}
-
-static int clearenv(void)
-{
-	char** ep;
-	for (ep = environ; *ep; ep++) free(*ep);
-	environ = HAWK_NULL;
-}
-
-#endif

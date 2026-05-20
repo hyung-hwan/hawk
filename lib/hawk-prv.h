@@ -559,6 +559,7 @@ struct hawk_rtx_t
 	struct
 	{
 		hawk_rio_impl_t handler[HAWK_RIO_NUM];
+		hawk_rtx_env_mk_t env_mk;
 		hawk_rio_arg_t* chain;
 	} rio;
 

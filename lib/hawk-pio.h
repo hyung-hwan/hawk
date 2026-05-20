@@ -122,9 +122,9 @@ typedef enum hawk_pio_hid_t hawk_pio_hid_t;
 
 enum hawk_pio_env_mk_type_t
 {
-	HAWK_PIO_ENV_MK_BCH_PP, /* P1 ... PN HAWK_NUL where P1 .. PN points to K=V */
-	HAWK_PIO_ENV_MK_BCH_PN, /* K1=V\0K2=V\0\0 */
-	HAWK_PIO_ENV_MK_UCH_PP,
+	HAWK_PIO_ENV_MK_BPP, /* P1 ... PN HAWK_NUL where P1 .. PN points to K=V */
+	HAWK_PIO_ENV_MK_BPN, /* K1=V\0K2=V\0\0 */
+	HAWK_PIO_ENV_MK_UPP,
 };
 
 typedef enum hawk_pio_env_mk_type_t hawk_pio_env_mk_type_t;

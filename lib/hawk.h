@@ -28,6 +28,7 @@
 #include <hawk-cmn.h>
 #include <hawk-ecs.h>
 #include <hawk-gem.h>
+#include <hawk-pio.h>
 #include <hawk-tre.h>
 #include <hawk-utl.h>
 
@@ -906,6 +907,20 @@ typedef struct hawk_sio_cbs_t hawk_sio_cbs_t;
 
 /* ------------------------------------------------------------------------ */
 
+/* these enumerators must be kept in sync with hawk_pio_env_mk_type_t enumerators */
+enum hawk_rtx_env_mk_type_t
+{
+	HAWK_RTX_ENV_MK_BPP = HAWK_PIO_ENV_MK_BPP,
+	HAWK_RTX_ENV_MK_BPN = HAWK_PIO_ENV_MK_BPN,
+	HAWK_RTX_ENV_MK_UPP = HAWK_PIO_ENV_MK_UPP,
+};
+typedef enum hawk_rtx_env_mk_type_t hawk_rtx_env_mk_type_t;
+
+typedef void* (*hawk_rtx_env_mk_t) (
+	hawk_rtx_t*            rtx,
+	hawk_rtx_env_mk_type_t type
+);
+
 /**
  * The hawk_rio_t type defines a runtime I/O handler set.
  * \sa hawk_rtx_t
@@ -915,6 +930,7 @@ struct hawk_rio_cbs_t
 	hawk_rio_impl_t pipe;    /**< pipe handler */
 	hawk_rio_impl_t file;    /**< file handler */
 	hawk_rio_impl_t console; /**< console handler */
+	hawk_rtx_env_mk_t env_mk; /**< environment maker - optional */
 };
 typedef struct hawk_rio_cbs_t hawk_rio_cbs_t;
 

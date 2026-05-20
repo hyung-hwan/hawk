@@ -778,11 +778,9 @@ int hawk_pio_init (hawk_pio_t* pio, hawk_gem_t* gem, const hawk_ooch_t* cmd, int
 		maxidx = 5;
 	}
 
-	if (maxidx == -1)
-	{
-		hawk_gem_seterrnum(pio->gem, HAWK_NULL, HAWK_EINVAL);
-		goto oops;
-	}
+	/* allow a pure spawn/wait use case with no dedicated pipes.
+	 * a system()-style caller may still want shell execution and
+	 * custom environment handling without redirecting stdin/out/err. */
 
 	if ((flags & HAWK_PIO_INTONUL) ||
 	    (flags & HAWK_PIO_OUTTONUL) ||
@@ -1050,11 +1048,7 @@ create_process:
 		maxidx = 5;
 	}
 
-	if (maxidx == -1)
-	{
-		hawk_gem_seterrnum(pio->gem, HAWK_NULL, HAWK_EINVAL);
-		goto oops;
-	}
+	/* allow a pure spawn/wait use case with no dedicated pipes. */
 
 	if ((flags & HAWK_PIO_INTONUL) ||
 	    (flags & HAWK_PIO_OUTTONUL) ||
@@ -1320,11 +1314,7 @@ create_process:
 		maxidx = 5;
 	}
 
-	if (maxidx == -1)
-	{
-		hawk_gem_seterrnum(pio->gem, HAWK_NULL, HAWK_EINVAL);
-		goto oops;
-	}
+	/* allow a pure spawn/wait use case with no dedicated pipes. */
 
 	if (pio->flags & HAWK_PIO_FNCCMD)
 	{
@@ -1340,7 +1330,7 @@ create_process:
 
 		if (env_mk)
 		{
-			envp = (char*const*)env_mk(HAWK_PIO_ENV_MK_BCH_PP, env_ctx);
+			envp = (char*const*)env_mk(HAWK_PIO_ENV_MK_BPP, env_ctx);
 			if (HAWK_UNLIKELY(!envp)) goto oops;
 			/* pio doesn't free the memory block returned by the callback function.
 			 * there is no callback triggered for dealloction either.
