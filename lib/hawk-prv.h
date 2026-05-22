@@ -724,9 +724,10 @@ void hawk_fini (hawk_t* hawk);
 hawk_rbt_walk_t hawk_modtab_unload_module (hawk_rbt_t* rbt, hawk_rbt_pair_t* pair, void* ctx);
 int hawk_rtx_setnamedval (hawk_rtx_t* rtx, hawk_oow_t id, hawk_val_t* val);
 
-hawk_bch_t** hawk_rtx_commit_environ (
-	hawk_rtx_t* rtx,
-	int         gbl_id
+void* hawk_rtx_commit_environ (
+	hawk_rtx_t*            rtx,
+	int                    gbl_id,
+	hawk_rtx_env_mk_type_t env_mk_type
 );
 
 #if defined(__cplusplus)

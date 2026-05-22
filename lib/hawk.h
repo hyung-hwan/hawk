@@ -912,7 +912,7 @@ enum hawk_rtx_env_mk_type_t
 {
 	HAWK_RTX_ENV_MK_BPP = HAWK_PIO_ENV_MK_BPP,
 	HAWK_RTX_ENV_MK_BPN = HAWK_PIO_ENV_MK_BPN,
-	HAWK_RTX_ENV_MK_UPP = HAWK_PIO_ENV_MK_UPP,
+	HAWK_RTX_ENV_MK_UPN = HAWK_PIO_ENV_MK_UPN,
 };
 typedef enum hawk_rtx_env_mk_type_t hawk_rtx_env_mk_type_t;
 

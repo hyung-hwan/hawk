@@ -34,21 +34,42 @@
 #define IO_UFLAG_PIPE_IS_NWIO (((hawk_uint16_t)1) << 0)
 #define IO_UFLAG_CONSOLE_PENDING_NEXT (((hawk_uint16_t)1) << 1)
 
-// TODO: remove the following definitions and find a way to share the similar definitions in std.c
-#if defined(HAWK_ENABLE_LIBLTDL)
-#	define USE_LTDL
-#elif defined(HAVE_DLFCN_H)
-#	define USE_DLFCN
+#if defined(_WIN32)
+#	include <windows.h>
+#	include <tchar.h>
+#	if defined(HAWK_HAVE_CFG_H) && defined(HAWK_ENABLE_LIBLTDL)
+#		include <ltdl.h>
+#		define USE_LTDL
+#	endif
+#	include <io.h>
+#elif defined(__OS2__)
+#	define INCL_DOSMODULEMGR
+#	define INCL_DOSPROCESS
+#	define INCL_DOSERRORS
+#	include <os2.h>
+#elif defined(__DOS__)
+	/* nothing to include */
 #else
-#	error UNSUPPORTED DYNAMIC LINKER
+#	include "syscall.h"
+#	if defined(HAWK_ENABLE_LIBLTDL)
+#		include <ltdl.h>
+#		define USE_LTDL
+#	elif defined(HAVE_DLFCN_H)
+#		include <dlfcn.h>
+#		define USE_DLFCN
+#	else
+#		error UNSUPPORTED DYNAMIC LINKER
+#	endif
 #endif
 
-#if defined(HAVE_CRT_EXTERNS_H)
+#if defined(_WIN32)
+#	define SYSTEM_ENVIRON _environ
+#elif defined(HAVE_CRT_EXTERNS_H)
 #	include <crt_externs.h> /* MacOSX/darwin. _NSGetEnviron() */
 #	define SYSTEM_ENVIRON (*(_NSGetEnviron()))
 #else
 	extern char** environ;
-#	define SYSTEM_ENVIRON ::environ
+#	define SYSTEM_ENVIRON environ
 #endif
 
 /////////////////////////////////
@@ -78,8 +99,6 @@ static void* rtx_env_maker (hawk_rtx_t* rtx, hawk_rtx_env_mk_type_t env_mk_type)
 	hawk_oow_t env_map_rev;
 	int gbl_id;
 
-	if (env_mk_type != HAWK_RTX_ENV_MK_BPP) return HAWK_NULL;
-
 	run = GET_STD_RXTN(rtx)->run;
 	if (HAWK_UNLIKELY(run == HAWK_NULL)) return HAWK_NULL;
 	hawk = (HawkStd*)(Hawk*)*run;
@@ -103,16 +122,17 @@ static void* rtx_env_maker (hawk_rtx_t* rtx, hawk_rtx_env_mk_type_t env_mk_type)
 		env_map_rev = 0;
 	}
 
-	if (!run->getEnvp() || run->getEnvMap() != env_map ||
+	if (!run->getEnvp() || run->getEnvType() != env_mk_type ||
+	    run->getEnvMap() != env_map ||
 	    (env_map && run->getEnvMapRev() != env_map_rev))
 	{
-		hawk_bch_t** envp;
+		void* envp;
 
-		envp = hawk_rtx_commit_environ(rtx, gbl_id);
+		envp = hawk_rtx_commit_environ(rtx, gbl_id, env_mk_type);
 		if (HAWK_UNLIKELY(!envp)) return HAWK_NULL;
 
 		if (run->getEnvp()) hawk_rtx_freemem(rtx, run->getEnvp());
-		run->setEnvCache(envp, env_map, env_map_rev);
+		run->setEnvCache(envp, env_map, env_map_rev, env_mk_type);
 	}
 
 	return run->getEnvp();

@@ -1456,11 +1456,11 @@ Hawk::Value::IndexIterator Hawk::Value::getNextIndex (Index* idx, const IndexIte
 // Hawk::Run
 //////////////////////////////////////////////////////////////////
 
-Hawk::Run::Run (Hawk* hawk): hawk(hawk), rtx(HAWK_NULL), envp(HAWK_NULL), env_map(HAWK_NULL), env_map_rev(0)
+Hawk::Run::Run (Hawk* hawk): hawk(hawk), rtx(HAWK_NULL), envp(HAWK_NULL), env_map(HAWK_NULL), env_map_rev(0), env_type(HAWK_RTX_ENV_MK_BPP)
 {
 }
 
-Hawk::Run::Run (Hawk* hawk, hawk_rtx_t* rtx): hawk(hawk), rtx(rtx), envp(HAWK_NULL), env_map(HAWK_NULL), env_map_rev(0)
+Hawk::Run::Run (Hawk* hawk, hawk_rtx_t* rtx): hawk(hawk), rtx(rtx), envp(HAWK_NULL), env_map(HAWK_NULL), env_map_rev(0), env_type(HAWK_RTX_ENV_MK_BPP)
 {
 	HAWK_ASSERT(this->rtx != HAWK_NULL);
 }
@@ -2159,6 +2159,7 @@ void Hawk::fini_runctx ()
 			this->runctx.envp = HAWK_NULL;
 			this->runctx.env_map = HAWK_NULL;
 			this->runctx.env_map_rev = 0;
+			this->runctx.env_type = HAWK_RTX_ENV_MK_BPP;
 		}
 
 		hawk_rtx_close(this->runctx.rtx);

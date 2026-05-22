@@ -255,9 +255,9 @@ static hawk_bch_t* mbs_to_mbuf (hawk_dir_t* dir, const hawk_bch_t* mbs, hawk_bec
 }
 
 #if defined(_WIN32) || defined(__OS2__) || defined(__DOS__)
-static hawk_bch_t* make_mbsdos_path (hawk_dir_t* dir, const hawk_bch_t* mpath)
+static hawk_bch_t* make_bcstr_path (hawk_dir_t* dir, const hawk_bch_t* mpath)
 {
-	if (mpath[0] == '\0')
+	if (mpath[0] == '\0') /* blank */
 	{
 		if (hawk_becs_cpy(&dir->mbuf, "*.*") == (hawk_oow_t)-1) return HAWK_NULL;
 	}
@@ -265,29 +265,29 @@ static hawk_bch_t* make_mbsdos_path (hawk_dir_t* dir, const hawk_bch_t* mpath)
 	{
 		hawk_oow_t len;
 		if ((len = hawk_becs_cpy(&dir->mbuf, mpath)) == (hawk_oow_t)-1 ||
-		    (!HAWK_ISPATHMBSEP(mpath[len - 1]) &&
-		     !hawk_ismbsdrivecurpath(mpath) &&
-		     hawk_becs_ccat(&dir->mbuf, '\\') == (hawk_oow_t)-1) ||
+		    (!HAWK_IS_PATH_SEP(mpath[len - 1]) && /* last letter is not a path sepearator */
+		     !(len == 2 && HAWK_IS_PATH_DRIVE(mpath)) &&  /* isn't just a driver letter and colon (e.g. A:) */
+		     hawk_becs_ccat(&dir->mbuf, '\\') == (hawk_oow_t)-1 /* append a path separator */ ) ||
 		    hawk_becs_cat(&dir->mbuf, "*.*") == (hawk_oow_t)-1) return HAWK_NULL;
 	}
 
 	return HAWK_BECS_PTR(&dir->mbuf);
 }
 
-static hawk_uch_t* make_wcsdos_path (hawk_dir_t* dir, const hawk_uch_t* wpath)
+static hawk_uch_t* make_ucstr_path (hawk_dir_t* dir, const hawk_uch_t* wpath)
 {
-	if (wpath[0] == HAWK_UT('\0'))
+	if (wpath[0] == '\0')
 	{
-		if (hawk_uecs_cpy (&dir->wbuf, HAWK_UT("*.*")) == (hawk_oow_t)-1) return HAWK_NULL;
+		if (hawk_uecs_cpy(&dir->wbuf, HAWK_UT("*.*")) == (hawk_oow_t)-1) return HAWK_NULL;
 	}
 	else
 	{
 		hawk_oow_t len;
-		if ((len = hawk_uecs_cpy (&dir->wbuf, wpath)) == (hawk_oow_t)-1 ||
-		    (!HAWK_ISPATHWCSEP(wpath[len - 1]) &&
-		     !hawk_iswcsdrivecurpath(wpath) &&
-		     hawk_uecs_ccat (&dir->wbuf, HAWK_UT('\\')) == (hawk_oow_t)-1) ||
-		    hawk_uecs_cat (&dir->wbuf, HAWK_UT("*.*")) == (hawk_oow_t)-1) return HAWK_NULL;
+		if ((len = hawk_uecs_cpy(&dir->wbuf, wpath)) == (hawk_oow_t)-1 ||
+		    (!HAWK_IS_PATH_SEP(wpath[len - 1]) && /* last letter is not a path sepearator */
+		     !(len == 2 && HAWK_IS_PATH_DRIVE(wpath)) &&  /* isn't just a driver letter and colon (e.g. A:) */
+		     hawk_uecs_ccat(&dir->wbuf, HAWK_UT('\\')) == (hawk_oow_t)-1 /* append a path separator */ ) ||
+		    hawk_uecs_cat(&dir->wbuf, HAWK_UT("*.*")) == (hawk_oow_t)-1) return HAWK_NULL;
 	}
 
 	return HAWK_UECS_PTR(&dir->wbuf);
@@ -309,7 +309,7 @@ static int reset_to_path (hawk_dir_t* dir, const hawk_ooch_t* path)
 	{
 		hawk_bch_t* mptr;
 
-		mptr = make_mbsdos_path(dir, (const hawk_bch_t*)path);
+		mptr = make_bcstr_path(dir, (const hawk_bch_t*)path);
 		if (mptr == HAWK_NULL) return -1;
 
 	#if defined(HAWK_OOCH_IS_BCH)
@@ -323,7 +323,7 @@ static int reset_to_path (hawk_dir_t* dir, const hawk_ooch_t* path)
 		hawk_uch_t* wptr;
 		HAWK_ASSERT (dir->flags & HAWK_DIR_UPATH);
 
-		wptr = make_wcsdos_path(dir, (const hawk_uch_t*)path);
+		wptr = make_ucstr_path(dir, (const hawk_uch_t*)path);
 		if (wptr == HAWK_NULL) return -1;
 
 	#if defined(HAWK_OOCH_IS_BCH)
@@ -363,14 +363,14 @@ static int reset_to_path (hawk_dir_t* dir, const hawk_ooch_t* path)
 
 	if (dir->flags & HAWK_DIR_BPATH)
 	{
-		mptr = make_mbsdos_path (dir, (const hawk_bch_t*)path);
+		mptr = make_bcstr_path (dir, (const hawk_bch_t*)path);
 	}
 	else
 	{
 		hawk_uch_t* wptr;
 		HAWK_ASSERT (dir->flags & HAWK_DIR_UPATH);
 
-		wptr = make_wcsdos_path(dir, (const hawk_uch_t*)path);
+		wptr = make_ucstr_path(dir, (const hawk_uch_t*)path);
 		if (wptr == HAWK_NULL) return -1;
 		mptr = wcs_to_mbuf(dir, wptr, &dir->mbuf);
 	}
@@ -417,15 +417,15 @@ static int reset_to_path (hawk_dir_t* dir, const hawk_ooch_t* path)
 
 	if (dir->flags & HAWK_DIR_BPATH)
 	{
-		mptr = make_mbsdos_path(dir, (const hawk_bch_t*)path);
+		mptr = make_bcstr_path(dir, (const hawk_bch_t*)path);
 	}
 	else
 	{
 		hawk_uch_t* wptr;
 
-		HAWK_ASSERT (dir->flags & HAWK_DIR_UPATH);
+		HAWK_ASSERT(dir->flags & HAWK_DIR_UPATH);
 
-		wptr = make_wcsdos_path(dir, (const hawk_uch_t*)path);
+		wptr = make_ucstr_path(dir, (const hawk_uch_t*)path);
 		if (wptr == HAWK_NULL) return -1;
 		mptr = wcs_to_mbuf(dir, wptr, &dir->mbuf);
 	}
@@ -456,7 +456,7 @@ static int reset_to_path (hawk_dir_t* dir, const hawk_ooch_t* path)
 	else
 	{
 		const hawk_uch_t* wpath;
-		/*HAWK_ASSERT (dir->flags & HAWK_DIR_UPATH);*/
+		/*HAWK_ASSERT(dir->flags & HAWK_DIR_UPATH);*/
 
 		wpath = (const hawk_uch_t*)path;
 		if (wpath[0] == '\0')
@@ -550,7 +550,7 @@ static int read_dir_to_buf (hawk_dir_t* dir, void** name)
 	}
 	else
 	{
-		HAWK_ASSERT (dir->flags & HAWK_DIR_UPATH);
+		HAWK_ASSERT(dir->flags & HAWK_DIR_UPATH);
 	#if defined(HAWK_OOCH_IS_BCH)
 		if (mbs_to_wbuf(dir, dir->wfd.cFileName, &dir->wbuf) == HAWK_NULL) return -1;
 	#else
@@ -607,7 +607,7 @@ static int read_dir_to_buf (hawk_dir_t* dir, void** name)
 	}
 	else
 	{
-		HAWK_ASSERT (dir->flags & HAWK_DIR_UPATH);
+		HAWK_ASSERT(dir->flags & HAWK_DIR_UPATH);
 		if (mbs_to_wbuf (dir, dir->ffb.achName, &dir->wbuf) == HAWK_NULL) return -1;
 		*name = HAWK_UECS_PTR(&dir->wbuf);
 	}
@@ -660,7 +660,7 @@ static int read_dir_to_buf (hawk_dir_t* dir, void** name)
 	}
 	else
 	{
-		HAWK_ASSERT (dir->flags & HAWK_DIR_UPATH);
+		HAWK_ASSERT(dir->flags & HAWK_DIR_UPATH);
 
 		if (mbs_to_wbuf (dir, dir->f.name, &dir->wbuf) == HAWK_NULL) return -1;
 		*name = HAWK_UECS_PTR(&dir->wbuf);
@@ -708,7 +708,7 @@ read:
 	}
 	else
 	{
-		/*HAWK_ASSERT (dir->flags & HAWK_DIR_UPATH);*/
+		/*HAWK_ASSERT(dir->flags & HAWK_DIR_UPATH);*/
 		if (mbs_to_wbuf(dir, de->d_name, &dir->wbuf) == HAWK_NULL) return -1;
 		*name = HAWK_UECS_PTR(&dir->wbuf);
 	}

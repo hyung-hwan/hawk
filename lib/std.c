@@ -193,6 +193,7 @@ typedef struct rxtn_t
 	void* envp; /* cached environment value */
 	hawk_map_t* env_map;
 	hawk_oow_t env_map_rev;
+	hawk_rtx_env_mk_type_t env_type;
 } rxtn_t;
 
 typedef struct ioattr_t
@@ -446,7 +447,7 @@ void* hawk_stdmodopen (hawk_t* hawk, const hawk_mod_spec_t* spec)
 		if (!modpath) return HAWK_NULL;
 
 		h = LoadLibrary(modpath);
-		if (!h) hawk_seterrnum(hawk, HAWK_NULL, hawk_syserr_to_errnum(GetLastError());
+		if (!h) hawk_seterrnum(hawk, HAWK_NULL, hawk_syserr_to_errnum(GetLastError()));
 
 		hawk_freemem(hawk, modpath);
 
@@ -457,7 +458,7 @@ void* hawk_stdmodopen (hawk_t* hawk, const hawk_mod_spec_t* spec)
 	{
 		HMODULE h;
 		h = GetModuleHandle(HAWK_NULL);
-		if (!h) hawk_seterrnum(hawk, HAWK_NULL, hawk_syserr_to_errnum(GetLastError());
+		if (!h) hawk_seterrnum(hawk, HAWK_NULL, hawk_syserr_to_errnum(GetLastError()));
 		return h;
 	}
 
@@ -649,7 +650,7 @@ void* hawk_stdmodgetsym (hawk_t* hawk, void* handle, const hawk_ooch_t* name)
 
 #elif defined(_WIN32)
 	s = GetProcAddress((HMODULE)handle, mname);
-	if (!s) hawk_seterrnum(hawk, HAWK_NULL, hawk_syserr_to_errnum(GetLastError());
+	if (!s) hawk_seterrnum(hawk, HAWK_NULL, hawk_syserr_to_errnum(GetLastError()));
 
 #elif defined(__OS2__)
 	{
@@ -2043,51 +2044,45 @@ static int parse_rwpipe_uri (const hawk_ooch_t* uri, int* flags, hawk_nwad_t* nw
 static void* rtx_env_maker (hawk_rtx_t* rtx, hawk_rtx_env_mk_type_t env_mk_type)
 {
 	hawk_t* hawk = hawk_rtx_gethawk(rtx);
+	hawk_val_t* v_env;
+	hawk_map_t* env_map;
+	hawk_oow_t env_map_rev;
+	void* envp;
+	xtn_t* xtn;
+	rxtn_t* rxtn;
 
-	if (env_mk_type == HAWK_RTX_ENV_MK_BPP)
+	xtn = GET_XTN(hawk);
+	rxtn = GET_RXTN(rtx);
+	v_env = hawk_rtx_getgbl(rtx, xtn->gbl_environ);
+	HAWK_ASSERT(v_env != HAWK_NULL);
+
+	if (HAWK_RTX_GETVALTYPE(rtx, v_env) == HAWK_VAL_MAP)
 	{
-		hawk_val_t* v_env;
-		hawk_map_t* env_map;
-		hawk_oow_t env_map_rev;
-		hawk_env_char_t** envp;
-		xtn_t* xtn;
-		rxtn_t* rxtn;
-
-		xtn = GET_XTN(hawk);
-		rxtn = GET_RXTN(rtx);
-		v_env = hawk_rtx_getgbl(rtx, xtn->gbl_environ);
-		HAWK_ASSERT(v_env != HAWK_NULL);
-
-		if (HAWK_RTX_GETVALTYPE(rtx, v_env) == HAWK_VAL_MAP)
-		{
-			env_map = ((hawk_val_map_t*)v_env)->map;
-			HAWK_ASSERT(env_map != HAWK_NULL);
-			env_map_rev = HAWK_MAP_REV(env_map);
-		}
-		else
-		{
-			env_map = HAWK_NULL;
-			env_map_rev = 0;
-		}
-
-		if (!rxtn->envp || rxtn->env_map != env_map ||
-		    (env_map && rxtn->env_map_rev != env_map_rev))
-		{
-			envp = hawk_rtx_commit_environ(rtx, xtn->gbl_environ);
-			if (HAWK_UNLIKELY(!envp)) return HAWK_NULL;
-
-			if (rxtn->envp) hawk_rtx_freemem(rtx, rxtn->envp);
-			rxtn->envp = envp;
-			rxtn->env_map = env_map;
-			rxtn->env_map_rev = env_map_rev;
-		}
-
-		return rxtn->envp;
+		env_map = ((hawk_val_map_t*)v_env)->map;
+		HAWK_ASSERT(env_map != HAWK_NULL);
+		env_map_rev = HAWK_MAP_REV(env_map);
+	}
+	else
+	{
+		env_map = HAWK_NULL;
+		env_map_rev = 0;
 	}
 
-/* TODO: support more types */
-	/* unsupported env_mk_type */
-	return HAWK_NULL;
+	if (!rxtn->envp || rxtn->env_type != env_mk_type ||
+	    rxtn->env_map != env_map ||
+	    (env_map && rxtn->env_map_rev != env_map_rev))
+	{
+		envp = hawk_rtx_commit_environ(rtx, xtn->gbl_environ, env_mk_type);
+		if (HAWK_UNLIKELY(!envp)) return HAWK_NULL;
+
+		if (rxtn->envp) hawk_rtx_freemem(rtx, rxtn->envp);
+		rxtn->envp = envp;
+		rxtn->env_map = env_map;
+		rxtn->env_map_rev = env_map_rev;
+		rxtn->env_type = env_mk_type;
+	}
+
+	return rxtn->envp;
 }
 
 static void* pio_env_maker (hawk_pio_env_mk_type_t env_mk_type, void* ctx)
@@ -2849,6 +2844,7 @@ static void fini_rxtn (hawk_rtx_t* rtx, void* ctx)
 	}
 	rxtn->env_map = HAWK_NULL;
 	rxtn->env_map_rev = 0;
+	rxtn->env_type = HAWK_RTX_ENV_MK_BPP;
 }
 
 static int build_argcv (hawk_rtx_t* rtx, int argc_id, int argv_id, const hawk_ooch_t* id, hawk_ooch_t* icf[])
@@ -3078,14 +3074,12 @@ static int build_environ (hawk_rtx_t* rtx, int gbl_id, hawk_env_char_t* envarr[]
 	return 0;
 }
 
-hawk_bch_t** hawk_rtx_commit_environ (hawk_rtx_t* rtx, int gbl_id)
+void* hawk_rtx_commit_environ (hawk_rtx_t* rtx, int gbl_id, hawk_rtx_env_mk_type_t env_mk_type)
 {
 	hawk_val_t* v_env;
 	hawk_map_t* map;
 	hawk_map_itr_t itr;
 	hawk_map_pair_t* pair;
-	hawk_env_char_t** envp;
-	hawk_env_char_t* ptr;
 	hawk_oow_t count, ptr_bytes, str_bytes;
 
 	v_env = hawk_rtx_getgbl(rtx, gbl_id);
@@ -3095,10 +3089,42 @@ hawk_bch_t** hawk_rtx_commit_environ (hawk_rtx_t* rtx, int gbl_id)
 	{
 		/* it may be nil. but we can't prevent ENVIRON from being set to
 		 * other scalar types, we should handle this case gracefully */
-		envp = (hawk_env_char_t**)hawk_rtx_allocmem(rtx, HAWK_SIZEOF(*envp) * 1);
-		if (HAWK_UNLIKELY(!envp)) return HAWK_NULL;
-		envp[0] = HAWK_NULL;
-		return envp;
+		switch (env_mk_type)
+		{
+			case HAWK_RTX_ENV_MK_BPP:
+			{
+				hawk_bch_t** envp;
+
+				envp = (hawk_bch_t**)hawk_rtx_allocmem(rtx, HAWK_SIZEOF(*envp) * 1);
+				if (HAWK_UNLIKELY(!envp)) return HAWK_NULL;
+				envp[0] = HAWK_NULL;
+				return envp;
+			}
+
+			case HAWK_RTX_ENV_MK_BPN:
+			{
+				hawk_bch_t* envp;
+
+				envp = (hawk_bch_t*)hawk_rtx_allocmem(rtx, HAWK_SIZEOF(*envp) * 2);
+				if (HAWK_UNLIKELY(!envp)) return HAWK_NULL;
+				envp[0] = '\0';
+				envp[1] = '\0';
+				return envp;
+			}
+
+			case HAWK_RTX_ENV_MK_UPN:
+			{
+				hawk_uch_t* envp;
+
+				envp = (hawk_uch_t*)hawk_rtx_allocmem(rtx, HAWK_SIZEOF(*envp) * 2);
+				if (HAWK_UNLIKELY(!envp)) return HAWK_NULL;
+				envp[0] = '\0';
+				envp[1] = '\0';
+				return envp;
+			}
+		}
+
+		return HAWK_NULL;
 	}
 
 	map = ((hawk_val_map_t*)v_env)->map;
@@ -3130,128 +3156,226 @@ hawk_bch_t** hawk_rtx_commit_environ (hawk_rtx_t* rtx, int gbl_id)
 		}
 #endif
 
-#if defined(HAWK_ENV_CHAR_IS_BCH)
+		if (env_mk_type == HAWK_RTX_ENV_MK_UPN)
+		{
+			{
+				hawk_uch_t* vptr;
+				vptr = hawk_rtx_valtoucstrdup(rtx, HAWK_MAP_VPTR(pair), &vlen);
+				if (HAWK_UNLIKELY(!vptr)) return HAWK_NULL;
+				hawk_rtx_freemem(rtx, vptr);
+			}
+		}
+		else
 		{
 			hawk_bch_t* vptr;
 			vptr = hawk_rtx_getvalbcstr(rtx, HAWK_MAP_VPTR(pair), &vlen);
 			if (HAWK_UNLIKELY(!vptr)) return HAWK_NULL;
 			hawk_rtx_freevalbcstr(rtx, HAWK_MAP_VPTR(pair), vptr);
 		}
-#else
-		{
-			hawk_uch_t* vptr;
-			vptr = hawk_rtx_getvalucstr(rtx, HAWK_MAP_VPTR(pair), &vlen);
-			if (HAWK_UNLIKELY(!vptr)) return HAWK_NULL;
-			hawk_rtx_freevalucstr(rtx, HAWK_MAP_VPTR(pair), vptr);
-		}
-#endif
 
 		str_bytes += klen + 1 + vlen + 1;
 		count++;
 		pair = hawk_map_getnextpair(map, &itr);
 	}
 
-	ptr_bytes = HAWK_SIZEOF(*envp) * (count + 1);
-	envp = (hawk_env_char_t**)hawk_rtx_allocmem(rtx, ptr_bytes + (str_bytes * HAWK_SIZEOF(*ptr)));
-	if (HAWK_UNLIKELY(!envp)) return HAWK_NULL;
-
-	ptr = (hawk_env_char_t*)((hawk_uint8_t*)envp + ptr_bytes);
-	count = 0;
-
-	hawk_init_map_itr(&itr, 0);
-	pair = hawk_map_getfirstpair(map, &itr);
-	while (pair)
+	if (env_mk_type == HAWK_RTX_ENV_MK_BPP)
 	{
-		hawk_oow_t klen, vlen;
+		hawk_bch_t** envp;
+		hawk_bch_t* ptr;
 
-		envp[count++] = ptr;
-		klen = HAWK_MAP_KLEN(pair);
+		ptr_bytes = HAWK_SIZEOF(*envp) * (count + 1);
+		envp = (hawk_bch_t**)hawk_rtx_allocmem(rtx, ptr_bytes + (str_bytes * HAWK_SIZEOF(*ptr)));
+		if (HAWK_UNLIKELY(!envp)) return HAWK_NULL;
 
-#if ((defined(HAWK_ENV_CHAR_IS_BCH) && defined(HAWK_OOCH_IS_BCH)) || \
-     (defined(HAWK_ENV_CHAR_IS_UCH) && defined(HAWK_OOCH_IS_UCH)))
-		HAWK_MEMCPY(ptr, HAWK_MAP_KPTR(pair), klen);
-		ptr += klen;
-#elif defined(HAWK_ENV_CHAR_IS_BCH)
+		ptr = (hawk_bch_t*)((hawk_uint8_t*)envp + ptr_bytes);
+		count = 0;
+
+		hawk_init_map_itr(&itr, 0);
+		pair = hawk_map_getfirstpair(map, &itr);
+		while (pair)
 		{
-			hawk_oow_t tmp_ulen, tmp_blen;
+			hawk_oow_t klen, vlen;
 
-			tmp_ulen = klen;
-			tmp_blen = str_bytes;
-			if (hawk_rtx_convutobchars(rtx, HAWK_MAP_KPTR(pair), &tmp_ulen, ptr, &tmp_blen) <= -1)
-			{
-				hawk_rtx_freemem(rtx, envp);
-				return HAWK_NULL;
-			}
-			ptr += tmp_blen;
-			klen = tmp_blen;
-		}
+			envp[count++] = ptr;
+			klen = HAWK_MAP_KLEN(pair);
+
+#if defined(HAWK_OOCH_IS_BCH)
+			HAWK_MEMCPY(ptr, HAWK_MAP_KPTR(pair), klen);
+			ptr += klen;
 #else
-		{
-			hawk_oow_t tmp_blen, tmp_ulen;
-
-			tmp_blen = klen;
-			tmp_ulen = str_bytes;
-			if (hawk_rtx_convbtouchars(rtx, HAWK_MAP_KPTR(pair), &tmp_blen, ptr, &tmp_ulen, 1) <= -1)
 			{
-				hawk_rtx_freemem(rtx, envp);
-				return HAWK_NULL;
+				hawk_oow_t tmp_ulen, tmp_blen;
+
+				tmp_ulen = klen;
+				tmp_blen = str_bytes;
+				if (hawk_rtx_convutobchars(rtx, HAWK_MAP_KPTR(pair), &tmp_ulen, ptr, &tmp_blen) <= -1)
+				{
+					hawk_rtx_freemem(rtx, envp);
+					return HAWK_NULL;
+				}
+				ptr += tmp_blen;
 			}
-			ptr += tmp_ulen;
-			klen = tmp_ulen;
-		}
 #endif
 
-		*ptr++ = '=';
+			*ptr++ = '=';
 
-#if defined(HAWK_ENV_CHAR_IS_BCH)
-		{
-			hawk_bch_t* vptr;
-
-			vptr = hawk_rtx_getvalbcstr(rtx, HAWK_MAP_VPTR(pair), &vlen);
-			if (HAWK_UNLIKELY(!vptr))
 			{
-				hawk_rtx_freemem(rtx, envp);
-				return HAWK_NULL;
+				hawk_bch_t* vptr;
+
+				vptr = hawk_rtx_getvalbcstr(rtx, HAWK_MAP_VPTR(pair), &vlen);
+				if (HAWK_UNLIKELY(!vptr))
+				{
+					hawk_rtx_freemem(rtx, envp);
+					return HAWK_NULL;
+				}
+
+				HAWK_MEMCPY(ptr, vptr, vlen);
+				ptr += vlen;
+				hawk_rtx_freevalbcstr(rtx, HAWK_MAP_VPTR(pair), vptr);
 			}
 
-			HAWK_MEMCPY(ptr, vptr, vlen);
-			ptr += vlen;
-			hawk_rtx_freevalbcstr(rtx, HAWK_MAP_VPTR(pair), vptr);
+			*ptr++ = '\0';
+			pair = hawk_map_getnextpair(map, &itr);
 		}
+
+		envp[count] = HAWK_NULL;
+		return envp;
+	}
+	else if (env_mk_type == HAWK_RTX_ENV_MK_BPN)
+	{
+		hawk_bch_t* envp;
+		hawk_bch_t* ptr;
+
+		envp = (hawk_bch_t*)hawk_rtx_allocmem(rtx, (str_bytes + 1) * HAWK_SIZEOF(*envp));
+		if (HAWK_UNLIKELY(!envp)) return HAWK_NULL;
+
+		ptr = envp;
+		hawk_init_map_itr(&itr, 0);
+		pair = hawk_map_getfirstpair(map, &itr);
+		while (pair)
+		{
+			hawk_oow_t klen, vlen;
+
+			klen = HAWK_MAP_KLEN(pair);
+
+#if defined(HAWK_OOCH_IS_BCH)
+			HAWK_MEMCPY(ptr, HAWK_MAP_KPTR(pair), klen);
+			ptr += klen;
 #else
-		{
-			hawk_uch_t* vptr;
-
-			vptr = hawk_rtx_getvalucstr(rtx, HAWK_MAP_VPTR(pair), &vlen);
-			if (HAWK_UNLIKELY(!vptr))
 			{
-				hawk_rtx_freemem(rtx, envp);
-				return HAWK_NULL;
+				hawk_oow_t tmp_ulen, tmp_blen;
+
+				tmp_ulen = klen;
+				tmp_blen = str_bytes;
+				if (hawk_rtx_convutobchars(rtx, HAWK_MAP_KPTR(pair), &tmp_ulen, ptr, &tmp_blen) <= -1)
+				{
+					hawk_rtx_freemem(rtx, envp);
+					return HAWK_NULL;
+				}
+				ptr += tmp_blen;
+			}
+#endif
+
+			*ptr++ = '=';
+
+			{
+				hawk_bch_t* vptr;
+
+				vptr = hawk_rtx_getvalbcstr(rtx, HAWK_MAP_VPTR(pair), &vlen);
+				if (HAWK_UNLIKELY(!vptr))
+				{
+					hawk_rtx_freemem(rtx, envp);
+					return HAWK_NULL;
+				}
+
+				HAWK_MEMCPY(ptr, vptr, vlen);
+				ptr += vlen;
+				hawk_rtx_freevalbcstr(rtx, HAWK_MAP_VPTR(pair), vptr);
 			}
 
-			HAWK_MEMCPY(ptr, vptr, vlen);
-			ptr += vlen;
-			hawk_rtx_freevalucstr(rtx, HAWK_MAP_VPTR(pair), vptr);
+			*ptr++ = '\0';
+			pair = hawk_map_getnextpair(map, &itr);
 		}
-#endif
 
 		*ptr++ = '\0';
-		pair = hawk_map_getnextpair(map, &itr);
+		return envp;
+	}
+	else if (env_mk_type == HAWK_RTX_ENV_MK_UPN)
+	{
+		hawk_uch_t* envp;
+		hawk_uch_t* ptr;
+
+		envp = (hawk_uch_t*)hawk_rtx_allocmem(rtx, (str_bytes + 1) * HAWK_SIZEOF(*envp));
+		if (HAWK_UNLIKELY(!envp)) return HAWK_NULL;
+
+		ptr = envp;
+		hawk_init_map_itr(&itr, 0);
+		pair = hawk_map_getfirstpair(map, &itr);
+		while (pair)
+		{
+			hawk_oow_t klen, vlen;
+
+			klen = HAWK_MAP_KLEN(pair);
+
+#if defined(HAWK_OOCH_IS_UCH)
+			HAWK_MEMCPY(ptr, HAWK_MAP_KPTR(pair), klen);
+			ptr += klen;
+#else
+			{
+				hawk_oow_t tmp_blen, tmp_ulen;
+
+				tmp_blen = klen;
+				tmp_ulen = str_bytes;
+				if (hawk_rtx_convbtouchars(rtx, HAWK_MAP_KPTR(pair), &tmp_blen, ptr, &tmp_ulen, 1) <= -1)
+				{
+					hawk_rtx_freemem(rtx, envp);
+					return HAWK_NULL;
+				}
+				ptr += tmp_ulen;
+			}
+#endif
+
+			*ptr++ = '=';
+
+			{
+				hawk_uch_t* vptr;
+
+				vptr = hawk_rtx_valtoucstrdup(rtx, HAWK_MAP_VPTR(pair), &vlen);
+				if (HAWK_UNLIKELY(!vptr))
+				{
+					hawk_rtx_freemem(rtx, envp);
+					return HAWK_NULL;
+				}
+
+				HAWK_MEMCPY(ptr, vptr, vlen);
+				ptr += vlen;
+				hawk_rtx_freemem(rtx, vptr);
+			}
+
+			*ptr++ = '\0';
+			pair = hawk_map_getnextpair(map, &itr);
+		}
+
+		*ptr++ = '\0';
+		return envp;
 	}
 
-	envp[count] = HAWK_NULL;
-	return envp;
+	return HAWK_NULL;
 }
 
 static int make_additional_globals (hawk_rtx_t* rtx, xtn_t* xtn, const hawk_ooch_t* id, hawk_ooch_t* icf[])
 {
-#if defined(HAVE_CRT_EXTERNS_H)
+#if defined(_WIN32)
+	#define SYSTEM_ENVIRON _environ
+#elif defined(HAVE_CRT_EXTERNS_H)
 	#define environ (*(_NSGetEnviron()))
+	#define SYSTEM_ENVIRON environ
 #else
 	extern char** environ;
+	#define SYSTEM_ENVIRON environ
 #endif
 	if (build_argcv(rtx, xtn->gbl_argc, xtn->gbl_argv, id, icf) <= -1 ||
-	    build_environ(rtx, xtn->gbl_environ, environ) <= -1) return -1;
+	    build_environ(rtx, xtn->gbl_environ, SYSTEM_ENVIRON) <= -1) return -1;
 	return 0;
 }
 

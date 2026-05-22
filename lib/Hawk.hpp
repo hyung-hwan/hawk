@@ -1342,11 +1342,17 @@ public:
 			return this->env_map_rev;
 		}
 
-		void setEnvCache (void* envp, hawk_map_t* env_map, hawk_oow_t env_map_rev)
+		hawk_rtx_env_mk_type_t getEnvType () const
+		{
+			return this->env_type;
+		}
+
+		void setEnvCache (void* envp, hawk_map_t* env_map, hawk_oow_t env_map_rev, hawk_rtx_env_mk_type_t env_type)
 		{
 			this->envp = envp;
 			this->env_map = env_map;
 			this->env_map_rev = env_map_rev;
+			this->env_type = env_type;
 		}
 
 	protected:
@@ -1356,6 +1362,7 @@ public:
 		void* envp;
 		hawk_map_t* env_map;
 		hawk_oow_t env_map_rev;
+		hawk_rtx_env_mk_type_t env_type;
 	};
 
 	///

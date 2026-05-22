@@ -320,6 +320,23 @@ typedef hawk_bch_t* (*hawk_subst_for_bcs_t) (
 #	define hawk_subst_for_oocs_t hawk_subst_for_bcs_t
 #endif
 
+
+#if defined(_WIN32) || defined(__OS2__) || defined(__DOS__)
+#	define HAWK_IS_PATH_SEP(c) ((c) == '/' || (c) == '\\')
+#else
+#	define HAWK_IS_PATH_SEP(c) ((c) == '/')
+#endif
+
+
+#if defined(_WIN32) || defined(__OS2__) || defined(__DOS__)
+/* check if the first two letter is a drive specifier.
+ * useful on DOS/WIN/OS2 like system */
+#define HAWK_IS_PATH_DRIVE(s) \
+        (((s[0] >= 'A' && s[0] <= 'Z') || \
+          (s[0] >= 'a' && s[0] <= 'z')) && \
+         s[1] == ':')
+#endif
+
 #if defined(__cplusplus)
 extern "C" {
 #endif

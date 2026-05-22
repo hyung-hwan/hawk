@@ -643,6 +643,8 @@ int hawk_pio_init (hawk_pio_t* pio, hawk_gem_t* gem, const hawk_ooch_t* cmd, int
 	HANDLE windevnul = INVALID_HANDLE_VALUE;
 	BOOL apiret;
 	hawk_ooch_t* dupcmd;
+	void* envblk = HAWK_NULL;
+	DWORD create_flags;
 	int create_retried;
 
 #elif defined(__OS2__)
@@ -904,18 +906,30 @@ create_process:
 
 	if (HAWK_UNLIKELY(!dupcmd)) goto oops;
 
+	if (env_mk)
+	{
+#if defined(HAWK_OOCH_IS_BCH)
+		envblk = env_mk(HAWK_PIO_ENV_MK_BPN, env_ctx);
+#else
+		envblk = env_mk(HAWK_PIO_ENV_MK_UPN, env_ctx);
+#endif
+		if (HAWK_UNLIKELY(!envblk)) goto oops;
+	}
+
+#if defined(HAWK_OOCH_IS_BCH)
+	create_flags = 0;
+#else
+	create_flags = CREATE_UNICODE_ENVIRONMENT;
+#endif
+
 	apiret = CreateProcess(
 		HAWK_NULL,  /* LPCTSTR lpApplicationName */
 		dupcmd,    /* LPTSTR lpCommandLine */
 		HAWK_NULL,  /* LPSECURITY_ATTRIBUTES lpProcessAttributes */
 		HAWK_NULL,  /* LPSECURITY_ATTRIBUTES lpThreadAttributes */
 		TRUE,      /* BOOL bInheritHandles */
-	#if defined(HAWK_OOCH_IS_BCH)
-		0,         /* DWORD dwCreationFlags */
-	#else
-		CREATE_UNICODE_ENVIRONMENT, /* DWORD dwCreationFlags */
-	#endif
-		HAWK_NULL, /* LPVOID lpEnvironment */
+		create_flags, /* DWORD dwCreationFlags */
+		envblk,     /* LPVOID lpEnvironment */
 		HAWK_NULL, /* LPCTSTR lpCurrentDirectory */
 		&startup, /* LPSTARTUPINFO lpStartupInfo */
 		&procinfo /* LPPROCESS_INFORMATION lpProcessInformation */

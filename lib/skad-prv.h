@@ -25,19 +25,43 @@
 #ifndef _HAWK_SKAD_PRV_H_
 #define _HAWK_SKAD_PRV_H_
 
-#include <sys/types.h>
-#include <sys/socket.h>
-#if defined(HAVE_NETINET_IN_H)
+#if defined(_WIN32)
+#	include <winsock2.h>
+#	include <ws2tcpip.h>
+/*#     include <iphlpapi.h> */
+#elif defined(__OS2__)
+#	if defined(TCPV40HDRS)
+#		define BSD_SELECT
+#	endif
+#	include <types.h>
+#	include <sys/socket.h>
 #	include <netinet/in.h>
-#endif
-#if defined(HAVE_SYS_UN_H)
-#	include <sys/un.h>
-#endif
-#if defined(HAVE_NETPACKET_PACKET_H)
-#	include <netpacket/packet.h>
-#endif
-#if defined(HAVE_NET_IF_DL_H)
-#	include <net/if_dl.h>
+#	include <sys/ioctl.h>
+#	include <nerrno.h>
+#	if defined(TCPV40HDRS)
+#		define USE_SELECT
+#		include <sys/select.h>
+#	else
+#		include <unistd.h>
+#	endif
+#elif defined(__DOS__)
+
+	/* TODO: */
+#else
+#	include <sys/types.h>
+#	include <sys/socket.h>
+#	if defined(HAVE_NETINET_IN_H)
+#		include <netinet/in.h>
+#	endif
+#	if defined(HAVE_SYS_UN_H)
+#		include <sys/un.h>
+#	endif
+#	if defined(HAVE_NETPACKET_PACKET_H)
+#		include <netpacket/packet.h>
+#	endif
+#	if defined(HAVE_NET_IF_DL_H)
+#		include <net/if_dl.h>
+#	endif
 #endif
 
 union hawk_skad_alt_t

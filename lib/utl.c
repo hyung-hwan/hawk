@@ -509,19 +509,13 @@ int hawk_conv_bchars_to_uchars_upto_stopper_with_cmgr (
 
 /* ------------------------------------------------------------------------ */
 
-#if defined(_WIN32) || defined(__OS2__) || defined(__DOS__)
-#	define IS_PATH_SEP(c) ((c) == '/' || (c) == '\\')
-#else
-#	define IS_PATH_SEP(c) ((c) == '/')
-#endif
-
 const hawk_uch_t* hawk_get_base_name_ucstr (const hawk_uch_t* path)
 {
 	const hawk_uch_t* p, * last = HAWK_NULL;
 
 	for (p = path; *p != '\0'; p++)
 	{
-		if (IS_PATH_SEP(*p)) last = p;
+		if (HAWK_IS_PATH_SEP(*p)) last = p;
 	}
 
 	return last? (last + 1): path;
@@ -533,7 +527,7 @@ const hawk_bch_t* hawk_get_base_name_bcstr (const hawk_bch_t* path)
 
 	for (p = path; *p != '\0'; p++)
 	{
-		if (IS_PATH_SEP(*p)) last = p;
+		if (HAWK_IS_PATH_SEP(*p)) last = p;
 	}
 
 	return last? (last + 1): path;
@@ -546,7 +540,7 @@ const hawk_uch_t* hawk_get_base_name_uchars (const hawk_uch_t* path, hawk_oow_t 
 
 	for (p = path; p < end; p++)
 	{
-		if (IS_PATH_SEP(*p)) last = p;
+		if (HAWK_IS_PATH_SEP(*p)) last = p;
 	}
 
 	return last? (last + 1): path;
@@ -559,7 +553,7 @@ const hawk_bch_t* hawk_get_base_name_bchars (const hawk_bch_t* path, hawk_oow_t 
 
 	for (p = path; p < end; p++)
 	{
-		if (IS_PATH_SEP(*p)) last = p;
+		if (HAWK_IS_PATH_SEP(*p)) last = p;
 	}
 
 	return last? (last + 1): path;

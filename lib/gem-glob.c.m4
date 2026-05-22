@@ -35,7 +35,18 @@
 #include <hawk-dir.h>
 #include <hawk-glob.h>
 
-#include "syscall.h"
+#if defined(_WIN32)
+#	include <windows.h>
+#elif defined(__OS2__)
+#	define INCL_DOSERRORS
+#	define INCL_DOSFILEMGR
+#	include <os2.h>
+#elif defined(__DOS__)
+#	include <errno.h>
+#	include <io.h>
+#else
+#	include "syscall.h"
+#endif
 
 #define NO_RECURSION 1
 
@@ -52,6 +63,7 @@ typedef enum segment_type_t segment_type_t;
 #define IS_SEP(c) HAWK_FNMAT_IS_SEP(c)
 #define IS_NIL(c) ((c) == '\0')
 #define IS_SEP_OR_NIL(c) (IS_SEP(c) || IS_NIL(c))
+#define IS_DRIVE(c) HAWK_IS_PATH_DRIVE(c)
 
 /* this macro only checks for top-level wild-cards among these.
  *  *, ?, [], !, -

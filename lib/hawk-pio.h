@@ -124,7 +124,7 @@ enum hawk_pio_env_mk_type_t
 {
 	HAWK_PIO_ENV_MK_BPP, /* P1 ... PN HAWK_NUL where P1 .. PN points to K=V */
 	HAWK_PIO_ENV_MK_BPN, /* K1=V\0K2=V\0\0 */
-	HAWK_PIO_ENV_MK_UPP,
+	HAWK_PIO_ENV_MK_UPN, /* K1=V\0K2=V\0\0 using hawk_uch_t */
 };
 
 typedef enum hawk_pio_env_mk_type_t hawk_pio_env_mk_type_t;
