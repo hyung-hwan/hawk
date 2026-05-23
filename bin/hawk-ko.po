@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: hawk 1.0.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-05-14 23:00+0900\n"
+"POT-Creation-Date: 2026-05-23 12:01+0900\n"
 "PO-Revision-Date: 2026-03-28 16:29+0800\n"
 "Last-Translator:  <author@hawk>\n"
 "Language-Team: Korean <translation-team-ko@hawk>\n"
@@ -101,7 +101,7 @@ msgstr "오류 허용성을 높임"
 msgid "enable the extended call syntax"
 msgstr "확장 호출 문법을 활성화"
 
-#: ../../bin/hawk.c:409 ../../bin/main.c:414
+#: ../../bin/hawk.c:409 ../../bin/main.c:416
 msgid "USAGE"
 msgstr "사용법"
 
@@ -117,7 +117,7 @@ msgstr "      "
 msgid "[options] [ -- ] sourcestring [datafile]*"
 msgstr "[옵션] [ -- ] 소스문자열 [자료파일]*"
 
-#: ../../bin/hawk.c:411 ../../bin/main.c:415
+#: ../../bin/hawk.c:411 ../../bin/main.c:417
 msgid "Options as follows:"
 msgstr "옵션은 다음과 같습니다:"
 
@@ -214,15 +214,15 @@ msgstr " --classic                         고전 모드로 실행"
 msgid "Special mode switching options(must be specified first to take effect):"
 msgstr "모드 전환 옵션(처음에 지정해야 적용됨):"
 
-#: ../../bin/hawk.c:446 ../../bin/main.c:418
+#: ../../bin/hawk.c:446 ../../bin/main.c:420
 msgid " --awk/--hawk                      switch to the awk mode(default)"
 msgstr " --awk/--hawk                      awk 모드로 전환(기본값)"
 
-#: ../../bin/hawk.c:447 ../../bin/main.c:419
+#: ../../bin/hawk.c:447 ../../bin/main.c:421
 msgid " --cut                             switch to the cut mode"
 msgstr " --cut                             cut 모드로 전환"
 
-#: ../../bin/hawk.c:448 ../../bin/main.c:420
+#: ../../bin/hawk.c:448 ../../bin/main.c:422
 msgid " --sed                             switch to the sed mode"
 msgstr " --sed                             sed 모드로 전환"
 
@@ -246,15 +246,15 @@ msgstr "코드"
 msgid "File "
 msgstr "파일 "
 
-#: ../../bin/main.c:414
+#: ../../bin/main.c:416
 msgid "[options] [mode specific options and parameters]"
 msgstr "[옵션] [모드별 옵션과 인자]"
 
-#: ../../bin/main.c:416
+#: ../../bin/main.c:418
 msgid " --usage                           print this message"
 msgstr " --usage                           이 메시지를 출력"
 
-#: ../../bin/main.c:417
+#: ../../bin/main.c:419
 msgid " --version                         print version"
 msgstr " --version                         버전을 출력"
 

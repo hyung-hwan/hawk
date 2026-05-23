@@ -40,9 +40,11 @@
 
 #if defined(_WIN32)
 #	include <windows.h>
+#	include <signal.h>
 #elif defined(__OS2__)
 #	define INCL_DOSPROCESS
 #	include <os2.h>
+#	include <signal.h>
 #else
 #	include <unistd.h>
 #	include <signal.h>
@@ -54,12 +56,12 @@ typedef HAWK::HawkStd HawkStd;
 typedef HAWK::HawkStd::Run Run;
 typedef HAWK::HawkStd::Value Value;
 
-#ifdef _WIN32
+/*#ifdef _WIN32
 static BOOL WINAPI stop_run (DWORD ctrl_type);
-#else
+#else */
 static void stop_run (int sig);
 static void do_nothing (int sig);
-#endif
+/*#endif*/
 static void relay_signal (int sig);
 static int setsignal (int sig, void(*handler)(int), int restart);
 static void print_debug_return (hawk_rtx_t* rtx, hawk_val_t* ret);
@@ -215,6 +217,15 @@ static void print_error (const hawk_bch_t* fmt, ...)
 	va_end (va);
 }
 
+static void print_warning (const hawk_bch_t* fmt, ...)
+{
+	va_list va;
+	fprintf (stderr, "WARNING: ");
+	va_start (va, fmt);
+	vfprintf (stderr, fmt, va);
+	va_end (va);
+}
+
 static void print_error(MyHawk& hawk)
 {
 	hawk_errnum_t code = hawk.getErrorNumber();
@@ -239,7 +250,8 @@ static void print_error(MyHawk& hawk)
 	}
 }
 
-#ifdef _WIN32
+/*
+#if defined(_WIN32)
 static BOOL WINAPI stop_run (DWORD ctrl_type)
 {
 	if (ctrl_type == CTRL_C_EVENT ||
@@ -251,10 +263,11 @@ static BOOL WINAPI stop_run (DWORD ctrl_type)
 
 	return FALSE;
 }
-#else
+#else */
 
 static int setsignal (int sig, void(*handler)(int), int restart)
 {
+#if defined(HAVE_SIGACTION)
 	struct sigaction sa_int;
 
 	sa_int.sa_handler = handler;
@@ -264,17 +277,20 @@ static int setsignal (int sig, void(*handler)(int), int restart)
 
 	if (restart)
 	{
-	#ifdef SA_RESTART
+	#if defined(SA_RESTART)
 		sa_int.sa_flags |= SA_RESTART;
 	#endif
 	}
 	else
 	{
-	#ifdef SA_INTERRUPT
+	#if defined(SA_INTERRUPT)
 		sa_int.sa_flags |= SA_INTERRUPT;
 	#endif
 	}
 	return sigaction(sig, &sa_int, NULL);
+#else
+	return (signal(sig, handler) == SIG_ERR)? -1: 0;
+#endif
 }
 
 static void stop_run (int sig)
@@ -288,27 +304,32 @@ static void do_nothing (int sig)
 {
 }
 
-#endif
+/*#endif*/
 
 static void set_signal (void)
 {
-#ifdef _WIN32
+/*#ifdef _WIN32
 	SetConsoleCtrlHandler(stop_run, TRUE);
-#else
+#else*/
 	/*setsignal(SIGINT, stop_run, 1); TO BE MORE COMPATIBLE WITH WIN32*/
 	setsignal(SIGINT, stop_run, 0);
+#if defined(SIGPIPE)
 	setsignal(SIGPIPE, do_nothing, 0);
 #endif
+/*#endif*/
 }
 
 static void unset_signal(void)
 {
+/*
 #ifdef _WIN32
 	SetConsoleCtrlHandler(stop_run, FALSE);
-#else
+#else*/
 	setsignal(SIGINT, SIG_DFL, 1);
+#if defined(SIGPIPE)
 	setsignal(SIGPIPE, SIG_DFL, 1);
 #endif
+/*#endif*/
 }
 
 static void print_usage (FILE* out, const hawk_bch_t* argv0)
@@ -505,7 +526,7 @@ static int handle_cmdline (MyHawk& hawk, int argc, hawk_bch_t* argv[], cmdline_t
 	};
 	hawk_bci_t c;
 
-	std::memset (cmdline, 0, HAWK_SIZEOF(*cmdline));
+	std::memset(cmdline, 0, HAWK_SIZEOF(*cmdline));
 	while ((c = hawk_get_bcli(argc, argv, &opt)) != HAWK_BCI_EOF)
 	{
 		switch (c)
@@ -626,7 +647,7 @@ static int make_args_for_exec (cmdline_t* cmdline, MyHawk& hawk, MyHawk::Run* ru
 		{
 			if (cmdline->argv[i - 1].setStr(run, hawk.getArgument(i)) <= -1)
 			{
-				free_args_for_exec (cmdline);
+				free_args_for_exec(cmdline);
 				return -1;
 			}
 			cmdline->argc++;
@@ -634,8 +655,8 @@ static int make_args_for_exec (cmdline_t* cmdline, MyHawk& hawk, MyHawk::Run* ru
 	}
 	catch (...)
 	{
-		free_args_for_exec (cmdline);
-		hawk.setError (HAWK_ENOMEM);
+		free_args_for_exec(cmdline);
+		hawk.setError(HAWK_ENOMEM);
 		return -1;
 	}
 
@@ -716,7 +737,7 @@ static int hawk_main (MyHawk& hawk, int argc, hawk_bch_t* argv[])
 
 	if (cmdline.fs)
 	{
-		MyHawk::Value fs (run);
+		MyHawk::Value fs(run);
 		if (fs.setStr(cmdline.fs) <= -1)
 		{
 			print_error(hawk);
@@ -769,7 +790,7 @@ static int hawk_main (MyHawk& hawk, int argc, hawk_bch_t* argv[])
 static HAWK_INLINE int execute_hawk (int argc, hawk_bch_t* argv[])
 {
 	//HAWK::HeapMmgr hm (1000000);
-	//MyHawk awk (&hm);
+	//MyHawk awk(&hm);
 	MyHawk hawk;
 
 	if (hawk.open() <= -1)
@@ -779,9 +800,9 @@ static HAWK_INLINE int execute_hawk (int argc, hawk_bch_t* argv[])
 	}
 	app_hawk = &hawk;
 
-	set_signal ();
+	set_signal();
 	int n = hawk_main(hawk, argc, argv);
-	unset_signal ();
+	unset_signal();
 
 	app_hawk = HAWK_NULL;
 	hawk.close();
@@ -810,39 +831,39 @@ int main (int argc, hawk_bch_t* argv[])
 	codepage = GetConsoleOutputCP();
 	if (codepage == CP_UTF8)
 	{
-		/*SetConsoleOUtputCP (CP_UTF8);*/
-		/*hawk_setdflcmgrbyid (HAWK_CMGR_UTF8);*/
+		/*SetConsoleOUtputCP(CP_UTF8);*/
+		/*hawk_setdflcmgrbyid(HAWK_CMGR_UTF8);*/
 	}
 	else
 	{
 		/* .codepage */
-		hawk_fmt_uintmax_to_bcstr (locale, HAWK_COUNTOF(locale), codepage, 10, -1, '\0', ".");
-		setlocale (LC_ALL, locale);
-		/* hawk_setdflcmgrbyid (HAWK_CMGR_SLMB); */
+		hawk_fmt_uintmax_to_bcstr(locale, HAWK_COUNTOF(locale), codepage, 10, -1, '\0', ".");
+		setlocale(LC_ALL, locale);
+		/* hawk_setdflcmgrbyid(HAWK_CMGR_SLMB); */
 	}
 
 #else
-	setlocale (LC_ALL, "");
-	/* hawk_setdflcmgrbyid (HAWK_CMGR_SLMB); */
+	setlocale(LC_ALL, "");
+	/* hawk_setdflcmgrbyid(HAWK_CMGR_SLMB); */
 #endif
 
 #if defined(_WIN32)
 	if (WSAStartup(MAKEWORD(2,0), &wsadata) != 0)
-		print_warning ("Failed to start up winsock\n");
+		print_warning("Failed to start up winsock\n");
 	else sock_inited = 1;
 #elif defined(__DOS__)
 	/* TODO: add an option to skip watt-32 */
 	_watt_do_exit = 0; /* prevent sock_init from exiting upon failure */
-	if (sock_init() != 0) print_warning ("Failed to initialize watt-32\n");
+	if (sock_init() != 0) print_warning("Failed to initialize watt-32\n");
 	else sock_inited = 1;
 #endif
 
 	ret = execute_hawk(argc, argv);
 
 #if defined(_WIN32)
-	if (sock_inited) WSACleanup ();
+	if (sock_inited) WSACleanup();
 #elif defined(__DOS__)
-	if (sock_inited) sock_exit ();
+	if (sock_inited) sock_exit();
 #endif
 
 	return ret;

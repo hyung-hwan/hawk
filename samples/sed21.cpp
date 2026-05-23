@@ -1,15 +1,20 @@
 #include <Hawk-Sed.hpp>
+#include <hawk-fmt.h>
 #include <stdio.h>
 #include <stdarg.h>
 #include <locale.h>
 
+#if defined(_WIN32)
+#	include <windows.h>
+#endif
+
 static void print_error (const hawk_bch_t* fmt, ...)
 {
 	va_list va;
-	fprintf (stderr, "ERROR: ");
-	va_start (va, fmt);
-	vfprintf (stderr, fmt, va);
-	va_end (va);
+	fprintf(stderr, "ERROR: ");
+	va_start(va, fmt);
+	vfprintf(stderr, fmt, va);
+	va_end(va);
 }
 
 static void print_error (HAWK::SedStd& sed)
@@ -105,20 +110,20 @@ int main (int argc, hawk_bch_t* argv[])
 	codepage = GetConsoleOutputCP();
 	if (codepage == CP_UTF8)
 	{
-		/*SetConsoleOUtputCP (CP_UTF8);*/
-		/*hawk_setdflcmgrbyid (HAWK_CMGR_UTF8);*/
+		/*SetConsoleOUtputCP(CP_UTF8);*/
+		/*hawk_setdflcmgrbyid(HAWK_CMGR_UTF8);*/
 	}
 	else
 	{
 		/* .codepage */
-		hawk_fmt_uintmax_to_bcstr (locale, HAWK_COUNTOF(locale), codepage, 10, -1, '\0', ".");
-		setlocale (LC_ALL, locale);
+		hawk_fmt_uintmax_to_bcstr(locale, HAWK_COUNTOF(locale), codepage, 10, -1, '\0', ".");
+		setlocale(LC_ALL, locale);
 		/* hawk_setdflcmgrbyid (HAWK_CMGR_SLMB); */
 	}
 
 #else
 	setlocale (LC_ALL, "");
-	/* hawk_setdflcmgrbyid (HAWK_CMGR_SLMB); */
+	/* hawk_setdflcmgrbyid(HAWK_CMGR_SLMB); */
 #endif
 
 	ret = execute_sed(argc, argv);

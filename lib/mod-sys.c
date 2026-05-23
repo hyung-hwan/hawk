@@ -29,7 +29,10 @@
 
 #if defined(_WIN32)
 #	include <windows.h>
+#	include <io.h>
+#	include <fcntl.h>
 #	include <process.h>
+#	include <tlhelp32.h>
 #	include <tchar.h>
 #elif defined(__OS2__)
 #	define INCL_DOSPROCESS
@@ -51,10 +54,12 @@
 #		endif
 #	endif
 
-#	include <termios.h>
 #	include <sys/socket.h>
 
-#	define ENABLE_SYSLOG
+#	define ENABLE_TERMIOS
+#	include <termios.h>
+
+#	define ENABLE_SYSLOG /* enable libc's openlog, closelog, syslog */
 #	include <syslog.h>
 
 #endif
@@ -1027,6 +1032,7 @@ static int fnc_fcntl (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	sys_node = get_sys_list_node_with_arg(rtx, sys_list, hawk_rtx_getarg(rtx, 0), SYS_NODE_DATA_TYPE_FILE | SYS_NODE_DATA_TYPE_SCK, &rx);
 	if (sys_node)
 	{
+#if defined(F_GETFD) && defined(F_GETFL) && defined(F_SETFD) && defined(F_SETFL)
 		hawk_int_t  cmd;
 
 		if (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 1), &cmd) <= -1)
@@ -1068,6 +1074,9 @@ static int fnc_fcntl (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 				rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_NULL);
 				break;
 		}
+#else
+		rx = set_error_on_sys_list(rtx, sys_list, HAWK_ENOSUP, HAWK_NULL);
+#endif
 	}
 
 done:
@@ -1096,6 +1105,7 @@ static int fnc_flock (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_int_t rx;
 	hawk_val_t* retv;
 
+#if defined(F_RDLCK) && defined(F_WRLCK) && defined(F_UNLCK) && defined(F_GETLK) && defined(F_SETLKW) && defined(F_SETLK)
 	HAWK_STATIC_ASSERT(FLOCK_GET != F_RDLCK);
 	HAWK_STATIC_ASSERT(FLOCK_GET != F_WRLCK);
 	HAWK_STATIC_ASSERT(FLOCK_GET != F_UNLCK);
@@ -1154,6 +1164,10 @@ static int fnc_flock (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			rx = fl.l_type; /* for get, it returns the lock type */
 		}
 	}
+#else
+	sys_list = rtx_to_sys_list(rtx, fi);
+	rx = set_error_on_sys_list(rtx, sys_list, HAWK_ENOSUP, HAWK_NULL);
+#endif
 
 done:
 	retv = hawk_rtx_makeintval_inline(rtx, rx);
@@ -1217,6 +1231,7 @@ static int fnc_tcgetattr (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi) /* this is
 	sys_node = get_sys_list_node_with_arg(rtx, sys_list, hawk_rtx_getarg(rtx, 0), SYS_NODE_DATA_TYPE_FILE, &rx);
 	if (sys_node)
 	{
+#if defined(ENABLE_TERMIOS)
 		struct termios t;
 		hawk_val_map_data_t md[5];
 		hawk_bcs_t c_cc;
@@ -1275,6 +1290,9 @@ static int fnc_tcgetattr (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi) /* this is
 		fail:
 			rx = copy_error_to_sys_list(rtx, sys_list);
 		}
+#else
+		rx = set_error_on_sys_list(rtx, sys_list, HAWK_ENOSUP, HAWK_NULL);
+#endif
 	}
 
 done:
@@ -1311,6 +1329,7 @@ static int fnc_tcsetattr (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi) /* this is
 	sys_node = get_sys_list_node_with_arg(rtx, sys_list, hawk_rtx_getarg(rtx, 0), SYS_NODE_DATA_TYPE_FILE, &rx);
 	if (sys_node)
 	{
+#if defined(ENABLE_TERMIOS)
 		struct termios t;
 		hawk_map_itr_t itr;
 		hawk_map_pair_t* pair;
@@ -1391,6 +1410,9 @@ static int fnc_tcsetattr (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi) /* this is
 			set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
 			goto done;
 		}
+#else
+		rx = set_error_on_sys_list(rtx, sys_list, HAWK_ENOSUP, HAWK_NULL);
+#endif
 	}
 
 done:
@@ -1423,6 +1445,7 @@ static int fnc_tcsetraw (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	sys_node = get_sys_list_node_with_arg(rtx, sys_list, hawk_rtx_getarg(rtx, 0), SYS_NODE_DATA_TYPE_FILE, &rx);
 	if (sys_node)
 	{
+#if defined(ENABLE_TERMIOS)
 		struct termios t;
 
 		rx = tcgetattr(sys_node->ctx.u.file.fd, &t);
@@ -1441,6 +1464,9 @@ static int fnc_tcsetraw (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
 			goto done;
 		}
+#else
+		rx = set_error_on_sys_list(rtx, sys_list, HAWK_ENOSUP, HAWK_NULL);
+#endif
 	}
 
 done:
@@ -1462,6 +1488,7 @@ static int fnc_tcflush (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	sys_node = get_sys_list_node_with_arg(rtx, sys_list, hawk_rtx_getarg(rtx, 0), SYS_NODE_DATA_TYPE_FILE, &rx);
 	if (sys_node)
 	{
+#if defined(ENABLE_TERMIOS)
 		hawk_int_t qs;
 
 		if (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 1), &qs) <= -1) qs = TCIOFLUSH;
@@ -1472,6 +1499,9 @@ static int fnc_tcflush (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
 			goto done;
 		}
+#else
+		rx = set_error_on_sys_list(rtx, sys_list, HAWK_ENOSUP, HAWK_NULL);
+#endif
 	}
 
 done:
@@ -1580,6 +1610,9 @@ static int fnc_pipe (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 	if (hawk_rtx_getnargs(rtx) >= 3 && (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 2), &flags) <= -1 || flags < 0)) flags = 0;
 
+#if defined(_WIN32)
+	rx = set_error_on_sys_list(rtx, sys_list, HAWK_ENOSUP, HAWK_NULL);
+#else
 #if defined(HAVE_PIPE2)
 	if (pipe2(fds, flags) >= 0)
 #else
@@ -1655,6 +1688,7 @@ static int fnc_pipe (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	{
 		rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
 	}
+#endif
 
 	hawk_rtx_setretval(rtx, hawk_rtx_makeintval_inline(rtx, rx));
 	return 0;
@@ -1681,9 +1715,13 @@ static int fnc_fchown (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		}
 		else
 		{
+#if defined(_WIN32)
+			rx = set_error_on_sys_list(rtx, sys_list, HAWK_ENOSUP, HAWK_NULL);
+#else
 			rx = fchown(sys_node->ctx.u.file.fd, uid, gid) <= -1?
 				set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL):
 				ERRNUM_TO_RC(HAWK_ENOERR);
+#endif
 		}
 	}
 
@@ -1709,9 +1747,13 @@ static int fnc_fchmod (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		}
 		else
 		{
+#if defined(_WIN32)
+			rx = set_error_on_sys_list(rtx, sys_list, HAWK_ENOSUP, HAWK_NULL);
+#else
 			rx = fchmod(sys_node->ctx.u.file.fd, mode) <= -1?
 				set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL):
 				ERRNUM_TO_RC(HAWK_ENOERR);
+#endif
 		}
 	}
 
@@ -1922,8 +1964,8 @@ static int fnc_wait (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	sys_list_t* sys_list = rtx_to_sys_list(rtx, fi);
 
 	nargs = hawk_rtx_getnargs(rtx);
-	if (nargs >= 3 && hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 2), &opts) <= -1) goto fail;
-	if (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 0), &pid) <= -1) goto fail;
+	if (nargs >= 3 && hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 2), &opts) <= -1) goto oops;
+	if (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 0), &pid) <= -1) goto oops;
 
 #if defined(_WIN32)
 	/* TOOD: implement this*/
@@ -1951,16 +1993,12 @@ static int fnc_wait (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			int x;
 
 			sv = hawk_rtx_makeintval_inline(rtx, status);
-			if (!sv) goto fail;
+			if (!sv) goto oops;
 
 			hawk_rtx_refupval_inline(rtx, sv);
 			x = hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, 1), sv);
 			hawk_rtx_refdownval_inline(rtx, sv);
-			if (x <= -1)
-			{
-			fail:
-				rx = copy_error_to_sys_list(rtx, sys_list);
-			}
+			if (x <= -1) goto oops;
 		}
 	}
 #endif
@@ -1970,13 +2008,24 @@ static int fnc_wait (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 	hawk_rtx_setretval(rtx, retv);
 	return 0;
+
+oops:
+	rx = copy_error_to_sys_list(rtx, sys_list);
+	retv = hawk_rtx_makeintval_inline(rtx, rx);
+	if (!retv) return -1;
+	hawk_rtx_setretval(rtx, retv);
+	return 0;
 }
 
 static int fnc_wifexited (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	hawk_int_t wstatus;
 	int rv;
+#if defined(WIFEXITED)
 	rv = (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 0), &wstatus) <= -1)? 0: !!WIFEXITED(wstatus);
+#else
+	rv = 0;
+#endif
 	hawk_rtx_setretval(rtx, hawk_rtx_makeintval_inline(rtx, rv));
 	return 0;
 }
@@ -1987,7 +2036,11 @@ static int fnc_wexitstatus (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	int rv;
 
 	hawk_val_t* retv;
+#if defined(WEXITSTATUS)
 	rv = (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 0), &wstatus) <= -1)? -1: WEXITSTATUS(wstatus);
+#else
+	rv = -1;
+#endif
 
 	retv = hawk_rtx_makeintval_inline(rtx, rv);
 	if (!retv) return -1;
@@ -2000,7 +2053,11 @@ static int fnc_wifsignaled (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	hawk_int_t wstatus;
 	int rv;
+#if defined(WIFSIGNALED)
 	rv = (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 0), &wstatus) <= -1)? 0: !!WIFSIGNALED(wstatus);
+#else
+	rv = 0;
+#endif
 	hawk_rtx_setretval(rtx, hawk_rtx_makeintval_inline(rtx, rv));
 	return 0;
 }
@@ -2011,7 +2068,11 @@ static int fnc_wtermsig (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	int rv;
 
 	hawk_val_t* retv;
+#if defined(WTERMSIG)
 	rv = (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 0), &wstatus) <= -1)? -1: WTERMSIG(wstatus);
+#else
+	rv = -1;
+#endif
 
 	retv = hawk_rtx_makeintval_inline(rtx, rv);
 	if (!retv) return -1;
@@ -2282,7 +2343,7 @@ static int fnc_getppid (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	HANDLE ps;
 	PROCESSENTRY32 p;
 
-	pid = GetCurrentPorcessId();
+	pid = GetCurrentProcessId();
 	ps = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
 	if (ps == INVALID_HANDLE_VALUE)
 	{
@@ -2292,7 +2353,7 @@ static int fnc_getppid (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	{
 		rx = set_error_on_sys_list(rtx, sys_list, HAWK_ENOENT, HAWK_NULL);
 
-		p.dwSize = HAWK_SZIEOF(p);
+		p.dwSize = HAWK_SIZEOF(p);
 		if (Process32First(ps, &p))
 		{
 			do
@@ -2705,7 +2766,7 @@ static int fnc_strftime (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		#if defined(HAVE_GMTIME_R)
 			tmx = gmtime_r(&t, &tm);
 		#else
-			tmx = gmtime(&t.sec);
+			tmx = gmtime(&t);
 		#endif
 		}
 		else
@@ -2714,7 +2775,7 @@ static int fnc_strftime (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		#if defined(HAVE_LOCALTIME_R)
 			tmx = localtime_r(&t, &tm);
 		#else
-			tmx = localtime(&t.sec);
+			tmx = localtime(&t);
 		#endif
 		}
 
@@ -4412,17 +4473,25 @@ static int fnc_accept (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	#if defined(HAVE_ACCEPT4)
 		/* nothing to do */
 	#else
+	#if defined(F_GETFD)
 		fd_flags = fcntl(fd, F_GETFD, 0);
 		if (fd_flags >= 0)
 		{
 		#if defined(FD_CLOEXEC) && defined(SOCK_CLOEXEC)
 			if (flags & SOCK_CLOEXEC) fd_flags |= FD_CLOEXEC;
 		#endif
-		#if defined(O_NONBLOCK) && defined(SOCK_NONBLOCK)
-			if (flags & SOCK_NONBLOCK) fd_flags |= O_NONBLOCK;
-		#endif
+		#if defined(F_SETFD)
 			fcntl(fd, F_SETFD, fd_flags);
+		#endif
 		}
+	#endif
+	#if defined(F_GETFL) && defined(F_SETFL) && defined(O_NONBLOCK) && defined(SOCK_NONBLOCK)
+		if (flags & SOCK_NONBLOCK)
+		{
+			fd_flags = fcntl(fd, F_GETFL, 0);
+			if (fd_flags >= 0) fcntl(fd, F_SETFL, fd_flags | O_NONBLOCK);
+		}
+	#endif
 	#endif
 
 		if (hawk_rtx_getnargs(rtx) >= 3)
@@ -4556,7 +4625,7 @@ you can specify the remote:// with /dev/log or @/dev/log.
  */
 static void open_remote_log_socket (hawk_rtx_t* rtx, rtx_data_t* rdp)
 {
-	int sck, flags;
+	int sck;
 	int domain = hawk_skad_get_family(&rdp->log.skad);
 	int type = SOCK_DGRAM;
 
@@ -4586,15 +4655,32 @@ open_socket:
 	#endif
 	}
 
-	flags = fcntl(sck, F_GETFD, 0);
-	if (flags <= -1) return;
+#if defined(F_GETFD)
+	{
+		int flags;
+
+		flags = fcntl(sck, F_GETFD, 0);
+		if (flags <= -1) return;
 #if defined(FD_CLOEXEC)
-	flags |= FD_CLOEXEC;
+		flags |= FD_CLOEXEC;
 #endif
+	#if defined(F_SETFD)
+		if (fcntl(sck, F_SETFD, flags) <= -1) return;
+	#endif
+	}
+#endif
+#if defined(F_GETFL) && defined(F_SETFL) && defined(O_NONBLOCK)
+	{
+		int flags;
+
+		flags = fcntl(sck, F_GETFL, 0);
+		if (flags <= -1) return;
 #if defined(O_NONBLOCK)
-	flags |= O_NONBLOCK;
+		flags |= O_NONBLOCK;
 #endif
-	if (fcntl(sck, F_SETFD, flags) <= -1) return;
+		if (fcntl(sck, F_SETFL, flags) <= -1) return;
+	}
+#endif
 
 done:
 	rdp->log.sck = sck;
@@ -4682,7 +4768,7 @@ static int fnc_openlog (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 #if defined(ENABLE_SYSLOG)
 	if (rdp->log.syslog_opened)
 	{
-		closelog ();
+		closelog();
 		rdp->log.syslog_opened = 0;
 	}
 #endif
@@ -4709,7 +4795,9 @@ static int fnc_openlog (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	else if (rdp->log.type == SYSLOG_REMOTE)
 	{
 		rdp->log.skad = skad;
+	#if defined(LOG_NDELAY)
 		if ((opt & LOG_NDELAY) && rdp->log.sck <= -1) open_remote_log_socket(rtx, rdp);
+	#endif
 	}
 
 	rx = ERRNUM_TO_RC(HAWK_ENOERR);
@@ -4730,7 +4818,7 @@ static int fnc_closelog (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	{
 		case SYSLOG_LOCAL:
 		#if defined(ENABLE_SYSLOG)
-			closelog ();
+			closelog();
 			/* closelog() might be called without openlog(). so there is no
 			 * check if syslog_opened is true.
 			 * it is just used as an indicator to decide wheter closelog()
@@ -6082,18 +6170,30 @@ static hawk_mod_int_tab_t inttab[] =
 
 	{ HAWK_T("DIR_SORT"),           { HAWK_DIR_SORT } },
 
+#if defined(FD_CLOEXEC)
 	{ HAWK_T("FD_CLOEXEC"),         { FD_CLOEXEC } },
+#endif
 
+#if defined(F_RDLCK) && defined(F_UNLCK) && defined(F_WRLCK)
 	{ HAWK_T("FLOCK_GET"),          { FLOCK_GET } }, /* bitwise-OR with another FLOCK_READ/WRITE/WAIT value */
 	{ HAWK_T("FLOCK_READ"),         { F_RDLCK } },
 	{ HAWK_T("FLOCK_UNLOCK"),       { F_UNLCK } },
 	{ HAWK_T("FLOCK_WAIT"),         { FLOCK_WAIT } }, /* bitwise-OR with another FLOCK_READ/WRITE/WAIT value */
 	{ HAWK_T("FLOCK_WRITE"),        { F_WRLCK } },
+#endif
 
+#if defined(F_GETFD)
 	{ HAWK_T("F_GETFD"),            { F_GETFD } },
+#endif
+#if defined(F_GETFL)
 	{ HAWK_T("F_GETFL"),            { F_GETFL } },
+#endif
+#if defined(F_SETFD)
 	{ HAWK_T("F_SETFD"),            { F_SETFD } },
+#endif
+#if defined(F_SETFL)
 	{ HAWK_T("F_SETFL"),            { F_SETFL } },
+#endif
 
 	{ HAWK_T("IFCFG_IN4"),          { HAWK_IFCFG_IN4 } },
 	{ HAWK_T("IFCFG_IN6"),          { HAWK_IFCFG_IN6 } },
@@ -6125,7 +6225,9 @@ static hawk_mod_int_tab_t inttab[] =
 	{ HAWK_T("LOG_FAC_UUCP"),       { LOG_UUCP } },
 
 	{ HAWK_T("LOG_OPT_CONS"),       { LOG_CONS } },
+#if defined(LOG_NDELAY)
 	{ HAWK_T("LOG_OPT_NDELAY"),     { LOG_NDELAY } },
+#endif
 	{ HAWK_T("LOG_OPT_NOWAIT"),     { LOG_NOWAIT } },
 	{ HAWK_T("LOG_OPT_PID"),        { LOG_PID } },
 
@@ -6281,116 +6383,264 @@ static hawk_mod_int_tab_t inttab[] =
 #if defined(VDISCARD)
 	{ HAWK_T("TC_CC_VDISCARD"),  { VDISCARD } },
 #endif
+#if defined(VEOF)
 	{ HAWK_T("TC_CC_VEOF"),      { VEOF } },
+#endif
+#if defined(VEOL)
 	{ HAWK_T("TC_CC_VEOL"),      { VEOL } },
+#endif
+#if defined(VEOL2)
 	{ HAWK_T("TC_CC_VEOL2"),     { VEOL2 } },
+#endif
+#if defined(VERASE)
 	{ HAWK_T("TC_CC_VERASE"),    { VERASE } },
+#endif
+#if defined(VINTR)
 	{ HAWK_T("TC_CC_VINTR"),     { VINTR } },
+#endif
+#if defined(VKILL)
 	{ HAWK_T("TC_CC_VKILL"),     { VKILL } },
+#endif
 #if defined(VLNEXT)
 	{ HAWK_T("TC_CC_VLNEXT"),    { VLNEXT } },
 #endif
+#if defined(VMIN)
 	{ HAWK_T("TC_CC_VMIN"),      { VMIN } },
+#endif
+#if defined(VQUIT)
 	{ HAWK_T("TC_CC_VQUIT"),     { VQUIT } },
+#endif
 #if defined(VREPRINT)
 	{ HAWK_T("TC_CC_VREPRINT"),  { VREPRINT } },
 #endif
+#if defined(VSTART)
 	{ HAWK_T("TC_CC_VSTART"),    { VSTART } },
+#endif
+#if defined(VSTOP)
 	{ HAWK_T("TC_CC_VSTOP"),     { VSTOP } },
+#endif
+#if defined(VSUSP)
 	{ HAWK_T("TC_CC_VSUSP"),     { VSUSP } },
+#endif
 #if defined(VSWTC)
 	{ HAWK_T("TC_CC_VSWTC"),     { VSWTC } },  /* hard to define with an alternative value when it's not available */
 #endif
+#if defined(VTIME)
 	{ HAWK_T("TC_CC_VTIME"),     { VTIME } },
+#endif
 #if defined(VWERASE)
 	{ HAWK_T("TC_CC_VWERASE"),   { VWERASE } },
 #endif
 
+#if defined(B0)
 	{ HAWK_T("TC_CFLAG_B0"),      { B0 } },
+#endif
+#if defined(B110)
 	{ HAWK_T("TC_CFLAG_B110"),    { B110 } },
+#endif
+#if defined(B115200)
 	{ HAWK_T("TC_CFLAG_B115200"), { B115200 } },
+#endif
+#if defined(B1200)
 	{ HAWK_T("TC_CFLAG_B1200"),   { B1200 } },
+#endif
+#if defined(B134)
 	{ HAWK_T("TC_CFLAG_B134"),    { B134 } },
+#endif
+#if defined(B150)
 	{ HAWK_T("TC_CFLAG_B150"),    { B150 } },
+#endif
+#if defined(B1800)
 	{ HAWK_T("TC_CFLAG_B1800"),   { B1800 } },
+#endif
+#if defined(B19200)
 	{ HAWK_T("TC_CFLAG_B19200"),  { B19200 } },
+#endif
+#if defined(B200)
 	{ HAWK_T("TC_CFLAG_B200"),    { B200 } },
+#endif
+#if defined(B230400)
 	{ HAWK_T("TC_CFLAG_B230400"), { B230400 } },
+#endif
+#if defined(B2400)
 	{ HAWK_T("TC_CFLAG_B2400"),   { B2400 } },
+#endif
+#if defined(B300)
 	{ HAWK_T("TC_CFLAG_B300"),    { B300 } },
+#endif
+#if defined(B38400)
 	{ HAWK_T("TC_CFLAG_B38400"),  { B38400 } },
+#endif
 #if defined(B460800)
 	{ HAWK_T("TC_CFLAG_B460800"), { B460800 } },
 #endif
+#if defined(B4800)
 	{ HAWK_T("TC_CFLAG_B4800"),   { B4800 } },
+#endif
+#if defined(B50)
 	{ HAWK_T("TC_CFLAG_B50"),     { B50 } },
+#endif
+#if defined(B57600)
 	{ HAWK_T("TC_CFLAG_B57600"),  { B57600 } },
+#endif
+#if defined(B600)
 	{ HAWK_T("TC_CFLAG_B600"),    { B600 } },
+#endif
+#if defined(B75)
 	{ HAWK_T("TC_CFLAG_B75"),     { B75 } },
+#endif
 #if defined(B921600)
 	{ HAWK_T("TC_CFLAG_B921600"), { B921600 } },
 #endif
+#if defined(B9600)
 	{ HAWK_T("TC_CFLAG_B9600"),   { B9600 } },
+#endif
 
+#if defined(CLOCAL)
 	{ HAWK_T("TC_CFLAG_CLOCAL"),  { CLOCAL } },
+#endif
+#if defined(CREAD)
 	{ HAWK_T("TC_CFLAG_CREAD"),   { CREAD } },
+#endif
 #if defined(CRTSCTS)
 	{ HAWK_T("TC_CFLAG_CRTSCTS"), { CRTSCTS } },
 #endif
+#if defined(CS5)
 	{ HAWK_T("TC_CFLAG_CS5"),     { CS5 } },
+#endif
+#if defined(CS6)
 	{ HAWK_T("TC_CFLAG_CS6"),     { CS6 } },
+#endif
+#if defined(CS7)
 	{ HAWK_T("TC_CFLAG_CS7"),     { CS7 } },
+#endif
+#if defined(CS8)
 	{ HAWK_T("TC_CFLAG_CS8"),     { CS8 } },
+#endif
+#if defined(CSIZE)
 	{ HAWK_T("TC_CFLAG_CSIZE"),   { CSIZE } },
+#endif
+#if defined(CSTOPB)
 	{ HAWK_T("TC_CFLAG_CSTOPB"),  { CSTOPB } },
+#endif
+#if defined(HUPCL)
 	{ HAWK_T("TC_CFLAG_HUPCL"),   { HUPCL } },
+#endif
+#if defined(PARENB)
 	{ HAWK_T("TC_CFLAG_PARENB"),  { PARENB } },
+#endif
+#if defined(PARODD)
 	{ HAWK_T("TC_CFLAG_PARODD"),  { PARODD } },
+#endif
 
+#if defined(BRKINT)
 	{ HAWK_T("TC_IFLAG_BRKINT"), { BRKINT } },
+#endif
+#if defined(ICRNL)
 	{ HAWK_T("TC_IFLAG_ICRNL"),  { ICRNL } },
+#endif
+#if defined(IGNBRK)
 	{ HAWK_T("TC_IFLAG_IGNBRK"), { IGNBRK } },
+#endif
+#if defined(IGNCR)
 	{ HAWK_T("TC_IFLAG_IGNCR"),  { IGNCR } },
+#endif
+#if defined(IGNPAR)
 	{ HAWK_T("TC_IFLAG_IGNPAR"), { IGNPAR } },
+#endif
 #if defined(IMAXBEL)
 	{ HAWK_T("TC_IFLAG_IMAXBEL"),{ IMAXBEL } },
 #endif
+#if defined(INLCR)
 	{ HAWK_T("TC_IFLAG_INLCR"),  { INLCR } },
+#endif
+#if defined(INPCK)
 	{ HAWK_T("TC_IFLAG_INPCK"),  { INPCK } },
+#endif
+#if defined(ISTRIP)
 	{ HAWK_T("TC_IFLAG_ISTRIP"), { ISTRIP } },
+#endif
 	{ HAWK_T("TC_IFLAG_IUCLC"),  { X_IUCLC } },
 	{ HAWK_T("TC_IFLAG_IUTF8"),  { X_IUTF8 } },
+#if defined(IXANY)
 	{ HAWK_T("TC_IFLAG_IXANY"),  { IXANY } },
+#endif
+#if defined(IXOFF)
 	{ HAWK_T("TC_IFLAG_IXOFF"),  { IXOFF } },
+#endif
+#if defined(IXON)
 	{ HAWK_T("TC_IFLAG_IXON"),   { IXON } },
+#endif
+#if defined(PARMRK)
 	{ HAWK_T("TC_IFLAG_PARMRK"), { PARMRK } },
+#endif
 
+#if defined(TCIFLUSH)
 	{ HAWK_T("TC_IFLUSH"),       { TCIFLUSH } },
+#endif
+#if defined(TCIOFLUSH)
 	{ HAWK_T("TC_IOFLUSH"),      { TCIOFLUSH } },
+#endif
+#if defined(TCOFLUSH)
 	{ HAWK_T("TC_OFLUSH"),       { TCOFLUSH } },
+#endif
 
+#if defined(ECHO)
 	{ HAWK_T("TC_LFLAG_ECHO"),   { ECHO  } },
+#endif
+#if defined(ECHOE)
 	{ HAWK_T("TC_LFLAG_ECHOE"),  { ECHOE  } },
+#endif
+#if defined(ECHOK)
 	{ HAWK_T("TC_LFLAG_ECHOK"),  { ECHOK  } },
+#endif
+#if defined(ECHONL)
 	{ HAWK_T("TC_LFLAG_ECHONL"), { ECHONL  } },
+#endif
+#if defined(ICANON)
 	{ HAWK_T("TC_LFLAG_ICANON"), { ICANON  } },
+#endif
+#if defined(ISIG)
 	{ HAWK_T("TC_LFLAG_ISIG"),   { ISIG  } },
+#endif
+#if defined(NOFLSH)
 	{ HAWK_T("TC_LFLAG_NOFLSH"), { NOFLSH  } },
+#endif
+#if defined(TOSTOP)
 	{ HAWK_T("TC_LFLAG_TOSTOP"), { TOSTOP  } },
+#endif
 
+#if defined(OCRNL)
 	{ HAWK_T("TC_OFLAG_OCRNL"),  { OCRNL  } },
+#endif
+#if defined(ONLCR)
 	{ HAWK_T("TC_OFLAG_ONLCR"),  { ONLCR  } },
+#endif
+#if defined(ONLRET)
 	{ HAWK_T("TC_OFLAG_ONLRET"), { ONLRET  } },
+#endif
+#if defined(ONOCR)
 	{ HAWK_T("TC_OFLAG_ONOCR"),  { ONOCR  } },
+#endif
 	{ HAWK_T("TC_OFLAG_ONOEOT"), { X_ONOEOT  } },
+#if defined(OPOST)
 	{ HAWK_T("TC_OFLAG_OPOST"),  { OPOST  } },
+#endif
 	{ HAWK_T("TC_OFLAG_OXTABS"), { X_OXTABS  } },
 
+#if defined(TCSADRAIN)
 	{ HAWK_T("TC_SADRAIN"),      { TCSADRAIN  } },
+#endif
+#if defined(TCSAFLUSH)
 	{ HAWK_T("TC_SAFLUSH"),      { TCSAFLUSH } },
+#endif
+#if defined(TCSANOW)
 	{ HAWK_T("TC_SANOW"),        { TCSANOW  } },
+#endif
 
+#if defined(WNOHANG)
 	{ HAWK_T("WNOHANG"),         { WNOHANG } }
+#endif
 };
 
 static int query (hawk_mod_t* mod, hawk_t* hawk, const hawk_ooch_t* name, hawk_mod_sym_t* sym)

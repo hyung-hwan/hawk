@@ -26,6 +26,7 @@
 
 #include "main.h"
 #include <hawk.h>
+#include <hawk-fmt.h>
 #include <hawk-glob.h>
 #include <hawk-po.h>
 #include <hawk-xma.h>
@@ -36,6 +37,7 @@
 
 #if defined(_WIN32)
 #	include <windows.h>
+#	include <signal.h>
 #elif defined(__OS2__)
 #	define INCL_ERRORS
 #	include <os2.h>
