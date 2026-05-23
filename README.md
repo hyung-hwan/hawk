@@ -723,11 +723,35 @@ Common built-ins:
 - `NR`, `FNR`, `NF`
 - `FS`, `RS`, `OFS`, `ORS`
 - `FILENAME`, `OFILENAME`
+- `ARGC`, `ARGV`
+- `ENVIRON`
+- `PIPECLOEXEC`
 
 Example:
 
 ```awk
 { print NR, NF, $0 }
+```
+
+Runtime-specific predefined variables:
+
+| Name | Type | Description |
+|------|------|-------------|
+| `ARGC` | int | number of command-line arguments available via `ARGV` |
+| `ARGV` | array | command-line argument vector. `ARGV[0]` is usually the program name |
+| `ENVIRON` | map | process environment as a map. Values imported from the host environment may become `int`, `flt`, or `str` depending on content |
+| `PIPECLOEXEC` | int/bool-like | controls whether file descriptors are opened with `CLOEXEC` when Hawk runs an external command for piping. `0` keeps the default inheritance behavior, `1` enables close-on-exec. This corresponds to `@pragma pipecloexec` |
+
+`ENVIRON` affects child processes started by piping and `sys::system()`. Modifying it changes the environment passed to those children without changing the process-global environment of the embedding application.
+
+Examples:
+
+```awk
+BEGIN {
+	print ARGC, ARGV[0]
+	print ENVIRON["HOME"]
+	PIPECLOEXEC = 1
+}
 ```
 
 ## Built-in Functions

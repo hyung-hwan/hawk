@@ -53,5 +53,9 @@ func main() {
 	a["k"].fn = mul;
 	tap_ensure(a["k"].fn(4, 4), 16, @SCRIPTNAME, @SCRIPTLINE);
 
+	a = @[ @{} ];
+	a[1].sum = add;
+	tap_ensure(a[1].sum(8, 9), 17, @SCRIPTNAME, @SCRIPTLINE);
+
 	tap_end();
 }

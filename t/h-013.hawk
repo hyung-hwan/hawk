@@ -47,6 +47,7 @@ function main()
 
 	run_pipe_test("inherit-default", "BEGIN { print \"hello\" | \"cat >&3\" }", "hello\n");
 	run_pipe_test("cloexec-global", "BEGIN { PIPECLOEXEC = 1; print \"hello\" | \"cat >&3\" }", "");
+	run_pipe_test("inherit-global-off", "BEGIN { PIPECLOEXEC = 0; print \"hello\" | \"cat >&3\" }", "hello\n");
 	run_pipe_test("cloexec-pragma", "@pragma pipecloexec on\nBEGIN { print \"hello\" | \"cat >&3\" }", "");
 
 	tap_end();

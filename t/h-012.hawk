@@ -3,7 +3,7 @@
 @include "tap.inc";
 
 BEGIN {
-	@local v, v2,  m, m2, js;
+	@local v, v2, v3,  m, m2, js;
 
 
 	v = json::parse("{\"a\":1,\"b\":true,\"c\":null,\"d\":[2,3],\"e\":{\"x\":\"y\"}}");
@@ -26,7 +26,6 @@ BEGIN {
 	m["nested"] = hawk::map();
 	m["nested"]["ok"] = 1;
 	m["nested"]["note"] = "hello\n\"world\"";
-
 	js = json::stringify(m);
 	m2 = json::parse(js);
 
@@ -40,6 +39,15 @@ BEGIN {
 	v2 = json::parse("{\"a\":{\"b\":{\"c\":1}}}");
 	tap_ensure(v2.a.b.c, 1, @SCRIPTNAME, @SCRIPTLINE);
 	tap_ensure(v2["a"].b["c"], 1, @SCRIPTNAME, @SCRIPTLINE);
+
+	v3 = json::parse("[false,true,null,\"a\\tb\",-12.5]");
+	tap_ensure(hawk::type(v3), hawk::VAL_ARRAY, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(hawk::type(v3[1]), hawk::VAL_BOOL, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(v3[1], @false, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(v3[2], @true, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(hawk::isnil(v3[3]), 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(v3[4], "a\tb", @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(v3[5], -12.5, @SCRIPTNAME, @SCRIPTLINE);
 
 	tap_end();
 }
