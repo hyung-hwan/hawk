@@ -1,8 +1,13 @@
+@echo off
+
+REM if you are two directories down from the top source directory,
+REM you may run the command like this:
+REM ..\..\t\cmd-tap-driver.cmd  -- ..\..\t\run-hawk-test.cmd -f ..\..\t\h-001.hawk
+REM -------------------------------------------------------------------------------
 REM set HAWK_TEST_COMPILER=Z:\path\to\hawk\bld-mingw64\bin\.libs\hawk.exe
 REM Z:\path\to\hawk\t\cmd-tap-driver.cmd --test-name h-011 --log-file h-011.log --trs-file h-011.trs -- Z:\path\to\hawk\t\t\run-hawk-test.cmd -f ..\..\t\h-011.hawk
 REM
 
-@echo off
 setlocal EnableExtensions DisableDelayedExpansion
 
 set "test_name="

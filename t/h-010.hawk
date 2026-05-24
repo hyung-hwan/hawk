@@ -13,7 +13,7 @@ function on_sig (sig)
 
 function main ()
 {
-	@local r;
+	@local r, u;
 	@local badpid;
 
 	g_seen = 0;
@@ -83,6 +83,19 @@ function main ()
 	badpid = sys::getpid() + 999990; ## hopefully, this doesn't exist during the test run
 	r = sys::kill(badpid, sys::SIGINT);
 	tap_ensure (r, sys::RC_ESYSERR, @SCRIPTNAME, @SCRIPTLINE);
+
+	u = sys::uname();
+	tap_ensure (hawk::type(u), hawk::VAL_MAP, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure (hawk::typename(u.sysname), "str", @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure (hawk::typename(u.nodename), "str", @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure (hawk::typename(u.release), "str", @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure (hawk::typename(u.version), "str", @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure (hawk::typename(u.machine), "str", @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure (length(u.sysname) > 0, 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure (length(u.nodename) > 0, 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure (length(u.release) > 0, 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure (length(u.version) > 0, 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure (length(u.machine) > 0, 1, @SCRIPTNAME, @SCRIPTLINE);
 
 	tap_end ();
 }

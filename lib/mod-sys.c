@@ -47,6 +47,7 @@
 #	endif
 
 #	include "syscall.h"
+#	include <sys/utsname.h>
 #	if defined(HAVE_SYS_EPOLL_H)
 #		include <sys/epoll.h>
 #		if defined(HAVE_EPOLL_CREATE)
@@ -335,6 +336,42 @@ static void set_errmsg_on_sys_list (hawk_rtx_t* rtx, sys_list_t* sys_list, const
 	{
 		hawk_copy_oocstr (sys_list->ctx.errmsg, HAWK_COUNTOF(sys_list->ctx.errmsg), hawk_rtx_geterrmsg(rtx));
 	}
+}
+
+static const hawk_bch_t* get_machine_name_for_build (void)
+{
+#if defined(__x86_64__) || defined(_M_X64)
+	return "x86_64";
+#elif defined(__i386__) || defined(_M_IX86)
+	return "x86";
+#elif defined(__aarch64__) || defined(_M_ARM64)
+	return "aarch64";
+#elif defined(__arm__) || defined(_M_ARM)
+	return "arm";
+#elif defined(__powerpc64__) || defined(__ppc64__)
+	return "ppc64";
+#elif defined(__powerpc__) || defined(__ppc__) || defined(_M_PPC)
+	return "ppc";
+#elif defined(__mips64)
+	return "mips64";
+#elif defined(__mips__)
+	return "mips";
+#elif defined(__riscv) && (__riscv_xlen == 64)
+	return "riscv64";
+#elif defined(__riscv) && (__riscv_xlen == 32)
+	return "riscv32";
+#elif defined(__sparc64__)
+	return "sparc64";
+#elif defined(__sparc__)
+	return "sparc";
+#else
+	return "unknown";
+#endif
+}
+
+static void copy_bcstr_to_oocstr (hawk_rtx_t* rtx, hawk_ooch_t* buf, hawk_oow_t capa, const hawk_bch_t* str)
+{
+	hawk_rtx_fmttooocstr(rtx, buf, capa, HAWK_T("%hs"), str);
 }
 
 /* ------------------------------------------------------------------------ */
@@ -2327,6 +2364,147 @@ static int fnc_gettid (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 	retv = hawk_rtx_makeintval_inline(rtx, rx);
 	if (retv == HAWK_NULL) return -1;
+
+	hawk_rtx_setretval(rtx, retv);
+	return 0;
+}
+
+static int fnc_uname (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+{
+	sys_list_t* sys_list = rtx_to_sys_list(rtx, fi);
+	hawk_val_t* retv;
+	hawk_ooch_t sysname[64], nodename[256], release[64], version[128], machine[64];
+
+#if defined(_WIN32)
+	OSVERSIONINFOEXA vi;
+	SYSTEM_INFO si;
+	DWORD nsz;
+
+	hawk_copy_oocstr(sysname, HAWK_COUNTOF(sysname), HAWK_T("Windows"));
+	hawk_copy_oocstr(nodename, HAWK_COUNTOF(nodename), HAWK_T("unknown"));
+	hawk_copy_oocstr(release, HAWK_COUNTOF(release), HAWK_T("unknown"));
+	hawk_copy_oocstr(version, HAWK_COUNTOF(version), HAWK_T("unknown"));
+	hawk_copy_oocstr(machine, HAWK_COUNTOF(machine), HAWK_T("unknown"));
+
+	nsz = HAWK_COUNTOF(nodename);
+#if defined(HAWK_OOCH_IS_UCH)
+	GetComputerNameW((LPWSTR)nodename, &nsz);
+#else
+	GetComputerNameA((LPSTR)nodename, &nsz);
+#endif
+
+	HAWK_MEMSET(&vi, 0, HAWK_SIZEOF(vi));
+	vi.dwOSVersionInfoSize = HAWK_SIZEOF(vi);
+	if (GetVersionExA((OSVERSIONINFOA*)&vi))
+	{
+		hawk_rtx_fmttooocstr(rtx, release, HAWK_COUNTOF(release), HAWK_T("%u.%u.%u"),
+			(unsigned)vi.dwMajorVersion, (unsigned)vi.dwMinorVersion, (unsigned)vi.dwBuildNumber);
+		if (vi.szCSDVersion[0] != '\0')
+		{
+			hawk_rtx_fmttooocstr(rtx, version, HAWK_COUNTOF(version), HAWK_T("build %u %hs"),
+				(unsigned)vi.dwBuildNumber, vi.szCSDVersion);
+		}
+		else
+		{
+			hawk_rtx_fmttooocstr(rtx, version, HAWK_COUNTOF(version), HAWK_T("build %u"),
+				(unsigned)vi.dwBuildNumber);
+		}
+	}
+
+	GetSystemInfo(&si);
+	switch (si.wProcessorArchitecture)
+	{
+		case PROCESSOR_ARCHITECTURE_AMD64:
+			hawk_copy_oocstr(machine, HAWK_COUNTOF(machine), HAWK_T("x86_64"));
+			break;
+		case PROCESSOR_ARCHITECTURE_INTEL:
+			hawk_copy_oocstr(machine, HAWK_COUNTOF(machine), HAWK_T("x86"));
+			break;
+		case PROCESSOR_ARCHITECTURE_ARM:
+			hawk_copy_oocstr(machine, HAWK_COUNTOF(machine), HAWK_T("arm"));
+			break;
+		case PROCESSOR_ARCHITECTURE_ARM64:
+			hawk_copy_oocstr(machine, HAWK_COUNTOF(machine), HAWK_T("aarch64"));
+			break;
+		case PROCESSOR_ARCHITECTURE_IA64:
+			hawk_copy_oocstr(machine, HAWK_COUNTOF(machine), HAWK_T("ia64"));
+			break;
+		default:
+			copy_bcstr_to_oocstr(rtx, machine, HAWK_COUNTOF(machine), get_machine_name_for_build());
+			break;
+	}
+
+#elif defined(__OS2__)
+	hawk_copy_oocstr(sysname, HAWK_COUNTOF(sysname), HAWK_T("OS/2"));
+	hawk_copy_oocstr(nodename, HAWK_COUNTOF(nodename), HAWK_T("unknown"));
+	hawk_copy_oocstr(release, HAWK_COUNTOF(release), HAWK_T("unknown"));
+	hawk_copy_oocstr(version, HAWK_COUNTOF(version), HAWK_T("unknown"));
+	copy_bcstr_to_oocstr(rtx, machine, HAWK_COUNTOF(machine), get_machine_name_for_build());
+
+#elif defined(__DOS__)
+	hawk_copy_oocstr(sysname, HAWK_COUNTOF(sysname), HAWK_T("DOS"));
+	hawk_copy_oocstr(nodename, HAWK_COUNTOF(nodename), HAWK_T("unknown"));
+	hawk_copy_oocstr(release, HAWK_COUNTOF(release), HAWK_T("unknown"));
+	hawk_copy_oocstr(version, HAWK_COUNTOF(version), HAWK_T("unknown"));
+	copy_bcstr_to_oocstr(rtx, machine, HAWK_COUNTOF(machine), get_machine_name_for_build());
+
+#else
+	struct utsname u;
+
+	if (uname(&u) <= -1)
+	{
+		hawk_copy_oocstr(sysname, HAWK_COUNTOF(sysname), HAWK_T("Linux/Unix"));
+		hawk_copy_oocstr(nodename, HAWK_COUNTOF(nodename), HAWK_T("unknown"));
+		hawk_copy_oocstr(release, HAWK_COUNTOF(release), HAWK_T("unknown"));
+		hawk_copy_oocstr(version, HAWK_COUNTOF(version), HAWK_T("unknown"));
+		copy_bcstr_to_oocstr(rtx, machine, HAWK_COUNTOF(machine), get_machine_name_for_build());
+	}
+	else
+	{
+		copy_bcstr_to_oocstr(rtx, sysname, HAWK_COUNTOF(sysname), (const hawk_bch_t*)u.sysname);
+		copy_bcstr_to_oocstr(rtx, nodename, HAWK_COUNTOF(nodename), (const hawk_bch_t*)u.nodename);
+		copy_bcstr_to_oocstr(rtx, release, HAWK_COUNTOF(release), (const hawk_bch_t*)u.release);
+		copy_bcstr_to_oocstr(rtx, version, HAWK_COUNTOF(version), (const hawk_bch_t*)u.version);
+		copy_bcstr_to_oocstr(rtx, machine, HAWK_COUNTOF(machine), (const hawk_bch_t*)u.machine);
+	}
+#endif
+
+	{
+		hawk_val_map_data_t md[5];
+		HAWK_MEMSET(md, 0, HAWK_SIZEOF(md));
+
+		md[0].key.ptr = HAWK_T("sysname");
+		md[0].key.len = 7;
+		md[0].type = HAWK_VAL_MAP_DATA_OOCSTR;
+		md[0].vptr = sysname;
+
+		md[1].key.ptr = HAWK_T("nodename");
+		md[1].key.len = 8;
+		md[1].type = HAWK_VAL_MAP_DATA_OOCSTR;
+		md[1].vptr = nodename;
+
+		md[2].key.ptr = HAWK_T("release");
+		md[2].key.len = 7;
+		md[2].type = HAWK_VAL_MAP_DATA_OOCSTR;
+		md[2].vptr = release;
+
+		md[3].key.ptr = HAWK_T("version");
+		md[3].key.len = 7;
+		md[3].type = HAWK_VAL_MAP_DATA_OOCSTR;
+		md[3].vptr = version;
+
+		md[4].key.ptr = HAWK_T("machine");
+		md[4].key.len = 7;
+		md[4].type = HAWK_VAL_MAP_DATA_OOCSTR;
+		md[4].vptr = machine;
+
+		retv = hawk_rtx_makemapvalwithdata(rtx, md, HAWK_COUNTOF(md));
+		if (HAWK_UNLIKELY(!retv))
+		{
+			copy_error_to_sys_list(rtx, sys_list);
+			return -1;
+		}
+	}
 
 	hawk_rtx_setretval(rtx, retv);
 	return 0;
@@ -6124,6 +6302,7 @@ static hawk_mod_fnc_tab_t fnctab[] =
 	{ HAWK_T("tcgetattr"),   { { 2, 2, HAWK_T("vr")    }, fnc_tcgetattr,   0  } },
 	{ HAWK_T("tcsetattr"),   { { 3, 3, HAWK_NULL       }, fnc_tcsetattr,   0  } },
 	{ HAWK_T("tcsetraw"),    { { 1, 1, HAWK_NULL       }, fnc_tcsetraw,    0  } },
+	{ HAWK_T("uname"),       { { 0, 0, HAWK_NULL       }, fnc_uname,       0  } },
 	{ HAWK_T("unlink"),      { { 1, 1, HAWK_NULL       }, fnc_unlink,      0  } },
 	{ HAWK_T("unpack"),      { { 2, A_MAX, HAWK_T("vvr")  }, fnc_unpack,   0  } },
 	{ HAWK_T("wait"),        { { 1, 3, HAWK_T("vrv")   }, fnc_wait,        0  } },
