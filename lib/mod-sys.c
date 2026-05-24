@@ -3096,7 +3096,7 @@ static int fnc_system (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		0,
 		str,
 		HAWK_PIO_SHELL | HAWK_PIO_NOCLOEXEC,
-		(rtx->rio.env_mk? pio_env_maker: HAWK_NULL),
+		(rtx->rio.env_mk? pio_env_maker: (hawk_pio_env_mk_t)HAWK_NULL),
 		rtx
 	);
 

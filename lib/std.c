@@ -2133,7 +2133,7 @@ static hawk_ooi_t pio_handler_open (hawk_rtx_t* rtx, hawk_rio_arg_t* riod)
 		0,
 		riod->name,
 		flags | HAWK_PIO_SHELL | HAWK_PIO_TEXT | HAWK_PIO_IGNOREECERR,
-		(rtx->rio.env_mk? pio_env_maker: HAWK_NULL),
+		(rtx->rio.env_mk? pio_env_maker: (hawk_pio_env_mk_t)HAWK_NULL),
 		rtx
 	);
 	if (!handle) return -1;
