@@ -72,10 +72,8 @@ enum hawk_fnmat_flag_t
 #if defined(_WIN32) || defined(__OS2__) || defined(__DOS__)
 	/* i don't support escaping in these systems */
 #	define HAWK_FNMAT_IS_ESC(c) (0)
-#	define HAWK_FNMAT_IS_SEP(c) ((c) == '/' || (c) == '\\')
 #else
 #	define HAWK_FNMAT_IS_ESC(c) ((c) == '\\')
-#	define HAWK_FNMAT_IS_SEP(c) ((c) == '/')
 #endif
 
 #if defined(__cplusplus)

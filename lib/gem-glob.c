@@ -34,6 +34,7 @@
 #include <hawk-ecs.h>
 #include <hawk-dir.h>
 #include <hawk-glob.h>
+#include <hawk-utl.h>
 
 #if defined(_WIN32)
 #	include <windows.h>
@@ -60,7 +61,7 @@ typedef enum segment_type_t segment_type_t;
 
 
 #define IS_ESC(c) HAWK_FNMAT_IS_ESC(c)
-#define IS_SEP(c) HAWK_FNMAT_IS_SEP(c)
+#define IS_SEP(c) HAWK_IS_PATH_SEP(c)
 #define IS_NIL(c) ((c) == '\0')
 #define IS_SEP_OR_NIL(c) (IS_SEP(c) || IS_NIL(c))
 #define IS_DRIVE(c) HAWK_IS_PATH_DRIVE(c)

@@ -3261,14 +3261,14 @@ int hawk_fnmat_uchars_i (const hawk_uch_t* str, hawk_oow_t slen, const hawk_uch_
 			 * a period in the pattern explicitly
 			 */
 			if ((!no_first_period && sp == str) ||
-			    (HAWK_FNMAT_IS_SEP(sp[-1]) && (flags & HAWK_FNMAT_PATHNAME)))
+			    (HAWK_IS_PATH_SEP(sp[-1]) && (flags & HAWK_FNMAT_PATHNAME)))
 			{
 				if (pc != '.') return 0;
 				sp++; pp++;
 				continue;
 			}
 		}
-		else if (HAWK_FNMAT_IS_SEP(sc) && (flags & HAWK_FNMAT_PATHNAME))
+		else if (HAWK_IS_PATH_SEP(sc) && (flags & HAWK_FNMAT_PATHNAME))
 		{
 			while (pc == '*')
 			{
@@ -3277,7 +3277,7 @@ int hawk_fnmat_uchars_i (const hawk_uch_t* str, hawk_oow_t slen, const hawk_uch_
 			}
 
 			/* a path separator must be matched explicitly */
-			if (!HAWK_FNMAT_IS_SEP(pc)) return 0;
+			if (!HAWK_IS_PATH_SEP(pc)) return 0;
 			sp++; pp++;
 			continue;
 		}
@@ -3307,7 +3307,7 @@ int hawk_fnmat_uchars_i (const hawk_uch_t* str, hawk_oow_t slen, const hawk_uch_
 					const hawk_uch_t* s = sp;
 					for (s = sp; s < se; s++)
 					{
-						if (HAWK_FNMAT_IS_SEP(*s)) return 0;
+						if (HAWK_IS_PATH_SEP(*s)) return 0;
 					}
 				}
 				return 1;
@@ -3317,7 +3317,7 @@ int hawk_fnmat_uchars_i (const hawk_uch_t* str, hawk_oow_t slen, const hawk_uch_
 				do
 				{
 					if (hawk_fnmat_uchars_i(sp, se - sp, pp, pe - pp, flags, 1)) return 1;
-					if (HAWK_FNMAT_IS_SEP(*sp) && (flags & HAWK_FNMAT_PATHNAME)) break;
+					if (HAWK_IS_PATH_SEP(*sp) && (flags & HAWK_FNMAT_PATHNAME)) break;
 					sp++;
 				}
 				while (sp < se);
@@ -3492,14 +3492,14 @@ int hawk_fnmat_bchars_i (const hawk_bch_t* str, hawk_oow_t slen, const hawk_bch_
 			 * a period in the pattern explicitly
 			 */
 			if ((!no_first_period && sp == str) ||
-			    (HAWK_FNMAT_IS_SEP(sp[-1]) && (flags & HAWK_FNMAT_PATHNAME)))
+			    (HAWK_IS_PATH_SEP(sp[-1]) && (flags & HAWK_FNMAT_PATHNAME)))
 			{
 				if (pc != '.') return 0;
 				sp++; pp++;
 				continue;
 			}
 		}
-		else if (HAWK_FNMAT_IS_SEP(sc) && (flags & HAWK_FNMAT_PATHNAME))
+		else if (HAWK_IS_PATH_SEP(sc) && (flags & HAWK_FNMAT_PATHNAME))
 		{
 			while (pc == '*')
 			{
@@ -3508,7 +3508,7 @@ int hawk_fnmat_bchars_i (const hawk_bch_t* str, hawk_oow_t slen, const hawk_bch_
 			}
 
 			/* a path separator must be matched explicitly */
-			if (!HAWK_FNMAT_IS_SEP(pc)) return 0;
+			if (!HAWK_IS_PATH_SEP(pc)) return 0;
 			sp++; pp++;
 			continue;
 		}
@@ -3538,7 +3538,7 @@ int hawk_fnmat_bchars_i (const hawk_bch_t* str, hawk_oow_t slen, const hawk_bch_
 					const hawk_bch_t* s = sp;
 					for (s = sp; s < se; s++)
 					{
-						if (HAWK_FNMAT_IS_SEP(*s)) return 0;
+						if (HAWK_IS_PATH_SEP(*s)) return 0;
 					}
 				}
 				return 1;
@@ -3548,7 +3548,7 @@ int hawk_fnmat_bchars_i (const hawk_bch_t* str, hawk_oow_t slen, const hawk_bch_
 				do
 				{
 					if (hawk_fnmat_bchars_i(sp, se - sp, pp, pe - pp, flags, 1)) return 1;
-					if (HAWK_FNMAT_IS_SEP(*sp) && (flags & HAWK_FNMAT_PATHNAME)) break;
+					if (HAWK_IS_PATH_SEP(*sp) && (flags & HAWK_FNMAT_PATHNAME)) break;
 					sp++;
 				}
 				while (sp < se);

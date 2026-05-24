@@ -1621,14 +1621,14 @@ int _fn_name_ (const _char_type_* str, hawk_oow_t slen, const _char_type_* ptn, 
 			 * a period in the pattern explicitly
 			 */
 			if ((!no_first_period && sp == str) ||
-			    (HAWK_FNMAT_IS_SEP(sp[-1]) && (flags & HAWK_FNMAT_PATHNAME)))
+			    (HAWK_IS_PATH_SEP(sp[-1]) && (flags & HAWK_FNMAT_PATHNAME)))
 			{
 				if (pc != '.') return 0;
 				sp++; pp++;
 				continue;
 			}
 		}
-		else if (HAWK_FNMAT_IS_SEP(sc) && (flags & HAWK_FNMAT_PATHNAME))
+		else if (HAWK_IS_PATH_SEP(sc) && (flags & HAWK_FNMAT_PATHNAME))
 		{
 			while (pc == '*')
 			{
@@ -1637,7 +1637,7 @@ int _fn_name_ (const _char_type_* str, hawk_oow_t slen, const _char_type_* ptn, 
 			}
 
 			/* a path separator must be matched explicitly */
-			if (!HAWK_FNMAT_IS_SEP(pc)) return 0;
+			if (!HAWK_IS_PATH_SEP(pc)) return 0;
 			sp++; pp++;
 			continue;
 		}
@@ -1667,7 +1667,7 @@ int _fn_name_ (const _char_type_* str, hawk_oow_t slen, const _char_type_* ptn, 
 					const _char_type_* s = sp;
 					for (s = sp; s < se; s++)
 					{
-						if (HAWK_FNMAT_IS_SEP(*s)) return 0;
+						if (HAWK_IS_PATH_SEP(*s)) return 0;
 					}
 				}
 				return 1;
@@ -1677,7 +1677,7 @@ int _fn_name_ (const _char_type_* str, hawk_oow_t slen, const _char_type_* ptn, 
 				do
 				{
 					if (_fn_name_()(sp, se - sp, pp, pe - pp, flags, 1)) return 1;
-					if (HAWK_FNMAT_IS_SEP(*sp) && (flags & HAWK_FNMAT_PATHNAME)) break;
+					if (HAWK_IS_PATH_SEP(*sp) && (flags & HAWK_FNMAT_PATHNAME)) break;
 					sp++;
 				}
 				while (sp < se);
