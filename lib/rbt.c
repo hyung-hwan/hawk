@@ -53,7 +53,7 @@
 #define rotate_left(rbt,pivot) rotate(rbt,pivot,1);
 #define rotate_right(rbt,pivot) rotate(rbt,pivot,0);
 
-HAWK_INLINE hawk_rbt_pair_t* hawk_rbt_allocpair (
+static HAWK_INLINE_ALWAYS hawk_rbt_pair_t* alloc_pair (
 	hawk_rbt_t* rbt, void* kptr, hawk_oow_t klen, void* vptr, hawk_oow_t vlen)
 {
 	hawk_rbt_pair_t* pair;
@@ -120,13 +120,23 @@ HAWK_INLINE hawk_rbt_pair_t* hawk_rbt_allocpair (
 	return pair;
 }
 
-HAWK_INLINE void hawk_rbt_freepair (hawk_rbt_t* rbt, hawk_rbt_pair_t* pair)
+static HAWK_INLINE_ALWAYS void free_pair (hawk_rbt_t* rbt, hawk_rbt_pair_t* pair)
 {
 	if (rbt->style->freeer[HAWK_RBT_KEY])
 		rbt->style->freeer[HAWK_RBT_KEY](rbt, KPTR(pair), KLEN(pair));
 	if (rbt->style->freeer[HAWK_RBT_VAL])
 		rbt->style->freeer[HAWK_RBT_VAL](rbt, VPTR(pair), VLEN(pair));
 	hawk_gem_freemem(rbt->gem, pair);
+}
+
+hawk_rbt_pair_t* hawk_rbt_allocpair (hawk_rbt_t* rbt, void* kptr, hawk_oow_t klen, void* vptr, hawk_oow_t vlen)
+{
+	return alloc_pair(rbt, kptr, klen, vptr, vlen);
+}
+
+void hawk_rbt_freepair (hawk_rbt_t* rbt, hawk_rbt_pair_t* pair)
+{
+	return free_pair(rbt, pair);
 }
 
 static hawk_rbt_style_t style[] =
@@ -450,7 +460,7 @@ static hawk_rbt_pair_t* change_pair_val (hawk_rbt_t* rbt, hawk_rbt_pair_t* pair,
 			else
 			{
 				/* need to reconstruct the pair */
-				hawk_rbt_pair_t* p = hawk_rbt_allocpair(rbt, KPTR(pair), KLEN(pair), vptr, vlen);
+				hawk_rbt_pair_t* p = alloc_pair(rbt, KPTR(pair), KLEN(pair), vptr, vlen);
 				if (HAWK_UNLIKELY(!p)) return HAWK_NULL;
 
 				p->color = pair->color;
@@ -475,7 +485,7 @@ static hawk_rbt_pair_t* change_pair_val (hawk_rbt_t* rbt, hawk_rbt_pair_t* pair,
 
 				if (pair == rbt->root) rbt->root = p;
 
-				hawk_rbt_freepair(rbt, pair);
+				free_pair(rbt, pair);
 				return p;
 			}
 		}
@@ -539,7 +549,7 @@ static hawk_rbt_pair_t* insert (hawk_rbt_t* rbt, void* kptr, hawk_oow_t klen, vo
 		return HAWK_NULL;
 	}
 
-	x_new = hawk_rbt_allocpair(rbt, kptr, klen, vptr, vlen);
+	x_new = alloc_pair(rbt, kptr, klen, vptr, vlen);
 	if (HAWK_UNLIKELY(!x_new)) return HAWK_NULL;
 
 	if (x_par == HAWK_NULL)
@@ -819,7 +829,7 @@ static void delete_pair (hawk_rbt_t* rbt, hawk_rbt_pair_t* pair)
 		if (y->color == HAWK_RBT_BLACK && !IS_NIL(rbt,x))
 			adjust_for_delete(rbt, x, parent);
 
-		hawk_rbt_freepair(rbt, y);
+		free_pair(rbt, y);
 	}
 	else
 	{
@@ -844,7 +854,7 @@ static void delete_pair (hawk_rbt_t* rbt, hawk_rbt_pair_t* pair)
 		if (pair->left->parent == pair) pair->left->parent = y;
 		if (pair->right->parent == pair) pair->right->parent = y;
 
-		hawk_rbt_freepair(rbt, pair);
+		free_pair(rbt, pair);
 	}
 
 	rbt->size--;

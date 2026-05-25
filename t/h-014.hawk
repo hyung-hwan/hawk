@@ -139,6 +139,18 @@ function main()
 	tap_ensure(!!@[1], @true, @SCRIPTNAME, @SCRIPTLINE);
 	tap_ensure(!dummy, @false, @SCRIPTNAME, @SCRIPTLINE);
 	tap_ensure(!!dummy, @true, @SCRIPTNAME, @SCRIPTLINE);
+	tmp = 0;
+	tap_ensure(!tmp && 0, 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(!tmp && 1, 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(!tmp || 0, 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(!tmp || 1, 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(1 && !tmp, 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(0 || !tmp, 1, @SCRIPTNAME, @SCRIPTLINE);
+	tmp = 1;
+	tap_ensure(!tmp && 0, 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(!tmp && 1, 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(!tmp || 0, 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(!tmp || 1, 1, @SCRIPTNAME, @SCRIPTLINE);
 
 	tap_ensure(sprintf("%d", @true), "1", @SCRIPTNAME, @SCRIPTLINE);
 	tap_ensure(sprintf("%d", @false), "0", @SCRIPTNAME, @SCRIPTLINE);

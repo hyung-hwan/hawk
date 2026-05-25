@@ -510,7 +510,7 @@ HAWK_EXPORT hawk_htb_pair_t* hawk_htb_update (
  *   if (pair == HAWK_NULL)
  *   {
  *     // no existing key for the key
- *     return hawk_htb_allocpair (htb, kptr, klen, v->ptr, v->len);
+ *     return hawk_htb_allocpair(htb, kptr, klen, v->ptr, v->len);
  *   }
  *   else
  *   {
@@ -523,7 +523,7 @@ HAWK_EXPORT hawk_htb_pair_t* hawk_htb_update (
  *
  *     // allocate a new pair, but without filling the actual value.
  *     // note vptr is given HAWK_NULL for that purpose
- *     new_pair = hawk_htb_allocpair (
+ *     new_pair = hawk_htb_allocpair(
  *       htb, kptr, klen, HAWK_NULL, HAWK_HTB_VLEN(pair) + 1 + v->len);
  *     if (new_pair == HAWK_NULL) return HAWK_NULL;
  *

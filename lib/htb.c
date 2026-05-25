@@ -46,7 +46,7 @@
 #define KTOB(htb,len) ((len) * (htb)->scale[HAWK_HTB_KEY])
 #define VTOB(htb,len) ((len) * (htb)->scale[HAWK_HTB_VAL])
 
-HAWK_INLINE pair_t* hawk_htb_allocpair (hawk_htb_t* htb, void* kptr, hawk_oow_t klen, void* vptr, hawk_oow_t vlen)
+static HAWK_INLINE_ALWAYS pair_t* alloc_pair (hawk_htb_t* htb, void* kptr, hawk_oow_t klen, void* vptr, hawk_oow_t vlen)
 {
 	pair_t* n;
 	copier_t kcop, vcop;
@@ -115,7 +115,7 @@ HAWK_INLINE pair_t* hawk_htb_allocpair (hawk_htb_t* htb, void* kptr, hawk_oow_t 
 	return n;
 }
 
-HAWK_INLINE void hawk_htb_freepair (hawk_htb_t* htb, pair_t* pair)
+static HAWK_INLINE_ALWAYS void free_pair (hawk_htb_t* htb, pair_t* pair)
 {
 	if (htb->style->freeer[HAWK_HTB_KEY] != HAWK_NULL)
 		htb->style->freeer[HAWK_HTB_KEY](htb, KPTR(pair), KLEN(pair));
@@ -124,7 +124,17 @@ HAWK_INLINE void hawk_htb_freepair (hawk_htb_t* htb, pair_t* pair)
 	hawk_gem_freemem(htb->gem, pair);
 }
 
-static HAWK_INLINE pair_t* change_pair_val (hawk_htb_t* htb, pair_t* pair, void* vptr, hawk_oow_t vlen)
+pair_t* hawk_htb_allocpair (hawk_htb_t* htb, void* kptr, hawk_oow_t klen, void* vptr, hawk_oow_t vlen)
+{
+	return alloc_pair(htb, kptr, klen, vptr, vlen);
+}
+
+void hawk_htb_freepair (hawk_htb_t* htb, pair_t* pair)
+{
+	free_pair(htb, pair);
+}
+
+static HAWK_INLINE_ALWAYS pair_t* change_pair_val (hawk_htb_t* htb, pair_t* pair, void* vptr, hawk_oow_t vlen)
 {
 	if (VPTR(pair) == vptr && VLEN(pair) == vlen)
 	{
@@ -157,9 +167,9 @@ static HAWK_INLINE pair_t* change_pair_val (hawk_htb_t* htb, pair_t* pair, void*
 			else
 			{
 				/* need to reconstruct the pair */
-				pair_t* p = hawk_htb_allocpair(htb, KPTR(pair), KLEN(pair), vptr, vlen);
+				pair_t* p = alloc_pair(htb, KPTR(pair), KLEN(pair), vptr, vlen);
 				if (HAWK_UNLIKELY(!p)) return HAWK_NULL;
-				hawk_htb_freepair(htb, pair);
+				free_pair(htb, pair);
 				return p;
 			}
 		}
@@ -436,7 +446,7 @@ static HAWK_INLINE int reorganize (hawk_htb_t* htb)
 #define ENSERT 3
 #define INSERT 4
 
-static HAWK_INLINE pair_t* insert (hawk_htb_t* htb, void* kptr, hawk_oow_t klen, void* vptr, hawk_oow_t vlen, int opt)
+static HAWK_INLINE_ALWAYS pair_t* insert (hawk_htb_t* htb, void* kptr, hawk_oow_t klen, void* vptr, hawk_oow_t vlen, int opt)
 {
 	pair_t* pair, * p, * prev, * next;
 	hawk_oow_t hc;
@@ -507,7 +517,7 @@ static HAWK_INLINE pair_t* insert (hawk_htb_t* htb, void* kptr, hawk_oow_t klen,
 
 	HAWK_ASSERT(pair == HAWK_NULL);
 
-	pair = hawk_htb_allocpair(htb, kptr, klen, vptr, vlen);
+	pair = alloc_pair(htb, kptr, klen, vptr, vlen);
 	if (HAWK_UNLIKELY(!pair)) return HAWK_NULL; /* error */
 
 	NEXT(pair) = htb->bucket[hc];
@@ -617,7 +627,7 @@ int hawk_htb_delete (hawk_htb_t* htb, const void* kptr, hawk_oow_t klen)
 				htb->bucket[hc] = NEXT(pair);
 			else NEXT(prev) = NEXT(pair);
 
-			hawk_htb_freepair(htb, pair);
+			free_pair(htb, pair);
 			htb->size--;
 			htb->rev++;
 
@@ -645,7 +655,7 @@ void hawk_htb_clear (hawk_htb_t* htb)
 		while (pair)
 		{
 			next = NEXT(pair);
-			hawk_htb_freepair(htb, pair);
+			free_pair(htb, pair);
 			htb->size--;
 			pair = next;
 		}
