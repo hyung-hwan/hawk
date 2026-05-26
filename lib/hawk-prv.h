@@ -437,6 +437,17 @@ struct hawk_var_xinfo_t
 	hawk_loc_t loc;
 };
 
+struct hawk_exec_stack_t
+{
+	int state;
+	hawk_nde_t* nde;
+	hawk_nde_t* ptr; /* next statement in block (EXEC_STATE_BLK_STEP) */
+	hawk_oow_t iv;   /* current forin index (EXEC_STATE_FORIN_*) */
+	hawk_oow_t base; /* forin snapshot base (EXEC_STATE_FORIN_*) */
+};
+
+typedef struct hawk_exec_stack_t hawk_exec_stack_t;
+
 struct hawk_rtx_t
 {
 	HAWK_RTX_HDR;
@@ -450,6 +461,11 @@ struct hawk_rtx_t
 	hawk_oow_t stack_top;
 	hawk_oow_t stack_base;
 	hawk_oow_t stack_limit;
+
+	/* heap-based stack for iterative statement execution */
+	hawk_exec_stack_t* exec_stack;
+	hawk_oow_t exec_stack_size;
+	hawk_oow_t exec_stack_limit;
 
 	int exit_level;
 	int init_called;
