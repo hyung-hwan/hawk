@@ -136,7 +136,7 @@ hawk_rbt_pair_t* hawk_rbt_allocpair (hawk_rbt_t* rbt, void* kptr, hawk_oow_t kle
 
 void hawk_rbt_freepair (hawk_rbt_t* rbt, hawk_rbt_pair_t* pair)
 {
-	return free_pair(rbt, pair);
+	free_pair(rbt, pair);
 }
 
 static hawk_rbt_style_t style[] =
