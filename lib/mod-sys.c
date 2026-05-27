@@ -22,6 +22,15 @@
     THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <hawk-cfg.h>
+#if defined(HAVE_ACCEPT4)
+	/* the runtime library has accept4. but accept4 is usually visiable
+	 * if _GNU_SOURCE is defined */
+#	if !defined(_GNU_SOURCE)
+#		define _GNU_SOURCE
+#	endif
+#endif
+
 #include "mod-sys.h"
 #include "hawk-prv.h"
 #include <hawk-pio.h>
@@ -42,10 +51,6 @@
 #elif defined(__DOS__)
 #	include <dos.h>
 #else
-#	if !defined(_GNU_SOURCE)
-#		define _GNU_SOURCE
-#	endif
-
 #	include "syscall.h"
 #	include <sys/utsname.h>
 #	if defined(HAVE_SYS_EPOLL_H)

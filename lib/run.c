@@ -33,6 +33,38 @@
 #define DEF_BUF_CAPA (256)
 #define HAWK_RTX_STACK_INCREMENT (512)
 
+#if defined(HAVE_UCONTEXT_H)
+#define HAWK_CO_STACK_SIZE (65536UL)
+#define HAWK_CO_POOL_MAX   16
+
+static int run_block (hawk_rtx_t* rtx, hawk_nde_blk_t* nde); /* forward */
+
+static char* hawk_co_get_stack (hawk_rtx_t* rtx)
+{
+	if (rtx->co.pool_size > 0)
+		return rtx->co.pool[--rtx->co.pool_size];
+	return (char*)hawk_rtx_allocmem(rtx, HAWK_CO_STACK_SIZE);
+}
+
+static void hawk_co_put_stack (hawk_rtx_t* rtx, char* stack)
+{
+	if (rtx->co.pool_size < HAWK_CO_POOL_MAX)
+		rtx->co.pool[rtx->co.pool_size++] = stack;
+	else
+		hawk_rtx_freemem(rtx, stack);
+}
+
+/* makecontext only accepts int arguments, so we split the rtx pointer into
+ * two ints and reassemble inside the trampoline. each rtx carries its own
+ * pending_body/pending_result so no global state is needed. */
+static void hawk_co_trampoline (int hi, int lo)
+{
+	hawk_rtx_t* rtx = (hawk_rtx_t*)((hawk_uintptr_t)(unsigned int)hi << 32 | (unsigned int)lo);
+	*rtx->co.pending_result = run_block(rtx, rtx->co.pending_body);
+	/* uc_link causes automatic return to caller context when we return */
+}
+#endif /* HAVE_UCONTEXT_H */
+
 enum exit_level_t
 {
 	EXIT_NONE,
@@ -1614,6 +1646,11 @@ static void fini_rtx (hawk_rtx_t* rtx, int fini_globals)
 		rtx->exec_stack_size = 0;
 		rtx->exec_stack_limit = 0;
 	}
+
+#if defined(HAVE_UCONTEXT_H)
+	while (rtx->co.pool_size > 0)
+		hawk_rtx_freemem(rtx, rtx->co.pool[--rtx->co.pool_size]);
+#endif
 
 	/* destroy named variables */
 	hawk_htb_close(rtx->named);
@@ -8345,9 +8382,43 @@ hawk_val_t* hawk_rtx_evalcall (
 
 	if (fun)
 	{
-		/* normal hawk function */
+		/* normal hawk function — run on a heap-allocated C stack to avoid blowing the process stack */
 		HAWK_ASSERT(fun->body->type == HAWK_NDE_BLK);
+#if defined(HAVE_UCONTEXT_H)
+		{
+			char* costack;
+			ucontext_t caller_ctx, coctx;
+
+			costack = hawk_co_get_stack(rtx);
+			if (HAWK_UNLIKELY(!costack))
+			{
+				n = -1;
+			}
+			else
+			{
+				getcontext(&coctx);
+				coctx.uc_stack.ss_sp   = costack;
+				coctx.uc_stack.ss_size = HAWK_CO_STACK_SIZE;
+				coctx.uc_link          = &caller_ctx;
+
+				rtx->co.pending_body   = (hawk_nde_blk_t*)fun->body;
+				rtx->co.pending_result = &n;
+
+				{
+					/* split rtx pointer into two ints for makecontext */
+					hawk_uintptr_t ptr = (hawk_uintptr_t)rtx;
+					int hi = (int)(ptr >> 32);
+					int lo = (int)(ptr & 0xFFFFFFFFU);
+					makecontext(&coctx, (void(*)(void))hawk_co_trampoline, 2, hi, lo);
+				}
+				swapcontext(&caller_ctx, &coctx);
+
+				hawk_co_put_stack(rtx, costack);
+			}
+		}
+#else
 		n = run_block(rtx, (hawk_nde_blk_t*)fun->body);
+#endif
 	}
 	else
 	{

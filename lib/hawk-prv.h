@@ -35,6 +35,10 @@
 #include <hawk-rbt.h>
 #include <hawk-utl.h>
 
+#if defined(HAVE_UCONTEXT_H)
+#  include <ucontext.h>
+#endif
+
 typedef struct hawk_chain_t hawk_chain_t;
 typedef struct hawk_tree_t hawk_tree_t;
 
@@ -466,6 +470,17 @@ struct hawk_rtx_t
 	hawk_exec_stack_t* exec_stack;
 	hawk_oow_t exec_stack_size;
 	hawk_oow_t exec_stack_limit;
+
+#if defined(HAVE_UCONTEXT_H)
+	/* pool of reusable C stacks for coroutine-based function calls */
+	struct {
+		char* pool[16];
+		hawk_oow_t pool_size;
+		/* arguments for the next coroutine invocation */
+		hawk_nde_blk_t* pending_body;
+		int*            pending_result;
+	} co;
+#endif
 
 	int exit_level;
 	int init_called;
