@@ -35,10 +35,6 @@
 #include <hawk-rbt.h>
 #include <hawk-utl.h>
 
-#if defined(HAVE_UCONTEXT_H)
-#  include <ucontext.h>
-#endif
-
 typedef struct hawk_chain_t hawk_chain_t;
 typedef struct hawk_tree_t hawk_tree_t;
 
@@ -72,6 +68,12 @@ typedef struct hawk_tree_t hawk_tree_t;
     defined(HAWK_ATOMIC_STORE)
 #define HAWK_ENABLE_ATOMIC_SIG
 #endif
+
+#if defined(HAVE_UCONTEXT_H)
+#include <ucontext.h>
+#define HAWK_ENABLE_UCONTEXT
+#endif
+
 
 /* ------------------------------------------------------------------------ */
 
@@ -473,12 +475,17 @@ struct hawk_rtx_t
 
 #if defined(HAVE_UCONTEXT_H)
 	/* pool of reusable C stacks for coroutine-based function calls */
-	struct {
+	struct
+	{
 		char* pool[16];
 		hawk_oow_t pool_size;
 		/* arguments for the next coroutine invocation */
 		hawk_nde_blk_t* pending_body;
 		int*            pending_result;
+		/* depth at which the current C stack segment started */
+		hawk_oow_t      stack_base;
+		/* nonzero when executing on a heap-allocated coroutine stack */
+		int             in_coroutine;
 	} co;
 #endif
 
