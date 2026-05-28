@@ -1,0 +1,574 @@
+## xstack expression evaluator tests
+## Covers every eframe state in eval_expression0_xstack:
+##   HAWK_EF_BIN_LEFT/RIGHT  - binary operators
+##   HAWK_EF_LAND_LEFT/RIGHT - logical && with short-circuit
+##   HAWK_EF_LOR_LEFT/RIGHT  - logical || with short-circuit
+##   HAWK_EF_UNARY           - unary operators
+##   HAWK_EF_CND             - ternary conditional
+##   HAWK_EF_ASS_RHS         - simple assignment
+##   HAWK_EF_ASS_LHS         - compound assignment (read-modify-write)
+
+@pragma entry main
+@pragma implicit off
+
+@include "tap.inc";
+
+## -----------------------------------------------------------------------
+## binary arithmetic operators
+## -----------------------------------------------------------------------
+function test_binary_arith(    x)
+{
+	tap_ensure(2 + 3,      5,    @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(10 - 4,     6,    @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(3 * 7,      21,   @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(15 / 4,     3.75, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(17 % 5,     2,    @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(2 ^ 10,     1024, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(17 \ 5,     3,    @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(-17 \ 5,    -3,   @SCRIPTNAME, @SCRIPTLINE);
+
+	## string concatenation (binary)
+	tap_ensure("hello" " " "world", "hello world", @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure("a" "b" "c",         "abc",          @SCRIPTNAME, @SCRIPTLINE);
+}
+
+## -----------------------------------------------------------------------
+## binary comparison operators
+## -----------------------------------------------------------------------
+function test_binary_cmp()
+{
+	tap_ensure((3 <  5), 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure((5 <  3), 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure((3 <= 3), 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure((4 <= 3), 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure((5 >  3), 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure((3 >  5), 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure((3 >= 3), 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure((2 >= 3), 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure((3 == 3), 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure((3 == 4), 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure((3 != 4), 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure((3 != 3), 0, @SCRIPTNAME, @SCRIPTLINE);
+}
+
+## -----------------------------------------------------------------------
+## bitwise binary operators
+## -----------------------------------------------------------------------
+function test_binary_bitwise()
+{
+	tap_ensure((0xF0 & 0xFF),  240, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure((0x0F & 0xFF),   15, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure((0xF0 | 0x0F),  255, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure((0xFF ^^ 0x0F), 240, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure((1    << 4),     16, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure((256  >> 3),     32, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure((0    << 10),     0, @SCRIPTNAME, @SCRIPTLINE);
+}
+
+## -----------------------------------------------------------------------
+## deeply chained binary expressions (stress eframe stack growth)
+## The eframe stack starts at 0 and grows 64 at a time; these chains
+## push many BIN_LEFT frames before resolving any BIN_RIGHT frames.
+## -----------------------------------------------------------------------
+function test_binary_chain(    x)
+{
+	## left-associative chain (parser produces left-leaning tree)
+	x = 1 + 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9 + 10;
+	tap_ensure(x, 55, @SCRIPTNAME, @SCRIPTLINE);
+
+	x = 1 * 2 * 3 * 4 * 5;
+	tap_ensure(x, 120, @SCRIPTNAME, @SCRIPTLINE);
+
+	## deeply parenthesised right-associative nesting
+	x = (1 + (2 + (3 + (4 + (5 + (6 + (7 + (8 + (9 + 10)))))))));
+	tap_ensure(x, 55, @SCRIPTNAME, @SCRIPTLINE);
+
+	## mix of operators
+	x = 2 * 3 + 4 * 5 - 6 / 2;
+	tap_ensure(x, 23, @SCRIPTNAME, @SCRIPTLINE);
+
+	## 20-term sum (forces eframe realloc path)
+	x = 1+2+3+4+5+6+7+8+9+10+11+12+13+14+15+16+17+18+19+20;
+	tap_ensure(x, 210, @SCRIPTNAME, @SCRIPTLINE);
+}
+
+## -----------------------------------------------------------------------
+## logical AND -- HAWK_EF_LAND_LEFT / HAWK_EF_LAND_RIGHT
+## -----------------------------------------------------------------------
+function test_logical_and(    r, se)
+{
+	## short-circuit: right never evaluated when left is false
+	se = 0;
+	r = 0 && (se = 1);
+	tap_ensure(r,  0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(se, 0, @SCRIPTNAME, @SCRIPTLINE);   ## right NOT evaluated
+
+	## both sides evaluated when left is true
+	se = 0;
+	r = 1 && (se = 99);
+	tap_ensure(r,  1,  @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(se, 99, @SCRIPTNAME, @SCRIPTLINE);  ## right WAS evaluated
+
+	## false right side
+	r = 1 && 0;
+	tap_ensure(r, 0, @SCRIPTNAME, @SCRIPTLINE);
+
+	## chained AND
+	r = 1 && 1 && 1;
+	tap_ensure(r, 1, @SCRIPTNAME, @SCRIPTLINE);
+
+	r = 1 && 1 && 0;
+	tap_ensure(r, 0, @SCRIPTNAME, @SCRIPTLINE);
+
+	## AND with complex subexpressions
+	r = (2 + 3 == 5) && (10 / 2 == 5);
+	tap_ensure(r, 1, @SCRIPTNAME, @SCRIPTLINE);
+
+	r = (2 + 3 == 5) && (10 / 2 == 4);
+	tap_ensure(r, 0, @SCRIPTNAME, @SCRIPTLINE);
+}
+
+## -----------------------------------------------------------------------
+## logical OR -- HAWK_EF_LOR_LEFT / HAWK_EF_LOR_RIGHT
+## -----------------------------------------------------------------------
+function test_logical_or(    r, se)
+{
+	## short-circuit: right never evaluated when left is true
+	se = 0;
+	r = 1 || (se = 1);
+	tap_ensure(r,  1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(se, 0, @SCRIPTNAME, @SCRIPTLINE);   ## right NOT evaluated
+
+	## both sides evaluated when left is false
+	se = 0;
+	r = 0 || (se = 77);
+	tap_ensure(r,  1,  @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(se, 77, @SCRIPTNAME, @SCRIPTLINE);  ## right WAS evaluated
+
+	## false || false
+	r = 0 || 0;
+	tap_ensure(r, 0, @SCRIPTNAME, @SCRIPTLINE);
+
+	## chained OR
+	r = 0 || 0 || 1;
+	tap_ensure(r, 1, @SCRIPTNAME, @SCRIPTLINE);
+
+	r = 0 || 0 || 0;
+	tap_ensure(r, 0, @SCRIPTNAME, @SCRIPTLINE);
+
+	## OR with complex subexpressions
+	r = (1 == 2) || (3 * 3 == 9);
+	tap_ensure(r, 1, @SCRIPTNAME, @SCRIPTLINE);
+
+	r = (1 == 2) || (2 + 2 == 5);
+	tap_ensure(r, 0, @SCRIPTNAME, @SCRIPTLINE);
+}
+
+## -----------------------------------------------------------------------
+## mixed AND/OR with nested short-circuit
+## -----------------------------------------------------------------------
+function test_logical_mixed(    r, se)
+{
+	r = (1 && 1) || (0 && 1);
+	tap_ensure(r, 1, @SCRIPTNAME, @SCRIPTLINE);
+
+	r = (0 || 0) && (1 || 0);
+	tap_ensure(r, 0, @SCRIPTNAME, @SCRIPTLINE);
+
+	r = (0 || 1) && (1 && 1) && (0 || 1);
+	tap_ensure(r, 1, @SCRIPTNAME, @SCRIPTLINE);
+
+	## right side of AND is never reached because left is short-circuit false
+	se = 0;
+	r = (0 && 1) || (se = 5);
+	tap_ensure(r,  1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(se, 5, @SCRIPTNAME, @SCRIPTLINE);  ## OR's right WAS evaluated
+
+	## right side of OR never reached
+	se = 0;
+	r = (1 || (se = 3)) && 1;
+	tap_ensure(r,  1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(se, 0, @SCRIPTNAME, @SCRIPTLINE);  ## OR's right NOT evaluated
+}
+
+## -----------------------------------------------------------------------
+## unary operators -- HAWK_EF_UNARY
+## -----------------------------------------------------------------------
+function test_unary(    x)
+{
+	x = 5;
+	tap_ensure(-x,    -5, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(+x,     5, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(!x,     0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(!0,     1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(~0,    -1, @SCRIPTNAME, @SCRIPTLINE);  ## bitwise NOT
+
+	## nested unary operators (each adds a UNARY frame)
+	tap_ensure(-(-x),   5, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(!!x,     1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(!!!x,    0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(~(~0),   0, @SCRIPTNAME, @SCRIPTLINE);
+
+	## unary applied to binary subexpression
+	tap_ensure(-(2 + 3),   -5,  @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(!(3 < 2),    1,  @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(-(2 * 3),   -6,  @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(~(0xF0 & 0xFF), -241, @SCRIPTNAME, @SCRIPTLINE);
+}
+
+## -----------------------------------------------------------------------
+## conditional (ternary) -- HAWK_EF_CND
+## -----------------------------------------------------------------------
+function test_conditional(    a, b, x)
+{
+	a = 10; b = 20;
+
+	## basic true/false branch selection
+	tap_ensure((a < b ? "lt" : "ge"), "lt", @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure((a > b ? "gt" : "le"), "le", @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure((a == 10 ? a : b),      10,  @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure((a == 99 ? a : b),      20,  @SCRIPTNAME, @SCRIPTLINE);
+
+	## nested ternary (each level adds a CND frame)
+	x = (a < b) ? (b < 30 ? "lt30" : "ge30") : "no";
+	tap_ensure(x, "lt30", @SCRIPTNAME, @SCRIPTLINE);
+
+	x = (a > b) ? "no" : (b > 15 ? "gt15" : "le15");
+	tap_ensure(x, "gt15", @SCRIPTNAME, @SCRIPTLINE);
+
+	## ternary with binary expressions in all three positions
+	x = (a + b == 30) ? (a * b) : (a - b);
+	tap_ensure(x, 200, @SCRIPTNAME, @SCRIPTLINE);
+
+	x = (a + b == 99) ? (a * b) : (a - b);
+	tap_ensure(x, -10, @SCRIPTNAME, @SCRIPTLINE);
+
+	## ternary result used in larger expression
+	tap_ensure((a < b ? a : b) + (a > b ? a : b), 30, @SCRIPTNAME, @SCRIPTLINE);
+
+	## ternary inside AND/OR
+	tap_ensure((1 && (a < b ? 1 : 0)), 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure((0 || (a > b ? 1 : 0)), 0, @SCRIPTNAME, @SCRIPTLINE);
+}
+
+## -----------------------------------------------------------------------
+## simple assignment -- HAWK_EF_ASS_RHS (opcode == NONE path)
+## -----------------------------------------------------------------------
+function test_simple_assign(    x, y, z)
+{
+	x = 42;
+	tap_ensure(x, 42, @SCRIPTNAME, @SCRIPTLINE);
+
+	## assignment with complex RHS (exercises BIN/UNARY/CND inside ASS_RHS)
+	x = 3 * 4 + 5;
+	tap_ensure(x, 17, @SCRIPTNAME, @SCRIPTLINE);
+
+	x = (2 < 3 ? 10 : 20) + 5;
+	tap_ensure(x, 15, @SCRIPTNAME, @SCRIPTLINE);
+
+	x = !(1 == 2);
+	tap_ensure(x, 1, @SCRIPTNAME, @SCRIPTLINE);
+
+	## chained assignment (right-to-left: z=7, y=7, x=7)
+	x = y = z = 7;
+	tap_ensure(x, 7, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(y, 7, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(z, 7, @SCRIPTNAME, @SCRIPTLINE);
+
+	## assignment used as expression in larger context
+	tap_ensure((x = 5) + 3, 8, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(x, 5, @SCRIPTNAME, @SCRIPTLINE);
+}
+
+## -----------------------------------------------------------------------
+## compound assignment -- HAWK_EF_ASS_LHS (opcode != NONE path)
+## -----------------------------------------------------------------------
+function test_compound_assign(    x)
+{
+	x = 10;
+	x += 5;   tap_ensure(x,  15,  @SCRIPTNAME, @SCRIPTLINE);
+	x -= 3;   tap_ensure(x,  12,  @SCRIPTNAME, @SCRIPTLINE);
+	x *= 4;   tap_ensure(x,  48,  @SCRIPTNAME, @SCRIPTLINE);
+	x /= 6;   tap_ensure(x,   8,  @SCRIPTNAME, @SCRIPTLINE);
+	x %= 3;   tap_ensure(x,   2,  @SCRIPTNAME, @SCRIPTLINE);
+	x ^= 8;   tap_ensure(x, 256,  @SCRIPTNAME, @SCRIPTLINE);
+	x \= 10;  tap_ensure(x,  25,  @SCRIPTNAME, @SCRIPTLINE);
+
+	## compound with complex RHS (BIN evaluator inside ASS_RHS)
+	x = 5;
+	x += 2 * 3;  tap_ensure(x, 11, @SCRIPTNAME, @SCRIPTLINE);
+
+	x = 100;
+	x -= (3 + 7);  tap_ensure(x, 90, @SCRIPTNAME, @SCRIPTLINE);
+
+	x = 4;
+	x *= (1 + 1);  tap_ensure(x,  8, @SCRIPTNAME, @SCRIPTLINE);
+
+	## bitwise compound assignments
+	x = 0xFF;
+	x &= 0x0F;  tap_ensure(x,  15, @SCRIPTNAME, @SCRIPTLINE);
+	x = 0xF0;
+	x |= 0x0F;  tap_ensure(x, 255, @SCRIPTNAME, @SCRIPTLINE);
+	x = 0xFF;
+	x ^^= 0x0F;  tap_ensure(x, 240, @SCRIPTNAME, @SCRIPTLINE);
+	x = 1;
+	x <<= 4;    tap_ensure(x,  16, @SCRIPTNAME, @SCRIPTLINE);
+	x >>= 2;    tap_ensure(x,   4, @SCRIPTNAME, @SCRIPTLINE);
+
+	## string concatenation compound assignment
+	x = "hello";
+	x = x " " "world";
+	tap_ensure(x, "hello world", @SCRIPTNAME, @SCRIPTLINE);
+}
+
+## -----------------------------------------------------------------------
+## function calls with complex argument expressions
+## (exercises push_arg_from_nde_xstack for each argument)
+## -----------------------------------------------------------------------
+function add3(a, b, c)     { return a + b + c; }
+function mul_add(a, b, c)  { return a * b + c; }
+function identity(x)       { return x; }
+function choose(flag, a, b){ return flag ? a : b; }
+function noop()            { return 0; }
+
+function test_fncall_args(    r, tmp)
+{
+	## args are binary expressions
+	r = add3(1 + 2, 3 * 4, 5 - 1);
+	tap_ensure(r, 19, @SCRIPTNAME, @SCRIPTLINE);  ## 3 + 12 + 4
+
+	## arg is a conditional
+	r = choose(1 > 0, "yes", "no");
+	tap_ensure(r, "yes", @SCRIPTNAME, @SCRIPTLINE);
+
+	r = choose(0 > 1, "yes", "no");
+	tap_ensure(r, "no", @SCRIPTNAME, @SCRIPTLINE);
+
+	## arg is a unary expression
+	r = identity(-(3 + 4));
+	tap_ensure(r, -7, @SCRIPTNAME, @SCRIPTLINE);
+
+	## arg is itself a function call with complex args
+	r = identity(add3(1, 2, 3));
+	tap_ensure(r, 6, @SCRIPTNAME, @SCRIPTLINE);
+
+	## arg mixing AND with function call
+	r = choose(1 && 1, add3(1, 2, 3), 0);
+	tap_ensure(r, 6, @SCRIPTNAME, @SCRIPTLINE);
+
+	r = choose(1 && 0, add3(1, 2, 3), 99);
+	tap_ensure(r, 99, @SCRIPTNAME, @SCRIPTLINE);
+
+	## arg that is an assignment expression (side-effect)
+	tmp = 0;
+	r = add3((tmp = 10), tmp + 1, tmp + 2);
+	tap_ensure(r,   33, @SCRIPTNAME, @SCRIPTLINE);  ## 10 + 11 + 12
+	tap_ensure(tmp, 10, @SCRIPTNAME, @SCRIPTLINE);
+
+	## deeply nested call in arg
+	r = mul_add(add3(1, 1, 1), identity(4), noop() + 2);
+	tap_ensure(r, 14, @SCRIPTNAME, @SCRIPTLINE);  ## 3*4 + 2
+}
+
+## -----------------------------------------------------------------------
+## recursive user-defined functions
+## (each call goes through evalcall/evalcall_xstack)
+## -----------------------------------------------------------------------
+function fib(n)      { return n <= 1 ? n : fib(n - 1) + fib(n - 2); }
+function fact(n)     { return n <= 1 ? 1 : n * fact(n - 1); }
+function sum_to(n)   { return n <= 0 ? 0 : n + sum_to(n - 1); }
+function ack(m, n)
+{
+	if (m == 0) return n + 1;
+	if (n == 0) return ack(m - 1, 1);
+	return ack(m - 1, ack(m, n - 1));
+}
+
+function test_recursive()
+{
+	@local r;
+
+	tap_ensure(fib(0),  0,   @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(fib(1),  1,   @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(fib(10), 55,  @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(fib(15), 610, @SCRIPTNAME, @SCRIPTLINE);
+
+	tap_ensure(fact(0),  1,       @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(fact(1),  1,       @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(fact(10), 3628800, @SCRIPTNAME, @SCRIPTLINE);
+
+	tap_ensure(sum_to(0),   0,    @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sum_to(100), 5050, @SCRIPTNAME, @SCRIPTLINE);
+
+	## Ackermann: moderate values to avoid stack overflow
+	tap_ensure(ack(0, 0), 1,  @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(ack(1, 1), 3,  @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(ack(2, 2), 7,  @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(ack(3, 3), 61, @SCRIPTNAME, @SCRIPTLINE);
+}
+
+## -----------------------------------------------------------------------
+## deeply nested mixed expressions
+## (combines BIN, UNARY, CND, ASS — many eframe levels at once)
+## -----------------------------------------------------------------------
+function test_deep_mixed()
+{
+	@local t, a, b, c, x;
+
+	a = 3; b = 4; c = 5;
+
+	## Pythagorean triple check
+	x = (a*a + b*b == c*c) ? "right" : "wrong";
+	tap_ensure(x, "right", @SCRIPTNAME, @SCRIPTLINE);
+
+	## deeply nested: binary inside conditional inside assignment
+	x = (a < b) ? (b < c ? a + b + c : a * b) : (a - b) * c;
+	tap_ensure(x, 12, @SCRIPTNAME, @SCRIPTLINE);  ## a+b+c = 12
+
+	## right-associated depth 10
+	x = (1+(2+(3+(4+(5+(6+(7+(8+(9+10)))))))));
+	tap_ensure(x, 55, @SCRIPTNAME, @SCRIPTLINE);
+
+	## logical chains mixed with arithmetic
+	x = (a > 0 && b > 0 && c > 0) ? a * b * c : 0;
+	tap_ensure(x, 60, @SCRIPTNAME, @SCRIPTLINE);
+
+	## unary inside conditional inside AND
+	x = (!(a > b)) && (-(a - b) > 0);
+	tap_ensure(x, 1, @SCRIPTNAME, @SCRIPTLINE);  ## !(3>4)=1, -(3-4)=1 > 0
+
+	## assignment inside binary
+	x = (t = a + b) * (t - a);
+	tap_ensure(x, 28, @SCRIPTNAME, @SCRIPTLINE);  ## t=7, 7*4=28
+	tap_ensure(t, 7,  @SCRIPTNAME, @SCRIPTLINE);
+}
+
+## -----------------------------------------------------------------------
+## in operator (delegated to eval_binop_in, not iterative)
+## Verify the default-case delegation path in eval_expression0_xstack.
+## -----------------------------------------------------------------------
+function test_in_operator()
+{
+	@local m, r;
+
+	m["x"] = 1; m["y"] = 2;
+
+	tap_ensure(("x" in m), 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(("z" in m), 0, @SCRIPTNAME, @SCRIPTLINE);
+
+	## 'in' inside AND/OR (both iterative and delegated evaluators)
+	tap_ensure((("x" in m) && ("y" in m)),  1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure((("x" in m) && ("z" in m)),  0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure((("z" in m) || ("x" in m)),  1, @SCRIPTNAME, @SCRIPTLINE);
+
+	## 'in' inside conditional
+	r = ("x" in m) ? m["x"] : -1;
+	tap_ensure(r, 1, @SCRIPTNAME, @SCRIPTLINE);
+
+	r = ("z" in m) ? m["z"] : -1;
+	tap_ensure(r, -1, @SCRIPTNAME, @SCRIPTLINE);
+
+	## 'in' inside unary
+	tap_ensure(!("z" in m), 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(!("x" in m), 0, @SCRIPTNAME, @SCRIPTLINE);
+}
+
+## -----------------------------------------------------------------------
+## pre/post increment and decrement
+## (delegated to original eval_expression0 via default: branch)
+## -----------------------------------------------------------------------
+function test_incr_decr(    x, r)
+{
+	x = 5;
+	r = ++x;   tap_ensure(r, 6, @SCRIPTNAME, @SCRIPTLINE);
+	            tap_ensure(x, 6, @SCRIPTNAME, @SCRIPTLINE);
+
+	r = x++;   tap_ensure(r, 6, @SCRIPTNAME, @SCRIPTLINE);  ## returns old value
+	            tap_ensure(x, 7, @SCRIPTNAME, @SCRIPTLINE);
+
+	r = --x;   tap_ensure(r, 6, @SCRIPTNAME, @SCRIPTLINE);
+	            tap_ensure(x, 6, @SCRIPTNAME, @SCRIPTLINE);
+
+	r = x--;   tap_ensure(r, 6, @SCRIPTNAME, @SCRIPTLINE);  ## returns old value
+	            tap_ensure(x, 5, @SCRIPTNAME, @SCRIPTLINE);
+
+	## incr/decr result used in binary expression
+	x = 10;
+	r = (++x) + (++x);
+	tap_ensure(r, 23, @SCRIPTNAME, @SCRIPTLINE);  ## 11 + 12
+	tap_ensure(x, 12, @SCRIPTNAME, @SCRIPTLINE);
+}
+
+## -----------------------------------------------------------------------
+## positional variable ($n) — delegated path
+## -----------------------------------------------------------------------
+function test_positional()
+{
+	@local r;
+
+	$1 = "hello";
+	$2 = "world";
+	r = $1 " " $2;
+	tap_ensure(r, "hello world", @SCRIPTNAME, @SCRIPTLINE);
+
+	## positional in conditional (force numeric comparison with +0)
+	$1 = 10;
+	r = ($1 + 0 > 5 ? $1 * 2 : $1 / 2);
+	tap_ensure(r, 20, @SCRIPTNAME, @SCRIPTLINE);
+
+	## positional in compound assignment
+	$1 = 3;
+	$1 += 7;
+	tap_ensure($1, 10, @SCRIPTNAME, @SCRIPTLINE);
+}
+
+## -----------------------------------------------------------------------
+## match/no-match operators (delegated to eval_binop_ma / eval_binop_nm)
+## -----------------------------------------------------------------------
+function test_match_ops()
+{
+	@local r;
+
+	r = ("hello" ~ /ell/);
+	tap_ensure(r, 1, @SCRIPTNAME, @SCRIPTLINE);
+
+	r = ("hello" ~ /xyz/);
+	tap_ensure(r, 0, @SCRIPTNAME, @SCRIPTLINE);
+
+	r = ("hello" !~ /xyz/);
+	tap_ensure(r, 1, @SCRIPTNAME, @SCRIPTLINE);
+
+	r = ("hello" !~ /ell/);
+	tap_ensure(r, 0, @SCRIPTNAME, @SCRIPTLINE);
+
+	## match result in AND/OR
+	tap_ensure(("abc" ~ /a/) && ("xyz" ~ /x/), 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(("abc" ~ /z/) || ("xyz" ~ /x/), 1, @SCRIPTNAME, @SCRIPTLINE);
+
+	## match result in conditional
+	r = ("hawk" ~ /awk/) ? "yes" : "no";
+	tap_ensure(r, "yes", @SCRIPTNAME, @SCRIPTLINE);
+}
+
+function main()
+{
+	test_binary_arith();
+	test_binary_cmp();
+	test_binary_bitwise();
+	test_binary_chain();
+	test_logical_and();
+	test_logical_or();
+	test_logical_mixed();
+	test_unary();
+	test_conditional();
+	test_simple_assign();
+	test_compound_assign();
+	test_fncall_args();
+	test_recursive();
+	test_deep_mixed();
+	test_in_operator();
+	test_incr_decr();
+	test_positional();
+	test_match_ops();
+	tap_end();
+}

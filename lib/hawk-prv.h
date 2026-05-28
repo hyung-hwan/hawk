@@ -74,6 +74,12 @@ typedef struct hawk_tree_t hawk_tree_t;
 #define HAWK_ENABLE_UCONTEXT
 #endif
 
+/* Use iterative (heap-stack) expression evaluation instead of C recursion.
+ * eval_expression, eval_expression0, and hawk_rtx_evalcall automatically
+ * route through the xstack variants when this is defined. Comment out to
+ * revert to the purely recursive implementation. */
+/*#define HAWK_ENABLE_XSTACK_EVAL*/
+
 
 /* ------------------------------------------------------------------------ */
 
@@ -454,6 +460,31 @@ struct hawk_exec_stack_t
 
 typedef struct hawk_exec_stack_t hawk_exec_stack_t;
 
+/* expression frame states for eval_expression0_xstack */
+enum hawk_ef_state_t
+{
+	HAWK_EF_EVAL = 0,       /* dispatch on nde->type */
+	HAWK_EF_BIN_LEFT,       /* binary: awaiting left result */
+	HAWK_EF_BIN_RIGHT,      /* binary: left done (val=left refupped), awaiting right */
+	HAWK_EF_UNARY,          /* unary: awaiting operand result */
+	HAWK_EF_CND,            /* conditional: awaiting test result */
+	HAWK_EF_ASS_RHS,        /* assignment: awaiting RHS result */
+	HAWK_EF_ASS_LHS,        /* compound assign: RHS in val (refupped), awaiting LHS */
+	HAWK_EF_LAND_LEFT,      /* logical AND: awaiting left result */
+	HAWK_EF_LAND_RIGHT,     /* logical AND: left done and true (val=left), awaiting right */
+	HAWK_EF_LOR_LEFT,       /* logical OR: awaiting left result */
+	HAWK_EF_LOR_RIGHT       /* logical OR: left done and false (val=left), awaiting right */
+};
+typedef enum hawk_ef_state_t hawk_ef_state_t;
+
+struct hawk_eframe_t
+{
+	hawk_ef_state_t state;
+	hawk_nde_t*     nde;  /* composite node being processed */
+	hawk_val_t*     val;  /* intermediate value (refcount incremented) */
+};
+typedef struct hawk_eframe_t hawk_eframe_t;
+
 struct hawk_rtx_t
 {
 	HAWK_RTX_HDR;
@@ -472,6 +503,11 @@ struct hawk_rtx_t
 	hawk_exec_stack_t* exec_stack;
 	hawk_oow_t exec_stack_size;
 	hawk_oow_t exec_stack_limit;
+
+	/* heap-based stack for iterative expression evaluation (xstack variant) */
+	hawk_eframe_t* eframe_stack;
+	hawk_oow_t eframe_stack_size;
+	hawk_oow_t eframe_stack_limit;
 
 #if defined(HAVE_UCONTEXT_H)
 	/* pool of reusable C stacks for coroutine-based function calls */

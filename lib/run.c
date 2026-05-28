@@ -182,6 +182,9 @@ static int output_formatted_bytes (hawk_rtx_t* rtx, hawk_out_type_t out_type, co
 
 static hawk_val_t* eval_expression (hawk_rtx_t* rtx, hawk_nde_t* nde);
 static hawk_val_t* eval_expression0 (hawk_rtx_t* rtx, hawk_nde_t* nde);
+static hawk_val_t* eval_expression0_xstack (hawk_rtx_t* rtx, hawk_nde_t* nde);
+static hawk_val_t* eval_expression_xstack (hawk_rtx_t* rtx, hawk_nde_t* nde);
+static hawk_oow_t  push_arg_from_nde_xstack (hawk_rtx_t* rtx, const hawk_loc_t* call_loc, void* data);
 
 static hawk_val_t* eval_group (hawk_rtx_t* rtx, hawk_nde_t* nde);
 
@@ -1520,6 +1523,7 @@ oops_2:
 	hawk_ooecs_fini(&rtx->inrec.line);
 oops_1:
 	if (rtx->exec_stack) hawk_rtx_freemem(rtx, rtx->exec_stack);
+	if (rtx->eframe_stack) hawk_rtx_freemem(rtx, rtx->eframe_stack);
 	hawk_rtx_freemem(rtx, rtx->stack);
 oops_0:
 	return -1;
@@ -1663,6 +1667,14 @@ static void fini_rtx (hawk_rtx_t* rtx, int fini_globals)
 		rtx->exec_stack = HAWK_NULL;
 		rtx->exec_stack_size = 0;
 		rtx->exec_stack_limit = 0;
+	}
+
+	if (rtx->eframe_stack)
+	{
+		hawk_rtx_freemem(rtx, rtx->eframe_stack);
+		rtx->eframe_stack = HAWK_NULL;
+		rtx->eframe_stack_size = 0;
+		rtx->eframe_stack_limit = 0;
 	}
 
 #if defined(HAWK_ENABLE_UCONTEXT)
@@ -3029,7 +3041,7 @@ static int push_exec_stack (hawk_rtx_t* rtx, int state, hawk_nde_t* nde)
 	return 0;
 }
 
-static int push_exec_stack2 (hawk_rtx_t* rtx, int state, hawk_nde_t* nde, hawk_nde_t* ptr)
+static HAWK_INLINE_ALWAYS int push_exec_stack2 (hawk_rtx_t* rtx, int state, hawk_nde_t* nde, hawk_nde_t* ptr)
 {
 	int n;
 
@@ -3039,7 +3051,7 @@ static int push_exec_stack2 (hawk_rtx_t* rtx, int state, hawk_nde_t* nde, hawk_n
 	return 0;
 }
 
-static int push_exec_stack3 (hawk_rtx_t* rtx, int state, hawk_nde_t* nde, hawk_oow_t iv, hawk_oow_t base)
+static HAWK_INLINE_ALWAYS int push_exec_stack3 (hawk_rtx_t* rtx, int state, hawk_nde_t* nde, hawk_oow_t iv, hawk_oow_t base)
 {
 	int n;
 
@@ -3051,7 +3063,7 @@ static int push_exec_stack3 (hawk_rtx_t* rtx, int state, hawk_nde_t* nde, hawk_o
 }
 
 /* TODO: return the item pointer? */
-static hawk_exec_stack_t* pop_exec_stack (hawk_rtx_t* rtx, hawk_exec_stack_t* es)
+static HAWK_INLINE_ALWAYS hawk_exec_stack_t* pop_exec_stack (hawk_rtx_t* rtx, hawk_exec_stack_t* es)
 {
 	if (rtx->exec_stack_size <= 0) return HAWK_NULL;
 	*es = rtx->exec_stack[--rtx->exec_stack_size];
@@ -4740,7 +4752,11 @@ static hawk_val_t* eval_expression (hawk_rtx_t* rtx, hawk_nde_t* nde)
 	}
 #endif
 
+#if defined(HAWK_ENABLE_XSTACK_EVAL)
+	v = eval_expression0_xstack(rtx, nde);
+#else
 	v = eval_expression0(rtx, nde);
+#endif
 	if (HAWK_UNLIKELY(!v)) return HAWK_NULL;
 
 	if (HAWK_RTX_GETVALTYPE(rtx, v) == HAWK_VAL_REX)
@@ -8295,6 +8311,12 @@ hawk_val_t* hawk_rtx_evalcall (
 	hawk_oow_t nargs, i, stack_req;
 	hawk_val_t* v;
 	int n;
+
+#if defined(HAWK_ENABLE_XSTACK_EVAL)
+	/* when xstack evaluation is active, use the iterative arg evaluator so
+	 * that argument expressions do not recurse on the C stack */
+	if (argpusher == push_arg_from_nde) argpusher = push_arg_from_nde_xstack;
+#endif
 
 	/*
 	 * ---------------------
@@ -11901,4 +11923,704 @@ hawk_oow_t hawk_rtx_fmttobcstr_ (hawk_rtx_t* rtx, hawk_bch_t* buf, hawk_oow_t bu
 int hawk_rtx_buildrex (hawk_rtx_t* rtx, const hawk_ooch_t* ptn, hawk_oow_t len, hawk_tre_t** code, hawk_tre_t** icode)
 {
 	return hawk_gem_buildrex(hawk_rtx_getgem(rtx), ptn, len, !(rtx->hawk->opt.trait & HAWK_REXBOUND), code, icode);
+}
+
+/* ========================================================================
+ * Iterative (explicit-stack) expression evaluator and evalcall variant.
+ *
+ * eval_expression0_xstack  — drop-in for eval_expression0
+ * eval_expression_xstack   — drop-in for eval_expression  (adds rex matching)
+ * hawk_rtx_evalcall_xstack — drop-in for hawk_rtx_evalcall
+ *
+ * The eframe_stack held in hawk_rtx_t replaces C-stack recursion for the
+ * binary / unary / conditional / assignment expression nodes. Function calls
+ * still make one C call per depth level (through hawk_rtx_evalcall_xstack),
+ * but expressions passed as arguments and the body of the function are all
+ * evaluated without additional C recursion.
+ * ======================================================================== */
+
+static int push_eframe (hawk_rtx_t* rtx, hawk_ef_state_t state, hawk_nde_t* nde)
+{
+	if (rtx->eframe_stack_size >= rtx->eframe_stack_limit)
+	{
+		hawk_eframe_t* tmp;
+		hawk_oow_t new_limit = rtx->eframe_stack_limit + 64;
+
+		tmp = (hawk_eframe_t*)hawk_rtx_reallocmem(rtx, rtx->eframe_stack, HAWK_SIZEOF(*tmp) * new_limit);
+		if (HAWK_UNLIKELY(!tmp)) return -1;
+		rtx->eframe_stack = tmp;
+		rtx->eframe_stack_limit = new_limit;
+	}
+	rtx->eframe_stack[rtx->eframe_stack_size].state = state;
+	rtx->eframe_stack[rtx->eframe_stack_size].nde = nde;
+	rtx->eframe_stack[rtx->eframe_stack_size].val = HAWK_NULL;
+	rtx->eframe_stack_size++;
+	return 0;
+}
+
+/* Pop all eframes down to (not including) save_base, refdowning any held
+ * intermediate values. Used for error unwinding. */
+static HAWK_INLINE_ALWAYS void unwind_eframe_stack (hawk_rtx_t* rtx, hawk_oow_t save_base)
+{
+	while (rtx->eframe_stack_size > save_base)
+	{
+		hawk_eframe_t* f = &rtx->eframe_stack[--rtx->eframe_stack_size];
+		if (f->val) hawk_rtx_refdownval_inline(rtx, f->val);
+	}
+}
+
+static hawk_val_t* eval_expression0_xstack (hawk_rtx_t* rtx, hawk_nde_t* root_nde)
+{
+	hawk_oow_t frame_base = rtx->eframe_stack_size;
+	hawk_val_t* cur = HAWK_NULL; /* result of last completed sub-expression */
+
+	/* seed: push the root node to evaluate */
+	if (HAWK_UNLIKELY(push_eframe(rtx, HAWK_EF_EVAL, root_nde) <= -1)) return HAWK_NULL;
+
+	while (rtx->eframe_stack_size > frame_base)
+	{
+		hawk_eframe_t* f = &rtx->eframe_stack[rtx->eframe_stack_size - 1];
+
+		switch (f->state)
+		{
+			/* --------------------------------------------------------- */
+			case HAWK_EF_EVAL:
+			{
+				hawk_nde_t* nde = f->nde;
+
+				/* pop this EVAL frame now; every branch below either
+				 * - sets cur and continues (leaf), or
+				 * - converts this frame to a continuation state, or
+				 * - converts this frame and pushes a child EVAL frame  */
+				rtx->eframe_stack_size--;
+
+				switch (nde->type)
+				{
+					/* binary expression */
+					case HAWK_NDE_EXP_BIN:
+					{
+						hawk_nde_exp_t* exp = (hawk_nde_exp_t*)nde;
+
+						switch (exp->opcode)
+						{
+							case HAWK_BINOP_LAND:
+								if (HAWK_UNLIKELY(push_eframe(rtx, HAWK_EF_LAND_LEFT, nde) <= -1)) goto oops;
+								if (HAWK_UNLIKELY(push_eframe(rtx, HAWK_EF_EVAL, exp->left) <= -1)) goto oops;
+								break;
+
+							case HAWK_BINOP_LOR:
+								if (HAWK_UNLIKELY(push_eframe(rtx, HAWK_EF_LOR_LEFT, nde) <= -1)) goto oops;
+								if (HAWK_UNLIKELY(push_eframe(rtx, HAWK_EF_EVAL, exp->left) <= -1)) goto oops;
+								break;
+
+							case HAWK_BINOP_IN:
+								/* eval_binop_in uses its own sub-evaluation internally;
+								 * delegate directly to avoid re-implementing it */
+								cur = eval_binop_in(rtx, exp->left, exp->right);
+								if (HAWK_UNLIKELY(!cur)) goto oops;
+								break;
+
+							case HAWK_BINOP_NM:
+								cur = eval_binop_nm(rtx, exp->left, exp->right);
+								if (HAWK_UNLIKELY(!cur)) goto oops;
+								break;
+
+							case HAWK_BINOP_MA:
+								cur = eval_binop_ma(rtx, exp->left, exp->right);
+								if (HAWK_UNLIKELY(!cur)) goto oops;
+								break;
+
+							default:
+								/* push BIN_LEFT continuation then evaluate left child */
+								if (HAWK_UNLIKELY(push_eframe(rtx, HAWK_EF_BIN_LEFT, nde) <= -1)) goto oops;
+								if (HAWK_UNLIKELY(push_eframe(rtx, HAWK_EF_EVAL, exp->left) <= -1)) goto oops;
+								break;
+						}
+						break;
+					}
+
+					/* unary expression */
+					case HAWK_NDE_EXP_UNR:
+					{
+						hawk_nde_exp_t* exp = (hawk_nde_exp_t*)nde;
+						if (HAWK_UNLIKELY(push_eframe(rtx, HAWK_EF_UNARY, nde) <= -1)) goto oops;
+						if (HAWK_UNLIKELY(push_eframe(rtx, HAWK_EF_EVAL, exp->left) <= -1)) goto oops;
+						break;
+					}
+
+					/* conditional (ternary) */
+					case HAWK_NDE_CND:
+					{
+						hawk_nde_cnd_t* cnd = (hawk_nde_cnd_t*)nde;
+						if (HAWK_UNLIKELY(push_eframe(rtx, HAWK_EF_CND, nde) <= -1)) goto oops;
+						if (HAWK_UNLIKELY(push_eframe(rtx, HAWK_EF_EVAL, cnd->test) <= -1)) goto oops;
+						break;
+					}
+
+					/* assignment */
+					case HAWK_NDE_ASS:
+					{
+						hawk_nde_ass_t* ass = (hawk_nde_ass_t*)nde;
+						if (HAWK_UNLIKELY(push_eframe(rtx, HAWK_EF_ASS_RHS, nde) <= -1)) goto oops;
+						if (HAWK_UNLIKELY(push_eframe(rtx, HAWK_EF_EVAL, ass->right) <= -1)) goto oops;
+						break;
+					}
+
+					/* fast-path leaf nodes */
+					case HAWK_NDE_CHAR:
+						cur = hawk_rtx_makecharval(rtx, ((hawk_nde_char_t*)nde)->val);
+						if (HAWK_UNLIKELY(!cur)) { ADJERR_LOC(rtx, &nde->loc); goto oops; }
+						break;
+
+					case HAWK_NDE_BCHR:
+						cur = hawk_rtx_makebchrval(rtx, ((hawk_nde_bchr_t*)nde)->val);
+						if (HAWK_UNLIKELY(!cur)) { ADJERR_LOC(rtx, &nde->loc); goto oops; }
+						break;
+
+					case HAWK_NDE_INT:
+						cur = hawk_rtx_makeintval_inline(rtx, ((hawk_nde_int_t*)nde)->val);
+						if (HAWK_UNLIKELY(!cur)) { ADJERR_LOC(rtx, &nde->loc); goto oops; }
+						if (HAWK_VTR_IS_POINTER(cur)) ((hawk_val_int_t*)cur)->nde = nde;
+						break;
+
+					case HAWK_NDE_FLT:
+						cur = hawk_rtx_makefltval(rtx, ((hawk_nde_flt_t*)nde)->val);
+						if (HAWK_UNLIKELY(!cur)) { ADJERR_LOC(rtx, &nde->loc); goto oops; }
+						((hawk_val_flt_t*)cur)->nde = nde;
+						break;
+
+					case HAWK_NDE_STR:
+						cur = hawk_rtx_makestrvalwithoochars(rtx, ((hawk_nde_str_t*)nde)->ptr, ((hawk_nde_str_t*)nde)->len);
+						if (HAWK_UNLIKELY(!cur)) { ADJERR_LOC(rtx, &nde->loc); goto oops; }
+						break;
+
+					case HAWK_NDE_MBS:
+						cur = hawk_rtx_makembsvalwithbchars(rtx, ((hawk_nde_mbs_t*)nde)->ptr, ((hawk_nde_mbs_t*)nde)->len);
+						if (HAWK_UNLIKELY(!cur)) { ADJERR_LOC(rtx, &nde->loc); goto oops; }
+						break;
+
+					case HAWK_NDE_ARG:
+						cur = HAWK_RTX_STACK_ARG(rtx, ((hawk_nde_var_t*)nde)->id.idxa);
+						break;
+
+					case HAWK_NDE_GBL:
+						cur = HAWK_RTX_STACK_GBL(rtx, ((hawk_nde_var_t*)nde)->id.idxa);
+						break;
+
+					case HAWK_NDE_LCL:
+						cur = HAWK_RTX_STACK_LCL(rtx, ((hawk_nde_var_t*)nde)->id.idxa);
+						break;
+
+					case HAWK_NDE_NAMED:
+						HAWK_ASSERT(((hawk_nde_var_t*)nde)->id.idxa < rtx->named_slot_count);
+						cur = HAWK_RTX_STACK_NAMED(rtx, ((hawk_nde_var_t*)nde)->id.idxa);
+						break;
+
+					default:
+						/* fall through to original dispatch table for everything else:
+						 * incpre, incpst, fncall_fnc, fncall_fun, fncall_var, modsym,
+						 * rex, pos, getline, print, printf, xnil/xtrue/xfalse, etc. */
+						cur = eval_expression0(rtx, nde);
+						if (HAWK_UNLIKELY(!cur))
+						{
+							if (rtx->exit_level < EXIT_GLOBAL) goto oops;
+							/* exit_level is set; treat NULL as "exit signal" not error */
+						}
+						if (HAWK_LIKELY(cur) && HAWK_UNLIKELY(rtx->exit_level >= EXIT_GLOBAL))
+						{
+							hawk_rtx_refupval_inline(rtx, cur);
+							hawk_rtx_refdownval_inline(rtx, cur);
+							hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_ENOERR);
+							cur = HAWK_NULL;
+						}
+						break;
+				}
+				break;
+			}
+
+			/* --------------------------------------------------------- */
+			case HAWK_EF_BIN_LEFT:
+			{
+				/* cur = left operand result */
+				if (HAWK_UNLIKELY(!cur))
+				{
+					ADJERR_LOC(rtx, &f->nde->loc);
+					goto oops;
+				}
+				hawk_rtx_refupval_inline(rtx, cur);
+				f->val   = cur;
+				f->state = HAWK_EF_BIN_RIGHT;
+				cur      = HAWK_NULL;
+				/* push right child eval */
+				if (HAWK_UNLIKELY(push_eframe(rtx, HAWK_EF_EVAL, ((hawk_nde_exp_t*)f->nde)->right) <= -1))
+				{
+					hawk_rtx_refdownval_inline(rtx, f->val);
+					f->val = HAWK_NULL;
+					goto oops;
+				}
+				break;
+			}
+
+			/* --------------------------------------------------------- */
+			case HAWK_EF_BIN_RIGHT:
+			{
+				/* cur = right operand result; f->val = left (refupped) */
+				hawk_nde_exp_t* exp = (hawk_nde_exp_t*)f->nde;
+				hawk_val_t* left  = f->val;
+				hawk_val_t* right = cur;
+				hawk_val_t* res;
+
+				if (HAWK_UNLIKELY(!right))
+				{
+					hawk_rtx_refdownval_inline(rtx, left);
+					f->val = HAWK_NULL;
+					ADJERR_LOC(rtx, &f->nde->loc);
+					goto oops;
+				}
+
+				hawk_rtx_refupval_inline(rtx, right);
+				HAWK_ASSERT(get_binop_func(exp->opcode) != HAWK_NULL);
+				res = get_binop_func(exp->opcode)(rtx, left, right);
+				if (HAWK_UNLIKELY(!res)) ADJERR_LOC(rtx, &f->nde->loc);
+
+				hawk_rtx_refdownval_inline(rtx, left);
+				hawk_rtx_refdownval_inline(rtx, right);
+				f->val = HAWK_NULL;
+
+				rtx->eframe_stack_size--;
+				cur = res;
+				if (HAWK_UNLIKELY(!cur)) goto oops;
+				break;
+			}
+
+			/* --------------------------------------------------------- */
+			case HAWK_EF_UNARY:
+			{
+				/* cur = operand result */
+				hawk_nde_exp_t* exp = (hawk_nde_exp_t*)f->nde;
+				hawk_val_t* left = cur;
+				hawk_val_t* res  = HAWK_NULL;
+				int n;
+				hawk_int_t l;
+				hawk_flt_t r;
+
+				if (HAWK_UNLIKELY(!left))
+				{
+					ADJERR_LOC(rtx, &f->nde->loc);
+					goto oops;
+				}
+
+				hawk_rtx_refupval_inline(rtx, left);
+				switch (exp->opcode)
+				{
+					case HAWK_UNROP_MINUS:
+						n = hawk_rtx_valtonum(rtx, left, &l, &r);
+						if (HAWK_LIKELY(n >= 0)) res = (n == 0)? hawk_rtx_makeintval_inline(rtx, -l): hawk_rtx_makefltval(rtx, -r);
+						break;
+					case HAWK_UNROP_LNOT:
+						res = hawk_rtx_makeboolval(rtx, !hawk_rtx_valtobool(rtx, left));
+						break;
+					case HAWK_UNROP_BNOT:
+						n = hawk_rtx_valtoint_inline(rtx, left, &l);
+						if (HAWK_LIKELY(n >= 0)) res = hawk_rtx_makeintval_inline(rtx, ~l);
+						break;
+					case HAWK_UNROP_PLUS:
+						n = hawk_rtx_valtonum(rtx, left, &l, &r);
+						if (HAWK_LIKELY(n >= 0)) res = (n == 0)? hawk_rtx_makeintval_inline(rtx, l): hawk_rtx_makefltval(rtx, r);
+						break;
+				}
+				hawk_rtx_refdownval_inline(rtx, left);
+				if (HAWK_UNLIKELY(!res)) ADJERR_LOC(rtx, &f->nde->loc);
+
+				rtx->eframe_stack_size--;
+				cur = res;
+				if (HAWK_UNLIKELY(!cur)) goto oops;
+				break;
+			}
+
+			/* --------------------------------------------------------- */
+			case HAWK_EF_CND:
+			{
+				/* cur = test result */
+				hawk_nde_cnd_t* cnd = (hawk_nde_cnd_t*)f->nde;
+				hawk_nde_t* branch;
+				int bval;
+
+				if (HAWK_UNLIKELY(!cur))
+				{
+					ADJERR_LOC(rtx, &f->nde->loc);
+					goto oops;
+				}
+
+				hawk_rtx_refupval_inline(rtx, cur);
+				bval = hawk_rtx_valtobool(rtx, cur);
+				hawk_rtx_refdownval_inline(rtx, cur);
+				branch = bval? cnd->left: cnd->right;
+
+				/* replace CND frame with EVAL frame for chosen branch */
+				f->state = HAWK_EF_EVAL;
+				f->nde   = branch;
+				f->val   = HAWK_NULL;
+				cur      = HAWK_NULL;
+				break;
+			}
+
+			/* --------------------------------------------------------- */
+			case HAWK_EF_ASS_RHS:
+			{
+				/* cur = RHS result */
+				hawk_nde_ass_t* ass = (hawk_nde_ass_t*)f->nde;
+
+				if (HAWK_UNLIKELY(!cur))
+				{
+					ADJERR_LOC(rtx, &f->nde->loc);
+					goto oops;
+				}
+
+				hawk_rtx_refupval_inline(rtx, cur);
+
+				if (ass->opcode != HAWK_ASSOP_NONE)
+				{
+					/* compound assignment: need LHS value too */
+					f->val   = cur;
+					f->state = HAWK_EF_ASS_LHS;
+					cur      = HAWK_NULL;
+					if (HAWK_UNLIKELY(push_eframe(rtx, HAWK_EF_EVAL, ass->left) <= -1))
+					{
+						hawk_rtx_refdownval_inline(rtx, f->val);
+						f->val = HAWK_NULL;
+						goto oops;
+					}
+				}
+				else
+				{
+					/* simple assignment: do it now */
+					hawk_val_t* res = do_assignment(rtx, ass->left, cur, ass->is_init);
+					hawk_rtx_refdownval_inline(rtx, cur);
+					rtx->eframe_stack_size--;
+					cur = res;
+					if (HAWK_UNLIKELY(!cur)) goto oops;
+				}
+				break;
+			}
+
+			/* --------------------------------------------------------- */
+			case HAWK_EF_ASS_LHS:
+			{
+				/* cur = LHS result; f->val = RHS (refupped) */
+				static binop_func_t ass_binop[] =
+				{
+					HAWK_NULL,        /* HAWK_ASSOP_NONE */
+					eval_binop_plus,
+					eval_binop_minus,
+					eval_binop_mul,
+					eval_binop_div,
+					eval_binop_idiv,
+					eval_binop_mod,
+					eval_binop_exp,
+					eval_binop_concat,
+					eval_binop_rshift,
+					eval_binop_lshift,
+					eval_binop_band,
+					eval_binop_bxor,
+					eval_binop_bor
+				};
+				hawk_nde_ass_t* ass = (hawk_nde_ass_t*)f->nde;
+				hawk_val_t* rhs = f->val;
+				hawk_val_t* lhs = cur;
+				hawk_val_t* tmp, * res;
+
+				if (HAWK_UNLIKELY(!lhs))
+				{
+					hawk_rtx_refdownval_inline(rtx, rhs);
+					f->val = HAWK_NULL;
+					ADJERR_LOC(rtx, &f->nde->loc);
+					goto oops;
+				}
+
+				hawk_rtx_refupval_inline(rtx, lhs);
+				HAWK_ASSERT(ass->opcode >= 0 && ass->opcode < HAWK_COUNTOF(ass_binop));
+				HAWK_ASSERT(ass_binop[ass->opcode] != HAWK_NULL);
+				tmp = ass_binop[ass->opcode](rtx, lhs, rhs);
+				hawk_rtx_refdownval_inline(rtx, lhs);
+				hawk_rtx_refdownval_inline(rtx, rhs);
+				f->val = HAWK_NULL;
+
+				if (HAWK_UNLIKELY(!tmp))
+				{
+					ADJERR_LOC(rtx, &f->nde->loc);
+					goto oops;
+				}
+
+				hawk_rtx_refupval_inline(rtx, tmp);
+				res = do_assignment(rtx, ass->left, tmp, ass->is_init);
+				hawk_rtx_refdownval_inline(rtx, tmp);
+
+				rtx->eframe_stack_size--;
+				cur = res;
+				if (HAWK_UNLIKELY(!cur)) goto oops;
+				break;
+			}
+
+			/* --------------------------------------------------------- */
+			case HAWK_EF_LAND_LEFT:
+			{
+				/* cur = left operand of && */
+				hawk_nde_exp_t* exp = (hawk_nde_exp_t*)f->nde;
+
+				if (HAWK_UNLIKELY(!cur))
+				{
+					ADJERR_LOC(rtx, &f->nde->loc);
+					goto oops;
+				}
+
+				hawk_rtx_refupval_inline(rtx, cur);
+				if (hawk_rtx_valtobool(rtx, cur))
+				{
+					/* left is true: must evaluate right */
+					f->val   = cur;
+					f->state = HAWK_EF_LAND_RIGHT;
+					cur      = HAWK_NULL;
+					if (HAWK_UNLIKELY(push_eframe(rtx, HAWK_EF_EVAL, exp->right) <= -1))
+					{
+						hawk_rtx_refdownval_inline(rtx, f->val);
+						f->val = HAWK_NULL;
+						goto oops;
+					}
+				}
+				else
+				{
+					/* short-circuit: result is false */
+					hawk_rtx_refdownval_inline(rtx, cur);
+					rtx->eframe_stack_size--;
+					cur = hawk_rtx_makeboolval(rtx, 0);
+					/* makeboolval returns a preallocated val_nil or val_true/false — never NULL */
+				}
+				break;
+			}
+
+			/* --------------------------------------------------------- */
+			case HAWK_EF_LAND_RIGHT:
+			{
+				/* cur = right operand of &&; f->val = left (refupped) */
+				hawk_val_t* rv = cur;
+
+				if (HAWK_UNLIKELY(!rv))
+				{
+					hawk_rtx_refdownval_inline(rtx, f->val);
+					f->val = HAWK_NULL;
+					ADJERR_LOC(rtx, &f->nde->loc);
+					goto oops;
+				}
+
+				hawk_rtx_refupval_inline(rtx, rv);
+				cur = hawk_rtx_makeboolval(rtx, hawk_rtx_valtobool(rtx, rv));
+				hawk_rtx_refdownval_inline(rtx, rv);
+				hawk_rtx_refdownval_inline(rtx, f->val);
+				f->val = HAWK_NULL;
+
+				rtx->eframe_stack_size--;
+				break;
+			}
+
+			/* --------------------------------------------------------- */
+			case HAWK_EF_LOR_LEFT:
+			{
+				/* cur = left operand of || */
+				hawk_nde_exp_t* exp = (hawk_nde_exp_t*)f->nde;
+
+				if (HAWK_UNLIKELY(!cur))
+				{
+					ADJERR_LOC(rtx, &f->nde->loc);
+					goto oops;
+				}
+
+				hawk_rtx_refupval_inline(rtx, cur);
+				if (!hawk_rtx_valtobool(rtx, cur))
+				{
+					/* left is false: must evaluate right */
+					f->val   = cur;
+					f->state = HAWK_EF_LOR_RIGHT;
+					cur      = HAWK_NULL;
+					if (HAWK_UNLIKELY(push_eframe(rtx, HAWK_EF_EVAL, exp->right) <= -1))
+					{
+						hawk_rtx_refdownval_inline(rtx, f->val);
+						f->val = HAWK_NULL;
+						goto oops;
+					}
+				}
+				else
+				{
+					/* short-circuit: result is true */
+					hawk_rtx_refdownval_inline(rtx, cur);
+					rtx->eframe_stack_size--;
+					cur = hawk_rtx_makeboolval(rtx, 1);
+				}
+				break;
+			}
+
+			/* --------------------------------------------------------- */
+			case HAWK_EF_LOR_RIGHT:
+			{
+				/* cur = right operand of ||; f->val = left (refupped) */
+				hawk_val_t* rv = cur;
+
+				if (HAWK_UNLIKELY(!rv))
+				{
+					hawk_rtx_refdownval_inline(rtx, f->val);
+					f->val = HAWK_NULL;
+					ADJERR_LOC(rtx, &f->nde->loc);
+					goto oops;
+				}
+
+				hawk_rtx_refupval_inline(rtx, rv);
+				cur = hawk_rtx_makeboolval(rtx, hawk_rtx_valtobool(rtx, rv));
+				hawk_rtx_refdownval_inline(rtx, rv);
+				hawk_rtx_refdownval_inline(rtx, f->val);
+				f->val = HAWK_NULL;
+
+				rtx->eframe_stack_size--;
+				break;
+			}
+
+			/* --------------------------------------------------------- */
+			default:
+				HAWK_ASSERT(!"eval_expression0_xstack: unexpected eframe state");
+				goto oops;
+		}
+	}
+
+	return cur;
+
+oops:
+	unwind_eframe_stack(rtx, frame_base);
+	return HAWK_NULL;
+}
+
+/* Wrapper that adds the regex-matching layer, mirroring eval_expression() */
+static hawk_val_t* eval_expression_xstack (hawk_rtx_t* rtx, hawk_nde_t* nde)
+{
+	hawk_val_t* v;
+	int n;
+
+	v = eval_expression0_xstack(rtx, nde);
+	if (HAWK_UNLIKELY(!v)) return HAWK_NULL;
+
+	if (HAWK_RTX_GETVALTYPE(rtx, v) == HAWK_VAL_REX)
+	{
+		hawk_oocs_t vs;
+		int free_vs = 0;
+
+		hawk_rtx_refupval_inline(rtx, v);
+
+		if (HAWK_RTX_GETVALTYPE(rtx, rtx->inrec.d0) == HAWK_VAL_NIL)
+		{
+			vs.ptr = HAWK_T("");
+			vs.len = 0;
+		}
+		else
+		{
+			vs.ptr = hawk_rtx_getvaloocstr(rtx, rtx->inrec.d0, &vs.len);
+			if (!vs.ptr)
+			{
+				ADJERR_LOC(rtx, &nde->loc);
+				hawk_rtx_refdownval_inline(rtx, v);
+				return HAWK_NULL;
+			}
+			free_vs = 1;
+		}
+
+		n = hawk_rtx_matchvalwithoocs(rtx, v, &vs, &vs, HAWK_NULL, HAWK_NULL);
+		hawk_rtx_refdownval_inline(rtx, v);
+		if (free_vs) hawk_rtx_freevaloocstr(rtx, rtx->inrec.d0, vs.ptr);
+		if (n <= -1)
+		{
+			ADJERR_LOC(rtx, &nde->loc);
+			return HAWK_NULL;
+		}
+
+		v = hawk_rtx_makeintval_inline(rtx, (n != 0));
+		HAWK_ASSERT(v != HAWK_NULL);
+	}
+
+	return v;
+}
+
+/* push_arg_from_nde variant that uses eval_expression_xstack for argument eval */
+static hawk_oow_t push_arg_from_nde_xstack (hawk_rtx_t* rtx, const hawk_loc_t* call_loc, void* data)
+{
+	pafn_t* pafn = (pafn_t*)data;
+	hawk_nde_t* p;
+	hawk_val_t* v;
+	hawk_oow_t nargs;
+	hawk_oow_t spec_len;
+
+	if (HAWK_UNLIKELY(HAWK_RTX_STACK_AVAIL(rtx) < pafn->nargs))
+	{
+		hawk_rtx_seterrbfmt(rtx, call_loc, HAWK_ESTACK,
+			"stack full(avail=%zu, limit=%zu) in push %zu arguments",
+			HAWK_RTX_STACK_AVAIL(rtx), rtx->stack_limit, pafn->nargs);
+		return (hawk_oow_t)-1;
+	}
+
+	spec_len = pafn->argspec? hawk_count_oocstr(pafn->argspec): 0;
+	for (p = pafn->args, nargs = 0; p; p = p->next, nargs++)
+	{
+		hawk_ooch_t spec;
+
+		spec = (spec_len <= 0)? '\0': pafn->argspec[((nargs < spec_len)? nargs: spec_len - 1)];
+
+		switch (spec)
+		{
+			case 'R':
+			case 'r':
+			{
+				hawk_val_t** ref;
+
+				if (get_reference(rtx, p, &ref) <= -1)
+				{
+					if (spec == 'R') goto normal_arg_xs;
+					return (hawk_oow_t)-1;
+				}
+
+				v = hawk_rtx_makerefval(rtx, p->type - HAWK_NDE_NAMED, ref);
+				break;
+			}
+
+			case 'x':
+				v = eval_expression0_xstack(rtx, p);
+				break;
+
+			default:
+			normal_arg_xs:
+				v = eval_expression_xstack(rtx, p);
+				break;
+		}
+
+		if (HAWK_UNLIKELY(!v)) return (hawk_oow_t)-1;
+
+		HAWK_RTX_STACK_PUSH(rtx, v);
+		hawk_rtx_refupval_inline(rtx, v);
+	}
+
+	HAWK_ASSERT(pafn->nargs == nargs);
+	return nargs;
+}
+
+/* hawk_rtx_evalcall_xstack — identical to hawk_rtx_evalcall but uses
+ * push_arg_from_nde_xstack when the caller supplies push_arg_from_nde as
+ * the argpusher, so that argument expressions are evaluated iteratively. */
+hawk_val_t* hawk_rtx_evalcall_xstack (
+	hawk_rtx_t* rtx, hawk_nde_fncall_t* call, hawk_fun_t* fun,
+	hawk_oow_t(*argpusher)(hawk_rtx_t*,const hawk_loc_t*,void*), void* apdata,
+	void(*errhandler)(void*), void* eharg)
+{
+	/* When the caller uses push_arg_from_nde, swap in the xstack variant so
+	 * argument expressions are evaluated iteratively. Any other argpusher
+	 * (e.g. push_arg_from_vals used by hawk_rtx_callfun) is passed through
+	 * unchanged because it does not call eval_expression directly. */
+	if (argpusher == push_arg_from_nde)
+		argpusher = push_arg_from_nde_xstack;
+
+	return hawk_rtx_evalcall(rtx, call, fun, argpusher, apdata, errhandler, eharg);
 }

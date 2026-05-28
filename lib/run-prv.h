@@ -149,6 +149,16 @@ hawk_val_t* hawk_rtx_evalcall (
 	void* eharg
 );
 
+hawk_val_t* hawk_rtx_evalcall_xstack (
+	hawk_rtx_t* rtx,
+	hawk_nde_fncall_t* call,
+	hawk_fun_t* fun,
+	hawk_oow_t(*argpusher)(hawk_rtx_t*,const hawk_loc_t* loc,void*),
+	void* apdata,
+	void(*errhandler)(void*),
+	void* eharg
+);
+
 int hawk_rtx_setsighandler (
 	hawk_rtx_t* rtx,
 	int         sig,
