@@ -33,6 +33,7 @@ enum hawk_assop_type_t
 	 *   - assop in assing_to_opcode of parse.c
 	 *   - TOK_XXX_ASSN in tok_t in parse.c
 	 *   - assop_str in tree.c
+	 *   - ass_binop in eval_expression0_xstack in run.c
 	 */
 	HAWK_ASSOP_NONE,
 	HAWK_ASSOP_PLUS,   /* += */

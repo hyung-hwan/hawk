@@ -215,6 +215,18 @@ void hawk_rtx_freevalchunk (
 );
 
 #if defined(HAWK_HAVE_INLINE)
+/* the nocheck versions are defined in case you already know the value
+ * is a pointer and not a static value */
+static HAWK_INLINE_ALWAYS void hawk_rtx_refupval_nocheck_inline (hawk_rtx_t* rtx, hawk_val_t* val)
+{
+	#if defined(HAWK_USE_ATOMIC_REFCNT) && defined(HAWK_ATOMIC_FETCH_ADD)
+	HAWK_ATOMIC_FETCH_ADD(&val->v_refs, 1, HAWK_ATOMIC_RELAXED);
+	#else
+	val->v_refs++;
+	#endif
+}
+
+/* regular refup with pointer check */
 static HAWK_INLINE_ALWAYS void hawk_rtx_refupval_inline (hawk_rtx_t* rtx, hawk_val_t* val)
 {
 	if (HAWK_VTR_IS_POINTER(val) && !HAWK_IS_STATICVAL(val))
@@ -226,13 +238,22 @@ static HAWK_INLINE_ALWAYS void hawk_rtx_refupval_inline (hawk_rtx_t* rtx, hawk_v
 	#endif
 	}
 }
+
 #elif defined(HAWK_USE_ATOMIC_REFCNT) && defined(HAWK_ATOMIC_FETCH_ADD)
+
+#define hawk_rtx_refupval_nocheck_inline(rtx, val) do { \
+	HAWK_ATOMIC_FETCH_ADD(&(val)->v_refs, 1, HAWK_ATOMIC_RELAXED); \
+} while(0)
+
 #define hawk_rtx_refupval_inline(rtx, val) do { \
 	if (HAWK_VTR_IS_POINTER(val) && !HAWK_IS_STATICVAL(val)) { \
 		HAWK_ATOMIC_FETCH_ADD(&(val)->v_refs, 1, HAWK_ATOMIC_RELAXED); \
 	} \
 } while(0)
+
 #else
+#define hawk_rtx_refupval_nocheck_inline(rtx, val) do { (val)->v_refs++; } while(0)
+
 #define hawk_rtx_refupval_inline(rtx, val) do { \
 	if (HAWK_VTR_IS_POINTER(val) && !HAWK_IS_STATICVAL(val)) (val)->v_refs++; \
 } while(0)
