@@ -5127,9 +5127,10 @@ static hawk_val_t* eval_assignment (hawk_rtx_t* rtx, hawk_nde_t* nde)
 	if (ass->opcode != HAWK_ASSOP_NONE)
 	{
 		hawk_val_t* val2, * tmp;
+#if 0
 		static binop_func_t binop_func[] =
 		{
-			/* this table must match hawk_assop_type_t in rtx.h */
+			/* this table must match hawk_assop_type_t in run-prv.h */
 			HAWK_NULL, /* HAWK_ASSOP_NONE */
 			eval_binop_plus,
 			eval_binop_minus,
@@ -5145,6 +5146,7 @@ static hawk_val_t* eval_assignment (hawk_rtx_t* rtx, hawk_nde_t* nde)
 			eval_binop_bxor,
 			eval_binop_bor
 		};
+#endif
 
 		HAWK_ASSERT(ass->left->next == HAWK_NULL);
 		val2 = eval_expression(rtx, ass->left);
@@ -5156,11 +5158,33 @@ static hawk_val_t* eval_assignment (hawk_rtx_t* rtx, hawk_nde_t* nde)
 
 		hawk_rtx_refupval_inline(rtx, val2);
 
+#if 0
 		HAWK_ASSERT(ass->opcode >= 0);
 		HAWK_ASSERT(ass->opcode < HAWK_COUNTOF(binop_func));
 		HAWK_ASSERT(binop_func[ass->opcode] != HAWK_NULL);
-
 		tmp = binop_func[ass->opcode](rtx, val2, val);
+#else
+		switch (ass->opcode)
+		{
+			case HAWK_ASSOP_PLUS:   tmp = eval_binop_plus(rtx, val2, val);   break;
+			case HAWK_ASSOP_MINUS:  tmp = eval_binop_minus(rtx, val2, val);  break;
+			case HAWK_ASSOP_MUL:    tmp = eval_binop_mul(rtx, val2, val);    break;
+			case HAWK_ASSOP_DIV:    tmp = eval_binop_div(rtx, val2, val);    break;
+			case HAWK_ASSOP_IDIV:   tmp = eval_binop_idiv(rtx, val2, val);   break;
+			case HAWK_ASSOP_MOD:    tmp = eval_binop_mod(rtx, val2, val);    break;
+			case HAWK_ASSOP_EXP:    tmp = eval_binop_exp(rtx, val2, val);    break;
+			case HAWK_ASSOP_CONCAT: tmp = eval_binop_concat(rtx, val2, val); break;
+			case HAWK_ASSOP_RS:     tmp = eval_binop_rshift(rtx, val2, val); break;
+			case HAWK_ASSOP_LS:     tmp = eval_binop_lshift(rtx, val2, val); break;
+			case HAWK_ASSOP_BAND:   tmp = eval_binop_band(rtx, val2, val);   break;
+			case HAWK_ASSOP_BXOR:   tmp = eval_binop_bxor(rtx, val2, val);   break;
+			case HAWK_ASSOP_BOR:    tmp = eval_binop_bor(rtx, val2, val);    break;
+			default:
+				HAWK_ASSERT (!"should never happen - invalid assigment opcode detected");
+				hawk_rtx_seterrbfmt(rtx, &nde->loc, HAWK_EINTERN, "internal error - invalid assignment(%d) opcode detected", (int)ass->opcode);
+				break;
+		}
+#endif
 		if (HAWK_UNLIKELY(!tmp))
 		{
 			hawk_rtx_refdownval_inline(rtx, val2);
@@ -12611,7 +12635,7 @@ static HAWK_INLINE_ALWAYS hawk_val_t* eval_expression0_xstack (hawk_rtx_t* rtx, 
 			{
 				/* cur = LHS result; f->val = RHS (refupped) */
 #if 0
-				static binop_func_t ass_binop[] =
+				static binop_func_t binop_func[] =
 				{
 					/* this table must be in sync with hawk_assop_type_t in run-prv.h */
 					HAWK_NULL,        /* HAWK_ASSOP_NONE */
@@ -12644,11 +12668,12 @@ static HAWK_INLINE_ALWAYS hawk_val_t* eval_expression0_xstack (hawk_rtx_t* rtx, 
 				}
 
 				hawk_rtx_refupval_inline(rtx, lhs);
-				/*
-				HAWK_ASSERT(ass->opcode >= 0 && ass->opcode < HAWK_COUNTOF(ass_binop));
-				HAWK_ASSERT(ass_binop[ass->opcode] != HAWK_NULL);
-				tmp = ass_binop[ass->opcode](rtx, lhs, rhs);
-				*/
+
+#if 0
+				HAWK_ASSERT(ass->opcode >= 0 && ass->opcode < HAWK_COUNTOF(binop_func));
+				HAWK_ASSERT(binop_func[ass->opcode] != HAWK_NULL);
+				tmp = binop_func[ass->opcode](rtx, lhs, rhs);
+#else
 				switch (ass->opcode)
 				{
 					case HAWK_ASSOP_PLUS:   tmp = eval_binop_plus(rtx, lhs, rhs);   break;
@@ -12669,6 +12694,7 @@ static HAWK_INLINE_ALWAYS hawk_val_t* eval_expression0_xstack (hawk_rtx_t* rtx, 
 						hawk_rtx_seterrbfmt(rtx, &f->nde->loc, HAWK_EINTERN, "internal error - invalid assignment(%d) opcode detected", (int)ass->opcode);
 						break;
 				}
+#endif
 				hawk_rtx_refdownval_inline(rtx, lhs);
 				hawk_rtx_refdownval_inline(rtx, rhs);
 				f->val = HAWK_NULL;

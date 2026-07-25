@@ -30,10 +30,10 @@ enum hawk_assop_type_t
 	/* if you change this, you have to change assop_str in tree.c.
 	 * synchronize it wit:
 	 *   - binop_func in eval_assignment of run.c
+	 *   - binop_func in eval_expression0_xstack in run.c
 	 *   - assop in assing_to_opcode of parse.c
 	 *   - TOK_XXX_ASSN in tok_t in parse.c
 	 *   - assop_str in tree.c
-	 *   - ass_binop in eval_expression0_xstack in run.c
 	 */
 	HAWK_ASSOP_NONE,
 	HAWK_ASSOP_PLUS,   /* += */
