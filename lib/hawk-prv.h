@@ -69,10 +69,12 @@ typedef struct hawk_tree_t hawk_tree_t;
 #define HAWK_ENABLE_ATOMIC_SIG
 #endif
 
+/*
 #if defined(HAVE_UCONTEXT_H)
 #include <ucontext.h>
 #define HAWK_ENABLE_UCONTEXT
 #endif
+*/
 
 /* Use iterative (heap-stack) expression evaluation instead of C recursion.
  * eval_expression, eval_expression0, and hawk_rtx_evalcall automatically
@@ -473,7 +475,10 @@ enum hawk_ef_state_t
 	HAWK_EF_LAND_LEFT,      /* logical AND: awaiting left result */
 	HAWK_EF_LAND_RIGHT,     /* logical AND: left done and true (val=left), awaiting right */
 	HAWK_EF_LOR_LEFT,       /* logical OR: awaiting left result */
-	HAWK_EF_LOR_RIGHT       /* logical OR: left done and false (val=left), awaiting right */
+	HAWK_EF_LOR_RIGHT,      /* logical OR: left done and false (val=left), awaiting right */
+#if defined(HAWK_ENABLE_XSTACK_EVAL)
+	HAWK_EF_FNCALL_FUN_AWAIT /* user fn body executing on exec_stack; aux=exec_body_base */
+#endif
 };
 typedef enum hawk_ef_state_t hawk_ef_state_t;
 
@@ -482,8 +487,23 @@ struct hawk_eframe_t
 	hawk_ef_state_t state;
 	hawk_nde_t*     nde;  /* composite node being processed */
 	hawk_val_t*     val;  /* intermediate value (refcount incremented) */
+	hawk_oow_t      aux;  /* FNCALL_FUN_AWAIT: exec_stack size when body frames were pushed */
 };
 typedef struct hawk_eframe_t hawk_eframe_t;
+
+#if defined(HAWK_ENABLE_XSTACK_EVAL)
+/* call frame: saves context for a user-defined function call made from within
+ * expression evaluation. stored in the call_stack. */
+struct hawk_call_frame_t
+{
+	hawk_nde_fncall_t* call;            /* call-site node */
+	hawk_fun_t*        fun;             /* resolved function */
+	hawk_oow_t         saved_stack_top; /* rtx->stack_top before the call */
+	hawk_oow_t         saved_stack_base;/* rtx->stack_base before the call */
+	hawk_oow_t         nargs;           /* actual argument count pushed */
+};
+typedef struct hawk_call_frame_t hawk_call_frame_t;
+#endif
 
 struct hawk_rtx_t
 {
@@ -508,6 +528,15 @@ struct hawk_rtx_t
 	hawk_eframe_t* eframe_stack;
 	hawk_oow_t eframe_stack_size;
 	hawk_oow_t eframe_stack_limit;
+
+#if defined(HAWK_ENABLE_XSTACK_EVAL)
+	/* heap-based call frame stack: user-defined function calls from eframe evaluation */
+	hawk_call_frame_t* call_stack;
+	hawk_oow_t call_stack_size;
+	hawk_oow_t call_stack_limit;
+	/* result register: eframe eval result delivered to exec AFTER_EVAL frames */
+	hawk_val_t* driver_eval_result;
+#endif
 
 #if defined(HAVE_UCONTEXT_H)
 	/* pool of reusable C stacks for coroutine-based function calls */

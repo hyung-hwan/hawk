@@ -1922,12 +1922,14 @@ static HAWK_INLINE void hawk_geterruinf (hawk_t* hawk, hawk_erruinf_t* errinf) {
  * it automatically formatted.
  */
 #if defined(HAWK_HAVE_INLINE)
-static HAWK_INLINE void hawk_seterrnum (hawk_t* hawk, const hawk_loc_t* errloc, hawk_errnum_t errnum) { hawk_gem_seterrnum (hawk_getgem(hawk), errloc, errnum); }
-static HAWK_INLINE void hawk_seterrinf (hawk_t* hawk, const hawk_errinf_t* errinf) { hawk_gem_seterrinf (hawk_getgem(hawk), errinf); }
+static HAWK_INLINE void hawk_clrerror (hawk_t* hawk) { hawk_gem_seterrnum(hawk_getgem(hawk), HAWK_NULL, HAWK_ENOERR); }
+static HAWK_INLINE void hawk_seterrnum (hawk_t* hawk, const hawk_loc_t* errloc, hawk_errnum_t errnum) { hawk_gem_seterrnum(hawk_getgem(hawk), errloc, errnum); }
+static HAWK_INLINE void hawk_seterrinf (hawk_t* hawk, const hawk_errinf_t* errinf) { hawk_gem_seterrinf(hawk_getgem(hawk), errinf); }
 static HAWK_INLINE void hawk_seterror (hawk_t* hawk, const hawk_loc_t*  errloc, hawk_errnum_t errnum, const hawk_oocs_t* errarg) { hawk_gem_seterror(hawk_getgem(hawk), errloc, errnum, errarg); }
 static HAWK_INLINE const hawk_ooch_t* hawk_backuperrmsg (hawk_t* hawk) { return hawk_gem_backuperrmsg(hawk_getgem(hawk)); }
 static HAWK_INLINE void hawk_geterror (hawk_t* hawk, hawk_errnum_t* errnum, const hawk_ooch_t** errmsg, hawk_loc_t* errloc) { return hawk_gem_geterror(hawk_getgem(hawk), errnum, errmsg, errloc); }
 #else
+#define hawk_clrerror(hawk) hawk_gem_seterrnum(hawk_getgem(hawk), HAWK_NULL, HAWK_ENOERR)
 #define hawk_seterrnum(hawk, errloc, errnum) hawk_gem_seterrnum(hawk_getgem(hawk), errloc, errnum)
 #define hawk_seterrinf(hawk, errinf) hawk_gem_seterrinf(hawk_getgem(hawk), errinf)
 #define hawk_seterror(hawk, errloc, errnum, errarg) hawk_gem_seterror(hawk_getgem(hawk), errloc, errnum, errarg)
@@ -3119,11 +3121,13 @@ static HAWK_INLINE void hawk_rtx_geterror (hawk_rtx_t* rtx, hawk_errnum_t* errnu
  * The hawk_rtx_seterrinf() function sets error information.
  */
 #if defined(HAWK_HAVE_INLINE)
+static HAWK_INLINE void hawk_rtx_clrerror (hawk_rtx_t* rtx) { hawk_gem_seterrnum(hawk_rtx_getgem(rtx), HAWK_NULL, HAWK_ENOERR); }
 static HAWK_INLINE void hawk_rtx_seterrnum (hawk_rtx_t* rtx, const hawk_loc_t* errloc, hawk_errnum_t errnum) { hawk_gem_seterrnum (hawk_rtx_getgem(rtx), errloc, errnum); }
 static HAWK_INLINE void hawk_rtx_seterrinf (hawk_rtx_t* rtx, const hawk_errinf_t* errinf) { hawk_gem_seterrinf (hawk_rtx_getgem(rtx), errinf); }
 static HAWK_INLINE void hawk_rtx_seterror (hawk_rtx_t* rtx, const hawk_loc_t*  errloc, hawk_errnum_t errnum, const hawk_oocs_t* errarg) { hawk_gem_seterror(hawk_rtx_getgem(rtx), errloc, errnum, errarg); }
 static HAWK_INLINE const hawk_ooch_t* hawk_rtx_backuperrmsg (hawk_rtx_t* rtx) { return hawk_gem_backuperrmsg(hawk_rtx_getgem(rtx)); }
 #else
+#define hawk_rtx_clrerror(rtx) hawk_gem_seterrnum(hawk_rtx_getgem(rtx), HAWK_NULL, HAWK_ENOERR)
 #define hawk_rtx_seterrnum(rtx, errloc, errnum) hawk_gem_seterrnum(hawk_rtx_getgem(rtx), errloc, errnum)
 #define hawk_rtx_seterrinf(rtx, errinf) hawk_gem_seterrinf(hawk_rtx_getgem(rtx), errinf)
 #define hawk_rtx_seterror(rtx, errloc, errnum, errarg) hawk_gem_seterror(hawk_rtx_getgem(rtx), errloc, errnum, errarg)
