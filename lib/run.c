@@ -3127,8 +3127,10 @@ static void leave_block_iterative (hawk_rtx_t* rtx, hawk_nde_blk_t* nde)
 		while (tmp > 0);
 	}
 
+#if 0
 	HAWK_ASSERT(rtx->depth.block > 0);
 	rtx->depth.block--;
+#endif
 }
 
 static void leave_forin_iterative (hawk_rtx_t* rtx, hawk_oow_t base)
@@ -3198,6 +3200,7 @@ static void unwind_call_stack_to (hawk_rtx_t* rtx, hawk_oow_t base)
 
 static int enter_block_iterative (hawk_rtx_t* rtx, hawk_nde_blk_t* nde)
 {
+#if 0
 	if (rtx->hawk->opt.depth.s.block_run > 0 &&
 	    rtx->depth.block >= rtx->hawk->opt.depth.s.block_run)
 	{
@@ -3208,6 +3211,7 @@ static int enter_block_iterative (hawk_rtx_t* rtx, hawk_nde_blk_t* nde)
 	}
 
 	rtx->depth.block++;
+#endif
 
 	if (nde->nlcls > 0)
 	{
@@ -3215,7 +3219,9 @@ static int enter_block_iterative (hawk_rtx_t* rtx, hawk_nde_blk_t* nde)
 
 		if (HAWK_UNLIKELY(HAWK_RTX_STACK_AVAIL(rtx) < tmp))
 		{
+#if 0
 			rtx->depth.block--;
+#endif
 			hawk_rtx_seterrbfmt(rtx, &nde->loc, HAWK_ESTACK,
 				"stack full(avail=%zu, limit=%zu) for %zu local variables",
 				HAWK_RTX_STACK_AVAIL(rtx), rtx->stack_limit, tmp);
@@ -12744,7 +12750,7 @@ static int process_eframes (hawk_rtx_t* rtx, hawk_oow_t eframe_base, hawk_val_t*
 						return 0;  /* yield to run_driver to execute the body */
 					}
 
-					/* ---- everything else: fall back to the original recursive evaluator ---- */
+					/* ---- everything else - fall back to the original recursive evaluator ---- */
 					default:
 						cur = eval_expression0(rtx, nde);
 						if (HAWK_UNLIKELY(!cur))
