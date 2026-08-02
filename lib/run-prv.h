@@ -150,6 +150,7 @@ hawk_val_t* hawk_rtx_evalcall (
 	void* eharg
 );
 
+#if 0
 hawk_val_t* hawk_rtx_evalcall_xstack (
 	hawk_rtx_t* rtx,
 	hawk_nde_fncall_t* call,
@@ -159,6 +160,7 @@ hawk_val_t* hawk_rtx_evalcall_xstack (
 	void(*errhandler)(void*),
 	void* eharg
 );
+#endif
 
 int hawk_rtx_setsighandler (
 	hawk_rtx_t* rtx,

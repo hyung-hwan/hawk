@@ -2692,7 +2692,7 @@ oops:
 	return -1;
 }
 
-static HAWK_INLINE int run_block0 (hawk_rtx_t* rtx, hawk_nde_blk_t* nde)
+static HAWK_INLINE_ALWAYS int run_block0 (hawk_rtx_t* rtx, hawk_nde_blk_t* nde)
 {
 	hawk_nde_t* p;
 	/*hawk_oow_t saved_stack_top;*/
@@ -5392,7 +5392,7 @@ static hawk_val_t* eval_group (hawk_rtx_t* rtx, hawk_nde_t* nde)
 	 * before the introduction of this option, the grouped
 	 * expression was valid only coerced with the 'in'
 	 * operator.
-	 * */
+	 */
 
 	/* when a group is evaluated in a normal context,
 	 * we return the last expression as a value. */
@@ -8982,14 +8982,14 @@ hawk_val_t* hawk_rtx_evalcall (
 						av = HAWK_RTX_STACK_ARG(rtx, i);
 						if (HAWK_RTX_GETVALTYPE(rtx, av) == HAWK_VAL_REF)
 						{
-						/* the argument still has the reference type.
-								 * this means, the argument has not been set.
+							/* the argument still has the reference type.
+							 * this means, the argument has not been set.
 							 *
 							 *   function f1(&a, &b) { b = 20 }
 							 *
-							 * since a is not set in f1, the value for a is still the pushed value which is a reference
+							 * since a is not set in f1, the value for a is still the pushed
+							 * value which is a reference.
 							 */
-
 							/* ---- DO NOTHING ---- */
 						}
 						else
@@ -14140,6 +14140,7 @@ static hawk_oow_t push_arg_from_nde_xstack (hawk_rtx_t* rtx, const hawk_loc_t* c
 }
 
 
+#if 0
 /* hawk_rtx_evalcall_xstack — identical to hawk_rtx_evalcall but uses
  * push_arg_from_nde_xstack when the caller supplies push_arg_from_nde as
  * the argpusher, so that argument expressions are evaluated iteratively. */
@@ -14156,3 +14157,4 @@ hawk_val_t* hawk_rtx_evalcall_xstack (
 
 	return hawk_rtx_evalcall(rtx, call, fun, argpusher, apdata, errhandler, eharg);
 }
+#endif
