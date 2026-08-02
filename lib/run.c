@@ -2958,13 +2958,17 @@ static int push_exec_stack (hawk_rtx_t* rtx, int state, hawk_nde_t* nde)
 	{
 		hawk_oow_t new_limit;
 		hawk_exec_stack_t* tmp;
+
 		new_limit = rtx->exec_stack_limit + 1;
 		new_limit = HAWK_ALIGN_POW2(new_limit, 64); /* TODO: change align factor */
+
 		tmp = hawk_rtx_reallocmem(rtx, rtx->exec_stack, HAWK_SIZEOF(*tmp) * new_limit);
 		if (HAWK_UNLIKELY(!tmp)) return -1;
+
 		rtx->exec_stack = tmp;
 		rtx->exec_stack_limit = new_limit;
 	}
+
 	rtx->exec_stack[rtx->exec_stack_size].state = state;
 	rtx->exec_stack[rtx->exec_stack_size].nde = nde;
 	rtx->exec_stack[rtx->exec_stack_size].ptr = HAWK_NULL;
@@ -2979,7 +2983,7 @@ static int push_exec_stack2 (hawk_rtx_t* rtx, int state, hawk_nde_t* nde, hawk_n
 	int n;
 
 	n = push_exec_stack(rtx, state, nde);
-	if (n <= -1) return -1;
+	if (HAWK_UNLIKELY(n <= -1)) return -1;
 	rtx->exec_stack[rtx->exec_stack_size - 1].ptr = ptr;
 	return 0;
 }
@@ -2989,13 +2993,15 @@ static int push_exec_stack3 (hawk_rtx_t* rtx, int state, hawk_nde_t* nde, hawk_o
 	int n;
 
 	n = push_exec_stack(rtx, state, nde);
-	if (n <= -1) return -1;
+	if (HAWK_UNLIKELY(n <= -1)) return -1;
 	rtx->exec_stack[rtx->exec_stack_size - 1].iv = iv;
 	rtx->exec_stack[rtx->exec_stack_size - 1].base = base;
 	return 0;
 }
 
 /* TODO: return the item pointer? */
+#define pop_exec_stack_unchecked(rtx) ((rtx)->exec_stack_size = (rtx)->exec_stack_size - 1)
+
 static hawk_exec_stack_t* pop_exec_stack (hawk_rtx_t* rtx, hawk_exec_stack_t* es)
 {
 	if (rtx->exec_stack_size <= 0) return HAWK_NULL;
@@ -3093,16 +3099,18 @@ static int enter_block_iterative (hawk_rtx_t* rtx, hawk_nde_blk_t* nde)
 		}
 	}
 
+	/* what needs to be done upon entering a block has been done.
+	 * rollback(i.e. leave_block_iterative) must undo them from here on. */
+
 	if (push_exec_stack(rtx, EXEC_STATE_BLK_LEAVE, (hawk_nde_t*)nde) <= -1)
 	{
 		leave_block_iterative(rtx, nde);
 		return -1;
 	}
 
-	if (nde->body &&
-	    push_exec_stack2(rtx, EXEC_STATE_BLK_STEP, (hawk_nde_t*)nde, nde->body) <= -1)
+	if (nde->body && push_exec_stack2(rtx, EXEC_STATE_BLK_STEP, (hawk_nde_t*)nde, nde->body) <= -1)
 	{
-		rtx->exec_stack_size--;
+		pop_exec_stack_unchecked(rtx);
 		leave_block_iterative(rtx, nde);
 		return -1;
 	}
@@ -3153,13 +3161,18 @@ static int run_statement0 (hawk_rtx_t* rtx, const hawk_exec_stack_t* es)
 				stmt = es->ptr;
 				HAWK_ASSERT(stmt != HAWK_NULL);
 
-				if (stmt->next &&
-				    push_exec_stack2(rtx, EXEC_STATE_BLK_STEP, nde, stmt->next) <= -1) return -1;
+				/* For example, consider:
+				 *  { print "hello"; print "world" }
+				 * nde->body is pushed to the stack in enter_block_interactive().
+				 * the body is a chain of other statements. each statement needs
+				 * to be executed. */
+				if (stmt->next && push_exec_stack2(rtx, EXEC_STATE_BLK_STEP, nde, stmt->next) <= -1) return -1;
 				if (push_exec_stack(rtx, EXEC_STATE_ENTER, stmt) <= -1) return -1;
 				xret = 0;
 			}
 			else
 			{
+				/* entering the block */
 				xret = enter_block_iterative(rtx, (hawk_nde_blk_t*)nde);
 			}
 			break;
