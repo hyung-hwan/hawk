@@ -69,7 +69,7 @@ typedef struct hawk_tree_t hawk_tree_t;
 #define HAWK_ENABLE_ATOMIC_SIG
 #endif
 
-/*
+/* this part is kept for preservation of experiment only.
 #if defined(HAVE_UCONTEXT_H)
 #include <ucontext.h>
 #define HAWK_ENABLE_UCONTEXT
@@ -538,7 +538,7 @@ struct hawk_rtx_t
 	hawk_val_t* driver_eval_result;
 #endif
 
-#if defined(HAVE_UCONTEXT_H)
+#if defined(HAWK_ENABLE_UCONTEXT)
 	/* pool of reusable C stacks for coroutine-based function calls */
 	struct
 	{

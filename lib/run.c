@@ -50,8 +50,7 @@ static int run_block (hawk_rtx_t* rtx, hawk_nde_blk_t* nde); /* forward */
 static char* hawk_co_get_stack (hawk_rtx_t* rtx)
 {
 	/* get a stack from the free list */
-	if (rtx->co.pool_size > 0)
-		return rtx->co.pool[--rtx->co.pool_size];
+	if (rtx->co.pool_size > 0) return rtx->co.pool[--rtx->co.pool_size];
 	return (char*)hawk_rtx_allocmem(rtx, HAWK_CO_STACK_SIZE);
 }
 
@@ -3807,23 +3806,20 @@ static int run_while (hawk_rtx_t* rtx, int state, hawk_nde_while_t* nde)
 		if (push_exec_stack(rtx, EXEC_STATE_WHILE_TEST_AFTER_EVAL, (hawk_nde_t*)nde) <= -1) return -1;
 		return push_eframe(rtx, HAWK_EF_EVAL, nde->test);
 #else
-		{
-			hawk_val_t* test;
-			test = eval_expression(rtx, nde->test);
-			if (HAWK_UNLIKELY(!test)) return -1;
+		test = eval_expression(rtx, nde->test);
+		if (HAWK_UNLIKELY(!test)) return -1;
 
-			hawk_rtx_refupval_inline(rtx, test);
-			if (hawk_rtx_valtobool(rtx, test))
+		hawk_rtx_refupval_inline(rtx, test);
+		if (hawk_rtx_valtobool(rtx, test))
+		{
+			if (push_exec_stack(rtx, EXEC_STATE_WHILE_BODY_DONE, (hawk_nde_t*)nde) <= -1 ||
+			    push_exec_stack(rtx, EXEC_STATE_ENTER, nde->body) <= -1)
 			{
-				if (push_exec_stack(rtx, EXEC_STATE_WHILE_BODY_DONE, (hawk_nde_t*)nde) <= -1 ||
-				    push_exec_stack(rtx, EXEC_STATE_ENTER, nde->body) <= -1)
-				{
-					hawk_rtx_refdownval_inline(rtx, test);
-					return -1;
-				}
+				hawk_rtx_refdownval_inline(rtx, test);
+				return -1;
 			}
-			hawk_rtx_refdownval_inline(rtx, test);
 		}
+		hawk_rtx_refdownval_inline(rtx, test);
 #endif
 	}
 	else if (nde->type == HAWK_NDE_DOWHILE)
@@ -3856,25 +3852,22 @@ static int run_while (hawk_rtx_t* rtx, int state, hawk_nde_while_t* nde)
 			if (push_exec_stack(rtx, EXEC_STATE_DOWHILE_TEST_AFTER_EVAL, (hawk_nde_t*)nde) <= -1) return -1;
 			return push_eframe(rtx, HAWK_EF_EVAL, nde->test);
 #else
+			test = eval_expression(rtx, nde->test);
+			if (HAWK_UNLIKELY(!test)) return -1;
+
+			hawk_rtx_refupval_inline(rtx, test);
+
+			if (hawk_rtx_valtobool(rtx, test))
 			{
-				hawk_val_t* test;
-				test = eval_expression(rtx, nde->test);
-				if (HAWK_UNLIKELY(!test)) return -1;
-
-				hawk_rtx_refupval_inline(rtx, test);
-
-				if (hawk_rtx_valtobool(rtx, test))
+				if (push_exec_stack(rtx, EXEC_STATE_DOWHILE_TEST, (hawk_nde_t*)nde) <= -1 ||
+				    push_exec_stack(rtx, EXEC_STATE_ENTER, nde->body) <= -1)
 				{
-					if (push_exec_stack(rtx, EXEC_STATE_DOWHILE_TEST, (hawk_nde_t*)nde) <= -1 ||
-					    push_exec_stack(rtx, EXEC_STATE_ENTER, nde->body) <= -1)
-					{
-						hawk_rtx_refdownval_inline(rtx, test);
-						return -1;
-					}
+					hawk_rtx_refdownval_inline(rtx, test);
+					return -1;
 				}
-
-				hawk_rtx_refdownval_inline(rtx, test);
 			}
+
+			hawk_rtx_refdownval_inline(rtx, test);
 #endif
 		}
 	}
@@ -4479,7 +4472,6 @@ static hawk_val_t* assign_newmapval_to_var (hawk_rtx_t* rtx, hawk_nde_var_t* var
 
 	return assign_topval_to_var(rtx, var, tmp);
 }
-
 
 static HAWK_INLINE int delete_indexed (hawk_rtx_t* rtx, hawk_val_t* vv, hawk_nde_var_t* var)
 {
@@ -5497,8 +5489,9 @@ static hawk_val_t* eval_assignment (hawk_rtx_t* rtx, hawk_nde_t* nde)
 			case HAWK_ASSOP_BXOR:   tmp = eval_binop_bxor(rtx, val2, val);   break;
 			case HAWK_ASSOP_BOR:    tmp = eval_binop_bor(rtx, val2, val);    break;
 			default:
-				HAWK_ASSERT (!"should never happen - invalid assigment opcode detected");
+				HAWK_ASSERT(!"should never happen - invalid assigment opcode detected");
 				hawk_rtx_seterrbfmt(rtx, &nde->loc, HAWK_EINTERN, "internal error - invalid assignment(%d) opcode detected", (int)ass->opcode);
+				tmp = HAWK_NULL;
 				break;
 		}
 #endif
@@ -7788,6 +7781,12 @@ static hawk_val_t* eval_binop_div (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t
 		case 3:
 			res = hawk_rtx_makefltval(rtx, r1 / r2);
 			break;
+
+		default:
+			HAWK_ASSERT(!"should never happen - invalid intermediate state in handling div");
+			hawk_rtx_seterrbfmt(rtx, HAWK_NULL, HAWK_EINTERN, "internal error in handling div");
+			res = HAWK_NULL;
+			break;
 	}
 
 	return res;
@@ -7835,6 +7834,12 @@ static hawk_val_t* eval_binop_idiv (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_
 			quo = r1 / r2;
 			res = hawk_rtx_makeintval_inline(rtx, (hawk_int_t)quo);
 			break;
+
+		default:
+			HAWK_ASSERT(!"should never happen - invalid intermediate state in handling idiv");
+			hawk_rtx_seterrbfmt(rtx, HAWK_NULL, HAWK_EINTERN, "internal error in handling idiv");
+			res = HAWK_NULL;
+			break;
 	}
 
 	return res;
@@ -7881,6 +7886,12 @@ static hawk_val_t* eval_binop_mod (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t
 
 		case 3:
 			res = hawk_rtx_makefltval(rtx, rtx->hawk->prm.math.mod(hawk_rtx_gethawk(rtx), (hawk_flt_t)r1, (hawk_flt_t)r2));
+			break;
+
+		default:
+			HAWK_ASSERT(!"should never happen - invalid intermediate state in handling mod");
+			hawk_rtx_seterrbfmt(rtx, HAWK_NULL, HAWK_EINTERN, "internal error in handling mod");
+			res = HAWK_NULL;
 			break;
 	}
 
@@ -7964,6 +7975,12 @@ static hawk_val_t* eval_binop_exp (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t
 				rtx,
 				rtx->hawk->prm.math.pow(hawk_rtx_gethawk(rtx), r1, r2)
 			);
+			break;
+
+		default:
+			HAWK_ASSERT(!"should never happen - invalid intermediate state in handling exp");
+			hawk_rtx_seterrbfmt(rtx, HAWK_NULL, HAWK_EINTERN, "internal error in handling exp");
+			res = HAWK_NULL;
 			break;
 	}
 
@@ -8856,7 +8873,7 @@ hawk_val_t* hawk_rtx_evalcall (
 				HAWK_CO_COROUTINE_DEPTH_THRESHOLD : HAWK_CO_MAIN_DEPTH_THRESHOLD;
 			if (rtx->depth.block - rtx->co.stack_base >= co_threshold)
 			{
-				/* approaching the C stack limit of the current segment —
+				/* approaching the C stack limit of the current segment -
 				 * run this call on a fresh heap-allocated stack */
 				char* costack;
 				ucontext_t caller_ctx, coctx;
@@ -13847,8 +13864,9 @@ static HAWK_INLINE_ALWAYS hawk_val_t* eval_expression0_xstack (hawk_rtx_t* rtx, 
 					case HAWK_ASSOP_BXOR:   tmp = eval_binop_bxor(rtx, lhs, rhs);   break;
 					case HAWK_ASSOP_BOR:    tmp = eval_binop_bor(rtx, lhs, rhs);    break;
 					default:
-						HAWK_ASSERT (!"should never happen - invalid assigment opcode detected");
+						HAWK_ASSERT(!"should never happen - invalid assigment opcode detected");
 						hawk_rtx_seterrbfmt(rtx, &f->nde->loc, HAWK_EINTERN, "internal error - invalid assignment(%d) opcode detected", (int)ass->opcode);
+						tmp = HAWK_NULL;
 						break;
 				}
 #endif
