@@ -1572,9 +1572,19 @@ hawk_val_t* hawk_rtx_makebobval (hawk_rtx_t* rtx, const void* ptr, hawk_oow_t le
 	return (hawk_val_t*)val;
 }
 
-int HAWK_INLINE hawk_rtx_isstaticval (hawk_rtx_t* rtx, const hawk_val_t* val)
+int hawk_rtx_isstaticval (hawk_rtx_t* rtx, const hawk_val_t* val)
 {
 	return HAWK_VTR_IS_POINTER(val) && HAWK_IS_STATICVAL(val);
+}
+
+int hawk_rtx_isimmval (hawk_rtx_t* rtx, const hawk_val_t* val)
+{
+	return !HAWK_VTR_IS_POINTER(val);
+}
+
+int hawk_rtx_isimmorstaticval (hawk_rtx_t* rtx, const hawk_val_t* val)
+{
+	return !HAWK_VTR_IS_POINTER(val) || HAWK_IS_STATICVAL(val);
 }
 
 int hawk_rtx_getvaltype (hawk_rtx_t* rtx, const hawk_val_t* val)

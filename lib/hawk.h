@@ -3653,6 +3653,20 @@ HAWK_EXPORT int hawk_rtx_isstaticval (
 	const hawk_val_t* val  /**< value to check */
 );
 
+/**
+ * The hawk_rtx_isimmval() function determines if a value is a immediate value
+ * encoded using pointer tagging.
+ */
+HAWK_EXPORT int hawk_rtx_isimmval (
+	hawk_rtx_t*       rtx, /**< runtime context */
+	const hawk_val_t* val  /**< value to check */
+);
+
+HAWK_EXPORT int hawk_rtx_isimmorstaticval (
+	hawk_rtx_t*       rtx, /**< runtime context */
+	const hawk_val_t* val  /**< value to check */
+);
+
 HAWK_EXPORT int hawk_rtx_getvaltype (
 	hawk_rtx_t*      rtx,
 	const hawk_val_t* val

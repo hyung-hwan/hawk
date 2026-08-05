@@ -701,7 +701,7 @@ func (rtx *Rtx) Exec(args []string) (*Val, error) {
 	// hawk_rtx_exec...() returns a value with the reference count incremented.
 	// create a value without going through rtx.make_val()
 	return rtx.fix_val_with_raw(val), nil
-	//return rtx.make_val(func() *C.hawk_val_t { return val })aAAA
+	//return rtx.make_val(func() *C.hawk_val_t { return val })
 }
 
 func (rtx *Rtx) Loop() (*Val, error) {
@@ -711,7 +711,7 @@ func (rtx *Rtx) Loop() (*Val, error) {
 	// hawk_rtx_loop() returns a value with the reference count incremented.
 	// create a value without going through rtx.make_val()
 	return rtx.fix_val_with_raw(val), nil
-	//return rtx.make_val(func() *C.hawk_val_t { return val })aAAA
+	//return rtx.make_val(func() *C.hawk_val_t { return val })
 }
 
 func (rtx *Rtx) Call(name string, args ...*Val) (*Val, error) {
@@ -1053,7 +1053,8 @@ func (rtx* Rtx) fix_val_with_raw(val *C.hawk_val_t) *Val {
 	// this function assumes val has the non-zero reference count
 	// the caller must ensure that the reference count has been incremented properly
 	var vv *Val
-	if val.v_refs <= 0 && C.hawk_rtx_isstaticval(rtx.c, val) == 0  { panic("invalid reference count") }
+	// immediate values or static pointer values must no check the reference count.
+	if C.hawk_rtx_isimmorstaticval(rtx.c, val) == 0 || val.v_refs <= 0 { panic("invalid reference count") }
 	vv = &Val{rtx: rtx, c: val}
 	rtx.chain_val(vv)
 	return vv
