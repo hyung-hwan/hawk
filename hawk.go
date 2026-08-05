@@ -1054,7 +1054,7 @@ func (rtx* Rtx) fix_val_with_raw(val *C.hawk_val_t) *Val {
 	// the caller must ensure that the reference count has been incremented properly
 	var vv *Val
 	// immediate values or static pointer values must no check the reference count.
-	if C.hawk_rtx_isimmorstaticval(rtx.c, val) == 0 || val.v_refs <= 0 { panic("invalid reference count") }
+	if C.hawk_rtx_isimmorstaticval(rtx.c, val) == 0 && val.v_refs <= 0 { panic("invalid reference count") }
 	vv = &Val{rtx: rtx, c: val}
 	rtx.chain_val(vv)
 	return vv
