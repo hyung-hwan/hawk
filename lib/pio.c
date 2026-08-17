@@ -603,7 +603,12 @@ static hawk_pio_pid_t standard_fork_and_exec (hawk_pio_t* pio, int pipes[], para
 
 static int set_pipe_nonblock (hawk_pio_t* pio, hawk_pio_hnd_t fd, int enabled)
 {
-#if defined(O_NONBLOCK)
+#if defined(_WIN32)
+	/* anonymous pipes created by CreatePipe() cannot be switched to
+	 * non-blocking mode. */
+	pio_seterrnum(pio, PIO_ENOIMPL);
+	return -1;
+#elif defined(O_NONBLOCK)
 	int flag = HAWK_FCNTL(fd, F_GETFL, 0);
 	if (flag >= 0) flag = HAWK_FCNTL(fd, F_SETFL, (enabled? (flag | O_NONBLOCK): (flag & ~O_NONBLOCK)));
 	if (flag <= -1) hawk_gem_seterrnum(pio->gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
@@ -813,7 +818,7 @@ int hawk_pio_init (hawk_pio_t* pio, hawk_gem_t* gem, const hawk_ooch_t* cmd, int
 
 	startup.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
 	startup.hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE);
-	startup.hStdOutput = GetStdHandle(STD_ERROR_HANDLE);
+	startup.hStdError = GetStdHandle(STD_ERROR_HANDLE);
 	if (startup.hStdInput == INVALID_HANDLE_VALUE ||
 	    startup.hStdOutput == INVALID_HANDLE_VALUE ||
 	    startup.hStdError == INVALID_HANDLE_VALUE)
@@ -1808,6 +1813,26 @@ create_process:
 	return 0;
 
 oops:
+	/* if the child has already been spawned, a failure in a later step must
+	 * not leave it behind: the caller is about to get -1 and will never have
+	 * a handle to reap it with. */
+	if (pio->child != HAWK_PIO_PID_NIL)
+	{	
+		hawk_errnum_t err = hawk_gem_geterrnum(pio->gem);
+
+		/* SIGKILL, not a bare wait: the child may be long-running, or blocked
+		 * writing to a pipe we still hold - either would hang us here. */
+		hawk_pio_kill(pio);
+
+		/* the caller's WAITNOBLOCK/WAITNORETRY must not stop us reaping */
+		pio->flags &= ~HAWK_PIO_WAITNOBLOCK;
+		pio->flags &= ~HAWK_PIO_WAITNORETRY;
+		hawk_pio_wait(pio); /* reaps and resets child to PID_NIL */
+
+		/* kill()/wait() set errnum themselves - restore the real cause */
+		hawk_gem_seterrnum (pio->gem, HAWK_NULL, err);	
+	}
+
 #if defined(_WIN32)
 	if (windevnul != INVALID_HANDLE_VALUE) CloseHandle(windevnul);
 
@@ -1837,11 +1862,20 @@ oops:
 	}
 
 #if defined(_WIN32)
-	for (i = minidx; i < maxidx; i++) CloseHandle(handle[i]);
-#elif defined(__OS2__)
-	for (i = minidx; i < maxidx; i++)
+	if (minidx >= 0)
 	{
-		if (handle[i] != HAWK_PIO_HND_NIL) DosClose(handle[i]);
+		for (i = minidx; i <= maxidx; i++)
+		{
+			if (handle[i] != HAWK_PIO_HND_NIL) CloseHandle(handle[i]);
+		}
+	}
+#elif defined(__OS2__)
+	if (minidx >= 0)
+	{
+		for (i = minidx; i <= maxidx; i++)
+		{
+			if (handle[i] != HAWK_PIO_HND_NIL) DosClose(handle[i]);
+		}
 	}
 #elif defined(__DOS__)
 
@@ -1852,19 +1886,28 @@ oops:
 		posix_spawn_file_actions_destroy (&fa);
 		fa_inited = 0;
 	}
-	for (i = minidx; i < maxidx; i++)
+	if (i >= 0)
 	{
-		if (handle[i] != HAWK_PIO_HND_NIL) HAWK_CLOSE(handle[i]);
+		for (i = minidx; i <= maxidx; i++)
+		{
+			if (handle[i] != HAWK_PIO_HND_NIL) HAWK_CLOSE(handle[i]);
+		}
 	}
 #elif defined(HAWK_SYSCALL0) && defined(SYS_vfork)
-	for (i = minidx; i < maxidx; i++)
+	if (i >= 0)
 	{
-		if (handle[i] != HAWK_PIO_HND_NIL) HAWK_CLOSE(handle[i]);
+		for (i = minidx; i <= maxidx; i++)
+		{
+			if (handle[i] != HAWK_PIO_HND_NIL) HAWK_CLOSE(handle[i]);
+		}
 	}
 #else
-	for (i = minidx; i < maxidx; i++)
+	if (i >= 0)
 	{
-		if (handle[i] != HAWK_PIO_HND_NIL) HAWK_CLOSE(handle[i]);
+		for (i = minidx; i <= maxidx; i++)
+		{
+			if (handle[i] != HAWK_PIO_HND_NIL) HAWK_CLOSE(handle[i]);
+		}
 	}
 #endif
 
