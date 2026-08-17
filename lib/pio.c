@@ -601,12 +601,15 @@ static hawk_pio_pid_t standard_fork_and_exec (hawk_pio_t* pio, int pipes[], para
 
 #endif
 
+#if !defined(__DOS__)
+/* not needed on DOS: hawk_pio_init() bails out with HAWK_ENOIMPL there before
+ * any pipe is ever created, so there is no call site for this. */
 static int set_pipe_nonblock (hawk_pio_t* pio, hawk_pio_hnd_t fd, int enabled)
 {
 #if defined(_WIN32)
 	/* anonymous pipes created by CreatePipe() cannot be switched to
 	 * non-blocking mode. */
-	pio_seterrnum(pio, PIO_ENOIMPL);
+	hawk_gem_seterrnum(pio->gem, HAWK_NULL, HAWK_ENOIMPL);
 	return -1;
 #elif defined(O_NONBLOCK)
 	int flag = HAWK_FCNTL(fd, F_GETFL, 0);
@@ -618,6 +621,7 @@ static int set_pipe_nonblock (hawk_pio_t* pio, hawk_pio_hnd_t fd, int enabled)
 	return -1;
 #endif
 }
+#endif
 
 
 int hawk_pio_init (hawk_pio_t* pio, hawk_gem_t* gem, const hawk_ooch_t* cmd, int flags, hawk_pio_env_mk_t env_mk, void* env_ctx)
@@ -730,6 +734,12 @@ int hawk_pio_init (hawk_pio_t* pio, hawk_gem_t* gem, const hawk_ooch_t* cmd, int
 			}
 		}
 
+		/* handle[1] is the parent's end and is never inherited by the child,
+		 * so switching it here - before the child exists - is equivalent to
+		 * doing it afterwards, and keeps this failure out of the window in
+		 * which a spawned child would have to be cleaned up. */
+		if ((flags & HAWK_PIO_INNOBLOCK) && set_pipe_nonblock(pio, handle[1], 1) <= -1) goto oops;
+
 		minidx = 0; maxidx = 1;
 	}
 
@@ -754,6 +764,8 @@ int hawk_pio_init (hawk_pio_t* pio, hawk_gem_t* gem, const hawk_ooch_t* cmd, int
 				goto oops;
 			}
 		}
+
+		if ((flags & HAWK_PIO_OUTNOBLOCK) && set_pipe_nonblock(pio, handle[2], 1) <= -1) goto oops;
 
 		if (minidx == -1) minidx = 2;
 		maxidx = 3;
@@ -780,6 +792,8 @@ int hawk_pio_init (hawk_pio_t* pio, hawk_gem_t* gem, const hawk_ooch_t* cmd, int
 				goto oops;
 			}
 		}
+
+		if ((flags & HAWK_PIO_ERRNOBLOCK) && set_pipe_nonblock(pio, handle[4], 1) <= -1) goto oops;
 
 		if (minidx == -1) minidx = 4;
 		maxidx = 5;
@@ -1018,6 +1032,12 @@ create_process:
 		DosQueryFHState (handle[1], &state);
 		DosSetFHState (handle[1], state | OPEN_FLAGS_NOINHERIT); */
 
+		/* handle[1] is the parent's end and is marked NOINHERIT above, so
+		 * switching it before the child exists is equivalent to doing it
+		 * afterwards, and keeps this failure out of the window in which a
+		 * spawned child would have to be cleaned up. */
+		if ((flags & HAWK_PIO_INNOBLOCK) && set_pipe_nonblock(pio, handle[1], 1) <= -1) goto oops;
+
 		minidx = 0; maxidx = 1;
 	}
 
@@ -1039,6 +1059,8 @@ create_process:
 			hawk_gem_seterrnum(pio->gem, HAWK_NULL, hawk_syserr_to_errnum(rc));
 			goto oops;
 		}
+
+		if ((flags & HAWK_PIO_OUTNOBLOCK) && set_pipe_nonblock(pio, handle[2], 1) <= -1) goto oops;
 
 		if (minidx == -1) minidx = 2;
 		maxidx = 3;
@@ -1062,6 +1084,8 @@ create_process:
 			hawk_gem_seterrnum(pio->gem, HAWK_NULL, hawk_syserr_to_errnum(rc));
 			goto oops;
 		}
+
+		if ((flags & HAWK_PIO_ERRNOBLOCK) && set_pipe_nonblock(pio, handle[4], 1) <= -1) goto oops;
 
 		if (minidx == -1) minidx = 4;
 		maxidx = 5;
@@ -1308,6 +1332,15 @@ create_process:
 			hawk_gem_seterrnum(pio->gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
 			goto oops;
 		}
+
+		/* O_NONBLOCK belongs to the open file description, and handle[1] is
+		 * the parent's end - a different description from the handle[0] the
+		 * child inherits, and one the child closes anyway. so switching it
+		 * here, before the child exists, is equivalent to doing it after the
+		 * spawn, and keeps this failure out of the window in which a spawned
+		 * child would have to be cleaned up. */
+		if ((flags & HAWK_PIO_INNOBLOCK) && set_pipe_nonblock(pio, handle[1], 1) <= -1) goto oops;
+
 		minidx = 0; maxidx = 1;
 	}
 
@@ -1318,6 +1351,9 @@ create_process:
 			hawk_gem_seterrnum(pio->gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
 			goto oops;
 		}
+
+		if ((flags & HAWK_PIO_OUTNOBLOCK) && set_pipe_nonblock(pio, handle[2], 1) <= -1) goto oops;
+
 		if (minidx == -1) minidx = 2;
 		maxidx = 3;
 	}
@@ -1329,6 +1365,9 @@ create_process:
 			hawk_gem_seterrnum(pio->gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
 			goto oops;
 		}
+
+		if ((flags & HAWK_PIO_ERRNOBLOCK) && set_pipe_nonblock(pio, handle[4], 1) <= -1) goto oops;
+
 		if (minidx == -1) minidx = 4;
 		maxidx = 5;
 	}
@@ -1766,13 +1805,6 @@ create_process:
 	}
 #endif
 
-	if (((flags & HAWK_PIO_INNOBLOCK) && set_pipe_nonblock(pio, handle[1], 1) <= -1) ||
-	    ((flags & HAWK_PIO_OUTNOBLOCK) && set_pipe_nonblock(pio, handle[2], 1) <= -1) ||
-	    ((flags & HAWK_PIO_ERRNOBLOCK) && set_pipe_nonblock(pio, handle[4], 1) <= -1))
-	{
-		goto oops;
-	}
-
 	/* store back references */
 	pio->pin[HAWK_PIO_IN].self = pio;
 	pio->pin[HAWK_PIO_OUT].self = pio;
@@ -1782,7 +1814,6 @@ create_process:
 	pio->pin[HAWK_PIO_IN].handle = handle[1];
 	pio->pin[HAWK_PIO_OUT].handle = handle[2];
 	pio->pin[HAWK_PIO_ERR].handle = handle[4];
-
 
 	if (flags & HAWK_PIO_TEXT)
 	{
@@ -1796,6 +1827,9 @@ create_process:
 		{
 			int r;
 
+			/* NOTE: the child process has already been spawned.
+			 * jumping to oops for failure below will trigger forced kill of
+			 * a child process at the beginning of the oops part */
 			tio[i] = hawk_tio_open(pio->gem, HAWK_SIZEOF(&pio->pin[i]), topt);
 			if (HAWK_UNLIKELY(!tio[i])) goto oops;
 
