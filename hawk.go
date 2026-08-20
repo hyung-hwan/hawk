@@ -228,8 +228,14 @@ type Rtx struct {
 	val_tail *Val
 }
 
+type CPtrVal uintptr
+
 type Val struct {
-	c *C.hawk_val_t
+	// storing a raw C pointer in the go memory is usually OK.
+	// but the hawk encodes immediate values using tag in a pointer.
+	// such values are not valid C pointers and go GC triggered pointer check error.
+	//c *C.hawk_val_t
+	c CPtrVal // use a numeric type that can store the pointer
 	rtx *Rtx
 	next *Val
 	prev *Val
@@ -654,7 +660,7 @@ func (rtx *Rtx) GetErrInfo() *Err {
 }
 
 func (rtx *Rtx) SetGlobal(idx int, val *Val) error {
-	if C.hawk_rtx_setgbl(rtx.c, C.int(idx), val.c) <= -1 {
+	if C.hawk_rtx_setgbl(rtx.c, C.int(idx), (*C.hawk_val_t)(unsafe.Pointer(val.c))) <= -1 {
 		return rtx.make_errinfo()
 	}
 	return nil
@@ -676,7 +682,7 @@ func (rtx *Rtx) OnSigset(f RtxSigsetHandler) {
 }
 
 func (rtx *Rtx) Exec(args []string) (*Val, error) {
-	var val *C.hawk_val_t
+	var val CPtrVal
 	var cargs []*C.hawk_bch_t
 	var idx int
 	var count int
@@ -688,26 +694,26 @@ func (rtx *Rtx) Exec(args []string) (*Val, error) {
 	}
 
 	if count > 0 {
-		val = C.hawk_rtx_execwithbcstrarr(rtx.c, &cargs[0], C.hawk_oow_t(count))
+		val = CPtrVal(unsafe.Pointer(C.hawk_rtx_execwithbcstrarr(rtx.c, &cargs[0], C.hawk_oow_t(count))))
 	} else {
-		val = C.hawk_rtx_execwithbcstrarr(rtx.c, (**C.hawk_bch_t)(nil), C.hawk_oow_t(count))
+		val = CPtrVal(unsafe.Pointer(C.hawk_rtx_execwithbcstrarr(rtx.c, (**C.hawk_bch_t)(nil), C.hawk_oow_t(count))))
 	}
 
 	for idx = 0; idx < count; idx++ {
 		C.free(unsafe.Pointer(cargs[idx]))
 	}
-	if val == nil { return nil, rtx.make_errinfo() }
+	if val == 0 { return nil, rtx.make_errinfo() }
 
 	// hawk_rtx_exec...() returns a value with the reference count incremented.
 	// create a value without going through rtx.make_val()
 	return rtx.fix_val_with_raw(val), nil
-	//return rtx.make_val(func() *C.hawk_val_t { return val })
+	//return rtx.make_val(func() CPtrVal { return val })
 }
 
 func (rtx *Rtx) Loop() (*Val, error) {
-	var val *C.hawk_val_t
-	val = C.hawk_rtx_loop(rtx.c)
-	if val == nil { return nil, rtx.make_errinfo() }
+	var val CPtrVal
+	val = CPtrVal(unsafe.Pointer(C.hawk_rtx_loop(rtx.c)))
+	if val == 0 { return nil, rtx.make_errinfo() }
 	// hawk_rtx_loop() returns a value with the reference count incremented.
 	// create a value without going through rtx.make_val()
 	return rtx.fix_val_with_raw(val), nil
@@ -716,7 +722,7 @@ func (rtx *Rtx) Loop() (*Val, error) {
 
 func (rtx *Rtx) Call(name string, args ...*Val) (*Val, error) {
 	var fun *C.hawk_fun_t
-	var val *C.hawk_val_t
+	var val CPtrVal
 	var cv *C.hawk_bch_t
 	var nargs int
 
@@ -727,21 +733,21 @@ func (rtx *Rtx) Call(name string, args ...*Val) (*Val, error) {
 
 	nargs = len(args)
 	if nargs > 0 {
-		var argv []*C.hawk_val_t
+		var argv []CPtrVal
 		var v *Val
 		var i int
-		argv = make([]*C.hawk_val_t, nargs)
+		argv = make([]CPtrVal, nargs)
 		for i, v = range args { argv[i] = v.c }
-		val = C.hawk_rtx_callfun(rtx.c, fun, &argv[0], C.hawk_oow_t(nargs))
+		val = CPtrVal(unsafe.Pointer(C.hawk_rtx_callfun(rtx.c, fun, (**C.hawk_val_t)(unsafe.Pointer(&argv[0])), C.hawk_oow_t(nargs))))
 	} else {
-		val = C.hawk_rtx_callfun(rtx.c, fun, nil, 0)
+		val = CPtrVal(unsafe.Pointer(C.hawk_rtx_callfun(rtx.c, fun, nil, 0)))
 	}
-	if val == nil { return nil, rtx.make_errinfo() }
+	if val == 0 { return nil, rtx.make_errinfo() }
 
 	// hawk_rtx_callfun() returns a value with the reference count incremented.
 	// i create a Val object without incrementing the reference count of val.
 	return rtx.fix_val_with_raw(val), nil
-	//return rtx.make_val(func() *C.hawk_val_t { return val })aAAA
+	//return rtx.make_val(func() CPtrVal { return val })
 }
 
 func (rtx *Rtx) ValCount() int {
@@ -795,63 +801,74 @@ func (rtx *Rtx) GetFuncArgCount() int {
 }
 
 func (rtx *Rtx) GetFuncArg(idx int) (*Val, error) {
-	return rtx.make_val(func() *C.hawk_val_t {
-		return C.hawk_rtx_getarg(rtx.c, C.hawk_oow_t(idx))
+	return rtx.make_val(func() CPtrVal {
+		return CPtrVal(unsafe.Pointer(C.hawk_rtx_getarg(rtx.c, C.hawk_oow_t(idx))))
 	})
 }
 
 func (rtx *Rtx) SetFuncRet(v *Val) {
-	C.hawk_rtx_setretval(rtx.c, v.c)
+	C.hawk_rtx_setretval(rtx.c, (*C.hawk_val_t)(unsafe.Pointer(v.c)))
 }
 
 func (rtx *Rtx) SetFuncRetWithInt(v int) error {
-	var vv *C.hawk_val_t
-	vv = C.hawk_rtx_makeintval(rtx.c, C.hawk_int_t(v))
-	if vv == nil { return rtx.make_errinfo() }
-	C.hawk_rtx_refupval(rtx.c, vv)
-	C.hawk_rtx_setretval(rtx.c, vv)
-	C.hawk_rtx_refdownval(rtx.c, vv)
+	//var vv *C.hawk_val_t
+	//vv = C.hawk_rtx_makeintval(rtx.c, C.hawk_int_t(v))
+	//if vv == nil { return rtx.make_errinfo() }
+
+	var vv CPtrVal
+	vv = CPtrVal(unsafe.Pointer(C.hawk_rtx_makeintval(rtx.c, C.hawk_int_t(v))))
+	if vv == 0 { return rtx.make_errinfo() }
+
+	C.hawk_rtx_refupval(rtx.c, (*C.hawk_val_t)(unsafe.Pointer(vv)))
+	C.hawk_rtx_setretval(rtx.c, (*C.hawk_val_t)(unsafe.Pointer(vv)))
+	C.hawk_rtx_refdownval(rtx.c, (*C.hawk_val_t)(unsafe.Pointer(vv)))
 	return nil
 }
 
 func (rtx *Rtx) SetFuncRetWithFlt(v float64) error {
-	var vv *C.hawk_val_t
-	vv = C.make_flt_val(rtx.c, C.double(v))
-	if vv == nil { return rtx.make_errinfo() }
-	C.hawk_rtx_refupval(rtx.c, vv)
-	C.hawk_rtx_setretval(rtx.c, vv)
-	C.hawk_rtx_refdownval(rtx.c, vv)
+	//var vv *C.hawk_val_t
+	//vv = C.make_flt_val(rtx.c, C.double(v))
+	//if vv == nil { return rtx.make_errinfo() }
+
+	var vv CPtrVal
+	vv = CPtrVal(unsafe.Pointer(C.make_flt_val(rtx.c, C.double(v))))
+	if vv == 0 { return rtx.make_errinfo() }
+
+	C.hawk_rtx_refupval(rtx.c, (*C.hawk_val_t)(unsafe.Pointer(vv)))
+	C.hawk_rtx_setretval(rtx.c, (*C.hawk_val_t)(unsafe.Pointer(vv)))
+	C.hawk_rtx_refdownval(rtx.c, (*C.hawk_val_t)(unsafe.Pointer(vv)))
 	return nil
 }
 
 func (rtx *Rtx) SetFuncRetWithStr(v string) error {
-	var vv *C.hawk_val_t
+	//var vv *C.hawk_val_t
+	var vv CPtrVal
 	var cv *C.hawk_bch_t
 	cv = C.CString(v)
-	vv = C.hawk_rtx_makestrvalwithbchars(rtx.c, cv, C.hawk_oow_t(len(v)))
+	//vv = C.hawk_rtx_makestrvalwithbchars(rtx.c, cv, C.hawk_oow_t(len(v)))
+	vv = CPtrVal(unsafe.Pointer(C.hawk_rtx_makestrvalwithbchars(rtx.c, cv, C.hawk_oow_t(len(v)))))
 	C.free(unsafe.Pointer(cv))
-	if vv == nil { return rtx.make_errinfo() }
-	C.hawk_rtx_refupval(rtx.c, vv)
-	C.hawk_rtx_setretval(rtx.c, vv)
-	C.hawk_rtx_refdownval(rtx.c, vv)
+	//if vv == nil { return rtx.make_errinfo() }
+	if vv == 0 { return rtx.make_errinfo() }
+	C.hawk_rtx_refupval(rtx.c, (*C.hawk_val_t)(unsafe.Pointer(vv)))
+	C.hawk_rtx_setretval(rtx.c, (*C.hawk_val_t)(unsafe.Pointer(vv)))
+	C.hawk_rtx_refdownval(rtx.c, (*C.hawk_val_t)(unsafe.Pointer(vv)))
 	return nil
 }
 
 func (rtx *Rtx) GetNamedVars(vars map[string]*Val) {
 	var itr C.hawk_rtx_nv_itr_t
-	var val *C.hawk_val_t
+	var val CPtrVal
 	var k string
 	var err error
 
 	C.hawk_init_rtx_nv_itr(&itr)
-	val = C.hawk_rtx_getfirstnv(rtx.c, &itr)
-	for val != nil {
+	val = CPtrVal(unsafe.Pointer(C.hawk_rtx_getfirstnv(rtx.c, &itr)))
+	for val != 0 {
 		k = string(uchars_to_rune_slice((*C.hawk_uch_t)(itr.name.ptr), uintptr(itr.name.len)))
-		vars[k], err = rtx.make_val(func() *C.hawk_val_t { return val })
-		if err != nil {
-			return
-		}
-		val = C.hawk_rtx_getnextnv(rtx.c, &itr)
+		vars[k], err = rtx.make_val(func() CPtrVal { return val })
+		if err != nil { return }
+		val = CPtrVal(unsafe.Pointer(C.hawk_rtx_getnextnv(rtx.c, &itr)))
 	}
 }
 
@@ -1036,97 +1053,97 @@ func (rtx *Rtx) NewVal(v interface{}) (*Val, error) {
 	}
 }
 
-func (rtx* Rtx) make_val(vmaker func() *C.hawk_val_t) (*Val, error) {
-	var c *C.hawk_val_t
+func (rtx* Rtx) make_val(vmaker func() CPtrVal) (*Val, error) {
+	var c CPtrVal
 	var vv *Val
 
 	c = vmaker()
-	if c == nil { return nil, rtx.make_errinfo() }
+	if c == 0 { return nil, rtx.make_errinfo() }
 
-	C.hawk_rtx_refupval(rtx.c, c)
+	C.hawk_rtx_refupval(rtx.c, (*C.hawk_val_t)(unsafe.Pointer(c)))
 	vv = &Val{rtx: rtx, c: c}
 	rtx.chain_val(vv)
 	return vv, nil
 }
 
-func (rtx* Rtx) fix_val_with_raw(val *C.hawk_val_t) *Val {
+func (rtx* Rtx) fix_val_with_raw(val CPtrVal) *Val {
 	// this function assumes val has the non-zero reference count
 	// the caller must ensure that the reference count has been incremented properly
 	var vv *Val
 	// immediate values or static pointer values must no check the reference count.
-	if C.hawk_rtx_isimmorstaticval(rtx.c, val) == 0 && val.v_refs <= 0 { panic("invalid reference count") }
+	if C.hawk_rtx_isimmorstaticval(rtx.c, (*C.hawk_val_t)(unsafe.Pointer(val))) == 0 && ((*C.hawk_val_t)(unsafe.Pointer(val))).v_refs <= 0 { panic("invalid reference count") }
 	vv = &Val{rtx: rtx, c: val}
 	rtx.chain_val(vv)
 	return vv
 }
 
 func (rtx *Rtx) NewByteVal(v byte) (*Val, error) {
-	return rtx.make_val(func() *C.hawk_val_t {
-		return C.hawk_rtx_makebchrval(rtx.c, C.hawk_bch_t(v))
+	return rtx.make_val(func() CPtrVal {
+		return CPtrVal(unsafe.Pointer(C.hawk_rtx_makebchrval(rtx.c, C.hawk_bch_t(v))))
 	})
 }
 
 func (rtx *Rtx) NewCharVal(v rune) (*Val, error) {
-	return rtx.make_val(func() *C.hawk_val_t {
-		return C.hawk_rtx_makecharval(rtx.c, C.hawk_ooch_t(v))
+	return rtx.make_val(func() CPtrVal {
+		return CPtrVal(unsafe.Pointer(C.hawk_rtx_makecharval(rtx.c, C.hawk_ooch_t(v))))
 	})
 }
 
 func (rtx *Rtx) NewIntVal(v int) (*Val, error) {
-	return rtx.make_val(func() *C.hawk_val_t {
-		return C.hawk_rtx_makeintval(rtx.c, C.hawk_int_t(v))
+	return rtx.make_val(func() CPtrVal {
+		return CPtrVal(unsafe.Pointer(C.hawk_rtx_makeintval(rtx.c, C.hawk_int_t(v))))
 	})
 }
 
 func (rtx *Rtx) NewFltVal(v float64) (*Val, error) {
-	return rtx.make_val(func() *C.hawk_val_t {
-		return C.make_flt_val(rtx.c, C.double(v))
+	return rtx.make_val(func() CPtrVal {
+		return CPtrVal(unsafe.Pointer(C.make_flt_val(rtx.c, C.double(v))))
 	})
 }
 
 func (rtx *Rtx) NewStrVal(v string) (*Val, error) {
-	return rtx.make_val(func() *C.hawk_val_t {
-		var vv *C.hawk_val_t
+	return rtx.make_val(func() CPtrVal {
+		var vv CPtrVal
 		var cv *C.hawk_bch_t
 		cv = C.CString(v)
-		vv = C.hawk_rtx_makestrvalwithbchars(rtx.c, cv, C.hawk_oow_t(len(v)))
+		vv = CPtrVal(unsafe.Pointer(C.hawk_rtx_makestrvalwithbchars(rtx.c, cv, C.hawk_oow_t(len(v)))))
 		C.free(unsafe.Pointer(cv))
 		return vv
 	})
 }
 
 func (rtx *Rtx) NewNumOrStrVal(v string, mode int) (*Val, error) {
-	return rtx.make_val(func() *C.hawk_val_t {
-		var vv *C.hawk_val_t
+	return rtx.make_val(func() CPtrVal {
+		var vv CPtrVal
 		var cv *C.hawk_bch_t
 		cv = C.CString(v)
-		vv = C.hawk_rtx_makenumorstrvalwithbchars(rtx.c, cv, C.hawk_oow_t(len(v)), C.int(mode))
+		vv = CPtrVal(unsafe.Pointer(C.hawk_rtx_makenumorstrvalwithbchars(rtx.c, cv, C.hawk_oow_t(len(v)), C.int(mode))))
 		C.free(unsafe.Pointer(cv))
 		return vv
 	})
 }
 
 func (rtx *Rtx) NewByteArrVal(v []byte) (*Val, error) {
-	return rtx.make_val(func() *C.hawk_val_t {
-		return C.hawk_rtx_makembsvalwithbchars(rtx.c, (*C.hawk_bch_t)(unsafe.Pointer(&v[0])), C.hawk_oow_t(len(v)))
+	return rtx.make_val(func() CPtrVal {
+		return CPtrVal(unsafe.Pointer(C.hawk_rtx_makembsvalwithbchars(rtx.c, (*C.hawk_bch_t)(unsafe.Pointer(&v[0])), C.hawk_oow_t(len(v)))))
 	})
 }
 
 func (rtx *Rtx) NewBobVal(v []byte) (*Val, error) {
-	return rtx.make_val(func() *C.hawk_val_t {
-		return C.hawk_rtx_makebobval(rtx.c, unsafe.Pointer(&v[0]), C.hawk_oow_t(len(v)))
+	return rtx.make_val(func() CPtrVal {
+		return CPtrVal(unsafe.Pointer(C.hawk_rtx_makebobval(rtx.c, unsafe.Pointer(&v[0]), C.hawk_oow_t(len(v)))))
 	})
 }
 
 func (rtx *Rtx) NewMapVal() (*Val, error) {
-	return rtx.make_val(func() *C.hawk_val_t {
-		return C.hawk_rtx_makemapval(rtx.c)
+	return rtx.make_val(func() CPtrVal {
+		return CPtrVal(unsafe.Pointer(C.hawk_rtx_makemapval(rtx.c)))
 	})
 }
 
 func (rtx *Rtx) NewArrVal(init_capa int) (*Val, error) {
-	return rtx.make_val(func() *C.hawk_val_t {
-		return C.hawk_rtx_makearrval(rtx.c, C.hawk_ooi_t(init_capa))
+	return rtx.make_val(func() CPtrVal {
+		return CPtrVal(unsafe.Pointer(C.hawk_rtx_makearrval(rtx.c, C.hawk_ooi_t(init_capa))))
 	})
 }
 
@@ -1137,13 +1154,13 @@ func (val *Val) Close() {
 		var rtx *C.hawk_rtx_t
 		rtx = val.rtx.c // store this field as unchain_val() resets it to nil
 		val.rtx.unchain_val(val)
-		C.hawk_rtx_refdownval(rtx, val.c)
+		C.hawk_rtx_refdownval(rtx, (*C.hawk_val_t)(unsafe.Pointer(val.c)))
 	}
 }
 
 func (val *Val) Type() ValType {
 	var x C.int
-	x = C.hawk_rtx_getvaltype(val.rtx.c, val.c)
+	x = C.hawk_rtx_getvaltype(val.rtx.c, (*C.hawk_val_t)(unsafe.Pointer(val.c)))
 	return ValType(x)
 }
 
@@ -1157,7 +1174,7 @@ func (val *Val) ToInt() (int, error) {
 	var v C.hawk_int_t
 	var x C.int
 
-	x = C.hawk_rtx_valtoint(val.rtx.c, val.c, &v)
+	x = C.hawk_rtx_valtoint(val.rtx.c, (*C.hawk_val_t)(unsafe.Pointer(val.c)), &v)
 	if x <= -1 { return 0, val.rtx.make_errinfo() }
 
 	return int(v), nil
@@ -1168,7 +1185,7 @@ func (val *Val) ToFlt() (float64, error) {
 	var x C.int
 
 	//x = C.hawk_rtx_valtoflt(val.rtx.c, val.c, &v)
-	x = C.val_to_flt(val.rtx.c, val.c, (*C.double)(&v))
+	x = C.val_to_flt(val.rtx.c, (*C.hawk_val_t)(unsafe.Pointer(val.c)), (*C.double)(&v))
 	if x <= -1 { return 0, val.rtx.make_errinfo() }
 
 	return v, nil
@@ -1182,7 +1199,7 @@ func (val *Val) ToStr() (string, error) {
 	var x C.int
 
 	out._type = C.HAWK_RTX_VALTOSTR_CPLDUP
-	x = C.hawk_rtx_valtostr(val.rtx.c, val.c, &out)
+	x = C.hawk_rtx_valtostr(val.rtx.c, (*C.hawk_val_t)(unsafe.Pointer(val.c)), &out)
 	if x <= -1 { return "", val.rtx.make_errinfo() }
 
 	ptr = C.valtostr_out_cpldup(&out, &len)
@@ -1197,7 +1214,7 @@ func (val *Val) ToByteArr() ([]byte, error) {
 	var len C.hawk_oow_t
 	var v []byte
 
-	ptr = C.hawk_rtx_valtobcstrdupwithcmgr(val.rtx.c, val.c, &len, C.hawk_rtx_getcmgr(val.rtx.c))
+	ptr = C.hawk_rtx_valtobcstrdupwithcmgr(val.rtx.c, (*C.hawk_val_t)(unsafe.Pointer(val.c)), &len, C.hawk_rtx_getcmgr(val.rtx.c))
 	if ptr == nil { return nil, val.rtx.make_errinfo() }
 
 	v = C.GoBytes(unsafe.Pointer(ptr), C.int(len))
@@ -1209,60 +1226,78 @@ func (val *Val) ToByteArr() ([]byte, error) {
 func (val *Val) ArrayTally() int {
 	var v C.hawk_ooi_t
 // TODO: if not array .. panic or return -1 or 0?
-	v = C.hawk_rtx_getarrvaltally(val.rtx.c, val.c)
+	v = C.hawk_rtx_getarrvaltally(val.rtx.c, (*C.hawk_val_t)(unsafe.Pointer(val.c)))
 	return int(v)
 }
 
 // TODO: function to get the first index and last index or the capacity
 //       function to traverse?
 func (val *Val) GetArrayField(index int) (*Val, error) {
-	var v *C.hawk_val_t
-	v = C.hawk_rtx_getarrvalfld(val.rtx.c, val.c, C.hawk_ooi_t(index))
-	if v == nil { return nil, val.rtx.make_errinfo() }
-	return val.rtx.make_val(func() *C.hawk_val_t { return v })
+	var v CPtrVal
+	v = CPtrVal(unsafe.Pointer(C.hawk_rtx_getarrvalfld(val.rtx.c, (*C.hawk_val_t)(unsafe.Pointer(val.c)), C.hawk_ooi_t(index))))
+	if v == 0 { return nil, val.rtx.make_errinfo() }
+	return val.rtx.make_val(func() CPtrVal { return v })
 }
 
 func (val *Val) SetArrayField(index int, v *Val) error {
-	var vv *C.hawk_val_t
-	vv = C.hawk_rtx_setarrvalfld(val.rtx.c, val.c, C.hawk_ooi_t(index), v.c)
-	if vv == nil { return val.rtx.make_errinfo() }
+	var vv CPtrVal
+	vv = CPtrVal(unsafe.Pointer(C.hawk_rtx_setarrvalfld(
+		val.rtx.c,
+		(*C.hawk_val_t)(unsafe.Pointer(val.c)),
+		C.hawk_ooi_t(index),
+		(*C.hawk_val_t)(unsafe.Pointer(v.c)))))
+	if vv == 0 { return val.rtx.make_errinfo() }
 	return nil
 }
 
 func (val *Val) SetArrayFieldWithInt(index int, v int) error {
-	var vv *C.hawk_val_t
-	var ww *C.hawk_val_t
-	vv = C.hawk_rtx_makeintval(val.rtx.c, C.hawk_int_t(v))
-	if vv == nil { return val.rtx.make_errinfo() }
-	C.hawk_rtx_refupval(val.rtx.c, vv)
-	ww = C.hawk_rtx_setarrvalfld(val.rtx.c, val.c, C.hawk_ooi_t(index), vv)
-	C.hawk_rtx_refdownval(val.rtx.c, vv)
-	if ww == nil { return val.rtx.make_errinfo() }
+	var vv CPtrVal
+	var ww CPtrVal
+	vv = CPtrVal(unsafe.Pointer(C.hawk_rtx_makeintval(val.rtx.c, C.hawk_int_t(v))))
+	if vv == 0 { return val.rtx.make_errinfo() }
+	C.hawk_rtx_refupval(val.rtx.c, (*C.hawk_val_t)(unsafe.Pointer(vv)))
+	ww = CPtrVal(unsafe.Pointer(C.hawk_rtx_setarrvalfld(
+		val.rtx.c,
+		(*C.hawk_val_t)(unsafe.Pointer(val.c)),
+		C.hawk_ooi_t(index),
+		(*C.hawk_val_t)(unsafe.Pointer(vv)))))
+	C.hawk_rtx_refdownval(val.rtx.c, (*C.hawk_val_t)(unsafe.Pointer(vv)))
+	if ww == 0 { return val.rtx.make_errinfo() }
 	return nil
 }
 
 func (val *Val) SetArrayFieldWithFlt(index int, v float64) error {
-	var vv *C.hawk_val_t
-	vv = C.make_flt_val(val.rtx.c, C.double(v))
-	if vv == nil { return val.rtx.make_errinfo() }
-	C.hawk_rtx_refupval(val.rtx.c, vv)
-	vv = C.hawk_rtx_setarrvalfld(val.rtx.c, val.c, C.hawk_ooi_t(index), vv)
-	C.hawk_rtx_refdownval(val.rtx.c, vv)
-	if vv == nil { return val.rtx.make_errinfo() }
+	var vv CPtrVal
+	var ww CPtrVal
+	vv = CPtrVal(unsafe.Pointer(C.make_flt_val(val.rtx.c, C.double(v))))
+	if vv == 0 { return val.rtx.make_errinfo() }
+	C.hawk_rtx_refupval(val.rtx.c, (*C.hawk_val_t)(unsafe.Pointer(vv)))
+	ww = CPtrVal(unsafe.Pointer(C.hawk_rtx_setarrvalfld(
+		val.rtx.c,
+		(*C.hawk_val_t)(unsafe.Pointer(val.c)),
+		C.hawk_ooi_t(index),
+		(*C.hawk_val_t)(unsafe.Pointer(vv)))))
+	C.hawk_rtx_refdownval(val.rtx.c, (*C.hawk_val_t)(unsafe.Pointer(vv)))
+	if ww == 0 { return val.rtx.make_errinfo() }
 	return nil
 }
 
 func (val *Val) SetArrayFieldWithStr(index int, v string) error {
-	var vv *C.hawk_val_t
+	var vv CPtrVal
+	var ww CPtrVal
 	var cv *C.hawk_bch_t
 	cv = C.CString(v)
-	vv = C.hawk_rtx_makestrvalwithbchars(val.rtx.c, cv, C.hawk_oow_t(len(v)))
+	vv = CPtrVal(unsafe.Pointer(C.hawk_rtx_makestrvalwithbchars(val.rtx.c, cv, C.hawk_oow_t(len(v)))))
 	C.free(unsafe.Pointer(cv))
-	if vv == nil { return val.rtx.make_errinfo() }
-	C.hawk_rtx_refupval(val.rtx.c, vv)
-	vv = C.hawk_rtx_setarrvalfld(val.rtx.c, val.c, C.hawk_ooi_t(index), vv)
-	C.hawk_rtx_refdownval(val.rtx.c, vv)
-	if vv == nil { return val.rtx.make_errinfo() }
+	if vv == 0 { return val.rtx.make_errinfo() }
+	C.hawk_rtx_refupval(val.rtx.c, (*C.hawk_val_t)(unsafe.Pointer(vv)))
+	ww = CPtrVal(unsafe.Pointer(C.hawk_rtx_setarrvalfld(
+		val.rtx.c,
+		(*C.hawk_val_t)(unsafe.Pointer(val.c)),
+		C.hawk_ooi_t(index),
+		(*C.hawk_val_t)(unsafe.Pointer(vv)))))
+	C.hawk_rtx_refdownval(val.rtx.c, (*C.hawk_val_t)(unsafe.Pointer(vv)))
+	if ww == 0 { return val.rtx.make_errinfo() }
 	return nil
 }
 
@@ -1270,9 +1305,9 @@ func (val *Val) GetFirstArrayField(itr *ValArrayItr) (int, *Val) {
 	var i *C.hawk_val_arr_itr_t
 	var v *Val
 	var err error
-	i = C.hawk_rtx_getfirstarrvalitr(val.rtx.c, val.c, &itr.c)
+	i = C.hawk_rtx_getfirstarrvalitr(val.rtx.c, (*C.hawk_val_t)(unsafe.Pointer(val.c)), &itr.c)
 	if i == nil { return -1, nil }
-	v, err = val.rtx.make_val(func() *C.hawk_val_t { return itr.c.elem })
+	v, err = val.rtx.make_val(func() CPtrVal { return CPtrVal(unsafe.Pointer(itr.c.elem)) })
 	if err != nil { return -1, nil }
 	return int(itr.c.itr.idx), v;
 }
@@ -1281,77 +1316,101 @@ func (val *Val) GetNextArrayField(itr *ValArrayItr) (int, *Val) {
 	var i *C.hawk_val_arr_itr_t
 	var v *Val
 	var err error
-	i = C.hawk_rtx_getnextarrvalitr(val.rtx.c, val.c, &itr.c)
+	i = C.hawk_rtx_getnextarrvalitr(val.rtx.c, (*C.hawk_val_t)(unsafe.Pointer(val.c)), &itr.c)
 	if i == nil { return -1, nil }
-	v, err = val.rtx.make_val(func() *C.hawk_val_t { return itr.c.elem })
+	v, err = val.rtx.make_val(func() CPtrVal { return CPtrVal(unsafe.Pointer(itr.c.elem)) })
 	if err != nil { return -1, nil }
 	return int(itr.c.itr.idx), v;
 }
 
 func (val *Val) GetMapField(key string) (*Val, error) {
-	var v *C.hawk_val_t
+	var v CPtrVal
 	var uc []C.hawk_uch_t
 	uc = string_to_uchars(key)
-	v = C.hawk_rtx_getmapvalfld(val.rtx.c, val.c, &uc[0], C.hawk_oow_t(len(uc)))
-	if v == nil { return nil, val.rtx.make_errinfo() }
-	return val.rtx.make_val(func() *C.hawk_val_t { return v })
+	v = (CPtrVal)(unsafe.Pointer(C.hawk_rtx_getmapvalfld(
+		val.rtx.c,
+		(*C.hawk_val_t)(unsafe.Pointer(val.c)),
+		&uc[0],
+		C.hawk_oow_t(len(uc)))))
+	if v == 0 { return nil, val.rtx.make_errinfo() }
+	return val.rtx.make_val(func() CPtrVal { return v })
 }
 
 func (val *Val) SetMapField(key string, v *Val) error {
-	var vv *C.hawk_val_t
+	var vv CPtrVal
 	var kk []C.hawk_uch_t
 
 	kk = string_to_uchars(key)
-	vv = C.hawk_rtx_setmapvalfld(val.rtx.c, val.c, &kk[0], C.hawk_oow_t(len(kk)), v.c)
-	if vv == nil { return val.rtx.make_errinfo() }
+	vv = (CPtrVal)(unsafe.Pointer(C.hawk_rtx_setmapvalfld(
+		val.rtx.c,
+		(*C.hawk_val_t)(unsafe.Pointer(val.c)),
+		 &kk[0],
+		C.hawk_oow_t(len(kk)),
+		(*C.hawk_val_t)(unsafe.Pointer(v.c)))))
+	if vv == 0 { return val.rtx.make_errinfo() }
 	return nil
 }
 
 func (val *Val) SetMapFieldWithInt(key string, v int) error {
 	var kk []C.hawk_uch_t
-	var vv *C.hawk_val_t
-	var ww *C.hawk_val_t
+	var vv CPtrVal
+	var ww CPtrVal
 
 	kk = string_to_uchars(key)
-	vv = C.hawk_rtx_makeintval(val.rtx.c, C.hawk_int_t(v))
-	if vv == nil { return val.rtx.make_errinfo() }
-	C.hawk_rtx_refupval(val.rtx.c, vv)
-	ww = C.hawk_rtx_setmapvalfld(val.rtx.c, val.c, &kk[0], C.hawk_oow_t(len(kk)), vv)
-	C.hawk_rtx_refdownval(val.rtx.c, vv)
-	if ww == nil { return val.rtx.make_errinfo() }
+	vv = CPtrVal(unsafe.Pointer(C.hawk_rtx_makeintval(val.rtx.c, C.hawk_int_t(v))))
+	if vv == 0 { return val.rtx.make_errinfo() }
+	C.hawk_rtx_refupval(val.rtx.c, (*C.hawk_val_t)(unsafe.Pointer(vv)))
+	ww = CPtrVal(unsafe.Pointer(C.hawk_rtx_setmapvalfld(
+		val.rtx.c,
+		(*C.hawk_val_t)(unsafe.Pointer(val.c)),
+		&kk[0],
+		C.hawk_oow_t(len(kk)),
+		(*C.hawk_val_t)(unsafe.Pointer(vv)))))
+	C.hawk_rtx_refdownval(val.rtx.c, (*C.hawk_val_t)(unsafe.Pointer(vv)))
+	if ww == 0 { return val.rtx.make_errinfo() }
 	return nil
 }
 
 func (val *Val) SetMapFieldWithFlt(key string, v float64) error {
 	var kk []C.hawk_uch_t
-	var vv *C.hawk_val_t
-	var ww *C.hawk_val_t
+	var vv CPtrVal
+	var ww CPtrVal
 
 	kk = string_to_uchars(key)
-	vv = C.make_flt_val(val.rtx.c, C.double(v))
-	if vv == nil { return val.rtx.make_errinfo() }
-	C.hawk_rtx_refupval(val.rtx.c, vv)
-	ww = C.hawk_rtx_setmapvalfld(val.rtx.c, val.c, &kk[0], C.hawk_oow_t(len(kk)), vv)
-	C.hawk_rtx_refdownval(val.rtx.c, vv)
-	if ww == nil { return val.rtx.make_errinfo() }
+	vv = CPtrVal(unsafe.Pointer(C.make_flt_val(val.rtx.c, C.double(v))))
+	if vv == 0 { return val.rtx.make_errinfo() }
+	C.hawk_rtx_refupval(val.rtx.c, (*C.hawk_val_t)(unsafe.Pointer(vv)))
+	ww = CPtrVal(unsafe.Pointer(C.hawk_rtx_setmapvalfld(
+		val.rtx.c,
+		(*C.hawk_val_t)(unsafe.Pointer(val.c)),
+		&kk[0],
+		C.hawk_oow_t(len(kk)),
+		(*C.hawk_val_t)(unsafe.Pointer(vv)))))
+	C.hawk_rtx_refdownval(val.rtx.c, (*C.hawk_val_t)(unsafe.Pointer(vv)))
+	if ww == 0 { return val.rtx.make_errinfo() }
 	return nil
 }
 
 func (val *Val) SetMapFieldWithStr(key string, v string) error {
 	var kk []C.hawk_uch_t
-	var vv *C.hawk_val_t
-	var ww *C.hawk_val_t
+	var vv CPtrVal
+	var ww CPtrVal
 	var cv *C.hawk_bch_t
 
 	kk = string_to_uchars(key)
 	cv = C.CString(v)
-	vv = C.hawk_rtx_makestrvalwithbchars(val.rtx.c, cv, C.hawk_oow_t(len(v)))
+	vv = CPtrVal(unsafe.Pointer(C.hawk_rtx_makestrvalwithbchars(val.rtx.c, cv, C.hawk_oow_t(len(v)))))
 	C.free(unsafe.Pointer(cv))
-	if vv == nil { return val.rtx.make_errinfo() }
-	C.hawk_rtx_refupval(val.rtx.c, vv)
-	ww = C.hawk_rtx_setmapvalfld(val.rtx.c, val.c, &kk[0], C.hawk_oow_t(len(kk)), vv)
-	C.hawk_rtx_refdownval(val.rtx.c, vv)
-	if ww == nil { return val.rtx.make_errinfo() }
+	if vv == 0 { return val.rtx.make_errinfo() }
+	C.hawk_rtx_refupval(val.rtx.c, (*C.hawk_val_t)(unsafe.Pointer(vv)))
+	ww = CPtrVal(unsafe.Pointer(C.hawk_rtx_setmapvalfld(
+		val.rtx.c,
+		(*C.hawk_val_t)(unsafe.Pointer(val.c)),
+		&kk[0],
+		C.hawk_oow_t(len(kk)),
+		(*C.hawk_val_t)(unsafe.Pointer(vv)))))
+	C.hawk_rtx_refdownval(val.rtx.c, (*C.hawk_val_t)(unsafe.Pointer(vv)))
+	if ww == 0 { return val.rtx.make_errinfo() }
 	return nil
 }
 
@@ -1360,10 +1419,10 @@ func (val *Val) GetFirstMapField(itr *ValMapItr) (string, *Val) {
 	var k string
 	var v *Val
 	var err error
-	i = C.hawk_rtx_getfirstmapvalitr(val.rtx.c, val.c, &itr.c)
+	i = C.hawk_rtx_getfirstmapvalitr(val.rtx.c, (*C.hawk_val_t)(unsafe.Pointer(val.c)), &itr.c)
 	if i == nil { return "", nil }
 	k = string(uchars_to_rune_slice((*C.hawk_uch_t)(itr.c.pair.key.ptr), uintptr(itr.c.pair.key.len)))
-	v, err = val.rtx.make_val(func() *C.hawk_val_t { return (*C.hawk_val_t)(itr.c.pair.val.ptr) })
+	v, err = val.rtx.make_val(func() CPtrVal { return CPtrVal(unsafe.Pointer((itr.c.pair.val.ptr))) })
 	if err != nil { return "", nil }
 	return k, v;
 }
@@ -1373,10 +1432,10 @@ func (val *Val) GetNextMapField(itr *ValMapItr) (string, *Val) {
 	var k string
 	var v *Val
 	var err error
-	i = C.hawk_rtx_getnextmapvalitr(val.rtx.c, val.c, &itr.c)
+	i = C.hawk_rtx_getnextmapvalitr(val.rtx.c,  (*C.hawk_val_t)(unsafe.Pointer(val.c)), &itr.c)
 	if i == nil { return "", nil }
 	k = string(uchars_to_rune_slice((*C.hawk_uch_t)(itr.c.pair.key.ptr), uintptr(itr.c.pair.key.len)))
-	v, err = val.rtx.make_val(func() *C.hawk_val_t { return (*C.hawk_val_t)(itr.c.pair.val.ptr) })
+	v, err = val.rtx.make_val(func() CPtrVal { return CPtrVal(unsafe.Pointer((itr.c.pair.val.ptr))) })
 	if err != nil { return "", nil }
 	return k, v;
 }
