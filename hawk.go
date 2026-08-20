@@ -102,6 +102,17 @@ static void init_rtx_xtn_ecb (rtx_xtn_t* xtn)
 }
 
 // -----------------------------------------------
+static hawk_uintptr_t val_arr_itr_elem(hawk_val_arr_itr_t* itr)
+{
+	return (hawk_uintptr_t)itr->elem;
+}
+
+static hawk_uintptr_t val_map_itr_val(hawk_val_map_itr_t* itr)
+{
+	return (hawk_uintptr_t)HAWK_VAL_MAP_ITR_VAL(itr);
+}
+
+// -----------------------------------------------
 
 extern int hawk_mod_go_fnc_gc(rtx_xtn_t* rtx_xtn);
 static int fnc_gc(hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
@@ -259,7 +270,9 @@ const (
 )
 
 type ValArrayItr struct {
-	c C.hawk_val_arr_itr_t
+	//c C.hawk_val_arr_itr_t
+	_   [0]uintptr // for alignment
+	c [C.sizeof_hawk_val_arr_itr_t]byte
 }
 
 type ValMapItr struct {
@@ -1301,31 +1314,52 @@ func (val *Val) SetArrayFieldWithStr(index int, v string) error {
 	return nil
 }
 
+func (itr *ValArrayItr) cptr() *C.hawk_val_arr_itr_t {
+	return (*C.hawk_val_arr_itr_t)(unsafe.Pointer(&itr.c[0]))
+}
+
 func (val *Val) GetFirstArrayField(itr *ValArrayItr) (int, *Val) {
-	var i *C.hawk_val_arr_itr_t
+	//var i *C.hawk_val_arr_itr_t
+	var i uintptr
 	var v *Val
 	var err error
-	i = C.hawk_rtx_getfirstarrvalitr(val.rtx.c, (*C.hawk_val_t)(unsafe.Pointer(val.c)), &itr.c)
-	if i == nil { return -1, nil }
-	v, err = val.rtx.make_val(func() CPtrVal { return CPtrVal(unsafe.Pointer(itr.c.elem)) })
+
+	i = uintptr(unsafe.Pointer(C.hawk_rtx_getfirstarrvalitr(
+		val.rtx.c,
+		(*C.hawk_val_t)(unsafe.Pointer(val.c)),
+		itr.cptr())))
+	if i == 0 { return -1, nil }
+
+	v, err = val.rtx.make_val(func() CPtrVal {
+		return CPtrVal(C.val_arr_itr_elem(itr.cptr()))
+	})
 	if err != nil { return -1, nil }
-	return int(itr.c.itr.idx), v;
+	return int(itr.cptr().itr.idx), v;
 }
 
 func (val *Val) GetNextArrayField(itr *ValArrayItr) (int, *Val) {
-	var i *C.hawk_val_arr_itr_t
+	//var i *C.hawk_val_arr_itr_t
+	var i uintptr
 	var v *Val
 	var err error
-	i = C.hawk_rtx_getnextarrvalitr(val.rtx.c, (*C.hawk_val_t)(unsafe.Pointer(val.c)), &itr.c)
-	if i == nil { return -1, nil }
-	v, err = val.rtx.make_val(func() CPtrVal { return CPtrVal(unsafe.Pointer(itr.c.elem)) })
+
+	i = uintptr(unsafe.Pointer(C.hawk_rtx_getnextarrvalitr(
+		val.rtx.c,
+		(*C.hawk_val_t)(unsafe.Pointer(val.c)),
+		itr.cptr())))
+	if i == 0 { return -1, nil }
+
+	v, err = val.rtx.make_val(func() CPtrVal {
+		return CPtrVal(C.val_arr_itr_elem(itr.cptr()))
+	})
 	if err != nil { return -1, nil }
-	return int(itr.c.itr.idx), v;
+	return int(itr.cptr().itr.idx), v;
 }
 
 func (val *Val) GetMapField(key string) (*Val, error) {
 	var v CPtrVal
 	var uc []C.hawk_uch_t
+
 	uc = string_to_uchars(key)
 	v = (CPtrVal)(unsafe.Pointer(C.hawk_rtx_getmapvalfld(
 		val.rtx.c,
@@ -1419,10 +1453,14 @@ func (val *Val) GetFirstMapField(itr *ValMapItr) (string, *Val) {
 	var k string
 	var v *Val
 	var err error
+
 	i = C.hawk_rtx_getfirstmapvalitr(val.rtx.c, (*C.hawk_val_t)(unsafe.Pointer(val.c)), &itr.c)
 	if i == nil { return "", nil }
+
 	k = string(uchars_to_rune_slice((*C.hawk_uch_t)(itr.c.pair.key.ptr), uintptr(itr.c.pair.key.len)))
-	v, err = val.rtx.make_val(func() CPtrVal { return CPtrVal(unsafe.Pointer((itr.c.pair.val.ptr))) })
+	v, err = val.rtx.make_val(func() CPtrVal {
+		return CPtrVal(C.val_map_itr_val(&itr.c))
+	})
 	if err != nil { return "", nil }
 	return k, v;
 }
@@ -1432,10 +1470,14 @@ func (val *Val) GetNextMapField(itr *ValMapItr) (string, *Val) {
 	var k string
 	var v *Val
 	var err error
+
 	i = C.hawk_rtx_getnextmapvalitr(val.rtx.c,  (*C.hawk_val_t)(unsafe.Pointer(val.c)), &itr.c)
 	if i == nil { return "", nil }
+
 	k = string(uchars_to_rune_slice((*C.hawk_uch_t)(itr.c.pair.key.ptr), uintptr(itr.c.pair.key.len)))
-	v, err = val.rtx.make_val(func() CPtrVal { return CPtrVal(unsafe.Pointer((itr.c.pair.val.ptr))) })
+	v, err = val.rtx.make_val(func() CPtrVal {
+		return CPtrVal(C.val_map_itr_val(&itr.c))
+	})
 	if err != nil { return "", nil }
 	return k, v;
 }
