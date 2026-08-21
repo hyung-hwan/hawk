@@ -2694,8 +2694,7 @@ static int run_block (hawk_rtx_t* rtx, hawk_nde_blk_t* nde)
 {
 	int n;
 
-	if (rtx->hawk->opt.depth.s.block_run > 0 &&
-	    rtx->depth.block >= rtx->hawk->opt.depth.s.block_run)
+	if (HAWK_UNLIKELY(rtx->hawk->opt.depth.s.block_run > 0 && rtx->depth.block >= rtx->hawk->opt.depth.s.block_run))
 	{
 		hawk_rtx_seterrbfmt(rtx, &nde->loc, HAWK_EBLKNST,
 			"run-time block depth(%zu) reached limit(%zu)",
@@ -4811,6 +4810,16 @@ static hawk_val_t* eval_expression0 (hawk_rtx_t* rtx, hawk_nde_t* nde)
 
 	HAWK_ASSERT(nde->type >= HAWK_NDE_GRP && (nde->type - HAWK_NDE_GRP) < HAWK_COUNTOF(__evaluator));
 
+	if (HAWK_UNLIKELY(rtx->hawk->opt.depth.s.expr_run > 0 && rtx->depth.expr >= rtx->hawk->opt.depth.s.expr_run))
+     {
+          hawk_rtx_seterrbfmt(rtx, &nde->loc, HAWK_EBLKNST,
+               "run-time expression depth(%zu) reached limit(%zu)",
+               rtx->depth.expr, rtx->hawk->opt.depth.s.expr_run);
+          return HAWK_NULL;
+     }
+
+	rtx->depth.expr++;
+
 	switch(nde->type)
 	{
 #if !defined(KEEP_EVAL_FNCALL_FUN)
@@ -4918,9 +4927,11 @@ static hawk_val_t* eval_expression0 (hawk_rtx_t* rtx, hawk_nde_t* nde)
 done:
 	/* this function returns a regular expression without further mathiching.
 	 * it is done in eval_expression(). */
+	rtx->depth.expr--;
 	return v;
 
 oops:
+	rtx->depth.expr--;
 	ADJERR_LOC(rtx, &nde->loc);
 	return HAWK_NULL;
 }
