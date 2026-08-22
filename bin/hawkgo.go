@@ -349,7 +349,13 @@ func run_script(h *hawk.Hawk, fs_idx int, data_idx int, cfg *Config, rtx_chan ch
 		if cfg.show_extra_info {
 			dprint_return(rtx, retv)
 		}
+
+		// if i don't call retv.Close(), it won't be reclaimed until
+		// rtx.Close() is called regardless of GC invocation.
+		retv.Close()
+		retv = nil
 	}
+
 
 	// let's not care about closing args or return values
 	// because rtx.Close() will close them automatically

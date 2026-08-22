@@ -82,11 +82,19 @@ hawkgo_SOURCES = \
 hawkgo_LINK =
 
 if ENABLE_STATIC
-CGO_CFLAGS_ADD="-static"
-CGO_LDFLAGS_ADD="-static"
+CGO_CFLAGS_ADD=-static
+CGO_LDFLAGS_ADD=-static
 else
-CGO_CFLAGS_ADD=""
-CGO_LDFLAGS_ADD=""
+CGO_CFLAGS_ADD=
+CGO_LDFLAGS_ADD=
+endif
+
+if ENABLE_DEBUG
+##GO_BUILD_OPTS=-msan -asan -x
+##GO_BUILD_OPTS=-race -gcflags="-m=3" -x
+GO_BUILD_OPTS=-race -gcflags="-m"
+else
+GO_BUILD_OPTS=
 endif
 
 hawkgo$(EXEEXT): ../lib/libhawk.la $(hawkgo_OBJECTS)
@@ -97,7 +105,7 @@ hawkgo$(EXEEXT): ../lib/libhawk.la $(hawkgo_OBJECTS)
 	CC=$(CC) \
 	CGO_CFLAGS="-I$(abs_top_srcdir)/lib -I$(abs_top_builddir)/lib $(CFLAGS) $(CGO_CFLAGS_EXTRA) $(CGO_CFLAGS_ADD)" \
 	CGO_LDFLAGS="-L$(abs_top_builddir)/lib -L$(abs_top_builddir)/lib/.libs -lhawk -ldl $(LIBM) $(CGO_LDFLAGS_EXTRA) $(CGO_LDFLAGS_ADD)"  \
-	go build -C $(srcdir) -ldflags "-X 'main.BINDIR=$(bindir)' -X 'main.SBINDIR=$(sbindir)' -X 'main.LIBDIR=$(libdir)' -X 'main.SYSCONFDIR=$(sysconfdir)'" -x -o $(abs_builddir)/$@ -modfile $(abs_top_srcdir)/go.mod  $(abs_srcdir)/hawkgo.go $(abs_srcdir)/getopt.go
+	go build -C $(srcdir) -ldflags "-X 'main.BINDIR=$(bindir)' -X 'main.SBINDIR=$(sbindir)' -X 'main.LIBDIR=$(libdir)' -X 'main.SYSCONFDIR=$(sysconfdir)'" $(GO_BUILD_OPTS) -o $(abs_builddir)/$@ -modfile $(abs_top_srcdir)/go.mod  $(abs_srcdir)/hawkgo.go $(abs_srcdir)/getopt.go
 	## ---------------------------------------------------------------
 	go clean -C $(srcdir) -x -modfile $(abs_top_srcdir)/go.mod
 

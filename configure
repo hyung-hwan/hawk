@@ -705,6 +705,8 @@ ENABLE_LIBLTDL_FALSE
 ENABLE_LIBLTDL_TRUE
 ENABLE_CXX_FALSE
 ENABLE_CXX_TRUE
+ENABLE_DEBUG_FALSE
+ENABLE_DEBUG_TRUE
 BUILD_MODE
 PACKAGE_VERSION_PATCH
 PACKAGE_VERSION_MINOR
@@ -21485,7 +21487,8 @@ printf "%s\n" "#define HAWK_ENABLE_WIDE_CHAR 1" >>confdefs.h
 		CFLAGS="$CFLAGS -fno-short-wchar"
 		CXXFLAGS="$CXXFLAGS -fno-short-wchar"
 	fi
-	if test "${enable_wide_char}" != "yes:4"
+
+		if test "${enable_wide_char}" != "yes:4"
 	then
 
 printf "%s\n" "#define HAWK_PREFER_PREFIX_L 1" >>confdefs.h
@@ -28200,6 +28203,14 @@ printf "%s\n" "#define HAWK_BUILD_RELEASE 1" >>confdefs.h
 	BUILD_MODE="release"
 
 fi
+ if test "${enable_debug_is}" = "yes" ; then
+  ENABLE_DEBUG_TRUE=
+  ENABLE_DEBUG_FALSE='#'
+else
+  ENABLE_DEBUG_TRUE='#'
+  ENABLE_DEBUG_FALSE=
+fi
+
 
 # Check whether --enable-intmax was given.
 if test ${enable_intmax+y}
@@ -29678,6 +29689,10 @@ if test -z "${HAVE_LIBUCI_TRUE}" && test -z "${HAVE_LIBUCI_FALSE}"; then
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 
+if test -z "${ENABLE_DEBUG_TRUE}" && test -z "${ENABLE_DEBUG_FALSE}"; then
+  as_fn_error $? "conditional \"ENABLE_DEBUG\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
 if test -z "${ENABLE_CXX_TRUE}" && test -z "${ENABLE_CXX_FALSE}"; then
   as_fn_error $? "conditional \"ENABLE_CXX\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5

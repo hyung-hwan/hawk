@@ -96,6 +96,38 @@ func force_gc() {
 	runtime.Gosched()
 }
 
+func force_full_gc() {
+	var junk [][]byte
+	var i int
+
+	junk = make([][]byte, 32)
+	for i = 0; i < len(junk); i++ {
+		junk[i] = make([]byte, 1024+(i*17))
+	}
+
+	runtime.GC()
+	debug.FreeOSMemory()
+	runtime.Gosched()
+	runtime.KeepAlive(junk)
+}
+
+func keep_vals_alive(vals []*hawk.Val) {
+	var holder []*hawk.Val
+
+	holder = make([]*hawk.Val, len(vals))
+	copy(holder, vals)
+	force_full_gc()
+	runtime.KeepAlive(holder)
+}
+
+func expect_type(t *testing.T, v *hawk.Val, want hawk.ValType, msg string) {
+	t.Helper()
+
+	if v.Type() != want {
+		t.Fatalf("%s: expected type %s but got %s", msg, want.String(), v.Type().String())
+	}
+}
+
 func expect_int_val(t *testing.T, v *hawk.Val, want int, msg string) {
 	var got int
 	var s string
@@ -120,7 +152,7 @@ func expect_int_val(t *testing.T, v *hawk.Val, want int, msg string) {
 	}
 }
 
-func expect_map_ints(t *testing.T, v *hawk.Val, want map[string]int) {
+func expect_map_ints_with_gc(t *testing.T, v *hawk.Val, want map[string]int, gc func()) {
 	var key string
 	var f *hawk.Val
 	var got map[string]int
@@ -134,7 +166,7 @@ func expect_map_ints(t *testing.T, v *hawk.Val, want map[string]int) {
 	}
 
 	for key = range want {
-		force_gc()
+		gc()
 		f, err = v.GetMapField(key)
 		if err != nil {
 			t.Fatalf("failed to get map field %q - %s", key, err.Error())
@@ -147,14 +179,14 @@ func expect_map_ints(t *testing.T, v *hawk.Val, want map[string]int) {
 	for f != nil {
 		var iv int
 
-		force_gc()
+		gc()
 		iv, err = f.ToInt()
 		if err != nil {
 			t.Fatalf("failed to convert iterated map value for key %q - %s", key, err.Error())
 		}
 		got[key] = iv
 
-		force_gc()
+		gc()
 		key, f = v.GetNextMapField(&itr)
 	}
 
@@ -169,7 +201,11 @@ func expect_map_ints(t *testing.T, v *hawk.Val, want map[string]int) {
 	}
 }
 
-func expect_array_ints(t *testing.T, v *hawk.Val, want map[int]int) {
+func expect_map_ints(t *testing.T, v *hawk.Val, want map[string]int) {
+	expect_map_ints_with_gc(t, v, want, force_gc)
+}
+
+func expect_array_ints_with_gc(t *testing.T, v *hawk.Val, want map[int]int, gc func()) {
 	var idx int
 	var f *hawk.Val
 	var got map[int]int
@@ -187,7 +223,7 @@ func expect_array_ints(t *testing.T, v *hawk.Val, want map[int]int) {
 	}
 
 	for idx = range want {
-		force_gc()
+		gc()
 		f, err = v.GetArrayField(idx)
 		if err != nil {
 			t.Fatalf("failed to get array field %d - %s", idx, err.Error())
@@ -200,14 +236,14 @@ func expect_array_ints(t *testing.T, v *hawk.Val, want map[int]int) {
 	for f != nil {
 		var iv int
 
-		force_gc()
+		gc()
 		iv, err = f.ToInt()
 		if err != nil {
 			t.Fatalf("failed to convert iterated array value at %d - %s", idx, err.Error())
 		}
 		got[idx] = iv
 
-		force_gc()
+		gc()
 		idx, f = v.GetNextArrayField(&itr)
 	}
 
@@ -220,6 +256,129 @@ func expect_array_ints(t *testing.T, v *hawk.Val, want map[int]int) {
 			t.Fatalf("iterated array field %d: expected %d but got %d", idx, want[idx], got[idx])
 		}
 	}
+}
+
+func expect_array_ints(t *testing.T, v *hawk.Val, want map[int]int) {
+	expect_array_ints_with_gc(t, v, want, force_gc)
+}
+
+func echo_tagged(rtx *hawk.Rtx) error {
+	var v *hawk.Val
+	var err error
+
+	force_full_gc()
+	v, err = rtx.GetFuncArg(0)
+	if err != nil {
+		return err
+	}
+	keep_vals_alive([]*hawk.Val{v})
+	rtx.SetFuncRet(v)
+	keep_vals_alive([]*hawk.Val{v})
+	return nil
+}
+
+func sum_tagged(rtx *hawk.Rtx) error {
+	var vals []*hawk.Val
+	var argc int
+	var i int
+	var sum int
+
+	argc = rtx.GetFuncArgCount()
+	vals = make([]*hawk.Val, argc)
+
+	for i = 0; i < argc; i++ {
+		var v *hawk.Val
+		var iv int
+		var err error
+
+		force_full_gc()
+		v, err = rtx.GetFuncArg(i)
+		if err != nil {
+			return err
+		}
+		vals[i] = v
+
+		force_full_gc()
+		iv, err = v.ToInt()
+		if err != nil {
+			return err
+		}
+		sum += iv
+	}
+
+	keep_vals_alive(vals)
+	return rtx.SetFuncRetWithInt(sum)
+}
+
+func make_tagged_map(rtx *hawk.Rtx) error {
+	var m *hawk.Val
+	var vals []*hawk.Val
+	var entry = []struct {
+		key string
+		val int
+	}{
+		{"zero", 0},
+		{"one", 1},
+		{"neg", -1},
+		{"big", 777777},
+		{"small", -333333},
+	}
+	var i int
+	var err error
+
+	m, err = rtx.NewMapVal()
+	if err != nil {
+		return err
+	}
+
+	vals = make([]*hawk.Val, len(entry))
+	for i = 0; i < len(entry); i++ {
+		vals[i], err = rtx.NewIntVal(entry[i].val)
+		if err != nil {
+			return err
+		}
+		force_full_gc()
+		if err = m.SetMapField(entry[i].key, vals[i]); err != nil {
+			return err
+		}
+	}
+
+	keep_vals_alive(vals)
+	rtx.SetFuncRet(m)
+	force_full_gc()
+	runtime.KeepAlive(m)
+	return nil
+}
+
+func make_tagged_arr(rtx *hawk.Rtx) error {
+	var a *hawk.Val
+	var vals []*hawk.Val
+	var entry = []int{0, 1, -1, 777777, -333333}
+	var i int
+	var err error
+
+	a, err = rtx.NewArrVal(0)
+	if err != nil {
+		return err
+	}
+
+	vals = make([]*hawk.Val, len(entry))
+	for i = 0; i < len(entry); i++ {
+		vals[i], err = rtx.NewIntVal(entry[i])
+		if err != nil {
+			return err
+		}
+		force_full_gc()
+		if err = a.SetArrayField(i+1, vals[i]); err != nil {
+			return err
+		}
+	}
+
+	keep_vals_alive(vals)
+	rtx.SetFuncRet(a)
+	force_full_gc()
+	runtime.KeepAlive(a)
+	return nil
 }
 
 func run_hawk(h *hawk.Hawk, id int, t *testing.T, wg *sync.WaitGroup) {
@@ -632,5 +791,227 @@ function make_int_arr() {
 	h.Close()
 
 	force_gc()
+	time.Sleep(100 * time.Millisecond)
+}
+
+func Test5TaggedPointerStress(t *testing.T) {
+	var h *hawk.Hawk
+	var rtx *hawk.Rtx
+	var v *hawk.Val
+	var args []*hawk.Val
+	var gzero int
+	var gone int
+	var gneg int
+	var round int
+	var old_gc_percent int
+	var err error
+
+	old_gc_percent = debug.SetGCPercent(1)
+	defer debug.SetGCPercent(old_gc_percent)
+
+	h, err = hawk.New()
+	if err != nil {
+		t.Fatalf("Failed to make hawk - %s", err.Error())
+	}
+
+	h.AddFunc("go_echo_tagged", 1, 1, "", echo_tagged)
+	h.AddFunc("go_sum_tagged", 1, 16, "", sum_tagged)
+	h.AddFunc("go_make_tagged_map", 0, 0, "", make_tagged_map)
+	h.AddFunc("go_make_tagged_arr", 0, 0, "", make_tagged_arr)
+
+	gzero, err = h.AddGlobal("gzero")
+	if err != nil {
+		h.Close()
+		t.Fatalf("failed to add global gzero - %s", err.Error())
+	}
+	gone, err = h.AddGlobal("gone")
+	if err != nil {
+		h.Close()
+		t.Fatalf("failed to add global gone - %s", err.Error())
+	}
+	gneg, err = h.AddGlobal("gneg")
+	if err != nil {
+		h.Close()
+		t.Fatalf("failed to add global gneg - %s", err.Error())
+	}
+
+	err = h.ParseText(`function ret_arg(a) { return a; }
+function wrap_echo(a) { return go_echo_tagged(a); }
+function wrap_sum(a, b, c, d, e) { return go_sum_tagged(a, b, c, d, e); }
+function wrap_map() { return go_make_tagged_map(); }
+function wrap_arr() { return go_make_tagged_arr(); }
+function make_hawk_map() {
+	@local x;
+	x["zero"] = 0;
+	x["one"] = 1;
+	x["neg"] = -1;
+	x["big"] = 777777;
+	x["small"] = -333333;
+	return x;
+}
+function make_hawk_arr() {
+	@local x;
+	x = hawk::array(0, 1, -1, 777777, -333333);
+	return x;
+}
+function sum_globals() { return gzero + gone + gneg; }`)
+	if err != nil {
+		h.Close()
+		t.Fatalf("Failed to parse hawk script - %s", err.Error())
+	}
+
+	rtx, err = h.NewRtx("test5", nil, nil)
+	if err != nil {
+		h.Close()
+		t.Fatalf("failed to create rtx - %s", err.Error())
+	}
+
+	for round = 0; round < 128; round++ {
+		args = []*hawk.Val{
+			hawk.Must(rtx.NewIntVal(0)),
+			hawk.Must(rtx.NewIntVal(1)),
+			hawk.Must(rtx.NewIntVal(-1)),
+			hawk.Must(rtx.NewIntVal(round)),
+			hawk.Must(rtx.NewIntVal(-round - 1)),
+			hawk.Must(rtx.NewByteVal(byte('A' + (round % 26)))),
+			hawk.Must(rtx.NewCharVal(rune('a' + (round % 26)))),
+		}
+
+		keep_vals_alive(args)
+
+		if err = rtx.SetGlobal(gzero, args[0]); err != nil {
+			rtx.Close()
+			h.Close()
+			t.Fatalf("failed to set gzero - %s", err.Error())
+		}
+		if err = rtx.SetGlobal(gone, args[1]); err != nil {
+			rtx.Close()
+			h.Close()
+			t.Fatalf("failed to set gone - %s", err.Error())
+		}
+		if err = rtx.SetGlobal(gneg, args[2]); err != nil {
+			rtx.Close()
+			h.Close()
+			t.Fatalf("failed to set gneg - %s", err.Error())
+		}
+
+		force_full_gc()
+		v, err = rtx.Call("sum_globals")
+		if err != nil {
+			rtx.Close()
+			h.Close()
+			t.Fatalf("failed to call sum_globals - %s", err.Error())
+		}
+		force_full_gc()
+		expect_int_val(t, v, 0, "sum_globals")
+
+		v, err = rtx.Call("ret_arg", args[0])
+		if err != nil {
+			rtx.Close()
+			h.Close()
+			t.Fatalf("failed to call ret_arg - %s", err.Error())
+		}
+		force_full_gc()
+		expect_int_val(t, v, 0, "ret_arg(0)")
+
+		v, err = rtx.Call("wrap_echo", args[1])
+		if err != nil {
+			rtx.Close()
+			h.Close()
+			t.Fatalf("failed to call wrap_echo for int - %s", err.Error())
+		}
+		force_full_gc()
+		expect_int_val(t, v, 1, "wrap_echo(1)")
+
+		v, err = rtx.Call("wrap_sum", args[0], args[1], args[2], args[3], args[4])
+		if err != nil {
+			rtx.Close()
+			h.Close()
+			t.Fatalf("failed to call wrap_sum - %s", err.Error())
+		}
+		force_full_gc()
+		expect_int_val(t, v, -1, "wrap_sum")
+
+		v, err = rtx.Call("wrap_arr")
+		if err != nil {
+			rtx.Close()
+			h.Close()
+			t.Fatalf("failed to call wrap_arr - %s", err.Error())
+		}
+		expect_array_ints_with_gc(t, v, map[int]int{
+			1: 0,
+			2: 1,
+			3: -1,
+			4: 777777,
+			5: -333333,
+		}, force_full_gc)
+
+		v, err = rtx.Call("wrap_map")
+		if err != nil {
+			rtx.Close()
+			h.Close()
+			t.Fatalf("failed to call wrap_map - %s", err.Error())
+		}
+		expect_map_ints_with_gc(t, v, map[string]int{
+			"zero":  0,
+			"one":   1,
+			"neg":   -1,
+			"big":   777777,
+			"small": -333333,
+		}, force_full_gc)
+
+		v, err = rtx.Call("make_hawk_arr")
+		if err != nil {
+			rtx.Close()
+			h.Close()
+			t.Fatalf("failed to call make_hawk_arr - %s", err.Error())
+		}
+		expect_array_ints_with_gc(t, v, map[int]int{
+			1: 0,
+			2: 1,
+			3: -1,
+			4: 777777,
+			5: -333333,
+		}, force_full_gc)
+
+		v, err = rtx.Call("make_hawk_map")
+		if err != nil {
+			rtx.Close()
+			h.Close()
+			t.Fatalf("failed to call make_hawk_map - %s", err.Error())
+		}
+		expect_map_ints_with_gc(t, v, map[string]int{
+			"zero":  0,
+			"one":   1,
+			"neg":   -1,
+			"big":   777777,
+			"small": -333333,
+		}, force_full_gc)
+
+		v, err = rtx.Call("wrap_echo", args[5])
+		if err != nil {
+			rtx.Close()
+			h.Close()
+			t.Fatalf("failed to call wrap_echo for byte value - %s", err.Error())
+		}
+		force_full_gc()
+		expect_type(t, v, hawk.VAL_BCHR, "wrap_echo(byte)")
+
+		v, err = rtx.Call("wrap_echo", args[6])
+		if err != nil {
+			rtx.Close()
+			h.Close()
+			t.Fatalf("failed to call wrap_echo for char value - %s", err.Error())
+		}
+		force_full_gc()
+		expect_type(t, v, hawk.VAL_CHAR, "wrap_echo(char)")
+
+		keep_vals_alive(args)
+	}
+
+	rtx.Close()
+	h.Close()
+
+	force_full_gc()
 	time.Sleep(100 * time.Millisecond)
 }

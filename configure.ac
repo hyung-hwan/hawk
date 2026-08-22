@@ -956,6 +956,7 @@ else
 	AC_DEFINE([HAWK_BUILD_RELEASE],[1],[build release/debug])
 	AC_SUBST(BUILD_MODE, "release")
 fi
+AM_CONDITIONAL(ENABLE_DEBUG, test "${enable_debug_is}" = "yes" )
 
 dnl ===== enable-intmax ======
 AC_ARG_ENABLE([intmax],

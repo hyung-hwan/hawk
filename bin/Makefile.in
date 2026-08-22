@@ -415,10 +415,12 @@ hawk_DEPENDENCIES = $(srcdir)/hawk.pot $(srcdir)/hawk-ko.po $(srcdir)/hawk-zh_CN
 @ENABLE_HAWKGO_TRUE@	hawkgo.go
 
 @ENABLE_HAWKGO_TRUE@hawkgo_LINK = 
-@ENABLE_HAWKGO_TRUE@@ENABLE_STATIC_FALSE@CGO_CFLAGS_ADD = ""
-@ENABLE_HAWKGO_TRUE@@ENABLE_STATIC_TRUE@CGO_CFLAGS_ADD = "-static"
-@ENABLE_HAWKGO_TRUE@@ENABLE_STATIC_FALSE@CGO_LDFLAGS_ADD = ""
-@ENABLE_HAWKGO_TRUE@@ENABLE_STATIC_TRUE@CGO_LDFLAGS_ADD = "-static"
+@ENABLE_HAWKGO_TRUE@@ENABLE_STATIC_FALSE@CGO_CFLAGS_ADD = 
+@ENABLE_HAWKGO_TRUE@@ENABLE_STATIC_TRUE@CGO_CFLAGS_ADD = -static
+@ENABLE_HAWKGO_TRUE@@ENABLE_STATIC_FALSE@CGO_LDFLAGS_ADD = 
+@ENABLE_HAWKGO_TRUE@@ENABLE_STATIC_TRUE@CGO_LDFLAGS_ADD = -static
+@ENABLE_DEBUG_FALSE@@ENABLE_HAWKGO_TRUE@GO_BUILD_OPTS = 
+@ENABLE_DEBUG_TRUE@@ENABLE_HAWKGO_TRUE@GO_BUILD_OPTS = -race -gcflags="-m"
 all: all-am
 
 .SUFFIXES:
@@ -874,7 +876,7 @@ $(srcdir)/hawk-zh_CN.po: $(srcdir)/hawk.pot
 @ENABLE_HAWKGO_TRUE@	CC=$(CC) \
 @ENABLE_HAWKGO_TRUE@	CGO_CFLAGS="-I$(abs_top_srcdir)/lib -I$(abs_top_builddir)/lib $(CFLAGS) $(CGO_CFLAGS_EXTRA) $(CGO_CFLAGS_ADD)" \
 @ENABLE_HAWKGO_TRUE@	CGO_LDFLAGS="-L$(abs_top_builddir)/lib -L$(abs_top_builddir)/lib/.libs -lhawk -ldl $(LIBM) $(CGO_LDFLAGS_EXTRA) $(CGO_LDFLAGS_ADD)"  \
-@ENABLE_HAWKGO_TRUE@	go build -C $(srcdir) -ldflags "-X 'main.BINDIR=$(bindir)' -X 'main.SBINDIR=$(sbindir)' -X 'main.LIBDIR=$(libdir)' -X 'main.SYSCONFDIR=$(sysconfdir)'" -x -o $(abs_builddir)/$@ -modfile $(abs_top_srcdir)/go.mod  $(abs_srcdir)/hawkgo.go $(abs_srcdir)/getopt.go
+@ENABLE_HAWKGO_TRUE@	go build -C $(srcdir) -ldflags "-X 'main.BINDIR=$(bindir)' -X 'main.SBINDIR=$(sbindir)' -X 'main.LIBDIR=$(libdir)' -X 'main.SYSCONFDIR=$(sysconfdir)'" $(GO_BUILD_OPTS) -o $(abs_builddir)/$@ -modfile $(abs_top_srcdir)/go.mod  $(abs_srcdir)/hawkgo.go $(abs_srcdir)/getopt.go
 @ENABLE_HAWKGO_TRUE@	go clean -C $(srcdir) -x -modfile $(abs_top_srcdir)/go.mod
 
 @ENABLE_HAWKGO_TRUE@.go.o:
