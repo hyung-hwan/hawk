@@ -93,7 +93,7 @@ static __IDMAP_NODE_T* __MAKE_IDMAP_NODE (hawk_rtx_t* rtx, __IDMAP_LIST_T* list)
 		node = hawk_rtx_callocmem(rtx, HAWK_SIZEOF(*node));
 		if (!node) goto oops;
 
-		if (list->map.high <= list->map.capa)
+		if (list->map.high >= list->map.capa)
 		{
 			hawk_oow_t newcapa, inc;
 			__IDMAP_NODE_T** tmp;
@@ -107,7 +107,7 @@ static __IDMAP_NODE_T* __MAKE_IDMAP_NODE (hawk_rtx_t* rtx, __IDMAP_LIST_T* list)
 			tmp = (__IDMAP_NODE_T**)hawk_rtx_reallocmem(rtx, list->map.tab, HAWK_SIZEOF(*tmp) * newcapa);
 			if (!tmp) goto oops;
 
-			HAWK_MEMSET (&tmp[list->map.capa], 0, HAWK_SIZEOF(*tmp) * (newcapa - list->map.capa));
+			HAWK_MEMSET(&tmp[list->map.capa], 0, HAWK_SIZEOF(*tmp) * (newcapa - list->map.capa));
 
 			list->map.tab = tmp;
 			list->map.capa = newcapa;
