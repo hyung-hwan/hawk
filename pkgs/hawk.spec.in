@@ -261,9 +261,9 @@ rm -rf "%{buildroot}"
 %defattr(-,root,root)
 %{_includedir}/*
 %{_libdir}/libhawk.so
-%{_datadir}/%{name}/go/hawk.go
-%{_datadir}/%{name}/go/hawk-inst.go
-%{_datadir}/%{name}/go/go.mod
+%{_datadir}/hawk/go/hawk.go
+%{_datadir}/hawk/go/hawk-inst.go
+%{_datadir}/hawk/go/go.mod
 
 %files static
 %defattr(-,root,root)
