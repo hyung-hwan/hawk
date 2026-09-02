@@ -228,13 +228,15 @@ static HAWK_INLINE_ALWAYS void hawk_rtx_refupval_inline (hawk_rtx_t* rtx, hawk_v
 }
 #elif defined(HAWK_USE_ATOMIC_REFCNT) && defined(HAWK_ATOMIC_FETCH_ADD)
 #define hawk_rtx_refupval_inline(rtx, val) do { \
-	if (HAWK_VTR_IS_POINTER(val) && !HAWK_IS_STATICVAL(val)) { \
-		HAWK_ATOMIC_FETCH_ADD(&(val)->v_refs, 1, HAWK_ATOMIC_RELAXED); \
+	hawk_val_t* _hawk_vtmp_ = (val); \
+	if (HAWK_VTR_IS_POINTER(_hawk_vtmp_) && !HAWK_IS_STATICVAL(_hawk_vtmp_)) { \
+		HAWK_ATOMIC_FETCH_ADD(&_hawk_vtmp_->v_refs, 1, HAWK_ATOMIC_RELAXED); \
 	} \
 } while(0)
 #else
 #define hawk_rtx_refupval_inline(rtx, val) do { \
-	if (HAWK_VTR_IS_POINTER(val) && !HAWK_IS_STATICVAL(val)) (val)->v_refs++; \
+	hawk_val_t* _hawk_vtmp_ = (val); \
+	if (HAWK_VTR_IS_POINTER(_hawk_vtmp_) && !HAWK_IS_STATICVAL(_hawk_vtmp_)) _hawk_vtmp_->v_refs++; \
 } while(0)
 #endif
 
@@ -255,20 +257,24 @@ static HAWK_INLINE_ALWAYS void hawk_rtx_refdownval_inline (hawk_rtx_t* rtx, hawk
 }
 #elif defined(HAWK_USE_ATOMIC_REFCNT) && defined(HAWK_ATOMIC_FETCH_SUB)
 #define hawk_rtx_refdownval_inline(rtx, val) do { \
-	if (HAWK_VTR_IS_POINTER(val) && !HAWK_IS_STATICVAL(val)) \
+	hawk_rtx_t* _hawk_rtmp_ = (rtx); \
+	hawk_val_t* _hawk_vtmp_ = (val); \
+	if (HAWK_VTR_IS_POINTER(_hawk_vtmp_) && !HAWK_IS_STATICVAL(_hawk_vtmp_)) \
 	{ \
-		HAWK_ASSERT(((hawk_val_t*)(val))->v_refs > 0); \
-		if (HAWK_ATOMIC_FETCH_SUB(&((hawk_val_t*)(val))->v_refs, 1, HAWK_ATOMIC_RELAXED) == 1) \
-			hawk_rtx_freeval(rtx, val, HAWK_RTX_FREEVAL_CACHE); \
+		HAWK_ASSERT(_hawk_vtmp_->v_refs > 0); \
+		if (HAWK_ATOMIC_FETCH_SUB(&_hawk_vtmp_->v_refs, 1, HAWK_ATOMIC_RELAXED) == 1) \
+			hawk_rtx_freeval(_hawk_rtmp_, _hawk_vtmp_, HAWK_RTX_FREEVAL_CACHE); \
 	} \
 } while(0)
 #else
 #define hawk_rtx_refdownval_inline(rtx, val) do { \
-	if (HAWK_VTR_IS_POINTER(val) && !HAWK_IS_STATICVAL(val)) \
+	hawk_rtx_t* _hawk_rtmp_ = (rtx); \
+	hawk_val_t* _hawk_vtmp_ = (val); \
+	if (HAWK_VTR_IS_POINTER(_hawk_vtmp_) && !HAWK_IS_STATICVAL(_hawk_vtmp_)) \
 	{ \
-		HAWK_ASSERT(((hawk_val_t*)(val))->v_refs > 0); \
-		((hawk_val_t*)(val))->v_refs--; \
-		if (((hawk_val_t*)(val))->v_refs <= 0) hawk_rtx_freeval(rtx, val, HAWK_RTX_FREEVAL_CACHE); \
+		HAWK_ASSERT(_hawk_vtmp_->v_refs > 0); \
+		_hawk_vtmp_->v_refs--; \
+		if (_hawk_vtmp_->v_refs <= 0) hawk_rtx_freeval(_hawk_rtmp_, _hawk_vtmp_, HAWK_RTX_FREEVAL_CACHE); \
 	} \
 } while(0)
 #endif
@@ -288,18 +294,20 @@ static HAWK_INLINE_ALWAYS void hawk_rtx_refdownval_nofree_inline (hawk_rtx_t* rt
 }
 #elif defined(HAWK_USE_ATOMIC_REFCNT) && defined(HAWK_ATOMIC_FETCH_SUB)
 #define hawk_rtx_refdownval_nofree_inline(rtx, val) do { \
-	if (HAWK_VTR_IS_POINTER(val) && !HAWK_IS_STATICVAL(val)) \
+	hawk_val_t* _hawk_vtmp_ = (val); \
+	if (HAWK_VTR_IS_POINTER(_hawk_vtmp_) && !HAWK_IS_STATICVAL(_hawk_vtmp_)) \
 	{ \
-		HAWK_ASSERT(((hawk_val_t*)(val))->v_refs > 0); \
-		HAWK_ATOMIC_FETCH_SUB(&((hawk_val_t*)(val))->v_refs, 1, HAWK_ATOMIC_RELAXED);
+		HAWK_ASSERT(_hawk_vtmp_->v_refs > 0); \
+		HAWK_ATOMIC_FETCH_SUB(&_hawk_vtmp_->v_refs, 1, HAWK_ATOMIC_RELAXED); \
 	} \
 } while(0)
 #else
 #define hawk_rtx_refdownval_nofree_inline(rtx, val) do { \
-	if (HAWK_VTR_IS_POINTER(val) && !HAWK_IS_STATICVAL(val)) \
+	hawk_val_t* _hawk_vtmp_ = (val); \
+	if (HAWK_VTR_IS_POINTER(_hawk_vtmp_) && !HAWK_IS_STATICVAL(_hawk_vtmp_)) \
 	{ \
-		HAWK_ASSERT(((hawk_val_t*)(val))->v_refs > 0); \
-		((hawk_val_t*)(val))->v_refs--; \
+		HAWK_ASSERT(_hawk_vtmp_->v_refs > 0); \
+		_hawk_vtmp_->v_refs--; \
 	} \
 } while(0)
 #endif

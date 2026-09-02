@@ -1489,7 +1489,14 @@ static void fini_rtx (hawk_rtx_t* rtx, int fini_globals)
 	{
 		while (rtx->forin.size > 0)
 		{
-			hawk_rtx_refdownval_inline(rtx, rtx->forin.ptr[--rtx->forin.size]);
+			hawk_val_t* tmp;
+			/* assign it to a temporary first because hawk_rtx_refdownval_inline()
+			 * could be a macro if the compiler doesn't have the inline support.
+			 * in that case, the decrement operation can happen multiple time if
+			 * rtx->forin.ptr[--rtx->forin.size] is passed as a parameter to
+			 * hawk_rtx_refdownval_inline() */
+			tmp = rtx->forin.ptr[--rtx->forin.size];
+			hawk_rtx_refdownval_inline(rtx, tmp);
 		}
 		hawk_rtx_freemem(rtx, rtx->forin.ptr);
 		rtx->forin.ptr = HAWK_NULL;
@@ -2343,7 +2350,13 @@ hawk_val_t* hawk_rtx_callwithucstrarr (hawk_rtx_t* rtx, const hawk_uch_t* name, 
 	ret = hawk_rtx_callwithucstr(rtx, name, v, nargs);
 
 oops:
-	while (i > 0) hawk_rtx_refdownval_inline(rtx, v[--i]);
+	while (i > 0)
+	{
+		hawk_val_t* tmp;
+
+		tmp = v[--i];
+		hawk_rtx_refdownval_inline(rtx, tmp);
+	}
 	hawk_rtx_freemem(rtx, v);
 	return ret;
 }
@@ -2371,7 +2384,13 @@ hawk_val_t* hawk_rtx_callwithbcstrarr (hawk_rtx_t* rtx, const hawk_bch_t* name, 
 	ret = hawk_rtx_callwithbcstr(rtx, name, v, nargs);
 
 oops:
-	while (i > 0) hawk_rtx_refdownval_inline(rtx, v[--i]);
+	while (i > 0)
+	{
+		hawk_val_t* tmp;
+
+		tmp = v[--i];
+		hawk_rtx_refdownval_inline(rtx, tmp);
+	}
 	hawk_rtx_freemem(rtx, v);
 	return ret;
 }
@@ -2399,7 +2418,13 @@ hawk_val_t* hawk_rtx_callwithooucstrarr (hawk_rtx_t* rtx, const hawk_ooch_t* nam
 	ret = hawk_rtx_callwithoocstr(rtx, name, v, nargs);
 
 oops:
-	while (i > 0) hawk_rtx_refdownval_inline(rtx, v[--i]);
+	while (i > 0)
+	{
+		hawk_val_t* tmp;
+
+		tmp = v[--i];
+		hawk_rtx_refdownval_inline(rtx, tmp);
+	}
 	hawk_rtx_freemem(rtx, v);
 	return ret;
 }
@@ -2427,7 +2452,13 @@ hawk_val_t* hawk_rtx_callwithoobcstrarr (hawk_rtx_t* rtx, const hawk_ooch_t* nam
 	ret = hawk_rtx_callwithoocstr(rtx, name, v, nargs);
 
 oops:
-	while (i > 0) hawk_rtx_refdownval_inline(rtx, v[--i]);
+	while (i > 0)
+	{
+		hawk_val_t* tmp;
+
+		tmp = v[--i];
+		hawk_rtx_refdownval_inline(rtx, tmp);
+	}
 	hawk_rtx_freemem(rtx, v);
 	return ret;
 }
@@ -3031,7 +3062,14 @@ static void leave_forin_iterative (hawk_rtx_t* rtx, hawk_oow_t base)
 {
 	while (rtx->forin.size > base)
 	{
-		hawk_rtx_refdownval_inline(rtx, rtx->forin.ptr[--rtx->forin.size]);
+		hawk_val_t* tmp;
+		/* assign it to a temporary first because hawk_rtx_refdownval_inline()
+		 * could be a macro if the compiler doesn't have the inline support.
+		 * in that case, the decrement operation can happen multiple time if
+		 * rtx->forin.ptr[--rtx->forin.size] is passed as a parameter to
+		 * hawk_rtx_refdownval_inline() */
+		tmp = rtx->forin.ptr[--rtx->forin.size];
+		hawk_rtx_refdownval_inline(rtx, tmp);
 	}
 }
 
