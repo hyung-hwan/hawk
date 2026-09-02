@@ -200,7 +200,7 @@ static HAWK_INLINE_ALWAYS hawk_val_t* hawk_rtx_makeintval_inline (hawk_rtx_t* rt
 	return HAWK_IN_INT_RANGE(v)? HAWK_INT_TO_VTR(v): hawk_rtx_makeintval_full(rtx, v);
 }
 #else
-#define hawk_rtx_makeintval_inline(rtx, v) (HAWK_IN_INT_RANGE(v)? HAWK_INT_TO_VTR(v): hawk_rtx_makeintval_full(rtx, v))
+#define hawk_rtx_makeintval_inline(rtx, v) hawk_rtx_makeintval(rtx, v)
 #endif
 
 void hawk_rtx_freeval (
@@ -323,10 +323,10 @@ static HAWK_INLINE int hawk_rtx_valtoint_inline (hawk_rtx_t* rtx, const hawk_val
 		*l = (hawk_int_t)r;
 		n = 0;
 	}
-        return n;
+	return n;
 }
 #else
-/* i can't easily inlinde this function without using compiler extentions or changing the return value to a parameter */
+/* i can't easily inline this function without using compiler extentions or changing the return value to a parameter */
 #define hawk_rtx_valtoint_inline(rtx, v, l) hawk_rtx_valtoint(rtx, v, l)
 #endif
 

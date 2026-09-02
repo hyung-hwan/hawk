@@ -583,7 +583,8 @@ hawk_val_t* hawk_rtx_makeintval_full (hawk_rtx_t* rtx, hawk_int_t v)
 {
 	hawk_val_int_t* val;
 
-	if (HAWK_IN_INT_RANGE(v)) return HAWK_INT_TO_VTR(v);
+	HAWK_ASSERT(!HAWK_IN_INT_RANGE(v));
+	/*if (HAWK_IN_INT_RANGE(v)) return HAWK_INT_TO_VTR(v);*/
 
 	if (!rtx->vmgr.ifree)
 	{
