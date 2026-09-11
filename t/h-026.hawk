@@ -1,0 +1,74 @@
+@pragma entry main
+@pragma implicit off
+
+@include "tap.inc";
+
+function frame_return(n, omitted)
+{
+	@local text, map, unused;
+	tap_ensure(omitted === @nil, @true, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(unused === @nil, @true, @SCRIPTNAME, @SCRIPTLINE);
+	text = sprintf("frame-%d", n);
+	map["text"] = text;
+	unused = "occupied";
+	if (n > 0)
+	{
+		@local child;
+		child = frame_return(n - 1);
+		tap_ensure(child["text"], sprintf("frame-%d", n - 1), @SCRIPTNAME, @SCRIPTLINE);
+	}
+	return map;
+}
+
+function frame_ref(&value, suffix, omitted)
+{
+	@local text;
+	tap_ensure(omitted === @nil, @true, @SCRIPTNAME, @SCRIPTLINE);
+	text = value suffix;
+	value = text;
+	return text;
+}
+
+function frame_forward(value)
+{
+	@local result;
+	result = frame_ref(value, "-direct");
+	tap_ensure(result, value, @SCRIPTNAME, @SCRIPTLINE);
+	result = hawk::call("frame_ref", value, "-indirect");
+	tap_ensure(result, value, @SCRIPTNAME, @SCRIPTLINE);
+	return value;
+}
+
+function frame_variadic(first, ...)
+{
+	@local i, result;
+	result = first;
+	for (i = 1; i < @argc; i++) result = result %% @argv[i];
+	return result;
+}
+
+function main()
+{
+	@local i, result, map;
+	for (i = 0; i < 3; i++)
+	{
+		@local fresh, text;
+		tap_ensure(fresh === @nil, @true, @SCRIPTNAME, @SCRIPTLINE);
+		fresh["previous"] = i;
+		text = sprintf("iteration-%d", i);
+		map = frame_return(3);
+		tap_ensure(map["text"], "frame-3", @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure(text, sprintf("iteration-%d", i), @SCRIPTNAME, @SCRIPTLINE);
+	}
+	result = frame_forward("start");
+	tap_ensure(result, "start-direct-indirect", @SCRIPTNAME, @SCRIPTLINE);
+	map["text"] = "indexed";
+	result = frame_ref(map["text"], "-updated");
+	tap_ensure(map["text"], "indexed-updated", @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(result, map["text"], @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(frame_variadic(frame_forward("a"), frame_variadic("b", "c"), "d"),
+		"a-direct-indirectbcd", @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(frame_variadic("only"), "only", @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(frame_variadic() === @nil, @true, @SCRIPTNAME, @SCRIPTLINE);
+	tap_end();
+}
