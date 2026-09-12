@@ -317,8 +317,10 @@ function test_compound_assign(    x)
 
 	## string concatenation compound assignment
 	x = "hello";
-	x = x " " "world";
+	x %%= " " "world";
 	tap_ensure(x, "hello world", @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure((x %%= "!"), "hello world!", @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(x, "hello world!", @SCRIPTNAME, @SCRIPTLINE);
 }
 
 ## -----------------------------------------------------------------------

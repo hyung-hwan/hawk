@@ -1,0 +1,70 @@
+@pragma entry main
+@pragma implicit off
+
+@include "tap.inc";
+
+function replace_key(&value)
+{
+	value = "replaced";
+}
+
+function test_literal_keys()
+{
+	@local map, key, i;
+	map[""] = "empty";
+	map["a\0b"] = "embedded nul";
+	map["01"] = "leading zero";
+	map["1"] = "one";
+	tap_ensure(map[""], "empty", @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(map["a\0b"], "embedded nul", @SCRIPTNAME, @SCRIPTLINE);
+	key = "a\0b";
+	tap_ensure(map[key], map["a\0b"], @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(map["01"], "leading zero", @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(map[1], "one", @SCRIPTNAME, @SCRIPTLINE);
+	map.outer["inner"].value = 10;
+	map["outer"].inner["value"] += 3;
+	tap_ensure(map.outer.inner.value, 13, @SCRIPTNAME, @SCRIPTLINE);
+	replace_key(map["outer"]["inner"]["value"]);
+	tap_ensure(map.outer.inner.value, "replaced", @SCRIPTNAME, @SCRIPTLINE);
+	map["left", "right"] = 42;
+	tap_ensure(map["left", "right"], 42, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(("left", "right") in map, @true, @SCRIPTNAME, @SCRIPTLINE);
+	delete map["a\0b"];
+	tap_ensure("a\0b" in map, @false, @SCRIPTNAME, @SCRIPTLINE);
+	for (i = 0; i < 10; i++)
+	{
+		map["counter"]++;
+		map["nested"]["counter"] = map["counter"];
+	}
+	tap_ensure(map.nested.counter, 10, @SCRIPTNAME, @SCRIPTLINE);
+	key = "";
+	for (i = 0; i < 800; i++) key = key %% "x";
+	map["xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"] = "long key";
+	tap_ensure(map[key], "long key", @SCRIPTNAME, @SCRIPTLINE);
+	map[key] = "updated long key";
+	tap_ensure(map["xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"], "updated long key", @SCRIPTNAME, @SCRIPTLINE);
+}
+
+function check_order(a, b, less, equal)
+{
+	tap_ensure(a < b, less, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(a <= b, less || equal, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(a == b, equal, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(a != b, !equal, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(a >= b, !less, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(a > b, !(less || equal), @SCRIPTNAME, @SCRIPTLINE);
+}
+
+function main()
+{
+	test_literal_keys();
+	check_order(-100000, 100000, @true, @false);
+	check_order(100000, -100000, @false, @false);
+	check_order(0, 0, @false, @true);
+	check_order(-1, -1, @false, @true);
+	check_order(1, 1, @false, @true);
+	check_order(9223372036854775807, -9223372036854775807, @false, @false);
+	check_order(-9223372036854775807, 0, @true, @false);
+	check_order(9223372036854775807, 9223372036854775807, @false, @true);
+	tap_end();
+}

@@ -28,8 +28,8 @@
 enum hawk_assop_type_t
 {
 	/* if you change this, you have to change assop_str in tree.c.
-	 * synchronize it wit:
-	 *   - binop_func in eval_assignment of run.c
+	 * synchronize it with:
+	 *   - operator dispatch in eval_assignment of run.c
 	 *   - assop in assing_to_opcode of parse.c
 	 *   - TOK_XXX_ASSN in tok_t in parse.c
 	 *   - assop_str in tree.c
@@ -53,7 +53,7 @@ enum hawk_assop_type_t
 enum hawk_binop_type_t
 {
 	/* if you change this, you have to change
-	 * binop_str in tree.c and binop_func in run.c accordingly. */
+	 * binop_str in tree.c and eval_binary in run.c accordingly. */
 	HAWK_BINOP_LOR,
 	HAWK_BINOP_LAND,
 	HAWK_BINOP_IN,

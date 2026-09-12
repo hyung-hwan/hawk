@@ -221,9 +221,7 @@ static int read_record (hawk_rtx_t* rtx);
 static hawk_ooch_t* idxnde_to_str (hawk_rtx_t* rtx, hawk_nde_t* nde, hawk_ooch_t* buf, hawk_oow_t* len, hawk_nde_t** remidx, hawk_int_t* firstidxint);
 static hawk_ooi_t idxnde_to_int (hawk_rtx_t* rtx, hawk_nde_t* nde, hawk_nde_t** remidx);
 
-typedef hawk_val_t* (*binop_func_t) (hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t* right);
 typedef hawk_val_t* (*eval_expr_t) (hawk_rtx_t* rtx, hawk_nde_t* nde);
-static binop_func_t get_binop_func (int opcode);
 
 #define POS_VAL(rtx, idx) \
 	(((idx) == 0)? (rtx)->inrec.d0: \
@@ -5033,24 +5031,6 @@ static hawk_val_t* eval_assignment (hawk_rtx_t* rtx, hawk_nde_t* nde)
 	if (ass->opcode != HAWK_ASSOP_NONE)
 	{
 		hawk_val_t* val2, * tmp;
-		static binop_func_t binop_func[] =
-		{
-			/* this table must match hawk_assop_type_t in rtx.h */
-			HAWK_NULL, /* HAWK_ASSOP_NONE */
-			eval_binop_plus,
-			eval_binop_minus,
-			eval_binop_mul,
-			eval_binop_div,
-			eval_binop_idiv,
-			eval_binop_mod,
-			eval_binop_exp,
-			eval_binop_concat,
-			eval_binop_rshift,
-			eval_binop_lshift,
-			eval_binop_band,
-			eval_binop_bxor,
-			eval_binop_bor
-		};
 
 		HAWK_ASSERT(ass->left->next == HAWK_NULL);
 		val2 = eval_expression(rtx, ass->left);
@@ -5062,11 +5042,66 @@ static hawk_val_t* eval_assignment (hawk_rtx_t* rtx, hawk_nde_t* nde)
 
 		hawk_rtx_refupval_inline(rtx, val2);
 
-		HAWK_ASSERT(ass->opcode >= 0);
-		HAWK_ASSERT(ass->opcode < HAWK_COUNTOF(binop_func));
-		HAWK_ASSERT(binop_func[ass->opcode] != HAWK_NULL);
+		switch (ass->opcode)
+		{
+			case HAWK_ASSOP_PLUS:
+				tmp = eval_binop_plus(rtx, val2, val);
+				break;
 
-		tmp = binop_func[ass->opcode](rtx, val2, val);
+			case HAWK_ASSOP_MINUS:
+				tmp = eval_binop_minus(rtx, val2, val);
+				break;
+
+			case HAWK_ASSOP_MUL:
+				tmp = eval_binop_mul(rtx, val2, val);
+				break;
+
+			case HAWK_ASSOP_DIV:
+				tmp = eval_binop_div(rtx, val2, val);
+				break;
+
+			case HAWK_ASSOP_IDIV:
+				tmp = eval_binop_idiv(rtx, val2, val);
+				break;
+
+			case HAWK_ASSOP_MOD:
+				tmp = eval_binop_mod(rtx, val2, val);
+				break;
+
+			case HAWK_ASSOP_EXP:
+				tmp = eval_binop_exp(rtx, val2, val);
+				break;
+
+			case HAWK_ASSOP_CONCAT:
+				tmp = eval_binop_concat(rtx, val2, val);
+				break;
+
+			case HAWK_ASSOP_RS:
+				tmp = eval_binop_rshift(rtx, val2, val);
+				break;
+
+			case HAWK_ASSOP_LS:
+				tmp = eval_binop_lshift(rtx, val2, val);
+				break;
+
+			case HAWK_ASSOP_BAND:
+				tmp = eval_binop_band(rtx, val2, val);
+				break;
+
+			case HAWK_ASSOP_BXOR:
+				tmp = eval_binop_bxor(rtx, val2, val);
+				break;
+
+			case HAWK_ASSOP_BOR:
+				tmp = eval_binop_bor(rtx, val2, val);
+				break;
+
+			default:
+				HAWK_ASSERT(!"invalid assignment operator");
+				hawk_rtx_seterrnum(rtx, &nde->loc, HAWK_EINTERN);
+				tmp = HAWK_NULL;
+				break;
+		}
 		if (HAWK_UNLIKELY(!tmp))
 		{
 			hawk_rtx_refdownval_inline(rtx, val2);
@@ -5520,50 +5555,6 @@ static hawk_val_t* do_assignment_positional (hawk_rtx_t* rtx, hawk_nde_pos_t* po
 	return (lv == 0)? rtx->inrec.d0: rtx->inrec.flds[lv-1].val;
 }
 
-static binop_func_t get_binop_func (int opcode)
-{
-	static binop_func_t binop_func[] =
-	{
-		/* the order of the functions should be inline with
-		 * the operator declaration in rtx.h */
-
-		HAWK_NULL, /* eval_binop_lor */
-		HAWK_NULL, /* eval_binop_land */
-		HAWK_NULL, /* eval_binop_in */
-
-		eval_binop_bor,
-		eval_binop_bxor,
-		eval_binop_band,
-
-		eval_binop_teq,
-		eval_binop_tne,
-		eval_binop_eq,
-		eval_binop_ne,
-		eval_binop_gt,
-		eval_binop_ge,
-		eval_binop_lt,
-		eval_binop_le,
-
-		eval_binop_lshift,
-		eval_binop_rshift,
-
-		eval_binop_plus,
-		eval_binop_minus,
-		eval_binop_mul,
-		eval_binop_div,
-		eval_binop_idiv,
-		eval_binop_mod,
-		eval_binop_exp,
-
-		eval_binop_concat,
-		HAWK_NULL, /* eval_binop_ma */
-		HAWK_NULL  /* eval_binop_nm */
-	};
-
-	HAWK_ASSERT(opcode >= 0 && opcode < HAWK_COUNTOF(binop_func));
-	return binop_func[opcode];
-}
-
 static hawk_val_t* eval_binary (hawk_rtx_t* rtx, hawk_nde_t* nde)
 {
 	hawk_nde_exp_t* exp = (hawk_nde_exp_t*)nde;
@@ -5611,8 +5602,98 @@ static hawk_val_t* eval_binary (hawk_rtx_t* rtx, hawk_nde_t* nde)
 
 			hawk_rtx_refupval_inline(rtx, right);
 
-			HAWK_ASSERT(get_binop_func(exp->opcode) != HAWK_NULL);
-			res = get_binop_func(exp->opcode)(rtx, left, right);
+			switch (exp->opcode)
+			{
+				case HAWK_BINOP_BOR:
+					res = eval_binop_bor(rtx, left, right);
+					break;
+
+				case HAWK_BINOP_BXOR:
+					res = eval_binop_bxor(rtx, left, right);
+					break;
+
+				case HAWK_BINOP_BAND:
+					res = eval_binop_band(rtx, left, right);
+					break;
+
+				case HAWK_BINOP_TEQ:
+					res = eval_binop_teq(rtx, left, right);
+					break;
+
+				case HAWK_BINOP_TNE:
+					res = eval_binop_tne(rtx, left, right);
+					break;
+
+				case HAWK_BINOP_EQ:
+					res = eval_binop_eq(rtx, left, right);
+					break;
+
+				case HAWK_BINOP_NE:
+					res = eval_binop_ne(rtx, left, right);
+					break;
+
+				case HAWK_BINOP_GT:
+					res = eval_binop_gt(rtx, left, right);
+					break;
+
+				case HAWK_BINOP_GE:
+					res = eval_binop_ge(rtx, left, right);
+					break;
+
+				case HAWK_BINOP_LT:
+					res = eval_binop_lt(rtx, left, right);
+					break;
+
+				case HAWK_BINOP_LE:
+					res = eval_binop_le(rtx, left, right);
+					break;
+
+				case HAWK_BINOP_LS:
+					res = eval_binop_lshift(rtx, left, right);
+					break;
+
+				case HAWK_BINOP_RS:
+					res = eval_binop_rshift(rtx, left, right);
+					break;
+
+				case HAWK_BINOP_PLUS:
+					res = eval_binop_plus(rtx, left, right);
+					break;
+
+				case HAWK_BINOP_MINUS:
+					res = eval_binop_minus(rtx, left, right);
+					break;
+
+				case HAWK_BINOP_MUL:
+					res = eval_binop_mul(rtx, left, right);
+					break;
+
+				case HAWK_BINOP_DIV:
+					res = eval_binop_div(rtx, left, right);
+					break;
+
+				case HAWK_BINOP_IDIV:
+					res = eval_binop_idiv(rtx, left, right);
+					break;
+
+				case HAWK_BINOP_MOD:
+					res = eval_binop_mod(rtx, left, right);
+					break;
+
+				case HAWK_BINOP_EXP:
+					res = eval_binop_exp(rtx, left, right);
+					break;
+
+				case HAWK_BINOP_CONCAT:
+					res = eval_binop_concat(rtx, left, right);
+					break;
+
+				default:
+					HAWK_ASSERT(!"invalid binary operator");
+					hawk_rtx_seterrnum(rtx, &nde->loc, HAWK_EINTERN);
+					res = HAWK_NULL;
+					break;
+			}
 			if (HAWK_UNLIKELY(!res)) ADJERR_LOC(rtx, &nde->loc);
 
 			hawk_rtx_refdownval_inline(rtx, left);
@@ -7589,7 +7670,7 @@ static hawk_val_t* eval_binop_concat (hawk_rtx_t* rtx, hawk_val_t* left, hawk_va
 	return res;
 }
 
-static hawk_val_t* eval_binop_match0 (
+static HAWK_INLINE_ALWAYS hawk_val_t* eval_binop_match0 (
 	hawk_rtx_t* rtx, hawk_val_t* left, hawk_val_t* right,
 	const hawk_loc_t* lloc, const hawk_loc_t* rloc, int ret)
 {

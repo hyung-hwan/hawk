@@ -20,7 +20,7 @@ endif
 check_SCRIPTS += h-003.hawk h-004.hawk h-009.hawk h-010.hawk \
 	h-011.hawk h-012.hawk h-013.hawk h-014.hawk h-015.hawk \
 	h-016.hawk h-017.hawk h-018.hawk h-019.hawk h-020.hawk \
-	h-021.hawk h-022.hawk h-023.hawk h-024.hawk h-025.hawk h-026.hawk
+	h-021.hawk h-022.hawk h-023.hawk h-024.hawk h-025.hawk h-026.hawk h-027.hawk
 
 check_SCRIPTS += regress-filename.sh regress-extra-info.sh regress-environ.sh
 
@@ -28,6 +28,7 @@ check_ERRORS = e-001.err
 
 ##noinst_SCRIPTS = $(check_SCRIPTS)
 EXTRA_DIST = $(check_SCRIPTS) $(check_ERRORS) tap.inc err.sh \
+	bench-map-keys.hawk bench-int-comparisons.hawk \
 	journal-toc.hawk journal-toc.in journal-toc.out journal-toc-html.out \
 	bibtex-to-html.hawk bibtex-to-html.out \
 	fs-test.hawk fs-test.in fs-test.out \
