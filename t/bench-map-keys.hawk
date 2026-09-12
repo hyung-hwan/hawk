@@ -1,0 +1,8 @@
+BEGIN {
+	m["key"] = 7;
+	m["other"] = 11;
+	for (i = 0; i < 2000000; i++) {
+		s += m["key"] + m["other"];
+	}
+	print s;
+}
