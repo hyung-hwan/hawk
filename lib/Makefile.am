@@ -93,6 +93,7 @@ libhawk_la_SOURCES = \
 	big5.c \
 	big5.h \
 	chr.c \
+	cstack.c \
 	cut-prv.h \
 	cut.c \
 	dir.c \

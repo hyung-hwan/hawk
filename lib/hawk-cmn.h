@@ -1776,8 +1776,6 @@ typedef enum hawk_log_mask_t hawk_log_mask_t;
 #       error Unsupported platform
 #endif
 
-
-
 #if 0
 /* =========================================================================
  * SOCKET ADDRESS

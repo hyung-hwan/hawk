@@ -549,14 +549,14 @@ typedef struct hawk_val_fun_t  hawk_val_fun_t;
 /* ------------------------------------------------------------------------ */
 
 typedef hawk_flt_t (*hawk_math1_t) (
-	hawk_t* hawk,
-	hawk_flt_t x
+	hawk_t*     hawk,
+	hawk_flt_t  x
 );
 
 typedef hawk_flt_t (*hawk_math2_t) (
-	hawk_t* hawk,
-	hawk_flt_t x,
-	hawk_flt_t y
+	hawk_t*     hawk,
+	hawk_flt_t  x,
+	hawk_flt_t  y
 );
 
 /* ------------------------------------------------------------------------ */
@@ -841,6 +841,7 @@ struct hawk_prm_t
 	hawk_mod_getsym_t modgetsym;
 
 	hawk_log_write_t logwrite;
+
 #if 0
 	struct
 	{
@@ -1316,9 +1317,12 @@ enum hawk_opt_t
 
 	HAWK_OPT_DEPTH_INCLUDE,
 	HAWK_OPT_DEPTH_BLOCK_PARSE,
-	HAWK_OPT_DEPTH_BLOCK_RUN,
 	HAWK_OPT_DEPTH_EXPR_PARSE,
-	HAWK_OPT_DEPTH_EXPR_RUN,
+
+	/* HAWK_OPT_DEPTH_RECURS_RUN is ignored on the platform where the native
+	 * C stack information is available */
+	HAWK_OPT_DEPTH_RECURS_RUN,
+
 	HAWK_OPT_DEPTH_REX_BUILD,
 	HAWK_OPT_DEPTH_REX_MATCH,
 

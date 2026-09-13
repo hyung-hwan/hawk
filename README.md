@@ -782,6 +782,22 @@ BEGIN { print length("hawk"), substr("hawk", 2, 2) }
 | stack_limit   | global | number        | 5120    | specify the runtime stack size measured in the number of values |
 | xcall         | file   | on, off       | off     | allow one-level function call after dot or bracket index access (e.g. `m.f(...)`, `m["f"](...)`) |
 
+`stack_limit` sizes the heap-based value stack; it does not size the native C
+stack. When the required stack-bound APIs are detected on Linux, macOS, FreeBSD,
+NetBSD, OpenBSD, Haiku, or Windows, the runtime also checks native stack bounds
+automatically, independently of this pragma and the logical recursion limit.
+It leaves 64 KiB of headroom and returns `HAWK_ESTACK` (`native C stack
+limit reached`) before recursive evaluation exhausts that space. Bounds are
+refreshed at host execution entry, including callback reentry and sequential use
+of a runtime context on different threads. Failure to obtain valid bounds after
+the feature has been enabled is a runtime error.
+
+These checks protect recursive runtime evaluation, not parsing or arbitrary
+stack use inside native extensions, host callbacks, or library routines. Hosts
+must enter Hawk with sufficient stack space for entry and error handling and
+must not change the active stack limits during execution. Builds without the
+required interfaces retain the value-stack and logical recursion limits.
+
 ### @pragma entry
 
 Sets a custom entry function instead of the default `BEGIN`/pattern/`END` flow.

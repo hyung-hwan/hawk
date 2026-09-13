@@ -37,7 +37,7 @@ EXTRA_DIST = $(check_SCRIPTS) $(check_ERRORS) tap.inc err.sh \
 	run-hawk-test.sh regress-extra-info.sh \
 	two-way-pipe.hawk two-way-pipe.out
 
-check_PROGRAMS = t-001 t-002 t-003 t-004 t-005 t-006 t-007 t-008 t-009 t-010
+check_PROGRAMS = t-001 t-002 t-003 t-004 t-005 t-006 t-007 t-008 t-009 t-010 t-011
 
 if ENABLE_CXX
 check_PROGRAMS += t-101
@@ -99,6 +99,12 @@ t_010_CPPFLAGS = $(CPPFLAGS_COMMON)
 t_010_CFLAGS = $(CFLAGS_COMMON)
 t_010_LDFLAGS = $(LDFLAGS_COMMON)
 t_010_LDADD = $(LIBADD_COMMON)
+
+t_011_SOURCES = t-011.c tap.h
+t_011_CPPFLAGS = $(CPPFLAGS_COMMON)
+t_011_CFLAGS = $(CFLAGS_COMMON)
+t_011_LDFLAGS = $(LDFLAGS_COMMON)
+t_011_LDADD = $(LIBADD_COMMON)
 
 if ENABLE_CXX
 t_101_SOURCES = t-101.cpp tap.h

@@ -445,13 +445,29 @@ AC_SUBST(SOCKET_LIBS)
 ## check pthread
 AX_PTHREAD
 
-## check other pthread functions
-AC_CHECK_LIB([pthread], [pthread_mutex_timedlock],  [
-	AC_DEFINE([HAVE_PTHREAD_MUTEX_TIMEDLOCK],1,[pthreads has pthread_mutex_timedlock()])
+## Check the non-portable pthread interfaces used to obtain the active
+## thread's native stack bounds. AX_PTHREAD keeps its flags separate until
+## near the end of this script, so apply them temporarily for these checks.
+hawk_saved_CFLAGS="$CFLAGS"
+hawk_saved_LIBS="$LIBS"
+CFLAGS="$CFLAGS $PTHREAD_CFLAGS"
+LIBS="$LIBS $PTHREAD_LIBS"
+AC_CHECK_FUNCS([
+	pthread_getattr_np
+	pthread_attr_get_np
+	pthread_attr_getstack
+	pthread_attr_getguardsize
+	pthread_get_stackaddr_np
+	pthread_get_stacksize_np
+	pthread_stackseg_np
+	pthread_mutex_timedlock
+	pthread_mutex_trylock
 ])
-AC_CHECK_LIB([pthread], [pthread_mutex_trylock],  [
-	AC_DEFINE([HAVE_PTHREAD_MUTEX_TRYLOCK],1,[pthreads has pthread_mutex_trylock()])
-])
+CFLAGS="$hawk_saved_CFLAGS"
+LIBS="$hawk_saved_LIBS"
+
+## Haiku uses Kernel Kit functions instead of pthread stack-bound functions.
+AC_CHECK_FUNCS([find_thread get_thread_info])
 
 dnl check is the import library for unicows.dll exists
 dnl this check doesn't look for a particular symbol

@@ -919,9 +919,13 @@ int main_hawk(int argc, hawk_bch_t* argv[], const hawk_bch_t* real_argv0)
 		tmp = 50;
 		hawk_setopt(hawk, HAWK_OPT_DEPTH_BLOCK_PARSE, &tmp);
 		hawk_setopt(hawk, HAWK_OPT_DEPTH_EXPR_PARSE, &tmp);
+
+		/* [NOTE]
+		 *   if the native cstack info is available,
+		 *   HAWK_OPT_DEPTH_RECURS_RUN is ignored */
 		tmp = 1200;
-		hawk_setopt(hawk, HAWK_OPT_DEPTH_BLOCK_RUN, &tmp);
-		hawk_setopt(hawk, HAWK_OPT_DEPTH_EXPR_RUN, &tmp);
+		hawk_setopt(hawk, HAWK_OPT_DEPTH_RECURS_RUN, &tmp);
+
 		tmp = 64;
 		hawk_setopt(hawk, HAWK_OPT_DEPTH_INCLUDE, &tmp);
 	}

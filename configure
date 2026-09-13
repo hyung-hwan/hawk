@@ -24363,108 +24363,82 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
 
-## check other pthread functions
-{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for pthread_mutex_timedlock in -lpthread" >&5
-printf %s "checking for pthread_mutex_timedlock in -lpthread... " >&6; }
-if test ${ac_cv_lib_pthread_pthread_mutex_timedlock+y}
+## Check the non-portable pthread interfaces used to obtain the active
+## thread's native stack bounds. AX_PTHREAD keeps its flags separate until
+## near the end of this script, so apply them temporarily for these checks.
+hawk_saved_CFLAGS="$CFLAGS"
+hawk_saved_LIBS="$LIBS"
+CFLAGS="$CFLAGS $PTHREAD_CFLAGS"
+LIBS="$LIBS $PTHREAD_LIBS"
+ac_fn_c_check_func "$LINENO" "pthread_getattr_np" "ac_cv_func_pthread_getattr_np"
+if test "x$ac_cv_func_pthread_getattr_np" = xyes
 then :
-  printf %s "(cached) " >&6
-else case e in #(
-  e) ac_check_lib_save_LIBS=$LIBS
-LIBS="-lpthread  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.
-   The 'extern "C"' is for builds by C++ compilers;
-   although this is not generally supported in C code supporting it here
-   has little cost and some practical benefit (sr 110532).  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char pthread_mutex_timedlock (void);
-int
-main (void)
-{
-return pthread_mutex_timedlock ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"
-then :
-  ac_cv_lib_pthread_pthread_mutex_timedlock=yes
-else case e in #(
-  e) ac_cv_lib_pthread_pthread_mutex_timedlock=no ;;
-esac
-fi
-rm -f core conftest.err conftest.$ac_objext conftest.beam \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS ;;
-esac
-fi
-{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_pthread_pthread_mutex_timedlock" >&5
-printf "%s\n" "$ac_cv_lib_pthread_pthread_mutex_timedlock" >&6; }
-if test "x$ac_cv_lib_pthread_pthread_mutex_timedlock" = xyes
-then :
-
-
-printf "%s\n" "#define HAVE_PTHREAD_MUTEX_TIMEDLOCK 1" >>confdefs.h
-
+  printf "%s\n" "#define HAVE_PTHREAD_GETATTR_NP 1" >>confdefs.h
 
 fi
-
-{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for pthread_mutex_trylock in -lpthread" >&5
-printf %s "checking for pthread_mutex_trylock in -lpthread... " >&6; }
-if test ${ac_cv_lib_pthread_pthread_mutex_trylock+y}
+ac_fn_c_check_func "$LINENO" "pthread_attr_get_np" "ac_cv_func_pthread_attr_get_np"
+if test "x$ac_cv_func_pthread_attr_get_np" = xyes
 then :
-  printf %s "(cached) " >&6
-else case e in #(
-  e) ac_check_lib_save_LIBS=$LIBS
-LIBS="-lpthread  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
+  printf "%s\n" "#define HAVE_PTHREAD_ATTR_GET_NP 1" >>confdefs.h
 
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.
-   The 'extern "C"' is for builds by C++ compilers;
-   although this is not generally supported in C code supporting it here
-   has little cost and some practical benefit (sr 110532).  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char pthread_mutex_trylock (void);
-int
-main (void)
-{
-return pthread_mutex_trylock ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"
-then :
-  ac_cv_lib_pthread_pthread_mutex_trylock=yes
-else case e in #(
-  e) ac_cv_lib_pthread_pthread_mutex_trylock=no ;;
-esac
 fi
-rm -f core conftest.err conftest.$ac_objext conftest.beam \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS ;;
-esac
-fi
-{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_pthread_pthread_mutex_trylock" >&5
-printf "%s\n" "$ac_cv_lib_pthread_pthread_mutex_trylock" >&6; }
-if test "x$ac_cv_lib_pthread_pthread_mutex_trylock" = xyes
+ac_fn_c_check_func "$LINENO" "pthread_attr_getstack" "ac_cv_func_pthread_attr_getstack"
+if test "x$ac_cv_func_pthread_attr_getstack" = xyes
 then :
+  printf "%s\n" "#define HAVE_PTHREAD_ATTR_GETSTACK 1" >>confdefs.h
 
+fi
+ac_fn_c_check_func "$LINENO" "pthread_attr_getguardsize" "ac_cv_func_pthread_attr_getguardsize"
+if test "x$ac_cv_func_pthread_attr_getguardsize" = xyes
+then :
+  printf "%s\n" "#define HAVE_PTHREAD_ATTR_GETGUARDSIZE 1" >>confdefs.h
 
-printf "%s\n" "#define HAVE_PTHREAD_MUTEX_TRYLOCK 1" >>confdefs.h
+fi
+ac_fn_c_check_func "$LINENO" "pthread_get_stackaddr_np" "ac_cv_func_pthread_get_stackaddr_np"
+if test "x$ac_cv_func_pthread_get_stackaddr_np" = xyes
+then :
+  printf "%s\n" "#define HAVE_PTHREAD_GET_STACKADDR_NP 1" >>confdefs.h
 
+fi
+ac_fn_c_check_func "$LINENO" "pthread_get_stacksize_np" "ac_cv_func_pthread_get_stacksize_np"
+if test "x$ac_cv_func_pthread_get_stacksize_np" = xyes
+then :
+  printf "%s\n" "#define HAVE_PTHREAD_GET_STACKSIZE_NP 1" >>confdefs.h
+
+fi
+ac_fn_c_check_func "$LINENO" "pthread_stackseg_np" "ac_cv_func_pthread_stackseg_np"
+if test "x$ac_cv_func_pthread_stackseg_np" = xyes
+then :
+  printf "%s\n" "#define HAVE_PTHREAD_STACKSEG_NP 1" >>confdefs.h
+
+fi
+ac_fn_c_check_func "$LINENO" "pthread_mutex_timedlock" "ac_cv_func_pthread_mutex_timedlock"
+if test "x$ac_cv_func_pthread_mutex_timedlock" = xyes
+then :
+  printf "%s\n" "#define HAVE_PTHREAD_MUTEX_TIMEDLOCK 1" >>confdefs.h
+
+fi
+ac_fn_c_check_func "$LINENO" "pthread_mutex_trylock" "ac_cv_func_pthread_mutex_trylock"
+if test "x$ac_cv_func_pthread_mutex_trylock" = xyes
+then :
+  printf "%s\n" "#define HAVE_PTHREAD_MUTEX_TRYLOCK 1" >>confdefs.h
+
+fi
+
+CFLAGS="$hawk_saved_CFLAGS"
+LIBS="$hawk_saved_LIBS"
+
+## Haiku uses Kernel Kit functions instead of pthread stack-bound functions.
+ac_fn_c_check_func "$LINENO" "find_thread" "ac_cv_func_find_thread"
+if test "x$ac_cv_func_find_thread" = xyes
+then :
+  printf "%s\n" "#define HAVE_FIND_THREAD 1" >>confdefs.h
+
+fi
+ac_fn_c_check_func "$LINENO" "get_thread_info" "ac_cv_func_get_thread_info"
+if test "x$ac_cv_func_get_thread_info" = xyes
+then :
+  printf "%s\n" "#define HAVE_GET_THREAD_INFO 1" >>confdefs.h
 
 fi
 

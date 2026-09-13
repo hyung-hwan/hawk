@@ -2041,7 +2041,11 @@ static hawk_val_t* run_bpae_loop (hawk_rtx_t* rtx)
 }
 
 /* start the BEGIN-pattern block-END loop */
+#if defined(HAWK_HAVE_NATIVE_CSTACK_BOUNDS)
+static HAWK_INLINE_ALWAYS hawk_val_t* rtx_loop (hawk_rtx_t* rtx)
+#else
 hawk_val_t* hawk_rtx_loop (hawk_rtx_t* rtx)
+#endif
 {
 	hawk_val_t* retv = HAWK_NULL;
 	hawk_oow_t saved_stack_top;
@@ -2086,6 +2090,24 @@ hawk_val_t* hawk_rtx_loop (hawk_rtx_t* rtx)
 
 	return retv;
 }
+
+#if defined(HAWK_HAVE_NATIVE_CSTACK_BOUNDS)
+hawk_val_t* hawk_rtx_loop (hawk_rtx_t* rtx)
+{
+	hawk_val_t* v;
+
+	hawk_oow_t limit = rtx->cstack_limit;
+	/* cstack query at execution entry, not rtx creation: a host may move an idle rtx
+	 * to another thread. never cache a failed query as an unlimited stack. */
+	if (hawk_rtx_entercstack(rtx) <= -1) return HAWK_NULL;
+
+	v = rtx_loop(rtx);
+
+	rtx->cstack_limit = limit;
+
+	return v;
+}
+#endif
 
 hawk_val_t* hawk_rtx_execwithucstrarr (hawk_rtx_t* rtx, const hawk_uch_t* args[], hawk_oow_t nargs)
 {
@@ -2167,7 +2189,11 @@ hawk_fun_t* hawk_rtx_findfunwithucstr (hawk_rtx_t* rtx, const hawk_uch_t* name)
 }
 
 /* call an AWK function by the function structure */
+#if defined(HAWK_HAVE_NATIVE_CSTACK_BOUNDS)
+static HAWK_INLINE_ALWAYS hawk_val_t* rtx_callfun (hawk_rtx_t* rtx, hawk_fun_t* fun, hawk_val_t* args[], hawk_oow_t nargs)
+#else
 hawk_val_t* hawk_rtx_callfun (hawk_rtx_t* rtx, hawk_fun_t* fun, hawk_val_t* args[], hawk_oow_t nargs)
+#endif
 {
 	struct capture_retval_data_t crdata;
 	hawk_val_t* v;
@@ -2303,6 +2329,23 @@ hawk_val_t* hawk_rtx_callfun (hawk_rtx_t* rtx, hawk_fun_t* fun, hawk_val_t* args
 	 * the caller of this function should count down its reference. */
 	return v;
 }
+
+#if defined(HAWK_HAVE_NATIVE_CSTACK_BOUNDS)
+hawk_val_t* hawk_rtx_callfun (hawk_rtx_t* rtx, hawk_fun_t* fun, hawk_val_t* args[], hawk_oow_t nargs)
+{
+	hawk_val_t* v;
+	hawk_oow_t limit = rtx->cstack_limit;
+
+	/* cstack query at execution entry, not rtx creation: a host may move an idle rtx
+	 * to another thread. never cache a failed query as an unlimited stack. */
+	if (hawk_rtx_entercstack(rtx) <= -1) return HAWK_NULL;
+
+	v = rtx_callfun(rtx, fun, args, nargs);
+
+	rtx->cstack_limit = limit;
+	return v;
+}
+#endif
 
 /* call an AWK function by name */
 hawk_val_t* hawk_rtx_callwithucstr (hawk_rtx_t* rtx, const hawk_uch_t* name, hawk_val_t* args[], hawk_oow_t nargs)
@@ -2723,17 +2766,25 @@ static int run_block (hawk_rtx_t* rtx, hawk_nde_blk_t* nde)
 {
 	int n;
 
-	if (HAWK_UNLIKELY(rtx->hawk->opt.depth.s.block_run > 0 && rtx->depth.block >= rtx->hawk->opt.depth.s.block_run))
+#if defined(HAWK_HAVE_NATIVE_CSTACK_BOUNDS)
+	if (HAWK_UNLIKELY(!HAWK_CSTACK_OK(rtx,n)))
 	{
-		hawk_rtx_seterrbfmt(rtx, &nde->loc, HAWK_EBLKNST,
-			"run-time block depth(%zu) reached limit(%zu)",
-			rtx->depth.block, rtx->hawk->opt.depth.s.block_run);
+		hawk_rtx_seterrbfmt(rtx, &nde->loc, HAWK_ESTACK, "native C stack limit reached in running a block");
 		return -1;
 	}
-
-	rtx->depth.block++;
 	n = run_block0(rtx, nde);
-	rtx->depth.block--;
+#else
+	if (HAWK_UNLIKELY(rtx->hawk->opt.depth.s.recurs_run > 0 && rtx->depth.recurs >= rtx->hawk->opt.depth.s.recurs_run))
+	{
+		hawk_rtx_seterrbfmt(rtx, &nde->loc, HAWK_EBLKNST,
+			"run-time recursion depth(%zu) reached limit(%zu)",
+			rtx->depth.recurs, rtx->hawk->opt.depth.s.recurs_run);
+		return -1;
+	}
+	rtx->depth.recurs++;
+	n = run_block0(rtx, nde);
+	rtx->depth.recurs--;
+#endif
 
 	return n;
 }
@@ -3052,8 +3103,10 @@ static void leave_block_iterative (hawk_rtx_t* rtx, hawk_nde_blk_t* nde)
 		while (tmp > 0);
 	}
 
-	HAWK_ASSERT(rtx->depth.block > 0);
-	rtx->depth.block--;
+#if !defined(HAWK_HAVE_NATIVE_CSTACK_BOUNDS)
+	HAWK_ASSERT(rtx->depth.recurs > 0);
+	rtx->depth.recurs--;
+#endif
 }
 
 static void leave_forin_iterative (hawk_rtx_t* rtx, hawk_oow_t base)
@@ -3091,16 +3144,18 @@ static void unwind_exec_stack (hawk_rtx_t* rtx, hawk_oow_t base)
 
 static int enter_block_iterative (hawk_rtx_t* rtx, hawk_nde_blk_t* nde)
 {
-	if (rtx->hawk->opt.depth.s.block_run > 0 &&
-	    rtx->depth.block >= rtx->hawk->opt.depth.s.block_run)
+#if !defined(HAWK_HAVE_NATIVE_CSTACK_BOUNDS)
+	if (rtx->hawk->opt.depth.s.recurs_run > 0 &&
+	    rtx->depth.recurs >= rtx->hawk->opt.depth.s.recurs_run)
 	{
 		hawk_rtx_seterrbfmt(rtx, &nde->loc, HAWK_EBLKNST,
-			"run-time block depth(%zu) reached limit(%zu)",
-			rtx->depth.block, rtx->hawk->opt.depth.s.block_run);
+			"run-time recursion depth(%zu) reached limit(%zu)",
+			rtx->depth.recurs, rtx->hawk->opt.depth.s.recurs_run);
 		return -1;
 	}
 
-	rtx->depth.block++;
+	rtx->depth.recurs++;
+#endif
 
 	if (nde->nlcls > 0)
 	{
@@ -3108,7 +3163,9 @@ static int enter_block_iterative (hawk_rtx_t* rtx, hawk_nde_blk_t* nde)
 
 		if (HAWK_UNLIKELY(HAWK_RTX_STACK_AVAIL(rtx) < tmp))
 		{
-			rtx->depth.block--;
+#if !defined(HAWK_HAVE_NATIVE_CSTACK_BOUNDS)
+			rtx->depth.recurs--;
+#endif
 			hawk_rtx_seterrbfmt(rtx, &nde->loc, HAWK_ESTACK,
 				"stack full(avail=%zu, limit=%zu) for %zu local variables",
 				HAWK_RTX_STACK_AVAIL(rtx), rtx->stack_limit, tmp);
@@ -3304,6 +3361,12 @@ static int run_statement (hawk_rtx_t* rtx, hawk_nde_t* nde)
 	int xret = 0;
 	hawk_oow_t base;
 	hawk_exec_stack_t es;
+
+	if (HAWK_UNLIKELY(!HAWK_CSTACK_OK(rtx,es)))
+	{
+		hawk_rtx_seterrbfmt(rtx, &nde->loc, HAWK_ESTACK, "native C stack limit reached in running a statement");
+		return -1;
+	}
 
 	HAWK_ASSERT(nde != HAWK_NULL);
 	base = rtx->exec_stack_size;
@@ -4846,15 +4909,17 @@ static hawk_val_t* eval_expression0 (hawk_rtx_t* rtx, hawk_nde_t* nde)
 
 	HAWK_ASSERT(nde->type >= HAWK_NDE_GRP && (nde->type - HAWK_NDE_GRP) < HAWK_COUNTOF(__evaluator));
 
-	if (HAWK_UNLIKELY(rtx->hawk->opt.depth.s.expr_run > 0 && rtx->depth.expr >= rtx->hawk->opt.depth.s.expr_run))
+#if !defined(HAWK_HAVE_NATIVE_CSTACK_BOUNDS)
+	if (HAWK_UNLIKELY(rtx->hawk->opt.depth.s.recurs_run > 0 && rtx->depth.recurs >= rtx->hawk->opt.depth.s.recurs_run))
      {
           hawk_rtx_seterrbfmt(rtx, &nde->loc, HAWK_EBLKNST,
-               "run-time expression depth(%zu) reached limit(%zu)",
-               rtx->depth.expr, rtx->hawk->opt.depth.s.expr_run);
+               "run-time recursion depth(%zu) reached limit(%zu)",
+               rtx->depth.recurs, rtx->hawk->opt.depth.s.recurs_run);
           return HAWK_NULL;
      }
 
-	rtx->depth.expr++;
+	rtx->depth.recurs++;
+#endif
 
 	switch(nde->type)
 	{
@@ -4939,10 +5004,22 @@ static hawk_val_t* eval_expression0 (hawk_rtx_t* rtx, hawk_nde_t* nde)
 		case HAWK_NDE_GBLIDX:
 		case HAWK_NDE_LCLIDX:
 		case HAWK_NDE_NAMEDIDX:
+			if (HAWK_UNLIKELY(!HAWK_CSTACK_OK(rtx,v)))
+			{
+				hawk_rtx_seterrbfmt(rtx, &nde->loc, HAWK_ESTACK, "native C stack limit reached in evaluating an indexed expression");
+				goto oops;
+			}
 			v = eval_indexed(rtx, (hawk_nde_var_t*)nde);
 			break;
 
 		default:
+			/* leaf loads above cannot recurse. check before descending into
+			 * an evaluator; direct user calls are checked in rtx_evalcall. */
+			if (HAWK_UNLIKELY(!HAWK_CSTACK_OK(rtx,v)))
+			{
+				hawk_rtx_seterrbfmt(rtx, &nde->loc, HAWK_ESTACK, "native C stack limit reached in evaluating an expression");
+				goto oops;
+			}
 			v = __evaluator[nde->type - HAWK_NDE_GRP](rtx, nde);
 			break;
 	}
@@ -4963,11 +5040,15 @@ static hawk_val_t* eval_expression0 (hawk_rtx_t* rtx, hawk_nde_t* nde)
 done:
 	/* this function returns a regular expression without further mathiching.
 	 * it is done in eval_expression(). */
-	rtx->depth.expr--;
+#if !defined(HAWK_HAVE_NATIVE_CSTACK_BOUNDS)
+	rtx->depth.recurs--;
+#endif
 	return v;
 
 oops:
-	rtx->depth.expr--;
+#if !defined(HAWK_HAVE_NATIVE_CSTACK_BOUNDS)
+	rtx->depth.recurs--;
+#endif
 	ADJERR_LOC(rtx, &nde->loc);
 	return HAWK_NULL;
 }
@@ -8383,6 +8464,12 @@ hawk_val_t* hawk_rtx_evalcall (
 	hawk_oow_t nargs, i, stack_req;
 	hawk_val_t* v;
 	int n;
+
+	if (HAWK_UNLIKELY(!HAWK_CSTACK_OK(rtx,n)))
+	{
+		hawk_rtx_seterrbfmt(rtx, &call->loc, HAWK_ESTACK, "native C stack limit reached in calling a function");
+		return HAWK_NULL;
+	}
 
 	/*
 	 * ---------------------

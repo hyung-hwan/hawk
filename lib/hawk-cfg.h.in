@@ -169,6 +169,9 @@
 /* Define to 1 if you have the 'ffi_prep_cif_var' function. */
 #undef HAVE_FFI_PREP_CIF_VAR
 
+/* Define to 1 if you have the 'find_thread' function. */
+#undef HAVE_FIND_THREAD
+
 /* Define to 1 if you have the 'floor' function. */
 #undef HAVE_FLOOR
 
@@ -222,6 +225,9 @@
 
 /* Define to 1 if you have the 'gettimeofday' function. */
 #undef HAVE_GETTIMEOFDAY
+
+/* Define to 1 if you have the 'get_thread_info' function. */
+#undef HAVE_GET_THREAD_INFO
 
 /* Define to 1 if you have the 'gmtime_r' function. */
 #undef HAVE_GMTIME_R
@@ -355,14 +361,35 @@
 /* Define if you have POSIX threads libraries and header files. */
 #undef HAVE_PTHREAD
 
-/* pthreads has pthread_mutex_timedlock() */
+/* Define to 1 if you have the 'pthread_attr_getguardsize' function. */
+#undef HAVE_PTHREAD_ATTR_GETGUARDSIZE
+
+/* Define to 1 if you have the 'pthread_attr_getstack' function. */
+#undef HAVE_PTHREAD_ATTR_GETSTACK
+
+/* Define to 1 if you have the 'pthread_attr_get_np' function. */
+#undef HAVE_PTHREAD_ATTR_GET_NP
+
+/* Define to 1 if you have the 'pthread_getattr_np' function. */
+#undef HAVE_PTHREAD_GETATTR_NP
+
+/* Define to 1 if you have the 'pthread_get_stackaddr_np' function. */
+#undef HAVE_PTHREAD_GET_STACKADDR_NP
+
+/* Define to 1 if you have the 'pthread_get_stacksize_np' function. */
+#undef HAVE_PTHREAD_GET_STACKSIZE_NP
+
+/* Define to 1 if you have the 'pthread_mutex_timedlock' function. */
 #undef HAVE_PTHREAD_MUTEX_TIMEDLOCK
 
-/* pthreads has pthread_mutex_trylock() */
+/* Define to 1 if you have the 'pthread_mutex_trylock' function. */
 #undef HAVE_PTHREAD_MUTEX_TRYLOCK
 
 /* Have PTHREAD_PRIO_INHERIT. */
 #undef HAVE_PTHREAD_PRIO_INHERIT
+
+/* Define to 1 if you have the 'pthread_stackseg_np' function. */
+#undef HAVE_PTHREAD_STACKSEG_NP
 
 /* Define to 1 if you have the <quadmath.h> header file. */
 #undef HAVE_QUADMATH_H

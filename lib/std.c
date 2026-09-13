@@ -69,6 +69,7 @@
 #	if defined(HAVE_CRT_EXTERNS_H)
 #		include <crt_externs.h> /* MacOSX/darwin. _NSGetEnviron() */
 #	endif
+
 #endif
 
 #if !defined(HAWK_HAVE_CFG_H)
@@ -312,6 +313,8 @@ hawk_flt_t hawk_stdmathmod (hawk_t* hawk, hawk_flt_t x, hawk_flt_t y)
 	#error ### no fmod function available ###
 #endif
 }
+
+/* ----------------------------------------------------------------------- */
 
 /* [IMPORTANT]
  * hawk_stdmodXXXX() functions must not access the extension
@@ -702,9 +705,9 @@ static HAWK_INLINE void reset_log_to_default (xtn_t* xtn)
 
 #if defined(EMSCRIPTEN)
 EM_JS(int, write_all, (int, const hawk_bch_t* ptr, hawk_oow_t len), {
-	// UTF8ToString() doesn't handle a null byte in the middle of an array.
-	// Use the heap memory and pass the right portion to UTF8Decoder.
-	//console.log ("%s", UTF8ToString(ptr, len));
+	/* UTF8ToString() doesn't handle a null byte in the middle of an array.
+	 * Use the heap memory and pass the right portion to UTF8Decoder. */
+	/*console.log ("%s", UTF8ToString(ptr, len));*/
 	console.log ("%s", UTF8Decoder.decode(HEAPU8.subarray(ptr, ptr + len)));
 	return 0;
 });
@@ -715,9 +718,9 @@ static int write_all (int fd, const hawk_bch_t* ptr, hawk_oow_t len)
 {
 #if defined(EMSCRIPTEN)
 	EM_ASM_ ({
-		// UTF8ToString() doesn't handle a null byte in the middle of an array.
-		// Use the heap memory and pass the right portion to UTF8Decoder.
-		//console.log ("%s", UTF8ToString($0, $1));
+		/* UTF8ToString() doesn't handle a null byte in the middle of an array.
+		 * Use the heap memory and pass the right portion to UTF8Decoder.*/
+		/*console.log ("%s", UTF8ToString($0, $1));*/
 		console.log ("%s", UTF8Decoder.decode(HEAPU8.subarray($0, $0 + $1)));
 	}, ptr, len);
 #else

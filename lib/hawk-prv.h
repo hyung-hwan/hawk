@@ -69,6 +69,8 @@ typedef struct hawk_tree_t hawk_tree_t;
 #define HAWK_ENABLE_ATOMIC_SIG
 #endif
 
+#define HAWK_ENABLE_CSTACK_CHECK
+
 /* ------------------------------------------------------------------------ */
 
 /* private headers. some files are affected by feature macros above */
@@ -259,14 +261,13 @@ struct hawk_t
 
 		union
 		{
-			hawk_oow_t a[7]; /**< to access the elements of the #s field as an array */
+			hawk_oow_t a[6]; /**< to access the elements of the #s field as an array */
 			struct
 			{
 				hawk_oow_t incl;
 				hawk_oow_t block_parse;
-				hawk_oow_t block_run;
 				hawk_oow_t expr_parse;
-				hawk_oow_t expr_run;
+				hawk_oow_t recurs_run;
 				hawk_oow_t rex_build;
 				hawk_oow_t rex_match;
 			} s; /**< defines the maximum nesting depths */
@@ -462,6 +463,10 @@ struct hawk_rtx_t
 	hawk_oow_t stack_base;
 	hawk_oow_t stack_limit;
 
+	/* Native stack stopping boundary for the current host entry, unrelated to
+	 * the value stack above. Saved/restored across host callback reentry. */
+	hawk_oow_t cstack_limit;
+
 	/* heap-based stack for iterative statement execution */
 	hawk_exec_stack_t* exec_stack;
 	hawk_oow_t exec_stack_size;
@@ -618,8 +623,7 @@ struct hawk_rtx_t
 
 	struct
 	{
-		hawk_oow_t block;
-		hawk_oow_t expr; /* expression */
+		hawk_oow_t recurs; /* recursion depth including both blocks and expressions */
 	} depth;
 
 	struct
@@ -730,6 +734,38 @@ static HAWK_INLINE void HAWK_RTX_STACK_POP (hawk_rtx_t* rtx)
 #	define HAWK_DEFAULT_MODPOSTFIX ""
 #endif
 
+/* ------------------------------------------------------------------------ */
+
+#if defined(HAWK_ENABLE_CSTACK_CHECK) && defined(_WIN32)
+#	define HAWK_HAVE_NATIVE_CSTACK_BOUNDS
+#elif defined(HAWK_ENABLE_CSTACK_CHECK) && defined(__HAIKU__) && defined(HAVE_FIND_THREAD) && defined(HAVE_GET_THREAD_INFO)
+#	define HAWK_HAVE_NATIVE_CSTACK_BOUNDS
+#elif defined(HAWK_ENABLE_CSTACK_CHECK) && defined(__APPLE__) && defined(HAVE_PTHREAD) && defined(HAVE_PTHREAD_GET_STACKADDR_NP) && defined(HAVE_PTHREAD_GET_STACKSIZE_NP)
+#	define HAWK_HAVE_NATIVE_CSTACK_BOUNDS
+#elif defined(HAWK_ENABLE_CSTACK_CHECK) && defined(__OpenBSD__) && defined(HAVE_PTHREAD) && defined(HAVE_PTHREAD_STACKSEG_NP)
+#	define HAWK_HAVE_NATIVE_CSTACK_BOUNDS
+#elif defined(HAWK_ENABLE_CSTACK_CHECK) && defined(__linux__) && defined(HAVE_PTHREAD) && defined(HAVE_PTHREAD_GETATTR_NP) && defined(HAVE_PTHREAD_ATTR_GETSTACK) && defined(HAVE_PTHREAD_ATTR_GETGUARDSIZE)
+#	define HAWK_HAVE_NATIVE_CSTACK_BOUNDS
+#elif defined(HAWK_ENABLE_CSTACK_CHECK) && (defined(__FreeBSD__) || defined(__NetBSD__)) && defined(HAVE_PTHREAD) && defined(HAVE_PTHREAD_ATTR_GET_NP) && defined(HAVE_PTHREAD_ATTR_GETSTACK) && defined(HAVE_PTHREAD_ATTR_GETGUARDSIZE)
+#	define HAWK_HAVE_NATIVE_CSTACK_BOUNDS
+#else
+#	undef HAWK_HAVE_NATIVE_CSTACK_BOUNDS
+#endif
+
+#if defined(__hppa__)
+#define HAWK_CSTACK_GROWS_UPWARDS (1)
+#undef HAWK_CSTACK_GROWS_DOWNWARDS
+#else
+#undef HAWK_CSTACK_GROWS_UPWARDS
+#define HAWK_CSTACK_GROWS_DOWNWARDS (1)
+#endif
+
+/* leave room for unchecked C helpers, error reporting and value cleanup.
+ * This is not a guarantee for arbitrary native extension code or alloca(). */
+#define HAWK_CSTACK_HEADROOM ((hawk_oow_t)65536)
+
+/* ------------------------------------------------------------------------ */
+
 #if defined(__cplusplus)
 extern "C" {
 #endif
@@ -745,6 +781,44 @@ void* hawk_rtx_commit_environ (
 	int                    gbl_id,
 	hawk_rtx_env_mk_type_t env_mk_type
 );
+
+
+/* read SP without forcing a frame pointer in hot evaluators. SP and the
+ * frame-address fallback stay on the real stack under AddressSanitizer,
+ * unlike an address-taken local that may be placed on its fake stack. */
+#if (defined(__GNUC__) || defined(__clang__)) && (defined(__x86_64__) || defined(__i386__) || (defined(__aarch64__) && HAWK_SIZEOF_VOID_P == 8) || defined(__arm__))
+static HAWK_INLINE_ALWAYS hawk_oow_t hawk_cstack_position (void)
+{
+	hawk_oow_t pos;
+#if defined(__x86_64__) && HAWK_SIZEOF_VOID_P == 8
+	__asm__ __volatile__("mov %%rsp, %0" : "=r" (pos));
+#elif defined(__i386__) || defined(__x86_64__)
+	__asm__ __volatile__("mov %%esp, %0" : "=r" (pos));
+#else
+	__asm__ __volatile__("mov %0, sp" : "=r" (pos));
+#endif
+	return pos;
+}
+#define HAWK_CSTACK_POSITION(local) hawk_cstack_position()
+#elif defined(__GNUC__) || defined(__clang__)
+#define HAWK_CSTACK_POSITION(local) ((hawk_oow_t)__builtin_frame_address(0))
+#else
+#define HAWK_CSTACK_POSITION(local) ((hawk_oow_t)&(local))
+#endif
+
+#if defined(HAWK_HAVE_NATIVE_CSTACK_BOUNDS)
+/* entry validates both bounds. during evaluation the native stack grows
+ * towards only one boundary; thread/fiber reentry refreshes that boundary. */
+#if defined(HAWK_CSTACK_GROWS_UPWARDS)
+#define HAWK_CSTACK_OK(rtx,local) (HAWK_CSTACK_POSITION(local) < (rtx)->cstack_limit)
+#else
+#define HAWK_CSTACK_OK(rtx,local) (HAWK_CSTACK_POSITION(local) >= (rtx)->cstack_limit)
+#endif
+#else
+#define HAWK_CSTACK_OK(rtx,local) (1)
+#endif
+
+int hawk_rtx_entercstack(hawk_rtx_t* rtx);
 
 #if defined(__cplusplus)
 }
