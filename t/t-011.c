@@ -50,6 +50,7 @@ struct job_t
 {
 	hawk_rtx_t* rtx;
 	const char* name; /* NULL exercises hawk_rtx_loop() */
+	int require_native;
 	int passed;
 };
 
@@ -59,7 +60,7 @@ static void* exhaust (void* data)
 	hawk_val_t* v;
 	v = job->name? hawk_rtx_callwithbcstr(job->rtx, job->name, HAWK_NULL, 0): hawk_rtx_loop(job->rtx);
 	job->passed = !v && hawk_rtx_geterrnum(job->rtx) == HAWK_ESTACK &&
-		strstr(hawk_rtx_geterrbmsg(job->rtx), "native C stack limit reached") != HAWK_NULL;
+		(!job->require_native || strstr(hawk_rtx_geterrbmsg(job->rtx), "native C stack limit reached") != HAWK_NULL);
 	if (!job->passed) printf("# unexpected result: %s\n", hawk_rtx_geterrbmsg(job->rtx));
 	if (v) hawk_rtx_refdownval(job->rtx, v);
 	return HAWK_NULL;
@@ -82,6 +83,33 @@ static int on_stack (struct job_t* job, size_t size)
 	n = WaitForSingleObject(thread, INFINITE);
 	CloseHandle(thread);
 	return n == WAIT_OBJECT_0? 0: -1;
+#elif defined(__HAIKU__)
+	pthread_attr_t attr;
+	pthread_t thread;
+	int n, started = 0;
+
+	n = pthread_attr_init(&attr);
+	if (n == 0)
+	{
+		/* On Haiku, passing an existing mmap() area to pthread_attr_setstack()
+		 * prevents the thread entry point from running. Let the kernel allocate
+		 * an exact-sized stack instead.
+		 *
+		 * [NOTE]
+		 *  This branch may work on other platforms that support pthread_attr_setstacksize.
+		 *  In posix specification, the given size to pthread_attr_setstacksize
+		 *  is the minimum size. so the actual stack may be larger than requested.
+		 *  If the exact-sized stack is allocated, the test becomes less deterministic */
+		n = pthread_attr_setstacksize(&attr, size);
+		if (n == 0)
+		{
+			n = pthread_create(&thread, &attr, exhaust, job);
+			started = (n == 0);
+		}
+		pthread_attr_destroy(&attr);
+		if (n == 0) n = pthread_join(thread, HAWK_NULL);
+	}
+	return started && n == 0? 0: -1;
 #else
 	pthread_attr_t attr;
 	pthread_t thread;
@@ -181,10 +209,12 @@ int main (void)
 	if (!rtx) goto done;
 	job.rtx = rtx;
 	job.name = "direct";
+	job.require_native = 0;
 	job.passed = 0;
 	exhaust(&job);
-	OK(job.passed, "native exhaustion on main thread");
+	OK(job.passed, "stack exhaustion on main thread");
 	check_reuse(rtx);
+	job.require_native = 1;
 	for (i = 0; i < sizeof(sizes) / sizeof(sizes[0]); i++)
 	{
 		for (j = 0; j < sizeof(names) / sizeof(names[0]); j++)
