@@ -24437,24 +24437,24 @@ then :
 fi
 
 case "$host_os" in
-	haiku*)
-		## get_thread_info() is a public macro wrapping _get_thread_info(), so
-		## AC_CHECK_FUNCS cannot detect it by looking for a symbol of that name.
-		{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking whether get_thread_info is available" >&5
+haiku*)
+	## get_thread_info() is a public macro wrapping _get_thread_info(), so
+	## AC_CHECK_FUNCS cannot detect it by looking for a symbol of that name.
+	{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking whether get_thread_info is available" >&5
 printf %s "checking whether get_thread_info is available... " >&6; }
 if test ${hawk_cv_func_get_thread_info+y}
 then :
   printf %s "(cached) " >&6
 else case e in #(
   e)
-				cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+			cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 #include <OS.h>
 int
 main (void)
 {
 thread_info info;
-						return get_thread_info((thread_id)0, &info);
+					return get_thread_info((thread_id)0, &info);
 
   ;
   return 0;
@@ -24465,25 +24465,25 @@ then :
   hawk_cv_func_get_thread_info=yes
 else case e in #(
   e) hawk_cv_func_get_thread_info=no
-				 ;;
+			 ;;
 esac
 fi
 rm -f core conftest.err conftest.$ac_objext conftest.beam \
     conftest$ac_exeext conftest.$ac_ext
 
-		 ;;
+	 ;;
 esac
 fi
 { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $hawk_cv_func_get_thread_info" >&5
 printf "%s\n" "$hawk_cv_func_get_thread_info" >&6; }
-		if test "x$hawk_cv_func_get_thread_info" = "xyes"
+	if test "x$hawk_cv_func_get_thread_info" = "xyes"
 then :
 
 printf "%s\n" "#define HAVE_GET_THREAD_INFO 1" >>confdefs.h
 
 
 fi
-		;;
+	;;
 esac
 
 { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for main in -lunicows" >&5

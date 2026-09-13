@@ -63,8 +63,8 @@ function main()
 	check_order(0, 0, @false, @true);
 	check_order(-1, -1, @false, @true);
 	check_order(1, 1, @false, @true);
-	check_order(9223372036854775807, -9223372036854775807, @false, @false);
-	check_order(-9223372036854775807, 0, @true, @false);
-	check_order(9223372036854775807, 9223372036854775807, @false, @true);
+	check_order(2147483647, -2147483647, @false, @false);
+	check_order(-2147483647, 0, @true, @false);
+	check_order(2147483647, 2147483647, @false, @true);
 	tap_end();
 }

@@ -469,33 +469,33 @@ LIBS="$hawk_saved_LIBS"
 ## Haiku uses Kernel Kit functions instead of pthread stack-bound functions.
 AC_CHECK_FUNCS([find_thread])
 case "$host_os" in
-	haiku*)
-		## get_thread_info() is a public macro wrapping _get_thread_info(), so
-		## AC_CHECK_FUNCS cannot detect it by looking for a symbol of that name.
-		AC_CACHE_CHECK(
-			[whether get_thread_info is available],
-			[hawk_cv_func_get_thread_info],
-			[
-				AC_LINK_IFELSE(
-					[AC_LANG_PROGRAM(
-						[[#include <OS.h>]],
-						[[thread_info info;
-						return get_thread_info((thread_id)0, &info);]]
-					)],
-					[hawk_cv_func_get_thread_info=yes],
-					[hawk_cv_func_get_thread_info=no]
-				)
-			]
-		)
-		AS_IF(
-			[test "x$hawk_cv_func_get_thread_info" = "xyes"],
-			[AC_DEFINE(
-				[HAVE_GET_THREAD_INFO],
-				[1],
-				[Define if Haiku get_thread_info() is available]
-			)]
-		)
-		;;
+haiku*)
+	## get_thread_info() is a public macro wrapping _get_thread_info(), so
+	## AC_CHECK_FUNCS cannot detect it by looking for a symbol of that name.
+	AC_CACHE_CHECK(
+		[whether get_thread_info is available],
+		[hawk_cv_func_get_thread_info],
+		[
+			AC_LINK_IFELSE(
+				[AC_LANG_PROGRAM(
+					[[#include <OS.h>]],
+					[[thread_info info;
+					return get_thread_info((thread_id)0, &info);]]
+				)],
+				[hawk_cv_func_get_thread_info=yes],
+				[hawk_cv_func_get_thread_info=no]
+			)
+		]
+	)
+	AS_IF(
+		[test "x$hawk_cv_func_get_thread_info" = "xyes"],
+		[AC_DEFINE(
+			[HAVE_GET_THREAD_INFO],
+			[1],
+			[Define if Haiku get_thread_info() is available]
+		)]
+	)
+	;;
 esac
 
 dnl check is the import library for unicows.dll exists
