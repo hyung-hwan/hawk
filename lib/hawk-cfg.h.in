@@ -226,7 +226,7 @@
 /* Define to 1 if you have the 'gettimeofday' function. */
 #undef HAVE_GETTIMEOFDAY
 
-/* Define to 1 if you have the 'get_thread_info' function. */
+/* Define if Haiku get_thread_info() is available */
 #undef HAVE_GET_THREAD_INFO
 
 /* Define to 1 if you have the 'gmtime_r' function. */
