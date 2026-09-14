@@ -48,16 +48,21 @@ function run_test (x, more_opts, in_name, set_out_name, out_name)
 
 	inf = sprintf("%s/%s.in", TDIR, in_name);
 	expf = sprintf("%s/%s.out", TDIR, out_name);
-	outf = sprintf("/tmp/%s.%d.out", out_name, sys::getpid());
+	outf = sys::tempname(out_name "-");
+	if (outf == "")
+	{
+		tap_fail(sprintf("%s[%d] %s - unable to create a temporary file - %s", @SCRIPTNAME, @SCRIPTLINE, x, sys::errmsg()));
+		return;
+	}
 ##print TDIR, inf, expf, outf;
 
 	if (set_out_name)
 	{
-		cmd=sprintf("%s %s -vT_OUT_NAME=%s -f %s/%s.hawk --modlibdirs=%s %s", ARGV[0], more_opts, outf, TDIR, x, hawk::modlibdirs(), inf);
+		cmd=sprintf("%s %s -vT_OUT_NAME=\"%s\" -f %s/%s.hawk --modlibdirs=%s %s", ARGV[0], more_opts, outf, TDIR, x, hawk::modlibdirs(), inf);
 	}
 	else
 	{
-		cmd=sprintf("%s %s -f %s/%s.hawk --modlibdirs=%s %s > %s", ARGV[0], more_opts, TDIR, x, hawk::modlibdirs(), inf, outf);
+		cmd=sprintf("%s %s -f %s/%s.hawk --modlibdirs=%s %s > \"%s\"", ARGV[0], more_opts, TDIR, x, hawk::modlibdirs(), inf, outf);
 	}
 ##print cmd;
 	system(cmd);
@@ -104,4 +109,3 @@ function main()
 	run_github_step_JSON_awk();
 	tap_end();
 }
-

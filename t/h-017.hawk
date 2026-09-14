@@ -8,8 +8,16 @@
 @global rec_no;
 
 BEGIN {
-	p1 = sprintf("/tmp/h-017-a.%d.tmp", sys::getpid());
-	p2 = sprintf("/tmp/h-017-b.%d.tmp", sys::getpid());
+	p1 = sys::tempname("h-017-a-");
+	p2 = sys::tempname("h-017-b-");
+	if (p1 == "" || p2 == "")
+	{
+		if (p1 != "") sys::unlink(p1);
+		if (p2 != "") sys::unlink(p2);
+		tap_fail(sprintf("%s[%d] unable to create temporary files - %s", @SCRIPTNAME, @SCRIPTLINE, sys::errmsg()));
+		tap_end();
+		@abort 1;
+	}
 
 	print "A1" > p1;
 	print "A2" >> p1;

@@ -1181,9 +1181,16 @@ The `sys` module provides various functions concerning the underlying operation 
 - sys::sleep
 - sys::strftime
 - sys::system
+- sys::tempname
 - sys::unlink
 - sys::wait
 - sys::write
+
+`sys::tempname([prefix])` atomically creates an empty file in the system
+temporary directory, closes it, and returns its full path. It returns an empty
+string on failure; call `sys::errmsg()` for the error text. The optional prefix
+must not contain a path separator. Remove the file with `sys::unlink()` when it
+is no longer needed.
 
 #### Signals
 

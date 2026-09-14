@@ -22,15 +22,20 @@ function slurp(path,    line, out, first)
 function run_case(caseno, vopts, userargs, expected,    cmd, inf, outf, got)
 {
 	inf = sprintf("%s/%s", TDIR, "h-024.in");
-	outf = sprintf("/tmp/%s.%d.%d.out", "h-024", sys::getpid(), caseno);
+	outf = sys::tempname(sprintf("h-024-%d-", caseno));
+	if (outf == "")
+	{
+		tap_fail(sprintf("%s[%d] case %d - unable to create a temporary file - %s", @SCRIPTNAME, @SCRIPTLINE, caseno, sys::errmsg()));
+		return;
+	}
 
-	cmd = sprintf("%s -vCASE=%d %s -f %s/%s --modlibdirs=%s %s %s > %s",
+	cmd = sprintf("%s -vCASE=%d %s -f %s/%s --modlibdirs=%s %s %s > \"%s\"",
 		ARGV[0], caseno, vopts, TDIR, "h-024-child.hawk", hawk::modlibdirs(), userargs, inf, outf);
 
 	system(cmd);
 	got = slurp(outf);
 	tap_ensure(got, expected, @SCRIPTNAME, @SCRIPTLINE);
-	system(sprintf("rm -f %s", outf));
+	sys::unlink(outf);
 }
 
 function main()
