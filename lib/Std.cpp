@@ -25,6 +25,7 @@
  */
 
 #include <Hawk.hpp>
+#include <hawk-sha256.h>
 #include <hawk-sio.h>
 #include <hawk-pio.h>
 #include "hawk-prv.h"
@@ -1421,6 +1422,72 @@ void* HawkStd::modgetsym (void* handle, const hawk_ooch_t* name)
 	return s;
 }
 
+static void set_sio_arg_unique_id (Hawk::Source::Data& io, const void* ptr, hawk_oow_t len)
+{
+	if (len > HAWK_SHA256_DIGEST_LEN)
+	{
+		hawk_uint8_t digest[HAWK_SHA256_DIGEST_LEN];
+		hawk_sha256_digest(digest, ptr, len);
+		io.setUniqueId(digest, HAWK_SIZEOF(digest));
+	}
+	else
+	{
+		io.setUniqueId(ptr, len);
+	}
+}
+
+static void fill_sio_arg_unique_id (Hawk::Source::Data& io, hawk_sio_t* sio, const hawk_ooch_t* path)
+{
+#if defined(_WIN32)
+	BY_HANDLE_FILE_INFORMATION bhfi;
+
+	if (GetFileInformationByHandle(hawk_sio_gethnd(sio), &bhfi))
+	{
+		struct
+		{
+			DWORD vol;
+			DWORD idxhi;
+			DWORD idxlo;
+		} tmp;
+		HAWK_MEMSET(&tmp, 0, HAWK_SIZEOF(tmp));
+		tmp.vol = bhfi.dwVolumeSerialNumber;
+		tmp.idxhi = bhfi.nFileIndexHigh;
+		tmp.idxlo = bhfi.nFileIndexLow;
+		set_sio_arg_unique_id(io, &tmp, HAWK_SIZEOF(tmp));
+		return;
+	}
+
+#elif defined(__OS2__)
+	/* use the path fallback below */
+
+#elif defined(__DOS__)
+	/* use the path fallback below */
+
+#else
+	hawk_fstat_t st;
+
+	if (HAWK_FSTAT(hawk_sio_gethnd(sio), &st) >= 0)
+	{
+		struct
+		{
+			hawk_foff_t ino;
+			hawk_foff_t dev;
+		} tmp;
+		HAWK_MEMSET(&tmp, 0, HAWK_SIZEOF(tmp));
+		tmp.ino = st.st_ino;
+		tmp.dev = st.st_dev;
+		set_sio_arg_unique_id(io, &tmp, HAWK_SIZEOF(tmp));
+		return;
+	}
+#endif
+
+	{
+		hawk_uint8_t digest[HAWK_SHA256_DIGEST_LEN];
+		hawk_sha256_digest(digest, path, hawk_count_oocstr(path) * HAWK_SIZEOF(hawk_ooch_t));
+		io.setUniqueId(digest, HAWK_SIZEOF(digest));
+	}
+}
+
 int HawkStd::SourceFile::open (Data& io)
 {
 	hawk_sio_t* sio;
@@ -1543,6 +1610,8 @@ int HawkStd::SourceFile::open (Data& io)
 	}
 
 	io.setHandle (sio);
+	if (!io.isMaster() && io.getMode() == READ)
+		fill_sio_arg_unique_id(io, sio, io.getPath());
 	return 1;
 }
 
@@ -1672,6 +1741,7 @@ int HawkStd::SourceString::open (Data& io)
 
 		io.setPath(xpath);
 		io.setHandle(sio);
+		if (io.getMode() == READ) fill_sio_arg_unique_id(io, sio, xpath);
 		if (this->cmgr) hawk_sio_setcmgr(sio, this->cmgr);
 	}
 

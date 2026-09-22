@@ -53,12 +53,65 @@ static void test1()
 	//hawk.close();
 }
 
+static int write_text_file (const char* name, const char* text)
+{
+	FILE* fp = fopen(name, "w");
+	if (!fp) return -1;
+	if (fputs(text, fp) == EOF)
+	{
+		fclose(fp);
+		return -1;
+	}
+	return fclose(fp);
+}
+
+static void test_source_include_identity ()
+{
+	static const char inc1[] = "t-101-inc-1.tmp";
+	static const char inc2[] = "t-101-inc-2.tmp";
+	static const char main_file[] = "t-101-main.tmp";
+	static const char script[] =
+		"@pragma implicit off\n"
+		"@include_once \"t-101-inc-1.tmp\";\n"
+		"@include_once \"./t-101-inc-1.tmp\";\n"
+		"@include_once \"t-101-inc-2.tmp\";\n"
+		"BEGIN { cpp_inc_1(); cpp_inc_2(); }\n";
+
+	OK_X(write_text_file(inc1, "function cpp_inc_1() { return 1; }\n") == 0);
+	OK_X(write_text_file(inc2, "function cpp_inc_2() { return 2; }\n") == 0);
+	OK_X(write_text_file(main_file, script) == 0);
+
+	{
+		HAWK::HawkStd hawk;
+		HAWK::Hawk::Run* rtx;
+		HAWK::HawkStd::SourceString in(script);
+
+		OK_X(hawk.open() == 0);
+		rtx = hawk.parse(in, HAWK::Hawk::Source::NONE);
+		OK_X(rtx != HAWK_NULL);
+	}
+
+	{
+		HAWK::HawkStd hawk;
+		HAWK::Hawk::Run* rtx;
+		HAWK::HawkStd::SourceFile in(main_file);
+
+		OK_X(hawk.open() == 0);
+		rtx = hawk.parse(in, HAWK::Hawk::Source::NONE);
+		OK_X(rtx != HAWK_NULL);
+	}
+
+	remove(main_file);
+	remove(inc2);
+	remove(inc1);
+}
+
 int main()
 {
 	no_plan ();
 
 	test1();
+	test_source_include_identity();
 
 	return exit_status();
 }
-

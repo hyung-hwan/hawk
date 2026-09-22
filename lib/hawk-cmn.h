@@ -1770,7 +1770,7 @@ typedef enum hawk_log_mask_t hawk_log_mask_t;
 #	define HAWK_SIZEOF_FOFF_T HAWK_SIZEOF_INT16_T
 #elif defined(HAWK_HAVE_INT8_T) && (HAWK_SIZEOF_OFF_T==1)
 	typedef hawk_int8_t hawk_foff_t;
-#	define HAWK_SIZEOF_FOFF_T HAWK_SIZEOF_INT16_T
+#	define HAWK_SIZEOF_FOFF_T HAWK_SIZEOF_INT8_T
 #else
 	typedef hawk_int32_t hawk_foff_t; /* this line is for doxygen */
 #	error Unsupported platform

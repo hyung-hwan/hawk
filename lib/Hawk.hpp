@@ -559,6 +559,16 @@ public:
 				this->arg->handle = handle;
 			}
 
+			void setUniqueId (const void* id, hawk_oow_t len)
+			{
+				hawk_oow_t i;
+				const hawk_uint8_t* ptr = (const hawk_uint8_t*)id;
+
+				if (len > HAWK_SIZEOF(this->arg->unique_id)) len = HAWK_SIZEOF(this->arg->unique_id);
+				for (i = 0; i < len; i++) this->arg->unique_id[i] = ptr[i];
+				this->arg->unique_id_len = (hawk_uint8_t)len;
+			}
+
 			operator Hawk* () const
 			{
 				return this->hawk;

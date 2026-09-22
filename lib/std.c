@@ -160,7 +160,7 @@ typedef struct xtn_t
 		struct
 		{
 			hawk_bch_t buf[4096];
- 			hawk_oow_t len;
+			hawk_oow_t len;
 		} out;
 	} log;
 } xtn_t;
@@ -1232,6 +1232,21 @@ static int open_parsestd (hawk_t* hawk, hawk_sio_arg_t* arg, xtn_t* xtn, hawk_oo
 	}
 }
 
+static HAWK_INLINE void _fill_sio_arg_unique_id (hawk_sio_arg_t* arg, const void* dptr, hawk_oow_t dlen)
+{
+	if (dlen > HAWK_SIZEOF(arg->unique_id))
+	{
+		HAWK_ASSERT(HAWK_SIZEOF(arg->unique_id) >= HAWK_SHA256_DIGEST_LEN);
+		hawk_sha256_digest(arg->unique_id, dptr, dlen);
+		arg->unique_id_len = HAWK_SHA256_DIGEST_LEN;
+	}
+	else
+	{
+		HAWK_MEMCPY(arg->unique_id, dptr, dlen);
+		arg->unique_id_len = dlen;
+	}
+}
+
 static void fill_sio_arg_unique_id (hawk_t* hawk, hawk_sio_arg_t* arg, const hawk_ooch_t* path)
 {
 #if defined(_WIN32)
@@ -1239,68 +1254,54 @@ static void fill_sio_arg_unique_id (hawk_t* hawk, hawk_sio_arg_t* arg, const haw
 	 * place of dev+ino. it is the same for every spelling of a path and for
 	 * every hard link to one file, which is exactly the property wanted. */
 	BY_HANDLE_FILE_INFORMATION bhfi;
-	struct
-	{
-		DWORD vol;
-		DWORD idxhi;
-		DWORD idxlo;
-	} tmp;
 
-	if (!GetFileInformationByHandle(hawk_sio_gethnd(arg->handle), &bhfi)) goto fallback;
-
-	tmp.vol = bhfi.dwVolumeSerialNumber;
-	tmp.idxhi = bhfi.nFileIndexHigh;
-	tmp.idxlo = bhfi.nFileIndexLow;
-
-	if (HAWK_SIZEOF(tmp) > HAWK_SIZEOF(arg->unique_id))
+	if (GetFileInformationByHandle(hawk_sio_gethnd(arg->handle), &bhfi))
 	{
-		HAWK_ASSERT(HAWK_SIZEOF(arg->unique_id) >= HAWK_SHA256_DIGEST_LEN);
-		hawk_sha256_digest(arg->unique_id, &tmp, HAWK_SIZEOF(tmp));
-		arg->unique_id_len = HAWK_SHA256_DIGEST_LEN;
-	}
-	else
-	{
-		HAWK_MEMCPY(arg->unique_id, &tmp, HAWK_SIZEOF(tmp));
-		arg->unique_id_len = HAWK_SIZEOF(tmp);
+		struct
+		{
+			DWORD vol;
+			DWORD idxhi;
+			DWORD idxlo;
+		} tmp;
+		HAWK_MEMSET(&tmp, 0, HAWK_SIZEOF(tmp));
+		tmp.vol = bhfi.dwVolumeSerialNumber;
+		tmp.idxhi = bhfi.nFileIndexHigh;
+		tmp.idxlo = bhfi.nFileIndexLow;
+		_fill_sio_arg_unique_id(arg, &tmp, HAWK_SIZEOF(tmp));
+		return;
 	}
 
 #elif defined(__OS2__)
-	goto fallback;
+	/* use the fallback below */
 
 #elif defined(__DOS__)
-	goto fallback;
+	/* use the fallback below */
 
 #else
 	hawk_fstat_t st;
 	int x;
-	struct
-	{
-		hawk_foff_t ino;
-		hawk_foff_t dev;
-	} tmp;
 
 	x = HAWK_FSTAT(hawk_sio_gethnd(arg->handle), &st);
-	if (x <= -1) goto fallback;
-
-	tmp.ino = st.st_ino;
-	tmp.dev = st.st_dev;
-
-	if (HAWK_SIZEOF(tmp) > HAWK_SIZEOF(arg->unique_id))
+	if (x >= 0)
 	{
-		HAWK_ASSERT(HAWK_SIZEOF(arg->unique_id) >= HAWK_SHA256_DIGEST_LEN);
-		hawk_sha256_digest(arg->unique_id, &tmp, HAWK_SIZEOF(tmp));
-		arg->unique_id_len = HAWK_SHA256_DIGEST_LEN;
-	}
-	else
-	{
-		HAWK_MEMCPY(arg->unique_id, &tmp, HAWK_SIZEOF(tmp));
-		arg->unique_id_len = HAWK_SIZEOF(tmp);
+		struct
+		{
+			hawk_foff_t ino;
+			hawk_foff_t dev;
+		} tmp;
+		HAWK_STATIC_ASSERT(HAWK_SIZEOF(tmp.ino) >= HAWK_SIZEOF(st.st_ino));
+		HAWK_STATIC_ASSERT(HAWK_SIZEOF(tmp.dev) >= HAWK_SIZEOF(st.st_dev));
+		HAWK_ASSERT(HAWK_SIZEOF(tmp.ino) >= HAWK_SIZEOF(st.st_ino));
+		HAWK_ASSERT(HAWK_SIZEOF(tmp.dev) >= HAWK_SIZEOF(st.st_dev));
+		HAWK_MEMSET(&tmp, 0, HAWK_SIZEOF(tmp));
+		tmp.ino = st.st_ino;
+		tmp.dev = st.st_dev;
+		_fill_sio_arg_unique_id (arg, &tmp, HAWK_SIZEOF(tmp));
+		return;
 	}
 #endif
 
-	return;
-
-fallback:
+	/* fallback with the name */
 	hawk_sha256_digest(arg->unique_id, path, hawk_count_oocstr(path) * HAWK_SIZEOF(hawk_ooch_t));
 	arg->unique_id_len = HAWK_SHA256_DIGEST_LEN;
 }
@@ -1606,7 +1607,7 @@ static hawk_ooi_t sf_in_read (hawk_t* hawk, hawk_sio_arg_t* arg, hawk_ooch_t* da
 
 		if (n == 0)
 		{
-		 	/* reached end of the current stream. */
+			/* reached end of the current stream. */
 			hawk_oow_t next = xtn->s.in.xindex + 1;
 			if (xtn->s.in.x[next].type != HAWK_PARSESTD_NULL)
 			{
