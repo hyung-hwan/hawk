@@ -1291,8 +1291,6 @@ static void fill_sio_arg_unique_id (hawk_t* hawk, hawk_sio_arg_t* arg, const haw
 		} tmp;
 		HAWK_STATIC_ASSERT(HAWK_SIZEOF(tmp.ino) >= HAWK_SIZEOF(st.st_ino));
 		HAWK_STATIC_ASSERT(HAWK_SIZEOF(tmp.dev) >= HAWK_SIZEOF(st.st_dev));
-		HAWK_ASSERT(HAWK_SIZEOF(tmp.ino) >= HAWK_SIZEOF(st.st_ino));
-		HAWK_ASSERT(HAWK_SIZEOF(tmp.dev) >= HAWK_SIZEOF(st.st_dev));
 		HAWK_MEMSET(&tmp, 0, HAWK_SIZEOF(tmp));
 		tmp.ino = st.st_ino;
 		tmp.dev = st.st_dev;

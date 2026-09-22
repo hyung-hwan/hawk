@@ -1470,9 +1470,11 @@ static void fill_sio_arg_unique_id (Hawk::Source::Data& io, hawk_sio_t* sio, con
 	{
 		struct
 		{
-			hawk_foff_t ino;
-			hawk_foff_t dev;
+			hawk_foff_t ino; // note hawk_foff_t is usually signed while ino_t or dev_t are unsigned
+			hawk_foff_t dev; // it should not cause practical problems as we care about equality
 		} tmp;
+		HAWK_STATIC_ASSERT(HAWK_SIZEOF(tmp.ino) >= HAWK_SIZEOF(st.st_ino));
+		HAWK_STATIC_ASSERT(HAWK_SIZEOF(tmp.dev) >= HAWK_SIZEOF(st.st_dev));
 		HAWK_MEMSET(&tmp, 0, HAWK_SIZEOF(tmp));
 		tmp.ino = st.st_ino;
 		tmp.dev = st.st_dev;
