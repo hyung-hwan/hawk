@@ -73,6 +73,7 @@ pkginclude_HEADERS = \
 	hawk-skad.h \
 	hawk-utl.h \
 	hawk-sed.h \
+	hawk-sha256.h \
 	hawk-sio.h \
 	hawk-str.h \
 	hawk-tio.h \
@@ -137,6 +138,7 @@ libhawk_la_SOURCES = \
 	run.c \
 	sed-prv.h \
 	sed.c \
+	sha256.c \
 	skad-prv.h \
 	skad.c \
 	tre-prv.h \

@@ -621,6 +621,8 @@ static int parse (hawk_t* hawk)
 		 * it doesn't even have to call CLOSE */
 		return -1;
 	}
+	if (hawk->sio.inp->unique_id_len > HAWK_SIZEOF(hawk->sio.inp->unique_id))
+		hawk->sio.inp->unique_id_len = HAWK_SIZEOF(hawk->sio.inp->unique_id);
 
 	adjust_static_globals(hawk);
 
@@ -873,29 +875,42 @@ static int end_include (hawk_t* hawk)
 static int ever_included (hawk_t* hawk, hawk_sio_arg_t* arg)
 {
 	hawk_oow_t i;
+	hawk_oow_t rec_size;
+	hawk_uint8_t id_len;
+
+	HAWK_ASSERT(HAWK_SIZEOF(id_len) == HAWK_SIZEOF(arg->unique_id_len));
+	rec_size = HAWK_SIZEOF(arg->unique_id) + HAWK_SIZEOF(arg->unique_id_len);
+
 	for (i = 0; i < hawk->parse.incl_hist.count; i++)
 	{
-		if (HAWK_MEMCMP(&hawk->parse.incl_hist.ptr[i * HAWK_SIZEOF(arg->unique_id)], arg->unique_id, HAWK_SIZEOF(arg->unique_id)) == 0) return 1;
+		HAWK_MEMCPY(&id_len, &hawk->parse.incl_hist.ptr[i * rec_size + HAWK_SIZEOF(arg->unique_id)], HAWK_SIZEOF(arg->unique_id_len));
+		if (id_len == arg->unique_id_len &&
+		    HAWK_MEMCMP(&hawk->parse.incl_hist.ptr[i * rec_size], arg->unique_id, arg->unique_id_len) == 0) return 1;
 	}
 	return 0;
 }
 
 static int record_ever_included (hawk_t* hawk, hawk_sio_arg_t* arg)
 {
+	hawk_oow_t rec_size;
+
+	rec_size = HAWK_SIZEOF(arg->unique_id) + HAWK_SIZEOF(arg->unique_id_len);
+
 	if (hawk->parse.incl_hist.count >= hawk->parse.incl_hist.capa)
 	{
 		hawk_uint8_t* tmp;
 		hawk_oow_t newcapa;
 
 		newcapa = hawk->parse.incl_hist.capa + 128;
-		tmp = (hawk_uint8_t*)hawk_reallocmem(hawk, hawk->parse.incl_hist.ptr, newcapa * HAWK_SIZEOF(arg->unique_id));
+		tmp = (hawk_uint8_t*)hawk_reallocmem(hawk, hawk->parse.incl_hist.ptr, newcapa * rec_size);
 		if (!tmp) return -1;
 
 		hawk->parse.incl_hist.ptr = tmp;
 		hawk->parse.incl_hist.capa = newcapa;
 	}
 
-	HAWK_MEMCPY(&hawk->parse.incl_hist.ptr[hawk->parse.incl_hist.count * HAWK_SIZEOF(arg->unique_id)], arg->unique_id, HAWK_SIZEOF(arg->unique_id));
+	HAWK_MEMCPY(&hawk->parse.incl_hist.ptr[hawk->parse.incl_hist.count * rec_size], arg->unique_id, HAWK_SIZEOF(arg->unique_id));
+	HAWK_MEMCPY(&hawk->parse.incl_hist.ptr[hawk->parse.incl_hist.count * rec_size + HAWK_SIZEOF(arg->unique_id)], &arg->unique_id_len, HAWK_SIZEOF(arg->unique_id_len));
 	hawk->parse.incl_hist.count++;
 	return 0;
 }
@@ -904,6 +919,7 @@ static int begin_include (hawk_t* hawk, int once)
 {
 	hawk_sio_arg_t* arg = HAWK_NULL;
 	hawk_ooch_t* sio_name;
+	int everinc;
 
 	if (hawk_count_oocstr(HAWK_OOECS_PTR(hawk->tok.name)) != HAWK_OOECS_LEN(hawk->tok.name))
 	{
@@ -949,6 +965,11 @@ static int begin_include (hawk_t* hawk, int once)
 		goto oops;
 	}
 
+	/* if the callback sets an excessive length, it's silently truncated.
+	 * this is intentional */
+	if (arg->unique_id_len > HAWK_SIZEOF(arg->unique_id))
+		arg->unique_id_len = HAWK_SIZEOF(arg->unique_id);
+
 	/* store the pragma value */
 	arg->pragma_trait = hawk->parse.pragma.trait;
 	/* but don't change hawk->parse.pragma.trait. it means the included file inherits
@@ -960,9 +981,9 @@ static int begin_include (hawk_t* hawk, int once)
 	hawk->sio.inp = arg;
 	hawk->parse.depth.incl++;
 
-	if (once && ever_included(hawk, arg))
+	if ((everinc = ever_included(hawk, arg)) && once)
 	{
-		end_include(hawk);
+		if (end_include(hawk) <= -1) return -1; /* rollback failure */
 		/* it has been included previously. don't include this file again. */
 		if (get_token(hawk) <= -1) return -1; /* skip the include file name */
 		if (MATCH(hawk, TOK_SEMICOLON) || MATCH(hawk, TOK_NEWLINE))
@@ -975,9 +996,9 @@ static int begin_include (hawk_t* hawk, int once)
 		/* read in the first character in the included file.
 		 * so the next call to get_token() sees the character read
 		 * from this file. */
-		if (record_ever_included(hawk, arg) <= -1 || get_char(hawk) <= -1 || get_token(hawk) <= -1)
+		if ((!everinc && record_ever_included(hawk, arg) <= -1) || get_char(hawk) <= -1 || get_token(hawk) <= -1)
 		{
-			end_include(hawk);
+			end_include(hawk); /* ignore the failure here. anyway it returns -1 below */
 			/* i don't jump to oops since i've called
 			 * end_include() where hawk->sio.inp/arg is freed. */
 			return -1;
@@ -9434,6 +9455,7 @@ static int deparse (hawk_t* hawk)
 
 	op = hawk->sio.outf(hawk, HAWK_SIO_CMD_OPEN, &hawk->sio.arg, HAWK_NULL, 0);
 	if (op <= -1) return -1;
+	/* no unique_id_len sanitization as this is an output stream */
 
 #define EXIT_DEPARSE() do { n = -1; goto exit_deparse; } while(0)
 

@@ -24,6 +24,7 @@
 
 #include "hawk-prv.h"
 #include <hawk-pio.h>
+#include <hawk-sha256.h>
 #include <hawk-sio.h>
 #include <hawk-xma.h>
 
@@ -1231,46 +1232,77 @@ static int open_parsestd (hawk_t* hawk, hawk_sio_arg_t* arg, xtn_t* xtn, hawk_oo
 	}
 }
 
-static int fill_sio_arg_unique_id (hawk_t* hawk, hawk_sio_arg_t* arg, const hawk_ooch_t* path)
+static void fill_sio_arg_unique_id (hawk_t* hawk, hawk_sio_arg_t* arg, const hawk_ooch_t* path)
 {
 #if defined(_WIN32)
-	return -1;
+	/* the volume serial number plus the file index is what windows offers in
+	 * place of dev+ino. it is the same for every spelling of a path and for
+	 * every hard link to one file, which is exactly the property wanted. */
+	BY_HANDLE_FILE_INFORMATION bhfi;
+	struct
+	{
+		DWORD vol;
+		DWORD idxhi;
+		DWORD idxlo;
+	} tmp;
+
+	if (!GetFileInformationByHandle(hawk_sio_gethnd(arg->handle), &bhfi)) goto fallback;
+
+	tmp.vol = bhfi.dwVolumeSerialNumber;
+	tmp.idxhi = bhfi.nFileIndexHigh;
+	tmp.idxlo = bhfi.nFileIndexLow;
+
+	if (HAWK_SIZEOF(tmp) > HAWK_SIZEOF(arg->unique_id))
+	{
+		HAWK_ASSERT(HAWK_SIZEOF(arg->unique_id) >= HAWK_SHA256_DIGEST_LEN);
+		hawk_sha256_digest(arg->unique_id, &tmp, HAWK_SIZEOF(tmp));
+		arg->unique_id_len = HAWK_SHA256_DIGEST_LEN;
+	}
+	else
+	{
+		HAWK_MEMCPY(arg->unique_id, &tmp, HAWK_SIZEOF(tmp));
+		arg->unique_id_len = HAWK_SIZEOF(tmp);
+	}
 
 #elif defined(__OS2__)
-	return -1;
+	goto fallback;
 
 #elif defined(__DOS__)
-	return -1;
+	goto fallback;
 
 #else
-	hawk_stat_t st;
+	hawk_fstat_t st;
 	int x;
 	struct
 	{
-		hawk_uintptr_t ino;
-		hawk_uintptr_t dev;
+		hawk_foff_t ino;
+		hawk_foff_t dev;
 	} tmp;
 
-#if defined(HAWK_OOCH_IS_BCH)
-	x = HAWK_STAT(path, &st);
-	if (x <= -1) return -1;
-#else
-	hawk_bch_t* bpath;
-
-	bpath= hawk_duputobcstr(hawk, path, HAWK_NULL);
-	if (!bpath) return -1;
-
-	x = HAWK_STAT(bpath, &st);
-	hawk_freemem(hawk, bpath);
-	if (x <= -1) return -1;
-#endif
+	x = HAWK_FSTAT(hawk_sio_gethnd(arg->handle), &st);
+	if (x <= -1) goto fallback;
 
 	tmp.ino = st.st_ino;
 	tmp.dev = st.st_dev;
 
-	HAWK_MEMCPY(arg->unique_id, &tmp, (HAWK_SIZEOF(tmp) > HAWK_SIZEOF(arg->unique_id)? HAWK_SIZEOF(arg->unique_id): HAWK_SIZEOF(tmp)));
-	return 0;
+	if (HAWK_SIZEOF(tmp) > HAWK_SIZEOF(arg->unique_id))
+	{
+		HAWK_ASSERT(HAWK_SIZEOF(arg->unique_id) >= HAWK_SHA256_DIGEST_LEN);
+		hawk_sha256_digest(arg->unique_id, &tmp, HAWK_SIZEOF(tmp));
+		arg->unique_id_len = HAWK_SHA256_DIGEST_LEN;
+	}
+	else
+	{
+		HAWK_MEMCPY(arg->unique_id, &tmp, HAWK_SIZEOF(tmp));
+		arg->unique_id_len = HAWK_SIZEOF(tmp);
+	}
 #endif
+
+	return;
+
+fallback:
+	hawk_sha256_digest(arg->unique_id, path, hawk_count_oocstr(path) * HAWK_SIZEOF(hawk_ooch_t));
+	arg->unique_id_len = HAWK_SHA256_DIGEST_LEN;
 }
 
 int hawk_stdplainfileexists (hawk_t* hawk, const hawk_ooch_t* file)
@@ -1421,9 +1453,7 @@ static hawk_ooi_t sf_in_open (hawk_t* hawk, hawk_sio_arg_t* arg, xtn_t* xtn)
 		}
 
 		arg->path = xpath;
-		/* TODO: use the system handle(file descriptor) instead of the path? */
-		/*syshnd = hawk_sio_gethnd(arg->handle);*/
-		fill_sio_arg_unique_id(hawk, arg, xpath); /* ignore failure */
+		fill_sio_arg_unique_id(hawk, arg, xpath);
 
 		return 0;
 	}

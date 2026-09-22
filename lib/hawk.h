@@ -683,7 +683,8 @@ struct hawk_sio_arg_t
 	/**
 	 * [OUT] unique id set by an input handler. it is used for a single time inclusion check.
 	 */
-	hawk_uint8_t unique_id[HAWK_SIZEOF_INTPTR_T * 2];
+	hawk_uint8_t unique_id[32];
+	hawk_uint8_t unique_id_len; /* must not be greater than sizeof(unique_id) */
 
 	/**
 	 * [IN] points to the includer. #HAWK_NULL for the toplevel.

@@ -68,7 +68,7 @@ int hawk_rtx_entercstack (hawk_rtx_t* rtx)
 	/* A host may reserve additional exception-handling stack space. A zero
 	 * request queries it without changing it. Resolve dynamically for old
 	 * Windows versions which do not implement SetThreadStackGuarantee. */
-	kernel = GetModuleHandleA("kernel32.dll");
+	kernel = GetModuleHandle(TEXT("kernel32.dll"));
 	if (HAWK_UNLIKELY(!kernel)) goto unavailable;
 
 	get_guarantee = (get_guarantee_t)GetProcAddress(kernel, "SetThreadStackGuarantee");
