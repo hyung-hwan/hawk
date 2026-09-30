@@ -1092,9 +1092,24 @@ The optional `digest` module computes message digests and returns each digest
 as a raw multi-byte string. Use `str::tohex()` when a printable hexadecimal
 representation is required.
 
+- digest::init - create an opaque streaming context for `md5`, `sha1`, or `sha256`
+- digest::update - add a byte-string chunk and return the context
+- digest::final - finish the context and return the raw digest
 - digest::md5
 - digest::sha1
 - digest::sha256
+
+The streaming context is a private BOB value. It owns the digest state directly,
+so it needs no explicit close operation. A context cannot be updated or finalized
+again after `digest::final()`. Assigning a context to another variable creates an
+alias to the same mutable state; an active context should not be used as a map key.
+
+```awk
+ctx = digest::init("sha256")
+ctx = digest::update(ctx, first_chunk)
+ctx = digest::update(ctx, second_chunk)
+hash = str::tohex(digest::final(ctx))
+```
 
 ### Hawk
 

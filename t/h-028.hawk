@@ -1,0 +1,58 @@
+@pragma entry main
+@pragma implicit off
+
+@include "tap.inc";
+
+function check_digest(name, input, expected,    actual)
+{
+	actual = hawk::call("digest::" %% name, input);
+	tap_ensure(hawk::typename(actual), "mbs", @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(str::tohex(actual), expected, @SCRIPTNAME, @SCRIPTLINE);
+}
+
+function check_stream(name, expected,    ctx, actual)
+{
+	ctx = hawk::call("digest::init", name);
+	tap_ensure(hawk::typename(ctx), "bob", @SCRIPTNAME, @SCRIPTLINE);
+	ctx = hawk::call("digest::update", ctx, @b"a");
+	ctx = hawk::call("digest::update", ctx, @b"b");
+	ctx = hawk::call("digest::update", ctx, @b"c");
+	actual = hawk::call("digest::final", ctx);
+	tap_ensure(hawk::typename(actual), "mbs", @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(str::tohex(actual), expected, @SCRIPTNAME, @SCRIPTLINE);
+}
+
+function check_long_stream(    chunk, ctx, actual, i)
+{
+	chunk = @b"";
+	for (i = 0; i < 100; i++) chunk = chunk %% @b"aaaaaaaaaa";
+
+	ctx = hawk::call("digest::init", "sha256");
+	for (i = 0; i < 1000; i++) ctx = hawk::call("digest::update", ctx, chunk);
+	actual = hawk::call("digest::final", ctx);
+	tap_ensure(str::tohex(actual), @b"cdc76e5c9914fb9281a1c7e284d73e67f1809a48a497200e046d39ccc7112cd0", @SCRIPTNAME, @SCRIPTLINE);
+}
+
+function main()
+{
+	if (!hawk::function_exists("digest::md5"))
+	{
+		tap_skip("digest module is unavailable");
+		tap_end();
+		return;
+	}
+
+	check_digest("md5", @b"", @b"d41d8cd98f00b204e9800998ecf8427e");
+	check_digest("md5", @b"abc", @b"900150983cd24fb0d6963f7d28e17f72");
+	check_digest("sha1", @b"", @b"da39a3ee5e6b4b0d3255bfef95601890afd80709");
+	check_digest("sha1", @b"abc", @b"a9993e364706816aba3e25717850c26c9cd0d89d");
+	check_digest("sha256", @b"", @b"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
+	check_digest("sha256", @b"abc", @b"ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
+	check_digest("sha256", @b"a\0b", @b"59b271ae1bbcb1d31d41929817f4b16fb439eb4f31520b5ad1d5ce98920a7138");
+
+	check_stream("md5", @b"900150983cd24fb0d6963f7d28e17f72");
+	check_stream("sha1", @b"a9993e364706816aba3e25717850c26c9cd0d89d");
+	check_stream("sha256", @b"ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
+	check_long_stream();
+	tap_end();
+}

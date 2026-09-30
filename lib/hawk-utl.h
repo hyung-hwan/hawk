@@ -797,6 +797,87 @@ HAWK_EXPORT int hawk_conv_mb8_to_ucs (
 );
 
 /* =========================================================================
+ * BASE64
+ * ========================================================================= */
+enum hawk_base64_option_t
+{
+	/**
+	 * use the alphabet of RFC 4648 section 5 - '-' and '_' in place of '+'
+	 * and '/' - so the result survives being put in a URL or a file name.
+	 * The two alphabets agree on the other sixty-two characters, but a
+	 * decoder is told which one to expect rather than taking either: text
+	 * that is not the encoding it was promised is an error worth hearing
+	 * about.
+	 */
+	HAWK_BASE64_URL   = (1 << 0),
+
+	/**
+	 * leave the trailing '=' off. The length of the final group already says
+	 * how many octets it carries, which is why the decoder accepts a missing
+	 * pad whether or not this was used to produce it - this option is about
+	 * what is written, not what is accepted.
+	 */
+	HAWK_BASE64_NOPAD = (1 << 1)
+};
+typedef enum hawk_base64_option_t hawk_base64_option_t;
+
+/**
+ * The hawk_conv_bin_to_base64() function encodes \a binlen octets at \a bin
+ * into the alphabet of RFC 4648, padding the last group with '=' unless
+ * #HAWK_BASE64_NOPAD is given. The result is not terminated and not broken
+ * into lines.
+ *
+ * Every octet sequence is encodable, so this reports nothing but whether the
+ * room was there. #HAWK_BASE64_LEN and #HAWK_BASE64_NOPAD_LEN compute the exact
+ * length without running the conversion.
+ *
+ * Pass #HAWK_NULL for \a b64 to size the output instead of writing it, in which
+ * case -2 is never returned.
+ *
+ * \return 0 on full conversion, -2 if \a b64 was too small.
+ */
+HAWK_EXPORT int hawk_conv_bin_to_base64 (
+	const void*      bin,
+	hawk_oow_t*      binlen,
+	hawk_bch_t*      b64,
+	hawk_oow_t*      b64len,
+	int              options /**< 0 or bitwise-OR'ed #hawk_base64_option_t enumerators */
+);
+
+/**
+ * The hawk_conv_base64_to_bin() function decodes \a b64len characters at
+ * \a b64 back to octets.
+ *
+ * Whitespace is skipped wherever it appears, because the encodings this meets
+ * in the wild are line-wrapped as often as not. Any other character outside
+ * the alphabet is an error rather than something to step over - a decoder that
+ * ignores what it does not recognise accepts two different inputs as the same
+ * secret. Trailing '=' is optional; what fixes the length is how many
+ * characters the last group has.
+ *
+ * Pass #HAWK_NULL for \a bin to size the output instead of writing it, in which
+ * case -2 is never returned.
+ *
+ * \return 0 on full conversion, -1 on an illegal character or a truncated
+ *         group, -2 if \a bin was too small.
+ */
+HAWK_EXPORT int hawk_conv_base64_to_bin (
+	const hawk_bch_t* b64,
+	hawk_oow_t*       b64len,
+	void*             bin,
+	hawk_oow_t*       binlen,
+	int               options /**< 0 or bitwise-OR'ed #hawk_base64_option_t enumerators */
+);
+
+/** the exact number of characters hawk_conv_bin_to_base64() writes for
+ *  \a binlen octets, padding included */
+#define HAWK_BASE64_LEN(binlen) ((((binlen) + 2) / 3) * 4)
+
+/** the same for #HAWK_BASE64_NOPAD, where a final group of one or two octets
+ *  takes only the characters that carry it */
+#define HAWK_BASE64_NOPAD_LEN(binlen) ((((binlen) / 3) * 4) + (((binlen) % 3)? ((binlen) % 3) + 1: 0))
+
+/* =========================================================================
  * PATH STRING
  * ========================================================================= */
 HAWK_EXPORT const hawk_uch_t* hawk_get_base_name_ucstr (
