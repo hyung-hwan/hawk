@@ -1086,6 +1086,16 @@ The primary value management is reference counting based but `map` and `array` v
 
 Hawk supports various modules.
 
+### Digest
+
+The optional `digest` module computes message digests and returns each digest
+as a raw multi-byte string. Use `str::tohex()` when a printable hexadecimal
+representation is required.
+
+- digest::md5
+- digest::sha1
+- digest::sha256
+
 ### Hawk
 
 - hawk::array

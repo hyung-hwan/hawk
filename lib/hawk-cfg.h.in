@@ -729,6 +729,12 @@
 /* use libunwind for backtracing stack frames */
 #undef HAWK_ENABLE_LIBUNWIND
 
+/* build mod/digest */
+#undef HAWK_ENABLE_MOD_DIGEST
+
+/* build mod/digest statically linked into the main library */
+#undef HAWK_ENABLE_MOD_DIGEST_STATIC
+
 /* build mod/ffi */
 #undef HAWK_ENABLE_MOD_FFI
 

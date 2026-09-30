@@ -115,19 +115,20 @@ host_triplet = @host@
 #######################################################
 # ADDITIONAL MODULES BUILT STATICALLY INTO MAIN LIBRARY
 #######################################################
-@ENABLE_MOD_FFI_STATIC_TRUE@am__append_12 = ../mod/mod-ffi.c ../mod/mod-ffi.h
-@ENABLE_MOD_FFI_STATIC_TRUE@am__append_13 = $(FFI_LIBS)
-@ENABLE_MOD_MEMC_STATIC_TRUE@am__append_14 = ../mod/mod-memc.c ../mod/mod-memc.h
-@ENABLE_MOD_MEMC_STATIC_TRUE@am__append_15 = $(MEMCACHED_LIBS)
-@ENABLE_MOD_MYSQL_STATIC_TRUE@am__append_16 = ../mod/mod-mysql.c ../mod/mod-mysql.h
-@ENABLE_MOD_MYSQL_STATIC_TRUE@am__append_17 = $(MYSQL_CFLAGS) ## put CFLAGS in CPPFLAGS as MYSQL_CFLAGS contains -I options only
-@ENABLE_MOD_MYSQL_STATIC_TRUE@am__append_18 = $(MYSQL_LDFLAGS) $(MYSQL_LIBS)
-@ENABLE_MOD_JSON_STATIC_TRUE@am__append_19 = ../mod/mod-json.c ../mod/mod-json.h
-@ENABLE_MOD_SQLITE_STATIC_TRUE@am__append_20 = ../mod/mod-sqlite.c ../mod/mod-sqlite.h
-@ENABLE_MOD_SQLITE_STATIC_TRUE@am__append_21 = $(SQLITE_LIBS)
-@ENABLE_MOD_SED_STATIC_TRUE@am__append_22 = ../mod/mod-sed.c ../mod/mod-sed.h
-@ENABLE_MOD_UCI_STATIC_TRUE@am__append_23 = ../mod/mod-uci.c ../mod/mod-uci.h
-@ENABLE_MOD_UCI_STATIC_TRUE@am__append_24 = $(UCI_LIBS)
+@ENABLE_MOD_DIGEST_STATIC_TRUE@am__append_12 = ../mod/mod-digest.c ../mod/mod-digest.h
+@ENABLE_MOD_FFI_STATIC_TRUE@am__append_13 = ../mod/mod-ffi.c ../mod/mod-ffi.h
+@ENABLE_MOD_FFI_STATIC_TRUE@am__append_14 = $(FFI_LIBS)
+@ENABLE_MOD_MEMC_STATIC_TRUE@am__append_15 = ../mod/mod-memc.c ../mod/mod-memc.h
+@ENABLE_MOD_MEMC_STATIC_TRUE@am__append_16 = $(MEMCACHED_LIBS)
+@ENABLE_MOD_MYSQL_STATIC_TRUE@am__append_17 = ../mod/mod-mysql.c ../mod/mod-mysql.h
+@ENABLE_MOD_MYSQL_STATIC_TRUE@am__append_18 = $(MYSQL_CFLAGS) ## put CFLAGS in CPPFLAGS as MYSQL_CFLAGS contains -I options only
+@ENABLE_MOD_MYSQL_STATIC_TRUE@am__append_19 = $(MYSQL_LDFLAGS) $(MYSQL_LIBS)
+@ENABLE_MOD_JSON_STATIC_TRUE@am__append_20 = ../mod/mod-json.c ../mod/mod-json.h
+@ENABLE_MOD_SQLITE_STATIC_TRUE@am__append_21 = ../mod/mod-sqlite.c ../mod/mod-sqlite.h
+@ENABLE_MOD_SQLITE_STATIC_TRUE@am__append_22 = $(SQLITE_LIBS)
+@ENABLE_MOD_SED_STATIC_TRUE@am__append_23 = ../mod/mod-sed.c ../mod/mod-sed.h
+@ENABLE_MOD_UCI_STATIC_TRUE@am__append_24 = ../mod/mod-uci.c ../mod/mod-uci.h
+@ENABLE_MOD_UCI_STATIC_TRUE@am__append_25 = $(UCI_LIBS)
 subdir = lib
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/ax_check_sign.m4 \
@@ -276,11 +277,12 @@ am__libhawk_la_SOURCES_DIST = hawk.h hawk-arr.h hawk-chr.h hawk-cli.h \
 	tio.c std.c std-cut.c std-json.c std-sed.c Hawk.cpp Std.cpp \
 	Sed.cpp Std-Sed.cpp mod-hawk.c mod-hawk.h mod-math.c \
 	mod-math.h mod-str.c mod-str.h mod-sys.c mod-sys.h \
-	../mod/mod-ffi.c ../mod/mod-ffi.h ../mod/mod-memc.c \
-	../mod/mod-memc.h ../mod/mod-mysql.c ../mod/mod-mysql.h \
-	../mod/mod-json.c ../mod/mod-json.h ../mod/mod-sqlite.c \
-	../mod/mod-sqlite.h ../mod/mod-sed.c ../mod/mod-sed.h \
-	../mod/mod-uci.c ../mod/mod-uci.h
+	../mod/mod-digest.c ../mod/mod-digest.h ../mod/mod-ffi.c \
+	../mod/mod-ffi.h ../mod/mod-memc.c ../mod/mod-memc.h \
+	../mod/mod-mysql.c ../mod/mod-mysql.h ../mod/mod-json.c \
+	../mod/mod-json.h ../mod/mod-sqlite.c ../mod/mod-sqlite.h \
+	../mod/mod-sed.c ../mod/mod-sed.h ../mod/mod-uci.c \
+	../mod/mod-uci.h
 am__objects_1 =
 am__objects_2 = $(am__objects_1)
 @ENABLE_CXX_TRUE@am__objects_3 = libhawk_la-Hawk.lo libhawk_la-Std.lo \
@@ -290,18 +292,19 @@ am__objects_2 = $(am__objects_1)
 @ENABLE_STATIC_MODULE_TRUE@	libhawk_la-mod-str.lo \
 @ENABLE_STATIC_MODULE_TRUE@	libhawk_la-mod-sys.lo
 am__dirstamp = $(am__leading_dot)dirstamp
-@ENABLE_MOD_FFI_STATIC_TRUE@am__objects_5 =  \
+@ENABLE_MOD_DIGEST_STATIC_TRUE@am__objects_5 = ../mod/libhawk_la-mod-digest.lo
+@ENABLE_MOD_FFI_STATIC_TRUE@am__objects_6 =  \
 @ENABLE_MOD_FFI_STATIC_TRUE@	../mod/libhawk_la-mod-ffi.lo
-@ENABLE_MOD_MEMC_STATIC_TRUE@am__objects_6 =  \
+@ENABLE_MOD_MEMC_STATIC_TRUE@am__objects_7 =  \
 @ENABLE_MOD_MEMC_STATIC_TRUE@	../mod/libhawk_la-mod-memc.lo
-@ENABLE_MOD_MYSQL_STATIC_TRUE@am__objects_7 =  \
+@ENABLE_MOD_MYSQL_STATIC_TRUE@am__objects_8 =  \
 @ENABLE_MOD_MYSQL_STATIC_TRUE@	../mod/libhawk_la-mod-mysql.lo
-@ENABLE_MOD_JSON_STATIC_TRUE@am__objects_8 =  \
+@ENABLE_MOD_JSON_STATIC_TRUE@am__objects_9 =  \
 @ENABLE_MOD_JSON_STATIC_TRUE@	../mod/libhawk_la-mod-json.lo
-@ENABLE_MOD_SQLITE_STATIC_TRUE@am__objects_9 = ../mod/libhawk_la-mod-sqlite.lo
-@ENABLE_MOD_SED_STATIC_TRUE@am__objects_10 =  \
+@ENABLE_MOD_SQLITE_STATIC_TRUE@am__objects_10 = ../mod/libhawk_la-mod-sqlite.lo
+@ENABLE_MOD_SED_STATIC_TRUE@am__objects_11 =  \
 @ENABLE_MOD_SED_STATIC_TRUE@	../mod/libhawk_la-mod-sed.lo
-@ENABLE_MOD_UCI_STATIC_TRUE@am__objects_11 =  \
+@ENABLE_MOD_UCI_STATIC_TRUE@am__objects_12 =  \
 @ENABLE_MOD_UCI_STATIC_TRUE@	../mod/libhawk_la-mod-uci.lo
 am_libhawk_la_OBJECTS = $(am__objects_2) libhawk_la-arr.lo \
 	libhawk_la-big5.lo libhawk_la-chr.lo libhawk_la-cstack.lo \
@@ -331,7 +334,7 @@ am_libhawk_la_OBJECTS = $(am__objects_2) libhawk_la-arr.lo \
 	libhawk_la-std-sed.lo $(am__objects_3) $(am__objects_4) \
 	$(am__objects_5) $(am__objects_6) $(am__objects_7) \
 	$(am__objects_8) $(am__objects_9) $(am__objects_10) \
-	$(am__objects_11)
+	$(am__objects_11) $(am__objects_12)
 libhawk_la_OBJECTS = $(am_libhawk_la_OBJECTS)
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
@@ -348,7 +351,8 @@ am__v_at_1 =
 DEFAULT_INCLUDES = 
 depcomp = $(SHELL) $(top_srcdir)/ac/depcomp
 am__maybe_remake_depfiles = depfiles
-am__depfiles_remade = ../mod/$(DEPDIR)/libhawk_la-mod-ffi.Plo \
+am__depfiles_remade = ../mod/$(DEPDIR)/libhawk_la-mod-digest.Plo \
+	../mod/$(DEPDIR)/libhawk_la-mod-ffi.Plo \
 	../mod/$(DEPDIR)/libhawk_la-mod-json.Plo \
 	../mod/$(DEPDIR)/libhawk_la-mod-memc.Plo \
 	../mod/$(DEPDIR)/libhawk_la-mod-mysql.Plo \
@@ -725,17 +729,18 @@ libhawk_la_SOURCES = $(pkginclude_HEADERS) arr.c big5.c big5.h chr.c \
 	val-prv.h val.c xma.c cli-imp.h cli.c fio.c mtx.c pio.c sio.c \
 	syscall.h tio.c std.c std-cut.c std-json.c std-sed.c \
 	$(am__append_8) $(am__append_9) $(am__append_12) \
-	$(am__append_14) $(am__append_16) $(am__append_19) \
-	$(am__append_20) $(am__append_22) $(am__append_23)
+	$(am__append_13) $(am__append_15) $(am__append_17) \
+	$(am__append_20) $(am__append_21) $(am__append_23) \
+	$(am__append_24)
 libhawk_la_CPPFLAGS = $(CPPFLAGS_ALL_COMMON) $(CPPFLAGS_PFMOD) \
-	$(am__append_3) $(am__append_17)
+	$(am__append_3) $(am__append_18)
 libhawk_la_CFLAGS = $(CFLAGS_ALL_COMMON)
 libhawk_la_CXXFLAGS = $(CXXFLAGS_ALL_COMMON)
 libhawk_la_LDFLAGS = $(LDFLAGS_ALL_COMMON) -version-info 1:0:0 ## -no-undefined
 libhawk_la_LIBADD = $(LIBM) $(SOCKET_LIBS) $(am__append_4) \
 	$(am__append_5) $(am__append_6) $(am__append_10) \
-	$(am__append_13) $(am__append_15) $(am__append_18) \
-	$(am__append_21) $(am__append_24)
+	$(am__append_14) $(am__append_16) $(am__append_19) \
+	$(am__append_22) $(am__append_25)
 @ENABLE_CXX_FALSE@libhawk_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 @ENABLE_CXX_FALSE@	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) \
 @ENABLE_CXX_FALSE@	$(CFLAGS) $(libhawk_la_LDFLAGS) $(LDFLAGS) -o $@
@@ -879,6 +884,8 @@ libhawk-sys.la: $(libhawk_sys_la_OBJECTS) $(libhawk_sys_la_DEPENDENCIES) $(EXTRA
 ../mod/$(DEPDIR)/$(am__dirstamp):
 	@$(MKDIR_P) ../mod/$(DEPDIR)
 	@: >>../mod/$(DEPDIR)/$(am__dirstamp)
+../mod/libhawk_la-mod-digest.lo: ../mod/$(am__dirstamp) \
+	../mod/$(DEPDIR)/$(am__dirstamp)
 ../mod/libhawk_la-mod-ffi.lo: ../mod/$(am__dirstamp) \
 	../mod/$(DEPDIR)/$(am__dirstamp)
 ../mod/libhawk_la-mod-memc.lo: ../mod/$(am__dirstamp) \
@@ -905,6 +912,7 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
+@AMDEP_TRUE@@am__include@ @am__quote@../mod/$(DEPDIR)/libhawk_la-mod-digest.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@../mod/$(DEPDIR)/libhawk_la-mod-ffi.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@../mod/$(DEPDIR)/libhawk_la-mod-json.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@../mod/$(DEPDIR)/libhawk_la-mod-memc.Plo@am__quote@ # am--include-marker
@@ -1531,6 +1539,13 @@ libhawk_la-mod-sys.lo: mod-sys.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -c -o libhawk_la-mod-sys.lo `test -f 'mod-sys.c' || echo '$(srcdir)/'`mod-sys.c
 
+../mod/libhawk_la-mod-digest.lo: ../mod/mod-digest.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -MT ../mod/libhawk_la-mod-digest.lo -MD -MP -MF ../mod/$(DEPDIR)/libhawk_la-mod-digest.Tpo -c -o ../mod/libhawk_la-mod-digest.lo `test -f '../mod/mod-digest.c' || echo '$(srcdir)/'`../mod/mod-digest.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) ../mod/$(DEPDIR)/libhawk_la-mod-digest.Tpo ../mod/$(DEPDIR)/libhawk_la-mod-digest.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='../mod/mod-digest.c' object='../mod/libhawk_la-mod-digest.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -c -o ../mod/libhawk_la-mod-digest.lo `test -f '../mod/mod-digest.c' || echo '$(srcdir)/'`../mod/mod-digest.c
+
 ../mod/libhawk_la-mod-ffi.lo: ../mod/mod-ffi.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -MT ../mod/libhawk_la-mod-ffi.lo -MD -MP -MF ../mod/$(DEPDIR)/libhawk_la-mod-ffi.Tpo -c -o ../mod/libhawk_la-mod-ffi.lo `test -f '../mod/mod-ffi.c' || echo '$(srcdir)/'`../mod/mod-ffi.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) ../mod/$(DEPDIR)/libhawk_la-mod-ffi.Tpo ../mod/$(DEPDIR)/libhawk_la-mod-ffi.Plo
@@ -1794,6 +1809,7 @@ clean-am: clean-generic clean-libtool clean-pkglibLTLIBRARIES \
 	mostlyclean-am
 
 distclean: distclean-am
+	-rm -f ../mod/$(DEPDIR)/libhawk_la-mod-digest.Plo
 	-rm -f ../mod/$(DEPDIR)/libhawk_la-mod-ffi.Plo
 	-rm -f ../mod/$(DEPDIR)/libhawk_la-mod-json.Plo
 	-rm -f ../mod/$(DEPDIR)/libhawk_la-mod-memc.Plo
@@ -1924,6 +1940,7 @@ install-ps-am:
 installcheck-am:
 
 maintainer-clean: maintainer-clean-am
+	-rm -f ../mod/$(DEPDIR)/libhawk_la-mod-digest.Plo
 	-rm -f ../mod/$(DEPDIR)/libhawk_la-mod-ffi.Plo
 	-rm -f ../mod/$(DEPDIR)/libhawk_la-mod-json.Plo
 	-rm -f ../mod/$(DEPDIR)/libhawk_la-mod-memc.Plo

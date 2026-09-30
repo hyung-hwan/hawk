@@ -21,6 +21,17 @@ pkgmodexec_LTLIBRARIES =
 #-------------------------------------------------
 # ACTUAL MODULES TO BUILD AS SHARED OBJECTS
 #-------------------------------------------------
+if ENABLE_MOD_DIGEST
+if !ENABLE_MOD_DIGEST_STATIC
+pkgmodexec_LTLIBRARIES += libhawk-digest.la
+libhawk_digest_la_SOURCES = mod-digest.c mod-digest.h
+libhawk_digest_la_CPPFLAGS = $(CPPFLAGS_COMMON)
+libhawk_digest_la_CFLAGS = $(CFLAGS_COMMON)
+libhawk_digest_la_LDFLAGS = $(LDFLAGS_COMMON_DYNAMIC)
+libhawk_digest_la_LIBADD = $(LIBADD_COMMON_DYNAMIC)
+endif
+endif
+
 if ENABLE_MOD_FFI
 if !ENABLE_MOD_FFI_STATIC
 pkgmodexec_LTLIBRARIES += libhawk-ffi.la

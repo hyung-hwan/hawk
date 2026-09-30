@@ -293,6 +293,10 @@ endif
 # ADDITIONAL MODULES BUILT STATICALLY INTO MAIN LIBRARY
 #######################################################
 
+if ENABLE_MOD_DIGEST_STATIC
+libhawk_la_SOURCES += ../mod/mod-digest.c ../mod/mod-digest.h
+endif
+
 if ENABLE_MOD_FFI_STATIC
 libhawk_la_SOURCES += ../mod/mod-ffi.c ../mod/mod-ffi.h
 libhawk_la_LIBADD += $(FFI_LIBS)

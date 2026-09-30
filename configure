@@ -672,6 +672,10 @@ ENABLE_MOD_SED_STATIC_FALSE
 ENABLE_MOD_SED_STATIC_TRUE
 ENABLE_MOD_SED_FALSE
 ENABLE_MOD_SED_TRUE
+ENABLE_MOD_DIGEST_STATIC_FALSE
+ENABLE_MOD_DIGEST_STATIC_TRUE
+ENABLE_MOD_DIGEST_FALSE
+ENABLE_MOD_DIGEST_TRUE
 ENABLE_MOD_JSON_STATIC_FALSE
 ENABLE_MOD_JSON_STATIC_TRUE
 ENABLE_MOD_JSON_FALSE
@@ -901,6 +905,7 @@ enable_mod_memc
 enable_mod_mysql
 with_mysql
 enable_mod_json
+enable_mod_digest
 enable_mod_sed
 enable_mod_sqlite
 enable_mod_uci
@@ -1589,6 +1594,8 @@ Optional Features:
   --enable-mod-mysql      enable mod/mysql. one of auto, auto:static, yes,
                           yes:static, no (default. auto)
   --enable-mod-json       enable mod/json. one of auto, auto:static, yes,
+                          yes:static, no (default. yes:static)
+  --enable-mod-digest     enable mod/digest. one of auto, auto:static, yes,
                           yes:static, no (default. yes:static)
   --enable-mod-sed        enable mod/sed. one of auto, auto:static, yes,
                           yes:static, no (default. yes:static)
@@ -29241,6 +29248,79 @@ fi
 
 
 
+	# Check whether --enable-mod-digest was given.
+if test ${enable_mod_digest+y}
+then :
+  enableval=$enable_mod_digest; enable_mod_digest_is=$enableval
+else case e in #(
+  e) enable_mod_digest_is=yes:static
+	 ;;
+esac
+fi
+
+	if test "x${enable_mod_digest_is}" = "xauto" -o "x${enable_mod_digest_is}" = "xauto:static"
+	then
+		true
+
+		if test $? -eq 0
+		then
+			enable_mod_digest_is=`echo "$enable_mod_digest_is" | sed 's|^auto|yes|g'`
+		else
+			enable_mod_digest_is=no
+		fi
+	fi
+
+	if test "x${enable_mod_digest_is}" = "xyes:static"
+	then
+		enable_mod_digest_is=yes
+		if test "x${enable_static_module_is}" = "xyes"
+		then
+			enable_mod_digest_static_is="yes"
+		fi
+	elif test "x${enable_mod_digest_is}" = "xyes"
+	then
+		if test "x${enable_shared}" = "xno" -a "x${enable_static}" = "xyes"
+		then
+			## not configured to produce shared objects
+			enable_mod_digest_static_is="yes"
+		fi
+	fi
+
+
+
+	if test "x${enable_mod_digest_is}" = "xyes"
+	then
+
+printf "%s\n" "#define HAWK_ENABLE_MOD_DIGEST 1" >>confdefs.h
+
+	fi
+	if test "x${enable_mod_digest_static_is}" = "xyes"
+	then
+
+printf "%s\n" "#define HAWK_ENABLE_MOD_DIGEST_STATIC 1" >>confdefs.h
+
+	fi
+	 if test "${enable_mod_digest_is}" = "yes"; then
+  ENABLE_MOD_DIGEST_TRUE=
+  ENABLE_MOD_DIGEST_FALSE='#'
+else
+  ENABLE_MOD_DIGEST_TRUE='#'
+  ENABLE_MOD_DIGEST_FALSE=
+fi
+
+	 if test "${enable_mod_digest_static_is}" = "yes"; then
+  ENABLE_MOD_DIGEST_STATIC_TRUE=
+  ENABLE_MOD_DIGEST_STATIC_FALSE='#'
+else
+  ENABLE_MOD_DIGEST_STATIC_TRUE='#'
+  ENABLE_MOD_DIGEST_STATIC_FALSE=
+fi
+
+
+
+
+
+
 	# Check whether --enable-mod-sed was given.
 if test ${enable_mod_sed+y}
 then :
@@ -29764,6 +29844,14 @@ Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${ENABLE_MOD_JSON_STATIC_TRUE}" && test -z "${ENABLE_MOD_JSON_STATIC_FALSE}"; then
   as_fn_error $? "conditional \"ENABLE_MOD_JSON_STATIC\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${ENABLE_MOD_DIGEST_TRUE}" && test -z "${ENABLE_MOD_DIGEST_FALSE}"; then
+  as_fn_error $? "conditional \"ENABLE_MOD_DIGEST\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${ENABLE_MOD_DIGEST_STATIC_TRUE}" && test -z "${ENABLE_MOD_DIGEST_STATIC_FALSE}"; then
+  as_fn_error $? "conditional \"ENABLE_MOD_DIGEST_STATIC\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${ENABLE_MOD_SED_TRUE}" && test -z "${ENABLE_MOD_SED_FALSE}"; then

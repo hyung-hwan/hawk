@@ -1116,6 +1116,8 @@ fi
 
 HAWK_MOD([json],[yes:static],[true])
 
+HAWK_MOD([digest],[yes:static],[true])
+
 HAWK_MOD([sed],[yes:static],[true])
 
 HAWK_MOD([sqlite],[auto],[
