@@ -255,25 +255,26 @@ libhawk_la_DEPENDENCIES = $(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
 am__libhawk_la_SOURCES_DIST = hawk.h hawk-arr.h hawk-chr.h hawk-cli.h \
 	hawk-cmn.h hawk-cut.h hawk-dir.h hawk-ecs.h hawk-fio.h \
 	hawk-fmt.h hawk-gem.h hawk-glob.h hawk-htb.h hawk-json.h \
-	hawk-map.h hawk-mtx.h hawk-rbt.h hawk-pac1.h hawk-pio.h \
-	hawk-po.h hawk-skad.h hawk-utl.h hawk-sed.h hawk-sha256.h \
-	hawk-sio.h hawk-str.h hawk-tio.h hawk-tre.h hawk-upac.h \
-	hawk-xma.h Hawk.hpp Hawk-Sed.hpp arr.c big5.c big5.h chr.c \
-	cstack.c cut-prv.h cut.c dir.c ecs-imp.h ecs.c err-prv.h err.c \
-	err-sys.c fmt-imp.h fmt.c fnc-prv.h fnc.c gbk.c gbk.h gem.c \
-	gem-glob.c gem-nwif.c gem-nwif2.c hawk-prv.h hawk.c htb.c \
-	idmap-imp.h jis0208.c jis0208.h json.c json-prv.h ksc5601.c \
-	ksc5601.h mb8.c misc-imp.h misc-prv.h misc.c parse-prv.h \
-	parse.c po-cat.c rbt.c rec.c rio-prv.h rio.c run-prv.h run.c \
-	sed-prv.h sed.c sha256.c skad-prv.h skad.c tre-prv.h tre-ast.c \
-	tre-ast.h tre-compile.c tre-compile.h tre-match-bt.c \
-	tre-match-pa.c tre-match-ut.h tre-mem.c tre-mem.h tre-parse.c \
-	tre-parse.h tre-stack.h tre-stack.c tre.c tree-prv.h tree.c \
-	uch-prop.h uch-case.h utf16.c utf8.c utl-ass.c utl-cmgr.c \
-	utl-rnd.c utl-sort.c utl-str.c utl-sys.c utl-xstr.c utl.c \
-	val-prv.h val.c xma.c cli-imp.h cli.c fio.c mtx.c pio.c sio.c \
-	syscall.h tio.c std.c std-cut.c std-json.c std-sed.c Hawk.cpp \
-	Std.cpp Sed.cpp Std-Sed.cpp mod-hawk.c mod-hawk.h mod-math.c \
+	hawk-map.h hawk-md5.h hawk-mtx.h hawk-rbt.h hawk-pac1.h \
+	hawk-pio.h hawk-po.h hawk-skad.h hawk-utl.h hawk-sed.h \
+	hawk-sha1.h hawk-sha256.h hawk-sio.h hawk-str.h hawk-tio.h \
+	hawk-tre.h hawk-upac.h hawk-xma.h Hawk.hpp Hawk-Sed.hpp arr.c \
+	big5.c big5.h chr.c cstack.c cut-prv.h cut.c dir.c ecs-imp.h \
+	ecs.c err-prv.h err.c err-sys.c fmt-imp.h fmt.c fnc-prv.h \
+	fnc.c gbk.c gbk.h gem.c gem-glob.c gem-nwif.c gem-nwif2.c \
+	hawk-prv.h hawk.c htb.c idmap-imp.h jis0208.c jis0208.h json.c \
+	json-prv.h ksc5601.c ksc5601.h md5.c mb8.c misc-imp.h \
+	misc-prv.h misc.c parse-prv.h parse.c po-cat.c rbt.c rec.c \
+	rio-prv.h rio.c run-prv.h run.c sed-prv.h sed.c sha1.c \
+	sha256.c skad-prv.h skad.c tre-prv.h tre-ast.c tre-ast.h \
+	tre-compile.c tre-compile.h tre-match-bt.c tre-match-pa.c \
+	tre-match-ut.h tre-mem.c tre-mem.h tre-parse.c tre-parse.h \
+	tre-stack.h tre-stack.c tre.c tree-prv.h tree.c uch-prop.h \
+	uch-case.h utf16.c utf8.c utl-ass.c utl-cmgr.c utl-rnd.c \
+	utl-sort.c utl-str.c utl-sys.c utl-xstr.c utl.c val-prv.h \
+	val.c xma.c cli-imp.h cli.c fio.c mtx.c pio.c sio.c syscall.h \
+	tio.c std.c std-cut.c std-json.c std-sed.c Hawk.cpp Std.cpp \
+	Sed.cpp Std-Sed.cpp mod-hawk.c mod-hawk.h mod-math.c \
 	mod-math.h mod-str.c mod-str.h mod-sys.c mod-sys.h \
 	../mod/mod-ffi.c ../mod/mod-ffi.h ../mod/mod-memc.c \
 	../mod/mod-memc.h ../mod/mod-mysql.c ../mod/mod-mysql.h \
@@ -310,10 +311,11 @@ am_libhawk_la_OBJECTS = $(am__objects_2) libhawk_la-arr.lo \
 	libhawk_la-gem-glob.lo libhawk_la-gem-nwif.lo \
 	libhawk_la-gem-nwif2.lo libhawk_la-hawk.lo libhawk_la-htb.lo \
 	libhawk_la-jis0208.lo libhawk_la-json.lo libhawk_la-ksc5601.lo \
-	libhawk_la-mb8.lo libhawk_la-misc.lo libhawk_la-parse.lo \
-	libhawk_la-po-cat.lo libhawk_la-rbt.lo libhawk_la-rec.lo \
-	libhawk_la-rio.lo libhawk_la-run.lo libhawk_la-sed.lo \
-	libhawk_la-sha256.lo libhawk_la-skad.lo libhawk_la-tre-ast.lo \
+	libhawk_la-md5.lo libhawk_la-mb8.lo libhawk_la-misc.lo \
+	libhawk_la-parse.lo libhawk_la-po-cat.lo libhawk_la-rbt.lo \
+	libhawk_la-rec.lo libhawk_la-rio.lo libhawk_la-run.lo \
+	libhawk_la-sed.lo libhawk_la-sha1.lo libhawk_la-sha256.lo \
+	libhawk_la-skad.lo libhawk_la-tre-ast.lo \
 	libhawk_la-tre-compile.lo libhawk_la-tre-match-bt.lo \
 	libhawk_la-tre-match-pa.lo libhawk_la-tre-mem.lo \
 	libhawk_la-tre-parse.lo libhawk_la-tre-stack.lo \
@@ -374,7 +376,8 @@ am__depfiles_remade = ../mod/$(DEPDIR)/libhawk_la-mod-ffi.Plo \
 	./$(DEPDIR)/libhawk_la-jis0208.Plo \
 	./$(DEPDIR)/libhawk_la-json.Plo \
 	./$(DEPDIR)/libhawk_la-ksc5601.Plo \
-	./$(DEPDIR)/libhawk_la-mb8.Plo ./$(DEPDIR)/libhawk_la-misc.Plo \
+	./$(DEPDIR)/libhawk_la-mb8.Plo ./$(DEPDIR)/libhawk_la-md5.Plo \
+	./$(DEPDIR)/libhawk_la-misc.Plo \
 	./$(DEPDIR)/libhawk_la-mod-hawk.Plo \
 	./$(DEPDIR)/libhawk_la-mod-math.Plo \
 	./$(DEPDIR)/libhawk_la-mod-str.Plo \
@@ -385,7 +388,7 @@ am__depfiles_remade = ../mod/$(DEPDIR)/libhawk_la-mod-ffi.Plo \
 	./$(DEPDIR)/libhawk_la-po-cat.Plo \
 	./$(DEPDIR)/libhawk_la-rbt.Plo ./$(DEPDIR)/libhawk_la-rec.Plo \
 	./$(DEPDIR)/libhawk_la-rio.Plo ./$(DEPDIR)/libhawk_la-run.Plo \
-	./$(DEPDIR)/libhawk_la-sed.Plo \
+	./$(DEPDIR)/libhawk_la-sed.Plo ./$(DEPDIR)/libhawk_la-sha1.Plo \
 	./$(DEPDIR)/libhawk_la-sha256.Plo \
 	./$(DEPDIR)/libhawk_la-sio.Plo ./$(DEPDIR)/libhawk_la-skad.Plo \
 	./$(DEPDIR)/libhawk_la-std-cut.Plo \
@@ -467,10 +470,10 @@ am__can_run_installinfo = \
 am__pkginclude_HEADERS_DIST = hawk.h hawk-arr.h hawk-chr.h hawk-cli.h \
 	hawk-cmn.h hawk-cut.h hawk-dir.h hawk-ecs.h hawk-fio.h \
 	hawk-fmt.h hawk-gem.h hawk-glob.h hawk-htb.h hawk-json.h \
-	hawk-map.h hawk-mtx.h hawk-rbt.h hawk-pac1.h hawk-pio.h \
-	hawk-po.h hawk-skad.h hawk-utl.h hawk-sed.h hawk-sha256.h \
-	hawk-sio.h hawk-str.h hawk-tio.h hawk-tre.h hawk-upac.h \
-	hawk-xma.h Hawk.hpp Hawk-Sed.hpp
+	hawk-map.h hawk-md5.h hawk-mtx.h hawk-rbt.h hawk-pac1.h \
+	hawk-pio.h hawk-po.h hawk-skad.h hawk-utl.h hawk-sed.h \
+	hawk-sha1.h hawk-sha256.h hawk-sio.h hawk-str.h hawk-tio.h \
+	hawk-tre.h hawk-upac.h hawk-xma.h Hawk.hpp Hawk-Sed.hpp
 HEADERS = $(pkginclude_HEADERS)
 am__tagged_files = $(HEADERS) $(SOURCES) $(TAGS_FILES) $(LISP) \
 	hawk-cfg.h.in
@@ -701,20 +704,20 @@ BUILT_SOURCES = \
 pkginclude_HEADERS = hawk.h hawk-arr.h hawk-chr.h hawk-cli.h \
 	hawk-cmn.h hawk-cut.h hawk-dir.h hawk-ecs.h hawk-fio.h \
 	hawk-fmt.h hawk-gem.h hawk-glob.h hawk-htb.h hawk-json.h \
-	hawk-map.h hawk-mtx.h hawk-rbt.h hawk-pac1.h hawk-pio.h \
-	hawk-po.h hawk-skad.h hawk-utl.h hawk-sed.h hawk-sha256.h \
-	hawk-sio.h hawk-str.h hawk-tio.h hawk-tre.h hawk-upac.h \
-	hawk-xma.h $(am__append_7)
+	hawk-map.h hawk-md5.h hawk-mtx.h hawk-rbt.h hawk-pac1.h \
+	hawk-pio.h hawk-po.h hawk-skad.h hawk-utl.h hawk-sed.h \
+	hawk-sha1.h hawk-sha256.h hawk-sio.h hawk-str.h hawk-tio.h \
+	hawk-tre.h hawk-upac.h hawk-xma.h $(am__append_7)
 pkglib_LTLIBRARIES = libhawk.la $(am__append_11)
 libhawk_la_SOURCES = $(pkginclude_HEADERS) arr.c big5.c big5.h chr.c \
 	cstack.c cut-prv.h cut.c dir.c ecs-imp.h ecs.c err-prv.h err.c \
 	err-sys.c fmt-imp.h fmt.c fnc-prv.h fnc.c gbk.c gbk.h gem.c \
 	gem-glob.c gem-nwif.c gem-nwif2.c hawk-prv.h hawk.c htb.c \
 	idmap-imp.h jis0208.c jis0208.h json.c json-prv.h ksc5601.c \
-	ksc5601.h mb8.c misc-imp.h misc-prv.h misc.c parse-prv.h \
+	ksc5601.h md5.c mb8.c misc-imp.h misc-prv.h misc.c parse-prv.h \
 	parse.c po-cat.c rbt.c rec.c rio-prv.h rio.c run-prv.h run.c \
-	sed-prv.h sed.c sha256.c skad-prv.h skad.c tre-prv.h tre-ast.c \
-	tre-ast.h tre-compile.c tre-compile.h tre-match-bt.c \
+	sed-prv.h sed.c sha1.c sha256.c skad-prv.h skad.c tre-prv.h \
+	tre-ast.c tre-ast.h tre-compile.c tre-compile.h tre-match-bt.c \
 	tre-match-pa.c tre-match-ut.h tre-mem.c tre-mem.h tre-parse.c \
 	tre-parse.h tre-stack.h tre-stack.c tre.c tree-prv.h tree.c \
 	uch-prop.h uch-case.h utf16.c utf8.c utl-ass.c utl-cmgr.c \
@@ -938,6 +941,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libhawk_la-json.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libhawk_la-ksc5601.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libhawk_la-mb8.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libhawk_la-md5.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libhawk_la-misc.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libhawk_la-mod-hawk.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libhawk_la-mod-math.Plo@am__quote@ # am--include-marker
@@ -952,6 +956,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libhawk_la-rio.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libhawk_la-run.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libhawk_la-sed.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libhawk_la-sha1.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libhawk_la-sha256.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libhawk_la-sio.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libhawk_la-skad.Plo@am__quote@ # am--include-marker
@@ -1190,6 +1195,13 @@ libhawk_la-ksc5601.lo: ksc5601.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -c -o libhawk_la-ksc5601.lo `test -f 'ksc5601.c' || echo '$(srcdir)/'`ksc5601.c
 
+libhawk_la-md5.lo: md5.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -MT libhawk_la-md5.lo -MD -MP -MF $(DEPDIR)/libhawk_la-md5.Tpo -c -o libhawk_la-md5.lo `test -f 'md5.c' || echo '$(srcdir)/'`md5.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libhawk_la-md5.Tpo $(DEPDIR)/libhawk_la-md5.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='md5.c' object='libhawk_la-md5.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -c -o libhawk_la-md5.lo `test -f 'md5.c' || echo '$(srcdir)/'`md5.c
+
 libhawk_la-mb8.lo: mb8.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -MT libhawk_la-mb8.lo -MD -MP -MF $(DEPDIR)/libhawk_la-mb8.Tpo -c -o libhawk_la-mb8.lo `test -f 'mb8.c' || echo '$(srcdir)/'`mb8.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libhawk_la-mb8.Tpo $(DEPDIR)/libhawk_la-mb8.Plo
@@ -1252,6 +1264,13 @@ libhawk_la-sed.lo: sed.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='sed.c' object='libhawk_la-sed.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -c -o libhawk_la-sed.lo `test -f 'sed.c' || echo '$(srcdir)/'`sed.c
+
+libhawk_la-sha1.lo: sha1.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -MT libhawk_la-sha1.lo -MD -MP -MF $(DEPDIR)/libhawk_la-sha1.Tpo -c -o libhawk_la-sha1.lo `test -f 'sha1.c' || echo '$(srcdir)/'`sha1.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libhawk_la-sha1.Tpo $(DEPDIR)/libhawk_la-sha1.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='sha1.c' object='libhawk_la-sha1.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -c -o libhawk_la-sha1.lo `test -f 'sha1.c' || echo '$(srcdir)/'`sha1.c
 
 libhawk_la-sha256.lo: sha256.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -MT libhawk_la-sha256.lo -MD -MP -MF $(DEPDIR)/libhawk_la-sha256.Tpo -c -o libhawk_la-sha256.lo `test -f 'sha256.c' || echo '$(srcdir)/'`sha256.c
@@ -1811,6 +1830,7 @@ distclean: distclean-am
 	-rm -f ./$(DEPDIR)/libhawk_la-json.Plo
 	-rm -f ./$(DEPDIR)/libhawk_la-ksc5601.Plo
 	-rm -f ./$(DEPDIR)/libhawk_la-mb8.Plo
+	-rm -f ./$(DEPDIR)/libhawk_la-md5.Plo
 	-rm -f ./$(DEPDIR)/libhawk_la-misc.Plo
 	-rm -f ./$(DEPDIR)/libhawk_la-mod-hawk.Plo
 	-rm -f ./$(DEPDIR)/libhawk_la-mod-math.Plo
@@ -1825,6 +1845,7 @@ distclean: distclean-am
 	-rm -f ./$(DEPDIR)/libhawk_la-rio.Plo
 	-rm -f ./$(DEPDIR)/libhawk_la-run.Plo
 	-rm -f ./$(DEPDIR)/libhawk_la-sed.Plo
+	-rm -f ./$(DEPDIR)/libhawk_la-sha1.Plo
 	-rm -f ./$(DEPDIR)/libhawk_la-sha256.Plo
 	-rm -f ./$(DEPDIR)/libhawk_la-sio.Plo
 	-rm -f ./$(DEPDIR)/libhawk_la-skad.Plo
@@ -1939,6 +1960,7 @@ maintainer-clean: maintainer-clean-am
 	-rm -f ./$(DEPDIR)/libhawk_la-json.Plo
 	-rm -f ./$(DEPDIR)/libhawk_la-ksc5601.Plo
 	-rm -f ./$(DEPDIR)/libhawk_la-mb8.Plo
+	-rm -f ./$(DEPDIR)/libhawk_la-md5.Plo
 	-rm -f ./$(DEPDIR)/libhawk_la-misc.Plo
 	-rm -f ./$(DEPDIR)/libhawk_la-mod-hawk.Plo
 	-rm -f ./$(DEPDIR)/libhawk_la-mod-math.Plo
@@ -1953,6 +1975,7 @@ maintainer-clean: maintainer-clean-am
 	-rm -f ./$(DEPDIR)/libhawk_la-rio.Plo
 	-rm -f ./$(DEPDIR)/libhawk_la-run.Plo
 	-rm -f ./$(DEPDIR)/libhawk_la-sed.Plo
+	-rm -f ./$(DEPDIR)/libhawk_la-sha1.Plo
 	-rm -f ./$(DEPDIR)/libhawk_la-sha256.Plo
 	-rm -f ./$(DEPDIR)/libhawk_la-sio.Plo
 	-rm -f ./$(DEPDIR)/libhawk_la-skad.Plo

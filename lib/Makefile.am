@@ -65,6 +65,7 @@ pkginclude_HEADERS = \
 	hawk-htb.h \
 	hawk-json.h \
 	hawk-map.h \
+	hawk-md5.h \
 	hawk-mtx.h \
 	hawk-rbt.h \
 	hawk-pac1.h \
@@ -73,6 +74,7 @@ pkginclude_HEADERS = \
 	hawk-skad.h \
 	hawk-utl.h \
 	hawk-sed.h \
+	hawk-sha1.h \
 	hawk-sha256.h \
 	hawk-sio.h \
 	hawk-str.h \
@@ -123,6 +125,7 @@ libhawk_la_SOURCES = \
 	json-prv.h \
 	ksc5601.c \
 	ksc5601.h \
+	md5.c \
 	mb8.c \
 	misc-imp.h \
 	misc-prv.h \
@@ -138,6 +141,7 @@ libhawk_la_SOURCES = \
 	run.c \
 	sed-prv.h \
 	sed.c \
+	sha1.c \
 	sha256.c \
 	skad-prv.h \
 	skad.c \
