@@ -271,11 +271,11 @@ am__libhawk_la_SOURCES_DIST = hawk.h hawk-arr.h hawk-chr.h hawk-cli.h \
 	tre-compile.c tre-compile.h tre-match-bt.c tre-match-pa.c \
 	tre-match-ut.h tre-mem.c tre-mem.h tre-parse.c tre-parse.h \
 	tre-stack.h tre-stack.c tre.c tree-prv.h tree.c uch-prop.h \
-	uch-case.h utf16.c utf8.c utl-ass.c utl-cmgr.c utl-rnd.c \
-	utl-sort.c utl-str.c utl-sys.c utl-xstr.c utl.c val-prv.h \
-	val.c xma.c cli-imp.h cli.c fio.c mtx.c pio.c sio.c syscall.h \
-	tio.c std.c std-cut.c std-json.c std-sed.c Hawk.cpp Std.cpp \
-	Sed.cpp Std-Sed.cpp mod-hawk.c mod-hawk.h mod-math.c \
+	uch-case.h utf16.c utf8.c utl-ass.c utl-b64.c utl-cmgr.c \
+	utl-rnd.c utl-sort.c utl-str.c utl-sys.c utl-xstr.c utl.c \
+	val-prv.h val.c xma.c cli-imp.h cli.c fio.c mtx.c pio.c sio.c \
+	syscall.h tio.c std.c std-cut.c std-json.c std-sed.c Hawk.cpp \
+	Std.cpp Sed.cpp Std-Sed.cpp mod-hawk.c mod-hawk.h mod-math.c \
 	mod-math.h mod-str.c mod-str.h mod-sys.c mod-sys.h \
 	../mod/mod-digest.c ../mod/mod-digest.h ../mod/mod-ffi.c \
 	../mod/mod-ffi.h ../mod/mod-memc.c ../mod/mod-memc.h \
@@ -323,7 +323,7 @@ am_libhawk_la_OBJECTS = $(am__objects_2) libhawk_la-arr.lo \
 	libhawk_la-tre-match-pa.lo libhawk_la-tre-mem.lo \
 	libhawk_la-tre-parse.lo libhawk_la-tre-stack.lo \
 	libhawk_la-tre.lo libhawk_la-tree.lo libhawk_la-utf16.lo \
-	libhawk_la-utf8.lo libhawk_la-utl-ass.lo \
+	libhawk_la-utf8.lo libhawk_la-utl-ass.lo libhawk_la-utl-b64.lo \
 	libhawk_la-utl-cmgr.lo libhawk_la-utl-rnd.lo \
 	libhawk_la-utl-sort.lo libhawk_la-utl-str.lo \
 	libhawk_la-utl-sys.lo libhawk_la-utl-xstr.lo libhawk_la-utl.lo \
@@ -410,6 +410,7 @@ am__depfiles_remade = ../mod/$(DEPDIR)/libhawk_la-mod-digest.Plo \
 	./$(DEPDIR)/libhawk_la-utf16.Plo \
 	./$(DEPDIR)/libhawk_la-utf8.Plo \
 	./$(DEPDIR)/libhawk_la-utl-ass.Plo \
+	./$(DEPDIR)/libhawk_la-utl-b64.Plo \
 	./$(DEPDIR)/libhawk_la-utl-cmgr.Plo \
 	./$(DEPDIR)/libhawk_la-utl-rnd.Plo \
 	./$(DEPDIR)/libhawk_la-utl-sort.Plo \
@@ -724,10 +725,10 @@ libhawk_la_SOURCES = $(pkginclude_HEADERS) arr.c big5.c big5.h chr.c \
 	tre-ast.c tre-ast.h tre-compile.c tre-compile.h tre-match-bt.c \
 	tre-match-pa.c tre-match-ut.h tre-mem.c tre-mem.h tre-parse.c \
 	tre-parse.h tre-stack.h tre-stack.c tre.c tree-prv.h tree.c \
-	uch-prop.h uch-case.h utf16.c utf8.c utl-ass.c utl-cmgr.c \
-	utl-rnd.c utl-sort.c utl-str.c utl-sys.c utl-xstr.c utl.c \
-	val-prv.h val.c xma.c cli-imp.h cli.c fio.c mtx.c pio.c sio.c \
-	syscall.h tio.c std.c std-cut.c std-json.c std-sed.c \
+	uch-prop.h uch-case.h utf16.c utf8.c utl-ass.c utl-b64.c \
+	utl-cmgr.c utl-rnd.c utl-sort.c utl-str.c utl-sys.c utl-xstr.c \
+	utl.c val-prv.h val.c xma.c cli-imp.h cli.c fio.c mtx.c pio.c \
+	sio.c syscall.h tio.c std.c std-cut.c std-json.c std-sed.c \
 	$(am__append_8) $(am__append_9) $(am__append_12) \
 	$(am__append_13) $(am__append_15) $(am__append_17) \
 	$(am__append_20) $(am__append_21) $(am__append_23) \
@@ -985,6 +986,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libhawk_la-utf16.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libhawk_la-utf8.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libhawk_la-utl-ass.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libhawk_la-utl-b64.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libhawk_la-utl-cmgr.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libhawk_la-utl-rnd.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libhawk_la-utl-sort.Plo@am__quote@ # am--include-marker
@@ -1377,6 +1379,13 @@ libhawk_la-utl-ass.lo: utl-ass.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='utl-ass.c' object='libhawk_la-utl-ass.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -c -o libhawk_la-utl-ass.lo `test -f 'utl-ass.c' || echo '$(srcdir)/'`utl-ass.c
+
+libhawk_la-utl-b64.lo: utl-b64.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -MT libhawk_la-utl-b64.lo -MD -MP -MF $(DEPDIR)/libhawk_la-utl-b64.Tpo -c -o libhawk_la-utl-b64.lo `test -f 'utl-b64.c' || echo '$(srcdir)/'`utl-b64.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libhawk_la-utl-b64.Tpo $(DEPDIR)/libhawk_la-utl-b64.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='utl-b64.c' object='libhawk_la-utl-b64.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -c -o libhawk_la-utl-b64.lo `test -f 'utl-b64.c' || echo '$(srcdir)/'`utl-b64.c
 
 libhawk_la-utl-cmgr.lo: utl-cmgr.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_la_CFLAGS) $(CFLAGS) -MT libhawk_la-utl-cmgr.lo -MD -MP -MF $(DEPDIR)/libhawk_la-utl-cmgr.Tpo -c -o libhawk_la-utl-cmgr.lo `test -f 'utl-cmgr.c' || echo '$(srcdir)/'`utl-cmgr.c
@@ -1882,6 +1891,7 @@ distclean: distclean-am
 	-rm -f ./$(DEPDIR)/libhawk_la-utf16.Plo
 	-rm -f ./$(DEPDIR)/libhawk_la-utf8.Plo
 	-rm -f ./$(DEPDIR)/libhawk_la-utl-ass.Plo
+	-rm -f ./$(DEPDIR)/libhawk_la-utl-b64.Plo
 	-rm -f ./$(DEPDIR)/libhawk_la-utl-cmgr.Plo
 	-rm -f ./$(DEPDIR)/libhawk_la-utl-rnd.Plo
 	-rm -f ./$(DEPDIR)/libhawk_la-utl-sort.Plo
@@ -2013,6 +2023,7 @@ maintainer-clean: maintainer-clean-am
 	-rm -f ./$(DEPDIR)/libhawk_la-utf16.Plo
 	-rm -f ./$(DEPDIR)/libhawk_la-utf8.Plo
 	-rm -f ./$(DEPDIR)/libhawk_la-utl-ass.Plo
+	-rm -f ./$(DEPDIR)/libhawk_la-utl-b64.Plo
 	-rm -f ./$(DEPDIR)/libhawk_la-utl-cmgr.Plo
 	-rm -f ./$(DEPDIR)/libhawk_la-utl-rnd.Plo
 	-rm -f ./$(DEPDIR)/libhawk_la-utl-sort.Plo

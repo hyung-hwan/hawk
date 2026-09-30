@@ -853,7 +853,8 @@ HAWK_EXPORT int hawk_conv_bin_to_base64 (
  * the alphabet is an error rather than something to step over - a decoder that
  * ignores what it does not recognise accepts two different inputs as the same
  * secret. Trailing '=' is optional; what fixes the length is how many
- * characters the last group has.
+ * characters the last group has. If padding is present, it must contain the
+ * exact number of '=' characters required to complete the final group.
  *
  * Pass #HAWK_NULL for \a bin to size the output instead of writing it, in which
  * case -2 is never returned.

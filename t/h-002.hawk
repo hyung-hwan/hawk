@@ -659,13 +659,21 @@ function main()
 		tap_ensure (str::tobase64(@b"foobar") === @b"Zm9vYmFy", 1, @SCRIPTNAME, @SCRIPTLINE);
 		tap_ensure (str::tobase64(@b"\x00\x01\x02") === @b"AAEC", 1, @SCRIPTNAME, @SCRIPTLINE);
 		tap_ensure (str::tobase64("hello") === @b"aGVsbG8=", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::tobase64(@b"f", str::BASE64_NOPAD) === @b"Zg", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::tobase64(@b"\xfb\xff", str::BASE64_URL) === @b"-_8=", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::tobase64(@b"\xfb\xff", str::BASE64_URL | str::BASE64_NOPAD) === @b"-_8", 1, @SCRIPTNAME, @SCRIPTLINE);
 
+		tap_ensure (str::frombase64("") === @b"", 1, @SCRIPTNAME, @SCRIPTLINE);
 		tap_ensure (str::frombase64("Zm9vYmFy") === @b"foobar", 1, @SCRIPTNAME, @SCRIPTLINE);
 		tap_ensure (str::frombase64("Zg==") === @b"f", 1, @SCRIPTNAME, @SCRIPTLINE);
 		tap_ensure (str::frombase64("Zm8=") === @b"fo", 1, @SCRIPTNAME, @SCRIPTLINE);
 		tap_ensure (str::frombase64("Zm9v") === @b"foo", 1, @SCRIPTNAME, @SCRIPTLINE);
 		tap_ensure (str::frombase64("Zm9v YmFy") === @b"foobar", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::frombase64("Z g = =") === @b"f", 1, @SCRIPTNAME, @SCRIPTLINE);
 		tap_ensure (str::frombase64(str::tobase64(@b"hello")) === @b"hello", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::frombase64(@b"Zg") === @b"f", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::frombase64(@b"-_8=", str::BASE64_URL) === @b"\xfb\xff", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::frombase64(@b"-_8", str::BASE64_URL | str::BASE64_NOPAD) === @b"\xfb\xff", 1, @SCRIPTNAME, @SCRIPTLINE);
 
 		tap_ensure (str::trim("  hello  world  ") === "hello  world", 1, @SCRIPTNAME, @SCRIPTLINE);
 		tap_ensure (str::trim("  hello  world  ", str::TRIM_PAC_SPACES) === "hello world", 1, @SCRIPTNAME, @SCRIPTLINE);

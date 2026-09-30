@@ -1134,7 +1134,9 @@ hash = str::tohex(digest::final(ctx))
 ### String
 The `str` module provides an extensive set of string manipulation functions.
 
-- str::frombase64 - decode a base64-encoded byte string
+- str::BASE64_NOPAD - omit trailing `=` padding when encoding
+- str::BASE64_URL - use the URL-safe Base64 alphabet
+- str::frombase64 - decode a Base64 byte string; `str::BASE64_URL` selects the URL-safe alphabet, and padding is optional
 - str::fromcharcode
 - str::fromhex
 - str::gsub - equivalent to gsub
@@ -1161,7 +1163,7 @@ The `str` module provides an extensive set of string manipulation functions.
 - str::split - equivalent to split
 - str::sub - equivalent to sub
 - str::substr - equivalent to substr
-- str::tobase64 - encode data to a base64 byte string
+- str::tobase64 - encode data to a Base64 byte string; the optional argument combines `str::BASE64_URL` and `str::BASE64_NOPAD`
 - str::tocharcode - get the numeric value of the first character
 - str::tohex
 - str::tolower - equivalent to tolower
