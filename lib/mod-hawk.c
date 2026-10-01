@@ -543,6 +543,7 @@ static hawk_mod_fnc_tab_t fnctab[] =
 	{ HAWK_T("bool"),             { { 1, 1,     HAWK_NULL     },  fnc_bool,                  0 } },
 	{ HAWK_T("call"),             { { 1, A_MAX, HAWK_T("vR")  },  fnc_call,                  0 } },
 	{ HAWK_T("cmgr_exists"),      { { 1, 1,     HAWK_NULL     },  fnc_cmgr_exists,           0 } },
+	{ HAWK_T("func_exists"),      { { 1, 1,     HAWK_NULL     },  fnc_function_exists,       0 } },
 	{ HAWK_T("function_exists"),  { { 1, 1,     HAWK_NULL     },  fnc_function_exists,       0 } },
 	{ HAWK_T("gc"),               { { 0, 1,     HAWK_NULL     },  fnc_gc,                    0 } },
 	{ HAWK_T("gc_get_pressure"),  { { 1, 1,     HAWK_NULL     },  fnc_gc_get_pressure,       0 } },

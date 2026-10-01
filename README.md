@@ -467,7 +467,7 @@ BEGIN {
 
 ## Functions
 
-Define functions with `function name(...) { ... }`.
+Define functions with `function name(...) { ... }`. You may use the short keyword `func` instead of `function`.
 
 - Missing args are `@nil`.
 - Use `&` for call-by-reference.
@@ -506,7 +506,7 @@ BEGIN {
 
 ### Function Literals
 
-Hawk supports unnamed function literals with `func(...) { ... }`.
+Hawk supports unnamed function literals with `function(...) {...}` or `func(...) {...}`.
 You can assign them to `@global`, `@local`, implicit/plain variables, and indexed elements.
 
 - Function literals do not capture outer local state (no closure).
@@ -1116,6 +1116,7 @@ hash = str::tohex(digest::final(ctx))
 - hawk::array
 - hawk::call
 - hawk::cmgr_exists
+- hawk::func_exists
 - hawk::function_exists
 - hawk::gc
 - hawk::gc_get_threshold
