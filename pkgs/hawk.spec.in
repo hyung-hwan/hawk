@@ -172,11 +172,13 @@ CFLAGS="${RPM_CFLAGS}" CXXFLAGS="${RPM_CFLAGS}" ./configure  \
 	--enable-pthread-flags=yes \
 	--enable-libltdl=no \
 	--enable-libunwind=no \
+	--enable-mod-digest=yes:static \
 %if %{enable_mod_ffi}
 	--enable-mod-ffi=yes \
 %else
 	--enable-mod-ffi=no \
 %endif
+	--enable-mod-json=yes:static \
 %if %{enable_mod_memc}
 	--enable-mod-memc=yes \
 %else
