@@ -14,7 +14,7 @@ The library is stable, portable, and designed for projects that need a scripting
 - [Language](#language)
 	- [What Hawk Is](#what-hawk-is)
 	- [Running Hawk](#running-hawk)
-		- [Sed and M4 command modes](#sed-and-m4-command-modes)
+		- [Cut, Sed, and M4 command modes](#cut-sed-and-m4-command-modes)
 	- [Execution Model](#execution-model)
 		- [@pragma entry](#pragma-entry)
 	- [Values and Types](#values-and-types)
@@ -76,7 +76,7 @@ The library is stable, portable, and designed for projects that need a scripting
 - Portable core - the base library depends only on the standard C library.
 - Optional extensions - loadable modules (e.g. MySQL access, FFI) can be built in or used via shared objects.
 - Mature and stable - developed and maintained for many years with proven reliability.
-- Embedded text processors - includes sed and m4 engines usable from C/C++ or through the CLI with `--sed` and `--m4`.
+- Embedded text processors - includes cut, sed, and m4 engines usable from C/C++ or through the CLI with `--cut`, `--sed`, and `--m4`.
 
 # Building Hawk From Source Code
 
@@ -292,11 +292,26 @@ Run an inline program:
 $ echo "a,b,c" | hawk 'BEGIN{FS=","} {print $2}'
 ```
 
-### Sed and M4 command modes
+### Cut, Sed, and M4 command modes
 
-The `hawk` executable also provides embedded sed and m4 processors. The mode
-switch must be the first option so that subsequent arguments are interpreted by
-the selected processor.
+The `hawk` executable also provides embedded cut, sed, and m4 processors. The
+mode switch must be the first option so that subsequent arguments are
+interpreted by the selected processor.
+
+Use `--cut` with a selector and optional input files. A selector beginning with
+`f` chooses fields, `c` chooses character positions, `d` sets the input and
+output delimiter, and `D` sets separate input and output delimiters. Positions
+start at 1 and may be written as single numbers or ranges.
+
+```sh
+$ printf 'alpha,beta,gamma\n' | hawk --cut 'd, f1 f3'
+alpha,gamma
+$ printf 'abcdef\n' | hawk --cut 'c2-4'
+bcd
+```
+
+Pass a selector directly, with `-e selector`, or load one from a file with
+`-f selector-file`. Use `-o file` to redirect the result to a file.
 
 Use `--sed` with a script argument, `-e script`, or `-f script-file`:
 
@@ -314,7 +329,8 @@ $ printf 'PROJECT\n' | hawk --m4 -DPROJECT=hawk
 $ hawk --m4 -I ./macros document.m4
 ```
 
-Run `hawk --sed --help` or `hawk --m4 --help` for all mode-specific options.
+Run `hawk --cut --help`, `hawk --sed --help`, or `hawk --m4 --help` for all
+mode-specific options.
 
 ## Execution Model
 
