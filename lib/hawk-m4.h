@@ -66,6 +66,28 @@ enum hawk_m4_io_kind_t
 };
 typedef enum hawk_m4_io_kind_t hawk_m4_io_kind_t;
 
+enum hawk_m4_iostd_type_t
+{
+	HAWK_M4_IOSTD_FILE,
+	HAWK_M4_IOSTD_OOCS
+};
+typedef enum hawk_m4_iostd_type_t hawk_m4_iostd_type_t;
+
+struct hawk_m4_iostd_t
+{
+	hawk_m4_iostd_type_t type;
+	union
+	{
+		struct
+		{
+			const hawk_ooch_t* path;
+			hawk_cmgr_t* cmgr;
+		} file;
+		hawk_oocs_t oocs;
+	} u;
+};
+typedef struct hawk_m4_iostd_t hawk_m4_iostd_t;
+
 struct hawk_m4_io_arg_t
 {
 	hawk_m4_io_kind_t kind;
@@ -219,6 +241,19 @@ HAWK_EXPORT hawk_m4_t* hawk_m4_openstdwithmmgr (
 HAWK_EXPORT int hawk_m4_execstd (
 	hawk_m4_t*               m4,
 	const hawk_ooch_t* const input[]
+);
+
+/**
+ * Process one file or string input and write the primary output to a file or
+ * a dynamically allocated string. A null input or output selects the standard
+ * input or output respectively. The caller must release a string output with
+ * hawk_m4_freemem(). Included files are still opened through the standard M4
+ * file handler and honor #HAWK_M4_OPT_INCDIRS.
+ */
+HAWK_EXPORT int hawk_m4_execstdwithio (
+	hawk_m4_t*       m4,
+	hawk_m4_iostd_t* input,
+	hawk_m4_iostd_t* output
 );
 
 HAWK_EXPORT void* hawk_m4_allocmem (

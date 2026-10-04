@@ -179,6 +179,7 @@ CFLAGS="${RPM_CFLAGS}" CXXFLAGS="${RPM_CFLAGS}" ./configure  \
 	--enable-mod-ffi=no \
 %endif
 	--enable-mod-json=yes:static \
+	--enable-mod-m4=yes:static \
 %if %{enable_mod_memc}
 	--enable-mod-memc=yes \
 %else

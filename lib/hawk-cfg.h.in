@@ -747,6 +747,12 @@
 /* build mod/json statically linked into the main library */
 #undef HAWK_ENABLE_MOD_JSON_STATIC
 
+/* build mod/m4 */
+#undef HAWK_ENABLE_MOD_M4
+
+/* build mod/m4 statically linked into the main library */
+#undef HAWK_ENABLE_MOD_M4_STATIC
+
 /* build mod/memc */
 #undef HAWK_ENABLE_MOD_MEMC
 

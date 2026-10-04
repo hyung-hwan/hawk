@@ -1128,6 +1128,8 @@ HAWK_MOD([uci],[auto],[
 	test "x${ac_cv_header_uci_h}" = "xyes" -a "x${ac_cv_lib_uci_uci_alloc_context}" = "xyes"
 ])
 
+HAWK_MOD([m4],[yes:static],[true])
+
 dnl ==== include pthread options to the default flags ====
 dnl keep this as  the last option as it changes the default compile flags.
 dnl otherwise, other tests may get affected if this option is on.

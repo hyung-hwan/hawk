@@ -106,7 +106,7 @@ struct arg_t
 	hawk_cmgr_t*     script_cmgr;
 	hawk_cmgr_t*     conin_cmgr;
 	hawk_cmgr_t*     conout_cmgr;
-	hawk_bch_t*      includedirs;
+	hawk_bch_t*      incdirs;
 	hawk_bch_t*      modlibdirs;
 
 	unsigned int     modern: 1;
@@ -489,6 +489,7 @@ static int process_argv (int argc, hawk_bch_t* argv[], const hawk_bch_t* real_ar
 		{ ":script-encoding",  '\0' },
 		{ ":conin-encoding",   '\0' },
 		{ ":conout-encoding",  '\0' },
+		{ ":incdirs",          'I' },
 		{ ":includedirs",      'I' },
 		{ ":modlibdirs",       '\0' },
 
@@ -646,7 +647,7 @@ static int process_argv (int argc, hawk_bch_t* argv[], const hawk_bch_t* real_ar
 
 			case 'I':
 			{
-				arg->includedirs = opt.arg;
+				arg->incdirs = opt.arg;
 				break;
 			}
 
@@ -931,11 +932,11 @@ int main_hawk(int argc, hawk_bch_t* argv[], const hawk_bch_t* real_argv0)
 		hawk_setopt(hawk, HAWK_OPT_DEPTH_INCLUDE, &tmp);
 	}
 
-	if (arg.includedirs)
+	if (arg.incdirs)
 	{
 	#if defined(HAWK_OOCH_IS_UCH)
 		hawk_ooch_t* tmp;
-		tmp = hawk_dupbtoucstr(hawk, arg.includedirs, HAWK_NULL, 1);
+		tmp = hawk_dupbtoucstr(hawk, arg.incdirs, HAWK_NULL, 1);
 		if (HAWK_UNLIKELY(!tmp))
 		{
 			print_hawk_error(hawk);
@@ -945,7 +946,7 @@ int main_hawk(int argc, hawk_bch_t* argv[], const hawk_bch_t* real_argv0)
 		hawk_setopt(hawk, HAWK_OPT_INCDIRS, tmp);
 		hawk_freemem(hawk, tmp);
 	#else
-		hawk_setopt(hawk, HAWK_OPT_INCDIRS, arg.includedirs);
+		hawk_setopt(hawk, HAWK_OPT_INCDIRS, arg.incdirs);
 	#endif
 	}
 

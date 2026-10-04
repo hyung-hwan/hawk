@@ -682,7 +682,7 @@ check_SCRIPTS = $(am__append_1) h-003.hawk h-004.hawk h-009.hawk \
 	h-010.hawk h-011.hawk h-012.hawk h-013.hawk h-014.hawk \
 	h-015.hawk h-016.hawk h-017.hawk h-018.hawk h-019.hawk \
 	h-020.hawk h-021.hawk h-022.hawk h-023.hawk h-024.hawk \
-	h-025.hawk h-026.hawk h-027.hawk h-028.hawk \
+	h-025.hawk h-026.hawk h-027.hawk h-028.hawk h-029.hawk \
 	regress-filename.sh regress-extra-info.sh regress-environ.sh \
 	regress-m4.sh
 check_ERRORS = e-001.err
@@ -864,11 +864,11 @@ t-011$(EXEEXT): $(t_011_OBJECTS) $(t_011_DEPENDENCIES) $(EXTRA_t_011_DEPENDENCIE
 	@rm -f t-011$(EXEEXT)
 	$(AM_V_CCLD)$(t_011_LINK) $(t_011_OBJECTS) $(t_011_LDADD) $(LIBS)
 
-t-012$(EXEEXT): $(t_012_OBJECTS) $(t_012_DEPENDENCIES) $(EXTRA_t_012_DEPENDENCIES)
+t-012$(EXEEXT): $(t_012_OBJECTS) $(t_012_DEPENDENCIES) $(EXTRA_t_012_DEPENDENCIES) 
 	@rm -f t-012$(EXEEXT)
 	$(AM_V_CCLD)$(t_012_LINK) $(t_012_OBJECTS) $(t_012_LDADD) $(LIBS)
 
-t-013$(EXEEXT): $(t_013_OBJECTS) $(t_013_DEPENDENCIES) $(EXTRA_t_013_DEPENDENCIES)
+t-013$(EXEEXT): $(t_013_OBJECTS) $(t_013_DEPENDENCIES) $(EXTRA_t_013_DEPENDENCIES) 
 	@rm -f t-013$(EXEEXT)
 	$(AM_V_CCLD)$(t_013_LINK) $(t_013_OBJECTS) $(t_013_LDADD) $(LIBS)
 

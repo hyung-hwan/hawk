@@ -108,3 +108,14 @@ libhawk_uci_la_LDFLAGS = $(LDFLAGS_COMMON_DYNAMIC)
 libhawk_uci_la_LIBADD = $(LIBADD_COMMON_DYNAMIC) $(UCI_LIBS)
 endif
 endif
+
+if ENABLE_MOD_M4
+if !ENABLE_MOD_M4_STATIC
+pkgmodexec_LTLIBRARIES += libhawk-m4.la
+libhawk_m4_la_SOURCES = mod-m4.c mod-m4.h
+libhawk_m4_la_CPPFLAGS = $(CPPFLAGS_COMMON)
+libhawk_m4_la_CFLAGS = $(CFLAGS_COMMON)
+libhawk_m4_la_LDFLAGS = $(LDFLAGS_COMMON_DYNAMIC)
+libhawk_m4_la_LIBADD = $(LIBADD_COMMON_DYNAMIC)
+endif
+endif

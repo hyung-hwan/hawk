@@ -660,6 +660,10 @@ HAWK_PROJECT_URL
 HAWK_PROJECT_AUTHOR
 ENABLE_HAWKGO_FALSE
 ENABLE_HAWKGO_TRUE
+ENABLE_MOD_M4_STATIC_FALSE
+ENABLE_MOD_M4_STATIC_TRUE
+ENABLE_MOD_M4_FALSE
+ENABLE_MOD_M4_TRUE
 ENABLE_MOD_UCI_STATIC_FALSE
 ENABLE_MOD_UCI_STATIC_TRUE
 ENABLE_MOD_UCI_FALSE
@@ -909,6 +913,7 @@ enable_mod_digest
 enable_mod_sed
 enable_mod_sqlite
 enable_mod_uci
+enable_mod_m4
 enable_pthread_flags
 enable_hawkgo
 enable_year2038
@@ -1603,6 +1608,8 @@ Optional Features:
                           yes:static, no (default. auto)
   --enable-mod-uci        enable mod/uci. one of auto, auto:static, yes,
                           yes:static, no (default. auto)
+  --enable-mod-m4         enable mod/m4. one of auto, auto:static, yes,
+                          yes:static, no (default. yes:static)
   --enable-pthread-flags  add thread flags to CFLAGS, CXXFLAGS, LIBS(default.
                           yes)
   --enable-hawkgo         build the go wrapper(default. no)
@@ -29543,6 +29550,79 @@ fi
 
 
 
+
+	# Check whether --enable-mod-m4 was given.
+if test ${enable_mod_m4+y}
+then :
+  enableval=$enable_mod_m4; enable_mod_m4_is=$enableval
+else case e in #(
+  e) enable_mod_m4_is=yes:static
+	 ;;
+esac
+fi
+
+	if test "x${enable_mod_m4_is}" = "xauto" -o "x${enable_mod_m4_is}" = "xauto:static"
+	then
+		true
+
+		if test $? -eq 0
+		then
+			enable_mod_m4_is=`echo "$enable_mod_m4_is" | sed 's|^auto|yes|g'`
+		else
+			enable_mod_m4_is=no
+		fi
+	fi
+
+	if test "x${enable_mod_m4_is}" = "xyes:static"
+	then
+		enable_mod_m4_is=yes
+		if test "x${enable_static_module_is}" = "xyes"
+		then
+			enable_mod_m4_static_is="yes"
+		fi
+	elif test "x${enable_mod_m4_is}" = "xyes"
+	then
+		if test "x${enable_shared}" = "xno" -a "x${enable_static}" = "xyes"
+		then
+			## not configured to produce shared objects
+			enable_mod_m4_static_is="yes"
+		fi
+	fi
+
+
+
+	if test "x${enable_mod_m4_is}" = "xyes"
+	then
+
+printf "%s\n" "#define HAWK_ENABLE_MOD_M4 1" >>confdefs.h
+
+	fi
+	if test "x${enable_mod_m4_static_is}" = "xyes"
+	then
+
+printf "%s\n" "#define HAWK_ENABLE_MOD_M4_STATIC 1" >>confdefs.h
+
+	fi
+	 if test "${enable_mod_m4_is}" = "yes"; then
+  ENABLE_MOD_M4_TRUE=
+  ENABLE_MOD_M4_FALSE='#'
+else
+  ENABLE_MOD_M4_TRUE='#'
+  ENABLE_MOD_M4_FALSE=
+fi
+
+	 if test "${enable_mod_m4_static_is}" = "yes"; then
+  ENABLE_MOD_M4_STATIC_TRUE=
+  ENABLE_MOD_M4_STATIC_FALSE='#'
+else
+  ENABLE_MOD_M4_STATIC_TRUE='#'
+  ENABLE_MOD_M4_STATIC_FALSE=
+fi
+
+
+
+
+
 # Check whether --enable-pthread-flags was given.
 if test ${enable_pthread_flags+y}
 then :
@@ -29876,6 +29956,14 @@ Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${ENABLE_MOD_UCI_STATIC_TRUE}" && test -z "${ENABLE_MOD_UCI_STATIC_FALSE}"; then
   as_fn_error $? "conditional \"ENABLE_MOD_UCI_STATIC\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${ENABLE_MOD_M4_TRUE}" && test -z "${ENABLE_MOD_M4_FALSE}"; then
+  as_fn_error $? "conditional \"ENABLE_MOD_M4\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${ENABLE_MOD_M4_STATIC_TRUE}" && test -z "${ENABLE_MOD_M4_STATIC_FALSE}"; then
+  as_fn_error $? "conditional \"ENABLE_MOD_M4_STATIC\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${ENABLE_HAWKGO_TRUE}" && test -z "${ENABLE_HAWKGO_FALSE}"; then

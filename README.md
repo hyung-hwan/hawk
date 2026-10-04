@@ -14,6 +14,7 @@ The library is stable, portable, and designed for projects that need a scripting
 - [Language](#language)
 	- [What Hawk Is](#what-hawk-is)
 	- [Running Hawk](#running-hawk)
+		- [Sed and M4 command modes](#sed-and-m4-command-modes)
 	- [Execution Model](#execution-model)
 		- [@pragma entry](#pragma-entry)
 	- [Values and Types](#values-and-types)
@@ -50,7 +51,11 @@ The library is stable, portable, and designed for projects that need a scripting
 	- [Some Examples](#some-examples)
 	- [Garbage Collection](#garbage-collection)
 	- [Modules](#modules)
+		- [Message Digest](#message-digest)
 		- [Hawk](#hawk)
+		- [JSON](#json)
+		- [M4](#m4)
+		- [Sed](#sed)
 		- [String](#string)
 		- [System](#system)
 		- [ffi](#ffi)
@@ -71,7 +76,7 @@ The library is stable, portable, and designed for projects that need a scripting
 - Portable core - the base library depends only on the standard C library.
 - Optional extensions - loadable modules (e.g. MySQL access, FFI) can be built in or used via shared objects.
 - Mature and stable - developed and maintained for many years with proven reliability.
-- Embedded sed functionality - includes a sed engine that can be used from C/C++ or invoked via the CLI using --sed <options>
+- Embedded text processors - includes sed and m4 engines usable from C/C++ or through the CLI with `--sed` and `--m4`.
 
 # Building Hawk From Source Code
 
@@ -270,7 +275,7 @@ The C++ classes are inferior to the C equivalents in that they don't allow creat
 
 ## What Hawk Is
 
-Hawk is an embeddable awk interpreter with extensions. It can run hawk/awk scripts from the CLI or from C/C++ and provides modules like `str::`, `sys::`, `ffi::`, `mysql::`, and `sqlite::`.
+Hawk is an embeddable awk interpreter with extensions. It can run hawk/awk scripts from the CLI or from C/C++ and provides modules like `str::`, `sys::`, `digest::`, `json::`, `sed::`, `ffi::`, `mysql::`, and `sqlite::`.
 
 
 ## Running Hawk
@@ -286,6 +291,30 @@ Run an inline program:
 ```sh
 $ echo "a,b,c" | hawk 'BEGIN{FS=","} {print $2}'
 ```
+
+### Sed and M4 command modes
+
+The `hawk` executable also provides embedded sed and m4 processors. The mode
+switch must be the first option so that subsequent arguments are interpreted by
+the selected processor.
+
+Use `--sed` with a script argument, `-e script`, or `-f script-file`:
+
+```sh
+$ hawk --sed 's/foo/bar/g' input.txt
+$ hawk --sed -n -e '/ERROR/p' application.log
+```
+
+Use `--m4` with files or standard input. `-D`/`--define` defines a macro,
+`-U`/`--undefine` undefines one, and `-I`/`--incdirs` adds an include directory;
+these options may be repeated.
+
+```sh
+$ printf 'PROJECT\n' | hawk --m4 -DPROJECT=hawk
+$ hawk --m4 -I ./macros document.m4
+```
+
+Run `hawk --sed --help` or `hawk --m4 --help` for all mode-specific options.
 
 ## Execution Model
 
@@ -1086,18 +1115,25 @@ The primary value management is reference counting based but `map` and `array` v
 
 Hawk supports various modules.
 
-### Digest
+### Message Digest
 
-The optional `digest` module computes message digests and returns each digest
-as a raw multi-byte string. Use `str::tohex()` when a printable hexadecimal
-representation is required.
+The optional `digest::` module computes MD5, SHA-1, and SHA-256 message digests.
+Digest functions return raw multi-byte strings; use `str::tohex()` when a
+printable hexadecimal representation is required.
 
-- digest::init - create an opaque streaming context for `md5`, `sha1`, or `sha256`
-- digest::update - add a byte-string chunk and return the context
-- digest::final - finish the context and return the raw digest
-- digest::md5
-- digest::sha1
-- digest::sha256
+- `digest::md5(data)`, `digest::sha1(data)`, `digest::sha256(data)` compute a
+  digest in one call.
+- `digest::init(name)` creates a streaming context for `md5`, `sha1`, or
+  `sha256`.
+- `digest::update(context, data)` adds a byte-string chunk and returns the
+  context.
+- `digest::final(context)` finishes the context and returns the raw digest.
+
+```awk
+BEGIN {
+	print str::tohex(digest::sha256(@b"hello"))
+}
+```
 
 The streaming context is a private BOB value. It owns the digest state directly,
 so it needs no explicit close operation. A context cannot be updated or finalized
@@ -1131,6 +1167,79 @@ hash = str::tohex(digest::final(ctx))
 - hawk::type
 - hawk::typename
 - hawk::GC_NUM_GENS
+
+### JSON
+
+The optional `json::` module converts between JSON text and Hawk values.
+`json::parse(text)` returns maps, arrays, strings, numbers, booleans, or `@nil`.
+`json::stringify(value)` serializes a supported Hawk value and escapes JSON
+strings as needed.
+
+```awk
+BEGIN {
+	data = json::parse("{\"name\":\"hawk\",\"items\":[1,2,3]}")
+	data.items[4] = 4
+	print data.name
+	print json::stringify(data)
+}
+```
+
+Invalid or incomplete JSON raises a runtime error. A JSON object becomes a Hawk
+map, a JSON array becomes a Hawk array, and JSON `null` becomes `@nil`.
+
+### M4
+
+The optional `m4::` module processes m4 source held in a string or file:
+
+```awk
+BEGIN {
+	source = "define(`NAME', `hawk')dnl\nNAME"
+	rc = m4::process(source, output, m4::STR_TO_STR)
+	if (rc == 0) print output
+}
+```
+
+`m4::process(input, output, mode [, include-directories])` returns zero on
+success. The input contains both macro definitions and text to expand. For a
+string output mode, `output` must be a variable passed by reference; for a file
+output mode, it is the destination path. Select the input/output interpretation
+with one of these constants:
+
+- `m4::STR_TO_STR`
+- `m4::FILE_TO_STR`
+- `m4::STR_TO_FILE`
+- `m4::FILE_TO_FILE`
+
+The optional fourth argument is a platform-specific path list searched by
+`include()` and `sinclude()`:
+
+```awk
+BEGIN {
+	rc = m4::process("document.m4", "document.txt",
+	                 m4::FILE_TO_FILE, "./macros")
+}
+```
+
+### Sed
+
+The optional `sed::` module applies a sed script to string or file input:
+
+```awk
+BEGIN {
+	rc = sed::process("s/foo/bar/g", "foo foo", output, sed::STR_TO_STR)
+	if (rc == 0) print output
+}
+```
+
+`sed::process(script, input, output, mode)` returns zero on success. For a
+string output mode, `output` must be a variable passed by reference; for a file
+output mode, it is the destination path. Select the input/output interpretation
+with one of these constants:
+
+- `sed::STR_TO_STR`
+- `sed::FILE_TO_STR`
+- `sed::STR_TO_FILE`
+- `sed::FILE_TO_FILE`
 
 ### String
 The `str` module provides an extensive set of string manipulation functions.

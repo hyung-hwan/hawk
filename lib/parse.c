@@ -9772,6 +9772,10 @@ int hawk_putsrcoochars (hawk_t* hawk, const hawk_ooch_t* str, hawk_oow_t len)
 #include "../mod/mod-json.h"
 #endif
 
+#if defined(HAWK_ENABLE_MOD_M4_STATIC)
+#include "../mod/mod-m4.h"
+#endif
+
 #if defined(HAWK_ENABLE_MOD_SED_STATIC)
 #include "../mod/mod-sed.h"
 #endif
@@ -9808,6 +9812,9 @@ static hawk_mod_desc_t static_modtab[] =
 #endif
 #if defined(HAWK_ENABLE_MOD_JSON_STATIC)
 	{ HAWK_T("json"),   hawk_mod_json },
+#endif
+#if defined(HAWK_ENABLE_MOD_M4_STATIC)
+	{ HAWK_T("m4"),     hawk_mod_m4 },
 #endif
 #if defined(HAWK_ENABLE_MOD_SED_STATIC)
 	{ HAWK_T("sed"),    hawk_mod_sed },

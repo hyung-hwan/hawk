@@ -1,0 +1,97 @@
+@pragma entry main
+@pragma implicit off
+
+@include "tap.inc";
+
+function read_file(path,    text, chunk, n)
+{
+	text = "";
+	while ((n = getline chunk < path) > 0)
+	{
+		if (text != "") text = text ORS;
+		text = text chunk;
+	}
+	close(path);
+	return text;
+}
+
+function test_sed(input_file, output_file,    output, rc)
+{
+	tap_ensure(hawk::function_exists("sed::process"), 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(hawk::function_exists("sed::file_to_file"), 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(hawk::function_exists("sed::str_to_str"), 0, @SCRIPTNAME, @SCRIPTLINE);
+
+	rc = sed::process("s/foo/bar/g", "foo foo", output, sed::STR_TO_STR);
+	tap_ensure(rc, 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(output, "bar bar", @SCRIPTNAME, @SCRIPTLINE);
+
+	printf "%s", "foo file" > input_file;
+	close(input_file);
+	rc = sed::process("s/foo/bar/g", input_file, output, sed::FILE_TO_STR);
+	tap_ensure(rc, 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(output, "bar file", @SCRIPTNAME, @SCRIPTLINE);
+
+	rc = sed::process("s/foo/bar/g", "foo output", output_file, sed::STR_TO_FILE);
+	tap_ensure(rc, 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(read_file(output_file), "bar output", @SCRIPTNAME, @SCRIPTLINE);
+
+	printf "%s", "foo both" > input_file;
+	close(input_file);
+	rc = sed::process("s/foo/bar/g", input_file, output_file, sed::FILE_TO_FILE);
+	tap_ensure(rc, 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(read_file(output_file), "bar both", @SCRIPTNAME, @SCRIPTLINE);
+}
+
+function test_m4(input_file, output_file,    output, rc, source)
+{
+	tap_ensure(hawk::function_exists("m4::process"), 1, @SCRIPTNAME, @SCRIPTLINE);
+	source = "define(`X', `VALUE')dnl\nX";
+
+	rc = m4::process(source, output, m4::STR_TO_STR);
+	tap_ensure(rc, 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(output, "VALUE", @SCRIPTNAME, @SCRIPTLINE);
+
+	printf "%s", source > input_file;
+	close(input_file);
+	rc = m4::process(input_file, output, m4::FILE_TO_STR);
+	tap_ensure(rc, 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(output, "VALUE", @SCRIPTNAME, @SCRIPTLINE);
+
+	rc = m4::process(source, output_file, m4::STR_TO_FILE);
+	tap_ensure(rc, 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(read_file(output_file), "VALUE", @SCRIPTNAME, @SCRIPTLINE);
+
+	printf "%s", source > input_file;
+	close(input_file);
+	rc = m4::process(input_file, output_file, m4::FILE_TO_FILE);
+	tap_ensure(rc, 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(read_file(output_file), "VALUE", @SCRIPTNAME, @SCRIPTLINE);
+
+	printf "%s", "INCLUDED" > input_file;
+	close(input_file);
+	source = "include(`" %% sys::basename(input_file) %% "')";
+	rc = m4::process(source, output, m4::STR_TO_STR, sys::dirname(input_file));
+	tap_ensure(rc, 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(output, "INCLUDED", @SCRIPTNAME, @SCRIPTLINE);
+}
+
+function main(    input_file, output_file)
+{
+	input_file = sys::tempname("hawk-mod-process-in-");
+	output_file = sys::tempname("hawk-mod-process-out-");
+	if (input_file == "" || output_file == "")
+	{
+		tap_skip("unable to create temporary paths");
+		if (input_file != "") sys::unlink(input_file);
+		if (output_file != "") sys::unlink(output_file);
+		tap_end();
+		return;
+	}
+
+	test_sed(input_file, output_file);
+	test_m4(input_file, output_file);
+
+	sys::unlink(input_file);
+	sys::unlink(output_file);
+	tap_end();
+}

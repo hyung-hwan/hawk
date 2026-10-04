@@ -43,6 +43,9 @@ BUILT_SOURCES = \
 	hawk-str.h \
 	utl-str.c
 
+## you may override M4 with "hawk --m4"
+M4 = m4
+
 ##################################################
 # include files to deploy
 ##################################################
@@ -339,6 +342,10 @@ libhawk_la_SOURCES += ../mod/mod-uci.c ../mod/mod-uci.h
 libhawk_la_LIBADD += $(UCI_LIBS)
 endif
 
+if ENABLE_MOD_M4_STATIC
+libhawk_la_SOURCES += ../mod/mod-m4.c ../mod/mod-m4.h
+endif
+
 ##############################################################
 # installation
 ##############################################################
@@ -354,10 +361,10 @@ uninstall-hook:
 	@rm -f "$(DESTDIR)$(pkgincludedir)/hawk-cfg.h"
 
 gem-glob.c: gem-glob.m4 gem-glob.c.m4
-	m4 -I$(srcdir) $(srcdir)/gem-glob.c.m4 > $(srcdir)/gem-glob.c
+	$(M4) -I$(srcdir) $(srcdir)/gem-glob.c.m4 > $(srcdir)/gem-glob.c
 
 hawk-str.h: utl-str.m4 hawk-str.h.m4
-	m4 -I$(srcdir) $(srcdir)/hawk-str.h.m4 > $(srcdir)/hawk-str.h
+	$(M4) -I$(srcdir) $(srcdir)/hawk-str.h.m4 > $(srcdir)/hawk-str.h
 
 utl-str.c: utl-str.m4 utl-str.c.m4
-	m4 -I$(srcdir) $(srcdir)/utl-str.c.m4 > $(srcdir)/utl-str.c
+	$(M4) -I$(srcdir) $(srcdir)/utl-str.c.m4 > $(srcdir)/utl-str.c
