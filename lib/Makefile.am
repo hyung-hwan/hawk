@@ -64,6 +64,7 @@ pkginclude_HEADERS = \
 	hawk-glob.h \
 	hawk-htb.h \
 	hawk-json.h \
+	hawk-m4.h \
 	hawk-map.h \
 	hawk-md5.h \
 	hawk-mtx.h \
@@ -123,6 +124,7 @@ libhawk_la_SOURCES = \
 	jis0208.h \
 	json.c \
 	json-prv.h \
+	m4.c \
 	ksc5601.c \
 	ksc5601.h \
 	md5.c \
@@ -191,6 +193,7 @@ libhawk_la_SOURCES += \
 	std.c  \
 	std-cut.c \
 	std-json.c \
+	std-m4.c \
 	std-sed.c
 
 libhawk_la_CPPFLAGS = $(CPPFLAGS_ALL_COMMON) $(CPPFLAGS_PFMOD)

@@ -2998,7 +2998,7 @@ static int match_a (hawk_sed_t* sed, hawk_sed_cmd_t* cmd, hawk_sed_adr_t* a)
 				return 1;
 			}
 
-			n = read_char (sed, &c);
+			n = read_char(sed, &c);
 			if (n <= -1) return -1;
 
 			HAWK_ASSERT(sed->e.in.xbuf_len == 0);

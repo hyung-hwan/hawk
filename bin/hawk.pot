@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-05-23 12:01+0900\n"
+"POT-Creation-Date: 2026-10-03 22:44+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -220,26 +220,30 @@ msgid " --cut                             switch to the cut mode"
 msgstr ""
 
 #: ../../bin/hawk.c:448 ../../bin/main.c:422
+msgid " --m4                              switch to the m4 mode"
+msgstr ""
+
+#: ../../bin/hawk.c:449 ../../bin/main.c:423
 msgid " --sed                             switch to the sed mode"
 msgstr ""
 
-#: ../../bin/hawk.c:806 ../../bin/hawk.c:823
+#: ../../bin/hawk.c:807 ../../bin/hawk.c:824
 msgid "ERROR"
 msgstr ""
 
-#: ../../bin/hawk.c:807 ../../bin/hawk.c:824
+#: ../../bin/hawk.c:808 ../../bin/hawk.c:825
 msgid "Line"
 msgstr ""
 
-#: ../../bin/hawk.c:808 ../../bin/hawk.c:825
+#: ../../bin/hawk.c:809 ../../bin/hawk.c:826
 msgid "Column"
 msgstr ""
 
-#: ../../bin/hawk.c:809 ../../bin/hawk.c:826
+#: ../../bin/hawk.c:810 ../../bin/hawk.c:827
 msgid "Code"
 msgstr ""
 
-#: ../../bin/hawk.c:810 ../../bin/hawk.c:827
+#: ../../bin/hawk.c:811 ../../bin/hawk.c:828
 msgid "File "
 msgstr ""
 

@@ -27,7 +27,7 @@ EXTRA_DIST = hawk.pot hawk-ko.po hawk-zh_CN.po
 ##################################################
 # hawk
 ##################################################
-hawk_SOURCES = cut.c hawk.c sed.c main.c main.h
+hawk_SOURCES = cut.c hawk.c m4.c sed.c main.c main.h
 hawk_CPPFLAGS = $(CPPFLAGS_COMMON)
 hawk_CFLAGS = $(CFLAGS_COMMON)
 hawk_LDFLAGS = $(LDFLAGS_COMMON)

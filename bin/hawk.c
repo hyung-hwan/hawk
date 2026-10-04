@@ -445,6 +445,7 @@ static void print_usage (FILE* out, const hawk_bch_t* argv0, const hawk_bch_t* r
 		fprintf(out, "%s\n", _("Special mode switching options(must be specified first to take effect):"));
 		fprintf(out, "%s\n", _(" --awk/--hawk                      switch to the awk mode(default)"));
 		fprintf(out, "%s\n", _(" --cut                             switch to the cut mode"));
+		fprintf(out, "%s\n", _(" --m4                              switch to the m4 mode"));
 		fprintf(out, "%s\n", _(" --sed                             switch to the sed mode"));
 	}
 }

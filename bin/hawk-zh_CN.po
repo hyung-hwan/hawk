@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: hawk 1.0.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-05-23 12:01+0900\n"
+"POT-Creation-Date: 2026-10-03 22:17+0900\n"
 "PO-Revision-Date: 2026-03-28 17:00+0800\n"
 "Last-Translator:  <author@hawk>\n"
 "Language-Team: Chinese (Simplified) <translation-team-zh_CN@hawk>\n"
@@ -222,26 +222,30 @@ msgid " --cut                             switch to the cut mode"
 msgstr " --cut                             切换到 cut 模式"
 
 #: ../../bin/hawk.c:448 ../../bin/main.c:422
+msgid " --m4                              switch to the m4 mode"
+msgstr " --m4                              切换到 m4 模式"
+
+#: ../../bin/hawk.c:449 ../../bin/main.c:423
 msgid " --sed                             switch to the sed mode"
 msgstr " --sed                             切换到 sed 模式"
 
-#: ../../bin/hawk.c:806 ../../bin/hawk.c:823
+#: ../../bin/hawk.c:807 ../../bin/hawk.c:824
 msgid "ERROR"
 msgstr "错误"
 
-#: ../../bin/hawk.c:807 ../../bin/hawk.c:824
+#: ../../bin/hawk.c:808 ../../bin/hawk.c:825
 msgid "Line"
 msgstr "行"
 
-#: ../../bin/hawk.c:808 ../../bin/hawk.c:825
+#: ../../bin/hawk.c:809 ../../bin/hawk.c:826
 msgid "Column"
 msgstr "列"
 
-#: ../../bin/hawk.c:809 ../../bin/hawk.c:826
+#: ../../bin/hawk.c:810 ../../bin/hawk.c:827
 msgid "Code"
 msgstr "代码"
 
-#: ../../bin/hawk.c:810 ../../bin/hawk.c:827
+#: ../../bin/hawk.c:811 ../../bin/hawk.c:828
 msgid "File "
 msgstr "文件 "
 

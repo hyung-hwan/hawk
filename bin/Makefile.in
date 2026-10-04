@@ -115,7 +115,7 @@ CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)" "$(DESTDIR)$(langdir)"
 PROGRAMS = $(bin_PROGRAMS)
 am_hawk_OBJECTS = hawk-cut.$(OBJEXT) hawk-hawk.$(OBJEXT) \
-	hawk-sed.$(OBJEXT) hawk-main.$(OBJEXT)
+	hawk-m4.$(OBJEXT) hawk-sed.$(OBJEXT) hawk-main.$(OBJEXT)
 hawk_OBJECTS = $(am_hawk_OBJECTS)
 am__DEPENDENCIES_1 =
 AM_V_lt = $(am__v_lt_@AM_V@)
@@ -149,7 +149,8 @@ DEFAULT_INCLUDES =
 depcomp = $(SHELL) $(top_srcdir)/ac/depcomp
 am__maybe_remake_depfiles = depfiles
 am__depfiles_remade = ./$(DEPDIR)/hawk-cut.Po ./$(DEPDIR)/hawk-hawk.Po \
-	./$(DEPDIR)/hawk-main.Po ./$(DEPDIR)/hawk-sed.Po
+	./$(DEPDIR)/hawk-m4.Po ./$(DEPDIR)/hawk-main.Po \
+	./$(DEPDIR)/hawk-sed.Po
 am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -402,7 +403,7 @@ EXTRA_DIST = hawk.pot hawk-ko.po hawk-zh_CN.po
 ##################################################
 # hawk
 ##################################################
-hawk_SOURCES = cut.c hawk.c sed.c main.c main.h
+hawk_SOURCES = cut.c hawk.c m4.c sed.c main.c main.h
 hawk_CPPFLAGS = $(CPPFLAGS_COMMON)
 hawk_CFLAGS = $(CFLAGS_COMMON)
 hawk_LDFLAGS = $(LDFLAGS_COMMON)
@@ -525,6 +526,7 @@ distclean-compile:
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/hawk-cut.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/hawk-hawk.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/hawk-m4.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/hawk-main.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/hawk-sed.Po@am__quote@ # am--include-marker
 
@@ -585,6 +587,20 @@ hawk-hawk.obj: hawk.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='hawk.c' object='hawk-hawk.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(hawk_CPPFLAGS) $(CPPFLAGS) $(hawk_CFLAGS) $(CFLAGS) -c -o hawk-hawk.obj `if test -f 'hawk.c'; then $(CYGPATH_W) 'hawk.c'; else $(CYGPATH_W) '$(srcdir)/hawk.c'; fi`
+
+hawk-m4.o: m4.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(hawk_CPPFLAGS) $(CPPFLAGS) $(hawk_CFLAGS) $(CFLAGS) -MT hawk-m4.o -MD -MP -MF $(DEPDIR)/hawk-m4.Tpo -c -o hawk-m4.o `test -f 'm4.c' || echo '$(srcdir)/'`m4.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/hawk-m4.Tpo $(DEPDIR)/hawk-m4.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='m4.c' object='hawk-m4.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(hawk_CPPFLAGS) $(CPPFLAGS) $(hawk_CFLAGS) $(CFLAGS) -c -o hawk-m4.o `test -f 'm4.c' || echo '$(srcdir)/'`m4.c
+
+hawk-m4.obj: m4.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(hawk_CPPFLAGS) $(CPPFLAGS) $(hawk_CFLAGS) $(CFLAGS) -MT hawk-m4.obj -MD -MP -MF $(DEPDIR)/hawk-m4.Tpo -c -o hawk-m4.obj `if test -f 'm4.c'; then $(CYGPATH_W) 'm4.c'; else $(CYGPATH_W) '$(srcdir)/m4.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/hawk-m4.Tpo $(DEPDIR)/hawk-m4.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='m4.c' object='hawk-m4.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(hawk_CPPFLAGS) $(CPPFLAGS) $(hawk_CFLAGS) $(CFLAGS) -c -o hawk-m4.obj `if test -f 'm4.c'; then $(CYGPATH_W) 'm4.c'; else $(CYGPATH_W) '$(srcdir)/m4.c'; fi`
 
 hawk-sed.o: sed.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(hawk_CPPFLAGS) $(CPPFLAGS) $(hawk_CFLAGS) $(CFLAGS) -MT hawk-sed.o -MD -MP -MF $(DEPDIR)/hawk-sed.Tpo -c -o hawk-sed.o `test -f 'sed.c' || echo '$(srcdir)/'`sed.c
@@ -772,6 +788,7 @@ clean-am: clean-binPROGRAMS clean-generic clean-libtool mostlyclean-am
 distclean: distclean-am
 	-rm -f ./$(DEPDIR)/hawk-cut.Po
 	-rm -f ./$(DEPDIR)/hawk-hawk.Po
+	-rm -f ./$(DEPDIR)/hawk-m4.Po
 	-rm -f ./$(DEPDIR)/hawk-main.Po
 	-rm -f ./$(DEPDIR)/hawk-sed.Po
 	-rm -f Makefile
@@ -821,6 +838,7 @@ installcheck-am:
 maintainer-clean: maintainer-clean-am
 	-rm -f ./$(DEPDIR)/hawk-cut.Po
 	-rm -f ./$(DEPDIR)/hawk-hawk.Po
+	-rm -f ./$(DEPDIR)/hawk-m4.Po
 	-rm -f ./$(DEPDIR)/hawk-main.Po
 	-rm -f ./$(DEPDIR)/hawk-sed.Po
 	-rm -f Makefile
