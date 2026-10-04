@@ -18,7 +18,11 @@ tmp_main="$tmp_base-main.m4"
 tmp_inc="$tmp_base-inc.m4"
 tmp_first="$tmp_base-first.m4"
 tmp_second="$tmp_base-second.m4"
-trap 'rm -f "$tmp_main" "$tmp_inc" "$tmp_first" "$tmp_second"' EXIT
+tmp_idir1="$tmp_base-id1"
+tmp_idir2="$tmp_base-id2"
+tmp_iname1="hawk-regress-m4-$$-shared.m4"
+tmp_iname2="hawk-regress-m4-$$-only.m4"
+trap 'rm -f "$tmp_main" "$tmp_inc" "$tmp_first" "$tmp_second" "$tmp_idir1/$tmp_iname1" "$tmp_idir1/$tmp_iname2" "$tmp_idir2/$tmp_iname1" "$tmp_idir2/$tmp_iname2"; rmdir "$tmp_idir1" "$tmp_idir2" 2>/dev/null || :' EXIT
 
 test_no=0
 failed=0
@@ -26,7 +30,7 @@ ok() { test_no=$((test_no + 1)); echo "ok $test_no - $1"; }
 not_ok() { test_no=$((test_no + 1)); failed=1; echo "not ok $test_no - $1"; echo "# expected: $2"; echo "# actual: $3"; }
 check_eq() { if [ "x$2" = "x$3" ]; then ok "$1"; else not_ok "$1" "$2" "$3"; fi; }
 
-echo "1..31"
+echo "1..37"
 
 printf "define(\`twice', \`\$1\$1')dnl\ntwice(\`ab')|eval(\`2 + 3 * 4')|ifelse(\`x', \`x', \`yes', \`no')|translit(\`abc', \`ac', \`XY')|substr(\`abcdef', \`2', \`3')|index(\`abcdef', \`cd')\n" > "$tmp_main"
 out=$("$HAWK_BIN" --m4 "$tmp_main")
@@ -191,5 +195,31 @@ else
 	*) not_ok "a missing include name is diagnosed" "file name required for include" "$err" ;;
 	esac
 fi
+
+out=$(printf "OPT\n" | "$HAWK_BIN" --m4 -DOPT=first -DOPT=second)
+check_eq "multiple -D options are applied in order" "second" "$out"
+
+out1=$(printf "OPT\n" | "$HAWK_BIN" --m4 -DOPT=value -UOPT)
+out2=$(printf "OPT\n" | "$HAWK_BIN" --m4 -UOPT -DOPT=value)
+check_eq "mixed -D and -U options retain their order" "OPT|value" "$out1|$out2"
+
+out=$(printf "A|B\n" | "$HAWK_BIN" --m4 --define=A=one --define=B=two --undefine=A --undefine=B)
+check_eq "multiple long-form -U options are accepted" "A|B" "$out"
+
+out=$(printf "<EMPTY>\n" | "$HAWK_BIN" --m4 -DEMPTY)
+check_eq "-D without a value defines an empty macro" "<>" "$out"
+
+mkdir "$tmp_idir1" "$tmp_idir2"
+printf "FIRST\n" > "$tmp_idir1/$tmp_iname1"
+printf "SECOND\n" > "$tmp_idir2/$tmp_iname1"
+printf "ONLY\n" > "$tmp_idir2/$tmp_iname2"
+out=$("$HAWK_BIN" --m4 -I "$tmp_idir1" --incdirs "$tmp_idir2" "$tmp_iname1" "$tmp_iname2")
+expected=$(printf 'FIRST\nONLY')
+check_eq "multiple include directories locate top-level inputs in order" "$expected" "$out"
+
+printf "include(\`%s')include(\`%s')" "$tmp_iname1" "$tmp_iname2" > "$tmp_main"
+out=$("$HAWK_BIN" --m4 -I "$tmp_idir1" --incdirs "$tmp_idir2" "$tmp_main")
+expected=$(printf 'FIRST\nONLY')
+check_eq "multiple include directories locate include builtin inputs" "$expected" "$out"
 
 exit "$failed"

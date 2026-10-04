@@ -32,6 +32,12 @@ typedef struct hawk_m4_t hawk_m4_t;
 
 /* All M4 text and paths use hawk_ooch_t, following the library's BCH/UCH build mode. */
 
+enum hawk_m4_opt_t
+{
+	HAWK_M4_OPT_INCDIRS
+};
+typedef enum hawk_m4_opt_t hawk_m4_opt_t;
+
 #define HAWK_M4_HDR \
 	hawk_oow_t instsize_; \
 	hawk_gem_t gem_
@@ -94,6 +100,37 @@ HAWK_EXPORT hawk_m4_t* hawk_m4_open (
 );
 
 HAWK_EXPORT void hawk_m4_close (hawk_m4_t* m4);
+
+/**
+ * Set or get an M4 option. HAWK_M4_OPT_INCDIRS takes a
+ * null-terminated hawk_ooch_t path list and is copied by hawk_m4_setopt().
+ * Separate directories with a semicolon on Windows, OS/2, and DOS, and
+ * with a colon on other systems.
+ */
+HAWK_EXPORT int hawk_m4_setopt (
+	hawk_m4_t*     m4,
+	hawk_m4_opt_t  id,
+	const void*    value
+);
+
+HAWK_EXPORT int hawk_m4_getopt (
+	hawk_m4_t*    m4,
+	hawk_m4_opt_t id,
+	void*         value
+);
+
+/** Define or replace a macro. A null value denotes an empty definition. */
+HAWK_EXPORT int hawk_m4_define (
+	hawk_m4_t*        m4,
+	const hawk_ooch_t* name,
+	const hawk_ooch_t* value
+);
+
+/** Remove all definitions associated with a macro name. */
+HAWK_EXPORT int hawk_m4_undefine (
+	hawk_m4_t*        m4,
+	const hawk_ooch_t* name
+);
 
 #if defined(HAWK_HAVE_INLINE)
 static HAWK_INLINE void* hawk_m4_getxtn (hawk_m4_t* m4) { return (void*)((hawk_uint8_t*)m4 + ((hawk_m4_alt_t*)m4)->instsize_); }

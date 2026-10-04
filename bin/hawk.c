@@ -942,10 +942,10 @@ int main_hawk(int argc, hawk_bch_t* argv[], const hawk_bch_t* real_argv0)
 			goto oops;
 		}
 
-		hawk_setopt(hawk, HAWK_OPT_INCLUDEDIRS, tmp);
+		hawk_setopt(hawk, HAWK_OPT_INCDIRS, tmp);
 		hawk_freemem(hawk, tmp);
 	#else
-		hawk_setopt(hawk, HAWK_OPT_INCLUDEDIRS, arg.includedirs);
+		hawk_setopt(hawk, HAWK_OPT_INCDIRS, arg.includedirs);
 	#endif
 	}
 

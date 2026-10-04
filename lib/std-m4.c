@@ -32,6 +32,64 @@ static int is_dash (const hawk_ooch_t* path)
 	return path && path[0] == HAWK_T('-') && path[1] == HAWK_T('\0');
 }
 
+static int is_absolute_path (const hawk_ooch_t* path)
+{
+	if (HAWK_IS_PATH_SEP(path[0])) return 1;
+#if defined(_WIN32) || defined(__OS2__) || defined(__DOS__)
+	if (HAWK_IS_PATH_DRIVE(path)) return 1;
+#endif
+	return 0;
+}
+
+static hawk_sio_t* open_input_file (hawk_m4_t* m4, const hawk_ooch_t* path)
+{
+	hawk_sio_t* sio;
+	const hawk_ooch_t* dirs;
+	const hawk_ooch_t* ptr;
+	hawk_oow_t plen;
+
+	sio = hawk_sio_open(hawk_m4_getgem(m4), 0, path, HAWK_SIO_READ | HAWK_SIO_IGNOREECERR);
+	if (sio || is_absolute_path(path)) return sio;
+
+	if (hawk_m4_getopt(m4, HAWK_M4_OPT_INCDIRS, &dirs) <= -1 || !dirs || dirs[0] == HAWK_T('\0')) return HAWK_NULL;
+	plen = hawk_count_oocstr(path);
+	ptr = dirs;
+	while (1)
+	{
+		const hawk_ooch_t* sep;
+		hawk_oow_t dlen, len, pos;
+		hawk_ooch_t* xpath;
+		int need_sep;
+
+		sep = hawk_find_oochar_in_oocstr(ptr, HAWK_DFL_PATH_LIST_SEP);
+		dlen = sep? (hawk_oow_t)(sep - ptr): hawk_count_oocstr(ptr);
+		if (dlen > 0)
+		{
+			need_sep = !HAWK_IS_PATH_SEP(ptr[dlen - 1]);
+			len = dlen + need_sep + plen;
+			xpath = (hawk_ooch_t*)hawk_m4_allocmem(m4, HAWK_SIZEOF(*xpath) * (len + 1));
+			if (!xpath) return HAWK_NULL;
+			HAWK_MEMCPY(xpath, ptr, HAWK_SIZEOF(*xpath) * dlen);
+			pos = dlen;
+			if (need_sep) xpath[pos++] = HAWK_T('/');
+			HAWK_MEMCPY(&xpath[pos], path, HAWK_SIZEOF(*xpath) * (plen + 1));
+
+			sio = hawk_sio_open(hawk_m4_getgem(m4), 0, xpath, HAWK_SIO_READ | HAWK_SIO_IGNOREECERR);
+			hawk_m4_freemem(m4, xpath);
+			if (sio)
+			{
+				hawk_m4_seterrnum(m4, HAWK_NULL, HAWK_ENOERR);
+				return sio;
+			}
+		}
+
+		if (!sep) break;
+		ptr = sep + 1;
+	}
+
+	return HAWK_NULL;
+}
+
 static hawk_ooi_t std_io (hawk_m4_t* m4, hawk_m4_io_cmd_t cmd, hawk_m4_io_arg_t* arg, hawk_ooch_t* data, hawk_oow_t count)
 {
 	hawk_sio_t* sio;
@@ -42,7 +100,7 @@ static hawk_ooi_t std_io (hawk_m4_t* m4, hawk_m4_io_cmd_t cmd, hawk_m4_io_arg_t*
 			if (arg->kind == HAWK_M4_IO_INPUT)
 			{
 				if (!arg->path || is_dash(arg->path)) sio = hawk_sio_openstd(hawk_m4_getgem(m4), 0, HAWK_SIO_STDIN, HAWK_SIO_READ | HAWK_SIO_IGNOREECERR);
-				else sio = hawk_sio_open(hawk_m4_getgem(m4), 0, arg->path, HAWK_SIO_READ | HAWK_SIO_IGNOREECERR);
+				else sio = open_input_file(m4, arg->path);
 			}
 			else if (arg->kind == HAWK_M4_IO_OUTPUT)
 				sio = hawk_sio_openstd(hawk_m4_getgem(m4), 0, HAWK_SIO_STDOUT, HAWK_SIO_WRITE | HAWK_SIO_IGNOREECERR | HAWK_SIO_LINEBREAK);

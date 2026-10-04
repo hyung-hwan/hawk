@@ -713,9 +713,9 @@ static int fnc_tohex (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	 * will be performed in the default encoding (utf-8). if you
 	 * want a different encoding, call str::tombs() first.
 	 * - str::tohex(@b"xyz")
-	 * - str::tohex("🤩")
-	 * - str::tohex(str::tombs("🤩"))
-	 * - str::tohex(str::tombs("🤩", "utf8")) */
+	 * - str::tohex("朗")
+	 * - str::tohex(str::tombs("朗"))
+	 * - str::tohex(str::tombs("朗", "utf8")) */
 	str.ptr = hawk_rtx_getvalbcstr(rtx, a0, &str.len);
 	if (HAWK_UNLIKELY(!str.ptr)) return -1;
 

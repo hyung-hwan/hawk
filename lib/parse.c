@@ -9941,22 +9941,16 @@ static hawk_mod_t* query_module (hawk_t* hawk, const hawk_oocs_t segs[], int nse
 		spec.libdir = (hawk->opt.mod[0].len > 0)? (const hawk_ooch_t*)hawk->opt.mod[0].ptr: (const hawk_ooch_t*)HAWK_T(HAWK_DEFAULT_MODLIBDIRS);
 		do
 		{
-#if defined(_WIN32) || defined(__OS2__) || defined(__DOS__)
-#	define LIBDIR_SEPARATOR ';'
-#else
-#	define LIBDIR_SEPARATOR ':'
-#endif
 			hawk_ooch_t* colon;
-			colon = hawk_find_oochar_in_oocstr(spec.libdir, LIBDIR_SEPARATOR);
+			colon = hawk_find_oochar_in_oocstr(spec.libdir, HAWK_DFL_PATH_LIST_SEP);
 			if (colon) *colon = '\0';
 
 			HAWK_MEMSET(&md, 0, HAWK_SIZEOF(md));
 			md.handle = hawk->prm.modopen(hawk, &spec);
 			if (!colon) break;
 
-			*colon = LIBDIR_SEPARATOR;
+			*colon = HAWK_DFL_PATH_LIST_SEP;
 			spec.libdir = colon + 1;
-#undef LIBDIR_SEPARATOR
 		}
 		while (!md.handle);
 

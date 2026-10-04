@@ -67,6 +67,8 @@ int main (void)
 	OK(one != HAWK_NULL && two != HAWK_NULL, "open two independent M4 instances");
 	if (one && two)
 	{
+		const hawk_ooch_t* includedirs;
+
 		xone = (struct m4_xtn_t*)hawk_m4_getxtn(one);
 		xtwo = (struct m4_xtn_t*)hawk_m4_getxtn(two);
 		OK(xone->input == HAWK_NULL && xone->output_len == 0, "extension area is zero initialized");
@@ -76,6 +78,29 @@ int main (void)
 		OK(hawk_m4_exec(two, HAWK_NULL, m4_io) == 0, "execute second instance through custom I/O");
 		OK(hawk_comp_oocstr(xone->output, HAWK_T("one\n"), 0) == 0, "first instance keeps its own macro table");
 		OK(hawk_comp_oocstr(xtwo->output, HAWK_T("two\n"), 0) == 0, "second instance keeps its own macro table");
+
+		OK(hawk_m4_setopt(one, HAWK_M4_OPT_INCDIRS, HAWK_T("dir1:dir2")) == 0 &&
+		   hawk_m4_getopt(one, HAWK_M4_OPT_INCDIRS, &includedirs) == 0 &&
+		   hawk_comp_oocstr(includedirs, HAWK_T("dir1:dir2"), 0) == 0,
+		   "set and get the include-directory option");
+		OK(hawk_m4_define(one, HAWK_T("external"), HAWK_T("from-api")) == 0,
+		   "define a macro through the public API");
+		xone->input = HAWK_T("external\n");
+		xone->input_pos = 0;
+		xone->output_len = 0;
+		xone->output[0] = HAWK_T('\0');
+		OK(hawk_m4_exec(one, HAWK_NULL, m4_io) == 0 &&
+		   hawk_comp_oocstr(xone->output, HAWK_T("from-api\n"), 0) == 0,
+		   "expand a macro defined through the public API");
+		OK(hawk_m4_undefine(one, HAWK_T("external")) == 0,
+		   "undefine a macro through the public API");
+		xone->input = HAWK_T("ifdef(`external', `present', `absent')\n");
+		xone->input_pos = 0;
+		xone->output_len = 0;
+		xone->output[0] = HAWK_T('\0');
+		OK(hawk_m4_exec(one, HAWK_NULL, m4_io) == 0 &&
+		   hawk_comp_oocstr(xone->output, HAWK_T("absent\n"), 0) == 0,
+		   "observe API undefinition during execution");
 
 		xone->input = HAWK_T("define(`word', `한글')dnl\nword\n");
 		xone->input_pos = 0;

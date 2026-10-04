@@ -581,7 +581,7 @@ int hawk_setopt (hawk_t* hawk, hawk_opt_t id, const void* value)
 			return 0;
 		}
 
-		case HAWK_OPT_INCLUDEDIRS:
+		case HAWK_OPT_INCDIRS:
 		{
 			hawk_oocs_t tmp;
 			if (dup_str_opt(hawk, value, &tmp) <= -1) return -1;
@@ -633,7 +633,7 @@ int hawk_getopt (hawk_t* hawk, hawk_opt_t id, void* value)
 			*(const hawk_ooch_t**)value = hawk->opt.mod[id - HAWK_OPT_MODLIBDIRS].ptr;
 			return 0;
 
-		case HAWK_OPT_INCLUDEDIRS:
+		case HAWK_OPT_INCDIRS:
 			*(const hawk_ooch_t**)value = hawk->opt.includedirs.ptr;
 			return 0;
 

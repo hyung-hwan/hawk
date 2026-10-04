@@ -122,6 +122,11 @@ struct hawk_m4_t
 {
 	HAWK_M4_HDR;
 
+	struct
+	{
+		hawk_oocs_t includedirs;
+	} opt;
+
 	m4_entry_t* sym[M4_HASH_SIZE];
 	m4_iframe_t* input;
 	m4_oframe_t* output;
@@ -1599,6 +1604,55 @@ static int builtin_undefine (hawk_m4_t* m4, m4_str_t** arg)
 	return 0;
 }
 
+int hawk_m4_define (hawk_m4_t* m4, const hawk_ooch_t* name, const hawk_ooch_t* value)
+{
+	m4_str_t* arg[M4_NARGS];
+	int i, n;
+
+	if (!name)
+	{
+		set_error(m4, HAWK_EINVAL, "invalid macro name");
+		return -1;
+	}
+
+	for (i = 0; i < M4_NARGS; i++) arg[i] = HAWK_NULL;
+	arg[1] = str_from_cstr(m4, name);
+	if (!arg[1]) return -1;
+	if (value)
+	{
+		arg[2] = str_from_cstr(m4, value);
+		if (!arg[2])
+		{
+			str_unref(m4, arg[1]);
+			return -1;
+		}
+	}
+
+	n = builtin_define(m4, arg);
+	if (arg[2]) str_unref(m4, arg[2]);
+	str_unref(m4, arg[1]);
+	return n;
+}
+
+int hawk_m4_undefine (hawk_m4_t* m4, const hawk_ooch_t* name)
+{
+	m4_str_t* arg[M4_NARGS];
+	int i, n;
+
+	if (!name)
+	{
+		set_error(m4, HAWK_EINVAL, "invalid macro name");
+		return -1;
+	}
+
+	for (i = 0; i < M4_NARGS; i++) arg[i] = HAWK_NULL;
+	arg[1] = str_from_cstr(m4, name);
+	if (!arg[1]) return -1;
+	n = builtin_undefine(m4, arg);
+	str_unref(m4, arg[1]);
+	return n;
+}
+
 static int undivert_one (hawk_m4_t* m4, int n)
 {
 	m4_str_t* s;
@@ -1748,6 +1802,7 @@ void hawk_m4_close (hawk_m4_t* m4)
 
 	clear_runtime(m4);
 	clear_symbols(m4);
+	if (m4->opt.includedirs.ptr) hawk_m4_freemem(m4, m4->opt.includedirs.ptr);
 	for (i = 1; i < M4_NDIVS; i++)
 	{
 		if (m4->diversion[i])
@@ -1755,6 +1810,50 @@ void hawk_m4_close (hawk_m4_t* m4)
 	}
 	if (m4->errfile) hawk_m4_freemem(m4, m4->errfile);
 	HAWK_MMGR_FREE(hawk_m4_getmmgr(m4), m4);
+}
+
+int hawk_m4_setopt (hawk_m4_t* m4, hawk_m4_opt_t id, const void* value)
+{
+	switch (id)
+	{
+		case HAWK_M4_OPT_INCDIRS:
+		{
+			hawk_oocs_t tmp;
+
+			if (value)
+			{
+				tmp.len = hawk_count_oocstr((const hawk_ooch_t*)value);
+				tmp.ptr = (hawk_ooch_t*)hawk_m4_allocmem(m4, HAWK_SIZEOF(*tmp.ptr) * (tmp.len + 1));
+				if (!tmp.ptr) return -1;
+				hawk_copy_oocstr_unlimited(tmp.ptr, (const hawk_ooch_t*)value);
+			}
+			else
+			{
+				tmp.ptr = HAWK_NULL;
+				tmp.len = 0;
+			}
+
+			if (m4->opt.includedirs.ptr) hawk_m4_freemem(m4, m4->opt.includedirs.ptr);
+			m4->opt.includedirs = tmp;
+			return 0;
+		}
+	}
+
+	set_error(m4, HAWK_EINVAL, "invalid m4 option - %d", (int)id);
+	return -1;
+}
+
+int hawk_m4_getopt (hawk_m4_t* m4, hawk_m4_opt_t id, void* value)
+{
+	switch (id)
+	{
+		case HAWK_M4_OPT_INCDIRS:
+			*(const hawk_ooch_t**)value = m4->opt.includedirs.ptr;
+			return 0;
+	}
+
+	set_error(m4, HAWK_EINVAL, "invalid m4 option - %d", (int)id);
+	return -1;
 }
 
 /*int hawk_m4_comp (hawk_m4_t* m4)

@@ -322,6 +322,27 @@ typedef hawk_bch_t* (*hawk_subst_for_bcs_t) (
 
 
 #if defined(_WIN32) || defined(__OS2__) || defined(__DOS__)
+#	define HAWK_DFL_PATH_SEP '\\'
+#	define HAWK_ALT_PATH_SEP '/'
+#	define HAWK_IS_PATH_SEP(c) ((c) == HAWK_DFL_PATH_SEP || (c) == HAWK_ALT_PATH_SEP)
+#	define HAWK_HAVE_ALT_PATH_SEP 1
+#	define HAWK_HAVE_PATH_DRIVE 1
+	/* a drive qualifier - the "c:" of "c:\\dir\\file" */
+#	define HAWK_IS_PATH_DRIVE(x) \
+		(((((x)[0] >= 'A' && (x)[0] <= 'Z') || ((x)[0] >= 'a' && (x)[0] <= 'z'))) && (x)[1] == ':')
+#	define HAWK_DFL_PATH_LIST_SEP ';'
+#else
+#	define HAWK_DFL_PATH_SEP '/'
+#	define HAWK_ALT_PATH_SEP '/'
+#	define HAWK_IS_PATH_SEP(c) ((c) == HAWK_DFL_PATH_SEP)
+#	undef HAWK_HAVE_ALT_PATH_SEP
+#	undef HAWK_HAVE_PATH_DRIVE
+#	define HAWK_IS_PATH_DRIVE(x) (0)
+#	define HAWK_DFL_PATH_LIST_SEP ':'
+#endif
+
+#if 0
+#if defined(_WIN32) || defined(__OS2__) || defined(__DOS__)
 #	define HAWK_IS_PATH_SEP(c) ((c) == '/' || (c) == '\\')
 #else
 #	define HAWK_IS_PATH_SEP(c) ((c) == '/')
@@ -335,6 +356,9 @@ typedef hawk_bch_t* (*hawk_subst_for_bcs_t) (
         (((s[0] >= 'A' && s[0] <= 'Z') || \
           (s[0] >= 'a' && s[0] <= 'z')) && \
          s[1] == ':')
+#else
+#define HAWK_IS_PATH_DRIVE(s) (0)
+#endif
 #endif
 
 #if defined(__cplusplus)
