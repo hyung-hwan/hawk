@@ -26,7 +26,7 @@ ok() { test_no=$((test_no + 1)); echo "ok $test_no - $1"; }
 not_ok() { test_no=$((test_no + 1)); failed=1; echo "not ok $test_no - $1"; echo "# expected: $2"; echo "# actual: $3"; }
 check_eq() { if [ "x$2" = "x$3" ]; then ok "$1"; else not_ok "$1" "$2" "$3"; fi; }
 
-echo "1..21"
+echo "1..31"
 
 printf "define(\`twice', \`\$1\$1')dnl\ntwice(\`ab')|eval(\`2 + 3 * 4')|ifelse(\`x', \`x', \`yes', \`no')|translit(\`abc', \`ac', \`XY')|substr(\`abcdef', \`2', \`3')|index(\`abcdef', \`cd')\n" > "$tmp_main"
 out=$("$HAWK_BIN" --m4 "$tmp_main")
@@ -129,5 +129,67 @@ fi
 printf "changequote(\`dnl garbageX', \`!')dnl\ndnl garbageY\nok\n" > "$tmp_main"
 out=$("$HAWK_BIN" --m4 "$tmp_main")
 check_eq "replayed quote lookahead honors dnl" "ok" "$out"
+
+printf "define(\`x',\`one')pushdef(\`x',\`two')x|popdef(\`x')x|popdef(\`x')ifdef(\`x',\`yes',\`no')\n" > "$tmp_main"
+out=$("$HAWK_BIN" --m4 "$tmp_main")
+check_eq "pushdef stacks and popdef restores definitions" "two|one|no" "$out"
+
+printf "pushdef(\`len',\`shadow')len|popdef(\`len')len(\`abc')\n" > "$tmp_main"
+out=$("$HAWK_BIN" --m4 "$tmp_main")
+check_eq "popdef restores a shadowed builtin" "shadow|3" "$out"
+
+printf "define(\`a',\`A')define(\`b',\`B')pushdef(\`a',\`AA')pushdef(\`b',\`BB')popdef(\`a',\`b')a|b\n" > "$tmp_main"
+out=$("$HAWK_BIN" --m4 "$tmp_main")
+check_eq "popdef accepts multiple macro names" "A|B" "$out"
+
+printf "define(\`x',\`one')pushdef(\`x',\`two')define(\`x',\`three')x|popdef(\`x')x\n" > "$tmp_main"
+out=$("$HAWK_BIN" --m4 "$tmp_main")
+check_eq "define replaces only the top definition" "three|one" "$out"
+
+printf "define(\`x',\`one')pushdef(\`x',\`two')undefine(\`x')ifdef(\`x',\`yes',\`no')|popdef(\`missing')OK\n" > "$tmp_main"
+out=$("$HAWK_BIN" --m4 "$tmp_main")
+check_eq "undefine removes the stack and missing popdef is harmless" "no|OK" "$out"
+
+printf "#include <stdio.h>\ninclude without-parentheses\n" > "$tmp_main"
+out=$("$HAWK_BIN" --m4 "$tmp_main")
+expected=$(printf '#include <stdio.h>\ninclude without-parentheses')
+check_eq "blind builtins stay literal without parentheses" "$expected" "$out"
+
+printf "define(\`include',\`replacement')include\n" > "$tmp_main"
+out=$("$HAWK_BIN" --m4 "$tmp_main")
+check_eq "a user macro replacing a blind builtin expands without parentheses" "replacement" "$out"
+
+printf "eval(\`1 @ 2')\n" > "$tmp_main"
+if err=$("$HAWK_BIN" --m4 "$tmp_main" 2>&1 >/dev/null)
+then
+	not_ok "invalid expression operators are diagnosed" "non-zero exit" "zero exit"
+else
+	case "$err" in
+	*"invalid operator in expression - @"*) ok "invalid expression operators are diagnosed" ;;
+	*) not_ok "invalid expression operators are diagnosed" "invalid operator in expression - @" "$err" ;;
+	esac
+fi
+
+printf "eval(\`1)trailing')\n" > "$tmp_main"
+if err=$("$HAWK_BIN" --m4 "$tmp_main" 2>&1 >/dev/null)
+then
+	not_ok "trailing expression data is diagnosed" "non-zero exit" "zero exit"
+else
+	case "$err" in
+	*"invalid trailing data in expression - trailing"*) ok "trailing expression data is diagnosed" ;;
+	*) not_ok "trailing expression data is diagnosed" "invalid trailing data in expression - trailing" "$err" ;;
+	esac
+fi
+
+printf "include()\n" > "$tmp_main"
+if err=$("$HAWK_BIN" --m4 "$tmp_main" 2>&1 >/dev/null)
+then
+	not_ok "a missing include name is diagnosed" "non-zero exit" "zero exit"
+else
+	case "$err" in
+	*"file name required for include"*) ok "a missing include name is diagnosed" ;;
+	*) not_ok "a missing include name is diagnosed" "file name required for include" "$err" ;;
+	esac
+fi
 
 exit "$failed"

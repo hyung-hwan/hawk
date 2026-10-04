@@ -100,10 +100,16 @@ enum m4_entry_type_t
 	M4_ENTRY_MACRO
 };
 
+enum m4_entry_flag_t
+{
+	M4_ENTRY_FLAG_BLIND = (1 << 0)
+};
+
 struct m4_entry_t
 {
 	m4_entry_t* next;
 	int type;
+	int flags;
 	union
 	{
 		m4_builtin_t builtin;
@@ -296,7 +302,7 @@ static m4_entry_t* find_entry (hawk_m4_t* m4, const m4_str_t* name)
 	return HAWK_NULL;
 }
 
-static int add_builtin (hawk_m4_t* m4, const hawk_ooch_t* name, m4_builtin_t builtin)
+static int add_builtin (hawk_m4_t* m4, const hawk_ooch_t* name, m4_builtin_t builtin, int flags)
 {
 	m4_entry_t* e;
 	hawk_oow_t bucket;
@@ -312,7 +318,9 @@ static int add_builtin (hawk_m4_t* m4, const hawk_ooch_t* name, m4_builtin_t bui
 	}
 
 	bucket = e->name->hash % M4_HASH_SIZE;
+
 	e->type = M4_ENTRY_BUILTIN;
+	e->flags = flags;
 	e->u.builtin = builtin;
 	e->next = m4->sym[bucket];
 	m4->sym[bucket] = e;
@@ -822,6 +830,19 @@ static int process (hawk_m4_t* m4, int parens, hawk_ooci_t* endc)
 				continue;
 			}
 
+			if (e->type == M4_ENTRY_BUILTIN && (e->flags & M4_ENTRY_FLAG_BLIND) && c != HAWK_T('('))
+			{
+				/* a builtin function that requires an opening parenthesis is not followed by it.
+				 * treat it literally */
+				if (output_chars(m4, name->ptr, name->len) <= -1)
+				{
+					str_unref(m4, name);
+					return -1;
+				}
+				str_unref(m4, name);
+				continue;
+			}
+
 			type = e->type;
 			if (type == M4_ENTRY_MACRO)
 			{
@@ -966,36 +987,99 @@ static int builtin_define (hawk_m4_t* m4, m4_str_t** arg)
 	if (e)
 	{
 		if (e->type == M4_ENTRY_MACRO) str_unref(m4, e->u.macro);
+
+		/* override the value even if the existing defintion exists */
 		e->type = M4_ENTRY_MACRO;
+		e->flags = 0;
 		e->u.macro = value;
 		return 0;
 	}
 
-	e = (m4_entry_t*)hawk_m4_allocmem(m4, HAWK_SIZEOF(*e));
+	e = (m4_entry_t*)hawk_m4_callocmem(m4, HAWK_SIZEOF(*e));
 	if (HAWK_UNLIKELY(!e))
 	{
 		str_unref(m4, value);
 		return -1;
 	}
+
 	bucket = arg[1]->hash % M4_HASH_SIZE;
 	e->name = arg[1];
 	str_ref(e->name);
+
 	e->type = M4_ENTRY_MACRO;
+	e->flags = 0;
 	e->u.macro = value;
 	e->next = m4->sym[bucket];
+
 	m4->sym[bucket] = e;
 	return 0;
 }
 
 static int builtin_pushdef (hawk_m4_t* m4, m4_str_t** arg)
 {
-	/* TODO: */
+	m4_entry_t* e;
+	m4_str_t* value;
+	hawk_oow_t bucket;
+
+	if (!valid_macro_name(arg[1]))
+	{
+		set_error(m4, HAWK_EINVAL, "invalid macro name");
+		return -1;
+	}
+
+	value = arg[2];
+	if (!value)
+	{
+		value = str_new(m4);
+		if (HAWK_UNLIKELY(!value)) return -1;
+	}
+	else str_ref(value);
+
+	e = (m4_entry_t*)hawk_m4_callocmem(m4, HAWK_SIZEOF(*e));
+	if (HAWK_UNLIKELY(!e))
+	{
+		str_unref(m4, value);
+		return -1;
+	}
+
+	bucket = arg[1]->hash % M4_HASH_SIZE;
+	e->name = arg[1];
+	str_ref(e->name);
+
+	e->type = M4_ENTRY_MACRO;
+	e->flags = 0;
+	e->u.macro = value;
+	e->next = m4->sym[bucket];
+
+	m4->sym[bucket] = e;
 	return 0;
 }
 
 static int builtin_popdef (hawk_m4_t* m4, m4_str_t** arg)
 {
-	/* TODO: */
+	int i;
+
+	for (i = 1; i < M4_NARGS; i++)
+	{
+		m4_entry_t* e;
+		m4_entry_t* prev = HAWK_NULL;
+		hawk_oow_t bucket;
+
+		if (!arg[i]) continue;
+		bucket = arg[i]->hash % M4_HASH_SIZE;
+		for (e = m4->sym[bucket]; e; prev = e, e = e->next)
+		{
+			if (e->name->hash == arg[i]->hash && str_equal(e->name, arg[i])) break;
+		}
+		if (!e) continue;
+
+		if (prev) prev->next = e->next;
+		else m4->sym[bucket] = e->next;
+
+		if (e->type == M4_ENTRY_MACRO) str_unref(m4, e->u.macro);
+		str_unref(m4, e->name);
+		hawk_m4_freemem(m4, e);
+	}
 	return 0;
 }
 
@@ -1195,7 +1279,7 @@ static hawk_intmax_t calculate (hawk_m4_t* m4, int prec, const hawk_ooch_t** p, 
 				*p = s;
 				return lhs;
 			}
-			set_error(m4, HAWK_EINVAL, HAWK_NULL);
+			set_error(m4, HAWK_EINVAL, "invalid operator in expression - %jc", c);
 			*ok = 0;
 			return 0;
 		}
@@ -1313,7 +1397,7 @@ static int builtin_eval (hawk_m4_t* m4, m4_str_t** arg)
 	while (hawk_is_ooch_space(*p)) p++;
 	if (*p != HAWK_T('\0'))
 	{
-		set_error(m4, HAWK_EINVAL, HAWK_NULL);
+		set_error(m4, HAWK_EINVAL, "invalid trailing data in expression - %js", p);
 		return -1;
 	}
 
@@ -1351,7 +1435,7 @@ static int do_include (hawk_m4_t* m4, m4_str_t** arg, int silent)
 	if (!arg[1])
 	{
 		if (silent) return 0;
-		set_error(m4, HAWK_EINVAL, HAWK_NULL);
+		set_error(m4, HAWK_EINVAL, "file name required for include");
 		return -1;
 	}
 	if (push_file(m4, arg[1]->ptr) <= -1)
@@ -1485,24 +1569,33 @@ oops:
 
 static int builtin_undefine (hawk_m4_t* m4, m4_str_t** arg)
 {
-	m4_entry_t* e;
-	m4_entry_t* prev = HAWK_NULL;
-	hawk_oow_t bucket;
+	int i;
 
-	if (!arg[1]) return 0;
+	for (i = 1; i < M4_NARGS; i++)
+	{
+		m4_entry_t* e;
+		m4_entry_t* prev = HAWK_NULL;
+		hawk_oow_t bucket;
 
-	bucket = arg[1]->hash % M4_HASH_SIZE;
+		if (!arg[i]) continue;
+		bucket = arg[i]->hash % M4_HASH_SIZE;
+		e = m4->sym[bucket];
+		while (e)
+		{
+			m4_entry_t* next = e->next;
+			if (e->name->hash == arg[i]->hash && str_equal(e->name, arg[i]))
+			{
+				if (prev) prev->next = next;
+				else m4->sym[bucket] = next;
 
-	for (e = m4->sym[bucket]; e; prev = e, e = e->next)
-		if (str_equal(e->name, arg[1])) break;
-	if (!e) return 0;
-
-	if (prev) prev->next = e->next;
-	else m4->sym[bucket] = e->next;
-
-	if (e->type == M4_ENTRY_MACRO) str_unref(m4, e->u.macro);
-	str_unref(m4, e->name);
-	hawk_m4_freemem(m4, e);
+				if (e->type == M4_ENTRY_MACRO) str_unref(m4, e->u.macro);
+				str_unref(m4, e->name);
+				hawk_m4_freemem(m4, e);
+			}
+			else prev = e;
+			e = next;
+		}
+	}
 	return 0;
 }
 
@@ -1572,29 +1665,29 @@ static void clear_symbols (hawk_m4_t* m4)
 static int init_builtins (hawk_m4_t* m4)
 {
 	return
-		add_builtin(m4, HAWK_T("changequote"), builtin_changequote) <= -1 ||
-		add_builtin(m4, HAWK_T("decr"),        builtin_decr)        <= -1 ||
-		add_builtin(m4, HAWK_T("define"),      builtin_define)      <= -1 ||
-		add_builtin(m4, HAWK_T("divert"),      builtin_divert)      <= -1 ||
-		add_builtin(m4, HAWK_T("divnum"),      builtin_divnum)      <= -1 ||
-		add_builtin(m4, HAWK_T("dnl"),         builtin_dnl)         <= -1 ||
-		add_builtin(m4, HAWK_T("dumpdef"),     builtin_dumpdef)     <= -1 ||
-		add_builtin(m4, HAWK_T("errprint"),    builtin_errprint)    <= -1 ||
-		add_builtin(m4, HAWK_T("eval"),        builtin_eval)        <= -1 ||
-		add_builtin(m4, HAWK_T("ifdef"),       builtin_ifdef)       <= -1 ||
-		add_builtin(m4, HAWK_T("ifelse"),      builtin_ifelse)      <= -1 ||
-		add_builtin(m4, HAWK_T("include"),     builtin_include)     <= -1 ||
-		add_builtin(m4, HAWK_T("incr"),        builtin_incr)        <= -1 ||
-		add_builtin(m4, HAWK_T("index"),       builtin_index)       <= -1 ||
-		add_builtin(m4, HAWK_T("len"),         builtin_len)         <= -1 ||
-		add_builtin(m4, HAWK_T("popdef"),      builtin_popdef)      <= -1 ||
-		add_builtin(m4, HAWK_T("pushdef"),     builtin_pushdef)     <= -1 ||
-		add_builtin(m4, HAWK_T("sinclude"),    builtin_sinclude)    <= -1 ||
-		add_builtin(m4, HAWK_T("substr"),      builtin_substr)      <= -1 ||
-		add_builtin(m4, HAWK_T("syscmd"),      builtin_syscmd)      <= -1 ||
-		add_builtin(m4, HAWK_T("translit"),    builtin_translit)    <= -1 ||
-		add_builtin(m4, HAWK_T("undefine"),    builtin_undefine)    <= -1 ||
-		add_builtin(m4, HAWK_T("undivert"),    builtin_undivert)    <= -1? -1: 0;
+		add_builtin(m4, HAWK_T("changequote"), builtin_changequote, 0)                   <= -1 ||
+		add_builtin(m4, HAWK_T("decr"),        builtin_decr,        M4_ENTRY_FLAG_BLIND) <= -1 ||
+		add_builtin(m4, HAWK_T("define"),      builtin_define,      M4_ENTRY_FLAG_BLIND) <= -1 ||
+		add_builtin(m4, HAWK_T("divert"),      builtin_divert,      0)                   <= -1 ||
+		add_builtin(m4, HAWK_T("divnum"),      builtin_divnum,      0)                   <= -1 ||
+		add_builtin(m4, HAWK_T("dnl"),         builtin_dnl,         0)                   <= -1 ||
+		add_builtin(m4, HAWK_T("dumpdef"),     builtin_dumpdef,     0)                   <= -1 ||
+		add_builtin(m4, HAWK_T("errprint"),    builtin_errprint,    M4_ENTRY_FLAG_BLIND) <= -1 ||
+		add_builtin(m4, HAWK_T("eval"),        builtin_eval,        M4_ENTRY_FLAG_BLIND) <= -1 ||
+		add_builtin(m4, HAWK_T("ifdef"),       builtin_ifdef,       M4_ENTRY_FLAG_BLIND) <= -1 ||
+		add_builtin(m4, HAWK_T("ifelse"),      builtin_ifelse,      M4_ENTRY_FLAG_BLIND) <= -1 ||
+		add_builtin(m4, HAWK_T("include"),     builtin_include,     M4_ENTRY_FLAG_BLIND) <= -1 ||
+		add_builtin(m4, HAWK_T("incr"),        builtin_incr,        M4_ENTRY_FLAG_BLIND) <= -1 ||
+		add_builtin(m4, HAWK_T("index"),       builtin_index,       M4_ENTRY_FLAG_BLIND) <= -1 ||
+		add_builtin(m4, HAWK_T("len"),         builtin_len,         M4_ENTRY_FLAG_BLIND) <= -1 ||
+		add_builtin(m4, HAWK_T("popdef"),      builtin_popdef,      M4_ENTRY_FLAG_BLIND) <= -1 ||
+		add_builtin(m4, HAWK_T("pushdef"),     builtin_pushdef,     M4_ENTRY_FLAG_BLIND) <= -1 ||
+		add_builtin(m4, HAWK_T("sinclude"),    builtin_sinclude,    M4_ENTRY_FLAG_BLIND) <= -1 ||
+		add_builtin(m4, HAWK_T("substr"),      builtin_substr,      M4_ENTRY_FLAG_BLIND) <= -1 ||
+		add_builtin(m4, HAWK_T("syscmd"),      builtin_syscmd,      M4_ENTRY_FLAG_BLIND) <= -1 ||
+		add_builtin(m4, HAWK_T("translit"),    builtin_translit,    M4_ENTRY_FLAG_BLIND) <= -1 ||
+		add_builtin(m4, HAWK_T("undefine"),    builtin_undefine,    M4_ENTRY_FLAG_BLIND) <= -1 ||
+		add_builtin(m4, HAWK_T("undivert"),    builtin_undivert,    0)                   <= -1? -1: 0;
 }
 
 hawk_m4_t* hawk_m4_open (hawk_mmgr_t* mmgr, hawk_oow_t xtnsize, hawk_cmgr_t* cmgr, hawk_errinf_t* errinf)
