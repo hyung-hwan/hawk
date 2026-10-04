@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-04 19:15+0900\n"
+"POT-Creation-Date: 2026-10-04 20:34+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -189,7 +189,7 @@ msgstr ""
 
 #: ../../bin/hawk.c:432
 msgid ""
-" -I/--includedirs     string       specify directories to look for include "
+" -I/--incdirs         string       specify directories to look for include "
 "files in"
 msgstr ""
 
