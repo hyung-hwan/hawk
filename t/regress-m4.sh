@@ -30,7 +30,7 @@ ok() { test_no=$((test_no + 1)); echo "ok $test_no - $1"; }
 not_ok() { test_no=$((test_no + 1)); failed=1; echo "not ok $test_no - $1"; echo "# expected: $2"; echo "# actual: $3"; }
 check_eq() { if [ "x$2" = "x$3" ]; then ok "$1"; else not_ok "$1" "$2" "$3"; fi; }
 
-echo "1..37"
+echo "1..40"
 
 printf "define(\`twice', \`\$1\$1')dnl\ntwice(\`ab')|eval(\`2 + 3 * 4')|ifelse(\`x', \`x', \`yes', \`no')|translit(\`abc', \`ac', \`XY')|substr(\`abcdef', \`2', \`3')|index(\`abcdef', \`cd')\n" > "$tmp_main"
 out=$("$HAWK_BIN" --m4 "$tmp_main")
@@ -79,9 +79,28 @@ printf "define(\`args', \`<\$1>|<\$2>')dnl\nargs((a,b),c)\n" > "$tmp_main"
 out=$("$HAWK_BIN" --m4 "$tmp_main")
 check_eq "commas in nested parentheses stay in an argument" "<(a,b)>|<c>" "$out"
 
-printf "define(\`args', \`<\$1>|<\$9>')dnl\nargs(1,2,3,4,5,6,7,8,9,10,11)|done\n" > "$tmp_main"
+printf "define(\`args', \`<\$1>|<\$32>')dnl\nargs(1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34)|done\n" > "$tmp_main"
 out=$("$HAWK_BIN" --m4 "$tmp_main")
-check_eq "excess macro arguments are consumed safely" "<1>|<9>|done" "$out"
+check_eq "excess macro arguments are consumed safely" "<1>|<32>|done" "$out"
+
+printf "define(\`args', \`<\$9>|<\$10>|<\$11>')dnl\nargs(1,2,3,4,5,6,7,8,9,10,11)\n" > "$tmp_main"
+out=$("$HAWK_BIN" --m4 "$tmp_main")
+check_eq "multi-digit macro references select the full index" "<9>|<10>|<11>" "$out"
+
+printf "define(\`args', \`<\$32>')dnl\nargs(1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31)\n" > "$tmp_main"
+out=$("$HAWK_BIN" --m4 "$tmp_main")
+check_eq "a missing in-range macro argument expands to empty" "<>" "$out"
+
+printf "define(\`args', \`<\$33>')dnl\nargs(1)\n" > "$tmp_main"
+if err=$("$HAWK_BIN" --m4 "$tmp_main" 2>&1 >/dev/null)
+then
+	not_ok "an out-of-range macro reference is rejected" "non-zero exit" "zero exit"
+else
+	case "$err" in
+	*"invalid reference index \$33"*) ok "an out-of-range macro reference is rejected" ;;
+	*) not_ok "an out-of-range macro reference is rejected" "invalid reference index \$33" "$err" ;;
+	esac
+fi
 
 printf "define(\`args', \`<\$1>')dnl\nargs(a" > "$tmp_main"
 if "$HAWK_BIN" --m4 "$tmp_main" >/dev/null 2>&1

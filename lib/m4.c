@@ -27,8 +27,8 @@
 #include <hawk-fmt.h>
 
 #define M4_HASH_SIZE  (199)
-#define M4_NARGS      (10) /* TODO: allow dynamic number of arguments to a macro */
-#define M4_NDIVS      (10)
+#define M4_NARGS      (33) /* macro name plus up to 32 arguments; TODO: remove limit */
+#define M4_NDIVS      (32) /* TODO: support unlimited number of diversions */
 #define M4_STR_BLOCK  (32)
 #define M4_QUOTE_SIZE (32)
 
@@ -633,7 +633,21 @@ static int expand_macro (hawk_m4_t* m4, m4_str_t* body, m4_str_t** arg)
 		}
 		else
 		{
-			m4_str_t* a = arg[body->ptr[++i] - HAWK_T('0')]; /* TODO: support more than 9 arguments */
+			m4_str_t* a;
+			hawk_oow_t idx;
+
+			idx = 0;
+			do
+			{
+				idx = idx * 10 + (body->ptr[++i] - HAWK_T('0'));
+				if (idx >= M4_NARGS)
+				{
+					set_error(m4, HAWK_EINVAL, "invalid reference index $%zu", idx);
+					goto oops;
+				}
+			}
+			while ((i + 1) < body->len && hawk_is_ooch_digit(body->ptr[i + 1]));
+			a = arg[idx];
 			if (a && str_append_chars(m4, out, a->ptr, a->len) <= -1) goto oops;
 		}
 	}
