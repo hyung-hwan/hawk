@@ -792,6 +792,131 @@ function main()
 	}
 
 
+	## match capture lifetime, no-match results, and start-index boundaries
+	{
+		@local inputs, starts, captures, value, i, j;
+
+		inputs[0] = "random-string";
+		inputs[1] = @b"random-string";
+		for (i = 0; i < 2; i++)
+		{
+			captures["stale"] = 99;
+			RSTART = RLENGTH = 99;
+			tap_ensure (match(inputs[i], /^(.+:.+:.+:.+:.+:.+)$/, captures), 0, @SCRIPTNAME, @SCRIPTLINE);
+			tap_ensure (RSTART, 0, @SCRIPTNAME, @SCRIPTLINE);
+			tap_ensure (RLENGTH, -1, @SCRIPTNAME, @SCRIPTLINE);
+			tap_ensure (hawk::typename(captures), "map", @SCRIPTNAME, @SCRIPTLINE);
+			tap_ensure (length(captures), 0, @SCRIPTNAME, @SCRIPTLINE);
+			tap_ensure ("stale" in captures, 0, @SCRIPTNAME, @SCRIPTLINE);
+
+			captures["stale"] = 99;
+			RSTART = RLENGTH = 99;
+			tap_ensure (str::match(inputs[i], /^(.+:.+:.+:.+:.+:.+)$/, 1, captures), 0, @SCRIPTNAME, @SCRIPTLINE);
+			tap_ensure (RSTART, 0, @SCRIPTNAME, @SCRIPTLINE);
+			tap_ensure (RLENGTH, -1, @SCRIPTNAME, @SCRIPTLINE);
+			tap_ensure (hawk::typename(captures), "map", @SCRIPTNAME, @SCRIPTLINE);
+			tap_ensure (length(captures), 0, @SCRIPTNAME, @SCRIPTLINE);
+		}
+
+		## Numeric inputs require a temporary string that must outlive capture copying.
+		for (i = 0; i < 2; i++)
+		{
+			if (i == 0) tap_ensure (match(12345, /(23)(45)/, captures), 2, @SCRIPTNAME, @SCRIPTLINE);
+			else tap_ensure (str::match(12345, /(23)(45)/, 1, captures), 2, @SCRIPTNAME, @SCRIPTLINE);
+			tap_ensure (RSTART, 2, @SCRIPTNAME, @SCRIPTLINE);
+			tap_ensure (RLENGTH, 4, @SCRIPTNAME, @SCRIPTLINE);
+			tap_ensure (length(captures), 9, @SCRIPTNAME, @SCRIPTLINE);
+			tap_ensure (captures[0] === "2345", 1, @SCRIPTNAME, @SCRIPTLINE);
+			tap_ensure (captures[0,"start"], 2, @SCRIPTNAME, @SCRIPTLINE);
+			tap_ensure (captures[0,"length"], 4, @SCRIPTNAME, @SCRIPTLINE);
+			tap_ensure (captures[1] === "23", 1, @SCRIPTNAME, @SCRIPTLINE);
+			tap_ensure (captures[1,"start"], 2, @SCRIPTNAME, @SCRIPTLINE);
+			tap_ensure (captures[1,"length"], 2, @SCRIPTNAME, @SCRIPTLINE);
+			tap_ensure (captures[2] === "45", 1, @SCRIPTNAME, @SCRIPTLINE);
+			tap_ensure (captures[2,"start"], 4, @SCRIPTNAME, @SCRIPTLINE);
+			tap_ensure (captures[2,"length"], 2, @SCRIPTNAME, @SCRIPTLINE);
+		}
+		tap_ensure (str::match(12345, /(45)/, -2, captures), 4, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (captures[0] === "45", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (captures[1,"start"], 4, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (str::match(12345, /x/, 1, captures), 0, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (length(captures), 0, @SCRIPTNAME, @SCRIPTLINE);
+
+		## The capture destination may also be the original input variable.
+		value = 12345;
+		tap_ensure (match(value, /(23)/, value), 2, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (value[0] === "23", 1, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (value[1] === "23", 1, @SCRIPTNAME, @SCRIPTLINE);
+		value = "12345";
+		tap_ensure (str::match(value, /(45)/, 1, value), 4, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (value[0] === "45", 1, @SCRIPTNAME, @SCRIPTLINE);
+		value = @b"12345";
+		tap_ensure (str::match(value, /(45)/, 1, value), 4, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure (value[0] === @b"45", 1, @SCRIPTNAME, @SCRIPTLINE);
+
+		inputs[0] = "abc";
+		inputs[1] = @b"abc";
+		starts[0] = 4;
+		starts[1] = 5;
+		starts[2] = -4;
+		starts[3] = -5;
+		starts[4] = 1000000000;
+		starts[5] = -1000000000;
+		for (i = 0; i < 2; i++)
+		{
+			for (j = 0; j < length(starts); j++)
+			{
+				captures["stale"] = 99;
+				RSTART = RLENGTH = 99;
+				tap_ensure (str::match(inputs[i], /()/, starts[j], captures), 0, @SCRIPTNAME, @SCRIPTLINE);
+				tap_ensure (RSTART, 0, @SCRIPTNAME, @SCRIPTLINE);
+				tap_ensure (RLENGTH, -1, @SCRIPTNAME, @SCRIPTLINE);
+				tap_ensure (length(captures), 0, @SCRIPTNAME, @SCRIPTLINE);
+				tap_ensure (str::match(inputs[i], /a/, starts[j]), 0, @SCRIPTNAME, @SCRIPTLINE);
+			}
+
+			tap_ensure (str::match(inputs[i], /(a)/, 0, captures), 1, @SCRIPTNAME, @SCRIPTLINE);
+			tap_ensure (captures[1,"start"], 1, @SCRIPTNAME, @SCRIPTLINE);
+			tap_ensure (str::match(inputs[i], /(a)/, -3, captures), 1, @SCRIPTNAME, @SCRIPTLINE);
+			tap_ensure (str::match(inputs[i], /(c)/, -1, captures), 3, @SCRIPTNAME, @SCRIPTLINE);
+			tap_ensure (captures[1,"start"], 3, @SCRIPTNAME, @SCRIPTLINE);
+			tap_ensure (str::match(inputs[i], /(c)/, 3, captures), 3, @SCRIPTNAME, @SCRIPTLINE);
+
+			## A successful zero-length match must still populate captures.
+			tap_ensure (str::match(inputs[i], /()/, 2, captures), 2, @SCRIPTNAME, @SCRIPTLINE);
+			tap_ensure (RSTART, 2, @SCRIPTNAME, @SCRIPTLINE);
+			tap_ensure (RLENGTH, 0, @SCRIPTNAME, @SCRIPTLINE);
+			tap_ensure (length(captures), 6, @SCRIPTNAME, @SCRIPTLINE);
+			tap_ensure (captures[0,"start"], 2, @SCRIPTNAME, @SCRIPTLINE);
+			tap_ensure (captures[0,"length"], 0, @SCRIPTNAME, @SCRIPTLINE);
+			tap_ensure (captures[1,"start"], 2, @SCRIPTNAME, @SCRIPTLINE);
+			tap_ensure (captures[1,"length"], 0, @SCRIPTNAME, @SCRIPTLINE);
+		}
+
+		## Empty input is valid, including when the pattern matches an empty string.
+		inputs[0] = "";
+		inputs[1] = @b"";
+		for (i = 0; i < 2; i++)
+		{
+			captures["stale"] = 99;
+			tap_ensure (str::match(inputs[i], /x/, 1, captures), 0, @SCRIPTNAME, @SCRIPTLINE);
+			tap_ensure (RSTART, 0, @SCRIPTNAME, @SCRIPTLINE);
+			tap_ensure (RLENGTH, -1, @SCRIPTNAME, @SCRIPTLINE);
+			tap_ensure (length(captures), 0, @SCRIPTNAME, @SCRIPTLINE);
+
+			tap_ensure (match(inputs[i], /^$/), 1, @SCRIPTNAME, @SCRIPTLINE);
+			tap_ensure (RSTART, 1, @SCRIPTNAME, @SCRIPTLINE);
+			tap_ensure (RLENGTH, 0, @SCRIPTNAME, @SCRIPTLINE);
+			tap_ensure (str::match(inputs[i], /()/, 1, captures), 1, @SCRIPTNAME, @SCRIPTLINE);
+			tap_ensure (RSTART, 1, @SCRIPTNAME, @SCRIPTLINE);
+			tap_ensure (RLENGTH, 0, @SCRIPTNAME, @SCRIPTLINE);
+			tap_ensure (length(captures), 6, @SCRIPTNAME, @SCRIPTLINE);
+			tap_ensure (captures[0,"start"], 1, @SCRIPTNAME, @SCRIPTLINE);
+			tap_ensure (captures[1,"start"], 1, @SCRIPTNAME, @SCRIPTLINE);
+		}
+	}
+
+
 	{
 		tap_ensure(test12(2,5), -3, @SCRIPTNAME, @SCRIPTLINE);
 		tap_ensure(test12(3,5), 8, @SCRIPTNAME, @SCRIPTLINE);

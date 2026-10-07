@@ -154,7 +154,7 @@ hawk_fnc_t* hawk_addfncwithbcstr (hawk_t* hawk, const hawk_bch_t* name, const ha
 	hawk_fnc_t* fnc;
 	hawk_fnc_spec_t uspec;
 
-	HAWK_STATIC_ASSERT (HAWK_SIZEOF(*spec) == HAWK_SIZEOF(uspec));
+	HAWK_STATIC_ASSERT(HAWK_SIZEOF(*spec) == HAWK_SIZEOF(uspec));
 
 	HAWK_MEMCPY (&uspec, spec, HAWK_SIZEOF(uspec));
 	if (spec->arg.spec)
@@ -185,7 +185,7 @@ hawk_fnc_t* hawk_addfncwithucstr (hawk_t* hawk, const hawk_uch_t* name, const ha
 	hawk_fnc_t* fnc;
 	hawk_fnc_spec_t bspec;
 
-	HAWK_STATIC_ASSERT (HAWK_SIZEOF(*spec) == HAWK_SIZEOF(bspec));
+	HAWK_STATIC_ASSERT(HAWK_SIZEOF(*spec) == HAWK_SIZEOF(bspec));
 
 	HAWK_MEMCPY (&bspec, spec, HAWK_SIZEOF(bspec));
 	if (spec->arg.spec)
@@ -271,7 +271,7 @@ int hawk_delfncwithucstr (hawk_t* hawk, const hawk_uch_t* name)
 
 void hawk_clrfnc (hawk_t* hawk)
 {
-	hawk_htb_clear (hawk->fnc.user);
+	hawk_htb_clear(hawk->fnc.user);
 }
 
 static hawk_fnc_t* find_fnc (hawk_t* hawk, const hawk_oocs_t* name)
@@ -344,11 +344,11 @@ static int fnc_close (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_oow_t len, optlen = 0;
 
 	nargs = hawk_rtx_getnargs(rtx);
-	HAWK_ASSERT (nargs == 1 || nargs == 2);
+	HAWK_ASSERT(nargs == 1 || nargs == 2);
 
 	a0 = hawk_rtx_getarg(rtx, 0);
 	if (nargs >= 2) a1 = hawk_rtx_getarg(rtx, 1);
-	HAWK_ASSERT (a0 != HAWK_NULL);
+	HAWK_ASSERT(a0 != HAWK_NULL);
 
 	name = hawk_rtx_getvaloocstr(rtx, a0, &len);
 	if (HAWK_UNLIKELY(!name)) return -1;
@@ -471,7 +471,7 @@ static int fnc_fflush (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	int n;
 
 	nargs = hawk_rtx_getnargs (rtx);
-	HAWK_ASSERT (nargs == 0 || nargs == 1);
+	HAWK_ASSERT(nargs == 0 || nargs == 1);
 
 	if (nargs == 0)
 	{
@@ -719,7 +719,7 @@ int hawk_fnc_length (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, int mode)
 	hawk_oow_t len;
 
 	nargs = hawk_rtx_getnargs (rtx);
-	HAWK_ASSERT (nargs >= 0 && nargs <= 1);
+	HAWK_ASSERT(nargs >= 0 && nargs <= 1);
 
 	if (nargs == 0)
 	{
@@ -793,7 +793,7 @@ int hawk_fnc_substr (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	int n;
 
 	nargs = hawk_rtx_getnargs(rtx);
-	HAWK_ASSERT (nargs >= 2 && nargs <= 3);
+	HAWK_ASSERT(nargs >= 2 && nargs <= 3);
 
 	a0 = hawk_rtx_getarg(rtx, 0);
 	a1 = hawk_rtx_getarg(rtx, 1);
@@ -962,7 +962,7 @@ static int fnc_split (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, int use_array)
 
 	if (is_byte_str && switch_fs_to_bchr)
 	{
-		HAWK_ASSERT (fs_free = fs.ptr);
+		HAWK_ASSERT(fs_free = fs.ptr);
 
 		hawk_rtx_freevaloocstr(rtx, t0, fs_free);
 
@@ -1014,7 +1014,7 @@ static int fnc_split (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, int use_array)
 			break;
 		}
 
-		HAWK_ASSERT ((tok.ptr && tok.len > 0) || tok.len == 0);
+		HAWK_ASSERT((tok.ptr && tok.len > 0) || tok.len == 0);
 
 		/* create the field string - however, the split function must
 		 * create a numeric value if the string is a number */
@@ -1040,7 +1040,7 @@ static int fnc_split (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, int use_array)
 			hawk_oow_t key_len;
 
 			key_len = hawk_int_to_oocstr(++nflds, 10, HAWK_NULL, key_buf, HAWK_COUNTOF(key_buf));
-			HAWK_ASSERT (key_len != (hawk_oow_t)-1);
+			HAWK_ASSERT(key_len != (hawk_oow_t)-1);
 
 			if (!hawk_rtx_setmapvalfld(rtx, t1, key_buf, key_len, t2))
 			{
@@ -2023,7 +2023,7 @@ static int __fnc_match (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, int support_
 	int n;
 
 	nargs = hawk_rtx_getnargs(rtx);
-	HAWK_ASSERT (nargs >= 2 && nargs <= 4);
+	HAWK_ASSERT(nargs >= 2 && nargs <= 4);
 
 	a0 = hawk_rtx_getarg(rtx, 0);
 	a1 = hawk_rtx_getarg(rtx, 1);
@@ -2047,15 +2047,18 @@ static int __fnc_match (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, int support_
 
 		if (start == 0) start = 1;
 		else if (start < 0) start = len0 + start + 1;
-		if (start > len0 || start <= 0) n = 0;
 
-		tmp.ptr = str0.b + start - 1;
-		tmp.len = len0 - start + 1;
-
-		n = hawk_rtx_matchvalwithbcs(rtx, a1, &tmp, &tmp, &mat.b, (nargs >= support_start_index + 3? submat.b: HAWK_NULL));
-		hawk_rtx_freevalbcstr(rtx, a0, str0.b);
-
-		if (n <= -1) return -1;
+		/* len0 == 0 means the input is empty. start index 1 for length 0
+		 * must not skip actual matching. for example, match("", /^$/)
+		 * that's what (len0 == 0? 1: len0) is for. */
+		if (start <= 0 || start > (len0 == 0? 1: len0)) n = 0;
+		else
+		{
+			tmp.ptr = str0.b + start - 1;
+			tmp.len = len0 - start + 1;
+			n = hawk_rtx_matchvalwithbcs(rtx, a1, &tmp, &tmp, &mat.b, (nargs >= support_start_index + 3? submat.b: HAWK_NULL));
+			if (n <= -1) goto oops;
+		}
 
 		/* RSTART: 0 on no match */
 		idx = (n == 0)? 0: ((hawk_int_t)(mat.b.ptr - str0.b) + 1);
@@ -2069,28 +2072,31 @@ static int __fnc_match (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, int support_
 
 		if (start == 0) start = 1;
 		else if (start < 0) start = len0 + start + 1;
-		if (start > len0 || start <= 0) n = 0;
 
-		tmp.ptr = str0.o + start - 1;
-		tmp.len = len0 - start + 1;
-
-		n = hawk_rtx_matchvalwithoocs(rtx, a1, &tmp, &tmp, &mat.o, (nargs >= support_start_index + 3? submat.o: HAWK_NULL));
-		hawk_rtx_freevaloocstr(rtx, a0, str0.o);
-
-		if (n <= -1) return -1;
+		/* len0 == 0 means the input is empty. start index 1 for length 0
+		 * must not skip actual matching. for example, match("", /^$/)
+		 * that's what (len0 == 0? 1: len0) is for. */
+		if (start <= 0 || start > (len0 == 0? 1: len0)) n = 0;
+		else
+		{
+			tmp.ptr = str0.o + start - 1;
+			tmp.len = len0 - start + 1;
+			n = hawk_rtx_matchvalwithoocs(rtx, a1, &tmp, &tmp, &mat.o, (nargs >= support_start_index + 3? submat.o: HAWK_NULL));
+			if (n <= -1) goto oops;
+		}
 
 		/* RSTART: 0 on no match */
 		idx = (n == 0)? 0: ((hawk_int_t)(mat.o.ptr - str0.o) + 1);
 	}
 
 	x0 = hawk_rtx_makeintval_inline(rtx, idx);
-	if (!x0) goto oops;
+	if (HAWK_UNLIKELY(!x0)) goto oops;
 	hawk_rtx_refupval_inline(rtx, x0);
 
 	/* RLENGTH: -1 on no match */
-	HAWK_ASSERT (&mat.o.len == &mat.b.len);
+	HAWK_ASSERT(&mat.o.len == &mat.b.len); /* union. these two must be at the same address */
 	x1 = hawk_rtx_makeintval_inline(rtx, ((n == 0)? (hawk_int_t)-1: (hawk_int_t)mat.o.len)); /* just use mat.o.len regardless of a0_type */
-	if (!x1) goto oops;
+	if (HAWK_UNLIKELY(!x1)) goto oops;
 	hawk_rtx_refupval_inline(rtx, x1);
 
 	if (nargs >= (3 + support_start_index))
@@ -2100,12 +2106,16 @@ static int __fnc_match (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, int support_
 		hawk_oow_t i, xlen;
 		hawk_val_t* tv;
 
-		hawk_ooecs_clear (&rtx->fnc.oout);
+		hawk_ooecs_clear(&rtx->fnc.oout);
 		subsep = hawk_rtx_getsubsep(rtx);
 
 		x2 = hawk_rtx_makemapval(rtx);
 		if (HAWK_UNLIKELY(!x2)) goto oops;
 		hawk_rtx_refupval_inline(rtx, x2);
+
+		/* no match leaves the capture array empty. mat is set on a match only
+		 * there are no elements to fill the capture array with. */
+		if (n == 0) goto set_capture_array;
 
 		/* add the full match value to the array at index "0" */
 		if (hawk_ooecs_fmt(&rtx->fnc.oout, HAWK_T("%d"), 0) == (hawk_oow_t)-1) goto oops;
@@ -2150,7 +2160,7 @@ static int __fnc_match (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, int support_
 		submatcount = 0;
 		for (i = 0; i < HAWK_COUNTOF(submat.o); i++)
 		{
-			HAWK_ASSERT ((void*)&submat.o[i] == (void*)&submat.b[i]);
+			HAWK_ASSERT((void*)&submat.o[i] == (void*)&submat.b[i]);
 			if (!submat.o[i].ptr) break;
 
 			submatcount++;
@@ -2194,6 +2204,7 @@ static int __fnc_match (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, int support_
 			}
 		}
 
+	set_capture_array:
 		/* the caller of this function must be able to get the submatch count by
 		 * dividing the array size by 2 */
 		if (hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, 2 + support_start_index), x2) <= -1) goto oops;
@@ -2207,12 +2218,22 @@ static int __fnc_match (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, int support_
 
 	hawk_rtx_setretval(rtx, x0);
 
+	if (a0_type == HAWK_VAL_MBS)
+		hawk_rtx_freevalbcstr(rtx, a0, str0.b);
+	else
+		hawk_rtx_freevaloocstr(rtx, a0, str0.o);
+
 	if (x2) hawk_rtx_refdownval_inline(rtx, x2);
 	hawk_rtx_refdownval_inline(rtx, x1);
 	hawk_rtx_refdownval_inline(rtx, x0);
 	return 0;
 
 oops:
+	if (a0_type == HAWK_VAL_MBS)
+		hawk_rtx_freevalbcstr(rtx, a0, str0.b);
+	else
+		hawk_rtx_freevaloocstr(rtx, a0, str0.o);
+
 	if (x2) hawk_rtx_refdownval_inline(rtx, x2);
 	if (x1) hawk_rtx_refdownval_inline(rtx, x1);
 	if (x0) hawk_rtx_refdownval_inline(rtx, x0);
@@ -2253,7 +2274,7 @@ int hawk_fnc_sprintf (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_val_t* a0;
 
 	nargs = hawk_rtx_getnargs(rtx);
-	HAWK_ASSERT (nargs > 0);
+	HAWK_ASSERT(nargs > 0);
 
 	a0 = hawk_rtx_getarg(rtx, 0);
 	switch (HAWK_RTX_GETVALTYPE(rtx, a0))
@@ -2398,7 +2419,7 @@ static HAWK_INLINE int __fnc_asort (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, 
 
 	a0 = hawk_rtx_getarg(rtx, 0);
 	a0_type = HAWK_RTX_GETVALTYPE(rtx, a0);
-	HAWK_ASSERT (a0_type == HAWK_VAL_REF);
+	HAWK_ASSERT(a0_type == HAWK_VAL_REF);
 
 	if (nargs >= 3)
 	{
@@ -2443,12 +2464,12 @@ val_map:
 		int x;
 
 		a0_val = hawk_rtx_getrefval(rtx, (hawk_val_ref_t*)a0);
-		HAWK_ASSERT (HAWK_RTX_GETVALTYPE(rtx, a0_val) == HAWK_VAL_MAP);
+		HAWK_ASSERT(HAWK_RTX_GETVALTYPE(rtx, a0_val) == HAWK_VAL_MAP);
 
 		if (!hawk_rtx_getfirstmapvalitr(rtx, a0_val, &itr)) goto done; /* map empty */
 
 		msz = hawk_map_getsize(((hawk_val_map_t*)a0_val)->map);
-		HAWK_ASSERT (msz > 0);
+		HAWK_ASSERT(msz > 0);
 
 		va = (hawk_val_t**)hawk_rtx_allocmem(rtx, msz * HAWK_SIZEOF(*va));
 		if (HAWK_UNLIKELY(!va)) return -1;
@@ -2549,15 +2570,15 @@ val_arr:
 		int x;
 
 		a0_val = hawk_rtx_getrefval(rtx, (hawk_val_ref_t*)a0);
-		HAWK_ASSERT (HAWK_RTX_GETVALTYPE(rtx, a0_val) == HAWK_VAL_ARR);
+		HAWK_ASSERT(HAWK_RTX_GETVALTYPE(rtx, a0_val) == HAWK_VAL_ARR);
 		arr = ((hawk_val_arr_t*)a0_val)->arr;
 		msz = HAWK_ARR_TALLY(arr);
 		if (msz == 0) goto done; /* array empty */
 
 		ssz = HAWK_ARR_SIZE(arr);
-		HAWK_ASSERT (msz <= ssz);
-		HAWK_ASSERT (msz <= HAWK_INT_MAX);
-		HAWK_ASSERT (ssz <= HAWK_INT_MAX);
+		HAWK_ASSERT(msz <= ssz);
+		HAWK_ASSERT(msz <= HAWK_INT_MAX);
+		HAWK_ASSERT(ssz <= HAWK_INT_MAX);
 
 		va = (hawk_val_t**)hawk_rtx_allocmem(rtx, msz * HAWK_SIZEOF(*va));
 		if (HAWK_UNLIKELY(!va)) return -1;
