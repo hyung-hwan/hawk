@@ -332,13 +332,13 @@ char_t* tokenize_xchars_by_rex (hawk_rtx_t* rtx, const char_t* str, hawk_oow_t l
 		if (n == 0)
 		{
 			/* no match has been found. return the entire string as a token */
-			hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_ENOERR); /* reset HAWK_EREXNOMAT to no error */
+			hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_ENOERR); /* reset HAWK_EREXNOMAT to no error */
 			tok->ptr = realsub.ptr;
 			tok->len = realsub.len;
 			return HAWK_NULL;
 		}
 
-		HAWK_ASSERT (n == 1);
+		HAWK_ASSERT(n == 1);
 
 		if (match.len == 0)
 		{
@@ -372,7 +372,10 @@ char_t* tokenize_xchars_by_rex (hawk_rtx_t* rtx, const char_t* str, hawk_oow_t l
 	}
 
 exit_loop:
-	hawk_rtx_seterrnum (rtx, HAWK_NULL, HAWK_ENOERR);
+	/* HAWK_NULL also indicates successful completion, possibly with a final token.
+	 * Clear the error number so callers can distinguish completion from failure.
+	 * Callers must check the error number before using tok. */
+	hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_ENOERR);
 
 	if (cursub.len <= 0)
 	{

@@ -187,3 +187,18 @@ BEGIN {
 BEGIN {
         print nosuchmod::nosuchconst; ##ERROR: unable to resolve 'nosuchmod::nosuchconst' at runtime
 }
+
+---
+
+## A numeric input's temporary string must be released on regex failure.
+BEGIN {
+	@local captures;
+	match(12345, "[", captures); ##ERROR: imbalanced bracket in regular expression
+}
+
+---
+
+BEGIN {
+	@local captures;
+	str::match(12345, "[", 1, captures); ##ERROR: imbalanced bracket in regular expression
+}

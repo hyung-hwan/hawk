@@ -681,7 +681,7 @@ static int collect_arguments (hawk_m4_t* m4, m4_str_t* arg[M4_NARGS])
 			return -1;
 		}
 
-		if (process(m4, 1, &delim) <= -1) /* TODO: remove recursion? */
+		if (process(m4, 1, &delim) <= -1) /* TODO: remove recursion? check the recursion depth from the option? */
 		{
 			pop_capture(m4);
 			str_unref(m4, a);

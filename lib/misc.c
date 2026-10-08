@@ -74,7 +74,7 @@ static int matchtre_ucs (hawk_tre_t* tre, int opt, const hawk_ucs_t* str, hawk_u
 	/*hawk_tre_match_t match[10] = { { 0, 0 }, };*/
 	hawk_tre_match_t match[10];
 
-	HAWK_MEMSET (match, 0, HAWK_SIZEOF(match));
+	HAWK_MEMSET(match, 0, HAWK_SIZEOF(match));
 	n = hawk_tre_execuchars(tre, str->ptr, str->len, match, HAWK_COUNTOF(match), opt, errgem);
 	if (n <= -1)
 	{
@@ -82,7 +82,7 @@ static int matchtre_ucs (hawk_tre_t* tre, int opt, const hawk_ucs_t* str, hawk_u
 		return -1;
 	}
 
-	HAWK_ASSERT (match[0].rm_so != -1);
+	HAWK_ASSERT(match[0].rm_so != -1);
 	if (mat)
 	{
 		mat->ptr = &str->ptr[match[0].rm_so];
@@ -118,7 +118,7 @@ static int matchtre_bcs (hawk_tre_t* tre, int opt, const hawk_bcs_t* str, hawk_b
 	/*hawk_tre_match_t match[10] = { { 0, 0 }, };*/
 	hawk_tre_match_t match[10];
 
-	HAWK_MEMSET (match, 0, HAWK_SIZEOF(match));
+	HAWK_MEMSET(match, 0, HAWK_SIZEOF(match));
 	n = hawk_tre_execbchars(tre, str->ptr, str->len, match, HAWK_COUNTOF(match), opt, errgem);
 	if (n <= -1)
 	{
@@ -126,7 +126,7 @@ static int matchtre_bcs (hawk_tre_t* tre, int opt, const hawk_bcs_t* str, hawk_b
 		return -1;
 	}
 
-	HAWK_ASSERT (match[0].rm_so != -1);
+	HAWK_ASSERT(match[0].rm_so != -1);
 	if (mat)
 	{
 		mat->ptr = &str->ptr[match[0].rm_so];

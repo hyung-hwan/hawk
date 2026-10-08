@@ -1926,7 +1926,7 @@ static int str_to_str (hawk_rtx_t* rtx, const hawk_ooch_t* str, hawk_oow_t str_l
 		case HAWK_RTX_VALTOSTR_STRP:
 		{
 			hawk_oow_t n;
-			hawk_ooecs_clear (out->u.strp);
+			hawk_ooecs_clear(out->u.strp);
 			n = hawk_ooecs_ncat(out->u.strp, str, str_len);
 			if (n == (hawk_oow_t)-1) return -1;
 			return 0;
@@ -1989,7 +1989,7 @@ static int mbs_to_str (hawk_rtx_t* rtx, const hawk_bch_t* str, hawk_oow_t str_le
 		}
 
 		case HAWK_RTX_VALTOSTR_STRP:
-			hawk_ooecs_clear (out->u.strp);
+			hawk_ooecs_clear(out->u.strp);
 			if (hawk_uecs_ncatbchars(out->u.strp, str, str_len, hawk_rtx_getcmgr(rtx), 1) == (hawk_oow_t)-1) return -1;
 			return 0;
 
@@ -2061,7 +2061,7 @@ static int val_int_to_str (hawk_rtx_t* rtx, const hawk_val_int_t* v, hawk_rtx_va
 		{
 			hawk_oow_t n;
 
-			hawk_ooecs_clear (out->u.strp);
+			hawk_ooecs_clear(out->u.strp);
 			HAWK_ASSERT(HAWK_OOECS_LEN(out->u.strp) == 0);
 
 			/* point to the beginning of the buffer */
@@ -2172,7 +2172,7 @@ static int val_flt_to_str (hawk_rtx_t* rtx, const hawk_val_flt_t* v, hawk_rtx_va
 		case HAWK_RTX_VALTOSTR_STRP:
 		{
 			hawk_oow_t n;
-			hawk_ooecs_clear (out->u.strp);
+			hawk_ooecs_clear(out->u.strp);
 			n = hawk_ooecs_ncat(out->u.strp, tmp, tmp_len);
 			if (n == (hawk_oow_t)-1) goto oops;
 			break;
@@ -3169,6 +3169,16 @@ hawk_val_type_t hawk_rtx_getrefvaltype (hawk_rtx_t* rtx, hawk_val_ref_t* ref)
 			hawk_val_t* v;
 			idx = (hawk_oow_t)ref->adr;
 			v = HAWK_RTX_STACK_GBL(rtx, idx);
+			return HAWK_RTX_GETVALTYPE(rtx, v);
+		}
+
+		case HAWK_VAL_REF_NAMED:
+		{
+			hawk_oow_t idx;
+			hawk_val_t* v;
+			idx = (hawk_oow_t)ref->adr;
+			HAWK_ASSERT(idx < rtx->named_slot_count);
+			v = HAWK_RTX_STACK_NAMED(rtx, idx);
 			return HAWK_RTX_GETVALTYPE(rtx, v);
 		}
 

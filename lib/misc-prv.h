@@ -62,6 +62,12 @@ hawk_bch_t* hawk_rtx_tokbcharswithbchars (
 	const hawk_bch_t* delim, hawk_oow_t delim_len, hawk_bcs_t* tok);
 
 
+/* on success, fills tok, sets the runtime error number to HAWK_ENOERR, and
+ * returns the next substring position or HAWK_NULL when tokenization is complete.
+ * HAWK_NULL may accompany a valid final token and does not alone indicate an error.
+ * on failure, returns HAWK_NULL and sets a non-HAWK_ENOERR error number; tok must
+ * not be used. check hawk_rtx_geterrnum(rtx) after every call before using tok,
+ * regardless of the returned pointer. No preliminary error reset is needed. */
 hawk_uch_t* hawk_rtx_tokucharsbyrex (
 	hawk_rtx_t*       rtx,
 	const hawk_uch_t* str,
@@ -72,6 +78,12 @@ hawk_uch_t* hawk_rtx_tokucharsbyrex (
 	hawk_ucs_t*       tok
 );
 
+/* on success, fills tok, sets the runtime error number to HAWK_ENOERR, and
+ * returns the next substring position or HAWK_NULL when tokenization is complete.
+ * HAWK_NULL may accompany a valid final token and does not alone indicate an error.
+ * on failure, returns HAWK_NULL and sets a non-HAWK_ENOERR error number; tok must
+ * not be used. check hawk_rtx_geterrnum(rtx) after every call before using tok,
+ * regardless of the returned pointer. No preliminary error reset is needed. */
 hawk_bch_t* hawk_rtx_tokbcharsbyrex (
 	hawk_rtx_t*       rtx,
 	const hawk_bch_t* str,

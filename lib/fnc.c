@@ -298,7 +298,7 @@ static hawk_fnc_t* find_fnc (hawk_t* hawk, const hawk_oocs_t* name)
 		if ((hawk->opt.trait & fnc->spec.trait) == fnc->spec.trait) return fnc;
 	}
 
-	hawk_seterrfmt(hawk, HAWK_NULL, HAWK_ENOENT, HAWK_T("no such function - %js"), name);
+	hawk_seterrfmt(hawk, HAWK_NULL, HAWK_ENOENT, HAWK_T("no such function - %.*js"), name->len, name->ptr);
 	return HAWK_NULL;
 }
 
@@ -340,7 +340,10 @@ static int fnc_close (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_val_t* v, * a0, * a1 = HAWK_NULL;
 	int n;
 
-	hawk_ooch_t* name, * opt = HAWK_NULL;
+	hawk_ooch_t* name;
+	hawk_ooch_t* opt = HAWK_NULL;
+	hawk_ooch_t* xopt = HAWK_NULL;
+	hawk_ooch_t zopt;
 	hawk_oow_t len, optlen = 0;
 
 	nargs = hawk_rtx_getnargs(rtx);
@@ -361,6 +364,7 @@ static int fnc_close (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			hawk_rtx_freevaloocstr(rtx, a0, name);
 			return -1;
 		}
+		xopt = opt;
 	}
 
 	if (len == 0)
@@ -395,22 +399,24 @@ static int fnc_close (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		if (hawk_comp_oochars_oocstr(opt, optlen, HAWK_T("to"), 0) == 0)
 		{
 			optlen = 1;
-			opt[0] = 'r'; /* close the input to the pipe */
+			zopt = 'r'; /* close the input to the pipe */
+			xopt = &zopt;
 		}
 		else if (hawk_comp_oochars_oocstr(opt, optlen, HAWK_T("from"), 0) == 0)
 		{
 			optlen = 1;
-			opt[0] = 'w'; /* close the output from the pipe */
+			zopt = 'w'; /* close the output from the pipe */
+			xopt = &zopt;
 		}
 
-		if (optlen != 1 || (opt[0] != HAWK_T('r') && opt[0] != HAWK_T('w')))
+		if (optlen != 1 || (xopt[0] != 'r' && xopt[0] != 'w'))
 		{
 			n = -1;
 			goto skip_close;
 		}
 	}
 
-	n = hawk_rtx_closeio(rtx, name, opt);
+	n = hawk_rtx_closeio(rtx, name, xopt);
 	/* failure to close is not a critical error. instead, that is
 	 * flagged by the return value of close().
 	if (n <= -1 && rtx->errinf.num != HAWK_EIONMNF)
@@ -624,7 +630,8 @@ static int index_or_rindex (hawk_rtx_t* rtx, int rindex)
 				else if (boundary < 0) boundary = len0 + boundary + 1;
 			}
 
-			if (boundary > len0 || boundary <= 0)
+			/* index(@b"", @b"") would return zero if not for "(len0 == 0 && !rindex)? 1: len0)" */
+			if (boundary <= 0 || boundary > ((len0 == 0 && !rindex)? 1: len0))
 			{
 				ptr = HAWK_NULL;
 			}
@@ -670,7 +677,8 @@ static int index_or_rindex (hawk_rtx_t* rtx, int rindex)
 				else if (boundary < 0) boundary = len0 + boundary + 1;
 			}
 
-			if (boundary > len0 || boundary <= 0)
+			/* index("", "") would return zero if not for "(len0 == 0 && !rindex)? 1: len0)" */
+			if (boundary <= 0 || boundary > ((len0 == 0 && !rindex)? 1: len0))
 			{
 				ptr = HAWK_NULL;
 			}
@@ -810,8 +818,10 @@ int hawk_fnc_substr (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	}
 	else lcount = HAWK_TYPE_MAX(hawk_int_t);
 
-	lindex = lindex - 1;
-	if (lindex < 0) lindex = 0;
+	/* the caller can provide the minimum signed integer.
+	 * check before decrement */
+	if (lindex <= 0) lindex = 0;
+	else lindex--;
 
 	switch (HAWK_RTX_GETVALTYPE(rtx, a0))
 	{
@@ -957,17 +967,28 @@ static int fnc_split (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, int use_array)
 			                  hawk_rtx_getvaloocstr(rtx, a0, &str.len);
 			break;
 	}
-	if (HAWK_UNLIKELY(!str.ptr)) goto oops;
 
+	if (HAWK_UNLIKELY(!str.ptr))
+	{
+		/* reset is_byte_str because the actual conversion failed.
+		 * without reset, the destruction of fs_free under the oops label
+		 * chooses a wrong destructor function */
+		is_byte_str = 0;
+		goto oops;
+	}
 
 	if (is_byte_str && switch_fs_to_bchr)
 	{
-		HAWK_ASSERT(fs_free = fs.ptr);
+		HAWK_ASSERT(fs_free == fs.ptr);
 
 		hawk_rtx_freevaloocstr(rtx, t0, fs_free);
 
 		fs.ptr = (hawk_ooch_t*)hawk_rtx_getvalbcstr(rtx, t0, &fs.len);
-		if (HAWK_UNLIKELY(!fs.ptr)) goto oops;
+		if (HAWK_UNLIKELY(!fs.ptr))
+		{
+			fs_free = HAWK_NULL;
+			goto oops;
+		}
 
 		fs_free = fs.ptr;
 	}
@@ -983,14 +1004,21 @@ static int fnc_split (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, int use_array)
 	/* fill the map with actual values */
 	p = str.ptr; org_len = str.len; nflds = 0;
 
-	while (p)
+	HAWK_ASSERT(p != HAWK_NULL);
+	do
 	{
 		if (fs_rex)
 		{
 			p = is_byte_str?
 				(hawk_ooch_t*)hawk_rtx_tokbcharsbyrex(rtx, (hawk_bch_t*)str.ptr, org_len, (hawk_bch_t*)p, str.len, fs_rex, (hawk_bcs_t*)&tok):
 				hawk_rtx_tokoocharsbyrex(rtx, str.ptr, org_len, p, str.len, fs_rex, &tok);
-			if (p && hawk_rtx_geterrnum(rtx) != HAWK_ENOERR) goto oops;
+
+			/* this relies on the contract that hawk_rtx_tok..byrex() clears the error code on successful path */
+			if (hawk_rtx_geterrnum(rtx) != HAWK_ENOERR)
+			{
+				HAWK_ASSERT(p == HAWK_NULL);
+				goto oops;
+			}
 		}
 		else if (do_fld)
 		{
@@ -1050,11 +1078,14 @@ static int fnc_split (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, int use_array)
 			}
 		}
 
+		if (!p) break;
+
 		if (is_byte_str)
 			str.len = org_len - ((hawk_bch_t*)p - (hawk_bch_t*)str.ptr);
 		else
 			str.len = org_len - (p - str.ptr);
 	}
+	while (1);
 
 	if (do_fld) { hawk_rtx_freemem(rtx, str.ptr); }
 	else if (is_byte_str) { hawk_rtx_freevalbcstr(rtx, a0, (hawk_bch_t*)str.ptr); }
@@ -1188,7 +1219,7 @@ int hawk_fnc_toupper (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	{
 		case  HAWK_VAL_BCHR:
 		{
-			hawk_bch_t tmp = HAWK_RTX_GETCHARFROMVAL(rtx, a0);
+			hawk_bch_t tmp = HAWK_RTX_GETBCHRFROMVAL(rtx, a0);
 			tmp = hawk_to_bch_upper(tmp);
 			r = hawk_rtx_makebchrval(rtx, tmp);
 			if (HAWK_UNLIKELY(!r)) return -1;
@@ -1454,7 +1485,7 @@ static int __substitute_bcs (hawk_rtx_t* rtx, hawk_oow_t* max_count, hawk_tre_t*
 						{
 							/* \& for a literal &, \\ for a literal \ */
 							m = hawk_becs_ccat(new, ic);
-							i += 2; /* skip the backslash and consume & */
+							i++; /* skip the backslash */
 						}
 						else
 						{
@@ -1826,16 +1857,40 @@ int hawk_fnc_gensub (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		int n;
 
 		n = hawk_rtx_valtonum(rtx, a2, &l, &r);
+		if (HAWK_UNLIKELY(n <= -1)) goto oops;
+
 		if (n == 0)
 		{
 			if (l > 0)
 			{
+				if ((hawk_uint_t)l > HAWK_TYPE_MAX(hawk_oow_t))
+				{
+					hawk_rtx_seterrbfmt(rtx, HAWK_NULL, HAWK_EINVAL, "gensub occurrence out of range");
+					goto oops;
+				}
 				op_pos = (hawk_oow_t)l;
 				max_count = 1;
 			}
 		}
-		else if (n > 0)
+		else /*if (n > 0)*/
 		{
+			hawk_flt_t limit;
+
+			/* exclusive upper bound - 2 raised to the number of oow bits.
+			 * avoid rounding an integer maximum upward during conversion. */
+			limit = (hawk_flt_t)(HAWK_TYPE_MAX(hawk_oow_t) / 2 + 1);
+			limit *= 2.0;
+
+			/* reject NaN and positive infinity also.
+			 * if r is NaN, r < limit is false, so !(r < limit) is true.
+			 * r >= limit is false. so i don't write the expresion as "r >= limit".
+			 * i don't need a separate check using isnan()  */
+			if (!(r < limit))
+			{
+				hawk_rtx_seterrbfmt(rtx, HAWK_NULL, HAWK_EINVAL, "invalid gensub occurrence");
+				goto oops;
+			}
+
 			if (r > 0.0)
 			{
 				op_pos = (hawk_oow_t)r;
@@ -2102,7 +2157,6 @@ static int __fnc_match (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, int support_
 	if (nargs >= (3 + support_start_index))
 	{
 		const hawk_oocs_t* subsep;
-		hawk_int_t submatcount;
 		hawk_oow_t i, xlen;
 		hawk_val_t* tv;
 
@@ -2157,15 +2211,12 @@ static int __fnc_match (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, int support_
 			goto oops;
 		}
 
-		submatcount = 0;
 		for (i = 0; i < HAWK_COUNTOF(submat.o); i++)
 		{
 			HAWK_ASSERT((void*)&submat.o[i] == (void*)&submat.b[i]);
-			if (!submat.o[i].ptr) break;
+			if (!submat.o[i].ptr) continue;
 
-			submatcount++;
-
-			if (hawk_ooecs_fmt(&rtx->fnc.oout, HAWK_T("%d"), (int)submatcount) == (hawk_oow_t)-1) goto oops;
+			if (hawk_ooecs_fmt(&rtx->fnc.oout, HAWK_T("%d"), (int)(i + 1)) == (hawk_oow_t)-1) goto oops;
 
 			tv = (a0_type == HAWK_VAL_MBS)?
 				hawk_rtx_makembsvalwithbchars(rtx, submat.b[i].ptr, submat.b[i].len):
@@ -2206,7 +2257,13 @@ static int __fnc_match (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, int support_
 
 	set_capture_array:
 		/* the caller of this function must be able to get the submatch count by
-		 * dividing the array size by 2 */
+		 * dividing the array size by 3 - unmatched groups leave gaps in the indices.
+		 *
+		 *   hawk 'BEGIN {
+		 *     @local captures;
+		 *     str::match("b", /^(a)?(b)$/, 1, captures); ## (a) didn't match. index 1 must be absent
+		 *     for (i in captures) print i, captures[i]; }' | cat -v
+		 */
 		if (hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, 2 + support_start_index), x2) <= -1) goto oops;
 	}
 
@@ -2379,13 +2436,18 @@ static HAWK_INLINE int asort_compare_ud (const void* x1, const void* x2, void* c
 	struct cud_t* cud = (struct cud_t*)ctx;
 	hawk_val_t* r, * args[2];
 	hawk_int_t rv;
+	int n;
 
 	args[0] = *(hawk_val_t**)x1;
 	args[1] = *(hawk_val_t**)x2;
 	r = hawk_rtx_callfun(cud->rtx, cud->fun, args, 2);
 	if (HAWK_UNLIKELY(!r)) return -1;
-	if (hawk_rtx_valtoint_inline(cud->rtx, r,  &rv) <= -1) return -1;
-	*cv = rv;
+
+	n = hawk_rtx_valtoint_inline(cud->rtx, r,  &rv);
+	hawk_rtx_refdownval(cud->rtx, r);
+	if (n <= -1) return -1;
+
+	*cv = (rv > 0)? 1: (rv < 0)? -1: 0;
 	return 0;
 }
 
@@ -2419,6 +2481,7 @@ static HAWK_INLINE int __fnc_asort (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, 
 
 	a0 = hawk_rtx_getarg(rtx, 0);
 	a0_type = HAWK_RTX_GETVALTYPE(rtx, a0);
+	/* this must be REF because the registration uses "r" for this parameter */
 	HAWK_ASSERT(a0_type == HAWK_VAL_REF);
 
 	if (nargs >= 3)
@@ -2443,6 +2506,28 @@ static HAWK_INLINE int __fnc_asort (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, 
 	switch (v_type)
 	{
 		case HAWK_VAL_NIL:
+		empty_source:
+			if (nargs >= 2)
+			{
+				hawk_val_t* a1, * a1_val;
+				hawk_val_type_t a1_type, v1_type;
+
+				a1 = hawk_rtx_getarg(rtx, 1);
+				a1_type = HAWK_RTX_GETVALTYPE(rtx, a1);
+				/* this must be REF because the registration uses "r" for this parameter */
+				HAWK_ASSERT(a1_type == HAWK_VAL_REF);
+				v1_type = hawk_rtx_getrefvaltype(rtx, (hawk_val_ref_t*)a1);
+				if (v1_type == HAWK_VAL_MAP)
+				{
+					a1_val = hawk_rtx_getrefval(rtx, (hawk_val_ref_t*)a1);
+					hawk_map_clear(((hawk_val_map_t*)a1_val)->map);
+				}
+				else if (v1_type == HAWK_VAL_ARR)
+				{
+					a1_val = hawk_rtx_getrefval(rtx, (hawk_val_ref_t*)a1);
+					hawk_arr_clear(((hawk_val_arr_t*)a1_val)->arr);
+				}
+			}
 			goto done; /* treat it as an empty value */
 
 		case HAWK_VAL_MAP:
@@ -2466,7 +2551,7 @@ val_map:
 		a0_val = hawk_rtx_getrefval(rtx, (hawk_val_ref_t*)a0);
 		HAWK_ASSERT(HAWK_RTX_GETVALTYPE(rtx, a0_val) == HAWK_VAL_MAP);
 
-		if (!hawk_rtx_getfirstmapvalitr(rtx, a0_val, &itr)) goto done; /* map empty */
+		if (!hawk_rtx_getfirstmapvalitr(rtx, a0_val, &itr)) goto empty_source; /* map empty. this backward jump is horrendous */
 
 		msz = hawk_map_getsize(((hawk_val_map_t*)a0_val)->map);
 		HAWK_ASSERT(msz > 0);
@@ -2573,7 +2658,7 @@ val_arr:
 		HAWK_ASSERT(HAWK_RTX_GETVALTYPE(rtx, a0_val) == HAWK_VAL_ARR);
 		arr = ((hawk_val_arr_t*)a0_val)->arr;
 		msz = HAWK_ARR_TALLY(arr);
-		if (msz == 0) goto done; /* array empty */
+		if (msz == 0) goto empty_source; /* array empty. this backward jump is horrendous */
 
 		ssz = HAWK_ARR_SIZE(arr);
 		HAWK_ASSERT(msz <= ssz);
@@ -2586,7 +2671,22 @@ val_arr:
 		{
 			if (HAWK_ARR_SLOT(arr, j))
 			{
-				va[i] = sort_keys? hawk_rtx_makeintval_inline(rtx, j): HAWK_ARR_DPTR(arr, j);
+				if (sort_keys)
+				{
+					va[i] = hawk_rtx_makeintval_inline(rtx, j);
+					if (HAWK_UNLIKELY(!va[i]))
+					{
+						/* [NOTE] i'm reusing 'j' in the loop below, which can be error-prone when modifying code
+						 *  for now, it's exiting and it's ok to overwrite j for that reason. */
+						for (j = 0; j < i; j++) hawk_rtx_refdownval_inline(rtx, va[j]);
+						hawk_rtx_freemem(rtx, va);
+						return -1;
+					}
+				}
+				else
+				{
+					va[i] = HAWK_ARR_DPTR(arr, j);
+				}
 				hawk_rtx_refupval_inline(rtx, va[i]);
 				i++;
 			}
@@ -2637,7 +2737,11 @@ val_arr:
 
 done:
 	r = hawk_rtx_makeintval_inline(rtx, rv);
-	if (HAWK_UNLIKELY(!r)) return -1;
+	if (HAWK_UNLIKELY(!r))
+	{
+		if (rrv) hawk_rtx_freeval(rtx, rrv, 0);
+		return -1;
+	}
 
 	if (rrv)
 	{
