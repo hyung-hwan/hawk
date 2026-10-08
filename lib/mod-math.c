@@ -81,6 +81,9 @@
 #endif
 typedef struct modctx_t
 {
+	/* protect this module's state. the libc fallback generators themselves
+	 * have process-global state outside the scope of this mutex. */
+	hawk_mtx_t mtx;
 	unsigned int seed;
 #if defined(HAVE_INITSTATE_R) && defined(HAVE_SRANDOM_R) && defined(HAVE_RANDOM_R)
 	struct random_data prand;
@@ -547,6 +550,26 @@ static int fnc_sqrt (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 /* ----------------------------------------------------------------------- */
 
+static int lock_rng (hawk_rtx_t* rtx, modctx_t* modctx)
+{
+	if (HAWK_UNLIKELY(hawk_mtx_lock(&modctx->mtx, HAWK_NULL) <= -1))
+	{
+		hawk_rtx_seterrbfmt(rtx, HAWK_NULL, HAWK_ESYSERR, "unable to lock random generator");
+		return -1;
+	}
+	return 0;
+}
+
+static int unlock_rng (hawk_rtx_t* rtx, modctx_t* modctx)
+{
+	if (HAWK_UNLIKELY(hawk_mtx_unlock(&modctx->mtx) <= -1))
+	{
+		hawk_rtx_seterrbfmt(rtx, HAWK_NULL, HAWK_ESYSERR, "unable to unlock random generator");
+		return -1;
+	}
+	return 0;
+}
+
 static int fnc_rand (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 #if defined(HAVE_RANDOM) || (defined(HAVE_INITSTATE_R) && defined(HAVE_SRANDOM_R) && defined(HAVE_RANDOM_R))
@@ -557,15 +580,23 @@ static int fnc_rand (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_val_t* r;
 	hawk_int32_t randv;
 	modctx_t* modctx;
+	int n = 0;
 
 	modctx = (modctx_t*)fi->mod->ctx;
+	if (lock_rng(rtx, modctx) <= -1) return -1;
 #if defined(HAVE_INITSTATE_R) && defined(HAVE_SRANDOM_R) && defined(HAVE_RANDOM_R)
-	random_r (&modctx->prand, &randv);
+	n = random_r(&modctx->prand, &randv);
 #elif defined(HAVE_RANDOM)
 	randv = random();
 #else
 	randv = rand();
 #endif
+	if (unlock_rng(rtx, modctx) <= -1) return -1;
+	if (HAWK_UNLIKELY(n <= -1))
+	{
+		hawk_rtx_seterrbfmt(rtx, HAWK_NULL, HAWK_ESYSERR, "unable to generate random number");
+		return -1;
+	}
 
 	/* convert before adding one to avoid overflowing the integer maximum.
 	 * the result must be less than one even for the maximum generator value. */
@@ -586,33 +617,43 @@ static int fnc_srand (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	int n;
 	hawk_int_t prev;
 	modctx_t* modctx;
+	unsigned int seed;
 
 	modctx = (modctx_t*)fi->mod->ctx;
 	nargs = hawk_rtx_getnargs(rtx);
 	HAWK_ASSERT(nargs == 0 || nargs == 1);
 
-	prev = modctx->seed;
-
 	if (nargs <= 0)
 	{
 		hawk_ntime_t tv = { 0, 0 };
 		hawk_get_ntime(&tv);
-		modctx->seed = tv.sec + tv.nsec;
+		seed = tv.sec + tv.nsec;
 	}
 	else
 	{
 		a0 = hawk_rtx_getarg(rtx, 0);
 		n = hawk_rtx_valtoint_inline(rtx, a0, &lv);
 		if (n <= -1) return -1;
-		modctx->seed = (unsigned int)lv;
+		seed = (unsigned int)lv;
 	}
+
+	if (lock_rng(rtx, modctx) <= -1) return -1;
+	prev = modctx->seed;
+	n = 0;
 #if defined(HAVE_INITSTATE_R) && defined(HAVE_SRANDOM_R) && defined(HAVE_RANDOM_R)
-	srandom_r(modctx->seed, &modctx->prand);
+	n = srandom_r(seed, &modctx->prand);
 #elif defined(HAVE_RANDOM)
-	srandom(modctx->seed);
+	srandom(seed);
 #else
-	srand(modctx->seed);
+	srand(seed);
 #endif
+	if (n >= 0) modctx->seed = seed;
+	if (unlock_rng(rtx, modctx) <= -1) return -1;
+	if (HAWK_UNLIKELY(n <= -1))
+	{
+		hawk_rtx_seterrbfmt(rtx, HAWK_NULL, HAWK_ESYSERR, "unable to seed random generator");
+		return -1;
+	}
 
 	r = hawk_rtx_makeintval_inline(rtx, prev);
 	if (HAWK_UNLIKELY(!r)) return -1;
@@ -670,6 +711,7 @@ static void unload (hawk_mod_t* mod, hawk_t* hawk)
 	modctx_t* modctx;
 
 	modctx = (modctx_t*)mod->ctx;
+	hawk_mtx_fini(&modctx->mtx);
 	hawk_freemem(hawk, modctx);
 }
 
@@ -682,12 +724,23 @@ int hawk_mod_math (hawk_mod_t* mod, hawk_t* hawk)
 	if (HAWK_UNLIKELY(!modctx)) return -1;
 
 	HAWK_MEMSET(modctx, 0, HAWK_SIZEOF(*modctx));
+	if (HAWK_UNLIKELY(hawk_mtx_init(&modctx->mtx, hawk_getgem(hawk), 0) <= -1))
+	{
+		hawk_freemem(hawk, modctx);
+		return -1;
+	}
 
 	hawk_get_ntime(&tv);
 	modctx->seed = tv.sec + tv.nsec;
 #if defined(HAVE_INITSTATE_R) && defined(HAVE_SRANDOM_R) && defined(HAVE_RANDOM_R)
-	initstate_r(0, modctx->prand_bin, HAWK_SIZEOF(modctx->prand_bin), &modctx->prand);
-	srandom_r(modctx->seed, &modctx->prand);
+	if (HAWK_UNLIKELY(initstate_r(0, modctx->prand_bin, HAWK_SIZEOF(modctx->prand_bin), &modctx->prand) <= -1 ||
+	                  srandom_r(modctx->seed, &modctx->prand) <= -1))
+	{
+		hawk_seterrbfmt(hawk, HAWK_NULL, HAWK_ESYSERR, "unable to initialize random generator");
+		hawk_mtx_fini(&modctx->mtx);
+		hawk_freemem(hawk, modctx);
+		return -1;
+	}
 #elif defined(HAVE_RANDOM)
 	srandom(modctx->seed);
 #else
