@@ -127,7 +127,7 @@ static int fnc_call (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	fun = hawk_rtx_valtofun(rtx, hawk_rtx_getarg(rtx, 0));
 	if (fun)
 	{
-		if (f_nargs > fun->nargs)
+		if (f_nargs > fun->nargs && !fun->variadic)
 		{
 			hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EARGTM);
 			return -1; /* hard failure */
@@ -188,9 +188,9 @@ static int fnc_call (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	return 0;
 }
 
-/* hawk::function_exists("xxxx");
- * hawk::function_exists("sys::getpid") */
-static int fnc_function_exists (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+/* hawk::func_exists("xxxx");
+ * hawk::func_exists("sys::getpid") */
+static int fnc_func_exists (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	hawk_val_t* a0;
 	hawk_oocs_t name;
@@ -221,7 +221,8 @@ static int fnc_function_exists (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 				#endif
 					/* hawk_rtx_querymodulewithname() may update some shared data under
 					 * the hawk object. use a mutex for shared data safety */
-					rx = (hawk_rtx_querymodulewithoocs(rtx, &name, &sym, 0) != HAWK_NULL);
+					rx = (hawk_rtx_querymodulewithoocs(rtx, &name, &sym, 0) != HAWK_NULL &&
+					      sym.type == HAWK_MOD_FNC && (rtx->hawk->opt.trait & sym.u.fnc_.trait) == sym.u.fnc_.trait);
 				}
 			}
 		}
@@ -248,7 +249,8 @@ static int fnc_cmgr_exists (hawk_rtx_t* rtx, const hawk_fnc_info_t*  fi)
 	}
 	else
 	{
-		rx = (hawk_get_cmgr_by_name(str) != HAWK_NULL);
+		if (hawk_count_oocstr(str) != len) rx = 0;
+		else rx = (hawk_get_cmgr_by_name(str) != HAWK_NULL);
 		hawk_rtx_freevaloocstr(rtx, a0, str);
 	}
 
@@ -270,8 +272,13 @@ static int fnc_gc (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_int_t gen = -1;
 
 #if defined(HAWK_ENABLE_GC)
-	if (hawk_rtx_getnargs(rtx) >= 1 && hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 0), &gen) <= -1) gen = -1;
-	gen = hawk_rtx_gc(rtx, gen);
+	if (hawk_rtx_getnargs(rtx) >= 1)
+	{
+		if (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 0), &gen) <= -1) gen = -1;
+		else if (gen >= HAWK_GC_NUM_GENS) gen = HAWK_GC_NUM_GENS - 1;
+		else if (gen < 0) gen = -1;
+	}
+	gen = hawk_rtx_gc(rtx, (int)gen);
 #endif
 
 	HAWK_ASSERT(HAWK_IN_INT_RANGE(gen));
@@ -523,12 +530,14 @@ static int fnc_typename (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 static int fnc_hash (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	hawk_val_t* a0;
-	hawk_int_t v;
+	hawk_int_t hv;
+	hawk_val_t* r;
 
 	a0 = hawk_rtx_getarg(rtx, 0);
-	v = hawk_rtx_hashval(rtx, a0); /* ignore v <= -1 which is an error */
-
-	hawk_rtx_setretval(rtx, hawk_rtx_makeintval_inline(rtx, v));
+	hv = hawk_rtx_hashval(rtx, a0); /* ignore v <= -1 which is an error */
+	r = hawk_rtx_makeintval_inline(rtx, hv);
+	if (HAWK_UNLIKELY(!r)) return -1;
+	hawk_rtx_setretval(rtx, r);
 	return 0;
 }
 
@@ -543,8 +552,8 @@ static hawk_mod_fnc_tab_t fnctab[] =
 	{ HAWK_T("bool"),             { { 1, 1,     HAWK_NULL     },  fnc_bool,                  0 } },
 	{ HAWK_T("call"),             { { 1, A_MAX, HAWK_T("vR")  },  fnc_call,                  0 } },
 	{ HAWK_T("cmgr_exists"),      { { 1, 1,     HAWK_NULL     },  fnc_cmgr_exists,           0 } },
-	{ HAWK_T("func_exists"),      { { 1, 1,     HAWK_NULL     },  fnc_function_exists,       0 } },
-	{ HAWK_T("function_exists"),  { { 1, 1,     HAWK_NULL     },  fnc_function_exists,       0 } },
+	{ HAWK_T("func_exists"),      { { 1, 1,     HAWK_NULL     },  fnc_func_exists,           0 } },
+	{ HAWK_T("function_exists"),  { { 1, 1,     HAWK_NULL     },  fnc_func_exists,           0 } },
 	{ HAWK_T("gc"),               { { 0, 1,     HAWK_NULL     },  fnc_gc,                    0 } },
 	{ HAWK_T("gc_get_pressure"),  { { 1, 1,     HAWK_NULL     },  fnc_gc_get_pressure,       0 } },
 	{ HAWK_T("gc_get_threshold"), { { 1, 1,     HAWK_NULL     },  fnc_gc_get_threshold,      0 } },
