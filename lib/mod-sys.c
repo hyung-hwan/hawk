@@ -1286,12 +1286,24 @@ static int fnc_fseek (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi) /* this is act
 			goto done;
 		}
 
+		if (whence == SEEK_CUR)
+		{
+			/* the descriptor is ahead of the caller by the unread buffered bytes. */
+			if (offset < -(hawk_int_t)(HAWK_TYPE_MAX(hawk_uint_t) >> 1) - 1 + (hawk_int_t)sys_node->ctx.u.file.readbuf_len)
+			{
+				rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_T("seek offset too small"));
+				goto done;
+			}
+			offset -= (hawk_int_t)sys_node->ctx.u.file.readbuf_len;
+		}
+
 		rx = lseek(sys_node->ctx.u.file.fd, offset, whence);
 		if (rx <= -1)
 		{
-			set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
+			rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
 			goto done;
 		}
+		sys_node->ctx.u.file.readbuf_len = 0; /* discard residue data after moving the file pointer */
 	}
 
 done:
@@ -4248,7 +4260,7 @@ static HAWK_INLINE int ctl_epoll_for_fnc (hawk_rtx_t* rtx, const hawk_fnc_info_t
 
 			if (cmd == MUX_CTL_DEL)
 			{
-				if (!(sys_node2->ctx.flags & SYS_NODE_DATA_FLAG_IN_MUX))
+				if (!(sys_node2->ctx.flags & SYS_NODE_DATA_FLAG_IN_MUX) || sys_node2->ctx.u.file.mux != sys_node)
 				{
 					rx = set_error_on_sys_list(rtx, sys_list, HAWK_EPERM, HAWK_T("not in mux"));
 					goto done;
