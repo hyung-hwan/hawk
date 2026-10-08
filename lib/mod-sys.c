@@ -182,6 +182,10 @@ struct sys_node_data_file_t
 	void* mux; /* if SYS_NODE_DATA_FLAG_IN_MUX is set, this is set to a valid pointer. it is of the void* type since sys_node_t is not available yet. */
 	void* x_prev;
 	void* x_next;
+	hawk_uint32_t mux_events;
+	hawk_bch_t* readbuf;
+	hawk_oow_t readbuf_capa;
+	hawk_oow_t readbuf_len;
 };
 typedef struct sys_node_data_file_t sys_node_data_file_t;
 
@@ -215,9 +219,6 @@ typedef struct sys_node_data_t sys_node_data_t;
 struct sys_list_data_t
 {
 	hawk_ooch_t errmsg[256];
-	hawk_bch_t* readbuf;
-	hawk_oow_t readbuf_capa;
-	hawk_oow_t readbuf_len;
 	hawk_ooch_t skadbuf[2][256];
 };
 typedef struct sys_list_data_t sys_list_data_t;
@@ -385,6 +386,7 @@ static sys_node_t* new_sys_node_fd (hawk_rtx_t* rtx, sys_list_t* list, int fd)
 	node = __new_sys_node(rtx, list);
 	if (!node) return HAWK_NULL;
 
+	HAWK_MEMSET(&node->ctx, 0, HAWK_SIZEOF(node->ctx));
 	node->ctx.type = SYS_NODE_DATA_TYPE_FILE;
 	node->ctx.flags = 0;
 	node->ctx.u.file.fd = fd;
@@ -398,6 +400,7 @@ static sys_node_t* new_sys_node_dir (hawk_rtx_t* rtx, sys_list_t* list, hawk_dir
 	node = __new_sys_node(rtx, list);
 	if (!node) return HAWK_NULL;
 
+	HAWK_MEMSET(&node->ctx, 0, HAWK_SIZEOF(node->ctx));
 	node->ctx.type = SYS_NODE_DATA_TYPE_DIR;
 	node->ctx.flags = 0;
 	node->ctx.u.dir = dir;
@@ -411,6 +414,7 @@ static sys_node_t* new_sys_node_mux (hawk_rtx_t* rtx, sys_list_t* list, int fd)
 	node = __new_sys_node(rtx, list);
 	if (!node) return HAWK_NULL;
 
+	HAWK_MEMSET(&node->ctx, 0, HAWK_SIZEOF(node->ctx));
 	node->ctx.type = SYS_NODE_DATA_TYPE_MUX;
 	node->ctx.flags = 0;
 #if defined(USE_EPOLL)
@@ -451,6 +455,8 @@ static void unchain_sys_node_from_mux_node (sys_node_t* mux_node, sys_node_t* no
 	mux_data->x_count--;
 
 	file_data->mux = HAWK_NULL;
+	file_data->x_prev = HAWK_NULL;
+	file_data->x_next = HAWK_NULL;
 }
 
 static void nullify_mux_data (sys_node_data_mux_t* mux_data, hawk_int_t node_id)
@@ -484,9 +490,9 @@ static void del_from_mux (hawk_rtx_t* rtx, sys_node_t* fd_node)
 			case SYS_NODE_DATA_TYPE_SCK:
 				mux_node = (sys_node_t*)fd_node->ctx.u.file.mux;
 			#if defined(USE_EPOLL)
-				epoll_ctl (mux_node->ctx.u.mux.fd, MUX_CTL_DEL, fd_node->ctx.u.file.fd, &ev);
+				epoll_ctl(mux_node->ctx.u.mux.fd, MUX_CTL_DEL, fd_node->ctx.u.file.fd, &ev);
 			#endif
-				nullify_mux_data (&mux_node->ctx.u.mux, fd_node->id);
+				nullify_mux_data(&mux_node->ctx.u.mux, fd_node->id);
 				unchain_sys_node_from_mux_node (mux_node, fd_node);
 				break;
 
@@ -512,9 +518,13 @@ static void free_sys_node (hawk_rtx_t* rtx, sys_list_t* list, sys_node_t* node)
 	{
 		case SYS_NODE_DATA_TYPE_FILE:
 		case SYS_NODE_DATA_TYPE_SCK:
+			del_from_mux(rtx, node);
+			if (node->ctx.u.file.readbuf) hawk_rtx_freemem(rtx, node->ctx.u.file.readbuf);
+			node->ctx.u.file.readbuf = HAWK_NULL;
+			node->ctx.u.file.readbuf_capa = 0;
+			node->ctx.u.file.readbuf_len = 0;
 			if (node->ctx.u.file.fd >= 0)
 			{
-				del_from_mux(rtx, node);
 				close(node->ctx.u.file.fd);
 				node->ctx.u.file.fd = -1;
 			}
@@ -633,13 +643,16 @@ static int fnc_close (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 	if (sys_node)
 	{
+		hawk_oow_t nargs = hawk_rtx_getnargs(rtx);
+
 		/* although free_sys_node can handle other types, sys::close() is allowed to
 		 * close nodes of the SYS_NODE_DATA_TYPE_FILE type only */
-		if (hawk_rtx_getnargs(rtx) >= 2 && (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 1), &cflags) <= -1 || cflags < 0)) cflags = 0;
+		if (nargs >= 2 && (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 1), &cflags) <= -1 || cflags < 0)) cflags = 0;
 
 		if (cflags & CLOSE_KEEPFD)  /* this flag applies to file descriptors only */
 		{
-			sys_node->ctx.u.file.fd = -1; /* you may leak the original file descriptor. */
+			del_from_mux(rtx, sys_node); /* remove the file descriptor from the multiplexer although it's kept unclosed */
+			sys_node->ctx.u.file.fd = -1; /* ownership of the descriptor stays with the caller */
 		}
 
 		free_sys_node(rtx, sys_list, sys_node);
@@ -680,6 +693,12 @@ static int fnc_open (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	pstr = hawk_rtx_getvalbcstr(rtx, a0, &plen);
 	if (pstr)
 	{
+		if (hawk_find_bchar_in_bchars(pstr, plen, '\0'))
+		{
+			hawk_rtx_freevalbcstr(rtx, a0, pstr);
+			rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_T("path contains '\\0'"));
+			goto done;
+		}
 		fd = open(pstr, oflags, mode);
 		hawk_rtx_freevalbcstr(rtx, a0, pstr);
 
@@ -707,6 +726,7 @@ static int fnc_open (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		rx = copy_error_to_sys_list(rtx, sys_list);
 	}
 
+done:
 	HAWK_ASSERT(HAWK_IN_INT_RANGE(rx));
 	hawk_rtx_setretval(rtx, hawk_rtx_makeintval_inline(rtx, rx));
 	return 0;
@@ -772,24 +792,27 @@ static int fnc_read (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 	sys_list = rtx_to_sys_list(rtx, fi);
 	sys_node = get_sys_list_node_with_arg(rtx, sys_list, hawk_rtx_getarg(rtx, 0), SYS_NODE_DATA_TYPE_FILE | SYS_NODE_DATA_TYPE_SCK, &rx);
+
 	if (sys_node)
 	{
-		if (hawk_rtx_getnargs(rtx) >= 3 && (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 2), &reqsize) <= -1 || reqsize <= 0)) reqsize = 8192;
+		hawk_oow_t nargs = hawk_rtx_getnargs(rtx);
+
+		if (nargs >= 3 && (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 2), &reqsize) <= -1 || reqsize <= 0)) reqsize = 8192;
 		if (reqsize > HAWK_INT_MAX) reqsize = HAWK_INT_MAX;
 
-		if (reqsize > sys_list->ctx.readbuf_capa)
+		if (reqsize > sys_node->ctx.u.file.readbuf_capa)
 		{
-			hawk_bch_t* tmp = hawk_rtx_reallocmem(rtx, sys_list->ctx.readbuf, reqsize);
+			hawk_bch_t* tmp = hawk_rtx_reallocmem(rtx, sys_node->ctx.u.file.readbuf, reqsize);
 			if (!tmp)
 			{
 				rx = copy_error_to_sys_list(rtx, sys_list);
 				goto done;
 			}
-			sys_list->ctx.readbuf = tmp;
-			sys_list->ctx.readbuf_capa = reqsize;
+			sys_node->ctx.u.file.readbuf = tmp;
+			sys_node->ctx.u.file.readbuf_capa = reqsize;
 		}
 
-		if (hawk_rtx_getnargs(rtx) >= 4)
+		if (nargs >= 4)
 		{
 			hawk_bch_t* str;
 			hawk_oow_t len;
@@ -807,13 +830,13 @@ static int fnc_read (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			hawk_rtx_freevalbcstr(rtx, a3, str);
 		}
 
-		if (sys_list->ctx.readbuf_len > 0 && delim != HAWK_BCI_EOF)
+		if (sys_node->ctx.u.file.readbuf_len > 0 && delim != HAWK_BCI_EOF)
 		{
 			/* the read buffer has some residue data and the delimiter has been specified */
 			hawk_int_t i;
-			for (i = 0; i < sys_list->ctx.readbuf_len; i++)
+			for (i = 0; i < sys_node->ctx.u.file.readbuf_len && i < reqsize; i++)
 			{
-				if (sys_list->ctx.readbuf[i] == delim)
+				if (sys_node->ctx.u.file.readbuf[i] == delim)
 				{
 					/* the residue data contains the delimiter */
 					rx = i + 1;
@@ -823,12 +846,13 @@ static int fnc_read (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		}
 
 		/* check the residue data is bigger than the maximum data size requested */
-		if (sys_list->ctx.readbuf_len >= reqsize) goto make_val_0;
+		if (sys_node->ctx.u.file.readbuf_len >= reqsize) goto make_val_0;
 
 		/* invoke the read system call */
-		rx = read(sys_node->ctx.u.file.fd, &sys_list->ctx.readbuf[sys_list->ctx.readbuf_len], reqsize - sys_list->ctx.readbuf_len);
+		rx = read(sys_node->ctx.u.file.fd, &sys_node->ctx.u.file.readbuf[sys_node->ctx.u.file.readbuf_len], reqsize - sys_node->ctx.u.file.readbuf_len);
 		if (rx <= 0)
 		{
+			if (rx == 0 && sys_node->ctx.u.file.readbuf_len > 0) goto make_val_0;
 			if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_T("unable to read"));
 			goto done;
 		}
@@ -837,11 +861,11 @@ static int fnc_read (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			hawk_val_t* sv;
 			int x;
 
-			sys_list->ctx.readbuf_len += rx;
+			sys_node->ctx.u.file.readbuf_len += rx;
 
 		make_val_0:
 			/* determine the data size to return */
-			rx = reqsize <= sys_list->ctx.readbuf_len? reqsize: sys_list->ctx.readbuf_len;
+			rx = reqsize <= sys_node->ctx.u.file.readbuf_len? reqsize: sys_node->ctx.u.file.readbuf_len;
 			if (delim != HAWK_BCI_EOF)
 			{
 				/* if the delimiter is specified, check if the data size can be shortened
@@ -849,7 +873,7 @@ static int fnc_read (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 				hawk_int_t i;
 				for (i = 0; i < rx; i++)
 				{
-					if (sys_list->ctx.readbuf[i] == delim)
+					if (sys_node->ctx.u.file.readbuf[i] == delim)
 					{
 						rx = i + 1;
 						break;
@@ -858,20 +882,20 @@ static int fnc_read (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			}
 
 		make_val_1:
-			sv = hawk_rtx_makembsvalwithbchars(rtx, sys_list->ctx.readbuf, rx);
+			sv = hawk_rtx_makembsvalwithbchars(rtx, sys_node->ctx.u.file.readbuf, rx);
 			if (!sv)
 			{
 				rx = copy_error_to_sys_list(rtx, sys_list);
 				goto done;
 			}
 
-			if (rx < sys_list->ctx.readbuf_len)
+			if (rx < sys_node->ctx.u.file.readbuf_len)
 			{
-				HAWK_MEMMOVE (&sys_list->ctx.readbuf[0], &sys_list->ctx.readbuf[rx],
-				              (sys_list->ctx.readbuf_len - rx) * HAWK_SIZEOF(hawk_bch_t));
-				sys_list->ctx.readbuf_len -= rx;
+				HAWK_MEMMOVE(&sys_node->ctx.u.file.readbuf[0], &sys_node->ctx.u.file.readbuf[rx],
+				             (sys_node->ctx.u.file.readbuf_len - rx) * HAWK_SIZEOF(hawk_bch_t));
+				sys_node->ctx.u.file.readbuf_len -= rx;
 			}
-			else sys_list->ctx.readbuf_len =  0;
+			else sys_node->ctx.u.file.readbuf_len =  0;
 
 			hawk_rtx_refupval_inline(rtx, sv);
 			x = hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, 1), sv);
@@ -900,26 +924,28 @@ static int fnc_write (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 	sys_list = rtx_to_sys_list(rtx, fi);
 	sys_node = get_sys_list_node_with_arg(rtx, sys_list, hawk_rtx_getarg(rtx, 0), SYS_NODE_DATA_TYPE_FILE | SYS_NODE_DATA_TYPE_SCK, &rx);
+
 	if (sys_node)
 	{
+		hawk_oow_t nargs = hawk_rtx_getnargs(rtx);
 		hawk_bch_t* dptr;
 		hawk_oow_t dlen;
 		hawk_int_t startpos = 0, maxlen = HAWK_TYPE_MAX(hawk_int_t);
 		hawk_val_t* a1;
 
-		if (hawk_rtx_getnargs(rtx) >= 3 && (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 2), &startpos) <= -1 || startpos < 0)) startpos = 0;
+		if (nargs >= 3 && (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 2), &startpos) <= -1 || startpos < 0)) startpos = 0;
 		else if (startpos > 0) startpos--; /* this position is 1-based */
 
-		if (hawk_rtx_getnargs(rtx) >= 4 && hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 3), &maxlen) <= -1) maxlen = HAWK_TYPE_MAX(hawk_ooi_t);
+		if (nargs >= 4 && hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 3), &maxlen) <= -1) maxlen = HAWK_TYPE_MAX(hawk_ooi_t);
 		else if (maxlen < 0) maxlen = 0;
 
 		a1 = hawk_rtx_getarg(rtx, 1);
 		dptr = hawk_rtx_getvalbcstr(rtx, a1, &dlen);
 		if (dptr)
 		{
-			if (dlen > maxlen) dlen = maxlen;
 			if (startpos >= dlen) startpos = dlen;
 			dlen -= startpos;
+			if (dlen > maxlen) dlen = maxlen;
 
 			rx = write(sys_node->ctx.u.file.fd, &dptr[startpos], dlen);
 			if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_T("unable to write"));
@@ -967,15 +993,17 @@ static int fnc_dup (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 	sys_list = rtx_to_sys_list(rtx, fi);
 	sys_node = get_sys_list_node_with_arg(rtx, sys_list, hawk_rtx_getarg(rtx, 0), SYS_NODE_DATA_TYPE_FILE | SYS_NODE_DATA_TYPE_SCK, &rx);
+
 	if (sys_node)
 	{
+		hawk_oow_t nargs = hawk_rtx_getnargs(rtx);
 		int fd;
 
-		if (hawk_rtx_getnargs(rtx) >= 2)
+		if (nargs >= 2)
 		{
 			sys_node2 = get_sys_list_node_with_arg(rtx, sys_list, hawk_rtx_getarg(rtx, 1), SYS_NODE_DATA_TYPE_FILE, &rx);
 			if (!sys_node2) goto done;
-			if (hawk_rtx_getnargs(rtx) >= 3 && (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 2), &oflags) <= -1 || oflags < 0)) oflags = 0;
+			if (nargs >= 3 && (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 2), &oflags) <= -1 || oflags < 0)) oflags = 0;
 
 			if (sys_node->ctx.u.file.fd == sys_node2->ctx.u.file.fd)
 			{
@@ -986,6 +1014,16 @@ static int fnc_dup (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 		if (sys_node2)
 		{
+		#if defined(USE_EPOLL)
+			/* remember the current multiplxer info to use in case
+			 * the actual dup2/3 operation fails */
+			sys_node_t* old_mux = sys_node2->ctx.u.file.mux;
+			hawk_uint32_t old_events = sys_node2->ctx.u.file.mux_events;
+		#endif
+
+			/* remove the watch while fd still refers to the old open file.
+			 * another duplicate can keep that file alive after dup2/dup3. */
+			del_from_mux(rtx, sys_node2);
 		#if defined(HAVE_DUP3)
 			fd = dup3(sys_node->ctx.u.file.fd, sys_node2->ctx.u.file.fd, oflags);
 		#else
@@ -1015,15 +1053,27 @@ static int fnc_dup (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 				#endif
 				}
 		#endif
-				/* dup2 or dup3 closes the descriptor sys_node2_.ctx.u.file.fd implicitly
-				 * if it's registered in muxtipler, unregister it as well */
-				del_from_mux(rtx, sys_node2);
+				sys_node2->ctx.u.file.readbuf_len = 0;
 				sys_node2->ctx.u.file.fd = fd;
 				sys_node2->ctx.type = sys_node->ctx.type;
 				rx = sys_node2->id;
 			}
 			else
 			{
+				/* duplication failure */
+			#if defined(USE_EPOLL)
+				if (old_mux)
+				{
+					int err = errno;
+					struct epoll_event ev;
+					ev.events = old_events;
+					ev.data.ptr = sys_node2;
+					/* best-effort to restore the multiplexer state using the remembered info */
+					if (epoll_ctl(old_mux->ctx.u.mux.fd, MUX_CTL_ADD, sys_node2->ctx.u.file.fd, &ev) >= 0)
+						chain_sys_node_to_mux_node(old_mux, sys_node2);
+					errno = err;
+				}
+			#endif
 				rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
 			}
 		}
@@ -1174,7 +1224,7 @@ static int fnc_flock (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		get = !!(type & FLOCK_GET);
 		type &= ~(FLOCK_WAIT | FLOCK_GET);
 
-		HAWK_MEMSET (&fl, 0, HAWK_SIZEOF(fl));
+		HAWK_MEMSET(&fl, 0, HAWK_SIZEOF(fl));
 		fl.l_type = type;
 		fl.l_whence = whence;
 		fl.l_start = start;
@@ -1285,7 +1335,7 @@ static int fnc_tcgetattr (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi) /* this is
 		}
 
 		/* make a map value containg configuration */
-		HAWK_MEMSET (md, 0, HAWK_SIZEOF(md));
+		HAWK_MEMSET(md, 0, HAWK_SIZEOF(md));
 
 		md[0].key.ptr = HAWK_T("iflag");
 		md[0].key.len = 5;
@@ -1846,6 +1896,12 @@ static int fnc_opendir (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	a0 = hawk_rtx_getarg(rtx, 0);
 	pstr = hawk_rtx_getvaloocstr(rtx, a0, &plen);
 	if (!pstr) goto fail;
+	if (hawk_find_oochar_in_oochars(pstr, plen, '\0'))
+	{
+		hawk_rtx_freevaloocstr(rtx, a0, pstr);
+		rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_T("path contains '\\0'"));
+		goto done;
+	}
 	dir = hawk_dir_open(hawk_rtx_getgem(rtx), 0, pstr, flags);
 	hawk_rtx_freevaloocstr(rtx, a0, pstr);
 
@@ -1868,6 +1924,7 @@ static int fnc_opendir (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		rx = copy_error_to_sys_list(rtx, sys_list);
 	}
 
+done:
 	/*HAWK_ASSERT(HAWK_IN_INT_RANGE(rx));*/
 	hawk_rtx_setretval(rtx, hawk_rtx_makeintval_inline(rtx, rx));
 	return 0;
@@ -1942,13 +1999,22 @@ static int fnc_resetdir (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	{
 		hawk_ooch_t* path;
 		hawk_val_t* a1;
+		hawk_oow_t len;
 
 		a1 = hawk_rtx_getarg(rtx, 1);
-		path = hawk_rtx_getvaloocstr(rtx, a1, HAWK_NULL);
+		path = hawk_rtx_getvaloocstr(rtx, a1, &len);
 		if (path)
 		{
-			if (hawk_dir_reset(sys_node->ctx.u.dir, path) <= -1) goto fail;
+			int n;
+			if (hawk_find_oochar_in_oochars(path, len, '\0'))
+			{
+				hawk_rtx_freevaloocstr(rtx, a1, path);
+				rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_T("path contains '\\0'"));
+				goto done;
+			}
+			n = hawk_dir_reset(sys_node->ctx.u.dir, path);
 			hawk_rtx_freevaloocstr(rtx, a1, path);
+			if (n <= -1) goto fail;
 		}
 		else
 		{
@@ -1957,6 +2023,7 @@ static int fnc_resetdir (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		}
 	}
 
+done:
 	/* no error check for hawk_rtx_makeintval_inline() here since ret
 	 * is 0 or -1. it will never fail for those numbers */
 	hawk_rtx_setretval(rtx, hawk_rtx_makeintval_inline(rtx, rx));
@@ -2024,7 +2091,7 @@ static int fnc_wait (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	{
 		rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
 	}
-	else
+	else if (rx > 0)
 	{
 		if (nargs >= 2)
 		{
@@ -2688,22 +2755,39 @@ static int fnc_getegid (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 static int val_to_ntime (hawk_rtx_t* rtx, hawk_val_t* val, hawk_ntime_t* nt)
 {
 	hawk_int_t lv;
-	hawk_flt_t fv;
+	hawk_flt_t fv, limit;
+	hawk_ntime_sec_t maxsec;
 	int x;
 
+	maxsec = (hawk_ntime_sec_t)(((hawk_uintmax_t)1 << (HAWK_SIZEOF(hawk_ntime_sec_t) * 8 - 1)) - 1);
 	x = hawk_rtx_valtonum(rtx, val, &lv, &fv);
 	if (x == 0)
 	{
+		if (lv < -maxsec - 1 || lv > maxsec) goto invalid;
 		nt->sec = lv;
 		nt->nsec = 0;
 	}
 	else if (x >= 1)
 	{
-		nt->sec = (hawk_int_t)fv;
+		/* the power-of-two upper bound is exact even with a narrow float type.
+		 * ordered comparisons also reject NaN and infinities.
+		 * [NOTE] fv is NaN, fv < limit is false, so !(fv < limit) is true. */
+		limit = (hawk_flt_t)maxsec + 1.0;
+		if (!(fv >= -limit && fv < limit)) goto invalid;
+		nt->sec = (hawk_ntime_sec_t)fv;
 		nt->nsec = HAWK_SEC_TO_NSEC(fv - nt->sec);
+		if (nt->nsec < 0)
+		{
+			nt->sec--;
+			nt->nsec += HAWK_NSECS_PER_SEC;
+		}
 	}
 
 	return x;
+
+invalid:
+	hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EINVAL);
+	return -1;
 }
 
 static int fnc_sleep (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
@@ -2720,16 +2804,32 @@ static int fnc_sleep (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		goto done;
 	}
 
+	if (nt.sec < 0)
+	{
+		rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_T("negative sleep interval"));
+		goto done;
+	}
+
+#if defined(_WIN32) || defined(__OS2__)
+	if (nt.sec > (HAWK_TYPE_MAX(hawk_uint32_t) / HAWK_MSECS_PER_SEC) ||
+	    (nt.sec == (HAWK_TYPE_MAX(hawk_uint32_t) / HAWK_MSECS_PER_SEC) &&
+	     HAWK_NSEC_TO_MSEC(nt.nsec) > (HAWK_TYPE_MAX(hawk_uint32_t) % HAWK_MSECS_PER_SEC)))
+	{
+		rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_T("sleep interval too large"));
+		goto done;
+	}
+#endif
+
 #if defined(_WIN32)
-	Sleep (HAWK_SECNSEC_TO_MSEC(nt.sec, nt.nsec));
+	Sleep((DWORD)((hawk_uint32_t)nt.sec * HAWK_MSECS_PER_SEC + HAWK_NSEC_TO_MSEC(nt.nsec)));
 	rx = 0;
 #elif defined(__OS2__)
-	DosSleep ((ULONG)HAWK_SECNSEC_TO_MSEC(nt.sec, nt.nsec)));
+	DosSleep((ULONG)((hawk_uint32_t)nt.sec * HAWK_MSECS_PER_SEC + HAWK_NSEC_TO_MSEC(nt.nsec)));
 	rx = 0;
 #elif defined(__DOS__)
 	/* no high-resolution sleep() is available */
 	#if (defined(__WATCOMC__) && (__WATCOMC__ < 1200))
-	sleep (nt.sec);
+	sleep(nt.sec);
 	rx = 0;
 	#else
 	rx = sleep(nt.sec);
@@ -2771,7 +2871,7 @@ static int fnc_gettime (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		sec = sys::gettime(&nanosec));
 	*/
 
-	if (hawk_get_ntime(&now) <= -1) now.sec = 0;
+	if (hawk_get_ntime(&now) <= -1) HAWK_CLEAR_NTIME(&now);
 
 	if (hawk_rtx_getnargs(rtx) >= 1)
 	{
@@ -2818,90 +2918,90 @@ static int fnc_settime (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	return 0;
 }
 
+static int parse_tm_field (const hawk_ooch_t** ptr, const hawk_ooch_t* end, int* value)
+{
+	const hawk_ooch_t* p = *ptr;
+	unsigned int n = 0, limit;
+	int negative = 0;
+
+	while (p < end && hawk_is_ooch_space(*p)) p++;
+
+	if (p < end && (*p == '-' || *p == '+')) negative = (*p++ == '-');
+	if (p >= end || *p < '0' || *p > '9') return -1;
+
+	limit = ((unsigned int)-1) >> 1;
+	if (negative) limit++;
+	while (p < end && *p >= '0' && *p <= '9')
+	{
+		if (n > (limit - (*p - '0')) / 10) return -1;
+		n = n * 10 + (*p++ - '0');
+	}
+	if (p < end && !hawk_is_ooch_space(*p)) return -1;
+
+	*value = negative? (n == limit? -((int)(limit - 1)) - 1: -(int)n): (int)n;
+	*ptr = p;
+	return 0;
+}
+
 static int fnc_mktime (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	hawk_ntime_t nt;
-	hawk_oow_t nargs;
 	hawk_val_t* retv;
 
-	nargs = hawk_rtx_getnargs(rtx);
-	if (nargs >= 1)
+	if (hawk_rtx_getnargs(rtx) >= 1)
 	{
-		int sign;
-		hawk_ooch_t* str, * p, * end;
+		hawk_ooch_t* str;
+		const hawk_ooch_t* p, * end;
 		hawk_oow_t len;
 		hawk_val_t* a0;
 		struct tm tm;
+		int minint = -((int)(((unsigned int)-1) >> 1)) - 1;
 
 		a0 = hawk_rtx_getarg(rtx, 0);
 		str = hawk_rtx_getvaloocstr(rtx, a0, &len);
-		if (str == HAWK_NULL) return -1;
-
-		/* the string must be of the format  YYYY MM DD HH MM SS[ DST] */
+		if (HAWK_UNLIKELY(!str)) return -1;
 		p = str;
 		end = str + len;
-		HAWK_MEMSET (&tm, 0, HAWK_SIZEOF(tm));
 
-		sign = 1;
-		if (p < end && *p == '-') { sign = -1; p++; }
-		while (p < end && hawk_is_ooch_digit(*p)) tm.tm_year = tm.tm_year * 10 + (*p++ - '0');
-		tm.tm_year *= sign;
+		HAWK_MEMSET(&tm, 0, HAWK_SIZEOF(tm));
+		/* YYYY MM DD HH MM SS[ DST]; reject overflow before arithmetic. */
+		if (parse_tm_field(&p, end, &tm.tm_year) <= -1 || tm.tm_year < minint + 1900 ||
+		    parse_tm_field(&p, end, &tm.tm_mon) <= -1 || tm.tm_mon == minint ||
+		    parse_tm_field(&p, end, &tm.tm_mday) <= -1 ||
+		    parse_tm_field(&p, end, &tm.tm_hour) <= -1 ||
+		    parse_tm_field(&p, end, &tm.tm_min) <= -1 ||
+		    parse_tm_field(&p, end, &tm.tm_sec) <= -1) goto invalid;
 		tm.tm_year -= 1900;
-		while (p < end && (hawk_is_ooch_space(*p) || *p == '\0')) p++;
+		tm.tm_mon--;
 
-		sign = 1;
-		if (p < end && *p == '-') { sign = -1; p++; }
-		while (p < end && hawk_is_ooch_digit(*p)) tm.tm_mon = tm.tm_mon * 10 + (*p++ - '0');
-		tm.tm_mon *= sign;
-		tm.tm_mon -= 1;
-		while (p < end && (hawk_is_ooch_space(*p) || *p == '\0')) p++;
-
-		sign = 1;
-		if (p < end && *p == '-') { sign = -1; p++; }
-		while (p < end && hawk_is_ooch_digit(*p)) tm.tm_mday = tm.tm_mday * 10 + (*p++ - '0');
-		tm.tm_mday *= sign;
-		while (p < end && (hawk_is_ooch_space(*p) || *p == '\0')) p++;
-
-		sign = 1;
-		if (p < end && *p == '-') { sign = -1; p++; }
-		while (p < end && hawk_is_ooch_digit(*p)) tm.tm_hour = tm.tm_hour * 10 + (*p++ - '0');
-		tm.tm_hour *= sign;
-		while (p < end && (hawk_is_ooch_space(*p) || *p == '\0')) p++;
-
-		sign = 1;
-		if (p < end && *p == '-') { sign = -1; p++; }
-		while (p < end && hawk_is_ooch_digit(*p)) tm.tm_min = tm.tm_min * 10 + (*p++ - '0');
-		tm.tm_min *= sign;
-		while (p < end && (hawk_is_ooch_space(*p) || *p == '\0')) p++;
-
-		sign = 1;
-		if (p < end && *p == '-') { sign = -1; p++; }
-		while (p < end && hawk_is_ooch_digit(*p)) tm.tm_sec = tm.tm_sec * 10 + (*p++ - '0');
-		tm.tm_sec *= sign;
-		while (p < end && (hawk_is_ooch_space(*p) || *p == '\0')) p++;
-
-		sign = 1;
-		if (p < end && *p == '-') { sign = -1; p++; }
-		while (p < end && hawk_is_ooch_digit(*p)) tm.tm_isdst = tm.tm_isdst * 10 + (*p++ - '0');
-		tm.tm_isdst *= sign;
-		while (p < end && (hawk_is_ooch_space(*p) || *p == '\0')) p++;
-
+		while (p < end && hawk_is_ooch_space(*p)) p++;
+		if (p < end)
+		{
+			if (parse_tm_field(&p, end, &tm.tm_isdst) <= -1) goto invalid;
+			while (p < end && hawk_is_ooch_space(*p)) p++;
+			if (p < end) goto invalid;
+		}
 		hawk_rtx_freevaloocstr(rtx, a0, str);
 	#if defined(HAVE_TIMELOCAL)
 		nt.sec = timelocal(&tm);
 	#else
 		nt.sec = mktime(&tm);
 	#endif
+		goto done;
+
+	invalid:
+		hawk_rtx_freevaloocstr(rtx, a0, str);
+		hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EINVAL);
+		return -1;
 	}
 	else
 	{
-		/* get the current time when no argument is given */
-		hawk_get_ntime (&nt);
+		if (hawk_get_ntime(&nt) <= -1) HAWK_CLEAR_NTIME(&nt);
 	}
 
+done:
 	retv = hawk_rtx_makeintval_inline(rtx, nt.sec);
-	if (retv == HAWK_NULL) return -1;
-
+	if (!retv) return -1;
 	hawk_rtx_setretval(rtx, retv);
 	return 0;
 }
@@ -2909,78 +3009,68 @@ static int fnc_mktime (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 #define STRFTIME_UTC (1 << 0)
 
+/*
+ * sys::strftime("%Y-%m-%d %H:%M:%S %z", sys::gettime());
+ * sys::strftime("%Y-%m-%d %H:%M:%S %z", sys::gettime(), sys::STRFTIME_UTC);
+ */
 static int fnc_strftime (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
-
-	/*
-	sys::strftime("%Y-%m-%d %H:%M:%S %z", sys::gettime());
-	sys::strftime("%Y-%m-%d %H:%M:%S %z", sys::gettime(), sys::STRFTIME_UTC);
-	*/
-
-	hawk_bch_t* fmt;
-	hawk_oow_t len;
+	hawk_bch_t* fmt, * tmpfmt, * buf, * tmp;
+	hawk_bch_t staticbuf[64];
+	hawk_oow_t len, capa, sl;
 	hawk_val_t* retv;
+	hawk_int_t seconds, flags = 0;
+	struct tm tm, * tmx;
+	time_t t;
 
 	fmt = hawk_rtx_valtobcstrdup(rtx, hawk_rtx_getarg(rtx, 0), &len);
-	if (fmt)
+	if (HAWK_UNLIKELY(!fmt)) return -1;
+
+	buf = staticbuf;
+	capa = HAWK_COUNTOF(staticbuf);
+
+	/* a literal prefix makes a successful empty expansion distinguishable
+	 * from strftime's zero return for an insufficient buffer. */
+	if (len > HAWK_TYPE_MAX(hawk_oow_t) - 2)
 	{
-		hawk_ntime_t nt;
-		struct tm tm, * tmx;
-		hawk_int_t tmpsec, flags = 0;
+		hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_ENOMEM);
+		goto oops;
+	}
+	tmpfmt = hawk_rtx_reallocmem(rtx, fmt, len + 2);
+	if (!tmpfmt) goto oops;
 
-		nt.nsec = 0;
-		if (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 1), &tmpsec) <= -1)
-		{
-			nt.sec = 0;
-		}
-		else
-		{
-			nt.sec = tmpsec;
-		}
+	fmt = tmpfmt;
+	HAWK_MEMMOVE(fmt + 1, fmt, len + 1);
+	fmt[0] = ' '; /* distinguish successful empty expansion from insufficient buffer */
 
-		if (hawk_rtx_getnargs(rtx) >= 3 && (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 2), &flags) <= -1 || flags < 0)) flags = 0;
+	if (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 1), &seconds) <= -1) seconds = 0;
+	t = seconds;
 
-		if (flags & STRFTIME_UTC)
-		{
-			time_t t = nt.sec;
-		#if defined(HAVE_GMTIME_R)
-			tmx = gmtime_r(&t, &tm);
-		#else
-			tmx = gmtime(&t);
-		#endif
-		}
-		else
-		{
-			time_t t = nt.sec;
-		#if defined(HAVE_LOCALTIME_R)
-			tmx = localtime_r(&t, &tm);
-		#else
-			tmx = localtime(&t);
-		#endif
-		}
-
-		if (tmx)
-		{
-			hawk_bch_t tmpbuf[64], * tmpptr;
-			hawk_oow_t sl;
-
-#if 0
-			if (flags & STRFTIME_UTC)
-			{
-			#if defined(HAVE_STRUCT_TM_TM_ZONE)
-				tm.tm_zone = "GMT";
-			#elif defined(HAVE_STRUCT_TM___TM_ZONE)
-				tm.__tm_zone = "GMT";
-			#endif
-			}
-#endif
-
-			sl = strftime(tmpbuf, HAWK_COUNTOF(tmpbuf), fmt, tmx);
-			if (sl <= 0 || sl >= HAWK_COUNTOF(tmpbuf))
-			{
-				/* buffer too small */
-				hawk_bch_t* tmp;
-				hawk_oow_t tmpcapa, i, count = 0;
+	if (hawk_rtx_getnargs(rtx) >= 3 &&
+	    (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 2), &flags) <= -1 || flags < 0)) flags = 0;
+	if (flags & STRFTIME_UTC)
+	{
+	#if defined(HAVE_GMTIME_R)
+		tmx = gmtime_r(&t, &tm);
+	#else
+		tmx = gmtime(&t);
+	#endif
+	}
+	else
+	{
+	#if defined(HAVE_LOCALTIME_R)
+		tmx = localtime_r(&t, &tm);
+	#else
+		tmx = localtime(&t);
+	#endif
+	}
+	if (!tmx)
+	{
+		hawk_rtx_freemem(rtx, fmt);
+		return 0;
+	}
+	/* gmtime/localtime can return static storage; retain one stable copy. */
+	if (tmx != &tm) tm = *tmx;
 
 /*
 man strftime >>>
@@ -2992,72 +3082,40 @@ RETURN VALUE
        small.)
 
        Note that the return value 0 does not necessarily indicate an error; for example, in many locales %p yields an empty string.
-
---------------------------------------------------------------------------------------
-*
-I use 'count' to limit the maximum number of retries when 0 is returned.
 */
 
-				for (i = 0; i < len;)
-				{
-					if (fmt[i] == HAWK_BT('%'))
-					{
-						count++; /* the nubmer of % specifier */
-						i++;
-						if (i < len) i++;
-					}
-					else i++;
-				}
-
-				tmpptr = HAWK_NULL;
-				tmpcapa = HAWK_COUNTOF(tmpbuf);
-				if (tmpcapa < len) tmpcapa = len;
-
-				do
-				{
-					if (count <= 0)
-					{
-						if (tmpptr) hawk_rtx_freemem(rtx, tmpptr);
-						tmpbuf[0] = HAWK_BT('\0');
-						tmpptr = tmpbuf;
-						break;
-					}
-					count--;
-
-					tmpcapa *= 2;
-					tmp = (hawk_bch_t*)hawk_rtx_reallocmem(rtx, tmpptr, tmpcapa * HAWK_SIZEOF(*tmpptr));
-					if (!tmp)
-					{
-						if (tmpptr) hawk_rtx_freemem(rtx, tmpptr);
-						tmpbuf[0] = HAWK_BT('\0');
-						tmpptr = tmpbuf;
-						break;
-					}
-
-					tmpptr = tmp;
-					sl = strftime(tmpptr, tmpcapa, fmt, &tm);
-				}
-				while (sl <= 0 || sl >= tmpcapa);
-			}
-			else
-			{
-				tmpptr = tmpbuf;
-			}
-			hawk_rtx_freemem(rtx, fmt);
-
-			retv = hawk_rtx_makestrvalwithbcstr(rtx, tmpptr);
-			if (tmpptr && tmpptr != tmpbuf) hawk_rtx_freemem(rtx, tmpptr);
-			if (retv == HAWK_NULL) return -1;
-
-			hawk_rtx_setretval(rtx, retv);
-		}
-		else
+	while (1)
+	{
+		sl = strftime(buf, capa, fmt, &tm);
+		/* the leading space guarantees at least one output byte on success.
+		 * sl == 0 therefore cannot indicate a successful empty expansion. */
+		if (sl > 0 && sl < capa) break;
+		if (capa > HAWK_TYPE_MAX(hawk_oow_t) / 2)
 		{
-			hawk_rtx_freemem(rtx, fmt);
+			hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_ENOMEM);
+			goto oops;
 		}
+		capa *= 2;
+
+		tmp = hawk_rtx_reallocmem(rtx, buf == staticbuf? HAWK_NULL: buf, capa);
+		if (HAWK_UNLIKELY(!tmp)) goto oops;
+
+		buf = tmp;
 	}
 
+	/* buf + 1, sl - 1 to skip the leading space and exclude it from the output length */
+	retv = hawk_rtx_makestrvalwithbchars(rtx, buf + 1, sl - 1);
+	if (HAWK_UNLIKELY(!retv)) goto oops;
+
+	if (buf != staticbuf) hawk_rtx_freemem(rtx, buf);
+	hawk_rtx_freemem(rtx, fmt);
+	hawk_rtx_setretval(rtx, retv);
 	return 0;
+
+oops:
+	if (buf != staticbuf) hawk_rtx_freemem(rtx, buf);
+	hawk_rtx_freemem(rtx, fmt);
+	return -1;
 }
 
 /*
@@ -3335,7 +3393,7 @@ static int fnc_getifcfg (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 	sys_list = rtx_to_sys_list(rtx, fi);
 
-	HAWK_MEMSET (&cfg, 0, HAWK_SIZEOF(cfg));
+	HAWK_MEMSET(&cfg, 0, HAWK_SIZEOF(cfg));
 
 	out.type = HAWK_RTX_VALTOSTR_CPLCPY;
 	out.u.cplcpy.ptr = cfg.name;
@@ -3355,7 +3413,7 @@ static int fnc_getifcfg (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		if (hawk_gem_getifcfg(hawk_rtx_getgem(rtx), &cfg) <= -1) goto fail;
 
 		/* make a map value containg configuration */
-		HAWK_MEMSET (md, 0, HAWK_SIZEOF(md));
+		HAWK_MEMSET(md, 0, HAWK_SIZEOF(md));
 
 		md[0].key.ptr = HAWK_T("index");
 		md[0].key.len = 5;
@@ -3913,7 +3971,7 @@ static int fnc_stat (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			goto done;
 		}
 
-		HAWK_MEMSET (md, 0, HAWK_SIZEOF(md));
+		HAWK_MEMSET(md, 0, HAWK_SIZEOF(md));
 
 		md[0].key.ptr = HAWK_T("dev");
 		md[0].key.len = 3;
@@ -4259,14 +4317,16 @@ static HAWK_INLINE int ctl_epoll_for_fnc (hawk_rtx_t* rtx, const hawk_fnc_info_t
 						switch (cmd)
 						{
 							case MUX_CTL_ADD:
+								sys_node2->ctx.u.file.mux_events = ev.events;
 								chain_sys_node_to_mux_node (sys_node, sys_node2);
 								break;
 							case MUX_CTL_DEL:
-								nullify_mux_data (&sys_node->ctx.u.mux, sys_node2->id);
+								nullify_mux_data(&sys_node->ctx.u.mux, sys_node2->id);
 								unchain_sys_node_from_mux_node(sys_node, sys_node2);
 								break;
 
 							case MUX_CTL_MOD:
+								sys_node2->ctx.u.file.mux_events = ev.events;
 								break;
 						}
 						break;
@@ -4332,20 +4392,32 @@ static int fnc_waitonmux (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		sys_node_data_mux_t* mux_data = &sys_node->ctx.u.mux;
 		hawk_ntime_t tmout;
 
-		if (val_to_ntime(rtx, hawk_rtx_getarg(rtx, 1), &tmout) <= -1 || tmout.sec <= -1) { tmout.sec = 0; tmout.nsec = HAWK_MSEC_TO_NSEC(-1); }
+		if (val_to_ntime(rtx, hawk_rtx_getarg(rtx, 1), &tmout) <= -1)
+		{
+			rx = copy_error_to_sys_list(rtx, sys_list);
+			goto done;
+		}
+		if (tmout.sec < 0) { tmout.sec = 0; tmout.nsec = HAWK_MSEC_TO_NSEC(-1); }
+		else if (tmout.sec > HAWK_TYPE_MAX(int) / HAWK_MSECS_PER_SEC ||
+		         (tmout.sec == HAWK_TYPE_MAX(int) / HAWK_MSECS_PER_SEC &&
+		          HAWK_NSEC_TO_MSEC(tmout.nsec) > HAWK_TYPE_MAX(int) % HAWK_MSECS_PER_SEC))
+		{
+			rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_T("mux timeout too large"));
+			goto done;
+		}
 
-		if (mux_data->x_evt_max < mux_data->x_count)
+		if (mux_data->x_evt_max == 0 || mux_data->x_evt_max < mux_data->x_count)
 		{
 			struct epoll_event* tmp;
 
-			tmp = hawk_rtx_reallocmem(rtx, mux_data->x_evt, HAWK_SIZEOF(*tmp) * HAWK_ALIGN(mux_data->x_count, 64));
+			tmp = hawk_rtx_reallocmem(rtx, mux_data->x_evt, HAWK_SIZEOF(*tmp) * HAWK_ALIGN(mux_data->x_count + 1, 64));
 			if (!tmp)
 			{
 				rx = copy_error_to_sys_list(rtx, sys_list);
 				goto done;
 			}
 
-			mux_data->x_evt_max = HAWK_ALIGN(mux_data->x_count, 64);
+			mux_data->x_evt_max = HAWK_ALIGN(mux_data->x_count + 1, 64);
 			mux_data->x_evt = tmp;
 		}
 
@@ -4573,23 +4645,23 @@ static int fnc_recvfrom (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		if (hawk_rtx_getnargs(rtx) >= 3 && (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 2), &reqsize) <= -1 || reqsize <= 0)) reqsize = 8192;
 		if (reqsize > HAWK_INT_MAX) reqsize = HAWK_INT_MAX;
 
-		if (reqsize > sys_list->ctx.readbuf_capa)
+		if (reqsize > sys_node->ctx.u.file.readbuf_capa)
 		{
-			hawk_bch_t* tmp = hawk_rtx_reallocmem(rtx, sys_list->ctx.readbuf, reqsize);
+			hawk_bch_t* tmp = hawk_rtx_reallocmem(rtx, sys_node->ctx.u.file.readbuf, reqsize);
 			if (!tmp)
 			{
 				rx = copy_error_to_sys_list(rtx, sys_list);
 				goto done;
 			}
-			sys_list->ctx.readbuf = tmp;
-			sys_list->ctx.readbuf_capa = reqsize;
+			sys_node->ctx.u.file.readbuf = tmp;
+			sys_node->ctx.u.file.readbuf_capa = reqsize;
 		}
 
 		addrlen = HAWK_SIZEOF(skad);
-		rx = recvfrom(sys_node->ctx.u.file.fd, sys_list->ctx.readbuf, reqsize, 0, (struct sockaddr*)&skad, &addrlen);
-		if (rx <= 0)
+		rx = recvfrom(sys_node->ctx.u.file.fd, sys_node->ctx.u.file.readbuf, reqsize, 0, (struct sockaddr*)&skad, &addrlen);
+		if (rx <= -1)
 		{
-			if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_T("unable to read"));
+			rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_T("unable to read"));
 			goto done;
 		}
 		else
@@ -4597,12 +4669,10 @@ static int fnc_recvfrom (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			hawk_val_t* sv;
 			int x;
 
-			/* avoid conflict with mixed calls to sys::read() and sys::recvfrom().
-			 * sys::recvfrom() discards residue data by sys::read() and it leaves
-			 * no residue by itself. */
-			sys_list->ctx.readbuf_len = 0;
+			/* discard residue only on this descriptor; recvfrom leaves none. */
+			sys_node->ctx.u.file.readbuf_len = 0;
 
-			sv = hawk_rtx_makembsvalwithbchars(rtx, sys_list->ctx.readbuf, rx);
+			sv = hawk_rtx_makembsvalwithbchars(rtx, sys_node->ctx.u.file.readbuf, rx);
 			if (!sv)
 			{
 				rx = copy_error_to_sys_list(rtx, sys_list);
@@ -4868,6 +4938,7 @@ static int fnc_accept (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			if (!sv)
 			{
 				rx = copy_error_to_sys_list(rtx, sys_list);
+				close(fd);
 				goto done;
 			}
 
@@ -4877,6 +4948,7 @@ static int fnc_accept (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			if (x <= -1)
 			{
 				rx = copy_error_to_sys_list(rtx, sys_list);
+				close(fd);
 				goto done;
 			}
 		}
@@ -4952,15 +5024,20 @@ static int fnc_setsockopt (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			{
 				hawk_ntime_t tmp;
 				if (val_to_ntime(rtx, hawk_rtx_getarg(rtx, 3), &tmp) <= -1) goto fail;
+				if (tmp.sec < 0)
+				{
+					rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_T("negative socket timeout"));
+					goto done;
+				}
 				tv.tv_sec = tmp.sec;
-				tv.tv_usec = HAWK_NSEC_TO_MSEC(tmp.nsec);
+				tv.tv_usec = HAWK_NSEC_TO_USEC(tmp.nsec);
 				vptr = &tv;
 				vlen = HAWK_SIZEOF(tv);
 				break;
 			}
 
 			default:
-				rx = set_error_on_sys_list(rtx, sys_list, EINVAL, HAWK_NULL);
+				rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_NULL);
 				goto done;
 		}
 
@@ -5024,12 +5101,12 @@ open_socket:
 		int flags;
 
 		flags = fcntl(sck, F_GETFD, 0);
-		if (flags <= -1) return;
+		if (flags <= -1) goto oops;
 #if defined(FD_CLOEXEC)
 		flags |= FD_CLOEXEC;
 #endif
 	#if defined(F_SETFD)
-		if (fcntl(sck, F_SETFD, flags) <= -1) return;
+		if (fcntl(sck, F_SETFD, flags) <= -1) goto oops;
 	#endif
 	}
 #endif
@@ -5038,16 +5115,24 @@ open_socket:
 		int flags;
 
 		flags = fcntl(sck, F_GETFL, 0);
-		if (flags <= -1) return;
+		if (flags <= -1) goto oops;
 #if defined(O_NONBLOCK)
 		flags |= O_NONBLOCK;
 #endif
-		if (fcntl(sck, F_SETFL, flags) <= -1) return;
+		if (fcntl(sck, F_SETFL, flags) <= -1) goto oops;
 	}
 #endif
 
 done:
 	rdp->log.sck = sck;
+	return;
+
+oops:
+	{
+		int err = errno;
+		close(sck);
+		errno = err;
+	}
 }
 
 static int fnc_openlog (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
@@ -5517,7 +5602,13 @@ static int ensure_pack_buf (hawk_rtx_t* rtx, rtx_data_t* rdp, hawk_oow_t reqsz)
 		hawk_uint8_t* tmp;
 		hawk_oow_t newcapa;
 
-		newcapa = HAWK_ALIGN_POW2(rdp->pack.capa + reqsz, 256);
+		if (rdp->pack.len > (HAWK_TYPE_MAX(hawk_oow_t) >> 1) - 255 ||
+		    reqsz > (HAWK_TYPE_MAX(hawk_oow_t) >> 1) - 255 - rdp->pack.len)
+		{
+			hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EINVAL);
+			return -1;
+		}
+		newcapa = HAWK_ALIGN_POW2(rdp->pack.len + reqsz, 256);
 		if (rdp->pack.ptr == rdp->pack.__static_buf)
 		{
 			tmp = hawk_rtx_allocmem(rtx, newcapa);
@@ -5546,7 +5637,8 @@ static hawk_int_t pack_data (hawk_rtx_t* rtx, const hawk_oocs_t* fmt, const hawk
 
 #define PACK_CHECK_ARG_AND_BUF(reqarg, reqsz) do { \
 	if (arg_cnt - arg_idx < reqarg) return set_error_on_sys_list(rtx, &rdp->sys_list, HAWK_EARGTF, HAWK_NULL); \
-	if (ensure_pack_buf(rtx, rdp, reqsz)  <= -1) goto oops_internal; \
+	if (rep_cnt > HAWK_TYPE_MAX(hawk_oow_t) / (reqsz)) return set_error_on_sys_list(rtx, &rdp->sys_list, HAWK_EINVAL, HAWK_T("repeat count too large")); \
+	if (ensure_pack_buf(rtx, rdp, rep_cnt * (reqsz)) <= -1) goto oops_internal; \
 } while(0)
 
 	rdp->pack.len = 0;
@@ -5581,14 +5673,14 @@ static hawk_int_t pack_data (hawk_rtx_t* rtx, const hawk_oocs_t* fmt, const hawk
 				break;
 
 			case 'x': /* zero-padding */
-				PACK_CHECK_ARG_AND_BUF(0, rep_cnt * HAWK_SIZEOF(hawk_uint8_t));
+				PACK_CHECK_ARG_AND_BUF(0, HAWK_SIZEOF(hawk_uint8_t));
 				for (rc = 0; rc < rep_cnt; rc++) rdp->pack.ptr[rdp->pack.len++] = 0;
 				break;
 
 			case 'b': /* byte, char */
 			{
 				hawk_int_t v;
-				PACK_CHECK_ARG_AND_BUF(rep_cnt, HAWK_SIZEOF(hawk_int8_t) * rep_cnt);
+				PACK_CHECK_ARG_AND_BUF(rep_cnt, HAWK_SIZEOF(hawk_int8_t));
 				for (rc = 0; rc < rep_cnt; rc++)
 				{
 					hawk_val_t* tmp = hawk_rtx_getarg(rtx, arg_idx++);
@@ -5601,7 +5693,7 @@ static hawk_int_t pack_data (hawk_rtx_t* rtx, const hawk_oocs_t* fmt, const hawk
 			case 'B':
 			{
 				hawk_int_t v;
-				PACK_CHECK_ARG_AND_BUF(rep_cnt, HAWK_SIZEOF(hawk_uint8_t) * rep_cnt);
+				PACK_CHECK_ARG_AND_BUF(rep_cnt, HAWK_SIZEOF(hawk_uint8_t));
 				for (rc = 0; rc < rep_cnt; rc++)
 				{
 					hawk_val_t* tmp = hawk_rtx_getarg(rtx, arg_idx++);
@@ -5614,7 +5706,7 @@ static hawk_int_t pack_data (hawk_rtx_t* rtx, const hawk_oocs_t* fmt, const hawk
 			case 'h': /* 2 bytes signed */
 			{
 				hawk_int_t v;
-				PACK_CHECK_ARG_AND_BUF(rep_cnt, HAWK_SIZEOF(hawk_int16_t) * rep_cnt);
+				PACK_CHECK_ARG_AND_BUF(rep_cnt, HAWK_SIZEOF(hawk_int16_t));
 				for (rc = 0; rc < rep_cnt; rc++)
 				{
 					hawk_val_t* tmp = hawk_rtx_getarg(rtx, arg_idx++);
@@ -5627,7 +5719,7 @@ static hawk_int_t pack_data (hawk_rtx_t* rtx, const hawk_oocs_t* fmt, const hawk
 			case 'H': /* 2 bytes unsigned */
 			{
 				hawk_int_t v;
-				PACK_CHECK_ARG_AND_BUF(rep_cnt, HAWK_SIZEOF(hawk_uint16_t) * rep_cnt);
+				PACK_CHECK_ARG_AND_BUF(rep_cnt, HAWK_SIZEOF(hawk_uint16_t));
 				for (rc = 0; rc < rep_cnt; rc++)
 				{
 					hawk_val_t* tmp = hawk_rtx_getarg(rtx, arg_idx++);
@@ -5640,7 +5732,7 @@ static hawk_int_t pack_data (hawk_rtx_t* rtx, const hawk_oocs_t* fmt, const hawk
 			case 'i':
 			{
 				hawk_int_t v;
-				PACK_CHECK_ARG_AND_BUF(rep_cnt, HAWK_SIZEOF(hawk_int32_t) * rep_cnt);
+				PACK_CHECK_ARG_AND_BUF(rep_cnt, HAWK_SIZEOF(hawk_int32_t));
 				for (rc = 0; rc < rep_cnt; rc++)
 				{
 					hawk_val_t* tmp = hawk_rtx_getarg(rtx, arg_idx++);
@@ -5653,7 +5745,7 @@ static hawk_int_t pack_data (hawk_rtx_t* rtx, const hawk_oocs_t* fmt, const hawk
 			case 'I':
 			{
 				hawk_int_t v;
-				PACK_CHECK_ARG_AND_BUF(rep_cnt, HAWK_SIZEOF(hawk_uint32_t) * rep_cnt);
+				PACK_CHECK_ARG_AND_BUF(rep_cnt, HAWK_SIZEOF(hawk_uint32_t));
 				for (rc = 0; rc < rep_cnt; rc++)
 				{
 					hawk_val_t* tmp = hawk_rtx_getarg(rtx, arg_idx++);
@@ -5667,7 +5759,7 @@ static hawk_int_t pack_data (hawk_rtx_t* rtx, const hawk_oocs_t* fmt, const hawk
 			case 'l':
 			{
 				hawk_int_t v;
-				PACK_CHECK_ARG_AND_BUF(rep_cnt, HAWK_SIZEOF(hawk_int64_t) * rep_cnt);
+				PACK_CHECK_ARG_AND_BUF(rep_cnt, HAWK_SIZEOF(hawk_int64_t));
 				for (rc = 0; rc < rep_cnt; rc++)
 				{
 					hawk_val_t* tmp = hawk_rtx_getarg(rtx, arg_idx++);
@@ -5682,7 +5774,7 @@ static hawk_int_t pack_data (hawk_rtx_t* rtx, const hawk_oocs_t* fmt, const hawk
 			case 'L':
 			{
 				hawk_int_t v;
-				PACK_CHECK_ARG_AND_BUF(rep_cnt, HAWK_SIZEOF(hawk_uint64_t) * rep_cnt);
+				PACK_CHECK_ARG_AND_BUF(rep_cnt, HAWK_SIZEOF(hawk_uint64_t));
 				for (rc = 0; rc < rep_cnt; rc++)
 				{
 					hawk_val_t* tmp = hawk_rtx_getarg(rtx, arg_idx++);
@@ -5696,7 +5788,7 @@ static hawk_int_t pack_data (hawk_rtx_t* rtx, const hawk_oocs_t* fmt, const hawk
 			case 'q':
 			{
 				hawk_int_t v;
-				PACK_CHECK_ARG_AND_BUF(rep_cnt, HAWK_SIZEOF(hawk_intmax_t) * rep_cnt);
+				PACK_CHECK_ARG_AND_BUF(rep_cnt, HAWK_SIZEOF(hawk_intmax_t));
 				for (rc = 0; rc < rep_cnt; rc++)
 				{
 					hawk_val_t* tmp = hawk_rtx_getarg(rtx, arg_idx++);
@@ -5709,7 +5801,7 @@ static hawk_int_t pack_data (hawk_rtx_t* rtx, const hawk_oocs_t* fmt, const hawk
 			case 'Q':
 			{
 				hawk_int_t v;
-				PACK_CHECK_ARG_AND_BUF(rep_cnt, HAWK_SIZEOF(hawk_uintmax_t) * rep_cnt);
+				PACK_CHECK_ARG_AND_BUF(rep_cnt, HAWK_SIZEOF(hawk_uintmax_t));
 				for (rc = 0; rc < rep_cnt; rc++)
 				{
 					hawk_val_t* tmp = hawk_rtx_getarg(rtx, arg_idx++);
@@ -5722,7 +5814,7 @@ static hawk_int_t pack_data (hawk_rtx_t* rtx, const hawk_oocs_t* fmt, const hawk
 			case 'n':
 			{
 				hawk_int_t v;
-				PACK_CHECK_ARG_AND_BUF(rep_cnt, HAWK_SIZEOF(hawk_intptr_t) * rep_cnt);
+				PACK_CHECK_ARG_AND_BUF(rep_cnt, HAWK_SIZEOF(hawk_intptr_t));
 				for (rc = 0; rc < rep_cnt; rc++)
 				{
 					hawk_val_t* tmp = hawk_rtx_getarg(rtx, arg_idx++);
@@ -5735,7 +5827,7 @@ static hawk_int_t pack_data (hawk_rtx_t* rtx, const hawk_oocs_t* fmt, const hawk
 			case 'N':
 			{
 				hawk_int_t v;
-				PACK_CHECK_ARG_AND_BUF(rep_cnt, HAWK_SIZEOF(hawk_uintptr_t) * rep_cnt);
+				PACK_CHECK_ARG_AND_BUF(rep_cnt, HAWK_SIZEOF(hawk_uintptr_t));
 				for (rc = 0; rc < rep_cnt; rc++)
 				{
 					hawk_val_t* tmp = hawk_rtx_getarg(rtx, arg_idx++);
@@ -5752,7 +5844,7 @@ static hawk_int_t pack_data (hawk_rtx_t* rtx, const hawk_oocs_t* fmt, const hawk
 				float x;
 				hawk_uint32_t y;
 				HAWK_ASSERT(HAWK_SIZEOF(float) == HAWK_SIZEOF(hawk_uint32_t));
-				PACK_CHECK_ARG_AND_BUF(rep_cnt, HAWK_SIZEOF(hawk_uint32_t) * rep_cnt);
+				PACK_CHECK_ARG_AND_BUF(rep_cnt, HAWK_SIZEOF(hawk_uint32_t));
 				for (rc = 0; rc < rep_cnt; rc++)
 				{
 					hawk_val_t* tmp = hawk_rtx_getarg(rtx, arg_idx++);
@@ -5771,7 +5863,7 @@ static hawk_int_t pack_data (hawk_rtx_t* rtx, const hawk_oocs_t* fmt, const hawk
 				double x;
 				hawk_uint64_t y;
 				HAWK_ASSERT(HAWK_SIZEOF(double) == HAWK_SIZEOF(hawk_uint64_t));
-				PACK_CHECK_ARG_AND_BUF(rep_cnt, HAWK_SIZEOF(hawk_uint64_t) * rep_cnt);
+				PACK_CHECK_ARG_AND_BUF(rep_cnt, HAWK_SIZEOF(hawk_uint64_t));
 				for (rc = 0; rc < rep_cnt; rc++)
 				{
 					hawk_val_t* tmp = hawk_rtx_getarg(rtx, arg_idx++);
@@ -5789,7 +5881,7 @@ static hawk_int_t pack_data (hawk_rtx_t* rtx, const hawk_oocs_t* fmt, const hawk
 				hawk_val_t* a;
 				hawk_bcs_t tmp;
 
-				PACK_CHECK_ARG_AND_BUF(rep_cnt, HAWK_SIZEOF(hawk_uint8_t) * rep_cnt);
+				PACK_CHECK_ARG_AND_BUF(rep_cnt, HAWK_SIZEOF(hawk_uint8_t));
 
 				for (rc = 0; rc < rep_cnt; rc++)
 				{
@@ -5816,7 +5908,7 @@ static hawk_int_t pack_data (hawk_rtx_t* rtx, const hawk_oocs_t* fmt, const hawk
 				hawk_val_t* a;
 				hawk_bcs_t tmp;
 
-				PACK_CHECK_ARG_AND_BUF(1, HAWK_SIZEOF(hawk_uint8_t) * rep_cnt);
+				PACK_CHECK_ARG_AND_BUF(1, HAWK_SIZEOF(hawk_uint8_t));
 
 				a = hawk_rtx_getarg(rtx, arg_idx++);
 
@@ -5845,6 +5937,8 @@ static hawk_int_t pack_data (hawk_rtx_t* rtx, const hawk_oocs_t* fmt, const hawk
 						rep_cnt = 0;
 						rep_set = 1;
 					}
+					if (rep_cnt > (HAWK_TYPE_MAX(hawk_oow_t) - (*fmtp - '0')) / 10)
+						return set_error_on_sys_list(rtx, &rdp->sys_list, HAWK_EINVAL, HAWK_T("repeat count too large"));
 					rep_cnt = rep_cnt * 10 + (*fmtp - '0');
 				}
 				else if (!hawk_is_ooch_space(*fmtp))
@@ -6007,11 +6101,12 @@ static hawk_int_t unpack_data (hawk_rtx_t* rtx, const hawk_bcs_t* bin, const haw
 	hawk_oow_t rep_cnt, rep_set, rc;
 	hawk_oow_t arg_idx, arg_cnt;
 	int endian = ENDIAN_NATIVE;
+	int n;
 	hawk_val_t* v;
 
 #define UNPACK_CHECK_ARG_AND_DATA(reqarg, reqsz) do { \
 	if (arg_cnt - arg_idx < reqarg) return set_error_on_sys_list(rtx, &rdp->sys_list, HAWK_EARGTF, HAWK_NULL); \
-	if (bine - binp < reqsz) return set_error_on_sys_list(rtx, &rdp->sys_list, HAWK_EINVAL, HAWK_T("insufficient binary data")); \
+	if (rep_cnt > (hawk_oow_t)(bine - binp) / (reqsz)) return set_error_on_sys_list(rtx, &rdp->sys_list, HAWK_EINVAL, HAWK_T("insufficient binary data")); \
 } while(0)
 
 	arg_idx = 2; /* set past the format specifier */
@@ -6041,87 +6136,106 @@ static hawk_int_t unpack_data (hawk_rtx_t* rtx, const hawk_bcs_t* bin, const haw
 				break;
 
 			case 'x':
+				UNPACK_CHECK_ARG_AND_DATA(0, 1);
 				binp += rep_cnt;
 				break;
 
 			case 'b':
 			{
-				UNPACK_CHECK_ARG_AND_DATA(rep_cnt, rep_cnt * HAWK_SIZEOF(hawk_int8_t));
+				UNPACK_CHECK_ARG_AND_DATA(rep_cnt, HAWK_SIZEOF(hawk_int8_t));
 				for (rc = 0; rc < rep_cnt; rc++)
 				{
 					hawk_int8_t tmp = (hawk_int8_t)*binp++;
 					v = hawk_rtx_makeintval_inline(rtx, tmp);
 					if (HAWK_UNLIKELY(!v)) goto oops_internal;
-					if (hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, arg_idx++), v) <= -1) goto oops_internal;
+					hawk_rtx_refupval_inline(rtx, v);
+					n = hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, arg_idx++), v);
+					hawk_rtx_refdownval_inline(rtx, v);
+					if (n <= -1) goto oops_internal;
 				}
 				break;
 			}
 
 			case 'B':
 			{
-				UNPACK_CHECK_ARG_AND_DATA(rep_cnt, rep_cnt * HAWK_SIZEOF(hawk_int8_t));
+				UNPACK_CHECK_ARG_AND_DATA(rep_cnt, HAWK_SIZEOF(hawk_int8_t));
 				for (rc = 0; rc < rep_cnt; rc++)
 				{
 					hawk_uint8_t tmp = *binp++;
 					v = hawk_rtx_makeintval_inline(rtx, tmp);
 					if (HAWK_UNLIKELY(!v)) goto oops_internal;
-					if (hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, arg_idx++), v) <= -1) goto oops_internal;
+					hawk_rtx_refupval_inline(rtx, v);
+					n = hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, arg_idx++), v);
+					hawk_rtx_refdownval_inline(rtx, v);
+					if (n <= -1) goto oops_internal;
 				}
 				break;
 			}
 
 			case 'h':
 			{
-				UNPACK_CHECK_ARG_AND_DATA(rep_cnt, rep_cnt * HAWK_SIZEOF(hawk_int16_t));
+				UNPACK_CHECK_ARG_AND_DATA(rep_cnt, HAWK_SIZEOF(hawk_int16_t));
 				for (rc = 0; rc < rep_cnt; rc++)
 				{
 					hawk_int16_t tmp = unpack_int16(binp, endian);
 					v = hawk_rtx_makeintval_inline(rtx, tmp);
 					binp += HAWK_SIZEOF(hawk_int16_t);
 					if (HAWK_UNLIKELY(!v)) goto oops_internal;
-					if (hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, arg_idx++), v) <= -1) goto oops_internal;
+					hawk_rtx_refupval_inline(rtx, v);
+					n = hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, arg_idx++), v);
+					hawk_rtx_refdownval_inline(rtx, v);
+					if (n <= -1) goto oops_internal;
 				}
 				break;
 			}
 
 			case 'H':
 			{
-				UNPACK_CHECK_ARG_AND_DATA(rep_cnt, rep_cnt * HAWK_SIZEOF(hawk_uint16_t));
+				UNPACK_CHECK_ARG_AND_DATA(rep_cnt, HAWK_SIZEOF(hawk_uint16_t));
 				for (rc = 0; rc < rep_cnt; rc++)
 				{
 					hawk_uint16_t tmp = unpack_uint16(binp, endian);
 					v = hawk_rtx_makeintval_inline(rtx, tmp);
 					binp += HAWK_SIZEOF(hawk_uint16_t);
 					if (HAWK_UNLIKELY(!v)) goto oops_internal;
-					if (hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, arg_idx++), v) <= -1) goto oops_internal;
+					hawk_rtx_refupval_inline(rtx, v);
+					n = hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, arg_idx++), v);
+					hawk_rtx_refdownval_inline(rtx, v);
+					if (n <= -1) goto oops_internal;
 				}
 				break;
 			}
 
 			case 'i':
 			{
-				UNPACK_CHECK_ARG_AND_DATA(rep_cnt, rep_cnt * HAWK_SIZEOF(hawk_int32_t));
+				UNPACK_CHECK_ARG_AND_DATA(rep_cnt, HAWK_SIZEOF(hawk_int32_t));
 				for (rc = 0; rc < rep_cnt; rc++)
 				{
 					hawk_int32_t tmp = unpack_int32(binp, endian);
 					v = hawk_rtx_makeintval_inline(rtx, tmp);
 					binp += HAWK_SIZEOF(hawk_int32_t);
 					if (HAWK_UNLIKELY(!v)) goto oops_internal;
-					if (hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, arg_idx++), v) <= -1) goto oops_internal;
+					hawk_rtx_refupval_inline(rtx, v);
+					n = hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, arg_idx++), v);
+					hawk_rtx_refdownval_inline(rtx, v);
+					if (n <= -1) goto oops_internal;
 				}
 				break;
 			}
 
 			case 'I':
 			{
-				UNPACK_CHECK_ARG_AND_DATA(rep_cnt, rep_cnt * HAWK_SIZEOF(hawk_uint32_t));
+				UNPACK_CHECK_ARG_AND_DATA(rep_cnt, HAWK_SIZEOF(hawk_uint32_t));
 				for (rc = 0; rc < rep_cnt; rc++)
 				{
 					hawk_uint32_t tmp = unpack_uint32(binp, endian);
 					v = hawk_rtx_makeintval_inline(rtx, tmp);
 					binp += HAWK_SIZEOF(hawk_uint32_t);
 					if (HAWK_UNLIKELY(!v)) goto oops_internal;
-					if (hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, arg_idx++), v) <= -1) goto oops_internal;
+					hawk_rtx_refupval_inline(rtx, v);
+					n = hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, arg_idx++), v);
+					hawk_rtx_refdownval_inline(rtx, v);
+					if (n <= -1) goto oops_internal;
 				}
 				break;
 			}
@@ -6129,14 +6243,17 @@ static hawk_int_t unpack_data (hawk_rtx_t* rtx, const hawk_bcs_t* bin, const haw
 		#if defined(HAWK_SIZEOF_INT64_T) && (HAWK_SIZEOF_INT64_T > 0)
 			case 'l':
 			{
-				UNPACK_CHECK_ARG_AND_DATA(rep_cnt, rep_cnt * HAWK_SIZEOF(hawk_int64_t));
+				UNPACK_CHECK_ARG_AND_DATA(rep_cnt, HAWK_SIZEOF(hawk_int64_t));
 				for (rc = 0; rc < rep_cnt; rc++)
 				{
 					hawk_int64_t tmp = unpack_int64(binp, endian);
 					v = hawk_rtx_makeintval_inline(rtx, tmp);
 					binp += HAWK_SIZEOF(hawk_int64_t);
 					if (HAWK_UNLIKELY(!v)) goto oops_internal;
-					if (hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, arg_idx++), v) <= -1) goto oops_internal;
+					hawk_rtx_refupval_inline(rtx, v);
+					n = hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, arg_idx++), v);
+					hawk_rtx_refdownval_inline(rtx, v);
+					if (n <= -1) goto oops_internal;
 				}
 				break;
 			}
@@ -6145,14 +6262,17 @@ static hawk_int_t unpack_data (hawk_rtx_t* rtx, const hawk_bcs_t* bin, const haw
 		#if defined(HAWK_SIZEOF_UINT64_T) && (HAWK_SIZEOF_UINT64_T > 0)
 			case 'L':
 			{
-				UNPACK_CHECK_ARG_AND_DATA(rep_cnt, rep_cnt * HAWK_SIZEOF(hawk_uint64_t));
+				UNPACK_CHECK_ARG_AND_DATA(rep_cnt, HAWK_SIZEOF(hawk_uint64_t));
 				for (rc = 0; rc < rep_cnt; rc++)
 				{
 					hawk_uint64_t tmp = unpack_uint64(binp, endian);
 					v = hawk_rtx_makeintval_inline(rtx, tmp);
 					binp += HAWK_SIZEOF(hawk_uint64_t);
 					if (HAWK_UNLIKELY(!v)) goto oops_internal;
-					if (hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, arg_idx++), v) <= -1) goto oops_internal;
+					hawk_rtx_refupval_inline(rtx, v);
+					n = hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, arg_idx++), v);
+					hawk_rtx_refdownval_inline(rtx, v);
+					if (n <= -1) goto oops_internal;
 				}
 				break;
 			}
@@ -6160,56 +6280,68 @@ static hawk_int_t unpack_data (hawk_rtx_t* rtx, const hawk_bcs_t* bin, const haw
 
 			case 'q':
 			{
-				UNPACK_CHECK_ARG_AND_DATA(rep_cnt, rep_cnt * HAWK_SIZEOF(hawk_intmax_t));
+				UNPACK_CHECK_ARG_AND_DATA(rep_cnt, HAWK_SIZEOF(hawk_intmax_t));
 				for (rc = 0; rc < rep_cnt; rc++)
 				{
 					hawk_intmax_t tmp = unpack_intmax(binp, endian);
 					v = hawk_rtx_makeintval_inline(rtx, tmp);
 					binp += HAWK_SIZEOF(hawk_intmax_t);
 					if (HAWK_UNLIKELY(!v)) goto oops_internal;
-					if (hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, arg_idx++), v) <= -1) goto oops_internal;
+					hawk_rtx_refupval_inline(rtx, v);
+					n = hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, arg_idx++), v);
+					hawk_rtx_refdownval_inline(rtx, v);
+					if (n <= -1) goto oops_internal;
 				}
 				break;
 			}
 
 			case 'Q':
 			{
-				UNPACK_CHECK_ARG_AND_DATA(rep_cnt, rep_cnt * HAWK_SIZEOF(hawk_uintmax_t));
+				UNPACK_CHECK_ARG_AND_DATA(rep_cnt, HAWK_SIZEOF(hawk_uintmax_t));
 				for (rc = 0; rc < rep_cnt; rc++)
 				{
 					hawk_uintmax_t tmp = unpack_uintmax(binp, endian);
 					v = hawk_rtx_makeintval_inline(rtx, tmp);
 					binp += HAWK_SIZEOF(hawk_uintmax_t);
 					if (HAWK_UNLIKELY(!v)) goto oops_internal;
-					if (hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, arg_idx++), v) <= -1) goto oops_internal;
+					hawk_rtx_refupval_inline(rtx, v);
+					n = hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, arg_idx++), v);
+					hawk_rtx_refdownval_inline(rtx, v);
+					if (n <= -1) goto oops_internal;
 				}
 				break;
 			}
 
 			case 'n':
 			{
-				UNPACK_CHECK_ARG_AND_DATA(rep_cnt, rep_cnt * HAWK_SIZEOF(hawk_intptr_t));
+				UNPACK_CHECK_ARG_AND_DATA(rep_cnt, HAWK_SIZEOF(hawk_intptr_t));
 				for (rc = 0; rc < rep_cnt; rc++)
 				{
 					hawk_intptr_t tmp = unpack_intptr(binp, endian);
 					v = hawk_rtx_makeintval_inline(rtx, tmp);
 					binp += HAWK_SIZEOF(hawk_intptr_t);
 					if (HAWK_UNLIKELY(!v)) goto oops_internal;
-					if (hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, arg_idx++), v) <= -1) goto oops_internal;
+					hawk_rtx_refupval_inline(rtx, v);
+					n = hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, arg_idx++), v);
+					hawk_rtx_refdownval_inline(rtx, v);
+					if (n <= -1) goto oops_internal;
 				}
 				break;
 			}
 
 			case 'N':
 			{
-				UNPACK_CHECK_ARG_AND_DATA(rep_cnt, rep_cnt * HAWK_SIZEOF(hawk_uintptr_t));
+				UNPACK_CHECK_ARG_AND_DATA(rep_cnt, HAWK_SIZEOF(hawk_uintptr_t));
 				for (rc = 0; rc < rep_cnt; rc++)
 				{
 					hawk_uintptr_t tmp = unpack_uintptr(binp, endian);
 					v = hawk_rtx_makeintval_inline(rtx, tmp);
 					binp += HAWK_SIZEOF(hawk_uintptr_t);
 					if (HAWK_UNLIKELY(!v)) goto oops_internal;
-					if (hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, arg_idx++), v) <= -1) goto oops_internal;
+					hawk_rtx_refupval_inline(rtx, v);
+					n = hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, arg_idx++), v);
+					hawk_rtx_refdownval_inline(rtx, v);
+					if (n <= -1) goto oops_internal;
 				}
 				break;
 			}
@@ -6218,7 +6350,7 @@ static hawk_int_t unpack_data (hawk_rtx_t* rtx, const hawk_bcs_t* bin, const haw
 			{
 				hawk_uint32_t x;
 				float y;
-				UNPACK_CHECK_ARG_AND_DATA(rep_cnt, rep_cnt * HAWK_SIZEOF(hawk_uint32_t));
+				UNPACK_CHECK_ARG_AND_DATA(rep_cnt, HAWK_SIZEOF(hawk_uint32_t));
 				for (rc = 0; rc < rep_cnt; rc++)
 				{
 					x = unpack_uint32(binp, endian);
@@ -6226,7 +6358,10 @@ static hawk_int_t unpack_data (hawk_rtx_t* rtx, const hawk_bcs_t* bin, const haw
 					v = hawk_rtx_makefltval(rtx, y);
 					binp += HAWK_SIZEOF(hawk_uint32_t);
 					if (HAWK_UNLIKELY(!v)) goto oops_internal;
-					if (hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, arg_idx++), v) <= -1) goto oops_internal;
+					hawk_rtx_refupval_inline(rtx, v);
+					n = hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, arg_idx++), v);
+					hawk_rtx_refdownval_inline(rtx, v);
+					if (n <= -1) goto oops_internal;
 				}
 				break;
 			}
@@ -6236,7 +6371,7 @@ static hawk_int_t unpack_data (hawk_rtx_t* rtx, const hawk_bcs_t* bin, const haw
 			{
 				hawk_uint64_t x;
 				double y;
-				UNPACK_CHECK_ARG_AND_DATA(rep_cnt, rep_cnt * HAWK_SIZEOF(hawk_uint64_t));
+				UNPACK_CHECK_ARG_AND_DATA(rep_cnt, HAWK_SIZEOF(hawk_uint64_t));
 				for (rc = 0; rc < rep_cnt; rc++)
 				{
 					x = unpack_uint64(binp, endian);
@@ -6244,7 +6379,10 @@ static hawk_int_t unpack_data (hawk_rtx_t* rtx, const hawk_bcs_t* bin, const haw
 					v = hawk_rtx_makefltval(rtx, y);
 					binp += HAWK_SIZEOF(hawk_uint64_t);
 					if (HAWK_UNLIKELY(!v)) goto oops_internal;
-					if (hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, arg_idx++), v) <= -1) goto oops_internal;
+					hawk_rtx_refupval_inline(rtx, v);
+					n = hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, arg_idx++), v);
+					hawk_rtx_refdownval_inline(rtx, v);
+					if (n <= -1) goto oops_internal;
 				}
 				break;
 			}
@@ -6252,12 +6390,15 @@ static hawk_int_t unpack_data (hawk_rtx_t* rtx, const hawk_bcs_t* bin, const haw
 
 			case 'c':
 			{
-				UNPACK_CHECK_ARG_AND_DATA(rep_cnt, rep_cnt * HAWK_SIZEOF(hawk_uint8_t));
+				UNPACK_CHECK_ARG_AND_DATA(rep_cnt, HAWK_SIZEOF(hawk_uint8_t));
 				for (rc = 0; rc < rep_cnt; rc++)
 				{
 					v = hawk_rtx_makebchrval(rtx, *binp++);
 					if (HAWK_UNLIKELY(!v)) goto oops_internal;
-					if (hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, arg_idx++), v) <= -1) goto oops_internal;
+					hawk_rtx_refupval_inline(rtx, v);
+					n = hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, arg_idx++), v);
+					hawk_rtx_refdownval_inline(rtx, v);
+					if (n <= -1) goto oops_internal;
 				}
 				break;
 			}
@@ -6265,11 +6406,14 @@ static hawk_int_t unpack_data (hawk_rtx_t* rtx, const hawk_bcs_t* bin, const haw
 			case 's':
 			case 'p':
 			{
-				UNPACK_CHECK_ARG_AND_DATA(1, rep_cnt);
+				UNPACK_CHECK_ARG_AND_DATA(1, 1);
 				v = hawk_rtx_makembsvalwithbchars(rtx, (const hawk_bch_t*)binp, rep_cnt);
 				binp += rep_cnt;
 				if (HAWK_UNLIKELY(!v)) goto oops_internal;
-				if (hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, arg_idx++), v) <= -1) goto oops_internal;
+				hawk_rtx_refupval_inline(rtx, v);
+				n = hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, arg_idx++), v);
+				hawk_rtx_refdownval_inline(rtx, v);
+				if (n <= -1) goto oops_internal;
 				break;
 			}
 
@@ -6281,6 +6425,8 @@ static hawk_int_t unpack_data (hawk_rtx_t* rtx, const hawk_bcs_t* bin, const haw
 						rep_cnt = 0;
 						rep_set = 1;
 					}
+					if (rep_cnt > (HAWK_TYPE_MAX(hawk_oow_t) - (*fmtp - '0')) / 10)
+						return set_error_on_sys_list(rtx, &rdp->sys_list, HAWK_EINVAL, HAWK_T("repeat count too large"));
 					rep_cnt = rep_cnt * 10 + (*fmtp - '0');
 				}
 				else if (!hawk_is_ooch_space(*fmtp))
@@ -7049,7 +7195,7 @@ static int init (hawk_mod_t* mod, hawk_rtx_t* rtx)
 	rtx_data_t rd, * rdp;
 	hawk_rbt_pair_t* pair;
 
-	HAWK_MEMSET (&rd, 0, HAWK_SIZEOF(rd));
+	HAWK_MEMSET(&rd, 0, HAWK_SIZEOF(rd));
 	pair = hawk_rbt_insert(mctx->rtxtab, &rtx, HAWK_SIZEOF(rtx), &rd, HAWK_SIZEOF(rd));
 	if (HAWK_UNLIKELY(!pair)) return -1;
 
@@ -7128,11 +7274,13 @@ static void fini (hawk_mod_t* mod, hawk_rtx_t* rtx)
 
 		if (rdp->pack.ptr != rdp->pack.__static_buf) hawk_rtx_freemem(rtx, rdp->pack.ptr);
 
-		if (rdp->sys_list.ctx.readbuf)
 		{
-			hawk_rtx_freemem(rtx, rdp->sys_list.ctx.readbuf);
-			rdp->sys_list.ctx.readbuf = HAWK_NULL;
-			rdp->sys_list.ctx.readbuf_capa = 0;
+			hawk_oow_t i;
+			for (i = 0; i < rdp->sys_list.map.high; i++)
+			{
+				sys_node_t* node = rdp->sys_list.map.tab[i];
+				if (node) free_sys_node(rtx, &rdp->sys_list, node);
+			}
 		}
 
 		__fini_sys_list(rtx, &rdp->sys_list);
