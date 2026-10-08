@@ -397,7 +397,10 @@ static int fnc_tocharcode (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		hawk_val_t* a1;
 		a1 = hawk_rtx_getarg(rtx, 1);
 		if (hawk_rtx_valtoint_inline(rtx, a1, &pos) <= -1) return -1;
-		pos--; /* 1 based indexing. range check to be done before accessing below */
+
+		/* 1 based indexing. range check to be done before accessing below. */
+		if (pos < 0) pos = -1;
+		else pos--; /* 1 based indexing */
 	}
 
 	switch (HAWK_RTX_GETVALTYPE(rtx, a0))
@@ -719,6 +722,15 @@ static int fnc_tohex (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	str.ptr = hawk_rtx_getvalbcstr(rtx, a0, &str.len);
 	if (HAWK_UNLIKELY(!str.ptr)) return -1;
 
+	/* reserve room for the value header, terminator, and allocation alignment
+	 * as well as checking the doubled output length. */
+	if (HAWK_UNLIKELY(str.len > (HAWK_TYPE_MAX(hawk_oow_t) - HAWK_SIZEOF(hawk_val_mbs_t) - HAWK_MBS_CACHE_BLOCK_UNIT) / 2))
+	{
+		hawk_rtx_freevalbcstr(rtx, a0, str.ptr);
+		hawk_rtx_seterrbfmt(rtx, HAWK_NULL, HAWK_ENOMEM, "hexadecimal output too large");
+		return -1;
+	}
+
 	retv = hawk_rtx_makembsvalwithbchars(rtx, HAWK_NULL, str.len * 2);
 	if (HAWK_UNLIKELY(!retv))
 	{
@@ -867,6 +879,21 @@ static int fnc_tobase64 (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	return 0;
 }
 
+static int get_tonum_options (hawk_rtx_t* rtx, int* options)
+{
+	hawk_int_t base;
+
+	if (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 1), &base) <= -1) return -1;
+	if (base != 0 && (base < 2 || base > 36))
+	{
+		hawk_rtx_seterrbfmt(rtx, HAWK_NULL, HAWK_EINVAL, "numeric base must be 0 or between 2 and 36");
+		return -1;
+	}
+
+	*options = HAWK_OOCHARS_TO_NUM_MAKE_OPTION(0, 0, HAWK_RTX_IS_STRIPSTRSPC_ON(rtx), (int)base);
+	return 0;
+}
+
 static int fnc_tonum (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	/* str::tonum(value) */
@@ -878,6 +905,7 @@ static int fnc_tonum (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_int_t lv;
 	hawk_flt_t rv;
 	int rx;
+	int options;
 
 	a0 = hawk_rtx_getarg(rtx, 0);
 
@@ -889,13 +917,11 @@ static int fnc_tonum (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			{
 				/* if the value is known to be a string, it supports the optional
 				 * base parameter */
-				hawk_val_t* a1 = hawk_rtx_getarg(rtx, 1);
-				hawk_int_t base;
 				hawk_bch_t tmp = HAWK_RTX_GETBCHRFROMVAL(rtx, a0);
 
-				if (hawk_rtx_valtoint_inline(rtx, a1, &base) <= -1) return -1;
+				if (get_tonum_options(rtx, &options) <= -1) return -1;
 				rx = hawk_bchars_to_num(
-					HAWK_OOCHARS_TO_NUM_MAKE_OPTION(0, 0, HAWK_RTX_IS_STRIPSTRSPC_ON(rtx), base),
+					options,
 					&tmp, 1, &lv, &rv
 				);
 				break;
@@ -906,12 +932,9 @@ static int fnc_tonum (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			{
 				/* if the value is known to be a byte string, it supports the optional
 				 * base parameter */
-				hawk_val_t* a1 = hawk_rtx_getarg(rtx, 1);
-				hawk_int_t base;
-
-				if (hawk_rtx_valtoint_inline(rtx, a1, &base) <= -1) return -1;
+				if (get_tonum_options(rtx, &options) <= -1) return -1;
 				rx = hawk_bchars_to_num(
-					HAWK_OOCHARS_TO_NUM_MAKE_OPTION(0, 0, HAWK_RTX_IS_STRIPSTRSPC_ON(rtx), base),
+					options,
 					((hawk_val_mbs_t*)a0)->val.ptr,
 					((hawk_val_mbs_t*)a0)->val.len,
 					&lv, &rv
@@ -923,13 +946,11 @@ static int fnc_tonum (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			{
 				/* if the value is known to be a string, it supports the optional
 				 * base parameter */
-				hawk_val_t* a1 = hawk_rtx_getarg(rtx, 1);
-				hawk_int_t base;
 				hawk_ooch_t tmp = HAWK_RTX_GETCHARFROMVAL(rtx, a0);
 
-				if (hawk_rtx_valtoint_inline(rtx, a1, &base) <= -1) return -1;
+				if (get_tonum_options(rtx, &options) <= -1) return -1;
 				rx = hawk_oochars_to_num(
-					HAWK_OOCHARS_TO_NUM_MAKE_OPTION(0, 0, HAWK_RTX_IS_STRIPSTRSPC_ON(rtx), base),
+					options,
 					&tmp, 1, &lv, &rv
 				);
 				break;
@@ -939,12 +960,9 @@ static int fnc_tonum (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			{
 				/* if the value is known to be a string, it supports the optional
 				 * base parameter */
-				hawk_val_t* a1 = hawk_rtx_getarg(rtx, 1);
-				hawk_int_t base;
-
-				if (hawk_rtx_valtoint_inline(rtx, a1, &base) <= -1) return -1;
+				if (get_tonum_options(rtx, &options) <= -1) return -1;
 				rx = hawk_oochars_to_num(
-					HAWK_OOCHARS_TO_NUM_MAKE_OPTION(0, 0, HAWK_RTX_IS_STRIPSTRSPC_ON(rtx), base),
+					options,
 					((hawk_val_str_t*)a0)->val.ptr,
 					((hawk_val_str_t*)a0)->val.len,
 					&lv, &rv
@@ -993,7 +1011,8 @@ static int fnc_subchar (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	n = hawk_rtx_valtoint_inline(rtx, a1, &lindex);
 	if (n <= -1) return -1;
 
-	lindex = lindex - 1;
+	if (lindex <= 0) lindex = -1;
+	else lindex--;
 
 	switch (HAWK_RTX_GETVALTYPE(rtx, a0))
 	{
