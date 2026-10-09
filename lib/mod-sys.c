@@ -1062,6 +1062,10 @@ static int fnc_open (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 #if defined(O_LARGEFILE)
 	oflags |= O_LARGEFILE;
 #endif
+#if defined(_WIN32)
+	/* Byte-oriented I/O and seek offsets must not undergo CRT translation. */
+	oflags = (oflags & ~O_TEXT) | O_BINARY;
+#endif
 
 	a0 = hawk_rtx_getarg(rtx, 0);
 #if defined(_WIN32)
@@ -3582,6 +3586,13 @@ static int val_to_ntime (hawk_rtx_t* rtx, hawk_val_t* val, hawk_ntime_t* nt)
 			nt->sec--;
 			nt->nsec += HAWK_NSECS_PER_SEC;
 		}
+		else if (fv < 0 && nt->sec == 0 && nt->nsec == 0)
+		{
+			/* Retain the sign when a negative fraction is smaller than one
+			 * nanosecond, so interval validation cannot mistake it for zero. */
+			nt->sec = -1;
+			nt->nsec = HAWK_NSECS_PER_SEC - 1;
+		}
 	}
 
 	return x;
@@ -3869,6 +3880,7 @@ static int fnc_strftime (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	if (hawk_rtx_getnargs(rtx) >= 3 &&
 	    hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 2), &flags) <= -1) goto oops;
 	if (flags < 0) flags = 0;
+	errno = 0;
 	if (flags & STRFTIME_UTC)
 	{
 	#if defined(HAVE_GMTIME_R)
@@ -3887,8 +3899,12 @@ static int fnc_strftime (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	}
 	if (!tmx)
 	{
-		hawk_rtx_freemem(rtx, fmt);
-		return 0;
+		int err = errno;
+		if (err != 0)
+			hawk_rtx_seterrbfmt(rtx, HAWK_NULL, hawk_errno_to_errnum(err), "unable to convert time - %hs", strerror(err));
+		else
+			hawk_rtx_seterrbfmt(rtx, HAWK_NULL, HAWK_EINVAL, "unable to convert time");
+		goto oops;
 	}
 	/* gmtime/localtime can return static storage; retain one stable copy. */
 	if (tmx != &tm) tm = *tmx;
