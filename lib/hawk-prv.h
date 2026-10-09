@@ -203,6 +203,26 @@ typedef struct hawk_tree_t hawk_tree_t;
 
 #endif
 
+#if !defined(HAWK_HAVE_CFG_H)
+#	if defined(_WIN32) || defined(__OS2__) || defined(__DOS__)
+#		if (defined(__WATCOMC__) && (__WATCOMC__ < 1200)) || defined(__BORLANDC__)
+#			undef HAVE_VA_COPY
+#			undef HAVE___VA_COPY
+#		else
+#			define HAVE_VA_COPY
+#			define HAVE___VA_COPY
+#		endif
+#	endif
+#endif
+
+#if !defined(HAVE_VA_COPY)
+#	if defined(HAVE___VA_COPY)
+#		define va_copy(dst,src) __va_copy((dst),(src))
+#	else
+#		define va_copy(dst,src) HAWK_MEMCPY(&(dst),&(src),HAWK_SIZEOF(va_list))
+#	endif
+#endif
+
 struct hawk_tree_t
 {
 	hawk_oow_t ngbls; /* total number of globals */
