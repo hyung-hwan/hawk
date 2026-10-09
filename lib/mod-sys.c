@@ -698,7 +698,7 @@ static int rebuild_mux (sys_node_t* mux_node)
 
 	/* only discard the old instance after every remaining watch is installed.
 	 * on failure, callers must not wait on the instance still needing repair. */
-	close(mux_data->fd);
+	if (mux_data->fd >= 0) close(mux_data->fd);
 	mux_data->fd = fd;
 	mux_data->rebuild_pending = 0;
 	for (node = mux_data->x_first; node; node = node->ctx.u.file.x_next)
@@ -877,21 +877,19 @@ static void free_sys_node (hawk_rtx_t* rtx, sys_list_t* list, sys_node_t* node)
 
 		case SYS_NODE_DATA_TYPE_MUX:
 		#if defined(USE_EPOLL)
+			purge_mux_members(rtx, node);
 			if (node->ctx.u.mux.fd >= 0)
 			{
-				/* TODO: delete all member FILE and SCK from mux */
-				purge_mux_members(rtx, node);
 				close(node->ctx.u.mux.fd);
 				node->ctx.u.mux.fd = -1;
-
-				if (node->ctx.u.mux.x_evt)
-				{
-					hawk_rtx_freemem(rtx, node->ctx.u.mux.x_evt);
-					node->ctx.u.mux.x_evt = HAWK_NULL;
-				}
-				node->ctx.u.mux.x_evt_max = 0;
-				node->ctx.u.mux.x_evt_count = 0;
 			}
+			if (node->ctx.u.mux.x_evt)
+			{
+				hawk_rtx_freemem(rtx, node->ctx.u.mux.x_evt);
+				node->ctx.u.mux.x_evt = HAWK_NULL;
+			}
+			node->ctx.u.mux.x_evt_max = 0;
+			node->ctx.u.mux.x_evt_count = 0;
 		#endif
 			break;
 	}
@@ -1799,6 +1797,13 @@ static int fnc_fseek (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi) /* this is act
 	if (sys_node)
 	{
 		hawk_int_t offset, whence;
+	#if defined(_WIN32)
+		hawk_int64_t pos;
+	#else
+		off_t pos;
+	#endif
+		hawk_intmax_t maxint = (hawk_intmax_t)(HAWK_TYPE_MAX(hawk_uint_t) >> 1);
+		hawk_intmax_t maxoff = (hawk_intmax_t)(((hawk_uintmax_t)1 << (HAWK_BITSOF(pos) - 1)) - 1);
 
 		if (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 1), &offset) <= -1 ||
 		    hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 2), &whence) <= -1)
@@ -1825,13 +1830,28 @@ static int fnc_fseek (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi) /* this is act
 			offset -= (hawk_int_t)sys_node->ctx.u.file.readbuf_len;
 		}
 
-		rx = lseek(sys_node->ctx.u.file.fd, offset, (int)whence);
-		if (rx <= -1)
+		if ((hawk_intmax_t)offset < -maxoff - 1 || (hawk_intmax_t)offset > maxoff)
+		{
+			rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_T("seek offset out of range"));
+			goto done;
+		}
+	#if defined(_WIN32)
+		pos = _lseeki64(sys_node->ctx.u.file.fd, offset, (int)whence);
+	#else
+		pos = lseek(sys_node->ctx.u.file.fd, offset, (int)whence);
+	#endif
+		if (pos <= -1)
 		{
 			rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
 			goto done;
 		}
 		sys_node->ctx.u.file.readbuf_len = 0; /* discard residue data after moving the file pointer */
+		if ((hawk_intmax_t)pos > maxint)
+		{
+			rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_T("seek position out of range"));
+			goto done;
+		}
+		rx = (hawk_int_t)pos;
 	}
 
 done:
@@ -2667,6 +2687,33 @@ done:
 
 /* ------------------------------------------------------------------------ */
 
+#if defined(USE_EPOLL)
+static hawk_rbt_walk_t detach_inherited_muxes (hawk_rbt_t* rbt, hawk_rbt_pair_t* pair, void* ctx)
+{
+	rtx_data_t* rdp = (rtx_data_t*)HAWK_RBT_VPTR(pair);
+	hawk_oow_t i;
+
+	for (i = 0; i < rdp->sys_list.map.high; i++)
+	{
+		sys_node_t* node = rdp->sys_list.map.tab[i];
+
+		if (node && node->ctx.type == SYS_NODE_DATA_TYPE_MUX)
+		{
+			sys_node_t* member;
+
+			/* The child must never alter the parent's epoll registrations. */
+			if (node->ctx.u.mux.fd >= 0) close(node->ctx.u.mux.fd);
+			node->ctx.u.mux.fd = -1;
+			node->ctx.u.mux.rebuild_pending = 1;
+			node->ctx.u.mux.x_evt_count = 0;
+			for (member = node->ctx.u.mux.x_first; member; member = member->ctx.u.file.x_next)
+				member->ctx.u.file.mux_registered = 0;
+		}
+	}
+	return HAWK_RBT_WALK_FORWARD;
+}
+#endif
+
 static int fnc_fork (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	hawk_int_t rx;
@@ -2685,6 +2732,9 @@ static int fnc_fork (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 #else
 	rx = fork();
 	if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
+	#if defined(USE_EPOLL)
+	else if (rx == 0) hawk_rbt_walk(((mod_ctx_t*)fi->mod->ctx)->rtxtab, detach_inherited_muxes, HAWK_NULL);
+	#endif
 #endif
 
 	retv = hawk_rtx_makeintval_inline(rtx, rx);
@@ -7214,6 +7264,28 @@ static hawk_intptr_t unpack_intptr (const hawk_uint8_t* binp, int endian)
 	return (v <= HAWK_TYPE_MAX(hawk_intptr_t))? (hawk_intptr_t)v: ((hawk_intptr_t)-1 - (hawk_intptr_t)(HAWK_TYPE_MAX(hawk_uintptr_t) - v));
 }
 
+static hawk_val_t* make_unpacked_intval (hawk_rtx_t* rtx, hawk_intmax_t value)
+{
+	hawk_intmax_t maxint = (hawk_intmax_t)(HAWK_TYPE_MAX(hawk_uint_t) >> 1);
+
+	if (value < -maxint - 1 || value > maxint)
+	{
+		hawk_rtx_seterrbfmt(rtx, HAWK_NULL, HAWK_EINVAL, "unpacked integer out of range");
+		return HAWK_NULL;
+	}
+	return hawk_rtx_makeintval_inline(rtx, (hawk_int_t)value);
+}
+
+static hawk_val_t* make_unpacked_uintval (hawk_rtx_t* rtx, hawk_uintmax_t value)
+{
+	if (value > (hawk_uintmax_t)(HAWK_TYPE_MAX(hawk_uint_t) >> 1))
+	{
+		hawk_rtx_seterrbfmt(rtx, HAWK_NULL, HAWK_EINVAL, "unpacked unsigned integer out of range");
+		return HAWK_NULL;
+	}
+	return hawk_rtx_makeintval_inline(rtx, (hawk_int_t)value);
+}
+
 static hawk_int_t unpack_data (hawk_rtx_t* rtx, const hawk_bcs_t* bin, const hawk_oocs_t* fmt, const hawk_fnc_info_t* fi, rtx_data_t* rdp)
 {
 	const hawk_ooch_t* fmtp, * fmte;
@@ -7266,7 +7338,7 @@ static hawk_int_t unpack_data (hawk_rtx_t* rtx, const hawk_bcs_t* bin, const haw
 				for (rc = 0; rc < rep_cnt; rc++)
 				{
 					hawk_int8_t tmp = (hawk_int8_t)*binp++;
-					v = hawk_rtx_makeintval_inline(rtx, tmp);
+					v = make_unpacked_intval(rtx, tmp);
 					if (HAWK_UNLIKELY(!v)) goto oops_internal;
 					hawk_rtx_refupval_inline(rtx, v);
 					n = hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, arg_idx++), v);
@@ -7282,7 +7354,7 @@ static hawk_int_t unpack_data (hawk_rtx_t* rtx, const hawk_bcs_t* bin, const haw
 				for (rc = 0; rc < rep_cnt; rc++)
 				{
 					hawk_uint8_t tmp = *binp++;
-					v = hawk_rtx_makeintval_inline(rtx, tmp);
+					v = make_unpacked_uintval(rtx, tmp);
 					if (HAWK_UNLIKELY(!v)) goto oops_internal;
 					hawk_rtx_refupval_inline(rtx, v);
 					n = hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, arg_idx++), v);
@@ -7298,7 +7370,7 @@ static hawk_int_t unpack_data (hawk_rtx_t* rtx, const hawk_bcs_t* bin, const haw
 				for (rc = 0; rc < rep_cnt; rc++)
 				{
 					hawk_int16_t tmp = unpack_int16(binp, endian);
-					v = hawk_rtx_makeintval_inline(rtx, tmp);
+					v = make_unpacked_intval(rtx, tmp);
 					binp += HAWK_SIZEOF(hawk_int16_t);
 					if (HAWK_UNLIKELY(!v)) goto oops_internal;
 					hawk_rtx_refupval_inline(rtx, v);
@@ -7315,7 +7387,7 @@ static hawk_int_t unpack_data (hawk_rtx_t* rtx, const hawk_bcs_t* bin, const haw
 				for (rc = 0; rc < rep_cnt; rc++)
 				{
 					hawk_uint16_t tmp = unpack_uint16(binp, endian);
-					v = hawk_rtx_makeintval_inline(rtx, tmp);
+					v = make_unpacked_uintval(rtx, tmp);
 					binp += HAWK_SIZEOF(hawk_uint16_t);
 					if (HAWK_UNLIKELY(!v)) goto oops_internal;
 					hawk_rtx_refupval_inline(rtx, v);
@@ -7332,7 +7404,7 @@ static hawk_int_t unpack_data (hawk_rtx_t* rtx, const hawk_bcs_t* bin, const haw
 				for (rc = 0; rc < rep_cnt; rc++)
 				{
 					hawk_int32_t tmp = unpack_int32(binp, endian);
-					v = hawk_rtx_makeintval_inline(rtx, tmp);
+					v = make_unpacked_intval(rtx, tmp);
 					binp += HAWK_SIZEOF(hawk_int32_t);
 					if (HAWK_UNLIKELY(!v)) goto oops_internal;
 					hawk_rtx_refupval_inline(rtx, v);
@@ -7349,7 +7421,7 @@ static hawk_int_t unpack_data (hawk_rtx_t* rtx, const hawk_bcs_t* bin, const haw
 				for (rc = 0; rc < rep_cnt; rc++)
 				{
 					hawk_uint32_t tmp = unpack_uint32(binp, endian);
-					v = hawk_rtx_makeintval_inline(rtx, tmp);
+					v = make_unpacked_uintval(rtx, tmp);
 					binp += HAWK_SIZEOF(hawk_uint32_t);
 					if (HAWK_UNLIKELY(!v)) goto oops_internal;
 					hawk_rtx_refupval_inline(rtx, v);
@@ -7367,7 +7439,7 @@ static hawk_int_t unpack_data (hawk_rtx_t* rtx, const hawk_bcs_t* bin, const haw
 				for (rc = 0; rc < rep_cnt; rc++)
 				{
 					hawk_int64_t tmp = unpack_int64(binp, endian);
-					v = hawk_rtx_makeintval_inline(rtx, tmp);
+					v = make_unpacked_intval(rtx, tmp);
 					binp += HAWK_SIZEOF(hawk_int64_t);
 					if (HAWK_UNLIKELY(!v)) goto oops_internal;
 					hawk_rtx_refupval_inline(rtx, v);
@@ -7386,7 +7458,7 @@ static hawk_int_t unpack_data (hawk_rtx_t* rtx, const hawk_bcs_t* bin, const haw
 				for (rc = 0; rc < rep_cnt; rc++)
 				{
 					hawk_uint64_t tmp = unpack_uint64(binp, endian);
-					v = hawk_rtx_makeintval_inline(rtx, tmp);
+					v = make_unpacked_uintval(rtx, tmp);
 					binp += HAWK_SIZEOF(hawk_uint64_t);
 					if (HAWK_UNLIKELY(!v)) goto oops_internal;
 					hawk_rtx_refupval_inline(rtx, v);
@@ -7404,7 +7476,7 @@ static hawk_int_t unpack_data (hawk_rtx_t* rtx, const hawk_bcs_t* bin, const haw
 				for (rc = 0; rc < rep_cnt; rc++)
 				{
 					hawk_intmax_t tmp = unpack_intmax(binp, endian);
-					v = hawk_rtx_makeintval_inline(rtx, tmp);
+					v = make_unpacked_intval(rtx, tmp);
 					binp += HAWK_SIZEOF(hawk_intmax_t);
 					if (HAWK_UNLIKELY(!v)) goto oops_internal;
 					hawk_rtx_refupval_inline(rtx, v);
@@ -7421,7 +7493,7 @@ static hawk_int_t unpack_data (hawk_rtx_t* rtx, const hawk_bcs_t* bin, const haw
 				for (rc = 0; rc < rep_cnt; rc++)
 				{
 					hawk_uintmax_t tmp = unpack_uintmax(binp, endian);
-					v = hawk_rtx_makeintval_inline(rtx, tmp);
+					v = make_unpacked_uintval(rtx, tmp);
 					binp += HAWK_SIZEOF(hawk_uintmax_t);
 					if (HAWK_UNLIKELY(!v)) goto oops_internal;
 					hawk_rtx_refupval_inline(rtx, v);
@@ -7438,7 +7510,7 @@ static hawk_int_t unpack_data (hawk_rtx_t* rtx, const hawk_bcs_t* bin, const haw
 				for (rc = 0; rc < rep_cnt; rc++)
 				{
 					hawk_intptr_t tmp = unpack_intptr(binp, endian);
-					v = hawk_rtx_makeintval_inline(rtx, tmp);
+					v = make_unpacked_intval(rtx, tmp);
 					binp += HAWK_SIZEOF(hawk_intptr_t);
 					if (HAWK_UNLIKELY(!v)) goto oops_internal;
 					hawk_rtx_refupval_inline(rtx, v);
@@ -7455,7 +7527,7 @@ static hawk_int_t unpack_data (hawk_rtx_t* rtx, const hawk_bcs_t* bin, const haw
 				for (rc = 0; rc < rep_cnt; rc++)
 				{
 					hawk_uintptr_t tmp = unpack_uintptr(binp, endian);
-					v = hawk_rtx_makeintval_inline(rtx, tmp);
+					v = make_unpacked_uintval(rtx, tmp);
 					binp += HAWK_SIZEOF(hawk_uintptr_t);
 					if (HAWK_UNLIKELY(!v)) goto oops_internal;
 					hawk_rtx_refupval_inline(rtx, v);
