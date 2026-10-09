@@ -3401,10 +3401,26 @@ RETURN VALUE
 
 	while (1)
 	{
+		/* some implementations report invalid formats through errno. clear
+		 * stale errors before distinguishing these from a short buffer.
+		 *
+		 * "%Q" produced the returned value of zero with errno=EINVAL on win32 under wine.
+		 * despite the leading space injected, it has this behavior when the format string
+		 * itself is determined to be invalid. the code here resets errno to 0 before
+		 * calling strftime() and check it after the call.
+		 */
+
+		errno = 0;
 		sl = strftime(buf, capa, fmt, &tm);
 		/* the leading space guarantees at least one output byte on success.
 		 * sl == 0 therefore cannot indicate a successful empty expansion. */
 		if (sl > 0 && sl < capa) break;
+		if (sl == 0 && errno != 0 && errno != ERANGE)
+		{
+			int err = errno;
+			hawk_rtx_seterrbfmt(rtx, HAWK_NULL, hawk_errno_to_errnum(err), "unable to format time - %hs", strerror(err));
+			goto oops;
+		}
 		if (capa > HAWK_TYPE_MAX(hawk_oow_t) / 2)
 		{
 			hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_ENOMEM);
@@ -4169,7 +4185,7 @@ static int fnc_unlink (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		#if defined(__OS2__)
 		{
 			APIRET rc;
-			rc = DosDelete(str, HAWK_NULL);
+			rc = DosDelete(str);
 			rx = (rc == NO_ERROR)? 0: set_error_on_sys_list(rtx, sys_list, hawk_syserr_to_errnum(rc), HAWK_NULL);
 		}
 		#elif defined(__DOS__)
