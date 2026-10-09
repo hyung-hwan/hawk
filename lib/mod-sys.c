@@ -5744,6 +5744,22 @@ static int fnc_accept (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	#if defined(HAVE_ACCEPT4)
 		fd = accept4(SYS_NODE_SOCKET(sys_node), (struct sockaddr*)&skad, &addrlen, (int)flags);
 	#else
+		{
+			int supported_flags = 0;
+
+		#if defined(F_GETFD) && defined(F_SETFD) && defined(FD_CLOEXEC) && defined(SOCK_CLOEXEC)
+			supported_flags |= SOCK_CLOEXEC;
+		#endif
+		#if defined(F_GETFL) && defined(F_SETFL) && defined(O_NONBLOCK) && defined(SOCK_NONBLOCK)
+			supported_flags |= SOCK_NONBLOCK;
+		#endif
+
+			if ((int)flags & ~supported_flags)
+			{
+				rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_T("unsupported accept flags"));
+				goto done;
+			}
+		}
 		fd = accept(SYS_NODE_SOCKET(sys_node), (struct sockaddr*)&skad, &addrlen);
 	#endif
 		if (fd == SYS_INVALID_SOCKET)
