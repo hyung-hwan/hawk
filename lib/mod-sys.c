@@ -73,8 +73,44 @@
 #include <errno.h>
 #include <string.h>
 
+#if defined(_WIN32)
+/* syslog wire values for remote logging without a native syslog library. */
+#	define LOG_EMERG    (0)
+#	define LOG_ALERT    (1)
+#	define LOG_CRIT     (2)
+#	define LOG_ERR      (3)
+#	define LOG_WARNING  (4)
+#	define LOG_NOTICE   (5)
+#	define LOG_INFO     (6)
+#	define LOG_DEBUG    (7)
+#	define LOG_KERN     (0 << 3)
+#	define LOG_USER     (1 << 3)
+#	define LOG_MAIL     (2 << 3)
+#	define LOG_DAEMON   (3 << 3)
+#	define LOG_AUTH     (4 << 3)
+#	define LOG_SYSLOG   (5 << 3)
+#	define LOG_LPR      (6 << 3)
+#	define LOG_NEWS     (7 << 3)
+#	define LOG_UUCP     (8 << 3)
+#	define LOG_CRON     (9 << 3)
+#	define LOG_AUTHPRIV (10 << 3)
+#	define LOG_FTP      (11 << 3)
+#	define LOG_LOCAL0   (16 << 3)
+#	define LOG_LOCAL1   (17 << 3)
+#	define LOG_LOCAL2   (18 << 3)
+#	define LOG_LOCAL3   (19 << 3)
+#	define LOG_LOCAL4   (20 << 3)
+#	define LOG_LOCAL5   (21 << 3)
+#	define LOG_LOCAL6   (22 << 3)
+#	define LOG_LOCAL7   (23 << 3)
+#	define LOG_PID      (0x01)
+#	define LOG_CONS     (0x02)
+#	define LOG_NDELAY   (0x08)
+#	define LOG_NOWAIT   (0x10)
+#endif
+
 #if !defined(SIGKILL)
-#	define SIGKILL 9
+#	define SIGKILL (9)
 #endif
 
 #define DEFAULT_MODE (0777)
@@ -5539,15 +5575,16 @@ you can specify the remote:// with /dev/log or @/dev/log.
  sys::openlog("remote:///dev/log/xxx", sys::LOG_OPT_PID | sys::LOG_OPT_NDELAY, sys::LOG_FAC_LOCAL0);
  sys::openlog("remote://@/dev/log/xxx", sys::LOG_OPT_PID | sys::LOG_OPT_NDELAY, sys::LOG_FAC_LOCAL0);
  */
-static void open_remote_log_socket (hawk_rtx_t* rtx, rtx_data_t* rdp)
+static hawk_int_t open_remote_log_socket (hawk_rtx_t* rtx, rtx_data_t* rdp)
 {
 	sys_socket_t sck;
+	hawk_int_t rx;
 	int domain = hawk_skad_get_family(&rdp->log.skad);
 	int type = SOCK_DGRAM;
 
 	HAWK_ASSERT(rdp->log.sck == SYS_INVALID_SOCKET);
 
-#if defined(SOCK_NONBLOCK) && defined(SOCK_CLOEXEC)
+#if !defined(_WIN32) && defined(SOCK_NONBLOCK) && defined(SOCK_CLOEXEC)
 	type |= SOCK_NONBLOCK;
 	type |= SOCK_CLOEXEC;
 open_socket:
@@ -5555,33 +5592,48 @@ open_socket:
 	sck = socket(domain, type, 0);
 	if (sck == SYS_INVALID_SOCKET)
 	{
-	#if defined(SOCK_NONBLOCK) && defined(SOCK_CLOEXEC)
+	#if !defined(_WIN32) && defined(SOCK_NONBLOCK) && defined(SOCK_CLOEXEC)
 		if (errno == EINVAL && (type & (SOCK_NONBLOCK | SOCK_CLOEXEC)))
 		{
 			type &= ~(SOCK_NONBLOCK | SOCK_CLOEXEC);
 			goto open_socket;
 		}
 	#endif
-		return;
+		return set_error_on_sys_list_with_socket_error(rtx, &rdp->sys_list, HAWK_T("unable to open log socket"));
 	}
 	else
 	{
-	#if defined(SOCK_NONBLOCK) && defined(SOCK_CLOEXEC)
+	#if !defined(_WIN32) && defined(SOCK_NONBLOCK) && defined(SOCK_CLOEXEC)
 		if (type & (SOCK_NONBLOCK | SOCK_CLOEXEC)) goto done;
 	#endif
 	}
 
+#if defined(_WIN32)
+	{
+		u_long nonblock = 1;
+		if (ioctlsocket(sck, FIONBIO, &nonblock) != 0) goto oops_with_socket_error;
+		if (SetHandleInformation((HANDLE)sck, HANDLE_FLAG_INHERIT, 0) == FALSE)
+		{
+			DWORD err = GetLastError();
+			if (err != ERROR_CALL_NOT_IMPLEMENTED)
+			{
+				rx = set_error_on_sys_list(rtx, &rdp->sys_list, hawk_syserr_to_errnum(err), HAWK_T("unable to disable log socket inheritance"));
+				goto oops;
+			}
+		}
+	}
+#else
 #if defined(F_GETFD)
 	{
 		int flags;
 
 		flags = fcntl(sck, F_GETFD, 0);
-		if (flags <= -1) goto oops;
+		if (flags <= -1) goto oops_with_socket_error;
 #if defined(FD_CLOEXEC)
 		flags |= FD_CLOEXEC;
 #endif
 	#if defined(F_SETFD)
-		if (fcntl(sck, F_SETFD, flags) <= -1) goto oops;
+		if (fcntl(sck, F_SETFD, flags) <= -1) goto oops_with_socket_error;
 	#endif
 	}
 #endif
@@ -5590,24 +5642,26 @@ open_socket:
 		int flags;
 
 		flags = fcntl(sck, F_GETFL, 0);
-		if (flags <= -1) goto oops;
+		if (flags <= -1) goto oops_with_socket_error;
 #if defined(O_NONBLOCK)
 		flags |= O_NONBLOCK;
 #endif
-		if (fcntl(sck, F_SETFL, flags) <= -1) goto oops;
+		if (fcntl(sck, F_SETFL, flags) <= -1) goto oops_with_socket_error;
 	}
+#endif
 #endif
 
 done:
 	rdp->log.sck = sck;
-	return;
+	return 0;
 
+oops_with_socket_error:
+	rx = set_error_on_sys_list_with_socket_error(rtx, &rdp->sys_list, HAWK_T("unable to configure log socket"));
+#if defined(_WIN32)
 oops:
-	{
-		int err = errno;
-		close_sys_socket(sck);
-		errno = err;
-	}
+#endif
+	close_sys_socket(sck);
+	return rx;
 }
 
 static int fnc_openlog (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
@@ -5640,6 +5694,14 @@ static int fnc_openlog (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 	if (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 1), &opt) <= -1) goto fail;
 	if (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 2), &fac) <= -1) goto fail;
+	if ((hawk_intmax_t)opt < (hawk_intmax_t)HAWK_TYPE_MIN(int) ||
+	    (hawk_intmax_t)opt > (hawk_intmax_t)HAWK_TYPE_MAX(int) ||
+	    (hawk_intmax_t)fac < (hawk_intmax_t)HAWK_TYPE_MIN(int) ||
+	    (hawk_intmax_t)fac > (hawk_intmax_t)HAWK_TYPE_MAX(int))
+	{
+		rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_T("log option or facility out of range"));
+		goto done;
+	}
 
 	if (hawk_comp_oocstr_limited(ident, HAWK_T("remote://"), (pfxlen = 9), 0) == 0 ||
 	    hawk_comp_oocstr_limited(ident, HAWK_T("sock://"), (pfxlen = 7), 0) == 0)
@@ -5675,6 +5737,14 @@ static int fnc_openlog (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		actual_ident = ident;
 	}
 
+#if !defined(ENABLE_SYSLOG)
+	if (log_type == SYSLOG_LOCAL)
+	{
+		rx = set_error_on_sys_list(rtx, sys_list, HAWK_ENOSUP, HAWK_T("local syslog is not supported"));
+		goto done;
+	}
+#endif
+
 #if defined(HAWK_OOCH_IS_BCH)
 	mbs_ident = hawk_rtx_dupbcstr(rtx, actual_ident, HAWK_NULL);
 #else
@@ -5703,12 +5773,12 @@ static int fnc_openlog (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	}
 
 	rdp->log.type = log_type;
-	rdp->log.opt = opt;
-	rdp->log.fac = fac;
+	rdp->log.opt = (int)opt;
+	rdp->log.fac = (int)fac;
 	if (rdp->log.type == SYSLOG_LOCAL)
 	{
 	#if defined(ENABLE_SYSLOG)
-		openlog(mbs_ident, opt, fac);
+		openlog(mbs_ident, (int)opt, (int)fac);
 		rdp->log.syslog_opened = 1;
 	#endif
 	}
@@ -5716,7 +5786,11 @@ static int fnc_openlog (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	{
 		rdp->log.skad = skad;
 	#if defined(LOG_NDELAY)
-		if ((opt & LOG_NDELAY) && rdp->log.sck == SYS_INVALID_SOCKET) open_remote_log_socket(rtx, rdp);
+		if ((opt & LOG_NDELAY) && rdp->log.sck == SYS_INVALID_SOCKET)
+		{
+			rx = open_remote_log_socket(rtx, rdp);
+			if (rx < 0) goto done;
+		}
 	#endif
 	}
 
@@ -5794,6 +5868,12 @@ static int fnc_writelog (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		rx = copy_error_to_sys_list(rtx, sys_list);
 		goto done;
 	}
+	if ((hawk_intmax_t)pri < (hawk_intmax_t)HAWK_TYPE_MIN(int) ||
+	    (hawk_intmax_t)pri > (hawk_intmax_t)HAWK_TYPE_MAX(int))
+	{
+		rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_T("log priority out of range"));
+		goto done;
+	}
 
 	msg = hawk_rtx_getvaloocstr(rtx, hawk_rtx_getarg(rtx, 1), &msglen);
 	if (!msg) goto fail;
@@ -5808,24 +5888,23 @@ static int fnc_writelog (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	{
 	#if defined(ENABLE_SYSLOG)
 		#if defined(HAWK_OOCH_IS_BCH)
-		syslog(pri, "%s", msg);
+		syslog((int)pri, "%s", msg);
 		#else
 		{
 			hawk_bch_t* mbs;
 			mbs = hawk_rtx_duputobcstr(rtx, msg, HAWK_NULL);
 			if (!mbs) goto fail;
-			syslog(pri, "%s", mbs);
+			syslog((int)pri, "%s", mbs);
 			hawk_rtx_freemem(rtx, mbs);
 		}
 		#endif
+	#else
+		rx = set_error_on_sys_list(rtx, sys_list, HAWK_ENOSUP, HAWK_T("local syslog is not supported"));
+		goto done;
 	#endif
 	}
 	else if (rdp->log.type == SYSLOG_REMOTE)
 	{
-	#if defined(_WIN32)
-		/* TODO: implement this */
-	#else
-
 		static const hawk_bch_t* __syslog_month_names[] =
 		{
 			"Jan", "Feb", "Mar", "Apr", "May", "Jun",
@@ -5838,12 +5917,8 @@ static int fnc_writelog (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 		if (rdp->log.sck == SYS_INVALID_SOCKET)
 		{
-			open_remote_log_socket(rtx, rdp);
-			if (rdp->log.sck == SYS_INVALID_SOCKET)
-			{
-				rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_T("unable to open log socket"));
-				goto done;
-			}
+			rx = open_remote_log_socket(rtx, rdp);
+			if (rx < 0) goto done;
 		}
 
 		if (!rdp->log.dmsgbuf)
@@ -5869,6 +5944,8 @@ static int fnc_writelog (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_T("unable to get local time"));
 			goto done;
 		}
+		if (tmx != &tm) tm = *tmx;
+		tmx = &tm;
 
 		if (hawk_becs_fmt(
 			rdp->log.dmsgbuf, HAWK_BT("<%d>%hs %02d %02d:%02d:%02d "),
@@ -5881,7 +5958,14 @@ static int fnc_writelog (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			/* if the identifier is set or LOG_PID is set, the produced tag won't be empty.
 				* so appending ':' is kind of ok */
 			if (hawk_becs_fcat(rdp->log.dmsgbuf, HAWK_BT("%hs"), (rdp->log.ident? rdp->log.ident: HAWK_BT(""))) == (hawk_oow_t)-1) goto fail;
-			if ((rdp->log.opt & LOG_PID) && hawk_becs_fcat(rdp->log.dmsgbuf, HAWK_BT("[%d]"), (int)HAWK_GETPID()) == (hawk_oow_t)-1) goto fail;
+			if (rdp->log.opt & LOG_PID)
+			{
+			#if defined(_WIN32)
+				if (hawk_becs_fcat(rdp->log.dmsgbuf, HAWK_BT("[%lu]"), (unsigned long)GetCurrentProcessId()) == (hawk_oow_t)-1) goto fail;
+			#else
+				if (hawk_becs_fcat(rdp->log.dmsgbuf, HAWK_BT("[%d]"), (int)HAWK_GETPID()) == (hawk_oow_t)-1) goto fail;
+			#endif
+			}
 			if (hawk_becs_fcat(rdp->log.dmsgbuf, HAWK_BT(": ")) == (hawk_oow_t)-1) goto fail;
 		}
 
@@ -5891,16 +5975,19 @@ static int fnc_writelog (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		if (hawk_becs_fcat(rdp->log.dmsgbuf, HAWK_BT("%ls"), msg) == (hawk_oow_t)-1) goto fail;
 	#endif
 
-		/* don't care about output failure */
-		if (sendto(rdp->log.sck, HAWK_BECS_PTR(rdp->log.dmsgbuf), HAWK_BECS_LEN(rdp->log.dmsgbuf),
-		           0, (struct sockaddr*)&rdp->log.skad, hawk_skad_get_size(&rdp->log.skad)) <= -1)
+	#if defined(_WIN32)
+		if (HAWK_BECS_LEN(rdp->log.dmsgbuf) > HAWK_TYPE_MAX(int))
 		{
-			hawk_ooch_t msg[256] = HAWK_T("unable to write to log socket ");
-			hawk_gem_skadtooocstr(hawk_rtx_getgem(rtx), &rdp->log.skad, &msg[30], HAWK_COUNTOF(msg) - 30, HAWK_SKAD_TO_OOCSTR_ADDR | HAWK_SKAD_TO_OOCSTR_PORT);
-			rx = set_error_on_sys_list_with_errno(rtx, sys_list, msg);
+			rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_T("log datagram too large"));
 			goto done;
 		}
 	#endif
+		if (sendto(rdp->log.sck, HAWK_BECS_PTR(rdp->log.dmsgbuf), HAWK_BECS_LEN(rdp->log.dmsgbuf),
+		           0, (struct sockaddr*)&rdp->log.skad, hawk_skad_get_size(&rdp->log.skad)) <= -1)
+		{
+			rx = set_error_on_sys_list_with_socket_error(rtx, sys_list, HAWK_T("unable to write to log socket"));
+			goto done;
+		}
 	}
 
 	rx = ERRNUM_TO_RC(HAWK_ENOERR);
@@ -7200,7 +7287,7 @@ static hawk_mod_int_tab_t inttab[] =
 	{ HAWK_T("IFCFG_IN4"),          { HAWK_IFCFG_IN4 } },
 	{ HAWK_T("IFCFG_IN6"),          { HAWK_IFCFG_IN6 } },
 
-#if defined(ENABLE_SYSLOG)
+#if defined(ENABLE_SYSLOG) || defined(_WIN32)
 	{ HAWK_T("LOG_FAC_AUTH"),       { LOG_AUTH } },
 	{ HAWK_T("LOG_FAC_AUTHPRIV"),   { LOG_AUTHPRIV } },
 	{ HAWK_T("LOG_FAC_CRON"),       { LOG_CRON } },
