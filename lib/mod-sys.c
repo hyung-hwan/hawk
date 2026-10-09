@@ -223,7 +223,9 @@ typedef enum sys_node_data_type_t sys_node_data_type_t;
 
 enum sys_node_data_flag_t
 {
-	SYS_NODE_DATA_FLAG_IN_MUX = (1 << 0)
+	SYS_NODE_DATA_FLAG_IN_MUX = (1 << 0),
+	SYS_NODE_DATA_FLAG_OPENFD = (1 << 1), /* created by openfd() */
+	SYS_NODE_DATA_FLAG_MAY_SHARE_FD = (1 << 2) /* a matching wrapper was found */
 };
 typedef enum sys_node_data_flag_t sys_node_data_flag_t;
 
@@ -293,6 +295,7 @@ struct sys_list_data_t
 {
 	hawk_ooch_t errmsg[256];
 	hawk_ooch_t skadbuf[2][256];
+	hawk_oow_t openfd_count; /* live nodes created by openfd(), including invalidated ones */
 };
 typedef struct sys_list_data_t sys_list_data_t;
 
@@ -478,7 +481,37 @@ static void copy_bcstr_to_oocstr (hawk_rtx_t* rtx, hawk_ooch_t* buf, hawk_oow_t 
 
 /* ------------------------------------------------------------------------ */
 
-static sys_node_t* new_sys_node_fd (hawk_rtx_t* rtx, sys_list_t* list, int fd)
+static void mark_shared_sys_fd (sys_list_t* list, sys_node_t* node)
+{
+	hawk_oow_t i;
+	int fd = node->ctx.u.file.fd;
+
+	if (fd < 0) return;
+
+	/* it's called for sys::openfd().
+	 * while seemingly simple, sys::openfd() gives quite some trouble
+	 * in term of implementation because any file descriptors can be
+	 * used. it scans the same file descriptors and mark them shared.
+	 * if the mark is set, close_shared_sys_fd() is called instead of
+	 * directy close upon sys::close().
+	 *
+	 * [NOTE] this linear search could be slow. TODO: need enhancement */
+	for (i = 0; i < list->map.high; i++)
+	{
+		sys_node_t* other = list->map.tab[i];
+
+		if (other && other != node &&
+		    (other->ctx.type == SYS_NODE_DATA_TYPE_FILE ||
+		     other->ctx.type == SYS_NODE_DATA_TYPE_SCK) &&
+		    other->ctx.u.file.fd == fd)
+		{
+			node->ctx.flags |= SYS_NODE_DATA_FLAG_MAY_SHARE_FD;
+			other->ctx.flags |= SYS_NODE_DATA_FLAG_MAY_SHARE_FD;
+		}
+	}
+}
+
+static sys_node_t* new_sys_node_fd (hawk_rtx_t* rtx, sys_list_t* list, int fd, int flags)
 {
 	sys_node_t* node;
 
@@ -487,11 +520,16 @@ static sys_node_t* new_sys_node_fd (hawk_rtx_t* rtx, sys_list_t* list, int fd)
 
 	HAWK_MEMSET(&node->ctx, 0, HAWK_SIZEOF(node->ctx));
 	node->ctx.type = SYS_NODE_DATA_TYPE_FILE;
-	node->ctx.flags = 0;
+	node->ctx.flags = flags;
 	node->ctx.u.file.fd = fd;
 #if defined(_WIN32)
 	node->ctx.u.file.sck = SYS_INVALID_SOCKET;
 #endif
+	/* An imported descriptor can alias an existing node or precede an OS
+	 * allocation of the same number. Mark both sides in either order. */
+	if ((flags & SYS_NODE_DATA_FLAG_OPENFD) || list->ctx.openfd_count > 0)
+		mark_shared_sys_fd(list, node);
+	if (flags & SYS_NODE_DATA_FLAG_OPENFD) list->ctx.openfd_count++;
 	return node;
 }
 
@@ -499,10 +537,13 @@ static sys_node_t* new_sys_node_sck (hawk_rtx_t* rtx, sys_list_t* list, sys_sock
 {
 	sys_node_t* node;
 
-	node = new_sys_node_fd(rtx, list, -1);
+	node = new_sys_node_fd(rtx, list, -1, 0);
 	if (!node) return HAWK_NULL;
 	node->ctx.type = SYS_NODE_DATA_TYPE_SCK;
 	SYS_NODE_SOCKET(node) = sck;
+	/* On POSIX, the socket descriptor is installed after new_sys_node_fd().
+	 * On Windows, the CRT descriptor remains -1 and cannot alias a SOCKET. */
+	if (list->ctx.openfd_count > 0) mark_shared_sys_fd(list, node);
 	return node;
 }
 
@@ -625,6 +666,39 @@ static void purge_mux_members (hawk_rtx_t* rtx, sys_node_t* mux_node)
 	}
 }
 
+static void close_shared_sys_fd (hawk_rtx_t* rtx, sys_list_t* list, int fd)
+{
+	hawk_oow_t i;
+
+	HAWK_ASSERT(fd >= 0);
+
+	/* two openfd() handles can wrap the same descriptor.
+	 * closing one invalidates the descriptor used by the other’s epoll registration.
+	 * the ignored EPOLL_CTL_DEL failure then leaves a watch pointing to a released
+	 * node while another duplicate keeps the underlying pipe alive.
+	 *
+	 * only nodes marked MAY_SHARE_FD need this linear search on close().
+	 * the flag is kept until the node is freed, even if an alias is released
+	 * with C_KEEPFD in the meantime.
+	 */
+	for (i = 0; i < list->map.high; i++)
+	{
+		sys_node_t* node = list->map.tab[i];
+
+		if (node &&
+		    (node->ctx.type == SYS_NODE_DATA_TYPE_FILE ||
+		     node->ctx.type == SYS_NODE_DATA_TYPE_SCK) &&
+		    node->ctx.u.file.fd == fd)
+		{
+			/* remove every watch while the descriptor is still valid. */
+			del_from_mux(rtx, node);
+			node->ctx.u.file.fd = -1;
+			node->ctx.u.file.readbuf_len = 0;
+		}
+	}
+	close(fd);
+}
+
 static void free_sys_node (hawk_rtx_t* rtx, sys_list_t* list, sys_node_t* node)
 {
 	switch (node->ctx.type)
@@ -645,8 +719,16 @@ static void free_sys_node (hawk_rtx_t* rtx, sys_list_t* list, sys_node_t* node)
 		#endif
 			if (node->ctx.u.file.fd >= 0)
 			{
-				close(node->ctx.u.file.fd);
-				node->ctx.u.file.fd = -1;
+				int fd = node->ctx.u.file.fd;
+				if (node->ctx.flags & SYS_NODE_DATA_FLAG_MAY_SHARE_FD)
+				{
+					close_shared_sys_fd(rtx, list, fd);
+				}
+				else
+				{
+					close(fd);
+					node->ctx.u.file.fd = -1;
+				}
 			}
 			break;
 
@@ -677,6 +759,11 @@ static void free_sys_node (hawk_rtx_t* rtx, sys_list_t* list, sys_node_t* node)
 			}
 		#endif
 			break;
+	}
+	if (node->ctx.flags & SYS_NODE_DATA_FLAG_OPENFD)
+	{
+		HAWK_ASSERT(list->ctx.openfd_count > 0);
+		list->ctx.openfd_count--;
 	}
 	__free_sys_node(rtx, list, node);
 }
@@ -842,7 +929,7 @@ static int fnc_open (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		{
 			sys_node_t* new_node;
 
-			new_node = new_sys_node_fd(rtx, sys_list, fd);
+			new_node = new_sys_node_fd(rtx, sys_list, fd, 0);
 			if (!new_node)
 			{
 				close(fd);
@@ -896,7 +983,7 @@ static int fnc_openfd (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	{
 		sys_node_t* sys_node;
 
-		sys_node = new_sys_node_fd(rtx, sys_list, fd);
+		sys_node = new_sys_node_fd(rtx, sys_list, fd, SYS_NODE_DATA_FLAG_OPENFD);
 		if (!sys_node) goto fail;
 
 		rx = sys_node->id;
@@ -1219,7 +1306,9 @@ static int fnc_dup (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		{
 			sys_node2 = get_sys_list_node_with_arg(rtx, sys_list, hawk_rtx_getarg(rtx, 1), SYS_NODE_DATA_TYPE_FILE, &rx);
 			if (!sys_node2) goto done;
+
 			if (nargs >= 3 && hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 2), &oflags) <= -1) oflags = 0;
+
 			if ((hawk_intmax_t)oflags < (hawk_intmax_t)HAWK_TYPE_MIN(int) ||
 			    (hawk_intmax_t)oflags > (hawk_intmax_t)HAWK_TYPE_MAX(int))
 			{
@@ -1312,7 +1401,7 @@ static int fnc_dup (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			{
 				sys_node_t* new_node;
 
-				new_node = new_sys_node_fd(rtx, sys_list, fd);
+				new_node = new_sys_node_fd(rtx, sys_list, fd, 0);
 				if (new_node)
 				{
 					new_node->ctx.type = sys_node->ctx.type;
@@ -2036,8 +2125,8 @@ static int fnc_pipe (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		#endif
 		}
 	#endif
-		node1 = new_sys_node_fd(rtx, sys_list, fds[0]);
-		node2 = new_sys_node_fd(rtx, sys_list, fds[1]);
+		node1 = new_sys_node_fd(rtx, sys_list, fds[0], 0);
+		node2 = new_sys_node_fd(rtx, sys_list, fds[1], 0);
 		if (node1 && node2)
 		{
 			hawk_val_t* v;
