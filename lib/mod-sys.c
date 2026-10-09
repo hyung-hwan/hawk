@@ -886,7 +886,11 @@ static int fnc_open (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 	hawk_int_t rx, oflags = 0, mode = DEFAULT_MODE;
 	int fd, err;
+#if defined(_WIN32)
+	hawk_ooch_t* pstr;
+#else
 	hawk_bch_t* pstr;
+#endif
 	hawk_oow_t plen;
 	hawk_val_t* a0;
 
@@ -912,18 +916,38 @@ static int fnc_open (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 #endif
 
 	a0 = hawk_rtx_getarg(rtx, 0);
+#if defined(_WIN32)
+	pstr = hawk_rtx_getvaloocstr(rtx, a0, &plen);
+#else
 	pstr = hawk_rtx_getvalbcstr(rtx, a0, &plen);
+#endif
 	if (pstr)
 	{
+#if defined(_WIN32)
+		if (hawk_find_oochar_in_oochars(pstr, plen, '\0'))
+#else
 		if (hawk_find_bchar_in_bchars(pstr, plen, '\0'))
+#endif
 		{
+#if defined(_WIN32)
+			hawk_rtx_freevaloocstr(rtx, a0, pstr);
+#else
 			hawk_rtx_freevalbcstr(rtx, a0, pstr);
+#endif
 			rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_T("path contains '\\0'"));
 			goto done;
 		}
+#if defined(_WIN32) && defined(HAWK_OOCH_IS_UCH)
+		fd = _wopen(pstr, (int)oflags, (sys_mode_t)mode);
+#else
 		fd = open(pstr, (int)oflags, (sys_mode_t)mode);
+#endif
 		err = errno; /* path cleanup may change errno through the memory manager */
+#if defined(_WIN32)
+		hawk_rtx_freevaloocstr(rtx, a0, pstr);
+#else
 		hawk_rtx_freevalbcstr(rtx, a0, pstr);
+#endif
 
 		if (fd >= 0)
 		{
@@ -3749,21 +3773,29 @@ static int fnc_getenv (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 static int fnc_tempname (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
+#if defined(_WIN32)
+	static const hawk_ooch_t default_prefix[] = HAWK_T("hawk-");
+	hawk_ooch_t* prefix_buf = HAWK_NULL;
+	const hawk_ooch_t* prefix = default_prefix;
+	const hawk_ooch_t* tmpdir;
+	hawk_ooch_t* path = HAWK_NULL;
+#else
 	static const hawk_bch_t default_prefix[] = HAWK_BT("hawk-");
+	hawk_bch_t* prefix_buf = HAWK_NULL;
+	const hawk_bch_t* prefix = default_prefix;
+	const hawk_bch_t* tmpdir;
+	hawk_bch_t* path = HAWK_NULL;
+#endif
 	sys_list_t* sys_list;
 	hawk_val_t* prefix_arg = HAWK_NULL;
 	hawk_val_t* retv = HAWK_NULL;
-	hawk_bch_t* prefix_buf = HAWK_NULL;
-	const hawk_bch_t* prefix = default_prefix;
 	hawk_oow_t prefix_len = HAWK_COUNTOF(default_prefix) - 1;
-	const hawk_bch_t* tmpdir;
 	hawk_oow_t tmpdir_len, path_len, extra, i;
-	hawk_bch_t* path = HAWK_NULL;
 	hawk_fio_t* fio;
 	int need_sep;
 #if defined(_WIN32)
-	hawk_bch_t tmpdir_buf[MAX_PATH + 1];
-	hawk_bch_t* tmpdir_alloc = HAWK_NULL;
+	hawk_ooch_t tmpdir_buf[MAX_PATH + 1];
+	hawk_ooch_t* tmpdir_alloc = HAWK_NULL;
 	DWORD n;
 #endif
 
@@ -3772,7 +3804,11 @@ static int fnc_tempname (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	if (hawk_rtx_getnargs(rtx) >= 1)
 	{
 		prefix_arg = hawk_rtx_getarg(rtx, 0);
+#if defined(_WIN32)
+		prefix_buf = hawk_rtx_getvaloocstr(rtx, prefix_arg, &prefix_len);
+#else
 		prefix_buf = hawk_rtx_getvalbcstr(rtx, prefix_arg, &prefix_len);
+#endif
 		if (!prefix_buf)
 		{
 			copy_error_to_sys_list(rtx, sys_list);
@@ -3780,7 +3816,11 @@ static int fnc_tempname (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		}
 		prefix = prefix_buf;
 
+#if defined(_WIN32)
+		if (hawk_find_oochar_in_oochars(prefix, prefix_len, '\0'))
+#else
 		if (hawk_find_bchar_in_bchars(prefix, prefix_len, '\0'))
+#endif
 		{
 			set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_T("invalid temporary file prefix"));
 			goto soft_fail;
@@ -3796,7 +3836,7 @@ static int fnc_tempname (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	}
 
 #if defined(_WIN32)
-	n = GetTempPathA(HAWK_COUNTOF(tmpdir_buf), tmpdir_buf);
+	n = GetTempPath(HAWK_COUNTOF(tmpdir_buf), tmpdir_buf);
 	if (n == 0)
 	{
 		set_error_on_sys_list(rtx, sys_list, hawk_syserr_to_errnum(GetLastError()), HAWK_T("unable to get the temporary directory"));
@@ -3805,7 +3845,8 @@ static int fnc_tempname (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	if (n >= HAWK_COUNTOF(tmpdir_buf))
 	{
 		DWORD capa;
-		if ((hawk_oow_t)n >= HAWK_TYPE_MAX(hawk_oow_t) / HAWK_SIZEOF(*tmpdir_alloc))
+		if (n == HAWK_TYPE_MAX(DWORD) ||
+		    (hawk_oow_t)n >= HAWK_TYPE_MAX(hawk_oow_t) / HAWK_SIZEOF(*tmpdir_alloc))
 		{
 			set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_T("temporary directory path too long"));
 			goto soft_fail;
@@ -3817,7 +3858,7 @@ static int fnc_tempname (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			copy_error_to_sys_list(rtx, sys_list);
 			goto soft_fail;
 		}
-		n = GetTempPathA(capa, tmpdir_alloc);
+		n = GetTempPath(capa, tmpdir_alloc);
 		if (n == 0)
 		{
 			set_error_on_sys_list(rtx, sys_list, hawk_syserr_to_errnum(GetLastError()), HAWK_T("unable to get the temporary directory"));
@@ -3849,7 +3890,11 @@ static int fnc_tempname (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	}
 #endif
 
+#if defined(_WIN32)
+	tmpdir_len = hawk_count_oocstr(tmpdir);
+#else
 	tmpdir_len = hawk_count_bcstr(tmpdir);
+#endif
 	need_sep = tmpdir_len > 0 && !HAWK_IS_PATH_SEP(tmpdir[tmpdir_len - 1]);
 #if defined(vms) || defined(__vms)
 	if (tmpdir_len > 0 && tmpdir[tmpdir_len - 1] == ':') need_sep = 0;
@@ -3864,6 +3909,11 @@ static int fnc_tempname (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		goto soft_fail;
 	}
 	path_len = tmpdir_len + need_sep + prefix_len + 4;
+	if (path_len >= HAWK_TYPE_MAX(hawk_oow_t) / HAWK_SIZEOF(*path))
+	{
+		set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_T("temporary file path too long"));
+		goto soft_fail;
+	}
 	path = hawk_rtx_allocmem(rtx, (path_len + 1) * HAWK_SIZEOF(*path));
 	if (!path)
 	{
@@ -3884,12 +3934,15 @@ static int fnc_tempname (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	}
 	HAWK_MEMCPY(&path[i], prefix, prefix_len * HAWK_SIZEOF(*path));
 	i += prefix_len;
-	HAWK_MEMCPY(&path[i], "0000", 4 * HAWK_SIZEOF(*path));
+	for (; i < path_len; i++) path[i] = '0';
 	path[path_len] = '\0';
 
 	fio = hawk_fio_open(
 		hawk_rtx_getgem(rtx), 0, (const hawk_ooch_t*)path,
-		HAWK_FIO_BCSTRPATH | HAWK_FIO_TEMPORARY | HAWK_FIO_WRITE |
+	#if !defined(_WIN32)
+		HAWK_FIO_BCSTRPATH |
+	#endif
+		HAWK_FIO_TEMPORARY | HAWK_FIO_WRITE |
 		HAWK_FIO_CREATE | HAWK_FIO_EXCLUSIVE,
 		HAWK_FIO_RUSR | HAWK_FIO_WUSR
 	);
@@ -3900,10 +3953,18 @@ static int fnc_tempname (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	}
 	hawk_fio_close(fio);
 
+#if defined(_WIN32)
+	retv = hawk_rtx_makestrvalwithoocstr(rtx, path);
+#else
 	retv = hawk_rtx_makestrvalwithbcstr(rtx, path);
+#endif
 	if (!retv)
 	{
+#if defined(_WIN32)
+		DeleteFile(path);
+#else
 		remove(path);
+#endif
 		goto hard_fail;
 	}
 	hawk_rtx_setretval(rtx, retv);
@@ -3911,8 +3972,10 @@ static int fnc_tempname (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	if (path) hawk_rtx_freemem(rtx, path);
 #if defined(_WIN32)
 	if (tmpdir_alloc) hawk_rtx_freemem(rtx, tmpdir_alloc);
-#endif
+	if (prefix_buf) hawk_rtx_freevaloocstr(rtx, prefix_arg, prefix_buf);
+#else
 	if (prefix_buf) hawk_rtx_freevalbcstr(rtx, prefix_arg, prefix_buf);
+#endif
 	return 0;
 
 soft_fail:
@@ -3924,8 +3987,10 @@ hard_fail:
 	if (path) hawk_rtx_freemem(rtx, path);
 #if defined(_WIN32)
 	if (tmpdir_alloc) hawk_rtx_freemem(rtx, tmpdir_alloc);
-#endif
+	if (prefix_buf) hawk_rtx_freevaloocstr(rtx, prefix_arg, prefix_buf);
+#else
 	if (prefix_buf) hawk_rtx_freevalbcstr(rtx, prefix_arg, prefix_buf);
+#endif
 	return retv? 0: -1;
 }
 
