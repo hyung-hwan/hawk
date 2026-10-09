@@ -115,6 +115,17 @@
 
 #define DEFAULT_MODE (0777)
 
+#if defined(_WIN32) || defined(__OS2__) || defined(__DOS__)
+typedef int sys_mode_t;
+#else
+typedef mode_t sys_mode_t;
+#endif
+
+static HAWK_INLINE int is_sys_mode_valid (hawk_int_t mode)
+{
+	return mode >= 0 && (hawk_uintmax_t)mode <= (hawk_uintmax_t)HAWK_TYPE_MAX(sys_mode_t);
+}
+
 #define CLOSE_KEEPFD (1 << 0)
 
 /* these must not conflict with F_RDLCK, F_WRLCK, F_UNLCK */
@@ -803,6 +814,11 @@ static int fnc_open (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	}
 	if (oflags < 0) oflags = O_RDONLY;
 	if (hawk_rtx_getnargs(rtx) >= 3 && (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 2), &mode) <= -1 || mode < 0)) mode = DEFAULT_MODE;
+	if (!is_sys_mode_valid(mode))
+	{
+		rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_T("file mode out of range"));
+		goto done;
+	}
 
 #if defined(O_LARGEFILE)
 	oflags |= O_LARGEFILE;
@@ -818,7 +834,7 @@ static int fnc_open (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_T("path contains '\\0'"));
 			goto done;
 		}
-		fd = open(pstr, (int)oflags, mode);
+		fd = open(pstr, (int)oflags, (sys_mode_t)mode);
 		err = errno; /* path cleanup may change errno through the memory manager */
 		hawk_rtx_freevalbcstr(rtx, a0, pstr);
 
@@ -920,6 +936,10 @@ static int fnc_read (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 		if (nargs >= 3 && (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 2), &reqsize) <= -1 || reqsize <= 0)) reqsize = 8192;
 		if (reqsize > HAWK_INT_MAX) reqsize = HAWK_INT_MAX;
+	#if defined(_WIN32)
+		/* Both CRT file reads and Winsock reads have narrower count arguments. */
+		if (reqsize > HAWK_TYPE_MAX(int)) reqsize = HAWK_TYPE_MAX(int);
+	#endif
 
 		if (reqsize > sys_node->ctx.u.file.readbuf_capa)
 		{
@@ -1105,6 +1125,9 @@ static int fnc_write (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			else
 		#endif
 			{
+			#if defined(_WIN32)
+				if (dlen > HAWK_TYPE_MAX(int)) dlen = HAWK_TYPE_MAX(int);
+			#endif
 				rx = write(sys_node->ctx.u.file.fd, &dptr[startpos], dlen);
 				if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_T("unable to write"));
 			}
@@ -1231,6 +1254,10 @@ static int fnc_dup (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		#endif
 			if (fd >= 0)
 			{
+				/* dup2 has already replaced the target, even if flag setup fails. */
+				sys_node2->ctx.u.file.readbuf_len = 0;
+				sys_node2->ctx.u.file.fd = fd;
+				sys_node2->ctx.type = sys_node->ctx.type;
 		#if defined(HAVE_DUP3)
 				/* nothing extra for dup3 */
 		#else
@@ -1241,7 +1268,11 @@ static int fnc_dup (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 					if (oflags & O_CLOEXEC)
 					{
 						xflags = fcntl(fd, F_GETFD);
-						if (xflags >= 0) fcntl(fd, F_SETFD, xflags | FD_CLOEXEC);
+						if (xflags <= -1 || fcntl(fd, F_SETFD, xflags | FD_CLOEXEC) <= -1)
+						{
+							rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_T("unable to set close-on-exec after duplication"));
+							goto done;
+						}
 					}
 				#endif
 				#if defined(O_NONBLOCK)
@@ -1253,9 +1284,6 @@ static int fnc_dup (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 				#endif
 				}
 		#endif
-				sys_node2->ctx.u.file.readbuf_len = 0;
-				sys_node2->ctx.u.file.fd = fd;
-				sys_node2->ctx.type = sys_node->ctx.type;
 				rx = sys_node2->id;
 			}
 			else
@@ -1667,6 +1695,12 @@ static int fnc_tcsetattr (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi) /* this is
 			rx = copy_error_to_sys_list(rtx, sys_list);
 			goto done;
 		}
+		if ((hawk_intmax_t)action < (hawk_intmax_t)HAWK_TYPE_MIN(int) ||
+		    (hawk_intmax_t)action > (hawk_intmax_t)HAWK_TYPE_MAX(int))
+		{
+			rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_T("terminal action out of range"));
+			goto done;
+		}
 
 		a2 = hawk_rtx_getarg(rtx, 2);
 		if (HAWK_RTX_GETVALTYPE(rtx, a2) != HAWK_VAL_MAP)
@@ -1701,6 +1735,8 @@ static int fnc_tcsetattr (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi) /* this is
 			}
 			else
 			{
+				tcflag_t* field = HAWK_NULL;
+
 				if (hawk_rtx_valtoint_inline(rtx, HAWK_MAP_VPTR(pair), &flag) <= -1)
 				{
 					rx = copy_error_to_sys_list(rtx, sys_list);
@@ -1709,19 +1745,30 @@ static int fnc_tcsetattr (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi) /* this is
 
 				if (hawk_comp_oochars_bcstr(HAWK_MAP_KPTR(pair), HAWK_MAP_KLEN(pair), "iflag", 0) == 0)
 				{
-					t.c_iflag = flag;
+					field = &t.c_iflag;
 				}
 				else if (hawk_comp_oochars_bcstr(HAWK_MAP_KPTR(pair), HAWK_MAP_KLEN(pair), "oflag", 0) == 0)
 				{
-					t.c_oflag = flag;
+					field = &t.c_oflag;
 				}
 				else if (hawk_comp_oochars_bcstr(HAWK_MAP_KPTR(pair), HAWK_MAP_KLEN(pair), "cflag", 0) == 0)
 				{
-					t.c_cflag = flag;
+					field = &t.c_cflag;
 				}
 				else if (hawk_comp_oochars_bcstr(HAWK_MAP_KPTR(pair), HAWK_MAP_KLEN(pair), "lflag", 0) == 0)
 				{
-					t.c_lflag = flag;
+					field = &t.c_lflag;
+				}
+				if (field)
+				{
+					/* Retain same-width signed bit patterns returned by tcgetattr(). */
+					if ((HAWK_SIZEOF(hawk_int_t) > HAWK_SIZEOF(tcflag_t) && flag < 0) ||
+					    (flag >= 0 && (hawk_uintmax_t)flag > (hawk_uintmax_t)HAWK_TYPE_MAX(tcflag_t)))
+					{
+						rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_T("terminal flags out of range"));
+						goto done;
+					}
+					*field = (tcflag_t)flag;
 				}
 			}
 
@@ -1729,7 +1776,7 @@ static int fnc_tcsetattr (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi) /* this is
 			pair = hawk_map_getnextpair(((hawk_val_map_t*)a2)->map, &itr);
 		}
 
-		rx = tcsetattr(sys_node->ctx.u.file.fd, action, &t);
+		rx = tcsetattr(sys_node->ctx.u.file.fd, (int)action, &t);
 		if (rx <= -1)
 		{
 		fail_with_errno:
@@ -1819,7 +1866,14 @@ static int fnc_tcflush (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 		if (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 1), &qs) <= -1) qs = TCIOFLUSH;
 
-		rx = tcflush(sys_node->ctx.u.file.fd, qs);
+		if ((hawk_intmax_t)qs < (hawk_intmax_t)HAWK_TYPE_MIN(int) ||
+		    (hawk_intmax_t)qs > (hawk_intmax_t)HAWK_TYPE_MAX(int))
+		{
+			rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_T("terminal queue selector out of range"));
+			goto done;
+		}
+
+		rx = tcflush(sys_node->ctx.u.file.fd, (int)qs);
 		if (rx <= -1)
 		{
 			rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
@@ -2100,12 +2154,16 @@ static int fnc_fchmod (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		{
 			rx = copy_error_to_sys_list(rtx, sys_list);
 		}
+		else if (!is_sys_mode_valid(mode))
+		{
+			rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_T("file mode out of range"));
+		}
 		else
 		{
 		#if defined(_WIN32)
 			rx = set_error_on_sys_list(rtx, sys_list, HAWK_ENOSUP, HAWK_NULL);
 		#else
-			rx = fchmod(sys_node->ctx.u.file.fd, mode) <= -1?
+			rx = fchmod(sys_node->ctx.u.file.fd, (sys_mode_t)mode) <= -1?
 				set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL):
 				ERRNUM_TO_RC(HAWK_ENOERR);
 		#endif
@@ -2157,7 +2215,15 @@ static int fnc_opendir (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 	sys_list = rtx_to_sys_list(rtx, fi);
 
-	if (hawk_rtx_getnargs(rtx) >= 2 && (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 1), &flags) <= -1 || flags < 0)) flags = 0;
+	if (hawk_rtx_getnargs(rtx) >= 2 && hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 1), &flags) <= -1) flags = 0;
+
+	if ((hawk_intmax_t)flags < (hawk_intmax_t)HAWK_TYPE_MIN(int) ||
+	    (hawk_intmax_t)flags > (hawk_intmax_t)HAWK_TYPE_MAX(int))
+	{
+		rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_T("directory flags out of range"));
+		goto done;
+	}
+	if (flags < 0) flags = 0;
 
 	a0 = hawk_rtx_getarg(rtx, 0);
 	pstr = hawk_rtx_getvaloocstr(rtx, a0, &plen);
@@ -2168,7 +2234,7 @@ static int fnc_opendir (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_T("path contains '\\0'"));
 		goto done;
 	}
-	dir = hawk_dir_open(hawk_rtx_getgem(rtx), 0, pstr, flags);
+	dir = hawk_dir_open(hawk_rtx_getgem(rtx), 0, pstr, (int)flags);
 	hawk_rtx_freevaloocstr(rtx, a0, pstr);
 
 	if (dir)
@@ -3813,7 +3879,18 @@ static int fnc_getifcfg (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 		if (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 1), &type) <= -1) goto fail;
 
-		cfg.type = type;
+		if (hawk_find_oochar_in_oochars(cfg.name, out.u.cplcpy.len, '\0'))
+		{
+			rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_T("interface name contains '\\0'"));
+			goto done;
+		}
+		if (type != HAWK_IFCFG_IN4 && type != HAWK_IFCFG_IN6)
+		{
+			rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_T("invalid interface address family"));
+			goto done;
+		}
+
+		cfg.type = (hawk_ifcfg_type_t)type;
 		if (hawk_gem_getifcfg(hawk_rtx_getgem(rtx), &cfg) <= -1) goto fail;
 
 		/* make a map value containg configuration */
@@ -3876,6 +3953,7 @@ static int fnc_getifcfg (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		rx = copy_error_to_sys_list(rtx, sys_list);
 	}
 
+done:
 	/* no error check for hawk_rtx_makeintval_inline() since ret is 0 or -1 */
 	hawk_rtx_setretval(rtx, hawk_rtx_makeintval_inline(rtx, rx));
 	return 0;
@@ -4007,6 +4085,13 @@ static int fnc_chmod (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 	if (hawk_rtx_getnargs(rtx) >= 2 && (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 1), &mode) <= -1 || mode < 0)) mode = DEFAULT_MODE;
 
+	if (!is_sys_mode_valid(mode))
+	{
+		rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_T("file mode out of range"));
+		hawk_rtx_setretval(rtx, hawk_rtx_makeintval_inline(rtx, rx));
+		return 0;
+	}
+
 #if defined(_WIN32)
 	rx = set_error_on_sys_list(rtx, sys_list, HAWK_ENOIMPL, HAWK_NULL);
 #elif defined(__OS2__)
@@ -4032,7 +4117,7 @@ static int fnc_chmod (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			goto done;
 		}
 
-		rx = HAWK_CHMOD(str, mode);
+		rx = HAWK_CHMOD(str, (sys_mode_t)mode);
 		if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
 
 	done:
@@ -4057,6 +4142,13 @@ static int fnc_mkdir (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	a0 = hawk_rtx_getarg(rtx, 0);
 
 	if (hawk_rtx_getnargs(rtx) >= 2 && (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 1), &mode) <= -1 || mode < 0)) mode = DEFAULT_MODE;
+
+	if (!is_sys_mode_valid(mode))
+	{
+		rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_T("file mode out of range"));
+		hawk_rtx_setretval(rtx, hawk_rtx_makeintval_inline(rtx, rx));
+		return 0;
+	}
 
 #if defined(_WIN32)
 	{
@@ -4111,7 +4203,7 @@ static int fnc_mkdir (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		rx = mkdir(str);
 		if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
 	#else
-		rx = HAWK_MKDIR(str, mode);
+		rx = HAWK_MKDIR(str, (sys_mode_t)mode);
 		if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
 	#endif
 
@@ -4670,8 +4762,15 @@ static HAWK_INLINE int ctl_epoll_for_fnc (hawk_rtx_t* rtx, const hawk_fnc_info_t
 					goto done;
 				}
 
+				if ((HAWK_SIZEOF(hawk_int_t) > HAWK_SIZEOF(hawk_uint32_t) && events < 0) ||
+				    (events >= 0 && (hawk_uintmax_t)events > (hawk_uintmax_t)HAWK_TYPE_MAX(hawk_uint32_t)))
+				{
+					rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_T("multiplexer events out of range"));
+					goto done;
+				}
+
 				ev.data.ptr = sys_node2;
-				ev.events = events;
+				ev.events = (hawk_uint32_t)events;
 				ev.events &= ~EPOLLET; /* disable edge trigger if set */
 
 				if (cmd == MUX_CTL_MOD)
@@ -7775,7 +7874,7 @@ static void __fini_log (hawk_rtx_t* rtx, rtx_data_t* rdp)
 		 * end yoru program without closelog(), the program may leak
 		 * some resources created by the writelog() function. (e.g.
 		 * socket to /dev/log) */
-		closelog ();
+		closelog();
 		rdp->log.syslog_opened = 0;
 	}
 #endif
