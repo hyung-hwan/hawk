@@ -346,6 +346,8 @@ dnl 	[ AC_DEFINE([HAVE_WCHAR_T_IN_STDDEF_H],
 dnl	           [],[wchar_t is available in stddef.h]) ],
 dnl	[],
 dnl	[#include <stddef.h>])
+AC_TYPE_PID_T
+AC_TYPE_UID_T
 
 dnl check functions
 AC_CHECK_FUNCS([gettimeofday settimeofday clock_gettime clock_settime getitimer setitimer])
@@ -883,7 +885,7 @@ then
 	then
 		OLDLIBS="$LIBS"
 		LIBS="$LIBM $LIBS"
-		AC_CHECK_FUNCS([powq fmodq sinq cosq tanq sinhq coshq tanhq asinq acosq atanq atan2q logq log10q expq sqrtq ceilq floorq roundq])
+		AC_CHECK_FUNCS([powq fmodq sinq cosq tanq sinhq coshq tanhq asinq acosq atanq atan2q logq log2q log10q expq sqrtq ceilq floorq roundq])
 		AC_CHECK_FUNCS([strtoflt128])
 		LIBS="$OLDLIBS"
 	fi

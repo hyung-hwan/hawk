@@ -289,6 +289,9 @@
 /* Define to 1 if you have the 'log2l' function. */
 #undef HAVE_LOG2L
 
+/* Define to 1 if you have the 'log2q' function. */
+#undef HAVE_LOG2Q
+
 /* Define to 1 if you have the 'logf' function. */
 #undef HAVE_LOGF
 
@@ -1148,3 +1151,12 @@
 
 /* Define to 1 on platforms where this makes time_t a 64-bit type. */
 #undef __MINGW_USE_VC2005_COMPAT
+
+/* Define as 'int' if <sys/types.h> doesn't define. */
+#undef gid_t
+
+/* Define as a signed integer type capable of holding a process identifier. */
+#undef pid_t
+
+/* Define as 'int' if <sys/types.h> doesn't define. */
+#undef uid_t
