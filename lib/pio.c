@@ -2408,7 +2408,7 @@ int hawk_pio_kill (hawk_pio_t* pio)
 
 #elif defined(__OS2__)
 /*TODO: must use DKP_PROCESS? */
-	rc = DosKillProcess(pio->child, DKP_PROCESSTREE);
+	rc = DosKillProcess(DKP_PROCESSTREE, pio->child);
 	if (rc != NO_ERROR)
 	{
 		hawk_gem_seterrnum(pio->gem, HAWK_NULL, hawk_syserr_to_errnum(rc));
