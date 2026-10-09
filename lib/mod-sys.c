@@ -854,7 +854,12 @@ static int fnc_close (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 		/* although free_sys_node can handle other types, sys::close() is allowed to
 		 * close nodes of the SYS_NODE_DATA_TYPE_FILE type only */
-		if (nargs >= 2 && (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 1), &cflags) <= -1 || cflags < 0)) cflags = 0;
+		if (nargs >= 2 && hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 1), &cflags) <= -1)
+		{
+			rx = copy_error_to_sys_list(rtx, sys_list);
+			goto done;
+		}
+		if (cflags < 0) cflags = 0;
 
 		if (cflags & CLOSE_KEEPFD)  /* this flag applies to file descriptors only */
 		{
@@ -868,6 +873,7 @@ static int fnc_close (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		free_sys_node(rtx, sys_list, sys_node);
 	}
 
+done:
 	hawk_rtx_setretval(rtx, hawk_rtx_makeintval_inline(rtx, rx));
 	return 0;
 }
@@ -896,7 +902,11 @@ static int fnc_open (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 	sys_list = rtx_to_sys_list(rtx, fi);
 
-	if (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 1), &oflags) <= -1) oflags = O_RDONLY;
+	if (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 1), &oflags) <= -1)
+	{
+		rx = copy_error_to_sys_list(rtx, sys_list);
+		goto done;
+	}
 	if ((hawk_intmax_t)oflags < (hawk_intmax_t)HAWK_TYPE_MIN(int) ||
 	    (hawk_intmax_t)oflags > (hawk_intmax_t)HAWK_TYPE_MAX(int))
 	{
@@ -904,7 +914,12 @@ static int fnc_open (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		goto done;
 	}
 	if (oflags < 0) oflags = O_RDONLY;
-	if (hawk_rtx_getnargs(rtx) >= 3 && (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 2), &mode) <= -1 || mode < 0)) mode = DEFAULT_MODE;
+	if (hawk_rtx_getnargs(rtx) >= 3 && hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 2), &mode) <= -1)
+	{
+		rx = copy_error_to_sys_list(rtx, sys_list);
+		goto done;
+	}
+	if (mode < 0) mode = DEFAULT_MODE;
 	if (!is_sys_mode_valid(mode))
 	{
 		rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_T("file mode out of range"));
@@ -1045,7 +1060,12 @@ static int fnc_read (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	{
 		hawk_oow_t nargs = hawk_rtx_getnargs(rtx);
 
-		if (nargs >= 3 && (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 2), &reqsize) <= -1 || reqsize <= 0)) reqsize = 8192;
+		if (nargs >= 3 && hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 2), &reqsize) <= -1)
+		{
+			rx = copy_error_to_sys_list(rtx, sys_list);
+			goto done;
+		}
+		if (reqsize <= 0) reqsize = 8192;
 		if (reqsize > HAWK_INT_MAX) reqsize = HAWK_INT_MAX;
 	#if defined(_WIN32)
 		/* Both CRT file reads and Winsock reads have narrower count arguments. */
@@ -1212,11 +1232,20 @@ static int fnc_write (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		hawk_int_t startpos = 0, maxlen = HAWK_TYPE_MAX(hawk_int_t);
 		hawk_val_t* a1;
 
-		if (nargs >= 3 && (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 2), &startpos) <= -1 || startpos < 0)) startpos = 0;
+		if (nargs >= 3 && hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 2), &startpos) <= -1)
+		{
+			rx = copy_error_to_sys_list(rtx, sys_list);
+			goto done;
+		}
+		if (startpos < 0) startpos = 0;
 		else if (startpos > 0) startpos--; /* this position is 1-based */
 
-		if (nargs >= 4 && hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 3), &maxlen) <= -1) maxlen = HAWK_TYPE_MAX(hawk_ooi_t);
-		else if (maxlen < 0) maxlen = 0;
+		if (nargs >= 4 && hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 3), &maxlen) <= -1)
+		{
+			rx = copy_error_to_sys_list(rtx, sys_list);
+			goto done;
+		}
+		if (maxlen < 0) maxlen = 0;
 
 		a1 = hawk_rtx_getarg(rtx, 1);
 		dptr = hawk_rtx_getvalbcstr(rtx, a1, &dlen);
@@ -1250,6 +1279,7 @@ static int fnc_write (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		}
 	}
 
+done:
 	retv = hawk_rtx_makeintval_inline(rtx, rx);
 	if (!retv) return -1; /* hard failure. unable to make a return value */
 	hawk_rtx_setretval(rtx, retv);
@@ -1998,7 +2028,11 @@ static int fnc_tcflush (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 #if defined(ENABLE_TERMIOS)
 		hawk_int_t qs;
 
-		if (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 1), &qs) <= -1) qs = TCIOFLUSH;
+		if (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 1), &qs) <= -1)
+		{
+			rx = copy_error_to_sys_list(rtx, sys_list);
+			goto done;
+		}
 
 		if ((hawk_intmax_t)qs < (hawk_intmax_t)HAWK_TYPE_MIN(int) ||
 		    (hawk_intmax_t)qs > (hawk_intmax_t)HAWK_TYPE_MAX(int))
@@ -2122,7 +2156,11 @@ static int fnc_pipe (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 	sys_list = rtx_to_sys_list(rtx, fi);
 
-	if (hawk_rtx_getnargs(rtx) >= 3 && hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 2), &flags) <= -1) flags = 0;
+	if (hawk_rtx_getnargs(rtx) >= 3 && hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 2), &flags) <= -1)
+	{
+		rx = copy_error_to_sys_list(rtx, sys_list);
+		goto done;
+	}
 
 #if defined(_WIN32)
 	rx = set_error_on_sys_list(rtx, sys_list, HAWK_ENOSUP, HAWK_NULL);
@@ -2365,7 +2403,11 @@ static int fnc_opendir (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 	sys_list = rtx_to_sys_list(rtx, fi);
 
-	if (hawk_rtx_getnargs(rtx) >= 2 && hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 1), &flags) <= -1) flags = 0;
+	if (hawk_rtx_getnargs(rtx) >= 2 && hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 1), &flags) <= -1)
+	{
+		rx = copy_error_to_sys_list(rtx, sys_list);
+		goto done;
+	}
 
 	if ((hawk_intmax_t)flags < (hawk_intmax_t)HAWK_TYPE_MIN(int) ||
 	    (hawk_intmax_t)flags > (hawk_intmax_t)HAWK_TYPE_MAX(int))
@@ -3647,11 +3689,12 @@ static int fnc_strftime (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	HAWK_MEMMOVE(fmt + 1, fmt, len + 1);
 	fmt[0] = ' '; /* distinguish successful empty expansion from insufficient buffer */
 
-	if (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 1), &seconds) <= -1) seconds = 0;
+	if (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 1), &seconds) <= -1) goto oops;
 	t = seconds;
 
 	if (hawk_rtx_getnargs(rtx) >= 3 &&
-	    (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 2), &flags) <= -1 || flags < 0)) flags = 0;
+	    hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 2), &flags) <= -1) goto oops;
+	if (flags < 0) flags = 0;
 	if (flags & STRFTIME_UTC)
 	{
 	#if defined(HAVE_GMTIME_R)
@@ -4342,7 +4385,16 @@ static int fnc_mkdir (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	sys_list = rtx_to_sys_list(rtx, fi);
 	a0 = hawk_rtx_getarg(rtx, 0);
 
-	if (hawk_rtx_getnargs(rtx) >= 2 && (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 1), &mode) <= -1 || mode < 0)) mode = DEFAULT_MODE;
+	if (hawk_rtx_getnargs(rtx) >= 2)
+	{
+		if (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 1), &mode) <= -1)
+		{
+			rx = copy_error_to_sys_list(rtx, sys_list);
+			hawk_rtx_setretval(rtx, hawk_rtx_makeintval_inline(rtx, rx));
+			return 0;
+		}
+		if (mode < 0) mode = DEFAULT_MODE;
+	}
 
 	if (!is_sys_mode_valid(mode))
 	{
@@ -5253,9 +5305,13 @@ static int fnc_socket (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 	sys_list = rtx_to_sys_list(rtx, fi);
 
-	if (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 0), &domain) <= -1) domain = 0;
-	if (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 1), &type) <= -1) type = 0;
-	if (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 2), &proto) <= -1) proto = 0;
+	if (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 0), &domain) <= -1 ||
+	    hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 1), &type) <= -1 ||
+	    hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 2), &proto) <= -1)
+	{
+		rx = copy_error_to_sys_list(rtx, sys_list);
+		goto done;
+	}
 
 	if ((hawk_intmax_t)domain < (hawk_intmax_t)HAWK_TYPE_MIN(int) ||
 	    (hawk_intmax_t)domain > (hawk_intmax_t)HAWK_TYPE_MAX(int))
@@ -5377,7 +5433,12 @@ static int fnc_recvfrom (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		}
 	#endif
 
-		if (hawk_rtx_getnargs(rtx) >= 3 && (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 2), &reqsize) <= -1 || reqsize <= 0)) reqsize = 8192;
+		if (hawk_rtx_getnargs(rtx) >= 3 && hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 2), &reqsize) <= -1)
+		{
+			rx = copy_error_to_sys_list(rtx, sys_list);
+			goto done;
+		}
+		if (reqsize <= 0) reqsize = 8192;
 		if (reqsize > HAWK_INT_MAX) reqsize = HAWK_INT_MAX;
 	#if defined(_WIN32)
 		if (reqsize > HAWK_TYPE_MAX(int)) reqsize = HAWK_TYPE_MAX(int);
@@ -5547,7 +5608,11 @@ static int fnc_shutdown (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	{
 		hawk_int_t how = 0;
 
-		if (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 1), &how) <= -1) how = 0;
+		if (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 1), &how) <= -1)
+		{
+			rx = copy_error_to_sys_list(rtx, sys_list);
+			goto done;
+		}
 		if ((hawk_intmax_t)how < (hawk_intmax_t)HAWK_TYPE_MIN(int) ||
 		    (hawk_intmax_t)how > (hawk_intmax_t)HAWK_TYPE_MAX(int))
 		{
@@ -5618,7 +5683,11 @@ static int fnc_listen (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	{
 		hawk_int_t backlog = 0;
 
-		if (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 1), &backlog) <= -1) backlog = 0;
+		if (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 1), &backlog) <= -1)
+		{
+			rx = copy_error_to_sys_list(rtx, sys_list);
+			goto done;
+		}
 		if ((hawk_intmax_t)backlog < (hawk_intmax_t)HAWK_TYPE_MIN(int) ||
 		    (hawk_intmax_t)backlog > (hawk_intmax_t)HAWK_TYPE_MAX(int))
 		{
@@ -5658,7 +5727,11 @@ static int fnc_accept (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	#endif
 		hawk_int_t flags = 0;
 
-		if (hawk_rtx_getnargs(rtx) >= 2 && hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 1), &flags) <= -1) flags = 0;
+		if (hawk_rtx_getnargs(rtx) >= 2 && hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 1), &flags) <= -1)
+		{
+			rx = copy_error_to_sys_list(rtx, sys_list);
+			goto done;
+		}
 		if ((hawk_intmax_t)flags < (hawk_intmax_t)HAWK_TYPE_MIN(int) ||
 		    (hawk_intmax_t)flags > (hawk_intmax_t)HAWK_TYPE_MAX(int))
 		{
