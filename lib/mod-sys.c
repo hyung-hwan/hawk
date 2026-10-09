@@ -4289,7 +4289,7 @@ static int fnc_stat (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		hawk_stat_t stbuf;
 		hawk_val_map_data_t md[13];
 		hawk_flt_t atime_f, mtime_f, ctime_f;
-		int x;
+		int x, err;
 
 		str1 = hawk_rtx_getvalbcstr(rtx, a0, &len1);
 		if (!str1)
@@ -4306,9 +4306,11 @@ static int fnc_stat (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		}
 
 		rx = HAWK_STAT(str1, &stbuf);
+		err = errno; /* path cleanup may change errno through the memory manager */
 		hawk_rtx_freevalbcstr(rtx, a0, str1);
 		if (rx <= -1)
 		{
+			errno = err;
 			rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
 			goto done;
 		}
