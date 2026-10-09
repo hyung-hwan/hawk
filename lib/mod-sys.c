@@ -5812,6 +5812,27 @@ static int fnc_setsockopt (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 					rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_T("negative socket timeout"));
 					goto done;
 				}
+				if (tmp.sec == 0)
+				{
+					hawk_int_t lv;
+					hawk_flt_t fv, minimum;
+					int n;
+
+				#if defined(_WIN32)
+					minimum = (hawk_flt_t)1 / HAWK_MSECS_PER_SEC;
+				#else
+					minimum = (hawk_flt_t)1 / HAWK_USECS_PER_SEC;
+				#endif
+
+					n = hawk_rtx_valtonum(rtx, hawk_rtx_getarg(rtx, 3), &lv, &fv);
+					if (n <= -1) goto fail;
+
+					if (n >= 1 && fv > 0 && fv < minimum)
+					{
+						rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_T("socket timeout below platform resolution"));
+						goto done;
+					}
+				}
 			#if defined(_WIN32)
 				if (tmp.sec > HAWK_TYPE_MAX(hawk_uint32_t) / HAWK_MSECS_PER_SEC ||
 				    (tmp.sec == HAWK_TYPE_MAX(hawk_uint32_t) / HAWK_MSECS_PER_SEC &&
