@@ -758,7 +758,14 @@ static int fnc_open (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 	sys_list = rtx_to_sys_list(rtx, fi);
 
-	if (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 1), &oflags) <= -1 || oflags < 0) oflags = O_RDONLY;
+	if (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 1), &oflags) <= -1) oflags = O_RDONLY;
+	if ((hawk_intmax_t)oflags < (hawk_intmax_t)HAWK_TYPE_MIN(int) ||
+	    (hawk_intmax_t)oflags > (hawk_intmax_t)HAWK_TYPE_MAX(int))
+	{
+		rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_T("open flags out of range"));
+		goto done;
+	}
+	if (oflags < 0) oflags = O_RDONLY;
 	if (hawk_rtx_getnargs(rtx) >= 3 && (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 2), &mode) <= -1 || mode < 0)) mode = DEFAULT_MODE;
 
 #if defined(O_LARGEFILE)
@@ -775,7 +782,7 @@ static int fnc_open (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_T("path contains '\\0'"));
 			goto done;
 		}
-		fd = open(pstr, oflags, mode);
+		fd = open(pstr, (int)oflags, mode);
 		err = errno; /* path cleanup may change errno through the memory manager */
 		hawk_rtx_freevalbcstr(rtx, a0, pstr);
 
@@ -1153,7 +1160,14 @@ static int fnc_dup (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		{
 			sys_node2 = get_sys_list_node_with_arg(rtx, sys_list, hawk_rtx_getarg(rtx, 1), SYS_NODE_DATA_TYPE_FILE, &rx);
 			if (!sys_node2) goto done;
-			if (nargs >= 3 && (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 2), &oflags) <= -1 || oflags < 0)) oflags = 0;
+			if (nargs >= 3 && hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 2), &oflags) <= -1) oflags = 0;
+			if ((hawk_intmax_t)oflags < (hawk_intmax_t)HAWK_TYPE_MIN(int) ||
+			    (hawk_intmax_t)oflags > (hawk_intmax_t)HAWK_TYPE_MAX(int))
+			{
+				rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_T("duplication flags out of range"));
+				goto done;
+			}
+			if (oflags < 0) oflags = 0;
 
 			if (sys_node->ctx.u.file.fd == sys_node2->ctx.u.file.fd)
 			{
@@ -1175,7 +1189,7 @@ static int fnc_dup (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			 * another duplicate can keep that file alive after dup2/dup3. */
 			del_from_mux(rtx, sys_node2);
 		#if defined(HAVE_DUP3)
-			fd = dup3(sys_node->ctx.u.file.fd, sys_node2->ctx.u.file.fd, oflags);
+			fd = dup3(sys_node->ctx.u.file.fd, sys_node2->ctx.u.file.fd, (int)oflags);
 		#else
 			fd = dup2(sys_node->ctx.u.file.fd, sys_node2->ctx.u.file.fd);
 		#endif
@@ -2011,9 +2025,21 @@ static int fnc_fchown (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		#if defined(_WIN32)
 			rx = set_error_on_sys_list(rtx, sys_list, HAWK_ENOSUP, HAWK_NULL);
 		#else
-			rx = fchown(sys_node->ctx.u.file.fd, uid, gid) <= -1?
-				set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL):
-				ERRNUM_TO_RC(HAWK_ENOERR);
+			/* -1 leaves the corresponding owner unchanged, including for unsigned IDs. */
+			if (uid != -1 && (uid < 0 || (hawk_uintmax_t)uid > (hawk_uintmax_t)HAWK_TYPE_MAX(uid_t)))
+			{
+				rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_T("user ID out of range"));
+			}
+			else if (gid != -1 && (gid < 0 || (hawk_uintmax_t)gid > (hawk_uintmax_t)HAWK_TYPE_MAX(gid_t)))
+			{
+				rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_T("group ID out of range"));
+			}
+			else
+			{
+				rx = fchown(sys_node->ctx.u.file.fd, (uid_t)uid, (gid_t)gid) <= -1?
+					set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL):
+					ERRNUM_TO_RC(HAWK_ENOERR);
+			}
 		#endif
 		}
 	}
@@ -5185,12 +5211,20 @@ static int fnc_shutdown (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	{
 		hawk_int_t how = 0;
 
-		if (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 1), &how) <= -1 || how < 0) how = 0;
+		if (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 1), &how) <= -1) how = 0;
+		if ((hawk_intmax_t)how < (hawk_intmax_t)HAWK_TYPE_MIN(int) ||
+		    (hawk_intmax_t)how > (hawk_intmax_t)HAWK_TYPE_MAX(int))
+		{
+			rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_T("shutdown mode out of range"));
+			goto done;
+		}
+		if (how < 0) how = 0;
 
-		rx = shutdown(SYS_NODE_SOCKET(sys_node), how);
+		rx = shutdown(SYS_NODE_SOCKET(sys_node), (int)how);
 		if (rx <= -1) rx = set_error_on_sys_list_with_socket_error(rtx, sys_list, HAWK_NULL);
 	}
 
+done:
 	hawk_rtx_setretval(rtx, hawk_rtx_makeintval_inline(rtx, rx));
 	return 0;
 }
@@ -5248,12 +5282,20 @@ static int fnc_listen (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	{
 		hawk_int_t backlog = 0;
 
-		if (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 1), &backlog) <= -1 || backlog < 0) backlog = 0;
+		if (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 1), &backlog) <= -1) backlog = 0;
+		if ((hawk_intmax_t)backlog < (hawk_intmax_t)HAWK_TYPE_MIN(int) ||
+		    (hawk_intmax_t)backlog > (hawk_intmax_t)HAWK_TYPE_MAX(int))
+		{
+			rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_T("listen backlog out of range"));
+			goto done;
+		}
+		if (backlog < 0) backlog = 0;
 
-		rx = listen(SYS_NODE_SOCKET(sys_node), backlog);
+		rx = listen(SYS_NODE_SOCKET(sys_node), (int)backlog);
 		if (rx <= -1) rx = set_error_on_sys_list_with_socket_error(rtx, sys_list, HAWK_NULL);
 	}
 
+done:
 	hawk_rtx_setretval(rtx, hawk_rtx_makeintval_inline(rtx, rx));
 	return 0;
 }
@@ -5280,11 +5322,18 @@ static int fnc_accept (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	#endif
 		hawk_int_t flags = 0;
 
-		if (hawk_rtx_getnargs(rtx) >= 2 && (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 1), &flags) <= -1 || flags < 0)) flags = 0;
+		if (hawk_rtx_getnargs(rtx) >= 2 && hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 1), &flags) <= -1) flags = 0;
+		if ((hawk_intmax_t)flags < (hawk_intmax_t)HAWK_TYPE_MIN(int) ||
+		    (hawk_intmax_t)flags > (hawk_intmax_t)HAWK_TYPE_MAX(int))
+		{
+			rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_T("accept flags out of range"));
+			goto done;
+		}
+		if (flags < 0) flags = 0;
 
 		addrlen = HAWK_SIZEOF(skad);
 	#if defined(HAVE_ACCEPT4)
-		fd = accept4(SYS_NODE_SOCKET(sys_node), (struct sockaddr*)&skad, &addrlen, flags);
+		fd = accept4(SYS_NODE_SOCKET(sys_node), (struct sockaddr*)&skad, &addrlen, (int)flags);
 	#else
 		fd = accept(SYS_NODE_SOCKET(sys_node), (struct sockaddr*)&skad, &addrlen);
 	#endif
