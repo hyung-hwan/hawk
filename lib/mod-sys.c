@@ -1331,7 +1331,12 @@ static int fnc_dup (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			sys_node2 = get_sys_list_node_with_arg(rtx, sys_list, hawk_rtx_getarg(rtx, 1), SYS_NODE_DATA_TYPE_FILE, &rx);
 			if (!sys_node2) goto done;
 
-			if (nargs >= 3 && hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 2), &oflags) <= -1) oflags = 0;
+			if (nargs >= 3 &&
+			    hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 2), &oflags) <= -1)
+			{
+				rx = copy_error_to_sys_list(rtx, sys_list);
+				goto done;
+			}
 
 			if ((hawk_intmax_t)oflags < (hawk_intmax_t)HAWK_TYPE_MIN(int) ||
 			    (hawk_intmax_t)oflags > (hawk_intmax_t)HAWK_TYPE_MAX(int))
@@ -4269,7 +4274,17 @@ static int fnc_chmod (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	sys_list = rtx_to_sys_list(rtx, fi);
 	a0 = hawk_rtx_getarg(rtx, 0);
 
-	if (hawk_rtx_getnargs(rtx) >= 2 && (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 1), &mode) <= -1 || mode < 0)) mode = DEFAULT_MODE;
+	if (hawk_rtx_getnargs(rtx) >= 2)
+	{
+		if (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 1), &mode) <= -1)
+		{
+			rx = copy_error_to_sys_list(rtx, sys_list);
+			hawk_rtx_setretval(rtx, hawk_rtx_makeintval_inline(rtx, rx));
+			return 0;
+		}
+
+		if (mode < 0) mode = DEFAULT_MODE;
+	}
 
 	if (!is_sys_mode_valid(mode))
 	{
