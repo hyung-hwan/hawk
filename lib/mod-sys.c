@@ -225,7 +225,8 @@ enum sys_node_data_flag_t
 {
 	SYS_NODE_DATA_FLAG_IN_MUX = (1 << 0),
 	SYS_NODE_DATA_FLAG_OPENFD = (1 << 1), /* created by openfd() */
-	SYS_NODE_DATA_FLAG_MAY_SHARE_FD = (1 << 2) /* a matching wrapper was found */
+	SYS_NODE_DATA_FLAG_MAY_SHARE_FD = (1 << 2), /* a matching wrapper was found */
+	SYS_NODE_DATA_FLAG_MUX_NOAUTODEL = (1 << 3)
 };
 typedef enum sys_node_data_flag_t sys_node_data_flag_t;
 
@@ -372,6 +373,8 @@ enum mux_evt_code_t
 	MUX_EVT_HUP = (1 << 3)
 #endif
 };
+
+#define MUX_FLAG_NOAUTODEL (1 << 0)
 
 /* ------------------------------------------------------------------------ */
 
@@ -609,7 +612,7 @@ static void unchain_sys_node_from_mux_node (sys_node_t* mux_node, sys_node_t* no
 	sys_node_data_file_t* file_data = &node->ctx.u.file;
 
 	HAWK_ASSERT(node->ctx.flags & SYS_NODE_DATA_FLAG_IN_MUX);
-	node->ctx.flags &= ~SYS_NODE_DATA_FLAG_IN_MUX;
+	node->ctx.flags &= ~(SYS_NODE_DATA_FLAG_IN_MUX | SYS_NODE_DATA_FLAG_MUX_NOAUTODEL);
 
 	if (file_data->x_prev) ((sys_node_t*)file_data->x_prev)->ctx.u.file.x_next = file_data->x_next;
 	else mux_data->x_first = file_data->x_next;
@@ -720,8 +723,10 @@ static sys_node_t* resolve_mux_token (sys_list_t* list, sys_node_t* mux_node, ha
 }
 #endif
 
-static void del_from_mux (hawk_rtx_t* rtx, sys_node_t* fd_node)
+static void del_from_mux (hawk_rtx_t* rtx, sys_node_t* fd_node, int force)
 {
+	/* force overrides the registration's cleanup policy for explicit deletion.
+	 * local membership and cached events are always released. */
 	if (fd_node->ctx.flags & SYS_NODE_DATA_FLAG_IN_MUX)
 	{
 		sys_node_t* mux_node;
@@ -736,6 +741,7 @@ static void del_from_mux (hawk_rtx_t* rtx, sys_node_t* fd_node)
 				mux_node = (sys_node_t*)fd_node->ctx.u.file.mux;
 			#if defined(USE_EPOLL)
 				if (fd_node->ctx.u.file.mux_registered &&
+				    (force || !(fd_node->ctx.flags & SYS_NODE_DATA_FLAG_MUX_NOAUTODEL)) &&
 				    epoll_ctl(mux_node->ctx.u.mux.fd, MUX_CTL_DEL, fd_node->ctx.u.file.fd, &ev) <= -1)
 				{
 					mux_node->ctx.u.mux.rebuild_pending = 1;
@@ -747,7 +753,7 @@ static void del_from_mux (hawk_rtx_t* rtx, sys_node_t* fd_node)
 
 			default:
 				/* do nothing */
-				fd_node->ctx.flags &= ~SYS_NODE_DATA_FLAG_IN_MUX;
+				fd_node->ctx.flags &= ~(SYS_NODE_DATA_FLAG_IN_MUX | SYS_NODE_DATA_FLAG_MUX_NOAUTODEL);
 				break;
 		}
 	}
@@ -757,7 +763,7 @@ static void purge_mux_members (hawk_rtx_t* rtx, sys_node_t* mux_node)
 {
 	while (mux_node->ctx.u.mux.x_first)
 	{
-		del_from_mux(rtx, mux_node->ctx.u.mux.x_first);
+		del_from_mux(rtx, mux_node->ctx.u.mux.x_first, 0);
 	}
 }
 
@@ -785,8 +791,8 @@ static void close_shared_sys_fd (hawk_rtx_t* rtx, sys_list_t* list, int fd)
 		     node->ctx.type == SYS_NODE_DATA_TYPE_SCK) &&
 		    node->ctx.u.file.fd == fd)
 		{
-			/* remove every watch while the descriptor is still valid. */
-			del_from_mux(rtx, node);
+			/* release every local watch while the descriptor is still valid. */
+			del_from_mux(rtx, node, 0);
 			node->ctx.u.file.fd = -1;
 			node->ctx.u.file.readbuf_len = 0;
 		}
@@ -808,7 +814,7 @@ static void replace_sys_fd_node (hawk_rtx_t* rtx, sys_node_t* node, sys_node_dat
 		mux_node->ctx.u.mux.rebuild_pending = 1;
 	}
 #else
-	del_from_mux(rtx, node);
+	del_from_mux(rtx, node, 1);
 #endif
 	node->ctx.u.file.readbuf_len = 0;
 	node->ctx.type = type;
@@ -840,7 +846,7 @@ static void free_sys_node (hawk_rtx_t* rtx, sys_list_t* list, sys_node_t* node)
 	{
 		case SYS_NODE_DATA_TYPE_FILE:
 		case SYS_NODE_DATA_TYPE_SCK:
-			del_from_mux(rtx, node);
+			del_from_mux(rtx, node, 0);
 			if (node->ctx.u.file.readbuf) hawk_rtx_freemem(rtx, node->ctx.u.file.readbuf);
 			node->ctx.u.file.readbuf = HAWK_NULL;
 			node->ctx.u.file.readbuf_capa = 0;
@@ -996,7 +1002,7 @@ static int fnc_close (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 		if (cflags & CLOSE_KEEPFD)  /* this flag applies to file descriptors only */
 		{
-			del_from_mux(rtx, sys_node); /* remove the file descriptor from the multiplexer although it's kept unclosed */
+			del_from_mux(rtx, sys_node, 0); /* release local mux membership although the descriptor is kept unclosed */
 			sys_node->ctx.u.file.fd = -1; /* ownership of the descriptor stays with the caller */
 		#if defined(_WIN32)
 			SYS_NODE_SOCKET(sys_node) = SYS_INVALID_SOCKET;
@@ -2691,33 +2697,6 @@ done:
 
 /* ------------------------------------------------------------------------ */
 
-#if defined(USE_EPOLL)
-static hawk_rbt_walk_t detach_inherited_muxes (hawk_rbt_t* rbt, hawk_rbt_pair_t* pair, void* ctx)
-{
-	rtx_data_t* rdp = (rtx_data_t*)HAWK_RBT_VPTR(pair);
-	hawk_oow_t i;
-
-	for (i = 0; i < rdp->sys_list.map.high; i++)
-	{
-		sys_node_t* node = rdp->sys_list.map.tab[i];
-
-		if (node && node->ctx.type == SYS_NODE_DATA_TYPE_MUX)
-		{
-			sys_node_t* member;
-
-			/* The child must never alter the parent's epoll registrations. */
-			if (node->ctx.u.mux.fd >= 0) close(node->ctx.u.mux.fd);
-			node->ctx.u.mux.fd = -1;
-			node->ctx.u.mux.rebuild_pending = 1;
-			node->ctx.u.mux.x_evt_count = 0;
-			for (member = node->ctx.u.mux.x_first; member; member = member->ctx.u.file.x_next)
-				member->ctx.u.file.mux_registered = 0;
-		}
-	}
-	return HAWK_RBT_WALK_FORWARD;
-}
-#endif
-
 static int fnc_fork (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	hawk_int_t rx;
@@ -2736,9 +2715,6 @@ static int fnc_fork (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 #else
 	rx = fork();
 	if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
-	#if defined(USE_EPOLL)
-	else if (rx == 0) hawk_rbt_walk(((mod_ctx_t*)fi->mod->ctx)->rtxtab, detach_inherited_muxes, HAWK_NULL);
-	#endif
 #endif
 
 	retv = hawk_rtx_makeintval_inline(rtx, rx);
@@ -5174,6 +5150,7 @@ static HAWK_INLINE int ctl_epoll_for_fnc (hawk_rtx_t* rtx, const hawk_fnc_info_t
 		{
 			struct epoll_event ev;
 			int evfd, kernel_cmd;
+			hawk_int_t flags = 0;
 
 			if (cmd == MUX_CTL_DEL)
 			{
@@ -5182,12 +5159,26 @@ static HAWK_INLINE int ctl_epoll_for_fnc (hawk_rtx_t* rtx, const hawk_fnc_info_t
 					rx = set_error_on_sys_list(rtx, sys_list, HAWK_EPERM, HAWK_T("not in mux"));
 					goto done;
 				}
-				del_from_mux(rtx, sys_node2);
+				del_from_mux(rtx, sys_node2, 1);
 				goto done;
 			}
 			else
 			{
 				hawk_int_t events;
+
+				if (cmd == MUX_CTL_ADD && hawk_rtx_getnargs(rtx) >= 4)
+				{
+					if (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 3), &flags) <= -1)
+					{
+						rx = copy_error_to_sys_list(rtx, sys_list);
+						goto done;
+					}
+					if (flags < 0 || (flags & ~(hawk_int_t)MUX_FLAG_NOAUTODEL))
+					{
+						rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_T("unsupported multiplexer flags"));
+						goto done;
+					}
+				}
 
 				if (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 2), &events) <= -1)
 				{
@@ -5275,6 +5266,7 @@ static HAWK_INLINE int ctl_epoll_for_fnc (hawk_rtx_t* rtx, const hawk_fnc_info_t
 						switch (cmd)
 						{
 							case MUX_CTL_ADD:
+								if (flags & MUX_FLAG_NOAUTODEL) sys_node2->ctx.flags |= SYS_NODE_DATA_FLAG_MUX_NOAUTODEL;
 								sys_node2->ctx.u.file.mux_token = ev.data.u64;
 								sys_node2->ctx.u.file.mux_events = ev.events;
 								chain_sys_node_to_mux_node (sys_node, sys_node2);
@@ -7800,7 +7792,7 @@ static hawk_mod_fnc_tab_t fnctab[] =
 	{ HAWK_T("WIFSIGNALED"), { { 1, 1, HAWK_NULL       }, fnc_wifsignaled, 0  } },
 	{ HAWK_T("WTERMSIG"),    { { 1, 1, HAWK_NULL       }, fnc_wtermsig,    0  } },
 	{ HAWK_T("accept"),      { { 1, 3, HAWK_T("vvr")   }, fnc_accept,      0  } },
-	{ HAWK_T("addtomux"),    { { 3, 3, HAWK_NULL       }, fnc_addtomux,    0  } },
+	{ HAWK_T("addtomux"),    { { 3, 4, HAWK_NULL       }, fnc_addtomux,    0  } },
 	{ HAWK_T("basename"),    { { 1, 1, HAWK_NULL       }, fnc_basename,    0  } },
 	{ HAWK_T("bind"),        { { 2, 2, HAWK_NULL       }, fnc_bind,        0  } },
 	{ HAWK_T("chmod"),       { { 2, 2, HAWK_NULL       }, fnc_chmod,       0  } },
@@ -7984,10 +7976,11 @@ static hawk_mod_int_tab_t inttab[] =
 	{ HAWK_T("LOG_PRI_WARNING"),    { LOG_WARNING } },
 #endif
 
-	{ HAWK_T("MUX_EVT_ERR"),  { MUX_EVT_ERR } },
-	{ HAWK_T("MUX_EVT_HUP"),  { MUX_EVT_HUP } },
-	{ HAWK_T("MUX_EVT_IN"),   { MUX_EVT_IN } },
-	{ HAWK_T("MUX_EVT_OUT"),  { MUX_EVT_OUT } },
+	{ HAWK_T("MUX_EVT_ERR"),        { MUX_EVT_ERR } },
+	{ HAWK_T("MUX_EVT_HUP"),        { MUX_EVT_HUP } },
+	{ HAWK_T("MUX_EVT_IN"),         { MUX_EVT_IN } },
+	{ HAWK_T("MUX_EVT_OUT"),        { MUX_EVT_OUT } },
+	{ HAWK_T("MUX_FLAG_NOAUTODEL"), { MUX_FLAG_NOAUTODEL } },
 
 	{ HAWK_T("NWIFCFG_IN4"),  { HAWK_IFCFG_IN4 } }, /* for backward compatibility */
 	{ HAWK_T("NWIFCFG_IN6"),  { HAWK_IFCFG_IN6 } }, /* for backward compatibility */
