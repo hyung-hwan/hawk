@@ -1341,6 +1341,22 @@ static int fnc_dup (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			}
 			if (oflags < 0) oflags = 0;
 
+		#if !defined(HAVE_DUP3)
+			{
+				int supported_flags = 0;
+
+			#if defined(O_CLOEXEC) && defined(FD_CLOEXEC)
+				supported_flags |= O_CLOEXEC;
+			#endif
+
+				if ((int)oflags & ~supported_flags)
+				{
+					rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_T("unsupported duplication flags"));
+					goto done;
+				}
+			}
+		#endif
+
 			if (sys_node->ctx.u.file.fd == sys_node2->ctx.u.file.fd)
 			{
 				rx = set_error_on_sys_list(rtx, sys_list, HAWK_EPERM, HAWK_T("same descriptor"));
@@ -2117,6 +2133,22 @@ static int fnc_pipe (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 #if defined(HAVE_PIPE2)
 	if (pipe2(fds, (int)flags) >= 0)
 #else
+	{
+		int supported_flags = 0;
+
+	#if defined(O_CLOEXEC) && defined(FD_CLOEXEC)
+		supported_flags |= O_CLOEXEC;
+	#endif
+	#if defined(O_NONBLOCK)
+		supported_flags |= O_NONBLOCK;
+	#endif
+
+		if ((int)flags & ~supported_flags)
+		{
+			rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_T("unsupported pipe flags"));
+			goto done;
+		}
+	}
 	if (pipe(fds) >= 0)
 #endif
 	{
