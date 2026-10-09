@@ -29,6 +29,7 @@
 #include <hawk-dir.h>
 
 #if defined(_WIN32)
+#	include <winsock2.h>
 #	include <windows.h>
 #	include <io.h>
 #	include <fcntl.h>
@@ -81,8 +82,8 @@
 #define CLOSE_KEEPFD (1 << 0)
 
 /* these must not conflict with F_RDLCK, F_WRLCK, F_UNLCK */
-#define FLOCK_GET (1 << 30)
-#define FLOCK_WAIT (1 << 31)
+#define FLOCK_GET ((hawk_int_t)((hawk_uint_t)1 << 30))
+#define FLOCK_WAIT ((hawk_int_t)((hawk_uint_t)1 << 31))
 
 #if defined(SOCK_CLOEXEC)
 #	define X_SOCK_CLOEXEC SOCK_CLOEXEC
@@ -180,9 +181,30 @@ enum sys_node_data_flag_t
 typedef enum sys_node_data_flag_t sys_node_data_flag_t;
 
 
+#if defined(_WIN32)
+typedef SOCKET sys_socket_t;
+#define SYS_INVALID_SOCKET INVALID_SOCKET
+#define SYS_NODE_SOCKET(node) ((node)->ctx.u.file.sck)
+#define close_sys_socket(sck) closesocket(sck)
+#else
+typedef int sys_socket_t;
+#define SYS_INVALID_SOCKET (-1)
+#define SYS_NODE_SOCKET(node) ((node)->ctx.u.file.fd)
+#define close_sys_socket(sck) close(sck)
+#endif
+
 struct sys_node_data_file_t
 {
 	int fd;
+#if defined(_WIN32)
+	/* TODO: unify fd and sck */
+	/* the current implementation shares this struct for both SCK and FILE.
+	 * for SCK, fd ramains -1 on win32.  this added field looks redundant
+	 * but enhancing it leads to changing existing code to selectvely use
+	 * the right field and call the right functions(e.g. closesocket vs close).
+	 * so keep it as an exitra field for now. */
+	sys_socket_t sck;
+#endif
 	void* mux; /* if SYS_NODE_DATA_FLAG_IN_MUX is set, this is set to a valid pointer. it is of the void* type since sys_node_t is not available yet. */
 	void* x_prev;
 	void* x_next;
@@ -213,7 +235,7 @@ struct sys_node_data_t
 	int flags;
 	union
 	{
-		sys_node_data_file_t file;
+		sys_node_data_file_t file; /* shared for both FILE and SCK */
 		hawk_dir_t* dir;
 		sys_node_data_mux_t mux;
 	} u;
@@ -259,7 +281,7 @@ struct rtx_data_t
 		int syslog_opened; // has openlog() been called?
 		int opt;
 		int fac;
-		int sck;
+		sys_socket_t sck;
 		hawk_becs_t* dmsgbuf;
 	} log;
 };
@@ -327,7 +349,33 @@ static hawk_int_t set_error_on_sys_list_with_errno (hawk_rtx_t* rtx, sys_list_t*
 		hawk_rtx_fmttooocstr(rtx, sys_list->ctx.errmsg, HAWK_COUNTOF(sys_list->ctx.errmsg), HAWK_T("%js - %hs"), title, strerror(err));
 	else
 		hawk_rtx_fmttooocstr(rtx, sys_list->ctx.errmsg, HAWK_COUNTOF(sys_list->ctx.errmsg), HAWK_T("%hs"), strerror(err));
-	return ERRNUM_TO_RC(hawk_syserr_to_errnum(err));
+	return ERRNUM_TO_RC(hawk_errno_to_errnum(err));
+}
+
+static hawk_int_t set_error_on_sys_list_with_socket_error (hawk_rtx_t* rtx, sys_list_t* sys_list, const hawk_ooch_t* title)
+{
+#if defined(_WIN32)
+	int err = WSAGetLastError();
+	hawk_errnum_t num;
+
+	switch (err)
+	{
+		case WSAEINTR: num = HAWK_EINTR; break;
+		case WSAEACCES: num = HAWK_EACCES; break;
+		case WSAEINVAL: case WSAENOTSOCK: case WSAEFAULT: num = HAWK_EINVAL; break;
+		case WSAEWOULDBLOCK: num = HAWK_EAGAIN; break;
+		case WSAEINPROGRESS: case WSAEALREADY: num = HAWK_EINPROG; break;
+		case WSAENOBUFS: num = HAWK_ENOMEM; break;
+		case WSAEMFILE: num = HAWK_ENOHND; break;
+		case WSAETIMEDOUT: num = HAWK_ETMOUT; break;
+		case WSAEOPNOTSUPP: case WSAEAFNOSUPPORT: case WSAEPROTONOSUPPORT: num = HAWK_ENOSUP; break;
+		case WSAECONNRESET: case WSAECONNABORTED: case WSAESHUTDOWN: num = HAWK_EPIPE; break;
+		default: num = HAWK_ESYSERR; break;
+	}
+	return set_error_on_sys_list(rtx, sys_list, num, HAWK_T("%js - socket error %d"), title? title: HAWK_T("socket operation failed"), err);
+#else
+	return set_error_on_sys_list_with_errno(rtx, sys_list, title);
+#endif
 }
 
 static void set_errmsg_on_sys_list (hawk_rtx_t* rtx, sys_list_t* sys_list, const hawk_ooch_t* errfmt, ...)
@@ -394,6 +442,20 @@ static sys_node_t* new_sys_node_fd (hawk_rtx_t* rtx, sys_list_t* list, int fd)
 	node->ctx.type = SYS_NODE_DATA_TYPE_FILE;
 	node->ctx.flags = 0;
 	node->ctx.u.file.fd = fd;
+#if defined(_WIN32)
+	node->ctx.u.file.sck = SYS_INVALID_SOCKET;
+#endif
+	return node;
+}
+
+static sys_node_t* new_sys_node_sck (hawk_rtx_t* rtx, sys_list_t* list, sys_socket_t sck)
+{
+	sys_node_t* node;
+
+	node = new_sys_node_fd(rtx, list, -1);
+	if (!node) return HAWK_NULL;
+	node->ctx.type = SYS_NODE_DATA_TYPE_SCK;
+	SYS_NODE_SOCKET(node) = sck;
 	return node;
 }
 
@@ -527,6 +589,13 @@ static void free_sys_node (hawk_rtx_t* rtx, sys_list_t* list, sys_node_t* node)
 			node->ctx.u.file.readbuf = HAWK_NULL;
 			node->ctx.u.file.readbuf_capa = 0;
 			node->ctx.u.file.readbuf_len = 0;
+		#if defined(_WIN32)
+			if (node->ctx.type == SYS_NODE_DATA_TYPE_SCK && SYS_NODE_SOCKET(node) != SYS_INVALID_SOCKET)
+			{
+				close_sys_socket(SYS_NODE_SOCKET(node));
+				SYS_NODE_SOCKET(node) = SYS_INVALID_SOCKET;
+			}
+		#endif
 			if (node->ctx.u.file.fd >= 0)
 			{
 				close(node->ctx.u.file.fd);
@@ -657,6 +726,9 @@ static int fnc_close (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		{
 			del_from_mux(rtx, sys_node); /* remove the file descriptor from the multiplexer although it's kept unclosed */
 			sys_node->ctx.u.file.fd = -1; /* ownership of the descriptor stays with the caller */
+		#if defined(_WIN32)
+			SYS_NODE_SOCKET(sys_node) = SYS_INVALID_SOCKET;
+		#endif
 		}
 
 		free_sys_node(rtx, sys_list, sys_node);
@@ -856,11 +928,34 @@ static int fnc_read (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		if (sys_node->ctx.u.file.readbuf_len >= reqsize) goto make_val_0;
 
 		/* invoke the read system call */
+	#if defined(_WIN32)
+		if (sys_node->ctx.type == SYS_NODE_DATA_TYPE_SCK)
+		{
+			hawk_oow_t size = reqsize - sys_node->ctx.u.file.readbuf_len;
+			if (size > HAWK_TYPE_MAX(int)) size = HAWK_TYPE_MAX(int);
+			rx = recv(SYS_NODE_SOCKET(sys_node), &sys_node->ctx.u.file.readbuf[sys_node->ctx.u.file.readbuf_len], (int)size, 0);
+		}
+		else
+		{
+			rx = read(sys_node->ctx.u.file.fd, &sys_node->ctx.u.file.readbuf[sys_node->ctx.u.file.readbuf_len], reqsize - sys_node->ctx.u.file.readbuf_len);
+		}
+	#else
 		rx = read(sys_node->ctx.u.file.fd, &sys_node->ctx.u.file.readbuf[sys_node->ctx.u.file.readbuf_len], reqsize - sys_node->ctx.u.file.readbuf_len);
+	#endif
 		if (rx <= 0)
 		{
 			if (rx == 0 && sys_node->ctx.u.file.readbuf_len > 0) goto make_val_0;
-			if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_T("unable to read"));
+			if (rx <= -1)
+			{
+			#if defined(_WIN32)
+				if (sys_node->ctx.type == SYS_NODE_DATA_TYPE_SCK)
+					rx = set_error_on_sys_list_with_socket_error(rtx, sys_list, HAWK_T("unable to read"));
+				else
+					rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_T("unable to read"));
+			#else
+				rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_T("unable to read"));
+			#endif
+			}
 			goto done;
 		}
 		else
@@ -955,8 +1050,19 @@ static int fnc_write (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			dlen -= startpos;
 			if (dlen > maxlen) dlen = maxlen;
 
-			rx = write(sys_node->ctx.u.file.fd, &dptr[startpos], dlen);
-			if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_T("unable to write"));
+		#if defined(_WIN32)
+			if (sys_node->ctx.type == SYS_NODE_DATA_TYPE_SCK)
+			{
+				if (dlen > HAWK_TYPE_MAX(int)) dlen = HAWK_TYPE_MAX(int);
+				rx = send(SYS_NODE_SOCKET(sys_node), &dptr[startpos], (int)dlen, 0);
+				if (rx <= -1) rx = set_error_on_sys_list_with_socket_error(rtx, sys_list, HAWK_T("unable to write"));
+			}
+			else
+		#endif
+			{
+				rx = write(sys_node->ctx.u.file.fd, &dptr[startpos], dlen);
+				if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_T("unable to write"));
+			}
 			hawk_rtx_freevalbcstr(rtx, a1, dptr);
 		}
 		else
@@ -1006,6 +1112,40 @@ static int fnc_dup (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	{
 		hawk_oow_t nargs = hawk_rtx_getnargs(rtx);
 		int fd;
+
+	#if defined(_WIN32)
+		if (sys_node->ctx.type == SYS_NODE_DATA_TYPE_SCK)
+		{
+			WSAPROTOCOL_INFOA info;
+			sys_socket_t sck;
+			sys_node_t* new_node;
+
+			if (nargs >= 2)
+			{
+				rx = set_error_on_sys_list(rtx, sys_list, HAWK_ENOSUP, HAWK_T("socket duplication onto an existing descriptor is not supported"));
+				goto done;
+			}
+			if (WSADuplicateSocketA(SYS_NODE_SOCKET(sys_node), GetCurrentProcessId(), &info) != 0)
+			{
+				rx = set_error_on_sys_list_with_socket_error(rtx, sys_list, HAWK_NULL);
+				goto done;
+			}
+			sck = WSASocketA(FROM_PROTOCOL_INFO, FROM_PROTOCOL_INFO, FROM_PROTOCOL_INFO, &info, 0, WSA_FLAG_OVERLAPPED);
+			if (sck == SYS_INVALID_SOCKET)
+			{
+				rx = set_error_on_sys_list_with_socket_error(rtx, sys_list, HAWK_NULL);
+				goto done;
+			}
+			new_node = new_sys_node_sck(rtx, sys_list, sck);
+			if (!new_node)
+			{
+				rx = copy_error_to_sys_list(rtx, sys_list);
+				close_sys_socket(sck);
+			}
+			else rx = new_node->id;
+			goto done;
+		}
+	#endif
 
 		if (nargs >= 2)
 		{
@@ -1144,7 +1284,7 @@ static int fnc_fcntl (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			case F_GETFD:
 			case F_GETFL:
 			{
-				rx = fcntl(sys_node->ctx.u.file.fd, cmd, 0);
+				rx = fcntl(sys_node->ctx.u.file.fd, (int)cmd, 0);
 				if (rx <= -1)
 				{
 					rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
@@ -1158,7 +1298,12 @@ static int fnc_fcntl (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			{
 				hawk_int_t v = 0;
 				if (hawk_rtx_getnargs(rtx) >= 3 && hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 2), &v) <= -1) goto fail;
-				rx = fcntl(sys_node->ctx.u.file.fd, cmd, v);
+				if ((hawk_intmax_t)v < (hawk_intmax_t)HAWK_TYPE_MIN(int) || (hawk_intmax_t)v > (hawk_intmax_t)HAWK_TYPE_MAX(int))
+				{
+					rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_T("file control flags out of range"));
+					goto done;
+				}
+				rx = fcntl(sys_node->ctx.u.file.fd, (int)cmd, (int)v);
 				if (rx <= -1)
 				{
 					rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
@@ -1231,6 +1376,16 @@ static int fnc_flock (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		wait = !!(type & FLOCK_WAIT);
 		get = !!(type & FLOCK_GET);
 		type &= ~(FLOCK_WAIT | FLOCK_GET);
+		if ((type != F_RDLCK && type != F_WRLCK && type != F_UNLCK) ||
+		    (whence != SEEK_SET && whence != SEEK_CUR && whence != SEEK_END) ||
+		    (hawk_intmax_t)start < (hawk_intmax_t)HAWK_TYPE_MIN(off_t) ||
+		    (hawk_intmax_t)start > (hawk_intmax_t)HAWK_TYPE_MAX(off_t) ||
+		    (hawk_intmax_t)len < (hawk_intmax_t)HAWK_TYPE_MIN(off_t) ||
+		    (hawk_intmax_t)len > (hawk_intmax_t)HAWK_TYPE_MAX(off_t))
+		{
+			rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_T("invalid file lock type, origin, or range"));
+			goto done;
+		}
 
 		HAWK_MEMSET(&fl, 0, HAWK_SIZEOF(fl));
 		fl.l_type = type;
@@ -1842,13 +1997,13 @@ static int fnc_fchown (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		}
 		else
 		{
-#if defined(_WIN32)
+		#if defined(_WIN32)
 			rx = set_error_on_sys_list(rtx, sys_list, HAWK_ENOSUP, HAWK_NULL);
-#else
+		#else
 			rx = fchown(sys_node->ctx.u.file.fd, uid, gid) <= -1?
 				set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL):
 				ERRNUM_TO_RC(HAWK_ENOERR);
-#endif
+		#endif
 		}
 	}
 
@@ -1874,13 +2029,13 @@ static int fnc_fchmod (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		}
 		else
 		{
-#if defined(_WIN32)
+		#if defined(_WIN32)
 			rx = set_error_on_sys_list(rtx, sys_list, HAWK_ENOSUP, HAWK_NULL);
-#else
+		#else
 			rx = fchmod(sys_node->ctx.u.file.fd, mode) <= -1?
 				set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL):
 				ERRNUM_TO_RC(HAWK_ENOERR);
-#endif
+		#endif
 		}
 	}
 
@@ -2124,7 +2279,15 @@ static int fnc_wait (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	rx = set_error_on_sys_list(rtx, sys_list, HAWK_ENOIMPL, HAWK_NULL);
 	status = 0;
 #else
-	rx = waitpid(pid, &status, opts);
+	if ((hawk_intmax_t)pid < (hawk_intmax_t)HAWK_TYPE_MIN(pid_t) ||
+	    (hawk_intmax_t)pid > (hawk_intmax_t)HAWK_TYPE_MAX(pid_t) ||
+	    (hawk_intmax_t)opts < (hawk_intmax_t)HAWK_TYPE_MIN(int) ||
+	    (hawk_intmax_t)opts > (hawk_intmax_t)HAWK_TYPE_MAX(int))
+	{
+		rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_T("wait process identifier or options out of range"));
+		goto done;
+	}
+	rx = waitpid((pid_t)pid, &status, (int)opts);
 	if (rx <= -1)
 	{
 		rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
@@ -2147,6 +2310,9 @@ static int fnc_wait (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	}
 #endif
 
+#if !defined(_WIN32) && !defined(__OS2__) && !defined(__DOS__)
+done:
+#endif
 	retv = hawk_rtx_makeintval_inline(rtx, rx);
 	if (!retv) return -1; /* hard failure. unable to make a return value */
 
@@ -2238,8 +2404,8 @@ static int fnc_wcoredump (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 static int fnc_kill (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
-	/* sys::kill() sends an OS-level signal. Windows/OS2 accept positive PIDs
-	 * and SIGKILL only; Windows also supports a signal-zero process check. */
+	/* sys::kill() sends an OS-level signal. windows and os2 accept positive PIDs
+	 * and SIGKILL only. windows also supports a signal-zero process check. */
 	hawk_int_t pid, sig;
 	hawk_val_t* retv;
 	hawk_int_t rx;
@@ -2286,7 +2452,7 @@ static int fnc_kill (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			{
 				if (sig == 0)
 				{
-					/* A signaled process handle denotes a process that has exited. */
+					/* a signaled process handle denotes a process that has exited. */
 					status = WaitForSingleObject(proc, 0);
 					if (status == WAIT_TIMEOUT) rx = 0;
 					else if (status == WAIT_OBJECT_0)
@@ -2332,7 +2498,7 @@ static int fnc_kill (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		}
 		else
 		{
-			/* Kill only the specified process, not its descendants. */
+			/* kill only the specified process, not its descendants. */
 			rc = DosKillProcess(DKP_PROCESS, (PID)pid);
 			if (rc == NO_ERROR) rx = 0;
 			else rx = set_error_on_sys_list(rtx, sys_list,
@@ -2964,6 +3130,11 @@ static int fnc_sleep (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 #endif
 
 #if defined(_WIN32)
+	if ((hawk_uint32_t)nt.sec * HAWK_MSECS_PER_SEC + HAWK_NSEC_TO_MSEC(nt.nsec) == INFINITE)
+	{
+		rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_T("sleep interval denotes an infinite wait"));
+		goto done;
+	}
 	Sleep((DWORD)((hawk_uint32_t)nt.sec * HAWK_MSECS_PER_SEC + HAWK_NSEC_TO_MSEC(nt.nsec)));
 	rx = 0;
 #elif defined(__OS2__)
@@ -4687,7 +4858,7 @@ static int fnc_socket (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	sys_list_t* sys_list;
 	hawk_int_t rx, domain = 0, type = 0, proto = 0;
-	int fd;
+	sys_socket_t fd;
 
 	sys_list = rtx_to_sys_list(rtx, fi);
 
@@ -4697,26 +4868,25 @@ static int fnc_socket (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 /* TOOD: SOCK_CLOEXEC, SOCK_NONBLOCK */
 	fd = socket(domain, type, proto);
-	if (fd >= 0)
+	if (fd != SYS_INVALID_SOCKET)
 	{
 		sys_node_t* new_node;
 
-		new_node = new_sys_node_fd(rtx, sys_list, fd);
+		new_node = new_sys_node_sck(rtx, sys_list, fd);
 		if (!new_node)
 		{
-			close(fd);
 			rx = copy_error_to_sys_list(rtx, sys_list);
+			close_sys_socket(fd);
 		}
 		else
 		{
-			new_node->ctx.type = SYS_NODE_DATA_TYPE_SCK; /* override the type to socket */
 			rx = new_node->id;
 			HAWK_ASSERT(rx >= 0);
 		}
 	}
 	else
 	{
-		rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
+		rx = set_error_on_sys_list_with_socket_error(rtx, sys_list, HAWK_NULL);
 	}
 
 	HAWK_ASSERT(HAWK_IN_INT_RANGE(rx));
@@ -4751,10 +4921,10 @@ static int fnc_connect (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			}
 
 			hawk_rtx_freevaloocstr(rtx, a1, addr);
-			rx = connect(sys_node->ctx.u.file.fd, (struct sockaddr*)&skad, hawk_skad_get_size(&skad));
+			rx = connect(SYS_NODE_SOCKET(sys_node), (struct sockaddr*)&skad, hawk_skad_get_size(&skad));
 			if (rx <= -1)
 			{
-				rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
+				rx = set_error_on_sys_list_with_socket_error(rtx, sys_list, HAWK_NULL);
 				goto done;
 			}
 		}
@@ -4785,9 +4955,19 @@ static int fnc_recvfrom (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	{
 		hawk_skad_t skad;
 		hawk_sklen_t addrlen;
+	#if defined(_WIN32)
+		if (sys_node->ctx.type != SYS_NODE_DATA_TYPE_SCK)
+		{
+			rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_T("not a socket handle"));
+			goto done;
+		}
+	#endif
 
 		if (hawk_rtx_getnargs(rtx) >= 3 && (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 2), &reqsize) <= -1 || reqsize <= 0)) reqsize = 8192;
 		if (reqsize > HAWK_INT_MAX) reqsize = HAWK_INT_MAX;
+	#if defined(_WIN32)
+		if (reqsize > HAWK_TYPE_MAX(int)) reqsize = HAWK_TYPE_MAX(int);
+	#endif
 
 		if (reqsize > sys_node->ctx.u.file.readbuf_capa)
 		{
@@ -4803,10 +4983,10 @@ static int fnc_recvfrom (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 		HAWK_MEMSET(&skad, 0, HAWK_SIZEOF(skad));
 		addrlen = HAWK_SIZEOF(skad);
-		rx = recvfrom(sys_node->ctx.u.file.fd, sys_node->ctx.u.file.readbuf, reqsize, 0, (struct sockaddr*)&skad, &addrlen);
+		rx = recvfrom(SYS_NODE_SOCKET(sys_node), sys_node->ctx.u.file.readbuf, reqsize, 0, (struct sockaddr*)&skad, &addrlen);
 		if (rx <= -1)
 		{
-			rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_T("unable to read"));
+			rx = set_error_on_sys_list_with_socket_error(rtx, sys_list, HAWK_T("unable to read"));
 			goto done;
 		}
 		else
@@ -4915,8 +5095,16 @@ static int fnc_sendto (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		dptr = hawk_rtx_getvalbcstr(rtx, a1, &dlen);
 		if (dptr)
 		{
-			rx = sendto(sys_node->ctx.u.file.fd, dptr, dlen, 0, sa, salen);
-			if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
+		#if defined(_WIN32)
+			if (dlen > HAWK_TYPE_MAX(int))
+			{
+				rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_T("datagram too large"));
+				hawk_rtx_freevalbcstr(rtx, a1, dptr);
+				goto done;
+			}
+		#endif
+			rx = sendto(SYS_NODE_SOCKET(sys_node), dptr, dlen, 0, sa, salen);
+			if (rx <= -1) rx = set_error_on_sys_list_with_socket_error(rtx, sys_list, HAWK_NULL);
 			hawk_rtx_freevalbcstr(rtx, a1, dptr);
 		}
 		else
@@ -4947,8 +5135,8 @@ static int fnc_shutdown (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 		if (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 1), &how) <= -1 || how < 0) how = 0;
 
-		rx = shutdown(sys_node->ctx.u.file.fd, how);
-		if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
+		rx = shutdown(SYS_NODE_SOCKET(sys_node), how);
+		if (rx <= -1) rx = set_error_on_sys_list_with_socket_error(rtx, sys_list, HAWK_NULL);
 	}
 
 	hawk_rtx_setretval(rtx, hawk_rtx_makeintval_inline(rtx, rx));
@@ -4987,8 +5175,8 @@ static int fnc_bind (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		}
 		hawk_rtx_freevaloocstr(rtx, a1, addr);
 
-		rx = bind(sys_node->ctx.u.file.fd, (struct sockaddr*)&skad, hawk_skad_get_size(&skad));
-		if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
+		rx = bind(SYS_NODE_SOCKET(sys_node), (struct sockaddr*)&skad, hawk_skad_get_size(&skad));
+		if (rx <= -1) rx = set_error_on_sys_list_with_socket_error(rtx, sys_list, HAWK_NULL);
 	}
 
 done:
@@ -5010,8 +5198,8 @@ static int fnc_listen (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 		if (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 1), &backlog) <= -1 || backlog < 0) backlog = 0;
 
-		rx = listen(sys_node->ctx.u.file.fd, backlog);
-		if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
+		rx = listen(SYS_NODE_SOCKET(sys_node), backlog);
+		if (rx <= -1) rx = set_error_on_sys_list_with_socket_error(rtx, sys_list, HAWK_NULL);
 	}
 
 	hawk_rtx_setretval(rtx, hawk_rtx_makeintval_inline(rtx, rx));
@@ -5033,9 +5221,10 @@ static int fnc_accept (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		hawk_sklen_t addrlen;
 		sys_node_t* new_node;
 	#if defined(HAVE_ACCEPT4)
-		int fd;
+		sys_socket_t fd;
 	#else
-		int fd, fd_flags;
+		sys_socket_t fd;
+		int fd_flags;
 	#endif
 		hawk_int_t flags = 0;
 
@@ -5043,13 +5232,13 @@ static int fnc_accept (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 		addrlen = HAWK_SIZEOF(skad);
 	#if defined(HAVE_ACCEPT4)
-		fd = accept4(sys_node->ctx.u.file.fd, (struct sockaddr*)&skad, &addrlen, flags);
+		fd = accept4(SYS_NODE_SOCKET(sys_node), (struct sockaddr*)&skad, &addrlen, flags);
 	#else
-		fd = accept(sys_node->ctx.u.file.fd, (struct sockaddr*)&skad, &addrlen);
+		fd = accept(SYS_NODE_SOCKET(sys_node), (struct sockaddr*)&skad, &addrlen);
 	#endif
-		if (fd <= -1)
+		if (fd == SYS_INVALID_SOCKET)
 		{
-			rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
+			rx = set_error_on_sys_list_with_socket_error(rtx, sys_list, HAWK_NULL);
 			goto done;
 		}
 
@@ -5082,7 +5271,7 @@ static int fnc_accept (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			if (!sv)
 			{
 				rx = copy_error_to_sys_list(rtx, sys_list);
-				close(fd);
+				close_sys_socket(fd);
 				goto done;
 			}
 
@@ -5092,20 +5281,19 @@ static int fnc_accept (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			if (x <= -1)
 			{
 				rx = copy_error_to_sys_list(rtx, sys_list);
-				close(fd);
+				close_sys_socket(fd);
 				goto done;
 			}
 		}
 
-		new_node = new_sys_node_fd(rtx, sys_list, fd);
+		new_node = new_sys_node_sck(rtx, sys_list, fd);
 		if (!new_node)
 		{
-			close(fd);
 			rx = copy_error_to_sys_list(rtx, sys_list);
+			close_sys_socket(fd);
 			goto done;
 		}
 
-		new_node->ctx.type = SYS_NODE_DATA_TYPE_SCK; /* override the type to socket */
 		rx = new_node->id;
 		HAWK_ASSERT(rx >= 0);
 
@@ -5116,7 +5304,7 @@ static int fnc_accept (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 	fail_with_errno:
 		rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
-		close(fd);
+		close_sys_socket(fd);
 	#endif
 	}
 
@@ -5138,7 +5326,11 @@ static int fnc_setsockopt (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	{
 		hawk_int_t level, optname;
 		int iv;
+	#if defined(_WIN32)
+		DWORD timeout_ms;
+	#else
 		struct timeval tv;
+	#endif
 		void* vptr;
 		hawk_oow_t vlen;
 
@@ -5183,10 +5375,23 @@ static int fnc_setsockopt (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 					rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_T("negative socket timeout"));
 					goto done;
 				}
+			#if defined(_WIN32)
+				if (tmp.sec > HAWK_TYPE_MAX(hawk_uint32_t) / HAWK_MSECS_PER_SEC ||
+				    (tmp.sec == HAWK_TYPE_MAX(hawk_uint32_t) / HAWK_MSECS_PER_SEC &&
+				     HAWK_NSEC_TO_MSEC(tmp.nsec) > HAWK_TYPE_MAX(hawk_uint32_t) % HAWK_MSECS_PER_SEC))
+				{
+					rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_T("socket timeout too large"));
+					goto done;
+				}
+				timeout_ms = (DWORD)((hawk_uint32_t)tmp.sec * HAWK_MSECS_PER_SEC + HAWK_NSEC_TO_MSEC(tmp.nsec));
+				vptr = &timeout_ms;
+				vlen = HAWK_SIZEOF(timeout_ms);
+			#else
 				tv.tv_sec = tmp.sec;
 				tv.tv_usec = HAWK_NSEC_TO_USEC(tmp.nsec);
 				vptr = &tv;
 				vlen = HAWK_SIZEOF(tv);
+			#endif
 				break;
 			}
 
@@ -5195,8 +5400,8 @@ static int fnc_setsockopt (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 				goto done;
 		}
 
-		rx = setsockopt(sys_node->ctx.u.file.fd, level, optname, vptr, vlen);
-		if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
+		rx = setsockopt(SYS_NODE_SOCKET(sys_node), (int)level, (int)optname, (const char*)vptr, vlen);
+		if (rx <= -1) rx = set_error_on_sys_list_with_socket_error(rtx, sys_list, HAWK_NULL);
 	}
 
 done:
@@ -5220,11 +5425,11 @@ you can specify the remote:// with /dev/log or @/dev/log.
  */
 static void open_remote_log_socket (hawk_rtx_t* rtx, rtx_data_t* rdp)
 {
-	int sck;
+	sys_socket_t sck;
 	int domain = hawk_skad_get_family(&rdp->log.skad);
 	int type = SOCK_DGRAM;
 
-	HAWK_ASSERT(rdp->log.sck <= -1);
+	HAWK_ASSERT(rdp->log.sck == SYS_INVALID_SOCKET);
 
 #if defined(SOCK_NONBLOCK) && defined(SOCK_CLOEXEC)
 	type |= SOCK_NONBLOCK;
@@ -5232,7 +5437,7 @@ static void open_remote_log_socket (hawk_rtx_t* rtx, rtx_data_t* rdp)
 open_socket:
 #endif
 	sck = socket(domain, type, 0);
-	if (sck <= -1)
+	if (sck == SYS_INVALID_SOCKET)
 	{
 	#if defined(SOCK_NONBLOCK) && defined(SOCK_CLOEXEC)
 		if (errno == EINVAL && (type & (SOCK_NONBLOCK | SOCK_CLOEXEC)))
@@ -5284,7 +5489,7 @@ done:
 oops:
 	{
 		int err = errno;
-		close(sck);
+		close_sys_socket(sck);
 		errno = err;
 	}
 }
@@ -5375,14 +5580,10 @@ static int fnc_openlog (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		rdp->log.syslog_opened = 0;
 	}
 #endif
-	if (rdp->log.sck >= 0)
+	if (rdp->log.sck != SYS_INVALID_SOCKET)
 	{
-	#if defined(_WIN32)
-		/* TODO: impelement this */
-	#else
-		close(rdp->log.sck);
-	#endif
-		rdp->log.sck = -1;
+		close_sys_socket(rdp->log.sck);
+		rdp->log.sck = SYS_INVALID_SOCKET;
 	}
 
 	rdp->log.type = log_type;
@@ -5399,7 +5600,7 @@ static int fnc_openlog (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	{
 		rdp->log.skad = skad;
 	#if defined(LOG_NDELAY)
-		if ((opt & LOG_NDELAY) && rdp->log.sck <= -1) open_remote_log_socket(rtx, rdp);
+		if ((opt & LOG_NDELAY) && rdp->log.sck == SYS_INVALID_SOCKET) open_remote_log_socket(rtx, rdp);
 	#endif
 	}
 
@@ -5431,14 +5632,10 @@ static int fnc_closelog (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			break;
 
 		case SYSLOG_REMOTE:
-			if (rdp->log.sck >= 0)
+			if (rdp->log.sck != SYS_INVALID_SOCKET)
 			{
-			#if defined(_WIN32)
-				/* TODO: impelement this */
-			#else
-				close(rdp->log.sck);
-			#endif
-				rdp->log.sck = -1;
+				close_sys_socket(rdp->log.sck);
+				rdp->log.sck = SYS_INVALID_SOCKET;
 			}
 
 			if (rdp->log.dmsgbuf)
@@ -5523,10 +5720,10 @@ static int fnc_writelog (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		struct tm tm, * tmx;
 		time_t t;
 
-		if (rdp->log.sck <= -1)
+		if (rdp->log.sck == SYS_INVALID_SOCKET)
 		{
 			open_remote_log_socket(rtx, rdp);
-			if (rdp->log.sck <= -1)
+			if (rdp->log.sck == SYS_INVALID_SOCKET)
 			{
 				rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_T("unable to open log socket"));
 				goto done;
@@ -7360,7 +7557,7 @@ static int init (hawk_mod_t* mod, hawk_rtx_t* rtx)
 
 	rdp->log.type = SYSLOG_LOCAL;
 	rdp->log.syslog_opened = 0;
-	rdp->log.sck = -1;
+	rdp->log.sck = SYS_INVALID_SOCKET;
 
 	return 0;
 }
@@ -7380,14 +7577,10 @@ static void __fini_log (hawk_rtx_t* rtx, rtx_data_t* rdp)
 	}
 #endif
 
-	if (rdp->log.sck >= 0)
+	if (rdp->log.sck != SYS_INVALID_SOCKET)
 	{
-	#if defined(_WIN32)
-		/* TODO: implement this */
-	#else
-		close(rdp->log.sck);
-	#endif
-		rdp->log.sck = -1;
+		close_sys_socket(rdp->log.sck);
+		rdp->log.sck = SYS_INVALID_SOCKET;
 	}
 
 	if (rdp->log.dmsgbuf)

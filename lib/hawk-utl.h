@@ -928,7 +928,7 @@ HAWK_EXPORT const hawk_bch_t* hawk_get_base_name_bchars (
 #	define hawk_get_base_name_oochars hawk_get_base_name_uchars
 #else
 #	define hawk_get_base_name_oocstr hawk_get_base_name_bcstr
-#	define hawk_get_base_name_ochars hawk_get_base_name_bchars
+#	define hawk_get_base_name_oochars hawk_get_base_name_bchars
 
 #endif
 

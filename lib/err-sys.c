@@ -23,6 +23,8 @@
  */
 
 #include <hawk-cmn.h>
+#include "err-prv.h"
+#include <errno.h>
 
 #if defined(_WIN32)
 #	include <windows.h>
@@ -33,12 +35,94 @@
 #	define __NEW_STARLET 1
 #	include <starlet.h>
 #	include <rms.h>
-#elif defined(__DOS__)
-#	include <errno.h>
-#else
-#	include <errno.h>
 #endif
 
+
+/* map C library errno values independently of native OS error codes. */
+hawk_errnum_t hawk_errno_to_errnum (int e)
+{
+	switch (e)
+	{
+	#if defined(ENOMEM)
+		case ENOMEM: return HAWK_ENOMEM;
+	#endif
+	#if defined(EINVAL)
+		case EINVAL: return HAWK_EINVAL;
+	#endif
+	#if defined(EBADF)
+		case EBADF: return HAWK_EINVAL;
+	#endif
+	#if defined(EIO)
+		case EIO: return HAWK_EIOERR;
+	#endif
+	#if defined(EMFILE)
+		case EMFILE: return HAWK_ENOHND;
+	#endif
+	#if defined(ENFILE) && (!defined(EMFILE) || ENFILE != EMFILE)
+		case ENFILE: return HAWK_ENOHND;
+	#endif
+	#if defined(EBUSY)
+		case EBUSY: return HAWK_EBUSY;
+	#endif
+	#if defined(EACCES)
+		case EACCES: return HAWK_EACCES;
+	#endif
+	#if defined(EPERM)
+		case EPERM: return HAWK_EPERM;
+	#endif
+	#if defined(EISDIR)
+		case EISDIR: return HAWK_EISDIR;
+	#endif
+	#if defined(ENOTDIR)
+		case ENOTDIR: return HAWK_ENOTDIR;
+	#endif
+	#if defined(ENXIO)
+		case ENXIO: return HAWK_ENOENT; /* ENODEV mapped to ENOENT */
+	#endif
+	#if defined(ENODEV)
+		case ENODEV: return HAWK_ENOENT; /* ENODEV mapped to ENOENT */
+	#endif
+	#if defined(ENOENT)
+		case ENOENT: return HAWK_ENOENT;
+	#endif
+	#if defined(EEXIST)
+		case EEXIST: return HAWK_EEXIST;
+	#endif
+	#if defined(EINTR)
+		case EINTR:  return HAWK_EINTR;
+	#endif
+	#if defined(EPIPE)
+		case EPIPE:  return HAWK_EPIPE;
+	#endif
+	#if defined(EINPROGRESS)
+		case EINPROGRESS: return HAWK_EINPROG;
+	#endif
+	#if defined(ECHILD)
+		case ECHILD:  return HAWK_ECHILD;
+	#endif
+	#if defined(ETIMEDOUT)
+		case ETIMEDOUT: return HAWK_ETMOUT;
+	#endif
+	#if defined(EBADFD) && (!defined(EBADF) || EBADFD != EBADF)
+		case EBADFD: return HAWK_ESTATE;
+	#endif
+	#if defined(ENOTRECOVERABLE)
+		case ENOTRECOVERABLE: return HAWK_ESTATE;
+	#endif
+
+	#if defined(EWOULDBLOCK) && defined(EAGAIN) && (EWOULDBLOCK == EAGAIN)
+		case EAGAIN: return HAWK_EAGAIN;
+	#else
+		#if defined(EWOULDBLOCK)
+		case EWOULDBLOCK: return HAWK_EAGAIN;
+		#endif
+		#if defined(EAGAIN)
+		case EAGAIN: return HAWK_EAGAIN;
+		#endif
+	#endif
+		default:     return HAWK_ESYSERR;
+	}
+}
 
 #if defined(_WIN32)
 
@@ -127,75 +211,8 @@ hawk_errnum_t hawk_syserr_to_errnum (hawk_intptr_t e) /* actually unsigned long 
 
 hawk_errnum_t hawk_syserr_to_errnum (hawk_intptr_t e)
 {
-	switch (e)
-	{
-	#if defined(ENOMEM)
-		case ENOMEM: return HAWK_ENOMEM;
-	#endif
-	#if defined(EINVAL)
-		case EINVAL: return HAWK_EINVAL;
-	#endif
-	#if defined(EBUSY)
-		case EBUSY: return HAWK_EBUSY;
-	#endif
-	#if defined(EACCES)
-		case EACCES: return HAWK_EACCES;
-	#endif
-	#if defined(EPERM)
-		case EPERM: return HAWK_EPERM;
-	#endif
-	#if defined(EISDIR)
-		case EISDIR: return HAWK_EISDIR;
-	#endif
-	#if defined(ENOTDIR)
-		case ENOTDIR: return HAWK_ENOTDIR;
-	#endif
-	#if defined(ENXIO)
-		case ENXIO: return HAWK_ENOENT; /* ENODEV mapped to ENOENT */
-	#endif
-	#if defined(ENODEV)
-		case ENODEV: return HAWK_ENOENT; /* ENODEV mapped to ENOENT */
-	#endif
-	#if defined(ENOENT)
-		case ENOENT: return HAWK_ENOENT;
-	#endif
-	#if defined(EEXIST)
-		case EEXIST: return HAWK_EEXIST;
-	#endif
-	#if defined(EINTR)
-		case EINTR:  return HAWK_EINTR;
-	#endif
-	#if defined(EPIPE)
-		case EPIPE:  return HAWK_EPIPE;
-	#endif
-	#if defined(EINPROGRESS)
-		case EINPROGRESS: return HAWK_EINPROG;
-	#endif
-	#if defined(ECHILD)
-		case ECHILD:  return HAWK_ECHILD;
-	#endif
-	#if defined(ETIMEDOUT)
-		case ETIMEDOUT: return HAWK_ETMOUT;
-	#endif
-	#if defined(EBADFD)
-		case EBADFD: return HAWK_ESTATE;
-	#endif
-	#if defined(ENOTRECOVERABLE)
-		case ENOTRECOVERABLE: return HAWK_ESTATE;
-	#endif
-
-	#if defined(EWOULDBLOCK) && defined(EAGAIN) && (EWOULDBLOCK == EAGAIN)
-		case EAGAIN: return HAWK_EAGAIN;
-	#else
-		#if defined(EWOULDBLOCK)
-		case EWOULDBLOCK: return HAWK_EAGAIN;
-		#endif
-		#if defined(EAGAIN)
-		case EAGAIN: return HAWK_EAGAIN;
-		#endif
-	#endif
-		default:     return HAWK_ESYSERR;
-	}
+	if (e < HAWK_TYPE_MIN(int) || e > HAWK_TYPE_MAX(int)) return HAWK_ESYSERR;
+	return hawk_errno_to_errnum((int)e);
 }
 
 

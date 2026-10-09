@@ -31,6 +31,7 @@ extern "C" {
 
 const hawk_ooch_t* hawk_dfl_errstr (hawk_errnum_t errnum);
 
+hawk_errnum_t hawk_errno_to_errnum (int e);
 hawk_errnum_t hawk_syserr_to_errnum (hawk_intptr_t e);
 
 
