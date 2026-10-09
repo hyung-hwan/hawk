@@ -751,7 +751,7 @@ static int fnc_open (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	sys_list_t* sys_list;
 
 	hawk_int_t rx, oflags = 0, mode = DEFAULT_MODE;
-	int fd;
+	int fd, err;
 	hawk_bch_t* pstr;
 	hawk_oow_t plen;
 	hawk_val_t* a0;
@@ -776,6 +776,7 @@ static int fnc_open (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			goto done;
 		}
 		fd = open(pstr, oflags, mode);
+		err = errno; /* path cleanup may change errno through the memory manager */
 		hawk_rtx_freevalbcstr(rtx, a0, pstr);
 
 		if (fd >= 0)
@@ -793,6 +794,7 @@ static int fnc_open (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		}
 		else
 		{
+			errno = err;
 			rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_T("unable to open"));
 		}
 	}
@@ -1882,13 +1884,21 @@ static int fnc_pipe (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 	sys_list = rtx_to_sys_list(rtx, fi);
 
-	if (hawk_rtx_getnargs(rtx) >= 3 && (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 2), &flags) <= -1 || flags < 0)) flags = 0;
+	if (hawk_rtx_getnargs(rtx) >= 3 && hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 2), &flags) <= -1) flags = 0;
 
 #if defined(_WIN32)
 	rx = set_error_on_sys_list(rtx, sys_list, HAWK_ENOSUP, HAWK_NULL);
 #else
+	if ((hawk_intmax_t)flags < (hawk_intmax_t)HAWK_TYPE_MIN(int) ||
+	    (hawk_intmax_t)flags > (hawk_intmax_t)HAWK_TYPE_MAX(int))
+	{
+		rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_T("pipe flags out of range"));
+		goto done;
+	}
+	if (flags < 0) flags = 0;
+
 #if defined(HAVE_PIPE2)
-	if (pipe2(fds, flags) >= 0)
+	if (pipe2(fds, (int)flags) >= 0)
 #else
 	if (pipe(fds) >= 0)
 #endif
@@ -1972,6 +1982,7 @@ static int fnc_pipe (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	}
 #endif
 
+done:
 	hawk_rtx_setretval(rtx, hawk_rtx_makeintval_inline(rtx, rx));
 	return 0;
 }
@@ -4878,12 +4889,34 @@ static int fnc_socket (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 	sys_list = rtx_to_sys_list(rtx, fi);
 
-	if (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 0), &domain) <= -1 || domain < 0) domain = 0;
-	if (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 1), &type) <= -1 || type < 0) type = 0;
-	if (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 2), &proto) <= -1 || proto < 0) proto = 0;
+	if (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 0), &domain) <= -1) domain = 0;
+	if (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 1), &type) <= -1) type = 0;
+	if (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 2), &proto) <= -1) proto = 0;
+
+	if ((hawk_intmax_t)domain < (hawk_intmax_t)HAWK_TYPE_MIN(int) ||
+	    (hawk_intmax_t)domain > (hawk_intmax_t)HAWK_TYPE_MAX(int))
+	{
+		rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_T("socket domain out of range"));
+		goto done;
+	}
+	if ((hawk_intmax_t)type < (hawk_intmax_t)HAWK_TYPE_MIN(int) ||
+	    (hawk_intmax_t)type > (hawk_intmax_t)HAWK_TYPE_MAX(int))
+	{
+		rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_T("socket type out of range"));
+		goto done;
+	}
+	if ((hawk_intmax_t)proto < (hawk_intmax_t)HAWK_TYPE_MIN(int) ||
+	    (hawk_intmax_t)proto > (hawk_intmax_t)HAWK_TYPE_MAX(int))
+	{
+		rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_T("socket protocol out of range"));
+		goto done;
+	}
+	if (domain < 0) domain = 0;
+	if (type < 0) type = 0;
+	if (proto < 0) proto = 0;
 
 /* TOOD: SOCK_CLOEXEC, SOCK_NONBLOCK */
-	fd = socket(domain, type, proto);
+	fd = socket((int)domain, (int)type, (int)proto);
 	if (fd != SYS_INVALID_SOCKET)
 	{
 		sys_node_t* new_node;
@@ -4905,6 +4938,7 @@ static int fnc_socket (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		rx = set_error_on_sys_list_with_socket_error(rtx, sys_list, HAWK_NULL);
 	}
 
+done:
 	HAWK_ASSERT(HAWK_IN_INT_RANGE(rx));
 	hawk_rtx_setretval(rtx, hawk_rtx_makeintval_inline(rtx, rx));
 	return 0;
@@ -5358,6 +5392,15 @@ static int fnc_setsockopt (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			goto done;
 		}
 
+		if ((hawk_intmax_t)level < (hawk_intmax_t)HAWK_TYPE_MIN(int) ||
+		    (hawk_intmax_t)level > (hawk_intmax_t)HAWK_TYPE_MAX(int) ||
+		    (hawk_intmax_t)optname < (hawk_intmax_t)HAWK_TYPE_MIN(int) ||
+		    (hawk_intmax_t)optname > (hawk_intmax_t)HAWK_TYPE_MAX(int))
+		{
+			rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_T("socket option level or name out of range"));
+			goto done;
+		}
+
 		switch (optname)
 		{
 		/* TODO:
@@ -5375,7 +5418,13 @@ static int fnc_setsockopt (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			{
 				hawk_int_t tmp;
 				if (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 3), &tmp) <= -1) goto fail;
-				iv = tmp;
+				if ((hawk_intmax_t)tmp < (hawk_intmax_t)HAWK_TYPE_MIN(int) ||
+				    (hawk_intmax_t)tmp > (hawk_intmax_t)HAWK_TYPE_MAX(int))
+				{
+					rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_T("socket option value out of range"));
+					goto done;
+				}
+				iv = (int)tmp;
 				vptr = &iv;
 				vlen = HAWK_SIZEOF(iv);
 				break;
@@ -6911,7 +6960,7 @@ static int fnc_basename (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 	ptr = hawk_get_base_name_oochars(path.ptr, path.len);
 
-	tmp = hawk_rtx_makestrvalwithoocstr(rtx, ptr);
+	tmp = hawk_rtx_makestrvalwithoochars(rtx, ptr, path.len - (ptr - path.ptr));
 	hawk_rtx_freevaloocstr(rtx, a0, path.ptr);
 	if (HAWK_UNLIKELY(!tmp)) return -1;
 
