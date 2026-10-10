@@ -768,7 +768,7 @@ static void purge_mux_members (hawk_rtx_t* rtx, sys_node_t* mux_node)
 	}
 }
 
-static void close_shared_sys_fd (hawk_rtx_t* rtx, sys_list_t* list, int fd)
+static int close_shared_sys_fd (hawk_rtx_t* rtx, sys_list_t* list, int fd)
 {
 	hawk_oow_t i;
 
@@ -798,7 +798,7 @@ static void close_shared_sys_fd (hawk_rtx_t* rtx, sys_list_t* list, int fd)
 			node->ctx.u.file.readbuf_len = 0;
 		}
 	}
-	close(fd);
+	return close(fd);
 }
 
 static void replace_sys_fd_node (hawk_rtx_t* rtx, sys_node_t* node, sys_node_data_type_t type)
@@ -841,8 +841,14 @@ static void replace_sys_fd (hawk_rtx_t* rtx, sys_list_t* list, sys_node_t* targe
 	}
 }
 
-static void free_sys_node (hawk_rtx_t* rtx, sys_list_t* list, sys_node_t* node)
+static hawk_int_t free_sys_node (hawk_rtx_t* rtx, sys_list_t* list, sys_node_t* node, int report_error)
 {
+	hawk_int_t rx = 0;
+
+	/* Explicit closes report OS errors before releasing the node. Cleanup
+	 * after another failure must preserve the original module diagnostic.
+	 * Always release the wrapper; do not retry a close that may have already
+	 * released its descriptor, which another thread could reuse. */
 	switch (node->ctx.type)
 	{
 		case SYS_NODE_DATA_TYPE_FILE:
@@ -855,22 +861,26 @@ static void free_sys_node (hawk_rtx_t* rtx, sys_list_t* list, sys_node_t* node)
 		#if defined(_WIN32)
 			if (node->ctx.type == SYS_NODE_DATA_TYPE_SCK && SYS_NODE_SOCKET(node) != SYS_INVALID_SOCKET)
 			{
-				close_sys_socket(SYS_NODE_SOCKET(node));
+				if (close_sys_socket(SYS_NODE_SOCKET(node)) <= -1 && report_error)
+					rx = set_error_on_sys_list_with_socket_error(rtx, list, HAWK_T("unable to close socket"));
 				SYS_NODE_SOCKET(node) = SYS_INVALID_SOCKET;
 			}
 		#endif
 			if (node->ctx.u.file.fd >= 0)
 			{
 				int fd = node->ctx.u.file.fd;
+				int n;
 				if (node->ctx.flags & SYS_NODE_DATA_FLAG_MAY_SHARE_FD)
 				{
-					close_shared_sys_fd(rtx, list, fd);
+					n = close_shared_sys_fd(rtx, list, fd);
 				}
 				else
 				{
-					close(fd);
+					n = close(fd);
 					node->ctx.u.file.fd = -1;
 				}
+				if (n <= -1 && report_error && rx == 0)
+					rx = set_error_on_sys_list_with_errno(rtx, list, HAWK_T("unable to close file descriptor"));
 			}
 			break;
 
@@ -887,7 +897,8 @@ static void free_sys_node (hawk_rtx_t* rtx, sys_list_t* list, sys_node_t* node)
 			purge_mux_members(rtx, node);
 			if (node->ctx.u.mux.fd >= 0)
 			{
-				close(node->ctx.u.mux.fd);
+				if (close(node->ctx.u.mux.fd) <= -1 && report_error)
+					rx = set_error_on_sys_list_with_errno(rtx, list, HAWK_T("unable to close multiplexer"));
 				node->ctx.u.mux.fd = -1;
 			}
 			if (node->ctx.u.mux.x_evt)
@@ -906,6 +917,7 @@ static void free_sys_node (hawk_rtx_t* rtx, sys_list_t* list, sys_node_t* node)
 		list->ctx.openfd_count--;
 	}
 	__free_sys_node(rtx, list, node);
+	return rx;
 }
 
 /* ------------------------------------------------------------------------ */
@@ -1010,7 +1022,7 @@ static int fnc_close (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		#endif
 		}
 
-		free_sys_node(rtx, sys_list, sys_node);
+		rx = free_sys_node(rtx, sys_list, sys_node, 1);
 	}
 
 done:
@@ -2404,9 +2416,9 @@ static int fnc_pipe (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 		close_pipe:
 		#endif
-			if (node2) free_sys_node(rtx, sys_list, node2);
+			if (node2) free_sys_node(rtx, sys_list, node2, 0);
 			else close(fds[1]);
-			if (node1) free_sys_node(rtx, sys_list, node1);
+			if (node1) free_sys_node(rtx, sys_list, node1, 0);
 			else close(fds[0]);
 		}
 	}
@@ -2616,7 +2628,7 @@ static int fnc_closedir (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	{
 		/* although free_sys_node() can handle other types, sys::closedir() is allowed to
 		 * close nodes of the SYS_NODE_DATA_TYPE_DIR type only */
-		free_sys_node(rtx, sys_list, sys_node);
+		rx = free_sys_node(rtx, sys_list, sys_node, 1);
 	}
 
 	hawk_rtx_setretval(rtx, hawk_rtx_makeintval_inline(rtx, rx));
@@ -5187,7 +5199,7 @@ static int fnc_closemux (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	sys_list = rtx_to_sys_list(rtx, fi);
 	sys_node = get_sys_list_node_with_arg(rtx, sys_list, hawk_rtx_getarg(rtx, 0), SYS_NODE_DATA_TYPE_MUX, &rx);
 
-	if (sys_node) free_sys_node(rtx, sys_list, sys_node);
+	if (sys_node) rx = free_sys_node(rtx, sys_list, sys_node, 1);
 
 	hawk_rtx_setretval(rtx, hawk_rtx_makeintval_inline(rtx, rx));
 	return 0;
@@ -8679,7 +8691,7 @@ static void fini (hawk_mod_t* mod, hawk_rtx_t* rtx)
 			for (i = 0; i < rdp->sys_list.map.high; i++)
 			{
 				sys_node_t* node = rdp->sys_list.map.tab[i];
-				if (node) free_sys_node(rtx, &rdp->sys_list, node);
+				if (node) free_sys_node(rtx, &rdp->sys_list, node, 0);
 			}
 		}
 
