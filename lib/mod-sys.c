@@ -67,6 +67,7 @@
 
 #endif
 
+#include "skad-prv.h"
 #include <stdlib.h> /* getenv, system */
 #include <stdio.h> /* remove */
 #include <time.h>
@@ -3762,11 +3763,14 @@ static int fnc_mktime (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		hawk_oow_t len;
 		hawk_val_t* a0;
 		struct tm tm;
+		time_t t;
+		int failed;
 		int minint = -((int)(((unsigned int)-1) >> 1)) - 1;
 
 		a0 = hawk_rtx_getarg(rtx, 0);
 		str = hawk_rtx_getvaloocstr(rtx, a0, &len);
 		if (HAWK_UNLIKELY(!str)) return -1;
+
 		p = str;
 		end = str + len;
 
@@ -3789,17 +3793,45 @@ static int fnc_mktime (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			if (p < end) goto invalid;
 		}
 		hawk_rtx_freevaloocstr(rtx, a0, str);
+		/* checking for -1 alone would reject the valid second before the epoch.
+		 * clearing errno before conversion was an earlier attempt to distinguish
+		 * that timestamp from failure, but successful timezone initialization can
+		 * leave errno set (e.g. ENOENT while looking up TZ=utc, where there is no file name utc in tzdata).
+		 * conversely, some CRTs return -1 on failure without setting errno.
+		 * use an invalid weekday as a sentinel: success replaces it with 0..6;
+		 * failure leaves it unchanged as specified by C23/POSIX.1-2024 and implemented by glibc.
+		 * older non-Windows implementations must preserve this sentinel on failure as well.
+		 * windows CRT excludes negative timestamps, so -1 always indicates failure.
+		 * keep clearing errno to obtain a fresh diagnostic after detecting failure. */
+		tm.tm_wday = -1;
+		errno = 0;
 	#if defined(HAVE_TIMELOCAL)
-		nt.sec = timelocal(&tm);
+		t = timelocal(&tm);
 	#else
-		nt.sec = mktime(&tm);
+		t = mktime(&tm);
 	#endif
+	#if defined(_WIN32) && !defined(HAVE_TIMELOCAL)
+		failed = (t == (time_t)-1);
+	#else
+		failed = (t == (time_t)-1 && tm.tm_wday == -1);
+	#endif
+		if (failed)
+		{
+			if (errno != 0)
+			{
+				nt.sec = set_error_on_sys_list_with_errno(rtx, rtx_to_sys_list(rtx, fi), HAWK_T("unable to convert local time"));
+			}
+			else
+			{
+				nt.sec = set_error_on_sys_list(rtx, rtx_to_sys_list(rtx, fi), HAWK_EINVAL, HAWK_T("local time is outside the supported range"));
+			}
+		}
+		else nt.sec = t;
 		goto done;
 
 	invalid:
 		hawk_rtx_freevaloocstr(rtx, a0, str);
-		hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EINVAL);
-		return -1;
+		nt.sec = set_error_on_sys_list(rtx, rtx_to_sys_list(rtx, fi), HAWK_EINVAL, HAWK_T("invalid time specification - expected YYYY MM DD HH MM SS [DST] with integer fields in range"));
 	}
 	else
 	{
@@ -3808,7 +3840,8 @@ static int fnc_mktime (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 done:
 	retv = hawk_rtx_makeintval_inline(rtx, nt.sec);
-	if (!retv) return -1;
+	if (HAWK_UNLIKELY(!retv)) return -1;
+
 	hawk_rtx_setretval(rtx, retv);
 	return 0;
 }
@@ -4373,10 +4406,13 @@ static int fnc_system (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	sys_list_t* sys_list;
 	hawk_val_t* a0;
+	hawk_val_t* retv;
 	hawk_ooch_t* str;
 	hawk_pio_t* pio = HAWK_NULL;
 	hawk_oow_t len;
 	hawk_int_t rx;
+	hawk_uintmax_t status;
+	int n;
 
 	sys_list = rtx_to_sys_list(rtx, fi);
 
@@ -4410,15 +4446,20 @@ static int fnc_system (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		goto done;
 	}
 
-	rx = hawk_pio_wait(pio);
-	if (rx <= -1) rx = copy_error_to_sys_list(rtx, sys_list);
+	n = hawk_pio_waitex(pio, &status);
+	if (n <= -1) rx = copy_error_to_sys_list(rtx, sys_list);
+	else if (n == 0) rx = 256;
+	else if (status > (hawk_uintmax_t)(HAWK_TYPE_MAX(hawk_uint_t) >> 1))
+		rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_T("process exit status out of range"));
+	else rx = (hawk_int_t)status;
 
 done:
 	if (pio) hawk_pio_close(pio);
 	if (str) hawk_rtx_freevaloocstr(rtx, a0, str);
 
-	HAWK_ASSERT(HAWK_IN_INT_RANGE(rx));
-	hawk_rtx_setretval(rtx, hawk_rtx_makeintval_inline(rtx, rx));
+	retv = hawk_rtx_makeintval_inline(rtx, rx);
+	if (!retv) return -1;
+	hawk_rtx_setretval(rtx, retv);
 	return 0;
 }
 
@@ -5475,6 +5516,16 @@ done:
 
 /* ------------------------------------------------------------ */
 
+static hawk_int_t parse_sys_skad (hawk_rtx_t* rtx, sys_list_t* sys_list, const hawk_ooch_t* addr, hawk_oow_t len, hawk_skad_t* skad)
+{
+	/* this function accepts textual addresses, including @-prefixed Unix paths. */
+	if (hawk_find_oochar_in_oochars(addr, len, '\0'))
+		return set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_T("socket address contains '\\0'"));
+	if (hawk_gem_oocharstoskad(hawk_rtx_getgem(rtx), addr, len, skad) <= -1)
+		return copy_error_to_sys_list(rtx, sys_list);
+	return 0;
+}
+
 static int fnc_sockaddrdom (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	sys_list_t* sys_list;
@@ -5490,11 +5541,8 @@ static int fnc_sockaddrdom (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	addr = hawk_rtx_getvaloocstr(rtx, a0, &len);
 	if (addr)
 	{
-		if (hawk_gem_oocharstoskad(hawk_rtx_getgem(rtx), addr, len, &skad) <= -1)
-		{
-			rx = copy_error_to_sys_list(rtx, sys_list);
-		}
-		else
+		rx = parse_sys_skad(rtx, sys_list, addr, len, &skad);
+		if (rx >= 0)
 		{
 			rx = hawk_skad_get_family(&skad);
 		}
@@ -5597,9 +5645,9 @@ static int fnc_connect (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		addr = hawk_rtx_getvaloocstr(rtx, a1, &len);
 		if (addr)
 		{
-			if (hawk_gem_oocharstoskad(hawk_rtx_getgem(rtx), addr, len, &skad) <= -1)
+			rx = parse_sys_skad(rtx, sys_list, addr, len, &skad);
+			if (rx < 0)
 			{
-				rx = copy_error_to_sys_list(rtx, sys_list);
 				hawk_rtx_freevaloocstr(rtx, a1, addr);
 				goto done;
 			}
@@ -5622,6 +5670,53 @@ done:
 	hawk_rtx_setretval(rtx, hawk_rtx_makeintval_inline(rtx, rx));
 	return 0;
 }
+
+static int format_sys_peer_address (hawk_rtx_t* rtx, hawk_skad_t* skad, hawk_sklen_t addrlen, hawk_ooch_t* buf, hawk_oow_t capa)
+{
+	hawk_oow_t len = (hawk_oow_t)addrlen;
+
+	/* ignore any storage beyond the address actually returned by the OS. */
+
+	if (len < HAWK_SIZEOF(*skad)) HAWK_MEMSET((hawk_uint8_t*)skad + len, 0, HAWK_SIZEOF(*skad) - len);
+	if (len < HAWK_OFFSETOF(struct sockaddr, sa_family) + HAWK_SIZEOF(((struct sockaddr*)skad)->sa_family))
+	{
+		buf[0] = '\0';
+		return 0;
+	}
+
+#if (HAWK_SIZEOF_STRUCT_SOCKADDR_UN > 0)
+	if (hawk_skad_get_family(skad) == HAWK_AF_UNIX)
+	{
+		struct sockaddr_un* un = (struct sockaddr_un*)skad;
+		const hawk_bch_t* nul;
+		hawk_oow_t offset = HAWK_OFFSETOF(struct sockaddr_un, sun_path);
+
+		len = (len > offset)? len - offset: 0;
+		if (len > HAWK_SIZEOF(un->sun_path)) len = HAWK_SIZEOF(un->sun_path);
+
+		nul = hawk_find_bchar_in_bchars(un->sun_path, len, '\0');
+		if (nul) len = nul - un->sun_path;
+
+	#if defined(HAWK_OOCH_IS_UCH)
+		{
+			hawk_oow_t outlen = capa - 1;
+			if (hawk_gem_convbtouchars(hawk_rtx_getgem(rtx), un->sun_path, &len, buf, &outlen, 1) <= -1) return -1;
+			buf[outlen] = '\0';
+		}
+	#else
+		if (len >= capa) len = capa - 1;
+		hawk_copy_bchars(buf, un->sun_path, len);
+		buf[len] = '\0';
+	#endif
+
+		return 0;
+	}
+#endif
+
+	hawk_gem_skadtooocstr(hawk_rtx_getgem(rtx), skad, buf, capa, HAWK_SKAD_TO_OOCSTR_ADDR | HAWK_SKAD_TO_OOCSTR_PORT);
+	return 0;
+}
+
 
 /*
  * sys:recvfrom(x, buf [, reqsize[, fromaddr]])
@@ -5705,12 +5800,13 @@ static int fnc_recvfrom (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			if (hawk_rtx_getnargs(rtx) >= 4)
 			{
 				/* A stream receive can succeed without supplying a source address. */
-				if (addrlen > 0)
-					hawk_gem_skadtooocstr(hawk_rtx_getgem(rtx), &skad, sys_list->ctx.skadbuf[0], HAWK_COUNTOF(sys_list->ctx.skadbuf[0]), HAWK_SKAD_TO_OOCSTR_ADDR | HAWK_SKAD_TO_OOCSTR_PORT);
-				else
-					sys_list->ctx.skadbuf[0][0] = '\0';
+				if (format_sys_peer_address(rtx, &skad, addrlen, sys_list->ctx.skadbuf[0], HAWK_COUNTOF(sys_list->ctx.skadbuf[0])) <= -1)
+				{
+					rx = copy_error_to_sys_list(rtx, sys_list);
+					goto done;
+				}
 				sv = hawk_rtx_makestrvalwithoocstr(rtx, sys_list->ctx.skadbuf[0]);
-				if (!sv)
+				if (HAWK_UNLIKELY(!sv))
 				{
 					rx = copy_error_to_sys_list(rtx, sys_list);
 					goto done;
@@ -5768,9 +5864,9 @@ static int fnc_sendto (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 				goto done;
 			}
 
-			if (hawk_gem_oocharstoskad(hawk_rtx_getgem(rtx), addr, len, &skad) <= -1)
+			rx = parse_sys_skad(rtx, sys_list, addr, len, &skad);
+			if (rx < 0)
 			{
-				rx = copy_error_to_sys_list(rtx, sys_list);
 				hawk_rtx_freevaloocstr(rtx, a2, addr);
 				goto done;
 			}
@@ -5868,9 +5964,9 @@ static int fnc_bind (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			goto done;
 		}
 
-		if (hawk_gem_oocharstoskad(hawk_rtx_getgem(rtx), addr, len, &skad) <= -1)
+		rx = parse_sys_skad(rtx, sys_list, addr, len, &skad);
+		if (rx < 0)
 		{
-			rx = copy_error_to_sys_list(rtx, sys_list);
 			hawk_rtx_freevaloocstr(rtx, a1, addr);
 			goto done;
 		}
@@ -5954,6 +6050,7 @@ static int fnc_accept (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		}
 		if (flags < 0) flags = 0;
 
+		HAWK_MEMSET(&skad, 0, HAWK_SIZEOF(skad));
 		addrlen = HAWK_SIZEOF(skad);
 	#if defined(HAVE_ACCEPT4)
 		fd = accept4(SYS_NODE_SOCKET(sys_node), (struct sockaddr*)&skad, &addrlen, (int)flags);
@@ -6006,7 +6103,12 @@ static int fnc_accept (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			hawk_val_t* sv;
 			int x;
 
-			hawk_gem_skadtooocstr (hawk_rtx_getgem(rtx), &skad, sys_list->ctx.skadbuf[0], HAWK_COUNTOF(sys_list->ctx.skadbuf[0]), HAWK_SKAD_TO_OOCSTR_ADDR | HAWK_SKAD_TO_OOCSTR_PORT);
+			if (format_sys_peer_address(rtx, &skad, addrlen, sys_list->ctx.skadbuf[0], HAWK_COUNTOF(sys_list->ctx.skadbuf[0])) <= -1)
+			{
+				rx = copy_error_to_sys_list(rtx, sys_list);
+				close_sys_socket(fd);
+				goto done;
+			}
 			sv = hawk_rtx_makestrvalwithoocstr(rtx, sys_list->ctx.skadbuf[0]);
 			if (!sv)
 			{
@@ -6288,6 +6390,10 @@ oops:
 	return rx;
 }
 
+/* Wire-format facilities occupy bits 3..7; priorities occupy bits 0..2. */
+#define SYS_LOG_MAX_FACILITY (23 << 3)
+#define SYS_LOG_PRIORITY_MASK (7)
+
 static int fnc_openlog (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	hawk_int_t rx = ERRNUM_TO_RC(HAWK_EOTHER);
@@ -6324,6 +6430,12 @@ static int fnc_openlog (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	    (hawk_intmax_t)fac > (hawk_intmax_t)HAWK_TYPE_MAX(int))
 	{
 		rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_T("log option or facility out of range"));
+		goto done;
+	}
+
+	if (fac < 0 || fac > SYS_LOG_MAX_FACILITY || (fac & SYS_LOG_PRIORITY_MASK))
+	{
+		rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_T("invalid log facility"));
 		goto done;
 	}
 
@@ -6492,8 +6604,7 @@ static int fnc_writelog (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		rx = copy_error_to_sys_list(rtx, sys_list);
 		goto done;
 	}
-	if ((hawk_intmax_t)pri < (hawk_intmax_t)HAWK_TYPE_MIN(int) ||
-	    (hawk_intmax_t)pri > (hawk_intmax_t)HAWK_TYPE_MAX(int))
+	if (pri < 0 || pri > (SYS_LOG_MAX_FACILITY | SYS_LOG_PRIORITY_MASK))
 	{
 		rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_T("log priority out of range"));
 		goto done;
@@ -6558,6 +6669,7 @@ static int fnc_writelog (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		}
 
 		t = now.sec;
+		errno = 0;
 	#if defined(HAVE_LOCALTIME_R)
 		tmx = localtime_r(&t, &tm);
 	#else
@@ -6565,7 +6677,9 @@ static int fnc_writelog (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	#endif
 		if (!tmx)
 		{
-			rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_T("unable to get local time"));
+			rx = (errno != 0)?
+				set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_T("unable to get local time")):
+				set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_T("unable to get local time"));
 			goto done;
 		}
 		if (tmx != &tm) tm = *tmx;
@@ -6573,7 +6687,7 @@ static int fnc_writelog (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 		if (hawk_becs_fmt(
 			rdp->log.dmsgbuf, HAWK_BT("<%d>%hs %02d %02d:%02d:%02d "),
-			(int)(rdp->log.fac | pri),
+			(int)((pri & ~SYS_LOG_PRIORITY_MASK)? pri: (rdp->log.fac | pri)),
 			__syslog_month_names[tmx->tm_mon], tmx->tm_mday,
 			tmx->tm_hour, tmx->tm_min, tmx->tm_sec) == (hawk_oow_t)-1) goto fail;
 
