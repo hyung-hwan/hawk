@@ -388,14 +388,19 @@ static hawk_int_t copy_error_to_sys_list (hawk_rtx_t* rtx, sys_list_t* sys_list)
 	return ERRNUM_TO_RC(errnum);
 }
 
+static HAWK_INLINE_ALWAYS void clear_error_on_sys_list (hawk_rtx_t* rtx, sys_list_t* sys_list)
+{
+	sys_list->ctx.errmsg[0] = '\0';
+}
+
 static hawk_int_t set_error_on_sys_list (hawk_rtx_t* rtx, sys_list_t* sys_list, hawk_errnum_t errnum, const hawk_ooch_t* errfmt, ...)
 {
 	va_list ap;
 	if (errfmt)
 	{
-		va_start (ap, errfmt);
+		va_start(ap, errfmt);
 		hawk_rtx_vfmttooocstr(rtx, sys_list->ctx.errmsg, HAWK_COUNTOF(sys_list->ctx.errmsg), errfmt, ap);
-		va_end (ap);
+		va_end(ap);
 	}
 	else
 	{
@@ -446,13 +451,13 @@ static void set_errmsg_on_sys_list (hawk_rtx_t* rtx, sys_list_t* sys_list, const
 	if (errfmt)
 	{
 		va_list ap;
-		va_start (ap, errfmt);
+		va_start(ap, errfmt);
 		hawk_rtx_vfmttooocstr(rtx, sys_list->ctx.errmsg, HAWK_COUNTOF(sys_list->ctx.errmsg), errfmt, ap);
-		va_end (ap);
+		va_end(ap);
 	}
 	else
 	{
-		hawk_copy_oocstr (sys_list->ctx.errmsg, HAWK_COUNTOF(sys_list->ctx.errmsg), hawk_rtx_geterrmsg(rtx));
+		hawk_copy_oocstr(sys_list->ctx.errmsg, HAWK_COUNTOF(sys_list->ctx.errmsg), hawk_rtx_geterrmsg(rtx));
 	}
 }
 
@@ -3686,9 +3691,13 @@ static int fnc_gettime (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		sec = sys::gettime(&nanosec));
 	*/
 
-	if (hawk_get_ntime(&now) <= -1) HAWK_CLEAR_NTIME(&now);
-
-	if (hawk_rtx_getnargs(rtx) >= 1)
+	if (hawk_get_ntime(&now) <= -1)
+	{
+		/* Leave the output argument unchanged on clock failure. The time
+		 * helper doesn't expose reliable native errors on every platform. */
+		now.sec = set_error_on_sys_list(rtx, rtx_to_sys_list(rtx, fi), HAWK_ESYSERR, HAWK_T("unable to get current time"));
+	}
+	else if (hawk_rtx_getnargs(rtx) >= 1)
 	{
 		hawk_val_t* tmp;
 		int x;
@@ -3775,6 +3784,7 @@ static int fnc_mktime (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	hawk_ntime_t nt;
 	hawk_val_t* retv;
+	sys_list_t* sys_list = rtx_to_sys_list(rtx, fi);
 
 	if (hawk_rtx_getnargs(rtx) >= 1)
 	{
@@ -3839,23 +3849,33 @@ static int fnc_mktime (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		{
 			if (errno != 0)
 			{
-				nt.sec = set_error_on_sys_list_with_errno(rtx, rtx_to_sys_list(rtx, fi), HAWK_T("unable to convert local time"));
+				nt.sec = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_T("unable to convert local time"));
 			}
 			else
 			{
-				nt.sec = set_error_on_sys_list(rtx, rtx_to_sys_list(rtx, fi), HAWK_EINVAL, HAWK_T("local time is outside the supported range"));
+				nt.sec = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_T("local time is outside the supported range"));
 			}
 		}
-		else nt.sec = t;
+		else
+		{
+			nt.sec = t;
+			/* a valid negative timestamp can overlap a module error code.
+			 * clear stale diagnostics so errmsg() distinguishes success. */
+			clear_error_on_sys_list(rtx, sys_list);
+		}
 		goto done;
 
 	invalid:
 		hawk_rtx_freevaloocstr(rtx, a0, str);
-		nt.sec = set_error_on_sys_list(rtx, rtx_to_sys_list(rtx, fi), HAWK_EINVAL, HAWK_T("invalid time specification - expected YYYY MM DD HH MM SS [DST] with integer fields in range"));
+		nt.sec = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL,
+			HAWK_T("invalid time specification - expected YYYY MM DD HH MM SS [DST] with integer fields in range"));
 	}
 	else
 	{
-		if (hawk_get_ntime(&nt) <= -1) HAWK_CLEAR_NTIME(&nt);
+		if (hawk_get_ntime(&nt) <= -1)
+			nt.sec = set_error_on_sys_list(rtx, sys_list, HAWK_ESYSERR, HAWK_T("unable to get current time"));
+		else
+			sys_list->ctx.errmsg[0] = '\0';
 	}
 
 done:
