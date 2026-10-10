@@ -3869,6 +3869,19 @@ static int fnc_strftime (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	buf = staticbuf;
 	capa = HAWK_COUNTOF(staticbuf);
 
+	/* Hawk strings have an explicit length; libc would silently discard the
+	 * format suffix after an embedded NUL. Report this as a module error so
+	 * the script can inspect the result and continue. */
+	if (hawk_find_bchar_in_bchars(fmt, len, '\0'))
+	{
+		hawk_int_t rx;
+
+		rx = set_error_on_sys_list(rtx, rtx_to_sys_list(rtx, fi), HAWK_EINVAL, HAWK_T("time format contains an embedded NUL character"));
+		retv = hawk_rtx_makeintval_inline(rtx, rx);
+		if (HAWK_UNLIKELY(!retv)) goto oops;
+		goto done;
+	}
+
 	/* a literal prefix makes a successful empty expansion distinguishable
 	 * from strftime's zero return for an insufficient buffer. */
 	if (len > HAWK_TYPE_MAX(hawk_oow_t) - 2)
@@ -3969,6 +3982,7 @@ RETURN VALUE
 	retv = hawk_rtx_makestrvalwithbchars(rtx, buf + 1, sl - 1);
 	if (HAWK_UNLIKELY(!retv)) goto oops;
 
+done:
 	if (buf != staticbuf) hawk_rtx_freemem(rtx, buf);
 	hawk_rtx_freemem(rtx, fmt);
 	hawk_rtx_setretval(rtx, retv);
