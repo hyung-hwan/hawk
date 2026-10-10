@@ -1007,10 +1007,47 @@ AM_CONDITIONAL(ENABLE_DEBUG, test "${enable_debug_is}" = "yes" )
 
 dnl ===== enable-intmax ======
 AC_ARG_ENABLE([intmax],
-	[AS_HELP_STRING([--enable-intmax],[use hawk_intmax_t for integers (default. no)])],
-	enable_intmax_is=$enableval,
-	enable_intmax_is=no
+	[AS_HELP_STRING([--enable-intmax=yes/no/auto],
+		[use hawk_intmax_t for integers (default. auto)])],
+	[enable_intmax_is=$enableval],
+	[enable_intmax_is=auto]
 )
+
+dnl auto enables intmax on 32-bit targets with a supported 64-bit integer type,
+dnl so integer values such as timestamps need not be limited to 32 bits.
+dnl Use target type sizes rather than the build machine's architecture to make
+dnl this decision work when cross-compiling. Explicit yes/no overrides auto;
+dnl enabling intmax still selects the largest integer type supported by Hawk.
+case "${enable_intmax_is}" in
+yes|no)
+	;;
+auto)
+	enable_intmax_is=no
+	if test "${ac_cv_sizeof_void_p}" -eq 4
+	then
+		for intmax_type_size in \
+			"${ac_cv_sizeof_int}" \
+			"${ac_cv_sizeof_long}" \
+			"${ac_cv_sizeof_long_long}" \
+			"${ac_cv_sizeof___int64}" \
+			"${ac_cv_sizeof___int64_t}"
+		do
+			if test "${intmax_type_size}" -eq 8
+			then
+				enable_intmax_is=yes
+				break
+			fi
+		done
+	fi
+	;;
+*)
+	AC_MSG_ERROR([invalid value '${enable_intmax_is}' for --enable-intmax; expected yes, no, or auto])
+	;;
+esac
+
+AC_MSG_CHECKING([whether to use hawk_intmax_t for integers])
+AC_MSG_RESULT([${enable_intmax_is}])
+
 if test "${enable_intmax_is}" = "yes"
 then
 	AC_DEFINE([HAWK_USE_INTMAX],[],[use hawk_intmax_t for integers])

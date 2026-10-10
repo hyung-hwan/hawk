@@ -1583,7 +1583,8 @@ Optional Features:
                           yes:comma-separated-encoding-names(e.g.
                           yes:big5,ksc5601,gbx) (default. yes)
   --enable-debug          compile the code in the debug mode (default. no)
-  --enable-intmax         use hawk_intmax_t for integers (default. no)
+  --enable-intmax=yes/no/auto
+                          use hawk_intmax_t for integers (default. auto)
   --enable-fltmax         use hawk_fltmax_t for floating-point numbers
                           (default. no)
   --enable-cxx            build the library for C++ if a C++ compiler is
@@ -28315,10 +28316,43 @@ if test ${enable_intmax+y}
 then :
   enableval=$enable_intmax; enable_intmax_is=$enableval
 else case e in #(
-  e) enable_intmax_is=no
+  e) enable_intmax_is=auto
  ;;
 esac
 fi
+
+
+case "${enable_intmax_is}" in
+yes|no)
+	;;
+auto)
+	enable_intmax_is=no
+	if test "${ac_cv_sizeof_void_p}" -eq 4
+	then
+		for intmax_type_size in \
+			"${ac_cv_sizeof_int}" \
+			"${ac_cv_sizeof_long}" \
+			"${ac_cv_sizeof_long_long}" \
+			"${ac_cv_sizeof___int64}" \
+			"${ac_cv_sizeof___int64_t}"
+		do
+			if test "${intmax_type_size}" -eq 8
+			then
+				enable_intmax_is=yes
+				break
+			fi
+		done
+	fi
+	;;
+*)
+	as_fn_error $? "invalid value '${enable_intmax_is}' for --enable-intmax; expected yes, no, or auto" "$LINENO" 5
+	;;
+esac
+
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking whether to use hawk_intmax_t for integers" >&5
+printf %s "checking whether to use hawk_intmax_t for integers... " >&6; }
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: ${enable_intmax_is}" >&5
+printf "%s\n" "${enable_intmax_is}" >&6; }
 
 if test "${enable_intmax_is}" = "yes"
 then
