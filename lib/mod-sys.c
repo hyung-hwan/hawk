@@ -3881,7 +3881,11 @@ static int fnc_strftime (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_val_t* retv;
 	hawk_int_t seconds, flags = 0;
 	struct tm tm, * tmx;
+#if defined(_WIN32)
+	__time64_t t;
+#else
 	time_t t;
+#endif
 
 	fmt = hawk_rtx_valtobcstrdup(rtx, hawk_rtx_getarg(rtx, 0), &len);
 	if (HAWK_UNLIKELY(!fmt)) return -1;
@@ -3925,7 +3929,9 @@ static int fnc_strftime (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	errno = 0;
 	if (flags & STRFTIME_UTC)
 	{
-	#if defined(HAVE_GMTIME_R)
+	#if defined(_WIN32)
+		tmx = (_gmtime64_s(&tm, &t) != 0? HAWK_NULL: &tm);
+	#elif defined(HAVE_GMTIME_R)
 		tmx = gmtime_r(&t, &tm);
 	#else
 		tmx = gmtime(&t);
@@ -3933,7 +3939,9 @@ static int fnc_strftime (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	}
 	else
 	{
-	#if defined(HAVE_LOCALTIME_R)
+	#if defined(_WIN32)
+		tmx = (_localtime64_s(&tm, &t) != 0? HAWK_NULL: &tm);
+	#elif defined(HAVE_LOCALTIME_R)
 		tmx = localtime_r(&t, &tm);
 	#else
 		tmx = localtime(&t);
