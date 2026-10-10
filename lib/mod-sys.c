@@ -2559,6 +2559,14 @@ static int fnc_opendir (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	}
 	if (flags < 0) flags = 0;
 
+	/* the path and returned entry names use hawk_ooch_t.
+	 * script flags must not override their character encoding. */
+	if (flags & (HAWK_DIR_BPATH | HAWK_DIR_UPATH))
+	{
+		rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_T("directory path encoding flags are not allowed"));
+		goto done;
+	}
+
 	a0 = hawk_rtx_getarg(rtx, 0);
 	pstr = hawk_rtx_getvaloocstr(rtx, a0, &plen);
 	if (!pstr) goto fail;
@@ -6404,9 +6412,59 @@ oops:
 	return rx;
 }
 
-/* Wire-format facilities occupy bits 3..7; priorities occupy bits 0..2. */
-#define SYS_LOG_MAX_FACILITY (23 << 3)
-#define SYS_LOG_PRIORITY_MASK (7)
+/* wire-format facilities occupy bits 3..7. priorities occupy bits 0..2. */
+#define SYS_LOG_MAX_FACILITY   (23 << 3)
+#define SYS_LOG_PRIORITY_MASK  (7)
+#define SYS_LOG_OPT_ISO8601    (1 << 16)
+
+static hawk_int_t get_remote_log_offset (hawk_rtx_t* rtx, sys_list_t* sys_list, const time_t* t, const struct tm* local, int* offset)
+{
+	struct tm utc, * ptr;
+	int days, year, seconds;
+
+	/* Compare local and UTC calendar fields for the same instant. This includes
+	 * DST without relying on nonportable tm_gmtoff fields, strftime's %z support,
+	 * or mktime() interpreting a UTC calendar as local time. The caller keeps a
+	 * copy of local time because gmtime() may overwrite shared static storage. */
+	errno = 0;
+#if defined(HAVE_GMTIME_R)
+	ptr = gmtime_r(t, &utc);
+#else
+	ptr = gmtime(t);
+#endif
+	if (!ptr)
+	{
+		return (errno != 0)?
+			set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_T("unable to get UTC time")):
+			set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_T("unable to get UTC time"));
+	}
+	if (ptr != &utc) utc = *ptr;
+
+	days = local->tm_yday - utc.tm_yday;
+	if (local->tm_year > utc.tm_year)
+	{
+		if (local->tm_year - 1 != utc.tm_year) goto invalid;
+		year = utc.tm_year % 400 + 1900; /* reduce before adding to avoid overflow */
+		days += 365 + (year % 4 == 0 && (year % 100 != 0 || year % 400 == 0));
+	}
+	else if (local->tm_year < utc.tm_year)
+	{
+		if (utc.tm_year - 1 != local->tm_year) goto invalid;
+		year = local->tm_year % 400 + 1900;
+		days -= 365 + (year % 4 == 0 && (year % 100 != 0 || year % 400 == 0));
+	}
+
+	seconds = days * 86400 + (local->tm_hour - utc.tm_hour) * 3600 +
+		(local->tm_min - utc.tm_min) * 60 + local->tm_sec - utc.tm_sec;
+	/* The timestamp uses a four-digit year and a whole-minute +/-HH:MM offset. */
+	if (local->tm_year < -1900 || local->tm_year > 8099 ||
+	    seconds <= -86400 || seconds >= 86400 || seconds % 60 != 0) goto invalid;
+	*offset = seconds / 60;
+	return 0;
+
+invalid:
+	return set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_T("local time cannot be represented with a four-digit year and a +/-HH:MM offset"));
+}
 
 static int fnc_openlog (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
@@ -6528,7 +6586,8 @@ static int fnc_openlog (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	if (rdp->log.type == SYSLOG_LOCAL)
 	{
 	#if defined(ENABLE_SYSLOG)
-		openlog(mbs_ident, (int)opt, (int)fac);
+		/* Hawk-specific timestamp options do not belong to native openlog(). */
+		openlog(mbs_ident, (int)opt & ~SYS_LOG_OPT_ISO8601, (int)fac);
 		rdp->log.syslog_opened = 1;
 	#endif
 	}
@@ -6699,11 +6758,28 @@ static int fnc_writelog (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		if (tmx != &tm) tm = *tmx;
 		tmx = &tm;
 
-		if (hawk_becs_fmt(
-			rdp->log.dmsgbuf, HAWK_BT("<%d>%hs %02d %02d:%02d:%02d "),
-			(int)((pri & ~SYS_LOG_PRIORITY_MASK)? pri: (rdp->log.fac | pri)),
-			__syslog_month_names[tmx->tm_mon], tmx->tm_mday,
-			tmx->tm_hour, tmx->tm_min, tmx->tm_sec) == (hawk_oow_t)-1) goto fail;
+		if (rdp->log.opt & SYS_LOG_OPT_ISO8601)
+		{
+			int offset, magnitude;
+
+			rx = get_remote_log_offset(rtx, sys_list, &t, tmx, &offset);
+			if (rx < 0) goto done;
+			magnitude = (offset < 0)? -offset: offset;
+			if (hawk_becs_fmt(
+				rdp->log.dmsgbuf, HAWK_BT("<%d>%04d-%02d-%02dT%02d:%02d:%02d%c%02d:%02d "),
+				(int)((pri & ~SYS_LOG_PRIORITY_MASK)? pri: (rdp->log.fac | pri)),
+				tmx->tm_year + 1900, tmx->tm_mon + 1, tmx->tm_mday,
+				tmx->tm_hour, tmx->tm_min, tmx->tm_sec,
+				(offset < 0)? '-': '+', magnitude / 60, magnitude % 60) == (hawk_oow_t)-1) goto fail;
+		}
+		else
+		{
+			if (hawk_becs_fmt(
+				rdp->log.dmsgbuf, HAWK_BT("<%d>%hs %02d %02d:%02d:%02d "),
+				(int)((pri & ~SYS_LOG_PRIORITY_MASK)? pri: (rdp->log.fac | pri)),
+				__syslog_month_names[tmx->tm_mon], tmx->tm_mday,
+				tmx->tm_hour, tmx->tm_min, tmx->tm_sec) == (hawk_oow_t)-1) goto fail;
+		}
 
 		if (rdp->log.ident || (rdp->log.opt & LOG_PID))
 		{
@@ -8031,6 +8107,7 @@ static hawk_mod_int_tab_t inttab[] =
 
 	{ HAWK_T("C_KEEPFD"),           { CLOSE_KEEPFD } },
 
+	{ HAWK_T("DIR_SKIPSPCDIR"),     { HAWK_DIR_SKIPSPCDIR } },
 	{ HAWK_T("DIR_SORT"),           { HAWK_DIR_SORT } },
 
 #if defined(FD_CLOEXEC)
@@ -8088,6 +8165,7 @@ static hawk_mod_int_tab_t inttab[] =
 	{ HAWK_T("LOG_FAC_UUCP"),       { LOG_UUCP } },
 
 	{ HAWK_T("LOG_OPT_CONS"),       { LOG_CONS } },
+	{ HAWK_T("LOG_OPT_ISO8601"),    { SYS_LOG_OPT_ISO8601 } },
 #if defined(LOG_NDELAY)
 	{ HAWK_T("LOG_OPT_NDELAY"),     { LOG_NDELAY } },
 #endif
