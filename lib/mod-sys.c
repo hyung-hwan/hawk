@@ -6634,7 +6634,7 @@ done:
 
 static int fnc_closelog (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
-	hawk_int_t rx = ERRNUM_TO_RC(HAWK_EOTHER);
+	hawk_int_t rx = ERRNUM_TO_RC(HAWK_ENOERR);
 	rtx_data_t* rdp = rtx_to_data(rtx, fi);
 
 	switch (rdp->log.type)
@@ -6653,7 +6653,11 @@ static int fnc_closelog (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		case SYSLOG_REMOTE:
 			if (rdp->log.sck != SYS_INVALID_SOCKET)
 			{
-				close_sys_socket(rdp->log.sck);
+				/* Capture the socket error before cleanup can overwrite it.
+				 * Discard the state even on failure; retrying close may affect
+				 * a descriptor that has already been released and reused. */
+				if (close_sys_socket(rdp->log.sck) <= -1)
+					rx = set_error_on_sys_list_with_socket_error(rtx, &rdp->sys_list, HAWK_T("unable to close log socket"));
 				rdp->log.sck = SYS_INVALID_SOCKET;
 			}
 
@@ -6675,8 +6679,6 @@ static int fnc_closelog (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	/* back to the local syslog in case writelog() is called
 	 * without another openlog() after this closelog() */
 	rdp->log.type = SYSLOG_LOCAL;
-
-	rx = ERRNUM_TO_RC(HAWK_ENOERR);
 
 	hawk_rtx_setretval(rtx, hawk_rtx_makeintval_inline(rtx, rx));
 	return 0;
