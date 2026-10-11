@@ -339,6 +339,9 @@ AC_CHECK_HEADERS([netinet/in.h sys/un.h netpacket/packet.h net/if.h net/if_dl.h 
 	#include <sys/socket.h>])
 AC_CHECK_HEADERS([sys/stropts.h sys/macstat.h linux/ethtool.h linux/sockios.h])
 AC_CHECK_HEADERS([ffi.h libunwind.h quadmath.h crt_externs.h])
+AC_CHECK_HEADERS([pty.h util.h libutil.h], [], [], [
+	#include <sys/types.h>
+	#include <termios.h>])
 
 dnl check data types
 dnl AC_CHECK_TYPE([wchar_t], 
@@ -356,11 +359,27 @@ AC_CHECK_FUNCS([backtrace backtrace_symbols])
 AC_CHECK_FUNCS([makecontext swapcontext getcontext setcontext])
 AC_CHECK_FUNCS([clock_nanosleep nanosleep usleep select poll])
 AC_CHECK_FUNCS([sigaction signal getpgid getpgrp])
+AC_CHECK_FUNCS([setsid setpgid tcgetpgrp tcsetpgrp])
+AC_CHECK_FUNCS([posix_openpt grantpt unlockpt ptsname ptsname_r ttyname ttyname_r])
 AC_CHECK_FUNCS([snprintf _vsnprintf _vsnwprintf strerror_r initstate_r srandom_r random_r random])
 AC_CHECK_FUNCS([accept4 pipe2 epoll_create epoll_create1 kqueue kqueue1 kevent])
 AC_CHECK_FUNCS([isatty mmap munmap])
 AC_CHECK_FUNCS([readdir64 dirfd faccessat])
 AC_CHECK_FUNCS([stat64 fstat64 lstat64 fstatat64 fstat fstatat])
+
+## Some BSD systems provide openpty() in libutil. Keep this dependency
+## local to the sys module, including its statically linked variant.
+hawk_saved_LIBS="$LIBS"
+PTY_LIBS=""
+AC_SEARCH_LIBS([openpty], [util], [
+	AC_DEFINE([HAVE_OPENPTY], [1], [openpty() is available])
+	if test "x$ac_cv_search_openpty" != "xnone required"
+	then
+		PTY_LIBS="$ac_cv_search_openpty"
+	fi
+])
+LIBS="$hawk_saved_LIBS"
+AC_SUBST(PTY_LIBS)
 
 OLDLIBS="$LIBS"
 LIBS="$LIBM $LIBS"
@@ -1235,6 +1254,7 @@ echo "  C++ compiler: ${CXX} ${CXXFLAGS}"
 echo "  C++ support: ${enable_cxx_is}"
 echo "  Math library: ${LIBM}"
 echo "  Socket library: ${SOCKET_LIBS}"
+echo "  Pty library: ${PTY_LIBS}"
 echo "  Native function call library: ${FFI_LIBS}"
 echo "  Thraed library: ${PTHREAD_LIBS}"
 echo "  Memcached library: ${MEMCACHED_LIBS}"

@@ -22,6 +22,7 @@ static int fail_ifcfg_socket (int domain, int type, int protocol)
 #undef socket
 
 #undef HAVE_DUP3
+#undef HAVE_OPENPTY /* exercise openpty() assembled from the POSIX PTY APIs */
 #define fcntl hawk_test_sys_fcntl
 #define hawk_mod_sys hawk_test_mod_sys_fallback
 #include "../lib/mod-sys.c"

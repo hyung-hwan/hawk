@@ -255,7 +255,7 @@ libhawk_la_SOURCES += \
 	mod-math.c mod-math.h \
 	mod-str.c mod-str.h \
 	mod-sys.c mod-sys.h
-libhawk_la_LIBADD += $(SOCKET_LIBS)
+libhawk_la_LIBADD += $(SOCKET_LIBS) $(PTY_LIBS)
 
 else
 #######################################################
@@ -298,7 +298,7 @@ libhawk_sys_la_CPPFLAGS = $(CPPFLAGS_MOD_COMMON)
 libhawk_sys_la_CFLAGS = $(CFLAGS_MOD_COMMON)
 libhawk_sys_la_CXXFLAGS = $(CXXFLAGS_MOD_COMMON)
 libhawk_sys_la_LDFLAGS = $(LDFLAGS_MOD_COMMON)
-libhawk_sys_la_LIBADD = $(LIBADD_MOD_COMMON) $(SOCKET_LIBS)
+libhawk_sys_la_LIBADD = $(LIBADD_MOD_COMMON) $(SOCKET_LIBS) $(PTY_LIBS)
 
 endif
 

@@ -1,0 +1,287 @@
+@pragma entry main
+@pragma implicit off
+@pragma xcall on
+
+@include "tap.inc";
+
+function bad_number()
+{
+	return 0;
+}
+
+function test_invalid(    a, b, value, rc)
+{
+	value = "unchanged";
+	tap_ensure(sys::ptsname(-1, value), sys::RC_EINVAL, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(value, "unchanged", @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sys::ttyname(-1, value), sys::RC_EINVAL, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(value, "unchanged", @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sys::tcgetwinsize(-1, value), sys::RC_EINVAL, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(value, "unchanged", @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sys::grantpt(-1), sys::RC_EINVAL, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sys::unlockpt(-1), sys::RC_EINVAL, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sys::isatty(-1), sys::RC_EINVAL, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sys::tcgetpgrp(-1), sys::RC_EINVAL, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sys::tcsetpgrp(-1, 1), sys::RC_EINVAL, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sys::login_tty(-1), sys::RC_EINVAL, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sys::openpt(-1), sys::RC_EINVAL, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sys::openpt(1e100), sys::RC_EINVAL, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sys::openpt(bad_number) < 0, 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(length(sys::errmsg()) > 0, 1, @SCRIPTNAME, @SCRIPTLINE);
+}
+
+function test_pair(master, slave,    name, other, size, before, input, mux, id, events, rc)
+{
+	tap_ensure(master != slave, 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sys::isatty(master), 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sys::isatty(slave), 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sys::ptsname(master, name), 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(length(name) > 0, 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sys::ttyname(slave, other), 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(name, other, @SCRIPTNAME, @SCRIPTLINE);
+
+	size["rows"] = 37;
+	size["cols"] = 91;
+	size["xpixels"] = 640;
+	size["ypixels"] = 480;
+	tap_ensure(sys::tcsetwinsize(slave, size), 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sys::tcgetwinsize(master, before), 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(before["rows"], 37, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(before["cols"], 91, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(before["xpixels"], 640, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(before["ypixels"], 480, @SCRIPTNAME, @SCRIPTLINE);
+	delete size;
+	size["cols"] = 100;
+	tap_ensure(sys::tcsetwinsize(master, size), 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sys::tcgetwinsize(slave, before), 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(before["rows"], 37, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(before["cols"], 100, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(before["xpixels"], 640, @SCRIPTNAME, @SCRIPTLINE);
+
+	size["rows"] = -1;
+	tap_ensure(sys::tcsetwinsize(slave, size), sys::RC_EINVAL, @SCRIPTNAME, @SCRIPTLINE);
+	size["rows"] = 65536;
+	tap_ensure(sys::tcsetwinsize(slave, size), sys::RC_EINVAL, @SCRIPTNAME, @SCRIPTLINE);
+	size["rows"] = bad_number;
+	tap_ensure(sys::tcsetwinsize(slave, size) < 0, 1, @SCRIPTNAME, @SCRIPTLINE);
+	delete size;
+	size["rowz"] = 20;
+	tap_ensure(sys::tcsetwinsize(slave, size), sys::RC_EINVAL, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sys::tcsetwinsize(slave, "invalid"), sys::RC_EINVAL, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sys::tcgetwinsize(slave, before), 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(before["rows"], 37, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(before["cols"], 100, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sys::tcsetpgrp(slave, bad_number) < 0, 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sys::tcsetpgrp(slave, -1), sys::RC_EINVAL, @SCRIPTNAME, @SCRIPTLINE);
+
+	rc = sys::tcsetraw(slave);
+	tap_ensure(rc, 0, @SCRIPTNAME, @SCRIPTLINE);
+	if (rc != 0) return;
+	tap_ensure(sys::tcgetattr(slave, size), 0, @SCRIPTNAME, @SCRIPTLINE);
+	mux = sys::openmux();
+	tap_ensure(mux >= 0, 1, @SCRIPTNAME, @SCRIPTLINE);
+	if (mux < 0) return;
+	tap_ensure(sys::addtomux(mux, slave, sys::MUX_EVT_IN), 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sys::write(master, @b"abc"), 3, @SCRIPTNAME, @SCRIPTLINE);
+	rc = sys::waitonmux(mux, 2);
+	tap_ensure(rc, 1, @SCRIPTNAME, @SCRIPTLINE);
+	if (rc > 0)
+	{
+		tap_ensure(sys::getmuxevt(mux, 0, id, events), 0, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure(id, slave, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure(events & sys::MUX_EVT_IN, sys::MUX_EVT_IN, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure(sys::read(slave, input, 3), 3, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure(input, @b"abc", @SCRIPTNAME, @SCRIPTLINE);
+	}
+	tap_ensure(sys::delfrommux(mux, slave), 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sys::addtomux(mux, master, sys::MUX_EVT_IN), 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sys::write(slave, @b"xyz"), 3, @SCRIPTNAME, @SCRIPTLINE);
+	rc = sys::waitonmux(mux, 2);
+	tap_ensure(rc, 1, @SCRIPTNAME, @SCRIPTLINE);
+	if (rc > 0)
+	{
+		tap_ensure(sys::read(master, input, 3), 3, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure(input, @b"xyz", @SCRIPTNAME, @SCRIPTLINE);
+	}
+	tap_ensure(sys::closemux(mux), 0, @SCRIPTNAME, @SCRIPTLINE);
+}
+
+function test_openpt(    master, name)
+{
+	master = sys::openpt(sys::O_RDWR);
+	if (master == sys::RC_ENOIMPL)
+	{
+		tap_skip("separate PTY opening is unavailable");
+		return;
+	}
+	tap_ensure(master >= 0, 1, @SCRIPTNAME, @SCRIPTLINE);
+	if (master < 0) return;
+	tap_ensure(sys::grantpt(master), 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sys::unlockpt(master), 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sys::ptsname(master, name), 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(length(name) > 0, 1, @SCRIPTNAME, @SCRIPTLINE);
+	## Opening the slave needs O_NOCTTY on some platforms. That flag isn't
+	## exported on Windows; the POSIX-only fnc-regress case covers this step.
+	tap_ensure(sys::close(master), 0, @SCRIPTNAME, @SCRIPTLINE);
+}
+
+function test_login(use_stdin,    master, slave, pid, status, input, inh, outh, errh, rc, source, mux)
+{
+	if (sys::openpty(master, slave) != 0)
+	{
+		tap_fail("cannot prepare login PTY");
+		return;
+	}
+	if (sys::tcsetraw(slave) != 0)
+	{
+		tap_fail("cannot set login PTY to raw mode");
+		sys::close(slave);
+		sys::close(master);
+		return;
+	}
+	## Flush TAP output before fork so the child doesn't inherit pending output.
+	fflush();
+	pid = sys::fork();
+	if (pid < 0)
+	{
+		tap_fail("fork failed");
+		sys::close(slave);
+		sys::close(master);
+		return;
+	}
+	if (pid == 0)
+	{
+		sys::close(master);
+		if (use_stdin)
+		{
+			## dup() allocates the lowest free native descriptor: fd 0 here.
+			inh = sys::openfd(0);
+			if (sys::close(inh) != 0) exit 7;
+			source = sys::dup(slave);
+			if (source < 0 || sys::close(slave) != 0) exit 8;
+			slave = source;
+		}
+		inh = sys::openfd(0);
+		outh = sys::openfd(1);
+		errh = sys::openfd(2);
+		rc = sys::login_tty(slave);
+		if (rc == sys::RC_ENOIMPL)
+		{
+			sys::write(slave, @b"SKIP");
+			sys::read(slave, input, 1);
+			exit 77;
+		}
+		if (rc != 0) exit 1;
+		if (sys::isatty(inh) != 1 || sys::isatty(outh) != 1 || sys::isatty(errh) != 1) exit 2;
+		if (sys::close(slave) != sys::RC_EINVAL) exit 3;
+		if (sys::tcgetpgrp(inh) != sys::getpid()) exit 4;
+		if (sys::tcsetpgrp(inh, sys::getpgid()) != 0) exit 5;
+		if (sys::write(outh, @b"PASS") != 4) exit 6;
+		## Keep the session leader alive until the parent drains the output.
+		## FreeBSD can discard queued terminal output when that leader exits.
+		if (sys::read(inh, input, 1) != 1 || input !== @b"x") exit 9;
+		exit 0;
+	}
+	tap_ensure(pid > 0, 1, @SCRIPTNAME, @SCRIPTLINE);
+	mux = sys::openmux();
+	if (mux < 0 || sys::addtomux(mux, master, sys::MUX_EVT_IN) != 0 || sys::waitonmux(mux, 5) <= 0)
+	{
+		tap_fail("login child didn't produce output");
+		sys::kill(pid, sys::SIGKILL);
+	}
+	else
+	{
+		tap_ensure(sys::read(master, input, 4), 4, @SCRIPTNAME, @SCRIPTLINE);
+		if (input !== @b"SKIP") tap_ensure(input, @b"PASS", @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure(sys::write(master, @b"x"), 1, @SCRIPTNAME, @SCRIPTLINE);
+	}
+	if (mux >= 0) sys::closemux(mux);
+	tap_ensure(sys::wait(pid, status), pid, @SCRIPTNAME, @SCRIPTLINE);
+	if (sys::WIFEXITED(status) && sys::WEXITSTATUS(status) == 77)
+	{
+		tap_skip("controlling terminal setup is unavailable");
+		sys::close(slave);
+		sys::close(master);
+		return;
+	}
+	tap_ensure(sys::WIFEXITED(status), 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sys::WEXITSTATUS(status), 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sys::close(slave), 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sys::close(master), 0, @SCRIPTNAME, @SCRIPTLINE);
+}
+
+function test_session(new_session,    pid, status)
+{
+	fflush();
+	pid = sys::fork();
+	if (pid < 0)
+	{
+		tap_fail("cannot fork session test");
+		return;
+	}
+	if (pid == 0)
+	{
+		if (new_session)
+		{
+			if (sys::setsid() != sys::getpid()) exit 1;
+			if (sys::setsid() >= 0) exit 2;
+		}
+		else if (sys::setpgid(0, 0) != 0) exit 3;
+		if (sys::getpgid() != sys::getpid() || sys::getpgid(sys::getpid()) != sys::getpid()) exit 4;
+		exit 0;
+	}
+	tap_ensure(sys::wait(pid, status), pid, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sys::WIFEXITED(status), 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sys::WEXITSTATUS(status), 0, @SCRIPTNAME, @SCRIPTLINE);
+}
+
+function main(    master, slave, rc, name, a, b, pid, status)
+{
+	test_invalid();
+	master = "master";
+	slave = "slave";
+	rc = sys::openpty(master, slave);
+	if (rc == sys::RC_ENOIMPL)
+	{
+		tap_ensure(master, "master", @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure(slave, "slave", @SCRIPTNAME, @SCRIPTLINE);
+		tap_skip("PTY creation is unavailable");
+		tap_end();
+		return;
+	}
+	tap_ensure(rc, 0, @SCRIPTNAME, @SCRIPTLINE);
+	if (rc != 0)
+	{
+		tap_end();
+		return;
+	}
+	test_pair(master, slave);
+	test_openpt();
+	name = "unchanged";
+	tap_ensure(sys::pipe(a, b), 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sys::isatty(a), 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sys::ptsname(a, name) < 0, 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(name, "unchanged", @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sys::ttyname(a, name) < 0, 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(name, "unchanged", @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sys::login_tty(a) < 0, 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sys::write(b, @b"x"), 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sys::read(a, name, 1), 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(name, @b"x", @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sys::tcgetwinsize(a, name) < 0, 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(name, @b"x", @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sys::close(a), 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sys::close(b), 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sys::getpgid(0), sys::getpgid(), @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sys::getpgid(sys::getpid()), sys::getpgid(), @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sys::getpgid(-1), sys::RC_EINVAL, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sys::setpgid(-1, 0), sys::RC_EINVAL, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sys::setpgid(0, bad_number) < 0, 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sys::close(slave), 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sys::close(master), 0, @SCRIPTNAME, @SCRIPTLINE);
+	test_session(0);
+	test_session(1);
+	test_login(0);
+	test_login(1);
+	tap_end();
+}

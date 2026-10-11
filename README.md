@@ -1406,6 +1406,118 @@ The `sys` module provides various functions concerning the underlying operation 
 - sys::write
 - sys::writelog
 
+#### Pseudo-terminals and terminal control
+
+`sys::openpty(master, slave)` creates a pseudo-terminal pair and assigns two
+ordinary `sys` file handles. It returns zero on success and leaves both output
+arguments unchanged on failure. These handles work with `sys::read()`,
+`sys::write()`, `sys::close()`, `sys::fcntl()`, and the mux functions.
+
+For separate master/slave setup, use `sys::openpt(flags)`, followed by
+`sys::grantpt(master)`, `sys::unlockpt(master)`, and
+`sys::ptsname(master, pathname)`. Open the returned pathname with `sys::open()`:
+
+```awk
+BEGIN {
+	master = sys::openpt(sys::O_RDWR | sys::O_NOCTTY);
+	if (master < 0) { print sys::errmsg(); exit 1; }
+	if (sys::grantpt(master) < 0 || sys::unlockpt(master) < 0 ||
+	    sys::ptsname(master, pathname) < 0) {
+		print sys::errmsg(); sys::close(master); exit 1;
+	}
+	slave = sys::open(pathname, sys::O_RDWR | sys::O_NOCTTY);
+	if (slave < 0) { print sys::errmsg(); sys::close(master); exit 1; }
+	sys::tcsetraw(slave);
+	sys::write(slave, @b"hello");
+	sys::read(master, text, 5);
+	print text;
+	sys::close(slave);
+	sys::close(master);
+}
+```
+
+`sys::isatty(handle)` returns one for a terminal and zero for another valid
+file descriptor. `sys::ttyname(handle, pathname)` retrieves its pathname.
+`sys::tcgetwinsize(handle, size)` returns a map with `rows`, `cols`, `xpixels`,
+and `ypixels`. `sys::tcsetwinsize(handle, size)` updates the supplied fields,
+preserving omitted fields. Unknown fields and values outside 0..65535 are
+rejected before changing the terminal. Existing `tcgetattr()`, `tcsetattr()`,
+and `tcsetraw()` control terminal modes.
+
+In a forked child, `sys::login_tty(slave)` creates a session, establishes its
+controlling terminal, redirects native descriptors 0, 1, and 2, and consumes
+the slave handle on success. Close the child's master handle first. It calls
+`setsid()` itself; calling `sys::setsid()` first would make the child a session
+leader, which cannot create another session. A failed setup can leave session
+or standard-descriptor changes in place; it retains the slave handle unless
+setup completed and its final close
+failed. Existing wrappers for redirected standard descriptors have their
+buffered input and mux registrations discarded.
+
+For example, run an interactive shell on the slave and exchange data through
+the master:
+
+```awk
+BEGIN {
+	if (sys::openpty(master, slave) < 0) exit 1;
+
+	fflush();
+	pid = sys::fork();
+	if (pid < 0)
+	{
+		sys::close(master);
+		sys::close(slave);
+		exit 1;
+	}
+
+	if (pid == 0)
+	{
+		sys::close(master);
+
+		if (sys::login_tty(slave) < 0) exit 1;
+
+		rc = sys::system("exec /bin/sh -i");
+		exit (rc == 0? 0: 1);
+	}
+
+	sys::close(slave);
+	sys::write(master, @b"echo hello; exit\n");
+
+	while (1)
+	{
+		n = sys::read(master, data);
+		if (n == sys::RC_EINTR) continue;
+		if (n <= 0) break;
+
+		printf "%s", data;
+	}
+
+	sys::wait(pid, status);
+	sys::close(master);
+}
+```
+
+`sys::system()` starts another process that inherits the redirected standard
+descriptors; the forked Hawk child waits for it. The shell's `exec` replaces
+the command shell with `/bin/sh -i`. Both stdout and stderr reach the master
+as a single stream. Keep normal slave terminal modes for interactive shells;
+`tcsetraw()` disables terminal line editing and control-character handling.
+
+Drain the master while the child runs, before waiting for termination, to
+avoid blocking the child on a full output buffer. For ongoing interactive
+use, drive input and output with the mux functions and handle partial writes.
+A closed slave may produce EOF or `sys::RC_EIOERR`; other read errors should
+be reported rather than treated as normal termination.
+
+`sys::tcgetpgrp(handle)` gets the foreground process-group ID;
+`sys::tcsetpgrp(handle, pgid)` changes it. `sys::setsid()` returns the new
+session ID, `sys::setpgid(pid, pgid)` sets a process group, and
+`sys::getpgid([pid])` queries one (zero or omitted means the current process).
+Terminal access and foreground-group changes follow the OS job-control rules.
+The PTY and terminal-control operations return negative `RC_*` values on
+failure; use `sys::errmsg()` for details. Unavailable operations return
+`sys::RC_ENOIMPL`. PTY creation is currently supported on POSIX platforms.
+
 `sys::tempname([prefix])` atomically creates an empty file in the system
 temporary directory, closes it, and returns its full path. It returns an empty
 string on failure; call `sys::errmsg()` for the error text. The optional prefix

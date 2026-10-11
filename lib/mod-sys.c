@@ -60,6 +60,13 @@
 
 #	define ENABLE_TERMIOS
 #	include <termios.h>
+#	if defined(HAVE_PTY_H)
+#		include <pty.h>
+#	elif defined(HAVE_LIBUTIL_H)
+#		include <libutil.h>
+#	elif defined(HAVE_UTIL_H)
+#		include <util.h>
+#	endif
 
 #	define ENABLE_SYSLOG /* enable libc's openlog, closelog, syslog */
 #	include <syslog.h>
@@ -2152,8 +2159,10 @@ static int fnc_tcsetraw (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		t.c_lflag &= ~(ECHO | ECHONL | ICANON | ISIG | IEXTEN);
 		t.c_cflag &= ~(CSIZE | PARENB);
 		t.c_cflag |= CS8;
+		t.c_cc[VMIN] = 1;
+		t.c_cc[VTIME] = 0;
 
-		rx = tcsetattr(sys_node->ctx.u.file.fd, 0, &t);
+		rx = tcsetattr(sys_node->ctx.u.file.fd, TCSANOW, &t);
 		if (rx <= -1)
 		{
 		fail_with_errno:
@@ -2305,6 +2314,558 @@ done:
 		sys::wait(a);
 	}
 */
+
+static int return_sys_int (hawk_rtx_t* rtx, hawk_int_t rx)
+{
+	hawk_val_t* retv;
+
+	retv = hawk_rtx_makeintval_inline(rtx, rx);
+	if (HAWK_UNLIKELY(!retv)) return -1;
+	hawk_rtx_setretval(rtx, retv);
+	return 0;
+}
+
+#if defined(ENABLE_TERMIOS)
+static int get_terminal_name (hawk_rtx_t* rtx, int fd, int slave, hawk_bch_t** name)
+{
+	hawk_bch_t* buf;
+	hawk_oow_t capa = 128;
+	int err;
+#if defined(HAVE_PTSNAME_R) || defined(HAVE_TTYNAME_R)
+	int n;
+#endif
+
+	*name = HAWK_NULL;
+	for (;;)
+	{
+		buf = hawk_rtx_allocmem(rtx, capa);
+		if (!buf) return -1;
+		if (slave)
+		{
+		#if defined(HAVE_PTSNAME_R)
+			errno = 0;
+			n = ptsname_r(fd, buf, capa);
+			err = n <= -1? (errno? errno: EIO): n;
+		#elif defined(HAVE_PTSNAME)
+			hawk_bch_t* ptr;
+
+			ptr = ptsname(fd);
+			if (ptr)
+			{
+				err = hawk_count_bcstr(ptr) >= capa? ERANGE: 0;
+				if (err == 0) hawk_copy_bcstr(buf, capa, ptr);
+			}
+			else err = errno? errno: EINVAL;
+		#else
+			hawk_rtx_freemem(rtx, buf);
+			hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_ENOIMPL);
+			return -1;
+		#endif
+		}
+		else
+		{
+		#if defined(HAVE_TTYNAME_R)
+			errno = 0;
+			n = ttyname_r(fd, buf, capa);
+			err = n <= -1? (errno? errno: EIO): n;
+		#elif defined(HAVE_TTYNAME)
+			hawk_bch_t* ptr;
+
+			ptr = ttyname(fd);
+			if (ptr)
+			{
+				err = hawk_count_bcstr(ptr) >= capa? ERANGE: 0;
+				if (err == 0) hawk_copy_bcstr(buf, capa, ptr);
+			}
+			else err = errno? errno: EINVAL;
+		#else
+			hawk_rtx_freemem(rtx, buf);
+			hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_ENOIMPL);
+			return -1;
+		#endif
+		}
+
+		if (err == 0)
+		{
+			*name = buf;
+			return 0;
+		}
+		hawk_rtx_freemem(rtx, buf);
+		if (err != ERANGE)
+		{
+			hawk_rtx_seterrbfmt(rtx, HAWK_NULL, hawk_errno_to_errnum(err),
+				"unable to get %s name - errno %d", slave? "PTY slave": "terminal", err);
+			return -1;
+		}
+		if (capa > HAWK_TYPE_MAX(hawk_oow_t) / 2)
+		{
+			hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_ENOMEM);
+			return -1;
+		}
+		capa *= 2;
+	}
+}
+#endif
+
+static int fnc_openpt (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+{
+	sys_list_t* list = rtx_to_sys_list(rtx, fi);
+	hawk_int_t rx, flags;
+
+	if (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 0), &flags) <= -1)
+	{
+		rx = copy_error_to_sys_list(rtx, list);
+		goto done;
+	}
+	if (flags < 0 || (hawk_uintmax_t)flags > HAWK_TYPE_MAX(int))
+	{
+		rx = set_error_on_sys_list(rtx, list, HAWK_EINVAL, HAWK_T("PTY open flags out of range"));
+		goto done;
+	}
+
+#if defined(ENABLE_TERMIOS) && defined(HAVE_POSIX_OPENPT)
+	{
+		int fd;
+		sys_node_t* node;
+
+		fd = posix_openpt((int)flags);
+		if (fd <= -1)
+		{
+			rx = set_error_on_sys_list_with_errno(rtx, list, HAWK_T("unable to open PTY master"));
+			goto done;
+		}
+		node = new_sys_node_fd(rtx, list, fd, 0);
+		if (!node)
+		{
+			rx = copy_error_to_sys_list(rtx, list);
+			close(fd);
+			goto done;
+		}
+		rx = node->id;
+	}
+#else
+	rx = set_error_on_sys_list(rtx, list, HAWK_ENOIMPL, HAWK_T("PTY master opening is unavailable"));
+#endif
+
+done:
+	return return_sys_int(rtx, rx);
+}
+
+static int fnc_openpty (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+{
+	sys_list_t* list = rtx_to_sys_list(rtx, fi);
+	hawk_int_t rx;
+
+#if defined(ENABLE_TERMIOS) && (defined(HAVE_OPENPTY) || \
+    (defined(HAVE_POSIX_OPENPT) && defined(HAVE_GRANTPT) && defined(HAVE_UNLOCKPT)))
+	int master = -1, slave = -1;
+	sys_node_t* mnode = HAWK_NULL;
+	sys_node_t* snode = HAWK_NULL;
+
+#if defined(HAVE_OPENPTY)
+	if (openpty(&master, &slave, HAWK_NULL, HAWK_NULL, HAWK_NULL) <= -1) goto os_error;
+#else
+	{
+		hawk_bch_t* name;
+		int err;
+
+		master = posix_openpt(O_RDWR | O_NOCTTY);
+		if (master <= -1 || grantpt(master) <= -1 || unlockpt(master) <= -1) goto os_error;
+		if (get_terminal_name(rtx, master, 1, &name) <= -1) goto error;
+		slave = open(name, O_RDWR | O_NOCTTY);
+		err = errno;
+		hawk_rtx_freemem(rtx, name);
+		if (slave <= -1)
+		{
+			errno = err;
+			goto os_error;
+		}
+	}
+#endif
+
+	mnode = new_sys_node_fd(rtx, list, master, 0);
+	if (!mnode) goto error;
+	snode = new_sys_node_fd(rtx, list, slave, 0);
+	if (!snode) goto error;
+	if (set_sys_output_pair(rtx,
+		(hawk_val_ref_t*)hawk_rtx_getarg(rtx, 0), mnode->id,
+		(hawk_val_ref_t*)hawk_rtx_getarg(rtx, 1), snode->id) <= -1) goto error;
+	rx = 0;
+	goto done;
+
+os_error:
+	rx = set_error_on_sys_list_with_errno(rtx, list, HAWK_T("unable to create PTY pair"));
+	goto cleanup;
+
+error:
+	rx = copy_error_to_sys_list(rtx, list);
+
+cleanup:
+	if (snode) free_sys_node(rtx, list, snode, 0);
+	else if (slave >= 0) close(slave);
+	if (mnode) free_sys_node(rtx, list, mnode, 0);
+	else if (master >= 0) close(master);
+#else
+	rx = set_error_on_sys_list(rtx, list, HAWK_ENOIMPL, HAWK_T("PTY creation is unavailable"));
+#endif
+
+done:
+	return return_sys_int(rtx, rx);
+}
+
+static int prepare_pty_slave (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, int unlock)
+{
+	sys_list_t* list = rtx_to_sys_list(rtx, fi);
+	sys_node_t* node;
+	hawk_int_t rx;
+
+	node = get_sys_list_node_with_arg(rtx, list, hawk_rtx_getarg(rtx, 0), SYS_NODE_DATA_TYPE_FILE, &rx);
+	if (!node) goto done;
+	if (node)
+	{
+#if defined(ENABLE_TERMIOS)
+		if (unlock)
+		{
+		#if defined(HAVE_UNLOCKPT)
+			rx = unlockpt(node->ctx.u.file.fd);
+		#else
+			rx = set_error_on_sys_list(rtx, list, HAWK_ENOIMPL, HAWK_T("PTY unlocking is unavailable"));
+			goto done;
+		#endif
+		}
+		else
+		{
+		#if defined(HAVE_GRANTPT)
+			rx = grantpt(node->ctx.u.file.fd);
+		#else
+			rx = set_error_on_sys_list(rtx, list, HAWK_ENOIMPL, HAWK_T("PTY permission setup is unavailable"));
+			goto done;
+		#endif
+		}
+		if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, list, HAWK_T("unable to prepare PTY slave"));
+#else
+		rx = set_error_on_sys_list(rtx, list, HAWK_ENOIMPL, HAWK_T("PTYs are unavailable"));
+#endif
+	}
+
+done:
+	return return_sys_int(rtx, rx);
+}
+
+static int fnc_grantpt (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+{
+	return prepare_pty_slave(rtx, fi, 0);
+}
+
+static int fnc_unlockpt (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+{
+	return prepare_pty_slave(rtx, fi, 1);
+}
+
+static int return_terminal_name (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, int slave)
+{
+	sys_list_t* list = rtx_to_sys_list(rtx, fi);
+	sys_node_t* node;
+	hawk_int_t rx;
+
+	node = get_sys_list_node_with_arg(rtx, list, hawk_rtx_getarg(rtx, 0), SYS_NODE_DATA_TYPE_FILE, &rx);
+	if (node)
+	{
+#if defined(ENABLE_TERMIOS)
+		hawk_bch_t* name;
+		hawk_val_t* value;
+		int n;
+
+		if (get_terminal_name(rtx, node->ctx.u.file.fd, slave, &name) <= -1)
+		{
+			rx = copy_error_to_sys_list(rtx, list);
+			goto done;
+		}
+		value = hawk_rtx_makestrvalwithbcstr(rtx, name);
+		hawk_rtx_freemem(rtx, name);
+		if (!value)
+		{
+			rx = copy_error_to_sys_list(rtx, list);
+			goto done;
+		}
+		hawk_rtx_refupval_inline(rtx, value);
+		n = hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, 1), value);
+		hawk_rtx_refdownval_inline(rtx, value);
+		rx = n <= -1? copy_error_to_sys_list(rtx, list): 0;
+#else
+		rx = set_error_on_sys_list(rtx, list, HAWK_ENOIMPL, HAWK_T("terminal names are unavailable"));
+#endif
+	}
+
+done:
+	return return_sys_int(rtx, rx);
+}
+
+static int fnc_ptsname (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+{
+	return return_terminal_name(rtx, fi, 1);
+}
+
+static int fnc_ttyname (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+{
+	return return_terminal_name(rtx, fi, 0);
+}
+
+static int fnc_isatty (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+{
+	sys_list_t* list = rtx_to_sys_list(rtx, fi);
+	sys_node_t* node;
+	hawk_int_t rx;
+
+	node = get_sys_list_node_with_arg(rtx, list, hawk_rtx_getarg(rtx, 0), SYS_NODE_DATA_TYPE_FILE, &rx);
+	if (node)
+	{
+		if (node->ctx.u.file.fd <= -1)
+			return return_sys_int(rtx, set_error_on_sys_list(rtx, list, HAWK_EINVAL, HAWK_T("closed terminal descriptor")));
+#if defined(HAVE_ISATTY) || defined(_WIN32)
+		errno = 0;
+		rx = !!isatty(node->ctx.u.file.fd);
+		if (rx == 0 && errno == EBADF)
+			rx = set_error_on_sys_list_with_errno(rtx, list, HAWK_T("invalid terminal descriptor"));
+#else
+		rx = set_error_on_sys_list(rtx, list, HAWK_ENOIMPL, HAWK_T("terminal detection is unavailable"));
+#endif
+	}
+	return return_sys_int(rtx, rx);
+}
+
+static int fnc_tcgetpgrp (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+{
+	sys_list_t* list = rtx_to_sys_list(rtx, fi);
+	sys_node_t* node;
+	hawk_int_t rx;
+
+	node = get_sys_list_node_with_arg(rtx, list, hawk_rtx_getarg(rtx, 0), SYS_NODE_DATA_TYPE_FILE, &rx);
+	if (node)
+	{
+#if defined(ENABLE_TERMIOS) && defined(HAVE_TCGETPGRP)
+		rx = tcgetpgrp(node->ctx.u.file.fd);
+		if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, list, HAWK_T("unable to get terminal process group"));
+#else
+		rx = set_error_on_sys_list(rtx, list, HAWK_ENOIMPL, HAWK_T("terminal process groups are unavailable"));
+#endif
+	}
+	return return_sys_int(rtx, rx);
+}
+
+static int fnc_tcsetpgrp (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+{
+	sys_list_t* list = rtx_to_sys_list(rtx, fi);
+	sys_node_t* node;
+	hawk_int_t rx, pgid;
+
+	node = get_sys_list_node_with_arg(rtx, list, hawk_rtx_getarg(rtx, 0), SYS_NODE_DATA_TYPE_FILE, &rx);
+	if (!node) goto done;
+	if (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 1), &pgid) <= -1)
+	{
+		rx = copy_error_to_sys_list(rtx, list);
+		goto done;
+	}
+#if defined(ENABLE_TERMIOS) && defined(HAVE_TCSETPGRP)
+	if (pgid <= 0 || (hawk_uintmax_t)pgid > HAWK_TYPE_MAX(pid_t))
+		rx = set_error_on_sys_list(rtx, list, HAWK_EINVAL, HAWK_T("terminal process group out of range"));
+	else
+	{
+		rx = tcsetpgrp(node->ctx.u.file.fd, (pid_t)pgid);
+		if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, list, HAWK_T("unable to set terminal process group"));
+	}
+#else
+	rx = set_error_on_sys_list(rtx, list, HAWK_ENOIMPL, HAWK_T("terminal process groups are unavailable"));
+#endif
+
+done:
+	return return_sys_int(rtx, rx);
+}
+
+static int fnc_tcgetwinsize (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+{
+	sys_list_t* list = rtx_to_sys_list(rtx, fi);
+	sys_node_t* node;
+	hawk_int_t rx;
+
+	node = get_sys_list_node_with_arg(rtx, list, hawk_rtx_getarg(rtx, 0), SYS_NODE_DATA_TYPE_FILE, &rx);
+	if (node)
+	{
+#if defined(ENABLE_TERMIOS) && defined(TIOCGWINSZ)
+		struct winsize ws;
+		hawk_val_map_data_t md[4];
+		hawk_val_t* value;
+		int n;
+
+		HAWK_MEMSET(&ws, 0, HAWK_SIZEOF(ws));
+		if (ioctl(node->ctx.u.file.fd, TIOCGWINSZ, &ws) <= -1)
+		{
+			rx = set_error_on_sys_list_with_errno(rtx, list, HAWK_T("unable to get terminal size"));
+			goto done;
+		}
+		HAWK_MEMSET(md, 0, HAWK_SIZEOF(md));
+		md[0].key.ptr = HAWK_T("rows");
+		md[0].key.len = 4;
+		md[0].type = HAWK_VAL_MAP_DATA_INT;
+		md[0].type_size = HAWK_SIZEOF(ws.ws_row);
+		md[0].vptr = &ws.ws_row;
+		md[1].key.ptr = HAWK_T("cols");
+		md[1].key.len = 4;
+		md[1].type = HAWK_VAL_MAP_DATA_INT;
+		md[1].type_size = HAWK_SIZEOF(ws.ws_col);
+		md[1].vptr = &ws.ws_col;
+		md[2].key.ptr = HAWK_T("xpixels");
+		md[2].key.len = 7;
+		md[2].type = HAWK_VAL_MAP_DATA_INT;
+		md[2].type_size = HAWK_SIZEOF(ws.ws_xpixel);
+		md[2].vptr = &ws.ws_xpixel;
+		md[3].key.ptr = HAWK_T("ypixels");
+		md[3].key.len = 7;
+		md[3].type = HAWK_VAL_MAP_DATA_INT;
+		md[3].type_size = HAWK_SIZEOF(ws.ws_ypixel);
+		md[3].vptr = &ws.ws_ypixel;
+		value = hawk_rtx_makemapvalwithdata(rtx, md, HAWK_COUNTOF(md));
+		if (!value)
+		{
+			rx = copy_error_to_sys_list(rtx, list);
+			goto done;
+		}
+		hawk_rtx_refupval_inline(rtx, value);
+		n = hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, 1), value);
+		hawk_rtx_refdownval_inline(rtx, value);
+		rx = n <= -1? copy_error_to_sys_list(rtx, list): 0;
+#else
+		rx = set_error_on_sys_list(rtx, list, HAWK_ENOIMPL, HAWK_T("terminal size retrieval is unavailable"));
+#endif
+	}
+
+done:
+	return return_sys_int(rtx, rx);
+}
+
+static int fnc_tcsetwinsize (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+{
+	sys_list_t* list = rtx_to_sys_list(rtx, fi);
+	sys_node_t* node;
+	hawk_int_t rx;
+	hawk_val_t* arg;
+
+	node = get_sys_list_node_with_arg(rtx, list, hawk_rtx_getarg(rtx, 0), SYS_NODE_DATA_TYPE_FILE, &rx);
+	if (!node) goto done;
+	arg = hawk_rtx_getarg(rtx, 1);
+	if (HAWK_RTX_GETVALTYPE(rtx, arg) != HAWK_VAL_MAP)
+	{
+		rx = set_error_on_sys_list(rtx, list, HAWK_EINVAL, HAWK_T("terminal size must be a map"));
+		goto done;
+	}
+
+#if defined(ENABLE_TERMIOS) && defined(TIOCGWINSZ) && defined(TIOCSWINSZ)
+	{
+		struct winsize ws;
+		hawk_map_itr_t itr;
+		hawk_map_pair_t* pair;
+		hawk_int_t num;
+
+		HAWK_MEMSET(&ws, 0, HAWK_SIZEOF(ws));
+		if (ioctl(node->ctx.u.file.fd, TIOCGWINSZ, &ws) <= -1) goto os_error;
+		hawk_init_map_itr(&itr, 0);
+		for (pair = hawk_map_getfirstpair(((hawk_val_map_t*)arg)->map, &itr); pair;
+		     pair = hawk_map_getnextpair(((hawk_val_map_t*)arg)->map, &itr))
+		{
+			unsigned short* field;
+
+			if (hawk_comp_oochars_bcstr(HAWK_MAP_KPTR(pair), HAWK_MAP_KLEN(pair), "rows", 0) == 0) field = &ws.ws_row;
+			else if (hawk_comp_oochars_bcstr(HAWK_MAP_KPTR(pair), HAWK_MAP_KLEN(pair), "cols", 0) == 0) field = &ws.ws_col;
+			else if (hawk_comp_oochars_bcstr(HAWK_MAP_KPTR(pair), HAWK_MAP_KLEN(pair), "xpixels", 0) == 0) field = &ws.ws_xpixel;
+			else if (hawk_comp_oochars_bcstr(HAWK_MAP_KPTR(pair), HAWK_MAP_KLEN(pair), "ypixels", 0) == 0) field = &ws.ws_ypixel;
+			else
+			{
+				rx = set_error_on_sys_list(rtx, list, HAWK_EINVAL, HAWK_T("unknown terminal size field - %.*js"),
+					(int)HAWK_MAP_KLEN(pair), (hawk_ooch_t*)HAWK_MAP_KPTR(pair));
+				goto done;
+			}
+			if (hawk_rtx_valtoint_inline(rtx, HAWK_MAP_VPTR(pair), &num) <= -1)
+			{
+				rx = copy_error_to_sys_list(rtx, list);
+				goto done;
+			}
+			if (num < 0 || (hawk_uintmax_t)num > HAWK_TYPE_MAX(unsigned short))
+			{
+				rx = set_error_on_sys_list(rtx, list, HAWK_EINVAL, HAWK_T("terminal size field out of range"));
+				goto done;
+			}
+			*field = (unsigned short)num;
+		}
+		rx = ioctl(node->ctx.u.file.fd, TIOCSWINSZ, &ws);
+		if (rx <= -1)
+		{
+		os_error:
+			rx = set_error_on_sys_list_with_errno(rtx, list, HAWK_T("unable to set terminal size"));
+		}
+	}
+#else
+	rx = set_error_on_sys_list(rtx, list, HAWK_ENOIMPL, HAWK_T("terminal size setting is unavailable"));
+#endif
+
+done:
+	return return_sys_int(rtx, rx);
+}
+
+static int fnc_login_tty (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+{
+	sys_list_t* list = rtx_to_sys_list(rtx, fi);
+	sys_node_t* node;
+	hawk_int_t rx;
+
+	node = get_sys_list_node_with_arg(rtx, list, hawk_rtx_getarg(rtx, 0), SYS_NODE_DATA_TYPE_FILE, &rx);
+	if (node)
+	{
+#if defined(ENABLE_TERMIOS) && defined(HAVE_SETSID) && defined(TIOCSCTTY)
+		struct termios t;
+		int fd, target;
+		hawk_oow_t i;
+
+		/* Reject a non-terminal before changing this process's session. The
+		 * spare descriptor also handles a slave originally opened as 0/1/2. */
+		if (tcgetattr(node->ctx.u.file.fd, &t) <= -1) goto os_error;
+		fd = fcntl(node->ctx.u.file.fd, F_DUPFD, 3);
+		if (fd <= -1) goto os_error;
+		if (setsid() <= -1 || ioctl(fd, TIOCSCTTY, 0) <= -1) goto close_spare;
+		for (target = 0; target <= 2; target++)
+		{
+			if (dup2(fd, target) <= -1) goto close_spare;
+			/* Existing openfd() wrappers now refer to the terminal. Discard
+			 * their previous buffered input and mux registrations as for dup(). */
+			for (i = 0; i < list->map.high; i++)
+			{
+				sys_node_t* other = list->map.tab[i];
+
+				if (other && (other->ctx.type == SYS_NODE_DATA_TYPE_FILE || other->ctx.type == SYS_NODE_DATA_TYPE_SCK) &&
+				    other->ctx.u.file.fd == target) replace_sys_fd_node(rtx, other, SYS_NODE_DATA_TYPE_FILE);
+			}
+		}
+		close(fd);
+		/* Keep newly installed standard descriptors open even when the
+		 * original slave occupied one of them. Only its wrapper is consumed. */
+		if (node->ctx.u.file.fd <= 2) node->ctx.u.file.fd = -1;
+		rx = free_sys_node(rtx, list, node, 1);
+		goto done;
+
+close_spare:
+		rx = set_error_on_sys_list_with_errno(rtx, list, HAWK_T("unable to establish controlling terminal"));
+		close(fd);
+		goto done;
+
+os_error:
+		rx = set_error_on_sys_list_with_errno(rtx, list, HAWK_T("unable to initialize login terminal"));
+#else
+		rx = set_error_on_sys_list(rtx, list, HAWK_ENOIMPL, HAWK_T("controlling terminal setup is unavailable"));
+#endif
+	}
+
+done:
+	return return_sys_int(rtx, rx);
+}
 
 static int fnc_pipe (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
@@ -3164,37 +3725,79 @@ done:
 
 static int fnc_getpgid (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
-	hawk_int_t rx;
-	hawk_val_t* retv;
-	sys_list_t* sys_list = rtx_to_sys_list(rtx, fi);
+	hawk_int_t rx, pid = 0;
+	sys_list_t* list = rtx_to_sys_list(rtx, fi);
 
-#if defined(_WIN32)
-	/* TOOD: implement this*/
-	rx = set_error_on_sys_list(rtx, sys_list, HAWK_ENOIMPL, HAWK_NULL);
-#elif defined(__OS2__)
-	/* TOOD: implement this*/
-	rx = set_error_on_sys_list(rtx, sys_list, HAWK_ENOIMPL, HAWK_NULL);
-#elif defined(__DOS__)
-	/* TOOD: implement this*/
-	rx = set_error_on_sys_list(rtx, sys_list, HAWK_ENOIMPL, HAWK_NULL);
+	if (hawk_rtx_getnargs(rtx) >= 1 && hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 0), &pid) <= -1)
+	{
+		rx = copy_error_to_sys_list(rtx, list);
+		goto done;
+	}
+#if defined(ENABLE_TERMIOS) && (defined(HAVE_GETPGID) || defined(HAVE_GETPGRP))
+	if (pid < 0 || (hawk_uintmax_t)pid > HAWK_TYPE_MAX(pid_t))
+	{
+		rx = set_error_on_sys_list(rtx, list, HAWK_EINVAL, HAWK_T("process identifier out of range"));
+		goto done;
+	}
+#if defined(HAVE_GETPGID)
+	rx = getpgid((pid_t)pid);
 #else
-	/* TODO: support specifing calling process id other than 0 */
-	#if defined(HAVE_GETPGID)
-	rx = getpgid(0);
-	if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
-	#elif defined(HAVE_GETPGRP)
+	if (pid != 0 && pid != getpid())
+	{
+		rx = set_error_on_sys_list(rtx, list, HAWK_ENOIMPL, HAWK_T("querying another process group is unavailable"));
+		goto done;
+	}
 	rx = getpgrp();
-	if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
-	#else
-	rx = set_error_on_sys_list(rtx, sys_list, HAWK_ENOIMPL, HAWK_NULL);
-	#endif
+#endif
+	if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, list, HAWK_T("unable to get process group"));
+#else
+	rx = set_error_on_sys_list(rtx, list, HAWK_ENOIMPL, HAWK_T("process groups are unavailable"));
 #endif
 
-	retv = hawk_rtx_makeintval_inline(rtx, rx);
-	if (retv == HAWK_NULL) return -1;
+done:
+	return return_sys_int(rtx, rx);
+}
 
-	hawk_rtx_setretval(rtx, retv);
-	return 0;
+static int fnc_setpgid (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+{
+	hawk_int_t rx, pid, pgid;
+	sys_list_t* list = rtx_to_sys_list(rtx, fi);
+
+	if (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 0), &pid) <= -1 ||
+	    hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 1), &pgid) <= -1)
+	{
+		rx = copy_error_to_sys_list(rtx, list);
+		goto done;
+	}
+#if defined(ENABLE_TERMIOS) && defined(HAVE_SETPGID)
+	if (pid < 0 || pgid < 0 || (hawk_uintmax_t)pid > HAWK_TYPE_MAX(pid_t) ||
+	    (hawk_uintmax_t)pgid > HAWK_TYPE_MAX(pid_t))
+		rx = set_error_on_sys_list(rtx, list, HAWK_EINVAL, HAWK_T("process or group identifier out of range"));
+	else
+	{
+		rx = setpgid((pid_t)pid, (pid_t)pgid);
+		if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, list, HAWK_T("unable to set process group"));
+	}
+#else
+	rx = set_error_on_sys_list(rtx, list, HAWK_ENOIMPL, HAWK_T("process groups are unavailable"));
+#endif
+
+done:
+	return return_sys_int(rtx, rx);
+}
+
+static int fnc_setsid (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+{
+	hawk_int_t rx;
+	sys_list_t* list = rtx_to_sys_list(rtx, fi);
+
+#if defined(ENABLE_TERMIOS) && defined(HAVE_SETSID)
+	rx = setsid();
+	if (rx <= -1) rx = set_error_on_sys_list_with_errno(rtx, list, HAWK_T("unable to create session"));
+#else
+	rx = set_error_on_sys_list(rtx, list, HAWK_ENOIMPL, HAWK_T("sessions are unavailable"));
+#endif
+	return return_sys_int(rtx, rx);
 }
 
 static int fnc_getpid (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
@@ -8114,14 +8717,17 @@ static hawk_mod_fnc_tab_t fnctab[] =
 	{ HAWK_T("getifcfg"),    { { 3, 3, HAWK_T("vvr")   }, fnc_getifcfg,    0  } },
 	{ HAWK_T("getmuxevt"),   { { 4, 4, HAWK_T("vvrr")  }, fnc_getmuxevt,   0  } },
 	{ HAWK_T("getnwifcfg"),  { { 3, 3, HAWK_T("vvr")   }, fnc_getifcfg,    0  } }, /* backward compatibility */
-	{ HAWK_T("getpgid"),     { { 0, 0, HAWK_NULL       }, fnc_getpgid,     0  } },
+	{ HAWK_T("getpgid"),     { { 0, 1, HAWK_NULL       }, fnc_getpgid,     0  } },
 	{ HAWK_T("getpid"),      { { 0, 0, HAWK_NULL       }, fnc_getpid,      0  } },
 	{ HAWK_T("getppid"),     { { 0, 0, HAWK_NULL       }, fnc_getppid,     0  } },
 	{ HAWK_T("gettid"),      { { 0, 0, HAWK_NULL       }, fnc_gettid,      0  } },
 	{ HAWK_T("gettime"),     { { 0, 1, HAWK_T("r")     }, fnc_gettime,     0  } },
 	{ HAWK_T("getuid"),      { { 0, 0, HAWK_NULL       }, fnc_getuid,      0  } },
+	{ HAWK_T("grantpt"),     { { 1, 1, HAWK_NULL       }, fnc_grantpt,     0  } },
+	{ HAWK_T("isatty"),      { { 1, 1, HAWK_NULL       }, fnc_isatty,      0  } },
 	{ HAWK_T("kill"),        { { 2, 2, HAWK_NULL       }, fnc_kill,        0  } },
 	{ HAWK_T("listen"),      { { 2, 2, HAWK_NULL       }, fnc_listen,      0  } },
+	{ HAWK_T("login_tty"),   { { 1, 1, HAWK_NULL       }, fnc_login_tty,   0  } },
 	{ HAWK_T("mkdir"),       { { 1, 2, HAWK_NULL       }, fnc_mkdir,       0  } },
 	{ HAWK_T("mktime"),      { { 0, 1, HAWK_NULL       }, fnc_mktime,      0  } },
 	{ HAWK_T("modinmux"),    { { 3, 3, HAWK_NULL       }, fnc_modinmux,    0  } },
@@ -8130,8 +8736,11 @@ static hawk_mod_fnc_tab_t fnctab[] =
 	{ HAWK_T("openfd"),      { { 1, 1, HAWK_NULL       }, fnc_openfd,      0  } },
 	{ HAWK_T("openlog"),     { { 3, 3, HAWK_NULL       }, fnc_openlog,     0  } },
 	{ HAWK_T("openmux"),     { { 0, 0, HAWK_NULL       }, fnc_openmux,     0  } },
+	{ HAWK_T("openpt"),      { { 1, 1, HAWK_NULL       }, fnc_openpt,      0  } },
+	{ HAWK_T("openpty"),     { { 2, 2, HAWK_T("rr")    }, fnc_openpty,     0  } },
 	{ HAWK_T("pack"),        { { 2, A_MAX, HAWK_T("rv")}, fnc_pack,        0 } },
 	{ HAWK_T("pipe"),        { { 2, 3, HAWK_T("rrv")   }, fnc_pipe,        0  } },
+	{ HAWK_T("ptsname"),     { { 2, 2, HAWK_T("vr")    }, fnc_ptsname,     0  } },
 	{ HAWK_T("raise"),       { { 1, 1, HAWK_NULL       }, fnc_raise,       0  } },
 	{ HAWK_T("read"),        { { 2, 4, HAWK_T("vrvv")  }, fnc_read,        0  } },
 	{ HAWK_T("readdir"),     { { 2, 2, HAWK_T("vr")    }, fnc_readdir,     0  } },
@@ -8139,6 +8748,8 @@ static hawk_mod_fnc_tab_t fnctab[] =
 	{ HAWK_T("resetdir"),    { { 2, 2, HAWK_NULL       }, fnc_resetdir,    0  } },
 	{ HAWK_T("rmdir"),       { { 1, 1, HAWK_NULL       }, fnc_rmdir,       0  } },
 	{ HAWK_T("sendto"),      { { 2, 3, HAWK_NULL       }, fnc_sendto,      0  } },
+	{ HAWK_T("setpgid"),     { { 2, 2, HAWK_NULL       }, fnc_setpgid,     0  } },
+	{ HAWK_T("setsid"),      { { 0, 0, HAWK_NULL       }, fnc_setsid,      0  } },
 	{ HAWK_T("setsockopt"),  { { 4, 4, HAWK_NULL       }, fnc_setsockopt,  0  } },
 	{ HAWK_T("settime"),     { { 1, 1, HAWK_NULL       }, fnc_settime,     0  } },
 	{ HAWK_T("shutdown"),    { { 2, 2, HAWK_NULL       }, fnc_shutdown,    0  } },
@@ -8153,11 +8764,17 @@ static hawk_mod_fnc_tab_t fnctab[] =
 	{ HAWK_T("systime"),     { { 0, 1, HAWK_T("r")     }, fnc_gettime,     0  } }, /* alias to gettime() */
 	{ HAWK_T("tcflush"),     { { 2, 2, HAWK_NULL       }, fnc_tcflush,     0  } },
 	{ HAWK_T("tcgetattr"),   { { 2, 2, HAWK_T("vr")    }, fnc_tcgetattr,   0  } },
+	{ HAWK_T("tcgetpgrp"),   { { 1, 1, HAWK_NULL       }, fnc_tcgetpgrp,   0  } },
+	{ HAWK_T("tcgetwinsize"), { { 2, 2, HAWK_T("vr")    }, fnc_tcgetwinsize,0  } },
 	{ HAWK_T("tcsetattr"),   { { 3, 3, HAWK_NULL       }, fnc_tcsetattr,   0  } },
+	{ HAWK_T("tcsetpgrp"),   { { 2, 2, HAWK_NULL       }, fnc_tcsetpgrp,   0  } },
 	{ HAWK_T("tcsetraw"),    { { 1, 1, HAWK_NULL       }, fnc_tcsetraw,    0  } },
+	{ HAWK_T("tcsetwinsize"), { { 2, 2, HAWK_NULL       }, fnc_tcsetwinsize,0  } },
 	{ HAWK_T("tempname"),    { { 0, 1, HAWK_NULL       }, fnc_tempname,    0  } },
+	{ HAWK_T("ttyname"),     { { 2, 2, HAWK_T("vr")    }, fnc_ttyname,     0  } },
 	{ HAWK_T("uname"),       { { 0, 0, HAWK_NULL       }, fnc_uname,       0  } },
 	{ HAWK_T("unlink"),      { { 1, 1, HAWK_NULL       }, fnc_unlink,      0  } },
+	{ HAWK_T("unlockpt"),    { { 1, 1, HAWK_NULL       }, fnc_unlockpt,    0  } },
 	{ HAWK_T("unpack"),      { { 2, A_MAX, HAWK_T("vvr")  }, fnc_unpack,   0  } },
 	{ HAWK_T("wait"),        { { 1, 3, HAWK_T("vrv")   }, fnc_wait,        0  } },
 	{ HAWK_T("waitonmux"),   { { 2, 2, HAWK_T("vv")    }, fnc_waitonmux,   0  } },

@@ -20,7 +20,7 @@ endif
 check_SCRIPTS += h-003.hawk h-004.hawk h-009.hawk h-010.hawk \
 	h-011.hawk h-012.hawk h-013.hawk h-014.hawk h-015.hawk \
 	h-016.hawk h-017.hawk h-018.hawk h-019.hawk h-020.hawk \
-	h-021.hawk h-022.hawk h-023.hawk h-024.hawk h-025.hawk h-026.hawk h-027.hawk h-028.hawk h-029.hawk h-030.hawk
+	h-021.hawk h-022.hawk h-023.hawk h-024.hawk h-025.hawk h-026.hawk h-027.hawk h-028.hawk h-029.hawk h-030.hawk h-031.hawk
 
 check_SCRIPTS += regress-filename.sh regress-extra-info.sh regress-environ.sh regress-m4.sh regress-sh.sh regress-sh-job-control.sh regress-fnc.sh
 
@@ -145,7 +145,7 @@ fnc_regress_SOURCES = fnc-regress.c math-rand-max.c math-time-failure.c math-thr
 fnc_regress_CPPFLAGS = $(CPPFLAGS_COMMON)
 fnc_regress_CFLAGS = $(CFLAGS_COMMON)
 fnc_regress_LDFLAGS = $(LDFLAGS_COMMON)
-fnc_regress_LDADD = $(LIBADD_COMMON)
+fnc_regress_LDADD = $(LIBADD_COMMON) $(PTY_LIBS)
 
 sh_job_control_SOURCES = sh-job-control.c
 sh_job_control_CPPFLAGS = $(CPPFLAGS_COMMON)

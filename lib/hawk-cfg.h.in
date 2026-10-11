@@ -232,6 +232,9 @@
 /* Define to 1 if you have the 'gmtime_r' function. */
 #undef HAVE_GMTIME_R
 
+/* Define to 1 if you have the 'grantpt' function. */
+#undef HAVE_GRANTPT
+
 /* Define to 1 if you have the 'initstate_r' function. */
 #undef HAVE_INITSTATE_R
 
@@ -258,6 +261,9 @@
 
 /* Define to 1 if you have the <libunwind.h> header file. */
 #undef HAVE_LIBUNWIND_H
+
+/* Define to 1 if you have the <libutil.h> header file. */
+#undef HAVE_LIBUTIL_H
 
 /* Define to 1 if you have the <linux/ethtool.h> header file. */
 #undef HAVE_LINUX_ETHTOOL_H
@@ -346,6 +352,9 @@
 /* Define to 1 if you have the <net/route.h> header file. */
 #undef HAVE_NET_ROUTE_H
 
+/* openpty() is available */
+#undef HAVE_OPENPTY
+
 /* Define to 1 if you have the 'pipe2' function. */
 #undef HAVE_PIPE2
 
@@ -354,6 +363,9 @@
 
 /* Define to 1 if you have the <poll.h> header file. */
 #undef HAVE_POLL_H
+
+/* Define to 1 if you have the 'posix_openpt' function. */
+#undef HAVE_POSIX_OPENPT
 
 /* Define to 1 if you have the 'pow' function. */
 #undef HAVE_POW
@@ -400,6 +412,15 @@
 /* Define to 1 if you have the 'pthread_stackseg_np' function. */
 #undef HAVE_PTHREAD_STACKSEG_NP
 
+/* Define to 1 if you have the 'ptsname' function. */
+#undef HAVE_PTSNAME
+
+/* Define to 1 if you have the 'ptsname_r' function. */
+#undef HAVE_PTSNAME_R
+
+/* Define to 1 if you have the <pty.h> header file. */
+#undef HAVE_PTY_H
+
 /* Define to 1 if you have the <quadmath.h> header file. */
 #undef HAVE_QUADMATH_H
 
@@ -435,6 +456,12 @@
 
 /* Define to 1 if you have the 'setitimer' function. */
 #undef HAVE_SETITIMER
+
+/* Define to 1 if you have the 'setpgid' function. */
+#undef HAVE_SETPGID
+
+/* Define to 1 if you have the 'setsid' function. */
+#undef HAVE_SETSID
 
 /* Define to 1 if you have the 'settimeofday' function. */
 #undef HAVE_SETTIMEOFDAY
@@ -651,6 +678,12 @@
 /* Define to 1 if you have the 'tanq' function. */
 #undef HAVE_TANQ
 
+/* Define to 1 if you have the 'tcgetpgrp' function. */
+#undef HAVE_TCGETPGRP
+
+/* Define to 1 if you have the 'tcsetpgrp' function. */
+#undef HAVE_TCSETPGRP
+
 /* Define to 1 if you have the 'timegm' function. */
 #undef HAVE_TIMEGM
 
@@ -660,17 +693,29 @@
 /* Define to 1 if you have the <time.h> header file. */
 #undef HAVE_TIME_H
 
+/* Define to 1 if you have the 'ttyname' function. */
+#undef HAVE_TTYNAME
+
+/* Define to 1 if you have the 'ttyname_r' function. */
+#undef HAVE_TTYNAME_R
+
 /* Define to 1 if you have the <ucontext.h> header file. */
 #undef HAVE_UCONTEXT_H
 
 /* Define to 1 if you have the <unistd.h> header file. */
 #undef HAVE_UNISTD_H
 
+/* Define to 1 if you have the 'unlockpt' function. */
+#undef HAVE_UNLOCKPT
+
 /* libunwind is available */
 #undef HAVE_UNWIND_LIB
 
 /* Define to 1 if you have the 'usleep' function. */
 #undef HAVE_USLEEP
+
+/* Define to 1 if you have the <util.h> header file. */
+#undef HAVE_UTIL_H
 
 /* Define to 1 if you have the <utime.h> header file. */
 #undef HAVE_UTIME_H

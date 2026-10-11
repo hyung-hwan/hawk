@@ -119,7 +119,7 @@ am_fnc_regress_OBJECTS = fnc_regress-fnc-regress.$(OBJEXT) \
 fnc_regress_OBJECTS = $(am_fnc_regress_OBJECTS)
 am__DEPENDENCIES_1 =
 am__DEPENDENCIES_2 = ../lib/libhawk.la $(am__DEPENDENCIES_1)
-fnc_regress_DEPENDENCIES = $(am__DEPENDENCIES_2)
+fnc_regress_DEPENDENCIES = $(am__DEPENDENCIES_2) $(am__DEPENDENCIES_1)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
 am__v_lt_0 = --silent
@@ -643,6 +643,7 @@ PTHREAD_CC = @PTHREAD_CC@
 PTHREAD_CFLAGS = @PTHREAD_CFLAGS@
 PTHREAD_CXX = @PTHREAD_CXX@
 PTHREAD_LIBS = @PTHREAD_LIBS@
+PTY_LIBS = @PTY_LIBS@
 QUADMATH_LIBS = @QUADMATH_LIBS@
 RANLIB = @RANLIB@
 SED = @SED@
@@ -728,9 +729,9 @@ check_SCRIPTS = $(am__append_1) h-003.hawk h-004.hawk h-009.hawk \
 	h-015.hawk h-016.hawk h-017.hawk h-018.hawk h-019.hawk \
 	h-020.hawk h-021.hawk h-022.hawk h-023.hawk h-024.hawk \
 	h-025.hawk h-026.hawk h-027.hawk h-028.hawk h-029.hawk \
-	h-030.hawk regress-filename.sh regress-extra-info.sh \
-	regress-environ.sh regress-m4.sh regress-sh.sh \
-	regress-sh-job-control.sh regress-fnc.sh
+	h-030.hawk h-031.hawk regress-filename.sh \
+	regress-extra-info.sh regress-environ.sh regress-m4.sh \
+	regress-sh.sh regress-sh-job-control.sh regress-fnc.sh
 check_ERRORS = e-001.err
 EXTRA_DIST = $(check_SCRIPTS) $(check_ERRORS) tap.inc err.sh \
 	bench-map-keys.hawk bench-int-comparisons.hawk \
@@ -829,7 +830,7 @@ fnc_regress_SOURCES = fnc-regress.c math-rand-max.c math-time-failure.c math-thr
 fnc_regress_CPPFLAGS = $(CPPFLAGS_COMMON)
 fnc_regress_CFLAGS = $(CFLAGS_COMMON)
 fnc_regress_LDFLAGS = $(LDFLAGS_COMMON)
-fnc_regress_LDADD = $(LIBADD_COMMON)
+fnc_regress_LDADD = $(LIBADD_COMMON) $(PTY_LIBS)
 sh_job_control_SOURCES = sh-job-control.c
 sh_job_control_CPPFLAGS = $(CPPFLAGS_COMMON)
 sh_job_control_CFLAGS = $(CFLAGS_COMMON)
@@ -963,7 +964,7 @@ t-015$(EXEEXT): $(t_015_OBJECTS) $(t_015_DEPENDENCIES) $(EXTRA_t_015_DEPENDENCIE
 	@rm -f t-015$(EXEEXT)
 	$(AM_V_CCLD)$(t_015_LINK) $(t_015_OBJECTS) $(t_015_LDADD) $(LIBS)
 
-t-016$(EXEEXT): $(t_016_OBJECTS) $(t_016_DEPENDENCIES) $(EXTRA_t_016_DEPENDENCIES)
+t-016$(EXEEXT): $(t_016_OBJECTS) $(t_016_DEPENDENCIES) $(EXTRA_t_016_DEPENDENCIES) 
 	@rm -f t-016$(EXEEXT)
 	$(AM_V_CCLD)$(t_016_LINK) $(t_016_OBJECTS) $(t_016_LDADD) $(LIBS)
 
