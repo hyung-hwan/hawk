@@ -85,6 +85,7 @@ int SedStd::FileStream::open (Data& io)
 	const hawk_ooch_t* ioname = io.getName();
 	hawk_sio_std_t std_sio;
 	int oflags;
+	hawk_sed_output_line_ending_t ending;
 	hawk_gem_t* gem = (hawk_gem_t*)io;
 
 	if (io.getMode() == READ)
@@ -94,7 +95,9 @@ int SedStd::FileStream::open (Data& io)
 	}
 	else
 	{
-		oflags = HAWK_SIO_WRITE | HAWK_SIO_CREATE | HAWK_SIO_TRUNCATE | HAWK_SIO_IGNOREECERR | HAWK_SIO_LINEBREAK;
+		hawk_sed_getopt((hawk_sed_t*)io, HAWK_SED_OUTPUT_LINE_ENDING, &ending);
+		oflags = HAWK_SIO_WRITE | HAWK_SIO_CREATE | HAWK_SIO_TRUNCATE | HAWK_SIO_IGNOREECERR;
+		if (ending == HAWK_SED_OUTPUT_LINE_ENDING_PRESERVE) oflags |= HAWK_SIO_LINEBREAK;
 		std_sio = HAWK_SIO_STDOUT;
 	}
 

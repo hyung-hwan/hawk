@@ -83,6 +83,8 @@ struct arg_t
 	hawk_bch_t* output_file;
 	int infile_pos;
 	int option;
+	hawk_sed_input_line_ending_t input_line_ending;
+	hawk_sed_output_line_ending_t output_line_ending;
 	int separate;
 	int inplace;
 	int wildcard;
@@ -126,6 +128,8 @@ static void print_usage (FILE* out, const hawk_bch_t* argv0, const hawk_bch_t* r
 	fprintf (out, " -y                         ensure a newline at text end\n");
 	fprintf (out, " -m/--memory-limit number   specify the maximum amount of memory to use in bytes\n");
 	fprintf (out, " -w                         expand file wildcards\n");
+	fprintf (out, " --input-line-ending mode   recognize auto(default), lf, or crlf input endings\n");
+	fprintf (out, " --output-line-ending mode  use preserve(default), native, lf, or crlf output endings\n");
 #if defined(HAWK_ENABLE_SEDTRACER)
 	fprintf (out, " -t                         print command traces\n");
 #endif
@@ -194,6 +198,8 @@ static int handle_args (int argc, hawk_bch_t* argv[], const hawk_bch_t* real_arg
 		{ ":outfile-encoding", '\0' },
 #endif
 		{ ":memory-limit",     'm' },
+		{ ":input-line-ending", '\0' },
+		{ ":output-line-ending", '\0' },
 		{ "help",              'h' },
 		{ HAWK_NULL,           '\0' }
 	};
@@ -297,7 +303,30 @@ static int handle_args (int argc, hawk_bch_t* argv[], const hawk_bch_t* real_arg
 
 			case '\0':
 			{
-				if (hawk_comp_bcstr(opt.lngopt, "script-encoding", 0) == 0)
+				if (hawk_comp_bcstr(opt.lngopt, "input-line-ending", 0) == 0)
+				{
+					if (hawk_comp_bcstr(opt.arg, "auto", 0) == 0) arg->input_line_ending = HAWK_SED_INPUT_LINE_ENDING_AUTO;
+					else if (hawk_comp_bcstr(opt.arg, "lf", 0) == 0) arg->input_line_ending = HAWK_SED_INPUT_LINE_ENDING_LF;
+					else if (hawk_comp_bcstr(opt.arg, "crlf", 0) == 0) arg->input_line_ending = HAWK_SED_INPUT_LINE_ENDING_CRLF;
+					else
+					{
+						hawk_main_print_error("unknown input line ending - %s\n", opt.arg);
+						goto oops;
+					}
+				}
+				else if (hawk_comp_bcstr(opt.lngopt, "output-line-ending", 0) == 0)
+				{
+					if (hawk_comp_bcstr(opt.arg, "preserve", 0) == 0) arg->output_line_ending = HAWK_SED_OUTPUT_LINE_ENDING_PRESERVE;
+					else if (hawk_comp_bcstr(opt.arg, "native", 0) == 0) arg->output_line_ending = HAWK_SED_OUTPUT_LINE_ENDING_NATIVE;
+					else if (hawk_comp_bcstr(opt.arg, "lf", 0) == 0) arg->output_line_ending = HAWK_SED_OUTPUT_LINE_ENDING_LF;
+					else if (hawk_comp_bcstr(opt.arg, "crlf", 0) == 0) arg->output_line_ending = HAWK_SED_OUTPUT_LINE_ENDING_CRLF;
+					else
+					{
+						hawk_main_print_error("unknown output line ending - %s\n", opt.arg);
+						goto oops;
+					}
+				}
+				else if (hawk_comp_bcstr(opt.lngopt, "script-encoding", 0) == 0)
 				{
 					g_script_cmgr = hawk_get_cmgr_by_bcstr(opt.arg);
 					if (g_script_cmgr == HAWK_NULL)
@@ -496,6 +525,8 @@ int main_sed(int argc, hawk_bch_t* argv[], const hawk_bch_t* real_argv0)
 	}
 
 	hawk_sed_setopt (sed, HAWK_SED_TRAIT, &arg.option);
+	if (hawk_sed_setopt(sed, HAWK_SED_INPUT_LINE_ENDING, &arg.input_line_ending) <= -1 ||
+	    hawk_sed_setopt(sed, HAWK_SED_OUTPUT_LINE_ENDING, &arg.output_line_ending) <= -1) goto oops;
 
 	if (hawk_sed_compstd(sed, g_script.io, &script_count) <= -1)
 	{

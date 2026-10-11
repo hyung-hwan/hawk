@@ -231,9 +231,34 @@ enum hawk_sed_opt_t
 	HAWK_SED_LFORMATTER, /**< formatter for the 'l' command */
 
 	HAWK_SED_DEPTH_REX_BUILD,
-	HAWK_SED_DEPTH_REX_MATCH
+	HAWK_SED_DEPTH_REX_MATCH,
+	HAWK_SED_INPUT_LINE_ENDING,  /**< hawk_sed_input_line_ending_t; default AUTO */
+	HAWK_SED_OUTPUT_LINE_ENDING  /**< hawk_sed_output_line_ending_t; default PRESERVE */
 };
 typedef enum hawk_sed_opt_t hawk_sed_opt_t;
+
+/** Input terminators are excluded from matching and substitution text. */
+enum hawk_sed_input_line_ending_t
+{
+	HAWK_SED_INPUT_LINE_ENDING_AUTO = 0, /**< recognize LF and CRLF */
+	HAWK_SED_INPUT_LINE_ENDING_LF,       /**< recognize LF; preceding CR is content */
+	HAWK_SED_INPUT_LINE_ENDING_CRLF      /**< recognize CRLF; lone LF is content */
+};
+typedef enum hawk_sed_input_line_ending_t hawk_sed_input_line_ending_t;
+
+/**
+ * Output conversion applies to all emitted LF characters. It replaces CRLF
+ * as a pair unless LF-only input recognition makes the CR ordinary content.
+ * A final CR without LF is retained, and missing terminators aren't added.
+ */
+enum hawk_sed_output_line_ending_t
+{
+	HAWK_SED_OUTPUT_LINE_ENDING_PRESERVE = 0, /**< retain emitted characters */
+	HAWK_SED_OUTPUT_LINE_ENDING_NATIVE,       /**< use the platform's line ending */
+	HAWK_SED_OUTPUT_LINE_ENDING_LF,
+	HAWK_SED_OUTPUT_LINE_ENDING_CRLF
+};
+typedef enum hawk_sed_output_line_ending_t hawk_sed_output_line_ending_t;
 
 /**
  * The hawk_sed_trait_t type defines various trait codes for a stream editor.
@@ -506,6 +531,8 @@ static HAWK_INLINE void hawk_sed_setcmgr (hawk_sed_t* sed, hawk_cmgr_t* cmgr) { 
  *  - #HAWK_SED_TRAIT - int*, 0 or bitwised-ORed of #hawk_sed_trait_t values
  *  - #HAWK_SED_TRACER - hawk_sed_tracer_t*
  *  - #HAWK_SED_LFORMATTER - hawk_sed_lformatter_t*
+ *  - #HAWK_SED_INPUT_LINE_ENDING - hawk_sed_input_line_ending_t*
+ *  - #HAWK_SED_OUTPUT_LINE_ENDING - hawk_sed_output_line_ending_t*
  *
  * \return 0 on success, -1 on failure
  */
@@ -523,6 +550,8 @@ HAWK_EXPORT int hawk_sed_getopt (
  *  - #HAWK_SED_TRAIT - const int*, 0 or bitwised-ORed of #hawk_sed_trait_t values
  *  - #HAWK_SED_TRACER - hawk_sed_tracer_t
  *  - #HAWK_SED_LFORMATTER - hawk_sed_lformatter_t
+ *  - #HAWK_SED_INPUT_LINE_ENDING - const hawk_sed_input_line_ending_t*
+ *  - #HAWK_SED_OUTPUT_LINE_ENDING - const hawk_sed_output_line_ending_t*
  *
  * \return 0 on success, -1 on failure
  */

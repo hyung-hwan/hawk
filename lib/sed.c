@@ -35,6 +35,13 @@ static int emit_output (hawk_sed_t* sed, int skipline);
 
 #define EMPTY_REX ((void*)1)
 
+typedef struct out_file_t out_file_t;
+struct out_file_t
+{
+	hawk_sed_io_arg_t arg;
+	int pending_cr;
+};
+
 #define ADJERR_LOC(sed,l) do { (sed)->gem_.errloc = *(l); } while (0)
 
 #define SETERR1(sed,num,argp,argl,loc) \
@@ -212,6 +219,22 @@ int hawk_sed_setopt (hawk_sed_t* sed, hawk_sed_opt_t id, const void* value)
 		case HAWK_SED_DEPTH_REX_MATCH:
 			sed->opt.depth.rex.match = *(const hawk_oow_t*)value;
 			return 0;
+
+		case HAWK_SED_INPUT_LINE_ENDING:
+		{
+			hawk_sed_input_line_ending_t ending = *(const hawk_sed_input_line_ending_t*)value;
+			if (ending < HAWK_SED_INPUT_LINE_ENDING_AUTO || ending > HAWK_SED_INPUT_LINE_ENDING_CRLF) break;
+			sed->opt.input_line_ending = ending;
+			return 0;
+		}
+
+		case HAWK_SED_OUTPUT_LINE_ENDING:
+		{
+			hawk_sed_output_line_ending_t ending = *(const hawk_sed_output_line_ending_t*)value;
+			if (ending < HAWK_SED_OUTPUT_LINE_ENDING_PRESERVE || ending > HAWK_SED_OUTPUT_LINE_ENDING_CRLF) break;
+			sed->opt.output_line_ending = ending;
+			return 0;
+		}
 	}
 
 	hawk_sed_seterrnum(sed, HAWK_NULL, HAWK_EINVAL);
@@ -240,6 +263,14 @@ int hawk_sed_getopt (hawk_sed_t* sed, hawk_sed_opt_t  id, void* value)
 
 		case HAWK_SED_DEPTH_REX_MATCH:
 			*(hawk_oow_t*)value = sed->opt.depth.rex.match;
+			return 0;
+
+		case HAWK_SED_INPUT_LINE_ENDING:
+			*(hawk_sed_input_line_ending_t*)value = sed->opt.input_line_ending;
+			return 0;
+
+		case HAWK_SED_OUTPUT_LINE_ENDING:
+			*(hawk_sed_output_line_ending_t*)value = sed->opt.output_line_ending;
 			return 0;
 	}
 
@@ -2067,6 +2098,14 @@ static int read_char (hawk_sed_t* sed, hawk_ooch_t* c)
 	}
 }
 
+static hawk_oow_t get_line_ending_length (hawk_sed_t* sed, const hawk_ooch_t* ptr, hawk_oow_t len)
+{
+	if (len == 0 || ptr[len - 1] != HAWK_T('\n')) return 0;
+	if (sed->opt.input_line_ending == HAWK_SED_INPUT_LINE_ENDING_LF) return 1;
+	if (len >= 2 && ptr[len - 2] == HAWK_T('\r')) return 2;
+	return (sed->opt.input_line_ending == HAWK_SED_INPUT_LINE_ENDING_AUTO)? 1: 0;
+}
+
 static int read_line (hawk_sed_t* sed, int append)
 {
 	hawk_oow_t len = 0;
@@ -2101,8 +2140,8 @@ static int read_line (hawk_sed_t* sed, int append)
 		if (hawk_ooecs_ccat(&sed->e.in.line, c) == (hawk_oow_t)-1) return -1;
 		len++;
 
-		/* TODO: support different line end convension */
-		if (c == HAWK_T('\n')) break;
+		if (c == HAWK_T('\n') && get_line_ending_length(sed,
+		    HAWK_OOECS_PTR(&sed->e.in.line) + HAWK_OOECS_LEN(&sed->e.in.line) - len, len) > 0) break;
 	}
 
 	sed->e.in.num++;
@@ -2110,21 +2149,86 @@ static int read_line (hawk_sed_t* sed, int append)
 	return 1;
 }
 
-static int flush (hawk_sed_t* sed)
+static int write_raw (hawk_sed_t* sed, hawk_sed_io_arg_t* arg, const hawk_ooch_t* str, hawk_oow_t len)
 {
-	hawk_oow_t pos = 0;
 	hawk_ooi_t n;
 
-	while (sed->e.out.len > 0)
+	while (len > 0)
 	{
-		n = sed->e.out.fun(sed, HAWK_SED_IO_WRITE, &sed->e.out.arg, &sed->e.out.buf[pos], sed->e.out.len);
+		n = sed->e.out.fun(sed, HAWK_SED_IO_WRITE, arg, (hawk_ooch_t*)str, len);
 		if (n <= -1) return -1;
-		if (n == 0) return -1; /* reached the end of file - this is also an error */
+		if (n == 0 || (hawk_oow_t)n > len)
+		{
+			hawk_sed_seterrnum(sed, HAWK_NULL, HAWK_EIOERR);
+			return -1;
+		}
 
-		pos += n;
-		sed->e.out.len -= n;
+		str += n;
+		len -= n;
 	}
 
+	return 0;
+}
+
+static int write_output (hawk_sed_t* sed, hawk_sed_io_arg_t* arg, const hawk_ooch_t* str, hawk_oow_t len, int* pending_cr)
+{
+	hawk_ooch_t buf[256];
+	hawk_oow_t i, used = 0;
+	int crlf;
+
+	if (sed->opt.output_line_ending == HAWK_SED_OUTPUT_LINE_ENDING_PRESERVE)
+		return write_raw(sed, arg, str, len);
+
+	crlf = (sed->opt.output_line_ending == HAWK_SED_OUTPUT_LINE_ENDING_CRLF);
+#if defined(__WIN32__) || defined(__OS2__) || defined(__DOS__)
+	if (sed->opt.output_line_ending == HAWK_SED_OUTPUT_LINE_ENDING_NATIVE) crlf = 1;
+#endif
+
+	for (i = 0; i < len; i++)
+	{
+		/* a pending CR and the current character need at most three slots. */
+		if (used + 3 > HAWK_COUNTOF(buf))
+		{
+			if (write_raw(sed, arg, buf, used) <= -1) return -1;
+			used = 0;
+		}
+
+		if (*pending_cr)
+		{
+			if (str[i] != HAWK_T('\n')) buf[used++] = HAWK_T('\r');
+			*pending_cr = 0;
+		}
+
+		if (str[i] == HAWK_T('\r') && sed->opt.input_line_ending != HAWK_SED_INPUT_LINE_ENDING_LF)
+		{
+			/* Retain this state across callback buffers, including r/R input. */
+			*pending_cr = 1;
+		}
+		else
+		{
+			if (str[i] == HAWK_T('\n') && crlf) buf[used++] = HAWK_T('\r');
+			buf[used++] = str[i];
+		}
+	}
+
+	return write_raw(sed, arg, buf, used);
+}
+
+static int finish_output (hawk_sed_t* sed, hawk_sed_io_arg_t* arg, int* pending_cr)
+{
+	/* a final CR without LF is content. don't add a missing terminator. */
+	if (*pending_cr)
+	{
+		if (write_raw(sed, arg, HAWK_T("\r"), 1) <= -1) return -1;
+		*pending_cr = 0;
+	}
+	return 0;
+}
+
+static int flush (hawk_sed_t* sed)
+{
+	if (write_output(sed, &sed->e.out.arg, sed->e.out.buf, sed->e.out.len, &sed->e.out.pending_cr) <= -1) return -1;
+	sed->e.out.len = 0;
 	return 0;
 }
 
@@ -2163,8 +2267,7 @@ static int write_first_line (hawk_sed_t* sed, const hawk_ooch_t* str, hawk_oow_t
 	for (i = 0; i < len; i++)
 	{
 		if (write_char(sed, str[i]) <= -1) return -1;
-		/* TODO: handle different line ending convension... */
-		if (str[i] == HAWK_T('\n')) break;
+		if (get_line_ending_length(sed, str, i + 1) > 0) break;
 	}
 	return 0;
 }
@@ -2305,15 +2408,16 @@ static int write_str_to_file (
 	hawk_ooi_t n;
 	hawk_map_pair_t* pair;
 	hawk_sed_io_arg_t* ap;
+	out_file_t* file;
 
 	pair = hawk_map_search(&sed->e.out.files, path, plen);
 	if (pair == HAWK_NULL)
 	{
-		hawk_sed_io_arg_t arg;
+		out_file_t data;
 
-		HAWK_MEMSET(&arg, 0, HAWK_SIZEOF(arg));
+		HAWK_MEMSET(&data, 0, HAWK_SIZEOF(data));
 		pair = hawk_map_insert(&sed->e.out.files,
-			(void*)path, plen, &arg, HAWK_SIZEOF(arg));
+			(void*)path, plen, &data, HAWK_SIZEOF(data));
 		if (pair == HAWK_NULL)
 		{
 			ADJERR_LOC (sed, &cmd->loc);
@@ -2321,7 +2425,8 @@ static int write_str_to_file (
 		}
 	}
 
-	ap = HAWK_MAP_VPTR(pair);
+	file = HAWK_MAP_VPTR(pair);
+	ap = &file->arg;
 	if (ap->handle == HAWK_NULL)
 	{
 		ap->path = path;
@@ -2333,28 +2438,13 @@ static int write_str_to_file (
 		}
 	}
 
-	while (len > 0)
+	if (write_output(sed, ap, str, len, &file->pending_cr) <= -1)
 	{
-		n = sed->e.out.fun(sed, HAWK_SED_IO_WRITE, ap, (hawk_ooch_t*)str, len);
-		if (n <= -1)
-		{
-			sed->e.out.fun(sed, HAWK_SED_IO_CLOSE, ap, HAWK_NULL, 0);
-			ap->handle = HAWK_NULL;
-			ADJERR_LOC (sed, &cmd->loc);
-			return -1;
-		}
-
-		if (n == 0)
-		{
-			/* eof is returned on the write stream.
-			 * it is also an error as it can't write any more */
-			sed->e.out.fun(sed, HAWK_SED_IO_CLOSE, ap, HAWK_NULL, 0);
-			ap->handle = HAWK_NULL;
-			SETERR1 (sed, HAWK_SED_EIOFIL, (hawk_ooch_t*)path, plen, &cmd->loc);
-			return -1;
-		}
-
-		len -= n;
+		sed->e.out.fun(sed, HAWK_SED_IO_CLOSE, ap, HAWK_NULL, 0);
+		ap->handle = HAWK_NULL;
+		file->pending_cr = 0;
+		ADJERR_LOC (sed, &cmd->loc);
+		return -1;
 	}
 
 	return 0;
@@ -2364,6 +2454,7 @@ static int write_file (hawk_sed_t* sed, hawk_sed_cmd_t* cmd, int first_line)
 {
 	hawk_ooi_t n;
 	hawk_sed_io_arg_t arg;
+	hawk_ooch_t previous = HAWK_T('\0');
 #if defined(HAWK_OOCH_IS_BCH)
 	hawk_ooch_t buf[1024];
 #else
@@ -2399,8 +2490,9 @@ static int write_file (hawk_sed_t* sed, hawk_sed_cmd_t* cmd, int first_line)
 			{
 				if (write_char(sed, buf[i]) <= -1) return -1;
 
-				/* TODO: support different line end convension */
-				if (buf[i] == HAWK_T('\n')) goto done;
+				if (buf[i] == HAWK_T('\n') &&
+				    (sed->opt.input_line_ending != HAWK_SED_INPUT_LINE_ENDING_CRLF || previous == HAWK_T('\r'))) goto done;
+				previous = buf[i];
 			}
 		}
 		else
@@ -2505,28 +2597,14 @@ static int emit_appends (hawk_sed_t* sed)
 
 static const hawk_ooch_t* trim_line (hawk_sed_t* sed, hawk_oocs_t* str)
 {
-	const hawk_ooch_t* lineterm;
+	hawk_oow_t len;
 
 	str->ptr = HAWK_OOECS_PTR(&sed->e.in.line);
 	str->len = HAWK_OOECS_LEN(&sed->e.in.line);
 
-	/* TODO: support different line end convension */
-	if (str->len > 0 && str->ptr[str->len-1] == HAWK_T('\n'))
-	{
-		str->len--;
-		if (str->len > 0 && str->ptr[str->len-1] == HAWK_T('\r'))
-		{
-			lineterm = HAWK_T("\r\n");
-			str->len--;
-		}
-		else
-		{
-			lineterm = HAWK_T("\n");
-		}
-	}
-	else lineterm = HAWK_NULL;
-
-	return lineterm;
+	len = get_line_ending_length(sed, str->ptr, str->len);
+	str->len -= len;
+	return (len == 2)? HAWK_T("\r\n"): (len == 1)? HAWK_T("\n"): HAWK_NULL;
 }
 
 static int do_subst (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
@@ -2959,15 +3037,7 @@ static int match_a (hawk_sed_t* sed, hawk_sed_cmd_t* cmd, hawk_sed_adr_t* a)
 
 			HAWK_ASSERT(a->u.rex != HAWK_NULL);
 
-			line.ptr = HAWK_OOECS_PTR(&sed->e.in.line);
-			line.len = HAWK_OOECS_LEN(&sed->e.in.line);
-
-			if (line.len > 0 &&
-			    line.ptr[line.len-1] == HAWK_T('\n'))
-			{
-				line.len--;
-				if (line.len > 0 && line.ptr[line.len-1] == HAWK_T('\r')) line.len--;
-			}
+			trim_line(sed, &line);
 
 			if (a->u.rex == EMPTY_REX)
 			{
@@ -3199,12 +3269,19 @@ static hawk_sed_cmd_t* exec_cmd (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 		case HAWK_SED_CMD_DELETE_FIRSTLN:
 		{
 			hawk_ooch_t* nl;
+			hawk_ooch_t* ptr = HAWK_OOECS_PTR(&sed->e.in.line);
+			hawk_oow_t i, len = HAWK_OOECS_LEN(&sed->e.in.line);
 
 			/* delete the first line from the pattern space */
-			nl = hawk_find_oochar_in_oochars(
-				HAWK_OOECS_PTR(&sed->e.in.line),
-				HAWK_OOECS_LEN(&sed->e.in.line),
-				HAWK_T('\n'));
+			nl = HAWK_NULL;
+			for (i = 0; i < len; i++)
+			{
+				if (get_line_ending_length(sed, ptr, i + 1) > 0)
+				{
+					nl = &ptr[i];
+					break;
+				}
+			}
 			if (nl)
 			{
 				/* if a new line is found. delete up to it  */
@@ -3374,8 +3451,7 @@ static hawk_sed_cmd_t* exec_cmd (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 			hawk_oow_t i, len = HAWK_OOECS_LEN(&sed->e.in.line);
 			for (i = 0; i < len; i++)
 			{
-				/* TODO: handle different line end convension */
-				if (ptr[i] == HAWK_T('\n'))
+				if (get_line_ending_length(sed, ptr, i + 1) > 0)
 				{
 					i++;
 					break;
@@ -3413,12 +3489,7 @@ static hawk_sed_cmd_t* exec_cmd (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 		 * if ptr[i] < transet[0] || ptr[i] > transset[transset_size-1].
 		 * if so, it has not mathing translation */
 
-			/* TODO: support different line end convension */
-			if (len > 0 && ptr[len-1] == HAWK_T('\n'))
-			{
-				len--;
-				if (len > 0 && ptr[len-1] == HAWK_T('\r')) len--;
-			}
+			len -= get_line_ending_length(sed, ptr, len);
 
 			for (i = 0; i < len; i++)
 			{
@@ -3454,8 +3525,9 @@ static hawk_sed_cmd_t* exec_cmd (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 
 static void close_outfile (hawk_map_t* map, void* dptr, hawk_oow_t dlen)
 {
-	hawk_sed_io_arg_t* arg = dptr;
-	HAWK_ASSERT(dlen == HAWK_SIZEOF(*arg));
+	out_file_t* file = dptr;
+	hawk_sed_io_arg_t* arg = &file->arg;
+	HAWK_ASSERT(dlen == HAWK_SIZEOF(*file));
 
 	if (arg->handle)
 	{
@@ -3463,6 +3535,19 @@ static void close_outfile (hawk_map_t* map, void* dptr, hawk_oow_t dlen)
 		sed->e.out.fun(sed, HAWK_SED_IO_CLOSE, arg, HAWK_NULL, 0);
 		arg->handle = HAWK_NULL;
 	}
+}
+
+static hawk_map_walk_t finish_outfile (hawk_map_t* map, hawk_map_pair_t* pair, void* ctx)
+{
+	hawk_sed_t* sed = *(hawk_sed_t**)(map + 1);
+	out_file_t* file = HAWK_MAP_VPTR(pair);
+
+	if (file->arg.handle && finish_output(sed, &file->arg, &file->pending_cr) <= -1)
+	{
+		*(int*)ctx = -1;
+		return HAWK_MAP_WALK_STOP;
+	}
+	return HAWK_MAP_WALK_FORWARD;
 }
 
 static int init_command_block_for_exec (hawk_sed_t* sed, hawk_sed_cmd_blk_t* b)
@@ -3640,6 +3725,7 @@ int hawk_sed_exec (hawk_sed_t* sed, hawk_sed_io_impl_t inf, hawk_sed_io_impl_t o
 	sed->e.out.fun = outf;
 	sed->e.out.eof = 0;
 	sed->e.out.len = 0;
+	sed->e.out.pending_cr = 0;
 	if (hawk_map_init(
 		&sed->e.out.files, hawk_sed_getgem(sed),
 		128, 70, HAWK_SIZEOF(hawk_ooch_t), 1) <= -1) return -1;
@@ -3744,6 +3830,11 @@ int hawk_sed_exec (hawk_sed_t* sed, hawk_sed_io_impl_t inf, hawk_sed_io_impl_t o
 	}
 
 done:
+	if (ret == 0 && sed->opt.output_line_ending != HAWK_SED_OUTPUT_LINE_ENDING_PRESERVE)
+	{
+		if (flush(sed) <= -1 || finish_output(sed, &sed->e.out.arg, &sed->e.out.pending_cr) <= -1) ret = -1;
+		if (ret == 0) hawk_map_walk(&sed->e.out.files, finish_outfile, &ret);
+	}
 	hawk_map_clear(&sed->e.out.files);
 	sed->e.out.fun(sed, HAWK_SED_IO_CLOSE, &sed->e.out.arg, HAWK_NULL, 0);
 done2:

@@ -320,6 +320,28 @@ $ hawk --sed 's/foo/bar/g' input.txt
 $ hawk --sed -n -e '/ERROR/p' application.log
 ```
 
+Sed preserves input line endings by default. Use `--input-line-ending=auto`
+(the default), `lf`, or `crlf` to select input terminators. `auto` recognizes
+LF and CRLF; `lf` excludes only LF from editable text, making a preceding CR
+available to substitutions, addresses, and translations. `crlf` recognizes
+only CRLF record boundaries and keeps lone LF characters in the record.
+
+Use `--output-line-ending=preserve` (the default), `native`, `lf`, or `crlf`
+to select output formatting. Explicit conversion applies to emitted text,
+including embedded newlines, generated text, and `w` output files. A missing
+final newline stays missing, and bare CR characters are retained. With LF-only
+input, CR is content and is retained even before a converted newline; remove
+it explicitly if needed:
+
+```sh
+$ hawk --sed --output-line-ending=native '' input.txt
+$ hawk --sed --input-line-ending=lf --output-line-ending=lf 's/\r//g' input.txt
+```
+
+The C API exposes the same policies through `hawk_sed_setopt()` using
+`HAWK_SED_INPUT_LINE_ENDING` and `HAWK_SED_OUTPUT_LINE_ENDING`, with values of
+`hawk_sed_input_line_ending_t` and `hawk_sed_output_line_ending_t`, respectively.
+
 Use `--m4` with files or standard input. `-D`/`--define` defines a macro,
 `-U`/`--undefine` undefines one, and `-I`/`--incdirs` adds an include directory;
 these options may be repeated.

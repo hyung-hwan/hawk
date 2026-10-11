@@ -492,7 +492,7 @@ static int open_output_stream (hawk_sed_t* sed, hawk_sed_io_arg_t* arg, hawk_sed
 					HAWK_SIO_CREATE |
 					HAWK_SIO_TRUNCATE |
 					HAWK_SIO_IGNOREECERR |
-					HAWK_SIO_LINEBREAK
+					((sed->opt.output_line_ending == HAWK_SED_OUTPUT_LINE_ENDING_PRESERVE)? HAWK_SIO_LINEBREAK: 0)
 				);
 			}
 			else
@@ -532,7 +532,7 @@ static int open_output_stream (hawk_sed_t* sed, hawk_sed_io_arg_t* arg, hawk_sed
 					HAWK_SIO_CREATE |
 					HAWK_SIO_TRUNCATE |
 					HAWK_SIO_IGNOREECERR |
-					HAWK_SIO_LINEBREAK
+					((sed->opt.output_line_ending == HAWK_SED_OUTPUT_LINE_ENDING_PRESERVE)? HAWK_SIO_LINEBREAK: 0)
 				);
 			}
 			else
@@ -876,7 +876,7 @@ static hawk_ooi_t x_out (
 						HAWK_SIO_CREATE |
 						HAWK_SIO_TRUNCATE |
 						HAWK_SIO_IGNOREECERR |
-						HAWK_SIO_LINEBREAK
+						((sed->opt.output_line_ending == HAWK_SED_OUTPUT_LINE_ENDING_PRESERVE)? HAWK_SIO_LINEBREAK: 0)
 					);
 					if (sio == HAWK_NULL) return -1;
 					arg->handle = sio;

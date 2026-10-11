@@ -399,12 +399,21 @@ struct opttab_t
 	{ HAWK_NULL,      0,                   HAWK_NULL }
 };
 
-static void print_usage (FILE* out, const hawk_bch_t* argv0, const hawk_bch_t* real_argv0)
+static void print_usage (FILE* out, const hawk_bch_t* argv0, const hawk_bch_t* real_argv0, const arg_t* arg)
 {
 	int j;
+	int trait = HAWK_MODERN;
 	const hawk_bch_t* b1 = hawk_get_base_name_bcstr(real_argv0? real_argv0: argv0);
 	const hawk_bch_t* b2 = (real_argv0? " ": "");
 	const hawk_bch_t* b3 = (real_argv0? argv0: "");
+
+	/* Match the initial traits in hawk_init() and the mode selection below.
+	 * Explicit toggle overrides don't change the advertised defaults. */
+#if defined(__WIN32__) || defined(_OS2) || defined(__DOS__)
+	trait |= HAWK_CRLF;
+#endif
+	if (arg->modern) trait = HAWK_MODERN;
+	else if (arg->classic) trait = HAWK_CLASSIC;
 
 	fprintf(out, "%s: %s%s%s %s\n", _("USAGE"), b1, b2, b3, _("[options] -f sourcefile [ -- ] [datafile]*"));
 	fprintf(out, "%s  %s%s%s %s\n", _("     "), b1, b2, b3, _("[options] [ -- ] sourcestring [datafile]*"));
@@ -434,9 +443,11 @@ static void print_usage (FILE* out, const hawk_bch_t* argv0, const hawk_bch_t* r
 	fprintf(out, "%s\n", _(" --modern                          run in the modern mode(default)"));
 	fprintf(out, "%s\n", _(" --classic                         run in the classic mode"));
 
+	fprintf(out, "%s\n", _(" An asterisk (*) marks the default for each on/off option."));
 	for (j = 0; opttab[j].name; j++)
 	{
-		fprintf(out, " --%-18s on/off       %s\n", opttab[j].name, _(opttab[j].desc));
+		fprintf(out, " --%-18s %-6s      %s\n", opttab[j].name,
+			((trait & opttab[j].opt)? "on*/off": "on/off*"), _(opttab[j].desc));
 	}
 
 	if (!real_argv0)
@@ -865,7 +876,7 @@ int main_hawk(int argc, hawk_bch_t* argv[], const hawk_bch_t* real_argv0)
 	i = process_argv(argc, argv, real_argv0, &arg);
 	if (i <= 0)
 	{
-		print_usage (((i == 0)? stdout: stderr), argv[0], real_argv0);
+		print_usage (((i == 0)? stdout: stderr), argv[0], real_argv0, &arg);
 		return i;
 	}
 	if (i == 2) return 0;

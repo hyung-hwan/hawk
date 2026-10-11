@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: hawk 1.0.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-05 01:28+0900\n"
+"POT-Creation-Date: 2026-10-11 23:54+0900\n"
 "PO-Revision-Date: 2026-03-28 17:00+0800\n"
 "Last-Translator:  <author@hawk>\n"
 "Language-Team: Chinese (Simplified) <translation-team-zh_CN@hawk>\n"
@@ -101,152 +101,156 @@ msgstr "提高容错性"
 msgid "enable the extended call syntax"
 msgstr "启用扩展调用语法"
 
-#: ../../bin/hawk.c:409 ../../bin/main.c:416
+#: ../../bin/hawk.c:418 ../../bin/main.c:416
 msgid "USAGE"
 msgstr "用法"
 
-#: ../../bin/hawk.c:409
+#: ../../bin/hawk.c:418
 msgid "[options] -f sourcefile [ -- ] [datafile]*"
 msgstr "[选项] -f 源文件 [ -- ] [数据文件]*"
 
-#: ../../bin/hawk.c:410
+#: ../../bin/hawk.c:419
 msgid "     "
 msgstr "    "
 
-#: ../../bin/hawk.c:410
+#: ../../bin/hawk.c:419
 msgid "[options] [ -- ] sourcestring [datafile]*"
 msgstr "[选项] [ -- ] 源字符串 [数据文件]*"
 
-#: ../../bin/hawk.c:411 ../../bin/main.c:417
+#: ../../bin/hawk.c:420 ../../bin/main.c:417
 msgid "Options as follows:"
 msgstr "选项如下:"
 
-#: ../../bin/hawk.c:412
+#: ../../bin/hawk.c:421
 msgid " -h/--help                         print this message"
 msgstr " -h/--help                         打印此信息"
 
-#: ../../bin/hawk.c:413
+#: ../../bin/hawk.c:422
 msgid " -D                                show extra information"
 msgstr " -D                                显示更多信息"
 
-#: ../../bin/hawk.c:414
+#: ../../bin/hawk.c:423
 msgid " -c/--call            name         call a function instead of entering"
 msgstr " -c/--call            名称         调用函数而不是进入模式-动作循环"
 
-#: ../../bin/hawk.c:415
+#: ../../bin/hawk.c:424
 msgid ""
 "                                   the pattern-action loop. [datafile]* is"
 msgstr "                                   模式-动作循环。[数据文件]*"
 
-#: ../../bin/hawk.c:416
+#: ../../bin/hawk.c:425
 msgid "                                   passed to the function as parameters"
 msgstr "                                   将作为参数传递给函数"
 
-#: ../../bin/hawk.c:417
+#: ../../bin/hawk.c:426
 msgid " -f/--file            file         set the source script file"
 msgstr " -f/--file            文件         设置脚本源文件"
 
-#: ../../bin/hawk.c:418
+#: ../../bin/hawk.c:427
 msgid ""
 " -d/--deparsed-file   file         set the deparsed script file to produce"
 msgstr " -d/--deparsed-file   文件         指定反解析脚本输出文件"
 
-#: ../../bin/hawk.c:419
+#: ../../bin/hawk.c:428
 msgid " -t/--console-output  file         set the console output file"
 msgstr " -t/--console-output  文件         设置控制台输出文件"
 
-#: ../../bin/hawk.c:420
+#: ../../bin/hawk.c:429
 msgid "                                   multiple -t options are allowed"
 msgstr "                                   可以指定多个 -t 选项"
 
-#: ../../bin/hawk.c:421
+#: ../../bin/hawk.c:430
 msgid " -F/--field-separator string       set a field separator(FS)"
 msgstr " -F/--field-separator 字符串       设置字段分隔符（FS）"
 
-#: ../../bin/hawk.c:422
+#: ../../bin/hawk.c:431
 msgid " -v/--assign          var=value    add a global variable with a value"
 msgstr " -v/--assign          变量=值      添加具有值的全局变量"
 
-#: ../../bin/hawk.c:423
+#: ../../bin/hawk.c:432
 msgid " -m/--memory-limit    number       limit the memory usage (bytes)"
 msgstr " -m/--memory-limit    数值         限制内存用量（字节）"
 
-#: ../../bin/hawk.c:424
+#: ../../bin/hawk.c:433
 msgid " -w                                expand datafile wildcards"
 msgstr " -w                                扩展数据文件通配符"
 
-#: ../../bin/hawk.c:427
+#: ../../bin/hawk.c:436
 msgid " --script-encoding    string       specify script file encoding name"
 msgstr " --script-encoding    字符串       指定脚本文件编码名"
 
-#: ../../bin/hawk.c:428
+#: ../../bin/hawk.c:437
 #, fuzzy
 msgid " --conin-encoding     string       specify console input encoding name"
 msgstr " --console-encoding   字符串       指定控制台编码名"
 
-#: ../../bin/hawk.c:429
+#: ../../bin/hawk.c:438
 #, fuzzy
 msgid " --conout-encoding    string       specify console output encoding name"
 msgstr " --console-encoding   字符串       指定控制台编码名"
 
-#: ../../bin/hawk.c:432
+#: ../../bin/hawk.c:441
 #, fuzzy
 msgid ""
 " -I/--incdirs         string       specify directories to look for include "
 "files in"
 msgstr " -I/--includedirs     字符串       指定查找 include 文件的目录"
 
-#: ../../bin/hawk.c:433
+#: ../../bin/hawk.c:442
 msgid ""
 " --modlibdirs         string       specify directories to look for module "
 "files in"
 msgstr " --modlibdirs         字符串       指定查找模块文件的目录"
 
-#: ../../bin/hawk.c:434
+#: ../../bin/hawk.c:443
 msgid " --modern                          run in the modern mode(default)"
 msgstr " --modern                          以现代模式运行（默认）"
 
-#: ../../bin/hawk.c:435
+#: ../../bin/hawk.c:444
 msgid " --classic                         run in the classic mode"
 msgstr " --classic                         以经典模式运行"
 
-#: ../../bin/hawk.c:445
+#: ../../bin/hawk.c:446
+msgid " An asterisk (*) marks the default for each on/off option."
+msgstr " 星号 (*) 表示各 on/off 选项的默认值。"
+
+#: ../../bin/hawk.c:456
 msgid "Special mode switching options(must be specified first to take effect):"
 msgstr "特殊模式切换选项（必须先指定才能生效）："
 
-#: ../../bin/hawk.c:446 ../../bin/main.c:420
+#: ../../bin/hawk.c:457 ../../bin/main.c:420
 msgid " --awk/--hawk                      switch to the awk mode(default)"
 msgstr " --awk/--hawk                      切换到 awk 模式（默认）"
 
-#: ../../bin/hawk.c:447 ../../bin/main.c:421
+#: ../../bin/hawk.c:458 ../../bin/main.c:421
 msgid " --cut                             switch to the cut mode"
 msgstr " --cut                             切换到 cut 模式"
 
-#: ../../bin/hawk.c:448 ../../bin/main.c:422
+#: ../../bin/hawk.c:459 ../../bin/main.c:422
 msgid " --m4                              switch to the m4 mode"
 msgstr " --m4                              切换到 m4 模式"
 
-#: ../../bin/hawk.c:449 ../../bin/main.c:423
+#: ../../bin/hawk.c:460 ../../bin/main.c:423
 msgid " --sed                             switch to the sed mode"
 msgstr " --sed                             切换到 sed 模式"
 
-#: ../../bin/hawk.c:808 ../../bin/hawk.c:825
+#: ../../bin/hawk.c:819 ../../bin/hawk.c:836
 msgid "ERROR"
 msgstr "错误"
 
-#: ../../bin/hawk.c:809 ../../bin/hawk.c:826
+#: ../../bin/hawk.c:820 ../../bin/hawk.c:837
 msgid "Line"
 msgstr "行"
 
-#: ../../bin/hawk.c:810 ../../bin/hawk.c:827
+#: ../../bin/hawk.c:821 ../../bin/hawk.c:838
 msgid "Column"
 msgstr "列"
 
-#: ../../bin/hawk.c:811 ../../bin/hawk.c:828
+#: ../../bin/hawk.c:822 ../../bin/hawk.c:839
 msgid "Code"
 msgstr "代码"
 
-#: ../../bin/hawk.c:812 ../../bin/hawk.c:829
+#: ../../bin/hawk.c:823 ../../bin/hawk.c:840
 msgid "File "
 msgstr "文件 "
 

@@ -77,6 +77,8 @@ struct hawk_sed_t
 		int                   trait;
 		hawk_sed_tracer_t     tracer;
 		hawk_sed_lformatter_t lformatter;
+		hawk_sed_input_line_ending_t input_line_ending;
+		hawk_sed_output_line_ending_t output_line_ending;
 
 		struct
 		{
@@ -151,6 +153,7 @@ struct hawk_sed_t
 			hawk_ooch_t buf[2048];
 			hawk_oow_t len;
 			int        eof;
+			int        pending_cr; /**< CR awaiting the next output character */
 
 			/*****************************************************/
 			/* the following two fields are very tightly-coupled.
