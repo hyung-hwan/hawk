@@ -109,6 +109,7 @@ static int command (terminal_t* terminal, const char* text)
 static int wait_for_exit (terminal_t* terminal, double timeout)
 {
 	double deadline = now() + timeout;
+	int reading = terminal->master >= 0;
 
 	while (now() < deadline)
 	{
@@ -121,7 +122,39 @@ static int wait_for_exit (terminal_t* terminal, double timeout)
 			return WIFEXITED(status) && WEXITSTATUS(status) == 0? 0: -1;
 		}
 		if (pid < 0 && errno != EINTR) return -1;
-		pause_briefly();
+		if (reading)
+		{
+			fd_set fds;
+			struct timeval tv;
+			char buf[1024];
+			ssize_t n;
+			int ready;
+
+			/* Keep consuming output while the shell exits. On FreeBSD,
+			 * restoring terminal modes with TCSADRAIN waits for unread PTY
+			 * output (including the echoed exit command) to be drained. */
+			FD_ZERO(&fds);
+			FD_SET(terminal->master, &fds);
+			tv.tv_sec = 0;
+			tv.tv_usec = 20000;
+			ready = select(terminal->master + 1, &fds, NULL, NULL, &tv);
+			if (ready <= -1)
+			{
+				if (errno == EINTR) continue;
+				return -1;
+			}
+			if (ready == 0) continue;
+			n = read(terminal->master, buf, sizeof(buf));
+			if (n <= -1)
+			{
+				if (errno == EINTR) continue;
+				/* Some PTYs report EIO instead of EOF after slave closure. */
+				if (errno != EIO) return -1;
+				reading = 0;
+			}
+			else if (n == 0) reading = 0;
+		}
+		else pause_briefly();
 	}
 	return -1;
 }

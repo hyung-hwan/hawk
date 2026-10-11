@@ -414,7 +414,9 @@ static int test_accept (int fd, struct sockaddr* addr, socklen_t* len)
 		HAWK_MEMCPY(addr, &peer, HAWK_SIZEOF(peer));
 		*len = HAWK_SIZEOF(peer);
 	}
-	accepted_fd = open("/dev/null", O_RDWR);
+	/* Use a real socket so nonblocking mode works on platforms whose
+	 * /dev/null driver rejects F_SETFL (e.g. Haiku). No connection is needed. */
+	accepted_fd = socket(AF_INET, SOCK_STREAM, 0);
 	return accepted_fd;
 }
 

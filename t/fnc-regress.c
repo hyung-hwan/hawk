@@ -331,6 +331,39 @@ static int toint (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	return 0;
 }
 
+static int waitstatus (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+{
+	hawk_int_t op, status, n = -1;
+	hawk_val_t* value;
+
+	if (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 0), &op) <= -1 ||
+	    hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 1), &status) <= -1) return -1;
+	/* Compare the wrappers with native macros, rather than assuming a Linux
+	 * wait-status layout. Haiku places the exit code in the low byte. */
+	switch (op)
+	{
+	#if defined(WIFEXITED)
+		case 0: n = !!WIFEXITED((int)status); break;
+	#endif
+	#if defined(WEXITSTATUS)
+		case 1: n = WEXITSTATUS((int)status); break;
+	#endif
+	#if defined(WIFSIGNALED)
+		case 2: n = !!WIFSIGNALED((int)status); break;
+	#endif
+	#if defined(WTERMSIG)
+		case 3: n = WTERMSIG((int)status); break;
+	#endif
+	#if defined(WCOREDUMP)
+		case 4: n = !!WCOREDUMP((int)status); break;
+	#endif
+	}
+	value = hawk_rtx_makeintval(rtx, n);
+	if (!value) return -1;
+	hawk_rtx_setretval(rtx, value);
+	return 0;
+}
+
 static int oversized_mbs (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	allocator_t* a = hawk_rtx_getmmgr(rtx)->ctx;
@@ -374,6 +407,7 @@ static int oversized_mbs (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 #define SEEK_WIDE_RESULT 2097152
 #define UNIX_SOCKET 4194304
 #define DEEP_SWEEP 8388608
+#define MKTIME_EXTREME 16777216
 
 #if defined(_WIN32)
 #define SOCKET_TEST WIN_SYS
@@ -768,9 +802,9 @@ static const case_t cases[] =
 	{ "sys-wait-status-wcoredump-function", SYS_WAIT_STATUS_INVALID("WCOREDUMP", "bad"), HAWK_ENOERR, 0 },
 	{ "sys-wait-status-wcoredump-overflow", SYS_WAIT_STATUS_INVALID("WCOREDUMP", "1e100"), HAWK_ENOERR, 0 },
 	{ "sys-wait-status-wcoredump-nan", SYS_WAIT_STATUS_INVALID("WCOREDUMP", "math::sqrt(-1)"), HAWK_ENOERR, 0 },
-	{ "sys-wait-status-wcoredump-valid", "BEGIN {if(sys::WCOREDUMP(0)!=0 || sys::WCOREDUMP(134)!=1) exit 1;}", HAWK_ENOERR, 0 },
+	{ "sys-wait-status-wcoredump-valid", "BEGIN {if(sys::WCOREDUMP(0)!=waitstatus(4,0) || sys::WCOREDUMP(134)!=waitstatus(4,134) || sys::WCOREDUMP(65536)!=waitstatus(4,65536)) exit 1;}", HAWK_ENOERR, 0 },
 #endif
-	{ "sys-wait-status-valid", "BEGIN {n=sys::WIFEXITED(0);if(n==sys::RC_ENOIMPL) {if(sys::errmsg()==\"\" || sys::WEXITSTATUS(0)!=sys::RC_ENOIMPL || sys::WIFSIGNALED(0)!=sys::RC_ENOIMPL || sys::WTERMSIG(0)!=sys::RC_ENOIMPL) exit 1;}else if(n!=1 || sys::WIFEXITED(5888)!=1 || sys::WEXITSTATUS(5888)!=23 || sys::WIFSIGNALED(5888)!=0 || sys::WIFEXITED(15)!=0 || sys::WIFSIGNALED(15)!=1 || sys::WTERMSIG(15)!=15) exit 1;}", HAWK_ENOERR, 0 },
+	{ "sys-wait-status-valid", "BEGIN {n=sys::WIFEXITED(0);if(n==sys::RC_ENOIMPL) {if(sys::errmsg()==\"\" || sys::WEXITSTATUS(0)!=sys::RC_ENOIMPL || sys::WIFSIGNALED(0)!=sys::RC_ENOIMPL || sys::WTERMSIG(0)!=sys::RC_ENOIMPL) exit 1;}else {split(\"0 23 5888 15 3840 134 65536 -1\",status);for(i in status) {s=status[i]+0;if(sys::WIFEXITED(s)!=waitstatus(0,s) || sys::WEXITSTATUS(s)!=waitstatus(1,s) || sys::WIFSIGNALED(s)!=waitstatus(2,s) || sys::WTERMSIG(s)!=waitstatus(3,s)) exit 1;}}}", HAWK_ENOERR, 0 },
 	{ "sys-mux-unsupported-add", SYS_MUX_UNSUPPORTED("sysunavailable::addtomux(0,0,0)"), HAWK_ENOERR, 0 },
 	{ "sys-mux-unsupported-delete", SYS_MUX_UNSUPPORTED("sysunavailable::delfrommux(0,0)"), HAWK_ENOERR, 0 },
 	{ "sys-mux-unsupported-modify", SYS_MUX_UNSUPPORTED("sysunavailable::modinmux(0,0,0)"), HAWK_ENOERR, 0 },
@@ -1072,7 +1106,7 @@ static const case_t cases[] =
 	{ "sys-mktime-missing-field", SYS_MKTIME_INVALID("\"2020 1 1\""), HAWK_ENOERR, 0 },
 	{ "sys-mktime-invalid-field", SYS_MKTIME_INVALID("\"2020 1 bad 0 0 0\""), HAWK_ENOERR, 0 },
 	{ "sys-mktime-valid", "BEGIN {t=sys::mktime(\"2020 01 02 03 04 05 -1\"); if(sys::strftime(\"%Y-%m-%d %H:%M:%S\",t)!=\"2020-01-02 03:04:05\") exit 1; }", HAWK_ENOERR, 0 },
-	{ "sys-mktime-native-normalization-overflow", "BEGIN {n=sys::mktime(\"2147483647 2147483647 2147483647 2147483647 2147483647 2147483647\");if(n>=0 || (index(sys::errmsg(),\"unable to convert local time\")==0 && sys::errmsg()!==\"local time is outside the supported range\")) exit 1; }", HAWK_ENOERR, 0 },
+	{ "sys-mktime-native-normalization-overflow", "BEGIN {n=sys::mktime(\"2147483647 2147483647 2147483647 2147483647 2147483647 2147483647\");if(n>=0 || (index(sys::errmsg(),\"unable to convert local time\")==0 && sys::errmsg()!==\"local time is outside the supported range\")) exit 1; }", HAWK_ENOERR, MKTIME_EXTREME },
 	{ "sys-mktime-native-error", "BEGIN {sysprobe(\"mktime-failure\");if(sysfault::mktime(\"2020 1 2 3 4 5\")!=sysfault::RC_EIOERR || index(sysfault::errmsg(),\"unable to convert local time\")==0) exit 1;sysprobe(\"mktime-normal\");t=sysfault::mktime(\"2020 1 2 3 4 5 -1\");if(sys::strftime(\"%Y-%m-%d %H:%M:%S\",t)!=\"2020-01-02 03:04:05\") exit 1; }", HAWK_ENOERR, 0 },
 	{ "sys-mktime-valid-minus-one", "BEGIN {sysprobe(\"mktime-minus-one\");if(sysfault::mktime(\"1969 12 31 23 59 59\")!==-1 || sysfault::errmsg()!=\"\") exit 1; }", HAWK_ENOERR, SYS },
 	{ "sys-mktime-stale-errno", "BEGIN {sysprobe(\"mktime-minus-one\");sysprobe(\"time-stale-errno\");if(sysfault::mktime(\"1969 12 31 23 59 59\")!==-1 || sysfault::errmsg()!=\"\") exit 1;sysprobe(\"mktime-stale-errno\");if(sysfault::mktime(\"2020 1 1 0 0 0\")!==123 || sysfault::errmsg()!=\"\") exit 1; }", HAWK_ENOERR, SYS },
@@ -1210,7 +1244,7 @@ static const case_t cases[] =
 	{ "sys-wait-pid-negative-overflow", "BEGIN {s=999;if(sysfault::wait(-4294967295,s,sysfault::WNOHANG)!=sysfault::RC_EINVAL || s!=999 || sysprobe(\"wait-calls\")!=0) exit 1; }", HAWK_ENOERR, SYS | PID32_NARROW },
 	{ "sys-wait-options-overflow", "BEGIN {s=999;if(sysfault::wait(123,s,4294967296)!=sysfault::RC_EINVAL || s!=999 || sysprobe(\"wait-calls\")!=0) exit 1; }", HAWK_ENOERR, SYS | INT32_NARROW },
 	{ "sys-wait-valid-selectors", "BEGIN {s=999;for(i=-2;i<=1;i++) if(sysfault::wait(i,s,sysfault::WNOHANG)!=0 || sysprobe(\"wait-pid\")!=i || sysprobe(\"wait-options\")!=sysfault::WNOHANG || s!=999) exit 1;if(sysprobe(\"wait-calls\")!=4) exit 1; }", HAWK_ENOERR, SYS },
-	{ "sys-fcntl-value-overflow", "BEGIN {f=sysfault::open(\"/dev/null\",sysfault::O_RDWR);if(sysfault::fcntl(f,sysfault::F_SETFL,sysfault::O_NONBLOCK)!=0) exit 1;v=sysfault::fcntl(f,sysfault::F_GETFL);if(f<0 || sysfault::fcntl(f,sysfault::F_SETFL,4294967296)!=sysfault::RC_EINVAL || sysfault::fcntl(f,sysfault::F_GETFL)!=v || sysfault::fcntl(f,sysfault::F_SETFD,-4294967296)!=sysfault::RC_EINVAL) exit 1; }", HAWK_ENOERR, SYS | INT32_NARROW },
+	{ "sys-fcntl-value-overflow", "BEGIN {if(sysfault::pipe(f,w)!=0 || sysfault::fcntl(f,sysfault::F_SETFL,sysfault::O_NONBLOCK)!=0) exit 1;v=sysfault::fcntl(f,sysfault::F_GETFL);if(f<0 || sysfault::fcntl(f,sysfault::F_SETFL,4294967296)!=sysfault::RC_EINVAL || sysfault::fcntl(f,sysfault::F_GETFL)!=v || sysfault::fcntl(f,sysfault::F_SETFD,-4294967296)!=sysfault::RC_EINVAL || sysfault::close(f)!=0 || sysfault::close(w)!=0) exit 1; }", HAWK_ENOERR, SYS | INT32_NARROW },
 	{ "sys-flock-whence-overflow", "BEGIN {f=sysfault::open(\"/dev/null\",sysfault::O_RDWR);pid=999;if(f<0 || sysfault::flock(f,sysfault::FLOCK_READ|sysfault::FLOCK_GET,0,0,65536,pid)!=sysfault::RC_EINVAL || pid!=999 || sysprobe(\"flock-calls\")!=0) exit 1; }", HAWK_ENOERR, SYS },
 	{ "sys-flock-type-overflow", "BEGIN {f=sysfault::open(\"/dev/null\",sysfault::O_RDWR);if(f<0 || sysfault::flock(f,sysfault::FLOCK_WRITE+65536,0,0,sysfault::SEEK_SET)!=sysfault::RC_EINVAL || sysprobe(\"flock-calls\")!=0) exit 1; }", HAWK_ENOERR, SYS },
 	{ "sys-windows-socket-close", "BEGIN {s=sysfault::socket(sysfault::AF_INET,sysfault::SOCK_DGRAM,0);if(s<0 || sysfault::close(s)!=0 || sysprobe(\"socket-closed\")!=1) exit 1; }", HAWK_ENOERR, WIN_SYS },
@@ -1488,6 +1522,9 @@ static int run_case (const case_t* test, hawk_oow_t fail_after)
 	if (!hawk_addfncwithbcstr(hawk, "oversized_mbs", &spec)) goto done;
 	spec.impl = toint;
 	if (!hawk_addfncwithbcstr(hawk, "toint", &spec)) goto done;
+	spec.arg.min = spec.arg.max = 2;
+	spec.impl = waitstatus;
+	if (!hawk_addfncwithbcstr(hawk, "waitstatus", &spec)) goto done;
 	spec.arg.min = spec.arg.max = 4;
 	spec.arg.spec = "rvrv";
 	spec.impl = setpair;
@@ -1578,6 +1615,15 @@ int main (int argc, char** argv)
 	for (i = 0; i < HAWK_COUNTOF(cases); i++)
 	{
 		if (hawk_comp_bcstr(argv[1], cases[i].name, 0) != 0) continue;
+#if defined(__HAIKU__) && defined(__i386__)
+		/* This libc wraps extreme normalized dates into a successful timestamp
+		 * instead of reporting overflow. Keep testing Hawk's own field checks. */
+		if (cases[i].flags & MKTIME_EXTREME)
+		{
+			puts("Haiku i386 libc does not report extreme mktime() overflow");
+			return 77;
+		}
+#endif
 #if !defined(_WIN32) && !defined(__OS2__)
 		if (cases[i].flags & NATIVE_KILL) { puts("requires Windows or OS/2"); return 77; }
 #endif
