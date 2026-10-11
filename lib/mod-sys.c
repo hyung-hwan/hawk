@@ -27,6 +27,11 @@
 #include <hawk-fio.h>
 #include <hawk-pio.h>
 #include <hawk-dir.h>
+#include <hawk-mux.h>
+
+#if !defined(HAWK_SYS_NO_MUX)
+#	define USE_MUX
+#endif
 
 #if defined(_WIN32)
 #	include <winsock2.h>
@@ -50,12 +55,6 @@
 
 #	include "syscall.h"
 #	include <sys/utsname.h>
-#	if defined(HAVE_SYS_EPOLL_H)
-#		include <sys/epoll.h>
-#		if defined(HAVE_EPOLL_CREATE)
-#			define USE_EPOLL
-#		endif
-#	endif
 
 #	include <sys/socket.h>
 
@@ -260,7 +259,7 @@ struct sys_node_data_file_t
 	void* x_prev;
 	void* x_next;
 	hawk_uint32_t mux_events;
-#if defined(USE_EPOLL)
+#if defined(USE_MUX)
 	hawk_uint64_t mux_token;
 	int mux_armed;
 	int mux_registered;
@@ -273,9 +272,9 @@ typedef struct sys_node_data_file_t sys_node_data_file_t;
 
 struct sys_node_data_mux_t
 {
-#if defined(USE_EPOLL)
-	int fd;
-	struct epoll_event* x_evt;
+#if defined(USE_MUX)
+	hawk_mux_t* mux;
+	hawk_mux_evt_t* x_evt;
 	int rebuild_pending; /* repair before the next add/mod or wait */
 #endif
 	void* x_first;
@@ -304,7 +303,7 @@ struct sys_list_data_t
 	hawk_ooch_t errmsg[256];
 	hawk_ooch_t skadbuf[2][256];
 	hawk_oow_t openfd_count; /* live nodes created by openfd(), including invalidated ones */
-#if defined(USE_EPOLL)
+#if defined(USE_MUX)
 	hawk_uint32_t mux_generation; /* never reuse a registration generation */
 #endif
 };
@@ -348,31 +347,19 @@ struct rtx_data_t
 };
 enum mux_ctl_cmd_t
 {
-#if defined(USE_EPOLL)
-	MUX_CTL_ADD = EPOLL_CTL_ADD,
-	MUX_CTL_DEL = EPOLL_CTL_DEL,
-	MUX_CTL_MOD = EPOLL_CTL_MOD
-#else
-	MUX_CTL_ADD,
-	MUX_CTL_DEL,
-	MUX_CTL_MOD
-#endif
+	MUX_CTL_ADD = HAWK_MUX_ADD,
+	MUX_CTL_DEL = HAWK_MUX_DEL,
+	MUX_CTL_MOD = HAWK_MUX_MOD
 };
 typedef enum mux_ctl_cmd_t mux_ctl_cmd_t;
 
 enum mux_evt_code_t
 {
-#if defined(USE_EPOLL)
-	MUX_EVT_IN  = EPOLLIN,
-	MUX_EVT_OUT = EPOLLOUT,
-	MUX_EVT_ERR = EPOLLERR,
-	MUX_EVT_HUP = EPOLLHUP
-#else
-	MUX_EVT_IN  = (1 << 0),
-	MUX_EVT_OUT = (1 << 1),
-	MUX_EVT_ERR = (1 << 2),
-	MUX_EVT_HUP = (1 << 3)
-#endif
+	MUX_EVT_IN = HAWK_MUX_IN,
+	MUX_EVT_OUT = HAWK_MUX_OUT,
+	MUX_EVT_ERR = HAWK_MUX_ERR,
+	MUX_EVT_HUP = HAWK_MUX_HUP,
+	MUX_EVT_ONESHOT = HAWK_MUX_ONESHOT
 };
 
 #define MUX_FLAG_NOAUTODEL (1 << 0)
@@ -600,7 +587,7 @@ static sys_node_t* new_sys_node_dir (hawk_rtx_t* rtx, sys_list_t* list, hawk_dir
 	return node;
 }
 
-static sys_node_t* new_sys_node_mux (hawk_rtx_t* rtx, sys_list_t* list, int fd)
+static sys_node_t* new_sys_node_mux (hawk_rtx_t* rtx, sys_list_t* list, hawk_mux_t* mux)
 {
 	sys_node_t* node;
 
@@ -610,8 +597,8 @@ static sys_node_t* new_sys_node_mux (hawk_rtx_t* rtx, sys_list_t* list, int fd)
 	HAWK_MEMSET(&node->ctx, 0, HAWK_SIZEOF(node->ctx));
 	node->ctx.type = SYS_NODE_DATA_TYPE_MUX;
 	node->ctx.flags = 0;
-#if defined(USE_EPOLL)
-	node->ctx.u.mux.fd = fd;
+#if defined(USE_MUX)
+	node->ctx.u.mux.mux = mux;
 #endif
 	return node;
 }
@@ -650,7 +637,7 @@ static void unchain_sys_node_from_mux_node (sys_node_t* mux_node, sys_node_t* no
 	file_data->mux = HAWK_NULL;
 	file_data->x_prev = HAWK_NULL;
 	file_data->x_next = HAWK_NULL;
-#if defined(USE_EPOLL)
+#if defined(USE_MUX)
 	file_data->mux_token = 0;
 	file_data->mux_armed = 0;
 	file_data->mux_registered = 0;
@@ -663,73 +650,59 @@ static void nullify_mux_data (sys_node_data_mux_t* mux_data, sys_node_t* node)
 
 	for (i = 0; i < mux_data->x_evt_count; i++)
 	{
-	#if defined(USE_EPOLL)
-		if (mux_data->x_evt[i].data.u64 == node->ctx.u.file.mux_token)
+	#if defined(USE_MUX)
+		if (mux_data->x_evt[i].token == node->ctx.u.file.mux_token)
 		{
 			/* nullify the event in the event array to prevent normal access by sys::getmuxevt() */
-			mux_data->x_evt[i].data.u64 = 0;
+			mux_data->x_evt[i].token = 0;
 		}
 	#endif
 	}
 }
 
-#if defined(USE_EPOLL)
-static int open_epoll_fd (void)
+#if defined(USE_MUX)
+static hawk_int_t copy_mux_error_to_sys_list (hawk_rtx_t* rtx, sys_list_t* list, hawk_mux_t* mux, const hawk_ooch_t* context)
 {
-	int fd;
+	hawk_gem_t* gem = hawk_mux_getgem(mux);
 
-#if defined(HAVE_EPOLL_CREATE1) && defined(EPOLL_CLOEXEC)
-	fd = epoll_create1(EPOLL_CLOEXEC);
-#else
-	fd = epoll_create(4096);
-#if defined(FD_CLOEXEC)
-	if (fd >= 0)
-	{
-		int flags = fcntl(fd, F_GETFD);
-		if (flags <= -1 || fcntl(fd, F_SETFD, flags | FD_CLOEXEC) <= -1)
-		{
-			int err = errno;
-			close(fd);
-			errno = err;
-			return -1;
-		}
-	}
-#endif
-#endif
-	return fd;
+	return set_error_on_sys_list(rtx, list, hawk_gem_geterrnum(gem),
+		HAWK_T("%s%s%s"), context? context: HAWK_T(""), context? HAWK_T(" - "): HAWK_T(""), hawk_gem_geterrmsg(gem));
 }
 
 static int rebuild_mux (sys_node_t* mux_node)
 {
 	sys_node_data_mux_t* mux_data = &mux_node->ctx.u.mux;
+	hawk_mux_t* old = mux_data->mux;
+	hawk_gem_t* gem = hawk_mux_getgem(old);
+	hawk_mux_t* mux;
+	hawk_errinf_t errinf;
 	sys_node_t* node;
-	int fd;
 
 	HAWK_ASSERT(mux_data->rebuild_pending != 0);
 
-	fd = open_epoll_fd();
-	if (fd <= -1) return -1;
+	mux = hawk_mux_open(gem->mmgr, 0, gem->cmgr, hawk_mux_getbackend(old), &errinf);
+	if (!mux)
+	{
+		hawk_gem_seterrinf(gem, &errinf);
+		return -1;
+	}
 
 	for (node = mux_data->x_first; node; node = node->ctx.u.file.x_next)
 	{
-		struct epoll_event ev;
-
-		if (!node->ctx.u.file.mux_armed) continue; /* keep consumed one-shot watches disabled */
-		ev.events = node->ctx.u.file.mux_events;
-		ev.data.u64 = node->ctx.u.file.mux_token;
-		if (epoll_ctl(fd, MUX_CTL_ADD, node->ctx.u.file.fd, &ev) <= -1)
+		if (!node->ctx.u.file.mux_armed) continue;
+		if (hawk_mux_ctl(mux, HAWK_MUX_ADD, SYS_NODE_SOCKET(node),
+			node->ctx.u.file.mux_events, node->ctx.u.file.mux_token) <= -1)
 		{
-			int err = errno;
-			close(fd);
-			errno = err;
+			hawk_gem_geterrinf(hawk_mux_getgem(mux), &errinf);
+			hawk_mux_close(mux, HAWK_NULL);
+			hawk_gem_seterrinf(gem, &errinf);
 			return -1;
 		}
 	}
 
-	/* only discard the old instance after every remaining watch is installed.
-	 * on failure, callers must not wait on the instance still needing repair. */
-	if (mux_data->fd >= 0) close(mux_data->fd);
-	mux_data->fd = fd;
+	/* Replace only after all remaining armed watches have been installed. */
+	hawk_mux_close(old, HAWK_NULL);
+	mux_data->mux = mux;
 	mux_data->rebuild_pending = 0;
 	for (node = mux_data->x_first; node; node = node->ctx.u.file.x_next)
 		node->ctx.u.file.mux_registered = node->ctx.u.file.mux_armed;
@@ -753,30 +726,23 @@ static sys_node_t* resolve_mux_token (sys_list_t* list, sys_node_t* mux_node, ha
 static int del_from_mux (hawk_rtx_t* rtx, sys_node_t* fd_node, int force)
 {
 	int rx = 0;
-#if defined(USE_EPOLL)
-	int saved_errno = 0;
-#endif
 
 	/* force overrides the registration's cleanup policy for explicit deletion.
 	 * local membership and cached events are always released. */
 	if (fd_node->ctx.flags & SYS_NODE_DATA_FLAG_IN_MUX)
 	{
 		sys_node_t* mux_node;
-	#if defined(USE_EPOLL)
-		struct epoll_event ev;
-	#endif
 
 		switch (fd_node->ctx.type)
 		{
 			case SYS_NODE_DATA_TYPE_FILE:
 			case SYS_NODE_DATA_TYPE_SCK:
 				mux_node = (sys_node_t*)fd_node->ctx.u.file.mux;
-			#if defined(USE_EPOLL)
+			#if defined(USE_MUX)
 				if (fd_node->ctx.u.file.mux_registered &&
 				    (force || !(fd_node->ctx.flags & SYS_NODE_DATA_FLAG_MUX_NOAUTODEL)) &&
-				    epoll_ctl(mux_node->ctx.u.mux.fd, MUX_CTL_DEL, fd_node->ctx.u.file.fd, &ev) <= -1)
+				    hawk_mux_ctl(mux_node->ctx.u.mux.mux, HAWK_MUX_DEL, SYS_NODE_SOCKET(fd_node), 0, 0) <= -1)
 				{
-					saved_errno = errno;
 					rx = -1;
 					mux_node->ctx.u.mux.rebuild_pending = 1;
 				}
@@ -792,9 +758,6 @@ static int del_from_mux (hawk_rtx_t* rtx, sys_node_t* fd_node, int force)
 		}
 	}
 
-#if defined(USE_EPOLL)
-	if (rx <= -1) errno = saved_errno;
-#endif
 	return rx;
 }
 
@@ -841,7 +804,7 @@ static int close_shared_sys_fd (hawk_rtx_t* rtx, sys_list_t* list, int fd)
 
 static void replace_sys_fd_node (hawk_rtx_t* rtx, sys_node_t* node, sys_node_data_type_t type)
 {
-#if defined(USE_EPOLL)
+#if defined(USE_MUX)
 	if (node->ctx.flags & SYS_NODE_DATA_FLAG_IN_MUX)
 	{
 		sys_node_t* mux_node = node->ctx.u.file.mux;
@@ -931,13 +894,15 @@ static hawk_int_t free_sys_node (hawk_rtx_t* rtx, sys_list_t* list, sys_node_t* 
 			break;
 
 		case SYS_NODE_DATA_TYPE_MUX:
-		#if defined(USE_EPOLL)
+		#if defined(USE_MUX)
 			purge_mux_members(rtx, node);
-			if (node->ctx.u.mux.fd >= 0)
+			if (node->ctx.u.mux.mux)
 			{
-				if (close(node->ctx.u.mux.fd) <= -1 && report_error)
-					rx = set_error_on_sys_list_with_errno(rtx, list, HAWK_T("unable to close multiplexer"));
-				node->ctx.u.mux.fd = -1;
+				hawk_errinf_t errinf;
+
+				if (hawk_mux_close(node->ctx.u.mux.mux, &errinf) <= -1 && report_error)
+					rx = set_error_on_sys_list(rtx, list, errinf.num, HAWK_T("unable to close multiplexer - %s"), errinf.msg);
+				node->ctx.u.mux.mux = HAWK_NULL;
 			}
 			if (node->ctx.u.mux.x_evt)
 			{
@@ -5234,37 +5199,31 @@ static int fnc_utime (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 static int fnc_openmux (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	sys_list_t* sys_list;
-	sys_node_t* sys_node = HAWK_NULL;
 	hawk_int_t rx;
-	int fd;
 
 	sys_list = rtx_to_sys_list(rtx, fi);
-
-#if defined(USE_EPOLL)
-	fd = open_epoll_fd();
-
-	if (fd >= 0)
+#if defined(USE_MUX)
 	{
-		sys_node = new_sys_node_mux(rtx, sys_list, fd);
-		if (sys_node)
-		{
-			rx = sys_node->id;
-		}
+		hawk_mux_t* mux;
+		hawk_errinf_t errinf;
+		sys_node_t* node;
+
+		mux = hawk_mux_open(hawk_rtx_getmmgr(rtx), 0, hawk_rtx_getcmgr(rtx), HAWK_MUX_BACKEND_AUTO, &errinf);
+		if (!mux) rx = set_error_on_sys_list(rtx, sys_list, errinf.num, HAWK_T("%s"), errinf.msg);
 		else
 		{
-			close(fd);
-			rx = copy_error_to_sys_list(rtx, sys_list);
+			node = new_sys_node_mux(rtx, sys_list, mux);
+			if (node) rx = node->id;
+			else
+			{
+				rx = copy_error_to_sys_list(rtx, sys_list);
+				hawk_mux_close(mux, HAWK_NULL);
+			}
 		}
-	}
-	else
-	{
-		rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
 	}
 #else
 	rx = set_error_on_sys_list(rtx, sys_list, HAWK_ENOIMPL, HAWK_NULL);
 #endif
-
-	/*HAWK_ASSERT(HAWK_IN_INT_RANGE(rx));*/
 	hawk_rtx_setretval(rtx, hawk_rtx_makeintval_inline(rtx, rx));
 	return 0;
 }
@@ -5284,8 +5243,8 @@ static int fnc_closemux (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	return 0;
 }
 
-#if defined(USE_EPOLL)
-static HAWK_INLINE int ctl_epoll_for_fnc (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, mux_ctl_cmd_t cmd)
+#if defined(USE_MUX)
+static HAWK_INLINE int ctl_mux_for_fnc (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, mux_ctl_cmd_t cmd)
 {
 	sys_list_t* sys_list;
 	sys_node_t* sys_node, * sys_node2;
@@ -5302,8 +5261,9 @@ static HAWK_INLINE int ctl_epoll_for_fnc (hawk_rtx_t* rtx, const hawk_fnc_info_t
 			SYS_NODE_DATA_TYPE_FILE | SYS_NODE_DATA_TYPE_SCK, &rx); /* handle to the target */
 		if (sys_node2)
 		{
-			struct epoll_event ev;
-			int evfd, kernel_cmd;
+			hawk_mux_evt_t ev;
+			hawk_mux_hnd_t evfd;
+			int kernel_cmd;
 			hawk_int_t flags = 0;
 
 			if (cmd == MUX_CTL_DEL)
@@ -5314,7 +5274,7 @@ static HAWK_INLINE int ctl_epoll_for_fnc (hawk_rtx_t* rtx, const hawk_fnc_info_t
 					goto done;
 				}
 				if (del_from_mux(rtx, sys_node2, 1) <= -1)
-					rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_T("unable to delete multiplexer registration"));
+					rx = copy_mux_error_to_sys_list(rtx, sys_list, sys_node->ctx.u.mux.mux, HAWK_T("unable to delete multiplexer registration"));
 				goto done;
 			}
 			else
@@ -5348,8 +5308,8 @@ static HAWK_INLINE int ctl_epoll_for_fnc (hawk_rtx_t* rtx, const hawk_fnc_info_t
 					goto done;
 				}
 
-				ev.events = (hawk_uint32_t)events;
-				ev.events &= ~EPOLLET; /* disable edge trigger if set */
+				ev.mask = (hawk_uint32_t)events;
+				ev.mask &= ~(hawk_uint32_t)0x80000000; /* disable edge trigger if set */
 
 				if (cmd == MUX_CTL_MOD)
 				{
@@ -5376,7 +5336,7 @@ static HAWK_INLINE int ctl_epoll_for_fnc (hawk_rtx_t* rtx, const hawk_fnc_info_t
 
 			if (sys_node->ctx.u.mux.rebuild_pending && rebuild_mux(sys_node) <= -1)
 			{
-				rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_T("unable to rebuild multiplexer"));
+				rx = copy_mux_error_to_sys_list(rtx, sys_list, sys_node->ctx.u.mux.mux, HAWK_T("unable to rebuild multiplexer"));
 				goto done;
 			}
 
@@ -5388,15 +5348,22 @@ static HAWK_INLINE int ctl_epoll_for_fnc (hawk_rtx_t* rtx, const hawk_fnc_info_t
 					rx = set_error_on_sys_list(rtx, sys_list, HAWK_ENOMEM, HAWK_T("multiplexer registration counter exhausted"));
 					goto done;
 				}
-				ev.data.u64 = ((hawk_uint64_t)++sys_list->ctx.mux_generation << 32) | (hawk_uint32_t)sys_node2->id;
+				ev.token = ((hawk_uint64_t)++sys_list->ctx.mux_generation << 32) | (hawk_uint32_t)sys_node2->id;
 			}
-			else ev.data.u64 = sys_node2->ctx.u.file.mux_token;
+			else ev.token = sys_node2->ctx.u.file.mux_token;
 
 			switch (sys_node2->ctx.type)
 			{
 				case SYS_NODE_DATA_TYPE_FILE:
 				case SYS_NODE_DATA_TYPE_SCK:
-					evfd = sys_node2->ctx.u.file.fd;
+				#if defined(_WIN32)
+					if (sys_node2->ctx.type != SYS_NODE_DATA_TYPE_SCK)
+					{
+						rx = set_error_on_sys_list(rtx, sys_list, HAWK_ENOIMPL, HAWK_T("Windows mux requires a socket"));
+						goto done;
+					}
+				#endif
+					evfd = SYS_NODE_SOCKET(sys_node2);
 					break;
 
 				default:
@@ -5406,9 +5373,9 @@ static HAWK_INLINE int ctl_epoll_for_fnc (hawk_rtx_t* rtx, const hawk_fnc_info_t
 			}
 
 			kernel_cmd = (cmd == MUX_CTL_MOD && !sys_node2->ctx.u.file.mux_registered)? MUX_CTL_ADD: cmd;
-			if (epoll_ctl(sys_node->ctx.u.mux.fd, kernel_cmd, evfd, &ev) <= -1)
+			if (hawk_mux_ctl(sys_node->ctx.u.mux.mux, (hawk_mux_cmd_t)kernel_cmd, evfd, ev.mask, ev.token) <= -1)
 			{
-				rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
+				rx = copy_mux_error_to_sys_list(rtx, sys_list, sys_node->ctx.u.mux.mux, HAWK_NULL);
 			}
 			else
 			{
@@ -5422,12 +5389,12 @@ static HAWK_INLINE int ctl_epoll_for_fnc (hawk_rtx_t* rtx, const hawk_fnc_info_t
 						{
 							case MUX_CTL_ADD:
 								if (flags & MUX_FLAG_NOAUTODEL) sys_node2->ctx.flags |= SYS_NODE_DATA_FLAG_MUX_NOAUTODEL;
-								sys_node2->ctx.u.file.mux_token = ev.data.u64;
-								sys_node2->ctx.u.file.mux_events = ev.events;
+								sys_node2->ctx.u.file.mux_token = ev.token;
+								sys_node2->ctx.u.file.mux_events = ev.mask;
 								chain_sys_node_to_mux_node (sys_node, sys_node2);
 								break;
 							case MUX_CTL_MOD:
-								sys_node2->ctx.u.file.mux_events = ev.events;
+								sys_node2->ctx.u.file.mux_events = ev.mask;
 								break;
 
 							default:
@@ -5454,8 +5421,8 @@ done:
 
 static int fnc_addtomux (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
-#if defined(USE_EPOLL)
-	return ctl_epoll_for_fnc(rtx, fi, MUX_CTL_ADD);
+#if defined(USE_MUX)
+	return ctl_mux_for_fnc(rtx, fi, MUX_CTL_ADD);
 #else
 	hawk_int_t rx;
 
@@ -5467,8 +5434,8 @@ static int fnc_addtomux (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 static int fnc_delfrommux (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
-#if defined(USE_EPOLL)
-	return ctl_epoll_for_fnc(rtx, fi, MUX_CTL_DEL);
+#if defined(USE_MUX)
+	return ctl_mux_for_fnc(rtx, fi, MUX_CTL_DEL);
 #else
 	hawk_int_t rx;
 
@@ -5480,8 +5447,8 @@ static int fnc_delfrommux (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 static int fnc_modinmux (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
-#if defined(USE_EPOLL)
-	return ctl_epoll_for_fnc(rtx, fi, MUX_CTL_MOD);
+#if defined(USE_MUX)
+	return ctl_mux_for_fnc(rtx, fi, MUX_CTL_MOD);
 #else
 	hawk_int_t rx;
 
@@ -5493,7 +5460,7 @@ static int fnc_modinmux (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 static int fnc_waitonmux (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
-#if defined(USE_EPOLL)
+#if defined(USE_MUX)
 	sys_list_t* sys_list;
 	sys_node_t* sys_node;
 	hawk_int_t rx = ERRNUM_TO_RC(HAWK_ENOERR);
@@ -5511,10 +5478,9 @@ static int fnc_waitonmux (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			rx = copy_error_to_sys_list(rtx, sys_list);
 			goto done;
 		}
-		if (tmout.sec < 0) { tmout.sec = 0; tmout.nsec = HAWK_MSEC_TO_NSEC(-1); }
-		else if (tmout.sec > HAWK_TYPE_MAX(int) / HAWK_MSECS_PER_SEC ||
+		if (tmout.sec >= 0 && (tmout.sec > HAWK_TYPE_MAX(int) / HAWK_MSECS_PER_SEC ||
 		         (tmout.sec == HAWK_TYPE_MAX(int) / HAWK_MSECS_PER_SEC &&
-		          HAWK_NSEC_TO_MSEC(tmout.nsec) > HAWK_TYPE_MAX(int) % HAWK_MSECS_PER_SEC))
+		          HAWK_NSEC_TO_MSEC(tmout.nsec) > HAWK_TYPE_MAX(int) % HAWK_MSECS_PER_SEC)))
 		{
 			rx = set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_T("mux timeout too large"));
 			goto done;
@@ -5522,7 +5488,7 @@ static int fnc_waitonmux (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 		if (mux_data->x_evt_max == 0 || mux_data->x_evt_max < mux_data->x_count)
 		{
-			struct epoll_event* tmp;
+			hawk_mux_evt_t* tmp;
 
 			tmp = hawk_rtx_reallocmem(rtx, mux_data->x_evt, HAWK_SIZEOF(*tmp) * HAWK_ALIGN(mux_data->x_count + 1, 64));
 			if (HAWK_UNLIKELY(!tmp))
@@ -5540,13 +5506,13 @@ static int fnc_waitonmux (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 		if (mux_data->rebuild_pending && rebuild_mux(sys_node) <= -1)
 		{
-			rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_T("unable to rebuild multiplexer"));
+			rx = copy_mux_error_to_sys_list(rtx, sys_list, sys_node->ctx.u.mux.mux, HAWK_T("unable to rebuild multiplexer"));
 			goto done;
 		}
 
-		if ((rx = epoll_wait(sys_node->ctx.u.mux.fd, mux_data->x_evt, mux_data->x_evt_max, HAWK_SECNSEC_TO_MSEC(tmout.sec, tmout.nsec))) <= -1)
+		if ((rx = hawk_mux_wait(mux_data->mux, mux_data->x_evt, mux_data->x_evt_max, tmout.sec < 0? HAWK_NULL: &tmout)) <= -1)
 		{
-			rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
+			rx = copy_mux_error_to_sys_list(rtx, sys_list, mux_data->mux, HAWK_NULL);
 		}
 		else
 		{
@@ -5554,13 +5520,11 @@ static int fnc_waitonmux (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 			for (i = 0; i < (hawk_oow_t)rx; i++)
 			{
-				sys_node_t* node = resolve_mux_token(sys_list, sys_node, mux_data->x_evt[i].data.u64);
+				sys_node_t* node = resolve_mux_token(sys_list, sys_node, mux_data->x_evt[i].token);
 
 				if (node)
 				{
-				#if defined(EPOLLONESHOT)
-					if (node->ctx.u.file.mux_events & EPOLLONESHOT) node->ctx.u.file.mux_armed = 0;
-				#endif
+					if (node->ctx.u.file.mux_events & HAWK_MUX_ONESHOT) node->ctx.u.file.mux_armed = 0;
 					if (count != i) mux_data->x_evt[count] = mux_data->x_evt[i];
 					count++;
 				}
@@ -5585,7 +5549,7 @@ done:
 
 static int fnc_getmuxevt (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
-#if defined(USE_EPOLL)
+#if defined(USE_MUX)
 	sys_list_t* sys_list;
 	sys_node_t* sys_node;
 	hawk_int_t rx = ERRNUM_TO_RC(HAWK_ENOERR);
@@ -5614,7 +5578,7 @@ static int fnc_getmuxevt (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			goto done;
 		}
 
-		file_node = resolve_mux_token(sys_list, sys_node, mux_data->x_evt[index].data.u64);
+		file_node = resolve_mux_token(sys_list, sys_node, mux_data->x_evt[index].token);
 		if (!file_node)
 		{
 			/* has it been closed before it's retrieved with sys::getmuxevt()? */
@@ -5623,10 +5587,10 @@ static int fnc_getmuxevt (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		}
 
 		HAWK_ASSERT(HAWK_IN_INT_RANGE(file_node->id));
-		HAWK_ASSERT(HAWK_IN_INT_RANGE(mux_data->x_evt[index].events));
+		HAWK_ASSERT(HAWK_IN_INT_RANGE(mux_data->x_evt[index].mask));
 		x = set_sys_output_pair(rtx,
 			(hawk_val_ref_t*)hawk_rtx_getarg(rtx, 2), file_node->id,
-			(hawk_val_ref_t*)hawk_rtx_getarg(rtx, 3), mux_data->x_evt[index].events);
+			(hawk_val_ref_t*)hawk_rtx_getarg(rtx, 3), mux_data->x_evt[index].mask);
 		if (x <= -1) goto fail;
 	}
 
@@ -8312,6 +8276,7 @@ static hawk_mod_int_tab_t inttab[] =
 	{ HAWK_T("MUX_EVT_ERR"),        { MUX_EVT_ERR } },
 	{ HAWK_T("MUX_EVT_HUP"),        { MUX_EVT_HUP } },
 	{ HAWK_T("MUX_EVT_IN"),         { MUX_EVT_IN } },
+	{ HAWK_T("MUX_EVT_ONESHOT"),    { MUX_EVT_ONESHOT } },
 	{ HAWK_T("MUX_EVT_OUT"),        { MUX_EVT_OUT } },
 	{ HAWK_T("MUX_FLAG_NOAUTODEL"), { MUX_FLAG_NOAUTODEL } },
 

@@ -22075,6 +22075,12 @@ then :
   printf "%s\n" "#define HAVE_SYS_EVENT_H 1" >>confdefs.h
 
 fi
+ac_fn_c_check_header_compile "$LINENO" "sys/select.h" "ac_cv_header_sys_select_h" "$ac_includes_default"
+if test "x$ac_cv_header_sys_select_h" = xyes
+then :
+  printf "%s\n" "#define HAVE_SYS_SELECT_H 1" >>confdefs.h
+
+fi
 
 ac_fn_c_check_header_compile "$LINENO" "netinet/in.h" "ac_cv_header_netinet_in_h" "
 	#include <sys/types.h>
@@ -22368,6 +22374,12 @@ then :
   printf "%s\n" "#define HAVE_SELECT 1" >>confdefs.h
 
 fi
+ac_fn_c_check_func "$LINENO" "poll" "ac_cv_func_poll"
+if test "x$ac_cv_func_poll" = xyes
+then :
+  printf "%s\n" "#define HAVE_POLL 1" >>confdefs.h
+
+fi
 
 ac_fn_c_check_func "$LINENO" "sigaction" "ac_cv_func_sigaction"
 if test "x$ac_cv_func_sigaction" = xyes
@@ -22477,6 +22489,12 @@ ac_fn_c_check_func "$LINENO" "kqueue1" "ac_cv_func_kqueue1"
 if test "x$ac_cv_func_kqueue1" = xyes
 then :
   printf "%s\n" "#define HAVE_KQUEUE1 1" >>confdefs.h
+
+fi
+ac_fn_c_check_func "$LINENO" "kevent" "ac_cv_func_kevent"
+if test "x$ac_cv_func_kevent" = xyes
+then :
+  printf "%s\n" "#define HAVE_KEVENT 1" >>confdefs.h
 
 fi
 

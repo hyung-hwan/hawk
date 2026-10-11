@@ -1420,5 +1420,15 @@ static int test_file_close (int fd)
 #define timelocal test_mktime
 #define hawk_pio_waitex test_pio_waitex
 #define hawk_rtx_makeintval_inline test_makeintval
+/* Keep the mux syscall fault injection after moving OS operations out of
+ * mod-sys.c. This private copy exercises the same standalone implementation. */
+#define hawk_mux_open hawk_test_mux_open
+#define hawk_mux_close hawk_test_mux_close
+#define hawk_mux_getgem hawk_test_mux_getgem
+#define hawk_mux_getxtn hawk_test_mux_getxtn
+#define hawk_mux_getbackend hawk_test_mux_getbackend
+#define hawk_mux_ctl hawk_test_mux_ctl
+#define hawk_mux_wait hawk_test_mux_wait
+#include "../lib/mux.c"
 #define hawk_mod_sys hawk_test_mod_sys_fault
 #include "../lib/mod-sys.c"

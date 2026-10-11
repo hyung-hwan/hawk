@@ -11,6 +11,7 @@
 /* Include native headers before undefining their wait-status macros, so the
  * module's subsequent includes don't restore them. */
 #undef HAVE_EPOLL_CREATE
+#define HAWK_SYS_NO_MUX
 #undef WIFEXITED
 #undef WEXITSTATUS
 #undef WIFSIGNALED

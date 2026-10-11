@@ -1564,11 +1564,31 @@ BEGIN {
 }
 ```
 
+#### I/O multiplexing
+
+`sys::openmux()` selects epoll, kqueue, poll, or select, in that order of
+availability. Add handles with `sys::addtomux(m, handle, events)`, wait with
+`sys::waitonmux(m, timeout_seconds)`, and retrieve each event using
+`sys::getmuxevt(m, index, handle, events)`. A negative timeout waits indefinitely;
+zero polls without blocking. `sys::modinmux()` changes a watch and
+`sys::delfrommux()` removes it. Close the instance with `sys::closemux()`.
+
+Use `sys::MUX_EVT_IN` and `sys::MUX_EVT_OUT` for readiness. Add
+`sys::MUX_EVT_ONESHOT` to disable a registration after its first event; modify
+it to rearm. Error and hangup events are reported where the backend supports
+them. Select reports EOF as readable input. On Windows, only sockets can be
+watched; POSIX select rejects descriptors at or above `FD_SETSIZE`.
+
+The standalone C interface is in `hawk-mux.h`. It accepts Hawk memory and
+character managers, an extension size, and an optional explicit backend
+selection. Events contain copied 64-bit registration tokens rather than
+pointers into the interpreter's handle table.
+
 #### Multiplexer cleanup and fork
 
 `sys::addtomux(mux, handle, events, flags)` accepts an optional fourth argument,
 defaulting to zero. `sys::MUX_FLAG_NOAUTODEL` makes Hawk skip automatic
-`EPOLL_CTL_DEL` when closing the watched handle, closing the mux, or cleaning
+native watch deletion when closing the watched handle, closing the mux, or cleaning
 up the runtime. Local membership and cached events are still cleared.
 `sys::modinmux()` preserves this setting; `sys::delfrommux()` explicitly deletes
 the registration regardless of the flag. Unknown flag bits are rejected.
@@ -1582,13 +1602,17 @@ the multiplexer without the deleted registration.
 sys::addtomux(m, fd, sys::MUX_EVT_IN, sys::MUX_FLAG_NOAUTODEL);
 ```
 
-After `sys::fork()`, inherited multiplexer instances remain shared. Set this flag
+After `sys::fork()`, inherited epoll instances remain shared. Set this flag
 before forking if child cleanup must leave the parent's watches alone.
 Without it, child cleanup can delete shared registrations and stop the parent
 receiving their events. Explicit deletion and one-shot rearming also affect
 the shared instance. Cached events and handle tables are copied per process;
 coordinate inherited mux use, or create separate muxes after forking for
 independent registrations.
+
+Other backends follow their native inheritance rules: poll/select watch tables
+are copied into the child, and kqueue descriptors are not inherited on systems
+such as FreeBSD. Create a new mux in the child when using those backends.
 
 The flag does not keep descriptors open: use `sys::C_KEEPFD` with `sys::close()`
 for that. Kernel descriptor-lifetime rules still apply, and stale-event repair

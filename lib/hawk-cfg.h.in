@@ -241,6 +241,9 @@
 /* Define to 1 if you have the 'isatty' function. */
 #undef HAVE_ISATTY
 
+/* Define to 1 if you have the 'kevent' function. */
+#undef HAVE_KEVENT
+
 /* Define to 1 if you have the 'kqueue' function. */
 #undef HAVE_KQUEUE
 
@@ -345,6 +348,9 @@
 
 /* Define to 1 if you have the 'pipe2' function. */
 #undef HAVE_PIPE2
+
+/* Define to 1 if you have the 'poll' function. */
+#undef HAVE_POLL
 
 /* Define to 1 if you have the <poll.h> header file. */
 #undef HAVE_POLL_H
@@ -593,6 +599,9 @@
 
 /* Define to 1 if you have the <sys/resource.h> header file. */
 #undef HAVE_SYS_RESOURCE_H
+
+/* Define to 1 if you have the <sys/select.h> header file. */
+#undef HAVE_SYS_SELECT_H
 
 /* Define to 1 if you have the <sys/stat.h> header file. */
 #undef HAVE_SYS_STAT_H

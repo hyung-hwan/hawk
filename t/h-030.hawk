@@ -1,0 +1,61 @@
+@pragma entry main
+@pragma implicit off
+
+@include "tap.inc";
+
+function main(    m, a, b, c, d, rc, id, events, input)
+{
+	m = sys::openmux();
+	if (m == sys::RC_ENOIMPL)
+	{
+		tap_skip("no multiplexer backend");
+		tap_end();
+		return;
+	}
+	tap_ensure(m >= 0, 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sys::pipe(a, b), 0, @SCRIPTNAME, @SCRIPTLINE);
+	rc = sys::addtomux(m, a, sys::MUX_EVT_IN);
+	if (rc == sys::RC_ENOIMPL)
+	{
+		tap_skip("backend supports sockets only");
+		sys::close(a);
+		sys::close(b);
+		sys::closemux(m);
+		tap_end();
+		return;
+	}
+	tap_ensure(rc, 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sys::waitonmux(m, 0), 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sys::write(b, @b"abc"), 3, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sys::waitonmux(m, 0), 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sys::getmuxevt(m, 0, id, events), 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(id, a, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(events & sys::MUX_EVT_IN, sys::MUX_EVT_IN, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sys::read(a, input, 3), 3, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(input, @b"abc", @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sys::modinmux(m, a, sys::MUX_EVT_IN | sys::MUX_EVT_ONESHOT), 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sys::write(b, @b"x"), 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sys::waitonmux(m, 0), 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sys::waitonmux(m, 0), 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sys::modinmux(m, a, sys::MUX_EVT_IN | sys::MUX_EVT_ONESHOT), 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sys::waitonmux(m, 0), 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sys::pipe(c, d), 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sys::addtomux(m, c, sys::MUX_EVT_IN), 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sys::close(a), 0, @SCRIPTNAME, @SCRIPTLINE);
+	id = 41;
+	events = 42;
+	tap_ensure(sys::getmuxevt(m, 0, id, events), sys::RC_ENOENT, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(id, 41, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(events, 42, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sys::write(d, @b"new"), 3, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sys::waitonmux(m, 0), 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sys::getmuxevt(m, 0, id, events), 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(id, c, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sys::delfrommux(m, c), 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sys::waitonmux(m, 0), 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sys::closemux(m), 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sys::close(b), 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sys::close(c), 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sys::close(d), 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_end();
+}
