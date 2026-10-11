@@ -499,6 +499,66 @@ static void copy_bcstr_to_oocstr (hawk_rtx_t* rtx, hawk_ooch_t* buf, hawk_oow_t 
 
 /* ------------------------------------------------------------------------ */
 
+enum sys_output_result_t
+{
+	SYS_OUTPUT_OK = 0,
+	SYS_OUTPUT_ERROR = -1,
+	SYS_OUTPUT_ROLLBACK_ERROR = -2
+};
+
+static int set_sys_output_pair (hawk_rtx_t* rtx, hawk_val_ref_t* ref1, hawk_int_t num1, hawk_val_ref_t* ref2, hawk_int_t num2)
+{
+	hawk_val_t* val1, * val2, * old1;
+	hawk_errinf_t errinf;
+	int rx = SYS_OUTPUT_ERROR;
+
+	val1 = hawk_rtx_makeintval_inline(rtx, num1);
+	if (HAWK_UNLIKELY(!val1)) return SYS_OUTPUT_ERROR;
+
+	hawk_rtx_refupval_inline(rtx, val1);
+	val2 = hawk_rtx_makeintval_inline(rtx, num2);
+	if (HAWK_UNLIKELY(!val2))
+	{
+		hawk_rtx_refdownval_inline(rtx, val1);
+		return SYS_OUTPUT_ERROR;
+	}
+	hawk_rtx_refupval_inline(rtx, val2);
+
+	/* retain the original value until both output assignments succeed. */
+	old1 = hawk_rtx_getrefval(rtx, ref1);
+	hawk_rtx_refupval_inline(rtx, old1);
+
+
+	/* the challenge is to update two reference values with new values.
+	 * when the second one fails, it should restore the first reference
+	 * to the original value. otherwise, the value remains stale */
+	if (hawk_rtx_setrefval(rtx, ref1, val1) <= -1) goto fail;
+	if (hawk_rtx_setrefval(rtx, ref2, val2) <= -1)
+	{
+		hawk_rtx_geterrinf(rtx, &errinf);
+		/* a built-in destination may allocate while restoring its cached state.
+		 * stop the runtime if restoration fails; don't let a script continue
+		 * stale value in the first reference. the calling handler must return
+		 * failure when this function returns SYS_OUTPUT_ROLLBACK_ERROR. */
+		if (hawk_rtx_setrefval(rtx, ref1, old1) <= -1) rx = SYS_OUTPUT_ROLLBACK_ERROR;
+		goto release;
+	}
+
+	hawk_rtx_refdownval_inline(rtx, old1);
+	hawk_rtx_refdownval_inline(rtx, val2);
+	hawk_rtx_refdownval_inline(rtx, val1);
+	return SYS_OUTPUT_OK;
+
+fail:
+	hawk_rtx_geterrinf(rtx, &errinf);
+release:
+	hawk_rtx_refdownval_inline(rtx, old1);
+	hawk_rtx_refdownval_inline(rtx, val2);
+	hawk_rtx_refdownval_inline(rtx, val1);
+	hawk_rtx_seterrinf(rtx, &errinf);
+	return rx;
+}
+
 static void mark_shared_sys_fd (sys_list_t* list, sys_node_t* node)
 {
 	hawk_oow_t i;
@@ -2324,6 +2384,7 @@ static int fnc_pipe (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_int_t rx;
 	int fds[2];
 	hawk_int_t flags = 0;
+	int status = 0;
 
 	sys_list = rtx_to_sys_list(rtx, fi);
 
@@ -2399,23 +2460,16 @@ static int fnc_pipe (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		node2 = new_sys_node_fd(rtx, sys_list, fds[1], 0);
 		if (node1 && node2)
 		{
-			hawk_val_t* v;
 			int x;
 
-			v = hawk_rtx_makeintval_inline(rtx, node1->id);
-			if (!v) goto fail;
-
-			hawk_rtx_refupval_inline(rtx, v);
-			x = hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, 0), v);
-			hawk_rtx_refdownval_inline(rtx, v);
-			if (x <= -1) goto fail;
-
-			v = hawk_rtx_makeintval_inline(rtx, node2->id);
-			if (!v) goto fail;
-			hawk_rtx_refupval_inline(rtx, v);
-			x = hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, 1), v);
-			hawk_rtx_refdownval_inline(rtx, v);
-			if (x <= -1) goto fail;
+			x = set_sys_output_pair(rtx,
+				(hawk_val_ref_t*)hawk_rtx_getarg(rtx, 0), node1->id,
+				(hawk_val_ref_t*)hawk_rtx_getarg(rtx, 1), node2->id);
+			if (x != SYS_OUTPUT_OK)
+			{
+				if (x == SYS_OUTPUT_ROLLBACK_ERROR) status = -1;
+				goto fail;
+			}
 
 			/* successful so far */
 			rx =  ERRNUM_TO_RC(HAWK_ENOERR);
@@ -2446,6 +2500,7 @@ static int fnc_pipe (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 #endif
 
 done:
+	if (status <= -1) return -1;
 	hawk_rtx_setretval(rtx, hawk_rtx_makeintval_inline(rtx, rx));
 	return 0;
 }
@@ -5578,12 +5633,12 @@ static int fnc_getmuxevt (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		}
 
 		HAWK_ASSERT(HAWK_IN_INT_RANGE(file_node->id));
-		x = hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, 2), hawk_rtx_makeintval_inline(rtx, file_node->id));
-		if (x <= -1) goto fail;
-
 		HAWK_ASSERT(HAWK_IN_INT_RANGE(mux_data->x_evt[index].events));
-		x = hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, 3), hawk_rtx_makeintval_inline(rtx, mux_data->x_evt[index].events));
-		if (x <= -1) goto fail;
+		x = set_sys_output_pair(rtx,
+			(hawk_val_ref_t*)hawk_rtx_getarg(rtx, 2), file_node->id,
+			(hawk_val_ref_t*)hawk_rtx_getarg(rtx, 3), mux_data->x_evt[index].events);
+		if (x == SYS_OUTPUT_ROLLBACK_ERROR) return -1;
+		if (x != SYS_OUTPUT_OK) goto fail;
 	}
 
 done:
