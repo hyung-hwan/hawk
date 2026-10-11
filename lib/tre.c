@@ -34,23 +34,23 @@ hawk_tre_t* hawk_tre_open (hawk_gem_t* gem, hawk_oow_t xtnsize)
 
 	if (hawk_tre_init(tre, gem) <= -1)
 	{
-		hawk_gem_freemem (gem, tre);
+		hawk_gem_freemem(gem, tre);
 		return HAWK_NULL;
 	}
 
-	HAWK_MEMSET (tre + 1, 0, xtnsize);
+	HAWK_MEMSET(tre + 1, 0, xtnsize);
 	return tre;
 }
 
 void hawk_tre_close (hawk_tre_t* tre)
 {
-	hawk_tre_fini (tre);
-	hawk_gem_freemem (tre->gem, tre);
+	hawk_tre_fini(tre);
+	hawk_gem_freemem(tre->gem, tre);
 }
 
 int hawk_tre_init (hawk_tre_t* tre, hawk_gem_t* gem)
 {
-	HAWK_MEMSET (tre, 0, HAWK_SIZEOF(*tre));
+	HAWK_MEMSET(tre, 0, HAWK_SIZEOF(*tre));
 	tre->gem = gem;
 	return 0;
 }
@@ -59,7 +59,7 @@ void hawk_tre_fini (hawk_tre_t* tre)
 {
 	if (tre->TRE_REGEX_T_FIELD)
 	{
-		tre_free (tre);
+		tre_free(tre);
 		tre->TRE_REGEX_T_FIELD = HAWK_NULL;
 	}
 }
@@ -70,7 +70,7 @@ int hawk_tre_compx (hawk_tre_t* tre, const hawk_ooch_t* regex, hawk_oow_t n, uns
 
 	if (tre->TRE_REGEX_T_FIELD)
 	{
-		tre_free (tre);
+		tre_free(tre);
 		tre->TRE_REGEX_T_FIELD = HAWK_NULL;
 	}
 
@@ -78,7 +78,7 @@ int hawk_tre_compx (hawk_tre_t* tre, const hawk_ooch_t* regex, hawk_oow_t n, uns
 	if (ret > 0)
 	{
 		tre->TRE_REGEX_T_FIELD = HAWK_NULL; /* just to make sure */
-		hawk_gem_seterrnum (tre->gem, HAWK_NULL, ret);
+		hawk_gem_seterrnum(tre->gem, HAWK_NULL, ret);
 		return -1;
 	}
 
@@ -218,7 +218,7 @@ int hawk_tre_execx (
 	if (tre->TRE_REGEX_T_FIELD == HAWK_NULL)
 	{
 		/* regular expression is bad as none is compiled yet */
-		hawk_gem_seterrnum ((errgem? errgem: tre->gem), HAWK_NULL, HAWK_EREXBADPAT);
+		hawk_gem_seterrnum((errgem? errgem: tre->gem), HAWK_NULL, HAWK_EREXBADPAT);
 		return -1;
 	}
 #if defined(HAWK_OOCH_IS_UCH)
@@ -228,7 +228,7 @@ int hawk_tre_execx (
 #endif
 	if (ret > 0)
 	{
-		hawk_gem_seterrnum ((errgem? errgem: tre->gem), HAWK_NULL, ret);
+		hawk_gem_seterrnum((errgem? errgem: tre->gem), HAWK_NULL, ret);
 		return -1;
 	}
 
@@ -252,13 +252,13 @@ int hawk_tre_execuchars (
 	if (tre->TRE_REGEX_T_FIELD == HAWK_NULL)
 	{
 		/* regular expression is bad as none is compiled yet */
-		hawk_gem_seterrnum ((errgem? errgem: tre->gem), HAWK_NULL, HAWK_EREXBADPAT);
+		hawk_gem_seterrnum((errgem? errgem: tre->gem), HAWK_NULL, HAWK_EREXBADPAT);
 		return -1;
 	}
 	ret = tre_match(tre, str, len, STR_WIDE, nmatch, pmatch, eflags);
 	if (ret > 0)
 	{
-		hawk_gem_seterrnum ((errgem? errgem: tre->gem), HAWK_NULL, ret);
+		hawk_gem_seterrnum((errgem? errgem: tre->gem), HAWK_NULL, ret);
 		return -1;
 	}
 
@@ -274,13 +274,13 @@ int hawk_tre_execbchars (
 	if (tre->TRE_REGEX_T_FIELD == HAWK_NULL)
 	{
 		/* regular expression is bad as none is compiled yet */
-		hawk_gem_seterrnum ((errgem? errgem: tre->gem), HAWK_NULL, HAWK_EREXBADPAT);
+		hawk_gem_seterrnum((errgem? errgem: tre->gem), HAWK_NULL, HAWK_EREXBADPAT);
 		return -1;
 	}
 	ret = tre_match(tre, str, len, STR_BYTE, nmatch, pmatch, eflags);
 	if (ret > 0)
 	{
-		hawk_gem_seterrnum ((errgem? errgem: tre->gem), HAWK_NULL, ret);
+		hawk_gem_seterrnum((errgem? errgem: tre->gem), HAWK_NULL, ret);
 		return -1;
 	}
 

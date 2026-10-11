@@ -119,7 +119,7 @@ char_t* split_xchars_to_fields (hawk_rtx_t* rtx, char_t* str, hawk_oow_t len, ch
 	return HAWK_NULL;
 }
 
-char_t* tokenize_xchars (hawk_rtx_t* rtx, const char_t* s, hawk_oow_t len, const char_t* delim, hawk_oow_t delim_len, xcs_t* tok)
+char_t* tokenize_xchars_with_options (hawk_rtx_t* rtx, const char_t* s, hawk_oow_t len, const char_t* delim, hawk_oow_t delim_len, xcs_t* tok, int ignorecase)
 {
 	const char_t* p = s, *d;
 	const char_t* end = s + len;
@@ -216,7 +216,7 @@ char_t* tokenize_xchars (hawk_rtx_t* rtx, const char_t* s, hawk_oow_t len, const
 	{
 		/* each token is delimited by one of charaters
 		 * in the delimeter set "delim". */
-		if (rtx->gbl.ignorecase)
+		if (ignorecase)
 		{
 			while (p < end)
 			{
@@ -251,7 +251,7 @@ char_t* tokenize_xchars (hawk_rtx_t* rtx, const char_t* s, hawk_oow_t len, const
 		 * in the delimeter set "delim". however, all space characters
 		 * surrounding the token are removed */
 		while (p < end && is_xch_space(*p)) p++;
-		if (rtx->gbl.ignorecase)
+		if (ignorecase)
 		{
 			while (p < end)
 			{
@@ -309,7 +309,7 @@ exit_loop:
 }
 
 
-char_t* tokenize_xchars_by_rex (hawk_rtx_t* rtx, const char_t* str, hawk_oow_t len, const char_t* substr, hawk_oow_t sublen, hawk_tre_t* rex, xcs_t* tok)
+char_t* tokenize_xchars_by_rex_with_options (hawk_rtx_t* rtx, const char_t* str, hawk_oow_t len, const char_t* substr, hawk_oow_t sublen, hawk_tre_t* rex, xcs_t* tok, int striprecspc)
 {
 	int n;
 	hawk_oow_t i;
@@ -346,7 +346,7 @@ char_t* tokenize_xchars_by_rex (hawk_rtx_t* rtx, const char_t* str, hawk_oow_t l
 			cursub.ptr++;
 			cursub.len--;
 		}
-		else if (HAWK_RTX_IS_STRIPRECSPC_ON(rtx))
+		else if (striprecspc)
 		{
 			/* match at the beginning of the input string */
 			if (match.ptr == substr)
@@ -397,7 +397,7 @@ exit_loop:
 	}
 
 	/* the match is all spaces */
-	if (HAWK_RTX_IS_STRIPRECSPC_ON(rtx))
+	if (striprecspc)
 	{
 		/* if the match reached the last character in the input string,
 		 * it returns HAWK_NULL to terminate tokenization. */
@@ -409,4 +409,14 @@ exit_loop:
 		 * string, it returns HAWK_NULL to terminate tokenization. */
 		return (match.ptr+match.len > substr+sublen)? HAWK_NULL: ((char_t*)match.ptr+match.len);
 	}
+}
+
+char_t* tokenize_xchars (hawk_rtx_t* rtx, const char_t* s, hawk_oow_t len, const char_t* delim, hawk_oow_t delim_len, xcs_t* tok)
+{
+	return tokenize_xchars_with_options(rtx, s, len, delim, delim_len, tok, rtx->gbl.ignorecase);
+}
+
+char_t* tokenize_xchars_by_rex (hawk_rtx_t* rtx, const char_t* str, hawk_oow_t len, const char_t* substr, hawk_oow_t sublen, hawk_tre_t* rex, xcs_t* tok)
+{
+	return tokenize_xchars_by_rex_with_options(rtx, str, len, substr, sublen, rex, tok, HAWK_RTX_IS_STRIPRECSPC_ON(rtx));
 }

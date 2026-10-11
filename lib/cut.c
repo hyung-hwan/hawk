@@ -30,7 +30,7 @@ static int hawk_cut_init (hawk_cut_t* cut, hawk_mmgr_t* mmgr, hawk_cmgr_t* cmgr)
 static void hawk_cut_fini (hawk_cut_t* cut);
 
 #define SETERR0(cut,num) \
-	do { hawk_cut_seterrnum (cut, HAWK_NULL, num); } while (0)
+	do { hawk_cut_seterrnum(cut, HAWK_NULL, num); } while (0)
 
 #define DFL_LINE_CAPA 256
 
@@ -83,7 +83,7 @@ hawk_cut_t* hawk_cut_open (hawk_mmgr_t* mmgr, hawk_oow_t xtnsize, hawk_cmgr_t* c
 		if (hawk_cut_init(cut, mmgr, cmgr) <= -1)
 		{
 			if (errinf) hawk_cut_geterrinf(cut, errinf);
-			HAWK_MMGR_FREE (mmgr, cut);
+			HAWK_MMGR_FREE(mmgr, cut);
 			cut = HAWK_NULL;
 		}
 		else HAWK_MEMSET(cut + 1, 0, xtnsize);
@@ -100,13 +100,13 @@ hawk_cut_t* hawk_cut_open (hawk_mmgr_t* mmgr, hawk_oow_t xtnsize, hawk_cmgr_t* c
 
 void hawk_cut_close (hawk_cut_t* cut)
 {
-	hawk_cut_fini (cut);
-	HAWK_MMGR_FREE (hawk_cut_getmmgr(cut), cut);
+	hawk_cut_fini(cut);
+	HAWK_MMGR_FREE(hawk_cut_getmmgr(cut), cut);
 }
 
 static int hawk_cut_init (hawk_cut_t* cut, hawk_mmgr_t* mmgr, hawk_cmgr_t* cmgr)
 {
-	HAWK_MEMSET (cut, 0, HAWK_SIZEOF(*cut));
+	HAWK_MEMSET(cut, 0, HAWK_SIZEOF(*cut));
 
 	cut->instsize_ = HAWK_SIZEOF(*cut);
 	cut->gem_.mmgr = mmgr;
@@ -630,7 +630,7 @@ static int split_line (hawk_cut_t* cut)
 				tmp = hawk_cut_allocmem(cut, HAWK_SIZEOF(*tmp) * nsz);
 				if (HAWK_UNLIKELY(!tmp)) return -1;
 
-				HAWK_MEMCPY (tmp, cut->e.in.flds, HAWK_SIZEOF(*tmp) * cut->e.in.cflds);
+				HAWK_MEMCPY(tmp, cut->e.in.flds, HAWK_SIZEOF(*tmp) * cut->e.in.cflds);
 
 				if (cut->e.in.flds != cut->e.in.sflds) hawk_cut_freemem(cut, cut->e.in.flds);
 				cut->e.in.flds = tmp;

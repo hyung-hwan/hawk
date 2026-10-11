@@ -2086,7 +2086,10 @@ int tre_compile (regex_t *preg, const tre_char_t *regex, size_t n, int cflags)
 
 	for (i = 0; i < parse_ctx.position; i++)
 		counts[i] = 0;
-	tre_ast_to_tnfa(preg->gem, tree, NULL, counts, NULL);
+	/* The counting pass allocates its traversal stack too. If it fails,
+	 * incomplete counts would undersize the transition buffer below. */
+	errcode = tre_ast_to_tnfa(preg->gem, tree, NULL, counts, NULL);
+	if (errcode != REG_OK) ERROR_EXIT(errcode);
 
 	add = 0;
 	for (i = 0; i < parse_ctx.position; i++)

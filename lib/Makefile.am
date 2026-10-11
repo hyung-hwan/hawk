@@ -78,6 +78,7 @@ pkginclude_HEADERS = \
 	hawk-skad.h \
 	hawk-utl.h \
 	hawk-sed.h \
+	hawk-sh.h \
 	hawk-sha1.h \
 	hawk-sha256.h \
 	hawk-sio.h \
@@ -146,6 +147,8 @@ libhawk_la_SOURCES = \
 	run.c \
 	sed-prv.h \
 	sed.c \
+	sh-prv.h \
+	sh.c \
 	sha1.c \
 	sha256.c \
 	skad-prv.h \
@@ -197,6 +200,7 @@ libhawk_la_SOURCES += \
 	std-cut.c \
 	std-json.c \
 	std-m4.c \
+	std-sh.c \
 	std-sed.c
 
 libhawk_la_CPPFLAGS = $(CPPFLAGS_ALL_COMMON) $(CPPFLAGS_PFMOD)

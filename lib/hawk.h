@@ -4010,6 +4010,25 @@ HAWK_EXPORT int hawk_rtx_setrefval (
 	hawk_val_t*     val
 );
 
+/**
+ * The hawk_rtx_setrefvalpair() function prepares both assignments before
+ * changing either destination. On failure, the values, built-in caches and
+ * record fields remain unchanged. The second assignment sees the first
+ * prepared assignment and wins when the destinations coincide.
+ * Global-set callbacks run once per updated global, with its final value,
+ * after both assignments have been published.
+ * This guarantee covers value assignment, not preceding I/O operations.
+ * Neither value may be a reference or regular expression.
+ * \return 0 on success, -1 on failure with the runtime error set.
+ */
+HAWK_EXPORT int hawk_rtx_setrefvalpair (
+	hawk_rtx_t*     rtx,
+	hawk_val_ref_t* ref1,
+	hawk_val_t*     val1,
+	hawk_val_ref_t* ref2,
+	hawk_val_t*     val2
+);
+
 HAWK_EXPORT void hawk_rtx_setnrflt (
 	hawk_rtx_t*         rtx,
 	const hawk_nrflt_t* nrflt

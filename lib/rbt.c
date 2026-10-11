@@ -218,7 +218,7 @@ hawk_rbt_t* hawk_rbt_open (hawk_gem_t* gem, hawk_oow_t xtnsize, int kscale, int 
 
 void hawk_rbt_close (hawk_rbt_t* rbt)
 {
-	hawk_rbt_fini (rbt);
+	hawk_rbt_fini(rbt);
 	hawk_gem_freemem(rbt->gem, rbt);
 }
 
@@ -291,7 +291,7 @@ hawk_rbt_pair_t* hawk_rbt_search (const hawk_rbt_t* rbt, const void* kptr, hawk_
 		else /* if (n < 0) */ pair = pair->left;
 	}
 
-	hawk_gem_seterrnum (rbt->gem, HAWK_NULL, HAWK_ENOENT);
+	hawk_gem_seterrnum(rbt->gem, HAWK_NULL, HAWK_ENOENT);
 	return HAWK_NULL;
 }
 
@@ -532,7 +532,7 @@ static hawk_rbt_pair_t* insert (hawk_rbt_t* rbt, void* kptr, hawk_oow_t klen, vo
 
 				case INSERT:
 					/* return failure */
-					hawk_gem_seterrnum (rbt->gem, HAWK_NULL, HAWK_EEXIST);
+					hawk_gem_seterrnum(rbt->gem, HAWK_NULL, HAWK_EEXIST);
 					return HAWK_NULL;
 			}
 		}
@@ -545,7 +545,7 @@ static hawk_rbt_pair_t* insert (hawk_rbt_t* rbt, void* kptr, hawk_oow_t klen, vo
 
 	if (opt == UPDATE)
 	{
-		hawk_gem_seterrnum (rbt->gem, HAWK_NULL, HAWK_ENOENT);
+		hawk_gem_seterrnum(rbt->gem, HAWK_NULL, HAWK_ENOENT);
 		return HAWK_NULL;
 	}
 

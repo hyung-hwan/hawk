@@ -23,6 +23,8 @@
  */
 
 #include <hawk-utl.h>
+#include <hawk-gem.h>
+#include "err-prv.h"
 
 #if defined(_WIN32)
 #	include <windows.h>
@@ -50,6 +52,9 @@
 #		include <time.h>
 #	endif
 #endif
+
+
+/* ----------------------------------------------------------------------- */
 
 int hawk_get_ntime (hawk_ntime_t* t)
 {
@@ -182,7 +187,7 @@ int hawk_set_ntime (const hawk_ntime_t* t)
 
 	if (hawk_localtime (t, &bt) <= -1) return -1;
 
-	HAWK_MEMSET (&dt, 0, HAWK_SIZEOF(dt));
+	HAWK_MEMSET(&dt, 0, HAWK_SIZEOF(dt));
 	dt.year = bt.year + HAWK_BTIME_YEAR_BASE;
 	dt.month = bt.mon + 1;
 	dt.day = bt.mday;
@@ -350,4 +355,108 @@ void hawk_sub_ntime (hawk_ntime_t* z, const hawk_ntime_t* x, const hawk_ntime_t*
 
 	z->sec = xs;
 	z->nsec = ns;
+}
+
+/* ----------------------------------------------------------------------- */
+
+static const hawk_bch_t* get_temp_dir_from_env (hawk_temp_dir_getenv_t getenv_cb, void* ctx)
+{
+	static const hawk_bch_t* names[] = { "TMPDIR", "TEMP", "TMP" };
+	const hawk_bch_t* dir;
+	hawk_oow_t i;
+
+	for (i = 0; getenv_cb && i < HAWK_COUNTOF(names); i++)
+	{
+		dir = getenv_cb(names[i], ctx);
+		if (dir && dir[0]) return dir;
+	}
+
+#if defined(_WIN32)
+	return HAWK_NULL;
+#elif defined(__OS2__) || defined(__DOS__)
+	return ".";
+#elif defined(vms) || defined(__vms)
+	return "SYS$SCRATCH:";
+#elif defined(P_tmpdir)
+	return P_tmpdir;
+#else
+	return "/tmp";
+#endif
+}
+
+#if defined(_WIN32)
+static void* get_native_temp_dir (hawk_gem_t* gem, int wide)
+{
+	DWORD capa = MAX_PATH + 1, n, e;
+	hawk_oow_t unitsize = wide? HAWK_SIZEOF(WCHAR): HAWK_SIZEOF(hawk_bch_t);
+	void* dir;
+
+	while (1)
+	{
+		if ((hawk_oow_t)capa > HAWK_TYPE_MAX(hawk_oow_t) / unitsize) goto too_long;
+
+		dir = hawk_gem_allocmem(gem, (hawk_oow_t)capa * unitsize);
+		if (HAWK_UNLIKELY(!dir)) return HAWK_NULL;
+
+		n = wide? GetTempPathW(capa, (WCHAR*)dir): GetTempPathA(capa, (hawk_bch_t*)dir);
+		if (n == 0)
+		{
+			e = GetLastError();
+			hawk_gem_freemem(gem, dir);
+			hawk_gem_seterrbfmt(gem, HAWK_NULL, hawk_syserr_to_errnum(e), "unable to get the temporary directory (OS error %lu)", (unsigned long)e);
+			return HAWK_NULL;
+		}
+		if (n < capa) return dir;
+
+		hawk_gem_freemem(gem, dir);
+		if (n == HAWK_TYPE_MAX(DWORD)) goto too_long;
+		capa = n + 1;
+	}
+
+too_long:
+	hawk_gem_seterrbfmt(gem, HAWK_NULL, HAWK_EINVAL, "temporary directory path too long");
+	return HAWK_NULL;
+}
+#endif
+
+hawk_bch_t* hawk_get_temp_dir_bcstr (hawk_gem_t* gem, hawk_temp_dir_getenv_t getenv_cb, void* ctx)
+{
+	const hawk_bch_t* dir;
+
+	dir = get_temp_dir_from_env(getenv_cb, ctx);
+#if defined(_WIN32)
+	if (!dir) return (hawk_bch_t*)get_native_temp_dir(gem, 0);
+#endif
+	return hawk_gem_dupbcstr(gem, dir, HAWK_NULL);
+}
+
+hawk_uch_t* hawk_get_temp_dir_ucstr (hawk_gem_t* gem, hawk_temp_dir_getenv_t getenv_cb, void* ctx)
+{
+	const hawk_bch_t* dir;
+
+	dir = get_temp_dir_from_env(getenv_cb, ctx);
+#if defined(_WIN32)
+	if (!dir)
+	{
+		WCHAR* native;
+
+		native = get_native_temp_dir(gem, 1);
+		if (!native) return HAWK_NULL;
+
+	#if HAWK_SIZEOF_UCH_T == 2
+		return (hawk_uch_t*)native;
+	#else
+		{
+			hawk_oow_t len = 0;
+			hawk_uch_t* result;
+
+			while (native[len]) len++;
+			result = hawk_gem_dupbtoucharswithcmgr(gem, (const hawk_bch_t*)native, len * HAWK_SIZEOF(*native), HAWK_NULL, hawk_get_utf16_cmgr(), 0);
+			hawk_gem_freemem(gem, native);
+			return result;
+		}
+	#endif
+	}
+#endif
+	return hawk_gem_dupbtoucstr(gem, dir, HAWK_NULL, 0);
 }

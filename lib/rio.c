@@ -1232,7 +1232,7 @@ static int prepare_for_write_io_data (hawk_rtx_t* rtx, hawk_out_type_t out_type,
 		p = (hawk_rio_arg_t*)hawk_rtx_allocmem(rtx, HAWK_SIZEOF(hawk_rio_arg_t));
 		if (HAWK_UNLIKELY(!p)) return -1;
 
-		HAWK_MEMSET (p, 0, HAWK_SIZEOF(*p));
+		HAWK_MEMSET(p, 0, HAWK_SIZEOF(*p));
 
 		p->name = hawk_rtx_dupoocstr(rtx, name, HAWK_NULL);
 		if (HAWK_UNLIKELY(!p->name))

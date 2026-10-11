@@ -120,7 +120,7 @@ static int fnc_call (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_val_t* v;
 
 	/* this function is similar to hawk_rtx_callfun() but it is more simplified */
-	HAWK_MEMSET (&call, 0, HAWK_SIZEOF(call));
+	HAWK_MEMSET(&call, 0, HAWK_SIZEOF(call));
 	nargs = hawk_rtx_getnargs(rtx);
 	f_nargs = nargs - 1;
 

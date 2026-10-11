@@ -252,13 +252,14 @@ const hawk_oocs_t* hawk_rtx_getsubsep (hawk_rtx_t* rtx)
 /* internal function to set a value to a global variable.
  * this function can handle a few special global variables that
  * require special treatment. */
-static int set_global (hawk_rtx_t* rtx, int idx, hawk_nde_var_t* var, hawk_val_t* val, int assign)
+static int set_global (hawk_rtx_t* rtx, int idx, hawk_nde_var_t* var, hawk_val_t* val, int assign, hawk_rtx_refprep_t* prep)
 {
+	hawk_rtx_gbl_t* gbl = prep? &prep->gbl: &rtx->gbl;
 	hawk_val_t* old;
 	hawk_rtx_ecb_t* ecb, * ecb_next;
 	hawk_val_type_t vtype, old_vtype;
 
-	old = HAWK_RTX_STACK_GBL(rtx, idx);
+	old = hawk_rtx_refprep_getgbl(rtx, prep, idx);
 
 	vtype = HAWK_RTX_GETVALTYPE(rtx, val);
 	old_vtype = HAWK_RTX_GETVALTYPE(rtx, old);
@@ -365,7 +366,7 @@ static int set_global (hawk_rtx_t* rtx, int idx, hawk_nde_var_t* var, hawk_val_t
 			hawk_oow_t i;
 			hawk_oocs_t str;
 
-			str.ptr = hawk_rtx_valtooocstrdup(rtx, val, &str.len);
+			str.ptr = hawk_rtx_refprep_dupstr(rtx, prep, val, &str.len);
 			if (HAWK_UNLIKELY(!str.ptr)) return -1;
 
 			for (i = 0; i < str.len; i++)
@@ -379,9 +380,9 @@ static int set_global (hawk_rtx_t* rtx, int idx, hawk_nde_var_t* var, hawk_val_t
 				}
 			}
 
-			if (rtx->gbl.convfmt.ptr) hawk_rtx_freemem(rtx, rtx->gbl.convfmt.ptr);
-			rtx->gbl.convfmt.ptr = str.ptr;
-			rtx->gbl.convfmt.len = str.len;
+			if (gbl->convfmt.ptr && (!prep || gbl->convfmt.ptr != rtx->gbl.convfmt.ptr)) hawk_rtx_freemem(rtx, gbl->convfmt.ptr);
+			gbl->convfmt.ptr = str.ptr;
+			gbl->convfmt.len = str.len;
 			break;
 		}
 
@@ -390,10 +391,10 @@ static int set_global (hawk_rtx_t* rtx, int idx, hawk_nde_var_t* var, hawk_val_t
 			int n;
 			hawk_int_t lv;
 
-			n = hawk_rtx_valtoint_inline(rtx, val, &lv);
+			n = hawk_rtx_refprep_valtoint(rtx, prep, val, &lv);
 			if (HAWK_UNLIKELY(n <= -1)) return -1;
 
-			rtx->gbl.fnr = lv;
+			gbl->fnr = lv;
 			break;
 		}
 
@@ -406,7 +407,7 @@ static int set_global (hawk_rtx_t* rtx, int idx, hawk_nde_var_t* var, hawk_val_t
 			 * regular expression can not be an assigned value */
 			HAWK_ASSERT(vtype != HAWK_VAL_REX);
 
-			fs_ptr = hawk_rtx_getvaloocstr(rtx, val, &fs_len);
+			fs_ptr = prep? hawk_rtx_refprep_dupstr(rtx, prep, val, &fs_len): hawk_rtx_getvaloocstr(rtx, val, &fs_len);
 			if (HAWK_UNLIKELY(!fs_ptr)) return -1;
 
 			if (fs_len > 1 && !(fs_len == 5 && fs_ptr[0] == '?'))
@@ -418,17 +419,19 @@ static int set_global (hawk_rtx_t* rtx, int idx, hawk_nde_var_t* var, hawk_val_t
 
 				if (hawk_rtx_buildrex(rtx, fs_ptr, fs_len, &rex, &irex) <= -1)
 				{
-					hawk_rtx_freevaloocstr(rtx, val, fs_ptr);
+					if (prep) hawk_rtx_freemem(rtx, fs_ptr);
+					else hawk_rtx_freevaloocstr(rtx, val, fs_ptr);
 					return -1;
 				}
 
-				if (rtx->gbl.fs[0]) hawk_rtx_freerex(rtx, rtx->gbl.fs[0], rtx->gbl.fs[1]);
+				if (gbl->fs[0] && (!prep || gbl->fs[0] != rtx->gbl.fs[0])) hawk_rtx_freerex(rtx, gbl->fs[0], gbl->fs[1]);
 
-				rtx->gbl.fs[0] = rex;
-				rtx->gbl.fs[1] = irex;
+				gbl->fs[0] = rex;
+				gbl->fs[1] = irex;
 			}
 
-			hawk_rtx_freevaloocstr(rtx, val, fs_ptr);
+			if (prep) hawk_rtx_freemem(rtx, fs_ptr);
+			else hawk_rtx_freevaloocstr(rtx, val, fs_ptr);
 			break;
 		}
 
@@ -438,22 +441,23 @@ static int set_global (hawk_rtx_t* rtx, int idx, hawk_nde_var_t* var, hawk_val_t
 			hawk_flt_t r;
 			int vt;
 
-			vt = hawk_rtx_valtonum(rtx, val, &l, &r);
+			vt = hawk_rtx_refprep_valtonum(rtx, prep, val, &l, &r);
 			if (vt <= -1) return -1;
 
 			if (vt == 0)
-				rtx->gbl.ignorecase = ((l > 0)? 1: (l < 0)? -1: 0);
+				gbl->ignorecase = ((l > 0)? 1: (l < 0)? -1: 0);
 			else
-				rtx->gbl.ignorecase = ((r > 0.0)? 1: (r < 0.0)? -1: 0);
+				gbl->ignorecase = ((r > 0.0)? 1: (r < 0.0)? -1: 0);
 			break;
 		}
 
 		case HAWK_GBL_NF:
 		{
+			hawk_rtx_inrec_t* rec;
 			int n;
 			hawk_int_t lv;
 
-			n = hawk_rtx_valtoint_inline(rtx, val, &lv);
+			n = hawk_rtx_refprep_valtoint(rtx, prep, val, &lv);
 			if (n <= -1) return -1;
 
 			if (lv < 0)
@@ -462,7 +466,10 @@ static int set_global (hawk_rtx_t* rtx, int idx, hawk_nde_var_t* var, hawk_val_t
 				return -1;
 			}
 
-			if (lv < (hawk_int_t)rtx->inrec.nflds || (assign && lv == (hawk_int_t)rtx->inrec.nflds))
+			if (prep && hawk_rtx_refprep_record(rtx, prep) <= -1) return -1;
+			rec = prep? prep->rec: &rtx->inrec;
+
+			if (lv < (hawk_int_t)rec->nflds || (assign && lv == (hawk_int_t)rec->nflds))
 			{
 				/* when NF is assigned a value, it should rebuild $X values.
 				 * even when there is no change in the value like NF = NF,
@@ -473,19 +480,19 @@ static int set_global (hawk_rtx_t* rtx, int idx, hawk_nde_var_t* var, hawk_val_t
 				 * explicit call to hawk_rtx_setgbl().
 				 */
 
-				if (hawk_rtx_truncrec(rtx, (hawk_oow_t)lv) <= -1)
+				if (hawk_rtx_truncrecwithstate(rtx, rec, prep, (hawk_oow_t)lv) <= -1)
 				{
 					/* adjust the error line */
 					/*if (var) ADJERR_LOC(rtx, &var->loc);*/
 					return -1;
 				}
 			}
-			else if (lv > (hawk_int_t)rtx->inrec.nflds)
+			else if (lv > (hawk_int_t)rec->nflds)
 			{
 				hawk_oocs_t cs;
 				cs.ptr = HAWK_T("");
 				cs.len = 0;
-				if (hawk_rtx_setrec(rtx, lv, &cs, 0) <= -1) return -1;
+				if (hawk_rtx_setrecwithstate(rtx, rec, prep, lv, &cs, 0) <= -1) return -1;
 			}
 
 			/* for all other globals, it returns before this switch/case block is reached
@@ -502,10 +509,10 @@ static int set_global (hawk_rtx_t* rtx, int idx, hawk_nde_var_t* var, hawk_val_t
 			int n;
 			hawk_int_t lv;
 
-			n = hawk_rtx_valtoint_inline(rtx, val, &lv);
+			n = hawk_rtx_refprep_valtoint(rtx, prep, val, &lv);
 			if (n <= -1) return -1;
 
-			rtx->gbl.nr = lv;
+			gbl->nr = lv;
 			break;
 		}
 
@@ -515,13 +522,13 @@ static int set_global (hawk_rtx_t* rtx, int idx, hawk_nde_var_t* var, hawk_val_t
 			hawk_flt_t r;
 			int vt;
 
-			vt = hawk_rtx_valtonum(rtx, val, &l, &r);
+			vt = hawk_rtx_refprep_valtonum(rtx, prep, val, &l, &r);
 			if (vt <= -1) return -1;
 
 			if (vt == 0)
-				rtx->gbl.numstrdetect = ((l > 0)? 1: (l < 0)? -1: 0);
+				gbl->numstrdetect = ((l > 0)? 1: (l < 0)? -1: 0);
 			else
-				rtx->gbl.numstrdetect = ((r > 0.0)? 1: (r < 0.0)? -1: 0);
+				gbl->numstrdetect = ((r > 0.0)? 1: (r < 0.0)? -1: 0);
 			break;
 		}
 
@@ -530,7 +537,7 @@ static int set_global (hawk_rtx_t* rtx, int idx, hawk_nde_var_t* var, hawk_val_t
 			hawk_oow_t i;
 			hawk_oocs_t str;
 
-			str.ptr = hawk_rtx_valtooocstrdup(rtx, val, &str.len);
+			str.ptr = hawk_rtx_refprep_dupstr(rtx, prep, val, &str.len);
 			if (HAWK_UNLIKELY(!str.ptr)) return -1;
 
 			for (i = 0; i < str.len; i++)
@@ -544,21 +551,21 @@ static int set_global (hawk_rtx_t* rtx, int idx, hawk_nde_var_t* var, hawk_val_t
 				}
 			}
 
-			if (rtx->gbl.ofmt.ptr) hawk_rtx_freemem(rtx, rtx->gbl.ofmt.ptr);
-			rtx->gbl.ofmt.ptr = str.ptr;
-			rtx->gbl.ofmt.len = str.len;
+			if (gbl->ofmt.ptr && (!prep || gbl->ofmt.ptr != rtx->gbl.ofmt.ptr)) hawk_rtx_freemem(rtx, gbl->ofmt.ptr);
+			gbl->ofmt.ptr = str.ptr;
+			gbl->ofmt.len = str.len;
 		}
 
 		case HAWK_GBL_OFS:
 		{
 			hawk_oocs_t str;
 
-			str.ptr = hawk_rtx_valtooocstrdup(rtx, val, &str.len);
+			str.ptr = hawk_rtx_refprep_dupstr(rtx, prep, val, &str.len);
 			if (HAWK_UNLIKELY(!str.ptr)) return -1;
 
-			if (rtx->gbl.ofs.ptr) hawk_rtx_freemem(rtx, rtx->gbl.ofs.ptr);
-			rtx->gbl.ofs.ptr = str.ptr;
-			rtx->gbl.ofs.len = str.len;
+			if (gbl->ofs.ptr && (!prep || gbl->ofs.ptr != rtx->gbl.ofs.ptr)) hawk_rtx_freemem(rtx, gbl->ofs.ptr);
+			gbl->ofs.ptr = str.ptr;
+			gbl->ofs.len = str.len;
 
 			break;
 		}
@@ -567,12 +574,12 @@ static int set_global (hawk_rtx_t* rtx, int idx, hawk_nde_var_t* var, hawk_val_t
 		{
 			hawk_oocs_t str;
 
-			str.ptr = hawk_rtx_valtooocstrdup(rtx, val, &str.len);
+			str.ptr = hawk_rtx_refprep_dupstr(rtx, prep, val, &str.len);
 			if (HAWK_UNLIKELY(!str.ptr)) return -1;
 
-			if (rtx->gbl.ors.ptr) hawk_rtx_freemem(rtx, rtx->gbl.ors.ptr);
-			rtx->gbl.ors.ptr = str.ptr;
-			rtx->gbl.ors.len = str.len;
+			if (gbl->ors.ptr && (!prep || gbl->ors.ptr != rtx->gbl.ors.ptr)) hawk_rtx_freemem(rtx, gbl->ors.ptr);
+			gbl->ors.ptr = str.ptr;
+			gbl->ors.len = str.len;
 
 			break;
 		}
@@ -583,13 +590,13 @@ static int set_global (hawk_rtx_t* rtx, int idx, hawk_nde_var_t* var, hawk_val_t
 			hawk_flt_t r;
 			int vt;
 
-			vt = hawk_rtx_valtonum(rtx, val, &l, &r);
+			vt = hawk_rtx_refprep_valtonum(rtx, prep, val, &l, &r);
 			if (vt <= -1) return -1;
 
 			if (vt == 0)
-				rtx->gbl.pipecloexec = ((l > 0)? 1: (l < 0)? -1: 0);
+				gbl->pipecloexec = ((l > 0)? 1: (l < 0)? -1: 0);
 			else
-				rtx->gbl.pipecloexec = ((r > 0.0)? 1: (r < 0.0)? -1: 0);
+				gbl->pipecloexec = ((r > 0.0)? 1: (r < 0.0)? -1: 0);
 			break;
 		}
 
@@ -602,32 +609,26 @@ static int set_global (hawk_rtx_t* rtx, int idx, hawk_nde_var_t* var, hawk_val_t
 			 * value */
 			HAWK_ASSERT(vtype != HAWK_VAL_REX);
 
-			rss.ptr = hawk_rtx_getvaloocstr(rtx, val, &rss.len);
+			rss.ptr = prep? hawk_rtx_refprep_dupstr(rtx, prep, val, &rss.len): hawk_rtx_getvaloocstr(rtx, val, &rss.len);
 			if (!rss.ptr) return -1;
 
-			if (rtx->gbl.rs[0])
 			{
-				hawk_rtx_freerex(rtx, rtx->gbl.rs[0], rtx->gbl.rs[1]);
-				rtx->gbl.rs[0] = HAWK_NULL;
-				rtx->gbl.rs[1] = HAWK_NULL;
-			}
+				hawk_tre_t* rex = HAWK_NULL, * irex = HAWK_NULL;
 
-			if (rss.len > 1)
-			{
-				hawk_tre_t* rex, * irex;
-
-				/* compile the regular expression */
-				if (hawk_rtx_buildrex(rtx, rss.ptr, rss.len, &rex, &irex) <= -1)
+				if (rss.len > 1 && hawk_rtx_buildrex(rtx, rss.ptr, rss.len, &rex, &irex) <= -1)
 				{
-					hawk_rtx_freevaloocstr(rtx, val, rss.ptr);
+					if (prep) hawk_rtx_freemem(rtx, rss.ptr);
+					else hawk_rtx_freevaloocstr(rtx, val, rss.ptr);
 					return -1;
 				}
-
-				rtx->gbl.rs[0] = rex;
-				rtx->gbl.rs[1] = irex;
+				if (gbl->rs[0] && (!prep || gbl->rs[0] != rtx->gbl.rs[0]))
+					hawk_rtx_freerex(rtx, gbl->rs[0], gbl->rs[1]);
+				gbl->rs[0] = rex;
+				gbl->rs[1] = irex;
 			}
 
-			hawk_rtx_freevaloocstr(rtx, val, rss.ptr);
+			if (prep) hawk_rtx_freemem(rtx, rss.ptr);
+			else hawk_rtx_freevaloocstr(rtx, val, rss.ptr);
 			break;
 		}
 
@@ -637,13 +638,13 @@ static int set_global (hawk_rtx_t* rtx, int idx, hawk_nde_var_t* var, hawk_val_t
 			hawk_flt_t r;
 			int vt;
 
-			vt = hawk_rtx_valtonum(rtx, val, &l, &r);
+			vt = hawk_rtx_refprep_valtonum(rtx, prep, val, &l, &r);
 			if (vt <= -1) return -1;
 
 			if (vt == 0)
-				rtx->gbl.striprecspc = ((l > 0)? 1: (l < 0)? -1: 0);
+				gbl->striprecspc = ((l > 0)? 1: (l < 0)? -1: 0);
 			else
-				rtx->gbl.striprecspc = ((r > 0.0)? 1: (r < 0.0)? -1: 0);
+				gbl->striprecspc = ((r > 0.0)? 1: (r < 0.0)? -1: 0);
 			break;
 		}
 
@@ -653,13 +654,13 @@ static int set_global (hawk_rtx_t* rtx, int idx, hawk_nde_var_t* var, hawk_val_t
 			hawk_flt_t r;
 			int vt;
 
-			vt = hawk_rtx_valtonum(rtx, val, &l, &r);
+			vt = hawk_rtx_refprep_valtonum(rtx, prep, val, &l, &r);
 			if (vt <= -1) return -1;
 
 			if (vt == 0)
-				rtx->gbl.stripstrspc = ((l > 0)? 1: (l < 0)? -1: 0);
+				gbl->stripstrspc = ((l > 0)? 1: (l < 0)? -1: 0);
 			else
-				rtx->gbl.stripstrspc = ((r > 0.0)? 1: (r < 0.0)? -1: 0);
+				gbl->stripstrspc = ((r > 0.0)? 1: (r < 0.0)? -1: 0);
 			break;
 		}
 
@@ -667,15 +668,34 @@ static int set_global (hawk_rtx_t* rtx, int idx, hawk_nde_var_t* var, hawk_val_t
 		{
 			hawk_oocs_t str;
 
-			str.ptr = hawk_rtx_valtooocstrdup(rtx, val, &str.len);
+			str.ptr = hawk_rtx_refprep_dupstr(rtx, prep, val, &str.len);
 			if (HAWK_UNLIKELY(!str.ptr)) return -1;
 
-			if (rtx->gbl.subsep.ptr) hawk_rtx_freemem(rtx, rtx->gbl.subsep.ptr);
-			rtx->gbl.subsep.ptr = str.ptr;
-			rtx->gbl.subsep.len = str.len;
+			if (gbl->subsep.ptr && (!prep || gbl->subsep.ptr != rtx->gbl.subsep.ptr)) hawk_rtx_freemem(rtx, gbl->subsep.ptr);
+			gbl->subsep.ptr = str.ptr;
+			gbl->subsep.len = str.len;
 
 			break;
 		}
+	}
+
+	if (prep)
+	{
+		hawk_oow_t i;
+
+		for (i = 0; i < prep->nglobals; i++)
+			if (prep->globals[i].id == idx) break;
+		HAWK_ASSERT(i < HAWK_COUNTOF(prep->globals));
+		hawk_rtx_refupval_inline(rtx, val);
+		if (i < prep->nglobals) hawk_rtx_refdownval_inline(rtx, prep->globals[i].val);
+		else
+		{
+			prep->globals[i].id = idx;
+			prep->globals[i].old = HAWK_RTX_STACK_GBL(rtx, idx);
+			prep->nglobals++;
+		}
+		prep->globals[i].val = val;
+		return 0;
 	}
 
 	hawk_rtx_refdownval_inline(rtx, old);
@@ -701,10 +721,15 @@ HAWK_INLINE void hawk_rtx_setretval (hawk_rtx_t* rtx, hawk_val_t* val)
 	hawk_rtx_refupval_inline(rtx, val);
 }
 
+int hawk_rtx_refprep_setgbl (hawk_rtx_t* rtx, hawk_rtx_refprep_t* prep, int id, hawk_val_t* val)
+{
+	return set_global(rtx, id, HAWK_NULL, val, 0, prep);
+}
+
 HAWK_INLINE int hawk_rtx_setgbl (hawk_rtx_t* rtx, int id, hawk_val_t* val)
 {
 	HAWK_ASSERT(id >= 0 && id < (int)HAWK_ARR_SIZE(rtx->hawk->parse.gbls));
-	return set_global(rtx, id, HAWK_NULL, val, 0);
+	return set_global(rtx, id, HAWK_NULL, val, 0, HAWK_NULL);
 }
 
 static HAWK_INLINE hawk_oow_t find_named_slot_by_oocs (hawk_rtx_t* rtx, const hawk_oocs_t* name)
@@ -790,7 +815,7 @@ int hawk_rtx_setgbltostrbyname (hawk_rtx_t* rtx, const hawk_ooch_t* name, const 
 	}
 	else
 	{
-		n = set_global(rtx, id, HAWK_NULL, v, 0);
+		n = set_global(rtx, id, HAWK_NULL, v, 0, HAWK_NULL);
 	}
 done:
 	hawk_rtx_refdownval_inline(rtx, v);
@@ -5328,7 +5353,7 @@ static hawk_val_t* do_assignment_nonindexed (hawk_rtx_t* rtx, hawk_nde_var_t* va
 
 		case HAWK_NDE_GBL:
 		{
-			if (set_global(rtx, var->id.idxa, var, val, 1) == -1)
+			if (set_global(rtx, var->id.idxa, var, val, 1, HAWK_NULL) == -1)
 			{
 				ADJERR_LOC(rtx, &var->loc);
 				return HAWK_NULL;

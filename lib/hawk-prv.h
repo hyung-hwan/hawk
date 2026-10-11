@@ -469,6 +469,78 @@ struct hawk_exec_stack_t
 
 typedef struct hawk_exec_stack_t hawk_exec_stack_t;
 
+typedef struct hawk_rtx_inrec_t hawk_rtx_inrec_t;
+typedef struct hawk_rtx_gbl_t hawk_rtx_gbl_t;
+typedef struct hawk_rtx_refprep_t hawk_rtx_refprep_t;
+
+struct hawk_rtx_inrec_t
+{
+	hawk_ooch_t buf[1024];
+	hawk_oow_t buf_pos;
+	hawk_oow_t buf_len;
+	int        eof;
+
+	hawk_ooecs_t line; /* entire line */
+	hawk_ooecs_t linew; /* line for manipulation, if necessary */
+	hawk_ooecs_t lineg; /* line buffer for getline */
+	hawk_becs_t linegb; /* line buffer for getline mbs */
+
+	hawk_val_t* d0; /* $0 */
+
+	hawk_oow_t maxflds;
+	hawk_oow_t nflds; /* NF */
+	struct
+	{
+		const hawk_ooch_t* ptr;
+		hawk_oow_t         len;
+		hawk_val_t*        val; /* $1 .. $NF */
+	}* flds;
+};
+
+
+struct hawk_rtx_gbl_t
+{
+	void* rs[2];
+	void* fs[2];
+	hawk_int8_t ignorecase;
+	hawk_int8_t striprecspc;
+	hawk_int8_t stripstrspc;
+	hawk_int8_t numstrdetect;
+	hawk_int8_t pipecloexec;
+
+	hawk_int_t nr;
+	hawk_int_t fnr;
+
+	hawk_oocs_t convfmt;
+	hawk_oocs_t ofmt;
+	hawk_oocs_t ofs;
+	hawk_oocs_t ors;
+	hawk_oocs_t subsep;
+};
+
+
+/* A pair has at most two explicit globals plus an implicit NF update.
+ * Values and caches remain private until preparation of both writes succeeds. */
+struct hawk_rtx_refprep_t
+{
+	hawk_rtx_gbl_t gbl;
+	hawk_rtx_inrec_t* rec;
+	struct
+	{
+		int id;
+		hawk_val_t* val;
+		hawk_val_t* old;
+	} globals[3];
+	hawk_oow_t nglobals;
+	struct
+	{
+		hawk_val_t** slot;
+		hawk_val_t* val;
+		hawk_val_t* old;
+	} slots[2];
+	hawk_oow_t nslots;
+};
+
 struct hawk_rtx_t
 {
 	HAWK_RTX_HDR;
@@ -551,51 +623,11 @@ struct hawk_rtx_t
 	hawk_nde_blk_t* active_block;
 	hawk_uint8_t* pattern_range_state;
 
-	struct
-	{
-		hawk_ooch_t buf[1024];
-		hawk_oow_t buf_pos;
-		hawk_oow_t buf_len;
-		int        eof;
-
-		hawk_ooecs_t line; /* entire line */
-		hawk_ooecs_t linew; /* line for manipulation, if necessary */
-		hawk_ooecs_t lineg; /* line buffer for getline */
-		hawk_becs_t linegb; /* line buffer for getline mbs */
-
-		hawk_val_t* d0; /* $0 */
-
-		hawk_oow_t maxflds;
-		hawk_oow_t nflds; /* NF */
-		struct
-		{
-			const hawk_ooch_t* ptr;
-			hawk_oow_t         len;
-			hawk_val_t*        val; /* $1 .. $NF */
-		}* flds;
-	} inrec;
+	hawk_rtx_inrec_t inrec;
 
 	hawk_nrflt_t nrflt;
 
-	struct
-	{
-		void* rs[2];
-		void* fs[2];
-		hawk_int8_t ignorecase;
-		hawk_int8_t striprecspc;
-		hawk_int8_t stripstrspc;
-		hawk_int8_t numstrdetect;
-		hawk_int8_t pipecloexec;
-
-		hawk_int_t nr;
-		hawk_int_t fnr;
-
-		hawk_oocs_t convfmt;
-		hawk_oocs_t ofmt;
-		hawk_oocs_t ofs;
-		hawk_oocs_t ors;
-		hawk_oocs_t subsep;
-	} gbl;
+	hawk_rtx_gbl_t gbl;
 
 	/* rio chain */
 	struct
@@ -734,6 +766,11 @@ static HAWK_INLINE void HAWK_RTX_STACK_POP (hawk_rtx_t* rtx)
 #define HAWK_RTX_IS_STRIPRECSPC_ON(rtx) ((rtx)->gbl.striprecspc > 0 || ((rtx)->gbl.striprecspc < 0 && ((rtx)->hawk->parse.pragma.trait & HAWK_STRIPRECSPC)))
 #define HAWK_RTX_IS_STRIPSTRSPC_ON(rtx) ((rtx)->gbl.stripstrspc > 0 || ((rtx)->gbl.stripstrspc < 0 && ((rtx)->hawk->parse.pragma.trait & HAWK_STRIPSTRSPC)))
 
+#define HAWK_RTX_IS_NUMSTRDETECT_ON_FOR_GBL(rtx,_gbl) ((_gbl)->numstrdetect > 0 || ((_gbl)->numstrdetect < 0 && ((rtx)->hawk->parse.pragma.trait & HAWK_NUMSTRDETECT)))
+#define HAWK_RTX_IS_PIPECLOEXEC_ON_FOR_GBL(rtx,_gbl) ((_gbl)->pipecloexec > 0 || ((_gbl)->pipecloexec < 0 && ((rtx)->hawk->parse.pragma.trait & HAWK_PIPECLOEXEC)))
+#define HAWK_RTX_IS_STRIPRECSPC_ON_FOR_GBL(rtx,_gbl) ((_gbl)->striprecspc > 0 || ((_gbl)->striprecspc < 0 && ((rtx)->hawk->parse.pragma.trait & HAWK_STRIPRECSPC)))
+#define HAWK_RTX_IS_STRIPSTRSPC_ON_FOR_GBL(rtx,_gbl) ((_gbl)->stripstrspc > 0 || ((_gbl)->stripstrspc < 0 && ((rtx)->hawk->parse.pragma.trait & HAWK_STRIPSTRSPC)))
+
 #if !defined(HAWK_DEFAULT_MODLIBDIRS)
 #	define HAWK_DEFAULT_MODLIBDIRS ""
 #endif
@@ -794,6 +831,18 @@ int hawk_init (hawk_t* hawk, hawk_mmgr_t* mmgr, hawk_cmgr_t* cmgr, const hawk_pr
 void hawk_fini (hawk_t* hawk);
 
 hawk_rbt_walk_t hawk_modtab_unload_module (hawk_rbt_t* rbt, hawk_rbt_pair_t* pair, void* ctx);
+
+hawk_val_t* hawk_rtx_refprep_getgbl (hawk_rtx_t* rtx, hawk_rtx_refprep_t* prep, int id);
+int hawk_rtx_refprep_setgbl (hawk_rtx_t* rtx, hawk_rtx_refprep_t* prep, int id, hawk_val_t* val);
+hawk_ooch_t* hawk_rtx_refprep_dupstr (hawk_rtx_t* rtx, hawk_rtx_refprep_t* prep, hawk_val_t* val, hawk_oow_t* len);
+int hawk_rtx_refprep_valtonum (hawk_rtx_t* rtx, hawk_rtx_refprep_t* prep, hawk_val_t* val, hawk_int_t* l, hawk_flt_t* r);
+int hawk_rtx_refprep_valtoint (hawk_rtx_t* rtx, hawk_rtx_refprep_t* prep, hawk_val_t* val, hawk_int_t* l);
+int hawk_rtx_refprep_record (hawk_rtx_t* rtx, hawk_rtx_refprep_t* prep);
+void hawk_rtx_refprep_freerec (hawk_rtx_t* rtx, hawk_rtx_inrec_t* rec);
+void hawk_rtx_refprep_swaprec (hawk_rtx_t* rtx, hawk_rtx_inrec_t* rec);
+int hawk_rtx_setrecwithstate (hawk_rtx_t* rtx, hawk_rtx_inrec_t* rec, hawk_rtx_refprep_t* prep, hawk_oow_t idx, const hawk_oocs_t* str, int prefer_number);
+int hawk_rtx_truncrecwithstate (hawk_rtx_t* rtx, hawk_rtx_inrec_t* rec, hawk_rtx_refprep_t* prep, hawk_oow_t nflds);
+
 int hawk_rtx_setnamedval (hawk_rtx_t* rtx, hawk_oow_t id, hawk_val_t* val);
 
 void* hawk_rtx_commit_environ (

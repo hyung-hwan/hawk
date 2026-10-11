@@ -1811,7 +1811,7 @@ hawk_ooi_t hawk_logufmtv (hawk_t* hawk, hawk_bitmask_t mask, const hawk_uch_t* f
 		mask |= HAWK_LOG_UNTYPED;
 	}
 
-	HAWK_MEMSET (&fo, 0, HAWK_SIZEOF(fo));
+	HAWK_MEMSET(&fo, 0, HAWK_SIZEOF(fo));
 	fo.fmt_type = HAWK_FMTOUT_FMT_TYPE_UCH;
 	fo.fmt_str = fmt;
 	fo.ctx = hawk;

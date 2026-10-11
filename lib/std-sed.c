@@ -253,7 +253,7 @@ static void clear_sio_names (hawk_sed_t* sed)
 	{
 		cur = xtn->sio_names;
 		xtn->sio_names = cur->link;
-		hawk_sed_freemem (sed, cur);
+		hawk_sed_freemem(sed, cur);
 	}
 }
 

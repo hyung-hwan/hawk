@@ -421,6 +421,7 @@ static void print_usage(FILE* out, const hawk_bch_t* real_argv0)
 	fprintf(out, "%s\n", _(" --cut                             switch to the cut mode"));
 	fprintf(out, "%s\n", _(" --m4                              switch to the m4 mode"));
 	fprintf(out, "%s\n", _(" --sed                             switch to the sed mode"));
+	fprintf(out, "%s\n", _(" --sh                              switch to the shell mode"));
 }
 
 static int main_usage(int argc, hawk_bch_t* argv[], const hawk_bch_t* real_argv0)
@@ -438,6 +439,7 @@ static struct {
 	{ "hawk",    main_hawk },
 	{ "m4",      main_m4 },
 	{ "sed",     main_sed },
+	{ "sh",      main_sh },
 	{ "usage",   main_usage },
 	{ "version", main_version }
 };

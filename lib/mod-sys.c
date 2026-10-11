@@ -499,64 +499,25 @@ static void copy_bcstr_to_oocstr (hawk_rtx_t* rtx, hawk_ooch_t* buf, hawk_oow_t 
 
 /* ------------------------------------------------------------------------ */
 
-enum sys_output_result_t
-{
-	SYS_OUTPUT_OK = 0,
-	SYS_OUTPUT_ERROR = -1,
-	SYS_OUTPUT_ROLLBACK_ERROR = -2
-};
-
 static int set_sys_output_pair (hawk_rtx_t* rtx, hawk_val_ref_t* ref1, hawk_int_t num1, hawk_val_ref_t* ref2, hawk_int_t num2)
 {
-	hawk_val_t* val1, * val2, * old1;
-	hawk_errinf_t errinf;
-	int rx = SYS_OUTPUT_ERROR;
+	hawk_val_t* val1, * val2;
+	int n;
 
 	val1 = hawk_rtx_makeintval_inline(rtx, num1);
-	if (HAWK_UNLIKELY(!val1)) return SYS_OUTPUT_ERROR;
-
+	if (HAWK_UNLIKELY(!val1)) return -1;
 	hawk_rtx_refupval_inline(rtx, val1);
 	val2 = hawk_rtx_makeintval_inline(rtx, num2);
 	if (HAWK_UNLIKELY(!val2))
 	{
 		hawk_rtx_refdownval_inline(rtx, val1);
-		return SYS_OUTPUT_ERROR;
+		return -1;
 	}
 	hawk_rtx_refupval_inline(rtx, val2);
-
-	/* retain the original value until both output assignments succeed. */
-	old1 = hawk_rtx_getrefval(rtx, ref1);
-	hawk_rtx_refupval_inline(rtx, old1);
-
-
-	/* the challenge is to update two reference values with new values.
-	 * when the second one fails, it should restore the first reference
-	 * to the original value. otherwise, the value remains stale */
-	if (hawk_rtx_setrefval(rtx, ref1, val1) <= -1) goto fail;
-	if (hawk_rtx_setrefval(rtx, ref2, val2) <= -1)
-	{
-		hawk_rtx_geterrinf(rtx, &errinf);
-		/* a built-in destination may allocate while restoring its cached state.
-		 * stop the runtime if restoration fails; don't let a script continue
-		 * stale value in the first reference. the calling handler must return
-		 * failure when this function returns SYS_OUTPUT_ROLLBACK_ERROR. */
-		if (hawk_rtx_setrefval(rtx, ref1, old1) <= -1) rx = SYS_OUTPUT_ROLLBACK_ERROR;
-		goto release;
-	}
-
-	hawk_rtx_refdownval_inline(rtx, old1);
+	n = hawk_rtx_setrefvalpair(rtx, ref1, val1, ref2, val2);
 	hawk_rtx_refdownval_inline(rtx, val2);
 	hawk_rtx_refdownval_inline(rtx, val1);
-	return SYS_OUTPUT_OK;
-
-fail:
-	hawk_rtx_geterrinf(rtx, &errinf);
-release:
-	hawk_rtx_refdownval_inline(rtx, old1);
-	hawk_rtx_refdownval_inline(rtx, val2);
-	hawk_rtx_refdownval_inline(rtx, val1);
-	hawk_rtx_seterrinf(rtx, &errinf);
-	return rx;
+	return n;
 }
 
 static void mark_shared_sys_fd (sys_list_t* list, sys_node_t* node)
@@ -1301,7 +1262,7 @@ static int fnc_read (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		if (reqsize <= 0) reqsize = 8192;
 		if (reqsize > HAWK_INT_MAX) reqsize = HAWK_INT_MAX;
 	#if defined(_WIN32)
-		/* Both CRT file reads and Winsock reads have narrower count arguments. */
+		/* both CRT file reads and Winsock reads have narrower count arguments. */
 		if (reqsize > HAWK_TYPE_MAX(int)) reqsize = HAWK_TYPE_MAX(int);
 	#endif
 
@@ -2178,6 +2139,8 @@ static int fnc_tcsetattr (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi) /* this is
 			rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
 			goto done;
 		}
+		/* TCSAFLUSH discards unread input, including this wrapper's residue. */
+		if (action == TCSAFLUSH) sys_node->ctx.u.file.readbuf_len = 0;
 #else
 		rx = set_error_on_sys_list(rtx, sys_list, HAWK_ENOSUP, HAWK_NULL);
 #endif
@@ -2278,6 +2241,8 @@ static int fnc_tcflush (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_NULL);
 			goto done;
 		}
+		/* the OS cannot flush bytes already held in hawk's read buffer. */
+		if (qs == TCIFLUSH || qs == TCIOFLUSH) sys_node->ctx.u.file.readbuf_len = 0;
 #else
 		rx = set_error_on_sys_list(rtx, sys_list, HAWK_ENOSUP, HAWK_NULL);
 #endif
@@ -2384,7 +2349,6 @@ static int fnc_pipe (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_int_t rx;
 	int fds[2];
 	hawk_int_t flags = 0;
-	int status = 0;
 
 	sys_list = rtx_to_sys_list(rtx, fi);
 
@@ -2465,11 +2429,7 @@ static int fnc_pipe (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			x = set_sys_output_pair(rtx,
 				(hawk_val_ref_t*)hawk_rtx_getarg(rtx, 0), node1->id,
 				(hawk_val_ref_t*)hawk_rtx_getarg(rtx, 1), node2->id);
-			if (x != SYS_OUTPUT_OK)
-			{
-				if (x == SYS_OUTPUT_ROLLBACK_ERROR) status = -1;
-				goto fail;
-			}
+			if (x <= -1) goto fail;
 
 			/* successful so far */
 			rx =  ERRNUM_TO_RC(HAWK_ENOERR);
@@ -2500,7 +2460,6 @@ static int fnc_pipe (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 #endif
 
 done:
-	if (status <= -1) return -1;
 	hawk_rtx_setretval(rtx, hawk_rtx_makeintval_inline(rtx, rx));
 	return 0;
 }
@@ -2894,64 +2853,100 @@ oops:
 
 static int fnc_wifexited (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
-	hawk_int_t wstatus;
-	int rv;
+	hawk_int_t wstatus, rv;
+	hawk_val_t* retv;
+	sys_list_t* sys_list = rtx_to_sys_list(rtx, fi);
+
+	if (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 0), &wstatus) <= -1)
+	{
+		rv = copy_error_to_sys_list(rtx, sys_list);
+	}
+	else
+	{
 #if defined(WIFEXITED)
-	rv = (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 0), &wstatus) <= -1)? 0: !!WIFEXITED(wstatus);
+		rv = !!WIFEXITED(wstatus);
 #else
-	rv = 0;
+		rv = set_error_on_sys_list(rtx, sys_list, HAWK_ENOIMPL, HAWK_NULL);
 #endif
-	hawk_rtx_setretval(rtx, hawk_rtx_makeintval_inline(rtx, rv));
+	}
+
+	retv = hawk_rtx_makeintval_inline(rtx, rv);
+	if (HAWK_UNLIKELY(!retv)) return -1;
+	hawk_rtx_setretval(rtx, retv);
 	return 0;
 }
 
 static int fnc_wexitstatus (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
-	hawk_int_t wstatus;
-	int rv;
-
+	hawk_int_t wstatus, rv;
 	hawk_val_t* retv;
+	sys_list_t* sys_list = rtx_to_sys_list(rtx, fi);
+
+	if (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 0), &wstatus) <= -1)
+	{
+		rv = copy_error_to_sys_list(rtx, sys_list);
+	}
+	else
+	{
 #if defined(WEXITSTATUS)
-	rv = (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 0), &wstatus) <= -1)? -1: WEXITSTATUS(wstatus);
+		rv = WEXITSTATUS(wstatus);
 #else
-	rv = -1;
+		rv = set_error_on_sys_list(rtx, sys_list, HAWK_ENOIMPL, HAWK_NULL);
 #endif
+	}
 
 	retv = hawk_rtx_makeintval_inline(rtx, rv);
-	if (!retv) return -1;
-
+	if (HAWK_UNLIKELY(!retv)) return -1;
 	hawk_rtx_setretval(rtx, retv);
 	return 0;
 }
 
 static int fnc_wifsignaled (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
-	hawk_int_t wstatus;
-	int rv;
+	hawk_int_t wstatus, rv;
+	hawk_val_t* retv;
+	sys_list_t* sys_list = rtx_to_sys_list(rtx, fi);
+
+	if (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 0), &wstatus) <= -1)
+	{
+		rv = copy_error_to_sys_list(rtx, sys_list);
+	}
+	else
+	{
 #if defined(WIFSIGNALED)
-	rv = (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 0), &wstatus) <= -1)? 0: !!WIFSIGNALED(wstatus);
+		rv = !!WIFSIGNALED(wstatus);
 #else
-	rv = 0;
+		rv = set_error_on_sys_list(rtx, sys_list, HAWK_ENOIMPL, HAWK_NULL);
 #endif
-	hawk_rtx_setretval(rtx, hawk_rtx_makeintval_inline(rtx, rv));
+	}
+
+	retv = hawk_rtx_makeintval_inline(rtx, rv);
+	if (HAWK_UNLIKELY(!retv)) return -1;
+	hawk_rtx_setretval(rtx, retv);
 	return 0;
 }
 
 static int fnc_wtermsig (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
-	hawk_int_t wstatus;
-	int rv;
-
+	hawk_int_t wstatus, rv;
 	hawk_val_t* retv;
+	sys_list_t* sys_list = rtx_to_sys_list(rtx, fi);
+
+	if (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 0), &wstatus) <= -1)
+	{
+		rv = copy_error_to_sys_list(rtx, sys_list);
+	}
+	else
+	{
 #if defined(WTERMSIG)
-	rv = (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 0), &wstatus) <= -1)? -1: WTERMSIG(wstatus);
+		rv = WTERMSIG(wstatus);
 #else
-	rv = -1;
+		rv = set_error_on_sys_list(rtx, sys_list, HAWK_ENOIMPL, HAWK_NULL);
 #endif
+	}
 
 	retv = hawk_rtx_makeintval_inline(rtx, rv);
-	if (!retv) return -1;
-
+	if (HAWK_UNLIKELY(!retv)) return -1;
 	hawk_rtx_setretval(rtx, retv);
 	return 0;
 }
@@ -2959,10 +2954,22 @@ static int fnc_wtermsig (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 #if defined(WCOREDUMP)
 static int fnc_wcoredump (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
-	hawk_int_t wstatus;
-	int rv;
-	rv = hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 0), &wstatus) <= -1? 0: !!WCOREDUMP(wstatus);
-	hawk_rtx_setretval(rtx, hawk_rtx_makeintval_inline(rtx, rv));
+	hawk_int_t wstatus, rv;
+	hawk_val_t* retv;
+	sys_list_t* sys_list = rtx_to_sys_list(rtx, fi);
+
+	if (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, 0), &wstatus) <= -1)
+	{
+		rv = copy_error_to_sys_list(rtx, sys_list);
+	}
+	else
+	{
+		rv = !!WCOREDUMP(wstatus);
+	}
+
+	retv = hawk_rtx_makeintval_inline(rtx, rv);
+	if (HAWK_UNLIKELY(!retv)) return -1;
+	hawk_rtx_setretval(rtx, retv);
 	return 0;
 }
 #endif
@@ -3756,6 +3763,7 @@ done:
 
 static int fnc_gettime (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
+	sys_list_t* sys_list = rtx_to_sys_list(rtx, fi);
 	hawk_val_t* retv;
 	hawk_ntime_t now;
 
@@ -3768,7 +3776,7 @@ static int fnc_gettime (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	{
 		/* Leave the output argument unchanged on clock failure. The time
 		 * helper doesn't expose reliable native errors on every platform. */
-		now.sec = set_error_on_sys_list(rtx, rtx_to_sys_list(rtx, fi), HAWK_ESYSERR, HAWK_T("unable to get current time"));
+		now.sec = set_error_on_sys_list(rtx, sys_list, HAWK_ESYSERR, HAWK_T("unable to get current time"));
 	}
 	else if (hawk_rtx_getnargs(rtx) >= 1)
 	{
@@ -3776,12 +3784,18 @@ static int fnc_gettime (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		int x;
 
 		tmp = hawk_rtx_makeintval_inline(rtx, now.nsec);
-		if (HAWK_UNLIKELY(!tmp)) return -1;
+		if (HAWK_UNLIKELY(!tmp)) goto fail;
 
 		hawk_rtx_refupval_inline(rtx, tmp);
 		x = hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, 0), tmp);
 		hawk_rtx_refdownval_inline(rtx, tmp);
-		if (HAWK_UNLIKELY(x <= -1)) return -1;
+		if (HAWK_UNLIKELY(x <= -1))
+		{
+		fail:
+			/* Output failures are module errors; only failure to make the
+			 * final return value should abort the runtime. */
+			now.sec = copy_error_to_sys_list(rtx, sys_list);
+		}
 	}
 
 	retv = hawk_rtx_makeintval_inline(rtx, now.sec);
@@ -3872,7 +3886,13 @@ static int fnc_mktime (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 		a0 = hawk_rtx_getarg(rtx, 0);
 		str = hawk_rtx_getvaloocstr(rtx, a0, &len);
-		if (HAWK_UNLIKELY(!str)) return -1;
+		if (HAWK_UNLIKELY(!str))
+		{
+			/* Input conversion errors are module errors, just like malformed time
+			 * fields. Keep the script running so it can inspect errmsg(). */
+			nt.sec = copy_error_to_sys_list(rtx, sys_list);
+			goto done;
+		}
 
 		p = str;
 		end = str + len;
@@ -3986,7 +4006,7 @@ static int fnc_strftime (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	buf = staticbuf;
 	capa = HAWK_COUNTOF(staticbuf);
 
-	/* Hawk strings have an explicit length; libc would silently discard the
+	/* hawk strings have an explicit length; libc would silently discard the
 	 * format suffix after an embedded NUL. Report this as a module error so
 	 * the script can inspect the result and continue. */
 	if (hawk_find_bchar_in_bchars(fmt, len, '\0'))
@@ -4185,19 +4205,26 @@ static int fnc_getenv (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 /* ------------------------------------------------------------ */
 
+#if !defined(_WIN32)
+static const hawk_bch_t* temp_dir_getenv (const hawk_bch_t* name, void* ctx)
+{
+	return getenv(name);
+}
+#endif
+
 static int fnc_tempname (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 #if defined(_WIN32)
 	static const hawk_ooch_t default_prefix[] = HAWK_T("hawk-");
 	hawk_ooch_t* prefix_buf = HAWK_NULL;
 	const hawk_ooch_t* prefix = default_prefix;
-	const hawk_ooch_t* tmpdir;
+	hawk_ooch_t* tmpdir = HAWK_NULL;
 	hawk_ooch_t* path = HAWK_NULL;
 #else
 	static const hawk_bch_t default_prefix[] = HAWK_BT("hawk-");
 	hawk_bch_t* prefix_buf = HAWK_NULL;
 	const hawk_bch_t* prefix = default_prefix;
-	const hawk_bch_t* tmpdir;
+	hawk_bch_t* tmpdir = HAWK_NULL;
 	hawk_bch_t* path = HAWK_NULL;
 #endif
 	sys_list_t* sys_list;
@@ -4207,11 +4234,6 @@ static int fnc_tempname (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_oow_t tmpdir_len, path_len, extra, i;
 	hawk_fio_t* fio;
 	int need_sep;
-#if defined(_WIN32)
-	hawk_ooch_t tmpdir_buf[MAX_PATH + 1];
-	hawk_ooch_t* tmpdir_alloc = HAWK_NULL;
-	DWORD n;
-#endif
 
 	sys_list = rtx_to_sys_list(rtx, fi);
 
@@ -4250,59 +4272,15 @@ static int fnc_tempname (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	}
 
 #if defined(_WIN32)
-	n = GetTempPath(HAWK_COUNTOF(tmpdir_buf), tmpdir_buf);
-	if (n == 0)
+	tmpdir = hawk_get_temp_dir(hawk_rtx_getgem(rtx), HAWK_NULL, HAWK_NULL);
+#else
+	tmpdir = hawk_get_temp_dir_bcstr(hawk_rtx_getgem(rtx), temp_dir_getenv, HAWK_NULL);
+#endif
+	if (!tmpdir)
 	{
-		set_error_on_sys_list(rtx, sys_list, hawk_syserr_to_errnum(GetLastError()), HAWK_T("unable to get the temporary directory"));
+		copy_error_to_sys_list(rtx, sys_list);
 		goto soft_fail;
 	}
-	if (n >= HAWK_COUNTOF(tmpdir_buf))
-	{
-		DWORD capa;
-		if (n == HAWK_TYPE_MAX(DWORD) ||
-		    (hawk_oow_t)n >= HAWK_TYPE_MAX(hawk_oow_t) / HAWK_SIZEOF(*tmpdir_alloc))
-		{
-			set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_T("temporary directory path too long"));
-			goto soft_fail;
-		}
-		capa = n + 1;
-		tmpdir_alloc = hawk_rtx_allocmem(rtx, (hawk_oow_t)capa * HAWK_SIZEOF(*tmpdir_alloc));
-		if (HAWK_UNLIKELY(!tmpdir_alloc))
-		{
-			copy_error_to_sys_list(rtx, sys_list);
-			goto soft_fail;
-		}
-		n = GetTempPath(capa, tmpdir_alloc);
-		if (n == 0)
-		{
-			set_error_on_sys_list(rtx, sys_list, hawk_syserr_to_errnum(GetLastError()), HAWK_T("unable to get the temporary directory"));
-			goto soft_fail;
-		}
-		if (n >= capa)
-		{
-			set_error_on_sys_list(rtx, sys_list, HAWK_EINVAL, HAWK_T("temporary directory path too long"));
-			goto soft_fail;
-		}
-		tmpdir = tmpdir_alloc;
-	}
-	else tmpdir = tmpdir_buf;
-#else
-	tmpdir = getenv("TMPDIR");
-	if (!tmpdir || !tmpdir[0]) tmpdir = getenv("TEMP");
-	if (!tmpdir || !tmpdir[0]) tmpdir = getenv("TMP");
-	if (!tmpdir || !tmpdir[0])
-	{
-	#if defined(__OS2__) || defined(__DOS__)
-		tmpdir = ".";
-	#elif defined(vms) || defined(__vms)
-		tmpdir = "SYS$SCRATCH:";
-	#elif defined(P_tmpdir)
-		tmpdir = P_tmpdir;
-	#else
-		tmpdir = "/tmp";
-	#endif
-	}
-#endif
 
 #if defined(_WIN32)
 	tmpdir_len = hawk_count_oocstr(tmpdir);
@@ -4384,8 +4362,8 @@ static int fnc_tempname (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_rtx_setretval(rtx, retv);
 
 	if (path) hawk_rtx_freemem(rtx, path);
+	if (tmpdir) hawk_rtx_freemem(rtx, tmpdir);
 #if defined(_WIN32)
-	if (tmpdir_alloc) hawk_rtx_freemem(rtx, tmpdir_alloc);
 	if (prefix_buf) hawk_rtx_freevaloocstr(rtx, prefix_arg, prefix_buf);
 #else
 	if (prefix_buf) hawk_rtx_freevalbcstr(rtx, prefix_arg, prefix_buf);
@@ -4399,8 +4377,8 @@ soft_fail:
 
 hard_fail:
 	if (path) hawk_rtx_freemem(rtx, path);
+	if (tmpdir) hawk_rtx_freemem(rtx, tmpdir);
 #if defined(_WIN32)
-	if (tmpdir_alloc) hawk_rtx_freemem(rtx, tmpdir_alloc);
 	if (prefix_buf) hawk_rtx_freevaloocstr(rtx, prefix_arg, prefix_buf);
 #else
 	if (prefix_buf) hawk_rtx_freevalbcstr(rtx, prefix_arg, prefix_buf);
@@ -5479,7 +5457,10 @@ static int fnc_addtomux (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 #if defined(USE_EPOLL)
 	return ctl_epoll_for_fnc(rtx, fi, MUX_CTL_ADD);
 #else
-	hawk_rtx_setretval(rtx, hawk_rtx_makeintval_inline(rtx, ERRNUM_TO_RC(HAWK_ENOIMPL)));
+	hawk_int_t rx;
+
+	rx = set_error_on_sys_list(rtx, rtx_to_sys_list(rtx, fi), HAWK_ENOIMPL, HAWK_NULL);
+	hawk_rtx_setretval(rtx, hawk_rtx_makeintval_inline(rtx, rx));
 	return 0;
 #endif
 }
@@ -5489,7 +5470,10 @@ static int fnc_delfrommux (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 #if defined(USE_EPOLL)
 	return ctl_epoll_for_fnc(rtx, fi, MUX_CTL_DEL);
 #else
-	hawk_rtx_setretval(rtx, hawk_rtx_makeintval_inline(rtx, ERRNUM_TO_RC(HAWK_ENOIMPL)));
+	hawk_int_t rx;
+
+	rx = set_error_on_sys_list(rtx, rtx_to_sys_list(rtx, fi), HAWK_ENOIMPL, HAWK_NULL);
+	hawk_rtx_setretval(rtx, hawk_rtx_makeintval_inline(rtx, rx));
 	return 0;
 #endif
 }
@@ -5499,7 +5483,10 @@ static int fnc_modinmux (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 #if defined(USE_EPOLL)
 	return ctl_epoll_for_fnc(rtx, fi, MUX_CTL_MOD);
 #else
-	hawk_rtx_setretval(rtx, hawk_rtx_makeintval_inline(rtx, ERRNUM_TO_RC(HAWK_ENOIMPL)));
+	hawk_int_t rx;
+
+	rx = set_error_on_sys_list(rtx, rtx_to_sys_list(rtx, fi), HAWK_ENOIMPL, HAWK_NULL);
+	hawk_rtx_setretval(rtx, hawk_rtx_makeintval_inline(rtx, rx));
 	return 0;
 #endif
 }
@@ -5588,7 +5575,10 @@ done:
 	hawk_rtx_setretval(rtx, hawk_rtx_makeintval_inline(rtx, rx));
 	return 0;
 #else
-	hawk_rtx_setretval(rtx, hawk_rtx_makeintval_inline(rtx, ERRNUM_TO_RC(HAWK_ENOIMPL)));
+	hawk_int_t rx;
+
+	rx = set_error_on_sys_list(rtx, rtx_to_sys_list(rtx, fi), HAWK_ENOIMPL, HAWK_NULL);
+	hawk_rtx_setretval(rtx, hawk_rtx_makeintval_inline(rtx, rx));
 	return 0;
 #endif
 }
@@ -5637,15 +5627,17 @@ static int fnc_getmuxevt (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		x = set_sys_output_pair(rtx,
 			(hawk_val_ref_t*)hawk_rtx_getarg(rtx, 2), file_node->id,
 			(hawk_val_ref_t*)hawk_rtx_getarg(rtx, 3), mux_data->x_evt[index].events);
-		if (x == SYS_OUTPUT_ROLLBACK_ERROR) return -1;
-		if (x != SYS_OUTPUT_OK) goto fail;
+		if (x <= -1) goto fail;
 	}
 
 done:
 	hawk_rtx_setretval(rtx, hawk_rtx_makeintval_inline(rtx, rx));
 	return 0;
 #else
-	hawk_rtx_setretval(rtx, hawk_rtx_makeintval_inline(rtx, ERRNUM_TO_RC(HAWK_ENOIMPL)));
+	hawk_int_t rx;
+
+	rx = set_error_on_sys_list(rtx, rtx_to_sys_list(rtx, fi), HAWK_ENOIMPL, HAWK_NULL);
+	hawk_rtx_setretval(rtx, hawk_rtx_makeintval_inline(rtx, rx));
 	return 0;
 #endif
 }
@@ -5903,6 +5895,10 @@ static int fnc_recvfrom (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 		HAWK_MEMSET(&skad, 0, HAWK_SIZEOF(skad));
 		addrlen = HAWK_SIZEOF(skad);
+		/* The receive reuses the residue buffer. Winsock can overwrite it
+		 * with partial data before returning WSAEMSGSIZE, so discard residue
+		 * before the OS call even if that call fails. */
+		sys_node->ctx.u.file.readbuf_len = 0;
 		rx = recvfrom(SYS_NODE_SOCKET(sys_node), sys_node->ctx.u.file.readbuf, reqsize, 0, (struct sockaddr*)&skad, &addrlen);
 		if (rx <= -1)
 		{
@@ -5914,9 +5910,6 @@ static int fnc_recvfrom (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			hawk_val_t* sv;
 			int x;
 
-			/* discard residue only on this descriptor; recvfrom leaves none. */
-			sys_node->ctx.u.file.readbuf_len = 0;
-
 			sv = hawk_rtx_makembsvalwithbchars(rtx, sys_node->ctx.u.file.readbuf, rx);
 			if (!sv)
 			{
@@ -5925,37 +5918,40 @@ static int fnc_recvfrom (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			}
 
 			hawk_rtx_refupval_inline(rtx, sv);
-			x = hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, 1), sv);
+			if (hawk_rtx_getnargs(rtx) >= 4)
+			{
+				hawk_val_t* peer;
+
+				/* prepare the peer before publishing either output. the datagram
+				 * has already been consumed even if value assignment fails. */
+				if (format_sys_peer_address(rtx, &skad, addrlen, sys_list->ctx.skadbuf[0], HAWK_COUNTOF(sys_list->ctx.skadbuf[0])) <= -1)
+				{
+					hawk_rtx_refdownval_inline(rtx, sv);
+					rx = copy_error_to_sys_list(rtx, sys_list);
+					goto done;
+				}
+				peer = hawk_rtx_makestrvalwithoocstr(rtx, sys_list->ctx.skadbuf[0]);
+				if (HAWK_UNLIKELY(!peer))
+				{
+					hawk_rtx_refdownval_inline(rtx, sv);
+					rx = copy_error_to_sys_list(rtx, sys_list);
+					goto done;
+				}
+				hawk_rtx_refupval_inline(rtx, peer);
+				x = hawk_rtx_setrefvalpair(rtx,
+					(hawk_val_ref_t*)hawk_rtx_getarg(rtx, 1), sv,
+					(hawk_val_ref_t*)hawk_rtx_getarg(rtx, 3), peer);
+				hawk_rtx_refdownval_inline(rtx, peer);
+			}
+			else
+			{
+				x = hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, 1), sv);
+			}
 			hawk_rtx_refdownval_inline(rtx, sv);
 			if (x <= -1)
 			{
 				rx = copy_error_to_sys_list(rtx, sys_list);
 				goto done;
-			}
-
-			if (hawk_rtx_getnargs(rtx) >= 4)
-			{
-				/* A stream receive can succeed without supplying a source address. */
-				if (format_sys_peer_address(rtx, &skad, addrlen, sys_list->ctx.skadbuf[0], HAWK_COUNTOF(sys_list->ctx.skadbuf[0])) <= -1)
-				{
-					rx = copy_error_to_sys_list(rtx, sys_list);
-					goto done;
-				}
-				sv = hawk_rtx_makestrvalwithoocstr(rtx, sys_list->ctx.skadbuf[0]);
-				if (HAWK_UNLIKELY(!sv))
-				{
-					rx = copy_error_to_sys_list(rtx, sys_list);
-					goto done;
-				}
-
-				hawk_rtx_refupval_inline(rtx, sv);
-				x = hawk_rtx_setrefval(rtx, (hawk_val_ref_t*)hawk_rtx_getarg(rtx, 3), sv);
-				hawk_rtx_refdownval_inline(rtx, sv);
-				if (x <= -1)
-				{
-					rx = copy_error_to_sys_list(rtx, sys_list);
-					goto done;
-				}
 			}
 		}
 	}
@@ -6679,8 +6675,23 @@ static int fnc_openlog (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		goto done;
 	}
 
-	if (rdp->log.ident) hawk_rtx_freemem(rtx, rdp->log.ident);
-	rdp->log.ident = mbs_ident;
+	if (rdp->log.sck != SYS_INVALID_SOCKET)
+	{
+		int n;
+
+		n = close_sys_socket(rdp->log.sck);
+		/* invalidate it here regardless of success or failure. */
+		rdp->log.sck = SYS_INVALID_SOCKET;
+
+		if (n <= -1)
+		{
+			/* capture the native error before allocator cleanup. */
+			rx = set_error_on_sys_list_with_socket_error(
+				rtx, sys_list, HAWK_T("unable to close previous log socket"));
+			hawk_rtx_freemem(rtx, mbs_ident);
+			goto done;
+		}
+	}
 
 #if defined(ENABLE_SYSLOG)
 	if (rdp->log.syslog_opened)
@@ -6689,11 +6700,9 @@ static int fnc_openlog (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		rdp->log.syslog_opened = 0;
 	}
 #endif
-	if (rdp->log.sck != SYS_INVALID_SOCKET)
-	{
-		close_sys_socket(rdp->log.sck);
-		rdp->log.sck = SYS_INVALID_SOCKET;
-	}
+
+	if (rdp->log.ident) hawk_rtx_freemem(rtx, rdp->log.ident);
+	rdp->log.ident = mbs_ident;
 
 	rdp->log.type = log_type;
 	rdp->log.opt = (int)opt;
@@ -6701,7 +6710,7 @@ static int fnc_openlog (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	if (rdp->log.type == SYSLOG_LOCAL)
 	{
 	#if defined(ENABLE_SYSLOG)
-		/* Hawk-specific timestamp options do not belong to native openlog(). */
+		/* hawk-specific timestamp options do not belong to native openlog(). */
 		openlog(mbs_ident, (int)opt & ~SYS_LOG_OPT_ISO8601, (int)fac);
 		rdp->log.syslog_opened = 1;
 	#endif
@@ -8641,10 +8650,6 @@ static hawk_mod_int_tab_t inttab[] =
 #if defined(TCIOFLUSH)
 	{ HAWK_T("TC_IOFLUSH"),      { TCIOFLUSH } },
 #endif
-#if defined(TCOFLUSH)
-	{ HAWK_T("TC_OFLUSH"),       { TCOFLUSH } },
-#endif
-
 #if defined(ECHO)
 	{ HAWK_T("TC_LFLAG_ECHO"),   { ECHO  } },
 #endif
@@ -8687,6 +8692,10 @@ static hawk_mod_int_tab_t inttab[] =
 	{ HAWK_T("TC_OFLAG_OPOST"),  { OPOST  } },
 #endif
 	{ HAWK_T("TC_OFLAG_OXTABS"), { X_OXTABS  } },
+
+#if defined(TCOFLUSH)
+	{ HAWK_T("TC_OFLUSH"),       { TCOFLUSH } },
+#endif
 
 #if defined(TCSADRAIN)
 	{ HAWK_T("TC_SADRAIN"),      { TCSADRAIN  } },

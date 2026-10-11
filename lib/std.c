@@ -3697,7 +3697,7 @@ static int timeout_code (const hawk_ooch_t* name)
 static HAWK_INLINE void init_ioattr (ioattr_t* ioattr)
 {
 	int i;
-	HAWK_MEMSET (ioattr, 0, HAWK_SIZEOF(*ioattr));
+	HAWK_MEMSET(ioattr, 0, HAWK_SIZEOF(*ioattr));
 	for (i = 0; i < HAWK_COUNTOF(ioattr->tmout); i++)
 	{
 		/* a negative number for no timeout */

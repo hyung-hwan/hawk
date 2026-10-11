@@ -23,6 +23,7 @@
  */
 
 #include <hawk-pio.h>
+#include <hawk-sh.h>
 #include "hawk-prv.h"
 
 #if defined(_WIN32)
@@ -53,6 +54,44 @@ static hawk_ooi_t pio_input (hawk_tio_t* tio, hawk_tio_cmd_t cmd, void* buf, haw
 static hawk_ooi_t pio_output (hawk_tio_t* tio, hawk_tio_cmd_t cmd, void* buf, hawk_oow_t size);
 
 #if !defined(_WIN32) && !defined(__OS2__) && !defined(__DOS__)
+typedef struct sh_cmd_t sh_cmd_t;
+
+struct sh_cmd_t
+{
+	hawk_gem_t*        gem;
+	const hawk_ooch_t* cmd;
+	int                flags;
+	char*const*        envp;
+};
+
+static int run_hawk_sh (void* ctx)
+{
+	sh_cmd_t* cmd = ctx;
+	hawk_sh_t* sh;
+	int status;
+
+	/* this is a real fork child, never a vfork/posix_spawn child. */
+#if defined(HAVE_CRT_EXTERNS_H)
+	*(_NSGetEnviron()) = (char**)cmd->envp;
+#else
+	{
+		extern char** environ;
+		environ = (char**)cmd->envp;
+	}
+#endif
+	sh = hawk_sh_openstd(cmd->gem->mmgr, 0, cmd->gem->cmgr, HAWK_NULL);
+	if (!sh) return 125;
+
+	if (cmd->flags & HAWK_PIO_BCSTRCMD)
+		status = hawk_sh_execbcs(sh, (const hawk_bch_t*)cmd->cmd);
+	else
+		status = hawk_sh_execoocs(sh, cmd->cmd);
+
+	hawk_sh_close(sh);
+
+	return status < 0? 2: status;
+}
+
 static int get_highest_fd (hawk_pio_t* pio)
 {
 #if defined(HAVE_GETRLIMIT)
@@ -211,7 +250,7 @@ hawk_pio_t* hawk_pio_open (hawk_gem_t* gem, hawk_oow_t xtnsize, const hawk_ooch_
 
 void hawk_pio_close (hawk_pio_t* pio)
 {
-	hawk_pio_fini (pio);
+	hawk_pio_fini(pio);
 	hawk_gem_freemem(pio->gem, pio);
 }
 
@@ -581,6 +620,9 @@ static hawk_pio_pid_t standard_fork_and_exec (hawk_pio_t* pio, int pipes[], para
 			 * in as a paramter to find out actual environmen values (e.g. ENVIRON) */
 			retx = fnc->ptr(fnc->ctx);
 			if (devnull >= 0) HAWK_CLOSE(devnull);
+			/* The embedded shell has run library/allocator code. Use the
+			 * process-level libc exit primitive, not a raw thread-exit syscall. */
+			if (pio->flags & HAWK_PIO_HAWKSH) _exit(retx);
 			HAWK_EXIT(retx);
 		}
 		else
@@ -693,6 +735,18 @@ int hawk_pio_init (hawk_pio_t* pio, hawk_gem_t* gem, const hawk_ooch_t* cmd, int
 	HAWK_MEMSET(pio, 0, HAWK_SIZEOF(*pio));
 	pio->gem = gem;
 	pio->flags = flags;
+	if ((flags & HAWK_PIO_HAWKSH) && (flags & HAWK_PIO_FNCCMD))
+	{
+		hawk_gem_seterrnum(gem, HAWK_NULL, HAWK_EINVAL);
+		return -1;
+	}
+#if defined(_WIN32) || defined(__OS2__) || defined(__DOS__)
+	if (flags & HAWK_PIO_HAWKSH)
+	{
+		hawk_gem_seterrnum(gem, HAWK_NULL, HAWK_ENOIMPL);
+		return -1;
+	}
+#endif
 
 	handle[0] = HAWK_PIO_HND_NIL;
 	handle[1] = HAWK_PIO_HND_NIL;
@@ -1374,7 +1428,41 @@ create_process:
 
 	/* allow a pure spawn/wait use case with no dedicated pipes. */
 
-	if (pio->flags & HAWK_PIO_FNCCMD)
+	if (pio->flags & HAWK_PIO_HAWKSH)
+	{
+		sh_cmd_t shell;
+		hawk_pio_fnc_t fnc;
+
+		shell.gem = gem;
+		shell.cmd = cmd;
+		shell.flags = flags;
+
+		if (env_mk)
+		{
+			shell.envp = (char*const*)env_mk(HAWK_PIO_ENV_MK_BPP, env_ctx);
+			if (!shell.envp) goto oops;
+		}
+		else
+		{
+#if defined(HAVE_CRT_EXTERNS_H)
+			shell.envp = *_NSGetEnviron();
+#else
+			extern char** environ;
+			shell.envp = environ;
+#endif
+		}
+
+		fnc.ptr = run_hawk_sh;
+		fnc.ctx = &shell;
+
+		pio->flags |= HAWK_PIO_FNCCMD;
+		pid = standard_fork_and_exec(pio, handle, (param_t*)&fnc, HAWK_NULL);
+		pio->flags = flags;
+		if (pid <= -1) goto oops;
+
+		pio->child = pid;
+	}
+	else if (pio->flags & HAWK_PIO_FNCCMD)
 	{
 		/* i know i'm abusing typecasting here.
 		 * cmd is supposed to be hawk_pio_fnc_t*, anyway */
@@ -1447,7 +1535,7 @@ create_process:
 				goto oops;
 			}
 			if ((flags & HAWK_PIO_ERRTOOUT) &&
-				(pserr = posix_spawn_file_actions_adddup2 (&fa, handle[3], 2)) != 0)
+				(pserr = posix_spawn_file_actions_adddup2(&fa, handle[3], 2)) != 0)
 			{
 				hawk_gem_seterrnum(pio->gem, HAWK_NULL, hawk_syserr_to_errnum(pserr));
 				goto oops;
@@ -1462,18 +1550,18 @@ create_process:
 		if (flags & HAWK_PIO_READERR)
 		{
 			/* child should write */
-			if ((pserr = posix_spawn_file_actions_addclose (&fa, handle[4])) != 0)
+			if ((pserr = posix_spawn_file_actions_addclose(&fa, handle[4])) != 0)
 			{
 				hawk_gem_seterrnum(pio->gem, HAWK_NULL, hawk_syserr_to_errnum(pserr));
 				goto oops;
 			}
-			if ((pserr = posix_spawn_file_actions_adddup2 (&fa, handle[5], 2)) != 0)
+			if ((pserr = posix_spawn_file_actions_adddup2(&fa, handle[5], 2)) != 0)
 			{
 				hawk_gem_seterrnum(pio->gem, HAWK_NULL, hawk_syserr_to_errnum(pserr));
 				goto oops;
 			}
 			if ((flags & HAWK_PIO_OUTTOERR) &&
-				(pserr = posix_spawn_file_actions_adddup2 (&fa, handle[5], 1)) != 0)
+				(pserr = posix_spawn_file_actions_adddup2(&fa, handle[5], 1)) != 0)
 			{
 				hawk_gem_seterrnum(pio->gem, HAWK_NULL, hawk_syserr_to_errnum(pserr));
 				goto oops;
@@ -1864,7 +1952,7 @@ oops:
 		hawk_pio_wait(pio); /* reaps and resets child to PID_NIL */
 
 		/* kill()/wait() set errnum themselves - restore the real cause */
-		hawk_gem_seterrnum (pio->gem, HAWK_NULL, err);	
+		hawk_gem_seterrnum(pio->gem, HAWK_NULL, err);	
 	}
 
 #if defined(_WIN32)
@@ -1950,14 +2038,16 @@ oops:
 
 void hawk_pio_fini (hawk_pio_t* pio)
 {
-	hawk_pio_end (pio, HAWK_PIO_ERR);
-	hawk_pio_end (pio, HAWK_PIO_OUT);
-	hawk_pio_end (pio, HAWK_PIO_IN);
+	hawk_uintmax_t status;
+
+	hawk_pio_end(pio, HAWK_PIO_ERR);
+	hawk_pio_end(pio, HAWK_PIO_OUT);
+	hawk_pio_end(pio, HAWK_PIO_IN);
 
 	/* when closing, enable blocking and retrying */
 	pio->flags &= ~HAWK_PIO_WAITNOBLOCK;
 	pio->flags &= ~HAWK_PIO_WAITNORETRY;
-	hawk_pio_wait (pio);
+	if (pio->child != HAWK_PIO_PID_NIL) hawk_pio_waitex(pio, &status);
 }
 
 hawk_cmgr_t* hawk_pio_getcmgr (hawk_pio_t* pio, hawk_pio_hid_t hid)
@@ -2180,14 +2270,14 @@ hawk_ooi_t hawk_pio_flush (hawk_pio_t* pio, hawk_pio_hid_t hid)
 
 void hawk_pio_drain (hawk_pio_t* pio, hawk_pio_hid_t hid)
 {
-	if (pio->pin[hid].tio) hawk_tio_drain (pio->pin[hid].tio);
+	if (pio->pin[hid].tio) hawk_tio_drain(pio->pin[hid].tio);
 }
 
 void hawk_pio_end (hawk_pio_t* pio, hawk_pio_hid_t hid)
 {
 	if (pio->pin[hid].tio)
 	{
-		hawk_tio_close (pio->pin[hid].tio);
+		hawk_tio_close(pio->pin[hid].tio);
 		pio->pin[hid].tio = HAWK_NULL;
 	}
 
@@ -2198,7 +2288,7 @@ void hawk_pio_end (hawk_pio_t* pio, hawk_pio_hid_t hid)
 #elif defined(__OS2__)
 		DosClose(pio->pin[hid].handle);
 #elif defined(__DOS__)
-		close (pio->pin[hid].handle);
+		close(pio->pin[hid].handle);
 #else
 		HAWK_CLOSE(pio->pin[hid].handle);
 #endif
@@ -2207,6 +2297,22 @@ void hawk_pio_end (hawk_pio_t* pio, hawk_pio_hid_t hid)
 }
 
 int hawk_pio_wait (hawk_pio_t* pio)
+{
+	hawk_uintmax_t status;
+	int n;
+
+	n = hawk_pio_waitex(pio, &status);
+	if (n <= -1) return -1;
+	if (n == 0) return 256;
+	if (status > (hawk_uintmax_t)HAWK_TYPE_MAX(int))
+	{
+		hawk_gem_seterrbfmt(pio->gem, HAWK_NULL, HAWK_EINVAL, "process exit status out of range");
+		return -1;
+	}
+	return (int)status;
+}
+
+int hawk_pio_waitex (hawk_pio_t* pio, hawk_uintmax_t* status)
 {
 #if defined(_WIN32)
 
@@ -2224,7 +2330,7 @@ int hawk_pio_wait (hawk_pio_t* pio)
 	if (w == WAIT_TIMEOUT)
 	{
 		/* the child process is still alive */
-		return 255 + 1;
+		return 0;
 	}
 	if (w != WAIT_OBJECT_0)
 	{
@@ -2249,16 +2355,10 @@ int hawk_pio_wait (hawk_pio_t* pio)
 	CloseHandle(pio->child);
 	pio->child = HAWK_PIO_PID_NIL;
 
-	if (ecode == STILL_ACTIVE)
-	{
-		/* this should not happen as the control reaches here
-		 * only when WaitforSingleObject() is successful.
-		 * if it happends,  close the handle and return an error */
-		hawk_gem_seterrnum(pio->gem, HAWK_NULL, HAWK_ESYSERR);
-		return -1;
-	}
-
-	return ecode;
+	/* The signaled process handle establishes termination even if the child
+	 * deliberately used STILL_ACTIVE (259) as its exit status. */
+	*status = ecode;
+	return 1;
 
 #elif defined(__OS2__)
 
@@ -2282,7 +2382,7 @@ int hawk_pio_wait (hawk_pio_t* pio)
 	if (rc == ERROR_CHILD_NOT_COMPLETE)
 	{
 		/* the child process is still alive */
-		return 255 + 1;
+		return 0;
 	}
 	if (rc != NO_ERROR)
 	{
@@ -2295,8 +2395,9 @@ int hawk_pio_wait (hawk_pio_t* pio)
 	/*DosClose(pio->child);*/
 	pio->child = HAWK_PIO_PID_NIL;
 
-	return (child_rc.codeTerminate == TC_EXIT)?
-		child_rc.codeResult: (255 + 1 + child_rc.codeTerminate);
+	*status = (child_rc.codeTerminate == TC_EXIT)?
+		(hawk_uintmax_t)child_rc.codeResult: ((hawk_uintmax_t)256 + child_rc.codeTerminate);
+	return 1;
 
 #elif defined(__DOS__)
 
@@ -2318,9 +2419,9 @@ int hawk_pio_wait (hawk_pio_t* pio)
 
 	while (1)
 	{
-		int status, n;
+		int wstatus, n;
 
-		n = HAWK_WAITPID(pio->child, &status, opt);
+		n = HAWK_WAITPID(pio->child, &wstatus, opt);
 		if (n <= -1)
 		{
 			if (errno == ECHILD)
@@ -2343,22 +2444,22 @@ int hawk_pio_wait (hawk_pio_t* pio)
 			/* when WNOHANG is not specified, 0 can't be returned */
 			/*HAWK_ASSERT (pio->flags & HAWK_PIO_WAITNOBLOCK);*/
 
-			ret = 255 + 1;
+			ret = 0;
 			/* the child process is still alive */
 			break;
 		}
 
 		if (n == pio->child)
 		{
-			if (WIFEXITED(status))
+			if (WIFEXITED(wstatus))
 			{
 				/* the child process ended normally */
-				ret = WEXITSTATUS(status);
+				*status = WEXITSTATUS(wstatus);
 			}
-			else if (WIFSIGNALED(status))
+			else if (WIFSIGNALED(wstatus))
 			{
 				/* the child process was killed by a signal */
-				ret = 255 + 1 + WTERMSIG (status);
+				*status = 256 + WTERMSIG(wstatus);
 			}
 			else
 			{
@@ -2366,10 +2467,11 @@ int hawk_pio_wait (hawk_pio_t* pio)
 				 * in fact, this else-block should not be reached
 				 * as WIFEXITED or WIFSIGNALED must be true.
 				 * anyhow, just set the return value to 0. */
-				ret = 0;
+				*status = 0;
 			}
 
 			pio->child = HAWK_PIO_PID_NIL;
+			ret = 1;
 			break;
 		}
 	}

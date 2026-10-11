@@ -214,7 +214,7 @@ static int get_nwifs (hawk_gem_t* gem, int s, int f, hawk_xptl_t* nwifs)
 	return 0;
 
 oops:
-	if (b.ptr) hawk_gem_freemem (gem, b.ptr);
+	if (b.ptr) hawk_gem_freemem(gem, b.ptr);
 	return -1;
 }
 #endif
@@ -229,8 +229,8 @@ static void free_nwifcfg (hawk_gem_t* gem, hawk_ifcfg_node_t* cfg)
 	{
 		cur = cfg;
 		cfg = cur->next;
-		if (cur->name) hawk_gem_freemem (gem, cur->name);
-		hawk_gem_freemem (gem, cur);
+		if (cur->name) hawk_gem_freemem(gem, cur->name);
+		hawk_gem_freemem(gem, cur);
 	}
 }
 
@@ -314,7 +314,7 @@ int hawk_gem_getifcfg (hawk_gem_t* gem, hawk_ifcfg_t* cfg)
 		copy_to_skad((struct sockaddr*)&ifrbuf.lifr_addr, HAWK_SIZEOF(ifrbuf.lifr_addr), &head->mask);
 	}
 
-	hawk_gem_freemem (gem, nwifs.ptr);
+	hawk_gem_freemem(gem, nwifs.ptr);
 	close (s6);
 	close (s4);
 
@@ -325,7 +325,7 @@ sys_oops:
 	hawk_gem_seterrnum(gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
 oops:
 	if (head) free_nwifcfg (cfg->mmgr, head);
-	if (nwifs.ptr) hawk_gem_freemem (gem, nwifs.ptr);
+	if (nwifs.ptr) hawk_gem_freemem(gem, nwifs.ptr);
 	if (s6 >= 0) close (s6);
 	if (s4 >= 0) close (s4);
 	return -1;
@@ -626,7 +626,7 @@ static int get_ifcfg (hawk_gem_t* gem, int s, hawk_ifcfg_t* cfg, struct ifreq* i
 					}
 				}
 
-				hawk_gem_freemem (gem, buf);
+				hawk_gem_freemem(gem, buf);
 			}
 		}
 	}
@@ -730,7 +730,7 @@ static int get_ifcfg (hawk_gem_t* gem, int s, hawk_ifcfg_t* cfg, struct ifreq* i
 			if (ioctl(strfd, I_STR, (char *) &strioc) >= 0)
 				HAWK_MEMCPY(cfg->ethw, buf, HAWK_SIZEOF(cfg->ethw));
 
-			HAWK_CLOSE (strfd);
+			HAWK_CLOSE(strfd);
 		}
 	}
 	#endif
@@ -814,15 +814,30 @@ int hawk_gem_getifcfg (hawk_gem_t* gem, hawk_ifcfg_t* cfg)
 	{
 	#if defined(AF_INET)
 		s = socket (AF_INET, SOCK_DGRAM, 0);
+	#else
+		hawk_gem_seterrnum(gem, HAWK_NULL, HAWK_ENOSUP);
+		return -1;
 	#endif
 	}
 	else if (cfg->type == HAWK_IFCFG_IN6)
 	{
 	#if defined(AF_INET6)
 		s = socket(AF_INET6, SOCK_DGRAM, 0);
+	#else
+		hawk_gem_seterrnum(gem, HAWK_NULL, HAWK_ENOSUP);
+		return -1;
 	#endif
 	}
-	if (s <= -1) return -1;
+	else
+	{
+		hawk_gem_seterrnum(gem, HAWK_NULL, HAWK_EINVAL);
+		return -1;
+	}
+	if (s <= -1)
+	{
+		hawk_gem_seterrnum(gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
+		return -1;
+	}
 
 	if (cfg->name[0] == HAWK_T('\0')&& cfg->index >= 1)
 	{
@@ -839,10 +854,10 @@ int hawk_gem_getifcfg (hawk_gem_t* gem, hawk_ifcfg_t* cfg)
 
 	x = get_ifcfg(gem, s, cfg, &ifr);
 
-	if (x >= 0) get_moreinfo (s, cfg, &ifr);
+	if (x >= 0) get_moreinfo(s, cfg, &ifr);
 
 oops:
-	HAWK_CLOSE (s);
+	HAWK_CLOSE(s);
 	return x;
 #endif
 }

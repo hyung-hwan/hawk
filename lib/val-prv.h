@@ -320,6 +320,20 @@ static HAWK_INLINE int hawk_rtx_valtoint_inline (hawk_rtx_t* rtx, const hawk_val
 	n = hawk_rtx_valtonum(rtx, v, l, &r);
 	if (n == 1)
 	{
+#if 1
+
+		/* use the exact power-of-two boundary. converting the maximum
+		 * signed integer to floating point can round it up to limit.
+		 * negating the combined comparison also rejects NaN. */
+		const hawk_flt_t limit = (hawk_flt_t)((hawk_uint_t)1 << (HAWK_BITSOF(hawk_int_t) - 1));
+		if (HAWK_UNLIKELY(!(r >= -limit && r < limit)))
+		{
+			hawk_rtx_seterrbfmt(rtx, HAWK_NULL, HAWK_EINVAL,
+				"non-finite or out-of-range floating-point value for integer conversion");
+			return -1;
+		}
+#endif
+
 		*l = (hawk_int_t)r;
 		n = 0;
 	}

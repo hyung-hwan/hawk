@@ -22,7 +22,7 @@ check_SCRIPTS += h-003.hawk h-004.hawk h-009.hawk h-010.hawk \
 	h-016.hawk h-017.hawk h-018.hawk h-019.hawk h-020.hawk \
 	h-021.hawk h-022.hawk h-023.hawk h-024.hawk h-025.hawk h-026.hawk h-027.hawk h-028.hawk h-029.hawk
 
-check_SCRIPTS += regress-filename.sh regress-extra-info.sh regress-environ.sh regress-m4.sh
+check_SCRIPTS += regress-filename.sh regress-extra-info.sh regress-environ.sh regress-m4.sh regress-sh.sh regress-sh-job-control.sh regress-fnc.sh
 
 check_ERRORS = e-001.err
 
@@ -35,12 +35,17 @@ EXTRA_DIST = $(check_SCRIPTS) $(check_ERRORS) tap.inc err.sh \
 	JSON.awk.in JSON.awk.out \
 	h-024-child.hawk h-024.in \
 	run-hawk-test.sh regress-extra-info.sh \
-	two-way-pipe.hawk two-way-pipe.out
+	two-way-pipe.hawk two-way-pipe.out fnc-regress.md
 
-check_PROGRAMS = t-001 t-002 t-003 t-004 t-005 t-006 t-007 t-008 t-009 t-010 t-011 t-012 t-013
+TEST_PROGS = t-001$(EXEEXT) t-002$(EXEEXT) t-003$(EXEEXT) \
+	t-004$(EXEEXT) t-005$(EXEEXT) t-006$(EXEEXT) t-007$(EXEEXT) \
+	t-008$(EXEEXT) t-009$(EXEEXT) t-010$(EXEEXT) t-011$(EXEEXT) \
+	t-012$(EXEEXT) t-013$(EXEEXT) t-014$(EXEEXT) t-015$(EXEEXT)
+
+check_PROGRAMS = $(TEST_PROGS) fnc-regress$(EXEEXT) sh-job-control$(EXEEXT)
 
 if ENABLE_CXX
-check_PROGRAMS += t-101
+TEST_PROGS += t-101$(EXEEXT)
 endif
 
 t_001_SOURCES = t-001.c tap.h
@@ -118,6 +123,28 @@ t_013_CFLAGS = $(CFLAGS_COMMON)
 t_013_LDFLAGS = $(LDFLAGS_COMMON)
 t_013_LDADD = $(LIBADD_COMMON)
 
+t_014_SOURCES = t-014.c tap.h
+t_014_CPPFLAGS = $(CPPFLAGS_COMMON)
+t_014_CFLAGS = $(CFLAGS_COMMON)
+t_014_LDFLAGS = $(LDFLAGS_COMMON)
+t_014_LDADD = $(LIBADD_COMMON)
+
+t_015_SOURCES = t-015.c tap.h
+t_015_CPPFLAGS = $(CPPFLAGS_COMMON)
+t_015_CFLAGS = $(CFLAGS_COMMON)
+t_015_LDFLAGS = $(LDFLAGS_COMMON)
+t_015_LDADD = $(LIBADD_COMMON)
+
+fnc_regress_SOURCES = fnc-regress.c math-rand-max.c math-time-failure.c math-threads.c sys-faults.c sys-fallback.c sys-unavailable.c
+fnc_regress_CPPFLAGS = $(CPPFLAGS_COMMON)
+fnc_regress_CFLAGS = $(CFLAGS_COMMON)
+fnc_regress_LDFLAGS = $(LDFLAGS_COMMON)
+fnc_regress_LDADD = $(LIBADD_COMMON)
+
+sh_job_control_SOURCES = sh-job-control.c
+sh_job_control_CPPFLAGS = $(CPPFLAGS_COMMON)
+sh_job_control_CFLAGS = $(CFLAGS_COMMON)
+
 if ENABLE_CXX
 t_101_SOURCES = t-101.cpp tap.h
 t_101_CPPFLAGS = $(CPPFLAGS_COMMON)
@@ -127,7 +154,7 @@ t_101_LDADD = $(LIBADD_COMMON)
 endif
 
 LOG_DRIVER = env AM_TAP_AWK='$(AWK)' $(SHELL) $(top_srcdir)/ac/tap-driver.sh
-TESTS = $(check_PROGRAMS) $(check_SCRIPTS) $(check_ERRORS)
+TESTS = $(TEST_PROGS) $(check_SCRIPTS) $(check_ERRORS)
 
 TEST_EXTENSIONS = .hawk .err .sh
 
@@ -158,5 +185,8 @@ ERR_LOG_COMPILER = $(SHELL) $(abs_srcdir)/err.sh $(HAWK_TEST_COMPILER) -vTDIR=${
 AM_ERR_LOG_FLAGS =
 
 SH_LOG_DRIVER = $(LOG_DRIVER)
-SH_LOG_COMPILER = env HAWK_BIN='$(HAWK_TEST_COMPILER)' $(SHELL)
+SH_LOG_COMPILER = env HAWK_BIN='$(HAWK_TEST_COMPILER)' FNC_REGRESS_BIN='./fnc-regress$(EXEEXT)' SH_JOB_CONTROL_BIN='./sh-job-control$(EXEEXT)' $(SHELL)
 AM_SH_LOG_FLAGS =
+
+regress-fnc.log: fnc-regress$(EXEEXT)
+regress-sh-job-control.log: sh-job-control$(EXEEXT)

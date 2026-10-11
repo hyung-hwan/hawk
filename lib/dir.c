@@ -94,7 +94,7 @@ hawk_dir_t* hawk_dir_open (hawk_gem_t* gem, hawk_oow_t xtnsize, const hawk_ooch_
 	{
 		if (hawk_dir_init(dir, gem, path, flags) <= -1)
 		{
-			hawk_gem_freemem (gem, dir);
+			hawk_gem_freemem(gem, dir);
 			dir = HAWK_NULL;
 		}
 		else HAWK_MEMSET(dir + 1, 0, xtnsize);
@@ -105,8 +105,8 @@ hawk_dir_t* hawk_dir_open (hawk_gem_t* gem, hawk_oow_t xtnsize, const hawk_ooch_
 
 void hawk_dir_close (hawk_dir_t* dir)
 {
-	hawk_dir_fini (dir);
-	hawk_gem_freemem (dir->gem, dir);
+	hawk_dir_fini(dir);
+	hawk_gem_freemem(dir->gem, dir);
 }
 
 void* hawk_dir_getxtn (hawk_dir_t* dir)
@@ -177,13 +177,13 @@ int hawk_dir_init (hawk_dir_t* dir, hawk_gem_t* gem, const hawk_ooch_t* path, in
 	return n;
 
 oops_4:
-	hawk_arr_close (dir->stab);
+	hawk_arr_close(dir->stab);
 oops_3:
-	close_dir_safely (dir);
+	close_dir_safely(dir);
 oops_2:
-	hawk_becs_fini (&dir->mbuf);
+	hawk_becs_fini(&dir->mbuf);
 oops_1:
-	hawk_uecs_fini (&dir->wbuf);
+	hawk_uecs_fini(&dir->wbuf);
 oops_0:
 	return -1;
 }
@@ -193,25 +193,25 @@ static void close_dir_safely (hawk_dir_t* dir)
 #if defined(_WIN32)
 	if (dir->h != INVALID_HANDLE_VALUE)
 	{
-		FindClose (dir->h);
+		FindClose(dir->h);
 		dir->h = INVALID_HANDLE_VALUE;
 	}
 #elif defined(__OS2__)
 	if (dir->status & STATUS_OPENED)
 	{
-		DosFindClose (dir->h);
+		DosFindClose(dir->h);
 		dir->status &= ~STATUS_OPENED;
 	}
 #elif defined(__DOS__)
 	if (dir->status & STATUS_OPENED)
 	{
-		_dos_findclose (&dir->f);
+		_dos_findclose(&dir->f);
 		dir->status &= ~STATUS_OPENED;
 	}
 #else
 	if (dir->dp)
 	{
-		HAWK_CLOSEDIR (dir->dp);
+		HAWK_CLOSEDIR(dir->dp);
 		dir->dp = HAWK_NULL;
 	}
 #endif
@@ -219,17 +219,17 @@ static void close_dir_safely (hawk_dir_t* dir)
 
 void hawk_dir_fini (hawk_dir_t* dir)
 {
-	close_dir_safely (dir);
+	close_dir_safely(dir);
 
-	hawk_becs_fini (&dir->mbuf);
-	hawk_uecs_fini (&dir->wbuf);
+	hawk_becs_fini(&dir->mbuf);
+	hawk_uecs_fini(&dir->wbuf);
 
-	if (dir->stab) hawk_arr_close (dir->stab);
+	if (dir->stab) hawk_arr_close(dir->stab);
 }
 
 static hawk_bch_t* wcs_to_mbuf (hawk_dir_t* dir, const hawk_uch_t* wcs, hawk_becs_t* mbuf)
 {
-	hawk_becs_clear (mbuf);
+	hawk_becs_clear(mbuf);
 	if (hawk_becs_ncatuchars(mbuf, wcs, hawk_count_ucstr(wcs), dir->gem->cmgr) == (hawk_oow_t)-1) return HAWK_NULL;
 	return HAWK_BECS_PTR(mbuf);
 }
@@ -237,7 +237,7 @@ static hawk_bch_t* wcs_to_mbuf (hawk_dir_t* dir, const hawk_uch_t* wcs, hawk_bec
 static hawk_uch_t* mbs_to_wbuf (hawk_dir_t* dir, const hawk_bch_t* mbs, hawk_uecs_t* wbuf)
 {
 	/* convert all regardless of encoding failure */
-	hawk_uecs_clear (wbuf);
+	hawk_uecs_clear(wbuf);
 	if (hawk_uecs_ncatbchars(wbuf, mbs, hawk_count_bcstr(mbs), dir->gem->cmgr, 1) == (hawk_oow_t)-1) return HAWK_NULL;
 	return HAWK_UECS_PTR(wbuf);
 }
@@ -315,7 +315,7 @@ static int reset_to_path (hawk_dir_t* dir, const hawk_ooch_t* path)
 	#if defined(HAWK_OOCH_IS_BCH)
 		tptr = mptr;
 	#else
-		tptr = mbs_to_wbuf (dir, mptr, &dir->wbuf);
+		tptr = mbs_to_wbuf(dir, mptr, &dir->wbuf);
 	#endif
 	}
 	else
@@ -493,7 +493,7 @@ int hawk_dir_reset (hawk_dir_t* dir, const hawk_ooch_t* path)
 
 	if (dir->flags & HAWK_DIR_SORT)
 	{
-		hawk_arr_clear (dir->stab);
+		hawk_arr_clear(dir->stab);
 		if (read_ahead_and_sort(dir, path) <= -1)
 		{
 			dir->status |= STATUS_SORT_ERR;
@@ -608,7 +608,7 @@ static int read_dir_to_buf (hawk_dir_t* dir, void** name)
 	else
 	{
 		HAWK_ASSERT(dir->flags & HAWK_DIR_UPATH);
-		if (mbs_to_wbuf (dir, dir->ffb.achName, &dir->wbuf) == HAWK_NULL) return -1;
+		if (mbs_to_wbuf(dir, dir->ffb.achName, &dir->wbuf) == HAWK_NULL) return -1;
 		*name = HAWK_UECS_PTR(&dir->wbuf);
 	}
 
@@ -662,7 +662,7 @@ static int read_dir_to_buf (hawk_dir_t* dir, void** name)
 	{
 		HAWK_ASSERT(dir->flags & HAWK_DIR_UPATH);
 
-		if (mbs_to_wbuf (dir, dir->f.name, &dir->wbuf) == HAWK_NULL) return -1;
+		if (mbs_to_wbuf(dir, dir->f.name, &dir->wbuf) == HAWK_NULL) return -1;
 		*name = HAWK_UECS_PTR(&dir->wbuf);
 	}
 

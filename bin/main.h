@@ -58,6 +58,7 @@ int main_cut (int argc, hawk_bch_t* argv[], const hawk_bch_t* real_argv0);
 int main_hawk (int argc, hawk_bch_t* argv[], const hawk_bch_t* real_argv0);
 int main_m4 (int argc, hawk_bch_t* argv[], const hawk_bch_t* real_argv0);
 int main_sed (int argc, hawk_bch_t* argv[], const hawk_bch_t* real_argv0);
+int main_sh (int argc, hawk_bch_t* argv[], const hawk_bch_t* real_argv0);
 
 void hawk_main_print_xma (void* ctx, const hawk_bch_t* fmt, ...);
 void hawk_main_print_error (const hawk_bch_t* fmt, ...);

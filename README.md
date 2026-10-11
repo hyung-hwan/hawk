@@ -332,6 +332,67 @@ $ hawk --m4 -I ./macros document.m4
 Run `hawk --cut --help`, `hawk --sed --help`, or `hawk --m4 --help` for all
 mode-specific options.
 
+### Embeddable shell and `--sh`
+
+`hawk --sh -c 'command'` runs the Hawk simple-command shell. Use
+`hawk --sh script.sh` or feed commands on standard input. Terminal input
+automatically enables interactive mode; `-i` enables it explicitly.
+The standard process backend currently requires POSIX (Linux, BSD, macOS,
+Haiku, etc.); other platforms report `HAWK_ENOIMPL`.
+
+```sh
+hawk --sh -c 'echo hello | tr a-z A-Z > result.txt; cat < result.txt'
+hawk --sh -c 'addcmd copy /bin/cat; mode registered; echo hello | copy'
+```
+
+`mode path` uses normal executable/PATH lookup. `mode registered` requires
+external commands to have been registered, with `addcmd name /absolute/path`
+or `hawk_sh_addcmd()`. `delcmd name` removes a registration. Core builtins and
+registered callbacks work in either mode. This is **not a security sandbox**:
+`mode` can switch back, and registered programs retain their OS privileges.
+Select the initial mode with `--path` or `--registered`.
+
+The grammar supports concurrent pipelines (`|`), command separators,
+`&&`/`||`, background execution (`&`), quotes, escapes and comments.
+Redirections include `<`, `>`, `>>`, `<>`, descriptor duplication/closure
+(`2>&1`, `0<&3`, `1>&-`), and ordered multiple redirections. Descriptor numbers
+range from 0 to 255. Heredocs support `<<`, quoted delimiters (no expansion),
+and `<<-` (strip leading tabs); their size is not limited by a pipe buffer.
+Variables support `$NAME`, `${NAME}`, `$?`, `$$`, and `$!`.
+`export`, `unset`, assignment-only commands and command-prefix assignments
+provide environment values; `cd` and environment changes are per instance,
+not changes to the embedding application's working directory/environment.
+
+Interactive job control uses process groups and terminal ownership:
+Ctrl-Z stops a foreground job; `jobs`, `fg %1`, `bg %1`, `wait %1` (or a PID),
+and `kill -TERM %1` manage jobs. `exit`/close terminates and reaps outstanding
+jobs; background jobs do not detach from an embedded instance.
+`echo`, `pwd`, `true`, `false`, and `:` are also builtins.
+
+The core (`lib/sh.c`, `hawk-sh.h`) uses Hawk memory/error/character management
+and configurable input/execution/byte-stream/environment callbacks. Standard
+callbacks live in `lib/std-sh.c`. `hawk_sh_open()` accepts an allocator,
+character manager, and extension size; `hawk_sh_openstd()` installs the POSIX
+backend. Registered C callbacks use `hawk_sh_read()`/`hawk_sh_write()` for
+redirectable I/O. Foreground standalone callbacks run in the parent; pipeline
+and background callbacks run in fork children, so their memory changes do not
+propagate back. Interactive mode owns process signal dispositions and the
+terminal and is intended for standalone main-thread use. The host must not
+independently reap the backend's children. Custom input callbacks can provide
+completion or other UI features without coupling them to the core.
+The standard backend forks; allocators and callbacks used in fork children
+must be suitable for the application's threading/fork policy. An embedder
+needing another process model can supply its own execution callbacks.
+
+For `hawk_pio_open()`, opt into `HAWK_PIO_HAWKSH` to execute commands through
+this engine without invoking `/bin/sh -c`. Existing `HAWK_PIO_SHELL` behavior
+is unchanged. `HAWK_PIO_HAWKSH` cannot be combined with `HAWK_PIO_FNCCMD`.
+
+This is not yet a complete POSIX shell: loops, `if`/`case`, shell functions,
+subshell groups, globbing, field splitting, positional parameters, and command
+substitution are not implemented. Parameter expansion currently preserves each
+input word as one argument.
+
 ## Execution Model
 
 Hawk follows the awk pipeline:
@@ -1306,10 +1367,12 @@ The `sys` module provides various functions concerning the underlying operation 
 - sys::chmod
 - sys::close
 - sys::closedir
+- sys::closelog
 - sys::dirname
 - sys::dup
 - sys::errmsg
 - sys::fork
+- sys::fseek
 - sys::getegid
 - sys::getenv
 - sys::geteuid
@@ -1325,6 +1388,8 @@ The `sys` module provides various functions concerning the underlying operation 
 - sys::open
 - sys::opendir
 - sys::openfd
+- sys::openlog
+- sys::pack
 - sys::pipe
 - sys::raise
 - sys::read
@@ -1336,14 +1401,74 @@ The `sys` module provides various functions concerning the underlying operation 
 - sys::system
 - sys::tempname
 - sys::unlink
+- sys::unpack
 - sys::wait
 - sys::write
+- sys::writelog
 
 `sys::tempname([prefix])` atomically creates an empty file in the system
 temporary directory, closes it, and returns its full path. It returns an empty
 string on failure; call `sys::errmsg()` for the error text. The optional prefix
 must not contain a path separator. Remove the file with `sys::unlink()` when it
 is no longer needed.
+
+`sys::opendir(path, flags)` accepts `sys::DIR_SORT` for sorted entry names and
+`sys::DIR_SKIPSPCDIR` to exclude `.` and `..`. Combine them with `|`, for example
+`sys::opendir(".", sys::DIR_SORT | sys::DIR_SKIPSPCDIR)`. The optional flags
+default to zero. Path-encoding flags are rejected; paths and returned entry
+names always use Hawk's configured character type.
+
+#### Remote logging timestamps
+
+`sys::openlog("remote://address/identifier", options, facility)` selects remote
+datagram logging; `sock://` is also accepted. Add `sys::LOG_OPT_ISO8601` to `options`
+to include the year and local UTC offset in each timestamp, including any
+daylight-saving adjustment:
+
+```awk
+BEGIN {
+	if (sys::openlog("remote://127.0.0.1:514/myapp",
+		sys::LOG_OPT_ISO8601 | sys::LOG_OPT_PID | sys::LOG_OPT_NDELAY,
+		sys::LOG_FAC_USER) < 0) {
+		print sys::errmsg(); exit 1;
+	}
+	if (sys::writelog(sys::LOG_PRI_INFO, "started") < 0) print sys::errmsg();
+	sys::closelog();
+}
+```
+
+Example datagram: `<14>2026-10-10T15:30:00+09:00 myapp[1234]: started`.
+UTC is written as `+00:00`. Without this option, timestamps retain the existing
+`Oct 10 15:30:00` format. The option changes the timestamp only; it does not
+select the complete [RFC 5424](https://www.rfc-editor.org/rfc/rfc5424.html) message
+format. Local logging ignores this option and leaves timestamp formatting to
+the native logging service. If the local year cannot fit four digits or the
+offset cannot be represented as whole minutes within `-23:59` through `+23:59`,
+`sys::writelog()` returns `sys::RC_EINVAL` and sets `sys::errmsg()`.
+
+#### Time formatting
+
+`sys::strftime(format, seconds[, flags])` formats a timestamp in local time;
+`sys::STRFTIME_UTC` selects UTC. A format containing an embedded NUL character
+returns `sys::RC_EINVAL` and sets `sys::errmsg()` instead of silently truncating
+the format. An empty format is valid and produces an empty string.
+
+#### Sleep durations
+
+`sys::sleep(seconds)` accepts a nonnegative duration in seconds, including
+fractional values. Actual delays depend on platform timer resolution and
+scheduling.
+
+On Windows and OS/2, durations are converted to integer milliseconds by
+truncating fractional milliseconds. Positive durations below one millisecond,
+such as `sys::sleep(0.0005)` (0.5 milliseconds) or `sys::sleep(0.00000005)`
+(50 nanoseconds), therefore become a zero-duration platform call.
+
+On Windows, a zero-duration call yields execution to another ready thread while
+the calling thread remains ready to run. If no other thread is ready, it returns
+immediately. A loop using sub-millisecond durations can therefore consume CPU
+continuously. Use a duration of at least `0.001` seconds when requesting a timed
+suspension on Windows; this does not guarantee an exact one-millisecond delay.
 
 #### Signals
 
@@ -1375,9 +1500,53 @@ You may read the file in raw bytes.
 BEGIN {
 	f = sys::open("/etc/sysctl.conf", sys::O_RDONLY);
 	if (f >= 0) {
-		while (sys::read(f, x, 10) > 0) printf (B"%s", x);
+		while(sys::read(f, x, 10) > 0) printf(@b"%s", x);
 		sys::close(f);
 	}
+}
+```
+
+#### Buffered reads and file positions
+
+`sys::open()` uses binary mode on Windows: reads and writes preserve CR, LF,
+NUL, and `0x1A` bytes, and file positions count bytes without CRT translation.
+`sys::openfd()` preserves an imported descriptor's CRT mode. On Windows, the
+embedding application must configure that descriptor in binary mode before
+wrapping it when exact byte I/O or buffered seeking is required.
+
+When a delimiter is supplied to `sys::read(handle, output, limit, delimiter)`,
+the function may read beyond the returned delimiter and keep the remaining
+bytes in that handle's buffer. Each handle owns its buffer independently,
+including handles created by `sys::openfd()` for the same raw descriptor and
+handles created by `sys::dup()` that share the underlying file offset.
+
+A successful `sys::fseek()` clears only the specified handle's buffered input.
+Other handles retain their buffered bytes even though the shared file offset
+has changed. Callers must coordinate access across such handles; use one handle
+for buffered reading and seeking whenever possible.
+
+If the OS seek succeeds but the resulting position exceeds Hawk's integer
+range, `sys::fseek()` returns `sys::RC_EINVAL` with `seek position out of range`.
+The file position has already changed and that handle's buffered input is cleared.
+
+`sys::write()` uses the underlying descriptor's current offset without
+adjusting for unread buffered input. On a seekable file, call
+`sys::fseek(handle, 0, sys::SEEK_CUR)` on the same handle before switching from
+buffered reading to writing. This backs up by the unread byte count and clears
+the buffer, positioning the next write immediately after the bytes returned
+to the caller, unless the file was opened with `sys::O_APPEND`. Check that the
+seek succeeds before writing.
+
+```awk
+BEGIN {
+	f = sys::open("data.bin", sys::O_RDWR);
+	if (f < 0) { print sys::errmsg(); exit 1; }
+	if (sys::read(f, line, 8192, "\n") > 0) {
+		if (sys::fseek(f, 0, sys::SEEK_CUR) >= 0)
+			sys::write(f, @b"replacement");
+		else print sys::errmsg();
+	}
+	sys::close(f);
 }
 ```
 
@@ -1388,14 +1557,52 @@ You can map a raw file descriptor to a handle created by this module and use it.
 ```awk
 BEGIN {
 	a = sys::openfd(1);
-	sys::write(a, B"let me write something here\n");
+	sys::write(a, @b"let me write something here\n");
 	sys::close(a, sys::C_KEEPFD); ## set C_KEEPFD to release 1 without closing it.
 	##sys::close(a);
 	print "done\n";
 }
 ```
 
+#### Multiplexer cleanup and fork
+
+`sys::addtomux(mux, handle, events, flags)` accepts an optional fourth argument,
+defaulting to zero. `sys::MUX_FLAG_NOAUTODEL` makes Hawk skip automatic
+`EPOLL_CTL_DEL` when closing the watched handle, closing the mux, or cleaning
+up the runtime. Local membership and cached events are still cleared.
+`sys::modinmux()` preserves this setting; `sys::delfrommux()` explicitly deletes
+the registration regardless of the flag. Unknown flag bits are rejected.
+
+If explicit deletion fails in the OS, `sys::delfrommux()` returns a negative
+error code and sets `sys::errmsg()`. Local membership and cached events are
+still cleared. The next add, modify, or wait operation attempts to rebuild
+the multiplexer without the deleted registration.
+
+```awk
+sys::addtomux(m, fd, sys::MUX_EVT_IN, sys::MUX_FLAG_NOAUTODEL);
+```
+
+After `sys::fork()`, inherited multiplexer instances remain shared. Set this flag
+before forking if child cleanup must leave the parent's watches alone.
+Without it, child cleanup can delete shared registrations and stop the parent
+receiving their events. Explicit deletion and one-shot rearming also affect
+the shared instance. Cached events and handle tables are copied per process;
+coordinate inherited mux use, or create separate muxes after forking for
+independent registrations.
+
+The flag does not keep descriptors open: use `sys::C_KEEPFD` with `sys::close()`
+for that. Kernel descriptor-lifetime rules still apply, and stale-event repair
+may rebuild a mux without registrations that have been locally removed.
+
 #### Pipe to a child process
+
+`sys::system(command)` waits for the command and returns its exit status.
+On POSIX, normal statuses are 0 through 255; signal termination returns
+256 plus the signal number. Windows statuses are unsigned 32-bit values,
+including 256 and 259. If a status exceeds Hawk's signed integer range,
+the function returns `sys::RC_EINVAL` and sets `sys::errmsg()` to describe
+the range error. Other launch or wait failures return the corresponding
+negative module error code.
 
 Creating pipes and sharing them with a child process is not big an issue.
 
@@ -1412,17 +1619,17 @@ BEGIN {
 	if (a <= -1) 
 	{
 		print "fork error";
-		sys::close (p0);
-		sys::close (p1);
+		sys::close(p0);
+		sys::close(p1);
 	}
 	else if (a == 0)
 	{
 		## child
-		printf ("child.... %d %d %d\n", sys::getpid(), p0, p1);
-		sys::close (p1);
+		printf("child.... %d %d %d\n", sys::getpid(), p0, p1);
+		sys::close(p1);
 		while (1)
 		{
-			n = sys::read (p0, k, 3);
+			n = sys::read(p0, k, 3);
 			if (n <= 0) 
 			{
 				if (n == sys::RC_EAGAIN) continue; ## nonblock but data not available
@@ -1431,17 +1638,17 @@ BEGIN {
 			}
 			print k;
 		}
-		sys::close (p0);
+		sys::close(p0);
 		return 123;
 	}
 	else
 	{
 		## parent
-		printf ("parent.... %d %d %d\n", sys::getpid(), p0, p1);
-		sys::close (p0);
-		sys::write (p1, B"hello");
-		sys::write (p1, B"world");
-		sys::close (p1);
+		printf("parent.... %d %d %d\n", sys::getpid(), p0, p1);
+		sys::close(p0);
+		sys::write(p1, @b"hello");
+		sys::write(p1, @b"world");
+		sys::close(p1);
 
 		##sys::wait(a, status, sys::WNOHANG);
 		while (sys::wait(a, status) != a);
@@ -1477,9 +1684,9 @@ BEGIN {
 		stdout = sys::openfd(1);
 		sys::dup(p1, stdout);
 
-		print B"hello world";
-		print B"testing sys::dup()";
-		print B"writing to standard output..";
+		print @b"hello world";
+		print @b"testing sys::dup()";
+		print @b"writing to standard output..";
 
 		sys::close (p1);
 		sys::close (stdout);
@@ -1516,7 +1723,7 @@ BEGIN {
 	b = sys::dup(a);
 	sys::close(a);
 
-	while (sys::read(b, abc, 100) > 0) printf (B"%s", abc);
+	while (sys::read(b, abc, 100) > 0) printf (@b"%s", abc);
 
 	print "-------------------------------";
 
@@ -1524,8 +1731,31 @@ BEGIN {
 	## assertion: b == c
 	sys::close (x);
 
-	while (sys::read(c, abc, 100) > 0) printf (B"%s", abc);
+	while (sys::read(c, abc, 100) > 0) printf (@b"%s", abc);
 	sys::close (c);
+}
+```
+
+#### Binary packing and unpacking
+
+`sys::pack(output, format, ...)` writes a byte string to `output`;
+`sys::unpack(input, format, ...)` assigns decoded values to its output
+arguments. Both return zero on success and a negative error code on failure.
+`sys::unpack()` rejects integers outside Hawk's signed integer range with
+`sys::RC_EINVAL`, including unsigned values too large to represent. The
+rejected output argument is unchanged; earlier outputs may already be assigned.
+A decimal repeat count applies to the following format specifier. For example,
+`2B` processes two unsigned bytes, and `2x` processes two padding bytes.
+
+An unfinished trailing repeat count is ignored. Thus `"2x3"` behaves like
+`"2x"`, and `"B3"` behaves like `"B"`. A format containing only a repeat count
+performs no packing or unpacking. Counts that overflow the repeat-count range
+are still rejected.
+
+```awk
+BEGIN {
+	sys::pack(bin, "2x3");         ## Two zero bytes; the trailing 3 is ignored.
+	sys::unpack(@b"AB", "B3", v);  ## v becomes 65; the trailing 3 is ignored.
 }
 ```
 
@@ -1585,7 +1815,7 @@ BEGIN
 ```awk
 BEGIN {
 	ffi = ffi::open();
-	if (ffi::call(ffi, r, @B"getenv", @B"s>s", "PATH") <= -1) print ffi::errmsg();
+	if (ffi::call(ffi, r, @b"getenv", @b"s>s", "PATH") <= -1) print ffi::errmsg();
 	else print r;
 	ffi::close (ffi);
 }

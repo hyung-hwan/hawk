@@ -65,6 +65,9 @@ enum hawk_pio_flag_t
 	 *  a pointer to a #hawk_pio_fnc_t structure. supported on unix/linux
 	 *  only */
 	HAWK_PIO_FNCCMD        = (1 << 6),
+	/** Use the embeddable Hawk simple-command shell instead of /bin/sh.
+	 * POSIX only. Opt-in: not a complete POSIX shell. Incompatible with FNCCMD. */
+	HAWK_PIO_HAWKSH        = (1 << 7),
 
 	/** write to stdin of a child process */
 	HAWK_PIO_WRITEIN       = (1 << 8),
@@ -368,19 +371,33 @@ HAWK_EXPORT void hawk_pio_end (
 
 /**
  * The hawk_pio_wait() function waits for a child process to terminate.
- * #HAWK_PIO_WAIT_NORETRY causes the function to return an error and set the
- * \a pio->errnum field to #HAWK_PIO_EINTR if the underlying system call has
- * been interrupted. If #HAWK_PIO_WAIT_NOBLOCK is used, the return value of 256
- * indicates that the child process has not terminated. Otherwise, 256 is never
- * returned.
+ * #HAWK_PIO_WAITNORETRY causes the function to return an error with #HAWK_EINTR
+ * if the underlying system call has been interrupted. With #HAWK_PIO_WAITNOBLOCK,
+ * 256 indicates that the child process has not terminated.
  *
  * \return
- *  -1 on error, 256 if the child is alive and #HAWK_PIO_WAIT_NOBLOCK is used,
+ *  -1 on error, 256 if the child is alive and #HAWK_PIO_WAITNOBLOCK is used,
  *  a number between 0 and 255 inclusive if the child process ends normally,
  *  256 + signal number if the child process is terminated by a signal.
+ *  Windows and OS/2 may return larger normal exit statuses, including 256.
+ *  Statuses exceeding the range of int cause #HAWK_EINVAL. Use hawk_pio_waitex()
+ *  to retain the full status and distinguish normal exit from a pending wait.
  */
 HAWK_EXPORT int hawk_pio_wait (
 	hawk_pio_t* pio /**< pio object */
+);
+
+/**
+ * The hawk_pio_waitex() function waits with the same flags as hawk_pio_wait(),
+ * returning the wait outcome separately from the child status.
+ * It stores the native exit status in \a status on normal termination, or
+ * 256 + signal number on signal termination. The output is unchanged on a
+ * pending wait or error. Windows exit statuses retain all 32 bits.
+ * \return 1 if terminated, 0 if still alive, -1 on error
+ */
+HAWK_EXPORT int hawk_pio_waitex (
+	hawk_pio_t*      pio,   /**< pio object */
+	hawk_uintmax_t*  status /**< non-null status output */
 );
 
 /**

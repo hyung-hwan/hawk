@@ -65,7 +65,7 @@ hawk_sio_t* hawk_sio_open (hawk_gem_t* gem, hawk_oow_t xtnsize, const hawk_ooch_
 			hawk_gem_freemem(gem, sio);
 			return HAWK_NULL;
 		}
-		else HAWK_MEMSET (sio + 1, 0, xtnsize);
+		else HAWK_MEMSET(sio + 1, 0, xtnsize);
 	}
 	return sio;
 }
@@ -78,7 +78,7 @@ hawk_sio_t* hawk_sio_openstd (hawk_gem_t* gem, hawk_oow_t xtnsize, hawk_sio_std_
 	/* Is this necessary?
 	if (flags & HAWK_SIO_KEEPATH)
 	{
-		hawk_gem_seterrnum (gem, HAWK_NULL, HAWK_EINVAL);
+		hawk_gem_seterrnum(gem, HAWK_NULL, HAWK_EINVAL);
 		return HAWK_NULL;
 	}
 	*/
@@ -104,7 +104,7 @@ hawk_sio_t* hawk_sio_openstd (hawk_gem_t* gem, hawk_oow_t xtnsize, hawk_sio_std_
 
 void hawk_sio_close (hawk_sio_t* sio)
 {
-	hawk_sio_fini (sio);
+	hawk_sio_fini(sio);
 	hawk_gem_freemem(sio->gem, sio);
 }
 
@@ -113,7 +113,7 @@ int hawk_sio_init (hawk_sio_t* sio, hawk_gem_t* gem, const hawk_ooch_t* path, in
 	int mode;
 	int topt = 0;
 
-	HAWK_MEMSET (sio, 0, HAWK_SIZEOF(*sio));
+	HAWK_MEMSET(sio, 0, HAWK_SIZEOF(*sio));
 	sio->gem = gem;
 
 	mode = HAWK_FIO_RUSR | HAWK_FIO_WUSR | HAWK_FIO_RGRP | HAWK_FIO_ROTH;
@@ -474,14 +474,14 @@ hawk_ooi_t hawk_sio_putucstr (hawk_sio_t* sio, const hawk_uch_t* str)
 		{
 			if (WriteConsoleW(sio->file.handle, cur, left, &count, HAWK_NULL) == FALSE)
 			{
-				hawk_gem_seterrnum (sio->gem, HAWK_NULL, hawk_syserr_to_errnum(GetLastError()));
+				hawk_gem_seterrnum(sio->gem, HAWK_NULL, hawk_syserr_to_errnum(GetLastError()));
 				return -1;
 			}
 			if (count == 0) break;
 
 			if (count > left)
 			{
-				hawk_gem_seterrnum (sio->gem, HAWK_NULL, HAWK_ESYSERR);
+				hawk_gem_seterrnum(sio->gem, HAWK_NULL, HAWK_ESYSERR);
 				return -1;
 			}
 		}
@@ -538,7 +538,7 @@ hawk_ooi_t hawk_sio_putuchars (hawk_sio_t* sio, const hawk_uch_t* str, hawk_oow_
 		{
 			if (WriteConsoleW(sio->file.handle, cur, left, &count, HAWK_NULL) == FALSE)
 			{
-				hawk_gem_seterrnum (sio->gem, HAWK_NULL, hawk_syserr_to_errnum(GetLastError()));
+				hawk_gem_seterrnum(sio->gem, HAWK_NULL, hawk_syserr_to_errnum(GetLastError()));
 				return -1;
 			}
 			if (count == 0) break;
@@ -553,7 +553,7 @@ hawk_ooi_t hawk_sio_putuchars (hawk_sio_t* sio, const hawk_uch_t* str, hawk_oow_
 			 */
 			if (count > left)
 			{
-				hawk_gem_seterrnum (sio->gem, HAWK_NULL, HAWK_ESYSERR);
+				hawk_gem_seterrnum(sio->gem, HAWK_NULL, HAWK_ESYSERR);
 				return -1;
 			}
 		}

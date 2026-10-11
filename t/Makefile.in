@@ -90,11 +90,7 @@ POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
 @ENABLE_WIDE_CHAR_TRUE@am__append_1 = h-001.hawk h-002.hawk
-check_PROGRAMS = t-001$(EXEEXT) t-002$(EXEEXT) t-003$(EXEEXT) \
-	t-004$(EXEEXT) t-005$(EXEEXT) t-006$(EXEEXT) t-007$(EXEEXT) \
-	t-008$(EXEEXT) t-009$(EXEEXT) t-010$(EXEEXT) t-011$(EXEEXT) \
-	t-012$(EXEEXT) t-013$(EXEEXT) $(am__EXEEXT_1)
-@ENABLE_CXX_TRUE@am__append_2 = t-101
+@ENABLE_CXX_TRUE@am__append_2 = t-101$(EXEEXT)
 subdir = t
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/ax_check_sign.m4 \
@@ -113,18 +109,36 @@ mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = $(top_builddir)/lib/hawk-cfg.h
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
-@ENABLE_CXX_TRUE@am__EXEEXT_1 = t-101$(EXEEXT)
-am_t_001_OBJECTS = t_001-t-001.$(OBJEXT)
-t_001_OBJECTS = $(am_t_001_OBJECTS)
-t_001_LDADD = $(LDADD)
+am_fnc_regress_OBJECTS = fnc_regress-fnc-regress.$(OBJEXT) \
+	fnc_regress-math-rand-max.$(OBJEXT) \
+	fnc_regress-math-time-failure.$(OBJEXT) \
+	fnc_regress-math-threads.$(OBJEXT) \
+	fnc_regress-sys-faults.$(OBJEXT) \
+	fnc_regress-sys-fallback.$(OBJEXT) \
+	fnc_regress-sys-unavailable.$(OBJEXT)
+fnc_regress_OBJECTS = $(am_fnc_regress_OBJECTS)
+am__DEPENDENCIES_1 =
+am__DEPENDENCIES_2 = ../lib/libhawk.la $(am__DEPENDENCIES_1)
+fnc_regress_DEPENDENCIES = $(am__DEPENDENCIES_2)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
 am__v_lt_0 = --silent
 am__v_lt_1 = 
+fnc_regress_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(fnc_regress_CFLAGS) \
+	$(CFLAGS) $(fnc_regress_LDFLAGS) $(LDFLAGS) -o $@
+am_sh_job_control_OBJECTS = sh_job_control-sh-job-control.$(OBJEXT)
+sh_job_control_OBJECTS = $(am_sh_job_control_OBJECTS)
+sh_job_control_LDADD = $(LDADD)
+sh_job_control_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
+	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
+	$(sh_job_control_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o \
+	$@
+am_t_001_OBJECTS = t_001-t-001.$(OBJEXT)
+t_001_OBJECTS = $(am_t_001_OBJECTS)
+t_001_LDADD = $(LDADD)
 am_t_002_OBJECTS = t_002-t-002.$(OBJEXT)
 t_002_OBJECTS = $(am_t_002_OBJECTS)
-am__DEPENDENCIES_1 =
-am__DEPENDENCIES_2 = ../lib/libhawk.la $(am__DEPENDENCIES_1)
 t_002_DEPENDENCIES = $(am__DEPENDENCIES_2)
 t_002_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(t_002_CFLAGS) $(CFLAGS) \
@@ -195,6 +209,18 @@ t_013_DEPENDENCIES = $(am__DEPENDENCIES_2)
 t_013_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(t_013_CFLAGS) $(CFLAGS) \
 	$(t_013_LDFLAGS) $(LDFLAGS) -o $@
+am_t_014_OBJECTS = t_014-t-014.$(OBJEXT)
+t_014_OBJECTS = $(am_t_014_OBJECTS)
+t_014_DEPENDENCIES = $(am__DEPENDENCIES_2)
+t_014_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(t_014_CFLAGS) $(CFLAGS) \
+	$(t_014_LDFLAGS) $(LDFLAGS) -o $@
+am_t_015_OBJECTS = t_015-t-015.$(OBJEXT)
+t_015_OBJECTS = $(am_t_015_OBJECTS)
+t_015_DEPENDENCIES = $(am__DEPENDENCIES_2)
+t_015_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(t_015_CFLAGS) $(CFLAGS) \
+	$(t_015_LDFLAGS) $(LDFLAGS) -o $@
 am__t_101_SOURCES_DIST = t-101.cpp tap.h
 @ENABLE_CXX_TRUE@am_t_101_OBJECTS = t_101-t-101.$(OBJEXT)
 t_101_OBJECTS = $(am_t_101_OBJECTS)
@@ -217,14 +243,22 @@ am__v_at_1 =
 DEFAULT_INCLUDES = 
 depcomp = $(SHELL) $(top_srcdir)/ac/depcomp
 am__maybe_remake_depfiles = depfiles
-am__depfiles_remade = ./$(DEPDIR)/t_001-t-001.Po \
-	./$(DEPDIR)/t_002-t-002.Po ./$(DEPDIR)/t_003-t-003.Po \
-	./$(DEPDIR)/t_004-t-004.Po ./$(DEPDIR)/t_005-t-005.Po \
-	./$(DEPDIR)/t_006-t-006.Po ./$(DEPDIR)/t_007-t-007.Po \
-	./$(DEPDIR)/t_008-t-008.Po ./$(DEPDIR)/t_009-t-009.Po \
-	./$(DEPDIR)/t_010-t-010.Po ./$(DEPDIR)/t_011-t-011.Po \
-	./$(DEPDIR)/t_012-t-012.Po ./$(DEPDIR)/t_013-t-013.Po \
-	./$(DEPDIR)/t_101-t-101.Po
+am__depfiles_remade = ./$(DEPDIR)/fnc_regress-fnc-regress.Po \
+	./$(DEPDIR)/fnc_regress-math-rand-max.Po \
+	./$(DEPDIR)/fnc_regress-math-threads.Po \
+	./$(DEPDIR)/fnc_regress-math-time-failure.Po \
+	./$(DEPDIR)/fnc_regress-sys-fallback.Po \
+	./$(DEPDIR)/fnc_regress-sys-faults.Po \
+	./$(DEPDIR)/fnc_regress-sys-unavailable.Po \
+	./$(DEPDIR)/sh_job_control-sh-job-control.Po \
+	./$(DEPDIR)/t_001-t-001.Po ./$(DEPDIR)/t_002-t-002.Po \
+	./$(DEPDIR)/t_003-t-003.Po ./$(DEPDIR)/t_004-t-004.Po \
+	./$(DEPDIR)/t_005-t-005.Po ./$(DEPDIR)/t_006-t-006.Po \
+	./$(DEPDIR)/t_007-t-007.Po ./$(DEPDIR)/t_008-t-008.Po \
+	./$(DEPDIR)/t_009-t-009.Po ./$(DEPDIR)/t_010-t-010.Po \
+	./$(DEPDIR)/t_011-t-011.Po ./$(DEPDIR)/t_012-t-012.Po \
+	./$(DEPDIR)/t_013-t-013.Po ./$(DEPDIR)/t_014-t-014.Po \
+	./$(DEPDIR)/t_015-t-015.Po ./$(DEPDIR)/t_101-t-101.Po
 am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -262,16 +296,20 @@ AM_V_CXXLD = $(am__v_CXXLD_@AM_V@)
 am__v_CXXLD_ = $(am__v_CXXLD_@AM_DEFAULT_V@)
 am__v_CXXLD_0 = @echo "  CXXLD   " $@;
 am__v_CXXLD_1 = 
-SOURCES = $(t_001_SOURCES) $(t_002_SOURCES) $(t_003_SOURCES) \
+SOURCES = $(fnc_regress_SOURCES) $(sh_job_control_SOURCES) \
+	$(t_001_SOURCES) $(t_002_SOURCES) $(t_003_SOURCES) \
 	$(t_004_SOURCES) $(t_005_SOURCES) $(t_006_SOURCES) \
 	$(t_007_SOURCES) $(t_008_SOURCES) $(t_009_SOURCES) \
 	$(t_010_SOURCES) $(t_011_SOURCES) $(t_012_SOURCES) \
-	$(t_013_SOURCES) $(t_101_SOURCES)
-DIST_SOURCES = $(t_001_SOURCES) $(t_002_SOURCES) $(t_003_SOURCES) \
+	$(t_013_SOURCES) $(t_014_SOURCES) $(t_015_SOURCES) \
+	$(t_101_SOURCES)
+DIST_SOURCES = $(fnc_regress_SOURCES) $(sh_job_control_SOURCES) \
+	$(t_001_SOURCES) $(t_002_SOURCES) $(t_003_SOURCES) \
 	$(t_004_SOURCES) $(t_005_SOURCES) $(t_006_SOURCES) \
 	$(t_007_SOURCES) $(t_008_SOURCES) $(t_009_SOURCES) \
 	$(t_010_SOURCES) $(t_011_SOURCES) $(t_012_SOURCES) \
-	$(t_013_SOURCES) $(am__t_101_SOURCES_DIST)
+	$(t_013_SOURCES) $(t_014_SOURCES) $(t_015_SOURCES) \
+	$(am__t_101_SOURCES_DIST)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -684,7 +722,8 @@ check_SCRIPTS = $(am__append_1) h-003.hawk h-004.hawk h-009.hawk \
 	h-020.hawk h-021.hawk h-022.hawk h-023.hawk h-024.hawk \
 	h-025.hawk h-026.hawk h-027.hawk h-028.hawk h-029.hawk \
 	regress-filename.sh regress-extra-info.sh regress-environ.sh \
-	regress-m4.sh
+	regress-m4.sh regress-sh.sh regress-sh-job-control.sh \
+	regress-fnc.sh
 check_ERRORS = e-001.err
 EXTRA_DIST = $(check_SCRIPTS) $(check_ERRORS) tap.inc err.sh \
 	bench-map-keys.hawk bench-int-comparisons.hawk \
@@ -694,8 +733,14 @@ EXTRA_DIST = $(check_SCRIPTS) $(check_ERRORS) tap.inc err.sh \
 	JSON.awk.in JSON.awk.out \
 	h-024-child.hawk h-024.in \
 	run-hawk-test.sh regress-extra-info.sh \
-	two-way-pipe.hawk two-way-pipe.out
+	two-way-pipe.hawk two-way-pipe.out fnc-regress.md
 
+TEST_PROGS = t-001$(EXEEXT) t-002$(EXEEXT) t-003$(EXEEXT) \
+	t-004$(EXEEXT) t-005$(EXEEXT) t-006$(EXEEXT) t-007$(EXEEXT) \
+	t-008$(EXEEXT) t-009$(EXEEXT) t-010$(EXEEXT) t-011$(EXEEXT) \
+	t-012$(EXEEXT) t-013$(EXEEXT) t-014$(EXEEXT) t-015$(EXEEXT) \
+	$(am__append_2)
+check_PROGRAMS = $(TEST_PROGS) fnc-regress$(EXEEXT) sh-job-control$(EXEEXT)
 t_001_SOURCES = t-001.c tap.h
 t_001_CPPFLAGS = $(CPPFLAGS_COMMON)
 t_002_SOURCES = t-002.c tap.h
@@ -758,13 +803,31 @@ t_013_CPPFLAGS = $(CPPFLAGS_COMMON)
 t_013_CFLAGS = $(CFLAGS_COMMON)
 t_013_LDFLAGS = $(LDFLAGS_COMMON)
 t_013_LDADD = $(LIBADD_COMMON)
+t_014_SOURCES = t-014.c tap.h
+t_014_CPPFLAGS = $(CPPFLAGS_COMMON)
+t_014_CFLAGS = $(CFLAGS_COMMON)
+t_014_LDFLAGS = $(LDFLAGS_COMMON)
+t_014_LDADD = $(LIBADD_COMMON)
+t_015_SOURCES = t-015.c tap.h
+t_015_CPPFLAGS = $(CPPFLAGS_COMMON)
+t_015_CFLAGS = $(CFLAGS_COMMON)
+t_015_LDFLAGS = $(LDFLAGS_COMMON)
+t_015_LDADD = $(LIBADD_COMMON)
+fnc_regress_SOURCES = fnc-regress.c math-rand-max.c math-time-failure.c math-threads.c sys-faults.c sys-fallback.c sys-unavailable.c
+fnc_regress_CPPFLAGS = $(CPPFLAGS_COMMON)
+fnc_regress_CFLAGS = $(CFLAGS_COMMON)
+fnc_regress_LDFLAGS = $(LDFLAGS_COMMON)
+fnc_regress_LDADD = $(LIBADD_COMMON)
+sh_job_control_SOURCES = sh-job-control.c
+sh_job_control_CPPFLAGS = $(CPPFLAGS_COMMON)
+sh_job_control_CFLAGS = $(CFLAGS_COMMON)
 @ENABLE_CXX_TRUE@t_101_SOURCES = t-101.cpp tap.h
 @ENABLE_CXX_TRUE@t_101_CPPFLAGS = $(CPPFLAGS_COMMON)
 @ENABLE_CXX_TRUE@t_101_CFLAGS = $(CFLAGS_COMMON)
 @ENABLE_CXX_TRUE@t_101_LDFLAGS = $(LDFLAGS_COMMON)
 @ENABLE_CXX_TRUE@t_101_LDADD = $(LIBADD_COMMON)
 LOG_DRIVER = env AM_TAP_AWK='$(AWK)' $(SHELL) $(top_srcdir)/ac/tap-driver.sh
-TESTS = $(check_PROGRAMS) $(check_SCRIPTS) $(check_ERRORS)
+TESTS = $(TEST_PROGS) $(check_SCRIPTS) $(check_ERRORS)
 TEST_EXTENSIONS = .hawk .err .sh
 HAWK_LOG_DRIVER = $(LOG_DRIVER)
 HAWK_LOG_COMPILER = env \
@@ -780,7 +843,7 @@ ERR_LOG_DRIVER = $(SHELL) $(top_srcdir)/ac/test-driver
 ERR_LOG_COMPILER = $(SHELL) $(abs_srcdir)/err.sh $(HAWK_TEST_COMPILER) -vTDIR=${abs_srcdir} $(HAWK_TEST_MODLIBDIRS_OPT) -f
 AM_ERR_LOG_FLAGS = 
 SH_LOG_DRIVER = $(LOG_DRIVER)
-SH_LOG_COMPILER = env HAWK_BIN='$(HAWK_TEST_COMPILER)' $(SHELL)
+SH_LOG_COMPILER = env HAWK_BIN='$(HAWK_TEST_COMPILER)' FNC_REGRESS_BIN='./fnc-regress$(EXEEXT)' SH_JOB_CONTROL_BIN='./sh-job-control$(EXEEXT)' $(SHELL)
 AM_SH_LOG_FLAGS = 
 all: all-am
 
@@ -819,6 +882,14 @@ $(am__aclocal_m4_deps):
 clean-checkPROGRAMS:
 	$(am__rm_f) $(check_PROGRAMS)
 	test -z "$(EXEEXT)" || $(am__rm_f) $(check_PROGRAMS:$(EXEEXT)=)
+
+fnc-regress$(EXEEXT): $(fnc_regress_OBJECTS) $(fnc_regress_DEPENDENCIES) $(EXTRA_fnc_regress_DEPENDENCIES) 
+	@rm -f fnc-regress$(EXEEXT)
+	$(AM_V_CCLD)$(fnc_regress_LINK) $(fnc_regress_OBJECTS) $(fnc_regress_LDADD) $(LIBS)
+
+sh-job-control$(EXEEXT): $(sh_job_control_OBJECTS) $(sh_job_control_DEPENDENCIES) $(EXTRA_sh_job_control_DEPENDENCIES) 
+	@rm -f sh-job-control$(EXEEXT)
+	$(AM_V_CCLD)$(sh_job_control_LINK) $(sh_job_control_OBJECTS) $(sh_job_control_LDADD) $(LIBS)
 
 t-001$(EXEEXT): $(t_001_OBJECTS) $(t_001_DEPENDENCIES) $(EXTRA_t_001_DEPENDENCIES) 
 	@rm -f t-001$(EXEEXT)
@@ -872,6 +943,14 @@ t-013$(EXEEXT): $(t_013_OBJECTS) $(t_013_DEPENDENCIES) $(EXTRA_t_013_DEPENDENCIE
 	@rm -f t-013$(EXEEXT)
 	$(AM_V_CCLD)$(t_013_LINK) $(t_013_OBJECTS) $(t_013_LDADD) $(LIBS)
 
+t-014$(EXEEXT): $(t_014_OBJECTS) $(t_014_DEPENDENCIES) $(EXTRA_t_014_DEPENDENCIES) 
+	@rm -f t-014$(EXEEXT)
+	$(AM_V_CCLD)$(t_014_LINK) $(t_014_OBJECTS) $(t_014_LDADD) $(LIBS)
+
+t-015$(EXEEXT): $(t_015_OBJECTS) $(t_015_DEPENDENCIES) $(EXTRA_t_015_DEPENDENCIES) 
+	@rm -f t-015$(EXEEXT)
+	$(AM_V_CCLD)$(t_015_LINK) $(t_015_OBJECTS) $(t_015_LDADD) $(LIBS)
+
 t-101$(EXEEXT): $(t_101_OBJECTS) $(t_101_DEPENDENCIES) $(EXTRA_t_101_DEPENDENCIES) 
 	@rm -f t-101$(EXEEXT)
 	$(AM_V_CXXLD)$(t_101_LINK) $(t_101_OBJECTS) $(t_101_LDADD) $(LIBS)
@@ -882,6 +961,14 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fnc_regress-fnc-regress.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fnc_regress-math-rand-max.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fnc_regress-math-threads.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fnc_regress-math-time-failure.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fnc_regress-sys-fallback.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fnc_regress-sys-faults.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fnc_regress-sys-unavailable.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sh_job_control-sh-job-control.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/t_001-t-001.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/t_002-t-002.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/t_003-t-003.Po@am__quote@ # am--include-marker
@@ -895,6 +982,8 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/t_011-t-011.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/t_012-t-012.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/t_013-t-013.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/t_014-t-014.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/t_015-t-015.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/t_101-t-101.Po@am__quote@ # am--include-marker
 
 $(am__depfiles_remade):
@@ -926,6 +1015,118 @@ am--depfiles: $(am__depfiles_remade)
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$<' object='$@' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LTCOMPILE) -c -o $@ $<
+
+fnc_regress-fnc-regress.o: fnc-regress.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(fnc_regress_CPPFLAGS) $(CPPFLAGS) $(fnc_regress_CFLAGS) $(CFLAGS) -MT fnc_regress-fnc-regress.o -MD -MP -MF $(DEPDIR)/fnc_regress-fnc-regress.Tpo -c -o fnc_regress-fnc-regress.o `test -f 'fnc-regress.c' || echo '$(srcdir)/'`fnc-regress.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/fnc_regress-fnc-regress.Tpo $(DEPDIR)/fnc_regress-fnc-regress.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='fnc-regress.c' object='fnc_regress-fnc-regress.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(fnc_regress_CPPFLAGS) $(CPPFLAGS) $(fnc_regress_CFLAGS) $(CFLAGS) -c -o fnc_regress-fnc-regress.o `test -f 'fnc-regress.c' || echo '$(srcdir)/'`fnc-regress.c
+
+fnc_regress-fnc-regress.obj: fnc-regress.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(fnc_regress_CPPFLAGS) $(CPPFLAGS) $(fnc_regress_CFLAGS) $(CFLAGS) -MT fnc_regress-fnc-regress.obj -MD -MP -MF $(DEPDIR)/fnc_regress-fnc-regress.Tpo -c -o fnc_regress-fnc-regress.obj `if test -f 'fnc-regress.c'; then $(CYGPATH_W) 'fnc-regress.c'; else $(CYGPATH_W) '$(srcdir)/fnc-regress.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/fnc_regress-fnc-regress.Tpo $(DEPDIR)/fnc_regress-fnc-regress.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='fnc-regress.c' object='fnc_regress-fnc-regress.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(fnc_regress_CPPFLAGS) $(CPPFLAGS) $(fnc_regress_CFLAGS) $(CFLAGS) -c -o fnc_regress-fnc-regress.obj `if test -f 'fnc-regress.c'; then $(CYGPATH_W) 'fnc-regress.c'; else $(CYGPATH_W) '$(srcdir)/fnc-regress.c'; fi`
+
+fnc_regress-math-rand-max.o: math-rand-max.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(fnc_regress_CPPFLAGS) $(CPPFLAGS) $(fnc_regress_CFLAGS) $(CFLAGS) -MT fnc_regress-math-rand-max.o -MD -MP -MF $(DEPDIR)/fnc_regress-math-rand-max.Tpo -c -o fnc_regress-math-rand-max.o `test -f 'math-rand-max.c' || echo '$(srcdir)/'`math-rand-max.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/fnc_regress-math-rand-max.Tpo $(DEPDIR)/fnc_regress-math-rand-max.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='math-rand-max.c' object='fnc_regress-math-rand-max.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(fnc_regress_CPPFLAGS) $(CPPFLAGS) $(fnc_regress_CFLAGS) $(CFLAGS) -c -o fnc_regress-math-rand-max.o `test -f 'math-rand-max.c' || echo '$(srcdir)/'`math-rand-max.c
+
+fnc_regress-math-rand-max.obj: math-rand-max.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(fnc_regress_CPPFLAGS) $(CPPFLAGS) $(fnc_regress_CFLAGS) $(CFLAGS) -MT fnc_regress-math-rand-max.obj -MD -MP -MF $(DEPDIR)/fnc_regress-math-rand-max.Tpo -c -o fnc_regress-math-rand-max.obj `if test -f 'math-rand-max.c'; then $(CYGPATH_W) 'math-rand-max.c'; else $(CYGPATH_W) '$(srcdir)/math-rand-max.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/fnc_regress-math-rand-max.Tpo $(DEPDIR)/fnc_regress-math-rand-max.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='math-rand-max.c' object='fnc_regress-math-rand-max.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(fnc_regress_CPPFLAGS) $(CPPFLAGS) $(fnc_regress_CFLAGS) $(CFLAGS) -c -o fnc_regress-math-rand-max.obj `if test -f 'math-rand-max.c'; then $(CYGPATH_W) 'math-rand-max.c'; else $(CYGPATH_W) '$(srcdir)/math-rand-max.c'; fi`
+
+fnc_regress-math-time-failure.o: math-time-failure.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(fnc_regress_CPPFLAGS) $(CPPFLAGS) $(fnc_regress_CFLAGS) $(CFLAGS) -MT fnc_regress-math-time-failure.o -MD -MP -MF $(DEPDIR)/fnc_regress-math-time-failure.Tpo -c -o fnc_regress-math-time-failure.o `test -f 'math-time-failure.c' || echo '$(srcdir)/'`math-time-failure.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/fnc_regress-math-time-failure.Tpo $(DEPDIR)/fnc_regress-math-time-failure.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='math-time-failure.c' object='fnc_regress-math-time-failure.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(fnc_regress_CPPFLAGS) $(CPPFLAGS) $(fnc_regress_CFLAGS) $(CFLAGS) -c -o fnc_regress-math-time-failure.o `test -f 'math-time-failure.c' || echo '$(srcdir)/'`math-time-failure.c
+
+fnc_regress-math-time-failure.obj: math-time-failure.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(fnc_regress_CPPFLAGS) $(CPPFLAGS) $(fnc_regress_CFLAGS) $(CFLAGS) -MT fnc_regress-math-time-failure.obj -MD -MP -MF $(DEPDIR)/fnc_regress-math-time-failure.Tpo -c -o fnc_regress-math-time-failure.obj `if test -f 'math-time-failure.c'; then $(CYGPATH_W) 'math-time-failure.c'; else $(CYGPATH_W) '$(srcdir)/math-time-failure.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/fnc_regress-math-time-failure.Tpo $(DEPDIR)/fnc_regress-math-time-failure.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='math-time-failure.c' object='fnc_regress-math-time-failure.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(fnc_regress_CPPFLAGS) $(CPPFLAGS) $(fnc_regress_CFLAGS) $(CFLAGS) -c -o fnc_regress-math-time-failure.obj `if test -f 'math-time-failure.c'; then $(CYGPATH_W) 'math-time-failure.c'; else $(CYGPATH_W) '$(srcdir)/math-time-failure.c'; fi`
+
+fnc_regress-math-threads.o: math-threads.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(fnc_regress_CPPFLAGS) $(CPPFLAGS) $(fnc_regress_CFLAGS) $(CFLAGS) -MT fnc_regress-math-threads.o -MD -MP -MF $(DEPDIR)/fnc_regress-math-threads.Tpo -c -o fnc_regress-math-threads.o `test -f 'math-threads.c' || echo '$(srcdir)/'`math-threads.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/fnc_regress-math-threads.Tpo $(DEPDIR)/fnc_regress-math-threads.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='math-threads.c' object='fnc_regress-math-threads.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(fnc_regress_CPPFLAGS) $(CPPFLAGS) $(fnc_regress_CFLAGS) $(CFLAGS) -c -o fnc_regress-math-threads.o `test -f 'math-threads.c' || echo '$(srcdir)/'`math-threads.c
+
+fnc_regress-math-threads.obj: math-threads.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(fnc_regress_CPPFLAGS) $(CPPFLAGS) $(fnc_regress_CFLAGS) $(CFLAGS) -MT fnc_regress-math-threads.obj -MD -MP -MF $(DEPDIR)/fnc_regress-math-threads.Tpo -c -o fnc_regress-math-threads.obj `if test -f 'math-threads.c'; then $(CYGPATH_W) 'math-threads.c'; else $(CYGPATH_W) '$(srcdir)/math-threads.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/fnc_regress-math-threads.Tpo $(DEPDIR)/fnc_regress-math-threads.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='math-threads.c' object='fnc_regress-math-threads.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(fnc_regress_CPPFLAGS) $(CPPFLAGS) $(fnc_regress_CFLAGS) $(CFLAGS) -c -o fnc_regress-math-threads.obj `if test -f 'math-threads.c'; then $(CYGPATH_W) 'math-threads.c'; else $(CYGPATH_W) '$(srcdir)/math-threads.c'; fi`
+
+fnc_regress-sys-faults.o: sys-faults.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(fnc_regress_CPPFLAGS) $(CPPFLAGS) $(fnc_regress_CFLAGS) $(CFLAGS) -MT fnc_regress-sys-faults.o -MD -MP -MF $(DEPDIR)/fnc_regress-sys-faults.Tpo -c -o fnc_regress-sys-faults.o `test -f 'sys-faults.c' || echo '$(srcdir)/'`sys-faults.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/fnc_regress-sys-faults.Tpo $(DEPDIR)/fnc_regress-sys-faults.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='sys-faults.c' object='fnc_regress-sys-faults.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(fnc_regress_CPPFLAGS) $(CPPFLAGS) $(fnc_regress_CFLAGS) $(CFLAGS) -c -o fnc_regress-sys-faults.o `test -f 'sys-faults.c' || echo '$(srcdir)/'`sys-faults.c
+
+fnc_regress-sys-faults.obj: sys-faults.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(fnc_regress_CPPFLAGS) $(CPPFLAGS) $(fnc_regress_CFLAGS) $(CFLAGS) -MT fnc_regress-sys-faults.obj -MD -MP -MF $(DEPDIR)/fnc_regress-sys-faults.Tpo -c -o fnc_regress-sys-faults.obj `if test -f 'sys-faults.c'; then $(CYGPATH_W) 'sys-faults.c'; else $(CYGPATH_W) '$(srcdir)/sys-faults.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/fnc_regress-sys-faults.Tpo $(DEPDIR)/fnc_regress-sys-faults.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='sys-faults.c' object='fnc_regress-sys-faults.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(fnc_regress_CPPFLAGS) $(CPPFLAGS) $(fnc_regress_CFLAGS) $(CFLAGS) -c -o fnc_regress-sys-faults.obj `if test -f 'sys-faults.c'; then $(CYGPATH_W) 'sys-faults.c'; else $(CYGPATH_W) '$(srcdir)/sys-faults.c'; fi`
+
+fnc_regress-sys-fallback.o: sys-fallback.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(fnc_regress_CPPFLAGS) $(CPPFLAGS) $(fnc_regress_CFLAGS) $(CFLAGS) -MT fnc_regress-sys-fallback.o -MD -MP -MF $(DEPDIR)/fnc_regress-sys-fallback.Tpo -c -o fnc_regress-sys-fallback.o `test -f 'sys-fallback.c' || echo '$(srcdir)/'`sys-fallback.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/fnc_regress-sys-fallback.Tpo $(DEPDIR)/fnc_regress-sys-fallback.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='sys-fallback.c' object='fnc_regress-sys-fallback.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(fnc_regress_CPPFLAGS) $(CPPFLAGS) $(fnc_regress_CFLAGS) $(CFLAGS) -c -o fnc_regress-sys-fallback.o `test -f 'sys-fallback.c' || echo '$(srcdir)/'`sys-fallback.c
+
+fnc_regress-sys-fallback.obj: sys-fallback.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(fnc_regress_CPPFLAGS) $(CPPFLAGS) $(fnc_regress_CFLAGS) $(CFLAGS) -MT fnc_regress-sys-fallback.obj -MD -MP -MF $(DEPDIR)/fnc_regress-sys-fallback.Tpo -c -o fnc_regress-sys-fallback.obj `if test -f 'sys-fallback.c'; then $(CYGPATH_W) 'sys-fallback.c'; else $(CYGPATH_W) '$(srcdir)/sys-fallback.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/fnc_regress-sys-fallback.Tpo $(DEPDIR)/fnc_regress-sys-fallback.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='sys-fallback.c' object='fnc_regress-sys-fallback.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(fnc_regress_CPPFLAGS) $(CPPFLAGS) $(fnc_regress_CFLAGS) $(CFLAGS) -c -o fnc_regress-sys-fallback.obj `if test -f 'sys-fallback.c'; then $(CYGPATH_W) 'sys-fallback.c'; else $(CYGPATH_W) '$(srcdir)/sys-fallback.c'; fi`
+
+fnc_regress-sys-unavailable.o: sys-unavailable.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(fnc_regress_CPPFLAGS) $(CPPFLAGS) $(fnc_regress_CFLAGS) $(CFLAGS) -MT fnc_regress-sys-unavailable.o -MD -MP -MF $(DEPDIR)/fnc_regress-sys-unavailable.Tpo -c -o fnc_regress-sys-unavailable.o `test -f 'sys-unavailable.c' || echo '$(srcdir)/'`sys-unavailable.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/fnc_regress-sys-unavailable.Tpo $(DEPDIR)/fnc_regress-sys-unavailable.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='sys-unavailable.c' object='fnc_regress-sys-unavailable.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(fnc_regress_CPPFLAGS) $(CPPFLAGS) $(fnc_regress_CFLAGS) $(CFLAGS) -c -o fnc_regress-sys-unavailable.o `test -f 'sys-unavailable.c' || echo '$(srcdir)/'`sys-unavailable.c
+
+fnc_regress-sys-unavailable.obj: sys-unavailable.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(fnc_regress_CPPFLAGS) $(CPPFLAGS) $(fnc_regress_CFLAGS) $(CFLAGS) -MT fnc_regress-sys-unavailable.obj -MD -MP -MF $(DEPDIR)/fnc_regress-sys-unavailable.Tpo -c -o fnc_regress-sys-unavailable.obj `if test -f 'sys-unavailable.c'; then $(CYGPATH_W) 'sys-unavailable.c'; else $(CYGPATH_W) '$(srcdir)/sys-unavailable.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/fnc_regress-sys-unavailable.Tpo $(DEPDIR)/fnc_regress-sys-unavailable.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='sys-unavailable.c' object='fnc_regress-sys-unavailable.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(fnc_regress_CPPFLAGS) $(CPPFLAGS) $(fnc_regress_CFLAGS) $(CFLAGS) -c -o fnc_regress-sys-unavailable.obj `if test -f 'sys-unavailable.c'; then $(CYGPATH_W) 'sys-unavailable.c'; else $(CYGPATH_W) '$(srcdir)/sys-unavailable.c'; fi`
+
+sh_job_control-sh-job-control.o: sh-job-control.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sh_job_control_CPPFLAGS) $(CPPFLAGS) $(sh_job_control_CFLAGS) $(CFLAGS) -MT sh_job_control-sh-job-control.o -MD -MP -MF $(DEPDIR)/sh_job_control-sh-job-control.Tpo -c -o sh_job_control-sh-job-control.o `test -f 'sh-job-control.c' || echo '$(srcdir)/'`sh-job-control.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/sh_job_control-sh-job-control.Tpo $(DEPDIR)/sh_job_control-sh-job-control.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='sh-job-control.c' object='sh_job_control-sh-job-control.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sh_job_control_CPPFLAGS) $(CPPFLAGS) $(sh_job_control_CFLAGS) $(CFLAGS) -c -o sh_job_control-sh-job-control.o `test -f 'sh-job-control.c' || echo '$(srcdir)/'`sh-job-control.c
+
+sh_job_control-sh-job-control.obj: sh-job-control.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sh_job_control_CPPFLAGS) $(CPPFLAGS) $(sh_job_control_CFLAGS) $(CFLAGS) -MT sh_job_control-sh-job-control.obj -MD -MP -MF $(DEPDIR)/sh_job_control-sh-job-control.Tpo -c -o sh_job_control-sh-job-control.obj `if test -f 'sh-job-control.c'; then $(CYGPATH_W) 'sh-job-control.c'; else $(CYGPATH_W) '$(srcdir)/sh-job-control.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/sh_job_control-sh-job-control.Tpo $(DEPDIR)/sh_job_control-sh-job-control.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='sh-job-control.c' object='sh_job_control-sh-job-control.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(sh_job_control_CPPFLAGS) $(CPPFLAGS) $(sh_job_control_CFLAGS) $(CFLAGS) -c -o sh_job_control-sh-job-control.obj `if test -f 'sh-job-control.c'; then $(CYGPATH_W) 'sh-job-control.c'; else $(CYGPATH_W) '$(srcdir)/sh-job-control.c'; fi`
 
 t_001-t-001.o: t-001.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(t_001_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT t_001-t-001.o -MD -MP -MF $(DEPDIR)/t_001-t-001.Tpo -c -o t_001-t-001.o `test -f 't-001.c' || echo '$(srcdir)/'`t-001.c
@@ -1108,6 +1309,34 @@ t_013-t-013.obj: t-013.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='t-013.c' object='t_013-t-013.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(t_013_CPPFLAGS) $(CPPFLAGS) $(t_013_CFLAGS) $(CFLAGS) -c -o t_013-t-013.obj `if test -f 't-013.c'; then $(CYGPATH_W) 't-013.c'; else $(CYGPATH_W) '$(srcdir)/t-013.c'; fi`
+
+t_014-t-014.o: t-014.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(t_014_CPPFLAGS) $(CPPFLAGS) $(t_014_CFLAGS) $(CFLAGS) -MT t_014-t-014.o -MD -MP -MF $(DEPDIR)/t_014-t-014.Tpo -c -o t_014-t-014.o `test -f 't-014.c' || echo '$(srcdir)/'`t-014.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/t_014-t-014.Tpo $(DEPDIR)/t_014-t-014.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='t-014.c' object='t_014-t-014.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(t_014_CPPFLAGS) $(CPPFLAGS) $(t_014_CFLAGS) $(CFLAGS) -c -o t_014-t-014.o `test -f 't-014.c' || echo '$(srcdir)/'`t-014.c
+
+t_014-t-014.obj: t-014.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(t_014_CPPFLAGS) $(CPPFLAGS) $(t_014_CFLAGS) $(CFLAGS) -MT t_014-t-014.obj -MD -MP -MF $(DEPDIR)/t_014-t-014.Tpo -c -o t_014-t-014.obj `if test -f 't-014.c'; then $(CYGPATH_W) 't-014.c'; else $(CYGPATH_W) '$(srcdir)/t-014.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/t_014-t-014.Tpo $(DEPDIR)/t_014-t-014.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='t-014.c' object='t_014-t-014.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(t_014_CPPFLAGS) $(CPPFLAGS) $(t_014_CFLAGS) $(CFLAGS) -c -o t_014-t-014.obj `if test -f 't-014.c'; then $(CYGPATH_W) 't-014.c'; else $(CYGPATH_W) '$(srcdir)/t-014.c'; fi`
+
+t_015-t-015.o: t-015.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(t_015_CPPFLAGS) $(CPPFLAGS) $(t_015_CFLAGS) $(CFLAGS) -MT t_015-t-015.o -MD -MP -MF $(DEPDIR)/t_015-t-015.Tpo -c -o t_015-t-015.o `test -f 't-015.c' || echo '$(srcdir)/'`t-015.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/t_015-t-015.Tpo $(DEPDIR)/t_015-t-015.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='t-015.c' object='t_015-t-015.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(t_015_CPPFLAGS) $(CPPFLAGS) $(t_015_CFLAGS) $(CFLAGS) -c -o t_015-t-015.o `test -f 't-015.c' || echo '$(srcdir)/'`t-015.c
+
+t_015-t-015.obj: t-015.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(t_015_CPPFLAGS) $(CPPFLAGS) $(t_015_CFLAGS) $(CFLAGS) -MT t_015-t-015.obj -MD -MP -MF $(DEPDIR)/t_015-t-015.Tpo -c -o t_015-t-015.obj `if test -f 't-015.c'; then $(CYGPATH_W) 't-015.c'; else $(CYGPATH_W) '$(srcdir)/t-015.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/t_015-t-015.Tpo $(DEPDIR)/t_015-t-015.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='t-015.c' object='t_015-t-015.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(t_015_CPPFLAGS) $(CPPFLAGS) $(t_015_CFLAGS) $(CFLAGS) -c -o t_015-t-015.obj `if test -f 't-015.c'; then $(CYGPATH_W) 't-015.c'; else $(CYGPATH_W) '$(srcdir)/t-015.c'; fi`
 
 .cpp.o:
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.o$$||'`;\
@@ -1462,6 +1691,20 @@ t-013.log: t-013$(EXEEXT)
 	--log-file $$b.log --trs-file $$b.trs \
 	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
 	"$$tst" $(AM_TESTS_FD_REDIRECT)
+t-014.log: t-014$(EXEEXT)
+	@p='t-014$(EXEEXT)'; \
+	b='t-014'; \
+	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
+	--log-file $$b.log --trs-file $$b.trs \
+	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
+	"$$tst" $(AM_TESTS_FD_REDIRECT)
+t-015.log: t-015$(EXEEXT)
+	@p='t-015$(EXEEXT)'; \
+	b='t-015'; \
+	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
+	--log-file $$b.log --trs-file $$b.trs \
+	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
+	"$$tst" $(AM_TESTS_FD_REDIRECT)
 t-101.log: t-101$(EXEEXT)
 	@p='t-101$(EXEEXT)'; \
 	b='t-101'; \
@@ -1590,6 +1833,14 @@ clean-am: clean-checkPROGRAMS clean-generic clean-libtool \
 	mostlyclean-am
 
 distclean: distclean-am
+	-rm -f ./$(DEPDIR)/fnc_regress-fnc-regress.Po
+	-rm -f ./$(DEPDIR)/fnc_regress-math-rand-max.Po
+	-rm -f ./$(DEPDIR)/fnc_regress-math-threads.Po
+	-rm -f ./$(DEPDIR)/fnc_regress-math-time-failure.Po
+	-rm -f ./$(DEPDIR)/fnc_regress-sys-fallback.Po
+	-rm -f ./$(DEPDIR)/fnc_regress-sys-faults.Po
+	-rm -f ./$(DEPDIR)/fnc_regress-sys-unavailable.Po
+	-rm -f ./$(DEPDIR)/sh_job_control-sh-job-control.Po
 	-rm -f ./$(DEPDIR)/t_001-t-001.Po
 	-rm -f ./$(DEPDIR)/t_002-t-002.Po
 	-rm -f ./$(DEPDIR)/t_003-t-003.Po
@@ -1603,6 +1854,8 @@ distclean: distclean-am
 	-rm -f ./$(DEPDIR)/t_011-t-011.Po
 	-rm -f ./$(DEPDIR)/t_012-t-012.Po
 	-rm -f ./$(DEPDIR)/t_013-t-013.Po
+	-rm -f ./$(DEPDIR)/t_014-t-014.Po
+	-rm -f ./$(DEPDIR)/t_015-t-015.Po
 	-rm -f ./$(DEPDIR)/t_101-t-101.Po
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
@@ -1649,6 +1902,14 @@ install-ps-am:
 installcheck-am:
 
 maintainer-clean: maintainer-clean-am
+	-rm -f ./$(DEPDIR)/fnc_regress-fnc-regress.Po
+	-rm -f ./$(DEPDIR)/fnc_regress-math-rand-max.Po
+	-rm -f ./$(DEPDIR)/fnc_regress-math-threads.Po
+	-rm -f ./$(DEPDIR)/fnc_regress-math-time-failure.Po
+	-rm -f ./$(DEPDIR)/fnc_regress-sys-fallback.Po
+	-rm -f ./$(DEPDIR)/fnc_regress-sys-faults.Po
+	-rm -f ./$(DEPDIR)/fnc_regress-sys-unavailable.Po
+	-rm -f ./$(DEPDIR)/sh_job_control-sh-job-control.Po
 	-rm -f ./$(DEPDIR)/t_001-t-001.Po
 	-rm -f ./$(DEPDIR)/t_002-t-002.Po
 	-rm -f ./$(DEPDIR)/t_003-t-003.Po
@@ -1662,6 +1923,8 @@ maintainer-clean: maintainer-clean-am
 	-rm -f ./$(DEPDIR)/t_011-t-011.Po
 	-rm -f ./$(DEPDIR)/t_012-t-012.Po
 	-rm -f ./$(DEPDIR)/t_013-t-013.Po
+	-rm -f ./$(DEPDIR)/t_014-t-014.Po
+	-rm -f ./$(DEPDIR)/t_015-t-015.Po
 	-rm -f ./$(DEPDIR)/t_101-t-101.Po
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
@@ -1711,6 +1974,9 @@ VALGRIND ?= 0
 VALGRIND_CMD ?= valgrind
 VALGRIND_ERROR_EXITCODE ?= 99
 VALGRIND_FLAGS ?= --leak-check=full --show-leak-kinds=all --errors-for-leak-kinds=all --error-exitcode=99 --num-callers=20
+
+regress-fnc.log: fnc-regress$(EXEEXT)
+regress-sh-job-control.log: sh-job-control$(EXEEXT)
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

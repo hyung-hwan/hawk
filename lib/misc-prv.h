@@ -95,14 +95,36 @@ hawk_bch_t* hawk_rtx_tokbcharsbyrex (
 );
 
 
+hawk_bch_t* hawk_rtx_tokbcharswithbcharswithoptions (
+	hawk_rtx_t* rtx, const hawk_bch_t* s, hawk_oow_t len,
+	const hawk_bch_t* delim, hawk_oow_t delim_len, hawk_bcs_t* tok, int ignorecase);
+
+hawk_bch_t* hawk_rtx_tokbcharsbyrexwithoptions (
+	hawk_rtx_t* rtx, const hawk_bch_t* str, hawk_oow_t len,
+	const hawk_bch_t* substr, hawk_oow_t sublen, hawk_tre_t* rex,
+	hawk_bcs_t* tok, int striprecspc);
+
+hawk_uch_t* hawk_rtx_tokucharswithucharswithoptions (
+	hawk_rtx_t* rtx, const hawk_uch_t* s, hawk_oow_t len,
+	const hawk_uch_t* delim, hawk_oow_t delim_len, hawk_ucs_t* tok, int ignorecase);
+
+hawk_uch_t* hawk_rtx_tokucharsbyrexwithoptions (
+	hawk_rtx_t* rtx, const hawk_uch_t* str, hawk_oow_t len,
+	const hawk_uch_t* substr, hawk_oow_t sublen, hawk_tre_t* rex,
+	hawk_ucs_t* tok, int striprecspc);
+
 #if defined(HAWK_OOCH_IS_UCH)
 #	define hawk_rtx_fldoochars hawk_rtx_flduchars
 #	define hawk_rtx_tokoocharswithoochars hawk_rtx_tokucharswithuchars
 #	define hawk_rtx_tokoocharsbyrex hawk_rtx_tokucharsbyrex
+#	define hawk_rtx_tokoocharswithoocharswithoptions hawk_rtx_tokucharswithucharswithoptions
+#	define hawk_rtx_tokoocharsbyrexwithoptions hawk_rtx_tokucharsbyrexwithoptions
 #else
 #	define hawk_rtx_fldoochars hawk_rtx_fldbchars
 #	define hawk_rtx_tokoocharswithoochars hawk_rtx_tokbcharswithbchars
 #	define hawk_rtx_tokoocharsbyrex hawk_rtx_tokbcharsbyrex
+#	define hawk_rtx_tokoocharswithoocharswithoptions hawk_rtx_tokbcharswithbcharswithoptions
+#	define hawk_rtx_tokoocharsbyrexwithoptions hawk_rtx_tokbcharsbyrexwithoptions
 #endif
 
 

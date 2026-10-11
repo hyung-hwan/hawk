@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: hawk 1.0.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-04 20:34+0900\n"
+"POT-Creation-Date: 2026-10-05 01:28+0900\n"
 "PO-Revision-Date: 2026-03-28 17:00+0800\n"
 "Last-Translator:  <author@hawk>\n"
 "Language-Team: Chinese (Simplified) <translation-team-zh_CN@hawk>\n"
@@ -261,6 +261,10 @@ msgstr " --usage                           显示此信息"
 #: ../../bin/main.c:419
 msgid " --version                         print version"
 msgstr " --version                         显示版本"
+
+#: ../../bin/main.c:424
+msgid " --sh                              switch to the shell mode"
+msgstr " --sh                              切换到 shell 模式"
 
 #: ../../lib/err.c:33
 msgid "no error"

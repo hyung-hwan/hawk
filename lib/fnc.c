@@ -156,7 +156,7 @@ hawk_fnc_t* hawk_addfncwithbcstr (hawk_t* hawk, const hawk_bch_t* name, const ha
 
 	HAWK_STATIC_ASSERT(HAWK_SIZEOF(*spec) == HAWK_SIZEOF(uspec));
 
-	HAWK_MEMCPY (&uspec, spec, HAWK_SIZEOF(uspec));
+	HAWK_MEMCPY(&uspec, spec, HAWK_SIZEOF(uspec));
 	if (spec->arg.spec)
 	{
 		wcs.ptr = hawk_dupbtoucstr(hawk, spec->arg.spec, &wcs.len, 0);
@@ -187,7 +187,7 @@ hawk_fnc_t* hawk_addfncwithucstr (hawk_t* hawk, const hawk_uch_t* name, const ha
 
 	HAWK_STATIC_ASSERT(HAWK_SIZEOF(*spec) == HAWK_SIZEOF(bspec));
 
-	HAWK_MEMCPY (&bspec, spec, HAWK_SIZEOF(bspec));
+	HAWK_MEMCPY(&bspec, spec, HAWK_SIZEOF(bspec));
 	if (spec->arg.spec)
 	{
 		mbs.ptr = hawk_duputobcstr(hawk, spec->arg.spec, &mbs.len);
@@ -227,7 +227,7 @@ int hawk_delfncwithbcstr (hawk_t* hawk, const hawk_bch_t* name)
 	}
 #else
 	wcs.ptr = hawk_dupbtoucstr(hawk, ncs.ptr, &wcs.len, 0);
-	if (!wcs.ptr) return -1;
+	if (HAWK_UNLIKELY(!wcs.ptr)) return -1;
 	if (hawk_htb_delete(hawk->fnc.user, wcs.ptr, wcs.len) <= -1)
 	{
 		hawk_seterrfmt(hawk, HAWK_NULL, HAWK_ENOENT, HAWK_T("no such function - %hs"), name);
@@ -250,7 +250,7 @@ int hawk_delfncwithucstr (hawk_t* hawk, const hawk_uch_t* name)
 
 #if defined(HAWK_OOCH_IS_BCH)
 	mbs.ptr = hawk_duputobcstr(hawk, ncs.ptr, &mbs.len);
-	if (!mbs.ptr) return -1;
+	if (HAWK_UNLIKELY(!mbs.ptr)) return -1;
 	if (hawk_htb_delete(hawk->fnc.user, mbs.ptr, mbs.len) <= -1)
 	{
 		hawk_seterrfmt(hawk, HAWK_NULL, HAWK_ENOENT, HAWK_T("no such function - %ls"), name);
@@ -2090,7 +2090,7 @@ static int __fnc_match (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, int support_
 		if (hawk_rtx_valtoint_inline(rtx, a2, &start) <= -1) return -1;
 	}
 
-	HAWK_MEMSET (&submat, 0, HAWK_SIZEOF(submat));
+	HAWK_MEMSET(&submat, 0, HAWK_SIZEOF(submat));
 
 	a0_type = HAWK_RTX_GETVALTYPE(rtx, a0);
 	if (a0_type == HAWK_VAL_MBS)
@@ -2358,12 +2358,12 @@ int hawk_fnc_sprintf (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			a0 = hawk_rtx_makembsvalwithbcs(rtx, &x);
 			if (HAWK_UNLIKELY(!a0)) goto oops_mbs;
 
-			hawk_becs_fini (&fbu);
+			hawk_becs_fini(&fbu);
 			hawk_rtx_setretval(rtx, a0);
 			return 0;
 
 		oops_mbs:
-			if (fbu_inited) hawk_becs_fini (&fbu);
+			if (fbu_inited) hawk_becs_fini(&fbu);
 			return -1;
 		}
 
@@ -2387,12 +2387,12 @@ int hawk_fnc_sprintf (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			a0 = hawk_rtx_makestrvalwithoocs(rtx, &x);
 			if (HAWK_UNLIKELY(!a0)) goto oops;
 
-			hawk_ooecs_fini (&fbu);
+			hawk_ooecs_fini(&fbu);
 			hawk_rtx_setretval(rtx, a0);
 			return 0;
 
 		oops:
-			if (fbu_inited) hawk_ooecs_fini (&fbu);
+			if (fbu_inited) hawk_ooecs_fini(&fbu);
 			return -1;
 		}
 	}

@@ -125,7 +125,7 @@ static int uchars_to_ipv6 (const hawk_uch_t* src, hawk_oow_t len, struct in6_add
 
 	src_end = src + len;
 
-	HAWK_MEMSET (inaddr, 0, HAWK_SIZEOF(*inaddr));
+	HAWK_MEMSET(inaddr, 0, HAWK_SIZEOF(*inaddr));
 	tp = &inaddr->s6_addr[0];
 	endp = &inaddr->s6_addr[HAWK_COUNTOF(inaddr->s6_addr)];
 	colonp = HAWK_NULL;
@@ -229,7 +229,7 @@ static int bchars_to_ipv6 (const hawk_bch_t* src, hawk_oow_t len, struct in6_add
 
 	src_end = src + len;
 
-	HAWK_MEMSET (inaddr, 0, HAWK_SIZEOF(*inaddr));
+	HAWK_MEMSET(inaddr, 0, HAWK_SIZEOF(*inaddr));
 	tp = &inaddr->s6_addr[0];
 	endp = &inaddr->s6_addr[HAWK_COUNTOF(inaddr->s6_addr)];
 	colonp = HAWK_NULL;
@@ -342,7 +342,7 @@ int hawk_gem_ucharstoskad (hawk_gem_t* gem, const hawk_uch_t* str, hawk_oow_t le
 	}
 
 	/* use HAWK_SIZEOF(*_skad) instead of HAWK_SIZEOF(*skad) in case they are different */
-	HAWK_MEMSET (skad, 0, HAWK_SIZEOF(*_skad));
+	HAWK_MEMSET(skad, 0, HAWK_SIZEOF(*_skad));
 
 	if (*p == '@' || *p == '/')
 	{
@@ -562,7 +562,7 @@ int hawk_gem_bcharstoskad (hawk_gem_t* gem, const hawk_bch_t* str, hawk_oow_t le
 	}
 
 	/* use HAWK_SIZEOF(*_skad) instead of HAWK_SIZEOF(*skad) in case they are different */
-	HAWK_MEMSET (skad, 0, HAWK_SIZEOF(*_skad));
+	HAWK_MEMSET(skad, 0, HAWK_SIZEOF(*_skad));
 
 	if (*p == '@' || *p == '/')
 	{
@@ -844,7 +844,7 @@ static hawk_oow_t ip6ad_to_ucstr (const struct in6_addr* ipad, hawk_uch_t* buf, 
 	 *	Copy the input (bytewise) array into a wordwise array.
 	 *	Find the longest run of 0x00's in src[] for :: shorthanding.
 	 */
-	HAWK_MEMSET (words, 0, HAWK_SIZEOF(words));
+	HAWK_MEMSET(words, 0, HAWK_SIZEOF(words));
 	for (i = 0; i < HAWK_SIZEOF(ipad->s6_addr); i++)
 		words[i / 2] |= (ipad->s6_addr[i] << ((1 - (i % 2)) << 3));
 	best.base = -1;
@@ -1095,7 +1095,7 @@ static hawk_oow_t ip6ad_to_bcstr (const struct in6_addr* ipad, hawk_bch_t* buf, 
 	 *	Copy the input (bytewise) array into a wordwise array.
 	 *	Find the longest run of 0x00's in src[] for :: shorthanding.
 	 */
-	HAWK_MEMSET (words, 0, HAWK_SIZEOF(words));
+	HAWK_MEMSET(words, 0, HAWK_SIZEOF(words));
 	for (i = 0; i < HAWK_SIZEOF(ipad->s6_addr); i++)
 		words[i / 2] |= (ipad->s6_addr[i] << ((1 - (i % 2)) << 3));
 	best.base = -1;
@@ -1409,7 +1409,7 @@ void hawk_skad_init_for_ip4 (hawk_skad_t* skad, hawk_uint16_t port, hawk_ip4ad_t
 {
 #if (HAWK_SIZEOF_STRUCT_SOCKADDR_IN > 0)
 	struct sockaddr_in* sin = (struct sockaddr_in*)skad;
-	HAWK_MEMSET (sin, 0, HAWK_SIZEOF(*sin));
+	HAWK_MEMSET(sin, 0, HAWK_SIZEOF(*sin));
 	sin->sin_family = AF_INET;
 	sin->sin_port = hawk_hton16(port);
 	if (ip4ad) HAWK_MEMCPY(&sin->sin_addr, ip4ad->v, HAWK_IP4AD_LEN);
@@ -1420,7 +1420,7 @@ void hawk_skad_init_for_ip6 (hawk_skad_t* skad, hawk_uint16_t port, hawk_ip6ad_t
 {
 #if (HAWK_SIZEOF_STRUCT_SOCKADDR_IN6 > 0)
 	struct sockaddr_in6* sin = (struct sockaddr_in6*)skad;
-	HAWK_MEMSET (sin, 0, HAWK_SIZEOF(*sin));
+	HAWK_MEMSET(sin, 0, HAWK_SIZEOF(*sin));
 	sin->sin6_family = AF_INET6;
 	sin->sin6_port = hawk_hton16(port);
 	sin->sin6_scope_id = scope_id;
@@ -1436,7 +1436,7 @@ void hawk_skad_init_for_ip_with_bytes (hawk_skad_t* skad, hawk_uint16_t port, co
 		case HAWK_IP4AD_LEN:
 		{
 			struct sockaddr_in* sin = (struct sockaddr_in*)skad;
-			HAWK_MEMSET (sin, 0, HAWK_SIZEOF(*sin));
+			HAWK_MEMSET(sin, 0, HAWK_SIZEOF(*sin));
 			sin->sin_family = AF_INET;
 			sin->sin_port = hawk_hton16(port);
 			HAWK_MEMCPY(&sin->sin_addr, bytes, len);
@@ -1447,7 +1447,7 @@ void hawk_skad_init_for_ip_with_bytes (hawk_skad_t* skad, hawk_uint16_t port, co
 		case HAWK_IP6AD_LEN:
 		{
 			struct sockaddr_in6* sin = (struct sockaddr_in6*)skad;
-			HAWK_MEMSET (sin, 0, HAWK_SIZEOF(*sin));
+			HAWK_MEMSET(sin, 0, HAWK_SIZEOF(*sin));
 			sin->sin6_family = AF_INET6;
 			sin->sin6_port = hawk_hton16(port);
 			HAWK_MEMCPY(&sin->sin6_addr, bytes, len);
@@ -1464,7 +1464,7 @@ void hawk_skad_init_for_eth (hawk_skad_t* skad, int ifindex, hawk_ethad_t* ethad
 {
 #if defined(AF_PACKET) && (HAWK_SIZEOF_STRUCT_SOCKADDR_LL > 0)
 	struct sockaddr_ll* sll = (struct sockaddr_ll*)skad;
-	HAWK_MEMSET (sll, 0, HAWK_SIZEOF(*sll));
+	HAWK_MEMSET(sll, 0, HAWK_SIZEOF(*sll));
 	sll->sll_family = AF_PACKET;
 	sll->sll_ifindex = ifindex;
 	if (ethad)
@@ -1475,7 +1475,7 @@ void hawk_skad_init_for_eth (hawk_skad_t* skad, int ifindex, hawk_ethad_t* ethad
 
 #elif defined(AF_LINK) && (HAWK_SIZEOF_STRUCT_SOCKADDR_DL > 0)
 	struct sockaddr_dl* sll = (struct sockaddr_dl*)skad;
-	HAWK_MEMSET (sll, 0, HAWK_SIZEOF(*sll));
+	HAWK_MEMSET(sll, 0, HAWK_SIZEOF(*sll));
 	sll->sdl_family = AF_LINK;
 	sll->sdl_index = ifindex;
 	if (ethad)
@@ -1493,7 +1493,7 @@ void hawk_clear_skad (hawk_skad_t* _skad)
 	hawk_skad_alt_t* skad = (hawk_skad_alt_t*)_skad;
 	/*HAWK_STATIC_ASSERT (HAWK_SIZEOF(*_skad) >= HAWK_SIZEOF(*skad));*/
 	/* use HAWK_SIZEOF(*_skad) instead of HAWK_SIZEOF(*skad) in case they are different */
-	HAWK_MEMSET (skad, 0, HAWK_SIZEOF(*_skad));
+	HAWK_MEMSET(skad, 0, HAWK_SIZEOF(*_skad));
 	skad->sa.sa_family = HAWK_AF_UNSPEC;
 }
 

@@ -61,7 +61,7 @@ static int get_sco_ifconf (hawk_gem_t* gem, struct ifconf* ifc)
 	h = socket(AF_INET, SOCK_DGRAM, 0);
 	if (h <= -1)
 	{
-		hawk_gem_seterrnum (gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
+		hawk_gem_seterrnum(gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
 		return -1;
 	}
 
@@ -71,13 +71,13 @@ static int get_sco_ifconf (hawk_gem_t* gem, struct ifconf* ifc)
 	#if defined(SIOCGIFANUM)
 	if (ioctl(h, SIOCGIFANUM, &num) <= -1)
 	{
-		hawk_gem_seterrnum (gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
+		hawk_gem_seterrnum(gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
 		goto oops;
 	}
 	#else
 	if (ioctl(h, SIOCGIFNUM, &num) <= -1)
 	{
-		hawk_gem_seterrnum (gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
+		hawk_gem_seterrnum(gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
 		goto oops;
 	}
 	#endif
@@ -95,22 +95,22 @@ static int get_sco_ifconf (hawk_gem_t* gem, struct ifconf* ifc)
 
 	if (ioctl(h, SIOCGIFCONF, ifc) <= -1)
 	{
-		hawk_gem_seterrnum (gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
+		hawk_gem_seterrnum(gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
 		goto oops;
 	}
-	HAWK_CLOSE (h); h = -1;
+	HAWK_CLOSE(h); h = -1;
 
 	return 0;
 
 oops:
-	if (ifc->ifc_buf) hawk_gem_freemem (gem, ifc->ifc_buf);
-	if (h >= 0) HAWK_CLOSE (h);
+	if (ifc->ifc_buf) hawk_gem_freemem(gem, ifc->ifc_buf);
+	if (h >= 0) HAWK_CLOSE(h);
 	return -1;
 }
 
 static HAWK_INLINE void free_sco_ifconf (hawk_gem_t* gem, struct ifconf* ifc)
 {
-	hawk_gem_freemem (gem, ifc->ifc_buf);
+	hawk_gem_freemem(gem, ifc->ifc_buf);
 }
 #endif
 
@@ -119,15 +119,15 @@ int hawk_gem_bcstrtoifindex (hawk_gem_t* gem, const hawk_bch_t* ptr, unsigned in
 {
 #if defined(_WIN32)
 	/* TODO: */
-	hawk_gem_seterrnum (gem, HAWK_NULL, HAWK_ENOIMPL);
+	hawk_gem_seterrnum(gem, HAWK_NULL, HAWK_ENOIMPL);
 	return -1;
 #elif defined(__OS2__)
 	/* TODO: */
-	hawk_gem_seterrnum (gem, HAWK_NULL, HAWK_ENOIMPL);
+	hawk_gem_seterrnum(gem, HAWK_NULL, HAWK_ENOIMPL);
 	return -1;
 #elif defined(__DOS__)
 	/* TODO: */
-	hawk_gem_seterrnum (gem, HAWK_NULL, HAWK_ENOIMPL);
+	hawk_gem_seterrnum(gem, HAWK_NULL, HAWK_ENOIMPL);
 	return -1;
 
 #elif defined(SIOCGIFINDEX)
@@ -138,20 +138,20 @@ int hawk_gem_bcstrtoifindex (hawk_gem_t* gem, const hawk_bch_t* ptr, unsigned in
 	h = socket(AF_INET, SOCK_DGRAM, 0);
 	if (h <= -1)
 	{
-		hawk_gem_seterrnum (gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
+		hawk_gem_seterrnum(gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
 		return -1;
 	}
 
-	HAWK_MEMSET (&ifr, 0, HAWK_SIZEOF(ifr));
+	HAWK_MEMSET(&ifr, 0, HAWK_SIZEOF(ifr));
 	len = hawk_copy_bcstr(ifr.ifr_name, HAWK_COUNTOF(ifr.ifr_name), ptr);
 	if (ptr[len] != '\0')
 	{
-		HAWK_CLOSE (h);
+		HAWK_CLOSE(h);
 		return -1; /* name too long */
 	}
 
 	x = ioctl(h, SIOCGIFINDEX, &ifr);
-	HAWK_CLOSE (h);
+	HAWK_CLOSE(h);
 
 	if (x >= 0)
 	{
@@ -175,7 +175,7 @@ int hawk_gem_bcstrtoifindex (hawk_gem_t* gem, const hawk_bch_t* ptr, unsigned in
 	tmpidx = if_nametoindex(tmp);
 	if (tmpidx == 0)
 	{
-		hawk_gem_seterrnum (gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
+		hawk_gem_seterrnum(gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
 		return -1;
 	}
 	*index = tmpidx;
@@ -211,15 +211,15 @@ int hawk_gem_bcharstoifindex (hawk_gem_t* gem, const hawk_bch_t* ptr, hawk_oow_t
 {
 #if defined(_WIN32)
 	/* TODO: */
-	hawk_gem_seterrnum (gem, HAWK_NULL, HAWK_ENOIMPL);
+	hawk_gem_seterrnum(gem, HAWK_NULL, HAWK_ENOIMPL);
 	return -1;
 #elif defined(__OS2__)
 	/* TODO: */
-	hawk_gem_seterrnum (gem, HAWK_NULL, HAWK_ENOIMPL);
+	hawk_gem_seterrnum(gem, HAWK_NULL, HAWK_ENOIMPL);
 	return -1;
 #elif defined(__DOS__)
 	/* TODO: */
-	hawk_gem_seterrnum (gem, HAWK_NULL, HAWK_ENOIMPL);
+	hawk_gem_seterrnum(gem, HAWK_NULL, HAWK_ENOIMPL);
 	return -1;
 
 #elif defined(SIOCGIFINDEX)
@@ -229,19 +229,19 @@ int hawk_gem_bcharstoifindex (hawk_gem_t* gem, const hawk_bch_t* ptr, hawk_oow_t
 	h = socket(AF_INET, SOCK_DGRAM, 0);
 	if (h <= -1)
 	{
-		hawk_gem_seterrnum (gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
+		hawk_gem_seterrnum(gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
 		return -1;
 	}
 
-	HAWK_MEMSET (&ifr, 0, HAWK_SIZEOF(ifr));
+	HAWK_MEMSET(&ifr, 0, HAWK_SIZEOF(ifr));
 	if (hawk_copy_bchars_to_bcstr(ifr.ifr_name, HAWK_COUNTOF(ifr.ifr_name), ptr, len) < len)
 	{
-		HAWK_CLOSE (h);
+		HAWK_CLOSE(h);
 		return -1; /* name too long */
 	}
 
 	x = ioctl(h, SIOCGIFINDEX, &ifr);
-	HAWK_CLOSE (h);
+	HAWK_CLOSE(h);
 
 	if (x >= 0)
 	{
@@ -263,7 +263,7 @@ int hawk_gem_bcharstoifindex (hawk_gem_t* gem, const hawk_bch_t* ptr, hawk_oow_t
 	tmpidx = if_nametoindex(tmp);
 	if (tmpidx == 0)
 	{
-		hawk_gem_seterrnum (gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
+		hawk_gem_seterrnum(gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
 		return -1;
 	}
 	*index = tmpidx;
@@ -298,15 +298,15 @@ int hawk_gem_ucstrtoifindex (hawk_gem_t* gem, const hawk_uch_t* ptr, unsigned in
 {
 #if defined(_WIN32)
 	/* TODO: */
-	hawk_gem_seterrnum (gem, HAWK_NULL, HAWK_ENOIMPL);
+	hawk_gem_seterrnum(gem, HAWK_NULL, HAWK_ENOIMPL);
 	return -1;
 #elif defined(__OS2__)
 	/* TODO: */
-	hawk_gem_seterrnum (gem, HAWK_NULL, HAWK_ENOIMPL);
+	hawk_gem_seterrnum(gem, HAWK_NULL, HAWK_ENOIMPL);
 	return -1;
 #elif defined(__DOS__)
 	/* TODO: */
-	hawk_gem_seterrnum (gem, HAWK_NULL, HAWK_ENOIMPL);
+	hawk_gem_seterrnum(gem, HAWK_NULL, HAWK_ENOIMPL);
 	return -1;
 
 #elif defined(SIOCGIFINDEX)
@@ -317,7 +317,7 @@ int hawk_gem_ucstrtoifindex (hawk_gem_t* gem, const hawk_uch_t* ptr, unsigned in
 	h = socket(AF_INET, SOCK_DGRAM, 0);
 	if (h <= -1)
 	{
-		hawk_gem_seterrnum (gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
+		hawk_gem_seterrnum(gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
 		return -1;
 	}
 
@@ -325,7 +325,7 @@ int hawk_gem_ucstrtoifindex (hawk_gem_t* gem, const hawk_uch_t* ptr, unsigned in
 	if (hawk_gem_convutobcstr(gem, ptr, &wl, ifr.ifr_name, &ml) <= -1) return -1;
 
 	x = ioctl(h, SIOCGIFINDEX, &ifr);
-	HAWK_CLOSE (h);
+	HAWK_CLOSE(h);
 
 	if (x >= 0)
 	{
@@ -349,7 +349,7 @@ int hawk_gem_ucstrtoifindex (hawk_gem_t* gem, const hawk_uch_t* ptr, unsigned in
 	tmpidx = if_nametoindex(tmp);
 	if (tmpidx == 0)
 	{
-		hawk_gem_seterrnum (gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
+		hawk_gem_seterrnum(gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
 		return -1;
 	}
 	*index = tmpidx;
@@ -390,15 +390,15 @@ int hawk_gem_ucharstoifindex (hawk_gem_t* gem, const hawk_uch_t* ptr, hawk_oow_t
 {
 #if defined(_WIN32)
 	/* TODO: */
-	hawk_gem_seterrnum (gem, HAWK_NULL, HAWK_ENOIMPL);
+	hawk_gem_seterrnum(gem, HAWK_NULL, HAWK_ENOIMPL);
 	return -1;
 #elif defined(__OS2__)
 	/* TODO: */
-	hawk_gem_seterrnum (gem, HAWK_NULL, HAWK_ENOIMPL);
+	hawk_gem_seterrnum(gem, HAWK_NULL, HAWK_ENOIMPL);
 	return -1;
 #elif defined(__DOS__)
 	/* TODO: */
-	hawk_gem_seterrnum (gem, HAWK_NULL, HAWK_ENOIMPL);
+	hawk_gem_seterrnum(gem, HAWK_NULL, HAWK_ENOIMPL);
 	return -1;
 
 #elif defined(SIOCGIFINDEX)
@@ -409,7 +409,7 @@ int hawk_gem_ucharstoifindex (hawk_gem_t* gem, const hawk_uch_t* ptr, hawk_oow_t
 	h = socket(AF_INET, SOCK_DGRAM, 0);
 	if (h <= -1)
 	{
-		hawk_gem_seterrnum (gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
+		hawk_gem_seterrnum(gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
 		return -1;
 	}
 
@@ -418,7 +418,7 @@ int hawk_gem_ucharstoifindex (hawk_gem_t* gem, const hawk_uch_t* ptr, hawk_oow_t
 	ifr.ifr_name[ml] = '\0';
 
 	x = ioctl(h, SIOCGIFINDEX, &ifr);
-	HAWK_CLOSE (h);
+	HAWK_CLOSE(h);
 
 	if (x >= 0)
 	{
@@ -443,7 +443,7 @@ int hawk_gem_ucharstoifindex (hawk_gem_t* gem, const hawk_uch_t* ptr, hawk_oow_t
 	tmpidx = if_nametoindex(tmp);
 	if (tmpidx == 0)
 	{
-		hawk_gem_seterrnum (gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
+		hawk_gem_seterrnum(gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
 		return -1;
 	}
 	*index = tmpidx;
@@ -485,15 +485,15 @@ int hawk_gem_ifindextobcstr (hawk_gem_t* gem, unsigned int index, hawk_bch_t* bu
 {
 #if defined(_WIN32)
 	/* TODO: */
-	hawk_gem_seterrnum (gem, HAWK_NULL, HAWK_ENOIMPL);
+	hawk_gem_seterrnum(gem, HAWK_NULL, HAWK_ENOIMPL);
 	return -1;
 #elif defined(__OS2__)
 	/* TODO: */
-	hawk_gem_seterrnum (gem, HAWK_NULL, HAWK_ENOIMPL);
+	hawk_gem_seterrnum(gem, HAWK_NULL, HAWK_ENOIMPL);
 	return -1;
 #elif defined(__DOS__)
 	/* TODO: */
-	hawk_gem_seterrnum (gem, HAWK_NULL, HAWK_ENOIMPL);
+	hawk_gem_seterrnum(gem, HAWK_NULL, HAWK_ENOIMPL);
 	return -1;
 
 #elif defined(SIOCGIFNAME)
@@ -504,11 +504,11 @@ int hawk_gem_ifindextobcstr (hawk_gem_t* gem, unsigned int index, hawk_bch_t* bu
 	h = socket(AF_INET, SOCK_DGRAM, 0);
 	if (h <= -1)
 	{
-		hawk_gem_seterrnum (gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
+		hawk_gem_seterrnum(gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
 		return -1;
 	}
 
-	HAWK_MEMSET (&ifr, 0, HAWK_SIZEOF(ifr));
+	HAWK_MEMSET(&ifr, 0, HAWK_SIZEOF(ifr));
 	#if defined(HAVE_STRUCT_IFREQ_IFR_IFINDEX) || defined(ifr_ifindex)
 	ifr.ifr_ifindex = index;
 	#else
@@ -516,11 +516,11 @@ int hawk_gem_ifindextobcstr (hawk_gem_t* gem, unsigned int index, hawk_bch_t* bu
 	#endif
 
 	x = ioctl(h, SIOCGIFNAME, &ifr);
-	HAWK_CLOSE (h);
+	HAWK_CLOSE(h);
 
 	if (x <= -1)
 	{
-		hawk_gem_seterrnum (gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
+		hawk_gem_seterrnum(gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
 		return -1;
 	}
 
@@ -530,7 +530,7 @@ int hawk_gem_ifindextobcstr (hawk_gem_t* gem, unsigned int index, hawk_bch_t* bu
 	hawk_bch_t tmp[IF_NAMESIZE + 1];
 	if (if_indextoname (index, tmp) == HAWK_NULL)
 	{
-		hawk_gem_seterrnum (gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
+		hawk_gem_seterrnum(gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
 		return -1;
 	}
 	return hawk_copy_bcstr(buf, len, tmp);
@@ -547,7 +547,7 @@ int hawk_gem_ifindextobcstr (hawk_gem_t* gem, unsigned int index, hawk_bch_t* bu
 	num = ifc.ifc_len / HAWK_SIZEOF(struct ifreq);
 	if (index > num)
 	{
-		hawk_gem_seterrnum (gem, HAWK_NULL, HAWK_ENOENT);
+		hawk_gem_seterrnum(gem, HAWK_NULL, HAWK_ENOENT);
 		free_sco_ifconf (gem, &ifc);
 		return -1;
 	}
@@ -565,15 +565,15 @@ int hawk_gem_ifindextoucstr (hawk_gem_t* gem, unsigned int index, hawk_uch_t* bu
 {
 #if defined(_WIN32)
 	/* TODO: */
-	hawk_gem_seterrnum (gem, HAWK_NULL, HAWK_ENOIMPL);
+	hawk_gem_seterrnum(gem, HAWK_NULL, HAWK_ENOIMPL);
 	return -1;
 #elif defined(__OS2__)
 	/* TODO: */
-	hawk_gem_seterrnum (gem, HAWK_NULL, HAWK_ENOIMPL);
+	hawk_gem_seterrnum(gem, HAWK_NULL, HAWK_ENOIMPL);
 	return -1;
 #elif defined(__DOS__)
 	/* TODO: */
-	hawk_gem_seterrnum (gem, HAWK_NULL, HAWK_ENOIMPL);
+	hawk_gem_seterrnum(gem, HAWK_NULL, HAWK_ENOIMPL);
 	return -1;
 
 #elif defined(SIOCGIFNAME)
@@ -585,11 +585,11 @@ int hawk_gem_ifindextoucstr (hawk_gem_t* gem, unsigned int index, hawk_uch_t* bu
 	h = socket(AF_INET, SOCK_DGRAM, 0);
 	if (h <= -1)
 	{
-		hawk_gem_seterrnum (gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
+		hawk_gem_seterrnum(gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
 		return -1;
 	}
 
-	HAWK_MEMSET (&ifr, 0, HAWK_SIZEOF(ifr));
+	HAWK_MEMSET(&ifr, 0, HAWK_SIZEOF(ifr));
 	#if defined(HAVE_STRUCT_IFREQ_IFR_IFINDEX) || defined(ifr_ifindex)
 	ifr.ifr_ifindex = index;
 	#else
@@ -597,11 +597,11 @@ int hawk_gem_ifindextoucstr (hawk_gem_t* gem, unsigned int index, hawk_uch_t* bu
 	#endif
 
 	x = ioctl(h, SIOCGIFNAME, &ifr);
-	HAWK_CLOSE (h);
+	HAWK_CLOSE(h);
 
 	if (x <= -1)
 	{
-		hawk_gem_seterrnum (gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
+		hawk_gem_seterrnum(gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
 		return -1;
 	}
 
@@ -618,7 +618,7 @@ int hawk_gem_ifindextoucstr (hawk_gem_t* gem, unsigned int index, hawk_uch_t* bu
 
 	if (if_indextoname(index, tmp) == HAWK_NULL)
 	{
-		hawk_gem_seterrnum (gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
+		hawk_gem_seterrnum(gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
 		return -1;
 	}
 	wl = len;
@@ -639,13 +639,13 @@ int hawk_gem_ifindextoucstr (hawk_gem_t* gem, unsigned int index, hawk_uch_t* bu
 	num = ifc.ifc_len / HAWK_SIZEOF(struct ifreq);
 	if (index > num)
 	{
-		free_sco_ifconf (gem, &ifc);
+		free_sco_ifconf(gem, &ifc);
 		return -1;
 	}
 
 	wl = len;
 	x = hawk_gem_convbtoucstr(gem, ifc.ifc_req[index - 1].ifr_name, &ml, buf, &wl, 0);
-	free_sco_ifconf (gem, &ifc);
+	free_sco_ifconf(gem, &ifc);
 
 	if (x == -2 && wl > 1) buf[wl - 1] = '\0';
 	else if (x != 0) return -1;

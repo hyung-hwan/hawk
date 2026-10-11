@@ -119,7 +119,7 @@ static hawk_ooi_t xin (hawk_cut_t* cut, hawk_cut_io_cmd_t cmd, hawk_cut_io_arg_t
 					hawk_oocs_t ea;
 					ea.ptr = xtn->infile;
 					ea.len = hawk_strlen (xtn->infile);
-					hawk_cut_seterrnum (cut, HAWK_CUT_EIOFIL, &ea);
+					hawk_cut_seterrnum(cut, HAWK_CUT_EIOFIL, &ea);
 					return -1;
 				}
 			}
@@ -147,7 +147,7 @@ static hawk_ooi_t xin (hawk_cut_t* cut, hawk_cut_io_cmd_t cmd, hawk_cut_io_arg_t
 					hawk_oocs_t ea;
 					ea.ptr = xtn->infile;
 					ea.len = hawk_strlen (xtn->infile);
-					hawk_cut_seterrnum (cut, HAWK_CUT_EIOFIL, &ea);
+					hawk_cut_seterrnum(cut, HAWK_CUT_EIOFIL, &ea);
 				}
 			}
 
@@ -187,7 +187,7 @@ static hawk_ooi_t xout (hawk_cut_t* cut, hawk_cut_io_cmd_t cmd, hawk_cut_io_arg_
 					hawk_oocs_t ea;
 					ea.ptr = xtn->outfile;
 					ea.len = hawk_strlen (xtn->outfile);
-					hawk_cut_seterrnum (cut, HAWK_CUT_EIOFIL, &ea);
+					hawk_cut_seterrnum(cut, HAWK_CUT_EIOFIL, &ea);
 					return -1;
 				}
 			}
@@ -217,7 +217,7 @@ static hawk_ooi_t xout (hawk_cut_t* cut, hawk_cut_io_cmd_t cmd, hawk_cut_io_arg_
 					hawk_oocs_t ea;
 					ea.ptr = xtn->infile;
 					ea.len = hawk_strlen (xtn->infile);
-					hawk_cut_seterrnum (cut, HAWK_CUT_EIOFIL, &ea);
+					hawk_cut_seterrnum(cut, HAWK_CUT_EIOFIL, &ea);
 				}
 			}
 
@@ -356,7 +356,7 @@ static void clear_sio_names (hawk_cut_t* cut)
 	{
 		cur = xtn->sio_names;
 		xtn->sio_names = cur->link;
-		hawk_cut_freemem (cut, cur);
+		hawk_cut_freemem(cut, cur);
 	}
 }
 

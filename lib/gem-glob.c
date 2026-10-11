@@ -160,7 +160,7 @@ static int bpath_exists (hawk_gem_t* g, const hawk_bch_t* name, hawk_becs_t* mbu
 
 #elif defined(macintosh)
 	HFileInfo fpb;
-	HAWK_MEMSET (&fpb, 0, HAWK_SIZEOF(fpb));
+	HAWK_MEMSET(&fpb, 0, HAWK_SIZEOF(fpb));
 	fpb.ioNamePtr = (unsigned char*)name;
 	return (PBGetCatInfoSync((CInfoPBRec*)&fpb) == noErr)? 1: 0;
 #else
@@ -447,7 +447,7 @@ entry:
 
 			while (1)
 			{
-				hawk_uecs_setlen (&g->path, tmp2);
+				hawk_uecs_setlen(&g->path, tmp2);
 
 				x = hawk_dir_read(dp, &ent);
 				if (x <= -1) 
@@ -510,8 +510,8 @@ entry:
 				}
 			}
 
-			hawk_uecs_setlen (&g->path, tmp);
-			hawk_dir_close (dp); dp = HAWK_NULL;
+			hawk_uecs_setlen(&g->path, tmp);
+			hawk_dir_close(dp); dp = HAWK_NULL;
 		}
 	}
 
@@ -544,29 +544,29 @@ entry:
 		/* destory the free list */
 		r = g->free;
 		g->free = r->next;
-		hawk_gem_freemem (g->gem, r);
+		hawk_gem_freemem(g->gem, r);
 	}
 #endif
 
 	return 0;
 
 oops:
-	if (dp) hawk_dir_close (dp);
+	if (dp) hawk_dir_close(dp);
 
 #if defined(NO_RECURSION)
 	while (g->stack)
 	{
 		r = g->stack;
 		g->stack = r->next;
-		hawk_dir_close (r->dp);
-		hawk_gem_freemem (g->gem, r);
+		hawk_dir_close(r->dp);
+		hawk_gem_freemem(g->gem, r);
 	}
 
 	while (g->free)
 	{
 		r = g->free;
 		g->free = r->next;
-		hawk_gem_freemem (g->gem, r);
+		hawk_gem_freemem(g->gem, r);
 	}
 #endif
 	return -1;
@@ -578,7 +578,7 @@ int hawk_gem_uglob (hawk_gem_t* gem, const hawk_uch_t* pattern, hawk_gem_uglob_c
 	__u_glob_t g;
 	int x;
 
-	HAWK_MEMSET (&g, 0, HAWK_SIZEOF(g));
+	HAWK_MEMSET(&g, 0, HAWK_SIZEOF(g));
 	g.gem = gem;
 	g.cbimpl = cbimpl;
 	g.cbctx = cbctx;
@@ -610,7 +610,7 @@ int hawk_gem_uglob (hawk_gem_t* gem, const hawk_uch_t* pattern, hawk_gem_uglob_c
 		}
 	}
 
-	HAWK_MEMSET (&seg, 0, HAWK_SIZEOF(seg));
+	HAWK_MEMSET(&seg, 0, HAWK_SIZEOF(seg));
 	seg.type = NONE;
 	seg.ptr = pattern;
 	seg.len = 0;
@@ -897,7 +897,7 @@ entry:
 
 			while (1)
 			{
-				hawk_becs_setlen (&g->path, tmp2);
+				hawk_becs_setlen(&g->path, tmp2);
 
 				x = hawk_dir_read(dp, &ent);
 				if (x <= -1) 
@@ -960,8 +960,8 @@ entry:
 				}
 			}
 
-			hawk_becs_setlen (&g->path, tmp);
-			hawk_dir_close (dp); dp = HAWK_NULL;
+			hawk_becs_setlen(&g->path, tmp);
+			hawk_dir_close(dp); dp = HAWK_NULL;
 		}
 	}
 
@@ -994,29 +994,29 @@ entry:
 		/* destory the free list */
 		r = g->free;
 		g->free = r->next;
-		hawk_gem_freemem (g->gem, r);
+		hawk_gem_freemem(g->gem, r);
 	}
 #endif
 
 	return 0;
 
 oops:
-	if (dp) hawk_dir_close (dp);
+	if (dp) hawk_dir_close(dp);
 
 #if defined(NO_RECURSION)
 	while (g->stack)
 	{
 		r = g->stack;
 		g->stack = r->next;
-		hawk_dir_close (r->dp);
-		hawk_gem_freemem (g->gem, r);
+		hawk_dir_close(r->dp);
+		hawk_gem_freemem(g->gem, r);
 	}
 
 	while (g->free)
 	{
 		r = g->free;
 		g->free = r->next;
-		hawk_gem_freemem (g->gem, r);
+		hawk_gem_freemem(g->gem, r);
 	}
 #endif
 	return -1;
@@ -1028,7 +1028,7 @@ int hawk_gem_bglob (hawk_gem_t* gem, const hawk_bch_t* pattern, hawk_gem_bglob_c
 	__b_glob_t g;
 	int x;
 
-	HAWK_MEMSET (&g, 0, HAWK_SIZEOF(g));
+	HAWK_MEMSET(&g, 0, HAWK_SIZEOF(g));
 	g.gem = gem;
 	g.cbimpl = cbimpl;
 	g.cbctx = cbctx;
@@ -1060,7 +1060,7 @@ int hawk_gem_bglob (hawk_gem_t* gem, const hawk_bch_t* pattern, hawk_gem_bglob_c
 		}
 	}
 
-	HAWK_MEMSET (&seg, 0, HAWK_SIZEOF(seg));
+	HAWK_MEMSET(&seg, 0, HAWK_SIZEOF(seg));
 	seg.type = NONE;
 	seg.ptr = pattern;
 	seg.len = 0;

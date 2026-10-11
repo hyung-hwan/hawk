@@ -1287,6 +1287,13 @@ typedef enum hawk_log_mask_t hawk_log_mask_t;
 #define HAWK_IS_UNALIGNED_POW2(x,y) ((x) & ((y) - 1))
 #define HAWK_IS_ALIGNED_POW2(x,y) (!HAWK_IS_UNALIGNED_POW2(x,y))
 
+/* calculate maximum string length for any integer type.
+ *  (sizeof(type) * 8 * log10(2)) + 3
+ *  log10(2) = 0.30103
+ *  +3: 1 for negative sign, 1 for terminating null, 1 for potential rounding error
+ */
+#define HAWK_INT_DEC_STR_SIZE(type) (((HAWK_SIZEOF(type) * 8 * 30103) / 100000) + 3)
+
 #if defined(__cplusplus) || (defined(__STDC_VERSION__) && (__STDC_VERSION__>=199901L))
 /* array index */
 #define HAWK_AID(x) [x]=

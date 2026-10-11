@@ -1315,6 +1315,44 @@ HAWK_EXPORT void hawk_sub_ntime (
 );
 
 /* =========================================================================
+ * TEMPORARY DIRECTORY
+ * ========================================================================= */
+
+typedef const hawk_bch_t* (*hawk_temp_dir_getenv_t) (
+	const hawk_bch_t* name,
+	void*             ctx
+);
+
+/**
+ * Return an allocated temporary directory path, without creating or checking
+ * the directory. Free the result with hawk_gem_freemem(). On failure, return
+ * HAWK_NULL and set the gem error.
+ *
+ * A supplied callback is queried for TMPDIR, TEMP, then TMP; NULL or empty
+ * values are skipped. Without a callback, or if no value is selected, use
+ * the platform default. The Windows fallback uses
+ * GetTempPath() and therefore follows its native process-environment policy.
+ * The wide-string variant converts byte environment values with gem's cmgr.
+ */
+HAWK_EXPORT hawk_bch_t* hawk_get_temp_dir_bcstr (
+	hawk_gem_t*            gem,
+	hawk_temp_dir_getenv_t getenv_cb,
+	void*                  ctx
+);
+
+HAWK_EXPORT hawk_uch_t* hawk_get_temp_dir_ucstr (
+	hawk_gem_t*            gem,
+	hawk_temp_dir_getenv_t getenv_cb,
+	void*                  ctx
+);
+
+#if defined(HAWK_OOCH_IS_UCH)
+#	define hawk_get_temp_dir hawk_get_temp_dir_ucstr
+#else
+#	define hawk_get_temp_dir hawk_get_temp_dir_bcstr
+#endif
+
+/* =========================================================================
  * RANDOM NUMBER GENERATOR
  * ========================================================================= */
 HAWK_EXPORT hawk_uint32_t hawk_rand31 (

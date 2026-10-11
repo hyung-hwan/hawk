@@ -33,6 +33,8 @@
 #undef split_xchars_to_fields
 #undef tokenize_xchars
 #undef tokenize_xchars_by_rex
+#undef tokenize_xchars_with_options
+#undef tokenize_xchars_by_rex_with_options
 
 #define char_t hawk_bch_t
 #define xcs_t hawk_bcs_t
@@ -43,6 +45,8 @@
 #define split_xchars_to_fields hawk_rtx_fldbchars
 #define tokenize_xchars hawk_rtx_tokbcharswithbchars
 #define tokenize_xchars_by_rex hawk_rtx_tokbcharsbyrex
+#define tokenize_xchars_with_options hawk_rtx_tokbcharswithbcharswithoptions
+#define tokenize_xchars_by_rex_with_options hawk_rtx_tokbcharsbyrexwithoptions
 
 #include "misc-imp.h"
 
@@ -54,6 +58,8 @@
 #undef split_xchars_to_fields
 #undef tokenize_xchars
 #undef tokenize_xchars_by_rex
+#undef tokenize_xchars_with_options
+#undef tokenize_xchars_by_rex_with_options
 
 #define char_t hawk_uch_t
 #define xcs_t hawk_ucs_t
@@ -64,6 +70,8 @@
 #define split_xchars_to_fields hawk_rtx_flduchars
 #define tokenize_xchars hawk_rtx_tokucharswithuchars
 #define tokenize_xchars_by_rex hawk_rtx_tokucharsbyrex
+#define tokenize_xchars_with_options hawk_rtx_tokucharswithucharswithoptions
+#define tokenize_xchars_by_rex_with_options hawk_rtx_tokucharsbyrexwithoptions
 
 #include "misc-imp.h"
 
