@@ -729,8 +729,13 @@ static sys_node_t* resolve_mux_token (sys_list_t* list, sys_node_t* mux_node, ha
 }
 #endif
 
-static void del_from_mux (hawk_rtx_t* rtx, sys_node_t* fd_node, int force)
+static int del_from_mux (hawk_rtx_t* rtx, sys_node_t* fd_node, int force)
 {
+	int rx = 0;
+#if defined(USE_EPOLL)
+	int saved_errno = 0;
+#endif
+
 	/* force overrides the registration's cleanup policy for explicit deletion.
 	 * local membership and cached events are always released. */
 	if (fd_node->ctx.flags & SYS_NODE_DATA_FLAG_IN_MUX)
@@ -750,6 +755,8 @@ static void del_from_mux (hawk_rtx_t* rtx, sys_node_t* fd_node, int force)
 				    (force || !(fd_node->ctx.flags & SYS_NODE_DATA_FLAG_MUX_NOAUTODEL)) &&
 				    epoll_ctl(mux_node->ctx.u.mux.fd, MUX_CTL_DEL, fd_node->ctx.u.file.fd, &ev) <= -1)
 				{
+					saved_errno = errno;
+					rx = -1;
 					mux_node->ctx.u.mux.rebuild_pending = 1;
 				}
 			#endif
@@ -763,6 +770,11 @@ static void del_from_mux (hawk_rtx_t* rtx, sys_node_t* fd_node, int force)
 				break;
 		}
 	}
+
+#if defined(USE_EPOLL)
+	if (rx <= -1) errno = saved_errno;
+#endif
+	return rx;
 }
 
 static void purge_mux_members (hawk_rtx_t* rtx, sys_node_t* mux_node)
@@ -3405,7 +3417,7 @@ static int fnc_getppid (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	}
 	else
 	{
-		rx = set_error_on_sys_list(rtx, sys_list, HAWK_ENOENT, HAWK_NULL);
+		rx = ERRNUM_TO_RC(HAWK_ENOENT);
 
 		p.dwSize = HAWK_SIZEOF(p);
 		if (Process32First(ps, &p))
@@ -3419,6 +3431,12 @@ static int fnc_getppid (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 				}
 			}
 			while (Process32Next(ps, &p));
+		}
+		if (rx < 0)
+		{
+			DWORD err = GetLastError();
+			rx = set_error_on_sys_list(rtx, sys_list,
+				(err == ERROR_NO_MORE_FILES || err == ERROR_SUCCESS)? HAWK_ENOENT: hawk_syserr_to_errnum(err), HAWK_NULL);
 		}
 
 		CloseHandle (ps);
@@ -5262,7 +5280,8 @@ static HAWK_INLINE int ctl_epoll_for_fnc (hawk_rtx_t* rtx, const hawk_fnc_info_t
 					rx = set_error_on_sys_list(rtx, sys_list, HAWK_EPERM, HAWK_T("not in mux"));
 					goto done;
 				}
-				del_from_mux(rtx, sys_node2, 1);
+				if (del_from_mux(rtx, sys_node2, 1) <= -1)
+					rx = set_error_on_sys_list_with_errno(rtx, sys_list, HAWK_T("unable to delete multiplexer registration"));
 				goto done;
 			}
 			else
@@ -6160,6 +6179,15 @@ static int fnc_accept (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	#endif
 	#endif
 
+		/* allocate the wrapper before committing the caller's peer output. */
+		new_node = new_sys_node_sck(rtx, sys_list, fd);
+		if (HAWK_UNLIKELY(!new_node))
+		{
+			rx = copy_error_to_sys_list(rtx, sys_list);
+			close_sys_socket(fd);
+			goto done;
+		}
+
 		if (hawk_rtx_getnargs(rtx) >= 3)
 		{
 			hawk_val_t* sv;
@@ -6168,14 +6196,14 @@ static int fnc_accept (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			if (format_sys_peer_address(rtx, &skad, addrlen, sys_list->ctx.skadbuf[0], HAWK_COUNTOF(sys_list->ctx.skadbuf[0])) <= -1)
 			{
 				rx = copy_error_to_sys_list(rtx, sys_list);
-				close_sys_socket(fd);
+				free_sys_node(rtx, sys_list, new_node, 0);
 				goto done;
 			}
 			sv = hawk_rtx_makestrvalwithoocstr(rtx, sys_list->ctx.skadbuf[0]);
 			if (!sv)
 			{
 				rx = copy_error_to_sys_list(rtx, sys_list);
-				close_sys_socket(fd);
+				free_sys_node(rtx, sys_list, new_node, 0);
 				goto done;
 			}
 
@@ -6185,17 +6213,9 @@ static int fnc_accept (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 			if (x <= -1)
 			{
 				rx = copy_error_to_sys_list(rtx, sys_list);
-				close_sys_socket(fd);
+				free_sys_node(rtx, sys_list, new_node, 0);
 				goto done;
 			}
-		}
-
-		new_node = new_sys_node_sck(rtx, sys_list, fd);
-		if (!new_node)
-		{
-			rx = copy_error_to_sys_list(rtx, sys_list);
-			close_sys_socket(fd);
-			goto done;
 		}
 
 		rx = new_node->id;
@@ -8013,7 +8033,8 @@ static int fnc_dirname (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	ptr = hawk_get_base_name_oochars(path.ptr, path.len);
 
 	len = ptr - path.ptr;
-	if (len > 1) len--;
+	/* keep an absolute drive root; "C:" means the drive's current directory. */
+	if (len > 1 && !(len == 3 && HAWK_IS_PATH_DRIVE(path.ptr))) len--;
 	tmp = hawk_rtx_makestrvalwithoochars(rtx, path.ptr, len);
 	hawk_rtx_freevaloocstr(rtx, a0, path.ptr);
 	if (HAWK_UNLIKELY(!tmp)) return -1;
