@@ -111,7 +111,7 @@ HAWK_EXPORT void* hawk_gem_reallocmem (
 #if defined(HAWK_HAVE_INLINE)
 static HAWK_INLINE void hawk_gem_freemem (hawk_gem_t* gem, void* ptr) { HAWK_MMGR_FREE (gem->mmgr, ptr); }
 #else
-#define hawk_gem_freemem(gem, ptr) HAWK_MMGR_FREE((gem)->mmgr, ptr);
+#define hawk_gem_freemem(gem, ptr) HAWK_MMGR_FREE((gem)->mmgr, ptr)
 #endif
 
 
