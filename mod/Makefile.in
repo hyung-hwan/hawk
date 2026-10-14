@@ -14,6 +14,7 @@
 
 @SET_MAKE@
 
+
 VPATH = @srcdir@
 am__is_gnu_make = { \
   if test -z '$(MAKELEVEL)'; then \
@@ -73,7 +74,6 @@ am__make_keepgoing = (target_option=k; $(am__make_running_with_option))
 am__rm_f = rm -f $(am__rm_f_notfound)
 am__rm_rf = rm -rf $(am__rm_f_notfound)
 pkgdatadir = $(datadir)/@PACKAGE@
-pkgincludedir = $(includedir)/@PACKAGE@
 pkglibdir = $(libdir)/@PACKAGE@
 pkglibexecdir = $(libexecdir)/@PACKAGE@
 am__cd = CDPATH="$${ZSH_VERSION+.}$(PATH_SEPARATOR)" && cd
@@ -103,6 +103,7 @@ host_triplet = @host@
 @ENABLE_MOD_SQLITE_STATIC_FALSE@@ENABLE_MOD_SQLITE_TRUE@am__append_7 = libhawk-sqlite.la
 @ENABLE_MOD_UCI_STATIC_FALSE@@ENABLE_MOD_UCI_TRUE@am__append_8 = libhawk-uci.la
 @ENABLE_MOD_M4_STATIC_FALSE@@ENABLE_MOD_M4_TRUE@am__append_9 = libhawk-m4.la
+@ENABLE_MOD_HTTP_STATIC_FALSE@@ENABLE_MOD_HTTP_TRUE@am__append_10 = libhawk-http.la
 subdir = mod
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/ax_check_sign.m4 \
@@ -116,7 +117,8 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/ax_check_sign.m4 \
 	$(top_srcdir)/m4/lt~obsolete.m4 $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
-DIST_COMMON = $(srcdir)/Makefile.am $(am__DIST_COMMON)
+DIST_COMMON = $(srcdir)/Makefile.am $(pkginclude_HEADERS) \
+	$(am__DIST_COMMON)
 mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = $(top_builddir)/lib/hawk-cfg.h
 CONFIG_CLEAN_FILES =
@@ -147,7 +149,8 @@ am__uninstall_files_from_dir = { \
   || { echo " ( cd '$$dir' && rm -f" $$files ")"; \
        $(am__cd) "$$dir" && echo $$files | $(am__xargs_n) 40 $(am__rm_f); }; \
   }
-am__installdirs = "$(DESTDIR)$(pkgmodexecdir)"
+am__installdirs = "$(DESTDIR)$(pkgmodexecdir)" \
+	"$(DESTDIR)$(pkgincludedir)"
 LTLIBRARIES = $(pkgmodexec_LTLIBRARIES)
 am__DEPENDENCIES_1 =
 @ENABLE_MOD_DIGEST_STATIC_FALSE@@ENABLE_MOD_DIGEST_TRUE@libhawk_digest_la_DEPENDENCIES = $(am__DEPENDENCIES_1)
@@ -176,6 +179,17 @@ libhawk_ffi_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 @ENABLE_MOD_FFI_STATIC_FALSE@@ENABLE_MOD_FFI_TRUE@am_libhawk_ffi_la_rpath =  \
 @ENABLE_MOD_FFI_STATIC_FALSE@@ENABLE_MOD_FFI_TRUE@	-rpath \
 @ENABLE_MOD_FFI_STATIC_FALSE@@ENABLE_MOD_FFI_TRUE@	$(pkgmodexecdir)
+@ENABLE_MOD_HTTP_STATIC_FALSE@@ENABLE_MOD_HTTP_TRUE@libhawk_http_la_DEPENDENCIES = $(am__DEPENDENCIES_1)
+am__libhawk_http_la_SOURCES_DIST = mod-http.c mod-http.h hawk-http.h
+@ENABLE_MOD_HTTP_STATIC_FALSE@@ENABLE_MOD_HTTP_TRUE@am_libhawk_http_la_OBJECTS = libhawk_http_la-mod-http.lo
+libhawk_http_la_OBJECTS = $(am_libhawk_http_la_OBJECTS)
+libhawk_http_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
+	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
+	$(libhawk_http_la_CFLAGS) $(CFLAGS) $(libhawk_http_la_LDFLAGS) \
+	$(LDFLAGS) -o $@
+@ENABLE_MOD_HTTP_STATIC_FALSE@@ENABLE_MOD_HTTP_TRUE@am_libhawk_http_la_rpath =  \
+@ENABLE_MOD_HTTP_STATIC_FALSE@@ENABLE_MOD_HTTP_TRUE@	-rpath \
+@ENABLE_MOD_HTTP_STATIC_FALSE@@ENABLE_MOD_HTTP_TRUE@	$(pkgmodexecdir)
 @ENABLE_MOD_JSON_STATIC_FALSE@@ENABLE_MOD_JSON_TRUE@libhawk_json_la_DEPENDENCIES = $(am__DEPENDENCIES_1)
 am__libhawk_json_la_SOURCES_DIST = mod-json.c mod-json.h
 @ENABLE_MOD_JSON_STATIC_FALSE@@ENABLE_MOD_JSON_TRUE@am_libhawk_json_la_OBJECTS = libhawk_json_la-mod-json.lo
@@ -272,6 +286,7 @@ depcomp = $(SHELL) $(top_srcdir)/ac/depcomp
 am__maybe_remake_depfiles = depfiles
 am__depfiles_remade = ./$(DEPDIR)/libhawk_digest_la-mod-digest.Plo \
 	./$(DEPDIR)/libhawk_ffi_la-mod-ffi.Plo \
+	./$(DEPDIR)/libhawk_http_la-mod-http.Plo \
 	./$(DEPDIR)/libhawk_json_la-mod-json.Plo \
 	./$(DEPDIR)/libhawk_m4_la-mod-m4.Plo \
 	./$(DEPDIR)/libhawk_memc_la-mod-memc.Plo \
@@ -299,12 +314,13 @@ am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 = 
 SOURCES = $(libhawk_digest_la_SOURCES) $(libhawk_ffi_la_SOURCES) \
-	$(libhawk_json_la_SOURCES) $(libhawk_m4_la_SOURCES) \
-	$(libhawk_memc_la_SOURCES) $(libhawk_mysql_la_SOURCES) \
-	$(libhawk_sed_la_SOURCES) $(libhawk_sqlite_la_SOURCES) \
-	$(libhawk_uci_la_SOURCES)
+	$(libhawk_http_la_SOURCES) $(libhawk_json_la_SOURCES) \
+	$(libhawk_m4_la_SOURCES) $(libhawk_memc_la_SOURCES) \
+	$(libhawk_mysql_la_SOURCES) $(libhawk_sed_la_SOURCES) \
+	$(libhawk_sqlite_la_SOURCES) $(libhawk_uci_la_SOURCES)
 DIST_SOURCES = $(am__libhawk_digest_la_SOURCES_DIST) \
 	$(am__libhawk_ffi_la_SOURCES_DIST) \
+	$(am__libhawk_http_la_SOURCES_DIST) \
 	$(am__libhawk_json_la_SOURCES_DIST) \
 	$(am__libhawk_m4_la_SOURCES_DIST) \
 	$(am__libhawk_memc_la_SOURCES_DIST) \
@@ -317,6 +333,7 @@ am__can_run_installinfo = \
     n|no|NO) false;; \
     *) (install-info --version) >/dev/null 2>&1;; \
   esac
+HEADERS = $(pkginclude_HEADERS)
 am__tagged_files = $(HEADERS) $(SOURCES) $(TAGS_FILES) $(LISP)
 # Read a list of newline-separated strings from the standard input,
 # and print each of them once, without duplicates.  Input order is
@@ -336,6 +353,7 @@ am__define_uniq_tagged_files = \
   done | $(am__uniquify_input)`
 am__DIST_COMMON = $(srcdir)/Makefile.in $(top_srcdir)/ac/depcomp
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
+pkgincludedir = $(includedir)
 ACLOCAL = @ACLOCAL@
 AMTAR = @AMTAR@
 AM_DEFAULT_VERBOSITY = @AM_DEFAULT_VERBOSITY@
@@ -497,6 +515,7 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 AUTOMAKE_OPTIONS = nostdinc
+pkginclude_HEADERS = hawk-http.h
 CPPFLAGS_COMMON = \
 	-I$(abs_builddir) \
 	-I$(abs_builddir)/../lib \
@@ -513,7 +532,7 @@ pkgmodexecdir = $(libdir)
 pkgmodexec_LTLIBRARIES = $(am__append_1) $(am__append_2) \
 	$(am__append_3) $(am__append_4) $(am__append_5) \
 	$(am__append_6) $(am__append_7) $(am__append_8) \
-	$(am__append_9)
+	$(am__append_9) $(am__append_10)
 @ENABLE_MOD_DIGEST_STATIC_FALSE@@ENABLE_MOD_DIGEST_TRUE@libhawk_digest_la_SOURCES = mod-digest.c mod-digest.h
 @ENABLE_MOD_DIGEST_STATIC_FALSE@@ENABLE_MOD_DIGEST_TRUE@libhawk_digest_la_CPPFLAGS = $(CPPFLAGS_COMMON)
 @ENABLE_MOD_DIGEST_STATIC_FALSE@@ENABLE_MOD_DIGEST_TRUE@libhawk_digest_la_CFLAGS = $(CFLAGS_COMMON)
@@ -559,6 +578,11 @@ pkgmodexec_LTLIBRARIES = $(am__append_1) $(am__append_2) \
 @ENABLE_MOD_M4_STATIC_FALSE@@ENABLE_MOD_M4_TRUE@libhawk_m4_la_CFLAGS = $(CFLAGS_COMMON)
 @ENABLE_MOD_M4_STATIC_FALSE@@ENABLE_MOD_M4_TRUE@libhawk_m4_la_LDFLAGS = $(LDFLAGS_COMMON_DYNAMIC)
 @ENABLE_MOD_M4_STATIC_FALSE@@ENABLE_MOD_M4_TRUE@libhawk_m4_la_LIBADD = $(LIBADD_COMMON_DYNAMIC)
+@ENABLE_MOD_HTTP_STATIC_FALSE@@ENABLE_MOD_HTTP_TRUE@libhawk_http_la_SOURCES = mod-http.c mod-http.h hawk-http.h
+@ENABLE_MOD_HTTP_STATIC_FALSE@@ENABLE_MOD_HTTP_TRUE@libhawk_http_la_CPPFLAGS = $(CPPFLAGS_COMMON)
+@ENABLE_MOD_HTTP_STATIC_FALSE@@ENABLE_MOD_HTTP_TRUE@libhawk_http_la_CFLAGS = $(CFLAGS_COMMON)
+@ENABLE_MOD_HTTP_STATIC_FALSE@@ENABLE_MOD_HTTP_TRUE@libhawk_http_la_LDFLAGS = $(LDFLAGS_COMMON_DYNAMIC)
+@ENABLE_MOD_HTTP_STATIC_FALSE@@ENABLE_MOD_HTTP_TRUE@libhawk_http_la_LIBADD = $(LIBADD_COMMON_DYNAMIC)
 all: all-am
 
 .SUFFIXES:
@@ -632,6 +656,9 @@ libhawk-digest.la: $(libhawk_digest_la_OBJECTS) $(libhawk_digest_la_DEPENDENCIES
 libhawk-ffi.la: $(libhawk_ffi_la_OBJECTS) $(libhawk_ffi_la_DEPENDENCIES) $(EXTRA_libhawk_ffi_la_DEPENDENCIES) 
 	$(AM_V_CCLD)$(libhawk_ffi_la_LINK) $(am_libhawk_ffi_la_rpath) $(libhawk_ffi_la_OBJECTS) $(libhawk_ffi_la_LIBADD) $(LIBS)
 
+libhawk-http.la: $(libhawk_http_la_OBJECTS) $(libhawk_http_la_DEPENDENCIES) $(EXTRA_libhawk_http_la_DEPENDENCIES) 
+	$(AM_V_CCLD)$(libhawk_http_la_LINK) $(am_libhawk_http_la_rpath) $(libhawk_http_la_OBJECTS) $(libhawk_http_la_LIBADD) $(LIBS)
+
 libhawk-json.la: $(libhawk_json_la_OBJECTS) $(libhawk_json_la_DEPENDENCIES) $(EXTRA_libhawk_json_la_DEPENDENCIES) 
 	$(AM_V_CCLD)$(libhawk_json_la_LINK) $(am_libhawk_json_la_rpath) $(libhawk_json_la_OBJECTS) $(libhawk_json_la_LIBADD) $(LIBS)
 
@@ -661,6 +688,7 @@ distclean-compile:
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libhawk_digest_la-mod-digest.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libhawk_ffi_la-mod-ffi.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libhawk_http_la-mod-http.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libhawk_json_la-mod-json.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libhawk_m4_la-mod-m4.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libhawk_memc_la-mod-memc.Plo@am__quote@ # am--include-marker
@@ -712,6 +740,13 @@ libhawk_ffi_la-mod-ffi.lo: mod-ffi.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='mod-ffi.c' object='libhawk_ffi_la-mod-ffi.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_ffi_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_ffi_la_CFLAGS) $(CFLAGS) -c -o libhawk_ffi_la-mod-ffi.lo `test -f 'mod-ffi.c' || echo '$(srcdir)/'`mod-ffi.c
+
+libhawk_http_la-mod-http.lo: mod-http.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_http_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_http_la_CFLAGS) $(CFLAGS) -MT libhawk_http_la-mod-http.lo -MD -MP -MF $(DEPDIR)/libhawk_http_la-mod-http.Tpo -c -o libhawk_http_la-mod-http.lo `test -f 'mod-http.c' || echo '$(srcdir)/'`mod-http.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libhawk_http_la-mod-http.Tpo $(DEPDIR)/libhawk_http_la-mod-http.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='mod-http.c' object='libhawk_http_la-mod-http.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_http_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_http_la_CFLAGS) $(CFLAGS) -c -o libhawk_http_la-mod-http.lo `test -f 'mod-http.c' || echo '$(srcdir)/'`mod-http.c
 
 libhawk_json_la-mod-json.lo: mod-json.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libhawk_json_la_CPPFLAGS) $(CPPFLAGS) $(libhawk_json_la_CFLAGS) $(CFLAGS) -MT libhawk_json_la-mod-json.lo -MD -MP -MF $(DEPDIR)/libhawk_json_la-mod-json.Tpo -c -o libhawk_json_la-mod-json.lo `test -f 'mod-json.c' || echo '$(srcdir)/'`mod-json.c
@@ -767,6 +802,27 @@ mostlyclean-libtool:
 
 clean-libtool:
 	-rm -rf .libs _libs
+install-pkgincludeHEADERS: $(pkginclude_HEADERS)
+	@$(NORMAL_INSTALL)
+	@list='$(pkginclude_HEADERS)'; test -n "$(pkgincludedir)" || list=; \
+	if test -n "$$list"; then \
+	  echo " $(MKDIR_P) '$(DESTDIR)$(pkgincludedir)'"; \
+	  $(MKDIR_P) "$(DESTDIR)$(pkgincludedir)" || exit 1; \
+	fi; \
+	for p in $$list; do \
+	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
+	  echo "$$d$$p"; \
+	done | $(am__base_list) | \
+	while read files; do \
+	  echo " $(INSTALL_HEADER) $$files '$(DESTDIR)$(pkgincludedir)'"; \
+	  $(INSTALL_HEADER) $$files "$(DESTDIR)$(pkgincludedir)" || exit $$?; \
+	done
+
+uninstall-pkgincludeHEADERS:
+	@$(NORMAL_UNINSTALL)
+	@list='$(pkginclude_HEADERS)'; test -n "$(pkgincludedir)" || list=; \
+	files=`for p in $$list; do echo $$p; done | sed -e 's|^.*/||'`; \
+	dir='$(DESTDIR)$(pkgincludedir)'; $(am__uninstall_files_from_dir)
 
 ID: $(am__tagged_files)
 	$(am__define_uniq_tagged_files); mkid -fID $$unique
@@ -855,9 +911,9 @@ distdir-am: $(DISTFILES)
 	done
 check-am: all-am
 check: check-am
-all-am: Makefile $(LTLIBRARIES)
+all-am: Makefile $(LTLIBRARIES) $(HEADERS)
 installdirs:
-	for dir in "$(DESTDIR)$(pkgmodexecdir)"; do \
+	for dir in "$(DESTDIR)$(pkgmodexecdir)" "$(DESTDIR)$(pkgincludedir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
 install: install-am
@@ -898,6 +954,7 @@ clean-am: clean-generic clean-libtool clean-pkgmodexecLTLIBRARIES \
 distclean: distclean-am
 	-rm -f ./$(DEPDIR)/libhawk_digest_la-mod-digest.Plo
 	-rm -f ./$(DEPDIR)/libhawk_ffi_la-mod-ffi.Plo
+	-rm -f ./$(DEPDIR)/libhawk_http_la-mod-http.Plo
 	-rm -f ./$(DEPDIR)/libhawk_json_la-mod-json.Plo
 	-rm -f ./$(DEPDIR)/libhawk_m4_la-mod-m4.Plo
 	-rm -f ./$(DEPDIR)/libhawk_memc_la-mod-memc.Plo
@@ -921,7 +978,7 @@ info: info-am
 
 info-am:
 
-install-data-am:
+install-data-am: install-pkgincludeHEADERS
 
 install-dvi: install-dvi-am
 
@@ -952,6 +1009,7 @@ installcheck-am:
 maintainer-clean: maintainer-clean-am
 	-rm -f ./$(DEPDIR)/libhawk_digest_la-mod-digest.Plo
 	-rm -f ./$(DEPDIR)/libhawk_ffi_la-mod-ffi.Plo
+	-rm -f ./$(DEPDIR)/libhawk_http_la-mod-http.Plo
 	-rm -f ./$(DEPDIR)/libhawk_json_la-mod-json.Plo
 	-rm -f ./$(DEPDIR)/libhawk_m4_la-mod-m4.Plo
 	-rm -f ./$(DEPDIR)/libhawk_memc_la-mod-memc.Plo
@@ -975,7 +1033,8 @@ ps: ps-am
 
 ps-am:
 
-uninstall-am: uninstall-pkgmodexecLTLIBRARIES
+uninstall-am: uninstall-pkgincludeHEADERS \
+	uninstall-pkgmodexecLTLIBRARIES
 
 .MAKE: install-am install-strip
 
@@ -987,12 +1046,13 @@ uninstall-am: uninstall-pkgmodexecLTLIBRARIES
 	install-data install-data-am install-dvi install-dvi-am \
 	install-exec install-exec-am install-html install-html-am \
 	install-info install-info-am install-man install-pdf \
-	install-pdf-am install-pkgmodexecLTLIBRARIES install-ps \
-	install-ps-am install-strip installcheck installcheck-am \
-	installdirs maintainer-clean maintainer-clean-generic \
-	mostlyclean mostlyclean-compile mostlyclean-generic \
-	mostlyclean-libtool pdf pdf-am ps ps-am tags tags-am uninstall \
-	uninstall-am uninstall-pkgmodexecLTLIBRARIES
+	install-pdf-am install-pkgincludeHEADERS \
+	install-pkgmodexecLTLIBRARIES install-ps install-ps-am \
+	install-strip installcheck installcheck-am installdirs \
+	maintainer-clean maintainer-clean-generic mostlyclean \
+	mostlyclean-compile mostlyclean-generic mostlyclean-libtool \
+	pdf pdf-am ps ps-am tags tags-am uninstall uninstall-am \
+	uninstall-pkgincludeHEADERS uninstall-pkgmodexecLTLIBRARIES
 
 .PRECIOUS: Makefile
 

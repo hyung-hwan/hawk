@@ -1172,6 +1172,7 @@ then
 	AX_LIB_MYSQL()
 fi
 
+HAWK_MOD([http],[yes:static],[true])
 HAWK_MOD([json],[yes:static],[true])
 
 HAWK_MOD([digest],[yes:static],[true])

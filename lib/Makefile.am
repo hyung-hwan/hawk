@@ -55,6 +55,7 @@ pkgincludedir = $(includedir)
 pkginclude_HEADERS = \
 	hawk.h \
 	hawk-arr.h \
+	hawk-aux.h \
 	hawk-chr.h \
 	hawk-cli.h \
 	hawk-cmn.h \
@@ -99,6 +100,7 @@ pkglib_LTLIBRARIES = libhawk.la
 libhawk_la_SOURCES = \
 	$(pkginclude_HEADERS) \
 	arr.c \
+	aux.c \
 	big5.c \
 	big5.h \
 	chr.c \
@@ -305,6 +307,10 @@ endif
 #######################################################
 # ADDITIONAL MODULES BUILT STATICALLY INTO MAIN LIBRARY
 #######################################################
+
+if ENABLE_MOD_HTTP_STATIC
+libhawk_la_SOURCES += ../mod/mod-http.c ../mod/mod-http.h ../mod/hawk-http.h
+endif
 
 if ENABLE_MOD_DIGEST_STATIC
 libhawk_la_SOURCES += ../mod/mod-digest.c ../mod/mod-digest.h

@@ -5,8 +5,6 @@ import "flag"
 import "fmt"
 import "io"
 
-//import "net/http"
-//import _ "net/http/pprof"
 import "os"
 import "os/signal"
 import "runtime"
@@ -28,6 +26,7 @@ type Config struct {
 	assigns         map[string]Assign
 	call            string
 	fs              string
+	incdirs         string
 	modlibdirs      string
 	show_extra_info bool
 	concurrent      bool
@@ -42,11 +41,6 @@ type Config struct {
 type RtxEvent struct {
 	rtx   *hawk.Rtx
 	added bool
-}
-
-func exit_with_error(msg string, err error) {
-	fmt.Fprintf(os.Stderr, "ERROR: %s - %s\n", msg, err.Error())
-	os.Exit(1)
 }
 
 func dprint_hawk_value(name string, val *hawk.Val) {
@@ -127,7 +121,7 @@ func format_hawk_errinfo(err *hawk.Err) string {
 	}
 }
 
-func parse_args_to_config(cfg *Config) bool {
+func parse_args_to_config(cfg *Config, args []string) bool {
 	//var flgs *flag.FlagSet
 	var flgs *FlagSet
 	var err error
@@ -169,6 +163,10 @@ func parse_args_to_config(cfg *Config) bool {
 		cfg.srcfiles = append(cfg.srcfiles, v)
 		return nil
 	})
+	flgs.Func("incdirs", "set include directories", func(v string) error {
+		cfg.incdirs = v
+		return nil
+	})
 	flgs.Func("modlibdirs", "set module library directories", func(v string) error {
 		cfg.modlibdirs = v
 		return nil
@@ -182,7 +180,7 @@ func parse_args_to_config(cfg *Config) bool {
 	flgs.Alias("v", "assign")
 
 	flgs.SetOutput(io.Discard) // prevent usage output
-	err = flgs.Parse(os.Args[1:])
+	err = flgs.Parse(args)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "ERROR: %s\n", err.Error())
 		goto wrong_usage
@@ -225,6 +223,7 @@ wrong_usage:
 	fmt.Fprintf(os.Stderr, " -v, --assign          name=value set global variable value\n")
 	fmt.Fprintf(os.Stderr, " -c, --call            string     call a named function instead of running the\n")
 	fmt.Fprintf(os.Stderr, "                                  normal loop\n")
+	fmt.Fprintf(os.Stderr, "     --incdirs         string     set include directories\n")
 	fmt.Fprintf(os.Stderr, "     --modlibdirs      string     set module library directories\n")
 	fmt.Fprintf(os.Stderr, "     --concurrent=[suffix]        process multiple data files concurrently\n")
 	fmt.Fprintf(os.Stderr, "                                  if datafile has two parts delimited by a colon,\n")
@@ -414,7 +413,7 @@ chan_loop:
 	}
 }
 
-func main() {
+func main_hawk(args []string) int {
 	var h *hawk.Hawk
 	var cfg Config
 	var fs_idx int = -1
@@ -423,19 +422,24 @@ func main() {
 	var sig_wg sync.WaitGroup
 	var err error
 
-	// for profiling
-	//go http.ListenAndServe("0.0.0.0:6060", nil)
-
 	debug.SetGCPercent(100) // enable normal GC
 
-	if parse_args_to_config(&cfg) == false {
-		os.Exit(99)
+	if parse_args_to_config(&cfg, args) == false {
+		return 99
 	}
 
 	h, err = hawk.New()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "ERROR: failed to make hawk - %s\n", err.Error())
 		goto oops
+	}
+
+	if cfg.incdirs != "" {
+		err = h.SetModLibDirs(cfg.incdirs)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "ERROR: failed to set include directories '%s' - %s\n", cfg.incdirs, err.Error())
+			goto oops
+		}
 	}
 
 	if cfg.modlibdirs != "" {
@@ -508,7 +512,10 @@ func main() {
 				defer wg.Done()
 				err = run_script(h, fs_idx, idx, &cfg, rtx_chan, sig_chan)
 				if err != nil {
-					if herr, ok := err.(*hawk.Err); ok {
+					var herr *hawk.Err
+					var ok bool
+					herr, ok = err.(*hawk.Err)
+					if ok {
 						fmt.Fprintf(os.Stderr, "[%d] %s\n", idx, format_hawk_errinfo(herr))
 					} else {
 						fmt.Fprintf(os.Stderr, "ERROR: [%d]%s\n", idx, err.Error())
@@ -520,7 +527,10 @@ func main() {
 	} else {
 		err = run_script(h, fs_idx, -1, &cfg, rtx_chan, sig_chan)
 		if err != nil {
-			if herr, ok := err.(*hawk.Err); ok {
+			var herr *hawk.Err
+			var ok bool
+			herr, ok = err.(*hawk.Err)
+			if ok {
 				print_hawk_errinfo(herr)
 			} else {
 				fmt.Fprintf(os.Stderr, "ERROR: %s\n", err.Error())
@@ -537,16 +547,14 @@ func main() {
 	runtime.Gosched()
 
 	//time.Sleep(100000 * time.Millisecond)
-	return
+	return 0
 
 oops:
-	//	if rtx != nil { rtx.Close() }
+	//if rtx != nil { rtx.Close() }
 	if rtx_chan != nil {
 		rtx_chan <- RtxEvent{rtx: nil, added: false}
 		sig_wg.Wait()
 	}
-	if h != nil {
-		h.Close()
-	}
-	os.Exit(255)
+	if h != nil { h.Close() }
+	return 255
 }

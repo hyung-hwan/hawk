@@ -9752,6 +9752,10 @@ int hawk_putsrcoochars (hawk_t* hawk, const hawk_ooch_t* str, hawk_oow_t len)
 #include "mod-str.h"
 #include "mod-sys.h"
 
+#if defined(HAWK_ENABLE_MOD_HTTP_STATIC)
+#include "../mod/mod-http.h"
+#endif
+
 #if defined(HAWK_ENABLE_MOD_DIGEST_STATIC)
 #include "../mod/mod-digest.h"
 #endif
@@ -9803,6 +9807,9 @@ static hawk_mod_desc_t static_modtab[] =
 	{ HAWK_T("ffi"),    hawk_mod_ffi },
 #endif
 	{ HAWK_T("hawk"),   hawk_mod_hawk },
+#if defined(HAWK_ENABLE_MOD_HTTP_STATIC)
+	{ HAWK_T("http"),   hawk_mod_http },
+#endif
 	{ HAWK_T("math"),   hawk_mod_math },
 #if defined(HAWK_ENABLE_MOD_MEMC_STATIC)
 	{ HAWK_T("memc"),   hawk_mod_memc },

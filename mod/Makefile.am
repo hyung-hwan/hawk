@@ -1,5 +1,8 @@
 AUTOMAKE_OPTIONS = nostdinc
 
+pkgincludedir = $(includedir)
+pkginclude_HEADERS = hawk-http.h
+
 CPPFLAGS_COMMON = \
 	-I$(abs_builddir) \
 	-I$(abs_builddir)/../lib \
@@ -117,5 +120,16 @@ libhawk_m4_la_CPPFLAGS = $(CPPFLAGS_COMMON)
 libhawk_m4_la_CFLAGS = $(CFLAGS_COMMON)
 libhawk_m4_la_LDFLAGS = $(LDFLAGS_COMMON_DYNAMIC)
 libhawk_m4_la_LIBADD = $(LIBADD_COMMON_DYNAMIC)
+endif
+endif
+
+if ENABLE_MOD_HTTP
+if !ENABLE_MOD_HTTP_STATIC
+pkgmodexec_LTLIBRARIES += libhawk-http.la
+libhawk_http_la_SOURCES = mod-http.c mod-http.h hawk-http.h
+libhawk_http_la_CPPFLAGS = $(CPPFLAGS_COMMON)
+libhawk_http_la_CFLAGS = $(CFLAGS_COMMON)
+libhawk_http_la_LDFLAGS = $(LDFLAGS_COMMON_DYNAMIC)
+libhawk_http_la_LIBADD = $(LIBADD_COMMON_DYNAMIC)
 endif
 endif

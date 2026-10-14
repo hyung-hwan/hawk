@@ -66,16 +66,26 @@ if ENABLE_HAWKGO
 ## while go.m4 is included in autoconf 2.71, the support for the go language
 ## is very limited and the go language itself is pursuing the module based builder.
 ##
-## the following is to trick autoconf/automake as if it's building go files with
-## a real compiler whereas the actual building is done thru `go build`
+## Go sources are explicit dependencies of the custom build recipe. Do not
+## create fake .o files: main.go/main.c and hawk.go/hawk.c share basenames,
+## which would let make select a C compilation rule for the Go dependencies.
 
 bin_PROGRAMS += hawkgo
-hawkgo_SOURCES = \
-	../hawk.go \
-	../hawk-inst.go \
-	getopt.go \
-	hawkgo.go
-##hawkgo_DEPENDENCIES = 
+hawkgo_SOURCES =
+hawkgo_DEPENDENCIES = \
+	$(top_srcdir)/hawk.go \
+	$(top_srcdir)/hawk-inst.go \
+	$(top_srcdir)/hawk-io.go \
+	$(top_srcdir)/hawk-http.go \
+	$(top_srcdir)/mod/hawk-http.h \
+	$(top_srcdir)/hawk-httpd.go \
+	$(top_srcdir)/hawk-httpd-req.go \
+	$(top_srcdir)/go.mod \
+	$(srcdir)/getopt.go \
+	$(srcdir)/main.go \
+	$(srcdir)/hawk.go \
+	$(srcdir)/httpd.go
+EXTRA_DIST += $(hawkgo_DEPENDENCIES)
 
 ## let the linker to move hawkgo.bin to the actual target
 ##hawkgo_LINK = mv -f hawkgo.bin hawkgo$(EXEEXT) || echo "FAILED TO LINK"
@@ -97,23 +107,16 @@ else
 GO_BUILD_OPTS=
 endif
 
-hawkgo$(EXEEXT): ../lib/libhawk.la $(hawkgo_OBJECTS)
+hawkgo$(EXEEXT): ../lib/libhawk.la $(hawkgo_DEPENDENCIES)
 	##cp -pf $(top_srcdir)/go.mod $(builddir)/go.mod >/dev/null 2>&1 || true
 	##chmod u+w $(builddir)/go.mod ## with `make distcheck`, the echo's redirection to the file fails without this permission change
 	[ -f $(srcdir)/go.sum ] && cp -pf $(srcdir)/go.sum $(builddir)/go.sum >/dev/null 2>&1 || true
 	## ---------------------------------------------------------------
 	CC=$(CC) \
-	CGO_CFLAGS="-I$(abs_top_srcdir)/lib -I$(abs_top_builddir)/lib $(CFLAGS) $(CGO_CFLAGS_EXTRA) $(CGO_CFLAGS_ADD)" \
+	CGO_CFLAGS="-I$(abs_top_srcdir)/lib -I$(abs_top_builddir)/lib -I$(abs_top_srcdir)/mod $(CFLAGS) $(CGO_CFLAGS_EXTRA) $(CGO_CFLAGS_ADD)" \
 	CGO_LDFLAGS="-L$(abs_top_builddir)/lib -L$(abs_top_builddir)/lib/.libs -lhawk -ldl $(LIBM) $(CGO_LDFLAGS_EXTRA) $(CGO_LDFLAGS_ADD)"  \
-	go build -C $(srcdir) -ldflags "-X 'main.BINDIR=$(bindir)' -X 'main.SBINDIR=$(sbindir)' -X 'main.LIBDIR=$(libdir)' -X 'main.SYSCONFDIR=$(sysconfdir)'" $(GO_BUILD_OPTS) -o $(abs_builddir)/$@ -modfile $(abs_top_srcdir)/go.mod  $(abs_srcdir)/hawkgo.go $(abs_srcdir)/getopt.go
+	go build -C $(srcdir) -ldflags "-X 'main.BINDIR=$(bindir)' -X 'main.SBINDIR=$(sbindir)' -X 'main.LIBDIR=$(libdir)' -X 'main.SYSCONFDIR=$(sysconfdir)'" $(GO_BUILD_OPTS) -o $(abs_builddir)/$@ -modfile $(abs_top_srcdir)/go.mod $(abs_srcdir)/main.go $(abs_srcdir)/hawk.go $(abs_srcdir)/httpd.go $(abs_srcdir)/getopt.go
 	## ---------------------------------------------------------------
 	go clean -C $(srcdir) -x -modfile $(abs_top_srcdir)/go.mod
-
-## the go to o recipe is fake to deceive make
-.go.o:
-	echo $< > $@
-
-.mod.o:
-	echo $< > $@
 
 endif

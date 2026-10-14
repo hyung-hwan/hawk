@@ -2660,9 +2660,10 @@ HAWK_EXPORT hawk_val_t* hawk_rtx_loop (
 );
 
 
-/* When init/fini/unload of a module is invoked, hawk->modmtx is
- * in the locked state. If you ever need to call hawk_rtx_querymodulewithname/oocs(),
- * you should pass HAWK_RTX_QUERYMODULE_NOLOCK as a flag bit value */
+/* When init/fini/unload of a module is invoked, hawk->modmtx is in the locked
+ * state. If you ever need to call hawk_rtx_querymodulewithname/oocs() in module's
+ * init/fini/unload context, you should pass HAWK_RTX_QUERYMODULE_NOLOCK as a flag
+ * bit value to avoid dead lock. */
 #define HAWK_RTX_QUERYMODULE_NOLOCK (1 << 0)
 
 /**

@@ -25,8 +25,8 @@
 #ifndef _HAWK_PRV_H_
 #define _HAWK_PRV_H_
 
-#include <hawk-cmn.h>
 #include <hawk-arr.h>
+#include <hawk-aux.h>
 #include <hawk-chr.h>
 #include <hawk-ecs.h>
 #include <hawk-fmt.h>
@@ -70,6 +70,10 @@ typedef struct hawk_tree_t hawk_tree_t;
 #endif
 
 #define HAWK_ENABLE_CSTACK_CHECK
+
+#if !defined(HAWK_RTX_AUX_MAX)
+#	define HAWK_RTX_AUX_MAX (64)
+#endif
 
 /* ------------------------------------------------------------------------ */
 
@@ -471,6 +475,7 @@ typedef struct hawk_exec_stack_t hawk_exec_stack_t;
 
 typedef struct hawk_rtx_inrec_t hawk_rtx_inrec_t;
 typedef struct hawk_rtx_gbl_t hawk_rtx_gbl_t;
+typedef struct hawk_rtx_aux_t hawk_rtx_aux_t;
 typedef struct hawk_rtx_refprep_t hawk_rtx_refprep_t;
 
 struct hawk_rtx_inrec_t
@@ -539,6 +544,14 @@ struct hawk_rtx_refprep_t
 		hawk_val_t* old;
 	} slots[2];
 	hawk_oow_t nslots;
+};
+
+struct hawk_rtx_aux_t
+{
+	hawk_aux_cbs_t cbs;
+	void* ctx;
+	hawk_uint16_t id;
+	hawk_uint8_t active;
 };
 
 struct hawk_rtx_t
@@ -706,11 +719,16 @@ struct hawk_rtx_t
 #endif
 
 	hawk_ooch_t errmsg_backup[HAWK_ERRMSG_CAPA];
+
 	hawk_rtx_ecb_t* ecb;
 	hawk_oow_t ecb_stmt_count;
 	hawk_oow_t ecb_gblset_count;
 
-	hawk_rbt_t* modtab; /* rtx-specifi module table in addition to hawk->modtab */
+	hawk_rtx_aux_t aux[HAWK_RTX_AUX_MAX];
+	hawk_ooch_t* aux_names[HAWK_RTX_AUX_MAX];
+	int aux_closing;
+
+	hawk_rbt_t* modtab; /* rtx-specific module table in addition to hawk->modtab */
 };
 
 typedef struct hawk_mod_data_t hawk_mod_data_t;

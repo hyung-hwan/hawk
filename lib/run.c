@@ -100,6 +100,7 @@ static hawk_oow_t push_arg_from_vals (hawk_rtx_t* rtx, const hawk_loc_t* call_lo
 static hawk_oow_t push_arg_from_nde (hawk_rtx_t* rtx, const hawk_loc_t* call_loc, void* data);
 
 static int init_rtx (hawk_rtx_t* rtx, hawk_t* hawk, hawk_rio_cbs_t* rio);
+static void fini_aux (hawk_rtx_t* rtx);
 static void fini_rtx (hawk_rtx_t* rtx, int fini_globals);
 
 static int init_globals (hawk_rtx_t* rtx);
@@ -1186,20 +1187,32 @@ hawk_rtx_t* hawk_rtx_open (hawk_t* hawk, hawk_oow_t xtnsize, hawk_rio_cbs_t* rio
 	hawk_rbt_walk(rtx->hawk->modtab, init_module, &mic);
 	if (mic.count != HAWK_RBT_SIZE(rtx->hawk->modtab))
 	{
+		/* cleanup callbacks may change the runtime diagnostic. preserve the
+		 * initialization failure on the interpreter before calling them. */
+		hawk_rtx_errortohawk(rtx, hawk);
 		if (mic.count > 0)
 		{
 			struct module_fini_ctx_t mfc;
-
 			mfc.limit = mic.count;
 			mfc.count = 0;
 			mfc.rtx = rtx;
 			hawk_rbt_walk(rtx->hawk->modtab, fini_module, &mfc);
-
-			/* call unload on the runtime loaded modules */
-			hawk_rbt_walk(rtx->modtab, hawk_modtab_unload_module, rtx->hawk);
 		}
 
 		hawk_mtx_unlock(rtx->hawk->modmtx);
+
+		/* even the first failing init() may have attached aux bindings or
+		 * loaded runtime modules. close bindings while their code is loaded. */
+		fini_aux(rtx);
+
+		/* as documented for HAWK_RTX_QUERYMODULE_NOLOCK in hawk.h,
+		 * init/fini/unload is called with the hawk's modmtx lock.
+		 * while rtx->modtab doesn't require a mutex based protection,
+		 * rtx->hawk->modmtx is used to keep the contract */
+		hawk_mtx_lock(rtx->hawk->modmtx, HAWK_NULL);
+		hawk_rbt_walk(rtx->modtab, hawk_modtab_unload_module, rtx->hawk);
+		hawk_mtx_unlock(rtx->hawk->modmtx);
+
 		fini_rtx(rtx, 1);
 		hawk_freemem(hawk, rtx);
 		return HAWK_NULL;
@@ -1238,18 +1251,28 @@ void hawk_rtx_close (hawk_rtx_t* rtx)
 	mfc.limit = 0;
 	mfc.count = 0;
 	mfc.rtx = rtx;
+	hawk_mtx_lock(rtx->hawk->modmtx, HAWK_NULL); /* contract as documented in hawk.h for HAWK_RTX_QUERYMODULE_NOLOCK */
 	hawk_rbt_walk(rtx->modtab, fini_module, &mfc); /* don't care how many succeeded and failed */
-
-	/* call unload on the runtime loaded modules */
-	hawk_rbt_walk(rtx->modtab, hawk_modtab_unload_module, rtx->hawk);
+	hawk_mtx_unlock(rtx->hawk->modmtx);
 
 	/* call fini() over the compiled-loaded and runtime-inited modules */
 	mfc.limit = 0;
 	mfc.count = 0;
 	mfc.rtx = rtx;
-	hawk_mtx_lock(rtx->hawk->modmtx, HAWK_NULL);
+	hawk_mtx_lock(rtx->hawk->modmtx, HAWK_NULL); /* contract as documented in hawk.h for HAWK_RTX_QUERYMODULE_NOLOCK */
 	hawk_rbt_walk(rtx->hawk->modtab, fini_module, &mfc);
 	hawk_mtx_unlock(rtx->hawk->modmtx); /* don't care how many succeeded and failed*/
+
+	fini_aux(rtx);
+
+	/* aux cleanup callbacks may belong to runtime-loaded modules.
+	 * as documented for HAWK_RTX_QUERYMODULE_NOLOCK in hawk.h,
+	 * init/fini/unload is called with the hawk's modmtx lock.
+	 * while rtx->modtab doesn't require a mutex based protection,
+	 * rtx->hawk->modmtx is used to keep the contract */
+	hawk_mtx_lock(rtx->hawk->modmtx, HAWK_NULL);
+	hawk_rbt_walk(rtx->modtab, hawk_modtab_unload_module, rtx->hawk);
+	hawk_mtx_unlock(rtx->hawk->modmtx);
 
 	for (ecb = rtx->ecb; ecb != (hawk_rtx_ecb_t*)rtx; ecb = ecb_next)
 	{
@@ -1498,8 +1521,31 @@ oops_0:
 	return -1;
 }
 
+static void fini_aux (hawk_rtx_t* rtx)
+{
+	hawk_oow_t i;
+
+	/* Normal close calls this before module unload and ECB cleanup. Failed
+	 * runtime opens also reach this through fini_rtx(). Leave access blocked
+	 * throughout teardown, and make the later fini_rtx() call harmless. */
+	if (rtx->aux_closing) return;
+	rtx->aux_closing = 1;
+	HAWK_STATIC_ASSERT(HAWK_COUNTOF(rtx->aux) == HAWK_COUNTOF(rtx->aux_names));
+	for (i = 0; i < HAWK_COUNTOF(rtx->aux); i++)
+	{
+		hawk_rtx_aux_t aux = rtx->aux[i];
+
+		HAWK_MEMSET(&rtx->aux[i], 0, HAWK_SIZEOF(rtx->aux[i]));
+		if (aux.cbs.close) aux.cbs.close(rtx, aux.ctx);
+		if (rtx->aux_names[i]) hawk_rtx_freemem(rtx, rtx->aux_names[i]);
+		rtx->aux_names[i] = HAWK_NULL;
+	}
+}
+
 static void fini_rtx (hawk_rtx_t* rtx, int fini_globals)
 {
+	fini_aux(rtx);
+
 #if !defined(HAWK_ENABLE_ATOMIC_SIG)
 	if (rtx->sig_mtx_inited)
 	{
@@ -1711,24 +1757,23 @@ hawk_mod_t* hawk_rtx_querymodulewithoocs (hawk_rtx_t* rtx, const hawk_oocs_t* na
 {
 	hawk_mod_t* m;
 	hawk_oow_t old_size;
+	int need_lock;
 
-	old_size = HAWK_RBT_SIZE(rtx->modtab);
-	if (flags & HAWK_RTX_QUERYMODULE_NOLOCK)
-	{
-		 /* init/fini/unload is also called in the locked context. for example, see
-		  * hawk_rtx_open() which calls the init method of a module. if you want to
-		  * avoid recursive locking, the caller must specify HAWK_RTX_QUERYMODULE_NOLOCK
-		  * when calling this function from such a context */
-		m = hawk_querymodulewithoocs(rtx->hawk, name, sym, rtx->modtab);
-	}
-	else
+	 /* init/fini/unload is also called in the locked context. for example, see
+	  * hawk_rtx_open() which calls the init method of a module. if you want to
+	  * avoid recursive locking, the caller must specify HAWK_RTX_QUERYMODULE_NOLOCK
+	  * when calling this function from such a context. */
+	need_lock = !(flags & HAWK_RTX_QUERYMODULE_NOLOCK);
+
+	if (need_lock)
 	{
 		/* in a multi-threaded application where you have a rtx in different threads over
-		 * the same hawk object, the mutex blow protects the commonly used hawk->modtab. */
-		hawk_mtx_lock(rtx->hawk->modmtx, HAWK_NULL);
-		m = hawk_querymodulewithoocs(rtx->hawk, name, sym, rtx->modtab);
-		hawk_mtx_unlock(rtx->hawk->modmtx);
+		 * the same hawk object, the mutex below protects the commonly used hawk->modtab. */
+		if (hawk_mtx_lock(rtx->hawk->modmtx, HAWK_NULL) <= -1) return HAWK_NULL;
 	}
+
+	old_size = HAWK_RBT_SIZE(rtx->modtab);
+	m = hawk_querymodulewithoocs(rtx->hawk, name, sym, rtx->modtab);
 
 	if (m && old_size != HAWK_RBT_SIZE(rtx->modtab))
 	{
@@ -1766,6 +1811,7 @@ hawk_mod_t* hawk_rtx_querymodulewithoocs (hawk_rtx_t* rtx, const hawk_oocs_t* na
 		}
 	}
 
+	if (need_lock) hawk_mtx_unlock(rtx->hawk->modmtx);
 	return m;
 }
 

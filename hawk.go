@@ -2,6 +2,7 @@ package hawk
 
 /*
 #include <hawk.h>
+#include <hawk-tio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -201,6 +202,134 @@ static void init_rtx_xtn_ecb (rtx_xtn_t* xtn)
 	xtn->rtx_ecb.sigset = rtx_on_sigset;
 }
 
+// Console adapters retain only a numeric Go runtime ID in C memory.
+// hawk_tio handles character conversion, including split multibyte sequences.
+// The underlying Go reader/writer is borrowed and never closed here.
+extern hawk_ooi_t hawk_go_console_io(hawk_oow_t id, int cmd, void* data, hawk_oow_t size);
+
+struct go_console_xtn_t
+{
+	hawk_oow_t id;
+};
+
+static hawk_ooi_t go_console_input (hawk_tio_t* tio, hawk_tio_cmd_t cmd, void* data, hawk_oow_t size)
+{
+	struct go_console_xtn_t* xtn;
+
+	if (cmd != HAWK_TIO_DATA) return 0;
+	xtn = hawk_tio_getxtn(tio);
+	return hawk_go_console_io(xtn->id, 0, data, size);
+}
+
+static hawk_ooi_t go_console_output (hawk_tio_t* tio, hawk_tio_cmd_t cmd, void* data, hawk_oow_t size)
+{
+	struct go_console_xtn_t* xtn;
+
+	if (cmd != HAWK_TIO_DATA) return 0;
+	xtn = hawk_tio_getxtn(tio);
+	return hawk_go_console_io(xtn->id, 1, data, size);
+}
+
+static hawk_ooi_t go_console_rio (hawk_rtx_t* rtx, hawk_rio_cmd_t cmd, hawk_rio_arg_t* arg, void* data, hawk_oow_t size)
+{
+	rtx_xtn_t* rxtn;
+	struct go_console_xtn_t* xtn;
+	hawk_tio_t* tio;
+	hawk_ooi_t n;
+	hawk_errinf_t errinf;
+	int x;
+
+	rxtn = hawk_rtx_getxtn(rtx);
+	switch (cmd)
+	{
+		case HAWK_RIO_CMD_OPEN:
+			tio = hawk_tio_open(hawk_rtx_getgem(rtx), HAWK_SIZEOF(*xtn), HAWK_TIO_NOAUTOFLUSH);
+			if (!tio) goto oops;
+			xtn = hawk_tio_getxtn(tio);
+			xtn->id = rxtn->rtx_inst_no;
+			if (arg->mode == HAWK_RIO_CONSOLE_READ)
+			{
+				x = hawk_tio_attachin(tio, go_console_input, HAWK_NULL, 4096);
+				if (x >= 0) x = hawk_rtx_setfilenamewithoochars(rtx, HAWK_T("-"), 1);
+			}
+			else
+			{
+				x = hawk_tio_attachout(tio, go_console_output, HAWK_NULL, 4096);
+				if (x >= 0) x = hawk_rtx_setofilenamewithoochars(rtx, HAWK_T("-"), 1);
+			}
+			if (x <= -1)
+			{
+				hawk_rtx_geterrinf(rtx, &errinf);
+				hawk_tio_close(tio);
+				hawk_rtx_seterrinf(rtx, &errinf);
+				goto oops;
+			}
+			arg->handle = tio;
+			return 1;
+
+		case HAWK_RIO_CMD_CLOSE:
+			// Writes are drained to the Go writer before returning from WRITE.
+			// Do not flush the host's buffer during teardown: it may be deciding
+			// whether to commit or discard output after an execution failure.
+			if (arg->handle)
+			{
+				hawk_rtx_geterrinf(rtx, &errinf);
+				hawk_tio_drain(arg->handle);
+				hawk_tio_close(arg->handle);
+				hawk_rtx_seterrinf(rtx, &errinf);
+				arg->handle = HAWK_NULL;
+			}
+			return 0;
+
+		case HAWK_RIO_CMD_READ:
+			n = hawk_tio_read(arg->handle, data, size);
+			if (n <= -1) goto oops;
+			return n;
+
+		case HAWK_RIO_CMD_READ_BYTES:
+			n = hawk_tio_readbchars(arg->handle, data, size);
+			if (n <= -1) goto oops;
+			return n;
+
+		case HAWK_RIO_CMD_WRITE:
+			n = hawk_tio_write(arg->handle, data, size);
+			goto flush_write;
+
+		case HAWK_RIO_CMD_WRITE_BYTES:
+			n = hawk_tio_writebchars(arg->handle, data, size);
+		flush_write:
+			if (n <= -1 || hawk_tio_flush(arg->handle) <= -1)
+			{
+				hawk_tio_drain(arg->handle);
+				goto oops;
+			}
+			return n;
+
+		case HAWK_RIO_CMD_FLUSH:
+			if (arg->mode != HAWK_RIO_CONSOLE_WRITE) return 0;
+			if (hawk_tio_flush(arg->handle) <= -1) goto oops;
+			if (hawk_go_console_io(rxtn->rtx_inst_no, 2, HAWK_NULL, 0) <= -1) goto oops;
+			return 0;
+
+		case HAWK_RIO_CMD_NEXT:
+			return 0; // one logical stream; nextfile/nextofile exhaust it
+	}
+	hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EINTERN);
+
+oops:
+	hawk_go_console_io(rxtn->rtx_inst_no, 3, HAWK_NULL, arg->mode == HAWK_RIO_CONSOLE_WRITE);
+	return -1;
+}
+
+static void set_go_console_io (hawk_rtx_t* rtx)
+{
+	hawk_rio_cbs_t rio;
+
+	hawk_rtx_getrio(rtx, &rio);
+	rio.console = go_console_rio;
+	hawk_rtx_setrio(rtx, &rio);
+}
+
 // -----------------------------------------------
 
 static hawk_uintptr_t val_arr_itr_elem(hawk_val_arr_itr_t* itr)
@@ -288,6 +417,23 @@ static int set_modlibdirs_with_bcstr(hawk_t* hawk, const hawk_bch_t* dirs)
 	return hawk_setopt(hawk, HAWK_OPT_MODLIBDIRS, dirs);
 #endif
 }
+
+static int set_incdirs_with_bcstr(hawk_t* hawk, const hawk_bch_t* dirs)
+{
+#if defined(HAWK_OOCH_IS_UCH)
+	hawk_uch_t* tmp;
+	int n;
+
+	tmp = hawk_dupbtoucstr(hawk, dirs, HAWK_NULL, 1);
+	if (!tmp) return -1;
+
+	n = hawk_setopt(hawk, HAWK_OPT_INCDIRS, tmp);
+	hawk_freemem(hawk, tmp);
+	return n;
+#else
+	return hawk_setopt(hawk, HAWK_OPT_INCDIRS, dirs);
+#endif
+}
 */
 import "C"
 
@@ -330,6 +476,9 @@ type Rtx struct {
 	h *Hawk
 
 	sigset_handler RtxSigsetHandler
+	http_ctx *httpd_request_context
+	console_io *rtx_console_io
+	execution_started bool
 
 	next *Rtx
 	prev *Rtx
@@ -548,6 +697,17 @@ func (hawk *Hawk) SetModLibDirs(dirs string) error {
 	return nil
 }
 
+func (hawk *Hawk) SetIncDirs(dirs string) error {
+	var cdirs *C.hawk_bch_t
+	var n C.int
+
+	cdirs = C.CString(dirs)
+	n = C.set_incdirs_with_bcstr(hawk.c, cdirs)
+	C.free(unsafe.Pointer(cdirs))
+	if n <= -1 { return hawk.make_errinfo() }
+	return nil
+}
+
 func (hawk *Hawk) AddFunc(name string, min_args uint, max_args uint, spec string, fn Func) error {
 	var fnc *C.hawk_fnc_t
 	var cname *C.hawk_bch_t
@@ -673,6 +833,13 @@ func deregister_rtx_instance(rtx *Rtx) {
 		}
 
 		C.hawk_rtx_close(rtx.c)
+		rtx.http_ctx = nil
+		if rtx.console_io != nil {
+			rtx.console_io.input = nil
+			rtx.console_io.output = nil
+			rtx.console_io.flush = nil
+			rtx.console_io.pending_read_error = nil
+		}
 //fmt.Printf("RTX CLOSING %p\n", rtx)
 	}
 
@@ -751,6 +918,10 @@ func (rtx* Rtx) Close() {
 	deregister_rtx_instance(rtx)
 }
 
+func (rtx *Rtx) set_console_io() {
+	C.set_go_console_io(rtx.c)
+}
+
 func (rtx *Rtx) make_errinfo() *Err {
 	var loc *C.hawk_loc_t
 	var err Err
@@ -801,6 +972,7 @@ func (rtx *Rtx) Exec(args []string) (*Val, error) {
 	var idx int
 	var count int
 
+	rtx.execution_started = true
 	count = len(args)
 	cargs = make([]*C.hawk_bch_t, count)
 	for idx = 0; idx < count; idx++ {
@@ -826,6 +998,7 @@ func (rtx *Rtx) Exec(args []string) (*Val, error) {
 
 func (rtx *Rtx) Loop() (*Val, error) {
 	var val CPtrVal
+	rtx.execution_started = true
 	val = CPtrVal(unsafe.Pointer(C.hawk_rtx_loop(rtx.c)))
 	if val == 0 { return nil, rtx.make_errinfo() }
 	// hawk_rtx_loop() returns a value with the reference count incremented.
@@ -845,6 +1018,7 @@ func (rtx *Rtx) Call(name string, args ...*Val) (*Val, error) {
 	C.free(unsafe.Pointer(cv))
 	if fun == nil { return nil, rtx.make_errinfo() }
 
+	rtx.execution_started = true
 	nargs = len(args)
 	if nargs > 0 {
 		var argv []CPtrVal
@@ -1230,7 +1404,10 @@ func (rtx *Rtx) NewNumOrStrVal(v string, mode int) (*Val, error) {
 
 func (rtx *Rtx) NewByteArrVal(v []byte) (*Val, error) {
 	return rtx.make_val(func() CPtrVal {
-		return CPtrVal(unsafe.Pointer(C.hawk_rtx_makembsvalwithbchars(rtx.c, (*C.hawk_bch_t)(unsafe.Pointer(&v[0])), C.hawk_oow_t(len(v)))))
+		var ptr *C.hawk_bch_t
+
+		if len(v) > 0 { ptr = (*C.hawk_bch_t)(unsafe.Pointer(&v[0])) }
+		return CPtrVal(unsafe.Pointer(C.hawk_rtx_makembsvalwithbchars(rtx.c, ptr, C.hawk_oow_t(len(v)))))
 	})
 }
 
@@ -1449,11 +1626,14 @@ func (val *Val) GetMapField(key string) (*Val, error) {
 	var uc []C.hawk_uch_t
 
 	uc = string_to_uchars(key)
+	// Keep an addressable element for an empty map key; the terminator is not
+	// included in the length passed to Hawk.
+	uc = append(uc, 0)
 	v = CPtrVal(C.get_map_val_fld(
 		val.rtx.c,
 		C.hawk_uintptr_t(val.c),
 		&uc[0],
-		C.hawk_oow_t(len(uc))))
+		C.hawk_oow_t(len(uc) - 1)))
 	if v == 0 { return nil, val.rtx.make_errinfo() }
 	return val.rtx.make_val(func() CPtrVal { return v })
 }
@@ -1463,11 +1643,12 @@ func (val *Val) SetMapField(key string, v *Val) error {
 	var kk []C.hawk_uch_t
 
 	kk = string_to_uchars(key)
+	kk = append(kk, 0)
 	vv = CPtrVal(C.set_map_val_fld(
 		val.rtx.c,
 		C.hawk_uintptr_t(val.c),
 		&kk[0],
-		C.hawk_oow_t(len(kk)),
+		C.hawk_oow_t(len(kk) - 1),
 		C.hawk_uintptr_t(v.c)))
 	if vv == 0 { return val.rtx.make_errinfo() }
 	return nil

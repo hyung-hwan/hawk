@@ -415,6 +415,206 @@ subshell groups, globbing, field splitting, positional parameters, and command
 substitution are not implemented. Parameter expansion currently preserves each
 input word as one argument.
 
+### Go HTTP server mode
+
+`hawkgo --httpd` runs an HTTP application server using Go's standard library.
+Repeat `--listen` for multiple HTTP endpoints. For HTTPS, use `--tls-listen`
+with `--tls-cert` and `--tls-key`. Static files come from `--root`; configured
+script routes take precedence, with the longest matching URL prefix selected.
+Use `--script-root` (`HawkHttpdConfig.ScriptRoot`) as the base for relative
+route scripts and dependency paths. A relative script root is resolved against
+the working directory once when the server is created. An empty script root
+preserves working-directory resolution; absolute script and dependency paths
+are used directly. The static document root remains separate.
+
+```sh
+hawkgo --httpd --listen 127.0.0.1:8080 --listen '[::1]:8080' \
+  --root ./public --script-root ./scripts --route /api/=handler.hawk
+```
+
+For example, `scripts/handler.hawk` can contain:
+
+```awk
+function handle(request)
+{
+	print "Hello", request["path"];
+}
+```
+
+The request map contains `method`, `path`, `raw_query`, `host`,
+`remote_address`, `scheme`, `headers`, `query`, and a binary `body`.
+Header names follow Go's HTTP canonicalization. Header and query values are
+arrays starting at index 1, preserving repeated values. Unredirected `getline`
+reads the request body as records, `getbline` reads byte records, and `print` /
+`printf` produce the response body. `RS`, `FS`, and `ORS` retain their normal
+meaning, so record processing can change delimiters. Explicit file and pipe
+redirections continue using their named destinations.
+
+The entry function does not need to return a response map. Returning a map is
+still supported for response `status`, `headers`, and an optional `body`, which
+is appended after console output. Response headers accept strings or arrays of
+strings; the returned body accepts text or a byte string. Other return values
+are ignored. The default status is 200, and the content type is detected from
+the body when not supplied.
+`--entry` selects a function other than `handle`; this calls the function
+directly rather than executing `BEGIN`, pattern-action, or `END` blocks.
+
+Request bodies are read and size-checked before execution. Output is buffered
+until execution succeeds or the script calls `http::flush()`. Before commitment,
+console errors, including those tolerated by Hawk's I/O operations, discard
+output and produce HTTP 500. After commitment, errors are logged and execution
+stops without replacing the response. An oversized request produces HTTP 413.
+Automatic interpreter flush requests do not commit the HTTP response.
+`--max-response-bytes` counts all output, including bytes already flushed.
+
+Parsed scripts are cached, while each request receives a fresh runtime.
+`--reload-interval` controls change checks; failed reloads retain the previous
+working script. Embedding applications can list included files in each route's
+`Dependencies` for reload detection; includes are not discovered automatically.
+`--max-concurrent`, `--max-body-bytes`, and `--max-response-bytes` bound script
+requests and buffered bodies. Keep scripts outside the static document root;
+`.hawk` files are excluded from static responses.
+
+Embedding applications can construct independent `HawkHttpd` instances with
+`NewHawkHttpd(context, config)`. Each instance owns multiple listeners, its
+script cache, and runtime accounting. `Start()` binds every listener before
+serving; `Addrs()` reports actual bound addresses. `ReqStop()` requests graceful
+shutdown, `Shutdown(context)` waits with a deadline, and `Wait()` waits for all
+tasks and interpreter cleanup. A shutdown deadline does not interrupt running
+Hawk code or free its runtime. Request cancellation currently stops queued
+requests but does not interrupt an executing script. Instances have one
+start/stop lifecycle. Use `hawkgo --httpd --help` for command-line options.
+
+### HTTP request and response helpers
+
+The optional C `http::` module works with HawkHttpd and other hosts that attach
+an HTTP context to the runtime. It is enabled by default; configure with
+`--enable-mod-http=no` to omit it or `--enable-mod-http=yes` to build it dynamically.
+
+| Function | Behavior |
+| --- | --- |
+| `http::getmethod()` | Request method, such as `GET` or `POST`. |
+| `http::getpath()` | Request URL path. |
+| `http::getheader(name [, index])` | Request header occurrence, indexed from 1; default 1. Missing values return an empty string. |
+| `http::getheaders()` | Snapshot of request headers as a map of arrays indexed from 1. |
+| `http::setstatus(code)` / `http::getstatus()` | Set/read response status; integer codes 200–599 are accepted. |
+| `http::setheader(name, value)` | Replace a response header's values. |
+| `http::addheader(name, value)` | Append a response header value, including repeated `Set-Cookie` fields. |
+| `http::delheader(name)` | Remove a response header. |
+| `http::flush()` | Commit status and headers and flush current console output. |
+
+Setters and `flush()` return 0 on success. Invalid arguments, missing host
+contexts, host failures, and status/header changes after commitment cause a
+runtime error. Header names must be nonempty ASCII tokens; values must be
+strings without NUL or control characters except tab. In HawkHttpd, names are
+case-insensitive, `Host` is included in request getters, and the default status
+is 200. Returned response-map fields can still supply metadata before
+commitment and append a body; an omitted field preserves the context's value.
+
+```awk
+function handle(request)
+{
+	http::setstatus(200);
+	http::setheader("Content-Type", "text/plain; charset=utf-8");
+	printf "%s %s\n", http::getmethod(), http::getpath();
+	http::flush();
+	while (getline > 0) print $0;
+}
+```
+
+C hosts include the HTTP module's installed `hawk-http.h` (source:
+`mod/hawk-http.h`), resolve `HAWK_HTTP_AUX_NAME` with `hawk_rtx_getauxid()`, and
+register a `hawk_aux_cbs_t` with `hawk_rtx_setauxctx()` before execution. The
+operation callback receives an HTTP command and a borrowed `hawk_http_arg_t`;
+getters set the intrinsic return value with `hawk_rtx_setretval()`. Hosts supply
+console I/O for bodies and keep response commitment state in their context,
+rejecting status/header mutations after headers have been sent, including a
+partially failing flush. Cleanup runs once on replacement, detachment, or
+runtime close. This protocol requires no HTTP-specific core functions and
+works with static or dynamic modules and C CGI/FastCGI hosts.
+
+`NewHawkHttpd()` returns an unavailable error when configured with
+`--enable-mod-http=no`; the ordinary Go Hawk binding remains usable.
+
+### Generic aux services
+
+`hawk-aux.h` provides a per-runtime bridge for embedding applications to register
+services under numeric IDs. Each runtime has its own slots; multiple services
+can coexist, and the same ID can have different contexts in different runtimes.
+The default slot count is 64, accepting IDs 0 through 63. Resolve a service
+name with `hawk_rtx_getauxid()` to avoid collisions. Names are case-sensitive
+and copied on first use; reservations survive detachment until runtime close.
+Live unnamed bindings are skipped. IDs can differ between runtimes, so resolve
+names separately for each runtime and do not cache IDs in shared module state.
+A full registry produces `HAWK_EBUFFULL`; out-of-range IDs produce `HAWK_EINVAL`.
+
+```c
+#include <hawk-aux.h>
+
+hawk_uint16_t id;
+hawk_aux_cbs_t callbacks = { application_call, application_close };
+
+/* Check the return value of each operation for errors. */
+hawk_rtx_getauxid(rtx, HAWK_T("application"), &id);
+hawk_rtx_setauxctx(rtx, id, &callbacks, context);
+hawk_rtx_auxcall(rtx, id, command, data);
+hawk_rtx_setauxctx(rtx, id, HAWK_NULL, HAWK_NULL);
+```
+
+The operation callback receives `(rtx, command, data, context)`. Commands and
+opaque data pointers are passed unchanged; the service defines their protocol,
+and data may be NULL. A callback returns a nonnegative service result or -1
+with a runtime diagnostic. The bridge supplies a diagnostic if a failing
+callback omits one. It does not set Hawk function return values automatically.
+
+`hawk_rtx_setauxctx()` copies the callbacks and borrows the context, which may
+be NULL. Registration requires no allocation because slots are stored in the
+runtime. It returns 0 on success or -1 on error. Optional cleanup runs once on
+replacement, detachment, or runtime close. Failed registration preserves the
+old service and leaves ownership of the proposed context with the caller.
+Detach with NULL callbacks; detaching an empty slot is harmless.
+
+`hawk_rtx_getauxctx(rtx, id, &callbacks, &context)` retrieves a binding snapshot,
+returning 1 when found, 0 when absent, and -1 on error. Output pointers are
+optional. An absent slot leaves outputs and the existing diagnostic unchanged;
+a registered NULL context still returns 1. The borrowed context remains valid
+until replacement, detachment, or runtime close.
+
+Do not access one runtime concurrently. An active operation callback cannot
+replace or detach its own slot. While any aux cleanup callback runs, lookups,
+dispatch, and registration changes for every ID on that runtime are rejected
+with `HAWK_EPERM`. During runtime teardown this protection remains active through
+the rest of runtime destruction. Cleanup callbacks must not execute scripts
+or close the runtime.
+
+The HTTP module and its hosts resolve the same `HAWK_HTTP_AUX_NAME`
+(`"http"`), declared in `hawk-http.h`. Its command and argument definitions and
+response commitment rules belong to the module's protocol, while registration
+and dispatch use the generic aux API.
+
+### Go console I/O callbacks
+
+Before executing a Go runtime, use `rtx.SetConsoleIO(reader, writer)` to connect
+its console input/output to any standard Go `io.Reader` and `io.Writer`.
+Unredirected `getline` reads from that reader; `print` and `printf` write to that
+writer. Explicit file and pipe redirections retain their normal handlers.
+Text passes through Hawk's character manager, including multibyte characters
+split across reads, while byte strings are transferred unchanged.
+
+The streams belong to the caller: closing the runtime neither closes them nor
+flushes the caller's buffers. A nil reader supplies EOF, and a nil writer
+discards output. An optional third argument supplies a `func() error` flush
+callback, for example `rtx.SetConsoleIO(reader, writer, writer.Flush)` for a
+buffered writer. Hawk also requests flushing after `printf` and at execution
+completion, so omit that callback when the host needs to decide whether to
+commit or discard buffered output.
+
+Check `rtx.ConsoleError()` for console failures, including errors handled by
+`getline` or tolerated by `print`/`printf`. Configure console I/O before the
+first `Exec`, `Loop`, or `Call`; each runtime owns its callback state and must
+not be used concurrently. This interface is independent of HTTP and can also
+support other embedding applications.
+
 ## Execution Model
 
 Hawk follows the awk pipeline:
@@ -1213,6 +1413,13 @@ The primary value management is reference counting based but `map` and `array` v
 ## Modules
 
 Hawk supports various modules.
+
+### HTTP
+
+The optional `http::` module provides request metadata, response status/header
+control, and flushing for hosts with an attached HTTP context. See
+[HTTP request and response helpers](#http-request-and-response-helpers) for
+the function table, HawkHttpd example, and reusable C callback interface.
 
 ### Message Digest
 

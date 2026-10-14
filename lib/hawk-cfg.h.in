@@ -798,6 +798,12 @@
 /* build mod/ffi statically linked into the main library */
 #undef HAWK_ENABLE_MOD_FFI_STATIC
 
+/* build mod/http */
+#undef HAWK_ENABLE_MOD_HTTP
+
+/* build mod/http statically linked into the main library */
+#undef HAWK_ENABLE_MOD_HTTP_STATIC
+
 /* build mod/json */
 #undef HAWK_ENABLE_MOD_JSON
 

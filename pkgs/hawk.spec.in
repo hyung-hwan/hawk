@@ -178,6 +178,7 @@ CFLAGS="${RPM_CFLAGS}" CXXFLAGS="${RPM_CFLAGS}" ./configure  \
 %else
 	--enable-mod-ffi=no \
 %endif
+	--enable-mod-http=yes:static \
 	--enable-mod-json=yes:static \
 	--enable-mod-m4=yes:static \
 %if %{enable_mod_memc}
@@ -266,6 +267,10 @@ rm -rf "%{buildroot}"
 %{_libdir}/libhawk.so
 %{_datadir}/hawk/go/hawk.go
 %{_datadir}/hawk/go/hawk-inst.go
+%{_datadir}/hawk/go/hawk-io.go
+%{_datadir}/hawk/go/hawk-http.go
+%{_datadir}/hawk/go/hawk-httpd.go
+%{_datadir}/hawk/go/hawk-httpd-req.go
 %{_datadir}/hawk/go/go.mod
 
 %files static

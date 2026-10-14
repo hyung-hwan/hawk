@@ -2,9 +2,9 @@ AUTOMAKE_OPTION = foreign
 ACLOCAL_AMFLAGS = -I m4
 
 gosrcdir = $(datadir)/hawk/go
-gosrc_DATA = go.mod hawk.go hawk-inst.go
+gosrc_DATA = go.mod hawk.go hawk-inst.go hawk-io.go hawk-http.go hawk-httpd.go hawk-httpd-req.go
 
-EXTRA_DIST = $(gosrc_DATA) hawk_test.go
+EXTRA_DIST = $(gosrc_DATA) hawk_test.go hawk-io_test.go hawk-httpd_test.go
 
 SUBDIRS =
 
@@ -38,8 +38,9 @@ CGO_LDFLAGS_ADD=
 endif
 
 hawkgo.check:
+	HAWK_TEST_MODLIBDIRS="$(abs_builddir)/mod/.libs" \
 	CC=$(CC) \
-	CGO_CFLAGS="-I$(abs_srcdir)/lib -I$(abs_builddir)/lib $(CFLAGS) $(CGO_CFLAGS_EXTRA) $(CGO_CFLAGS_ADD)" \
+	CGO_CFLAGS="-I$(abs_srcdir)/lib -I$(abs_builddir)/lib -I$(abs_srcdir)/mod $(CFLAGS) $(CGO_CFLAGS_EXTRA) $(CGO_CFLAGS_ADD)" \
 	CGO_LDFLAGS="-L$(abs_builddir)/lib -L$(abs_builddir)/lib/.libs -lhawk -ldl $(LIBM) $(CGO_LDFLAGS_EXTRA) $(CGO_LDFLAGS_ADD)"  \
 	go test -C $(srcdir) -ldflags "-X 'main.BINDIR=$(bindir)' -X 'main.SBINDIR=$(sbindir)' -X 'main.LIBDIR=$(libdir)' -X 'main.SYSCONFDIR=$(sysconfdir)'" -x -modfile $(abs_srcdir)/go.mod
 	go clean -C $(srcdir) -x -modfile $(abs_srcdir)/go.mod
@@ -54,4 +55,3 @@ rpm: dist-gzip
 	mkdir -p "@abs_builddir@/pkgs/RPM/RPMS"
 	cp @PACKAGE_NAME@-@PACKAGE_VERSION@.tar.gz "@abs_builddir@/pkgs/RPM/SOURCES"
 	rpmbuild --define "_topdir @abs_builddir@/pkgs/RPM" -ba @abs_builddir@/pkgs/hawk.spec --target=@build_cpu@
-
