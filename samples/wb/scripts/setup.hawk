@@ -1,0 +1,12 @@
+@pragma entry main
+@include "workbench.hawk";
+
+function main()
+{
+	if (wb_initialize() < 0)
+	{
+		print "Unable to initialize the workbench: " WB_ERROR;
+		exit 1;
+	}
+	print "Workbench database: " wb_database();
+}

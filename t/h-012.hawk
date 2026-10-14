@@ -49,5 +49,15 @@ BEGIN {
 	tap_ensure(v3[4], "a\tb", @SCRIPTNAME, @SCRIPTLINE);
 	tap_ensure(v3[5], -12.5, @SCRIPTNAME, @SCRIPTLINE);
 
+	tap_ensure(json::stringify(@true), "true", @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(json::stringify(@false), "false", @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(json::stringify(1), "1", @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(json::stringify(0), "0", @SCRIPTNAME, @SCRIPTLINE);
+	v2 = json::parse(json::stringify(v));
+	tap_ensure(v2.b === @true, 1, @SCRIPTNAME, @SCRIPTLINE);
+	v2 = json::parse(json::stringify(v3));
+	tap_ensure(v2[1] === @false, 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(v2[2] === @true, 1, @SCRIPTNAME, @SCRIPTLINE);
+
 	tap_end();
 }

@@ -1,0 +1,65 @@
+/* Black and white, square edges, and thin borders. Shared layout stays in
+ * workbench.css; load this stylesheet instead of the light or dark theme. */
+@import url("./workbench.css");
+
+:root {
+	color-scheme: light;
+	--ink: #000000;
+	--muted: #000000;
+	--paper: #ffffff;
+	--line: #000000;
+	--accent: #000000;
+	--soft: #ffffff;
+}
+
+body { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
+* { scrollbar-color: #000000 #ffffff; }
+::-webkit-scrollbar { width: 12px; height: 12px; }
+::-webkit-scrollbar-track, ::-webkit-scrollbar-corner { background: #ffffff; }
+::-webkit-scrollbar-thumb { background: #000000; border: 1px solid #ffffff; }
+.mark, .workspace, input, .example-list button, .tool-badge, .button, .panels { border-radius: 0; }
+.site-header { border-bottom: 1px solid #000000; }
+.mark { border: 1px solid #000000; }
+h1 { font-weight: 900; }
+.workspace { border: 2px solid #000000; background: #ffffff; box-shadow: 3px 3px 0 #000000; }
+.library { border-right: 1px solid #000000; background: #ffffff; }
+input { border: 1px solid #000000; background: #ffffff; }
+input::placeholder, textarea::placeholder { color: #000000; opacity: 1; }
+.example-list button { border: 1px solid #000000; margin-bottom: 8px; font-weight: 700; background: #ffffff; }
+.example-list button:hover, .example-list button.active { background: #000000; color: #ffffff; }
+.tool-badge { border: 1px solid #000000; font-weight: 700; }
+.example-list button:hover .tool-badge, .example-list button.active .tool-badge { border-color: #ffffff; color: #ffffff; }
+.tool-tabs { border-bottom: 1px solid #000000; background: #ffffff; }
+.tool-tabs button { border-bottom: 0; }
+.tool-tabs button + button { border-left: 1px solid #000000; }
+.tool-tabs strong { font-family: inherit; font-weight: 900; }
+.tool-tabs button:hover { text-decoration: underline; }
+.tool-tabs button[aria-selected="true"] { background: #000000; color: #ffffff; }
+.tool-tabs button[aria-selected="true"] strong { color: #ffffff; }
+.button { border: 1px solid #000000; font-weight: 800; }
+.primary { background: #000000; color: #ffffff; }
+.primary:hover { background: #ffffff; color: #000000; }
+.secondary { border-color: #000000; background: #ffffff; }
+.secondary:hover { background: #000000; color: #ffffff; }
+kbd { opacity: 1; }
+.panels { border: 1px solid #000000; }
+.panel-heading { border-bottom: 1px solid #000000; background: #ffffff; font-weight: 800; }
+textarea { background: #ffffff; }
+.input-heading { border-top: 1px solid #000000; }
+.output-panel { border-left: 1px solid #000000; background: #ffffff; }
+#output { color: #000000; }
+.text-button { font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+.danger { color: #000000; text-decoration-style: double; }
+.notice.error { color: #000000; border: 1px dashed #000000; padding: 10px; font-weight: 800; }
+.notice.success { color: #000000; font-weight: 800; }
+.save-bar { border-top: 1px solid #000000; }
+button:disabled { opacity: 1; border-style: dashed; cursor: not-allowed; }
+.button:disabled, .text-button:disabled { text-decoration: line-through; }
+button:focus-visible, input:focus-visible, textarea:focus-visible, pre:focus-visible, a:focus-visible { outline: 2px solid #000000; outline-offset: 3px; }
+textarea:focus-visible, pre:focus-visible { outline-offset: -3px; }
+::selection { background: #000000; color: #ffffff; }
+
+@media (max-width: 720px) {
+	.library { border-right: 0; border-bottom: 1px solid #000000; }
+	.output-panel { border-left: 0; border-top: 1px solid #000000; }
+}

@@ -1,0 +1,157 @@
+@pragma entry main
+@pragma implicit off
+@pragma defermodsym on
+
+@include "../samples/web-workbench/scripts/workbench.hawk";
+@include "tap.inc";
+
+function result_field(value, key)
+{
+	return value[key];
+}
+
+function test_runs(    payload, result)
+{
+	payload = wb_example("sed", "test", "s/world/Hawk/g", "hello world\n");
+	result = wb_run(payload);
+	tap_ensure(result["ok"] === @true, 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(result["output"], "hello Hawk\n", @SCRIPTNAME, @SCRIPTLINE);
+	payload["program"] = "s/[//";
+	result = wb_run(payload);
+	tap_ensure(result["ok"] === @false, 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(length(result["error"]) > 0, 1, @SCRIPTNAME, @SCRIPTLINE);
+	payload = wb_example("m4", "test", "define(`NAME', `Hawk')dnl", "Hello NAME!");
+	result = wb_run(payload);
+	tap_ensure(result["output"], "Hello Hawk!", @SCRIPTNAME, @SCRIPTLINE);
+	payload["program"] = "";
+	payload["input"] = "define(`NAME', `Hawk')dnl\nNAME";
+	tap_ensure(result_field(wb_run(payload), "output"), "Hawk", @SCRIPTNAME, @SCRIPTLINE);
+	payload = wb_example("mus", "test", "{{#items}}[{{.}}]{{/items}} {{name}}", "{\"items\":[1,2],\"name\":\"A&B\"}");
+	result = wb_run(payload);
+	tap_ensure(result["output"], "[1][2] A&amp;B", @SCRIPTNAME, @SCRIPTLINE);
+	payload["program"] = "{{#oops}}";
+	result = wb_run(payload);
+	tap_ensure(result["ok"] === @false, 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(length(result["error"]) > 0, 1, @SCRIPTNAME, @SCRIPTLINE);
+	payload["tool"] = "unknown";
+	tap_ensure(result_field(wb_run(payload), "ok") === @false, 1, @SCRIPTNAME, @SCRIPTLINE);
+	payload["tool"] = hawk::map();
+	tap_ensure(result_field(wb_run(payload), "ok") === @false, 1, @SCRIPTNAME, @SCRIPTLINE);
+	payload["tool"] = "sed";
+	payload["input"] = @nil;
+	tap_ensure(result_field(wb_run(payload), "ok") === @false, 1, @SCRIPTNAME, @SCRIPTLINE);
+	payload["input"] = sprintf("%*s", 65537, "");
+	tap_ensure(result_field(wb_run(payload), "ok") === @false, 1, @SCRIPTNAME, @SCRIPTLINE);
+}
+
+function test_storage(    before, after, payload, item, id, found, i)
+{
+	tap_ensure(wb_initialize(), 0, @SCRIPTNAME, @SCRIPTLINE);
+	before = wb_list();
+	tap_ensure(length(before), 6, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(wb_initialize(), 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(length(wb_list()), 6, @SCRIPTNAME, @SCRIPTLINE);
+	payload = wb_example("sed", "O'Reilly </script><b>test</b>", "s/a/b/g", "aaa\n日本\0tail");
+	item = wb_save(payload);
+	tap_ensure(hawk::type(item), hawk::VAL_MAP, @SCRIPTNAME, @SCRIPTLINE);
+	id = item["id"];
+	tap_ensure(id > 0, 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(length(wb_list()), 7, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(wb_save(payload) === @nil, 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(length(WB_ERROR) > 0, 1, @SCRIPTNAME, @SCRIPTLINE);
+	payload["id"] = id;
+	payload["title"] = "Updated";
+	tap_ensure(result_field(wb_save(payload), "id"), id, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(length(wb_list()), 7, @SCRIPTNAME, @SCRIPTLINE);
+	after = wb_list();
+	found = 0;
+	for (i = 1; i <= length(after); i++)
+	{
+		if (after[i]["id"] == id)
+		{
+			found = 1;
+			tap_ensure(after[i]["title"], "Updated", @SCRIPTNAME, @SCRIPTLINE);
+			tap_ensure(after[i]["input"], payload["input"], @SCRIPTNAME, @SCRIPTLINE);
+		}
+	}
+	tap_ensure(found, 1, @SCRIPTNAME, @SCRIPTLINE);
+	payload["id"] = 2147483647;
+	tap_ensure(wb_save(payload) === @nil, 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(WB_ERROR, "Example not found.", @SCRIPTNAME, @SCRIPTLINE);
+	payload["id"] = 0;
+	payload["title"] = "   ";
+	tap_ensure(wb_save(payload) === @nil, 1, @SCRIPTNAME, @SCRIPTLINE);
+	payload["title"] = "title\0suffix";
+	tap_ensure(wb_save(payload) === @nil, 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(wb_delete("1 OR 1=1"), -1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(length(wb_list()), 7, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(wb_delete(id), 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(wb_delete(id), -1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(length(wb_list()), 6, @SCRIPTNAME, @SCRIPTLINE);
+	# Deleted seed examples must stay deleted after initialization/restart.
+	tap_ensure(wb_delete(before[1]["id"]), 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(wb_initialize(), 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(length(wb_list()), 5, @SCRIPTNAME, @SCRIPTLINE);
+}
+
+function test_routes(    request, response, payload, data)
+{
+	request["method"] = "GET";
+	request["path"] = "/app/";
+	response = wb_dispatch(request);
+	tap_ensure(response["status"], 200, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(index(response["body"], "Hawk text workbench") > 0, 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(index(response["body"], "workbench.js") > 0, 1, @SCRIPTNAME, @SCRIPTLINE);
+	request["path"] = "/api/examples";
+	response = wb_dispatch(request);
+	tap_ensure(response["status"], 200, @SCRIPTNAME, @SCRIPTLINE);
+	data = json::parse(response["body"]);
+	tap_ensure(data["ok"] === @true, 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(length(data["examples"]), 5, @SCRIPTNAME, @SCRIPTLINE);
+	request["path"] = "/api/unknown";
+	tap_ensure(result_field(wb_dispatch(request), "status"), 404, @SCRIPTNAME, @SCRIPTLINE);
+	request["path"] = "/api/run";
+	tap_ensure(result_field(wb_dispatch(request), "status"), 405, @SCRIPTNAME, @SCRIPTLINE);
+	request["method"] = "POST";
+	request["headers"] = hawk::map();
+	tap_ensure(result_field(wb_dispatch(request), "status"), 403, @SCRIPTNAME, @SCRIPTLINE);
+	request["headers"]["X-Workbench-Request"] = hawk::array("1");
+	tap_ensure(result_field(wb_dispatch(request), "status"), 415, @SCRIPTNAME, @SCRIPTLINE);
+	request["headers"]["Content-Type"] = hawk::array("application/json");
+	payload = wb_example("sed", "test", "s/a/b/", "abc");
+	request["body"] = json::stringify(payload);
+	response = wb_dispatch(request);
+	tap_ensure(response["status"], 200, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(result_field(json::parse(response["body"]), "output"), "bbc", @SCRIPTNAME, @SCRIPTLINE);
+	payload["program"] = "s/[//";
+	request["body"] = json::stringify(payload);
+	tap_ensure(result_field(wb_dispatch(request), "status"), 422, @SCRIPTNAME, @SCRIPTLINE);
+	request["body"] = "[]";
+	tap_ensure(result_field(wb_dispatch(request), "status"), 400, @SCRIPTNAME, @SCRIPTLINE);
+	request["method"] = "DELETE";
+	request["path"] = "/api/examples";
+	request["query"] = hawk::map();
+	tap_ensure(result_field(wb_dispatch(request), "status"), 400, @SCRIPTNAME, @SCRIPTLINE);
+}
+
+function main()
+{
+	if (wb_require_modules() < 0)
+	{
+		tap_skip(WB_ERROR);
+		tap_end();
+		return;
+	}
+	WB_DATABASE = sys::tempname("hawk-workbench-test-");
+	if (WB_DATABASE == "")
+	{
+		tap_skip("unable to create temporary database path");
+		tap_end();
+		return;
+	}
+	test_runs();
+	test_storage();
+	test_routes();
+	sys::unlink(WB_DATABASE);
+	tap_end();
+}

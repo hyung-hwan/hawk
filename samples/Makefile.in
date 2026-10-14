@@ -393,6 +393,23 @@ CFLAGS_COMMON =
 CXXFLAGS_COMMON = 
 LDFLAGS_COMMON = -L$(abs_builddir)/../lib -L$(libdir)
 LIBADD_COMMON = ../lib/libhawk.la
+EXTRA_DIST = \
+	web-workbench/README.md \
+	web-workbench/run.sh \
+	web-workbench/data/.gitignore \
+	web-workbench/scripts/workbench.hawk \
+	web-workbench/scripts/setup.hawk \
+	web-workbench/templates/header.mustache \
+	web-workbench/templates/footer.mustache \
+	web-workbench/templates/workbench.mustache \
+	web-workbench/public/index.html \
+	web-workbench/public/workbench.css \
+	web-workbench/public/workbench-dark.css \
+	web-workbench/public/workbench-mono.css \
+	web-workbench/public/workbench.js \
+	web-workbench/tests/http_test.go \
+	web-workbench/tests/concurrency_test.go
+
 @ENABLE_CXX_TRUE@hawk02_SOURCES = hawk02.c
 @ENABLE_CXX_TRUE@hawk02_CPPFLAGS = $(CPPFLAGS_COMMON)
 @ENABLE_CXX_TRUE@hawk02_CFLAGS = $(CFLAGS_COMMON)

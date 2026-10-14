@@ -178,14 +178,28 @@ static void set_errmsg_on_ffi_list (hawk_rtx_t* rtx, ffi_list_t* ffi_list, const
 static HAWK_INLINE rtx_data_t* rtx_to_data (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	hawk_rbt_pair_t* pair;
+	hawk_errinf_t errinf;
+
+	/* init/fini modify this shared tree under the module mutex. The
+	 * runtime's record stays valid after lookup until its own fini. */
+	if (hawk_mtx_lock(rtx->hawk->modmtx, HAWK_NULL) <= -1)
+	{
+		hawk_geterrinf(rtx->hawk, &errinf);
+		hawk_rtx_seterrinf(rtx, &errinf);
+		return HAWK_NULL;
+	}
 	pair = hawk_rbt_search((hawk_rbt_t*)fi->mod->ctx, &rtx, HAWK_SIZEOF(rtx));
+	hawk_mtx_unlock(rtx->hawk->modmtx);
 	HAWK_ASSERT(pair != HAWK_NULL);
 	return (rtx_data_t*)HAWK_RBT_VPTR(pair);
 }
 
 static HAWK_INLINE ffi_list_t* rtx_to_ffi_list (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
-	return &rtx_to_data(rtx, fi)->ffi_list;
+	rtx_data_t* data;
+
+	data = rtx_to_data(rtx, fi);
+	return data? &data->ffi_list: HAWK_NULL;
 }
 
 /* ------------------------------------------------------------------------ */
@@ -324,6 +338,7 @@ static int fnc_open (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_oocs_t name;
 
 	ffi_list = rtx_to_ffi_list(rtx, fi);
+	if (HAWK_UNLIKELY(!ffi_list)) return -1;
 
 	if (hawk_rtx_getnargs(rtx) >= 1)
 	{
@@ -373,6 +388,7 @@ static int fnc_close (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_int_t ret = -1;
 
 	ffi_list = rtx_to_ffi_list(rtx, fi);
+	if (HAWK_UNLIKELY(!ffi_list)) return -1;
 	ffi_node = get_ffi_list_node_with_arg(rtx, ffi_list, hawk_rtx_getarg(rtx, 0), &ret);
 	if (ffi_node)
 	{
@@ -774,6 +790,7 @@ static int fnc_call (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 	/* ffi::call (ffi-handle, return-value, "function name", "signature", argument....); */
 	ffi_list = rtx_to_ffi_list(rtx, fi);
+	if (HAWK_UNLIKELY(!ffi_list)) return -1;
 	ffi_node = get_ffi_list_node_with_arg(rtx, ffi_list, hawk_rtx_getarg(rtx, 0), &ret);
 	if (!ffi_node) goto done;
 
@@ -917,6 +934,7 @@ static int fnc_errmsg (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_val_t* retv;
 
 	ffi_list = rtx_to_ffi_list(rtx, fi);
+	if (HAWK_UNLIKELY(!ffi_list)) return -1;
 	retv = hawk_rtx_makestrvalwithoocstr(rtx, ffi_list->errmsg);
 	if (!retv) return -1;
 

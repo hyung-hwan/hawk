@@ -1,0 +1,54 @@
+{{>header}}
+	<main>
+		<section class="intro">
+			<h1>Make text work for you.</h1>
+			<p>Transform with sed, expand with m4, or render with mustache.</p>
+		</section>
+		<div class="workspace">
+			<aside class="library" aria-labelledby="library-title">
+				<div class="section-heading"><h2 id="library-title">Your examples</h2><span id="example-count" class="counter">{{#examples}}·{{/examples}}</span></div>
+				<label class="visually-hidden" for="search">Search saved examples</label>
+				<input type="search" id="search" placeholder="Search examples…" autocomplete="off">
+				<ul id="examples" class="example-list">
+					{{#examples}}
+					<li><button type="button" data-example-id="{{id}}"><span class="tool-badge">{{tool}}</span><span>{{title}}</span></button></li>
+					{{/examples}}
+					{{^examples}}<li class="empty">No saved examples yet.</li>{{/examples}}
+				</ul>
+				<button id="new-example" type="button" class="button secondary full-width">+ New example</button>
+				<p class="library-note">Saved locally in sqlite.<br>Definitions and templates stay separate from the input.</p>
+			</aside>
+			<section class="editor" aria-label="Text workbench">
+				<div class="tool-tabs" role="tablist" aria-label="Choose a tool">
+					<button id="tab-sed" role="tab" aria-selected="true" aria-controls="tool-panel" data-tool="sed" type="button">01 <strong>sed</strong><span>Transform</span></button>
+					<button id="tab-m4" role="tab" aria-selected="false" aria-controls="tool-panel" data-tool="m4" type="button">02 <strong>m4</strong><span>Expand</span></button>
+					<button id="tab-mus" role="tab" aria-selected="false" aria-controls="tool-panel" data-tool="mus" type="button">03 <strong>mustache</strong><span>Render</span></button>
+				</div>
+				<div id="tool-panel" role="tabpanel" aria-labelledby="tab-sed">
+					<div class="editor-title"><span id="tool-description">Apply sed commands to your text.</span><button id="run" class="button primary" type="button">Run <kbd>Ctrl ↵</kbd></button></div>
+					<div class="panels">
+						<div class="inputs">
+							<div class="panel-heading"><label for="program" id="program-label">SED COMMANDS</label><span id="program-count">0 chars</span></div>
+							<textarea id="program" spellcheck="false" aria-describedby="tool-hint" maxlength="16384" placeholder="s/world/Hawk/g"></textarea>
+							<div class="panel-heading input-heading"><label for="input" id="input-label">INPUT TEXT</label><span id="input-count">0 chars</span></div>
+							<textarea id="input" spellcheck="false" maxlength="65536" placeholder="hello world"></textarea>
+						</div>
+						<div class="output-panel">
+							<div class="panel-heading"><h2>OUTPUT</h2><div><span id="output-count">0 chars</span><button id="copy" type="button" class="text-button" disabled>Copy</button></div></div>
+							<pre id="output" tabindex="0" aria-label="Tool output">Your result will appear here.</pre>
+						</div>
+					</div>
+					<p id="tool-hint" class="tool-hint">Commands use Hawk's sed syntax. The input's line endings are preserved.</p>
+				</div>
+				<div id="notice" class="notice" role="status" aria-live="polite">Choose an example or start with your own text.</div>
+				<div class="save-bar">
+					<label for="title">EXAMPLE NAME<input id="title" maxlength="120" placeholder="Name this example" autocomplete="off"></label>
+					<button id="save" type="button" class="button secondary">Save example</button>
+					<button id="save-copy" type="button" class="text-button" disabled>Save as new</button>
+					<button id="delete" type="button" class="text-button danger" disabled>Delete</button>
+				</div>
+			</section>
+		</div>
+		<noscript><p class="notice error">Enable JavaScript to run tools and save examples.</p></noscript>
+	</main>
+{{>footer}}

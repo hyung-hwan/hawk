@@ -1,0 +1,32 @@
+/* Shared layout with a dark palette. Load this instead of workbench.css. */
+@import url("./workbench.css");
+
+:root {
+	color-scheme: dark;
+	--ink: #e5eee4;
+	--muted: #abb9ab;
+	--paper: #111915;
+	--line: #344039;
+	--accent: #8ccd9f;
+	--soft: #2a3b30;
+}
+
+.mark { color: #142118; }
+.workspace { background: #1d2422; box-shadow: 0 8px 25px #00000030; }
+.library { background: #171f1c; }
+input, textarea { background: #151c19; }
+input::placeholder, textarea::placeholder { color: #9aa99e; }
+.example-list button:hover, .example-list button.active { background: #2a3c31; }
+.tool-badge { border-color: #465b4c; }
+.tool-tabs { background: #18211e; }
+.tool-tabs button[aria-selected="true"] { background: #26382d; }
+.primary { color: #101c15; }
+.primary:hover { background: #9adaac; }
+.secondary { border-color: #526559; background: #23332b; }
+.panel-heading { background: #252f29; }
+.output-panel { background: #141c18; }
+#output { color: #d4e1d5; }
+.danger { color: #f29a8a; }
+.notice.error { color: #ffab99; }
+button:focus-visible, input:focus-visible, textarea:focus-visible, pre:focus-visible, a:focus-visible { outline-color: #e7ba66; }
+::selection { background: #3f7050; color: #ffffff; }

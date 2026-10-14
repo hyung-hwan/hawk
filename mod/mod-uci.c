@@ -666,7 +666,18 @@ static int getoption_byid (hawk_rtx_t* rtx, uctx_list_t* list, hawk_int_t id, ha
 static HAWK_INLINE uctx_list_t* rtx_to_list (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	hawk_rbt_pair_t* pair;
+	hawk_errinf_t errinf;
+
+	/* init/fini modify this shared tree under the module mutex. The
+	 * list belongs to this runtime and stays valid until its own fini. */
+	if (hawk_mtx_lock(rtx->hawk->modmtx, HAWK_NULL) <= -1)
+	{
+		hawk_geterrinf(rtx->hawk, &errinf);
+		hawk_rtx_seterrinf(rtx, &errinf);
+		return HAWK_NULL;
+	}
 	pair = hawk_rbt_search((hawk_rbt_t*)fi->mod->ctx, &rtx, HAWK_SIZEOF(rtx));
+	hawk_mtx_unlock(rtx->hawk->modmtx);
 	HAWK_ASSERT(pair != HAWK_NULL);
 	return (uctx_list_t*)HAWK_RBT_VPTR(pair);
 }
@@ -677,6 +688,7 @@ static int fnc_uci_errno (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_val_t* retv;
 
 	list = rtx_to_list(rtx, fi);
+	if (HAWK_UNLIKELY(!list)) return -1;
 
 	retv = hawk_rtx_makeintval(rtx, list->errnum);
 	if (!retv) return -1;
@@ -704,6 +716,7 @@ static int fnc_uci_errstr (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_int_t errnum;
 
 	list = rtx_to_list(rtx, fi);
+	if (HAWK_UNLIKELY(!list)) return -1;
 
 	if (hawk_rtx_getnargs(rtx) <= 0 ||
 	    hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 0), &errnum) <= -1)
@@ -728,6 +741,7 @@ static int fnc_uci_open (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_val_t* retv;
 
 	list = rtx_to_list(rtx, fi);
+	if (HAWK_UNLIKELY(!list)) return -1;
 	node = new_uctx_node (rtx, list);
 	ret = node? node->id: -UCI_ERR_MEM;
 
@@ -752,6 +766,7 @@ static int fnc_uci_close (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	int ret;
 
 	list = rtx_to_list(rtx, fi);
+	if (HAWK_UNLIKELY(!list)) return -1;
 
 	ret = hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 0), &id);
 	if (ret <= -1) ret = -UCI_ERR_INVAL;
@@ -778,6 +793,7 @@ static int fnc_uci_load  (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	int ret;
 
 	list = rtx_to_list(rtx, fi);
+	if (HAWK_UNLIKELY(!list)) return -1;
 
 	ret = hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 0), &id);
 	if (ret <= -1) ret = -UCI_ERR_INVAL;
@@ -815,6 +831,7 @@ static int fnc_uci_unload (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	int ret;
 
 	list = rtx_to_list(rtx, fi);
+	if (HAWK_UNLIKELY(!list)) return -1;
 
 	ret = hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 0), &id);
 	if (ret <= -1) ret = -UCI_ERR_INVAL;
@@ -841,6 +858,7 @@ static int fnc_uci_save  (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	int ret;
 
 	list = rtx_to_list(rtx, fi);
+	if (HAWK_UNLIKELY(!list)) return -1;
 
 	ret = hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 0), &id);
 	if (ret <= -1) ret = -UCI_ERR_INVAL;
@@ -878,6 +896,7 @@ static int fnc_uci_commit (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	int ret;
 
 	list = rtx_to_list(rtx, fi);
+	if (HAWK_UNLIKELY(!list)) return -1;
 
 	ret = hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 0), &id);
 	if (ret <= -1) ret = -UCI_ERR_INVAL;
@@ -915,6 +934,7 @@ static int fnc_uci_revert (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	int ret;
 
 	list = rtx_to_list(rtx, fi);
+	if (HAWK_UNLIKELY(!list)) return -1;
 
 	ret = hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 0), &id);
 	if (ret <= -1) ret = -UCI_ERR_INVAL;
@@ -952,6 +972,7 @@ static int fnc_uci_delete (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	int ret;
 
 	list = rtx_to_list(rtx, fi);
+	if (HAWK_UNLIKELY(!list)) return -1;
 
 	ret = hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 0), &id);
 	if (ret <= -1) ret = -UCI_ERR_INVAL;
@@ -989,6 +1010,7 @@ static int fnc_uci_rename (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	int ret;
 
 	list = rtx_to_list(rtx, fi);
+	if (HAWK_UNLIKELY(!list)) return -1;
 
 	ret = hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 0), &id);
 	if (ret <= -1) ret = -UCI_ERR_INVAL;
@@ -1026,6 +1048,7 @@ static int fnc_uci_set (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	int ret;
 
 	list = rtx_to_list(rtx, fi);
+	if (HAWK_UNLIKELY(!list)) return -1;
 
 	ret = hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 0), &id);
 	if (ret <= -1) ret = -UCI_ERR_INVAL;
@@ -1063,6 +1086,7 @@ static int fnc_uci_addsection (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	int ret;
 
 	list = rtx_to_list(rtx, fi);
+	if (HAWK_UNLIKELY(!list)) return -1;
 
 	ret = hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 0), &id);
 	if (ret <= -1) ret = -UCI_ERR_INVAL;
@@ -1103,6 +1127,7 @@ static int fnc_uci_addlist (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	int ret;
 
 	list = rtx_to_list(rtx, fi);
+	if (HAWK_UNLIKELY(!list)) return -1;
 
 	ret = hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 0), &id);
 	if (ret <= -1) ret = -UCI_ERR_INVAL;
@@ -1140,6 +1165,7 @@ static int fnc_uci_setconfdir (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	int ret;
 
 	list = rtx_to_list(rtx, fi);
+	if (HAWK_UNLIKELY(!list)) return -1;
 
 	ret = hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 0), &id);
 	if (ret <= -1) ret = -UCI_ERR_INVAL;
@@ -1178,6 +1204,7 @@ static int fnc_uci_setsavedir  (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	int ret;
 
 	list = rtx_to_list(rtx, fi);
+	if (HAWK_UNLIKELY(!list)) return -1;
 
 	ret = hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 0), &id);
 	if (ret <= -1) ret = -UCI_ERR_INVAL;
@@ -1215,6 +1242,7 @@ static int fnc_uci_adddeltapath  (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	int ret;
 
 	list = rtx_to_list(rtx, fi);
+	if (HAWK_UNLIKELY(!list)) return -1;
 
 	ret = hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 0), &id);
 	if (ret <= -1) ret = -UCI_ERR_INVAL;
@@ -1251,6 +1279,7 @@ static int fnc_uci_getoption (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	int ret;
 
 	list = rtx_to_list(rtx, fi);
+	if (HAWK_UNLIKELY(!list)) return -1;
 
 	ret = hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 0), &id);
 	if (ret <= -1) ret = -UCI_ERR_INVAL;
@@ -1286,6 +1315,7 @@ static int fnc_uci_getsection (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	int ret;
 
 	list = rtx_to_list(rtx, fi);
+	if (HAWK_UNLIKELY(!list)) return -1;
 
 	ret = hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 0), &id);
 	if (ret <= -1) ret = -UCI_ERR_INVAL;

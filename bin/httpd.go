@@ -13,15 +13,13 @@ import "strings"
 import "syscall"
 import "time"
 
-func parse_cmdline(args []string, cfg *hawk.HawkHttpdConfig) (bool, error) {
+func parse_cmdline(args []string, cfg *hawk.HawkHttpdConfig, entry *string, shutdown_timeout *time.Duration) (bool, error) {
 
 	var flgs *FlagSet
 	var help bool
 	var key string
-	var entry string
 	var certificate string
 	var tls_addresses []string
-	var shutdown_timeout time.Duration
 	var err error
 
 	flgs = NewFlagSet("httpd", flag.ContinueOnError)
@@ -52,7 +50,7 @@ func parse_cmdline(args []string, cfg *hawk.HawkHttpdConfig) (bool, error) {
 		cfg.Routes = append(cfg.Routes, hawk.HawkHttpdRoute{Prefix: parts[0], Script: parts[1]})
 		return nil
 	})
-	flgs.StringVar(&entry, "entry", "handle", "script entry function")
+	flgs.StringVar(entry, "entry", "handle", "script entry function")
 	flgs.BoolVar(&help, "help", false, "show HTTP server options")
 	flgs.Alias("h", "help")
 	flgs.StringVar(&cfg.IncDirs, "incdirs", "", "include directories")
@@ -61,7 +59,7 @@ func parse_cmdline(args []string, cfg *hawk.HawkHttpdConfig) (bool, error) {
 	flgs.Int64Var(&cfg.MaxBodyBytes, "max-body-bytes", 1024 * 1024, "maximum request body size")
 	flgs.Int64Var(&cfg.MaxResponseBytes, "max-response-bytes", 8 * 1024 * 1024, "maximum script response size")
 	flgs.DurationVar(&cfg.ReloadInterval, "reload-interval", time.Second, "minimum interval between script change checks")
-	flgs.DurationVar(&shutdown_timeout, "shutdown-timeout", 30 * time.Second, "graceful shutdown waiting limit")
+	flgs.DurationVar(shutdown_timeout, "shutdown-timeout", 30 * time.Second, "graceful shutdown waiting limit")
 
 	err = flgs.Parse(args)
 	if err != nil { return true, err; }
@@ -71,7 +69,7 @@ func parse_cmdline(args []string, cfg *hawk.HawkHttpdConfig) (bool, error) {
 		return true, nil
 	}
 
-	if flgs.NArg() != 0 || shutdown_timeout <= 0 {
+	if flgs.NArg() != 0 || *shutdown_timeout <= 0 {
 		return true, fmt.Errorf("unexpected arguments or invalid shutdown timeout")
 	}
 
@@ -107,7 +105,7 @@ func main_httpd(args []string) int {
 	var err error
 	var i int
 
-	exit, err = parse_cmdline(args, &cfg)
+	exit, err = parse_cmdline(args, &cfg, &entry, &shutdown_timeout)
 	if err != nil { goto oops }
 	if (exit) { return 0 }
 

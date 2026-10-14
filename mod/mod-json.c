@@ -393,6 +393,9 @@ static int stringify_value (hawk_rtx_t* rtx, hawk_val_t* val, hawk_ooecs_t* out,
 		case HAWK_VAL_NIL:
 			return (hawk_ooecs_cat(out, HAWK_T("null")) == (hawk_oow_t)-1)? -1: 0;
 
+		case HAWK_VAL_BOOL:
+			return (hawk_ooecs_cat(out, hawk_rtx_valtobool(rtx, val)? HAWK_T("true"): HAWK_T("false")) == (hawk_oow_t)-1)? -1: 0;
+
 		case HAWK_VAL_INT:
 		case HAWK_VAL_FLT:
 		{

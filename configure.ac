@@ -1188,6 +1188,7 @@ HAWK_MOD([uci],[auto],[
 ])
 
 HAWK_MOD([m4],[yes:static],[true])
+HAWK_MOD([mus],[yes:static],[true])
 
 dnl ==== include pthread options to the default flags ====
 dnl keep this as  the last option as it changes the default compile flags.

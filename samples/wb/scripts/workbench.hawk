@@ -1,0 +1,451 @@
+@pragma implicit off
+@pragma xcall on
+@pragma pedantic on
+@pragma defermodsym on
+
+@const WB_MAX_PROGRAM_CHARS = 16384;
+@const WB_MAX_INPUT_CHARS = 65536;
+@const WB_MAX_TITLE_CHARS = 120;
+@const WB_MAX_EXAMPLE_ID = 2147483647;
+@const WB_EXAMPLE_LIST_LIMIT = 200;
+
+@global WB_DATABASE = "";
+@global WB_ERROR = "";
+@global WB_ERROR_STATUS = 500;
+
+function wb_root()
+{
+	return sys::dirname(sys::dirname(@SCRIPTNAME));
+}
+
+function wb_database()
+{
+	@local path;
+
+	if (WB_DATABASE != "") return WB_DATABASE;
+	if (sys::getenv("HAWK_WORKBENCH_DB", path) >= 0 && path != "") return path;
+	return wb_root() "/workbench.db";
+}
+
+function wb_require_modules()
+{
+	@local names, name;
+
+	names = hawk::array("sqlite::open", "json::parse", "sed::process", "m4::process", "mus::process", "http::setheader");
+	for (name in names)
+	{
+		if (!hawk::function_exists(names[name]))
+		{
+			WB_ERROR = "Required module function is unavailable: " names[name];
+			return -1;
+		}
+	}
+	return 0;
+}
+
+function wb_open()
+{
+	@local db;
+
+	WB_ERROR = "";
+	WB_ERROR_STATUS = 500;
+	db = sqlite::open();
+	if (db < 0)
+	{
+		WB_ERROR = sqlite::errmsg();
+		return -1;
+	}
+	if (sqlite::connect(db, wb_database()) < 0 || sqlite::exec(db, "PRAGMA busy_timeout=2000") < 0)
+	{
+		WB_ERROR = sqlite::errmsg();
+		sqlite::close(db);
+		return -1;
+	}
+	return db;
+}
+
+function wb_finish(db, statement)
+{
+	if (statement >= 0 && sqlite::finalize(statement) < 0 && WB_ERROR == "") WB_ERROR = sqlite::errmsg();
+	if (sqlite::close(db) < 0 && WB_ERROR == "") WB_ERROR = sqlite::errmsg();
+	return WB_ERROR == ""? 0: -1;
+}
+
+function wb_example(tool, title, program, input)
+{
+	@local item;
+
+	item["tool"] = tool;
+	item["title"] = title;
+	item["program"] = program;
+	item["input"] = input;
+	return item;
+}
+
+function wb_initialize()
+{
+	@local db, statement, row, rc, seeds, i, item;
+
+	if (wb_require_modules() < 0) return -1;
+	db = wb_open();
+	if (db < 0) return -1;
+	statement = -1;
+	do
+	{
+		if (sqlite::exec(db, "CREATE TABLE IF NOT EXISTS examples (id INTEGER PRIMARY KEY, tool TEXT NOT NULL CHECK(tool IN ('sed','m4','mus')), title TEXT NOT NULL, program TEXT NOT NULL, input TEXT NOT NULL, updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, UNIQUE(tool,title))") < 0 ||
+		    sqlite::exec(db, "CREATE TABLE IF NOT EXISTS workbench_meta (name TEXT PRIMARY KEY, value TEXT NOT NULL)") < 0 ||
+		    sqlite::exec(db, "BEGIN IMMEDIATE") < 0) break;
+
+		statement = sqlite::prepare(db, "SELECT value FROM workbench_meta WHERE name='seeded'");
+		if (statement < 0) break;
+
+		rc = sqlite::fetch_row(statement, row);
+		if (rc < 0) break;
+
+		if (sqlite::finalize(statement) < 0) break;
+		statement = -1;
+		if (rc == 0)
+		{
+			seeds = hawk::array();
+			seeds[1] = wb_example("sed", "Replace words", "s/world/Hawk/g", "hello world\nworld of text\n");
+			seeds[2] = wb_example("sed", "Keep matching lines", "/error/!d", "info: ready\nerror: missing file\ninfo: done\n");
+			seeds[3] = wb_example("m4", "Define a macro", "define(`NAME', `Hawk')dnl", "Hello NAME!");
+			seeds[4] = wb_example("m4", "Macro arguments", "define(`PAIR', `$1: $2')dnl", "PAIR(`language', `Hawk')");
+			seeds[5] = wb_example("mus", "A greeting", "Hello {{name}}!\n{{#items}}- {{.}}\n{{/items}}", "{\"name\":\"Hawk\",\"items\":[\"sed\",\"m4\",\"mustache\"]}");
+			seeds[6] = wb_example("mus", "Sections and HTML escaping", "{{#enabled}}<p>{{message}}</p>{{/enabled}}{{^enabled}}Disabled{{/enabled}}", "{\"enabled\":true,\"message\":\"A & B < C\"}");
+			statement = sqlite::prepare(db, "INSERT OR IGNORE INTO examples(tool,title,program,input) VALUES(?,?,?,?)");
+			if (statement < 0) break;
+			for (i = 1; i <= length(seeds); i++)
+			{
+				item = seeds[i];
+				if (sqlite::bind_str(statement, 1, item["tool"]) < 0 ||
+				    sqlite::bind_str(statement, 2, item["title"]) < 0 ||
+				    sqlite::bind_str(statement, 3, item["program"]) < 0 ||
+				    sqlite::bind_str(statement, 4, item["input"]) < 0 ||
+				    sqlite::fetch_row(statement, row) < 0 || sqlite::reset(statement) < 0)
+				{
+					rc = -1;
+					break;
+				}
+			}
+			if (rc < 0 || sqlite::finalize(statement) < 0) break;
+			statement = -1;
+			if (sqlite::exec(db, "INSERT INTO workbench_meta(name,value) VALUES('seeded','1')") < 0) break;
+		}
+		if (sqlite::exec(db, "COMMIT") < 0) break;
+		return wb_finish(db, statement);
+	}
+	while (0);
+
+	WB_ERROR = sqlite::errmsg();
+	sqlite::exec(db, "ROLLBACK");
+
+	wb_finish(db, statement);
+	return -1;
+}
+
+function wb_list()
+{
+	@local db, statement, rows, row, item, rc;
+
+	db = wb_open();
+	if (db < 0) return @nil;
+
+	do
+	{
+		statement = sqlite::prepare(db, "SELECT id,tool,title,program,input,updated_at FROM examples ORDER BY updated_at DESC,id DESC LIMIT " %% WB_EXAMPLE_LIST_LIMIT);
+		if (statement < 0) break;
+
+		rows = hawk::array();
+		while ((rc = sqlite::fetch_row(statement, row)) > 0)
+		{
+			item = wb_example(row["2"], row["3"], row["4"], row["5"]);
+			item["id"] = row["1"];
+			item["updated_at"] = row["6"];
+			rows[length(rows) + 1] = item;
+		}
+		if (rc < 0) break;
+		if (wb_finish(db, statement) < 0) return @nil;
+		return rows;
+	}
+	while (0);
+
+	WB_ERROR = sqlite::errmsg();
+	wb_finish(db, statement);
+
+	return @nil;
+}
+
+function wb_valid_tool(tool)
+{
+	return tool == "sed" || tool == "m4" || tool == "mus";
+}
+
+function wb_valid_payload(payload)
+{
+	if (hawk::type(payload) != hawk::VAL_MAP)
+	{
+		WB_ERROR = "The request must be a JSON object.";
+		return 0;
+	}
+
+	if (!("tool" in payload) || hawk::type(payload["tool"]) != hawk::VAL_STR || !wb_valid_tool(payload["tool"]))
+	{
+		WB_ERROR = "Choose sed, m4, or mus.";
+		return 0;
+	}
+
+	if (!("program" in payload) || hawk::type(payload["program"]) != hawk::VAL_STR ||
+	    !("input" in payload) || hawk::type(payload["input"]) != hawk::VAL_STR)
+	{
+		WB_ERROR = "Program and input must be strings.";
+		return 0;
+	}
+
+	if (length(payload["program"]) > WB_MAX_PROGRAM_CHARS || length(payload["input"]) > WB_MAX_INPUT_CHARS)
+	{
+		WB_ERROR = sprintf("Program exceeds %d characters or input exceeds %d characters.", WB_MAX_PROGRAM_CHARS, WB_MAX_INPUT_CHARS);
+		return 0;
+	}
+	return 1;
+}
+
+function wb_result(ok, text)
+{
+	@local result;
+
+	result["ok"] = ok;
+	if (ok) result["output"] = text;
+	else result["error"] = text;
+	return result;
+}
+
+function wb_run(payload)
+{
+	@local output, rc, data, source;
+
+	WB_ERROR = "";
+	if (!wb_valid_payload(payload)) return wb_result(@false, WB_ERROR);
+
+	switch(payload["tool"])
+	{
+		case "sed":
+			rc = sed::process(payload["program"], payload["input"], output, sed::STR_TO_STR);
+			if (rc < 0) return wb_result(@false, "Sed failed (status " rc "). Check the commands and regular expressions.");
+			break;
+
+		case "m4":
+			source = payload["program"] == ""? payload["input"]: payload["program"] "\n" payload["input"];
+			rc = m4::process(source, output, m4::STR_TO_STR);
+			if (rc < 0) return wb_result(@false, "M4 failed (status " rc "). Check quoting and macro arguments.");
+			break;
+
+		default:
+			# json::parse() failures abort the runtime. The browser checks this JSON
+			# before submission; direct API clients receive HTTP 500 for parse errors.
+			data = json::parse(payload["input"]);
+			rc = mus::process(payload["program"], data, output, mus::STR_TO_STR);
+			if (rc < 0) return wb_result(@false, mus::errmsg());
+			break;
+	}
+
+	return wb_result(@true, output);
+}
+
+function wb_valid_id(id)
+{
+	return (hawk::type(id) == hawk::VAL_INT || hawk::type(id) == hawk::VAL_STR) &&
+	       ("" id) ~ /^[1-9][0-9]*$/ && id + 0 <= WB_MAX_EXAMPLE_ID;
+}
+
+function wb_save(payload)
+{
+	@local db, statement, row, id, result;
+
+	WB_ERROR = "";
+	WB_ERROR_STATUS = 400;
+	if (!wb_valid_payload(payload)) return @nil;
+	if (!("title" in payload) || hawk::type(payload["title"]) != hawk::VAL_STR ||
+	    payload["title"] !~ /[^ \t\r\n]/ || length(payload["title"]) > WB_MAX_TITLE_CHARS || index(payload["title"], "\0") > 0)
+	{
+		WB_ERROR = sprintf("Give the example a title of 1 to %d characters without NUL.", WB_MAX_TITLE_CHARS);
+		return @nil;
+	}
+	id = 0;
+	if ("id" in payload && payload["id"] !== @nil && payload["id"] !== 0)
+	{
+		if (!wb_valid_id(payload["id"]))
+		{
+			WB_ERROR = "Invalid example ID.";
+			return @nil;
+		}
+		id = payload["id"] + 0;
+	}
+	db = wb_open();
+	if (db < 0) return @nil;
+	do
+	{
+		statement = sqlite::prepare(db, id > 0? "UPDATE examples SET tool=?,title=?,program=?,input=?,updated_at=CURRENT_TIMESTAMP WHERE id=?": "INSERT INTO examples(tool,title,program,input) VALUES(?,?,?,?)");
+		if (statement < 0) break;
+		if (sqlite::bind_str(statement, 1, payload["tool"]) < 0 ||
+		    sqlite::bind_str(statement, 2, payload["title"]) < 0 ||
+		    sqlite::bind_str(statement, 3, payload["program"]) < 0 ||
+		    sqlite::bind_str(statement, 4, payload["input"]) < 0 ||
+		    (id > 0 && sqlite::bind_int(statement, 5, id) < 0) || sqlite::fetch_row(statement, row) < 0) break;
+		if (id > 0 && sqlite::changes(db) == 0)
+		{
+			WB_ERROR = "Example not found.";
+			WB_ERROR_STATUS = 404;
+			wb_finish(db, statement);
+			return @nil;
+		}
+		if (id == 0) id = sqlite::last_insert_rowid(db);
+		if (wb_finish(db, statement) < 0) return @nil;
+		result = wb_example(payload["tool"], payload["title"], payload["program"], payload["input"]);
+		result["id"] = id;
+		return result;
+	}
+	while (0);
+	WB_ERROR = sqlite::errmsg();
+	if (index(WB_ERROR, "UNIQUE constraint failed") > 0)
+	{
+		WB_ERROR = "An example with this name already exists for this tool. Choose another name.";
+		WB_ERROR_STATUS = 409;
+	}
+	wb_finish(db, statement);
+	return @nil;
+}
+
+function wb_delete(id)
+{
+	@local db, statement, row, count;
+
+	WB_ERROR = "";
+	if (!wb_valid_id(id))
+	{
+		WB_ERROR = "Invalid example ID.";
+		return -1;
+	}
+	db = wb_open();
+	if (db < 0) return -1;
+	do
+	{
+		statement = sqlite::prepare(db, "DELETE FROM examples WHERE id=?");
+		if (statement < 0 || sqlite::bind_int(statement, 1, id + 0) < 0 || sqlite::fetch_row(statement, row) < 0) break;
+		count = sqlite::changes(db);
+		if (wb_finish(db, statement) < 0) return -1;
+		if (count == 0)
+		{
+			WB_ERROR = "Example not found.";
+			WB_ERROR_STATUS = 404;
+			return -1;
+		}
+		return 0;
+	}
+	while (0);
+	WB_ERROR = sqlite::errmsg();
+	wb_finish(db, statement);
+	return -1;
+}
+
+function wb_json_response(status, data)
+{
+	@local response;
+
+	response["status"] = status;
+	response["content_type"] = "application/json; charset=utf-8";
+	response["body"] = json::stringify(data);
+	return response;
+}
+
+function wb_error_response(status, message)
+{
+	return wb_json_response(status, wb_result(@false, message));
+}
+
+function wb_dispatch(request)
+{
+	@local method, path, payload, result, data, output, headers, query;
+
+	method = request["method"];
+	path = request["path"];
+	if (path == "/app/" && (method == "GET" || method == "HEAD"))
+	{
+		@local uname = sys::uname();
+		data["examples"] = wb_list();
+		if (data["examples"] === @nil) return wb_error_response(500, WB_ERROR);
+		data["title"] = "Hawk text workbench";
+		if ("sysname" in uname) data["sysname"] = uname["sysname"];
+		if (mus::process(wb_root() "/templates/workbench.mustache", data, output, mus::FILE_TO_STR) < 0)
+			return wb_error_response(500, mus::errmsg());
+		result["status"] = 200;
+		result["content_type"] = "text/html; charset=utf-8";
+		result["body"] = output;
+		return result;
+	}
+
+	if (path != "/api/run" && path != "/api/examples")
+	{
+		return wb_error_response(404, "Page not found.");
+	}
+
+	if (path == "/api/examples" && (method == "GET" || method == "HEAD"))
+	{
+		data["examples"] = wb_list();
+		if (data["examples"] === @nil) return wb_error_response(500, WB_ERROR);
+		data["ok"] = @true;
+		return wb_json_response(200, data);
+	}
+
+	if ((path == "/api/run" && method != "POST") ||
+	    (path == "/api/examples" && method != "POST" && method != "DELETE"))
+	{
+		return wb_error_response(405, "Method not allowed.");
+	}
+
+	headers = request["headers"];
+	if (!("X-Workbench-Request" in headers) || headers["X-Workbench-Request"][1] != "1")
+		return wb_error_response(403, "Missing workbench request header.");
+	if (method == "DELETE")
+	{
+		query = request["query"];
+		if (!("id" in query) || !wb_valid_id(query["id"][1])) return wb_error_response(400, "Invalid example ID.");
+		if (wb_delete(query["id"][1]) < 0) return wb_error_response(WB_ERROR_STATUS, WB_ERROR);
+		return wb_json_response(200, wb_result(@true, "Deleted."));
+	}
+
+	if (!("Content-Type" in headers) || tolower(headers["Content-Type"][1]) !~ /^application\/json([ \t]*;|[ \t]*$)/)
+	{
+		return wb_error_response(415, "Send application/json.");
+	}
+
+	payload = json::parse(request["body"]);
+	if (!wb_valid_payload(payload))
+	{
+		return wb_error_response(400, WB_ERROR);
+	}
+	if (path == "/api/run")
+	{
+		result = wb_run(payload);
+		return wb_json_response(result["ok"]? 200: 422, result);
+	}
+
+	result = wb_save(payload);
+	if (result === @nil) return wb_error_response(WB_ERROR_STATUS, WB_ERROR);
+	data["ok"] = @true;
+	data["example"] = result;
+	return wb_json_response(200, data);
+}
+
+function handle(request)
+{
+	@local response;
+
+	response = wb_dispatch(request);
+	http::setstatus(response["status"]);
+	http::setheader("Content-Type", response["content_type"]);
+	http::setheader("Cache-Control", "no-store");
+	http::setheader("X-Content-Type-Options", "nosniff");
+	http::setheader("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'");
+	printf "%s", response["body"];
+}

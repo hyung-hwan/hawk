@@ -822,6 +822,12 @@
 /* build mod/memc statically linked into the main library */
 #undef HAWK_ENABLE_MOD_MEMC_STATIC
 
+/* build mod/mus */
+#undef HAWK_ENABLE_MOD_MUS
+
+/* build mod/mus statically linked into the main library */
+#undef HAWK_ENABLE_MOD_MUS_STATIC
+
 /* build mod/mysql */
 #undef HAWK_ENABLE_MOD_MYSQL
 

@@ -73,6 +73,7 @@ pkginclude_HEADERS = \
 	hawk-md5.h \
 	hawk-mtx.h \
 	hawk-mux.h \
+	hawk-mus.h \
 	hawk-rbt.h \
 	hawk-pac1.h \
 	hawk-pio.h \
@@ -136,6 +137,7 @@ libhawk_la_SOURCES = \
 	ksc5601.h \
 	md5.c \
 	mux.c \
+	mus.c \
 	mb8.c \
 	misc-imp.h \
 	misc-prv.h \
@@ -204,6 +206,7 @@ libhawk_la_SOURCES += \
 	std-cut.c \
 	std-json.c \
 	std-m4.c \
+	std-mus.c \
 	std-sh.c \
 	std-sed.c
 
@@ -356,6 +359,10 @@ endif
 
 if ENABLE_MOD_M4_STATIC
 libhawk_la_SOURCES += ../mod/mod-m4.c ../mod/mod-m4.h
+endif
+
+if ENABLE_MOD_MUS_STATIC
+libhawk_la_SOURCES += ../mod/mod-mus.c ../mod/mod-mus.h
 endif
 
 ##############################################################

@@ -72,8 +72,18 @@ static HAWK_INLINE memc_list_t* rtx_to_memc_list (hawk_rtx_t* rtx, const hawk_fn
 {
 	hawk_rbt_pair_t* pair;
 	rtx_data_t* data;
+	hawk_errinf_t errinf;
 
+	/* init/fini modify this shared tree under the module mutex. Release
+	 * it after lookup so independent runtimes can use their lists in parallel. */
+	if (hawk_mtx_lock(rtx->hawk->modmtx, HAWK_NULL) <= -1)
+	{
+		hawk_geterrinf(rtx->hawk, &errinf);
+		hawk_rtx_seterrinf(rtx, &errinf);
+		return HAWK_NULL;
+	}
 	pair = hawk_rbt_search((hawk_rbt_t*)fi->mod->ctx, &rtx, HAWK_SIZEOF(rtx));
+	hawk_mtx_unlock(rtx->hawk->modmtx);
 	HAWK_ASSERT (pair != HAWK_NULL);
 	data = (rtx_data_t*)HAWK_RBT_VPTR(pair);
 	return &data->memc_list;
@@ -129,6 +139,7 @@ static int fnc_new (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_val_t* retv;
 
 	memc_list = rtx_to_memc_list(rtx, fi);
+	if (HAWK_UNLIKELY(!memc_list)) return -1;
 
 	memc_node = new_memc_node(rtx, memc_list);
 	if (memc_node) ret = memc_node->id;
@@ -157,6 +168,7 @@ static int fnc_connect (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	int ret = -1, take_rtx_err = 0;
 
 	memc_list = rtx_to_memc_list(rtx, fi);
+	if (HAWK_UNLIKELY(!memc_list)) return -1;
 	memc_node = get_memc_list_node_with_arg(rtx, memc_list, hawk_rtx_getarg(rtx, 0));
 	if (memc_node)
 	{
@@ -192,6 +204,7 @@ static int fnc_close (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	int ret = -1;
 
 	memc_list = rtx_to_memc_list(rtx, fi);
+	if (HAWK_UNLIKELY(!memc_list)) return -1;
 	memc_node = get_memc_list_node_with_arg(rtx, memc_list, hawk_rtx_getarg(rtx, 0));
 	if (memc_node)
 	{
@@ -209,6 +222,7 @@ static int fnc_errmsg (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_val_t* retv;
 
 	memc_list = rtx_to_memc_list(rtx, fi);
+	if (HAWK_UNLIKELY(!memc_list)) return -1;
 	retv = hawk_rtx_makestrvalwithoocstr(rtx, memc_list->errmsg);
 	if (!retv) return -1;
 
@@ -233,6 +247,7 @@ static int fnc_get (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	size_t val_len = 0;
 
 	memc_list = rtx_to_memc_list(rtx, fi);
+	if (HAWK_UNLIKELY(!memc_list)) return -1;
 	memc_node = get_memc_list_node_with_arg(rtx, memc_list, hawk_rtx_getarg(rtx, 0));
 	if (!memc_node)
 	{
@@ -306,6 +321,7 @@ static int fnc_set (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_int_t flag = 0;
 
 	memc_list = rtx_to_memc_list(rtx, fi);
+	if (HAWK_UNLIKELY(!memc_list)) return -1;
 	memc_node = get_memc_list_node_with_arg(rtx, memc_list, hawk_rtx_getarg(rtx, 0));
 	if (!memc_node)
 	{

@@ -1,0 +1,204 @@
+@pragma entry main
+@pragma implicit off
+@pragma defermodsym on
+@pragma xcall on
+
+@include "tap.inc";
+
+function bad_value()
+{
+	return 0;
+}
+
+function render(template, data, expected,    output, rc)
+{
+	output = "old output";
+	rc = mus::process(template, data, output, mus::STR_TO_STR);
+	tap_ensure(rc, 0, @SCRIPTNAME, @SCRIPTLINE);
+	if (rc != 0) print "# " mus::errmsg();
+	tap_ensure(output, expected, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(mus::errmsg(), "", @SCRIPTNAME, @SCRIPTLINE);
+}
+
+function test_values(    data, items, inner, other, output, holder)
+{
+	data["name"] = "A&B <C> \"D\" 'E'";
+	render("{{name}}", data, "A&amp;B &lt;C&gt; &quot;D&quot; &#39;E&#39;");
+	render("{{{name}}}|{{&name}}", data, data["name"] "|" data["name"]);
+	render("{{missing}}[{{! ignored}}]", data, "[]");
+	render("{{=<% %>=}}<%name%>", data, "A&amp;B &lt;C&gt; &quot;D&quot; &#39;E&#39;");
+
+	data["name"] = "outer";
+	inner["name"] = "inner";
+	inner["nil"] = @nil;
+	data["nil"] = "parent";
+	data["object"] = inner;
+	data["title"] = "TITLE";
+	render("{{object.name}}/{{#object}}{{name}} {{title}}[{{nil}}]{{/object}}", data, "inner/inner TITLE[]");
+	render("{{object.title}}", data, "");
+
+	data["true"] = @true;
+	data["false"] = @false;
+	data["zero"] = 0;
+	data["empty"] = "";
+	data["char"] = @c'X';
+	data["byte"] = @b'Y';
+	data["bytes"] = @b"ABC";
+	data["real"] = 1.5;
+	render("{{true}}/{{false}}/{{zero}}/{{char}}{{byte}}{{bytes}}/{{real}}", data, "1/0/0/XYABC/1.5");
+	render("{{#zero}}Z{{/zero}}{{#empty}}E{{/empty}}{{#true}}T{{/true}}{{^false}}F{{/false}}", data, "ZETF");
+	render("{{#false}}no{{/false}}{{#absent}}no{{/absent}}{{^absent}}yes{{/absent}}", data, "yes");
+	render("{{.}}", 20, "20");
+	render("{{.}}", @nil, "");
+	render("", data, "");
+	render("before\0{{bytes}}", data, "before\0ABC");
+	data["nul"] = "A\0B";
+	render("{{nul}}", data, "A\0B");
+	data["unicode"] = "日本";
+	render("{{unicode}}", data, "日本");
+	data["utf8"] = @b"\xE6\x97\xA5\xE6\x9C\xAC";
+	render("{{utf8}}", data, "日本");
+
+	items = hawk::array("one", "two", "three");
+	data["items"] = items;
+	render("{{#items}}[{{.}}/{{title}}]{{/items}}", data, "[one/TITLE][two/TITLE][three/TITLE]");
+	items = hawk::array();
+	items[5] = "five";
+	items[20] = "twenty";
+	data["items"] = items;
+	render("{{#items}}[{{.}}]{{/items}}", data, "[five][twenty]");
+	items = hawk::array();
+	data["items"] = items;
+	render("{{#items}}no{{/items}}{{^items}}empty{{/items}}", data, "empty");
+
+	inner["children"] = hawk::array("a", "b");
+	other["name"] = "other";
+	other["children"] = hawk::array("c");
+	data["items"] = hawk::array(inner, other);
+	render("{{#items}}{{name}}:{{#children}}{{.}}{{/children}};{{/items}}", data, "inner:ab;other:c;");
+
+	tap_ensure(mus::process("{{name}}", data, holder["text"], mus::STR_TO_STR), 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(holder["text"], "outer", @SCRIPTNAME, @SCRIPTLINE);
+	output = data;
+	tap_ensure(mus::process("{{name}}", output, output, mus::STR_TO_STR), 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(output, "outer", @SCRIPTNAME, @SCRIPTLINE);
+}
+
+function expect_failure(template, data, mode,    output)
+{
+	output = "unchanged";
+	tap_ensure(mus::process(template, data, output, mode) < 0, 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(output, "unchanged", @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(length(mus::errmsg()) > 0, 1, @SCRIPTNAME, @SCRIPTLINE);
+}
+
+function test_errors(    data, output, name, i, template)
+{
+	data["x"] = "value";
+	expect_failure("{{#x}}", data, mus::STR_TO_STR);
+	expect_failure("{{#x}}{{/y}}", data, mus::STR_TO_STR);
+	expect_failure("{{", data, mus::STR_TO_STR);
+	expect_failure("{{x}}", data, -1);
+	expect_failure("{{x}}", data, 4);
+	expect_failure("{{x}}", data, 1e100);
+	expect_failure("{{x}}", data, math::sqrt(-1));
+	expect_failure("{{x}}", data, 0.5);
+	expect_failure("{{x}}", data, bad_value);
+	expect_failure("{{.}}", bad_value, mus::STR_TO_STR);
+	expect_failure("{{.}}", data, mus::STR_TO_STR);
+	expect_failure("{{.}}", hawk::array(1), mus::STR_TO_STR);
+
+	data["function"] = bad_value;
+	expect_failure("{{function}}", data, mus::STR_TO_STR);
+	# Unused values are never classified or converted.
+	render("{{x}}", data, "value");
+	output = "unchanged";
+	tap_ensure(mus::process("ok", data, output, mus::STR_TO_STR, "a\0b") < 0, 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(output, "unchanged", @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(index(mus::errmsg(), "NUL") > 0, 1, @SCRIPTNAME, @SCRIPTLINE);
+	template = "";
+	for (i = 0; i < 257; i++) template = template "{{#x}}";
+	for (i = 0; i < 257; i++) template = template "{{/x}}";
+	expect_failure(template, data, mus::STR_TO_STR);
+	render("{{x}}", data, "value");
+}
+
+function read_file(path,    text, chunk)
+{
+	text = "";
+	while ((getline chunk < path) > 0) text = text chunk;
+	close(path);
+	return text;
+}
+
+function test_files(    input, output, partial, partial_name, data, text, rc)
+{
+	input = sys::tempname("hawk-mus-input-");
+	output = sys::tempname("hawk-mus-output-");
+	partial = sys::tempname("hawk-mus-partial-");
+	if (input == "" || output == "" || partial == "")
+	{
+		tap_skip("unable to create temporary mustache files");
+		if (input != "") sys::unlink(input);
+		if (output != "") sys::unlink(output);
+		if (partial != "") sys::unlink(partial);
+		return;
+	}
+	data["name"] = "HAWK";
+	printf "%s", "Hello {{name}}" > input;
+	close(input);
+	tap_ensure(mus::process(input, data, text, mus::FILE_TO_STR), 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(text, "Hello HAWK", @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(mus::process("String {{name}}", data, output, mus::STR_TO_FILE), 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(read_file(output), "String HAWK", @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(mus::process(input, data, output, mus::FILE_TO_FILE), 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(read_file(output), "Hello HAWK", @SCRIPTNAME, @SCRIPTLINE);
+
+	# FILE modes accept a literal output path as well as a variable.
+	tap_ensure(hawk::call("mus::process", "literal", data, "" output, mus::STR_TO_FILE), 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(read_file(output), "literal", @SCRIPTNAME, @SCRIPTLINE);
+	printf "%s", "{{name}} partial" > partial;
+	close(partial);
+	partial_name = sys::basename(partial);
+	tap_ensure(mus::process("[{{>" partial_name "}}]", data, text, mus::STR_TO_STR, sys::dirname(partial)), 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(text, "[HAWK partial]", @SCRIPTNAME, @SCRIPTLINE);
+	printf "%s", "{{>" partial_name "}}" > input;
+	close(input);
+	tap_ensure(mus::process(input, data, text, mus::FILE_TO_STR), 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(text, "HAWK partial", @SCRIPTNAME, @SCRIPTLINE);
+	printf "%s", "updated" > partial;
+	close(partial);
+	tap_ensure(mus::process(input, data, text, mus::FILE_TO_STR), 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(text, "updated", @SCRIPTNAME, @SCRIPTLINE);
+	sys::unlink(partial);
+	tap_ensure(mus::process(input, data, text, mus::FILE_TO_STR), 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(text, "", @SCRIPTNAME, @SCRIPTLINE);
+
+	printf "%s", "KEEP" > output;
+	close(output);
+	tap_ensure(mus::process("{{", data, output, mus::STR_TO_FILE) < 0, 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(read_file(output), "KEEP", @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(mus::process("x", data, output "\0suffix", mus::STR_TO_FILE) < 0, 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(read_file(output), "KEEP", @SCRIPTNAME, @SCRIPTLINE);
+	expect_failure(input "\0suffix", data, mus::FILE_TO_STR);
+	sys::unlink(input);
+	expect_failure(input, data, mus::FILE_TO_STR);
+	tap_ensure(mus::process("x", data, input "/missing", mus::STR_TO_FILE) < 0, 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(length(mus::errmsg()) > 0, 1, @SCRIPTNAME, @SCRIPTLINE);
+	sys::unlink(output);
+}
+
+function main()
+{
+	if (!hawk::function_exists("mus::process"))
+	{
+		tap_skip("mus module unavailable");
+		tap_end();
+		return;
+	}
+	tap_ensure(mus::errmsg(), "", @SCRIPTNAME, @SCRIPTLINE);
+	test_values();
+	test_errors();
+	test_files();
+	tap_end();
+}

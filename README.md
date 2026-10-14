@@ -415,6 +415,71 @@ subshell groups, globbing, field splitting, positional parameters, and command
 substitution are not implemented. Parameter expansion currently preserves each
 input word as one argument.
 
+### Embeddable Mustache engine
+
+`hawk-mus.h` provides `hawk_mus_t`, a standalone template engine with no JSON,
+interpreter, or third-party-library dependency. Its core is `lib/mus.c`; stock
+file/string I/O is in `lib/std-mus.c`. Each instance owns its parsed template,
+options, heap-backed execution frames, and application extension area.
+
+Use `hawk_mus_open()` with a memory manager and character manager, or
+`hawk_mus_openstd()` for the standard defaults. Compile a length-bearing source
+with `hawk_mus_compilewithbchars()`, `hawk_mus_compilewithuchars()`, or
+`hawk_mus_compilewithoochars()`. `hawk_mus_compilestd()` also accepts file and
+string descriptors. A failed compile preserves the previous template, which
+can be rendered repeatedly with different data.
+
+Applications provide `hawk_mus_data_t` callbacks for member lookup, value type,
+string conversion, and zero-based array access. Values are borrowed opaque
+handles: the engine implements dotted names, parent context lookup, sections,
+inverted sections, and iteration. Missing variables produce empty output;
+ordinary variables are HTML escaped, while `{{{name}}}` and `{{&name}}` are raw.
+Comments, custom delimiters, standalone lines, and indented/recursive partials
+are supported. Optional lambdas, inheritance, and dynamic partial names are
+not supported in this implementation.
+
+`hawk_mus_render()` streams output and loads partials through an application
+I/O callback. `hawk_mus_renderstd()` accepts an output file or returns allocated
+text in an `HAWK_MUS_IOSTD_OOCS` descriptor; free that text with
+`hawk_mus_freemem()`. Stock partial lookup tries the requested name and its
+`.mustache` suffix beside the calling template, then directories configured
+with `HAWK_MUS_OPT_PARTIALDIRS`. For string templates the initial base is the
+working directory. Missing partials are empty; other I/O failures are reported.
+
+`HAWK_MUS_OPT_MAX_DEPTH` defaults to 256 and bounds parser section nesting and
+render frames, including the root frame. No recursive C calls are used for
+sections or partials. Serialize operations on one instance; separate instances
+are independent. Callbacks must not close or reset the active instance.
+
+The optional `mus::` module renders Mustache templates using Hawk data:
+
+```awk
+BEGIN {
+	data["name"] = "Hawk"
+	data["items"] = @["one", "two", "three"]
+	rc = mus::process("Hello {{name}}:{{#items}} {{.}}{{/items}}",
+	                  data, output, mus::STR_TO_STR)
+	if (rc == 0) print output
+	else print mus::errmsg()
+}
+```
+
+`mus::process(template, data, output, mode [, partial-directories])` returns
+zero on success or -1 on failure. `mus::errmsg()` holds the last error for the
+current runtime and is cleared by a successful call. The modes are
+`mus::STR_TO_STR`, `mus::FILE_TO_STR`, `mus::STR_TO_FILE`, and
+`mus::FILE_TO_FILE`. String output requires a variable reference and changes
+only after successful rendering; file output accepts a filename. File output
+may be partial after a rendering or I/O error. Templates are compiled per call.
+
+Maps supply named fields; arrays iterate occupied elements in ascending index
+order, including sparse arrays. Nil, false, and empty arrays are false;
+numeric zero and empty strings are true. Scalars use Hawk's string conversion
+(booleans become `1`/`0`); map/array interpolation and function values are
+rejected. Unused fields are not inspected. The optional partial directory list
+uses the platform path-list separator. Configure with `--enable-mod-mus=no`
+to disable the module or `--enable-mod-mus=yes` for a dynamic module.
+
 ### Go HTTP server mode
 
 `hawkgo --httpd` runs an HTTP application server using Go's standard library.
@@ -535,6 +600,13 @@ works with static or dynamic modules and C CGI/FastCGI hosts.
 
 `NewHawkHttpd()` returns an unavailable error when configured with
 `--enable-mod-http=no`; the ordinary Go Hawk binding remains usable.
+
+A complete local example is available in
+[samples/web-workbench](samples/web-workbench/README.md). It provides sed and
+m4 playgrounds, a Mustache preview with JSON data, and a SQLite library of saved
+examples. Its pages are rendered with `mus::`, request handlers are Hawk
+scripts, and the browser uses plain JavaScript. Run
+`samples/web-workbench/run.sh` after building `hawk` and `hawkgo`.
 
 ### Generic aux services
 

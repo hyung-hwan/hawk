@@ -89,9 +89,11 @@ static sql_node_t* new_sql_node (hawk_rtx_t* rtx, sql_list_t* sql_list)
 
 static void free_sql_node (hawk_rtx_t* rtx, sql_list_t* sql_list, sql_node_t* sql_node)
 {
-	HAWK_ASSERT(sql_node->db != HAWK_NULL);
-	sqlite3_close(sql_node->db);
-	sql_node->db = HAWK_NULL;
+	if (sql_node->db)
+	{
+		sqlite3_close(sql_node->db);
+		sql_node->db = HAWK_NULL;
+	}
 	__free_sql_node(rtx, sql_list, sql_node);
 }
 
@@ -119,30 +121,30 @@ static void free_stmt_node (hawk_rtx_t* rtx, stmt_list_t* stmt_list, stmt_node_t
 
 /* ------------------------------------------------------------------------ */
 
-static HAWK_INLINE sql_list_t* rtx_to_sql_list (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+static HAWK_INLINE rtx_data_t* get_rtx_data (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	hawk_rbt_pair_t* pair;
-	rtx_data_t* data;
+	hawk_errinf_t errinf;
+
+	/* init/fini change this shared registry under the module mutex. Only
+	 * the lookup needs protection: the record belongs to this runtime and
+	 * remains valid until its own fini, even as other runtimes come and go. */
+	if (hawk_mtx_lock(rtx->hawk->modmtx, HAWK_NULL) <= -1)
+	{
+		hawk_geterrinf(rtx->hawk, &errinf);
+		hawk_rtx_seterrinf(rtx, &errinf);
+		return HAWK_NULL;
+	}
 	pair = hawk_rbt_search((hawk_rbt_t*)fi->mod->ctx, &rtx, HAWK_SIZEOF(rtx));
+	hawk_mtx_unlock(rtx->hawk->modmtx);
 	HAWK_ASSERT(pair != HAWK_NULL);
-	data = (rtx_data_t*)HAWK_RBT_VPTR(pair);
-	return &data->sql_list;
+	return (rtx_data_t*)HAWK_RBT_VPTR(pair);
 }
 
 static HAWK_INLINE sql_node_t* get_sql_list_node (sql_list_t* sql_list, hawk_int_t id)
 {
 	if (id < 0 || id >= sql_list->map.high || !sql_list->map.tab[id]) return HAWK_NULL;
 	return sql_list->map.tab[id];
-}
-
-static HAWK_INLINE stmt_list_t* rtx_to_stmt_list (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
-{
-	hawk_rbt_pair_t* pair;
-	rtx_data_t* data;
-	pair = hawk_rbt_search((hawk_rbt_t*)fi->mod->ctx, &rtx, HAWK_SIZEOF(rtx));
-	HAWK_ASSERT(pair != HAWK_NULL);
-	data = (rtx_data_t*)HAWK_RBT_VPTR(pair);
-	return &data->stmt_list;
 }
 
 static HAWK_INLINE stmt_node_t* get_stmt_list_node (stmt_list_t* stmt_list, hawk_int_t id)
@@ -170,10 +172,13 @@ static void set_error_on_sql_list (hawk_rtx_t* rtx, sql_list_t* sql_list, const 
 
 static int fnc_errmsg (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
+	rtx_data_t* data;
 	sql_list_t* sql_list;
 	hawk_val_t* retv;
 
-	sql_list = rtx_to_sql_list(rtx, fi);
+	data = get_rtx_data(rtx, fi);
+	if (HAWK_UNLIKELY(!data)) return -1;
+	sql_list = &data->sql_list;
 	retv = hawk_rtx_makestrvalwithoocstr(rtx, sql_list->errmsg);
 	if (HAWK_UNLIKELY(!retv)) return -1;
 
@@ -225,12 +230,15 @@ static stmt_node_t* get_stmt_list_node_with_arg (hawk_rtx_t* rtx, sql_list_t* sq
 
 static int fnc_open (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
+	rtx_data_t* data;
 	sql_list_t* sql_list;
 	sql_node_t* sql_node = HAWK_NULL;
 	hawk_int_t ret = -1;
 	hawk_val_t* retv;
 
-	sql_list = rtx_to_sql_list(rtx, fi);
+	data = get_rtx_data(rtx, fi);
+	if (HAWK_UNLIKELY(!data)) return -1;
+	sql_list = &data->sql_list;
 
 	sql_node = new_sql_node(rtx, sql_list);
 	if (sql_node) ret = sql_node->id;
@@ -249,11 +257,14 @@ static int fnc_open (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 static int fnc_close (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
+	rtx_data_t* data;
 	sql_list_t* sql_list;
 	sql_node_t* sql_node;
 	int ret = -1;
 
-	sql_list = rtx_to_sql_list(rtx, fi);
+	data = get_rtx_data(rtx, fi);
+	if (HAWK_UNLIKELY(!data)) return -1;
+	sql_list = &data->sql_list;
 	sql_node = get_sql_list_node_with_arg(rtx, sql_list, hawk_rtx_getarg(rtx, 0));
 	if (sql_node)
 	{
@@ -267,6 +278,7 @@ static int fnc_close (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 static int fnc_connect (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
+	rtx_data_t* data;
 	sql_list_t* sql_list;
 	sql_node_t* sql_node;
 	hawk_val_t* a1 = HAWK_NULL;
@@ -278,7 +290,9 @@ static int fnc_connect (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	int take_rtx_err = 0;
 	int rc;
 
-	sql_list = rtx_to_sql_list(rtx, fi);
+	data = get_rtx_data(rtx, fi);
+	if (HAWK_UNLIKELY(!data)) return -1;
+	sql_list = &data->sql_list;
 	sql_node = get_sql_list_node_with_arg(rtx, sql_list, hawk_rtx_getarg(rtx, 0));
 	if (sql_node)
 	{
@@ -361,6 +375,7 @@ done:
 
 static int fnc_exec (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
+	rtx_data_t* data;
 	sql_list_t* sql_list;
 	sql_node_t* sql_node;
 	hawk_val_t* a1;
@@ -370,7 +385,9 @@ static int fnc_exec (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	int rc;
 	char* err = HAWK_NULL;
 
-	sql_list = rtx_to_sql_list(rtx, fi);
+	data = get_rtx_data(rtx, fi);
+	if (HAWK_UNLIKELY(!data)) return -1;
+	sql_list = &data->sql_list;
 	sql_node = get_sql_list_node_with_arg(rtx, sql_list, hawk_rtx_getarg(rtx, 0));
 	if (sql_node)
 	{
@@ -454,6 +471,7 @@ static int bind_blob (hawk_rtx_t* rtx, sql_list_t* sql_list, stmt_node_t* stmt_n
 
 static int fnc_bind (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
+	rtx_data_t* data;
 	sql_list_t* sql_list;
 	stmt_list_t* stmt_list;
 	stmt_node_t* stmt_node;
@@ -462,8 +480,10 @@ static int fnc_bind (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_int_t index;
 	int ret = -1;
 
-	sql_list = rtx_to_sql_list(rtx, fi);
-	stmt_list = rtx_to_stmt_list(rtx, fi);
+	data = get_rtx_data(rtx, fi);
+	if (HAWK_UNLIKELY(!data)) return -1;
+	sql_list = &data->sql_list;
+	stmt_list = &data->stmt_list;
 	stmt_node = get_stmt_list_node_with_arg(rtx, sql_list, stmt_list, hawk_rtx_getarg(rtx, 0));
 	if (stmt_node)
 	{
@@ -530,6 +550,7 @@ done:
 
 static int fnc_bind_int (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
+	rtx_data_t* data;
 	sql_list_t* sql_list;
 	stmt_list_t* stmt_list;
 	stmt_node_t* stmt_node;
@@ -537,8 +558,10 @@ static int fnc_bind_int (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_int_t val;
 	int ret = -1;
 
-	sql_list = rtx_to_sql_list(rtx, fi);
-	stmt_list = rtx_to_stmt_list(rtx, fi);
+	data = get_rtx_data(rtx, fi);
+	if (HAWK_UNLIKELY(!data)) return -1;
+	sql_list = &data->sql_list;
+	stmt_list = &data->stmt_list;
 	stmt_node = get_stmt_list_node_with_arg(rtx, sql_list, stmt_list, hawk_rtx_getarg(rtx, 0));
 	if (stmt_node)
 	{
@@ -565,6 +588,7 @@ done:
 
 static int fnc_bind_flt (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
+	rtx_data_t* data;
 	sql_list_t* sql_list;
 	stmt_list_t* stmt_list;
 	stmt_node_t* stmt_node;
@@ -572,8 +596,10 @@ static int fnc_bind_flt (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_flt_t val;
 	int ret = -1;
 
-	sql_list = rtx_to_sql_list(rtx, fi);
-	stmt_list = rtx_to_stmt_list(rtx, fi);
+	data = get_rtx_data(rtx, fi);
+	if (HAWK_UNLIKELY(!data)) return -1;
+	sql_list = &data->sql_list;
+	stmt_list = &data->stmt_list;
 	stmt_node = get_stmt_list_node_with_arg(rtx, sql_list, stmt_list, hawk_rtx_getarg(rtx, 0));
 	if (stmt_node)
 	{
@@ -600,14 +626,17 @@ done:
 
 static int fnc_bind_str (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
+	rtx_data_t* data;
 	sql_list_t* sql_list;
 	stmt_list_t* stmt_list;
 	stmt_node_t* stmt_node;
 	hawk_int_t index;
 	int ret = -1;
 
-	sql_list = rtx_to_sql_list(rtx, fi);
-	stmt_list = rtx_to_stmt_list(rtx, fi);
+	data = get_rtx_data(rtx, fi);
+	if (HAWK_UNLIKELY(!data)) return -1;
+	sql_list = &data->sql_list;
+	stmt_list = &data->stmt_list;
 	stmt_node = get_stmt_list_node_with_arg(rtx, sql_list, stmt_list, hawk_rtx_getarg(rtx, 0));
 	if (stmt_node)
 	{
@@ -628,14 +657,17 @@ done:
 
 static int fnc_bind_blob (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
+	rtx_data_t* data;
 	sql_list_t* sql_list;
 	stmt_list_t* stmt_list;
 	stmt_node_t* stmt_node;
 	hawk_int_t index;
 	int ret = -1;
 
-	sql_list = rtx_to_sql_list(rtx, fi);
-	stmt_list = rtx_to_stmt_list(rtx, fi);
+	data = get_rtx_data(rtx, fi);
+	if (HAWK_UNLIKELY(!data)) return -1;
+	sql_list = &data->sql_list;
+	stmt_list = &data->stmt_list;
 	stmt_node = get_stmt_list_node_with_arg(rtx, sql_list, stmt_list, hawk_rtx_getarg(rtx, 0));
 	if (stmt_node)
 	{
@@ -656,14 +688,17 @@ done:
 
 static int fnc_bind_null (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
+	rtx_data_t* data;
 	sql_list_t* sql_list;
 	stmt_list_t* stmt_list;
 	stmt_node_t* stmt_node;
 	hawk_int_t index;
 	int ret = -1;
 
-	sql_list = rtx_to_sql_list(rtx, fi);
-	stmt_list = rtx_to_stmt_list(rtx, fi);
+	data = get_rtx_data(rtx, fi);
+	if (HAWK_UNLIKELY(!data)) return -1;
+	sql_list = &data->sql_list;
+	stmt_list = &data->stmt_list;
 	stmt_node = get_stmt_list_node_with_arg(rtx, sql_list, stmt_list, hawk_rtx_getarg(rtx, 0));
 	if (stmt_node)
 	{
@@ -689,6 +724,7 @@ done:
 
 static int fnc_escape_string (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
+	rtx_data_t* data;
 	sql_list_t* sql_list;
 	sql_node_t* sql_node;
 	int ret = -1;
@@ -698,7 +734,9 @@ static int fnc_escape_string (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	hawk_bch_t* qstr = HAWK_NULL;
 	char* ebuf = HAWK_NULL;
 
-	sql_list = rtx_to_sql_list(rtx, fi);
+	data = get_rtx_data(rtx, fi);
+	if (HAWK_UNLIKELY(!data)) return -1;
+	sql_list = &data->sql_list;
 	sql_node = get_sql_list_node_with_arg(rtx, sql_list, hawk_rtx_getarg(rtx, 0));
 	if (sql_node)
 	{
@@ -750,6 +788,7 @@ done:
 
 static int fnc_prepare (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
+	rtx_data_t* data;
 	sql_list_t* sql_list;
 	stmt_list_t* stmt_list;
 	sql_node_t* sql_node;
@@ -760,8 +799,10 @@ static int fnc_prepare (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	sqlite3_stmt* stmt = HAWK_NULL;
 	int rc;
 
-	sql_list = rtx_to_sql_list(rtx, fi);
-	stmt_list = rtx_to_stmt_list(rtx, fi);
+	data = get_rtx_data(rtx, fi);
+	if (HAWK_UNLIKELY(!data)) return -1;
+	sql_list = &data->sql_list;
+	stmt_list = &data->stmt_list;
 	sql_node = get_sql_list_node_with_arg(rtx, sql_list, hawk_rtx_getarg(rtx, 0));
 	if (sql_node)
 	{
@@ -805,13 +846,16 @@ done:
 
 static int fnc_finalize (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
+	rtx_data_t* data;
 	sql_list_t* sql_list;
 	stmt_list_t* stmt_list;
 	stmt_node_t* stmt_node;
 	int ret = -1;
 
-	sql_list = rtx_to_sql_list(rtx, fi);
-	stmt_list = rtx_to_stmt_list(rtx, fi);
+	data = get_rtx_data(rtx, fi);
+	if (HAWK_UNLIKELY(!data)) return -1;
+	sql_list = &data->sql_list;
+	stmt_list = &data->stmt_list;
 	stmt_node = get_stmt_list_node_with_arg(rtx, sql_list, stmt_list, hawk_rtx_getarg(rtx, 0));
 	if (stmt_node)
 	{
@@ -825,14 +869,17 @@ static int fnc_finalize (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 static int fnc_reset (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
+	rtx_data_t* data;
 	sql_list_t* sql_list;
 	stmt_list_t* stmt_list;
 	stmt_node_t* stmt_node;
 	int ret = -1;
 	int rc;
 
-	sql_list = rtx_to_sql_list(rtx, fi);
-	stmt_list = rtx_to_stmt_list(rtx, fi);
+	data = get_rtx_data(rtx, fi);
+	if (HAWK_UNLIKELY(!data)) return -1;
+	sql_list = &data->sql_list;
+	stmt_list = &data->stmt_list;
 	stmt_node = get_stmt_list_node_with_arg(rtx, sql_list, stmt_list, hawk_rtx_getarg(rtx, 0));
 	if (stmt_node)
 	{
@@ -850,14 +897,17 @@ static int fnc_reset (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 static int fnc_column_count (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
+	rtx_data_t* data;
 	sql_list_t* sql_list;
 	stmt_list_t* stmt_list;
 	stmt_node_t* stmt_node;
 	hawk_int_t ret = -1;
 	hawk_val_t* retv;
 
-	sql_list = rtx_to_sql_list(rtx, fi);
-	stmt_list = rtx_to_stmt_list(rtx, fi);
+	data = get_rtx_data(rtx, fi);
+	if (HAWK_UNLIKELY(!data)) return -1;
+	sql_list = &data->sql_list;
+	stmt_list = &data->stmt_list;
 	stmt_node = get_stmt_list_node_with_arg(rtx, sql_list, stmt_list, hawk_rtx_getarg(rtx, 0));
 	if (stmt_node) ret = stmt_node->col_count;
 
@@ -869,14 +919,17 @@ static int fnc_column_count (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 static int fnc_column_name (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
+	rtx_data_t* data;
 	sql_list_t* sql_list;
 	stmt_list_t* stmt_list;
 	stmt_node_t* stmt_node;
 	hawk_val_t* retv = HAWK_NULL;
 	hawk_int_t index;
 
-	sql_list = rtx_to_sql_list(rtx, fi);
-	stmt_list = rtx_to_stmt_list(rtx, fi);
+	data = get_rtx_data(rtx, fi);
+	if (HAWK_UNLIKELY(!data)) return -1;
+	sql_list = &data->sql_list;
+	stmt_list = &data->stmt_list;
 	stmt_node = get_stmt_list_node_with_arg(rtx, sql_list, stmt_list, hawk_rtx_getarg(rtx, 0));
 	if (stmt_node)
 	{
@@ -911,6 +964,7 @@ static int fnc_column_name (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 static int fnc_fetch_row (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
+	rtx_data_t* data;
 	sql_list_t* sql_list;
 	stmt_list_t* stmt_list;
 	stmt_node_t* stmt_node;
@@ -920,8 +974,10 @@ static int fnc_fetch_row (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	int rc;
 	hawk_int_t mode = FETCH_ROW_MAP;
 
-	sql_list = rtx_to_sql_list(rtx, fi);
-	stmt_list = rtx_to_stmt_list(rtx, fi);
+	data = get_rtx_data(rtx, fi);
+	if (HAWK_UNLIKELY(!data)) return -1;
+	sql_list = &data->sql_list;
+	stmt_list = &data->stmt_list;
 	stmt_node = get_stmt_list_node_with_arg(rtx, sql_list, stmt_list, hawk_rtx_getarg(rtx, 0));
 	if (stmt_node)
 	{
@@ -1047,11 +1103,14 @@ done:
 
 static int fnc_changes (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
+	rtx_data_t* data;
 	sql_list_t* sql_list;
 	sql_node_t* sql_node;
 	hawk_int_t ret = -1;
 
-	sql_list = rtx_to_sql_list(rtx, fi);
+	data = get_rtx_data(rtx, fi);
+	if (HAWK_UNLIKELY(!data)) return -1;
+	sql_list = &data->sql_list;
 	sql_node = get_sql_list_node_with_arg(rtx, sql_list, hawk_rtx_getarg(rtx, 0));
 	if (sql_node)
 	{
@@ -1071,11 +1130,14 @@ static int fnc_changes (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 static int fnc_last_insert_rowid (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
+	rtx_data_t* data;
 	sql_list_t* sql_list;
 	sql_node_t* sql_node;
 	hawk_int_t ret = -1;
 
-	sql_list = rtx_to_sql_list(rtx, fi);
+	data = get_rtx_data(rtx, fi);
+	if (HAWK_UNLIKELY(!data)) return -1;
+	sql_list = &data->sql_list;
 	sql_node = get_sql_list_node_with_arg(rtx, sql_list, hawk_rtx_getarg(rtx, 0));
 	if (sql_node)
 	{

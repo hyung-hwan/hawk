@@ -133,3 +133,14 @@ libhawk_http_la_LDFLAGS = $(LDFLAGS_COMMON_DYNAMIC)
 libhawk_http_la_LIBADD = $(LIBADD_COMMON_DYNAMIC)
 endif
 endif
+
+if ENABLE_MOD_MUS
+if !ENABLE_MOD_MUS_STATIC
+pkgmodexec_LTLIBRARIES += libhawk-mus.la
+libhawk_mus_la_SOURCES = mod-mus.c mod-mus.h
+libhawk_mus_la_CPPFLAGS = $(CPPFLAGS_COMMON)
+libhawk_mus_la_CFLAGS = $(CFLAGS_COMMON)
+libhawk_mus_la_LDFLAGS = $(LDFLAGS_COMMON_DYNAMIC)
+libhawk_mus_la_LIBADD = $(LIBADD_COMMON_DYNAMIC)
+endif
+endif
