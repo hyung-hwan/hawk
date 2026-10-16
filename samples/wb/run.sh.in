@@ -1,12 +1,11 @@
 #!/bin/sh
 set -eu
 
-sample_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
-source_dir=$(CDPATH= cd -- "$sample_dir/../.." && pwd)
+sample_dir="@abs_srcdir@"
 launch_dir=$(pwd)
-hawk_bin=${HAWK_BIN:-$source_dir/bld/bin/hawk}
-hawkgo_bin=${HAWKGO_BIN:-$source_dir/bld/bin/hawkgo}
-moddirs=${HAWK_MODLIBDIRS:-$source_dir/bld/lib/.libs:$source_dir/bld/mod/.libs}
+hawk_bin=${HAWK_BIN:-@abs_top_builddir@/bin/hawk}
+hawkgo_bin=${HAWKGO_BIN:-@abs_top_builddir@/bin/hawkgo}
+moddirs=${HAWK_MODLIBDIRS:-@abs_top_builddir@/lib/.libs:@abs_top_builddir@/mod/.libs}
 incdirs=${HAWK_INCDIRS:-}
 listen=${HAWK_WORKBENCH_LISTEN:-127.0.0.1:8080}
 

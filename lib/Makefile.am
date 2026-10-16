@@ -215,7 +215,7 @@ libhawk_la_CFLAGS = $(CFLAGS_ALL_COMMON)
 libhawk_la_CXXFLAGS = $(CXXFLAGS_ALL_COMMON)
 libhawk_la_LDFLAGS = $(LDFLAGS_ALL_COMMON) -version-info 1:0:0 ## -no-undefined
 ## socket() is used in gem-nwif.c and gem-nwif2.c
-libhawk_la_LIBADD = $(LIBM) $(SOCKET_LIBS)
+libhawk_la_LIBADD = $(LIBM) $(SOCKET_LIBS) $(PTY_LIBS)
 
 if ENABLE_LIBLTDL
 libhawk_la_CPPFLAGS += $(LTDLINCL)

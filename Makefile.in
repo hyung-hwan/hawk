@@ -109,7 +109,7 @@ am__CONFIG_DISTCLEAN_FILES = config.status config.cache config.log \
  configure.lineno config.status.lineno
 mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = $(top_builddir)/lib/hawk-cfg.h
-CONFIG_CLEAN_FILES = pkgs/hawk.spec
+CONFIG_CLEAN_FILES = samples/wb/run.sh pkgs/hawk.spec
 CONFIG_CLEAN_VPATH_FILES =
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
@@ -196,9 +196,10 @@ am__DIST_COMMON = $(srcdir)/Makefile.in $(top_srcdir)/ac/ar-lib \
 	$(top_srcdir)/ac/config.sub $(top_srcdir)/ac/install-sh \
 	$(top_srcdir)/ac/ltmain.sh $(top_srcdir)/ac/missing \
 	$(top_srcdir)/ac/tap-driver.sh $(top_srcdir)/ac/test-driver \
-	$(top_srcdir)/pkgs/hawk.spec.in README.md ac/ar-lib ac/compile \
-	ac/config.guess ac/config.sub ac/depcomp ac/install-sh \
-	ac/ltmain.sh ac/missing
+	$(top_srcdir)/pkgs/hawk.spec.in \
+	$(top_srcdir)/samples/wb/run.sh.in README.md ac/ar-lib \
+	ac/compile ac/config.guess ac/config.sub ac/depcomp \
+	ac/install-sh ac/ltmain.sh ac/missing
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 distdir = $(PACKAGE)-$(VERSION)
 top_distdir = $(distdir)
@@ -408,8 +409,8 @@ top_srcdir = @top_srcdir@
 AUTOMAKE_OPTION = foreign
 ACLOCAL_AMFLAGS = -I m4
 gosrcdir = $(datadir)/hawk/go
-gosrc_DATA = go.mod hawk.go hawk-inst.go hawk-io.go hawk-http.go hawk-httpd.go hawk-httpd-req.go
-EXTRA_DIST = $(gosrc_DATA) hawk_test.go hawk-io_test.go hawk-httpd_test.go
+gosrc_DATA = go.mod hawk.go hawk-inst.go hawk-io.go hawk-src.go hawk-http.go hawk-httpd.go hawk-httpd-req.go
+EXTRA_DIST = $(gosrc_DATA) hawk_test.go hawk-io_test.go hawk-src_test.go hawk-httpd_test.go
 SUBDIRS = tools lib mod bin samples t
 #if ENABLE_STATIC_MODULE
 #SUBDIRS += tools mod lib bin samples t
@@ -459,6 +460,8 @@ $(top_srcdir)/configure:  $(am__configure_deps)
 $(ACLOCAL_M4):  $(am__aclocal_m4_deps)
 	$(am__cd) $(srcdir) && $(ACLOCAL) $(ACLOCAL_AMFLAGS)
 $(am__aclocal_m4_deps):
+samples/wb/run.sh: $(top_builddir)/config.status $(top_srcdir)/samples/wb/run.sh.in
+	cd $(top_builddir) && $(SHELL) ./config.status $@
 pkgs/hawk.spec: $(top_builddir)/config.status $(top_srcdir)/pkgs/hawk.spec.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
 

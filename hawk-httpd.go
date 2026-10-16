@@ -23,7 +23,8 @@ type HawkHttpdListener struct {
 }
 
 // HawkHttpdRoute invokes Entry (default: handle) in Script for a URL prefix.
-// Dependencies names additional files whose changes should trigger reparsing.
+// Includes are tracked automatically. Dependencies names additional files,
+// such as templates or runtime configuration, that should trigger reparsing.
 // Relative script and dependency paths are resolved against ScriptRoot, or
 // the working directory when ScriptRoot is empty.
 type HawkHttpdRoute struct {
@@ -62,6 +63,8 @@ type httpd_listener struct {
 type httpd_script_version struct {
 	hawk *Hawk
 	fingerprint [sha256.Size]byte
+	dependencies []string // resolved source paths from this successful parse
+	include_probes []string // candidate paths whose existence affects resolution
 	refs int
 	retired bool
 	mtx sync.Mutex // protects runtime construction/destruction and version lifetime
@@ -410,29 +413,60 @@ func (s *HawkHttpd) log_error(err error) {
 	if s.cfg.Logger != nil { s.cfg.Logger.Printf("hawk httpd: %s", err) }
 }
 
-func (entry *httpd_script) fingerprint() ([sha256.Size]byte, error) {
+func (entry *httpd_script) fingerprint() ([sha256.Size]byte, map[string][sha256.Size]byte, error) {
+	var dependencies []string
+	var probes []string
+
+	if entry.current != nil {
+		dependencies = entry.current.dependencies
+		probes = entry.current.include_probes
+	}
+	return entry.fingerprint_with(dependencies, probes)
+}
+
+func (entry *httpd_script) fingerprint_with(dependencies []string, probes []string) ([sha256.Size]byte, map[string][sha256.Size]byte, error) {
 	var paths []string
 	var path string
 	var data []byte
+	var content [sha256.Size]byte
 	var digest [sha256.Size]byte
 	var err error
 	var h hash.Hash
+	var seen map[string]bool
+	var contents map[string][sha256.Size]byte
 
 	h = sha256.New()
 	paths = append([]string{entry.path}, entry.dependencies...)
+	paths = append(paths, dependencies...)
+	seen = make(map[string]bool)
+	contents = make(map[string][sha256.Size]byte)
 	for _, path = range paths {
+		if seen[path] { continue }
+		seen[path] = true
 		data, err = os.ReadFile(path)
-		if err != nil { return digest, err }
-		fmt.Fprintf(h, "%d:%s:%d:", len(path), path, len(data))
-		h.Write(data)
+		if err != nil { return digest, contents, err }
+		content = sha256.Sum256(data)
+		contents[path] = content
+		fmt.Fprintf(h, "%d:%s:", len(path), path)
+		h.Write(content[:])
+	}
+	for _, path = range probes {
+		fmt.Fprintf(h, "probe:%d:%s:%t:", len(path), path, source_probe(path))
 	}
 	copy(digest[:], h.Sum(nil))
-	return digest, nil
+	return digest, contents, nil
 }
 
 func (s *HawkHttpd) acquire_script(entry *httpd_script) (*httpd_script_version, error) {
 	var fingerprint [sha256.Size]byte
-	var after [sha256.Size]byte
+	var before map[string][sha256.Size]byte
+	var after map[string][sha256.Size]byte
+	var path string
+	var content [sha256.Size]byte
+	var updated [sha256.Size]byte
+	var exists bool
+	var compiled [sha256.Size]byte
+	var dependencies *parse_dependencies
 	var h *Hawk
 	var version *httpd_script_version
 	var err error
@@ -443,9 +477,10 @@ func (s *HawkHttpd) acquire_script(entry *httpd_script) (*httpd_script_version, 
 	if entry.current == nil || time.Since(entry.checked) >= s.cfg.ReloadInterval {
 		entry.checked = time.Now()
 
-		fingerprint, err = entry.fingerprint()
-		if err == nil && (entry.current == nil || entry.current.fingerprint != fingerprint) {
-			// create a new hawk instance if an instance was never loaded or the loaded script has changes
+		fingerprint, before, err = entry.fingerprint()
+		if err != nil || entry.current == nil || entry.current.fingerprint != fingerprint {
+			// a vanished old include must not prevent reparsing a main file
+			// that no longer includes it. explicit dependencies remain required.
 			h, err = New()
 
 			if err == nil && s.cfg.IncDirs != "" {
@@ -457,18 +492,28 @@ func (s *HawkHttpd) acquire_script(entry *httpd_script) (*httpd_script_version, 
 			}
 
 			if err == nil {
-				err = h.ParseFile(entry.path)
+				dependencies, err = h.parse_file_with_dependencies(entry.path, nil)
 			}
 
 			if err == nil {
-				after, err = entry.fingerprint()
-				if err == nil && after != fingerprint {
-					err = fmt.Errorf("script files changed while parsing %s", entry.path)
+				compiled, after, err = entry.fingerprint_with(dependencies.files, dependencies.probes)
+				// Reuse the reload check's hashes instead of reading known files
+				// again before parsing. Removed includes no longer matter.
+				if err == nil {
+					for path, content = range before {
+						updated, exists = after[path]
+						if exists && content != updated {
+							err = fmt.Errorf("script files changed while parsing %s", path)
+							break
+						}
+					}
 				}
+				if err == nil { err = dependencies.check() }
 			}
 
 			if err == nil {
-				version = &httpd_script_version{hawk: h, fingerprint: fingerprint}
+				version = &httpd_script_version{hawk: h, fingerprint: compiled,
+					dependencies: dependencies.files, include_probes: dependencies.probes}
 				if entry.current != nil {
 					entry.current.retire()
 				}

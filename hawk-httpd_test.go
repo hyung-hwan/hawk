@@ -9,6 +9,7 @@ import "net/http"
 import "net/http/httptest"
 import "os"
 import "path/filepath"
+import "reflect"
 import "strings"
 import "sync"
 import "testing"
@@ -1086,4 +1087,135 @@ func TestHawkHttpdScriptRoot(t *testing.T) {
 			if status != 200 || body != "script" || entry.current == version { t.Fatal("resolved dependency did not trigger script reload") }
 		})
 	}
+}
+
+func TestHawkHttpdAutomaticIncludes(t *testing.T) {
+	var root string
+	var main string
+	var common string
+	var nested string
+	var replacement string
+	var cfg HawkHttpdConfig
+	var server *HawkHttpd
+	var client *http.Client
+	var entry *httpd_script
+	var version *httpd_script_version
+	var address string
+	var status int
+	var body string
+	var err error
+	var write func(string, string)
+	var get func(string)
+
+	if !http_module_enabled() { t.Skip("http module is disabled") }
+	root = t.TempDir()
+	main = filepath.Join(root, "main.hawk")
+	common = filepath.Join(root, "common.inc")
+	nested = filepath.Join(root, "nested.inc")
+	replacement = filepath.Join(root, "replacement.inc")
+	write = func(path string, source string) {
+		var err error
+		t.Helper()
+		err = os.WriteFile(path, []byte(source), 0600)
+		if err != nil { t.Fatal(err) }
+	}
+	write(main, "@include_once \"common.inc\";\n@include_once \"common.inc\";\nfunction handle(request) { printf message(); }")
+	write(common, "@include \"nested.inc\";\n")
+	write(nested, "function message() { return \"one\"; }")
+	cfg.Listeners = []HawkHttpdListener{{Address: "127.0.0.1:0"}}
+	cfg.Routes = []HawkHttpdRoute{{Prefix: "/", Script: main}}
+	cfg.ReloadInterval = time.Nanosecond
+	server = httpd_test_server(t, &cfg)
+	client = httpd_test_client(t)
+	address = "http://" + server.Addrs()[0].String()
+	get = func(expected string) {
+		t.Helper()
+		status, body, _ = httpd_test_get(t, client, address)
+		if status != 200 || body != expected { t.Fatalf("response: %d %q, want %q", status, body, expected) }
+	}
+	get("one")
+	entry = server.scripts[main]
+	if !reflect.DeepEqual(entry.current.dependencies, []string{main, common, nested}) { t.Fatalf("discovered sources: %v", entry.current.dependencies) }
+	version = entry.current
+	get("one")
+	if entry.current != version { t.Fatal("unchanged includes recompiled") }
+	write(nested, "function message() { return \"two\"; }")
+	get("two")
+	if entry.current == version { t.Fatal("nested include did not reload") }
+	version = entry.current
+	write(nested, "invalid included source {")
+	get("two")
+	if entry.current != version || !reflect.DeepEqual(entry.current.dependencies, version.dependencies) { t.Fatal("failed reload replaced program or dependencies") }
+	write(nested, "function message() { return \"recovered\"; }")
+	get("recovered")
+	// A deleted old include must not block a program that stopped using it.
+	write(common, "function message() { return \"removed\"; }")
+	err = os.Remove(nested)
+	if err != nil { t.Fatal(err) }
+	get("removed")
+	if !reflect.DeepEqual(entry.current.dependencies, []string{main, common}) { t.Fatalf("stale sources: %v", entry.current.dependencies) }
+	version = entry.current
+	write(nested, "invalid unused source {")
+	get("removed")
+	if entry.current != version { t.Fatal("unused old include still triggers recompilation") }
+	write(replacement, "function message() { return \"replacement\"; }")
+	write(common, "@include \"replacement.inc\";\n")
+	get("replacement")
+	write(replacement, "function message() { return \"updated\"; }")
+	get("updated")
+}
+
+func TestHawkHttpdIncludeSearchChanges(t *testing.T) {
+	var root string
+	var main string
+	var first string
+	var second string
+	var local string
+	var cfg HawkHttpdConfig
+	var server *HawkHttpd
+	var client *http.Client
+	var address string
+	var status int
+	var body string
+	var err error
+	var write func(string, string)
+	var get func(string)
+
+	if !http_module_enabled() { t.Skip("http module is disabled") }
+	root = t.TempDir()
+	main = filepath.Join(root, "main.hawk")
+	first = filepath.Join(root, "first")
+	second = filepath.Join(root, "second")
+	local = filepath.Join(root, "helpers", "value.inc")
+	write = func(path string, value string) {
+		var err error
+		t.Helper()
+		err = os.MkdirAll(filepath.Dir(path), 0700)
+		if err != nil { t.Fatal(err) }
+		err = os.WriteFile(path, []byte("function message() { return \"" + value + "\"; }"), 0600)
+		if err != nil { t.Fatal(err) }
+	}
+	err = os.WriteFile(main, []byte("@include \"helpers/value.inc\";\nfunction handle(request) { printf message(); }"), 0600)
+	if err != nil { t.Fatal(err) }
+	write(filepath.Join(second, "helpers", "value.inc"), "second")
+	cfg.Listeners = []HawkHttpdListener{{Address: "127.0.0.1:0"}}
+	cfg.Routes = []HawkHttpdRoute{{Prefix: "/", Script: main}}
+	cfg.IncDirs = first + ":" + second
+	cfg.ReloadInterval = time.Nanosecond
+	server = httpd_test_server(t, &cfg)
+	client = httpd_test_client(t)
+	address = "http://" + server.Addrs()[0].String()
+	get = func(expected string) {
+		t.Helper()
+		status, body, _ = httpd_test_get(t, client, address)
+		if status != 200 || body != expected { t.Fatalf("response: %d %q, want %q", status, body, expected) }
+	}
+	get("second")
+	write(filepath.Join(first, "helpers", "value.inc"), "first")
+	get("first")
+	write(local, "local")
+	get("local")
+	err = os.Remove(local)
+	if err != nil { t.Fatal(err) }
+	get("first")
 }

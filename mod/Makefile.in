@@ -161,7 +161,7 @@ libhawk_digest_la_OBJECTS = $(am_libhawk_digest_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
 am__v_lt_0 = --silent
-am__v_lt_1 =
+am__v_lt_1 = 
 libhawk_digest_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
 	$(libhawk_digest_la_CFLAGS) $(CFLAGS) \
@@ -288,12 +288,12 @@ am__v_P_1 = :
 AM_V_GEN = $(am__v_GEN_@AM_V@)
 am__v_GEN_ = $(am__v_GEN_@AM_DEFAULT_V@)
 am__v_GEN_0 = @echo "  GEN     " $@;
-am__v_GEN_1 =
+am__v_GEN_1 = 
 AM_V_at = $(am__v_at_@AM_V@)
 am__v_at_ = $(am__v_at_@AM_DEFAULT_V@)
 am__v_at_0 = @
-am__v_at_1 =
-DEFAULT_INCLUDES =
+am__v_at_1 = 
+DEFAULT_INCLUDES = 
 depcomp = $(SHELL) $(top_srcdir)/ac/depcomp
 am__maybe_remake_depfiles = depfiles
 am__depfiles_remade = ./$(DEPDIR)/libhawk_digest_la-mod-digest.Plo \
@@ -317,7 +317,7 @@ LTCOMPILE = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 AM_V_CC = $(am__v_CC_@AM_V@)
 am__v_CC_ = $(am__v_CC_@AM_DEFAULT_V@)
 am__v_CC_0 = @echo "  CC      " $@;
-am__v_CC_1 =
+am__v_CC_1 = 
 CCLD = $(CC)
 LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
@@ -325,7 +325,7 @@ LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 AM_V_CCLD = $(am__v_CCLD_@AM_V@)
 am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
-am__v_CCLD_1 =
+am__v_CCLD_1 = 
 SOURCES = $(libhawk_digest_la_SOURCES) $(libhawk_ffi_la_SOURCES) \
 	$(libhawk_http_la_SOURCES) $(libhawk_json_la_SOURCES) \
 	$(libhawk_m4_la_SOURCES) $(libhawk_memc_la_SOURCES) \
@@ -538,9 +538,9 @@ CPPFLAGS_COMMON = \
 	-I$(abs_srcdir)/../lib \
 	-I$(includedir)
 
-CFLAGS_COMMON =
+CFLAGS_COMMON = 
 LDFLAGS_COMMON_STATIC = -L$(libdir)
-LIBADD_COMMON_STATIC =
+LIBADD_COMMON_STATIC = 
 LDFLAGS_COMMON_DYNAMIC = -L../lib -L$(libdir) -version-info 1:0:0 ## -no-undefined
 LIBADD_COMMON_DYNAMIC = -lhawk
 pkgmodexecdir = $(libdir)
@@ -555,7 +555,7 @@ pkgmodexec_LTLIBRARIES = $(am__append_1) $(am__append_2) \
 @ENABLE_MOD_DIGEST_STATIC_FALSE@@ENABLE_MOD_DIGEST_TRUE@libhawk_digest_la_LIBADD = $(LIBADD_COMMON_DYNAMIC)
 @ENABLE_MOD_FFI_STATIC_FALSE@@ENABLE_MOD_FFI_TRUE@libhawk_ffi_la_SOURCES = mod-ffi.c mod-ffi.h
 @ENABLE_MOD_FFI_STATIC_FALSE@@ENABLE_MOD_FFI_TRUE@libhawk_ffi_la_CPPFLAGS = $(CPPFLAGS_COMMON)
-@ENABLE_MOD_FFI_STATIC_FALSE@@ENABLE_MOD_FFI_TRUE@libhawk_ffi_la_CFLAGS = $(CFLAGS_COMMON)
+@ENABLE_MOD_FFI_STATIC_FALSE@@ENABLE_MOD_FFI_TRUE@libhawk_ffi_la_CFLAGS = $(CFLAGS_COMMON) 
 @ENABLE_MOD_FFI_STATIC_FALSE@@ENABLE_MOD_FFI_TRUE@libhawk_ffi_la_LDFLAGS = $(LDFLAGS_COMMON_DYNAMIC)
 @ENABLE_MOD_FFI_STATIC_FALSE@@ENABLE_MOD_FFI_TRUE@libhawk_ffi_la_LIBADD = $(LIBADD_COMMON_DYNAMIC) $(FFI_LIBS)
 @ENABLE_MOD_MEMC_STATIC_FALSE@@ENABLE_MOD_MEMC_TRUE@libhawk_memc_la_SOURCES = mod-memc.c mod-memc.h
@@ -565,7 +565,7 @@ pkgmodexec_LTLIBRARIES = $(am__append_1) $(am__append_2) \
 @ENABLE_MOD_MEMC_STATIC_FALSE@@ENABLE_MOD_MEMC_TRUE@libhawk_memc_la_LIBADD = $(LIBADD_COMMON_DYNAMIC) $(MEMCACHED_LIBS)
 @ENABLE_MOD_MYSQL_STATIC_FALSE@@ENABLE_MOD_MYSQL_TRUE@libhawk_mysql_la_SOURCES = mod-mysql.c mod-mysql.h
 @ENABLE_MOD_MYSQL_STATIC_FALSE@@ENABLE_MOD_MYSQL_TRUE@libhawk_mysql_la_CPPFLAGS = $(CPPFLAGS_COMMON) $(MYSQL_CFLAGS)
-@ENABLE_MOD_MYSQL_STATIC_FALSE@@ENABLE_MOD_MYSQL_TRUE@libhawk_mysql_la_CFLAGS = $(CFLAGS_COMMON)
+@ENABLE_MOD_MYSQL_STATIC_FALSE@@ENABLE_MOD_MYSQL_TRUE@libhawk_mysql_la_CFLAGS = $(CFLAGS_COMMON) 
 @ENABLE_MOD_MYSQL_STATIC_FALSE@@ENABLE_MOD_MYSQL_TRUE@libhawk_mysql_la_LDFLAGS = $(LDFLAGS_COMMON_DYNAMIC) $(MYSQL_LDFLAGS)
 @ENABLE_MOD_MYSQL_STATIC_FALSE@@ENABLE_MOD_MYSQL_TRUE@libhawk_mysql_la_LIBADD = $(LIBADD_COMMON_DYNAMIC) $(MYSQL_LIBS)
 @ENABLE_MOD_JSON_STATIC_FALSE@@ENABLE_MOD_JSON_TRUE@libhawk_json_la_SOURCES = mod-json.c mod-json.h
@@ -575,7 +575,7 @@ pkgmodexec_LTLIBRARIES = $(am__append_1) $(am__append_2) \
 @ENABLE_MOD_JSON_STATIC_FALSE@@ENABLE_MOD_JSON_TRUE@libhawk_json_la_LIBADD = $(LIBADD_COMMON_DYNAMIC)
 @ENABLE_MOD_SED_STATIC_FALSE@@ENABLE_MOD_SED_TRUE@libhawk_sed_la_SOURCES = mod-sed.c mod-sed.h
 @ENABLE_MOD_SED_STATIC_FALSE@@ENABLE_MOD_SED_TRUE@libhawk_sed_la_CPPFLAGS = $(CPPFLAGS_COMMON)
-@ENABLE_MOD_SED_STATIC_FALSE@@ENABLE_MOD_SED_TRUE@libhawk_sed_la_CFLAGS = $(CFLAGS_COMMON)
+@ENABLE_MOD_SED_STATIC_FALSE@@ENABLE_MOD_SED_TRUE@libhawk_sed_la_CFLAGS = $(CFLAGS_COMMON) 
 @ENABLE_MOD_SED_STATIC_FALSE@@ENABLE_MOD_SED_TRUE@libhawk_sed_la_LDFLAGS = $(LDFLAGS_COMMON_DYNAMIC)
 @ENABLE_MOD_SED_STATIC_FALSE@@ENABLE_MOD_SED_TRUE@libhawk_sed_la_LIBADD = $(LIBADD_COMMON_DYNAMIC)
 @ENABLE_MOD_SQLITE_STATIC_FALSE@@ENABLE_MOD_SQLITE_TRUE@libhawk_sqlite_la_SOURCES = mod-sqlite.c mod-sqlite.h
@@ -585,7 +585,7 @@ pkgmodexec_LTLIBRARIES = $(am__append_1) $(am__append_2) \
 @ENABLE_MOD_SQLITE_STATIC_FALSE@@ENABLE_MOD_SQLITE_TRUE@libhawk_sqlite_la_LIBADD = $(LIBADD_COMMON_DYNAMIC) $(SQLITE_LIBS)
 @ENABLE_MOD_UCI_STATIC_FALSE@@ENABLE_MOD_UCI_TRUE@libhawk_uci_la_SOURCES = mod-uci.c mod-uci.h
 @ENABLE_MOD_UCI_STATIC_FALSE@@ENABLE_MOD_UCI_TRUE@libhawk_uci_la_CPPFLAGS = $(CPPFLAGS_COMMON)
-@ENABLE_MOD_UCI_STATIC_FALSE@@ENABLE_MOD_UCI_TRUE@libhawk_uci_la_CFLAGS = $(CFLAGS_COMMON)
+@ENABLE_MOD_UCI_STATIC_FALSE@@ENABLE_MOD_UCI_TRUE@libhawk_uci_la_CFLAGS = $(CFLAGS_COMMON) 
 @ENABLE_MOD_UCI_STATIC_FALSE@@ENABLE_MOD_UCI_TRUE@libhawk_uci_la_LDFLAGS = $(LDFLAGS_COMMON_DYNAMIC)
 @ENABLE_MOD_UCI_STATIC_FALSE@@ENABLE_MOD_UCI_TRUE@libhawk_uci_la_LIBADD = $(LIBADD_COMMON_DYNAMIC) $(UCI_LIBS)
 @ENABLE_MOD_M4_STATIC_FALSE@@ENABLE_MOD_M4_TRUE@libhawk_m4_la_SOURCES = mod-m4.c mod-m4.h
@@ -670,37 +670,37 @@ clean-pkgmodexecLTLIBRARIES:
 	echo rm -f $${locs}; \
 	$(am__rm_f) $${locs}
 
-libhawk-digest.la: $(libhawk_digest_la_OBJECTS) $(libhawk_digest_la_DEPENDENCIES) $(EXTRA_libhawk_digest_la_DEPENDENCIES)
+libhawk-digest.la: $(libhawk_digest_la_OBJECTS) $(libhawk_digest_la_DEPENDENCIES) $(EXTRA_libhawk_digest_la_DEPENDENCIES) 
 	$(AM_V_CCLD)$(libhawk_digest_la_LINK) $(am_libhawk_digest_la_rpath) $(libhawk_digest_la_OBJECTS) $(libhawk_digest_la_LIBADD) $(LIBS)
 
-libhawk-ffi.la: $(libhawk_ffi_la_OBJECTS) $(libhawk_ffi_la_DEPENDENCIES) $(EXTRA_libhawk_ffi_la_DEPENDENCIES)
+libhawk-ffi.la: $(libhawk_ffi_la_OBJECTS) $(libhawk_ffi_la_DEPENDENCIES) $(EXTRA_libhawk_ffi_la_DEPENDENCIES) 
 	$(AM_V_CCLD)$(libhawk_ffi_la_LINK) $(am_libhawk_ffi_la_rpath) $(libhawk_ffi_la_OBJECTS) $(libhawk_ffi_la_LIBADD) $(LIBS)
 
-libhawk-http.la: $(libhawk_http_la_OBJECTS) $(libhawk_http_la_DEPENDENCIES) $(EXTRA_libhawk_http_la_DEPENDENCIES)
+libhawk-http.la: $(libhawk_http_la_OBJECTS) $(libhawk_http_la_DEPENDENCIES) $(EXTRA_libhawk_http_la_DEPENDENCIES) 
 	$(AM_V_CCLD)$(libhawk_http_la_LINK) $(am_libhawk_http_la_rpath) $(libhawk_http_la_OBJECTS) $(libhawk_http_la_LIBADD) $(LIBS)
 
-libhawk-json.la: $(libhawk_json_la_OBJECTS) $(libhawk_json_la_DEPENDENCIES) $(EXTRA_libhawk_json_la_DEPENDENCIES)
+libhawk-json.la: $(libhawk_json_la_OBJECTS) $(libhawk_json_la_DEPENDENCIES) $(EXTRA_libhawk_json_la_DEPENDENCIES) 
 	$(AM_V_CCLD)$(libhawk_json_la_LINK) $(am_libhawk_json_la_rpath) $(libhawk_json_la_OBJECTS) $(libhawk_json_la_LIBADD) $(LIBS)
 
-libhawk-m4.la: $(libhawk_m4_la_OBJECTS) $(libhawk_m4_la_DEPENDENCIES) $(EXTRA_libhawk_m4_la_DEPENDENCIES)
+libhawk-m4.la: $(libhawk_m4_la_OBJECTS) $(libhawk_m4_la_DEPENDENCIES) $(EXTRA_libhawk_m4_la_DEPENDENCIES) 
 	$(AM_V_CCLD)$(libhawk_m4_la_LINK) $(am_libhawk_m4_la_rpath) $(libhawk_m4_la_OBJECTS) $(libhawk_m4_la_LIBADD) $(LIBS)
 
-libhawk-memc.la: $(libhawk_memc_la_OBJECTS) $(libhawk_memc_la_DEPENDENCIES) $(EXTRA_libhawk_memc_la_DEPENDENCIES)
+libhawk-memc.la: $(libhawk_memc_la_OBJECTS) $(libhawk_memc_la_DEPENDENCIES) $(EXTRA_libhawk_memc_la_DEPENDENCIES) 
 	$(AM_V_CCLD)$(libhawk_memc_la_LINK) $(am_libhawk_memc_la_rpath) $(libhawk_memc_la_OBJECTS) $(libhawk_memc_la_LIBADD) $(LIBS)
 
-libhawk-mus.la: $(libhawk_mus_la_OBJECTS) $(libhawk_mus_la_DEPENDENCIES) $(EXTRA_libhawk_mus_la_DEPENDENCIES)
+libhawk-mus.la: $(libhawk_mus_la_OBJECTS) $(libhawk_mus_la_DEPENDENCIES) $(EXTRA_libhawk_mus_la_DEPENDENCIES) 
 	$(AM_V_CCLD)$(libhawk_mus_la_LINK) $(am_libhawk_mus_la_rpath) $(libhawk_mus_la_OBJECTS) $(libhawk_mus_la_LIBADD) $(LIBS)
 
-libhawk-mysql.la: $(libhawk_mysql_la_OBJECTS) $(libhawk_mysql_la_DEPENDENCIES) $(EXTRA_libhawk_mysql_la_DEPENDENCIES)
+libhawk-mysql.la: $(libhawk_mysql_la_OBJECTS) $(libhawk_mysql_la_DEPENDENCIES) $(EXTRA_libhawk_mysql_la_DEPENDENCIES) 
 	$(AM_V_CCLD)$(libhawk_mysql_la_LINK) $(am_libhawk_mysql_la_rpath) $(libhawk_mysql_la_OBJECTS) $(libhawk_mysql_la_LIBADD) $(LIBS)
 
-libhawk-sed.la: $(libhawk_sed_la_OBJECTS) $(libhawk_sed_la_DEPENDENCIES) $(EXTRA_libhawk_sed_la_DEPENDENCIES)
+libhawk-sed.la: $(libhawk_sed_la_OBJECTS) $(libhawk_sed_la_DEPENDENCIES) $(EXTRA_libhawk_sed_la_DEPENDENCIES) 
 	$(AM_V_CCLD)$(libhawk_sed_la_LINK) $(am_libhawk_sed_la_rpath) $(libhawk_sed_la_OBJECTS) $(libhawk_sed_la_LIBADD) $(LIBS)
 
-libhawk-sqlite.la: $(libhawk_sqlite_la_OBJECTS) $(libhawk_sqlite_la_DEPENDENCIES) $(EXTRA_libhawk_sqlite_la_DEPENDENCIES)
+libhawk-sqlite.la: $(libhawk_sqlite_la_OBJECTS) $(libhawk_sqlite_la_DEPENDENCIES) $(EXTRA_libhawk_sqlite_la_DEPENDENCIES) 
 	$(AM_V_CCLD)$(libhawk_sqlite_la_LINK) $(am_libhawk_sqlite_la_rpath) $(libhawk_sqlite_la_OBJECTS) $(libhawk_sqlite_la_LIBADD) $(LIBS)
 
-libhawk-uci.la: $(libhawk_uci_la_OBJECTS) $(libhawk_uci_la_DEPENDENCIES) $(EXTRA_libhawk_uci_la_DEPENDENCIES)
+libhawk-uci.la: $(libhawk_uci_la_OBJECTS) $(libhawk_uci_la_DEPENDENCIES) $(EXTRA_libhawk_uci_la_DEPENDENCIES) 
 	$(AM_V_CCLD)$(libhawk_uci_la_LINK) $(am_libhawk_uci_la_rpath) $(libhawk_uci_la_OBJECTS) $(libhawk_uci_la_LIBADD) $(LIBS)
 
 mostlyclean-compile:

@@ -534,8 +534,18 @@ Automatic interpreter flush requests do not commit the HTTP response.
 
 Parsed scripts are cached, while each request receives a fresh runtime.
 `--reload-interval` controls change checks; failed reloads retain the previous
-working script. Embedding applications can list included files in each route's
-`Dependencies` for reload detection; includes are not discovered automatically.
+working script and its dependency set. Nested `@include` and `@include_once`
+files are tracked automatically using the paths resolved by the source IO
+handler, including `--incdirs` searches. Embedding applications can use each
+route's `Dependencies` for templates, configuration, and other files read at
+runtime. The observer collects paths and file metadata without reading file
+contents. Reload checks hash each file once before and once after parsing;
+newly discovered includes are hashed afterward and checked for metadata changes.
+These checks detect ordinary edits during parsing without providing an atomic
+snapshot of files being modified concurrently.
+Include-search candidates are checked as well, so adding a file earlier in the
+search path triggers resolution again. Go embedders can call
+`ParseFileWithDependencies()` to obtain the resolved source paths directly.
 `--max-concurrent`, `--max-body-bytes`, and `--max-response-bytes` bound script
 requests and buffered bodies. Keep scripts outside the static document root;
 `.hawk` files are excluded from static responses.

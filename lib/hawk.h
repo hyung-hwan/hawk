@@ -2253,6 +2253,35 @@ HAWK_EXPORT int hawk_parsestd (
 );
 
 /**
+ * Observe file input handled by hawk_parsestdwithobserver(). OPEN is reported
+ * after resolution and opening, READ after reading (including EOF), and CLOSE
+ * before closing. arg->path is the resolved path; stdin and string inputs are
+ * not reported. READ data contains size native characters and is borrowed.
+ * The observer must not reenter parsing on this interpreter. Return -1 with
+ * an interpreter diagnostic set to stop parsing, or 0 to continue. A rejected
+ * OPEN is closed without further notifications. Other observer failures still
+ * close their streams; CLOSE is a notification, not a veto of cleanup.
+ */
+typedef int (*hawk_parsestd_observer_t) (
+	hawk_t*               hawk,
+	hawk_sio_cmd_t        cmd,
+	const hawk_sio_arg_t* arg,
+	const hawk_ooch_t*    data,
+	hawk_oow_t            size,
+	void*                 ctx
+);
+
+/** Parse with a per-invocation file input observer. A NULL observer behaves
+ * like hawk_parsestd(). Notifications do not include deparse output. */
+HAWK_EXPORT int hawk_parsestdwithobserver (
+	hawk_t*                  hawk,
+	hawk_parsestd_t          in[],
+	hawk_parsestd_t*         out,
+	hawk_parsestd_observer_t observer,
+	void*                    ctx
+);
+
+/**
  * The hawk_isvalidident() function determines if a given string is
  * a valid identifier.
  */

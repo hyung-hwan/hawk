@@ -30136,7 +30136,7 @@ ac_config_commands="$ac_config_commands cmgr-defines"
 
 
 
-ac_config_files="$ac_config_files Makefile tools/Makefile lib/Makefile mod/Makefile bin/Makefile samples/Makefile t/Makefile pkgs/hawk.spec"
+ac_config_files="$ac_config_files Makefile tools/Makefile lib/Makefile mod/Makefile bin/Makefile samples/Makefile samples/wb/run.sh t/Makefile pkgs/hawk.spec"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -31427,6 +31427,7 @@ do
     "mod/Makefile") CONFIG_FILES="$CONFIG_FILES mod/Makefile" ;;
     "bin/Makefile") CONFIG_FILES="$CONFIG_FILES bin/Makefile" ;;
     "samples/Makefile") CONFIG_FILES="$CONFIG_FILES samples/Makefile" ;;
+    "samples/wb/run.sh") CONFIG_FILES="$CONFIG_FILES samples/wb/run.sh" ;;
     "t/Makefile") CONFIG_FILES="$CONFIG_FILES t/Makefile" ;;
     "pkgs/hawk.spec") CONFIG_FILES="$CONFIG_FILES pkgs/hawk.spec" ;;
 

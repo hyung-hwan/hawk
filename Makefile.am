@@ -2,9 +2,9 @@ AUTOMAKE_OPTION = foreign
 ACLOCAL_AMFLAGS = -I m4
 
 gosrcdir = $(datadir)/hawk/go
-gosrc_DATA = go.mod hawk.go hawk-inst.go hawk-io.go hawk-http.go hawk-httpd.go hawk-httpd-req.go
+gosrc_DATA = go.mod hawk.go hawk-inst.go hawk-io.go hawk-src.go hawk-http.go hawk-httpd.go hawk-httpd-req.go
 
-EXTRA_DIST = $(gosrc_DATA) hawk_test.go hawk-io_test.go hawk-httpd_test.go
+EXTRA_DIST = $(gosrc_DATA) hawk_test.go hawk-io_test.go hawk-src_test.go hawk-httpd_test.go
 
 SUBDIRS =
 

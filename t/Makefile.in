@@ -263,6 +263,12 @@ t_022_DEPENDENCIES = $(am__DEPENDENCIES_2)
 t_022_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(t_022_CFLAGS) $(CFLAGS) \
 	$(t_022_LDFLAGS) $(LDFLAGS) -o $@
+am_t_023_OBJECTS = t_023-t-023.$(OBJEXT)
+t_023_OBJECTS = $(am_t_023_OBJECTS)
+t_023_DEPENDENCIES = $(am__DEPENDENCIES_2)
+t_023_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(t_023_CFLAGS) $(CFLAGS) \
+	$(t_023_LDFLAGS) $(LDFLAGS) -o $@
 am__t_101_SOURCES_DIST = t-101.cpp tap.h
 @ENABLE_CXX_TRUE@am_t_101_OBJECTS = t_101-t-101.$(OBJEXT)
 t_101_OBJECTS = $(am_t_101_OBJECTS)
@@ -304,7 +310,7 @@ am__depfiles_remade = ./$(DEPDIR)/fnc_regress-fnc-regress.Po \
 	./$(DEPDIR)/t_017-t-017.Po ./$(DEPDIR)/t_018-t-018.Po \
 	./$(DEPDIR)/t_019-t-019.Po ./$(DEPDIR)/t_020-t-020.Po \
 	./$(DEPDIR)/t_021-t-021.Po ./$(DEPDIR)/t_022-t-022.Po \
-	./$(DEPDIR)/t_101-t-101.Po
+	./$(DEPDIR)/t_023-t-023.Po ./$(DEPDIR)/t_101-t-101.Po
 am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -350,7 +356,7 @@ SOURCES = $(fnc_regress_SOURCES) $(sh_job_control_SOURCES) \
 	$(t_013_SOURCES) $(t_014_SOURCES) $(t_015_SOURCES) \
 	$(t_016_SOURCES) $(t_017_SOURCES) $(t_018_SOURCES) \
 	$(t_019_SOURCES) $(t_020_SOURCES) $(t_021_SOURCES) \
-	$(t_022_SOURCES) $(t_101_SOURCES)
+	$(t_022_SOURCES) $(t_023_SOURCES) $(t_101_SOURCES)
 DIST_SOURCES = $(fnc_regress_SOURCES) $(sh_job_control_SOURCES) \
 	$(t_001_SOURCES) $(t_002_SOURCES) $(t_003_SOURCES) \
 	$(t_004_SOURCES) $(t_005_SOURCES) $(t_006_SOURCES) \
@@ -359,7 +365,7 @@ DIST_SOURCES = $(fnc_regress_SOURCES) $(sh_job_control_SOURCES) \
 	$(t_013_SOURCES) $(t_014_SOURCES) $(t_015_SOURCES) \
 	$(t_016_SOURCES) $(t_017_SOURCES) $(t_018_SOURCES) \
 	$(t_019_SOURCES) $(t_020_SOURCES) $(t_021_SOURCES) \
-	$(t_022_SOURCES) $(am__t_101_SOURCES_DIST)
+	$(t_022_SOURCES) $(t_023_SOURCES) $(am__t_101_SOURCES_DIST)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -790,7 +796,8 @@ TEST_PROGS = t-001$(EXEEXT) t-002$(EXEEXT) t-003$(EXEEXT) \
 	t-008$(EXEEXT) t-009$(EXEEXT) t-010$(EXEEXT) t-011$(EXEEXT) \
 	t-012$(EXEEXT) t-013$(EXEEXT) t-014$(EXEEXT) t-015$(EXEEXT) \
 	t-016$(EXEEXT) t-017$(EXEEXT) t-018$(EXEEXT) t-019$(EXEEXT) \
-	t-020$(EXEEXT) t-021$(EXEEXT) t-022$(EXEEXT) $(am__append_2)
+	t-020$(EXEEXT) t-021$(EXEEXT) t-022$(EXEEXT) t-023$(EXEEXT) \
+	$(am__append_2)
 check_PROGRAMS = $(TEST_PROGS) fnc-regress$(EXEEXT) sh-job-control$(EXEEXT)
 t_001_SOURCES = t-001.c tap.h
 t_001_CPPFLAGS = $(CPPFLAGS_COMMON)
@@ -899,6 +906,11 @@ t_022_CPPFLAGS = $(CPPFLAGS_COMMON) -DTEST_MODLIBDIRS='"$(abs_builddir)/../lib/.
 t_022_CFLAGS = $(CFLAGS_COMMON)
 t_022_LDFLAGS = $(LDFLAGS_COMMON)
 t_022_LDADD = $(LIBADD_COMMON)
+t_023_SOURCES = t-023.c tap.h parse-source-a.inc parse-source-b.inc
+t_023_CPPFLAGS = $(CPPFLAGS_COMMON) -DTEST_SRCDIR='"$(abs_srcdir)"'
+t_023_CFLAGS = $(CFLAGS_COMMON)
+t_023_LDFLAGS = $(LDFLAGS_COMMON)
+t_023_LDADD = $(LIBADD_COMMON)
 fnc_regress_SOURCES = fnc-regress.c math-rand-max.c math-time-failure.c math-threads.c sys-faults.c sys-fallback.c sys-unavailable.c
 fnc_regress_CPPFLAGS = $(CPPFLAGS_COMMON)
 fnc_regress_CFLAGS = $(CFLAGS_COMMON)
@@ -1041,29 +1053,33 @@ t-016$(EXEEXT): $(t_016_OBJECTS) $(t_016_DEPENDENCIES) $(EXTRA_t_016_DEPENDENCIE
 	@rm -f t-016$(EXEEXT)
 	$(AM_V_CCLD)$(t_016_LINK) $(t_016_OBJECTS) $(t_016_LDADD) $(LIBS)
 
-t-017$(EXEEXT): $(t_017_OBJECTS) $(t_017_DEPENDENCIES) $(EXTRA_t_017_DEPENDENCIES)
+t-017$(EXEEXT): $(t_017_OBJECTS) $(t_017_DEPENDENCIES) $(EXTRA_t_017_DEPENDENCIES) 
 	@rm -f t-017$(EXEEXT)
 	$(AM_V_CCLD)$(t_017_LINK) $(t_017_OBJECTS) $(t_017_LDADD) $(LIBS)
 
-t-018$(EXEEXT): $(t_018_OBJECTS) $(t_018_DEPENDENCIES) $(EXTRA_t_018_DEPENDENCIES)
+t-018$(EXEEXT): $(t_018_OBJECTS) $(t_018_DEPENDENCIES) $(EXTRA_t_018_DEPENDENCIES) 
 	@rm -f t-018$(EXEEXT)
 	$(AM_V_CCLD)$(t_018_LINK) $(t_018_OBJECTS) $(t_018_LDADD) $(LIBS)
 
-t-019$(EXEEXT): $(t_019_OBJECTS) $(t_019_DEPENDENCIES) $(EXTRA_t_019_DEPENDENCIES)
+t-019$(EXEEXT): $(t_019_OBJECTS) $(t_019_DEPENDENCIES) $(EXTRA_t_019_DEPENDENCIES) 
 	@rm -f t-019$(EXEEXT)
 	$(AM_V_CCLD)$(t_019_LINK) $(t_019_OBJECTS) $(t_019_LDADD) $(LIBS)
 
-t-020$(EXEEXT): $(t_020_OBJECTS) $(t_020_DEPENDENCIES) $(EXTRA_t_020_DEPENDENCIES)
+t-020$(EXEEXT): $(t_020_OBJECTS) $(t_020_DEPENDENCIES) $(EXTRA_t_020_DEPENDENCIES) 
 	@rm -f t-020$(EXEEXT)
 	$(AM_V_CCLD)$(t_020_LINK) $(t_020_OBJECTS) $(t_020_LDADD) $(LIBS)
 
-t-021$(EXEEXT): $(t_021_OBJECTS) $(t_021_DEPENDENCIES) $(EXTRA_t_021_DEPENDENCIES)
+t-021$(EXEEXT): $(t_021_OBJECTS) $(t_021_DEPENDENCIES) $(EXTRA_t_021_DEPENDENCIES) 
 	@rm -f t-021$(EXEEXT)
 	$(AM_V_CCLD)$(t_021_LINK) $(t_021_OBJECTS) $(t_021_LDADD) $(LIBS)
 
-t-022$(EXEEXT): $(t_022_OBJECTS) $(t_022_DEPENDENCIES) $(EXTRA_t_022_DEPENDENCIES)
+t-022$(EXEEXT): $(t_022_OBJECTS) $(t_022_DEPENDENCIES) $(EXTRA_t_022_DEPENDENCIES) 
 	@rm -f t-022$(EXEEXT)
 	$(AM_V_CCLD)$(t_022_LINK) $(t_022_OBJECTS) $(t_022_LDADD) $(LIBS)
+
+t-023$(EXEEXT): $(t_023_OBJECTS) $(t_023_DEPENDENCIES) $(EXTRA_t_023_DEPENDENCIES) 
+	@rm -f t-023$(EXEEXT)
+	$(AM_V_CCLD)$(t_023_LINK) $(t_023_OBJECTS) $(t_023_LDADD) $(LIBS)
 
 t-101$(EXEEXT): $(t_101_OBJECTS) $(t_101_DEPENDENCIES) $(EXTRA_t_101_DEPENDENCIES) 
 	@rm -f t-101$(EXEEXT)
@@ -1105,6 +1121,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/t_020-t-020.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/t_021-t-021.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/t_022-t-022.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/t_023-t-023.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/t_101-t-101.Po@am__quote@ # am--include-marker
 
 $(am__depfiles_remade):
@@ -1557,6 +1574,20 @@ t_022-t-022.obj: t-022.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(t_022_CPPFLAGS) $(CPPFLAGS) $(t_022_CFLAGS) $(CFLAGS) -c -o t_022-t-022.obj `if test -f 't-022.c'; then $(CYGPATH_W) 't-022.c'; else $(CYGPATH_W) '$(srcdir)/t-022.c'; fi`
 
+t_023-t-023.o: t-023.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(t_023_CPPFLAGS) $(CPPFLAGS) $(t_023_CFLAGS) $(CFLAGS) -MT t_023-t-023.o -MD -MP -MF $(DEPDIR)/t_023-t-023.Tpo -c -o t_023-t-023.o `test -f 't-023.c' || echo '$(srcdir)/'`t-023.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/t_023-t-023.Tpo $(DEPDIR)/t_023-t-023.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='t-023.c' object='t_023-t-023.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(t_023_CPPFLAGS) $(CPPFLAGS) $(t_023_CFLAGS) $(CFLAGS) -c -o t_023-t-023.o `test -f 't-023.c' || echo '$(srcdir)/'`t-023.c
+
+t_023-t-023.obj: t-023.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(t_023_CPPFLAGS) $(CPPFLAGS) $(t_023_CFLAGS) $(CFLAGS) -MT t_023-t-023.obj -MD -MP -MF $(DEPDIR)/t_023-t-023.Tpo -c -o t_023-t-023.obj `if test -f 't-023.c'; then $(CYGPATH_W) 't-023.c'; else $(CYGPATH_W) '$(srcdir)/t-023.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/t_023-t-023.Tpo $(DEPDIR)/t_023-t-023.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='t-023.c' object='t_023-t-023.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(t_023_CPPFLAGS) $(CPPFLAGS) $(t_023_CFLAGS) $(CFLAGS) -c -o t_023-t-023.obj `if test -f 't-023.c'; then $(CYGPATH_W) 't-023.c'; else $(CYGPATH_W) '$(srcdir)/t-023.c'; fi`
+
 .cpp.o:
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.o$$||'`;\
 @am__fastdepCXX_TRUE@	$(CXXCOMPILE) -MT $@ -MD -MP -MF $$depbase.Tpo -c -o $@ $< &&\
@@ -1973,6 +2004,13 @@ t-022.log: t-022$(EXEEXT)
 	--log-file $$b.log --trs-file $$b.trs \
 	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
 	"$$tst" $(AM_TESTS_FD_REDIRECT)
+t-023.log: t-023$(EXEEXT)
+	@p='t-023$(EXEEXT)'; \
+	b='t-023'; \
+	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
+	--log-file $$b.log --trs-file $$b.trs \
+	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
+	"$$tst" $(AM_TESTS_FD_REDIRECT)
 t-101.log: t-101$(EXEEXT)
 	@p='t-101$(EXEEXT)'; \
 	b='t-101'; \
@@ -2131,6 +2169,7 @@ distclean: distclean-am
 	-rm -f ./$(DEPDIR)/t_020-t-020.Po
 	-rm -f ./$(DEPDIR)/t_021-t-021.Po
 	-rm -f ./$(DEPDIR)/t_022-t-022.Po
+	-rm -f ./$(DEPDIR)/t_023-t-023.Po
 	-rm -f ./$(DEPDIR)/t_101-t-101.Po
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
@@ -2207,6 +2246,7 @@ maintainer-clean: maintainer-clean-am
 	-rm -f ./$(DEPDIR)/t_020-t-020.Po
 	-rm -f ./$(DEPDIR)/t_021-t-021.Po
 	-rm -f ./$(DEPDIR)/t_022-t-022.Po
+	-rm -f ./$(DEPDIR)/t_023-t-023.Po
 	-rm -f ./$(DEPDIR)/t_101-t-101.Po
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic

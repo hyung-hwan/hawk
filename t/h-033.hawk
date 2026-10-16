@@ -2,7 +2,7 @@
 @pragma implicit off
 @pragma defermodsym on
 
-@include "../samples/web-workbench/scripts/workbench.hawk";
+@include "../samples/wb/scripts/workbench.hawk";
 @include "tap.inc";
 
 function result_field(value, key)

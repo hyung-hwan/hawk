@@ -1239,6 +1239,7 @@ AC_CONFIG_FILES([
 	mod/Makefile 
 	bin/Makefile
 	samples/Makefile
+	samples/wb/run.sh
 	t/Makefile
 	pkgs/hawk.spec
 ])

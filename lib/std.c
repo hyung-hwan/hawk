@@ -96,7 +96,9 @@ typedef struct xtn_t
 		struct
 		{
 			hawk_parsestd_t* x;
-			hawk_oow_t       xindex;
+			hawk_oow_t xindex;
+			hawk_parsestd_observer_t observer;
+			void* observer_ctx;
 
 			union
 			{
@@ -1137,6 +1139,25 @@ static int is_psin_file (hawk_parsestd_t* psin)
 	       psin->type == HAWK_PARSESTD_FILEU;
 }
 
+static int observe_parsestd (hawk_t* hawk, xtn_t* xtn, hawk_sio_cmd_t cmd,
+                            const hawk_sio_arg_t* arg, const hawk_ooch_t* data, hawk_oow_t size)
+{
+	if (xtn->s.in.observer && arg->path)
+		return xtn->s.in.observer(hawk, cmd, arg, data, size, xtn->s.in.observer_ctx);
+	return 0;
+}
+
+static int close_previous_parsestd (hawk_t* hawk, hawk_sio_arg_t* arg, xtn_t* xtn, hawk_oow_t index)
+{
+	int n;
+
+	if (index < 1 || !is_psin_file(&xtn->s.in.x[index - 1])) return 0;
+	n = observe_parsestd(hawk, xtn, HAWK_SIO_CMD_CLOSE, arg, HAWK_NULL, 0);
+	hawk_sio_close(arg->handle);
+	arg->handle = HAWK_NULL;
+	return n;
+}
+
 static int open_parsestd (hawk_t* hawk, hawk_sio_arg_t* arg, xtn_t* xtn, hawk_oow_t index)
 {
 	hawk_parsestd_t* psin = &xtn->s.in.x[index];
@@ -1168,11 +1189,21 @@ static int open_parsestd (hawk_t* hawk, hawk_sio_arg_t* arg, xtn_t* xtn, hawk_oo
 			}
 			if (tmp == HAWK_NULL) return -1;
 
-			if (index >= 1 && is_psin_file(&xtn->s.in.x[index - 1])) hawk_sio_close(arg->handle);
+			if (close_previous_parsestd(hawk, arg, xtn, index) <= -1)
+			{
+				hawk_sio_close(tmp);
+				return -1;
+			}
 
 			arg->handle = tmp;
 			arg->path = path;
 			if (psin->u.fileb.cmgr) hawk_sio_setcmgr(arg->handle, psin->u.fileb.cmgr);
+			if (observe_parsestd(hawk, xtn, HAWK_SIO_CMD_OPEN, arg, HAWK_NULL, 0) <= -1)
+			{
+				hawk_sio_close(arg->handle);
+				arg->handle = HAWK_NULL;
+				return -1;
+			}
 			return 0;
 		}
 
@@ -1200,30 +1231,46 @@ static int open_parsestd (hawk_t* hawk, hawk_sio_arg_t* arg, xtn_t* xtn, hawk_oo
 			}
 			if (tmp == HAWK_NULL) return -1;
 
-			if (index >= 1 && is_psin_file(&xtn->s.in.x[index - 1])) hawk_sio_close(arg->handle);
+			if (close_previous_parsestd(hawk, arg, xtn, index) <= -1)
+			{
+				hawk_sio_close(tmp);
+				return -1;
+			}
 
 			arg->handle = tmp;
 			arg->path = path;
 			if (psin->u.fileu.cmgr) hawk_sio_setcmgr(arg->handle, psin->u.fileu.cmgr);
+			if (observe_parsestd(hawk, xtn, HAWK_SIO_CMD_OPEN, arg, HAWK_NULL, 0) <= -1)
+			{
+				hawk_sio_close(arg->handle);
+				arg->handle = HAWK_NULL;
+				return -1;
+			}
 			return 0;
 		}
 
 		case HAWK_PARSESTD_OOCS:
-			if (index >= 1 && is_psin_file(&xtn->s.in.x[index - 1])) hawk_sio_close(arg->handle);
+			if (close_previous_parsestd(hawk, arg, xtn, index) <= -1) return -1;
 			xtn->s.in.u.oocs.ptr = psin->u.oocs.ptr;
 			xtn->s.in.u.oocs.end = psin->u.oocs.ptr + psin->u.oocs.len;
+			arg->handle = HAWK_NULL;
+			arg->path = HAWK_NULL;
 			return 0;
 
 		case HAWK_PARSESTD_BCS:
-			if (index >= 1 && is_psin_file(&xtn->s.in.x[index - 1])) hawk_sio_close(arg->handle);
+			if (close_previous_parsestd(hawk, arg, xtn, index) <= -1) return -1;
 			xtn->s.in.u.bcs.ptr = psin->u.bcs.ptr;
 			xtn->s.in.u.bcs.end = psin->u.bcs.ptr + psin->u.bcs.len;
+			arg->handle = HAWK_NULL;
+			arg->path = HAWK_NULL;
 			return 0;
 
 		case HAWK_PARSESTD_UCS:
-			if (index >= 1 && is_psin_file(&xtn->s.in.x[index - 1])) hawk_sio_close(arg->handle);
+			if (close_previous_parsestd(hawk, arg, xtn, index) <= -1) return -1;
 			xtn->s.in.u.ucs.ptr = psin->u.ucs.ptr;
 			xtn->s.in.u.ucs.end = psin->u.ucs.ptr + psin->u.ucs.len;
+			arg->handle = HAWK_NULL;
+			arg->path = HAWK_NULL;
 			return 0;
 
 		default:
@@ -1454,12 +1501,22 @@ static hawk_ooi_t sf_in_open (hawk_t* hawk, hawk_sio_arg_t* arg, xtn_t* xtn)
 		arg->path = xpath;
 		fill_sio_arg_unique_id(hawk, arg, xpath);
 
+		if (observe_parsestd(hawk, xtn, HAWK_SIO_CMD_OPEN, arg, HAWK_NULL, 0) <= -1)
+		{
+			hawk_sio_close(arg->handle);
+			arg->handle = HAWK_NULL;
+			return -1;
+		}
 		return 0;
 	}
 }
 
 static hawk_ooi_t sf_in_close(hawk_t* hawk, hawk_sio_arg_t* arg, xtn_t* xtn)
 {
+	int n = 0;
+
+	/* Failed OPEN notifications already closed their handles. */
+	if (arg->handle) n = observe_parsestd(hawk, xtn, HAWK_SIO_CMD_CLOSE, arg, HAWK_NULL, 0);
 	if (arg->prev == HAWK_NULL)
 	{
 		switch (xtn->s.in.x[xtn->s.in.xindex].type)
@@ -1467,8 +1524,7 @@ static hawk_ooi_t sf_in_close(hawk_t* hawk, hawk_sio_arg_t* arg, xtn_t* xtn)
 			case HAWK_PARSESTD_FILE:
 			case HAWK_PARSESTD_FILEB:
 			case HAWK_PARSESTD_FILEU:
-				HAWK_ASSERT(arg->handle != HAWK_NULL);
-				hawk_sio_close(arg->handle);
+				if (arg->handle) hawk_sio_close(arg->handle);
 				break;
 
 			case HAWK_PARSESTD_OOCS:
@@ -1485,11 +1541,11 @@ static hawk_ooi_t sf_in_close(hawk_t* hawk, hawk_sio_arg_t* arg, xtn_t* xtn)
 	else
 	{
 		/* handle the included source file - @include */
-		HAWK_ASSERT(arg->handle != HAWK_NULL);
-		hawk_sio_close(arg->handle);
+		if (arg->handle) hawk_sio_close(arg->handle);
 	}
 
-	return 0;
+	arg->handle = HAWK_NULL;
+	return n;
 }
 
 static hawk_ooi_t sf_in_read (hawk_t* hawk, hawk_sio_arg_t* arg, hawk_ooch_t* data, hawk_oow_t size, xtn_t* xtn)
@@ -1603,6 +1659,7 @@ static hawk_ooi_t sf_in_read (hawk_t* hawk, hawk_sio_arg_t* arg, hawk_ooch_t* da
 				break;
 		}
 
+		if (n >= 0 && observe_parsestd(hawk, xtn, HAWK_SIO_CMD_READ, arg, data, n) <= -1) return -1;
 		if (n == 0)
 		{
 			/* reached end of the current stream. */
@@ -1633,6 +1690,7 @@ static hawk_ooi_t sf_in_read (hawk_t* hawk, hawk_sio_arg_t* arg, hawk_ooch_t* da
 
 		n = hawk_sio_getoochars(arg->handle, data, size);
 
+		if (n >= 0 && observe_parsestd(hawk, xtn, HAWK_SIO_CMD_READ, arg, data, n) <= -1) return -1;
 		if (n <= -1)
 		{
 			const hawk_ooch_t* bem = hawk_backuperrmsg(hawk);
@@ -1870,6 +1928,12 @@ internal_error:
 
 int hawk_parsestd (hawk_t* hawk, hawk_parsestd_t in[], hawk_parsestd_t* out)
 {
+	return hawk_parsestdwithobserver(hawk, in, out, HAWK_NULL, HAWK_NULL);
+}
+
+int hawk_parsestdwithobserver (hawk_t* hawk, hawk_parsestd_t in[], hawk_parsestd_t* out,
+                               hawk_parsestd_observer_t observer, void* ctx)
+{
 	hawk_sio_cbs_t sio;
 	xtn_t* xtn = GET_XTN(hawk);
 	int n;
@@ -1907,7 +1971,11 @@ int hawk_parsestd (hawk_t* hawk, hawk_parsestd_t in[], hawk_parsestd_t* out)
 		xtn->s.out.x = out;
 	}
 
+	xtn->s.in.observer = observer;
+	xtn->s.in.observer_ctx = ctx;
 	n = hawk_parse(hawk, &sio);
+	xtn->s.in.observer = HAWK_NULL;
+	xtn->s.in.observer_ctx = HAWK_NULL;
 
 	if (out)
 	{

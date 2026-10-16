@@ -189,7 +189,7 @@ libhawk_hawk_la_OBJECTS = $(am_libhawk_hawk_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
 am__v_lt_0 = --silent
-am__v_lt_1 =
+am__v_lt_1 = 
 libhawk_hawk_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
 	$(libhawk_hawk_la_CFLAGS) $(CFLAGS) $(libhawk_hawk_la_LDFLAGS) \
@@ -253,11 +253,11 @@ libhawk_sys_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 @ENABLE_MOD_UCI_STATIC_TRUE@am__DEPENDENCIES_10 =  \
 @ENABLE_MOD_UCI_STATIC_TRUE@	$(am__DEPENDENCIES_1)
 libhawk_la_DEPENDENCIES = $(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
-	$(am__DEPENDENCIES_2) $(am__DEPENDENCIES_3) \
-	$(am__DEPENDENCIES_4) $(am__DEPENDENCIES_5) \
-	$(am__DEPENDENCIES_6) $(am__DEPENDENCIES_7) \
-	$(am__DEPENDENCIES_8) $(am__DEPENDENCIES_9) \
-	$(am__DEPENDENCIES_10)
+	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_2) \
+	$(am__DEPENDENCIES_3) $(am__DEPENDENCIES_4) \
+	$(am__DEPENDENCIES_5) $(am__DEPENDENCIES_6) \
+	$(am__DEPENDENCIES_7) $(am__DEPENDENCIES_8) \
+	$(am__DEPENDENCIES_9) $(am__DEPENDENCIES_10)
 am__libhawk_la_SOURCES_DIST = hawk.h hawk-arr.h hawk-aux.h hawk-chr.h \
 	hawk-cli.h hawk-cmn.h hawk-cut.h hawk-dir.h hawk-ecs.h \
 	hawk-fio.h hawk-fmt.h hawk-gem.h hawk-glob.h hawk-htb.h \
@@ -362,12 +362,12 @@ am__v_P_1 = :
 AM_V_GEN = $(am__v_GEN_@AM_V@)
 am__v_GEN_ = $(am__v_GEN_@AM_DEFAULT_V@)
 am__v_GEN_0 = @echo "  GEN     " $@;
-am__v_GEN_1 =
+am__v_GEN_1 = 
 AM_V_at = $(am__v_at_@AM_V@)
 am__v_at_ = $(am__v_at_@AM_DEFAULT_V@)
 am__v_at_0 = @
-am__v_at_1 =
-DEFAULT_INCLUDES =
+am__v_at_1 = 
+DEFAULT_INCLUDES = 
 depcomp = $(SHELL) $(top_srcdir)/ac/depcomp
 am__maybe_remake_depfiles = depfiles
 am__depfiles_remade = ../mod/$(DEPDIR)/libhawk_la-mod-digest.Plo \
@@ -459,7 +459,7 @@ LTCOMPILE = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 AM_V_CC = $(am__v_CC_@AM_V@)
 am__v_CC_ = $(am__v_CC_@AM_DEFAULT_V@)
 am__v_CC_0 = @echo "  CC      " $@;
-am__v_CC_1 =
+am__v_CC_1 = 
 CCLD = $(CC)
 LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
@@ -467,7 +467,7 @@ LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 AM_V_CCLD = $(am__v_CCLD_@AM_V@)
 am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
-am__v_CCLD_1 =
+am__v_CCLD_1 = 
 CXXCOMPILE = $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
 	$(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS)
 LTCXXCOMPILE = $(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) \
@@ -477,7 +477,7 @@ LTCXXCOMPILE = $(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) \
 AM_V_CXX = $(am__v_CXX_@AM_V@)
 am__v_CXX_ = $(am__v_CXX_@AM_DEFAULT_V@)
 am__v_CXX_0 = @echo "  CXX     " $@;
-am__v_CXX_1 =
+am__v_CXX_1 = 
 CXXLD = $(CXX)
 CXXLINK = $(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CXXLD) $(AM_CXXFLAGS) \
@@ -485,7 +485,7 @@ CXXLINK = $(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) \
 AM_V_CXXLD = $(am__v_CXXLD_@AM_V@)
 am__v_CXXLD_ = $(am__v_CXXLD_@AM_DEFAULT_V@)
 am__v_CXXLD_0 = @echo "  CXXLD   " $@;
-am__v_CXXLD_1 =
+am__v_CXXLD_1 = 
 SOURCES = $(libhawk_hawk_la_SOURCES) $(libhawk_math_la_SOURCES) \
 	$(libhawk_str_la_SOURCES) $(libhawk_sys_la_SOURCES) \
 	$(libhawk_la_SOURCES)
@@ -705,8 +705,8 @@ CPPFLAGS_ALL_COMMON = \
 	-I$(abs_srcdir) \
 	-I$(includedir)
 
-CFLAGS_ALL_COMMON =
-CXXFLAGS_ALL_COMMON =
+CFLAGS_ALL_COMMON = 
+CXXFLAGS_ALL_COMMON = 
 @ENABLE_STATIC_MODULE_FALSE@LDFLAGS_ALL_COMMON = -L$(abs_builddir) -L$(libdir)
 @ENABLE_STATIC_MODULE_TRUE@LDFLAGS_ALL_COMMON = -L$(abs_builddir)/../mod -L$(abs_builddir) -L$(libdir)
 @WIN32_FALSE@CPPFLAGS_PFMOD = -DHAWK_DEFAULT_MODLIBDIRS=\"$(libdir)\" \
@@ -714,7 +714,7 @@ CXXFLAGS_ALL_COMMON =
 @WIN32_FALSE@	$(am__append_1) $(am__append_2)
 
 ##################################################
-# MAIN LIBRARY
+# MAIN LIBRARY 
 ##################################################
 
 # you must adjust the value of DEFAULT_MODPOSTFIX according
@@ -771,7 +771,7 @@ libhawk_la_CPPFLAGS = $(CPPFLAGS_ALL_COMMON) $(CPPFLAGS_PFMOD) \
 libhawk_la_CFLAGS = $(CFLAGS_ALL_COMMON)
 libhawk_la_CXXFLAGS = $(CXXFLAGS_ALL_COMMON)
 libhawk_la_LDFLAGS = $(LDFLAGS_ALL_COMMON) -version-info 1:0:0 ## -no-undefined
-libhawk_la_LIBADD = $(LIBM) $(SOCKET_LIBS) $(am__append_4) \
+libhawk_la_LIBADD = $(LIBM) $(SOCKET_LIBS) $(PTY_LIBS) $(am__append_4) \
 	$(am__append_5) $(am__append_6) $(am__append_10) \
 	$(am__append_15) $(am__append_17) $(am__append_20) \
 	$(am__append_23) $(am__append_26)
@@ -860,7 +860,7 @@ hawk-cfg.h: stamp-h1
 stamp-h1: $(srcdir)/hawk-cfg.h.in $(top_builddir)/config.status
 	$(AM_V_at)rm -f stamp-h1
 	$(AM_V_GEN)cd $(top_builddir) && $(SHELL) ./config.status lib/hawk-cfg.h
-$(srcdir)/hawk-cfg.h.in:  $(am__configure_deps)
+$(srcdir)/hawk-cfg.h.in:  $(am__configure_deps) 
 	$(AM_V_GEN)($(am__cd) $(top_srcdir) && $(AUTOHEADER))
 	$(AM_V_at)rm -f stamp-h1
 	$(AM_V_at)touch $@
@@ -901,16 +901,16 @@ clean-pkglibLTLIBRARIES:
 	echo rm -f $${locs}; \
 	$(am__rm_f) $${locs}
 
-libhawk-hawk.la: $(libhawk_hawk_la_OBJECTS) $(libhawk_hawk_la_DEPENDENCIES) $(EXTRA_libhawk_hawk_la_DEPENDENCIES)
+libhawk-hawk.la: $(libhawk_hawk_la_OBJECTS) $(libhawk_hawk_la_DEPENDENCIES) $(EXTRA_libhawk_hawk_la_DEPENDENCIES) 
 	$(AM_V_CCLD)$(libhawk_hawk_la_LINK) $(am_libhawk_hawk_la_rpath) $(libhawk_hawk_la_OBJECTS) $(libhawk_hawk_la_LIBADD) $(LIBS)
 
-libhawk-math.la: $(libhawk_math_la_OBJECTS) $(libhawk_math_la_DEPENDENCIES) $(EXTRA_libhawk_math_la_DEPENDENCIES)
+libhawk-math.la: $(libhawk_math_la_OBJECTS) $(libhawk_math_la_DEPENDENCIES) $(EXTRA_libhawk_math_la_DEPENDENCIES) 
 	$(AM_V_CCLD)$(libhawk_math_la_LINK) $(am_libhawk_math_la_rpath) $(libhawk_math_la_OBJECTS) $(libhawk_math_la_LIBADD) $(LIBS)
 
-libhawk-str.la: $(libhawk_str_la_OBJECTS) $(libhawk_str_la_DEPENDENCIES) $(EXTRA_libhawk_str_la_DEPENDENCIES)
+libhawk-str.la: $(libhawk_str_la_OBJECTS) $(libhawk_str_la_DEPENDENCIES) $(EXTRA_libhawk_str_la_DEPENDENCIES) 
 	$(AM_V_CCLD)$(libhawk_str_la_LINK) $(am_libhawk_str_la_rpath) $(libhawk_str_la_OBJECTS) $(libhawk_str_la_LIBADD) $(LIBS)
 
-libhawk-sys.la: $(libhawk_sys_la_OBJECTS) $(libhawk_sys_la_DEPENDENCIES) $(EXTRA_libhawk_sys_la_DEPENDENCIES)
+libhawk-sys.la: $(libhawk_sys_la_OBJECTS) $(libhawk_sys_la_DEPENDENCIES) $(EXTRA_libhawk_sys_la_DEPENDENCIES) 
 	$(AM_V_CCLD)$(libhawk_sys_la_LINK) $(am_libhawk_sys_la_rpath) $(libhawk_sys_la_OBJECTS) $(libhawk_sys_la_LIBADD) $(LIBS)
 ../mod/$(am__dirstamp):
 	@$(MKDIR_P) ../mod
@@ -941,7 +941,7 @@ libhawk-sys.la: $(libhawk_sys_la_OBJECTS) $(libhawk_sys_la_DEPENDENCIES) $(EXTRA
 ../mod/libhawk_la-mod-mus.lo: ../mod/$(am__dirstamp) \
 	../mod/$(DEPDIR)/$(am__dirstamp)
 
-libhawk.la: $(libhawk_la_OBJECTS) $(libhawk_la_DEPENDENCIES) $(EXTRA_libhawk_la_DEPENDENCIES)
+libhawk.la: $(libhawk_la_OBJECTS) $(libhawk_la_DEPENDENCIES) $(EXTRA_libhawk_la_DEPENDENCIES) 
 	$(AM_V_GEN)$(libhawk_la_LINK) -rpath $(pkglibdir) $(libhawk_la_OBJECTS) $(libhawk_la_LIBADD) $(LIBS)
 
 mostlyclean-compile:
@@ -2233,7 +2233,7 @@ uninstall-am: uninstall-pkgincludeHEADERS uninstall-pkglibLTLIBRARIES
 install-data-hook:
 	@echo "#ifndef _HAWK_CFG_H_" > "$(DESTDIR)$(pkgincludedir)/hawk-cfg.h"
 	@echo "#define _HAWK_CFG_H_" >> "$(DESTDIR)$(pkgincludedir)/hawk-cfg.h"
-	@$(EGREP) "#define[ ]+HAWK_" "$(abs_builddir)/hawk-cfg.h" >> "$(DESTDIR)$(pkgincludedir)/hawk-cfg.h"
+	@$(EGREP) "#define[ ]+HAWK_" "$(abs_builddir)/hawk-cfg.h" >> "$(DESTDIR)$(pkgincludedir)/hawk-cfg.h" 
 	@echo "#endif" >> "$(DESTDIR)$(pkgincludedir)/hawk-cfg.h"
 	@rm -f "$(DESTDIR)$(pkgincludedir)/hawk-cfg.h.in"
 	@$(SED) 's|/\*#define HAWK_HAVE_CFG_H\*/|#define HAWK_HAVE_CFG_H|' "$(srcdir)/hawk-cmn.h" > "$(DESTDIR)$(pkgincludedir)/hawk-cmn.h"
