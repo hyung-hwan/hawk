@@ -76,7 +76,7 @@ hawkgo_DEPENDENCIES = \
 	$(top_srcdir)/hawk.go \
 	$(top_srcdir)/hawk-inst.go \
 	$(top_srcdir)/hawk-io.go \
-	$(top_srcdir)/hawk-source.go \
+	$(top_srcdir)/hawk-src.go \
 	$(top_srcdir)/hawk-http.go \
 	$(top_srcdir)/mod/hawk-http.h \
 	$(top_srcdir)/hawk-httpd.go \

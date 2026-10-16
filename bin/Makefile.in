@@ -412,7 +412,7 @@ hawk_DEPENDENCIES = $(srcdir)/hawk.pot $(srcdir)/hawk-ko.po $(srcdir)/hawk-zh_CN
 @ENABLE_HAWKGO_TRUE@	$(top_srcdir)/hawk.go \
 @ENABLE_HAWKGO_TRUE@	$(top_srcdir)/hawk-inst.go \
 @ENABLE_HAWKGO_TRUE@	$(top_srcdir)/hawk-io.go \
-@ENABLE_HAWKGO_TRUE@	$(top_srcdir)/hawk-source.go \
+@ENABLE_HAWKGO_TRUE@	$(top_srcdir)/hawk-src.go \
 @ENABLE_HAWKGO_TRUE@	$(top_srcdir)/hawk-http.go \
 @ENABLE_HAWKGO_TRUE@	$(top_srcdir)/mod/hawk-http.h \
 @ENABLE_HAWKGO_TRUE@	$(top_srcdir)/hawk-httpd.go \
