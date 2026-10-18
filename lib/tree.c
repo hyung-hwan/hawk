@@ -1218,13 +1218,14 @@ static int print_stmt (hawk_t* hawk, hawk_nde_t* p, int depth, int flags)
 
 			if (px->val == HAWK_NULL)
 			{
-				hawk_getkwname(hawk, (px->abort? HAWK_KWID_XABORT: HAWK_KWID_EXIT), &kw);
+				hawk_getkwname(hawk, (px->abort? HAWK_KWID_XEXIT: HAWK_KWID_EXIT), &kw);
+				hawk_getkwname(hawk, HAWK_KWID_EXIT, &kw);
 				PUT_SRCSTRN(hawk, kw.ptr, kw.len);
 				PUT_SRCSTR(hawk, HAWK_T(";"));
 			}
 			else
 			{
-				hawk_getkwname(hawk, (px->abort? HAWK_KWID_XABORT: HAWK_KWID_EXIT), &kw);
+				hawk_getkwname(hawk, (px->abort? HAWK_KWID_XEXIT: HAWK_KWID_EXIT), &kw);
 				PUT_SRCSTRN(hawk, kw.ptr, kw.len);
 				PUT_SRCSTR(hawk, HAWK_T(" "));
 				HAWK_ASSERT(px->val->next == HAWK_NULL);

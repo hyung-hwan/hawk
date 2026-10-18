@@ -35,7 +35,7 @@ The library is stable, portable, and designed for projects that need a scripting
 		- [for (i in array)](#for-i-in-array)
 		- [in operator (key existence)](#in-operator-key-existence)
 		- [switch](#switch)
-		- [break / continue / return / exit / @abort](#break--continue--return--exit--abort)
+		- [break / continue / return / exit / @exit](#break--continue--return--exit--@exit)
 		- [nextfile / nextofile](#nextfile--nextofile)
 	- [Input, Output, and Pipes](#input-output-and-pipes)
 	- [Built-in Variables](#built-in-variables)
@@ -1010,7 +1010,7 @@ BEGIN {
 }
 ```
 
-### break / continue / return / exit / @abort
+### break / continue / return / exit / @exit
 
 ```awk
 BEGIN {
@@ -1035,12 +1035,12 @@ END {
 }
 ```
 
-`@abort` terminates a script immediately, skipping `END` blocks if it's not called from an `END` block.
+`@exit` terminates a script immediately, skipping `END` blocks if it's not called from an `END` block.
 
 ```awk
 BEGIN {
 	print "BEGIN"
-	@abort 99
+	@exit 99
 }
 END {
 	print "END" ## this is not executed
@@ -1377,11 +1377,11 @@ this line is ignored too.
 
 The following words are reserved and cannot be used as a variable name, a parameter name, or a function name.
 
- - @abort
  - @argc
  - @argv
  - @const
  - @false
+ - @exit
  - @global
  - @include
  - @include_once

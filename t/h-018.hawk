@@ -16,7 +16,7 @@ BEGIN {
 		if (p2 != "") sys::unlink(p2);
 		tap_fail(sprintf("%s[%d] unable to create temporary files - %s", @SCRIPTNAME, @SCRIPTLINE, sys::errmsg()));
 		tap_end();
-		@abort 1;
+		@exit 1;
 	}
 
 	print "x1" > p1;

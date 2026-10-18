@@ -132,8 +132,8 @@ enum tok_t
 	/* === extended reserved words === */
 	TOK_XARGC,
 	TOK_XARGV,
-	TOK_XABORT,
 	TOK_XCONST,
+	TOK_XEXIT,
 	TOK_XFALSE,
 	TOK_XGLOBAL,
 	TOK_XINCLUDE,
@@ -317,10 +317,10 @@ static kwent_t kwtab[] =
 	 * in classify_ident. e.g. "func". such aliases are not placed
 	 * here because of direct access by index in hawk_getkwname() */
 
-	{ { HAWK_T("@abort"),         6 }, TOK_XABORT,        0 },
 	{ { HAWK_T("@argc"),          5 }, TOK_XARGC,         0 },
 	{ { HAWK_T("@argv"),          5 }, TOK_XARGV,         0 },
 	{ { HAWK_T("@const"),         6 }, TOK_XCONST,        0 },
+	{ { HAWK_T("@exit"),          5 }, TOK_XEXIT,         0 },
 	{ { HAWK_T("@false"),         6 }, TOK_XFALSE,        0 },
 	{ { HAWK_T("@global"),        7 }, TOK_XGLOBAL,       0 },
 	{ { HAWK_T("@include"),       8 }, TOK_XINCLUDE,      0 },
@@ -1114,7 +1114,7 @@ static int is_nde_unconditional_terminator (hawk_nde_t* nde)
 {
 	switch (nde->type)
 	{
-		case HAWK_NDE_EXIT: /* exit or @abort */
+		case HAWK_NDE_EXIT: /* exit or @exit */
 		case HAWK_NDE_RETURN: /* return */
 		case HAWK_NDE_NEXT:
 		case HAWK_NDE_NEXTFILE:
@@ -4005,7 +4005,7 @@ static hawk_nde_t* parse_exit (hawk_t* hawk, const hawk_loc_t* xloc)
 	hawk_nde_exit_t* nde;
 	hawk_nde_t* val;
 
-	HAWK_ASSERT(hawk->ptok.type == TOK_EXIT || hawk->ptok.type == TOK_XABORT);
+	HAWK_ASSERT(hawk->ptok.type == TOK_EXIT || hawk->ptok.type == TOK_XEXIT);
 
 	nde = (hawk_nde_exit_t*)hawk_callocmem(hawk, HAWK_SIZEOF(*nde));
 	if (HAWK_UNLIKELY(!nde))
@@ -4016,7 +4016,7 @@ static hawk_nde_t* parse_exit (hawk_t* hawk, const hawk_loc_t* xloc)
 
 	nde->type = HAWK_NDE_EXIT;
 	nde->loc = *xloc;
-	nde->abort = (hawk->ptok.type == TOK_XABORT);
+	nde->abort = (hawk->ptok.type == TOK_XEXIT);
 
 	if (MATCH_TERMINATOR(hawk))
 	{
@@ -4029,7 +4029,7 @@ static hawk_nde_t* parse_exit (hawk_t* hawk, const hawk_loc_t* xloc)
 
 		eloc = hawk->tok.loc;
 		val = parse_expr_withdc(hawk, &eloc);
-		if (val == HAWK_NULL)
+		if (!val)
 		{
 			hawk_freemem(hawk, nde);
 			return HAWK_NULL;
@@ -4448,7 +4448,7 @@ static hawk_nde_t* parse_statement_nb (hawk_t* hawk, const hawk_loc_t* xloc)
 		if (get_token(hawk) <= -1) return HAWK_NULL;
 		nde = parse_return(hawk, xloc);
 	}
-	else if (MATCH(hawk,TOK_EXIT) || MATCH(hawk,TOK_XABORT))
+	else if (MATCH(hawk,TOK_EXIT) || MATCH(hawk,TOK_XEXIT))
 	{
 		if (get_token(hawk) <= -1) return HAWK_NULL;
 		nde = parse_exit(hawk, xloc);
