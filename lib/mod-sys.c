@@ -310,6 +310,9 @@ struct sys_list_data_t
 	hawk_ooch_t errmsg[256];
 	hawk_ooch_t skadbuf[2][256];
 	hawk_oow_t openfd_count; /* live nodes created by openfd(), including invalidated ones */
+#if defined(__HAIKU__)
+	int mktime_before_epoch; /* native mktime() advances negative timestamps by one second */
+#endif
 #if defined(USE_MUX)
 	hawk_uint32_t mux_generation; /* never reuse a registration generation */
 #endif
@@ -4506,6 +4509,91 @@ static int parse_tm_field (const hawk_ooch_t** ptr, const hawk_ooch_t* end, int*
 	return 0;
 }
 
+#if defined(__HAIKU__)
+static time_t native_mktime (struct tm* tm)
+{
+#if defined(HAVE_TIMELOCAL)
+	return timelocal(tm);
+#else
+	return mktime(tm);
+#endif
+}
+
+static int probe_mktime_before_epoch (void)
+{
+	static const time_t samples[] = { -946684800, -31536000, -86400, -2, -1, 0, 86400 };
+	struct tm tm, * tmp;
+	time_t t;
+	hawk_oow_t i;
+	int saved_errno = errno;
+	int detected = 1;
+
+	/* some Haiku libroot versions return t + 1 for pre-epoch times, with
+	 * errno == 0 and a normalized calendar matching the incorrect result.
+	 * probe local calendars, without changing TZ, and leave fixed versions
+	 * alone. check older dates as well as both sides of the epoch. */
+	for (i = 0; i < HAWK_COUNTOF(samples); i++)
+	{
+		t = samples[i];
+	#if defined(HAVE_LOCALTIME_R)
+		tmp = localtime_r(&t, &tm);
+	#else
+		tmp = localtime(&t);
+	#endif
+		if (!tmp)
+		{
+			detected = 0;
+			break;
+		}
+		tm = *tmp;
+		tm.tm_wday = -1;
+		errno = 0;
+		t = native_mktime(&tm);
+		if (tm.tm_wday == -1 || t != samples[i] + (samples[i] < 0? 1: 0))
+		{
+			detected = 0;
+			break;
+		}
+	}
+
+	errno = saved_errno;
+	return detected;
+}
+
+static int is_mktime_before_epoch_zero (const struct tm* input)
+{
+	struct tm tm = *input;
+	time_t t;
+	int step;
+
+	/* this function should be called only if the returned time is 0 because
+	 * native zero is ambiguous: both -1(1 second beore epoch) and 0 become 0.
+	 * convert a neighbor from the original fields, retaining libc's normalization
+	 * of values such as second 60. at -1, advancing a second still produces zero;
+	 * at the epoch, it produces one. avoid overflowing an INT_MAX second
+	 * by looking backward instead. never treat a failed probe as success. */
+
+	/* on buggy haiku,
+	 *  Input                  Expected    Haiku result
+	 *  1969-12-31 23:59:57          -3              -2
+	 *  1969-12-31 23:59:58          -2              -1
+	 *  1969-12-31 23:59:59          -1               0 <-- advance this
+	 *  1970-01-01 00:00:00           0               0 <-- advance this
+	 *  1970-01-01 00:00:01           1               1
+	 *
+	 * If someone calls sys::mktime like this, it's possible that tm.tm_sec
+	 * can hit HAWK_TYPE_MAX(int):
+	 *  BEGIN { print sys::mktime("1970 01 01 00 -35791394 2147483647") }
+	 */
+	step = (tm.tm_sec < HAWK_TYPE_MAX(int))? 1: -1;
+	tm.tm_sec += step;
+	tm.tm_wday = -1;
+	errno = 0;
+	t = native_mktime(&tm);
+	return tm.tm_wday != -1 && t == (time_t)(step > 0? 0: -1);
+}
+#endif
+
 static int fnc_mktime (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	hawk_ntime_t nt;
@@ -4520,6 +4608,9 @@ static int fnc_mktime (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		hawk_oow_t len;
 		hawk_val_t* a0;
 		struct tm tm;
+	#if defined(__HAIKU__)
+		struct tm input_tm;
+	#endif
 		time_t t;
 		int failed;
 		int minint = -((int)(((unsigned int)-1) >> 1)) - 1;
@@ -4528,8 +4619,8 @@ static int fnc_mktime (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		str = hawk_rtx_getvaloocstr(rtx, a0, &len);
 		if (HAWK_UNLIKELY(!str))
 		{
-			/* Input conversion errors are module errors, just like malformed time
-			 * fields. Keep the script running so it can inspect errmsg(). */
+			/* input conversion errors are module errors, just like malformed time
+			 * fields. keep the script running so it can inspect errmsg(). */
 			nt.sec = copy_error_to_sys_list(rtx, sys_list);
 			goto done;
 		}
@@ -4567,6 +4658,9 @@ static int fnc_mktime (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		 * windows CRT excludes negative timestamps, so -1 always indicates failure.
 		 * keep clearing errno to obtain a fresh diagnostic after detecting failure. */
 		tm.tm_wday = -1;
+	#if defined(__HAIKU__)
+		input_tm = tm;
+	#endif
 		errno = 0;
 	#if defined(HAVE_TIMELOCAL)
 		t = timelocal(&tm);
@@ -4592,6 +4686,10 @@ static int fnc_mktime (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		else
 		{
 			nt.sec = t;
+		#if defined(__HAIKU__)
+			if (sys_list->ctx.mktime_before_epoch &&
+			    (t < 0 || (t == 0 && is_mktime_before_epoch_zero(&input_tm)))) nt.sec--;
+		#endif
 			/* a valid negative timestamp can overlap a module error code.
 			 * clear stale diagnostics so errmsg() distinguishes success. */
 			clear_error_on_sys_list(rtx, sys_list);
@@ -9438,6 +9536,9 @@ static int init (hawk_mod_t* mod, hawk_rtx_t* rtx)
 
 	rdp = (rtx_data_t*)HAWK_RBT_VPTR(pair);
 	__init_sys_list(rtx, &rdp->sys_list);
+#if defined(__HAIKU__)
+	rdp->sys_list.ctx.mktime_before_epoch = probe_mktime_before_epoch();
+#endif
 	rdp->mctx = mctx;
 
 	rdp->pack.ptr = rdp->pack.__static_buf;

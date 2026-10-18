@@ -1339,13 +1339,31 @@ static time_t test_mktime (struct tm* tm)
 {
 	if (mktime_mode)
 	{
+		time_t minus_one = (time_t)-1;
+
 		if (errno != 0 || mktime_mode == 1) { errno = EIO; return (time_t)-1; }
 		/* Failure without errno must leave the invalid weekday untouched. */
 		if (mktime_mode == 4) return (time_t)-1;
 		/* Successful conversions replace the weekday even when returning -1. */
 		tm->tm_wday = 3;
-		if (mktime_mode == 2) return (time_t)-1;
-		if (mktime_mode == 5) { errno = ENOENT; return (time_t)-1; }
+	#if defined(__HAIKU__)
+		if (mktime_mode == 2 || mktime_mode == 5)
+		{
+			struct tm native_tm, * tmp;
+
+			/* Follow libroot's encoding of -1, including the off-by-one bug
+			 * detected at module initialization, so the workaround remains
+			 * exercised rather than correcting an already corrected fixture. */
+			tmp = localtime(&minus_one);
+			if (tmp)
+			{
+				native_tm = *tmp;
+				minus_one = mktime(&native_tm);
+			}
+		}
+	#endif
+		if (mktime_mode == 2) return minus_one;
+		if (mktime_mode == 5) { errno = ENOENT; return minus_one; }
 		/* A successful conversion must ignore errno even if libc leaves it set. */
 		errno = EACCES;
 		return (time_t)123;

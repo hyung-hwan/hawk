@@ -4007,8 +4007,8 @@ static hawk_nde_t* parse_exit (hawk_t* hawk, const hawk_loc_t* xloc)
 
 	HAWK_ASSERT(hawk->ptok.type == TOK_EXIT || hawk->ptok.type == TOK_XABORT);
 
-	nde = (hawk_nde_exit_t*) hawk_callocmem(hawk, HAWK_SIZEOF(*nde));
-	if (nde == HAWK_NULL)
+	nde = (hawk_nde_exit_t*)hawk_callocmem(hawk, HAWK_SIZEOF(*nde));
+	if (HAWK_UNLIKELY(!nde))
 	{
 		ADJERR_LOC(hawk, xloc);
 		return HAWK_NULL;
@@ -4741,7 +4741,7 @@ static hawk_nde_t* parse_expr (hawk_t* hawk, const hawk_loc_t* xloc)
 	}
 
 	nde = (hawk_nde_ass_t*)hawk_callocmem(hawk, HAWK_SIZEOF(*nde));
-	if (nde == HAWK_NULL)
+	if (HAWK_UNLIKELY(!nde))
 	{
 		hawk_clrpt(hawk, x);
 		hawk_clrpt(hawk, y);
@@ -5052,7 +5052,7 @@ static hawk_nde_t* new_exp_bin_node (
 {
 	hawk_nde_exp_t* tmp;
 
-	tmp = (hawk_nde_exp_t*) hawk_callocmem(hawk, HAWK_SIZEOF(*tmp));
+	tmp = (hawk_nde_exp_t*)hawk_callocmem(hawk, HAWK_SIZEOF(*tmp));
 	if (tmp)
 	{
 		tmp->type = HAWK_NDE_EXP_BIN;
@@ -5945,7 +5945,7 @@ static hawk_nde_t* parse_unary_exp (hawk_t* hawk, const hawk_loc_t* xloc)
 	hawk->parse.depth.expr--;
 	if (left == HAWK_NULL) return HAWK_NULL;
 
-	nde = (hawk_nde_exp_t*) hawk_callocmem(hawk, HAWK_SIZEOF(*nde));
+	nde = (hawk_nde_exp_t*)hawk_callocmem(hawk, HAWK_SIZEOF(*nde));
 	if (nde == HAWK_NULL)
 	{
 		hawk_clrpt(hawk, left);
@@ -6055,7 +6055,7 @@ static hawk_nde_t* parse_increment (hawk_t* hawk, const hawk_loc_t* xloc)
 		}
 	}
 
-	nde = (hawk_nde_exp_t*) hawk_callocmem(hawk, HAWK_SIZEOF(*nde));
+	nde = (hawk_nde_exp_t*)hawk_callocmem(hawk, HAWK_SIZEOF(*nde));
 	if (nde == HAWK_NULL)
 	{
 		hawk_clrpt(hawk, left);
@@ -6236,7 +6236,7 @@ static hawk_nde_t* parse_primary_str (hawk_t* hawk, const hawk_loc_t* xloc)
 {
 	hawk_nde_str_t* nde;
 
-	nde = (hawk_nde_str_t*) hawk_callocmem(hawk, HAWK_SIZEOF(*nde));
+	nde = (hawk_nde_str_t*)hawk_callocmem(hawk, HAWK_SIZEOF(*nde));
 	if (nde == HAWK_NULL)
 	{
 		ADJERR_LOC(hawk, xloc);
