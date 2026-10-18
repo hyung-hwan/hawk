@@ -507,7 +507,10 @@ function handle(request)
 ```
 
 The request map contains `method`, `path`, `raw_query`, `host`,
-`remote_address`, `scheme`, `headers`, `query`, and a binary `body`.
+`remote_address`, `scheme`, `csp_nonce`, `headers`, `query`, and a binary `body`.
+`csp_nonce` is a fresh base64url-encoded value from 128 cryptographically random
+bits for each script request. Use the same value in a CSP `script-src 'nonce-…'`
+directive and the allowed script elements' `nonce` attributes.
 Header names follow Go's HTTP canonicalization. Header and query values are
 arrays starting at index 1, preserving repeated values. Unredirected `getline`
 reads the request body as records, `getbline` reads byte records, and `print` /

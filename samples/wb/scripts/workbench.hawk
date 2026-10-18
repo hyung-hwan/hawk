@@ -375,6 +375,7 @@ function wb_dispatch(request)
 		data["examples"] = wb_list();
 		if (data["examples"] === @nil) return wb_error_response(500, WB_ERROR);
 		data["title"] = "Hawk text workbench";
+		data["csp_nonce"] = request["csp_nonce"];
 		if ("sysname" in uname) data["sysname"] = uname["sysname"];
 		if (mus::process(wb_root() "/templates/workbench.mustache", data, output, mus::FILE_TO_STR) < 0)
 			return wb_error_response(500, mus::errmsg());
@@ -446,6 +447,6 @@ function handle(request)
 	http::setheader("Content-Type", response["content_type"]);
 	http::setheader("Cache-Control", "no-store");
 	http::setheader("X-Content-Type-Options", "nosniff");
-	http::setheader("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'");
+	http::setheader("Content-Security-Policy", "default-src 'self'; script-src 'nonce-" request["csp_nonce"] "'; style-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'");
 	printf "%s", response["body"];
 }

@@ -1,6 +1,8 @@
 package hawk
 
 import "bytes"
+import "crypto/rand"
+import "encoding/base64"
 import "fmt"
 import "io"
 import "net"
@@ -209,6 +211,7 @@ oops:
 }
 
 func (s *HawkHttpd) make_request_value(rtx *Rtx, request *http.Request, query url.Values, body []byte) (*Val, error) {
+	var nonce [16]byte
 	var value *Val
 	var field *Val
 	var scheme string
@@ -218,6 +221,10 @@ func (s *HawkHttpd) make_request_value(rtx *Rtx, request *http.Request, query ur
 	var local_addr net.Addr
 	var ok bool
 	var err error
+
+	// A response nonce must be unpredictable and independent of client input.
+	_, err = rand.Read(nonce[:])
+	if err != nil { return nil, fmt.Errorf("unable to generate CSP nonce: %w", err) }
 
 	value, err = rtx.NewMapVal()
 	if err != nil { return nil, err }
@@ -232,6 +239,7 @@ func (s *HawkHttpd) make_request_value(rtx *Rtx, request *http.Request, query ur
 		"host": request.Host,
 		"remote_address": request.RemoteAddr,
 		"scheme": scheme,
+		"csp_nonce": base64.RawURLEncoding.EncodeToString(nonce[:]),
 	}
 
 	local_addr, ok = request.Context().Value(http.LocalAddrContextKey).(net.Addr)

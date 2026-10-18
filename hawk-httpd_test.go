@@ -2,6 +2,7 @@ package hawk
 
 import "context"
 import "crypto/tls"
+import "encoding/base64"
 import "fmt"
 import "io"
 import "net"
@@ -76,6 +77,58 @@ func httpd_test_client(t *testing.T) *http.Client {
 	client = &http.Client{Timeout: 5 * time.Second, Transport: &http.Transport{}}
 	t.Cleanup(client.CloseIdleConnections)
 	return client
+}
+
+func TestHawkHttpdCspNonce(t *testing.T) {
+	var cfg HawkHttpdConfig
+	var server *HawkHttpd
+	var client *http.Client
+	var address string
+	var results chan string
+	var seen map[string]bool
+	var nonce string
+	var decoded []byte
+	var i int
+	var err error
+
+	if !http_module_enabled() { t.Skip("http module is disabled") }
+	cfg.Listeners = []HawkHttpdListener{{Address: "127.0.0.1:0"}}
+	cfg.Routes = []HawkHttpdRoute{{Prefix: "/", Script: httpd_test_script(t, `function handle(request) { printf "%s", request["csp_nonce"]; }`)}}
+	server = httpd_test_server(t, &cfg)
+	client = httpd_test_client(t)
+	address = "http://" + server.Addrs()[0].String() + "/?csp_nonce=client-value"
+	results = make(chan string, 32)
+	seen = make(map[string]bool)
+	for i = 0; i < 32; i++ {
+		go func() {
+			var request *http.Request
+			var response *http.Response
+			var body []byte
+			var err error
+
+			request, err = http.NewRequest(http.MethodGet, address, nil)
+			if err == nil {
+				request.Header.Set("Csp-Nonce", "client-value")
+				response, err = client.Do(request)
+			}
+			if err != nil { t.Error(err); results <- ""; return }
+			defer response.Body.Close()
+			body, err = io.ReadAll(response.Body)
+			if err != nil || response.StatusCode != http.StatusOK {
+				t.Errorf("nonce response: status %d, error %v", response.StatusCode, err)
+				results <- ""
+				return
+			}
+			results <- string(body)
+		}()
+	}
+	for i = 0; i < 32; i++ {
+		nonce = <-results
+		decoded, err = base64.RawURLEncoding.DecodeString(nonce)
+		if err != nil || len(decoded) != 16 { t.Errorf("invalid CSP nonce %q: %v", nonce, err) }
+		if seen[nonce] { t.Errorf("CSP nonce reused across requests: %q", nonce) }
+		seen[nonce] = true
+	}
 }
 
 func TestHawkHttpdInstancesAndListeners(t *testing.T) {

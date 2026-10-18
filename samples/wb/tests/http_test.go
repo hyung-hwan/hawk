@@ -2,6 +2,7 @@ package workbench_test
 
 import "bufio"
 import "bytes"
+import "encoding/base64"
 import "encoding/json"
 import "io"
 import "net/http"
@@ -22,6 +23,7 @@ type example_t struct {
 }
 
 type response_t struct {
+	Headers http.Header `json:"-"`
 	Ok bool `json:"ok"`
 	Output string `json:"output"`
 	Error string `json:"error"`
@@ -138,7 +140,32 @@ func request(t *testing.T, server *server_t, method string, path string, payload
 		err = json.Unmarshal(body, &result)
 		if err != nil { t.Fatalf("invalid JSON response: %s: %v", body, err) }
 	} else { result.Output = string(body) }
+	result.Headers = res.Header.Clone()
 	return result
+}
+
+func check_csp_nonce(t *testing.T, result response_t, html bool) string {
+	var directive string
+	var sources []string
+	var nonce string
+	var decoded []byte
+	var err error
+
+	t.Helper()
+	for _, directive = range strings.Split(result.Headers.Get("Content-Security-Policy"), ";") {
+		sources = strings.Fields(directive)
+		if len(sources) == 0 || sources[0] != "script-src" { continue }
+		if len(sources) != 2 || !strings.HasPrefix(sources[1], "'nonce-") || !strings.HasSuffix(sources[1], "'") {
+			t.Fatalf("expected a nonce script policy: %q", directive)
+		}
+		nonce = strings.TrimSuffix(strings.TrimPrefix(sources[1], "'nonce-"), "'")
+	}
+	decoded, err = base64.RawURLEncoding.DecodeString(nonce)
+	if err != nil || len(decoded) != 16 { t.Fatalf("invalid CSP nonce %q: %v", nonce, err) }
+	if html && !strings.Contains(result.Output, "<script nonce=\"" + nonce + "\" src=\"/workbench.js\" defer>") {
+		t.Fatal("script nonce does not match the CSP header")
+	}
+	return nonce
 }
 
 func TestWorkbench(t *testing.T) {
@@ -155,6 +182,7 @@ func TestWorkbench(t *testing.T) {
 	var original_id int
 	var item example_t
 	var found bool
+	var nonce string
 	var err error
 
 	hawk_binary = os.Getenv("HAWK_BIN")
@@ -175,6 +203,11 @@ func TestWorkbench(t *testing.T) {
 	server = start_server(t, go_binary, root, database, modules)
 	result = request(t, server, "GET", "/app/", nil, 200)
 	if !strings.Contains(result.Output, "Make text work for you.") || !strings.Contains(result.Output, "workbench.js") { t.Fatal("rendered page or partials are missing") }
+	nonce = check_csp_nonce(t, result, true)
+	result = request(t, server, "GET", "/app/", nil, 200)
+	if check_csp_nonce(t, result, true) == nonce { t.Fatal("CSP nonce was reused across responses") }
+	result = request(t, server, "HEAD", "/app/", nil, 200)
+	if check_csp_nonce(t, result, false) == nonce || result.Output != "" { t.Fatal("invalid HEAD response nonce or body") }
 	request(t, server, "GET", "/workbench.js", nil, 200)
 	request(t, server, "GET", "/workbench.css", nil, 200)
 	request(t, server, "GET", "/data/workbench.db", nil, 404)

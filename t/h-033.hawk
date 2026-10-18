@@ -98,10 +98,12 @@ function test_routes(    request, response, payload, data)
 {
 	request["method"] = "GET";
 	request["path"] = "/app/";
+	request["csp_nonce"] = "test-workbench-nonce";
 	response = wb_dispatch(request);
 	tap_ensure(response["status"], 200, @SCRIPTNAME, @SCRIPTLINE);
 	tap_ensure(index(response["body"], "Hawk text workbench") > 0, 1, @SCRIPTNAME, @SCRIPTLINE);
 	tap_ensure(index(response["body"], "workbench.js") > 0, 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(index(response["body"], "nonce=\"test-workbench-nonce\"") > 0, 1, @SCRIPTNAME, @SCRIPTLINE);
 	request["path"] = "/api/examples";
 	response = wb_dispatch(request);
 	tap_ensure(response["status"], 200, @SCRIPTNAME, @SCRIPTLINE);
