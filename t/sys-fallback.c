@@ -5,6 +5,7 @@
 #include "hawk-prv.h"
 
 #if !defined(_WIN32) && !defined(__OS2__) && !defined(__DOS__)
+#include <sys/types.h>
 #include <sys/socket.h>
 #include <errno.h>
 

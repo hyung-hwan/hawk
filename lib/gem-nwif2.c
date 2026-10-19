@@ -574,7 +574,7 @@ static int get_ifcfg (hawk_gem_t* gem, int s, hawk_ifcfg_t* cfg, struct ifreq* i
 
 		if ((cfg->flags & HAWK_IFCFG_BCAST) && ioctl(s, SIOCGIFBRDADDR, ifr) >= 0)
 		{
-			copy_to_skad((struct sockaddr*)&ifr->ifr_broadaddr, HAWK_SIZEOF(ifr->ifr_boradaddr), &cfg->bcast);
+			copy_to_skad((struct sockaddr*)&ifr->ifr_broadaddr, HAWK_SIZEOF(ifr->ifr_broadaddr), &cfg->bcast);
 		}
 
 		if ((cfg->flags & HAWK_IFCFG_PTOP) && ioctl(s, SIOCGIFDSTADDR, ifr) >= 0)

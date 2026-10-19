@@ -335,27 +335,30 @@ static int waitstatus (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	hawk_int_t op, status, n = -1;
 	hawk_val_t* value;
+	int st;
 
 	if (hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 0), &op) <= -1 ||
 	    hawk_rtx_valtoint(rtx, hawk_rtx_getarg(rtx, 1), &status) <= -1) return -1;
 	/* Compare the wrappers with native macros, rather than assuming a Linux
 	 * wait-status layout. Haiku places the exit code in the low byte. */
+
+	st = (int)status;
 	switch (op)
 	{
 	#if defined(WIFEXITED)
-		case 0: n = !!WIFEXITED((int)status); break;
+		case 0: n = !!WIFEXITED(st); break;
 	#endif
 	#if defined(WEXITSTATUS)
-		case 1: n = WEXITSTATUS((int)status); break;
+		case 1: n = WEXITSTATUS(st); break;
 	#endif
 	#if defined(WIFSIGNALED)
-		case 2: n = !!WIFSIGNALED((int)status); break;
+		case 2: n = !!WIFSIGNALED(st); break;
 	#endif
 	#if defined(WTERMSIG)
-		case 3: n = WTERMSIG((int)status); break;
+		case 3: n = WTERMSIG(st); break;
 	#endif
 	#if defined(WCOREDUMP)
-		case 4: n = !!WCOREDUMP((int)status); break;
+		case 4: n = !!WCOREDUMP(st); break;
 	#endif
 	}
 	value = hawk_rtx_makeintval(rtx, n);

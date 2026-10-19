@@ -1222,9 +1222,17 @@ static void execute_child (hawk_sh_t* sh, std_t* s, const hawk_sh_cmd_t* c)
 
 	for (e = s->env; e; e = e->next)
 	{
-		int rc = e->value? setenv(e->name, e->value, 1): unsetenv(e->name);
+		int rc;
 
+	#if defined(__APPLE__) && defined(__MACH__) && (!defined(__DARWIN_UNIX03) || __DARWIN_UNIX03 == 0)
+		/* legacy macosx/4.4bsd behavior (e.g., macosx 10.3 panther sdk)
+		 * void unsetenv(const char *) */
+		rc = e->value? setenv(e->name, e->value, 1): (unsetenv(e->name), 0);
 		if (rc <= -1) _exit(125);
+	#else
+		rc = e->value? setenv(e->name, e->value, 1): unsetenv(e->name);
+		if (rc <= -1) _exit(125);
+	#endif
 	}
 
 	if (chdir(s->cwd) <= -1)
