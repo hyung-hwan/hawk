@@ -699,6 +699,9 @@
 /* Define to 1 if you have the 'ttyname_r' function. */
 #undef HAVE_TTYNAME_R
 
+/* ttyname_r() returns char* instead of int */
+#undef HAVE_TTYNAME_R_RETURNS_POINTER
+
 /* Define to 1 if you have the <ucontext.h> header file. */
 #undef HAVE_UCONTEXT_H
 

@@ -1591,7 +1591,7 @@ static int fnc_dup (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 		if (sys_node2)
 		{
-			/* Leave all watches and buffers intact if duplication fails. */
+			/* leave all watches and buffers intact if duplication fails. */
 		#if defined(HAVE_DUP3)
 			fd = dup3(sys_node->ctx.u.file.fd, sys_node2->ctx.u.file.fd, (int)oflags);
 		#else
@@ -2363,7 +2363,7 @@ static int get_terminal_name (hawk_rtx_t* rtx, int fd, int slave, hawk_bch_t** n
 	hawk_bch_t* buf;
 	hawk_oow_t capa = 128;
 	int err;
-#if defined(HAVE_PTSNAME_R) || defined(HAVE_TTYNAME_R)
+#if defined(HAVE_PTSNAME_R) || (defined(HAVE_TTYNAME_R) && !defined(HAVE_TTYNAME_R_RETURNS_POINTER))
 	int n;
 #endif
 
@@ -2398,8 +2398,13 @@ static int get_terminal_name (hawk_rtx_t* rtx, int fd, int slave, hawk_bch_t** n
 		{
 		#if defined(HAVE_TTYNAME_R)
 			errno = 0;
+		#if defined(HAVE_TTYNAME_R_RETURNS_POINTER)
+			/* legacy macosx uses a pointer return, not the posix error code. */
+			err = ttyname_r(fd, buf, capa)? 0: (errno? errno: EIO);
+		#else
 			n = ttyname_r(fd, buf, capa);
 			err = n <= -1? (errno? errno: EIO): n;
+		#endif
 		#elif defined(HAVE_TTYNAME)
 			hawk_bch_t* ptr;
 
@@ -3443,7 +3448,10 @@ static int fnc_wifexited (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	else
 	{
 #if defined(WIFEXITED)
-		rv = !!WIFEXITED(wstatus);
+		/* Some BSD macros read an int through the argument's address. */
+		int status = (int)wstatus;
+
+		rv = !!WIFEXITED(status);
 #else
 		rv = set_error_on_sys_list(rtx, sys_list, HAWK_ENOIMPL, HAWK_NULL);
 #endif
@@ -3469,7 +3477,10 @@ static int fnc_wexitstatus (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	else
 	{
 #if defined(WEXITSTATUS)
-		rv = WEXITSTATUS(wstatus);
+		int status = (int)wstatus;
+		/* on some platforms(e.g. macosx 10.3 ppc), WEXITSTATUS((int)wstatus) wasn't
+		 * working as expected. it needed an integer variable */
+		rv = WEXITSTATUS(status);
 #else
 		rv = set_error_on_sys_list(rtx, sys_list, HAWK_ENOIMPL, HAWK_NULL);
 #endif
@@ -3495,7 +3506,9 @@ static int fnc_wifsignaled (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	else
 	{
 #if defined(WIFSIGNALED)
-		rv = !!WIFSIGNALED(wstatus);
+		int status = (int)wstatus;
+
+		rv = !!WIFSIGNALED(status);
 #else
 		rv = set_error_on_sys_list(rtx, sys_list, HAWK_ENOIMPL, HAWK_NULL);
 #endif
@@ -3521,7 +3534,9 @@ static int fnc_wtermsig (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	else
 	{
 #if defined(WTERMSIG)
-		rv = WTERMSIG(wstatus);
+		int status = (int)wstatus;
+
+		rv = WTERMSIG(status);
 #else
 		rv = set_error_on_sys_list(rtx, sys_list, HAWK_ENOIMPL, HAWK_NULL);
 #endif
@@ -3547,7 +3562,9 @@ static int fnc_wcoredump (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	}
 	else
 	{
-		rv = !!WCOREDUMP(wstatus);
+		int status = (int)wstatus;
+
+		rv = !!WCOREDUMP(status);
 	}
 
 	retv = hawk_rtx_makeintval_inline(rtx, rv);
@@ -4415,7 +4432,7 @@ static int fnc_gettime (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 
 	if (hawk_get_ntime(&now) <= -1)
 	{
-		/* Leave the output argument unchanged on clock failure. The time
+		/* leave the output argument unchanged on clock failure. the time
 		 * helper doesn't expose reliable native errors on every platform. */
 		now.sec = set_error_on_sys_list(rtx, sys_list, HAWK_ESYSERR, HAWK_T("unable to get current time"));
 	}

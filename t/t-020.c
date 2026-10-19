@@ -472,6 +472,12 @@ static void character_and_instance_tests (void)
 	hawk_mus_data_t data = callbacks;
 	hawk_errinf_t error;
 	static const hawk_uch_t uchars[] = { 0x65e5, 0x672c };
+	/* GCC 3.3 doesn't decode UTF-8 source text in wide-string literals. */
+#if defined(HAWK_OOCH_IS_UCH)
+	static const hawk_ooch_t japanese[] = { 0x65e5, 0x672c, 0 };
+#else
+	static const hawk_ooch_t japanese[] = "\xe6\x97\xa5\xe6\x9c\xac";
+#endif
 	static const hawk_ooch_t nul[] = { 'a', 0, 'b' };
 	static const value_t zero = { HAWK_MUS_VAL_SCALAR, HAWK_T("0"), HAWK_NULL, HAWK_NULL, 0 };
 	static const value_t empty_string = { HAWK_MUS_VAL_SCALAR, HAWK_T(""), HAWK_NULL, HAWK_NULL, 0 };
@@ -490,14 +496,14 @@ static void character_and_instance_tests (void)
 	xtn = hawk_mus_getxtn(first);
 	for (i = 0; i < 16 && xtn[i] == 0; i++);
 	OK(i == 16, "application extension is zero initialized");
-	OK(hawk_mus_compilewithbchars(first, "日本", 6) == 0 && render_text(first, HAWK_T("日本")) == 0,
+	OK(hawk_mus_compilewithbchars(first, "\xe6\x97\xa5\xe6\x9c\xac", 6) == 0 && render_text(first, japanese) == 0,
 	   "byte source compiles in either character build");
-	OK(hawk_mus_compilewithuchars(second, uchars, 2) == 0 && render_text(second, HAWK_T("日本")) == 0,
+	OK(hawk_mus_compilewithuchars(second, uchars, 2) == 0 && render_text(second, japanese) == 0,
 	   "Unicode source compiles in either character build");
 	hawk_mus_reset(first);
-	OK(render_text(second, HAWK_T("日本")) == 0, "instances have independent template state");
+	OK(render_text(second, japanese) == 0, "instances have independent template state");
 #if defined(HAWK_OOCH_IS_UCH)
-	OK(hawk_mus_compilewithbchars(second, "\xff", 1) <= -1 && render_text(second, HAWK_T("日本")) == 0,
+	OK(hawk_mus_compilewithbchars(second, "\xff", 1) <= -1 && render_text(second, japanese) == 0,
 	   "invalid source encoding preserves the prior Unicode template");
 #endif
 	memset(&output, 0, sizeof(output));

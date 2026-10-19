@@ -13,7 +13,7 @@ if [ "x$MEMCHECK" = "xyes" -a -x /usr/bin/valgrind ]
 then
 	hawk="$1"
 	shift
-	xhawk=$(echo "$hawk" | sed -r 's|/hawk|/.libs/hawk|g')
+	xhawk=$(echo "$hawk" | ${HAWK_SED_COMPILER:-$hawk} --sed 's|/hawk|/.libs/hawk|g')
 	[ -x "$xhawk" ] && hawk="$xhawk"
 	logfile="/tmp/hawk-t-run.$$"
 	cmd="valgrind --leak-check=full --show-reachable=yes --track-fds=yes --log-file=$logfile $hawk $@"

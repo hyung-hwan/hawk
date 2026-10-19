@@ -2,6 +2,7 @@
 
 hawk_bin="$1"
 shift
+hawk_sed_compiler="${HAWK_SED_COMPILER:-$hawk_bin}"
 
 hawk_lib_path="${LD_LIBRARY_PATH-}"
 case "$hawk_bin" in
@@ -27,7 +28,7 @@ script="$i"
 escape_regex() {
 	local str="$1"
 	## escape [, ], {, (, \, $, *, . ^, ), }
-	printf '%s\n' "$str" | sed -r -e 's/[][{(\$*.^)}]/\\&/g'
+	printf '%s\n' "$str" | $hawk_sed_compiler --sed -r -e 's/[][{(\$*.^)}]/\\&/g'
 }
 
 run_partfile() {
@@ -50,7 +51,7 @@ run_partfile() {
 
         ## old greps don't support -o. use sed to mimic it.
 	##l_expected_errinfo=$(grep -n -o -E "##ERROR: .+" "$l_partfile" 2>/dev/null)
-        l_expected_errinfo=$(grep -n -E "##ERROR: .+" "$l_partfile" 2>/dev/null | sed -r -n 's/^([0-9]*):.*(##ERROR: .*)/\1:\2/p')
+        l_expected_errinfo=$(grep -n -E "##ERROR: .+" "$l_partfile" 2>/dev/null | $hawk_sed_compiler --sed -r -n 's/^([0-9]*):.*(##ERROR: .*)/\1:\2/p')
 	[ -z "$l_expected_errinfo" ] && {
 		echo "ERROR: INVALID TESTER - $l_script($l_partno) contains no ERROR information"
 		return 1

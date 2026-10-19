@@ -30,15 +30,20 @@ function test_invalid(    a, b, value, rc)
 	tap_ensure(length(sys::errmsg()) > 0, 1, @SCRIPTNAME, @SCRIPTLINE);
 }
 
-function test_pair(master, slave,    name, other, size, before, input, mux, id, events, rc)
+function test_pair(master, slave,    name, other, size, before, input, mux, id, events, rc, reader, writer)
 {
 	tap_ensure(master != slave, 1, @SCRIPTNAME, @SCRIPTLINE);
 	tap_ensure(sys::isatty(master), 1, @SCRIPTNAME, @SCRIPTLINE);
 	tap_ensure(sys::isatty(slave), 1, @SCRIPTNAME, @SCRIPTLINE);
-	tap_ensure(sys::ptsname(master, name), 0, @SCRIPTNAME, @SCRIPTLINE);
-	tap_ensure(length(name) > 0, 1, @SCRIPTNAME, @SCRIPTLINE);
+	rc = sys::ptsname(master, name);
+	if (rc == sys::RC_ENOIMPL) tap_skip("PTY slave name lookup is unavailable");
+	else
+	{
+		tap_ensure(rc, 0, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure(length(name) > 0, 1, @SCRIPTNAME, @SCRIPTLINE);
+	}
 	tap_ensure(sys::ttyname(slave, other), 0, @SCRIPTNAME, @SCRIPTLINE);
-	tap_ensure(name, other, @SCRIPTNAME, @SCRIPTLINE);
+	if (rc == 0) tap_ensure(name, other, @SCRIPTNAME, @SCRIPTLINE);
 
 	size["rows"] = 37;
 	size["cols"] = 91;
@@ -81,7 +86,27 @@ function test_pair(master, slave,    name, other, size, before, input, mux, id, 
 	mux = sys::openmux();
 	tap_ensure(mux >= 0, 1, @SCRIPTNAME, @SCRIPTLINE);
 	if (mux < 0) return;
+	## Keep an existing watch when automatic mux selection falls back for PTYs.
+	rc = sys::pipe(reader, writer);
+	tap_ensure(rc, 0, @SCRIPTNAME, @SCRIPTLINE);
+	if (rc == 0) tap_ensure(sys::addtomux(mux, reader, sys::MUX_EVT_IN), 0, @SCRIPTNAME, @SCRIPTLINE);
 	tap_ensure(sys::addtomux(mux, slave, sys::MUX_EVT_IN), 0, @SCRIPTNAME, @SCRIPTLINE);
+	if (rc == 0)
+	{
+		tap_ensure(sys::write(writer, @b"p"), 1, @SCRIPTNAME, @SCRIPTLINE);
+		rc = sys::waitonmux(mux, 2);
+		tap_ensure(rc, 1, @SCRIPTNAME, @SCRIPTLINE);
+		if (rc > 0)
+		{
+			tap_ensure(sys::getmuxevt(mux, 0, id, events), 0, @SCRIPTNAME, @SCRIPTLINE);
+			tap_ensure(id, reader, @SCRIPTNAME, @SCRIPTLINE);
+			tap_ensure(sys::read(reader, input, 1), 1, @SCRIPTNAME, @SCRIPTLINE);
+			tap_ensure(input, @b"p", @SCRIPTNAME, @SCRIPTLINE);
+		}
+		tap_ensure(sys::delfrommux(mux, reader), 0, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure(sys::close(reader), 0, @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure(sys::close(writer), 0, @SCRIPTNAME, @SCRIPTLINE);
+	}
 	tap_ensure(sys::write(master, @b"abc"), 3, @SCRIPTNAME, @SCRIPTLINE);
 	rc = sys::waitonmux(mux, 2);
 	tap_ensure(rc, 1, @SCRIPTNAME, @SCRIPTLINE);
@@ -277,8 +302,10 @@ function main(    master, slave, rc, name, a, b, pid, status)
 	tap_ensure(sys::getpgid(-1), sys::RC_EINVAL, @SCRIPTNAME, @SCRIPTLINE);
 	tap_ensure(sys::setpgid(-1, 0), sys::RC_EINVAL, @SCRIPTNAME, @SCRIPTLINE);
 	tap_ensure(sys::setpgid(0, bad_number) < 0, 1, @SCRIPTNAME, @SCRIPTLINE);
-	tap_ensure(sys::close(slave), 0, @SCRIPTNAME, @SCRIPTLINE);
+	## Drop the master first so failed read checks can't leave slave close
+	## waiting indefinitely for queued terminal output to drain on old macOS.
 	tap_ensure(sys::close(master), 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sys::close(slave), 0, @SCRIPTNAME, @SCRIPTLINE);
 	test_session(0);
 	test_session(1);
 	test_login(0);

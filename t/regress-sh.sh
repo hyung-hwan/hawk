@@ -38,7 +38,7 @@ check 'export/expansion at execution time' 'a b|$X|a b' "$("$HAWK_BIN" --sh -c '
 check 'unset hides variables' '<>' "$("$HAWK_BIN" --sh -c 'export X=hello; unset X; printf "<%s>" "$X"')"
 check 'command-local assignment reaches external process' 'value' "$("$HAWK_BIN" --sh -c "X=value sh -c 'printf %s \"\$X\"'")"
 check 'assignment-only command persists' 'value' "$("$HAWK_BIN" --sh -c 'X=value; echo "$X"')"
-check 'external assignment does not persist' '<>' "$("$HAWK_BIN" --sh -c 'unset X; X=value /bin/true; printf "<%s>" "$X"')"
+check 'external assignment does not persist' '<>' "$("$HAWK_BIN" --sh -c 'unset X; X=value sh -c : && printf "<%s>" "$X"')"
 check 'status and logical lists' "$(printf '1\nok\nend')" "$("$HAWK_BIN" --sh -c 'false; echo "$?"; false && echo wrong; false || echo ok; true && echo end')"
 check_status 'exit stops remaining list' 7 'exit 7; echo wrong'
 check_status 'pipeline status from last stage' 1 'true | false'
@@ -58,7 +58,7 @@ check_status 'unterminated heredoc rejected' 2 "$(printf 'cat <<EOF\nunfinished'
 check 'heredoc honors shell-local TMPDIR' 'local' "$(printf "export TMPDIR='%s'; export TEMP=/nonexistent/hawk-temp; cat <<EOF\nlocal\nEOF\n" "$tmp" | TMPDIR=/nonexistent/hawk-tmpdir "$HAWK_BIN" --sh)"
 check 'heredoc unset TMPDIR falls back to shell-local TEMP' 'temp' "$(printf "unset TMPDIR; export TEMP='%s'; cat <<EOF\ntemp\nEOF\n" "$tmp" | TMPDIR=/nonexistent/hawk-tmpdir "$HAWK_BIN" --sh)"
 check 'heredoc empty TMPDIR and TEMP fall back to shell-local TMP' 'tmp' "$(printf "export TMPDIR= TEMP= TMP='%s'; cat <<EOF\ntmp\nEOF\n" "$tmp" | TMPDIR=/nonexistent/hawk-tmpdir "$HAWK_BIN" --sh)"
-check 'large pipeline without deadlock' '200000' "$("$HAWK_BIN" --sh -c 'head -c 200000 /dev/zero | cat | wc -c' | tr -d ' ')"
+check 'large pipeline without deadlock' '200000' "$("$HAWK_BIN" --sh -c 'dd if=/dev/zero bs=200000 count=1 2>/dev/null | cat | wc -c' | tr -d ' ')"
 check 'background wait and status' '1' "$("$HAWK_BIN" --sh -c 'sh -c "exit 1" & wait %1; echo "$?"')"
 check 'stop, continue and foreground wait' 'done' "$("$HAWK_BIN" --sh -c 'sleep 10 & kill -STOP %1; sleep 0.1; jobs; bg %1; kill -TERM %1; fg %1; echo done' | tail -1)"
 check 'wait accepts last background PID' '0' "$("$HAWK_BIN" --sh -c 'sleep 0.01 & wait "$!"; echo "$?"')"
@@ -70,7 +70,7 @@ check 'heredoc before pipeline continuation' 'CONTINUED' "$(printf 'cat <<EOF |\
 check_status 'empty heredoc delimiter requires a delimiter line' 2 "$(printf "cat <<''\n")"
 {
 	printf 'wc -c <<EOF\n'
-	head -c 200000 /dev/zero | tr '\000' a
+	dd if=/dev/zero bs=200000 count=1 2>/dev/null | tr '\000' a
 	printf '\nEOF\n'
 } > "$tmp/large.sh"
 check 'large heredoc does not use a blocking pipe' '200001' "$("$HAWK_BIN" --sh "$tmp/large.sh" | tr -d ' ')"

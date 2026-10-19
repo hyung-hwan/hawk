@@ -34,6 +34,7 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <stdlib.h>
+#include <limits.h>
 #include <signal.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -621,15 +622,24 @@ static void poll_jobs (std_t* s)
 	}
 }
 
-static int wait_job (hawk_sh_t* sh, std_t* s, job_t* j, int foreground)
+static int resumejob (hawk_sh_t* sh, job_t* j);
+
+static int wait_job (hawk_sh_t* sh, std_t* s, job_t* j, int foreground, int resume)
 {
 	int result = -1;
 
 	if (foreground && s->interactive)
 	{
-		if (tcsetpgrp(s->tty, j->pgid) <= -1) return syserror(sh, "foreground terminal");
+		if (tcsetpgrp(s->tty, j->pgid) <= -1)
+		{
+			syserror(sh, "foreground terminal");
+			goto done;
+		}
 		if (j->have_modes) tcsetattr(s->tty, TCSADRAIN, &j->modes);
 	}
+
+	/* restore the terminal even if continuing the job fails after handoff. */
+	if (resume && jobstate(j) != 2 && resumejob(sh, j) <= -1) goto done;
 
 	while (jobstate(j) == 0)
 	{
@@ -780,7 +790,9 @@ static int resumejob (hawk_sh_t* sh, job_t* j)
 {
 	hawk_oow_t i;
 
-	if (signal_job(j, SIGCONT) <= -1) return syserror(sh, "continue job");
+	/* ctrl-c can finish the group between terminal handoff and sigcont.
+	 * let wait_job() reap it and obtain the real status in that case. */
+	if (signal_job(j, SIGCONT) <= -1 && errno != ESRCH) return syserror(sh, "continue job");
 	for (i = 0; i < j->count; i++)
 	{
 		if (j->processes[i].state == 1) j->processes[i].state = 0;
@@ -851,7 +863,22 @@ static int call_builtin (hawk_sh_t* sh, std_t* s, const hawk_sh_cmd_t* c, int* s
 			hawk_gem_freemem(&sh->gem_, arg);
 			return -1;
 		}
+	#if defined(PATH_MAX)
+		/* older realpath() implementations require caller-owned storage. */
+		resolved = hawk_gem_allocmem(&sh->gem_, PATH_MAX);
+		if (!resolved)
+		{
+			rc = -1;
+			goto cd_done;
+		}
+		if (!realpath(joined, resolved))
+		{
+			hawk_gem_freemem(&sh->gem_, resolved);
+			resolved = HAWK_NULL;
+		}
+	#else
 		resolved = realpath(joined, HAWK_NULL);
+	#endif
 		if (!resolved || stat(resolved, &st) <= -1 || !S_ISDIR(st.st_mode) || access(resolved, X_OK) <= -1)
 		{
 			message(sh, 2, "cd: cannot access directory\n");
@@ -870,7 +897,11 @@ static int call_builtin (hawk_sh_t* sh, std_t* s, const hawk_sh_cmd_t* c, int* s
 		}
 
 	cd_done:
+	#if defined(PATH_MAX)
+		hawk_gem_freemem(&sh->gem_, resolved);
+	#else
 		if (resolved) free(resolved);
+	#endif
 		hawk_gem_freemem(&sh->gem_, joined);
 		hawk_gem_freemem(&sh->gem_, arg);
 		if (rc <= -1) return -1;
@@ -947,7 +978,7 @@ static int call_builtin (hawk_sh_t* sh, std_t* s, const hawk_sh_cmd_t* c, int* s
 			{
 				job_t* next = j->next;
 
-				rc = wait_job(sh, s, j, 0);
+				rc = wait_job(sh, s, j, 0, 0);
 				if (rc <= -1) return -1;
 				if (jobstate(j) == 2) removejob(sh, s, j);
 				j = next;
@@ -963,17 +994,11 @@ static int call_builtin (hawk_sh_t* sh, std_t* s, const hawk_sh_cmd_t* c, int* s
 			}
 			else
 			{
-				if (fg && s->interactive)
-				{
-					if (tcsetpgrp(s->tty, j->pgid) <= -1) return syserror(sh, "foreground terminal");
-					if (j->have_modes) tcsetattr(s->tty, TCSADRAIN, &j->modes);
-				}
-
-				if ((fg || bg) && jobstate(j) != 2 && resumejob(sh, j) <= -1) return -1;
+				if (bg && jobstate(j) != 2 && resumejob(sh, j) <= -1) return -1;
 
 				if (!bg)
 				{
-					rc = wait_job(sh, s, j, fg);
+					rc = wait_job(sh, s, j, fg, fg);
 					if (rc <= -1) return -1;
 					if (jobstate(j) == 2) removejob(sh, s, j);
 				}
@@ -1283,8 +1308,8 @@ static int std_exec (hawk_sh_t* sh, const hawk_sh_pipeline_t* pipeline, void* ct
 	poll_jobs(s);
 	c = pipeline->commands;
 
-	/* Stateful builtins/callbacks run in the parent only outside pipelines/jobs.
-	 * Redirect their callback I/O, never the embedding application's descriptors. */
+	/* stateful builtins/callbacks run in the parent only outside pipelines/jobs.
+	 * redirect their callback I/O, never the embedding application's descriptors. */
 	if (count == 1 && !pipeline->background &&
 	    (command_offset(c) == c->argc || hawk_sh_isbuiltin(sh, c->argv[command_offset(c)]) || std_builtin(c->argv[command_offset(c)])))
 	{
@@ -1324,7 +1349,7 @@ static int std_exec (hawk_sh_t* sh, const hawk_sh_pipeline_t* pipeline, void* ct
 
 	job->id = pipeline->background? new_job_id(s): 0;
 
-	/* Batch foreground children retain the caller's process group so terminal
+	/* batch foreground children retain the caller's process group so terminal
 	 * signals reach both the coordinator and its children, without installing
 	 * process-global forwarding handlers in an embedding application. */
 	job->own_group = s->interactive || pipeline->background;
@@ -1383,9 +1408,7 @@ static int std_exec (hawk_sh_t* sh, const hawk_sh_pipeline_t* pipeline, void* ct
 			if (job->own_group && setpgid(0, job->pgid? job->pgid: 0) <= -1) _exit(125);
 			close(barrier[1]);
 			if (pipes[0] >= 0) close(pipes[0]);
-			while (read(barrier[0], &dummy, 1) <= -1 && errno == EINTR)
-			{
-			}
+			while (read(barrier[0], &dummy, 1) <= -1 && errno == EINTR) { /* nothing */ }
 			close(barrier[0]);
 			if (s->tty >= 0)
 			{
@@ -1397,7 +1420,8 @@ static int std_exec (hawk_sh_t* sh, const hawk_sh_pipeline_t* pipeline, void* ct
 				close(s->input_fd);
 				s->input_fd = -1;
 			}
-			/* Open redirections only after every stage exists. Opening a FIFO
+
+			/* open redirections only after every stage exists. opening a FIFO
 			 * in the parent would block before its peer could be launched. */
 			s->active_fds = map;
 			if (redirect(sh, s, c->redirs, map) <= -1)
@@ -1459,7 +1483,7 @@ static int std_exec (hawk_sh_t* sh, const hawk_sh_pipeline_t* pipeline, void* ct
 		return 0;
 	}
 
-	status = wait_job(sh, s, job, 1);
+	status = wait_job(sh, s, job, 1, 0);
 	if (jobstate(job) == 2) removejob(sh, s, job);
 	else job->id = new_job_id(s);
 	return status;
@@ -1468,7 +1492,7 @@ fail:
 	if (previous >= 0) close(previous);
 	if (job)
 	{
-		/* Kill individually too: a failure may precede process-group setup. */
+		/* kill individually too: a failure may precede process-group setup. */
 		for (k = 0; k < job->count; k++)
 		{
 			kill(job->processes[k].pid, SIGKILL);
@@ -1770,8 +1794,8 @@ int hawk_sh_execstd (hawk_sh_t* sh, const hawk_ooch_t* path)
 		}
 		message(sh, 2, hawk_sh_geterrbmsg(sh));
 		message(sh, 2, "\n");
-		/* The lexer may have already read the erroneous line's newline as
-		 * lookahead. Don't discard the following command in that case. */
+		/* the lexer may have already read the erroneous line's newline as
+		 * lookahead. don't discard the following command in that case. */
 		while (!input.bol && !input.eof)
 		{
 			if (input_char(sh, &ch, &input) <= -1) goto done;

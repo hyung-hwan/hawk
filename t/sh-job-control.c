@@ -263,7 +263,10 @@ static int run_tests (terminal_t* terminal)
 		pause_briefly();
 	}
 	while (1);
+	/* interrupt immediately after handoff: a running group can exit before
+	 * fg sends SIGCONT. the shell must still reap it and reclaim the terminal. */
 	if (send_text(terminal, "\003") < 0 || receive_until(terminal, "$ ") < 0 ||
+	    tcgetpgrp(terminal->master) != terminal->pid ||
 	    command(terminal, "echo \"$?\"\n") < 0 || !strstr(terminal->output, "\r\n130\r\n")) return -1;
 	terminal->foreground = 0;
 	puts("ok 3 - fg and Ctrl-C kill the pipeline without killing shell");

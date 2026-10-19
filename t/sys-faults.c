@@ -268,8 +268,15 @@ static int fd_has_flags (int fd)
 
 int hawk_test_sys_begin (void)
 {
-	/* A broken mux list or timeout must not hang the rest of the suite. */
+	/* a broken mux list or timeout must not hang the rest of the suite. */
 	alarm(10);
+	/* macosx libc may retain a notification descriptor when initializing its
+	 * timezone cache. establish that process-owned cache before leak counting. */
+	{
+		time_t t = 0;
+
+		localtime(&t);
+	}
 	initial_fds = count_fds();
 	reset_log_probe();
 	accepted_fd = log_fd = -1;

@@ -361,6 +361,19 @@ AC_CHECK_FUNCS([clock_nanosleep nanosleep usleep select poll])
 AC_CHECK_FUNCS([sigaction signal getpgid getpgrp])
 AC_CHECK_FUNCS([setsid setpgid tcgetpgrp tcsetpgrp])
 AC_CHECK_FUNCS([posix_openpt grantpt unlockpt ptsname ptsname_r ttyname ttyname_r])
+if test "x$ac_cv_func_ttyname_r" = "xyes"
+then
+	AC_CACHE_CHECK([whether ttyname_r returns a pointer], [hawk_cv_ttyname_r_returns_pointer], [
+		AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
+			#include <unistd.h>
+			extern char* ttyname_r(int, char*, size_t);
+		]], [[]])], [hawk_cv_ttyname_r_returns_pointer=yes], [hawk_cv_ttyname_r_returns_pointer=no])
+	])
+	if test "x$hawk_cv_ttyname_r_returns_pointer" = "xyes"
+	then
+		AC_DEFINE([HAVE_TTYNAME_R_RETURNS_POINTER], [1], [ttyname_r() returns char* instead of int])
+	fi
+fi
 AC_CHECK_FUNCS([snprintf _vsnprintf _vsnwprintf strerror_r initstate_r srandom_r random_r random])
 AC_CHECK_FUNCS([accept4 pipe2 epoll_create epoll_create1 kqueue kqueue1 kevent])
 AC_CHECK_FUNCS([isatty mmap munmap])

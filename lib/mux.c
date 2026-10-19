@@ -71,6 +71,7 @@ struct hawk_mux_t
 	hawk_oow_t instsize_;
 	hawk_gem_t gem_;
 	hawk_mux_backend_t backend;
+	int automatic;
 	int fd;
 	int dirty;
 	mux_watch_t* watch;
@@ -269,6 +270,7 @@ hawk_mux_t* hawk_mux_open (hawk_mmgr_t* mmgr, hawk_oow_t xtnsize, hawk_cmgr_t* c
 	mux->gem_.errstr = hawk_dfl_errstr;
 
 	mux->fd = -1;
+	mux->automatic = (backend == HAWK_MUX_BACKEND_AUTO);
 	if (backend == HAWK_MUX_BACKEND_AUTO)
 	{
 #if defined(MUX_HAVE_EPOLL)
@@ -448,9 +450,30 @@ int hawk_mux_ctl (hawk_mux_t* mux, hawk_mux_cmd_t cmd, hawk_mux_hnd_t hnd, hawk_
 			if (repair_kqueue(mux) <= -1) return -1;
 			if (ctl_kqueue(mux->fd, hnd, cmd == HAWK_MUX_ADD || !w->armed? 0: w->mask, cmd == HAWK_MUX_DEL? 0: mask, cookie) <= -1)
 			{
-				/* A two-filter change may have partially succeeded. Rebuild from
+				/* a two-filter change may have partially succeeded. rebuild from
 				 * the unchanged logical watches before any further control/wait. */
 				mux->dirty = 1;
+			#if defined(MUX_HAVE_SELECT) && defined(EOPNOTSUPP)
+				if (mux->automatic && cmd == HAWK_MUX_ADD && errno == EOPNOTSUPP && hnd < FD_SETSIZE)
+				{
+					hawk_oow_t i;
+
+					/* older darwin/macosx kqueue rejects ptys. preserve the watches and
+					 * use select; poll on those systems also lacks pty support. */
+					for (i = 0; i < mux->count && mux->watch[i].hnd < FD_SETSIZE; i++) /* loop */;
+					if (i == mux->count)
+					{
+						close(mux->fd);
+						mux->fd = -1;
+						/* all watch descriptors are in mux->watch.
+						 * the mux loop will just use select() if the backend
+						 * type is set to SELECT */
+						mux->backend = HAWK_MUX_BACKEND_SELECT;
+						mux->dirty = 0;
+						break;
+					}
+				}
+			#endif
 				return fail_mux_native(mux);
 			}
 			break;

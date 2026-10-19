@@ -80,6 +80,8 @@ extern "C" {
 
 /** AUTO selects epoll, kqueue, poll, then select. An explicitly requested
  * unavailable backend fails with HAWK_ENOIMPL. Instances are not thread safe.
+ * AUTO may switch from kqueue to select when ADD reports EOPNOTSUPP, provided
+ * all watched handles fit FD_SETSIZE. Existing registrations are retained.
  * Windows select accepts sockets only; the caller initializes Winsock. */
 HAWK_EXPORT hawk_mux_t* hawk_mux_open (
 	hawk_mmgr_t*       mmgr,

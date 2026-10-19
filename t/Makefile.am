@@ -215,6 +215,8 @@ TEST_EXTENSIONS = .hawk .err .sh
 #   make check HAWK_TEST_COMPILER=../samples/hawk51 HAWK_CHECK_OPTS=
 #   make check VALGRIND=1
 HAWK_TEST_COMPILER ?= ../bin/hawk
+## Use the C executable's sed mode even when testing the Go/C++ front ends.
+HAWK_SED_COMPILER ?= ../bin/hawk$(EXEEXT)
 HAWK_TEST_MODLIBDIRS_OPT ?= --modlibdirs=../lib/.libs:../mod/.libs
 HAWK_CHECK_OPTS ?=
 VALGRIND ?= 0
@@ -233,7 +235,7 @@ HAWK_LOG_COMPILER = env \
 AM_HAWK_LOG_FLAGS = -vTDIR=${abs_srcdir} $(HAWK_TEST_MODLIBDIRS_OPT) $(HAWK_CHECK_OPTS) -f
 
 ERR_LOG_DRIVER = $(SHELL) $(top_srcdir)/ac/test-driver
-ERR_LOG_COMPILER = $(SHELL) $(abs_srcdir)/err.sh $(HAWK_TEST_COMPILER) -vTDIR=${abs_srcdir} $(HAWK_TEST_MODLIBDIRS_OPT) -f
+ERR_LOG_COMPILER = env HAWK_SED_COMPILER='$(HAWK_SED_COMPILER)' $(SHELL) $(abs_srcdir)/err.sh $(HAWK_TEST_COMPILER) -vTDIR=${abs_srcdir} $(HAWK_TEST_MODLIBDIRS_OPT) -f
 AM_ERR_LOG_FLAGS =
 
 SH_LOG_DRIVER = $(LOG_DRIVER)

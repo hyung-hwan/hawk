@@ -22517,6 +22517,49 @@ then :
 
 fi
 
+if test "x$ac_cv_func_ttyname_r" = "xyes"
+then
+	{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking whether ttyname_r returns a pointer" >&5
+printf %s "checking whether ttyname_r returns a pointer... " >&6; }
+if test ${hawk_cv_ttyname_r_returns_pointer+y}
+then :
+  printf %s "(cached) " >&6
+else case e in #(
+  e)
+		cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+			#include <unistd.h>
+			extern char* ttyname_r(int, char*, size_t);
+
+int
+main (void)
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"
+then :
+  hawk_cv_ttyname_r_returns_pointer=yes
+else case e in #(
+  e) hawk_cv_ttyname_r_returns_pointer=no ;;
+esac
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.beam conftest.$ac_ext
+	 ;;
+esac
+fi
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $hawk_cv_ttyname_r_returns_pointer" >&5
+printf "%s\n" "$hawk_cv_ttyname_r_returns_pointer" >&6; }
+	if test "x$hawk_cv_ttyname_r_returns_pointer" = "xyes"
+	then
+
+printf "%s\n" "#define HAVE_TTYNAME_R_RETURNS_POINTER 1" >>confdefs.h
+
+	fi
+fi
 ac_fn_c_check_func "$LINENO" "snprintf" "ac_cv_func_snprintf"
 if test "x$ac_cv_func_snprintf" = xyes
 then :
