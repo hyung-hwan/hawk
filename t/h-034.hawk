@@ -1,0 +1,181 @@
+@pragma entry main
+@pragma implicit off
+@pragma pedantic on
+@pragma xcall on
+
+@include "tap.inc";
+
+@global values = @[
+
+	# Global initializers use the same argument parser.
+	10,
+	20
+
+]
+
+@global labels = @{
+	"name":
+	"hawk"
+}
+
+function add(a, b)
+{
+	return a + b;
+}
+
+function answer()
+{
+	return 42;
+}
+
+function assign(&out, value)
+{
+	out = value;
+}
+
+function apply(callback, value)
+{
+	return callback(value);
+}
+
+function main()
+{
+	@local a, b, m, result, callback, count;
+
+	a = hawk::array(
+
+		# Blank lines and comments may follow the opener.
+		1,
+		2,
+		3
+
+		# They may also precede the closer.
+	);
+	tap_ensure(length(a), 3, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(a[1] + a[2] + a[3], 6, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(values[1] + values[2], 30, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(labels["name"], "hawk", @SCRIPTNAME, @SCRIPTLINE);
+
+	a = @[
+		1,
+		hawk::array(
+			2,
+			3
+		),
+		@{
+			"number":
+			4
+		}
+	];
+	tap_ensure(a[1], 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(a[2][1], 2, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(a[2][2], 3, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(a[3]["number"], 4, @SCRIPTNAME, @SCRIPTLINE);
+
+	m = hawk::map(
+		"first",
+		1,
+		"second",
+		2
+	);
+	tap_ensure(m["first"], 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(m["second"], 2, @SCRIPTNAME, @SCRIPTLINE);
+
+	a = hawk::array(
+
+		# Empty argument lists may span several lines.
+	);
+	b = @[
+
+		# Empty array.
+	];
+	m = @{
+
+		# Empty map.
+	};
+	tap_ensure(hawk::typename(a), "array", @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(length(a), 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(hawk::typename(b), "array", @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(length(b), 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(hawk::typename(m), "map", @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(length(m), 0, @SCRIPTNAME, @SCRIPTLINE);
+	m = hawk::map(
+	);
+	tap_ensure(length(m), 0, @SCRIPTNAME, @SCRIPTLINE);
+
+	result = sprintf(
+		"%d-%d",
+		int(
+			"12"
+		),
+		34
+	);
+	tap_ensure(result, "12-34", @SCRIPTNAME, @SCRIPTLINE);
+	result = answer(
+
+	);
+	tap_ensure(result, 42, @SCRIPTNAME, @SCRIPTLINE);
+	result = add(
+		3,
+		4
+	);
+	tap_ensure(result, 7, @SCRIPTNAME, @SCRIPTLINE);
+	assign(
+		result,
+		17
+	);
+	tap_ensure(result, 17, @SCRIPTNAME, @SCRIPTLINE);
+
+	callback = add;
+	result = callback(
+		5,
+		6
+	);
+	tap_ensure(result, 11, @SCRIPTNAME, @SCRIPTLINE);
+	m = @{"add": add};
+	result = m.add(
+		7,
+		8
+	);
+	tap_ensure(result, 15, @SCRIPTNAME, @SCRIPTLINE);
+	result = m["add"](
+		9,
+		10
+	);
+	tap_ensure(result, 19, @SCRIPTNAME, @SCRIPTLINE);
+
+	# Newlines inside a function literal still separate its statements.
+	result = apply(
+		func(x) {
+			@local y
+			y = x + 1
+			y *= 2
+			return y
+		},
+		10
+	);
+	tap_ensure(result, 22, @SCRIPTNAME, @SCRIPTLINE);
+
+	# A newline after the closer must still terminate the assignment.
+	count = 0;
+	result = add(
+		1,
+		2
+	)
+	(++count)
+	tap_ensure(result, 3, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(count, 1, @SCRIPTNAME, @SCRIPTLINE);
+
+	# Neither bare intrinsic calls nor call/concatenation detection changes.
+	$0 = "abcd";
+	result = length
+	(99)
+	tap_ensure(result, 4, @SCRIPTNAME, @SCRIPTLINE);
+	callback = add
+	(99)
+	tap_ensure(callback(2, 3), 5, @SCRIPTNAME, @SCRIPTLINE);
+	result = "A" (2 + 3);
+	tap_ensure(result, "A5", @SCRIPTNAME, @SCRIPTLINE);
+
+	tap_end();
+}

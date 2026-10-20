@@ -24,7 +24,7 @@ check_SCRIPTS += h-003.hawk h-004.hawk h-009.hawk h-010.hawk \
 
 check_SCRIPTS += regress-filename.sh regress-extra-info.sh regress-environ.sh regress-m4.sh regress-sed.sh regress-sh.sh regress-sh-job-control.sh regress-fnc.sh
 
-check_SCRIPTS += h-032.hawk h-033.hawk
+check_SCRIPTS += h-032.hawk h-033.hawk h-034.hawk
 
 check_ERRORS = e-001.err
 

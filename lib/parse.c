@@ -1598,7 +1598,7 @@ static int parse_progunit (hawk_t* hawk)
 
 		eloc = hawk->tok.loc;
 		ptn = parse_expr_withdc(hawk, &eloc);
-		if (ptn == HAWK_NULL) return -1;
+		if (HAWK_UNLIKELY(!ptn)) return -1;
 
 		HAWK_ASSERT(ptn->next == HAWK_NULL);
 
@@ -4029,7 +4029,7 @@ static hawk_nde_t* parse_exit (hawk_t* hawk, const hawk_loc_t* xloc)
 
 		eloc = hawk->tok.loc;
 		val = parse_expr_withdc(hawk, &eloc);
-		if (!val)
+		if (HAWK_UNLIKELY(!val))
 		{
 			hawk_freemem(hawk, nde);
 			return HAWK_NULL;
@@ -7946,7 +7946,11 @@ static hawk_nde_t* parse_fncall (hawk_t* hawk, const hawk_oocs_t* name, hawk_fnc
 	nargs = 0;
 
 	if (flags & FNCALL_FLAG_NOARG) goto make_node;
-	if (get_token(hawk) <= -1) goto oops;
+	do
+	{
+		if (get_token(hawk) <= -1) goto oops;
+	}
+	while (MATCH(hawk,TOK_NEWLINE));
 
 	if (MATCH(hawk, closer_token))
 	{
@@ -7960,13 +7964,35 @@ static hawk_nde_t* parse_fncall (hawk_t* hawk, const hawk_oocs_t* name, hawk_fnc
 		{
 			eloc = hawk->tok.loc;
 			nde = parse_expr_withdc(hawk, &eloc);
-			if (!nde) goto oops;
+			if (HAWK_UNLIKELY(!nde)) goto oops;
 
 			if (!head) head = nde;
 			else curr->next = nde;
 			curr = nde;
 
 			nargs++;
+
+			if (MATCH(hawk,TOK_NEWLINE))
+			{
+				/* a completed argument may be followed by newlines only if
+				 * the next token closes this call, array, or map. */
+				do
+				{
+					if (get_token(hawk) <= -1) goto oops;
+				}
+				while (MATCH(hawk,TOK_NEWLINE));
+
+				if (!MATCH(hawk, closer_token))
+				{
+					if (closer_token == TOK_RBRACK)
+						hawk_seterrfmt(hawk, &hawk->tok.loc, HAWK_ERBRACK, FMT_ERBRACK, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
+					else if (closer_token == TOK_RBRACE)
+						hawk_seterrfmt(hawk, &hawk->tok.loc, HAWK_ERBRACE, FMT_ERBRACE, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
+					else
+						hawk_seterrfmt(hawk, &hawk->tok.loc, HAWK_ERPAREN, FMT_ERPAREN, HAWK_OOECS_LEN(hawk->tok.name), HAWK_OOECS_PTR(hawk->tok.name));
+					goto oops;
+				}
+			}
 
 			if (MATCH(hawk, closer_token))
 			{

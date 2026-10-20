@@ -123,8 +123,10 @@ BEGIN {
 @pragma pedantic on
 
 BEGIN {
-	@local x = @[ ##ERROR: unexpected newline after '@['
-		1, 2, 3]
+	@local x = @[
+		1
+		2 ##ERROR: right bracket expected in place of '2'
+	]
 }
 
 ---
@@ -201,4 +203,121 @@ BEGIN {
 BEGIN {
 	@local captures;
 	str::match(12345, "[", 1, captures); ##ERROR: imbalanced bracket in regular expression
+}
+
+---
+
+BEGIN {
+	x = hawk::array(
+		1
+		, 2); ##ERROR: right parenthesis expected in place of ','
+}
+
+---
+
+BEGIN {
+	x = @[
+		1
+		, 2]; ##ERROR: right bracket expected in place of ','
+}
+
+---
+
+BEGIN {
+	x = @{
+		"key"
+		: 1}; ##ERROR: right brace expected in place of ':'
+}
+
+---
+
+BEGIN {
+	x = hawk::array(
+		1
+		- 2); ##ERROR: right parenthesis expected in place of '-'
+}
+
+---
+
+BEGIN {
+	x = hawk::array(
+		1
+	]; ##ERROR: right parenthesis expected in place of ']'
+}
+
+---
+
+BEGIN {
+	x = @[
+		1
+	); ##ERROR: right bracket expected in place of ')'
+}
+
+---
+
+BEGIN {
+	x = @{
+		"key": 1
+	]; ##ERROR: right brace expected in place of ']'
+}
+
+---
+
+BEGIN {
+	x = @{
+		"key"
+	}; ##ERROR: colon expected in place of '}'
+}
+
+---
+
+BEGIN {
+	x = @{
+		"key":
+	}; ##ERROR: expression not recognized around '}'
+}
+
+---
+
+BEGIN {
+	x = hawk::array(
+		1,
+	); ##ERROR: expression not recognized around ')'
+}
+
+---
+
+BEGIN {
+	x = @[
+		1,
+	]; ##ERROR: expression not recognized around ']'
+}
+
+---
+
+BEGIN {
+	x = @{
+		"key": 1,
+	}; ##ERROR: expression not recognized around '}'
+}
+
+---
+
+BEGIN {
+	x = int( ##ERROR: too few arguments to int
+	);
+}
+
+---
+
+BEGIN {
+	x = hawk::array(( ##ERROR: unexpected newline after '('
+		1));
+}
+
+---
+
+BEGIN {
+	x[ ##ERROR: unexpected newline after '['
+		1] = 2;
 }
