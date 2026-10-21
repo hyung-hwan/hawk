@@ -266,11 +266,12 @@ rm -rf "%{buildroot}"
 %{_includedir}/*
 %{_libdir}/libhawk.so
 %{_datadir}/hawk/go/hawk.go
-%{_datadir}/hawk/go/hawk-inst.go
-%{_datadir}/hawk/go/hawk-io.go
 %{_datadir}/hawk/go/hawk-http.go
 %{_datadir}/hawk/go/hawk-httpd.go
 %{_datadir}/hawk/go/hawk-httpd-req.go
+%{_datadir}/hawk/go/hawk-inst.go
+%{_datadir}/hawk/go/hawk-io.go
+%{_datadir}/hawk/go/hawk-src.go
 %{_datadir}/hawk/go/go.mod
 
 %files static
