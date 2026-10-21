@@ -37,7 +37,7 @@ EXTRA_DIST = $(check_SCRIPTS) $(check_ERRORS) tap.inc err.sh \
 	JSON.awk.in JSON.awk.out \
 	h-024-child.hawk h-024.in \
 	run-hawk-test.sh regress-extra-info.sh \
-	two-way-pipe.hawk two-way-pipe.out fnc-regress.md
+	two-way-pipe.hawk two-way-pipe.out
 
 TEST_PROGS = t-001$(EXEEXT) t-002$(EXEEXT) t-003$(EXEEXT) \
 	t-004$(EXEEXT) t-005$(EXEEXT) t-006$(EXEEXT) t-007$(EXEEXT) \
