@@ -185,8 +185,6 @@ t_023_CFLAGS = $(CFLAGS_COMMON)
 t_023_LDFLAGS = $(LDFLAGS_COMMON)
 t_023_LDADD = $(LIBADD_COMMON)
 
-EXTRA_DIST += mus-spec-license.txt
-
 fnc_regress_SOURCES = fnc-regress.c math-rand-max.c math-time-failure.c math-threads.c sys-faults.c sys-fallback.c sys-unavailable.c
 fnc_regress_CPPFLAGS = $(CPPFLAGS_COMMON)
 fnc_regress_CFLAGS = $(CFLAGS_COMMON)

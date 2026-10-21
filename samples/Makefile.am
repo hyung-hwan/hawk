@@ -15,21 +15,20 @@ LIBADD_COMMON = ../lib/libhawk.la
 noinst_PROGRAMS = 
 
 EXTRA_DIST = \
-	web-workbench/README.md \
-	web-workbench/run.sh \
-	web-workbench/data/.gitignore \
-	web-workbench/scripts/workbench.hawk \
-	web-workbench/scripts/setup.hawk \
-	web-workbench/templates/header.mustache \
-	web-workbench/templates/footer.mustache \
-	web-workbench/templates/workbench.mustache \
-	web-workbench/public/index.html \
-	web-workbench/public/workbench.css \
-	web-workbench/public/workbench-dark.css \
-	web-workbench/public/workbench-mono.css \
-	web-workbench/public/workbench.js \
-	web-workbench/tests/http_test.go \
-	web-workbench/tests/concurrency_test.go
+	wb/README.md \
+	wb/run.sh \
+	wb/scripts/workbench.hawk \
+	wb/scripts/setup.hawk \
+	wb/templates/header.mustache \
+	wb/templates/footer.mustache \
+	wb/templates/workbench.mustache \
+	wb/public/index.html \
+	wb/public/workbench.css \
+	wb/public/workbench-dark.css \
+	wb/public/workbench-mono.css \
+	wb/public/workbench.js \
+	wb/tests/http_test.go \
+	wb/tests/concurrency_test.go
 
 if ENABLE_CXX
 
