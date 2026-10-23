@@ -1075,6 +1075,34 @@ This writes `10` to `/tmp/1` and `20` to `/tmp/2`.
 - Two-way pipes: `|&`
 - CSV-style field splitting is supported when `FS` begins with `?` followed by four characters (separator, escaper, left quote, right quote).
 
+`printf` and `sprintf` expand arrays and maps with `%v`:
+
+```awk
+BEGIN {
+	printf "%v\n", @[1, "two", @{"ok": @true}];
+	# @[1, "two", @{"ok": @true}]
+	a = @[];
+	a[3] = "three";
+	printf "%v\n", a; # @[3: "three"]
+}
+```
+
+Nested strings and keys are quoted, and control characters, non-ASCII characters,
+and bytes are escaped. Byte strings retain their `@b` prefix. Map order follows
+the underlying container. Scalar `%v` formatting and implicit conversions such
+as concatenation and `%s` retain their existing behavior.
+
+This representation is for diagnostics; use `json::stringify()` for JSON. Rendering
+uses a heap stack and defaults to 32 nested containers, 4,096 output characters,
+and 16,384 traversal steps, including scanning empty array slots and map buckets.
+Cycles produce `<cycle>`, excessive nesting produces `<depth-limit>`, and size
+or work exhaustion produces `<truncated>` with container delimiters closed.
+Format precision can further shorten the resulting text.
+
+C applications can request this representation with `HAWK_RTX_VALTOSTR_REPR`
+in `hawk_rtx_valtostr()`, or call `hawk_rtx_valtorepr()` with custom depth, size,
+and work limits in `hawk_rtx_valrepr_opt_t`. Zero limit fields select defaults.
+
 Example:
 
 ```awk

@@ -2256,9 +2256,455 @@ static int val_ref_to_str (hawk_rtx_t* rtx, const hawk_val_ref_t* ref, hawk_rtx_
 	}
 }
 
+typedef struct valrepr_frame_t valrepr_frame_t;
+struct valrepr_frame_t
+{
+	const hawk_val_t* val;
+	hawk_map_pair_t* pair;
+	hawk_oow_t index, remaining;
+	int type, dense, first;
+};
+
+typedef struct valrepr_ctx_t valrepr_ctx_t;
+struct valrepr_ctx_t
+{
+	hawk_ooecs_t text;
+	hawk_rtx_t* rtx;
+	hawk_rtx_valrepr_opt_t limit;
+	valrepr_frame_t* stack;
+	hawk_oow_t size, capa, closers, checkpoint, steps;
+	int separator, truncated;
+};
+
+/* Reserve room for a truncation marker, its separator, and every open closer. */
+#define VALREPR_TAIL_RESERVE 13
+
+static int valrepr_append (valrepr_ctx_t* ctx, const hawk_ooch_t* ptr, hawk_oow_t len)
+{
+	hawk_oow_t used = HAWK_OOECS_LEN(&ctx->text);
+	hawk_oow_t capa = HAWK_OOECS_CAPA(&ctx->text);
+
+	HAWK_ASSERT(used <= ctx->limit.max_chars && len <= ctx->limit.max_chars - used);
+	if (len > capa - used)
+	{
+		/* Grow geometrically within the budget. Reserve explicitly so ECS
+		 * doesn't retry successively smaller allocations after an OOM. */
+		capa = capa > ctx->limit.max_chars / 2? ctx->limit.max_chars: capa * 2;
+		if (capa < used + len) capa = used + len;
+		if (hawk_ooecs_setcapa(&ctx->text, capa) == (hawk_oow_t)-1) return -1;
+	}
+	return hawk_ooecs_ncat(&ctx->text, ptr, len) == (hawk_oow_t)-1? -1: 0;
+}
+
+static int valrepr_step (valrepr_ctx_t* ctx)
+{
+	if (ctx->steps == 0)
+	{
+		ctx->truncated = 1;
+		return -1;
+	}
+	ctx->steps--;
+	return 0;
+}
+
+static int valrepr_put (valrepr_ctx_t* ctx, const hawk_ooch_t* ptr, hawk_oow_t len)
+{
+	hawk_oow_t used = HAWK_OOECS_LEN(&ctx->text);
+
+	if (ctx->closers > ctx->limit.max_chars - VALREPR_TAIL_RESERVE ||
+	    used > ctx->limit.max_chars - VALREPR_TAIL_RESERVE - ctx->closers ||
+	    len > ctx->limit.max_chars - VALREPR_TAIL_RESERVE - ctx->closers - used)
+	{
+		ctx->truncated = 1;
+		return -1;
+	}
+	return valrepr_append(ctx, ptr, len);
+}
+
+static int valrepr_escape (valrepr_ctx_t* ctx, hawk_uint32_t c, hawk_ooch_t quote)
+{
+	static const hawk_ooch_t hex[] = HAWK_T("0123456789abcdef");
+	hawk_ooch_t buf[10];
+	hawk_oow_t i, digits;
+
+	if (c == '\\' || (quote && c == quote))
+	{
+		buf[0] = '\\';
+		buf[1] = c;
+		return valrepr_put(ctx, buf, 2);
+	}
+	switch (c)
+	{
+		case '\n': return valrepr_put(ctx, HAWK_T("\\n"), 2);
+		case '\r': return valrepr_put(ctx, HAWK_T("\\r"), 2);
+		case '\t': return valrepr_put(ctx, HAWK_T("\\t"), 2);
+	}
+	if (c >= 0x20 && c <= 0x7e)
+	{
+		buf[0] = c;
+		return valrepr_put(ctx, buf, 1);
+	}
+	digits = c <= 0xff? 2: c <= 0xffff? 4: 8;
+	buf[0] = '\\';
+	buf[1] = digits == 2? 'x': digits == 4? 'u': 'U';
+	for (i = 0; i < digits; i++) buf[2 + i] = hex[(c >> ((digits - i - 1) * 4)) & 0xf];
+	return valrepr_put(ctx, buf, digits + 2);
+}
+
+static int valrepr_quote (valrepr_ctx_t* ctx, const void* ptr, hawk_oow_t len, int bytes, hawk_ooch_t quote)
+{
+	hawk_oow_t i;
+
+	if (bytes && valrepr_put(ctx, HAWK_T("@b"), 2) <= -1) return -1;
+	if (valrepr_put(ctx, &quote, 1) <= -1) return -1;
+	for (i = 0; i < len; i++)
+	{
+		hawk_uint32_t c;
+
+		if (valrepr_step(ctx) <= -1) return -1;
+		if (bytes) c = ((const hawk_uint8_t*)ptr)[i];
+		else c = (hawk_oochu_t)((const hawk_ooch_t*)ptr)[i];
+		if (valrepr_escape(ctx, c, quote) <= -1) return -1;
+	}
+	return valrepr_put(ctx, &quote, 1);
+}
+
+static int valrepr_integer (valrepr_ctx_t* ctx, hawk_uintmax_t value)
+{
+	hawk_ooch_t buf[HAWK_SIZEOF(hawk_uintmax_t) * 3 + 1];
+	int n;
+
+	n = hawk_fmt_uintmax_to_oocstr(buf, HAWK_COUNTOF(buf), value, 10, -1, 0, HAWK_NULL);
+	if (n <= -1) return -1;
+	return valrepr_put(ctx, buf, n);
+}
+
+static int valrepr_leaf (valrepr_ctx_t* ctx, const hawk_val_t* val, int type)
+{
+	switch (type)
+	{
+		case HAWK_VAL_NIL:
+			return valrepr_put(ctx, HAWK_T("@nil"), 4);
+		case HAWK_VAL_BOOL:
+			return ((const hawk_val_bool_t*)val)->val?
+				valrepr_put(ctx, HAWK_T("@true"), 5): valrepr_put(ctx, HAWK_T("@false"), 6);
+		case HAWK_VAL_CHAR:
+		{
+			hawk_ooch_t c = HAWK_RTX_GETCHARFROMVAL(ctx->rtx, val);
+			return valrepr_quote(ctx, &c, 1, 0, '\'');
+		}
+		case HAWK_VAL_BCHR:
+		{
+			hawk_bch_t c = HAWK_RTX_GETBCHRFROMVAL(ctx->rtx, val);
+			return valrepr_quote(ctx, &c, 1, 1, '\'');
+		}
+		case HAWK_VAL_STR:
+			return valrepr_quote(ctx, ((const hawk_val_str_t*)val)->val.ptr,
+				((const hawk_val_str_t*)val)->val.len, 0, '"');
+		case HAWK_VAL_MBS:
+			return valrepr_quote(ctx, ((const hawk_val_mbs_t*)val)->val.ptr,
+				((const hawk_val_mbs_t*)val)->val.len, 1, '"');
+		case HAWK_VAL_INT:
+		{
+			hawk_int_t n = HAWK_RTX_GETINTFROMVAL(ctx->rtx, val);
+			hawk_uint_t u = (hawk_uint_t)n;
+
+			if (n < 0)
+			{
+				if (valrepr_put(ctx, HAWK_T("-"), 1) <= -1) return -1;
+				u = (hawk_uint_t)0 - u;
+			}
+			return valrepr_integer(ctx, u);
+		}
+		case HAWK_VAL_FLT:
+		{
+			hawk_ooch_t buf[128];
+			hawk_flt_t n = ((const hawk_val_flt_t*)val)->val;
+			hawk_oow_t len, i;
+
+			/* Fixed precision bounds memory and avoids user CONVFMT/OFMT calling
+			 * back into value formatting. Diagnostic numbers need not round-trip. */
+		#if defined(HAWK_USE_FLTMAX)
+			len = hawk_rtx_fmttooocstr(ctx->rtx, buf, HAWK_COUNTOF(buf), HAWK_T("%.17jjg"), &n);
+		#else
+			len = hawk_rtx_fmttooocstr(ctx->rtx, buf, HAWK_COUNTOF(buf), HAWK_T("%.17zg"), n);
+		#endif
+			if (len == (hawk_oow_t)-1) return -1;
+			/* Escape a non-ASCII locale decimal separator as well. */
+			for (i = 0; i < len; i++)
+			{
+				if (valrepr_step(ctx) <= -1 || valrepr_escape(ctx, (hawk_oochu_t)buf[i], 0) <= -1) return -1;
+			}
+			return 0;
+		}
+		case HAWK_VAL_FUN:
+		{
+			const hawk_oocs_t* name = &((const hawk_val_fun_t*)val)->fun->name;
+			hawk_oow_t i;
+
+			if (!name->len) return valrepr_put(ctx, HAWK_T("<FUN>"), 5);
+			if (valrepr_put(ctx, HAWK_T("<FUN:"), 5) <= -1) return -1;
+			for (i = 0; i < name->len; i++)
+			{
+				if (valrepr_step(ctx) <= -1 || valrepr_escape(ctx, (hawk_oochu_t)name->ptr[i], 0) <= -1) return -1;
+			}
+			return valrepr_put(ctx, HAWK_T(">"), 1);
+		}
+		case HAWK_VAL_REX:
+			if (valrepr_put(ctx, HAWK_T("<REX:"), 5) <= -1 ||
+			    valrepr_quote(ctx, ((const hawk_val_rex_t*)val)->str.ptr,
+			        ((const hawk_val_rex_t*)val)->str.len, 0, '"') <= -1) return -1;
+			return valrepr_put(ctx, HAWK_T(">"), 1);
+		case HAWK_VAL_BOB:
+			if (valrepr_put(ctx, HAWK_T("<BOB:"), 5) <= -1 ||
+			    valrepr_integer(ctx, ((const hawk_val_bob_t*)val)->val.len) <= -1) return -1;
+			return valrepr_put(ctx, HAWK_T(" bytes>"), 7);
+		default:
+			hawk_rtx_seterrnum(ctx->rtx, HAWK_NULL, HAWK_EVALTOSTR);
+			return -1;
+	}
+}
+
+static hawk_map_pair_t* valrepr_map_next (valrepr_ctx_t* ctx, valrepr_frame_t* frame)
+{
+	hawk_map_t* map = ((const hawk_val_map_t*)frame->val)->map;
+	hawk_map_pair_t* pair;
+
+#if defined(HAWK_MAP_IS_HTB)
+	pair = frame->pair;
+	while (!pair && frame->index < map->capa)
+	{
+		if (valrepr_step(ctx) <= -1) return HAWK_NULL;
+		pair = map->bucket[frame->index++];
+	}
+	if (pair) frame->pair = pair->next;
+#else
+	/* Walk links directly so iterator protection cannot retain addresses in
+	 * the reallocatable frame array. Charge each tree step to the work budget. */
+	pair = frame->pair;
+	if (!pair || pair->child[1] != &map->xnil)
+	{
+		pair = pair? pair->child[1]: map->root;
+		while (pair != &map->xnil && pair->child[0] != &map->xnil)
+		{
+			if (valrepr_step(ctx) <= -1) return HAWK_NULL;
+			pair = pair->child[0];
+		}
+	}
+	else
+	{
+		while (pair->parent != &map->xnil && pair == pair->parent->child[1])
+		{
+			if (valrepr_step(ctx) <= -1) return HAWK_NULL;
+			pair = pair->parent;
+		}
+		pair = pair->parent;
+	}
+	if (pair == &map->xnil) pair = HAWK_NULL;
+	frame->pair = pair;
+#endif
+	return pair;
+}
+
+static const hawk_ooch_t* valrepr_closer (const valrepr_frame_t* frame, hawk_oow_t* len)
+{
+	*len = 1;
+	return frame->type == HAWK_VAL_MAP? HAWK_T("}"): HAWK_T("]");
+}
+
+int hawk_rtx_valtorepr (hawk_rtx_t* rtx, const hawk_val_t* val, hawk_rtx_valtostr_out_t* out, const hawk_rtx_valrepr_opt_t* opt)
+{
+	valrepr_ctx_t ctx;
+	const hawk_val_t* current = val;
+	hawk_oow_t len;
+	int mode, type, n = -1;
+
+	HAWK_MEMSET(&ctx, 0, HAWK_SIZEOF(ctx));
+	ctx.rtx = rtx;
+	ctx.limit.max_depth = opt && opt->max_depth? opt->max_depth: HAWK_RTX_VALREPR_DEFAULT_MAX_DEPTH;
+	ctx.limit.max_chars = opt && opt->max_chars? opt->max_chars: HAWK_RTX_VALREPR_DEFAULT_MAX_CHARS;
+	ctx.limit.max_steps = opt && opt->max_steps? opt->max_steps: HAWK_RTX_VALREPR_DEFAULT_MAX_STEPS;
+	mode = out->type & ~(HAWK_RTX_VALTOSTR_PRINT | HAWK_RTX_VALTOSTR_REPR);
+	if (mode < HAWK_RTX_VALTOSTR_CPL || mode > HAWK_RTX_VALTOSTR_STRPCAT ||
+	    ctx.limit.max_chars < 16 || ctx.limit.max_chars > HAWK_TYPE_MAX(hawk_oow_t) / HAWK_SIZEOF(hawk_ooch_t) - 1)
+	{
+		hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EINVAL);
+		return -1;
+	}
+	/* Every container also consumes output, so no useful stack can be larger. */
+	if (ctx.limit.max_depth > ctx.limit.max_chars) ctx.limit.max_depth = ctx.limit.max_chars;
+	if (ctx.limit.max_depth > HAWK_TYPE_MAX(hawk_oow_t) / HAWK_SIZEOF(*ctx.stack))
+	{
+		hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EINVAL);
+		return -1;
+	}
+	ctx.steps = ctx.limit.max_steps;
+	if (hawk_ooecs_init(&ctx.text, hawk_rtx_getgem(rtx), ctx.limit.max_chars < 128? ctx.limit.max_chars: 128) <= -1) return -1;
+
+	for (;;)
+	{
+		if (current)
+		{
+			hawk_oow_t i;
+
+			if (valrepr_step(&ctx) <= -1) goto stopped;
+			type = HAWK_RTX_GETVALTYPE(rtx, current);
+			if (type == HAWK_VAL_REF)
+			{
+				current = hawk_rtx_getrefval(rtx, (hawk_val_ref_t*)current);
+				if (!current) goto done;
+				continue;
+			}
+			if (type == HAWK_VAL_MAP || type == HAWK_VAL_ARR)
+			{
+				valrepr_frame_t* frame;
+				const hawk_ooch_t* opener;
+				hawk_oow_t close_len;
+
+				for (i = 0; i < ctx.size; i++)
+				{
+					if (valrepr_step(&ctx) <= -1) goto stopped;
+					if (ctx.stack[i].val == current) break;
+				}
+				if (i < ctx.size || ctx.size >= ctx.limit.max_depth)
+				{
+					if (valrepr_put(&ctx, i < ctx.size? HAWK_T("<cycle>"): HAWK_T("<depth-limit>"), i < ctx.size? 7: 13) <= -1) goto stopped;
+					current = HAWK_NULL;
+					continue;
+				}
+				if (ctx.size == ctx.capa)
+				{
+					hawk_oow_t capa = ctx.capa? ctx.capa: 4;
+					void* tmp;
+
+					if (ctx.capa) capa = ctx.capa > ctx.limit.max_depth / 2? ctx.limit.max_depth: ctx.capa * 2;
+					if (capa > ctx.limit.max_depth) capa = ctx.limit.max_depth;
+					tmp = hawk_rtx_reallocmem(rtx, ctx.stack, capa * HAWK_SIZEOF(*ctx.stack));
+					if (!tmp) goto done;
+					ctx.stack = tmp;
+					ctx.capa = capa;
+				}
+				frame = &ctx.stack[ctx.size];
+				HAWK_MEMSET(frame, 0, HAWK_SIZEOF(*frame));
+				frame->val = current;
+				frame->type = type;
+				frame->first = 1;
+				if (type == HAWK_VAL_ARR)
+				{
+					hawk_arr_t* arr = ((const hawk_val_arr_t*)current)->arr;
+
+					frame->remaining = HAWK_ARR_TALLY(arr);
+					frame->dense = !frame->remaining || (HAWK_ARR_SIZE(arr) - 1 == frame->remaining && !HAWK_ARR_SLOT(arr, 0));
+					opener = HAWK_T("@[");
+				}
+				else
+				{
+					frame->remaining = HAWK_MAP_SIZE(((const hawk_val_map_t*)current)->map);
+					opener = HAWK_T("@{");
+				}
+				valrepr_closer(frame, &close_len);
+				ctx.closers += close_len;
+				if (valrepr_put(&ctx, opener, 2) <= -1)
+				{
+					ctx.closers -= close_len;
+					goto stopped;
+				}
+				ctx.size++;
+			}
+			else if (valrepr_leaf(&ctx, current, type) <= -1) goto stopped;
+			current = HAWK_NULL;
+		}
+		if (!ctx.size) break;
+		{
+			valrepr_frame_t* frame = &ctx.stack[ctx.size - 1];
+
+			ctx.checkpoint = HAWK_OOECS_LEN(&ctx.text);
+			ctx.separator = !frame->first;
+			if (!frame->remaining)
+			{
+				const hawk_ooch_t* closer = valrepr_closer(frame, &len);
+
+				ctx.size--;
+				ctx.closers -= len;
+				if (valrepr_put(&ctx, closer, len) <= -1) goto stopped;
+				continue;
+			}
+			if (!frame->first && valrepr_put(&ctx, HAWK_T(", "), 2) <= -1) goto stopped;
+			if (frame->type == HAWK_VAL_MAP)
+			{
+				hawk_map_pair_t* pair = valrepr_map_next(&ctx, frame);
+
+				if (!pair) goto stopped;
+				if (valrepr_quote(&ctx, HAWK_MAP_KPTR(pair), HAWK_MAP_KLEN(pair), 0, '"') <= -1 ||
+				    valrepr_put(&ctx, HAWK_T(": "), 2) <= -1) goto stopped;
+				current = HAWK_MAP_VPTR(pair);
+			}
+			else
+			{
+				hawk_arr_t* arr = ((const hawk_val_arr_t*)frame->val)->arr;
+
+				while (frame->index < HAWK_ARR_SIZE(arr))
+				{
+					if (valrepr_step(&ctx) <= -1) goto stopped;
+					if (HAWK_ARR_SLOT(arr, frame->index)) break;
+					frame->index++;
+				}
+				if (frame->index >= HAWK_ARR_SIZE(arr)) goto stopped;
+				if (!frame->dense && (valrepr_integer(&ctx, frame->index) <= -1 ||
+				    valrepr_put(&ctx, HAWK_T(": "), 2) <= -1)) goto stopped;
+				current = HAWK_ARR_DPTR(arr, frame->index++);
+			}
+			frame->remaining--;
+			frame->first = 0;
+		}
+	}
+	goto copy_result;
+
+stopped:
+	if (!ctx.truncated) goto done;
+	/* Rewind the unfinished member, not just its last escape/character. The
+	 * reserved tail makes truncation explicit without leaving open delimiters. */
+	hawk_ooecs_setlen(&ctx.text, ctx.checkpoint);
+	if (ctx.separator && valrepr_append(&ctx, HAWK_T(", "), 2) <= -1) goto done;
+	if (valrepr_append(&ctx, HAWK_T("<truncated>"), 11) <= -1) goto done;
+	while (ctx.size > 0)
+	{
+		const hawk_ooch_t* closer = valrepr_closer(&ctx.stack[--ctx.size], &len);
+
+		if (valrepr_append(&ctx, closer, len) <= -1) goto done;
+	}
+
+copy_result:
+	if (mode == HAWK_RTX_VALTOSTR_CPLDUP)
+	{
+		n = hawk_ooecs_yield(&ctx.text, &out->u.cpldup, 0);
+	}
+	else
+	{
+		hawk_rtx_valtostr_out_t dst = *out;
+
+		dst.type = mode == HAWK_RTX_VALTOSTR_CPL? HAWK_RTX_VALTOSTR_CPLCPY: mode;
+		if (dst.type == HAWK_RTX_VALTOSTR_CPLCPY && dst.u.cplcpy.len <= HAWK_OOECS_LEN(&ctx.text))
+		{
+			out->u.cplcpy.len = HAWK_OOECS_LEN(&ctx.text) + 1;
+			hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EBUFFULL);
+			goto done;
+		}
+		n = str_to_str(rtx, HAWK_OOECS_PTR(&ctx.text), HAWK_OOECS_LEN(&ctx.text), &dst);
+		if (n >= 0) out->u = dst.u;
+	}
+
+done:
+	if (ctx.stack) hawk_rtx_freemem(rtx, ctx.stack);
+	hawk_ooecs_fini(&ctx.text);
+	return n;
+}
+
 int hawk_rtx_valtostr (hawk_rtx_t* rtx, const hawk_val_t* v, hawk_rtx_valtostr_out_t* out)
 {
 	hawk_val_type_t vtype = HAWK_RTX_GETVALTYPE(rtx, v);
+
+	if (out->type & HAWK_RTX_VALTOSTR_REPR) return hawk_rtx_valtorepr(rtx, v, out, HAWK_NULL);
 
 	switch (vtype)
 	{

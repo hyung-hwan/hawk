@@ -24,7 +24,7 @@ check_SCRIPTS += h-003.hawk h-004.hawk h-009.hawk h-010.hawk \
 
 check_SCRIPTS += regress-filename.sh regress-extra-info.sh regress-environ.sh regress-m4.sh regress-sed.sh regress-sh.sh regress-sh-job-control.sh regress-fnc.sh
 
-check_SCRIPTS += h-032.hawk h-033.hawk h-034.hawk
+check_SCRIPTS += h-032.hawk h-033.hawk h-034.hawk h-035.hawk
 
 check_ERRORS = e-001.err
 
@@ -42,7 +42,7 @@ EXTRA_DIST = $(check_SCRIPTS) $(check_ERRORS) tap.inc err.sh \
 TEST_PROGS = t-001$(EXEEXT) t-002$(EXEEXT) t-003$(EXEEXT) \
 	t-004$(EXEEXT) t-005$(EXEEXT) t-006$(EXEEXT) t-007$(EXEEXT) \
 	t-008$(EXEEXT) t-009$(EXEEXT) t-010$(EXEEXT) t-011$(EXEEXT) \
-	t-012$(EXEEXT) t-013$(EXEEXT) t-014$(EXEEXT) t-015$(EXEEXT) t-016$(EXEEXT) t-017$(EXEEXT) t-018$(EXEEXT) t-019$(EXEEXT) t-020$(EXEEXT) t-021$(EXEEXT) t-022$(EXEEXT) t-023$(EXEEXT)
+	t-012$(EXEEXT) t-013$(EXEEXT) t-014$(EXEEXT) t-015$(EXEEXT) t-016$(EXEEXT) t-017$(EXEEXT) t-018$(EXEEXT) t-019$(EXEEXT) t-020$(EXEEXT) t-021$(EXEEXT) t-022$(EXEEXT) t-023$(EXEEXT) t-024$(EXEEXT)
 
 check_PROGRAMS = $(TEST_PROGS) fnc-regress$(EXEEXT) sh-job-control$(EXEEXT)
 
@@ -184,6 +184,12 @@ t_023_CPPFLAGS = $(CPPFLAGS_COMMON) -DTEST_SRCDIR='"$(abs_srcdir)"'
 t_023_CFLAGS = $(CFLAGS_COMMON)
 t_023_LDFLAGS = $(LDFLAGS_COMMON)
 t_023_LDADD = $(LIBADD_COMMON)
+
+t_024_SOURCES = t-024.c tap.h
+t_024_CPPFLAGS = $(CPPFLAGS_COMMON)
+t_024_CFLAGS = $(CFLAGS_COMMON)
+t_024_LDFLAGS = $(LDFLAGS_COMMON)
+t_024_LDADD = $(LIBADD_COMMON)
 
 fnc_regress_SOURCES = fnc-regress.c math-rand-max.c math-time-failure.c math-threads.c sys-faults.c sys-fallback.c sys-unavailable.c
 fnc_regress_CPPFLAGS = $(CPPFLAGS_COMMON)

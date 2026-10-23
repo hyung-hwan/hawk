@@ -1,0 +1,102 @@
+@pragma entry main
+@pragma implicit off
+@pragma pedantic on
+
+@include "tap.inc";
+
+function dummy()
+{
+	return 1;
+}
+
+function main()
+{
+	@local a, m, s, i, child;
+
+	tap_ensure(sprintf("%v", @[]), "@[]", @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sprintf("%v", @{}), "@{}", @SCRIPTNAME, @SCRIPTLINE);
+	a = @[1, -2, 1.5, @nil, @true, @false];
+	s = "@[1, -2, 1.5, @nil, @true, @false]";
+	tap_ensure(sprintf("%v", a), s, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sprintf(@b"%v", a), str::tombs(s), @SCRIPTNAME, @SCRIPTLINE);
+
+	a = @["a\"b\\c\n\r\t\0", @b"\0\xff", 'x', @b'x', dummy];
+	s = "@[\"a\\\"b\\\\c\\n\\r\\t\\x00\", @b\"\\x00\\xff\", 'x', @b'x', <FUN:dummy>]";
+	tap_ensure(sprintf("%v", a), s, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sprintf(@b"%v", a), str::tombs(s), @SCRIPTNAME, @SCRIPTLINE);
+	m = @{"a\n\"": @[1, "two"]};
+	s = "@{\"a\\n\\\"\": @[1, \"two\"]}";
+	tap_ensure(sprintf("%v", m), s, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sprintf(@b"%v", m), str::tombs(s), @SCRIPTNAME, @SCRIPTLINE);
+	m = @{"z": 3, "a": 1, "m": 2};
+	s = sprintf("%v", m);
+	tap_ensure(index(s, "\"a\": 1") > 0 && index(s, "\"m\": 2") > 0 && index(s, "\"z\": 3") > 0,
+		1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sprintf(@b"%v", m), str::tombs(s), @SCRIPTNAME, @SCRIPTLINE);
+
+	# Ordinary conversions retain the existing marker behavior.
+	tap_ensure(sprintf("%s", a), "<ARRAY>", @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sprintf("%s", m), "<MAP>", @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(a "", "<ARRAY>", @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(m "", "<MAP>", @SCRIPTNAME, @SCRIPTLINE);
+	a = @[1, 2];
+	tap_ensure(sprintf("%12v", a), "     @[1, 2]", @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sprintf("%-12v", a), "@[1, 2]     ", @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sprintf("%.4v", a), "@[1,", @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sprintf(@b"%12v", a), @b"     @[1, 2]", @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sprintf(@b"%.4v", a), @b"@[1,", @SCRIPTNAME, @SCRIPTLINE);
+
+	# Sparse and zero-based arrays must not lose their indexes.
+	a = @[];
+	a[0] = "zero";
+	a[3] = 7;
+	tap_ensure(sprintf("%v", a), "@[0: \"zero\", 3: 7]", @SCRIPTNAME, @SCRIPTLINE);
+	delete a[0];
+	tap_ensure(sprintf("%v", a), "@[3: 7]", @SCRIPTNAME, @SCRIPTLINE);
+
+	# A shared child is not a cycle; an active ancestor is.
+	child = @[1];
+	a = @[child, child];
+	tap_ensure(sprintf("%v", a), "@[@[1], @[1]]", @SCRIPTNAME, @SCRIPTLINE);
+	a = @[];
+	a[1] = a;
+	tap_ensure(sprintf("%v", a), "@[<cycle>]", @SCRIPTNAME, @SCRIPTLINE);
+	delete a[1];
+	m = @{};
+	m["self"] = m;
+	tap_ensure(sprintf("%v", m), "@{\"self\": <cycle>}", @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sprintf(@b"%v", m), @b"@{\"self\": <cycle>}", @SCRIPTNAME, @SCRIPTLINE);
+	delete m["self"];
+	a = @[];
+	m = @{"back": a};
+	a[1] = m;
+	tap_ensure(sprintf("%v", a), "@[@{\"back\": <cycle>}]", @SCRIPTNAME, @SCRIPTLINE);
+	delete m["back"];
+
+	# Depth, output, and scan limits apply to native and byte formatting.
+	a = @[1];
+	for (i = 0; i < 100; i++) a = @[a];
+	s = sprintf("%v", a);
+	tap_ensure(index(s, "<depth-limit>") > 0, 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(length(s) <= 4096, 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sprintf(@b"%v", a), str::tombs(s), @SCRIPTNAME, @SCRIPTLINE);
+	s = sprintf("%10000s", "");
+	m = @{s: 1};
+	tap_ensure(sprintf("%v", m), "@{<truncated>}", @SCRIPTNAME, @SCRIPTLINE);
+	a = @[1, s];
+	tap_ensure(sprintf("%v", a), "@[1, <truncated>]", @SCRIPTNAME, @SCRIPTLINE);
+	a = @[];
+	for (i = 1; i <= 10000; i++) a[i] = i;
+	s = sprintf("%v", a);
+	tap_ensure(length(s) <= 4096 && index(s, "<truncated>]") > 0, 1, @SCRIPTNAME, @SCRIPTLINE);
+	a = @[];
+	a[100000] = 1;
+	tap_ensure(sprintf("%v", a), "@[<truncated>]", @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sprintf(@b"%v", a), @b"@[<truncated>]", @SCRIPTNAME, @SCRIPTLINE);
+
+	# Diagnostic numbers do not use potentially huge user formatting settings.
+	CONVFMT = "%.1000000f";
+	OFMT = CONVFMT;
+	tap_ensure(sprintf("%v", @[1.5]), "@[1.5]", @SCRIPTNAME, @SCRIPTLINE);
+	tap_end();
+}

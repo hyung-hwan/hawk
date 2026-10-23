@@ -172,8 +172,8 @@ function main()
 	tap_ensure(sprintf("%v", @b"\x7f"), sprintf("%k", @b"\x7f"), @SCRIPTNAME, @SCRIPTLINE);
 	tap_ensure(sprintf("%v", @b'\xff'), sprintf("%k", @b'\xff'), @SCRIPTNAME, @SCRIPTLINE);
 	tap_ensure(sprintf("%v", @b"\x00\xff"), sprintf("%k", @b"\x00\xff"), @SCRIPTNAME, @SCRIPTLINE);
-	tap_ensure(sprintf("%v", m), "<MAP>", @SCRIPTNAME, @SCRIPTLINE);
-	tap_ensure(sprintf("%v", a), "<ARRAY>", @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sprintf("%v", m), "@{}", @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sprintf("%v", a), "@[]", @SCRIPTNAME, @SCRIPTLINE);
 	tap_ensure(sprintf("%v", dummy), "<FUN:dummy>", @SCRIPTNAME, @SCRIPTLINE);
 
 	tap_ensure(@true - 20, -19, @SCRIPTNAME, @SCRIPTLINE);

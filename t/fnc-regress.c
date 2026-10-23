@@ -713,6 +713,10 @@ struct case_t
 
 static const case_t cases[] =
 {
+	{ "format-composite-allocation", "BEGIN {a=@[1,@{\"x\":@[2,\"three\"]}];arm();s=sprintf(\"%v\",a);if(s!==\"@[1, @{\\\"x\\\": @[2, \\\"three\\\"]}]\") exit 1;}", HAWK_ENOERR, SWEEP },
+	{ "format-byte-composite-allocation", "BEGIN {a=@[1,@{\"x\":@[2,\"three\"]}];arm();s=sprintf(@b\"%v\",a);if(s!==@b\"@[1, @{\\\"x\\\": @[2, \\\"three\\\"]}]\") exit 1;}", HAWK_ENOERR, SWEEP },
+	{ "format-composite-strictmap", "BEGIN {if(sprintf(\"%v\",@[1,2])!==\"@[1, 2]\") exit 1;}", HAWK_ENOERR, STRICTMAP },
+	{ "format-composite-bob", "BEGIN {a=@[bob()];if(sprintf(\"%v\",a)!==\"@[<BOB:3 bytes>]\") exit 1;}", HAWK_ENOERR, 0 },
 	{ "sys-pty-unavailable", "BEGIN {a=41;b=42;if(sysunavailable::openpty(a,b)!=sysunavailable::RC_ENOIMPL || a!=41 || b!=42 || length(sysunavailable::errmsg())==0) exit 1;if(sysunavailable::openpt(sysunavailable::O_RDWR)!=sysunavailable::RC_ENOIMPL) exit 1;}", HAWK_ENOERR, 0 },
 #if !defined(_WIN32) && !defined(__OS2__) && !defined(__DOS__) && (defined(HAVE_OPENPTY) || (defined(HAVE_POSIX_OPENPT) && defined(HAVE_GRANTPT) && defined(HAVE_UNLOCKPT)))
 	{ "sys-pty-output-allocation", "BEGIN {a=41;b=42;arm();n=sys::openpty(a,b);if(n<0) {if(n!=sys::RC_ENOMEM || a!=41 || b!=42 || length(sys::errmsg())==0) exit 1;}else if(a==b || sys::close(a)!=0 || sys::close(b)!=0) exit 1;}", HAWK_ENOERR, SYS | DEEP_SWEEP },

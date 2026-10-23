@@ -1578,7 +1578,8 @@ typedef enum hawk_val_type_t hawk_val_type_t;
  * - #HAWK_RTX_VALTOSTR_STRP
  * - #HAWK_RTX_VALTOSTR_STRPCAT
  *
- * and it can optionally be ORed with #HAWK_RTX_VALTOSTR_PRINT.
+ * and it can optionally be ORed with #HAWK_RTX_VALTOSTR_PRINT or
+ * #HAWK_RTX_VALTOSTR_REPR.
  */
 enum hawk_rtx_valtostr_type_t
 {
@@ -1593,7 +1594,9 @@ enum hawk_rtx_valtostr_type_t
 	/** use u.strpcat of #hawk_rtx_valtostr_out_t */
 	HAWK_RTX_VALTOSTR_STRPCAT   = 0x04,
 	/** convert for print */
-	HAWK_RTX_VALTOSTR_PRINT     = 0x10
+	HAWK_RTX_VALTOSTR_PRINT     = 0x10,
+	/** produce a bounded diagnostic representation instead of implicit conversion */
+	HAWK_RTX_VALTOSTR_REPR      = 0x20
 };
 
 /**
@@ -1614,6 +1617,19 @@ struct hawk_rtx_valtostr_out_t
 	} u;
 };
 typedef struct hawk_rtx_valtostr_out_t hawk_rtx_valtostr_out_t;
+
+#define HAWK_RTX_VALREPR_DEFAULT_MAX_DEPTH 32
+#define HAWK_RTX_VALREPR_DEFAULT_MAX_CHARS 4096
+#define HAWK_RTX_VALREPR_DEFAULT_MAX_STEPS 16384
+
+/** Limits for diagnostic value rendering. A zero field selects its default. */
+struct hawk_rtx_valrepr_opt_t
+{
+	hawk_oow_t max_depth; /**< maximum active containers, including the root */
+	hawk_oow_t max_chars; /**< output characters excluding NUL; must be at least 16 */
+	hawk_oow_t max_steps; /**< bounds traversal, including empty array slots/hash buckets */
+};
+typedef struct hawk_rtx_valrepr_opt_t hawk_rtx_valrepr_opt_t;
 
 /* record filter using NR */
 struct hawk_nrflt_t
@@ -3783,6 +3799,9 @@ HAWK_EXPORT int hawk_rtx_valtobool (
  * It can optionally be ORed with #HAWK_RTX_VALTOSTR_PRINT. The option
  * causes the function to use OFMT for real number conversion. Otherwise,
  * it uses \b CONVFMT.
+ * #HAWK_RTX_VALTOSTR_REPR instead selects hawk_rtx_valtorepr() with default
+ * limits. It quotes strings, expands containers, and ignores PRINT, OFMT,
+ * and CONVFMT. CPL requires caller storage in this mode, as for numbers.
  *
  * You should initialize or free other fields before and after the call
  * depending on the type field as shown below:
@@ -3852,6 +3871,29 @@ HAWK_EXPORT int hawk_rtx_valtostr (
 	hawk_rtx_t*              rtx, /**< runtime context */
 	const hawk_val_t*        val, /**< value to convert */
 	hawk_rtx_valtostr_out_t* out  /**< output buffer */
+);
+
+/**
+ * Render a value in diagnostic Hawk-like notation, independently of FLEXMAP,
+ * CONVFMT, and OFMT. Strings are quoted; non-ASCII characters and bytes are
+ * escaped. Sparse arrays retain indexes in an @[index: value] form.
+ * Cycles and depth limits produce <cycle> and <depth-limit>. Exhausting the
+ * output/work budget produces <truncated> inside the remaining delimiters.
+ * This is diagnostic text, not a serialization format.
+ *
+ * Traversal uses a bounded heap stack. out uses the same destination modes as
+ * hawk_rtx_valtostr(); CPL copies into the caller's buffer. The output limit
+ * applies to this representation, not to an existing STRPCAT prefix. Passing
+ * NULL for opt selects the default limits. HAWK_RTX_VALTOSTR_REPR makes
+ * hawk_rtx_valtostr() call this function with the defaults.
+ *
+ * \return 0 on success (including marked truncation), -1 on failure
+ */
+HAWK_EXPORT int hawk_rtx_valtorepr (
+	hawk_rtx_t*                    rtx, /**< runtime context */
+	const hawk_val_t*              val, /**< value pointer */
+	hawk_rtx_valtostr_out_t*        out, /**< output buffer */
+	const hawk_rtx_valrepr_opt_t*   opt  /**< limits, or NULL for defaults */
 );
 
 /**
