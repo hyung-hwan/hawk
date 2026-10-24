@@ -25,7 +25,10 @@
 #ifndef _HAWK_VAL_PRV_H_
 #define _HAWK_VAL_PRV_H_
 
-#define HAWK_VAL_CHUNK_SIZE 100
+/* keep this size to a pow2 number */
+#define HAWK_VAL_ARR_INIT_SIZE (64)
+
+#define HAWK_VAL_CHUNK_SIZE (128)
 
 /* this has been commented out and isn't necessary as the implemenation is
  * context(rtx)-centric. I'll leave it here for experiment for those who like

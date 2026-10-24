@@ -235,6 +235,7 @@ hawk_arr_t* hawk_arr_setcapa (hawk_arr_t* arr, hawk_oow_t capa)
 {
 	void* tmp;
 
+	capa = HAWK_ALIGN_POW2(capa, HAWK_ARR_CAPA_ALIGN);
 	if (capa == arr->capa) return arr;
 
 	if (capa < arr->size)
@@ -341,12 +342,12 @@ hawk_oow_t hawk_arr_insert (hawk_arr_t* arr, hawk_oow_t pos, void* dptr, hawk_oo
 			if (arr->capa <= 0)
 			{
 				HAWK_ASSERT(arr->size <= 0);
-				capa = HAWK_ALIGN_POW2(pos + 1, 64);
+				capa = pos + 1;
 			}
 			else
 			{
 				hawk_oow_t bound = (pos >= arr->size)? pos: arr->size;
-				capa = HAWK_ALIGN_POW2(bound + 1, 64);
+				capa = bound;
 			}
 		}
 

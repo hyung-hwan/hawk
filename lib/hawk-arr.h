@@ -63,6 +63,8 @@ typedef enum   hawk_arr_walk_t hawk_arr_walk_t;
 #define HAWK_ARR_DPTR(arr,index)  ((arr)->slot[index]->val.ptr)
 #define HAWK_ARR_DLEN(arr,index)  ((arr)->slot[index]->val.len)
 
+#define HAWK_ARR_CAPA_ALIGN (64)
+
 /**
  *  The hawk_arr_copier_t type defines a callback function for slot construction.
  *  A slot is contructed when a user adds data to an array. The user can

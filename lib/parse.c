@@ -271,11 +271,11 @@ static hawk_nde_t* parse_dotidx (hawk_t* hawk, const hawk_oocs_t* name, const ha
 static hawk_nde_t* parse_xcall_postfix_on_expr (hawk_t* hawk, hawk_nde_t* base, const hawk_loc_t* xloc);
 #endif
 
-#define FNCALL_FLAG_NOARG        (1 << 0) /* no argument */
-#define FNCALL_FLAG_EXPR         (1 << 1)
-#define FNCALL_FLAG_MAP          (1 << 2)
-#define FNCALL_FLAG_DEFER_MODFNC (1 << 3)
-#define FNCALL_FLAG_ARRAY        (1 << 4)
+#define FNCALL_FLAG_NOARG         (1 << 0) /* no argument */
+#define FNCALL_FLAG_EXPR          (1 << 1)
+#define FNCALL_FLAG_MAP           (1 << 2)
+#define FNCALL_FLAG_DEFER_MODFNC  (1 << 3)
+#define FNCALL_FLAG_ARRAY         (1 << 4)
 #define FNCALL_FLAG_INDEXED_ARRAY (1 << 5)
 static hawk_nde_t* parse_fncall (hawk_t* hawk, const hawk_oocs_t* name, hawk_fnc_t* fnc, const hawk_loc_t* xloc, int flags, int closer_token);
 
@@ -7981,9 +7981,13 @@ static hawk_nde_t* parse_fncall (hawk_t* hawk, const hawk_oocs_t* name, hawk_fnc
 			curr = nde;
 
 			nargs++;
-			/* Only the first array entry can select the indexed form. */
+			/* only the first array entry can select the indexed form. */
 			if ((flags & FNCALL_FLAG_ARRAY) && nargs == 1 && MATCH(hawk, TOK_COLON))
+			{
+				/* the first element is followed by a colon.
+				 * it must be an indexed array */
 				flags |= FNCALL_FLAG_INDEXED_ARRAY;
+			}
 
 			if (MATCH(hawk,TOK_NEWLINE))
 			{
@@ -8011,7 +8015,7 @@ static hawk_nde_t* parse_fncall (hawk_t* hawk, const hawk_oocs_t* name, hawk_fnc
 			{
 				if ((flags & (FNCALL_FLAG_MAP | FNCALL_FLAG_INDEXED_ARRAY)) && (nargs & 1))
 				{
-					/* Each map key or explicit array index needs a value. */
+					/* each map key or explicit array index needs a value. */
 					goto colon_expected;
 				}
 				if (get_token(hawk) <= -1) goto oops;
@@ -8020,7 +8024,7 @@ static hawk_nde_t* parse_fncall (hawk_t* hawk, const hawk_oocs_t* name, hawk_fnc
 
 			if ((flags & (FNCALL_FLAG_MAP | FNCALL_FLAG_INDEXED_ARRAY)) && (nargs & 1))
 			{
-				/* Inside a map or indexed array,
+				/* inside a map or indexed array,
 				 *   - it expects a colon after each key/index
 				 *   - after value, a comma is expected */
 				if (!MATCH(hawk, TOK_COLON))

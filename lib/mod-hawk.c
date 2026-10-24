@@ -406,14 +406,14 @@ static int fnc_indexed_array (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	tmp = hawk_rtx_makearrval(rtx, -1);
 	if (HAWK_UNLIKELY(!tmp)) return -1;
 
-	/* The underlying array rounds capacity up to a multiple of 64 slots.
-	 * Keep that rounding and the subsequent pointer allocation in range. */
+	/* the underlying array rounds capacity up to a multiple of 64 slots.
+	 * keep that rounding and the subsequent pointer allocation in range. */
 	max_slots = (HAWK_TYPE_MAX(hawk_oow_t) / HAWK_SIZEOF(hawk_arr_slot_t*)) & ~(hawk_oow_t)63;
 	for (i = 0; i < nargs; i += 2)
 	{
 		hawk_int_t index;
 
-		/* Use the same checked numeric conversion as ordinary subscripting. */
+		/* use the same checked numeric conversion as ordinary subscripting. */
 		if (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, i), &index) <= -1) goto oops;
 		if (index < 0 || (hawk_uintmax_t)index > (hawk_uintmax_t)HAWK_TYPE_MAX(hawk_ooi_t) ||
 		    (hawk_uintmax_t)index >= (hawk_uintmax_t)max_slots)

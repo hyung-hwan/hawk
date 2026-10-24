@@ -1178,7 +1178,7 @@ retry:
 	val->v_gc = 0;
 	val->arr = (hawk_arr_t*)(val + 1);
 
-	if (init_capa < 0) init_capa = 64; /* TODO: what is the best initial value? */
+	if (init_capa < 0) init_capa = HAWK_VAL_ARR_INIT_SIZE;
 	x = hawk_arr_init(val->arr, hawk_rtx_getgem(rtx), init_capa);
 	if (HAWK_UNLIKELY(x <= -1))
 	{
@@ -1201,7 +1201,7 @@ retry:
 	hawk_arr_setstyle (val->arr, &style);
 
 #if defined(HAWK_ENABLE_GC)
-	gc_chain_val (&rtx->gc.g[0], (hawk_val_t*)val);
+	gc_chain_val(&rtx->gc.g[0], (hawk_val_t*)val);
 	val->v_gc = 1; /* only array and map are to be garbaged collected as of now */
 	#if defined(DEBUG_GC)
 	hawk_logbfmt(hawk_rtx_gethawk(rtx), HAWK_LOG_STDERR, "[GC] MADE GCH %p VAL(ARR) %p\n", hawk_val_to_gch(val), val);
