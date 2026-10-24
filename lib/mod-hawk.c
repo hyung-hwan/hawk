@@ -390,6 +390,49 @@ static int fnc_array (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	return 0;
 }
 
+static int fnc_indexed_array (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
+{
+	hawk_val_t* tmp;
+	hawk_oow_t nargs, i;
+	hawk_oow_t max_slots;
+
+	nargs = hawk_rtx_getnargs(rtx);
+	if (nargs & 1)
+	{
+		hawk_rtx_seterrbfmt(rtx, HAWK_NULL, HAWK_EINVAL, "indexed array requires index/value pairs");
+		return -1;
+	}
+
+	tmp = hawk_rtx_makearrval(rtx, -1);
+	if (HAWK_UNLIKELY(!tmp)) return -1;
+
+	/* The underlying array rounds capacity up to a multiple of 64 slots.
+	 * Keep that rounding and the subsequent pointer allocation in range. */
+	max_slots = (HAWK_TYPE_MAX(hawk_oow_t) / HAWK_SIZEOF(hawk_arr_slot_t*)) & ~(hawk_oow_t)63;
+	for (i = 0; i < nargs; i += 2)
+	{
+		hawk_int_t index;
+
+		/* Use the same checked numeric conversion as ordinary subscripting. */
+		if (hawk_rtx_valtoint_inline(rtx, hawk_rtx_getarg(rtx, i), &index) <= -1) goto oops;
+		if (index < 0 || (hawk_uintmax_t)index > (hawk_uintmax_t)HAWK_TYPE_MAX(hawk_ooi_t) ||
+		    (hawk_uintmax_t)index >= (hawk_uintmax_t)max_slots)
+		{
+			hawk_rtx_seterrnum(rtx, HAWK_NULL, HAWK_EARRIDXRANGE);
+			goto oops;
+		}
+
+		if (!hawk_rtx_setarrvalfld(rtx, tmp, (hawk_ooi_t)index, hawk_rtx_getarg(rtx, i + 1))) goto oops;
+	}
+
+	hawk_rtx_setretval(rtx, tmp);
+	return 0;
+
+oops:
+	hawk_rtx_freeval(rtx, tmp, 0);
+	return -1;
+}
+
 static int fnc_map (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 {
 	hawk_val_t* tmp;
@@ -560,6 +603,7 @@ static hawk_mod_fnc_tab_t fnctab[] =
 	{ HAWK_T("gc_set_threshold"), { { 2, 2,     HAWK_NULL     },  fnc_gc_set_threshold,      0 } },
 	{ HAWK_T("gcrefs"),           { { 1, 1,     HAWK_NULL     },  fnc_gcrefs,                0 } },
 	{ HAWK_T("hash"),             { { 1, 1,     HAWK_NULL     },  fnc_hash,                  0 } },
+	{ HAWK_T("indexed_array"),    { { 0, A_MAX, HAWK_NULL     },  fnc_indexed_array,         0 } },
 	{ HAWK_T("int"),              { { 1, 1,     HAWK_NULL     },  hawk_fnc_int,              0 } },
 	{ HAWK_T("isarray"),          { { 1, 1,     HAWK_NULL     },  fnc_isarr,                 0 } },
 	{ HAWK_T("ismap"),            { { 1, 1,     HAWK_NULL     },  fnc_ismap,                 0 } },

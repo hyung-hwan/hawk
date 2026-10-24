@@ -411,6 +411,7 @@ static int oversized_mbs (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 #define UNIX_SOCKET 4194304
 #define DEEP_SWEEP 8388608
 #define MKTIME_EXTREME 16777216
+#define PARSE 33554432
 
 #if defined(_WIN32)
 #define SOCKET_TEST WIN_SYS
@@ -713,6 +714,41 @@ struct case_t
 
 static const case_t cases[] =
 {
+	{ "indexed-array-allocation", "BEGIN {arm();a=@[0: \"zero\",3: @[1,2],0: \"last\"];if(a[0]!==\"last\" || a[3][2]!=2 || length(a)!=2) exit 1;}", HAWK_ENOERR, SWEEP },
+	{ "indexed-array-coercion-allocation", "BEGIN {arm();a=@[\"0\":\"zero\",@b\"3.9\":@[1,2],-0.5:\"last\"];if(a[0]!==\"last\" || a[3][2]!=2 || length(a)!=2) exit 1;}", HAWK_ENOERR, SWEEP },
+	{ "indexed-array-duplicate-reference", "BEGIN {b=@[1];arm();a=@[2:b,2:b];if(a[2][1]!=1) exit 1;}", HAWK_ENOERR, SWEEP },
+	{ "indexed-array-partial-cleanup", "BEGIN {arm();a=@[0:@[1],1:-1, -1:@[2]];}", HAWK_EARRIDXRANGE, SWEEP },
+	{ "indexed-array-negative", "BEGIN {a=@[-1: 7];}", HAWK_EARRIDXRANGE, 0 },
+	{ "indexed-array-max-index", "BEGIN {a=@[maxint(): 7];}", HAWK_EARRIDXRANGE, 0 },
+	{ "indexed-array-float", "BEGIN {a=@[1.5: 7];if(a[1]!=7) exit 1;}", HAWK_ENOERR, 0 },
+	{ "indexed-array-integral-float", "BEGIN {a=@[1.0: 7];if(a[1]!=7) exit 1;}", HAWK_ENOERR, 0 },
+	{ "indexed-array-nan", "BEGIN {a=@[math::sqrt(-1): 7];}", HAWK_EINVAL, 0 },
+	{ "indexed-array-huge-float", "BEGIN {a=@[1e100: 7];}", HAWK_EINVAL, 0 },
+	{ "indexed-array-negative-huge-float", "BEGIN {a=@[-1e100: 7];}", HAWK_EINVAL, 0 },
+	{ "indexed-array-infinity", "BEGIN {a=@[math::exp(10000): 7];}", HAWK_EINVAL, 0 },
+	{ "indexed-array-huge-string", "BEGIN {a=@[\"1e100\": 7];}", HAWK_EINVAL, 0 },
+	{ "indexed-array-huge-byte-string", "BEGIN {a=@[@b\"1e100\": 7];}", HAWK_EINVAL, 0 },
+	{ "indexed-array-negative-string", "BEGIN {a=@[\"-1\": 7];}", HAWK_EARRIDXRANGE, 0 },
+	{ "indexed-array-negative-float", "BEGIN {a=@[-1.5: 7];}", HAWK_EARRIDXRANGE, 0 },
+	{ "indexed-array-string", "BEGIN {a=@[\"3\": 7];if(a[3]!=7) exit 1;}", HAWK_ENOERR, 0 },
+	{ "indexed-array-byte-string", "BEGIN {a=@[@b\"3\": 7];if(a[3]!=7) exit 1;}", HAWK_ENOERR, 0 },
+	{ "indexed-array-bool", "BEGIN {a=@[@true:7,@false:8];if(a[1]!=7 || a[0]!=8) exit 1;}", HAWK_ENOERR, 0 },
+	{ "indexed-array-nil", "BEGIN {a=@[@nil: 7];if(a[0]!=7) exit 1;}", HAWK_ENOERR, 0 },
+	{ "indexed-array-function", "function f() {} BEGIN {a=@[f: 7];}", HAWK_EVALTONUM, 0 },
+	{ "indexed-array-bob", "BEGIN {a=@[bob(): 7];}", HAWK_EVALTONUM, 0 },
+	{ "indexed-array-conversion-error-cleanup", "function f() {} BEGIN {arm();a=@[\"0\":@[1],f:@[2]];}", HAWK_EVALTONUM, SWEEP },
+	{ "indexed-array-composite-key", "BEGIN {k=@[1];b=@[];b[k]=7;a=@[k:7];if(sprintf(\"%v\",a)!==sprintf(\"%v\",b)) exit 1;}", HAWK_ENOERR, 0 },
+	{ "indexed-array-strict-array-key", "BEGIN {a=@[@[1]: 7];}", HAWK_EVALTONUM, STRICTMAP },
+	{ "indexed-array-strict-map-key", "BEGIN {a=@[@{\"k\":1}: 7];}", HAWK_EVALTONUM, STRICTMAP },
+	{ "indexed-array-odd-arguments", "BEGIN {a=hawk::indexed_array(1);}", HAWK_EINVAL, 0 },
+	{ "indexed-array-strictmap", "BEGIN {if(sprintf(\"%v\",@[0:7,3:9])!==\"@[0: 7, 3: 9]\") exit 1;}", HAWK_ENOERR, STRICTMAP },
+	{ "indexed-array-parse-allocation", "BEGIN {a=@[0:@[1,2],3:@[0:@{\"k\":@[4:5]}]];if(a[3][0][\"k\"][4]!=5) exit 1;}", HAWK_ENOERR, PARSE | DEEP_SWEEP },
+	{ "indexed-array-missing-index", "BEGIN {a=@[:1];}", HAWK_EEXPRNR, PARSE },
+	{ "indexed-array-mixed-positional", "BEGIN {a=@[1,2:3];}", HAWK_ECOMMA, PARSE },
+	{ "indexed-array-mixed-indexed", "BEGIN {a=@[0:1,2];}", HAWK_ECOLON, PARSE },
+	{ "indexed-array-missing-value", "BEGIN {a=@[0:];}", HAWK_EEXPRNR, PARSE },
+	{ "indexed-array-trailing-comma", "BEGIN {a=@[0:1,];}", HAWK_EEXPRNR, PARSE },
+	{ "indexed-array-missing-comma", "BEGIN {a=@[0:1 2:3];}", HAWK_ECOMMA, PARSE },
 	{ "format-composite-allocation", "BEGIN {a=@[1,@{\"x\":@[2,\"three\"]}];arm();s=sprintf(\"%v\",a);if(s!==\"@[1, @{\\\"x\\\": @[2, \\\"three\\\"]}]\") exit 1;}", HAWK_ENOERR, SWEEP },
 	{ "format-byte-composite-allocation", "BEGIN {a=@[1,@{\"x\":@[2,\"three\"]}];arm();s=sprintf(@b\"%v\",a);if(s!==@b\"@[1, @{\\\"x\\\": @[2, \\\"three\\\"]}]\") exit 1;}", HAWK_ENOERR, SWEEP },
 	{ "format-composite-strictmap", "BEGIN {if(sprintf(\"%v\",@[1,2])!==\"@[1, 2]\") exit 1;}", HAWK_ENOERR, STRICTMAP },
@@ -1560,10 +1596,24 @@ static int run_case (const case_t* test, hawk_oow_t fail_after)
 	input[0].type = HAWK_PARSESTD_BCS;
 	input[0].u.bcs.ptr = (hawk_bch_t*)test->source;
 	input[0].u.bcs.len = hawk_count_bcstr(test->source);
+	if ((test->flags & PARSE) && fail_after > 0) a.fail_at = a.calls + fail_after;
 	if (hawk_parsestd(hawk, input, HAWK_NULL) < 0)
 	{
-		fprintf(stderr, "parse: %s\n", hawk_geterrbmsg(hawk));
+		errnum = hawk_geterrnum(hawk);
+		ok = (test->flags & PARSE) &&
+		     ((test->expected_error != HAWK_ENOERR && errnum == test->expected_error) ||
+		      (a.failed && errnum == HAWK_ENOMEM));
+		if (!ok) fprintf(stderr, "parse: %s\n", hawk_geterrbmsg(hawk));
 		goto done;
+	}
+	if (test->flags & PARSE)
+	{
+		a.fail_at = 0;
+		if (test->expected_error != HAWK_ENOERR)
+		{
+			fprintf(stderr, "expected parse failure\n");
+			goto done;
+		}
 	}
 	rtx = hawk_rtx_openstd(hawk, 0, HAWK_T("fnc-regress"), HAWK_NULL, HAWK_NULL, HAWK_NULL);
 	if (!rtx) goto done;
@@ -1727,7 +1777,7 @@ int main (int argc, char** argv)
 #endif
 		if (cases[i].flags & THREADS) return hawk_test_math_threads(cases[i].source);
 		if (argc == 3) return run_case(&cases[i], (hawk_oow_t)strtoul(argv[2], HAWK_NULL, 10));
-		for (offset = 0; offset <= ((cases[i].flags & DEEP_SWEEP)? 128: (cases[i].flags & SWEEP)? 32: 0); offset++)
+		for (offset = 0; offset <= ((cases[i].flags & DEEP_SWEEP)? ((cases[i].flags & PARSE)? 512: 128): (cases[i].flags & SWEEP)? 32: 0); offset++)
 		{
 			status = run_case(&cases[i], offset);
 			if (status != 0) return status;

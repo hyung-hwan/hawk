@@ -1,0 +1,123 @@
+@pragma entry main
+@pragma implicit off
+@pragma pedantic on
+@pragma xcall on
+
+@include "tap.inc";
+
+@const BASE = 3;
+@global initial = @[0: "zero", BASE: "three"];
+@global sequence = "";
+
+function mark(text, value)
+{
+	sequence = sequence text;
+	return value;
+}
+
+function double(value)
+{
+	return value * 2;
+}
+
+function main()
+{
+	@local a, b, m, text, i, count, keys, expected;
+	@local local_array = @[2: 20, 5: 50];
+
+	tap_ensure(hawk::typename(initial), "array", @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(initial[0], "zero", @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(initial[BASE], "three", @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(length(initial), 2, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(local_array[2] + local_array[5], 70, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(1 in initial, 0, @SCRIPTNAME, @SCRIPTLINE);
+
+	a = @[
+
+		# Indexes can be zero, computed, or given out of order.
+		BASE + 2:
+		50,
+		0: @nil,
+		BASE: "three"
+
+	];
+	tap_ensure(a[5], 50, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(0 in a, 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(hawk::typename(a[0]), "nil", @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(1 in a, 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sprintf("%v", a), "@[0: @nil, 3: \"three\", 5: 50]", @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sprintf(@b"%v", a), @b"@[0: @nil, 3: \"three\", 5: 50]", @SCRIPTNAME, @SCRIPTLINE);
+
+	# Indexed and positional syntax can be nested in either direction.
+	a = @[2: @[1, 2], 7: @{"child": @[0: "nested"]}];
+	tap_ensure(a[2][2], 2, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(a[7]["child"][0], "nested", @SCRIPTNAME, @SCRIPTLINE);
+	b = @[a, @[4: 40]];
+	tap_ensure(b[1][2][1], 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(b[2][4], 40, @SCRIPTNAME, @SCRIPTLINE);
+	m = @{"array": @[0: @b"bytes", 4: @true]};
+	tap_ensure(m["array"][0], @b"bytes", @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(m["array"][4] === @true, 1, @SCRIPTNAME, @SCRIPTLINE);
+
+	# Colons belonging to a conditional expression aren't pair separators.
+	a = @[1 ? 0 : 9: 1 ? "yes" : "no", (0 ? 2 : 3): 30];
+	tap_ensure(a[0], "yes", @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(a[3], 30, @SCRIPTNAME, @SCRIPTLINE);
+	b = @[1 ? 2 : 3, 0 ? 4 : 5];
+	tap_ensure(sprintf("%v", b), "@[2, 5]", @SCRIPTNAME, @SCRIPTLINE);
+
+	# Every expression runs once, from left to right; the last duplicate wins.
+	sequence = "";
+	a = @[mark("i", 3): mark("v", 30), mark("j", 3): mark("w", 31)];
+	tap_ensure(sequence, "ivjw", @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(length(a), 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(a[3], 31, @SCRIPTNAME, @SCRIPTLINE);
+	b = @[1];
+	a = @[0: b, 0: b];
+	tap_ensure(a[0][1], 1, @SCRIPTNAME, @SCRIPTLINE);
+	a = @[2: double];
+	tap_ensure(a[2](4), 8, @SCRIPTNAME, @SCRIPTLINE);
+
+	# Positional constructors retain their one-based behavior.
+	a = @[10, 20];
+	b = hawk::array(10, 20);
+	tap_ensure(a[1] + b[2], 30, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(length(@[]), 0, @SCRIPTNAME, @SCRIPTLINE);
+	a = @[2: 20, 1: 10];
+	tap_ensure(sprintf("%v", a), "@[10, 20]", @SCRIPTNAME, @SCRIPTLINE);
+
+	# The constructor is callable directly, including with no entries.
+	a = hawk::indexed_array(0, "zero", 3, "three", 0, "last");
+	tap_ensure(a[0], "last", @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(a[3], "three", @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(length(hawk::indexed_array()), 0, @SCRIPTNAME, @SCRIPTLINE);
+
+	# Indexes use the same contextual conversion as ordinary subscripting.
+	a = @["20": "twenty", @b"3": "three", 2.9: "two", -0.5: "zero"];
+	tap_ensure(a[20], "twenty", @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(a[3], "three", @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(a[2], "two", @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(a[0], "zero", @SCRIPTNAME, @SCRIPTLINE);
+	a = @["2": 10, 2.8: 20, @b"2": 30];
+	tap_ensure(length(a), 1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(a[2], 30, @SCRIPTNAME, @SCRIPTLINE);
+	keys = @["20", @b"21", "22.9", @b"23.9", "2e1", 24.9, -0.5,
+	         @true, @false, @nil, '5', @b'6', "", "text", "20tail", @[1], @{"k": 1}];
+	for (i = 1; i <= length(keys); i++)
+	{
+		expected = @[];
+		expected[keys[i]] = i;
+		a = @[keys[i]: i];
+		b = hawk::indexed_array(keys[i], i);
+		tap_ensure(sprintf("%v", a), sprintf("%v", expected), @SCRIPTNAME, @SCRIPTLINE);
+		tap_ensure(sprintf("%v", b), sprintf("%v", expected), @SCRIPTNAME, @SCRIPTLINE);
+	}
+
+	# Sparse representations use the same indexed notation as literals.
+	text = sprintf("%v", initial);
+	tap_ensure(text, "@[0: \"zero\", 3: \"three\"]", @SCRIPTNAME, @SCRIPTLINE);
+	count = 0;
+	for (i in initial) count++;
+	tap_ensure(count, 2, @SCRIPTNAME, @SCRIPTLINE);
+	tap_end();
+}

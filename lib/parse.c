@@ -275,6 +275,8 @@ static hawk_nde_t* parse_xcall_postfix_on_expr (hawk_t* hawk, hawk_nde_t* base, 
 #define FNCALL_FLAG_EXPR         (1 << 1)
 #define FNCALL_FLAG_MAP          (1 << 2)
 #define FNCALL_FLAG_DEFER_MODFNC (1 << 3)
+#define FNCALL_FLAG_ARRAY        (1 << 4)
+#define FNCALL_FLAG_INDEXED_ARRAY (1 << 5)
 static hawk_nde_t* parse_fncall (hawk_t* hawk, const hawk_oocs_t* name, hawk_fnc_t* fnc, const hawk_loc_t* xloc, int flags, int closer_token);
 
 static hawk_nde_t* parse_primary_ident_segs (hawk_t* hawk, const hawk_loc_t* xloc, const hawk_oocs_t* full, const hawk_oocs_t segs[], int nsegs);
@@ -6392,35 +6394,40 @@ oops:
 	return HAWK_NULL;
 }
 
-static hawk_nde_t* _parse_primary_array_or_map (hawk_t* hawk, const hawk_loc_t* xloc, const hawk_oocs_t* full, const hawk_oocs_t segs[], int nsegs, int closer_token)
+static int query_literal_constructor (hawk_t* hawk, const hawk_loc_t* xloc, const hawk_oocs_t* full, const hawk_oocs_t segs[], int nsegs, hawk_fnc_t* fnc)
 {
-	/* called for @[ or @{ handling. the caller of this function passes "hawk::array" or
-	 * "hawk::map" via "full'. */
 	hawk_mod_t* mod;
 	hawk_mod_sym_t sym;
-	hawk_fnc_t fnc;
 
 	mod = query_module(hawk, segs, nsegs, &sym, HAWK_NULL);
 	if (HAWK_UNLIKELY(!mod))
 	{
 		ADJERR_LOC(hawk, xloc);
-		return HAWK_NULL;
+		return -1;
 	}
 
 	if (sym.type != HAWK_MOD_FNC || ((hawk->opt.trait & sym.u.fnc_.trait) != sym.u.fnc_.trait))
 	{
 		hawk_seterrfmt(hawk, xloc, HAWK_EUNDEF, FMT_EUNDEF, full->len, full->ptr);
-		return HAWK_NULL;
+		return -1;
 	}
 
-	HAWK_MEMSET(&fnc, 0, HAWK_SIZEOF(fnc));
-	fnc.name.ptr = full->ptr;
-	fnc.name.len = full->len;
-	fnc.spec = sym.u.fnc_;
-	fnc.mod = mod;
+	HAWK_MEMSET(fnc, 0, HAWK_SIZEOF(*fnc));
+	fnc->name.ptr = full->ptr;
+	fnc->name.len = full->len;
+	fnc->spec = sym.u.fnc_;
+	fnc->mod = mod;
+	return 0;
+}
+
+static hawk_nde_t* _parse_primary_array_or_map (hawk_t* hawk, const hawk_loc_t* xloc, const hawk_oocs_t* full, const hawk_oocs_t segs[], int nsegs, int closer_token)
+{
+	hawk_fnc_t fnc;
+
+	if (query_literal_constructor(hawk, xloc, full, segs, nsegs, &fnc) <= -1) return HAWK_NULL;
 
 	/* convert it to a function call */
-	return parse_fncall(hawk, full, &fnc, xloc, (closer_token == TOK_RBRACE? FNCALL_FLAG_MAP: 0), closer_token);
+	return parse_fncall(hawk, full, &fnc, xloc, (closer_token == TOK_RBRACE? FNCALL_FLAG_MAP: FNCALL_FLAG_ARRAY), closer_token);
 }
 
 static hawk_nde_t* parse_primary_array (hawk_t* hawk, const hawk_loc_t* xloc)
@@ -7940,6 +7947,9 @@ static hawk_nde_t* parse_fncall (hawk_t* hawk, const hawk_oocs_t* name, hawk_fnc
 	hawk_nde_fncall_t* call;
 	hawk_oow_t nargs;
 	hawk_loc_t eloc;
+	const hawk_oocs_t* original_name = name;
+	hawk_oocs_t indexed_name = { HAWK_NULL, 0 };
+	hawk_fnc_t indexed_fnc;
 
 	head = curr = HAWK_NULL;
 	call = HAWK_NULL;
@@ -7971,6 +7981,9 @@ static hawk_nde_t* parse_fncall (hawk_t* hawk, const hawk_oocs_t* name, hawk_fnc
 			curr = nde;
 
 			nargs++;
+			/* Only the first array entry can select the indexed form. */
+			if ((flags & FNCALL_FLAG_ARRAY) && nargs == 1 && MATCH(hawk, TOK_COLON))
+				flags |= FNCALL_FLAG_INDEXED_ARRAY;
 
 			if (MATCH(hawk,TOK_NEWLINE))
 			{
@@ -7996,19 +8009,19 @@ static hawk_nde_t* parse_fncall (hawk_t* hawk, const hawk_oocs_t* name, hawk_fnc
 
 			if (MATCH(hawk, closer_token))
 			{
-				if ((flags & FNCALL_FLAG_MAP) && (nargs & 1))
+				if ((flags & (FNCALL_FLAG_MAP | FNCALL_FLAG_INDEXED_ARRAY)) && (nargs & 1))
 				{
-					/* a value part is missing after colon inside @{} */
+					/* Each map key or explicit array index needs a value. */
 					goto colon_expected;
 				}
 				if (get_token(hawk) <= -1) goto oops;
 				break;
 			}
 
-			if ((flags & FNCALL_FLAG_MAP) && (nargs & 1))
+			if ((flags & (FNCALL_FLAG_MAP | FNCALL_FLAG_INDEXED_ARRAY)) && (nargs & 1))
 			{
-				/* inside @{},
-				 *   - it expects a colon after each key
+				/* Inside a map or indexed array,
+				 *   - it expects a colon after each key/index
 				 *   - after value, a comma is expected */
 				if (!MATCH(hawk, TOK_COLON))
 				{
@@ -8035,6 +8048,26 @@ static hawk_nde_t* parse_fncall (hawk_t* hawk, const hawk_oocs_t* name, hawk_fnc
 	}
 
 make_node:
+	if (flags & FNCALL_FLAG_INDEXED_ARRAY)
+	{
+		hawk_oocs_t segs[2];
+
+		segs[0].ptr = HAWK_T("hawk");
+		segs[0].len = 4;
+		segs[1].ptr = HAWK_T("indexed_array");
+		segs[1].len = 13;
+		indexed_name.len = 19;
+		indexed_name.ptr = hawk_dupoochars(hawk, HAWK_T("hawk::indexed_array"), indexed_name.len);
+		if (HAWK_UNLIKELY(!indexed_name.ptr))
+		{
+			ADJERR_LOC(hawk, xloc);
+			goto oops;
+		}
+		if (query_literal_constructor(hawk, xloc, &indexed_name, segs, 2, &indexed_fnc) <= -1) goto oops;
+		name = &indexed_name;
+		fnc = &indexed_fnc;
+	}
+
 	call = (hawk_nde_fncall_t*)hawk_callocmem(hawk, HAWK_SIZEOF(*call));
 	if (HAWK_UNLIKELY(!call))
 	{
@@ -8100,9 +8133,13 @@ make_node:
 		}
 	}
 
+	/* A successful literal call owns the selected name. On failure the
+	 * original name remains owned by parse_primary_array(). */
+	if (indexed_name.ptr) hawk_freemem(hawk, original_name->ptr);
 	return (hawk_nde_t*)call;
 
 oops:
+	if (indexed_name.ptr) hawk_freemem(hawk, indexed_name.ptr);
 	if (call) hawk_freemem(hawk, call); /* destroy the call node itself */
 	if (head) hawk_clrpt(hawk, head); /* clear the argument list separately from the call node */
 	return HAWK_NULL;

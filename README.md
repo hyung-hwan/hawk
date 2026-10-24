@@ -863,7 +863,7 @@ Hawk supports arrays and maps.
 
 - Arrays are indexed by numbers.
 - Maps accept string and numeric keys.
-- Constructors: `@[]`, `@{}`, `hawk::array()`, `hawk::map()`.
+- Constructors: `@[]`, `@{}`, `hawk::array()`, `hawk::indexed_array()`, `hawk::map()`.
 - All constructors accept initial values.
 
 Example:
@@ -877,6 +877,26 @@ BEGIN {
 	print arr[1], m["k"], m[10]
 }
 ```
+
+Array literals can specify explicit indexes to create gaps or include index zero:
+
+```awk
+BEGIN {
+	arr = @[0: "zero", 3: "three", 8: @[1, 2]]
+	print arr[0], arr[3], arr[8][2]
+	# Equivalent constructor:
+	arr = hawk::indexed_array(0, "zero", 3, "three", 8, @[1, 2])
+}
+```
+
+Indexes may be expressions and use the same integer conversion as ordinary
+array subscripts: `"20"` becomes index `20`, and fractional numbers truncate
+toward zero. The converted index must be nonnegative and within the array's
+supported range; non-finite and out-of-range floating-point values are rejected.
+Every entry in an indexed literal must use
+`index: value`; positional and indexed entries cannot be mixed. Expressions
+are evaluated from left to right, and the last entry for a repeated index wins.
+Ordinary `@[value, value]` literals remain one-based. Empty arrays use `@[]`.
 
 ## Functions
 
@@ -1569,6 +1589,7 @@ hash = str::tohex(digest::final(ctx))
 ### Hawk
 
 - hawk::array
+- hawk::indexed_array
 - hawk::call
 - hawk::cmgr_exists
 - hawk::func_exists
