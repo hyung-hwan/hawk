@@ -172,6 +172,9 @@ static int uchars_to_ipv6 (const hawk_uch_t* src, hawk_oow_t len, struct in6_add
 				return -1;
 			}
 
+			/* check each group before storing, not only the final group. */
+			if (tp > endp - HAWK_SIZEOF(hawk_uint16_t)) return -1;
+
 			*tp++ = (hawk_uint8_t)(val >> 8) & 0xff;
 			*tp++ = (hawk_uint8_t)val & 0xff;
 			saw_xdigit = 0;
@@ -192,7 +195,7 @@ static int uchars_to_ipv6 (const hawk_uch_t* src, hawk_oow_t len, struct in6_add
 
 	if (saw_xdigit)
 	{
-		if (tp + HAWK_SIZEOF(hawk_uint16_t) > endp) return -1;
+		if (tp > endp - HAWK_SIZEOF(hawk_uint16_t)) return -1;
 		*tp++ = (hawk_uint8_t)(val >> 8) & 0xff;
 		*tp++ = (hawk_uint8_t)val & 0xff;
 	}
@@ -276,6 +279,9 @@ static int bchars_to_ipv6 (const hawk_bch_t* src, hawk_oow_t len, struct in6_add
 				return -1;
 			}
 
+			/* check each group before storing, not only the final group. */
+			if (tp > endp - HAWK_SIZEOF(hawk_uint16_t)) return -1;
+
 			*tp++ = (hawk_uint8_t)(val >> 8) & 0xff;
 			*tp++ = (hawk_uint8_t)val & 0xff;
 			saw_xdigit = 0;
@@ -296,7 +302,7 @@ static int bchars_to_ipv6 (const hawk_bch_t* src, hawk_oow_t len, struct in6_add
 
 	if (saw_xdigit)
 	{
-		if (tp + HAWK_SIZEOF(hawk_uint16_t) > endp) return -1;
+		if (tp > endp - HAWK_SIZEOF(hawk_uint16_t)) return -1;
 		*tp++ = (hawk_uint8_t)(val >> 8) & 0xff;
 		*tp++ = (hawk_uint8_t)val & 0xff;
 	}
@@ -1560,7 +1566,7 @@ hawk_oow_t hawk_ipad_bytes_to_ucstr (const hawk_uint8_t* iptr, hawk_oow_t ilen, 
 #endif
 
 		default:
-			if (blen > 0) buf[blen] = '\0';
+			if (blen > 0) buf[0] = '\0';
 			return 0;
 	}
 }
@@ -1586,7 +1592,7 @@ hawk_oow_t hawk_ipad_bytes_to_bcstr (const hawk_uint8_t* iptr, hawk_oow_t ilen, 
 #endif
 
 		default:
-			if (blen > 0) buf[blen] = '\0';
+			if (blen > 0) buf[0] = '\0';
 			return 0;
 	}
 }

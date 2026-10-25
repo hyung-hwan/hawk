@@ -340,7 +340,7 @@ hawk_oow_t hawk_arr_insert (hawk_arr_t* arr, hawk_oow_t pos, void* dptr, hawk_oo
 	hawk_oow_t i;
 	slot_t* slot;
 
-	HAWK_ASSERT (dlen <= HAWK_TYPE_MAX(hawk_oow_t) / arr->scale);
+	HAWK_ASSERT(dlen <= HAWK_TYPE_MAX(hawk_oow_t) / arr->scale);
 
 	maxcapa = HAWK_TYPE_MAX(hawk_oow_t) / HAWK_SIZEOF(*arr->slot);
 	if (pos >= maxcapa/*|| arr->size >= maxcapa*/) /* arr->size >= maxcapa good to have mathmatically. impossible in reality */
@@ -432,7 +432,7 @@ hawk_oow_t hawk_arr_update (hawk_arr_t* arr, hawk_oow_t pos, void* dptr, hawk_oo
 {
 	slot_t* c;
 
-	HAWK_ASSERT (dlen <= HAWK_TYPE_MAX(hawk_oow_t) / arr->scale);
+	HAWK_ASSERT(dlen <= HAWK_TYPE_MAX(hawk_oow_t) / arr->scale);
 
 	if (pos >= arr->size)
 	{
