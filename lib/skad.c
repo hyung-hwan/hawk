@@ -351,7 +351,7 @@ int hawk_gem_ucharstoskad (hawk_gem_t* gem, const hawk_uch_t* str, hawk_oow_t le
 
 	if (p >= end)
 	{
-		hawk_gem_seterrbfmt (gem, HAWK_NULL, HAWK_EINVAL, "blank address");
+		hawk_gem_seterrbfmt(gem, HAWK_NULL, HAWK_EINVAL, "blank address");
 		return -1;
 	}
 
@@ -370,7 +370,7 @@ int hawk_gem_ucharstoskad (hawk_gem_t* gem, const hawk_uch_t* str, hawk_oow_t le
 		skad->un.sun_family = AF_UNIX;
 		return 0;
 #else
-		hawk_gem_seterrbfmt (gem, HAWK_NULL, HAWK_ENOIMPL, "unix address not supported");
+		hawk_gem_seterrbfmt(gem, HAWK_NULL, HAWK_ENOIMPL, "unix address not supported");
 		return -1;
 #endif
 	}
@@ -396,7 +396,7 @@ int hawk_gem_ucharstoskad (hawk_gem_t* gem, const hawk_uch_t* str, hawk_oow_t le
 			if (p >= end)
 			{
 				/* premature end */
-				hawk_gem_seterrbfmt (gem, HAWK_NULL, HAWK_EINVAL, "scope id blank");
+				hawk_gem_seterrbfmt(gem, HAWK_NULL, HAWK_EINVAL, "scope id blank");
 				return -1;
 			}
 
@@ -409,7 +409,7 @@ int hawk_gem_ucharstoskad (hawk_gem_t* gem, const hawk_uch_t* str, hawk_oow_t le
 					x = *p - '0';
 					if (skad->in6.sin6_scope_id > (HAWK_TYPE_MAX(hawk_uint32_t) - x) / 10)
 					{
-						hawk_gem_seterrbfmt (gem, HAWK_NULL, HAWK_EINVAL, "scope id too large");
+						hawk_gem_seterrbfmt(gem, HAWK_NULL, HAWK_EINVAL, "scope id too large");
 						return -1; /* overflow */
 					}
 					skad->in6.sin6_scope_id = skad->in6.sin6_scope_id * 10 + x;
@@ -468,7 +468,7 @@ int hawk_gem_ucharstoskad (hawk_gem_t* gem, const hawk_uch_t* str, hawk_oow_t le
 				if (p >= end)
 				{
 					/* premature end */
-					hawk_gem_seterrbfmt (gem, HAWK_NULL, HAWK_EINVAL, "scope id blank");
+					hawk_gem_seterrbfmt(gem, HAWK_NULL, HAWK_EINVAL, "scope id blank");
 					return -1;
 				}
 
@@ -481,7 +481,7 @@ int hawk_gem_ucharstoskad (hawk_gem_t* gem, const hawk_uch_t* str, hawk_oow_t le
 						x = *p - '0';
 						if (skad->in6.sin6_scope_id > (HAWK_TYPE_MAX(hawk_uint32_t) - x) / 10)
 						{
-							hawk_gem_seterrbfmt (gem, HAWK_NULL, HAWK_EINVAL, "scope id too large");
+							hawk_gem_seterrbfmt(gem, HAWK_NULL, HAWK_EINVAL, "scope id too large");
 							return -1; /* overflow */
 						}
 						skad->in6.sin6_scope_id = skad->in6.sin6_scope_id * 10 + x;
@@ -532,7 +532,7 @@ int hawk_gem_ucharstoskad (hawk_gem_t* gem, const hawk_uch_t* str, hawk_oow_t le
 		if (tmp.len <= 0 || tmp.len >= 6 ||
 		    port > HAWK_TYPE_MAX(hawk_uint16_t))
 		{
-			hawk_gem_seterrbfmt (gem, HAWK_NULL, HAWK_EINVAL, "port number blank or too large");
+			hawk_gem_seterrbfmt(gem, HAWK_NULL, HAWK_EINVAL, "port number blank or too large");
 			return -1;
 		}
 
@@ -550,11 +550,11 @@ int hawk_gem_ucharstoskad (hawk_gem_t* gem, const hawk_uch_t* str, hawk_oow_t le
 	return 0;
 
 unrecog:
-	hawk_gem_seterrbfmt (gem, HAWK_NULL, HAWK_EINVAL, "unrecognized address");
+	hawk_gem_seterrbfmt(gem, HAWK_NULL, HAWK_EINVAL, "unrecognized address");
 	return -1;
 
 no_rbrack:
-	hawk_gem_seterrbfmt (gem, HAWK_NULL, HAWK_EINVAL, "missing right bracket");
+	hawk_gem_seterrbfmt(gem, HAWK_NULL, HAWK_EINVAL, "missing right bracket");
 	return -1;
 }
 
@@ -572,7 +572,7 @@ int hawk_gem_bcharstoskad (hawk_gem_t* gem, const hawk_bch_t* str, hawk_oow_t le
 
 	if (p >= end)
 	{
-		hawk_gem_seterrbfmt (gem, HAWK_NULL, HAWK_EINVAL, "blank address");
+		hawk_gem_seterrbfmt(gem, HAWK_NULL, HAWK_EINVAL, "blank address");
 		return -1;
 	}
 
@@ -583,11 +583,20 @@ int hawk_gem_bcharstoskad (hawk_gem_t* gem, const hawk_bch_t* str, hawk_oow_t le
 	{
 #if defined(AF_UNIX) && (HAWK_SIZEOF_STRUCT_SOCKADDR_UN > 0)
 		/* @aaa,  @/tmp/aaa  /tmp/aaa ... */
-		hawk_copy_bchars_to_bcstr (skad->un.sun_path, HAWK_COUNTOF(skad->un.sun_path), str + (*p == '@'), len - (*p == '@'));
+		hawk_oow_t pathlen;
+
+		pathlen = len - (*p == '@');
+		/* The path must fit with its terminator; @ is only a syntax prefix. */
+		if (pathlen >= HAWK_COUNTOF(skad->un.sun_path))
+		{
+			hawk_gem_seterrbfmt(gem, HAWK_NULL, HAWK_EBUFFULL, "unix address path too long");
+			return -1;
+		}
+		hawk_copy_bchars_to_bcstr(skad->un.sun_path, HAWK_COUNTOF(skad->un.sun_path), str + (*p == '@'), pathlen);
 		skad->un.sun_family = AF_UNIX;
 		return 0;
 #else
-		hawk_gem_seterrbfmt (gem, HAWK_NULL, HAWK_ENOIMPL, "unix address not supported");
+		hawk_gem_seterrbfmt(gem, HAWK_NULL, HAWK_ENOIMPL, "unix address not supported");
 		return -1;
 #endif
 	}
@@ -612,7 +621,7 @@ int hawk_gem_bcharstoskad (hawk_gem_t* gem, const hawk_bch_t* str, hawk_oow_t le
 			if (p >= end)
 			{
 				/* premature end */
-				hawk_gem_seterrbfmt (gem, HAWK_NULL, HAWK_EINVAL, "scope id blank");
+				hawk_gem_seterrbfmt(gem, HAWK_NULL, HAWK_EINVAL, "scope id blank");
 				return -1;
 			}
 
@@ -625,7 +634,7 @@ int hawk_gem_bcharstoskad (hawk_gem_t* gem, const hawk_bch_t* str, hawk_oow_t le
 					x = *p - '0';
 					if (skad->in6.sin6_scope_id > (HAWK_TYPE_MAX(hawk_uint32_t) - x) / 10)
 					{
-						hawk_gem_seterrbfmt (gem, HAWK_NULL, HAWK_EINVAL, "scope id too large");
+						hawk_gem_seterrbfmt(gem, HAWK_NULL, HAWK_EINVAL, "scope id too large");
 						return -1; /* overflow */
 					}
 					skad->in6.sin6_scope_id = skad->in6.sin6_scope_id * 10 + x;
@@ -685,7 +694,7 @@ int hawk_gem_bcharstoskad (hawk_gem_t* gem, const hawk_bch_t* str, hawk_oow_t le
 				if (p >= end)
 				{
 					/* premature end */
-					hawk_gem_seterrbfmt (gem, HAWK_NULL, HAWK_EINVAL, "scope id blank");
+					hawk_gem_seterrbfmt(gem, HAWK_NULL, HAWK_EINVAL, "scope id blank");
 					return -1;
 				}
 
@@ -698,7 +707,7 @@ int hawk_gem_bcharstoskad (hawk_gem_t* gem, const hawk_bch_t* str, hawk_oow_t le
 						x = *p - '0';
 						if (skad->in6.sin6_scope_id > (HAWK_TYPE_MAX(hawk_uint32_t) - x) / 10)
 						{
-							hawk_gem_seterrbfmt (gem, HAWK_NULL, HAWK_EINVAL, "scope id too large");
+							hawk_gem_seterrbfmt(gem, HAWK_NULL, HAWK_EINVAL, "scope id too large");
 							return -1; /* overflow */
 						}
 						skad->in6.sin6_scope_id = skad->in6.sin6_scope_id * 10 + x;
@@ -749,7 +758,7 @@ int hawk_gem_bcharstoskad (hawk_gem_t* gem, const hawk_bch_t* str, hawk_oow_t le
 		if (tmp.len <= 0 || tmp.len >= 6 ||
 		    port > HAWK_TYPE_MAX(hawk_uint16_t))
 		{
-			hawk_gem_seterrbfmt (gem, HAWK_NULL, HAWK_EINVAL, "port number blank or too large");
+			hawk_gem_seterrbfmt(gem, HAWK_NULL, HAWK_EINVAL, "port number blank or too large");
 			return -1;
 		}
 
@@ -767,11 +776,11 @@ int hawk_gem_bcharstoskad (hawk_gem_t* gem, const hawk_bch_t* str, hawk_oow_t le
 	return 0;
 
 unrecog:
-	hawk_gem_seterrbfmt (gem, HAWK_NULL, HAWK_EINVAL, "unrecognized address");
+	hawk_gem_seterrbfmt(gem, HAWK_NULL, HAWK_EINVAL, "unrecognized address");
 	return -1;
 
 no_rbrack:
-	hawk_gem_seterrbfmt (gem, HAWK_NULL, HAWK_EINVAL, "missing right bracket");
+	hawk_gem_seterrbfmt(gem, HAWK_NULL, HAWK_EINVAL, "missing right bracket");
 	return -1;
 }
 
@@ -1293,7 +1302,7 @@ hawk_oow_t hawk_gem_skadtobcstr (hawk_gem_t* gem, const hawk_skad_t* _skad, hawk
 				else
 				{
 					hawk_oow_t wcslen, mbslen = len - xlen;
-					hawk_gem_convutobcstr (gem, skad->un.sun_path, &wcslen, &buf[xlen], &mbslen);
+					hawk_gem_convutobcstr(gem, skad->un.sun_path, &wcslen, &buf[xlen], &mbslen);
 					/* i don't care about conversion errors */
 					xlen += mbslen;
 				}

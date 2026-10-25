@@ -1,5 +1,6 @@
 /* Socket-address parser and formatter buffer boundaries. */
 #include "hawk-prv.h"
+#include "skad-prv.h"
 #include "tap.h"
 
 static void test_invalid_lengths (void)
@@ -126,6 +127,59 @@ static void test_address_suffixes (hawk_gem_t* gem, const hawk_bch_t* address, i
 		OK(byte_good && wide_good, "byte and wide address parsers reject trailing text, whitespace, NULs, and extra delimiters");
 	}
 }
+
+#if defined(AF_UNIX) && (HAWK_SIZEOF_STRUCT_SOCKADDR_UN > 0)
+static void test_unix_path_limits (hawk_gem_t* gem)
+{
+	enum { PATH_CAPA = HAWK_SIZEOF(((struct sockaddr_un*)0)->sun_path) };
+	hawk_bch_t bytes[PATH_CAPA * 2 + 2];
+	hawk_uch_t wide[PATH_CAPA * 2 + 2];
+	hawk_oow_t lengths[] = { 1, PATH_CAPA - 1, PATH_CAPA, PATH_CAPA + 1, PATH_CAPA * 2 };
+	hawk_skad_alt_t skad;
+	hawk_oow_t i, j, pathlen, prefixlen, len;
+	int form, result, byte_good, wide_good;
+
+	/* Absolute paths, @-prefixed absolute paths, and @-prefixed relative paths. */
+	for (form = 0; form < 3; form++)
+	{
+		for (i = 0; i < HAWK_COUNTOF(lengths); i++)
+		{
+			pathlen = lengths[i];
+			prefixlen = form > 0? 1: 0;
+			if (prefixlen > 0) bytes[0] = '@';
+			for (j = 0; j < pathlen; j++) bytes[prefixlen + j] = 'a';
+			if (form != 2) bytes[prefixlen] = '/';
+			len = prefixlen + pathlen;
+			for (j = 0; j < len; j++) wide[j] = bytes[j];
+			bytes[len] = '!';
+			wide[len] = '!';
+
+			hawk_gem_seterrnum(gem, HAWK_NULL, HAWK_ENOERR);
+			result = hawk_gem_bcharstoskad(gem, bytes, len, (hawk_skad_t*)&skad);
+			if (pathlen < PATH_CAPA)
+			{
+				byte_good = result == 0 && skad.un.sun_family == AF_UNIX &&
+					HAWK_MEMCMP(skad.un.sun_path, bytes + prefixlen, pathlen) == 0 &&
+					skad.un.sun_path[pathlen] == '\0';
+			}
+			else byte_good = result == -1 && hawk_gem_geterrnum(gem) == HAWK_EBUFFULL;
+
+			hawk_gem_seterrnum(gem, HAWK_NULL, HAWK_ENOERR);
+			result = hawk_gem_ucharstoskad(gem, wide, len, (hawk_skad_t*)&skad);
+			if (pathlen < PATH_CAPA)
+			{
+				wide_good = result == 0 && skad.un.sun_family == AF_UNIX &&
+					HAWK_MEMCMP(skad.un.sun_path, bytes + prefixlen, pathlen) == 0 &&
+					skad.un.sun_path[pathlen] == '\0';
+			}
+			else wide_good = result == -1 && hawk_gem_geterrnum(gem) == HAWK_EBUFFULL;
+			OK(byte_good && wide_good, pathlen < PATH_CAPA?
+				"Unix paths fitting sun_path retain every byte and their terminator":
+				"Unix paths exceeding sun_path fail without silently truncating the path");
+		}
+	}
+}
+#endif
 
 #if (HAWK_SIZEOF_STRUCT_SOCKADDR_IN6 > 0)
 static void test_scope_id_limits (hawk_gem_t* gem)
@@ -329,6 +383,11 @@ int main (void)
 		"valid IPv4 byte and wide formatting remain unchanged");
 	hawk = hawk_openstd(0, HAWK_NULL);
 	if (!hawk) { bail_out("cannot open interpreter"); return 1; }
+#if defined(AF_UNIX) && (HAWK_SIZEOF_STRUCT_SOCKADDR_UN > 0)
+	test_unix_path_limits(hawk_getgem(hawk));
+#else
+	skip("Unix addresses are unavailable", 15);
+#endif
 	test_address_suffixes(hawk_getgem(hawk), "127.0.0.1", HAWK_AF_INET, 0, 0);
 	test_address_suffixes(hawk_getgem(hawk), "127.0.0.1:80", HAWK_AF_INET, 80, 0);
 #if (HAWK_SIZEOF_STRUCT_SOCKADDR_IN6 > 0)
