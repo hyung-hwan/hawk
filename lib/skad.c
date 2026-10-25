@@ -406,13 +406,13 @@ int hawk_gem_ucharstoskad (hawk_gem_t* gem, const hawk_uch_t* str, hawk_oow_t le
 				skad->in6.sin6_scope_id = 0;
 				do
 				{
-					x = skad->in6.sin6_scope_id * 10 + (*p - '0');
-					if (x < skad->in6.sin6_scope_id)
+					x = *p - '0';
+					if (skad->in6.sin6_scope_id > (HAWK_TYPE_MAX(hawk_uint32_t) - x) / 10)
 					{
 						hawk_gem_seterrbfmt (gem, HAWK_NULL, HAWK_EINVAL, "scope id too large");
 						return -1; /* overflow */
 					}
-					skad->in6.sin6_scope_id = x;
+					skad->in6.sin6_scope_id = skad->in6.sin6_scope_id * 10 + x;
 					p++;
 				}
 				while (p < end && *p >= '0' && *p <= '9');
@@ -478,13 +478,13 @@ int hawk_gem_ucharstoskad (hawk_gem_t* gem, const hawk_uch_t* str, hawk_oow_t le
 					skad->in6.sin6_scope_id = 0;
 					do
 					{
-						x = skad->in6.sin6_scope_id * 10 + (*p - '0');
-						if (x < skad->in6.sin6_scope_id)
+						x = *p - '0';
+						if (skad->in6.sin6_scope_id > (HAWK_TYPE_MAX(hawk_uint32_t) - x) / 10)
 						{
 							hawk_gem_seterrbfmt (gem, HAWK_NULL, HAWK_EINVAL, "scope id too large");
 							return -1; /* overflow */
 						}
-						skad->in6.sin6_scope_id = x;
+						skad->in6.sin6_scope_id = skad->in6.sin6_scope_id * 10 + x;
 						p++;
 					}
 					while (p < end && *p >= '0' && *p <= '9');
@@ -546,6 +546,7 @@ int hawk_gem_ucharstoskad (hawk_gem_t* gem, const hawk_uch_t* str, hawk_oow_t le
 	#endif
 	}
 
+	if (p != end) goto unrecog; /* garbage at the back? e.g. 127.0.0.1:80junk, [::1]junk */
 	return 0;
 
 unrecog:
@@ -621,13 +622,13 @@ int hawk_gem_bcharstoskad (hawk_gem_t* gem, const hawk_bch_t* str, hawk_oow_t le
 				skad->in6.sin6_scope_id = 0;
 				do
 				{
-					x = skad->in6.sin6_scope_id * 10 + (*p - '0');
-					if (x < skad->in6.sin6_scope_id)
+					x = *p - '0';
+					if (skad->in6.sin6_scope_id > (HAWK_TYPE_MAX(hawk_uint32_t) - x) / 10)
 					{
 						hawk_gem_seterrbfmt (gem, HAWK_NULL, HAWK_EINVAL, "scope id too large");
 						return -1; /* overflow */
 					}
-					skad->in6.sin6_scope_id = x;
+					skad->in6.sin6_scope_id = skad->in6.sin6_scope_id * 10 + x;
 					p++;
 				}
 				while (p < end && *p >= '0' && *p <= '9');
@@ -694,13 +695,13 @@ int hawk_gem_bcharstoskad (hawk_gem_t* gem, const hawk_bch_t* str, hawk_oow_t le
 					skad->in6.sin6_scope_id = 0;
 					do
 					{
-						x = skad->in6.sin6_scope_id * 10 + (*p - '0');
-						if (x < skad->in6.sin6_scope_id)
+						x = *p - '0';
+						if (skad->in6.sin6_scope_id > (HAWK_TYPE_MAX(hawk_uint32_t) - x) / 10)
 						{
 							hawk_gem_seterrbfmt (gem, HAWK_NULL, HAWK_EINVAL, "scope id too large");
 							return -1; /* overflow */
 						}
-						skad->in6.sin6_scope_id = x;
+						skad->in6.sin6_scope_id = skad->in6.sin6_scope_id * 10 + x;
 						p++;
 					}
 					while (p < end && *p >= '0' && *p <= '9');
@@ -762,6 +763,7 @@ int hawk_gem_bcharstoskad (hawk_gem_t* gem, const hawk_bch_t* str, hawk_oow_t le
 	#endif
 	}
 
+	if (p != end) goto unrecog; /* garbage at the back? e.g. 127.0.0.1:80junk, [::1]junk */
 	return 0;
 
 unrecog:

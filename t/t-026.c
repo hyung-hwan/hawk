@@ -78,7 +78,127 @@ static void test_unaligned_loopback (void)
 	}
 }
 
+static void test_address_suffixes (hawk_gem_t* gem, const hawk_bch_t* address, int family, int port, int scope_id)
+{
+	struct
+	{
+		const hawk_bch_t* ptr;
+		hawk_oow_t len;
+	} suffixes[] =
+	{
+		{ "junk", 4 },
+		{ " ", 1 },
+		{ "\t", 1 },
+		{ "\n", 1 },
+		{ "\0junk", 5 },
+		{ "]", 1 },
+		{ ":81junk", 7 }
+	};
+	hawk_bch_t bytes[96];
+	hawk_uch_t wide[96];
+	hawk_skad_t skad;
+	hawk_oow_t i, j, len, input_len;
+	int byte_good, wide_good;
+
+	len = hawk_count_bcstr(address);
+	for (i = 0; i < len; i++) wide[i] = bytes[i] = address[i];
+	/* The parser must honor the supplied length, even without a terminator. */
+	bytes[len] = '!';
+	wide[len] = '!';
+	byte_good = hawk_gem_bcharstoskad(gem, bytes, len, &skad) == 0 &&
+		hawk_skad_get_family(&skad) == family && hawk_skad_get_port(&skad) == port &&
+		hawk_skad_get_scope_id(&skad) == scope_id;
+	wide_good = hawk_gem_ucharstoskad(gem, wide, len, &skad) == 0 &&
+		hawk_skad_get_family(&skad) == family && hawk_skad_get_port(&skad) == port &&
+		hawk_skad_get_scope_id(&skad) == scope_id;
+	OK(byte_good && wide_good, "valid address slices preserve family, port, and scope without reading beyond their length");
+
+	for (i = 0; i < HAWK_COUNTOF(suffixes); i++)
+	{
+		for (j = 0; j < suffixes[i].len; j++) wide[len + j] = bytes[len + j] = suffixes[i].ptr[j];
+		input_len = len + suffixes[i].len;
+		hawk_gem_seterrnum(gem, HAWK_NULL, HAWK_ENOERR);
+		byte_good = hawk_gem_bcharstoskad(gem, bytes, input_len, &skad) == -1 &&
+			hawk_gem_geterrnum(gem) == HAWK_EINVAL;
+		hawk_gem_seterrnum(gem, HAWK_NULL, HAWK_ENOERR);
+		wide_good = hawk_gem_ucharstoskad(gem, wide, input_len, &skad) == -1 &&
+			hawk_gem_geterrnum(gem) == HAWK_EINVAL;
+		OK(byte_good && wide_good, "byte and wide address parsers reject trailing text, whitespace, NULs, and extra delimiters");
+	}
+}
+
 #if (HAWK_SIZEOF_STRUCT_SOCKADDR_IN6 > 0)
+static void test_scope_id_limits (hawk_gem_t* gem)
+{
+	struct
+	{
+		const hawk_bch_t* text;
+		int valid;
+		hawk_uint32_t value;
+	} cases[] =
+	{
+		{ "0", 1, 0 },
+		{ "1", 1, 1 },
+		{ "4294967294", 1, HAWK_TYPE_MAX(hawk_uint32_t) - 1 },
+		{ "4294967295", 1, HAWK_TYPE_MAX(hawk_uint32_t) },
+		{ "00000000004294967295", 1, HAWK_TYPE_MAX(hawk_uint32_t) },
+		{ "4294967296", 0, 0 },
+		{ "4772185884", 0, 0 },
+		{ "5000000000", 0, 0 },
+		{ "8589934591", 0, 0 },
+		{ "10000000000", 0, 0 },
+		{ "18446744073709551615", 0, 0 },
+		{ "00000000005000000000", 0, 0 }
+	};
+	const hawk_bch_t* prefix = "fe80::1%";
+	hawk_bch_t bytes[96];
+	hawk_uch_t wide[96];
+	hawk_skad_t skad;
+	hawk_oow_t i, j, len;
+	int form, result, byte_good, wide_good;
+
+	/* Cover bare IPv6, brackets, and brackets followed by a port. */
+	for (form = 0; form < 3; form++)
+	{
+		for (i = 0; i < HAWK_COUNTOF(cases); i++)
+		{
+			len = 0;
+			if (form > 0) bytes[len++] = '[';
+			for (j = 0; prefix[j] != '\0'; j++) bytes[len++] = prefix[j];
+			for (j = 0; cases[i].text[j] != '\0'; j++) bytes[len++] = cases[i].text[j];
+			if (form > 0) bytes[len++] = ']';
+			if (form == 2)
+			{
+				bytes[len++] = ':';
+				bytes[len++] = '8';
+				bytes[len++] = '0';
+			}
+			for (j = 0; j < len; j++) wide[j] = bytes[j];
+
+			hawk_gem_seterrnum(gem, HAWK_NULL, HAWK_ENOERR);
+			result = hawk_gem_bcharstoskad(gem, bytes, len, &skad);
+			if (cases[i].valid)
+			{
+				byte_good = result == 0 && hawk_skad_get_family(&skad) == HAWK_AF_INET6 &&
+					(hawk_uint32_t)hawk_skad_get_scope_id(&skad) == cases[i].value &&
+					hawk_skad_get_port(&skad) == (form == 2? 80: 0);
+			}
+			else byte_good = result == -1 && hawk_gem_geterrnum(gem) == HAWK_EINVAL;
+
+			hawk_gem_seterrnum(gem, HAWK_NULL, HAWK_ENOERR);
+			result = hawk_gem_ucharstoskad(gem, wide, len, &skad);
+			if (cases[i].valid)
+			{
+				wide_good = result == 0 && hawk_skad_get_family(&skad) == HAWK_AF_INET6 &&
+					(hawk_uint32_t)hawk_skad_get_scope_id(&skad) == cases[i].value &&
+					hawk_skad_get_port(&skad) == (form == 2? 80: 0);
+			}
+			else wide_good = result == -1 && hawk_gem_geterrnum(gem) == HAWK_EINVAL;
+			OK(byte_good && wide_good, "numeric scope IDs accept the full uint32 range and reject overflow before arithmetic");
+		}
+	}
+}
+
 static void test_excess_groups (hawk_gem_t* gem)
 {
 	/* Extra storage lets the old implementation report failed assertions
@@ -209,11 +329,20 @@ int main (void)
 		"valid IPv4 byte and wide formatting remain unchanged");
 	hawk = hawk_openstd(0, HAWK_NULL);
 	if (!hawk) { bail_out("cannot open interpreter"); return 1; }
+	test_address_suffixes(hawk_getgem(hawk), "127.0.0.1", HAWK_AF_INET, 0, 0);
+	test_address_suffixes(hawk_getgem(hawk), "127.0.0.1:80", HAWK_AF_INET, 80, 0);
 #if (HAWK_SIZEOF_STRUCT_SOCKADDR_IN6 > 0)
+	test_scope_id_limits(hawk_getgem(hawk));
 	test_excess_groups(hawk_getgem(hawk));
 	test_valid_ipv6(hawk_getgem(hawk));
+	test_address_suffixes(hawk_getgem(hawk), "[::1]", HAWK_AF_INET6, 0, 0);
+	test_address_suffixes(hawk_getgem(hawk), "[::1]:80", HAWK_AF_INET6, 80, 0);
+	test_address_suffixes(hawk_getgem(hawk), "[fe80::1%7]", HAWK_AF_INET6, 0, 7);
+	test_address_suffixes(hawk_getgem(hawk), "[fe80::1%7]:80", HAWK_AF_INET6, 80, 7);
+	test_address_suffixes(hawk_getgem(hawk), "::1", HAWK_AF_INET6, 0, 0);
+	test_address_suffixes(hawk_getgem(hawk), "fe80::1%7", HAWK_AF_INET6, 0, 7);
 #else
-	skip("IPv6 is unavailable", 36);
+	skip("IPv6 is unavailable", 120);
 #endif
 	hawk_close(hawk);
 	return exit_status();

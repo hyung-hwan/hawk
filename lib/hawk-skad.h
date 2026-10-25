@@ -222,8 +222,8 @@ HAWK_EXPORT int hawk_bchars_to_ipad_bytes (
 	hawk_oow_t          blen
 );
 
-#define hawk_ucstr_to_ipad_bytes(str,buf,blen) hawk_uchars_to_ipad_bytes(str, hawk_count_ucstr(str,buf,len)
-#define hawk_bcstr_to_ipad_bytes(str,buf,blen) hawk_bchars_to_ipad_bytes(str, hawk_count_bcstr(str,buf,len)
+#define hawk_ucstr_to_ipad_bytes(str,buf,blen) hawk_uchars_to_ipad_bytes(str, hawk_count_ucstr(str,buf,blen)
+#define hawk_bcstr_to_ipad_bytes(str,buf,blen) hawk_bchars_to_ipad_bytes(str, hawk_count_bcstr(str,buf,blen)
 
 #if defined(HAWK_OOCH_IS_UCH)
 #	define hawk_ipad_bytes_to_oocstr hawk_ipad_bytes_to_ucstr
