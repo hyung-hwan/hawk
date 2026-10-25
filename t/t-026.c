@@ -235,7 +235,86 @@ static void test_address_suffixes (hawk_gem_t* gem, const hawk_bch_t* address, i
 	}
 }
 
+static void test_interface_lookup_errors (hawk_gem_t* gem)
+{
+	hawk_bch_t longname[512];
+	hawk_bch_t message[128];
+	hawk_uch_t wide[512];
+	const hawk_bch_t* names[3];
+	hawk_oow_t i, j, len;
+	unsigned int index;
+	int variant, n, good;
+
+	for (i = 0; i < HAWK_COUNTOF(longname) - 1; i++) longname[i] = 'a';
+	longname[i] = '\0';
+	names[0] = "";
+	names[1] = "no-hawk-if";
+	names[2] = longname;
+	for (i = 0; i < HAWK_COUNTOF(names); i++)
+	{
+		len = hawk_count_bcstr(names[i]);
+		for (j = 0; j <= len; j++) wide[j] = names[i][j];
+		for (variant = 0; variant < 4; variant++)
+		{
+			index = 12345;
+			hawk_gem_seterrnum(gem, HAWK_NULL, HAWK_ENOERR);
+			switch (variant)
+			{
+				case 0: n = hawk_gem_bcstrtoifindex(gem, names[i], &index); break;
+				case 1: n = hawk_gem_bcharstoifindex(gem, names[i], len, &index); break;
+				case 2: n = hawk_gem_ucstrtoifindex(gem, wide, &index); break;
+				default: n = hawk_gem_ucharstoifindex(gem, wide, len, &index); break;
+			}
+			if (i == 1 && n >= 0)
+			{
+				skip("the requested test interface exists", 1);
+				continue;
+			}
+			good = n <= -1 && index == 12345 && hawk_gem_geterrnum(gem) != HAWK_ENOERR;
+			if (!good)
+			{
+				hawk_gem_fmttobcstr(gem, message, HAWK_COUNTOF(message), "name case=%lu variant=%d result=%d errnum=%d", (unsigned long)i, variant, n, (int)hawk_gem_geterrnum(gem));
+				diag(message);
+			}
+			OK(good, "all interface-name lookup variants report invalid names without modifying the output index");
+		}
+	}
+}
+
 #if (HAWK_SIZEOF_STRUCT_SOCKADDR_IN6 > 0)
+static void test_scope_lookup_errors (hawk_gem_t* gem)
+{
+	const hawk_bch_t* cases[] =
+	{
+		"fe80::1%no-hawk-if",
+		"[fe80::1%no-hawk-if]",
+		"[fe80::1%no-hawk-if]:80",
+		"fe80::1%abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	};
+	hawk_skad_t skad;
+	hawk_uch_t wide[128];
+	hawk_oow_t i, j, len;
+	int byte_result, wide_result, byte_good, wide_good;
+
+	for (i = 0; i < HAWK_COUNTOF(cases); i++)
+	{
+		len = hawk_count_bcstr(cases[i]);
+		for (j = 0; j < len; j++) wide[j] = cases[i][j];
+		hawk_gem_seterrnum(gem, HAWK_NULL, HAWK_ENOERR);
+		byte_result = hawk_gem_bcharstoskad(gem, cases[i], len, &skad);
+		byte_good = byte_result <= -1 && hawk_gem_geterrnum(gem) != HAWK_ENOERR;
+		hawk_gem_seterrnum(gem, HAWK_NULL, HAWK_ENOERR);
+		wide_result = hawk_gem_ucharstoskad(gem, wide, len, &skad);
+		wide_good = wide_result <= -1 && hawk_gem_geterrnum(gem) != HAWK_ENOERR;
+		if (byte_result >= 0 && wide_result >= 0)
+		{
+			skip("the requested test interface exists", 1);
+			continue;
+		}
+		OK(byte_good && wide_good, "bare and bracketed IPv6 scopes preserve interface lookup failure diagnostics");
+	}
+}
+
 static void test_scope_embedded_nuls (hawk_gem_t* gem)
 {
 	struct
@@ -821,6 +900,7 @@ int main (void)
 		"valid IPv4 byte and wide formatting remain unchanged");
 	hawk = hawk_openstd(0, HAWK_NULL);
 	if (!hawk) { bail_out("cannot open interpreter"); return 1; }
+	test_interface_lookup_errors(hawk_getgem(hawk));
 #if defined(AF_UNIX) && (HAWK_SIZEOF_STRUCT_SOCKADDR_UN > 0)
 	test_unix_path_limits(hawk_getgem(hawk));
 	test_unix_embedded_nuls(hawk_getgem(hawk));
@@ -831,6 +911,7 @@ int main (void)
 	test_address_suffixes(hawk_getgem(hawk), "127.0.0.1", HAWK_AF_INET, 0, 0);
 	test_address_suffixes(hawk_getgem(hawk), "127.0.0.1:80", HAWK_AF_INET, 80, 0);
 #if (HAWK_SIZEOF_STRUCT_SOCKADDR_IN6 > 0)
+	test_scope_lookup_errors(hawk_getgem(hawk));
 	test_scope_embedded_nuls(hawk_getgem(hawk));
 	test_scope_output_lengths(hawk_getgem(hawk));
 	test_scope_descriptor_cleanup(hawk_getgem(hawk));
@@ -845,7 +926,7 @@ int main (void)
 	test_address_suffixes(hawk_getgem(hawk), "::1", HAWK_AF_INET6, 0, 0);
 	test_address_suffixes(hawk_getgem(hawk), "fe80::1%7", HAWK_AF_INET6, 0, 7);
 #else
-	skip("IPv6 is unavailable", 202);
+	skip("IPv6 is unavailable", 206);
 #endif
 	hawk_close(hawk);
 	return exit_status();

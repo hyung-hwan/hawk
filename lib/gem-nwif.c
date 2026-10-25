@@ -135,6 +135,14 @@ int hawk_gem_bcstrtoifindex (hawk_gem_t* gem, const hawk_bch_t* ptr, unsigned in
 	hawk_oow_t len;
 	struct ifreq ifr;
 
+	HAWK_MEMSET(&ifr, 0, HAWK_SIZEOF(ifr));
+	len = hawk_copy_bcstr(ifr.ifr_name, HAWK_COUNTOF(ifr.ifr_name), ptr);
+	if (ptr[len] != '\0')
+	{
+		hawk_gem_seterrbfmt(gem, HAWK_NULL, HAWK_EBUFFULL, "interface name too long");
+		return -1;
+	}
+
 	h = socket(AF_INET, SOCK_DGRAM, 0);
 	if (h <= -1)
 	{
@@ -142,15 +150,8 @@ int hawk_gem_bcstrtoifindex (hawk_gem_t* gem, const hawk_bch_t* ptr, unsigned in
 		return -1;
 	}
 
-	HAWK_MEMSET(&ifr, 0, HAWK_SIZEOF(ifr));
-	len = hawk_copy_bcstr(ifr.ifr_name, HAWK_COUNTOF(ifr.ifr_name), ptr);
-	if (ptr[len] != '\0')
-	{
-		HAWK_CLOSE(h);
-		return -1; /* name too long */
-	}
-
 	x = ioctl(h, SIOCGIFINDEX, &ifr);
+	if (x <= -1) hawk_gem_seterrnum(gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
 	HAWK_CLOSE(h);
 
 	if (x >= 0)
@@ -170,7 +171,11 @@ int hawk_gem_bcstrtoifindex (hawk_gem_t* gem, const hawk_bch_t* ptr, unsigned in
 	unsigned int tmpidx;
 
 	len = hawk_copy_bcstr(tmp, HAWK_COUNTOF(tmp), ptr);
-	if (ptr[len] != '\0') return -1; /* name too long */
+	if (ptr[len] != '\0')
+	{
+		hawk_gem_seterrbfmt(gem, HAWK_NULL, HAWK_EBUFFULL, "interface name too long");
+		return -1;
+	}
 
 	tmpidx = if_nametoindex(tmp);
 	if (tmpidx == 0)
@@ -200,9 +205,11 @@ int hawk_gem_bcstrtoifindex (hawk_gem_t* gem, const hawk_bch_t* ptr, unsigned in
 	}
 
 	free_sco_ifconf (gem, &ifc);
+	hawk_gem_seterrnum(gem, HAWK_NULL, HAWK_ENOENT);
 	return -1;
 
 #else
+	hawk_gem_seterrnum(gem, HAWK_NULL, HAWK_ENOIMPL);
 	return -1;
 #endif
 }
@@ -226,6 +233,13 @@ int hawk_gem_bcharstoifindex (hawk_gem_t* gem, const hawk_bch_t* ptr, hawk_oow_t
 	int h, x;
 	struct ifreq ifr;
 
+	HAWK_MEMSET(&ifr, 0, HAWK_SIZEOF(ifr));
+	if (hawk_copy_bchars_to_bcstr(ifr.ifr_name, HAWK_COUNTOF(ifr.ifr_name), ptr, len) < len)
+	{
+		hawk_gem_seterrbfmt(gem, HAWK_NULL, HAWK_EBUFFULL, "interface name too long");
+		return -1;
+	}
+
 	h = socket(AF_INET, SOCK_DGRAM, 0);
 	if (h <= -1)
 	{
@@ -233,14 +247,8 @@ int hawk_gem_bcharstoifindex (hawk_gem_t* gem, const hawk_bch_t* ptr, hawk_oow_t
 		return -1;
 	}
 
-	HAWK_MEMSET(&ifr, 0, HAWK_SIZEOF(ifr));
-	if (hawk_copy_bchars_to_bcstr(ifr.ifr_name, HAWK_COUNTOF(ifr.ifr_name), ptr, len) < len)
-	{
-		HAWK_CLOSE(h);
-		return -1; /* name too long */
-	}
-
 	x = ioctl(h, SIOCGIFINDEX, &ifr);
+	if (x <= -1) hawk_gem_seterrnum(gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
 	HAWK_CLOSE(h);
 
 	if (x >= 0)
@@ -258,7 +266,11 @@ int hawk_gem_bcharstoifindex (hawk_gem_t* gem, const hawk_bch_t* ptr, hawk_oow_t
 	hawk_bch_t tmp[IF_NAMESIZE + 1];
 	unsigned int tmpidx;
 
-	if (hawk_copy_bchars_to_bcstr(tmp, HAWK_COUNTOF(tmp), ptr, len) < len) return -1;
+	if (hawk_copy_bchars_to_bcstr(tmp, HAWK_COUNTOF(tmp), ptr, len) < len)
+	{
+		hawk_gem_seterrbfmt(gem, HAWK_NULL, HAWK_EBUFFULL, "interface name too long");
+		return -1;
+	}
 
 	tmpidx = if_nametoindex(tmp);
 	if (tmpidx == 0)
@@ -287,9 +299,11 @@ int hawk_gem_bcharstoifindex (hawk_gem_t* gem, const hawk_bch_t* ptr, hawk_oow_t
 	}
 
 	free_sco_ifconf (gem, &ifc);
+	hawk_gem_seterrnum(gem, HAWK_NULL, HAWK_ENOENT);
 	return -1;
 
 #else
+	hawk_gem_seterrnum(gem, HAWK_NULL, HAWK_ENOIMPL);
 	return -1;
 #endif
 }
@@ -326,6 +340,7 @@ int hawk_gem_ucstrtoifindex (hawk_gem_t* gem, const hawk_uch_t* ptr, unsigned in
 	}
 
 	x = ioctl(h, SIOCGIFINDEX, &ifr);
+	if (x <= -1) hawk_gem_seterrnum(gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
 	HAWK_CLOSE(h);
 
 	if (x >= 0)
@@ -380,9 +395,11 @@ int hawk_gem_ucstrtoifindex (hawk_gem_t* gem, const hawk_uch_t* ptr, unsigned in
 	}
 
 	free_sco_ifconf (gem, &ifc);
+	hawk_gem_seterrnum(gem, HAWK_NULL, HAWK_ENOENT);
 	return -1;
 
 #else
+	hawk_gem_seterrnum(gem, HAWK_NULL, HAWK_ENOIMPL);
 	return -1;
 #endif
 }
@@ -420,6 +437,7 @@ int hawk_gem_ucharstoifindex (hawk_gem_t* gem, const hawk_uch_t* ptr, hawk_oow_t
 	}
 
 	x = ioctl(h, SIOCGIFINDEX, &ifr);
+	if (x <= -1) hawk_gem_seterrnum(gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
 	HAWK_CLOSE(h);
 
 	if (x >= 0)
@@ -475,8 +493,10 @@ int hawk_gem_ucharstoifindex (hawk_gem_t* gem, const hawk_uch_t* ptr, hawk_oow_t
 	}
 
 	free_sco_ifconf (gem, &ifc);
+	hawk_gem_seterrnum(gem, HAWK_NULL, HAWK_ENOENT);
 	return -1;
 #else
+	hawk_gem_seterrnum(gem, HAWK_NULL, HAWK_ENOIMPL);
 	return -1;
 #endif
 }
