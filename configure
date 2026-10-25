@@ -23639,6 +23639,25 @@ then
 fi
 
 
+## Detect the standard interface-name helpers used when lookup ioctls are
+## unavailable. Some systems provide these functions in a socket library.
+hawk_saved_LIBS="$LIBS"
+LIBS="$SOCKET_LIBS $LIBS"
+ac_fn_c_check_func "$LINENO" "if_nametoindex" "ac_cv_func_if_nametoindex"
+if test "x$ac_cv_func_if_nametoindex" = xyes
+then :
+  printf "%s\n" "#define HAVE_IF_NAMETOINDEX 1" >>confdefs.h
+
+fi
+ac_fn_c_check_func "$LINENO" "if_indextoname" "ac_cv_func_if_indextoname"
+if test "x$ac_cv_func_if_indextoname" = xyes
+then :
+  printf "%s\n" "#define HAVE_IF_INDEXTONAME 1" >>confdefs.h
+
+fi
+
+LIBS="$hawk_saved_LIBS"
+
 ## check pthread
 ac_ext=c
 ac_cpp='$CPP $CPPFLAGS'

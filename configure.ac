@@ -476,6 +476,13 @@ then
 fi
 AC_SUBST(SOCKET_LIBS)
 
+## Detect the standard interface-name helpers used when lookup ioctls are
+## unavailable. Some systems provide these functions in a socket library.
+hawk_saved_LIBS="$LIBS"
+LIBS="$SOCKET_LIBS $LIBS"
+AC_CHECK_FUNCS([if_nametoindex if_indextoname])
+LIBS="$hawk_saved_LIBS"
+
 ## check pthread
 AX_PTHREAD
 

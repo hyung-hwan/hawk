@@ -235,6 +235,12 @@
 /* Define to 1 if you have the 'grantpt' function. */
 #undef HAVE_GRANTPT
 
+/* Define to 1 if you have the 'if_indextoname' function. */
+#undef HAVE_IF_INDEXTONAME
+
+/* Define to 1 if you have the 'if_nametoindex' function. */
+#undef HAVE_IF_NAMETOINDEX
+
 /* Define to 1 if you have the 'initstate_r' function. */
 #undef HAVE_INITSTATE_R
 
