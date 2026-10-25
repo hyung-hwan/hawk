@@ -117,14 +117,16 @@ typedef int (*hawk_arr_comper_t) (
 
 /**
  * The hawk_arr_keeper_t type defines a value keeper that is called when
- * a value is retained in the context that it should be destroyed because
- * it is identical to a new value. Two values are identical if their beginning
- * pointers and their lengths are equal.
+ * an update retains the existing value instead of destroying it. The value
+ * is retained when its pointer and length match those of the new value.
+ * With #HAWK_ARR_COPIER_SIMPLE, matching pointers retain the value even if
+ * the lengths differ, and the stored length is updated to the new length.
+ * The callback receives the new length before the stored length is updated.
  */
 typedef void (*hawk_arr_keeper_t) (
 	hawk_arr_t* arr     /**< array */,
 	void*       vptr    /**< pointer to a value */,
-	hawk_oow_t  vlen    /**< length of a value */
+	hawk_oow_t  vlen    /**< new length of the retained value */
 );
 
 /**

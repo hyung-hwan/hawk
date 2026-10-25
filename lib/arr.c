@@ -71,9 +71,15 @@ static HAWK_INLINE slot_t* alloc_slot (hawk_arr_t* arr, void* dptr, hawk_oow_t d
 	}
 	else if (arr->style->copier == HAWK_ARR_COPIER_INLINE)
 	{
-		hawk_oow_t nbytes = TOB(arr, dlen);
+		hawk_oow_t nbytes;
+
+		HAWK_ASSERT(arr->inline_slot_xtnsize <= HAWK_TYPE_MAX(hawk_oow_t) - HAWK_SIZEOF(slot_t));
+		HAWK_ASSERT(dlen <= (HAWK_TYPE_MAX(hawk_oow_t) - HAWK_SIZEOF(slot_t) - arr->inline_slot_xtnsize) / arr->scale);
+
+		nbytes = TOB(arr, dlen);
 		n = (slot_t*)hawk_gem_allocmem(arr->gem, HAWK_SIZEOF(slot_t) + nbytes + arr->inline_slot_xtnsize);
 		if (HAWK_UNLIKELY(!n)) return HAWK_NULL;
+
 		HAWK_MEMCPY(n + 1, dptr, nbytes); /* copy data contents */
 		DPTR(n) = n + 1;
 		if (arr->inline_slot_xtnsize > 0)
@@ -329,8 +335,22 @@ hawk_oow_t hawk_arr_upsert (hawk_arr_t* arr, hawk_oow_t pos, void* dptr, hawk_oo
 
 hawk_oow_t hawk_arr_insert (hawk_arr_t* arr, hawk_oow_t pos, void* dptr, hawk_oow_t dlen)
 {
+	hawk_oow_t mincapa;
+	hawk_oow_t maxcapa;
 	hawk_oow_t i;
 	slot_t* slot;
+
+	HAWK_ASSERT (dlen <= HAWK_TYPE_MAX(hawk_oow_t) / arr->scale);
+
+	maxcapa = HAWK_TYPE_MAX(hawk_oow_t) / HAWK_SIZEOF(*arr->slot);
+	if (pos >= maxcapa/*|| arr->size >= maxcapa*/) /* arr->size >= maxcapa good to have mathmatically. impossible in reality */
+	{
+		hawk_gem_seterrnum(arr->gem, HAWK_NULL, HAWK_EINVAL);
+		return HAWK_ARR_NIL;
+	}
+
+	/* get the minimum capacity needed */
+	mincapa = (pos >= arr->size)? (pos + 1): (arr->size + 1);
 
 	/* allocate the slot first */
 	slot = alloc_slot(arr, dptr, dlen);
@@ -341,27 +361,17 @@ hawk_oow_t hawk_arr_insert (hawk_arr_t* arr, hawk_oow_t pos, void* dptr, hawk_oo
 	 * doesn't modify arr on any errors */
 	if (pos >= arr->capa || arr->size >= arr->capa)
 	{
-		hawk_oow_t capa, mincapa;
-
-		/* get the minimum capacity needed */
-		mincapa = (pos >= arr->size)? (pos + 1): (arr->size + 1);
+		hawk_oow_t capa;
 
 		if (arr->style->sizer)
 		{
 			capa = arr->style->sizer(arr, mincapa);
+			if (capa < mincapa) capa = mincapa; /* don't trust the callback */
 		}
 		else
 		{
-			if (arr->capa <= 0)
-			{
-				HAWK_ASSERT(arr->size <= 0);
-				capa = HAWK_ALIGN_POW2(pos + 1, HAWK_ARR_CAPA_ALIGN);
-			}
-			else
-			{
-				hawk_oow_t bound = (pos >= arr->size)? pos: arr->size;
-				capa = HAWK_ALIGN_POW2(bound + 1, HAWK_ARR_CAPA_ALIGN);
-			}
+			capa = HAWK_ALIGN_POW2(mincapa, HAWK_ARR_CAPA_ALIGN);
+			if (capa < mincapa || capa > maxcapa) capa = mincapa;
 		}
 
 		do
@@ -377,7 +387,16 @@ hawk_oow_t hawk_arr_insert (hawk_arr_t* arr, hawk_oow_t pos, void* dptr, hawk_oo
 				return HAWK_ARR_NIL;
 			}
 
+		#if 0
+			/* if the sizer callback is unreasonable and returns a large value,
+			 * it can make the loop of hawk_arr_setcapa() take very long to
+			 * succeed or eventually fail. */
 			capa--; /* let it retry after lowering the capacity */
+		#else
+			/* let's have a strong grip on the callback's sizing request */
+			capa /= 2;
+			if (capa < mincapa) capa = mincapa;
+		#endif
 		}
 		while (1);
 
@@ -413,6 +432,8 @@ hawk_oow_t hawk_arr_update (hawk_arr_t* arr, hawk_oow_t pos, void* dptr, hawk_oo
 {
 	slot_t* c;
 
+	HAWK_ASSERT (dlen <= HAWK_TYPE_MAX(hawk_oow_t) / arr->scale);
+
 	if (pos >= arr->size)
 	{
 		hawk_gem_seterrnum(arr->gem, HAWK_NULL, HAWK_EINVAL);
@@ -429,10 +450,19 @@ hawk_oow_t hawk_arr_update (hawk_arr_t* arr, hawk_oow_t pos, void* dptr, hawk_oo
 	}
 	else
 	{
-		if (dptr == DPTR(c) && dlen == DLEN(c))
+		if (dptr == DPTR(c) && (dlen == DLEN(c) || arr->style->copier == HAWK_ARR_COPIER_SIMPLE))
 		{
 			/* updated to the same data */
 			if (arr->style->keeper) arr->style->keeper(arr, dptr, dlen);
+			/* the length could have changed. so set it regardless */
+			DLEN(c) = dlen;
+
+			/* [NOTE]
+			 * the caller must be aware of ownership of the data. if a poitner
+			 * between dptr and dptr + dlen, this control goes to the else
+			 * part and frees the original memory chunk pointed to by DPTR(c).
+			 * handling this is a nightmare. so it's caller's reponsibility
+			 * to maintain proper data ownership */
 		}
 		else
 		{
@@ -787,20 +817,42 @@ void hawk_arr_deleteheap (hawk_arr_t* arr, hawk_oow_t index)
 hawk_oow_t hawk_arr_updateheap (hawk_arr_t* arr, hawk_oow_t index, void* dptr, hawk_oow_t dlen)
 {
 	slot_t* tmp;
-	int n;
+	int n, same_dptr;
+
+	HAWK_ASSERT(arr->size > 0);
+	HAWK_ASSERT(index < arr->size);
 
 	tmp = arr->slot[index];
 	HAWK_ASSERT(tmp != HAWK_NULL);
 
+	same_dptr = dptr == DPTR(tmp);
 	n = arr->style->comper(arr, dptr, dlen, DPTR(tmp), DLEN(tmp));
-	if (n)
-	{
-		if (hawk_arr_update(arr, index, dptr, dlen) == HAWK_ARR_NIL) return HAWK_ARR_NIL;
-		HEAP_UPDATE_POS(arr, index);
 
-		if (n > 0) sift_up(arr, index);
-		else sift_down(arr, index);
+	/* perform replacement */
+	if (hawk_arr_update(arr, index, dptr, dlen) == HAWK_ARR_NIL) return HAWK_ARR_NIL;
+	HEAP_UPDATE_POS(arr, index);
+
+	/* use the comparison result for replacement */
+	if (same_dptr)
+	{
+		/* repair using current heap relationships. the old data
+		 * may already have changed through the caller's pointer.
+		 *
+		 * call patterns are like this:
+		 * child is already a pointer in the heap and it's modified
+		 * first and updateheap is caller with the same pointer like this:
+		 *   child->data_field = 20;
+		 *   hawk_arr_updateheap(arr, child->pos, child, 1);
+		 *
+		 * attempt to move the item up unconditionally, if the position
+		 * didn't change, attempt to mow the item down unconditionally.
+		 * if there's really no change, the position must remain the same
+		 * unless there is equal-priority children.
+		 */
+		if (sift_up(arr, index) == index) sift_down(arr, index);
 	}
+	else if (n > 0) sift_up(arr, index);
+	else if (n < 0) sift_down(arr, index);
 
 	return index;
 }

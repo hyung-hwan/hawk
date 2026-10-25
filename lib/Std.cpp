@@ -775,7 +775,7 @@ static int parse_rwpipe_uri (const hawk_ooch_t* uri, int* flags, hawk_nwad_t* nw
 	{
 		if (hawk_strzcmp(uri, x[i].prefix, x[i].len) == 0)
 		{
-			if (hawk_strtonwad (uri + x[i].len, nwad) <= -1) return -1;
+			if (hawk_strtonwad(uri + x[i].len, nwad) <= -1) return -1;
 			*flags = x[i].flags;
 			return 0;
 		}
