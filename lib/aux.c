@@ -33,6 +33,8 @@ int hawk_rtx_getauxid (hawk_rtx_t* rtx, const hawk_ooch_t* name, hawk_uint16_t* 
 	hawk_oow_t unused = HAWK_COUNTOF(rtx->aux);
 	hawk_ooch_t* copy;
 
+	HAWK_STATIC_ASSERT(HAWK_COUNTOF(rtx->aux) == HAWK_COUNTOF(rtx->aux_names));
+
 	if (rtx->aux_closing)
 	{
 		hawk_rtx_seterrbfmt(rtx, HAWK_NULL, HAWK_EPERM, "aux service cleanup is in progress");
@@ -47,7 +49,6 @@ int hawk_rtx_getauxid (hawk_rtx_t* rtx, const hawk_ooch_t* name, hawk_uint16_t* 
 		return -1;
 	}
 
-	HAWK_STATIC_ASSERT(HAWK_COUNTOF(rtx->aux) == HAWK_COUNTOF(rtx->aux_names));
 	for (i = 0; i < HAWK_COUNTOF(rtx->aux); i++)
 	{
 		if (rtx->aux_names[i])

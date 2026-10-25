@@ -4050,23 +4050,25 @@ static int fnc_uname (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	copy_bcstr_to_oocstr(rtx, machine, HAWK_COUNTOF(machine), get_machine_name_for_build());
 
 #else
-	struct utsname u;
-
-	if (uname(&u) <= -1)
 	{
-		hawk_copy_oocstr(sysname, HAWK_COUNTOF(sysname), HAWK_T("Linux/Unix"));
-		hawk_copy_oocstr(nodename, HAWK_COUNTOF(nodename), HAWK_T("unknown"));
-		hawk_copy_oocstr(release, HAWK_COUNTOF(release), HAWK_T("unknown"));
-		hawk_copy_oocstr(version, HAWK_COUNTOF(version), HAWK_T("unknown"));
-		copy_bcstr_to_oocstr(rtx, machine, HAWK_COUNTOF(machine), get_machine_name_for_build());
-	}
-	else
-	{
-		copy_bcstr_to_oocstr(rtx, sysname, HAWK_COUNTOF(sysname), (const hawk_bch_t*)u.sysname);
-		copy_bcstr_to_oocstr(rtx, nodename, HAWK_COUNTOF(nodename), (const hawk_bch_t*)u.nodename);
-		copy_bcstr_to_oocstr(rtx, release, HAWK_COUNTOF(release), (const hawk_bch_t*)u.release);
-		copy_bcstr_to_oocstr(rtx, version, HAWK_COUNTOF(version), (const hawk_bch_t*)u.version);
-		copy_bcstr_to_oocstr(rtx, machine, HAWK_COUNTOF(machine), (const hawk_bch_t*)u.machine);
+		struct utsname u;
+	
+		if (uname(&u) <= -1)
+		{
+			hawk_copy_oocstr(sysname, HAWK_COUNTOF(sysname), HAWK_T("Linux/Unix"));
+			hawk_copy_oocstr(nodename, HAWK_COUNTOF(nodename), HAWK_T("unknown"));
+			hawk_copy_oocstr(release, HAWK_COUNTOF(release), HAWK_T("unknown"));
+			hawk_copy_oocstr(version, HAWK_COUNTOF(version), HAWK_T("unknown"));
+			copy_bcstr_to_oocstr(rtx, machine, HAWK_COUNTOF(machine), get_machine_name_for_build());
+		}
+		else
+		{
+			copy_bcstr_to_oocstr(rtx, sysname, HAWK_COUNTOF(sysname), (const hawk_bch_t*)u.sysname);
+			copy_bcstr_to_oocstr(rtx, nodename, HAWK_COUNTOF(nodename), (const hawk_bch_t*)u.nodename);
+			copy_bcstr_to_oocstr(rtx, release, HAWK_COUNTOF(release), (const hawk_bch_t*)u.release);
+			copy_bcstr_to_oocstr(rtx, version, HAWK_COUNTOF(version), (const hawk_bch_t*)u.version);
+			copy_bcstr_to_oocstr(rtx, machine, HAWK_COUNTOF(machine), (const hawk_bch_t*)u.machine);
+		}
 	}
 #endif
 

@@ -1525,12 +1525,15 @@ static void fini_aux (hawk_rtx_t* rtx)
 {
 	hawk_oow_t i;
 
+	HAWK_STATIC_ASSERT(HAWK_COUNTOF(rtx->aux) == HAWK_COUNTOF(rtx->aux_names));
+
 	/* Normal close calls this before module unload and ECB cleanup. Failed
 	 * runtime opens also reach this through fini_rtx(). Leave access blocked
 	 * throughout teardown, and make the later fini_rtx() call harmless. */
 	if (rtx->aux_closing) return;
+
 	rtx->aux_closing = 1;
-	HAWK_STATIC_ASSERT(HAWK_COUNTOF(rtx->aux) == HAWK_COUNTOF(rtx->aux_names));
+
 	for (i = 0; i < HAWK_COUNTOF(rtx->aux); i++)
 	{
 		hawk_rtx_aux_t aux = rtx->aux[i];
