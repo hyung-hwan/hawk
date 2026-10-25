@@ -362,7 +362,8 @@ LDFLAGS_COMMON = -L$(abs_builddir)/../lib -L$(libdir)
 LIBADD_COMMON = 
 EXTRA_DIST = KSC5601.TXT CP936.TXT BIG5.TXT JIS0208.TXT \
 	gen-ksc5601-tabs.hawk gen-gbk-tabs.hawk gen-big5-tabs.hawk \
-	gen-jis0208-tabs.hawk md2man.hawk
+	gen-jis0208-tabs.hawk md2man.hawk genoptcode.hawk \
+	generrcode.hawk
 uni_case_SOURCES = uni-case.c
 uni_case_CPPFLAGS = $(CPPFLAGS_COMMON)
 uni_case_CFLAGS = $(CFLAGS_COMMON)

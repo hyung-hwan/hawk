@@ -394,6 +394,7 @@ CXXFLAGS_COMMON =
 LDFLAGS_COMMON = -L$(abs_builddir)/../lib -L$(libdir)
 LIBADD_COMMON = ../lib/libhawk.la
 EXTRA_DIST = \
+	tcp-proxy.hawk \
 	wb/README.md \
 	wb/run.sh \
 	wb/scripts/workbench.hawk \

@@ -12,6 +12,7 @@ LIBADD_COMMON =
 
 EXTRA_DIST = KSC5601.TXT CP936.TXT BIG5.TXT JIS0208.TXT gen-ksc5601-tabs.hawk gen-gbk-tabs.hawk gen-big5-tabs.hawk gen-jis0208-tabs.hawk
 EXTRA_DIST += md2man.hawk
+EXTRA_DIST += genoptcode.hawk generrcode.hawk
 
 noinst_PROGRAMS = uni-case uni-prop
 

@@ -15,6 +15,7 @@ LIBADD_COMMON = ../lib/libhawk.la
 noinst_PROGRAMS = 
 
 EXTRA_DIST = \
+	tcp-proxy.hawk \
 	wb/README.md \
 	wb/run.sh \
 	wb/scripts/workbench.hawk \
