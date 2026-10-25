@@ -24,6 +24,7 @@
 #define _HAWK_SKAD_H_
 
 #include <hawk-cmn.h>
+#include <hawk-str.h>
 
 #define HAWK_SIZEOF_SKAD_T 1
 #if (HAWK_SIZEOF_STRUCT_SOCKADDR_IN > HAWK_SIZEOF_SKAD_T)
@@ -222,8 +223,8 @@ HAWK_EXPORT int hawk_bchars_to_ipad_bytes (
 	hawk_oow_t          blen
 );
 
-#define hawk_ucstr_to_ipad_bytes(str,buf,blen) hawk_uchars_to_ipad_bytes(str, hawk_count_ucstr(str,buf,blen)
-#define hawk_bcstr_to_ipad_bytes(str,buf,blen) hawk_bchars_to_ipad_bytes(str, hawk_count_bcstr(str,buf,blen)
+#define hawk_ucstr_to_ipad_bytes(str,buf,blen) hawk_uchars_to_ipad_bytes(str, hawk_count_ucstr(str), buf, blen)
+#define hawk_bcstr_to_ipad_bytes(str,buf,blen) hawk_bchars_to_ipad_bytes(str, hawk_count_bcstr(str), buf, blen)
 
 #if defined(HAWK_OOCH_IS_UCH)
 #	define hawk_ipad_bytes_to_oocstr hawk_ipad_bytes_to_ucstr

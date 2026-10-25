@@ -371,6 +371,11 @@ int hawk_gem_ucharstoskad (hawk_gem_t* gem, const hawk_uch_t* str, hawk_oow_t le
 		hawk_oow_t srclen, dstlen;
 		dstlen = HAWK_COUNTOF(skad->un.sun_path) - 1;
 		srclen = len - (*p == '@');
+		if (hawk_find_uchar_in_uchars(p + (*p == '@'), srclen, '\0'))
+		{
+			hawk_gem_seterrbfmt(gem, HAWK_NULL, HAWK_EINVAL, "unix address path contains a null character");
+			return -1;
+		}
 		if (hawk_gem_convutobchars(gem, p + (*p == '@'), &srclen, skad->un.sun_path, &dstlen) <= -1) return -1;
 		skad->un.sun_path[dstlen] = '\0';
 		skad->un.sun_family = AF_UNIX;
@@ -596,6 +601,11 @@ int hawk_gem_bcharstoskad (hawk_gem_t* gem, const hawk_bch_t* str, hawk_oow_t le
 		if (pathlen >= HAWK_COUNTOF(skad->un.sun_path))
 		{
 			hawk_gem_seterrbfmt(gem, HAWK_NULL, HAWK_EBUFFULL, "unix address path too long");
+			return -1;
+		}
+		if (hawk_find_bchar_in_bchars(p + (*p == '@'), pathlen, '\0'))
+		{
+			hawk_gem_seterrbfmt(gem, HAWK_NULL, HAWK_EINVAL, "unix address path contains a null character");
 			return -1;
 		}
 		hawk_copy_bchars_to_bcstr(skad->un.sun_path, HAWK_COUNTOF(skad->un.sun_path), str + (*p == '@'), pathlen);
@@ -1052,8 +1062,12 @@ hawk_oow_t hawk_gem_skadtoucstr (hawk_gem_t* gem, const hawk_skad_t* _skad, hawk
 				if (xlen + 1 >= len) goto done;
 				else
 				{
-					hawk_oow_t mbslen, wcslen = len - xlen;
-					hawk_gem_convbtoucstr(gem, skad->un.sun_path, &mbslen, &buf[xlen], &wcslen, 1);
+					hawk_oow_t mbslen, wcslen;
+
+					/* sun_path may not be null-temrinated and may be full */
+					mbslen = hawk_count_bcstr_limited(skad->un.sun_path, HAWK_COUNTOF(skad->un.sun_path));
+					wcslen = len - xlen - 1; /* reserve the output terminator */
+					hawk_gem_convbtouchars(gem, skad->un.sun_path, &mbslen, &buf[xlen], &wcslen, 1);
 					/* i don't care about conversion errors */
 					xlen += wcslen;
 				}
@@ -1302,7 +1316,8 @@ hawk_oow_t hawk_gem_skadtobcstr (hawk_gem_t* gem, const hawk_skad_t* _skad, hawk
 				if (flags & HAWK_SKAD_TO_BCSTR_UNIXAT) buf[xlen++] = '@';
 
 				if (xlen + 1 >= len) goto done;
-				xlen += hawk_copy_bcstr(&buf[xlen], len - xlen, skad->un.sun_path);
+				xlen += hawk_copy_bchars_to_bcstr(&buf[xlen], len - xlen, skad->un.sun_path,
+					hawk_count_bcstr_limited(skad->un.sun_path, HAWK_COUNTOF(skad->un.sun_path)));
 #if 0
 				if (xlen + 1 >= len) goto done;
 				else
@@ -1562,7 +1577,8 @@ int hawk_equal_skads (const hawk_skad_t* addr1, const hawk_skad_t* addr2, int st
 
 	#if defined(AF_UNIX) && (HAWK_SIZEOF_STRUCT_SOCKADDR_UN > 0)
 		case AF_UNIX:
-			return hawk_comp_bcstr(((struct sockaddr_un*)addr1)->sun_path, ((struct sockaddr_un*)addr2)->sun_path, 0) == 0;
+			return hawk_comp_bcstr_limited(((struct sockaddr_un*)addr1)->sun_path, ((struct sockaddr_un*)addr2)->sun_path,
+				HAWK_COUNTOF(((struct sockaddr_un*)addr1)->sun_path), 0) == 0;
 	#endif
 
 		default:

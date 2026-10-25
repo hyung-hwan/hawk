@@ -115,6 +115,30 @@ static void test_ipv4_buffers (void)
 		"IPv4 parsing with zero capacity does not access a null output");
 }
 
+static void test_cstr_macros (void)
+{
+	hawk_uint8_t raw[16];
+	hawk_uint8_t expected[] = { 127, 0, 0, 1 };
+
+	OK(hawk_bcstr_to_ipad_bytes("127.0.0.1", raw, 4) == 4 &&
+	   HAWK_MEMCMP(raw, expected, 4) == 0,
+		"byte C-string conversion macro supplies the string length and output arguments");
+	OK(hawk_ucstr_to_ipad_bytes(HAWK_UT("127.0.0.1"), raw, 4) == 4 &&
+	   HAWK_MEMCMP(raw, expected, 4) == 0,
+		"wide C-string conversion macro supplies the string length and output arguments");
+	OK(hawk_oocstr_to_ipad_bytes(HAWK_T("127.0.0.1"), raw, HAWK_SIZEOF(raw)) == 4 &&
+	   HAWK_MEMCMP(raw, expected, 4) == 0,
+		"generic C-string conversion macro selects the configured character type");
+	OK(hawk_bcstr_to_ipad_bytes("127.0.0.1", raw, 3) == -1 &&
+	   hawk_ucstr_to_ipad_bytes(HAWK_UT("127.0.0.1"), raw, 3) == -1 &&
+	   hawk_oocstr_to_ipad_bytes(HAWK_T("127.0.0.1"), raw, 3) == -1,
+		"C-string conversion macros honor the output capacity");
+	OK(hawk_bcstr_to_ipad_bytes("invalid", raw, HAWK_SIZEOF(raw)) == -1 &&
+	   hawk_ucstr_to_ipad_bytes(HAWK_UT("invalid"), raw, HAWK_SIZEOF(raw)) == -1 &&
+	   hawk_oocstr_to_ipad_bytes(HAWK_T("invalid"), raw, HAWK_SIZEOF(raw)) == -1,
+		"C-string conversion macros preserve parsing failures");
+}
+
 static void test_address_suffixes (hawk_gem_t* gem, const hawk_bch_t* address, int family, int port, int scope_id)
 {
 	struct
@@ -165,6 +189,116 @@ static void test_address_suffixes (hawk_gem_t* gem, const hawk_bch_t* address, i
 }
 
 #if defined(AF_UNIX) && (HAWK_SIZEOF_STRUCT_SOCKADDR_UN > 0)
+static void test_unix_embedded_nuls (hawk_gem_t* gem)
+{
+	struct
+	{
+		const hawk_bch_t* text;
+		hawk_oow_t len;
+	} cases[] =
+	{
+		{ "/tmp/a\0ignored", HAWK_SIZEOF("/tmp/a\0ignored") - 1 },
+		{ "@/tmp/a\0ignored", HAWK_SIZEOF("@/tmp/a\0ignored") - 1 },
+		{ "@relative\0ignored", HAWK_SIZEOF("@relative\0ignored") - 1 },
+		{ "/tmp/a\0", HAWK_SIZEOF("/tmp/a\0") - 1 },
+		{ "@\0a", HAWK_SIZEOF("@\0a") - 1 }
+	};
+	hawk_skad_alt_t skad;
+	hawk_uch_t wide[32];
+	hawk_oow_t i, j, prefixlen;
+	int byte_good, wide_good;
+
+	for (i = 0; i < HAWK_COUNTOF(cases); i++)
+	{
+		for (j = 0; j < cases[i].len; j++) wide[j] = cases[i].text[j];
+		hawk_gem_seterrnum(gem, HAWK_NULL, HAWK_ENOERR);
+		byte_good = hawk_gem_bcharstoskad(gem, cases[i].text, cases[i].len, (hawk_skad_t*)&skad) == -1 &&
+			hawk_gem_geterrnum(gem) == HAWK_EINVAL;
+		hawk_gem_seterrnum(gem, HAWK_NULL, HAWK_ENOERR);
+		wide_good = hawk_gem_ucharstoskad(gem, wide, cases[i].len, (hawk_skad_t*)&skad) == -1 &&
+			hawk_gem_geterrnum(gem) == HAWK_EINVAL;
+		OK(byte_good && wide_good, "Unix pathname parsers reject NULs within the supplied input length");
+
+		prefixlen = hawk_count_bcstr(cases[i].text);
+		byte_good = hawk_gem_bcharstoskad(gem, cases[i].text, prefixlen, (hawk_skad_t*)&skad) == 0 &&
+			skad.un.sun_family == AF_UNIX;
+		wide_good = hawk_gem_ucharstoskad(gem, wide, prefixlen, (hawk_skad_t*)&skad) == 0 &&
+			skad.un.sun_family == AF_UNIX;
+		OK(byte_good && wide_good, "a NUL outside the supplied Unix pathname slice does not invalidate the slice");
+	}
+}
+
+static void test_unix_read_bounds (hawk_gem_t* gem)
+{
+	enum { PATH_CAPA = HAWK_SIZEOF(((struct sockaddr_un*)0)->sun_path) };
+	hawk_skad_t* a;
+	hawk_skad_t* b;
+	struct sockaddr_un* un_a;
+	struct sockaddr_un* un_b;
+	hawk_bch_t bytes[PATH_CAPA + 10];
+	hawk_uch_t wide[PATH_CAPA + 10];
+	hawk_bch_t expected[PATH_CAPA + 2];
+	hawk_oow_t capacities[] = { 0, 1, 2, PATH_CAPA / 2, PATH_CAPA + 1, PATH_CAPA + 8 };
+	hawk_oow_t i, j, n, byte_len, wide_len, alloc_size;
+	int prefix, flags, good;
+	hawk_uch_t value;
+
+	/* Different suffixes outside sun_path expose unbounded reads without
+	 * requiring a crash. The final allocation byte terminates the suffix. */
+	alloc_size = HAWK_SIZEOF(*a) + 8;
+	a = hawk_gem_allocmem(gem, alloc_size);
+	b = hawk_gem_allocmem(gem, alloc_size);
+	if (!a || !b) { bail_out("cannot allocate native Unix addresses"); return; }
+	HAWK_MEMSET(a, 'A', alloc_size);
+	HAWK_MEMSET(b, 'B', alloc_size);
+	HAWK_MEMSET(a, 0, HAWK_OFFSETOF(struct sockaddr_un, sun_path));
+	HAWK_MEMSET(b, 0, HAWK_OFFSETOF(struct sockaddr_un, sun_path));
+	((hawk_uint8_t*)a)[alloc_size - 1] = '\0';
+	((hawk_uint8_t*)b)[alloc_size - 1] = '\0';
+	un_a = (struct sockaddr_un*)a;
+	un_b = (struct sockaddr_un*)b;
+	un_a->sun_family = AF_UNIX;
+	un_b->sun_family = AF_UNIX;
+	HAWK_MEMSET(un_a->sun_path, 'a', PATH_CAPA);
+	HAWK_MEMSET(un_b->sun_path, 'a', PATH_CAPA);
+	un_a->sun_path[0] = '/';
+	un_b->sun_path[0] = '/';
+
+	for (prefix = 0; prefix < 2; prefix++)
+	{
+		flags = HAWK_SKAD_TO_BCSTR_ADDR | (prefix? HAWK_SKAD_TO_BCSTR_UNIXAT: 0);
+		if (prefix) expected[0] = '@';
+		HAWK_MEMCPY(expected + prefix, un_a->sun_path, PATH_CAPA);
+		for (i = 0; i < HAWK_COUNTOF(capacities); i++)
+		{
+			for (j = 0; j < HAWK_COUNTOF(bytes); j++) wide[j] = bytes[j] = '!';
+			byte_len = hawk_gem_skadtobcstr(gem, a, bytes, capacities[i], flags);
+			wide_len = hawk_gem_skadtoucstr(gem, a, wide, capacities[i], flags);
+			n = capacities[i] == 0? 0: capacities[i] - 1;
+			if (n > PATH_CAPA + prefix) n = PATH_CAPA + prefix;
+			good = byte_len == n && wide_len == n;
+			for (j = 0; j < HAWK_COUNTOF(bytes); j++)
+			{
+				value = j < n? expected[j]: (capacities[i] > 0 && j == n? '\0': '!');
+				if (bytes[j] != value || wide[j] != value) good = 0;
+			}
+			OK(good, "Unix formatting bounds reads by sun_path and terminates every nonempty output buffer");
+		}
+	}
+	OK(hawk_equal_skads(a, b, 0) && hawk_equal_skads(b, a, 1),
+		"full unterminated Unix paths compare independently of bytes following sun_path");
+	un_b->sun_path[PATH_CAPA - 1] = 'b';
+	OK(!hawk_equal_skads(a, b, 0) && !hawk_equal_skads(b, a, 1),
+		"Unix comparison includes the last byte of a full unterminated path");
+	HAWK_MEMSET(un_b->sun_path, 'b', PATH_CAPA);
+	HAWK_MEMCPY(un_a->sun_path, "/tmp/a", HAWK_SIZEOF("/tmp/a"));
+	HAWK_MEMCPY(un_b->sun_path, "/tmp/a", HAWK_SIZEOF("/tmp/a"));
+	OK(hawk_equal_skads(a, b, 0) && hawk_equal_skads(b, a, 1),
+		"terminated Unix paths compare independently of unused bytes after the terminator");
+	hawk_gem_freemem(gem, a);
+	hawk_gem_freemem(gem, b);
+}
+
 static void test_unix_path_limits (hawk_gem_t* gem)
 {
 	enum { PATH_CAPA = HAWK_SIZEOF(((struct sockaddr_un*)0)->sun_path) };
@@ -471,6 +605,7 @@ int main (void)
 	test_invalid_lengths();
 	test_unaligned_loopback();
 	test_ipv4_buffers();
+	test_cstr_macros();
 	OK(hawk_ipad_bytes_to_bcstr(ip4, 4, bytes, HAWK_COUNTOF(bytes)) == 9 &&
 	   hawk_comp_bcstr(bytes, "192.0.2.1", 0) == 0 &&
 	   hawk_ipad_bytes_to_ucstr(ip4, 4, wide, HAWK_COUNTOF(wide)) == 9 &&
@@ -480,8 +615,10 @@ int main (void)
 	if (!hawk) { bail_out("cannot open interpreter"); return 1; }
 #if defined(AF_UNIX) && (HAWK_SIZEOF_STRUCT_SOCKADDR_UN > 0)
 	test_unix_path_limits(hawk_getgem(hawk));
+	test_unix_embedded_nuls(hawk_getgem(hawk));
+	test_unix_read_bounds(hawk_getgem(hawk));
 #else
-	skip("Unix addresses are unavailable", 15);
+	skip("Unix addresses are unavailable", 40);
 #endif
 	test_address_suffixes(hawk_getgem(hawk), "127.0.0.1", HAWK_AF_INET, 0, 0);
 	test_address_suffixes(hawk_getgem(hawk), "127.0.0.1:80", HAWK_AF_INET, 80, 0);
