@@ -553,6 +553,13 @@ int hawk_gem_ifindextobcstr (hawk_gem_t* gem, unsigned int index, hawk_bch_t* bu
 	int h, x;
 	struct ifreq ifr;
 
+	/* haiku accepts index zero as an alias for the first interface. */
+	if (index == 0)
+	{
+		hawk_gem_seterrnum(gem, HAWK_NULL, HAWK_EINVAL);
+		return -1;
+	}
+
 	h = socket(AF_INET, SOCK_DGRAM, 0);
 	if (h <= -1)
 	{
@@ -580,6 +587,13 @@ int hawk_gem_ifindextobcstr (hawk_gem_t* gem, unsigned int index, hawk_bch_t* bu
 
 #elif defined(HAVE_IF_INDEXTONAME)
 	hawk_bch_t tmp[IF_NAMESIZE + 1];
+
+	if (index == 0)
+	{
+		hawk_gem_seterrnum(gem, HAWK_NULL, HAWK_EINVAL);
+		return -1;
+	}
+
 	if (if_indextoname (index, tmp) == HAWK_NULL)
 	{
 		hawk_gem_seterrnum(gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
@@ -639,6 +653,12 @@ int hawk_gem_ifindextoucstr (hawk_gem_t* gem, unsigned int index, hawk_uch_t* bu
 	struct ifreq ifr;
 	hawk_oow_t wl, ml;
 
+	if (index == 0)
+	{
+		hawk_gem_seterrnum(gem, HAWK_NULL, HAWK_EINVAL);
+		return -1;
+	}
+
 	h = socket(AF_INET, SOCK_DGRAM, 0);
 	if (h <= -1)
 	{
@@ -674,6 +694,12 @@ int hawk_gem_ifindextoucstr (hawk_gem_t* gem, unsigned int index, hawk_uch_t* bu
 	hawk_bch_t tmp[IF_NAMESIZE + 1];
 	hawk_oow_t ml, wl;
 	int x;
+
+	if (index == 0)
+	{
+		hawk_gem_seterrnum(gem, HAWK_NULL, HAWK_EINVAL);
+		return -1;
+	}
 
 	if (if_indextoname(index, tmp) == HAWK_NULL)
 	{
