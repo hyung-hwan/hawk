@@ -182,10 +182,14 @@ static int uchars_to_ipv6 (const hawk_uch_t* src, hawk_oow_t len, struct in6_add
 			continue;
 		}
 
-		if (ch == '.' && ((tp + HAWK_SIZEOF(struct in_addr)) <= endp) &&
-		    uchars_to_ipv4(curtok, src_end - curtok, (struct in_addr*)tp) == 0)
+		if (ch == '.' && tp <= endp - HAWK_SIZEOF(struct in_addr))
 		{
-			tp += HAWK_SIZEOF(struct in_addr*);
+			struct in_addr ip4ad;
+
+			/* tp may be only two-byte aligned. parse before copying. */
+			if (uchars_to_ipv4(curtok, src_end - curtok, &ip4ad) <= -1) return -1;
+			HAWK_MEMCPY(tp, &ip4ad, HAWK_SIZEOF(ip4ad));
+			tp += HAWK_SIZEOF(ip4ad);
 			saw_xdigit = 0;
 			break;
 		}
@@ -289,10 +293,14 @@ static int bchars_to_ipv6 (const hawk_bch_t* src, hawk_oow_t len, struct in6_add
 			continue;
 		}
 
-		if (ch == '.' && ((tp + HAWK_SIZEOF(struct in_addr)) <= endp) &&
-		    bchars_to_ipv4(curtok, src_end - curtok, (struct in_addr*)tp) == 0)
+		if (ch == '.' && tp <= endp - HAWK_SIZEOF(struct in_addr))
 		{
-			tp += HAWK_SIZEOF(struct in_addr*);
+			struct in_addr ip4ad;
+
+			/* tp may be only two-byte aligned. parse before copying. */
+			if (bchars_to_ipv4(curtok, src_end - curtok, &ip4ad) <= -1) return -1;
+			HAWK_MEMCPY(tp, &ip4ad, HAWK_SIZEOF(ip4ad));
+			tp += HAWK_SIZEOF(ip4ad);
 			saw_xdigit = 0;
 			break;
 		}
@@ -1661,15 +1669,20 @@ int hawk_ipad_bytes_is_loop_back (const hawk_uint8_t* iptr, hawk_oow_t ilen)
 	{
 		case HAWK_IP4AD_LEN:
 		{
-			// 127.0.0.0/8
+			/* 127.0.0.0/8 */
 			return iptr[0] == 0x7F;
 		}
 
 		case HAWK_IP6AD_LEN:
 		{
-			hawk_uint32_t* x = (hawk_uint32_t*)iptr;
-			return (x[0] == 0 && x[1] == 0 && x[2] == 0 && x[3] == HAWK_CONST_HTON32(1)) || /* TODO: is this alignment safe?  */
-			       (hawk_ipad_bytes_is_v4_mapped(iptr, ilen) && (x[3] & HAWK_CONST_HTON32(0xFF000000u)) == HAWK_CONST_HTON32(0x7F000000u));
+			static const hawk_uint8_t loopback[HAWK_IP6AD_LEN] =
+			{
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1
+			};
+
+			/* raw address bytes need not have integer alignment. */
+			return HAWK_MEMCMP(iptr, loopback, HAWK_SIZEOF(loopback)) == 0 ||
+			       (hawk_ipad_bytes_is_v4_mapped(iptr, ilen) && iptr[12] == 0x7F);
 		}
 
 		default:
