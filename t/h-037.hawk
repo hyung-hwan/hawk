@@ -1,0 +1,107 @@
+@include "../samples/tcp-proxy.hawk";
+@include "tap.inc";
+
+@pragma entry test_proxy
+
+function test_stop_signals ()
+{
+	@local rc;
+
+	rc = sys::signal(sys::SIGINT, on_stop);
+	tap_ensure(rc, 0, @SCRIPTNAME, @SCRIPTLINE);
+	if (rc <= -1) return;
+
+	rc = sys::signal(sys::SIGTERM, on_stop);
+	tap_ensure(rc, 0, @SCRIPTNAME, @SCRIPTLINE);
+	if (rc <= -1)
+	{
+		sys::signal(sys::SIGINT, @nil);
+		return;
+	}
+
+	stop_requested = 0;
+	tap_ensure(sys::raise(sys::SIGINT), 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(stop_requested, sys::SIGINT, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sys::raise(sys::SIGTERM), 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(stop_requested, sys::SIGINT, @SCRIPTNAME, @SCRIPTLINE);
+
+	stop_requested = 0;
+	tap_ensure(sys::raise(sys::SIGTERM), 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(stop_requested, sys::SIGTERM, @SCRIPTNAME, @SCRIPTLINE);
+
+	## With a stop already requested, no listener or multiplexer is needed.
+	tap_ensure(serve_connections(-1, -1, ""), 0, @SCRIPTNAME, @SCRIPTLINE);
+
+	tap_ensure(sys::signal(sys::SIGTERM, @nil), 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sys::signal(sys::SIGINT, @nil), 0, @SCRIPTNAME, @SCRIPTLINE);
+	stop_requested = 0;
+}
+
+function test_bridge_cleanup ()
+{
+	@local r, w, mx, brtab, data, rc;
+
+	rc = sys::pipe(r, w, sys::O_NONBLOCK);
+	if (rc <= -1)
+	{
+		tap_skip("nonblocking pipes unavailable");
+		return;
+	}
+	mx = sys::openmux();
+	if (mx <= -1)
+	{
+		sys::close(r);
+		sys::close(w);
+		tap_skip("multiplexer unavailable");
+		return;
+	}
+
+	brtab[r] = w;
+	brtab[r,"evmask"] = sys::MUX_EVT_IN;
+	brtab[w] = r;
+	brtab[w,"evmask"] = sys::MUX_EVT_OUT;
+	tap_ensure(sys::addtomux(mx, r, sys::MUX_EVT_IN), 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sys::addtomux(mx, w, sys::MUX_EVT_OUT), 0, @SCRIPTNAME, @SCRIPTLINE);
+
+	brtab[w,"pending"] = @b"pending";
+	tap_ensure(bridge_pending_data(brtab, w, mx), 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure((w,"pending") in brtab, 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sys::read(r, data, 7), 7, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(data, @b"pending", @SCRIPTNAME, @SCRIPTLINE);
+
+	## An empty nonblocking read is transient, not a reason to drop a bridge.
+	tap_ensure(bridge_traffic(brtab, r, mx), 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(length(brtab) > 0, 1, @SCRIPTNAME, @SCRIPTLINE);
+
+	brtab[w,"pending"] = @b"unsent";
+	stop_requested = sys::SIGTERM;
+	tap_ensure(bridge_pending_data(brtab, w, mx), -1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(brtab[w,"pending"], @b"unsent", @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sys::read(r, data, 1), sys::RC_EAGAIN, @SCRIPTNAME, @SCRIPTLINE);
+	stop_requested = 0;
+
+	close_bridges(brtab, mx);
+	tap_ensure(length(brtab), 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sys::close(r), sys::RC_EINVAL, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sys::close(w), sys::RC_EINVAL, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sys::waitonmux(mx, 0), 0, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(sys::closemux(mx), 0, @SCRIPTNAME, @SCRIPTLINE);
+}
+
+function test_failed_pending_write ()
+{
+	@local brtab;
+
+	brtab[-1] = -2;
+	brtab[-1,"pending"] = @b"pending";
+	tap_ensure(bridge_pending_data(brtab, -1, -1), -1, @SCRIPTNAME, @SCRIPTLINE);
+	tap_ensure(brtab[-1,"pending"], @b"pending", @SCRIPTNAME, @SCRIPTLINE);
+}
+
+function test_proxy ()
+{
+	test_stop_signals();
+	test_bridge_cleanup();
+	test_failed_pending_write();
+	tap_end();
+}

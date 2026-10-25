@@ -840,7 +840,7 @@ check_SCRIPTS = $(am__append_1) h-003.hawk h-004.hawk h-009.hawk \
 	regress-extra-info.sh regress-environ.sh regress-m4.sh \
 	regress-sed.sh regress-sh.sh regress-sh-job-control.sh \
 	regress-fnc.sh regress-md2man.sh h-032.hawk h-033.hawk \
-	h-034.hawk h-035.hawk h-036.hawk
+	h-034.hawk h-035.hawk h-036.hawk h-037.hawk
 check_ERRORS = e-001.err
 EXTRA_DIST = $(check_SCRIPTS) $(check_ERRORS) tap.inc err.sh \
 	bench-map-keys.hawk bench-int-comparisons.hawk \
