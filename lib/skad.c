@@ -119,7 +119,7 @@ static int uchars_to_ipv6 (const hawk_uch_t* src, hawk_oow_t len, struct in6_add
 	hawk_uint8_t* tp, * endp, * colonp;
 	const hawk_uch_t* curtok;
 	hawk_uch_t ch;
-	int saw_xdigit;
+	int xdigits;
 	unsigned int val;
 	const hawk_uch_t* src_end;
 
@@ -130,7 +130,7 @@ static int uchars_to_ipv6 (const hawk_uch_t* src, hawk_oow_t len, struct in6_add
 	endp = &inaddr->s6_addr[HAWK_COUNTOF(inaddr->s6_addr)];
 	colonp = HAWK_NULL;
 
-	/* Leading :: requires some special handling. */
+	/* leading :: requires some special handling. */
 	if (src < src_end && *src == ':')
 	{
 		src++;
@@ -138,7 +138,7 @@ static int uchars_to_ipv6 (const hawk_uch_t* src, hawk_oow_t len, struct in6_add
 	}
 
 	curtok = src;
-	saw_xdigit = 0;
+	xdigits = 0;
 	val = 0;
 
 	while (src < src_end)
@@ -150,17 +150,17 @@ static int uchars_to_ipv6 (const hawk_uch_t* src, hawk_oow_t len, struct in6_add
 		v1 = HAWK_XDIGIT_TO_NUM(ch);
 		if (v1 >= 0)
 		{
+			/* count leading zeros too. a group has at most four digits. */
+			if (++xdigits > 4) return -1;
 			val <<= 4;
 			val |= v1;
-			if (val > 0xffff) return -1;
-			saw_xdigit = 1;
 			continue;
 		}
 
 		if (ch == ':')
 		{
 			curtok = src;
-			if (!saw_xdigit)
+			if (!xdigits)
 			{
 				if (colonp) return -1;
 				colonp = tp;
@@ -177,7 +177,7 @@ static int uchars_to_ipv6 (const hawk_uch_t* src, hawk_oow_t len, struct in6_add
 
 			*tp++ = (hawk_uint8_t)(val >> 8) & 0xff;
 			*tp++ = (hawk_uint8_t)val & 0xff;
-			saw_xdigit = 0;
+			xdigits = 0;
 			val = 0;
 			continue;
 		}
@@ -190,14 +190,14 @@ static int uchars_to_ipv6 (const hawk_uch_t* src, hawk_oow_t len, struct in6_add
 			if (uchars_to_ipv4(curtok, src_end - curtok, &ip4ad) <= -1) return -1;
 			HAWK_MEMCPY(tp, &ip4ad, HAWK_SIZEOF(ip4ad));
 			tp += HAWK_SIZEOF(ip4ad);
-			saw_xdigit = 0;
+			xdigits = 0;
 			break;
 		}
 
 		return -1;
 	}
 
-	if (saw_xdigit)
+	if (xdigits)
 	{
 		if (tp > endp - HAWK_SIZEOF(hawk_uint16_t)) return -1;
 		*tp++ = (hawk_uint8_t)(val >> 8) & 0xff;
@@ -211,6 +211,9 @@ static int uchars_to_ipv6 (const hawk_uch_t* src, hawk_oow_t len, struct in6_add
 		 */
 		hawk_oow_t n = tp - colonp;
 		hawk_oow_t i;
+
+		/* :: must stand for at least one omitted 16-bit group. */
+		if (tp > endp - HAWK_SIZEOF(hawk_uint16_t)) return -1;
 
 		for (i = 1; i <= n; i++)
 		{
@@ -230,7 +233,7 @@ static int bchars_to_ipv6 (const hawk_bch_t* src, hawk_oow_t len, struct in6_add
 	hawk_uint8_t* tp, * endp, * colonp;
 	const hawk_bch_t* curtok;
 	hawk_bch_t ch;
-	int saw_xdigit;
+	int xdigits;
 	unsigned int val;
 	const hawk_bch_t* src_end;
 
@@ -241,7 +244,7 @@ static int bchars_to_ipv6 (const hawk_bch_t* src, hawk_oow_t len, struct in6_add
 	endp = &inaddr->s6_addr[HAWK_COUNTOF(inaddr->s6_addr)];
 	colonp = HAWK_NULL;
 
-	/* Leading :: requires some special handling. */
+	/* leading :: requires some special handling. */
 	if (src < src_end && *src == ':')
 	{
 		src++;
@@ -249,7 +252,7 @@ static int bchars_to_ipv6 (const hawk_bch_t* src, hawk_oow_t len, struct in6_add
 	}
 
 	curtok = src;
-	saw_xdigit = 0;
+	xdigits = 0;
 	val = 0;
 
 	while (src < src_end)
@@ -261,17 +264,17 @@ static int bchars_to_ipv6 (const hawk_bch_t* src, hawk_oow_t len, struct in6_add
 		v1 = HAWK_XDIGIT_TO_NUM(ch);
 		if (v1 >= 0)
 		{
+			/* count leading zeros too. a group has at most four digits. */
+			if (++xdigits > 4) return -1;
 			val <<= 4;
 			val |= v1;
-			if (val > 0xffff) return -1;
-			saw_xdigit = 1;
 			continue;
 		}
 
 		if (ch == ':')
 		{
 			curtok = src;
-			if (!saw_xdigit)
+			if (!xdigits)
 			{
 				if (colonp) return -1;
 				colonp = tp;
@@ -288,7 +291,7 @@ static int bchars_to_ipv6 (const hawk_bch_t* src, hawk_oow_t len, struct in6_add
 
 			*tp++ = (hawk_uint8_t)(val >> 8) & 0xff;
 			*tp++ = (hawk_uint8_t)val & 0xff;
-			saw_xdigit = 0;
+			xdigits = 0;
 			val = 0;
 			continue;
 		}
@@ -301,14 +304,14 @@ static int bchars_to_ipv6 (const hawk_bch_t* src, hawk_oow_t len, struct in6_add
 			if (bchars_to_ipv4(curtok, src_end - curtok, &ip4ad) <= -1) return -1;
 			HAWK_MEMCPY(tp, &ip4ad, HAWK_SIZEOF(ip4ad));
 			tp += HAWK_SIZEOF(ip4ad);
-			saw_xdigit = 0;
+			xdigits = 0;
 			break;
 		}
 
 		return -1;
 	}
 
-	if (saw_xdigit)
+	if (xdigits)
 	{
 		if (tp > endp - HAWK_SIZEOF(hawk_uint16_t)) return -1;
 		*tp++ = (hawk_uint8_t)(val >> 8) & 0xff;
@@ -317,11 +320,14 @@ static int bchars_to_ipv6 (const hawk_bch_t* src, hawk_oow_t len, struct in6_add
 	if (colonp != HAWK_NULL)
 	{
 		/*
-		 * Since some memmove()'s erroneously fail to handle
+		 * since some memmove()'s erroneously fail to handle
 		 * overlapping regions, we'll do the shift by hand.
 		 */
 		hawk_oow_t n = tp - colonp;
 		hawk_oow_t i;
+
+		/* :: must stand for at least one omitted 16-bit group. */
+		if (tp > endp - HAWK_SIZEOF(hawk_uint16_t)) return -1;
 
 		for (i = 1; i <= n; i++)
 		{
@@ -1618,19 +1624,20 @@ hawk_oow_t hawk_ipad_bytes_to_bcstr (const hawk_uint8_t* iptr, hawk_oow_t ilen, 
 
 int hawk_uchars_to_ipad_bytes (const hawk_uch_t* str, hawk_oow_t slen, hawk_uint8_t* buf, hawk_oow_t blen)
 {
+#if (HAWK_SIZEOF_STRUCT_SOCKADDR_IN6 > 0)
 	if (blen >= HAWK_IP6AD_LEN)
 	{
-#if (HAWK_SIZEOF_STRUCT_SOCKADDR_IN6 > 0)
 		struct in6_addr i6;
-		if (uchars_to_ipv6(str, slen, &i6) <= -1) goto ipv4;
-		HAWK_MEMCPY(buf, i6.s6_addr, 16);
-		return HAWK_IP6AD_LEN;
-#endif
+		if (uchars_to_ipv6(str, slen, &i6) == 0)
+		{
+			HAWK_MEMCPY(buf, i6.s6_addr, 16);
+			return HAWK_IP6AD_LEN;
+		}
 	}
-	else if (blen >= HAWK_IP4AD_LEN)
+#endif
+	if (blen >= HAWK_IP4AD_LEN)
 	{
 		struct in_addr i4;
-	ipv4:
 		if (uchars_to_ipv4(str, slen, &i4) <= -1) return -1;
 		HAWK_MEMCPY(buf, &i4.s_addr, 4);
 		return HAWK_IP4AD_LEN;
@@ -1641,19 +1648,20 @@ int hawk_uchars_to_ipad_bytes (const hawk_uch_t* str, hawk_oow_t slen, hawk_uint
 
 int hawk_bchars_to_ipad_bytes (const hawk_bch_t* str, hawk_oow_t slen, hawk_uint8_t* buf, hawk_oow_t blen)
 {
+#if (HAWK_SIZEOF_STRUCT_SOCKADDR_IN6 > 0)
 	if (blen >= HAWK_IP6AD_LEN)
 	{
-#if (HAWK_SIZEOF_STRUCT_SOCKADDR_IN6 > 0)
 		struct in6_addr i6;
-		if (bchars_to_ipv6(str, slen, &i6) <= -1) goto ipv4;
-		HAWK_MEMCPY(buf, i6.s6_addr, 16);
-		return HAWK_IP6AD_LEN;
-#endif
+		if (bchars_to_ipv6(str, slen, &i6) == 0)
+		{
+			HAWK_MEMCPY(buf, i6.s6_addr, 16);
+			return HAWK_IP6AD_LEN;
+		}
 	}
-	else if (blen >= HAWK_IP4AD_LEN)
+#endif
+	if (blen >= HAWK_IP4AD_LEN)
 	{
 		struct in_addr i4;
-	ipv4:
 		if (bchars_to_ipv4(str, slen, &i4) <= -1) return -1;
 		HAWK_MEMCPY(buf, &i4.s_addr, 4);
 		return HAWK_IP4AD_LEN;

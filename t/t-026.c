@@ -79,6 +79,42 @@ static void test_unaligned_loopback (void)
 	}
 }
 
+static void test_ipv4_buffers (void)
+{
+	const hawk_bch_t* inputs[] = { "0.0.0.0", "127.0.0.1", "192.0.2.1", "255.255.255.255" };
+	hawk_uint8_t expected[][4] = { { 0 }, { 127, 0, 0, 1 }, { 192, 0, 2, 1 }, { 255, 255, 255, 255 } };
+	hawk_oow_t capacities[] = { 0, 1, 3, 4, 5, 15, 16, 17, 32 };
+	hawk_uch_t wide[HAWK_IP4AD_STRLEN + 1];
+	hawk_uint8_t byte_result[40], wide_result[40];
+	hawk_uint8_t value;
+	hawk_oow_t i, j, k, len, capa;
+	int byte_len, wide_len, good;
+
+	for (i = 0; i < HAWK_COUNTOF(inputs); i++)
+	{
+		len = hawk_count_bcstr(inputs[i]);
+		for (j = 0; j < len; j++) wide[j] = inputs[i][j];
+		for (j = 0; j < HAWK_COUNTOF(capacities); j++)
+		{
+			capa = capacities[j];
+			HAWK_MEMSET(byte_result, 0xa5, HAWK_SIZEOF(byte_result));
+			HAWK_MEMSET(wide_result, 0xa5, HAWK_SIZEOF(wide_result));
+			byte_len = hawk_bchars_to_ipad_bytes(inputs[i], len, byte_result + 1, capa);
+			wide_len = hawk_uchars_to_ipad_bytes(wide, len, wide_result + 1, capa);
+			good = byte_len == (capa >= 4? 4: -1) && wide_len == (capa >= 4? 4: -1);
+			for (k = 0; k < HAWK_COUNTOF(byte_result); k++)
+			{
+				value = capa >= 4 && k >= 1 && k <= 4? expected[i][k - 1]: 0xa5;
+				if (byte_result[k] != value || wide_result[k] != value) good = 0;
+			}
+			OK(good, "IPv4 parsing accepts every sufficient buffer size and writes only four address bytes");
+		}
+	}
+	OK(hawk_bchars_to_ipad_bytes("127.0.0.1", 9, HAWK_NULL, 0) == -1 &&
+	   hawk_uchars_to_ipad_bytes(HAWK_UT("127.0.0.1"), 9, HAWK_NULL, 0) == -1,
+		"IPv4 parsing with zero capacity does not access a null output");
+}
+
 static void test_address_suffixes (hawk_gem_t* gem, const hawk_bch_t* address, int family, int port, int scope_id)
 {
 	struct
@@ -309,19 +345,72 @@ static void test_excess_groups (hawk_gem_t* gem)
 	}
 }
 
+static void test_invalid_ipv6_syntax (hawk_gem_t* gem)
+{
+	const hawk_bch_t* inputs[] =
+	{
+		"1::2:3:4:5:6:7:8", "::1:2:3:4:5:6:7:8", "1:2:3:4:5:6:7:8::",
+		"1:2:3:4:5:6::192.0.2.1", "::1:2:3:4:5:6:192.0.2.1",
+		"00000:1:2:3:4:5:6:7", "1:2:3:4:5:6:7:00000", "1:2:00001::3",
+		"::00000", "00000000000000000000000000000000::",
+		"1::2::3", ":::1", "1:2:3:4:5:6:7:", "1:2:3:4:5:6:7"
+	};
+	hawk_bch_t bytes[128];
+	hawk_uch_t wide[128];
+	hawk_uint8_t raw[16];
+	hawk_skad_t skad;
+	hawk_oow_t i, j, len, bare_len;
+	int form, byte_good, wide_good;
+
+	for (i = 0; i < HAWK_COUNTOF(inputs); i++)
+	{
+		bare_len = hawk_count_bcstr(inputs[i]);
+		for (j = 0; j < bare_len; j++) wide[j] = inputs[i][j];
+		byte_good = hawk_bchars_to_ipad_bytes(inputs[i], bare_len, raw, HAWK_SIZEOF(raw)) == -1;
+		wide_good = hawk_uchars_to_ipad_bytes(wide, bare_len, raw, HAWK_SIZEOF(raw)) == -1;
+		OK(byte_good && wide_good, "raw IPv6 parsers reject empty compression, overlong groups, and malformed separators");
+
+		for (form = 0; form < 3; form++)
+		{
+			len = 0;
+			if (form > 0) bytes[len++] = '[';
+			for (j = 0; j < bare_len; j++) bytes[len++] = inputs[i][j];
+			if (form > 0) bytes[len++] = ']';
+			if (form == 2)
+			{
+				bytes[len++] = ':';
+				bytes[len++] = '8';
+				bytes[len++] = '0';
+			}
+			for (j = 0; j < len; j++) wide[j] = bytes[j];
+			hawk_gem_seterrnum(gem, HAWK_NULL, HAWK_ENOERR);
+			byte_good = hawk_gem_bcharstoskad(gem, bytes, len, &skad) == -1 &&
+				hawk_gem_geterrnum(gem) == HAWK_EINVAL;
+			hawk_gem_seterrnum(gem, HAWK_NULL, HAWK_ENOERR);
+			wide_good = hawk_gem_ucharstoskad(gem, wide, len, &skad) == -1 &&
+				hawk_gem_geterrnum(gem) == HAWK_EINVAL;
+			OK(byte_good && wide_good, "socket-address parsers reject malformed IPv6 in bare and bracketed forms");
+		}
+	}
+}
+
 static void test_valid_ipv6 (hawk_gem_t* gem)
 {
 	const hawk_bch_t* inputs[] =
 	{
 		"::", "::1", "2001:db8::1", "1:2:3:4:5:6:7:8",
 		"::ffff:192.0.2.1", "::192.0.2.1",
-		"1:2:3:4:5:6:192.0.2.1", "2001:db8::192.0.2.1"
+		"1:2:3:4:5:6:192.0.2.1", "2001:db8::192.0.2.1",
+		"::1:2:3:4:5:6:7", "1:2:3:4:5:6:7::", "1:2:3::4:5:6:7",
+		"0000:0001:0002:0003:0004:0005:0006:ffff", "1:2:3:4:5::192.0.2.1"
 	};
 	const hawk_bch_t* canonical[] =
 	{
 		"::", "::1", "2001:db8::1", "1:2:3:4:5:6:7:8",
 		"::ffff:192.0.2.1", "::192.0.2.1",
-		"1:2:3:4:5:6:c000:201", "2001:db8::c000:201"
+		"1:2:3:4:5:6:c000:201", "2001:db8::c000:201",
+		"0:1:2:3:4:5:6:7", "1:2:3:4:5:6:7:0", "1:2:3:0:4:5:6:7",
+		"0:1:2:3:4:5:6:ffff", "1:2:3:4:5:0:c000:201"
 	};
 	hawk_uint8_t expected[][16] =
 	{
@@ -332,11 +421,16 @@ static void test_valid_ipv6 (hawk_gem_t* gem)
 		{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xff, 192, 0, 2, 1 },
 		{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 192, 0, 2, 1 },
 		{ 0, 1, 0, 2, 0, 3, 0, 4, 0, 5, 0, 6, 192, 0, 2, 1 },
-		{ 0x20, 1, 0x0d, 0xb8, 0, 0, 0, 0, 0, 0, 0, 0, 192, 0, 2, 1 }
+		{ 0x20, 1, 0x0d, 0xb8, 0, 0, 0, 0, 0, 0, 0, 0, 192, 0, 2, 1 },
+		{ 0, 0, 0, 1, 0, 2, 0, 3, 0, 4, 0, 5, 0, 6, 0, 7 },
+		{ 0, 1, 0, 2, 0, 3, 0, 4, 0, 5, 0, 6, 0, 7, 0, 0 },
+		{ 0, 1, 0, 2, 0, 3, 0, 0, 0, 4, 0, 5, 0, 6, 0, 7 },
+		{ 0, 0, 0, 1, 0, 2, 0, 3, 0, 4, 0, 5, 0, 6, 255, 255 },
+		{ 0, 1, 0, 2, 0, 3, 0, 4, 0, 5, 0, 0, 192, 0, 2, 1 }
 	};
 	hawk_skad_t skad;
 	hawk_uint8_t raw[16];
-	hawk_uch_t wide[32];
+	hawk_uch_t wide[HAWK_IP6AD_STRLEN + 1];
 	hawk_bch_t rendered[64];
 	hawk_oow_t i, j, len;
 	int byte_good, wide_good;
@@ -376,6 +470,7 @@ int main (void)
 	no_plan();
 	test_invalid_lengths();
 	test_unaligned_loopback();
+	test_ipv4_buffers();
 	OK(hawk_ipad_bytes_to_bcstr(ip4, 4, bytes, HAWK_COUNTOF(bytes)) == 9 &&
 	   hawk_comp_bcstr(bytes, "192.0.2.1", 0) == 0 &&
 	   hawk_ipad_bytes_to_ucstr(ip4, 4, wide, HAWK_COUNTOF(wide)) == 9 &&
@@ -393,6 +488,7 @@ int main (void)
 #if (HAWK_SIZEOF_STRUCT_SOCKADDR_IN6 > 0)
 	test_scope_id_limits(hawk_getgem(hawk));
 	test_excess_groups(hawk_getgem(hawk));
+	test_invalid_ipv6_syntax(hawk_getgem(hawk));
 	test_valid_ipv6(hawk_getgem(hawk));
 	test_address_suffixes(hawk_getgem(hawk), "[::1]", HAWK_AF_INET6, 0, 0);
 	test_address_suffixes(hawk_getgem(hawk), "[::1]:80", HAWK_AF_INET6, 80, 0);
@@ -401,7 +497,7 @@ int main (void)
 	test_address_suffixes(hawk_getgem(hawk), "::1", HAWK_AF_INET6, 0, 0);
 	test_address_suffixes(hawk_getgem(hawk), "fe80::1%7", HAWK_AF_INET6, 0, 7);
 #else
-	skip("IPv6 is unavailable", 120);
+	skip("IPv6 is unavailable", 191);
 #endif
 	hawk_close(hawk);
 	return exit_status();
