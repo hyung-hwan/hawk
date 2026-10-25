@@ -373,6 +373,58 @@ static void test_reverse_lookup_errors (hawk_gem_t* gem)
 	}
 }
 
+static void test_interface_small_buffers (hawk_gem_t* gem)
+{
+	hawk_bch_t name[128];
+	hawk_bch_t bytes[132];
+	hawk_uch_t wide[132];
+	hawk_oow_t namelen, cap, expected, i;
+	int n, byte_len, wide_len, good;
+
+	n = hawk_gem_ifindextobcstr(gem, 1, name, HAWK_COUNTOF(name));
+	if (n <= 0)
+	{
+		skip("a suitable interface name is unavailable", 1);
+		return;
+	}
+	namelen = n;
+	for (i = 0; i < namelen; i++)
+	{
+		if ((hawk_uint8_t)name[i] >= 128)
+		{
+			skip("interface name is not ASCII", 1);
+			return;
+		}
+	}
+
+	for (cap = 0; cap <= namelen + 1; cap++)
+	{
+		for (i = 0; i < HAWK_COUNTOF(bytes); i++) bytes[i] = wide[i] = '!';
+		byte_len = hawk_gem_ifindextobcstr(gem, 1, bytes + 1, cap);
+		wide_len = hawk_gem_ifindextoucstr(gem, 1, wide + 1, cap);
+		expected = cap == 0? 0: cap - 1;
+		if (expected > namelen) expected = namelen;
+		good = byte_len >= 0 && wide_len >= 0 &&
+			(hawk_oow_t)byte_len == expected && (hawk_oow_t)wide_len == expected;
+		for (i = 0; i < expected; i++)
+		{
+			if (bytes[i + 1] != name[i] || wide[i + 1] != (hawk_uch_t)name[i]) good = 0;
+		}
+		if (cap > 0 && (bytes[expected + 1] != '\0' || wide[expected + 1] != '\0')) good = 0;
+		for (i = 0; i < HAWK_COUNTOF(bytes); i++)
+		{
+			if ((i == 0 || i > cap) && (bytes[i] != '!' || wide[i] != '!')) good = 0;
+		}
+		OK(good, "byte and wide interface lookups agree for empty, one-character, truncated, and full buffers");
+	}
+	OK(hawk_gem_ifindextobcstr(gem, 1, HAWK_NULL, 0) == 0 &&
+	   hawk_gem_ifindextoucstr(gem, 1, HAWK_NULL, 0) == 0,
+		"zero-capacity interface lookups accept a null output without entering conversion size-query mode");
+	OK(hawk_gem_ifindextobcstr(gem, 0, HAWK_NULL, 0) <= -1 &&
+	   hawk_gem_ifindextoucstr(gem, 0, HAWK_NULL, 0) <= -1,
+		"zero-capacity interface lookups still reject an invalid interface index");
+}
+
 #if (HAWK_SIZEOF_STRUCT_SOCKADDR_IN6 > 0)
 static void test_scope_lookup_errors (hawk_gem_t* gem)
 {
@@ -995,6 +1047,7 @@ int main (void)
 	test_interface_lookup_errors(hawk_getgem(hawk));
 	test_interface_name_nuls(hawk_getgem(hawk));
 	test_reverse_lookup_errors(hawk_getgem(hawk));
+	test_interface_small_buffers(hawk_getgem(hawk));
 #if defined(AF_UNIX) && (HAWK_SIZEOF_STRUCT_SOCKADDR_UN > 0)
 	test_unix_path_limits(hawk_getgem(hawk));
 	test_unix_embedded_nuls(hawk_getgem(hawk));

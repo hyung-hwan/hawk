@@ -576,7 +576,7 @@ int hawk_gem_ifindextobcstr (hawk_gem_t* gem, unsigned int index, hawk_bch_t* bu
 	}
 
 	HAWK_CLOSE(h);
-	return hawk_copy_bcstr(buf, len, ifr.ifr_name);
+	return (len > 0)? hawk_copy_bcstr(buf, len, ifr.ifr_name): 0;
 
 #elif defined(HAVE_IF_INDEXTONAME)
 	hawk_bch_t tmp[IF_NAMESIZE + 1];
@@ -585,7 +585,7 @@ int hawk_gem_ifindextobcstr (hawk_gem_t* gem, unsigned int index, hawk_bch_t* bu
 		hawk_gem_seterrnum(gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
 		return -1;
 	}
-	return hawk_copy_bcstr(buf, len, tmp);
+	return (len > 0)? hawk_copy_bcstr(buf, len, tmp): 0;
 
 #elif defined(SIOCGIFCONF) && (defined(SIOCGIFANUM) || defined(SIOCGIFNUM))
 
@@ -608,7 +608,7 @@ int hawk_gem_ifindextobcstr (hawk_gem_t* gem, unsigned int index, hawk_bch_t* bu
 		return -1;
 	}
 
-	ml = hawk_copy_bcstr(buf, len, ifc.ifc_req[index - 1].ifr_name);
+	ml = (len > 0)? hawk_copy_bcstr(buf, len, ifc.ifc_req[index - 1].ifr_name): 0;
 	free_sco_ifconf (gem, &ifc);
 	return ml;
 
@@ -663,9 +663,10 @@ int hawk_gem_ifindextoucstr (hawk_gem_t* gem, unsigned int index, hawk_uch_t* bu
 
 	HAWK_CLOSE(h);
 
+	/* zero capacity must not invoke the converter's size-query mode. */
 	wl = len;
-	x = hawk_gem_convbtoucstr(gem, ifr.ifr_name, &ml, buf, &wl, 0);
-	if (x == -2 && wl > 1) buf[--wl] = '\0';
+	x = (len > 0)? hawk_gem_convbtoucstr(gem, ifr.ifr_name, &ml, buf, &wl, 0): 0;
+	if (x == -2 && wl > 0) buf[--wl] = '\0';
 	else if (x != 0) return -1;
 	return wl;
 
@@ -680,8 +681,8 @@ int hawk_gem_ifindextoucstr (hawk_gem_t* gem, unsigned int index, hawk_uch_t* bu
 		return -1;
 	}
 	wl = len;
-	x = hawk_gem_convbtoucstr(gem, tmp, &ml, buf, &wl, 0);
-	if (x == -2 && wl > 1) buf[--wl] = '\0';
+	x = (len > 0)? hawk_gem_convbtoucstr(gem, tmp, &ml, buf, &wl, 0): 0;
+	if (x == -2 && wl > 0) buf[--wl] = '\0';
 	else if (x != 0) return -1;
 	return wl;
 
@@ -707,10 +708,10 @@ int hawk_gem_ifindextoucstr (hawk_gem_t* gem, unsigned int index, hawk_uch_t* bu
 	}
 
 	wl = len;
-	x = hawk_gem_convbtoucstr(gem, ifc.ifc_req[index - 1].ifr_name, &ml, buf, &wl, 0);
+	x = (len > 0)? hawk_gem_convbtoucstr(gem, ifc.ifc_req[index - 1].ifr_name, &ml, buf, &wl, 0): 0;
 	free_sco_ifconf(gem, &ifc);
 
-	if (x == -2 && wl > 1) buf[--wl] = '\0';
+	if (x == -2 && wl > 0) buf[--wl] = '\0';
 	else if (x != 0) return -1;
 
 	return wl;
