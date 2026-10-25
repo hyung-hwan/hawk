@@ -63,11 +63,18 @@
 #	endif
 #endif
 
-struct hawk_skad_t
+union hawk_skad_t
 {
 	hawk_uint8_t data[HAWK_SIZEOF_SKAD_T];
+
+	/* for native alignment only. these fields provide native alignment
+	 * without exposing socket headers here. use sizeof(hawk_skad_t),
+	 * not sizeof(data), to allocate this type. */
+	hawk_uintmax_t align_int;
+	hawk_fltmax_t align_flt;
+	void* align_ptr;
 };
-typedef struct hawk_skad_t hawk_skad_t;
+typedef union hawk_skad_t hawk_skad_t;
 
 #define HAWK_IP4AD_STRLEN (15) /* not including the terminating '\0' */
 #define HAWK_IP6AD_STRLEN (45) /* not including the terminating '\0'. pure IPv6 address, not including the scope(e.g. %10, %eth0) */

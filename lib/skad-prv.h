@@ -85,5 +85,9 @@ union hawk_skad_alt_t
 };
 typedef union hawk_skad_alt_t hawk_skad_alt_t;
 
+/* Public storage must accommodate every native address used by the casts. */
+HAWK_STATIC_ASSERT(HAWK_SIZEOF(hawk_skad_t) >= HAWK_SIZEOF(hawk_skad_alt_t));
+HAWK_STATIC_ASSERT(HAWK_ALIGNOF(hawk_skad_t) >= HAWK_ALIGNOF(hawk_skad_alt_t));
+
 
 #endif

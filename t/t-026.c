@@ -3,6 +3,49 @@
 #include "skad-prv.h"
 #include "tap.h"
 
+static void test_native_alignment (void)
+{
+	struct
+	{
+		hawk_uint8_t prefix;
+		hawk_skad_t address;
+	} embedded;
+	hawk_skad_t addresses[2];
+	hawk_skad_t* ptrs[3];
+	hawk_oow_t alignment, i;
+
+	alignment = HAWK_ALIGNOF(hawk_skad_alt_t);
+	OK(HAWK_SIZEOF(hawk_skad_t) >= HAWK_SIZEOF(hawk_skad_alt_t),
+		"public address storage accommodates the native address union");
+	OK(HAWK_ALIGNOF(hawk_skad_t) >= alignment,
+		"public address type provides native alignment");
+	OK(HAWK_SIZEOF(hawk_skad_t) % alignment == 0,
+		"public address array stride preserves native alignment");
+	ptrs[0] = &addresses[0];
+	ptrs[1] = &addresses[1];
+	ptrs[2] = &embedded.address;
+	for (i = 0; i < HAWK_COUNTOF(ptrs); i++)
+	{
+		OK((hawk_uintptr_t)ptrs[i] % alignment == 0,
+			"array elements and an address following a byte field have native alignment");
+#if (HAWK_SIZEOF_STRUCT_SOCKADDR_IN > 0)
+		hawk_skad_init_for_ip4(ptrs[i], 80, HAWK_NULL);
+		OK(hawk_skad_get_family(ptrs[i]) == HAWK_AF_INET && hawk_skad_get_port(ptrs[i]) == 80,
+			"IPv4 initialization and access work in arrays and embedded structures");
+#else
+		skip("IPv4 addresses are unavailable", 1);
+#endif
+#if (HAWK_SIZEOF_STRUCT_SOCKADDR_IN6 > 0)
+		hawk_skad_init_for_ip6(ptrs[i], 443, HAWK_NULL, 7);
+		OK(hawk_skad_get_family(ptrs[i]) == HAWK_AF_INET6 &&
+		   hawk_skad_get_port(ptrs[i]) == 443 && hawk_skad_get_scope_id(ptrs[i]) == 7,
+			"IPv6 initialization and access work in arrays and embedded structures");
+#else
+		skip("IPv6 addresses are unavailable", 1);
+#endif
+	}
+}
+
 static void test_invalid_lengths (void)
 {
 	hawk_uint8_t raw[32] = { 0 };
@@ -602,6 +645,7 @@ int main (void)
 	hawk_uch_t wide[16];
 
 	no_plan();
+	test_native_alignment();
 	test_invalid_lengths();
 	test_unaligned_loopback();
 	test_ipv4_buffers();

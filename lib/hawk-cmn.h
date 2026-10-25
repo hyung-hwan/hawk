@@ -779,9 +779,23 @@ struct hawk_ntime_t
 #define HAWK_ALIGNOF(type) _Alignof(type)
 #elif defined(__cplusplus) && (__cplusplus >= 201103L) /* C++11 */
 #define HAWK_ALIGNOF(type) alignof(type)
+#elif defined(__GNUC__) || defined(__clang__)
+#define HAWK_ALIGNOF(type) __alignof__(type)
+#elif defined(_MSC_VER)
+#define HAWK_ALIGNOF(type) __alignof(type)
+#elif defined(__cplusplus)
+template <typename T> struct hawk_alignof_t
+{
+	hawk_uint8_t d1;
+	T d2;
+};
+#define HAWK_ALIGNOF(type) (HAWK_OFFSETOF(hawk_alignof_t<type>, d2))
+/*#define HAWK_ALIGNOF(type) (HAWK_SIZEOF(hawk_alignof_t<type>) - HAWK_SIZEOF(type))*/
 #else
-#define HAWK_ALIGNOF(type) HAWK_OFFSETOF(struct { hcl_uint8_t d1; type d2; }, d2)
-        /*(sizeof(struct { hcl_uint8_t d1; type d2; }) - sizeof(type))*/
+#define HAWK_ALIGNOF(type) HAWK_OFFSETOF(struct { hawk_uint8_t d1; type d2; }, d2)
+/*#define HAWK_ALIGNOF(type) (HAWK_SIZEOF(struct { hawk_uint8_t d1; type d2; }) - HAWK_SIZEOF(type))
+ this sizeof-difference alternative is mostly equvalent to the offset based calculation.
+ it assumes sizeof(type) is a multiple of its alignment. but some compiler extensions violate it. */
 #endif
 
 /**
