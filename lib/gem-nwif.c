@@ -233,6 +233,11 @@ int hawk_gem_bcharstoifindex (hawk_gem_t* gem, const hawk_bch_t* ptr, hawk_oow_t
 	int h, x;
 	struct ifreq ifr;
 
+	if (hawk_find_bchar_in_bchars(ptr, len, '\0'))
+	{
+		hawk_gem_seterrbfmt(gem, HAWK_NULL, HAWK_EINVAL, "interface name contains a null character");
+		return -1;
+	}
 	HAWK_MEMSET(&ifr, 0, HAWK_SIZEOF(ifr));
 	if (hawk_copy_bchars_to_bcstr(ifr.ifr_name, HAWK_COUNTOF(ifr.ifr_name), ptr, len) < len)
 	{
@@ -266,6 +271,11 @@ int hawk_gem_bcharstoifindex (hawk_gem_t* gem, const hawk_bch_t* ptr, hawk_oow_t
 	hawk_bch_t tmp[IF_NAMESIZE + 1];
 	unsigned int tmpidx;
 
+	if (hawk_find_bchar_in_bchars(ptr, len, '\0'))
+	{
+		hawk_gem_seterrbfmt(gem, HAWK_NULL, HAWK_EINVAL, "interface name contains a null character");
+		return -1;
+	}
 	if (hawk_copy_bchars_to_bcstr(tmp, HAWK_COUNTOF(tmp), ptr, len) < len)
 	{
 		hawk_gem_seterrbfmt(gem, HAWK_NULL, HAWK_EBUFFULL, "interface name too long");
@@ -285,6 +295,11 @@ int hawk_gem_bcharstoifindex (hawk_gem_t* gem, const hawk_bch_t* ptr, hawk_oow_t
 	struct ifconf ifc;
 	int num, i;
 
+	if (hawk_find_bchar_in_bchars(ptr, len, '\0'))
+	{
+		hawk_gem_seterrbfmt(gem, HAWK_NULL, HAWK_EINVAL, "interface name contains a null character");
+		return -1;
+	}
 	if (get_sco_ifconf(gem, &ifc) <= -1) return -1;
 
 	num = ifc.ifc_len / HAWK_SIZEOF(struct ifreq);
@@ -424,6 +439,11 @@ int hawk_gem_ucharstoifindex (hawk_gem_t* gem, const hawk_uch_t* ptr, hawk_oow_t
 	struct ifreq ifr;
 	hawk_oow_t wl, ml;
 
+	if (hawk_find_uchar_in_uchars(ptr, len, '\0'))
+	{
+		hawk_gem_seterrbfmt(gem, HAWK_NULL, HAWK_EINVAL, "interface name contains a null character");
+		return -1;
+	}
 	/* Convert before opening a socket so conversion failures cannot leak it. */
 	wl = len; ml = HAWK_COUNTOF(ifr.ifr_name) - 1;
 	if (hawk_gem_convutobchars(gem, ptr, &wl, ifr.ifr_name, &ml) <= -1) return -1;
@@ -456,6 +476,11 @@ int hawk_gem_ucharstoifindex (hawk_gem_t* gem, const hawk_uch_t* ptr, hawk_oow_t
 	hawk_oow_t wl, ml;
 	unsigned int tmpidx;
 
+	if (hawk_find_uchar_in_uchars(ptr, len, '\0'))
+	{
+		hawk_gem_seterrbfmt(gem, HAWK_NULL, HAWK_EINVAL, "interface name contains a null character");
+		return -1;
+	}
 	wl = len; ml = HAWK_COUNTOF(tmp) - 1;
 	if (hawk_gem_convutobchars(gem, ptr, &wl, tmp, &ml) <= -1) return -1;
 	tmp[ml] = '\0';
@@ -475,6 +500,11 @@ int hawk_gem_ucharstoifindex (hawk_gem_t* gem, const hawk_uch_t* ptr, hawk_oow_t
 	hawk_bch_t tmp[IF_NAMESIZE + 1];
 	hawk_oow_t wl, ml;
 
+	if (hawk_find_uchar_in_uchars(ptr, len, '\0'))
+	{
+		hawk_gem_seterrbfmt(gem, HAWK_NULL, HAWK_EINVAL, "interface name contains a null character");
+		return -1;
+	}
 	wl = len; ml = HAWK_COUNTOF(tmp) - 1;
 	if (hawk_gem_convutobchars(gem, ptr, &wl, tmp, &ml) <= -1) return -1;
 	tmp[ml] = '\0';
@@ -484,7 +514,7 @@ int hawk_gem_ucharstoifindex (hawk_gem_t* gem, const hawk_uch_t* ptr, hawk_oow_t
 	num = ifc.ifc_len / HAWK_SIZEOF(struct ifreq);
 	for (i = 0; i < num; i++)
 	{
-		if (hawk_comp_bcstr(gem, tmp, ifc.ifc_req[i].ifr_name) == 0)
+		if (hawk_comp_bcstr(tmp, ifc.ifc_req[i].ifr_name, 0) == 0)
 		{
 			free_sco_ifconf (gem, &ifc);
 			*index = i + 1;
@@ -538,14 +568,14 @@ int hawk_gem_ifindextobcstr (hawk_gem_t* gem, unsigned int index, hawk_bch_t* bu
 	#endif
 
 	x = ioctl(h, SIOCGIFNAME, &ifr);
-	HAWK_CLOSE(h);
-
 	if (x <= -1)
 	{
 		hawk_gem_seterrnum(gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
+		HAWK_CLOSE(h);
 		return -1;
 	}
 
+	HAWK_CLOSE(h);
 	return hawk_copy_bcstr(buf, len, ifr.ifr_name);
 
 #elif defined(HAVE_IF_INDEXTONAME)
@@ -563,14 +593,18 @@ int hawk_gem_ifindextobcstr (hawk_gem_t* gem, unsigned int index, hawk_bch_t* bu
 	hawk_oow_t ml;
 	int num;
 
-	if (index <= 0) return -1;
+	if (index <= 0)
+	{
+		hawk_gem_seterrnum(gem, HAWK_NULL, HAWK_EINVAL);
+		return -1;
+	}
 	if (get_sco_ifconf(gem, &ifc) <= -1) return -1;
 
 	num = ifc.ifc_len / HAWK_SIZEOF(struct ifreq);
 	if (index > num)
 	{
-		hawk_gem_seterrnum(gem, HAWK_NULL, HAWK_ENOENT);
 		free_sco_ifconf (gem, &ifc);
+		hawk_gem_seterrnum(gem, HAWK_NULL, HAWK_ENOENT);
 		return -1;
 	}
 
@@ -579,6 +613,7 @@ int hawk_gem_ifindextobcstr (hawk_gem_t* gem, unsigned int index, hawk_bch_t* bu
 	return ml;
 
 #else
+	hawk_gem_seterrnum(gem, HAWK_NULL, HAWK_ENOIMPL);
 	return -1;
 #endif
 }
@@ -619,13 +654,14 @@ int hawk_gem_ifindextoucstr (hawk_gem_t* gem, unsigned int index, hawk_uch_t* bu
 	#endif
 
 	x = ioctl(h, SIOCGIFNAME, &ifr);
-	HAWK_CLOSE(h);
-
 	if (x <= -1)
 	{
 		hawk_gem_seterrnum(gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
+		HAWK_CLOSE(h);
 		return -1;
 	}
+
+	HAWK_CLOSE(h);
 
 	wl = len;
 	x = hawk_gem_convbtoucstr(gem, ifr.ifr_name, &ml, buf, &wl, 0);
@@ -655,13 +691,18 @@ int hawk_gem_ifindextoucstr (hawk_gem_t* gem, unsigned int index, hawk_uch_t* bu
 	hawk_oow_t wl, ml;
 	int num, x;
 
-	if (index <= 0) return -1;
+	if (index <= 0)
+	{
+		hawk_gem_seterrnum(gem, HAWK_NULL, HAWK_EINVAL);
+		return -1;
+	}
 	if (get_sco_ifconf(gem, &ifc) <= -1) return -1;
 
 	num = ifc.ifc_len / HAWK_SIZEOF(struct ifreq);
 	if (index > num)
 	{
 		free_sco_ifconf(gem, &ifc);
+		hawk_gem_seterrnum(gem, HAWK_NULL, HAWK_ENOENT);
 		return -1;
 	}
 
@@ -674,6 +715,7 @@ int hawk_gem_ifindextoucstr (hawk_gem_t* gem, unsigned int index, hawk_uch_t* bu
 
 	return wl;
 #else
+	hawk_gem_seterrnum(gem, HAWK_NULL, HAWK_ENOIMPL);
 	return -1;
 #endif
 }

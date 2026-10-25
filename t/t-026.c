@@ -281,6 +281,98 @@ static void test_interface_lookup_errors (hawk_gem_t* gem)
 	}
 }
 
+static void test_interface_name_nuls (hawk_gem_t* gem)
+{
+	struct
+	{
+		const hawk_bch_t* text;
+		hawk_oow_t len;
+	} cases[] =
+	{
+		{ "lo\0junk", HAWK_SIZEOF("lo\0junk") - 1 },
+		{ "\0lo", HAWK_SIZEOF("\0lo") - 1 },
+		{ "lo\0", HAWK_SIZEOF("lo\0") - 1 },
+		{ "l\0o", HAWK_SIZEOF("l\0o") - 1 },
+		{ "\0", 1 }
+	};
+	hawk_bch_t name[128];
+	hawk_uch_t wide[128];
+	hawk_oow_t i, j, len;
+	unsigned int index;
+	hawk_errnum_t errnum;
+	int variant, n;
+
+	for (i = 0; i < HAWK_COUNTOF(cases); i++)
+	{
+		for (j = 0; j < cases[i].len; j++) wide[j] = cases[i].text[j];
+		for (variant = 0; variant < 2; variant++)
+		{
+			index = 12345;
+			hawk_gem_seterrnum(gem, HAWK_NULL, HAWK_ENOERR);
+			if (variant == 0)
+				n = hawk_gem_bcharstoifindex(gem, cases[i].text, cases[i].len, &index);
+			else
+				n = hawk_gem_ucharstoifindex(gem, wide, cases[i].len, &index);
+			errnum = hawk_gem_geterrnum(gem);
+			OK(n <= -1 && index == 12345 && (errnum == HAWK_EINVAL || errnum == HAWK_ENOIMPL),
+				"direct length-based interface lookups reject embedded NULs without changing the output index");
+		}
+	}
+
+	n = hawk_gem_ifindextobcstr(gem, 1, name, HAWK_COUNTOF(name));
+	if (n <= -1 || (hawk_oow_t)n > HAWK_COUNTOF(name) - 3)
+	{
+		skip("a suitable interface name is unavailable", 2);
+		return;
+	}
+	len = n;
+	for (i = 0; i < len; i++)
+	{
+		if ((hawk_uint8_t)name[i] >= 128)
+		{
+			skip("interface name is not ASCII", 2);
+			return;
+		}
+		wide[i] = name[i];
+	}
+	name[len] = wide[len] = '\0';
+	name[len + 1] = wide[len + 1] = '!';
+	index = 12345;
+	OK(hawk_gem_bcharstoifindex(gem, name, len, &index) >= 0 && index == 1,
+		"a NUL outside a byte interface-name slice does not invalidate that slice");
+	index = 12345;
+	OK(hawk_gem_ucharstoifindex(gem, wide, len, &index) >= 0 && index == 1,
+		"a NUL outside a wide interface-name slice does not invalidate that slice");
+}
+
+static void test_reverse_lookup_errors (hawk_gem_t* gem)
+{
+	unsigned int indices[] = { 0, HAWK_TYPE_MAX(unsigned int) };
+	hawk_bch_t bytes[32];
+	hawk_uch_t wide[32];
+	hawk_oow_t i, j;
+	int variant, n, good;
+
+	for (i = 0; i < HAWK_COUNTOF(indices); i++)
+	{
+		for (variant = 0; variant < 2; variant++)
+		{
+			for (j = 0; j < HAWK_COUNTOF(bytes); j++) bytes[j] = wide[j] = 'X';
+			hawk_gem_seterrnum(gem, HAWK_NULL, HAWK_ENOERR);
+			if (variant == 0)
+				n = hawk_gem_ifindextobcstr(gem, indices[i], bytes, HAWK_COUNTOF(bytes));
+			else
+				n = hawk_gem_ifindextoucstr(gem, indices[i], wide, HAWK_COUNTOF(wide));
+			good = n <= -1 && hawk_gem_geterrnum(gem) != HAWK_ENOERR;
+			for (j = 0; j < HAWK_COUNTOF(bytes); j++)
+			{
+				if (bytes[j] != 'X' || wide[j] != 'X') good = 0;
+			}
+			OK(good, "invalid reverse lookups report a diagnostic and preserve both output buffers");
+		}
+	}
+}
+
 #if (HAWK_SIZEOF_STRUCT_SOCKADDR_IN6 > 0)
 static void test_scope_lookup_errors (hawk_gem_t* gem)
 {
@@ -901,6 +993,8 @@ int main (void)
 	hawk = hawk_openstd(0, HAWK_NULL);
 	if (!hawk) { bail_out("cannot open interpreter"); return 1; }
 	test_interface_lookup_errors(hawk_getgem(hawk));
+	test_interface_name_nuls(hawk_getgem(hawk));
+	test_reverse_lookup_errors(hawk_getgem(hawk));
 #if defined(AF_UNIX) && (HAWK_SIZEOF_STRUCT_SOCKADDR_UN > 0)
 	test_unix_path_limits(hawk_getgem(hawk));
 	test_unix_embedded_nuls(hawk_getgem(hawk));
