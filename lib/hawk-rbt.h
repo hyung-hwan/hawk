@@ -269,6 +269,18 @@ struct hawk_rbt_t
 /**
  * The HAWK_RBT_COPIER_INLINE macros defines a copier that copies data into
  * a pair.
+ *
+ * Inline storage follows the pair header. If both the key and the value
+ * are inline, the key space is rounded up to #HAWK_SIZEOF_VOID_P before
+ * the value. The source object's alignment is not preserved, and stronger
+ * alignment is not guaranteed even if the memory allocator provides it.
+ *
+ * The caller must ensure that #HAWK_RBT_KPTR() or #HAWK_RBT_VPTR() satisfies
+ * a type's alignment requirement before accessing the stored data as that
+ * type. This includes alignment imposed by nested members. Casting the
+ * returned pointer does not align the storage. For types requiring stronger
+ * alignment, store a pointer to a separately allocated object, use a custom
+ * copier/freeer, or copy the bytes to a suitably aligned object before access.
  */
 #define HAWK_RBT_COPIER_INLINE ((hawk_rbt_copier_t)2)
 
@@ -614,6 +626,9 @@ HAWK_EXPORT void hawk_rbt_rwalk (
  *   not propagated with any data.
  * - If \a vptr is #HAWK_NULL, the value space of the size \a vlen is reserved
  *   but not propagated with any data.
+ *
+ * The inline storage alignment restrictions documented under
+ * #HAWK_RBT_COPIER_INLINE also apply to the reserved space.
  */
 HAWK_EXPORT hawk_rbt_pair_t* hawk_rbt_allocpair (
 	hawk_rbt_t*  rbt,

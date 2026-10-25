@@ -434,6 +434,11 @@ int hawk_gem_ucharstoskad (hawk_gem_t* gem, const hawk_uch_t* str, hawk_oow_t le
 				const hawk_uch_t* stmp = p;
 				unsigned int index;
 				do p++; while (p < end && *p != ']');
+				if (hawk_find_uchar_in_uchars(stmp, p - stmp, '\0'))
+				{
+					hawk_gem_seterrbfmt(gem, HAWK_NULL, HAWK_EINVAL, "scope id contains a null character");
+					return -1;
+				}
 				if (hawk_gem_ucharstoifindex(gem, stmp, p - stmp, &index) <= -1) return -1;
 				skad->in6.sin6_scope_id = index;
 			}
@@ -506,6 +511,11 @@ int hawk_gem_ucharstoskad (hawk_gem_t* gem, const hawk_uch_t* str, hawk_oow_t le
 					const hawk_uch_t* stmp = p;
 					unsigned int index;
 					do p++; while (p < end);
+					if (hawk_find_uchar_in_uchars(stmp, p - stmp, '\0'))
+					{
+						hawk_gem_seterrbfmt(gem, HAWK_NULL, HAWK_EINVAL, "scope id contains a null character");
+						return -1;
+					}
 					if (hawk_gem_ucharstoifindex(gem, stmp, p - stmp, &index) <= -1) return -1;
 					skad->in6.sin6_scope_id = index;
 				}
@@ -664,6 +674,11 @@ int hawk_gem_bcharstoskad (hawk_gem_t* gem, const hawk_bch_t* str, hawk_oow_t le
 				const hawk_bch_t* stmp = p;
 				unsigned int index;
 				do p++; while (p < end && *p != ']');
+				if (hawk_find_bchar_in_bchars(stmp, p - stmp, '\0'))
+				{
+					hawk_gem_seterrbfmt(gem, HAWK_NULL, HAWK_EINVAL, "scope id contains a null character");
+					return -1;
+				}
 				if (hawk_gem_bcharstoifindex(gem, stmp, p - stmp, &index) <= -1) return -1;
 				skad->in6.sin6_scope_id = index;
 			}
@@ -737,6 +752,11 @@ int hawk_gem_bcharstoskad (hawk_gem_t* gem, const hawk_bch_t* str, hawk_oow_t le
 					const hawk_bch_t* stmp = p;
 					unsigned int index;
 					do p++; while (p < end);
+					if (hawk_find_bchar_in_bchars(stmp, p - stmp, '\0'))
+					{
+						hawk_gem_seterrbfmt(gem, HAWK_NULL, HAWK_EINVAL, "scope id contains a null character");
+						return -1;
+					}
 					if (hawk_gem_bcharstoifindex(gem, stmp, p - stmp, &index) <= -1) return -1;
 					skad->in6.sin6_scope_id = index;
 				}

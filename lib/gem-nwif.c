@@ -314,15 +314,16 @@ int hawk_gem_ucstrtoifindex (hawk_gem_t* gem, const hawk_uch_t* ptr, unsigned in
 	struct ifreq ifr;
 	hawk_oow_t wl, ml;
 
+	/* Convert before opening a socket so conversion failures cannot leak it. */
+	ml = HAWK_COUNTOF(ifr.ifr_name);
+	if (hawk_gem_convutobcstr(gem, ptr, &wl, ifr.ifr_name, &ml) <= -1) return -1;
+
 	h = socket(AF_INET, SOCK_DGRAM, 0);
 	if (h <= -1)
 	{
 		hawk_gem_seterrnum(gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
 		return -1;
 	}
-
-	ml = HAWK_COUNTOF(ifr.ifr_name);
-	if (hawk_gem_convutobcstr(gem, ptr, &wl, ifr.ifr_name, &ml) <= -1) return -1;
 
 	x = ioctl(h, SIOCGIFINDEX, &ifr);
 	HAWK_CLOSE(h);
@@ -406,16 +407,17 @@ int hawk_gem_ucharstoifindex (hawk_gem_t* gem, const hawk_uch_t* ptr, hawk_oow_t
 	struct ifreq ifr;
 	hawk_oow_t wl, ml;
 
+	/* Convert before opening a socket so conversion failures cannot leak it. */
+	wl = len; ml = HAWK_COUNTOF(ifr.ifr_name) - 1;
+	if (hawk_gem_convutobchars(gem, ptr, &wl, ifr.ifr_name, &ml) <= -1) return -1;
+	ifr.ifr_name[ml] = '\0';
+
 	h = socket(AF_INET, SOCK_DGRAM, 0);
 	if (h <= -1)
 	{
 		hawk_gem_seterrnum(gem, HAWK_NULL, hawk_syserr_to_errnum(errno));
 		return -1;
 	}
-
-	wl = len; ml = HAWK_COUNTOF(ifr.ifr_name) - 1;
-	if (hawk_gem_convutobchars(gem, ptr, &wl, ifr.ifr_name, &ml) <= -1) return -1;
-	ifr.ifr_name[ml] = '\0';
 
 	x = ioctl(h, SIOCGIFINDEX, &ifr);
 	HAWK_CLOSE(h);
@@ -607,7 +609,7 @@ int hawk_gem_ifindextoucstr (hawk_gem_t* gem, unsigned int index, hawk_uch_t* bu
 
 	wl = len;
 	x = hawk_gem_convbtoucstr(gem, ifr.ifr_name, &ml, buf, &wl, 0);
-	if (x == -2 && wl > 1) buf[wl - 1] = '\0';
+	if (x == -2 && wl > 1) buf[--wl] = '\0';
 	else if (x != 0) return -1;
 	return wl;
 
@@ -623,7 +625,7 @@ int hawk_gem_ifindextoucstr (hawk_gem_t* gem, unsigned int index, hawk_uch_t* bu
 	}
 	wl = len;
 	x = hawk_gem_convbtoucstr(gem, tmp, &ml, buf, &wl, 0);
-	if (x == -2 && wl > 1) buf[wl - 1] = '\0';
+	if (x == -2 && wl > 1) buf[--wl] = '\0';
 	else if (x != 0) return -1;
 	return wl;
 
@@ -647,7 +649,7 @@ int hawk_gem_ifindextoucstr (hawk_gem_t* gem, unsigned int index, hawk_uch_t* bu
 	x = hawk_gem_convbtoucstr(gem, ifc.ifc_req[index - 1].ifr_name, &ml, buf, &wl, 0);
 	free_sco_ifconf(gem, &ifc);
 
-	if (x == -2 && wl > 1) buf[wl - 1] = '\0';
+	if (x == -2 && wl > 1) buf[--wl] = '\0';
 	else if (x != 0) return -1;
 
 	return wl;

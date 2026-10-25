@@ -3,6 +3,10 @@
 #include "skad-prv.h"
 #include "tap.h"
 
+#if defined(HAVE_UNISTD_H) && !defined(_WIN32) && !defined(__OS2__) && !defined(__DOS__)
+#include <unistd.h>
+#endif
+
 static void test_native_alignment (void)
 {
 	struct
@@ -230,6 +234,166 @@ static void test_address_suffixes (hawk_gem_t* gem, const hawk_bch_t* address, i
 		OK(byte_good && wide_good, "byte and wide address parsers reject trailing text, whitespace, NULs, and extra delimiters");
 	}
 }
+
+#if (HAWK_SIZEOF_STRUCT_SOCKADDR_IN6 > 0)
+static void test_scope_embedded_nuls (hawk_gem_t* gem)
+{
+	struct
+	{
+		const hawk_bch_t* text;
+		hawk_oow_t len;
+	} cases[] =
+	{
+		{ "fe80::1%lo\0junk", HAWK_SIZEOF("fe80::1%lo\0junk") - 1 },
+		{ "[fe80::1%lo\0junk]", HAWK_SIZEOF("[fe80::1%lo\0junk]") - 1 },
+		{ "[fe80::1%lo\0junk]:80", HAWK_SIZEOF("[fe80::1%lo\0junk]:80") - 1 },
+		{ "fe80::1%\0lo", HAWK_SIZEOF("fe80::1%\0lo") - 1 },
+		{ "[fe80::1%\0lo]:80", HAWK_SIZEOF("[fe80::1%\0lo]:80") - 1 },
+		{ "fe80::1%lo\0", HAWK_SIZEOF("fe80::1%lo\0") - 1 },
+		{ "[fe80::1%lo\0]:80", HAWK_SIZEOF("[fe80::1%lo\0]:80") - 1 }
+	};
+	hawk_skad_t skad;
+	hawk_uch_t wide[32];
+	hawk_oow_t i, j;
+	int byte_good, wide_good;
+
+	for (i = 0; i < HAWK_COUNTOF(cases); i++)
+	{
+		for (j = 0; j < cases[i].len; j++) wide[j] = cases[i].text[j];
+		hawk_gem_seterrnum(gem, HAWK_NULL, HAWK_ENOERR);
+		byte_good = hawk_gem_bcharstoskad(gem, cases[i].text, cases[i].len, &skad) == -1 &&
+			hawk_gem_geterrnum(gem) == HAWK_EINVAL;
+		hawk_gem_seterrnum(gem, HAWK_NULL, HAWK_ENOERR);
+		wide_good = hawk_gem_ucharstoskad(gem, wide, cases[i].len, &skad) == -1 &&
+			hawk_gem_geterrnum(gem) == HAWK_EINVAL;
+		OK(byte_good && wide_good, "interface-name scopes reject embedded NULs before OS lookup in both character widths");
+	}
+}
+
+static void test_scope_output_lengths (hawk_gem_t* gem)
+{
+	hawk_skad_t skad;
+	hawk_bch_t name[128], input[160], bytes[164];
+	hawk_uch_t source[160], wide[164];
+	hawk_oow_t i, j, namelen, inputlen, byte_len, wide_len, cap, expected;
+	unsigned int index = 1;
+	int n, good, flags;
+
+	n = hawk_gem_ifindextobcstr(gem, index, name, HAWK_COUNTOF(name));
+	if (n < 2)
+	{
+		skip("an interface with a name of at least two characters is unavailable", 3);
+		return;
+	}
+	namelen = n;
+	for (i = 0; i < namelen; i++)
+	{
+		if ((hawk_uint8_t)name[i] >= 128)
+		{
+			skip("interface name is not ASCII", 3);
+			return;
+		}
+	}
+	inputlen = hawk_copy_bcstr(input, HAWK_COUNTOF(input), "[fe80::1%");
+	inputlen += hawk_copy_bcstr(input + inputlen, HAWK_COUNTOF(input) - inputlen, name);
+	inputlen += hawk_copy_bcstr(input + inputlen, HAWK_COUNTOF(input) - inputlen, "]:80");
+	for (i = 0; i < inputlen; i++) source[i] = input[i];
+	source[inputlen] = '!'; /* A terminator outside the input slice is unnecessary. */
+	good = hawk_gem_bcharstoskad(gem, input, inputlen, &skad) == 0 &&
+		(hawk_uint32_t)hawk_skad_get_scope_id(&skad) == index &&
+		hawk_gem_ucharstoskad(gem, source, inputlen, &skad) == 0 &&
+		(hawk_uint32_t)hawk_skad_get_scope_id(&skad) == index;
+	OK(good, "valid byte and wide interface-name scopes preserve the interface index");
+	if (!good)
+	{
+		skip("cannot parse the selected interface name", 2);
+		return;
+	}
+
+	good = 1;
+	for (cap = 2; cap <= namelen + 2; cap++)
+	{
+		for (i = 0; i < HAWK_COUNTOF(wide); i++) wide[i] = 'X';
+		n = hawk_gem_ifindextoucstr(gem, index, wide + 1, cap);
+		expected = namelen < cap? namelen: cap - 1;
+		if (n <= -1 || (hawk_oow_t)n != expected || wide[expected + 1] != '\0') good = 0;
+		for (i = 0; i < expected; i++) if (wide[i + 1] != (hawk_uch_t)name[i]) good = 0;
+		if (wide[0] != 'X' || wide[cap + 1] != 'X') good = 0;
+	}
+	OK(good, "wide interface-name truncation returns the character count excluding its terminator");
+
+	flags = HAWK_SKAD_TO_BCSTR_ADDR | HAWK_SKAD_TO_BCSTR_PORT;
+	good = 1;
+	for (cap = 0; cap <= inputlen + 3; cap++)
+	{
+		for (i = 0; i < HAWK_COUNTOF(bytes); i++) bytes[i] = wide[i] = 'X';
+		byte_len = hawk_gem_skadtobcstr(gem, &skad, bytes + 1, cap, flags);
+		wide_len = hawk_gem_skadtoucstr(gem, &skad, wide + 1, cap, flags);
+		if (byte_len != wide_len) good = 0;
+		if (cap > 0)
+		{
+			if (byte_len >= cap || wide_len >= cap ||
+			    hawk_count_bcstr_limited(bytes + 1, cap) != byte_len ||
+			    hawk_count_ucstr_limited(wide + 1, cap) != wide_len) good = 0;
+		}
+		for (j = 0; j < cap; j++) if (wide[j + 1] != (hawk_uch_t)bytes[j + 1]) good = 0;
+		if (bytes[0] != 'X' || wide[0] != 'X' || bytes[cap + 1] != 'X' || wide[cap + 1] != 'X') good = 0;
+	}
+	OK(good, "byte and wide scoped-address formatting agree on output and lengths at every buffer boundary");
+}
+
+static void test_scope_descriptor_cleanup (hawk_gem_t* gem)
+{
+#if defined(HAVE_UNISTD_H) && !defined(_WIN32) && !defined(__OS2__) && !defined(__DOS__)
+	hawk_uch_t name[512], address[544];
+	hawk_bch_t ifname[128];
+	hawk_skad_t skad;
+	const hawk_bch_t* prefix = "fe80::1%";
+	hawk_oow_t i, j, len;
+	unsigned int index;
+	int marker[2], before, after, form, repeat, good;
+
+	if (hawk_gem_ifindextobcstr(gem, 1, ifname, HAWK_COUNTOF(ifname)) <= -1 || pipe(marker) <= -1)
+	{
+		skip("interface lookup or descriptor probes are unavailable", 1);
+		return;
+	}
+	before = dup(marker[0]);
+	if (before <= -1)
+	{
+		close(marker[0]);
+		close(marker[1]);
+		skip("descriptor duplication is unavailable", 1);
+		return;
+	}
+	close(before);
+	for (i = 0; i < HAWK_COUNTOF(name) - 1; i++) name[i] = 'a';
+	name[i] = '\0';
+	good = 1;
+	for (repeat = 0; repeat < 10; repeat++)
+	{
+		if (hawk_gem_ucstrtoifindex(gem, name, &index) >= 0) good = 0;
+		if (hawk_gem_ucharstoifindex(gem, name, HAWK_COUNTOF(name) - 1, &index) >= 0) good = 0;
+		for (form = 0; form < 2; form++)
+		{
+			len = 0;
+			if (form) address[len++] = '[';
+			for (j = 0; prefix[j]; j++) address[len++] = prefix[j];
+			for (j = 0; j < HAWK_COUNTOF(name) - 1; j++) address[len++] = name[j];
+			if (form) address[len++] = ']';
+			if (hawk_gem_ucharstoskad(gem, address, len, &skad) >= 0) good = 0;
+		}
+	}
+	after = dup(marker[0]);
+	if (after >= 0) close(after);
+	close(marker[0]);
+	close(marker[1]);
+	OK(good && after == before, "rejected wide names and bracketed or bare IPv6 scopes do not leak descriptors");
+#else
+	skip("descriptor probes are unavailable", 1);
+#endif
+}
+#endif
 
 #if defined(AF_UNIX) && (HAWK_SIZEOF_STRUCT_SOCKADDR_UN > 0)
 static void test_unix_embedded_nuls (hawk_gem_t* gem)
@@ -667,6 +831,9 @@ int main (void)
 	test_address_suffixes(hawk_getgem(hawk), "127.0.0.1", HAWK_AF_INET, 0, 0);
 	test_address_suffixes(hawk_getgem(hawk), "127.0.0.1:80", HAWK_AF_INET, 80, 0);
 #if (HAWK_SIZEOF_STRUCT_SOCKADDR_IN6 > 0)
+	test_scope_embedded_nuls(hawk_getgem(hawk));
+	test_scope_output_lengths(hawk_getgem(hawk));
+	test_scope_descriptor_cleanup(hawk_getgem(hawk));
 	test_scope_id_limits(hawk_getgem(hawk));
 	test_excess_groups(hawk_getgem(hawk));
 	test_invalid_ipv6_syntax(hawk_getgem(hawk));
@@ -678,7 +845,7 @@ int main (void)
 	test_address_suffixes(hawk_getgem(hawk), "::1", HAWK_AF_INET6, 0, 0);
 	test_address_suffixes(hawk_getgem(hawk), "fe80::1%7", HAWK_AF_INET6, 0, 7);
 #else
-	skip("IPv6 is unavailable", 191);
+	skip("IPv6 is unavailable", 202);
 #endif
 	hawk_close(hawk);
 	return exit_status();

@@ -70,9 +70,8 @@ union hawk_skad_t
 	/* for native alignment only. these fields provide native alignment
 	 * without exposing socket headers here. use sizeof(hawk_skad_t),
 	 * not sizeof(data), to allocate this type. */
-	hawk_uintmax_t align_int;
-	hawk_fltmax_t align_flt;
-	void* align_ptr;
+	hawk_uintptr_t _align_word;
+	void* _align_ptr;
 };
 typedef union hawk_skad_t hawk_skad_t;
 
