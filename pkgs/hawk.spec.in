@@ -231,6 +231,9 @@ rm -rf "%{buildroot}"
 %defattr(-,root,root)
 %{_bindir}/hawk
 %{_datadir}/hawk/lang/*.po
+%{_mandir}/man7/hawk-modules.7.gz
+%{_mandir}/man7/hawk-language.7.gz
+%{_mandir}/man1/hawk.1.gz
 
 %files libs
 %defattr(-,root,root)

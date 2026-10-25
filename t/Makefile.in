@@ -839,8 +839,8 @@ check_SCRIPTS = $(am__append_1) h-003.hawk h-004.hawk h-009.hawk \
 	h-030.hawk h-031.hawk regress-filename.sh \
 	regress-extra-info.sh regress-environ.sh regress-m4.sh \
 	regress-sed.sh regress-sh.sh regress-sh-job-control.sh \
-	regress-fnc.sh h-032.hawk h-033.hawk h-034.hawk h-035.hawk \
-	h-036.hawk
+	regress-fnc.sh regress-md2man.sh h-032.hawk h-033.hawk \
+	h-034.hawk h-035.hawk h-036.hawk
 check_ERRORS = e-001.err
 EXTRA_DIST = $(check_SCRIPTS) $(check_ERRORS) tap.inc err.sh \
 	bench-map-keys.hawk bench-int-comparisons.hawk \
@@ -1044,7 +1044,8 @@ ERR_LOG_DRIVER = $(SHELL) $(top_srcdir)/ac/test-driver
 ERR_LOG_COMPILER = env HAWK_SED_COMPILER='$(HAWK_SED_COMPILER)' $(SHELL) $(abs_srcdir)/err.sh $(HAWK_TEST_COMPILER) -vTDIR=${abs_srcdir} $(HAWK_TEST_MODLIBDIRS_OPT) -f
 AM_ERR_LOG_FLAGS = 
 SH_LOG_DRIVER = $(LOG_DRIVER)
-SH_LOG_COMPILER = env HAWK_BIN='$(HAWK_TEST_COMPILER)' FNC_REGRESS_BIN='./fnc-regress$(EXEEXT)' SH_JOB_CONTROL_BIN='./sh-job-control$(EXEEXT)' $(SHELL)
+HAWK_MAN_COMPILER = $(abs_top_builddir)/bin/hawk$(EXEEXT)
+SH_LOG_COMPILER = env HAWK_BIN='$(HAWK_TEST_COMPILER)' HAWK_MAN_COMPILER='$(HAWK_MAN_COMPILER)' FNC_REGRESS_BIN='./fnc-regress$(EXEEXT)' SH_JOB_CONTROL_BIN='./sh-job-control$(EXEEXT)' $(SHELL)
 AM_SH_LOG_FLAGS = 
 all: all-am
 

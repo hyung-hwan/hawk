@@ -1,0 +1,348 @@
+# Convert the Markdown subset used by man/*.md to portable roff man source.
+#
+# Usage:
+#   hawk -v title=HAWK -v section=1 -f tools/md2man.hawk man/hawk.1.md
+#
+# title and section default to the input basename, e.g. hawk-language.7.md.
+# Optional metadata: footer, header, date. These names remain implicit globals
+# so the C runner can register them with -v without duplicate declarations.
+# Conversion uses core functions; sys::openfd/write provide portable stderr.
+#
+# Supported blocks: #/## headings, paragraphs, single-level lists, and fenced
+# code. Inline markup: *italic*, **bold**, code spans, escapes, and links.
+# Unsupported blocks and incomplete markup are errors, rather than silently
+# producing a damaged manual. This is not a full CommonMark/GFM implementation.
+
+@pragma implicit on
+@pragma pedantic on
+@pragma xcall on
+
+@const MD_TICK = "\x60"
+@const MD_PUNCT = "!\"#$%&'()*+,-./:;<=>?@[\\]^_\x60{|}~"
+@global md_paragraph = "", md_label = "", md_paragraph_line = 0
+@global md_fence = "", md_fence_length = 0, md_fence_indent = 0, md_fence_line = 0
+@global md_error_line = 0
+
+function bad_input(message)
+{
+	@local fd, name
+
+	name = FILENAME
+	if (name == "") name = ARGC > 1? ARGV[1]: "<stdin>"
+	fd = sys::openfd(2)
+	if (fd >= 0)
+		sys::write(fd, sprintf("md2man: %s:%d: %s\n", name, md_error_line, message))
+	@exit 1
+}
+
+function trim_text(text)
+{
+	sub(/^[ \t]+/, "", text)
+	sub(/[ \t]+$/, "", text)
+	return text
+}
+
+function has_control(text)
+{
+	return text ~ /[\x00-\x08\x0a-\x1f\x7f]/
+}
+
+function roff_escape(text)
+{
+	@local result = "", i, ch
+
+	for (i = 1; i <= length(text); i++)
+	{
+		ch = substr(text, i, 1)
+		if (ch == "\\") result %%= "\\e"
+		else if (ch == "-") result %%= "\\-"
+		else if (ch == "\"") result %%= "\\(dq"
+		else result %%= ch
+	}
+	return result
+}
+
+function font_escape(bold, italic)
+{
+	if (bold && italic) return "\\f(BI"
+	if (bold) return "\\fB"
+	if (italic) return "\\fI"
+	return "\\fR"
+}
+
+function run_length(text, pos, ch)
+{
+	@local end = pos
+
+	while (substr(text, end, 1) == ch) end++
+	return end - pos
+}
+
+function code_end(text, pos, count)
+{
+	@local n
+
+	while (pos <= length(text))
+	{
+		if (substr(text, pos, 1) != MD_TICK) { pos++; continue }
+		n = run_length(text, pos, MD_TICK)
+		if (n == count) return pos
+		pos += n
+	}
+	return 0
+}
+
+function bracket_end(text, pos, left, right)
+{
+	@local depth = 1, ch, n, end
+
+	for (pos++; pos <= length(text); pos++)
+	{
+		ch = substr(text, pos, 1)
+		if (ch == "\\") { pos++; continue }
+		if (ch == MD_TICK && left == "[")
+		{
+			n = run_length(text, pos, MD_TICK)
+			end = code_end(text, pos + n, n)
+			if (end == 0) return 0
+			pos = end + n - 1
+		}
+		else if (ch == left) depth++
+		else if (ch == right && --depth == 0) return pos
+	}
+	return 0
+}
+
+function unescape_link(text)
+{
+	@local result = "", i, ch
+
+	for (i = 1; i <= length(text); i++)
+	{
+		ch = substr(text, i, 1)
+		if (ch == "\\" && index(MD_PUNCT, substr(text, i + 1, 1)) > 0 && i < length(text))
+			ch = substr(text, ++i, 1)
+		result %%= ch
+	}
+	return result
+}
+
+function inline_text(text, depth, outer_bold, outer_italic)
+{
+	@local result = "", bold = !!outer_bold, italic = !!outer_italic
+	@local i = 1, ch, n, end, label_end, value, label, target, page
+
+	# Only link labels recurse. Bound that nesting independently of input size.
+	if (depth > 16) bad_input("inline link nesting exceeds 16")
+	while (i <= length(text))
+	{
+		ch = substr(text, i, 1)
+		if (ch == "\\" && i < length(text) && index(MD_PUNCT, substr(text, i + 1, 1)) > 0)
+		{
+			result %%= roff_escape(substr(text, i + 1, 1))
+			i += 2
+		}
+		else if (ch == MD_TICK)
+		{
+			n = run_length(text, i, MD_TICK)
+			end = code_end(text, i + n, n)
+			if (end == 0) bad_input("unterminated inline code span")
+			value = substr(text, i + n, end - i - n)
+			if (substr(value, 1, 1) == " " && substr(value, length(value), 1) == " " && value ~ /[^ ]/)
+				value = substr(value, 2, length(value) - 2)
+			result %%= "\\f(CR" %% roff_escape(value) %% font_escape(bold, italic)
+			i = end + n
+		}
+		else if (ch == "*")
+		{
+			n = run_length(text, i, "*")
+			if (n > 2) bad_input("use separated single or double asterisks for emphasis")
+			if (n == 2) bold = !bold
+			else italic = !italic
+			result %%= font_escape(bold, italic)
+			i += n
+		}
+		else if (ch == "[" && (label_end = bracket_end(text, i, "[", "]")) > 0 &&
+		         substr(text, label_end + 1, 1) == "(")
+		{
+			end = bracket_end(text, label_end + 1, "(", ")")
+			if (end == 0) bad_input("unterminated link destination")
+			label = substr(text, i + 1, label_end - i - 1)
+			target = unescape_link(substr(text, label_end + 2, end - label_end - 2))
+			if (target == "" || target ~ /[ \t]/) bad_input("link destinations must be nonempty and contain no whitespace")
+			page = target
+			sub(/#.*/, "", page)
+			if (page ~ /^[A-Za-z0-9_-]+\.[1-9]\.md$/)
+			{
+				value = substr(page, 1, length(page) - 5)
+				result %%= font_escape(1, italic) %% roff_escape(value) %% font_escape(bold, italic) %% "(" %% substr(page, length(page) - 3, 1) %% ")"
+			}
+			else
+			{
+				result %%= inline_text(label, depth + 1, bold, italic) %% font_escape(bold, italic)
+				if (substr(target, 1, 1) != "#" && target != label)
+					result %%= " (" %% roff_escape(target) %% ")"
+			}
+			i = end + 1
+		}
+		else
+		{
+			if (ch == "!" && substr(text, i + 1, 1) == "[") bad_input("images are not supported")
+			if (substr(text, i, 2) == "~~") bad_input("strikethrough is not supported")
+			if (ch == "<" && substr(text, i) ~ /^<\/?[A-Za-z][^>]*>/) bad_input("raw HTML is not supported")
+			result %%= roff_escape(ch)
+			i++
+		}
+	}
+	if (bold != !!outer_bold || italic != !!outer_italic) bad_input("unterminated emphasis")
+	return result
+}
+
+function flush_paragraph()
+{
+	if (md_paragraph == "") return
+	md_error_line = md_paragraph_line
+	if (md_label != "") printf(".IP \"%s\" 4\n", md_label)
+	else print ".PP"
+	# Every input-derived text line is guarded against roff control requests.
+	print "\\&" %% inline_text(md_paragraph, 0)
+	md_paragraph = md_label = ""
+}
+
+function code_line(text)
+{
+	@local result = "", column = 0, i, n, ch
+
+	for (i = 0; i < md_fence_indent && substr(text, 1, 1) == " "; i++)
+		text = substr(text, 2)
+	for (i = 1; i <= length(text); i++)
+	{
+		ch = substr(text, i, 1)
+		if (ch == "\t")
+		{
+			n = 8 - column % 8
+			result %%= sprintf("%*s", n, "")
+			column += n
+		}
+		else { result %%= roff_escape(ch); column++ }
+	}
+	print "\\&" %% result
+}
+
+function convert_line(line)
+{
+	@local text, indent, ch, n, heading
+
+	md_error_line = FNR
+	sub(/\r$/, "", line)
+	if (has_control(line)) bad_input("control character in Markdown input")
+	text = trim_text(line)
+	indent = match(line, /[^ \t]/) - 1
+	if (indent < 0) indent = length(line)
+	if (index(substr(line, 1, indent), "\t")) indent = 4
+	ch = substr(text, 1, 1)
+
+	if (md_fence != "")
+	{
+		n = run_length(text, 1, md_fence)
+		if (indent <= 3 && n >= md_fence_length && trim_text(substr(text, n + 1)) == "")
+		{
+			print ".ft R\n.fi\n.RE"
+			md_fence = ""
+		}
+		else code_line(line)
+		return
+	}
+
+	if ((ch == MD_TICK || ch == "~") && (n = run_length(text, 1, ch)) >= 3)
+	{
+		flush_paragraph()
+		md_error_line = FNR
+		if (indent > 3) bad_input("indented code must use a top-level fence")
+		if (ch == MD_TICK && index(substr(text, n + 1), MD_TICK)) bad_input("backtick in code-fence info string")
+		md_fence = ch
+		md_fence_length = n
+		md_fence_indent = indent
+		md_fence_line = FNR
+		print ".PP\n.RS 4\n.nf\n.ft CR"
+		return
+	}
+
+	if (text == "") { flush_paragraph(); return }
+	if (text ~ /^#+([ \t]|$)/)
+	{
+		flush_paragraph()
+		md_error_line = FNR
+		n = run_length(text, 1, "#")
+		if (n > 2) bad_input("only level-one and level-two headings are supported")
+		heading = trim_text(substr(text, n + 1))
+		sub(/[ \t]+#+[ \t]*$/, "", heading)
+		if (heading == "") bad_input("empty heading")
+		printf(".%s \"%s\"\n", n == 1? "SH": "SS", inline_text(heading, 0))
+		return
+	}
+	if (text ~ /^[-+*][ \t]+/ || text ~ /^[0-9]+[.)][ \t]+/)
+	{
+		flush_paragraph()
+		md_error_line = FNR
+		if (indent > 0) bad_input("nested lists are not supported")
+		if (text ~ /^[0-9]/)
+		{
+			match(text, /^[0-9]+[.)][ \t]+/)
+			n = RLENGTH
+			md_label = substr(text, 1, n)
+			sub(/[.)][ \t]+$/, ".", md_label)
+			text = substr(text, n + 1)
+		}
+		else { md_label = "\\(bu"; text = substr(text, 3) }
+		text = trim_text(text)
+		if (text ~ /^\[[ xX]\]([ \t]|$)/) bad_input("task lists are not supported")
+		md_paragraph = text
+		md_paragraph_line = FNR
+		return
+	}
+
+	if (text ~ /^[|>]/ || text ~ /^\[[^]]+\]:/ ||
+	    text ~ /^([-*_][ \t]*){3,}$/ || text ~ /^=+[ \t]*$/)
+		bad_input("unsupported Markdown block; use headings, lists, paragraphs, or fenced code")
+	if ((indent > 3 || substr(line, 1, 1) == "\t") && md_label == "")
+		bad_input("use fenced code rather than indented code")
+	if (md_paragraph == "") md_paragraph_line = FNR
+	else md_paragraph %%= " "
+	md_paragraph %%= text
+}
+
+BEGIN {
+	@local name, metadata
+
+	RS = ORS = "\n"
+	if (ARGC > 2) bad_input("expected one Markdown input file")
+	name = ARGC > 1? ARGV[1]: ""
+	gsub(/\\/, "/", name)
+	sub(/^.*\//, "", name)
+	if (name ~ /^[A-Za-z0-9_-]+\.[1-9]\.md$/)
+	{
+		if (title == "") title = toupper(substr(name, 1, length(name) - 5))
+		if (section == "") section = substr(name, length(name) - 3, 1)
+	}
+	if (title == "" || section !~ /^[1-9]$/)
+		bad_input("set title and a manual section from 1 to 9, or use a name.N.md input filename")
+	metadata = title %% section %% footer %% header %% date
+	if (has_control(metadata) || index(metadata, "\t"))
+		bad_input("control character in manual metadata")
+	print ".\\\" Generated by tools/md2man.hawk; edit the Markdown source."
+	printf(".TH \"%s\" \"%s\" \"%s\" \"%s\" \"%s\"\n",
+		roff_escape(title), roff_escape(section), roff_escape(date),
+		roff_escape(footer), roff_escape(header))
+}
+
+{ convert_line($0) }
+
+END {
+	if (md_fence != "")
+	{
+		md_error_line = md_fence_line
+		bad_input("unterminated fenced code block")
+	}
+	flush_paragraph()
+}

@@ -8,7 +8,7 @@ EXTRA_DIST = $(gosrc_DATA) hawk_test.go hawk-io_test.go hawk-src_test.go hawk-ht
 
 SUBDIRS =
 
-SUBDIRS += tools lib mod bin samples t
+SUBDIRS += tools lib mod bin man samples t
 #if ENABLE_STATIC_MODULE
 #SUBDIRS += tools mod lib bin samples t
 #else
@@ -37,7 +37,7 @@ CGO_CFLAGS_ADD=
 CGO_LDFLAGS_ADD=
 endif
 
-hawkgo.check:
+hawkgo-check:
 	HAWK_TEST_MODLIBDIRS="$(abs_builddir)/mod/.libs" \
 	CC=$(CC) \
 	CGO_CFLAGS="-I$(abs_srcdir)/lib -I$(abs_builddir)/lib -I$(abs_srcdir)/mod $(CFLAGS) $(CGO_CFLAGS_EXTRA) $(CGO_CFLAGS_ADD)" \
@@ -47,6 +47,11 @@ hawkgo.check:
 
 endif
 ######################################################################
+
+man-pages: FORCE_MAN_PAGES
+	cd man && $(MAKE) $(AM_MAKEFLAGS) man-pages
+
+FORCE_MAN_PAGES:
 
 rpm: dist-gzip
 	mkdir -p "@abs_builddir@/pkgs/RPM/BUILD"

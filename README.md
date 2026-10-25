@@ -7,6 +7,7 @@ The library is stable, portable, and designed for projects that need a scripting
 ![Hawk](hawk.png)
 
 ## Table of Contents
+- [Manual Pages](man/README.md)
 - [Features](#features)
 - [Building Hawk From Source Code](#building-hawk-from-source-code)
 - [Embedding Hawk in C Applications](#embedding-hawk-in-c-applications)
@@ -66,6 +67,16 @@ The library is stable, portable, and designed for projects that need a scripting
 		- [Positional variable expression](#positional-variable-expression)
 		- [Return value of getline](#return-value-of-getline)
 		- [Others](#others)
+
+## Manual Pages
+
+The [manual index](man/README.md) links to the command-line, language, module,
+and Go HTTP server references. The Markdown sources are readable directly in
+the repository and generate the installed `hawk(1)`, `hawkgo(1)`,
+`hawk-language(7)`, and `hawk-modules(7)` pages using Hawk itself. The pages
+are generated during the build and installed by `make install` or
+`make install-data`. Use `make man-pages` to build just the manuals.
+No external documentation tool is required.
 
 ## Features
 

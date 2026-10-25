@@ -1258,6 +1258,7 @@ AC_CONFIG_FILES([
 	lib/Makefile 
 	mod/Makefile 
 	bin/Makefile
+	man/Makefile
 	samples/Makefile
 	samples/wb/run.sh
 	t/Makefile

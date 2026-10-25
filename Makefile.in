@@ -198,8 +198,8 @@ am__DIST_COMMON = $(srcdir)/Makefile.in $(top_srcdir)/ac/ar-lib \
 	$(top_srcdir)/ac/tap-driver.sh $(top_srcdir)/ac/test-driver \
 	$(top_srcdir)/pkgs/hawk.spec.in \
 	$(top_srcdir)/samples/wb/run.sh.in README.md ac/ar-lib \
-	ac/compile ac/config.guess ac/config.sub ac/install-sh \
-	ac/ltmain.sh ac/missing
+	ac/compile ac/config.guess ac/config.sub ac/depcomp \
+	ac/install-sh ac/ltmain.sh ac/missing
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 distdir = $(PACKAGE)-$(VERSION)
 top_distdir = $(distdir)
@@ -411,7 +411,7 @@ ACLOCAL_AMFLAGS = -I m4
 gosrcdir = $(datadir)/hawk/go
 gosrc_DATA = go.mod hawk.go hawk-inst.go hawk-io.go hawk-src.go hawk-http.go hawk-httpd.go hawk-httpd-req.go
 EXTRA_DIST = $(gosrc_DATA) hawk_test.go hawk-io_test.go hawk-src_test.go hawk-httpd_test.go
-SUBDIRS = tools lib mod bin samples t
+SUBDIRS = tools lib mod bin man samples t
 #if ENABLE_STATIC_MODULE
 #SUBDIRS += tools mod lib bin samples t
 #else
@@ -942,7 +942,7 @@ clean-local:
 @ENABLE_HAWKGO_TRUE@	rm -rf $(builddir)/go.mod $(builddir)/go.sum
 @ENABLE_HAWKGO_TRUE@	go clean -C $(srcdir) -x -modfile $(abs_srcdir)/go.mod -cache
 
-@ENABLE_HAWKGO_TRUE@hawkgo.check:
+@ENABLE_HAWKGO_TRUE@hawkgo-check:
 @ENABLE_HAWKGO_TRUE@	HAWK_TEST_MODLIBDIRS="$(abs_builddir)/mod/.libs" \
 @ENABLE_HAWKGO_TRUE@	CC=$(CC) \
 @ENABLE_HAWKGO_TRUE@	CGO_CFLAGS="-I$(abs_srcdir)/lib -I$(abs_builddir)/lib -I$(abs_srcdir)/mod $(CFLAGS) $(CGO_CFLAGS_EXTRA) $(CGO_CFLAGS_ADD)" \
@@ -951,6 +951,11 @@ clean-local:
 @ENABLE_HAWKGO_TRUE@	go clean -C $(srcdir) -x -modfile $(abs_srcdir)/go.mod
 
 ######################################################################
+
+man-pages: FORCE_MAN_PAGES
+	cd man && $(MAKE) $(AM_MAKEFLAGS) man-pages
+
+FORCE_MAN_PAGES:
 
 rpm: dist-gzip
 	mkdir -p "@abs_builddir@/pkgs/RPM/BUILD"
