@@ -466,6 +466,23 @@ else hawk_printf(HAWK_T("get_char => %c\n"), com->c);
 	return 0;
 }
 
+/* read a bracket member literally. recognize unsupported locale collation
+ * prefixes here so they cannot slip through as ordinary members or range
+ * endpoints. character classes beginning with [: remain supported. */
+static int get_cset_char (comp_t* com)
+{
+	if (getc_noesc(com) <= -1) return -1;
+	if (com->c.value == HAWK_T('[') && com->ptr < com->end &&
+	    (*com->ptr == HAWK_T('.') || *com->ptr == HAWK_T('=')))
+	{
+		hawk_gem_seterrbfmt(com->rex->gem, HAWK_NULL, HAWK_ENOSUP,
+			"%s are not supported in regular expressions",
+			(*com->ptr == HAWK_T('.'))? "collating symbols": "equivalence classes");
+		return -1;
+	}
+	return 0;
+}
+
 struct ccinfo_t
 {
 	hawk_oocs_t name;
@@ -568,7 +585,7 @@ static int charclass (comp_t* com)
 
 	/* the character class ends inside the enclosing bracket expression.
 	 * read its next member literally, including a possible backslash. */
-	if (getc_noesc(com) <= -1) return -1;
+	if (get_cset_char(com) <= -1) return -1;
 	return (int)(ccp - ccinfo);
 }
 
@@ -596,7 +613,7 @@ static int charset (comp_t* com, hawk_rex_node_t* node)
 	{
 		/* negate an expression */
 		node->u.cset.negated = 1;
-		if (getc_noesc(com) <= -1) return -1;
+		if (get_cset_char(com) <= -1) return -1;
 	}
 
 
@@ -626,7 +643,7 @@ static int charset (comp_t* com, hawk_rex_node_t* node)
 
 		/* backslash is an ordinary bracket member, not an escape prefix.
 		 * In particular, it must not consume the closing ']' in [\]. */
-		if (getc_noesc(com) <= -1) return -1;
+		if (get_cset_char(com) <= -1) return -1;
 		c2 = com->c.value;
 
 		if (c1 == HAWK_T('[') && c2 == HAWK_T(':'))
@@ -649,7 +666,7 @@ static int charset (comp_t* com, hawk_rex_node_t* node)
 		}
 		else if (c2 == HAWK_T('-'))
 		{
-			if (getc_noesc(com) <= -1) return -1;
+			if (get_cset_char(com) <= -1) return -1;
 			if (IS_SPE(com, HAWK_T(']')))
 			{
 				hawk_ooch_t tmp[4];
@@ -690,7 +707,7 @@ static int charset (comp_t* com, hawk_rex_node_t* node)
 				ADD_CSET_CODE (com, node, tmp, HAWK_COUNTOF(tmp));
 			}
 
-			if (getc_noesc(com) <= -1) return -1;
+			if (get_cset_char(com) <= -1) return -1;
 		}
 		else
 		{
@@ -877,7 +894,7 @@ static hawk_rex_node_t* comp_atom (comp_t* com)
 				if (atom == HAWK_NULL) return HAWK_NULL;
 				/* bracket members, including the first one, are read
 				 * without interpreting backslash escapes. */
-				if (getc_noesc(com) <= -1) return HAWK_NULL;
+				if (get_cset_char(com) <= -1) return HAWK_NULL;
 				if (charset(com, atom) <= -1) return HAWK_NULL;
 				break;
 

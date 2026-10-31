@@ -9,6 +9,7 @@
  * This is a C-locale, complete-match investigation, not a proof of full POSIX
  * conformance. rex has no BRE mode or subgroup-result API. The generated sweep
  * uses the common ERE syntax; fixed cases separately identify missing syntax.
+ * Unsupported locale collation syntax is tested for explicit rejection.
  * No system regex API or external scripting language is required to run it.
  */
 #include "hawk-prv.h"
@@ -179,6 +180,63 @@ static void test_errors (hawk_gem_t* gem)
 	}
 	OK(hawk_rex_geterrmsg(&rex) == hawk_gem_geterrmsg(gem), "regex diagnostic getter borrows the gem message");
 	hawk_rex_fini(&rex);
+	hawk_rex_fini(&rex);
+}
+
+/* Locale collation is outside rex's supported syntax. These cases verify
+ * rejection, including where a prefix might otherwise become a literal
+ * bracket member or a range endpoint. Both parser modes must reject it. */
+static void test_unsupported_syntax (hawk_gem_t* gem, allocator_t* a)
+{
+	static const struct
+	{
+		const hawk_ooch_t* pattern;
+		int equivalence;
+	} cases[] =
+	{
+		{ HAWK_T("[[.a.]]"), 0 },
+		{ HAWK_T("[[.ch.]]"), 0 },
+		{ HAWK_T("[^[.a.]]"), 0 },
+		{ HAWK_T("[x[.a.]]"), 0 },
+		{ HAWK_T("[[:digit:][.a.]]"), 0 },
+		{ HAWK_T("[a-b[.a.]]"), 0 },
+		{ HAWK_T("[A-[.a.]]"), 0 },
+		{ HAWK_T("[[.a.]-z]"), 0 },
+		{ HAWK_T("[[=a=]]"), 1 },
+		{ HAWK_T("[^x[=a=]]"), 1 },
+		{ HAWK_T("[[:digit:][=a=]]"), 1 },
+		{ HAWK_T("[a-b[=a=]]"), 1 },
+		{ HAWK_T("[A-[=a=]]"), 1 },
+		{ HAWK_T("[[=a=]-z]"), 1 }
+	};
+	hawk_rex_t rex;
+	hawk_rex_node_t* old;
+	hawk_oocs_t str = { HAWK_T("kept"), 4 };
+	const hawk_ooch_t* message;
+	hawk_oow_t i, baseline;
+	int mode;
+
+	hawk_rex_init(&rex, gem, HAWK_NULL);
+	old = hawk_rex_comp(&rex, str.ptr, str.len);
+	if (!old) bail_out("cannot compile unsupported-syntax baseline");
+	baseline = a->live;
+	for (mode = 0; mode < 2; mode++)
+	{
+		hawk_rex_setopt(&rex, mode? HAWK_REX_STRICT: 0);
+		for (i = 0; i < HAWK_COUNTOF(cases); i++)
+		{
+			message = cases[i].equivalence?
+				HAWK_T("equivalence classes are not supported in regular expressions"):
+				HAWK_T("collating symbols are not supported in regular expressions");
+			OK(!hawk_rex_comp(&rex, cases[i].pattern, hawk_count_oocstr(cases[i].pattern)) &&
+				hawk_rex_geterrnum(&rex) == HAWK_ENOSUP,
+				"locale collation syntax is explicitly unsupported in both parser modes");
+			OK(hawk_comp_oocstr(hawk_rex_geterrmsg(&rex), message, 0) == 0,
+				"unsupported collation diagnostic identifies the rejected construct");
+			OK(rex.code == old && a->live == baseline && hawk_rex_exec(&rex, &str, &str, HAWK_NULL) == 1,
+				"unsupported syntax releases partial graphs and preserves usable old code");
+		}
+	}
 	hawk_rex_fini(&rex);
 }
 
@@ -394,6 +452,11 @@ static void test_posix_cases (hawk_gem_t* gem, int strict)
 		ERE("[]a]+", "]aa", 1, 0, 3, "POSIX leading closing bracket is literal"),
 		ERE("[-a]+", "-aa", 1, 0, 3, "POSIX leading hyphen is literal"),
 		ERE("[a-]+", "a--", 1, 0, 3, "POSIX trailing hyphen is literal"),
+		ERE("[.a]+", ".aa", 1, 0, 3, "ordinary period in a bracket is not a collating-symbol prefix"),
+		ERE("[=a]+", "=aa", 1, 0, 3, "ordinary equals sign in a bracket is not an equivalence-class prefix"),
+		ERE("[[a]+", "[aa", 1, 0, 3, "ordinary opening bracket remains a literal bracket member"),
+		ERE("\\[\\.a\\.\\]", "[.a.]", 1, 0, 5, "escaped collating-symbol-like text outside brackets is literal"),
+		ERE("\\[=a=\\]", "[=a=]", 1, 0, 5, "escaped equivalence-class-like text outside brackets is literal"),
 		ERE("[.^$*+?(){}|]+", ".^$*+?(){}|", 1, 0, 11, "POSIX metacharacters are literal inside brackets"),
 		ERE("[[:alnum:]]+", "!?aB09_#", 1, 2, 4, "POSIX alnum class"),
 		ERE("[[:alpha:]]+", "12aB_!", 1, 2, 2, "POSIX alpha class"),
@@ -424,8 +487,6 @@ static void test_posix_cases (hawk_gem_t* gem, int strict)
 		ERE("(a*){2}", "", 1, 0, 0, "POSIX repeated nullable group can satisfy its lower bound"),
 		ERE("(a?){2}", "", 1, 0, 0, "POSIX optional group can repeat twice without consuming input"),
 		ERE("(a*){2}", "ba", 1, 0, 0, "POSIX nullable group must not skip an earlier empty match"),
-		GAP("[[.a.]]", "a", 1, 0, 1, "POSIX C-locale single-character collating symbol", "collating-symbol bracket syntax is not implemented"),
-		GAP("[[=a=]]", "a", 1, 0, 1, "POSIX C-locale single-character equivalence class", "equivalence-class bracket syntax is not implemented"),
 		ERE("[\\]", "\\", 1, 0, 1, "POSIX backslash inside a bracket is literal"),
 		ERE("[^\\]", "\\", 0, 0, 0, "POSIX negated bracket excludes a literal backslash"),
 		ERE("[^\\]", "a", 1, 0, 1, "POSIX negated backslash bracket accepts other characters"),
@@ -765,6 +826,7 @@ int main (int argc, char* argv[])
 	baseline = a.live;
 	test_matches(gem);
 	test_errors(gem);
+	test_unsupported_syntax(gem, &a);
 	test_lifetimes(gem, &a);
 	test_posix_cases(gem, strict);
 	if (sweep) test_posix_sweep(gem);

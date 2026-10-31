@@ -33,6 +33,15 @@
  *
  * Regular Expression Syntax
  *
+ * Rex provides an ERE-style syntax with explicit limitations; it does not
+ * implement full POSIX regex conformance or a separate BRE syntax mode.
+ * Character matching and ranges use character values rather than locale
+ * collation rules. Locale-specific collating symbols such as [[.a.]] and
+ * equivalence classes such as [[=a=]] are deliberately unsupported.
+ * Compilation rejects these constructs with HAWK_ENOSUP and a diagnostic
+ * identifying the construct. Named character classes such as [[:alpha:]]
+ * remain supported through Hawk's character classification routines.
+ *
  *  regular expression := branch_set
  *  branch_set := branch [ '|' branch ]*
  *  atom := char | '.' | '^' | '$' | subgroup
