@@ -566,7 +566,9 @@ static int charclass (comp_t* com)
 		return -1;
 	}
 
-	if (getc_esc(com) <= -1) return -1;
+	/* the character class ends inside the enclosing bracket expression.
+	 * read its next member literally, including a possible backslash. */
+	if (getc_noesc(com) <= -1) return -1;
 	return (int)(ccp - ccinfo);
 }
 
@@ -611,10 +613,8 @@ static int charset (comp_t* com, hawk_rex_node_t* node)
 
 	do
 	{
-		int x1, x2;
 		hawk_ooci_t c1, c2;
 
-		x1 = com->c.escaped;
 		c1 = com->c.value;
 		/* Test the integer token before narrowing it to a character. EOF
 		 * is not representable by byte or 16-bit character types. */
@@ -624,12 +624,12 @@ static int charset (comp_t* com, hawk_rex_node_t* node)
 			return -1;
 		}
 
-		if (getc_esc(com) <= -1) return -1;
-		x2 = com->c.escaped;
+		/* backslash is an ordinary bracket member, not an escape prefix.
+		 * In particular, it must not consume the closing ']' in [\]. */
+		if (getc_noesc(com) <= -1) return -1;
 		c2 = com->c.value;
 
-		if (!x1 && c1 == HAWK_T('[') &&
-		    !x2 && c2 == HAWK_T(':'))
+		if (c1 == HAWK_T('[') && c2 == HAWK_T(':'))
 		{
 			int n;
 			hawk_ooch_t tmp[2];
@@ -647,9 +647,9 @@ static int charset (comp_t* com, hawk_rex_node_t* node)
 			tmp[1] = n;
 			ADD_CSET_CODE (com, node, tmp, HAWK_COUNTOF(tmp));
 		}
-		else if (!x2 && c2 == HAWK_T('-'))
+		else if (c2 == HAWK_T('-'))
 		{
-			if (getc_esc(com) <= -1) return -1;
+			if (getc_noesc(com) <= -1) return -1;
 			if (IS_SPE(com, HAWK_T(']')))
 			{
 				hawk_ooch_t tmp[4];
@@ -690,7 +690,7 @@ static int charset (comp_t* com, hawk_rex_node_t* node)
 				ADD_CSET_CODE (com, node, tmp, HAWK_COUNTOF(tmp));
 			}
 
-			if (getc_esc(com) <= -1) return -1;
+			if (getc_noesc(com) <= -1) return -1;
 		}
 		else
 		{
@@ -702,6 +702,7 @@ static int charset (comp_t* com, hawk_rex_node_t* node)
 	}
 	while (!IS_SPE(com,HAWK_T(']')));
 
+	/* the bracket expression has ended. resume normal escape processing. */
 	if (getc_esc(com) <= -1) return -1;
 	return 0;
 }
@@ -874,7 +875,9 @@ static hawk_rex_node_t* comp_atom (comp_t* com)
 			case HAWK_T('['):
 				atom = newnode(com, HAWK_REX_NODE_CSET);
 				if (atom == HAWK_NULL) return HAWK_NULL;
-				if (getc_esc(com) <= -1) return HAWK_NULL;
+				/* bracket members, including the first one, are read
+				 * without interpreting backslash escapes. */
+				if (getc_noesc(com) <= -1) return HAWK_NULL;
 				if (charset(com, atom) <= -1) return HAWK_NULL;
 				break;
 

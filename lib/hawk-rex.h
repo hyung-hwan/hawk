@@ -41,12 +41,17 @@
  *  bounded_atom := atom [ bound ]
  *  branch := bounded_atom bounded_atom*
  *
- * Escape sequences include \xXX, \t, \n, \r, \f, \b, \v, and \a.
+ * Outside bracket expressions, escape sequences include \xXX, \t, \n,
+ * \r, \f, \b, \v, and \a.
  * Wide-character builds also accept \uXXXX, and 32-bit character builds
  * accept \UXXXXXXXX. Octal escapes and numeric backreferences are not enabled.
  *
- * A special character preceded by a backslash loses its special role and
- * matches the character itself literally.
+ * Outside bracket expressions, a special character preceded by a backslash
+ * loses its special role and matches the character itself literally.
+ * Inside bracket expressions, backslash is an ordinary character: [\]
+ * matches a backslash, and [\n] matches either a backslash or the letter n.
+ * Use actual character values inside brackets to match tabs, newlines, or
+ * other characters that would otherwise be written with escape sequences.
  *
  * Some examples of compiled regular expressions are shown below.
  *
