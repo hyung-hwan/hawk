@@ -29,7 +29,7 @@
 #include <hawk-ecs.h>
 #include <hawk-str.h>
 
-/** @file
+/** \file
  *
  * Regular Expression Syntax
  *
@@ -53,7 +53,12 @@
  * Outside bracket expressions, escape sequences include \xXX, \t, \n,
  * \r, \f, \b, \v, and \a.
  * Wide-character builds also accept \uXXXX, and 32-bit character builds
- * accept \UXXXXXXXX. Octal escapes and numeric backreferences are not enabled.
+ * accept \UXXXXXXXX. Octal escapes are not enabled.
+ * Outside brackets, \1 through \9 are numeric backreferences to previously
+ * closed groups. Forward references and references to open or nonexistent
+ * groups fail compilation with HAWK_EREXSUBREG. A reference to a group that
+ * did not participate fails to match; a participating empty group matches
+ * an empty string. Backreferences honor HAWK_REX_IGNORECASE.
  *
  * Outside bracket expressions, a special character preceded by a backslash
  * loses its special role and matches the character itself literally.
@@ -64,7 +69,7 @@
  *
  * Some examples of compiled regular expressions are shown below.
  *
- * @code
+ * \code
  * ab
  * START --@ NOP --@  CHAR(a) --@ CHAR(b) --@ END
  *
@@ -82,10 +87,8 @@
  *                             |                          |
  *                             | <= u.b.alter             |
  *                             +--@ CHAR(c) --@ CHAR(d) --+
- * @endcode
+ * \endcode
  *
- * @todo
- * - support \\n to refer to the nth matching substring
  */
 
 enum hawk_rex_option_t
@@ -134,6 +137,8 @@ struct hawk_rex_node_t
 		{
 			hawk_gem_t*     gem; /* borrowed owner of all nodes in this graph */
 			hawk_rex_node_t* link;
+			hawk_oow_t nsub; /* numbered capturing groups */
+			int backrefs; /* execution must retain captures even without output */
 		} s;
 
 		hawk_ooch_t c;
@@ -154,6 +159,7 @@ struct hawk_rex_node_t
 			hawk_rex_node_t* head;
 			hawk_rex_node_t* end;
 			int pseudo;
+			hawk_oow_t index; /* zero-based capture index; unused for pseudo groups */
 		} g;
 
 		struct
@@ -182,11 +188,12 @@ enum hawk_rex_cset_code_t
 	HAWK_REX_CSET_CLASS
 };
 
-/** @struct hawk_rex_t
+/** \struct hawk_rex_t
  * The hawk_rex_t type defines a regular expression processor.
  * It compiles a graph and finds the leftmost-longest whole match in an
- * explicit-length string. Captured subgroup results and backreferences are
- * not implemented. This engine is independent of the interpreter's TRE API.
+ * explicit-length string. hawk_rex_execx() also reports captured groups;
+ * numeric pattern backreferences are supported as an ERE extension.
+ * This engine is independent of the interpreter's TRE API.
  *
  * The supplied gem is borrowed and handles allocation, character conversion,
  * and diagnostics. It must outlive the object and any graph compiled with it.
@@ -228,7 +235,7 @@ HAWK_EXPORT int hawk_rex_init (
 
 /**
  * The hawk_rex_fini() function finalizes a statically initialized
- * regular expression object @a rex.
+ * regular expression object \a rex.
  */
 HAWK_EXPORT void hawk_rex_fini (
 	hawk_rex_t* rex
@@ -247,8 +254,8 @@ HAWK_EXPORT void* hawk_rex_getxtn (
 /**
  * The hawk_rex_yield() function gives up the ownership of a compiled regular
  * expression. Once yielded, the compiled regular expression is not destroyed
- * when @a rex is closed or finalized.
- * @return start node of a compiled regular expression
+ * when \a rex is closed or finalized.
+ * \return start node of a compiled regular expression
  */
 HAWK_EXPORT hawk_rex_node_t* hawk_rex_yield (
 	hawk_rex_t* rex /**< regular expression processor */
@@ -301,6 +308,26 @@ HAWK_EXPORT int hawk_rex_exec (
 	hawk_oocs_t*        matstr
 );
 
+/** Return the number of capturing groups, or zero without compiled code. */
+HAWK_EXPORT hawk_oow_t hawk_rex_getnsub (
+	const hawk_rex_t* rex
+);
+
+/** Like hawk_rex_exec(), with whole-match and capture output. matches[0] is
+ * the whole match; matches[1..] follow opening-parenthesis order. Unmatched
+ * groups and surplus entries receive {NULL, 0}; an empty participating group
+ * has a non-NULL pointer and zero length. Output changes only on success.
+ * A zero count permits a NULL matches pointer. Equal-length whole matches
+ * prefer participating, then longer, then earlier captures in group order.
+ * Repeated groups report their last completed participation. */
+HAWK_EXPORT int hawk_rex_execx (
+	hawk_rex_t*        rex,
+	const hawk_oocs_t* str,
+	const hawk_oocs_t* substr,
+	hawk_oocs_t*       matches,
+	hawk_oow_t         count
+);
+
 
 /** Compile and detach a graph owned by gem; return NULL on failure. */
 HAWK_EXPORT hawk_rex_node_t* hawk_rex_build (
@@ -318,6 +345,17 @@ HAWK_EXPORT int hawk_rex_match (
 	const hawk_oocs_t* str,
 	const hawk_oocs_t* substr,
 	hawk_oocs_t*       match
+);
+
+/** Borrow a compiled graph and return captures as in hawk_rex_execx(). */
+HAWK_EXPORT int hawk_rex_matchx (
+	hawk_gem_t*        gem,
+	hawk_rex_node_t*   code,
+	int                option,
+	const hawk_oocs_t* str,
+	const hawk_oocs_t* substr,
+	hawk_oocs_t*       matches,
+	hawk_oow_t         count
 );
 
 /** Release a detached graph through the gem recorded in its start node. */

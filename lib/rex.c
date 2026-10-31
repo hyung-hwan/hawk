@@ -41,9 +41,11 @@ struct comp_t
 	{
 		hawk_ooci_t value;
 		int escaped;
+		int backref; /* raw \\1..\\9, not a digit produced by \\x or \\u */
 	} c;
 
 	hawk_oow_t gdepth; /* group depth */
+	unsigned int closed_groups; /* previously closed groups 1..9 */
 	hawk_rex_node_t* start;
 };
 
@@ -74,6 +76,8 @@ struct exec_t
 	hawk_oow_t nmatches;
 	int failed; /* a candidate callback can fail even on the final array slot */
 	const hawk_ooch_t* matchend; /* 1 character past the match end */
+	hawk_oow_t ncaps;
+	hawk_oocs_t* bestcaps;
 };
 
 typedef struct pair_t pair_t;
@@ -87,7 +91,10 @@ struct pair_t
  * traces of subgroups. The actual traces are maintained in a stack
  * of sinlgly linked group_t elements. The head element acts
  * as a management element where the occ field is a reference count
- * and the node field is HAWK_NULL always
+ * and the node field is HAWK_NULL always. When capture tracking is active,
+ * the head owns a trailing array of completed capture slices. Keep this
+ * head even after the last active group is popped: a later backreference
+ * or the final match result can still need those completed captures.
  */
 typedef struct group_t group_t;
 struct group_t
@@ -95,6 +102,16 @@ struct group_t
 	hawk_rex_node_t* node;
 	hawk_oow_t occ;
 	group_t* next;
+	hawk_oow_t revision; /* head: capture changes; member: value at iteration start */
+	union
+	{
+		const hawk_ooch_t* start; /* start of the current group iteration */
+		struct
+		{
+			hawk_oow_t count;
+			hawk_oocs_t* ptr; /* completed captures, stored after the head */
+		} caps;
+	} u;
 };
 
 typedef struct cand_t cand_t;
@@ -342,6 +359,8 @@ static int get_char (comp_t* com, int noesc)
 {
 	hawk_ooch_t c;
 
+	com->c.backref = 0;
+
 	if (com->ptr >= com->end)
 	{
 		com->c.value = HAWK_OOCI_EOF;
@@ -356,6 +375,7 @@ static int get_char (comp_t* com, int noesc)
 
 	CHECK_END (com);
 	c = *com->ptr++;
+	if (c >= HAWK_T('1') && c <= HAWK_T('9')) com->c.backref = c - HAWK_T('0');
 
 	if (c == HAWK_T('n')) c = HAWK_T('\n');
 	else if (c == HAWK_T('r')) c = HAWK_T('\r');
@@ -795,6 +815,7 @@ static hawk_rex_node_t* comp_group (comp_t* com)
 
 	ge = newgroupendnode(com, g);
 	if (ge == HAWK_NULL) return HAWK_NULL;
+	g->u.g.index = com->start->u.s.nsub++;
 
 	/* skip '(' */
 	if (getc_esc(com) <= -1) return HAWK_NULL;
@@ -814,6 +835,7 @@ static hawk_rex_node_t* comp_group (comp_t* com)
 	}
 
 	com->gdepth--;
+	if (g->u.g.index < 9) com->closed_groups |= 1u << g->u.g.index;
 
 	/* skip ')' */
 	if (getc_esc(com) <= -1) return HAWK_NULL;
@@ -862,7 +884,21 @@ static hawk_rex_node_t* comp_atom (comp_t* com)
 {
 	hawk_rex_node_t* atom;
 
-	if (!IS_ESC(com))
+	if (com->c.backref)
+	{
+		if (!(com->closed_groups & (1u << (com->c.backref - 1))))
+		{
+			hawk_gem_seterrbfmt(com->rex->gem, HAWK_NULL, HAWK_EREXSUBREG,
+				"backreference refers to an unclosed or nonexistent group");
+			return HAWK_NULL;
+		}
+		atom = newnode(com, HAWK_REX_NODE_BACKREF);
+		if (!atom) return HAWK_NULL;
+		atom->u.bref.index = com->c.backref - 1;
+		com->start->u.s.backrefs = 1;
+		if (getc_esc(com) <= -1) return HAWK_NULL;
+	}
+	else if (!IS_ESC(com))
 	{
 		switch (com->c.value)
 		{
@@ -1124,6 +1160,7 @@ hawk_rex_node_t* hawk_rex_comp (hawk_rex_t* rex, const hawk_ooch_t* ptr, hawk_oo
 	c.c.value = HAWK_OOCI_EOF;
 
 	c.gdepth = 0;
+	c.closed_groups = 0;
 	c.start = HAWK_NULL;
 
 	/* read the first character */
@@ -1195,6 +1232,30 @@ static void refdowngroupstack(group_t* gs, hawk_gem_t* gem)
 	}
 }
 
+static group_t* newgrouphead (exec_t* e, const group_t* source)
+{
+	group_t* head;
+	hawk_oow_t bytes;
+
+	if (e->ncaps > (HAWK_TYPE_MAX(hawk_oow_t) - HAWK_SIZEOF(*head)) / HAWK_SIZEOF(hawk_oocs_t))
+	{
+		hawk_gem_seterrnum(e->rex->gem, HAWK_NULL, HAWK_ENOMEM);
+		return HAWK_NULL;
+	}
+	bytes = e->ncaps * HAWK_SIZEOF(hawk_oocs_t);
+	head = (group_t*)hawk_gem_allocmem(e->rex->gem, HAWK_SIZEOF(*head) + bytes);
+	if (!head) return HAWK_NULL;
+	head->node = HAWK_NULL;
+	head->occ = 0;
+	head->next = HAWK_NULL;
+	head->revision = source? source->revision: 0;
+	head->u.caps.count = e->ncaps;
+	head->u.caps.ptr = (hawk_oocs_t*)(head + 1);
+	if (source) HAWK_MEMCPY(head->u.caps.ptr, source->u.caps.ptr, bytes);
+	else HAWK_MEMSET(head->u.caps.ptr, 0, bytes);
+	return head;
+}
+
 static group_t* dupgroupstackmembers (exec_t* e, group_t* g)
 {
 	group_t* yg, * xg = HAWK_NULL;
@@ -1231,14 +1292,17 @@ static group_t* dupgroupstack (exec_t* e, group_t* gs)
 	/*The head of a group stack must point to HAWK_NULL for management purpose.*/
 	HAWK_ASSERT(gs->node == HAWK_NULL);
 
-	head = dupgroupstackmembers(e, gs);
-	if (head == HAWK_NULL) return HAWK_NULL;
-
-	/* The duplicated stack head must not be corrupted */
-	HAWK_ASSERT(head->node == HAWK_NULL && head->node == gs->node && head->occ == gs->occ);
-
-	/* reset the reference count of a duplicated stack */
-	head->occ = 0;
+	head = newgrouphead(e, gs);
+	if (!head) return HAWK_NULL;
+	if (gs->next)
+	{
+		head->next = dupgroupstackmembers(e, gs->next);
+		if (!head->next)
+		{
+			hawk_gem_freemem(e->rex->gem, head);
+			return HAWK_NULL;
+		}
+	}
 	return head;
 }
 
@@ -1255,20 +1319,13 @@ static group_t* __groupstackpush (exec_t* e, group_t* gs, hawk_rex_node_t* gn, i
 	{
 		/* gn is the first group pushed. no stack yet.
 		 * create the head to store management info. */
-		head = (group_t*)hawk_gem_allocmem(e->rex->gem, HAWK_SIZEOF(*head));
+		head = newgrouphead(e, HAWK_NULL);
 		if (head == HAWK_NULL)
 		{
 			hawk_gem_seterrnum(e->rex->gem, HAWK_NULL, HAWK_ENOMEM);
 			return HAWK_NULL;
 		}
 
-		/* the head does not point to any group node. */
-		head->node = HAWK_NULL;
-		/* the occ field is used for reference counting.
-		 * refupgroupstack and refdowngroupstack update it. */
-		head->occ = 0;
-		/* the head links to the first actual group */
-		head->next = HAWK_NULL;
 	}
 	else
 	{
@@ -1301,6 +1358,8 @@ static group_t* __groupstackpush (exec_t* e, group_t* gs, hawk_rex_node_t* gn, i
 	/* initialize the element */
 	elem->node = gn;
 	elem->occ = 0;
+	elem->u.start = HAWK_NULL;
+	elem->revision = head->revision;
 
 	/* make it the top */
 	elem->next = head->next;
@@ -1320,13 +1379,16 @@ static group_t* dupgroupstackpop (exec_t* e, group_t* gs)
 	HAWK_ASSERT(gs != HAWK_NULL);
 	/* The head of a group stack must point to HAWK_NULL for management purpose. */
 	HAWK_ASSERT(gs->node == HAWK_NULL);
-	/* dupgroupstackpop() needs at least two data elements */
-	HAWK_ASSERT(gs->next != HAWK_NULL && gs->next->next != HAWK_NULL);
+	HAWK_ASSERT(gs->next != HAWK_NULL);
 
-	dupg = dupgroupstackmembers(e, gs->next->next);
-	if (dupg == HAWK_NULL) return HAWK_NULL;
+	dupg = HAWK_NULL;
+	if (gs->next->next)
+	{
+		dupg = dupgroupstackmembers(e, gs->next->next);
+		if (!dupg) return HAWK_NULL;
+	}
 
-	head = (group_t*)hawk_gem_allocmem(e->rex->gem, HAWK_SIZEOF(*head));
+	head = newgrouphead(e, gs);
 	if (head == HAWK_NULL)
 	{
 		if (dupg != HAWK_NULL) freegroupstackmembers(dupg, e->rex->gem);
@@ -1350,8 +1412,7 @@ static group_t* groupstackpop (exec_t* e, group_t* gs)
 	/* The head of a group stack must point to HAWK_NULL for management purpose. */
 	HAWK_ASSERT(gs->node == HAWK_NULL);
 
-	/* groupstackpop() needs at least two data elements */
-	HAWK_ASSERT(gs->next != HAWK_NULL && gs->next->next != HAWK_NULL);
+	HAWK_ASSERT(gs->next != HAWK_NULL);
 
 
 	top = gs->next;
@@ -1371,9 +1432,14 @@ static int addsimplecand (exec_t* e, group_t* group, hawk_rex_node_t* node, hawk
 		node->id == HAWK_REX_NODE_EOL ||
 		node->id == HAWK_REX_NODE_ANY ||
 		node->id == HAWK_REX_NODE_CHAR ||
-		node->id == HAWK_REX_NODE_CSET
+		node->id == HAWK_REX_NODE_CSET ||
+		node->id == HAWK_REX_NODE_BACKREF
 	);
 
+	/* Once an unbounded atom's minimum is met, larger counts describe
+	 * the same future choices. Saturate them so capture snapshots with
+	 * equivalent state can still be merged. Bounded counts stay exact. */
+	if (e->ncaps && node->occ.max == OCC_MAX && occ > node->occ.min) occ = node->occ.min;
 	cand.node = node;
 	cand.occ = occ;
 	cand.group = group;
@@ -1393,14 +1459,40 @@ static int addsimplecand (exec_t* e, group_t* group, hawk_rex_node_t* node, hawk
 		return 0;
 	}
 
+	/* Queued capture states must be snapshots: addcands() may continue
+	 * modifying the current path after publishing another candidate. */
+	if (e->ncaps)
+	{
+		cand.group = dupgroupstack(e, group);
+		if (!cand.group) return -1;
+	}
 	if (hawk_arr_insert(&e->cand.set[e->cand.pending], HAWK_ARR_SIZE(&e->cand.set[e->cand.pending]), &cand, 1) == HAWK_ARR_NIL)
 	{
+		if (e->ncaps) freegroupstack(cand.group, e->rex->gem);
 		hawk_gem_seterrnum(e->rex->gem, HAWK_NULL, HAWK_ENOMEM);
 		return -1;
 	}
 
 	/* the reference must be decremented by the freeer */
-	refupgroupstack(group);
+	refupgroupstack(cand.group);
+	return 0;
+}
+
+/* Whole-match length takes precedence. On a tie, compare captures in
+ * opening-parenthesis order: participation, length, then starting position.
+ * This makes selection independent of candidate arrival order. */
+static int bettercaptures (exec_t* e, const group_t* group)
+{
+	hawk_oow_t i;
+	const hawk_oocs_t* caps = group->u.caps.ptr;
+
+	for (i = 0; i < e->ncaps; i++)
+	{
+		if (!!caps[i].ptr != !!e->bestcaps[i].ptr) return caps[i].ptr != HAWK_NULL;
+		if (!caps[i].ptr) continue;
+		if (caps[i].len != e->bestcaps[i].len) return caps[i].len > e->bestcaps[i].len;
+		if (caps[i].ptr != e->bestcaps[i].ptr) return caps[i].ptr < e->bestcaps[i].ptr;
+	}
 	return 0;
 }
 
@@ -1430,7 +1522,12 @@ warpback:
 	{
 		case HAWK_REX_NODE_END:
 		{
-			if (e->matchend == HAWK_NULL || mptr >= e->matchend) e->matchend = mptr;
+			if (e->matchend == HAWK_NULL || mptr > e->matchend ||
+			    (e->ncaps && mptr == e->matchend && bettercaptures(e, group)))
+			{
+				e->matchend = mptr;
+				if (e->ncaps) HAWK_MEMCPY(e->bestcaps, group->u.caps.ptr, e->ncaps * HAWK_SIZEOF(*e->bestcaps));
+			}
 			e->nmatches++;
 			break;
 		}
@@ -1475,13 +1572,11 @@ warpback:
 
 			while (front->id == HAWK_REX_NODE_NOP) front = front->next;
 
-			if (front->id == HAWK_REX_NODE_GROUPEND)
+			if (front->id == HAWK_REX_NODE_GROUPEND && !e->ncaps)
 			{
-				/* if GROUPEND is reached, the group
-				 * is empty. jump to the next node
-				 * regardless of its occurrence.
-				 * however, this will never be reached
-				 * as it has been removed in comp() */
+				/* an empty group cannot affect a whole-match-only
+				 * search. with capture tracking, process it normally
+				 * so participation is recorded even at zero length. */
 				curcand = curcand->next;
 				goto warpback;
 			}
@@ -1491,8 +1586,8 @@ warpback:
 
 			/* add the first node in the group to
 			 * the candidate array */
-			/* A newly created stack needs a local owner until a candidate
-			 * retains it. Early branch/allocation failures may occur before
+			/* a newly created stack needs a local owner until a candidate
+			 * retains it. early branch/allocation failures may occur before
 			 * any candidate is added to either cleanup array. */
 			if (!group)
 			{
@@ -1500,6 +1595,7 @@ warpback:
 				refupgroupstack(owned_group);
 			}
 			group = gx;
+			if (e->ncaps) group->next->u.start = mptr;
 			curcand = front;
 			goto warpback;
 		}
@@ -1525,7 +1621,16 @@ warpback:
 			/*GROUPEND must be paired up with GROUP */
 			HAWK_ASSERT(group != HAWK_NULL && group->next != HAWK_NULL);
 
-			if (prevnode == curcand && group->next->occ >= curcand->u.ge.group->occ.min)
+			top = group->next;
+			node = top->node;
+
+			/* the stack entry must identify this GROUPEND's GROUP. */
+			HAWK_ASSERT(node == curcand->u.ge.group);
+
+			if (prevnode == curcand && top->occ >= node->occ.min &&
+			    (!e->ncaps || (top->revision == group->revision &&
+			     group->u.caps.ptr[node->u.g.index].ptr == top->u.start &&
+			     group->u.caps.ptr[node->u.g.index].len == (hawk_oow_t)(mptr - top->u.start))))
 			{
 				/* consider a pattern like (x*)*.
 				 * when GROUPEND is reached, an 'if' block
@@ -1545,17 +1650,27 @@ warpback:
 				 * once the minimum is satisfied, the preceding
 				 * iteration has already explored the continuation.
 				 * stop this empty path to prevent an infinite loop
-				 * in patterns such as (a*)*. */
+				 * in patterns such as (a*)*. With captures, first allow
+				 * an empty iteration that changes any captured value:
+				 * (a?)+\\1 can consume "a", then capture an empty
+				 * iteration and satisfy the empty backreference. */
 				break;
 			}
 
-			top = group->next;
 			top->occ++;
 
+			/* unbounded group counts likewise need only distinguish
+			 * whether the minimum has been reached. */
+			if (e->ncaps && node->occ.max == OCC_MAX && top->occ > node->occ.min) top->occ = node->occ.min;
+
 			occ = top->occ;
-			node = top->node;
-			/* The GROUP node in the group stack must be the one pairing up with the GROUPEND node. */
-			HAWK_ASSERT(node == curcand->u.ge.group);
+			if (e->ncaps)
+			{
+				hawk_oocs_t* capture = &group->u.caps.ptr[node->u.g.index];
+				if (capture->ptr != top->u.start || capture->len != (hawk_oow_t)(mptr - top->u.start)) group->revision++;
+				capture->ptr = (hawk_ooch_t*)top->u.start;
+				capture->len = mptr - top->u.start;
+			}
 
 			if (occ >= node->occ.min)
 			{
@@ -1567,7 +1682,7 @@ warpback:
 				 * node can be added to the candiate array.
 				 * it is actually a branch case. move on. */
 
-				if (top->next == HAWK_NULL)
+				if (top->next == HAWK_NULL && !e->ncaps)
 				{
 					/* only one element in the stack.
 					 * falls back to HAWK_NULL regardless
@@ -1612,6 +1727,11 @@ warpback:
 			if (occ < node->occ.max)
 			{
 				/* repeat itself. */
+				if (e->ncaps)
+				{
+					group->next->u.start = mptr;
+					group->next->revision = group->revision;
+				}
 				prevnode = curcand;
 				curcand = node->u.g.head;
 				goto warpback;
@@ -1620,7 +1740,25 @@ warpback:
 			break;
 		}
 
+		case HAWK_REX_NODE_BACKREF:
+		{
+			const hawk_oocs_t* capture = &group->u.caps.ptr[curcand->u.bref.index];
+
+			if (!capture->ptr) break;
+			if (capture->len == 0)
+			{
+				/* an empty backreference is an epsilon transition.
+				 * any permitted number of repetitions has the same
+				 * effect. keep prevnode so surrounding empty group
+				 * loops still reach the GROUPEND cycle guard. */
+				curcand = curcand->next;
+				goto warpback;
+			}
+			goto add_simple;
+		}
+
 		default:
+	add_simple:
 		{
 			int n;
 
@@ -1802,9 +1940,30 @@ static hawk_arr_walk_t walk_cands_for_match (hawk_arr_t* arr, hawk_oow_t index, 
 			break;
 		}
 
+		case HAWK_REX_NODE_BACKREF:
+		{
+			const hawk_oocs_t* capture = &cand->group->u.caps.ptr[node->u.bref.index];
+			hawk_oow_t i;
+
+			/* unmatched and empty captures are different. only a capture
+			 * that actually participated may satisfy a backreference. */
+			if (!capture->ptr || capture->len > (hawk_oow_t)(e->sub.end - cand->mptr)) break;
+			for (i = 0; i < capture->len; i++)
+			{
+				if (e->rex->option & HAWK_REX_IGNORECASE)
+				{
+					if (hawk_to_ooch_upper((hawk_oochu_t)capture->ptr[i]) !=
+					    hawk_to_ooch_upper((hawk_oochu_t)cand->mptr[i])) break;
+				}
+				else if (capture->ptr[i] != cand->mptr[i]) break;
+			}
+			if (i == capture->len) nmptr = cand->mptr + capture->len;
+			break;
+		}
+
 		default:
 		{
-			HAWK_ASSERT("node ID must be one of HAWK_REX_NODE_BOL, HAWK_REX_NODE_EOL, HAWK_REX_NODE_ANY, HAWK_REX_NODE_CHAR, HAWK_REX_NODE_CSET, HAWK_REX_NODE_NOP" == HAWK_NULL);
+			HAWK_ASSERT("invalid simple regex node" == HAWK_NULL);
 			break;
 		}
 	}
@@ -1863,6 +2022,7 @@ static hawk_arr_walk_t walk_cands_for_match (hawk_arr_t* arr, hawk_oow_t index, 
 static int exec (exec_t* e)
 {
 	int n;
+	group_t* initial = HAWK_NULL;
 
 	e->nmatches = 0;
 	e->matchend = HAWK_NULL;
@@ -1871,19 +2031,26 @@ static int exec (exec_t* e)
 	e->cand.active = 1;
 
 	/* empty the pending set to collect the initial candidates */
-	hawk_arr_clear (&e->cand.set[e->cand.pending]);
+	hawk_arr_clear(&e->cand.set[e->cand.pending]);
 
 	/* the first node must be the START node */
 	HAWK_ASSERT(e->rex->code->id == HAWK_REX_NODE_START);
 
 	/* collect an initial set of candidates into the pending set */
+	if (e->ncaps)
+	{
+		initial = newgrouphead(e, HAWK_NULL);
+		if (!initial) return -1;
+		refupgroupstack(initial);
+	}
 	n = addcands(
 		e,                  /* execution structure */
-		HAWK_NULL,           /* doesn't belong to any groups yet */
+		initial,            /* empty active group stack, possibly retaining captures */
 		e->rex->code,       /* dummy previous node, the start node */
 		e->rex->code->next, /* start from the second node */
 		e->sub.ptr          /* current match pointer */
 	);
+	refdowngroupstack(initial, e->rex->gem);
 	if (n <= -1) return -1;
 
 	do
@@ -1908,7 +2075,7 @@ static int exec (exec_t* e)
 		}
 
 		/* clear the pending set */
-		hawk_arr_clear (&e->cand.set[e->cand.pending]);
+		hawk_arr_clear(&e->cand.set[e->cand.pending]);
 
 #ifdef XTRA_DEBUG
 		{
@@ -1987,6 +2154,7 @@ static int comp_cand (hawk_arr_t* arr, const void* dptr1, hawk_oow_t dlen1, cons
 
 	const group_t* g1;
 	const group_t* g2;
+	hawk_oow_t i, ncaps, revision1, revision2;
 
 	/* first compare the current atom states:
 	 * - node identifies the exact position in the compiled regex graph
@@ -2018,6 +2186,17 @@ static int comp_cand (hawk_arr_t* arr, const void* dptr1, hawk_oow_t dlen1, cons
 	 * in the equality test. The following elements hold actual groups */
 	HAWK_ASSERT(g1->node == HAWK_NULL);
 	HAWK_ASSERT(g2->node == HAWK_NULL);
+	ncaps = g1->u.caps.count;
+	revision1 = g1->revision;
+	revision2 = g2->revision;
+	if (ncaps != g2->u.caps.count) return 1;
+	/* Completed captures survive after their groups are popped. They
+	 * affect both backreferences and the reported winning captures. */
+	for (i = 0; i < ncaps; i++)
+	{
+		if (g1->u.caps.ptr[i].ptr != g2->u.caps.ptr[i].ptr ||
+		    g1->u.caps.ptr[i].len != g2->u.caps.ptr[i].len) return 1;
+	}
 	g1 = g1->next;
 	g2 = g2->next;
 
@@ -2030,6 +2209,10 @@ static int comp_cand (hawk_arr_t* arr, const void* dptr1, hawk_oow_t dlen1, cons
 	while (g1 && g2)
 	{
 		if (g1->node != g2->node || g1->occ != g2->occ) return 1;
+		if (ncaps && g1->u.start != g2->u.start) return 1;
+		/* only whether a capture changed during this iteration matters;
+		 * absolute serial numbers are bookkeeping, not matching state. */
+		if (ncaps && (g1->revision == revision1) != (g2->revision == revision2)) return 1;
 		g1 = g1->next;
 		g2 = g2->next;
 	}
@@ -2085,8 +2268,27 @@ int hawk_rex_exec (
 	hawk_rex_t* rex, const hawk_oocs_t* str,
 	const hawk_oocs_t* substr, hawk_oocs_t* matstr)
 {
+	return hawk_rex_execx(rex, str, substr, matstr, matstr? 1: 0);
+}
+
+hawk_oow_t hawk_rex_getnsub (const hawk_rex_t* rex)
+{
+	return rex->code? rex->code->u.s.nsub: 0;
+}
+
+int hawk_rex_execx (
+	hawk_rex_t* rex, const hawk_oocs_t* str,
+	const hawk_oocs_t* substr, hawk_oocs_t* matches, hawk_oow_t count)
+{
 	exec_t e;
 	int n = 0;
+	hawk_oow_t i;
+
+	if (count && !matches)
+	{
+		hawk_gem_seterrnum(rex->gem, HAWK_NULL, HAWK_EINVAL);
+		return -1;
+	}
 
 	if (rex->code == HAWK_NULL)
 	{
@@ -2102,11 +2304,27 @@ int hawk_rex_exec (
 	e.sub.ptr = substr->ptr;
 	e.sub.end = substr->ptr + substr->len;
 
-	if (init_exec_dds (&e, rex->gem) <= -1) return -1;
+	if (init_exec_dds(&e, rex->gem) <= -1) return -1;
+	if (count > 1 || rex->code->u.s.backrefs) e.ncaps = rex->code->u.s.nsub;
+	if (e.ncaps)
+	{
+		if (e.ncaps > HAWK_TYPE_MAX(hawk_oow_t) / HAWK_SIZEOF(*e.bestcaps))
+		{
+			hawk_gem_seterrnum(rex->gem, HAWK_NULL, HAWK_ENOMEM);
+			n = -1;
+			goto done;
+		}
+		e.bestcaps = (hawk_oocs_t*)hawk_gem_allocmem(rex->gem, e.ncaps * HAWK_SIZEOF(*e.bestcaps));
+		if (!e.bestcaps)
+		{
+			n = -1;
+			goto done;
+		}
+	}
 
 	while (e.sub.ptr <= e.sub.end)
 	{
-		n = exec (&e);
+		n = exec(&e);
 		if (n <= -1)
 		{
 			n = -1;
@@ -2117,10 +2335,19 @@ int hawk_rex_exec (
 		{
 			HAWK_ASSERT(e.nmatches > 0);
 			HAWK_ASSERT(e.matchend != HAWK_NULL);
-			if (matstr)
+			if (count)
 			{
-				matstr->ptr = (hawk_ooch_t*)e.sub.ptr;
-				matstr->len = e.matchend - e.sub.ptr;
+				matches[0].ptr = (hawk_ooch_t*)e.sub.ptr;
+				matches[0].len = e.matchend - e.sub.ptr;
+				for (i = 1; i < count; i++)
+				{
+					if (i - 1 < e.ncaps) matches[i] = e.bestcaps[i - 1];
+					else
+					{
+						matches[i].ptr = HAWK_NULL;
+						matches[i].len = 0;
+					}
+				}
 			}
 			break;
 		}
@@ -2129,7 +2356,9 @@ int hawk_rex_exec (
 		e.sub.ptr++;
 	}
 
-	fini_exec_dds (&e);
+done:
+	if (e.bestcaps) hawk_gem_freemem(rex->gem, e.bestcaps);
+	fini_exec_dds(&e);
 
 	return n;
 }
@@ -2154,12 +2383,18 @@ hawk_rex_node_t* hawk_rex_build (hawk_gem_t* gem, int option, const hawk_ooch_t*
 int hawk_rex_match (hawk_gem_t* gem, hawk_rex_node_t* code, int option,
 	const hawk_oocs_t* str, const hawk_oocs_t* substr, hawk_oocs_t* match)
 {
+	return hawk_rex_matchx(gem, code, option, str, substr, match, match? 1: 0);
+}
+
+int hawk_rex_matchx (hawk_gem_t* gem, hawk_rex_node_t* code, int option,
+	const hawk_oocs_t* str, const hawk_oocs_t* substr, hawk_oocs_t* matches, hawk_oow_t count)
+{
 	hawk_rex_t rex;
 	int n;
 
 	hawk_rex_init(&rex, gem, code);
 	hawk_rex_setopt(&rex, option);
-	n = hawk_rex_exec(&rex, str, substr, match);
+	n = hawk_rex_execx(&rex, str, substr, matches, count);
 	hawk_rex_yield(&rex);
 	hawk_rex_fini(&rex);
 	return n;

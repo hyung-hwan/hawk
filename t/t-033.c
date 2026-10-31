@@ -7,8 +7,8 @@
  *                 length six (169,926 comparisons).
  *
  * This is a C-locale, complete-match investigation, not a proof of full POSIX
- * conformance. rex has no BRE mode or subgroup-result API. The generated sweep
- * uses the common ERE syntax; fixed cases separately identify missing syntax.
+ * conformance. rex has no BRE mode. The generated sweep uses common ERE
+ * syntax; fixed cases also exercise captures and numeric backreferences.
  * Unsupported locale collation syntax is tested for explicit rejection.
  * No system regex API or external scripting language is required to run it.
  */
@@ -157,7 +157,13 @@ static void test_errors (hawk_gem_t* gem)
 		{ HAWK_T("a{2"), HAWK_EREXBRACE },
 		{ HAWK_T("\\"), HAWK_EREXBADPAT },
 		{ HAWK_T("*"), HAWK_EREXBADPAT },
-		{ HAWK_T("a)"), HAWK_EREXBADPAT }
+		{ HAWK_T("a)"), HAWK_EREXBADPAT },
+		{ HAWK_T("\\1"), HAWK_EREXSUBREG },
+		{ HAWK_T("\\9"), HAWK_EREXSUBREG },
+		{ HAWK_T("(a)\\2"), HAWK_EREXSUBREG },
+		{ HAWK_T("\\1(a)"), HAWK_EREXSUBREG },
+		{ HAWK_T("(a\\1)"), HAWK_EREXSUBREG },
+		{ HAWK_T("(a(\\1))"), HAWK_EREXSUBREG }
 	};
 	hawk_rex_t rex;
 	hawk_rex_node_t* old;
@@ -238,6 +244,202 @@ static void test_unsupported_syntax (hawk_gem_t* gem, allocator_t* a)
 		}
 	}
 	hawk_rex_fini(&rex);
+}
+
+static void test_captures (hawk_gem_t* gem)
+{
+	static const struct
+	{
+		const hawk_ooch_t* pattern;
+		const hawk_ooch_t* text;
+		int options, found;
+		hawk_oow_t nsub;
+		hawk_ooi_t offsets[12];
+		hawk_oow_t lengths[12];
+	} cases[] =
+	{
+		{ HAWK_T("(a)(b)"), HAWK_T("zab!"), 0, 1, 2, { 1, 1, 2 }, { 2, 1, 1 } },
+		{ HAWK_T("(a(b|c))"), HAWK_T("ac"), 0, 1, 2, { 0, 0, 1 }, { 2, 2, 1 } },
+		{ HAWK_T("(a)?(b)"), HAWK_T("b"), 0, 1, 2, { 0, -1, 0 }, { 1, 0, 1 } },
+		{ HAWK_T("(a*)(b*)"), HAWK_T("abbb"), 0, 1, 2, { 0, 0, 1 }, { 4, 1, 3 } },
+		{ HAWK_T("()(a?)"), HAWK_T(""), 0, 1, 2, { 0, 0, 0 }, { 0, 0, 0 } },
+		{ HAWK_T("(ab)+"), HAWK_T("abab"), 0, 1, 1, { 0, 2 }, { 4, 2 } },
+		{ HAWK_T("((a|b)+)"), HAWK_T("ab"), 0, 1, 2, { 0, 0, 1 }, { 2, 2, 1 } },
+		{ HAWK_T("(a|aa)(a?)"), HAWK_T("aa"), 0, 1, 2, { 0, 0, 2 }, { 2, 2, 0 } },
+		{ HAWK_T("(aa|a)(a?)"), HAWK_T("aa"), 0, 1, 2, { 0, 0, 2 }, { 2, 2, 0 } },
+		{ HAWK_T("(a|aa)*"), HAWK_T("aaaa"), 0, 1, 1, { 0, 2 }, { 4, 2 } },
+		{ HAWK_T("((a|aa)*)"), HAWK_T("aaaa"), 0, 1, 2, { 0, 0, 2 }, { 4, 4, 2 } },
+		{ HAWK_T("(a*){2}"), HAWK_T(""), 0, 1, 1, { 0, 0 }, { 0, 0 } },
+		{ HAWK_T("(a?){2}"), HAWK_T("aa"), 0, 1, 1, { 0, 1 }, { 2, 1 } },
+		{ HAWK_T("(a|(b))*"), HAWK_T("ba"), 0, 1, 2, { 0, 1, 0 }, { 2, 1, 1 } },
+		{ HAWK_T("(a){0}(b)"), HAWK_T("b"), 0, 1, 2, { 0, -1, 0 }, { 1, 0, 1 } },
+		{ HAWK_T("()\\1*"), HAWK_T(""), 0, 1, 1, { 0, 0 }, { 0, 0 } },
+		{ HAWK_T("(a*)\\1{1000}"), HAWK_T(""), 0, 1, 1, { 0, 0 }, { 0, 0 } },
+		{ HAWK_T("^(a|aa)\\1$"), HAWK_T("aaaa"), 0, 1, 1, { 0, 0 }, { 4, 2 } },
+		{ HAWK_T("(a|aa)\\1"), HAWK_T("aaa"), 0, 1, 1, { 0, 0 }, { 2, 1 } },
+		{ HAWK_T("(a*)\\1"), HAWK_T("aaaa"), 0, 1, 1, { 0, 0 }, { 4, 2 } },
+		{ HAWK_T("(a)?b\\1"), HAWK_T("b"), 0, 0, 1, { 0 }, { 0 } },
+		{ HAWK_T("(a*)\\1"), HAWK_T(""), 0, 1, 1, { 0, 0 }, { 0, 0 } },
+		{ HAWK_T("(ab)\\1{2}"), HAWK_T("ababab"), 0, 1, 1, { 0, 0 }, { 6, 2 } },
+		{ HAWK_T("(a|b)+\\1"), HAWK_T("abb"), 0, 1, 1, { 0, 1 }, { 3, 1 } },
+		{ HAWK_T("(a|aa)+\\1"), HAWK_T("aaa"), 0, 1, 1, { 0, 1 }, { 3, 1 } },
+		{ HAWK_T("(aa|a)+\\1"), HAWK_T("aaa"), 0, 1, 1, { 0, 1 }, { 3, 1 } },
+		{ HAWK_T("(a{1,2})+\\1"), HAWK_T("aaa"), 0, 1, 1, { 0, 1 }, { 3, 1 } },
+		{ HAWK_T("(a?)+\\1"), HAWK_T("a"), 0, 1, 1, { 0, 1 }, { 1, 0 } },
+		{ HAWK_T("(a*)+\\1"), HAWK_T("a"), 0, 1, 1, { 0, 1 }, { 1, 0 } },
+		{ HAWK_T("(a?)?(\\1)*"), HAWK_T(""), 0, 1, 2, { 0, 0, 0 }, { 0, 0, 0 } },
+		{ HAWK_T("(a?)?(\\1)*"), HAWK_T("a"), 0, 1, 2, { 0, 0, -1 }, { 1, 1, 0 } },
+		{ HAWK_T("((a?)*)*\\2"), HAWK_T(""), 0, 1, 2, { 0, 0, 0 }, { 0, 0, 0 } },
+		{ HAWK_T("((a?)\\2)*"), HAWK_T(""), 0, 1, 2, { 0, 0, 0 }, { 0, 0, 0 } },
+		{ HAWK_T("((a*)+)*\\2"), HAWK_T("a"), 0, 1, 2, { 0, 0, 1 }, { 1, 1, 0 } },
+		{ HAWK_T("((a|aa){1,2})\\1"), HAWK_T("aaaaaaaa"), 0, 1, 2, { 0, 0, 2 }, { 8, 4, 2 } },
+		{ HAWK_T("(a)(b)\\2\\1"), HAWK_T("abba"), 0, 1, 2, { 0, 0, 1 }, { 4, 1, 1 } },
+		{ HAWK_T("(a)(b)(c)(d)(e)(f)(g)(h)(i)\\9\\1"), HAWK_T("abcdefghiia"), 0, 1, 9,
+			{ 0, 0, 1, 2, 3, 4, 5, 6, 7, 8 }, { 11, 1, 1, 1, 1, 1, 1, 1, 1, 1 } },
+		{ HAWK_T("(a)(b)(c)(d)(e)(f)(g)(h)(i)(j)"), HAWK_T("abcdefghij"), 0, 1, 10,
+			{ 0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 }, { 10, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 } },
+		{ HAWK_T("(ab)\\1"), HAWK_T("abAB"), HAWK_REX_IGNORECASE, 1, 1, { 0, 0 }, { 4, 2 } },
+		{ HAWK_T("(a|b)\\1"), HAWK_T("ab"), 0, 0, 1, { 0 }, { 0 } },
+		{ HAWK_T("(a)|(b)\\1"), HAWK_T("bb"), 0, 0, 2, { 0 }, { 0 } },
+		{ HAWK_T("(a)|(b)\\2"), HAWK_T("bb"), 0, 1, 2, { 0, -1, 0 }, { 2, 0, 1 } },
+		{ HAWK_T("(a)\\1"), HAWK_T("a1"), 0, 0, 1, { 0 }, { 0 } },
+		{ HAWK_T("([\\1])"), HAWK_T("1"), 0, 1, 1, { 0, 0 }, { 1, 1 } },
+		{ HAWK_T("(a)\\x31"), HAWK_T("a1"), 0, 1, 1, { 0, 0 }, { 2, 1 } },
+		{ HAWK_T("(a)\\\\1"), HAWK_T("a\\1"), 0, 1, 1, { 0, 0 }, { 3, 1 } },
+		{ HAWK_T("((a)\\2)"), HAWK_T("aa"), 0, 1, 2, { 0, 0, 0 }, { 2, 2, 1 } },
+		{ HAWK_T("a"), HAWK_T("za"), 0, 1, 0, { 1 }, { 1 } }
+	};
+	hawk_rex_t rex;
+	hawk_oocs_t input, matches[12], old[12], whole;
+	hawk_oocs_t window;
+	hawk_ooch_t nul_pattern[] = { '(', 'a', 0, ')', '\\', '1' };
+	hawk_ooch_t nul_text[] = { 'x', 'a', 0, 'a', 0, 'z' };
+	hawk_oow_t i, j;
+	int n, good;
+
+	hawk_rex_init(&rex, gem, HAWK_NULL);
+	OK(hawk_rex_getnsub(&rex) == 0, "uncompiled regex has no capturing groups");
+	for (i = 0; i < HAWK_COUNTOF(cases); i++)
+	{
+		hawk_rex_setopt(&rex, cases[i].options | HAWK_REX_STRICT);
+		if (!hawk_rex_comp(&rex, cases[i].pattern, hawk_count_oocstr(cases[i].pattern)))
+		{
+			OK(0, "compile capture/backreference case");
+			printf("# capture case %lu failed to compile\n", (unsigned long)i);
+			continue;
+		}
+		OK(hawk_rex_getnsub(&rex) == cases[i].nsub, "groups are numbered by opening parentheses, including groups beyond nine");
+		input.ptr = (hawk_ooch_t*)cases[i].text;
+		input.len = hawk_count_oocstr(input.ptr);
+		HAWK_MEMSET(matches, 0, HAWK_SIZEOF(matches));
+		for (j = 0; j < HAWK_COUNTOF(matches); j++) { matches[j].ptr = input.ptr; matches[j].len = 123; }
+		HAWK_MEMCPY(old, matches, HAWK_SIZEOF(old));
+		n = hawk_rex_execx(&rex, &input, &input, matches, HAWK_COUNTOF(matches));
+		good = n == cases[i].found;
+		if (n == 1)
+		{
+			for (j = 0; j < HAWK_COUNTOF(matches); j++)
+			{
+				if (j > cases[i].nsub || cases[i].offsets[j] < 0)
+				{
+					if (matches[j].ptr || matches[j].len) good = 0;
+				}
+				else if (matches[j].ptr != input.ptr + cases[i].offsets[j] || matches[j].len != cases[i].lengths[j]) good = 0;
+			}
+		}
+		else if (HAWK_MEMCMP(old, matches, HAWK_SIZEOF(old)) != 0) good = 0;
+		OK(good, "capture spans, unmatched groups, empty groups, and surplus output entries are correct");
+		if (!good) printf("# capture case %lu returned %d\n", (unsigned long)i, n);
+		n = hawk_rex_exec(&rex, &input, &input, &whole);
+		OK(n == cases[i].found && (n != 1 ||
+			(whole.ptr == input.ptr + cases[i].offsets[0] && whole.len == cases[i].lengths[0])),
+			"existing whole-match API executes backreferences without capture output");
+	}
+	OK(hawk_rex_execx(&rex, &input, &input, HAWK_NULL, 1) == -1 && hawk_rex_geterrnum(&rex) == HAWK_EINVAL,
+		"positive output count requires capture storage");
+	OK(hawk_rex_execx(&rex, &input, &input, HAWK_NULL, 0) == 1, "matching without any output storage succeeds");
+	OK(hawk_rex_matchx(gem, rex.code, 0, &input, &input, matches, 1) == 1 && matches[0].ptr == input.ptr + 1,
+		"borrowed-graph capture API supports a truncated output array");
+	if (!hawk_rex_comp(&rex, nul_pattern, HAWK_COUNTOF(nul_pattern))) bail_out("cannot compile embedded-NUL backreference");
+	input.ptr = nul_text; input.len = HAWK_COUNTOF(nul_text);
+	window.ptr = nul_text + 1; window.len = 4;
+	OK(hawk_rex_matchx(gem, rex.code, 0, &input, &window, matches, HAWK_COUNTOF(matches)) == 1 &&
+		matches[0].ptr == nul_text + 1 && matches[0].len == 4 &&
+		matches[1].ptr == nul_text + 1 && matches[1].len == 2,
+		"captures and backreferences retain embedded NULs and original input offsets in a search window");
+	HAWK_MEMCPY(old, matches, HAWK_SIZEOF(old));
+	window.len = 3;
+	OK(hawk_rex_execx(&rex, &input, &window, matches, HAWK_COUNTOF(matches)) == 0 &&
+		HAWK_MEMCMP(old, matches, HAWK_SIZEOF(old)) == 0,
+		"backreference cannot consume beyond its search window and no-match preserves capture output");
+	hawk_rex_fini(&rex);
+}
+
+static void test_capture_failures (hawk_gem_t* gem, allocator_t* a)
+{
+	static const hawk_ooch_t* patterns[] =
+	{
+		HAWK_T("((a|aa)+)(b?)"),
+		HAWK_T("((a|aa)+)\\1")
+	};
+	hawk_oocs_t input = { HAWK_T("aaaa"), 4 }, matches[5], saved[5];
+	hawk_rex_t rex;
+	hawk_rex_node_t* old;
+	hawk_oow_t p, i, j, before, allocations, baseline, outer = a->live;
+	int n, good;
+
+	for (p = 0; p < HAWK_COUNTOF(patterns); p++)
+	{
+		hawk_rex_init(&rex, gem, HAWK_NULL);
+		before = a->calls;
+		if (!hawk_rex_comp(&rex, patterns[p], hawk_count_oocstr(patterns[p]))) bail_out("cannot measure capture compiler allocations");
+		allocations = a->calls - before;
+		hawk_rex_fini(&rex);
+		good = 1;
+		for (i = 1; i <= allocations; i++)
+		{
+			hawk_rex_init(&rex, gem, HAWK_NULL);
+			old = hawk_rex_comp(&rex, HAWK_T("kept"), 4);
+			if (!old) bail_out("cannot compile capture failure baseline");
+			baseline = a->live;
+			a->fail_at = a->calls + i;
+			if (hawk_rex_comp(&rex, patterns[p], hawk_count_oocstr(patterns[p])) ||
+			    hawk_rex_geterrnum(&rex) != HAWK_ENOMEM || rex.code != old ||
+			    hawk_rex_getnsub(&rex) != 0 || a->live != baseline) good = 0;
+			a->fail_at = 0;
+			hawk_rex_fini(&rex);
+		}
+		OK(good && a->live == outer, "capture/backreference compiler allocation failures retain old graph and group count");
+
+		hawk_rex_init(&rex, gem, HAWK_NULL);
+		if (!hawk_rex_comp(&rex, patterns[p], hawk_count_oocstr(patterns[p]))) bail_out("cannot compile capture allocation probe");
+		before = a->calls;
+		if (hawk_rex_execx(&rex, &input, &input, matches, HAWK_COUNTOF(matches)) != 1)
+			bail_out("cannot measure capture executor allocations");
+		allocations = a->calls - before;
+		baseline = a->live;
+		good = 1;
+		for (i = 1; i <= allocations; i++)
+		{
+			HAWK_MEMSET(matches, 0, HAWK_SIZEOF(matches));
+			for (j = 0; j < HAWK_COUNTOF(matches); j++) { matches[j].ptr = input.ptr; matches[j].len = 123; }
+			HAWK_MEMCPY(saved, matches, HAWK_SIZEOF(saved));
+			a->fail_at = a->calls + i;
+			n = hawk_rex_execx(&rex, &input, &input, matches, HAWK_COUNTOF(matches));
+			a->fail_at = 0;
+			if (n != -1 || hawk_rex_geterrnum(&rex) != HAWK_ENOMEM || a->live != baseline ||
+			    HAWK_MEMCMP(saved, matches, HAWK_SIZEOF(saved)) != 0)
+			{
+				good = 0;
+				printf("# capture execution allocation failure %lu in case %lu returned %d\n", (unsigned long)i, (unsigned long)p, n);
+			}
+		}
+		OK(good, "all capture snapshot allocation failures release state and preserve caller output");
+		OK(hawk_rex_execx(&rex, &input, &input, matches, HAWK_COUNTOF(matches)) == 1,
+			"compiled capture/backreference graph remains reusable after every allocation failure");
+		hawk_rex_fini(&rex);
+		OK(a->live == outer, "capture/backreference failure tests release every allocation");
+	}
 }
 
 static void test_lifetimes (hawk_gem_t* gem, allocator_t* a)
@@ -505,7 +707,7 @@ static void test_posix_cases (hawk_gem_t* gem, int strict)
 		ERE("[\\]\\t", "\\\t", 1, 0, 2, "escape processing resumes after the closing bracket"),
 		ERE("\\[[\\]\\]", "[\\]", 1, 0, 3, "escaped brackets outside a bracket expression remain literal"),
 		GAP("a{2}", "a{2}", 1, 0, 4, "POSIX BRE unescaped braces are literal", "no BRE syntax mode"),
-		GAP("\\(a\\)\\1", "aa", 1, 0, 2, "POSIX BRE group and backreference", "no BRE syntax mode or backreferences")
+		GAP("\\(a\\)\\1", "aa", 1, 0, 2, "POSIX BRE group and backreference", "no BRE syntax mode")
 #undef ERE
 #undef GAP
 	};
@@ -684,13 +886,14 @@ static int posix_reference (const hawk_ooch_t* pattern, const hawk_ooch_t* text,
 	return 0;
 }
 
-/* Opt-in deterministic sweep of complete-match offsets only: rex does not
- * expose subgroup results. No external regex implementation is needed. */
+/* Check complete-match offsets with and without capture tracking. The
+ * independent model has no capture semantics; fixed vectors check those.
+ * No external regex implementation is needed. */
 static void compare_posix_pattern (hawk_gem_t* gem, const hawk_ooch_t* pattern,
 	hawk_oow_t* comparisons, hawk_oow_t* differences)
 {
 	hawk_rex_t rex;
-	hawk_oocs_t input, match;
+	hawk_oocs_t input, match, captures[9];
 	hawk_ooch_t text[7];
 	hawk_oow_t len, bits, i, offset, length;
 	int n, expected, good = 1, equal;
@@ -717,6 +920,11 @@ static void compare_posix_pattern (hawk_gem_t* gem, const hawk_ooch_t* pattern,
 			equal = n == expected && (n == 1?
 				match.ptr == input.ptr + offset && match.len == length:
 				match.ptr == HAWK_NULL && match.len == 123);
+			/* Capturing must not change which whole match is selected. */
+			HAWK_MEMSET(captures, 0, HAWK_SIZEOF(captures));
+			n = hawk_rex_execx(&rex, &input, &input, captures, HAWK_COUNTOF(captures));
+			if (n != expected || (n == 1 &&
+			    (captures[0].ptr != input.ptr + offset || captures[0].len != length))) equal = 0;
 			(*comparisons)++;
 			if (!equal)
 			{
@@ -827,6 +1035,8 @@ int main (int argc, char* argv[])
 	test_matches(gem);
 	test_errors(gem);
 	test_unsupported_syntax(gem, &a);
+	test_captures(gem);
+	test_capture_failures(gem, &a);
 	test_lifetimes(gem, &a);
 	test_posix_cases(gem, strict);
 	if (sweep) test_posix_sweep(gem);
