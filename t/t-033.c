@@ -1,7 +1,20 @@
-/* Standalone graph-regex engine: gem integration, matching, and ownership. */
+/* Standalone graph-regex engine: gem integration, matching, and ownership.
+ *
+ * Normal run: fixed POSIX vectors execute known gaps as TAP TODO cases.
+ * --strict-posix: the same vectors report known gaps as hard failures.
+ * --compare-posix: compare 1,338 generated ERE cases with an independent
+ *                 bounded-language model over every {a,b} string through
+ *                 length six (169,926 comparisons).
+ *
+ * This is a C-locale, complete-match investigation, not a proof of full POSIX
+ * conformance. rex has no BRE mode or subgroup-result API. The generated sweep
+ * uses the common ERE syntax; fixed cases separately identify missing syntax.
+ * No system regex API or external scripting language is required to run it.
+ */
 #include "hawk-prv.h"
 #include <hawk-rex.h>
 #include "tap.h"
+#include <locale.h>
 
 typedef struct allocator_t allocator_t;
 struct allocator_t
@@ -283,15 +296,449 @@ static void test_failures (hawk_gem_t* gem, allocator_t* a)
 	OK(a->live == outer, "failure-injection suite releases all regex allocations");
 }
 
-int main (void)
+/* ASCII diagnostics work in byte, 16-bit, and 32-bit character builds. */
+static void print_pattern (const hawk_ooch_t* text)
+{
+	hawk_oow_t i;
+	unsigned int c;
+
+	putchar('"');
+	for (i = 0; text[i]; i++)
+	{
+		c = text[i];
+		if (c == '\\' || c == '"') { putchar('\\'); putchar(c); }
+		else if (c >= 32 && c < 127) putchar(c);
+		else printf("\\x%02x", c);
+	}
+	putchar('"');
+}
+
+static void posix_diagnostic (const hawk_ooch_t* pattern, const hawk_ooch_t* text,
+	int expected, hawk_oow_t offset, hawk_oow_t length, int result,
+	const hawk_oocs_t* input, const hawk_oocs_t* match)
+{
+	printf("# pattern="); print_pattern(pattern);
+	printf(" input="); print_pattern(text);
+	printf(" expected=%d [%lu,%lu) actual=%d", expected,
+		(unsigned long)offset, (unsigned long)(offset + length), result);
+	if (result == 1)
+		printf(" [%lu,%lu)", (unsigned long)(match->ptr - input->ptr),
+			(unsigned long)(match->ptr - input->ptr + match->len));
+	putchar('\n');
+}
+
+/* Fixed C-locale vectors cover ERE syntax, match selection, and known gaps.
+ * TODO cases are executed, not skipped. --strict-posix makes them hard failures.
+ * The BRE examples deliberately test a separate dialect that rex does not
+ * currently offer, rather than treating BRE backreferences as POSIX EREs.
+ *
+ * Matching regressions protect against two previously fixed state-loss bugs:
+ * - comp_cand() merged candidates with equal node/input/atom occurrence,
+ *   even when their enclosing group stacks had different occurrence counts.
+ * - addcands() stopped when it revisited a GROUPEND without consuming input,
+ *   even if empty iterations were still needed to satisfy the group's minimum.
+ * The standard's whole-match rule chooses the earliest starting position,
+ * then the longest match beginning there. Missing empty matches can therefore
+ * be just as incorrect as choosing a shorter nonempty match. */
+static void test_posix_cases (hawk_gem_t* gem, int strict)
+{
+	static const struct
+	{
+		const hawk_ooch_t* pattern;
+		const hawk_ooch_t* text;
+		int found;
+		hawk_oow_t offset, length;
+		const hawk_bch_t* name;
+		const hawk_bch_t* deficiency;
+	} cases[] =
+	{
+#define ERE(p,t,f,o,n,description) { HAWK_T(p), HAWK_T(t), f, o, n, description, HAWK_NULL }
+#define GAP(p,t,f,o,n,description,reason) { HAWK_T(p), HAWK_T(t), f, o, n, description, reason }
+		ERE("a", "baba", 1, 1, 1, "POSIX ERE literal uses the earliest start"),
+		ERE("a|bb", "abb", 1, 0, 1, "POSIX leftmost start takes priority over a longer later match"),
+		ERE("a|aa", "aa", 1, 0, 2, "POSIX alternation chooses the longest complete match"),
+		ERE("aa|a", "aa", 1, 0, 2, "POSIX longest match is independent of alternative order"),
+		ERE("a|ab", "ab", 1, 0, 2, "POSIX prefers a longer alternative over an earlier short alternative"),
+		ERE("a*", "baaa", 1, 0, 0, "POSIX empty match at the start beats a later nonempty match"),
+		ERE("a*", "aaa", 1, 0, 3, "POSIX repetition takes the longest match at the earliest start"),
+		ERE("(a|ab)*", "abab", 1, 0, 4, "POSIX repeated alternation keeps the longer path"),
+		ERE("(ab|a)*", "abab", 1, 0, 4, "POSIX repeated alternatives are order-independent"),
+		ERE("(a|aa){2,3}", "aaaaaa", 1, 0, 6, "POSIX short-first bounded alternatives control case"),
+		ERE("(a{1,2}){1,2}", "aaaa", 1, 0, 4, "POSIX bounded atom inside a bounded group control case"),
+		ERE("(a*)(a*)", "aaaa", 1, 0, 4, "POSIX concatenation maximizes the entire match"),
+		ERE("(a|aa)(a|aa)", "aaaa", 1, 0, 4, "POSIX multiple ambiguous groups maximize the entire match"),
+		ERE("a.*b", "a1b2b", 1, 0, 5, "POSIX dot repetition extends to the last usable suffix"),
+		ERE("a.*b|a", "a1b", 1, 0, 3, "POSIX shorter alternative cannot end the search prematurely"),
+		ERE("a.b", "a\nb", 1, 0, 3, "POSIX dot matches newline without REG_NEWLINE"),
+		ERE("[^a]+", "\nb", 1, 0, 2, "POSIX negated bracket matches newline without REG_NEWLINE"),
+		ERE("^a", "ba", 0, 0, 0, "POSIX beginning anchor rejects an interior match"),
+		ERE("a$", "aba", 1, 2, 1, "POSIX ending anchor refers to the input end"),
+		ERE("^a$", "a\n", 0, 0, 0, "POSIX default end anchor does not ignore a final newline"),
+		ERE("^$", "", 1, 0, 0, "POSIX anchored empty input"),
+		ERE("a^", "a", 0, 0, 0, "POSIX ERE interior beginning anchor remains an anchor"),
+		ERE("a$b", "ab", 0, 0, 0, "POSIX ERE interior ending anchor remains an anchor"),
+		ERE("a?b", "b", 1, 0, 1, "POSIX zero-or-one atom"),
+		ERE("a+b", "aaab", 1, 0, 4, "POSIX one-or-more atom"),
+		ERE("a{2}", "zaaa", 1, 1, 2, "POSIX exact repetition"),
+		ERE("a{1,3}", "aaaa", 1, 0, 3, "POSIX closed repetition interval"),
+		ERE("a{2,}", "zaaaa", 1, 1, 4, "POSIX open repetition interval"),
+		ERE("a{0,2}", "aaa", 1, 0, 2, "POSIX zero lower bound"),
+		ERE("(ab){0}c", "abc", 1, 2, 1, "POSIX exact-zero group consumes no input"),
+		ERE("[abc]+", "zabcc!", 1, 1, 4, "POSIX bracket character list"),
+		ERE("[^abc]+", "abxyzac", 1, 2, 3, "POSIX negated bracket character list"),
+		ERE("[a-c]+", "zabcc!", 1, 1, 4, "POSIX character range"),
+		ERE("[]a]+", "]aa", 1, 0, 3, "POSIX leading closing bracket is literal"),
+		ERE("[-a]+", "-aa", 1, 0, 3, "POSIX leading hyphen is literal"),
+		ERE("[a-]+", "a--", 1, 0, 3, "POSIX trailing hyphen is literal"),
+		ERE("[.^$*+?(){}|]+", ".^$*+?(){}|", 1, 0, 11, "POSIX metacharacters are literal inside brackets"),
+		ERE("[[:alnum:]]+", "!?aB09_#", 1, 2, 4, "POSIX alnum class"),
+		ERE("[[:alpha:]]+", "12aB_!", 1, 2, 2, "POSIX alpha class"),
+		ERE("[[:blank:]]+", "x \t!", 1, 1, 2, "POSIX blank class"),
+		ERE("[[:cntrl:]]+", "x\001\177y", 1, 1, 2, "POSIX cntrl class"),
+		ERE("[[:digit:]]+", "a019z", 1, 1, 3, "POSIX digit class"),
+		ERE("[[:graph:]]+", " \tAz09!~\n", 1, 2, 6, "POSIX graph class"),
+		ERE("[[:lower:]]+", "AazZ", 1, 1, 2, "POSIX lower class"),
+		ERE("[[:print:]]+", "\001Az 09!\177", 1, 1, 6, "POSIX print class"),
+		ERE("[[:punct:]]+", "a!_~b", 1, 1, 3, "POSIX punct class"),
+		ERE("[[:space:]]+", "x \t\n\r\v\fy", 1, 1, 6, "POSIX space class"),
+		ERE("[[:upper:]]+", "aAZz", 1, 1, 2, "POSIX upper class"),
+		ERE("[[:xdigit:]]+", "g09aAfFz", 1, 1, 6, "POSIX xdigit class"),
+		ERE("[[:alpha:]0-9]+", "_a0B9!", 1, 1, 4, "POSIX bracket class and range union"),
+		ERE("\\(a\\)", "x(a)", 1, 1, 3, "POSIX escaped parentheses are literal"),
+		ERE("a\\+b", "a+b", 1, 0, 3, "POSIX escaped plus is literal"),
+		ERE("a\\{2\\}", "a{2}", 1, 0, 4, "POSIX escaped braces are literal"),
+		ERE("\\\\", "x\\", 1, 1, 1, "POSIX escaped backslash is literal"),
+		ERE("(aa|a){2,3}", "aaaaaa", 1, 0, 6, "POSIX bounded alternatives retain the longest path"),
+		ERE("(a{1,2}){2,3}", "aaaaaa", 1, 0, 6, "POSIX atom and group counters remain independent"),
+		ERE("((a|b){1,2}){2}", "aaaa", 1, 0, 4, "POSIX nested intervals retain the longest path"),
+		ERE("((a|b){1,2}){1,2}", "aaaa", 1, 0, 4, "POSIX nested optional intervals retain the longest path"),
+		ERE("^((a|b){1,2}){2}$", "aaaa", 1, 0, 4, "POSIX anchored nested intervals do not lose a valid match"),
+		ERE("((a|b){1,2}){2}b", "aaaab", 1, 0, 5, "POSIX failed merged path cannot move the match start"),
+		ERE("(a?){2}", "aa", 1, 0, 2, "POSIX repeated optional group consumes both characters"),
+		ERE("(a?){2,3}", "aaa", 1, 0, 3, "POSIX repeated optional group reaches its upper bound"),
+		ERE("(a?){2}b", "aab", 1, 0, 3, "POSIX repeated optional group preserves the earliest start"),
+		ERE("(a*){2}", "", 1, 0, 0, "POSIX repeated nullable group can satisfy its lower bound"),
+		ERE("(a?){2}", "", 1, 0, 0, "POSIX optional group can repeat twice without consuming input"),
+		ERE("(a*){2}", "ba", 1, 0, 0, "POSIX nullable group must not skip an earlier empty match"),
+		GAP("[[.a.]]", "a", 1, 0, 1, "POSIX C-locale single-character collating symbol", "collating-symbol bracket syntax is not implemented"),
+		GAP("[[=a=]]", "a", 1, 0, 1, "POSIX C-locale single-character equivalence class", "equivalence-class bracket syntax is not implemented"),
+		GAP("[\\]", "\\", 1, 0, 1, "POSIX backslash inside a bracket is literal", "bracket parser applies escape processing"),
+		GAP("a{2}", "a{2}", 1, 0, 4, "POSIX BRE unescaped braces are literal", "no BRE syntax mode"),
+		GAP("\\(a\\)\\1", "aa", 1, 0, 2, "POSIX BRE group and backreference", "no BRE syntax mode or backreferences")
+#undef ERE
+#undef GAP
+	};
+	hawk_rex_t rex;
+	hawk_oocs_t input, match;
+	hawk_oow_t i;
+	int n, good;
+
+	hawk_rex_init(&rex, gem, HAWK_NULL);
+	hawk_rex_setopt(&rex, HAWK_REX_STRICT);
+	for (i = 0; i < HAWK_COUNTOF(cases); i++)
+	{
+		input.ptr = (hawk_ooch_t*)cases[i].text;
+		input.len = hawk_count_oocstr(input.ptr);
+		match.ptr = HAWK_NULL; match.len = 123;
+		n = hawk_rex_comp(&rex, cases[i].pattern, hawk_count_oocstr(cases[i].pattern))?
+			hawk_rex_exec(&rex, &input, &input, &match): -1;
+		good = n == cases[i].found && (n == 1?
+			match.ptr == input.ptr + cases[i].offset && match.len == cases[i].length:
+			match.ptr == HAWK_NULL && match.len == 123);
+		if (cases[i].deficiency && !strict) todo(cases[i].deficiency, 1);
+		OK(good, cases[i].name);
+		if (!good) posix_diagnostic(cases[i].pattern, cases[i].text,
+			cases[i].found, cases[i].offset, cases[i].length, n, &input, &match);
+	}
+	hawk_rex_fini(&rex);
+}
+
+/* Independent reference for the generated subset. A row maps each possible
+ * starting position to every possible ending position using a seven-bit set.
+ * Concatenation composes relations, alternatives union them, and repetition
+ * unions powers of a relation. There are no candidate queues, mutable group
+ * counters, or GROUPEND shortcuts shared with the implementation being tested.
+ *
+ * This tiny model supports only the generated a/b expressions and single-digit
+ * interval bounds. It is not a replacement for a general POSIX regex parser.
+ * Its complete generated corpus was also compared against libc regexec in the
+ * C locale. TRE is deliberately not the oracle: it disagrees with libc for
+ * some of these otherwise unambiguous complete-match cases. */
+typedef struct posix_relation_t posix_relation_t;
+struct posix_relation_t
+{
+	unsigned int ends[7];
+};
+
+typedef struct posix_model_t posix_model_t;
+struct posix_model_t
+{
+	const hawk_ooch_t* next;
+	const hawk_ooch_t* text;
+	hawk_oow_t length;
+};
+
+static void relation_identity (posix_relation_t* r, hawk_oow_t length)
+{
+	hawk_oow_t i;
+
+	HAWK_MEMSET(r, 0, HAWK_SIZEOF(*r));
+	for (i = 0; i <= length; i++) r->ends[i] = 1u << i;
+}
+
+static void relation_compose (const posix_relation_t* left, const posix_relation_t* right,
+	posix_relation_t* out, hawk_oow_t length)
+{
+	posix_relation_t result = { { 0 } };
+	hawk_oow_t i, j;
+
+	for (i = 0; i <= length; i++)
+		for (j = i; j <= length; j++)
+			if (left->ends[i] & (1u << j)) result.ends[i] |= right->ends[j];
+	*out = result;
+}
+
+static void relation_expression (posix_model_t* model, posix_relation_t* out);
+
+static void relation_atom (posix_model_t* model, posix_relation_t* out)
+{
+	posix_relation_t power, result = { { 0 } };
+	hawk_ooch_t c = *model->next++;
+	hawk_oow_t i;
+	int minimum = 0, maximum = 0, count;
+
+	HAWK_MEMSET(out, 0, HAWK_SIZEOF(*out));
+	if (c == HAWK_T('('))
+	{
+		relation_expression(model, out);
+		if (*model->next++ != HAWK_T(')')) bail_out("invalid group in generated POSIX model");
+	}
+	else if (c == HAWK_T('a') || c == HAWK_T('b'))
+	{
+		for (i = 0; i < model->length; i++) if (model->text[i] == c) out->ends[i] = 1u << (i + 1);
+	}
+	else bail_out("unsupported atom in generated POSIX model");
+
+	c = *model->next;
+	if (c == HAWK_T('*')) { minimum = 0; maximum = -1; model->next++; }
+	else if (c == HAWK_T('+')) { minimum = 1; maximum = -1; model->next++; }
+	else if (c == HAWK_T('?')) { minimum = 0; maximum = 1; model->next++; }
+	else if (c == HAWK_T('{'))
+	{
+		model->next++;
+		if (*model->next < HAWK_T('0') || *model->next > HAWK_T('9'))
+			bail_out("unsupported minimum in generated POSIX model");
+		minimum = *model->next++ - HAWK_T('0');
+		maximum = minimum;
+		if (*model->next == HAWK_T(','))
+		{
+			model->next++;
+			maximum = -1;
+			if (*model->next >= HAWK_T('0') && *model->next <= HAWK_T('9'))
+				maximum = *model->next++ - HAWK_T('0');
+		}
+		if (*model->next++ != HAWK_T('}')) bail_out("invalid interval in generated POSIX model");
+	}
+	else return;
+
+	/* In this acyclic position domain, at most length consuming iterations
+	 * are possible. Empty iterations may satisfy the minimum, but cannot add
+	 * new endpoints beyond minimum + length iterations. */
+	if (maximum < 0) maximum = minimum + (int)model->length;
+	relation_identity(&power, model->length);
+	for (count = 0; count <= maximum; count++)
+	{
+		if (count >= minimum)
+			for (i = 0; i <= model->length; i++) result.ends[i] |= power.ends[i];
+		if (count < maximum) relation_compose(&power, out, &power, model->length);
+	}
+	*out = result;
+}
+
+static void relation_branch (posix_model_t* model, posix_relation_t* out)
+{
+	posix_relation_t right;
+
+	relation_identity(out, model->length);
+	while (*model->next && *model->next != HAWK_T(')') && *model->next != HAWK_T('|'))
+	{
+		relation_atom(model, &right);
+		relation_compose(out, &right, out, model->length);
+	}
+}
+
+static void relation_expression (posix_model_t* model, posix_relation_t* out)
+{
+	posix_relation_t right;
+	hawk_oow_t i;
+
+	relation_branch(model, out);
+	while (*model->next == HAWK_T('|'))
+	{
+		model->next++;
+		relation_branch(model, &right);
+		for (i = 0; i <= model->length; i++) out->ends[i] |= right.ends[i];
+	}
+}
+
+static int posix_reference (const hawk_ooch_t* pattern, const hawk_ooch_t* text,
+	hawk_oow_t length, hawk_oow_t* offset, hawk_oow_t* match_length)
+{
+	posix_model_t model;
+	posix_relation_t relation;
+	hawk_oow_t i, end;
+
+	if (length > 6) bail_out("POSIX model input exceeds its six-character limit");
+	model.next = pattern; model.text = text; model.length = length;
+	relation_expression(&model, &relation);
+	if (*model.next) bail_out("unexpected suffix in generated POSIX model");
+	for (i = 0; i <= length; i++)
+	{
+		if (!relation.ends[i]) continue;
+		for (end = length; !(relation.ends[i] & (1u << end)); end--) /* find longest */;
+		*offset = i; *match_length = end - i;
+		return 1;
+	}
+	*offset = *match_length = 0;
+	return 0;
+}
+
+/* Opt-in deterministic sweep of complete-match offsets only: rex does not
+ * expose subgroup results. No external regex implementation is needed. */
+static void compare_posix_pattern (hawk_gem_t* gem, const hawk_ooch_t* pattern,
+	hawk_oow_t* comparisons, hawk_oow_t* differences)
+{
+	hawk_rex_t rex;
+	hawk_oocs_t input, match;
+	hawk_ooch_t text[7];
+	hawk_oow_t len, bits, i, offset, length;
+	int n, expected, good = 1, equal;
+
+	hawk_rex_init(&rex, gem, HAWK_NULL);
+	hawk_rex_setopt(&rex, HAWK_REX_STRICT);
+	if (!hawk_rex_comp(&rex, pattern, hawk_count_oocstr(pattern)))
+	{
+		OK(0, "generated POSIX ERE compiles");
+		printf("# pattern="); print_pattern(pattern); putchar('\n');
+		goto done;
+	}
+	input.ptr = text;
+	for (len = 0; len <= 6; len++)
+	{
+		input.len = len;
+		for (bits = 0; bits < ((hawk_oow_t)1 << len); bits++)
+		{
+			for (i = 0; i < len; i++) text[i] = ((bits >> (len - i - 1)) & 1)? HAWK_T('b'): HAWK_T('a');
+			text[len] = 0;
+			expected = posix_reference(pattern, text, len, &offset, &length);
+			match.ptr = HAWK_NULL; match.len = 123;
+			n = hawk_rex_exec(&rex, &input, &input, &match);
+			equal = n == expected && (n == 1?
+				match.ptr == input.ptr + offset && match.len == length:
+				match.ptr == HAWK_NULL && match.len == 123);
+			(*comparisons)++;
+			if (!equal)
+			{
+				(*differences)++;
+				/* Report the shortest failing input for each pattern. */
+				if (good) posix_diagnostic(pattern, text, expected, offset, length, n, &input, &match);
+				good = 0;
+			}
+		}
+	}
+	OK(good, "generated POSIX ERE agrees with independent model on binary strings through length six");
+done:
+	hawk_rex_fini(&rex);
+}
+
+#if defined(HAWK_OOCH_IS_UCH)
+#	define format_pattern hawk_gem_fmttoucstr
+#else
+#	define format_pattern hawk_gem_fmttobcstr
+#endif
+
+static void test_posix_sweep (hawk_gem_t* gem)
+{
+	static const hawk_ooch_t* atoms[] =
+	{
+		HAWK_T("a"), HAWK_T("b"), HAWK_T("a|aa"), HAWK_T("aa|a"),
+		HAWK_T("a|ab"), HAWK_T("ab|a"), HAWK_T("a|b"), HAWK_T("a*"),
+		HAWK_T("a?"), HAWK_T("a*b"), HAWK_T("ab*"), HAWK_T("a?b"),
+		HAWK_T("(a|aa)b"), HAWK_T("(a|aa)*"), HAWK_T("(a|b)*")
+	};
+	static const hawk_ooch_t* repetitions[] =
+	{
+		HAWK_T("*"), HAWK_T("+"), HAWK_T("?"), HAWK_T("{2}"), HAWK_T("{1,2}"), HAWK_T("{2,3}")
+	};
+	static const hawk_ooch_t* prefixes[] = { HAWK_T(""), HAWK_T(""), HAWK_T("a"), HAWK_T(""), HAWK_T("b") };
+	static const hawk_ooch_t* suffixes[] = { HAWK_T(""), HAWK_T("b"), HAWK_T(""), HAWK_T("ab"), HAWK_T("b") };
+	static const hawk_ooch_t* nonnull[] =
+	{
+		HAWK_T("a|aa"), HAWK_T("aa|a"), HAWK_T("a|ab"), HAWK_T("ab|a"),
+		HAWK_T("ab|aba"), HAWK_T("aba|ab"), HAWK_T("(a|aa){1,2}"),
+		HAWK_T("(aa|a){1,2}"), HAWK_T("a{1,2}"), HAWK_T("(a|b){1,2}"),
+		HAWK_T("(a|aa)+"), HAWK_T("(aa|a)+"), HAWK_T("(a|b)+"),
+		HAWK_T("ab|ba"), HAWK_T("a{1,3}b")
+	};
+	hawk_ooch_t pattern[128];
+	hawk_oow_t a, b, q, w, mode, patterns = 0, comparisons = 0, differences = 0;
+
+	for (mode = 0; mode < 2; mode++)
+	{
+		for (a = 0; a < (mode? HAWK_COUNTOF(nonnull): HAWK_COUNTOF(atoms)); a++)
+		{
+			for (q = 0; q < HAWK_COUNTOF(repetitions); q++)
+			{
+				if (mode && q == 2) continue;
+				for (w = 0; w < HAWK_COUNTOF(prefixes); w++)
+				{
+					format_pattern(gem, pattern, HAWK_COUNTOF(pattern), HAWK_T("%js(%js)%js%js"),
+						prefixes[w], mode? nonnull[a]: atoms[a], repetitions[q], suffixes[w]);
+					compare_posix_pattern(gem, pattern, &comparisons, &differences);
+					patterns++;
+				}
+			}
+		}
+	}
+	for (a = 0; a < 12; a++)
+	{
+		for (b = 0; b < 12; b++)
+		{
+			format_pattern(gem, pattern, HAWK_COUNTOF(pattern), HAWK_T("(%js)*(%js)*"), atoms[a], atoms[b]);
+			compare_posix_pattern(gem, pattern, &comparisons, &differences); patterns++;
+			format_pattern(gem, pattern, HAWK_COUNTOF(pattern), HAWK_T("(%js|%js){2}"), atoms[a], atoms[b]);
+			compare_posix_pattern(gem, pattern, &comparisons, &differences); patterns++;
+		}
+	}
+	for (a = 0; a < HAWK_COUNTOF(nonnull); a++)
+	{
+		for (b = 0; b < HAWK_COUNTOF(nonnull); b++)
+		{
+			format_pattern(gem, pattern, HAWK_COUNTOF(pattern), HAWK_T("(%js)+(%js)+"), nonnull[a], nonnull[b]);
+			compare_posix_pattern(gem, pattern, &comparisons, &differences); patterns++;
+		}
+	}
+	printf("# POSIX sweep: %lu pattern cases, %lu comparisons, %lu mismatches\n",
+		(unsigned long)patterns, (unsigned long)comparisons, (unsigned long)differences);
+}
+
+int main (int argc, char* argv[])
 {
 	allocator_t a = { 0, 0, 0 };
 	hawk_mmgr_t mmgr = { allocate, reallocate, deallocate, &a };
 	hawk_t* hawk;
 	hawk_gem_t* gem;
 	hawk_oow_t baseline;
+	int i, strict = 0, sweep = 0;
 
 	no_plan();
+	for (i = 1; i < argc; i++)
+	{
+		if (hawk_comp_bcstr(argv[i], "--strict-posix", 0) == 0) strict = 1;
+		else if (hawk_comp_bcstr(argv[i], "--compare-posix", 0) == 0) strict = sweep = 1;
+		else bail_out("usage: t-033 [--strict-posix] [--compare-posix]");
+	}
+	setlocale(LC_ALL, "C");
 	hawk = hawk_openstdwithmmgr(&mmgr, 0, HAWK_NULL, HAWK_NULL);
 	if (!hawk) { bail_out("cannot open test interpreter"); return 1; }
 	gem = hawk_getgem(hawk);
@@ -299,6 +746,8 @@ int main (void)
 	test_matches(gem);
 	test_errors(gem);
 	test_lifetimes(gem, &a);
+	test_posix_cases(gem, strict);
+	if (sweep) test_posix_sweep(gem);
 	test_failures(gem, &a);
 	OK(a.live == baseline, "regex engine leaves the embedding gem's other allocations intact");
 	hawk_close(hawk);

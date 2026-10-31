@@ -1505,7 +1505,7 @@ warpback:
 			/*GROUPEND must be paired up with GROUP */
 			HAWK_ASSERT(group != HAWK_NULL && group->next != HAWK_NULL);
 
-			if (prevnode == curcand)
+			if (prevnode == curcand && group->next->occ >= curcand->u.ge.group->occ.min)
 			{
 				/* consider a pattern like (x*)*.
 				 * when GROUPEND is reached, an 'if' block
@@ -1516,6 +1516,16 @@ warpback:
 				 * adding a candidate. this check is needed to
 				 * avoid the infinite loop, which otherwise is
 				 * not avoidable. */
+
+				/* repeating a nullable group may return here
+				 * without consuming input. Allow enough empty
+				 * iterations to satisfy its minimum, as required
+				 * for patterns such as (a*){2}.
+				 *
+				 * once the minimum is satisfied, the preceding
+				 * iteration has already explored the continuation.
+				 * stop this empty path to prevent an infinite loop
+				 * in patterns such as (a*)*. */
 				break;
 			}
 
@@ -1933,16 +1943,83 @@ static void refdowngroupstack_incand (hawk_arr_t* arr, void* dptr, hawk_oow_t dl
 	refdowngroupstack(((cand_t*)dptr)->group, arr->gem);
 }
 
-static int comp_cand (hawk_arr_t* arr,
-	const void* dptr1, hawk_oow_t dlen1,
-	const void* dptr2, hawk_oow_t dlen2)
+/* addsimplecand() uses this callback through hawk_arr_search() to decide
+ * whether a pending candidate already exists. Return 0 only when both
+ * candidates describe the same matching state; return 1 otherwise.
+ * This is an equality test for duplicate removal, not an ordering relation.
+ *
+ * A candidate includes both its current atom state and the repetition state
+ * of all enclosing groups. Discarding a candidate merely because its atom
+ * state matches another candidate can lose a valid longer match. For example,
+ * (aa|a){2,3} must match all six characters in "aaaaaa", even when different
+ * paths reach the same atom and input position with different group counts. */
+static int comp_cand (hawk_arr_t* arr, const void* dptr1, hawk_oow_t dlen1, const void* dptr2, hawk_oow_t dlen2)
 {
 	cand_t* c1 = (cand_t*)dptr1;
 	cand_t* c2 = (cand_t*)dptr2;
+
+#if 0
 /*hawk_printf(HAWK_T("%p(%d) %p(%d), %p %p, %d %d\n"), c1->node,c1->node->id, c2->node,c1->node->id, c1->mptr, c2->mptr, (int)c1->occ, (int)c2->occ);*/
 	return (c1->node == c2->node &&
 	        c1->mptr == c2->mptr &&
 	        c1->occ == c2->occ)? 0: 1;
+#else
+
+	const group_t* g1;
+	const group_t* g2;
+
+	/* first compare the current atom states:
+	 * - node identifies the exact position in the compiled regex graph
+	 * - mptr identifies the input position where this atom will be tested
+	 * - occ identifies the atom repetition being attempted and affects
+	 *   whether it may advance to the next node or repeat again
+	 * any difference requires keeping the candidates separate, regardless
+	 * of whether their enclosing group stacks happen to be equal */
+	if (c1->node != c2->node || c1->mptr != c2->mptr || c1->occ != c2->occ) return 1;
+
+	/* the atom states agree. compare the enclosing group state next.
+	 * each non-null pointer initially addresses a stack management head */
+	g1 = c1->group;
+	g2 = c2->group;	
+
+	/* identical pointers mean the candidates share the very same stack,
+	 * so its contents need not be compared. this also handles two null
+	 * pointers: neither candidate has an enclosing group */
+	if (g1 == g2) return 0;
+
+	/* the pointers differ. if just one is null, one candidate has an
+	 * enclosing group context that the other does not have */
+	if (!g1 || !g2) return 1;	
+
+	/* both stacks exist, but may be separately allocated copies of the
+	 * same state. skip their management heads before comparing contents.
+	 * a head has node == HAWK_NULL and uses occ as an ownership reference
+	 * count. that count does not affect matching and must not participate
+	 * in the equality test. The following elements hold actual groups */
+	HAWK_ASSERT(g1->node == HAWK_NULL);
+	HAWK_ASSERT(g2->node == HAWK_NULL);
+	g1 = g1->next;
+	g2 = g2->next;
+
+	/* walk from the innermost active group towards the outermost group.
+	 * corresponding entries must identify the same compiled GROUP node
+	 * and have completed the same number of repetitions. different counts
+	 * can change whether a group may finish or must/can repeat, even when
+	 * the current atom and input position are identical. compare contents
+	 * rather than entry addresses because branching may copy the stack */
+	while (g1 && g2)
+	{
+		if (g1->node != g2->node || g1->occ != g2->occ) return 1;
+		g1 = g1->next;
+		g2 = g2->next;
+	}
+
+	/* all compared entries agree. equality also requires both stacks to
+	 * end together. at this point at least one pointer is null; matching
+	 * pointers therefore mean both are null. a remaining entry on either
+	 * side represents an extra enclosing group and makes the states differ */
+	return (g1 == g2)? 0: 1;
+#endif
 }
 
 static int init_exec_dds (exec_t* e, hawk_gem_t* gem)
