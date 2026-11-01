@@ -33,8 +33,18 @@
  *
  * Regular Expression Syntax
  *
- * Rex provides an ERE-style syntax with explicit limitations; it does not
- * implement full POSIX regex conformance or a separate BRE syntax mode.
+ * Rex uses basic regular expression (BRE) syntax by default. Set
+ * HAWK_REX_EXTENDED before compilation to select extended syntax (ERE).
+ * Both dialects have explicit limitations; full POSIX conformance is not
+ * claimed. BRE groups use \\( and \\), and intervals use \\{n,m\\}.
+ * Unescaped parentheses, braces, +, ?, and | are literal in BRE. The GNU
+ * extensions \\+ and \\? provide one-or-more and zero-or-one repetition.
+ * BRE \\| is literal, not alternation. ERE uses the grammar shown below.
+ * HAWK_REX_EXTENDED affects compilation only; changing it does not
+ * reinterpret a previously compiled graph. HAWK_REX_STRICT is independent
+ * of the dialect. HAWK_REX_NOBOUND disables intervals in both dialects.
+ * In BRE, ^ anchors only at the beginning of the pattern or a group, and $
+ * anchors only at the end of the pattern or a group. A leading * is literal.
  * Character matching and ranges use character values rather than locale
  * collation rules. Locale-specific collating symbols such as [[.a.]] and
  * equivalence classes such as [[=a=]] are deliberately unsupported.
@@ -60,8 +70,9 @@
  * did not participate fails to match; a participating empty group matches
  * an empty string. Backreferences honor HAWK_REX_IGNORECASE.
  *
- * Outside bracket expressions, a special character preceded by a backslash
- * loses its special role and matches the character itself literally.
+ * Outside bracket expressions, backslash quotes ERE special characters.
+ * In BRE it introduces grouping, intervals, and the two GNU quantifiers
+ * described above. Character escapes and backreferences work in both modes.
  * Inside bracket expressions, backslash is an ordinary character: [\]
  * matches a backslash, and [\n] matches either a backslash or the letter n.
  * Use actual character values inside brackets to match tabs, newlines, or
@@ -96,11 +107,14 @@ enum hawk_rex_option_t
 	/**< do not allow a special character at normal character position. */
 	HAWK_REX_STRICT  = (1 << 0),
 
-	/**< do not support the {n,m} style occurrence specifier. */
+	/**< disable interval quantifiers in both BRE and ERE. */
 	HAWK_REX_NOBOUND = (1 << 1),
 
 	/**< perform case-insensitive match */
-	HAWK_REX_IGNORECASE = (1 << 2)
+	HAWK_REX_IGNORECASE = (1 << 2),
+
+	/**< compile ERE syntax; without this option, compile BRE syntax. */
+	HAWK_REX_EXTENDED = (1 << 3)
 };
 
 enum hawk_rex_node_id_t

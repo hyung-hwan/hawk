@@ -41,6 +41,7 @@ struct comp_t
 	{
 		hawk_ooci_t value;
 		int escaped;
+		int special; /* grammar operator in the selected dialect */
 		int backref; /* raw \\1..\\9, not a digit produced by \\x or \\u */
 	} c;
 
@@ -155,7 +156,7 @@ hawk_rex_t* hawk_rex_open (hawk_gem_t* gem, hawk_oow_t xtnsize, hawk_rex_node_t*
 	HAWK_ASSERT(xtnsize <= HAWK_TYPE_MAX(hawk_oow_t) - HAWK_SIZEOF(*rex));
 
 	rex = (hawk_rex_t*)hawk_gem_allocmem(gem, HAWK_SIZEOF(hawk_rex_t) + xtnsize);
-	if (rex == HAWK_NULL) return HAWK_NULL;
+	if (HAWK_UNLIKELY(!rex)) return HAWK_NULL;
 
 	if (hawk_rex_init(rex, gem, code) <= -1)
 	{
@@ -258,7 +259,7 @@ static hawk_rex_node_t* newnode (comp_t* c, hawk_rex_node_id_t id)
 	 */
 
 	node = (hawk_rex_node_t*)hawk_gem_allocmem(c->rex->gem, HAWK_SIZEOF(hawk_rex_node_t));
-	if (node == HAWK_NULL)
+	if (HAWK_UNLIKELY(!node))
 	{
 		hawk_gem_seterrnum(c->rex->gem, HAWK_NULL, HAWK_ENOMEM);
 		return HAWK_NULL;
@@ -280,7 +281,7 @@ static hawk_rex_node_t* newnode (comp_t* c, hawk_rex_node_id_t id)
 static hawk_rex_node_t* newstartnode (comp_t* c)
 {
 	hawk_rex_node_t* n = newnode(c, HAWK_REX_NODE_START);
-	if (n != HAWK_NULL)
+	if (HAWK_LIKELY(n))
 	{
 		n->u.s.gem = c->rex->gem;
 		n->u.s.link = HAWK_NULL;
@@ -349,7 +350,7 @@ static hawk_rex_node_t* newbranchnode (comp_t* c, hawk_rex_node_t* left, hawk_re
 	                                       c-HAWK_T('a')+10)
 
 #define IS_SPE(com,ch) ((com)->c.value == (ch) && !(com)->c.escaped)
-#define IS_ESC(com) ((com)->c.escaped)
+#define IS_OP(com,ch) ((com)->c.value == (ch) && (com)->c.special)
 #define IS_EOF(com) ((com)->c.value == HAWK_OOCI_EOF)
 
 #define getc_noesc(c) get_char(c,1)
@@ -360,6 +361,7 @@ static int get_char (comp_t* com, int noesc)
 	hawk_ooch_t c;
 
 	com->c.backref = 0;
+	com->c.special = 0;
 
 	if (com->ptr >= com->end)
 	{
@@ -371,11 +373,38 @@ static int get_char (comp_t* com, int noesc)
 	com->c.value = (hawk_oochu_t)*com->ptr++;
 	com->c.escaped = 0;
 
-	if (noesc || com->c.value != HAWK_T('\\')) return 0;
+	if (noesc) return 0;
+	if (com->c.value != HAWK_T('\\'))
+	{
+		switch (com->c.value)
+		{
+			case HAWK_T('.'):
+			case HAWK_T('['):
+			case HAWK_T('^'):
+			case HAWK_T('$'):
+			case HAWK_T('*'):
+				com->c.special = 1;
+				break;
+			case HAWK_T('('):
+			case HAWK_T(')'):
+			case HAWK_T('{'):
+			case HAWK_T('+'):
+			case HAWK_T('?'):
+			case HAWK_T('|'):
+				com->c.special = !!(com->rex->option & HAWK_REX_EXTENDED);
+				break;
+		}
+		return 0;
+	}
 
 	CHECK_END (com);
 	c = *com->ptr++;
 	if (c >= HAWK_T('1') && c <= HAWK_T('9')) com->c.backref = c - HAWK_T('0');
+	/* Recognize raw BRE operators before expanding character escapes.
+	 * A digit or parenthesis produced by \\x/\\u is still a literal. */
+	if (!(com->rex->option & HAWK_REX_EXTENDED) &&
+	    (c == HAWK_T('(') || c == HAWK_T(')') || c == HAWK_T('{') ||
+	     c == HAWK_T('+') || c == HAWK_T('?'))) com->c.special = 1;
 
 	if (c == HAWK_T('n')) c = HAWK_T('\n');
 	else if (c == HAWK_T('r')) c = HAWK_T('\r');
@@ -789,14 +818,21 @@ static int occbound (comp_t* com, hawk_rex_node_t* n)
 		return -1;
 	}
 
-	if (com->c.value != HAWK_T('}'))
+	/* The digits are read without escape processing. BRE requires a
+	 * raw backslash followed by '}' to terminate the interval. */
+	if (!(com->rex->option & HAWK_REX_EXTENDED))
 	{
-		hawk_gem_seterrnum(com->rex->gem, HAWK_NULL, HAWK_EREXBRACE);
-		return -1;
+		if (com->c.value != HAWK_T('\\')) goto bad_brace;
+		if (getc_noesc(com) <= -1) return -1;
 	}
+	if (com->c.value != HAWK_T('}')) goto bad_brace;
 
 	if (getc_esc(com) <= -1) return -1;
 	return 0;
+
+bad_brace:
+	hawk_gem_seterrnum(com->rex->gem, HAWK_NULL, HAWK_EREXBRACE);
+	return -1;
 
 bad_bound:
 	hawk_gem_seterrnum(com->rex->gem, HAWK_NULL, HAWK_EREXBADBR);
@@ -828,7 +864,7 @@ static hawk_rex_node_t* comp_group (comp_t* com)
 	body = comp_branches(com, ge);
 	if (body == HAWK_NULL) return HAWK_NULL;
 
-	if (!IS_SPE(com,HAWK_T(')')))
+	if (!IS_OP(com,HAWK_T(')')))
 	{
 		hawk_gem_seterrnum(com->rex->gem, HAWK_NULL, HAWK_EREXPAREN);
 		return HAWK_NULL;
@@ -880,9 +916,10 @@ static hawk_rex_node_t* comp_occ (comp_t* com, hawk_rex_node_t* atom)
 	return atom;
 }
 
-static hawk_rex_node_t* comp_atom (comp_t* com)
+static hawk_rex_node_t* comp_atom (comp_t* com, int first)
 {
 	hawk_rex_node_t* atom;
+	int assertion = 0;
 
 	if (com->c.backref)
 	{
@@ -892,13 +929,14 @@ static hawk_rex_node_t* comp_atom (comp_t* com)
 				"backreference refers to an unclosed or nonexistent group");
 			return HAWK_NULL;
 		}
+
 		atom = newnode(com, HAWK_REX_NODE_BACKREF);
-		if (!atom) return HAWK_NULL;
+		if (HAWK_UNLIKELY(!atom)) return HAWK_NULL;
 		atom->u.bref.index = com->c.backref - 1;
 		com->start->u.s.backrefs = 1;
 		if (getc_esc(com) <= -1) return HAWK_NULL;
 	}
-	else if (!IS_ESC(com))
+	else if (com->c.special)
 	{
 		switch (com->c.value)
 		{
@@ -909,25 +947,32 @@ static hawk_rex_node_t* comp_atom (comp_t* com)
 
 			case HAWK_T('.'):
 				atom = newnode(com, HAWK_REX_NODE_ANY);
-				if (atom == HAWK_NULL) return HAWK_NULL;
+				if (HAWK_UNLIKELY(!atom)) return HAWK_NULL;
 				if (getc_esc(com) <= -1) return HAWK_NULL;
 				break;
 
 			case HAWK_T('^'):
+				if (!(com->rex->option & HAWK_REX_EXTENDED) && !first) goto normal_char;
+				assertion = 1;
 				atom = newnode(com, HAWK_REX_NODE_BOL);
-				if (atom == HAWK_NULL) return HAWK_NULL;
+				if (HAWK_UNLIKELY(!atom)) return HAWK_NULL;
 				if (getc_esc(com) <= -1) return HAWK_NULL;
 				break;
 
 			case HAWK_T('$'):
+				if (!(com->rex->option & HAWK_REX_EXTENDED) &&
+				    com->ptr != com->end &&
+				    !(com->end - com->ptr >= 2 && com->ptr[0] == HAWK_T('\\') && com->ptr[1] == HAWK_T(')')))
+					goto normal_char;
+				assertion = 1;
 				atom = newnode(com, HAWK_REX_NODE_EOL);
-				if (atom == HAWK_NULL) return HAWK_NULL;
+				if (HAWK_UNLIKELY(!atom)) return HAWK_NULL;
 				if (getc_esc(com) <= -1) return HAWK_NULL;
 				break;
 
 			case HAWK_T('['):
 				atom = newnode(com, HAWK_REX_NODE_CSET);
-				if (atom == HAWK_NULL) return HAWK_NULL;
+				if (HAWK_UNLIKELY(!atom)) return HAWK_NULL;
 				/* bracket members, including the first one, are read
 				 * without interpreting backslash escapes. */
 				if (get_cset_char(com) <= -1) return HAWK_NULL;
@@ -935,6 +980,17 @@ static hawk_rex_node_t* comp_atom (comp_t* com)
 				break;
 
 			default:
+				if (!(com->rex->option & HAWK_REX_EXTENDED))
+				{
+					/* A leading '*' is literal in BRE, including after
+					 * an initial anchor. An unmatched \\) is an error. */
+					if (com->c.value == HAWK_T('*')) goto normal_char;
+					if (com->c.value == HAWK_T(')'))
+					{
+						hawk_gem_seterrnum(com->rex->gem, HAWK_NULL, HAWK_EREXPAREN);
+						return HAWK_NULL;
+					}
+				}
 				if (com->rex->option & HAWK_REX_STRICT)
 				{
 					/* check if a special charcter is at the
@@ -963,14 +1019,16 @@ static hawk_rex_node_t* comp_atom (comp_t* com)
 	normal_char:
 		/* normal character */
 		atom = newcharnode(com, com->c.value);
-		if (atom == HAWK_NULL) return HAWK_NULL;
+		if (HAWK_UNLIKELY(!atom)) return HAWK_NULL;
 		if (getc_esc(com) <= -1) return HAWK_NULL;
 	}
 
 	atom->occ.min = 1;
 	atom->occ.max = 1;
 
-	if (!IS_ESC(com))
+	/* BRE anchors cannot be repeated. Leave a following '*' to be
+	 * parsed as a literal atom rather than creating an empty loop. */
+	if (com->c.special && ((com->rex->option & HAWK_REX_EXTENDED) || !assertion))
 	{
 		/* handle the occurrence specifier, if any */
 		if (comp_occ(com, atom) == HAWK_NULL) return HAWK_NULL;
@@ -1016,13 +1074,13 @@ static hawk_rex_node_t* pseudo_group (comp_t* c, hawk_rex_node_t* atom)
 	HAWK_ASSERT(atom->occ.min <= 0);
 
 	g = newgroupnode(c);
-	if (g == HAWK_NULL) return HAWK_NULL;
+	if (HAWK_UNLIKELY(!g)) return HAWK_NULL;
 
 	ge = newgroupendnode(c, g);
-	if (ge == HAWK_NULL) return HAWK_NULL;
+	if (HAWK_UNLIKELY(!ge)) return HAWK_NULL;
 
 	b = newbranchnode(c, atom, ge);
-	if (b == HAWK_NULL) return HAWK_NULL;
+	if (HAWK_UNLIKELY(!b)) return HAWK_NULL;
 
 	atom->occ.min = 1;
 	atom->next = ge;
@@ -1043,8 +1101,8 @@ static hawk_rex_node_t* pseudo_group (comp_t* c, hawk_rex_node_t* atom)
 static hawk_rex_node_t* comp_branch (comp_t* c, pair_t* pair)
 {
 #define REACHED_END(c) \
-	(IS_EOF(c) || IS_SPE(c,HAWK_T('|')) || \
-	 (c->gdepth > 0 && IS_SPE(c,HAWK_T(')'))))
+	(IS_EOF(c) || IS_OP(c,HAWK_T('|')) || \
+	 (c->gdepth > 0 && IS_OP(c,HAWK_T(')'))))
 
 	if (REACHED_END(c))
 	{
@@ -1059,7 +1117,7 @@ static hawk_rex_node_t* comp_branch (comp_t* c, pair_t* pair)
 
 		do
 		{
-			hawk_rex_node_t* atom = comp_atom (c);
+			hawk_rex_node_t* atom = comp_atom(c, pair->head == HAWK_NULL);
 			if (atom == HAWK_NULL) return HAWK_NULL;
 
 			/* An exact zero count consumes nothing. Do not wrap it with a
@@ -1130,7 +1188,7 @@ static hawk_rex_node_t* comp_branches (comp_t* c, hawk_rex_node_t* ge)
 	if (left == HAWK_NULL) return HAWK_NULL;
 	xpair.tail->next = ge;
 
-	while (IS_SPE(c,HAWK_T('|')))
+	while (IS_OP(c,HAWK_T('|')))
 	{
 		if (getc_esc(c) <= -1) return HAWK_NULL;
 
@@ -1243,8 +1301,10 @@ static group_t* newgrouphead (exec_t* e, const group_t* source)
 		return HAWK_NULL;
 	}
 	bytes = e->ncaps * HAWK_SIZEOF(hawk_oocs_t);
+
 	head = (group_t*)hawk_gem_allocmem(e->rex->gem, HAWK_SIZEOF(*head) + bytes);
-	if (!head) return HAWK_NULL;
+	if (HAWK_UNLIKELY(!head)) return HAWK_NULL;
+
 	head->node = HAWK_NULL;
 	head->occ = 0;
 	head->next = HAWK_NULL;
@@ -1253,6 +1313,7 @@ static group_t* newgrouphead (exec_t* e, const group_t* source)
 	head->u.caps.ptr = (hawk_oocs_t*)(head + 1);
 	if (source) HAWK_MEMCPY(head->u.caps.ptr, source->u.caps.ptr, bytes);
 	else HAWK_MEMSET(head->u.caps.ptr, 0, bytes);
+
 	return head;
 }
 
@@ -1267,18 +1328,18 @@ static group_t* dupgroupstackmembers (exec_t* e, group_t* g)
 		/* TODO: make it non recursive or
 		 *       implement stack overflow protection */
 		xg = dupgroupstackmembers(e, g->next);
-		if (xg == HAWK_NULL) return HAWK_NULL;
+		if (HAWK_UNLIKELY(!xg)) return HAWK_NULL;
 	}
 
 	yg = (group_t*)hawk_gem_allocmem(e->rex->gem, HAWK_SIZEOF(*yg));
-	if (yg == HAWK_NULL)
+	if (HAWK_UNLIKELY(!yg))
 	{
-		if (xg != HAWK_NULL) freegroupstackmembers(xg, e->rex->gem);
+		if (xg) freegroupstackmembers(xg, e->rex->gem);
 		hawk_gem_seterrnum(e->rex->gem, HAWK_NULL, HAWK_ENOMEM);
 		return HAWK_NULL;
 	}
 
-	HAWK_MEMCPY (yg, g, HAWK_SIZEOF(*yg));
+	HAWK_MEMCPY(yg, g, HAWK_SIZEOF(*yg));
 	yg->next = xg;
 
 	return yg;
@@ -1315,7 +1376,7 @@ static group_t* __groupstackpush (exec_t* e, group_t* gs, hawk_rex_node_t* gn, i
 
 	HAWK_ASSERT(gn->id == HAWK_REX_NODE_GROUP);
 
-	if (gs == HAWK_NULL)
+	if (!gs)
 	{
 		/* gn is the first group pushed. no stack yet.
 		 * create the head to store management info. */
@@ -1343,10 +1404,10 @@ static group_t* __groupstackpush (exec_t* e, group_t* gs, hawk_rex_node_t* gn, i
 
 	/* create a new stack element */
 	elem = (group_t*)hawk_gem_allocmem(e->rex->gem, HAWK_SIZEOF(*elem));
-	if (elem == HAWK_NULL)
+	if (HAWK_UNLIKELY(!elem))
 	{
 		/* rollback */
-		if (gs == HAWK_NULL)
+		if (!gs)
 			hawk_gem_freemem(e->rex->gem, head);
 		else if (dup)
 			freegroupstack(head, e->rex->gem);
@@ -1385,13 +1446,13 @@ static group_t* dupgroupstackpop (exec_t* e, group_t* gs)
 	if (gs->next->next)
 	{
 		dupg = dupgroupstackmembers(e, gs->next->next);
-		if (!dupg) return HAWK_NULL;
+		if (HAWK_UNLIKELY(!dupg)) return HAWK_NULL;
 	}
 
 	head = newgrouphead(e, gs);
-	if (head == HAWK_NULL)
+	if (HAWK_UNLIKELY(!head))
 	{
-		if (dupg != HAWK_NULL) freegroupstackmembers(dupg, e->rex->gem);
+		if (dupg) freegroupstackmembers(dupg, e->rex->gem);
 		hawk_gem_seterrnum(e->rex->gem, HAWK_NULL, HAWK_ENOMEM);
 		return HAWK_NULL;
 	}
@@ -1409,11 +1470,10 @@ static group_t* groupstackpop (exec_t* e, group_t* gs)
 
 	HAWK_ASSERT(gs != HAWK_NULL);
 
-	/* The head of a group stack must point to HAWK_NULL for management purpose. */
+	/* the head of a group stack must point to HAWK_NULL for management purpose. */
 	HAWK_ASSERT(gs->node == HAWK_NULL);
 
 	HAWK_ASSERT(gs->next != HAWK_NULL);
-
 
 	top = gs->next;
 	gs->next = top->next;
@@ -1520,6 +1580,15 @@ warpback:
 
 	switch (curcand->id)
 	{
+		case HAWK_REX_NODE_BOL:
+		case HAWK_REX_NODE_EOL:
+			/* Assertions consume no input. Traverse them here so an
+			 * anchor-only repeated group retains its empty-loop guard. */
+			if (curcand->id == HAWK_REX_NODE_BOL && mptr != e->str.ptr) break;
+			if (curcand->id == HAWK_REX_NODE_EOL && mptr < e->str.end) break;
+			curcand = curcand->next;
+			goto warpback;
+
 		case HAWK_REX_NODE_END:
 		{
 			if (e->matchend == HAWK_NULL || mptr > e->matchend ||
@@ -2315,7 +2384,7 @@ int hawk_rex_execx (
 			goto done;
 		}
 		e.bestcaps = (hawk_oocs_t*)hawk_gem_allocmem(rex->gem, e.ncaps * HAWK_SIZEOF(*e.bestcaps));
-		if (!e.bestcaps)
+		if (HAWK_UNLIKELY(!e.bestcaps))
 		{
 			n = -1;
 			goto done;
