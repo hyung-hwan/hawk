@@ -117,6 +117,13 @@ enum hawk_rex_option_t
 	HAWK_REX_EXTENDED = (1 << 3)
 };
 
+/** Per-call execution flags; do not pass these to hawk_rex_setopt(). */
+enum hawk_rex_eflag_t
+{
+	HAWK_REX_NOTBOL = (1 << 0), /**< the subject beginning does not satisfy ^ */
+	HAWK_REX_NOTEOL = (1 << 1)  /**< the subject end does not satisfy $ */
+};
+
 enum hawk_rex_node_id_t
 {
 	HAWK_REX_NODE_START,
@@ -287,7 +294,7 @@ HAWK_EXPORT int hawk_rex_getopt (
  */
 HAWK_EXPORT void hawk_rex_setopt (
 	hawk_rex_t* rex, /**< regular expression processor */
-	int         opts /**< 0 or bitwise OR of ::hawk_rex_option_t enumerators */
+	int         opts /**< 0 or bitwise OR of the hawk_rex_option_t enumerators */
 );
 
 /** Read the shared gem's current error code. Successful regex calls do not
@@ -314,12 +321,18 @@ HAWK_EXPORT hawk_rex_node_t* hawk_rex_comp (
  * refer to str's full bounds. Return 1 for a match, 0 for none, or -1 on error.
  * A non-NULL matstr receives a borrowed input slice only when a match succeeds.
  * Pattern/input lengths and offsets are in hawk_ooch_t units, not UTF-8 bytes
- * in a wide-character build. Input storage is never modified. */
+ * in a wide-character build. Input storage is never modified.
+ * flags is zero or a bitwise OR of hawk_rex_eflag_t values. NOTBOL/NOTEOL
+ * suppress the corresponding subject-boundary assertions, independently of
+ * the search slice. They do not affect literal ^/$ characters. Flags apply
+ * only to this execution and never change the object or compiled graph.
+ * Unknown execution flag bits report HAWK_EINVAL without changing output. */
 HAWK_EXPORT int hawk_rex_exec (
 	hawk_rex_t*        rex,
 	const hawk_oocs_t* str,
 	const hawk_oocs_t* substr,
-	hawk_oocs_t*        matstr
+	hawk_oocs_t*       matstr,
+	int                flags
 );
 
 /** Return the number of capturing groups, or zero without compiled code. */
@@ -339,16 +352,17 @@ HAWK_EXPORT int hawk_rex_execx (
 	const hawk_oocs_t* str,
 	const hawk_oocs_t* substr,
 	hawk_oocs_t*       matches,
-	hawk_oow_t         count
+	hawk_oow_t         count,
+	int                flags
 );
 
 
 /** Compile and detach a graph owned by gem; return NULL on failure. */
 HAWK_EXPORT hawk_rex_node_t* hawk_rex_build (
-	hawk_gem_t*       gem,
-	int               option,
+	hawk_gem_t*        gem,
+	int                option,
 	const hawk_ooch_t* ptn,
-	hawk_oow_t        len
+	hawk_oow_t         len
 );
 
 /** Match a borrowed graph without taking ownership. Return 1, 0, or -1. */
@@ -358,7 +372,8 @@ HAWK_EXPORT int hawk_rex_match (
 	int                option,
 	const hawk_oocs_t* str,
 	const hawk_oocs_t* substr,
-	hawk_oocs_t*       match
+	hawk_oocs_t*       match,
+	int                flags
 );
 
 /** Borrow a compiled graph and return captures as in hawk_rex_execx(). */
@@ -369,7 +384,8 @@ HAWK_EXPORT int hawk_rex_matchx (
 	const hawk_oocs_t* str,
 	const hawk_oocs_t* substr,
 	hawk_oocs_t*       matches,
-	hawk_oow_t         count
+	hawk_oow_t         count,
+	int                flags
 );
 
 /** Release a detached graph through the gem recorded in its start node. */

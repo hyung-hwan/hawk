@@ -76,6 +76,7 @@ struct exec_t
 
 	hawk_oow_t nmatches;
 	int failed; /* a candidate callback can fail even on the final array slot */
+	int flags; /* per-execution anchor overrides, not object options */
 	const hawk_ooch_t* matchend; /* 1 character past the match end */
 	hawk_oow_t ncaps;
 	hawk_oocs_t* bestcaps;
@@ -1585,8 +1586,8 @@ warpback:
 		case HAWK_REX_NODE_EOL:
 			/* Assertions consume no input. Traverse them here so an
 			 * anchor-only repeated group retains its empty-loop guard. */
-			if (curcand->id == HAWK_REX_NODE_BOL && mptr != e->str.ptr) break;
-			if (curcand->id == HAWK_REX_NODE_EOL && mptr < e->str.end) break;
+			if (curcand->id == HAWK_REX_NODE_BOL && (mptr != e->str.ptr || (e->flags & HAWK_REX_NOTBOL))) break;
+			if (curcand->id == HAWK_REX_NODE_EOL && (mptr < e->str.end || (e->flags & HAWK_REX_NOTEOL))) break;
 			curcand = curcand->next;
 			goto warpback;
 
@@ -1937,7 +1938,7 @@ static hawk_arr_walk_t walk_cands_for_match (hawk_arr_t* arr, hawk_oow_t index, 
 	switch (node->id)
 	{
 		case HAWK_REX_NODE_BOL:
-			if (cand->mptr == e->str.ptr)
+			if (cand->mptr == e->str.ptr && !(e->flags & HAWK_REX_NOTBOL))
 			{
 				/* the next match pointer remains
 				 * the same as ^ matches a position,
@@ -1950,7 +1951,7 @@ static hawk_arr_walk_t walk_cands_for_match (hawk_arr_t* arr, hawk_oow_t index, 
 			break;
 
 		case HAWK_REX_NODE_EOL:
-			if (cand->mptr >= e->str.end)
+			if (cand->mptr >= e->str.end && !(e->flags & HAWK_REX_NOTEOL))
 			{
 				/* the next match pointer remains
 				 * the same as $ matches a position,
@@ -2336,9 +2337,9 @@ static void fini_exec_dds (exec_t* e)
 
 int hawk_rex_exec (
 	hawk_rex_t* rex, const hawk_oocs_t* str,
-	const hawk_oocs_t* substr, hawk_oocs_t* matstr)
+	const hawk_oocs_t* substr, hawk_oocs_t* matstr, int flags)
 {
-	return hawk_rex_execx(rex, str, substr, matstr, matstr? 1: 0);
+	return hawk_rex_execx(rex, str, substr, matstr, matstr? 1: 0, flags);
 }
 
 hawk_oow_t hawk_rex_getnsub (const hawk_rex_t* rex)
@@ -2348,13 +2349,13 @@ hawk_oow_t hawk_rex_getnsub (const hawk_rex_t* rex)
 
 int hawk_rex_execx (
 	hawk_rex_t* rex, const hawk_oocs_t* str,
-	const hawk_oocs_t* substr, hawk_oocs_t* matches, hawk_oow_t count)
+	const hawk_oocs_t* substr, hawk_oocs_t* matches, hawk_oow_t count, int flags)
 {
 	exec_t e;
 	int n = 0;
 	hawk_oow_t i;
 
-	if (count && !matches)
+	if ((count && !matches) || (flags & ~(HAWK_REX_NOTBOL | HAWK_REX_NOTEOL)))
 	{
 		hawk_gem_seterrnum(rex->gem, HAWK_NULL, HAWK_EINVAL);
 		return -1;
@@ -2369,6 +2370,7 @@ int hawk_rex_execx (
 	HAWK_MEMSET(&e, 0, HAWK_SIZEOF(e));
 
 	e.rex = rex;
+	e.flags = flags;
 	e.str.ptr = str->ptr;
 	e.str.end = str->ptr + str->len;
 	e.sub.ptr = substr->ptr;
@@ -2451,20 +2453,20 @@ hawk_rex_node_t* hawk_rex_build (hawk_gem_t* gem, int option, const hawk_ooch_t*
 }
 
 int hawk_rex_match (hawk_gem_t* gem, hawk_rex_node_t* code, int option,
-	const hawk_oocs_t* str, const hawk_oocs_t* substr, hawk_oocs_t* match)
+	const hawk_oocs_t* str, const hawk_oocs_t* substr, hawk_oocs_t* match, int flags)
 {
-	return hawk_rex_matchx(gem, code, option, str, substr, match, match? 1: 0);
+	return hawk_rex_matchx(gem, code, option, str, substr, match, match? 1: 0, flags);
 }
 
 int hawk_rex_matchx (hawk_gem_t* gem, hawk_rex_node_t* code, int option,
-	const hawk_oocs_t* str, const hawk_oocs_t* substr, hawk_oocs_t* matches, hawk_oow_t count)
+	const hawk_oocs_t* str, const hawk_oocs_t* substr, hawk_oocs_t* matches, hawk_oow_t count, int flags)
 {
 	hawk_rex_t rex;
 	int n;
 
 	hawk_rex_init(&rex, gem, code);
 	hawk_rex_setopt(&rex, option);
-	n = hawk_rex_execx(&rex, str, substr, matches, count);
+	n = hawk_rex_execx(&rex, str, substr, matches, count, flags);
 	hawk_rex_yield(&rex);
 	hawk_rex_fini(&rex);
 	return n;
