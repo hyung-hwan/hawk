@@ -38,13 +38,13 @@
  * Both dialects have explicit limitations; full POSIX conformance is not
  * claimed. BRE groups use \\( and \\), and intervals use \\{n,m\\}.
  * Unescaped parentheses, braces, +, ?, and | are literal in BRE. The GNU
- * extensions \\+ and \\? provide one-or-more and zero-or-one repetition.
- * BRE \\| is literal, not alternation. ERE uses the grammar shown below.
+ * extensions \\+ and \\? provide one-or-more and zero-or-one repetition;
+ * \\| separates alternatives. ERE uses the grammar shown below.
  * HAWK_REX_EXTENDED affects compilation only; changing it does not
  * reinterpret a previously compiled graph. HAWK_REX_STRICT is independent
  * of the dialect. HAWK_REX_NOBOUND disables intervals in both dialects.
- * In BRE, ^ anchors only at the beginning of the pattern or a group, and $
- * anchors only at the end of the pattern or a group. A leading * is literal.
+ * In BRE, ^ anchors at the beginning of a branch, and $ at its end,
+ * including beside \\| alternatives. A leading * is literal.
  * Character matching and ranges use character values rather than locale
  * collation rules. Locale-specific collating symbols such as [[.a.]] and
  * equivalence classes such as [[=a=]] are deliberately unsupported.
@@ -71,7 +71,7 @@
  * an empty string. Backreferences honor HAWK_REX_IGNORECASE.
  *
  * Outside bracket expressions, backslash quotes ERE special characters.
- * In BRE it introduces grouping, intervals, and the two GNU quantifiers
+ * In BRE it introduces grouping, intervals, and GNU alternation/quantifiers
  * described above. Character escapes and backreferences work in both modes.
  * Inside bracket expressions, backslash is an ordinary character: [\]
  * matches a backslash, and [\n] matches either a backslash or the letter n.

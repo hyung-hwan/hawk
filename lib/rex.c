@@ -404,7 +404,7 @@ static int get_char (comp_t* com, int noesc)
 	 * A digit or parenthesis produced by \\x/\\u is still a literal. */
 	if (!(com->rex->option & HAWK_REX_EXTENDED) &&
 	    (c == HAWK_T('(') || c == HAWK_T(')') || c == HAWK_T('{') ||
-	     c == HAWK_T('+') || c == HAWK_T('?'))) com->c.special = 1;
+	     c == HAWK_T('+') || c == HAWK_T('?') || c == HAWK_T('|'))) com->c.special = 1;
 
 	if (c == HAWK_T('n')) c = HAWK_T('\n');
 	else if (c == HAWK_T('r')) c = HAWK_T('\r');
@@ -962,7 +962,8 @@ static hawk_rex_node_t* comp_atom (comp_t* com, int first)
 			case HAWK_T('$'):
 				if (!(com->rex->option & HAWK_REX_EXTENDED) &&
 				    com->ptr != com->end &&
-				    !(com->end - com->ptr >= 2 && com->ptr[0] == HAWK_T('\\') && com->ptr[1] == HAWK_T(')')))
+				    !(com->end - com->ptr >= 2 && com->ptr[0] == HAWK_T('\\') &&
+				      (com->ptr[1] == HAWK_T(')') || com->ptr[1] == HAWK_T('|'))))
 					goto normal_char;
 				assertion = 1;
 				atom = newnode(com, HAWK_REX_NODE_EOL);

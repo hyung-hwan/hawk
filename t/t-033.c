@@ -3,8 +3,7 @@
  * Normal run: BRE/ERE matching, captures, diagnostics, and ownership tests.
  * --compare-posix: compare 1,338 generated ERE cases with an independent
  *                 bounded-language model over every {a,b} string through
- *                 length six (169,926 ERE cases plus equivalent BRE cases
- *                 for generated expressions without alternation).
+ *                 length six in both dialects (339,852 comparisons).
  *
  * This is a C-locale, complete-match investigation, not a proof of full POSIX
  * conformance. The generated sweep uses common ERE
@@ -386,7 +385,8 @@ static void test_capture_failures (hawk_gem_t* gem, allocator_t* a)
 		{ HAWK_T("((a|aa)+)(b?)"), HAWK_REX_EXTENDED },
 		{ HAWK_T("((a|aa)+)\\1"), HAWK_REX_EXTENDED },
 		{ HAWK_T("\\(\\(a\\{1,2\\}\\)\\+\\)\\(b\\?\\)"), 0 },
-		{ HAWK_T("\\(a\\{1,2\\}\\)\\+\\1"), 0 }
+		{ HAWK_T("\\(a\\{1,2\\}\\)\\+\\1"), 0 },
+		{ HAWK_T("\\(a\\|aa\\)\\+\\1"), 0 }
 	};
 	hawk_oocs_t input = { HAWK_T("aaaa"), 4 }, matches[5], saved[5];
 	hawk_rex_t rex;
@@ -616,8 +616,32 @@ static void test_bre (hawk_gem_t* gem)
 		{ HAWK_T("a{2}"), HAWK_T("a{2}"), 0, 1, 0, { 0 }, { 4 } },
 		{ HAWK_T("(a)"), HAWK_T("(a)"), 0, 1, 0, { 0 }, { 3 } },
 		{ HAWK_T("a+?|(b){2}"), HAWK_T("a+?|(b){2}"), 0, 1, 0, { 0 }, { 10 } },
-		{ HAWK_T("a\\|b"), HAWK_T("a|b"), 0, 1, 0, { 0 }, { 3 } },
-		{ HAWK_T("a\\|b"), HAWK_T("b"), 0, 0, 0, { 0 }, { 0 } },
+		{ HAWK_T("a|b"), HAWK_T("a|b"), 0, 1, 0, { 0 }, { 3 } },
+		{ HAWK_T("a\\|b"), HAWK_T("a|b"), 0, 1, 0, { 0 }, { 1 } },
+		{ HAWK_T("a\\|b"), HAWK_T("b"), 0, 1, 0, { 0 }, { 1 } },
+		{ HAWK_T("a\\|aa"), HAWK_T("aa"), 0, 1, 0, { 0 }, { 2 } },
+		{ HAWK_T("aa\\|a"), HAWK_T("aa"), 0, 1, 0, { 0 }, { 2 } },
+		{ HAWK_T("a\\|bb"), HAWK_T("abb"), 0, 1, 0, { 0 }, { 1 } },
+		{ HAWK_T("a\\|^b"), HAWK_T("xb"), 0, 0, 0, { 0 }, { 0 } },
+		{ HAWK_T("a\\|^b"), HAWK_T("b"), 0, 1, 0, { 0 }, { 1 } },
+		{ HAWK_T("a$\\|b"), HAWK_T("ax"), 0, 0, 0, { 0 }, { 0 } },
+		{ HAWK_T("a$\\|b"), HAWK_T("xa"), 0, 1, 0, { 1 }, { 1 } },
+		{ HAWK_T("a$b\\|c^d"), HAWK_T("xa$b"), 0, 1, 0, { 1 }, { 3 } },
+		{ HAWK_T("a\\|^*b"), HAWK_T("*b"), 0, 1, 0, { 0 }, { 2 } },
+		{ HAWK_T("a\\|"), HAWK_T("b"), 0, 1, 0, { 0 }, { 0 } },
+		{ HAWK_T("\\|a"), HAWK_T("a"), 0, 1, 0, { 0 }, { 1 } },
+		{ HAWK_T("\\|"), HAWK_T(""), 0, 1, 0, { 0 }, { 0 } },
+		{ HAWK_T("\\(a\\|ab\\)"), HAWK_T("ab"), 0, 1, 1, { 0, 0 }, { 2, 2 } },
+		{ HAWK_T("\\(a\\|b\\)\\+"), HAWK_T("abba"), 0, 1, 1, { 0, 3 }, { 4, 1 } },
+		{ HAWK_T("\\(a\\|\\)"), HAWK_T(""), 0, 1, 1, { 0, 0 }, { 0, 0 } },
+		{ HAWK_T("\\(a\\)\\|\\(b\\)"), HAWK_T("b"), 0, 1, 2, { 0, -1, 0 }, { 1, 0, 1 } },
+		{ HAWK_T("\\(a\\|aa\\)\\1"), HAWK_T("aaaa"), 0, 1, 1, { 0, 0 }, { 4, 2 } },
+		{ HAWK_T("\\(a\\)\\|\\(b\\)\\1"), HAWK_T("bb"), 0, 0, 2, { 0 }, { 0 } },
+		{ HAWK_T("\\(a\\)\\|\\(b\\)\\2"), HAWK_T("bb"), 0, 1, 2, { 0, -1, 0 }, { 2, 0, 1 } },
+		{ HAWK_T("[\\|]\\+"), HAWK_T("\\|"), 0, 1, 0, { 0 }, { 2 } },
+		{ HAWK_T("a\\x7cb"), HAWK_T("a|b"), 0, 1, 0, { 0 }, { 3 } },
+		{ HAWK_T("a\\\\|b"), HAWK_T("a\\|b"), 0, 1, 0, { 0 }, { 4 } },
+		{ HAWK_T("a$\\\\|b"), HAWK_T("a$\\|b"), 0, 1, 0, { 0 }, { 5 } },
 		{ HAWK_T("a\\+"), HAWK_T("aaa"), 0, 1, 0, { 0 }, { 3 } },
 		{ HAWK_T("a\\?"), HAWK_T(""), 0, 1, 0, { 0 }, { 0 } },
 		{ HAWK_T("a\\?"), HAWK_T("aa"), 0, 1, 0, { 0 }, { 1 } },
@@ -679,7 +703,10 @@ static void test_bre (hawk_gem_t* gem)
 		{ HAWK_T("a\\{999999999999999999999999999\\}"), HAWK_EREXBADBR },
 		{ HAWK_T("\\1"), HAWK_EREXSUBREG },
 		{ HAWK_T("\\(a\\)\\2"), HAWK_EREXSUBREG },
-		{ HAWK_T("\\(a\\1\\)"), HAWK_EREXSUBREG }
+		{ HAWK_T("\\(a\\1\\)"), HAWK_EREXSUBREG },
+		{ HAWK_T("a\\|\\)"), HAWK_EREXPAREN },
+		{ HAWK_T("\\(a\\|b"), HAWK_EREXPAREN },
+		{ HAWK_T("a\\|\\1"), HAWK_EREXSUBREG }
 	};
 	hawk_rex_t rex;
 	hawk_rex_node_t* old;
@@ -825,6 +852,7 @@ static void test_posix_cases (hawk_gem_t* gem)
 		ERE("[[:alpha:]0-9]+", "_a0B9!", 1, 1, 4, "POSIX bracket class and range union"),
 		ERE("\\(a\\)", "x(a)", 1, 1, 3, "POSIX escaped parentheses are literal"),
 		ERE("a\\+b", "a+b", 1, 0, 3, "POSIX escaped plus is literal"),
+		ERE("a\\|b", "a|b", 1, 0, 3, "ERE escaped pipe remains literal"),
 		ERE("a\\{2\\}", "a{2}", 1, 0, 4, "POSIX escaped braces are literal"),
 		ERE("\\\\", "x\\", 1, 1, 1, "POSIX escaped backslash is literal"),
 		ERE("(aa|a){2,3}", "aaaaaa", 1, 0, 6, "POSIX bounded alternatives retain the longest path"),
@@ -1091,8 +1119,7 @@ done:
 }
 
 /* The generated alphabet has no escapes or brackets. Translate its ERE
- * operators into BRE spellings, using the GNU \\+ and \\? extensions.
- * Expressions containing alternation have no corresponding BRE form here. */
+ * operators into BRE spellings, using GNU \\+, \\?, and \\| extensions. */
 static void compare_posix_pattern (hawk_gem_t* gem, const hawk_ooch_t* pattern,
 	hawk_oow_t* comparisons, hawk_oow_t* differences)
 {
@@ -1103,10 +1130,10 @@ static void compare_posix_pattern (hawk_gem_t* gem, const hawk_ooch_t* pattern,
 	for (i = 0; pattern[i]; i++)
 	{
 		c = pattern[i];
-		if (c == HAWK_T('|')) return;
 		if (len + 2 >= HAWK_COUNTOF(basic)) bail_out("generated BRE exceeds its buffer");
 		if (c == HAWK_T('(') || c == HAWK_T(')') || c == HAWK_T('{') ||
-		    c == HAWK_T('}') || c == HAWK_T('+') || c == HAWK_T('?')) basic[len++] = HAWK_T('\\');
+		    c == HAWK_T('}') || c == HAWK_T('+') || c == HAWK_T('?') ||
+		    c == HAWK_T('|')) basic[len++] = HAWK_T('\\');
 		basic[len++] = c;
 	}
 	basic[len] = 0;
