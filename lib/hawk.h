@@ -28,6 +28,7 @@
 #include <hawk-cmn.h>
 #include <hawk-ecs.h>
 #include <hawk-gem.h>
+#include <hawk-rex.h>
 #include <hawk-pio.h>
 #include <hawk-tre.h>
 #include <hawk-utl.h>
@@ -282,7 +283,7 @@ struct hawk_val_rex_t
 {
 	HAWK_VAL_HDR;
 	hawk_oocs_t str;
-	hawk_tre_t* code[2];
+	void* code[2];
 };
 typedef struct hawk_val_rex_t  hawk_val_rex_t;
 
@@ -598,34 +599,6 @@ typedef void (*hawk_log_write_t) (
 
 /* ------------------------------------------------------------------------ */
 
-#if 0
-typedef void* (*hawk_buildrex_t) (
-	hawk_t*            hawk,
-	const hawk_ooch_t* ptn,
-	hawk_oow_t         len
-);
-
-typedef int (*hawk_matchrex_t) (
-	hawk_t*             hawk,
-	void*               code,
-	int                 option,
-	const hawk_ooch_t*  str,
-	hawk_oow_t          len,
-	const hawk_ooch_t** mptr,
-	hawk_oow_t*         mlen
-);
-
-typedef void (*hawk_freerex_t) (
-	hawk_t* hawk,
-	void*   code
-);
-
-typedef int (*hawk_isemptyrex_t) (
-	hawk_t* hawk,
-	void*   code
-);
-#endif
-
 /**
  * The hawk_sio_cmd_t type defines I/O commands for a script stream.
  */
@@ -843,16 +816,7 @@ struct hawk_prm_t
 
 	hawk_log_write_t logwrite;
 
-#if 0
-	struct
-	{
-		/* TODO: accept regular expression handling functions */
-		hawk_buildrex_t build;
-		hawk_matchrex_t match;
-		hawk_freerex_t free;
-		hawk_isemptyrex_t isempty;
-	} rex;
-#endif
+	hawk_rex_prm_t rex; /**< optional shared regular-expression primitives */
 };
 typedef struct hawk_prm_t hawk_prm_t;
 
@@ -1851,9 +1815,11 @@ HAWK_EXPORT void hawk_getprm (
 
 /**
  * The hawk_setprm() function changes existing primitive
- * functions.
+ * functions. Return 0 on success or -1 for an incomplete primitive table. The rex
+ * binding must not change while compiled expressions, a parsed program, or
+ * runtime contexts using the previous binding still exist. See hawk_rex_prm_t.
  */
-HAWK_EXPORT void hawk_setprm (
+HAWK_EXPORT int hawk_setprm (
 	hawk_t*           hawk,
 	const hawk_prm_t* prm
 );
@@ -2496,15 +2462,15 @@ HAWK_EXPORT int hawk_buildrex (
 	hawk_t*            hawk,
 	const hawk_ooch_t* ptn,
 	hawk_oow_t         len,
-	hawk_tre_t**       code,
-	hawk_tre_t**       icode
+	void**             code,
+	void**             icode
 );
 
-#if defined(HAWK_HAVE_INLINE)
-static HAWK_INLINE void hawk_freerex (hawk_t* hawk, hawk_tre_t* code, hawk_tre_t* icode) { hawk_gem_freerex (hawk_getgem(hawk), code, icode); }
-#else
-#define hawk_freerex(hawk, code, icode) hawk_gem_freerex(hawk_getgem(hawk), code, icode)
-#endif
+HAWK_EXPORT void hawk_freerex (
+	hawk_t*            hawk,
+	void*              code,
+	void*              icode
+);
 
 /* ----------------------------------------------------------------------- */
 
@@ -3549,7 +3515,7 @@ HAWK_EXPORT hawk_val_t* hawk_rtx_makenumormbsvalwithbchars (
 HAWK_EXPORT hawk_val_t* hawk_rtx_makerexval (
 	hawk_rtx_t*        rtx,
 	const hawk_oocs_t* str,
-	hawk_tre_t*        code[2]
+	void*              code[2]
 );
 
 /**
@@ -4250,15 +4216,15 @@ HAWK_EXPORT int hawk_rtx_buildrex (
 	hawk_rtx_t*        rtx,
 	const hawk_ooch_t* ptn,
 	hawk_oow_t         len,
-	hawk_tre_t**       code,
-	hawk_tre_t**       icode
+	void**             code,
+	void**             icode
 );
 
-#if defined(HAWK_HAVE_INLINE)
-static HAWK_INLINE void hawk_rtx_freerex (hawk_rtx_t* rtx, hawk_tre_t* code, hawk_tre_t* icode) { hawk_gem_freerex (hawk_rtx_getgem(rtx), code, icode); }
-#else
-#define hawk_rtx_freerex(rtx, code, icode) hawk_gem_freerex(hawk_rtx_getgem(rtx), code, icode)
-#endif
+HAWK_EXPORT void hawk_rtx_freerex (
+	hawk_rtx_t*        rtx,
+	void*              code,
+	void*              icode
+);
 
 /* ----------------------------------------------------------------------- */
 

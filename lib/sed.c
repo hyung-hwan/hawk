@@ -23,6 +23,7 @@
  */
 
 #include "sed-prv.h"
+#include "rex-prv.h"
 #include "hawk-prv.h"
 #include <hawk-chr.h>
 #include <hawk-tre.h>
@@ -200,6 +201,11 @@ int hawk_sed_setopt (hawk_sed_t* sed, hawk_sed_opt_t id, const void* value)
 {
 	switch (id)
 	{
+		case HAWK_SED_REXPRM:
+			if (hawk_rex_checkprm(hawk_sed_getgem(sed), value) <= -1) return -1;
+			sed->rex = *(const hawk_rex_prm_t*)value;
+			return 0;
+
 		case HAWK_SED_TRAIT:
 			sed->opt.trait = *(const int*)value;
 			return 0;
@@ -245,6 +251,10 @@ int hawk_sed_getopt (hawk_sed_t* sed, hawk_sed_opt_t  id, void* value)
 {
 	switch  (id)
 	{
+		case HAWK_SED_REXPRM:
+			*(hawk_rex_prm_t*)value = sed->rex;
+			return 0;
+
 		case HAWK_SED_TRAIT:
 			*(int*)value = sed->opt.trait;
 			return 0;
@@ -278,12 +288,31 @@ int hawk_sed_getopt (hawk_sed_t* sed, hawk_sed_opt_t  id, void* value)
 	return -1;
 }
 
+static void* build_custom_rex (hawk_sed_t* sed, const hawk_oocs_t* str, int ignorecase, const hawk_loc_t* loc)
+{
+	void* code;
+	hawk_oow_t nsub;
+	int flags = 0;
+
+	if (ignorecase) flags |= HAWK_REX_IGNORECASE;
+	if (sed->opt.trait & HAWK_SED_EXTENDEDREX) flags |= HAWK_REX_EXTENDED;
+	if (sed->opt.trait & HAWK_SED_NONSTDEXTREX) flags |= HAWK_REX_NONSTDEXT;
+	if (hawk_rex_build(hawk_sed_getgem(sed), &sed->rex, str->ptr, str->len, flags, &code, &nsub) <= -1)
+	{
+		ADJERR_LOC(sed, loc);
+		return HAWK_NULL;
+	}
+	return code;
+}
+
 static void* build_rex (
 	hawk_sed_t* sed, const hawk_oocs_t* str,
 	int ignorecase, const hawk_loc_t* loc)
 {
 	hawk_tre_t* tre;
 	int opt = 0;
+
+	if (HAWK_UNLIKELY(sed->rex.build)) return build_custom_rex(sed, str, ignorecase, loc);
 
 	tre = hawk_tre_open(hawk_sed_getgem(sed), 0);
 	if (tre == HAWK_NULL)
@@ -308,17 +337,26 @@ static void* build_rex (
 
 static HAWK_INLINE void free_rex (hawk_sed_t* sed, void* rex)
 {
-	hawk_tre_close (rex);
+	if (HAWK_UNLIKELY(sed->rex.free)) sed->rex.free(sed->rex.ctx, rex);
+	else hawk_tre_close(rex);
 }
 
 static int matchtre (
-	hawk_sed_t* sed, hawk_tre_t* tre, int opt,
-	const hawk_oocs_t* str, hawk_oocs_t* mat,
+	hawk_sed_t* sed, void* tre, int opt,
+	const hawk_oocs_t* fullstr, const hawk_oocs_t* str, hawk_oocs_t* mat,
 	hawk_oocs_t submat[9], const hawk_loc_t* loc)
 {
 	int n;
 	/*hawk_tre_match_t match[10] = { { 0, 0 }, };*/
 	hawk_tre_match_t match[10];
+
+	if (HAWK_UNLIKELY(sed->rex.match))
+	{
+		n = hawk_rex_matchoocs(hawk_sed_getgem(sed), &sed->rex, tre,
+			fullstr, str, (opt & HAWK_TRE_NOTBOL)? HAWK_REX_NOTBOL: 0, mat, submat);
+		if (n <= -1) ADJERR_LOC(sed, loc);
+		return n;
+	}
 	HAWK_MEMSET(match, 0, HAWK_SIZEOF(match));
 
 	n = hawk_tre_execx(tre, str->ptr, str->len, match, HAWK_COUNTOF(match), opt, HAWK_NULL);
@@ -2662,7 +2700,7 @@ static int do_subst (hawk_sed_t* sed, hawk_sed_cmd_t* cmd)
 			n = matchtre (
 				sed, rex,
 				((str.ptr == cur.ptr)? opt: (opt | HAWK_TRE_NOTBOL)),
-				&cur, &mat, submat, &cmd->loc
+				&str, &cur, &mat, submat, &cmd->loc
 			);
 			if (n <= -1) return -1;
 		}
@@ -3053,7 +3091,7 @@ static int match_a (hawk_sed_t* sed, hawk_sed_cmd_t* cmd, hawk_sed_adr_t* a)
 				rex = a->u.rex;
 				sed->e.last_rex = rex;
 			}
-			return matchtre(sed, rex, 0, &line, HAWK_NULL, HAWK_NULL, &cmd->loc);
+			return matchtre(sed, rex, 0, &line, &line, HAWK_NULL, HAWK_NULL, &cmd->loc);
 
 		}
 		case HAWK_SED_ADR_DOL:

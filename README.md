@@ -200,6 +200,48 @@ $ gcc -Wall -O2 -o hawk02 hawk02.c -lhawk
 
 The actual command may vary depending on the compiler used and the `configure` options used.
 
+## Custom Regular-Expression Engines
+
+[`hawk-rex.h`](lib/hawk-rex.h) defines shared build, match, and free callbacks
+for Hawk and Sed. With no callbacks installed, both keep using TRE directly.
+The library also provides an adapter for its standalone RGX engine:
+
+```c
+hawk_prm_t prm;
+
+/* Install before parsing or opening runtime contexts. */
+hawk_getprm(hawk, &prm);
+prm.rex = *hawk_rex_getrgxprm();
+if (hawk_setprm(hawk, &prm) <= -1) { /* handle error */ }
+
+/* A separate Sed instance can use the same primitives. */
+if (hawk_sed_setopt(sed, HAWK_SED_REXPRM, hawk_rex_getrgxprm()) <= -1)
+{
+	/* handle error */
+}
+```
+
+Install all three callbacks together. The table is copied; its `ctx` is
+borrowed. Keep the binding and context unchanged until all compiled patterns,
+parsed programs, and runtime contexts using them are gone. `sed::process()`
+inherits the enclosing Hawk instance's engine choice. When initializing a
+`hawk_prm_t` yourself, zero the entire structure before setting its fields.
+
+Patterns use `hawk_ooch_t` with an explicit length. Match callbacks receive the
+original subject, its BCH or UCH type, and a search interval. BCH means raw
+bytes, not UTF-8. Results are offsets into the original subject: slot zero is
+the whole match, subsequent slots are captures, and absent groups use
+`HAWK_REX_NOMATCH` for both offsets. Match returns `1`, `0`, or `-1` for match,
+no match, or error. Errors and scratch allocations use the supplied execution
+gem, which may differ from the compilation gem. Compiled handles must support
+concurrent matching without mutable shared scratch state.
+
+The RGX adapter supports BRE, ERE, captures, backreferences, ignorecase,
+`NOBOUND`, `NOTBOL`, and `NOTEOL`. It rejects requested `NEWLINE` and
+`NONSTDEXT` semantics. Opposite-width subjects use a one-byte-to-one-UCH MB8
+conversion; a byte-character build rejects UCH values above 255. TRE remains
+the default engine.
+
 ## Embedding Signal Handling
 
 Signal handling is provided via a callback hook. The core library does not install OS-level signal handlers; the embedding application must do that and notify the runtime.

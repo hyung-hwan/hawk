@@ -1079,7 +1079,7 @@ make_str:
 
 /* --------------------------------------------------------------------- */
 
-hawk_val_t* hawk_rtx_makerexval (hawk_rtx_t* rtx, const hawk_oocs_t* str, hawk_tre_t* code[2])
+hawk_val_t* hawk_rtx_makerexval (hawk_rtx_t* rtx, const hawk_oocs_t* str, void* code[2])
 {
 	hawk_val_rex_t* val;
 	hawk_oow_t totsz;

@@ -877,8 +877,8 @@ static int fnc_split (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi, int use_array)
 	hawk_ooch_t* p;
 
 	hawk_oow_t org_len;
-	hawk_tre_t* fs_rex = HAWK_NULL;
-	hawk_tre_t* fs_rex_free = HAWK_NULL;
+	void* fs_rex = HAWK_NULL;
+	void* fs_rex_free = HAWK_NULL;
 
 	hawk_oocs_t tok;
 	hawk_int_t nflds;
@@ -1269,7 +1269,7 @@ int hawk_fnc_toupper (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	return 0;
 }
 
-static int __substitute_oocs (hawk_rtx_t* rtx, hawk_oow_t* max_count, hawk_tre_t* rex, hawk_oocs_t* s1, hawk_oocs_t* s2, hawk_ooecs_t* new, int extended, hawk_oow_t op_pos)
+static int __substitute_oocs (hawk_rtx_t* rtx, hawk_oow_t* max_count, void* rex, hawk_oocs_t* s1, hawk_oocs_t* s2, hawk_ooecs_t* new, int extended, hawk_oow_t op_pos)
 {
 	hawk_oocs_t mat, pmat, cur;
 	hawk_oocs_t submat[9];
@@ -1401,7 +1401,7 @@ oops:
 	return -1;
 }
 
-static int __substitute_bcs (hawk_rtx_t* rtx, hawk_oow_t* max_count, hawk_tre_t* rex, hawk_bcs_t* s1, hawk_bcs_t* s2, hawk_becs_t* new, int extended, hawk_oow_t op_pos)
+static int __substitute_bcs (hawk_rtx_t* rtx, hawk_oow_t* max_count, void* rex, hawk_bcs_t* s1, hawk_bcs_t* s2, hawk_becs_t* new, int extended, hawk_oow_t op_pos)
 {
 	hawk_bcs_t mat, pmat, cur;
 	hawk_bcs_t submat[9];
@@ -1545,8 +1545,8 @@ static int __substitute (hawk_rtx_t* rtx, hawk_oow_t max_count)
 	int s1_free = 0;
 	int s2_free = 0;
 
-	hawk_tre_t* rex = HAWK_NULL;
-	hawk_tre_t* rex_free = HAWK_NULL;
+	void* rex = HAWK_NULL;
+	void* rex_free = HAWK_NULL;
 	hawk_oow_t sub_count;
 
 	s0.ptr = HAWK_NULL;
@@ -1775,8 +1775,8 @@ int hawk_fnc_gensub (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 	int s1_free = 0;
 	int s2_free = 0;
 
-	hawk_tre_t* rex = HAWK_NULL;
-	hawk_tre_t* rex_free = HAWK_NULL;
+	void* rex = HAWK_NULL;
+	void* rex_free = HAWK_NULL;
 	hawk_oow_t op_pos;
 	hawk_oow_t max_count;
 	hawk_oow_t sub_count;

@@ -74,7 +74,7 @@ hawk_uch_t* hawk_rtx_tokucharsbyrex (
 	hawk_oow_t        len,
 	const hawk_uch_t* substr,
 	hawk_oow_t        sublen,
-	hawk_tre_t*       rex,
+	void*             rex,
 	hawk_ucs_t*       tok
 );
 
@@ -90,7 +90,7 @@ hawk_bch_t* hawk_rtx_tokbcharsbyrex (
 	hawk_oow_t        len,
 	const hawk_bch_t* substr,
 	hawk_oow_t        sublen,
-	hawk_tre_t*       rex,
+	void*             rex,
 	hawk_bcs_t*       tok
 );
 
@@ -101,7 +101,7 @@ hawk_bch_t* hawk_rtx_tokbcharswithbcharswithoptions (
 
 hawk_bch_t* hawk_rtx_tokbcharsbyrexwithoptions (
 	hawk_rtx_t* rtx, const hawk_bch_t* str, hawk_oow_t len,
-	const hawk_bch_t* substr, hawk_oow_t sublen, hawk_tre_t* rex,
+	const hawk_bch_t* substr, hawk_oow_t sublen, void* rex,
 	hawk_bcs_t* tok, int striprecspc);
 
 hawk_uch_t* hawk_rtx_tokucharswithucharswithoptions (
@@ -110,7 +110,7 @@ hawk_uch_t* hawk_rtx_tokucharswithucharswithoptions (
 
 hawk_uch_t* hawk_rtx_tokucharsbyrexwithoptions (
 	hawk_rtx_t* rtx, const hawk_uch_t* str, hawk_oow_t len,
-	const hawk_uch_t* substr, hawk_oow_t sublen, hawk_tre_t* rex,
+	const hawk_uch_t* substr, hawk_oow_t sublen, void* rex,
 	hawk_ucs_t* tok, int striprecspc);
 
 #if defined(HAWK_OOCH_IS_UCH)
@@ -141,13 +141,13 @@ int hawk_rtx_matchvalwithbcs (
 );
 
 int hawk_rtx_matchrexwithucs (
-	hawk_rtx_t* rtx, hawk_tre_t* code,
+	hawk_rtx_t* rtx, void* code,
 	const hawk_ucs_t* str, const hawk_ucs_t* substr,
 	hawk_ucs_t* match, hawk_ucs_t submat[9]
 );
 
 int hawk_rtx_matchrexwithbcs (
-	hawk_rtx_t* rtx, hawk_tre_t* code,
+	hawk_rtx_t* rtx, void* code,
 	const hawk_bcs_t* str, const hawk_bcs_t* substr,
 	hawk_bcs_t* match, hawk_bcs_t submat[9]
 );

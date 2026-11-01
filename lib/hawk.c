@@ -23,6 +23,7 @@
  */
 
 #include "hawk-prv.h"
+#include "rex-prv.h"
 
 static void free_fun (hawk_htb_t* map, void* vptr, hawk_oow_t vlen)
 {
@@ -203,6 +204,7 @@ int hawk_init (hawk_t* hawk, hawk_mmgr_t* mmgr, hawk_cmgr_t* cmgr, const hawk_pr
 		hawk_seterrnum(hawk, HAWK_NULL, HAWK_EINVAL);
 		goto oops;
 	}
+	if (hawk_rex_checkprm(hawk_getgem(hawk), &prm->rex) <= -1) goto oops;
 	hawk->prm = *prm;
 
 	if (init_token(hawk, &hawk->ptok) <= -1 ||
@@ -536,9 +538,16 @@ void hawk_getprm (hawk_t* hawk, hawk_prm_t* prm)
 	*prm = hawk->prm;
 }
 
-void hawk_setprm (hawk_t* hawk, const hawk_prm_t* prm)
+int hawk_setprm (hawk_t* hawk, const hawk_prm_t* prm)
 {
+	if (!prm || !prm->math.pow || !prm->math.mod)
+	{
+		hawk_seterrnum(hawk, HAWK_NULL, HAWK_EINVAL);
+		return -1;
+	}
+	if (hawk_rex_checkprm(hawk_getgem(hawk), &prm->rex) <= -1) return -1;
 	hawk->prm = *prm;
+	return 0;
 }
 
 static int dup_str_opt (hawk_t* hawk, const void* value, hawk_oocs_t* tmp)
@@ -722,9 +731,24 @@ hawk_oow_t hawk_fmttobcstr_ (hawk_t* hawk, hawk_bch_t* buf, hawk_oow_t bufsz, co
 	return n;
 }
 
-int hawk_buildrex (hawk_t* hawk, const hawk_ooch_t* ptn, hawk_oow_t len, hawk_tre_t** code, hawk_tre_t** icode)
+int hawk_buildrex (hawk_t* hawk, const hawk_ooch_t* ptn, hawk_oow_t len, void** code, void** icode)
 {
+	if (HAWK_UNLIKELY(hawk->prm.rex.build))
+		return hawk_rex_buildpair(hawk_getgem(hawk), &hawk->prm.rex, ptn, len,
+			HAWK_REX_EXTENDED | ((hawk->opt.trait & HAWK_REXBOUND)? 0: HAWK_REX_NOBOUND), code, icode);
 	return hawk_gem_buildrex(hawk_getgem(hawk), ptn, len, !(hawk->opt.trait & HAWK_REXBOUND), code, icode);
+}
+
+void hawk_freerex (hawk_t* hawk, void* code, void* icode)
+{
+	if (HAWK_UNLIKELY(hawk->prm.rex.free))
+	{
+		if (icode && icode != code) hawk->prm.rex.free(hawk->prm.rex.ctx, icode);
+		if (code) hawk->prm.rex.free(hawk->prm.rex.ctx, code);
+		return;
+	}
+	if (icode && icode != code) hawk_tre_close(icode);
+	if (code) hawk_tre_close(code);
 }
 
 /* ------------------------------------------------------------------------ */

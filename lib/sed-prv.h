@@ -72,6 +72,8 @@ struct hawk_sed_t
 {
 	HAWK_SED_HDR;
 
+	hawk_rex_prm_t rex;
+
 	struct
 	{
 		int                   trait;

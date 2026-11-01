@@ -554,19 +554,22 @@ HAWK_EXPORT const hawk_ooch_t* hawk_gem_backuperrmsg (
 	hawk_gem_t* gem
 );
 
+/** Native TRE utilities. Owner-selected rex primitives are handled by
+ * hawk_buildrex()/hawk_rtx_buildrex() and their corresponding free functions.
+ * Do not pass custom-engine handles to hawk_gem_freerex(). */
 HAWK_EXPORT int hawk_gem_buildrex (
 	hawk_gem_t*         gem,
 	const hawk_ooch_t*  ptn,
 	hawk_oow_t          len,
 	int                 nobound,
-	hawk_tre_t**        code,
-	hawk_tre_t**        icode
+	void**              code,
+	void**              icode
 );
 
 HAWK_EXPORT void hawk_gem_freerex (
 	hawk_gem_t*         gem,
-	hawk_tre_t*         code,
-	hawk_tre_t*         icode
+	void*               code,
+	void*               icode
 );
 
 #if defined(__cplusplus)

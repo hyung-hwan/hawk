@@ -27,6 +27,7 @@
 
 #include <hawk-cmn.h>
 #include <hawk-gem.h>
+#include <hawk-rex.h>
 #include <hawk-sio.h>
 
 /** \file
@@ -233,7 +234,8 @@ enum hawk_sed_opt_t
 	HAWK_SED_DEPTH_REX_BUILD,
 	HAWK_SED_DEPTH_REX_MATCH,
 	HAWK_SED_INPUT_LINE_ENDING,  /**< hawk_sed_input_line_ending_t; default AUTO */
-	HAWK_SED_OUTPUT_LINE_ENDING  /**< hawk_sed_output_line_ending_t; default PRESERVE */
+	HAWK_SED_OUTPUT_LINE_ENDING, /**< hawk_sed_output_line_ending_t; default PRESERVE */
+	HAWK_SED_REXPRM /**< hawk_rex_prm_t; copied; set before compiling a script */
 };
 typedef enum hawk_sed_opt_t hawk_sed_opt_t;
 

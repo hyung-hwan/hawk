@@ -309,7 +309,7 @@ exit_loop:
 }
 
 
-char_t* tokenize_xchars_by_rex_with_options (hawk_rtx_t* rtx, const char_t* str, hawk_oow_t len, const char_t* substr, hawk_oow_t sublen, hawk_tre_t* rex, xcs_t* tok, int striprecspc)
+char_t* tokenize_xchars_by_rex_with_options (hawk_rtx_t* rtx, const char_t* str, hawk_oow_t len, const char_t* substr, hawk_oow_t sublen, void* rex, xcs_t* tok, int striprecspc)
 {
 	int n;
 	hawk_oow_t i;
@@ -416,7 +416,7 @@ char_t* tokenize_xchars (hawk_rtx_t* rtx, const char_t* s, hawk_oow_t len, const
 	return tokenize_xchars_with_options(rtx, s, len, delim, delim_len, tok, rtx->gbl.ignorecase);
 }
 
-char_t* tokenize_xchars_by_rex (hawk_rtx_t* rtx, const char_t* str, hawk_oow_t len, const char_t* substr, hawk_oow_t sublen, hawk_tre_t* rex, xcs_t* tok)
+char_t* tokenize_xchars_by_rex (hawk_rtx_t* rtx, const char_t* str, hawk_oow_t len, const char_t* substr, hawk_oow_t sublen, void* rex, xcs_t* tok)
 {
 	return tokenize_xchars_by_rex_with_options(rtx, str, len, substr, sublen, rex, tok, HAWK_RTX_IS_STRIPRECSPC_ON(rtx));
 }

@@ -198,7 +198,7 @@ struct hawk_nde_rex_t
 {
 	HAWK_NDE_HDR;
 	hawk_oocs_t str;
-	hawk_tre_t* code[2]; /* [0]: case sensitive, [1]: case insensitive */
+	void* code[2]; /* [0]: case sensitive, [1]: case insensitive */
 };
 
 struct hawk_nde_xnil_t

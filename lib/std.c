@@ -1011,6 +1011,7 @@ hawk_t* hawk_openstdwithmmgr (hawk_mmgr_t* mmgr, hawk_oow_t xtnsize, hawk_cmgr_t
 	hawk_prm_t prm;
 	xtn_t* xtn;
 
+	HAWK_MEMSET(&prm, 0, HAWK_SIZEOF(prm));
 	prm.math.pow = hawk_stdmathpow;
 	prm.math.mod = hawk_stdmathmod;
 

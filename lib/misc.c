@@ -23,6 +23,7 @@
  */
 
 #include "hawk-prv.h"
+#include "rex-prv.h"
 
 
 #undef char_t
@@ -165,8 +166,7 @@ static int matchtre_bcs (hawk_tre_t* tre, int opt, const hawk_bcs_t* str, hawk_b
 int hawk_rtx_matchvalwithucs (hawk_rtx_t* rtx, hawk_val_t* val, const hawk_ucs_t* str, const hawk_ucs_t* substr, hawk_ucs_t* match, hawk_ucs_t submat[9])
 {
 	int ignorecase, x;
-	int opt = HAWK_TRE_BACKTRACKING; /* TODO: option... HAWK_TRE_BACKTRACKING ??? */
-	hawk_tre_t* code;
+	void* code;
 	hawk_val_type_t v_type;
 
 	ignorecase = rtx->gbl.ignorecase;
@@ -190,10 +190,13 @@ int hawk_rtx_matchvalwithucs (hawk_rtx_t* rtx, hawk_val_t* val, const hawk_ucs_t
 		if (x <= -1) return -1;
 	}
 
-	x = matchtre_ucs(
-		code, ((str->ptr == substr->ptr)? opt: (opt | HAWK_TRE_NOTBOL)),
-		substr, match, submat, hawk_rtx_getgem(rtx)
-	);
+	if (HAWK_UNLIKELY(rtx->hawk->prm.rex.match))
+		x = hawk_rex_matchucs(hawk_rtx_getgem(rtx), &rtx->hawk->prm.rex, code,
+			str, substr, (str->ptr == substr->ptr)? 0: HAWK_REX_NOTBOL, match, submat);
+	else
+		x = matchtre_ucs(code,
+			(str->ptr == substr->ptr)? HAWK_TRE_BACKTRACKING: (HAWK_TRE_BACKTRACKING | HAWK_TRE_NOTBOL),
+			substr, match, submat, hawk_rtx_getgem(rtx));
 
 	if (v_type == HAWK_VAL_REX)
 	{
@@ -201,7 +204,8 @@ int hawk_rtx_matchvalwithucs (hawk_rtx_t* rtx, hawk_val_t* val, const hawk_ucs_t
 	}
 	else
 	{
-		hawk_tre_close (code);
+		if (HAWK_UNLIKELY(rtx->hawk->prm.rex.free)) rtx->hawk->prm.rex.free(rtx->hawk->prm.rex.ctx, code);
+		else hawk_tre_close(code);
 	}
 
 	return x;
@@ -211,8 +215,7 @@ int hawk_rtx_matchvalwithucs (hawk_rtx_t* rtx, hawk_val_t* val, const hawk_ucs_t
 int hawk_rtx_matchvalwithbcs (hawk_rtx_t* rtx, hawk_val_t* val, const hawk_bcs_t* str, const hawk_bcs_t* substr, hawk_bcs_t* match, hawk_bcs_t submat[9])
 {
 	int ignorecase, x;
-	int opt = HAWK_TRE_BACKTRACKING; /* TODO: option... HAWK_TRE_BACKTRACKING ??? */
-	hawk_tre_t* code;
+	void* code;
 	hawk_val_type_t v_type;
 
 	ignorecase = rtx->gbl.ignorecase;
@@ -236,10 +239,13 @@ int hawk_rtx_matchvalwithbcs (hawk_rtx_t* rtx, hawk_val_t* val, const hawk_bcs_t
 		if (x <= -1) return -1;
 	}
 
-	x = matchtre_bcs(
-		code, ((str->ptr == substr->ptr)? opt: (opt | HAWK_TRE_NOTBOL)),
-		substr, match, submat, hawk_rtx_getgem(rtx)
-	);
+	if (HAWK_UNLIKELY(rtx->hawk->prm.rex.match))
+		x = hawk_rex_matchbcs(hawk_rtx_getgem(rtx), &rtx->hawk->prm.rex, code,
+			str, substr, (str->ptr == substr->ptr)? 0: HAWK_REX_NOTBOL, match, submat);
+	else
+		x = matchtre_bcs(code,
+			(str->ptr == substr->ptr)? HAWK_TRE_BACKTRACKING: (HAWK_TRE_BACKTRACKING | HAWK_TRE_NOTBOL),
+			substr, match, submat, hawk_rtx_getgem(rtx));
 
 	if (v_type == HAWK_VAL_REX)
 	{
@@ -247,25 +253,32 @@ int hawk_rtx_matchvalwithbcs (hawk_rtx_t* rtx, hawk_val_t* val, const hawk_bcs_t
 	}
 	else
 	{
-		hawk_tre_close (code);
+		if (HAWK_UNLIKELY(rtx->hawk->prm.rex.free)) rtx->hawk->prm.rex.free(rtx->hawk->prm.rex.ctx, code);
+		else hawk_tre_close(code);
 	}
 
 	return x;
 }
 
 
-int hawk_rtx_matchrexwithucs (hawk_rtx_t* rtx, hawk_tre_t* code, const hawk_ucs_t* str, const hawk_ucs_t* substr, hawk_ucs_t* match, hawk_ucs_t submat[9])
+int hawk_rtx_matchrexwithucs (hawk_rtx_t* rtx, void* code, const hawk_ucs_t* str, const hawk_ucs_t* substr, hawk_ucs_t* match, hawk_ucs_t submat[9])
 {
 	int opt = HAWK_TRE_BACKTRACKING; /* TODO: option... HAWK_TRE_BACKTRACKING or others??? */
+	if (HAWK_UNLIKELY(rtx->hawk->prm.rex.match))
+		return hawk_rex_matchucs(hawk_rtx_getgem(rtx), &rtx->hawk->prm.rex, code,
+			str, substr, (str->ptr == substr->ptr)? 0: HAWK_REX_NOTBOL, match, submat);
 	return matchtre_ucs(
 		code, ((str->ptr == substr->ptr)? opt: (opt | HAWK_TRE_NOTBOL)),
 		substr, match, submat, hawk_rtx_getgem(rtx)
 	);
 }
 
-int hawk_rtx_matchrexwithbcs (hawk_rtx_t* rtx, hawk_tre_t* code, const hawk_bcs_t* str, const hawk_bcs_t* substr, hawk_bcs_t* match, hawk_bcs_t submat[9])
+int hawk_rtx_matchrexwithbcs (hawk_rtx_t* rtx, void* code, const hawk_bcs_t* str, const hawk_bcs_t* substr, hawk_bcs_t* match, hawk_bcs_t submat[9])
 {
 	int opt = HAWK_TRE_BACKTRACKING; /* TODO: option... HAWK_TRE_BACKTRACKING or others??? */
+	if (HAWK_UNLIKELY(rtx->hawk->prm.rex.match))
+		return hawk_rex_matchbcs(hawk_rtx_getgem(rtx), &rtx->hawk->prm.rex, code,
+			str, substr, (str->ptr == substr->ptr)? 0: HAWK_REX_NOTBOL, match, submat);
 	return matchtre_bcs(
 		code, ((str->ptr == substr->ptr)? opt: (opt | HAWK_TRE_NOTBOL)),
 		substr, match, submat, hawk_rtx_getgem(rtx)

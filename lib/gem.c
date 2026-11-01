@@ -708,7 +708,7 @@ hawk_oow_t hawk_gem_fmttobcstr (hawk_gem_t* gem, hawk_bch_t* buf, hawk_oow_t buf
 }
 
 /* ------------------------------------------------------------------------ */
-int hawk_gem_buildrex (hawk_gem_t* gem, const hawk_ooch_t* ptn, hawk_oow_t len, int nobound, hawk_tre_t** code, hawk_tre_t** icode)
+int hawk_gem_buildrex (hawk_gem_t* gem, const hawk_ooch_t* ptn, hawk_oow_t len, int nobound, void** code, void** icode)
 {
 	hawk_tre_t* tre = HAWK_NULL;
 	hawk_tre_t* itre = HAWK_NULL;
@@ -751,7 +751,7 @@ int hawk_gem_buildrex (hawk_gem_t* gem, const hawk_ooch_t* ptn, hawk_oow_t len, 
 	return 0;
 }
 
-void hawk_gem_freerex (hawk_gem_t* gem, hawk_tre_t* code, hawk_tre_t* icode)
+void hawk_gem_freerex (hawk_gem_t* gem, void* code, void* icode)
 {
 	if (icode && icode != code) hawk_tre_close(icode);
 	if (code) hawk_tre_close(code);

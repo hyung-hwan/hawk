@@ -77,6 +77,12 @@ static int fnc_process (hawk_rtx_t* rtx, const hawk_fnc_info_t* fi)
 		ret = -2;
 		goto done;
 	}
+	if (rtx->hawk->prm.rex.build &&
+	    hawk_sed_setopt(sed, HAWK_SED_REXPRM, &rtx->hawk->prm.rex) <= -1)
+	{
+		ret = -2;
+		goto done;
+	}
 
 	for (i = 0; i < 2; i++)
 	{

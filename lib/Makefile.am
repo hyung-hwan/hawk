@@ -75,6 +75,7 @@ pkginclude_HEADERS = \
 	hawk-mux.h \
 	hawk-mus.h \
 	hawk-rbt.h \
+	hawk-rgx.h \
 	hawk-rex.h \
 	hawk-pac1.h \
 	hawk-pio.h \
@@ -148,7 +149,10 @@ libhawk_la_SOURCES = \
 	po-cat.c \
 	rbt.c \
 	rec.c \
+	rgx.c \
 	rex.c \
+	rex-prv.h \
+	rex-imp.h \
 	rio-prv.h \
 	rio.c \
 	run-prv.h \

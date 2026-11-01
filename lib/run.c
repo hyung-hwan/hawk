@@ -23,6 +23,7 @@
  */
 
 #include "hawk-prv.h"
+#include "rex-prv.h"
 
 #if defined(HAWK_ATOMIC_CAS_BOOL) && defined(HAWK_ATOMIC_LOAD) &&  defined(HAWK_ATOMIC_STORE)
 #define ATOMIC_EVAL_MODSYM
@@ -416,7 +417,7 @@ static int set_global (hawk_rtx_t* rtx, int idx, hawk_nde_var_t* var, hawk_val_t
 				/* it's a regular expression if FS contains multiple characters.
 				 * however, it's not a regular expression if it's 5 character
 				 * string beginning with a question mark. */
-				hawk_tre_t* rex, * irex;
+				void* rex, * irex;
 
 				if (hawk_rtx_buildrex(rtx, fs_ptr, fs_len, &rex, &irex) <= -1)
 				{
@@ -614,7 +615,7 @@ static int set_global (hawk_rtx_t* rtx, int idx, hawk_nde_var_t* var, hawk_val_t
 			if (!rss.ptr) return -1;
 
 			{
-				hawk_tre_t* rex = HAWK_NULL, * irex = HAWK_NULL;
+				void* rex = HAWK_NULL, * irex = HAWK_NULL;
 
 				if (rss.len > 1 && hawk_rtx_buildrex(rtx, rss.ptr, rss.len, &rex, &irex) <= -1)
 				{
@@ -12111,7 +12112,24 @@ hawk_oow_t hawk_rtx_fmttobcstr_ (hawk_rtx_t* rtx, hawk_bch_t* buf, hawk_oow_t bu
 
 /* ------------------------------------------------------------------------ */
 
-int hawk_rtx_buildrex (hawk_rtx_t* rtx, const hawk_ooch_t* ptn, hawk_oow_t len, hawk_tre_t** code, hawk_tre_t** icode)
+int hawk_rtx_buildrex (hawk_rtx_t* rtx, const hawk_ooch_t* ptn, hawk_oow_t len, void** code, void** icode)
 {
+	if (HAWK_UNLIKELY(rtx->hawk->prm.rex.build))
+		return hawk_rex_buildpair(hawk_rtx_getgem(rtx), &rtx->hawk->prm.rex, ptn, len,
+			HAWK_REX_EXTENDED | ((rtx->hawk->opt.trait & HAWK_REXBOUND)? 0: HAWK_REX_NOBOUND), code, icode);
 	return hawk_gem_buildrex(hawk_rtx_getgem(rtx), ptn, len, !(rtx->hawk->opt.trait & HAWK_REXBOUND), code, icode);
+}
+
+void hawk_rtx_freerex (hawk_rtx_t* rtx, void* code, void* icode)
+{
+	const hawk_rex_prm_t* prm = &rtx->hawk->prm.rex;
+
+	if (HAWK_UNLIKELY(prm->free))
+	{
+		if (icode && icode != code) prm->free(prm->ctx, icode);
+		if (code) prm->free(prm->ctx, code);
+		return;
+	}
+	if (icode && icode != code) hawk_tre_close(icode);
+	if (code) hawk_tre_close(code);
 }
