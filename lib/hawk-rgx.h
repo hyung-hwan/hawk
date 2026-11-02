@@ -48,7 +48,7 @@
  * Character matching and ranges use character values rather than locale
  * collation rules. Locale-specific collating symbols such as [[.a.]] and
  * equivalence classes such as [[=a=]] are deliberately unsupported.
- * Compilation rejects these constructs with HAWK_ENOSUP and a diagnostic
+ * Compilation rejects these constructs with HAWK_EREXCOLLATE and a diagnostic
  * identifying the construct. Named character classes such as [[:alpha:]]
  * remain supported through Hawk's character classification routines.
  *
@@ -73,10 +73,21 @@
  * Outside bracket expressions, backslash quotes ERE special characters.
  * In BRE it introduces grouping, intervals, and GNU alternation/quantifiers
  * described above. Character escapes and backreferences work in both modes.
- * Inside bracket expressions, backslash is an ordinary character: [\]
+ * By default inside bracket expressions, backslash is an ordinary character: [\]
  * matches a backslash, and [\n] matches either a backslash or the letter n.
  * Use actual character values inside brackets to match tabs, newlines, or
  * other characters that would otherwise be written with escape sequences.
+ * HAWK_RGX_BRACKETESC instead makes backslash quote the next bracket member,
+ * matching Hawk's TRE behavior. Thus [\[] matches '[' and [\\] matches a
+ * backslash. Quoted punctuation is literal; \n means 'n', not newline, and
+ * \1 means '1', not a backreference, inside brackets. The shared rex adapter
+ * enables this option for Hawk and Sed; the standalone default is unchanged.
+ * Compilation errors in shared BRE/ERE syntax use the same HAWK_EREX* codes
+ * as TRE: BRACK for an unterminated bracket, ESCAPE for a trailing backslash
+ * outside brackets, CTYPE for a malformed named class, and BRACE/BADBR for
+ * missing interval terminators/invalid interval contents. The engines still
+ * differ in accepted extensions and strictness. Execution before compilation
+ * reports HAWK_EREXBADPAT.
  *
  * Some examples of compiled regular expressions are shown below.
  *
@@ -114,7 +125,10 @@ enum hawk_rgx_option_t
 	HAWK_RGX_IGNORECASE = (1 << 2),
 
 	/**< compile ERE syntax; without this option, compile BRE syntax. */
-	HAWK_RGX_EXTENDED = (1 << 3)
+	HAWK_RGX_EXTENDED = (1 << 3),
+
+	/**< let backslash quote the next bracket member, as in Hawk's TRE. */
+	HAWK_RGX_BRACKETESC = (1 << 4)
 };
 
 /** Per-call execution flags; do not pass these to hawk_rgx_setopt(). */

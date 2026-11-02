@@ -155,7 +155,9 @@ static int rgx_build (
 	hawk_oow_t len, int flags, void** code, hawk_oow_t* nsub)
 {
 	hawk_rgx_t* rgx;
-	int opt = 0;
+	/* The adapter follows Hawk/Sed's existing TRE bracket syntax. Direct
+	 * hawk_rgx_* users retain literal bracket backslashes by default. */
+	int opt = HAWK_RGX_BRACKETESC;
 
 	if (flags & (HAWK_REX_NEWLINE | HAWK_REX_NONSTDEXT))
 	{

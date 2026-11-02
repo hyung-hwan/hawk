@@ -398,7 +398,11 @@ static int get_char (comp_t* com, int noesc)
 		return 0;
 	}
 
-	CHECK_END (com);
+	if (com->ptr >= com->end)
+	{
+		hawk_gem_seterrnum(com->rgx->gem, HAWK_NULL, HAWK_EREXESCAPE);
+		return -1;
+	}
 	c = *com->ptr++;
 	if (c >= HAWK_T('1') && c <= HAWK_T('9')) com->c.backref = c - HAWK_T('0');
 	/* Recognize raw BRE operators before expanding character escapes.
@@ -516,16 +520,28 @@ else hawk_printf(HAWK_T("get_char => %c\n"), com->c);
 	return 0;
 }
 
-/* read a bracket member literally. recognize unsupported locale collation
- * prefixes here so they cannot slip through as ordinary members or range
- * endpoints. character classes beginning with [: remain supported. */
+/* Read a bracket member, optionally quoting the next character after a
+ * backslash. This is quoting only: bracket \n/\1 are literal n/1, not the
+ * character escapes/backreferences recognized by getc_esc() outside brackets.
+ * Reject collation prefixes only when their '[' is unescaped. */
 static int get_cset_char (comp_t* com)
 {
 	if (getc_noesc(com) <= -1) return -1;
-	if (com->c.value == HAWK_T('[') && com->ptr < com->end &&
+	if ((com->rgx->option & HAWK_RGX_BRACKETESC) && com->c.value == HAWK_T('\\'))
+	{
+		if (com->ptr >= com->end)
+		{
+			/* Within brackets the missing ']' takes precedence, as in TRE. */
+			hawk_gem_seterrnum(com->rgx->gem, HAWK_NULL, HAWK_EREXBRACK);
+			return -1;
+		}
+		if (getc_noesc(com) <= -1) return -1;
+		com->c.escaped = 1;
+	}
+	if (IS_SPE(com, HAWK_T('[')) && com->ptr < com->end &&
 	    (*com->ptr == HAWK_T('.') || *com->ptr == HAWK_T('=')))
 	{
-		hawk_gem_seterrbfmt(com->rgx->gem, HAWK_NULL, HAWK_ENOSUP,
+		hawk_gem_seterrbfmt(com->rgx->gem, HAWK_NULL, HAWK_EREXCOLLATE,
 			"%s are not supported in regular expressions",
 			(*com->ptr == HAWK_T('.'))? "collating symbols": "equivalence classes");
 		return -1;
@@ -629,12 +645,14 @@ static int charclass (comp_t* com)
 	if (getc_noesc(com) <= -1) return -1;
 	if (com->c.value != HAWK_T(']'))
 	{
-		hawk_gem_seterrnum(com->rgx->gem, HAWK_NULL, HAWK_EREXBRACK);
+		/* The inner ':]' belongs to the named class. A missing/wrong
+		 * terminator is a class error, not the outer bracket's error. */
+		hawk_gem_seterrnum(com->rgx->gem, HAWK_NULL, HAWK_EREXCTYPE);
 		return -1;
 	}
 
-	/* the character class ends inside the enclosing bracket expression.
-	 * read its next member literally, including a possible backslash. */
+	/* The character class ends inside the enclosing bracket expression.
+	 * Apply the selected bracket-quoting policy to the next member. */
 	if (get_cset_char(com) <= -1) return -1;
 	return (int)(ccp - ccinfo);
 }
@@ -681,22 +699,24 @@ static int charset (comp_t* com, hawk_rgx_node_t* node)
 	do
 	{
 		hawk_ooci_t c1, c2;
+		int c1_escaped;
 
 		c1 = com->c.value;
+		c1_escaped = com->c.escaped;
 		/* Test the integer token before narrowing it to a character. EOF
 		 * is not representable by byte or 16-bit character types. */
 		if (IS_EOF(com))
 		{
-			hawk_gem_seterrbfmt(com->rgx->gem, HAWK_NULL, HAWK_EREXBADPAT, "premature end of regular expression");
+			hawk_gem_seterrnum(com->rgx->gem, HAWK_NULL, HAWK_EREXBRACK);
 			return -1;
 		}
 
-		/* backslash is an ordinary bracket member, not an escape prefix.
-		 * In particular, it must not consume the closing ']' in [\]. */
+		/* Keep c1's quoting state before reading the lookahead member. An
+		 * escaped '[' must not introduce a named class when c2 is ':'. */
 		if (get_cset_char(com) <= -1) return -1;
 		c2 = com->c.value;
 
-		if (c1 == HAWK_T('[') && c2 == HAWK_T(':'))
+		if (c1 == HAWK_T('[') && !c1_escaped && IS_SPE(com, HAWK_T(':')))
 		{
 			int n;
 			hawk_ooch_t tmp[2];
@@ -712,9 +732,9 @@ static int charset (comp_t* com, hawk_rgx_node_t* node)
 
 			tmp[0] = HAWK_RGX_CSET_CLASS;
 			tmp[1] = n;
-			ADD_CSET_CODE (com, node, tmp, HAWK_COUNTOF(tmp));
+			ADD_CSET_CODE(com, node, tmp, HAWK_COUNTOF(tmp));
 		}
-		else if (c2 == HAWK_T('-'))
+		else if (IS_SPE(com, HAWK_T('-')))
 		{
 			if (get_cset_char(com) <= -1) return -1;
 			if (IS_SPE(com, HAWK_T(']')))
@@ -729,7 +749,7 @@ static int charset (comp_t* com, hawk_rgx_node_t* node)
 				tmp[2] = HAWK_RGX_CSET_CHAR;
 				tmp[3] = c2;
 
-				ADD_CSET_CODE (com, node, tmp, HAWK_COUNTOF(tmp));
+				ADD_CSET_CODE(com, node, tmp, HAWK_COUNTOF(tmp));
 				break;
 			}
 
@@ -746,7 +766,7 @@ static int charset (comp_t* com, hawk_rgx_node_t* node)
 				hawk_ooch_t tmp[2];
 				tmp[0] = HAWK_RGX_CSET_CHAR;
 				tmp[1] = c1;
-				ADD_CSET_CODE (com, node, tmp, HAWK_COUNTOF(tmp));
+				ADD_CSET_CODE(com, node, tmp, HAWK_COUNTOF(tmp));
 			}
 			else
 			{
@@ -754,7 +774,7 @@ static int charset (comp_t* com, hawk_rgx_node_t* node)
 				tmp[0] = HAWK_RGX_CSET_RANGE;
 				tmp[1] = c1;
 				tmp[2] = com->c.value;
-				ADD_CSET_CODE (com, node, tmp, HAWK_COUNTOF(tmp));
+				ADD_CSET_CODE(com, node, tmp, HAWK_COUNTOF(tmp));
 			}
 
 			if (get_cset_char(com) <= -1) return -1;
@@ -764,7 +784,7 @@ static int charset (comp_t* com, hawk_rgx_node_t* node)
 			hawk_ooch_t tmp[2];
 			tmp[0] = HAWK_RGX_CSET_CHAR;
 			tmp[1] = c1;
-			ADD_CSET_CODE (com, node, tmp, HAWK_COUNTOF(tmp));
+			ADD_CSET_CODE(com, node, tmp, HAWK_COUNTOF(tmp));
 		}
 	}
 	while (!IS_SPE(com,HAWK_T(']')));
@@ -778,6 +798,7 @@ static int occbound (comp_t* com, hawk_rgx_node_t* n)
 {
 	hawk_oow_t bound;
 
+	if (IS_EOF(com)) goto bad_brace;
 	if (com->c.value < HAWK_T('0') || com->c.value > HAWK_T('9')) goto bad_bound;
 
 	bound = 0;
@@ -819,14 +840,16 @@ static int occbound (comp_t* com, hawk_rgx_node_t* n)
 		return -1;
 	}
 
-	/* The digits are read without escape processing. BRE requires a
-	 * raw backslash followed by '}' to terminate the interval. */
+	/* End of input before a terminator is an imbalanced brace. A wrong
+	 * terminator or unfinished BRE '\}' is invalid brace content instead.
+	 * Keep this distinction identical to TRE's interval parser. */
+	if (IS_EOF(com)) goto bad_brace;
 	if (!(com->rgx->option & HAWK_RGX_EXTENDED))
 	{
-		if (com->c.value != HAWK_T('\\')) goto bad_brace;
+		if (com->c.value != HAWK_T('\\')) goto bad_bound;
 		if (getc_noesc(com) <= -1) return -1;
 	}
-	if (com->c.value != HAWK_T('}')) goto bad_brace;
+	if (com->c.value != HAWK_T('}')) goto bad_bound;
 
 	if (getc_esc(com) <= -1) return -1;
 	return 0;
@@ -975,8 +998,8 @@ static hawk_rgx_node_t* comp_atom (comp_t* com, int first)
 			case HAWK_T('['):
 				atom = newnode(com, HAWK_RGX_NODE_CSET);
 				if (HAWK_UNLIKELY(!atom)) return HAWK_NULL;
-				/* bracket members, including the first one, are read
-				 * without interpreting backslash escapes. */
+				/* Read the first member with the same quoting policy as
+				 * later members, including before the initial '^' test. */
 				if (get_cset_char(com) <= -1) return HAWK_NULL;
 				if (charset(com, atom) <= -1) return HAWK_NULL;
 				break;
@@ -2363,7 +2386,7 @@ int hawk_rgx_execx (
 
 	if (rgx->code == HAWK_NULL)
 	{
-		hawk_gem_seterrbfmt(rgx->gem, HAWK_NULL, HAWK_EPERM, "no regular expression compiled");
+		hawk_gem_seterrnum(rgx->gem, HAWK_NULL, HAWK_EREXBADPAT);
 		return -1;
 	}
 

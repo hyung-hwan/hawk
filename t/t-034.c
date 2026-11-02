@@ -257,7 +257,12 @@ static void test_adapter (void)
 		{ HAWK_T("a{2}"), "aa", HAWK_REX_EXTENDED, 0, 1, 0, 2, 0, 2 },
 		{ HAWK_T("a{2}"), "a{2}", HAWK_REX_EXTENDED | HAWK_REX_NOBOUND, 0, 1, 0, 4, 0, 4 },
 		{ HAWK_T(""), "", HAWK_REX_EXTENDED, 0, 1, 0, 0, 0, 0 },
-		{ HAWK_T("\xff"), "!\xff!", HAWK_REX_EXTENDED, 0, 1, 0, 3, 1, 2 }
+		{ HAWK_T("\xff"), "!\xff!", HAWK_REX_EXTENDED, 0, 1, 0, 3, 1, 2 },
+		{ HAWK_T("^[\\[.]"), "[", HAWK_REX_EXTENDED, 0, 1, 0, 1, 0, 1 },
+		{ HAWK_T("^[\\[=]"), "=", 0, 0, 1, 0, 1, 0, 1 },
+		{ HAWK_T("^[a\\-c]"), "b", HAWK_REX_EXTENDED, 0, 0, 0, 1, 0, 0 },
+		{ HAWK_T("^[\\]]"), "]", HAWK_REX_EXTENDED, 0, 1, 0, 1, 0, 1 },
+		{ HAWK_T("^[\\^]"), "^", HAWK_REX_EXTENDED, 0, 1, 0, 1, 0, 1 }
 	};
 	hawk_t* hawk = hawk_openstd(0, HAWK_NULL);
 	hawk_gem_t* gem;
@@ -438,6 +443,10 @@ static void test_hawk (int custom)
 		"FS=\"[,;]+\"; $0=\"one,,two;three\"; if (NF!=3 || $2!=\"two\") return 10;"
 		"RS=\"::+\"; RS=\"--+\";"
 		"if (sed::process(\"s/ab/X/g\",\"ab ab\\n\",s,sed::STR_TO_STR)!=0 || s!=\"X X\\n\") return 11;"
+		"if (!(\"[\" ~ /^[\\[.]/) || !(\".\" ~ /^[\\[.]/) || \"x\" ~ /^[\\[.]/) return 12;"
+		"p=\"^[\\\\[=]\"; if (!(\"=\" ~ p) || !(\"[\" ~ p)) return 13;"
+		"if (match(@b\"[\", /^[\\[.]/)!=1) return 14;"
+		"s=\"[.[\"; if (gsub(/[\\[.]/,\"X\",s)!=3 || s!=\"XXX\") return 15;"
 		"return 0; }";
 	hawk_t* hawk = hawk_openstd(0, HAWK_NULL);
 	hawk_rtx_t* rtx[2] = { HAWK_NULL, HAWK_NULL };
@@ -509,7 +518,9 @@ static void test_sed (int custom)
 		{ HAWK_T("s/^/X/g"), HAWK_T("ab\n"), HAWK_T("Xab\n"), 0 },
 		{ HAWK_T("s/ab/X/gi"), HAWK_T("AB ab\n"), HAWK_T("X X\n"), 0 },
 		{ HAWK_T("/ab/s//X/g"), HAWK_T("ab ab\n"), HAWK_T("X X\n"), 0 },
-		{ HAWK_T("s/(a)?(b)/\\2/g"), HAWK_T("b ab\n"), HAWK_T("b b\n"), HAWK_SED_EXTENDEDREX }
+		{ HAWK_T("s/(a)?(b)/\\2/g"), HAWK_T("b ab\n"), HAWK_T("b b\n"), HAWK_SED_EXTENDEDREX },
+		{ HAWK_T("s/[\\[.]/X/g"), HAWK_T("[.a\n"), HAWK_T("XXa\n"), 0 },
+		{ HAWK_T("s/[\\[=]/X/g"), HAWK_T("[=a\n"), HAWK_T("XXa\n"), HAWK_SED_EXTENDEDREX }
 	};
 	hawk_sed_t* sed;
 	hawk_rex_prm_t prm;

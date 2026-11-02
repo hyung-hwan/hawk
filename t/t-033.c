@@ -143,18 +143,18 @@ static void test_errors (hawk_gem_t* gem)
 	} cases[] =
 	{
 		{ HAWK_T("("), HAWK_EREXPAREN },
-		{ HAWK_T("["), HAWK_EREXBADPAT },
-		{ HAWK_T("[\\"), HAWK_EREXBADPAT },
-		{ HAWK_T("[^\\"), HAWK_EREXBADPAT },
-		{ HAWK_T("[[:digit:]\\"), HAWK_EREXBADPAT },
-		{ HAWK_T("[a-b\\"), HAWK_EREXBADPAT },
+		{ HAWK_T("["), HAWK_EREXBRACK },
+		{ HAWK_T("[\\"), HAWK_EREXBRACK },
+		{ HAWK_T("[^\\"), HAWK_EREXBRACK },
+		{ HAWK_T("[[:digit:]\\"), HAWK_EREXBRACK },
+		{ HAWK_T("[a-b\\"), HAWK_EREXBRACK },
 		{ HAWK_T("[z-a]"), HAWK_EREXRANGE },
 		{ HAWK_T("[[:bad:]]"), HAWK_EREXCTYPE },
 		{ HAWK_T("a{2,1}"), HAWK_EREXBADBR },
 		{ HAWK_T("a{}"), HAWK_EREXBADBR },
 		{ HAWK_T("a{999999999999999999999999999999}"), HAWK_EREXBADBR },
 		{ HAWK_T("a{2"), HAWK_EREXBRACE },
-		{ HAWK_T("\\"), HAWK_EREXBADPAT },
+		{ HAWK_T("\\"), HAWK_EREXESCAPE },
 		{ HAWK_T("*"), HAWK_EREXBADPAT },
 		{ HAWK_T("a)"), HAWK_EREXBADPAT },
 		{ HAWK_T("\\1"), HAWK_EREXSUBREG },
@@ -170,7 +170,7 @@ static void test_errors (hawk_gem_t* gem)
 	hawk_oow_t i;
 
 	hawk_rgx_init(&rgx, gem, HAWK_NULL);
-	OK(hawk_rgx_exec(&rgx, &str, &str, HAWK_NULL, 0) == -1 && hawk_gem_geterrnum(gem) == HAWK_EPERM,
+	OK(hawk_rgx_exec(&rgx, &str, &str, HAWK_NULL, 0) == -1 && hawk_gem_geterrnum(gem) == HAWK_EREXBADPAT,
 		"execution without compiled code reports through gem");
 	hawk_rgx_setopt(&rgx, HAWK_RGX_STRICT | HAWK_RGX_EXTENDED);
 	old = hawk_rgx_comp(&rgx, str.ptr, str.len);
@@ -188,7 +188,127 @@ static void test_errors (hawk_gem_t* gem)
 	hawk_rgx_fini(&rgx);
 }
 
-/* Locale collation is outside rex's supported syntax. These cases verify
+/* TRE is the oracle for diagnostic categories in shared rejected syntax, not
+ * for match selection or for acceptance of TRE-specific extensions. */
+static void test_tre_error_codes (hawk_gem_t* gem)
+{
+	static const struct
+	{
+		const hawk_ooch_t* pattern;
+		int dialects; /* bit 0: BRE, bit 1: ERE */
+		const hawk_bch_t* name;
+	} cases[] =
+	{
+#define ERROR_CASE(p, modes) { HAWK_T(p), modes, p }
+		ERROR_CASE("[", 3),
+		ERROR_CASE("[^", 3),
+		ERROR_CASE("[]", 3),
+		ERROR_CASE("[abc", 3),
+		ERROR_CASE("[^abc", 3),
+		ERROR_CASE("[a-b", 3),
+		ERROR_CASE("[a-", 3),
+		ERROR_CASE("[z-a", 3),
+		ERROR_CASE("[z-a]", 3),
+		ERROR_CASE("[\\", 3),
+		ERROR_CASE("[^\\", 3),
+		ERROR_CASE("[a\\", 3),
+		ERROR_CASE("[[:digit:]\\", 3),
+		ERROR_CASE("[[:digit:]", 3),
+		ERROR_CASE("[[:digit:", 3),
+		ERROR_CASE("[[:digit", 3),
+		ERROR_CASE("[[:digit]", 3),
+		ERROR_CASE("[[:bad:]]", 3),
+		ERROR_CASE("[[:digit:foo]]", 3),
+		ERROR_CASE("[[.a.]]", 3),
+		ERROR_CASE("[[=a=]]", 3),
+		ERROR_CASE("\\", 3),
+		ERROR_CASE("a\\", 3),
+		ERROR_CASE("\\1", 3),
+		ERROR_CASE("\\9", 3),
+		ERROR_CASE("(", 2),
+		ERROR_CASE("(a", 2),
+		ERROR_CASE("(a)\\2", 2),
+		ERROR_CASE("\\(", 1),
+		ERROR_CASE("\\(a", 1),
+		ERROR_CASE("\\)", 1),
+		ERROR_CASE("a\\)", 1),
+		ERROR_CASE("\\(a\\)\\2", 1),
+		ERROR_CASE("a{", 2),
+		ERROR_CASE("a{}", 2),
+		ERROR_CASE("a{1", 2),
+		ERROR_CASE("a{1,", 2),
+		ERROR_CASE("a{1,x}", 2),
+		ERROR_CASE("a{1x}", 2),
+		ERROR_CASE("a{1,2x}", 2),
+		ERROR_CASE("a{2,1}", 2),
+		ERROR_CASE("a\\{", 1),
+		ERROR_CASE("a\\{\\}", 1),
+		ERROR_CASE("a\\{1", 1),
+		ERROR_CASE("a\\{1,", 1),
+		ERROR_CASE("a\\{1,x\\}", 1),
+		ERROR_CASE("a\\{1x\\}", 1),
+		ERROR_CASE("a\\{1,2x\\}", 1),
+		ERROR_CASE("a\\{2,1\\}", 1),
+		ERROR_CASE("a\\{1}", 1),
+		ERROR_CASE("a{1\\", 3),
+		ERROR_CASE("a\\{1\\", 3),
+		ERROR_CASE("([a", 2),
+		ERROR_CASE("(a\\", 2),
+		ERROR_CASE("(a{1", 2)
+#undef ERROR_CASE
+	};
+	hawk_tre_t* tre = hawk_tre_open(gem, 0);
+	hawk_rgx_t rgx;
+	hawk_rgx_node_t* old;
+	hawk_errnum_t tre_error, rgx_error;
+	hawk_oocs_t text = { HAWK_T("kept"), 4 };
+	hawk_ooch_t raw_bracket[1] = { HAWK_T('[') };
+	hawk_ooch_t raw_escape[1] = { HAWK_T('\\') };
+	hawk_oow_t i;
+	int dialect, strict, tn, rn, good;
+
+	if (!tre) bail_out("cannot open TRE diagnostic reference");
+	hawk_rgx_init(&rgx, gem, HAWK_NULL);
+	tn = hawk_tre_execx(tre, text.ptr, text.len, HAWK_NULL, 0, 0, gem);
+	tre_error = hawk_gem_geterrnum(gem);
+	rn = hawk_rgx_exec(&rgx, &text, &text, HAWK_NULL, 0);
+	OK(tn == -1 && rn == -1 && hawk_gem_geterrnum(gem) == tre_error && tre_error == HAWK_EREXBADPAT,
+		"execution before compilation reports the same invalid-pattern code as TRE");
+	for (dialect = 0; dialect < 2; dialect++)
+	{
+		for (strict = 0; strict < 2; strict++)
+		{
+			hawk_rgx_setopt(&rgx, HAWK_RGX_BRACKETESC | (strict? HAWK_RGX_STRICT: 0) |
+				(dialect? HAWK_RGX_EXTENDED: 0));
+			old = hawk_rgx_comp(&rgx, text.ptr, text.len);
+			if (!old) bail_out("cannot compile diagnostic-test baseline");
+			for (i = 0; i < HAWK_COUNTOF(cases); i++)
+			{
+				if (!(cases[i].dialects & (1 << dialect))) continue;
+				tn = hawk_tre_compx(tre, cases[i].pattern, hawk_count_oocstr(cases[i].pattern), HAWK_NULL,
+					dialect? HAWK_TRE_EXTENDED: 0);
+				tre_error = hawk_gem_geterrnum(gem);
+				rn = hawk_rgx_comp(&rgx, cases[i].pattern, hawk_count_oocstr(cases[i].pattern))? 0: -1;
+				rgx_error = hawk_gem_geterrnum(gem);
+				good = tn == -1 && rn == -1 && rgx_error == tre_error;
+				OK(good, "shared invalid BRE/ERE syntax reports the same error code as TRE");
+				if (!good) printf("# pattern <%s>, dialect %d, strict %d: TRE %d/%d RGX %d/%d\n",
+					cases[i].name, dialect, strict, tn, (int)tre_error, rn, (int)rgx_error);
+				OK(rgx.code == old && hawk_rgx_exec(&rgx, &text, &text, HAWK_NULL, 0) == 1,
+					"diagnostic failures preserve the previously compiled graph");
+			}
+		}
+	}
+	/* Explicit lengths: neither input buffer has a trailing NUL. */
+	OK(!hawk_rgx_comp(&rgx, raw_bracket, HAWK_COUNTOF(raw_bracket)) && hawk_gem_geterrnum(gem) == HAWK_EREXBRACK,
+		"unterminated bracket diagnosis respects the explicit pattern length");
+	OK(!hawk_rgx_comp(&rgx, raw_escape, HAWK_COUNTOF(raw_escape)) && hawk_gem_geterrnum(gem) == HAWK_EREXESCAPE,
+		"trailing escape diagnosis respects the explicit pattern length");
+	hawk_rgx_fini(&rgx);
+	hawk_tre_close(tre);
+}
+
+/* Locale collation is outside RGX's supported syntax. These cases verify
  * rejection, including where a prefix might otherwise become a literal
  * bracket member or a range endpoint. Both parser modes must reject it. */
 static void test_unsupported_syntax (hawk_gem_t* gem, allocator_t* a)
@@ -225,21 +345,110 @@ static void test_unsupported_syntax (hawk_gem_t* gem, allocator_t* a)
 	old = hawk_rgx_comp(&rgx, str.ptr, str.len);
 	if (!old) bail_out("cannot compile unsupported-syntax baseline");
 	baseline = a->live;
-	for (mode = 0; mode < 4; mode++)
+	for (mode = 0; mode < 8; mode++)
 	{
-		hawk_rgx_setopt(&rgx, ((mode & 1)? HAWK_RGX_STRICT: 0) | ((mode & 2)? HAWK_RGX_EXTENDED: 0));
+		hawk_rgx_setopt(&rgx, ((mode & 1)? HAWK_RGX_STRICT: 0) | ((mode & 2)? HAWK_RGX_EXTENDED: 0) |
+			((mode & 4)? HAWK_RGX_BRACKETESC: 0));
 		for (i = 0; i < HAWK_COUNTOF(cases); i++)
 		{
 			message = cases[i].equivalence?
 				HAWK_T("equivalence classes are not supported in regular expressions"):
 				HAWK_T("collating symbols are not supported in regular expressions");
 			OK(!hawk_rgx_comp(&rgx, cases[i].pattern, hawk_count_oocstr(cases[i].pattern)) &&
-				hawk_rgx_geterrnum(&rgx) == HAWK_ENOSUP,
+				hawk_rgx_geterrnum(&rgx) == HAWK_EREXCOLLATE,
 				"locale collation syntax is explicitly unsupported in both parser modes");
 			OK(hawk_comp_oocstr(hawk_rgx_geterrmsg(&rgx), message, 0) == 0,
 				"unsupported collation diagnostic identifies the rejected construct");
 			OK(rgx.code == old && a->live == baseline && hawk_rgx_exec(&rgx, &str, &str, HAWK_NULL, 0) == 1,
 				"unsupported syntax releases partial graphs and preserves usable old code");
+		}
+	}
+	hawk_rgx_fini(&rgx);
+}
+
+/* Hawk's quoting extension is independent of BRE/ERE. The existing POSIX
+ * bracket cases elsewhere still exercise the literal-backslash default. */
+static void test_bracket_escaping (hawk_gem_t* gem)
+{
+	static const struct
+	{
+		const hawk_ooch_t* pattern;
+		const hawk_ooch_t* text;
+		int found;
+	} cases[] =
+	{
+		{ HAWK_T("^[\\[.]"), HAWK_T("["), 1 },
+		{ HAWK_T("^[\\[.]"), HAWK_T("."), 1 },
+		{ HAWK_T("^[\\[.]"), HAWK_T("\\"), 0 },
+		{ HAWK_T("^[\\[=]"), HAWK_T("["), 1 },
+		{ HAWK_T("^[\\[=]"), HAWK_T("="), 1 },
+		{ HAWK_T("^[\\[=]"), HAWK_T("\\"), 0 },
+		{ HAWK_T("^[\\[]$"), HAWK_T("["), 1 },
+		{ HAWK_T("^[\\]]$"), HAWK_T("]"), 1 },
+		{ HAWK_T("^[\\^]$"), HAWK_T("^"), 1 },
+		{ HAWK_T("^[\\^]$"), HAWK_T("x"), 0 },
+		{ HAWK_T("^[a\\-c]$"), HAWK_T("-"), 1 },
+		{ HAWK_T("^[a\\-c]$"), HAWK_T("b"), 0 },
+		{ HAWK_T("^[\\--0]$"), HAWK_T("/"), 1 },
+		{ HAWK_T("^[A-\\]]$"), HAWK_T("["), 1 },
+		{ HAWK_T("^[A-\\]]$"), HAWK_T("]"), 1 },
+		{ HAWK_T("^[A-\\]]$"), HAWK_T("^"), 0 },
+		{ HAWK_T("^[\\\\]$"), HAWK_T("\\"), 1 },
+		{ HAWK_T("^[\\n]$"), HAWK_T("n"), 1 },
+		{ HAWK_T("^[\\n]$"), HAWK_T("\n"), 0 },
+		{ HAWK_T("^[\\n]$"), HAWK_T("\\"), 0 },
+		{ HAWK_T("^[\\t]$"), HAWK_T("t"), 1 },
+		{ HAWK_T("^[\\t]$"), HAWK_T("\t"), 0 },
+		{ HAWK_T("^[\\x41]$"), HAWK_T("x"), 1 },
+		{ HAWK_T("^[\\x41]$"), HAWK_T("A"), 0 },
+		{ HAWK_T("^[\\1]$"), HAWK_T("1"), 1 },
+		{ HAWK_T("^[\\[:digit:]]$"), HAWK_T("d]"), 1 },
+		{ HAWK_T("^[\\[:digit:]]$"), HAWK_T("7"), 0 },
+		{ HAWK_T("^[[\\:digit:]]$"), HAWK_T("d]"), 1 },
+		{ HAWK_T("^[[\\:digit:]]$"), HAWK_T("7"), 0 },
+		{ HAWK_T("^[\\[.a.]]$"), HAWK_T("a]"), 1 },
+		{ HAWK_T("^[\\[=a=]]$"), HAWK_T("=]"), 1 },
+		{ HAWK_T("^[[:digit:]\\[.]$"), HAWK_T("["), 1 },
+		{ HAWK_T("^[a-b\\[=]$"), HAWK_T("="), 1 },
+		{ HAWK_T("^[A-\\[.]$"), HAWK_T("["), 1 },
+		{ HAWK_T("^[A-\\[.]$"), HAWK_T("."), 1 },
+		{ HAWK_T("^[][\\]]$"), HAWK_T("]"), 1 }
+	};
+	static const hawk_ooch_t* rejected[] =
+	{
+		HAWK_T("[\\\\[.a.]]"), /* quoted backslash followed by an unquoted '[' */
+		HAWK_T("[\\\\[=a=]]"),
+		HAWK_T("[\\]"),        /* ']' is quoted, leaving the bracket unclosed */
+		HAWK_T("[a\\")
+	};
+	hawk_rgx_t rgx;
+	hawk_oocs_t str, match;
+	hawk_oow_t i;
+	int mode, n, good;
+
+	hawk_rgx_init(&rgx, gem, HAWK_NULL);
+	for (mode = 0; mode < 4; mode++)
+	{
+		hawk_rgx_setopt(&rgx, HAWK_RGX_BRACKETESC | ((mode & 1)? HAWK_RGX_STRICT: 0) |
+			((mode & 2)? HAWK_RGX_EXTENDED: 0));
+		for (i = 0; i < HAWK_COUNTOF(cases); i++)
+		{
+			str.ptr = (hawk_ooch_t*)cases[i].text;
+			str.len = hawk_count_oocstr(str.ptr);
+			match.ptr = HAWK_NULL;
+			match.len = 123;
+			n = hawk_rgx_comp(&rgx, cases[i].pattern, hawk_count_oocstr(cases[i].pattern))?
+				hawk_rgx_exec(&rgx, &str, &str, &match, 0): -1;
+			good = n == cases[i].found && (n == 1?
+				match.ptr == str.ptr && match.len > 0: match.ptr == HAWK_NULL && match.len == 123);
+			OK(good, "bracket quoting preserves escaped punctuation in BRE/ERE and strict modes");
+			if (!good) printf("# bracket case %lu, mode %d, result %d, error %d\n", (unsigned long)i, mode, n, (int)hawk_gem_geterrnum(gem));
+		}
+		for (i = 0; i < HAWK_COUNTOF(rejected); i++)
+		{
+			n = hawk_rgx_comp(&rgx, rejected[i], hawk_count_oocstr(rejected[i])) != HAWK_NULL;
+			OK(!n && hawk_gem_geterrnum(gem) == (i < 2? HAWK_EREXCOLLATE: HAWK_EREXBRACK),
+				"quoted backslashes retain genuine collation errors and malformed brackets fail");
 		}
 	}
 	hawk_rgx_fini(&rgx);
@@ -835,7 +1044,7 @@ static void test_bre (hawk_gem_t* gem)
 		{ HAWK_T("\\)"), HAWK_EREXPAREN },
 		{ HAWK_T("a\\)"), HAWK_EREXPAREN },
 		{ HAWK_T("\\(a)"), HAWK_EREXPAREN },
-		{ HAWK_T("a\\{2}"), HAWK_EREXBRACE },
+		{ HAWK_T("a\\{2}"), HAWK_EREXBADBR },
 		{ HAWK_T("a\\{2"), HAWK_EREXBRACE },
 		{ HAWK_T("a\\{,2\\}"), HAWK_EREXBADBR },
 		{ HAWK_T("a\\{2,1\\}"), HAWK_EREXBADBR },
@@ -1373,7 +1582,9 @@ int main (int argc, char* argv[])
 	test_matches(gem);
 	test_bre(gem);
 	test_errors(gem);
+	test_tre_error_codes(gem);
 	test_unsupported_syntax(gem, &a);
+	test_bracket_escaping(gem);
 	test_captures(gem);
 	test_exec_flags(gem);
 	test_capture_failures(gem, &a);

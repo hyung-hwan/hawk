@@ -170,8 +170,10 @@ HAWK_EXPORT int hawk_rex_match (
 
 /** Return the immutable primitive table adapting hawk_rgx_t. Copy it into
  * hawk_prm_t.rex or pass it to HAWK_SED_REXPRM before compilation.
- * RGX currently rejects NEWLINE and NONSTDEXT. Opposite-width input is
- * converted per call with a one-byte/one-UCH MB8 mapping. In a BCH build,
+ * RGX currently rejects NEWLINE and NONSTDEXT. Brackets use Hawk/TRE escaping:
+ * backslash quotes the next member, including '[' and ']'. The standalone
+ * RGX default remains literal. Opposite-width input is converted per call
+ * with a one-byte/one-UCH MB8 mapping. In a BCH build,
  * UCH values greater than 255 fail with HAWK_ENOSUP. No UTF-8 decoding or
  * offset remapping occurs. The standalone hawk_rgx_* API is independent of
  * this interface. */
