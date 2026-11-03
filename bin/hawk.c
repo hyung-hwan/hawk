@@ -27,9 +27,10 @@
 #include "main.h"
 
 #include <hawk.h>
-#include <hawk-utl.h>
-#include <hawk-fmt.h>
 #include <hawk-cli.h>
+#include <hawk-fmt.h>
+#include <hawk-rex.h>
+#include <hawk-utl.h>
 #include <hawk-xma.h>
 
 #if !defined(_GNU_SOURCE)
@@ -978,6 +979,17 @@ int main_hawk(int argc, hawk_bch_t* argv[], const hawk_bch_t* real_argv0)
 		hawk_setopt(hawk, HAWK_OPT_MODLIBDIRS, arg.modlibdirs);
 	#endif
 	}
+
+
+#if 0
+	/* switch the regular expression engine to rgx from the default tre */
+	{
+		hawk_prm_t prm;
+		hawk_getprm(hawk, &prm);
+		prm.rex = *hawk_rex_getrgxprm(); /* set rgx adapter */
+		hawk_setprm(hawk, &prm);
+	}
+#endif
 
 	if (add_gvs_to_hawk(hawk, &arg) <= -1)
 	{

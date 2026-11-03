@@ -1344,30 +1344,64 @@ static group_t* newgrouphead (exec_t* e, const group_t* source)
 
 static group_t* dupgroupstackmembers (exec_t* e, group_t* g)
 {
-	group_t* yg, * xg = HAWK_NULL;
+#if 0
+	group_t* head = HAWK_NULL;
+	group_t* tail = HAWK_NULL;
 
 	HAWK_ASSERT(g != HAWK_NULL);
 
-	if (g->next != HAWK_NULL)
+	do
 	{
-		/* TODO: make it non recursive or
-		 *       implement stack overflow protection */
-		xg = dupgroupstackmembers(e, g->next);
-		if (HAWK_UNLIKELY(!xg)) return HAWK_NULL;
-	}
+		group_t* copy;
 
-	yg = (group_t*)hawk_gem_allocmem(e->rgx->gem, HAWK_SIZEOF(*yg));
-	if (HAWK_UNLIKELY(!yg))
+		copy = (group_t*)hawk_gem_allocmem(e->rgx->gem, HAWK_SIZEOF(*copy));
+		if (HAWK_UNLIKELY(!copy))
+		{
+			freegroupstackmembers(head, e->rgx->gem);
+			hawk_gem_seterrnum(e->rgx->gem, HAWK_NULL, HAWK_ENOMEM);
+			return HAWK_NULL;
+		}
+
+		HAWK_MEMCPY(copy, g, HAWK_SIZEOF(*copy));
+		copy->next = HAWK_NULL;
+
+		if (!head) head = copy;
+		else tail->next = copy;
+		tail = copy;
+
+		g = g->next;
+	}
+	while (g != HAWK_NULL);
+
+#else
+	group_t* head = HAWK_NULL;
+	group_t** tail = &head;
+
+	HAWK_ASSERT(g != HAWK_NULL);
+
+	do
 	{
-		if (xg) freegroupstackmembers(xg, e->rgx->gem);
-		hawk_gem_seterrnum(e->rgx->gem, HAWK_NULL, HAWK_ENOMEM);
-		return HAWK_NULL;
+		group_t* copy;
+
+		copy = (group_t*)hawk_gem_allocmem(e->rgx->gem, HAWK_SIZEOF(*copy));
+		if (HAWK_UNLIKELY(!copy))
+		{
+			freegroupstackmembers(head, e->rgx->gem);
+			hawk_gem_seterrnum(e->rgx->gem, HAWK_NULL, HAWK_ENOMEM);
+			return HAWK_NULL;
+		}
+
+		HAWK_MEMCPY(copy, g, HAWK_SIZEOF(*copy));
+		copy->next = HAWK_NULL;
+
+		*tail = copy;
+		tail = &copy->next;
+		g = g->next;
 	}
+	while (g != HAWK_NULL);
+#endif
 
-	HAWK_MEMCPY(yg, g, HAWK_SIZEOF(*yg));
-	yg->next = xg;
-
-	return yg;
+	return head;
 }
 
 static group_t* dupgroupstack (exec_t* e, group_t* gs)
@@ -1379,7 +1413,8 @@ static group_t* dupgroupstack (exec_t* e, group_t* gs)
 	HAWK_ASSERT(gs->node == HAWK_NULL);
 
 	head = newgrouphead(e, gs);
-	if (!head) return HAWK_NULL;
+	if (HAWK_UNLIKELY(!head)) return HAWK_NULL;
+
 	if (gs->next)
 	{
 		head->next = dupgroupstackmembers(e, gs->next);
