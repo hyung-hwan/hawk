@@ -65,6 +65,12 @@ options.
   Set the search path for dynamically loaded modules, using the platform's
   path-list separator.
 
+- **--rex** *tre|rgx*
+  Select the built-in regular-expression engine before parsing. The default
+  is `tre`. The selected engine handles literal and runtime-built expressions,
+  and is inherited by `sed::process()`. Accepted syntax can differ between
+  engines. If repeated, the last selection takes effect.
+
 - **-d** *file*, **--deparsed-file** *file*
   Write the parsed program back as Hawk source to the given file. Execution
   still follows parsing. The result is a deparsed program, not a copy preserving

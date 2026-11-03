@@ -109,6 +109,7 @@ struct arg_t
 	hawk_cmgr_t*     conout_cmgr;
 	hawk_bch_t*      incdirs;
 	hawk_bch_t*      modlibdirs;
+	const hawk_rex_prm_t* rexprm;
 
 	unsigned int     modern: 1;
 	unsigned int     classic: 1;
@@ -441,6 +442,7 @@ static void print_usage (FILE* out, const hawk_bch_t* argv0, const hawk_bch_t* r
 
 	fprintf(out, "%s\n", _(" -I/--incdirs         string       specify directories to look for include files in"));
 	fprintf(out, "%s\n", _(" --modlibdirs         string       specify directories to look for module files in"));
+	fprintf(out, "%s\n", _(" --rex                tre/rgx      select regular-expression engine (default: tre)"));
 	fprintf(out, "%s\n", _(" --modern                          run in the modern mode(default)"));
 	fprintf(out, "%s\n", _(" --classic                         run in the classic mode"));
 
@@ -504,6 +506,7 @@ static int process_argv (int argc, hawk_bch_t* argv[], const hawk_bch_t* real_ar
 		{ ":incdirs",          'I' },
 		{ ":includedirs",      'I' },
 		{ ":modlibdirs",       '\0' },
+		{ ":rex",              '\0' },
 
 		{ "modern",            '\0' },
 		{ "classic",           '\0' },
@@ -707,6 +710,19 @@ static int process_argv (int argc, hawk_bch_t* argv[], const hawk_bch_t* real_ar
 				else if (hawk_comp_bcstr(opt.lngopt, "modlibdirs", 0) == 0)
 				{
 					arg->modlibdirs = opt.arg;
+				}
+				else if (hawk_comp_bcstr(opt.lngopt, "rex", 0) == 0)
+				{
+					if (hawk_comp_bcstr(opt.arg, "tre", 1) == 0)
+						arg->rexprm = HAWK_NULL;
+					else if (hawk_comp_bcstr(opt.arg, "rgx", 1) == 0)
+						arg->rexprm = hawk_rex_getrgxprm();
+					else
+					{
+						hawk_main_print_error("unknown regular expression engine - '%s' (use tre or rgx)\n", opt.arg);
+						oops_ret = 3;
+						goto oops;
+					}
 				}
 				else
 				{
@@ -980,16 +996,18 @@ int main_hawk(int argc, hawk_bch_t* argv[], const hawk_bch_t* real_argv0)
 	#endif
 	}
 
-
-#if 0
-	/* switch the regular expression engine to rgx from the default tre */
+	/* Select the engine before any source or runtime regex is compiled. */
+	if (arg.rexprm)
 	{
 		hawk_prm_t prm;
 		hawk_getprm(hawk, &prm);
-		prm.rex = *hawk_rex_getrgxprm(); /* set rgx adapter */
-		hawk_setprm(hawk, &prm);
+		prm.rex = *arg.rexprm;
+		if (hawk_setprm(hawk, &prm) <= -1)
+		{
+			print_hawk_error(hawk);
+			goto oops;
+		}
 	}
-#endif
 
 	if (add_gvs_to_hawk(hawk, &arg) <= -1)
 	{

@@ -22,7 +22,7 @@ check_SCRIPTS += h-003.hawk h-004.hawk h-009.hawk h-010.hawk \
 	h-016.hawk h-017.hawk h-018.hawk h-019.hawk h-020.hawk \
 	h-021.hawk h-022.hawk h-023.hawk h-024.hawk h-025.hawk h-026.hawk h-027.hawk h-028.hawk h-029.hawk h-030.hawk h-031.hawk
 
-check_SCRIPTS += regress-filename.sh regress-extra-info.sh regress-environ.sh regress-m4.sh regress-sed.sh regress-sh.sh regress-sh-job-control.sh regress-fnc.sh regress-md2man.sh
+check_SCRIPTS += regress-filename.sh regress-extra-info.sh regress-environ.sh regress-m4.sh regress-sed.sh regress-sh.sh regress-sh-job-control.sh regress-fnc.sh regress-md2man.sh regress-rex.sh
 
 check_SCRIPTS += h-032.hawk h-033.hawk h-034.hawk h-035.hawk h-036.hawk h-037.hawk
 
@@ -301,7 +301,9 @@ SH_LOG_DRIVER = $(LOG_DRIVER)
 ## The manual converter needs the C runner's script exit status, even when
 ## the rest of the suite is run with another frontend.
 HAWK_MAN_COMPILER = $(abs_top_builddir)/bin/hawk$(EXEEXT)
-SH_LOG_COMPILER = env HAWK_BIN='$(HAWK_TEST_COMPILER)' HAWK_MAN_COMPILER='$(HAWK_MAN_COMPILER)' FNC_REGRESS_BIN='./fnc-regress$(EXEEXT)' SH_JOB_CONTROL_BIN='./sh-job-control$(EXEEXT)' $(SHELL)
+## Engine selection is a C command-line option, independent of the test frontend.
+HAWK_REX_COMPILER = $(abs_top_builddir)/bin/hawk$(EXEEXT)
+SH_LOG_COMPILER = env HAWK_BIN='$(HAWK_TEST_COMPILER)' HAWK_MAN_COMPILER='$(HAWK_MAN_COMPILER)' HAWK_REX_COMPILER='$(HAWK_REX_COMPILER)' FNC_REGRESS_BIN='./fnc-regress$(EXEEXT)' SH_JOB_CONTROL_BIN='./sh-job-control$(EXEEXT)' $(SHELL)
 AM_SH_LOG_FLAGS =
 
 regress-fnc.log: fnc-regress$(EXEEXT)

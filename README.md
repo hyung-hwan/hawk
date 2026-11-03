@@ -202,6 +202,17 @@ The actual command may vary depending on the compiler used and the `configure` o
 
 ## Custom Regular-Expression Engines
 
+The C interpreter accepts `--rex=tre` (the default) or `--rex=rgx` to select
+the built-in engine before parsing. The selection applies to literal and
+runtime-built expressions, and to `sed::process()` invoked by the program.
+Both engines are built in; no configure option is needed. Accepted syntax
+can differ. Repeated selections use the last value.
+
+```sh
+hawk --rex=rgx 'BEGIN { print "abc" ~ /a(b|c)/ }'
+hawk --rex=tre -f program.hawk input.txt
+```
+
 [`hawk-rex.h`](lib/hawk-rex.h) defines shared build, match, and free callbacks
 for Hawk and Sed. With no callbacks installed, both keep using TRE directly.
 The library also provides an adapter for its standalone RGX engine:
