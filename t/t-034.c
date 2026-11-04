@@ -447,6 +447,9 @@ static void test_hawk (int custom)
 		"p=\"^[\\\\[=]\"; if (!(\"=\" ~ p) || !(\"[\" ~ p)) return 13;"
 		"if (match(@b\"[\", /^[\\[.]/)!=1) return 14;"
 		"s=\"[.[\"; if (gsub(/[\\[.]/,\"X\",s)!=3 || s!=\"XXX\") return 15;"
+		"IGNORECASE=1; if (!(\"_\" ~ /[A-z]/) || !(\"B\" ~ /[B-a]/) || \"C\" ~ /[a-b]/) return 16;"
+		"IGNORECASE=0; if (\"B\" ~ /[a-b]/) return 17;"
+		"IGNORECASE=1; if (!(\"B\" ~ /[a-b]/) || \"_\" ~ /[^A-z]/) return 18;"
 		"return 0; }";
 	hawk_t* hawk = hawk_openstd(0, HAWK_NULL);
 	hawk_rtx_t* rtx[2] = { HAWK_NULL, HAWK_NULL };

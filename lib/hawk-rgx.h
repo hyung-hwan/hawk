@@ -51,6 +51,9 @@
  * Compilation rejects these constructs with HAWK_EREXCOLLATE and a diagnostic
  * identifying the construct. Named character classes such as [[:alpha:]]
  * remain supported through Hawk's character classification routines.
+ * Ranges retain their original members and a precompiled uppercase image.
+ * HAWK_RGX_IGNORECASE can therefore be changed after compilation; matching
+ * compares intervals without walking each character in a range.
  *
  *  regular expression := branch_set
  *  branch_set := branch [ '|' branch ]*
@@ -220,7 +223,8 @@ enum hawk_rgx_cset_code_t
 {
 	HAWK_RGX_CSET_CHAR,
 	HAWK_RGX_CSET_RANGE,
-	HAWK_RGX_CSET_CLASS
+	HAWK_RGX_CSET_CLASS,
+	HAWK_RGX_CSET_RANGE_ICASE
 };
 
 /** \struct hawk_rgx_t

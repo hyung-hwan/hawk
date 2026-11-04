@@ -688,6 +688,67 @@ static int add_cset_code (
 	return 0;
 }
 
+static int add_cset_range (comp_t* com, hawk_rgx_node_t* node, int code, hawk_oochu_t first, hawk_oochu_t last)
+{
+	hawk_ooch_t tmp[3];
+
+	tmp[0] = code;
+	tmp[1] = first;
+	tmp[2] = last;
+	return add_cset_code(com, node, tmp, HAWK_COUNTOF(tmp));
+}
+
+static int compile_cset_range (comp_t* com, hawk_rgx_node_t* node, hawk_oochu_t first, hawk_oochu_t last)
+{
+	hawk_oochu_t limit, end, c, upper, lo, hi;
+
+	if (add_cset_range(com, node, HAWK_RGX_CSET_RANGE, first, last) <= -1) return -1;
+
+	/* keep both forms regardless of the compilation options. IGNORECASE is
+	 * an execution option and may change while this graph is being reused.
+	 * fold every member, not just the endpoints: [A-z] contains punctuation,
+	 * and distinct unicode characters can share the same uppercase form. */
+#if defined(HAWK_OOCH_IS_UCH)
+	limit = hawk_get_uch_case_max();
+#else
+	limit = HAWK_TYPE_MAX(hawk_bchu_t);
+#endif
+	end = (last < limit)? last: limit;
+	if (first <= end)
+	{
+		/* if the first is A and the last is }, in brief
+		 * A B .. Z [ .. ` a b .. z { | }
+		 *
+		 *  A through `    unchanged, consecutive values                 first interval: 0x41–0x60
+		 *  a              A (0x41), below the previous endpoint 0x60    break. start another interval
+		 *  b–z            B–Z, consecutive values                       second interval: 0x41–0x5A (this can be optimized away)
+		 *  {              { (0x7B), leaving a gap after Z (0x5A)        break. start another interval
+		 *  |-}            |-}, consecutive values                       the third interval: 0x7B-0x7D
+		 */
+		lo = hi = (hawk_oochu_t)hawk_to_ooch_upper(first);
+		for (c = first; c < end; )
+		{
+			upper = (hawk_oochu_t)hawk_to_ooch_upper(++c);
+			if (upper == hi || (upper > hi && upper - hi == 1)) hi = upper;
+			else
+			{
+				if (add_cset_range(com, node, HAWK_RGX_CSET_RANGE_ICASE, lo, hi) <= -1) return -1;
+				lo = hi = upper;
+			}
+		}
+		if (add_cset_range(com, node, HAWK_RGX_CSET_RANGE_ICASE, lo, hi) <= -1) return -1;
+	}
+
+	/* beyond the case table, folding is the identity. add that entire tail
+	 * at once, even for ranges reaching the maximum 32-bit character value. */
+	if (last > limit)
+	{
+		lo = (first > limit)? first: limit + 1;
+		if (add_cset_range(com, node, HAWK_RGX_CSET_RANGE_ICASE, lo, last) <= -1) return -1;
+	}
+	return 0;
+}
+
 static int charset (comp_t* com, hawk_rgx_node_t* node)
 {
 	HAWK_ASSERT(node->id == HAWK_RGX_NODE_CSET);
@@ -770,7 +831,7 @@ static int charset (comp_t* com, hawk_rgx_node_t* node)
 				break;
 			}
 
-			if (c1 > com->c.value)
+			if (IS_EOF(com) || (hawk_oochu_t)c1 > (hawk_oochu_t)com->c.value)
 			{
 				/* range end must be >= range start */
 				hawk_gem_seterrnum(com->rgx->gem, HAWK_NULL, HAWK_EREXRANGE);
@@ -787,11 +848,7 @@ static int charset (comp_t* com, hawk_rgx_node_t* node)
 			}
 			else
 			{
-				hawk_ooch_t tmp[3];
-				tmp[0] = HAWK_RGX_CSET_RANGE;
-				tmp[1] = c1;
-				tmp[2] = com->c.value;
-				ADD_CSET_CODE(com, node, tmp, HAWK_COUNTOF(tmp));
+				if (compile_cset_range(com, node, (hawk_oochu_t)c1, (hawk_oochu_t)com->c.value) <= -1) return -1;
 			}
 
 			if (get_cset_char(com) <= -1) return -1;
@@ -1927,12 +1984,15 @@ oops:
 static int charset_matched (exec_t* e, hawk_rgx_node_t* node, hawk_ooch_t c)
 {
 	const hawk_ooch_t* ptr, * end;
+	hawk_oochu_t upper;
+	int ignorecase = e->rgx->option & HAWK_RGX_IGNORECASE;
 	int matched = 0;
 
 	HAWK_ASSERT(node->u.cset.member != HAWK_NULL);
 
-	ptr = HAWK_OOECS_PTR (node->u.cset.member);
-	end = ptr + HAWK_OOECS_LEN (node->u.cset.member);
+	ptr = HAWK_OOECS_PTR(node->u.cset.member);
+	end = ptr + HAWK_OOECS_LEN(node->u.cset.member);
+	upper = ignorecase? (hawk_oochu_t)hawk_to_ooch_upper((hawk_oochu_t)c): (hawk_oochu_t)c;
 
 	while (ptr < end && !matched)
 	{
@@ -1942,9 +2002,9 @@ static int charset_matched (exec_t* e, hawk_rgx_node_t* node, hawk_ooch_t c)
 			{
 				ptr++;
 
-				if (e->rgx->option & HAWK_RGX_IGNORECASE)
+				if (ignorecase)
 				{
-					if (hawk_to_ooch_upper((hawk_oochu_t)c) == hawk_to_ooch_upper((hawk_oochu_t)*ptr)) matched = 1;
+					if (upper == (hawk_oochu_t)hawk_to_ooch_upper((hawk_oochu_t)*ptr)) matched = 1;
 				}
 				else
 				{
@@ -1960,17 +2020,19 @@ static int charset_matched (exec_t* e, hawk_rgx_node_t* node, hawk_ooch_t c)
 				c1 = (hawk_oochu_t)*++ptr;
 				c2 = (hawk_oochu_t)*++ptr;
 
-				if (e->rgx->option & HAWK_RGX_IGNORECASE)
+				if ((hawk_oochu_t)c >= c1 && (hawk_oochu_t)c <= c2) matched = 1;
+				break;
+			}
+
+			case HAWK_RGX_CSET_RANGE_ICASE:
+			{
+				hawk_oochu_t c1, c2;
+
+				c1 = (hawk_oochu_t)*++ptr;
+				c2 = (hawk_oochu_t)*++ptr;
+				if (ignorecase)
 				{
-					hawk_oochu_t c3;
-					c1 = hawk_to_ooch_upper(c1);
-					c2 = hawk_to_ooch_upper(c2);
-					c3 = hawk_to_ooch_upper((hawk_oochu_t)c);
-					if (c3 >= c1 && c3 <= c2) matched = 1;
-				}
-				else
-				{
-					if ((hawk_oochu_t)c >= c1 && (hawk_oochu_t)c <= c2) matched = 1;
+					if (upper >= c1 && upper <= c2) matched = 1;
 				}
 				break;
 			}
@@ -1988,7 +2050,7 @@ static int charset_matched (exec_t* e, hawk_rgx_node_t* node, hawk_ooch_t c)
 
 			default:
 			{
-				HAWK_ASSERT("must never happen - membership code for a character set must be one of HAWK_RGX_CSET_CHAR, HAWK_RGX_CSET_RANGE, HAWK_RGX_CSET_CLASS" == HAWK_NULL);
+				HAWK_ASSERT("must never happen - invalid character set membership code" == HAWK_NULL);
 				/* return no match if this part is reached.
 				 * however, something is totally wrong if it
 				 * happens. */

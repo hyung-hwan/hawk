@@ -25,7 +25,6 @@
  */
 
 #include "main.h"
-
 #include <hawk.h>
 #include <hawk-cli.h>
 #include <hawk-fmt.h>

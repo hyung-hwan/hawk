@@ -140,6 +140,146 @@ static void test_matches (hawk_gem_t* gem)
 	hawk_rgx_fini(&rgx);
 }
 
+static void test_case_ranges (hawk_gem_t* gem)
+{
+	static const struct
+	{
+		hawk_oochu_t first, last;
+	} ranges[] =
+	{
+		{ 'A', 'z' }, { 'B', 'a' }, { 'a', 'c' }, { '0', '9' },
+		{ 0x7f, 0xff },
+#if defined(HAWK_OOCH_IS_UCH)
+		{ 0x03c1, 0x03c2 }, /* rho..final sigma must also match normal sigma */
+		{ 0x03c3, 0x03c4 }, /* normal sigma..tau must also match final sigma */
+		{ 0x0100, 0x017f }, /* alternating upper/lower mappings */
+#endif
+	};
+	static const hawk_oochu_t boundaries[] =
+	{
+		0, 'A', 'I', 'S', 'z', 0xff,
+#if defined(HAWK_OOCH_IS_UCH)
+		0xffff,
+#if (HAWK_SIZEOF_OOCH_T > 2)
+		0x10000, 0x7fffffff, 0x80000000u,
+#endif
+#endif
+		HAWK_TYPE_MAX(hawk_oochu_t) - 1, HAWK_TYPE_MAX(hawk_oochu_t)
+	};
+	hawk_rgx_t rgx;
+	hawk_ooch_t pattern[6], ch;
+	hawk_oocs_t input = { &ch, 1 };
+	hawk_oow_t i, j, count, member, case_max;
+	hawk_oochu_t c, folded;
+	int compile_icase, negated, mode, expected, n, good;
+
+	hawk_rgx_init(&rgx, gem, HAWK_NULL);
+#if defined(HAWK_OOCH_IS_UCH)
+	/* The built-in Unicode case table currently covers the BMP. */
+	case_max = 0xffff;
+#else
+	case_max = HAWK_TYPE_MAX(hawk_bchu_t);
+#endif
+	for (i = 0; i < HAWK_COUNTOF(ranges); i++)
+	{
+		for (negated = 0; negated <= 1; negated++)
+		{
+			count = 0;
+			pattern[count++] = '[';
+			if (negated) pattern[count++] = '^';
+			pattern[count++] = ranges[i].first;
+			pattern[count++] = '-';
+			pattern[count++] = ranges[i].last;
+			pattern[count++] = ']';
+			for (compile_icase = 0; compile_icase <= 1; compile_icase++)
+			{
+				hawk_rgx_setopt(&rgx, compile_icase? HAWK_RGX_IGNORECASE: 0);
+				if (!hawk_rgx_comp(&rgx, pattern, count)) bail_out("cannot compile case range");
+				for (mode = 0; mode < 3; mode++)
+				{
+					/* Enable, disable, and re-enable case folding on the same graph. */
+					hawk_rgx_setopt(&rgx, mode == 1? 0: HAWK_RGX_IGNORECASE);
+					good = 1;
+					for (j = 0; j < 256
+#if defined(HAWK_OOCH_IS_UCH)
+					     + 0x180 + 0x80
+#endif
+					     ; j++)
+					{
+						c = j;
+#if defined(HAWK_OOCH_IS_UCH)
+						if (j >= 256 + 0x180) c = 0x0380 + j - (256 + 0x180);
+#endif
+						ch = c;
+						expected = c >= ranges[i].first && c <= ranges[i].last;
+						if (!expected && mode != 1)
+						{
+							/* Independent reference: the range is a union of literal
+							 * members, compared using RGX's uppercase equivalence. */
+							folded = (hawk_oochu_t)hawk_to_ooch_upper(c);
+							for (member = ranges[i].first; member <= ranges[i].last; member++)
+							{
+								if (folded == (hawk_oochu_t)hawk_to_ooch_upper(member))
+								{
+									expected = 1;
+									break;
+								}
+							}
+						}
+						if (negated) expected = !expected;
+						n = hawk_rgx_exec(&rgx, &input, &input, HAWK_NULL, 0);
+						if (n != expected)
+						{
+							if (good) printf("# range %lu, negated %d, compile ICASE %d, mode %d, char %lx: expected %d, got %d\n",
+								(unsigned long)i, negated, compile_icase, mode, (unsigned long)c, expected, n);
+							good = 0;
+						}
+					}
+					OK(good, "precompiled ranges agree with literal membership across IGNORECASE changes");
+				}
+			}
+		}
+	}
+
+	/* Explicit lengths allow NUL and maximum-valued range endpoints. A full
+	 * 32-bit range must not require a scan of all four billion characters. */
+	for (i = 0; i < HAWK_COUNTOF(boundaries); i++)
+	{
+		pattern[0] = '[';
+		pattern[1] = boundaries[i];
+		pattern[2] = '-';
+		pattern[3] = HAWK_TYPE_MAX(hawk_oochu_t);
+		pattern[4] = ']';
+		hawk_rgx_setopt(&rgx, 0);
+		if (!hawk_rgx_comp(&rgx, pattern, 5)) bail_out("cannot compile boundary case range");
+		good = 1;
+		for (mode = 0; mode <= 1; mode++)
+		{
+			hawk_rgx_setopt(&rgx, mode? HAWK_RGX_IGNORECASE: 0);
+			for (j = 0; j < HAWK_COUNTOF(boundaries); j++)
+			{
+				ch = boundaries[j];
+				expected = boundaries[j] >= boundaries[i];
+				if (!expected && mode)
+				{
+					folded = (hawk_oochu_t)hawk_to_ooch_upper(boundaries[j]);
+					for (member = boundaries[i]; member <= case_max; member++)
+					{
+						if (folded == (hawk_oochu_t)hawk_to_ooch_upper(member))
+						{
+							expected = 1;
+							break;
+						}
+					}
+				}
+				if (hawk_rgx_exec(&rgx, &input, &input, HAWK_NULL, 0) != expected) good = 0;
+			}
+		}
+		OK(good, "wide ranges preserve unsigned endpoints and the identity-mapped tail");
+	}
+	hawk_rgx_fini(&rgx);
+}
+
 static void test_errors (hawk_gem_t* gem)
 {
 	static const struct
@@ -607,12 +747,16 @@ static void test_capture_failures (hawk_gem_t* gem, allocator_t* a)
 		{ HAWK_T("\\(\\(a\\{1,2\\}\\)\\+\\)\\(b\\?\\)"), 0 },
 		{ HAWK_T("\\(a\\{1,2\\}\\)\\+\\1"), 0 },
 		{ HAWK_T("\\(a\\|aa\\)\\+\\1"), 0 },
-		{ HAWK_T("((a?){2})*b?"), HAWK_RGX_EXTENDED }
+		{ HAWK_T("((a?){2})*b?"), HAWK_RGX_EXTENDED },
+		{ HAWK_T("([A-zA-zA-zA-zA-zA-z]|a)*"), HAWK_RGX_EXTENDED },
+#if defined(HAWK_OOCH_IS_UCH)
+		{ HAWK_T("([\x0100-\x024f]|a)*"), HAWK_RGX_EXTENDED },
+#endif
 	};
 	hawk_oocs_t input = { HAWK_T("aaaa"), 4 }, matches[5], saved[5];
 	hawk_rgx_t rgx;
-	hawk_rgx_node_t* old;
-	hawk_oow_t p, i, j, before, allocations, baseline, outer = a->live;
+	hawk_rgx_node_t* old, * code;
+	hawk_oow_t p, i, j, before, allocations, nsub, baseline, outer = a->live;
 	int n, good;
 
 	for (p = 0; p < HAWK_COUNTOF(patterns); p++)
@@ -622,6 +766,7 @@ static void test_capture_failures (hawk_gem_t* gem, allocator_t* a)
 		before = a->calls;
 		if (!hawk_rgx_comp(&rgx, patterns[p].pattern, hawk_count_oocstr(patterns[p].pattern))) bail_out("cannot measure capture compiler allocations");
 		allocations = a->calls - before;
+		nsub = hawk_rgx_getnsub(&rgx);
 		hawk_rgx_fini(&rgx);
 		good = 1;
 		for (i = 1; i <= allocations; i++)
@@ -632,13 +777,23 @@ static void test_capture_failures (hawk_gem_t* gem, allocator_t* a)
 			if (!old) bail_out("cannot compile capture failure baseline");
 			baseline = a->live;
 			a->fail_at = a->calls + i;
-			if (hawk_rgx_comp(&rgx, patterns[p].pattern, hawk_count_oocstr(patterns[p].pattern)) ||
-			    hawk_rgx_geterrnum(&rgx) != HAWK_ENOMEM || rgx.code != old ||
-			    hawk_rgx_getnsub(&rgx) != 0 || a->live != baseline) good = 0;
+			code = hawk_rgx_comp(&rgx, patterns[p].pattern, hawk_count_oocstr(patterns[p].pattern));
 			a->fail_at = 0;
+			if (!code)
+			{
+				if (hawk_rgx_geterrnum(&rgx) != HAWK_ENOMEM || rgx.code != old ||
+				    hawk_rgx_getnsub(&rgx) != 0 || a->live != baseline) good = 0;
+			}
+			else
+			{
+				/* ECS may recover from a failed growth allocation by trying a
+				 * smaller capacity. A successful compile must remain usable. */
+				if (hawk_rgx_getnsub(&rgx) != nsub ||
+				    hawk_rgx_execx(&rgx, &input, &input, matches, HAWK_COUNTOF(matches), 0) != 1) good = 0;
+			}
 			hawk_rgx_fini(&rgx);
 		}
-		OK(good && a->live == outer, "capture/backreference compiler allocation failures retain old graph and group count");
+		OK(good && a->live == outer, "compiler allocation failures retain old graph and group count or recover without leaks");
 
 		hawk_rgx_init(&rgx, gem, HAWK_NULL);
 		hawk_rgx_setopt(&rgx, patterns[p].options);
@@ -1595,6 +1750,7 @@ int main (int argc, char* argv[])
 	gem = hawk_getgem(hawk);
 	baseline = a.live;
 	test_matches(gem);
+	test_case_ranges(gem);
 	test_bre(gem);
 	test_errors(gem);
 	test_tre_error_codes(gem);

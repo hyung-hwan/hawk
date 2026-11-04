@@ -105,6 +105,11 @@ int hawk_is_uch_blank (hawk_uch_t c)
 	return UCH_IS_TYPE((hawk_uchu_t)c, HAWK_UCH_PROP_BLANK);
 }
 
+hawk_uchu_t hawk_get_uch_case_max (void)
+{
+	return UCH_CASE_MAX;
+}
+
 hawk_uch_t hawk_to_uch_upper (hawk_uch_t c)
 {
 	hawk_uchu_t uc = (hawk_uchu_t)c;

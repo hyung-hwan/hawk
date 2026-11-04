@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-03 13:59+0900\n"
+"POT-Creation-Date: 2026-11-04 21:35+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -200,54 +200,60 @@ msgid ""
 msgstr ""
 
 #: ../../bin/hawk.c:444
-msgid " --modern                          run in the modern mode(default)"
+msgid ""
+" --rex                tre/rgx      select regular-expression engine "
+"(default: tre)"
 msgstr ""
 
 #: ../../bin/hawk.c:445
+msgid " --modern                          run in the modern mode(default)"
+msgstr ""
+
+#: ../../bin/hawk.c:446
 msgid " --classic                         run in the classic mode"
 msgstr ""
 
-#: ../../bin/hawk.c:447
+#: ../../bin/hawk.c:448
 msgid " An asterisk (*) marks the default for each on/off option."
 msgstr ""
 
-#: ../../bin/hawk.c:457
+#: ../../bin/hawk.c:458
 msgid "Special mode switching options(must be specified first to take effect):"
 msgstr ""
 
-#: ../../bin/hawk.c:458 ../../bin/main.c:420
+#: ../../bin/hawk.c:459 ../../bin/main.c:420
 msgid " --awk/--hawk                      switch to the awk mode(default)"
 msgstr ""
 
-#: ../../bin/hawk.c:459 ../../bin/main.c:421
+#: ../../bin/hawk.c:460 ../../bin/main.c:421
 msgid " --cut                             switch to the cut mode"
 msgstr ""
 
-#: ../../bin/hawk.c:460 ../../bin/main.c:422
+#: ../../bin/hawk.c:461 ../../bin/main.c:422
 msgid " --m4                              switch to the m4 mode"
 msgstr ""
 
-#: ../../bin/hawk.c:461 ../../bin/main.c:423
+#: ../../bin/hawk.c:462 ../../bin/main.c:423
 msgid " --sed                             switch to the sed mode"
 msgstr ""
 
-#: ../../bin/hawk.c:820 ../../bin/hawk.c:837
+#: ../../bin/hawk.c:835 ../../bin/hawk.c:852
 msgid "ERROR"
 msgstr ""
 
-#: ../../bin/hawk.c:821 ../../bin/hawk.c:838
+#: ../../bin/hawk.c:836 ../../bin/hawk.c:853
 msgid "Line"
 msgstr ""
 
-#: ../../bin/hawk.c:822 ../../bin/hawk.c:839
+#: ../../bin/hawk.c:837 ../../bin/hawk.c:854
 msgid "Column"
 msgstr ""
 
-#: ../../bin/hawk.c:823 ../../bin/hawk.c:840
+#: ../../bin/hawk.c:838 ../../bin/hawk.c:855
 msgid "Code"
 msgstr ""
 
-#: ../../bin/hawk.c:824 ../../bin/hawk.c:841
+#: ../../bin/hawk.c:839 ../../bin/hawk.c:856
 msgid "File "
 msgstr ""
 
