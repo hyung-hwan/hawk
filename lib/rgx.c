@@ -89,12 +89,12 @@ struct pair_t
 	hawk_rgx_node_t* tail;
 };
 
-/* The group_t type defines a structure to maintain the nested
- * traces of subgroups. The actual traces are maintained in a stack
- * of sinlgly linked group_t elements. The head element acts
+/* the group_t type defines a structure to maintain the nested
+ * traces of subgroups. the actual traces are maintained in a stack
+ * of sinlgly linked group_t elements. the head element acts
  * as a management element where the occ field is a reference count
  * and the node field is HAWK_NULL always. When capture tracking is active,
- * the head owns a trailing array of completed capture slices. Keep this
+ * the head owns a trailing array of completed capture slices. keep this
  * head even after the last active group is popped: a later backreference
  * or the final match result can still need those completed captures.
  */
@@ -405,8 +405,8 @@ static int get_char (comp_t* com, int noesc)
 	}
 	c = *com->ptr++;
 	if (c >= HAWK_T('1') && c <= HAWK_T('9')) com->c.backref = c - HAWK_T('0');
-	/* Recognize raw BRE operators before expanding character escapes.
-	 * A digit or parenthesis produced by \\x/\\u is still a literal. */
+	/* recognize raw BRE operators before expanding character escapes.
+	 * a digit or parenthesis produced by \\x/\\u is still a literal. */
 	if (!(com->rgx->option & HAWK_RGX_EXTENDED) &&
 	    (c == HAWK_T('(') || c == HAWK_T(')') || c == HAWK_T('{') ||
 	     c == HAWK_T('+') || c == HAWK_T('?') || c == HAWK_T('|'))) com->c.special = 1;
@@ -645,13 +645,13 @@ static int charclass (comp_t* com)
 	if (getc_noesc(com) <= -1) return -1;
 	if (com->c.value != HAWK_T(']'))
 	{
-		/* The inner ':]' belongs to the named class. A missing/wrong
+		/* the inner ':]' belongs to the named class. a missing/wrong
 		 * terminator is a class error, not the outer bracket's error. */
 		hawk_gem_seterrnum(com->rgx->gem, HAWK_NULL, HAWK_EREXCTYPE);
 		return -1;
 	}
 
-	/* The character class ends inside the enclosing bracket expression.
+	/* the character class ends inside the enclosing bracket expression.
 	 * Apply the selected bracket-quoting policy to the next member. */
 	if (get_cset_char(com) <= -1) return -1;
 	return (int)(ccp - ccinfo);
@@ -703,7 +703,7 @@ static int charset (comp_t* com, hawk_rgx_node_t* node)
 
 		c1 = com->c.value;
 		c1_escaped = com->c.escaped;
-		/* Test the integer token before narrowing it to a character. EOF
+		/* test the integer token before narrowing it to a character. EOF
 		 * is not representable by byte or 16-bit character types. */
 		if (IS_EOF(com))
 		{
@@ -711,7 +711,7 @@ static int charset (comp_t* com, hawk_rgx_node_t* node)
 			return -1;
 		}
 
-		/* Keep c1's quoting state before reading the lookahead member. An
+		/* keep c1's quoting state before reading the lookahead member. an
 		 * escaped '[' must not introduce a named class when c2 is ':'. */
 		if (get_cset_char(com) <= -1) return -1;
 		c2 = com->c.value;
@@ -840,9 +840,9 @@ static int occbound (comp_t* com, hawk_rgx_node_t* n)
 		return -1;
 	}
 
-	/* End of input before a terminator is an imbalanced brace. A wrong
+	/* end of input before a terminator is an imbalanced brace. a wrong
 	 * terminator or unfinished BRE '\}' is invalid brace content instead.
-	 * Keep this distinction identical to TRE's interval parser. */
+	 * keep this distinction identical to TRE's interval parser. */
 	if (IS_EOF(com)) goto bad_brace;
 	if (!(com->rgx->option & HAWK_RGX_EXTENDED))
 	{
@@ -998,7 +998,7 @@ static hawk_rgx_node_t* comp_atom (comp_t* com, int first)
 			case HAWK_T('['):
 				atom = newnode(com, HAWK_RGX_NODE_CSET);
 				if (HAWK_UNLIKELY(!atom)) return HAWK_NULL;
-				/* Read the first member with the same quoting policy as
+				/* read the first member with the same quoting policy as
 				 * later members, including before the initial '^' test. */
 				if (get_cset_char(com) <= -1) return HAWK_NULL;
 				if (charset(com, atom) <= -1) return HAWK_NULL;
@@ -1007,7 +1007,7 @@ static hawk_rgx_node_t* comp_atom (comp_t* com, int first)
 			default:
 				if (!(com->rgx->option & HAWK_RGX_EXTENDED))
 				{
-					/* A leading '*' is literal in BRE, including after
+					/* a leading '*' is literal in BRE, including after
 					 * an initial anchor. An unmatched \\) is an error. */
 					if (com->c.value == HAWK_T('*')) goto normal_char;
 					if (com->c.value == HAWK_T(')'))
@@ -1173,11 +1173,11 @@ static hawk_rgx_node_t* comp_branch (comp_t* c, pair_t* pair)
 				{
 			#endif
 					/*
-					 * Given an atom, enclose it with a
+					 * given an atom, enclose it with a
 					 * pseudogroup head and a psuedogroup
 					 * tail. the head is followed by a
 					 * branch that conntects to the tail
-					 * and the atom given. The atom given
+					 * and the atom given. the atom given
 					 * gets connected to the tail.
 					 *   Head -> BR        -> Tail
 					 *        -> ORG(atom) -> Tail
@@ -1287,7 +1287,7 @@ static void freegroupstack(group_t* gs, hawk_gem_t* gem)
 {
 	HAWK_ASSERT(gs != HAWK_NULL);
 
-	/* The head of a group stack must point to HAWK_NULL for management purpose */
+	/* the head of a group stack must point to HAWK_NULL for management purpose */
 	HAWK_ASSERT(gs->node == HAWK_NULL);
 
 	freegroupstackmembers(gs, gem);
@@ -1297,7 +1297,7 @@ static void refupgroupstack(group_t* gs)
 {
 	if (gs != HAWK_NULL)
 	{
-		/* The head of a group stack must point to HAWK_NULL for management purpose */
+		/* the head of a group stack must point to HAWK_NULL for management purpose */
 		HAWK_ASSERT(gs->node == HAWK_NULL);
 		gs->occ++;
 	}
@@ -1409,7 +1409,7 @@ static group_t* dupgroupstack (exec_t* e, group_t* gs)
 	group_t* head;
 
 	HAWK_ASSERT(gs != HAWK_NULL);
-	/*The head of a group stack must point to HAWK_NULL for management purpose.*/
+	/* the head of a group stack must point to HAWK_NULL for management purpose.*/
 	HAWK_ASSERT(gs->node == HAWK_NULL);
 
 	head = newgrouphead(e, gs);
@@ -1498,7 +1498,7 @@ static group_t* dupgroupstackpop (exec_t* e, group_t* gs)
 	group_t* dupg, * head;
 
 	HAWK_ASSERT(gs != HAWK_NULL);
-	/* The head of a group stack must point to HAWK_NULL for management purpose. */
+	/* the head of a group stack must point to HAWK_NULL for management purpose. */
 	HAWK_ASSERT(gs->node == HAWK_NULL);
 	HAWK_ASSERT(gs->next != HAWK_NULL);
 
@@ -1619,7 +1619,7 @@ static int bettercaptures (exec_t* e, const group_t* group)
 /* addcands() function add a candicate from candnode.
  * if candnode is not a simple node, it traverses further
  * until it reaches a simple node. prevnode is the last
- * GROUPEND node visited during traversal. If no GROUPEND
+ * GROUPEND node visited during traversal. if no GROUPEND
  * is visited yet, it can be any starting node */
 static int addcands (
 	exec_t* e, group_t* group, hawk_rgx_node_t* prevnode,
@@ -1642,7 +1642,7 @@ warpback:
 	{
 		case HAWK_RGX_NODE_BOL:
 		case HAWK_RGX_NODE_EOL:
-			/* Assertions consume no input. Traverse them here so an
+			/* assertions consume no input. Traverse them here so an
 			 * anchor-only repeated group retains its empty-loop guard. */
 			if (curcand->id == HAWK_RGX_NODE_BOL && (mptr != e->str.ptr || (e->flags & HAWK_RGX_NOTBOL))) break;
 			if (curcand->id == HAWK_RGX_NODE_EOL && (mptr < e->str.end || (e->flags & HAWK_RGX_NOTEOL))) break;
@@ -1724,7 +1724,7 @@ warpback:
 				refupgroupstack(owned_group);
 			}
 			group = gx;
-			if (e->ncaps) group->next->u.start = mptr;
+			group->next->u.start = mptr;
 			curcand = front;
 			goto warpback;
 		}
@@ -1756,30 +1756,26 @@ warpback:
 			/* the stack entry must identify this GROUPEND's GROUP. */
 			HAWK_ASSERT(node == curcand->u.ge.group);
 
-			if (prevnode == curcand && top->occ >= node->occ.min &&
+			if (mptr == top->u.start && top->occ >= node->occ.min &&
 			    (!e->ncaps || (top->revision == group->revision &&
 			     group->u.caps.ptr[node->u.g.index].ptr == top->u.start &&
 			     group->u.caps.ptr[node->u.g.index].len == (hawk_oow_t)(mptr - top->u.start))))
 			{
-				/* consider a pattern like (x*)*.
-				 * when GROUPEND is reached, an 'if' block
-				 * below tries to add the first node
-				 * (node->u.g.head) in the group again.
-				 * however, it('x') is optional, a possible
-				 * path reach GROUPEND directly without
-				 * adding a candidate. this check is needed to
-				 * avoid the infinite loop, which otherwise is
-				 * not avoidable. */
-
 				/* repeating a nullable group may return here
-				 * without consuming input. Allow enough empty
+				 * without consuming input. allow enough empty
 				 * iterations to satisfy its minimum, as required
 				 * for patterns such as (a*){2}.
+				 *
+				 * test this group's iteration start rather than the
+				 * previously visited node. nested GROUPEND nodes in
+				 * ((a?){2})* change prevnode even when the outer
+				 * iteration consumes nothing; testing node identity
+				 * alone lets that path recurse until the C stack overflows.
 				 *
 				 * once the minimum is satisfied, the preceding
 				 * iteration has already explored the continuation.
 				 * stop this empty path to prevent an infinite loop
-				 * in patterns such as (a*)*. With captures, first allow
+				 * in patterns such as (a*)*. with captures, first allow
 				 * an empty iteration that changes any captured value:
 				 * (a?)+\\1 can consume "a", then capture an empty
 				 * iteration and satisfy the empty backreference. */
@@ -1856,9 +1852,9 @@ warpback:
 			if (occ < node->occ.max)
 			{
 				/* repeat itself. */
+				group->next->u.start = mptr;
 				if (e->ncaps)
 				{
-					group->next->u.start = mptr;
 					group->next->revision = group->revision;
 				}
 				prevnode = curcand;
@@ -2260,13 +2256,13 @@ static void refdowngroupstack_incand (hawk_arr_t* arr, void* dptr, hawk_oow_t dl
 }
 
 /* addsimplecand() uses this callback through hawk_arr_search() to decide
- * whether a pending candidate already exists. Return 0 only when both
+ * whether a pending candidate already exists. return 0 only when both
  * candidates describe the same matching state; return 1 otherwise.
  * This is an equality test for duplicate removal, not an ordering relation.
  *
- * A candidate includes both its current atom state and the repetition state
- * of all enclosing groups. Discarding a candidate merely because its atom
- * state matches another candidate can lose a valid longer match. For example,
+ * a candidate includes both its current atom state and the repetition state
+ * of all enclosing groups. discarding a candidate merely because its atom
+ * state matches another candidate can lose a valid longer match. for example,
  * (aa|a){2,3} must match all six characters in "aaaaaa", even when different
  * paths reach the same atom and input position with different group counts. */
 static int comp_cand (hawk_arr_t* arr, const void* dptr1, hawk_oow_t dlen1, const void* dptr2, hawk_oow_t dlen2)
@@ -2312,14 +2308,16 @@ static int comp_cand (hawk_arr_t* arr, const void* dptr1, hawk_oow_t dlen1, cons
 	 * same state. skip their management heads before comparing contents.
 	 * a head has node == HAWK_NULL and uses occ as an ownership reference
 	 * count. that count does not affect matching and must not participate
-	 * in the equality test. The following elements hold actual groups */
+	 * in the equality test. the following elements hold actual groups */
 	HAWK_ASSERT(g1->node == HAWK_NULL);
 	HAWK_ASSERT(g2->node == HAWK_NULL);
 	ncaps = g1->u.caps.count;
 	revision1 = g1->revision;
 	revision2 = g2->revision;
+
 	if (ncaps != g2->u.caps.count) return 1;
-	/* Completed captures survive after their groups are popped. They
+
+	/* completed captures survive after their groups are popped. they
 	 * affect both backreferences and the reported winning captures. */
 	for (i = 0; i < ncaps; i++)
 	{
@@ -2338,7 +2336,9 @@ static int comp_cand (hawk_arr_t* arr, const void* dptr1, hawk_oow_t dlen1, cons
 	while (g1 && g2)
 	{
 		if (g1->node != g2->node || g1->occ != g2->occ) return 1;
-		if (ncaps && g1->u.start != g2->u.start) return 1;
+		/* iteration starts also determine the empty-loop guard when
+		 * captures are not requested. keep these states distinct. */
+		if (g1->u.start != g2->u.start) return 1;
 		/* only whether a capture changed during this iteration matters;
 		 * absolute serial numbers are bookkeeping, not matching state. */
 		if (ncaps && (g1->revision == revision1) != (g2->revision == revision2)) return 1;
