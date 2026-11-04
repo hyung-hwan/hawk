@@ -40,9 +40,10 @@ struct comp_t
 	struct
 	{
 		hawk_ooci_t value;
-		int escaped;
-		int special; /* grammar operator in the selected dialect */
-		int backref; /* raw \\1..\\9, not a digit produced by \\x or \\u */
+		hawk_uint8_t eof;
+		hawk_uint8_t escaped;
+		hawk_uint8_t special; /* grammar operator in the selected dialect */
+		hawk_uint8_t backref; /* raw \\1..\\9, not a digit produced by \\x or \\u */
 	} c;
 
 	hawk_oow_t gdepth; /* group depth */
@@ -346,20 +347,20 @@ static hawk_rgx_node_t* newbranchnode (comp_t* c, hawk_rgx_node_t* left, hawk_rg
 	 (c >= HAWK_T('a') && c <= HAWK_T('f')))
 
 #define HEX_TO_NUM(c) \
-	((c >= HAWK_T('0') && c <= HAWK_T('9'))? c-HAWK_T('0'):  \
-	 (c >= HAWK_T('A') && c <= HAWK_T('F'))? c-HAWK_T('A')+10: \
-	                                       c-HAWK_T('a')+10)
+	((c >= HAWK_T('0') && c <= HAWK_T('9'))? c - HAWK_T('0'):  \
+	 (c >= HAWK_T('A') && c <= HAWK_T('F'))? c - HAWK_T('A') + 10: c - HAWK_T('a') + 10)
 
 #define IS_SPE(com,ch) ((com)->c.value == (ch) && !(com)->c.escaped)
 #define IS_OP(com,ch) ((com)->c.value == (ch) && (com)->c.special)
-#define IS_EOF(com) ((com)->c.value == HAWK_OOCI_EOF)
+/*#define IS_EOF(com) ((com)->c.value == HAWK_OOCI_EOF)*/
+#define IS_EOF(com) ((com)->c.eof)
 
-#define getc_noesc(c) get_char(c,1)
-#define getc_esc(c)   get_char(c,0)
+#define getc_noesc(c) get_char(c, 1)
+#define getc_esc(c)   get_char(c, 0)
 
 static int get_char (comp_t* com, int noesc)
 {
-	hawk_ooch_t c;
+	hawk_oochu_t c;
 
 	com->c.backref = 0;
 	com->c.special = 0;
@@ -367,6 +368,7 @@ static int get_char (comp_t* com, int noesc)
 	if (com->ptr >= com->end)
 	{
 		com->c.value = HAWK_OOCI_EOF;
+		com->c.eof = 1;
 		com->c.escaped = 0;
 		return 0;
 	}
@@ -375,6 +377,7 @@ static int get_char (comp_t* com, int noesc)
 	com->c.escaped = 0;
 
 	if (noesc) return 0;
+
 	if (com->c.value != HAWK_T('\\'))
 	{
 		switch (com->c.value)
@@ -395,6 +398,7 @@ static int get_char (comp_t* com, int noesc)
 				com->c.special = !!(com->rgx->option & HAWK_RGX_EXTENDED);
 				break;
 		}
+
 		return 0;
 	}
 
@@ -403,8 +407,10 @@ static int get_char (comp_t* com, int noesc)
 		hawk_gem_seterrnum(com->rgx->gem, HAWK_NULL, HAWK_EREXESCAPE);
 		return -1;
 	}
+
 	c = *com->ptr++;
 	if (c >= HAWK_T('1') && c <= HAWK_T('9')) com->c.backref = c - HAWK_T('0');
+
 	/* recognize raw BRE operators before expanding character escapes.
 	 * a digit or parenthesis produced by \\x/\\u is still a literal. */
 	if (!(com->rgx->option & HAWK_RGX_EXTENDED) &&
@@ -427,13 +433,13 @@ static int get_char (comp_t* com, int noesc)
 
 		c = c - HAWK_T('0');
 
-		CHECK_END (com);
+		CHECK_END(com);
 		cx = *com->ptr++;
 		if (cx >= HAWK_T('0') && cx <= HAWK_T('7'))
 		{
 			c = c * 8 + cx - HAWK_T('0');
 
-			CHECK_END (com);
+			CHECK_END(com);
 			cx = *com->ptr++;
 			if (cx >= HAWK_T('0') && cx <= HAWK_T('7'))
 			{
@@ -445,70 +451,81 @@ static int get_char (comp_t* com, int noesc)
 
 	else if (c == HAWK_T('x'))
 	{
-		hawk_ooch_t cx;
-
-		CHECK_END (com);
-		cx = *com->ptr++;
-		if (IS_HEX(cx))
+		if (com->ptr < com->end) /* not at end */
 		{
-			c = HEX_TO_NUM(cx);
+			hawk_ooch_t cx;
 
-			CHECK_END (com);
-			cx = *com->ptr++;
+			cx = *com->ptr;
 			if (IS_HEX(cx))
 			{
-				c = c * 16 + HEX_TO_NUM(cx);
+				c = HEX_TO_NUM(cx);
+				com->ptr++;
+
+				if (com->ptr < com->end) /* not at end */
+				{
+					cx = *com->ptr;
+					if (IS_HEX(cx))
+					{
+						c = c * 16 + HEX_TO_NUM(cx);
+						com->ptr++;
+					}
+				}
 			}
 		}
 	}
 #if defined(HAWK_OOCH_IS_UCH)
 	else if (c == HAWK_T('u') && HAWK_SIZEOF(hawk_ooch_t) >= 2)
 	{
-		hawk_ooch_t cx;
-
-		CHECK_END (com);
-		cx = *com->ptr++;
-		if (IS_HEX(cx))
+		if (com->ptr < com->end) /* not at end */
 		{
-			hawk_oow_t i;
-
-			c = HEX_TO_NUM(cx);
-
-			for (i = 0; i < 3; i++)
+			hawk_ooch_t cx;
+			cx = *com->ptr;
+			if (IS_HEX(cx))
 			{
-				CHECK_END (com);
-				cx = *com->ptr++;
+				hawk_oow_t i;
 
-				if (!IS_HEX(cx)) break;
-				c = c * 16 + HEX_TO_NUM(cx);
+				c = HEX_TO_NUM(cx);
+				com->ptr++;
+
+				for (i = 0; i < 3 && com->ptr < com->end; i++)
+				{
+					cx = *com->ptr;
+					if (!IS_HEX(cx)) break;
+
+					c = c * 16 + HEX_TO_NUM(cx);
+					com->ptr++;
+				}
 			}
 		}
 	}
 	else if (c == HAWK_T('U') && HAWK_SIZEOF(hawk_ooch_t) >= 4)
 	{
-		hawk_ooch_t cx;
-
-		CHECK_END (com);
-		cx = *com->ptr++;
-		if (IS_HEX(cx))
+		if (com->ptr < com->end) /* not at end */
 		{
-			hawk_oow_t i;
+			hawk_ooch_t cx;
 
-			c = HEX_TO_NUM(cx);
-
-			for (i = 0; i < 7; i++)
+			cx = *com->ptr;
+			if (IS_HEX(cx))
 			{
-				CHECK_END (com);
-				cx = *com->ptr++;
+				hawk_oow_t i;
 
-				if (!IS_HEX(cx)) break;
-				c = c * 16 + HEX_TO_NUM(cx);
+				c = HEX_TO_NUM(cx);
+				com->ptr++;
+
+				for (i = 0; i < 7 && com->ptr < com->end; i++)
+				{
+					cx = *com->ptr;
+					if (!IS_HEX(cx)) break;
+
+					c = c * 16 + HEX_TO_NUM(cx);
+					com->ptr++;
+				}
 			}
 		}
 	}
 #endif
 
-	com->c.value = (hawk_oochu_t)c;
+	com->c.value = c;
 	com->c.escaped = 1;
 
 #if 0
@@ -1236,11 +1253,13 @@ hawk_rgx_node_t* hawk_rgx_comp (hawk_rgx_t* rgx, const hawk_ooch_t* ptr, hawk_oo
 	comp_t c;
 	hawk_rgx_node_t* end, * body;
 
+	HAWK_MEMSET(&c, 0, HAWK_SIZEOF(c));
 	c.rgx = rgx;
 	c.ptr = ptr;
 	c.end = ptr + len;
 
 	c.c.value = HAWK_OOCI_EOF;
+	c.c.eof = 0;
 
 	c.gdepth = 0;
 	c.closed_groups = 0;
@@ -1925,31 +1944,33 @@ static int charset_matched (exec_t* e, hawk_rgx_node_t* node, hawk_ooch_t c)
 
 				if (e->rgx->option & HAWK_RGX_IGNORECASE)
 				{
-					if (hawk_to_ooch_upper((hawk_oochu_t)c) == hawk_to_ooch_upper((hawk_oochu_t)*ptr)) matched = !0;
+					if (hawk_to_ooch_upper((hawk_oochu_t)c) == hawk_to_ooch_upper((hawk_oochu_t)*ptr)) matched = 1;
 				}
 				else
 				{
-					if (c == *ptr) matched = !0;
+					if (c == *ptr) matched = 1;
 				}
 				break;
 			}
 
 			case HAWK_RGX_CSET_RANGE:
 			{
-				hawk_ooci_t c1, c2;
+				hawk_oochu_t c1, c2;
+
+				c1 = (hawk_oochu_t)*++ptr;
+				c2 = (hawk_oochu_t)*++ptr;
 
 				if (e->rgx->option & HAWK_RGX_IGNORECASE)
 				{
-					hawk_ooci_t c3;
-					ptr++; c1 = hawk_to_ooch_upper((hawk_oochu_t)*ptr);
-					ptr++; c2 = hawk_to_ooch_upper((hawk_oochu_t)*ptr);
+					hawk_oochu_t c3;
+					c1 = hawk_to_ooch_upper(c1);
+					c2 = hawk_to_ooch_upper(c2);
 					c3 = hawk_to_ooch_upper((hawk_oochu_t)c);
-					if (c3 >= c1 && c3 <= c2) matched = !0;
+					if (c3 >= c1 && c3 <= c2) matched = 1;
 				}
 				else
 				{
-					c1 = (hawk_oochu_t)*++ptr; c2 = (hawk_oochu_t)*++ptr;
-					if ((hawk_oochu_t)c >= c1 && (hawk_oochu_t)c <= c2) matched = !0;
+					if ((hawk_oochu_t)c >= c1 && (hawk_oochu_t)c <= c2) matched = 1;
 				}
 				break;
 			}
@@ -1960,7 +1981,7 @@ static int charset_matched (exec_t* e, hawk_rgx_node_t* node, hawk_ooch_t c)
 
 				c1 = (hawk_oochu_t)*++ptr;
 				HAWK_ASSERT(c1 < HAWK_COUNTOF(ccinfo));
-				if (ccinfo[c1].func(e,c)) matched = !0;
+				if (ccinfo[c1].func(e,c)) matched = 1;
 
 				break;
 			}
