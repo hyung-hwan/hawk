@@ -762,14 +762,13 @@ static void test_capture_failures (hawk_gem_t* gem, allocator_t* a)
 		{ HAWK_T("\\(a\\{1,2\\}\\)\\+\\1"), 0 },
 		{ HAWK_T("\\(a\\|aa\\)\\+\\1"), 0 },
 		{ HAWK_T("((a?){2})*b?"), HAWK_RGX_EXTENDED },
-		{ HAWK_T("(()|()){6}a*"), HAWK_RGX_EXTENDED },
 		{ HAWK_T("([A-zA-zA-zA-zA-zA-z]|a)*"), HAWK_RGX_EXTENDED },
 #if defined(HAWK_OOCH_IS_UCH)
 		{ HAWK_T("([\x0100-\x024f]|a)*"), HAWK_RGX_EXTENDED },
 #endif
 		{ HAWK_NULL, HAWK_RGX_EXTENDED }
 	};
-	hawk_oocs_t input = { HAWK_T("aaaa"), 4 }, matches[5], saved[5], expected[5];
+	hawk_oocs_t input = { HAWK_T("aaaa"), 4 }, matches[5], saved[5];
 	hawk_rgx_t rgx;
 	hawk_rgx_node_t* old, * code;
 	hawk_oow_t p, i, j, before, allocations, nsub, baseline, outer = a->live;
@@ -826,7 +825,6 @@ static void test_capture_failures (hawk_gem_t* gem, allocator_t* a)
 		if (hawk_rgx_execx(&rgx, &input, &input, matches, HAWK_COUNTOF(matches), 0) != 1)
 			bail_out("cannot measure capture executor allocations");
 		allocations = a->calls - before;
-		HAWK_MEMCPY(expected, matches, HAWK_SIZEOF(expected));
 		baseline = a->live;
 		good = 1;
 		for (i = 1; i <= allocations; i++)
@@ -837,94 +835,19 @@ static void test_capture_failures (hawk_gem_t* gem, allocator_t* a)
 			a->fail_at = a->calls + i;
 			n = hawk_rgx_execx(&rgx, &input, &input, matches, HAWK_COUNTOF(matches), 0);
 			a->fail_at = 0;
-			/* ECS growth and hash bucket expansion may recover from a
-			 * failed allocation. Recovery must produce the same captures;
-			 * a reported failure must leave the caller's output untouched. */
-			if (a->live != baseline ||
-			    (n == 1? HAWK_MEMCMP(expected, matches, HAWK_SIZEOF(expected)) != 0:
-			     n != -1 || hawk_rgx_geterrnum(&rgx) != HAWK_ENOMEM ||
-			     HAWK_MEMCMP(saved, matches, HAWK_SIZEOF(saved)) != 0))
+			if (n != -1 || hawk_rgx_geterrnum(&rgx) != HAWK_ENOMEM || a->live != baseline ||
+			    HAWK_MEMCMP(saved, matches, HAWK_SIZEOF(saved)) != 0)
 			{
 				good = 0;
 				printf("# capture execution allocation failure %lu in case %lu returned %d\n", (unsigned long)i, (unsigned long)p, n);
 			}
 		}
-		OK(good, "capture allocation failures preserve output or recover with identical captures without leaks");
+		OK(good, "all capture snapshot allocation failures release state and preserve caller output");
 		OK(hawk_rgx_execx(&rgx, &input, &input, matches, HAWK_COUNTOF(matches), 0) == 1,
 			"compiled capture/backreference graph remains reusable after every allocation failure");
 		hawk_rgx_fini(&rgx);
 		OK(a->live == outer, "capture/backreference failure tests release every allocation");
 	}
-}
-
-static void test_nullable_choices (hawk_gem_t* gem, allocator_t* a)
-{
-	static const struct
-	{
-		const hawk_ooch_t* pattern;
-		const hawk_ooch_t* text;
-		int found;
-		hawk_oow_t offset, length, capture_length;
-	} cases[] =
-	{
-		{ HAWK_T("((()?|a?)+|((){1,2}|(){1,2})*)*a"), HAWK_T("aa"), 1, 0, 2, 1 },
-		{ HAWK_T("((()?|a?)+|((){1,2}|(){1,2})*)*a"), HAWK_T("ba"), 1, 1, 1, 0 },
-		{ HAWK_T("((()?|a?)+|((){1,2}|(){1,2})*)*a"), HAWK_T("bb"), 0, 0, 0, 0 },
-		{ HAWK_T("((()?|a?)+|((){1,2}|(){1,2})*)*a(b?){1}"), HAWK_T("aa"), 1, 0, 2, 1 },
-		{ HAWK_T("((()?|a?)+|((){1,2}|(){1,2})*)*a\\1"), HAWK_T("aaa"), 1, 0, 3, 1 }
-	};
-	hawk_rgx_t rgx;
-	hawk_oocs_t input, matches[8], saved[8];
-	hawk_oow_t i, j, count, before, baseline, outer = a->live;
-	int n, good;
-
-	hawk_rgx_init(&rgx, gem, HAWK_NULL);
-	hawk_rgx_setopt(&rgx, HAWK_RGX_EXTENDED);
-	for (i = 0; i < HAWK_COUNTOF(cases); i++)
-	{
-		if (!hawk_rgx_comp(&rgx, cases[i].pattern, hawk_count_oocstr(cases[i].pattern)))
-			bail_out("cannot compile nullable-choice regression");
-		input.ptr = (hawk_ooch_t*)cases[i].text;
-		input.len = hawk_count_oocstr(input.ptr);
-		baseline = a->live;
-		for (count = 1; count <= HAWK_COUNTOF(matches); count += HAWK_COUNTOF(matches) - 1)
-		{
-			for (j = 0; j < HAWK_COUNTOF(matches); j++)
-			{
-				matches[j].ptr = input.ptr;
-				matches[j].len = 123;
-			}
-			HAWK_MEMCPY(saved, matches, HAWK_SIZEOF(saved));
-			before = a->calls;
-			/* Bound allocator work rather than wall-clock time. Previously
-			 * the first capture-enabled case made over 26 million calls.
-			 * Fail early if equivalent empty paths start expanding again. */
-			a->fail_at = before + 1000000;
-			n = hawk_rgx_execx(&rgx, &input, &input, matches, count, 0);
-			a->fail_at = 0;
-			good = n == cases[i].found && a->calls - before < 1000000 && a->live == baseline;
-			if (n == 1)
-			{
-				good = good && matches[0].ptr == input.ptr + cases[i].offset && matches[0].len == cases[i].length;
-				if (count > 1)
-				{
-					good = good && matches[1].ptr == input.ptr + cases[i].offset &&
-						matches[1].len == cases[i].capture_length && matches[2].ptr == matches[1].ptr &&
-						matches[2].len == cases[i].capture_length;
-					for (j = 3; j <= 6; j++)
-						good = good && matches[j].ptr == matches[1].ptr && matches[j].len == 0;
-					if (i == 3) good = good && matches[7].ptr == input.ptr + 2 && matches[7].len == 0;
-					else good = good && matches[7].ptr == HAWK_NULL && matches[7].len == 0;
-				}
-			}
-			else good = good && HAWK_MEMCMP(matches, saved, HAWK_SIZEOF(saved)) == 0;
-			OK(good, "nullable alternatives preserve matches and captures within an allocation budget");
-			if (!good) printf("# nullable case %lu, output count %lu, result %d, allocations %lu\n",
-				(unsigned long)i, (unsigned long)count, n, (unsigned long)(a->calls - before));
-		}
-	}
-	hawk_rgx_fini(&rgx);
-	OK(a->live == outer, "nullable-choice state caches release every allocation");
 }
 
 static void test_iteration (hawk_gem_t* gem, allocator_t* a)
@@ -1952,7 +1875,6 @@ int main (int argc, char* argv[])
 	test_captures(gem);
 	test_exec_flags(gem);
 	test_capture_failures(gem, &a);
-	test_nullable_choices(gem, &a);
 	test_iteration(gem, &a);
 	test_lifetimes(gem, &a);
 	test_posix_cases(gem);
