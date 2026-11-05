@@ -1,6 +1,8 @@
 /* Standalone graph-regex engine: gem integration, matching, and ownership.
  *
  * Normal run: BRE/ERE matching, captures, diagnostics, and ownership tests.
+ * A small-stack run such as (ulimit -s 256; ./t-033) also exercises deep
+ * compilation and epsilon traversal without depending on C-stack depth.
  * --compare-posix: compare 1,338 generated ERE cases with an independent
  *                 bounded-language model over every {a,b} string through
  *                 length six in both dialects (339,852 comparisons).
@@ -736,7 +738,8 @@ static void test_captures (hawk_gem_t* gem)
 
 static void test_capture_failures (hawk_gem_t* gem, allocator_t* a)
 {
-	static const struct
+	hawk_ooch_t nested[96 * 2 + 3];
+	struct
 	{
 		const hawk_ooch_t* pattern;
 		int options;
@@ -752,12 +755,21 @@ static void test_capture_failures (hawk_gem_t* gem, allocator_t* a)
 #if defined(HAWK_OOCH_IS_UCH)
 		{ HAWK_T("([\x0100-\x024f]|a)*"), HAWK_RGX_EXTENDED },
 #endif
+		{ HAWK_NULL, HAWK_RGX_EXTENDED }
 	};
 	hawk_oocs_t input = { HAWK_T("aaaa"), 4 }, matches[5], saved[5];
 	hawk_rgx_t rgx;
 	hawk_rgx_node_t* old, * code;
 	hawk_oow_t p, i, j, before, allocations, nsub, baseline, outer = a->live;
 	int n, good;
+
+	/* Force several compiler and executor stack growth operations. */
+	patterns[HAWK_COUNTOF(patterns) - 1].pattern = nested;
+	for (i = 0; i < 96; i++) nested[i] = '(';
+	nested[96] = 'a';
+	nested[97] = '*';
+	for (i = 98; i < HAWK_COUNTOF(nested) - 1; i++) nested[i] = ')';
+	nested[HAWK_COUNTOF(nested) - 1] = '\0';
 
 	for (p = 0; p < HAWK_COUNTOF(patterns); p++)
 	{
@@ -825,6 +837,99 @@ static void test_capture_failures (hawk_gem_t* gem, allocator_t* a)
 		hawk_rgx_fini(&rgx);
 		OK(a->live == outer, "capture/backreference failure tests release every allocation");
 	}
+}
+
+static void test_iteration (hawk_gem_t* gem, allocator_t* a)
+{
+	hawk_oow_t depth = 4096, i, len, baseline, outer = a->live;
+	hawk_ooch_t* pattern;
+	hawk_rgx_t rgx;
+	hawk_rgx_node_t* code;
+	hawk_oocs_t input, matches[3];
+	int extended;
+
+	pattern = (hawk_ooch_t*)hawk_gem_allocmem(gem, (depth * 4 + 4) * HAWK_SIZEOF(*pattern));
+	if (!pattern) bail_out("cannot allocate iterative traversal pattern");
+	for (extended = 0; extended <= 1; extended++)
+	{
+		len = 0;
+		for (i = 0; i < depth; i++)
+		{
+			if (!extended) pattern[len++] = '\\';
+			pattern[len++] = '(';
+		}
+		pattern[len++] = 'a';
+		for (i = 0; i < depth; i++)
+		{
+			if (!extended) pattern[len++] = '\\';
+			pattern[len++] = ')';
+		}
+
+		hawk_rgx_init(&rgx, gem, HAWK_NULL);
+		hawk_rgx_setopt(&rgx, extended? HAWK_RGX_EXTENDED: 0);
+		code = hawk_rgx_comp(&rgx, pattern, len);
+		OK(code && hawk_rgx_getnsub(&rgx) == depth, "thousands of nested BRE/ERE groups compile iteratively");
+		if (!code) bail_out("cannot compile deeply nested groups");
+		input.ptr = HAWK_T("a"); input.len = 1;
+		OK(hawk_rgx_exec(&rgx, &input, &input, &matches[0], 0) == 1 &&
+			matches[0].ptr == input.ptr && matches[0].len == 1,
+			"deep group continuations match without capture tracking");
+		OK(hawk_rgx_execx(&rgx, &input, &input, matches, HAWK_COUNTOF(matches), 0) == 1 &&
+			matches[0].len == 1 && matches[1].ptr == input.ptr && matches[1].len == 1 &&
+			matches[2].ptr == input.ptr && matches[2].len == 1,
+			"deep group continuations preserve captures");
+
+		baseline = a->live;
+		OK(!hawk_rgx_comp(&rgx, pattern, len - (extended? 1: 2)) &&
+			hawk_rgx_geterrnum(&rgx) == HAWK_EREXPAREN && rgx.code == code && a->live == baseline,
+			"malformed deep nesting frees compiler frames and retains the old graph");
+		OK(hawk_rgx_exec(&rgx, &input, &input, HAWK_NULL, 0) == 1,
+			"old deep expression remains usable after a compiler error");
+
+		pattern[len++] = '\\'; pattern[len++] = '1';
+		if (!hawk_rgx_comp(&rgx, pattern, len)) bail_out("cannot compile deep backreference");
+		input.ptr = HAWK_T("aa"); input.len = 2;
+		OK(hawk_rgx_execx(&rgx, &input, &input, matches, HAWK_COUNTOF(matches), 0) == 1 &&
+			matches[0].len == 2 && matches[1].ptr == input.ptr && matches[1].len == 1,
+			"deep group closure retains numbering and subsequent backreferences");
+		hawk_rgx_fini(&rgx);
+	}
+
+	/* Optional atoms form a long epsilon path through pseudo groups and
+	 * branches, even though there are no nested parentheses in the source. */
+	len = 0;
+	for (i = 0; i < depth; i++)
+	{
+		pattern[len++] = 'a'; pattern[len++] = '?';
+	}
+	pattern[len++] = 'b';
+	hawk_rgx_init(&rgx, gem, HAWK_NULL);
+	hawk_rgx_setopt(&rgx, HAWK_RGX_EXTENDED);
+	if (!hawk_rgx_comp(&rgx, pattern, len)) bail_out("cannot compile long optional sequence");
+	input.ptr = HAWK_T("b"); input.len = 1;
+	OK(hawk_rgx_exec(&rgx, &input, &input, &matches[0], 0) == 1 && matches[0].len == 1,
+		"thousands of optional atoms traverse epsilon branches iteratively");
+	hawk_rgx_fini(&rgx);
+
+	/* Captures make empty groups observable, preventing the no-capture
+	 * shortcut from skipping this long chain of group continuations. */
+	len = 0;
+	for (i = 0; i < depth; i++)
+	{
+		pattern[len++] = '('; pattern[len++] = ')';
+	}
+	pattern[len++] = 'a';
+	hawk_rgx_init(&rgx, gem, HAWK_NULL);
+	hawk_rgx_setopt(&rgx, HAWK_RGX_EXTENDED);
+	if (!hawk_rgx_comp(&rgx, pattern, len)) bail_out("cannot compile long empty-group sequence");
+	input.ptr = HAWK_T("a"); input.len = 1;
+	OK(hawk_rgx_execx(&rgx, &input, &input, matches, HAWK_COUNTOF(matches), 0) == 1 &&
+		matches[0].len == 1 && matches[1].ptr == input.ptr && matches[1].len == 0 &&
+		matches[2].ptr == input.ptr && matches[2].len == 0,
+		"thousands of empty capturing groups preserve continuation state");
+	hawk_rgx_fini(&rgx);
+	hawk_gem_freemem(gem, pattern);
+	OK(a->live == outer, "deep compiler and executor stacks leave no allocations behind");
 }
 
 static void test_exec_flags (hawk_gem_t* gem)
@@ -1759,6 +1864,7 @@ int main (int argc, char* argv[])
 	test_captures(gem);
 	test_exec_flags(gem);
 	test_capture_failures(gem, &a);
+	test_iteration(gem, &a);
 	test_lifetimes(gem, &a);
 	test_posix_cases(gem);
 	if (sweep) test_posix_sweep(gem);

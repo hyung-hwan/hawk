@@ -52,6 +52,7 @@ struct comp_t
 };
 
 typedef struct exec_t exec_t;
+typedef struct cand_frame_t cand_frame_t;
 struct exec_t
 {
 	hawk_rgx_t* rgx;
@@ -74,6 +75,14 @@ struct exec_t
 		int pending;
 		hawk_arr_t set[2]; /* candidate arrays */
 	} cand;
+
+	/* Suspended epsilon traversals, reused throughout this execution. */
+	struct
+	{
+		cand_frame_t* ptr;
+		hawk_oow_t size;
+		hawk_oow_t capa;
+	} stack;
 
 	hawk_oow_t nmatches;
 	int failed; /* a candidate callback can fail even on the final array slot */
@@ -135,6 +144,45 @@ struct cand_t
 	 * therefore, the match pointer is managed per candidate basis. */
 	const hawk_ooch_t* mptr;
 };
+
+enum cand_resume_t
+{
+	CAND_RESUME_BRANCH,
+	CAND_RESUME_REPEAT,
+	CAND_RESUME_DONE
+};
+
+struct cand_frame_t
+{
+	group_t* group;
+	group_t* owned_group;
+	group_t* held_group;
+	hawk_rgx_node_t* prevnode;
+	hawk_rgx_node_t* node;
+	const hawk_ooch_t* mptr;
+	enum cand_resume_t resume;
+};
+
+/* Grow a full compiler/executor stack without overflowing either the entry
+ * count or the allocation size. Leave its old storage intact on failure. */
+static void* grow_stack (
+	hawk_gem_t* gem, void* ptr, hawk_oow_t* capa, hawk_oow_t unitsize)
+{
+	hawk_oow_t maxcapa, ncapa;
+	void* tmp;
+
+	maxcapa = HAWK_TYPE_MAX(hawk_oow_t) / unitsize;
+	if (*capa >= maxcapa)
+	{
+		hawk_gem_seterrnum(gem, HAWK_NULL, HAWK_ENOMEM);
+		return HAWK_NULL;
+	}
+	ncapa = *capa? (*capa > maxcapa / 2? maxcapa: *capa * 2): (maxcapa < 16? maxcapa: 16);
+	tmp = hawk_gem_reallocmem(gem, ptr, ncapa * unitsize);
+	if (HAWK_UNLIKELY(!tmp)) return HAWK_NULL;
+	*capa = ncapa;
+	return tmp;
+}
 
 int hawk_rgx_init (hawk_rgx_t* rgx, hawk_gem_t* gem, hawk_rgx_node_t* code)
 {
@@ -937,49 +985,6 @@ bad_bound:
 	return -1;
 }
 
-static hawk_rgx_node_t* comp_branches (comp_t* com, hawk_rgx_node_t* ge);
-
-static hawk_rgx_node_t* comp_group (comp_t* com)
-{
-	/* enter a subgroup */
-	hawk_rgx_node_t* body, *g, * ge;
-
-	g = newgroupnode(com);
-	if (g == HAWK_NULL) return HAWK_NULL;
-
-	ge = newgroupendnode(com, g);
-	if (ge == HAWK_NULL) return HAWK_NULL;
-	g->u.g.index = com->start->u.s.nsub++;
-
-	/* skip '(' */
-	if (getc_esc(com) <= -1) return HAWK_NULL;
-
-	com->gdepth++;
-
-	/* pass the GROUPEND node so that the
-	 * last node in the subgroup links to
-	 * this GROUPEND node. */
-	body = comp_branches(com, ge);
-	if (body == HAWK_NULL) return HAWK_NULL;
-
-	if (!IS_OP(com,HAWK_T(')')))
-	{
-		hawk_gem_seterrnum(com->rgx->gem, HAWK_NULL, HAWK_EREXPAREN);
-		return HAWK_NULL;
-	}
-
-	com->gdepth--;
-	if (g->u.g.index < 9) com->closed_groups |= 1u << g->u.g.index;
-
-	/* skip ')' */
-	if (getc_esc(com) <= -1) return HAWK_NULL;
-
-	g->u.g.head = body;
-	g->u.g.end = ge;
-
-	return g;
-}
-
 static hawk_rgx_node_t* comp_occ (comp_t* com, hawk_rgx_node_t* atom)
 {
 	switch (com->c.value)
@@ -1019,6 +1024,9 @@ static hawk_rgx_node_t* comp_atom (comp_t* com, int first)
 	hawk_rgx_node_t* atom;
 	int assertion = 0;
 
+	/* The enclosing compiler loop handles group entry and completion. */
+	HAWK_ASSERT(!IS_OP(com, HAWK_T('(')));
+
 	if (com->c.backref)
 	{
 		if (!(com->closed_groups & (1u << (com->c.backref - 1))))
@@ -1038,11 +1046,6 @@ static hawk_rgx_node_t* comp_atom (comp_t* com, int first)
 	{
 		switch (com->c.value)
 		{
-			case HAWK_T('('):
-				atom = comp_group(com);
-				if (atom == HAWK_NULL) return HAWK_NULL;
-				break;
-
 			case HAWK_T('.'):
 				atom = newnode(com, HAWK_RGX_NODE_ANY);
 				if (HAWK_UNLIKELY(!atom)) return HAWK_NULL;
@@ -1195,114 +1198,134 @@ static hawk_rgx_node_t* pseudo_group (comp_t* c, hawk_rgx_node_t* atom)
 	return g;
 }
 
-/* compile a list of atoms at the outermost level and/or
- * within a subgroup */
-static hawk_rgx_node_t* comp_branch (comp_t* c, pair_t* pair)
+/* Each frame describes one enclosing group. The top-level expression uses
+ * the same frame layout with group == HAWK_NULL and the final END node. */
+typedef struct comp_frame_t comp_frame_t;
+struct comp_frame_t
 {
-#define REACHED_END(c) \
-	(IS_EOF(c) || IS_OP(c,HAWK_T('|')) || \
-	 (c->gdepth > 0 && IS_OP(c,HAWK_T(')'))))
-
-	if (REACHED_END(c))
-	{
-		hawk_rgx_node_t* nop = newnopnode(c);
-		if (nop == HAWK_NULL) return HAWK_NULL;
-		nop->occ.min = 1; nop->occ.max = 1;
-		pair->head = nop; pair->tail = nop;
-	}
-	else
-	{
-		pair->head = HAWK_NULL; pair->tail = HAWK_NULL;
-
-		do
-		{
-			hawk_rgx_node_t* atom = comp_atom(c, pair->head == HAWK_NULL);
-			if (atom == HAWK_NULL) return HAWK_NULL;
-
-			/* An exact zero count consumes nothing. Do not wrap it with a
-			 * pseudo group whose nonempty alternative requires min >= 1. */
-			if (atom->occ.max == 0)
-			{
-				atom = newnopnode(c);
-				if (!atom) return HAWK_NULL;
-				atom->occ.min = atom->occ.max = 1;
-			}
-
-			if (atom->occ.min <= 0)
-			{
-			#if 0
-				if (atom->occ.max >= OCC_MAX)
-				{
-					/*
-					 * +-----------next--+
-					 * v                 |
-					 * BR --alter----> ORG(atom)
-					 * |
-					 * +----next------------------->
-					 *
-					 */
-					atom = zero_or_more (c, atom);
-				}
-				else
-				{
-			#endif
-					/*
-					 * given an atom, enclose it with a
-					 * pseudogroup head and a psuedogroup
-					 * tail. the head is followed by a
-					 * branch that conntects to the tail
-					 * and the atom given. the atom given
-					 * gets connected to the tail.
-					 *   Head -> BR        -> Tail
-					 *        -> ORG(atom) -> Tail
-					 */
-					atom = pseudo_group (c, atom);
-			#if 0
-				}
-			#endif
-				if (atom == HAWK_NULL) return HAWK_NULL;
-			}
-
-			if (pair->tail == HAWK_NULL)
-			{
-				HAWK_ASSERT(pair->head == HAWK_NULL);
-				pair->head = atom;
-			}
-			else pair->tail->next = atom;
-			pair->tail = atom;
-		}
-		while (!REACHED_END(c));
-	}
-
-	return pair->head;
-#undef REACHED_END
-}
+	hawk_rgx_node_t* group;
+	hawk_rgx_node_t* end;
+	hawk_rgx_node_t* left;
+	pair_t branch;
+};
 
 static hawk_rgx_node_t* comp_branches (comp_t* c, hawk_rgx_node_t* ge)
 {
-	hawk_rgx_node_t* left, * right, * tmp;
-	pair_t xpair;
+	comp_frame_t frame, * stack = HAWK_NULL;
+	hawk_oow_t size = 0, capa = 0;
+	hawk_rgx_node_t* atom, * result = HAWK_NULL;
 
-	left = comp_branch(c, &xpair);
-	if (left == HAWK_NULL) return HAWK_NULL;
-	xpair.tail->next = ge;
+	HAWK_MEMSET(&frame, 0, HAWK_SIZEOF(frame));
+	frame.end = ge;
 
-	while (IS_OP(c,HAWK_T('|')))
+	while (1)
 	{
-		if (getc_esc(c) <= -1) return HAWK_NULL;
+		if (!IS_EOF(c) && !IS_OP(c, HAWK_T('|')) &&
+		    !(c->gdepth > 0 && IS_OP(c, HAWK_T(')'))))
+		{
+			if (IS_OP(c, HAWK_T('(')))
+			{
+				comp_frame_t* tmp;
+				hawk_rgx_node_t* g, * end;
 
-		right = comp_branch(c, &xpair);
-		if (right == HAWK_NULL) return HAWK_NULL;
+				if (size >= capa)
+				{
+					tmp = (comp_frame_t*)grow_stack(c->rgx->gem, stack, &capa, HAWK_SIZEOF(*stack));
+					if (HAWK_UNLIKELY(!tmp)) goto done;
+					stack = tmp;
+				}
+				stack[size++] = frame;
 
-		xpair.tail->next = ge;
+				g = newgroupnode(c);
+				if (!g) goto done;
+				end = newgroupendnode(c, g);
+				if (!end) goto done;
+				g->u.g.index = c->start->u.s.nsub++;
 
-		tmp = newbranchnode(c, left, right);
-		if (tmp == HAWK_NULL) return HAWK_NULL;
+				/* Suspend the parent branch and begin the group's body. */
+				if (getc_esc(c) <= -1) goto done;
+				c->gdepth++;
+				HAWK_MEMSET(&frame, 0, HAWK_SIZEOF(frame));
+				frame.group = g;
+				frame.end = end;
+				continue;
+			}
 
-		left = tmp;
+			atom = comp_atom(c, frame.branch.head == HAWK_NULL);
+			if (!atom) goto done;
+		}
+		else
+		{
+			/* Finish this alternative, including an explicitly empty one. */
+			if (!frame.branch.head)
+			{
+				atom = newnopnode(c);
+				if (!atom) goto done;
+				atom->occ.min = atom->occ.max = 1;
+				frame.branch.head = frame.branch.tail = atom;
+			}
+			frame.branch.tail->next = frame.end;
+			if (!frame.left) frame.left = frame.branch.head;
+			else
+			{
+				frame.left = newbranchnode(c, frame.left, frame.branch.head);
+				if (!frame.left) goto done;
+			}
+
+			if (IS_OP(c, HAWK_T('|')))
+			{
+				if (getc_esc(c) <= -1) goto done;
+				frame.branch.head = frame.branch.tail = HAWK_NULL;
+				continue;
+			}
+
+			if (!frame.group)
+			{
+				result = frame.left;
+				break;
+			}
+			if (!IS_OP(c, HAWK_T(')')))
+			{
+				hawk_gem_seterrnum(c->rgx->gem, HAWK_NULL, HAWK_EREXPAREN);
+				goto done;
+			}
+
+			atom = frame.group;
+			atom->u.g.head = frame.left;
+			atom->u.g.end = frame.end;
+			c->gdepth--;
+			if (atom->u.g.index < 9) c->closed_groups |= 1u << atom->u.g.index;
+			if (getc_esc(c) <= -1) goto done;
+
+			/* A completed group is an atom in its parent's branch. Process
+			 * its quantifier only after ')' has closed the capture. */
+			HAWK_ASSERT(size > 0);
+			frame = stack[--size];
+			atom->occ.min = atom->occ.max = 1;
+			if (c->c.special && !comp_occ(c, atom)) goto done;
+		}
+
+		/* An exact zero count consumes nothing. A nullable atom otherwise
+		 * needs the existing pseudo group to represent its bypass path. */
+		if (atom->occ.max == 0)
+		{
+			atom = newnopnode(c);
+			if (!atom) goto done;
+			atom->occ.min = atom->occ.max = 1;
+		}
+		if (atom->occ.min == 0)
+		{
+			atom = pseudo_group(c, atom);
+			if (!atom) goto done;
+		}
+		if (!frame.branch.tail) frame.branch.head = atom;
+		else frame.branch.tail->next = atom;
+		frame.branch.tail = atom;
 	}
 
-	return left;
+done:
+	if (stack) hawk_gem_freemem(c->rgx->gem, stack);
+	return result;
 }
 
 hawk_rgx_node_t* hawk_rgx_comp (hawk_rgx_t* rgx, const hawk_ooch_t* ptr, hawk_oow_t len)
@@ -1632,9 +1655,9 @@ static int addsimplecand (exec_t* e, group_t* group, hawk_rgx_node_t* node, hawk
 		node->id == HAWK_RGX_NODE_BACKREF
 	);
 
-	/* Once an unbounded atom's minimum is met, larger counts describe
-	 * the same future choices. Saturate them so capture snapshots with
-	 * equivalent state can still be merged. Bounded counts stay exact. */
+	/* once an unbounded atom's minimum is met, larger counts describe
+	 * the same future choices. saturate them so capture snapshots with
+	 * equivalent state can still be merged. bounded counts stay exact. */
 	if (e->ncaps && node->occ.max == OCC_MAX && occ > node->occ.min) occ = node->occ.min;
 	cand.node = node;
 	cand.occ = occ;
@@ -1674,9 +1697,9 @@ static int addsimplecand (exec_t* e, group_t* group, hawk_rgx_node_t* node, hawk
 	return 0;
 }
 
-/* Whole-match length takes precedence. On a tie, compare captures in
+/* whole-match length takes precedence. on a tie, compare captures in
  * opening-parenthesis order: participation, length, then starting position.
- * This makes selection independent of candidate arrival order. */
+ * this makes selection independent of candidate arrival order. */
 static int bettercaptures (exec_t* e, const group_t* group)
 {
 	hawk_oow_t i;
@@ -1703,7 +1726,14 @@ static int addcands (
 {
 	hawk_rgx_node_t* curcand = candnode;
 	group_t* owned_group = HAWK_NULL;
+	group_t* held_group = HAWK_NULL;
+	group_t* next_group;
+	hawk_rgx_node_t* next_prevnode, * next_node;
+	cand_frame_t* frame;
+	enum cand_resume_t resume;
 	int result = 0;
+
+	HAWK_ASSERT(e->stack.size == 0);
 
 warpback:
 
@@ -1740,7 +1770,6 @@ warpback:
 		case HAWK_RGX_NODE_BRANCH:
 		{
 			group_t* gx = group;
-			int n;
 
 			if (group != HAWK_NULL)
 			{
@@ -1749,12 +1778,11 @@ warpback:
 			}
 
 			refupgroupstack(gx);
-			n = addcands(e, gx, prevnode, curcand->u.b.alter, mptr);
-			refdowngroupstack(gx, e->rgx->gem);
-			if (n <= -1) goto oops;
-
-			curcand = curcand->next;
-			goto warpback;
+			next_group = gx;
+			next_prevnode = prevnode;
+			next_node = curcand->u.b.alter;
+			resume = CAND_RESUME_BRANCH;
+			goto descend;
 		}
 
 		case HAWK_RGX_NODE_GROUP:
@@ -1807,7 +1835,6 @@ warpback:
 
 		case HAWK_RGX_NODE_GROUPEND:
 		{
-			int n;
 			group_t* top;
 			hawk_rgx_node_t* node;
 			hawk_oow_t occ;
@@ -1846,7 +1873,7 @@ warpback:
 				 * previously visited node. nested GROUPEND nodes in
 				 * ((a?){2})* change prevnode even when the outer
 				 * iteration consumes nothing; testing node identity
-				 * alone lets that path recurse until the C stack overflows.
+				 * alone lets that path expand indefinitely.
 				 *
 				 * once the minimum is satisfied, the preceding
 				 * iteration has already explored the continuation.
@@ -1915,14 +1942,15 @@ warpback:
 
 				refupgroupstack(gx);
 
+				next_group = gx;
 				if (prevnode != HAWK_NULL &&
 				    prevnode->id == HAWK_RGX_NODE_GROUPEND)
-					n = addcands(e, gx, prevnode, node->next, mptr);
+					next_prevnode = prevnode;
 				else
-					n = addcands(e, gx, curcand, node->next, mptr);
-
-				refdowngroupstack(gx, e->rgx->gem);
-				if (n <= -1) goto oops;
+					next_prevnode = curcand;
+				next_node = node->next;
+				resume = occ < node->occ.max? CAND_RESUME_REPEAT: CAND_RESUME_DONE;
+				goto descend;
 			}
 
 			if (occ < node->occ.max)
@@ -1971,10 +1999,66 @@ warpback:
 			break;
 		}
 	}
+	goto done;
+
+descend:
+	/* Save the caller before exploring its child. held_group represents the
+	 * reference that a recursive caller used to retain around addcands().
+	 * Do not alter the parent's group/capture state until the child returns. */
+	if (e->stack.size >= e->stack.capa)
+	{
+		cand_frame_t* tmp;
+
+		tmp = (cand_frame_t*)grow_stack(e->rgx->gem, e->stack.ptr, &e->stack.capa, HAWK_SIZEOF(*tmp));
+		if (HAWK_UNLIKELY(!tmp))
+		{
+			refdowngroupstack(next_group, e->rgx->gem);
+			goto oops;
+		}
+		e->stack.ptr = tmp;
+	}
+	frame = &e->stack.ptr[e->stack.size++];
+	frame->group = group;
+	frame->owned_group = owned_group;
+	frame->held_group = held_group;
+	frame->prevnode = prevnode;
+	frame->node = curcand;
+	frame->mptr = mptr;
+	frame->resume = resume;
+
+	group = next_group;
+	held_group = next_group;
+	owned_group = HAWK_NULL;
+	prevnode = next_prevnode;
+	curcand = next_node;
+	goto warpback;
 
 done:
 	refdowngroupstack(owned_group, e->rgx->gem);
-	return result;
+	refdowngroupstack(held_group, e->rgx->gem);
+	if (e->stack.size == 0) return result;
+
+	frame = &e->stack.ptr[--e->stack.size];
+	group = frame->group;
+	owned_group = frame->owned_group;
+	held_group = frame->held_group;
+	prevnode = frame->prevnode;
+	curcand = frame->node;
+	mptr = frame->mptr;
+	resume = frame->resume;
+
+	/* on failure, unwind every suspended frame without executing it. */
+	if (result <= -1 || resume == CAND_RESUME_DONE) goto done;
+	if (resume == CAND_RESUME_BRANCH) curcand = curcand->next;
+	else
+	{
+		HAWK_ASSERT(resume == CAND_RESUME_REPEAT);
+		group->next->u.start = mptr;
+		if (e->ncaps) group->next->revision = group->revision;
+		prevnode = curcand;
+		curcand = curcand->u.ge.group->u.g.head;
+	}
+	goto warpback;
 
 oops:
 	result = -1;
@@ -2472,6 +2556,8 @@ static int init_exec_dds (exec_t* e, hawk_gem_t* gem)
 
 static void fini_exec_dds (exec_t* e)
 {
+	HAWK_ASSERT(e->stack.size == 0);
+	if (e->stack.ptr) hawk_gem_freemem(e->rgx->gem, e->stack.ptr);
 	hawk_arr_fini(&e->cand.set[1]);
 	hawk_arr_fini(&e->cand.set[0]);
 }
