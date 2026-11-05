@@ -26,6 +26,7 @@
 #include "hawk-prv.h"
 
 #define OCC_MAX HAWK_TYPE_MAX(hawk_oow_t)
+#define EPSILON_CACHE_THRESHOLD 64
 
 /*#define XTRA_DEBUG*/
 
@@ -51,8 +52,10 @@ struct comp_t
 	hawk_rgx_node_t* start;
 };
 
-typedef struct exec_t exec_t;
 typedef struct cand_frame_t cand_frame_t;
+
+typedef struct exec_t exec_t;
+
 struct exec_t
 {
 	hawk_rgx_t* rgx;
@@ -76,13 +79,20 @@ struct exec_t
 		hawk_arr_t set[2]; /* candidate arrays */
 	} cand;
 
-	/* Suspended epsilon traversals, reused throughout this execution. */
+	/* suspended epsilon traversals, reused throughout this execution. */
 	struct
 	{
 		cand_frame_t* ptr;
 		hawk_oow_t size;
 		hawk_oow_t capa;
 	} stack;
+
+	struct
+	{
+		hawk_htb_t* seen;
+		hawk_becs_t key;
+		unsigned int choices;
+	} epsilon;
 
 	hawk_oow_t nmatches;
 	int failed; /* a candidate callback can fail even on the final array slot */
@@ -163,8 +173,8 @@ struct cand_frame_t
 	enum cand_resume_t resume;
 };
 
-/* Grow a full compiler/executor stack without overflowing either the entry
- * count or the allocation size. Leave its old storage intact on failure. */
+/* grow a full compiler/executor stack without overflowing either the entry
+ * count or the allocation size. leave its old storage intact on failure. */
 static void* grow_stack (
 	hawk_gem_t* gem, void* ptr, hawk_oow_t* capa, hawk_oow_t unitsize)
 {
@@ -631,7 +641,7 @@ static int cc_isgraph (exec_t* e, hawk_ooch_t c) { return hawk_is_ooch_graph(c);
 
 static int cc_islower (exec_t* e, hawk_ooch_t c)
 {
-	if (e->rgx->option & HAWK_RGX_IGNORECASE) return hawk_is_ooch_alpha(c);
+	if (e->rgx->option & HAWK_RGX_IGNORECASE) c = hawk_to_ooch_lower(c);
 	return hawk_is_ooch_lower(c);
 }
 
@@ -641,11 +651,11 @@ static int cc_isspace (exec_t* e, hawk_ooch_t c) { return hawk_is_ooch_space(c);
 
 static int cc_isupper (exec_t* e, hawk_ooch_t c)
 {
-	if (e->rgx->option & HAWK_RGX_IGNORECASE) return hawk_is_ooch_alpha(c);
+	if (e->rgx->option & HAWK_RGX_IGNORECASE) c = hawk_to_ooch_upper(c);
 	return hawk_is_ooch_upper(c);
 }
 
-static int cc_isxdigit (exec_t* e, hawk_ooch_t c) { return hawk_is_ooch_xdigit (c); }
+static int cc_isxdigit (exec_t* e, hawk_ooch_t c) { return hawk_is_ooch_xdigit(c); }
 
 static int cc_isword (exec_t* e, hawk_ooch_t c)
 {
@@ -1128,7 +1138,7 @@ static hawk_rgx_node_t* comp_atom (comp_t* com, int first)
 	atom->occ.min = 1;
 	atom->occ.max = 1;
 
-	/* BRE anchors cannot be repeated. Leave a following '*' to be
+	/* BRE anchors cannot be repeated. leave a following '*' to be
 	 * parsed as a literal atom rather than creating an empty loop. */
 	if (com->c.special && ((com->rgx->option & HAWK_RGX_EXTENDED) || !assertion))
 	{
@@ -1715,11 +1725,62 @@ static int bettercaptures (exec_t* e, const group_t* group)
 	return 0;
 }
 
-/* addcands() function add a candicate from candnode.
- * if candnode is not a simple node, it traverses further
- * until it reaches a simple node. prevnode is the last
- * GROUPEND node visited during traversal. if no GROUPEND
- * is visited yet, it can be any starting node */
+/* remember an epsilon choice as an immutable value, not a pointer to its
+ * mutable group stack. The fields mirror comp_cand(): absolute capture
+ * revisions and group reference counts are bookkeeping, not matching state.
+ * return 1 for a new state, 0 for a duplicate, and -1 on allocation failure. */
+static int remember_epsilon (
+	exec_t* e, const group_t* group, const hawk_rgx_node_t* node,
+	const hawk_rgx_node_t* prevnode, const hawk_ooch_t* mptr)
+{
+	hawk_oow_t words[4], i, size;
+	const group_t* g;
+
+	if (!e->epsilon.seen)
+	{
+		e->epsilon.seen = hawk_htb_open(e->rgx->gem, 0, 128, 75, 1, 1);
+		if (!e->epsilon.seen) return -1;
+		hawk_htb_setstyle(e->epsilon.seen, hawk_get_htb_style(HAWK_HTB_STYLE_INLINE_KEY_COPIER));
+	}
+
+	hawk_becs_clear(&e->epsilon.key);
+
+	words[0] = (hawk_oow_t)node;
+	words[1] = (hawk_oow_t)prevnode;
+	words[2] = (hawk_oow_t)mptr;
+	words[3] = (group != HAWK_NULL);
+
+	if (hawk_becs_ncat(&e->epsilon.key, (const hawk_bch_t*)words, HAWK_SIZEOF(words)) == (hawk_oow_t)-1) return -1;
+
+	if (group)
+	{
+		for (i = 0; i < e->ncaps; i++)
+		{
+			words[0] = (hawk_oow_t)group->u.caps.ptr[i].ptr;
+			words[1] = group->u.caps.ptr[i].len;
+			if (hawk_becs_ncat(&e->epsilon.key, (const hawk_bch_t*)words, 2 * HAWK_SIZEOF(*words)) == (hawk_oow_t)-1) return -1;
+		}
+
+		for (g = group->next; g; g = g->next)
+		{
+			words[0] = (hawk_oow_t)g->node;
+			words[1] = g->occ;
+			words[2] = (hawk_oow_t)g->u.start;
+			words[3] = (g->revision == group->revision);
+			if (hawk_becs_ncat(&e->epsilon.key, (const hawk_bch_t*)words, HAWK_SIZEOF(words)) == (hawk_oow_t)-1) return -1;
+		}
+	}
+
+	size = hawk_htb_getsize(e->epsilon.seen);
+
+	if (!hawk_htb_ensert(e->epsilon.seen, HAWK_BECS_PTR(&e->epsilon.key), HAWK_BECS_LEN(&e->epsilon.key), HAWK_NULL, 0)) return -1;
+
+	return hawk_htb_getsize(e->epsilon.seen) != size;
+}
+
+/* addcands() adds a candidate from candnode. for a non-simple node, traverse
+ * further until reaching a simple node. prevnode is the last GROUPEND node
+ * visited during traversal, or an arbitrary starting node before then. */
 static int addcands (
 	exec_t* e, group_t* group, hawk_rgx_node_t* prevnode,
 	hawk_rgx_node_t* candnode, const hawk_ooch_t* mptr)
@@ -1743,6 +1804,27 @@ warpback:
 
 	/* nothing to add */
 	if (curcand == HAWK_NULL) goto done;
+
+	/* equivalent choices can be reached repeatedly without consuming input,
+	 * especially through nested nullable alternatives. candidate deduplication
+	 * alone is too late: it happens after this traversal reaches an atom.
+	 * plain groups and straight-line nodes need no visited-state lookup. */
+	if (e->ncaps && (curcand->id == HAWK_RGX_NODE_BRANCH ||
+	    (curcand->id == HAWK_RGX_NODE_GROUPEND && !curcand->u.ge.pseudo &&
+	     curcand->u.ge.group->occ.min < curcand->u.ge.group->occ.max)))
+	{
+		/* a few choices are cheaper to traverse directly. keep the common
+		 * case free of hash-table and capture-key allocation overhead. */
+		if (e->epsilon.choices < EPSILON_CACHE_THRESHOLD) e->epsilon.choices++;
+		else
+		{
+			int n;
+
+			n = remember_epsilon(e, group, curcand, prevnode, mptr);
+			if (n <= -1) goto oops;
+			if (n == 0) goto done;
+		}
+	}
 
 	switch (curcand->id)
 	{
@@ -2324,6 +2406,8 @@ static int exec (exec_t* e)
 
 	/* empty the pending set to collect the initial candidates */
 	hawk_arr_clear(&e->cand.set[e->cand.pending]);
+	e->epsilon.choices = 0;
+	if (e->epsilon.seen) hawk_htb_clear(e->epsilon.seen);
 
 	/* the first node must be the START node */
 	HAWK_ASSERT(e->rgx->code->id == HAWK_RGX_NODE_START);
@@ -2368,6 +2452,11 @@ static int exec (exec_t* e)
 
 		/* clear the pending set */
 		hawk_arr_clear(&e->cand.set[e->cand.pending]);
+		e->epsilon.choices = 0;
+		/* share visited states across this round's epsilon traversals, but
+		 * release them before the next round so storage does not accumulate
+		 * for every input position in a long match. */
+		if (e->epsilon.seen) hawk_htb_clear(e->epsilon.seen);
 
 #ifdef XTRA_DEBUG
 		{
@@ -2551,12 +2640,15 @@ static int init_exec_dds (exec_t* e, hawk_gem_t* gem)
 	hawk_arr_setstyle(&e->cand.set[0], &cand_style);
 	hawk_arr_setstyle(&e->cand.set[1], &cand_style);
 
+	hawk_becs_init(&e->epsilon.key, gem, 0);
 	return 0;
 }
 
 static void fini_exec_dds (exec_t* e)
 {
 	HAWK_ASSERT(e->stack.size == 0);
+	if (e->epsilon.seen) hawk_htb_close(e->epsilon.seen);
+	hawk_becs_fini(&e->epsilon.key);
 	if (e->stack.ptr) hawk_gem_freemem(e->rgx->gem, e->stack.ptr);
 	hawk_arr_fini(&e->cand.set[1]);
 	hawk_arr_fini(&e->cand.set[0]);
