@@ -44,7 +44,10 @@ the program's `BEGIN` blocks.
 
 # LEXICAL CONVENTIONS
 
-Identifiers name variables, parameters, and functions. `#` starts a comment
+Identifiers begin with a letter or underscore, followed by letters, digits,
+or underscores. They are case-sensitive; character classification depends on
+the build's character support. Keywords cannot ordinarily be identifiers.
+`#` starts a comment
 extending to the end of the line. Modern mode also supports `/* ... */` comments.
 Semicolons separate statements; newlines normally terminate statements too.
 
@@ -56,6 +59,250 @@ Function argument lists, array literals, and map literals can span lines,
 including a newline after the opening delimiter and before the closing one.
 Keep a direct function name or indexed callable adjacent to its opening `(`
 to avoid ambiguity with implicit concatenation.
+
+Integers support decimal, leading-zero octal, `0o` octal, `0x` hexadecimal,
+and `0b` binary notation. Floating-point forms include `1.5`, `.5`, and `1e3`.
+A leading sign is a unary operator, not part of a numeric token. Raw literals
+such as `@r"C:\path"` and `@rb"\n"` leave backslashes unchanged.
+
+The reserved words are:
+
+```text
+@argc @argv @const @exit @false @global @include @include_once
+@local @nil @pragma @reset @true
+BEGIN END break case continue default delete do else exit for
+function func getbline getline if in next nextfile nextofile
+print printf return switch while
+```
+
+Some ordinary keywords depend on enabled features and can occur as module
+symbol names after `::`. Built-in variable and function names also have
+definition restrictions.
+
+# GRAMMAR
+
+The following EBNF describes the parser's main syntax in modern mode. Quoted
+text is literal syntax; `|` separates alternatives, `[ ... ]` is optional,
+and `{ ... }` means zero or more repetitions. `identifier`, `integer`,
+`float`, `string`, `character`, `byte-string`, `byte-character`, and `regex`
+are lexical tokens. `end` means a semicolon or significant newline.
+Unquoted parentheses group alternatives; semicolons ending productions are
+grammar notation. Backslashes inside quoted grammar tokens are literal.
+
+Spacing and newline rules are described separately below; the productions
+omit optional blank lines between program units and statements. The grammar
+does not replace checks for valid assignment targets, declarations, argument
+counts, execution context, or enabled features.
+
+## Program units and declarations
+
+```text
+program         = { unit } ;
+unit            = global-decl | const-decl | function-def | directive
+                | "BEGIN" block | "END" block | rule ;
+rule            = block | pattern block | pattern end ;
+pattern         = expression [ "," expression ] ;
+directive       = ("@include" | "@include_once") string [ ";" ]
+                | "@pragma" identifier pragma-value [ ";" ] ;
+pragma-value    = identifier | integer ;
+global-decl     = "@global" declarator { "," declarator } end ;
+local-decl      = "@local" declarator { "," declarator } end ;
+const-decl      = "@const" const-declarator { "," const-declarator } end ;
+declarator      = identifier [ "=" conditional ] ;
+const-declarator = identifier "=" conditional ;
+function-def    = function-keyword identifier "(" [ parameters ] ")" block ;
+function-keyword = "function" | "func" ;
+parameters      = "..." | parameter { "," parameter } [ "," "..." ] ;
+parameter       = [ "&" ] identifier ;
+block           = "{" { block-decl } { statement } "}" ;
+block-decl      = local-decl | const-decl | include-directive ;
+include-directive = ("@include" | "@include_once") string [ ";" ] ;
+```
+
+A rule with two patterns is an inclusive range: matching the first starts
+the range and matching the second ends it. A pattern without an action has
+the implicit action `print $0`; the last such pattern may end at end of file.
+`BEGIN` and `END` require explicit blocks. Multiple blocks run in source order.
+
+`@global` is a top-level declaration. `@local` and block-scoped `@const`
+belong at the beginning of their block, before executable statements. Use a
+nested block to introduce declarations later. Includes are also accepted in
+this declaration region; included text must be valid at its insertion point.
+Pragma values depend on the named pragma.
+
+Initializers use conditional expressions at their outermost level, so
+`@local x = y = 10` is not accepted. Parenthesized subexpressions use the
+general expression grammar: `@local x = (y = 10)` is accepted when `y` is
+available under the current declaration rules. Initializers may call functions
+and use runtime values; `@const` requires an initializer and prohibits later
+assignment to the declared constant.
+
+## Statements
+
+```text
+statement       = block | ";" | expression end
+                | "if" "(" expression ")" statement [ "else" statement ]
+                | "while" "(" expression ")" statement
+                | "do" statement "while" "(" expression ")" end
+                | "for" "(" [ expression ] ";" [ expression ] ";"
+                            [ expression ] ")" statement
+                | "for" "(" variable "in" container ")" statement
+                | "switch" "(" expression ")" "{" { switch-arm } "}"
+                | "break" end | "continue" end
+                | "return" [ expression ] end
+                | ("exit" | "@exit") [ expression ] end
+                | ("next" | "nextfile" | "nextofile") end
+                | "delete" delete-target end
+                | "@reset" reset-target end
+                | output end ;
+switch-arm      = ("case" case-literal | "default") ":" { statement } ;
+case-literal    = integer | float | string | character
+                | byte-string | byte-character ;
+delete-target   = variable | "(" variable ")" ;
+reset-target    = identifier | "(" identifier ")" ;
+```
+
+The final simple statement or block declaration before `}` may omit its
+terminator. `else` binds to the nearest unmatched `if`.
+`break` requires a loop or switch; `continue`
+requires a loop. Switch arms fall through unless control leaves them, and
+only one `default` is allowed. A case label is a literal token, not a general
+constant expression; for example, `case 1:` is valid but `case 1 + 1:` is not.
+
+Here `variable` is a named variable, parameter, or indexed variable;
+`container` is a variable holding a map or array, or `@argv`. `delete` accepts
+an element or an entire container; `@reset` requires an unindexed variable.
+Neither operation accepts an arbitrary expression or field reference.
+
+## Expressions and precedence
+
+Each binary level below associates left to right. Assignment associates
+right to left, and the conditional operator nests in its expression arms.
+`concat-op` is `%%` or implicit adjacency when blank concatenation is enabled.
+
+```text
+expression      = conditional [ assignment-op expression ] ;
+conditional     = logical-or [ "?" expression ":" expression ] ;
+logical-or      = logical-and { "||" logical-and } ;
+logical-and     = membership { "&&" membership } ;
+membership      = matching { "in" matching } ;
+matching        = bitwise-or { ("~" | "!~") bitwise-or } ;
+bitwise-or      = bitwise-xor { "|" bitwise-xor } ;
+bitwise-xor     = bitwise-and { "^^" bitwise-and } ;
+bitwise-and     = equality { "&" equality } ;
+equality        = relational { ("==" | "!=" | "===" | "!==") relational } ;
+relational      = shift { ("<" | "<=" | ">" | ">=") shift } ;
+shift           = concatenation { ("<<" | ">>") concatenation } ;
+concatenation   = additive { concat-op additive } ;
+additive        = multiplicative { ("+" | "-") multiplicative } ;
+multiplicative  = unary { ("*" | "/" | "\" | "%") unary } ;
+unary           = unary-op unary | power ;
+power           = power-operand { ("^" | "**") power-operand } ;
+power-operand   = unary-op unary | increment ;
+unary-op        = "+" | "-" | "!" | "~" ;
+increment       = [ "++" | "--" ] primary [ "++" | "--" ] ;
+assignment-op   = "=" | "+=" | "-=" | "*=" | "/=" | "\=" | "%="
+                | "^=" | "**=" | "%%=" | "<<=" | ">>="
+                | "&=" | "^^=" | "|=" ;
+```
+
+Read these levels from lowest binding strength (`expression`) to highest
+(`primary`). Assignment and increment/decrement require writable variables
+or fields. A single increment expression cannot have both a prefix and a
+postfix operator. The right operand of `in` must designate a container.
+
+Hawk's exponentiation currently associates left to right: `2 ^ 3 ^ 2`
+means `(2 ^ 3) ^ 2`. A leading unary sign binds less tightly than a power,
+so `-2 ^ 2` means `-(2 ^ 2)`. A unary operand on the right can consume
+another power; use parentheses for an unambiguous exponent chain.
+
+## Primary expressions, indexing, and calls
+
+```text
+primary         = atom { ("|" | "|&") input-op [ lvalue ] } ;
+atom            = scalar | variable | module-symbol | call | field
+                | "(" expression { "," expression } ")"
+                | array-literal | map-literal | function-literal
+                | "@argc" | "@argv" [ "[" expression "]" ]
+                | input-op [ lvalue ] [ "<" atom ] ;
+scalar          = integer | float | string | character
+                | byte-string | byte-character | regex
+                | "@nil" | "@true" | "@false" ;
+variable        = identifier { index } ;
+index           = "[" expression { "," expression } "]" | "." identifier ;
+module-symbol   = identifier "::" identifier ;
+call            = (identifier | module-symbol) "(" [ arguments ] ")"
+                | indexed-variable "(" [ arguments ] ")" ;
+indexed-variable = identifier index { index } ;
+arguments       = expression { "," expression } ;
+field           = "$" primary ;
+lvalue          = variable | field ;
+function-literal = function-keyword "(" [ parameters ] ")" block ;
+array-literal   = "@[" [ arguments | entries ] "]" ;
+map-literal     = "@{" [ entries ] "}" ;
+entries         = expression ":" expression { "," expression ":" expression } ;
+input-op        = "getline" | "getbline" ;
+```
+
+The pipe form above applies only when `|` or `|&` is followed by an input
+keyword; otherwise `|` is bitwise OR. Compound filenames after `<` should be
+parenthesized, for example `getline line < (prefix %% suffix)`.
+
+`a[x, y]` is an AWK composite map key joined using `SUBSEP`; it differs from
+the nested access `a[x][y]`. Dot access requires an identifier and means a
+string key. Thus `a.name` means `a["name"]`, while `a.1` is not dot access.
+In non-tolerant mode, a comma group is generally restricted to membership,
+as in `(x, y) in a`, and parenthesized output arguments. Tolerant mode also
+permits general comma groups, whose result is the last expression.
+
+`xcall` enables calls through indexed variables and function literals.
+There is no general postfix-call or postfix-index operator for arbitrary
+expressions: `a.b(1)` is supported, but `a.b(1)(2)` is not a chained call,
+and `(a.b)(1)` is not an indirect call. With blank concatenation enabled,
+such adjacent parenthesized expressions can instead mean concatenation.
+
+Named functions may have whitespace before `(` when the parser can identify
+them as functions. For variable and indexed calls, keep `(` adjacent to the
+callable name or closing `]`. Some intrinsic functions, notably `length`,
+also accept the AWK form without parentheses; this is not general call syntax.
+
+## Output syntax
+
+```text
+output          = "print" [ output-arguments ] [ redirection ]
+                | "printf" output-arguments [ redirection ] ;
+output-arguments = arguments | "(" arguments ")" ;
+redirection     = (">" | ">>" | "|" | "|&") expression ;
+```
+
+`print` without arguments prints `$0`; `printf` requires a format argument.
+Output has context-sensitive parsing: `print x > y` redirects, whereas
+`print (x > y)` prints a comparison. Parenthesize bitwise OR and right shifts
+similarly. Tolerant mode additionally permits `print` and `printf` within
+expressions. Runtime I/O must be enabled, and `|&` also requires `rwpipe`.
+
+## Newlines and feature switches
+
+With newline recognition enabled, these rules supplement the grammar:
+
+- `BEGIN` or `END` and the opening `{` must share a line. A pattern's action
+  must start on that line too; ending the pattern line selects its implicit
+  action. A function body may start on a later line after its parameter list.
+- Call arguments and container literals allow any number of newlines after
+  their opening delimiter, after a comma (or an entry colon), and before
+  their closing delimiter. Trailing commas are not accepted. Put a separating
+  comma or colon before a line break, not at the start of the next line.
+- The same relaxation does not generally apply to grouping parentheses,
+  subscripts, control-condition parentheses, or function parameter lists.
+  Parameter lists do permit newlines after a comma.
+- Newlines may follow `&&` and `||`. For other expression continuations,
+  use a backslash immediately followed by a newline. A CRLF continuation is
+  accepted too. With newline recognition disabled, use explicit semicolons.
+
+Grammar extensions depend on the runner's traits and build options. In
+particular, blank concatenation, tolerant parsing, pattern-action blocks,
+runtime I/O, and extended calls can be disabled. Select explicit parentheses
+and separators when writing code intended for different modes.
 
 # VALUES AND TYPES
 
@@ -101,8 +348,9 @@ declared by their parameter lists.
 
 `@global` declares program-wide variables. `@local` declares block-local
 variables. Both accept initializers and comma-separated declarators.
-`@const` declares a constant evaluated during parsing; its value cannot be
-reassigned. Constant expressions must be resolvable at parse time.
+`@const` declares an initialized constant whose value cannot be reassigned.
+Initializers execute at runtime: top-level initializers run before `BEGIN`
+processing, and block initializers run when their block is entered.
 
 ```awk
 @pragma implicit off
@@ -120,8 +368,8 @@ function add(value)
 BEGIN { print add(5), add(3) }
 ```
 
-Declaration initializers have their own parsing restrictions. In particular,
-nested assignment expressions such as `@global x = (y = 10)` are not allowed.
+Declaration initializers have their own parsing restrictions; see the grammar
+above for assignment expressions within initializers.
 
 # ARRAYS AND MAPS
 
@@ -260,6 +508,9 @@ output console when that feature is enabled.
 can be supplied for the runner's exit status. `@exit` aborts execution without
 the normal `END` processing.
 
+`return` is also accepted in `BEGIN` and `END` blocks. `next` and `nextfile`
+are not allowed directly in those blocks.
+
 # INPUT AND OUTPUT
 
 `print` separates its arguments with `OFS` and appends `ORS`. `printf` formats
@@ -270,6 +521,17 @@ text. Use `%d`, `%f`, and `%s` for familiar numeric and string formatting.
 Sparse arrays display explicit indexes. Rendering is bounded and can include
 `<cycle>`, `<depth-limit>`, or `<truncated>` markers. This is not JSON; use
 `json::stringify()` for interchange.
+
+Nested strings and map keys are quoted, byte strings retain their `@b`
+prefix, and control characters and non-ASCII values are escaped. Map order
+follows the underlying container. Rendering uses a heap stack, with default
+limits of 32 nested containers, 4,096 output characters, and 16,384 traversal
+steps, including scanning empty array slots and map buckets. Truncation closes
+container delimiters; format precision can further shorten the result.
+
+C embedders can select `HAWK_RTX_VALTOSTR_REPR` in `hawk_rtx_valtostr()`, or
+call `hawk_rtx_valtorepr()` with a `hawk_rtx_valrepr_opt_t` for custom depth,
+size, and work limits. Zero limit fields select defaults.
 
 ```awk
 BEGIN {
@@ -298,6 +560,28 @@ Pipes use `print value | command` and `command | getline variable`. Two-way
 pipes use `|&`; `close(command, "to")` closes the writing direction so the
 child can finish before its output is read.
 
+For example, send records to a command, close its input, then read its output:
+
+```awk
+BEGIN {
+	@local command = "sort", line
+	print "world" |& command
+	print "hello" |& command
+	close(command, "to")
+	while ((command |& getline line) > 0) print line
+	close(command)
+}
+```
+
+CSV-style splitting is selected by an `FS` starting with `?` followed by
+four characters: separator, escaper, opening quote, and closing quote.
+For comma-separated fields with doubled double quotes, use:
+
+```awk
+BEGIN { FS = "?,\"\"\"" }
+{ print NF, $1 }
+```
+
 Useful built-in functions include `length`, `index`, `substr`, `split`,
 `match`, `sub`, `gsub`, `sprintf`, `tolower`, `toupper`, and `close`.
 Additional functions are described in [hawk-modules(7)](hawk-modules.7.md).
@@ -316,6 +600,13 @@ Additional functions are described in [hawk-modules(7)](hawk-modules.7.md).
 - `ENVIRON`: environment supplied to the runtime and its child processes.
 - `IGNORECASE`: case-insensitive matching and comparison control.
 - `PIPECLOEXEC`: descriptor inheritance policy for external pipe commands.
+
+`ENVIRON` affects children started through pipes and `sys::system()`.
+Changing it does not change the embedding application's process environment.
+Imported values can become numeric values depending on conversion settings.
+`PIPECLOEXEC = 1` enables close-on-exec for pipe-command descriptors;
+`@pragma pipecloexec` sets its initial policy. `nextofile` advances among
+output consoles supplied with the runner's `-t` option.
 
 # PRAGMAS
 
@@ -339,10 +630,26 @@ program-wide. Include files have their own file-scoped pragma state. Defaults
 depend on the runner's selected traits; command-line feature defaults are
 shown by `hawk --help`.
 
+`defermodsym on` delays resolving module functions and constants until their
+expressions execute, allowing unexecuted branches to reference optional
+modules. `striprecspc` applies when the field separator is a regular expression
+matching spaces; it controls removal of leading and trailing empty fields.
+`stripstrspc` instead controls trimming around string-to-number conversions.
+
 `stack_limit` does not allocate or enlarge the native C stack. On supported
 builds, native stack bounds are checked separately before recursive evaluation.
 Embedding callbacks and native extensions remain responsible for their own
 stack use.
+
+When the necessary APIs are detected on Linux, macOS, FreeBSD, NetBSD,
+OpenBSD, Haiku, or Windows, the runtime reserves 64 KiB of native stack
+headroom and reports `HAWK_ESTACK` before recursive evaluation exhausts it.
+Bounds are refreshed at host execution entry, including callback reentry and
+sequential use of a runtime context on different threads. Failure to obtain
+valid bounds on such a build is a runtime error. Hosts must enter with enough
+stack for initialization and error handling and must not change active stack
+limits during execution. Other builds retain the value-stack and logical
+recursion limits.
 
 # INCLUDE FILES
 
