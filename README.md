@@ -12,10 +12,16 @@ The library is stable, portable, and designed for projects that need a scripting
 - [Building Hawk From Source Code](#building-hawk-from-source-code)
 - [Embedding Hawk in C Applications](#embedding-hawk-in-c-applications)
 - [Embedding Hawk in C++ Applications](#embedding-hawk-in-c-applications-1)
+- [Running Hawk](#running-hawk)
+	- [Cut, Sed, and M4 command modes](#cut-sed-and-m4-command-modes)
+	- [Embeddable shell and --sh](#embeddable-shell-and---sh)
+	- [Embeddable Mustache engine](#embeddable-mustache-engine)
+	- [Go HTTP server mode](#go-http-server-mode)
+	- [HTTP request and response helpers](#http-request-and-response-helpers)
+	- [Generic aux services](#generic-aux-services)
+	- [Go console I/O callbacks](#go-console-io-callbacks)
 - [Language](#language)
 	- [What Hawk Is](#what-hawk-is)
-	- [Running Hawk](#running-hawk)
-		- [Cut, Sed, and M4 command modes](#cut-sed-and-m4-command-modes)
 	- [Language Reference](#language-reference)
 	- [Some Examples](#some-examples)
 	- [Garbage Collection](#garbage-collection)
@@ -303,14 +309,7 @@ Embedding Hawk within a C++ application involves the following key steps:
 
 The C++ classes are inferior to the C equivalents in that they don't allow creation of multiple runtime contexts over a single hawk instance.
 
-# Language
-
-## What Hawk Is
-
-Hawk is an embeddable awk interpreter with extensions. It can run hawk/awk scripts from the CLI or from C/C++ and provides modules like `str::`, `sys::`, `digest::`, `json::`, `sed::`, `ffi::`, `mysql::`, and `sqlite::`.
-
-
-## Running Hawk
+# Running Hawk
 
 Run a script file:
 
@@ -324,7 +323,7 @@ Run an inline program:
 $ echo "a,b,c" | hawk 'BEGIN{FS=","} {print $2}'
 ```
 
-### Cut, Sed, and M4 command modes
+## Cut, Sed, and M4 command modes
 
 The `hawk` executable also provides embedded cut, sed, and m4 processors. The
 mode switch must be the first option so that subsequent arguments are
@@ -386,7 +385,7 @@ $ hawk --m4 -I ./macros document.m4
 Run `hawk --cut --help`, `hawk --sed --help`, or `hawk --m4 --help` for all
 mode-specific options.
 
-### Embeddable shell and `--sh`
+## Embeddable shell and `--sh`
 
 `hawk --sh -c 'command'` runs the Hawk simple-command shell. Use
 `hawk --sh script.sh` or feed commands on standard input. Terminal input
@@ -447,7 +446,7 @@ subshell groups, globbing, field splitting, positional parameters, and command
 substitution are not implemented. Parameter expansion currently preserves each
 input word as one argument.
 
-### Embeddable Mustache engine
+## Embeddable Mustache engine
 
 `hawk-mus.h` provides `hawk_mus_t`, a standalone template engine with no JSON,
 interpreter, or third-party-library dependency. Its core is `lib/mus.c`; stock
@@ -512,7 +511,7 @@ rejected. Unused fields are not inspected. The optional partial directory list
 uses the platform path-list separator. Configure with `--enable-mod-mus=no`
 to disable the module or `--enable-mod-mus=yes` for a dynamic module.
 
-### Go HTTP server mode
+## Go HTTP server mode
 
 `hawkgo --httpd` runs an HTTP application server using Go's standard library.
 Repeat `--listen` for multiple HTTP endpoints. For HTTPS, use `--tls-listen`
@@ -595,7 +594,7 @@ Hawk code or free its runtime. Request cancellation currently stops queued
 requests but does not interrupt an executing script. Instances have one
 start/stop lifecycle. Use `hawkgo --httpd --help` for command-line options.
 
-### HTTP request and response helpers
+## HTTP request and response helpers
 
 The optional C `http::` module works with HawkHttpd and other hosts that attach
 an HTTP context to the runtime. It is enabled by default; configure with
@@ -653,7 +652,7 @@ examples. Its pages are rendered with `mus::`, request handlers are Hawk
 scripts, and the browser uses plain JavaScript. Run
 `samples/web-workbench/run.sh` after building `hawk` and `hawkgo`.
 
-### Generic aux services
+## Generic aux services
 
 `hawk-aux.h` provides a per-runtime bridge for embedding applications to register
 services under numeric IDs. Each runtime has its own slots; multiple services
@@ -709,7 +708,7 @@ The HTTP module and its hosts resolve the same `HAWK_HTTP_AUX_NAME`
 response commitment rules belong to the module's protocol, while registration
 and dispatch use the generic aux API.
 
-### Go console I/O callbacks
+## Go console I/O callbacks
 
 Before executing a Go runtime, use `rtx.SetConsoleIO(reader, writer)` to connect
 its console input/output to any standard Go `io.Reader` and `io.Writer`.
@@ -731,6 +730,12 @@ Check `rtx.ConsoleError()` for console failures, including errors handled by
 first `Exec`, `Loop`, or `Call`; each runtime owns its callback state and must
 not be used concurrently. This interface is independent of HTTP and can also
 support other embedding applications.
+
+# Language
+
+## What Hawk Is
+
+Hawk is an embeddable awk interpreter with extensions. It can run hawk/awk scripts from the CLI or from C/C++ and provides modules like `str::`, `sys::`, `digest::`, `json::`, `sed::`, `ffi::`, `mysql::`, and `sqlite::`.
 
 ## Language Reference
 
